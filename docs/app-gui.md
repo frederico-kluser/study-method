@@ -9,6 +9,7 @@ processos, fiação IPC, segurança, contratos e o mapa de ondas. Tudo abaixo se
 > - Fluxo de produto, chaves, envs, run/dev → `app/README.md`
 > - Manual do usuário, arquitetura, contratos, decisões e limitações → **este documento**
 > - Contrato de canais e tipos congelados → `app/shared/ipc-contract.ts`
+> - Prompt da **logo** p/ o Nano Banana 2 (fal.ai) → `docs/nano-banana-2-logo-prompt.md`
 
 ---
 
@@ -32,6 +33,11 @@ solução.
      **ative**; depois selecione **Modelo local** em "Provedor de feedback do desafio". Com o
      modelo ativo, o app usa o modelo local como **avaliador do feedback** do Desafio (sem
      depender do DeepSeek); sem modelo ativo, o feedback usa o DeepSeek.
+3. **Primeiro uso:** pós-startup-gate (app liberado) o **quick tour** pode oferecer o tutorial
+   (overlay com spotlight + modal). Você pode Concluir/Skip — não reaparece (persistido). Se
+   pular, reabra pelo botão de ajuda se houver (ver §2.11).
+4. **Tema:** o toggle na AppBar cicla **claro ↔ escuro ↔ sistema** (default segue o SO);
+   a escolha fica salva em `localStorage['theme-mode']` (ver §2.9).
 
 ### 1.3 Aula (aba Aula)
 
@@ -99,7 +105,7 @@ juiz ausente, apply esgotado).
 ```
 ┌────────────────────────── PRODUÇÃO ──────────────────────────┐
 │  Electron main  (processo principal)                          │
-│   ├─ janela única 1280×800 (min 900×600), tema escuro         │
+│   ├─ janela única 1280×800 (min 900×600), claro/escuro (SO)   │
 │   ├─ registerIpcHandlers / Register*Handlers (IPC)           │
 │   ├─ services: settingsStore, PiAgent, deepseek*, runner,     │
 │   │   lesson, brave, research, embeddedLlm                   │
@@ -115,7 +121,9 @@ juiz ausente, apply esgotado).
 ┌───────────────▼───────────────────────────────────────────────┐
 │  Renderer React (SPA sobre file://)                           │
 │  Views: Settings / LessonView / ChallengeView                 │
-│  Editor (CodeMirror) · Terminal (xterm) · apiBridge           │
+│  OnboardingHost (tutorial) · ThemeToggleButton                │
+│  Editor (CodeMirror/Dracula) · Terminal (xterm/Dracula)       │
+│  apiBridge · themeModeState                                   │
 └───────────────────────────────────────────────────────────────┘
 ```
 
@@ -255,12 +263,88 @@ fs-backend — renderer sandboxed), pt-BR default / en fallback. `initI18n()` in
 `languageChanged`, reaplicada no boot. `tests/i18n-wiring.test.ts` trava essa camada (rode via
 `bash tools/t.sh tests`; sem jsdom).
 
-### 2.9 Tema MUI v9 (dark)
+### 2.9 Tema MUI v9 (claro + escuro)
 
-O renderer roda sob `<ThemeProvider theme={theme} defaultMode="dark">` + `<CssBaseline>`
-(`src/main.tsx`, `src/theme.ts`). Componentes da UI (AppBar/Tabs, Stepper, painéis, Select/Menu)
-são **Material UI v9** com style via `sx`; o CSS custom legado em `src/index.css` foi podado
-para variáveis de tema + placeholders (view Início) + CodeMirror/xterm.
+O renderer roda sob `<ThemeProvider theme={theme} defaultMode="system">` + `<CssBaseline>`
+(`src/main.tsx`, `src/theme.ts`). Desde a **onda 11** o app suporta os **dois** esquemas
+(abandonou o dark-only da onda 7):
+
+- **Dois esquemas completos** — `colorSchemes: { light, dark }`, com `primary`
+  custom: `#4f8cff` em **dark**, `#1565c0` (WCAG AA) em **light**.
+- **Default segue o SO** — `defaultMode="system"` → `prefers-color-scheme`
+  (nativeTheme do Electron espelha o SO no Chromium).
+- **Toggle manual** — `ThemeToggleButton` na AppBar cicla `light → dark →
+  system → light` via `useColorScheme()` do MUI. O `colorSchemeSelector:
+  'class'` aplica `.light`/`.dark` no `<html>` (obrigatório: com o default
+  `'media'` o `setMode` não teria efeito). Lógica pura do ciclo em
+  `src/components/theme/themeModeState.ts` (testável sem jsdom).
+- **Persistência** — `modeStorageKey="theme-mode"` → escolha em
+  `localStorage['theme-mode']`, lida no boot e gravada no `setMode`; sem valor
+  salvo = `system`.
+- **Anti-flash** — `cssVariables: true` resolve o scheme sincronamente antes do
+  1º paint, e `primeColorSchemeClass()` (bootstrap de `main.tsx`) aplica a
+  classe no `<html>` antes do render. Não usamos `InitColorSchemeScript` (só
+  anti-flicker SSR e seria bloqueado pelo CSP `script-src 'self'`).
+- Componentes (AppBar/Tabs, Stepper, painéis, Select/Menu) são **Material UI v9**
+  com style via `sx`; o CSS custom legado em `src/index.css` foi podado para
+  variáveis de tema + placeholders (view Início) + CodeMirror/xterm.
+
+### 2.10 Dracula no editor e terminal
+
+Editor CodeMirror usa o tema real Dracula (`@uiw/codemirror-theme-dracula`); o
+terminal xterm pinta a saída com a **mesma** paleta via
+`src/lib/draculaTheme.ts` (`DRACULA = { ... }` nomeada + `hexToRgb` e
+`truecolorForeground` que emitem SGR `38;2;r;g;b` — o xterm ignora o antigo
+`\x1b[<hex>m`). A cor `accent` do terminal = roxo Dracula `#bd93f9`; o
+azul/ciano da shell = `#4f8cff`/`#8be9fd` (Dracula cyan). Editor e terminal
+permanecem **Dracula escuro fixo** nos dois temas da shell (coerência de
+ferramenta de código). O módulo é compartilhado para não duplicar hex mágico.
+
+### 2.11 Tutorial / onboarding (onda 12 + montagem na 13)
+
+Quick tour portado do Ondokai e adaptado ao escopo (4 abas), com **overlay com
+spotlight** no alvo (`OnboardingOverlay`) e **modal** de seleção na 1ª execução
+(`TutorialSelectionModal`).
+
+- **Host** — `OnboardingHost` (`src/features/onboarding/OnboardingHost.tsx`),
+  montado em `src/App.tsx`:
+
+  ```tsx
+  const isReady = startup.status?.phase === 'ready';
+  <OnboardingHost isReady={isReady} activeView={active} />
+  ```
+
+  O host aceita `isReady` (fase do startup-gate — onboarding **nunca** abre antes
+  do app liberado, nem em `offline`) e `activeView` (aba ativa, p/ a dica de
+  navegação e para pular steps cujo alvo não está no DOM).
+- **Estados** (`onboarding.types.ts`): `not_started | in_progress | completed |
+  skipped`. Steps são informativos (título/corpo por chave i18n `tutorial.*` +
+  alvo `data-onboarding-target`), avançados manualmente por "Continuar" (sem
+  auto-avanço). Sem áudio (não portado).
+- **Storage** (`services/onboardingStorage.service.ts`, localStorage):
+  `study-method-onboarding-v1` (progresso + versão), `-offered-v1` (oferta da 1ª
+  execução, one-shot) e `-help-hint-v1` (dica pós-tutorial, reservada). Payloads
+  corrompidos são descartados. Testado em `tests/onboardingStorage.test.ts`.
+- **Reabertura** — `useOnboardingController().openFromHelp()` reabre do início.
+- Cobertura E2E: `tests/e2e/e2e-onboarding.spec.ts` (via `E2E_ONBOARDING=1`).
+
+### 2.12 Janela oculta no E2E e como rodar
+
+O harness E2E roda o **Electron real** sobre o build, mas a janela abre
+**oculta e não-focável** para não sobrepor o desktop do usuário nem roubar foco
+(onda 13). O main lê `STUDY_METHOD_WINDOW_VISIBLE` (`electron/main/index.ts`):
+`'0'` ⇒ `BrowserWindow` nasce com `show:false` + `focusable:false` (o
+`ready-to-show` só revela quando visível); env ausente ⇒ janela visível/focável.
+
+```bash
+npm run build && npm run test:e2e        # 1 worker (Electron não paraleliza)
+xvfb-run -a npm run test:e2e            # sem display (CI), após `npm run build`
+```
+
+A fixture `tests/e2e/helpers.ts` injeta `STUDY_METHOD_WINDOW_VISIBLE='0'` por
+padrão — as duas formas rodam as **mesmas specs**, sem sobrepor o seu desktop.
+Não usamos `--headless` (modo não confirmado para `_electron`). Detalhes em
+`tests/e2e/README.md`.
 
 ---
 
@@ -300,6 +384,9 @@ para variáveis de tema + placeholders (view Início) + CodeMirror/xterm.
 | Onda 7 | **Shell MUI v9 dark** — AppBar+Tabs, Settings/Aula/Desafio migrados de CSS custom para MUI `sx` | `src/theme.ts`, `src/App.tsx`, `src/views/*` |
 | Onda 8 | **Voz local** — STT Nemotron (`stt:*`) + TTS Piper (`localTts:*`), pref persistida no settingsStore | `stt-handlers.ts`, `localTts-handlers.ts`, `src/components/voice/*` |
 | Onda 9 | **E2E Playwright** (`STUDY_METHOD_E2E=1` + stubs) — 8 specs verdes | `playwright.config.ts`, `electron/main/services/e2eStubs.ts` |
+| Onda 11 | **Tema claro+escuro com toggle** (`ThemeToggleButton`, `defaultMode=system` segue SO, localStorage `theme-mode`, anti-flash, primary `#1565c0` light) + **Dracula** no editor e terminal (`draculaTheme.ts`, SGR truecolor no xterm) | `src/theme.ts`, `src/main.tsx`, `src/lib/draculaTheme.ts`, `src/components/theme/*` |
+| Onda 12 | **Tutorial/onboarding** portado do Ondokai (OnboardingHost, overlay+modal, steps, storage localStorage, posicionamento, i18n `tutorial.*`; host montado na Onda 13) | `src/features/onboarding/*` |
+| Onda 13 | **Janela oculta/não-focável no E2E** (`STUDY_METHOD_WINDOW_VISIBLE='0'`) + monta `OnboardingHost` (isReady+activeView) + +3 specs E2E (tema/onboarding/dracula) | `electron/main/index.ts`, `src/App.tsx`, `tests/e2e/*` |
 
 **Contratos congelados (não editar sem atualizar juntos):** `shared/ipc-contract.ts`,
 `eletron/preload/*` (FROZEN), `package.json`/lock, `.npmrc`, `electron.vite.config.ts`.

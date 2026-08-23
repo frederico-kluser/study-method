@@ -64,15 +64,33 @@ Variáveis de caminho/execução:
 - `STUDY_METHOD_LLM_IN_PROCESS` — `=1` roda o motor LLM local no processo principal (dev);
   sem ela o motor sobe num **utility process** dedicado (`llm-engine`).
 
-## Interface (MUI v9, dark) e idioma
+## Interface (MUI v9, claro + escuro) e idioma
 
-- **Material UI v9 + tema escuro (dark-only)**. O renderer inteiro roda dentro de um
-  `<ThemeProvider theme={theme} defaultMode="dark">` + `<CssBaseline>` (único ponto onde o
-  fundo escuro é aplicado no `<body>`), definido em `src/main.tsx` e `src/theme.ts`. Não há
-  toggle claro/escuro — o app é escuro por padrão.
+- **Material UI v9.** O renderer inteiro roda dentro de um
+  `<ThemeProvider theme={theme} defaultMode="system">` + `<CssBaseline>` (único ponto
+  onde o fundo é aplicado no `<body>`, definido em `src/main.tsx` e `src/theme.ts`).
+- **Tema claro + escuro (onda 11)** — o app suporta os **dois** esquemas
+  (`colorSchemes: { light, dark }`), o **default segue o SO**
+  (`defaultMode="system"` → `prefers-color-scheme`/nativeTheme), e um
+  **`ThemeToggleButton`** na AppBar cicla `light → dark → system →
+  light` via `useColorScheme()` do MUI. O `colorSchemeSelector: 'class'`
+  aplica `.light`/`.dark` no `<html>` (obrigatório para o toggle manual
+  funcionar). **Persistência:** `modeStorageKey="theme-mode"` → a escolha fica
+  em `localStorage['theme-mode']`, lida no boot e gravada no `setMode`;
+  sem valor salvo = `system` (segue o SO). **Anti-flash:** com `cssVariables:
+  true` o MUI resolve o scheme de forma síncrona antes do 1º paint, e o
+  bootstrap chama `primeColorSchemeClass()` no `<html>` antes do render. O
+  `primary` é `#4f8cff` em **dark** e `#1565c0` (WCAG AA) em **light**.
+  Lógica pura do ciclo/persistência em `src/components/theme/themeModeState.ts`.
+- **Dracula no editor e terminal (onda 11)** — o editor CodeMirror usa o tema
+  real Dracula (`@uiw/codemirror-theme-dracula`) e o terminal xterm pinta a
+  saída com a **mesma** paleta (`src/lib/draculaTheme.ts`, `DRACULA = { ... }`,
+  `truecolorForeground` para SGR `38;2`). A cor `accent` do terminal é o roxo
+  Dracula `#bd93f9`; o azul/ciano da UI é `#4f8cff`/`#8be9fd`. Editor e terminal
+  permanecem **Dracula escuro fixo** nos dois temas da shell.
 - **Componentes:** AppBar + Tabs (shell), Stepper (fases da aula), painéis/Select/Menu do
-  Desafio e Settings. O CSS custom legado (`src/index.css`) ficou só para variáveis de tema,
-  os placeholders (view Início) e os estilos de CodeMirror/xterm; as views reais usam MUI `sx`.
+  Desafio e Settings. O CSS custom legado (`src/index.css`) ficou só para variáveis de tema
+  + os placeholders (view Início) + os estilos de CodeMirror/xterm; as views reais usam MUI `sx`.
 - **i18n pt-BR/en** (`src/i18n/`): um namespace único `translation`, chaveada via
   `t('translation:<chave>')`. **pt-BR é o default**; `en` é o fallback. Recursos JSON
   embutidos no bundle (sem fs-backend — o renderer roda sandboxed).
@@ -82,6 +100,46 @@ Variáveis de caminho/execução:
   `initI18n()` (inicializa a instância default que o `useTranslation()`/`getI18n()` usam).
 - Teste de **wiring** dessa camada: `tests/i18n-wiring.test.ts` (sem jsdom, roda no
   `bash tools/t.sh tests`).
+
+## Tutorial / onboarding (onda 12 + montagem na 13)
+
+O **quick tour** é portado do app Ondokai e adaptado ao nosso escopo (4 abas):
+um **tutorial interativo** com **overlay com spotlight** no alvo destacado e um
+**modal** na primeira execução.
+
+- **Host:** `OnboardingHost` (`src/features/onboarding/OnboardingHost.tsx`) é
+  montado em `src/App.tsx` assim:
+
+  ```tsx
+  <OnboardingHost isReady={isReady} activeView={active} />
+  ```
+
+  — `isReady` é a fase do startup-gate (`=== 'ready'`: o onboarding **nunca**
+  abre antes de o app estar liberado, nem em `offline`); `activeView` é a aba
+  ativa do shell (usa a **dica de navegação** "vá para a aba X"). Sem
+  `activeView`, steps cujo alvo está em outra aba são pulados.
+- **Estados (persistidos):** `not_started | in_progress | completed | skipped`
+  (`src/features/onboarding/types/onboarding.types.ts`).
+- **Storage (localStorage, `onboardingStorage.service.ts`):**
+  - `study-method-onboarding-v1` → progresso (status + step atual + versão);
+  - `study-method-onboarding-offered-v1` → oferta da 1ª execução já mostrada
+    (one-shot; dismiss não rearma);
+  - `study-method-onboarding-help-hint-v1` → dica pós-tutorial (reservada).
+  A validação descarta payloads corrompidos/desconhecidos.
+- **Reabertura:** `useOnboardingController().openFromHelp()` reabre o tutorial
+  a partir do início (ex.: botão de ajuda).
+- Testes: `tests/onboarding*.test.ts` (node:test) + spec E2E
+  `tests/e2e/e2e-onboarding.spec.ts`.
+
+## Logo (prompt p/ geração)
+
+O **prompt-excelente** da logo do Study Method para o **Nano Banana 2** (fal.ai)
+vive em [`docs/nano-banana-2-logo-prompt.md`](../docs/nano-banana-2-logo-prompt.md):
+identidade visual (azul `#4f8cff` → ciano `#8be9fd`, fundo dark, Dracula `#bd93f9`),
+prompt pronto para colar (versão com placeholders + versão pronta com fundo dark),
+variantes (ícone / com wordmark / mono) e "como usar" (parâmetros na fal, o que
+ajustar e pós-processamento de fundo transparente). Não geramos a imagem — só o
+prompt + guia.
 
 ## Startup-gate (chaves DeepSeek + Brave)
 
@@ -183,15 +241,19 @@ app/
 ├─ shared/ipc-contract.ts      CONTRATO único de canais e tipos (congelado)
 ├─ src/                        renderer React
 │  ├─ views/                   Settings / Aula (LessonView) / Desafio (ChallengeView)
-│  ├─ components/  editor, terminal (xterm), CodeMirror, voice (MicButton/SpeakButton)
-│  └─ lib/                     lógica pura + apiBridge (porta única para window.api)
-└─ tests/                      ~550+ testes (node:test, sem jsdom) + tests/e2e (Playwright)
+│  ├─ features/onboarding/     OnboardingHost (tutorial interativo) + overlay/modal/steps
+│  ├─ components/  editor, terminal (xterm), CodeMirror, voice (MicButton/SpeakButton),
+│  │               theme (ThemeToggleButton + themeModeState)
+│  └─ lib/                     lógica pura (incl. draculaTheme.ts p/ editor⇄terminal)
+│                              + apiBridge (porta única para window.api)
+└─ tests/                      ~620+ testes (node:test, sem jsdom) + tests/e2e (Playwright)
 ```
 
 Três alvos de build (electron-vite): `main` (inclui os processos `llm-engine` e `asr-engine`), `preload` e
 `renderer` (SPA com `base: './'` para rodar sobre `file://`). Camadas:
 
-- **main** — janela (1280×800, min 900×600, tema escuro), ciclo de vida, instance-lock,
+- **main** — janela (1280×800, min 900×600, tema segue o SO com toggle claro/escuro),
+  ciclo de vida, instance-lock,
   handlers IPC, e **todo o tráfego de rede** (DeepSeek/Pi/Brave/download de modelo). O
   renderer não fala com a internet; só com o main via IPC.
 - **preload** — `contextBridge.exposeInMainWorld('api', …)`, `contextIsolation: true`,
