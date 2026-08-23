@@ -457,8 +457,17 @@ Não existe `status: "orphaned"`. O vocabulário é `in_progress | completed | a
 lock_vivo(S) ⇔ existe memory/.session.lock
              ∧ lock.session_id == S.session_id
              ∧ lock.hostname   == hostname desta máquina
-             ∧ kill -0 lock.pid sucede
+             ∧ (lock.pid numérico  ->  kill -0 lock.pid sucede            # via (a)
+                lock.pid == null   ->  agora - lock.started_at ≤ TTL)     # via (b)
 ```
+
+⛑ A última conjunção tem **duas vias** (`docs/00-contratos.md` §7.4), e a via (b) é a **comum**:
+sem `SM_SESSION_OWNER_PID` o lock nasce com `pid: null` e a validade passa a ser o TTL
+`SM_SESSION_LOCK_TTL` (default **28800 s = 8 h**) sobre `started_at`, com *fallback* para o `mtime`
+do lock. `hostname` diferente é órfão **antes** de pid e de TTL. Exigir `pid` não-vazio + `kill -0`
+como critério **único** declara morto todo lock da via (b) e fecha como abandonada a sessão que
+está **em andamento**. O predicado é um só, `sm_session_lock_alive` (§7.1): nenhum script o
+reimplementa.
 
 O `.session.lock` é JSON com `{pid, hostname, session_id, started_at}` e **permanece** no desenho:
 é ele que distingue "o terminal morreu" de "tem outra sessão aberta agora". Tratar toda sessão

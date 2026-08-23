@@ -37,7 +37,10 @@ SCHEMAS="$SK/assets/schemas"
 WORK="$GATE_TMPDIR/smoke"
 export STUDY_METHOD_HOME="$WORK/state"
 export STUDY_METHOD_TODAY="${STUDY_METHOD_TODAY:-2026-08-23}"
-export SM_NOW="2026-08-23T09:00:00-03:00"
+# `SM_NOW` NAO existe: nenhum script a le. A variavel do vocabulario fechado de
+# docs/00-contratos.md §4.4 e `STUDY_METHOD_NOW`, lida por `sm_now_iso` (lib/common.sh).
+# Com o nome errado, esta linha prometia um determinismo que o smoke nao tinha.
+export STUDY_METHOD_NOW="${STUDY_METHOD_TODAY}T09:00:00-03:00"
 export TZ="${TZ:-America/Sao_Paulo}"
 SETUP="$WORK/setup-calculo"
 
@@ -54,7 +57,7 @@ gate_init "smoke — integração ponta a ponta"
 gate_limitation "O modelo NÃO está no laço: as respostas do protocolo REQUEST/APPLY são sintetizadas mecanicamente a partir do \`response_schema\` (§6: \"o gate roda os 19 scripts com respostas fixas\"). O smoke prova o CAMINHO, não a qualidade do julgamento."
 gate_limitation "A validação de JSON usa o verificador mínimo em Python stdlib — cobertura parcial por design (§4.3)."
 gate_note "trabalho em: $WORK"
-gate_note "STUDY_METHOD_HOME=$STUDY_METHOD_HOME · STUDY_METHOD_TODAY=$STUDY_METHOD_TODAY"
+gate_note "STUDY_METHOD_HOME=$STUDY_METHOD_HOME · STUDY_METHOD_TODAY=$STUDY_METHOD_TODAY · STUDY_METHOD_NOW=$STUDY_METHOD_NOW"
 
 # ────────────────────────────────────────────────────── pré-requisitos
 gate_section "PASSO 0 · pré-requisitos"
@@ -341,6 +344,53 @@ done
   || gate_pass "S-02f" ".session.lock removido no fechamento"
 n_sessions="$(printf '%s' "$SESSIONS" | wc -w | tr -d ' ')"
 assert_eq "S-02g" "3 sessões abertas e fechadas" "3" "$n_sessions" "$SETUP/memory"
+
+# ─────────────────────────────────── PASSO 2b · o lock de sessão, vivo × vencido
+# Regressão do modo de falha mais grave que o projeto teve: `memory-index.sh --verify`
+# implementava a regra ANTIGA do lock (pid não-vazio + `kill -0`) e por isso lia como
+# MORTO todo lock da via (b) de §7.4 — `pid: null`, o caso COMUM — fechando como
+# `abandoned` a sessão que estava EM ANDAMENTO, com o aluno no meio da aula.
+# Setup próprio: este passo precisa de uma sessão que fica ABERTA, e a do PASSO 2 fecha.
+gate_section "PASSO 2b · o lock por TTL protege a sessão viva (§7.4)"
+LOCKSETUP="$WORK/setup-lock"
+if "$SCRIPTS/setup-init.sh" "$LOCKSETUP" --subject "Álgebra Linear" --subject-slug algebra \
+     --title "Álgebra" --language python --skill-level beginner --session-minutes 45 \
+     --theory-source student_provided >/dev/null 2>"$GATE_TMPDIR/err.txt"; then
+  LK_N="$("$SCRIPTS/session-new.sh" "$LOCKSETUP" --goal "aula em andamento" 2>"$GATE_TMPDIR/err.txt" | tr -d '[:space:]')"
+  LK_FILE="$LOCKSETUP/memory/$LK_N.json"
+  LK_LOCK="$LOCKSETUP/memory/.session.lock"
+  if [ -n "$LK_N" ] && [ -f "$LK_FILE" ] && [ -f "$LK_LOCK" ]; then
+    assert_eq "S-02h" "sem SM_SESSION_OWNER_PID o lock nasce com pid null (via b de §7.4)" \
+      "null" "$(jq -r '.pid' "$LK_LOCK" 2>/dev/null || echo '?')" "$LK_LOCK"
+
+    "$SCRIPTS/memory-index.sh" "$LOCKSETUP" --verify >/dev/null 2>&1 || true
+    assert_eq "S-02i" "--verify NÃO fecha a sessão viva de lock recente (o aluno está na aula)" \
+      "in_progress" "$(jq -r '.status // "?"' "$LK_FILE" 2>/dev/null || echo '?')" "$LK_FILE"
+
+    # envelhece o lock além do TTL: started_at 9 h antes do relógio congelado (TTL = 8 h)
+    LK_EPOCH="$(date -d "$STUDY_METHOD_NOW" +%s)"
+    LK_OLD="$(date -d "@$(( LK_EPOCH - 32400 ))" +%Y-%m-%dT%H:%M:%S%:z)"
+    jq --arg s "$LK_OLD" '.started_at = $s' "$LK_LOCK" > "$LK_LOCK.aged" \
+      && mv "$LK_LOCK.aged" "$LK_LOCK"
+    touch -d "$LK_OLD" "$LK_LOCK"
+    "$SCRIPTS/memory-index.sh" "$LOCKSETUP" --verify >/dev/null 2>&1 || true
+    assert_eq "S-02j" "--verify fecha como abandonada a sessão cujo lock venceu o TTL" \
+      "abandoned" "$(jq -r '.status // "?"' "$LK_FILE" 2>/dev/null || echo '?')" "$LK_FILE"
+    assert_eq "S-02k" "a órfã recuperada carrega finalized_by auto_orphan_recovery" \
+      "auto_orphan_recovery" "$(jq -r '.finalized_by // "?"' "$LK_FILE" 2>/dev/null || echo '?')" "$LK_FILE"
+    [ -f "$LK_LOCK" ] \
+      && gate_fail "S-02l" "o lock vencido é removido junto com a recuperação" \
+         "sem .session.lock depois de --verify fechar a órfã" "lock presente" "$LK_LOCK" \
+      || gate_pass "S-02l" "o lock vencido é removido junto com a recuperação"
+  else
+    gate_fail "S-02h" "session-new.sh abre a sessão do teste de lock" \
+      "um NNNN.json e um .session.lock em disco" \
+      "$(gate_trunc "$(cat "$GATE_TMPDIR/err.txt")")" "$LOCKSETUP/memory"
+  fi
+else
+  gate_fail "S-02h" "setup-init.sh cria o setup do teste de lock" "exit 0" \
+    "$(gate_trunc "$(cat "$GATE_TMPDIR/err.txt")")" "$SCRIPTS/setup-init.sh"
+fi
 
 # ────────────────────────────────────────────────────── PASSO 3 · desafio Python
 gate_section "PASSO 3 · gerar 1 desafio Python e validá-lo pelo protocolo completo"

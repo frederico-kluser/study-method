@@ -12,6 +12,13 @@ SM_JSON_SCHEMA_CHECKER="${SM_JSON_SCHEMA_CHECKER:-${SM_LIB_DIR:-.}/_jsonschema_m
 SM_PROTOCOL='study-method/request-apply'
 SM_PROTOCOL_VERSION='1.0'
 
+# Onde vivem os quatro `*.response.schema.json` (§3.1). É por aqui que `sm_apply_read`
+# cumpre RA-3 sem depender do envelope do PEDIDO, que ele não vê: o `kind` do envelope e o
+# `response_schema` são 1:1 e de vocabulário FECHADO (§6.5), então o kind resolve o schema.
+# Derivado de SM_LIB_DIR (que já segue o local real da instalação): NÃO é variável de
+# ambiente, e por isso não entra no vocabulário fechado de §4.4.
+SM_RESPONSE_SCHEMA_DIR="${SM_LIB_DIR:-.}/../../assets/schemas/requests"
+
 # sm_json_get <arquivo> <filtro-jq> -> resultado raw (jq -r). 0 · 1 ilegível · 5 não parseia.
 sm_json_get() {
     local file="${1:-}" filter="${2:-.}" out
@@ -146,10 +153,22 @@ sm_request() {
 }
 
 # sm_apply_read <arquivo> <kind> <request_id_esperado> -> .items em JSON compacto.
-# 0 · 2 ausente/ilegível · 5 protocol/protocol_version/kind/request_id divergente
-# ou resposta malformada. Valida o envelope ANTES de devolver qualquer item (RA-2).
+# 0 · 2 ausente/ilegível · 5 protocol/protocol_version/kind/request_id divergente,
+# resposta malformada, ou a RESPOSTA não valida contra o `response_schema` (RA-3).
+# Valida o envelope ANTES de devolver qualquer item (RA-2).
+#
+# ⭐ A validação de schema mora AQUI, e não só em cada consumidor (§7.2). O `response_schema`
+# viaja no envelope do PEDIDO, que esta função não vê — mas não precisa ver: `kind` e
+# `response_schema` são 1:1 num vocabulário FECHADO de quatro valores (§6.5), então o kind
+# do envelope da RESPOSTA resolve o schema sozinho. Kind fora do vocabulário: avisa em
+# stderr e devolve os items sem validar — é o único caso em que a promessa não é cumprida.
+#
+# Forma dos items (§6.2): RESP-1 `items: [<objeto>]` é a canônica; RESP-2 aceita `items`
+# como o objeto direto (devolvido aqui embrulhado em array, para o stdout ser sempre um
+# array); RESP-3 mais de um elemento é 5 — não existe pedido com múltiplas respostas.
 sm_apply_read() {
     local file="${1:-}" kind="${2:-}" want="${3:-}" got items
+    local itype icount body schema
     if [ -z "$file" ] || [ -z "$kind" ] || [ -z "$want" ]; then
         sm_log error "sm_apply_read: uso: sm_apply_read <arquivo> <kind> <request_id_esperado>"
         return 2
@@ -182,11 +201,50 @@ sm_apply_read() {
         sm_log error "sm_apply_read: request_id divergente (o estado em disco mudou entre o pedido e a resposta): esperado $want, recebido ${got:-<ausente>}"
         return 5
     fi
-    if [ "$(jq -r '.items | type' < "$file" 2>/dev/null || printf 'null')" != "array" ]; then
-        sm_log error "sm_apply_read: campo items ausente ou nao e array: $file"
-        return 5
+    itype="$(jq -r '.items | type' < "$file" 2>/dev/null || printf 'null')"
+    case "$itype" in
+        array)
+            icount="$(jq -r '.items | length' < "$file" 2>/dev/null || printf '0')"
+            [[ "$icount" =~ ^[0-9]+$ ]] || icount=0
+            if [ "$icount" -gt 1 ]; then
+                sm_log error "sm_apply_read: items traz $icount elementos; nao existe pedido com multiplas respostas (RESP-3): $file"
+                return 5
+            fi
+            items="$(jq -c '.items' < "$file")" || return 5
+            body="$(jq -c '.items[0] // {}' < "$file")" || return 5
+            ;;
+        object)
+            # RESP-2: `items` veio como o objeto direto. Equivalente, e nao e erro.
+            items="$(jq -c '[.items]' < "$file")" || return 5
+            body="$(jq -c '.items' < "$file")" || return 5
+            ;;
+        *)
+            sm_log error "sm_apply_read: campo items ausente ou nao e array nem objeto: $file"
+            return 5
+            ;;
+    esac
+    # RA-3: a RESPOSTA valida contra o response_schema ANTES de qualquer escrita.
+    # O mapa kind -> arquivo e o de §6.5 + §3.1; e fechado, e o gate o verifica.
+    schema=""
+    case "$kind" in
+        fill_session_fields) schema="session-close.response.schema.json" ;;
+        select_sections)     schema="docs-index.response.schema.json" ;;
+        compact_facts)       schema="memory-compact.response.schema.json" ;;
+        classify_survivor)   schema="challenge-verify.response.schema.json" ;;
+    esac
+    if [ -z "$schema" ]; then
+        sm_log warn "sm_apply_read: kind '$kind' fora do vocabulario de envelope de §6.5; sem response_schema para validar"
+    else
+        schema="$SM_RESPONSE_SCHEMA_DIR/$schema"
+        if [ ! -r "$schema" ]; then
+            sm_log error "sm_apply_read: response_schema de '$kind' ilegivel: $schema"
+            return 5
+        fi
+        if ! sm_json_validate <(printf '%s\n' "$body") "$schema"; then
+            sm_log error "sm_apply_read: a RESPOSTA nao valida contra $(basename -- "$schema") (RA-3); nada pode ser aplicado"
+            return 5
+        fi
     fi
-    items="$(jq -c '.items' < "$file")" || return 5
     printf '%s\n' "$items"
     return 0
 }

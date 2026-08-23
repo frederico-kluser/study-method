@@ -887,11 +887,11 @@ else
   extra="$(comm -13 <(printf '%s\n' "$CANON_FN") <(printf '%s\n' "$REAL_FN") || true)"
   if [ -n "$miss" ] || [ -n "$extra" ]; then
     gate_fail "I-20" "as funções de lib/common.sh e lib/json.sh são exatamente as da tabela §7" \
-      "as 26 funções de §7.1 e §7.2" \
+      "as 27 funções de §7.1 e §7.2" \
       "faltando: $(printf '%s' "$miss" | tr '\n' ' ')| sobrando: $(printf '%s' "$extra" | tr '\n' ' ')" \
       "$(gate_rel "$LIB_DIR")/{common,json}.sh"
   else
-    gate_pass "I-20" "as 26 funções de lib/ batem com a tabela §7"
+    gate_pass "I-20" "as 27 funções de lib/ batem com a tabela §7"
   fi
 
   # I-23 · o `exit 10` é ESCOPO DE FUNÇÃO, não texto de linha. `json.sh:145` está DENTRO de

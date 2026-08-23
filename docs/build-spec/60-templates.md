@@ -19,6 +19,41 @@
 - `runner.sh` é materializado com modo `0755`; os demais artefatos não precisam de bit de
   execução.
 
+### 1.1 ⭐ As marcas de corpo dos stubs — contrato que **não** é placeholder
+
+Além dos `{{…}}`, os **5 templates de stub** carregam um segundo contrato, e ele é **obrigatório**:
+duas **linhas-marca**, escritas no comentário da própria linguagem, em volta do corpo vazio.
+
+| Template de stub | Marca de abertura | Marca de fechamento |
+|---|---|---|
+| `challenge/python/stub.py.tmpl` | `# SM_CORPO_INICIO` | `# SM_CORPO_FIM` |
+| `challenge/node/stub.mjs.tmpl` | `// SM_CORPO_INICIO` | `// SM_CORPO_FIM` |
+| `challenge/go/stub.go.tmpl` | `// SM_CORPO_INICIO` | `// SM_CORPO_FIM` |
+| `challenge/rust/lib.rs.tmpl` | `// SM_CORPO_INICIO` | `// SM_CORPO_FIM` |
+| `challenge/c/stub.c.tmpl` | `/* SM_CORPO_INICIO … */` | `/* SM_CORPO_FIM */` |
+
+Regras:
+
+- **Não são placeholders.** Não usam `{{ }}`, não entram na coluna 3 do `MANIFEST.tsv`, e
+  **sobrevivem** à substituição: continuam no artefato entregue ao aluno, onde servem de instrução
+  ("escreva a sua implementação entre estas duas marcas").
+- `challenge-new.sh` deriva do stub **já materializado**, trocando as linhas **entre** as duas
+  marcas pelo corpo real. É assim que nascem os três oráculos: `.solution/reference.<ext>`,
+  `.solution/reference_alt_recursiva.<ext>` e `.solution/reference_alt_acumulador.<ext>`.
+  (`.solution/empty_stub.<ext>` é cópia **byte a byte** do stub — e por isso também carrega as
+  marcas.)
+- Faltando **qualquer uma** das duas — ou vindo a de fechamento **antes** da de abertura — o script
+  **aborta com exit 1**, nomeia as duas marcas e **remove o desafio parcial**. Não há caminho
+  degradado: sem as marcas não existe onde enxertar o corpo, e um desafio sem oráculo não pode ser
+  gerado. Verificado por execução: template de stub sem `SM_CORPO_FIM` → exit 1 e
+  `challenges/NNNN-<slug>/` apagado.
+- Uma marca por linha, sozinha no seu comentário. O texto **depois** de `SM_CORPO_INICIO` é livre
+  (é o que o aluno lê); o script procura a **linha** que contém a marca, e usa a **última**
+  ocorrência de cada uma.
+- **Quem escrever o 6º template de stub tem de trazer as duas.** Este requisito vivia só dentro do
+  `challenge-new.sh`; agora está aqui, no `MANIFEST.tsv` e em
+  `docs/build-spec/51-challenge-new.md` §5.2/§6.1.
+
 ## 2. `setup/`
 
 | Template | Placeholders | Nota |

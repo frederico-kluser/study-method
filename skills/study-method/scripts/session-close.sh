@@ -332,7 +332,13 @@ sc_finalize() {   # $1 doc, $2 status, $3 finalized_by, $4 finalized_at, $5 vali
   sc_update_registry
 
   sc_chain_one memory-index.sh   "$SM_SETUP_ROOT"
-  sc_chain_one progress-update.sh "$SM_SETUP_ROOT"
+  # `--recompute`, nunca a chamada nua: progress-update.sh exige EXATAMENTE um de
+  # --event | --due | --recompute e sai 2 sem modo (docs/build-spec/41-progresso-readme.md).
+  # A chamada nua saía 2 em silêncio — sc_chain_one só avisa — e memory/progress.json
+  # NUNCA nascia. `--recompute` reconstrói os escalares a partir da evidência acumulada e
+  # CRIA o arquivo quando ausente. Os eventos individuais são emitidos quando o aluno
+  # resolve um desafio, não no fechamento.
+  sc_chain_one progress-update.sh "$SM_SETUP_ROOT" --recompute
   sc_chain_one readme-sync.sh    "$SM_SETUP_ROOT"
   sc_chain_one memory-compact.sh "$SM_SETUP_ROOT" --if-due
 

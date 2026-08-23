@@ -3,6 +3,22 @@
 # Sintaxe de placeholder: {{NOME}} — MAIUSCULA_COM_UNDERSCORE. Nenhum outro delimitador é aceito.
 # O gate (tests/validate.sh) falha se: um template usar placeholder fora desta lista; um script
 # consumir template ausente; ou sobrar {{ }} no artefato materializado.
+#
+# CONTRATO DAS MARCAS DE CORPO (nao e placeholder, e nao usa {{ }}).
+# Os 5 templates de STUB abaixo carregam, em volta do corpo vazio, duas LINHAS-MARCA no
+# comentario da linguagem: SM_CORPO_INICIO e SM_CORPO_FIM.
+#   challenge/python/stub.py.tmpl  challenge/node/stub.mjs.tmpl  challenge/go/stub.go.tmpl
+#   challenge/rust/lib.rs.tmpl     challenge/c/stub.c.tmpl
+# challenge-new.sh deriva do stub JA MATERIALIZADO, trocando as linhas ENTRE as duas marcas
+# pelo corpo real: .solution/reference.<ext>, .solution/reference_alt_recursiva.<ext> e
+# .solution/reference_alt_acumulador.<ext>. (.solution/empty_stub.<ext> e copia byte a byte
+# do stub, e por isso tambem carrega as marcas.) Faltando uma das marcas, ou vindo a de
+# fechamento antes da de abertura, o script ABORTA com exit 1 nomeando as duas, e remove o
+# desafio parcial — nao ha caminho degradado, sem as marcas nao ha onde enxertar o corpo.
+# As marcas NAO sao placeholders: nao usam {{ }}, nao entram na coluna 3, e SOBREVIVEM a
+# materializacao — ficam no artefato entregue ao aluno, como instrucao de onde escrever.
+# Quem escrever o 6o template de stub tem de trazer as duas marcas. Detalhes:
+# docs/build-spec/60-templates.md e docs/build-spec/51-challenge-new.md §5.2 e §6.1.
 setup/README.md.tmpl	readme-sync.sh --init	SETUP_NAME,SUBJECT,SETUP_ID,CREATED_AT	sim
 setup/setup.json.tmpl	setup-init.sh	SETUP_ID,SETUP_NAME,SUBJECT,LANGUAGE,SESSION_MINUTES,THEORY_SOURCE,CREATED_AT,SCHEMA_VERSION	sim
 setup/gitignore.tmpl	setup-init.sh	-	sim

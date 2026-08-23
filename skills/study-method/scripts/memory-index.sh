@@ -183,18 +183,13 @@ done
 
 # --- 2. recuperação de sessão órfã (§7.3) — só com --verify -------------------
 ORPHANS_CLOSED=0
+# O predicado do lock é UM só, em lib/common.sh (docs/00-contratos.md §7.1 e §7.4).
+# Esta função era uma CÓPIA da regra antiga — exigia `pid` numérico e `kill -0` — e por
+# isso lia como MORTO todo lock da via (b) (`pid: null`, o caso comum, validado por TTL).
+# Consequência medida: `--verify` classificava a sessão EM ANDAMENTO como órfã e a
+# fechava como `abandoned` com o aluno no meio da aula. Nunca reimplemente esta regra aqui.
 lock_alive_for() { # <session_id> -> 0 se existe lock vivo desta sessão
-  local id="$1" lpid lhost lsid
-  [ -f "$LOCK" ] || return 1
-  jq -e 'type == "object"' -- "$LOCK" >/dev/null 2>&1 || return 1
-  lsid="$(jq -r '.session_id // ""' -- "$LOCK")"
-  lhost="$(jq -r '.hostname // ""' -- "$LOCK")"
-  lpid="$(jq -r '.pid // empty' -- "$LOCK")"
-  [ "$lsid" = "$id" ] || return 1
-  [ "$lhost" = "$(uname -n)" ] || return 1
-  [ -n "$lpid" ] || return 1
-  kill -0 "$lpid" 2>/dev/null || return 1
-  return 0
+  sm_session_lock_alive "$LOCK" "$1"
 }
 
 if [ "$DO_VERIFY" -eq 1 ]; then
@@ -202,9 +197,10 @@ if [ "$DO_VERIFY" -eq 1 ]; then
     base="$(basename -- "$f")"; id="${base%.json}"
     [ "$(jq -r '.status // ""' -- "$f")" = "in_progress" ] || continue
     if lock_alive_for "$id"; then
-      sm_log info "sessão $id está viva em outro terminal (lock vivo) — não toco"
+      sm_log info "sessão $id está viva (${SM_SESSION_LOCK_REASON}) — não toco"
       continue
     fi
+    sm_log debug "sessão $id sem lock vivo (${SM_SESSION_LOCK_REASON}) — recuperando como órfã"
     fin_at="$(date -Iseconds -r "$f")" || sm_die 1 "não consegui ler o mtime de $f"
     novo="$(jq \
       --arg fa "$fin_at" \

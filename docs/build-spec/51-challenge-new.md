@@ -147,8 +147,11 @@ erro de sintaxe proposital, `go test ./...` nem o menciona.
 Referência e alternativas são derivadas do **próprio stub materializado**, trocando as linhas
 entre `SM_CORPO_INICIO` e `SM_CORPO_FIM` pelo corpo real. Consequência contratual: qualquer uma
 delas é copiada **por cima do stub** e compila no lugar dele — que é exatamente como
-`challenge-verify.sh` roda os passos 1, 2 e 3. Se o template do stub não tiver as duas marcas, o
-script falha com **1** e nomeia a marca ausente.
+`challenge-verify.sh` roda os passos 1, 2 e 3. Se o template do stub não tiver as duas marcas — ou
+se a de fechamento vier antes da de abertura — o script falha com **1**, nomeia as duas e **remove
+o desafio parcial**; não há caminho degradado. O par de marcas é **contrato de template**, e está
+declarado nos dois lugares onde quem escreve um template olha: no cabeçalho do
+`skills/study-method/assets/templates/MANIFEST.tsv` e em `docs/build-spec/60-templates.md` §1.1.
 
 ### 5.3 A semente
 
@@ -208,7 +211,11 @@ O corpo dos templates é livre **exceto** nestes seis pontos. Quebrar qualquer u
 desafio que não compila, não roda, ou — pior — passa sem testar:
 
 1. **Todo template de stub** carrega as linhas-marca `SM_CORPO_INICIO` e `SM_CORPO_FIM` em volta
-   do corpo vazio. Sem elas o script não deriva `reference`, `reference_alt_*` nem `empty_stub`.
+   do corpo vazio — hoje são 5 (`python`, `node`, `go`, `rust`, `c`), e o **6º também terá de
+   trazê-las**. Sem elas o script não deriva `reference` nem `reference_alt_*`, e aborta com **1**.
+   Não são placeholders: não usam `{{ }}`, não entram na coluna 3 do `MANIFEST.tsv`, e
+   **sobrevivem** à materialização — ficam no artefato do aluno, dizendo onde escrever. Tabela por
+   linguagem em `docs/build-spec/60-templates.md` §1.1.
 2. **`python/test_stub.py.tmpl`**: `SCENARIOS_CODE` entra dentro de
    `class TesteDesafio(unittest.TestCase)`, e o arquivo insere o diretório-pai em `sys.path`
    antes de `from {{MODULE}} import {{FUNC_NAME}}`.

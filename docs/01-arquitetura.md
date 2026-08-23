@@ -327,7 +327,7 @@ O digest é montado **por código**, não por decisão do modelo sobre o que cop
 | **Lê** | Listagem de `memory/[0-9][0-9][0-9][0-9].json` para calcular `max+1`; `SK/assets/templates/session/` |
 | **Escreve** | `memory/NNNN.json` com `schema_version`, `session_id`, `setup_id`, `date`, `started_at`, `status: "in_progress"` e um `one_line_summary` provisório; e `memory/.session.lock`, **JSON** com `{pid, hostname, session_id, started_at}` |
 | **Atomicidade** | A alocação do número usa `set -o noclobber` com `> memory/NNNN.json` (falha se o arquivo já existe) e reetenta com `max+1` até 5 vezes. Sem isso, duas sessões simultâneas colidem no mesmo `NNNN`. |
-| **Erros** | Lock presente, `hostname` igual e `kill -0 <pid>` sucede → **sessão concorrente**: exit 4 e pergunta ao aluno (D-A06). É para isso que o `.session.lock` existe. Lock presente e pid morto (ou host diferente) → lock órfão: remove, registra no digest e segue. Disco cheio / FS read-only → exit 1; a aula só continua em "modo sem memória" se o aluno aceitar explicitamente, e o tutor repete esse aviso ao final. |
+| **Erros** | Lock presente, `hostname` igual e **lock vivo** — `kill -0 <pid>` quando o `pid` é numérico, ou `started_at` dentro do `SM_SESSION_LOCK_TTL` quando o `pid` é `null`, que é o caso comum (§7.4 de `docs/00-contratos.md`) → **sessão concorrente**: exit 4 e pergunta ao aluno (D-A06). É para isso que o `.session.lock` existe. Lock presente e morto pela via que valer — pid morto, TTL vencido, ou host diferente → lock órfão: remove, registra no digest e segue. Disco cheio / FS read-only → exit 1; a aula só continua em "modo sem memória" se o aluno aceitar explicitamente, e o tutor repete esse aviso ao final. |
 | **Saída** | → `plan_lesson` |
 
 A sessão nasce **depois** de `load_memory`, para que o digest nunca leia o arquivo vazio da própria
@@ -374,7 +374,7 @@ sessão corrente como se fosse histórico (D-A04).
 | | |
 |---|---|
 | **O que acontece** | Fecha a sessão, grava o `NNNN.json` final e propaga para os derivados. É o caminho normal de saída de `in_progress`; o outro é a recuperação automática de órfã (§4.1). |
-| **Script**, nesta ordem | `session-close.sh <setup_root>` (3.3) → `memory-index.sh <setup_root>` (3.4) → `progress-update.sh <setup_root>` (3.4) → `readme-sync.sh <setup_root>` (3.4) → `memory-compact.sh <setup_root> --if-due` (3.4) |
+| **Script**, nesta ordem | `session-close.sh <setup_root>` (3.3) → `memory-index.sh <setup_root>` (3.4) → `progress-update.sh <setup_root> --recompute` (3.4) → `readme-sync.sh <setup_root>` (3.4) → `memory-compact.sh <setup_root> --if-due` (3.4). O `--recompute` **não é opcional**: `progress-update.sh` sai **2** quando invocado sem modo, e a chamada nua fazia `memory/progress.json` nunca nascer. |
 | **Lê** | `memory/NNNN.json` em progresso, `memory/INDEX.json`, `memory/profile.json`, `memory/progress.json`, `challenges/*/meta.json`, listagem de `researchs/` |
 | **Escreve** | `memory/NNNN.json` finalizado (`status: "completed"`, `finalized_at`, `finalized_by`, `one_line_summary` **obrigatório**, `topics`, `skills_observed`, `what_worked`, `what_didnt_work`, `open_questions`, `next_steps`, `cross_setup_refs`); `memory/INDEX.json` (append); `memory/progress.json`; `README.md` do setup (regeneração entre marcadores); `setup.json` (`updated_at`, `last_session_at`, `session_count`); entrada do registry; remove `memory/.session.lock`. **Não escreve `memory/profile.json`** — o perfil tem um escritor só, a compactação (`docs/03-memoria.md` do repositório §2, camada 3). Toda escrita por `tmp` + `mv`. |
 | **Validação** | `session-close.sh` valida o `NNNN.json` contra `session.schema.json` (2.2). Faltou campo obrigatório → emite o pedido **`session_close_fields`** em stdout e sai **10** (§3.1), **sem escrever**; o modelo responde e re-invoca com `--apply`. No máximo **2** pedidos por sessão; esgotado o teto, **fecha assim mesmo** com `status: "completed"` e `validation_errors[]` preenchido. **Nunca** deixar uma sessão presa em `in_progress` por causa de validação. |
@@ -404,8 +404,17 @@ leitura:
 lock_vivo(S) ⇔ existe memory/.session.lock
              ∧ lock.session_id == S.session_id
              ∧ lock.hostname   == hostname desta máquina
-             ∧ kill -0 lock.pid sucede
+             ∧ (lock.pid numérico  ->  kill -0 lock.pid sucede            # via (a)
+                lock.pid == null   ->  agora - lock.started_at ≤ TTL)     # via (b)
 ```
+
+⛑ A última conjunção tem **duas vias** (`docs/00-contratos.md` §7.4), e a via (b) é a **comum**:
+sem `SM_SESSION_OWNER_PID` o lock nasce com `pid: null` e a validade passa a ser o TTL
+`SM_SESSION_LOCK_TTL` (default **28800 s = 8 h**) sobre `started_at`, com *fallback* para o `mtime`
+do lock. `hostname` diferente é órfão **antes** de pid e de TTL. Exigir `pid` não-vazio + `kill -0`
+como critério **único** declara morto todo lock da via (b) e fecha como abandonada a sessão que
+está **em andamento**. O predicado é um só, `sm_session_lock_alive` (§7.1): nenhum script o
+reimplementa.
 
 A segunda metade da conjunção não é detalhe: sem ela, **toda** sessão `in_progress` seria classificada
 como órfã e a detecção de sessão concorrente desapareceria — que é exatamente o que o
@@ -542,7 +551,7 @@ convenção de exit code do §3.
 | `memory-index.sh` (3.4) | `<setup_root>` · `--verify` (checa sincronia, detecta e **finaliza** órfãs) | `load_memory`, `close_session` |
 | `memory-digest.sh` (3.4) | `<setup_root>` [`--topics t1,t2`] [`--budget-chars N`] [`--today AAAA-MM-DD`] [`--now <ISO 8601>`]; imprime o digest JSON em stdout, somente leitura | `load_memory` |
 | `memory-compact.sh` (3.4) | `<setup_root> --if-due` (não faz nada abaixo do limiar) · `--apply <resposta.json>`; pode sair **10** com o pedido `profile_compaction` | `close_session` |
-| `progress-update.sh` (3.4) | `<setup_root>` · `--due` (imprime conceitos vencidos) | `plan_lesson`, `close_session` |
+| `progress-update.sh` (3.4) | `<setup_root> --due` (imprime conceitos vencidos, em `plan_lesson`) · `<setup_root> --recompute` (reconstrói os escalares e cria o arquivo se ausente, em `close_session`). Um dos modos é **obrigatório**: sem modo é exit 2 | `plan_lesson`, `close_session` |
 | `readme-sync.sh` (3.4) | `<setup_root>` · `--init` | `setup_interview`, `close_session` |
 | `challenge-new.sh` / `challenge-verify.sh` (3.5) | contrato da sub-tarefa 2.5 | `challenge` |
 | `detect-toolchains.sh` (3.5) | `--cached` (usa o carimbo de `setup.json.language.detected_at`) | `bootstrap`, `challenge` |

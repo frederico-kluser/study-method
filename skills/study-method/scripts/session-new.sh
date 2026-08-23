@@ -64,25 +64,16 @@ SM_MEMORY_DIR="$SM_SETUP_ROOT/memory"
 SM_LOCK_FILE="$SM_MEMORY_DIR/.session.lock"
 
 # ------------------------------------------------------------------- lock vivo?
-# docs/01-arquitetura.md §4: lock_vivo ⇔ o arquivo existe ∧ hostname bate ∧ kill -0 pid
-# sucede. Sonda somente-leitura ANTES de alocar o NNNN: assim o caminho comum de
-# "sessão concorrente" não deixa um memory/NNNN.json vazio para trás.
-sn_lock_alive() {
-  local lock="$1" pid host
-  [[ -f "$lock" ]] || return 1
-  sm_json_ok "$lock" || return 1
-  pid="$(sm_json_get "$lock" '.pid // empty')" || return 1
-  host="$(sm_json_get "$lock" '.hostname // empty')" || return 1
-  [[ -n "$pid" && -n "$host" ]] || return 1
-  [[ "$pid" =~ ^[0-9]+$ ]] || return 1
-  [[ "$host" == "$(uname -n)" ]] || return 1
-  kill -0 "$pid" 2>/dev/null || return 1
-  return 0
-}
-
-if sn_lock_alive "$SM_LOCK_FILE"; then
+# Sonda somente-leitura ANTES de alocar o NNNN: assim o caminho comum de "sessão
+# concorrente" não deixa um memory/NNNN.json vazio para trás nem queima um número da
+# sequência. O predicado é `sm_session_lock_alive`, de lib/common.sh — o MESMO que
+# `sm_setup_lock` usa logo abaixo (docs/00-contratos.md §7.1 e §7.4). Reimplementá-lo
+# aqui era o que fazia a sonda discordar do lock real na via (b) (`pid: null`, o caso
+# comum): ela dizia "morto", o script alocava o NNNN, e só então `sm_setup_lock` via a
+# sessão viva e mandava desfazer tudo.
+if sm_session_lock_alive "$SM_LOCK_FILE"; then
   sn_other="$(sm_json_get "$SM_LOCK_FILE" '.session_id // "?"' 2>/dev/null || printf '?')"
-  sm_die 4 "já há uma sessão viva neste setup (session_id ${sn_other}). Feche-a com session-close.sh, ou siga em modo somente-leitura (sem gravar NNNN.json)."
+  sm_die 4 "já há uma sessão viva neste setup (session_id ${sn_other}; ${SM_SESSION_LOCK_REASON}). Feche-a com session-close.sh, ou siga em modo somente-leitura (sem gravar NNNN.json)."
 fi
 
 # ------------------------------------------------------------------ diretórios

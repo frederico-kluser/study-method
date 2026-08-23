@@ -84,7 +84,7 @@ nenhuma chamada de modelo. O resultado é um punhado de variáveis que a árvore
 | `writable` | `test -w $SETUP_ROOT` | booleano |
 | `memory_count` | `ls $SETUP_MEM/[0-9][0-9][0-9][0-9].json \| wc -l` | inteiro |
 | `orphan_sessions` | sessões com `status: in_progress` **e sem lock vivo** (§10) — órfã é condição derivada, nunca valor persistido | lista, possivelmente vazia |
-| `live_session` | sessão com `status: in_progress` **e** lock vivo (`memory/.session.lock` com `session_id` e `hostname` batendo e `kill -0 pid` OK) | id ou vazio |
+| `live_session` | sessão com `status: in_progress` **e** lock vivo (`memory/.session.lock` com `session_id` e `hostname` batendo **e** a via que o lock declarar: `kill -0 pid` quando o `pid` é numérico, `started_at` dentro do `SM_SESSION_LOCK_TTL` quando é `null` — §7.4 de `docs/00-contratos.md`) | id ou vazio |
 | `docs_state` | ver §3.3 | `absent` · `empty` · `readable` · `partially_readable` · `unreadable` |
 | `docs_bytes` | soma dos bytes **ingeríveis** (§8.3) | inteiro |
 
@@ -1002,8 +1002,17 @@ sessão é órfã quando:
 lock_vivo(S) ⇔ existe memory/.session.lock
              ∧ lock.session_id == S.session_id
              ∧ lock.hostname   == hostname desta máquina
-             ∧ kill -0 lock.pid sucede
+             ∧ (lock.pid numérico  ->  kill -0 lock.pid sucede            # via (a)
+                lock.pid == null   ->  agora - lock.started_at ≤ TTL)     # via (b)
 ```
+
+⛑ A última conjunção tem **duas vias** (`docs/00-contratos.md` §7.4), e a via (b) é a **comum**:
+sem `SM_SESSION_OWNER_PID` o lock nasce com `pid: null` e a validade passa a ser o TTL
+`SM_SESSION_LOCK_TTL` (default **28800 s = 8 h**) sobre `started_at`, com *fallback* para o `mtime`
+do lock. `hostname` diferente é órfão **antes** de pid e de TTL. Exigir `pid` não-vazio + `kill -0`
+como critério **único** declara morto todo lock da via (b) e fecha como abandonada a sessão que
+está **em andamento**. O predicado é um só, `sm_session_lock_alive` (§7.1): nenhum script o
+reimplementa.
 
 A segunda metade não é detalhe: sem ela, uma sessão aberta agora em outro terminal seria confundida
 com órfã, e a detecção de concorrência (exit 4) — que é a razão de o `.session.lock` existir —

@@ -14,6 +14,9 @@ SM_LIB_DIR="${SM_LIB_DIR:-$(cd -P -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd 
 # Diretório do lock de registry tomado por sm_registry_lock (vazio = nenhum).
 SM_REGISTRY_LOCK_DIR="${SM_REGISTRY_LOCK_DIR:-}"
 
+# Motivo da última decisão de sm_session_lock_alive (vazio = ninguém decidiu ainda).
+SM_SESSION_LOCK_REASON="${SM_SESSION_LOCK_REASON:-}"
+
 # Tabela de dobra para ASCII, pares `origem:destino` separados por espaço.
 # Aplicada por substituição de string em bash (byte-safe em UTF-8, independente de locale).
 SM_ASCII_FOLD='á:a à:a â:a ã:a ä:a å:a ª:a Á:a À:a Â:a Ã:a Ä:a Å:a
@@ -348,6 +351,83 @@ sm_registry_unlock() {
     return 0
 }
 
+# sm_session_lock_alive <lock> [<session_id>] -> 0 lock VIVO · 1 ausente/ilegível/órfão.
+# PREDICADO ÚNICO do memory/.session.lock (docs/00-contratos.md §7.1 e §7.4). Ele vivia
+# copiado em três scripts e as cópias DIVERGIRAM: memory-index.sh --verify ainda exigia
+# `pid` numérico + `kill -0`, então todo lock da via (b) — `pid: null`, o caso COMUM —
+# era lido como morto e a sessão EM ANDAMENTO era fechada como abandonada, com o aluno
+# no meio da aula. Uma cópia só, e os três chamam esta.
+# NÃO escreve nada em disco e NÃO remove o lock: só decide. Remover é do chamador.
+# Ordem normativa de §7.4:
+#   1. arquivo ausente, ilegível ou que não é objeto JSON -> morto;
+#   2. `hostname` diferente -> órfão ANTES de consultar pid ou TTL (setup em disco
+#      compartilhado não pode travar por causa de uma máquina que ninguém alcança);
+#   3. <session_id> informado e diferente do que está no lock -> não é o lock desta sessão;
+#   4. `pid` numérico — via (a), dono declarado -> vivo ⇔ `kill -0` sucede;
+#   5. `pid: null` — via (b), o caso comum -> vivo ⇔ a idade de `started_at` é <=
+#      SM_SESSION_LOCK_TTL (default 28800 s = 8 h), com fallback para o mtime do lock.
+# O motivo da decisão fica em SM_SESSION_LOCK_REASON, para o chamador anunciá-lo em stderr.
+sm_session_lock_alive() {
+    local lock="${1:-}" want="${2:-}"
+    local hn lhost lpid lsid lstart lepoch now age ttl
+    SM_SESSION_LOCK_REASON=""
+    [ -n "$lock" ] || { SM_SESSION_LOCK_REASON="lock nao informado"; return 1; }
+    [ -f "$lock" ] || { SM_SESSION_LOCK_REASON="sem lock em disco"; return 1; }
+    if ! jq -e 'type == "object"' -- "$lock" >/dev/null 2>&1; then
+        SM_SESSION_LOCK_REASON="lock ilegivel (nao e um objeto JSON)"
+        return 1
+    fi
+    hn="${HOSTNAME:-}"
+    [ -n "$hn" ] || hn="$(uname -n 2>/dev/null || printf 'desconhecido')"
+    lhost="$(jq -r '.hostname // ""' -- "$lock" 2>/dev/null || printf '')"
+    lpid="$(jq -r 'if (.pid // null) == null then "" else (.pid | tostring) end' \
+              -- "$lock" 2>/dev/null || printf '')"
+    lsid="$(jq -r '.session_id // ""' -- "$lock" 2>/dev/null || printf '')"
+    lstart="$(jq -r '.started_at // ""' -- "$lock" 2>/dev/null || printf '')"
+    if [ "$lhost" != "$hn" ]; then
+        SM_SESSION_LOCK_REASON="host '${lhost:-?}' nao e '$hn'"
+        return 1
+    fi
+    if [ -n "$want" ] && [ "$lsid" != "$want" ]; then
+        SM_SESSION_LOCK_REASON="o lock e da sessao '${lsid:-?}', nao da '$want'"
+        return 1
+    fi
+    if [[ "$lpid" =~ ^[1-9][0-9]*$ ]]; then
+        if kill -0 "$lpid" 2>/dev/null; then
+            SM_SESSION_LOCK_REASON="dono pid $lpid vivo em $lhost"
+            return 0
+        fi
+        SM_SESSION_LOCK_REASON="dono pid $lpid morto em $lhost"
+        return 1
+    fi
+    ttl="${SM_SESSION_LOCK_TTL:-28800}"
+    if ! [[ "$ttl" =~ ^[0-9]+$ ]]; then
+        sm_log warn "SM_SESSION_LOCK_TTL ignorado (nao numerico): $ttl"
+        ttl=28800
+    fi
+    # started_at ilegivel cai para o mtime do proprio lock, que e o mesmo instante.
+    lepoch="$(date -d "$lstart" +%s 2>/dev/null || printf '')"
+    if [ -z "$lepoch" ]; then
+        lepoch="$(stat -c %Y -- "$lock" 2>/dev/null \
+                  || stat -f %m -- "$lock" 2>/dev/null || printf '')"
+        [ -z "$lepoch" ] || sm_log warn "started_at ilegivel: TTL medido pelo mtime de $lock"
+    fi
+    [[ "$lepoch" =~ ^[0-9]+$ ]] || lepoch=""
+    if [ -z "$lepoch" ]; then
+        SM_SESSION_LOCK_REASON="sem started_at nem mtime legiveis"
+        return 1
+    fi
+    now="$(date -d "$(sm_now_iso)" +%s 2>/dev/null || date +%s)"
+    age=$(( now - lepoch ))
+    [ "$age" -ge 0 ] || age=0
+    if [ "$age" -le "$ttl" ]; then
+        SM_SESSION_LOCK_REASON="lock com ${age}s, TTL ${ttl}s, em $lhost"
+        return 0
+    fi
+    SM_SESSION_LOCK_REASON="${age}s > TTL de ${ttl}s, em $lhost"
+    return 1
+}
+
 # sm_setup_lock <setup_root> [<session_id>] -> 0 obteve · 4 sessão viva.
 # Grava memory/.session.lock com {pid, hostname, session_id, started_at}.
 #
@@ -359,14 +439,14 @@ sm_registry_unlock() {
 #       sessão (o harness, o terminal, o supervisor). Grava esse pid; vivo <=> `kill -0`.
 #   (b) TTL — variável ausente, o caso comum. Grava `pid: null`; vivo <=> `started_at`
 #       mais novo que SM_SESSION_LOCK_TTL (default 28800 s = 8 h).
-# Qual via vale na LEITURA quem diz é o próprio lock: `pid` numérico -> (a); null -> (b).
+# Qual via vale na LEITURA quem diz é o próprio lock, e quem lê é sm_session_lock_alive
+# — o predicado é UM só, para os três scripts que precisam dele.
 # `hostname` diferente do atual é órfão nos DOIS casos, e essa checagem vem ANTES de pid
-# e de TTL: setup em disco compartilhado não pode travar por causa de uma máquina que
-# ninguém alcança. Todo lock removido como órfão é ANUNCIADO em stderr, nunca silencioso.
+# e de TTL. Todo lock removido como órfão é ANUNCIADO em stderr, nunca silencioso.
 # <session_id> cai para $SM_SESSION_ID quando omitido; ausente vira null.
 sm_setup_lock() {
     local root="${1:-}" sid="${2:-${SM_SESSION_ID:-}}"
-    local lock hn owner pidarg ttl lhost lpid lstart lepoch now age
+    local lock hn owner pidarg
     [ -n "$root" ] || { sm_log error "sm_setup_lock: setup_root nao informado"; return 1; }
     lock="$root/memory/.session.lock"
     hn="${HOSTNAME:-}"
@@ -376,50 +456,13 @@ sm_setup_lock() {
         sm_log warn "SM_SESSION_OWNER_PID ignorado (nao e um pid): $owner"
         owner=""
     fi
-    ttl="${SM_SESSION_LOCK_TTL:-28800}"
-    if ! [[ "$ttl" =~ ^[0-9]+$ ]]; then
-        sm_log warn "SM_SESSION_LOCK_TTL ignorado (nao numerico): $ttl"
-        ttl=28800
-    fi
     if [ -f "$lock" ]; then
-        lhost="$(jq -r '.hostname // ""' < "$lock" 2>/dev/null || printf '')"
-        lpid="$(jq -r 'if (.pid // null) == null then "" else (.pid | tostring) end' \
-                  < "$lock" 2>/dev/null || printf '')"
-        lstart="$(jq -r '.started_at // ""' < "$lock" 2>/dev/null || printf '')"
-        if [ "$lhost" != "$hn" ]; then
-            sm_log warn "lock de sessao orfao removido (host '${lhost:-?}' nao e '$hn'): $lock"
-            rm -f -- "$lock" 2>/dev/null || true
-        elif [[ "$lpid" =~ ^[1-9][0-9]*$ ]]; then
-            if kill -0 "$lpid" 2>/dev/null; then
-                sm_log warn "sessao viva neste setup (dono pid $lpid em $lhost): $lock"
-                return 4
-            fi
-            sm_log warn "lock de sessao orfao removido (dono pid $lpid morto em $lhost): $lock"
-            rm -f -- "$lock" 2>/dev/null || true
-        else
-            # via (b): sem dono declarado, quem decide é o TTL sobre started_at.
-            # started_at ilegivel cai para o mtime do proprio lock, que e o mesmo instante.
-            lepoch="$(date -d "$lstart" +%s 2>/dev/null || printf '')"
-            if [ -z "$lepoch" ]; then
-                lepoch="$(stat -c %Y -- "$lock" 2>/dev/null \
-                          || stat -f %m -- "$lock" 2>/dev/null || printf '')"
-                [ -z "$lepoch" ] || sm_log warn "started_at ilegivel: TTL medido pelo mtime de $lock"
-            fi
-            [[ "$lepoch" =~ ^[0-9]+$ ]] || lepoch=""
-            now="$(date -d "$(sm_now_iso)" +%s 2>/dev/null || date +%s)"
-            if [ -z "$lepoch" ]; then
-                sm_log warn "lock de sessao orfao removido (sem started_at nem mtime legiveis): $lock"
-            else
-                age=$(( now - lepoch ))
-                [ "$age" -ge 0 ] || age=0
-                if [ "$age" -le "$ttl" ]; then
-                    sm_log warn "sessao viva neste setup (lock com ${age}s, TTL ${ttl}s, em $lhost): $lock"
-                    return 4
-                fi
-                sm_log warn "lock de sessao orfao removido (${age}s > TTL de ${ttl}s, em $lhost): $lock"
-            fi
-            rm -f -- "$lock" 2>/dev/null || true
+        if sm_session_lock_alive "$lock"; then
+            sm_log warn "sessao viva neste setup (${SM_SESSION_LOCK_REASON}): $lock"
+            return 4
         fi
+        sm_log warn "lock de sessao orfao removido (${SM_SESSION_LOCK_REASON}): $lock"
+        rm -f -- "$lock" 2>/dev/null || true
     fi
     if [ -n "$owner" ]; then pidarg="$owner"; else pidarg="null"; fi
     if ! jq -n \

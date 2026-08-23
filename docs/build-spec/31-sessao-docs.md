@@ -26,10 +26,15 @@ setup.
 1. Parse de argumentos; `sm_require_cmd jq`; `sm_setup_root "<hint>"` → `3` se não achar.
 2. `memory/` ausente → recria (diretório **estrutural**, não conteúdo) com `sm_chmod_private`
    e avisa em uma linha (BOOT-1).
-3. **Sonda de lock, somente leitura**, antes de alocar qualquer número:
-   `lock_vivo ⇔ memory/.session.lock existe ∧ parseia ∧ hostname == uname -n ∧ kill -0 pid`.
-   Vivo → **exit 4**, e nenhum arquivo é criado. É o que impede a sessão concorrente de
-   deixar um `NNNN.json` vazio para trás.
+3. **Sonda de lock, somente leitura**, antes de alocar qualquer número: chama
+   **`sm_session_lock_alive <lock>`** (`lib/common.sh`), o predicado ÚNICO de `docs/00-contratos.md`
+   §7.1/§7.4 — o mesmo que `sm_setup_lock` usa no passo 9. Vivo → **exit 4**, e nenhum arquivo é
+   criado. É o que impede a sessão concorrente de deixar um `NNNN.json` vazio para trás.
+   ⛑ **Não reimplemente a regra aqui.** `lock_vivo` tem **duas vias**: `pid` numérico → `kill -0`;
+   `pid: null` (o caso comum, sem `SM_SESSION_OWNER_PID`) → `started_at` dentro do
+   `SM_SESSION_LOCK_TTL` (default 8 h). `hostname` diferente é órfão antes das duas. A cópia que
+   exigia `pid` + `kill -0` fazia a sonda discordar do lock real: ela dizia "morto", o script
+   alocava o `NNNN`, e só então `sm_setup_lock` via a sessão viva e mandava desfazer tudo.
 4. `sm_next_seq "<memory>" .json` → `NNNN` (mecanismo `noclobber`, 5 tentativas; `4` se esgotar).
 5. Materializa `SK/assets/templates/session/session.json.tmpl` com os placeholders congelados
    em `MANIFEST.tsv`: `SESSION_ID`, `SETUP_ID`, `DATE`, `STARTED_AT`, `SCHEMA_VERSION`.
@@ -49,10 +54,13 @@ setup.
 
 ### Condição de erro que importa
 
-Lock com `pid` **morto** (ou `hostname` diferente) é lock órfão: `sm_setup_lock` remove, avisa e
-prossegue. Consequência para `lib/common.sh`: o `pid` gravado tem de ser o do processo que
-**conduz a sessão** e sobrevive ao script — o `$$` do próprio `session-new.sh` morre no fim da
-invocação e faria todo lock nascer órfão.
+Lock **órfão** — `hostname` diferente, ou `pid` numérico e morto, ou `pid: null` com `started_at`
+além do TTL — `sm_setup_lock` remove, avisa em stderr e prossegue. Consequência para
+`lib/common.sh`: **não existe** um `pid` que sirva sozinho. O `$$` do próprio `session-new.sh`
+morre no fim da invocação e faria todo lock nascer órfão; por isso o `pid` gravado é o de
+`SM_SESSION_OWNER_PID` — um processo que **sobrevive à sessão** — quando ela existe, e **`null`**
+quando não existe, caso em que a validade é o TTL (`docs/00-contratos.md` §7.4). Ler o lock por um
+critério que ignore a via (b) fecha como abandonada a sessão que está em andamento.
 
 ---
 

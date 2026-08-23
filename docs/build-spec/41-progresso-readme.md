@@ -33,6 +33,16 @@ Arquivo alvo: `<setup_root>/memory/progress.json`. Ausente, é criado com `polic
 morto — removido com aviso e retomado uma vez. Escrita por `sm_atomic_write`, sempre depois de
 `sm_json_validate` contra `progress.schema.json`.
 
+⛑ **Quem chama, e com qual modo.** A exclusividade acima vale também para o chamador: **não existe
+invocação sem modo**, e a cadeia de fechamento de `session-close.sh` usa **`progress-update.sh
+<setup_root> --recompute`** (`docs/00-contratos.md` §2 passo 9). O texto antigo daquele §2 e de
+`docs/01-arquitetura.md` prescrevia a chamada **nua** — que sai **2**, é engolida pelo aviso de
+`sc_chain_one`, e fazia `memory/progress.json` **nunca nascer**. `--recompute` é o modo certo para
+o fechamento por duas razões: reconstrói os escalares a partir da `evidence[]` já acumulada, e é
+o caminho em que `created == true` **grava o arquivo mesmo com `changed == 0`** — é assim que o
+`progress.json` nasce na primeira sessão fechada. `--event` fica onde sempre esteve: no momento em
+que o aluno resolve um desafio, um evento por vez, nunca no fechamento.
+
 ### 1.2 Formato do evento
 
 Objeto JSON, **um evento por arquivo** (`-` lê de stdin). Valida contra

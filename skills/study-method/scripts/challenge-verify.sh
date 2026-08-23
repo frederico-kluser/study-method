@@ -56,6 +56,8 @@ readonly CV_MIN_JUSTIFICATION=40   # caracteres; docs/05 §4.6 item 4
 # ---------------------------------------------------------------- estado
 CV_DIR=""; CV_META=""; CV_WORK=""
 CV_APPLY_FILE=""; CV_SAMPLE_SIZE=""; CV_NREP="$CV_DEFAULT_NREP"
+# Corpo da RESPOSTA aplicada (o objeto do response_schema); `{}` enquanto nao houver uma.
+CV_APPLY_NOTES_SRC="{}"
 CV_THRESHOLD="$CV_DEFAULT_THRESHOLD"
 CV_STUB_SAVED=0
 CV_EXIT=0; CV_TESTS_RUN=0; CV_TESTS_FAILED=0; CV_WALL_MS=0; CV_OUTFILE=""
@@ -673,13 +675,26 @@ cv_apply_response() {
 
   if [ "$(jq -r 'has("protocol")' "$file")" = "true" ]; then
     # Forma ENVELOPE (docs/00 §6.2): sm_apply_read confere protocol,
-    # protocol_version, kind e request_id. Divergiu -> exit 5, nada e aplicado.
-    local rc=0
-    items="$(sm_apply_read "$file" "$CV_KIND" "$expected_id")" || rc=$?
+    # protocol_version, kind, request_id E o response_schema (RA-3, §7.2).
+    # Divergiu -> exit 5, nada e aplicado.
+    local rc=0 envelope=""
+    envelope="$(sm_apply_read "$file" "$CV_KIND" "$expected_id")" || rc=$?
     if [ "$rc" -ne 0 ]; then
-      sm_log error "sm_apply_read recusou a resposta (código $rc). Envelope, kind ou request_id divergem: o estado em disco mudou entre o pedido e o --apply, ou a resposta é de outro pedido."
+      sm_log error "sm_apply_read recusou a resposta (código $rc). Envelope, kind, request_id ou o response_schema divergem: o estado em disco mudou entre o pedido e o --apply, a resposta é de outro pedido, ou o corpo não valida."
       exit "$rc"
     fi
+    # RESP-1: `items[0]` E o objeto de challenge-verify.response.schema.json — nao a lista
+    # de classificacoes. Ler `items` como se fosse `.classifications` (o que este ramo
+    # fazia) so funcionava com uma RESPOSTA que o proprio response_schema recusa.
+    local body; body="$(jq -c '.[0] // {}' <<<"$envelope")"
+    local rk cid
+    rk="$(jq -r '.request_kind // ""' <<<"$body")"
+    cid="$(jq -r '.challenge_id // ""' <<<"$body")"
+    [ "$rk" = "challenge_verify" ] || { sm_log error "request_kind divergente: $rk"; exit 5; }
+    [ "$cid" = "$CV_CHALLENGE_ID" ] || {
+      sm_log error "challenge_id da resposta ($cid) não é o do desafio ($CV_CHALLENGE_ID)"; exit 5; }
+    items="$(jq -c '.classifications // []' <<<"$body")"
+    CV_APPLY_NOTES_SRC="$body"
   else
     # Forma NATIVA: instancia direta de challenge-verify.response.schema.json.
     sm_json_validate "$file" "$CV_SCHEMA_RESPONSE" || {
@@ -691,6 +706,7 @@ cv_apply_response() {
     [ "$cid" = "$CV_CHALLENGE_ID" ] || {
       sm_log error "challenge_id da resposta ($cid) não é o do desafio ($CV_CHALLENGE_ID)"; exit 5; }
     items="$(sm_json_get_raw "$file" '.classifications')"
+    CV_APPLY_NOTES_SRC="$(jq -c '.' "$file")"
   fi
 
   # ---- validacao semantica, a que o schema nao expressa ----
@@ -735,7 +751,9 @@ cv_apply_response() {
     CV_JUST["$mid"]="$just"
   done
   # `notes` e observacao geral do modelo sobre a rodada; vai para mutation.detail.
-  CV_APPLY_NOTES="$(jq -r '.notes // ""' "$file" 2>/dev/null || true)"
+  # Sai do CORPO da resposta (o objeto do response_schema), nao da raiz do arquivo: na
+  # forma envelope o `notes` mora em `items[0]`, e ler a raiz devolvia sempre vazio.
+  CV_APPLY_NOTES="$(jq -r '.notes // ""' <<<"$CV_APPLY_NOTES_SRC" 2>/dev/null || true)"
   sm_log info "classificações aplicadas: $n sobreviventes"
 }
 
