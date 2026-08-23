@@ -1,23 +1,21 @@
 /**
  * src/views/ChallengeView/ChallengeView.tsx — a tela de Desafio (editor + testes
- * + feedback do pi coding agent).
+ * + feedback do pi coding agent). CHROME MUI v9 (path imports, mobile-first,
+ * a11y); TODA a lógica de canais/fluxos é preservada intacta.
  *
- * Substitue o placeholder em views/index.ts. Duas fontes de desafio:
- *
+ * Duas fontes de desafio:
  *  (a) um desafio selecionado via contexto (ChallengeNav — vindo da Aula);
  *  (b) a lista `study.listChallenges({})` (usa o último setup); se vazia,
  *      mostra um erro claro ("gere uma aula primeiro").
  *
- * Layout em três painéis:
- *  - esquerda: enunciado (README.md renderizado via react-markdown);
- *  - centro: FileExplorer + EditorPane (workspaceDir do desafio);
- *  - direita/inferior: AnswerTerminal (saída determinística dos testes) +
- *    painel de feedback streamado do pi + botões.
+ * Layout (decisão: painéis EMPILHADOS — mobile-first robusto; ver handoff):
+ *  - Stack vertical: enunciado (Paper + react-markdown), depois o editor
+ *    (FileExplorer + EditorPane dentro de Paper com borda) e por fim a saída
+ *    (AnswerTerminal xterm em Paper + feedback streamado) com os botões.
  *
  * Botão "Testar resposta":
  *  1. fase determinística — `study.testAnswer({challengeDir: workspaceDir})`
- *     + `onTestAnswerEvent` (started/done) + banner PASS/FAIL (verde/vermelho),
- *     linha TESTS_RUN/ESPERADOS e a saída real desenhada no AnswerTerminal;
+ *     + `onTestAnswerEvent` (started/done) + banner PASS/FAIL (verde/vermelho);
  *  2. fase pi — monta o prompt (lib pura) e `pi.execute` com
  *     `additionalContext` = código atual + saída determinística; streama
  *     events (text/thinking/tool) num painel colapsável; guarda sessionId em
@@ -27,16 +25,25 @@
  * feedback VEM do pi; a UI apenas não distorce).
  */
 import ReactMarkdown from 'react-markdown';
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactElement } from 'react';
-import {
-  Play,
-  Ban,
-  ChevronDown,
-  ChevronRight,
-  Loader2,
-  Database,
-  Cpu,
-} from 'lucide-react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactElement, type ReactNode } from 'react';
+import { useTranslation } from 'react-i18next';
+import Alert from '@mui/material/Alert';
+import Box from '@mui/material/Box';
+import Button from '@mui/material/Button';
+import Chip from '@mui/material/Chip';
+import FormControl from '@mui/material/FormControl';
+import Grid from '@mui/material/Grid';
+import InputLabel from '@mui/material/InputLabel';
+import MenuItem from '@mui/material/MenuItem';
+import Paper from '@mui/material/Paper';
+import Select from '@mui/material/Select';
+import Stack from '@mui/material/Stack';
+import Typography from '@mui/material/Typography';
+import PlayArrowIcon from '@mui/icons-material/PlayArrow';
+import BlockIcon from '@mui/icons-material/Block';
+import ExpandLessIcon from '@mui/icons-material/ExpandLess';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import MemoryIcon from '@mui/icons-material/Memory';
 import type {
   ChallengeInfo,
   PiExecuteResult,
@@ -50,12 +57,12 @@ import {
   digestStudyMethodRules,
 } from '../../lib/piFeedbackPrompt';
 import { resolveFeedbackProvider } from '../../lib/feedbackProvider';
+import { feedbackProviderChipKey } from '../../lib/feedbackProviderUi';
 import { mapTestAnswerPhase } from '../../lib/testAnswerEvents';
 import { useChallengeNav } from '../../lib/challengeNav';
 import { AnswerTerminal, printTestBanner, type AnswerTerminalHandle } from '../../components/terminal/AnswerTerminal';
 import { FileExplorer } from '../../components/editor/FileExplorer';
 import { EditorPane, type EditorPaneHandle } from '../../components/editor/EditorPane';
-import { StatusText, InlineSpinner } from '../SettingsView/FormControls';
 
 type TestRunStatus = 'idle' | 'running' | 'done' | 'error';
 type PiStatus = 'idle' | 'running' | 'done' | 'error' | 'aborted';
@@ -71,7 +78,48 @@ interface StreamingBlock {
   text: string;
 }
 
+/** Components custom do react-markdown do enunciado (monospace). */
+function MarkdownComponents() {
+  return {
+    pre: ({ children }: { children?: ReactNode }) => (
+      <Box
+        component="pre"
+        sx={{
+          fontFamily: "'SFMono-Regular', 'JetBrains Mono', Menlo, Consolas, monospace",
+          bgcolor: 'action.hover',
+          borderRadius: 1,
+          p: 1,
+          overflowX: 'auto',
+          fontSize: '0.8125rem',
+        }}
+      >
+        {children}
+      </Box>
+    ),
+    code: (props: { children?: ReactNode; className?: string }) => (
+      <Box
+        component="code"
+        {...props}
+        sx={{
+          fontFamily: "'SFMono-Regular', 'JetBrains Mono', Menlo, Consolas, monospace",
+          fontSize: '0.8125rem',
+          bgcolor: 'action.hover',
+          borderRadius: 0.5,
+          px: 0.25,
+        }}
+      />
+    ),
+    a: ({ href, children }: { href?: string; children?: ReactNode }) => (
+      <a href={href} target="_blank" rel="noreferrer noopener">
+        {children}
+      </a>
+    ),
+  };
+}
+
 export default function ChallengeView(): ReactElement {
+  const { t: _t } = useTranslation();
+  const t = _t as unknown as (key: string) => string;
   const nav = useChallengeNav();
 
   // Estado da listagem e do desafio ativo.
@@ -424,178 +472,233 @@ export default function ChallengeView(): ReactElement {
     void loadWorkspace(ch);
   };
 
+  const providerChipKey = feedbackProviderChipKey(feedbackProvider);
+  const busy = testStatus === 'running' || piStatus === 'running';
+  const piRunning = piStatus === 'running';
+
   return (
-    <section className="view challenge">
-      <header className="challenge__header">
-        <h1 className="challenge__title">Desafio</h1>
-        {/* Seleção quando a fonte é a lista */}
+    <Box component="section" sx={{ p: { xs: 1, md: 2 }, maxWidth: 1200, mx: 'auto' }}>
+      {/* Cabeçalho */}
+      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} sx={{ alignItems: { sm: 'center' }, justifyContent: 'space-between' }}>
+        <Typography variant="h4" component="h1">
+          {t('nav.challenge')}
+        </Typography>
         {!nav.selectedChallenge ? (
-          <div className="challenge__picker">
-            <select
-              className="form-field__input"
+          <FormControl size="small" sx={{ minWidth: { xs: '100%', sm: 260 } }}>
+            <InputLabel id="challenge-picker-label">{t('challenge.openChallenge')}</InputLabel>
+            <Select
+              labelId="challenge-picker-label"
+              id="challenge-picker"
+              label={t('challenge.openChallenge')}
               value={active?.challengeId ?? ''}
+              disabled={listing === 'loading'}
               onChange={(e) => {
                 const ch = challenges.find((c) => c.challengeId === e.target.value);
                 if (ch) pickChallenge(ch);
               }}
-              disabled={listing === 'loading'}
             >
               {listing === 'loading' ? (
-                <option>Carregando…</option>
+                <MenuItem value="" disabled>Carregando…</MenuItem>
               ) : challenges.length === 0 ? (
-                <option value="">Nenhum desafio</option>
+                <MenuItem value="">Nenhum desafio</MenuItem>
               ) : (
                 challenges.map((c) => (
-                  <option key={c.challengeId} value={c.challengeId}>
+                  <MenuItem key={c.challengeId} value={c.challengeId}>
                     {c.title} ({c.language})
-                  </option>
+                  </MenuItem>
                 ))
               )}
-            </select>
-          </div>
+            </Select>
+          </FormControl>
         ) : null}
-      </header>
+      </Stack>
 
       {listing === 'error' && !active ? (
-        <StatusText tone="danger">{listError}</StatusText>
+        <Alert severity="error" sx={{ mt: 1 }}>{listError}</Alert>
       ) : null}
 
       {!active ? (
-        <StatusText tone="muted">Selecione um desafio para começar.</StatusText>
+        <Typography variant="body1" color="text.secondary" sx={{ mt: 2 }}>
+          Selecione um desafio para começar.
+        </Typography>
       ) : (
-        <div className="challenge__body">
-          {/* PAINEL ESQUERDO — enunciado */}
-          <div className="challenge__panel challenge__panel--statement">
-            <h2 className="challenge__panel-title">
-              {active.title}
-              <span className="badge badge--accent">{active.language}</span>
-            </h2>
-            {statementError ? (
-              <StatusText tone="muted">{statementError}</StatusText>
-            ) : statement ? (
-              <div className="challenge__markdown">
-                <ReactMarkdown
-                  components={{
-                    pre: ({ children }) => <pre className="md-pre">{children}</pre>,
-                    code: (props) => <code className="md-code" {...props} />,
-                    a: ({ href, children }) => (
-                      <a href={href} target="_blank" rel="noreferrer noopener">
-                        {children}
-                      </a>
-                    ),
-                  }}
+        <Grid container spacing={2} sx={{ mt: 0, width: '100%' }}>
+          {/* ENUNCIADO */}
+          <Grid size={12}>
+            <Paper variant="outlined" sx={{ p: { xs: 1, md: 2 } }}>
+              <Stack direction="row" spacing={1} sx={{ alignItems: 'center', mb: 1 }}>
+                <Typography variant="h6" component="h2" sx={{ flexGrow: 1 }}>
+                  {active.title}
+                </Typography>
+                <Chip label={active.language} size="small" variant="outlined" />
+              </Stack>
+              {statementError ? (
+                <Typography variant="body2" color="text.secondary">{statementError}</Typography>
+              ) : statement ? (
+                <Box>
+                  <ReactMarkdown components={MarkdownComponents()}>{statement}</ReactMarkdown>
+                </Box>
+              ) : (
+                <Typography variant="body2" color="text.secondary">Carregando enunciado…</Typography>
+              )}
+            </Paper>
+          </Grid>
+
+          {/* EDITOR */}
+          <Grid size={12}>
+            <Paper
+              variant="outlined"
+              sx={{ height: { xs: 480, md: 560 }, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}
+            >
+              <Box sx={{ display: 'flex', flexGrow: 1, minHeight: 0 }}>
+                <Box sx={{ width: { xs: 200, sm: 240 }, borderRight: 1, borderColor: 'divider', overflow: 'auto' }}>
+                  <FileExplorer
+                    files={files}
+                    activePath={null}
+                    onOpenFile={(p) => editorRef.current?.openFile(p)}
+                    onCreateFile={(n) => editorRef.current?.createFile(n)}
+                    onDeleteFile={(p) => editorRef.current?.deleteFile(p)}
+                    onRefresh={() => active && void loadWorkspace(active)}
+                  />
+                </Box>
+                <Box sx={{ flexGrow: 1, minWidth: 0 }}>
+                  <EditorPane
+                    // key por workspace: ao trocar de desafio o React DESMONTA/MONTA o
+                    // EditorPane (reducer de abas zerado) — impede um buffer dirty do
+                    // workspace A salvar no workspaceDir B (WARNING 4).
+                    key={active.workspaceDir}
+                    ref={editorRef}
+                    workspaceDir={active.workspaceDir}
+                    files={files}
+                    onFilesChanged={() => active && void loadWorkspace(active)}
+                  />
+                </Box>
+              </Box>
+            </Paper>
+          </Grid>
+
+          {/* SAÍDA + FEEDBACK + BOTÕES */}
+          <Grid size={12}>
+            <Paper variant="outlined" sx={{ p: { xs: 1, md: 2 } }}>
+              <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} sx={{ mb: 1 }}>
+                <Button
+                  variant="contained"
+                  disabled={!canTest}
+                  loading={busy}
+                  startIcon={!busy ? <PlayArrowIcon /> : undefined}
+                  onClick={testAnswerClick}
                 >
-                  {statement}
-                </ReactMarkdown>
-              </div>
-            ) : (
-              <StatusText tone="muted">Carregando enunciado…</StatusText>
-            )}
-          </div>
+                  {t('challenge.testAnswer')}
+                </Button>
+                <Button
+                  variant="outlined"
+                  color="error"
+                  disabled={!piRunning}
+                  startIcon={<BlockIcon />}
+                  onClick={abortPi}
+                >
+                  {t('challenge.abort')}
+                </Button>
+              </Stack>
 
-          {/* PAINEL CENTRAL — editor */}
-          <div className="challenge__panel challenge__panel--editor">
-            <FileExplorer
-              files={files}
-              activePath={null}
-              onOpenFile={(p) => editorRef.current?.openFile(p)}
-              onCreateFile={(n) => editorRef.current?.createFile(n)}
-              onDeleteFile={(p) => editorRef.current?.deleteFile(p)}
-              onRefresh={() => active && void loadWorkspace(active)}
-            />
-            <EditorPane
-              // key por workspace: ao trocar de desafio o React DESMONTA/MONTA o
-              // EditorPane (reducer de abas zerado) — impede um buffer dirty do
-              // workspace A salvar no workspaceDir B (WARNING 4).
-              key={active.workspaceDir}
-              ref={editorRef}
-              workspaceDir={active.workspaceDir}
-              files={files}
-              onFilesChanged={() => active && void loadWorkspace(active)}
-            />
-          </div>
+              {/* Seção de saída determinística */}
+              <Stack direction="row" spacing={1} sx={{ alignItems: 'center', mt: 1 }}>
+                <Typography variant="subtitle2">{t('challenge.output')}</Typography>
+                {testStatus === 'running' ? (
+                  <Chip size="small" label="rodando…" color="primary" variant="outlined" />
+                ) : null}
+              </Stack>
+              <Box sx={{ mt: 0.5, height: 220 }}>
+                <AnswerTerminal ref={termRef} aria-label="Saída dos testes" />
+              </Box>
 
-          {/* PAINEL DIREITO/INFERIOR — saída + feedback + botões */}
-          <div className="challenge__panel challenge__panel--output">
-            <div className="challenge__actions">
-              <button
-                type="button"
-                className="btn btn--primary"
-                onClick={testAnswerClick}
-                disabled={!canTest}
-              >
-                {testStatus === 'running' || piStatus === 'running' ? (
-                  <InlineSpinner text="Testando…" />
-                ) : (
-                  <>
-                    <Play size={14} /> Testar resposta
-                  </>
-                )}
-              </button>
-              <button
-                type="button"
-                className="btn btn--danger"
-                onClick={abortPi}
-                disabled={piStatus !== 'running'}
-              >
-                <Ban size={14} /> Abortar
-              </button>
-            </div>
+              {/* Seção de feedback */}
+              <Stack direction="row" spacing={1} sx={{ alignItems: 'center', mt: 2 }}>
+                <MemoryIcon fontSize="small" color="action" />
+                <Typography variant="subtitle2">{t('challenge.feedback')}</Typography>
+                {providerChipKey ? (
+                  <Chip label={t(providerChipKey)} size="small" variant="outlined" color="secondary" />
+                ) : null}
+                {piRunning ? (
+                  <Chip size="small" label="rodando…" color="primary" variant="outlined" />
+                ) : null}
+                {piStatus === 'aborted' ? (
+                  <Chip size="small" label="abortado" variant="outlined" />
+                ) : null}
+              </Stack>
 
-            <div className="challenge__section-title">
-              <Database size={13} /> Testes (determinístico)
-            </div>
-            <div className="challenge__terminal">
-              <AnswerTerminal ref={termRef} aria-label="Saída dos testes" />
-            </div>
+              <Box sx={{ mt: 0.5 }}>
+                <Button
+                  size="small"
+                  startIcon={showThinking ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+                  onClick={() => setShowThinking((s) => !s)}
+                >
+                  Raciocínio…
+                </Button>
+                {blocks.filter((b) => b.kind === 'text' || b.kind === 'tool' || b.kind === 'error').length > 0 ? (
+                  <Box
+                    component="div"
+                    sx={{
+                      fontFamily: "'SFMono-Regular', 'JetBrains Mono', Menlo, Consolas, monospace",
+                      fontSize: '0.8125rem',
+                      bgcolor: 'action.hover',
+                      borderRadius: 1,
+                      p: 1,
+                      mt: 0.5,
+                    }}
+                  >
+                    {blocks
+                      .filter((b) => (showThinking ? true : b.kind !== 'thinking'))
+                      .map((b, i) => (
+                        <Box
+                          key={i}
+                          component="div"
+                          sx={{
+                            whiteSpace: 'pre-wrap',
+                            color:
+                              b.kind === 'error'
+                                ? 'error.main'
+                                : b.kind === 'tool'
+                                  ? 'text.secondary'
+                                  : 'text.primary',
+                          }}
+                        >
+                          {b.text}
+                        </Box>
+                      ))}
+                  </Box>
+                ) : null}
 
-            <div className="challenge__section-title">
-              <Cpu size={13} /> Feedback
-              {feedbackProvider === 'local' ? (
-                <span className="badge badge--accent">modelo local</span>
-              ) : feedbackProvider === 'deepseek' ? (
-                <span className="badge badge--muted">DeepSeek</span>
-              ) : null}
-              {piStatus === 'running' ? (
-                <span className="challenge__pi-running">
-                  <Loader2 size={12} className="spin" /> rodando…
-                </span>
-              ) : null}
-              {piStatus === 'aborted' ? <span className="badge badge--muted">abortado</span> : null}
-            </div>
-
-            <div className="challenge__feedback">
-              <button
-                type="button"
-                className="challenge__thinking-toggle"
-                onClick={() => setShowThinking((s) => !s)}
-              >
-                {showThinking ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
-                Raciocínio…
-              </button>
-
-              {blocks.filter((b) => b.kind === 'text' || b.kind === 'tool' || b.kind === 'error').length >
-              0 ? (
-                <div className="challenge__stream mono">
-                  {blocks
-                    .filter((b) => (showThinking ? true : b.kind !== 'thinking'))
-                    .map((b, i) => (
-                      <div key={i} className={`challenge__stream-block is-${b.kind}`}>
-                        {b.text}
-                      </div>
-                    ))}
-                </div>
-              ) : null}
-
-              {piFinal ? (
-                <pre className="challenge__final mono">{piFinal}</pre>
-              ) : null}
-              {piError ? <StatusText tone="danger">{piError}</StatusText> : null}
-            </div>
-          </div>
-        </div>
+                {piFinal ? (
+                  <Box
+                    component="pre"
+                    sx={{
+                      fontFamily: "'SFMono-Regular', 'JetBrains Mono', Menlo, Consolas, monospace",
+                      fontSize: '0.8125rem',
+                      whiteSpace: 'pre-wrap',
+                      bgcolor: 'background.default',
+                      borderRadius: 1,
+                      p: 1,
+                      mt: 0.5,
+                    }}
+                  >
+                    {piFinal}
+                  </Box>
+                ) : null}
+                {piError ? (
+                  <Alert severity="error" sx={{ mt: 1 }}>
+                    <Box component="div">{piError}</Box>
+                    <Box component="div" sx={{ mt: 0.5 }}>
+                      {t('challenge.keyHint')}
+                    </Box>
+                  </Alert>
+                ) : null}
+              </Box>
+            </Paper>
+          </Grid>
+        </Grid>
       )}
-    </section>
+    </Box>
   );
 }
 

@@ -24,6 +24,8 @@ import type { ReactElement } from 'react';
 import { Terminal as Xterm } from '@xterm/xterm';
 import { FitAddon } from '@xterm/addon-fit';
 import '@xterm/xterm/css/xterm.css';
+import Paper from '@mui/material/Paper';
+import { buildTestBannerLines, type TerminalBannerInput } from '../../lib/terminalBanner';
 
 /** Cores nomeadas aceitas por writeLine, mapeadas para cores do tema. */
 export type AnswerTerminalColor =
@@ -143,43 +145,34 @@ export const AnswerTerminal = forwardRef<AnswerTerminalHandle, AnswerTerminalPro
     );
 
     return (
-      <div className="answer-terminal">
+      <Paper
+        variant="outlined"
+        square
+        sx={{
+          bgcolor: '#0f1115',
+          borderColor: 'divider',
+          overflow: 'hidden',
+          '& .xterm': { px: 1.5 },
+        }}
+      >
         <div
           ref={containerRef}
           className="answer-terminal__viewport"
           aria-label={_props['aria-label']}
         />
-      </div>
+      </Paper>
     );
   },
 );
 
 /**
  * Imprime o banner PASS/FAIL no terminal dado o resultado determinístico.
- * Usado pela ChallengeView após `study.testAnswer`.
+ * Usado pela ChallengeView após `study.testAnswer`. A composição das linhas
+ * vive em `lib/terminalBanner.ts` (função pura testável); aqui só se itera.
  */
-export function printTestBanner(
-  terminal: AnswerTerminalHandle,
-  { passed, testsRun, expectedTests, output }: {
-    passed: boolean;
-    testsRun: number;
-    expectedTests: number;
-    output: string;
-  },
-): void {
+export function printTestBanner(terminal: AnswerTerminalHandle, input: TerminalBannerInput): void {
   terminal.clear();
-  terminal.writeLine('=== TESTES (fase determinística) ===', 'muted');
-  const color: AnswerTerminalColor = passed ? 'green' : 'red';
-  terminal.writeLine(passed ? 'PASSOU' : 'NÃO PASSOU', color);
-  terminal.writeLine(
-    `TESTS_RUN=${testsRun} ESPERADOS=${expectedTests}`,
-    'muted',
-  );
-  if (output && output.trim()) {
-    terminal.writeLine('──────────────────────────────────────────', 'muted');
-    for (const line of output.split(/\r?\n/)) {
-      terminal.writeLine(line, 'default');
-    }
+  for (const line of buildTestBannerLines(input)) {
+    terminal.writeLine(line.text, line.color);
   }
-  terminal.writeLine('==========================================', 'muted');
 }

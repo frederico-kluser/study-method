@@ -1,36 +1,45 @@
 /**
  * src/gate/SetupView.tsx — formulário OBRIGATÓRIO de chaves do GATE DE INÍCIO.
+ * CHROME MUI v9 + useTranslation real (removeu o tSafe).
  *
  * Renderizado pelo AppGate quando `keys:startup-status` devolve phase 'blocked'
  * (chave faltando ou inválida). O usuário NÃO pode entrar no app sem as DUAS
  * chaves validadas.
  *
- * Fluxo por provedor (mesmo padrão do SettingsView/KeysPanel, mas próprio daqui
- * para não conflitar com o dono daquele arquivo):
- *   - input password com mostrar/ocultar;
+ * Fluxo por provedor (mesmo padrão do SettingsView/KeysPanel, mas próprio aqui):
+ *   - TextField password com toggle de visibilidade (Visibility/VisibilityOff);
  *   - "Validar" → keys.validateDeepseek(typed) / keys.validateBrave(typed),
  *     validando a chave DIGITADA SEM salvar;
- *   - "Salvar e continuar" → keys.setKey(provider, key) para as DUAS, revalida
- *     (via onDone → AppGate re-executa o gate no main) e só fica habilitado
- *     quando AMBAS validaram.
+ *   - "Salvar" → keys.setKey(provider, key) para as DUAS, e revalida (via
+ *     onDone → AppGate re-executa o gate no main); só habilitado quando AMBAS
+ *     validaram.
  *
- * SLOT DO SWITCHER DE IDIOMA: o componente `LanguageSwitcher` vive em src/i18n
- * (criado pelo onda6-i18n-core em OUTRA worktree, ainda não mergeado nesta
- * árvore). Aqui expomos um slot que o onda7/shell (ou o i18n-core) preenche —
- * quando `src/i18n/LanguageSwitcher` existir, montam-no dentro deste div.
+ * O LanguageSwitcher (src/i18n) é montado no slot — o antigo
+ * <div id="language-switcher-slot"> é substituído.
  */
 import { useState, type ReactElement } from 'react';
+import { useTranslation } from 'react-i18next';
+import Alert from '@mui/material/Alert';
+import Box from '@mui/material/Box';
+import Button from '@mui/material/Button';
+import IconButton from '@mui/material/IconButton';
+import InputAdornment from '@mui/material/InputAdornment';
+import Paper from '@mui/material/Paper';
+import Stack from '@mui/material/Stack';
+import TextField from '@mui/material/TextField';
+import Typography from '@mui/material/Typography';
+import VisibilityIcon from '@mui/icons-material/Visibility';
+import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
 import type { ValidationResult } from '@shared/ipc-contract';
 import { getApi } from '../lib/apiBridge';
-import { tSafe } from '../lib/tSafe';
 import { humanizeValidationError } from '../lib/validationMessages';
-import { InlineSpinner } from '../views/SettingsView/FormControls';
+import LanguageSwitcher from '../i18n/LanguageSwitcher';
 
 type Provider = 'deepseek' | 'brave';
 
-const PROVIDER_META: Record<Provider, { name: string; placeholder: string }> = {
-  deepseek: { name: 'DeepSeek', placeholder: 'sk-…' },
-  brave: { name: 'Brave Search', placeholder: 'BSA…' },
+const PROVIDER_META: Record<Provider, { labelKey: 'keys.deepseek.label' | 'keys.brave.label'; placeholderKey: 'keys.deepseek.placeholder' | 'keys.brave.placeholder' }> = {
+  deepseek: { labelKey: 'keys.deepseek.label', placeholderKey: 'keys.deepseek.placeholder' },
+  brave: { labelKey: 'keys.brave.label', placeholderKey: 'keys.brave.placeholder' },
 };
 
 interface ProviderState {
@@ -44,6 +53,8 @@ interface ProviderState {
 const IDLE: ProviderState = { value: '', visible: false, validating: false, valid: false, invalidMsg: '' };
 
 export function SetupView({ onDone }: { onDone: () => void }): ReactElement {
+  const { t: _t } = useTranslation();
+  const t = _t as unknown as (key: string) => string;
   const [providers, setProviders] = useState<Record<Provider, ProviderState>>({
     deepseek: { ...IDLE },
     brave: { ...IDLE },
@@ -63,7 +74,7 @@ export function SetupView({ onDone }: { onDone: () => void }): ReactElement {
       patch(provider, (s) => ({
         ...s,
         valid: false,
-        invalidMsg: tSafe('keys.missingInput', 'Digite a chave antes de validar.'),
+        invalidMsg: 'Digite a chave antes de validar.',
       }));
       return;
     }
@@ -77,7 +88,7 @@ export function SetupView({ onDone }: { onDone: () => void }): ReactElement {
         ...s,
         validating: false,
         valid: false,
-        invalidMsg: tSafe('keys.networkError', `Erro de rede ao validar: ${String(err)}`),
+        invalidMsg: `Erro de rede ao validar: ${String(err)}`,
       }));
       return;
     }
@@ -93,11 +104,11 @@ export function SetupView({ onDone }: { onDone: () => void }): ReactElement {
     );
   };
 
-  const canContinue =
+  const allValid =
     providers.deepseek.valid && providers.brave.valid && !providers.deepseek.validating && !providers.brave.validating;
 
   const handleContinue = async (): Promise<void> => {
-    if (!canContinue) return;
+    if (!allValid) return;
     setSaving(true);
     try {
       await getApi().keys.setKey('deepseek', providers.deepseek.value.trim());
@@ -115,105 +126,92 @@ export function SetupView({ onDone }: { onDone: () => void }): ReactElement {
     const meta = PROVIDER_META[provider];
     const st = providers[provider];
     return (
-      <section className="panel keys-panel" key={provider}>
-        <h3 className="panel__title">{meta.name}</h3>
-        <label className="form-field">
-          <span className="form-field__label">
-            {tSafe(provider === 'deepseek' ? 'keys.deepseekLabel' : 'keys.braveLabel', `${meta.name} API key`)}
-          </span>
-          <div className="gate-password">
-            <input
-              type={st.visible ? 'text' : 'password'}
-              className="form-field__input"
-              value={st.value}
-              placeholder={meta.placeholder}
-              autoComplete="off"
-              onChange={(e) =>
-                patch(provider, (s) => ({ ...s, value: e.target.value, valid: false, invalidMsg: '' }))
-              }
-            />
-            <button
-              type="button"
-              className="gate-password__toggle"
-              aria-label={st.visible ? tSafe('keys.hide', 'Ocultar chave') : tSafe('keys.show', 'Mostrar chave')}
-              onClick={() => patch(provider, (s) => ({ ...s, visible: !s.visible }))}
-            >
-              {st.visible ? tSafe('keys.hide', 'Ocultar') : tSafe('keys.show', 'Mostrar')}
-            </button>
-          </div>
-        </label>
-        <div className="keys-panel__actions">
-          <button
-            type="button"
-            className="btn btn--secondary"
-            disabled={st.validating}
+      <Box key={provider}>
+        <TextField
+          fullWidth
+          label={t(meta.labelKey)}
+          placeholder={t(meta.placeholderKey)}
+          type={st.visible ? 'text' : 'password'}
+          value={st.value}
+          autoComplete="off"
+          disabled={st.validating || saving}
+          onChange={(e) =>
+            patch(provider, (s) => ({ ...s, value: e.target.value, valid: false, invalidMsg: '' }))
+          }
+          slotProps={{
+            input: {
+              endAdornment: (
+                <InputAdornment position="end">
+                  <IconButton
+                    aria-label={st.visible ? 'Ocultar chave' : 'Mostrar chave'}
+                    edge="end"
+                    onClick={() => patch(provider, (s) => ({ ...s, visible: !s.visible }))}
+                  >
+                    {st.visible ? <VisibilityOffIcon /> : <VisibilityIcon />}
+                  </IconButton>
+                </InputAdornment>
+              ),
+            },
+          }}
+        />
+        <Stack direction="row" spacing={1} sx={{ mt: 1, alignItems: 'center' }}>
+          <Button
+            variant="outlined"
+            disabled={st.validating || saving}
+            loading={st.validating}
             onClick={() => void handleValidate(provider)}
           >
-            {st.validating ? <InlineSpinner text={tSafe('keys.validating', 'Validando…')} /> : tSafe('keys.validate', 'Validar')}
-          </button>
-        </div>
-        {st.valid ? (
-          <p className="status-text status-text--success">{tSafe('keys.valid', 'Chave válida.')}</p>
-        ) : st.invalidMsg ? (
-          <p className="status-text status-text--danger">{st.invalidMsg}</p>
-        ) : (
-          <p className="status-text status-text--muted">
-            {tSafe('keys.invalid', 'Chave ainda não validada.')}
-          </p>
-        )}
-      </section>
+            {t('keys.validate')}
+          </Button>
+          {st.valid ? (
+            <Typography variant="body2" color="success.main">{t('keys.valid')}</Typography>
+          ) : st.invalidMsg ? (
+            <Typography variant="body2" color="error">{st.invalidMsg}</Typography>
+          ) : null}
+        </Stack>
+      </Box>
     );
   };
 
   return (
-    <div className="gate-blocked">
-      <div className="panel gate-card">
-        <h1 className="panel__title">{tSafe('gate.blocked', 'Configuração necessária')}</h1>
-        <p className="status-text status-text--muted">
-          {tSafe(
-            'gate.missingKeys',
-            'Para usar o tutor é preciso configurar as chaves de DeepSeek e Brave. Ambas são obrigatórias e precisam ser validadas para continuar.',
-          )}
-        </p>
+    <Box
+      sx={{
+        minHeight: '100vh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        p: 2,
+      }}
+    >
+      <Paper variant="outlined" sx={{ p: { xs: 2, sm: 3 }, maxWidth: 520, width: '100%' }}>
+        <Stack spacing={2}>
+          <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
+            <LanguageSwitcher />
+          </Box>
+          <Typography variant="h5" component="h1">
+            {t('gate.title')}
+          </Typography>
+          <Alert severity="info">{t('gate.missingKeys')}</Alert>
 
-        {/*
-         * SLOT DO SWITCHER DE IDIOMA (onda 6 — i18n seam):
-         * o component `LanguageSwitcher` vive em src/i18n (onda6-i18n-core, outra
-         * worktree, ainda não mergeado AQUI). O onda7/shell (ou o i18n-core, após o
-         * merge) monta seu switcher dentro deste div. Fora desta árvore o slot fica
-         * vazio; o SetupView usa tSafe para TODOS os textos, então segue traduzível.
-         */}
-        <div
-          id="language-switcher-slot"
-          data-testid="language-switcher"
-          className="gate-language-slot"
-        />
-
-        <div className="keys-panels gate-keys">
           {renderProvider('deepseek')}
           {renderProvider('brave')}
-        </div>
 
-        <div className="gate-actions">
-          <button
-            type="button"
-            className="btn btn--primary"
-            disabled={!canContinue || saving}
+          <Button
+            variant="contained"
+            disabled={!allValid || saving}
+            loading={saving}
             onClick={() => void handleContinue()}
+            sx={{ alignSelf: 'flex-start' }}
           >
-            {saving ? (
-              <InlineSpinner text={tSafe('gate.saving', 'Salvando…')} />
-            ) : (
-              tSafe('gate.continue', 'Salvar e continuar')
-            )}
-          </button>
-          {!canContinue && (
-            <p className="status-text status-text--muted">
-              {tSafe('gate.tryAgain', 'Valide as duas chaves para continuar.')}
-            </p>
-          )}
-        </div>
-      </div>
-    </div>
+            {t('keys.save')}
+          </Button>
+          {!allValid ? (
+            <Typography variant="body2" color="text.secondary">
+              {t('gate.invalidKeys')}
+            </Typography>
+          ) : null}
+        </Stack>
+      </Paper>
+    </Box>
   );
 }

@@ -4,10 +4,12 @@
  * Renderiza a coleção de abas do EditorPaneState (puro `lib/editorTabs.ts`),
  * marca a aba ativa, mostra o indicador de não-salvo (dirty) e oferece o
  * fechamento de cada aba. Controlado: recebe estado + callbacks, não guarda
- * estado próprio.
+ * estado próprio. Chrome MUI: cada aba é um Chip; o fechamento usa `onDelete`;
+ * o dirty usa variante/avatar de "•".
  */
 import type { ReactElement } from 'react';
-import { X } from 'lucide-react';
+import Box from '@mui/material/Box';
+import Chip from '@mui/material/Chip';
 import type { EditorTab } from '../../lib/editorTabs';
 
 /** Callbacks emitidos pela barra de abas. */
@@ -35,34 +37,56 @@ export function EditorTabs({
   if (tabs.length === 0) return null;
 
   return (
-    <div className="editor-tabs" role="tablist" aria-label="Arquivos abertos">
+    <Box
+      role="tablist"
+      aria-label="Arquivos abertos"
+      sx={{
+        display: 'flex',
+        gap: 0.5,
+        overflowX: 'auto',
+        px: 0.5,
+        py: 0.5,
+        borderBottom: 1,
+        borderColor: 'divider',
+      }}
+    >
       {tabs.map((tab) => {
         const active = tab.path === activePath;
         return (
-          <div
+          <Chip
             key={tab.path}
             role="tab"
             aria-selected={active}
-            className={'editor-tab' + (active ? ' is-active' : '') + (tab.dirty ? ' is-dirty' : '')}
+            label={tab.name}
             title={tab.path}
+            clickable
+            color={active ? 'primary' : 'default'}
+            variant={active ? 'filled' : 'outlined'}
+            size="small"
+            avatar={
+              tab.dirty ? (
+                <Box
+                  aria-label="não salvo"
+                  component="span"
+                  sx={{
+                    width: 8,
+                    height: 8,
+                    borderRadius: '50%',
+                    bgcolor: active ? 'primary.contrastText' : 'warning.main',
+                    ml: 1,
+                  }}
+                />
+              ) : undefined
+            }
+            onDelete={() => onClose(tab.path)}
             onClick={() => onActivate(tab.path)}
-          >
-            <span className="editor-tab__name">{tab.name}</span>
-            {tab.dirty ? <span className="editor-tab__dirty" aria-label="não salvo" /> : null}
-            <button
-              type="button"
-              className="editor-tab__close"
-              aria-label={`Fechar ${tab.name}`}
-              onClick={(e) => {
-                e.stopPropagation();
-                onClose(tab.path);
-              }}
-            >
-              <X size={12} />
-            </button>
-          </div>
+            sx={{
+              '& .MuiChip-deleteIcon': { fontSize: 14 },
+              mr: 0,
+            }}
+          />
         );
       })}
-    </div>
+    </Box>
   );
 }

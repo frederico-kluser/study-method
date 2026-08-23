@@ -23,7 +23,11 @@ import {
   useState,
   type ReactElement,
 } from 'react';
-import { Save } from 'lucide-react';
+import Box from '@mui/material/Box';
+import Alert from '@mui/material/Alert';
+import Button from '@mui/material/Button';
+import Typography from '@mui/material/Typography';
+import SaveIcon from '@mui/icons-material/Save';
 import type { WorkspaceFile } from '../../../shared/ipc-contract';
 import { getApi } from '../../lib/apiBridge';
 import {
@@ -217,18 +221,19 @@ export const EditorPane = forwardRef<EditorPaneHandle, EditorPaneProps>(function
   const empty = tabs.tabs.length === 0;
 
   return (
-    <div className="editor-pane">
-      <div className="editor-pane__toolbar">
-        <button
-          type="button"
-          className="btn btn--secondary editor-pane__btn"
+    <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+      <Box sx={{ display: 'flex', alignItems: 'center', px: 0.5, py: 0.25 }}>
+        <Button
+          size="small"
+          variant="text"
+          startIcon={<SaveIcon />}
           title="Salvar (Ctrl+S ou ⌘S)"
           onClick={saveActive}
           disabled={!active}
         >
-          <Save size={14} /> Salvar
-        </button>
-      </div>
+          Salvar
+        </Button>
+      </Box>
 
       <EditorTabs
         tabs={tabs.tabs}
@@ -237,15 +242,21 @@ export const EditorPane = forwardRef<EditorPaneHandle, EditorPaneProps>(function
         onClose={(p) => void closeTab(p)}
       />
 
-      <div className="editor-pane__body">
-        {error ? <div className="editor-pane__error">{error}</div> : null}
+      <Box sx={{ flexGrow: 1, minHeight: 0, overflow: 'auto' }}>
+        {error ? (
+          <Alert severity="error" sx={{ m: 1 }}>
+            {error}
+          </Alert>
+        ) : null}
         {busyPath ? (
-          <div className="editor-pane__loading">Abrindo {busyPath}…</div>
+          <Typography variant="body2" color="text.secondary" sx={{ p: 1 }}>
+            Abrindo {busyPath}…
+          </Typography>
         ) : null}
         {empty ? (
-          <div className="editor-pane__empty">
-            <p>Selecione um arquivo na árvore à esquerda para começar a editar.</p>
-          </div>
+          <Typography variant="body2" color="text.secondary" sx={{ p: 1 }}>
+            Selecione um arquivo na árvore à esquerda para começar a editar.
+          </Typography>
         ) : active ? (
           <CodeMirrorField
             value={active.content}
@@ -255,8 +266,8 @@ export const EditorPane = forwardRef<EditorPaneHandle, EditorPaneProps>(function
             onSave={saveActive}
           />
         ) : null}
-      </div>
-    </div>
+      </Box>
+    </Box>
   );
 });
 

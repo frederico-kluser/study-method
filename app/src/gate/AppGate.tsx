@@ -1,16 +1,17 @@
 /**
- * src/gate/AppGate.tsx — GATE DE INÍCIO (onda 6).
+ * src/gate/AppGate.tsx — GATE DE INÍCIO (onda 6). CHROME MUI v9 + useTranslation
+ * (removeu o tSafe).
  *
- * Envolve o <App/> e, ao montar, consulta `window.api.keys.startupStatus()`
- * (via CAST — o preload deriva keys.startupStatus de KEYS_CHANNELS, mas a
- * ApiSchema tipada em preload/api-schema.ts é CONGELADA nesta rodada e não
- * declara o método; o orquestrador/pós-merge adiciona a tipagem).
+ * Envolve o <App/> e, ao montar, consulta `window.api.keys.startupStatus()`.
+ * O tipo `startupStatus` NÃO está no ApiSchema (a onda 8 é dona única das
+ * adições de tipo no api-schema) — mantemos o cast KeysWithStartupStatus
+ * (padrão do base) até a onda 8 tipar.
  *
  * Fases (StartupStatus.phase):
- *   - 'checking' (ou status nulo) → SPLASH com spinner (tSafe('gate.checking'));
+ *   - 'checking' (ou status nulo) → SPLASH com CircularProgress (gate.checking);
  *   - 'blocked'  → <SetupView onDone={recheck}/> (formulário OBRIGATÓRIO de keys);
- *   - 'offline'  → <OfflineBanner/> no topo + <App/> (features online gateadas
- *                  via flags; LLM local continua utilizável);
+ *   - 'offline'  → <OfflineBanner/> (Alert) no topo + <App/> (features online
+ *                  gateadas via flags; LLM local continua utilizável);
  *   - 'ready'    → <App/>.
  *
  * Guarda o startup result + flags num context (StartupCtx) — as features
@@ -25,14 +26,23 @@ import {
   useState,
   type ReactElement,
 } from 'react';
+import { useTranslation } from 'react-i18next';
+import Alert from '@mui/material/Alert';
+import Box from '@mui/material/Box';
+import Button from '@mui/material/Button';
+import CircularProgress from '@mui/material/CircularProgress';
+import Paper from '@mui/material/Paper';
+import Stack from '@mui/material/Stack';
+import Typography from '@mui/material/Typography';
 import type { StartupStatus } from '@shared/ipc-contract';
 import App from '../App';
 import { getApi } from '../lib/apiBridge';
-import { tSafe } from '../lib/tSafe';
 import { applyOfflineFlags, type StartupFlags } from './startupState';
 import { SetupView } from './SetupView';
 
-/** Assinatura mínima do canal keys:startup-status exposto pelo preload. */
+/** Assinatura mínima do canal keys:startup-status exposto pelo preload. O tipo
+ * `startupStatus` NÃO está no ApiSchema (a onda 8 será dona única das adições
+ * de tipo do api-schema) — até lá usamos cast, como o base fazia. */
 type KeysWithStartupStatus = {
   startupStatus(): Promise<StartupStatus>;
 };
@@ -60,40 +70,62 @@ export function useStartup(): StartupContextValue {
 
 /** Splash de checagem (gira enquanto o main valida as chaves). */
 function Splash(): ReactElement {
+  const { t: _t } = useTranslation();
+  const t = _t as unknown as (key: string) => string;
   return (
-    <div className="gate-splash" role="status" aria-live="polite">
-      <div className="gate-splash__card panel">
-        <div className="gate-splash__spinner" aria-hidden="true" />
-        <p className="status-text status-text--muted">{tSafe('gate.checking', 'Verificando chaves…')}</p>
-      </div>
-    </div>
+    <Box
+      role="status"
+      aria-live="polite"
+      sx={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', p: 2 }}
+    >
+      <Paper variant="outlined" sx={{ p: 3 }}>
+        <Stack direction="row" spacing={2} sx={{ alignItems: 'center' }}>
+          <CircularProgress size={28} />
+          <Typography variant="body1" color="text.secondary">
+            {t('gate.checking')}
+          </Typography>
+        </Stack>
+      </Paper>
+    </Box>
   );
 }
 
 /** Aviso renderizado no topo do app em modo OFFLINE (ambas as chaves falharam por rede). */
 export function OfflineBanner(): ReactElement {
+  const { t: _t } = useTranslation();
+  const t = _t as unknown as (key: string) => string;
   return (
-    <div className="gate-offline-banner" role="alert">
-      <strong>{tSafe('gate.offline', 'Modo offline')}</strong>
-      <span>{tSafe('gate.offlineTip', 'Não foi possível validar as chaves online. As funções online estão temporariamente indisponíveis; o tutor local continua funcionando.')}</span>
-    </div>
+    <Alert severity="warning" role="alert" sx={{ borderRadius: 0 }}>
+      <strong>{t('gate.offline')}</strong>
+      <span>{` ${t('gate.offlineTip')}`}</span>
+    </Alert>
   );
 }
 
 /** Painel de erro do próprio gate (canal falhou — deveria raramente ocorrer). */
 function GateError({ onRetry }: { onRetry: () => void }): ReactElement {
+  const { t: _t } = useTranslation();
+  const t = _t as unknown as (key: string) => string;
   return (
-    <div className="gate-blocked">
-      <div className="panel gate-card">
-        <h1 className="panel__title">{tSafe('gate.checkError', 'Falha ao verificar as chaves')}</h1>
-        <p className="status-text status-text--danger">
-          {tSafe('gate.checkErrorDetail', 'Não foi possível consultar o estado das chaves de API. Verifique se o app iniciou corretamente e tente novamente.')}
-        </p>
-        <button type="button" className="btn btn--primary" onClick={onRetry}>
-          {tSafe('gate.tryAgain', 'Tentar novamente')}
-        </button>
-      </div>
-    </div>
+    <Box
+      sx={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', p: 2 }}
+    >
+      <Paper variant="outlined" sx={{ p: 3, maxWidth: 440, width: '100%' }}>
+        <Stack spacing={1.5}>
+          <Alert severity="error">
+            <Typography variant="body1" component="div">
+              {t('common.error')}
+            </Typography>
+            <Typography variant="body2" component="div">
+              Não foi possível consultar o estado das chaves de API. Verifique se o app iniciou corretamente e tente novamente.
+            </Typography>
+          </Alert>
+          <Button variant="contained" onClick={onRetry} sx={{ alignSelf: 'flex-start' }}>
+            {t('gate.tryAgain')}
+          </Button>
+        </Stack>
+      </Paper>
+    </Box>
   );
 }
 
@@ -136,10 +168,10 @@ export function AppGate(): ReactElement {
     content = <SetupView onDone={() => void runCheck()} />;
   } else if (status.phase === 'offline') {
     content = (
-      <div className="gate-app-offline">
+      <Box component="div">
         <OfflineBanner />
         <App />
-      </div>
+      </Box>
     );
   } else {
     // 'ready'
