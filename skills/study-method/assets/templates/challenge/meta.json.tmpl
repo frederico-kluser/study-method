@@ -1,0 +1,62 @@
+{
+  "schema_version": "{{SCHEMA_VERSION}}",
+  "challenge_id": "{{CHALLENGE_ID}}",
+  "slug": "{{CHALLENGE_ID}}",
+  "title": "{{TITLE}}",
+  "created_at": "{{CREATED_AT}}",
+  "updated_at": "{{CREATED_AT}}",
+  "language": "{{LANGUAGE}}",
+  "layout_profile": "{{LAYOUT_PROFILE}}",
+  "skill_level": "beginner",
+  "difficulty": 1,
+  "target_concepts": {{CONCEPT_IDS}},
+  "challenge_status": "draft",
+  "artifacts": {
+    "statement_path": "README.md",
+    "stub_path": "stub",
+    "test_path": "tests/test_stub",
+    "runner_path": "runner.sh",
+    "hidden_dir": ".solution",
+    "reference_path": ".solution/reference"
+  },
+  "execution": {
+    "test_command": ["./runner.sh"],
+    "working_dir": ".",
+    "timeout_seconds": 15,
+    "expected_test_count": {{EXPECTED_TEST_COUNT}},
+    "test_count_probe": "counter_protocol",
+    "failure_exit_codes": {
+      "policy": "non_zero_is_failure"
+    }
+  },
+  "scenarios": {{SCENARIOS_JSON}},
+  "oracle": {
+    "strategies": ["reference_impl"],
+    "numeric_mode": "not_numeric"
+  },
+  "validation": {
+    "protocol_version": "1.0",
+    "harness": "challenge-verify.sh",
+    "verdict": "not_run",
+    "generation_attempts": 0,
+    "steps": {
+      "step_0_build": {"status": "skipped"},
+      "step_1_empty_stub": {"status": "skipped"},
+      "step_2_reference": {"status": "skipped"},
+      "step_3_alternatives": {"status": "skipped"},
+      "step_4_mutation": {"status": "skipped"},
+      "step_5_determinism": {"status": "skipped"},
+      "step_6_counts": {"status": "skipped"}
+    }
+  },
+  "integrity": {
+    "policy": "warn",
+    "test_sha256": null
+  },
+  "student_progress": {
+    "attempts": 0,
+    "last_result": "not_run",
+    "hint_level_used": 0,
+    "solution_revealed": false
+  }
+}

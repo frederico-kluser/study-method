@@ -1,0 +1,25 @@
+// tests/test_stub.c — a especificação executável deste desafio. Leia; não edite.
+// counter_protocol (docs/05-challenges-tdd.md §3.2): imprime TESTS_RUN e TESTS_FAILED em stdout
+// e NUNCA aborta no primeiro erro — diferente de assert.h/<cassert>, que aborta com SIGABRT (134)
+// e esconde todos os cenários depois do primeiro.
+// Testa {{FUNC_NAME}}, definido em ../stub.c.
+#include <stdio.h>
+
+#include "../stub.c"
+
+static int total = 0, falhas = 0;
+
+static void checa_long(const char *cenario, long obtido, long esperado, const char *porque) {
+    total++;
+    if (obtido != esperado) {
+        falhas++;
+        fprintf(stderr, "FALHOU [%s]: obtido %ld, esperado %ld. %s\n",
+                cenario, obtido, esperado, porque);
+    }
+}
+
+int main(void) {
+{{SCENARIOS_CODE}}
+    printf("TESTS_RUN=%d\nTESTS_FAILED=%d\n", total, falhas);
+    return falhas == 0 ? 0 : 1;
+}

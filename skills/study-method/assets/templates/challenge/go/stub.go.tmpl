@@ -1,0 +1,10 @@
+package {{PKG}}
+
+// {{SIGNATURE}} usa retorno NOMEADO de propósito (ex.: "n int) (resultado int)"): um `panic()`
+// aqui derrubaria o binário de teste inteiro e esconderia os cenários depois do primeiro —
+// exatamente o defeito do assert.h em C (docs/05-challenges-tdd.md §3.2). Um `return` nu devolve
+// o zero-value do tipo, que é sempre uma resposta errada e falha o teste sem abortar o processo.
+func {{FUNC_NAME}}({{SIGNATURE}} {
+	// implemente {{FUNC_NAME}} para o teste passar
+	return
+}

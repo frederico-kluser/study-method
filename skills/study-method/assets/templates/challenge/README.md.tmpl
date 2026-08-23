@@ -1,0 +1,37 @@
+# {{TITLE}}
+
+`challenges/{{CHALLENGE_ID}}-...` · linguagem: **{{LANGUAGE}}**
+
+## O problema
+
+{{STATEMENT}}
+
+## O que este teste cobre — e o que ele não cobre
+
+Nenhum teste, de nenhum sistema, consegue prometer cobertura de toda entrada possível — decidir
+a resposta certa para qualquer entrada imaginável de uma função não é computável em geral (é o
+*problema do oráculo*). O que este teste cobre, de verdade, é esta lista **fechada e nomeada** de
+cenários. Leia-a antes de começar: é exatamente o que está sendo cobrado, nem mais nem menos.
+
+{{SCENARIOS_TABLE}}
+
+O quanto esses cenários realmente discriminam uma solução certa de uma errada não é uma promessa
+— é um número medido por execução (o *mutation score*, em `meta.json`). Um score alto não é
+"completo"; é "o teste distingue a referência de N variações mecânicas dela".
+
+## Como rodar
+
+```
+{{RUN_CMD}}
+```
+
+O **único** arquivo que você edita é o stub deste desafio. O arquivo em `tests/` você lê — é a
+especificação executável — mas não deve editar; e tudo dentro de `.solution/` é oculto de
+propósito e não deve ser aberto antes da hora.
+
+## Se você acha que o teste está errado
+
+Se você acha que o teste está errado, me diga — testes gerados automaticamente erram, e eu
+revalido. Isso não é cortesia: um teste que nasceu do mesmo raciocínio que a implementação de
+referência pode ter herdado o mesmo engano, e quem primeiro percebe isso costuma ser quem está
+tentando resolver o problema, não quem o escreveu.
