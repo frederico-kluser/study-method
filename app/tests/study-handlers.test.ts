@@ -392,6 +392,92 @@ describe('study-handlers (unit / fakes)', () => {
       const res = await handlers.get(STUDY_CHANNELS.LIST_CHALLENGES)!(undefined, { setupRoot });
       assert.deepEqual(res, []);
     });
+
+    it('FIX15: generateLesson grava memory.lastSetupRoot (progresso) → list-challenges sem setupRoot listou', async () => {
+      __resetStudyHandlersMemory();
+      const setupRoot = path.join(tmp, 'setup-gerado');
+      await writeFile(path.join(setupRoot, 'challenges', '0011-ordenacao', 'meta.json'), JSON.stringify({
+        challenge_id: '0011',
+        title: 'Ordenação',
+        language: 'python',
+        target_concepts: [{ concept_id: 'sorting' }],
+        difficulty: 1,
+        verdict: 'approved',
+        artifacts: { statement_path: 'README.md' },
+      }));
+      // 1) generateLesson emite o setup na fase `materializing` do progresso.
+      const { deps } = makeDeps({
+        lesson: {
+          generateLesson: async (_subject, opts) => {
+            opts?.onProgress?.({
+              phase: 'materializing',
+              message: 'Setup criado',
+              fraction: 0.575,
+              setupRoot,
+              setupId: 'e2e-setup',
+            });
+            return {
+              lesson: {
+                title: 'A',
+                subject: 'Ordenação',
+                markdown: '# A',
+                findings: [],
+                challenges: [],
+                createdAt: 'now',
+              },
+              rejected: [],
+            };
+          },
+        },
+      });
+      const handlers = buildStudyHandlers(deps);
+      await handlers.get(STUDY_CHANNELS.GENERATE_LESSON)!(undefined, 'Ordenação');
+
+      // 2) list-challenges SEM setupRoot usa memory.lastSetupRoot e lista.
+      const list = await handlers.get(STUDY_CHANNELS.LIST_CHALLENGES)!(undefined, {});
+      const arr = list as Array<{ challengeId: string; title: string }>;
+      assert.equal(arr.length, 1);
+      assert.equal(arr[0].challengeId, '0011');
+    });
+
+    it('FIX15: favback deriva setupRoot do workspaceDir do 1º desafio (sem progresso de setup)', async () => {
+      __resetStudyHandlersMemory();
+      const { deps } = makeDeps({
+        lesson: {
+          generateLesson: async (subject) => ({
+            lesson: {
+              title: 'A',
+              subject,
+              markdown: '# A',
+              findings: [],
+              challenges: [
+                {
+                  challengeId: '0007',
+                  title: 'Fatorial',
+                  language: 'python',
+                  concept: 'recursao',
+                  difficulty: 2,
+                  status: 'validated',
+                  verdict: 'approved',
+                  workspaceDir: path.join(tmp, 'setup-x', 'challenges', '0007-fatorial'),
+                  statementPath: 'README.md',
+                },
+              ],
+              createdAt: 'now',
+            },
+            rejected: [],
+          }),
+        },
+      });
+      const handlers = buildStudyHandlers(deps);
+      await handlers.get(STUDY_CHANNELS.GENERATE_LESSON)!(undefined, 'Recursão');
+
+      // challenge.workspaceDir = <root>/challenges/<slug> → setupRoot = dirname².
+      const res = await handlers.get(STUDY_CHANNELS.LIST_CHALLENGES)!(undefined, {});
+      // O setup derivado aponta para challenges/ daquele root; listagem vazia é
+      // OK aqui — o que provamos é que NÃO lança 'requer setupRoot'.
+      assert.ok(Array.isArray(res), 'list-challenges usa setupRoot derivado, sem lançar');
+    });
   });
 
   describe('study:create-challenge', () => {

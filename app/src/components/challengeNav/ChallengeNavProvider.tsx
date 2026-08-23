@@ -6,7 +6,7 @@
  * `src/lib` para testes) não define `jsx`. Este arquivo é compilado apenas
  * pelo tsconfig.json (renderer).
  */
-import { useMemo, type ReactElement, type ReactNode } from 'react';
+import { useCallback, useMemo, useState, type ReactElement, type ReactNode } from 'react';
 import {
   ChallengeNavCtx,
   useNavChallengeState,
@@ -25,6 +25,12 @@ export function ChallengeNavProvider({
   onNavigateChallenge,
 }: ChallengeNavProviderProps): ReactElement {
   const value = useNavChallengeState();
+  // ADITIVO (fix15-list-challenges): setupRoot do último generateLesson — fora
+  // do reducer (não incrementa version; apenas é compartilhado Lesson→Challenge).
+  const [lastSetupRoot, setLastSetupRootState] = useState<string | null>(null);
+  const setLastSetupRoot = useCallback((setupRoot: string | null): void => {
+    setLastSetupRootState(setupRoot);
+  }, []);
   const navigate = useMemo(
     () => onNavigateChallenge ?? (() => {}),
     [onNavigateChallenge],
@@ -35,8 +41,17 @@ export function ChallengeNavProvider({
       selectChallenge: value.selectChallenge,
       version: value.version,
       navigateToChallenge: navigate,
+      lastSetupRoot,
+      setLastSetupRoot,
     }),
-    [value.selectedChallenge, value.selectChallenge, value.version, navigate],
+    [
+      value.selectedChallenge,
+      value.selectChallenge,
+      value.version,
+      navigate,
+      lastSetupRoot,
+      setLastSetupRoot,
+    ],
   );
   return <ChallengeNavCtx.Provider value={memo}>{children}</ChallengeNavCtx.Provider>;
 }

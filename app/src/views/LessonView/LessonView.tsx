@@ -212,6 +212,7 @@ function MarkdownComponents() {
 
 export default function LessonView(): ReactElement {
   const { t } = useTranslation();
+  const { setLastSetupRoot } = useChallengeNav();
   const [subject, setSubject] = useState('');
   const [status, setStatus] = useState<GenerateStatus>('idle');
   const [phase, setPhase] = useState<LessonPhaseState>({
@@ -223,11 +224,21 @@ export default function LessonView(): ReactElement {
   const [parsed, setParsed] = useState<ParsedLesson | null>(null);
   const [error, setError] = useState('');
 
-  const onProgress = useCallback((raw: unknown) => {
-    const next = parseLessonProgressEvent(raw);
-    setPhase(next);
-    setStatus((s) => (s === 'idle' ? 'running' : s));
-  }, []);
+  const onProgress = useCallback(
+    (raw: unknown) => {
+      const next = parseLessonProgressEvent(raw);
+      setPhase(next);
+      setStatus((s) => (s === 'idle' ? 'running' : s));
+      // Fix15-list-challenges: o main expõe o setup materializado na fase
+      // `materializing` (orchestrator). Guardamos em estado local/contexto para a
+      // ChallengeView listar desafios com setupRoot explícito quando disponível.
+      const rec = raw as { setupRoot?: unknown };
+      if (rec && typeof rec.setupRoot === 'string' && rec.setupRoot.trim()) {
+        setLastSetupRoot(rec.setupRoot.trim());
+      }
+    },
+    [setLastSetupRoot],
+  );
 
   useLessonProgress(onProgress);
 

@@ -177,7 +177,9 @@ export interface ApiSchema {
     generateLesson(): Promise<unknown>;
     getLesson(): Promise<unknown>;
     getFindings(): Promise<unknown>;
-    listChallenges(): Promise<ChallengeInfo[]>;
+    /** ADITIVO (fix15-list-challenges): `setupRoot` opcional — sem argumento segue
+     *  o fallback do main (memory.lastSetupRoot do último generateLesson). */
+    listChallenges(args?: { setupRoot?: string }): Promise<ChallengeInfo[]>;
     createChallenge(): Promise<unknown>;
     verifyChallenge(): Promise<unknown>;
     testAnswer(): Promise<TestAnswerResult>;

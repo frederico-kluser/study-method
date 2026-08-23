@@ -95,6 +95,15 @@ export interface LessonProgress {
   message?: string;
   /** Progresso 0..1, quando computável. */
   fraction?: number;
+  /**
+   * ADITIVO (fix15-list-challenges): diretório do setup materializado, presente
+   * na fase `materializing` logo após createSetup. Permite ao handler gravar
+   * `memory.lastSetupRoot` (fallback robusto p/ list-challenges) E à UI capturar
+   * o setupRoot do fluxo de aula sem depender só da memória do main.
+   */
+  setupRoot?: string;
+  /** Id do setup materializado (mesmo evento da materialização). */
+  setupId?: string;
 }
 
 /** Resultado do generateLesson: a StudyLesson montada + os desafios rejeitados. */

@@ -372,6 +372,16 @@ export function createLessonOrchestrator(deps: LessonOrchestratorDeps) {
         language: opts.language,
         skillLevel: undefined,
       });
+      // Fix15-list-challenges: expõe o setup materializado no progresso (aditivo,
+      // sem refatorar o ensaio). O handler grava memory.lastSetupRoot/setupId a
+      // partir daqui — permitindo list-challenges sem a UI repassar setupRoot.
+      emit(onProgress, {
+        phase: 'materializing',
+        message: `Setup criado: ${setup.setupRoot}`,
+        fraction: 0.575,
+        setupRoot: setup.setupRoot,
+        setupId: setup.setupId,
+      });
       const session = await deps.runner.newSession(setup.setupRoot, opts.goal ?? `Aula sobre ${subject}`);
 
       const challengeInfos: ChallengeInfo[] = [];

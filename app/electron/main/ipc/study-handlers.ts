@@ -16,8 +16,11 @@
  * Estado em memória de módulo (não persistido):
  *   - `lastGenerateResult`: o gerado por `study:generate-lesson`, para
  *     `study:get-lesson` / `study:get-findings`;
- *   - `lastSetupRoot`: último setup usado, fallback dos handlers que pedem
- *     setupRoot quando o invoke não o passa.
+ *   - `lastSetupRoot` / `lastSetupId`: setup materializado pelo último
+ *     `study:generate-lesson` (capturado no progresso `materializing` do
+ *     orchestrator, com fallback derivado do workspaceDir do 1º desafio).
+ *     Falback dos handlers que pedem setupRoot quando o invoke não o passa
+ *     (list-challenges, create-challenge, workspace files).
  *
  * Filesystem de workspace: operações RESTRITAS ao workspaceDir informado —
  * o path resolve é validado por contenção (mesmo padrão `containedIn` do runner);
@@ -113,6 +116,8 @@ interface StudyMemory {
   lastGenerateResult: { lesson: StudyLesson; rejected: unknown[] } | null;
   lastFindings: StudyLesson['findings'] | null;
   lastSetupRoot: string | null;
+  /** Id do setup do último generateLesson (aditivo fix15-list-challenges). */
+  lastSetupId: string | null;
   /** Provider lazy de resolveSkillDir (setado por buildStudyHandlers). */
   lastSkillDirProvider: (() => Promise<string>) | null;
 }
@@ -120,6 +125,7 @@ const memory: StudyMemory = {
   lastGenerateResult: null,
   lastFindings: null,
   lastSetupRoot: null,
+  lastSetupId: null,
   lastSkillDirProvider: null,
 };
 
@@ -128,6 +134,7 @@ export function __resetStudyHandlersMemory(): void {
   memory.lastGenerateResult = null;
   memory.lastFindings = null;
   memory.lastSetupRoot = null;
+  memory.lastSetupId = null;
   memory.lastSkillDirProvider = null;
 }
 
@@ -316,12 +323,38 @@ export function buildStudyHandlers(deps: StudyHandlerDeps): Map<string, IpcHandl
     // de delegar ao lesson-orchestrator (que aceita subject string).
     const normalized = normalizeGenerateLessonPayload(payload);
     const result = await lesson.generateLesson(normalized.subject, {
-      onProgress: (prog: LessonProgress) => emit(STUDY_CHANNELS.LESSON_PROGRESS, prog),
+      onProgress: (prog: LessonProgress) => {
+        // Fix15-list-challenges: o orchestrator expõe o setup materializado na
+        // fase `materializing` (setupRoot/setupId). Gravamos aqui ANTES de
+        // responder — assim o fluxo "gerar aula → listar desafios" funciona sem a
+        // UI repassar setupRoot (e como fallback robusto do list-challenges).
+        if (prog.setupRoot && typeof prog.setupRoot === 'string' && prog.setupRoot.trim()) {
+          memory.lastSetupRoot = prog.setupRoot.trim();
+          memory.lastSetupId =
+            prog.setupId && typeof prog.setupId === 'string' && prog.setupId.trim()
+              ? prog.setupId.trim()
+              : null;
+        }
+        emit(STUDY_CHANNELS.LESSON_PROGRESS, prog);
+      },
       language: normalized.language,
       goal: normalized.goal,
     });
     memory.lastGenerateResult = result;
     memory.lastFindings = result.lesson.findings;
+    // Fallback defensivo: se o setupRoot não chegou pelo progresso (ex.: um stub
+    // de lesson sem emit), deriva do workspaceDir do 1º desafio aprovado
+    // (<setupRoot>/challenges/<NNNN>-<slug> → dirname(dirname(workspaceDir))).
+    if (!memory.lastSetupRoot) {
+      const first = result.lesson.challenges?.[0];
+      if (first?.workspaceDir) {
+        const parent = path.dirname(first.workspaceDir);
+        const derived = path.dirname(parent);
+        if (derived && path.basename(parent) === 'challenges') {
+          memory.lastSetupRoot = derived;
+        }
+      }
+    }
     return result; // { lesson, rejected }
   });
 

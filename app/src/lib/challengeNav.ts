@@ -27,6 +27,16 @@ export interface ChallengeNavValue {
    * selecionar um desafio). No-op sem provider.
    */
   navigateToChallenge: () => void;
+  /**
+   * ADITIVO (fix15-list-challenges): setupRoot do ÚLTIMO generateLesson bem-
+   * -sucedido, capturado pela LessonView no progresso `materializing` e
+   * compartilhado com a ChallengeView via contexto. Permite à ChallengeView
+   * passar `setupRoot` explícito ao list-challenges (sem depender só do fallback
+   * da memória do main). null enquanto nenhuma aula foi gerada nesta sessão.
+   */
+  lastSetupRoot: string | null;
+  /** Armazena o setupRoot (e null quando limpo). Callback estável. */
+  setLastSetupRoot: (setupRoot: string | null) => void;
 }
 
 /** Reservado para persistência futura em hash. */
@@ -40,6 +50,10 @@ export const DEFAULT_CHALLENGE_NAV: ChallengeNavValue = {
   },
   version: 0,
   navigateToChallenge: () => {
+    /* no-op sem provider */
+  },
+  lastSetupRoot: null,
+  setLastSetupRoot: () => {
     /* no-op sem provider */
   },
 };

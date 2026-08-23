@@ -176,9 +176,15 @@ export default function ChallengeView(): ReactElement {
     setListError('');
     try {
       const api = getApi();
+      // Fix15-list-challenges: passa setupRoot explícito (do contexto, vindo do
+      // generateLesson na LessonView) quando disponível; senão deixa o main usar
+      // o fallback memory.lastSetupRoot. O `{}` preserva o contrato sem args.
+      const args: ListChallengesArgs = nav.lastSetupRoot
+        ? { setupRoot: nav.lastSetupRoot }
+        : {};
       const list = await (api.study.listChallenges as (
         args?: ListChallengesArgs,
-      ) => Promise<ChallengeInfo[]>)({});
+      ) => Promise<ChallengeInfo[]>)(args);
       setChallenges(list);
       if (list.length === 0) {
         setListing('error');
@@ -190,7 +196,7 @@ export default function ChallengeView(): ReactElement {
       setListing('error');
       setListError(`${t('translation:challenge.listError')}: ${String(err)}`);
     }
-  }, []);
+  }, [nav.lastSetupRoot]);
 
   // Carrega arquivos + enunciado do desafio ativo.
   const loadWorkspace = useCallback(async (ch: ChallengeInfo): Promise<void> => {
