@@ -28,6 +28,7 @@ type HandlerFn = (...args: unknown[]) => Promise<unknown>;
 interface FakeIpcMain {
   handlers: Map<string, HandlerFn>;
   handle(channel: string, fn: HandlerFn): void;
+  removeHandler(channel: string): void;
 }
 
 function installFakeElectron(): FakeIpcMain {
@@ -35,6 +36,9 @@ function installFakeElectron(): FakeIpcMain {
     handlers: new Map(),
     handle(channel, fn) {
       this.handlers.set(channel, fn);
+    },
+    removeHandler(channel) {
+      this.handlers.delete(channel);
     },
   };
   return fake;

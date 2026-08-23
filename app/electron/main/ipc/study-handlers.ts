@@ -217,6 +217,35 @@ async function skillDirOrThrow(): Promise<string> {
   return memory.lastSkillDirProvider();
 }
 
+/** Resultado normalizado do payload de `study:generate-lesson`. */
+interface NormalizedGenerateLesson {
+  subject: string;
+  language?: string;
+  goal?: string;
+}
+
+/**
+ * Normaliza o payload de `study:generate-lesson`. O renderer chama com uma
+ * STRING AVULSA (subject.trim()), mas o contrato também permite um objeto
+ * `{ subject, language?, goal? }`. Devolve um objeto normalizado ou lança um
+ * erro claro quando o shape é inválido (subject ausente/vazio).
+ */
+export function normalizeGenerateLessonPayload(payload: unknown): NormalizedGenerateLesson {
+  if (typeof payload === 'string') {
+    const subject = payload.trim();
+    if (!subject) throw new Error('study: generate-lesson requer `subject` (string não vazia).');
+    return { subject, language: undefined, goal: undefined };
+  }
+  const p = (payload ?? {}) as Record<string, unknown>;
+  const subject = typeof p.subject === 'string' ? p.subject.trim() : '';
+  if (!subject) throw new Error('study: generate-lesson requer `subject` (string não vazia).');
+  return {
+    subject,
+    language: typeof p.language === 'string' ? p.language : undefined,
+    goal: typeof p.goal === 'string' ? p.goal : undefined,
+  };
+}
+
 /**
  * Monta o mapa canal→handler (PURA). `deps.runner` injeta o runner; `deps.lesson`
  * injeta o orchestrator; `deps.emit` é o canal para a UI.
@@ -265,13 +294,14 @@ export function buildStudyHandlers(deps: StudyHandlerDeps): Map<string, IpcHandl
   });
 
   map.set(STUDY_CHANNELS.GENERATE_LESSON, async (_event, payload: unknown) => {
-    const p = (payload ?? {}) as Record<string, unknown>;
-    const subject = typeof p.subject === 'string' ? p.subject.trim() : '';
-    if (!subject) throw new Error('study: generate-lesson requer `subject` (string não vazia).');
-    const result = await lesson.generateLesson(subject, {
+    // Aceita uma STRING AVULSA (subject, como a UI chama: generateLesson(subject))
+    // OU um objeto `{ subject, language?, goal? }`. Normaliza para o objeto antes
+    // de delegar ao lesson-orchestrator (que aceita subject string).
+    const normalized = normalizeGenerateLessonPayload(payload);
+    const result = await lesson.generateLesson(normalized.subject, {
       onProgress: (prog: LessonProgress) => emit(STUDY_CHANNELS.LESSON_PROGRESS, prog),
-      language: typeof p.language === 'string' ? p.language : undefined,
-      goal: typeof p.goal === 'string' ? p.goal : undefined,
+      language: normalized.language,
+      goal: normalized.goal,
     });
     memory.lastGenerateResult = result;
     memory.lastFindings = result.lesson.findings;

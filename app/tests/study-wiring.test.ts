@@ -119,14 +119,47 @@ describe('(b) pi:execute via buildPiHandlers', () => {
     assert.equal((streamEv.ev as { type: string }).type, 'text_delta');
   });
 
-  it('rejeita request sem prompt ou sem modelConfig', async () => {
+  it('shape inválido → devolve PiExecuteResult estruturado de erro (NÃO lança)', async () => {
     const handlers = buildPiHandlers({
       getService: async () => ({ execute: async () => ({ success: false, output: '', executionTimeMs: 0 }), abort: () => {} }),
       emit: () => {},
     });
     const execute = handlers.get(PI_CHANNELS.EXECUTE)!;
-    await assert.rejects(async () => execute(undefined, { modelConfig: { provider: 'x', model: 'y' } }), /prompt/);
-    await assert.rejects(async () => execute(undefined, { prompt: 'ok', modelConfig: {} }), /modelConfig/);
+    // Sem `prompt` → erro estruturado com output/executionTimeMs zerados.
+    const r1 = (await execute(undefined, { modelConfig: { provider: 'x', model: 'y' } })) as {
+      success: boolean;
+      error?: string;
+      output: string;
+      executionTimeMs: number;
+    };
+    assert.equal(r1.success, false);
+    assert.match(r1.error ?? '', /prompt/);
+    assert.equal(r1.output, '');
+    assert.equal(r1.executionTimeMs, 0);
+    // modelConfig inválido → idem.
+    const r2 = (await execute(undefined, { prompt: 'ok', modelConfig: {} })) as {
+      success: boolean;
+      error?: string;
+    };
+    assert.equal(r2.success, false);
+    assert.match(r2.error ?? '', /modelConfig/);
+  });
+
+  it('pi:abort sem sessionId → devolve { ok:false, error } (NÃO lança)', async () => {
+    let aborted = false;
+    const handlers = buildPiHandlers({
+      getService: async () => ({ execute: async () => ({ success: true, output: '', executionTimeMs: 0 }), abort: () => { aborted = true; } }),
+      emit: () => {},
+    });
+    const abort = handlers.get(PI_CHANNELS.ABORT)!;
+    const res = (await abort(undefined)) as { ok: boolean; error?: string };
+    assert.equal(res.ok, false);
+    assert.match(res.error ?? '', /sessionId/);
+    assert.equal(aborted, false, 'não deve chamar svc.abort sem sessionId');
+
+    const ok = (await abort(undefined, 'abc')) as { ok: boolean };
+    assert.equal(ok.ok, true);
+    assert.equal(aborted, true);
   });
 });
 
@@ -170,6 +203,64 @@ describe('(c) study:generate-lesson', () => {
     const progEv = emitted.find((e) => e.channel === STUDY_CHANNELS.LESSON_PROGRESS);
     assert.ok(progEv, 'esperava evento study:lesson-progress');
     assert.equal((progEv.ev as { phase: string }).phase, 'research');
+  });
+
+  it('aceita STRING AVULSA no payload (UI chama generateLesson(subject)) e emite LESSON_PROGRESS', async () => {
+    const emitted: Array<{ channel: string; ev: unknown }> = [];
+    const receivedSubjects: string[] = [];
+    let onProgressCaptured: ((p: unknown) => void) | undefined;
+    const lesson = {
+      generateLesson: async (subject: string, opts: { onProgress?: (p: unknown) => void }) => {
+        receivedSubjects.push(subject);
+        onProgressCaptured = opts.onProgress;
+        return {
+          lesson: { title: 'Aula', subject, markdown: '# Aula', findings: [], challenges: [], createdAt: 'now' },
+          rejected: [],
+        };
+      },
+      testAnswer: async () => ({ success: true, testsRun: 1, expectedTests: 1, passed: true, output: '' }),
+      listSetups: async () => ({ rows: [] }),
+      resolveSkillDirInfo: async () => ({ skillDir: '' }),
+    } as unknown as LessonServiceLike;
+    const runner = { resolveSkillDir: async () => '' } as unknown as RunnerLike;
+
+    const handlers = buildStudyHandlers({ runner, lesson, emit: (channel, ev) => emitted.push({ channel, ev }) });
+    const gen = handlers.get(STUDY_CHANNELS.GENERATE_LESSON)!;
+
+    // STRING AVULSA (como a UI: subject.trim()).
+    const r = (await gen(undefined, 'Closures')) as { lesson: { subject: string }; rejected: unknown[] };
+    assert.equal(r.lesson.subject, 'Closures');
+    assert.deepEqual(receivedSubjects, ['Closures']);
+
+    // O onProgress repassado ao generateLesson emite LESSON_PROGRESS.
+    onProgressCaptured?.({ phase: 'lesson', message: 'escrevendo' });
+    const progEv = emitted.find((e) => e.channel === STUDY_CHANNELS.LESSON_PROGRESS);
+    assert.ok(progEv, 'esperava evento study:lesson-progress');
+    assert.equal((progEv.ev as { phase: string }).phase, 'lesson');
+  });
+
+  it('aceita OBJETO com language/goal no payload e repassa ao generateLesson', async () => {
+    const emitted: Array<{ channel: string; ev: unknown }> = [];
+    const capturedOpts: Array<{ language?: string; goal?: string }> = [];
+    const lesson = {
+      generateLesson: async (subject: string, opts: { language?: string; goal?: string; onProgress?: () => void }) => {
+        capturedOpts.push({ language: opts.language, goal: opts.goal });
+        return { lesson: { title: 'A', subject, markdown: '#', findings: [], challenges: [], createdAt: 'now' }, rejected: [] };
+      },
+      testAnswer: async () => ({ success: true, testsRun: 1, expectedTests: 1, passed: true, output: '' }),
+      listSetups: async () => ({ rows: [] }),
+      resolveSkillDirInfo: async () => ({ skillDir: '' }),
+    } as unknown as LessonServiceLike;
+    const runner = { resolveSkillDir: async () => '' } as unknown as RunnerLike;
+
+    const handlers = buildStudyHandlers({ runner, lesson, emit: (channel, ev) => emitted.push({ channel, ev }) });
+    const gen = handlers.get(STUDY_CHANNELS.GENERATE_LESSON)!;
+    const r = (await gen(undefined, { subject: 'Closures', language: 'pt-BR', goal: 'entender closures' })) as {
+      lesson: { subject: string };
+      rejected: unknown[];
+    };
+    assert.equal(r.lesson.subject, 'Closures');
+    assert.deepEqual(capturedOpts, [{ language: 'pt-BR', goal: 'entender closures' }]);
   });
 
   it('get-lesson devolve o último resultado; antes de gerar lança erro', async () => {

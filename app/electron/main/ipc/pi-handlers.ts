@@ -5,8 +5,10 @@
  *   pi:execute      → valida o shape de PiExecuteRequest e delega a
  *                     `svc.execute(request, onEvent)`; os PiStreamEvent apurados
  *                     EMITEM via `emit(PI_CHANNELS.STREAM_EVENT, ev)`. Devolve
- *                     PiExecuteResult.
- *   pi:abort        → (event, sessionId) → svc.abort(sessionId).
+ *                     PiExecuteResult. Shape inválido NÃO lança: devolve
+ *                     `{ success:false, error, output:'', executionTimeMs:0 }`.
+ *   pi:abort        → (event, sessionId) → svc.abort(sessionId); responde sempre
+ *                     `{ ok: boolean, error? }` (sem sessionId → { ok:false, error }).
  *   pi:get-status   → { available, message? } checando a disponibilidade do SDK.
  *
  * `buildPiHandlers(deps)` é PURA (devolve Map<canal, handler> sem tocar electron
@@ -92,7 +94,11 @@ export function buildPiHandlers(deps: PiHandlerDeps): Map<string, IpcHandlerFn> 
 
   map.set(PI_CHANNELS.EXECUTE, async (_event, request: unknown): Promise<PiExecuteResult> => {
     const shapeError = validatePiExecuteRequest(request);
-    if (shapeError) throw new Error(shapeError);
+    if (shapeError) {
+      // Shape inválido NÃO lança: devolve um PiExecuteResult estruturado de erro
+      // (contrato: { success:false, error, output:'', executionTimeMs:0 }).
+      return { success: false, error: shapeError, output: '', executionTimeMs: 0 };
+    }
 
     const svc = await getService();
     const result = await svc.execute(request as PiExecuteRequest, (ev: PiStreamEvent) => {
@@ -101,9 +107,11 @@ export function buildPiHandlers(deps: PiHandlerDeps): Map<string, IpcHandlerFn> 
     return result;
   });
 
-  map.set(PI_CHANNELS.ABORT, async (_event, sessionId: unknown): Promise<{ ok: boolean }> => {
+  // Contrato do abort: SEMPRE uma resposta estruturada `{ ok: boolean, error? }`.
+  // Abortar sem sessionId NÃO lança — devolve `{ ok:false, error:'...' }`.
+  map.set(PI_CHANNELS.ABORT, async (_event, sessionId: unknown): Promise<{ ok: boolean; error?: string }> => {
     if (typeof sessionId !== 'string' || sessionId.trim() === '') {
-      throw new Error('pi:abort requer um sessionId (string) no invoke.');
+      return { ok: false, error: 'pi:abort requer um sessionId (string) no invoke.' };
     }
     const svc = await getService();
     svc.abort(sessionId);
