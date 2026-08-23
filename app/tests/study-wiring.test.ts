@@ -19,8 +19,9 @@ import * as path from 'node:path';
 import { promises as fsp } from 'node:fs';
 import * as os from 'node:os';
 
-import { STUDY_CHANNELS, PI_CHANNELS, KEYS_CHANNELS,
-  type ChallengeInfo, type WorkspaceFile, type TestAnswerResult, type PiExecuteResult } from '../shared/ipc-contract';
+import { STUDY_CHANNELS, PI_CHANNELS, KEYS_CHANNELS, LOCAL_AI_CHANNELS,
+  type ChallengeInfo, type WorkspaceFile, type TestAnswerResult, type PiExecuteResult,
+  type HardwareInfo, type LocalModelInfo } from '../shared/ipc-contract';
 import { buildMainSetup } from '../electron/main/main-setup';
 import { safeHandle, safeHandleMap, type IpcMainHandleLike } from '../electron/main/ipc/safeHandle';
 import { buildPiHandlers, registerPiHandlers, type PiAgentServiceLike } from '../electron/main/ipc/pi-handlers';
@@ -32,6 +33,7 @@ import {
   type RunnerLike,
   type LessonServiceLike,
 } from '../electron/main/ipc/study-handlers';
+import { registerLocalAiHandlers, type LlmLike } from '../electron/main/ipc/localAi-handlers';
 import type { SettingsStore } from '../electron/main/services/settingsStore';
 
 /** ipcMain fake que retém handlers por canal e implementa removeHandler (safeHandle). */
@@ -472,6 +474,108 @@ describe('(g) contrato de shape dos retornos IPC', () => {
     assert.equal((piRes as PiExecuteResult).success, true);
     assert.equal((piRes as PiExecuteResult).executionTimeMs, 5);
     assert.equal(Object.prototype.hasOwnProperty.call(piRes, 'executionTimeMs'), true);
+  });
+});
+
+// ─── (h) contrato de shape dos retornos IPC — GRUPO localAi ─────────────────
+// Os handlers localAi devolvem o valor NU do contrato (o preload repassa o
+// invoke cru, sem unwrap): detect-hardware → HardwareInfo; recommend →
+// LocalModelInfo; list → LocalModelInfo[]; get-active → string|null;
+// set-active/delete/download → {ok}; chat → {text}. Erros REJEITAM (throw).
+// Capturamos via ipcMain fake (registerLocalAiHandlers) p/ espelhar o runtime.
+describe('(h) contrato de shape dos retornos IPC — localAi', () => {
+  const HARDWARE: HardwareInfo = { backend: 'CPU', ramGb: 16, vramGb: null, cpuModel: 'x' };
+  const MODEL: LocalModelInfo = {
+    id: 'LiquidAI/LFM2.5-8B-A1B-GGUF:Q4_K_M',
+    label: 'LFM2.5 8B',
+    hfRepo: 'x',
+    filename: 'm.gguf',
+    quant: 'Q4_K_M',
+    sizeBytes: 100,
+    recommended: true,
+    agentReady: true,
+  };
+  const MODEL2: LocalModelInfo = { ...MODEL, id: 'other', label: 'other', recommended: false };
+
+  /** Store fake mínimo (nu, sem disco) para os handlers de estado. */
+  function fakeStore(active: string | null) {
+    return {
+      dir: '/tmp/models',
+      list: async () => [MODEL, MODEL2],
+      download: async () => '/tmp/models/m.gguf',
+      delete: async () => {},
+      getActive: async () => active,
+      setActive: async () => {},
+      getModelPath: async () => null,
+      isDownloaded: async () => false,
+    };
+  }
+  const fakeEngine: LlmLike = {
+    load: async () => {},
+    unload: async () => {},
+    chat: async () => ({ text: 'avaliação local' }),
+    status: async () => ({}),
+    getActive: () => null,
+  };
+
+  it('detect-hardware → HardwareInfo DIRETO; recommend → LocalModelInfo DIRETO', async () => {
+    const ipc = makeFakeIpc();
+    await registerLocalAiHandlers({ detect: async () => HARDWARE }, ipc);
+
+    const hw = await ipc.handlers.get(LOCAL_AI_CHANNELS.DETECT_HARDWARE)!(undefined);
+    assert.equal((hw as HardwareInfo).backend, 'CPU');
+    assert.equal(Object.prototype.hasOwnProperty.call(hw, 'success'), false);
+
+    const rec = await ipc.handlers.get(LOCAL_AI_CHANNELS.RECOMMEND)!(undefined);
+    assert.equal((rec as LocalModelInfo).recommended, true);
+    assert.equal(Object.prototype.hasOwnProperty.call(rec, 'success'), false);
+  });
+
+  it('list → LocalModelInfo[] DIRETO', async () => {
+    const ipc = makeFakeIpc();
+    await registerLocalAiHandlers({ getStore: async () => fakeStore('other') }, ipc);
+    const list = await ipc.handlers.get(LOCAL_AI_CHANNELS.LIST)!(undefined);
+    assert.ok(Array.isArray(list), 'localAi:list deve devolver ARRAY');
+    assert.equal((list as LocalModelInfo[]).length, 2);
+    assert.equal((list as LocalModelInfo[]).find((m) => m.id === 'other')?.active, true);
+  });
+
+  it('get-active → string|null DIRETO; set-active/delete/download → {ok} DIRETO', async () => {
+    const ipc = makeFakeIpc();
+    await registerLocalAiHandlers(
+      { getStore: async () => fakeStore('abc'), getEngine: async () => fakeEngine },
+      ipc,
+    );
+    const ev = {};
+    const active = await ipc.handlers.get(LOCAL_AI_CHANNELS.GET_ACTIVE)!(undefined);
+    assert.equal(active, 'abc', 'get-active deve devolver a string nua');
+
+    const setRes = await ipc.handlers.get(LOCAL_AI_CHANNELS.SET_ACTIVE)!(undefined, 'abc');
+    assert.equal((setRes as { ok: boolean }).ok, true);
+
+    const delRes = await ipc.handlers.get(LOCAL_AI_CHANNELS.DELETE)!(undefined, 'other');
+    assert.equal((delRes as { ok: boolean }).ok, true);
+
+    const dlRes = await ipc.handlers.get(LOCAL_AI_CHANNELS.DOWNLOAD)!(ev, 'abc');
+    assert.equal((dlRes as { ok: boolean }).ok, true);
+  });
+
+  it('chat → {text} DIRETO', async () => {
+    const ipc = makeFakeIpc();
+    await registerLocalAiHandlers({ getEngine: async () => fakeEngine }, ipc);
+    const res = (await ipc.handlers.get(LOCAL_AI_CHANNELS.CHAT)!(undefined, {
+      modelId: 'abc',
+      prompt: 'corrija',
+    })) as { text: string };
+    assert.deepEqual(res, { text: 'avaliação local' });
+    assert.equal(Object.prototype.hasOwnProperty.call(res, 'success'), false);
+  });
+
+  it('erros do chat REJEITAM (throw → rejeição do invoke)', async () => {
+    const ipc = makeFakeIpc();
+    await registerLocalAiHandlers({ getEngine: async () => fakeEngine }, ipc);
+    const p = ipc.handlers.get(LOCAL_AI_CHANNELS.CHAT)!(undefined, { modelId: 'abc', prompt: '' }) as Promise<unknown>;
+    await assert.rejects(p, (err: unknown) => String((err as Error)?.message).includes('Prompt vazio'));
   });
 });
 

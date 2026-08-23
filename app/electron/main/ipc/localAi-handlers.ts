@@ -5,6 +5,13 @@
  * download (invoke + eventos de progresso via webContents.send
  * DOWNLOAD_PROGRESS)); delete.
  *
+ * CONTRATO DE SHAPE (alinha com a ApiSchema do preload, que NÃO faz unwrap):
+ * cada handler devolve o valor NU tipado em sucesso — detect-hardware →
+ * HardwareInfo; recommend → LocalModelInfo; list → LocalModelInfo[];
+ * get-active → string | null; set-active/delete/download → {ok}; chat →
+ * {text}. Erros LANÇAM Error (o ipcMain.handle converte em rejeição no
+ * renderer), mesmo padrão de study:test-answer.
+ *
  * Duas camadas (mesmo idioma de ipc/index.ts):
  *   1. `buildLocalAiHandlers(deps)` — função PURA: devolve `Map<canal, handler>`
  *      em que handler é `(event, ...args) => Promise<unknown>`. Não toca em
@@ -84,132 +91,113 @@ export function buildLocalAiHandlers(deps: LocalAiHandlerDeps = {}): LocalAiHand
   });
   const detect = deps.detect ?? (() => detectHardware());
 
+  // NOTA DE DESIGN (alinhado ao study:test-answer): o `ipcMain.handle` converte
+  // um `throw` em REJEIÇÃO do invoke no renderer; o preload repassa o valor de
+  // RESOLVE cru (sem unwrap de envelope). Por isso cada handler devolve o valor
+  // NU tipado (HardwareInfo, LocalModelInfo, LocalModelInfo[], string|null,
+  // {ok}, {text}) em sucesso — e LANÇA Error em falha, que o renderer captura
+  // com try/catch (ChallengeView e LocalAiPanel já o fazem). Nada de
+  // {success,data}.
+
   map.set(LOCAL_AI_CHANNELS.DETECT_HARDWARE, async () => {
-    try {
-      const hw = await detect();
-      return { success: true, data: hw };
-    } catch (err) {
-      return { success: false, error: err instanceof Error ? err.message : String(err) };
-    }
+    const hw = await detect();
+    // HardwareInfo direto (sem {success,data}).
+    return hw;
   });
 
   map.set(LOCAL_AI_CHANNELS.RECOMMEND, async () => {
-    try {
-      const hw = await detect();
-      return { success: true, data: recommendDefault(hw) };
-    } catch (err) {
-      return { success: false, error: err instanceof Error ? err.message : String(err) };
-    }
+    const hw = await detect();
+    // LocalModelInfo direto (a UI confere `recommended`/card);
+    return recommendDefault(hw);
   });
 
   map.set(LOCAL_AI_CHANNELS.LIST, async () => {
-    try {
-      const store = await getStore();
-      const list = await store.list();
-      const activeId = await store.getActive();
-      const enriched = list.map((info) => ({ ...info, active: info.id === activeId }));
-      return { success: true, data: enriched };
-    } catch (err) {
-      return { success: false, error: err instanceof Error ? err.message : String(err) };
-    }
+    const store = await getStore();
+    const list = await store.list();
+    const activeId = await store.getActive();
+    const enriched = list.map((info) => ({ ...info, active: info.id === activeId }));
+    // LocalModelInfo[] direto.
+    return enriched;
   });
 
   map.set(LOCAL_AI_CHANNELS.DOWNLOAD, async (event, modelId) => {
     const id = String(modelId);
-    try {
-      const store = await getStore();
-      const controller = new AbortController();
-      const progress = (p: DownloadProgress): void => {
-        if (!event.sender.isDestroyed?.()) {
-          event.sender.send(LOCAL_AI_CHANNELS.DOWNLOAD_PROGRESS, p);
-        }
-      };
-      const localPath = await store.download(id, {
-        onProgress: progress,
-        signal: controller.signal,
-      });
-      return { success: true, path: localPath };
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      if (msg.startsWith('DOWNLOAD_CANCELLED:')) {
-        return { success: false, cancelled: true, error: msg };
+    const store = await getStore();
+    const controller = new AbortController();
+    const progress = (p: DownloadProgress): void => {
+      if (!event.sender.isDestroyed?.()) {
+        event.sender.send(LOCAL_AI_CHANNELS.DOWNLOAD_PROGRESS, p);
       }
-      return { success: false, error: msg };
-    }
+    };
+    const localPath = await store.download(id, {
+      onProgress: progress,
+      signal: controller.signal,
+    });
+    // O retorno NU é ignorado pela UI (progresso via evento); devolve {ok}.
+    return { ok: true, path: localPath };
   });
 
   map.set(LOCAL_AI_CHANNELS.DELETE, async (_event, modelId) => {
     const id = String(modelId);
-    try {
-      const store = await getStore();
-      const engine = await getEngine();
-      if (engine.getActive() === id) {
-        await engine.unload();
-      }
-      await store.delete(id);
-      return { success: true };
-    } catch (err) {
-      return { success: false, error: err instanceof Error ? err.message : String(err) };
+    const store = await getStore();
+    const engine = await getEngine();
+    if (engine.getActive() === id) {
+      await engine.unload();
     }
+    await store.delete(id);
+    return { ok: true };
   });
 
   map.set(LOCAL_AI_CHANNELS.GET_ACTIVE, async () => {
-    try {
-      const store = await getStore();
-      return { success: true, data: await store.getActive() };
-    } catch (err) {
-      return { success: false, error: err instanceof Error ? err.message : String(err) };
-    }
+    const store = await getStore();
+    // string | null (id do modelo ativo) — a ChallengeView usa como string.
+    return await store.getActive();
   });
 
   map.set(LOCAL_AI_CHANNELS.SET_ACTIVE, async (_event, modelId) => {
-    try {
-      const store = await getStore();
-      await store.setActive(modelId ? String(modelId) : null);
-      return { success: true };
-    } catch (err) {
-      return { success: false, error: err instanceof Error ? err.message : String(err) };
-    }
+    const store = await getStore();
+    await store.setActive(modelId ? String(modelId) : null);
+    return { ok: true };
   });
 
   /**
    * `localAi:chat` — inferência de bloco único (sem streaming) do modelo local.
    * Se `req.modelId` vier, usa-o; senão cai para o modelo ativo (`set-active`).
-   * Retorna {success:false, error:...} estruturado (NUNCA throw) quando não há
-   * modelo resolvido/baixado/carregável — o renderer decide como sugerir a
-   * volta ao provedor remoto.
+   * Em SUCESSO devolve O valor nu `LocalAiChatResult { text }` (mesmo shape de
+   * ipc-contract e da ApiSchema `api.localAi.chat → {text}`). Em ERRO LANÇA
+   * Error (o ipcMain.handle converte em rejeição) — o ChallengeView captura com
+   * try/catch e mostra o erro com a dica de voltar ao provedor DeepSeek.
    */
   map.set(LOCAL_AI_CHANNELS.CHAT, async (_event, rawReq) => {
     const req = (rawReq ?? {}) as Partial<LocalAiChatRequest>;
+    if (!req.prompt || !String(req.prompt).trim()) {
+      throw new Error('Prompt vazio — nada para o modelo local avaliar.');
+    }
+    // Só consulta o store (modelo ATIVO) quando o modelId não veio explícito —
+    // um modelId fornecido dispensa o acesso a disco/electron do store.
+    let modelId: string | null = req.modelId ? String(req.modelId) : null;
+    if (!modelId) {
+      const store = await getStore();
+      modelId = await store.getActive();
+    }
+    if (!modelId) {
+      throw new Error(
+        'Nenhum modelo local ativo. Baixe um modelo e ative-o em Configurações → LLM local,' +
+          ' ou troque o provedor de feedback para DeepSeek para voltar ao avaliador remoto.',
+      );
+    }
+    const engine = await getEngine();
+    let text: string;
     try {
-      if (!req.prompt || !String(req.prompt).trim()) {
-        return { success: false, error: 'Prompt vazio — nada para o modelo local avaliar.' };
-      }
-      // Só consulta o store (modelo ATIVO) quando o modelId não veio explícito —
-      // um modelId fornecido dispensa o acesso a disco/electron do store.
-      let modelId: string | null = req.modelId ? String(req.modelId) : null;
-      if (!modelId) {
-        const store = await getStore();
-        modelId = await store.getActive();
-      }
-      if (!modelId) {
-        return {
-          success: false,
-          error:
-            'Nenhum modelo local ativo. Baixe um modelo e ative-o em Configurações → LLM local,' +
-            ' ou troque o provedor de feedback para DeepSeek para voltar ao avaliador remoto.',
-        };
-      }
-      const engine = await getEngine();
-      const { text } = await engine.chat({ modelId, prompt: String(req.prompt) });
-      return { success: true, data: { text } };
+      ({ text } = await engine.chat({ modelId, prompt: String(req.prompt) }));
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       const hint = msg.startsWith('LOCAL_MODEL_NOT_INSTALLED')
         ? `${msg}. Baixe e ative o modelo local em Configurações, ou troque o provedor para DeepSeek.`
         : msg;
-      return { success: false, error: hint };
+      throw new Error(hint);
     }
+    return { text };
   });
 
   return map;
