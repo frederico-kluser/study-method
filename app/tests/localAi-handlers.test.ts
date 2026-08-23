@@ -169,3 +169,95 @@ describe('buildLocalAiHandlers (puro, fakes)', () => {
     assert.equal(await store.isDownloaded(DEF_ID), false);
   });
 });
+
+describe('localAi:chat (inferência do modelo local como avaliador)', () => {
+  it('usa engine fake com modelId explícito e devolve {success:true,data:{text}}', async () => {
+    let lastPrompt = '';
+    const engine = {
+      ...fakeEngine(null),
+      chat: async (opts: { modelId: string; prompt: string }) => {
+        lastPrompt = opts.prompt;
+        return { text: `avaliação de ${opts.modelId}` };
+      },
+    };
+    const handlers = buildLocalAiHandlers({ getEngine: async () => engine });
+    const res = (await handlers.get(LOCAL_AI_CHANNELS.CHAT)!(fakeEvent().event, {
+      modelId: DEF_ID,
+      prompt: 'corrija',
+    })) as { success: boolean; data?: { text: string } };
+    assert.equal(res.success, true);
+    assert.equal(res.data?.text, `avaliação de ${DEF_ID}`);
+    assert.equal(lastPrompt, 'corrija');
+  });
+
+  it('sem modelId → cai para o modelo ATIVO do store fake', async () => {
+    const { store } = await makeFakeStore();
+    await store.setActive(DEF_ID);
+    const engine = {
+      ...fakeEngine(null),
+      chat: async (opts: { modelId: string }) => ({ text: `avaliação de ${opts.modelId}` }),
+    };
+    const handlers = buildLocalAiHandlers({
+      getStore: async () => store,
+      getEngine: async () => engine,
+    });
+    const res = (await handlers.get(LOCAL_AI_CHANNELS.CHAT)!(fakeEvent().event, {
+      prompt: 'p',
+    })) as { success: boolean; data?: { text: string } };
+    assert.equal(res.success, true);
+    assert.equal(res.data?.text, `avaliação de ${DEF_ID}`);
+  });
+
+  it('NENHUM modelo ativo → erro estruturado {success:false,error}, sem throw', async () => {
+    const { store } = await makeFakeStore();
+    const handlers = buildLocalAiHandlers({
+      getStore: async () => store,
+      getEngine: async () => fakeEngine(null),
+    });
+    const res = (await handlers.get(LOCAL_AI_CHANNELS.CHAT)!(fakeEvent().event, {
+      prompt: 'p',
+    })) as { success: boolean; error?: string; data?: unknown };
+    assert.equal(res.success, false);
+    assert.ok(res.error && res.error.includes('Nenhum modelo local ativo'), `erro: ${res.error}`);
+    assert.equal(res.data, undefined);
+  });
+
+  it('prompt vazio → erro estruturado, sem chamar o engine', async () => {
+    let called = false;
+    const engine = {
+      ...fakeEngine(null),
+      chat: async () => {
+        called = true;
+        return { text: 'x' };
+      },
+    };
+    const handlers = buildLocalAiHandlers({ getEngine: async () => engine });
+    const res = (await handlers.get(LOCAL_AI_CHANNELS.CHAT)!(fakeEvent().event, {
+      modelId: DEF_ID,
+      prompt: '   ',
+    })) as { success: boolean; error?: string };
+    assert.equal(res.success, false);
+    assert.ok(res.error && res.error.includes('Prompt vazio'));
+    assert.equal(called, false);
+  });
+
+  it('modelo baixado ausente → erro estruturado com hint de volta ao DeepSeek', async () => {
+    const { store } = await makeFakeStore();
+    const engine = {
+      ...fakeEngine(null),
+      chat: async () => {
+        throw new Error(`LOCAL_MODEL_NOT_INSTALLED:${DEF_ID}`);
+      },
+    };
+    const handlers = buildLocalAiHandlers({
+      getStore: async () => store,
+      getEngine: async () => engine,
+    });
+    const res = (await handlers.get(LOCAL_AI_CHANNELS.CHAT)!(fakeEvent().event, {
+      modelId: DEF_ID,
+      prompt: 'p',
+    })) as { success: boolean; error?: string };
+    assert.equal(res.success, false);
+    assert.ok(res.error && res.error.includes('DeepSeek'), `erro: ${res.error}`);
+  });
+});

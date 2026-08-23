@@ -68,6 +68,7 @@ export const LOCAL_AI_CHANNELS = {
   DELETE: 'localAi:delete',
   GET_ACTIVE: 'localAi:get-active',
   SET_ACTIVE: 'localAi:set-active',
+  CHAT: 'localAi:chat',
 } as const;
 
 export interface HardwareInfo {
@@ -98,6 +99,17 @@ export interface DownloadProgress {
   speedBps: number;
   done: boolean;
   error?: string;
+}
+
+/** Pedido de `localAi:chat` — inferência do modelo local como avaliador. */
+export interface LocalAiChatRequest {
+  modelId?: string;
+  prompt: string;
+}
+
+/** Resultado de `localAi:chat` — o texto final do modelo (bloco único, s/ streaming). */
+export interface LocalAiChatResult {
+  text: string;
 }
 
 // ─── Canais: study-method (scripts da skill) ──────────────────────────────────

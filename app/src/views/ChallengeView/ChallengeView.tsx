@@ -49,6 +49,7 @@ import {
   buildPiFeedbackPrompt,
   digestStudyMethodRules,
 } from '../../lib/piFeedbackPrompt';
+import { resolveFeedbackProvider } from '../../lib/feedbackProvider';
 import { mapTestAnswerPhase } from '../../lib/testAnswerEvents';
 import { useChallengeNav } from '../../lib/challengeNav';
 import { AnswerTerminal, printTestBanner, type AnswerTerminalHandle } from '../../components/terminal/AnswerTerminal';
@@ -101,6 +102,8 @@ export default function ChallengeView(): ReactElement {
   const [blocks, setBlocks] = useState<StreamingBlock[]>([]);
   const [piFinal, setPiFinal] = useState<string>('');
   const [piError, setPiError] = useState('');
+  // Provedor que executou a última fase de feedback ('local' | 'deepseek').
+  const [feedbackProvider, setFeedbackProvider] = useState<'local' | 'deepseek' | null>(null);
 
   // Path do arquivo de código "principal" do workspace (para o pi ver o stub).
   const primaryCodePath = useMemo(() => {
@@ -152,6 +155,7 @@ export default function ChallengeView(): ReactElement {
     setPiFinal('');
     setPiError('');
     setPiStatus('idle');
+    setFeedbackProvider(null);
     setTestStatus('idle');
     try {
       const api = getApi();
@@ -268,17 +272,18 @@ export default function ChallengeView(): ReactElement {
     }
   }, []);
 
-  /** Fase pi coding agent — monta prompt e executa com streaming. */
+  /** Fase de feedback — decide o provedor e executa (pi DeepSeek OU modelo local). */
   const runPi = useCallback(async (): Promise<void> => {
     if (!active) return;
     setPiStatus('running');
     setPiError('');
     setBlocks([]);
     setSessionId(null);
+    setFeedbackProvider(null);
     const api = getApi();
 
     // Monta o código real do aluno (código do arquivo principal do workspace)
-    // + saída determinística para o additionalContext do pi.
+    // + saída determinística para o contexto do avaliador.
     let studentCode = '';
     if (primaryCodePath) {
       try {
@@ -291,9 +296,6 @@ export default function ChallengeView(): ReactElement {
       }
     }
     const testOut = testResult?.output ?? '';
-    const codeSnippet =
-      (primaryCodePath ? `\n[arquivo ${primaryCodePath}]\n\`\`\`\n${studentCode}\n\`\`\`\n` : '') +
-      `\n[resultado dos testes determinísticos]\n${testOut || '(sem saída)'}\n`;
 
     const prompt = buildPiFeedbackPrompt({
       subject: active?.concept,
@@ -303,6 +305,50 @@ export default function ChallengeView(): ReactElement {
       language: active?.language ?? '',
     });
 
+    // DECISÃO DE PROVEDOR (função pura, testada): o modelo local só avalia quando
+    // o usuário selecionou 'local' nas Configurações E há um modelo local ativo.
+    let provider: 'local' | 'deepseek' = 'deepseek';
+    try {
+      const [settings, activeModel] = await Promise.all([
+        api.settings.get().catch(() => ({}) as { defaultModelProvider?: 'deepseek' | 'local' }),
+        (api.localAi.getActive as () => Promise<string | null>)().catch(() => null),
+      ]);
+      provider = resolveFeedbackProvider({
+        defaultModelProvider: settings?.defaultModelProvider,
+        activeLocalModelId: activeModel ?? null,
+      });
+    } catch {
+      provider = 'deepseek'; // defensivo: nunca impede o feedback por falha de leitura.
+    }
+    setFeedbackProvider(provider);
+
+    // Provedor LOCAL: inferência de bloco único (sem streaming) do modelo local.
+    if (provider === 'local') {
+      try {
+        const activeId = await (api.localAi.getActive as () => Promise<string | null>)();
+        const result = await (api.localAi.chat as (req: {
+          modelId?: string;
+          prompt: string;
+        }) => Promise<{ text: string }>)({
+          modelId: activeId ?? undefined,
+          prompt,
+        });
+        setPiFinal(result.text ?? '');
+        setPiStatus('done');
+      } catch (err) {
+        // FALHA DO LOCAL — NÃO chamamos o pi de novo automaticamente: mostramos o
+        // erro e uma dica clara para voltar ao avaliaador remoto/ativo o local.
+        setPiStatus('error');
+        setPiError(
+          `O modelo local não conseguiu avaliar: ${String(err)}. ` +
+            'Ative o modelo local em Configurações ou troque o provedor de feedback para ' +
+            'DeepSeek e teste novamente.',
+        );
+      }
+      return;
+    }
+
+    // Provedor DEEPSEEK — pi coding agent com streaming/abort (fluxo histórico).
     try {
       // Assina o stream ANTES de executar.
       streamStopRef.current?.();
@@ -313,7 +359,9 @@ export default function ChallengeView(): ReactElement {
         workingDirectory: active.workspaceDir,
         modelConfig: { provider: 'deepseek', model: 'deepseek-v4-flash-0731' },
         skillSystemPrompt: digestStudyMethodRules(),
-        additionalContext: codeSnippet,
+        additionalContext:
+          (primaryCodePath ? `\n[arquivo ${primaryCodePath}]\n\`\`\`\n${studentCode}\n\`\`\`\n` : '') +
+          `\n[resultado dos testes determinísticos]\n${testOut || '(sem saída)'}\n`,
       })) as PiExecuteResult;
 
       setPiFinal(result.output ?? '');
@@ -502,7 +550,12 @@ export default function ChallengeView(): ReactElement {
             </div>
 
             <div className="challenge__section-title">
-              <Cpu size={13} /> Feedback do pi
+              <Cpu size={13} /> Feedback
+              {feedbackProvider === 'local' ? (
+                <span className="badge badge--accent">modelo local</span>
+              ) : feedbackProvider === 'deepseek' ? (
+                <span className="badge badge--muted">DeepSeek</span>
+              ) : null}
               {piStatus === 'running' ? (
                 <span className="challenge__pi-running">
                   <Loader2 size={12} className="spin" /> rodando…

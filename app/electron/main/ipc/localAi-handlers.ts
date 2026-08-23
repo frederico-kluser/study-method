@@ -15,7 +15,12 @@
  * O `ipc/index.ts` NÃO é editado aqui — a onda seguinte liga estes handlers ao
  * fluxo de boot.
  */
-import type { HardwareInfo, DownloadProgress, LocalModelInfo } from '@shared/ipc-contract';
+import type {
+  HardwareInfo,
+  DownloadProgress,
+  LocalModelInfo,
+  LocalAiChatRequest,
+} from '@shared/ipc-contract';
 import { LOCAL_AI_CHANNELS } from '@shared/ipc-contract';
 
 import { detectHardware } from '../services/embeddedLlm/hardware';
@@ -164,6 +169,46 @@ export function buildLocalAiHandlers(deps: LocalAiHandlerDeps = {}): LocalAiHand
       return { success: true };
     } catch (err) {
       return { success: false, error: err instanceof Error ? err.message : String(err) };
+    }
+  });
+
+  /**
+   * `localAi:chat` — inferência de bloco único (sem streaming) do modelo local.
+   * Se `req.modelId` vier, usa-o; senão cai para o modelo ativo (`set-active`).
+   * Retorna {success:false, error:...} estruturado (NUNCA throw) quando não há
+   * modelo resolvido/baixado/carregável — o renderer decide como sugerir a
+   * volta ao provedor remoto.
+   */
+  map.set(LOCAL_AI_CHANNELS.CHAT, async (_event, rawReq) => {
+    const req = (rawReq ?? {}) as Partial<LocalAiChatRequest>;
+    try {
+      if (!req.prompt || !String(req.prompt).trim()) {
+        return { success: false, error: 'Prompt vazio — nada para o modelo local avaliar.' };
+      }
+      // Só consulta o store (modelo ATIVO) quando o modelId não veio explícito —
+      // um modelId fornecido dispensa o acesso a disco/electron do store.
+      let modelId: string | null = req.modelId ? String(req.modelId) : null;
+      if (!modelId) {
+        const store = await getStore();
+        modelId = await store.getActive();
+      }
+      if (!modelId) {
+        return {
+          success: false,
+          error:
+            'Nenhum modelo local ativo. Baixe um modelo e ative-o em Configurações → LLM local,' +
+            ' ou troque o provedor de feedback para DeepSeek para voltar ao avaliador remoto.',
+        };
+      }
+      const engine = await getEngine();
+      const { text } = await engine.chat({ modelId, prompt: String(req.prompt) });
+      return { success: true, data: { text } };
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      const hint = msg.startsWith('LOCAL_MODEL_NOT_INSTALLED')
+        ? `${msg}. Baixe e ative o modelo local em Configurações, ou troque o provedor para DeepSeek.`
+        : msg;
+      return { success: false, error: hint };
     }
   });
 

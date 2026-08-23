@@ -52,6 +52,40 @@ export function LocalAiPanel(): ReactElement {
   const [downloading, setDownloading] = useState<string | null>(null);
   const [downloadTicks, setDownloadTicks] = useState<Record<string, DownloadTick>>({});
   const [busy, setBusy] = useState<Record<string, boolean>>({});
+  // Provedor de feedback do desafio (settings.defaultModelProvider — órfão até a
+  // onda 5; agora lido aqui e consumido pelo fluxo de feedback).
+  const [feedbackProvider, setFeedbackProvider] = useState<'deepseek' | 'local'>('deepseek');
+
+  // Lê o provedor salvo na montagem (settings:get).
+  useEffect(() => {
+    let cancelled = false;
+    getApi()
+      .settings.get()
+      .then((settings) => {
+        if (cancelled) return;
+        if (settings?.defaultModelProvider === 'local' || settings?.defaultModelProvider === 'deepseek') {
+          setFeedbackProvider(settings.defaultModelProvider);
+        }
+      })
+      .catch(() => {
+        /* settings indisponível — mantém o default deepseek */
+      });
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const handleFeedbackProviderChange = async (next: 'deepseek' | 'local'): Promise<void> => {
+    const prev = feedbackProvider;
+    setFeedbackProvider(next);
+    try {
+      await getApi().settings.set({ defaultModelProvider: next });
+    } catch (err) {
+      setFeedbackProvider(prev); // volta ao valor anterior se a escrita falhar
+      setError(`Falha ao salvar o provedor de feedback: ${String(err)}`);
+    }
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -157,6 +191,24 @@ export function LocalAiPanel(): ReactElement {
 
   return (
     <div className="localai">
+      <label className="form-field localai__provider">
+        <span className="form-field__label">Provedor de feedback do desafio</span>
+        <select
+          className="form-field__input"
+          value={feedbackProvider}
+          onChange={(e) =>
+            void handleFeedbackProviderChange(e.target.value === 'local' ? 'local' : 'deepseek')
+          }
+        >
+          <option value="deepseek">DeepSeek (nuvem)</option>
+          <option value="local">Modelo local</option>
+        </select>
+        <span className="settings__hint">
+          O modelo local é usado como avaliador do desafio quando selecionado aqui E um modelo
+          local está ativo. Sem modelo ativo, o feedback usa o DeepSeek (nuvem).
+        </span>
+      </label>
+
       <div className="localai__toolbar">
         <button
           type="button"

@@ -25,8 +25,9 @@ export default function SettingsView(): ReactElement {
       <section className="settings__section">
         <h2 className="settings__section-title">LLM local</h2>
         <p className="settings__hint">
-          Detecção de hardware e modelos locais (node-llama-cpp). Baixe um modelo
-          e ative-o para usar sem depender da nuvem.
+          Detecção de hardware e modelos locais (node-llama-cpp). Baixe um modelo, ative-o e
+          selecione "Modelo local" no provedor de feedback abaixo para que o modelo avalie os
+          desafios sem depender da nuvem.
         </p>
         <LocalAiPanel />
       </section>

@@ -66,11 +66,19 @@ Variáveis de caminho/execução:
 ## LLM local
 
 Na aba Settings → LLM local o app detecta o hardware, recomenda um quant, **baixa
-automaticamente os binários** (node-llama-cpp + pesos) e ativa um modelo. Use o modelo local
-como avaliador/juiz dos desafios (além do DeepSeek remoto).
+automaticamente os binários** (node-llama-cpp + pesos) e ativa um modelo. Escolha no painel o
+**provedor de feedback do desafio**:
+
+- **DeepSeek (nuvem)** (default) — o coding agent `pi` avalia a resposta, com streaming.
+- **Modelo local** — o modelo local vira o **avaliador/juiz do feedback**: quando selecionado
+  E há um modelo local ativo, a fase de feedback do Desafio roda a inferência localmente (sem
+  depender do DeepSeek), com o mesmo prompt pedagógico pt-BR. Sem modelo ativo, o feedback
+  volta automaticamente ao DeepSeek.
 
 > **Primeiro-run local:** o download baixa o modelo (e o backend nativo do node-llama-cpp)
 > automaticamente na primeira ativação; pode demorar e consumir banda/GPU conforme o tamanho.
+> A inferência local é **um bloco único (sem streaming)**; modelos grandes podem demorar mais
+> para responder.
 
 ## Arquitetura (resumo)
 
@@ -141,6 +149,12 @@ handler) está coberta por testes de wiring em `tests/study-wiring.test.ts`.
 ## Limitações conhecidas
 
 - **Primeiro-run do LLM local** baixa o modelo/binários automaticamente (ver acima).
+- **Chat local é um bloco único (sem streaming)** — a inferência do modelo local no feedback
+  do desafio não streama deltas (diferente do pi/DeepSeek); o primeiro uso pode baixar os
+  binários do node-llama-cpp automaticamente, e modelos grandes têm tempo de resposta maior.
+- **Erro de chat local não vira fallback automático** — se a inferência local falhar no
+  runtime, o app mostra o erro no painel com a dica de ativar o modelo local em Configurações
+  ou trocar o provedor para DeepSeek; não re-dispara o pi sozinho.
 - **Verificação de desafio é rígida** (regras DES-1/DES-4): o desafio só entra na aula se a
   referência/alternativas passarem e o juiz aprovar; `not_run` ≠ sucesso e tem diagnóstico
   honesto de porquê.

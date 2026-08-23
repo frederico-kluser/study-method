@@ -29,7 +29,9 @@ solução.
    - Aba **Chaves**: cole `DEEPSEEK_API_KEY` e `BRAVE_API_KEY`. O app valida a chave digitada
      antes de salvar (ícone de status verde/vermelho).
    - Aba **LLM local** (opcional): `Detectar hardware` → a lista recomenda um quant → baixe e
-     **ative**. Use o modelo local como avaliador dos desafios além do DeepSeek.
+     **ative**; depois selecione **Modelo local** em "Provedor de feedback do desafio". Com o
+     modelo ativo, o app usa o modelo local como **avaliador do feedback** do Desafio (sem
+     depender do DeepSeek); sem modelo ativo, o feedback usa o DeepSeek.
 
 ### 1.3 Aula (aba Aula)
 
@@ -54,11 +56,22 @@ Botão **Testar resposta** — duas fases:
 
 1. **Determinística**: roda os testes do desafio no workspace. Bandeira **PASS/FAIL**, linha
    `TESTS_RUN / ESPERADOS` e a saída real no terminal (xterm).
-2. **pi coding agent**: o app monta um prompt com o seu código + a saída determinística e
-   envia ao `pi` (DeepSeek), streamando em tempo real (texto / raciocínio / ferramentas) num
-   painel colapsável (`Raciocínio…`). Ao final mostra o veredito do pi.
+2. **Feedback (provedor decidido)**: o app monta um prompt com o seu código + a saída
+   determinística e o envia ao provedor selecionado em Configurações → LLM local → "Provedor
+   de feedback":
+   - **DeepSeek (nuvem)** (default): o coding agent `pi` avalia, streamando em tempo real
+     (texto / raciocínio / ferramentas) num painel colapsável (`Raciocínio…`). Mostra o
+     veredito ao final.
+   - **Modelo local**: a inferência roda localmente em **um bloco único (sem streaming)** e o
+     painel de feedback mostra o texto do modelo. Se o chat local falhar, o app mostra o erro
+     com a dica de ativar o modelo em Configurações ou trocar o provedor para DeepSeek (não
+     re-dispara o pi automaticamente).
 
-Botão **Abortar** interrompe a execução do pi (guarda o `sessionId` no `pi:abort`).
+O painel de feedback informa qual provedor executou a última avaliação (badge "modelo local" /
+"DeepSeek").
+
+Botão **Abortar** interrompe a execução do pi (guarda o `sessionId` no `pi:abort`); não se
+aplica ao bloco único do modelo local.
 
 ### 1.5 Verificação de desafio — regras rígidas
 
@@ -167,6 +180,15 @@ example/boundary/error) e agora **instrui o modelo a nomear a função principal
 - `STUDY_METHOD_LLM_IN_PROCESS=1` roda o motor no main (dev); sem ela sobe no utility process
   `llm-engine`.
 
+**Inferência como avaliador do feedback:** o canal `localAi:chat` (`app/shared/ipc-contract.ts`)
+executa `engine.chat({modelId, prompt})` — modelo `modelId` explícito ou o **ativo**
+(`set-active`) como fallback — e devolve `{text}` em um bloco. O `ChallengeView` usa
+`src/lib/feedbackProvider.ts` (`resolveFeedbackProvider`) para decidir entre modelo local e
+pi/DeepSeek, e o painel "Provedor de feedback" do Settings (`LocalAiPanel`) persiste
+`defaultModelProvider` em `settings:set`. Sem modelo ativo/baixado, o handler devolve
+`{success:false, error}` estruturado e o app sugere voltar ao DeepSeek (sem fallback
+automático de re-inferência).
+
 ---
 
 ## 3. Segurança
@@ -224,9 +246,14 @@ example/boundary/error) e agora **instrui o modelo a nomear a função principal
    `listChallenges`/workspace funcionem durante a sessão, mas a seleção não sobrevive a um
    restart.
 5. **Primeiro-run do LLM local** baixa modelo/binários automaticamente (§1.2/§2.5).
-6. **Verificação de desafio é rígida** (DES-1/DES-4): somente `approved` entra na aula;
+6. **Chat local sem streaming**: a inferência do modelo local no feedback dos desafios é um
+   **bloco único** (sem deltas, diferente do pi/DeepSeek); modelos grandes podem demorar mais
+   e o primeiro uso pode baixar os binários do node-llama-cpp. **Erro de chat local NÃO**
+   re-dispara o pi: o app mostra o erro no painel com a dica de ativar o modelo em
+   Configurações ou trocar o provedor para DeepSeek.
+7. **Verificação de desafio é rígida** (DES-1/DES-4): somente `approved` entra na aula;
    `not_run` tem motivo honesto (JSON do REQUEST malformado, setup não encontrado (exit 3),
    recurso travado (exit 4), apply esgotado, ou juiz ausente).
-7. **ApiSchema com alguns métodos `study.*` tipados sem parâmetros** (placeholders da onda
+8. **ApiSchema com alguns métodos `study.*` tipados sem parâmetros** (placeholders da onda
    inicial): o runtime já espera os payloads; o padrão aceito é o **cast local** no renderer.
    A verificação fim-a-fim de assinatura está coberta em `tests/study-wiring.test.ts`.

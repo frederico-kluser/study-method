@@ -115,15 +115,17 @@ describe('contrato IPC (shared/ipc-contract.ts)', () => {
     }
 
     // Garante que a string do canal chega ao transporte (invoke) ou à subscrição (on).
-    assert.ok(checked >= 18, `cobertura abaixo do esperado para o contrato (${checked})`);
+    assert.ok(checked >= 39, `cobertura abaixo do esperado para o contrato (${checked})`);
 
     // Invoca alguns membros e confere que o channel do contrato chega ao transporte.
     await (api as unknown as ApiRef).settings.get();
     await (api as unknown as ApiRef).pi.execute({ prompt: 'x', modelConfig: { provider: 'p', model: 'm' } });
     await (api as unknown as ApiRef).study.testAnswer();
+    await (api as unknown as ApiRef).localAi.chat({ prompt: 'avalia' });
     assert.ok(ipc.invoked.includes(SETTINGS_CHANNELS.GET), 'settings:get deveria invocar o transporte');
     assert.ok(ipc.invoked.includes(PI_CHANNELS.EXECUTE), 'pi:execute deveria invocar o transporte');
     assert.ok(ipc.invoked.includes(STUDY_CHANNELS.TEST_ANSWER), 'study:test-answer deveria invocar');
+    assert.ok(ipc.invoked.includes(LOCAL_AI_CHANNELS.CHAT), 'localAi:chat deveria invocar o transporte');
 
     // Subscreve os eventos expostos e confere que cada um toca o transporte.
     const unsubs: Array<() => void> = [
@@ -145,7 +147,10 @@ describe('contrato IPC (shared/ipc-contract.ts)', () => {
 interface ApiRef {
   settings: { get: () => Promise<unknown> };
   pi: { execute: (req: unknown) => Promise<unknown>; onStreamEvent: (cb: () => void) => () => void };
-  localAi: { onDownloadProgress: (cb: () => void) => () => void };
+  localAi: {
+    chat: (req: { prompt: string }) => Promise<unknown>;
+    onDownloadProgress: (cb: () => void) => () => void;
+  };
   study: {
     testAnswer: () => Promise<unknown>;
     onLessonProgress: (cb: () => void) => () => void;

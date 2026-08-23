@@ -151,6 +151,7 @@ export interface ApiSchema {
     delete(modelId: string): Promise<unknown>;
     getActive(): Promise<unknown>;
     setActive(modelId: string): Promise<unknown>;
+    chat(req: { modelId?: string; prompt: string }): Promise<{ text: string }>;
     onDownloadProgress(cb: (ev: DownloadProgress) => void): () => void;
   };
   study: {
