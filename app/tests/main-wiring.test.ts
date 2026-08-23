@@ -10,7 +10,7 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { buildMainSetup } from '../electron/main/main-setup';
+import { buildMainSetup, emitToAll } from '../electron/main/main-setup';
 import { registerKeysHandlers } from '../electron/main/ipc/keys-handlers';
 
 function makeDeps(called: string[]) {
@@ -62,5 +62,25 @@ describe('buildMainSetup (wiring do bootstrap IPC)', () => {
 
   it('registerKeysHandlers continua uma função exportada (âncora do módulo real)', () => {
     assert.equal(typeof registerKeysHandlers, 'function');
+  });
+});
+
+describe('emitToAll', () => {
+  it('envia o evento quando o webContents está vivo', () => {
+    const sent: string[] = [];
+    const wc = { isDestroyed: () => false, send: (c: string, ...a: unknown[]) => sent.push(`${c}:${JSON.stringify(a)}`) };
+    emitToAll(wc, 'study:lesson-progress', { phase: 'research' });
+    assert.equal(sent.length, 1);
+    assert.equal(sent[0], 'study:lesson-progress:[{"phase":"research"}]');
+  });
+
+  it('não envia quando webContents é undefined ou destruído', () => {
+    const sent: string[] = [];
+    emitToAll(undefined, 'x', 'v');
+    assert.equal(sent.length, 0);
+
+    const dead = { isDestroyed: () => true, send: (c: string, ...a: unknown[]) => sent.push(c) };
+    emitToAll(dead, 'x', 'v');
+    assert.equal(sent.length, 0);
   });
 });
