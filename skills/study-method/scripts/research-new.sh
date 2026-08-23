@@ -30,8 +30,14 @@ argumentos
   --topic <slug>      tópico do destilado, em kebab-case (^[a-z0-9]+(-[a-z0-9]+)*$).
                       Rótulo em pt-BR é normalizado por sm_normalize_slug.
   --sources <csv>     caminhos RELATIVOS à raiz do setup, separados por vírgula.
-                      Com fontes -> provenance "generated_researched";
+                      Caminho fora da raiz é recusado (exit 2), então o que entra
+                      aqui é SEMPRE material do aluno:
+                      com fontes -> provenance "student_provided";
                       sem fontes -> provenance "generated_unsourced".
+                      "generated_researched" NÃO é gravável por esta flag: ele
+                      afirma uma busca web feita na sessão, e este script não
+                      pesquisa nada. Quem pesquisou de verdade corrige o bloco
+                      depois (SK/references/researchs.md).
   --session <NNNN>    sessão que criou este destilado. Sem a flag, é lido de
                       memory/.session.lock; se não houver lock, fica null.
   -h, --help          esta ajuda
@@ -119,7 +125,7 @@ rn_read_template() {
   fi
   sm_log warn "template ausente ($rn_template_path); usando o esqueleto interno equivalente."
   cat <<'TMPL'
-<!-- study-method:meta {"schema_version":"1.0","kind":"research","id":"{{RESEARCH_ID}}","topic":"{{TOPIC}}","sources":{{SOURCES_JSON}},"provenance":"generated_unsourced","created_in_session":"{{CREATED_IN_SESSION}}","status":"active","verified_by_student":false,"disputed":false} -->
+<!-- study-method:meta {"schema_version":"1.0","kind":"research","research_id":"{{RESEARCH_ID}}","topic":"{{TOPIC}}","sources":{{SOURCES_JSON}},"provenance":"generated_unsourced","created_in_session":"{{CREATED_IN_SESSION}}","created_at":"{{CREATED_AT}}","status":"active","supersedes":[],"superseded_by":null,"verified_by_student":false,"disputed":false} -->
 
 # {{TOPIC}}
 
@@ -175,8 +181,15 @@ if [[ -z "$rn_meta" ]]; then
   sm_die 1 "o template de destilado não começa com o bloco '<!-- study-method:meta {…} -->' (docs/00-contratos.md §3.4)."
 fi
 
+# `--sources` só aceita caminho DENTRO da raiz do setup (o de fora morre com exit 2 lá
+# em cima): toda fonte que chega aqui é arquivo do `docs/` do aluno. Isso é
+# `student_provided`. Gravar `generated_researched` — como este ponto fazia — AFIRMAVA
+# uma busca web que nunca aconteceu, e SK/references/researchs.md proíbe em letras
+# maiúsculas: "Nunca marque generated_researched sem ter chamado a ferramenta de verdade
+# nesta sessão". `generated_researched` continua existindo no vocabulário; só não é
+# gravável por um script que não pesquisa.
 if [[ -n "$rn_sources_json" && "$rn_sources_json" != '[]' ]]; then
-  rn_provenance="generated_researched"
+  rn_provenance="student_provided"
 else
   rn_provenance="generated_unsourced"
 fi
@@ -190,7 +203,7 @@ if ! rn_meta_fixed="$(printf '%s' "$rn_meta" | jq -c \
       --argjson sources "$rn_sources_json" \
       '.schema_version = $ver
        | .kind = "research"
-       | .id = $id
+       | .research_id = $id
        | .topic = $topic
        | .sources = $sources
        | .provenance = $prov

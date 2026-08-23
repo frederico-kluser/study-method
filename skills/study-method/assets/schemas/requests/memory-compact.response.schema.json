@@ -107,8 +107,8 @@
           },
           "target_topic": {
             "type": ["string", "null"],
-            "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
-            "description": "Topico ao qual o procedimento se aplica, em kebab-case, reusando a grafia do pedido. E a chave de recuperacao no digest. null quando o procedimento vale para o aluno inteiro, nao para um topico."
+            "pattern": "^[a-z][a-z0-9_]{1,62}$",
+            "description": "Topico ao qual o procedimento se aplica, em snake_case, reusando a grafia do pedido. REGRA DESAMBIGUADA: identificador de conceito ou topico e snake_case (^[a-z][a-z0-9_]{1,62}$); kebab-case fica so para SLUG DE CAMINHO (setup_name, diretorio de desafio, slug de research). target_topic e identificador de topico, entao e snake_case - e tem de ser, porque a recuperacao compara target_topic com session.topics POR IGUALDADE DE STRING, e com padroes diferentes os dois nunca casariam. E a chave de recuperacao no digest. null quando o procedimento vale para o aluno inteiro, nao para um topico."
           },
           "how": {
             "type": "string",

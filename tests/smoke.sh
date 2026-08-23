@@ -210,6 +210,40 @@ def main(argv):
             val = payload.get(name)
             if name in payload and isinstance(val, (str, int, float, bool)):
                 body[name] = val
+    # `classify_survivor` e o unico pedido cuja resposta e uma LISTA INDEXADA PELO
+    # PEDIDO: uma entrada por mutante sobrevivente, com o `mutant_id` ecoado. O
+    # sintetizador generico so sabe inventar UM item a partir de `items`/`minItems`, e
+    # com um id inventado — challenge-verify.sh recusa isso (exit 2, "sobrevivente sem
+    # classificacao"). Aqui a lista nasce do payload do PEDIDO, que e o que um modelo
+    # real faria.
+    #
+    # A classificacao mecanica e `not_equivalent`, o lado CONSERVADOR que o proprio
+    # response_schema manda escolher na duvida ("classificar como equivalent o que na
+    # verdade e buraco entrega ao aluno um teste que aprova codigo errado"). O smoke
+    # nunca aprova um desafio pela porta insegura: se o veredito depender de perdoar um
+    # sobrevivente, ele NAO vem.
+    if req.get("kind") == "classify_survivor":
+        survivors = payload.get("survivors") or []
+        body["classifications"] = [
+            {
+                "mutant_id": s.get("mutant_id"),
+                "classification": "not_equivalent",
+                "justification": (
+                    "Resposta MECANICA do smoke: o modelo nao esta no laco, entao este "
+                    "sobrevivente vai para o lado conservador (test_gap) sem exame do "
+                    "diff. Nao e um julgamento sobre o mutante %s."
+                    % s.get("mutant_id")
+                ),
+                "distinguishing_input": None,
+                "suggested_scenario": None,
+            }
+            for s in survivors
+            if isinstance(s, dict) and s.get("mutant_id")
+        ]
+        body["notes"] = (
+            "Rodada sintetizada por tests/smoke.sh a partir do response_schema; "
+            "nenhuma classificacao aqui e opiniao de modelo."
+        )
     # docs/00-contratos.md §6.2: o ENVELOPE carrega `items`, e CADA item e uma
     # instancia do response_schema. Achatar o corpo na raiz e deixar items vazio
     # produz uma RESPOSTA que nenhum dos quatro consumidores aceita: os tres que
@@ -414,15 +448,47 @@ if [ -n "$CH_DIR" ] && [ -d "$CH_DIR" ]; then
     "$SCRIPTS/challenge-verify.sh" "$CH_DIR" || true
   if [ -n "${SMOKE_OUT:-}" ]; then
     verdict="$(printf '%s' "$SMOKE_OUT" | jq -r '.verdict // "?"' 2>/dev/null || echo '?')"
-    case "$verdict" in
-      approved|weak|rejected) gate_pass "S-03e" "veredito do harness: $verdict" ;;
-      *) gate_fail "S-03e" "challenge-verify.sh imprime o veredito" "approved|weak|rejected" "«$verdict»" "stdout de challenge-verify.sh" ;;
-    esac
+    # ⭐ O esperado é `approved`, e nada menos. A semente canônica em Python é um desafio
+    # BEM FORMADO por construção — stub vazio falha, referência passa, as duas alternativas
+    # passam, o catálogo fixo mata 12 de 13 — e o produto inteiro existe para entregar
+    # desafio validado ao aluno. Aceitar `approved|weak|rejected`, como esta asserção fazia,
+    # é aceitar QUALQUER coisa: foi por isso que o smoke ficou 62/62 verde enquanto NENHUM
+    # desafio Python ou JS conseguia ser aprovado (sm_json_get emitia uma linha vazia onde
+    # jq não emitia nada, `build_command` vazio virava comando vazio, exit 127,
+    # `build_failed` no passo 0). Um teste que aceita qualquer resultado não testa nada.
+    if [ "$verdict" = approved ]; then
+      gate_pass "S-03e" "veredito do harness: approved"
+    else
+      gate_fail "S-03e" "challenge-verify.sh aprova a semente canônica em Python" \
+        "approved (a semente é bem formada por construção; DES-2 só deixa approved virar validated)" \
+        "«$verdict» — rejeições: $(gate_trunc "$(jq -rc '[.validation.rejections[]? | "\(.code): \(.message)"] | join(" | ")' "$CH_DIR/meta.json" 2>/dev/null || echo '?')")" \
+        "stdout de challenge-verify.sh + $CH_DIR/meta.json"
+    fi
     cs="$(jq -r '.challenge_status // "?"' "$CH_DIR/meta.json" 2>/dev/null || echo '?')"
     if [ "$verdict" = approved ]; then
       assert_eq "S-03f" "só approved libera challenge_status validated (DES-2)" "validated" "$cs" "$CH_DIR/meta.json"
     else
       assert_ne "S-03f" "veredito não-approved NUNCA vira validated (DES-2)" "validated" "$cs" "$CH_DIR/meta.json"
+    fi
+    # Os 7 passos, um a um: `approved` sem saber QUAL passo rodou não prova protocolo.
+    naopassou="$(jq -r '[.validation.steps | to_entries[]
+                         | select(.value.status != "passed" and .value.status != "not_applicable")
+                         | "\(.key)=\(.value.status)"] | join(" ")' "$CH_DIR/meta.json" 2>/dev/null || echo '?')"
+    assert_eq "S-03g" "os 7 passos do protocolo passaram (nenhum skipped, nenhum failed)" \
+      "" "$naopassou" "$CH_DIR/meta.json → validation.steps"
+    # O passo 6 casa NOME por NOME: é o que pega scenarios[].test_name gravado num formato
+    # que o runner nunca reporta (nome qualificado onde o runner imprime o curto).
+    s6exp="$(jq -r '.validation.steps.step_6_counts.expected // -1' "$CH_DIR/meta.json" 2>/dev/null || echo -1)"
+    s6obs="$(jq -r '.validation.steps.step_6_counts.observed // -2' "$CH_DIR/meta.json" 2>/dev/null || echo -2)"
+    assert_eq "S-03h" "passo 6: os casos executados são exatamente os scenarios[].test_name declarados" \
+      "$s6exp" "$s6obs" "$CH_DIR/meta.json → validation.steps.step_6_counts"
+    # A mutação rodou DE VERDADE: catálogo não-vazio, mutantes válidos e mortos de fato.
+    mut="$(jq -r '"\(.validation.mutation.valid // 0)/\(.validation.mutation.killed // 0)"' "$CH_DIR/meta.json" 2>/dev/null || echo '0/0')"
+    if [ "${mut%%/*}" -gt 0 ] 2>/dev/null && [ "${mut##*/}" -gt 0 ] 2>/dev/null; then
+      gate_pass "S-03i" "passo 4 rodou de verdade: ${mut##*/} mutantes mortos de ${mut%%/*} válidos (score $(jq -r '.validation.mutation.score // "?"' "$CH_DIR/meta.json"))"
+    else
+      gate_fail "S-03i" "o passo 4 executa o catálogo fixo de mutantes" \
+        "valid > 0 e killed > 0" "valid/killed = $mut" "$CH_DIR/meta.json → validation.mutation"
     fi
   fi
 fi

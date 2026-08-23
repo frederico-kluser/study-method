@@ -185,7 +185,7 @@ CODIGOS:
   I09  palavra-chave fora da cobertura do verificador minimo (seria ignorada em silencio)
   I12  campo setup_id com pattern diferente do canonico
   I13  campo *_at sem pattern, ou com pattern de timestamp sem a fracao opcional
-  I16  concept_id/scenario_id ou slug/topic com pattern diferente do canonico
+  I16  concept_id/scenario_id/target_topic ou slug de caminho com pattern diferente do canonico
   G01  propriedade sem `description`
   G03  vocabulario com ASSINATURA DIVERGENTE entre schemas (mesmo nome, contratos diferentes)
   G11  campo hint_level* fora da faixa 0..5
@@ -233,7 +233,11 @@ CANON = {
     "scenario_id": P_CONCEPT,
     "subject_slug": P_SLUG,
     "setup_name": P_SLUG,
-    "target_topic": P_SLUG,
+    # target_topic e IDENTIFICADOR DE TOPICO, nao slug de caminho: casa P_CONCEPT, o
+    # mesmo de session.topics. Tinha de ser: a recuperacao do playbook procedimental
+    # compara target_topic com topics POR IGUALDADE DE STRING, e com kebab de um lado e
+    # snake do outro nenhum procedimento jamais seria recuperado.
+    "target_topic": P_CONCEPT,
     "schema_version": P_SCHEMA_VERSION,
     "date": P_DATE,
     "observed_at": P_DATE,
@@ -565,9 +569,13 @@ assert_grep_empty "I-13" "todo pattern de timestamp tem a fração opcional ([.]
   "o pattern canônico de §4.2 em todo campo *_at" \
   "$(audit_code I13)"
 
-assert_grep_empty "I-16" "concept_id/scenario_id em snake_case e slug/topic em kebab-case" \
-  "^[a-z][a-z0-9_]{1,62}\$ para conceito e ^[a-z0-9]+(-[a-z0-9]+)*\$ para slug (§4.2, A-15)" \
+# Regra desambiguada: identificador de CONCEITO ou TÓPICO (concept_id, scenario_id,
+# target_topic) é snake_case; SLUG DE CAMINHO (subject_slug, setup_name, diretório de
+# desafio, slug de research) é kebab-case.
+assert_grep_empty "I-16" "concept_id/scenario_id/target_topic em snake_case e slug de caminho em kebab-case" \
+  "^[a-z][a-z0-9_]{1,62}\$ para conceito/tópico e ^[a-z0-9]+(-[a-z0-9]+)*\$ para slug de caminho (§4.2, A-15)" \
   "$(audit_code I16)"
+gate_note "I-16 · docs/00-contratos.md §4.2 ainda lista \`target_topic\` na linha de kebab-case: é o texto do contrato que precisa da correção. \`target_topic\` é comparado com \`session.topics\` (snake) por igualdade de string — com padrões diferentes a recuperação do playbook procedimental nunca casaria. O gate implementa a regra arbitrada (snake)."
 
 assert_grep_empty "G-11" "hint_level e derivados na faixa 0..5" \
   "minimum 0 e maximum 5 em hint_level, hint_level_used e max_hint_level_used" \
@@ -985,10 +993,56 @@ if run_or_pend "I-30" "readme-sync.sh é idempotente" "readme-sync.sh"; then
   fi
 fi
 
-run_or_pend "I-31" "progress-update.sh --recompute reconstrói todo escalar de evidence[]" "progress-update.sh" || true
-if [ -x "$SCRIPT_DIR/progress-update.sh" ]; then
-  gate_pend "I-31" "progress-update.sh --recompute reconstrói todo escalar de evidence[]" \
-    "fixture canônico de progress.json ainda não existe em examples/ — a sub-tarefa dona é a 3.4b"
+# I-31 · evidence[] é a fonte de verdade; TODO escalar é cache reconstruível.
+# A prova é destrutiva de propósito: apaga os 12 escalares de todo conceito do fixture
+# canônico e exige que --recompute os traga de volta IDÊNTICOS. Comparar contra o
+# fixture (e não contra o que o próprio script acabou de escrever) é o que impede o
+# check de concordar consigo mesmo.
+I31_FIXTURE="$GATE_ROOT/examples/setup-calculo-python"
+I31_SCALARS='["proficiency_state","state_reason","confidence","attempts","unassisted_passes","max_hint_level_used","last_error_type","first_observed_at","observed_at","last_observed_at","interval_days","next_review_at"]'
+if run_or_pend "I-31" "progress-update.sh --recompute reconstrói todo escalar de evidence[]" "progress-update.sh"; then
+  if [ ! -f "$I31_FIXTURE/memory/progress.json" ]; then
+    gate_pend "I-31" "progress-update.sh --recompute reconstrói todo escalar de evidence[]" \
+      "fixture canônico ausente: $(gate_rel "$I31_FIXTURE/memory/progress.json")"
+  else
+    FX="$GATE_TMPDIR/fx31"; rm -rf "$FX"; mkdir -p "$FX"
+    cp -a "$I31_FIXTURE/." "$FX/"
+    cp "$FX/memory/progress.json" "$GATE_TMPDIR/progress-canon.json"
+    export STUDY_METHOD_HOME="$GATE_TMPDIR/home31"; mkdir -p "$STUDY_METHOD_HOME"
+    i31_ok=1; i31_det=""
+    # (a) o fixture é auto-consistente: recompute sobre ele não muda NADA.
+    i31_out="$("$SCRIPT_DIR/progress-update.sh" "$FX" --recompute 2>/dev/null || true)"
+    i31_n="$(printf '%s' "$i31_out" | jq -r '.changed // "?"' 2>/dev/null || echo '?')"
+    if [ "$i31_n" != "0" ]; then
+      i31_ok=0
+      i31_det+="o fixture canônico não é auto-consistente: --recompute sobre ele mudou $i31_n escalar(es). "
+    fi
+    # (b) apaga os 12 escalares de TODO conceito e manda reconstruir.
+    if jq --argjson sc "$I31_SCALARS" '.concepts |= map(delpaths([$sc[] | [.]]))' \
+         "$GATE_TMPDIR/progress-canon.json" > "$FX/memory/progress.json" 2>/dev/null; then
+      if "$SCRIPT_DIR/progress-update.sh" "$FX" --recompute >/dev/null 2>"$GATE_TMPDIR/i31.err"; then
+        i31_diff="$(diff <(jq -S '.concepts' "$GATE_TMPDIR/progress-canon.json") \
+                        <(jq -S '.concepts' "$FX/memory/progress.json") 2>&1 || true)"
+        if [ -n "$i31_diff" ]; then
+          i31_ok=0
+          i31_det+="depois de apagar os 12 escalares, --recompute NÃO os reconstruiu iguais: $(gate_trunc "$i31_diff"). "
+        fi
+      else
+        i31_ok=0
+        i31_det+="--recompute falhou sobre o fixture sem escalares: $(gate_trunc "$(cat "$GATE_TMPDIR/i31.err")"). "
+      fi
+    else
+      i31_ok=0; i31_det+="não consegui montar o fixture sem escalares (jq). "
+    fi
+    if [ "$i31_ok" -eq 1 ]; then
+      gate_pass "I-31" "--recompute reconstrói os 12 escalares de todo conceito a partir de evidence[] (fixture canônico, byte a byte)"
+    else
+      gate_fail "I-31" "progress-update.sh --recompute reconstrói todo escalar de evidence[]" \
+        "evidence[] é a fonte de verdade: apagados, os 12 escalares voltam idênticos" \
+        "$i31_det" "$(gate_rel "$I31_FIXTURE/memory/progress.json")"
+    fi
+    unset STUDY_METHOD_HOME
+  fi
 fi
 
 if run_or_pend "I-32" "setup-init.sh é idempotente" "setup-init.sh"; then
@@ -1014,7 +1068,10 @@ RULE_N="$(printf '%s\n' "$RULE_IDS" | grep -c . || true)"
 DAGGER_IDS="$(awk '/^## 9\./{f=1} /^## 10\./{f=0} f' "$CONTRACT" \
   | grep -oE '^\| [A-Z]+(-[A-Z0-9]+)+ †' | sed 's/^| //; s/ †$//' | sort -u)"
 DAGGER_N="$(printf '%s\n' "$DAGGER_IDS" | grep -c . || true)"
-assert_eq "G-04a" "o §9 do contrato declara 88 regras permanentes" "88" "$RULE_N" "$(gate_rel "$CONTRACT") §9"
+# 90 = as 88 originais + AS-13 e BOOT-8, acrescentadas na mesma leva. O número é
+# LITERAL de propósito: derivá-lo da própria contagem faria o check concordar consigo
+# mesmo e nunca acusar uma regra perdida. Quem acrescenta regra ao §9 mexe aqui também.
+assert_eq "G-04a" "o §9 do contrato declara 90 regras permanentes" "90" "$RULE_N" "$(gate_rel "$CONTRACT") §9"
 assert_eq "G-04b" "o §9 marca 11 regras † (críticas de segurança)" "11" "$DAGGER_N" "$(gate_rel "$CONTRACT") §9"
 
 if [ ! -f "$SKILL_MD" ]; then
@@ -1061,8 +1118,8 @@ else
     [ -z "$rid" ] && continue
     grep -qE "(^|[^A-Za-z0-9-])$rid([^A-Za-z0-9-]|$)" "$SKILL_MD" || miss="$miss$rid "
   done <<< "$RULE_IDS"
-  assert_grep_empty "I-33b" "os 88 IDs de regra do §9 estão no corpo do SKILL.md" \
-    "os 88 IDs (C-*, AS-*, AN-*, ESC-*, ERR-*, MEM-*, PRIV-*, SEG-*, DES-*, VIZ-*, BOOT-*)" \
+  assert_grep_empty "I-33b" "os 90 IDs de regra do §9 estão no corpo do SKILL.md" \
+    "os 90 IDs (C-*, AS-*, AN-*, ESC-*, ERR-*, MEM-*, PRIV-*, SEG-*, DES-*, VIZ-*, BOOT-*)" \
     "$( [ -n "$miss" ] && printf 'faltam: %s' "$miss" )"
   miss=""
   while IFS= read -r rid; do
@@ -1207,7 +1264,7 @@ declare -a EXAMPLES=()
 gate_find_into EXAMPLES "$GATE_ROOT/examples" -name '*.json'
 if [ "${#EXAMPLES[@]}" -eq 0 ]; then
   gate_pend "I-37" "todo caminho gravado dentro do setup é relativo" "nenhum fixture em examples/"
-  gate_pend "I-39" "sandbox.mode e sandbox.timeout_source em todo meta.json com verdict != not_run" "nenhum fixture em examples/"
+  gate_pend "I-39" "execution.sandbox.mode e execution.sandbox.timeout_source em todo meta.json com verdict != not_run" "nenhum fixture em examples/"
 else
   bad=""
   for f in "${EXAMPLES[@]}"; do
@@ -1223,11 +1280,17 @@ else
     case "$(basename "$f")" in meta.json) ;; *) continue ;; esac
     v="$(jq -r '.validation.verdict // .verdict // "not_run"' "$f" 2>/dev/null || echo not_run)"
     [ "$v" = "not_run" ] && continue
-    jq -e '(.sandbox.mode? // empty) and (.sandbox.timeout_source? // empty)' "$f" >/dev/null 2>&1 || \
-      bad="$bad$(gate_rel "$f"): verdict=$v sem sandbox.mode e/ou sandbox.timeout_source"$'\n'
+    # Os dois campos vivem em `.execution.sandbox` — é onde challenge-manifest.schema.json
+    # os declara, e a raiz do manifesto é `additionalProperties: false`. Procurá-los na
+    # RAIZ (`.sandbox.mode`) tornava a invariante impossível de satisfazer: nenhum
+    # manifesto válido poderia passar, e todo desafio real reprovava aqui.
+    jq -e '(.execution.sandbox.mode? // empty) and (.execution.sandbox.timeout_source? // empty)' \
+      "$f" >/dev/null 2>&1 || \
+      bad="$bad$(gate_rel "$f"): verdict=$v sem execution.sandbox.mode e/ou execution.sandbox.timeout_source"$'\n'
   done
-  assert_grep_empty "I-39" "sandbox.mode e sandbox.timeout_source em todo meta.json com verdict != not_run" \
-    "os dois campos gravados (§11 I-39)" "${bad%$'\n'}"
+  assert_grep_empty "I-39" "execution.sandbox.mode e execution.sandbox.timeout_source em todo meta.json com verdict != not_run" \
+    "os dois campos gravados sob execution.sandbox, onde o schema os declara (§11 I-39)" "${bad%$'\n'}"
+  gate_note "I-39 · docs/00-contratos.md §11 escreve os dois campos sem qualificar (\`sandbox.mode\`, \`sandbox.timeout_source\`): o texto do contrato precisa do prefixo \`execution.\`, que é onde challenge-manifest.schema.json os declara e o único lugar onde a raiz \`additionalProperties: false\` os aceita."
 fi
 
 # I-41 · as 8 seções do README.md do setup

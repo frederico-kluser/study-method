@@ -20,15 +20,31 @@ SM_PROTOCOL_VERSION='1.0'
 SM_RESPONSE_SCHEMA_DIR="${SM_LIB_DIR:-.}/../../assets/schemas/requests"
 
 # sm_json_get <arquivo> <filtro-jq> -> resultado raw (jq -r). 0 · 1 ilegível · 5 não parseia.
+#
+# ⭐ A saída é a do `jq` BYTE A BYTE, e isso é contrato, não detalhe. Um filtro que não
+# produz resultado nenhum (`.a[]?` sobre campo ausente, `// empty`) tem que sair com ZERO
+# linha. `out="$(jq …)"` sozinho não basta: `$( )` come a nova linha final e apaga a
+# diferença entre "nenhum resultado" e "um resultado vazio", e o `printf '%s\n' "$out"`
+# que vinha depois transformava as duas coisas numa linha vazia. Quem lê com
+# `mapfile -t` recebia então um array de UM elemento vazio onde deveriam ser ZERO —
+# foi assim que `.execution.build_command[]? // empty` de um manifesto sem build virou
+# um comando vazio executado, exit 127, e todo desafio Python/JS reprovado em
+# `build_failed` sem nunca chegar ao aluno.
+#
+# O sentinel `x<status>` no fim da substituição preserva a saída inteira (inclusive a
+# ausência dela) e ainda carrega para fora o código de saída do jq.
 sm_json_get() {
-    local file="${1:-}" filter="${2:-.}" out
+    local file="${1:-}" filter="${2:-.}" out rc
     [ -n "$file" ] || { sm_log error "sm_json_get: arquivo nao informado"; return 1; }
     [ -r "$file" ] || { sm_log error "sm_json_get: arquivo ilegivel: $file"; return 1; }
-    if ! out="$(jq -r "$filter" < "$file" 2>&1)"; then
-        sm_log error "sm_json_get: $file: $out"
+    out="$(jq -r "$filter" < "$file" 2>&1; printf 'x%s' "$?")"
+    rc="${out##*x}"
+    out="${out%x*}"
+    if [ "$rc" != "0" ]; then
+        sm_log error "sm_json_get: $file: ${out//$'\n'/ }"
         return 5
     fi
-    printf '%s\n' "$out"
+    printf '%s' "$out"
     return 0
 }
 

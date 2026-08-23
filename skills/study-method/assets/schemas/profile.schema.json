@@ -217,8 +217,8 @@
           },
           "target_topic": {
             "type": ["string", "null"],
-            "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
-            "description": "Topico ao qual o procedimento se aplica, em kebab-case ASCII sem acento. Chave de recuperacao: o digest seleciona os procedimentos cujo target_topic bate com os topicos da sessao de hoje, por igualdade de string com session.topics e com how_it_happened[].target_topic da sessao de origem."
+            "pattern": "^[a-z][a-z0-9_]{1,62}$",
+            "description": "Topico ao qual o procedimento se aplica, em snake_case ASCII sem acento. REGRA DESAMBIGUADA: identificador de conceito ou topico e snake_case (^[a-z][a-z0-9_]{1,62}$); kebab-case fica so para SLUG DE CAMINHO (setup_name, diretorio de desafio, slug de research). target_topic e identificador de topico, entao e snake_case - e tem de ser, porque a recuperacao compara target_topic com session.topics POR IGUALDADE DE STRING, e com padroes diferentes os dois nunca casariam. Chave de recuperacao: o digest seleciona os procedimentos cujo target_topic bate com os topicos da sessao de hoje, por igualdade de string com session.topics e com how_it_happened[].target_topic da sessao de origem."
           },
           "how": {
             "type": "string",

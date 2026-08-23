@@ -498,6 +498,13 @@ def apply_scalars(concept, pol, keep_manual=False):
     derived = derive_scalars(concept, pol)
     changes = []
     for k in SCALARS:
+        # `concept.get(k, None)` sozinho confunde CHAVE AUSENTE com chave em `null`, e
+        # os dois nao sao a mesma coisa: `observed_at` e nullable mas OBRIGATORIA em
+        # progress.schema.json. Num progress.json editado a mao ao qual falte a chave, o
+        # valor derivado tambem e None, `old != new` da falso, a chave nunca era gravada
+        # de volta e o --recompute terminava com exit 5 ("propriedade obrigatoria
+        # ausente") depois de ter feito todo o resto do trabalho.
+        missing = k not in concept
         old = concept.get(k, None)
         new = derived[k]
         if k == "state_reason" and old == "manual":
@@ -510,6 +517,10 @@ def apply_scalars(concept, pol, keep_manual=False):
         if old != new:
             changes.append({"concept_id": concept.get("concept_id"),
                             "field": k, "from": old, "to": new})
+            concept[k] = new
+        elif missing:
+            # mesmo valor, mas a chave nao existia: materializa sem poluir o diff, que
+            # e sobre MUDANCA DE VALOR.
             concept[k] = new
     return changes
 

@@ -337,7 +337,7 @@
             "maxLength": 80
           },
           "test_name": {
-            "description": "Nome exato do caso de teste no arquivo de teste, como o runner o reporta. Em Rust deve ser o caminho qualificado (ex.: 'tests::fatorial_de_zero'), nunca so o nome curto.",
+            "description": "Nome exato do caso de teste COMO O RUNNER O REPORTA - e e esse rotulo, e nenhum outro, que challenge-verify.sh compara no passo 6 com o que extraiu da saida. E sempre o nome CURTO: 'test_fatorial_de_zero' na linha do unittest 'test_fatorial_de_zero (tests.test_stub.TestStub.test_fatorial_de_zero)', 'fatorial_de_zero' no 'test fatorial_de_zero ...' do cargo e no rotulo TAP do node, 'TestFatorialDeZero' no evento -json do go. NAO e o filtro de execucao unica: esse pode exigir o caminho qualificado (o unittest exige) e vive no traduzir_cenario() do runner.sh, nao aqui.",
             "type": "string",
             "minLength": 1,
             "maxLength": 200

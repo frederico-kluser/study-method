@@ -443,16 +443,40 @@ $(printf '%s\n' "$SM_CENARIOS" | grep '|')
 EOF
 }
 
-# test_name = o nome COMO O RUNNER REPORTA (docs/05 §2.3). Em Rust e Python isso e o
-# caminho qualificado; nome curto nao casa no filtro e o runner sai 0 sem rodar nada.
-ch_test_name() { # <scenario_id>
+# Sao DUAS coisas diferentes, e confundi-las quebrava o passo 6 do harness:
+#
+#   ch_test_name       o nome COMO O RUNNER REPORTA. E o que vai para
+#                      `scenarios[].test_name` no meta.json, e o que
+#                      challenge-verify.sh compara com o que extraiu da saida
+#                      (cv_probe_names). Sempre o nome CURTO: `python -m unittest -v`
+#                      imprime `test_<id> (tests.test_stub.TestStub.test_<id>)` e o
+#                      rotulo do caso e o `test_<id>` da frente; o cargo imprime
+#                      `test <id> ...` (as funcoes vivem no topo do teste de
+#                      integracao, sem `mod tests`); o node imprime o nome dado ao
+#                      `test('<id>', …)`; o go imprime `Test<Camel>`.
+#
+#   ch_filtro_cenario  o nome que FILTRA uma execucao unica, usado so pelo
+#                      `traduzir_cenario()` do runner. Em Python tem de ser o caminho
+#                      QUALIFICADO (`tests.test_stub.TestStub.test_<id>`): o unittest
+#                      nao resolve nome curto. Nas outras quatro os dois coincidem.
+#
+# A classe e `TestStub`, como declarada em challenge/python/test_stub.py.tmpl.
+ch_test_name() { # <scenario_id> -> nome curto, como o runner o reporta
   local id="$1"
   case "$LINGUAGEM" in
-    python)     printf 'tests.test_stub.TesteDesafio.test_%s\n' "$id" ;;
+    python)     printf 'test_%s\n' "$id" ;;
     javascript) printf '%s\n' "$id" ;;
     go)         printf 'Test%s\n' "$(ch_camel "$id")" ;;
-    rust)       printf 'tests::%s\n' "$id" ;;
+    rust)       printf '%s\n' "$id" ;;
     c)          printf '%s\n' "$id" ;;
+  esac
+}
+
+ch_filtro_cenario() { # <scenario_id> -> nome que o runner usa para filtrar UM caso
+  local id="$1"
+  case "$LINGUAGEM" in
+    python)     printf 'tests.test_stub.TestStub.test_%s\n' "$id" ;;
+    *)          ch_test_name "$id" ;;
   esac
 }
 
@@ -551,16 +575,17 @@ EOF
 # COUNT_PROBE define contar_testes() e mostrar_saida().
 # Sao os dois unicos pontos do runner que mudam por linguagem (docs/05 §3.3).
 
-# traduzir_cenario: scenario_id -> nome COMO O RUNNER DA LINGUAGEM O REPORTA.
-# O mapa nasce aqui, no gerador, e nao no runner: assim o runner nao precisa de jq
-# para ler o meta.json na maquina do aluno.
+# traduzir_cenario: scenario_id -> nome de FILTRO da linguagem (ch_filtro_cenario, que
+# em Python e o caminho qualificado). NAO e o `scenarios[].test_name` do meta.json, que
+# guarda o nome curto reportado. O mapa nasce aqui, no gerador, e nao no runner: assim o
+# runner nao precisa de jq para ler o meta.json na maquina do aluno.
 ch_mapa_cenarios() {
   local id kind entrada esperado desc
   echo 'traduzir_cenario() {'
   echo '  case "$1" in'
   while IFS='|' read -r id kind entrada esperado desc; do
     [ -n "$id" ] || continue
-    printf "    %s) printf '%%s' '%s' ;;\n" "$id" "$(ch_test_name "$id")"
+    printf "    %s) printf '%%s' '%s' ;;\n" "$id" "$(ch_filtro_cenario "$id")"
   done <<EOF
 $(printf '%s\n' "$SM_CENARIOS" | grep '|')
 EOF
@@ -577,7 +602,9 @@ ch_test_cmd() {
     python) cat <<'PYCMD'
 executar_testes() {
   # SM_FILTRO vazio = suite inteira. Com filtro, o nome vai QUALIFICADO
-  # (tests.test_stub.TesteDesafio.test_<cenario>): nome curto o unittest nao resolve.
+  # (tests.test_stub.TestStub.test_<cenario>): nome curto o unittest nao resolve.
+  # E por isso que o filtro difere de scenarios[].test_name, que guarda o nome curto
+  # REPORTADO (`test_<cenario>`) — sao dois papeis, e traduzir_cenario() traz o de filtro.
   if [ -n "$SM_FILTRO" ]; then
     sandbox_exec python3 -B -m unittest -v "$SM_FILTRO"
   else
@@ -617,8 +644,9 @@ GOCMD
 export CARGO_TERM_COLOR=never
 executar_testes() {
   # Sem filtro por padrao: e a forma segura num desafio de um arquivo so.
-  # Com filtro, o nome vem QUALIFICADO (tests::<cenario>) — o nome curto devolve
-  # "N filtered out" e EXIT=0, ou seja, verde sem ter rodado nada. Verificado.
+  # As funcoes #[test] vivem no TOPO de tests/test_stub.rs (teste de integracao, sem
+  # `mod tests`), entao o cargo reporta e filtra pelo nome CURTO: `test <cenario> ... ok`.
+  # `-- --exact` e obrigatorio: sem ele o filtro e por substring.
   if [ -n "$SM_FILTRO" ]; then
     sandbox_exec cargo test --offline "$SM_FILTRO" -- --exact
   else
@@ -795,10 +823,17 @@ ch_set PKG                "desafio"
 ch_set CRATE              "desafio"
 ch_set GO_VERSION         "$(go version 2>/dev/null | grep -Eo 'go[0-9]+\.[0-9]+' | head -1 | sed 's/^go//' || true)"
 ch_set DOCSTRING          "Calcula o resultado pedido pelo enunciado. Devolva o valor; nao imprima nada."
+# SIGNATURE e a DECLARACAO INTEIRA da funcao, nas 5 linguagens — nome incluido. Os cinco
+# `*/stub.*.tmpl` interpolam `{{SIGNATURE}}` como a linha da declaracao e so acrescentam o
+# abridor da linguagem (`{`; em Python o `:` ja vem na propria declaracao). Antes, quatro
+# templates repetiam `def {{FUNC_NAME}}({{SIGNATURE}}):` e o stub saia
+# `def fatorial(def fatorial(n):):` — invalido em Python, Node, Go e Rust.
+# Go leva resultado NOMEADO (`saida`): o `return` nu do stub so compila assim. O nome nao pode
+# ser `resultado`, que e a variavel dos corpos de ch_corpo_referencia (seria redeclaracao).
 case "$LINGUAGEM" in
   python)     ch_set SIGNATURE "def $FUNC_NAME(n):" ;;
   javascript) ch_set SIGNATURE "export function $FUNC_NAME(n)" ;;
-  go)         ch_set SIGNATURE "func $FUNC_NAME(n int) int64" ;;
+  go)         ch_set SIGNATURE "func $FUNC_NAME(n int) (saida int64)" ;;
   rust)       ch_set SIGNATURE "pub fn $FUNC_NAME(n: u64) -> u64" ;;
   c)          ch_set SIGNATURE "long $FUNC_NAME(long n)" ;;
 esac
@@ -852,9 +887,15 @@ case "$LINGUAGEM" in
     ch_materializar "challenge/c/stub.c.tmpl"             "$CH_DIR/$STUB_REL"
     ch_materializar "challenge/c/test_stub.c.tmpl"        "$CH_DIR/$TESTE_REL"
     # header com o prototipo: em C nao ha import, e sem declaracao o link falha
-    # (ou, pior, o compilador antigo assume declaracao implicita).
+    # (ou, pior, o compilador antigo assume declaracao implicita). E o cabecalho que
+    # tests/test_stub.c inclui — incluir o ../stub.c daria dupla definicao no link.
     printf '#ifndef STUB_H\n#define STUB_H\n\n%s;\n\n#endif\n' "$(jq -r '.SIGNATURE' "$SM_TMP/valores.json")" \
       | sm_atomic_write "$CH_DIR/stub.h"
+    # `.build/` precisa EXISTIR antes do primeiro build: o build_command grava direto em
+    # `.build/test_bin` e o `ld` nao cria o diretorio de saida. Sem isto o passo 0 de
+    # challenge-verify.sh reprova todo desafio em C com build_failed, e o `mkdir -p .build`
+    # do runner.sh nao salva — o harness roda o build_command do meta.json, nao o runner.
+    mkdir -p -- "$CH_DIR/.build"
     ;;
 esac
 

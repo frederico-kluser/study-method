@@ -369,11 +369,20 @@ cv_probe_counts() {  # <arquivo de saida> -> CV_TESTS_RUN / CV_TESTS_FAILED
   CV_TESTS_RUN="${n:-0}"; CV_TESTS_FAILED="${fl:-0}"
 }
 
+# Devolve o nome CURTO de cada caso, que e exatamente o que `scenarios[].test_name`
+# guarda (challenge-manifest.schema.json: "como o runner o reporta"). O caminho
+# qualificado so existe como FILTRO de execucao unica, dentro do runner.sh.
 cv_probe_names() {  # <arquivo de saida> -> um nome por linha em stdout
   local f="$1"
   case "$CV_PROBE" in
     python_unittest_ran_line)
-      grep -Eo '^[A-Za-z_][A-Za-z0-9_]* \(' "$f" | sed 's/ ($//; s/ (//' | sort -u ;;
+      # `test_x (tests.test_stub.TestStub.test_x)`, com ou sem ` ... ok` no fim da mesma
+      # linha (o unittest quebra em duas linhas quando o caso tem docstring). Exigir o
+      # caminho PONTUADO dentro dos parenteses e o que impede que `Traceback (most recent
+      # call last):`, `FAILED (errors=2)` ou uma docstring como "derivada (numerica) ..."
+      # entrem na lista como se fossem casos executados.
+      grep -Eo '^[A-Za-z_][A-Za-z0-9_]* \([A-Za-z_][A-Za-z0-9_]*(\.[A-Za-z_][A-Za-z0-9_]*)+\)' "$f" \
+        | sed -E 's/ \(.*$//' | sort -u ;;
     node_test_tap_summary)
       grep -E '^(not )?ok [0-9]+ - ' "$f" | sed -E 's/^(not )?ok [0-9]+ - //' | sort -u ;;
     go_test_json_run_events)

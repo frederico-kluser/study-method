@@ -149,8 +149,8 @@
                 },
                 "target_topic": {
                   "type": ["string", "null"],
-                  "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
-                  "description": "Topico que o movimento atacou, em kebab-case. E o que a resposta reusa em target_topic."
+                  "pattern": "^[a-z][a-z0-9_]{1,62}$",
+                  "description": "Topico que o movimento atacou, em snake_case - o mesmo pattern de session_topics logo acima, que e o vocabulario que a resposta deve reusar. E o que a resposta reusa em target_topic. REGRA DESAMBIGUADA: identificador de conceito ou topico e snake_case (^[a-z][a-z0-9_]{1,62}$); kebab-case fica so para SLUG DE CAMINHO (setup_name, diretorio de desafio, slug de research). target_topic e identificador de topico, entao e snake_case - e tem de ser, porque a recuperacao compara target_topic com session.topics POR IGUALDADE DE STRING, e com padroes diferentes os dois nunca casariam."
                 },
                 "outcome": {
                   "enum": ["unlocked", "partial", "no_effect", "backfired"],

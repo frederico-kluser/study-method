@@ -2,10 +2,14 @@
 // counter_protocol (docs/05-challenges-tdd.md §3.2): imprime TESTS_RUN e TESTS_FAILED em stdout
 // e NUNCA aborta no primeiro erro — diferente de assert.h/<cassert>, que aborta com SIGABRT (134)
 // e esconde todos os cenários depois do primeiro.
-// Testa {{FUNC_NAME}}, definido em ../stub.c.
+// Testa {{FUNC_NAME}}, definido em ../stub.c e declarado em ../stub.h.
+// O include e do CABECALHO, nunca do .c: o build_command compila stub.c e tests/test_stub.c
+// como duas unidades de traducao e as linka: incluir o proprio ../stub.c aqui daria uma
+// SEGUNDA definicao de {{FUNC_NAME}} no mesmo binario, e o ld recusaria com "multiple
+// definition" — o stub vazio nem chegaria a rodar.
 #include <stdio.h>
 
-#include "../stub.c"
+#include "../stub.h"
 
 static int total = 0, falhas = 0;
 
