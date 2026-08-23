@@ -6,7 +6,7 @@ código é quem sabe descrevê-lo sem alucinar. A onda 4 costura tudo num `BUILD
 documento não divergiu do repositório.
 
 Regra de cada fragmento: **contrato, não racional**. O que o artefato recebe, o que produz, o
-algoritmo e as condições de erro. O porquê já vive em `docs/`.
+algoritmo e as condições de erro. O porquê já vive no `docs/` do repositório.
 
 | Arquivo | Dono (sub-tarefa) | Cobre |
 |---|---|---|

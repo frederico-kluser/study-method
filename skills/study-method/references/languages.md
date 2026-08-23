@@ -9,6 +9,11 @@ abrir nenhum dos dois para operar — este arquivo é autossuficiente.
 
 Tudo marcado **[V]** foi confirmado executando nesta máquina em 2026-08-23.
 
+## Sumário
+A regra dura · Armadilhas confirmadas por execução · Matriz de linguagens que rodam nesta
+máquina · Como plotar · Linguagens que exigem instalação · Quando a linguagem escolhida NÃO
+está instalada · Armadilhas transversais de desafio · Decisões abertas geradas aqui
+
 ---
 
 ## 1. A regra dura — leia antes de qualquer coisa
@@ -253,7 +258,8 @@ aluno aprende que serializar é montar texto com cuidado (vírgula, aspas, ponto
 o JSON).
 
 **Nenhuma linguagem usa biblioteca de plot como default.** matplotlib (Python, via venv)
-só entra pelos casos da §7 de `visualizacao.md`.
+só entra pelos casos de upgrade oferecido (VIZ-5), regidos pela própria instrução de
+visualização, que o `SKILL.md` carrega no passo `teach` para gráfico.
 
 ---
 

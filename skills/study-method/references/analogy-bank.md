@@ -294,7 +294,7 @@ Cada entrada traz também uma **pergunta de teste** — é a previsão de caso n
 | Praça | Probabilidade |
 |---|---|
 | Quantas das 1.000 pessoas têm a característica | `P(A)` |
-| Contar só dentro do grupo que já tem B | `P(A|B)` — probabilidade condicional |
+| Contar só dentro do grupo que já tem B | `P(A\|B)` — probabilidade condicional |
 | A proporção dentro do grupo B ser igual à do total | Independência |
 | Confundir "dos doentes, quantos testaram positivo" com "dos positivos, quantos estão doentes" | A confusão de taxa-base |
 

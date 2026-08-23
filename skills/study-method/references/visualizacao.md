@@ -7,6 +7,11 @@ abri-lo para operar. Aqui é só o que fazer.
 Renderizador: `scripts/render-plot.py` — Python 3, **biblioteca padrão pura**. Não
 precisa de matplotlib, numpy, gnuplot nem graphviz. Funciona sempre.
 
+## Sumário
+Quando gerar um gráfico · Como chamar o renderizador · Como descrever o resultado ao aluno ·
+Como pedir que o aluno abra · Checklist de qualidade · Visualizar algoritmo (sem Graphviz) ·
+Bibliotecas: oferecer, nunca impor · Decisões abertas geradas aqui
+
 ---
 
 ## 1. Quando gerar um gráfico

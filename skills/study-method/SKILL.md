@@ -39,13 +39,13 @@ Abra a referência **antes** de agir no passo. Todas em `references/`, um nível
 
 | Passo | Leia | Scripts do passo |
 |---|---|---|
-| `bootstrap` | `references/bootstrap.md` | `setup-list.sh --resolve "$PWD"`; `detect-toolchains.sh --cached` se `language.detected_at` > 30 d |
+| `bootstrap` | `references/bootstrap.md` · scripts: `references/scripts.md` · falhas: `references/troubleshooting.md` | `setup-list.sh --resolve "$PWD"`; `detect-toolchains.sh --cached` se `language.detected_at` > 30 d |
 | `setup_interview` ⚠ CONDICIONAL | `references/bootstrap.md` | `setup-init.sh <path> …` → `readme-sync.sh <setup_root> --init`; `decisions-ask.sh setup-init` |
 | `load_memory` | `references/bootstrap.md` | `memory-index.sh <setup_root> --verify` → `memory-digest.sh <setup_root>` |
 | `load_docs` ⚠ CONDICIONAL | `references/docs-ingest.md` | `docs-index.sh <setup_root>` |
 | `open_session` | `references/bootstrap.md` | `session-new.sh <setup_root>` |
 | `plan_lesson` | `references/pedagogia.md` | `progress-update.sh <setup_root> --due` |
-| `teach` | `references/pedagogia.md` · analogia: `references/analogy-bank.md` · gráfico: `references/visualizacao.md` · linguagem: `references/languages.md` | `research-new.sh`, `render-plot.py`, `setup-list.sh --find` |
+| `teach` | `references/pedagogia.md` · analogia: `references/analogy-bank.md` · gráfico: `references/visualizacao.md` · linguagem: `references/languages.md` · destilado: `references/researchs.md` | `research-new.sh`, `render-plot.py`, `setup-list.sh --find` |
 | `challenge` | `references/challenge-protocol.md` · `references/languages.md` | `challenge-new.sh` → `challenge-verify.sh` |
 | `close_session` | `references/seguranca.md` (o crivo antes de escrever) | `session-close.sh` → `memory-index.sh` → `progress-update.sh` → `readme-sync.sh` → `memory-compact.sh --if-due` |
 

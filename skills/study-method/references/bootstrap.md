@@ -183,9 +183,9 @@ Ordem fixa: `memory-index.sh <setup_root> --verify` → `memory-digest.sh <setup
 
 ## Passo 4 — load_docs  ·  CONDICIONAL
 
-Só roda quando há `docs/` do setup para ler. Regido por `references/docs-ingest.md`, que é
-referência de primeiro nível do `SKILL.md` — não uma continuação deste arquivo. O contrato mínimo
-que este passo garante:
+Só roda quando há `docs/` do setup para ler. A ingestão do material é regida por sua própria
+instrução, que o `SKILL.md` carrega no passo `load_docs` — não uma continuação deste arquivo. O
+contrato mínimo que este passo garante:
 
 - `$SETUP_DOCS` ausente → recrie vazio, avise em uma linha, siga para o menu de pasta vazia;
 - vazio → menu de 3: você põe o material agora · eu gero a base (marcada) · seguimos sem base;

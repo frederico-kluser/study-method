@@ -3,6 +3,11 @@
 Instrução operacional. Você (tutor) executa isto quando for propor, gerar, validar ou acompanhar
 um desafio. Imperativo: siga na ordem.
 
+## Sumário
+Regra zero: quem autora e quem julga · Propor um desafio calibrado · Gerar os artefatos ·
+Validar (obrigatório antes de entregar) · Quando o teste é rejeitado · Acompanhar o aluno ·
+Nunca faça · Decisões abertas geradas aqui
+
 ## Regra zero — quem autora e quem julga
 
 **Você AUTORA. O harness JULGA.**

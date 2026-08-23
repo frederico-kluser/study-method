@@ -69,7 +69,7 @@ aluno peça no meio da aula — se ele insistir, ver a nota ao fim da tabela).
 | Caminho absoluto contendo o nome real do usuário, hostname, IP, MAC, geolocalização, versão exata do SO/hardware | **Nunca** | Metadado técnico sem função pedagógica — a regra de minimização de `docs/research/02-memoria-llm.md` §8 (repositório) é explícita sobre isso. Caminhos são gravados relativos à raiz do setup. |
 | E-mail, matrícula, nome da instituição, nome do empregador, turma | **Nunca em `memory/`** | Se o aluno quiser identificar o setup, isso vive no `README.md` do setup, que é dele e ele controla. A memória não replica. |
 
-#### Perfil consolidado e fatos semânticos — `memory/PROFILE.json` (ou equivalente)
+#### Perfil consolidado e fatos semânticos — `memory/profile.json` (ou equivalente)
 
 | Campo | Classe | Justificativa |
 |---|---|---|
