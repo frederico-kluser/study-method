@@ -515,16 +515,23 @@ decisão em aberto.
 
 ### 0.7.5 Convenção de placeholder neste arquivo
 
-Os templates de `SK/assets/templates/**` usam placeholders. A sintaxe real é o **nome em maiúsculas
-entre duas chaves de abertura e duas de fechamento, sem espaço nenhum** — `{` `{` `NOME` `}` `}` —
-casando `^[A-Z0-9_]+$` entre as chaves.
+Os templates de `SK/assets/templates/**` usam placeholders. A sintaxe é o **nome em maiúsculas entre
+duas chaves de abertura e duas de fechamento, sem espaço nenhum** — `{{NOME}}`, casando
+`^[A-Z0-9_]+$` entre as chaves.
 
-⚠ **Neste arquivo eles aparecem como `«NOME»`**, com aspas angulares no lugar das chaves duplas. O
-motivo é mecânico: o gate de qualidade (`L-03`) reprova **placeholder vazado fora de um `*.tmpl`**, e
-não distingue "documentar a sintaxe" de "esquecer de substituir". A conversão é literal e sem perda:
-onde este documento escreve `«FUNC_NAME»`, o arquivo `.tmpl` traz `FUNC_NAME` entre as duas chaves de
-cada lado. A forma byte a byte está nos próprios `SK/assets/templates/**` e no `MANIFEST.tsv`, que é
-a fonte de verdade (§7.11).
+⚠ **Este documento escreve a sintaxe real, não uma transliteração.** Quem copiar um template daqui
+copia a forma que o renderizador reconhece — foi por isso que a convenção anterior, que trocava as
+chaves por aspas angulares, **foi descartada**: ela protegia o gate à custa de ensinar a forma
+errada. O que sustenta a escolha é uma **exclusão declarada**: `BUILD_SPEC.md` está no escopo
+excluído de `L-03` (`tests/gate-lint.sh`) e de `G-09` (`tests/validate.sh`), ao lado de
+`docs/build-spec/**` e pela mesma justificativa — **documenta a sintaxe, não é artefato
+materializado**; falar do buraco não é deixar buraco. Os dois gates imprimem essa exclusão no
+próprio relatório, então ela não é silenciosa.
+
+Fora daqui a regra continua dura: `{{ }}` sobrando em `SKILL.md`, em `references/`, em schema, em
+`examples/`, em `evals/` ou em doc normativo é **FAIL**, e o smoke (`S-06`) cobre o material
+realmente renderizado em runtime. A forma byte a byte está nos próprios `SK/assets/templates/**` e
+no `MANIFEST.tsv`, que é a fonte de verdade (§7.11).
 
 ---
 
@@ -791,7 +798,7 @@ O detalhamento de erros por passo (o que acontece quando o registry corrompe, qu
 | `observation_type` | `observed` · `inferred` (`null`) | `session`, `profile` | `inferred` não pode nascer `high`; nunca inferir a partir de `inferred`. |
 | `evidence[].kind` | `challenge` · `exposure` · `self_report` · `review_declined` · `decay` | `progress.schema.json` | `exposure` e `review_declined` nunca mudam estado. |
 | `transition_rule` | `T1`…`T8` (`null`) | `progress.schema.json` | Gravado em toda transição, inclusive o auto-laço T7. |
-| `state_reason` | `no_evidence` · `passed_unassisted` · `passed_with_hints` · `failed` · `conceptual_error` · `temporal_decay` · `self_report` | `progress.schema.json` | — |
+| `state_reason` | `no_evidence` · `passed_unassisted` · `passed_with_hints` · `failed` · `conceptual_error` · `temporal_decay` · `self_report` · `manual` | `progress.schema.json` | ⚑ **Oito** valores. `manual` = o aluno ou o operador ajustou o estado à mão; o tutor **nunca** o escreve por conta própria. |
 | `move_type` | `analogy` · `worked_example` · `hint_ladder` · `socratic_question` · `hands_on` · `explanation_order` · `visualization` · `reference_lookup` · `spaced_review` · `error_autopsy` | `session.schema.json` | — |
 | `procedure_kind` | `analogy` · `explanation_path` · `presentation_order` · `hands_on_activity` · `hint_strategy` · `visualization` · `antipattern` | `profile.schema.json` | — |
 | `kind` (fato semântico) | `strength` · `difficulty` · `preference` · `skill_level` · `context` | `profile.schema.json` | — |
@@ -832,8 +839,8 @@ O detalhamento de erros por passo (o que acontece quando o registry corrompe, qu
 | `challenge_id` | `^[0-9]{4}$` | `meta.json`, `progress.json` | ⚑ O `challenge_id` é o `NNNN`; o **diretório** é `<NNNN>-<slug>`. |
 | `research_id` | `^[0-9]{4}$` | bloco `study-method:meta` | — |
 | `fact_id` | `^f-[0-9]{4}$` | `profile.json` | — |
-| **`concept_id`** | `^[a-z][a-z0-9_]{1,62}$` | `progress.json`, `meta.json.concepts[]`, `scenario_id` | ⚑ **snake_case em todo o sistema.** `Indução matemática` → `inducao_matematica`. |
-| slug / tag / tópico | `^[a-z0-9]+(-[a-z0-9]+)*$` | `topics[]`, `setup_name`, `subject_slug`, `target_topic`, `<slug>` de diretório | **kebab-case.** Namespace distinto do de conceito, e a distinção é normativa. |
+| **`concept_id` / tag / tópico** | `^[a-z][a-z0-9_]{1,62}$` | `progress.json`, `meta.json.concepts[]`, `scenario_id`, `topics[]`, `target_topic`, `skills_observed[].skill`, `taxonomy[]` | ⚑ **snake_case em todo o sistema.** `Indução matemática` → `inducao_matematica`. Identificador de **conceito ou tópico** mora aqui — `target_topic` inclusive, e por isso ele casa com `topics[]` por igualdade de string. |
+| **slug de caminho** | `^[a-z0-9]+(-[a-z0-9]+)*$` | `setup_name`, `subject_slug`, `<slug>` do diretório de desafio, slug de research | **kebab-case.** Namespace distinto do de conceito, e a distinção é normativa: kebab é **coisa que vira caminho no disco**. Normalizado por `sm_normalize_slug`. |
 | `claim_key` | `^[a-z][a-z0-9_]{1,62}$` | `profile.json` → `semantic_facts[]`, `procedural_facts[]` | ⚑ **snake_case, um identificador só, sem dois-pontos.** Revoga a gramática `dominio:alvo:aspecto`. Só supersede quem tem `claim_key` idêntico — comparação por **igualdade de string**, nada mais. |
 | `schema_version` | `^[0-9]+\.[0-9]+$` | todos | Campo opcional novo = MINOR; obrigatório/renomeado/tipo novo = MAJOR + migração. |
 | data | `^[0-9]{4}-[0-9]{2}-[0-9]{2}$` | `date`, `observed_at`, `last_observed_at`, `next_review_at` | — |
@@ -848,7 +855,7 @@ O detalhamento de erros por passo (o que acontece quando o registry corrompe, qu
 > **Opções:** **(a)** objeto livre, validação delegada ao catálogo — decisão nova entra sem virar `schema_version`, e o verificador mínimo não arrisca falso negativo em propriedade dinâmica; um id digitado errado passa pela validação do manifesto · **(b)** array validado pelo schema do manifesto — erro de digitação morre na validação, e toda decisão nova vira mudança de schema
 > **Default:** **(a)** · **Custo de mudar depois: moderate**
 
-**Nota normativa sobre `target_topic`:** ele é o único campo que cruza os dois namespaces — em `session.how_it_happened[].target_topic` e em `profile.procedural_facts[].target_topic` o pattern é **kebab-case** (`^[a-z0-9]+(-[a-z0-9]+)*$`), enquanto `topics[]` da sessão é **snake_case**. A igualdade de string entre eles é o mecanismo de recuperação do playbook, então a normalização precisa ser feita pelo mesmo lado nos dois pontos.
+**Nota normativa sobre `target_topic` ⚑ — a regra desambiguada:** `target_topic` é **identificador de tópico**, então é **snake_case** (`^[a-z][a-z0-9_]{1,62}$`) em `session.how_it_happened[].target_topic` e em `profile.procedural_facts[].target_topic` — o **mesmo** pattern de `topics[]`, de propósito. Kebab-case fica só para **slug de caminho** (`setup_name`, diretório de desafio, slug de research). A versão anterior deste documento dava kebab a `target_topic` e snake a `topics[]`: era **bug, não escolha**, porque a recuperação do playbook compara os dois **por igualdade de string** e, com padrões diferentes, eles nunca casariam. Os schemas em disco já trazem a regra desambiguada, e as `description` transcritas em §2.9 e §2.10 a explicam campo a campo; `docs/00-contratos.md` §4.2 ainda descreve o resíduo antigo, e a própria invariante `I-16` de lá o marca como temporário — **quem vale é o schema**.
 
 ### 1.4.3 `$id` dos schemas — convenção única ⚑
 
@@ -2002,8 +2009,8 @@ Transcritos byte a byte do repositório. São a autoridade sobre a forma do dado
           },
           "target_topic": {
             "type": ["string", "null"],
-            "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
-            "description": "Tag do topico que este movimento atacou, em kebab-case ASCII sem acento. Deve estar em topics. E a chave pela qual o movimento e recuperado numa sessao futura sobre o mesmo assunto, e a mesma que sobrevive ao ser promovida para procedural_facts[].target_topic no perfil."
+            "pattern": "^[a-z][a-z0-9_]{1,62}$",
+            "description": "Tag do topico que este movimento atacou, em snake_case ASCII sem acento. Deve estar em topics, e o pattern e o MESMO de topics de proposito. REGRA DESAMBIGUADA: identificador de conceito ou topico e snake_case (^[a-z][a-z0-9_]{1,62}$); kebab-case fica so para SLUG DE CAMINHO (setup_name, diretorio de desafio, slug de research). target_topic e identificador de topico, entao e snake_case - e tem de ser, porque a recuperacao compara target_topic com session.topics POR IGUALDADE DE STRING, e com padroes diferentes os dois nunca casariam.  E a chave pela qual o movimento e recuperado numa sessao futura sobre o mesmo assunto, e a mesma que sobrevive ao ser promovida para procedural_facts[].target_topic no perfil."
           },
           "outcome": {
             "enum": ["unlocked", "partial", "no_effect", "backfired"],
@@ -2529,8 +2536,8 @@ Transcritos byte a byte do repositório. São a autoridade sobre a forma do dado
           },
           "target_topic": {
             "type": ["string", "null"],
-            "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
-            "description": "Topico ao qual o procedimento se aplica, em kebab-case ASCII sem acento. Chave de recuperacao: o digest seleciona os procedimentos cujo target_topic bate com os topicos da sessao de hoje, por igualdade de string com session.topics e com how_it_happened[].target_topic da sessao de origem."
+            "pattern": "^[a-z][a-z0-9_]{1,62}$",
+            "description": "Topico ao qual o procedimento se aplica, em snake_case ASCII sem acento. REGRA DESAMBIGUADA: identificador de conceito ou topico e snake_case (^[a-z][a-z0-9_]{1,62}$); kebab-case fica so para SLUG DE CAMINHO (setup_name, diretorio de desafio, slug de research). target_topic e identificador de topico, entao e snake_case - e tem de ser, porque a recuperacao compara target_topic com session.topics POR IGUALDADE DE STRING, e com padroes diferentes os dois nunca casariam. Chave de recuperacao: o digest seleciona os procedimentos cujo target_topic bate com os topicos da sessao de hoje, por igualdade de string com session.topics e com how_it_happened[].target_topic da sessao de origem."
           },
           "how": {
             "type": "string",
@@ -3704,9 +3711,9 @@ generic (python)              go_module (go)            cargo_crate (rust)
 |---|---|
 | `FUNC_NAME` | `slug` com `-`→`_` (`fatorial_iterativo`); em **Go, CamelCase exportado** (`FatorialGo`) |
 | `scenario_id` | casa `^[a-z0-9]+(_[a-z0-9]+)*$` |
-| `PKG` / `CRATE` | fixos em `desafio` — são **identificadores da linguagem**, não podem depender de slug arbitrário. `CRATE` em snake_case, nunca kebab: serve ao mesmo tempo como `package.name` do `Cargo.toml` e como identificador em `use «CRATE»::«FUNC_NAME»;` |
+| `PKG` / `CRATE` | fixos em `desafio` — são **identificadores da linguagem**, não podem depender de slug arbitrário. `CRATE` em snake_case, nunca kebab: serve ao mesmo tempo como `package.name` do `Cargo.toml` e como identificador em `use {{CRATE}}::{{FUNC_NAME}};` |
 | `scenarios[].test_name` | **o nome como o runner reporta** — `tests::<id>` (Rust) · `tests.test_stub.TesteDesafio.test_<id>` (Python) · `Test<Camel>` (Go) · `<id>` (Node e C) |
-| `«SIGNATURE»` | Python/Node: só os parâmetros · Go: parâmetros + `) (retorno nomeado)` · Rust: parâmetros + `) -> tipo` · C: **protótipo inteiro** (`long fatorial(long n)`), porque em C o tipo de retorno vem antes do nome |
+| `{{SIGNATURE}}` | Python/Node: só os parâmetros · Go: parâmetros + `) (retorno nomeado)` · Rust: parâmetros + `) -> tipo` · C: **protótipo inteiro** (`long fatorial(long n)`), porque em C o tipo de retorno vem antes do nome |
 
 ⚠️ **Armadilha do Go, segunda camada**: se o stub sinaliza "não implementado" com `panic()`, o
 **primeiro** teste que falha derruba o binário inteiro (`[recovered, repanicked]`) e os testes
@@ -3750,14 +3757,14 @@ set -u -o pipefail                       # -e FORA: o exit bruto do teste é dad
 CHALLENGE_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 cd "$CHALLENGE_DIR" || exit 66           # 66 = infraestrutura, nunca falha de teste
 # argumentos: [--only <cenario>] [--help]
-«TEST_CMD»                             # TIMEOUT_PADRAO · traduzir_cenario() · executar_testes()
+{{TEST_CMD}}                             # TIMEOUT_PADRAO · traduzir_cenario() · executar_testes()
 TIMEOUT_S="${CHALLENGE_TIMEOUT:-$TIMEOUT_PADRAO}"
-ESPERADO="${CHALLENGE_EXPECTED_TESTS:-«EXPECTED_TEST_COUNT»}"
+ESPERADO="${CHALLENGE_EXPECTED_TESTS:-{{EXPECTED_TEST_COUNT}}}"
 SAIDA="$(mktemp)"; trap 'rm -f -- "$SAIDA"' EXIT
 export LC_ALL=C.UTF-8 TZ=UTC PYTHONHASHSEED=0 PYTHONDONTWRITEBYTECODE=1 NODE_COMPILE_CACHE=""
 find "$CHALLENGE_DIR" -type d -name __pycache__ -prune -exec rm -rf -- {} + 2>/dev/null
 # sandbox: sm_sandbox_run de lib/sandbox.sh, ou PISO DECLARADO em voz alta
-«COUNT_PROBE»                          # contar_testes() · mostrar_saida()
+{{COUNT_PROBE}}                          # contar_testes() · mostrar_saida()
 # --only -> traduzir_cenario -> SM_FILTRO (nome QUALIFICADO) e ESPERADO=1
 export CHALLENGE_TIMEOUT="$TIMEOUT_S" SM_SANDBOX_WALL="$TIMEOUT_S" SM_SANDBOX_CPU="$((TIMEOUT_S+5))"
 T0=$(date +%s%N); executar_testes >"$SAIDA" 2>&1; EXIT_BRUTO=$?
@@ -4880,28 +4887,85 @@ passo 0. O evento **não** carrega `state_before`, `state_after` nem `transition
   "additionalProperties": false,
   "required": ["schema_version", "kind", "concept_id", "observed_at"],
   "properties": {
-    "schema_version": { "type": "string", "pattern": "^[0-9]+\\.[0-9]+$" },
-    "setup_id":       { "type": "string", "pattern": "^[0-9a-f]{12}$" },
-    "kind":           { "enum": ["challenge", "exposure", "self_report", "review_declined", "decay"] },
-    "concept_id":     { "type": "string", "pattern": "^[a-z][a-z0-9_]{1,62}$" },
-    "session_id":     { "type": ["string", "null"], "pattern": "^[0-9]{4}$" },
-    "challenge_id":   { "type": ["string", "null"], "pattern": "^[0-9]{4}$" },
-    "result":         { "enum": ["passed", "failed", "not_attempted", null] },
-    "hint_level":     { "type": ["integer", "null"], "minimum": 0, "maximum": 5 },
-    "error_type":     { "enum": ["slip", "conceptual", "prerequisite", "none", "unknown", null] },
-    "attributed_to":  { "type": ["string", "null"], "pattern": "^[a-z][a-z0-9_]{1,62}$" },
-    "attempts":       { "type": ["integer", "null"], "minimum": 0 },
-    "self_report_claim": { "enum": ["mastery", "no_mastery", null] },
-    "observed_at":    { "type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$" },
-    "recorded_at":    { "type": ["string", "null"],
-                        "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}([.][0-9]+)?([+-]\\d{2}:\\d{2}|Z)$" },
-    "note":           { "type": ["string", "null"], "maxLength": 240 }
+    "schema_version": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+$",
+      "description": "Versao do schema deste evento, MAJOR.MINOR. Independente da versao de memory/progress.json: um evento antigo continua processavel enquanto o MAJOR bater."
+    },
+    "setup_id": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{12}$",
+      "description": "setup_id do setup cujo progress.json recebe este evento, doze digitos hexadecimais minusculos. Opcional quando o script ja recebeu a raiz do setup por argumento; quando presente e diverge do setup.json daquela raiz, o evento e recusado - conceito nunca cruza setup."
+    },
+    "kind": {
+      "enum": ["challenge", "exposure", "self_report", "review_declined", "decay"],
+      "description": "Natureza do evento; e o primeiro desvio da ordem de avaliacao. challenge: o aluno tentou um desafio com verificacao objetiva (o teste rodou) - o unico kind que pode promover estado. exposure: o conceito apareceu na aula sem desafio; NUNCA muda proficiency_state. self_report: o aluno falou do proprio dominio; so rebaixa (T8), nunca promove. review_declined: o tutor sugeriu revisao e o aluno recusou; nao altera estado nem intervalo. decay: rebaixamento automatico por tempo (T4), sem interacao do aluno - o unico kind que acontece fora de uma sessao."
+    },
+    "concept_id": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_]{1,62}$",
+      "description": "Conceito ao qual este evento se refere, em snake_case ASCII sem acento. Mesmo vocabulario e mesmo pattern de progress.json concepts[].concept_id, de challenge-manifest target_concepts[].concept_id e de session.skills_observed[].skill: a resolucao e por igualdade de string, procurando primeiro em concept_id e depois em aliases[]. Antes de criar um id novo e obrigatorio procurar match - dois ids para a mesma coisa fragmentam o progresso em silencio."
+    },
+    "session_id": {
+      "type": ["string", "null"],
+      "pattern": "^[0-9]{4}$",
+      "description": "Sessao em que o evento ocorreu, quatro digitos zero-padded, igual ao nome de memory/NNNN.json. null APENAS quando kind e 'decay'. O script confere que o arquivo existe antes de gravar qualquer transicao."
+    },
+    "challenge_id": {
+      "type": ["string", "null"],
+      "pattern": "^[0-9]{4}$",
+      "description": "Desafio que produziu esta evidencia, quatro digitos zero-padded, igual ao challenge_id de challenges/NNNN-slug/meta.json. Obrigatorio quando kind e 'challenge'; null nos demais casos. O script confere que o diretorio existe: e o que impede o modelo de 'sentir' que o aluno melhorou."
+    },
+    "result": {
+      "enum": ["passed", "failed", "not_attempted", null],
+      "description": "Resultado objetivo do desafio, lido do runner e nunca da impressao do tutor. passed: a verificacao ficou verde. failed: nao passou ate o fim da sessao. not_attempted: o desafio foi proposto e o aluno nao tentou - evento neutro, grava evidencia mas nao muda estado nem intervalo, porque nao tentar nao e evidencia de falha. null quando kind nao e 'challenge'."
+    },
+    "hint_level": {
+      "type": ["integer", "null"],
+      "minimum": 0,
+      "maximum": 5,
+      "description": "Maior degrau da escada de dicas usado neste desafio: 0 = nenhuma dica, 5 = solucao completa entregue. Mesma faixa 0-5 de session.how_it_happened[].hint_level e de challenge-manifest student_progress.hint_level_used. E o campo que separa a classe A (0-1) da classe B (2-3) e da classe C (4-5) na classificacao do evento. null quando o degrau nao foi registrado, e null NAO equivale a 0: ausencia de registro nao e prova de autonomia."
+    },
+    "error_type": {
+      "enum": ["slip", "conceptual", "prerequisite", "none", "unknown", null],
+      "description": "Classificacao do erro observado. slip: deslize de execucao, o aluno ja demonstrou conhecer a regra e corrige com dica de nivel 1. conceptual: regra errada porem consistente, reaplicada em 2 ou mais lugares ou justificada verbalmente. prerequisite: a falha veio de outro conceito - o evento vira 'exposure' neste conceito e a evidencia penalizante e regravada em attributed_to. none: passou sem erro relevante. unknown: nao foi possivel classificar; nunca chutar, porque unknown nao dispara regressao por erro conceitual. null quando kind nao e 'challenge'."
+    },
+    "attributed_to": {
+      "type": ["string", "null"],
+      "pattern": "^[a-z][a-z0-9_]{1,62}$",
+      "description": "Quando error_type e 'prerequisite': o concept_id do conceito que realmente falhou e onde a evidencia penalizante deve ser gravada. Mesmo pattern snake_case de concept_id. null nos demais casos."
+    },
+    "attempts": {
+      "type": ["integer", "null"],
+      "minimum": 0,
+      "description": "Quantas execucoes da verificacao ocorreram neste desafio ate o desfecho. Sinal de esforco, nao de dominio: muitas tentativas com erro do tipo slip nao rebaixam o estado. null quando nao registrado."
+    },
+    "self_report_claim": {
+      "enum": ["mastery", "no_mastery", null],
+      "description": "O que o aluno afirmou sobre o proprio dominio, quando kind e 'self_report'. no_mastery dispara T8 (mastered vira fragile). mastery NUNCA promove: auto-relato so tem efeito assimetrico, porque quem acha que sabe e a pessoa menos capaz de verificar isso. null fora de kind 'self_report'."
+    },
+    "observed_at": {
+      "type": "string",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$",
+      "description": "VALID TIME: a data (AAAA-MM-DD) em que o evento aconteceu no mundo. E a chave de ordenacao: os eventos sao processados em ordem crescente deste campo, um por vez. Deliberadamente uma data, e nao um timestamp, igual a progress.json evidence[].observed_at - a granularidade das regras de transicao e o dia (duas passagens em dias diferentes, janela de 60 dias)."
+    },
+    "recorded_at": {
+      "type": ["string", "null"],
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}([.][0-9]+)?([+-]\\d{2}:\\d{2}|Z)$",
+      "description": "TRANSACTION TIME: data-hora ISO 8601 em que o evento foi gravado. Pode ser bem posterior a observed_at quando a sessao e consolidada depois. null significa 'use o relogio agora' - o script preenche."
+    },
+    "note": {
+      "type": ["string", "null"],
+      "maxLength": 240,
+      "description": "Observacao curta em pt-BR sobre o evento, factual e verificavel: o que o aluno fez, nao o que o tutor achou. null e resposta valida e preferivel a texto vago."
+    }
   }
 }
 ```
 
-*(As `description` de cada campo estão no arquivo; a semântica normativa de todas elas está
-transcrita na tabela abaixo e em §4.3–§4.6.)*
+*(O bloco acima é o arquivo inteiro, `description` de cada campo inclusive — elas fazem parte
+do contrato e não são encurtadas ao copiar. A semântica normativa está repetida na tabela abaixo e
+em §4.3–§4.6, e `SC-04` de `tests/spec-conformance.sh` compara este bloco com o arquivo em disco.)*
 
 ### 4.9.1 Semântica campo a campo
 
@@ -6831,8 +6895,10 @@ Variáveis de ambiente lidas: `HOME`, `PWD`, `HOSTNAME`, `STUDY_METHOD_HOME`, `X
 
 ### 7.6.1 Os dois normalizadores — algoritmos determinísticos
 
-São **namespaces distintos por design**: `concept_id` (snake_case) para conceito; `slug`
-(kebab-case) para tópico, tag, nome de diretório e nome de arquivo. Nunca se converte um no outro.
+São **namespaces distintos por design**: `concept_id` (snake_case) para **identificador de conceito
+ou de tópico** — `concept_id`, `topics[]`, `target_topic`, `skills_observed[].skill`; `slug`
+(kebab-case) para **o que vira caminho no disco** — `setup_name`, nome de diretório de desafio, nome
+de arquivo e o `--topic <slug>` de `research-new.sh` (`A-15`). Nunca se converte um no outro.
 
 `sm_normalize_concept_id`, passo a passo:
 
@@ -7013,13 +7079,13 @@ não é violação, porque um temporário na origem não protege ninguém.
 
 | # | Regra |
 |---|---|
-| T-1 | Placeholder é `«NOME_MAIUSCULO»`, casando `^[A-Z0-9_]+$`. **Nenhum outro delimitador é aceito** |
+| T-1 | Placeholder é `{{NOME_MAIUSCULO}}`, casando `^[A-Z0-9_]+$`. **Nenhum outro delimitador é aceito** |
 | T-2 | Todo placeholder usado num template está na coluna 3 do `MANIFEST.tsv` **para aquele caminho**. O inverso não vale: um template pode deixar de usar um placeholder que o `MANIFEST` permite |
 | T-3 | **Depois da substituição não pode sobrar `{{` nem `}}` no artefato.** É a checagem do gate (`G-09`, `L-03`) e o erro que os renderizadores levantam (`1`) |
 | T-4 | `setup.json`, `session.json` e `meta.json` materializados **validam** contra `setup-manifest.schema.json`, `session.schema.json` e `challenge-manifest.schema.json`, com o verificador mínimo em Python stdlib |
 | T-5 | Comentários dos templates em **pt-BR** (o aluno lê o artefato final); identificadores em inglês |
 | T-6 | `runner.sh` é materializado com modo **`0755`**; os demais artefatos não precisam de bit de execução |
-| T-7 | A substituição é um filtro em `python3` que troca `«NOME»` (`[A-Z][A-Z0-9_]*`) pelo valor do mapa. **Placeholder sem valor → erro nomeando o template.** O conteúdo entra **literal**: não passa por `sed`, então `/`, `&` e quebras de linha em blobs como `SCENARIOS_CODE` são seguros |
+| T-7 | A substituição é um filtro em `python3` que troca `{{NOME}}` (`[A-Z][A-Z0-9_]*`) pelo valor do mapa. **Placeholder sem valor → erro nomeando o template.** O conteúdo entra **literal**: não passa por `sed`, então `/`, `&` e quebras de linha em blobs como `SCENARIOS_CODE` são seguros |
 | T-8 | **Não há template embutido no gerador de desafios**: linha ausente no `MANIFEST` → **1**; arquivo ausente → **1**, nomeando o caminho. Um fallback interno significaria dois lugares dizendo o que é um desafio |
 
 ### 7.11.2 A lista completa — template × script consumidor × placeholders
@@ -7056,9 +7122,9 @@ comentário).
 O schema exige mais campos do que há placeholders. Os demais nascem **literais**, e a razão de cada
 um é contratual (não é preguiça de template):
 
-`setup.json.tmpl`: `title` reaproveita `«SETUP_NAME»` · `taxonomy` nasce `[]` · `updated_at`
-reaproveita `«CREATED_AT»` (na criação os dois carimbos coincidem) · `session_count` nasce `0` ·
-`decisions` nasce `{}` · `language` é objeto (`{"name": "«LANGUAGE»"}`).
+`setup.json.tmpl`: `title` reaproveita `{{SETUP_NAME}}` · `taxonomy` nasce `[]` · `updated_at`
+reaproveita `{{CREATED_AT}}` (na criação os dois carimbos coincidem) · `session_count` nasce `0` ·
+`decisions` nasce `{}` · `language` é objeto (`{"name": "{{LANGUAGE}}"}`).
 
 `session.json.tmpl`: `status` nasce `"in_progress"` (**regra de negócio, não dado variável**) ·
 `one_line_summary` nasce com o valor provisório literal "Sessão em andamento — resumo ainda não
@@ -7069,8 +7135,8 @@ com `challenge_status: "draft"`, isto é, **nada foi validado ainda**:
 
 | Campo | Valor | Razão |
 |---|---|---|
-| `slug` | `«CHALLENGE_ID»` | Sem placeholder próprio de slug; o slug legível do **diretório** é decidido por `challenge-new.sh`, fora do template |
-| `updated_at` | `«CREATED_AT»` | Coincidem na criação |
+| `slug` | `{{CHALLENGE_ID}}` | Sem placeholder próprio de slug; o slug legível do **diretório** é decidido por `challenge-new.sh`, fora do template |
+| `updated_at` | `{{CREATED_AT}}` | Coincidem na criação |
 | `skill_level` / `difficulty` | `"beginner"` / `1` | Defaults conservadores, refinados por `jq` depois |
 | `artifacts.*` | nomes lógicos **sem extensão** (`stub`, `tests/test_stub`, `.solution/reference`, `README.md`, `runner.sh`, `.solution`) | Não há placeholder de extensão, e a extensão real depende só de `language`. Gravar `stub.py` fixo contradiria `layout_profile` para go/rust |
 | `execution.test_command` | `["./runner.sh"]` | `runner.sh` é o **único** ponto de entrada; quem sabe invocar `python3`/`cargo`/`go test`/`gcc` é ele, não o `meta.json` |
@@ -7083,28 +7149,28 @@ com `challenge_status: "draft"`, isto é, **nada foi validado ainda**:
 | `integrity.policy` / `integrity.test_sha256` | `"warn"` / `null` | O SHA-256 é obrigatoriamente `null` até `challenge-verify.sh` aprovar — **o tutor nunca calcula SHA-256** |
 | `student_progress.*` | `attempts: 0`, `last_result: "not_run"`, `hint_level_used: 0`, `solution_revealed: false` | Nenhum aluno tentou ainda |
 
-`«CONCEPT_IDS»` e `«SCENARIOS_JSON»` são **blobs JSON inteiros pré-formatados**, inseridos crus
-(`"target_concepts": «CONCEPT_IDS»`): não há como um template de substituição simples, sem laço,
+`{{CONCEPT_IDS}}` e `{{SCENARIOS_JSON}}` são **blobs JSON inteiros pré-formatados**, inseridos crus
+(`"target_concepts": {{CONCEPT_IDS}}`): não há como um template de substituição simples, sem laço,
 gerar N objetos a partir de uma lista de IDs. `len(scenarios)` **deve** ser igual a
-`«EXPECTED_TEST_COUNT»` — o schema não faz validação cruzada, então é responsabilidade de
+`{{EXPECTED_TEST_COUNT}}` — o schema não faz validação cruzada, então é responsabilidade de
 `challenge-new.sh`.
 
-### 7.11.4 `«SIGNATURE»` carrega semânticas diferentes por linguagem
+### 7.11.4 `{{SIGNATURE}}` carrega semânticas diferentes por linguagem
 
 Não há placeholder separado de tipo de retorno: cada `.tmpl` já decide a pontuação ao redor dele.
 
-| Linguagem | Template usa | `«SIGNATURE»` contém |
+| Linguagem | Template usa | `{{SIGNATURE}}` contém |
 |---|---|---|
-| Python | `def «FUNC_NAME»(«SIGNATURE»):` | só os parâmetros (`"n"`) |
-| Node | `export function «FUNC_NAME»(«SIGNATURE») {` | só os parâmetros |
-| Go | `func «FUNC_NAME»(«SIGNATURE» {` | parâmetros + `) (retorno nomeado)` — ver §7.12.3 |
-| Rust | `pub fn «FUNC_NAME»(«SIGNATURE» {` | parâmetros + `) -> tipo` |
-| C | `«SIGNATURE» {` | o **protótipo inteiro** (`"long fatorial(long n)"`) — em C o tipo de retorno vem antes do nome, então não dá para reaproveitar o padrão `NOME(SIGNATURE)` |
+| Python | `def {{FUNC_NAME}}({{SIGNATURE}}):` | só os parâmetros (`"n"`) |
+| Node | `export function {{FUNC_NAME}}({{SIGNATURE}}) {` | só os parâmetros |
+| Go | `func {{FUNC_NAME}}({{SIGNATURE}} {` | parâmetros + `) (retorno nomeado)` — ver §7.12.3 |
+| Rust | `pub fn {{FUNC_NAME}}({{SIGNATURE}} {` | parâmetros + `) -> tipo` |
+| C | `{{SIGNATURE}} {` | o **protótipo inteiro** (`"long fatorial(long n)"`) — em C o tipo de retorno vem antes do nome, então não dá para reaproveitar o padrão `NOME(SIGNATURE)` |
 
-`«MODULE»` é o caminho de import visto **de dentro do arquivo de teste**: `"stub"` em Python (roda
+`{{MODULE}}` é o caminho de import visto **de dentro do arquivo de teste**: `"stub"` em Python (roda
 de `tests/`, mas `unittest discover -s tests` mantém a raiz do desafio em `sys.path`) e `"../stub.mjs"`
-em Node. `«CRATE»` (Rust) deve ser **snake_case**: é usado ao mesmo tempo como `package.name` do
-`Cargo.toml` **e** como identificador em `use «CRATE»::«FUNC_NAME»;`, e o template não tem como
+em Node. `{{CRATE}}` (Rust) deve ser **snake_case**: é usado ao mesmo tempo como `package.name` do
+`Cargo.toml` **e** como identificador em `use {{CRATE}}::{{FUNC_NAME}};`, e o template não tem como
 replicar a conversão hífen→underscore que o `cargo` faz por baixo dos panos.
 
 ### 7.11.5 O `runner.sh` gerado
@@ -7117,7 +7183,7 @@ set -u -o pipefail                       # -e FORA: o exit bruto do teste é dad
 CHALLENGE_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 cd "$CHALLENGE_DIR" || exit 66           # 66 = infraestrutura, nunca falha de teste
 # argumentos: [--only <cenario>] [--help]
-«TEST_CMD»                             # TIMEOUT_PADRAO · traduzir_cenario() · executar_testes()
+{{TEST_CMD}}                             # TIMEOUT_PADRAO · traduzir_cenario() · executar_testes()
 ```
 
 Seis defesas, todas exercitadas na verificação:
@@ -7136,13 +7202,13 @@ Seis defesas, todas exercitadas na verificação:
 5. **`set -u -o pipefail`**.
 6. **Igualdade de contagem** (`[ "$TESTS_RUN" -ne "$ESPERADO" ]`), nunca `-eq 0` nem `> 0`.
 
-⭐ **`«TEST_CMD»` é atribuído entre aspas SIMPLES** (`TEST_CMD='«TEST_CMD»'`), de propósito: com
+⭐ **`{{TEST_CMD}}` é atribuído entre aspas SIMPLES** (`TEST_CMD='{{TEST_CMD}}'`), de propósito: com
 aspas duplas, qualquer `$`/crase dentro do valor substituído seria expandido **na hora da
 atribuição** — cedo demais, antes de `TEST_CMD` chegar ao `bash -c` que executa o comando.
 Consequência para quem gera `TEST_CMD`: **nunca usar aspas simples dentro do valor** (use aspas
 duplas quando precisar citar algo).
 
-`«COUNT_PROBE»` seleciona, por `case`, qual sonda extrai `TESTS_RUN` de `$SAIDA`:
+`{{COUNT_PROBE}}` seleciona, por `case`, qual sonda extrai `TESTS_RUN` de `$SAIDA`:
 `python_unittest_ran_line` (`grep` de `Ran N tests`) · `node_test_tap_summary` (`grep` de
 `# tests N`) · `go_test_json_run_events` (`jq` contando `Test` únicos com `Action:"run"`) ·
 `cargo_test_running_lines` (soma de todas as linhas `running N tests`) · `counter_protocol` (`grep`
@@ -7187,15 +7253,15 @@ O corpo vazio entre as marcas **falha sempre**, e falha do jeito certo para cada
 
 | Linguagem | Template | Corpo vazio entre as marcas |
 |---|---|---|
-| Python | `challenge/python/stub.py.tmpl` | `# SM_CORPO_INICIO — …` / `raise NotImplementedError("implemente «FUNC_NAME» para o teste passar")` / `# SM_CORPO_FIM` |
-| Node | `challenge/node/stub.mjs.tmpl` | `// SM_CORPO_INICIO — …` / `throw new Error("implemente «FUNC_NAME» para o teste passar");` / `// SM_CORPO_FIM` |
-| Rust | `challenge/rust/lib.rs.tmpl` | `// SM_CORPO_INICIO — …` / `unimplemented!("implemente «FUNC_NAME» para o teste passar")` / `// SM_CORPO_FIM` |
+| Python | `challenge/python/stub.py.tmpl` | `# SM_CORPO_INICIO — …` / `raise NotImplementedError("implemente {{FUNC_NAME}} para o teste passar")` / `# SM_CORPO_FIM` |
+| Node | `challenge/node/stub.mjs.tmpl` | `// SM_CORPO_INICIO — …` / `throw new Error("implemente {{FUNC_NAME}} para o teste passar");` / `// SM_CORPO_FIM` |
+| Rust | `challenge/rust/lib.rs.tmpl` | `// SM_CORPO_INICIO — …` / `unimplemented!("implemente {{FUNC_NAME}} para o teste passar")` / `// SM_CORPO_FIM` |
 | C | `challenge/c/stub.c.tmpl` | `/* SM_CORPO_INICIO — … */` / `return 0; /* stub vazio: qualquer valor fixo aqui está errado por definição */` / `/* SM_CORPO_FIM */` |
 | Go | `challenge/go/stub.go.tmpl` | `// SM_CORPO_INICIO — …` / `return` **nu** (retorno nomeado) / `// SM_CORPO_FIM` |
 
 ⭐ **Go é o caso que exige explicação, e a explicação vive no próprio template:** um `panic()` no stub
 derrubaria o **binário de teste inteiro** no primeiro cenário que falha (`[recovered, repanicked]`) e
-os testes seguintes **nunca rodariam** — o mesmo defeito do `assert.h` em C. A correção é `«SIGNATURE»`
+os testes seguintes **nunca rodariam** — o mesmo defeito do `assert.h` em C. A correção é `{{SIGNATURE}}`
 com **retorno nomeado** (`"n int) (resultado int)"`) + `return` nu: devolve o zero-value do tipo, uma
 resposta sempre errada, **sem abortar o processo**. Com a correção, os testes rodam e falham
 independentemente (`TESTS_RUN=2 ESPERADO=2`).
@@ -7218,11 +7284,11 @@ compila, não roda, ou — pior — **passa sem testar**:
 | # | Template | Invariante |
 |---|---|---|
 | 1 | todos os stubs | `SM_CORPO_INICIO` / `SM_CORPO_FIM` (§7.12) |
-| 2 | `python/test_stub.py.tmpl` | `SCENARIOS_CODE` entra **dentro de** `class TesteDesafio(unittest.TestCase)`, e o arquivo insere o diretório-pai em `sys.path` **antes** de `from «MODULE» import «FUNC_NAME»` |
-| 3 | `go/stub_test.go.tmpl` | `package «PKG»` — **o mesmo do stub**, no mesmo diretório, com **sufixo** `_test.go` (o prefixo `test_` não significa nada em Go). ⭐ Comprovado: uma árvore com o mesmo conteúdo salvo como `test_stub.go` dá `go test` → `"? fatorial [no test files]"` com **exit 0** — o falso positivo silencioso |
+| 2 | `python/test_stub.py.tmpl` | `SCENARIOS_CODE` entra **dentro de** `class TesteDesafio(unittest.TestCase)`, e o arquivo insere o diretório-pai em `sys.path` **antes** de `from {{MODULE}} import {{FUNC_NAME}}` |
+| 3 | `go/stub_test.go.tmpl` | `package {{PKG}}` — **o mesmo do stub**, no mesmo diretório, com **sufixo** `_test.go` (o prefixo `test_` não significa nada em Go). ⭐ Comprovado: uma árvore com o mesmo conteúdo salvo como `test_stub.go` dá `go test` → `"? fatorial [no test files]"` com **exit 0** — o falso positivo silencioso |
 | 4 | `rust/test_stub.rs.tmpl` | `SCENARIOS_CODE` fica **dentro de `mod tests`**; é isso que faz o cargo reportar `tests::<id>` e casar com `scenarios[].test_name` |
 | 5 | `c/test_stub.c.tmpl` | implementa o `counter_protocol` (`checa_long`, `TESTS_RUN=`, `TESTS_FAILED=`), inclui `"../stub.h"` e respeita `getenv("SM_ONLY")` |
-| 6 | `runner.sh.tmpl` | `«TEST_CMD»` aparece **antes** do uso de `TIMEOUT_PADRAO`, e `«COUNT_PROBE»` **antes** da chamada de `contar_testes` / `mostrar_saida` |
+| 6 | `runner.sh.tmpl` | `{{TEST_CMD}}` aparece **antes** do uso de `TIMEOUT_PADRAO`, e `{{COUNT_PROBE}}` **antes** da chamada de `contar_testes` / `mostrar_saida` |
 
 E o `.solution/` começar com ponto **é funcional, não cosmético**: tanto o `go tool` quanto o `cargo`
 ignoram diretórios iniciados por `.`, então as implementações de referência convivem dentro do
@@ -7416,14 +7482,14 @@ A linha de fluxo normal impressa no corpo é, **literalmente**, sem os condicion
 ## 8.5 ⭐ Progressive disclosure — um nível só
 
 As `references/` custam **zero token até serem abertas**. O grafo é de **um nível**: o `SKILL.md`
-linka as 8 referências **direto**, e **nenhuma referência linka outra**.
+linka as 12 referências **direto**, e **nenhuma referência linka outra**.
 
 > **Referência aninhada causa leitura parcial.** Se `SKILL.md` → `a.md` → `b.md`, o modelo abre
 > `a.md` no passo, age com o que leu, e `b.md` — que continha a metade que faltava — só é aberta se
 > houver um segundo turno em que alguém se lembre dela. O contrato quebra sem erro visível.
 
-Verificação: invariante **I-34** (grafo de links, um nível) e a invariante local "as 8 referências
-citadas são exatamente as 8 existentes em `SK/references/` — nenhuma citada que não exista, nenhuma
+Verificação: invariante **I-34** (grafo de links, um nível) e a invariante local "as 12 referências
+citadas são exatamente as 12 existentes em `SK/references/` — nenhuma citada que não exista, nenhuma
 existente que não seja citada".
 
 Além disso, **I-35**: nenhuma `reference/` com mais de 100 linhas começa sem `## Sumário`.
@@ -7519,7 +7585,7 @@ brancos finais.
 parágrafos quebrados em linhas físicas únicas reduz a contagem sem perder conteúdo, e foi o mecanismo
 usado para caber.
 
-**Nota honesta sobre tokens.** ⏳ O corpo mede ~21.500 caracteres, entre **6.000 e 6.500 tokens** —
+**Nota honesta sobre tokens.** ⏳ O corpo mede ~22.200 caracteres, entre **6.000 e 6.500 tokens** —
 **acima** do limite *recomendado* de 5.000. O teto **normativo** deste projeto é o de **linhas**
 (invariante **I-33**): as 90 regras sozinhas custam ~4.300 tokens e foram orçadas assim de propósito.
 A mitigação implementada é **de ordem, não de corte** (§8.4.1).
@@ -7643,7 +7709,7 @@ propósito:**
 | `SK/assets/decisions.json` | `I-01b`, `I-03`, `I-04`, `I-05`, `I-15b` | Cada entrada do catálogo **nomeia a opção recusada**. Documentar a alternativa que perdeu é o contrato do arquivo |
 | `docs/build-spec/**` | `G-09`, `L-03` | Os fragmentos **documentam** a sintaxe de placeholder. Falar do buraco não é deixar buraco. `G-10` continua valendo aqui |
 | `*.tmpl` e `MANIFEST.tsv` | `G-09`, `L-03` | O template é o **dono** do placeholder; o manifesto o declara |
-| valor `«…»` | `I-17` | `"challenge_id": "«CHALLENGE_ID»"` é o **buraco** do id, não um id. A exclusão é do **valor**, não do arquivo |
+| valor `{{…}}` | `I-17` | `"challenge_id": "{{CHALLENGE_ID}}"` é o **buraco** do id, não um id. A exclusão é do **valor**, não do arquivo |
 | `SK/scripts/**/_*` | `I-06c` | O prefixo `_` **é** a marca de "não é um dos 19". Script sem o prefixo e fora da tabela continua sendo FAIL |
 | alvo temporário de `>` | `I-27` | O teste é sobre o **alvo**: um temporário na origem não protege ninguém |
 | sufixo abaixo de objeto extensível | `G-12b` | `setup.json → decisions` é `additionalProperties: true` sem `properties`. Caminho que morre em objeto **fechado** continua sendo FAIL |
@@ -7736,7 +7802,7 @@ linha. **Um grep de linha não distingue quatro coisas que precisam ser distingu
 
 | Forma | Exemplo real | O que é |
 |---|---|---|
-| Comentário | `# Substitui «PLACEHOLDER» pelo valor do mapa` | Documentação do renderizador |
+| Comentário | `# Substitui {{PLACEHOLDER}} pelo valor do mapa` | Documentação do renderizador |
 | Corpo de here-document | o `<<'TMPL'` de `session-new.sh` e `research-new.sh` | O **template embutido**, usado quando o `*.tmpl` falta |
 | String multilinha | um programa `jq` entre aspas simples que atravessa 12 linhas | **Dado**, não código |
 | Linha de código | `exit 10` dentro de `sm_request` | Execução — e aqui **o escopo importa**: essa linha está dentro da única função autorizada a produzir 10 |
@@ -7759,7 +7825,7 @@ O que cada check passou a perguntar:
 | `I-19` | há, no **nível de topo** (fora de toda função, fora de here-document), definição ou chamada de `main`, `"$@"` como **comando**, ou guarda de auto-execução? |
 | `I-26` | há `curl`/`wget`/`nc`/`ncat`/`ssh`/`scp`/`sftp`/`rsync`/`telnet` **como palavra**, `/dev/tcp` ou `ftp://` numa linha de código? ⭐ **A fronteira de palavra é o que separa o comando `nc` do `nc` que vive dentro de `func `, `sync ` e `Async `** |
 | `I-27` | o **alvo** de um `>` é um derivado no destino final (não um temporário) numa linha de código? |
-| `G-09` / `L-03` | sobrou `«…»` numa linha de código de artefato materializado? |
+| `G-09` / `L-03` | sobrou `{{…}}` numa linha de código de artefato materializado? |
 
 ⭐ **Não é um parser de shell, e o gate diz isso.** O classificador **se autoverifica** pela
 profundidade de chaves: arquivo cuja profundidade não fecha em zero vira `WARN SCOPE`, e nele os
@@ -7993,7 +8059,7 @@ paráfrase de contrato passa a mentir sobre ele (critério **M2**, §0.2.1).
 | 3 | **O corpo do `SKILL.md`**, palavra por palavra | `SK/SKILL.md` | Este documento fixa a **estrutura**, a ordem normativa, o orçamento de linhas e o conteúdo obrigatório de cada seção (§8.4, §8.6, §8.7) — não a prosa. E a prosa é o que o harness carrega |
 | 4 | **O conteúdo das 8 `references/`** — em especial `analogy-bank.md` (o banco de analogias com mapeamento e fronteira de cada uma), `languages.md` (a matriz das 19 linguagens, comando de teste e sonda de contagem por linguagem) e `troubleshooting.md` | `SK/references/*.md` | A tabela de roteamento diz **qual abrir em cada passo** (§8.5.1); o que há dentro de cada uma é conteúdo, não contrato de fronteira |
 | 5 | **O código-fonte dos 19 scripts** | `SK/scripts/**` | Este documento diz **o que** cada um faz e **como** — algoritmo, entradas, saídas, erros. Colar ~1.000 linhas de bash tornaria o documento não auditável sem torná-lo mais reconstruível (§0.6) |
-| 6 | **Os templates byte a byte** e o `MANIFEST.tsv` | `SK/assets/templates/**` | O `MANIFEST.tsv` é a **fonte de verdade** sobre quais placeholders existem (§7.11); e este documento escreve os placeholders com a convenção `«NOME»` de §0.7.5, não com os delimitadores reais |
+| 6 | **Os templates byte a byte** e o `MANIFEST.tsv` | `SK/assets/templates/**` | O `MANIFEST.tsv` é a **fonte de verdade** sobre quais placeholders existem (§7.11). Este documento escreve os delimitadores **reais** (`{{NOME}}`, §0.7.5), mas transcreve só os trechos citados — o corpo byte a byte de cada `*.tmpl` continua no repositório |
 | 7 | **A pesquisa auditada** — as fontes primárias, com as correções de autoria e de número que a auditoria fez | `docs/research/01`…`06` | É a base factual do racional. Sem ela, a construtora não consegue **verificar** as afirmações de §6.8 ("o que este projeto não afirma"), e uma afirmação derrubada que volta ao texto reprova o gate (`I-43`) |
 | 8 | **Os 15 casos de eval** e o `patterns.tsv` | `evals/cases/**` | São o único teste das regras de **comportamento** (`C-*`, `AS-*`, `AN-*`, `ESC-*`): o gate verifica que os IDs existem no `SKILL.md`, não que o tutor os obedece |
 | 9 | **As outras 66 entradas do catálogo de decisões** — as 46 de `audience: student` (perguntadas ao aluno em runtime) e as 20 já arbitradas, com a opção recusada nomeada | `SK/assets/decisions.json` | Este documento marca **48**, que são as de quem constrói. As `student` são insumo de `decisions-ask.sh`, e as arbitradas registram **o que foi recusado e por quê** — informação que só existe ali |

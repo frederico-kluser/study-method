@@ -406,13 +406,20 @@ decisão em aberto.
 
 ### 0.7.5 Convenção de placeholder neste arquivo
 
-Os templates de `SK/assets/templates/**` usam placeholders. A sintaxe real é o **nome em maiúsculas
-entre duas chaves de abertura e duas de fechamento, sem espaço nenhum** — `{` `{` `NOME` `}` `}` —
-casando `^[A-Z0-9_]+$` entre as chaves.
+Os templates de `SK/assets/templates/**` usam placeholders. A sintaxe é o **nome em maiúsculas entre
+duas chaves de abertura e duas de fechamento, sem espaço nenhum** — `{{NOME}}`, casando
+`^[A-Z0-9_]+$` entre as chaves.
 
-⚠ **Neste arquivo eles aparecem como `«NOME»`**, com aspas angulares no lugar das chaves duplas. O
-motivo é mecânico: o gate de qualidade (`L-03`) reprova **placeholder vazado fora de um `*.tmpl`**, e
-não distingue "documentar a sintaxe" de "esquecer de substituir". A conversão é literal e sem perda:
-onde este documento escreve `«FUNC_NAME»`, o arquivo `.tmpl` traz `FUNC_NAME` entre as duas chaves de
-cada lado. A forma byte a byte está nos próprios `SK/assets/templates/**` e no `MANIFEST.tsv`, que é
-a fonte de verdade (§7.11).
+⚠ **Este documento escreve a sintaxe real, não uma transliteração.** Quem copiar um template daqui
+copia a forma que o renderizador reconhece — foi por isso que a convenção anterior, que trocava as
+chaves por aspas angulares, **foi descartada**: ela protegia o gate à custa de ensinar a forma
+errada. O que sustenta a escolha é uma **exclusão declarada**: `BUILD_SPEC.md` está no escopo
+excluído de `L-03` (`tests/gate-lint.sh`) e de `G-09` (`tests/validate.sh`), ao lado de
+`docs/build-spec/**` e pela mesma justificativa — **documenta a sintaxe, não é artefato
+materializado**; falar do buraco não é deixar buraco. Os dois gates imprimem essa exclusão no
+próprio relatório, então ela não é silenciosa.
+
+Fora daqui a regra continua dura: `{{ }}` sobrando em `SKILL.md`, em `references/`, em schema, em
+`examples/`, em `evals/` ou em doc normativo é **FAIL**, e o smoke (`S-06`) cobre o material
+realmente renderizado em runtime. A forma byte a byte está nos próprios `SK/assets/templates/**` e
+no `MANIFEST.tsv`, que é a fonte de verdade (§7.11).

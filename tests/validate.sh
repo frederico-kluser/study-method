@@ -1313,6 +1313,10 @@ fi
 #   *.tmpl e MANIFEST.tsv   o template é o dono do placeholder; o manifesto o declara;
 #   docs/build-spec/**      contrato: os fragmentos DOCUMENTAM a sintaxe ("`{{PKG}}` — o mesmo
 #                           do stub"). Documentar o buraco não é deixar buraco;
+#   BUILD_SPEC.md           o documento montado a partir de docs/build-spec/**, MESMA
+#                           justificativa: §0.7.5 dele documenta a sintaxe de placeholder e o
+#                           corpo transcreve trechos de template. Escrevê-la de outro jeito
+#                           para escapar deste check ensinaria a forma errada a quem copiar;
 #   comentário e here-document de script   o `# Substitui {{PLACEHOLDER}}…` explica o
 #                           renderizador, e o here-document `<<'TMPL'` de session-new.sh e
 #                           research-new.sh É o template embutido (o mesmo conteúdo do *.tmpl,
@@ -1320,9 +1324,9 @@ fi
 # O que sobra é justamente o artefato: SKILL.md, references/, schemas, examples/, evals/,
 # docs/ normativo. Aí um {{ }} é FAIL. Em runtime, quem prova que nada sobrevive à
 # renderização é o smoke (S-06) sobre o material realmente produzido.
-gate_scope_excl "G-09" "docs/build-spec/** · *.tmpl · MANIFEST.tsv · comentário e here-document de script" \
-  "os fragmentos do BUILD_SPEC documentam a sintaxe de placeholder e os scripts carregam o template embutido; nenhum dos dois é artefato materializado. Placeholder em SKILL.md, reference, schema, examples/ ou doc normativo continua sendo FAIL, e o smoke (S-06) cobre o material produzido em runtime."
-bad="$(grep_scope_raw '\{\{[A-Za-z0-9_ ]*\}\}' '*.tmpl' 'docs/build-spec/*' '*MANIFEST.tsv' \
+gate_scope_excl "G-09" "docs/build-spec/** · BUILD_SPEC.md · *.tmpl · MANIFEST.tsv · comentário e here-document de script" \
+  "os fragmentos do BUILD_SPEC e o BUILD_SPEC.md montado a partir deles documentam a sintaxe de placeholder (§0.7.5), e os scripts carregam o template embutido; nenhum dos três é artefato materializado. Placeholder em SKILL.md, reference, schema, examples/ ou doc normativo continua sendo FAIL, e o smoke (S-06) cobre o material produzido em runtime."
+bad="$(grep_scope_raw '\{\{[A-Za-z0-9_ ]*\}\}' '*.tmpl' 'docs/build-spec/*' 'BUILD_SPEC.md' '*MANIFEST.tsv' \
       | scope_filter_scan | grep -vE 'study-method:meta' || true)"
 assert_grep_empty "G-09" "nenhum {{ }} órfão em artefato materializado" \
   "placeholder só em *.tmpl, no MANIFEST.tsv, no BUILD_SPEC que o documenta e no template embutido do renderizador" "$bad"
@@ -1344,6 +1348,24 @@ if [ -f "$D02" ]; then
     D02_RANGE="$s $e"
   fi
 fi
+
+# `evals/run-evals.sh` procura a MESMA lista dentro de evals/, e para procurá-la precisa
+# DECLARÁ-LA literalmente — o here-document `<<'CLAIMS' … CLAIMS` é a declaração. É a mesma
+# situação de docs/02 §9: quem enuncia a proibição não está reincidindo nela. A exclusão é do
+# INTERVALO do here-document, não do arquivo: qualquer outra linha de run-evals.sh continua em
+# escopo, e todo o resto de evals/ também. (O próprio run-evals.sh já se exclui da busca dele,
+# pela mesma razão, e diz isso na saída.)
+EVR="$GATE_ROOT/evals/run-evals.sh"
+EVR_RANGE=""
+if [ -f "$EVR" ]; then
+  s="$(grep -n "<<'CLAIMS'" "$EVR" | head -1 | cut -d: -f1 || true)"
+  if [ -n "$s" ]; then
+    e="$(awk -v s="$s" 'NR>s && /^CLAIMS$/{print NR; exit}' "$EVR")"
+    [ -n "$e" ] && EVR_RANGE="$s $e"
+  fi
+fi
+[ -n "$EVR_RANGE" ] && gate_scope_excl "I-43" "evals/run-evals.sh, linhas $EVR_RANGE (here-document CLAIMS)" \
+  "é a DECLARAÇÃO da lista proibida, feita para procurá-la dentro de evals/ — mesma natureza de docs/02 §9. Só o intervalo do here-document sai; o resto de run-evals.sh e todo o resto de evals/ continuam em escopo."
 raw="$(grep_scope '2 ?sigma|2 desvios-padr|d ?= ?1,11|d ?= ?1\.11|programar desenvolve raciocínio lógico|[0-9]+% de dom[íi]nio|[0-9]+% de recurs')"
 filtered=""
 while IFS= read -r ln; do
@@ -1351,6 +1373,10 @@ while IFS= read -r ln; do
   file="${ln%%:*}"; rest="${ln#*:}"; lno="${rest%%:*}"
   if [ "$file" = "docs/02-pedagogia.md" ] && [ -n "$D02_RANGE" ]; then
     set -- $D02_RANGE
+    if [ "$lno" -ge "$1" ] && [ "$lno" -le "$2" ]; then continue; fi
+  fi
+  if [ "$file" = "evals/run-evals.sh" ] && [ -n "$EVR_RANGE" ]; then
+    set -- $EVR_RANGE
     if [ "$lno" -ge "$1" ] && [ "$lno" -le "$2" ]; then continue; fi
   fi
   case "$rest" in *"Bloom"*|*"nintil"*|*"wikipedia"*) continue ;; esac

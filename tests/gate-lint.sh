@@ -123,18 +123,22 @@ fi
 
 # ─────────────────────────────────────────────────────────── L-03 {{ órfão
 gate_section "L-03 · {{ órfão e placeholder fora de template"
-# Duas fontes de placeholder NÃO são artefato e ficam fora, declaradas:
+# Três fontes de placeholder NÃO são artefato e ficam fora, declaradas:
 #   docs/build-spec/**   os fragmentos DOCUMENTAM a sintaxe ("`{{PKG}}` — o mesmo do stub",
 #                        "Sobrar `{{` no material renderizado ⇒ 1"). Falar do buraco não é
 #                        deixar buraco;
+#   BUILD_SPEC.md        o documento montado a partir de docs/build-spec/** — MESMA justificativa:
+#                        ele documenta a sintaxe de placeholder (§0.7.5) e transcreve trechos de
+#                        template. Escrevê-la de outro jeito para escapar deste check ensinaria a
+#                        forma errada a quem copiar um template de lá;
 #   comentário e here-document de script  o comentário explica o renderizador e o
 #                        here-document `<<'TMPL'` É o template embutido de session-new.sh e
 #                        research-new.sh — o mesmo conteúdo do *.tmpl, usado quando o arquivo
 #                        falta, e que passa pela mesma substituição.
 # Em todo o resto (SKILL.md, references/, schemas, examples/, evals/, docs/ normativo) a
 # regra continua dura, inclusive para `{{` sem fechamento.
-gate_scope_excl "L-03" "docs/build-spec/** · *.tmpl · MANIFEST.tsv · comentário e here-document de script" \
-  "documentação da sintaxe de placeholder, template embutido no renderizador e o literal de busca \`'{{'\` do guarda final não são artefato materializado. Placeholder em SKILL.md, reference, schema, examples/ ou doc normativo continua sendo FAIL."
+gate_scope_excl "L-03" "docs/build-spec/** · BUILD_SPEC.md · *.tmpl · MANIFEST.tsv · comentário e here-document de script" \
+  "documentação da sintaxe de placeholder (docs/build-spec/** e o BUILD_SPEC.md montado a partir dele, §0.7.5), template embutido no renderizador e o literal de busca \`'{{'\` do guarda final não são artefato materializado. Placeholder em SKILL.md, reference, schema, examples/ ou doc normativo continua sendo FAIL."
 SHELLSCOPE="$(gate_shell_scope_tool)"
 SCOPE_TSV="$GATE_TMPDIR/shellscope.tsv"
 : > "$SCOPE_TSV"
@@ -151,7 +155,7 @@ lint_is_code() { # <rel> <nº> — 0 se a linha EXECUTA (ou se o arquivo não é
 bad=""
 for f in "${TXT[@]}"; do
   rel="$(gate_rel "$f")"
-  case "$rel" in tests/*|docs/build-spec/*) continue ;; esac
+  case "$rel" in tests/*|docs/build-spec/*|BUILD_SPEC.md) continue ;; esac
   m="$(grep -nE '\{\{' "$f" 2>/dev/null || true)"
   [ -z "$m" ] && continue
   while IFS= read -r ln; do
@@ -183,7 +187,7 @@ for f in "${TXT[@]}"; do
   done <<< "$m"
 done
 assert_grep_empty "L-03" "nenhum {{ órfão e nenhum placeholder fora de template" \
-  "todo {{ tem }} na mesma linha, e {{NOME}} só existe em *.tmpl, no MANIFEST.tsv e no template embutido do renderizador" "${bad%$'\n'}"
+  "todo {{ tem }} na mesma linha, e {{NOME}} só existe em *.tmpl, no MANIFEST.tsv, na documentação da sintaxe (docs/build-spec/**, BUILD_SPEC.md) e no template embutido do renderizador" "${bad%$'\n'}"
 
 # ─────────────────────────────────────────────────────────── L-04 newline final
 gate_section "L-04 · arquivo de texto com newline final"

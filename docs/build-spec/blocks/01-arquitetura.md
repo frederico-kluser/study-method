@@ -257,7 +257,7 @@ O detalhamento de erros por passo (o que acontece quando o registry corrompe, qu
 | `observation_type` | `observed` · `inferred` (`null`) | `session`, `profile` | `inferred` não pode nascer `high`; nunca inferir a partir de `inferred`. |
 | `evidence[].kind` | `challenge` · `exposure` · `self_report` · `review_declined` · `decay` | `progress.schema.json` | `exposure` e `review_declined` nunca mudam estado. |
 | `transition_rule` | `T1`…`T8` (`null`) | `progress.schema.json` | Gravado em toda transição, inclusive o auto-laço T7. |
-| `state_reason` | `no_evidence` · `passed_unassisted` · `passed_with_hints` · `failed` · `conceptual_error` · `temporal_decay` · `self_report` | `progress.schema.json` | — |
+| `state_reason` | `no_evidence` · `passed_unassisted` · `passed_with_hints` · `failed` · `conceptual_error` · `temporal_decay` · `self_report` · `manual` | `progress.schema.json` | ⚑ **Oito** valores. `manual` = o aluno ou o operador ajustou o estado à mão; o tutor **nunca** o escreve por conta própria. |
 | `move_type` | `analogy` · `worked_example` · `hint_ladder` · `socratic_question` · `hands_on` · `explanation_order` · `visualization` · `reference_lookup` · `spaced_review` · `error_autopsy` | `session.schema.json` | — |
 | `procedure_kind` | `analogy` · `explanation_path` · `presentation_order` · `hands_on_activity` · `hint_strategy` · `visualization` · `antipattern` | `profile.schema.json` | — |
 | `kind` (fato semântico) | `strength` · `difficulty` · `preference` · `skill_level` · `context` | `profile.schema.json` | — |
@@ -298,8 +298,8 @@ O detalhamento de erros por passo (o que acontece quando o registry corrompe, qu
 | `challenge_id` | `^[0-9]{4}$` | `meta.json`, `progress.json` | ⚑ O `challenge_id` é o `NNNN`; o **diretório** é `<NNNN>-<slug>`. |
 | `research_id` | `^[0-9]{4}$` | bloco `study-method:meta` | — |
 | `fact_id` | `^f-[0-9]{4}$` | `profile.json` | — |
-| **`concept_id`** | `^[a-z][a-z0-9_]{1,62}$` | `progress.json`, `meta.json.concepts[]`, `scenario_id` | ⚑ **snake_case em todo o sistema.** `Indução matemática` → `inducao_matematica`. |
-| slug / tag / tópico | `^[a-z0-9]+(-[a-z0-9]+)*$` | `topics[]`, `setup_name`, `subject_slug`, `target_topic`, `<slug>` de diretório | **kebab-case.** Namespace distinto do de conceito, e a distinção é normativa. |
+| **`concept_id` / tag / tópico** | `^[a-z][a-z0-9_]{1,62}$` | `progress.json`, `meta.json.concepts[]`, `scenario_id`, `topics[]`, `target_topic`, `skills_observed[].skill`, `taxonomy[]` | ⚑ **snake_case em todo o sistema.** `Indução matemática` → `inducao_matematica`. Identificador de **conceito ou tópico** mora aqui — `target_topic` inclusive, e por isso ele casa com `topics[]` por igualdade de string. |
+| **slug de caminho** | `^[a-z0-9]+(-[a-z0-9]+)*$` | `setup_name`, `subject_slug`, `<slug>` do diretório de desafio, slug de research | **kebab-case.** Namespace distinto do de conceito, e a distinção é normativa: kebab é **coisa que vira caminho no disco**. Normalizado por `sm_normalize_slug`. |
 | `claim_key` | `^[a-z][a-z0-9_]{1,62}$` | `profile.json` → `semantic_facts[]`, `procedural_facts[]` | ⚑ **snake_case, um identificador só, sem dois-pontos.** Revoga a gramática `dominio:alvo:aspecto`. Só supersede quem tem `claim_key` idêntico — comparação por **igualdade de string**, nada mais. |
 | `schema_version` | `^[0-9]+\.[0-9]+$` | todos | Campo opcional novo = MINOR; obrigatório/renomeado/tipo novo = MAJOR + migração. |
 | data | `^[0-9]{4}-[0-9]{2}-[0-9]{2}$` | `date`, `observed_at`, `last_observed_at`, `next_review_at` | — |
@@ -314,7 +314,7 @@ O detalhamento de erros por passo (o que acontece quando o registry corrompe, qu
 > **Opções:** **(a)** objeto livre, validação delegada ao catálogo — decisão nova entra sem virar `schema_version`, e o verificador mínimo não arrisca falso negativo em propriedade dinâmica; um id digitado errado passa pela validação do manifesto · **(b)** array validado pelo schema do manifesto — erro de digitação morre na validação, e toda decisão nova vira mudança de schema
 > **Default:** **(a)** · **Custo de mudar depois: moderate**
 
-**Nota normativa sobre `target_topic`:** ele é o único campo que cruza os dois namespaces — em `session.how_it_happened[].target_topic` e em `profile.procedural_facts[].target_topic` o pattern é **kebab-case** (`^[a-z0-9]+(-[a-z0-9]+)*$`), enquanto `topics[]` da sessão é **snake_case**. A igualdade de string entre eles é o mecanismo de recuperação do playbook, então a normalização precisa ser feita pelo mesmo lado nos dois pontos.
+**Nota normativa sobre `target_topic` ⚑ — a regra desambiguada:** `target_topic` é **identificador de tópico**, então é **snake_case** (`^[a-z][a-z0-9_]{1,62}$`) em `session.how_it_happened[].target_topic` e em `profile.procedural_facts[].target_topic` — o **mesmo** pattern de `topics[]`, de propósito. Kebab-case fica só para **slug de caminho** (`setup_name`, diretório de desafio, slug de research). A versão anterior deste documento dava kebab a `target_topic` e snake a `topics[]`: era **bug, não escolha**, porque a recuperação do playbook compara os dois **por igualdade de string** e, com padrões diferentes, eles nunca casariam. Os schemas em disco já trazem a regra desambiguada, e as `description` transcritas em §2.9 e §2.10 a explicam campo a campo; `docs/00-contratos.md` §4.2 ainda descreve o resíduo antigo, e a própria invariante `I-16` de lá o marca como temporário — **quem vale é o schema**.
 
 ### 1.4.3 `$id` dos schemas — convenção única ⚑
 

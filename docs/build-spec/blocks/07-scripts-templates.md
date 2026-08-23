@@ -169,8 +169,10 @@ Variáveis de ambiente lidas: `HOME`, `PWD`, `HOSTNAME`, `STUDY_METHOD_HOME`, `X
 
 ### 7.6.1 Os dois normalizadores — algoritmos determinísticos
 
-São **namespaces distintos por design**: `concept_id` (snake_case) para conceito; `slug`
-(kebab-case) para tópico, tag, nome de diretório e nome de arquivo. Nunca se converte um no outro.
+São **namespaces distintos por design**: `concept_id` (snake_case) para **identificador de conceito
+ou de tópico** — `concept_id`, `topics[]`, `target_topic`, `skills_observed[].skill`; `slug`
+(kebab-case) para **o que vira caminho no disco** — `setup_name`, nome de diretório de desafio, nome
+de arquivo e o `--topic <slug>` de `research-new.sh` (`A-15`). Nunca se converte um no outro.
 
 `sm_normalize_concept_id`, passo a passo:
 

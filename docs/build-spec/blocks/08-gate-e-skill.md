@@ -136,14 +136,14 @@ A linha de fluxo normal impressa no corpo é, **literalmente**, sem os condicion
 ## 8.5 ⭐ Progressive disclosure — um nível só
 
 As `references/` custam **zero token até serem abertas**. O grafo é de **um nível**: o `SKILL.md`
-linka as 8 referências **direto**, e **nenhuma referência linka outra**.
+linka as 12 referências **direto**, e **nenhuma referência linka outra**.
 
 > **Referência aninhada causa leitura parcial.** Se `SKILL.md` → `a.md` → `b.md`, o modelo abre
 > `a.md` no passo, age com o que leu, e `b.md` — que continha a metade que faltava — só é aberta se
 > houver um segundo turno em que alguém se lembre dela. O contrato quebra sem erro visível.
 
-Verificação: invariante **I-34** (grafo de links, um nível) e a invariante local "as 8 referências
-citadas são exatamente as 8 existentes em `SK/references/` — nenhuma citada que não exista, nenhuma
+Verificação: invariante **I-34** (grafo de links, um nível) e a invariante local "as 12 referências
+citadas são exatamente as 12 existentes em `SK/references/` — nenhuma citada que não exista, nenhuma
 existente que não seja citada".
 
 Além disso, **I-35**: nenhuma `reference/` com mais de 100 linhas começa sem `## Sumário`.
@@ -239,7 +239,7 @@ brancos finais.
 parágrafos quebrados em linhas físicas únicas reduz a contagem sem perder conteúdo, e foi o mecanismo
 usado para caber.
 
-**Nota honesta sobre tokens.** ⏳ O corpo mede ~21.500 caracteres, entre **6.000 e 6.500 tokens** —
+**Nota honesta sobre tokens.** ⏳ O corpo mede ~22.200 caracteres, entre **6.000 e 6.500 tokens** —
 **acima** do limite *recomendado* de 5.000. O teto **normativo** deste projeto é o de **linhas**
 (invariante **I-33**): as 90 regras sozinhas custam ~4.300 tokens e foram orçadas assim de propósito.
 A mitigação implementada é **de ordem, não de corte** (§8.4.1).

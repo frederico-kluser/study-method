@@ -60,7 +60,7 @@ A cláusula de exclusão é obrigatória: sem ela a skill dispara em qualquer co
 | 2 | `## Quem você é` | tutor de bate-papo em pt-BR; ensina programação **e a matemática que aparece nela**, aprendida **através de código executável**; analogia do repertório do aluno; objeto rodando; verificação por desafio; turno curto, uma pergunta por vez, silêncio depois de perguntar; regra de idioma (identificador em inglês, prosa em pt-BR; chave/enum/id/slug em inglês ASCII sem acento) |
 | 3 | `## A máquina de estados — 9 passos, dois deles CONDICIONAIS` | os 9 nomes literais; a linha do fluxo normal **sem** os condicionais; o aviso de que ler os nove como fila é o erro mais caro; a tabela dos dois ramos |
 | 4 | `## Roteamento — o que ler em cada passo` | tabela `passo → reference → scripts` (§5); a frase de que `seguranca.md` também se lê fora de passo |
-| 5 | `## Regras permanentes` | as **88** regras do §9 de `00-contratos.md`, uma linha cada, agrupadas (§6) |
+| 5 | `## Regras permanentes` | as **90** regras do §9 de `00-contratos.md`, uma linha cada, agrupadas (§6) |
 | 6 | `## Os scripts` | convenção de invocação + tabela dos 16 executáveis + tabela de exit codes (§7) |
 | 7 | `## REQUEST/APPLY — exit 10 é pedido de julgamento, não erro` | o protocolo em 3 passos + as regras duras + os 4 usuários (§8) |
 
@@ -85,7 +85,7 @@ A linha de fluxo normal impressa no corpo é, literalmente, sem os condicionais:
 
 ## 5. Tabela de roteamento — conteúdo normativo
 
-Progressive disclosure: as `references/` custam **zero token** até serem abertas. Grafo de **um nível só** — o `SKILL.md` linka as 8 referências direto, e nenhuma referência linka outra.
+Progressive disclosure: as `references/` custam **zero token** até serem abertas. Grafo de **um nível só** — o `SKILL.md` linka as 12 referências direto, e nenhuma referência linka outra.
 
 | Passo | Reference a abrir antes de agir | Scripts do passo |
 |---|---|---|
@@ -101,25 +101,25 @@ Progressive disclosure: as `references/` custam **zero token** até serem aberta
 
 Fora de passo: `references/seguranca.md` se lê antes de carregar qualquer material do aluno e antes de executar qualquer coisa.
 
-Invariante: as 8 referências citadas são exatamente as 8 existentes em `SK/references/` — nenhuma citada que não exista, nenhuma existente que não seja citada.
+Invariante: as 12 referências citadas são exatamente as 12 existentes em `SK/references/` — nenhuma citada que não exista, nenhuma existente que não seja citada.
 
 ---
 
 ## 6. As regras permanentes que TÊM de estar no corpo
 
-Fonte literal: `docs/00-contratos.md` §9.1–§9.7. **88 regras, uma linha cada**, com o ID original preservado em negrito no início da linha (`- **C-1** …`) porque as evals referenciam os IDs.
+Fonte literal: `docs/00-contratos.md` §9.1–§9.7. **90 regras, uma linha cada**, com o ID original preservado em negrito no início da linha (`- **C-1** …`) porque as evals referenciam os IDs.
 
 | Grupo no corpo | IDs | Qtd |
 |---|---|---|
 | `### SEG — Segurança e execução` | `SEG-1`…`SEG-8` | 8 |
 | `### MEM · PRIV — Memória e privacidade` | `MEM-1`…`MEM-7`, `PRIV-1`…`PRIV-7` | 14 |
 | `### C — Como conversar` | `C-1`…`C-13` | 13 |
-| `### AS — Anti-bajulação` | `AS-1`…`AS-12` | 12 |
+| `### AS — Anti-bajulação` | `AS-1`…`AS-13` | 13 |
 | `### AN · ESC · ERR — Analogia, escada e resposta a erro` | `AN-1`…`AN-7`, `ESC-INICIAL`, `ESC-S`, `ESC-D`, `ESC-R`, `ERR-1`…`ERR-8` | 19 |
 | `### DES — Desafios` | `DES-1`…`DES-9` | 9 |
 | `### VIZ — Visualização` | `VIZ-1`…`VIZ-6` | 6 |
-| `### BOOT — Bootstrap e arquivos` | `BOOT-1`…`BOOT-7` | 7 |
-| **Total** | | **88** |
+| `### BOOT — Bootstrap e arquivos` | `BOOT-1`…`BOOT-8` | 8 |
+| **Total** | | **90** |
 
 ### 6.1 As 11 regras `†` — não rebaixáveis
 
@@ -175,15 +175,15 @@ Teto de trabalho do corpo (fora do frontmatter): **~200 linhas**. Limite recomen
 
 | Item | Linhas |
 |---|---|
-| 88 regras permanentes, uma por linha | 88 |
+| 90 regras permanentes, uma por linha | 90 |
 | 8 cabeçalhos de grupo + 1 branco antes de cada | 16 |
 | Máquina de estados + tabela de roteamento | ~35 |
 | Identidade, scripts, REQUEST/APPLY, títulos e brancos | ~55 |
-| **Total medido** | **194** — folga **6** |
+| **Total medido** | **196** — folga **4** |
 
 **Ordem de corte, se apertar:** (1) `### VIZ` (6 regras) → `references/visualizacao.md`; (2) `### AN · ESC · ERR` (19 regras) → `references/pedagogia.md`; (3) **nunca** `SEG`, nunca `MEM · PRIV`, nunca nenhuma das 11 `†`. Cortar prosa vem antes de cortar regra: juntar parágrafos quebrados em linhas físicas únicas reduz a contagem sem perder conteúdo, e foi o mecanismo usado para caber.
 
-**Nota honesta sobre tokens.** O corpo mede ~21.500 caracteres, entre **6.000 e 6.500 tokens** — acima do limite *recomendado* de 5.000. O teto normativo deste projeto é o de **linhas** (`00-contratos.md` §9.8, invariante I-33): as 88 regras sozinhas custam ~4.200 tokens e foram orçadas assim de propósito. A mitigação implementada é de **ordem**, não de corte — ver §3.
+**Nota honesta sobre tokens.** O corpo mede ~22.200 caracteres, entre **6.000 e 6.500 tokens** — acima do limite *recomendado* de 5.000. O teto normativo deste projeto é o de **linhas** (`00-contratos.md` §9.8, invariante I-33): as 90 regras sozinhas custam ~4.300 tokens e foram orçadas assim de propósito. A mitigação implementada é de **ordem**, não de corte — ver §3.
 
 ## 10. Antipadrões proibidos neste artefato
 
@@ -210,8 +210,8 @@ Teto de trabalho do corpo (fora do frontmatter): **~200 linhas**. Limite recomen
 | I-03 | O nome de campo revogado para o estado da sessão (§4.1 de `00-contratos.md`) não aparece | ✅ |
 | I-04 | Nenhum dos 5 nomes revogados do §11 de `00-contratos.md` (diretório oculto, manifesto renomeado, cache renomeado, constante de bootstrap, perfil em maiúsculas) aparece | ✅ |
 | I-05 | Os dois scripts removidos ausentes do arquivo | ✅ |
-| I-33 | Corpo ≤ 200 linhas **e** contém os 88 IDs de regra | ✅ 194 linhas, 88/88 IDs, 0 duplicado |
-| I-34 | Toda `reference/` linkada direto do `SKILL.md`, uma só profundidade | ✅ do lado do `SKILL.md` (8 citadas = 8 existentes) |
+| I-33 | Corpo ≤ 200 linhas **e** contém os 90 IDs de regra | ✅ 196 linhas, 90/90 IDs, 0 duplicado |
+| I-34 | Toda `reference/` linkada direto do `SKILL.md`, uma só profundidade | ✅ do lado do `SKILL.md` (12 citadas = 12 existentes) |
 | — | `name` `^[a-z0-9-]+$`, ≤64, igual ao diretório | ✅ `study-method` |
 | — | `description` ≤ 1024 caracteres | ✅ 907 |
 | — | Frontmatter só com campos portáveis | ✅ apenas `name` e `description` |

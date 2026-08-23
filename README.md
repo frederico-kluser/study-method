@@ -58,7 +58,7 @@ arquivo vazio** como um teste que passou; `cargo test <nome>` sem qualificar o m
 
 ### 3. As regras anti-bajulação são testáveis, não uma promessa de tom
 
-O `SKILL.md` carrega 12 regras `AS-*` com ID estável, e cada uma proíbe um comportamento
+O `SKILL.md` carrega 13 regras `AS-*` com ID estável, e cada uma proíbe um comportamento
 observável em vez de pedir uma atitude:
 
 - `AS-1` — nunca elogiar resposta que contém erro: a primeira frase do turno não pode ter adjetivo
@@ -70,11 +70,14 @@ observável em vez de pedir uma atitude:
 - `AS-8` — a partir da 2ª ocorrência do mesmo equívoco conceitual, **diga o número de vezes**;
   omitir para não desanimar é bajulação por omissão;
 - `AS-10` — nunca descrever comportamento de função ou biblioteca por plausibilidade: diga que não
-  sabe e proponha verificar rodando.
+  sabe e proponha verificar rodando;
+- `AS-13` — proibido reportar porcentagem de domínio, score, nota, barra de progresso ou confiança
+  numérica: o domínio se diz em palavra — `unknown`, `fragile`, `mastered` — com a evidência que a
+  sustenta.
 
-São 88 IDs de regra permanente no corpo do `SKILL.md` no total (`AS`, `C`, `AN`, `ESC`, `ERR`,
+São 90 IDs de regra permanente no corpo do `SKILL.md` no total (`AS`, `C`, `AN`, `ESC`, `ERR`,
 `MEM`, `PRIV`, `SEG`, `DES`, `VIZ`, `BOOT`). O gate `tests/validate.sh` verifica mecanicamente
-que os 88 estão lá e que as 11 marcadas como críticas de segurança nunca foram rebaixadas para um
+que os 90 estão lá e que as 11 marcadas como críticas de segurança nunca foram rebaixadas para um
 arquivo de referência (invariantes `I-33b` e `I-33c`).
 
 ---
@@ -349,10 +352,11 @@ Esse mesmo `grep` de rede é a invariante `I-26` do gate — ele existe justamen
 contra nós. Rode o gate inteiro antes de confiar:
 
 ```bash
-tests/gate-build.sh   # sintaxe e forma: bash -n, py_compile, permissões, shebang, CRLF
-tests/gate-lint.sh    # qualidade de texto: frontmatter, links quebrados, tabelas, newline final
-tests/validate.sh     # contrato: as invariantes de docs/00-contratos.md
-tests/smoke.sh        # integração ponta a ponta, num diretório temporário e num HOME temporário
+tests/gate-build.sh        # sintaxe e forma: bash -n, py_compile, permissões, shebang, CRLF
+tests/gate-lint.sh         # qualidade de texto: frontmatter, links quebrados, tabelas, newline final
+tests/validate.sh          # contrato: as invariantes de docs/00-contratos.md
+tests/smoke.sh             # integração ponta a ponta, num diretório temporário e num HOME temporário
+tests/spec-conformance.sh  # o BUILD_SPEC.md ainda descreve o repositório de verdade?
 ```
 
 O que o projeto faz para ser auditável — e o que ele **não** faz:
@@ -374,15 +378,16 @@ O modelo de ameaça completo, incluindo o que declaradamente **não** é defendi
 | Caminho | O que é |
 |---|---|
 | [`skills/study-method/`](skills/study-method/) | A skill. É só isso que se instala. |
-| `skills/study-method/SKILL.md` | O roteador: 9 passos, tabela de referências, 88 regras permanentes. |
-| `skills/study-method/references/` | Nível 2, lido sob demanda: bootstrap, pedagogia, protocolo de desafio, linguagens, visualização, segurança, analogias, troubleshooting. |
+| `skills/study-method/SKILL.md` | O roteador: 9 passos, tabela de referências, 90 regras permanentes. |
+| `skills/study-method/references/` | Nível 2, lido sob demanda — 12 arquivos: bootstrap, pedagogia, protocolo de desafio, linguagens, visualização, segurança, analogias, troubleshooting, decisões, ingestão de docs, researchs, scripts. |
 | `skills/study-method/scripts/` | O que roda de verdade. `lib/` é apenas `source`, nunca executado. |
 | `skills/study-method/assets/` | Schemas JSON, templates de setup/sessão/desafio, catálogo de decisões. |
 | [`docs/`](docs/) | O `docs/` do repositório: documentos normativos por domínio. `00-contratos.md` é a autoridade — não confundir com o `docs/` do setup, que é a teoria do aluno. |
 | [`docs/research/`](docs/research/) | A pesquisa auditada que sustenta as decisões, com as fontes. |
 | [`docs/build-spec/`](docs/build-spec/) | Os fragmentos de contrato de cada artefato implementado. |
-| [`tests/`](tests/) | Os 4 gates. `validate.sh` é a tradução mecânica de `docs/00-contratos.md`. |
-| `examples/`, `evals/` | Fixtures e suíte de avaliação das regras de conversa — **ainda vazios**. |
+| [`tests/`](tests/) | Os gates: os 4 originais mais `spec-conformance.sh`. `validate.sh` é a tradução mecânica de `docs/00-contratos.md`; `spec-conformance.sh` confere o `BUILD_SPEC.md` contra o repositório. |
+| [`examples/`](examples/) | Um setup de exemplo completo (`setup-calculo-python`) e o gerador determinístico que o produz. |
+| [`evals/`](evals/) | A suíte de avaliação das regras de conversa: 17 casos com rubrica e baseline, mais `run-evals.sh` — verificação **estática**, sem modelo no loop. |
 
 ---
 
@@ -409,7 +414,8 @@ Isso muda o que as afirmações acima valem, então vale separar:
 
 **Verificado por execução** (numa máquina Linux de desenvolvimento, em 2026-08-23):
 
-- os 4 gates rodam; `gate-build`, `gate-lint` e `smoke` fecham verdes;
+- os 5 gates rodam e fecham **verdes**: `gate-build`, `gate-lint`, `validate`, `smoke` e
+  `spec-conformance`;
 - o `smoke` percorre o fluxo inteiro num `HOME` temporário: cria um setup, abre e fecha 3 sessões
   com o ciclo REQUEST/APPLY, gera e valida um desafio Python pelo protocolo completo, renderiza um
   gráfico com as 4 saídas, prova a idempotência do `readme-sync.sh` byte a byte e valida todo JSON
@@ -421,12 +427,11 @@ Isso muda o que as afirmações acima valem, então vale separar:
 
 **Ainda não verificado / pendente:**
 
-- `tests/validate.sh` fecha **vermelho** por pendências declaradas, não por violação de contrato:
-  há artefatos que ainda não existem (fixtures em `examples/`, o render humano do catálogo de
-  decisões, o script de entrevista de decisões). Rode `tests/validate.sh` para ver a lista atual —
-  ele imprime cada pendência com o nome do artefato que falta;
-- `evals/` está vazio: as regras de conversa (`AS-*`, `C-*`, `ERR-*`) têm ID estável e são
-  **verificáveis por eval**, mas a suíte ainda não foi escrita. Hoje o gate verifica que as regras
+- **nenhum eval com modelo no loop foi rodado.** As regras de conversa (`AS-*`, `C-*`, `ERR-*`)
+  têm ID estável e a suíte existe — 17 casos com rubrica e baseline em `evals/` —, mas
+  `run-evals.sh` é um verificador **estático**: ele confere a coerência entre suíte e contrato e
+  aplica padrões de texto sobre transcrições já gravadas. Ele não conversa com modelo nenhum, e
+  enumera como **MANUAL** tudo que depende de julgamento. Hoje o gate verifica que as regras
   **estão** no `SKILL.md`, não que o modelo as obedece;
 - `shellcheck` não está instalado na máquina de desenvolvimento, então a análise estática de shell
   se limita a `bash -n`. O `gate-build` declara isso em vez de esconder;

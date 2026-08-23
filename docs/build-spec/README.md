@@ -1,6 +1,6 @@
 # `BUILD_SPEC.md` e as suas fontes
 
-O entregável é **`BUILD_SPEC.md`, na raiz do repositório**: um arquivo único, ~8.100 linhas, que
+O entregável é **`BUILD_SPEC.md`, na raiz do repositório**: um arquivo único, ~8.200 linhas, que
 explica como a skill deve ser construída, em detalhe suficiente para instruir uma LLM. Este
 diretório guarda as **fontes** dele.
 
@@ -60,11 +60,14 @@ arquivo montado:
    marcadores no corpo, agrupadas por momento da construção, com a seção `§` de cada marcador
    resolvida automaticamente.
 
-Uma substituição textual acontece na montagem: os placeholders de template, escritos nos blocos com
-os delimitadores reais, aparecem em `BUILD_SPEC.md` como `«NOME»`. O motivo é o gate de qualidade
-(`L-03`), que reprova placeholder vazado fora de um `*.tmpl` e não distingue "documentar a sintaxe"
-de "esquecer de substituir" — `docs/build-spec/**` está na exclusão declarada dele, a raiz do
-repositório não. A convenção está explicada em `BUILD_SPEC.md` §0.7.5, e a conversão é literal.
+**Nenhuma substituição textual acontece na montagem.** Os placeholders de template aparecem em
+`BUILD_SPEC.md` com os **delimitadores reais** (`{{NOME}}`), iguais aos dos blocos — quem copiar um
+template do documento copia a forma que o renderizador reconhece. A convenção anterior, que os
+trocava por `«NOME»`, **foi descartada**: ela protegia o gate ensinando a forma errada. O que
+sustenta a escolha é a exclusão declarada — `BUILD_SPEC.md` entrou no escopo excluído de `L-03`
+(`tests/gate-lint.sh`) e de `G-09` (`tests/validate.sh`) ao lado de `docs/build-spec/**`, com a
+mesma justificativa: **documenta a sintaxe, não é artefato materializado**. Os dois gates imprimem
+essa exclusão no relatório. Está explicado em `BUILD_SPEC.md` §0.7.5.
 
 ## Os 48 marcadores, e a regra de tudo-ou-nada
 

@@ -41,22 +41,45 @@
 #     skills/study-method/, docs/, tests/, examples/, evals/, .github/, README.md,
 #     CONTRIBUTING.md, install.sh, LICENSE — e sem placeholder (<…>, {{…}}, *, NNNN, …, $).
 #     Caminho de exemplo/fictício (ex.: `<setup_root>/memory/NNNN.json`) ou trecho de prosa sem
-#     esse prefixo fica fora do escopo, de propósito.
+#     esse prefixo fica fora do escopo, de propósito. Quatro FAMÍLIAS NOMEADAS também ficam
+#     fora, e são impressas no resumo: (a) `docs/generated/…`, que é o `docs/` do SETUP DO
+#     ALUNO e não o do repositório; (b) `docs/NN` e `docs/research/NN`, abreviação de
+#     referência a capítulo em prosa (o arquivo real é `docs/NN-nome.md`); (c) `tests/…` que
+#     não termina em `.sh` nem está sob `tests/lib/`, que é caminho relativo ao diretório de um
+#     DESAFIO; (d) `*.tmpl`, nome de template relativo a SK/assets/templates/. Nenhuma delas
+#     pode casar um caminho de repositório que sumiu — `tests/gate-x.sh` e `docs/99-x.md`
+#     continuam sendo FAIL.
 #   · SC-02a/b só reconhecem citação de script pela forma `SK/scripts/…` ou
 #     `skills/study-method/scripts/…` (direção a→inventário) e o NOME NU em qualquer lugar do
 #     documento (direção inventário→citado). Não distingue "citou o script certo" de "citou o
 #     nome certo por acaso" — é análise léxica, não semântica.
 #   · SC-04 compara por IGUALDADE ESTRUTURAL após `json.load` (ordem de chave e formatação não
 #     importam); "$id" que não existe em disco também é FAIL.
-#   · SC-06a só reconhece pattern na forma exata `^…$` em code span. SC-06b só reconhece enum em
-#     linha de tabela `` `campo` | `v1` · `v2` … `` (o formato que docs/00-contratos.md §4.1
-#     usa) cujo `campo` seja uma propriedade com `enum` em ALGUM schema; ignora token `null`
-#     (convenção de nulidade, não é membro do array `enum`); quando dois schemas diferentes têm
-#     ENUM DIFERENTE para o mesmo nome de campo (ex.: dois `status`), basta bater com um dos
-#     dois — não pega troca cruzada entre eles.
+#   · SC-06a só reconhece pattern na forma exata `^…$` em code span, desfazendo antes o escape
+#     `\|` de célula de tabela markdown (que é barra de coluna, não parte da regex). Nem toda
+#     regex do projeto vem de schema: há um REGISTRO FECHADO de regexes de origem não-schema
+#     (forma do nome de placeholder, `name` do frontmatter de SKILL.md, parser de TAP, dialeto
+#     [0-9] do timestamp de docs/00-contratos.md §4.2). Cada entrada nomeia o arquivo que a
+#     declara e um trecho que a corrobora — se o arquivo sumir, a isenção cai junto. Qualquer
+#     outro `^…$` citado continua sendo cobrado contra os schemas.
+#   · SC-06b só reconhece enum em linha de tabela `` `campo` | `v1` · `v2` … `` (o formato que
+#     docs/00-contratos.md §4.1 usa) cuja célula de valores seja LISTAGEM PURA — tirados os code
+#     spans e as anotações entre parênteses (que falam de NULIDADE, não de valor), tem de sobrar
+#     só separador; sobrando prosa ou reticências de intervalo (`T1`…`T8`), a linha é
+#     explicação/abreviação e fica fora. O campo é resolvido pelo
+#     CAMINHO citado (`artifacts[].kind` casa `artifacts.kind`, nunca o `kind` de outro schema),
+#     e `null` é ignorado dos DOIS lados (o schema o põe dentro do array `enum`; a tabela anota
+#     a nulidade fora da lista — é a mesma informação escrita em lugares diferentes), e os
+#     candidatos são restritos aos schemas que a própria coluna "onde" NOMEIA: linha que atribui
+#     o enum a outra coisa (bloco `study-method:meta`, saída de `memory-digest.sh`) fica fora,
+#     porque ali o enum não é apresentado como sendo de schema. Quando dois schemas têm ENUM
+#     DIFERENTE para o MESMO caminho, basta bater com um dos dois.
 #   · SC-07 compara só a tabela §5.1 (códigos 0/1/2/3/4/5/10 → "Significado", texto normalizado
-#     por espaço). As exceções nomeadas de §5.2 e os códigos observados de §5.3 NÃO são
-#     comparados mecanicamente — são texto multi-coluna heterogêneo demais para diff confiável.
+#     por espaço), localizada no documento pela subseção "Tabela canônica" e terminada no
+#     PRÓXIMO cabeçalho de qualquer nível. As exceções nomeadas de §5.2 e os códigos observados
+#     de §5.3 NÃO são comparados mecanicamente — reusam os mesmos números com outro significado
+#     (2 é `mix test` lá e "uso incorreto" aqui), e são texto multi-coluna heterogêneo demais
+#     para diff confiável.
 #   · SC-08 usa a MESMA lista de termos revogados e a MESMA janela de contexto revogatório
 #     (3 linhas) que I-01/I-03/I-04/I-05 de tests/validate.sh, reimplementada aqui porque este
 #     script não lê variável nenhuma de validate.sh — são gates independentes.
@@ -70,7 +93,7 @@ SELF_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 . "$SELF_DIR/lib/assert.sh"
 
 case "${1:-}" in
-  -h|--help) sed -n '2,63p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'; exit 0 ;;
+  -h|--help) sed -n '2,86p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'; exit 0 ;;
   "") ;;
   *) printf 'uso incorreto: argumento desconhecido «%s». Veja --help.\n' "$1" >&2; exit 2 ;;
 esac
@@ -82,10 +105,11 @@ gate_init "spec-conformance — BUILD_SPEC.md × repositório"
 
 gate_limitation "Verificação TEXTUAL, não semântica (docs/12-conformidade.md §3): pega caminho que sumiu, script fora do inventário, função sem definição, schema transcrito divergente, marcador de decisão sem par e termo revogado sem aviso — NÃO pega uma explicação que ficou errada nem um racional desatualizado."
 gate_limitation "SC-01/02/03/05/06/07/08 leem só PROSA (fora de bloco cercado \`\`\`…\`\`\`): um bloco cercado é ILUSTRAÇÃO (diagrama, árvore de exemplo, formato-modelo de marcador), nunca afirmação de caminho/função/enum real. SC-04 é o ÚNICO check que abre bloco \`\`\`json — é onde os schemas são transcritos, e isso também blinda SC-05 contra o próprio exemplo de FORMA que docs/build-spec/10-decisoes.md §6.1 cita cercado."
-gate_limitation "SC-01 só considera candidato um trecho com prefixo SK/, skills/study-method/, docs/, tests/, examples/, evals/, .github/, README.md, CONTRIBUTING.md, install.sh ou LICENSE, sem placeholder (<…>, {{…}}, *, NNNN, …, \$). Caminho de exemplo/fictício ou trecho de prosa sem esse prefixo fica fora do escopo, de propósito."
+gate_limitation "SC-01 só considera candidato um trecho com prefixo SK/, skills/study-method/, docs/, tests/, examples/, evals/, .github/, README.md, CONTRIBUTING.md, install.sh ou LICENSE, sem placeholder (<…>, {{…}}, *, NNNN, …, \$). Caminho de exemplo/fictício ou trecho de prosa sem esse prefixo fica fora do escopo, de propósito. Quatro FAMÍLIAS NOMEADAS também ficam fora (e a contagem de cada uma sai no PASS): docs/generated/… (é o docs/ do SETUP DO ALUNO, não o do repositório) · docs/NN e docs/research/NN (abreviação de referência a capítulo; o arquivo real é docs/NN-nome.md) · tests/… que não termina em .sh nem está sob tests/lib/ (é caminho relativo ao diretório de um DESAFIO) · *.tmpl (nome de template, relativo a SK/assets/templates/). Nenhuma delas casa um caminho de repositório que sumiu: tests/gate-x.sh e docs/99-x.md continuam FAIL."
 gate_limitation "SC-04 compara por IGUALDADE ESTRUTURAL após json.load — ordem de chave e formatação/indentação não importam; só conteúdo importa."
-gate_limitation "SC-06a só reconhece pattern na forma exata \`^…\$\`; SC-06b só reconhece enum em linha de tabela \`campo\` | \`v1\` · \`v2\` … (o formato de docs/00-contratos.md §4.1), ignora token \`null\`, e — quando dois schemas têm enums DIFERENTES para o mesmo nome de campo — aceita bater com qualquer um dos dois."
-gate_limitation "SC-07 compara só a tabela §5.1 (0/1/2/3/4/5/10 → significado). As exceções nomeadas de §5.2 e os códigos observados de §5.3 não são comparados mecanicamente — texto multi-coluna heterogêneo demais para diff confiável."
+gate_limitation "SC-06a só reconhece pattern na forma exata \`^…\$\`, desfazendo antes o escape \`\\|\` de célula de tabela (barra de coluna, não parte da regex). Nem toda regex do projeto vem de schema: há um REGISTRO FECHADO de regexes de origem não-schema — forma do nome de placeholder, \`name\` do frontmatter de SKILL.md, parser de saída TAP e o dialeto [0-9] do timestamp de docs/00-contratos.md §4.2. Cada entrada nomeia o arquivo que a declara e um trecho que a corrobora; origem que suma derruba a isenção. Qualquer outro \`^…\$\` citado continua sendo cobrado contra os schemas."
+gate_limitation "SC-06b só reconhece enum em linha de tabela \`campo\` | \`v1\` · \`v2\` … (o formato de docs/00-contratos.md §4.1) cuja célula de valores seja LISTAGEM PURA — tirados os code spans e as anotações entre parênteses (que falam de NULIDADE, não de valor), tem de sobrar só separador; sobrando prosa ou reticências de intervalo, a linha é explicação/abreviação e fica fora. O campo é resolvido pelo CAMINHO citado (\`artifacts[].kind\` casa artifacts.kind, nunca o \`kind\` de outro schema) E restrito aos schemas que a própria coluna «onde» nomeia — linha que atribui o enum a outra coisa (bloco study-method:meta, saída de script) fica fora. \`null\` é ignorado dos DOIS lados. Quando dois schemas têm enums DIFERENTES para o MESMO caminho, aceita bater com qualquer um dos dois."
+gate_limitation "SC-07 compara só a tabela §5.1, localizada no documento pela subseção «Tabela canônica» e terminada no PRÓXIMO cabeçalho de qualquer nível. As exceções nomeadas de §5.2 e os códigos observados de §5.3 não são comparados mecanicamente: reusam os mesmos números com outro significado (2 é \`mix test\` lá e «uso incorreto» aqui) e são texto multi-coluna heterogêneo demais para diff confiável."
 
 BUILD_SPEC="$GATE_ROOT/BUILD_SPEC.md"
 CONTRACT="$GATE_ROOT/docs/00-contratos.md"
@@ -228,6 +252,33 @@ def is_path_candidate(s):
     return True
 
 
+# ── trechos que TÊM cara de caminho do repositório e não são. Cada família é NOMEADA: uma
+# exclusão calada mentiria tanto quanto um falso positivo. Nenhuma delas pode casar um caminho
+# de verdade que sumiu — é isso que mantém o dente do check.
+SETUP_DOCS_RE = re.compile(r'^docs/generated(/|$)')
+DOC_SHORTHAND_RE = re.compile(r'^docs/(research/)?[0-9]{2}$')
+
+
+def not_a_repo_path(s):
+    """Razão NOMEADA pela qual o trecho não é caminho da raiz do repositório, ou None."""
+    if SETUP_DOCS_RE.match(s):
+        return ("docs/ do SETUP do aluno", "`docs/generated/` é o `<setup_root>/docs/generated/` "
+                "— a exceção de escrita da skill no material do aluno, não um diretório deste "
+                "repositório")
+    if DOC_SHORTHAND_RE.match(s):
+        return ("abreviação de referência a capítulo", "`docs/NN` e `docs/research/NN` são a forma "
+                "curta de citar um capítulo em prosa («ver `docs/01` §3»); o arquivo real é "
+                "`docs/NN-nome.md`")
+    if s.startswith("tests/") and not s.startswith("tests/lib/") and not s.endswith(".sh"):
+        return ("caminho relativo ao diretório de um desafio", "o `tests/` do desafio gerado "
+                "(`tests/test_stub.py`, `tests/stub.test.mjs`, `tests/__init__.py`); o `tests/` "
+                "do repositório só tem `*.sh` e `lib/`")
+    if s.endswith(".tmpl"):
+        return ("nome de template", "`*.tmpl` é citado pelo nome, relativo a "
+                "`SK/assets/templates/`, não à raiz do repositório")
+    return None
+
+
 def resolve_path(root, s):
     p = s
     if p.startswith("SK/"):
@@ -240,6 +291,7 @@ def cmd_paths(root, build_spec):
     in_fence, _ = scan_fences(lines)
     checked = 0
     bad = []
+    skipped = {}
     for lineno, line in prose_lines(lines, in_fence):
         cands = [m.group(1) for m in CODE_SPAN_RE.finditer(line)]
         cands += [m.group(1) for m in LINK_RE.finditer(line)]
@@ -251,6 +303,10 @@ def cmd_paths(root, build_spec):
             if s in seen_here:
                 continue
             seen_here.add(s)
+            reason = not_a_repo_path(s)
+            if reason:
+                skipped.setdefault(reason[0], set()).add(s)
+                continue
             checked += 1
             if not resolve_path(root, s):
                 bad.append((lineno, s))
@@ -266,7 +322,11 @@ def cmd_paths(root, build_spec):
                  "arquivo ou diretório existente sob a raiz do repositório",
                  "«%s»" % s, "BUILD_SPEC.md:%d" % lineno)
         return
-    emit("PASS", "SC-01", "%d caminho(s) citado(s) resolvem no disco" % checked)
+    extra = ""
+    if skipped:
+        extra = "; fora de escopo, por família nomeada: " + " · ".join(
+            "%s (%d)" % (k, len(v)) for k, v in sorted(skipped.items()))
+    emit("PASS", "SC-01", "%d caminho(s) citado(s) resolvem no disco%s" % (checked, extra))
 
 
 # ─────────────────────────────────────────────────────────── SC-02 · inventário §8
@@ -593,6 +653,57 @@ def cmd_decisions(root, build_spec, decisions_json):
 
 PATTERN_SPAN_RE = re.compile(r'^\^.*\$$')
 
+# `\|` dentro de célula de tabela markdown é ESCAPE DA BARRA DE COLUNA, não parte da regex.
+# Sem desfazer isso, todo pattern com alternância citado numa tabela viraria falso positivo.
+TABLE_PIPE_ESCAPE_RE = re.compile(r'\\\|')
+
+
+def unescape_table_pipe(span):
+    return TABLE_PIPE_ESCAPE_RE.sub("|", span)
+
+
+# Registro FECHADO de regexes do projeto cuja origem NÃO é schema. Cada entrada nomeia
+# (por que não é de schema, arquivo que a declara, trecho que corrobora). A isenção só vale se
+# o arquivo existir E contiver o trecho — origem que sumiu derruba a isenção junto. Qualquer
+# outro pattern citado continua sendo cobrado contra os schemas.
+NON_SCHEMA_PATTERNS = {
+    "^[A-Z0-9_]+$": (
+        "forma do NOME de um placeholder de template (entre as chaves duplas). O repositório a "
+        "aplica como `{{[A-Z0-9_]+}}` em L-03 de tests/gate-lint.sh e na renderização de "
+        "tests/gate-build.sh — não existe schema JSON que a declare",
+        "tests/gate-lint.sh", "[A-Z0-9_]+"),
+    "^[a-z0-9-]+$": (
+        "regra do campo `name` do frontmatter de SKILL.md, definida pela spec de Agent Skills — "
+        "externa ao projeto, e por isso ausente dos schemas do repositório",
+        "skills/study-method/SKILL.md", "name:"),
+    "^(not )?ok \\d+ - (.+)$": (
+        "parser da saída TAP do runner de Node, usado por challenge-verify.sh para extrair nomes "
+        "de teste — contrato de saída de ferramenta, não formato de dado persistido",
+        "skills/study-method/references/languages.md", "(not )?ok "),
+    "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}([.][0-9]+)?(Z|[+-][0-9]{2}:[0-9]{2})$": (
+        "formato canônico de timestamp como docs/00-contratos.md §4.2 o escreve e lib/common.sh o "
+        "aplica ao validar STUDY_METHOD_NOW — dialeto [0-9]; o schema escreve a MESMA linguagem no "
+        "dialeto \\d",
+        "skills/study-method/scripts/lib/common.sh",
+        "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}([.][0-9]+)?(Z|[+-][0-9]{2}:[0-9]{2})$"),
+}
+
+
+def non_schema_origin(root, span):
+    """(motivo, arquivo) se `span` é uma regex de origem NÃO-schema declarada e corroborada."""
+    ent = NON_SCHEMA_PATTERNS.get(span)
+    if not ent:
+        return None
+    why, rel, corroboration = ent
+    fp = os.path.join(root, rel)
+    try:
+        with open(fp, encoding="utf-8", errors="replace") as fh:
+            if corroboration not in fh.read():
+                return None
+    except OSError:
+        return None
+    return (why, rel)
+
 
 def all_schema_patterns(schema_dir):
     pats = set()
@@ -628,83 +739,170 @@ def cmd_patterns(root, build_spec, schema_dir):
     in_fence, _ = scan_fences(lines)
     checked = 0
     bad = []
+    off = {}
     seen = set()
     for lineno, line in prose_lines(lines, in_fence):
         for m in CODE_SPAN_RE.finditer(line):
-            span = m.group(1).strip()
+            span = unescape_table_pipe(m.group(1).strip())
             if not PATTERN_SPAN_RE.match(span):
                 continue
             key = (lineno, span)
             if key in seen:
                 continue
             seen.add(key)
+            if span in canon:
+                checked += 1
+                continue
+            origin = non_schema_origin(root, span)
+            if origin:
+                off.setdefault(span, origin)
+                continue
             checked += 1
-            if span not in canon:
-                bad.append((lineno, span))
-    if checked == 0:
+            bad.append((lineno, span))
+    if checked == 0 and not off:
         emit("PEND", "SC-06a", "todo pattern citado (`^…$`) existe em algum schema do disco",
              "nenhum code span no formato `^…$` encontrado ainda em BUILD_SPEC.md")
         return
     if bad:
         for lineno, span in bad:
             emit("FAIL", "SC-06a", "pattern citado não existe em schema nenhum do disco",
-                 "um `pattern` presente em algum schema de skills/study-method/assets/schemas/",
+                 "um `pattern` presente em algum schema de skills/study-method/assets/schemas/, "
+                 "ou uma entrada do registro fechado de regexes de origem não-schema",
                  "«%s»" % span, "BUILD_SPEC.md:%d" % lineno)
         return
-    emit("PASS", "SC-06a", "%d pattern(s) citado(s), todos presentes em algum schema" % checked)
+    extra = ""
+    if off:
+        extra = "; fora de escopo por origem não-schema DECLARADA: " + " · ".join(
+            "«%s» (%s)" % (s, o[1]) for s, o in sorted(off.items()))
+    emit("PASS", "SC-06a",
+         "%d pattern(s) de schema citado(s), todos presentes em algum schema%s" % (checked, extra))
 
 
 # ─────────────────────────────────────────────────────────── SC-06b · enums citados
 
 ROW_FIELD_RE = re.compile(r'^\|\s*`([A-Za-z_][A-Za-z0-9_.\[\]]*)`\s*\|(.*)$')
 
+# Uma célula só é LISTAGEM DE ENUM se, tirados os code spans, sobra separador — nada de prosa.
+# Sem isso, «`generated` se o aluno disse que não tem material; `student_provided` se disse que
+# tem» seria lido como "o enum tem 2 valores", e a frase explicativa viraria divergência.
+# `…` fica DE FORA da classe: uma célula como `T1`…`T8` é INTERVALO abreviado, não listagem —
+# ler dois tokens ali e cobrá-los contra oito valores acusaria a abreviação, não uma divergência.
+ENUM_CELL_LEFTOVER_RE = re.compile(r'^[\s·,;/\[\]|*`\-–—]*$')
+PAREN_RE = re.compile(r'\([^()]*\)')
 
-def field_key(name):
-    n = name.replace("[]", "")
-    if "." in n:
-        n = n.split(".")[-1]
-    return n
+
+def enum_cell_core(cell):
+    """A célula sem as anotações entre parênteses — «(`null`)», «(`null` onde opcional)» dizem
+    respeito à NULIDADE, não são membros do array `enum`."""
+    return PAREN_RE.sub("", cell)
 
 
-def schema_enums_by_field(schema_dir):
-    field_enums = {}
+def is_enum_listing(core):
+    return bool(ENUM_CELL_LEFTOVER_RE.match(CODE_SPAN_RE.sub("", core)))
 
-    def walk(node):
+
+OWNER_TOKEN_RE = re.compile(r'[A-Za-z0-9_.-]+')
+
+
+def schema_stems(schema_dir):
+    """nome citável -> arquivo. `session.schema.json` e `session` apontam para o mesmo."""
+    stems = {}
+    if not os.path.isdir(schema_dir):
+        return stems
+    for dirpath, _dirs, files in os.walk(schema_dir):
+        for fn in sorted(files):
+            if not fn.endswith(".json"):
+                continue
+            stems[fn] = fn
+            stems[fn[:-len(".schema.json")] if fn.endswith(".schema.json") else fn[:-5]] = fn
+    return stems
+
+
+def owner_schemas(cell, stems):
+    """Arquivos de schema que a célula "onde" ATRIBUI como donos do enum.
+
+    Célula que não nomeia schema nenhum (`bloco study-method:meta`, `saída de memory-digest.sh`)
+    põe a linha fora de escopo: o enum não é apresentado como sendo de schema, e cobrá-lo contra
+    um campo homônimo de outro arquivo é o falso positivo que este filtro existe para matar.
+    """
+    return {stems[tok] for tok in OWNER_TOKEN_RE.findall(cell or "") if tok in stems}
+
+
+def field_path(name):
+    """`artifacts[].kind` -> ['artifacts', 'kind'] — o CAMINHO citado, não só a folha."""
+    return [seg for seg in name.replace("[]", "").split(".") if seg]
+
+
+def enum_values(raw):
+    """Conjunto do enum SEM o `null`. O schema declara enum nulável pondo `null` no array;
+    a tabela do documento anota a nulidade fora da lista. Comparar os dois conjuntos NÃO-nulos
+    é comparar a mesma coisa — e continua pegando um valor real que diverge."""
+    return frozenset(str(x) for x in raw
+                     if x is not None and str(x).strip().lower() != "null")
+
+
+def schema_enums_by_path(schema_dir):
+    """caminho pontilhado (sem `items`) -> [(arquivo, conjunto-de-valores-não-nulos), …].
+
+    Indexar por CAMINHO, e não pela folha, é o que impede `artifacts[].kind` de ser cobrado
+    contra o `kind` de progress-event.schema.json — dois campos homônimos de schemas diferentes.
+    """
+    by_path = {}
+
+    def walk(node, path, fn):
         if isinstance(node, dict):
             props = node.get("properties")
             if isinstance(props, dict):
                 for name, sub in props.items():
+                    p = path + [name]
                     if isinstance(sub, dict) and isinstance(sub.get("enum"), list):
-                        field_enums.setdefault(name, []).append(
-                            frozenset(str(x) for x in sub["enum"]))
+                        by_path.setdefault(".".join(p), []).append(
+                            (fn, enum_values(sub["enum"])))
+                    walk(sub, p, fn)
             for k, v in node.items():
                 if k == "properties":
                     continue
-                walk(v)
+                walk(v, path, fn)   # items/oneOf/… não acrescentam segmento
         elif isinstance(node, list):
             for v in node:
-                walk(v)
+                walk(v, path, fn)
 
     if not os.path.isdir(schema_dir):
-        return field_enums
+        return by_path
     for dirpath, _dirs, files in os.walk(schema_dir):
-        for fn in files:
+        for fn in sorted(files):
             if not fn.endswith(".json"):
                 continue
             try:
                 with open(os.path.join(dirpath, fn), encoding="utf-8") as fh:
-                    walk(json.load(fh))
+                    walk(json.load(fh), [], fn)
             except (OSError, ValueError):
                 continue
-    return field_enums
+    return by_path
+
+
+def enums_for_path(by_path, cited):
+    """Todo enum cujo caminho TERMINA no caminho citado (sufixo de segmentos, não substring)."""
+    segs = field_path(cited)
+    if not segs:
+        return []
+    hits = []
+    for p, lst in sorted(by_path.items()):
+        ps = p.split(".")
+        if len(ps) >= len(segs) and ps[-len(segs):] == segs:
+            hits.extend(lst)
+    return hits
 
 
 def cmd_enums(root, build_spec, schema_dir):
-    field_enums = schema_enums_by_field(schema_dir)
+    by_path = schema_enums_by_path(schema_dir)
+    stems = schema_stems(schema_dir)
     lines = read_lines(build_spec)
     in_fence, _ = scan_fences(lines)
     checked = 0
     bad = []
+    prose_rows = 0
+    unowned_rows = 0
     seen = set()
     for lineno, line in prose_lines(lines, in_fence):
         m = ROW_FIELD_RE.match(line.rstrip())
@@ -714,22 +912,33 @@ def cmd_enums(root, build_spec, schema_dir):
         cells = rest.split("|")
         if not cells:
             continue
-        tokens = [t.strip() for t in CODE_SPAN_RE.findall(cells[0])]
-        tokens = [t for t in tokens if t.lower() != "null"]
+        candidates = enums_for_path(by_path, field_raw)
+        if not candidates:
+            continue  # fora do escopo: o caminho não é propriedade com enum em schema nenhum
+        owners = owner_schemas(cells[1] if len(cells) > 1 else "", stems)
+        if not owners:
+            unowned_rows += 1
+            continue  # a linha não atribui o enum a schema nenhum
+        candidates = [(fn, vals) for fn, vals in candidates if fn in owners]
+        if not candidates:
+            continue
+        core = enum_cell_core(cells[0])
+        if not is_enum_listing(core):
+            prose_rows += 1
+            continue  # a célula EXPLICA valores em prosa; não é a listagem do enum
+        tokens = [x.strip() for x in CODE_SPAN_RE.findall(core)]
+        tokens = [x for x in tokens if x.lower() != "null"]
         if len(tokens) < 2:
             continue
-        fk = field_key(field_raw)
-        candidates = field_enums.get(fk)
-        if not candidates:
-            continue  # fora do escopo: nome não é propriedade com enum em schema nenhum
         key = (lineno, field_raw)
         if key in seen:
             continue
         seen.add(key)
         checked += 1
         cited = frozenset(tokens)
-        if not any(cited == cand for cand in candidates):
-            shown = " ⁄ ".join(sorted("{" + ", ".join(sorted(c)) + "}" for c in candidates))
+        if not any(cited == vals for _fn, vals in candidates):
+            shown = " ⁄ ".join(sorted(set(
+                "%s{%s}" % (fn, ", ".join(sorted(c))) for fn, c in candidates)))
             bad.append((lineno, field_raw, sorted(tokens), shown))
     if checked == 0:
         emit("PEND", "SC-06b", "todo enum citado bate com o enum do schema dono",
@@ -742,7 +951,19 @@ def cmd_enums(root, build_spec, schema_dir):
                  "um dos conjuntos do schema: %s" % shown,
                  "{%s}" % ", ".join(tokens), "BUILD_SPEC.md:%d" % lineno)
         return
-    emit("PASS", "SC-06b", "%d enum(s) citado(s) em tabela, todos batendo com o schema dono" % checked)
+    extra = ""
+    if prose_rows or unowned_rows:
+        parts = []
+        if prose_rows:
+            parts.append("%d linha(s) descrevem valores em prosa ou por intervalo abreviado, "
+                         "não por listagem" % prose_rows)
+        if unowned_rows:
+            parts.append("%d linha(s) não atribuem o enum a schema nenhum na coluna «onde»"
+                         % unowned_rows)
+        extra = "; fora de escopo: " + " · ".join(parts)
+    emit("PASS", "SC-06b",
+         "%d enum(s) citado(s) em tabela, todos batendo com o enum do MESMO caminho no schema "
+         "dono (comparação sem o `null`)%s" % (checked, extra))
 
 
 # ───────────────────────────────────────────────────────── SC-07 · tabela de exit codes
@@ -787,29 +1008,13 @@ def contract_exit_table(contract_lines):
 
 HEADING_RE = re.compile(r'^(#{1,6})\s')
 EXIT_HEADING_RE = re.compile(r'exit\s*codes?|c[oó]digos?\s+de\s+sa[ií]da', re.IGNORECASE)
+# §5.1 do contrato se chama "Tabela canônica"; é ELA que SC-07 compara. As subseções irmãs
+# (exceções nomeadas, códigos OBSERVADOS do ambiente) reusam os mesmos números com outro
+# significado — 2 é `mix test` lá e "uso incorreto" aqui —, e lê-las juntas trocaria as duas.
+CANON_TABLE_RE = re.compile(r'tabela\s+can[oô]nica', re.IGNORECASE)
 
 
-def build_spec_exit_table(lines, in_fence):
-    start = None
-    level = None
-    for i, line in enumerate(lines):
-        if in_fence[i]:
-            continue
-        hm = HEADING_RE.match(line)
-        if hm and EXIT_HEADING_RE.search(line):
-            start = i
-            level = len(hm.group(1))
-            break
-    if start is None:
-        return None
-    end = len(lines)
-    for i in range(start + 1, len(lines)):
-        if in_fence[i]:
-            continue
-        hm = HEADING_RE.match(lines[i])
-        if hm and len(hm.group(1)) <= level:
-            end = i
-            break
+def _rows_between(lines, in_fence, start, end):
     table = {}
     for i in range(start, end):
         if in_fence[i]:
@@ -824,6 +1029,40 @@ def build_spec_exit_table(lines, in_fence):
     return table
 
 
+def _next_heading(lines, in_fence, start):
+    """Fim da seção = PRÓXIMO cabeçalho de QUALQUER nível — subseção também encerra."""
+    for i in range(start + 1, len(lines)):
+        if in_fence[i]:
+            continue
+        if HEADING_RE.match(lines[i]):
+            return i
+    return len(lines)
+
+
+def build_spec_exit_table(lines, in_fence):
+    """(tabela, rótulo-da-seção-lida) ou (None, None) se a seção ainda não existe."""
+    exit_at = None
+    for i, line in enumerate(lines):
+        if in_fence[i]:
+            continue
+        if HEADING_RE.match(line) and EXIT_HEADING_RE.search(line):
+            exit_at = i
+            break
+    if exit_at is None:
+        return None, None
+    # a tabela canônica é a primeira subseção "Tabela canônica" a partir do cabeçalho de
+    # exit codes; ela termina no próximo cabeçalho, seja qual for o nível.
+    for i in range(exit_at, len(lines)):
+        if in_fence[i]:
+            continue
+        if HEADING_RE.match(lines[i]) and CANON_TABLE_RE.search(lines[i]):
+            end = _next_heading(lines, in_fence, i)
+            return _rows_between(lines, in_fence, i, end), lines[i].strip()
+    # sem subseção nomeada: lê só até o próximo cabeçalho — nunca engolindo as irmãs.
+    end = _next_heading(lines, in_fence, exit_at)
+    return _rows_between(lines, in_fence, exit_at, end), lines[exit_at].strip()
+
+
 def cmd_exitcodes(root, build_spec, contract):
     if not os.path.isfile(contract):
         emit("PEND", "SC-07", "a tabela de exit codes bate com docs/00-contratos.md §5.1",
@@ -832,7 +1071,7 @@ def cmd_exitcodes(root, build_spec, contract):
     canon = contract_exit_table(read_lines(contract))
     lines = read_lines(build_spec)
     in_fence, _ = scan_fences(lines)
-    doc_table = build_spec_exit_table(lines, in_fence)
+    doc_table, where = build_spec_exit_table(lines, in_fence)
     if doc_table is None:
         emit("PEND", "SC-07", "a tabela de exit codes bate com docs/00-contratos.md §5.1",
              "nenhum heading contendo «exit codes»/«códigos de saída» encontrado ainda em "
@@ -847,9 +1086,10 @@ def cmd_exitcodes(root, build_spec, contract):
     if bad:
         for code, sig, got in bad:
             emit("FAIL", "SC-07", "código %s diverge da tabela §5.1" % code,
-                 "«%s» (§5.1)" % sig, got, "BUILD_SPEC.md, seção de exit codes")
+                 "«%s» (§5.1)" % sig, got, "BUILD_SPEC.md, %s" % where)
         return
-    emit("PASS", "SC-07", "os %d código(s) de §5.1 batem com a tabela do documento" % len(canon))
+    emit("PASS", "SC-07", "os %d código(s) de §5.1 batem com a tabela canônica do documento (%s)"
+         % (len(canon), where))
 
 
 # ──────────────────────────────────────────────────────── SC-08 · termos revogados

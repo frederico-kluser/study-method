@@ -13,7 +13,7 @@ dentro do setup (mesma disciplina de `session_id`/`challenge_id`).
 <!-- study-method:meta {...} -->    linha 1 — física, única linha, obrigatória
                                      linha 2 — em branco
 # <título>                          linha 3 — H1, título de verdade, nunca a slug crua
-                                     
+
 ## <seção permitida>                0+ seções H2, ver §3
 ```
 
