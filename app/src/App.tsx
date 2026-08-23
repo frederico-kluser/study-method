@@ -67,12 +67,17 @@ function Shell({
             variant="h6"
             noWrap
             component="div"
+            data-onboarding-target="app-title"
             sx={{ flexGrow: 1, minWidth: 0, fontWeight: 600 }}
           >
             {t('translation:app.title')}
           </Typography>
-          <ThemeToggleButton />
-          <LanguageSwitcher variant="menu" />
+          <Box data-onboarding-target="theme-toggle" component="span" sx={{ display: 'contents' }}>
+            <ThemeToggleButton />
+          </Box>
+          <Box data-onboarding-target="language-switcher" component="span" sx={{ display: 'contents' }}>
+            <LanguageSwitcher variant="menu" />
+          </Box>
         </Toolbar>
       </AppBar>
 
@@ -84,6 +89,7 @@ function Shell({
         }}
         variant="scrollable"
         scrollButtons="auto"
+        data-onboarding-target="nav-tabs"
         aria-label={t('translation:app.shellNav')}
         sx={{
           px: { xs: 1, sm: 2 },

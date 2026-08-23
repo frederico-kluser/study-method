@@ -546,6 +546,7 @@ export default function ChallengeView(): ReactElement {
           <Grid size={12}>
             <Paper
               variant="outlined"
+              data-onboarding-target="challenge-editor"
               sx={{ height: { xs: 480, md: 560 }, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}
             >
               <Box sx={{ display: 'flex', flexGrow: 1, minHeight: 0 }}>
@@ -585,6 +586,7 @@ export default function ChallengeView(): ReactElement {
                   loading={busy}
                   startIcon={!busy ? <PlayArrowIcon /> : undefined}
                   onClick={testAnswerClick}
+                  data-onboarding-target="challenge-test-answer"
                 >
                   {t('translation:challenge.testAnswer')}
                 </Button>
@@ -607,7 +609,9 @@ export default function ChallengeView(): ReactElement {
                 ) : null}
               </Stack>
               <Box sx={{ mt: 0.5, height: 220 }}>
-                <AnswerTerminal ref={termRef} aria-label={t('translation:challenge.outputAria')} />
+                <Box data-onboarding-target="challenge-terminal" component="span" sx={{ display: 'contents' }}>
+                  <AnswerTerminal ref={termRef} aria-label={t('translation:challenge.outputAria')} />
+                </Box>
               </Box>
 
               {/* Seção de feedback */}

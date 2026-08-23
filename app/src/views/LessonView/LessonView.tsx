@@ -281,6 +281,7 @@ export default function LessonView(): ReactElement {
           disabled={running}
           fullWidth
           variant="outlined"
+          slotProps={{ htmlInput: { 'data-onboarding-target': 'lesson-subject' } }}
         />
         <Button
           variant="contained"

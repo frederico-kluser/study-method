@@ -1,0 +1,132 @@
+/*
+ * src/features/onboarding/components/OnboardingOverlay.module.css
+ *
+ * Estilos do overlay de tutorial. Usei CSS Module LOCAL (não index.css — regra
+ * da onda 12) para as partes que precisam de animação/geometria runtime
+ * (spotlight com pulso, máscara, transições de painel). O layout principal é
+ * estilizado via `sx` no componente (MUI v9); aqui ficam as classes de
+ * EFEITO/animação e os modificadores responsivos retornados por
+ * `getResponsiveSizeClass`.
+ *
+ * Os modificadores `--medium/--small/--xsmall` espelham exatamente os sufixos
+ * devolvidos por `onboardingPositioning.utils.ts::getResponsiveSizeClass` —
+ * o componente mapeia o sufixo para a classe hashada deste modulo.
+ */
+
+/* ── Spotlight: transição entre alvos + pulso quando assenta ───────── */
+.spotlight {
+  position: fixed;
+  pointer-events: none;
+  border: 2px solid var(--accent, #1976d2);
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.18),
+    0 0 0 6px rgba(25, 118, 210, 0.2),
+    0 14px 36px rgba(25, 118, 210, 0.38);
+  transition:
+    top 0.4s ease-out,
+    left 0.4s ease-out,
+    width 0.4s ease-out,
+    height 0.4s ease-out,
+    opacity 0.4s ease-out;
+  will-change: transform, opacity;
+}
+
+.spotlightClosing {
+  opacity: 0;
+}
+
+.spotlightReady {
+  animation: spotlightPulse 2.1s ease-in-out infinite;
+}
+
+@keyframes spotlightPulse {
+  0%,
+  100% {
+    box-shadow:
+      0 0 0 1px rgba(0, 0, 0, 0.18),
+      0 0 0 6px rgba(25, 118, 210, 0.2),
+      0 14px 36px rgba(25, 118, 210, 0.32);
+  }
+  50% {
+    box-shadow:
+      0 0 0 1px rgba(0, 0, 0, 0.22),
+      0 0 0 8px rgba(25, 118, 210, 0.3),
+      0 16px 42px rgba(25, 118, 210, 0.45);
+  }
+}
+
+/* ── Painel: entrada / troca de step ───────────────────────────────── */
+.panelHidden {
+  opacity: 0;
+  transform: translateY(24px) scale(0.96);
+  pointer-events: none;
+}
+
+.panelVisible {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+}
+
+.panelTransitioning {
+  opacity: 0;
+  transform: translateY(10px) scale(0.98);
+  transition:
+    transform 0.2s ease-out,
+    opacity 0.2s ease-out;
+}
+
+/* ── Modificadores responsivos (mapeados de getResponsiveSizeClass) ── */
+.medium {
+  max-width: 400px;
+}
+
+.small {
+  max-width: 340px;
+}
+
+.xsmall {
+  max-width: 280px;
+  max-height: 40vh;
+  overflow-y: auto;
+}
+
+/* ── Diálogo de confirmação ────────────────────────────────────────── */
+.confirmDialog {
+  position: fixed;
+  inset: 0;
+  z-index: 1400;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: auto;
+  animation: confirmEnter 0.2s ease-out both;
+}
+
+@keyframes confirmEnter {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spotlight,
+  .spotlightClosing,
+  .spotlightReady,
+  .panelHidden,
+  .panelVisible,
+  .panelTransitioning,
+  .confirmDialog {
+    transition: none !important;
+    animation: none !important;
+  }
+
+  .panelHidden {
+    opacity: 1;
+    transform: none;
+  }
+}

@@ -178,5 +178,83 @@
     "loading": "Loading…",
     "back": "Back",
     "close": "Close"
+  },
+  "tutorial": {
+    "progress": {
+      "chapter": "Chapter",
+      "step": "Step"
+    },
+    "controls": {
+      "close": "Close tutorial",
+      "skip": "Skip",
+      "next": "Continue",
+      "finish": "Finish"
+    },
+    "confirm": {
+      "skipMessage": "Skip the tutorial? You can reopen it later from the help button.",
+      "closeMessage": "Close the tutorial? You can reopen it later from the help button.",
+      "cancel": "Cancel",
+      "skipConfirm": "Yes, skip",
+      "closeConfirm": "Yes, close"
+    },
+    "nav": {
+      "goToTab": "Go to the tab:"
+    },
+    "chapter": {
+      "shell": "The interface",
+      "settings": "Settings",
+      "lesson": "Lesson",
+      "challenge": "Challenge"
+    },
+    "steps": {
+      "shellAppTitle": {
+        "title": "Study Method",
+        "description": "This is the coding tutor. Generate AI-powered lessons and solve hands-on challenges in the tabs below."
+      },
+      "shellThemeToggle": {
+        "title": "Light/dark theme",
+        "description": "Switch between light, dark or system theme using the theme button in the top bar."
+      },
+      "shellLanguageSwitcher": {
+        "title": "Language",
+        "description": "Switch the interface language between Portuguese and English here. Your choice is saved automatically."
+      },
+      "shellNavTabs": {
+        "title": "Navigation",
+        "description": "Use the tabs to navigate: Settings (configuration), Lesson (lesson generation) and Challenge (practice)."
+      },
+      "settingsKeys": {
+        "title": "API keys",
+        "description": "In Settings you set up and validate the DeepSeek (lesson generation) and Brave Search (sources) keys, and manage the local model."
+      },
+      "lessonSubject": {
+        "title": "Generate a lesson",
+        "description": "Type the subject you want to learn about and click \"Generate lesson\" to research sources and build the material."
+      },
+      "challengeEditor": {
+        "title": "Code editor",
+        "description": "Open a challenge and write your solution in this editor (CodeMirror), without autocomplete — practice coding from memory."
+      },
+      "challengeTerminal": {
+        "title": "Test output",
+        "description": "The deterministic test results appear in this terminal, with a pass verdict or failure details."
+      },
+      "challengeTestAnswer": {
+        "title": "Test answer",
+        "description": "Click \"Test answer\" to run the tests and get feedback from the grader on your solution."
+      },
+      "tourComplete": {
+        "title": "You know the basics!",
+        "description": "Browse the tabs to explore. You can reopen this tutorial anytime from the help button."
+      }
+    },
+    "selection": {
+      "title": "Want a tour?",
+      "subtitle": "A short tutorial introduces the interface and shows how to generate lessons and solve challenges.",
+      "quickTourTitle": "Quick tour",
+      "quickTourDescription": "See the top bar, the tabs, and learn to generate a lesson and test a solution.",
+      "badgeRecommended": "Recommended",
+      "dismiss": "Not now"
+    }
   }
 }

@@ -40,6 +40,17 @@
     // src/components/theme/themeModeState.ts é PURO (lógica do toggle de tema,
     // sem React/DOM) e é testado de tests/themeModeState.test.ts — listado aqui
     // como os demais módulos puros alcançáveis por import nos testes.
-    "src/components/theme/themeModeState.ts"
+    "src/components/theme/themeModeState.ts",
+    // src/features/onboarding/* (onda 12 — tutorial): módulos PUROS (storage,
+    // posicionamento, steps/alvos, regra de oferta) testados de tests/onboarding*.test.ts
+    // sem jsdom. Os componentes React (overlay/modal/host) ficam FORA daqui —
+    // pertencem ao tsconfig.json do renderer (não são unit-testados).
+    "src/features/onboarding/types/onboarding.types.ts",
+    "src/features/onboarding/constants/onboardingI18n.ts",
+    "src/features/onboarding/constants/onboardingSteps.ts",
+    "src/features/onboarding/constants/onboardingTargets.ts",
+    "src/features/onboarding/services/onboardingStorage.service.ts",
+    "src/features/onboarding/utils/onboardingPositioning.utils.ts",
+    "src/features/onboarding/hooks/firstRunTutorial.rule.ts"
   ]
 }

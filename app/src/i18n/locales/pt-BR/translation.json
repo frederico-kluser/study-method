@@ -178,5 +178,83 @@
     "loading": "Carregando…",
     "back": "Voltar",
     "close": "Fechar"
+  },
+  "tutorial": {
+    "progress": {
+      "chapter": "Capítulo",
+      "step": "Passo"
+    },
+    "controls": {
+      "close": "Fechar tutorial",
+      "skip": "Pular",
+      "next": "Continuar",
+      "finish": "Concluir"
+    },
+    "confirm": {
+      "skipMessage": "Pular o tutorial? Você pode reabri-lo depois pelo botão de ajuda.",
+      "closeMessage": "Fechar o tutorial? Você pode reabri-lo depois pelo botão de ajuda.",
+      "cancel": "Cancelar",
+      "skipConfirm": "Sim, pular",
+      "closeConfirm": "Sim, fechar"
+    },
+    "nav": {
+      "goToTab": "Vá para a aba:"
+    },
+    "chapter": {
+      "shell": "A interface",
+      "settings": "Configurações",
+      "lesson": "Aula",
+      "challenge": "Desafio"
+    },
+    "steps": {
+      "shellAppTitle": {
+        "title": "O Study Method",
+        "description": "Este é o tutor de programação. Crie aulas geradas por IA e resolva desafios práticos nas abas abaixo."
+      },
+      "shellThemeToggle": {
+        "title": "Tema claro/escuro",
+        "description": "Alterne entre os temas claro, escuro ou padrão do sistema pelo botão de tema na barra superior."
+      },
+      "shellLanguageSwitcher": {
+        "title": "Idioma",
+        "description": "Troque o idioma da interface entre Português e Inglês aqui. A preferência é salva automaticamente."
+      },
+      "shellNavTabs": {
+        "title": "Navegação",
+        "description": "Use as abas para navegar: Settings (configurações), Aula (geração de aula) e Desafio (prática)."
+      },
+      "settingsKeys": {
+        "title": "Chaves de API",
+        "description": "Em Configurações você cadastra e valida as chaves do DeepSeek (geração de aulas) e do Brave Search (fontes), além de gerenciar o modelo local."
+      },
+      "lessonSubject": {
+        "title": "Gerar uma aula",
+        "description": "Digite aqui o assunto que você quer aprender e clique em \"Gerar aula\" para pesquisar fontes e montar o material."
+      },
+      "challengeEditor": {
+        "title": "Editor de código",
+        "description": "Abra um desafio e escreva sua solução neste editor (CodeMirror), sem autocomplete — treine o código de memória."
+      },
+      "challengeTerminal": {
+        "title": "Saída dos testes",
+        "description": "O resultado dos testes determinísticos aparece neste terminal, com a resposta de aprovação ou detalhes da falha."
+      },
+      "challengeTestAnswer": {
+        "title": "Testar resposta",
+        "description": "Clique em \"Testar resposta\" para rodar os testes e receber feedback do avaliador sobre a sua solução."
+      },
+      "tourComplete": {
+        "title": "Você já sabe o básico!",
+        "description": "Navegue pelas abas para explorar. Você pode reabrir este tutorial a qualquer momento pelo botão de ajuda."
+      }
+    },
+    "selection": {
+      "title": "Quer um tour?",
+      "subtitle": "Um breve tutorial apresenta a interface e mostra como gerar aulas e resolver desafios.",
+      "quickTourTitle": "Tour rápido",
+      "quickTourDescription": "Veja a barra superior, as abas e aprenda a gerar uma aula e testar uma solução.",
+      "badgeRecommended": "Recomendado",
+      "dismiss": "Agora não"
+    }
   }
 }

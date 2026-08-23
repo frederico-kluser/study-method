@@ -25,7 +25,7 @@ export default function SettingsView(): ReactElement {
           </Typography>
 
           <Stack spacing={3}>
-            <section aria-labelledby="settings-keys-title">
+            <section aria-labelledby="settings-keys-title" data-onboarding-target="settings-keys-section">
               <Typography variant="h6" id="settings-keys-title">
                 {t('translation:settings.keysTitle')}
               </Typography>
