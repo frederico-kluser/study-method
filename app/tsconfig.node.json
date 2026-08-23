@@ -23,6 +23,11 @@
     "tools",
     "shared",
     "src/lib",
+    // Onda 8 (voz): código compartilhado do TTS (catálogo de modelos Piper) sob
+    // este projeto composite (noEmit, mas composite exige listar arquivos
+    // alcançáveis por import dos services de localTts).
+    "src/shared/constants/ttsModels.constants.ts",
+    "src/shared/utils/audioResample.utils.ts",
     // src/gate/startupState.ts é PURO (sem React/DOM) e é testado de
     // tests/startupState.test.ts (projeto composite exige listar arquivos
     // alcançáveis por import). Os componentes React de src/gate (AppGate.tsx,

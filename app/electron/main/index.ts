@@ -23,6 +23,9 @@ import { registerStartupHandlers } from './ipc/startup-handlers';
 import { registerPiHandlers } from './ipc/pi-handlers';
 import { registerStudyHandlers, type RunnerLike, type LessonServiceLike } from './ipc/study-handlers';
 import { registerLocalAiHandlers } from './ipc/localAi-handlers';
+import { registerSttModelHandlers } from './ipc/stt-model-handlers';
+import { registerSttHandlers } from './ipc/stt-handlers';
+import { registerLocalTtsHandlers } from './ipc/localTts-handlers';
 import { buildMainSetup, emitToAll } from './main-setup';
 import { getSettingsStore } from './services/settingsStore';
 import { createPiAgentService } from './services/PiAgentService';
@@ -99,6 +102,12 @@ if (!gotLock) {
       // GATE DE INÍCIO (onda 6): registra keys:startup-status (aditivo, fora do
       // buildMainSetup p/ não alterar a ordem dos 5 registradores testados).
       registerStartupHandlers();
+
+      // VOZ LOCAL (onda 8): registra os handlers de STT e TTS (aditivos, fora
+      // do buildMainSetup p/ não alterar a ordem dos 5 registradores testados).
+      registerSttModelHandlers();
+      registerSttHandlers();
+      registerLocalTtsHandlers();
     } catch (err) {
       console.error('[main] falha ao registrar handlers IPC:', err);
     }

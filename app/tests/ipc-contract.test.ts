@@ -17,7 +17,9 @@ import {
   LOCAL_AI_CHANNELS,
   PI_CHANNELS,
   SETTINGS_CHANNELS,
+  STT_CHANNELS,
   STUDY_CHANNELS,
+  TTS_CHANNELS,
 } from '../shared/ipc-contract';
 
 import { API_GROUPS, createExposedApi } from '../electron/preload/api-schema';
@@ -29,6 +31,10 @@ const EVENT_CHANNELS: ReadonlySet<string> = new Set([
   LOCAL_AI_CHANNELS.DOWNLOAD_PROGRESS,
   STUDY_CHANNELS.LESSON_PROGRESS,
   STUDY_CHANNELS.TEST_ANSWER_EVENT,
+  STT_CHANNELS.MODEL_DOWNLOAD_PROGRESS,
+  STT_CHANNELS.STREAM_PARTIAL,
+  STT_CHANNELS.ENGINE_STATUS,
+  TTS_CHANNELS.DOWNLOAD_PROGRESS,
 ]);
 
 /** Fake determinístico do transporte: registra os invoke/on chamados. */
@@ -58,7 +64,15 @@ function memberName(channel: string, isEvent: boolean): string {
 }
 
 describe('contrato IPC (shared/ipc-contract.ts)', () => {
-  const ALL_GROUPS = [KEYS_CHANNELS, PI_CHANNELS, LOCAL_AI_CHANNELS, STUDY_CHANNELS, SETTINGS_CHANNELS];
+  const ALL_GROUPS = [
+    KEYS_CHANNELS,
+    PI_CHANNELS,
+    LOCAL_AI_CHANNELS,
+    STUDY_CHANNELS,
+    SETTINGS_CHANNELS,
+    STT_CHANNELS,
+    TTS_CHANNELS,
+  ];
 
   it('não há strings vazias entre os canais', () => {
     for (const group of ALL_GROUPS) {
@@ -76,6 +90,8 @@ describe('contrato IPC (shared/ipc-contract.ts)', () => {
       LOCAL_AI_CHANNELS,
       STUDY_CHANNELS,
       SETTINGS_CHANNELS,
+      STT_CHANNELS,
+      TTS_CHANNELS,
     })) {
       for (const value of Object.values(group)) {
         assert.ok(!/[\s]/.test(value), `canal com espaço: ${value}`);
@@ -115,7 +131,8 @@ describe('contrato IPC (shared/ipc-contract.ts)', () => {
     }
 
     // Garante que a string do canal chega ao transporte (invoke) ou à subscrição (on).
-    assert.ok(checked >= 39, `cobertura abaixo do esperado para o contrato (${checked})`);
+    // Onda 8 (voz) adicionou stt (11) + localTts (9) → 60 canais no total.
+    assert.ok(checked >= 60, `cobertura abaixo do esperado para o contrato (${checked})`);
 
     // Invoca alguns membros e confere que o channel do contrato chega ao transporte.
     await (api as unknown as ApiRef).settings.get();
@@ -133,6 +150,11 @@ describe('contrato IPC (shared/ipc-contract.ts)', () => {
       (api as unknown as ApiRef).localAi.onDownloadProgress(() => {}),
       (api as unknown as ApiRef).study.onLessonProgress(() => {}),
       (api as unknown as ApiRef).study.onTestAnswerEvent(() => {}),
+      // Onda 8 (voz): eventos de STT e TTS.
+      (api as unknown as ApiRef).stt.onModelDownloadProgress(() => {}),
+      (api as unknown as ApiRef).stt.onStreamPartial(() => {}),
+      (api as unknown as ApiRef).stt.onEngineStatus(() => {}),
+      (api as unknown as ApiRef).localTts.onDownloadProgress(() => {}),
     ];
     assert.deepEqual(
       ipc.subscribed.sort(),
@@ -155,5 +177,13 @@ interface ApiRef {
     testAnswer: () => Promise<unknown>;
     onLessonProgress: (cb: () => void) => () => void;
     onTestAnswerEvent: (cb: () => void) => () => void;
+  };
+  stt: {
+    onModelDownloadProgress: (cb: () => void) => () => void;
+    onStreamPartial: (cb: () => void) => () => void;
+    onEngineStatus: (cb: () => void) => () => void;
+  };
+  localTts: {
+    onDownloadProgress: (cb: () => void) => () => void;
   };
 }

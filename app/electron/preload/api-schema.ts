@@ -30,9 +30,15 @@ import type {
   HardwareInfo,
   KeysStatus,
   LocalModelInfo,
+  LocalTtsPreference,
   PiExecuteRequest,
   PiExecuteResult,
   PiStreamEvent,
+  SttModelProgressPayload,
+  SttPartialPayload,
+  TtsDownloadProgressPayload,
+  TtsGenerateRequest,
+  TtsGenerateResult,
   TestAnswerResult,
   ValidationResult,
   WorkspaceFile,
@@ -43,7 +49,9 @@ import {
   LOCAL_AI_CHANNELS,
   PI_CHANNELS,
   SETTINGS_CHANNELS,
+  STT_CHANNELS,
   STUDY_CHANNELS,
+  TTS_CHANNELS,
 } from '@shared/ipc-contract';
 
 /**
@@ -69,6 +77,8 @@ export const API_GROUPS = {
   pi: PI_CHANNELS,
   localAi: LOCAL_AI_CHANNELS,
   study: STUDY_CHANNELS,
+  stt: STT_CHANNELS,
+  localTts: TTS_CHANNELS,
 } as const;
 
 /** Canais de evento (push main→renderer). Os demais são request (invoke). */
@@ -77,6 +87,10 @@ const EVENT_CHANNELS: ReadonlySet<string> = new Set<string>([
   LOCAL_AI_CHANNELS.DOWNLOAD_PROGRESS,
   STUDY_CHANNELS.LESSON_PROGRESS,
   STUDY_CHANNELS.TEST_ANSWER_EVENT,
+  STT_CHANNELS.MODEL_DOWNLOAD_PROGRESS,
+  STT_CHANNELS.STREAM_PARTIAL,
+  STT_CHANNELS.ENGINE_STATUS,
+  TTS_CHANNELS.DOWNLOAD_PROGRESS,
 ]);
 
 /** camelCase do último segmento do canal (ex.: 'localAi:download-progress' → 'ownloadProgress'). */
@@ -173,5 +187,31 @@ export interface ApiSchema {
     deleteWorkspaceFile(): Promise<unknown>;
     onLessonProgress(cb: (ev: unknown) => void): () => void;
     onTestAnswerEvent(cb: (ev: unknown) => void): () => void;
+  };
+  /** Onda 8 (voz local): STT — envelope { success, data?, error? }. */
+  stt: {
+    modelStatus(): Promise<unknown>;
+    modelDownload(modelId: string): Promise<unknown>;
+    modelCancel(modelId: string): Promise<unknown>;
+    modelDelete(modelId: string): Promise<unknown>;
+    streamStart(req: { locale: string; sessionId: string }): Promise<unknown>;
+    streamChunk(chunk: { sessionId: string; samples: Float32Array }): Promise<unknown>;
+    streamStop(sessionId: string): Promise<unknown>;
+    streamCancel(sessionId: string): Promise<unknown>;
+    onModelDownloadProgress(cb: (ev: SttModelProgressPayload) => void): () => void;
+    onStreamPartial(cb: (ev: SttPartialPayload) => void): () => void;
+    onEngineStatus(cb: (ev: { status: 'ready' | 'restarting' | 'dead' }) => void): () => void;
+  };
+  /** Onda 8 (voz local): TTS — envelope { success, data?, error? }. */
+  localTts: {
+    list(): Promise<unknown>;
+    download(modelId: string): Promise<unknown>;
+    cancelDownload(modelId: string): Promise<unknown>;
+    delete(modelId: string): Promise<unknown>;
+    generate(req: TtsGenerateRequest): Promise<TtsGenerateResult>;
+    cancelGenerate(requestId: string): Promise<unknown>;
+    getPreference(): Promise<LocalTtsPreference>;
+    setPreference(pref: LocalTtsPreference): Promise<unknown>;
+    onDownloadProgress(cb: (ev: TtsDownloadProgressPayload) => void): () => void;
   };
 }

@@ -22,6 +22,12 @@ export default defineConfig({
             __dirname,
             'electron/main/services/embeddedLlm/llmEngine.process.ts',
           ),
+          // Onda 8 (voz): utility process de ASR local — forkado pelo
+          // AsrProxyService a partir de out/main/asr-engine.js.
+          'asr-engine': resolve(
+            __dirname,
+            'electron/main/services/localStt/asrEngine.process.ts',
+          ),
         },
       },
     },

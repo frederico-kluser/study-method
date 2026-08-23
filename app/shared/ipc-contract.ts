@@ -244,3 +244,137 @@ export interface AppSettings {
   /** ADITIVO (onda 6): idioma ativo, persistido pelo LanguageSwitcher do i18n. */
   language?: string;
 }
+
+// ─── Canais: STT local (onda 8 — voz) ────────────────────────────────────────
+// On-device ASR via sherpa-onnx-node (Nemotron streaming) num utility process.
+// Todos os handlers devolvem o envelope `{ success, data?, error? }`.
+
+export const STT_CHANNELS = {
+  MODEL_STATUS: 'stt:model-status',
+  MODEL_DOWNLOAD: 'stt:model-download',
+  MODEL_DOWNLOAD_PROGRESS: 'stt:model-download-progress',
+  MODEL_CANCEL: 'stt:model-cancel',
+  MODEL_DELETE: 'stt:model-delete',
+  STREAM_START: 'stt:stream-start',
+  STREAM_CHUNK: 'stt:stream-chunk',
+  STREAM_STOP: 'stt:stream-stop',
+  STREAM_CANCEL: 'stt:stream-cancel',
+  STREAM_PARTIAL: 'stt:stream-partial',
+  ENGINE_STATUS: 'stt:engine-status',
+} as const;
+
+/** Estado de UM modelo de STT local (catálogo + disco + download em voo). */
+export interface SttModelStatus {
+  modelId: string;
+  state: 'absent' | 'installed' | 'downloading';
+  /** Modelo embutido no pacote (resources/stt-models) — não deletável. */
+  embedded: boolean;
+  downloadedBytes: number;
+  totalBytes: number;
+  progress: number;
+}
+
+/** Push `stt:model-download-progress` — progresso do download de um modelo. */
+export interface SttModelProgressPayload {
+  modelId: string;
+  progress: number;
+  downloadedBytes: number;
+  totalBytes: number;
+}
+
+/** Push `stt:stream-partial` — transcrição parcial CUMULATIVA (replace). */
+export interface SttPartialPayload {
+  sessionId: string;
+  text: string;
+  /** true no commit do final (e no resultado de `stt:stream-stop`). */
+  isFinal: boolean;
+  /** Id de segmento estável cunhado no main do commit do final. */
+  segmentId?: string;
+}
+
+/** Push `stt:engine-status` — de um utility process de STT. */
+export interface SttEngineStatusPayload {
+  status: 'ready' | 'restarting' | 'dead';
+}
+
+/** Pedido de `stt:stream-start` — abertura de UMA sessão local. */
+export interface SttStreamStartRequest {
+  /** Locale da UI ('pt-BR' | 'en') — resolve o hint de língua do modelo. */
+  locale: string;
+  /** Id de sessão (geralmente fixo 'mic'). */
+  sessionId: string;
+}
+
+/** Pedido de `stt:stream-chunk` — um frame PCM 16 kHz mono (≤ 48000 amostras). */
+export interface SttStreamChunk {
+  sessionId: string;
+  samples: Float32Array;
+}
+
+// ─── Canais: TTS local (onda 8 — voz) ────────────────────────────────────────
+// On-device TTS via binário externo (sherpa-onnx-offline-tts / Piper, GPL
+// isolado num processo filho). Todos os handlers devolvem o envelope
+// `{ success, data?, error? }`.
+
+export const TTS_CHANNELS = {
+  LIST: 'localTts:list',
+  DOWNLOAD: 'localTts:download',
+  DOWNLOAD_PROGRESS: 'localTts:download-progress',
+  CANCEL_DOWNLOAD: 'localTts:cancel-download',
+  DELETE: 'localTts:delete',
+  GENERATE: 'localTts:generate',
+  CANCEL_GENERATE: 'localTts:cancel-generate',
+  GET_PREFERENCE: 'localTts:get-preference',
+  SET_PREFERENCE: 'localTts:set-preference',
+} as const;
+
+/** Uma entrada do catálogo de TTS local + estado de instalação. */
+export interface TtsModelInfo {
+  id: string;
+  language: string;
+  label: string;
+  /** Modelo embutido no pacote (resources/tts-models) — não deletável. */
+  embedded: boolean;
+  installed: boolean;
+  sampleRate: number;
+  totalSizeBytes: number;
+}
+
+/** Push `localTts:download-progress` — progresso do download de um modelo. */
+export interface TtsDownloadProgressPayload {
+  modelId: string;
+  progress: number;
+  downloadedBytes: number;
+  totalBytes: number;
+}
+
+/** Pedido de `localTts:generate` — síntese de fala de um modelo Piper. */
+export interface TtsGenerateRequest {
+  /** Id único do chamador — permite `localTts:cancel-generate`. */
+  requestId: string;
+  modelId: string;
+  text: string;
+  /** Voz default do modelo (Piper é single-speaker → sid 0). */
+  defaultVoiceId?: string;
+  /** Velocidade (`0.5`..`2.0`); omissa usa 1.0. */
+  speed?: number;
+  /** Provedor — 'local' é o único suportado nesta onda. */
+  provider: 'local';
+}
+
+/** Resultado de `localTts:generate` — um WAV em base64. */
+export interface TtsGenerateResult {
+  audioBase64: string;
+  format: 'wav';
+  sampleRate: number;
+  /** Path do arquivo temporário quando a UI pede para salvar (opcional). */
+  savedTo?: string;
+}
+
+/** Preferência persistida do TTS local (`localTts:get-preference`/`set-preference`). */
+export interface LocalTtsPreference {
+  /** ModelId/voz a usar por padrão (ex.: 'piper-pt-br-faber'). */
+  modelId?: string;
+  defaultVoiceId?: string;
+  speed?: number;
+}
