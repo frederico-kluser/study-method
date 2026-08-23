@@ -778,7 +778,7 @@ detectar mudança sem reler nada.
   "budget_bytes": 80000,
   "docs_root": "$SETUP_DOCS",
   "total_ingestible_bytes": 1840233,
-  "mode": "manifest",
+  "mode": "indexed",
   "files": [
     {
       "path": "stewart-cap3.md",

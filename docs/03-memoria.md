@@ -15,7 +15,7 @@
 | Desambiguação de `docs/` | **`docs/` do repositório** = documentação do projeto (onde este arquivo vive). **`docs/` do setup** = pasta de material do aluno. Nunca escrever a forma solta. |
 | Numeração | 4 dígitos zero-padded: `0001`, `0042`. `session_id` é sempre string, nunca inteiro (perde o zero à esquerda). |
 | Idioma | Prosa e campos de texto livre em **pt-BR** com acentuação normal. **Chaves, enums, tags, `skill`, `claim_key` e ids**: ASCII sem acento. |
-| Identificador de conceito | **`snake_case` em todo o sistema**, pattern `^[a-z][a-z0-9_]{1,62}$`. Vale para `concept_id`, `skills_observed[].skill`, `topics`, `taxonomy`, `claim_key` (cada segmento) e `target_topic`. Não existe mais partição kebab × snake. A normalização é uma função só — `normalize_concept_id()` em `SK/scripts/lib/common.sh` — e nenhum script escreve a sua. Slug de **caminho** (`challenges/0007-derivada-numerica/`, `researchs/0003-cancelamento-catastrofico.md`) não é identificador de conceito e continua como está. |
+| Identificador de conceito | **`snake_case` em todo o sistema**, pattern `^[a-z][a-z0-9_]{1,62}$`. Vale para `concept_id`, `skills_observed[].skill`, `topics`, `taxonomy`, `claim_key` e `target_topic`. Não existe mais partição kebab × snake. A normalização é uma função só — `normalize_concept_id()` em `SK/scripts/lib/common.sh` — e nenhum script escreve a sua. Slug de **caminho** (`challenges/0007-derivada-numerica/`, `researchs/0003-cancelamento-catastrofico.md`) não é identificador de conceito e continua como está. |
 | Escrita de derivado | Sempre **atômica**: grava em `<arquivo>.tmp.$$` no mesmo diretório e `mv -f` por cima. Vale para `INDEX.json`, `profile.json`, `progress.json`, `docs-index.json` e qualquer outro derivado — não só para o registry. |
 | Caminhos em arquivo | Sempre relativos à raiz do setup do aluno. Nunca caminho absoluto: o setup pode ser movido. |
 
@@ -205,8 +205,8 @@ re-roda com `--apply <resposta.json>`, valida contra
 
 1. Selecionar `S` = sessões com `compacted_at == null` e `status ∈ {completed, abandoned}`, em ordem crescente de `session_id`. **Determinístico.**
 2. Ler **os arquivos brutos** dessas sessões. **Regra dura: a compactação nunca lê uma consolidação anterior** — nem o `profile.json`, exceto para conhecer os `claim_key` já existentes e o `next_fact_seq`. Isso elimina a degradação por resumo-de-resumo-de-resumo, que é cumulativa e silenciosa. **Determinístico.**
-3. **Semântico**: cada `skills_observed[]` vira candidato a fato com `claim_key = "skill:<skill>:level"`; observações repetidas de dificuldade viram `difficulty:<topic>`; pontos fortes, `strength:<skill>`. A chave é montada por concatenação — **determinístico**.
-4. **Procedimental**: cada `how_it_happened[]` vira candidato com `claim_key = "<procedure_kind>:<target_topic>:<apelido>"`. Os dois primeiros segmentos são copiados do item; o `<apelido>` é a única parte que precisa de julgamento e vem da **resposta** do pedido `profile_compaction`, normalizada por `normalize_concept_id()` (`^[a-z][a-z0-9_]{1,62}$`). Itens com `outcome == "backfired"` viram `procedure_kind: antipattern` além do tipo original. **Nenhum script inventa apelido sozinho.**
+3. **Semântico**: cada `skills_observed[]` vira candidato a fato com `claim_key = "skill_<skill>_level"`; observações repetidas de dificuldade viram `difficulty_<topic>`; pontos fortes, `strength_<skill>`. A chave é montada por junção com `_` — **determinístico**.
+4. **Procedimental**: cada `how_it_happened[]` vira candidato com `claim_key = "<procedure_kind>_<target_topic>_<apelido>"`. Os dois primeiros segmentos são copiados do item; o `<apelido>` é a única parte que precisa de julgamento e vem da **resposta** do pedido `profile_compaction`, normalizada por `normalize_concept_id()` (`^[a-z][a-z0-9_]{1,62}$`). Itens com `outcome == "backfired"` viram `procedure_kind: antipattern` além do tipo original. **Nenhum script inventa apelido sozinho.**
 5. Para cada candidato, comparar com o fato **`active` de mesmo `claim_key`**:
    - **Não existe** → criar fato novo, `status: active`, `supersedes: null`, `confidence` pela regra do passo 6.
    - **Existe e a afirmação é a mesma** → **reconfirmação, não mudança**: atualizar `last_observed_at`, acrescentar o `session_id` a `source_sessions[]`, recalcular `confidence`. **Não** cria fato novo e **não** supersede. (Distinguir os dois casos é o que impede o `profile.json` de inchar com dezenas de cópias do mesmo fato.)
@@ -245,8 +245,8 @@ Elas divergem de verdade neste desenho: a sessão 0042 é de 20/08 e o fato só 
 Um fato **nunca** muda de conteúdo. Mudou o mundo? Novo registro, com o mesmo `claim_key`, superseding o anterior:
 
 ```
-f-0031  claim_key: skill:derivadas_conceito:level   status: superseded   superseded_by: f-0034
-f-0034  claim_key: skill:derivadas_conceito:level   status: active       supersedes: f-0031
+f-0031  claim_key: skill_derivadas_conceito_level   status: superseded   superseded_by: f-0034
+f-0034  claim_key: skill_derivadas_conceito_level   status: active       supersedes: f-0031
 ```
 
 **Por quê**, em uma frase: para não ancorar o tutor num perfil velho do aluno sem apagar o histórico de como ele chegou até aqui. Sobrescrever perderia a trajetória (que é informação pedagógica de primeira ordem: *quando* e *depois de quê* ele superou aquilo). Deletar perderia a auditoria. Supersede preserva os dois e ainda mantém o digest limpo, porque o digest só olha `status == "active"`.
@@ -771,7 +771,7 @@ sessão interrompida — que é como ela aparece no digest do §10.5.
   "semantic_facts": [
     {
       "fact_id": "f-0031",
-      "claim_key": "skill:derivadas_conceito:level",
+      "claim_key": "skill_derivadas_conceito_level",
       "kind": "skill_level",
       "topic": "derivadas",
       "claim": "Nunca viu derivada; conhece inclinação só como 'o m da reta' decorado do ensino médio.",
@@ -790,7 +790,7 @@ sessão interrompida — que é como ela aparece no digest do §10.5.
     },
     {
       "fact_id": "f-0034",
-      "claim_key": "skill:derivadas_conceito:level",
+      "claim_key": "skill_derivadas_conceito_level",
       "kind": "skill_level",
       "topic": "derivadas",
       "claim": "Explica derivada como a inclinação do zoom local, mas ainda não conecta isso com a definição de limite.",
@@ -809,7 +809,7 @@ sessão interrompida — que é como ela aparece no digest do §10.5.
     },
     {
       "fact_id": "f-0035",
-      "claim_key": "strength:python_funcoes",
+      "claim_key": "strength_python_funcoes",
       "kind": "strength",
       "topic": "python",
       "claim": "Escreve funções Python do zero sem ajuda de sintaxe; erra por esquecimento (return), não por conceito.",
@@ -828,7 +828,7 @@ sessão interrompida — que é como ela aparece no digest do §10.5.
     },
     {
       "fact_id": "f-0036",
-      "claim_key": "preference:estudo:hora",
+      "claim_key": "preference_estudo_hora",
       "kind": "preference",
       "topic": null,
       "claim": "Estuda à noite, depois do trabalho, em blocos de ~1h; cansa visivelmente depois disso.",
@@ -849,7 +849,7 @@ sessão interrompida — que é como ela aparece no digest do §10.5.
   "procedural_facts": [
     {
       "fact_id": "f-0037",
-      "claim_key": "visualization:derivadas:zoom_local",
+      "claim_key": "visualization_derivadas_zoom_local",
       "procedure_kind": "visualization",
       "target_topic": "derivadas",
       "how": "Plotar a função e dar zoom sucessivo no ponto (janela ±1, ±0.1, ±0.01) até a curva ficar visualmente reta, ANTES de qualquer fórmula. Deixar ele nomear o que está vendo.",
@@ -873,7 +873,7 @@ sessão interrompida — que é como ela aparece no digest do §10.5.
     },
     {
       "fact_id": "f-0032",
-      "claim_key": "presentation_order:limites:formalismo_primeiro",
+      "claim_key": "presentation_order_limites_formalismo_primeiro",
       "procedure_kind": "antipattern",
       "target_topic": "limites",
       "how": "NÃO abrir com a definição formal (epsilon-delta, notação) antes de um objeto concreto na tela. Com ele, sempre gráfico ou código primeiro, formalismo depois — e só quando ele pedir o nome da coisa.",
@@ -897,7 +897,7 @@ sessão interrompida — que é como ela aparece no digest do §10.5.
     },
     {
       "fact_id": "f-0038",
-      "claim_key": "hands_on_activity:erro_numerico:varredura_de_h",
+      "claim_key": "hands_on_activity_erro_numerico_varredura_de_h",
       "procedure_kind": "hands_on_activity",
       "target_topic": "erro_numerico",
       "how": "Deixar ele varrer o parâmetro até o método quebrar (h de 1e-1 a 1e-16) e ver a curva de erro subir de novo, SEM avisar antes. Explicar a causa só depois que ele perguntar 'por quê'.",
@@ -921,7 +921,7 @@ sessão interrompida — que é como ela aparece no digest do §10.5.
     },
     {
       "fact_id": "f-0033",
-      "claim_key": "analogy:derivadas:velocimetro",
+      "claim_key": "analogy_derivadas_velocimetro",
       "procedure_kind": "analogy",
       "target_topic": "derivadas",
       "how": "Velocímetro do carro: velocidade média é distância/tempo do trecho; o velocímetro mostra o que sobra quando o trecho encolhe até quase zero. Usar como reforço DEPOIS do zoom, nunca no lugar dele.",

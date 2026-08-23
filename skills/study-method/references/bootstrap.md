@@ -60,8 +60,7 @@ Precedência **fixa**: argumento explícito > diretório corrente (ou ancestral)
 vazio em memória, e só mova o arquivo quebrado para `registry.json.corrupt-<timestamp>` na hora em
 que houver algo real para gravar.
 
-Ao abrir um setup, grave `last_seen_at` na entrada dele no registry — é o campo do registry, não
-`last_used_at`.
+Ao abrir um setup, grave `last_seen_at` na entrada dele no registry — é o campo do registry.
 
 ### Ainda no `bootstrap`: classifique o alvo
 
