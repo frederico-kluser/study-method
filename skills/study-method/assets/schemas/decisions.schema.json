@@ -1,0 +1,196 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:study-method:schema:decisions:1",
+  "title": "Catalogo-maquina das decisoes abertas (assets/decisions.json)",
+  "description": "Schema do arquivo SK/assets/decisions.json, o catalogo-maquina das decisoes de projeto da skill. E a origem de verdade sobre quais decisoes existem, quais opcoes sao validas, para quem cada pergunta e feita, quando ela e feita e o que a resposta grava no setup.json do aluno. O catalogo humano (docs/08-decisoes-abertas.md) e o script de entrevista (decisions-ask.sh) sao derivados deste arquivo e nunca o contrario. Forma restrita ao subconjunto do verificador minimo em Python stdlib descrito em docs/00-contratos.md do repositorio, secao 4.3: sem $ref, sem allOf, sem if/then/else, sem $defs referenciados; 'type' pode ser string ou array de strings. Texto voltado ao aluno e pt-BR; chaves e valores de enum sao ingles snake_case sem acento.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "generated_by", "field_contract", "decisions"],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+$",
+      "description": "Versao do schema deste arquivo, no formato MAJOR.MINOR. Acrescentar campo opcional a uma decisao incrementa MINOR; tornar campo obrigatorio, remover campo, ou acrescentar valor a um enum de 'audience', 'ask_when', 'reversibility' ou 'status' incrementa MAJOR, porque o script de entrevista e o BUILD_SPEC despacham sobre esses enums. Valor corrente: '1.0'."
+    },
+    "generated_by": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 500,
+      "description": "Quem produziu esta versao do catalogo e a partir de que fontes. Texto livre em pt-BR, para auditoria humana; nenhum codigo despacha sobre ele."
+    },
+    "notes": {
+      "type": "array",
+      "description": "Notas de leitura do catalogo em pt-BR: o que cada eixo de classificacao significa e quais convencoes foram aplicadas ao colher as tabelas de origem. Opcional. Documentacao, nao contrato: nenhum script depende do conteudo.",
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 1200,
+        "description": "Uma nota de leitura, em pt-BR."
+      }
+    },
+    "field_contract": {
+      "type": "object",
+      "additionalProperties": true,
+      "description": "Glossario dos campos de uma entrada de 'decisions', em pt-BR, para quem le o arquivo cru sem abrir este schema. Mapa aberto de nome-de-campo para explicacao. E documentacao redundante de proposito: o contrato executavel esta neste schema, e uma divergencia entre os dois e bug do catalogo, nao do schema."
+    },
+    "decisions": {
+      "type": "array",
+      "minItems": 1,
+      "description": "As decisoes do catalogo, uma entrada por decisao unica. Duplicatas colhidas de tabelas diferentes ja foram mescladas: os ids perdidos na mesclagem vivem em 'alt_ids' da entrada sobrevivente, e nenhum id aparece duas vezes como 'id'. Invariantes que o gate verifica e que este schema nao consegue expressar sem if/then/else: (1) no maximo 6 entradas com tier 1, todas com ask_when 'setup-init' e audience 'student'; (2) toda entrada com status 'resolved_by_arbitration' tem ask_when 'never' e 'resolved_by' nao nulo; (3) todo 'writes_to' nao nulo resolve para um caminho existente em setup-manifest.schema.json; (4) 'default' e sempre o id de uma das opcoes da propria entrada; (5) toda entrada com audience 'student' tem 'question_ptbr' e 'why_it_matters' nao vazios.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "question_ptbr",
+          "why_it_matters",
+          "audience",
+          "tier",
+          "ask_when",
+          "reversibility",
+          "writes_to",
+          "options",
+          "default",
+          "source",
+          "status"
+        ],
+        "description": "Uma decisao do catalogo: a pergunta, a explicacao que permite decidir, as opcoes com pros e contras, o default, e as quatro classificacoes que dizem para quem, quando, a que custo e onde a resposta e gravada.",
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^D-[A-Z]{1,3}[0-9]{2,3}$",
+            "description": "Identidade da decisao, no formato 'D-<PREFIXO><NN>'. Prefixos em uso: A arquitetura, M memoria, P proficiencia, E ensino, C challenge, V visualizacao e linguagem, B bootstrap, S seguranca. Unico em todo o catalogo. E a chave usada em setup.json -> decisions e nos marcadores 'PERGUNTE AO USUARIO (D-NNN)' do BUILD_SPEC, entao renomear um id depois de a skill ter rodado exige migrar os setups existentes."
+          },
+          "question_ptbr": {
+            "type": "string",
+            "minLength": 8,
+            "maxLength": 400,
+            "description": "A pergunta em linguagem de gente, pt-BR, como ela sera lida em voz alta ao aluno (audience 'student' ou 'both') ou a quem constroi a skill (audience 'builder'). Uma frase interrogativa, sem jargao que a propria pergunta nao explique, e sem pedir ao leitor que conheca o nome de um campo de schema."
+          },
+          "why_it_matters": {
+            "type": "string",
+            "minLength": 30,
+            "maxLength": 900,
+            "description": "Por que esta decisao importa, em 1 a 3 linhas de pt-BR, com uma analogia concreta do dia a dia, no mesmo tom do banco de analogias da skill. E o campo que cumpre o requisito 'as decisoes sao explicadas para o usuario decidir': sem ele a skill sabe perguntar mas nao sabe explicar, e a resposta deixa de ser informada. Diz o que muda na pratica de cada lado, nunca so repete a pergunta."
+          },
+          "audience": {
+            "type": "string",
+            "enum": ["builder", "student", "both"],
+            "description": "Quem responde. 'student': perguntada pela skill ao aluno, em runtime, no momento indicado por 'ask_when'. 'builder': perguntada pelo BUILD_SPEC a quem constroi a skill, em build-time; a resposta vira codigo, nao dado de setup, e por isso 'writes_to' e null. 'both': o builder escolhe o default de fabrica e o aluno tem um interruptor para virar depois. Nenhuma decisao sobre forma de schema, exit code, namespace de $id ou algoritmo interno pode ter audience 'student'."
+          },
+          "tier": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 4,
+            "description": "A camada da hierarquia. 1 = dia zero: bloqueia a primeira aula E cabe numa palavra; no maximo 6 no catalogo inteiro, sempre com ask_when 'setup-init'. 2 = no momento certo: aparece na primeira vez em que o assunto surge de verdade (ask_when 'first-challenge' ou 'session-15'). 3 = sob demanda: so quando o aluno pergunta, ou no instante exato em que a skill precisa da permissao para agir (ask_when 'on-demand'). 4 = congelada: documentada com o porque e o custo de mudar, nunca perguntada (ask_when 'never')."
+          },
+          "ask_when": {
+            "type": "string",
+            "enum": ["setup-init", "first-challenge", "session-15", "on-demand", "never"],
+            "description": "O agendador da pergunta - e o que impede despejar o catalogo inteiro de uma vez. 'setup-init': durante a entrevista de criacao do setup, exclusivo da camada 1. 'first-challenge': na primeira vez que um desafio e gerado ou tentado neste setup. 'session-15': quando o historico fica longo o bastante para o assunto existir (limiar de compactacao, revisao espacada, retomada apos ausencia). 'on-demand': so se o aluno perguntar, ou no instante em que a skill precisa da autorizacao para agir. 'never': congelada; o BUILD_SPEC documenta o porque e nao insere marcador de pergunta."
+          },
+          "reversibility": {
+            "type": "string",
+            "enum": ["cheap", "moderate", "expensive"],
+            "description": "Quanto custa mudar de ideia depois - e o que transforma 'escolha uma opcao' em decisao informada. 'cheap': uma linha num arquivo, sem migracao e sem efeito residual. 'moderate': exige migrar dado ja escrito, renomear caminho ou regerar derivado. 'expensive': ha efeito que nao se desfaz - historico de git que ja recebeu push, dado pessoal ja gravado em digests passados, comparacao de mutation score invalidada, promessa de privacidade ja quebrada. Toda decisao 'expensive' precisa dizer no 'why_it_matters' o que exatamente nao volta atras."
+          },
+          "writes_to": {
+            "type": ["string", "null"],
+            "maxLength": 120,
+            "pattern": "^[a-zA-Z_][a-zA-Z0-9_]*(\\.[a-zA-Z0-9_-]+)*$",
+            "description": "Caminho pontilhado dentro do setup.json onde a resposta e gravada (ex.: 'privacy.cross_read', 'language.name', 'decisions.D-C01'). Todo caminho nao nulo tem de resolver contra setup-manifest.schema.json: os segmentos percorrem 'properties', e um segmento e aceito sob um objeto com additionalProperties true - que e o caso de 'decisions', um mapa aberto reservado por descricao exatamente para as respostas deste catalogo. null quando audience e 'builder': a resposta vira codigo do repositorio, nao dado do setup do aluno."
+          },
+          "options": {
+            "type": "array",
+            "minItems": 1,
+            "description": "As opcoes possiveis, na ordem em que devem ser apresentadas, com a recomendada normalmente em primeiro. Cada opcao carrega o dado de maquina que seria gravado e os pros e contras que permitem escolher sem ler a documentacao.",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["id", "label", "value", "pros", "cons"],
+              "description": "Uma opcao de resposta.",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "pattern": "^[a-z][a-z0-9_]{0,39}$",
+                  "description": "Identidade da opcao dentro desta decisao, em snake_case ASCII. Unica entre as opcoes da mesma decisao. E o valor que o campo 'default' referencia e o que o script de entrevista recebe da escolha do usuario."
+                },
+                "label": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 240,
+                  "description": "O rotulo da opcao em pt-BR, como ele aparece no menu para quem esta escolhendo. Frase curta e concreta, nao o nome do campo tecnico."
+                },
+                "value": {
+                  "type": ["string", "boolean", "number"],
+                  "description": "O DADO DE MAQUINA que e gravado em 'writes_to' se esta opcao for escolhida - nunca a prosa em pt-BR do 'label'. Escalar de proposito: o setup.json guarda a escolha, nao a explicacao. Quando audience e 'builder' e 'writes_to' e null, o valor continua sendo o identificador de maquina da escolha, usado pelo BUILD_SPEC para despachar."
+                },
+                "pros": {
+                  "type": "array",
+                  "minItems": 1,
+                  "description": "O que esta opcao ganha, uma afirmacao verificavel por item. Nao repete o label e nao usa superlativo sem consequencia concreta.",
+                  "items": {
+                    "type": "string",
+                    "minLength": 3,
+                    "maxLength": 300,
+                    "description": "Um ganho concreto desta opcao, em pt-BR."
+                  }
+                },
+                "cons": {
+                  "type": "array",
+                  "minItems": 1,
+                  "description": "O que esta opcao custa. Obrigatoriamente nao vazio, inclusive na opcao recomendada: uma opcao sem custo declarado nao e uma escolha, e um anuncio - e a decisao deixa de ser informada.",
+                  "items": {
+                    "type": "string",
+                    "minLength": 3,
+                    "maxLength": 300,
+                    "description": "Um custo concreto desta opcao, em pt-BR."
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_]{0,39}$",
+            "description": "O id da opcao aplicada quando ninguem responde. Tem de ser o id de uma das opcoes desta mesma decisao. Regra permanente do projeto: default aplicado sem resposta nunca e silencioso - o setup.json marca 'default_used': true e a skill avisa uma vez que assumiu, e como mudar."
+          },
+          "source": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 500,
+            "description": "De onde vem o default: caminho#secao do documento que o sustenta, podendo listar varios separados por ' + ' quando a decisao foi mesclada de tabelas diferentes ou arbitrada em docs/00-contratos.md do repositorio, secao 12. Decisoes levantadas nesta sub-tarefa, sem tabela de origem, comecam com 'novo em 3.0' e citam a secao que sustenta o default proposto."
+          },
+          "status": {
+            "type": "string",
+            "enum": ["open", "resolved_by_arbitration"],
+            "description": "'open': a decisao continua sendo uma escolha - inclusive quando tier e 4, caso em que ela esta congelada no default e documentada, mas nenhuma contradicao entre documentos precisou ser arbitrada. 'resolved_by_arbitration': uma contradicao real entre dois documentos foi resolvida por uma arbitragem registrada; a entrada permanece no catalogo como documentacao do porque, com ask_when 'never', e nunca vira pergunta."
+          },
+          "resolved_by": {
+            "type": ["string", "null"],
+            "pattern": "^AR-[0-9]{2}(/[0-9]{2})*$",
+            "description": "O rotulo da arbitragem que resolveu a decisao, no formato 'AR-NN' (ou 'AR-NN/NN/NN' quando uma unica decisao foi fechada por varias linhas). Obrigatoriamente nao nulo quando status e 'resolved_by_arbitration', e null caso contrario. Atencao a numeracao: a tabela docs/00-contratos.md do repositorio, secao 12, numera as linhas A-01 a A-25, e os rotulos AR-NN citados pelos demais documentos vem de um registro maior cuja correspondencia com essa tabela nao e 1:1. Convencao deste catalogo: quando existe linha da secao 12 que cobre a decisao, este campo usa o numero dessa linha e o campo 'source' a cita explicitamente; quando nao existe, preserva-se o rotulo citado pelo documento de origem."
+          },
+          "alt_ids": {
+            "type": "array",
+            "description": "Ids que apontavam para esta mesma decisao em outra tabela e foram absorvidos na mesclagem, mais os ids reatribuidos por colisao. Formato 'D-XXNN' para duplicata simples, e 'D-XXNN@caminho/do/arquivo.md' quando o mesmo id foi usado para duas decisoes diferentes em documentos diferentes e um dos dois precisou ser renumerado. Existe para que uma busca por um id antigo em qualquer documento do repositorio ainda encontre a entrada viva.",
+            "items": {
+              "type": "string",
+              "pattern": "^D-[A-Z]{1,3}[0-9]{2,3}(@[A-Za-z0-9._/-]+)?$",
+              "description": "Um id absorvido ou reatribuido."
+            }
+          },
+          "related_ids": {
+            "type": "array",
+            "description": "Decisoes vizinhas que o leitor precisa ver junto para nao decidir no escuro, e que NAO sao duplicatas desta (o escopo e diferente, ainda que o assunto seja o mesmo). O script de entrevista pode oferece-las como 'quer ver tambem?'; ele nunca as pergunta em cascata sem pedido.",
+            "items": {
+              "type": "string",
+              "pattern": "^D-[A-Z]{1,3}[0-9]{2,3}(@[A-Za-z0-9._/-]+)?$",
+              "description": "Id de uma decisao vizinha."
+            }
+          }
+        }
+      }
+    }
+  }
+}
