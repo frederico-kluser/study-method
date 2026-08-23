@@ -85,6 +85,13 @@ export function KeysPanel(): ReactElement {
   });
   const [initialStatus, setInitialStatus] = useState<KeysStatus | null>(null);
 
+  // ACHADO-5: chaves ALREADY configuradas no store (status/gate do KeysPanel) —
+  // exposto como sinal DOM p/ o onboarding considerar o passo `settings-keys-filled`
+  // satisfeito sem obrigar a redigitar. Lê apenas os booleans (não o valor).
+  const keysConfigured =
+    (initialStatus?.deepseekConfigured ?? false) &&
+    (initialStatus?.braveConfigured ?? false);
+
   useEffect(() => {
     let cancelled = false;
     getApi()
@@ -273,7 +280,12 @@ export function KeysPanel(): ReactElement {
   };
 
   return (
-    <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} useFlexGap>
+    <Stack
+      direction={{ xs: 'column', md: 'row' }}
+      spacing={2}
+      useFlexGap
+      data-onboarding-signal={`keys-configured:${keysConfigured}`}
+    >
       {renderProvider('deepseek')}
       {renderProvider('brave')}
     </Stack>

@@ -81,16 +81,22 @@ describe('evaluateStepAction: digitar/gerar (lesson)', () => {
     assert.equal(evaluateStepAction(step, snapshot, ctx({ lessonSubjectNonEmpty: false })), false);
   });
 
-  it('generate-lesson satisfaz quando a geração saiu de idle', () => {
+  it('generate-lesson satisfaz se a geração saiu de idle', () => {
     const step = stepFor('generate-lesson');
     const snapshot = createSnapshot(ctx({ lessonRunningOrDone: false }));
     assert.equal(evaluateStepAction(step, snapshot, ctx({ lessonRunningOrDone: true })), true);
   });
 
-  it('generate-lesson NÃO satisfaz se já estava rodando no snapshot', () => {
+  it('generate-lesson satisfaz mesmo se o snapshot já indicava rodando (ACHADO-3 delta opcional)', () => {
     const step = stepFor('generate-lesson');
     const snapshot = createSnapshot(ctx({ lessonRunningOrDone: true }));
-    assert.equal(evaluateStepAction(step, snapshot, ctx({ lessonRunningOrDone: true })), false);
+    assert.equal(evaluateStepAction(step, snapshot, ctx({ lessonRunningOrDone: true })), true);
+  });
+
+  it('generate-lesson NÃO satisfaz com a geração idle', () => {
+    const step = stepFor('generate-lesson');
+    const snapshot = createSnapshot(ctx({ lessonRunningOrDone: false }));
+    assert.equal(evaluateStepAction(step, snapshot, ctx({ lessonRunningOrDone: false })), false);
   });
 });
 
@@ -111,6 +117,12 @@ describe('evaluateStepAction: desafio (editor + teste) e chaves', () => {
     const step = stepFor('test-answer');
     const snapshot = createSnapshot(ctx({ testAnswerTriggered: false }));
     assert.equal(evaluateStepAction(step, snapshot, ctx({ testAnswerTriggered: false })), false);
+  });
+
+  it('test-answer satisfaz mesmo se o snapshot já indicava disparado (ACHADO-3 delta opcional)', () => {
+    const step = stepFor('test-answer');
+    const snapshot = createSnapshot(ctx({ testAnswerTriggered: true }));
+    assert.equal(evaluateStepAction(step, snapshot, ctx({ testAnswerTriggered: true })), true);
   });
 
   it('settings-keys-filled satisfaz quando ambas as chaves estão preenchidas', () => {

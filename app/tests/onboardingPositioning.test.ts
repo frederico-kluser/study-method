@@ -150,4 +150,25 @@ describe('calculatePanelPosition', () => {
     assert.ok(pos.top >= 0);
     assert.ok(pos.top + Math.min(pos.width, 340) <= smallScreen.height, 'não estoura vertical');
   });
+
+  it('retorna a largura EFETIVA usada na checagem (ACHADO-4: não excede o alvo)', () => {
+    // panelWidth (300) < normalMaxWidth (460): a colisão usa effectiveNormalWidth
+    // de 300, mas ANTES retornava width:460 (cobriria o alvo em janela estreita).
+    const spotlight: Rect = { top: 50, left: 400, width: 200, height: 40 };
+    const pos = calculatePanelPosition(spotlight, 300, 320, fullHD, 0);
+    assert.equal(pos.width, 300, 'width deve respeitar a largura efetiva (não 460)');
+    assert.equal(pos.compact, false);
+    const panelRect: Rect = { top: pos.top, left: pos.left, width: pos.width, height: 320 };
+    assert.equal(rectsOverlap(panelRect, spotlight, 0), false);
+  });
+
+  it('em janela estreita cabe o painel na largura efetiva (nunca > viewport)', () => {
+    const narrow: ViewportSize = { width: 300, height: 400 };
+    const spotlight: Rect = { top: 40, left: 30, width: 120, height: 40 };
+    const pos = calculatePanelPosition(spotlight, 280, 200, narrow, 0);
+    assert.ok(pos.width <= narrow.width, 'largura não pode estourar o viewport');
+    // A largura retornada nunca ultrapassa a largura normal efetiva disponível.
+    const margin = 8; // getEffectiveMargin(300 < 1024) → 8
+    assert.ok(pos.width <= narrow.width - margin * 2, 'respeita a margem do viewport');
+  });
 });

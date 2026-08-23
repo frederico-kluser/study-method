@@ -246,7 +246,9 @@ export function calculatePanelPosition(
       height: panelHeight,
     };
     if (!rectsOverlap(panelRect, spotlight)) {
-      return { top: pos.top, left: pos.left, width: normalMaxWidth, compact: false };
+      // ACHADO-4: retorna a LARGURA EFETIVA usada na checagem de colisão (não a
+      // nominal) — em janela estreita `normalMaxWidth` cobriria o alvo.
+      return { top: pos.top, left: pos.left, width: effectiveNormalWidth, compact: false };
     }
   }
 
@@ -264,7 +266,7 @@ export function calculatePanelPosition(
       height: compactHeight,
     };
     if (!rectsOverlap(panelRect, spotlight)) {
-      return { top: pos.top, left: pos.left, width: compactMaxWidth, compact: true };
+      return { top: pos.top, left: pos.left, width: effectiveCompactWidth, compact: true };
     }
   }
 
@@ -287,7 +289,7 @@ export function calculatePanelPosition(
       bestPosition = {
         top: pos.top,
         left: pos.left,
-        width: compactMaxWidth,
+        width: effectiveCompactWidth,
         compact: true,
       };
     }

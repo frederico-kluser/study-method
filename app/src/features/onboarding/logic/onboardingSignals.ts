@@ -90,6 +90,10 @@ export function buildRuntimeContext(activeView: string): {
   const testStatus = readSignalValue('test-status');
   const deepseekKey = readKeysPanelValue(0);
   const braveKey = readKeysPanelValue(1);
+  // ACHADO-5: se as chaves ALREADY estão configuradas (vindas do status/gate do
+  // KeysPanel), o passo `settings-keys-filled` fica satisfeito mesmo com os
+  // inputs vazios — o usuário não precisa redigitar chaves já salvas.
+  const keysConfigured = readSignalValue('keys-configured') === 'true';
 
   return {
     activeView,
@@ -99,7 +103,7 @@ export function buildRuntimeContext(activeView: string): {
     studioCodeNonEmpty: readEditorText('challenge-editor').length > 0,
     testAnswerTriggered:
       testStatus === 'running' || testStatus === 'done' || testStatus === 'error',
-    keysFilled: (deepseekKey.length > 0 && braveKey.length > 0),
+    keysFilled: (deepseekKey.length > 0 && braveKey.length > 0) || keysConfigured,
   };
 }
 

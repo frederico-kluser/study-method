@@ -24,6 +24,7 @@ import Paper from '@mui/material/Paper';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
 import type { OnboardingTutorialId } from '../types/onboarding.types';
+import { createOpenSettingsHandler } from './tutorialSelectionHelpers';
 
 export interface TutorialSelectionModalProps {
   isOpen: boolean;
@@ -48,10 +49,7 @@ export function TutorialSelectionModal({
     return null;
   }
 
-  const goToSettings = (): void => {
-    onClose();
-    onOpenSettings();
-  };
+  const goToSettings = createOpenSettingsHandler(onClose, onOpenSettings);
 
   return createPortal(
     <Box
@@ -134,92 +132,98 @@ export function TutorialSelectionModal({
             </Stack>
           </Button>
 
-          {/* Tutorial Completo — gateado por hasKeys */}
-          <Button
-            type="button"
-            variant={hasKeys ? 'outlined' : 'text'}
-            fullWidth
-            disabled={!hasKeys}
-            onClick={() => onSelectTutorial('first-workflow')}
-            sx={{ textAlign: 'left', p: 2, alignItems: 'flex-start', justifyContent: 'flex-start' }}
-          >
-            <Stack sx={{ gap: 0.5, textAlign: 'left', width: '100%' }}>
-              <Stack direction="row" sx={{ alignItems: 'center', gap: 1 }}>
-                <Typography
-                  variant="subtitle1"
-                  sx={{ fontWeight: 600, ...(!hasKeys ? { color: 'text.disabled' } : {}) }}
-                >
-                  {t('translation:tutorial.selection.fullTutorialTitle')}
+          {/* Tutorial Completo — gateado por hasKeys.
+              Nota (ACHADO-2): o card é um `<Button disabled={!hasKeys}>`; o CTA
+              "Configurar chaves" fica COMO IRMÃO ABAIXO do botão (não descendente)
+              para continuar clicável mesmo com o card desabilitado. */}
+          <Box>
+            <Button
+              type="button"
+              variant={hasKeys ? 'outlined' : 'text'}
+              fullWidth
+              disabled={!hasKeys}
+              onClick={() => onSelectTutorial('first-workflow')}
+              sx={{ textAlign: 'left', p: 2, alignItems: 'flex-start', justifyContent: 'flex-start' }}
+            >
+              <Stack sx={{ gap: 0.5, textAlign: 'left', width: '100%' }}>
+                <Stack direction="row" sx={{ alignItems: 'center', gap: 1 }}>
+                  <Typography
+                    variant="subtitle1"
+                    sx={{ fontWeight: 600, ...(!hasKeys ? { color: 'text.disabled' } : {}) }}
+                  >
+                    {t('translation:tutorial.selection.fullTutorialTitle')}
+                  </Typography>
+                  {hasKeys ? (
+                    <Box
+                      component="span"
+                      sx={{
+                        fontSize: 11,
+                        fontWeight: 700,
+                        textTransform: 'uppercase',
+                        letterSpacing: 0.08,
+                        px: 1,
+                        py: 0.25,
+                        borderRadius: 1,
+                        bgcolor: 'action.selected',
+                        color: 'primary.main',
+                      }}
+                    >
+                      {t('translation:tutorial.selection.badgeFull')}
+                    </Box>
+                  ) : (
+                    <Box
+                      component="span"
+                      sx={{
+                        fontSize: 11,
+                        fontWeight: 700,
+                        textTransform: 'uppercase',
+                        letterSpacing: 0.08,
+                        px: 1,
+                        py: 0.25,
+                        borderRadius: 1,
+                        bgcolor: 'action.hover',
+                        color: 'text.secondary',
+                      }}
+                    >
+                      {t('translation:tutorial.selection.requiresKeys')}
+                    </Box>
+                  )}
+                </Stack>
+                <Typography variant="body2" color="text.secondary">
+                  {t('translation:tutorial.selection.fullTutorialDescription')}
                 </Typography>
-                {hasKeys ? (
-                  <Box
-                    component="span"
-                    sx={{
-                      fontSize: 11,
-                      fontWeight: 700,
-                      textTransform: 'uppercase',
-                      letterSpacing: 0.08,
-                      px: 1,
-                      py: 0.25,
-                      borderRadius: 1,
-                      bgcolor: 'action.selected',
-                      color: 'primary.main',
-                    }}
-                  >
-                    {t('translation:tutorial.selection.badgeFull')}
-                  </Box>
-                ) : (
-                  <Box
-                    component="span"
-                    sx={{
-                      fontSize: 11,
-                      fontWeight: 700,
-                      textTransform: 'uppercase',
-                      letterSpacing: 0.08,
-                      px: 1,
-                      py: 0.25,
-                      borderRadius: 1,
-                      bgcolor: 'action.hover',
-                      color: 'text.secondary',
-                    }}
-                  >
-                    {t('translation:tutorial.selection.requiresKeys')}
-                  </Box>
-                )}
               </Stack>
-              <Typography variant="body2" color="text.secondary">
-                {t('translation:tutorial.selection.fullTutorialDescription')}
-              </Typography>
-              {!hasKeys ? (
-                <Box
-                  component="span"
-                  role="button"
-                  tabIndex={0}
-                  onClick={(e) => {
+            </Button>
+            {!hasKeys ? (
+              <Box
+                component="span"
+                role="button"
+                tabIndex={0}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  goToSettings();
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
                     e.stopPropagation();
                     goToSettings();
-                  }}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                      e.stopPropagation();
-                      goToSettings();
-                    }
-                  }}
-                  sx={{
-                    display: 'inline-block',
-                    mt: 0.5,
-                    color: 'primary.main',
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                    textDecoration: 'none',
-                    '&:hover': { textDecoration: 'underline' },
-                  }}
-                >
-                  {t('translation:tutorial.selection.openSettings')}
-                </Box>
-              ) : null}
-            </Stack>
-          </Button>
+                  }
+                }}
+                sx={{
+                  display: 'inline-block',
+                  mt: 0.5,
+                  pl: 2,
+                  color: 'primary.main',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  textDecoration: 'none',
+                  '&:hover': { textDecoration: 'underline' },
+                }}
+              >
+                {t('translation:tutorial.selection.openSettings')}
+              </Box>
+            ) : null}
+          </Box>
         </Stack>
 
         <Stack direction="row" spacing={1} sx={{ justifyContent: 'flex-end', mt: 2.5 }}>

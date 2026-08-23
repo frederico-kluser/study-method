@@ -13,6 +13,9 @@
  *  - `fill-lesson-subject` / `type-in-editor` / `settings-keys-filled` → os
  *    sinais DOM ficaram non-vazios;
  *  - `generate-lesson` / `test-answer` → a ação foi disparada (saída de idle).
+ *    Delta OPCIONAL (ACHADO-3): se o snapshot já indicava cumprido no início do
+ *    passo (re-run do tutorial), a satisfação ainda vale — o estado deve apenas
+ *    estar "cumprido" para o passo avançar.
  *
  * Função 100% pura (sem React/DOM) — testada em tests/evaluateStepAction.test.ts.
  */
@@ -58,11 +61,14 @@ export function evaluateStepAction(
     case 'fill-lesson-subject':
       return ctx.lessonSubjectNonEmpty;
     case 'generate-lesson':
-      return ctx.lessonRunningOrDone && snapshot.lessonRunningOrDone === false;
+      // Delta opcional (ACHADO-3): satisfaz também quando o snapshot já indicava
+      // a geração em andamento/concluída (re-run não trava por dead-lock de delta).
+      return ctx.lessonRunningOrDone;
     case 'type-in-editor':
       return ctx.studioCodeNonEmpty;
     case 'test-answer':
-      return ctx.testAnswerTriggered && snapshot.testAnswerTriggered === false;
+      // Delta opcional (ACHADO-3): o teste já disparado no snapshot também satisfaz.
+      return ctx.testAnswerTriggered;
     case 'settings-keys-filled':
       return ctx.keysFilled;
     case undefined:

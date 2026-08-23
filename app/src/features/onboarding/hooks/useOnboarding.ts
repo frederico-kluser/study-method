@@ -31,6 +31,10 @@ import {
   QUICK_START_STEPS,
 } from '../constants/quickStartSteps';
 import { createSnapshot, evaluateStepAction, hasExpectedAction } from '../logic/evaluateStepAction';
+import {
+  isStepTargetPresent,
+  shouldAutoSkipStep,
+} from '../logic/stepTargetPresence';
 import { buildRuntimeContext } from '../logic/onboardingSignals';
 import {
   isAudioMuted,
@@ -156,6 +160,14 @@ export function useOnboarding({ activeView }: UseOnboardingParams): UseOnboardin
   }, [activeSteps, currentStepId, isHelpHint]);
 
   const currentStep = activeSteps[currentStepIndex];
+
+  // Presença do alvo do passo atual no DOM (usada p/ o fallback de "Continuar"
+  // e a regra de auto-skip "alvo ausente" — ACHADO-1). Declarado DEPOIS de
+  // `currentStep` (o inicializador lazy o referencia).
+  const [stepTargetPresent, setStepTargetPresent] = useState<boolean>(() =>
+    isStepTargetPresent(currentStep),
+  );
+
   const totalSteps = activeSteps.length;
   const currentChapterIndex = Math.max(
     0,
@@ -188,6 +200,10 @@ export function useOnboarding({ activeView }: UseOnboardingParams): UseOnboardin
         }
         return next;
       });
+      setStepTargetPresent((prev) => {
+        const present = isStepTargetPresent(currentStep);
+        return prev === present ? prev : present;
+      });
       if (!disposed) rafId = window.requestAnimationFrame(sync);
     };
 
@@ -196,7 +212,8 @@ export function useOnboarding({ activeView }: UseOnboardingParams): UseOnboardin
       disposed = true;
       if (rafId !== null) window.cancelAnimationFrame(rafId);
     };
-  }, [activeView]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeView, currentStep.id, currentStep.targetSelector, currentStep.alternateTargetSelector]);
 
   // Cria snapshot do step quando ele ativa (in_progress + visível).
   useEffect(() => {
@@ -219,7 +236,17 @@ export function useOnboarding({ activeView }: UseOnboardingParams): UseOnboardin
     [currentStep, currentSnapshot, context, hasAction],
   );
 
-  const canAdvance = !hasAction || isActionSatisfied;
+  // Presença do alvo: quando AUSENTE num passo de `expectedAction`, o step não
+  // pode ser satisfeito por ação (não há onde focar) — fornecemos o FALLBACK de
+  // "Continuar" (ACHADO-1b) para NUNCA travar. O auto-skip (ACHADO-1a) cobre os
+  // alvos que não podem nascer na view atual.
+  const targetAbsentFallback = hasAction && !stepTargetPresent;
+  const stepShouldAutoSkip = useMemo(
+    () => (hasAction ? shouldAutoSkipStep(currentStep) : false),
+    [currentStep, hasAction],
+  );
+
+  const canAdvance = !hasAction || isActionSatisfied || targetAbsentFallback;
 
   // Persiste o progresso sempre que muda (exceto hint in-memory).
   useEffect(() => {
@@ -281,6 +308,20 @@ export function useOnboarding({ activeView }: UseOnboardingParams): UseOnboardin
     isVisible,
     progress.status,
   ]);
+
+  // AUTO-SKIP por alvo ausente (ACHADO-1a): quando o alvo do passo NÃO existe
+  // no DOM E não pode nascer na view atual (id desconhecido / sempre-visível
+  // ausente), o passo é avançado automaticamente em vez de travar. Alvos que
+  // PODEM nascer por ação do usuário (ex.: selecionar desafio) NÃO caem aqui —
+  // esses recebem o fallback de "Continuar" via `targetAbsentFallback`.
+  useEffect(() => {
+    if (progress.status !== 'in_progress' || !isVisible) return;
+    if (!stepShouldAutoSkip) return;
+    clearAutoAdvance();
+    setIsAutoAdvancing(false);
+    advanceStep();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [progress.status, isVisible, stepShouldAutoSkip, currentStep.id]);
 
   const next = useCallback(() => {
     if (progress.status !== 'in_progress' || !canAdvance || isAutoAdvancing) return;

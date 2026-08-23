@@ -69,3 +69,40 @@ test('e2e-onboarding: modal com 2 opções → overlay no alvo → concluir/skip
   await expect(page.getByRole('heading', { name: 'Quer um tour?' })).toHaveCount(0);
   await expect(page.getByRole('dialog')).toHaveCount(0);
 });
+
+test('e2e-onboarding: Quick Start atinge qs-challenge-test-answer sem desafio ativo → NÃO trava (fallback Continuar)', async () => {
+  // userData fresco, sem nenhum desafio selecionado. Após navegar o Quick Start
+  // até a aba Desafio, o alvo `challenge-test-answer` NÃO existe (só monta com
+  // desafio ativo). O ACHADO-1 garante: em vez de travar (sem Continuar), o
+  // step mostra o fallback de "Continuar".
+  const launched = await launchApp({ env: { E2E_GATE: 'ready', E2E_ONBOARDING: '1' } });
+  app = launched.app;
+  page = launched.page;
+
+  await expect(page.getByRole('heading', { name: 'Quer um tour?' })).toBeVisible();
+  await page.getByRole('button', { name: /Quick Start/ }).click();
+
+  const overlay = page.locator('[data-onboarding-panel]');
+  await expect(overlay).toBeVisible();
+  // Passo 1-2 informativos avançam por "Continuar".
+  await expect(page.getByText('Passo 1 / 6', { exact: false })).toBeVisible();
+  await page.getByRole('button', { name: 'Continuar' }).click();
+  await expect(page.getByText('Passo 2 / 6', { exact: false })).toBeVisible();
+  await page.getByRole('button', { name: 'Continuar' }).click();
+
+  // Passo 3 (`qs-open-lesson`): precisa navegar para a aba Aula (alvo nav-tabs).
+  await expect(page.getByText('Passo 3 / 6', { exact: false })).toBeVisible();
+  await page.getByRole('tab', { name: 'Aula' }).click();
+  // Auto-avança após satisfeito (~220ms) → passo 4 (`qs-open-challenge`).
+  await expect(page.getByText('Passo 4 / 6', { exact: false })).toBeVisible();
+  await page.getByRole('tab', { name: 'Desafio' }).click();
+
+  // Passo 5 (`qs-challenge-test-answer`) em userData sem desafio: alvo ausente.
+  // O passo mostra o fallback de "Continuar" (não trava por falta do botão).
+  await expect(page.getByText('Passo 5 / 6', { exact: false })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Continuar' })).toBeVisible();
+
+  // Continua e chega ao passo final sem dead-lock.
+  await page.getByRole('button', { name: 'Continuar' }).click();
+  await expect(page.getByText('Passo 6 / 6', { exact: false })).toBeVisible();
+});

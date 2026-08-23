@@ -52,8 +52,10 @@
     "src/features/onboarding/constants/onboardingTargets.ts",
     "src/features/onboarding/logic/evaluateStepAction.ts",
     "src/features/onboarding/logic/onboardingSignals.ts",
+    "src/features/onboarding/logic/stepTargetPresence.ts",
     "src/features/onboarding/services/onboardingStorage.service.ts",
     "src/features/onboarding/utils/onboardingPositioning.utils.ts",
+    "src/features/onboarding/components/tutorialSelectionHelpers.ts",
     "src/features/onboarding/hooks/firstRunTutorial.rule.ts",
     "src/features/onboarding/hooks/helpHint.rule.ts"
   ]

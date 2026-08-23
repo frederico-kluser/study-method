@@ -570,7 +570,10 @@ export function OnboardingOverlay({
           <Button size="small" variant="text" color="inherit" onClick={handleSkipRequest}>
             {t('translation:tutorial.controls.skipTutorial')}
           </Button>
-          {!currentStep.hideContinueButton ? (
+          {/* O "Continuar" fica visível quando o step espera ação MAS o alvo não
+              está no DOM (fallback p/ nunca travar em alvo ausente — ACHADO-1b),
+              além dos steps informativos que sempre mostram o botão. */}
+          {!currentStep.hideContinueButton || canAdvance ? (
             <Button
               size="small"
               variant="contained"
