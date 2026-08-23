@@ -1,0 +1,521 @@
+# shellcheck shell=bash
+# tests/lib/assert.sh — helpers de asserção do gate do repositório.
+#
+# APENAS `source`, nunca executado (mesma disciplina de LIB-1 de docs/00-contratos.md §7:
+# modo 0644, sem shebang executável, sem bloco main). Consumido por tests/gate-build.sh,
+# tests/validate.sh, tests/gate-lint.sh e tests/smoke.sh.
+#
+# Contrato de saída: toda falha diz O QUE falhou (id + descrição), ONDE (arquivo:linha ou
+# comando) e O QUE ERA ESPERADO contra o que foi obtido. Nunca um "FAIL" sem contexto.
+#
+# Estados de um check:
+#   PASS  passou
+#   FAIL  violação de contrato — o repositório regrediu
+#   PEND  pré-requisito ausente (o artefato verificado ainda não existe) — o gate fica
+#         vermelho, mas a mensagem distingue "ainda não escrito" de "escrito errado"
+#   SKIP  não aplicável neste ambiente (ferramenta opcional ausente)
+#   WARN  divergência que não reprova (ex.: contradição entre dois documentos-fonte)
+#
+# Prefixos permitidos: `gate_` para controle, `assert_` para asserções, `GATE_` para globais.
+
+if [ -n "${_SM_ASSERT_LOADED:-}" ]; then return 0; fi
+_SM_ASSERT_LOADED=1
+
+GATE_PASS=0
+GATE_FAIL=0
+GATE_PEND=0
+GATE_SKIP=0
+GATE_WARN=0
+GATE_TOTAL=0
+GATE_NAME="gate"
+GATE_ONLY="${GATE_ONLY:-}"
+GATE_VERBOSE="${GATE_VERBOSE:-0}"
+GATE_FAILLOG=()
+GATE_PENDLOG=()
+GATE_WARNLOG=()
+GATE_LIMITS=()
+
+if [ -t 1 ] && [ -z "${NO_COLOR:-}" ]; then
+  C_RED=$'\033[31m'; C_GRN=$'\033[32m'; C_YEL=$'\033[33m'
+  C_CYA=$'\033[36m'; C_DIM=$'\033[2m';  C_BLD=$'\033[1m'; C_OFF=$'\033[0m'
+else
+  C_RED=''; C_GRN=''; C_YEL=''; C_CYA=''; C_DIM=''; C_BLD=''; C_OFF=''
+fi
+
+# ---------------------------------------------------------------- raiz e caminhos
+
+# gate_repo_root — imprime a raiz do repositório (o diretório que contém tests/).
+gate_repo_root() {
+  local here
+  here="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd)"
+  printf '%s\n' "$here"
+}
+
+GATE_ROOT="${GATE_ROOT:-$(gate_repo_root)}"
+GATE_SK="$GATE_ROOT/skills/study-method"
+
+# gate_rel <caminho> — caminho relativo à raiz do repositório (para mensagens legíveis).
+gate_rel() {
+  local p="$1"
+  case "$p" in
+    "$GATE_ROOT"/*) printf '%s\n' "${p#"$GATE_ROOT"/}" ;;
+    *) printf '%s\n' "$p" ;;
+  esac
+}
+
+# ---------------------------------------------------------------- cabeçalho / seções
+
+gate_init() {
+  GATE_NAME="$1"
+  printf '%s\n' "${C_BLD}══ ${GATE_NAME} ══${C_OFF}"
+  printf '%s\n' "${C_DIM}raiz: $GATE_ROOT${C_OFF}"
+  if [ -n "$GATE_ONLY" ]; then
+    printf '%s\n' "${C_DIM}filtro GATE_ONLY=$GATE_ONLY${C_OFF}"
+  fi
+  printf '\n'
+}
+
+gate_section() {
+  printf '\n%s\n' "${C_CYA}${C_BLD}── $* ${C_OFF}"
+}
+
+gate_note() {
+  printf '   %s\n' "${C_DIM}$*${C_OFF}"
+}
+
+# gate_limitation <texto> — registra uma limitação DECLARADA do gate. Sai no resumo final.
+# Limitação escondida é pior que limitação conhecida.
+gate_limitation() {
+  GATE_LIMITS+=("$1")
+}
+
+# ---------------------------------------------------------------- resultados
+
+# gate_should_run <id> — respeita GATE_ONLY (lista separada por vírgula de prefixos de id).
+gate_should_run() {
+  [ -z "$GATE_ONLY" ] && return 0
+  local id="$1" pat
+  local IFS=','
+  for pat in $GATE_ONLY; do
+    case "$id" in "$pat"*) return 0 ;; esac
+  done
+  return 1
+}
+
+gate_pass() {
+  local id="$1" desc="$2"
+  gate_should_run "$id" || return 0
+  GATE_PASS=$((GATE_PASS + 1)); GATE_TOTAL=$((GATE_TOTAL + 1))
+  printf '  %s %-6s %s\n' "${C_GRN}✔${C_OFF}" "$id" "$desc"
+}
+
+# gate_fail <id> <desc> <esperado> <obtido> [onde]
+gate_fail() {
+  local id="$1" desc="$2" exp="$3" got="$4" where="${5:-}"
+  gate_should_run "$id" || return 0
+  GATE_FAIL=$((GATE_FAIL + 1)); GATE_TOTAL=$((GATE_TOTAL + 1))
+  printf '  %s %-6s %s\n' "${C_RED}✘${C_OFF}" "$id" "${C_BLD}$desc${C_OFF}"
+  [ -n "$where" ] && printf '          %s %s\n' "${C_DIM}onde:    ${C_OFF}" "$where"
+  printf '          %s %s\n' "${C_DIM}esperado:${C_OFF}" "$exp"
+  printf '          %s %s\n' "${C_DIM}obtido:  ${C_OFF}" "$got"
+  GATE_FAILLOG+=("$id | $desc | onde: ${where:-—} | esperado: $exp | obtido: $got")
+}
+
+# gate_pend <id> <desc> <pré-requisito ausente>
+gate_pend() {
+  local id="$1" desc="$2" missing="$3"
+  gate_should_run "$id" || return 0
+  GATE_PEND=$((GATE_PEND + 1)); GATE_TOTAL=$((GATE_TOTAL + 1))
+  printf '  %s %-6s %s\n' "${C_YEL}◌${C_OFF}" "$id" "$desc"
+  printf '          %s %s\n' "${C_DIM}pendente:${C_OFF}" "pré-requisito ausente — $missing"
+  GATE_PENDLOG+=("$id | $desc | ausente: $missing")
+}
+
+gate_skip() {
+  local id="$1" desc="$2" why="$3"
+  gate_should_run "$id" || return 0
+  GATE_SKIP=$((GATE_SKIP + 1)); GATE_TOTAL=$((GATE_TOTAL + 1))
+  printf '  %s %-6s %s %s\n' "${C_DIM}–${C_OFF}" "$id" "$desc" "${C_DIM}($why)${C_OFF}"
+}
+
+gate_warn() {
+  local id="$1" desc="$2" detail="$3"
+  gate_should_run "$id" || return 0
+  GATE_WARN=$((GATE_WARN + 1))
+  printf '  %s %-6s %s\n' "${C_YEL}!${C_OFF}" "$id" "$desc"
+  printf '          %s %s\n' "${C_DIM}detalhe: ${C_OFF}" "$detail"
+  GATE_WARNLOG+=("$id | $desc | $detail")
+}
+
+# ---------------------------------------------------------------- asserções
+
+# assert_eq <id> <desc> <esperado> <obtido> [onde]
+assert_eq() {
+  local id="$1" desc="$2" exp="$3" got="$4" where="${5:-}"
+  if [ "$exp" = "$got" ]; then
+    gate_pass "$id" "$desc"
+  else
+    gate_fail "$id" "$desc" "$exp" "$got" "$where"
+  fi
+}
+
+# assert_ne <id> <desc> <proibido> <obtido> [onde]
+assert_ne() {
+  local id="$1" desc="$2" bad="$3" got="$4" where="${5:-}"
+  if [ "$bad" != "$got" ]; then
+    gate_pass "$id" "$desc"
+  else
+    gate_fail "$id" "$desc" "qualquer valor diferente de «$bad»" "$got" "$where"
+  fi
+}
+
+# assert_match <id> <desc> <texto> <regex ERE> [onde]
+assert_match() {
+  local id="$1" desc="$2" text="$3" re="$4" where="${5:-}"
+  if printf '%s' "$text" | grep -qE -- "$re"; then
+    gate_pass "$id" "$desc"
+  else
+    gate_fail "$id" "$desc" "texto casando /$re/" "$(gate_trunc "$text")" "$where"
+  fi
+}
+
+# assert_nomatch <id> <desc> <texto> <regex ERE proibida> [onde]
+assert_nomatch() {
+  local id="$1" desc="$2" text="$3" re="$4" where="${5:-}"
+  if printf '%s' "$text" | grep -qE -- "$re"; then
+    gate_fail "$id" "$desc" "nenhuma ocorrência de /$re/" "$(gate_trunc "$text")" "$where"
+  else
+    gate_pass "$id" "$desc"
+  fi
+}
+
+# assert_file <id> <caminho> <desc>
+assert_file() {
+  local id="$1" path="$2" desc="$3"
+  if [ -f "$path" ]; then
+    gate_pass "$id" "$desc"
+  else
+    gate_pend "$id" "$desc" "arquivo inexistente: $(gate_rel "$path")"
+  fi
+}
+
+# assert_dir <id> <caminho> <desc>
+assert_dir() {
+  local id="$1" path="$2" desc="$3"
+  if [ -d "$path" ]; then
+    gate_pass "$id" "$desc"
+  else
+    gate_pend "$id" "$desc" "diretório inexistente: $(gate_rel "$path")"
+  fi
+}
+
+# assert_exit <id> <esperado> <desc> -- <comando...>
+# Roda o comando com stdout+stderr capturados; compara o exit code.
+assert_exit() {
+  local id="$1" exp="$2" desc="$3"; shift 3
+  [ "${1:-}" = "--" ] && shift
+  local out rc
+  out="$("$@" 2>&1)" && rc=0 || rc=$?
+  if [ "$rc" = "$exp" ]; then
+    gate_pass "$id" "$desc"
+  else
+    gate_fail "$id" "$desc" "exit $exp" "exit $rc — saída: $(gate_trunc "$out")" "$*"
+  fi
+}
+
+# assert_grep_empty <id> <desc> <esperado-em-pt-BR> <resultado-do-grep>
+# O chamador roda o grep (assim ele controla escopo/exclusões) e passa as linhas casadas.
+assert_grep_empty() {
+  local id="$1" desc="$2" exp="$3" hits="$4"
+  if [ -z "$hits" ]; then
+    gate_pass "$id" "$desc"
+  else
+    local n; n="$(printf '%s\n' "$hits" | grep -c . || true)"
+    gate_fail "$id" "$desc" "$exp" "$n ocorrência(s):
+$(printf '%s\n' "$hits" | head -8 | sed 's/^/            /')" ""
+  fi
+}
+
+# gate_trunc <texto> [n] — corta texto longo para caber numa linha de diagnóstico.
+gate_trunc() {
+  local t="$1" n="${2:-220}"
+  t="${t//$'\n'/ ⏎ }"
+  if [ "${#t}" -gt "$n" ]; then
+    printf '%s…\n' "${t:0:$n}"
+  else
+    printf '%s\n' "$t"
+  fi
+}
+
+# ---------------------------------------------------------------- listagem de arquivos
+
+# gate_find <subdir> <padrão...> — lista NUL-separada, respeitando caminhos com espaço.
+# Exclui .git, .deep-orchestrator e diretórios temporários do gate.
+gate_find_into() {
+  local -n _arr="$1"; shift
+  local dir="$1"; shift
+  _arr=()
+  [ -d "$dir" ] || return 0
+  local f
+  while IFS= read -r -d '' f; do _arr+=("$f"); done < <(
+    find "$dir" \
+      \( -name .git -o -name .deep-orchestrator -o -name node_modules -o -name __pycache__ \) -prune -o \
+      -type f "$@" -print0 2>/dev/null | sort -z
+  )
+}
+
+# ---------------------------------------------------------------- verificador mínimo de schema
+
+# gate_schema_validator — materializa (uma vez) o verificador mínimo de JSON Schema em
+# Python stdlib e imprime o caminho. Não há `jsonschema` nesta máquina e o PEP 668 impede
+# instalar; a cobertura é PARCIAL POR DESIGN (docs/00-contratos.md §4.3).
+GATE_TMPDIR="${GATE_TMPDIR:-${TMPDIR:-/tmp}/sm-gate-$$}"
+gate_schema_validator() {
+  local dest="$GATE_TMPDIR/jsonschema_min.py"
+  if [ -f "$dest" ]; then printf '%s\n' "$dest"; return 0; fi
+  mkdir -p "$GATE_TMPDIR"
+  cat > "$dest" <<'PYEOF'
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""Verificador MINIMO de JSON Schema — stdlib pura, sem `jsonschema`.
+
+COBERTURA (parcial POR DESIGN, docs/00-contratos.md §4.3):
+    type (string OU array de strings, ex. ["string","null"]), required, enum, const,
+    pattern, properties, items, additionalProperties (false | true | subschema),
+    minimum, maximum, exclusiveMinimum, exclusiveMaximum,
+    minLength, maxLength, minItems, maxItems, uniqueItems
+
+NAO SUPORTA (e recusa o schema se encontrar):
+    $ref, allOf, anyOf, oneOf, not, if/then/else, $defs, definitions,
+    patternProperties, propertyNames, dependentSchemas, dependentRequired,
+    contains, unevaluatedProperties, format (ignorado, nunca validado)
+
+Uso:
+    jsonschema_min.py <instancia.json> <schema.json>        valida a instancia
+    jsonschema_min.py --lint-schema <schema.json>           so confere a cobertura
+
+Saida: uma linha por erro em stderr, no formato "<json-pointer>: <motivo>".
+Exit:  0 valido · 5 invalido · 2 uso incorreto · 1 I/O
+"""
+import json
+import re
+import sys
+
+SUPPORTED = {
+    "$schema", "$id", "$comment", "title", "description", "default", "examples",
+    "type", "required", "enum", "const", "pattern", "properties", "items",
+    "additionalProperties", "minimum", "maximum", "exclusiveMinimum",
+    "exclusiveMaximum", "minLength", "maxLength", "minItems", "maxItems",
+    "uniqueItems", "format", "deprecated", "readOnly", "writeOnly",
+}
+FORBIDDEN = {
+    "$ref", "allOf", "anyOf", "oneOf", "not", "if", "then", "else", "$defs",
+    "definitions", "patternProperties", "propertyNames", "dependentSchemas",
+    "dependentRequired", "contains", "unevaluatedProperties", "unevaluatedItems",
+    "$anchor", "$dynamicRef",
+}
+
+TYPEMAP = {
+    "string": str, "object": dict, "array": list, "boolean": bool, "null": type(None),
+}
+
+
+def is_type(value, name):
+    if name == "integer":
+        return isinstance(value, int) and not isinstance(value, bool)
+    if name == "number":
+        return isinstance(value, (int, float)) and not isinstance(value, bool)
+    if name == "boolean":
+        return isinstance(value, bool)
+    py = TYPEMAP.get(name)
+    if py is None:
+        return False
+    return isinstance(value, py)
+
+
+def lint_schema(node, ptr, errs):
+    """Recusa construcoes fora da cobertura. `node` em posicao de schema."""
+    if not isinstance(node, dict):
+        return
+    for key in node:
+        if key in FORBIDDEN:
+            errs.append("%s/%s: construcao proibida no schema (fora da cobertura do "
+                        "verificador minimo)" % (ptr, key))
+        elif key not in SUPPORTED:
+            errs.append("%s/%s: palavra-chave desconhecida (o verificador minimo a "
+                        "ignoraria em silencio)" % (ptr, key))
+    props = node.get("properties")
+    if isinstance(props, dict):
+        for name, sub in props.items():
+            lint_schema(sub, "%s/properties/%s" % (ptr, name), errs)
+    items = node.get("items")
+    if isinstance(items, dict):
+        lint_schema(items, ptr + "/items", errs)
+    ap = node.get("additionalProperties")
+    if isinstance(ap, dict):
+        lint_schema(ap, ptr + "/additionalProperties", errs)
+
+
+def validate(inst, schema, ptr, errs):
+    if not isinstance(schema, dict):
+        return
+
+    if "type" in schema:
+        t = schema["type"]
+        names = t if isinstance(t, list) else [t]
+        if not any(is_type(inst, n) for n in names):
+            errs.append("%s: tipo invalido — esperado %s, obtido %s"
+                        % (ptr or "/", "|".join(names), type(inst).__name__))
+            return
+
+    if "enum" in schema and inst not in schema["enum"]:
+        errs.append("%s: valor fora do enum — esperado um de %s, obtido %r"
+                    % (ptr or "/", json.dumps(schema["enum"], ensure_ascii=False), inst))
+
+    if "const" in schema and inst != schema["const"]:
+        errs.append("%s: const violado — esperado %r, obtido %r"
+                    % (ptr or "/", schema["const"], inst))
+
+    if isinstance(inst, str):
+        pat = schema.get("pattern")
+        if pat is not None and re.search(pat, inst) is None:
+            errs.append("%s: nao casa o pattern %s — obtido %r" % (ptr or "/", pat, inst))
+        if "minLength" in schema and len(inst) < schema["minLength"]:
+            errs.append("%s: string curta demais — minimo %d, obtido %d"
+                        % (ptr or "/", schema["minLength"], len(inst)))
+        if "maxLength" in schema and len(inst) > schema["maxLength"]:
+            errs.append("%s: string longa demais — maximo %d, obtido %d"
+                        % (ptr or "/", schema["maxLength"], len(inst)))
+
+    if isinstance(inst, (int, float)) and not isinstance(inst, bool):
+        if "minimum" in schema and inst < schema["minimum"]:
+            errs.append("%s: menor que o minimo %s — obtido %s"
+                        % (ptr or "/", schema["minimum"], inst))
+        if "maximum" in schema and inst > schema["maximum"]:
+            errs.append("%s: maior que o maximo %s — obtido %s"
+                        % (ptr or "/", schema["maximum"], inst))
+        if "exclusiveMinimum" in schema and inst <= schema["exclusiveMinimum"]:
+            errs.append("%s: nao respeita exclusiveMinimum %s — obtido %s"
+                        % (ptr or "/", schema["exclusiveMinimum"], inst))
+        if "exclusiveMaximum" in schema and inst >= schema["exclusiveMaximum"]:
+            errs.append("%s: nao respeita exclusiveMaximum %s — obtido %s"
+                        % (ptr or "/", schema["exclusiveMaximum"], inst))
+
+    if isinstance(inst, list):
+        if "minItems" in schema and len(inst) < schema["minItems"]:
+            errs.append("%s: array curto demais — minimo %d, obtido %d"
+                        % (ptr or "/", schema["minItems"], len(inst)))
+        if "maxItems" in schema and len(inst) > schema["maxItems"]:
+            errs.append("%s: array longo demais — maximo %d, obtido %d"
+                        % (ptr or "/", schema["maxItems"], len(inst)))
+        if schema.get("uniqueItems") is True:
+            seen = [json.dumps(x, sort_keys=True, ensure_ascii=False) for x in inst]
+            if len(set(seen)) != len(seen):
+                errs.append("%s: array com itens repetidos (uniqueItems)" % (ptr or "/"))
+        sub = schema.get("items")
+        if isinstance(sub, dict):
+            for i, item in enumerate(inst):
+                validate(item, sub, "%s/%d" % (ptr, i), errs)
+
+    if isinstance(inst, dict):
+        for name in schema.get("required", []):
+            if name not in inst:
+                errs.append("%s: propriedade obrigatoria ausente — %r" % (ptr or "/", name))
+        props = schema.get("properties", {})
+        if isinstance(props, dict):
+            for name, sub in props.items():
+                if name in inst:
+                    validate(inst[name], sub, "%s/%s" % (ptr, name), errs)
+        ap = schema.get("additionalProperties", True)
+        if ap is False:
+            extra = sorted(k for k in inst if k not in props)
+            for name in extra:
+                errs.append("%s/%s: propriedade nao declarada e additionalProperties e "
+                            "false" % (ptr or "", name))
+        elif isinstance(ap, dict):
+            for name in sorted(k for k in inst if k not in props):
+                validate(inst[name], ap, "%s/%s" % (ptr, name), errs)
+
+
+def load(path):
+    try:
+        with open(path, "r", encoding="utf-8") as fh:
+            return json.load(fh)
+    except (OSError, IOError) as exc:
+        sys.stderr.write("erro de I/O: %s\n" % exc)
+        sys.exit(1)
+    except ValueError as exc:
+        sys.stderr.write("%s: JSON invalido — %s\n" % (path, exc))
+        sys.exit(5)
+
+
+def main(argv):
+    if len(argv) == 3 and argv[1] == "--lint-schema":
+        schema = load(argv[2])
+        errs = []
+        lint_schema(schema, "", errs)
+        for e in errs:
+            sys.stderr.write(e + "\n")
+        return 5 if errs else 0
+    if len(argv) != 3:
+        sys.stderr.write(__doc__)
+        return 2
+    inst = load(argv[1])
+    schema = load(argv[2])
+    errs = []
+    lint_schema(schema, "", errs)
+    if errs:
+        for e in errs:
+            sys.stderr.write("SCHEMA " + e + "\n")
+        return 5
+    validate(inst, schema, "", errs)
+    for e in errs:
+        sys.stderr.write(e + "\n")
+    return 5 if errs else 0
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv))
+PYEOF
+  printf '%s\n' "$dest"
+}
+
+gate_cleanup_tmp() {
+  [ -n "${GATE_TMPDIR:-}" ] && [ -d "$GATE_TMPDIR" ] && rm -rf -- "$GATE_TMPDIR"
+  return 0
+}
+
+# ---------------------------------------------------------------- resumo
+
+# gate_summary — imprime o resumo e devolve 0 se tudo passou, 1 caso contrário.
+gate_summary() {
+  printf '\n%s\n' "${C_BLD}── resumo: $GATE_NAME ──${C_OFF}"
+  if [ "${#GATE_LIMITS[@]}" -gt 0 ]; then
+    printf '\n  %s\n' "${C_YEL}LIMITAÇÕES DECLARADAS deste gate${C_OFF}"
+    local l
+    for l in "${GATE_LIMITS[@]}"; do
+      printf '    · %s\n' "$l"
+    done
+  fi
+  if [ "$GATE_FAIL" -gt 0 ]; then
+    printf '\n  %s\n' "${C_RED}${C_BLD}FALHAS (violação de contrato)${C_OFF}"
+    local f
+    for f in "${GATE_FAILLOG[@]}"; do printf '    ✘ %s\n' "$f"; done
+  fi
+  if [ "$GATE_PEND" -gt 0 ]; then
+    printf '\n  %s\n' "${C_YEL}${C_BLD}PENDENTES (artefato ainda não existe)${C_OFF}"
+    local p
+    for p in "${GATE_PENDLOG[@]}"; do printf '    ◌ %s\n' "$p"; done
+  fi
+  printf '\n  %s%d passou%s · %s%d falhou%s · %s%d pendente%s · %d ignorado · %d aviso  (total %d)\n' \
+    "$C_GRN" "$GATE_PASS" "$C_OFF" \
+    "$C_RED" "$GATE_FAIL" "$C_OFF" \
+    "$C_YEL" "$GATE_PEND" "$C_OFF" \
+    "$GATE_SKIP" "$GATE_WARN" "$GATE_TOTAL"
+  if [ "$GATE_FAIL" -gt 0 ] || [ "$GATE_PEND" -gt 0 ]; then
+    printf '  %s\n\n' "${C_RED}${C_BLD}GATE VERMELHO${C_OFF}"
+    return 1
+  fi
+  printf '  %s\n\n' "${C_GRN}${C_BLD}GATE VERDE${C_OFF}"
+  return 0
+}
