@@ -59,8 +59,6 @@ type GenerateStatus = 'idle' | 'running' | 'done' | 'error';
 
 /** Fonte (finding) da aula — item de List com Link. */
 function SourceList({ findings }: { findings: StudyFinding[] }): ReactElement {
-  const { t: _t } = useTranslation();
-  const t = _t as unknown as (key: string) => string;
   if (findings.length === 0) {
     return <Typography variant="body2" color="text.secondary">Nenhuma fonte registrada.</Typography>;
   }
@@ -101,8 +99,7 @@ function ChallengesSection({
   parsed: ParsedLesson;
   rejected: ParsedLesson['rejected'];
 }): ReactElement {
-  const { t: _t } = useTranslation();
-  const t = _t as unknown as (key: string) => string;
+  const { t } = useTranslation();
   const { selectedChallenge, selectChallenge, navigateToChallenge } = useChallengeNav();
   const challenges = parsed.lesson?.challenges ?? [];
 
@@ -114,11 +111,11 @@ function ChallengesSection({
   return (
     <Box component="section">
       <Typography variant="h6" component="h3" gutterBottom>
-        {t('lesson.challenges')}
+        {t('translation:lesson.challenges')}
       </Typography>
       {challenges.length === 0 ? (
         <Typography variant="body2" color="text.secondary">
-          {t('lesson.challengesEmpty')}
+          {t('translation:lesson.challengesEmpty')}
         </Typography>
       ) : (
         <Grid container spacing={1} sx={{ width: '100%' }}>
@@ -142,7 +139,7 @@ function ChallengesSection({
                         ) : null}
                       </Stack>
                       <Typography variant="body2" color="primary" sx={{ mt: 0.5 }}>
-                        {t('lesson.open')}
+                        {t('translation:lesson.open')}
                       </Typography>
                     </CardContent>
                   </CardActionArea>
@@ -209,8 +206,7 @@ function MarkdownComponents() {
 }
 
 export default function LessonView(): ReactElement {
-  const { t: _t } = useTranslation();
-  const t = _t as unknown as (key: string) => string;
+  const { t } = useTranslation();
   const [subject, setSubject] = useState('');
   const [status, setStatus] = useState<GenerateStatus>('idle');
   const [phase, setPhase] = useState<LessonPhaseState>({
@@ -267,14 +263,14 @@ export default function LessonView(): ReactElement {
   return (
     <Box component="section" sx={{ p: { xs: 1, md: 2 }, maxWidth: 960, mx: 'auto' }}>
       <Typography variant="h4" component="h1" gutterBottom>
-        {t('nav.lesson')}
+        {t('translation:nav.lesson')}
       </Typography>
 
       {/* Entrada do assunto + gerar */}
       <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
         <TextField
-          label={t('lesson.subjectLabel')}
-          placeholder={t('lesson.subjectPlaceholder')}
+          label={t('translation:lesson.subjectLabel')}
+          placeholder={t('translation:lesson.subjectPlaceholder')}
           value={subject}
           onChange={(e) => setSubject(e.target.value)}
           disabled={running}
@@ -288,7 +284,7 @@ export default function LessonView(): ReactElement {
           onClick={() => void generate()}
           sx={{ alignSelf: { xs: 'stretch', sm: 'flex-start' }, minWidth: { sm: 160 } }}
         >
-          {t('lesson.generate')}
+          {t('translation:lesson.generate')}
         </Button>
       </Stack>
 
@@ -298,14 +294,14 @@ export default function LessonView(): ReactElement {
           <Stepper activeStep={activeStep} alternativeLabel>
             {LESSON_PHASE_ORDER.map((labelKey) => (
               <Step key={labelKey}>
-                <StepLabel>{t(labelKey)}</StepLabel>
+                <StepLabel>{t(`translation:${labelKey}`)}</StepLabel>
               </Step>
             ))}
           </Stepper>
           <LinearProgress
             variant={phase.fraction > 0 ? 'determinate' : 'indeterminate'}
             value={Math.round(phase.fraction * 100)}
-            aria-label={t('lesson.generate')}
+            aria-label={t('translation:lesson.generate')}
             sx={{ mt: 1 }}
           />
           {status === 'running' && phase.message ? (
@@ -341,7 +337,7 @@ export default function LessonView(): ReactElement {
 
           <Box component="section" sx={{ mt: 2 }}>
             <Typography variant="h6" component="h3" gutterBottom>
-              {t('lesson.sources')}
+              {t('translation:lesson.sources')}
             </Typography>
             <SourceList findings={parsed.lesson.findings} />
           </Box>

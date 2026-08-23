@@ -70,8 +70,7 @@ export function useStartup(): StartupContextValue {
 
 /** Splash de checagem (gira enquanto o main valida as chaves). */
 function Splash(): ReactElement {
-  const { t: _t } = useTranslation();
-  const t = _t as unknown as (key: string) => string;
+  const { t } = useTranslation();
   return (
     <Box
       role="status"
@@ -82,7 +81,7 @@ function Splash(): ReactElement {
         <Stack direction="row" spacing={2} sx={{ alignItems: 'center' }}>
           <CircularProgress size={28} />
           <Typography variant="body1" color="text.secondary">
-            {t('gate.checking')}
+            {t('translation:gate.checking')}
           </Typography>
         </Stack>
       </Paper>
@@ -92,20 +91,18 @@ function Splash(): ReactElement {
 
 /** Aviso renderizado no topo do app em modo OFFLINE (ambas as chaves falharam por rede). */
 export function OfflineBanner(): ReactElement {
-  const { t: _t } = useTranslation();
-  const t = _t as unknown as (key: string) => string;
+  const { t } = useTranslation();
   return (
     <Alert severity="warning" role="alert" sx={{ borderRadius: 0 }}>
-      <strong>{t('gate.offline')}</strong>
-      <span>{` ${t('gate.offlineTip')}`}</span>
+      <strong>{t('translation:gate.offline')}</strong>
+      <span>{` ${t('translation:gate.offlineTip')}`}</span>
     </Alert>
   );
 }
 
 /** Painel de erro do próprio gate (canal falhou — deveria raramente ocorrer). */
 function GateError({ onRetry }: { onRetry: () => void }): ReactElement {
-  const { t: _t } = useTranslation();
-  const t = _t as unknown as (key: string) => string;
+  const { t } = useTranslation();
   return (
     <Box
       sx={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', p: 2 }}
@@ -114,14 +111,14 @@ function GateError({ onRetry }: { onRetry: () => void }): ReactElement {
         <Stack spacing={1.5}>
           <Alert severity="error">
             <Typography variant="body1" component="div">
-              {t('common.error')}
+              {t('translation:common.error')}
             </Typography>
             <Typography variant="body2" component="div">
               Não foi possível consultar o estado das chaves de API. Verifique se o app iniciou corretamente e tente novamente.
             </Typography>
           </Alert>
           <Button variant="contained" onClick={onRetry} sx={{ alignSelf: 'flex-start' }}>
-            {t('gate.tryAgain')}
+            {t('translation:gate.tryAgain')}
           </Button>
         </Stack>
       </Paper>

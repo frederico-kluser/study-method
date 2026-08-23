@@ -118,8 +118,7 @@ function MarkdownComponents() {
 }
 
 export default function ChallengeView(): ReactElement {
-  const { t: _t } = useTranslation();
-  const t = _t as unknown as (key: string) => string;
+  const { t } = useTranslation();
   const nav = useChallengeNav();
 
   // Estado da listagem e do desafio ativo.
@@ -481,15 +480,15 @@ export default function ChallengeView(): ReactElement {
       {/* Cabeçalho */}
       <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} sx={{ alignItems: { sm: 'center' }, justifyContent: 'space-between' }}>
         <Typography variant="h4" component="h1">
-          {t('nav.challenge')}
+          {t('translation:nav.challenge')}
         </Typography>
         {!nav.selectedChallenge ? (
           <FormControl size="small" sx={{ minWidth: { xs: '100%', sm: 260 } }}>
-            <InputLabel id="challenge-picker-label">{t('challenge.openChallenge')}</InputLabel>
+            <InputLabel id="challenge-picker-label">{t('translation:challenge.openChallenge')}</InputLabel>
             <Select
               labelId="challenge-picker-label"
               id="challenge-picker"
-              label={t('challenge.openChallenge')}
+              label={t('translation:challenge.openChallenge')}
               value={active?.challengeId ?? ''}
               disabled={listing === 'loading'}
               onChange={(e) => {
@@ -588,7 +587,7 @@ export default function ChallengeView(): ReactElement {
                   startIcon={!busy ? <PlayArrowIcon /> : undefined}
                   onClick={testAnswerClick}
                 >
-                  {t('challenge.testAnswer')}
+                  {t('translation:challenge.testAnswer')}
                 </Button>
                 <Button
                   variant="outlined"
@@ -597,13 +596,13 @@ export default function ChallengeView(): ReactElement {
                   startIcon={<BlockIcon />}
                   onClick={abortPi}
                 >
-                  {t('challenge.abort')}
+                  {t('translation:challenge.abort')}
                 </Button>
               </Stack>
 
               {/* Seção de saída determinística */}
               <Stack direction="row" spacing={1} sx={{ alignItems: 'center', mt: 1 }}>
-                <Typography variant="subtitle2">{t('challenge.output')}</Typography>
+                <Typography variant="subtitle2">{t('translation:challenge.output')}</Typography>
                 {testStatus === 'running' ? (
                   <Chip size="small" label="rodando…" color="primary" variant="outlined" />
                 ) : null}
@@ -615,9 +614,9 @@ export default function ChallengeView(): ReactElement {
               {/* Seção de feedback */}
               <Stack direction="row" spacing={1} sx={{ alignItems: 'center', mt: 2 }}>
                 <MemoryIcon fontSize="small" color="action" />
-                <Typography variant="subtitle2">{t('challenge.feedback')}</Typography>
+                <Typography variant="subtitle2">{t('translation:challenge.feedback')}</Typography>
                 {providerChipKey ? (
-                  <Chip label={t(providerChipKey)} size="small" variant="outlined" color="secondary" />
+                  <Chip label={t(`translation:${providerChipKey}`)} size="small" variant="outlined" color="secondary" />
                 ) : null}
                 {piRunning ? (
                   <Chip size="small" label="rodando…" color="primary" variant="outlined" />
@@ -689,7 +688,7 @@ export default function ChallengeView(): ReactElement {
                   <Alert severity="error" sx={{ mt: 1 }}>
                     <Box component="div">{piError}</Box>
                     <Box component="div" sx={{ mt: 0.5 }}>
-                      {t('challenge.keyHint')}
+                      {t('translation:challenge.keyHint')}
                     </Box>
                   </Alert>
                 ) : null}

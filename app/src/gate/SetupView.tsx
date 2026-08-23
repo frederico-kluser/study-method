@@ -53,8 +53,7 @@ interface ProviderState {
 const IDLE: ProviderState = { value: '', visible: false, validating: false, valid: false, invalidMsg: '' };
 
 export function SetupView({ onDone }: { onDone: () => void }): ReactElement {
-  const { t: _t } = useTranslation();
-  const t = _t as unknown as (key: string) => string;
+  const { t } = useTranslation();
   const [providers, setProviders] = useState<Record<Provider, ProviderState>>({
     deepseek: { ...IDLE },
     brave: { ...IDLE },
@@ -129,8 +128,8 @@ export function SetupView({ onDone }: { onDone: () => void }): ReactElement {
       <Box key={provider}>
         <TextField
           fullWidth
-          label={t(meta.labelKey)}
-          placeholder={t(meta.placeholderKey)}
+          label={t(`translation:${meta.labelKey}`)}
+          placeholder={t(`translation:${meta.placeholderKey}`)}
           type={st.visible ? 'text' : 'password'}
           value={st.value}
           autoComplete="off"
@@ -161,10 +160,10 @@ export function SetupView({ onDone }: { onDone: () => void }): ReactElement {
             loading={st.validating}
             onClick={() => void handleValidate(provider)}
           >
-            {t('keys.validate')}
+            {t('translation:keys.validate')}
           </Button>
           {st.valid ? (
-            <Typography variant="body2" color="success.main">{t('keys.valid')}</Typography>
+            <Typography variant="body2" color="success.main">{t('translation:keys.valid')}</Typography>
           ) : st.invalidMsg ? (
             <Typography variant="body2" color="error">{st.invalidMsg}</Typography>
           ) : null}
@@ -189,9 +188,9 @@ export function SetupView({ onDone }: { onDone: () => void }): ReactElement {
             <LanguageSwitcher />
           </Box>
           <Typography variant="h5" component="h1">
-            {t('gate.title')}
+            {t('translation:gate.title')}
           </Typography>
-          <Alert severity="info">{t('gate.missingKeys')}</Alert>
+          <Alert severity="info">{t('translation:gate.missingKeys')}</Alert>
 
           {renderProvider('deepseek')}
           {renderProvider('brave')}
@@ -203,11 +202,11 @@ export function SetupView({ onDone }: { onDone: () => void }): ReactElement {
             onClick={() => void handleContinue()}
             sx={{ alignSelf: 'flex-start' }}
           >
-            {t('keys.save')}
+            {t('translation:keys.save')}
           </Button>
           {!allValid ? (
             <Typography variant="body2" color="text.secondary">
-              {t('gate.invalidKeys')}
+              {t('translation:gate.invalidKeys')}
             </Typography>
           ) : null}
         </Stack>
