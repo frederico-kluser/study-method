@@ -1,3 +1,4 @@
+#!/usr/bin/env bash
 # 08-progresso.sh — a evidencia de proficiencia, um evento por vez.
 #
 # docs/04-proficiencia.md: "A entrada e SEMPRE um evento observavel; nunca 'o estado novo'."

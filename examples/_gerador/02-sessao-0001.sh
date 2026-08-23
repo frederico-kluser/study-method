@@ -1,3 +1,4 @@
+#!/usr/bin/env bash
 . "$(cd -- "$(dirname -- "$0")" && pwd -P)/00-env.sh"; . "$EX/lib-close.sh"
 
 export STUDY_METHOD_TODAY=2026-07-06

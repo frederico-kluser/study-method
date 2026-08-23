@@ -1,3 +1,4 @@
+# shellcheck shell=bash
 # 00-env.sh — ambiente comum de todas as fases. Nenhum caminho de máquina fica gravado:
 # a raiz do repositório é derivada da posição DESTE arquivo, e o destino vem de $1/$SM_DEST.
 set -euo pipefail

@@ -1,3 +1,4 @@
+#!/usr/bin/env bash
 # 09-fechar-estado.sh — o estado derivado, reconstruido pelos donos de cada arquivo.
 . "$(cd -- "$(dirname -- "$0")" && pwd -P)/00-env.sh"
 export STUDY_METHOD_TODAY=2026-08-23

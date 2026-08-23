@@ -1,3 +1,4 @@
+#!/usr/bin/env bash
 . "$(cd -- "$(dirname -- "$0")" && pwd -P)/00-env.sh"
 rm -rf -- "$SETUP" "$STUDY_METHOD_HOME"
 mkdir -p -- "$WORK" "$STUDY_METHOD_HOME"

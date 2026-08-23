@@ -1,3 +1,4 @@
+#!/usr/bin/env bash
 # 03-desafio.sh — cria o desafio com challenge-new.sh e o AUTORA como manda o protocolo.
 #
 # docs/05-challenges-tdd.md: "O LLM AUTORA. ESTE SCRIPT JULGA." O README que o proprio

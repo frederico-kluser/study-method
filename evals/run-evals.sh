@@ -123,6 +123,19 @@ rule_exists() {
   return 1
 }
 
+# case_file_exists <case_id> — existe ao menos UM arquivo REGULAR cases/<case_id>-*.md?
+# Não dá para perguntar isso com `[ -f "$CASES_DIR/$id"-*.md ]` (SC2144): o `[` recebe o padrão
+# JÁ EXPANDIDO pelo shell, então um único casamento acerta por acaso, VÁRIOS viram «too many
+# arguments» (responde NÃO com os arquivos ali) e nenhum deixa o padrão literal (responde NÃO
+# pelo motivo errado). O laço é o que pergunta de verdade, um arquivo por vez.
+case_file_exists() {
+  local f
+  for f in "$CASES_DIR/$1"-*.md; do
+    if [ -f "$f" ]; then return 0; fi
+  done
+  return 1
+}
+
 # fm_field <arquivo> <campo> — valor de um campo do front-matter (entre os dois `---`).
 fm_field() {
   awk -v key="$2" '
@@ -382,8 +395,7 @@ else
     [ -n "${case_id:-}" ] || continue
     [ "$case_id" = "case_id" ] && continue
     np=$((np+1))
-    [ -f "$CASES_DIR/$case_id"-*.md ] 2>/dev/null || true
-    if ! ls "$CASES_DIR/$case_id"-*.md >/dev/null 2>&1; then
+    if ! case_file_exists "$case_id"; then
       bad "patterns.tsv linha $np: case_id «$case_id» não tem arquivo em cases/"; nbad=$((nbad+1))
     fi
     if ! rule_exists "$rule_id"; then

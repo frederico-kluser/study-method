@@ -1,3 +1,4 @@
+#!/usr/bin/env bash
 # 10-validar.sh — prova que TODO JSON do setup valida contra o schema dono.
 . "$(cd -- "$(dirname -- "$0")" && pwd -P)/00-env.sh"
 V="$S/lib/_jsonschema_min.py"

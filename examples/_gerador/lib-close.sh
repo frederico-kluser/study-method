@@ -1,3 +1,4 @@
+# shellcheck shell=bash
 # fechar_sessao <NNNN> <valores.json> — roda o ciclo REQUEST/APPLY de verdade.
 fechar_sessao() {
   local nnnn="$1" vals="$2" req="$WORK/req-$1.json" resp="$WORK/resp-$1.json" rc=0
