@@ -7,7 +7,9 @@
  *    via BASIC_SETUP). A GUI ensina a escrever código de memória — sem popup de
  *    IntelliSense.
  *  - Tema **Dracula** (`@uiw/codemirror-theme-dracula`), fonte monospace 16px
- *    explícita no conteúdo (CodeMirror renderiza a canvas e não herda rem).
+ *    explícita no conteúdo (CodeMirror renderiza a canvas e não herda rem). As
+ *    cores canónicas do tema (#282a36 / #f8f8f2) são as MESMAS usadas no
+ *    terminal xterm via `lib/draculaTheme` (coerência editor ⇄ terminal).
  *  - **Ctrl/Cmd+S** (Mod-s) dispara `onSave` — via `Prec.high` keymap que
  *    também engole o diálogo de salvar do navegador. O `onSaveRef` mantém a
  *    lista de extensões estável entre renders.

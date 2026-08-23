@@ -6,8 +6,8 @@
  * imperativa por ref (useImperativeHandle):
  *
  *   - `writeLine(text, color?)` — imprime uma linha; `color` opcional mapeia
- *     para os nomes named do ANSI usados no tema dracula/tema claro (`green`,
- *     `red`, `yellow`, `accent`, `muted`, …).
+ *     para os nomes semânticos de cor (`green`, `red`, `yellow`, `accent`,
+ *     `muted`, …) → cores da paleta Dracula canónica (ver `lib/draculaTheme`).
  *   - `clear()` — limpa o buffer.
  *   - `autoFit()`. — reajusta ao container (chamado também no resize via
  *     ResizeObserver).
@@ -16,6 +16,11 @@
  * PASS/FAIL são desenhados aqui; as fases de streaming do pi aparecem no painel
  * de feedback da ChallengeView, e apenas eventos de tool/status podem ecoar aqui
  * (via `writeLine`) se assim a view decidir.
+ *
+ * COERÊNCIA DRACULA: o terminal usa a MESMA paleta Dracula do editor CodeMirror
+ * (`#282a36` de fundo, `#f8f8f2` de foreground, cores de sintaxe canónicas).
+ * O `writeLine` emite truecolor real (SGR 38;2;r;g;b) — o xterm ignora um código
+ * `\x1b[#rrggbbm` (parâmetro inválido), então a cor dependia do RGB numérico.
  *
  * CSS do xterm precisa ser importado uma vez (é global).
  */
@@ -26,8 +31,13 @@ import { FitAddon } from '@xterm/addon-fit';
 import '@xterm/xterm/css/xterm.css';
 import Paper from '@mui/material/Paper';
 import { buildTestBannerLines, type TerminalBannerInput } from '../../lib/terminalBanner';
+import {
+  DRACULA,
+  TERMINAL_DRACULA_COLORS,
+  truecolorForeground,
+} from '../../lib/draculaTheme';
 
-/** Cores nomeadas aceitas por writeLine, mapeadas para cores do tema. */
+/** Cores nomeadas aceitas por writeLine, mapeadas para a paleta Dracula. */
 export type AnswerTerminalColor =
   | 'default'
   | 'green'
@@ -37,16 +47,8 @@ export type AnswerTerminalColor =
   | 'muted'
   | 'cyan';
 
-/** Mapa nome → cor ANSI (tema Dracula-ish sobre fundo background). */
-const ANSI: Record<AnswerTerminalColor, string> = {
-  default: '#e6e8ec',
-  green: '#49b36b',
-  red: '#e05252',
-  yellow: '#e5c07b',
-  accent: '#4f8cff',
-  muted: '#9aa3b2',
-  cyan: '#56b6c2',
-};
+/** Mapa nome → cor hex da paleta Dracula canónica (lib/draculaTheme). */
+const ANSI: Record<AnswerTerminalColor, string> = TERMINAL_DRACULA_COLORS;
 
 export interface AnswerTerminalHandle {
   /** Imprime uma linha no terminal; `pipe` imprime sem newline (append). */
@@ -81,9 +83,9 @@ export const AnswerTerminal = forwardRef<AnswerTerminalHandle, AnswerTerminalPro
         fontFamily:
           "'SFMono-Regular', 'JetBrains Mono', Menlo, Consolas, monospace",
         theme: {
-          background: '#0f1115',
-          foreground: ANSI.default,
-          cursor: ANSI.accent,
+          background: DRACULA.background,
+          foreground: TERMINAL_DRACULA_COLORS.default,
+          cursor: DRACULA.purple,
         },
         // Evita scrollback excessivo para saída de teste (ainda com memória).
         scrollback: 5000,
@@ -128,7 +130,7 @@ export const AnswerTerminal = forwardRef<AnswerTerminalHandle, AnswerTerminalPro
         writeLine(text: string, color: AnswerTerminalColor = 'default') {
           const xterm = xtermRef.current;
           if (!xterm) return;
-          xterm.writeln(`\x1b[${ANSI[color]}m${text}\x1b[0m`);
+          xterm.writeln(`${truecolorForeground(ANSI[color])}${text}\x1b[0m`);
         },
         clear() {
           xtermRef.current?.clear();
@@ -149,7 +151,7 @@ export const AnswerTerminal = forwardRef<AnswerTerminalHandle, AnswerTerminalPro
         variant="outlined"
         square
         sx={{
-          bgcolor: '#0f1115',
+          bgcolor: DRACULA.background,
           borderColor: 'divider',
           overflow: 'hidden',
           '& .xterm': { px: 1.5 },
