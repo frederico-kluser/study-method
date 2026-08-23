@@ -26,10 +26,11 @@ Produção / checagens:
 npm run build   # main + preload + renderer em out/
 npm run lint    # tsc --noEmit (tsconfig.json + tsconfig.node.json)
 npm test        # bash tools/t.sh tests — node:test + tsx (suite completa)
+npm run test:e2e  # Playwright `_electron` sobre o build (veja § E2E)
 ```
 
-> Os gates desta app (verdes antes de considerar concluído) são exatamente os três comandos
-> acima com cwd em `app/`: `bash tools/t.sh tests` · `npm run lint` · `npm run build`.
+> Os gates desta app (verdes antes de considerar concluído) são: `bash tools/t.sh tests` ·
+> `npm run lint` · `npm run build` · `npm run test:e2e` (8 specs verdes).
 
 ## Fluxo principal (produto)
 
@@ -62,6 +63,76 @@ Variáveis de caminho/execução:
   `~/.local/share/study-method/setups`.
 - `STUDY_METHOD_LLM_IN_PROCESS` — `=1` roda o motor LLM local no processo principal (dev);
   sem ela o motor sobe num **utility process** dedicado (`llm-engine`).
+
+## Interface (MUI v9, dark) e idioma
+
+- **Material UI v9 + tema escuro (dark-only)**. O renderer inteiro roda dentro de um
+  `<ThemeProvider theme={theme} defaultMode="dark">` + `<CssBaseline>` (único ponto onde o
+  fundo escuro é aplicado no `<body>`), definido em `src/main.tsx` e `src/theme.ts`. Não há
+  toggle claro/escuro — o app é escuro por padrão.
+- **Componentes:** AppBar + Tabs (shell), Stepper (fases da aula), painéis/Select/Menu do
+  Desafio e Settings. O CSS custom legado (`src/index.css`) ficou só para variáveis de tema,
+  os placeholders (view Início) e os estilos de CodeMirror/xterm; as views reais usam MUI `sx`.
+- **i18n pt-BR/en** (`src/i18n/`): um namespace único `translation`, chaveada via
+  `t('translation:<chave>')`. **pt-BR é o default**; `en` é o fallback. Recursos JSON
+  embutidos no bundle (sem fs-backend — o renderer roda sandboxed).
+- **Troca de idioma:** `LanguageSwitcher` (dropdown/ícone na AppBar) chama `changeLanguage`.
+  A **persistência** é automática — o núcleo grava no `localStorage` (chave `app-language`)
+  no evento `languageChanged`, e no boot reaplica a escolha salva. O gate e o boot chamam
+  `initI18n()` (inicializa a instância default que o `useTranslation()`/`getI18n()` usam).
+- Teste de **wiring** dessa camada: `tests/i18n-wiring.test.ts` (sem jsdom, roda no
+  `bash tools/t.sh tests`).
+
+## Startup-gate (chaves DeepSeek + Brave)
+
+Ao abrir, o app valida as chaves **antes de liberar a UI** (canal `keys:startup-status`):
+
+- **Sem chaves** (ou só com uma) → tela de **Setup** bloqueada (`setup blocked`): não mexe
+  na rede, apenas pede para configurar as duas chaves em Configurações.
+- **Chaves presentes** → valida **as duas** com timeout curto (~8 s) a cada boot:
+  - `401/403` → chave inválida → bloqueado com a chave apontada;
+  - **ambas** falharem por **erro de rede** → **modo offline** (`offline`): o app inicia com
+    um aviso e as features online ficam gateadas (dá para navegar/ver o que é local);
+  - uma válida + outra por rede-falhou → não é offline (exige **ambas** por rede) → bloqueado
+    apontando a que falhou.
+
+O gate vive em `src/gate/AppGate.tsx` + `electron/main/ipc/startup-handlers.ts`; a decisão
+`classifyStartup` é uma função pura testada em `tests/startup-handlers.test.ts`.
+
+## Voz (STT local + TTS Piper)
+
+Tudo local e on-device, no **processo main** (o renderer só vê canais `stt:*`/`localTts:*`):
+
+- **STT (transcrição)** — `sherpa-onnx-node` (Nemotron streaming) num **utility process**
+  (`asr-engine`). O modelo embutido viaja no instalador em `resources/stt-models/<modelId>`.
+  Os botões `MicButton` (captura) usam o hook `useMicSTT` (`src/hooks/useMicSTT.ts`), que
+  resampleia o microfone para 16 kHz mono e abre a sessão **antes** de alimentar frames.
+- **TTS (síntese)** — o binário `sherpa-onnx-offline-tts` (Piper, GPL isolado num processo
+  filho) gera WAV; modelos Piper viajam em `resources/tts-models/<modelId>` e o engine em
+  `resources/tts-engine/<platform>-<arch>/` (+ `resources/espeak-ng-data`). `SpeakButton`
+  monta o áudio da síntese.
+- **Env overrides (dev/CI):**
+  - `STUDY_METHOD_TTS_ENGINE_BIN` — caminho explícito do binário do engine TTS;
+  - `STUDY_METHOD_TTS_MIRROR_BASE` — base URL de download dos modelos Piper;
+  - `STUDY_METHOD_STT_MIRROR_BASE` — base URL de download dos modelos de STT.
+- A preferência de voz (modelId/voz/speed) é **persistida** no settingsStore (chave
+  `localTtsPreference`) via `localTts:set-preference`/`get-preference`.
+
+## E2E (Playwright)
+
+Aceita o app **Electron real** sobre o build de release (`out/`), com o main em **modo stub**
+(`STUDY_METHOD_E2E=1`): **sem rede real, sem GPU de inferência, sem LLM/GGUF/STT/TTS** — os
+handlers devolvem fixtures determinísticas (`electron/main/services/e2eStubs.ts`); o renderer
+é exatamente o de produção.
+
+```bash
+npm run build && npm run test:e2e        # 1 worker (Electron não paraleliza)
+xvfb-run -a npm run test:e2e            # sem display (CI), após `npm run build`
+```
+
+Envars de controle do stub (lidas pelo main em modo E2E): `E2E_GATE` (`blocked|invalid|offline|ready`),
+`E2E_KEYS=invalid`, `E2E_NETWORK=offline`, `E2E_WORKSPACE_ROOT` (raiz dos workspaces). Detalhes em
+`tests/e2e/README.md`.
 
 ## LLM local
 
@@ -97,17 +168,18 @@ app/
 │  │  ├─ studyMethodRunner.ts  runner dos scripts da skill (createSetup/createChallenge/verify)
 │  │  ├─ braveSearchService.ts + researchPlanner.ts   pesquisa de fontes
 │  │  └─ embeddedLlm/          motor LLM local (node-llama-cpp) em utility process
+│  │  └─ localStt/ + localTts/ STT Nemotron (utility process asr-engine) e TTS Piper
 │  ├─ preload/index.ts         contextBridge → expõe window.api
 │  └─ preload/api-schema.ts    createExposedApi (puro) + tipagem ApiSchema
 ├─ shared/ipc-contract.ts      CONTRATO único de canais e tipos (congelado)
 ├─ src/                        renderer React
 │  ├─ views/                   Settings / Aula (LessonView) / Desafio (ChallengeView)
-│  ├─ components/  editor, terminal (xterm), CodeMirror
+│  ├─ components/  editor, terminal (xterm), CodeMirror, voice (MicButton/SpeakButton)
 │  └─ lib/                     lógica pura + apiBridge (porta única para window.api)
-└─ tests/                      ~366+ testes (node:test, sem jsdom)
+└─ tests/                      ~550+ testes (node:test, sem jsdom) + tests/e2e (Playwright)
 ```
 
-Três alvos de build (electron-vite): `main` (inclui processo `llm-engine`), `preload` e
+Três alvos de build (electron-vite): `main` (inclui os processos `llm-engine` e `asr-engine`), `preload` e
 `renderer` (SPA com `base: './'` para rodar sobre `file://`). Camadas:
 
 - **main** — janela (1280×800, min 900×600, tema escuro), ciclo de vida, instance-lock,
@@ -132,7 +204,8 @@ Três alvos de build (electron-vite): `main` (inclui processo `llm-engine`), `pr
 
 O único fonte de verdade para nomes de canal e tipos é
 [`app/shared/ipc-contract.ts`](./shared/ipc-contract.ts) — congelado; não duplicar strings
-soltas nem renomear canais. Grupos: `settings:*`, `keys:*`, `pi:*`, `localAi:*`, `study:*`.
+soltas nem renomear canais. Grupos: `settings:*`, `keys:*`, `pi:*`, `localAi:*`, `study:*`,
+`stt:*` (voz/transcrição), `localTts:*` (voz/síntese), `keys:startup-status` (gate).
 
 Convenções do preload (`electron/preload/api-schema.ts`):
 

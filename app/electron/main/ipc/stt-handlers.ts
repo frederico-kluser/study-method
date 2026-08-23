@@ -155,7 +155,7 @@ export function buildSttStreamHandlers(
     async (
       event: SttInvokeEvent,
       raw: unknown,
-    ): Promise<SttIpcResult<{ text: string; segmentId?: string }>> => {
+    ): Promise<SttIpcResult<{ text: string }>> => {
       const sessionId =
         raw && typeof raw === 'object' && typeof (raw as { sessionId?: unknown }).sessionId === 'string'
           ? (raw as { sessionId: string }).sessionId

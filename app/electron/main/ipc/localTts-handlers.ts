@@ -30,6 +30,7 @@ import {
 } from '../services/localTts/ttsModelStore';
 import { pocketTts } from '../services/localTts/PocketTtsService';
 import { safeHandleMap, type IpcMainHandleLike, type IpcHandlerFn } from './safeHandle';
+import type { SettingsStore } from '../services/settingsStore';
 
 export interface TtsIpcResult<T> {
   success: boolean;
@@ -43,8 +44,14 @@ const fail = (error: unknown): TtsIpcResult<never> => {
   return { success: false, error: message };
 };
 
-/** PREFERENCE é lagado pelo getTtsPreference do store; aqui apenas em memória. */
-let preferenceOverride: LocalTtsPreference = {};
+/** Chave do settingsStore onde a preferência do TTS local é persistida. */
+const TTS_PREFERENCE_KEY = 'localTtsPreference';
+
+/** Getter default do SettingsStore (lazy/DI). Nunca chamado pelos testes. */
+async function defaultGetStore(): Promise<SettingsStore> {
+  const { getSettingsStore } = await import('../services/settingsStore');
+  return getSettingsStore();
+}
 
 /** Push `localTts:download-progress` (throttled) para todas as janelas. */
 let broadcastFn: ((p: TtsDownloadProgressPayload) => void) | null = null;
@@ -96,10 +103,13 @@ function broadcastTtsProgress(payload: TtsDownloadProgressPayload): void {
 export function buildLocalTtsHandlers(deps: {
   generate?: typeof pocketTts.generate;
   cancel?: typeof pocketTts.cancel;
+  /** Getter do SettingsStore (lazy/DI). Default: getSettingsStore(). */
+  getStore?: () => Promise<SettingsStore>;
 } = {}): Map<string, IpcHandlerFn> {
   const map: Map<string, IpcHandlerFn> = new Map();
   const generate = deps.generate ?? pocketTts.generate.bind(pocketTts);
   const cancel = deps.cancel ?? pocketTts.cancel.bind(pocketTts);
+  const getStore = deps.getStore ?? defaultGetStore;
 
   map.set(TTS_CHANNELS.LIST, async (): Promise<TtsIpcResult<TtsModelInfo[]>> => {
     try {
@@ -204,7 +214,13 @@ export function buildLocalTtsHandlers(deps: {
   map.set(
     TTS_CHANNELS.GET_PREFERENCE,
     async (): Promise<TtsIpcResult<LocalTtsPreference>> => {
-      return ok(preferenceOverride);
+      try {
+        const store = await getStore();
+        const pref = await store.getValue<LocalTtsPreference>(TTS_PREFERENCE_KEY);
+        return ok(pref ?? {});
+      } catch (error) {
+        return fail(error);
+      }
     },
   );
 
@@ -212,16 +228,25 @@ export function buildLocalTtsHandlers(deps: {
     TTS_CHANNELS.SET_PREFERENCE,
     async (_event, raw: unknown): Promise<TtsIpcResult<void>> => {
       const pref = (raw ?? {}) as Partial<LocalTtsPreference>;
-      if (pref.modelId !== undefined && typeof pref.modelId === 'string') {
-        preferenceOverride = { ...preferenceOverride, modelId: pref.modelId };
+      try {
+        const store = await getStore();
+        const current: LocalTtsPreference =
+          (await store.getValue<LocalTtsPreference>(TTS_PREFERENCE_KEY)) ?? {};
+        const next: LocalTtsPreference = { ...current };
+        if (pref.modelId !== undefined && typeof pref.modelId === 'string') {
+          next.modelId = pref.modelId;
+        }
+        if (pref.defaultVoiceId !== undefined && typeof pref.defaultVoiceId === 'string') {
+          next.defaultVoiceId = pref.defaultVoiceId;
+        }
+        if (pref.speed !== undefined && typeof pref.speed === 'number') {
+          next.speed = pref.speed;
+        }
+        await store.setValue(TTS_PREFERENCE_KEY, next);
+        return ok(undefined);
+      } catch (error) {
+        return fail(error);
       }
-      if (pref.defaultVoiceId !== undefined && typeof pref.defaultVoiceId === 'string') {
-        preferenceOverride = { ...preferenceOverride, defaultVoiceId: pref.defaultVoiceId };
-      }
-      if (pref.speed !== undefined && typeof pref.speed === 'number') {
-        preferenceOverride = { ...preferenceOverride, speed: pref.speed };
-      }
-      return ok(undefined);
     },
   );
 
@@ -235,6 +260,7 @@ export function buildLocalTtsHandlers(deps: {
 export function registerLocalTtsHandlers(deps: {
   generate?: typeof pocketTts.generate;
   cancel?: typeof pocketTts.cancel;
+  getStore?: () => Promise<SettingsStore>;
 } = {}): void {
   const map = buildLocalTtsHandlers(deps);
   // eslint-disable-next-line @typescript-eslint/no-require-imports

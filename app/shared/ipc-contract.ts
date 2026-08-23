@@ -288,8 +288,6 @@ export interface SttPartialPayload {
   text: string;
   /** true no commit do final (e no resultado de `stt:stream-stop`). */
   isFinal: boolean;
-  /** Id de segmento estável cunhado no main do commit do final. */
-  segmentId?: string;
 }
 
 /** Push `stt:engine-status` — de um utility process de STT. */

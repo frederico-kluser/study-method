@@ -11,6 +11,7 @@ import assert from 'node:assert/strict';
 
 import { TTS_CHANNELS } from '../shared/ipc-contract';
 import { buildLocalTtsHandlers } from '../electron/main/ipc/localTts-handlers';
+import type { SettingsStore } from '../electron/main/services/settingsStore';
 
 const fakeEvent = { sender: { send: () => undefined } };
 
@@ -96,12 +97,23 @@ describe('buildLocalTtsHandlers (TTS local)', () => {
     assert.ok(res && (res as { success?: boolean }).success);
   });
 
-  it('set/get preference persistem modelId/voice/speed', async () => {
+  it('set/get preference persistem modelId/voice/speed no settingsStore', async () => {
     const engine = makeFakeEngine();
-    const map = buildLocalTtsHandlers({
-      generate: engine.generate as never,
-      cancel: engine.cancel as never,
-    });
+    // Store fake com estado por chave (mesma forma dos handlers de chaves).
+    const values: Record<string, unknown> = {};
+    const fakeStore: SettingsStore = {
+      getValue: async <T>(key: string) => values[key] as T | undefined,
+      setValue: async (key: string, value: unknown) => {
+        values[key] = value;
+      },
+    } as unknown as SettingsStore;
+    const buildWithStore = () =>
+      buildLocalTtsHandlers({
+        generate: engine.generate as never,
+        cancel: engine.cancel as never,
+        getStore: async () => fakeStore,
+      });
+    const map = buildWithStore();
     await map.get(TTS_CHANNELS.SET_PREFERENCE)!(fakeEvent, {
       modelId: 'piper-pt-br-faber',
       defaultVoiceId: 'faber',
@@ -113,5 +125,13 @@ describe('buildLocalTtsHandlers (TTS local)', () => {
     assert.equal(res.data?.modelId, 'piper-pt-br-faber');
     assert.equal(res.data?.defaultVoiceId, 'faber');
     assert.equal(res.data?.speed, 1.2);
+    // Round-trip persistido: uma NOVA instância de handlers com o MESMO store
+    // fake lê a mesma preferência sem ter setado de novo.
+    const map2 = buildWithStore();
+    const res2 = (await map2.get(TTS_CHANNELS.GET_PREFERENCE)!(fakeEvent)) as {
+      data?: { modelId?: string; speed?: number };
+    };
+    assert.equal(res2.data?.modelId, 'piper-pt-br-faber');
+    assert.equal(res2.data?.speed, 1.2);
   });
 });

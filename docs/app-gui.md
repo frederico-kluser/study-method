@@ -103,7 +103,8 @@ juiz ausente, apply esgotado).
 │   ├─ registerIpcHandlers / Register*Handlers (IPC)           │
 │   ├─ services: settingsStore, PiAgent, deepseek*, runner,     │
 │   │   lesson, brave, research, embeddedLlm                   │
-│   └─ utility process: llm-engine (node-llama-cpp)            │
+│   └─ utility processes: llm-engine (node-llama-cpp),         │
+│       asr-engine (sherpa-onnx STT OOVP)                      │
 └───────────────┬───────────────────────────────────────────────┘
                 │ contextBridge (window.api) — contextIsolation:true, sandbox:true
 ┌───────────────▼───────────────────────────────────────────────┐
@@ -189,6 +190,78 @@ pi/DeepSeek, e o painel "Provedor de feedback" do Settings (`LocalAiPanel`) pers
 `{success:false, error}` estruturado e o app sugere voltar ao DeepSeek (sem fallback
 automático de re-inferência).
 
+### 2.6 Voz local — painel de voz (STT/TTS) e contrato
+
+Tudo on-device, no processo **main**; os utilitários do renderer ficam em
+`src/components/voice/` e o hook `src/hooks/useMicSTT.ts`. Nenhum dos dois componentes
+está montado numa view ainda — **a onda fecha com eles prontos para a UI plugar**; abaixo, o
+contrato de like para montar um painel de voz.
+
+**Canais** (`shared/ipc-contract.ts`):
+
+| Grupo | Caminho (UI) | Canal | O que faz |
+|---|---|---|---|
+| STT | `stt.streamStart({locale, sessionId})` | `stt:stream-start` | abre UMA sessão (resolvendo o hint de língua por locale) |
+| STT | `stt.streamChunk({sessionId, samples})` | `stt:stream-chunk` | frame PCM 16 kHz mono (Float32Array ≤ 48000 amostras) |
+| STT | `stt.streamStop(sessionId)` | `stt:stream-stop` | fecha a sessão → `{ text }` final |
+| STT | `stt.streamCancel(sessionId)` | `stt:stream-cancel` | abandona a sessão |
+| STT | `stt.onStreamPartial(ev)` | push `stt:stream-partial` | parcial CUMULATIVO `{sessionId, text, isFinal}` |
+| TTS | `localTts.list()` | `localTts:list` | catálogo de modelos Piper + status |
+| TTS | `localTts.generate({requestId, modelId, text, speed, provider:'local'})` | `localTts:generate` | devolve `{ audioBase64, format:'wav', sampleRate }` |
+| TTS | `localTts.getPreference()` / `setPreference()` | `localTts:get/set-preference` | preferência persistida no settingsStore (`localTtsPreference`) |
+
+**Montar num botão de STT — `MicButton` (`src/components/voice/MicButton.tsx`):**
+
+```tsx
+<MicButton
+  locale="pt-BR"
+  onTranscribed={(text) => setDraft(text)} // texto final ao parar
+  onError={(err) => toast(err)}
+/>
+```
+
+`MicButton` usa `useMicSTT(locale)` e cuida de todo o ciclo: pede o microfone, abre o
+AudioContext, resampleia para 16 kHz mono, streama chunks e fecha. **Segurança de feedback:** o
+hook conecta o source a um `GainNode` com **gain 0** (o mic **nunca** sai no alto-falante), e
+abre a `stream-start` **antes** de conectar/streamar (nenhum frame é descartado). O hook expõe
+`{ transcribing, partial, error, start, stop, cancel }` para quem quiser controlar direto.
+
+**Montar num `SpeakButton` (`src/components/voice/SpeakButton.tsx`)** — para ler texto em voz
+alta (TTS Piper): chamar `localTts.generate({ modelId, text, provider: 'local' })` e montar o
+resultado num `<audio src="data:audio/wav;base64,...">`. O modelId usa a preferência salva
+(`localTts.getPreference`) com fallback para um modelo embutido do catálogo pt-BR/en.
+
+> **Modelos embutidos no installer:** STT em `resources/stt-models/<modelId>`; TTS em
+> `resources/tts-models/<modelId>` + engine `resources/tts-engine/<platform>-<arch>/` +
+> `resources/espeak-ng-data`. Env overrides para dev/CI: `STUDY_METHOD_STT_MIRROR_BASE`,
+> `STUDY_METHOD_TTS_MIRROR_BASE`, `STUDY_METHOD_TTS_ENGINE_BIN`.
+
+### 2.7 Startup-gate
+
+`startup-handlers.ts` registra o canal aditivo `keys:startup-status` (não substitui o
+`keys:*` original). A decisão é a função pura `classifyStartup` (testada): sem `DeepSeek` ou
+`Brave` no store → `phase:'blocked'` (sem rede); com ambas → valida as duas com timeout ~8 s
+(`401/403` → `blocked`; **ambas** por rede → `offline` com aviso e features online gateadas;
+uma por rede → `blocked` apontando a que falhou). O renderer reage em `src/gate/AppGate.tsx`
+(SetupView quando bloqueado; banner quando offline).
+
+### 2.8 i18n pt-BR/en
+
+`src/i18n/index.ts`: um namespace `translation`, recursos JSON embutidos no bundle (sem
+fs-backend — renderer sandboxed), pt-BR default / en fallback. `initI18n()` inicializa a
+**instância default** que o `useTranslation()`/`useTranslation().i18n` enxergam via
+`getI18n()` do react-i18next (boot em `src/main.tsx`). Troca via `LanguageSwitcher`
+(`changeLanguage`); **persistência** automática no `localStorage` (`app-language`) no evento
+`languageChanged`, reaplicada no boot. `tests/i18n-wiring.test.ts` trava essa camada (rode via
+`bash tools/t.sh tests`; sem jsdom).
+
+### 2.9 Tema MUI v9 (dark)
+
+O renderer roda sob `<ThemeProvider theme={theme} defaultMode="dark">` + `<CssBaseline>`
+(`src/main.tsx`, `src/theme.ts`). Componentes da UI (AppBar/Tabs, Stepper, painéis, Select/Menu)
+são **Material UI v9** com style via `sx`; o CSS custom legado em `src/index.css` foi podado
+para variáveis de tema + placeholders (view Início) + CodeMirror/xterm.
+
 ---
 
 ## 3. Segurança
@@ -222,7 +295,11 @@ automático de re-inferência).
 | Onda 2 | runner (createSetup/newSession/createChallenge/verify/testStudentAnswer) | `studyMethodRunner.ts` |
 | Onda 3 | lesson-orchestrator, autor DeepSeek, juiz, pesquisa Brave, pesquisa | `lessonOrchestrator.ts`, `deepseekLessonAuthor.ts`, `researchPlanner.ts` |
 | Onda 3-ui | Settings, Aula, Desafio/editor + fiação IPC completa (`buildMainSetup`) | `main-setup.ts`, `api-schema.ts` |
-| Onda 4 (esta) | Segurança (CSP/sandbox), alinhamento do autor ao naming por slug, verificação fim-a-fim de assinaturas IPC, docs | `app/index.html` (CSP), `main/index.ts` (sandbox), `deepseekLessonAuthor.ts` |
+| Onda 4 | Segurança (CSP/sandbox), alinhamento do autor ao naming por slug, verificação fim-a-fim de assinaturas IPC, docs | `app/index.html` (CSP), `main/index.ts` (sandbox), `deepseekLessonAuthor.ts` |
+| Onda 6 | **startup-gate** (`keys:startup-status`, setup bloqueado / offline) + **i18n pt-BR/en** + persistência | `startup-handlers.ts`, `src/i18n/index.ts` |
+| Onda 7 | **Shell MUI v9 dark** — AppBar+Tabs, Settings/Aula/Desafio migrados de CSS custom para MUI `sx` | `src/theme.ts`, `src/App.tsx`, `src/views/*` |
+| Onda 8 | **Voz local** — STT Nemotron (`stt:*`) + TTS Piper (`localTts:*`), pref persistida no settingsStore | `stt-handlers.ts`, `localTts-handlers.ts`, `src/components/voice/*` |
+| Onda 9 | **E2E Playwright** (`STUDY_METHOD_E2E=1` + stubs) — 8 specs verdes | `playwright.config.ts`, `electron/main/services/e2eStubs.ts` |
 
 **Contratos congelados (não editar sem atualizar juntos):** `shared/ipc-contract.ts`,
 `eletron/preload/*` (FROZEN), `package.json`/lock, `.npmrc`, `electron.vite.config.ts`.

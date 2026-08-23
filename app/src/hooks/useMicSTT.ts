@@ -114,10 +114,19 @@ export function useMicSTT(passiveLocale = 'pt-BR'): {
         }
       };
 
-      source.connect(processor);
-      processor.connect(ctx.destination);
-
+      // Abre a sessão de streaming ANTES de alimentar frames — garante que
+      // nenhum chunk seja descartado por sessão ainda não aberta.
       await getApi().stt.streamStart({ locale: passiveLocale, sessionId: sessionIdRef.current });
+
+      // O mic JAMAIS deve dar saída para o alto-falante (feedback de áudio):
+      // source → processor → GainNode mudo (gain 0) → destination. O mute node
+      // é filho do ctx e é liberado junto com `close()` no teardown.
+      const mute = ctx.createGain();
+      mute.gain.value = 0;
+      source.connect(processor);
+      processor.connect(mute);
+      mute.connect(ctx.destination);
+
       setTranscribing(true);
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
