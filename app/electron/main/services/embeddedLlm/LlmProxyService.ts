@@ -74,6 +74,10 @@ export class LlmProxyService {
   private statusVal: ProxyStatus = 'idle';
   private queue: Promise<unknown> = Promise.resolve();
   private stopping = false;
+  /** Quantas vezes o processo atual já foi respawnado (crash-respawn). Vive no
+   *  PROXY (não no child): spawnChild NÃO o zera, então o teto de "1 retry"
+   *  é imposto mesmo em crash-loop. 0 = spawn original; >= 1 = já respawnado. */
+  private respawnCount = 0;
 
   constructor(deps: LlmProxyDeps = {}) {
     this.fork = deps.fork ?? defaultFork;
@@ -86,6 +90,9 @@ export class LlmProxyService {
 
   /** Checa se o processo responde (não carrega modelo). Base do smoke test. */
   async status(): Promise<unknown> {
+    // Sem processo ainda (primeira chamada da vida do app, sem load prévio):
+    // responde "não carregado" sem spawnar — contrato do status do motor.
+    if (!this.child) return { loaded: null, contextSize: null };
     return this.run(() => this.request({ type: 'status' }));
   }
 
@@ -197,8 +204,6 @@ export class LlmProxyService {
     }
 
     this.child = child;
-    // Marca se este processo já é um respawn (não o original).
-    (child as unknown as { __llmRespawned?: boolean }).__llmRespawned = false;
     child.stdout?.on('data', (buf: Buffer) => process.stdout.write(`[LLM-Engine] ${buf}`));
     child.stderr?.on('data', (buf: Buffer) => process.stderr.write(`[LLM-Engine!] ${buf}`));
     child.on('message', (message) => this.onMessage(child, message));
@@ -208,6 +213,10 @@ export class LlmProxyService {
   private ensureChild(): Promise<void> {
     if (this.stopping) return Promise.reject(new Error('LLM engine is stopped'));
     if (this.child && this.statusVal === 'ready') return Promise.resolve();
+    // Sem child e já respawnado uma vez → erro, nunca fork novo (teto de 1 retry).
+    if (!this.child && this.respawnCount >= 1) {
+      return Promise.reject(new Error('LLM_ENGINE_CRASHED: no engine process'));
+    }
     this.spawnChild();
     return Promise.resolve();
   }
@@ -258,8 +267,8 @@ export class LlmProxyService {
       return;
     }
 
-    const wasRespawned = (child as unknown as { __llmRespawned?: boolean }).__llmRespawned;
-    if (wasRespawned) {
+    // Já respawnado uma vez → desiste (o crash-loop nunca chega aqui).
+    if (this.respawnCount >= 1) {
       console.error(`[LLM-Proxy] engine crashed de novo (code=${String(code)}) — desistindo`);
       this.setStatus('dead');
       this.reject(new Error(`LLM_ENGINE_CRASHED: code ${String(code)}`));
@@ -267,7 +276,7 @@ export class LlmProxyService {
     }
 
     console.error(`[LLM-Proxy] engine crashou (code=${String(code)}) — respawn (1 retry)`);
-    (child as unknown as { __llmRespawned?: boolean }).__llmRespawned = true;
+    this.respawnCount += 1;
     this.reject(new Error(`LLM_ENGINE_CRASHED: code ${String(code)}`));
     this.spawnChild();
   }
