@@ -68,6 +68,23 @@ describe('buildPiFeedbackPrompt', () => {
     });
     assert.match(prompt, /LINGUAGEM: txt/);
   });
+
+  it('linguagem vazia/SÓ espaços reverte para "indefinida"', () => {
+    for (const lang of ['', '   ']) {
+      const prompt = buildPiFeedbackPrompt({ ...BASE, language: lang });
+      assert.match(prompt, /LINGUAGEM: indefinida/);
+      assert.doesNotMatch(prompt, /LINGUAGEM: +$/);
+    }
+  });
+
+  it('rulesDigest injetado substitui o resumo padrão', () => {
+    const prompt = buildPiFeedbackPrompt({
+      ...BASE,
+      rulesDigest: 'DIGEST_CUSTOMO',
+    });
+    assert.match(prompt, /DIGEST_CUSTOMO/);
+    assert.doesNotMatch(prompt, /ANTI-BAJULAÇÃO/);
+  });
 });
 
 describe('digestStudyMethodRules', () => {

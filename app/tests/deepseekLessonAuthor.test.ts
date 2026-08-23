@@ -219,3 +219,69 @@ test('validateLessonDraft: chama direto com draft válido → devolve normalizad
   assert.equal(draft!.lessonTitle, 'Closures em JavaScript');
   assert.equal(draft!.challenges.length, 1);
 });
+
+test('validateLessonDraft: null / primitivo / array → lança "não devolveu um LessonDraft"', () => {
+  assert.throws(() => validateLessonDraft(null), /não devolveu um LessonDraft/);
+  assert.throws(() => validateLessonDraft(123), /não devolveu um LessonDraft/);
+  assert.throws(() => validateLessonDraft([]), /não devolveu um LessonDraft/);
+  assert.throws(() => validateLessonDraft('texto'), /não devolveu um LessonDraft/);
+});
+
+test('validateLessonDraft: lessonTitle/lessonMarkdown vazios ou não-string → erro "faltou"', () => {
+  const body = JSON.parse(validDraftJson());
+  body.lessonTitle = '   ';
+  assert.throws(() => validateLessonDraft(body), /lessonTitle/);
+  body.lessonTitle = 'Título';
+  body.lessonMarkdown = '';
+  assert.throws(() => validateLessonDraft(body), /lessonMarkdown/);
+});
+
+test('validateLessonDraft: scenario com input vazio → erro do cenário propaga', () => {
+  const body = JSON.parse(validDraftJson());
+  body.challenges[0].scenarios[0].input = '';
+  assert.throws(() => validateLessonDraft(body), /challenges\[\]\.scenarios\[0\].*input/);
+});
+
+test('validateLessonDraft: cenário com type property é aceito na cobertura mínima', () => {
+  const body = JSON.parse(validDraftJson());
+  // mantém example/boundary/error e adiciona property.
+  body.challenges[0].scenarios.push(
+    { id: 'prop_ordem', name: 'Propriedade', type: 'property', input: 'x', description: 'Cobre invariante' },
+  );
+  body.challenges[0].expectedTestCount = 4;
+  const draft = validateLessonDraft(body);
+  assert.equal(draft!.challenges[0].scenarios.length, 4);
+  for (const s of draft!.challenges[0].scenarios) assert.match(s.type, /example|boundary|error|property/);
+});
+
+test('author: cliente lança erro GENÉRICO → envolve em DeepSeekError NETWORK', async () => {
+  const boom = new Error('falha de rede 500');
+  const client = {
+    chatCompletion: async () => {
+      throw boom;
+    },
+  };
+  const author = createDeepSeekLessonAuthor({ client });
+  await assert.rejects(
+    author({ subject: 'X', findings: [] }),
+    (e) =>
+      e instanceof DeepSeekError &&
+      e.code === DEEPSEEK_ERROR_CODES.NETWORK &&
+      (e.message as string).includes('falha de rede 500'),
+  );
+});
+
+test('author: cliente lança DeepSeekError → NÃO é re-embrulhado (propaga o código)', async () => {
+  const original = new DeepSeekError(DEEPSEEK_ERROR_CODES.RATE_LIMIT, 'rate limit da chave');
+  const client = {
+    chatCompletion: async () => {
+      throw original;
+    },
+  };
+  const author = createDeepSeekLessonAuthor({ client });
+  const err = await author({ subject: 'X', findings: [] }).then(
+    () => null,
+    (e) => e,
+  );
+  assert.equal(err, original, 'deve propagar o DeepSeekError original, sem novo wrap');
+});

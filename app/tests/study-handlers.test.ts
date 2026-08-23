@@ -251,6 +251,29 @@ describe('study-handlers (unit / fakes)', () => {
       await handlers.get(STUDY_CHANNELS.NEW_SESSION)!(undefined, { setupRoot: '/x', goal: 99 });
       assert.equal(goalSeen, undefined);
     });
+
+    it('usa memory.lastSetupRoot (de create-setup) e repassa goal string', async () => {
+      __resetStudyHandlersMemory();
+      let seen: { root?: string; goal?: string } = {};
+      const created = { setupId: 's9', setupRoot: '/tmp/mem-root' };
+      const { deps, runner } = makeDeps({
+        runner: { createSetup: async () => created },
+      });
+      (runner.newSession as (r: string, g?: string) => Promise<string>) = async (r, g) => {
+        seen = { root: r, goal: g };
+        return '0042';
+      };
+      const handlers = buildStudyHandlers(deps);
+      await handlers.get(STUDY_CHANNELS.CREATE_SETUP)!(undefined, {
+        path: '/tmp/mem-root',
+        subject: 'S',
+        title: 'T',
+      });
+      const res = await handlers.get(STUDY_CHANNELS.NEW_SESSION)!(undefined, { goal: 'meta' });
+      assert.equal((res as { sessionId: string }).sessionId, '0042');
+      assert.equal(seen.root, '/tmp/mem-root');
+      assert.equal(seen.goal, 'meta');
+    });
   });
 
   describe('study:generate-lesson / get-lesson / get-findings', () => {
@@ -283,6 +306,43 @@ describe('study-handlers (unit / fakes)', () => {
       const handlers2 = buildStudyHandlers(makeDeps().deps);
       await assert.rejects(async () => handlers2.get(STUDY_CHANNELS.GET_FINDINGS)!(), /nenhuma aula gerada/);
       void emitCalls;
+    });
+
+    it('payload objeto {subject, language, goal} repassa options e emite LESSON_PROGRESS', async () => {
+      __resetStudyHandlersMemory();
+      let seen: { language?: string; goal?: string; onProgress?: (p: unknown) => void } = {};
+      const { deps, emitCalls } = makeDeps({
+        lesson: {
+          generateLesson: async (_subject, opts) => {
+            seen = opts as typeof seen;
+            return {
+              lesson: {
+                title: 'A',
+                subject: 'X',
+                markdown: '# A',
+                findings: [],
+                challenges: [],
+                createdAt: 'now',
+              },
+              rejected: [],
+            };
+          },
+        },
+      });
+      const handlers = buildStudyHandlers(deps);
+      const gen = await handlers.get(STUDY_CHANNELS.GENERATE_LESSON)!(undefined, {
+        subject: '  Closures  ',
+        language: 'pt-BR',
+        goal: 'dominar closures',
+      });
+      assert.equal((gen as { lesson: { title: string } }).lesson.title, 'A');
+      // options repassadas ao orchestrator (language/goal não-undefined).
+      assert.equal(seen.language, 'pt-BR');
+      assert.equal(seen.goal, 'dominar closures');
+      // onProgress emite LESSON_PROGRESS.
+      assert.equal(typeof seen.onProgress, 'function');
+      seen.onProgress!({ phase: 'research', detail: 'x' });
+      assert.ok(emitCalls.some((e) => e.channel === STUDY_CHANNELS.LESSON_PROGRESS));
     });
   });
 
@@ -460,6 +520,26 @@ describe('study-handlers (unit / fakes)', () => {
       await assert.rejects(async () => del(undefined, {}), /requer `workspaceDir`/);
       const read = handlers.get(STUDY_CHANNELS.READ_WORKSPACE_FILE)!;
       await assert.rejects(async () => read(undefined, { path: 'a.py' }), /requer `workspaceDir`/);
+    });
+
+    it('read com path fora do workspace → erro de traversal antes do FS', async () => {
+      __resetStudyHandlersMemory();
+      const ws = path.join(tmp, 'ws-traversal');
+      const { deps } = makeDeps({});
+      const handlers = buildStudyHandlers(deps);
+      const read = handlers.get(STUDY_CHANNELS.READ_WORKSPACE_FILE)!;
+      for (const bad of ['../esc', 'a/../../esc', '/etc/passwd']) {
+        await assert.rejects(
+          async () => read(undefined, { workspaceDir: ws, path: bad }),
+          /fora do workspace/,
+        );
+      }
+      // delete com path fora do workspace também é barrado antes de tocar o FS.
+      const del = handlers.get(STUDY_CHANNELS.DELETE_WORKSPACE_FILE)!;
+      await assert.rejects(
+        async () => del(undefined, { workspaceDir: ws, path: '..' }),
+        /fora do workspace/,
+      );
     });
   });
 
