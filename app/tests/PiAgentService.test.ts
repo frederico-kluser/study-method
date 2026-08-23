@@ -135,6 +135,17 @@ test('deepseek: setRuntimeApiKey antes do createAgentSession; modelo explícito 
   // Eventos: starting + running + completed.
   assert.equal(events.some((e) => e.type === 'status_change' && e.status === 'starting'), true);
   assert.equal(events.some((e) => e.type === 'status_change' && e.status === 'completed'), true);
+  // BLOCK 2: o status_change 'running' E o 'starting' carregam o MESMO sessionId
+  // nos `data` (antes o 'running' mandava data:'running' e sobrescrevia o id na
+  // UI, quebrando o abort). Nenhum consumer depende de data === 'running'.
+  const startEv = events.find((e) => e.type === 'status_change' && e.status === 'starting') as
+    { data?: string } | undefined;
+  const runEv = events.find((e) => e.type === 'status_change' && e.status === 'running') as
+    { data?: string } | undefined;
+  assert.ok(runEv, 'esperava status_change running');
+  assert.ok(startEv?.data, 'starting deve carregar sessionId nos data');
+  assert.equal(runEv.data, startEv.data, 'running deve carregar o MESMO sessionId (não a string "running")');
+  assert.notEqual(runEv.data, 'running');
 });
 
 test('streaming: message_update text_delta acumula output e emite PiStreamEvent com timestamp', async () => {

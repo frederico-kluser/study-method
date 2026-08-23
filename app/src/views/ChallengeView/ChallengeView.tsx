@@ -239,7 +239,12 @@ export default function ChallengeView(): ReactElement {
   const handlePiStreamEvent = useCallback((ev: PiStreamEvent): void => {
     switch (ev.type) {
       case 'status_change':
-        if (typeof ev.data === 'string' && ev.data) setSessionId(ev.data);
+        // Guarda o sessionId em ev.data (starting e running carregam o id — ver
+        // BLOCK 2). DEFENSIVO: só seta se ainda não está setado; assim o último
+        // status_change não sobrescreve o id já capturado (o abort usa sessionId).
+        if (typeof ev.data === 'string' && ev.data) {
+          setSessionId((prev) => prev ?? ev.data);
+        }
         break;
       case 'thinking_delta':
         setBlocks((b) => appendDelta(b, 'thinking', ev.data ?? ''));
@@ -351,6 +356,16 @@ export default function ChallengeView(): ReactElement {
     })();
   }, [runTests, runPi]);
 
+  // Cleanup no UNMOUNT: derruba a assinatura do stream do pi (mesmo padrão do
+  // onTestAnswerEvent) — sem isto, sair da tela com o pi rodando vaza o
+  // listener de pi:stream-event (WARNING 3).
+  useEffect(() => {
+    return () => {
+      streamStopRef.current?.();
+      streamStopRef.current = undefined;
+    };
+  }, []);
+
   const canTest = active && testStatus !== 'running' && piStatus !== 'running';
 
   // Painéis de layout conforme o estado.
@@ -439,6 +454,10 @@ export default function ChallengeView(): ReactElement {
               onRefresh={() => active && void loadWorkspace(active)}
             />
             <EditorPane
+              // key por workspace: ao trocar de desafio o React DESMONTA/MONTA o
+              // EditorPane (reducer de abas zerado) — impede um buffer dirty do
+              // workspace A salvar no workspaceDir B (WARNING 4).
+              key={active.workspaceDir}
               ref={editorRef}
               workspaceDir={active.workspaceDir}
               files={files}

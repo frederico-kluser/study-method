@@ -248,7 +248,11 @@ export function createPiAgentService(deps: PiAgentServiceDeps = {}): PiAgentServ
         console.warn('[PiAgentService] Could not enforce temperature 0:', streamFnError);
       }
 
-      emitEvent(onEvent, { type: 'status_change', data: 'running', status: 'running' });
+      // 'running' carrega o sessionId nos data (ASSIM como o 'starting'). A UI
+      // guarda `ev.data` em TODO status_change para usar no abort; antes o data
+      // era a string 'running' e SOBRESCREVIA o sessionId → abort('running')
+      // não achava a sessão (BLOCK 2). Nenhum consumidor lê data === 'running'.
+      emitEvent(onEvent, { type: 'status_change', data: sessionId, status: 'running' });
 
       // Streaming.
       agentSession.subscribe((event: any) => {

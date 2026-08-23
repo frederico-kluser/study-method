@@ -316,11 +316,13 @@ describe('study-handlers (unit / fakes)', () => {
       const { deps } = makeDeps();
       const handlers = buildStudyHandlers(deps);
       const res = await handlers.get(STUDY_CHANNELS.LIST_CHALLENGES)!(undefined, { setupRoot });
-      const list = res as { challenges: Array<{ challengeId: string; title: string; verdict: string; concept: string }> };
-      assert.equal(list.challenges.length, 1);
-      assert.equal(list.challenges[0].challengeId, '0007');
-      assert.equal(list.challenges[0].verdict, 'approved');
-      assert.equal(list.challenges[0].concept, 'recursao');
+      // Contrato: devolve ChallengeInfo[] DIRETO (sem wrapper {challenges}).
+      const list = res as Array<{ challengeId: string; title: string; verdict: string; concept: string }>;
+      assert.ok(Array.isArray(list), 'list-challenges deve devolver array');
+      assert.equal(list.length, 1);
+      assert.equal(list[0].challengeId, '0007');
+      assert.equal(list[0].verdict, 'approved');
+      assert.equal(list[0].concept, 'recursao');
     });
 
     it('sem diretório challenges/ → lista vazia', async () => {
@@ -328,7 +330,7 @@ describe('study-handlers (unit / fakes)', () => {
       const { deps } = makeDeps();
       const handlers = buildStudyHandlers(deps);
       const res = await handlers.get(STUDY_CHANNELS.LIST_CHALLENGES)!(undefined, { setupRoot });
-      assert.deepEqual((res as { challenges: unknown[] }).challenges, []);
+      assert.deepEqual(res, []);
     });
   });
 
@@ -421,7 +423,9 @@ describe('study-handlers (unit / fakes)', () => {
       });
       assert.deepEqual(write, { ok: true });
       const read = await handlers.get(STUDY_CHANNELS.READ_WORKSPACE_FILE)!(undefined, { workspaceDir: ws, path: 'src/main.py' });
-      assert.equal((read as { content: string }).content, 'print(1)');
+      // Contrato: devolve a STRING content pura (sem wrapper {content, encoding}).
+      assert.equal(typeof read, 'string');
+      assert.equal(read, 'print(1)');
 
       const del = await handlers.get(STUDY_CHANNELS.DELETE_WORKSPACE_FILE)!(undefined, { workspaceDir: ws, path: 'src/main.py' });
       assert.deepEqual(del, { ok: true });

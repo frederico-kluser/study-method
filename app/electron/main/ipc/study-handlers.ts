@@ -22,6 +22,23 @@
  * Filesystem de workspace: operações RESTRITAS ao workspaceDir informado —
  * o path resolve é validado por contenção (mesmo padrão `containedIn` do runner);
  * nunca se lê/escreve fora.
+ *
+ * CONVENÇÃO DE SHAPE (uniformizada na onda 4 — os retornos seguem o tipo tipado
+ * do contrato DIRETO, sem wrapper, salvo quando o handler naturalmente precisa
+ * de metadados):
+ *   - list-challenges      → ChallengeInfo[]   (SEM `{challenges}`)
+ *   - list-workspace-files → WorkspaceFile[]   (SEM `{files}`)
+ *   - read-workspace-file  → string content pura (SEM `{content, encoding}`;
+ *     encoding é sempre utf8 e a UI consome a string; se precisar expor encoding
+ *     no futuro, vira um canal separado)
+ *   - test-answer          → TestAnswerResult direto
+ *   - get-lesson           → StudyLesson direto;  get-findings → StudyFinding[]
+ *   - Demais canais devolvem o OBJETO natural do domínio:
+ *       resolve-skill-dir → { skillDir } · get-setups → { rows }
+ *       create-setup → { setupId, setupRoot } · new-session → { sessionId }
+ *       generate-lesson → { lesson, rejected } (o rejected é metadado do processo)
+ *       create-challenge → { challenge: {...} } · verify-challenge → `{...verdict}`
+ *       write/delete-workspace-file → { ok }.
  */
 import { promises as fsp } from 'node:fs';
 import * as path from 'node:path';
@@ -318,14 +335,16 @@ export function buildStudyHandlers(deps: StudyHandlerDeps): Map<string, IpcHandl
     return memory.lastFindings;
   });
 
-  map.set(STUDY_CHANNELS.LIST_CHALLENGES, async (_event, payload: unknown): Promise<{ challenges: ChallengeInfo[] }> => {
+  // Contrato (shared/ipc-contract.ts → ApiSchema): listChallenges devolve
+  // ChallengeInfo[] DIRETO (sem wrapper `{challenges}`) — a UI faz `.map()`.
+  map.set(STUDY_CHANNELS.LIST_CHALLENGES, async (_event, payload: unknown): Promise<ChallengeInfo[]> => {
     const p = (payload ?? {}) as Record<string, unknown>;
     const setupRoot =
       (typeof p.setupRoot === 'string' && p.setupRoot.trim()) ? p.setupRoot : memory.lastSetupRoot;
     if (!setupRoot) throw new Error('study: list-challenges requer `setupRoot` (ou um setup já usado).');
     const challenges = await listChallengesFrom(setupRoot);
     memory.lastSetupRoot = setupRoot;
-    return { challenges };
+    return challenges;
   });
 
   map.set(STUDY_CHANNELS.CREATE_CHALLENGE, async (_event, payload: unknown) => {
@@ -381,24 +400,27 @@ export function buildStudyHandlers(deps: StudyHandlerDeps): Map<string, IpcHandl
   });
 
   // ─── workspace files (FS restrito ao workspaceDir) ──────────────────────────
-  map.set(STUDY_CHANNELS.LIST_WORKSPACE_FILES, async (_event, payload: unknown): Promise<{ files: WorkspaceFile[] }> => {
+  // Contrato: listWorkspaceFiles devolve WorkspaceFile[] DIRETO (sem wrapper).
+  map.set(STUDY_CHANNELS.LIST_WORKSPACE_FILES, async (_event, payload: unknown): Promise<WorkspaceFile[]> => {
     const p = (payload ?? {}) as Record<string, unknown>;
     const workspaceDir =
       (typeof p.workspaceDir === 'string' && p.workspaceDir.trim()) ? p.workspaceDir : memory.lastSetupRoot;
     if (!workspaceDir) throw new Error('study: list-workspace-files requer `workspaceDir`.');
     const base = path.resolve(workspaceDir);
-    const list = await listFilesRecursive(base, base);
-    return { files: list };
+    return await listFilesRecursive(base, base);
   });
 
-  map.set(STUDY_CHANNELS.READ_WORKSPACE_FILE, async (_event, payload: unknown): Promise<{ content: string; encoding: 'utf8' }> => {
+  // Contrato: readWorkspaceFile devolve a STRING `content` DIRETA (sem wrapper
+  // `{content, encoding}` — o encoding é sempre utf8 e a UI (EditorPane /
+  // ChallengeView) consume a string pura. Se um dia for preciso expor o
+  // encoding, ele vira um canal separado.
+  map.set(STUDY_CHANNELS.READ_WORKSPACE_FILE, async (_event, payload: unknown): Promise<string> => {
     const p = (payload ?? {}) as Record<string, unknown>;
     const workspaceDir = (typeof p.workspaceDir === 'string' && p.workspaceDir.trim()) ? p.workspaceDir : memory.lastSetupRoot;
     if (!workspaceDir) throw new Error('study: read-workspace-file requer `workspaceDir`.');
     const resolved = resolveContainedWorkspacePath(workspaceDir, p.path);
     if ('error' in resolved) throw new Error(resolved.error);
-    const content = await fsp.readFile(resolved.path, 'utf8');
-    return { content, encoding: 'utf8' };
+    return await fsp.readFile(resolved.path, 'utf8');
   });
 
   map.set(STUDY_CHANNELS.WRITE_WORKSPACE_FILE, async (_event, payload: unknown): Promise<{ ok: boolean }> => {

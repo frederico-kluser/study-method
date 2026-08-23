@@ -19,12 +19,14 @@ import * as path from 'node:path';
 import { promises as fsp } from 'node:fs';
 import * as os from 'node:os';
 
-import { STUDY_CHANNELS, PI_CHANNELS, KEYS_CHANNELS } from '../shared/ipc-contract';
+import { STUDY_CHANNELS, PI_CHANNELS, KEYS_CHANNELS,
+  type ChallengeInfo, type WorkspaceFile, type TestAnswerResult, type PiExecuteResult } from '../shared/ipc-contract';
 import { buildMainSetup } from '../electron/main/main-setup';
 import { safeHandle, safeHandleMap, type IpcMainHandleLike } from '../electron/main/ipc/safeHandle';
-import { buildPiHandlers, type PiAgentServiceLike } from '../electron/main/ipc/pi-handlers';
+import { buildPiHandlers, registerPiHandlers, type PiAgentServiceLike } from '../electron/main/ipc/pi-handlers';
 import {
   buildStudyHandlers,
+  registerStudyHandlers,
   resolveContainedWorkspacePath,
   __resetStudyHandlersMemory,
   type RunnerLike,
@@ -302,9 +304,9 @@ describe('(d) workspace files (FS restrito)', () => {
     const runner = { resolveSkillDir: async () => '' } as unknown as RunnerLike;
 
     const handlers = buildStudyHandlers({ runner, lesson, emit: () => {} });
-    // leitura DENTRO → ok.
+    // leitura DENTRO → ok (devolve a STRING pura, sem wrapper).
     const read = await handlers.get(STUDY_CHANNELS.READ_WORKSPACE_FILE)!(undefined, { workspaceDir: ws, path: 'stub.py' });
-    assert.equal((read as { content: string }).content, '# stub');
+    assert.equal(read, '# stub');
     // traversal → NÃO lê fora (erro claro), mesmo que o alvo exista em /etc.
     await assert.rejects(
       async () => handlers.get(STUDY_CHANNELS.READ_WORKSPACE_FILE)!(undefined, { workspaceDir: ws, path: '../../etc/passwd' }),
@@ -321,19 +323,20 @@ describe('(d) workspace files (FS restrito)', () => {
     const runner = { resolveSkillDir: async () => '' } as unknown as RunnerLike;
     const handlers = buildStudyHandlers({ runner, lesson, emit: () => {} });
 
-    const list = (await handlers.get(STUDY_CHANNELS.LIST_WORKSPACE_FILES)!(undefined, { workspaceDir: ws })) as {
-      files: Array<{ path: string; dir: boolean; language?: string }>;
-    };
-    const stub = list.files.find((f) => f.path === 'stub.py');
+    const list = (await handlers.get(STUDY_CHANNELS.LIST_WORKSPACE_FILES)!(undefined, { workspaceDir: ws })) as
+      Array<{ path: string; dir: boolean; language?: string }>;
+    // Contrato: devolve WorkspaceFile[] DIRETO (sem wrapper {files}).
+    assert.ok(Array.isArray(list), 'list-workspace-files deve devolver array');
+    const stub = list.find((f) => f.path === 'stub.py');
     assert.ok(stub);
     assert.equal(stub.dir, false);
     assert.equal(stub.language, 'python');
-    assert.ok(list.files.some((f) => f.path === 'tests' && f.dir));
+    assert.ok(list.some((f) => f.path === 'tests' && f.dir));
 
     const written = (await handlers.get(STUDY_CHANNELS.WRITE_WORKSPACE_FILE)!(undefined, { workspaceDir: ws, path: 'novo.mjs', content: 'const a=1;' })) as { ok: boolean };
     assert.equal(written.ok, true);
-    const readBack = (await handlers.get(STUDY_CHANNELS.READ_WORKSPACE_FILE)!(undefined, { workspaceDir: ws, path: 'novo.mjs' })) as { content: string };
-    assert.equal(readBack.content, 'const a=1;');
+    const readBack = (await handlers.get(STUDY_CHANNELS.READ_WORKSPACE_FILE)!(undefined, { workspaceDir: ws, path: 'novo.mjs' }));
+    assert.equal(readBack, 'const a=1;');
   });
 });
 
@@ -401,6 +404,74 @@ describe('(f) keys-handlers: chave digitada', () => {
     const result = (await handler(undefined, 'sk-digitada')) as { isValid: boolean };
     assert.equal(result.isValid, true);
     assert.deepEqual(headersSeen, ['Bearer sk-digitada'], 'fetch deve carregar a chave digitada no Authorization');
+  });
+});
+
+// ─── (g) contrato de shape dos retornos IPC (regressão BLOCK 1) ─────────────
+// Os handlers DEVOLVEM o tipo tipado do contrato DIRETO (sem wrapper):
+//   list-challenges → ChallengeInfo[] ; list-workspace-files → WorkspaceFile[]
+//   read-workspace-file → string (content pura) ; test-answer → TestAnswerResult
+//   pi:execute → PiExecuteResult.
+// Capturamos via ipcMain fake (register*Handlers) para espelhar o runtime real.
+describe('(g) contrato de shape dos retornos IPC', () => {
+  it('estudo: list-challenges→ChallengeInfo[] / list-workspace-files→WorkspaceFile[] / read-workspace-file→string', async () => {
+    const ws = await fsp.mkdtemp(path.join(os.tmpdir(), 'study-shape-'));
+    await fsp.mkdir(path.join(ws, 'challenges', '0001-soma'), { recursive: true });
+    await fsp.writeFile(
+      path.join(ws, 'challenges', '0001-soma', 'meta.json'),
+      JSON.stringify({ challenge_id: '0001', title: 'Soma', language: 'python', verdict: 'approved' }),
+      'utf8',
+    );
+    await fsp.writeFile(path.join(ws, 'stub.py'), '# stub', 'utf8');
+    const lesson = { generateLesson: async () => ({ lesson: {}, rejected: [] }), testAnswer: async () => ({}), listSetups: async () => ({ rows: [] }), resolveSkillDirInfo: async () => ({ skillDir: '' }) } as unknown as LessonServiceLike;
+    const runner = { resolveSkillDir: async () => '' } as unknown as RunnerLike;
+
+    const ipc = makeFakeIpc();
+    await registerStudyHandlers({ runner, lesson, emit: () => {} }, ipc);
+
+    // list-challenges → ARRAY (não {challenges}).
+    const challenges = await ipc.handlers.get(STUDY_CHANNELS.LIST_CHALLENGES)!(undefined, { setupRoot: ws });
+    assert.ok(Array.isArray(challenges), 'study:list-challenges deve devolver ARRAY');
+    assert.equal((challenges as ChallengeInfo[])[0].challengeId, '0001');
+
+    // list-workspace-files → ARRAY (não {files}).
+    const files = await ipc.handlers.get(STUDY_CHANNELS.LIST_WORKSPACE_FILES)!(undefined, { workspaceDir: ws });
+    assert.ok(Array.isArray(files), 'study:list-workspace-files deve devolver ARRAY');
+    assert.ok((files as WorkspaceFile[]).some((f) => f.path === 'stub.py'));
+
+    // read-workspace-file → STRING content pura (não {content, encoding}).
+    const content = await ipc.handlers.get(STUDY_CHANNELS.READ_WORKSPACE_FILE)!(undefined, { workspaceDir: ws, path: 'stub.py' });
+    assert.equal(typeof content, 'string', 'study:read-workspace-file deve devolver string');
+    assert.equal(content, '# stub');
+  });
+
+  it('estudo: test-answer devolve TestAnswerResult direto', async () => {
+    const ipc = makeFakeIpc();
+    const lesson = { generateLesson: async () => ({ lesson: {}, rejected: [] }), testAnswer: async () => ({ success: true, testsRun: 3, expectedTests: 3, passed: true, output: 'ok' }), listSetups: async () => ({ rows: [] }), resolveSkillDirInfo: async () => ({ skillDir: '' }) } as unknown as LessonServiceLike;
+    const runner = { resolveSkillDir: async () => '' } as unknown as RunnerLike;
+    await registerStudyHandlers({ runner, lesson, emit: () => {} }, ipc);
+
+    const ta = await ipc.handlers.get(STUDY_CHANNELS.TEST_ANSWER)!(undefined, { challengeDir: '/tmp/c' });
+    assert.equal((ta as TestAnswerResult).passed, true);
+    assert.equal((ta as TestAnswerResult).testsRun, 3);
+    assert.equal(Object.prototype.hasOwnProperty.call(ta, 'passed'), true);
+  });
+
+  it('pi: execute devolve PiExecuteResult direto (sem wrapper)', async () => {
+    const ipcPi = makeFakeIpc();
+    const fakeService: PiAgentServiceLike = {
+      execute: async () => ({ success: true, output: 'oi', executionTimeMs: 5 }),
+      abort: () => {},
+    };
+    await registerPiHandlers({ getService: async () => fakeService, emit: () => {} }, ipcPi);
+
+    const piRes = await ipcPi.handlers.get(PI_CHANNELS.EXECUTE)!(undefined, {
+      prompt: 'x',
+      modelConfig: { provider: 'deepseek', model: 'm' },
+    });
+    assert.equal((piRes as PiExecuteResult).success, true);
+    assert.equal((piRes as PiExecuteResult).executionTimeMs, 5);
+    assert.equal(Object.prototype.hasOwnProperty.call(piRes, 'executionTimeMs'), true);
   });
 });
 
