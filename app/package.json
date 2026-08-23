@@ -1,0 +1,51 @@
+{
+  "name": "study-method-gui",
+  "private": true,
+  "version": "0.1.0",
+  "description": "GUI Electron para o tutor study-method — LLM local (node-llama-cpp), editor de código sem autocomplete, pesquisa Brave e pi coding agent (DeepSeek v4 flash 0731).",
+  "author": "study-method",
+  "main": "./out/main/index.js",
+  "scripts": {
+    "dev": "electron-vite dev",
+    "build": "electron-vite build",
+    "preview": "electron-vite preview",
+    "lint": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.node.json",
+    "test": "bash tools/t.sh tests",
+    "clean": "rm -rf out dist"
+  },
+  "dependencies": {
+    "@codemirror/autocomplete": "^6.20.3",
+    "@codemirror/lang-javascript": "^6.2.5",
+    "@codemirror/lang-json": "^6.0.2",
+    "@codemirror/lang-markdown": "^6.5.0",
+    "@codemirror/lang-python": "^6.2.1",
+    "@codemirror/state": "^6.5.2",
+    "@codemirror/view": "^6.36.5",
+    "@mariozechner/pi-ai": "0.64.0",
+    "@mariozechner/pi-coding-agent": "0.64.0",
+    "@uiw/codemirror-theme-dracula": "^4.25.10",
+    "@uiw/react-codemirror": "^4.25.10",
+    "@xterm/addon-fit": "^0.11.0",
+    "@xterm/xterm": "^6.0.0",
+    "lucide-react": "^0.546.0",
+    "node-llama-cpp": "3.18.0",
+    "react": "^19.0.1",
+    "react-dom": "^19.0.1",
+    "react-markdown": "^9.5.0",
+    "systeminformation": "^5.23.0",
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "@electron-toolkit/tsconfig": "^1.0.1",
+    "@types/node": "^22.14.0",
+    "@types/react": "^19.2.17",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^5.0.4",
+    "electron": "33.2.0",
+    "electron-builder": "^25.1.8",
+    "electron-vite": "^5.0.0",
+    "tsx": "^4.21.0",
+    "typescript": "~5.8.2",
+    "vite": "^6.2.3"
+  }
+}

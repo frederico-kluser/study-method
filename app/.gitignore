@@ -1,0 +1,5 @@
+# app/ — GUI Electron do study-method
+node_modules/
+out/
+dist/
+*.tsbuildinfo

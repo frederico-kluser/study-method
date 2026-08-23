@@ -36,3 +36,7 @@ Thumbs.db
 *~
 .idea/
 .vscode/
+
+# app/ — GUI Electron (out/ e dist/ de build)
+app/out/
+app/dist/
