@@ -1,14 +1,22 @@
-# Fragmentos do BUILD_SPEC
+# `BUILD_SPEC.md` e as suas fontes
 
-Cada sub-tarefa da onda 3 entrega **o fragmento do que acabou de implementar** — quem escreveu o
-código é quem sabe descrevê-lo sem alucinar. A onda 4 costura tudo num `BUILD_SPEC.md` **único**
-(o usuário pediu um documento), e `tests/spec-conformance.sh` verifica mecanicamente que o
-documento não divergiu do repositório.
+O entregável é **`BUILD_SPEC.md`, na raiz do repositório**: um arquivo único, ~8.100 linhas, que
+explica como a skill deve ser construída, em detalhe suficiente para instruir uma LLM. Este
+diretório guarda as **fontes** dele.
 
-Regra de cada fragmento: **contrato, não racional**. O que o artefato recebe, o que produz, o
-algoritmo e as condições de erro. O porquê já vive no `docs/` do repositório.
+**Por que um arquivo só.** Foi o pedido do dono do projeto, e há razão técnica: referência aninhada
+faz a própria LLM ler pela metade — ela abre o primeiro nível, age com o que leu, e o segundo nível
+só é aberto se houver um segundo turno em que alguém se lembre dele. É a mesma razão pela qual a
+skill tem um nível só de `references/` (`BUILD_SPEC.md` §8.5).
 
-| Arquivo | Dono (sub-tarefa) | Cobre |
+## As fontes, em duas camadas
+
+| Camada | Onde | O que é |
+|---|---|---|
+| **Fragmentos** | `NN-*.md` neste diretório | O que cada sub-tarefa da onda 3 entregou sobre **o que acabou de implementar** — quem escreveu o código é quem sabe descrevê-lo sem alucinar. Regra: **contrato, não racional**. |
+| **Blocos** | `blocks/*.md` | Os 9 blocos temáticos escritos a partir dos fragmentos, mais a abertura (`_abertura.md`) e o fecho (`_fecho.md`) que costuram o documento. Um bloco = uma Parte. |
+
+| Fragmento | Dono (sub-tarefa) | Cobre |
 |---|---|---|
 | `10-decisoes.md` | 3.0a/b/c | catálogo de decisões, 3 camadas, protocolo de entrevista |
 | `20-skill-md.md` | 3.1 | frontmatter, roteador, regras permanentes |
@@ -23,3 +31,58 @@ algoritmo e as condições de erro. O porquê já vive no `docs/` do repositóri
 | `70-render.md` | 3.7 | `render-plot.py`, spec JSON, 4 saídas |
 | `80-gate.md` | 3.8 | `tests/*`, invariantes verificadas |
 | `90-researchs.md` | 3.9 | formato do destilado, proveniência |
+
+| Bloco | Vira | Cobre |
+|---|---|---|
+| `blocks/_abertura.md` | abertura + sumário navegável | o que é o arquivo, o pedido original, por onde começar |
+| `blocks/00-intro.md` | **Parte 0** | pedido como critérios de aceitação, as três contradições, ordem de construção, os quatro gates, como ler |
+| `blocks/01-arquitetura.md` | **Parte 1** | topologia, árvore canônica, máquina de 9 passos, vocabulários, exit codes, REQUEST/APPLY, interface de `lib/`, registry |
+| `blocks/02-memoria.md` | **Parte 2** | as três camadas, memória procedimental, bitemporalidade, digest, compactação, os três schemas verbatim, privacidade |
+| `blocks/03-tdd.md` | **Parte 3** | anatomia do desafio, protocolo de validação em 8 passos, catálogo de mutação, armadilhas de falso positivo, sandbox |
+| `blocks/04-proficiencia.md` | **Parte 4** | máquina de estados do aluno, sinais, honestidade epistêmica, repetição espaçada, contrato de escrita |
+| `blocks/05-viz.md` | **Parte 5** | as 4 saídas obrigatórias, contrato de `render-plot.py`, os 4 bugs do protótipo, acessibilidade |
+| `blocks/06-pedagogia.md` | **Parte 6** | `C-*`, `AS-*`, `AN-*`, `ESC-*`, `ERR-*`, `MEM-*`, o que o projeto não afirma, `researchs/`, bootstrap |
+| `blocks/07-scripts-templates.md` | **Parte 7** | os 19 scripts, regras de biblioteca, algoritmos determinísticos, contrato dos templates |
+| `blocks/08-gate-e-skill.md` | **Parte 8** | `SKILL.md` (frontmatter, corpo, orçamento), os quatro gates, limitações declaradas |
+| `blocks/_fecho.md` | fecho | o teste do documento: o que uma LLM reconstrói só com ele, e o que precisa buscar no repositório |
+
+## Como `BUILD_SPEC.md` é produzido a partir dos blocos
+
+Concatenação na ordem `_abertura` → `00` … `08` → `_fecho`, mais três coisas que só existem no
+arquivo montado:
+
+1. **O sumário navegável**, derivado dos cabeçalhos `#`/`##` de cada bloco (ignorando o que está
+   dentro de bloco de código).
+2. **As transições entre partes**, uma linha de citação antes de cada Parte de 1 a 8, dizendo o que
+   a anterior fechou e o que a seguinte abre.
+3. **O Apêndice A**, gerado de `skills/study-method/assets/decisions.json` filtrando
+   `audience ∈ {builder, both}` **e** `status == open` — as mesmas 48 decisões que aparecem como
+   marcadores no corpo, agrupadas por momento da construção, com a seção `§` de cada marcador
+   resolvida automaticamente.
+
+Uma substituição textual acontece na montagem: os placeholders de template, escritos nos blocos com
+os delimitadores reais, aparecem em `BUILD_SPEC.md` como `«NOME»`. O motivo é o gate de qualidade
+(`L-03`), que reprova placeholder vazado fora de um `*.tmpl` e não distingue "documentar a sintaxe"
+de "esquecer de substituir" — `docs/build-spec/**` está na exclusão declarada dele, a raiz do
+repositório não. A convenção está explicada em `BUILD_SPEC.md` §0.7.5, e a conversão é literal.
+
+## Os 48 marcadores, e a regra de tudo-ou-nada
+
+`BUILD_SPEC.md` carrega **48** marcadores `**PERGUNTE AO USUÁRIO (D-NNN)**`, um por decisão de
+`audience ∈ {builder, both}` com `status == open`. A invariante **`G-12d`** de `tests/validate.sh`
+verifica isso mecanicamente **sobre `docs/build-spec/`** — por isso os marcadores vivem nos blocos, e
+não só no arquivo montado.
+
+⚠ **Marcar pela metade é pior que não marcar**, e o gate reflete isso: com zero marcadores, `G-12d` é
+`PEND` ("a passada ainda não começou"); com alguns e não todos, é `FAIL`. Ao acrescentar uma decisão
+`builder`/`both` ao catálogo, o marcador dela entra no bloco correspondente **no mesmo commit**.
+
+## Regra de escrita dos fragmentos e dos blocos
+
+**Contrato, não racional.** O que o artefato recebe, o que produz, o algoritmo e as condições de
+erro. O porquê vive nos documentos normativos do repositório (`docs/00`…`docs/13`) e é citado **por
+caminho**, nunca parafraseado — paráfrase de contrato passa a mentir sobre ele.
+
+⏳ **Dívida declarada:** `tests/spec-conformance.sh`, o verificador mecânico documento × disco, ainda
+não existe. Até ele existir, a auditoria de `BUILD_SPEC.md` contra o repositório é leitura humana
+contra os caminhos citados.

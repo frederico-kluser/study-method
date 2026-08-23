@@ -1,6 +1,6 @@
-# Bloco 5 — Visualização: como o aluno VÊ o que está aprendendo
+# Parte 5 — Visualização: como o aluno VÊ o que está aprendendo
 
-## Sumário
+## Sumário da Parte 5
 
 Matemática é ensinada **escrevendo código**, e o resultado precisa aparecer — o renderizador é peça
 de arquitetura, não enfeite. Este bloco transcreve por que o default é um emissor de SVG em
@@ -256,6 +256,11 @@ render-plot.py [--spec CAMINHO|-] [--out-dir DIR] [--basename NOME]
 **Não existe flag de dados** (`--x`, `--y`, `--expr`): toda a entrada é o JSON (D5). Isso mantém uma
 superfície de CLI estável e **um só caminho de validação**.
 
+> **PERGUNTE AO USUÁRIO (D-V07)** — PNG é gerado sempre ou só sob pedido?
+> SVG e HTML já cobrem ver e imprimir. PNG é para colar a figura em outro lugar — o documento do trabalho, o slide. Gerar sempre custa um rasterizador e um arquivo a mais em toda figura, para um caso que aparece de vez em quando.
+> **Opções:** **(a)** só com `--png` — não paga custo por um caso raro; quem quer colar precisa lembrar da flag · **(b)** sempre que houver rasterizador — PNG pronto quando precisar, e um arquivo a mais em toda figura · **(c)** sempre, falhando se não houver rasterizador — saída uniforme, e reprova o gráfico inteiro por causa de um formato opcional
+> **Default:** **(a)** · **Custo de mudar depois: cheap**
+
 ⚑ Erro de CLI sai **1** (problema de forma), **não 2** — `argparse` sai 2 por padrão, e 2 aqui
 significaria "dados inválidos", mandando o tutor investigar o programa do aluno por causa de uma flag
 digitada errada.
@@ -290,6 +295,11 @@ não há `takeaway` a escrever, a figura não devia estar sendo gerada.
 válida contra o schema renderiza — e rebaixa `x_label`/`y_label` a `warning` explícito. Quem quiser a
 regra estrita muda uma linha (`REQUIRED_ROOT`).
 
+> **PERGUNTE AO USUÁRIO (D-V13)** — Quais são as chaves obrigatórias do `spec` do gráfico, e o que `categories` e `force_legend` significam?
+> Um código de erro chamado `spec_missing_key` que não cobrava chave nenhuma é um alarme sem sensor. A lista fechada é o sensor.
+> **Opções:** **(a)** lista fechada — `spec_missing_key` passa a significar alguma coisa, e um `force_legend` que só força nunca surpreende escondendo; adicionar tipo de gráfico novo mexe na lista · **(b)** indefinidas — nenhuma restrição, e o código de erro existe sem nunca disparar
+> **Default:** **(a)** · **Custo de mudar depois: cheap**
+
 ### 5.3.3 A entrada — a série
 
 `label` (string não vazia) é obrigatório em **toda** série ⇒ 1 `spec_missing_key`. Uma série sem nome
@@ -315,6 +325,11 @@ quantas.
 
 > ⚠️ **`eval` restrito NÃO é sandbox.** `expr` só pode vir do tutor, **nunca de texto colado pelo
 > aluno** sem leitura (D-V06).
+
+> **PERGUNTE AO USUÁRIO (D-V06)** — O renderizador aceita `expr` (string avaliada com `eval` restrito) ou exige todos os pontos calculados?
+> `expr` é deixar o desenhista calcular a curva sozinho: economiza muito token para `y = f(x)`. O risco é óbvio — texto colado pelo aluno virando código executado.
+> **Opções:** **(a)** aceitar `expr` com namespace restrito, só quando vem do tutor — a restrição é de **origem**, que é onde o risco mora; depende de o chamador respeitar a origem, e o renderizador não tem como verificar · **(b)** aceitar `expr` de qualquer origem — mais flexível, e texto colado pelo aluno vira código executado · **(c)** só `points` / `x`,`y` — zero avaliação de expressão, e uma curva de 200 pontos vira 200 pares no payload
+> **Default:** **(a)** · **Custo de mudar depois: cheap**
 
 ### 5.3.4 A entrada — `bar`
 
@@ -342,7 +357,8 @@ quantas.
  "description_text": "...", "ascii_text": "...", "warnings": ["..."],
  "stats": {"series": 2, "points": 600, "points_finite": 599, "undefined_samples": 1,
            "x_limits": [a, b], "y_limits": [c, d], "width": 760, "height": 460,
-           "png_tool": "rsvg-convert"}}
+           "png_tool": "rsvg-convert"}
+}
 ```
 
 Chaves de `outputs` **só existem para arquivos realmente gravados**; caminhos são **absolutos**. Em
@@ -633,6 +649,11 @@ instalado. O que dá para fazer **hoje**, sem instalar nada:
 **Regra transversal**: prefira sempre plotar **o que o código do aluno produziu**, não o que o tutor
 calculou por fora. **Um gráfico torto que ele produziu ensina mais que um gráfico certo que ele apenas
 assistiu.**
+
+> **PERGUNTE AO USUÁRIO (D-V10)** — Quando os dados do gráfico vêm do programa do aluno, exigir JSON ou parsear a saída de texto?
+> Pedir para o programa gravar JSON é pedir a nota fiscal em vez de um bilhete escrito à mão. Gravar dado estruturado é parte do que se aprende; parsear texto livre falha em silêncio no dia em que o aluno muda o `print`.
+> **Opções:** **(a)** JSON (ou CSV simples) — falha ruidosamente, nunca em silêncio, e gravar dado estruturado é parte do aprendizado; custa uma linha a mais no programa do aluno · **(b)** parsear texto livre — nenhuma mudança no programa dele, e frágil: muda o `print` e o gráfico sai errado sem aviso
+> **Default:** **(a)** · **Custo de mudar depois: cheap**
 
 ---
 

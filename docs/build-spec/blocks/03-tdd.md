@@ -1,6 +1,6 @@
-# Bloco 3 — Desafios com TDD validado
+# Parte 3 — Desafios com TDD validado
 
-## Sumário
+## Sumário da Parte 3
 
 Este bloco é o coração técnico do produto: como um desafio nasce, quais artefatos ele tem, e **como
 o teste é provado correto por execução antes de o aluno vê-lo**. Contém a reformulação honesta do
@@ -78,7 +78,7 @@ de uma negação** no `README.md.tmpl` do desafio.
 
 ### 3.1.4 "Validado pelo agente de código" — a leitura intuitiva é sinal fraco
 
-Ver §3.2.
+Ver §3.2. A visão de conjunto das três contradições entre o pedido e a realidade está em §0.3.
 
 ---
 
@@ -170,6 +170,11 @@ challenges/0007-fatorial-iterativo/
 | **DES-7** | o tutor jamais lê, cita ou parafraseia conteúdo de `.solution/` numa resposta — nem "só a ideia geral". A revelação ocorre só no último degrau da escada de dicas, a pedido explícito, marcando `solution_revealed: true` e `solution_revealed_at`; o desafio passa a contar como **ensinado**, não resolvido |
 | **`meta.json` é visível de propósito** | é lá que mora a lista de cenários nomeados, que é o que o aluno tem direito de saber. Os campos de validação também: ver um mutation score de 0,93 com um sobrevivente classificado como equivalente é **transparência**, não vazamento — o sobrevivente descreve uma mudança de uma linha na referência, não a referência |
 | **Exceção do sobrevivente revelador** | quando o `after` do mutante é praticamente a solução, `before`/`after` são gravados como `"<omitido: revelaria a solução>"` e a justificativa fica em `.solution/`. O score continua visível |
+
+> **PERGUNTE AO USUÁRIO (D-C09)** — Os mutantes sobreviventes ficam visíveis no manifesto que o aluno pode ler?
+> O mutante sobrevivente é um bug que o teste não pegou — e mostrar o código dele às vezes entrega a solução de bandeja.
+> **Opções:** **(a)** omitir `before`/`after` quando revelarem a solução, mantendo o score visível — transparência sobre a qualidade do teste sem entregar a resposta; exige julgar caso a caso o que é revelador · **(b)** sempre visíveis — transparência total, e ler o manifesto vira atalho para a solução · **(c)** manifesto inteiro oculto — zero vazamento, e o aluno não consegue nem saber se o teste dele era bom
+> **Default:** **(a)** · **Custo de mudar depois: cheap**
 
 ### 3.3.3 Por que as alternativas existem, e quantas
 
@@ -401,6 +406,16 @@ sobrevivente nomeia um cenário ausente.
 que dar a mesma amostra, senão o score deixa de ser comparável entre tentativas de regeneração.
 Amostrar reduz a força do passo 4 e isso vai no `detail`; **não** reduz o limiar.
 
+> **PERGUNTE AO USUÁRIO (D-C03)** — Qual é o limiar de mutation score para aprovar um desafio gerado?
+> É o controle de qualidade do gabarito: o motor estraga o código de propósito e vê se o teste percebe. Exigir 100% gera regeneração infinita, porque alguns estragos não mudam comportamento nenhum.
+> **Opções:** **(a)** 0,90, com os mutantes equivalentes fora do denominador — separa com folga o teste fraco (0,750) do forte (1,000) e reprova quem perdeu dois cenários em 17; ainda deixa passar uma suíte com um cenário a menos · **(b)** 0,80 — menos regeneração, e não reprova uma suíte que perdeu dois cenários · **(c)** 1,00 — rigor máximo, e regeneração infinita em desafios com muitos mutantes equivalentes
+> **Default:** **(a)** · **Custo de mudar depois: cheap**
+
+> **PERGUNTE AO USUÁRIO (D-C08)** — Amostragem de mutantes em linguagens compiladas: quando parar de testar todos?
+> Cada mutante compilado é um build inteiro. Um desafio Rust com 17 mutantes a 4 segundos de build passa de um minuto só nesse passo, e o aluno fica olhando o cursor.
+> **Opções:** **(a)** amostrar acima de 120 s de build total, com amostra determinística — mesmo desafio, mesmo score, sempre, e o critério fica gravado em pt-BR; o score amostrado não é comparável com o completo · **(b)** nunca amostrar — score sempre completo, ao custo de minutos de espera em qualquer desafio compilado · **(c)** limitar sempre a k=8 — custo previsível, e amostra até quando testar tudo custaria 3 segundos
+> **Default:** **(a)** · **Custo de mudar depois: cheap**
+
 ### 3.4.6 PASSO 5 — o teste DEVE ser DETERMINÍSTICO
 
 | Item | Conteúdo |
@@ -464,6 +479,11 @@ SENÃO                                      -> approved
 
 `validation.generation_attempts` sobe a cada execução; máximo **3** (D-C10 — TestGen-LLM mostra
 aproveitamento de 1:20 em produção; insistir além disso custa tempo do aluno esperando).
+
+> **PERGUNTE AO USUÁRIO (D-C10)** — Quantas tentativas de regeneração antes de desistir de um desafio ruim?
+> É quantas vezes vale reescrever a mesma prova antes de trocar de prova. A pesquisa em produção mostra aproveitamento perto de 1 em 20 nesse tipo de geração.
+> **Opções:** **(a)** 3 — corta a espera antes de ela virar minutos, e trocar de desafio no mesmo conceito custa menos que consertar um ruim; às vezes a quarta tentativa teria dado certo · **(b)** 1 — espera mínima, e descarta desafio que sairia bom na segunda · **(c)** 5 — mais chance de aproveitar a ideia original, com o aluno esperando · **(d)** sem limite — nunca desiste, e pode não terminar nunca
+> **Default:** **(a)** · **Custo de mudar depois: cheap**
 
 **Ordem de gravação**: o documento inteiro é montado em memória, **validado contra o schema** e só
 então gravado por `sm_atomic_write`. Validar depois de gravar deixaria em disco um `meta.json` que a
@@ -971,6 +991,16 @@ Se o toolchain da linguagem escolhida não estiver instalado (D-C07), a resposta
 ideia de desafio numa das linguagens que rodam sem instalar nada**, dizendo o motivo e oferecendo o
 comando de instalação como alternativa — nunca gerar mesmo assim e deixar quebrar.
 
+> **PERGUNTE AO USUÁRIO (D-V16)** — Linguagem com toolchain parcial (Java sem Maven/Gradle, C++ sem cmake): caminho zero-install ou pedir o build system?
+> Para compilar uma função, `javac` e `g++` bastam. A primeira execução de `mvn test` baixa meia internet para um exercício de vinte linhas — e o aluno só queria testar um fatorial.
+> **Opções:** **(a)** zero-install (`-ea`, `g++` direto), mencionando o build system só se o aluno pedir — funciona na máquina como ela está hoje; não ensina o build system que ele vai encontrar em projeto real · **(b)** pedir Maven/Gradle/cmake de saída — mais parecido com projeto real, ao custo de minutos de download antes do primeiro teste
+> **Default:** **(a)** · **Custo de mudar depois: cheap**
+
+> **PERGUNTE AO USUÁRIO (D-V17)** — A detecção de toolchains roda uma vez no setup ou a cada sessão?
+> Um `command -v` custa milissegundos e pega os dois casos que quebram a aula: "instalei ontem" e "desinstalei sem lembrar". Redetectar tudo a cada sessão seria varrer 19 linguagens para confirmar uma.
+> **Opções:** **(a)** no setup, revalidando só a linguagem em uso a cada sessão — milissegundos por sessão e pega os dois casos sem varrer tudo; a matriz completa pode ficar velha até a próxima varredura · **(b)** uma vez no setup — custo zero por sessão, e a aula quebra no dia em que a linguagem sumiu · **(c)** a cada sessão, tudo — sempre atual, e varre 19 linguagens para usar uma
+> **Default:** **(a)** · **Custo de mudar depois: cheap**
+
 ---
 
 ## 3.9 O `runner.sh` gerado — ponto de entrada único
@@ -1022,6 +1052,11 @@ fi
 | D10 | `EXIT_BRUTO` e `DECORRIDO_MS` ecoados no stdout | a normalização 0/1/2/3 não pode apagar o diagnóstico (134 = SIGABRT, 5 = zero testes, 101 = Rust) |
 | D11 | limpeza de `__pycache__` antes de rodar | mutante do mesmo tamanho reusaria o `.pyc` antigo (§3.6) |
 | D12 | `--only <cenario>` traduz para o nome **qualificado** e fixa `ESPERADO=1` | o nome curto em Rust devolve "N filtered out" com exit **0**. Cenário inexistente → `66`, nunca um verde |
+
+> **PERGUNTE AO USUÁRIO (D-V15)** — O guard "testes executados > 0" roda sempre, ou só quando o exit for 0?
+> É conferir se a prova tinha questões antes de comemorar a nota. Uma suíte que não rodou teste nenhum sai com exit 0 em várias linguagens — e um `grep` custa nada.
+> **Opções:** **(a)** sempre, antes e depois — única defesa contra a suíte vazia que sai com sucesso, ao custo de duas verificações · **(b)** só quando o exit for 0 — metade do custo, e perde o caso do erro que mascarou uma suíte vazia · **(c)** só na geração do desafio — verifica uma vez só, e não pega o dia em que o aluno quebrou a descoberta de testes
+> **Default:** **(a)** · **Custo de mudar depois: cheap**
 
 ### 3.9.2 `TEST_CMD` e `COUNT_PROBE` por linguagem
 
@@ -1126,6 +1161,11 @@ está no enunciado. Se o modelo tivesse errado a derivada analítica, o teste co
 | `reference_impl` é obrigatória em **todo** desafio | e, para desafio matemático, **mais uma** das demais famílias |
 | Property-based testing (Hypothesis/fast-check/proptest) fica **fora do padrão** | escrever um bom gerador é habilidade mais avançada que resolver o exercício, e contra-exemplo encolhido confunde iniciante. As invariantes acima usam `random.Random(seed)` da stdlib e um laço — zero dependência, zero API nova. Opcional só para `advanced` (D-C04) |
 
+> **PERGUNTE AO USUÁRIO (D-C04)** — Testes baseados em propriedade (Hypothesis, fast-check, proptest) entram nos desafios?
+> É a diferença entre "testei com 2 e com 7" e "testei com dez mil números que a máquina inventou". Poderoso — e escrever um bom gerador é mais difícil que resolver o exercício.
+> **Opções:** **(a)** opcional, só para nível avançado e desafios de propriedade — as invariantes com semente fixa dão quase o mesmo poder com zero dependência; exige instalar biblioteca e ensinar a API quando ligado · **(b)** nunca — zero dependência sempre, e fecha uma ferramenta legítima para quem já sabe usá-la · **(c)** padrão para desafios de matemática — casa bem com invariantes, e o iniciante encontra contraexemplo encolhido sem entender o que aconteceu
+> **Default:** **(a)** · **Custo de mudar depois: moderate**
+
 ---
 
 ## 3.11 ⭐ REQUEST/APPLY — a única etapa em que o modelo opina
@@ -1142,12 +1182,8 @@ arruína o denominador do mutation score.
 
 ### 3.11.2 O padrão
 
-```
-1. o script roda até onde é determinístico;
-2. escreve o PEDIDO em STDOUT e sai com EXIT 10 — SEM ALTERAR NADA EM DISCO;
-3. o modelo lê, produz a RESPOSTA e re-invoca com --apply <resposta.json>;
-4. o script VALIDA a resposta e SÓ ENTÃO aplica, atomicamente.
-```
+Os quatro passos, os dois envelopes e as regras `RA-1`…`RA-7` estão em **§1.6** e valem sem alteração
+aqui. O que segue é o que é **específico do desafio**.
 
 | Propriedade | Como se sustenta |
 |---|---|
@@ -1238,6 +1274,16 @@ desambigua o 137 — e matar o grupo de processos quando não há PID namespace.
 **Duas fases**, decisão de projeto: `prepare` roda **com** rede (resolver dependências, com
 confirmação do aluno e mostrando o que baixa); `test` roda **sem** rede, **sempre**.
 
+⏳ **Quatro parâmetros da pilha são medidos, não escolhidos por gosto:**
+
+| Parâmetro | Valor canônico | O que a medição mostrou |
+|---|---|---|
+| `TasksMax` | **512** (`SM_SANDBOX_TASKS`) | `128` **derruba `go test`**: o cgroup conta *threads*, e o Go abre um processo de compilação por CPU |
+| `OOMPolicy` | **`continue`** — obrigatório | Sem ele o systemd para o **escopo inteiro** no OOM: o código vira **143** e `memory.events.oom_kill` some antes de ser lido, então a desambiguação do 137 perde a evidência do estouro. Existe a partir do systemd 243, e por isso é sondado à parte: ausente, a camada entra sem ele e **o relato ao aluno declara a perda** |
+| confinamento de escrita | **`bwrap --unshare-all`** substitui `unshare` quando presente | `--unshare-all` já traz os namespaces que o `unshare` trazia; o `unshare` sozinho **não confina escrita** (o processo grava em `$HOME` sem erro). `bwrap` exige os quatro `--symlink` (`usr/bin`, `usr/sbin`, `usr/lib`, `usr/lib64`) ou a sonda falha calada |
+| caches de toolchain | remapeados para **`/sm/…`**, com a variável reapontada (`CARGO_HOME`, `RUSTUP_HOME`, `GOMODCACHE`, `npm_config_cache`) | Montar no **caminho original** faz o `bwrap` **criar `/home/<aluno>` dentro do sandbox**, e o diretório criado é **gravável**: o aluno vê a escrita em `$HOME` funcionar e leva a lição errada. Com o remapeamento, `/home` não existe lá dentro e a tentativa falha com "arquivo não encontrado" — que é a verdade. **Nada é montado sob `/home`** |
+
+
 ### 3.12.2 A degradação, por plataforma
 
 | Camada | Linux completo | Linux sem systemd/delegação | Linux sem user namespace | macOS |
@@ -1255,6 +1301,16 @@ confirmação do aluno e mostrando o que baixa); `test` roda **sem** rede, **sem
 Sem `--language`, `ulimit -v` **não** é aplicado: aplicá-lo às cegas quebraria Node e JVM
 (**[VERIFICADO]**: Node 24 falha com `-v 512M` e `-v 1G`, exit 133; só sobe com 2G). **Ausência de
 ferramenta nunca vira instalação: degrada e declara.**
+
+> **PERGUNTE AO USUÁRIO (D-S11)** — Como limitar a memória do processo de teste no Linux?
+> É o disjuntor: um laço que aloca sem parar não pode derrubar a máquina inteira do aluno. `ulimit -v` funciona para algumas linguagens e quebra outras — Node e JVM reservam espaço virtual enorme na largada e morrem antes de começar. Verificado quebrando.
+> **Opções:** **(a)** `systemd-run --user --scope -p MemoryMax=` quando disponível, com `ulimit -v` só para C/C++/Python/Go — limita memória de verdade sem quebrar runtime nenhum; depende de systemd, e fora dele cai para o fallback parcial · **(b)** `ulimit -v` para todos — funciona em qualquer shell POSIX, e Node e JVM morrem na largada · **(c)** sem limite fora do Docker — nada quebra, e um exercício com vazamento trava a máquina do aluno
+> **Default:** **(a)** · **Custo de mudar depois: cheap**
+
+> **PERGUNTE AO USUÁRIO (D-S08)** — Usar `bwrap` no Linux quando disponível — ele confina a escrita, mas isola o `$HOME`?
+> `bwrap` é a sala com paredes: o código do exercício não alcança o resto da máquina. O problema é que algumas linguagens guardam o cache delas no `$HOME`, e a sala também isola isso — o compilador some junto.
+> **Opções:** **(a)** usar só nas linguagens que não dependem de cache no `$HOME` (Python, C, C++, Node sem dependências), migrando conforme os binds forem validados — ganho real onde já funciona hoje e nenhuma linguagem quebra em silêncio; isolamento desigual entre linguagens até lá · **(b)** usar sempre, montando os caches read-only — isolamento uniforme, e errar um bind quebra o desafio sem diagnóstico claro · **(c)** não usar — nada quebra, e descarta a única camada de isolamento disponível sem instalar nada
+> **Default:** **(a)** · **Custo de mudar depois: cheap**
 
 ### 3.12.3 A honestidade obrigatória — o que não está protegido é dito em voz alta
 
@@ -1282,7 +1338,12 @@ de 4 linhas do **PISO DECLARADO** e continua. As variáveis de proxy inválidas 
 runtime que as ignore, e o runner diz isso em voz alta.
 
 **O modelo de ameaça é "aluno resolvendo exercício", não "atacante".** Docker permanece **opt-in**
-(`sandbox.mode: docker_strict`, D-C02).
+(`sandbox.mode: docker_strict`, decisão **D-S03**, antes rotulada `D-C02`).
+
+> **PERGUNTE AO USUÁRIO (D-S03)** — Docker é requisito para rodar desafio, ou modo estrito opcional para quem já tem?
+> Docker é o cofre: se o código do aluno fizesse algo perigoso, ele segura. Exigir o cofre para estudar fatorial afasta exatamente o público que este projeto quer.
+> **Opções:** **(a)** piso POSIX sempre, com modo estrito por Docker opt-in — não bloqueia o produto atrás de uma instalação, e oferece ao macOS as garantias que o Linux dá de graça; o piso POSIX é mais fraco que um container de verdade · **(b)** obrigatório — isolamento forte sempre, e mata a adoção · **(c)** obrigatório só no macOS — compensa o sandbox mais fraco de lá, e vira dois produtos diferentes em dois sistemas
+> **Default:** **(a)** · **Custo de mudar depois: cheap**
 
 ---
 

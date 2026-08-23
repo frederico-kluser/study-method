@@ -1,6 +1,6 @@
-# 2. Memória: as três camadas, o "como", o digest e a compactação
+# Parte 2 — Memória: as três camadas, o "como", o digest e a compactação
 
-## Sumário
+## Sumário da Parte 2
 
 - **§2.1–§2.2** as três camadas (episódica · índice · perfil consolidado), o que **nunca** vai em cada uma, e a tabela de derivação do índice.
 - **§2.3** ⭐ a **memória procedimental** — o "como isso aconteceu" pedido explicitamente —, com `backfired` e a regra de que o que deu errado nunca é truncado.
@@ -44,6 +44,11 @@ Schema: `SK/assets/schemas/session.schema.json` (§2.9.1).
 
 **O que NUNCA vai em `memory/`:** transcrição literal da conversa; conteúdo teórico (isso é `researchs/`); enunciado de desafio (isso é `challenges/`); dado pessoal sem função pedagógica — contexto familiar, saúde, nome de terceiros, geolocalização, identificador de dispositivo.
 
+> **PERGUNTE AO USUÁRIO (D-A11)** — O `memory/NNNN.json` é reescrito a cada marco da aula (checkpoint) ou só no fechamento?
+> É salvar o documento a cada parágrafo em vez de só no fim. O arquivo é pequeno, a reescrita custa milissegundos, e o ganho aparece exatamente no dia em que o terminal fecha sozinho: a sessão órfã tem conteúdo em vez de só um cabeçalho.
+> **Opções:** **(a)** checkpoint a cada marco da aula — a sessão órfã sobra com conteúdo útil e o custo de escrita é desprezível; mais escritas em disco por aula · **(b)** só no `close_session` — uma escrita por aula, e uma queda no meio deixa um arquivo vazio, tirando todo o sentido da recuperação de órfã · **(c)** checkpoint por tempo (a cada 10 min) — custo previsível, e salva no meio de um raciocínio em vez de no fim de um marco
+> **Default:** **(a)** · **Custo de mudar depois: cheap**
+
 ### 2.1.2 Camada 2 — índice: `memory/INDEX.json`
 
 Schema: `SK/assets/schemas/index.schema.json` (§2.9.2).
@@ -57,6 +62,11 @@ Schema: `SK/assets/schemas/index.schema.json` (§2.9.2).
 | Tamanho | ~200-300 bytes por entrada. 200 sessões ≈ 50 KB ≈ 15k tokens — é o item que mais cresce, e por isso `digest_eligible` existe: o digest carrega só um recorte, mas o arquivo inteiro continua disponível para filtro mecânico (`jq`, `grep`). |
 
 **O que NUNCA vai no índice:** qualquer campo que exija julgamento. Se um campo não pode ser derivado por `jq` a partir do bruto, ele não pertence a esta camada.
+
+> **PERGUNTE AO USUÁRIO (D-M07)** — Adotar busca semântica local (`sqlite-vec` + embedding local) sobre o conteúdo livre agora, ou deixar como upgrade futuro?
+> É instalar um sistema de busca numa biblioteca de trinta livros: a estante ainda resolve. Os campos de texto que seriam indexados já estão no schema, então a porta fica aberta sem custo e só se abre quando o acervo justificar.
+> **Opções:** **(a)** só quando passar de ~150-200 sessões — complexidade só quando há problema para resolver, e adicionar depois não exige migração; até lá a busca por conteúdo livre fica por conta do índice e do digest · **(b)** desde já — busca semântica desde a primeira aula, ao custo de uma dependência binária e um modelo de embedding para dezenas de arquivos · **(c)** nunca — zero dependência para sempre, e fecha a porta antes de saber se o acervo vai crescer
+> **Default:** **(a)** · **Custo de mudar depois: cheap**
 
 ### 2.1.3 Camada 3 — consolidado: `memory/profile.json`
 
@@ -400,6 +410,11 @@ S = { entradas do índice com compacted_at == null e status ∈ {completed, aban
 ```
 
 Sessão `abandoned` **entra** em `S` e conta para o limiar — nada se perde, e nada é promovido além do que a evidência sustenta (o teto de `confidence` cuida disso).
+
+> **PERGUNTE AO USUÁRIO (D-M04)** — Sessões `abandoned` entram na compactação?
+> A aula que acabou no meio ainda aconteceu. Jogá-la fora é perder evidência real; tratá-la como aula completa é promover conclusão que ninguém terminou de tirar.
+> **Opções:** **(a)** entram, contam para o limiar, e travam em `confidence: low` os fatos que só elas sustentam — nada se perde e nada é promovido além do que a evidência sustenta; é uma regra a mais na rotina de compactação · **(b)** ignoradas na consolidação, preservadas no disco — consolidação mais simples, e uma aula interrompida no meio de um avanço real vira história que nunca existiu
+> **Default:** **(a)** · **Custo de mudar depois: cheap**
 
 A faixa da pesquisa é 15-20 sessões (ou ~8-10 mil tokens somados); adota-se o **piso** por segurança, e o valor fica em `profile.json` para o usuário ajustar sem tocar em código. A 2-4 sessões por semana, isso é uma compactação a cada ~4 a 10 semanas.
 
@@ -1373,6 +1388,11 @@ Transcritos byte a byte do repositório. São a autoridade sobre a forma do dado
 | **PRIV-6** | Fato nunca é sobrescrito: novo registro com o mesmo `claim_key` + `superseded_by` no antigo. Purga é operação **separada** (§2.10.2). |
 | **PRIV-7** | Teto de **~3 fatos semânticos novos por sessão**; todo fato carrega `evidence`; **nunca inferir a partir de um `inferred`**. |
 
+> **PERGUNTE AO USUÁRIO (D-M09)** — Até onde o tutor pode registrar contexto emocional: só o que dá para observar no comportamento, ou também o que o aluno contar sobre a própria vida?
+> É a diferença entre o professor anotar "travou nos três exercícios de limite" e anotar "estava mal porque o pai está doente". A primeira anotação calibra a próxima aula; a segunda é dado de saúde de terceiros num arquivo de estudo. Apertar depois é fácil; desfazer o que já foi gravado, não.
+> **Opções:** **(a)** só ancorado em comportamento observável, sem família, saúde ou terceiros nomeados — calibra ritmo sem virar prontuário, e o limite é verificável ("isso apareceu no exercício?"); perde nuance que às vezes explicaria uma aula ruim · **(b)** só o afeto categórico, sem nota em texto livre — risco mínimo, e um enum não distingue "cansado" de "frustrado com a notação" · **(c)** qualquer contexto que o aluno mencionar — contexto rico, e grava dado de saúde e de terceiros num arquivo que não foi feito para isso
+> **Default:** **(a)** · **Custo de mudar depois: expensive**
+
 Teste de uma frase para qualquer campo: *"isso torna a próxima aula melhor?"* Se não, não entra. `affect_note` passa quando ancorado em comportamento observável ("parou de perguntar depois do formalismo"); **não passa** quando vira relato de vida.
 
 ### 2.10.2 Supersede ≠ apagamento
@@ -1410,4 +1430,12 @@ Invariante **I-40** do gate: *o `.gitignore` gerado pelo template de setup cont�
 
 Se o aluno decidir versionar `memory/` mesmo assim, isso é **decisão explícita dele**, registrada no `README.md` do setup, e a skill passa a avisar em duas situações: antes de rodar uma purga, e se detectar que o remoto do repositório é público.
 
-> Decisão aberta de alta importância: **D-S01** / **D-M03**.
+> Decisão aberta de alta importância sobre versionar `memory/`: **D-S01** / **D-M03** — perguntadas ao **aluno** em runtime, não a quem constrói.
+
+Uma decisão vizinha, essa sim de quem constrói, fecha a parte de privacidade — e é a única do catálogo cujo custo de mudar depois é
+irreversível por natureza:
+
+> **PERGUNTE AO USUÁRIO (D-S07)** — Telemetria: zero, contagem anônima opt-in, ou relatório de erro opt-in?
+> Um produto que guarda o perfil cognitivo de alguém não tem margem para "só métricas anônimas". A promessa "nada sai daqui" vale enquanto for absoluta; com uma exceção, ela vira "quase nada sai daqui", e ninguém consegue verificar qual é a exceção.
+> **Opções:** **(a)** zero, sem exceção — a promessa é verificável porque não há código de rede; nenhum sinal sobre o que funciona ou quebra na prática · **(b)** contagem anônima opt-in — dado agregado de uso, e "anônimo" num sistema com perfil cognitivo é palavra que ninguém consegue auditar · **(c)** relatório de erro opt-in — ajuda a corrigir falhas, e carrega caminho, nome de arquivo e trecho de conteúdo junto
+> **Default:** **(a)** · **Custo de mudar depois: expensive**

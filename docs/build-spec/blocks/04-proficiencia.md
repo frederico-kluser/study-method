@@ -1,6 +1,6 @@
-# Bloco 4 — Proficiência: a máquina de estados do aluno
+# Parte 4 — Proficiência: a máquina de estados do aluno
 
-## Sumário
+## Sumário da Parte 4
 
 Sem estado de proficiência explícito, o tutor entrega à sessão 40 o mesmo andaime da sessão 1 — e
 isso é um defeito mensurável (*expertise reversal effect*), não uma preferência. Este bloco
@@ -25,6 +25,11 @@ espaçada mínima, e o contrato completo do evento e do arquivo de estado.
 Nada aqui depende de versão de toolchain: a máquina de estados é aritmética de datas e enums. O que
 envelhece são os **defaults de `policy`** (§4.7), que são escolhas de produto e por isso moram **no
 dado**, não no código.
+
+> **PERGUNTE AO USUÁRIO (D-P07)** — Onde vive o arquivo de proficiência, e qual é o escopo dele?
+> Um caderno de notas por matéria, não um por capítulo. Renomear depois é trivial; mudar o escopo — de um por setup para um por trilha — exige refazer toda a evidência acumulada.
+> **Opções:** **(a)** `memory/progress.json`, um por setup — um lugar só para toda a evidência do assunto; setup muito grande concentra tudo num arquivo · **(b)** um arquivo por trilha dentro do setup — arquivos menores, e conceito que aparece em duas trilhas passa a ter dois históricos · **(c)** embutir o estado no índice de memória episódica — menos arquivos, e mistura "o que aconteceu" com "o que você sabe", que têm ciclos de vida diferentes
+> **Default:** **(a)** · **Custo de mudar depois: moderate**
 
 ---
 
@@ -117,6 +122,11 @@ Régua de sanidade: um módulo da trilha gera entre **3 e 7** conceitos.
 | 5 | **Fusão de duplicatas é bitemporal, não destrutiva**: a evidência do duplicado é copiada para o sobrevivente, o duplicado recebe `status: superseded` + `superseded_by`, e o sobrevivente registra `supersedes: [...]`. **Nada é deletado** |
 | 6 | **Exceção controlada — pré-requisito descoberto.** O tutor **pode** criar conceito fora da trilha quando um erro revela um pré-requisito não previsto. `track_ref: null`, e o conceito entra na fila de **estudo**, não na de revisão. É a **única** criação ad hoc permitida |
 
+> **PERGUNTE AO USUÁRIO (D-P05)** — Quem pode criar `concept_id`?
+> É quem pode abrir gaveta nova no arquivo. Se o tutor abre gaveta a cada aula, em dois meses há três gavetas para "derivada" e nenhuma delas tem o histórico inteiro.
+> **Opções:** **(a)** só a trilha do `docs/` do setup, mais a exceção do pré-requisito descoberto (`track_ref: null`) — vocabulário estável, e a exceção fica visível no dado em vez de escondida; um conceito legítimo fora da trilha depende da exceção · **(b)** só a trilha — máxima estabilidade, e o pré-requisito descoberto na aula não tem onde ser registrado · **(c)** o tutor cria ad hoc durante a sessão — flexibilidade total, e três ids para o mesmo conceito em dois meses
+> **Default:** **(a)** · **Custo de mudar depois: moderate**
+
 ### 4.2.3 Os três identificadores
 
 | Campo | Regex | Exemplo | Fonte |
@@ -156,6 +166,11 @@ impressão do modelo.**
 R4 é verificada mecanicamente: `memory/<session_id>.json` tem que existir; `challenges/<challenge_id>-*/`
 tem que existir. Falha → **exit 5**. É também a razão de os dois campos terem formato fixo e não texto
 livre: sem formato fixo não há o que procurar no disco.
+
+> **PERGUNTE AO USUÁRIO (D-P01)** — O tutor pergunta quanto o aluno acha que domina um assunto, ou julga só pelo que vê ele fazer?
+> Autoavaliação é termômetro na mão do próprio paciente: quem está indo mal costuma achar que está indo bem. Por isso o autorrelato entra só no fim da aula e só puxa para baixo.
+> **Opções:** **(a)** uma pergunta no fechamento, com efeito assimétrico (só rebaixa) — captura a dúvida do aluno sem transformar confiança em nota; quem se subestima puxa o próprio estado para baixo sem precisar · **(b)** nunca perguntar, só evidência observável — zero ruído, e ignora o aluno que sabe que decorou sem entender · **(c)** perguntar conceito a conceito — granularidade máxima, e transforma o fim de toda aula num formulário
+> **Default:** **(a)** · **Custo de mudar depois: cheap**
 
 ### 4.3.2 Tempo: por que ele não vira estado
 
@@ -282,6 +297,11 @@ tempo sem revisar seria punir o aluno pela passagem do tempo.
 **Nota de honestidade**: `decay_overdue_ratio` **não é achado empírico**. A curva de Ebbinghaus diz
 que esquecer é rápido e exponencial; **não diz em que dia rebaixar o rótulo**. O default (rebaixar
 quando o atraso iguala o próprio intervalo) é escolha de produto, mora em `policy`, e está em D-P03.
+
+> **PERGUNTE AO USUÁRIO (D-P03)** — Quão rápido o domínio de um conceito "esfria" quando o aluno fica sem praticá-lo?
+> É o prazo de validade do que foi aprendido. Com 1,0 o conceito rebaixa quando o atraso iguala o próprio intervalo de revisão — dobrou o tempo previsto, cai um degrau. Não há base empírica para nenhum valor específico; é escolha de produto, e por isso mora no dado, não no código.
+> **Opções:** **(a)** 1,0 — meio-termo defensável, e muda editando um número em `policy`; é um chute calibrado, não uma medida · **(b)** 0,5, agressivo — revisa mais cedo, e reabre conceito que o aluno ainda tinha na ponta da língua · **(c)** 2,0, frouxo — menos revisão imposta, e descobre o esquecimento tarde demais · **(d)** 0, desligado — aprendido é aprendido para sempre, o que contradiz tudo que se sabe sobre curva de esquecimento
+> **Default:** **(a)** · **Custo de mudar depois: cheap**
 
 ### 4.4.6 A ordem de avaliação, determinística
 
@@ -503,6 +523,11 @@ observado** em vez de pedido ao aluno.
 
 `policy` ausente = todos os defaults acima.
 
+> **PERGUNTE AO USUÁRIO (D-P06)** — Os prazos do domínio (janela de 60 dias, teto de 180 em `mastered` e 21 em `fragile`, multiplicadores 2,3 e 1,3) ficam como estão?
+> São os intervalos entre revisões, como as consultas de retorno do dentista: seis meses quando está tudo bem, três semanas quando algo apareceu. O multiplicador 2,3 aproxima o crescimento de uma curva de repetição espaçada consagrada sem precisar pedir nota ao aluno depois de cada exercício.
+> **Opções:** **(a)** manter os defaults — tudo vive em `policy` e é ajustável por setup; são números calibrados, não medidos nesta população · **(b)** encurtar a janela para 30 dias — exige evidência mais fresca, e rebaixa conceito que o aluno de fato domina · **(c)** alongar os tetos — menos revisão, e descobre o esquecimento perto da prova
+> **Default:** **(a)** · **Custo de mudar depois: cheap**
+
 ### 4.7.3 A fila de revisão na abertura da sessão (`--due`)
 
 | # | Passo |
@@ -607,6 +632,11 @@ justificaria. Três consequências:
 3. **O tutor lê `manual` como o que é**: "alguém ajustou isto à mão". Não trata como observação sua,
    não conta como evidência qualificada em `confidence`, e pode dizer ao aluno que aquele estado veio
    de uma edição, não de um desafio.
+
+> **PERGUNTE AO USUÁRIO (D-P11)** — De onde vem `state_reason: "manual"`?
+> É a rasura assinada no caderno. O arquivo é legível e editável de propósito; se alguém editar na mão, o campo tem de poder dizer isso. O que não pode é o tutor escrever "manual" para justificar uma decisão que foi dele.
+> **Opções:** **(a)** edição direta do arquivo pelo aluno ou operador — o arquivo continua honesto sobre a origem de cada estado, preservado pelo fluxo normal e desfeito por `--recompute` com aviso; é um valor de enum que nenhum código escreve · **(b)** remover do enum — enum menor, e a edição humana passaria a se disfarçar de decisão automática · **(c)** o tutor pode escrever — um caminho a mais para o tutor, e mente sobre a causa da transição, que é justamente o que o campo existe para dizer
+> **Default:** **(a)** · **Custo de mudar depois: cheap**
 
 ### 4.8.4 Invariantes que este artefato sustenta
 

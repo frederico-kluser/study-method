@@ -1,6 +1,6 @@
-# 8 — `SKILL.md` e o gate
+# Parte 8 — O `SKILL.md` e o gate
 
-> **Autoridade.** `docs/00-contratos.md` §9 (as 88 regras permanentes e o orçamento de linhas) e §11
+> **Autoridade.** `docs/00-contratos.md` §9 (as 90 regras permanentes e o orçamento de linhas) e §11
 > (as 43 invariantes + as dívidas declaradas). Contrato do artefato: `docs/build-spec/20-skill-md.md`.
 > Contrato do gate: `docs/build-spec/80-gate.md`. Implementação: `tests/gate-build.sh`,
 > `tests/validate.sh`, `tests/gate-lint.sh`, `tests/smoke.sh`, `tests/lib/assert.sh`.
@@ -8,11 +8,11 @@
 > Onde este bloco divergir de `docs/00-contratos.md`, o contrato vence e este bloco é o errado.
 > O gate é a **tradução mecânica** daquele documento: quando um muda, o outro muda junto.
 
-## Sumário
+## Sumário da Parte 8
 
 1. O `SKILL.md`: frontmatter com **só os campos portáveis**, `description` como único insumo de roteamento (§8.1–§8.3).
 2. ⭐ A ordem interna do corpo, e o motivo mecânico dela: o que sobrevive a uma compactação são os primeiros tokens (§8.4).
-3. Progressive disclosure de **um nível só**, as 88 regras permanentes e o orçamento de linhas (§8.5–§8.8).
+3. Progressive disclosure de **um nível só**, as 90 regras permanentes e o orçamento de linhas (§8.5–§8.8).
 4. ⭐ O gate: quatro scripts, o que cada um verifica, e o mapa completo das invariantes (§8.9–§8.11).
 5. ⭐ O teste de integração ponta a ponta, e por que ele é o **critério de saída** (§8.12).
 6. ⭐ As limitações declaradas — o gate as imprime na própria saída — e como rodar tudo do zero (§8.13–§8.15).
@@ -38,7 +38,7 @@ reinventa sem errar.
 | # | Premissa | Consequência |
 |---|---|---|
 | P-1 | O campo **`description` é o único insumo de roteamento** | Toda a decisão de "esta skill se aplica?" acontece no frontmatter. Nada no corpo influencia o disparo |
-| P-2 | **O corpo não é relido a cada turno** | O que não estiver nele **pode não estar valendo no turno em que importa**. É a razão de as 88 regras permanentes viverem no corpo, e não numa `reference/` |
+| P-2 | **O corpo não é relido a cada turno** | O que não estiver nele **pode não estar valendo no turno em que importa**. É a razão de as 90 regras permanentes viverem no corpo, e não numa `reference/` |
 
 P-2 é o argumento inteiro para o orçamento de linhas do §8.7: cada regra permanente cabe em **uma
 linha** justamente porque todas precisam caber no corpo. Uma regra rebaixada para `reference/` só
@@ -95,7 +95,7 @@ programação, e **uma skill que dispara sempre é indistinguível de uma que nu
 | 2 | `## Quem você é` | tutor de bate-papo em pt-BR; ensina programação **e a matemática que aparece nela**, aprendida **através de código executável**; analogia do repertório do aluno; objeto rodando; verificação por desafio; turno curto, uma pergunta por vez, silêncio depois de perguntar; regra de idioma (identificador em inglês, prosa em pt-BR; chave/enum/id/slug em inglês ASCII sem acento) |
 | 3 | `## A máquina de estados — 9 passos, dois deles CONDICIONAIS` | os 9 nomes literais; a linha do fluxo normal **sem** os condicionais; o aviso de que ler os nove como fila é o erro mais caro; a tabela dos dois ramos com a guarda na mesma linha |
 | 4 | `## Roteamento — o que ler em cada passo` | tabela `passo → reference → scripts`; a frase de que `references/seguranca.md` também se lê **fora** de passo |
-| 5 | `## Regras permanentes` | as **88** regras, uma linha cada, agrupadas (§8.6) |
+| 5 | `## Regras permanentes` | as **90** regras, uma linha cada, agrupadas (§8.6) |
 | 6 | `## Os scripts` | convenção de invocação + tabela dos 16 executáveis + bloco de exit codes |
 | 7 | `## REQUEST/APPLY — exit 10 é pedido de julgamento, não erro` | o protocolo em 3 passos + as regras duras + os 4 usuários |
 
@@ -167,9 +167,9 @@ Além disso, **I-35**: nenhuma `reference/` com mais de 100 linhas começa sem `
 
 ---
 
-## 8.6 ⭐ As regras permanentes — 88, em 8 grupos, 11 intocáveis
+## 8.6 ⭐ As regras permanentes — 90, em 8 grupos, 11 intocáveis
 
-Fonte literal: `docs/00-contratos.md` §9.1–§9.7. **88 regras, uma linha cada**, com o ID original
+Fonte literal: `docs/00-contratos.md` §9.1–§9.7. **90 regras, uma linha cada**, com o ID original
 preservado em negrito no início da linha (`- **C-1** …`) **porque as evals referenciam os IDs**.
 
 | Ordem no corpo | Grupo | IDs | Qtd |
@@ -177,15 +177,24 @@ preservado em negrito no início da linha (`- **C-1** …`) **porque as evals re
 | 1 | `### SEG — Segurança e execução` | `SEG-1`…`SEG-8` | 8 |
 | 2 | `### MEM · PRIV — Memória e privacidade` | `MEM-1`…`MEM-7`, `PRIV-1`…`PRIV-7` | 14 |
 | 3 | `### C — Como conversar` | `C-1`…`C-13` | 13 |
-| 4 | `### AS — Anti-bajulação` | `AS-1`…`AS-12` | 12 |
+| 4 | `### AS — Anti-bajulação` | `AS-1`…`AS-13` | 13 |
 | 5 | `### AN · ESC · ERR — Analogia, escada e resposta a erro` | `AN-1`…`AN-7`, `ESC-INICIAL`, `ESC-S`, `ESC-D`, `ESC-R`, `ERR-1`…`ERR-8` | 19 |
 | 6 | `### DES — Desafios` | `DES-1`…`DES-9` | 9 |
 | 7 | `### VIZ — Visualização` | `VIZ-1`…`VIZ-6` | 6 |
-| 8 | `### BOOT — Bootstrap e arquivos` | `BOOT-1`…`BOOT-7` | 7 |
-| | **Total** | | **88** |
+| 8 | `### BOOT — Bootstrap e arquivos` | `BOOT-1`…`BOOT-8` | 8 |
+| | **Total** | | **90** |
 
-O texto de cada regra dos grupos 3, 4, 5 e parte do 2 está transcrito no bloco 6 deste documento
+O texto de cada regra dos grupos 3, 4, 5 e parte do 2 está transcrito na **Parte 6**
 (§6.2, §6.3, §6.4, §6.5, §6.6, §6.7, §6.10.6).
+
+⏳ **As duas mais novas, e de onde vieram.** `AS-13` (nunca reporte porcentagem, score, nota ou barra
+de progresso de domínio) e `BOOT-8` (em conflito, o material do aluno vence e o conflito é apontado)
+entraram depois das demais: os dois buracos foram **encontrados pela suíte de avaliação** — `EV-08` e
+`EV-12` — que constatou que a proibição mais citada do projeto (`I-43`) era um gate **sobre
+documentos**, não uma regra de runtime sobre o que o tutor diz, e que `BOOT-3` cobria a metade
+declaratória do conflito de conteúdo, não a precedência. Quem quiser conferir o achado original lê
+`evals/cases/EV-08-*.md` §5 e `evals/cases/EV-12-*.md` §5 do repositório. O texto das duas está na
+Parte 6 (§6.3 e §6.10.6).
 
 ### 8.6.1 As 11 regras `†` — não rebaixáveis, em nenhuma hipótese
 
@@ -218,11 +227,11 @@ brancos finais.
 
 | Item | Linhas |
 |---|---|
-| 88 regras permanentes, uma por linha | 88 |
+| 90 regras permanentes, uma por linha | 90 |
 | 8 cabeçalhos de grupo + 1 branco antes de cada | 16 |
 | Máquina de estados + tabela de roteamento | ~35 |
 | Identidade, scripts, REQUEST/APPLY, títulos e brancos | ~55 |
-| ⏳ **Total medido** | **194** — folga **6** |
+| ⏳ **Total medido** | **196** — folga **4** |
 
 **Ordem de corte, se apertar:** (1) `### VIZ` (6 regras) → `references/visualizacao.md`;
 (2) `### AN · ESC · ERR` (19 regras) → `references/pedagogia.md`; (3) **nunca** `SEG`, **nunca**
@@ -232,11 +241,11 @@ usado para caber.
 
 **Nota honesta sobre tokens.** ⏳ O corpo mede ~21.500 caracteres, entre **6.000 e 6.500 tokens** —
 **acima** do limite *recomendado* de 5.000. O teto **normativo** deste projeto é o de **linhas**
-(invariante **I-33**): as 88 regras sozinhas custam ~4.200 tokens e foram orçadas assim de propósito.
+(invariante **I-33**): as 90 regras sozinhas custam ~4.300 tokens e foram orçadas assim de propósito.
 A mitigação implementada é **de ordem, não de corte** (§8.4.1).
 
 **Declaração de contagem, preservada de propósito:** um revisor contou **71** regras distintas em 164
-linhas; a consolidação fecha em **88** — 17 a mais. A diferença **não é inflação**: são as 6 regras de
+linhas; a consolidação fecha em **90** — 19 a mais. A diferença **não é inflação**: são as 6 regras de
 visualização e as 11 de `AN-*`/`ESC-*`/`ERR-*` que a contagem original não separou por ter tratado o
 bloco pedagógico como um item só. Cada uma tem ID estável, é verificável por eval, e proíbe ou obriga
 algo que nenhuma outra cobre — **fundi-las custaria testabilidade**.
@@ -322,21 +331,23 @@ contrato exige sem terem sido numeradas.
 | **C — schemas** | `I-07`…`I-17`, `G-01`, `G-02`, `G-03`, `G-03b`, `G-11`, `G-13` | `$id` no namespace único e sem repetição; nenhuma construção proibida; cobertura do metaschema mínimo; `description` em toda propriedade; **assinatura única por vocabulário**; enums literais de sessão, fato, linguagem e leitura cruzada; patterns de identidade, conceito, slug e timestamp |
 | **D — scripts** | `I-18`…`I-27` | Exit codes só `0 1 2 3 4 5 10`; `pipefail` presente; falha lida como `!= 0`; só os quatro scripts do protocolo aceitam `--apply` e saem com 10; `LIB-1`; as **26** funções de `lib/`; escrita confinada; **zero rede**; derivados por escrita atômica |
 | **E — runtime** | `I-28`…`I-32` | O digest sai `0` nos **quatro** cenários de borda, mantém a ordem fixa de chaves (`I-29a`) e tem exatamente **18** chaves de topo, na tabela (`I-29b`) e no JSON produzido (`I-29c`); `readme-sync.sh` e `setup-init.sh` **idempotentes** |
-| **F — `SKILL.md`** | `I-33`, `I-34`, `I-35`, `G-04`…`G-07` | Corpo com ≤200 linhas e os **88** IDs de regra, incluindo as **11** marcadas `†`; grafo de references de **um nível**; sumário nas references longas; frontmatter só com os campos portáveis; `name` igual ao nome do diretório; `description` ≤1024 caracteres |
+| **F — `SKILL.md`** | `I-33`, `I-34`, `I-35`, `G-04`…`G-07` | Corpo com ≤200 linhas e os **90** IDs de regra, incluindo as **11** marcadas `†`; grafo de references de **um nível**; sumário nas references longas; frontmatter só com os campos portáveis; `name` igual ao nome do diretório; `description` ≤1024 caracteres |
 | **G — templates** | `I-36`…`I-41`, `G-08`, `G-09` | Proveniência por **bloco de comentário e nunca por frontmatter**; caminho relativo dentro do setup; campos de sandbox no manifesto do desafio; `exit 66` e tratamento de 137 no executor gerado; a linha `memory/` no arquivo de exclusão do git; as **8** seções de marcador; todo placeholder declarado no `MANIFEST.tsv` e nenhum sobrando fora de template |
-| **H — conteúdo** | `I-42`, `I-43` | Nenhuma promessa de cobertura exaustiva de cenários de erro; **nenhuma das afirmações derrubadas pela auditoria** (bloco 6, §6.8) |
+| **H — conteúdo** | `I-42`, `I-43` | Nenhuma promessa de cobertura exaustiva de cenários de erro; **nenhuma das afirmações derrubadas pela auditoria** (§6.8) |
 | **I — terminologia** | `G-10` | O termo do diretório de documentação **sempre qualificado** ("do repositório" ou "do setup") |
-| **J — decisões** | `G-12a`…`G-12d` | O id de cada decisão no pattern; todo `writes_to` resolvível no manifesto do setup; a camada humana e o marcador de BUILD_SPEC, **ambos PEND** enquanto o artefato-alvo não existir |
+| **J — decisões** | `G-12a`…`G-12d` | O id de cada decisão no pattern; todo `writes_to` resolvível no manifesto do setup; a camada humana (`docs/08-decisoes-abertas.md`, ainda **PEND**) e o marcador de BUILD_SPEC (`G-12d`, **verde**: os 48 marcadores existem) |
 
 ⏳ **Pendências reais hoje:** `I-06b` (o `decisions-ask.sh` declarado no contrato ainda não existe em
-disco), `G-12c` (`docs/08-decisoes-abertas.md` é derivado de outra onda) e `G-12d` (nenhum fragmento
-recebeu marcador `PERGUNTE AO USUÁRIO (D-…)` ainda). `G-12d` **vira FAIL assim que o primeiro
-marcador aparecer**: aí a passada começou, e o que falta passa a ser omissão.
+disco) e `G-12c` (`docs/08-decisoes-abertas.md`, a camada humana do catálogo, é derivado de outra
+onda). **`G-12d` deixou de ser pendência**: os 48 marcadores existem, um por decisão elegível.
 
-⭐ `G-12d` cobra marcador **só** de quem o contrato manda marcar — `audience ∈ {builder, both}`
-**e** `status == open`, **48 das 114** entradas do catálogo. As `student` viram pergunta em
-runtime e as arbitradas viram uma linha de citação; exigir marcador delas seria exigir o que o
-próprio contrato dispensa. As **66** restantes ficam sob `EXCLUSÕES DE ESCOPO DECLARADAS`.
+⭐ `G-12d` é uma verificação de **tudo ou nada**, e é assim de propósito. Enquanto **zero** marcador
+existia, ela era `PEND` ("a passada ainda não começou"); no instante em que o **primeiro** aparecesse
+com os outros faltando, viraria `FAIL` — porque marcação pela metade dá a impressão de que o que não
+foi marcado não tem decisão em aberto. Ela cobra marcador **só** de quem o contrato manda marcar —
+`audience ∈ {builder, both}` **e** `status == open`, **48 das 114** entradas do catálogo. As
+`student` viram pergunta ao aluno em runtime e as arbitradas viram uma linha de citação. As **66**
+restantes ficam sob `EXCLUSÕES DE ESCOPO DECLARADAS`.
 
 #### Escopo de busca de texto — declarado, nunca implícito
 
@@ -402,7 +413,7 @@ conhecida, não divergência escondida.
 |---|---|
 | `L-01` | Frontmatter YAML lido por `awk` — **não há PyYAML nesta máquina**: forma `chave: valor`, sem tabulação, sem chave repetida, delimitador fechado |
 | `L-02` | Link relativo quebrado em `.md` (ignora URL, âncora, bloco cercado e trecho em code span) |
-| `L-03` | Abertura de placeholder sem fechamento na mesma linha, e placeholder **fora de `*.tmpl`**. Fora do escopo, declarado: `docs/build-spec/**`, comentário e here-document de script, e o literal de busca `'{{'` do guarda final de cada renderizador — que é o código que **implementa esta mesma regra** |
+| `L-03` | Abertura de placeholder sem fechamento na mesma linha, e placeholder **fora de `*.tmpl`**. Fora do escopo, declarado: `docs/build-spec/**`, comentário e here-document de script, e o literal de busca da abertura de placeholder no guarda final de cada renderizador — que é o código que **implementa esta mesma regra** |
 | `L-04` | Arquivo de texto sem newline final |
 | `L-05` | Tabela markdown malformada: sem linha separadora, ou linhas com número de colunas diferente do cabeçalho |
 | `L-06` | Espaço em branco no fim da linha — **aviso**, não reprova |

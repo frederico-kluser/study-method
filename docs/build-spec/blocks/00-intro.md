@@ -1,6 +1,6 @@
-# 0. O projeto, o pedido original e como verificar que está certo
+# Parte 0 — O projeto, o pedido original e como verificar que está certo
 
-## Sumário
+## Sumário da Parte 0
 
 - **§0.1** o que o `study-method` é em uma frase, e as seis coisas que ele **não** é.
 - **§0.2** o pedido original do usuário, preservado literalmente, convertido em critérios de aceitação verificáveis.
@@ -66,12 +66,12 @@ O pedido é a autoridade sobre **o que** construir. Está preservado aqui litera
 | R5 | "sempre `0001.json`, `0002.json`…" | `session_id` é **string** `^[0-9]{4}$`, alocado por `sm_next_seq` com `noclobber`, monotônico e **não contíguo**; número purgado nunca é reaproveitado. | §1.7.1 (`sm_next_seq`) · §2.9.1 |
 | R6 | "sempre que a skill rodar é um arquivo novo" | `open_session` aloca `NNNN` e grava `status: "in_progress"` antes da primeira fala pedagógica. | §1.3, passo 5 |
 | R7 | "mas **sempre lemos os arquivos anteriores**" | **Contradição (a)** — ver §0.3.1. Entregue como índice + perfil + digest sempre, brutos abertos seletivamente. | §0.3.1 · §2.5 |
-| R8 | "a skill deve propor desafios, que o usuário completa e testa… ficará em `challenges/`… terá um TDD do desafio" | `challenges/<NNNN>-<slug>/` com `meta.json`, enunciado, `stub`, `tests/`, `runner.sh` e `.solution/` oculta. | Parte de desafios deste documento |
+| R8 | "a skill deve propor desafios, que o usuário completa e testa… ficará em `challenges/`… terá um TDD do desafio" | `challenges/<NNNN>-<slug>/` com `meta.json`, enunciado, `stub`, `tests/`, `runner.sh` e `.solution/` oculta. | **Parte 3** (§3.3) |
 | R9 | "cujo teste é a validação que devolve **todos os possíveis cenários de erro**" | **Contradição (c)** — ver §0.3.3. Entregue como cenários nomeados + mensagem didática + mutation score medido. | §0.3.3 |
-| R10 | "assim o usuário só roda o teste pra saber se passou" | Atendido integralmente: um `runner.sh` por desafio, exit `0/1/2/3`, e mensagem de falha com entrada, esperado, obtido e a propriedade violada em linguagem do domínio. | Parte de desafios |
+| R10 | "assim o usuário só roda o teste pra saber se passou" | Atendido integralmente: um `runner.sh` por desafio, exit `0/1/2/3`, e mensagem de falha com entrada, esperado, obtido e a propriedade violada em linguagem do domínio. | **Parte 3**, §3.9 |
 | R11 | "todo teste criado é validado primeiro pelo agente de código pra saber se não tem bugs" | Reformulado: **você autora, o harness julga** (DES-1). A validação é execução (`challenge-verify.sh`), não leitura por um segundo modelo. | §0.3.3 · `docs/05-challenges-tdd.md` §1.2 |
-| R12 | "tudo que for ensinado, tanto programação quanto matemática, pode ser feito com código de programação… iremos utilizar renderizador de gráficos; o usuário poderá escolher a linguagem que ele queira para a aula" | Três exigências independentes: matemática via código rodável; renderizador como peça de arquitetura com contrato próprio; e o renderizador é **independente da linguagem da aula** (`render-plot.py`, Python stdlib), senão "escolher a linguagem" viraria "escolher entre as que têm biblioteca de plot". | Parte de visualização · `docs/06-visualizacao.md` §1 |
-| R13 | "sempre devemos prezar pelo bate papo" | Requisito de primeira classe **e** vetor de risco: bate-papo puxa bajulação. Daí as 12 regras `AS-*` de anti-bajulação, verificáveis por eval. | Parte de pedagogia · `docs/02-pedagogia.md` §5 |
+| R12 | "tudo que for ensinado, tanto programação quanto matemática, pode ser feito com código de programação… iremos utilizar renderizador de gráficos; o usuário poderá escolher a linguagem que ele queira para a aula" | Três exigências independentes: matemática via código rodável; renderizador como peça de arquitetura com contrato próprio; e o renderizador é **independente da linguagem da aula** (`render-plot.py`, Python stdlib), senão "escolher a linguagem" viraria "escolher entre as que têm biblioteca de plot". | **Parte 5** · `docs/06-visualizacao.md` §1 do repositório |
+| R13 | "sempre devemos prezar pelo bate papo" | Requisito de primeira classe **e** vetor de risco: bate-papo puxa bajulação. Daí as 12 regras `AS-*` de anti-bajulação, verificáveis por eval. | **Parte 6**, §6.3 · `docs/02-pedagogia.md` §5 do repositório |
 | R14 | `researchs/0001.md`, `0002.md` (sem slug no nome) | `research_id` é `^[0-9]{4}$`; o slug existe apenas no diretório de assets (`researchs/assets/<NNNN>-<slug>/`). | §1.4.2 · `docs/13-researchs.md` §D-R01 |
 
 **Nada nesta tabela foi silenciosamente reinterpretado.** Onde a forma literal não sobrevive ao contato com a realidade — R7, R2 e R9 —, a reformulação está na seção seguinte, com a medição que a obrigou.
@@ -132,7 +132,10 @@ O dano concreto **não é estourar a janela**. É pior: **cabe e falha em silên
 
 **Por que o digest é montado por código e não pelo modelo:** se a própria compactação do contexto exigisse ler 60 arquivos, ela sofreria do mesmo problema que existe para resolver.
 
-> Registrado como decisão aberta **D-M01** para o usuário confirmar ou vetar: (a) índice+perfil+digest com brutos sob demanda — o default; (b) carregar todos os brutos sempre; (c) carregar todos até N sessões e depois trocar para (a).
+> **PERGUNTE AO USUÁRIO (D-M01)** — "Sempre lemos os arquivos anteriores" vira **índice + perfil + digest sempre**, com os `memory/NNNN.json` brutos abertos seletivamente — e não "carregar todos os arquivos no contexto". Confirma?
+> É a diferença entre reler o diário inteiro toda manhã e ler o índice, o resumo e só a página que interessa hoje. Na sessão 40 a primeira opção já não cabe na mesa; a segunda continua cabendo em qualquer número de sessões.
+> **Opções:** **(a)** índice + perfil + digest sempre, brutos sob demanda — custo de leitura constante, nada é jogado fora, e mudar depois não muda formato de arquivo nenhum · **(b)** carregar todos os brutos sempre — nada escapa, e estoura o contexto em poucas dezenas de sessões · **(c)** carregar todos até N sessões e depois trocar — simples no começo, e cria um degrau em que o aluno sente a skill "piorar"
+> **Default:** **(a)** · **Custo de mudar depois: cheap**
 
 ### 0.3.2 (b) "ler todo o `docs/` do setup" × material que não cabe
 
@@ -153,6 +156,16 @@ Agrava-se ainda por um detalhe de ambiente: **não há tokenizador garantido na 
 
 2. **Modo indexado.** Abaixo do teto, lê tudo (raiz do `docs/` do setup antes de `generated/` — material do aluno primeiro, porque o início é a posição forte da curva em U). Acima, entra em modo manifesto: **o sumário de todos os cabeçalhos entra sempre**, e as seções entram por score decrescente até **60%** do orçamento. Guardas duras independentes do orçamento: >5 MB de texto extraído num único arquivo, >200 arquivos, symlink apontando para fora do setup.
 
+> **PERGUNTE AO USUÁRIO (D-B12)** — Que fatia do orçamento de leitura o material do aluno pode ocupar, deixando o resto para a aula?
+> É dividir a mesa entre o livro e o caderno. Sessenta por cento para o material e quarenta para a aula deixa espaço para o diálogo, o código e o raciocínio — que é onde o aprendizado acontece.
+> **Opções:** **(a)** 60% material / 40% aula — espaço garantido para diálogo e código; material que não couber vira indexado, não vira silêncio · **(b)** 40/60 — máximo de espaço para a aula, e quase todo material vira indexado · **(c)** 80/20 — quase todo material cabe inteiro, e sobra pouco para a conversa, que é a aula
+> **Default:** **(a)** · **Custo de mudar depois: cheap**
+
+> **PERGUNTE AO USUÁRIO (D-B11)** — Até que profundidade a skill varre o `docs/` do setup?
+> Quem organiza material cria subpasta — `provas/2024/`, `slides/cap3/`. Parar na raiz é ignorar metade do que a pessoa organizou com cuidado.
+> **Opções:** **(a)** recursivo, com teto de 200 arquivos — respeita quem organizou em subpastas e protege contra apontar o setup para uma árvore gigante por engano; material com 300 arquivos fica truncado, e o corte precisa ser anunciado · **(b)** só a raiz — rápido e previsível, e ignora a organização que o aluno fez · **(c)** 2 níveis — meio-termo que quebra na terceira subpasta
+> **Default:** **(a)** · **Custo de mudar depois: cheap**
+
 3. **A obrigação de declarar por nome o que ficou de fora.** Esta é a parte não negociável, e é a regra permanente **BOOT-3**: *nunca leia material pela metade sem declarar por nome o que ficou de fora; nunca diga "li seu material" quando leu uma fração dele.* O campo `left_out[]` é **obrigatório** no `docs-index.schema.json` justamente porque é dele que sai a frase honesta:
 
    > "Carreguei o capítulo 3 (limites) e a seção 4.1 do seu material. Ficaram de fora: capítulos 1-2 e 5 a 12 — e se a gente esbarrar em algum, eu abro na hora."
@@ -171,9 +184,11 @@ A segunda metade do pedido tem um problema diferente: "um agente de código vali
 
 **O que foi entregue** — três coisas concretas, cada uma verificável:
 
-1. **Enumeração fechada e nomeada.** O desafio declara em `meta.json` → `scenarios[]` a lista explícita do que cobre: cada item com `scenario_id`, `test_name`, `kind` (`example` · `boundary` · `error` · `property` · `metamorphic` · `regression`) e `description` em pt-BR. Não é "todos os cenários" — é **"estes cenários, nomeados, e nenhum outro é cobrado"**, e o aluno pode ler a lista.
-2. **Mensagem de falha didática por cenário.** Cada cenário vermelho devolve **entrada, esperado, obtido e a propriedade violada em linguagem do domínio**. A parte do pedido que diz "só roda o teste pra saber se passou" é atendida **integralmente**, e mais: quando não passou, ele sabe *o que* não passou e *por quê*.
-3. **Cobertura medida, não prometida.** Quanto o conjunto nomeado realmente cobre é um número que sai de **execução**: o **mutation score**. Catálogo de mutação **fixo e mecânico** (`ROR AOR LCR UOI CRP SDL RVR SVR`) — nunca pedido a um modelo. Limiar de aprovação **0,90**, com equivalentes fora do denominador. Um teste com score 0,64 e três mutantes sobreviventes **não é** "completo", e o `meta.json` diz isso, com os sobreviventes listados um a um.
+1. **Enumeração fechada e nomeada.** `meta.json` → `scenarios[]`, cada item com `scenario_id`, `test_name`, `kind` e `description` em pt-BR. Não é "todos os cenários": é *estes cenários, nomeados, e nenhum outro é cobrado* — e o aluno pode ler a lista.
+2. **Mensagem de falha didática por cenário.** Entrada, esperado, obtido e a propriedade violada em linguagem do domínio. A parte do pedido que diz "só roda o teste pra saber se passou" é atendida **integralmente**, e mais: quando não passou, ele sabe *o que* e *por quê*.
+3. **Cobertura medida, não prometida.** O **mutation score**, que sai de execução sobre um catálogo de mutação **fixo e mecânico**, com limiar de aprovação **0,90**.
+
+As três estão transcritas com o detalhe do contrato em **§3.1.2** (o que é entregue) e **§3.5** (o catálogo).
 
 Uma classe inteira fica coberta melhor que por enumeração: as **propriedades invariantes** (`kind: property`). `fatorial(n) == fatorial(n-1) * n` para todo `n` de 1 a 7 é um caso de teste que cobre uma *família* de entradas. É o mais perto que se chega de "todos os cenários" sem mentir.
 
@@ -209,7 +224,7 @@ A ordem abaixo não é uma sugestão de conforto: cada etapa **bloqueia** as seg
 | **1** | **Congelar os contratos**: os 9 nomes de passo, a árvore canônica, os vocabulários e patterns, a tabela de exit codes, o envelope REQUEST/APPLY, a terminologia obrigatória. | tudo | Nome de passo, exit code e nome de campo são **a interface** entre `SKILL.md`, `references/` e scripts. Trocar depois exige tocar em todos os três ao mesmo tempo. |
 | **2** | **Schemas** (`SK/assets/schemas/*.json` + `requests/*.json`) | todo script que valida, o gate | O schema é a autoridade sobre a forma do dado. Restrição de forma obrigatória: **sem `$ref`, `allOf` aninhado, `if/then/else` ou `$defs`** — o verificador é mínimo, em Python stdlib. |
 | **3** | **`lib/common.sh` + `lib/json.sh` + `_jsonschema_min.py`** | os 16 scripts restantes | Nenhum script implementa a sua própria normalização, escrita atômica, alocação de sequência, lock ou validação. `sm_request` é a **única** função do projeto que produz exit 10. |
-| **4** | **Templates** (`SK/assets/templates/**` + `MANIFEST.tsv`) e **`decisions.json`** | `setup-init`, `session-new`, `research-new`, `challenge-new`, `decisions-ask` | Os placeholders são congelados no `MANIFEST.tsv`; um script que materializa template e deixa `{{` para trás sai **1**. |
+| **4** | **Templates** (`SK/assets/templates/**` + `MANIFEST.tsv`) e **`decisions.json`** | `setup-init`, `session-new`, `research-new`, `challenge-new`, `decisions-ask` | Os placeholders são congelados no `MANIFEST.tsv`; um script que materializa template e deixa placeholder por substituir sai **1**. |
 | **5** | **`setup-init.sh` · `setup-list.sh`** | todo script que recebe `<setup_root>`; `bootstrap` | Sem resolução de setup e sem registry, nenhum outro script tem raiz sobre a qual operar. |
 | **6** | **`session-new.sh` · `research-new.sh` · `docs-index.sh`** | `open_session`, `teach`, `load_docs` | `docs-index.sh` é o primeiro usuário do REQUEST/APPLY: é onde o protocolo prova que funciona antes de virar dependência de outros três. |
 | **7** | **`memory-index.sh` · `memory-digest.sh` · `memory-compact.sh`** | `load_memory`, `close_session` | O digest depende do bloco de derivação do índice — os dois scripts compartilham **cópia literal** do bloco `DERIVACAO-INDICE`. |
@@ -236,8 +251,8 @@ Checklist de fechamento da etapa 1. Enquanto qualquer linha estiver aberta, **n�
 | A **interface de `lib/`**, função a função | §1.7 |
 | As **variáveis de ambiente** (vocabulário fechado) | §1.10 |
 | A **terminologia obrigatória** e a regra de precedência | §0.7 |
-| As **88 regras permanentes** com seus IDs (`C-*`, `AS-*`, `AN-*`, `ESC-*`, `ERR-*`, `MEM-*`, `PRIV-*`, `SEG-*`, `DES-*`, `VIZ-*`, `BOOT-*`) | Parte de regras permanentes |
-| As **43 invariantes** `I-01`…`I-43` que o gate cobra | Parte do gate |
+| As **90 regras permanentes** com seus IDs (`C-*`, `AS-*`, `AN-*`, `ESC-*`, `ERR-*`, `MEM-*`, `PRIV-*`, `SEG-*`, `DES-*`, `VIZ-*`, `BOOT-*`) | **Parte 8**, §8.6 (a lista) · **Parte 6** (o texto transcrito) |
+| As **43 invariantes** `I-01`…`I-43` que o gate cobra | **Parte 8**, §8.9 |
 
 Dois pontos de ordem que costumam ser invertidos, e não podem ser:
 
@@ -254,7 +269,7 @@ Quatro scripts em `tests/`, cada um respondendo uma pergunta diferente. `tests/l
 |---|---|---|---|
 | `tests/gate-build.sh` | O que está no disco é **sintaticamente válido e tem a forma exigida**? | `bash -n` em todo script; `json.load` em todo schema e asset; modo de arquivo (0644 em `lib/`, 0755 nos executáveis); ausência de shebang executável em `lib/`. | `bash`, `python3`, `stat` |
 | `tests/validate.sh` | O repositório **obedece aos contratos**? | As **43 invariantes** `I-01`…`I-43` — nomes de passo, termos revogados, `$id` dos schemas, enums congelados, patterns, exit codes usados, escrita atômica, zero rede, teto de linhas do `SKILL.md`, grafo de `references/`, ausência de frontmatter YAML em artefato gerado — mais os checks estruturais `G-*` (auditoria dos schemas, terminologia, decisões em 3 camadas). Medido na revisão `df040b5`: **77 checks**. | `bash`, `python3`, `jq` |
-| `tests/gate-lint.sh` | O texto e os arquivos têm **qualidade de leitura**? | Sumário em `reference/` com >100 linhas; terminologia obrigatória (`docs/` do setup × do repositório); afirmações proibidas; frases que o gate proíbe prometer. | `bash`, `python3`, `awk` |
+| `tests/gate-lint.sh` | O texto e os arquivos têm **qualidade de leitura**? | `L-01` forma do frontmatter YAML (lido por `awk`); `L-02` link relativo quebrado; `L-03` placeholder órfão ou fora de template; `L-04` arquivo sem newline final; `L-05` tabela markdown malformada; `L-06` espaço no fim da linha (aviso). | `bash`, `python3`, `awk` |
 | `tests/smoke.sh` | O fluxo **ponta a ponta funciona de verdade**? | Os 12 executáveis do fluxo, num setup temporário: criar setup → abrir sessão → indexar docs → digest → fechar → índice → progresso → README → compactar. | os 12 executáveis |
 
 **Como rodar:**
@@ -277,26 +292,7 @@ tests/smoke.sh --keep        # preserva o diretório de trabalho para inspeção
 | `NO_COLOR` | Desliga a coloração ANSI. |
 | `GATE_TMPDIR` | Diretório de trabalho temporário. Apagado no fim, exceto com `smoke.sh --keep`. |
 
-**Exit codes do gate:**
-
-| Código | Significado |
-|---|---|
-| `0` | Verde: nenhuma falha e nenhuma pendência |
-| `1` | Vermelho: há violação de contrato **ou** artefato ainda inexistente |
-| `2` | Uso incorreto (argumento desconhecido) |
-| `3` | Só `smoke.sh`: pré-requisito ausente — o fluxo não pôde nem começar |
-
-**Os cinco estados de um check:**
-
-| Estado | Símbolo | Significado | Conta como vermelho? |
-|---|---|---|---|
-| PASS | `✔` | Passou | não |
-| FAIL | `✘` | Violação de contrato: o repositório regrediu | **sim** |
-| PEND | `◌` | O artefato verificado ainda não existe no disco | **sim** |
-| SKIP | `–` | Não aplicável neste ambiente (ferramenta opcional ausente) | não |
-| WARN | `!` | Divergência que não reprova (ex.: contradição entre dois documentos-fonte) | não |
-
-A distinção **FAIL × PEND** existe porque "escrito errado" e "ainda não escrito" pedem ações diferentes. Os dois deixam o gate vermelho; só a mensagem muda. Reclassificar um check para PEND **não afrouxa nada** — continua vermelho, continua bloqueando; o que muda é que a mensagem nomeia o artefato que falta e o dono dele, em vez de acusar como regressão algo que ninguém escreveu ainda.
+**Exit codes do gate e os cinco estados de um check** (`PASS` · `FAIL` · `PEND` · `SKIP` · `WARN`) estão transcritos uma vez só, em **§8.9.1**. O que precisa ser sabido já aqui: **`FAIL` e `PEND` deixam os dois o gate vermelho.** "Escrito errado" e "ainda não escrito" pedem ações diferentes, e só a mensagem muda — reclassificar um check para `PEND` **não afrouxa nada**.
 
 **Uma dívida declarada que o gate não pode tratar como falha:** o digest pode sair com `budget_exceeded: true` e a saída acima do orçamento quando o playbook procedimental está cheio. Isso é **saída conforme**, não defeito — o contrato manda o digest sempre produzir e sempre sair 0 (§2.5.3, DEB-1).
 
@@ -314,19 +310,21 @@ Este documento é **contrato**: o que cada artefato recebe, o que produz, o algo
 
 Mapa rápido do racional, por domínio:
 
-| Domínio | Documento normativo | Fragmento de contrato |
+| Domínio | Documento normativo (o **porquê**) | Onde está o **contrato**, neste documento |
 |---|---|---|
-| Topologia, camadas, máquina de estados | `docs/01-arquitetura.md` | este documento, Parte 1 |
-| Pedagogia, tom, anti-bajulação, escada de dicas | `docs/02-pedagogia.md` | `SK/references/pedagogia.md` |
-| Memória, digest, bitemporalidade, compactação | `docs/03-memoria.md` | este documento, Parte 2 · `docs/build-spec/40-memoria.md` |
-| Proficiência, transições `T1`–`T8`, revisão espaçada | `docs/04-proficiencia.md` | `docs/build-spec/41-progresso-readme.md` |
-| Desafios, TDD, mutação, *oracle problem* | `docs/05-challenges-tdd.md` | `docs/build-spec/51-*.md`, `52-*.md` |
-| Visualização e escolha de linguagem | `docs/06-visualizacao.md` | `docs/build-spec/70-render.md` |
-| Multi-setup, registry, `README.md` do setup, leitura cruzada | `docs/07-multi-setup.md` | este documento, §1.8 e §1.9 |
-| Bootstrap, entrevista, ingestão do `docs/` do setup | `docs/10-bootstrap.md` | `docs/build-spec/31-sessao-docs.md` |
-| Segurança, privacidade, sandbox | `docs/11-seguranca-privacidade.md` | `docs/build-spec/50-sandbox.md` |
-| Destilados semânticos | `docs/13-researchs.md` | `docs/build-spec/90-researchs.md` |
-| Catálogo de decisões abertas | — | `docs/build-spec/10-decisoes.md` |
+| Topologia, camadas, máquina de estados | `docs/01-arquitetura.md` | **Parte 1** |
+| Pedagogia, tom, anti-bajulação, escada de dicas | `docs/02-pedagogia.md` | **Parte 6** (e `SK/references/pedagogia.md` em runtime) |
+| Memória, digest, bitemporalidade, compactação | `docs/03-memoria.md` | **Parte 2** |
+| Proficiência, transições `T1`–`T8`, revisão espaçada | `docs/04-proficiencia.md` | **Parte 4** |
+| Desafios, TDD, mutação, *oracle problem* | `docs/05-challenges-tdd.md` | **Parte 3** |
+| Visualização e escolha de linguagem | `docs/06-visualizacao.md` | **Parte 5** |
+| Multi-setup, registry, `README.md` do setup, leitura cruzada | `docs/07-multi-setup.md` | **Parte 1**, §1.8 e §1.9 |
+| Bootstrap, entrevista, ingestão do `docs/` do setup | `docs/10-bootstrap.md` | **Parte 6**, §6.10 · **Parte 0**, §0.3.2 |
+| Segurança, privacidade, sandbox | `docs/11-seguranca-privacidade.md` | **Parte 3**, §3.12 · **Parte 2**, §2.10 |
+| Destilados semânticos | `docs/13-researchs.md` | **Parte 6**, §6.9 |
+| Scripts, biblioteca, templates | `docs/00-contratos.md` §7, §8 | **Parte 7** |
+| `SKILL.md` e o gate | `docs/00-contratos.md` §9, §11 | **Parte 8** |
+| Catálogo de decisões abertas | — | os **48 marcadores** ao longo do texto, e o roteiro completo no **Apêndice A** |
 
 ---
 
@@ -375,6 +373,46 @@ Afirmações que dependem de versão ou de ambiente estão marcadas no ponto de 
 | `ulimit -f` em bash (modo não-POSIX) conta **blocos de 1024 bytes**; `65536` = 64 MB | medido por execução, `docs/11` §2.1 |
 | `TasksMax=128` **derruba `go test`**; o valor canônico é **512** | medido por execução (A-26) |
 | A saída de `memory-digest.sh` tem **18 chaves de topo**, nesta ordem, e sai **0** com `memory/` vazia | executado neste repositório na revisão `df040b5` |
-| O corpo do `SKILL.md` cabe em ~200 linhas com **66 linhas de folga** (88 regras + 46 de roteador = 134) | contagem em `docs/00-contratos.md` §9.8 |
+| O corpo do `SKILL.md` cabe em ~200 linhas com **64 linhas de folga** (90 regras + 46 de roteador = 136) | contagem em `docs/00-contratos.md` §9.8 |
 
 Onde este documento afirma um comportamento que **não** está implementado, ele diz isso explicitamente e nomeia a dívida (`DEB-1` em §2.5.3; `DEB-2`/`DEB-3` em §1.6.5, como L-1 e L-2). **Prometer é pior que reconhecer.**
+
+### 0.7.4 ⭐ Os marcadores `PERGUNTE AO USUÁRIO` — como usá-los
+
+Este documento carrega **48 marcadores** com esta forma, cada um no ponto exato da construção em que
+a decisão importa:
+
+```
+> **PERGUNTE AO USUÁRIO (D-NNN)** — <a pergunta, em linguagem de gente>
+> <por que importa, com a analogia>
+> **Opções:** <(a) …> · <(b) …>
+> **Default:** <(x)> · **Custo de mudar depois: cheap | moderate | expensive**
+```
+
+| Regra | Conteúdo |
+|---|---|
+| **Quando parar** | Ao chegar num marcador durante a construção, **pare, pergunte e espere**. Não presuma o default em silêncio. |
+| **O que dizer** | A pergunta **e** o parágrafo do porquê — o usuário decide com a analogia na mão, não com o id da decisão. |
+| **Se o usuário não quiser decidir** | Aplique o **Default** e **diga que aplicou**, em uma linha, com o custo de mudar depois. Default aplicado em silêncio é decisão tomada por omissão. |
+| **`cheap`** | Uma linha num arquivo. Pode ser deixado para depois sem dívida. |
+| **`moderate`** | Exige migrar dado já escrito. Decidir tarde custa uma migração. |
+| **`expensive`** | Há efeito que não se desfaz — histórico, dado já gravado, comparação de score invalidada. **Estes valem a interrupção mesmo que o usuário esteja com pressa.** |
+| **De onde vêm** | `SK/assets/decisions.json`, o catálogo de 114 entradas. Os 48 marcados são exatamente os de `audience ∈ {builder, both}` **e** `status == open` — os demais ou são perguntados **ao aluno em runtime** (`audience: student`) ou já foram arbitrados e viram uma linha de citação. |
+| **Onde ver todos de uma vez** | **Apêndice A**, agrupado por momento da construção. |
+
+O gate verifica isto mecanicamente (`G-12d`): **ou os 48 marcadores existem, ou nenhum**. Marcação
+pela metade é pior que marcação nenhuma, porque dá a impressão de que o que não foi marcado não tem
+decisão em aberto.
+
+### 0.7.5 Convenção de placeholder neste arquivo
+
+Os templates de `SK/assets/templates/**` usam placeholders. A sintaxe real é o **nome em maiúsculas
+entre duas chaves de abertura e duas de fechamento, sem espaço nenhum** — `{` `{` `NOME` `}` `}` —
+casando `^[A-Z0-9_]+$` entre as chaves.
+
+⚠ **Neste arquivo eles aparecem como `«NOME»`**, com aspas angulares no lugar das chaves duplas. O
+motivo é mecânico: o gate de qualidade (`L-03`) reprova **placeholder vazado fora de um `*.tmpl`**, e
+não distingue "documentar a sintaxe" de "esquecer de substituir". A conversão é literal e sem perda:
+onde este documento escreve `«FUNC_NAME»`, o arquivo `.tmpl` traz `FUNC_NAME` entre as duas chaves de
+cada lado. A forma byte a byte está nos próprios `SK/assets/templates/**` e no `MANIFEST.tsv`, que é
+a fonte de verdade (§7.11).

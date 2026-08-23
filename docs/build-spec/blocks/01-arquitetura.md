@@ -1,6 +1,6 @@
-# 1. Arquitetura: topologia, máquina de estados, protocolo e biblioteca
+# Parte 1 — Arquitetura: topologia, máquina de estados, protocolo e biblioteca
 
-## Sumário
+## Sumário da Parte 1
 
 - **§1.1–§1.2** as três entidades (repositório × skill instalada × setup) e a árvore canônica de arquivos, com o papel de cada caminho.
 - **§1.3** ⭐ a máquina de **9 passos**, com os **dois condicionais** marcados — o detalhe cuja perda quebra o produto.
@@ -47,6 +47,11 @@ Três propriedades normativas saem daí:
 1. **Uma sessão abre exatamente um setup.** Não existe sessão multi-setup.
 2. **A leitura cruzada enxerga apenas o `README.md` do outro setup** — nunca o `memory/`, nunca o `docs/` dele. Escrita cruzada entre setups: **nunca**.
 3. **A skill escreve em exatamente dois lugares**: o setup atual e o `STUDY_METHOD_HOME`. Ambos criados com `chmod 700`.
+
+> **PERGUNTE AO USUÁRIO (D-S10)** — Aplicar `chmod 700` no diretório do setup e no diretório global na criação?
+> É trancar a porta do quarto numa casa compartilhada. Custa zero, não muda nada para quem usa sozinho, e impede que outra conta do mesmo computador leia o perfil de estudo por acidente.
+> **Opções:** **(a)** sim, uma vez, na criação — impede leitura casual por outra conta; surpreende quem deliberadamente compartilha a pasta · **(b)** não, herdar o `umask` do sistema — segue a convenção da máquina, e em máquina multiusuário o padrão costuma ser legível por todos
+> **Default:** **(a)** · **Custo de mudar depois: cheap**
 
 ---
 
@@ -217,6 +222,11 @@ E a regra permanente **BOOT-4**: *`setup_interview` só roda quando não há set
 ### 1.3.3 Dois pontos de ordem que não podem ser invertidos
 
 - **A sessão nasce depois de `load_memory`** (D-A04), para que o digest nunca leia o arquivo vazio da própria sessão corrente como se fosse histórico.
+
+> **PERGUNTE AO USUÁRIO (D-A04)** — Em que momento a sessão nasce em disco?
+> É a hora de abrir o caderno. Cedo demais e o resumo da aula acaba lendo a si mesmo; tarde demais e uma queda de energia leva a aula inteira junto.
+> **Opções:** **(a)** depois de carregar memória e teoria, antes da primeira fala — sobrevive a um travamento no meio da aula, e o digest nunca lê a própria sessão; custa uma escrita antes de o aluno dizer qualquer coisa · **(b)** logo no `bootstrap` — registro máximo, e cria sessão vazia toda vez que alguém só passou pela pasta · **(c)** só no fim da aula — zero arquivo inútil, e um travamento no meio apaga a aula inteira, que é o modo de falha mais comum do sistema
+> **Default:** **(a)** · **Custo de mudar depois: cheap**
 - **A compactação roda no fechamento, nunca na abertura**: compactar é operação de modelo e leva tempo; o aluno não deve esperar por ela para começar a aula.
 
 O detalhamento de erros por passo (o que acontece quando o registry corrompe, quando há setup aninhado, quando o disco é read-only) vive em `docs/01-arquitetura.md` §3, passos 1 a 9, e em `docs/10-bootstrap.md` §4 (a árvore de decisão da invocação, folha a folha).
@@ -274,6 +284,11 @@ O detalhamento de erros por passo (o que acontece quando o registry corrompe, qu
 | `read_as` (digest) | `current` · `hypothesis` | saída de `memory-digest.sh` | Derivado, nunca persistido. |
 | razão de item de `plan` | `orphan_resume` · `spaced_review` · `student_request` · `next_in_taxonomy` | `session.schema.json` → `plan[].reason` | Prioridade nesta ordem. |
 
+> **PERGUNTE AO USUÁRIO (D-A09)** — O campo `language.name` do manifesto do setup é um `enum` fechado de 19 linguagens ou string livre?
+> É a diferença entre um menu e um campo em branco. O menu impede escolher uma linguagem que a máquina não roda; o campo em branco aceita `pyhton` e só quebra três passos depois.
+> **Opções:** **(a)** `enum` fechado, derivado da matriz de toolchains — erro de digitação morre na validação e o vocabulário fica congelado junto com desafios e templates; linguagem nova exige virar a `schema_version` e migrar · **(b)** string com `pattern` — qualquer linguagem entra sem mexer no schema, e `pyhton` passa na validação para falhar só na hora de rodar o desafio
+> **Default:** **(a)** · **Custo de mudar depois: expensive**
+
 ### 1.4.2 Patterns canônicos
 
 | Identificador | Pattern | Onde | Nota |
@@ -294,6 +309,11 @@ O detalhamento de erros por passo (o que acontece quando o registry corrompe, qu
 | `path` do registry | `^/` | `registry.json` | **Único** caminho absoluto de todo o sistema. Sem barra final, sem `~`. |
 | id de decisão | `^D-[A-Z]{1,3}[0-9]{2,3}$` | `setup.json.decisions` | Mapa extensível; ampliar não é MAJOR. |
 
+> **PERGUNTE AO USUÁRIO (D-A08)** — O objeto `decisions` do `setup.json` é um mapa livre `id -> resposta` ou um array com schema estrito?
+> É a diferença entre uma caixa de chaves com etiqueta e um formulário com campos fixos. O mapa livre deixa uma decisão nova entrar sem virar a versão do schema; a validação de valor fica com o catálogo, que é quem sabe quais opções existem.
+> **Opções:** **(a)** objeto livre, validação delegada ao catálogo — decisão nova entra sem virar `schema_version`, e o verificador mínimo não arrisca falso negativo em propriedade dinâmica; um id digitado errado passa pela validação do manifesto · **(b)** array validado pelo schema do manifesto — erro de digitação morre na validação, e toda decisão nova vira mudança de schema
+> **Default:** **(a)** · **Custo de mudar depois: moderate**
+
 **Nota normativa sobre `target_topic`:** ele é o único campo que cruza os dois namespaces — em `session.how_it_happened[].target_topic` e em `profile.procedural_facts[].target_topic` o pattern é **kebab-case** (`^[a-z0-9]+(-[a-z0-9]+)*$`), enquanto `topics[]` da sessão é **snake_case**. A igualdade de string entre eles é o mecanismo de recuperação do playbook, então a normalização precisa ser feita pelo mesmo lado nos dois pontos.
 
 ### 1.4.3 `$id` dos schemas — convenção única ⚑
@@ -304,33 +324,15 @@ Restrições de forma, para caber no verificador mínimo em Python stdlib: **sem
 
 Regras de tipo do verificador: `boolean` **não** é `integer` (o `bool` do Python é excluído explicitamente); `integer` casa `number`. Saída: uma linha por erro em **stderr**, `<json-pointer>: <motivo>`, ponteiro em RFC 6901 (`~`→`~0`, `/`→`~1`; raiz = string vazia), motivo em pt-BR, teto de 200 erros.
 
-### 1.4.4 Os 19 scripts — tabela canônica de CLI
+### 1.4.4 Os 19 scripts — o vocabulário dos nomes
 
 ⚑ `challenge-run.sh` e `render-html.sh` foram **removidos**: não tinham contrato, e suas funções pertencem ao `runner.sh` gerado dentro do desafio e ao `render-plot.py`. Nenhum documento pode citá-los.
 
-Convenção: **todo script recebe `<setup_root>` como primeiro argumento posicional**, exceto `setup-init.sh` (recebe `<path>`), `challenge-verify.sh` (recebe `<challenge_dir>`), `detect-toolchains.sh`, `render-plot.py` e os três de `lib/`.
+São **19**, e o número é contratual (invariante `I-06a`): **3 arquivos de `lib/`** — `common.sh`, `json.sh`, `sandbox.sh` — e **16 executáveis** — `setup-init.sh`, `setup-list.sh`, `session-new.sh`, `session-close.sh`, `research-new.sh`, `docs-index.sh`, `memory-index.sh`, `memory-digest.sh`, `memory-compact.sh`, `progress-update.sh`, `readme-sync.sh`, `challenge-new.sh`, `challenge-verify.sh`, `detect-toolchains.sh`, `render-plot.py`, `decisions-ask.sh`.
 
-| Script | Invocação | stdout | Exit codes |
-|---|---|---|---|
-| `lib/common.sh` | `source` apenas | — | n/a (LIB-1) |
-| `lib/json.sh` | `source` apenas | — | n/a (LIB-1) |
-| `lib/sandbox.sh` | `source` apenas | — | n/a (LIB-1) |
-| `setup-init.sh` | `<path> --subject <s> --subject-slug <sl> --title <t> [--language <l>] [--skill-level <n>] [--session-minutes <n>] [--theory-source <ts>] [--defaults-used <csv>]` | O `setup_id` alocado | 0 · 1 · 2 · 4 (registry) · 5 |
-| `setup-list.sh` | sem argumento = lista `active` · `--resolve <cwd>` · `--find <termo> --json` · `--archive <setup_id>` · `--forget <setup_id>` · `--all` · `--json` | Lista legível, ou JSON com `--json`; `--resolve` imprime o caminho absoluto | 0 · 1 · 2 · 3 · 4 |
-| `session-new.sh` | `<setup_root> [--goal <texto>]` | O `NNNN` alocado | 0 · 1 · 2 · 3 · 4 (lock vivo) · 5 |
-| `session-close.sh` | `<setup_root> [--session <NNNN>] [--recover <NNNN>] [--apply <resposta.json>]` | O `NNNN` fechado | 0 · 1 · 2 · 3 · 5 · **10** (`fill_session_fields`). ⚑ `--recover <NNNN>` é a porta **manual** do fechamento retroativo de órfã; o dono do fechamento **automático** continua sendo `memory-index.sh --verify`, único. |
-| `research-new.sh` | `<setup_root> --topic <slug> [--sources <csv>] [--session <NNNN>]` | O caminho relativo de `researchs/NNNN.md` | 0 · 1 · 2 · 3 · 4 |
-| `docs-index.sh` | `<setup_root> [--topics t1,t2] [--budget-bytes N] [--force] [--select] [--apply <resposta.json>]` | JSON: `{mode, files, selected_sections, excluded, total_ingestible_bytes}` | 0 · 1 · 2 · 3 · 5 · **10** (`select_sections`). ⚑ `--select` é o **único** gatilho do exit 10; `--select` e `--apply` são mutuamente exclusivos (combiná-los é **2**). |
-| `memory-index.sh` | `<setup_root> [--verify] [--rebuild]` | `{sessions, orphans_closed, quarantined, rebuilt}` | 0 · 1 · 2 · 3 · 5 |
-| `memory-digest.sh` | `<setup_root> [--topics t1,t2] [--budget-chars N] [--today AAAA-MM-DD] [--now <ISO 8601>]` | **O digest JSON**, ordem de chaves fixa, forma fixa | **0 sempre que produzir um digest** — inclusive com `memory/` vazia, índice ausente, bruto corrompido ou orçamento estourado. |
-| `memory-compact.sh` | `<setup_root> [--if-due] [--force] [--apply <resposta.json>]` | `{sessions_compacted, facts_created, facts_superseded, facts_reconfirmed}` | 0 · 1 · 2 · 3 · 5 · **10** (`compact_facts`) |
-| `progress-update.sh` | `<setup_root> [--event <evento.json>] [--due] [--recompute]` | `--due` imprime os conceitos vencidos (JSON); `--recompute` imprime o diff | 0 · 1 · 2 · 3 · **4** · 5. ⚑ Tem lock próprio, `memory/.progress.lock`, **ortogonal** ao `.session.lock`. |
-| `readme-sync.sh` | `<setup_root> [--init]` | O número de linhas geradas | 0 · 1 · 2 · 3. **Idempotente.** |
-| `challenge-new.sh` | `<setup_root> --language <l> --slug <sl> --concept <concept_id> [--difficulty 1..5] [--skill-level <n>]` | O caminho relativo de `challenges/<NNNN>-<slug>/` | 0 · 1 · 2 · 3 · 4 · 5 |
-| `challenge-verify.sh` | `<challenge_dir> [--sample-size N] [--n-rep N] [--apply <resposta.json>]` | `{verdict, mutation_score, killed, survived, rejections}` | 0 (`approved`) · 1 · 2 · 5 · **10** (`classify_survivor`). Veredito `weak`/`rejected` sai **0** — reprovar o desafio não é erro do script. |
-| `detect-toolchains.sh` | `[--cached] [--setup <setup_root>] [--language <l>] [--json]` | JSON: por linguagem, `{available, version, command}` | 0 · 1 · 2 |
-| `render-plot.py` | `[--spec CAMINHO\|-] [--out-dir DIR] [--basename NOME] [--width N] [--height N] [--ascii-width N] [--ascii-height N] [--formats svg,html,txt,md] [--png] [--quiet]` | `{ok, type, outputs, description_text, ascii_text, warnings, stats}` | **Exceção nomeada**: 0 · 1 · 2 · 3 |
-| `decisions-ask.sh` | `<fase> --setup <setup_root> [--json] [--answer <id>=<valor>]`, `fase ∈ {setup-init, first-challenge, session-15, on-demand}` | As decisões pendentes daquela fase, em JSON | 0 · 1 · 2 · 3 · 5 |
+Convenção: **todo script recebe `<setup_root>` como primeiro argumento posicional**, exceto `setup-init.sh` (recebe `<path>`), `challenge-verify.sh` (recebe `<challenge_dir>`), `detect-toolchains.sh` e `render-plot.py` (nenhum posicional), `decisions-ask.sh` (recebe `<fase>`) e os três de `lib/`, que **nunca** são invocados.
+
+> **A tabela canônica de CLI — invocação, stdout, exit codes e o passo que chama cada script — está em §7.1, e não é repetida aqui.** Duas cópias da mesma assinatura divergem em silêncio: esta seção congela os **nomes** (que são vocabulário), a Parte 7 congela as **assinaturas**.
 
 ---
 
@@ -338,24 +340,24 @@ Convenção: **todo script recebe `<setup_root>` como primeiro argumento posicio
 
 ### 1.5.1 Tabela canônica — vale para **todo** `SK/scripts/*.sh`
 
-| Código | Significado | Quando |
-|---|---|---|
-| **0** | ok | Sucesso, inclusive com `warnings`. |
-| **1** | erro de execução | I/O, permissão, disco cheio, dependência ausente. |
-| **2** | uso incorreto | Argumento faltando, flag inválida, combinação proibida. |
-| **3** | setup não encontrado | Sem `setup.json` legível na raiz informada nem em ancestral. |
-| **4** | recurso travado | `.session.lock` vivo, `.registry.lock` ocupado, colisão de `NNNN` após 5 tentativas. |
-| **5** | validação de schema falhou | O JSON produzido ou recebido não valida; detalhe em stderr. |
-| **10** | **`needs_model_input`** | O script chegou até onde é determinístico e emitiu um PEDIDO em stdout (§1.6). Nada foi alterado em disco. |
+| Código | Significado | Quando | O que o tutor faz ao receber |
+|---|---|---|---|
+| **0** | ok | Sucesso, inclusive com `warnings` | Segue. Leia o stdout — mesmo com `warnings`, o passo está completo |
+| **1** | erro de execução | I/O, permissão, disco cheio, dependência ausente | Mostre ao aluno o caminho exato e o que faltou, em uma linha; não invente a causa; não repita a chamada sem mudar algo |
+| **2** | uso incorreto | Argumento faltando, flag inválida, combinação proibida | É bug **da invocação**, nunca do aluno. Corrija os argumentos; não exponha isso ao aluno |
+| **3** | setup não encontrado | Sem `setup.json` legível na raiz informada nem em ancestral | Volte para `bootstrap`; não insista no mesmo caminho |
+| **4** | recurso travado | `.session.lock` vivo · `.registry.lock` ocupado · colisão de `NNNN` após 5 tentativas | Lock de sessão vivo → pergunte ao aluno (abortar é o default), não force. Lock de registry é transitório (morre em 60 s) e a lib já retenta uma vez |
+| **5** | validação de schema falhou | O JSON produzido ou recebido não valida; detalhe em stderr | **Nunca** cole o JSON de stderr para o aluno. Vindo de `--apply`, o motivo mais comum é `request_id` divergente → refaça o pedido |
+| **10** | **`needs_model_input`** | O script chegou até onde é determinístico e emitiu um PEDIDO em stdout (§1.6). **Nada foi alterado em disco** | Não é erro. Siga o protocolo do §1.6 |
 
-Códigos 6–9 e 11+ são **reservados**. Nenhum script pode inventar significado para eles.
+Códigos **6–9 e 11+ são reservados**. Nenhum script pode inventar significado para eles — invariante **`I-18`**: todo script fora de `lib/` usa apenas `0 1 2 3 4 5 10`.
 
 ### 1.5.2 Exceções nomeadas (são exceção, não desvio)
 
 | Programa | Códigos | Razão |
 |---|---|---|
-| **`runner.sh` gerado dentro do desafio** | `0` passou · `1` falhou · `2` contagem de testes divergente · `3` timeout | Não é script da skill: é artefato gerado, lido pelo aluno, e o vocabulário 0/1/2/3 é o que `challenge-verify.sh` normaliza para todas as 19 linguagens. Também usa **`66`** quando `cd "$DESAFIO_DIR"` falha. |
-| **`render-plot.py`** | `0` ok · `1` spec inválida · `2` dados inválidos · `3` falha de escrita | CLI pública com contrato próprio; falha de PNG **não** é erro (vira `warning` com exit 0). |
+| **`runner.sh` gerado dentro do desafio** | `0` passou · `1` falhou · `2` contagem de testes divergente · `3` timeout · **`66`** quando `cd "$DESAFIO_DIR"` falha | Não é script da skill: é **artefato gerado**, lido e rodado pelo aluno. O vocabulário 0/1/2/3 é o que `challenge-verify.sh` normaliza para todas as linguagens. O `66` vence `exit 70` e `exit 1` de rascunhos anteriores |
+| **`render-plot.py`** | `0` ok · `1` spec inválida (`spec_json_invalid`, `spec_missing_key`) · `2` dados inválidos (`series_invalid`, `no_valid_data`) · `3` falha de escrita (`write_failed`) | CLI pública com contrato próprio, publicado em `SK/references/visualizacao.md`. **Falha de PNG não é erro**: vira `warning` com exit 0 |
 
 ### 1.5.3 Exit codes **observados** que os scripts precisam interpretar
 
@@ -375,7 +377,7 @@ Estes não são produzidos pela skill — são produzidos pelo ambiente e **têm
 | **5** | `python3 -m unittest` sem testes coletados | `Ran 0 tests` + `NO TESTS RAN`. É o falso positivo que a igualdade de contagem pega. |
 | **0 com falha** | `testthat` em R · `go test ./...` com layout errado · `node --test` em arquivo sem `test()` · `cargo test <nome-curto>` · `java` sem `-ea` | Cinco formas verificadas de "passou" sem nada ter rodado. **Por isso o gate é igualdade com `expected_test_count`, nunca `> 0`.** |
 
-**Regra permanente de leitura:** `!= 0` significa falha. **Jamais** `== 1`.
+**Regra permanente de leitura:** `!= 0` significa falha. **Jamais** `== 1` (`SEG-7`, invariante **`I-21`**). É também a razão de o gate do desafio ser **igualdade** com `expected_test_count`, nunca `> 0` (`DES-4`).
 **Regra de pipe:** `comando | tail -1` devolve o status do `tail`. Todo script usa `set -o pipefail` ou `${PIPESTATUS[0]}`, ou redireciona para arquivo e lê o status direto.
 
 **Unidade de `ulimit -f` ⚑:** em bash (modo não-POSIX) conta **blocos de 1024 bytes**. `ulimit -f 65536` = **64 MB**, que é o valor canônico. O campo `execution.file_size_blocks` descreve blocos de 1024 bytes.
@@ -532,33 +534,7 @@ Todo acesso a `jq` usa **redirecionamento** (`jq FILTRO < "$arquivo"`), nunca o 
 | `sm_relpath <caminho> <raiz>` | — | Caminho relativo a `<raiz>`, sem `./` inicial | `0` · `2` se `<caminho>` estiver fora de `<raiz>` |
 | `sm_chmod_private <caminho>` | — | — | `0` · `1`. Aplica `chmod 700` em diretório recém-criado. |
 
-**Os três algoritmos que precisam ser reproduzidos exatamente:**
-
-`sm_normalize_concept_id`:
-1. rótulo vazio ⇒ **2**;
-2. dobra para ASCII por substituição de string em bash (`${s//á/a}`…), **byte-safe em UTF-8 e independente de locale**; a tabela é `SM_ASCII_FOLD` e cobre acentuação pt-BR + `º ª æ œ ß`;
-3. minúsculas (`${s,,}`);
-4. `LC_ALL=C tr -c 'a-z0-9' '_'`;
-5. divide em tokens por `_`, descarta token vazio e as stopwords `de da do em e a o por com`; junta de novo com `_`;
-6. remove `_` das pontas; resultado vazio ⇒ **2**;
-7. não começa em `[a-z]` ⇒ prefixa `c_` (preserva informação; nunca corta o começo);
-8. trunca em 63; remove `_` final; se sobrou 1 caractere, acrescenta `_` (o pattern exige ≥2);
-9. confere contra `^[a-z][a-z0-9_]{1,62}$`; não casou ⇒ **2**.
-
-Exemplos verificados: `Derivadas: o conceito` → `derivadas_conceito` · `Análise de Complexidade` → `analise_complexidade` · `funções de 1º grau` → `funcoes_1o_grau` · `1º grau` → `c_1o_grau`.
-
-`sm_normalize_slug`: passos 2–4 iguais, com `-` no lugar de `_`; colapsa `--`, remove `-` das pontas, trunca em 64. **Não remove stopwords** — slug é nome de diretório e de arquivo, namespace distinto. `Análise de Complexidade` → `analise-de-complexidade`.
-
-`sm_next_seq`:
-1. `mkdir -p "$dir"`;
-2. até **5** tentativas. Em cada uma, `max` = maior `NNNN` visto em `"$dir"/NNNN<sufixo>` **e** em `"$dir"/*/NNNN<sufixo>` (um nível: cobre `memory/discarded/` e `memory/broken/`, e é o que garante que **número purgado nunca é reaproveitado**); com sufixo vazio, também `"$dir"/NNNN-*` (cobre `challenges/<NNNN>-<slug>/`);
-3. `seq = max + 1`, zero-padded em 4 dígitos; `> 9999` ⇒ **1**;
-4. criação com `( set -o noclobber; : > "$dir/NNNN<sufixo>" )` — falha se o arquivo já existe. Sucesso ⇒ imprime `NNNN`, **0**. O arquivo criado é a **reserva**: quem chamou grava por cima com `sm_atomic_write`;
-5. colisão ⇒ recuo curto e aleatório (`sleep 0.0N`, `N < 10`) e nova tentativa. 5 colisões ⇒ **4**.
-
-Medido: 5 processos concorrentes × 20 alocações = **100 sucessos, 100 valores distintos, 0 duplicados, 0 exit 4**; após mover `0003.json` para `discarded/`, a alocação seguinte é `max+1`, não `0003`.
-
-`sm_atomic_write`: `mkdir -p` do `dirname`; tmp `"$dest.tmp.$$"` no **mesmo diretório**; conteúdo de stdin via `cat`; `sync -- "$tmp"` (fallback `sync`); `mv -f`. Qualquer falha remove o tmp e devolve **1** — nunca deixa escrita parcial nem tmp órfão.
+> **Os algoritmos determinísticos destas funções estão na Parte 7, e não são repetidos aqui:** os dois normalizadores (`sm_normalize_concept_id`, `sm_normalize_slug`), passo a passo, em **§7.6.1**; a alocação sequencial atômica de `sm_next_seq` e o porquê do `noclobber`, em **§7.9**; o contrato de `sm_atomic_write` e a lista dos derivados que o exigem, em **§7.10**. Esta seção congela a **interface**; a Parte 7 congela a **implementação**.
 
 ### 1.7.2 `lib/json.sh` — 9 funções
 
@@ -583,23 +559,7 @@ Medido: 5 processos concorrentes × 20 alocações = **100 sucessos, 100 valores
 | `sm_sandbox_run <challenge_dir> -- <argv…>` | stdout/stderr do comando | O exit code **bruto** do comando, preservado (verificado: `exit 101` sai 101). |
 | `sm_sandbox_classify_exit <code> <elapsed> <wall>` | Uma palavra: `passed\|failed\|timeout\|oom\|cpu\|infra` | `0`. Implementa a desambiguação do 137 (§1.5.3). |
 
-Pilha canônica, de fora para dentro — **a ordem não pode ser invertida**, e cada camada é sondada antes de entrar:
-
-```
-timeout -s KILL -k 5
-  → systemd-run --user --scope -p MemoryMax -p MemorySwapMax=0 -p TasksMax=512 -p OOMPolicy=continue
-    → bwrap --unshare-all   (quando disponível; senão unshare --user --net --pid --fork --map-current-user)
-      → bash -c 'ulimit -t … -f …; cd "$1" || exit 66; shift; exec "$@"'
-```
-
-Quatro parâmetros da pilha são **medidos**, não escolhidos por gosto:
-
-| Parâmetro | Valor canônico | O que a medição mostrou |
-|---|---|---|
-| `TasksMax` | **512** (`SM_SANDBOX_TASKS`) | `128` **derruba `go test`**: o cgroup conta *threads*, e o Go abre um processo de compilação por CPU. |
-| `OOMPolicy` | **`continue`** — obrigatório | Sem ele o systemd para o **escopo inteiro** no OOM: o código vira **143** e `memory.events.oom_kill` some antes de ser lido, então a desambiguação do 137 perde a evidência do estouro. Existe a partir do systemd 243; ausente, a camada entra sem ele e o relato ao aluno **declara a perda**. |
-| confinamento de escrita | **`bwrap --unshare-all`** substitui `unshare` quando presente | `unshare` sozinho **não confina escrita** (o processo grava em `$HOME` sem erro). `bwrap` exige os quatro `--symlink` (`usr/bin`, `usr/sbin`, `usr/lib`, `usr/lib64`) ou a sonda falha calada. |
-| caches de toolchain | remapeados para **`/sm/…`**, com a variável reapontada (`CARGO_HOME`, `RUSTUP_HOME`, `GOMODCACHE`, `npm_config_cache`) | Montar no **caminho original** faz o `bwrap` **criar `/home/<aluno>` dentro do sandbox**, e o diretório criado é **gravável**: o aluno vê a escrita em `$HOME` funcionar e leva a lição errada. Com o remapeamento, `/home` não existe lá dentro. **Nada é montado sob `/home`.** |
+> **A pilha canônica camada a camada, a degradação por plataforma, os quatro parâmetros medidos (`TasksMax`, `OOMPolicy`, confinamento de escrita, remapeamento de caches) e a linha de honestidade dita ao aluno estão em §3.12, e não são repetidos aqui.** O sandbox só existe por causa do desafio, e é lá que a decisão de cada camada é tomada.
 
 ### 1.7.4 O furo do `sm_setup_lock`, e por que a correção tem duas vias ⚑
 
@@ -616,6 +576,11 @@ Não há um pid único que sirva: a "sessão" é uma **conversa**, não um proce
 
 > ⚠ **Fato que envelhece:** `docs/build-spec/30-lib-setup.md` §1.6 descreve apenas a via (a). Verificado no disco na revisão `df040b5`: `lib/common.sh` implementa **as duas vias**, exatamente como acima. O fragmento 30 é que está desatualizado.
 
+> **PERGUNTE AO USUÁRIO (D-A06)** — O que fazer quando há outra sessão viva no mesmo setup (dois terminais abertos)?
+> Dois cadernos abertos na mesma página: quem escrever por último apaga o outro. Abortar o segundo dizendo qual terminal está com a sessão é o único jeito de não perder trabalho em silêncio.
+> **Opções:** **(a)** abortar o segundo com exit `4`, dizendo qual pid/terminal segura a sessão — nenhuma escrita se perde e a mensagem diz o que fazer; quem só queria consultar leva um não · **(b)** abrir em modo somente-leitura — consulta continua possível, ao custo de um modo a mais no código e do risco de o aluno não perceber que nada está sendo salvo · **(c)** abrir as duas e aceitar o risco — nenhum código novo, e perda silenciosa de dado, que é o pior tipo
+> **Default:** **(a)** · **Custo de mudar depois: cheap**
+
 ---
 
 ## 1.8 Registry global e multi-setup
@@ -624,7 +589,12 @@ Não há um pid único que sirva: a "sessão" é uma **conversa**, não um proce
 ${STUDY_METHOD_HOME:-${XDG_DATA_HOME:-$HOME/.local/share}/study-method}/registry.json
 ```
 
-**O registry é cache de descoberta, nunca origem da verdade.** Todo dado de um setup vive dentro do próprio setup. Se o registry for apagado, nenhum setup é perdido: basta abrir cada um uma vez e ele se re-registra. Essa propriedade é o que permite tratar qualquer inconsistência de registry como **aviso**, nunca como erro fatal.
+**O registry é cache de descoberta, nunca origem da verdade.**
+
+> **PERGUNTE AO USUÁRIO (D-A12)** — Onde fica o registry global de setups?
+> É a agenda de endereços dos seus estudos. Pô-la no lugar que o sistema reserva para dado de aplicativo é guardar a agenda na gaveta da agenda; deixar um override por variável é poder levar a gaveta inteira para outro lugar em um comando.
+> **Opções:** **(a)** `${STUDY_METHOD_HOME:-${XDG_DATA_HOME:-$HOME/.local/share}/study-method}/registry.json` — respeita a convenção do sistema, continua sobrescrevível por variável, e o backup de `~/.local/share` já pega o arquivo; caminho longo de digitar na inspeção manual · **(b)** `~/.study-method/registry.json` — curto e óbvio, e mais um diretório oculto na raiz do `$HOME`, contra a convenção XDG · **(c)** dentro do primeiro setup criado — zero configuração, e apagar o primeiro setup derruba a descoberta de todos os outros
+> **Default:** **(a)** · **Custo de mudar depois: moderate** Todo dado de um setup vive dentro do próprio setup. Se o registry for apagado, nenhum setup é perdido: basta abrir cada um uma vez e ele se re-registra. Essa propriedade é o que permite tratar qualquer inconsistência de registry como **aviso**, nunca como erro fatal.
 
 | Momento | Passo | O que muda |
 |---|---|---|
@@ -660,6 +630,26 @@ para cada entrada E do registry:
 | **Renomeado** | Caso particular de movido. Renomear o campo `setup_name` também é livre — o registry é atualizado por `setup_id` no próximo `bootstrap`/`close_session`. | Não |
 | **Apagado** | Vira `missing` com `missing_since`. A entrada **permanece para sempre**: (1) sessões antigas de outros setups podem ter `cross_setup_refs` apontando para ele, e referência pendurada precisa ter nome; (2) se o aluno restaurar de backup, a entrada volta sozinha a `active`. Mencionado **no máximo uma vez por sessão**, e só se relevante. | Não |
 | **Clone** (dois caminhos vivos com o mesmo `setup_id`) | Aviso em stderr, registry inalterado. Sortear `setup_id` novo é decisão do aluno, não do script. | **Sim** — as duas respostas são plausíveis |
+
+> **PERGUNTE AO USUÁRIO (D-A22)** — Setup que mudou de lugar: corrigir o `path` no registry automaticamente ou perguntar?
+> O amigo mudou de casa e você achou o endereço novo. Não existe alternativa razoável a anotar o endereço novo — perguntar "posso atualizar?" é cerimônia sobre um fato já verificado.
+> **Opções:** **(a)** corrigir automaticamente quando o caminho antigo não existe mais — fica registrado na sessão, então é auditável; escreve no registry sem confirmação · **(b)** sempre perguntar — nada muda sem aval, e a única resposta sensata é "sim" · **(c)** só com `--fix` explícito — controle total, e a skill fica quebrada até alguém lembrar da flag
+> **Default:** **(a)** · **Custo de mudar depois: cheap**
+
+> **PERGUNTE AO USUÁRIO (D-A13)** — O setup se auto-registra no registry, ou registrar é um comando explícito do aluno?
+> Ninguém lembra de anotar o telefone novo na agenda. Um setup fora do registry fica invisível para a leitura cruzada e para o "abre o meu estudo de cálculo" — e o aluno só descobre isso semanas depois.
+> **Opções:** **(a)** auto-registro dentro de `setup-init.sh` — nenhum setup fica invisível por esquecimento, e acontece no único momento em que o caminho está certo por construção; escreve num arquivo global sem perguntar · **(b)** comando explícito `setup-list.sh --register <path>` — controle total, e todo mundo esquece · **(c)** auto-registro com confirmação de uma linha — transparente, ao custo de uma pergunta a mais no momento em que o aluno só quer começar
+> **Default:** **(a)** · **Custo de mudar depois: cheap**
+
+> **PERGUNTE AO USUÁRIO (D-A18)** — Dois setups podem ter o mesmo `setup_name`?
+> Dois arquivos chamados "notas" em pastas diferentes não são um erro — são duas pastas. Exigir nome único no mundo dependeria de o registry estar sempre certo, e o registry é justamente o componente que pode estar desatualizado.
+> **Opções:** **(a)** sim, desempatados por caminho e data da última sessão — não depende de um índice global correto, e copiar uma pasta não quebra nada; a lista precisa mostrar o caminho para desempatar · **(b)** não, `setup-init.sh` recusa nome repetido — o nome sempre identifica, e a unicidade passa a depender de um registry que pode estar velho
+> **Default:** **(a)** · **Custo de mudar depois: moderate**
+
+> **PERGUNTE AO USUÁRIO (D-A19)** — O aluno copiou a pasta de um setup e agora há dois caminhos vivos com o mesmo `setup_id`. O que fazer?
+> Copiar uma pasta é tirar uma foto: passam a existir duas, e nenhuma das duas é a falsa. Se as duas continuarem com a mesma identidade, o histórico de uma sobrescreve o da outra.
+> **Opções:** **(a)** sortear `setup_id` novo para a cópia recém-aberta e registrar as duas — backup e fork continuam seguros e o histórico do original não é corrompido; a cópia perde o vínculo formal com a origem · **(b)** recusar abrir até o aluno resolver — nada acontece sem decisão humana, e trava a aula por causa de um `cp -r` · **(c)** tratar como o mesmo setup e usar o último caminho — nenhum id novo, e as duas pastas passam a brigar pelo mesmo histórico
+> **Default:** **(a)** · **Custo de mudar depois: moderate**
 
 **O que nunca acontece:** o registry nunca apaga arquivo de setup nenhum; uma entrada `missing` nunca bloqueia a sessão corrente nem gera pergunta na abertura; a skill **nunca varre o disco inteiro** procurando setups perdidos.
 
@@ -705,6 +695,11 @@ O `README.md` do setup não é decoração: é a **única superfície que outro 
 | `README.md` sem marcador nenhum | avisa e acrescenta as 8 seções ao final, **preservando o texto** |
 
 **Nenhum defeito de marcador leva a reescrita do arquivo inteiro.**
+
+> **PERGUNTE AO USUÁRIO (D-A20)** — O `README.md` do setup é regenerado inteiro ou só entre marcadores?
+> É a diferença entre um quadro de avisos e uma folha impressa. Entre marcadores, a máquina atualiza a parte dela e a anotação a lápis do aluno continua ali. Regenerar inteiro apaga a anotação uma vez — e uma vez basta para ele nunca mais escrever nesse arquivo.
+> **Opções:** **(a)** só entre marcadores, preservando a prosa do aluno — ele pode escrever no arquivo sem medo e a parte gerada continua atual; exige marcadores estáveis e um parser que os respeite · **(b)** regenerar o arquivo inteiro — código trivial, e destrói a confiança no arquivo de forma permanente · **(c)** gerar em arquivo separado e deixar o `README.md` 100% do aluno — zero risco de sobrescrita, e dois arquivos dizendo a mesma coisa, com o aluno lendo só um
+> **Default:** **(a)** · **Custo de mudar depois: cheap**
 
 Outras garantias: **idempotência** (duas execuções seguidas sem sessão nova produzem arquivos byte a byte iguais — invariante I-30); escrita por `sm_atomic_write` e **só quando o conteúdo mudou**; `--init` cria o esqueleto com as 8 seções e **não sobrescreve arquivo existente** (avisa em stderr, imprime `0`, sai `0`).
 

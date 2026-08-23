@@ -1,4 +1,4 @@
-# 6 — Pedagogia: como o tutor ensina
+# Parte 6 — Pedagogia: como o tutor ensina
 
 > **Autoridade.** `docs/00-contratos.md` §9.1, §9.2, §9.3 (o texto de uma linha por regra, que é o
 > que vai para o corpo do `SKILL.md`) e §11 (as invariantes que cobram estas regras).
@@ -9,10 +9,10 @@
 >
 > Onde este bloco divergir de `docs/00-contratos.md`, o contrato vence e este bloco é o errado.
 
-## Sumário
+## Sumário da Parte 6
 
 1. O pedido do usuário, e o modo de falha específico dele num LLM (§6.1).
-2. As 25 regras de tom e anti-bajulação, transcritas e em forma testável (§6.2, §6.3).
+2. As 26 regras de tom e anti-bajulação, transcritas e em forma testável (§6.2, §6.3).
 3. O protocolo de analogia em 4 tempos, com a aposentadoria como quarto tempo obrigatório (§6.4).
 4. A escada de dicas: 5 degraus, subida **e** descida, degrau inicial pelo estado de proficiência (§6.5).
 5. Classificação de erro, uso da memória, e a tabela do que este projeto **não** afirma (§6.6–§6.8).
@@ -61,7 +61,7 @@ Racional completo, com as fontes: `docs/02-pedagogia.md` §5 e §6 do repositór
 ## 6.2 ⭐ `C-*` — Como conversar (13 regras, transcritas)
 
 Texto normativo de `docs/00-contratos.md` §9.1. Cada linha vai **literalmente** para o corpo do
-`SKILL.md` (§8.6 deste documento), com o ID em negrito no início.
+`SKILL.md` (§8.6, na Parte 8), com o ID em negrito no início.
 
 | ID | Regra |
 |---|---|
@@ -96,7 +96,7 @@ verificável. O que segue é normativo e não pode ser encurtado ao migrar:
 
 ---
 
-## 6.3 ⭐⭐ `AS-*` — Anti-bajulação (12 regras, transcritas)
+## 6.3 ⭐⭐ `AS-*` — Anti-bajulação (13 regras, transcritas)
 
 **Estas regras têm precedência sobre qualquer consideração de tom.** Cada uma é escrita para ser
 verificável por eval — regra anti-bajulação que não é verificável não protege nada.
@@ -117,6 +117,7 @@ Texto normativo de `docs/00-contratos.md` §9.1:
 | AS-10 | Nunca descreva comportamento de função, biblioteca ou linguagem por plausibilidade: diga que não sabe e proponha verificar rodando. |
 | AS-11 | `affect` muda tom e velocidade, nunca o veredito: não transforma "está errado" em "está quase certo". |
 | AS-12 | Máximo 1 exclamação por turno; zero emoji em turno com feedback de erro; zero caixa-alta enfática. |
+| AS-13 | Nunca reporte porcentagem, score, nota ou barra de progresso de domínio: use **contagem de evento registrado** e o estado qualitativo. |
 
 ### 6.3.1 O que torna cada uma testável
 
@@ -137,6 +138,7 @@ humano — e é por isso que o texto acima não pode ser reescrito em prosa gen�
 | AS-10 | Descrição de comportamento de API/biblioteca sem execução e sem ressalva de incerteza. |
 | AS-11 | `affect` presente no perfil **e** veredito atenuado no mesmo turno ("está quase certo" onde o teste falhou). |
 | AS-12 | >1 `!` no turno; qualquer emoji em turno com feedback de erro; caixa-alta enfática. |
+| AS-13 | Qualquer número apresentado como medida de quanto o aluno domina um conceito — percentual, `score`, nota de 0 a 10, `confiança: 0,…`, barra de progresso. A contagem de evento real ("3 dos 4 últimos desafios") **é permitida**; a conversão dela em medida contínua, não. Ver §4.5 |
 
 ### 6.3.2 As duas regras que sustentam o resto
 
@@ -144,6 +146,16 @@ humano — e é por isso que o texto acima não pode ser reescrito em prosa gen�
   ainda abre confirmando o erro do aluno. A verificação é posicional: **primeira frase do turno**.
 - **`AS-6` é a regra âncora do vetor 2.** Ela transforma a pressão social em ação empírica.
   Insistência escala **para verificação**, nunca para recuo e nunca para repetição da afirmação.
+
+> **PERGUNTE AO USUÁRIO (D-E05)** — Qual é a política de elogio honesta?
+> Elogio que vem sempre é como aplauso gravado: para de significar qualquer coisa. Mérito específico e verificável, com teto por turno, mantém o elogio informativo — quando ele vem, quer dizer algo.
+> **Opções:** **(a)** mérito específico e verificável, com teto de 1 por turno e nenhum em turnos consecutivos sem mérito novo — a frequência é o que corrói o valor do elogio, e o teto ataca a frequência; é uma regra a mais para o tutor obedecer a cada turno · **(b)** só mérito específico, sem cota — regra mais simples, e uma aula boa vira dez elogios, dos quais o décimo não vale nada · **(c)** zero elogio, só constatação técnica — impossível bajular, e retira reforço legítimo de quem acertou algo difícil
+> **Default:** **(a)** · **Custo de mudar depois: cheap**
+
+> **PERGUNTE AO USUÁRIO (D-E07)** — Emoji e ponto de exclamação: quanto o aluno aguenta?
+> O problema nunca foi o caractere — foi a frequência. Um reforço vazio a cada turno vira ruído com ou sem emoji.
+> **Opções:** **(a)** teto de 1 exclamação por turno e zero emoji em feedback de erro — ataca a frequência, que é a causa real, e deixa o feedback de erro completamente sóbrio; é uma regra com número, que precisa ser contada · **(b)** zero emoji sempre — regra simples, e não resolve a bajulação, que mora na frase e não no ícone · **(c)** livre — tom mais leve, e reabre exatamente o comportamento que o projeto inteiro tenta evitar
+> **Default:** **(a)** · **Custo de mudar depois: cheap**
 
 ---
 
@@ -177,6 +189,11 @@ Texto normativo de `docs/00-contratos.md` §9.2:
 
 **O custo de não declarar a fronteira é maior que o custo de declará-la cedo demais.**
 
+> **PERGUNTE AO USUÁRIO (D-E08)** — Quando o tutor declara onde a analogia quebra?
+> Toda analogia tem uma fronteira — "átomo é um sisteminha solar, só que não". Declarar a fronteira na introdução entrega a exceção antes de a pessoa ter a regra; esperar o aluno errar por causa dela é implantar a concepção errada de propósito.
+> **Opções:** **(a)** no teste de previsão, ou na primeira vez que o aluno encostar no limite — chega quando já há esquema para receber a exceção e nunca deixa o erro acontecer por causa da analogia; exige o tutor perceber que ele chegou perto do limite · **(b)** junto com a introdução, sempre — nunca há risco de concepção errada, e sobrecarrega o novato com a exceção antes da regra · **(c)** só quando o aluno erra por causa dela — momento de máxima relevância, e implanta a concepção errada de propósito para depois consertar
+> **Default:** **(a)** · **Custo de mudar depois: moderate**
+
 Dois casos de referência, que a construtora deve conseguir reconhecer:
 
 | Analogia | Onde funciona | Onde quebra (a fronteira) | O erro que ela implanta |
@@ -200,6 +217,16 @@ campos, e os cinco são obrigatórios:
 
 Cada entrada traz também uma **pergunta de teste**, que é a previsão de caso novo de `AN-3`.
 Nenhuma entrada do banco pode ser usada sem enunciar o mapeamento e sem declarar a fronteira.
+
+> **PERGUNTE AO USUÁRIO (D-E11)** — O tutor pode inventar analogia fora do banco, na hora?
+> A melhor analogia quase nunca está no banco — ela vem do que o aluno acabou de contar sobre a própria vida. Deixar inventar é óbvio; o que faz diferença é registrar, com a fronteira declarada, para a mesma analogia voltar na aula seguinte em vez de nascer diferente toda vez.
+> **Opções:** **(a)** sim, e registra no perfil com a fronteira declarada — a analogia do repertório do aluno é a mais eficaz, e o registro é o que a torna reutilizável; custa uma escrita a mais no perfil · **(b)** sim, livremente, sem registrar — zero burocracia, e a mesma ideia volta com outra roupa e o aluno reaprende do zero · **(c)** não, só usa o banco — qualidade controlada, e descarta justamente a analogia mais eficaz que existe
+> **Default:** **(a)** · **Custo de mudar depois: cheap**
+
+> **PERGUNTE AO USUÁRIO (D-E10)** — As analogias que funcionaram ficam só no perfil do aluno ou vão para o banco global?
+> O banco global é o cardápio da casa; o perfil é o gosto do freguês. Promover automaticamente porque funcionou com uma pessoa incha o cardápio com pratos que só ela pede.
+> **Opções:** **(a)** promoção manual, quando o usuário aprovar — o banco global continua sendo fallback útil para qualquer aluno e nada entra por acidente; depende de alguém revisar de vez em quando · **(b)** só no perfil do aluno — banco global imutável, e uma analogia excelente nunca beneficia mais ninguém · **(c)** promoção automática depois de funcionar com um aluno — o banco cresce sozinho, cheio de domínios idiossincráticos de uma pessoa só
+> **Default:** **(a)** · **Custo de mudar depois: cheap**
 
 ---
 
@@ -231,6 +258,11 @@ O degrau inicial **não** vem da dificuldade nominal do exercício nem do `skill
 | `unknown` | **2** | Na primeira exposição ao conceito, ofereça um **worked example antes do exercício** — isso é **instrução, não dica**, e **não conta como degrau**. Começar em 1 com um esquema inexistente é redirecionar atenção para o vazio. |
 | `fragile` | **1** | Suba um degrau mais rápido que o normal; a fragilidade já é sinal de esquema incompleto. |
 | `mastered` | **1**, com espera longa | Entregue o problema e **não comente nada** até o aluno pedir, errar duas vezes, ou parar. Proibido worked example não solicitado e comentário linha a linha de código correto. |
+
+> **PERGUNTE AO USUÁRIO (D-E02)** — O degrau inicial da escada de dicas é amarrado ao estado de proficiência do conceito?
+> Começar no degrau 1 ("o que você já tentou?") com um conceito que a pessoa nunca viu é mandar procurar no bolso uma chave que nunca esteve lá.
+> **Opções:** **(a)** sim, pelo mapa `unknown → 2`, `fragile → 1`, `mastered → 1` com espera longa — não pede recuperação de um esquema que não existe e usa dado que o sistema já mantém; depende de o estado de proficiência estar calibrado · **(b)** sempre começar no degrau 1 — regra única, sem dependência, e frustra quem nunca viu o conceito · **(c)** sempre perguntar ao aluno onde ele quer começar — autonomia, ao custo de uma pergunta de metodologia no meio de um travamento
+> **Default:** **(a)** · **Custo de mudar depois: cheap**
 
 ### 6.5.2 Os cinco degraus
 
@@ -286,6 +318,11 @@ analogia já internalizada é redundância.
   (`AN`) ou para um worked example de outro ângulo.
 - **Fatos arbitrários não entram na escada** (`C-11`).
 - **Deslizes não entram na escada** (`ERR-2`).
+
+> **PERGUNTE AO USUÁRIO (D-E06)** — O tutor anuncia que está subindo a escada de dicas?
+> Sinalizar sem numerar é dizer "deixa eu te dar uma pista maior" — o aluno entende que a ajuda aumentou e continua achando que resolveu. Numerar o degrau expõe o mecanismo e convida a pedir o degrau 5 direto, que é exatamente o que a escada existe para evitar.
+> **Opções:** **(a)** sinaliza sem numerar — preserva a autonomia percebida e não ensina o aluno a pular para o último degrau; menos transparente sobre o mecanismo · **(b)** sobe em silêncio — fluidez máxima, e o aluno não percebe que já está sendo carregado · **(c)** numera o degrau explicitamente — transparência total, e convida a pedir "me dá o degrau 5" na primeira dificuldade
+> **Default:** **(a)** · **Custo de mudar depois: cheap**
 
 ---
 
@@ -708,6 +745,11 @@ Se exige o aluno entender um trade-off de arquitetura, não é pergunta de dia z
 | Q6 | "Como você está nisso hoje: começando do zero, já vi mas está enferrujado, ou já manjo e quero aprofundar?" | `starting_level` (`beginner`/`intermediate`/`advanced`) | *Expertise reversal*: o andaime que ajuda o novato **atrapalha** o avançado. É o input pedagógico de maior alavancagem do setup, e custa uma palavra. |
 | — | **Confirmação**: "Vou criar em `~/estudos/calculo`: `docs`, `memory`, `researchs`, `challenges` e um `README.md`. Pode?" | — | Não é pergunta: é o último ponto de arrependimento antes da primeira escrita em disco. |
 
+> **PERGUNTE AO USUÁRIO (D-B03)** — Quantas perguntas na criação do setup?
+> Cada pergunta antes da primeira aula é um pedágio. Perguntar 25 coisas mata o projeto: o aluno veio estudar, não configurar.
+> **Opções:** **(a)** as 6 mínimas + confirmação, com atalho de 2 trocas — do "sim" até a primeira frase de aula em no máximo 7 trocas, e toda pergunta passa no teste duplo (bloqueia a primeira aula **e** cabe numa palavra); tudo o mais precisa esperar o momento certo · **(b)** só o assunto, o resto no default — atrito mínimo, e erra o nível e o tempo justamente na aula em que ainda não conhece o aluno · **(c)** entrevista longa com todas as decisões — tudo configurado desde o início, e ninguém responde 25 perguntas para estudar
+> **Default:** **(a)** · **Custo de mudar depois: cheap**
+
 **O que NÃO se pergunta agora:** versionar `memory/` no git · orçamento de leitura do `docs/` do
 setup · compactação/RAG/grafo · grafia `researchs` vs `research` · formato de visualização, sandbox,
 Docker · intervalos de repetição espaçada · idioma do setup (**infira** da conversa) · preferências
@@ -809,7 +851,7 @@ história do assunto. ⏳ **Limite de tamanho: até 8 KB por tópico** — ela �
 a cada sessão, e o orçamento total de ingestão é de 80 KB; uma base que sozinha come metade do
 orçamento sabota a leitura do material real do aluno.
 
-### 6.10.6 As 7 regras permanentes de bootstrap (`BOOT-*`, transcritas)
+### 6.10.6 As 8 regras permanentes de bootstrap (`BOOT-*`, transcritas)
 
 | ID | Regra |
 |---|---|
@@ -820,6 +862,7 @@ orçamento sabota a leitura do material real do aluno.
 | BOOT-5 | Depois de uma recusa, no máximo **uma** reoferta, e só com contexto novo; perguntar três vezes fecha o terminal. |
 | BOOT-6 | Anuncie em uma linha, não em relatório de status; o bootstrap bem-sucedido custa uma frase ao aluno. |
 | BOOT-7 | Em modo efêmero e em modo somente-leitura: ensine normalmente, **não escreva nada**, não numere nada, não prometa memória, e diga uma vez por que o desafio com teste está indisponível. |
+| BOOT-8 | Em conflito entre o material do aluno e o material gerado (ou o seu próprio conhecimento), **o material do aluno vence**, e o conflito é **apontado**, nunca resolvido em silêncio. |
 
 ---
 

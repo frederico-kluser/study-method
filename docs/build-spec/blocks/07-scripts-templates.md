@@ -1,4 +1,4 @@
-# 7 — Scripts, biblioteca e templates
+# Parte 7 — Scripts, biblioteca e templates
 
 > **Autoridade.** `docs/00-contratos.md` §5 (exit codes), §7 (contrato de `lib/`) e §8 (tabela
 > canônica de CLI). Contrato de templates: `skills/study-method/assets/templates/MANIFEST.tsv` — se
@@ -9,7 +9,7 @@
 >
 > Onde este bloco divergir de `docs/00-contratos.md`, o contrato vence e este bloco é o errado.
 
-## Sumário
+## Sumário da Parte 7
 
 1. Os **19** componentes de `SK/scripts/`: invocação, stdout, exit codes e o passo que chama cada um (§7.1–§7.3).
 2. A tabela única de exit codes, as duas exceções nomeadas e os códigos **observados** do ambiente (§7.4).
@@ -49,7 +49,7 @@ nem numa frase de negação: a invariante **I-05** é um grep que precisa sair *
 | 15 | `challenge-new.sh` | `<setup_root> --language <l> --slug <sl> --concept <concept_id> [--difficulty 1..5] [--skill-level <n>]` | O caminho **relativo** de `challenges/<NNNN>-<slug>/` | 0 · 1 · 2 · 3 · 4 · 5 | `challenge` |
 | 16 | `challenge-verify.sh` | `<challenge_dir> [--sample-size N] [--n-rep N] [--apply <resposta.json>]` | Resumo JSON: `{verdict, mutation_score, killed, survived, rejections}` | 0 (`approved`) · 1 · 2 · 5 (schema do `meta.json`) · **10** (`classify_survivor`) | `challenge` |
 | 17 | `detect-toolchains.sh` | `[--cached] [--setup <setup_root>] [--language <l>] [--json]` | JSON: por linguagem, `{available, version, command}` | 0 · 1 · 2 | `bootstrap` (`--cached`, se `language.detected_at` > 30 d) · `setup_interview` (filtra o menu de Q4) |
-| 18 | `render-plot.py` | `[--spec CAMINHO\|-] [--out-dir DIR] [--basename NOME] [--width N] [--height N] [--ascii-width N] [--ascii-height N] [--formats svg,html,txt,md] [--png] [--quiet]` | JSON: `{ok, type, outputs, description_text, ascii_text, warnings, stats}` | **Exceção nomeada** (§7.4.2): 0 · 1 · 2 · 3 | `teach` |
+| 18 | `render-plot.py` | `[--spec CAMINHO\|-] [--out-dir DIR] [--basename NOME] [--width N] [--height N] [--ascii-width N] [--ascii-height N] [--formats svg,html,txt,md] [--png] [--quiet]` | JSON: `{ok, type, outputs, description_text, ascii_text, warnings, stats}` | **Exceção nomeada** (§1.5.2): 0 · 1 · 2 · 3 | `teach` |
 | 19 | `decisions-ask.sh` | `<fase> --setup <setup_root> [--json] [--answer <id>=<valor>]`, com `fase ∈ {setup-init, first-challenge, session-15, on-demand}` | As decisões pendentes daquela fase, em JSON | 0 · 1 · 2 · 3 · 5 | `setup_interview` (`setup-init`) · `challenge` (`first-challenge`) |
 
 ⏳ **Estado medido no repositório:** `decisions-ask.sh` está declarado nesta tabela e **ainda não
@@ -104,7 +104,7 @@ Todos vivem em `scripts/`, relativo ao diretório da skill instalada
 
 | Proibição | Invariante que cobra |
 |---|---|
-| Chamar o modelo | §7.14 — a fronteira é o protocolo REQUEST/APPLY, sempre |
+| Chamar o modelo | §1.6 — a fronteira é o protocolo REQUEST/APPLY, sempre |
 | Acessar a rede | **I-26**: zero `curl`/`wget`/`nc`/`ncat`/`ssh`/`scp`/`sftp`/`rsync`/`telnet` como palavra, zero `/dev/tcp`, zero `ftp://` em linha de código |
 | Instalar qualquer coisa | `sm_require_cmd` **nomeia** o que falta e como instalar — **nunca instala** |
 | Escrever fora do setup e do `STUDY_METHOD_HOME` | **I-25** |
@@ -116,55 +116,19 @@ Todos vivem em `scripts/`, relativo ao diretório da skill instalada
 
 ## 7.4 Exit codes
 
-### 7.4.1 A tabela canônica — vale para **todo** `SK/scripts/*.sh`
+> **A tabela canônica (`0 1 2 3 4 5 10` + o que o tutor faz com cada um), as duas exceções nomeadas
+> (`runner.sh` do desafio e `render-plot.py`), os exit codes **observados** que os scripts precisam
+> interpretar (137, 124, 142, 152, 153, 66, 101, 134, 5, "0 com falha") e a unidade de `ulimit -f`
+> estão em **§1.5**, e não são repetidos aqui.**
 
-| Código | Significado | Quando | O que o tutor faz |
-|---|---|---|---|
-| **0** | ok | Sucesso, inclusive com `warnings` | Segue. Leia o stdout — mesmo com `warnings`, o passo está completo |
-| **1** | erro de execução | I/O, permissão, disco cheio, dependência ausente | Mostre ao aluno o caminho exato e o que faltou, em uma linha; não invente a causa; não repita a chamada sem mudar algo |
-| **2** | uso incorreto | Argumento faltando, flag inválida, combinação proibida | É bug **da invocação**, nunca do aluno. Corrija os argumentos; não exponha isso ao aluno |
-| **3** | setup não encontrado | Sem `setup.json` legível na raiz informada nem em ancestral | Volte para `bootstrap`; não insista no mesmo caminho |
-| **4** | recurso travado | `.session.lock` vivo · `.registry.lock` ocupado · colisão de `NNNN` após 5 tentativas | Lock de sessão vivo → pergunte ao aluno (abortar é o default), não force. Lock de registry é transitório (morre em 60 s) e a lib já retenta uma vez |
-| **5** | validação de schema falhou | O JSON produzido ou recebido não valida; detalhe em stderr | **Nunca** cole o JSON de stderr para o aluno. Vindo de `--apply`, o motivo mais comum é `request_id` divergente → refaça o pedido |
-| **10** | **`needs_model_input`** | O script chegou até onde é determinístico e emitiu um PEDIDO em stdout. **Nada foi alterado em disco** | Não é erro. Siga o protocolo do §7.14 |
+O que é específico dos scripts, e vale registrar neste ponto da construção:
 
-Códigos **6–9 e 11+ são reservados**. Nenhum script pode inventar significado para eles
-(invariante **I-18**: todo script fora de `lib/` usa apenas `0 1 2 3 4 5 10`).
-
-**Regra permanente de leitura:** `!= 0` significa falha. **Jamais** `== 1` (`SEG-7`, **I-21**).
-**Regra de pipe:** `comando | tail -1` devolve o status do `tail`; todo script usa
-`set -o pipefail` ou `${PIPESTATUS[0]}`, ou redireciona para arquivo e lê o status direto.
-
-### 7.4.2 As duas exceções nomeadas (são exceção, não desvio)
-
-| Programa | Códigos | Razão |
-|---|---|---|
-| **`runner.sh` gerado dentro do desafio** | `0` passou · `1` falhou · `2` contagem de testes divergente · `3` timeout · **`66`** quando `cd "$DESAFIO_DIR"` falha | Não é script da skill: é **artefato gerado**, lido e rodado pelo aluno. O vocabulário 0/1/2/3 é o que `challenge-verify.sh` normaliza para todas as linguagens. O `66` vence `exit 70` e `exit 1` de rascunhos anteriores |
-| **`render-plot.py`** | `0` ok · `1` spec inválida (`spec_json_invalid`, `spec_missing_key`) · `2` dados inválidos (`series_invalid`, `no_valid_data`) · `3` falha de escrita (`write_failed`) | CLI pública com contrato próprio publicado em `SK/references/visualizacao.md`. **Falha de PNG não é erro**: vira `warning` com exit 0 |
-
-### 7.4.3 Exit codes **observados** que os scripts precisam interpretar
-
-Não são produzidos pela skill — são produzidos pelo ambiente, e **têm** que ser reconhecidos.
-
-| Código | Origem | Regra |
-|---|---|---|
-| **137** | `timeout -s KILL -k 5 "$WALL"` · `ulimit -t` estourado · OOM do cgroup · SIGKILL | A pilha canônica usa `-s KILL`, então **timeout chega como 137, nunca 124**. Ambíguo: desambigue **nesta ordem** — (1) `tempo_decorrido >= WALL` → timeout; (2) `memory.events.oom_kill > 0` no cgroup → estouro de memória; (3) senão → limite de CPU. **As três lições são diferentes** e o aluno precisa saber qual foi (`SEG-7`) |
-| **124** | `timeout` com sinal default | **Não ocorre no caminho canônico.** Trate defensivamente como timeout; nunca dependa dele |
-| **142** | SIGALRM | Fallback `perl -e 'alarm shift; exec @ARGV'`. Timeout |
-| **152** | SIGXCPU | `ulimit -t` com soft < hard |
-| **153** | SIGXFSZ | `ulimit -f` estourado |
-| **66** | `cd "$CHALLENGE_DIR" \|\| exit 66` | Erro de **infraestrutura**, nunca do aluno |
-| **101** | `cargo test` | Falha de teste **ou** `Cargo.toml` ausente **ou** stub fora de `src/` |
-| **2** | `mix test`, .NET com MTP | Falha de teste |
-| **134** | SIGABRT: `assert.h` em C, `<cassert>` em C++ | Aborta no **primeiro** erro e esconde os demais — por isso o `counter_protocol` é obrigatório nessas linguagens |
-| **5** | `python3 -m unittest` sem testes coletados | `Ran 0 tests` + `NO TESTS RAN`. É o falso positivo que a **igualdade de contagem** pega |
-| **0 com falha** | `testthat` em R · `go test ./...` com layout errado · `node --test` em arquivo sem `test()` · `cargo test <nome-curto>` · `java` sem `-ea` | **Cinco formas verificadas de "passou" sem nada ter rodado.** É a razão de o gate ser **igualdade** com `expected_test_count`, nunca `> 0` (`DES-4`) |
-
-### 7.4.4 Unidade de `ulimit -f`
-
-`ulimit -f` em bash (modo não-POSIX) conta **blocos de 1024 bytes**. `ulimit -f 65536` = **64 MB**,
-que é o valor canônico. O campo `execution.file_size_blocks` do `challenge-manifest.schema.json`
-descreve blocos de **1024** bytes — qualquer descrição que diga "512 bytes" está errada.
+| Fato | Consequência para quem escreve o script |
+|---|---|
+| `I-18` cobra o vocabulário | Todo executável fora de `lib/` usa **apenas** `0 1 2 3 4 5 10`; 6–9 e 11+ são reservados |
+| `I-23` cobra o produtor do 10 | **`sm_request` é a única função de todo o projeto que produz exit 10** |
+| `I-21` cobra a leitura | `!= 0` é falha, **jamais** `== 1`; e `set -o pipefail` (ou `${PIPESTATUS[0]}`) em todo pipe |
+| `I-22` cobra o par `--apply` × 10 | Só os **quatro** scripts do protocolo aceitam `--apply` e podem sair com 10 |
 
 ---
 
@@ -199,25 +163,9 @@ Globais exportadas (prefixo `SM_`): `SM_LIB_DIR` (diretório da lib, resolvido d
 Variáveis de ambiente lidas: `HOME`, `PWD`, `HOSTNAME`, `STUDY_METHOD_HOME`, `XDG_DATA_HOME`,
 `STUDY_METHOD_LOG`, `STUDY_METHOD_TODAY`, `STUDY_METHOD_NOW`, `SM_SESSION_ID`.
 
-| Função | Argumentos | stdout | Exit code |
-|---|---|---|---|
-| `sm_setup_root [<hint>]` | `<hint>` = caminho explícito, ou vazio para usar `$PWD` | Caminho **absoluto** da raiz do setup (sem barra final) | `0` achou · `3` nenhum `setup.json` legível. **Dois tetos, e a diferença é normativa:** (a) **sem `<hint>`** (ou com `<hint>` sob `$HOME`) sobe de `$PWD` até `$HOME` **inclusive** e para ali — subir acima de `$HOME` varreria o sistema inteiro atrás de manifesto alheio; (b) **com `<hint>` explícito fora de `$HOME`** sobe até `/`, porque o aluno que aponta um caminho fora do `$HOME` está declarando onde procurar e o setup pode estar em outro ponto de montagem. Em ambos, a subida para no primeiro `setup.json` legível, e `..` que não muda de diretório encerra o laço |
-| `sm_die <code> <mensagem…>` | código da tabela §7.4.1 + mensagem em pt-BR | — | Termina o processo com `<code>`; mensagem prefixada `study-method: erro <code>:` em **stderr** |
-| `sm_log <nivel> <mensagem…>` | `debug\|info\|warn\|error` | — | Sempre `0`. Escreve em **stderr**, com carimbo ISO. `debug` só quando `STUDY_METHOD_LOG=debug` |
-| `sm_require_cmd <cmd>…` | nomes de comando | — | `0` todos presentes · `1` e **nomeia em stderr** o que falta e como instalar (**nunca instala**) |
-| `sm_normalize_concept_id <rótulo>` | rótulo em pt-BR | `concept_id` em **snake_case**, `^[a-z][a-z0-9_]{1,62}$` | `0` · `2` rótulo vazio ou sem nenhum caractere aproveitável |
-| `sm_normalize_slug <rótulo>` | rótulo em pt-BR | slug em **kebab-case**, `^[a-z0-9]+(-[a-z0-9]+)*$` | `0` · `2` idem |
-| `sm_atomic_write <destino>` | caminho do destino; **conteúdo vem de stdin** | — | `0` · `1` falha de I/O. Ver §7.10 |
-| `sm_next_seq <dir> <sufixo>` | ex.: `sm_next_seq memory .json` | O `NNNN` alocado, 4 dígitos zero-padded | `0` · `4` após **5** colisões. Ver §7.9 |
-| `sm_registry_path` | — | Caminho absoluto de `${STUDY_METHOD_HOME:-${XDG_DATA_HOME:-$HOME/.local/share}/study-method}/registry.json` | `0` sempre |
-| `sm_registry_lock` | — | — | `0` obteve · `4` ocupado. `mkdir "$(dirname "$REGISTRY")/.registry.lock"` (atômico) + `trap 'rmdir' EXIT`. Lock com `mtime` > **60 s** é considerado morto, removido com aviso em stderr, e a tomada é retentada **uma vez** |
-| `sm_registry_unlock` | — | — | `0` sempre (idempotente) |
-| `sm_setup_lock <setup_root>` | — | — | `0` obteve · `4` sessão viva. Escreve `memory/.session.lock` com `pid`, `hostname`, `session_id`, `started_at`. **Duas vias de validação — §7.6.2** |
-| `sm_setup_unlock <setup_root>` | — | — | `0` sempre (idempotente) |
-| `sm_now_iso` | — | Timestamp ISO 8601 com offset de fuso. Honra **`STUDY_METHOD_NOW`**: valor válido é impresso como veio; valor que não casa o pattern é **ignorado com aviso em stderr** e o relógio real vale | `0` |
-| `sm_today` | — | `YYYY-MM-DD`. Honra `STUDY_METHOD_TODAY` para tornar o gate determinístico | `0` |
-| `sm_relpath <caminho> <raiz>` | — | Caminho relativo a `<raiz>`, sem `./` inicial | `0` · `2` se `<caminho>` estiver fora de `<raiz>` |
-| `sm_chmod_private <caminho>` | — | — | `0` · `1`. Aplica `chmod 700` em diretório recém-criado |
+> **A tabela das 17 funções — argumento, stdout e exit code de cada uma — está em §1.7.1, e não é
+> repetida aqui.** Esta seção transcreve o que a tabela não cabe: os **algoritmos** que precisam ser
+> reproduzidos exatamente.
 
 ### 7.6.1 Os dois normalizadores — algoritmos determinísticos
 
@@ -245,23 +193,11 @@ Exemplos verificados: `Derivadas: o conceito` → `derivadas_conceito` · `Anál
 trunca em **64**. **Não remove stopwords** — slug é nome de diretório e de arquivo.
 `Análise de Complexidade` → `analise-de-complexidade`.
 
-### 7.6.2 ⭐ O furo do `sm_setup_lock`, e por que a correção tem duas vias
+### 7.6.2 O furo do `sm_setup_lock`
 
-**Medido:** o `pid` gravado no `memory/.session.lock` era o do **script**, que termina em segundos. Na
-próxima invocação o `kill -0` falha sempre, **todo lock nasce órfão**, e a detecção de sessão
-concorrente — a razão de o lock existir — **nunca dispara**. O exit **4** de `session-new.sh` virava
-código morto.
-
-Não há um pid único que sirva: a "sessão" é **uma conversa, não um processo**. Daí as duas vias:
-
-| Via | Quando | Como valida | Órfão quando |
-|---|---|---|---|
-| **(a) dono declarado** | `SM_SESSION_OWNER_PID` definida — um processo que **sobrevive à sessão** (o harness, o terminal, o supervisor) | `hostname` igual **e** `kill -0 <pid>` bem-sucedido | pid morto, ou `hostname` diferente |
-| **(b) TTL** | variável ausente — **o caso comum** | `pid` gravado é **`null`**; vale `started_at` + `SM_SESSION_LOCK_TTL` (default **28800 s = 8 h**) | `now - started_at > TTL`, ou `hostname` diferente |
-
-`hostname` diferente é órfão nos **dois** casos, e a checagem vem **antes** de pid e de TTL: setup em
-disco compartilhado não pode travar por causa de uma máquina que ninguém alcança. Lock removido como
-órfão é **sempre anunciado em stderr**, nunca silencioso.
+Está transcrito em **§1.7.4**, junto da interface da função: as duas vias de validação (dono
+declarado por `SM_SESSION_OWNER_PID`, e TTL de 8 h quando ela está ausente), a precedência do
+`hostname`, e o defeito medido que obrigou as duas.
 
 ---
 
@@ -272,17 +208,8 @@ Globais: `SM_JSON_SCHEMA_CHECKER` (default `$SM_LIB_DIR/_jsonschema_min.py`), `S
 **Todo acesso a `jq` usa redirecionamento** (`jq FILTRO < "$arquivo"`), nunca o caminho como
 argumento — caminho com espaço ou iniciado por `-` funciona.
 
-| Função | Argumentos | stdout | Exit code |
-|---|---|---|---|
-| `sm_json_get <arquivo> <filtro-jq>` | — | Resultado **raw** (`jq -r`) | `0` · `1` arquivo ilegível · `5` JSON não parseia |
-| `sm_json_get_raw <arquivo> <filtro-jq>` | — | Resultado como **JSON** (`jq -c`) | idem |
-| `sm_json_set <arquivo> <filtro-jq>` | filtro que devolve o documento inteiro | — | `0` · `1` I/O · `5` resultado não parseia. Aplica `jq` e grava por `sm_atomic_write` |
-| `sm_json_ok <arquivo>` | — | — | `0` parseia · `5` não parseia. Barato: `jq -e . >/dev/null` |
-| `sm_json_validate <arquivo> <schema>` | `<arquivo>` = caminho comum **ou caminho de FIFO** (`/dev/fd/N`, `/dev/stdin`, substituição de processo `<(…)`); `<schema>` = caminho em `SK/assets/schemas/` | — | `0` válido · `5` inválido, com **uma linha por erro** em stderr no formato `<json-pointer>: <motivo>`. Ver §7.7.1 |
-| `sm_json_canon <arquivo\|->` | — | JSON canônico: chaves ordenadas, sem espaço supérfluo (`jq -cS .`) | `0` · `5`. Base do `request_id` |
-| `sm_request <script> <kind> <response_schema> <instrucoes> <payload-json>` | — | O **envelope de PEDIDO**, com `request_id` calculado de `sm_json_canon` do payload | **Sempre 10.** Única função do projeto que produz exit 10. **Não escreve nada em disco** |
-| `sm_apply_read <arquivo> <kind> <request_id_esperado>` | — | O array `.items` da RESPOSTA, em JSON compacto | `0` · `2` arquivo ausente/ilegível · `5` `protocol`/`protocol_version`/`kind`/`request_id` divergentes, ou a RESPOSTA não valida contra o `response_schema` |
-| `sm_json_merge_ts <arquivo> <campo>` | — | — | `0` · `1`. Atalho para carimbar `updated_at`/`recorded_at` com `sm_now_iso` numa escrita atômica |
+> **A tabela das 9 funções está em §1.7.2, e não é repetida aqui.** O que segue são as três
+> obrigações de implementação que a tabela não cabe, e cuja perda quebra o protocolo.
 
 ### 7.7.1 `sm_json_validate` — as duas obrigações que não são opcionais
 
@@ -330,35 +257,18 @@ em stderr. Só então imprime `jq -c '.items'`. A validação da RESPOSTA **cont
 
 ## 7.8 `lib/sandbox.sh` — contrato mínimo
 
-Dono do racional: `docs/11-seguranca-privacidade.md` §2. Detalhamento:
-`docs/build-spec/50-sandbox.md`.
+Dono do racional: `docs/11-seguranca-privacidade.md` §2 do repositório.
 
-| Função | stdout | Exit code |
-|---|---|---|
-| `sm_sandbox_probe` | JSON com as capacidades detectadas: `{timeout, cpu, pidns, netns, memcg, fs_confine, docker}` | `0`. Sondas silenciosas e baratas; resultado **cacheado por sessão** |
-| `sm_sandbox_report` | Uma linha em pt-BR para o aluno (`Sandbox: tempo OK · memória OK (cgroup) · rede isolada OK · escrita confinada NÃO`) | `0`. Dita **uma vez** por setup |
-| `sm_sandbox_run <challenge_dir> -- <argv…>` | stdout/stderr do comando | O exit code **bruto** do comando, preservado (verificado: `exit 101` sai 101) |
-| `sm_sandbox_classify_exit <code> <elapsed> <wall>` | Uma palavra: `passed\|failed\|timeout\|oom\|cpu\|infra` | `0`. Implementa a desambiguação do 137 (§7.4.3) |
+> **As quatro funções (`sm_sandbox_probe`, `sm_sandbox_report`, `sm_sandbox_run`,
+> `sm_sandbox_classify_exit`) estão em §1.7.3; a pilha canônica camada a camada, os quatro
+> parâmetros medidos, a degradação por plataforma e a linha de honestidade dita ao aluno estão em
+> §3.12. Nada disso é repetido aqui** — o sandbox só existe por causa do desafio, e uma segunda
+> descrição da pilha seria uma segunda verdade sobre o que está ligado.
 
-**Pilha canônica, de fora para dentro** — a ordem **não** pode ser invertida, e cada camada é sondada
-antes de entrar:
-
-```
-timeout -s KILL -k 5
-  → systemd-run --user --scope -p MemoryMax -p MemorySwapMax=0 -p TasksMax=512 -p OOMPolicy=continue
-    → bwrap --unshare-all   (quando disponível)
-      senão: unshare --user --net --pid --fork --map-current-user
-        → bash -c 'ulimit -t … -f …; cd "$1" || exit 66; shift; exec "$@"'
-```
-
-⏳ Quatro parâmetros da pilha são **medidos**, não escolhidos por gosto:
-
-| Parâmetro | Valor canônico | O que a medição mostrou |
-|---|---|---|
-| `TasksMax` | **512** (`SM_SANDBOX_TASKS`) | `128` **derruba `go test`**: o cgroup conta *threads*, e o Go abre um processo de compilação por CPU |
-| `OOMPolicy` | **`continue`** — obrigatório | Sem ele o systemd para o **escopo inteiro** no OOM: o código vira **143** e `memory.events.oom_kill` some antes de ser lido, então a desambiguação do 137 perde a evidência do estouro. Existe a partir do systemd 243, e por isso é sondado à parte: ausente, a camada entra sem ele e **o relato ao aluno declara a perda** |
-| confinamento de escrita | **`bwrap --unshare-all`** substitui `unshare` quando presente | `--unshare-all` já traz os namespaces que o `unshare` trazia; o `unshare` sozinho **não confina escrita** (o processo grava em `$HOME` sem erro). `bwrap` exige os quatro `--symlink` (`usr/bin`, `usr/sbin`, `usr/lib`, `usr/lib64`) ou a sonda falha calada |
-| caches de toolchain | remapeados para **`/sm/…`**, com a variável reapontada (`CARGO_HOME`, `RUSTUP_HOME`, `GOMODCACHE`, `npm_config_cache`) | Montar no **caminho original** faz o `bwrap` **criar `/home/<aluno>` dentro do sandbox**, e o diretório criado é **gravável**: o aluno vê a escrita em `$HOME` funcionar. Com o remapeamento, `/home` não existe lá dentro e a tentativa falha com "arquivo não encontrado" — que é a verdade. **Nada é montado sob `/home`** |
+A única regra que pertence a esta parte, porque é regra de **biblioteca**: `lib/sandbox.sh` obedece
+`LIB-1`…`LIB-6` como os outros dois arquivos de `lib/`, e **é o único ponto do projeto que monta a
+pilha**. O `runner.sh` gerado dentro do desafio a consome (`sm_sandbox_run "$CHALLENGE_DIR" -- …`) ou
+declara o **piso** em voz alta; nunca monta uma segunda.
 
 ---
 
@@ -671,50 +581,21 @@ c      (generic):     stub.c · tests/test_stub.c (#include "../stub.c")      TE
 
 ---
 
-## 7.14 A fronteira script ↔ modelo, em uma seção
+## 7.14 A fronteira script ↔ modelo
 
-**Nenhum script jamais chama o modelo.** Quando um script precisa de julgamento:
+> **O protocolo REQUEST/APPLY inteiro — os quatro passos, os dois envelopes verbatim, as regras
+> duras `RA-1`…`RA-7`, os dois vocabulários de `kind`, a forma de `items` e os quatro usuários com
+> seus caminhos degradados — está em §1.6, e não é repetido aqui.**
 
-1. **roda até onde é determinístico** — lê, calcula, ordena, filtra;
-2. **escreve um JSON de PEDIDO em stdout e sai com exit 10**, sem alterar **nada** em disco;
-3. **o modelo lê o PEDIDO**, produz o JSON de RESPOSTA e re-invoca o mesmo script com
-   `--apply <resposta.json>`;
-4. **o script valida a RESPOSTA contra schema** e só então aplica, **atomicamente**.
+O que esta parte acrescenta é a consequência para quem **escreve** os scripts:
 
-| # | Regra dura |
+| Obrigação de implementação | Onde ela mora |
 |---|---|
-| RA-1 | A fase de PEDIDO **não escreve nada em disco**. Nem lock, nem tmp, nem log. Interromper ali não deixa rastro |
-| RA-2 | `--apply` **recalcula** o `request_id` a partir do estado atual em disco. Divergiu → **exit 5**, com o motivo em stderr. Nunca aplica sobre estado obsoleto |
-| RA-3 | A RESPOSTA valida contra `response_schema` **antes** de qualquer escrita. Falhou → **exit 5**, nada aplicado, o PEDIDO original continua válido para nova tentativa |
-| RA-4 | Toda aplicação usa `sm_atomic_write`. Nunca escrita parcial |
-| RA-5 | O script **nunca** aceita campos fora do `response_schema`; `additionalProperties: false` é obrigatório no schema de resposta |
-| RA-6 | Máximo **2** ciclos por invocação lógica. ⚠ **Limitação reconhecida:** cada invocação é um processo novo e o contador **não é persistido** — hoje o teto é obrigação do **chamador** (o modelo, pelo `SKILL.md`), não do script, e **nenhuma invariante o verifica** |
-| RA-7 | Um script sem `--apply` pendente **nunca** sai com 10. Exit 10 é sempre acompanhado de um PEDIDO bem formado em stdout |
-
-**Os dois vocabulários de `kind` coexistem — nenhum substitui o outro:**
-
-| Campo | Onde vive | Vocabulário fechado |
-|---|---|---|
-| `kind` | **envelope** do PEDIDO e da RESPOSTA, na raiz do JSON | `fill_session_fields` · `select_sections` · `compact_facts` · `classify_survivor` |
-| `request_kind` | **payload/corpo**: dentro de `payload` no PEDIDO e dentro do objeto de `items` na RESPOSTA | `session_close` · `docs_index` · `memory_compact` · `challenge_verify` |
-
-O `kind` do envelope nomeia **o julgamento pedido**; o `request_kind` do payload nomeia **a fronteira
-que o pediu**. `sm_apply_read` confere o primeiro; o verificador de schema confere o segundo. Ler um
-pelo outro é **exit 5**, nunca aviso.
-
-**Forma de `items` (normativa):** `items: [ <objeto> ]` — array de **exatamente um** elemento, e esse
-elemento é o documento que valida contra o `response_schema`. Os scripts **também aceitam** `items`
-sendo o objeto direto; as duas formas são equivalentes. `items` com **mais de um** elemento é
-**exit 5**: não existe pedido com múltiplas respostas.
-
-**Os quatro usuários e seus caminhos degradados:**
-
-| Script | `kind` | `request_kind` | Caminho degradado |
-|---|---|---|---|
-| `memory-compact.sh` | `compact_facts` | `memory_compact` | Não compacta; o gatilho reavalia no próximo fechamento. Nenhum bruto é perdido. ⚠ `compaction.deferred_at` **não é gravável hoje** — `profile.schema.json` fecha `compaction` com `additionalProperties: false` |
-| `session-close.sh` | `fill_session_fields` | `session_close` | Fecha assim mesmo: `status: "completed"` + `validation_errors[]`. **Nunca deixa sessão presa em `in_progress`** |
-| `challenge-verify.sh` | `classify_survivor` | `challenge_verify` | Todo sobrevivente vira `unclassified`, tratado como `test_gap` (o lado conservador). O score cai, o veredito tende a `weak` |
-| `docs-index.sh` | `select_sections` | `docs_index` | Usa a ordem de score pura, corta no teto, e **declara em voz alta** que a seleção foi automática |
+| Nenhum script chama o modelo. A fronteira é sempre exit 10 + `--apply` | invariante `I-22` (§8.9.3) |
+| `sm_request` é a **única** função que produz exit 10, e não escreve nada em disco | §7.7.2 |
+| `sm_json_validate` precisa aceitar **FIFO** e ler o arquivo **uma vez só** — sem isso, validar na fase de PEDIDO exigiria gravar um temporário, e temporário é escrita | §7.7.1 |
+| `sm_apply_read` valida envelope, `kind` e `request_id` **antes** de devolver qualquer item; a validação contra o `response_schema` é do script chamador | §7.7.3 |
+| Toda aplicação passa por `sm_atomic_write` | §7.10 |
 
 ---
 
