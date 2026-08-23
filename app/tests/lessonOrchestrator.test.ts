@@ -260,6 +260,87 @@ describe('lessonOrchestrator (unit / fakes)', () => {
     await assert.rejects(() => orch.generateLesson('x', { onProgress: (p) => progress.push(p) }), /deu ruim/);
     assert.equal(progress[progress.length - 1].phase, 'error');
   });
+
+  it('materializeChallenge: layout GO (não fixa extensão py) via meta.json.artifacts', async () => {
+    // runner fake com meta.json no layout GO (stub.go / stub_test.go / .solution/reference.go).
+    let challengeDir = '';
+    const relativePath = 'challenges/0012-fatorial-go';
+    const runnerGo = {
+      async resolveSkillDir() { return '/tmp/skill'; },
+      async createSetup(spec: { path: string }) {
+        return { setupId: 'a1b2c3d4e5f6', setupRoot: spec.path };
+      },
+      async newSession() { return '0001'; },
+      async createChallenge(root: string, c: { language: string; slug: string; concept: string }) {
+        challengeDir = path.join(root, relativePath);
+        await fsp.mkdir(challengeDir, { recursive: true });
+        await writeFile(path.join(challengeDir, 'meta.json'), JSON.stringify({
+          schema_version: '1.0',
+          challenge_id: '0012',
+          slug: c.slug,
+          title: c.slug,
+          created_at: '2026-08-23T00:00:00Z',
+          updated_at: '2026-08-23T00:00:00Z',
+          language: 'go',
+          layout_profile: 'go_module',
+          skill_level: 'beginner',
+          difficulty: 2,
+          target_concepts: [{ concept_id: c.concept, label: c.concept, role: 'primary' }],
+          challenge_status: 'draft',
+          artifacts: {
+            statement_path: 'README.md',
+            stub_path: 'stub.go',
+            test_path: 'stub_test.go',
+            runner_path: 'runner.sh',
+            hidden_dir: '.solution',
+            reference_path: '.solution/reference.go',
+          },
+          execution: { test_command: ['.'], working_dir: '.', timeout_seconds: 20, expected_test_count: 1, test_count_probe: 'go_test_ran_line', failure_exit_codes: { policy: 'non_zero_is_failure' } },
+          scenarios: [],
+          oracle: { strategies: ['reference_impl'], numeric_mode: 'exact_int' },
+          validation: { protocol_version: '1.0', harness: 'challenge-verify.sh', verdict: 'not_run', generation_attempts: 0, steps: {} },
+          integrity: { policy: 'warn', test_sha256: null },
+          student_progress: { attempts: 0, last_result: 'not_run', hint_level_used: 0, solution_revealed: false },
+        }, null, 2));
+        return { challengeDirAbs: challengeDir, relativePath };
+      },
+      async verifyChallenge() {
+        return { verdict: 'approved', rejections: [], stdout: '', applyExhausted: false };
+      },
+      async testStudentAnswer() { throw new Error('not used'); },
+    };
+
+    // Cópia profunda do draft de referência — não mutar o `draft` compartilhado.
+    const goDraft: typeof draft.challenges[0] = JSON.parse(JSON.stringify(draft.challenges[0]));
+    goDraft.language = 'go';
+    goDraft.slug = 'fatorial-go';
+    goDraft.title = 'Fatorial Go';
+    goDraft.stubCode = 'package main\n\n// Fatorial computa n!\nfunc Fatorial(n int) int { panic("todo") }\n';
+    goDraft.testCode = 'package main\n\nimport "testing"\n\nfunc TestFatorialCinco(t *testing.T) {\n\tif Fatorial(5) != 120 {\n\t\tt.Fatal("esperado 120")\n\t}\n}\n';
+    goDraft.referenceCode = 'package main\n\nfunc Fatorial(n int) int {\n\tif n <= 1 { return 1 }\n\treturn n * Fatorial(n-1)\n}\n';
+    goDraft.scenarios = [{ id: 'fatorial_cinco', name: 'Fatorial cinco', type: 'example', input: '5', expected: '120', description: 'fatorial(5) = 120' }];
+    goDraft.expectedTestCount = 1;
+
+    const research = { async plan() { return { subject: 'x', queries: [], findings: [], createdAt: '' }; } };
+    const author: AuthorFn = async () => ({ lessonTitle: 'x', lessonMarkdown: '# x', challenges: [goDraft] });
+    const orch = createLessonOrchestrator({ research, runner: runnerGo, author, setupsDir: tmp });
+
+    const materialized = await orch.materializeChallenge(tmp, goDraft, 2, 'go');
+    assert.equal(materialized.relativePath, relativePath);
+
+    // os paths do meta.json.artifacts.* são o que orienta a escrita (extensão .go).
+    assert.equal(await fsp.readFile(path.join(challengeDir, 'stub.go'), 'utf8'), goDraft.stubCode);
+    assert.equal(await fsp.readFile(path.join(challengeDir, 'stub_test.go'), 'utf8'), goDraft.testCode);
+    assert.equal(await fsp.readFile(path.join(challengeDir, '.solution', 'reference.go'), 'utf8'), goDraft.referenceCode);
+    assert.equal(await fsp.readFile(path.join(challengeDir, 'README.md'), 'utf8'), goDraft.statement);
+
+    // meta.json re-mergeado; test_name em go = Test<Camel>(id) (computeTestName).
+    const meta = JSON.parse(await fsp.readFile(path.join(challengeDir, 'meta.json'), 'utf8'));
+    assert.equal(meta.title, 'Fatorial Go');
+    assert.equal(meta.scenarios.length, 1);
+    assert.equal(meta.scenarios[0].test_name, 'TestFatorialCinco');
+    assert.equal(meta.execution.expected_test_count, 1);
+  });
 });
 
 describe('helpers puros', () => {

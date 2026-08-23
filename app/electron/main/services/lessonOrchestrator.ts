@@ -139,7 +139,7 @@ export async function readMetaJson(challengeDir: string): Promise<Record<string,
 }
 
 /** Shape mínimo do meta.json que o orquestrador precisa (paths dos artefatos). */
-interface MetaShape {
+export interface MetaShape {
   challenge_id?: unknown;
   title?: unknown;
   difficulty?: unknown;
@@ -219,6 +219,14 @@ export interface ListSetupsResult {
   rows: Array<{ setupId: string; setupRoot: string; subjectSlug?: string }>;
 }
 
+/** Resultado da materialização de UM desafio (exportado p/ os testes). */
+export interface MaterializedChallenge {
+  challengeDirAbs: string;
+  relativePath: string;
+  challengeId: string;
+  meta: MetaShape;
+}
+
 /**
  * Factory do lesson-orchestrator. O runner passado já deve estar configurado com
  * o llmJudge quando se quiser que `verifyChallenge` classifique sobreviventes
@@ -251,12 +259,7 @@ export function createLessonOrchestrator(deps: LessonOrchestratorDeps) {
     draft: ChallengeDraft,
     difficulty: number | undefined,
     language: string | undefined,
-  ): Promise<{
-    challengeDirAbs: string;
-    relativePath: string;
-    challengeId: string;
-    meta: MetaShape;
-  }> {
+  ): Promise<MaterializedChallenge> {
     const ch = await deps.runner.createChallenge(setupRoot, {
       language: language ?? draft.language,
       slug: slugifySafely(draft.slug),
@@ -406,9 +409,16 @@ export function createLessonOrchestrator(deps: LessonOrchestratorDeps) {
             statementPath: path.join(materialized.challengeDirAbs, 'README.md'),
           });
         } else {
+          // `not_run` tem DUAS origens distintas e não devemos confundi-las:
+          //  - runner SEM llmJudge  → applyExhausted fica FALSO (handleExit10 aborta
+          //    no exit 10 antes de gastar os ciclos; studyMethodRunner ~474).
+          //  - runner COM juiz, mas o REQUEST/APPLY esgotou os 2 ciclos sem decidir,
+          //    ou a resposta do juiz foi recusada → applyExhausted TRUE (~486,~502).
           const reason =
             v.verdict === 'not_run'
-              ? 'juiz ausente (runner sem llmJudge); veredito not_run'
+              ? v.applyExhausted === true
+                ? 'apply/esgotado (juiz não decidiu em 2 ciclos)'
+                : 'juiz ausente (runner sem llmJudge); veredito not_run'
               : v.rejections?.join(', ') || 'rejeitado na validação';
           rejected.push({ slug: challengeDraft.slug, verdict: v.verdict, reason });
         }
@@ -461,6 +471,9 @@ export function createLessonOrchestrator(deps: LessonOrchestratorDeps) {
     resolveSkillDirInfo,
     setupsDir,
     getGeneratedDir,
+    // Expor `materializeChallenge` permite aos testes provar a materialização em
+    // layouts NÃO-python (go/rust/c) com fakes (o gap da revisão), sem re-implementar.
+    materializeChallenge,
   };
 }
 
