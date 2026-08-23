@@ -28,6 +28,9 @@
     // alcançáveis por import). Os componentes React de src/gate (AppGate.tsx,
     // SetupView.tsx) ficam FORA daqui — pertencem ao tsconfig.json do renderer.
     "src/gate/startupState.ts",
-    "src/i18n/index.ts"
+    "src/i18n/index.ts",
+    // src/theme.ts é PURO (createTheme, sem JSX/DOM) e é testado de
+    // tests/theme.test.ts — adicionado ao projeto composite de testes.
+    "src/theme.ts"
   ]
 }

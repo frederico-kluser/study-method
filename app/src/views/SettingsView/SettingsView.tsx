@@ -1,36 +1,57 @@
 /**
- * src/views/SettingsView/SettingsView.tsx — tela de Configurações.
+ * src/views/SettingsView/SettingsView.tsx — tela de Configurações em Material UI.
  *
- * Compõe o painel de chaves de API (DeepSeek/Brave) e o painel de LLM local.
- * Nenhuma view acessa `window` diretamente: toda API passa por `getApi()`.
+ * Compõe o painel de chaves de API (KeysPanel) e o painel de LLM local
+ * (LocalAiPanel) num Container com maxWidth="md", seções em Typography e
+ * separadores (Divider). Responsivo, mobile-first, tema dark.
  */
 import type { ReactElement } from 'react';
+import { useTranslation } from 'react-i18next';
+import Container from '@mui/material/Container';
+import Divider from '@mui/material/Divider';
+import Stack from '@mui/material/Stack';
+import Typography from '@mui/material/Typography';
 import { KeysPanel } from './KeysPanel';
 import { LocalAiPanel } from './LocalAiPanel';
 
 export default function SettingsView(): ReactElement {
+  const { t } = useTranslation();
   return (
-    <section className="view settings">
-      <h1 className="settings__title">Configurações</h1>
+    <Container maxWidth="md" sx={{ py: 2 }}>
+      <Stack spacing={3}>
+        <div>
+          <Typography variant="h5" component="h1" gutterBottom>
+            {t('translation:nav.settings')}
+          </Typography>
 
-      <section className="settings__section">
-        <h2 className="settings__section-title">Chaves de API</h2>
-        <p className="settings__hint">
-          Configure as chaves do DeepSeek (geração de aulas) e do Brave Search
-          (pesquisa de fontes). Valide cada uma antes de usar.
-        </p>
-        <KeysPanel />
-      </section>
+          <Stack spacing={3}>
+            <section aria-labelledby="settings-keys-title">
+              <Typography variant="h6" id="settings-keys-title">
+                Chaves de API
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
+                Configure as chaves do DeepSeek (geração de aulas) e do Brave
+                Search (pesquisa de fontes). Valide cada uma antes de usar.
+              </Typography>
+              <KeysPanel />
+            </section>
 
-      <section className="settings__section">
-        <h2 className="settings__section-title">LLM local</h2>
-        <p className="settings__hint">
-          Detecção de hardware e modelos locais (node-llama-cpp). Baixe um modelo, ative-o e
-          selecione "Modelo local" no provedor de feedback abaixo para que o modelo avalie os
-          desafios sem depender da nuvem.
-        </p>
-        <LocalAiPanel />
-      </section>
-    </section>
+            <Divider />
+
+            <section aria-labelledby="settings-localai-title">
+              <Typography variant="h6" id="settings-localai-title">
+                LLM local
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
+                Detecção de hardware e modelos locais. Baixe um modelo, ative-o e
+                selecione &quot;Modelo local&quot; no provedor de feedback para avaliar
+                desafios sem depender da nuvem.
+              </Typography>
+              <LocalAiPanel />
+            </section>
+          </Stack>
+        </div>
+      </Stack>
+    </Container>
   );
 }

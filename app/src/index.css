@@ -43,64 +43,7 @@ body {
   line-height: 1.55;
 }
 
-/* ─── Shell: sidebar + conteúdo em flex ──────────────────────────────────── */
-.app-shell {
-  display: flex;
-  height: 100%;
-}
-
-.app-shell__sidebar {
-  width: 220px;
-  flex: 0 0 220px;
-  background: var(--panel);
-  border-right: 1px solid var(--border);
-  padding: 16px 10px;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  overflow-y: auto;
-}
-
-.app-shell__brand {
-  padding: 6px 10px 16px;
-  font-weight: 700;
-  font-size: 15px;
-  letter-spacing: 0.2px;
-  color: var(--text);
-  border-bottom: 1px solid var(--border);
-  margin-bottom: 10px;
-}
-
-.app-shell__nav-item {
-  appearance: none;
-  border: 1px solid transparent;
-  background: transparent;
-  color: var(--text-muted);
-  text-align: left;
-  padding: 9px 12px;
-  border-radius: var(--radius);
-  cursor: pointer;
-  font: inherit;
-  transition: background 0.12s ease, color 0.12s ease;
-}
-
-.app-shell__nav-item:hover {
-  background: var(--panel-2);
-  color: var(--text);
-}
-
-.app-shell__nav-item.is-active {
-  background: var(--panel-2);
-  color: var(--accent);
-  border-color: var(--accent-dim);
-}
-
-.app-shell__content {
-  flex: 1;
-  min-width: 0;
-  overflow: auto;
-  padding: 28px 32px;
-}
+/* ─── Shell (onda 7): agora em MUI (AppBar+Tabs) — nada de CSS custom aqui. ── */
 
 /* ─── Placeholder das views ──────────────────────────────────────────────── */
 .placeholder {
@@ -281,26 +224,7 @@ body {
   color: var(--text-muted);
 }
 
-/* ─── Settings ────────────────────────────────────────────────────────────── */
-.view.settings {
-  max-width: 900px;
-}
-.settings__title {
-  margin: 0 0 8px;
-  font-size: 26px;
-}
-.settings__section {
-  margin-top: 26px;
-}
-.settings__section-title {
-  margin: 0 0 4px;
-  font-size: 18px;
-}
-.settings__hint {
-  margin: 0 0 16px;
-  color: var(--text-muted);
-  max-width: 640px;
-}
+/* ─── Settings (onda 7): agora em MUI — CSS abaixo preservado p/ o gate (SetupView). */
 
 .panel {
   background: var(--panel);
@@ -319,117 +243,10 @@ body {
   gap: 18px;
   flex-wrap: wrap;
 }
-.keys-panel__badges {
-  display: flex;
-  gap: 6px;
-  margin-bottom: 12px;
-  flex-wrap: wrap;
-}
 .keys-panel__actions {
   display: flex;
   gap: 10px;
   margin-top: 12px;
-}
-
-.localai__toolbar {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-  margin-bottom: 18px;
-}
-.hw-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
-  gap: 10px;
-  margin: 0;
-}
-.hw-grid__item {
-  background: var(--panel);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 10px 14px;
-}
-.hw-grid__item dt {
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.4px;
-  color: var(--text-muted);
-  margin-bottom: 2px;
-}
-.hw-grid__item dd {
-  margin: 0;
-  font-weight: 600;
-  word-break: break-word;
-}
-
-.model-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-  gap: 14px;
-  margin-top: 4px;
-}
-.model-card {
-  background: var(--panel);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 14px 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-.model-card__head {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-.model-card__title {
-  margin: 0;
-  font-size: 15px;
-}
-.model-card__badges {
-  display: flex;
-  gap: 6px;
-  flex-wrap: wrap;
-}
-.model-card__size {
-  margin: 0;
-  color: var(--text-muted);
-  font-family: var(--font-mono);
-  font-size: 12px;
-}
-.model-card__actions {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-.download-bar__track {
-  height: 10px;
-  background: var(--panel-2);
-  border-radius: 999px;
-  overflow: hidden;
-}
-.download-bar__fill {
-  height: 100%;
-  background: var(--accent);
-  color: #fff;
-  font-size: 10px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 22px;
-  transition: width 0.2s ease;
-}
-.download-bar__meta {
-  margin-top: 6px;
-  font-family: var(--font-mono);
-  font-size: 11px;
-  color: var(--text-muted);
-}
-.download-bar__error {
-  color: var(--danger);
 }
 
 /* ─── Aula ────────────────────────────────────────────────────────────────── */

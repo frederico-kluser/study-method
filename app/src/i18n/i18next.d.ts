@@ -18,10 +18,22 @@ declare module 'i18next' {
     // Namespace default e único do app.
     defaultNS: 'translation';
 
-    // Resources embutidos (bundler): as chaves válidas para t(), por locale.
+    // strictKeyChecks: chaves passadas a t()/useTranslation() que NÃO existem
+    // nos resources embutidos passam a FALHAR o type-check (fix do revisor da
+    // onda 7). Com strictKeyChecks, o `t()` tipado exige a forma
+    // `translation:<key>` (namespace do app); em runtime isso resolve com o
+    // `nsSeparator: ':'` + `defaultNS: 'translation'` — ver teste em
+    // `tests/i18n-resources.test.ts` e a documentação em src/theme.ts.
+    strictKeyChecks: true;
+
+    // Resources embutidos modelados como um ÚNICO namespace `translation`
+    // contendo o mapa de chaves achatado. (Em runtime os resources são keyed
+    // por locale em src/i18n/index.ts — `{ 'pt-BR': { translation }, en: {...} }`
+    // — e o i18next resolve `translation:<key>` segurando o locale ativo.
+    // Aqui tipamos o namespace sozinho para que as chaves válidas sejam as
+    // literais `translation:<key>`, e chaves erradas falhem.)
     resources: {
-      'pt-BR': typeof ptBR;
-      en: typeof en;
+      translation: typeof ptBR & typeof en;
     };
 
     // t() nunca devolve null/objeto — só strings (returnEmptyString false).

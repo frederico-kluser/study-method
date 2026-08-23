@@ -1,54 +1,84 @@
 /**
- * src/views/SettingsView/KeysPanel.tsx — painel de chaves de API
- * (DeepSeek + Brave) com persistência e validação.
+ * src/views/SettingsView/KeysPanel.tsx — painel de chaves de API em Material UI.
  *
- * Fluxo por provedor:
- *  - O usuário digita a chave (type password, com mostrar/ocultar).
- *  - "Salvar" persiste via `keys.setKey(provider, key)`.
- *  - "Validar" chama `keys.validateDeepseek(key)` / `keys.validateBrave(key)`
- *    passando a chave DIGITADA (assinatura confirmada no api-schema: ambas
- *    recebem `key: string` como primeiro argumento). Se nada foi digitado, usa
- *    a chave já salva no store.
- *  - O status inicial (keysConfigured/validated) vem de `keys.getStatus` na
- *    montagem.
+ * Mesmo contrato IPC do KeysPanel antigo (onda 3/4), agora renderizado em MUI:
+ *
+ *  - TextField `type={visible ? 'text' : 'password'}` com toggle de
+ *    mostrar/ocultar via InputAdornment + IconButton (Visibility/VisibilityOff).
+ *  - Estado configurada/validada vindo de `keys.getStatus` na MONTAGEM (Chips).
+ *  - Botão "Salvar" → `keys.setKey(provider, key)`; botão "Validar" →
+ *    `keys.validateDeepseek(provider==='deepseek')` / `keys.validateBrave(...)`,
+ *    passando a chave DIGITADA (ou a salva no store quando nada foi digitado).
+ *    O feedback é renderizado em `<Alert>` via lógica pura `validationAlert`
+ *    (src/lib/validationAlert.ts → chaves i18n keys.*).
+ *  - loading nos botões durante salvar/validar (spinner + disabled).
+ *
+ * Nenhuma view acessa `window` diretamente — só `getApi()` (testável sem jsdom).
  */
 import { useCallback, useEffect, useState, type ReactElement } from 'react';
+import { useTranslation } from 'react-i18next';
+import Alert from '@mui/material/Alert';
+import Box from '@mui/material/Box';
+import Button from '@mui/material/Button';
+import Card from '@mui/material/Card';
+import CardContent from '@mui/material/CardContent';
+import Chip from '@mui/material/Chip';
+import CircularProgress from '@mui/material/CircularProgress';
+import IconButton from '@mui/material/IconButton';
+import InputAdornment from '@mui/material/InputAdornment';
+import Stack from '@mui/material/Stack';
+import TextField from '@mui/material/TextField';
+import Typography from '@mui/material/Typography';
+import Visibility from '@mui/icons-material/Visibility';
+import VisibilityOff from '@mui/icons-material/VisibilityOff';
 import type { KeysStatus, ValidationResult } from '../../../shared/ipc-contract';
 import { getApi } from '../../lib/apiBridge';
-import { validationUiFromResult, type ValidationUi } from '../../lib/validationMessages';
 import { isNonEmpty } from '../../lib/validate';
-import { PasswordField, StatusText, InlineSpinner } from './FormControls';
+import { validationAlert } from '../../lib/validationAlert';
 
 type Provider = 'deepseek' | 'brave';
 
 const PROVIDER_META: Record<
   Provider,
-  { name: string; placeholder: string; inputLabel: string }
+  {
+    name: string;
+    inputLabelKey: 'translation:keys.deepseek.label' | 'translation:keys.brave.label';
+    placeholder: string;
+  }
 > = {
   deepseek: {
     name: 'DeepSeek',
+    inputLabelKey: 'translation:keys.deepseek.label',
     placeholder: 'sk-…',
-    inputLabel: 'DeepSeek API key',
   },
   brave: {
     name: 'Brave Search',
+    inputLabelKey: 'translation:keys.brave.label',
     placeholder: 'BSA…',
-    inputLabel: 'Brave Search API key',
   },
 };
 
 interface ProviderState {
   value: string;
   visible: boolean;
-  ui: ValidationUi;
+  /** Estado visual do alert (APENAS para o fluxo antigo de mensagem hardcoded). */
+  message: string;
+  uiState: 'idle' | 'validating' | 'valid' | 'invalid';
   saving: boolean;
 }
 
 function idleState(): ProviderState {
-  return { value: '', visible: false, ui: { state: 'idle', message: '' }, saving: false };
+  return {
+    value: '',
+    visible: false,
+    message: '',
+    uiState: 'idle',
+    saving: false,
+  };
 }
 
 export function KeysPanel(): ReactElement {
+  const { t } = useTranslation();
   const [providers, setProviders] = useState<Record<Provider, ProviderState>>({
     deepseek: idleState(),
     brave: idleState(),
@@ -63,7 +93,14 @@ export function KeysPanel(): ReactElement {
         if (!cancelled) setInitialStatus(status);
       })
       .catch(() => {
-        if (!cancelled) setInitialStatus({ deepseekConfigured:false, braveConfigured:false, deepseekValidated:false, braveValidated:false });
+        if (!cancelled) {
+          setInitialStatus({
+            deepseekConfigured: false,
+            braveConfigured: false,
+            deepseekValidated: false,
+            braveValidated: false,
+          });
+        }
       });
     return () => {
       cancelled = true;
@@ -82,7 +119,8 @@ export function KeysPanel(): ReactElement {
     if (!isNonEmpty(value)) {
       patch(provider, (s) => ({
         ...s,
-        ui: { state: 'invalid', message: 'Digite a chave antes de salvar.' },
+        uiState: 'invalid',
+        message: t('translation:keys.invalid', 'Digite a chave antes de salvar.'),
       }));
       return;
     }
@@ -92,22 +130,21 @@ export function KeysPanel(): ReactElement {
       patch(provider, (s) => ({
         ...s,
         saving: false,
-        ui: { state: 'valid', message: 'Chave salva.' },
+        uiState: 'valid',
+        message: t('translation:keys.saved', 'Chave salva.'),
       }));
     } catch (err) {
       patch(provider, (s) => ({
         ...s,
         saving: false,
-        ui: {
-          state: 'invalid',
-          message: `Falha ao salvar a chave: ${String(err)}`,
-        },
+        uiState: 'invalid',
+        message: t('translation:keys.errorNetwork', 'Falha ao salvar a chave.'),
       }));
+      void err;
     }
   };
 
   const handleValidate = async (provider: Provider): Promise<void> => {
-    // Valida a chave digitada; se nada foi digitado, usa a salva no store.
     const typed = providers[provider].value.trim();
     const validate =
       provider === 'deepseek'
@@ -116,25 +153,30 @@ export function KeysPanel(): ReactElement {
 
     patch(provider, (s) => ({
       ...s,
-      ui: { state: 'validating', message: `Validando chave ${PROVIDER_META[provider].name}…` },
+      uiState: 'validating',
+      message: t('translation:keys.validating', `Validando chave ${PROVIDER_META[provider].name}…`),
     }));
 
     let result: ValidationResult;
     try {
-      result = await validate(typed.length > 0 ? typed : undefined as unknown as string);
+      result = await validate(typed.length > 0 ? typed : (undefined as unknown as string));
     } catch (err) {
+      void err;
       patch(provider, (s) => ({
         ...s,
-        ui: {
-          state: 'invalid',
-          message: `Erro de rede/requisição ao validar: ${String(err)}`,
-        },
+        uiState: 'invalid',
+        message: t('translation:keys.errorNetwork', 'Erro de rede/requisição ao validar a chave.'),
       }));
       return;
     }
 
-    const ui = validationUiFromResult(result);
-    patch(provider, (s) => ({ ...s, ui }));
+    // Feedback via lógica pura: decide i18nKey/severity do <Alert>.
+    const alert = validationAlert(result);
+    patch(provider, (s) => ({
+      ...s,
+      uiState: alert.i18nKey === 'translation:keys.valid' ? 'valid' : 'invalid',
+      message: t(alert.i18nKey),
+    }));
   };
 
   const renderProvider = (provider: Provider): ReactElement => {
@@ -144,69 +186,96 @@ export function KeysPanel(): ReactElement {
       initialStatus?.[provider === 'deepseek' ? 'deepseekConfigured' : 'braveConfigured'];
     const validated =
       initialStatus?.[provider === 'deepseek' ? 'deepseekValidated' : 'braveValidated'];
+    const validating = st.uiState === 'validating';
+
     return (
-      <section className="panel keys-panel" key={provider}>
-        <h3 className="panel__title">{meta.name}</h3>
-        <div className="keys-panel__badges">
-          {configured ? <span className="badge badge--ok">configurada</span> : null}
-          {validated ? <span className="badge badge--ok">validada</span> : null}
-        </div>
-        <PasswordField
-          label={meta.inputLabel}
-          placeholder={meta.placeholder}
-          value={st.value}
-          onChange={(next) =>
-            patch(provider, (s) => ({
-              ...s,
-              value: next,
-              visible: s.visible,
-              ui: { state: 'idle', message: '' },
-            }))
-          }
-        />
-        <div className="keys-panel__actions">
-          <button
-            type="button"
-            className="btn btn--secondary"
-            disabled={st.saving}
-            onClick={() => handleSave(provider)}
-          >
-            {st.saving ? <InlineSpinner text="Salvando…" /> : 'Salvar'}
-          </button>
-          <button
-            type="button"
-            className="btn btn--primary"
-            disabled={st.ui.state === 'validating'}
-            onClick={() => handleValidate(provider)}
-          >
-            {st.ui.state === 'validating' ? (
-              <InlineSpinner text="Validando…" />
-            ) : (
-              'Validar'
-            )}
-          </button>
-        </div>
-        {st.ui.message ? (
-          <StatusText
-            tone={
-              st.ui.state === 'valid'
-                ? 'success'
-                : st.ui.state === 'invalid'
-                  ? 'danger'
-                  : 'muted'
-            }
-          >
-            {st.ui.message}
-          </StatusText>
-        ) : null}
-      </section>
+      <Card key={provider} variant="outlined" sx={{ display: 'flex', flex: '1 1 280px' }}>
+        <CardContent sx={{ width: '100%' }}>
+          <Stack spacing={1.5}>
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1 }}>
+              <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
+                {meta.name}
+              </Typography>
+              <Stack direction="row" spacing={0.5}>
+                <Chip
+                  size="small"
+                  color={configured ? 'success' : 'default'}
+                  label={configured ? t('translation:keys.configured') : t('translation:keys.notConfigured')}
+                />
+                {validated ? (
+                  <Chip size="small" color="success" label={t('translation:keys.valid')} />
+                ) : null}
+              </Stack>
+            </Box>
+
+            <TextField
+              label={t(meta.inputLabelKey)}
+              placeholder={meta.placeholder}
+              value={st.value}
+              onChange={(e) =>
+                patch(provider, (s) => ({
+                  ...s,
+                  value: e.target.value,
+                  visible: s.visible,
+                  uiState: 'idle',
+                  message: '',
+                }))
+              }
+              type={st.visible ? 'text' : 'password'}
+              slotProps={{
+                input: {
+                  endAdornment: (
+                    <InputAdornment position="end">
+                      <IconButton
+                        aria-label={st.visible ? 'Ocultar chave' : 'Mostrar chave'}
+                        onClick={() =>
+                          patch(provider, (s) => ({ ...s, visible: !s.visible }))
+                        }
+                        edge="end"
+                        size="small"
+                      >
+                        {st.visible ? <VisibilityOff /> : <Visibility />}
+                      </IconButton>
+                    </InputAdornment>
+                  ),
+                },
+              }}
+            />
+
+            <Stack direction="row" spacing={1}>
+              <Button
+                variant="outlined"
+                disabled={st.saving}
+                onClick={() => void handleSave(provider)}
+              >
+                {st.saving ? <CircularProgress size={16} sx={{ mr: 1 }} /> : null}
+                {st.saving ? t('translation:common.loading', 'Salvando…') : t('translation:keys.save')}
+              </Button>
+              <Button
+                variant="contained"
+                disabled={validating}
+                onClick={() => void handleValidate(provider)}
+              >
+                {validating ? <CircularProgress size={16} sx={{ mr: 1 }} /> : null}
+                {validating ? t('translation:keys.validating') : t('translation:keys.validate')}
+              </Button>
+            </Stack>
+
+            {st.message ? (
+              <Alert severity={st.uiState === 'valid' ? 'success' : 'error'} sx={{ fontSize: 13 }}>
+                {st.message}
+              </Alert>
+            ) : null}
+          </Stack>
+        </CardContent>
+      </Card>
     );
   };
 
   return (
-    <div className="keys-panels">
+    <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} useFlexGap>
       {renderProvider('deepseek')}
       {renderProvider('brave')}
-    </div>
+    </Stack>
   );
 }

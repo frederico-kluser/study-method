@@ -1,14 +1,36 @@
 /**
- * src/views/SettingsView/LocalAiPanel.tsx — painel de LLM local.
+ * src/views/SettingsView/LocalAiPanel.tsx — painel de LLM local em Material UI.
  *
- * - "Detectar hardware": `localAi.detectHardware` → mostra backend/RAM/VRAM/CPU.
- * - Lista de modelos (localAi.list): cards com label/quant/tamanho e badges
- *   Recomendado/Ativo/Baixado.
- * - Botão "Baixar": `localAi.download(modelId)`; a barra de progresso reativa
- *   via `localAi.onDownloadProgress` (DownloadProgress).
- * - Botão "Usar" (setActive) e deletar (delete) quando já baixado.
+ * Mesmo contrato IPC do painel antigo (onda 4/5), agora em MUI:
+ *
+ *  - "Detectar hardware": `localAi.detectHardware` → Card/Grid com
+ *    Backend/RAM/VRAM/CPU (formatação via src/lib/format.ts).
+ *  - Lista de modelos (`localAi.list`): Cards com label/quant, badges
+ *    Recomendado/Ativo/Baixado (Chip) e tamanho formatado (`formatBytes`).
+ *  - "Baixar" → `localAi.download(modelId)`; progresso reativado via
+ *    `localAi.onDownloadProgress` (MESMO canal) num `<LinearProgress>`.
+ *  - "Usar" (`setActive`) / "Excluir" (`delete`) quando já baixado.
+ *  - Select do provedor de feedback (`defaultModelProvider`) via
+ *    `settings.get`/`settings.set` — MESMO comportamento do painel antigo.
  */
 import { useEffect, useState, type ReactElement } from 'react';
+import { useTranslation } from 'react-i18next';
+import Alert from '@mui/material/Alert';
+import Box from '@mui/material/Box';
+import Button from '@mui/material/Button';
+import Card from '@mui/material/Card';
+import CardContent from '@mui/material/CardContent';
+import Chip from '@mui/material/Chip';
+import CircularProgress from '@mui/material/CircularProgress';
+import Grid from '@mui/material/Grid';
+import IconButton from '@mui/material/IconButton';
+import InputLabel from '@mui/material/InputLabel';
+import LinearProgress from '@mui/material/LinearProgress';
+import MenuItem from '@mui/material/MenuItem';
+import Select from '@mui/material/Select';
+import Stack from '@mui/material/Stack';
+import Typography from '@mui/material/Typography';
+import DeleteIcon from '@mui/icons-material/Delete';
 import type {
   DownloadProgress,
   HardwareInfo,
@@ -16,34 +38,51 @@ import type {
 } from '../../../shared/ipc-contract';
 import { getApi } from '../../lib/apiBridge';
 import { formatBytes, formatModelLabel, formatPercent, formatSpeedBps } from '../../lib/format';
-import { InlineSpinner, StatusText } from './FormControls';
 
 type DownloadTick = Pick<DownloadProgress, 'modelId' | 'percent' | 'speedBps' | 'done' | 'error'>;
 
+/** Campo do provedor de feedback (defaultModelProvider). */
+type FeedbackProvider = 'deepseek' | 'local';
+
 function HardwareView({ info }: { info: HardwareInfo }): ReactElement {
+  const { t } = useTranslation();
+  const rows: Array<{ label: string; value: string }> = [
+    { label: t('translation:localAi.backend'), value: info.backend },
+    { label: t('translation:localAi.ram'), value: `${info.ramGb.toFixed(1)} GB` },
+    {
+      label: t('translation:localAi.vram'),
+      value: info.vramGb == null ? 'n/d' : `${info.vramGb.toFixed(1)} GB`,
+    },
+    { label: t('translation:localAi.cpu'), value: info.cpuModel },
+  ];
   return (
-    <dl className="hw-grid">
-      <div className="hw-grid__item">
-        <dt>Backend</dt>
-        <dd>{info.backend}</dd>
-      </div>
-      <div className="hw-grid__item">
-        <dt>RAM</dt>
-        <dd>{info.ramGb.toFixed(1)} GB</dd>
-      </div>
-      <div className="hw-grid__item">
-        <dt>VRAM</dt>
-        <dd>{info.vramGb == null ? 'n/d' : `${info.vramGb.toFixed(1)} GB`}</dd>
-      </div>
-      <div className="hw-grid__item">
-        <dt>CPU</dt>
-        <dd>{info.cpuModel}</dd>
-      </div>
-    </dl>
+    <Grid container spacing={1}>
+      {rows.map((r) => (
+        <Grid key={r.label} size={{ xs: 6, sm: 3 }}>
+          <Box
+            sx={{
+              bgcolor: 'background.default',
+              border: 1,
+              borderColor: 'divider',
+              borderRadius: 1,
+              p: 1,
+            }}
+          >
+            <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
+              {r.label}
+            </Typography>
+            <Typography variant="body2" sx={{ wordBreak: 'break-word', fontWeight: 600 }}>
+              {r.value}
+            </Typography>
+          </Box>
+        </Grid>
+      ))}
+    </Grid>
   );
 }
 
 export function LocalAiPanel(): ReactElement {
+  const { t } = useTranslation();
   const [hardware, setHardware] = useState<HardwareInfo | null>(null);
   const [models, setModels] = useState<LocalModelInfo[]>([]);
   const [detecting, setDetecting] = useState(false);
@@ -52,9 +91,7 @@ export function LocalAiPanel(): ReactElement {
   const [downloading, setDownloading] = useState<string | null>(null);
   const [downloadTicks, setDownloadTicks] = useState<Record<string, DownloadTick>>({});
   const [busy, setBusy] = useState<Record<string, boolean>>({});
-  // Provedor de feedback do desafio (settings.defaultModelProvider — órfão até a
-  // onda 5; agora lido aqui e consumido pelo fluxo de feedback).
-  const [feedbackProvider, setFeedbackProvider] = useState<'deepseek' | 'local'>('deepseek');
+  const [feedbackProvider, setFeedbackProvider] = useState<FeedbackProvider>('deepseek');
 
   // Lê o provedor salvo na montagem (settings:get).
   useEffect(() => {
@@ -63,7 +100,10 @@ export function LocalAiPanel(): ReactElement {
       .settings.get()
       .then((settings) => {
         if (cancelled) return;
-        if (settings?.defaultModelProvider === 'local' || settings?.defaultModelProvider === 'deepseek') {
+        if (
+          settings?.defaultModelProvider === 'local' ||
+          settings?.defaultModelProvider === 'deepseek'
+        ) {
           setFeedbackProvider(settings.defaultModelProvider);
         }
       })
@@ -76,13 +116,13 @@ export function LocalAiPanel(): ReactElement {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const handleFeedbackProviderChange = async (next: 'deepseek' | 'local'): Promise<void> => {
+  const handleFeedbackProviderChange = async (next: FeedbackProvider): Promise<void> => {
     const prev = feedbackProvider;
     setFeedbackProvider(next);
     try {
       await getApi().settings.set({ defaultModelProvider: next });
     } catch (err) {
-      setFeedbackProvider(prev); // volta ao valor anterior se a escrita falhar
+      setFeedbackProvider(prev);
       setError(`Falha ao salvar o provedor de feedback: ${String(err)}`);
     }
   };
@@ -115,7 +155,6 @@ export function LocalAiPanel(): ReactElement {
       }));
       if (ev.done) {
         setDownloading(null);
-        // Atualiza a lista para refletir downloaded.
         setModels((prev) =>
           prev.map((m) => (m.id === ev.modelId ? { ...m, downloaded: true } : m)),
         );
@@ -166,9 +205,7 @@ export function LocalAiPanel(): ReactElement {
     setBusy((b) => ({ ...b, [modelId]: true }));
     try {
       await getApi().localAi.setActive(modelId);
-      setModels((prev) =>
-        prev.map((m) => ({ ...m, active: m.id === modelId })),
-      );
+      setModels((prev) => prev.map((m) => ({ ...m, active: m.id === modelId })));
     } catch (err) {
       setError(`Falha ao ativar ${modelId}: ${String(err)}`);
     } finally {
@@ -181,7 +218,11 @@ export function LocalAiPanel(): ReactElement {
     setBusy((b) => ({ ...b, [modelId]: true }));
     try {
       await getApi().localAi.delete(modelId);
-      setModels((prev) => prev.map((m) => (m.id === modelId ? { ...m, downloaded: false, active: false } : m)));
+      setModels((prev) =>
+        prev.map((m) =>
+          m.id === modelId ? { ...m, downloaded: false, active: false } : m,
+        ),
+      );
     } catch (err) {
       setError(`Falha ao remover ${modelId}: ${String(err)}`);
     } finally {
@@ -190,129 +231,147 @@ export function LocalAiPanel(): ReactElement {
   };
 
   return (
-    <div className="localai">
-      <label className="form-field localai__provider">
-        <span className="form-field__label">Provedor de feedback do desafio</span>
-        <select
-          className="form-field__input"
+    <Stack spacing={2}>
+      {/* Provedor de feedback */}
+      <Stack spacing={0.5}>
+        <InputLabel id="localai-feedback-provider-label">
+          {t('translation:localAi.feedbackProvider')}
+        </InputLabel>
+        <Select
+          labelId="localai-feedback-provider-label"
           value={feedbackProvider}
           onChange={(e) =>
-            void handleFeedbackProviderChange(e.target.value === 'local' ? 'local' : 'deepseek')
+            void handleFeedbackProviderChange(e.target.value as FeedbackProvider)
           }
+          size="small"
+          sx={{ maxWidth: 320 }}
         >
-          <option value="deepseek">DeepSeek (nuvem)</option>
-          <option value="local">Modelo local</option>
-        </select>
-        <span className="settings__hint">
-          O modelo local é usado como avaliador do desafio quando selecionado aqui E um modelo
-          local está ativo. Sem modelo ativo, o feedback usa o DeepSeek (nuvem).
-        </span>
-      </label>
+          <MenuItem value="deepseek">{t('translation:localAi.feedbackProviderDeepseek')}</MenuItem>
+          <MenuItem value="local">{t('translation:localAi.feedbackProviderLocal')}</MenuItem>
+        </Select>
+      </Stack>
 
-      <div className="localai__toolbar">
-        <button
-          type="button"
-          className="btn btn--secondary"
-          disabled={detecting}
-          onClick={handleDetect}
-        >
-          {detecting ? <InlineSpinner text="Detectando…" /> : 'Detectar hardware'}
-        </button>
+      {/* Detect hardware */}
+      <Stack spacing={1}>
+        <Box>
+          <Button
+            variant="outlined"
+            disabled={detecting}
+            onClick={() => void handleDetect()}
+            startIcon={detecting ? <CircularProgress size={16} /> : undefined}
+          >
+            {detecting ? t('translation:localAi.detect') : t('translation:localAi.detect')}
+          </Button>
+        </Box>
         {hardware ? <HardwareView info={hardware} /> : null}
-      </div>
+      </Stack>
 
       {loadingModels ? (
-        <StatusText tone="muted">
-          <InlineSpinner text="Carregando modelos…" />
-        </StatusText>
+        <Box sx={{ color: 'text.secondary' }}>{t('translation:common.loading')}</Box>
       ) : null}
 
-      <div className="model-grid">
+      <Grid container spacing={2}>
         {models.map((model) => {
           const tick = downloadTicks[model.id];
           const isDownloading = downloading === model.id || (tick && !tick.done);
           const pct = tick ? formatPercent(tick.percent) : 0;
+          const inUse = model.active;
           return (
-            <article className="model-card" key={model.id}>
-              <div className="model-card__head">
-                <h4 className="model-card__title">{formatModelLabel(model)}</h4>
-                <div className="model-card__badges">
-                  {model.recommended ? (
-                    <span className="badge badge--accent">Recomendado</span>
-                  ) : null}
-                  {model.active ? (
-                    <span className="badge badge--ok">Ativo</span>
-                  ) : null}
-                  {model.downloaded ? (
-                    <span className="badge badge--muted">Baixado</span>
-                  ) : null}
-                </div>
-              </div>
-              <p className="model-card__size">{formatBytes(model.sizeBytes)}</p>
-
-              {isDownloading && tick ? (
-                <div className="download-bar">
-                  <div className="download-bar__track">
-                    <div
-                      className="download-bar__fill"
-                      style={{ width: `${pct}%` }}
-                      role="progressbar"
-                      aria-valuenow={pct}
-                      aria-valuemin={0}
-                      aria-valuemax={100}
-                    >
-                      {pct}%
-                    </div>
-                  </div>
-                  <div className="download-bar__meta">
-                    {formatSpeedBps(tick.speedBps)}
-                    {tick.error ? <span className="download-bar__error">{tick.error}</span> : null}
-                  </div>
-                </div>
-              ) : null}
-
-              <div className="model-card__actions">
-                {model.downloaded ? (
-                  <>
-                    <button
-                      type="button"
-                      className="btn btn--primary"
-                      disabled={busy[model.id] || model.active}
-                      onClick={() => handleSetActive(model.id)}
-                    >
-                      {model.active
-                        ? 'Em uso'
-                        : busy[model.id]
-                          ? 'Ativando…'
-                          : 'Usar'}
-                    </button>
-                    <button
-                      type="button"
-                      className="btn btn--danger"
-                      disabled={busy[model.id]}
-                      aria-label={`Remover ${model.id}`}
-                      onClick={() => handleDelete(model.id)}
-                    >
-                      Excluir
-                    </button>
-                  </>
-                ) : (
-                  <button
-                    type="button"
-                    className="btn btn--primary"
-                    disabled={isDownloading}
-                    onClick={() => handleDownload(model.id)}
+            <Grid key={model.id} size={{ xs: 12, sm: 6, md: 4 }}>
+              <Card variant="outlined" sx={{ height: '100%' }}>
+                <CardContent sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                  <Box
+                    sx={{
+                      display: 'flex',
+                      alignItems: 'flex-start',
+                      justifyContent: 'space-between',
+                      gap: 1,
+                      flexWrap: 'wrap',
+                    }}
                   >
-                    {isDownloading ? 'Baixando…' : 'Baixar'}
-                  </button>
-                )}
-              </div>
-            </article>
+                    <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
+                      {formatModelLabel(model)}
+                    </Typography>
+                    <Stack direction="row" spacing={0.5} sx={{ flexWrap: 'wrap' }}>
+                      {model.recommended ? (
+                        <Chip size="small" color="primary" label={t('translation:localAi.recommended')} />
+                      ) : null}
+                      {model.active ? (
+                        <Chip size="small" color="success" label={t('translation:localAi.active')} />
+                      ) : null}
+                      {model.downloaded ? (
+                        <Chip size="small" variant="outlined" label={t('translation:localAi.download')} />
+                      ) : null}
+                    </Stack>
+                  </Box>
+
+                  <Typography variant="body2" color="text.secondary" sx={{ fontFamily: 'monospace' }}>
+                    {formatBytes(model.sizeBytes)}
+                  </Typography>
+
+                  {isDownloading && tick ? (
+                    <Stack spacing={0.5}>
+                      <LinearProgress
+                        variant="determinate"
+                        value={pct}
+                        aria-label={`download ${model.id}`}
+                        aria-valuenow={pct}
+                      />
+                      <Typography variant="caption" color="text.secondary" sx={{ fontFamily: 'monospace' }}>
+                        {pct}% · {formatSpeedBps(tick.speedBps)}
+                      </Typography>
+                      {tick.error ? (
+                        <Typography variant="caption" color="error">
+                          {tick.error}
+                        </Typography>
+                      ) : null}
+                    </Stack>
+                  ) : null}
+
+                  <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap' }}>
+                    {model.downloaded ? (
+                      <>
+                        <Button
+                          variant="contained"
+                          size="small"
+                          disabled={busy[model.id] || inUse}
+                          onClick={() => void handleSetActive(model.id)}
+                        >
+                          {busy[model.id]
+                            ? t('translation:common.loading')
+                            : inUse
+                              ? t('translation:localAi.active')
+                              : t('translation:localAi.use')}
+                        </Button>
+                        <IconButton
+                          aria-label={t('translation:localAi.delete')}
+                          size="small"
+                          color="error"
+                          disabled={busy[model.id]}
+                          onClick={() => void handleDelete(model.id)}
+                        >
+                          <DeleteIcon />
+                        </IconButton>
+                      </>
+                    ) : (
+                      <Button
+                        variant="contained"
+                        size="small"
+                        disabled={isDownloading}
+                        onClick={() => void handleDownload(model.id)}
+                      >
+                        {isDownloading ? t('translation:localAi.downloading') : t('translation:localAi.download')}
+                      </Button>
+                    )}
+                  </Stack>
+                </CardContent>
+              </Card>
+            </Grid>
           );
         })}
-      </div>
+      </Grid>
 
-      {error ? <StatusText tone="danger">{error}</StatusText> : null}
-    </div>
+      {error ? <Alert severity="error" sx={{ fontSize: 13 }}>{error}</Alert> : null}
+    </Stack>
   );
 }
