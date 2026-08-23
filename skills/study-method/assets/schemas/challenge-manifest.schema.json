@@ -1,0 +1,811 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://study-method.local/schemas/challenge-manifest.schema.json",
+  "title": "challenge_manifest",
+  "description": "Manifesto de um desafio (meta.json), gravado em challenges/<NNNN>-<slug>/meta.json. Chaves e valores de enum em ingles snake_case; textos livres em pt-BR. VERIFICADOR MINIMO: este schema usa apenas o subconjunto de palavras-chave { type, properties, required, additionalProperties (booleano), items, enum, pattern, minimum, maximum, minItems, minLength, maxLength, format } e NAO usa $ref, allOf, anyOf, oneOf, if/then/else nem referencia remota — um verificador escrito em Python stdlib (json + re) valida este arquivo por inteiro. O campo format e informativo e pode ser ignorado pelo verificador.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "challenge_id",
+    "slug",
+    "title",
+    "created_at",
+    "updated_at",
+    "language",
+    "layout_profile",
+    "skill_level",
+    "difficulty",
+    "target_concepts",
+    "challenge_status",
+    "artifacts",
+    "execution",
+    "scenarios",
+    "oracle",
+    "validation",
+    "integrity",
+    "student_progress"
+  ],
+  "properties": {
+    "schema_version": {
+      "description": "Versao do formato deste manifesto. Incrementar o minor em adicao compativel; o major em quebra.",
+      "type": "string",
+      "pattern": "^1\\.[0-9]+$"
+    },
+    "challenge_id": {
+      "description": "Identificador sequencial do desafio, 4 digitos com zero a esquerda. E o mesmo numero que prefixa o diretorio do desafio.",
+      "type": "string",
+      "pattern": "^[0-9]{4}$"
+    },
+    "slug": {
+      "description": "Nome curto em kebab-case usado no diretorio: challenges/<challenge_id>-<slug>/.",
+      "type": "string",
+      "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+      "minLength": 3,
+      "maxLength": 60
+    },
+    "title": {
+      "description": "Titulo do desafio em pt-BR, como o aluno le.",
+      "type": "string",
+      "minLength": 3,
+      "maxLength": 160
+    },
+    "created_at": {
+      "description": "Timestamp ISO 8601 com offset, do momento em que o desafio foi gerado.",
+      "type": "string",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}([.][0-9]+)?(Z|[+-][0-9]{2}:[0-9]{2})$",
+      "format": "date-time"
+    },
+    "updated_at": {
+      "description": "Timestamp ISO 8601 com offset da ultima escrita neste manifesto.",
+      "type": "string",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}([.][0-9]+)?(Z|[+-][0-9]{2}:[0-9]{2})$",
+      "format": "date-time"
+    },
+    "language": {
+      "description": "Linguagem do desafio. O conjunto e o da matriz operacional da pesquisa 06.",
+      "type": "string",
+      "enum": [
+        "python", "javascript", "typescript", "rust", "go", "java", "csharp",
+        "ruby", "elixir", "kotlin", "swift", "c", "cpp", "php", "lua",
+        "julia", "r", "haskell", "bash"
+      ]
+    },
+    "runtime_version": {
+      "description": "Versao do runtime detectada na maquina do aluno no momento da geracao (ex.: '3.14.7'). Vazio quando nao foi possivel detectar.",
+      "type": "string",
+      "maxLength": 60
+    },
+    "test_framework": {
+      "description": "Framework/runner de teste efetivamente usado (ex.: 'unittest', 'node:test', 'cargo_test', 'go_test', 'assert_h_counter').",
+      "type": "string",
+      "maxLength": 60
+    },
+    "layout_profile": {
+      "description": "Perfil de arvore de diretorios exigido pela linguagem. 'generic' e o esqueleto padrao; os demais sao as adaptacoes obrigatorias documentadas na pesquisa 06 (Go, Rust e Java quebram o esqueleto generico).",
+      "type": "string",
+      "enum": [
+        "generic", "go_module", "cargo_crate", "java_classfile",
+        "dotnet_project", "mix_project", "swiftpm", "julia_project",
+        "cabal_project", "bats_suite"
+      ]
+    },
+    "skill_level": {
+      "description": "Nivel do aluno para o qual o desafio foi calibrado.",
+      "type": "string",
+      "enum": ["beginner", "intermediate", "advanced"]
+    },
+    "difficulty": {
+      "description": "Dificuldade relativa dentro do nivel, de 1 (mais facil) a 5 (mais dificil).",
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 5
+    },
+    "target_concepts": {
+      "description": "Conceitos que este desafio exercita. O primeiro elemento e o conceito principal; os demais sao secundarios.",
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["concept_id", "label", "role"],
+        "properties": {
+          "concept_id": {
+            "description": "Identificador estavel do conceito, compartilhado com o registro de proficiencia da memoria.",
+            "type": "string",
+            "pattern": "^[a-z0-9]+(_[a-z0-9]+)*$",
+            "maxLength": 80
+          },
+          "label": {
+            "description": "Nome do conceito em pt-BR, como aparece para o aluno.",
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 120
+          },
+          "role": {
+            "description": "primary = o conceito que o desafio existe para treinar; supporting = conceito ja dominado que o desafio reusa.",
+            "type": "string",
+            "enum": ["primary", "supporting"]
+          },
+          "proficiency_state_at_creation": {
+            "description": "Estado de proficiencia do aluno neste conceito no momento em que o desafio foi proposto. Semantica definida pelo registro de proficiencia da memoria; aqui e apenas copiado.",
+            "type": "string",
+            "enum": ["unknown", "fragile", "mastered"]
+          }
+        }
+      }
+    },
+    "challenge_status": {
+      "description": "draft = artefatos gerados, protocolo de validacao ainda nao concluido; validated = passou no protocolo e pode ser entregue ao aluno; rejected = reprovado no protocolo e nao entregavel; solved = o aluno rodou o teste e passou.",
+      "type": "string",
+      "enum": ["draft", "validated", "rejected", "solved"]
+    },
+    "artifacts": {
+      "description": "Caminhos relativos ao diretorio do desafio. Tudo sob hidden_dir e invisivel para o aluno.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["statement_path", "stub_path", "test_path", "runner_path", "hidden_dir", "reference_path"],
+      "properties": {
+        "statement_path": {
+          "description": "Enunciado em pt-BR que o aluno le antes de comecar.",
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "stub_path": {
+          "description": "Unico arquivo que o aluno edita.",
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "test_path": {
+          "description": "Arquivo de teste — o aluno le, mas nao deve editar.",
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "runner_path": {
+          "description": "Script unico que roda so os testes deste desafio com sandbox e normaliza o exit code.",
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "hidden_dir": {
+          "description": "Diretorio que concentra tudo que o aluno nao deve ver. Convencao: '.solution'.",
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "reference_path": {
+          "description": "Implementacao de referencia correta, oculta. E o oraculo primario.",
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "reference_alt_paths": {
+          "description": "Implementacoes de referencia alternativas, corretas mas estruturalmente diferentes. Usadas no passo 3 do protocolo para detectar acoplamento a implementacao.",
+          "type": "array",
+          "items": {"type": "string", "minLength": 1, "maxLength": 200}
+        },
+        "empty_stub_path": {
+          "description": "Copia canonica do stub vazio, preservada para o passo 1 do protocolo poder ser reexecutado depois que o aluno ja editou o stub.",
+          "type": "string",
+          "maxLength": 200
+        },
+        "manifest_paths": {
+          "description": "Manifestos exigidos pela linguagem (go.mod, Cargo.toml, package.json, mix.exs...). Vazio quando a linguagem nao exige nenhum.",
+          "type": "array",
+          "items": {"type": "string", "minLength": 1, "maxLength": 200}
+        },
+        "support_paths": {
+          "description": "Arquivos auxiliares visiveis ao aluno (headers, fixtures, dados de entrada).",
+          "type": "array",
+          "items": {"type": "string", "minLength": 1, "maxLength": 200}
+        }
+      }
+    },
+    "execution": {
+      "description": "Como o runner executa o teste e como o harness conta quantos testes rodaram.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["test_command", "working_dir", "timeout_seconds", "expected_test_count", "test_count_probe", "failure_exit_codes"],
+      "properties": {
+        "test_command": {
+          "description": "Comando como vetor argv (sem shell), para nao depender de quoting. Ex.: ['python3','-B','-m','unittest','discover','-s','tests','-p','test_*.py'].",
+          "type": "array",
+          "minItems": 1,
+          "items": {"type": "string", "minLength": 1}
+        },
+        "build_command": {
+          "description": "Comando de compilacao previo, quando a linguagem exige (C, C++, Java). Vetor argv; ausente ou vazio quando nao ha etapa de build.",
+          "type": "array",
+          "items": {"type": "string", "minLength": 1}
+        },
+        "working_dir": {
+          "description": "Diretorio de trabalho fixo, relativo ao diretorio do desafio. Nunca herdar o cwd de quem chamou.",
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "timeout_seconds": {
+          "description": "Limite de tempo de parede por execucao do teste.",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 600
+        },
+        "cpu_seconds": {
+          "description": "Limite de tempo de CPU aplicado via 'ulimit -t'. Deve ser >= timeout_seconds para nao mascarar o timeout de parede.",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 600
+        },
+        "file_size_blocks": {
+          "description": "Limite de tamanho de arquivo escrito, em blocos de 512 bytes, aplicado via 'ulimit -f'.",
+          "type": "integer",
+          "minimum": 1
+        },
+        "env": {
+          "description": "Variaveis de ambiente fixadas pelo runner para tornar a execucao deterministica (LC_ALL, TZ, PYTHONHASHSEED, PYTHONDONTWRITEBYTECODE, SOURCE_DATE_EPOCH...). Todos os valores sao strings.",
+          "type": "object"
+        },
+        "expected_test_count": {
+          "description": "Numero de casos de teste que DEVEM ser executados. Precisa ser igual ao tamanho de scenarios. O harness reprova a execucao se a contagem observada divergir — e assim que se pega o falso positivo silencioso de 'nenhum teste rodou'.",
+          "type": "integer",
+          "minimum": 1
+        },
+        "test_count_probe": {
+          "description": "Como extrair da saida do runner quantos casos rodaram de fato. counter_protocol = o proprio teste imprime 'TESTS_RUN=<n>' e 'TESTS_FAILED=<n>' em stdout (obrigatorio para linguagens sem contagem legivel por maquina).",
+          "type": "string",
+          "enum": [
+            "python_unittest_ran_line",
+            "node_test_tap_summary",
+            "go_test_json_run_events",
+            "cargo_test_running_lines",
+            "junit_console_summary",
+            "counter_protocol",
+            "none"
+          ]
+        },
+        "failure_exit_codes": {
+          "description": "Politica de leitura do exit code. A regra e sempre 'diferente de zero = falhou', nunca 'igual a 1'. Este campo registra os valores esperados por linguagem apenas para diagnostico legivel.",
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["policy"],
+          "properties": {
+            "policy": {
+              "description": "non_zero_is_failure e a unica politica valida. O enum existe para que o valor seja explicito no arquivo, nao implicito no codigo.",
+              "type": "string",
+              "enum": ["non_zero_is_failure"]
+            },
+            "known_failure_code": {
+              "description": "Exit code tipico de falha desta linguagem (1 em Python/Node/Go/Java, 101 em Rust, 2 em Elixir e .NET MTP, 134 em C/C++ com assert nativo). Diagnostico apenas.",
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 255
+            },
+            "timeout_exit_code": {
+              "description": "Exit code que o harness usa para distinguir estouro de tempo de falha de teste. GNU timeout devolve 124.",
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 255
+            },
+            "requires_output_grep": {
+              "description": "true quando o exit code sozinho e insuficiente e o harness precisa checar tambem a saida textual (caso do testthat em R, que retorna 0 mesmo com falha).",
+              "type": "boolean"
+            }
+          }
+        },
+        "sandbox": {
+          "description": "Nivel de isolamento efetivamente aplicado nesta execucao.",
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["mode"],
+          "properties": {
+            "mode": {
+              "description": "posix_floor = timeout + ulimit + cwd fixo + env limpo (padrao, sem dependencia externa); docker_strict = container com --network none e --memory (opt-in); none = sem isolamento, so permitido com consentimento explicito registrado.",
+              "type": "string",
+              "enum": ["posix_floor", "docker_strict", "none"]
+            },
+            "network_isolated": {
+              "description": "true apenas quando ha isolamento real de rede (namespace ou container). Proxy invalido nao conta.",
+              "type": "boolean"
+            },
+            "timeout_source": {
+              "description": "De onde veio o timeout: coreutils_timeout (GNU 'timeout'), coreutils_gtimeout (macOS via Homebrew), perl_alarm (fallback) ou language_runtime (timeout nativo do harness).",
+              "type": "string",
+              "enum": ["coreutils_timeout", "coreutils_gtimeout", "perl_alarm", "language_runtime"]
+            }
+          }
+        }
+      }
+    },
+    "scenarios": {
+      "description": "Enumeracao FECHADA e NOMEADA dos cenarios que este desafio cobre. Nao e 'todos os cenarios de erro possiveis' — e a lista explicita do que o teste verifica, para que o aluno saiba o que esta sendo cobrado. O tamanho desta lista deve ser igual a execution.expected_test_count.",
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["scenario_id", "test_name", "kind", "description"],
+        "properties": {
+          "scenario_id": {
+            "description": "Identificador estavel do cenario dentro do desafio.",
+            "type": "string",
+            "pattern": "^[a-z0-9]+(_[a-z0-9]+)*$",
+            "maxLength": 80
+          },
+          "test_name": {
+            "description": "Nome exato do caso de teste no arquivo de teste, como o runner o reporta. Em Rust deve ser o caminho qualificado (ex.: 'tests::fatorial_de_zero'), nunca so o nome curto.",
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "kind": {
+            "description": "example = caso concreto tipico; boundary = borda do dominio; error = entrada invalida que deve falhar de forma especifica; property = invariante que vale para muitas entradas; metamorphic = relacao entre duas execucoes; regression = cenario adicionado depois por causa de um mutante sobrevivente.",
+            "type": "string",
+            "enum": ["example", "boundary", "error", "property", "metamorphic", "regression"]
+          },
+          "description": {
+            "description": "O que este cenario cobra, em pt-BR e em linguagem do dominio — e o texto que vira a mensagem de falha didatica.",
+            "type": "string",
+            "minLength": 5,
+            "maxLength": 400
+          },
+          "failure_message_template": {
+            "description": "Modelo da mensagem de falha. Deve conter entrada, valor esperado, valor obtido e a propriedade violada em linguagem do dominio.",
+            "type": "string",
+            "maxLength": 600
+          }
+        }
+      }
+    },
+    "oracle": {
+      "description": "De onde vem a verdade contra a qual o codigo do aluno e julgado. Nunca pode ser 'um numero que o modelo calculou de cabeca'.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["strategies", "numeric_mode"],
+      "properties": {
+        "strategies": {
+          "description": "Estrategias de oraculo efetivamente usadas neste desafio. reference_impl e obrigatoria em todos; as demais sao reforcos.",
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "enum": [
+              "reference_impl",
+              "invariant_property",
+              "metamorphic_relation",
+              "trusted_stdlib",
+              "exact_arithmetic",
+              "anchor_cases_from_statement"
+            ]
+          }
+        },
+        "numeric_mode": {
+          "description": "exact_int = inteiros, comparacao com igualdade; fraction = fractions.Fraction ou equivalente; decimal = decimal.Decimal; float_tolerance = ponto flutuante com tolerancia obrigatoria; not_numeric = a saida nao e numerica.",
+          "type": "string",
+          "enum": ["exact_int", "fraction", "decimal", "float_tolerance", "not_numeric"]
+        },
+        "rel_tol": {
+          "description": "Tolerancia relativa usada nas comparacoes de ponto flutuante. Obrigatoria quando numeric_mode = float_tolerance.",
+          "type": "number",
+          "minimum": 0
+        },
+        "abs_tol": {
+          "description": "Tolerancia absoluta usada nas comparacoes de ponto flutuante, para valores proximos de zero.",
+          "type": "number",
+          "minimum": 0
+        },
+        "invariants": {
+          "description": "Propriedades invariantes verificadas sobre a referencia, independentes do valor esperado — a defesa contra o modelo ter errado a conta.",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["invariant_id", "statement"],
+            "properties": {
+              "invariant_id": {
+                "type": "string",
+                "pattern": "^[a-z0-9]+(_[a-z0-9]+)*$",
+                "maxLength": 80
+              },
+              "statement": {
+                "description": "A propriedade em pt-BR (ex.: 'a inversa desfaz a direta dentro da tolerancia').",
+                "type": "string",
+                "minLength": 5,
+                "maxLength": 400
+              },
+              "sample_size": {
+                "description": "Quantas entradas amostradas foram usadas para checar a invariante.",
+                "type": "integer",
+                "minimum": 1
+              },
+              "worst_error": {
+                "description": "Maior erro observado ao checar a invariante. Deve ficar abaixo da tolerancia.",
+                "type": "number",
+                "minimum": 0
+              },
+              "seed": {
+                "description": "Semente fixa usada na amostragem, para a checagem ser reproduzivel.",
+                "type": "integer"
+              }
+            }
+          }
+        }
+      }
+    },
+    "validation": {
+      "description": "Resultado do protocolo validar_teste executado pelo harness determinístico. Nenhum campo aqui pode ser preenchido por julgamento de modelo — todos vem de execucao.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["protocol_version", "harness", "verdict", "steps", "generation_attempts"],
+      "properties": {
+        "protocol_version": {
+          "type": "string",
+          "pattern": "^1\\.[0-9]+$"
+        },
+        "harness": {
+          "description": "Script que produziu este resultado. Sempre challenge-verify.sh — nunca um modelo.",
+          "type": "string",
+          "enum": ["challenge-verify.sh"]
+        },
+        "validated_at": {
+          "type": "string",
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}([.][0-9]+)?(Z|[+-][0-9]{2}:[0-9]{2})$",
+          "format": "date-time"
+        },
+        "verdict": {
+          "description": "approved = pode ir para o aluno; weak = passou nos passos obrigatorios mas o mutation score ficou abaixo do limiar; rejected = reprovado; not_run = ainda nao validado.",
+          "type": "string",
+          "enum": ["approved", "weak", "rejected", "not_run"]
+        },
+        "generation_attempts": {
+          "description": "Quantas vezes os artefatos foram regerados ate este veredito.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 10
+        },
+        "steps": {
+          "description": "Resultado de cada passo do protocolo, na ordem em que rodam.",
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "step_0_build",
+            "step_1_empty_stub",
+            "step_2_reference",
+            "step_3_alternatives",
+            "step_4_mutation",
+            "step_5_determinism",
+            "step_6_counts"
+          ],
+          "properties": {
+            "step_0_build": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["status"],
+              "properties": {
+                "status": {"type": "string", "enum": ["passed", "failed", "skipped", "not_applicable"]},
+                "detail": {"type": "string", "maxLength": 800}
+              }
+            },
+            "step_1_empty_stub": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["status"],
+              "properties": {
+                "status": {"type": "string", "enum": ["passed", "failed", "skipped", "not_applicable"]},
+                "tests_run": {"type": "integer", "minimum": 0},
+                "tests_failed": {"type": "integer", "minimum": 0},
+                "exit_code": {"type": "integer", "minimum": 0, "maximum": 255},
+                "detail": {"type": "string", "maxLength": 800}
+              }
+            },
+            "step_2_reference": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["status"],
+              "properties": {
+                "status": {"type": "string", "enum": ["passed", "failed", "skipped", "not_applicable"]},
+                "tests_run": {"type": "integer", "minimum": 0},
+                "tests_failed": {"type": "integer", "minimum": 0},
+                "exit_code": {"type": "integer", "minimum": 0, "maximum": 255},
+                "detail": {"type": "string", "maxLength": 800}
+              }
+            },
+            "step_3_alternatives": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["status"],
+              "properties": {
+                "status": {"type": "string", "enum": ["passed", "failed", "skipped", "not_applicable"]},
+                "alternatives_run": {"type": "integer", "minimum": 0},
+                "alternatives_rejected": {
+                  "description": "Referencias alternativas corretas que o teste reprovou — cada uma e evidencia de acoplamento a implementacao.",
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": ["path", "failing_test_names"],
+                    "properties": {
+                      "path": {"type": "string", "minLength": 1, "maxLength": 200},
+                      "failing_test_names": {
+                        "type": "array",
+                        "items": {"type": "string", "minLength": 1, "maxLength": 200}
+                      },
+                      "resolution": {
+                        "description": "assertion_relaxed = a assercao acoplada foi afrouxada e o protocolo reexecutado; test_regenerated = o teste inteiro foi refeito; unresolved = nada foi feito (nao pode coexistir com verdict approved).",
+                        "type": "string",
+                        "enum": ["assertion_relaxed", "test_regenerated", "unresolved"]
+                      }
+                    }
+                  }
+                },
+                "detail": {"type": "string", "maxLength": 800}
+              }
+            },
+            "step_4_mutation": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["status"],
+              "properties": {
+                "status": {"type": "string", "enum": ["passed", "failed", "skipped", "not_applicable"]},
+                "detail": {"type": "string", "maxLength": 800}
+              }
+            },
+            "step_5_determinism": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["status"],
+              "properties": {
+                "status": {"type": "string", "enum": ["passed", "failed", "skipped", "not_applicable"]},
+                "repetitions": {"type": "integer", "minimum": 0},
+                "env_matrix": {
+                  "description": "Combinacoes de ambiente efetivamente usadas nas repeticoes (ex.: 'LC_ALL=C TZ=UTC PYTHONHASHSEED=0').",
+                  "type": "array",
+                  "items": {"type": "string", "minLength": 1, "maxLength": 200}
+                },
+                "stable": {"type": "boolean"},
+                "detail": {"type": "string", "maxLength": 800}
+              }
+            },
+            "step_6_counts": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["status"],
+              "properties": {
+                "status": {"type": "string", "enum": ["passed", "failed", "skipped", "not_applicable"]},
+                "expected": {"type": "integer", "minimum": 0},
+                "observed": {"type": "integer", "minimum": 0},
+                "detail": {"type": "string", "maxLength": 800}
+              }
+            }
+          }
+        },
+        "mutation": {
+          "description": "Resultado do passo 4. O catalogo de operadores e FIXO e mecanico; nunca pedido a um modelo.",
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["operators_version", "generated", "valid", "killed", "survived", "score", "threshold"],
+          "properties": {
+            "operators_version": {
+              "description": "Versao do catalogo fixo de operadores de mutacao usado.",
+              "type": "string",
+              "pattern": "^1\\.[0-9]+$"
+            },
+            "generated": {
+              "description": "Total de mutantes gerados mecanicamente.",
+              "type": "integer",
+              "minimum": 0
+            },
+            "valid": {
+              "description": "Mutantes que compilaram/carregaram e executaram a suite. Denominador do score.",
+              "type": "integer",
+              "minimum": 0
+            },
+            "invalid": {
+              "description": "Mutantes descartados por nao compilar ou por zerar a contagem de testes. Nao entram no score.",
+              "type": "integer",
+              "minimum": 0
+            },
+            "killed": {
+              "description": "Mutantes validos que o teste detectou (a suite ficou vermelha).",
+              "type": "integer",
+              "minimum": 0
+            },
+            "survived": {
+              "description": "Mutantes validos que passaram despercebidos.",
+              "type": "integer",
+              "minimum": 0
+            },
+            "score": {
+              "description": "killed / valid, entre 0 e 1.",
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "threshold": {
+              "description": "Limiar minimo de score para o veredito ser approved.",
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "survivors": {
+              "description": "Lista dos mutantes sobreviventes, com a mutacao exata que sobreviveu. E o material que alimenta a regeneracao do teste.",
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["mutant_id", "operator", "file", "line", "before", "after", "classification"],
+                "properties": {
+                  "mutant_id": {"type": "string", "minLength": 1, "maxLength": 120},
+                  "operator": {
+                    "description": "Operador do catalogo fixo que produziu este mutante.",
+                    "type": "string",
+                    "enum": ["ROR", "AOR", "LCR", "UOI", "CRP", "SDL", "RVR", "SVR"]
+                  },
+                  "file": {"type": "string", "minLength": 1, "maxLength": 200},
+                  "line": {"type": "integer", "minimum": 1},
+                  "before": {"type": "string", "maxLength": 400},
+                  "after": {"type": "string", "maxLength": 400},
+                  "classification": {
+                    "description": "equivalent = o mutante e comportamentalmente identico a referencia, logo nenhum teste poderia mata-lo; test_gap = falta um cenario no teste; unclassified = ainda nao analisado.",
+                    "type": "string",
+                    "enum": ["equivalent", "test_gap", "unclassified"]
+                  },
+                  "justification": {
+                    "description": "Por que foi classificado assim, em pt-BR. Obrigatorio na pratica quando classification = equivalent.",
+                    "type": "string",
+                    "maxLength": 600
+                  }
+                }
+              }
+            }
+          }
+        },
+        "rejections": {
+          "description": "Historico de reprovacoes, uma por tentativa de geracao. E o que vai no prompt de regeneracao.",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["attempt", "code", "message"],
+            "properties": {
+              "attempt": {"type": "integer", "minimum": 1, "maximum": 10},
+              "code": {
+                "type": "string",
+                "enum": [
+                  "build_failed",
+                  "passes_on_empty_stub",
+                  "test_malformed",
+                  "fails_on_reference",
+                  "timeout_on_reference",
+                  "rejects_correct_alternative",
+                  "zero_tests_executed",
+                  "test_count_mismatch",
+                  "nondeterministic",
+                  "mutation_score_below_threshold",
+                  "attempt_limit_reached"
+                ]
+              },
+              "message": {
+                "description": "Descricao em pt-BR do que exatamente falhou, com nomes de teste e mutantes.",
+                "type": "string",
+                "minLength": 5,
+                "maxLength": 1200
+              }
+            }
+          }
+        }
+      }
+    },
+    "integrity": {
+      "description": "Deteccao leve e transparente de alteracao do teste. Detecta, nao bloqueia por padrao.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["policy", "test_sha256"],
+      "properties": {
+        "policy": {
+          "description": "off = nao confere; warn = confere e avisa, mas deixa rodar (padrao); block = recusa contabilizar o desafio como resolvido se o teste mudou.",
+          "type": "string",
+          "enum": ["off", "warn", "block"]
+        },
+        "test_sha256": {
+          "description": "SHA-256 do arquivo de teste no momento da aprovacao.",
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "reference_sha256": {
+          "description": "SHA-256 da implementacao de referencia no momento da aprovacao.",
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "recorded_at": {
+          "type": "string",
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}([.][0-9]+)?(Z|[+-][0-9]{2}:[0-9]{2})$",
+          "format": "date-time"
+        },
+        "last_check": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["status"],
+          "properties": {
+            "status": {"type": "string", "enum": ["match", "modified", "missing", "not_checked"]},
+            "checked_at": {
+              "type": "string",
+              "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}([.][0-9]+)?(Z|[+-][0-9]{2}:[0-9]{2})$",
+              "format": "date-time"
+            }
+          }
+        }
+      }
+    },
+    "student_progress": {
+      "description": "O que aconteceu depois que o desafio foi entregue. Escrito pelo tutor a cada tentativa do aluno.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["attempts", "last_result", "hint_level_used", "solution_revealed"],
+      "properties": {
+        "attempts": {
+          "description": "Quantas vezes o aluno rodou o runner com o proprio codigo.",
+          "type": "integer",
+          "minimum": 0
+        },
+        "last_result": {
+          "description": "Resultado da ultima execucao do aluno.",
+          "type": "string",
+          "enum": ["not_run", "passed", "failed", "timeout", "error"]
+        },
+        "failing_scenario_ids": {
+          "description": "scenario_id dos cenarios vermelhos na ultima execucao. E o que o tutor usa para escolher a dica.",
+          "type": "array",
+          "items": {"type": "string", "pattern": "^[a-z0-9]+(_[a-z0-9]+)*$", "maxLength": 80}
+        },
+        "hint_level_used": {
+          "description": "Degrau mais alto da escada de dicas ja entregue ao aluno. 0 = nenhuma dica dada. A semantica dos degraus e definida pela escada de dicas, nao aqui.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 10
+        },
+        "solution_revealed": {
+          "description": "true quando o conteudo de hidden_dir foi mostrado ao aluno.",
+          "type": "boolean"
+        },
+        "solution_revealed_at": {
+          "type": "string",
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}([.][0-9]+)?(Z|[+-][0-9]{2}:[0-9]{2})$",
+          "format": "date-time"
+        },
+        "first_attempt_at": {
+          "type": "string",
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}([.][0-9]+)?(Z|[+-][0-9]{2}:[0-9]{2})$",
+          "format": "date-time"
+        },
+        "last_attempt_at": {
+          "type": "string",
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}([.][0-9]+)?(Z|[+-][0-9]{2}:[0-9]{2})$",
+          "format": "date-time"
+        },
+        "solved_at": {
+          "type": "string",
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}([.][0-9]+)?(Z|[+-][0-9]{2}:[0-9]{2})$",
+          "format": "date-time"
+        },
+        "time_spent_seconds": {
+          "description": "Soma do tempo entre a primeira e a ultima tentativa, quando mensuravel.",
+          "type": "integer",
+          "minimum": 0
+        },
+        "proficiency_state_after": {
+          "description": "Estado de proficiencia registrado para o conceito principal depois deste desafio. Semantica definida pelo registro de proficiencia da memoria.",
+          "type": "string",
+          "enum": ["unknown", "fragile", "mastered"]
+        }
+      }
+    },
+    "notes": {
+      "description": "Observacoes livres em pt-BR sobre este desafio.",
+      "type": "string",
+      "maxLength": 2000
+    }
+  }
+}
