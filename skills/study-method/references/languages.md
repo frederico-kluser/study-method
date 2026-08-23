@@ -16,12 +16,16 @@ Tudo marcado **[V]** foi confirmado executando nesta máquina em 2026-08-23.
 ### 1.1 Exit code: `!= 0`, jamais `== 1`
 
 ```bash
-if run_with_timeout 10 <comando>; then echo PASSOU; else echo "FALHOU (exit $?)"; fi
+if sandbox_exec <comando>; then echo PASSOU; else echo "FALHOU (exit $?)"; fi
 ```
 
 Falha **não** é 1 em quase metade da matriz: Rust dá **101**, C/C++ com assert nativo dão
 **134** (SIGABRT), Elixir e .NET/MTP dão **2**, `unittest` sem teste nenhum dá **5**.
 Qualquer código que teste `== 1` classifica falha real como sucesso.
+
+E **timeout não está nessa lista de propósito**: ele não se detecta por exit code (§7). A sandbox
+mata com `-s KILL`, o que dá **137** — que também é OOM e limite de CPU. Quem procurar **124** vai
+procurar para sempre.
 
 ### 1.2 ⭐ Assertar "testes executados > 0" — o exit code não basta
 
@@ -233,8 +237,13 @@ Como cada linguagem grava isso — todos **[V]**, todos zero-install:
 
 Depois:
 ```bash
-python3 scripts/render-plot.py --spec plot.json --out-dir <sessão>/viz --basename <nome>
+python3 scripts/render-plot.py --spec plot.json \
+        --out-dir researchs/assets/<NNNN>-<slug> --basename <nome>
 ```
+
+O diretório de saída é **`researchs/assets/<NNNN>-<slug>/`** do setup — o subdiretório do research
+a que a figura pertence. `<sessão>/viz/` não existe: uma sessão é `memory/NNNN.json`, um arquivo,
+não um diretório.
 As quatro saídas (SVG, HTML, ASCII, descrição) saem iguais, qualquer que seja a
 linguagem que gerou os dados.
 
@@ -298,7 +307,9 @@ Vizinhas naturais: Ruby/PHP → Python · Kotlin → Java · C# → Java ou Go �
 tem vizinha próxima (ofereça a instalação, ou mude de assunto) · Julia/R → Python ·
 Swift → Rust · Haskell → não tem vizinha próxima.
 
-Registre no `meta.json` do setup qual linguagem foi confirmada e sua versão exata.
+Registre no **`setup.json`** (o manifesto na raiz do setup) qual linguagem foi confirmada e sua
+versão exata. Não é no `meta.json`: esse é o manifesto de **um desafio**, em
+`challenges/<NNNN>-<slug>/`, e o estado do setup gravado ali seria reperguntado a cada desafio.
 
 ---
 
@@ -307,11 +318,24 @@ Registre no `meta.json` do setup qual linguagem foi confirmada e sua versão exa
 Fixe no runner, sempre — independem da linguagem:
 
 ```bash
-export LC_ALL=C.UTF-8 TZ=UTC
-cd "$CHALLENGE_DIR" || exit 1
-ulimit -t 10 -f 65536
-timeout 10 <comando>
+export LC_ALL=C.UTF-8 TZ=UTC PYTHONHASHSEED=0
+cd "$CHALLENGE_DIR" || exit 66        # 66 = infraestrutura, NUNCA falha de teste
+sandbox_exec <comando>                # de lib/sandbox.sh — nunca monte sandbox à mão
 ```
+
+Três coisas que **não** se improvisa aqui:
+
+- **`|| exit 66`**, em todo lugar do produto. Não 1, não 70. É o código que distingue "o
+  diretório do desafio não existe" de "o teste falhou", e ele só serve se for o mesmo em todos
+  os scripts.
+- **O confinamento vem de `sandbox_exec`**, definido em `lib/sandbox.sh`. Ele já aplica
+  `timeout -s KILL -k 5`, `ulimit -t`/`-f`, namespaces e cgroup, na ordem certa e sondando cada
+  camada. Um `timeout 10 <comando>` escrito à mão parece equivalente e não é: sem `-s KILL`, o
+  `SIGTERM` chega ao wrapper (`unshare`/`systemd-run`) e **não** propaga ao processo do aluno —
+  verificado: o comando **trava** em vez de morrer.
+- **Timeout se detecta por tempo decorrido**, não por exit code. Com `-s KILL` o código é **137**
+  (que também é OOM e limite de CPU), e **124 nunca acontece**. O `runner.sh` mede o tempo antes e
+  depois e compara com o limite; é o `DECORRIDO_MS` que ele imprime.
 
 - **ponto flutuante**: nunca `==`; sempre tolerância (`abs(a-b) < 1e-9`);
 - **ordem de mapa**: em Go a iteração de `map` é **deliberadamente aleatória** — teste
@@ -330,7 +354,7 @@ timeout 10 <comando>
 |----|---------------------|--------|------------------|-----------------|
 | D-V04 | A linguagem da aula é escolhida no **setup** (uma para todo o estudo) ou por **sessão**? | (a) por setup, com override explícito por sessão; (b) por sessão, sempre perguntada; (c) por assunto (uma para matemática, outra para programação) | **(a)** — consistência acumula fluência; o override cobre quem quer variar | moderate (desafios já gerados ficam na linguagem antiga) |
 | D-V05 | Quando a linguagem escolhida **não está instalada**, o que a skill faz? | (a) mostrar o comando de instalação, sem executar; (b) sugerir a instalada mais próxima e seguir; (c) tentar mesmo assim; (d) bloquear até instalar | **(a)+(b) na mesma mensagem** — nunca (c), que dá erro sem diagnóstico, nem (d), que trava a aula | cheap |
-| D-V11 | O `runner.sh` deve **normalizar** o exit code (101/134/2/5 → 1) ou repassar o código bruto? | (a) normalizar para 0/1 e registrar o bruto num log; (b) repassar bruto; (c) normalizar mas ecoar o bruto no stdout | **(c)** — o orquestrador testa um só valor e o diagnóstico (134=SIGABRT, 5=zero testes) não se perde | cheap |
+| D-V11 | **RESOLVIDA** — o `runner.sh` deve **normalizar** o exit code (101/134/2/5 → 1) ou repassar o bruto? | (a) normalizar para 0/1 e logar o bruto; (b) repassar bruto; (c) **normalizar para 0/1/2/3 e ecoar `EXIT_BRUTO` e `DECORRIDO_MS` no stdout** | **(c)** — `0` passou · `1` falhou · `2` contagem errada · `3` timeout, mais o `66` do `cd`. É a **exceção nomeada 1** à tabela de exit codes dos scripts da skill, e o diagnóstico (134=SIGABRT, 5=zero testes, 137=morto) não se perde porque o bruto vai no stdout | cheap |
 | D-V12 | O guard "testes executados > 0" deve rodar sempre, ou só quando o exit for 0? | (a) sempre, antes e depois; (b) só quando o exit for 0 (barato); (c) só na geração do desafio | **(a)** — é grep, custa nada, e é a única defesa contra as 5 armadilhas da §2 | cheap |
 | D-V13 | Quando o aluno escolher uma linguagem com toolchain **parcial** (Java sem Maven/Gradle, C++ sem cmake), a skill usa o caminho zero-install ou pede o build system? | (a) zero-install sempre (`-ea`, `g++` direto), e só mencionar o build system se o aluno pedir; (b) pedir Maven/Gradle/cmake de saída | **(a)** — a primeira execução de `mvn test` baixa o Maven Central inteiro; para um desafio de uma função isso é absurdo | cheap |
-| D-V14 | A skill deve rodar a detecção de toolchains uma vez no setup, ou reverificar a cada sessão? | (a) uma vez no setup, gravado no `meta.json`; (b) a cada sessão; (c) no setup e revalidar só a linguagem em uso (`command -v` único) | **(c)** — um `command -v` por sessão custa milissegundos e pega o caso "instalei ontem" ou "desinstalei" | cheap |
+| D-V14 | A skill deve rodar a detecção de toolchains uma vez no setup, ou reverificar a cada sessão? | (a) uma vez no setup, gravado no `setup.json`; (b) a cada sessão; (c) no setup e revalidar só a linguagem em uso (`command -v` único) | **(c)** — um `command -v` por sessão custa milissegundos e pega o caso "instalei ontem" ou "desinstalei" | cheap |

@@ -115,7 +115,7 @@ mensagem de falha, qualidade do texto do enunciado. **Nunca** como gate de corre
 | **Referências alternativas** (`.solution/reference_alt_*.<ext>`, **ocultas**) | Detectar over-specification por execução: corretas, mas estruturalmente diferentes | O teste pode estar acoplado a *uma* solução e reprovar o aluno que achou outra igualmente válida |
 | **Stub vazio canônico** (`.solution/empty_stub.<ext>`, **oculto**) | Permitir reexecutar o passo 1 depois que o aluno já editou o stub | Revalidar um desafio em andamento passa a ser impossível sem destruir o trabalho do aluno |
 | **Mutantes** (gerados em disco temporário, **nunca versionados**) | Medir se o teste detecta defeito de verdade | O teste pode ser tautológico e ninguém saber |
-| **Runner** (`runner.sh`) | Único ponto de entrada: aplica sandbox, fixa `cwd` e ambiente, normaliza exit code e **extrai a contagem de testes** | Cada linguagem vaza suas idiossincrasias de exit code e layout para o resto do sistema |
+| **Runner** (`runner.sh`) | Único ponto de entrada: chama `sandbox_exec` de `lib/sandbox.sh`, fixa `cwd` e ambiente, normaliza exit code e **extrai a contagem de testes** | Cada linguagem vaza suas idiossincrasias de exit code e layout para o resto do sistema |
 | **Manifesto** (`meta.json`) | Registrar identidade, cenários, resultado da validação, mutation score, progresso | Nada é auditável nem retomável entre sessões |
 
 ### 2.2 A árvore, e o que o aluno vê
@@ -200,9 +200,35 @@ Esta é a defesa que impede o modo de falha mais perigoso do produto inteiro —
 **Regra 1 — exit code.** A leitura é sempre `!= 0`, **jamais** `== 1`. Exit codes de falha
 verificados/documentados: Python 1 (**5** quando zero testes foram coletados **[VERIFICADO]**),
 Node 1, Go 1, Java 1, Rust **101** **[VERIFICADO]**, Elixir **2**, .NET com MTP **2**, C/C++ com
-`assert.h`/`<cassert>` **134** (SIGABRT), R **0 mesmo com falha** por padrão. GNU `timeout` mata
-com **EXIT=124** **[VERIFICADO]** — que o harness trata como veredito `timeout`, distinto de
-`failed`. `ulimit -t` estourado mata o processo e o shell reporta **137** **[VERIFICADO]**.
+`assert.h`/`<cassert>` **134** (SIGABRT), R **0 mesmo com falha** por padrão.
+
+**Regra 1b — timeout NÃO se detecta por exit code.** Esta regra **substitui** a leitura ingênua
+"124 = timeout" e é a que vale em todo o produto. A pilha de sandbox canônica
+(`docs/11-seguranca-privacidade.md` do repositório, §2.1 G1 e §2.2) usa
+`timeout -s KILL -k 5`, que mata com **SIGKILL** e produz **137** — 124 **nunca acontece** dentro
+dela. E `timeout` simples, sem `-s KILL`, não é uma alternativa: dentro da pilha real ele **trava**,
+porque o `SIGTERM` chega ao wrapper (`unshare`/`systemd-run`) e não propaga ao processo do aluno.
+**[VERIFICADO nesta máquina]**, quatro medições:
+
+```
+timeout -s KILL -k 5 2 python3 -c 'while True: pass'          -> exit=137  decorrido=2002 ms
+timeout             2 python3 -c 'while True: pass'           -> exit=124  decorrido=2002 ms
+timeout -s KILL -k 5 2 unshare --user --net --pid --fork \
+        --map-current-user -- bash -c 'python3 -c "while True: pass"'
+                                                              -> exit=137  decorrido=2001 ms
+timeout             2 unshare ... -- bash -c 'python3 -c "while True: pass"'
+                                        -> NÃO TERMINA; só morreu na guarda externa, aos 12002 ms
+```
+
+A linha 2 é a única em que 124 aparece — e é justamente a configuração que o produto **não** usa.
+A linha 4 é o custo de ignorar isso: um loop infinito do aluno sobrevive ao timeout.
+
+**Consequência normativa, sem exceção**: o veredito `timeout` é decidido **comparando o tempo
+decorrido** com `execution.timeout_seconds` — `decorrido >= T_MAX` ⇒ `timeout` —, e nunca por
+`exit_code == 124`. O 137 é ambíguo por natureza (timeout, OOM do cgroup ou `RLIMIT_CPU`) e a
+desambiguação está em `docs/11-seguranca-privacidade.md` §2.3 do repositório. `ulimit -t` estourado
+também reporta **137** **[VERIFICADO]** — mais uma razão para não pendurar diagnóstico em código
+de saída.
 
 **Regra 2 — contagem.** O harness **DEVE** extrair da saída o número de casos efetivamente
 executados e comparar com `execution.expected_test_count` (que é igual a `len(scenarios)`). Não
@@ -282,67 +308,132 @@ int main(void) {
 Saída observada com o stub vazio: `TESTS_RUN=2` / `TESTS_FAILED=2` em stdout, as duas mensagens
 didáticas em stderr, **EXIT=1** — determinístico, contável, e sem abortar no primeiro erro.
 
-### 3.3 O esqueleto de `runner.sh` — **[VERIFICADO ponta a ponta]**
+### 3.3 O esqueleto canônico de `runner.sh` — **[VERIFICADO ponta a ponta]**
 
 Este esqueleto foi escrito e executado nesta máquina, e os quatro vereditos saíram corretos. É o
 contrato literal para `challenge-new.sh` gerar (aqui no perfil `generic`/Python; a única parte
 que muda por linguagem são as três linhas do comando e do probe de contagem).
 
+Três invariantes dele não são negociáveis, e cada uma existe por causa de um defeito observado:
+
+1. **O confinamento vem de `lib/sandbox.sh`, não daqui.** O `runner.sh` chama `sandbox_exec`; ele
+   não monta pilha de sandbox própria. Uma segunda implementação de sandbox seria uma segunda
+   verdade sobre o que está ligado, e a que o aluno vê no relatório é a de `lib/sandbox.sh`.
+2. **`timeout` é decidido por tempo decorrido** (Regra 1b), nunca por exit code.
+3. **`cd` que falha sai com 66** — infraestrutura, não falha de teste. É o mesmo 66 de
+   `docs/11-seguranca-privacidade.md` §2.1 G5 e §2.2 do repositório; não existe outro código para
+   esse evento em lugar nenhum do produto.
+
 ```bash
 #!/usr/bin/env bash
+# runner.sh — ponto de entrada ÚNICO do desafio. Gerado por challenge-new.sh.
+# Exit: 0 passou · 1 falhou · 2 contagem errada · 3 timeout  (exceção nomeada — §3.4)
 set -u -o pipefail                          # pipefail: pipe mascara exit code
 
 DESAFIO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-cd "$DESAFIO_DIR" || exit 70                # cwd FIXO — nunca herdar de quem chamou
+cd "$DESAFIO_DIR" || exit 66                # cwd FIXO; 66 = infraestrutura, não teste
 
-TIMEOUT_S="${CHALLENGE_TIMEOUT:-15}"; CPU_S="${CHALLENGE_CPU:-20}"
+TIMEOUT_S="${CHALLENGE_TIMEOUT:-15}"
+ESPERADO="${CHALLENGE_EXPECTED_TESTS:-5}"
 SAIDA="$(mktemp)"; trap 'rm -f "$SAIDA"' EXIT
 
 # ambiente determinístico (passo 5)
 export LC_ALL="${LC_ALL:-C.UTF-8}" TZ="${TZ:-UTC}"
 export PYTHONHASHSEED="${PYTHONHASHSEED:-0}" PYTHONDONTWRITEBYTECODE=1
 export NODE_COMPILE_CACHE=""
-export http_proxy=http://127.0.0.1:1 https_proxy=http://127.0.0.1:1 no_proxy=""
 
 # cache de bytecode: mutante de mesmo tamanho reusaria o .pyc antigo (§4.5)
 find "$DESAFIO_DIR" -type d -name __pycache__ -prune -exec rm -rf {} + 2>/dev/null
 
-com_timeout() {
-  if   command -v timeout  >/dev/null 2>&1; then timeout  "$TIMEOUT_S" "$@"
-  elif command -v gtimeout >/dev/null 2>&1; then gtimeout "$TIMEOUT_S" "$@"
-  else perl -e 'alarm shift; exec @ARGV' "$TIMEOUT_S" "$@"; fi
-}
+# ---- sandbox: UMA implementação só, a de lib/sandbox.sh ----
+SANDBOX_LIB="${STUDY_METHOD_SKILL_DIR:-}/scripts/lib/sandbox.sh"
+if [ -r "$SANDBOX_LIB" ]; then
+  . "$SANDBOX_LIB"                          # define sandbox_exec
+else
+  # PISO DECLARADO — nunca silencioso. Sem lib/sandbox.sh não há isolamento de rede,
+  # confinamento de escrita nem limite de memória: só relógio e CPU.
+  echo "AVISO: lib/sandbox.sh não encontrado; rodando no PISO DECLARADO (sem isolamento" >&2
+  echo "       de rede, sem confinamento de escrita, sem limite de memória)." >&2
+  sandbox_exec() {
+    ( ulimit -t "$(( TIMEOUT_S + 5 ))" 2>/dev/null; ulimit -f 65536 2>/dev/null
+      # DEGRADAÇÃO DECLARADA, não isolamento: proxy inválido é lombada, não muro —
+      # não impede socket bruto nem runtime que ignore as variáveis (docs/11 §2.1 G4).
+      export http_proxy=http://127.0.0.1:1 https_proxy=http://127.0.0.1:1 \
+             all_proxy=http://127.0.0.1:1 no_proxy=""
+      exec timeout -s KILL -k 5 "$TIMEOUT_S" "$@" )
+  }
+fi
 
-( ulimit -t "$CPU_S" 2>/dev/null; ulimit -f 65536 2>/dev/null
-  com_timeout python3 -B -m unittest discover -s tests -p 'test_*.py' ) >"$SAIDA" 2>&1
+# ---- execução: mede o tempo, porque é o tempo que decide 'timeout' ----
+T0=$(date +%s%N)
+sandbox_exec python3 -B -m unittest discover -s tests -p 'test_*.py' >"$SAIDA" 2>&1
 EXIT_BRUTO=$?
+T1=$(date +%s%N); DECORRIDO_MS=$(( (T1 - T0) / 1000000 ))
 
 # probe python_unittest_ran_line
 TESTS_RUN=$(grep -Eo '^Ran [0-9]+ tests?' "$SAIDA" | tail -1 | grep -Eo '[0-9]+')
-TESTS_RUN="${TESTS_RUN:-0}"; ESPERADO="${CHALLENGE_EXPECTED_TESTS:-5}"
+TESTS_RUN="${TESTS_RUN:-0}"
 
 cat "$SAIDA"; echo "---"
-echo "TESTS_RUN=$TESTS_RUN  ESPERADO=$ESPERADO  EXIT_BRUTO=$EXIT_BRUTO"
+echo "TESTS_RUN=$TESTS_RUN ESPERADO=$ESPERADO EXIT_BRUTO=$EXIT_BRUTO DECORRIDO_MS=$DECORRIDO_MS"
 
-# exit normalizado: 0 passou · 1 falhou · 2 contagem errada · 3 timeout
-if   [ "$EXIT_BRUTO" -eq 124 ];        then echo "VEREDITO=timeout";         exit 3
-elif [ "$TESTS_RUN" -ne "$ESPERADO" ]; then echo "VEREDITO=count_mismatch";  exit 2
-elif [ "$EXIT_BRUTO" -ne 0 ];          then echo "VEREDITO=failed";          exit 1
-else                                        echo "VEREDITO=passed";          exit 0
+# veredito: o TEMPO decide timeout, jamais o exit code (Regra 1b)
+if   [ "$DECORRIDO_MS" -ge $(( TIMEOUT_S * 1000 )) ]; then echo "VEREDITO=timeout";       exit 3
+elif [ "$TESTS_RUN" -ne "$ESPERADO" ];               then echo "VEREDITO=count_mismatch"; exit 2
+elif [ "$EXIT_BRUTO" -ne 0 ];                        then echo "VEREDITO=failed";         exit 1
+else                                                      echo "VEREDITO=passed";         exit 0
 fi
 ```
 
-Resultado observado nos quatro casos:
+Resultado observado nos quatro casos, com este script exato **[VERIFICADO nesta máquina]**:
 
-| Cenário | `TESTS_RUN` | `EXIT_BRUTO` | Veredito |
-|---|---|---|---|
-| stub vazio | 5 | 1 | `failed` (exit 1) — como o passo 1 exige |
-| referência | 5 | 0 | `passed` (exit 0) — como o passo 2 exige |
-| teste esvaziado (0 casos) | 0 | **5** | `count_mismatch` (exit 2) — o falso positivo pego pela contagem |
-| stub com `while True: pass` | 0 | **124** | `timeout` (exit 3) — distinto de falha de teste |
+| Cenário | `TESTS_RUN` | `EXIT_BRUTO` | `DECORRIDO_MS` | Veredito | exit |
+|---|---|---|---|---|---|
+| stub vazio | 5 | 1 | 35 | `failed` | **1** — como o passo 1 exige |
+| referência | 5 | 0 | 33 | `passed` | **0** — como o passo 2 exige |
+| teste esvaziado (0 casos) | 0 | **5** | 31 | `count_mismatch` | **2** — o falso positivo pego pela contagem |
+| stub com `while True: pass` | 0 | **137** | **3002** (`T_MAX`=3 s) | `timeout` | **3** |
+
+A última linha é a prova da Regra 1b: o exit bruto foi **137**, não 124, e quem produziu o
+veredito correto foi a comparação `DECORRIDO_MS >= T_MAX × 1000`. Um `runner.sh` que testasse
+`EXIT_BRUTO -eq 124` teria classificado esse caso como `failed` — e o aluno receberia "seu teste
+falhou" no lugar de "seu código não termina", que são duas lições diferentes.
 
 A normalização (0/1/2/3) é o que permite `challenge-verify.sh` ser **uma** implementação para
 todas as linguagens: o orquestrador nunca vê 101, 134, 2 ou 5.
+
+### 3.4 Códigos de saída — a tabela final
+
+Vale para todo o produto. Há **duas exceções nomeadas**, e elas são exceções declaradas, não
+desvios tolerados.
+
+**Regra geral — todo `SK/scripts/*.sh`:**
+
+| Código | Significado |
+|---|---|
+| `0` | ok |
+| `1` | erro |
+| `2` | uso incorreto |
+| `3` | setup não encontrado |
+| `4` | recurso travado |
+| `5` | validação falhou |
+| **`10`** | **`needs_model_input`** — o script parou num ponto que exige julgamento; escreveu um JSON de PEDIDO em stdout e **não alterou nada em disco** (§4.6) |
+
+`challenge-verify.sh` segue essa tabela: `0` aprovado · `5` reprovado (`weak` ou `rejected`) ·
+`10` precisa da classificação de sobreviventes · `2` uso incorreto · `3` desafio não encontrado ·
+`1` erro de infraestrutura.
+
+**Exceção nomeada 1 — o `runner.sh` gerado dentro do desafio** usa **0/1/2/3**
+(`passed`/`failed`/`count_mismatch`/`timeout`). Ele não é um script da skill: é um artefato do
+desafio, lido e rodado pelo aluno, e os quatro valores são o vocabulário do TDD, não o da skill.
+Fora dessa faixa ele emite só o **66** de `cd` que falhou.
+
+**Exceção nomeada 2 — `render-plot.py`** usa **0/1/2/3**
+(ok / spec inválida / dados inválidos / falha de escrita), definidos em
+`docs/06-visualizacao.md` §4.4 do repositório.
+
+Nenhum outro script tem exceção. Um script novo que precise de um código fora da tabela precisa
+primeiro entrar nesta seção.
 
 ---
 
@@ -371,9 +462,19 @@ ENTRADAS
 SAÍDAS  (gravadas em M.validation)
   verdict ∈ { approved, weak, rejected, not_run }
   steps.step_0..step_6, cada um com status ∈ { passed, failed, skipped, not_applicable }
-  mutation.{score, killed, survived, survivors[]}
+  mutation.{ operators_version, generated, valid, invalid, killed, survived,
+             score_bruto, equivalent_count, score, threshold,
+             sample_size, detail, survivors[] }
   rejections[] — código + mensagem em pt-BR, o insumo do prompt de regeneração
+
+SAÍDA INTERMEDIÁRIA  (stdout, exit 10, nada gravado em disco)
+  mutation_classification_request — o pedido de classificação dos sobreviventes (§4.6)
 ```
+
+Sobre `mutation`: `score_bruto = killed / valid` e `score = killed / (valid - equivalent_count)`.
+Os dois ficam gravados, porque só com os dois ao lado de `equivalent_count` é possível refazer a
+conta que decidiu o veredito. `sample_size` é `null` quando não houve amostragem; `detail` é o
+texto em pt-BR que explica a amostragem e as classificações de equivalência.
 
 **Invariante global do harness**: toda execução de teste passa por uma função única
 `executar(implementação) -> {exit_code, tests_run, tests_failed, stdout, stderr, wall_ms}`, que
@@ -473,41 +574,69 @@ fica escrito no `detail`.
     - `r.exit_code != 0` → **morto**.
     - `r.exit_code == 0` → **sobrevivente**, gravado com `operator`, `file`, `line`, `before`,
       `after`, `classification: unclassified`.
-4.3 `score = killed / valid` (`valid = killed + survived`). Se `valid == 0`, é rejeição por
+4.3 `score_bruto = killed / valid` (`valid = killed + survived`). Se `valid == 0`, é rejeição por
     `build_failed` — um catálogo que não produz nenhum mutante válido significa que a referência
     é trivial demais para o desafio.
-4.4 Classificar sobreviventes. Um sobrevivente tem exatamente duas explicações possíveis:
+4.4 **Parar e pedir a classificação dos sobreviventes** — protocolo REQUEST/APPLY (§4.6). Se
+    `survived == 0`, este sub-passo é pulado inteiro e o protocolo segue para 4.5. Um
+    sobrevivente tem exatamente duas explicações possíveis:
     - **`test_gap`** — falta um cenário. Ação: regerar o teste com o mutante no prompt.
     - **`equivalent`** — o mutante é comportamentalmente idêntico a `R`; nenhum teste poderia
-      matá-lo. Exige `justification` escrita. Mutantes equivalentes **saem do denominador**:
-      `score = killed / (valid - equivalentes)`.
-    A classificação é a **única** etapa do protocolo em que o LLM opina — e opina apenas sobre um
-    diff de uma linha, com o ônus de escrever a justificativa no manifesto, auditável. Um
-    sobrevivente `unclassified` é tratado como `test_gap` (o lado conservador).
-4.5 `score >= LIMIAR` → passo aprovado. `score < LIMIAR` → `verdict: weak` e código
-    `mutation_score_below_threshold`; **nunca** aprovar direto.
+      matá-lo. Exige `justification` escrita. Mutantes equivalentes **saem do denominador**.
 
-*Demonstração executada nesta máquina.* Referência: fatorial iterativo com guarda de negativo.
-Catálogo fixo gerou **14 mutantes válidos**.
+    Decidir entre as duas é julgamento, e **shell script não conversa com modelo**. Então
+    `challenge-verify.sh` **não pergunta**: ele escreve em **stdout** o pedido
+    `mutation_classification_request`, sai com **exit 10** (`needs_model_input`) e **não altera
+    nada em disco**. O modelo lê o pedido, produz `mutation_classification_response` e re-invoca
+    `challenge-verify.sh --apply <resposta.json>`, que **valida** a resposta contra o schema e só
+    então grava. O detalhe do formato está em §4.6.
+
+    Esta é a **única** etapa do protocolo em que o LLM opina — e opina apenas sobre um diff de uma
+    linha, com o ônus de escrever a justificativa no manifesto, auditável. Um sobrevivente que
+    volte da resposta como `unclassified` é tratado como `test_gap` (o lado conservador).
+4.5 Fechar o score com os equivalentes fora do denominador e comparar com o limiar:
+
+    ```
+    equivalent_count = |{ s ∈ survivors : s.classification == "equivalent" }|
+    score            = killed / (valid - equivalent_count)
+    ```
+
+    `validation.mutation` grava **os dois números** — `score_bruto` e `score` — mais
+    `equivalent_count`, mais `sample_size` (quando o passo 4 foi amostrado, §4.4 de custo) e mais
+    `detail` (texto em pt-BR dizendo o que foi amostrado, o que foi classificado como equivalente
+    e por quê). Score sem `equivalent_count` ao lado é score que não dá para auditar.
+
+    `score >= LIMIAR` → passo aprovado. `score < LIMIAR` → `verdict: weak` e código
+    `mutation_score_below_threshold`; **nunca** aprovar direto. Se `valid - equivalent_count == 0`
+    — todo mutante válido foi declarado equivalente —, isso **não** é score 1,0: é rejeição por
+    `build_failed`, porque uma referência cujo comportamento nenhuma mutação mecânica altera não
+    sustenta um desafio.
+
+*Demonstração executada nesta máquina, com o catálogo da §5 aplicado ao pé da letra.* Referência:
+fatorial iterativo com guarda de negativo, 7 linhas (o fonte está na §5.4). Catálogo fixo gerou
+**17 mutantes, 17 válidos, 0 inválidos** — distribuição ROR 1 · AOR 1 · LCR 0 · UOI 0 · CRP 8 ·
+SDL 3 · RVR 1 · SVR 3.
 
 - Teste **forte** (5 cenários: `n=0`, `n=1`, `n=5`, propriedade `f(n)==f(n-1)*n`, `ValueError`
-  em `n=-1`): **score 13/14 = 92%**, um único sobrevivente —
+  em `n=-1`): **16 mortos, 1 sobrevivente**, `score_bruto = 16/17 = 0,941`. O sobrevivente é
   `for i in range(2, n + 1)` → `for i in range(1, n + 1)`, classificado **`equivalent`**
-  (multiplicar por 1 antes do resto não muda saída nenhuma). Score corrigido: 13/13.
-- Teste **fraco** (só `assert fatorial(5) == 120`): passa nos passos 1 e 2 sem problema — falha
-  contra o stub, passa contra a referência — mas o passo 4 dá **score 9/14 = 64%**, com 5
-  sobreviventes que apontam exatamente os cenários faltantes:
+  (multiplicar o acumulador por 1 antes do resto não muda saída nenhuma, para nenhum `n`).
+  Com `equivalent_count = 1`: **`score = 16/16 = 1,000`**.
+- Teste **fraco** (só `assertEqual(fatorial(5), 120)`): passa nos passos 1 e 2 sem problema —
+  falha contra o stub, passa contra a referência — mas o passo 4 dá **12 mortos, 5 sobreviventes**,
+  `score_bruto = 12/17 = 0,706`; com o mesmo equivalente fora, `score = 12/16 = 0,750`. Abaixo do
+  limiar 0,90 nos dois cálculos, e os 5 sobreviventes apontam exatamente os cenários faltantes:
 
 ```
-ROR@L2  if n < 0:                  -> if n <= 0:
-CRP@L2  if n < 0:                  -> if n < 1:
-CRP@L2  if n < 0:                  -> if n < -1:
-CRP@L5  for i in range(2, n + 1):  -> for i in range(1, n + 1):
-SDL@L3  raise ValueError(...)      -> pass
+ROR@L2C10   if n < 0:                  -> if n <= 0:            (falta o caso n == 0)
+CRP@L2C12+  if n < 0:                  -> if n < 1:             (falta o caso n == 0)
+CRP@L2C12-  if n < 0:                  -> if n < -1:            (falta o caso n == -1)
+CRP@L5C20-  for i in range(2, n + 1):  -> for i in range(1, n + 1):   (equivalente)
+SDL@L3C9    raise ValueError(...)      -> pass                  (falta o cenário de erro)
 ```
 
 Isto é a prova operacional de que os passos 1 e 2 **não bastam**, e de que o passo 4 devolve
-material acionável e não só um número.
+material acionável e não só um número: quatro dos cinco sobreviventes nomeiam um cenário ausente.
 
 ---
 
@@ -566,8 +695,8 @@ SENÃO SE score < LIMIAR                            → verdict = weak
 SENÃO                                              → verdict = approved
 ```
 
-- `approved` → `challenge_status = "validated"`; gravar `integrity.test_sha256` e
-  `integrity.reference_sha256`; o desafio pode ir ao aluno.
+- `approved` → `challenge_status = "validated"`; **o harness** calcula e grava
+  `integrity.test_sha256` e `integrity.reference_sha256`; o desafio pode ir ao aluno.
 - `weak` e `rejected` → `challenge_status = "draft"` enquanto houver tentativa disponível;
   regerar com o `rejections[]` no prompt. Esgotadas as tentativas (**máx. 3**, §4.3),
   `challenge_status = "rejected"` — e o tutor **propõe outro desafio**, nunca entrega este.
@@ -589,12 +718,18 @@ diagnóstico, não lixo.
 ### 4.4 Custo
 
 Execuções por validação: 1 (passo 1) + 1 (passo 2) + |R_ALT| (passo 3) + k (passo 4) + 3
-(passo 5). Com k ≈ 14 e |R_ALT| = 2, são ~21 execuções. Para Python/Node/Lua cada uma custa
-dezenas de milissegundos. Para Rust/Go/Java/C, o `build_command` domina — **[DECISÃO]** nessas
-linguagens o harness reaproveita o diretório de build entre mutantes (`target/` do cargo,
-cache do Go), e o passo 4 pode ser **amostrado** (`sample_size` do catálogo) quando
-`k * tempo_de_build > 120 s`; a amostragem é registrada em `mutation.detail` e reduz o `LIMIAR`
-de confiança declarada, nunca é escondida.
+(passo 5). Com k = 17 (§5.4) e |R_ALT| = 2, são **24 execuções**. Para Python/Node/Lua cada uma
+custa dezenas de milissegundos. Para Rust/Go/Java/C, o `build_command` domina — **[DECISÃO]**
+nessas linguagens o harness reaproveita o diretório de build entre mutantes (`target/` do cargo,
+cache do Go), e o passo 4 pode ser **amostrado** quando `k * tempo_de_build > 120 s`.
+
+**A amostragem é registrada, nunca escondida**: `mutation.sample_size` guarda quantos mutantes
+foram efetivamente executados (`null` quando não houve amostragem, isto é, `sample_size == valid`)
+e `mutation.detail` diz em pt-BR qual foi o critério. A amostra é **determinística**: os primeiros
+`sample_size` mutantes na ordem canônica do catálogo (§5), nunca sorteados — dois `challenge-verify.sh`
+sobre a mesma referência têm que dar a mesma amostra, senão o score deixa de ser comparável entre
+tentativas de regeneração. Amostrar reduz a força do passo 4 e isso vai no `detail`; não reduz o
+`LIMIAR`, que é o mesmo 0,90 sobre a amostra.
 
 ### 4.5 A armadilha do cache de bytecode — **[VERIFICADO, achado novo]**
 
@@ -614,10 +749,22 @@ B = "def fatorial(n):\n    return 9 if n < 1 else n * fatorial(n - 9)\n"   # 64 
 # com python3 -B:              A -> 120   B -> 45      ← correto
 ```
 
-Sem a proteção, o kill loop deste documento reportou **mutation score 14/14 = 100%** — falso.
-Com `python3 -B` mais remoção de `__pycache__` entre execuções, o mesmo teste reportou **13/14 =
-92%**, e o único sobrevivente foi o mutante genuinamente equivalente. **A diferença entre aprovar
-e reprovar um teste fraco estava num diretório de cache.**
+Sem a proteção, o kill loop deste documento reportou **mutation score 17/17 = 100%** — falso.
+Com `python3 -B` mais remoção de `__pycache__` entre execuções, o **mesmo teste, no mesmo
+diretório, com o mesmo catálogo** reportou **16/17 = 94,1%**, e o único sobrevivente foi
+`CRP@L5C20-`, o mutante genuinamente equivalente. **A diferença entre aprovar e reprovar um teste
+fraco estava num diretório de cache.** Medição refeita com o catálogo corrigido da §5.4
+**[VERIFICADO nesta máquina]**:
+
+```
+SEM PROTEÇÃO  validos=17 mortos=17 sobreviventes=0  score_bruto=17/17=1,0000  []
+PROTEGIDO     validos=17 mortos=16 sobreviventes=1  score_bruto=16/17=0,9412  [CRP@L5C20-]
+```
+
+Note que a armadilha só aparece quando o harness reusa **o mesmo diretório de trabalho** entre
+mutantes — que é exatamente o que ele faz, porque `executar()` instala a implementação no
+`stub_path` do desafio. Um kill loop que criasse um diretório temporário por mutante nunca veria o
+bug, e é por isso que ele passou despercebido nas duas pesquisas.
 
 **Regra normativa**: `executar()` **DEVE**, antes de cada execução:
 1. Remover recursivamente todo `__pycache__` sob o diretório do desafio.
@@ -628,6 +775,126 @@ e reprovar um teste fraco estava num diretório de cache.**
    problema: reescrevendo `src/lib.rs` com o mesmo número de bytes no mesmo segundo, o
    `cargo test` recompilou e observou o valor novo. `gcc`/`g++` não têm cache. Mesmo assim, o
    harness usa um diretório de trabalho por mutante quando o `build_command` existe.
+
+### 4.6 ⭐ O protocolo REQUEST/APPLY — como um script pede julgamento a um modelo
+
+**O problema.** O passo 4.4 precisa de uma decisão que só um leitor de código toma: este
+sobrevivente é `equivalent` ou é `test_gap`? A versão anterior deste documento mandava o script
+"pedir ao modelo" a classificação. **Isso é impossível**: `challenge-verify.sh` é um processo de
+shell; ele não tem canal com o modelo, não bloqueia esperando resposta, e não existe um `ask()`
+para ele chamar. Uma especificação que diz "o script pergunta" é uma especificação que ninguém
+consegue implementar — e quem tentar vai improvisar, provavelmente deixando o script *chutar* a
+classificação, que é exatamente o que arruína o denominador do mutation score.
+
+**O padrão único do produto**, daqui em diante, para qualquer script que precise de julgamento:
+
+```
+1. o script roda até onde é determinístico;
+2. precisando de julgamento, escreve um JSON de PEDIDO em STDOUT
+   e sai com EXIT 10 (needs_model_input) — SEM ALTERAR NADA EM DISCO;
+3. o MODELO lê o pedido, produz o JSON de RESPOSTA e re-invoca o script
+   com --apply <resposta.json>;
+4. o script VALIDA a resposta contra o schema e SÓ ENTÃO aplica.
+```
+
+Quatro propriedades que fazem esse padrão valer o trabalho:
+
+- **Atômico.** No exit 10 o disco está exatamente como antes da invocação. Não existe estado
+  "meio validado" para alguém encontrar depois.
+- **Retomável.** O pedido carrega tudo que a resposta precisa referenciar. Uma sessão que morra
+  entre o pedido e o `--apply` é retomada rodando o script de novo, do zero.
+- **Auditável.** O julgamento do modelo entra no manifesto como dado nomeado, com justificativa
+  escrita, e não como um número que apareceu do nada.
+- **Verificável.** O script recusa uma resposta malformada, incompleta ou que fale de mutantes que
+  ele não pediu. O modelo não consegue aprovar nada por acidente de formato.
+
+#### O pedido — `mutation_classification_request`
+
+Escrito em stdout por `challenge-verify.sh` no passo 4.4, quando `survived > 0`. Schema:
+`assets/schemas/requests/mutation-classification-request.schema.json` (dono: a sub-tarefa dos
+schemas).
+
+```json
+{
+  "request_type": "mutation_classification",
+  "schema_version": "1.0",
+  "challenge_id": "0007",
+  "run_id": "0007-a3f1c2",
+  "operators_version": "1.0",
+  "reference_path": ".solution/reference.py",
+  "mutation": { "generated": 17, "valid": 17, "killed": 16, "survived": 1,
+                "score_bruto": 0.9412, "sample_size": null },
+  "survivors": [
+    {
+      "mutant_id": "CRP@L5C20-",
+      "operator": "CRP",
+      "file": ".solution/reference.py",
+      "line": 5,
+      "before": "    for i in range(2, n + 1):",
+      "after":  "    for i in range(1, n + 1):",
+      "context": [
+        "    acc = 1",
+        "    for i in range(2, n + 1):",
+        "        acc *= i"
+      ]
+    }
+  ]
+}
+```
+
+`run_id` amarra pedido e resposta: é derivado do `challenge_id` + hash do conteúdo de `R` e de
+`T`. Se qualquer um dos dois mudar entre o pedido e o `--apply`, o `run_id` não bate e o script
+recusa — é o que impede aplicar uma classificação velha a um teste que foi regenerado no meio.
+
+#### A resposta — `mutation_classification_response`
+
+Produzida pelo modelo, gravada num arquivo, e entregue por
+`challenge-verify.sh --apply <resposta.json>`. Schema:
+`assets/schemas/requests/mutation-classification-response.schema.json`.
+
+```json
+{
+  "request_type": "mutation_classification",
+  "schema_version": "1.0",
+  "challenge_id": "0007",
+  "run_id": "0007-a3f1c2",
+  "classifications": [
+    {
+      "mutant_id": "CRP@L5C20-",
+      "classification": "equivalent",
+      "justification": "range(1, n+1) apenas multiplica o acumulador por 1 antes do resto do produto. Para todo n >= 0 a saida e identica a da referencia, entao nenhum teste poderia matar este mutante."
+    }
+  ]
+}
+```
+
+#### O que o `--apply` valida antes de gravar
+
+Falhar em qualquer item é **exit 2** (uso incorreto), com a mensagem dizendo o item — e, de novo,
+nada é escrito:
+
+1. a resposta valida contra o schema;
+2. `run_id` e `challenge_id` batem com o pedido pendente;
+3. o conjunto de `mutant_id` da resposta é **exatamente** o conjunto de sobreviventes do pedido —
+   nem a mais (mutante inventado), nem a menos (sobrevivente sem veredito);
+4. `classification: "equivalent"` traz `justification` **não vazia** e com pelo menos 40
+   caracteres — uma justificativa que não explica nada não é auditoria;
+5. `classification` ∈ {`equivalent`, `test_gap`, `unclassified`}; `unclassified` é aceito e conta
+   como `test_gap` no score.
+
+Aprovado, o script grava `mutation.survivors[].classification` e `.justification`, recalcula
+`equivalent_count` e `score`, retoma o protocolo em 4.5 e segue até o passo 7.
+
+#### Onde mais este padrão vale
+
+Toda vez que a especificação disser "o script pede ao modelo", o que ela quer dizer é este
+protocolo. Hoje há **um único** ponto assim em `challenge-verify.sh` — a classificação de
+sobreviventes. Se aparecer um segundo, ele ganha um `request_type` próprio, um par de schemas em
+`assets/schemas/requests/`, e reusa o mesmo exit 10 e a mesma flag `--apply`.
+
+**O que este protocolo não é**: uma brecha na regra do §1.2. O modelo continua sem decidir se o
+teste está bom. Ele decide uma coisa só, sobre um diff de uma linha, e o script continua sendo
+quem calcula o score, compara com o limiar e emite o veredito.
 
 ---
 
@@ -641,40 +908,167 @@ imaginou", não bugs em geral; e o estudo de replicação arXiv:2607.22880 quest
 correlação. O catálogo abaixo é **mecânico, determinístico e independente de qualquer modelo**.
 
 Aplicação: **texto do fonte, uma mutação por mutante**, apenas em linhas que não são vazias nem
-comentário, com fronteiras de token respeitadas (as *lookarounds* das regex existem para não
-transformar `<=` em `<==`, `+=` em `-=`, `**` em `*/`, `->` em `+>`). Strings literais e
-comentários são pulados. **Nenhum AST é necessário** — o motor é o mesmo para todas as linguagens,
-mudando só o marcador de comentário e o conjunto de operadores lógicos (`and`/`or` × `&&`/`||`).
+comentário, com fronteiras de token respeitadas. Strings literais e comentários são **mascarados**
+antes de qualquer regex casar (o número dentro de `"erro 404"` não é um literal mutável, e o `<`
+dentro de uma docstring não é um operador). **Nenhum AST é necessário** — o motor é o mesmo para
+todas as linguagens, mudando só o marcador de comentário e o conjunto de operadores lógicos
+(`and`/`or` × `&&`/`||`). O único operador que precisa de mais que regex de linha é o SVR, e o que
+ele precisa é uma **tabela de nomes** montada por varredura, não uma árvore sintática.
 
-| ID | Nome | Transformação | Bug real que representa |
-|---|---|---|---|
-| **ROR** | Relational Operator Replacement | `<`↔`<=` · `>`↔`>=` · `==`↔`!=` | Erro de borda: incluir ou excluir o extremo do intervalo |
-| **AOR** | Arithmetic Operator Replacement | `+`↔`-` · `*`→`/` · `/`→`*` · `%`→`*` | Fórmula trocada |
-| **LCR** | Logical Connector Replacement | `and`↔`or` · `&&`↔`\|\|` | Condição composta errada |
-| **UOI** | Unary Operator Insertion/Removal | remove `not ` · remove `!` antes de identificador | Condição invertida |
-| **CRP** | Constant Replacement | cada literal inteiro `n` vira `n+1` e `n-1` (dois mutantes) | Off-by-one clássico: `range(2,n+1)` → `range(1,n+1)`; `if n < 0` → `if n < 1` |
-| **SDL** | Statement Deletion | substitui uma linha executável por no-op (`pass`, `;`, `{}`) — pula assinaturas, `return`, imports e linhas que abrem bloco | Passo esquecido; validação removida |
-| **RVR** | Return Value Replacement | substitui o corpo inteiro da função pelo valor-zero do tipo (`0`, `""`, `[]`, `None`, `false`) | O caso degenerado: se sobrevive, o teste é tautológico — redundante com o passo 1, e é isso que se quer |
-| **SVR** | Scalar Variable Replacement | troca uma referência a variável local por outra do mesmo escopo, na mesma linha | Variável errada usada por engano |
+### 5.1 A regra que fecha a ambiguidade: operadores compostos **não são mutáveis**
+
+Esta regra é normativa e vale para todos os operadores do catálogo, sem exceção:
+
+> Um caractere de operador que faça parte de um **operador composto de atribuição**
+> (`+=`, `-=`, `*=`, `/=`, `%=`, `//=`, `**=`, `&=`, `|=`, `^=`, `<<=`, `>>=`) **não é mutado**.
+> Também não são mutados `**`, `//`, `<<`, `>>` e `->`, que não são os operadores deste catálogo.
+
+Por que isso importa mais do que parece: `acc *= i` → `acc /= i` **muda o resultado**, então esse
+mutante seria válido e provavelmente morto — ou seja, incluí-lo **infla o numerador e o
+denominador ao mesmo tempo**, e o mutation score, que é o portão de aprovação em 0,90, muda de
+valor conforme a implementação decida. Duas implementações do "mesmo" catálogo dando denominadores
+diferentes é o defeito que esta seção existe para eliminar. A regra é: **não muta**, e quem quiser
+cobrir a troca de operador em atribuição composta usa AOR na forma expandida (`acc = acc * i`),
+que é o que uma referência legível costuma escrever de qualquer modo.
+
+### 5.2 A tabela
+
+| ID | Nome | Transformação | Quantos mutantes | Bug real que representa |
+|---|---|---|---|---|
+| **ROR** | Relational Operator Replacement | `<`↔`<=` · `>`↔`>=` · `==`↔`!=` | 1 por ocorrência | Erro de borda: incluir ou excluir o extremo do intervalo |
+| **AOR** | Arithmetic Operator Replacement | `+`↔`-` · `*`→`/` · `/`→`*` · `%`→`*` | 1 por ocorrência **não composta** (§5.1) | Fórmula trocada |
+| **LCR** | Logical Connector Replacement | `and`↔`or` · `&&`↔`\|\|` | 1 por ocorrência | Condição composta errada |
+| **UOI** | Unary Operator Insertion/Removal | remove `not ` · remove `!` antes de identificador | 1 por ocorrência | Condição invertida |
+| **CRP** | Constant Replacement | cada literal inteiro `n` vira `n+1` e `n-1` | **2 por literal inteiro** | Off-by-one clássico: `range(2,n+1)` → `range(1,n+1)`; `if n < 0` → `if n < 1` |
+| **SDL** | Statement Deletion | substitui uma linha executável por no-op (`pass`, `;`, `{}`) | 1 por linha **elegível** (§5.3) | Passo esquecido; validação removida |
+| **RVR** | Return Value Replacement | substitui o corpo inteiro da função por `return <valor-zero>` (`0`, `""`, `[]`, `None`, `false`) | **1 por função que devolve valor** (§5.3) | O caso degenerado: se sobrevive, o teste é tautológico — redundante com o passo 1, e é isso que se quer |
+| **SVR** | Scalar Variable Replacement | troca uma **leitura** de variável local por outra local já ligada | **1 por ocorrência de leitura elegível** (§5.3) | Variável errada usada por engano |
 
 **Ordem de aplicação**: ROR → AOR → LCR → UOI → CRP → SDL → RVR → SVR, e dentro de cada operador,
-por linha crescente e coluna crescente. Cada mutante recebe um `mutant_id` estável
-`<OP>@L<linha>C<coluna>` — reproduzível, comparável entre execuções, e é a chave usada em
-`mutation.survivors[].mutant_id`.
+por linha crescente e coluna crescente. Essa ordem é também a ordem de amostragem quando o passo 4
+é amostrado (§4.4).
 
-**Números observados nesta máquina** para uma referência de 7 linhas (fatorial iterativo com
-guarda): **14 mutantes válidos, 0 inválidos**. A distribuição foi ROR 1, AOR 2, CRP 8, SDL 3 —
-CRP domina porque gera dois mutantes por literal inteiro, o que é desejável: off-by-one é o bug
-mais comum em desafio de iniciante.
+**`mutant_id`**: `<OP>@L<linha>C<coluna>`, e — porque **CRP produz dois mutantes na mesma coluna** —
+o CRP acrescenta o sinal da direção: `CRP@L2C12+` (literal `n+1`) e `CRP@L2C12-` (literal `n-1`).
+Sem esse sufixo o id não é único e a chave de `mutation.survivors[].mutant_id` colide, o que
+quebra a correspondência entre pedido e resposta do §4.6. Nenhum outro operador produz mais de um
+mutante no mesmo sítio.
 
-**Mutantes inválidos** (não compilam, ou zeram a contagem de testes) são **descartados**, não
-contados como mortos — contá-los como mortos inflaria o score exatamente onde ele deveria doer.
+**Mutantes inválidos** (não compilam, ou fazem `tests_run != expected_test_count`) são
+**descartados**, não contados como mortos — contá-los como mortos inflaria o score exatamente onde
+ele deveria doer.
+
+### 5.3 As três regras de contagem que faltavam
+
+`RVR` e `SVR` estavam no catálogo e ausentes da distribuição declarada; `SDL` dependia de uma
+lista de exclusões implícita. As três regras abaixo fecham isso. Elas **mudam o denominador do
+mutation score**, que é o portão de aprovação — por isso são normativas, não sugestões.
+
+**SDL — quais linhas são elegíveis.** É elegível toda linha **executável** que não seja: assinatura
+(`def`/`class`/`func`/decorador), `return`, `import`/`from ... import`, `global`/`nonlocal`, uma
+linha que **abre bloco** (termina em `:` na família Python, ou é `if`/`for`/`while`/`else`/`try`/
+`with`/`except`/`finally`/`match`/`case`), ou uma linha que já é no-op (`pass`). Deletar uma linha
+que abre bloco produziria um mutante que não compila — inválido, ruído no denominador.
+`return` fica de fora porque é território do RVR.
+
+**RVR — exatamente 1 mutante por função que devolve valor.** Condição: a função tem pelo menos um
+`return <expr>` com expressão. Função que só produz efeito colateral (retorna `None` implícito)
+gera **0** mutantes RVR, porque o mutante seria idêntico à referência — equivalente por
+construção, e equivalente por construção não entra no denominador para depois sair dele. O
+valor-zero é o do tipo devolvido: `0` para numérico, `""` para texto, `[]` para sequência, `{}`
+para mapa, `False` para booleano, `None` quando o tipo não é inferível do fonte. O mutante
+substitui o **corpo inteiro**, não a linha do `return`.
+
+**SVR — 1 mutante por ocorrência de leitura, não por par.** Esta é a regra que impede a explosão
+combinatória (com 3 locais e 4 leituras, "todos os pares" dá 8 mutantes; esta regra dá 4):
+
+- **Ocorrência elegível** = uma **leitura** de nome local. Alvo de atribuição nunca é elegível —
+  inclusive o alvo de atribuição composta (`acc` em `acc *= i`) e a variável de laço na própria
+  linha do `for`. Nome de função em chamada, atributo depois de `.`, e nome global/importado
+  também não são elegíveis.
+- **Ligados naquele ponto** = os parâmetros da função (ligados desde a assinatura) mais os nomes
+  ligados por atribuição ou por `for` em linhas **estritamente anteriores**; a variável de laço
+  passa a contar a partir do corpo do laço. Se houver menos de 2 nomes ligados, a linha não gera
+  mutante SVR.
+- **A substituição** é pelo **nome imediatamente anterior na ordem de ligação**, ciclicamente
+  dentro do conjunto de ligados. Um mutante por ocorrência, determinístico, sem sorteio.
+- A tabela de nomes é montada por três regex — lista de parâmetros da assinatura, `<nome> =` /
+  `<nome> op=`, e `for <nome> in` — sobre o texto já mascarado. Continua sem AST.
+
+### 5.4 A contagem de referência, refeita executando — **[VERIFICADO nesta máquina]**
+
+O exemplo canônico do documento, com o catálogo acima aplicado ao pé da letra. A referência
+(`.solution/reference.py`, 7 linhas):
+
+```python
+def fatorial(n):
+    if n < 0:
+        raise ValueError("fatorial nao e definido para inteiro negativo")
+    acc = 1
+    for i in range(2, n + 1):
+        acc *= i
+    return acc
+```
+
+Os **17** mutantes gerados, na ordem canônica:
+
+```
+ROR@L2C10   if n < 0:                 -> if n <= 0:
+AOR@L5C25   for i in range(2, n + 1): -> for i in range(2, n - 1):
+CRP@L2C12+  if n < 0:                 -> if n < 1:
+CRP@L2C12-  if n < 0:                 -> if n < -1:
+CRP@L4C11+  acc = 1                   -> acc = 2
+CRP@L4C11-  acc = 1                   -> acc = 0
+CRP@L5C20+  for i in range(2, n + 1): -> for i in range(3, n + 1):
+CRP@L5C20-  for i in range(2, n + 1): -> for i in range(1, n + 1):
+CRP@L5C27+  for i in range(2, n + 1): -> for i in range(2, n + 2):
+CRP@L5C27-  for i in range(2, n + 1): -> for i in range(2, n + 0):
+SDL@L3C9    raise ValueError(...)     -> pass
+SDL@L4C5    acc = 1                   -> pass
+SDL@L6C9    acc *= i                  -> pass
+RVR@L2C1    <corpo de fatorial>       -> return 0
+SVR@L5C23   for i in range(2, n + 1): -> for i in range(2, acc + 1):
+SVR@L6C16   acc *= i                  -> acc *= acc
+SVR@L7C12   return acc                -> return n
+```
+
+**Total 17 · ROR 1 · AOR 1 · LCR 0 · UOI 0 · CRP 8 · SDL 3 · RVR 1 · SVR 3.** Como cada número
+sai da regra:
+
+| Operador | Conta | De onde |
+|---|---|---|
+| ROR 1 | `n < 0` → `n <= 0` | única comparação do fonte |
+| **AOR 1** | `n + 1` → `n - 1` | **`acc *= i` é composto e não muta (§5.1)** — é aqui que a versão anterior contava 2 e chegava a 14 |
+| CRP 8 | 4 literais (`0`, `1`, `2`, `1`) × 2 | o `0` do `range(2, n + 0)` é `1-1`, não um literal do fonte |
+| SDL 3 | L3 `raise`, L4 `acc = 1`, L6 `acc *= i` | L1 assinatura, L2 e L5 abrem bloco, L7 é `return` — todos inelegíveis |
+| **RVR 1** | `fatorial` devolve valor | 1 função, 1 mutante |
+| **SVR 3** | L5 `n`→`acc`, L6 `i`→`acc`, L7 `acc`→`n` | L2 tem só `n` ligado (< 2 nomes); `acc` em `acc *= i` é alvo; `i` no `for` é alvo |
+
+**Resultado do kill loop**, com `python3 -B` e remoção de `__pycache__` entre execuções (§4.5):
+
+| Suíte | válidos | mortos | sobreviventes | `score_bruto` | `equivalent_count` | `score` | veredito |
+|---|---|---|---|---|---|---|---|
+| Teste **forte** (5 cenários) | 17 | 16 | 1 | 16/17 = **0,941** | 1 | 16/16 = **1,000** | `approved` |
+| Teste **fraco** (1 cenário) | 17 | 12 | 5 | 12/17 = **0,706** | 1 | 12/16 = **0,750** | `weak` |
+
+Zero mutantes inválidos nos dois casos. O único sobrevivente do teste forte é `CRP@L5C20-`, o
+equivalente; os outros quatro sobreviventes do teste fraco nomeiam cenários que faltam de verdade.
+
+**Por que a contagem antiga (14) estava errada, em uma linha**: ela somava um AOR sobre `*=`
+(operador composto, hoje proibido) e não somava nem RVR nem SVR, que estavam no catálogo e fora da
+distribuição declarada. A aritmética fecha: 14 = 17 − 1 (RVR) − 3 (SVR) + 1 (o `*=` indevido). E
+uma implementação literal do texto antigo chegava a **30**, porque nada dizia que SVR conta por
+ocorrência de leitura e não por **par** de variáveis. Três leituras do mesmo catálogo, três
+denominadores — com o portão de aprovação em 0,90, isso é a diferença entre entregar e reprovar o
+mesmo teste. A §5.1 e a §5.3 fecham as três frestas.
 
 **Mutantes equivalentes** são o custo conhecido de mutation testing e não têm solução automática.
 O tratamento aqui é: sai do denominador, mas **só** com `classification: "equivalent"` e uma
-`justification` escrita, gravadas no `meta.json` e auditáveis pelo usuário. O caso real observado
-— `range(2, n+1)` → `range(1, n+1)` — é um exemplo perfeito: multiplicar o acumulador por 1 antes
-do resto não muda saída nenhuma, para nenhum `n`.
+`justification` escrita, gravadas no `meta.json` e auditáveis pelo usuário — e a classificação
+chega ali pelo protocolo REQUEST/APPLY do §4.6, nunca por um palpite do script. O caso real
+observado — `CRP@L5C20-`, `range(2, n+1)` → `range(1, n+1)` — é um exemplo perfeito: multiplicar o
+acumulador por 1 antes do resto não muda saída nenhuma, para nenhum `n`. `equivalent_count` fica
+gravado ao lado do `score` justamente para que qualquer leitor refaça a conta.
 
 **Extensão**. Novos operadores podem entrar em versões futuras (`operators_version` bumped), o que
 invalida comparação de score entre versões. O `meta.json` grava a versão usada exatamente por
@@ -885,6 +1279,12 @@ desafio, que não redefinem os degraus:
   verificável no manifesto, não é julgamento.
 - `student_progress.hint_level_used` guarda o degrau mais alto já entregue. O tutor lê esse campo
   antes de responder, o que faz a escada sobreviver a trocas de sessão.
+- **A escada tem seis degraus, `0` a `5`** — `0` = nenhuma dica, `5` = solução entregue. Esse
+  intervalo é o mesmo em todo o produto: `student_progress.hint_level_used` no manifesto do
+  desafio e `evidence[].hint_level` em `memory/progress.json` (`docs/04-proficiencia.md` §2 do
+  repositório) são **a mesma escala**, e é por isso que o degrau usado num desafio pode virar
+  evidência de proficiência sem conversão. Um valor acima de 5 em qualquer um dos dois é dado
+  inválido, não "uma dica mais forte".
 - **`.solution/` só é revelada no último degrau, e só quando o aluno pede explicitamente.**
   Revelação marca `solution_revealed: true` e `solution_revealed_at`; o desafio conta como
   ensinado, não como resolvido, para efeito de proficiência.
@@ -906,6 +1306,33 @@ o que cada uma realmente faz:
 | **SHA-256 gravado no manifesto** | **Detecta** que o arquivo mudou | Não diz quem nem por quê; não impede | Baixo — um `sha256sum` por execução |
 | Harness recusa contabilizar "passou" com hash divergente | Eleva o esforço de burlar acima de "editar um assert" | Contornável por quem edite o `meta.json` também | Médio, e cria atrito com o aluno que customiza um desafio de propósito |
 | Ofuscação, telemetria de edição, sandbox adversarial | — | — | Alto, e o "adversário" é a própria pessoa que pediu para aprender |
+
+### 9.1 ⭐ `integrity.test_sha256` aceita `null` — e o hash é sempre do harness
+
+**Regra dura, e ela é de correção, não de conveniência:**
+
+> `integrity.test_sha256` e `integrity.reference_sha256` aceitam **`null`**. São obrigatórios
+> (não-nulos) **apenas** quando `challenge_status` ∈ {`validated`, `solved`}. Enquanto o desafio
+> está em `draft` ou `rejected`, `null` é o valor correto.
+>
+> Quem calcula o hash é **`challenge-verify.sh`**, com `sha256sum`, no passo 7, na aprovação. O
+> tutor **nunca** escreve esse campo.
+
+O motivo é simples e é fatal se ignorado: **uma LLM não computa SHA-256.** Se o schema exigir o
+campo desde a criação do manifesto, o modelo vai preencher com 64 caracteres hexadecimais que
+parecem um hash e não são. A partir daí a detecção de adulteração **mente para sempre**: toda
+execução compara o arquivo real com um hash inventado, diverge, e o aluno recebe o aviso "seu teste
+foi modificado" em cada rodada — inclusive na primeira, sem ter tocado em nada. Em pouco tempo ele
+aprende a ignorar o aviso, e o mecanismo inteiro vira ruído.
+
+Hash ausente é honesto: significa "ainda não há linha de base". Hash inventado é pior que ausente,
+porque afirma uma coisa que não é verdade. Daí a ordem certa: `null` até a aprovação, valor real
+depois dela, calculado por quem sabe calcular.
+
+Consequência operacional: se `integrity.test_sha256` for `null` num desafio `validated`, isso é
+**defeito do harness**, não do aluno — o desafio volta para `draft` e é revalidado. E a política
+`warn` abaixo só entra em ação quando existe hash gravado; com `null`, não há o que conferir e a
+execução segue sem aviso nenhum.
 
 **[DECISÃO — padrão]** `integrity.policy = "warn"`. O harness grava `test_sha256` na aprovação,
 confere antes de cada execução, e quando diverge **avisa e continua**:
@@ -964,20 +1391,27 @@ automaticamente erram, e eu revalido."*
 
 - **Mutation score não é cobertura de bugs reais.** O estudo de replicação arXiv:2607.22880
   questiona a correlação entre score de suítes geradas por LLM e efetividade real. O score aqui
-  é um **piso de sanidade** ("o teste distingue a referência de 14 variações mecânicas dela"),
+  é um **piso de sanidade** ("o teste distingue a referência de 17 variações mecânicas dela"),
   não um certificado.
 - **Mutantes equivalentes não são detectáveis automaticamente.** Tratamento em §5.
 - **`N_REP = 3` não detecta flakiness de concorrência.** §4.2, passo 5.
-- **O piso de sandbox não é isolamento real.** `timeout` + `ulimit` + `cwd` fixo rodam no mesmo
-  kernel; `ulimit -v` é pouco confiável no macOS; isolamento de rede sem privilégio só existe no
-  Linux e depende de user namespaces habilitados. O modelo de ameaça é "aluno resolvendo
+- **O piso de sandbox não é isolamento real.** O piso — `timeout -s KILL -k 5` + `ulimit` + `cwd`
+  fixo — roda no mesmo kernel; `ulimit -v` é pouco confiável no macOS; isolamento de rede sem
+  privilégio só existe no Linux e depende de user namespaces habilitados. E as **variáveis de
+  proxy inválidas do piso são degradação declarada, não isolamento**: são lombada, não muro, não
+  impedem socket bruto nem runtime que as ignore, e o `runner.sh` diz isso em voz alta quando cai
+  nelas. O contrato completo, garantia a garantia, é `docs/11-seguranca-privacidade.md` §2 do
+  repositório — este documento não define sandbox própria. O modelo de ameaça é "aluno resolvendo
   exercício", não "atacante". Docker permanece **opt-in** (`sandbox.mode: docker_strict`) — ver
   **D-C02**.
 - **`timeout` não existe no macOS por padrão.** O runner tenta `timeout` (`coreutils_timeout`)
   → `gtimeout` (`coreutils_gtimeout`, via Homebrew) → `perl -e 'alarm shift; exec @ARGV'`
   (`perl_alarm`) → timeout nativo do harness (`language_runtime`), e grava em
   `sandbox.timeout_source` qual usou. **Nesta máquina [VERIFICADO]**: GNU coreutils 9.11,
-  `timeout 2 <loop infinito>` → **EXIT=124**; `ulimit -t 2` estourado → **EXIT=137**.
+  `timeout -s KILL -k 5 2 <loop infinito>` → **EXIT=137 em 2002 ms**; o fallback `perl -e 'alarm'`
+  → **EXIT=142** (SIGALRM); `ulimit -t 2` estourado → **EXIT=137**. Três fontes de timeout, três
+  códigos diferentes — mais uma razão para o veredito sair do **tempo decorrido** (Regra 1b) e não
+  de uma tabela de exit codes que muda conforme a máquina.
 - **A amostragem de mutantes em linguagens compiladas** (§4.4) reduz a força do passo 4; fica
   registrada, nunca escondida.
 
@@ -990,10 +1424,19 @@ automaticamente erram, e eu revalido."*
 ou Java.
 
 `challenge-verify.sh` deve: implementar os passos 0–7 (§4) na ordem · usar o catálogo fixo de
-mutação v1.0 (§5) · limpar cache de bytecode antes de **cada** execução (§4.5) · extrair a
-contagem de testes pelo `test_count_probe` e exigir igualdade com `expected_test_count` (§3) ·
-ler exit code como `!= 0` e tratar 124 como `timeout` · usar `set -o pipefail` · gravar tudo em
-`meta.json` · **nunca** aprovar por julgamento de modelo.
+mutação v1.0 (§5), com operadores compostos **não** mutáveis e as regras de contagem de RVR/SVR da
+§5.3 · limpar cache de bytecode antes de **cada** execução (§4.5) · extrair a contagem de testes
+pelo `test_count_probe` e exigir igualdade com `expected_test_count` (§3) · ler exit code como
+`!= 0`, **jamais** deduzir timeout de exit code (Regra 1b — é o tempo decorrido que decide) · usar
+`set -o pipefail` · parar no **exit 10** com o pedido `mutation_classification_request` em stdout e
+retomar por `--apply` (§4.6) · gravar `score_bruto`, `score`, `equivalent_count`, `sample_size` e
+`detail` em `meta.json` · calcular ele mesmo os SHA-256 na aprovação, deixando-os `null` até lá
+(§9.1) · **nunca** aprovar por julgamento de modelo.
+
+`runner.sh` (o gerado dentro do desafio) deve: chamar `sandbox_exec` de `lib/sandbox.sh`, e cair no
+**piso declarado em voz alta** quando a lib não estiver ao alcance (§3.3) · sair com **66** se o
+`cd` falhar · decidir `timeout` por tempo decorrido · usar os exit codes 0/1/2/3 da exceção
+nomeada 1 (§3.4).
 
 ---
 
@@ -1003,11 +1446,15 @@ ler exit code como `!= 0` e tratar 124 como `timeout` · usar `set -o pipefail` 
 |----|---------------------|--------|------------------|-----------------|
 | D-C01 | Integridade do teste: o que fazer quando o aluno edita o arquivo de teste? | `off` (ignorar) · `warn` (detectar por SHA-256, avisar e continuar) · `block` (recusar contabilizar como resolvido) | `warn` — o aluno estuda por vontade própria; policiar cobra UX e o "adversário" é quem pediu para aprender | cheap — é um campo do `meta.json` (`integrity.policy`) |
 | D-C02 | Docker no sandbox: exigir, oferecer ou ignorar? | `posix_floor` sempre · `posix_floor` com `docker_strict` opt-in · exigir Docker | `posix_floor` com `docker_strict` opt-in — não bloquear o produto atrás de uma instalação; oferecer o modo forte a quem já tem, e a quem está no macOS e quer as garantias que o Linux dá de graça | moderate — muda `runner.sh` e a detecção de ambiente |
-| D-C03 | Limiar de mutation score para aprovar (`LIMIAR`) | 0,80 (permissivo) · **0,90** · 1,00 (zero sobreviventes não classificados) | 0,90 — com equivalentes fora do denominador; 1,00 gera regeneração infinita em desafios com muitos mutantes equivalentes, e 0,80 deixou passar o teste fraco de 5 cenários faltantes na demonstração da §4.2 | cheap — uma constante |
+| D-C03 | Limiar de mutation score para aprovar (`LIMIAR`) | 0,80 (permissivo) · **0,90** · 1,00 (zero sobreviventes não classificados) | 0,90, aplicado ao `score` **com os equivalentes fora do denominador** (§4.5). 1,00 gera regeneração infinita em desafios com muitos mutantes equivalentes. Com a contagem refeita da §5.4, o teste fraco dá `score = 0,750` e o forte `1,000` — 0,90 separa os dois com folga, e 0,80 também separaria; o que 0,80 não faz é reprovar uma suíte que perdeu **dois** cenários num catálogo de 17 | cheap — uma constante |
 | D-C04 | Property-based testing (Hypothesis/fast-check/proptest) entra? | nunca · opcional só para `advanced` e desafios de propriedade · padrão para matemática | opcional para `advanced` — escrever um bom gerador é habilidade mais avançada que resolver o exercício, e contra-exemplo encolhido confunde iniciante; as invariantes da §6 dão o mesmo poder com `random.Random(seed)` e zero dependência | moderate — exige instalar biblioteca e ensinar a API |
 | D-C05 | Quantos desafios por sessão de estudo? | 1 · 2–3 · ilimitado, o aluno decide | 2–3, com o primeiro calibrado em conceito `fragile` e o último num conceito novo; ilimitado sob pedido explícito | cheap — política do tutor |
 | D-C06 | Quando o aluno pode ver `.solution/`? | nunca · só depois de resolver · a pedido, no último degrau da escada de dicas · a qualquer momento | a pedido, no último degrau, com `solution_revealed` gravado e o desafio contando como ensinado, não resolvido | cheap — regra do tutor + campo já no schema |
 | D-C07 | E se o toolchain da linguagem escolhida não estiver instalado? | abortar · propor a instalação e esperar · **propor a mesma ideia de desafio numa das 6 linguagens que rodam sem instalar nada** · gerar mesmo assim e deixar quebrar | propor a mesma ideia numa linguagem disponível, dizendo o motivo, e oferecer o comando de instalação como alternativa. Nesta máquina rodam sem instalar nada: Python, Node, Rust, Go, C, C++ | cheap — decisão no momento da proposta |
-| D-C08 | Amostragem de mutantes em linguagens compiladas (§4.4) | nunca amostrar (validação lenta) · amostrar acima de 120 s de build total · limitar sempre a k=8 | amostrar acima de 120 s, registrando `sample_size` em `mutation.detail`; um desafio Rust com 30 mutantes × 4 s de build seriam 2 minutos só no passo 4 | cheap — constante + campo |
+| D-C08 | Amostragem de mutantes em linguagens compiladas (§4.4) | nunca amostrar (validação lenta) · amostrar acima de 120 s de build total · limitar sempre a k=8 | amostrar acima de 120 s, gravando `mutation.sample_size` (o número) e `mutation.detail` (o critério, em pt-BR), com a amostra **determinística**: os primeiros `sample_size` da ordem canônica do catálogo, nunca sorteados. Um desafio Rust com 17 mutantes × 4 s de build já passa de 1 minuto só no passo 4 | cheap — constante + campo |
 | D-C09 | Mutantes sobreviventes ficam visíveis no `meta.json` que o aluno pode ler? | sempre visíveis · `before`/`after` omitidos quando revelarem a solução · manifesto inteiro oculto | omitir `before`/`after` quando revelador, mantendo o score visível — transparência sobre a qualidade do teste sem entregar a resposta | cheap — regra na escrita do manifesto |
 | D-C10 | Limite de tentativas de regeneração antes de desistir do desafio | 1 · **3** · 5 · sem limite | 3 — TestGen-LLM mostra aproveitamento de 1:20 em produção; insistir além disso custa tempo do aluno esperando, e propor outro desafio do mesmo conceito é mais barato que consertar um ruim | cheap — constante |
+| D-C14 | **RESOLVIDA (AR-00)** — como um script de shell obtém do modelo um julgamento que ele não pode computar? | script "pergunta" ao modelo (impossível) · script chuta · **REQUEST/APPLY: pedido em stdout + exit 10, resposta por `--apply`** | **REQUEST/APPLY (§4.6)**, com validação da resposta contra schema antes de qualquer escrita. Hoje o único ponto assim é a classificação de sobreviventes do passo 4.4 | — decidida |
+| D-C15 | **RESOLVIDA (AR-26)** — operadores compostos (`*=`, `+=`) são mutáveis? quantos mutantes RVR e SVR produzem? | compostos mutáveis (dá 14) · compostos mutáveis + SVR por par (dá 30) · **compostos não mutáveis + RVR 1/função + SVR 1/ocorrência** | **compostos NÃO são mutáveis (§5.1); RVR = 1 por função que devolve valor; SVR = 1 por ocorrência de leitura elegível (§5.3)**. Contagem de referência refeita executando: **17 mutantes** (§5.4) | — decidida; mexer nisso muda `operators_version` e invalida comparação de score |
+| D-C16 | **RESOLVIDA (AR-19)** — `integrity.test_sha256` é obrigatório desde a criação do manifesto? | obrigatório sempre · **aceita `null` até a aprovação** · campo removido | **aceita `null`; obrigatório apenas com `challenge_status` ∈ {`validated`, `solved`}, e sempre calculado pelo harness** (§9.1). Uma LLM não computa SHA-256, e hash inventado faz a detecção de adulteração mentir para sempre | — decidida |
+| D-C17 | **RESOLVIDA (AR-12)** — como o harness detecta timeout? | `exit == 124` · **comparar tempo decorrido com `T_MAX`** · confiar no 137 | **tempo decorrido** (Regra 1b). Com `timeout -s KILL -k 5` o código é 137, nunca 124; e `timeout` simples dentro da pilha real **trava** em vez de matar — verificado nesta máquina | — decidida |

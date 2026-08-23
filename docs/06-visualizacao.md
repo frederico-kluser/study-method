@@ -127,6 +127,44 @@ a resolução de ASCII puro no mesmo espaço. Sem dependência: é aritmética d
 sobre `chr(0x2800 + máscara)`. Eixos rotulados nos extremos e legenda com um marcador
 ASCII por série.
 
+#### O layout de bits da célula — **[VERIFICADO por execução]**
+
+Sem esta tabela o fallback sai errado, e erra de um jeito difícil de perceber: a numeração
+histórica dos pontos do braille **não** é a ordem de leitura da grade. Os pontos 7 e 8 foram
+acrescentados depois (braille de 8 pontos) e por isso ocupam os **bits mais altos**, apesar de
+ficarem na **última linha** da célula. Quem assumir "linha 3 = bits 6 e 7 na ordem natural" acerta
+por acidente na coluna 0 e erra na coluna 1.
+
+A célula tem 4 linhas × 2 colunas. `linha 0` é a de cima, `coluna 0` é a da esquerda:
+
+| | coluna 0 | coluna 1 |
+|---|---|---|
+| **linha 0** | ponto 1 — `0x01` | ponto 4 — `0x08` |
+| **linha 1** | ponto 2 — `0x02` | ponto 5 — `0x10` |
+| **linha 2** | ponto 3 — `0x04` | ponto 6 — `0x20` |
+| **linha 3** | ponto 7 — **`0x40`** | ponto 8 — **`0x80`** |
+
+```python
+BIT = {(0,0): 0x01, (1,0): 0x02, (2,0): 0x04, (3,0): 0x40,
+       (0,1): 0x08, (1,1): 0x10, (2,1): 0x20, (3,1): 0x80}
+celula = chr(0x2800 + soma_dos_bits_acesos)
+```
+
+Confirmado nome a nome contra o próprio Unicode: `chr(0x2800 + 0x40)` é
+`U+2840 BRAILLE PATTERN DOTS-7` e `chr(0x2800 + 0x80)` é `U+2880 BRAILLE PATTERN DOTS-8`.
+Máscara `0x00` é `U+2800 BRAILLE PATTERN BLANK` — e ele **não é um espaço**: tem largura de
+caractere e mantém as colunas alinhadas. Preencher o fundo com `" "` em vez de `U+2800`
+desalinha a figura em fonte proporcional. Máscara `0xFF` é `⣿`.
+
+Amostra gerada com esse mapa, 20×4 células (uma reta):
+
+```
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣀⠤⠒⠊⠉
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⡠⠤⠒⠊⠁⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⣀⡠⠤⠒⠉⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+⡠⠔⠒⠉⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+```
+
 *Cobre a falha*: "o aluno está em SSH puro, ou não vai sair do terminal, ou quer a
 forma da curva agora, dentro da conversa, sem abrir arquivo".
 
@@ -199,7 +237,7 @@ render-plot.py [--spec CAMINHO|-] [--out-dir DIR] [--basename NOME]
 | Flag | Default | Significado |
 |---|---|---|
 | `--spec` | `-` | caminho do JSON de entrada; `-` lê de stdin |
-| `--out-dir` | `.` | diretório de saída (criado se não existir) |
+| `--out-dir` | `.` | diretório de saída (criado se não existir). Na skill é **sempre** `researchs/assets/<NNNN>-<slug>/` do setup — ver §4.7 |
 | `--basename` | `plot` | prefixo dos arquivos: `<basename>.svg`, `.html`, `.txt`, `.md`, `.png` |
 | `--width` / `--height` | `760` / `460` | dimensões do SVG em px |
 | `--ascii-width` / `--ascii-height` | `72` / `18` | células de texto do fallback braille |
@@ -214,6 +252,7 @@ JSON.** Isso mantém uma superfície de CLI estável e um só caminho de valida�
 
 Chaves em **inglês snake_case** (regra do projeto). pt-BR só nos *valores* de texto
 livre (`title`, `label`, `x_label`, `y_label`, `takeaway`, `caption`, `categories`).
+Exemplo de `type: "function"`; a lista completa das chaves vem logo abaixo.
 
 ```json
 {
@@ -225,7 +264,6 @@ livre (`title`, `label`, `x_label`, `y_label`, `takeaway`, `caption`, `categorie
   "caption": "legenda curta sob a figura (opcional)",
   "x_limits": [-6.283, 6.283],
   "y_limits": [-1.2, 1.2],
-  "categories": ["bubble", "merge"],
   "force_legend": false,
   "series": [
     { "label": "sen(x)", "expr": "sin(x)", "domain": [-6.283, 6.283], "samples": 300 },
@@ -234,6 +272,75 @@ livre (`title`, `label`, `x_label`, `y_label`, `takeaway`, `caption`, `categorie
   ]
 }
 ```
+
+#### ⭐ As chaves do `spec`, uma a uma — obrigatórias, opcionais e condicionais
+
+Existe um exit code chamado `spec_missing_key`; sem esta tabela ninguém sabe **quais** chaves ele
+cobra. Esta é a lista fechada: chave fora dela é **ignorada em silêncio** (para não quebrar spec
+que veio de uma versão futura), e chave ausente da coluna "obrigatória" é `spec_missing_key`.
+
+| Chave | Obrigatória? | Tipo | Semântica |
+|---|---|---|---|
+| `type` | **sim** | `"function"\|"line"\|"scatter"\|"bar"` | Valor fora do enum ⇒ `spec_missing_key` |
+| `title` | **sim** | string pt-BR | Título da figura. String vazia ⇒ `spec_missing_key`: "Gráfico 1" não é título |
+| `x_label` | **sim** | string pt-BR | Rótulo do eixo X, **com unidade** (§5) |
+| `y_label` | **sim** | string pt-BR | Rótulo do eixo Y, **com unidade** (§5) |
+| `series` | **sim** | array, ≥1 item | Vazio ⇒ `series_invalid` (exit 2), não `spec_missing_key` — a spec estava bem-formada, os dados é que não |
+| `takeaway` | não | string pt-BR | A frase de leitura pedagógica. Vai para o fim da descrição (d) |
+| `caption` | não | string pt-BR | Legenda curta sob a figura |
+| `x_limits` / `y_limits` | não | `[min, max]` | Limites forçados. Ausentes ⇒ calculados dos dados com padding |
+| **`categories`** | **sim se `type == "bar"`**; proibida nos outros | array de strings pt-BR, ≥1 | Os rótulos do eixo X do gráfico de barras, **na ordem em que aparecem**. Presente com `type != "bar"` ⇒ ignorada |
+| **`force_legend`** | não | booleano, default `false` | Ver abaixo |
+| `series[].label` | **sim** | string pt-BR | Nome da série na legenda e na descrição (d) |
+| `series[].expr` + `domain` (+ `samples`) | condicional | string + `[a,b]` + int | Forma 1 de dados. Proibida em `bar` |
+| `series[].points` | condicional | `[[x,y], ...]` | Forma 2. Proibida em `bar` |
+| `series[].x` + `series[].y` | condicional | dois arrays | Forma 3. Em `bar`, **só `y`** (ver abaixo) |
+
+Uma série sem nenhuma das três formas de dados é `series_invalid` (exit 2).
+
+#### `bar`: o que "agrupado por categoria" quer dizer
+
+O eixo X de um `bar` é **categórico, não numérico** — é por isso que ele precisa de `categories` e
+não de `x`. A semântica é:
+
+- **Um grupo por categoria**, na ordem de `categories[]`, igualmente espaçados.
+- **Uma barra por série dentro de cada grupo**, lado a lado, na ordem de `series[]`, cada série com
+  a sua cor do Okabe-Ito (§6). Com uma série só, o "grupo" tem uma barra e o resultado é o gráfico
+  de barras simples.
+- Cada série carrega **`y`**, um array de números **paralelo a `categories`**:
+  `len(series[i].y) == len(categories)` para toda série. Divergência de comprimento é
+  `series_invalid` (exit 2) — não se preenche buraco com zero, porque zero é um valor e ausência
+  não é.
+- `y` pode conter `null` para "não medido nesta categoria": a barra é **omitida** (não desenhada
+  como zero) e um `warning` registra a omissão.
+- **Ancorado em zero, sempre** (§5), com padding só no topo.
+
+```json
+{
+  "type": "bar",
+  "title": "comparações por algoritmo, entrada de 1000 elementos",
+  "x_label": "algoritmo",
+  "y_label": "comparações (contagem)",
+  "categories": ["bubble", "merge", "quick"],
+  "series": [
+    { "label": "melhor caso", "y": [999, 8987, 8987] },
+    { "label": "pior caso",   "y": [499500, 8987, 499500] }
+  ]
+}
+```
+
+Isso desenha três grupos (`bubble`, `merge`, `quick`), dois retângulos em cada — a comparação que
+a aula quer é *dentro* do grupo, e é por isso que as barras ficam encostadas.
+
+#### `force_legend`
+
+A legenda é desenhada automaticamente quando há **2 ou mais séries**. `force_legend: true` manda
+desenhá-la também com **uma** série — útil quando o `label` carrega informação que o título não
+carrega ("medido em Python 3.14", "n = 1000").
+
+`force_legend: false` (o default) **não esconde** legenda: com 2+ séries ela sai de qualquer jeito.
+Não existe forma de suprimi-la, e isso é deliberado — sem legenda, a distinção entre séries fica
+só na cor, que é exatamente a regra que a §6 proíbe.
 
 **Três formas de passar dados numa série, mutuamente exclusivas, nesta precedência:**
 
@@ -259,7 +366,7 @@ colado pelo aluno sem o tutor ter lido. Registrado como limitação conhecida.
 | `function` | amostra `expr` (ou usa `points`) e liga por polilinha; quebra em `null`; recorta na moldura | y=f(x), derivada numérica, série de Taylor vs. função |
 | `line` | idem, mas sem amostragem automática — série já discreta ligada em ordem | convergência por iteração, erro por época |
 | `scatter` | um marcador por ponto, sem ligação | tempo medido vs. n, pares de dados, dispersão |
-| `bar` | barras verticais agrupadas por categoria, **ancoradas em zero** | comparar contagem de operações entre algoritmos |
+| `bar` | barras verticais **agrupadas por categoria** (exige `categories`; uma barra por série dentro de cada grupo — §4.2), **ancoradas em zero** | comparar contagem de operações entre algoritmos |
 
 Em `function` e `line`, cada série ganha **marcadores esparsos** (≈8 ao longo da curva)
 além da linha — canal redundante à cor (§5).
@@ -292,14 +399,24 @@ qual o modelo "vê" o gráfico:
 Em erro, o stdout é `{"ok": false, "error": "<código>: <detalhe>"}` e nenhum arquivo é
 gravado.
 
-**Exit codes** (regra `!= 0`, nunca `== 1` — coerente com `languages.md`):
+**Exit codes** (regra `!= 0`, nunca `== 1`). Esta é a **exceção nomeada 2** da tabela de códigos
+de saída do produto (`docs/05-challenges-tdd.md` §3.4 do repositório): `render-plot.py` usa
+**0/1/2/3**, e não a faixa `0/1/2/3/4/5/10` dos `SK/scripts/*.sh`. O motivo é que os quatro
+valores aqui descrevem **o gráfico**, não a skill — e a distinção "spec inválida" × "dados
+inválidos" é a que decide se o tutor corrige o JSON ou vai investigar o programa do aluno. Nenhum
+outro script tem exceção.
 
 | Código | Significado | `error` |
 |---|---|---|
 | `0` | sucesso (pode ter `warnings`) | — |
-| `1` | spec inválida: JSON malformado, chave obrigatória ausente | `spec_json_invalid`, `spec_missing_key` |
-| `2` | dados inválidos: `series` vazia, série sem `points`/`x`,`y`/`expr`, nenhum ponto finito | `series_invalid`, `no_valid_data` |
+| `1` | spec inválida: JSON malformado, chave obrigatória ausente ou `type` fora do enum (a lista fechada está em §4.2) | `spec_json_invalid`, `spec_missing_key` |
+| `2` | dados inválidos: `series` vazia, série sem `points`/`x`,`y`/`expr`, `len(series.y) != len(categories)` num `bar`, nenhum ponto finito | `series_invalid`, `no_valid_data` |
 | `3` | falha de escrita: `--out-dir` sem permissão, disco cheio | `write_failed` |
+
+A fronteira entre `1` e `2` é: **`1` é problema de forma** (a spec está errada como documento);
+**`2` é problema de conteúdo** (a spec está bem-formada e os dados não sustentam um gráfico). É
+essa fronteira que diz ao tutor se ele corrige o JSON que escreveu ou se vai olhar o programa do
+aluno que produziu os números.
 
 Falha de PNG **não** é erro: vira `warning` (`png_skipped: nem rsvg-convert nem
 ImageMagick no PATH`) com exit 0. O SVG já entregou o resultado.
@@ -341,6 +458,30 @@ O que este renderizador **não** faz, e não deve fingir que faz:
 | 3D, superfície, campo vetorial | projeção 3D à mão é muito código para o retorno | upgrade para matplotlib |
 | animação | ver §7 | sequência de PNGs numerados |
 | layout automático de grafo | é o problema difícil que o Graphviz resolve | ver §6 |
+
+### 4.7 Onde os arquivos são gravados
+
+**O diretório de saída é `researchs/assets/<NNNN>-<slug>/`**, dentro do setup do aluno, onde
+`<NNNN>-<slug>` é o research a que a figura pertence (`researchs/<NNNN>-<slug>.md`).
+
+Isso corrige um engano que estava neste documento e nas duas references: `<sessão>/viz/` **não
+existe**. Uma sessão é `memory/NNNN.json`, um **arquivo**, não um diretório — não há onde criar
+`viz/` dentro dele. Os quatro artefatos de uma figura (`.svg`, `.html`, `.txt`, `.md`, mais o
+`.png` opcional) precisam de um diretório de verdade.
+
+Três consequências de projeto:
+
+- **A figura acompanha o material destilado, não o desafio.** `researchs/` é onde mora o conteúdo
+  que sobrevive à sessão (`docs/01-arquitetura.md` §2.3 do repositório); a figura que explica uma
+  curva é exatamente isso. Um desafio pode ser refeito ou descartado sem levar a figura junto.
+- **Um subdiretório por research**, não um `assets/` plano. Uma aula com seis passos gera
+  `passo-01.svg` … `passo-06.svg`; num diretório compartilhado esses nomes colidem na primeira
+  repetição.
+- **Nunca `/tmp`.** O aluno vai querer reabrir a figura depois, e `/tmp` some no reboot.
+
+Quando a figura não pertence a nenhum research — um gráfico feito ao vivo para responder uma
+dúvida —, o tutor cria o research primeiro (é uma linha em `researchs/`) e a figura entra nele. A
+alternativa, um diretório solto, produz arquivos órfãos que ninguém volta a abrir.
 
 ---
 
@@ -557,8 +698,10 @@ continuam obrigatórias — matplotlib gera (a) melhor, mas (b), (c) e (d) conti
 responsabilidade da skill, e (d) especialmente: matplotlib não descreve a própria
 figura, e o modelo continua sem enxergá-la.
 
-O estado do venv fica registrado no `meta.json` do setup para não reperguntar toda
-sessão.
+O estado do venv fica registrado no **`setup.json`** — o manifesto do setup, na raiz dele. Não
+existe `meta.json` de setup: `meta.json` é o manifesto de **um desafio**, dentro de
+`challenges/<NNNN>-<slug>/`. Gravar estado de setup num arquivo que só existe por desafio
+significa reperguntar a cada desafio novo, que é o oposto do que se quer aqui.
 
 ---
 
@@ -593,6 +736,8 @@ Regra de comunicação: o tutor pode dizer "posso gerar isso se você instalar X
 | D7 | Barra ancora em zero; truncamento sempre declarado | honestidade visual não é negociável |
 | D8 | Bibliotecas são upgrade oferecido, nunca pré-requisito | PEP 668 não bloqueia a aula |
 | D9 | Animação e layout de grafo ficam fora do prometido | nada de promessa que vira instalação de 1 GB |
+| D10 | Saída em `researchs/assets/<NNNN>-<slug>/`, nunca `<sessão>/viz/` nem `/tmp` | a figura acompanha o material destilado e sobrevive ao desafio (§4.7) |
+| D11 | O `spec` tem lista fechada de chaves; `bar` exige `categories` | `spec_missing_key` passa a cobrar algo nomeável, e agrupamento de barra deixa de ser suposição (§4.2) |
 
 ---
 
@@ -600,10 +745,13 @@ Regra de comunicação: o tutor pode dizer "posso gerar isso se você instalar X
 
 | ID | Pergunta ao usuário | Opções | Default sugerido | Reversibilidade |
 |----|---------------------|--------|------------------|-----------------|
-| D-V01 | Quando um gráfico exigir mais do que o renderizador stdlib entrega, a skill deve oferecer criar um venv com matplotlib, ou ficar em stdlib puro e avisar a limitação? | (a) oferecer o venv na hora, uma vez, e lembrar a resposta no `meta.json`; (b) nunca oferecer — só declarar a limitação; (c) criar o venv sozinha no primeiro setup, sem perguntar | **(a)** — oferece com custo explícito, aula continua se recusar; (c) viola "não instalar sem consentimento" | cheap (apagar o diretório do venv) |
-| D-V02 | Depois de gerar o HTML, a skill deve abri-lo automaticamente (`xdg-open`) ou só informar o caminho? | (a) só informar o caminho; (b) abrir automático sempre; (c) abrir na primeira vez da sessão e depois só informar | **(a)** — abrir janela sem pedir é intrusivo em SSH/tmux e pode travar em ambiente sem GUI | cheap (uma flag no `meta.json`) |
+| D-V01 | Quando um gráfico exigir mais do que o renderizador stdlib entrega, a skill deve oferecer criar um venv com matplotlib, ou ficar em stdlib puro e avisar a limitação? | (a) oferecer o venv na hora, uma vez, e lembrar a resposta no `setup.json`; (b) nunca oferecer — só declarar a limitação; (c) criar o venv sozinha no primeiro setup, sem perguntar | **(a)** — oferece com custo explícito, aula continua se recusar; (c) viola "não instalar sem consentimento". A resposta fica no **`setup.json`** (manifesto do setup), não num `meta.json` — este é o manifesto de um desafio | cheap (apagar o diretório do venv) |
+| D-V02 | Depois de gerar o HTML, a skill deve abri-lo automaticamente (`xdg-open`) ou só informar o caminho? | (a) só informar o caminho; (b) abrir automático sempre; (c) abrir na primeira vez da sessão e depois só informar | **(a)** — abrir janela sem pedir é intrusivo em SSH/tmux e pode travar em ambiente sem GUI | cheap (uma flag no `setup.json`) |
 | D-V03 | O fallback ASCII/braille deve ser impresso no chat sempre que um gráfico é gerado, ou só quando o aluno pedir / não houver GUI? | (a) sempre inline; (b) só sob demanda ("mostra no terminal"); (c) automático só quando `$DISPLAY`/GUI ausente ou o gráfico tem 1 série e ≤50 pontos | **(c)** — dá feedback imediato onde é legível e não polui o chat com mancha braille | cheap |
 | D-V04 | A escolha da linguagem da aula é do **setup** (uma para todo o estudo) ou da **sessão** (pode mudar a cada aula)? | (a) por setup, com override explícito por sessão; (b) por sessão, sempre perguntada; (c) por assunto (matemática numa, programação noutra) | **(a)** — consistência ajuda o aluno a acumular fluência; override cobre o caso de querer variar | moderate (desafios já gerados ficam na linguagem antiga) |
 | D-V05 | Quando a linguagem escolhida pelo aluno **não está instalada**, o que a skill faz? | (a) oferecer instalar e mostrar o comando exato da distro, sem executar; (b) sugerir a linguagem instalada mais próxima e seguir; (c) tentar mesmo assim e falhar; (d) bloquear até instalar | **(a)+(b) combinados** — mostra o comando de instalação E oferece continuar hoje numa linguagem instalada; nunca (c), que produz erro sem diagnóstico | cheap (só decide o que roda hoje) |
 | D-V06 | O renderizador deve aceitar `expr` (string avaliada com `eval` restrito) ou exigir que o chamador calcule todos os pontos? | (a) aceitar `expr` com namespace restrito a `math`; (b) só `points`/`x`,`y`; (c) aceitar `expr` mas só quando vier do tutor, nunca de texto colado pelo aluno | **(c)** — `expr` economiza muito token para y=f(x); a restrição de origem é a mitigação honesta | cheap (remover o ramo do código) |
 | D-V07 | PNG deve ser gerado sempre (quando há rasterizador) ou só sob pedido (`--png`)? | (a) só com `--png`; (b) sempre que `rsvg-convert`/`magick` existir; (c) sempre, e falhar se não houver rasterizador | **(a)** — SVG+HTML já cobrem; PNG é para quando o aluno vai colar a imagem em outro lugar | cheap |
+| D-V11 | **RESOLVIDA (AR-23)** — onde fica o estado de setup (venv aceito, linguagem confirmada)? | `meta.json` do setup (**não existe**) · **`setup.json`** · registry global | **`setup.json`**, o manifesto na raiz do setup. `meta.json` é o manifesto de **um desafio**, em `challenges/<NNNN>-<slug>/`; gravar estado de setup ali significa reperguntar a cada desafio | — decidida |
+| D-V12 | **RESOLVIDA (§4.7)** — diretório de saída dos gráficos | `<sessão>/viz/` (**impossível**: sessão é um arquivo JSON) · **`researchs/assets/<NNNN>-<slug>/`** · `/tmp` | **`researchs/assets/<NNNN>-<slug>/`** (§4.7). A figura pertence ao material destilado, sobrevive ao desafio, e precisa de um diretório de verdade para caber nos quatro artefatos | cheap (mover arquivos) |
+| D-V13 | **RESOLVIDA** — chaves obrigatórias do `spec` e semântica de `categories`/`force_legend` | indefinidas (o exit `spec_missing_key` não cobrava nada) · **lista fechada na §4.2** | **lista fechada** (§4.2): obrigatórias `type`, `title`, `x_label`, `y_label`, `series`; `categories` obrigatória e exclusiva de `bar`; `force_legend` só **força** a legenda com uma série, nunca a esconde | cheap |

@@ -18,7 +18,32 @@ Três separações que valem para todo o resto do documento:
 | **Estado de proficiência** (este documento) | `memory/progress.json` | *Onde o aluno está agora*, e **qual evidência** sustenta isso |
 | Banco de analogias | artefato separado | *O que já funcionou* para explicar |
 
-O estado de proficiência é **derivado** dos eventos episódicos, mas é consultável diretamente — o tutor não relê 40 sessões para descobrir se pode pular o worked example.
+O estado de proficiência é **alimentado** pelos eventos da sessão, e é consultável diretamente — o tutor não relê 40 sessões para descobrir se pode pular o worked example.
+
+### 0.1 ⭐ `progress.json` NÃO é reconstruível a partir das sessões
+
+Essa frase parece um detalhe de implementação e é uma regra de sobrevivência do dado. Apagar
+`memory/progress.json` achando que ele se refaz a partir dos `memory/NNNN.json` **perde
+informação para sempre**, porque três campos que a máquina de estados exige nunca existiram no
+registro de sessão:
+
+| Campo exigido aqui | Existe em `memory/NNNN.json`? | Por que não dá para inferir depois |
+|---|---|---|
+| `evidence[].error_type` | **não** | É a classificação de §6, feita pelo tutor **no momento** em que ele vê o aluno errar, perguntando "por que você fez assim?". Reconstruir isso meses depois é adivinhar |
+| `evidence[].hint_level` | **não** | É o degrau da escada entregue **naquele turno**. A sessão registra que houve ajuda, não em que degrau |
+| `evidence[].transition_rule` | **não** | É calculado (`T1`..`T8`) contra o estado que existia **antes** do evento. Sem a sequência de estados, a regra que disparou não é recuperável |
+
+Portanto:
+
+- **`memory/progress.json` é dado primário, não cache.** Ele entra no backup e na purga como
+  qualquer outro arquivo de `memory/`, e não há um "reconstruir a partir das sessões".
+- **`evidence[]` é a fonte de verdade *dentro* do arquivo.** O que é recomputável é a camada
+  escalar — `attempts`, `unassisted_passes`, `max_hint_level_used`, `last_error_type`,
+  `observed_at`, `confidence`, `interval_days`, `next_review_at`, `proficiency_state` — a partir
+  do array. É isso, e só isso, que o modo `--recompute` faz (§9).
+- **Perder o arquivo é perder a proficiência.** O tutor não finge que reconstruiu: ele volta todo
+  conceito para `unknown` / `no_evidence` e diz ao aluno que perdeu o registro. Mentir sobre a
+  origem do estado é pior que admitir a perda.
 
 E o que ele **não** é: não é uma nota, não é um percentual, não é uma probabilidade bayesiana. BKT (`docs/research/03-pedagogia.md` §6.1 no repositório) precisa estimar quatro parâmetros por habilidade — P(L0), P(T), P(guess), P(slip) — a partir de dados de população. Um único aluno gera **dezenas** de observações por conceito, não os milhares que calibram esses parâmetros. Implementar "BKT" com esses dados produziria um número com aparência de ciência e conteúdo de chute. A alternativa honesta, e a que este documento especifica, é um **estado discreto com regras explícitas, ancoradas em evento observável e auditáveis pelo próprio aluno**.
 
@@ -46,6 +71,31 @@ Régua de sanidade: um módulo da trilha deve gerar entre **3 e 7** conceitos. M
 4. **`concept_id` é imutável.** Renomear acontece só em `label`. Reescrever um id quebra toda a evidência histórica que aponta para ele.
 5. **Fusão de duplicatas é bitemporal, não destrutiva.** Detectada a duplicata, a evidência do duplicado é copiada para o sobrevivente, o duplicado recebe `status: superseded` + `superseded_by`, e o sobrevivente registra `supersedes: [...]`. Nada é deletado — é assim que se audita por que o histórico mudou (`docs/research/02-memoria-llm.md` §5 no repositório).
 6. **Exceção controlada — pré-requisito descoberto.** O tutor **pode** criar um conceito fora da trilha quando um erro revela um pré-requisito não previsto (o aluno erra álgebra dentro de um desafio de derivada). Nesse caso `track_ref: null`, e o conceito entra na fila de estudo, não na de revisão. Essa é a **única** criação ad hoc permitida.
+
+### 1.3 Os três identificadores que este arquivo usa (normativo)
+
+Um identificador com dois formatos em dois documentos é um bug garantido no dia em que alguém
+cruzar os dois arquivos. Estes são os formatos, e valem em todo o produto — schema, exemplo,
+prosa e script:
+
+| Campo | Formato | Regex | Exemplo | Onde é a fonte |
+|---|---|---|---|---|
+| `setup_id` | 12 dígitos hexadecimais minúsculos, sorteados na criação | `^[0-9a-f]{12}$` | `7b3e9a1c4f20` | `setup.json` na raiz do setup |
+| `concept_id` | `snake_case`, ASCII sem acento | `^[a-z][a-z0-9_]{1,62}$` | `inducao_matematica` | derivado do rótulo canônico da trilha (§1.2) |
+| `challenge_id` | 4 dígitos com zero à esquerda | `^[0-9]{4}$` | `0031` | o mesmo número que prefixa `challenges/<NNNN>-<slug>/` |
+
+Três armadilhas que essa tabela fecha:
+
+- **`setup_id` não é o nome do diretório.** Ele é sorteado, imutável, e sobrevive a mover,
+  renomear e reinstalar o setup. Um `setup_id` legível como `algoritmos_discreta` parece amigável
+  e quebra no dia em que a pessoa renomeia a pasta — a identidade passaria a depender do caminho,
+  que é justamente o que ela não pode fazer.
+- **`challenge_id` é só o número.** O slug vive no nome do diretório e no `slug` do manifesto do
+  desafio, nunca dentro do id. `"c-0031-fatorial"` embute três coisas num campo só, e o dia em que
+  o slug for corrigido, toda evidência histórica passa a apontar para um id que não existe mais.
+- **Identificador de conceito é `snake_case` em todo o sistema** — não `kebab-case`, não com
+  acento, não com maiúscula. `track_ref` é a única exceção próxima e não é um id: é um ponteiro
+  para a trilha (`modulo-02#recursao`), no formato do documento de trilha, não deste arquivo.
 
 ---
 
@@ -113,6 +163,22 @@ E `hint_level = null` **não** é 0. Um `challenge` com `result = passed` e `hin
 
 Um `challenge` com `result: not_attempted` **não é classificado em classe nenhuma**: o aluno não tentou, e não tentar não é evidência de falha. Ele grava evidência, atualiza `last_observed_at` e **não** muda estado nem `interval_days` — mesmo tratamento de `review_declined`.
 
+#### ⭐ De onde vem `result`: o mapeamento normalizador
+
+`evidence[].result` tem **três** valores (`passed`, `failed`, `not_attempted`). O manifesto do desafio, de onde o evento nasce, tem **cinco** (`student_progress.last_result` ∈ `not_run`, `passed`, `failed`, `timeout`, `error`). A conversão é obrigatória e acontece **antes** da classificação, no passo 0 da §3.5:
+
+| `student_progress.last_result` | → `evidence[].result` | Por quê |
+|---|---|---|
+| `passed` | `passed` | — |
+| `failed` | `failed` | — |
+| **`timeout`** | **`failed`** | O código do aluno não terminou. É falha de resolução, com um diagnóstico diferente para a conversa — mas nunca evidência de autonomia |
+| **`error`** | **`failed`** | O código não rodou. Idem |
+| `not_run` | `not_attempted` | Proposto e não tentado |
+
+**Este mapeamento existe por causa de um defeito real, e vale a pena nomeá-lo** para que ninguém o reintroduza. Sem ele, um `last_result: "timeout"` chega à classificação e não casa nem com `result = failed` (classe C) nem com `result = passed` (classe A) — cai no "caso contrário" e vira **classe B**. Consequência: um aluno cujo código entrou em laço infinito é **promovido** de `unknown` para `fragile` pela T1, com `state_reason: passed_with_hints`. O sistema passa a afirmar que há evidência de sucesso onde houve um travamento. O mesmo vale para `error`.
+
+**Regra dura**: `evidence[].result` só aceita os três valores do enum. Um evento que chegue a `progress-update.sh` com qualquer outro valor é **rejeitado** (exit 5, `validação falhou`), nunca normalizado por adivinhação e nunca deixado cair no ramo `B`.
+
 Um evento com `error_type: prerequisite` **não é classificado no conceito alvo**: no alvo ele é gravado como `kind: exposure` (que nunca muda estado) e a evidência penalizante vai inteira para o conceito do pré-requisito, onde é classificada normalmente (§6.4).
 
 ### 3.3 As transições
@@ -153,6 +219,10 @@ Nota de honestidade: `decay_overdue_ratio` **não é um achado empírico**. A cu
 `progress-update.sh` processa **um evento por vez**, na ordem cronológica de `observed_at`, e aplica exatamente esta sequência:
 
 ```
+0. NORMALIZA o evento (§3.2): last_result -> result, pela tabela de mapeamento.
+       passed -> passed | failed|timeout|error -> failed | not_run -> not_attempted
+   valor fora do enum de result, kind ou error_type => REJEITA o evento (exit 5). Nunca
+   assume um default; um evento malformado não vira classe B por omissão.
 1. resolve concept_id  (busca em concept_id + aliases[]; cria só se for pré-requisito novo)
 2. state_before := proficiency_state atual
 3. se kind ∈ {exposure, review_declined}:
@@ -169,7 +239,10 @@ Nota de honestidade: `decay_overdue_ratio` **não é um achado empírico**. A cu
                                      repete o passo 1 no concept_id de attributed_to ; FIM
        classe := C se (result = failed ou hint_level >= 4 ou error_type = conceptual)
                  A se (result = passed e hint_level ∈ {0,1} e error_type ∈ {none, slip})
-                 B caso contrário   (inclui result = passed com hint_level ∈ {2,3} ou null)
+                 B se (result = passed)          <- e só aqui; o passo 0 garante que
+                                                    result já é um dos três do enum
+       (nenhum outro valor alcança este ponto: not_attempted saiu acima, e qualquer
+        valor fora do enum foi rejeitado no passo 0. Não existe ramo "caso contrário".)
        conforme state_before:
          mastered : classe B|C → T3 → fragile        | classe A → T7 (segue mastered)
          fragile  : classe A   → T5 se aplicável, senão T2 se aplicável, senão T7
@@ -371,7 +444,7 @@ O *expertise reversal effect* (`docs/research/03-pedagogia.md` §3.3 no reposit�
 
 ## 8. Exemplo preenchido de verdade
 
-Setup real: trilha *Algoritmos e Matemática Discreta com Python* (`setup_id: algoritmos_discreta`), consultado em **2026-08-23**. Quatro conceitos em quatro situações distintas:
+Setup real: trilha *Algoritmos e Matemática Discreta com Python* (`setup_id: 7b3e9a1c4f20`), consultado em **2026-08-23**. Quatro conceitos em quatro situações distintas:
 
 - `recursao` — **`mastered`**, com um ciclo completo: promoção por T2, rebaixamento por decaimento (T4) e **restauração por T5** com uma única passagem;
 - `complexidade_assintotica` — **`fragile`** e **vencido** (é o candidato número 1 da próxima abertura de sessão);
@@ -383,7 +456,7 @@ Setup real: trilha *Algoritmos e Matemática Discreta com Python* (`setup_id: al
 ```json
 {
   "schema_version": "1.0",
-  "setup_id": "algoritmos_discreta",
+  "setup_id": "7b3e9a1c4f20",
   "declared_skill_level": "intermediate",
   "recorded_at": "2026-08-23T09:14:00-03:00",
   "policy": {
@@ -427,7 +500,7 @@ Setup real: trilha *Algoritmos e Matemática Discreta com Python* (`setup_id: al
         {
           "kind": "challenge",
           "session_id": "0031",
-          "challenge_id": "c-0031-fatorial",
+          "challenge_id": "0031",
           "observed_at": "2026-06-12",
           "recorded_at": "2026-06-12T21:05:00-03:00",
           "result": "passed",
@@ -443,7 +516,7 @@ Setup real: trilha *Algoritmos e Matemática Discreta com Python* (`setup_id: al
         {
           "kind": "challenge",
           "session_id": "0038",
-          "challenge_id": "c-0038-soma-lista",
+          "challenge_id": "0038",
           "observed_at": "2026-06-20",
           "recorded_at": "2026-06-20T19:52:00-03:00",
           "result": "passed",
@@ -459,7 +532,7 @@ Setup real: trilha *Algoritmos e Matemática Discreta com Python* (`setup_id: al
         {
           "kind": "challenge",
           "session_id": "0046",
-          "challenge_id": "c-0046-torre-hanoi",
+          "challenge_id": "0046",
           "observed_at": "2026-06-28",
           "recorded_at": "2026-06-28T20:10:00-03:00",
           "result": "passed",
@@ -491,7 +564,7 @@ Setup real: trilha *Algoritmos e Matemática Discreta com Python* (`setup_id: al
         {
           "kind": "challenge",
           "session_id": "0053",
-          "challenge_id": "c-0053-permutacoes",
+          "challenge_id": "0053",
           "observed_at": "2026-08-10",
           "recorded_at": "2026-08-10T20:41:00-03:00",
           "result": "passed",
@@ -550,7 +623,7 @@ Setup real: trilha *Algoritmos e Matemática Discreta com Python* (`setup_id: al
         {
           "kind": "challenge",
           "session_id": "0051",
-          "challenge_id": "c-0051-contar-operacoes",
+          "challenge_id": "0051",
           "observed_at": "2026-08-03",
           "recorded_at": "2026-08-03T19:20:00-03:00",
           "result": "passed",
@@ -566,7 +639,7 @@ Setup real: trilha *Algoritmos e Matemática Discreta com Python* (`setup_id: al
         {
           "kind": "challenge",
           "session_id": "0055",
-          "challenge_id": "c-0055-comparar-buscas",
+          "challenge_id": "0055",
           "observed_at": "2026-08-17",
           "recorded_at": "2026-08-17T21:30:00-03:00",
           "result": "passed",
@@ -624,7 +697,7 @@ Setup real: trilha *Algoritmos e Matemática Discreta com Python* (`setup_id: al
         {
           "kind": "challenge",
           "session_id": "0054",
-          "challenge_id": "c-0054-inducao-soma-impares",
+          "challenge_id": "0054",
           "observed_at": "2026-08-12",
           "recorded_at": "2026-08-12T20:58:00-03:00",
           "result": "failed",
@@ -640,7 +713,7 @@ Setup real: trilha *Algoritmos e Matemática Discreta com Python* (`setup_id: al
         {
           "kind": "challenge",
           "session_id": "0056",
-          "challenge_id": "c-0056-inducao-potencia",
+          "challenge_id": "0056",
           "observed_at": "2026-08-20",
           "recorded_at": "2026-08-20T20:05:00-03:00",
           "result": "failed",
@@ -734,17 +807,142 @@ O que ele **não** pode dizer: nenhuma frase da coluna ❌ da §4.2.
 
 ## 9. Contrato para `progress-update.sh` (onda 3)
 
-Checklist do que a implementação precisa garantir. Cada item é verificável.
+### 9.1 ⭐ A interface: como um evento chega até o script
 
-1. **Escrita só por evento.** A entrada é um evento (`challenge`, `exposure`, `self_report`, `review_declined`, `decay`); nunca "o estado novo". O estado é sempre calculado, nunca informado.
+O documento dizia "escrita só por evento" e **não definia nenhuma forma de entregar um evento** —
+o que torna a regra inaplicável e convida a implementação a aceitar campos soltos na linha de
+comando, que é exatamente o "informe o estado novo" que a regra proíbe. A interface é esta:
+
+```
+progress-update.sh --event <arquivo.json>     # aplica UM evento
+progress-update.sh --due                      # lista o que está vencido; aplica o decaimento
+                                              #   preguiçoso (T4) e não faz mais nada
+progress-update.sh --recompute                # reconstrói os escalares a partir de evidence[]
+```
+
+As três são mutuamente exclusivas; duas ao mesmo tempo é **exit 2** (uso incorreto). `--event`
+aceita `-` para ler o JSON de stdin. Não existe forma de escrever `proficiency_state`,
+`state_reason`, `confidence` ou `interval_days` pela linha de comando: **eles são sempre
+calculados**, e é essa ausência de flag que faz valer a regra.
+
+#### O formato do evento
+
+Um objeto JSON, um evento por arquivo. O schema é
+`assets/schemas/requests/progress-event.schema.json` (dono: a sub-tarefa dos schemas); aqui fica a
+semântica de cada campo.
+
+```json
+{
+  "schema_version": "1.0",
+  "setup_id": "7b3e9a1c4f20",
+  "kind": "challenge",
+  "concept": "Recursão",
+  "concept_id": null,
+  "session_id": "0053",
+  "challenge_id": "0053",
+  "observed_at": "2026-08-10",
+  "recorded_at": "2026-08-10T20:41:00-03:00",
+  "last_result": "passed",
+  "attempts": 1,
+  "hint_level": 0,
+  "error_type": "none",
+  "attributed_to": null,
+  "self_report_polarity": null,
+  "note": "checagem de recall após decaimento"
+}
+```
+
+| Campo | Obrigatório | Semântica |
+|---|---|---|
+| `schema_version` | sim | Versão do formato do evento, `MAJOR.MINOR` |
+| `setup_id` | sim | `^[0-9a-f]{12}$`. Diferente do `setup_id` do `progress.json` alvo ⇒ **rejeita** (exit 5). É o que impede escrita cruzada entre setups |
+| `kind` | sim | `challenge` · `exposure` · `self_report` · `review_declined` · `decay` |
+| `concept` | sim | O **rótulo canônico** da trilha, em pt-BR, como ele aparece. O script resolve para `concept_id` pela busca em `concept_id` + `aliases[]` (§1.2 regra 3) |
+| `concept_id` | não | Atalho: quando presente, pula a resolução. Se estiver presente **e** discordar do que a resolução de `concept` daria, **rejeita** — discordância silenciosa aqui cria conceito duplicado |
+| `session_id` | quando `kind ≠ decay` | `^[0-9]{4}$`. Tem que existir em `memory/` |
+| `challenge_id` | quando `kind = challenge` | `^[0-9]{4}$`. Tem que existir em `challenges/` |
+| `observed_at` | sim | Data do fato (`YYYY-MM-DD`). É por ela que a ordem cronológica é decidida |
+| `recorded_at` | não | Instante da gravação. Ausente ⇒ agora. A diferença entre os dois é a bitemporalidade (§5.3 passo 2) |
+| `last_result` | quando `kind = challenge` | O valor **do manifesto do desafio**: `not_run` · `passed` · `failed` · `timeout` · `error`. O script normaliza para `result` pela tabela da §3.2 — o evento nunca traz `result` já mastigado, porque normalizar é responsabilidade de quem tem a tabela |
+| `attempts` | não | Execuções da verificação neste desafio |
+| `hint_level` | não | **0 a 5** (§2). `null` (ou ausente) significa *não registrado*, e **não** é 0 |
+| `error_type` | não | `none` · `slip` · `conceptual` · `prerequisite` · `unknown`. Ausente ⇒ `unknown` |
+| `attributed_to` | quando `error_type = prerequisite` | Rótulo canônico (ou `concept_id`) do pré-requisito que causou a falha (§6.4) |
+| `self_report_polarity` | quando `kind = self_report` | `positive` ou `negative`. É o que distingue "acho que entendi" (nunca promove) de "não peguei isso" (pode rebaixar por T8). Sem esse campo o auto-relato é ilegível para o script |
+| `note` | não | pt-BR livre, para humano. Passa pelo crivo de gravação de `docs/11-seguranca-privacidade.md` §1.3 do repositório |
+
+O evento **não** carrega `state_before`, `state_after` nem `transition_rule`: os três são
+calculados e escritos pelo script. Um evento que os traga é rejeitado — aceitar seria abrir a
+porta para "informe o estado novo" por outro nome.
+
+#### Idempotência, concretamente
+
+A chave de identidade de um evento é a tupla
+`(concept_id, kind, session_id, challenge_id, observed_at)`. Reprocessar um evento cuja chave já
+está em `evidence[]` é **no-op com exit 0** — não duplica entrada, não reaplica transição, não
+mexe em `interval_days`. É o que permite reprocessar um diretório de eventos sem medo depois de
+uma interrupção.
+
+#### Códigos de saída
+
+`progress-update.sh` é um `SK/scripts/*.sh` e segue a tabela geral do produto, sem exceção:
+
+| Código | Quando |
+|---|---|
+| `0` | evento aplicado, ou no-op idempotente |
+| `1` | erro (não conseguiu ler ou gravar o arquivo) |
+| `2` | uso incorreto (flags conflitantes, `--event` sem caminho) |
+| `3` | setup não encontrado |
+| `4` | recurso travado (outro `progress-update.sh` escrevendo o mesmo `progress.json`) |
+| `5` | validação falhou (evento fora do schema; `setup_id` divergente; `session_id`/`challenge_id` inexistente; `result` fora do enum; resultado não valida contra `progress.schema.json`) |
+| `10` | `needs_model_input` — **reservado**; nenhuma etapa deste script precisa de julgamento hoje |
+
+O `10` fica reservado de propósito: se um dia a fusão de duplicatas (§1.2 regra 5) precisar de um
+"estes dois conceitos são o mesmo?", ela usa o protocolo REQUEST/APPLY de
+`docs/05-challenges-tdd.md` §4.6 do repositório, e não um palpite dentro do script.
+
+### 9.2 De onde vem `state_reason: "manual"`
+
+O enum de `state_reason` tem oito valores e **sete** são produzidos por alguma transição T1–T8. O
+oitavo, `manual`, não é produzido por nenhuma — e um valor de enum que nada escreve é uma pergunta
+aberta em forma de schema. A origem, declarada:
+
+> `manual` é escrito **apenas** por edição direta do arquivo pelo aluno ou por quem opera o
+> repositório. Nem o tutor nem `progress-update.sh` o escrevem, em nenhum caminho de código.
+
+Ele existe para um caso real: a pessoa abre `memory/progress.json` — que é um JSON legível, num
+diretório dela, e isso é escolha de projeto — e corrige um estado que considera errado. Sem
+`manual`, ela teria que escolher entre mentir sobre a causa (`passed_unassisted` sem passagem
+nenhuma) ou deixar um valor que a máquina de estados nunca justificaria.
+
+Consequências, as três:
+
+1. **`progress-update.sh` preserva `manual`, mas não o defende.** O próximo evento de desafio
+   sobrescreve o estado normalmente, com a transição que couber. Uma edição manual é um ponto de
+   partida, não um estado congelado.
+2. **`--recompute` é a exceção declarada**: ele reconstrói os escalares a partir de `evidence[]` e
+   por isso **desfaz** um `state_reason: manual` que não tenha evidência correspondente. O script
+   avisa em uma linha quando isso acontece, em vez de apagar em silêncio.
+3. **O tutor lê `manual` como o que é**: "alguém ajustou isto à mão". Ele não trata como
+   observação sua, não conta como evidência qualificada em `confidence` (§4.4), e pode dizer ao
+   aluno que aquele estado veio de uma edição, não de um desafio.
+
+### 9.3 Checklist do que a implementação precisa garantir
+
+Cada item é verificável.
+
+1. **Escrita só por evento.** A entrada é um evento (`challenge`, `exposure`, `self_report`, `review_declined`, `decay`), entregue por `--event` (§9.1); nunca "o estado novo". O estado é sempre calculado, nunca informado.
 2. **Sem artefato, sem transição.** Rejeitar evento cujo `session_id` / `challenge_id` não exista no setup.
 3. **Ordem cronológica.** Processar por `observed_at` crescente; um evento por vez; a §3.5 é a ordem de avaliação, sem desvios.
-4. **`evidence[]` é a fonte de verdade.** Todo campo escalar é recomputado do array a cada escrita. Um modo `--recompute` que reconstrói o arquivo inteiro a partir de `evidence[]` é o teste de que a regra vale.
+4. **`evidence[]` é a fonte de verdade *dentro do arquivo*.** Todo campo **escalar** é recomputado do array a cada escrita, e `--recompute` refaz a camada escalar inteira a partir de `evidence[]` — é o teste de que a regra vale. O que `--recompute` **não** faz é reconstruir `evidence[]`: esse array é dado primário e não existe em `memory/NNNN.json` (§0.1).
 5. **Nada é deletado.** Poda permitida só para `kind` ∈ {`exposure`, `review_declined`} acima de 20 entradas, e **nunca** para entrada com `state_before != state_after`.
 6. **Decaimento é preguiçoso.** Avaliado na abertura da sessão, com `observed_at` = data em que o limiar foi cruzado e `recorded_at` = agora.
 7. **Validação antes de gravar.** O arquivo resultante valida contra `progress.schema.json`. O verificador é stdlib do Python (não há `jsonschema` nesta máquina) e cobre `type`, `required`, `enum`, `pattern`, `minimum`/`maximum` — as restrições do schema foram escritas para caber nesse verificador (sem `$ref`, sem `allOf` aninhado, sem `if/then/else`).
 8. **`policy` ausente = defaults.** Ler o objeto se existir; senão usar os defaults documentados na §5.2.
-9. **Idempotência.** Reprocessar o mesmo evento (mesmo `session_id` + `challenge_id` + `observed_at`) não duplica evidência nem reaplica transição.
+9. **Idempotência.** Reprocessar um evento com a mesma chave `(concept_id, kind, session_id, challenge_id, observed_at)` é no-op com exit 0: não duplica evidência nem reaplica transição (§9.1).
+10. **Normalização antes de classificar.** `last_result` → `result` pela tabela da §3.2, no passo 0 da §3.5. `timeout` e `error` viram `failed`; `not_run` vira `not_attempted`. Valor fora do enum é rejeitado com exit 5, **nunca** absorvido pelo ramo da classe B.
+11. **Códigos de saída.** A tabela da §9.1, sem exceção — `0/1/2/3/4/5`, com `10` reservado para `needs_model_input`.
+12. **`state_reason: manual` é preservado, nunca escrito.** Nenhum caminho de código do script o produz (§9.2).
 
 ### Convenção de idioma no arquivo de dados
 
@@ -763,3 +961,7 @@ Chaves e **vocabulário fechado** (todos os `enum`) em inglês, `snake_case`, se
 | D-P05 | Quem pode criar `concept_id`? | (a) só a trilha do `docs/` do setup; (b) o tutor cria ad hoc durante a sessão; (c) (a) + exceção só para pré-requisito descoberto | **(c)** — trilha canônica, com a única exceção da §6.4, marcada por `track_ref: null` | moderate (mudar id depois exige migração da evidência) |
 | D-P06 | Janela e tetos: `mastery_window_days` = 60, teto de 180 dias em `mastered` e 21 em `fragile`, multiplicadores 2,3 / 1,3 | manter os defaults · encurtar a janela (30d) para exigir evidência mais fresca · alongar tetos | **manter** — 2,3 aproxima o crescimento do SM-2 bem-sucedido sem pedir nota ao aluno; tudo fica em `policy`, ajustável por setup | cheap |
 | D-P07 | Onde vive o arquivo e qual é o seu escopo? | (a) `memory/progress.json`, um por setup (assumido aqui); (b) um arquivo por trilha dentro do setup; (c) embutir o estado no índice de memória episódica | **(a)** — mas depende da sub-tarefa dona de `memory/`; se o índice episódico já ocupar o nome, renomear é trivial, mudar o escopo não | moderate |
+| D-P08 | **RESOLVIDA (AR-24)** — como um evento chega a `progress-update.sh`? | campos soltos na linha de comando · **`--event <arquivo.json>`** · o script lê a sessão sozinho | **`--event <arquivo.json>`** (aceita `-` para stdin), ao lado de `--due` e `--recompute`, com o formato de evento da §9.1. Sem uma forma declarada de entregar evento, a regra "escrita só por evento" não era aplicável | — decidida |
+| D-P09 | **RESOLVIDA (AR-13/15/16)** — formato dos identificadores | `setup_id` legível · **`setup_id` hexadecimal sorteado** ; `challenge_id` com slug embutido · **só o número** | **`setup_id` = `^[0-9a-f]{12}$` · `concept_id` = `^[a-z][a-z0-9_]{1,62}$` (snake_case) · `challenge_id` = `^[0-9]{4}$` · `hint_level` = 0..5** (§1.3). O exemplo da §8 foi reescrito nesses formatos | — decidida; mudar depois exige migração de toda a evidência |
+| D-P10 | **RESOLVIDA (AR-30)** — `progress.json` pode ser reconstruído a partir de `memory/NNNN.json`? | sim, é cache · **não, é dado primário** | **não** (§0.1): `error_type`, `hint_level` e `transition_rule` não existem no registro de sessão. Só a camada escalar é recomputável, e a partir de `evidence[]`, não das sessões | — decidida |
+| D-P11 | Origem de `state_reason: "manual"` | remover do enum · **edição direta do arquivo pelo aluno/operador** · o tutor pode escrever | **edição direta**, nunca escrita pelo tutor nem pelo script (§9.2). Preservada pelo fluxo normal, desfeita por `--recompute` com aviso. Mantida no enum porque o arquivo é legível e editável por projeto, e mentir sobre a causa seria pior | cheap — é só semântica de um valor de enum |
