@@ -98,7 +98,12 @@ export function createSettingsStore(deps: SettingsStoreDeps) {
       const stored = shape.apiKeys[provider];
       if (!stored) return '';
       try {
-        if (deps.safeStorage.isEncryptionAvailable() && shape.encryption) {
+        // A flag `encryption` gravada no arquivo decide o FORMATO da chave
+        // (base64-cifrado vs texto puro). A disponibilidade ATUAL do safeStorage
+        // pode divergir daquela de quando a chave foi gravada (ex.: keyring
+        // travou no meio); usar só `shape.encryption` garante decodificar o que
+        // de fato está no disco em vez de vazar o ciphertext como chave em claro.
+        if (shape.encryption) {
           return deps.safeStorage.decryptString(Buffer.from(stored, 'base64'));
         }
         return stored;
