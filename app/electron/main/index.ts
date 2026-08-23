@@ -12,6 +12,8 @@ import { join } from 'node:path';
 import { app, BrowserWindow, shell } from 'electron';
 
 import { registerIpcHandlers } from './ipc';
+import { registerKeysHandlers } from './ipc/keys-handlers';
+import { buildMainSetup } from './main-setup';
 
 const isDev = !!process.env['ELECTRON_RENDERER_URL'];
 
@@ -29,9 +31,12 @@ if (!gotLock) {
   });
 
   void app.whenReady().then(async () => {
-    // Registro dos handlers IPC (settings:* reais; placeholders para as ondas futuras).
+    // Registro dos handlers IPC (settings:* reais; keys:* reais da onda 1; placeholders para as ondas futuras).
     try {
-      await registerIpcHandlers();
+      await buildMainSetup({
+        registerIpc: registerIpcHandlers,
+        registerKeys: registerKeysHandlers,
+      });
     } catch (err) {
       console.error('[main] falha ao registrar handlers IPC:', err);
     }
