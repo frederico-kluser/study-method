@@ -599,7 +599,14 @@ di_payload() {
                           disputed: null, preview: null})) }'
 }
 
-di_request_id() { printf '%s' "$1" | sm_json_canon - | sha256sum | cut -c1-12; }
+di_request_id() { local canon
+  # ATENÇÃO: tem de reproduzir BYTE A BYTE o que `sm_request` (lib/json.sh) faz, e ela
+  # captura o canônico em `$(...)` — o que COME a quebra de linha final antes do sha256.
+  # Sem o mesmo corte, o hash difere de um único byte e o --apply nunca reconhece o
+  # próprio PEDIDO: exit 5 em 100% das respostas.
+  canon="$(printf '%s' "$1" | sm_json_canon -)" || return 5
+  printf '%s' "$canon" | sha256sum | cut -c1-12
+}
 
 if [[ -n "$di_select" ]]; then
   if [[ "$(printf '%s' "$DI_CANDS_JSON" | jq 'length')" -eq 0 ]]; then

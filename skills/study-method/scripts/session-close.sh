@@ -211,7 +211,14 @@ sc_payload() {   # $1 = attempt, $2 = documento da sessão, $3 = missing_fields 
      }'
 }
 
-sc_request_id() { printf '%s' "$1" | sm_json_canon - | sha256sum | cut -c1-12; }
+sc_request_id() { local canon
+  # ATENÇÃO: tem de reproduzir BYTE A BYTE o que `sm_request` (lib/json.sh) faz, e ela
+  # captura o canônico em `$(...)` — o que COME a quebra de linha final antes do sha256.
+  # Sem o mesmo corte, o hash difere de um único byte e o --apply nunca reconhece o
+  # próprio PEDIDO: exit 5 em 100% das respostas.
+  canon="$(printf '%s' "$1" | sm_json_canon -)" || return 5
+  printf '%s' "$canon" | sha256sum | cut -c1-12
+}
 
 sc_emit_request() {   # $1 = payload JSON — sai 10, sem tocar em disco (RA-1)
   local payload="$1"

@@ -284,7 +284,9 @@ escopo deste documento.
 
 O arquivo abaixo é `researchs/0012.md` de um setup fictício de Algoritmos — mostra o estilo na
 prática: sem introdução, definição primeiro, fórmula, snippet, armadilha, figura com descrição
-real ao lado.
+real ao lado. A linha da figura aparece **entre crases**: o `.svg` é do setup fictício e não
+existe neste repositório, então o exemplo mostra a **forma** da referência (§7) — não referencia
+um arquivo real.
 
 ~~~markdown
 <!-- study-method:meta {"schema_version":"1.0","kind":"research","research_id":"0012","topic":"complexidade-merge-sort","sources":["docs/algoritmos-cap4.md"],"provenance":"student_provided","created_in_session":"0009","created_at":"2026-08-23T15:10:00-03:00","status":"active","supersedes":[],"superseded_by":null,"verified_by_student":false,"disputed":false} -->
@@ -327,7 +329,7 @@ memória extra por nível — total `O(n)` (não `O(n log n)`, porque os níveis
 pilha). Confundir "tempo `O(n log n)`" com "espaço `O(1)`" é o erro mais comum ao comparar com
 heapsort, que é in-place.
 
-![Comparação entre tempo medido e a curva teórica O(n log n)](assets/0012-complexidade-merge-sort/comparacao.svg)
+`![Comparação entre tempo medido e a curva teórica O(n log n)](assets/0012-complexidade-merge-sort/comparacao.svg)`
 
 Pontos medidos (dispersão) acompanham a curva teórica `n·log(n)` escalada (linha) com desvio
 abaixo de 8% até `n = 100000`; a partir daí a dispersão se afasta por variação de cache, dentro

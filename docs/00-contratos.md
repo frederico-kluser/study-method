@@ -433,17 +433,17 @@ igual nos quatro scripts:
 |---|---|---|---|---|---|
 | `memory-compact.sh` | `compact_facts` | `memory_compact` | Selecionou as sessões não consolidadas, leu **só os brutos**, agrupou candidatos, calculou `confidence` e detectou reconfirmação × mudança. | **Consolidar cada grupo em prosa (`claim` / `how`) e nomear a `claim_key`.** É a única porta de entrada da memória de longo prazo. | Não compacta e o gatilho reavalia no próximo fechamento. Nenhum bruto é perdido. ⚠ `compaction.deferred_at` **não é gravável hoje** — ver §6.5. |
 | `session-close.sh` | `fill_session_fields` | `session_close` | Validou `memory/NNNN.json` contra `session.schema.json` e listou exatamente os campos ausentes ou inválidos. | **Preencher os campos ausentes** (`one_line_summary`, `topics`, `what_worked`, `what_didnt_work`, `open_questions`, `next_steps`), só com o que a sessão sustenta. | Fecha assim mesmo: `status: "completed"` + `validation_errors[]` preenchido. **Nunca deixa sessão presa em `in_progress`.** |
-| `challenge-verify.sh` | `mutant_equivalence` | `challenge_verify` | Rodou os passos 0–6, gerou os mutantes do catálogo fixo, matou o que dava, e isolou os sobreviventes com `operator`, `file`, `line`, `before`, `after`. | **Classificar cada sobrevivente como `equivalent` ou `test_gap`, com `justification` escrita.** Única etapa do protocolo em que o modelo opina, sobre um diff de uma linha, auditável. | Todo sobrevivente vira `unclassified`, tratado como `test_gap` (o lado conservador). O score cai e o veredito tende a `weak`. |
+| `challenge-verify.sh` | `classify_survivor` | `challenge_verify` | Rodou os passos 0–6, gerou os mutantes do catálogo fixo, matou o que dava, e isolou os sobreviventes com `operator`, `file`, `line`, `before`, `after`. | **Classificar cada sobrevivente como `equivalent` ou `test_gap`, com `justification` escrita.** Única etapa do protocolo em que o modelo opina, sobre um diff de uma linha, auditável. | Todo sobrevivente vira `unclassified`, tratado como `test_gap` (o lado conservador). O score cai e o veredito tende a `weak`. |
 | `docs-index.sh` | `select_sections` | `docs_index` | Varreu o `docs/` do setup, montou o manifesto com seções, offsets em bytes e sha256, e pontuou tudo pela heurística determinística. | **Escolher, dentre as seções empatadas no score, quais são relevantes ao tópico da aula**, respeitando o teto de 60% do orçamento. | Usa a ordem de score pura, corta no teto e **declara em voz alta** que a seleção foi automática. |
 
 ### 6.5 ⭐ Os dois vocabulários de `kind`, e as duas limitações reconhecidas ⚑
 
-**Três grafias circulavam para a mesma fronteira.** São **dois campos diferentes**, em dois lugares
+**Duas grafias circulavam para a mesma fronteira.** São **dois campos diferentes**, em dois lugares
 diferentes, e eles **coexistem** — nenhum substitui o outro:
 
 | Campo | Onde vive | Vocabulário fechado |
 |---|---|---|
-| `kind` | **envelope** do PEDIDO (§6.1) e da RESPOSTA (§6.2), na raiz do JSON, ao lado de `protocol` e `request_id` | `fill_session_fields` · `select_sections` · `compact_facts` · `mutant_equivalence` |
+| `kind` | **envelope** do PEDIDO (§6.1) e da RESPOSTA (§6.2), na raiz do JSON, ao lado de `protocol` e `request_id` | `fill_session_fields` · `select_sections` · `compact_facts` · `classify_survivor` |
 | `request_kind` | **payload/corpo**, dentro de `payload` no PEDIDO e dentro do objeto de `items` na RESPOSTA; é o enum de um valor só declarado em cada `*.request/response.schema.json` | `session_close` · `docs_index` · `memory_compact` · `challenge_verify` |
 
 O `kind` do envelope nomeia **o julgamento pedido**; o `request_kind` do payload nomeia **a
@@ -452,7 +452,6 @@ segundo. Ler um pelo outro é **exit 5** (RESP-4), nunca aviso.
 
 | Grafia revogada | Onde ainda aparece | Substituto canônico |
 |---|---|---|
-| `classify_survivor` | `challenge-verify.sh` (`CV_KIND`), `SKILL.md`, `SK/references/scripts.md`, `docs/build-spec/20`, `docs/build-spec/52`, `tests/smoke.sh` | `mutant_equivalence` (envelope) |
 | `SM_REQUEST_KIND` carregando o valor de **envelope** | `session-close.sh` (`fill_session_fields`), `docs-index.sh` (`select_sections`) | a variável que guarda o valor de envelope chama-se `SM_KIND`; `SM_REQUEST_KIND` guarda o valor de payload — é o que `memory-compact.sh` já faz certo |
 
 **As duas limitações reconhecidas do caminho degradado da compactação.**
@@ -463,7 +462,7 @@ implementáveis**, e prometer é pior do que reconhecer.
 | # | Limitação | Estado | Onde o campo deveria morar |
 |---|---|---|---|
 | L-1 | `compaction.deferred_at` **não existe**. `profile.schema.json` fecha o objeto `compaction` com `additionalProperties: false` e declara apenas `trigger_uncompacted_sessions`, `last_compacted_at`, `last_compacted_session_id` e `compaction_count`. Gravar o campo hoje faz o próprio arquivo **falhar na validação** (exit 5). | **Não implementável sem MAJOR** no schema (campo novo opcional = MINOR; a decisão fica com o dono de `profile.schema.json`). Até lá o caminho degradado é: não compacta, não marca nada, e o gatilho de 15 sessões reavalia sozinho no próximo fechamento — o que já é correto, porque a condição que adiou continua verdadeira. | `profile.json` → `compaction.deferred_at`, timestamp ou `null`, ao lado de `last_compacted_at`. |
-| L-2 | O teto de **2 ciclos** de RA-6 não é implementável: cada `--apply` é um processo novo, e não há nenhum estado persistido entre invocações que diga em que ciclo o script está. | **Não implementável sem estado.** Hoje o teto é obrigação do chamador (o `SKILL.md` diz ao modelo para não insistir), e nenhuma invariante de §11 o verifica — verificá-la exigiria o contador em disco. | Se um dia for imposto pelo script: `profile.json` → `compaction.cycle_count` para `compact_facts`; `memory/NNNN.json` → `protocol_cycles` para `fill_session_fields`; `meta.json` → `validation.apply_cycles` para `mutant_equivalence`. Nunca em arquivo novo: o estado do protocolo pertence ao artefato que ele altera. |
+| L-2 | O teto de **2 ciclos** de RA-6 não é implementável: cada `--apply` é um processo novo, e não há nenhum estado persistido entre invocações que diga em que ciclo o script está. | **Não implementável sem estado.** Hoje o teto é obrigação do chamador (o `SKILL.md` diz ao modelo para não insistir), e nenhuma invariante de §11 o verifica — verificá-la exigiria o contador em disco. | Se um dia for imposto pelo script: `profile.json` → `compaction.cycle_count` para `compact_facts`; `memory/NNNN.json` → `protocol_cycles` para `fill_session_fields`; `meta.json` → `validation.apply_cycles` para `classify_survivor`. Nunca em arquivo novo: o estado do protocolo pertence ao artefato que ele altera. |
 
 ---
 
@@ -591,7 +590,7 @@ Convenção: **todo script recebe `<setup_root>` como primeiro argumento posicio
 | `progress-update.sh` | `<setup_root> [--event <evento.json>] [--due] [--recompute]` | `--due` imprime a lista de conceitos vencidos (JSON); `--recompute` imprime o diff | 0 · 1 · 2 · 3 · **4** · 5 (evento sem artefato correspondente **também** é 5). ⚑ **Sai 4**: tem lock próprio, `memory/.progress.lock` (diretório, `mkdir` atômico, mesma disciplina de `sm_registry_lock`), porque duas escritas concorrentes em `progress.json` corrompem o estado de proficiência. O lock é **do arquivo**, não da sessão: é ortogonal a `memory/.session.lock`, e um não substitui o outro. |
 | `readme-sync.sh` | `<setup_root> [--init]` | O número de linhas geradas | 0 · 1 · 2 · 3. **Idempotente**: duas execuções seguidas produzem o mesmo arquivo. |
 | `challenge-new.sh` | `<setup_root> --language <l> --slug <sl> --concept <concept_id> [--difficulty 1..5] [--skill-level <n>]` | O caminho relativo de `challenges/<NNNN>-<slug>/` | 0 · 1 · 2 · 3 · 4 · 5 |
-| `challenge-verify.sh` | `<challenge_dir> [--sample-size N] [--n-rep N] [--apply <resposta.json>]` | Resumo JSON: `{verdict, mutation_score, killed, survived, rejections}` | 0 (`approved`) · 1 (erro de execução) · 2 · 5 (schema do `meta.json`) · **10** (`mutant_equivalence`, §6.5). Veredito `weak`/`rejected` sai **0** com o veredito no stdout — reprovar o desafio não é erro do script. |
+| `challenge-verify.sh` | `<challenge_dir> [--sample-size N] [--n-rep N] [--apply <resposta.json>]` | Resumo JSON: `{verdict, mutation_score, killed, survived, rejections}` | 0 (`approved`) · 1 (erro de execução) · 2 · 5 (schema do `meta.json`) · **10** (`classify_survivor`, §6.5). Veredito `weak`/`rejected` sai **0** com o veredito no stdout — reprovar o desafio não é erro do script. |
 | `detect-toolchains.sh` | `[--cached] [--setup <setup_root>] [--language <l>] [--json]` | JSON: por linguagem, `{available, version, command}` | 0 · 1 · 2 |
 | `render-plot.py` | `[--spec CAMINHO\|-] [--out-dir DIR] [--basename NOME] [--width N] [--height N] [--ascii-width N] [--ascii-height N] [--formats svg,html,txt,md] [--png] [--quiet]` | JSON: `{ok, type, outputs, description_text, ascii_text, warnings, stats}` | **Exceção nomeada** (§5.2): 0 · 1 · 2 · 3 |
 | `decisions-ask.sh` | `<fase> --setup <setup_root> [--json] [--answer <id>=<valor>]`, com `fase ∈ {setup-init, first-challenge, session-15, on-demand}` | As decisões pendentes daquela fase, em JSON | 0 · 1 · 2 · 3 · 5 |

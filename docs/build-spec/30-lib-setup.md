@@ -163,7 +163,8 @@ de BOOT-2 no manifesto — a **fala** ao aluno é do modelo, não do script.
    Parseável com `setup_id` fora de `^[0-9a-f]{12}$` ⇒ **5**. Parseável e válido ⇒ modo idempotente:
    nada de `setup.json`, nada de `.gitignore`, só recriação de diretório estrutural faltante,
    atualização do registry e reimpressão do `setup_id` (I-32, B-06).
-1. `mkdir -p <path>` + `sm_chmod_private <path>` (700); depois `docs/`, `memory/`, `researchs/`,
+1. `mkdir -p <path>` + `sm_chmod_private <path>` (700); depois os quatro diretórios internos do
+   setup: o `docs/` do setup (nunca o `docs/` do repositório), `memory/`, `researchs/` e
    `challenges/`. Cada diretório recriado numa segunda execução emite uma linha `info`.
 2. `.gitignore` — **só se não existir**. Fonte: `assets/templates/setup/gitignore.tmpl`; ausente ⇒
    conteúdo embutido, que contém a linha `memory/` (I-40, `docs/11` §1.4).

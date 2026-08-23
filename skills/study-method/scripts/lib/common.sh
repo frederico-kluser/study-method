@@ -111,31 +111,50 @@ sm_require_cmd() {
 }
 
 # sm_setup_root [<hint>] -> caminho absoluto da raiz do setup (sem barra final).
-# Sobe por ancestrais procurando `setup.json` legível. Para DEPOIS de examinar $HOME
-# (nunca acima dele); um <hint> fora de $HOME sobe até `/` inclusive.
+# Sobe por ancestrais procurando `setup.json` legível e para no PRIMEIRO que achar.
+#
+# docs/00-contratos.md §7.1 — DOIS TETOS, e a diferença é normativa:
+#   (a) sem <hint>, ou com <hint> SOB $HOME: sobe até $HOME INCLUSIVE e para ali.
+#       Acima de $HOME a busca varreria o sistema inteiro atrás de manifesto alheio.
+#   (b) com <hint> explícito FORA de $HOME: sobe até `/`, porque quem aponta um caminho
+#       fora do $HOME está declarando onde procurar — o setup pode estar em outro ponto
+#       de montagem. O teto vira `/` também quando $HOME não é ancestral do ponto de
+#       partida: não há $HOME nesse caminho onde parar.
+# `..` que não muda de diretório encerra o laço nos dois casos.
 # 0 achou · 3 nenhum setup.json legível.
 sm_setup_root() {
-    local start="${1:-$PWD}" dir home parent
+    local start="${1:-$PWD}" dir home ceiling parent
     if [ -d "$start" ]; then
         dir="$(cd -P -- "$start" 2>/dev/null && pwd -P)" || dir=""
     else
         dir="$(cd -P -- "$(dirname -- "$start")" 2>/dev/null && pwd -P)" || dir=""
     fi
     [ -n "$dir" ] || { sm_log debug "sm_setup_root: caminho inacessivel: $start"; return 3; }
+    # $HOME resolvido pelo mesmo `cd -P` de <dir>: com $HOME por symlink, comparar a
+    # forma crua nunca casaria e o teto (a) sumiria sem ninguém notar.
     home="${HOME:-}"
-    [ -z "$home" ] || home="${home%/}"
+    if [ -n "$home" ]; then
+        home="$(cd -P -- "$home" 2>/dev/null && pwd -P)" || home=""
+        home="${home%/}"
+    fi
+    ceiling="/"
+    if [ -n "$home" ]; then
+        case "$dir/" in
+            "$home"/*) ceiling="$home" ;;
+        esac
+    fi
     while : ; do
         if [ -f "$dir/setup.json" ] && [ -r "$dir/setup.json" ]; then
             printf '%s\n' "$dir"
             return 0
         fi
-        [ "$dir" != "${home:-/dev/null/nao-existe}" ] || break
+        [ "$dir" != "$ceiling" ] || break
         [ "$dir" != "/" ] || break
         parent="$(dirname -- "$dir")"
         [ "$parent" != "$dir" ] || break
         dir="$parent"
     done
-    sm_log debug "sm_setup_root: nenhum setup.json a partir de $start"
+    sm_log debug "sm_setup_root: nenhum setup.json a partir de $start (teto $ceiling)"
     return 3
 }
 
@@ -331,28 +350,80 @@ sm_registry_unlock() {
 
 # sm_setup_lock <setup_root> [<session_id>] -> 0 obteve · 4 sessão viva.
 # Grava memory/.session.lock com {pid, hostname, session_id, started_at}.
-# Lock existente com MESMO hostname E `kill -0 <pid>` bem-sucedido -> 4.
-# Caso contrário é órfão: remove, avisa em stderr, prossegue.
+#
+# docs/00-contratos.md §7.1 e §7.4 — DUAS VIAS de validação, porque NÃO EXISTE um pid
+# que sirva: a "sessão" é uma conversa, não um processo. Gravar `$$` (o pid deste
+# script, que termina em segundos) fazia TODO lock nascer órfão — medido — e a detecção
+# de sessão concorrente, razão de o lock existir, nunca disparava.
+#   (a) DONO DECLARADO — SM_SESSION_OWNER_PID definida, um processo que SOBREVIVE à
+#       sessão (o harness, o terminal, o supervisor). Grava esse pid; vivo <=> `kill -0`.
+#   (b) TTL — variável ausente, o caso comum. Grava `pid: null`; vivo <=> `started_at`
+#       mais novo que SM_SESSION_LOCK_TTL (default 28800 s = 8 h).
+# Qual via vale na LEITURA quem diz é o próprio lock: `pid` numérico -> (a); null -> (b).
+# `hostname` diferente do atual é órfão nos DOIS casos, e essa checagem vem ANTES de pid
+# e de TTL: setup em disco compartilhado não pode travar por causa de uma máquina que
+# ninguém alcança. Todo lock removido como órfão é ANUNCIADO em stderr, nunca silencioso.
 # <session_id> cai para $SM_SESSION_ID quando omitido; ausente vira null.
 sm_setup_lock() {
-    local root="${1:-}" sid="${2:-${SM_SESSION_ID:-}}" lock hn lhost lpid
+    local root="${1:-}" sid="${2:-${SM_SESSION_ID:-}}"
+    local lock hn owner pidarg ttl lhost lpid lstart lepoch now age
     [ -n "$root" ] || { sm_log error "sm_setup_lock: setup_root nao informado"; return 1; }
     lock="$root/memory/.session.lock"
     hn="${HOSTNAME:-}"
     [ -n "$hn" ] || hn="$(uname -n 2>/dev/null || printf 'desconhecido')"
+    owner="${SM_SESSION_OWNER_PID:-}"
+    if [ -n "$owner" ] && ! [[ "$owner" =~ ^[1-9][0-9]*$ ]]; then
+        sm_log warn "SM_SESSION_OWNER_PID ignorado (nao e um pid): $owner"
+        owner=""
+    fi
+    ttl="${SM_SESSION_LOCK_TTL:-28800}"
+    if ! [[ "$ttl" =~ ^[0-9]+$ ]]; then
+        sm_log warn "SM_SESSION_LOCK_TTL ignorado (nao numerico): $ttl"
+        ttl=28800
+    fi
     if [ -f "$lock" ]; then
         lhost="$(jq -r '.hostname // ""' < "$lock" 2>/dev/null || printf '')"
-        lpid="$(jq -r '.pid // 0' < "$lock" 2>/dev/null || printf '0')"
-        [[ "$lpid" =~ ^[0-9]+$ ]] || lpid=0
-        if [ "$lhost" = "$hn" ] && [ "$lpid" -gt 0 ] && kill -0 "$lpid" 2>/dev/null; then
-            sm_log warn "sessao viva neste setup (pid $lpid em $lhost): $lock"
-            return 4
+        lpid="$(jq -r 'if (.pid // null) == null then "" else (.pid | tostring) end' \
+                  < "$lock" 2>/dev/null || printf '')"
+        lstart="$(jq -r '.started_at // ""' < "$lock" 2>/dev/null || printf '')"
+        if [ "$lhost" != "$hn" ]; then
+            sm_log warn "lock de sessao orfao removido (host '${lhost:-?}' nao e '$hn'): $lock"
+            rm -f -- "$lock" 2>/dev/null || true
+        elif [[ "$lpid" =~ ^[1-9][0-9]*$ ]]; then
+            if kill -0 "$lpid" 2>/dev/null; then
+                sm_log warn "sessao viva neste setup (dono pid $lpid em $lhost): $lock"
+                return 4
+            fi
+            sm_log warn "lock de sessao orfao removido (dono pid $lpid morto em $lhost): $lock"
+            rm -f -- "$lock" 2>/dev/null || true
+        else
+            # via (b): sem dono declarado, quem decide é o TTL sobre started_at.
+            # started_at ilegivel cai para o mtime do proprio lock, que e o mesmo instante.
+            lepoch="$(date -d "$lstart" +%s 2>/dev/null || printf '')"
+            if [ -z "$lepoch" ]; then
+                lepoch="$(stat -c %Y -- "$lock" 2>/dev/null \
+                          || stat -f %m -- "$lock" 2>/dev/null || printf '')"
+                [ -z "$lepoch" ] || sm_log warn "started_at ilegivel: TTL medido pelo mtime de $lock"
+            fi
+            [[ "$lepoch" =~ ^[0-9]+$ ]] || lepoch=""
+            now="$(date -d "$(sm_now_iso)" +%s 2>/dev/null || date +%s)"
+            if [ -z "$lepoch" ]; then
+                sm_log warn "lock de sessao orfao removido (sem started_at nem mtime legiveis): $lock"
+            else
+                age=$(( now - lepoch ))
+                [ "$age" -ge 0 ] || age=0
+                if [ "$age" -le "$ttl" ]; then
+                    sm_log warn "sessao viva neste setup (lock com ${age}s, TTL ${ttl}s, em $lhost): $lock"
+                    return 4
+                fi
+                sm_log warn "lock de sessao orfao removido (${age}s > TTL de ${ttl}s, em $lhost): $lock"
+            fi
+            rm -f -- "$lock" 2>/dev/null || true
         fi
-        sm_log warn "lock de sessao orfao removido (pid ${lpid:-?} em ${lhost:-?}): $lock"
-        rm -f -- "$lock" 2>/dev/null || true
     fi
+    if [ -n "$owner" ]; then pidarg="$owner"; else pidarg="null"; fi
     if ! jq -n \
-            --argjson pid "$$" \
+            --argjson pid "$pidarg" \
             --arg hostname "$hn" \
             --arg session_id "$sid" \
             --arg started_at "$(sm_now_iso)" \

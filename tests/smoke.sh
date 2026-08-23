@@ -192,12 +192,33 @@ def main(argv):
     body = synth(target, "", errs)
     if not isinstance(body, dict):
         body = {}
-    body["protocol"] = req.get("protocol", "study-method/request-apply")
-    body["protocol_version"] = req.get("protocol_version", "1.0")
-    body["request_id"] = req.get("request_id")
-    body["kind"] = req.get("kind")
-    body.setdefault("items", [])
-    json.dump(body, sys.stdout, ensure_ascii=False, indent=2)
+    # Um modelo real ECOA os identificadores do PEDIDO na RESPOSTA. Sem isso o
+    # sintetizador so acerta a PRIMEIRA sessao: o sample do pattern ^[0-9]{4}$ e fixo
+    # ("0001") e o --apply da sessao 0002 morre com "session_id divergente".
+    # Regra: campo escalar do corpo cujo nome existe no payload do PEDIDO recebe o valor
+    # do PEDIDO — salvo quando o proprio response_schema fixa o valor (const/enum).
+    payload = req.get("payload") or {}
+    props = target.get("properties", {}) if isinstance(target, dict) else {}
+    if isinstance(payload, dict):
+        for name in list(body.keys()):
+            sub = props.get(name, {})
+            if isinstance(sub, dict) and ("const" in sub or "enum" in sub):
+                continue
+            val = payload.get(name)
+            if name in payload and isinstance(val, (str, int, float, bool)):
+                body[name] = val
+    # docs/00-contratos.md §6.2: o ENVELOPE carrega `items`, e CADA item e uma
+    # instancia do response_schema. Achatar o corpo na raiz e deixar items vazio
+    # produz uma RESPOSTA que nenhum dos quatro consumidores aceita: os tres que
+    # leem envelope fazem `.items[0]` e recebem {} — todo campo obrigatorio ausente.
+    env = {
+        "protocol": req.get("protocol", "study-method/request-apply"),
+        "protocol_version": req.get("protocol_version", "1.0"),
+        "request_id": req.get("request_id"),
+        "kind": req.get("kind"),
+        "items": [body],
+    }
+    json.dump(env, sys.stdout, ensure_ascii=False, indent=2)
     sys.stdout.write("\n")
     if errs:
         for e in errs:
@@ -372,8 +393,13 @@ cat > "$SPEC" <<'JSONEOF'
 }
 JSONEOF
 OUTDIR="$WORK/viz"; mkdir -p "$OUTDIR"
+# SEM `--quiet`: docs/build-spec/70-render.md §2 e docs/06-visualizacao.md §5 dizem que
+# `--quiet` SUPRIME o JSON de stdout ("documentado como «nunca use»: sem stdout o modelo
+# fica cego sobre o que desenhou"). Pedir --quiet e depois exigir `ok` e `description_text`
+# no stdout é exigir o que a flag existe para não entregar — S-04b e S-04e nunca poderiam
+# passar. É justamente esse stdout que VIZ-2 obriga a existir.
 if out="$("$SCRIPTS/render-plot.py" --spec "$SPEC" --out-dir "$OUTDIR" --basename erro-h \
-          --formats svg,html,txt,md --quiet 2>"$GATE_TMPDIR/err.txt")"; then
+          --formats svg,html,txt,md 2>"$GATE_TMPDIR/err.txt")"; then
   gate_pass "S-04a" "render-plot.py rendeu o gráfico"
   ok="$(printf '%s' "$out" | jq -r '.ok // false' 2>/dev/null || echo false)"
   assert_eq "S-04b" "a saída JSON traz ok=true" "true" "$ok" "stdout de render-plot.py"
