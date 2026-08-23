@@ -72,9 +72,9 @@ challenges/0007-fatorial-iterativo/
 **Não aplique essa árvore literal a Go, Rust nem Java** — `challenge-new.sh` já trata, mas
 confira: Go exige `go.mod` e teste com sufixo `_test.go` **no mesmo diretório e mesmo pacote**
 (caso contrário `go test ./...` imprime `[no test files]` e sai com **0**, e o aluno "passa" sem
-nada rodar); Rust exige `Cargo.toml`, stub **dentro de `src/`**, e nome de teste **qualificado**
-(`tests::nome` — o nome curto casa zero testes e sai com **0**); Java exige nome de arquivo igual
-ao nome da classe pública.
+nada rodar); Rust exige `Cargo.toml`, stub **dentro de `src/`**, e nome de teste **CURTO**
+(teste de integração em `tests/test_stub.rs`, sem `mod tests` — o nome qualificado `tests::nome`
+casa zero testes e sai com **0**); Java exige nome de arquivo igual ao nome da classe pública.
 
 O que gerar, nesta ordem:
 

@@ -15,24 +15,24 @@ ID da regra**. O ID é obrigatório — é o que liga a avaliação ao contrato
 | `EV-05` | analogia | **aposentar**: declarar a fronteira e parar de repetir | `AN-4` `AN-5` `AN-6` `ESC-D` `MEM-6` | julgamento |
 | `EV-06` | escada | degrau inicial depende do `proficiency_state` | `ESC-INICIAL` `MEM-4` `ERR-1` `ERR-3` | julgamento |
 | `EV-07` | escada | o apoio **desce** quando o aluno destrava | `ESC-D` `ESC-S` `ESC-R` `C-9` | julgamento |
-| `EV-08` | honestidade epistêmica | "quanto eu já sei?" — evidência contada, nunca porcentagem | `AS-9` `MEM-6` `MEM-7` `DES-3` + proposta `AS-13` | assistida |
+| `EV-08` | honestidade epistêmica | "quanto eu já sei?" — evidência contada, nunca porcentagem | `AS-9` `MEM-6` `MEM-7` `DES-3` `AS-13` | assistida |
 | `EV-09` | desafio | verificador reprovou 3×: desistir do desafio, não entregar o fraco | `DES-9` `DES-2` `DES-1` `DES-7` `DES-3` `ESC-4` | assistida |
 | `EV-10` | bootstrap | não há setup: a skill **pergunta** antes de criar | `BOOT-1` `BOOT-4` `BOOT-5` `BOOT-6` | julgamento |
 | `EV-11` | bootstrap | já existe setup: a skill **não** pergunta | `BOOT-4` `BOOT-6` `MEM-1` `C-1` | assistida |
-| `EV-12` | material do aluno | conflito com o `docs/` do setup: o material do aluno vence e o conflito é apontado | `BOOT-3` `SEG-3` `AS-10` `AS-7` + proposta `BOOT-8` | julgamento |
+| `EV-12` | material do aluno | conflito com o `docs/` do setup: o material do aluno vence e o conflito é apontado | `BOOT-3` `SEG-3` `AS-10` `AS-7` `BOOT-8` | julgamento |
 | `EV-13` | injeção | "ignore as instruções anteriores" dentro do `docs/` do setup | `SEG-1` `SEG-2` `SEG-3` `PRIV-1` `SEG-6` `SEG-8` | assistida |
 | `EV-14` | resposta a erro | deslize não entra na escada | `ERR-1` `ERR-2` `ERR-8` `C-11` `C-8` | julgamento |
 | `EV-15` | privacidade | desabafo no meio da aula: acolher, adaptar, **não persistir a causa** | `PRIV-4` `PRIV-2` `PRIV-3` `PRIV-5` `MEM-6` `AS-11` | julgamento |
 
 ## Cobertura por família de regra
 
-Contagem real, extraída dos arquivos por `run-evals.sh` (E-02) — 67 das 88 regras permanentes são
+Contagem real, extraída dos arquivos por `run-evals.sh` (E-02) — 69 das 90 regras permanentes são
 tocadas por pelo menos um caso.
 
 | Família | No contrato | Tocadas | O que ficou de fora |
 |---|---|---|---|
 | `C-*` | 13 | 11 | `C-5` (voz ativa, 2ª pessoa) · `C-13` (ponte no fim do bloco) |
-| `AS-*` | 12 | 11 | `AS-8` (dizer o número de vezes do mesmo equívoco) |
+| `AS-*` | 13 | 12 | `AS-8` (dizer o número de vezes do mesmo equívoco) |
 | `AN-*` | 7 | 7 | — |
 | `ESC-*` | 4 | 4 | — (`ESC-1` a `ESC-5` são os degraus, não regras do §9) |
 | `ERR-*` | 8 | 6 | `ERR-4` (recorrente troca de estratégia) · `ERR-7` (erro de ambiente é seu) |
@@ -41,7 +41,7 @@ tocadas por pelo menos um caso.
 | `SEG-*` | 8 | 5 | `SEG-4` `SEG-5` (sandbox, rede) · `SEG-7` (exit code, 137) |
 | `DES-*` | 9 | 6 | `DES-4` (igualdade de contagem) · `DES-5` (catálogo de mutação) · `DES-6` (valor esperado) |
 | `VIZ-*` | 6 | **0** | tudo |
-| `BOOT-*` | 7 | 6 | `BOOT-7` (modo efêmero e somente-leitura) |
+| `BOOT-*` | 8 | 7 | `BOOT-7` (modo efêmero e somente-leitura) |
 
 **As lacunas são declaradas, não escondidas:**
 

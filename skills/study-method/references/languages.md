@@ -102,25 +102,31 @@ Com um teste real que falha, o label vira o nome do teste e o exit é 1 **[V]**.
 **Regra**: no TAP do Node, ignore todo `ok N - <label>` cujo `<label>` seja igual a um
 dos caminhos passados na linha de comando. Se sobrar zero, nada rodou.
 
-### 2.3 Rust — `cargo test <nome>` sem qualificar o módulo dá `EXIT=0`
+### 2.3 Rust — filtrar pelo nome QUALIFICADO num teste de integração dá `EXIT=0`
 
-Teste dentro do idiomático `#[cfg(test)] mod tests { ... }`:
+`tests/test_stub.rs` deste sistema é **teste de integração** (layout `cargo_crate`,
+docs/05-challenges-tdd.md §2.3): as funções `#[test]` ficam no TOPO do arquivo, **sem**
+`mod tests`. Sem módulo para qualificar, o cargo reporta e filtra cada caso pelo **nome
+CURTO** — é esse nome curto que `meta.json` grava em `scenarios[].test_name`:
 ```
-$ cargo test test_add -- --exact          # nome CURTO — ERRADO
+$ cargo test tests::test_add -- --exact   # nome QUALIFICADO — ERRADO aqui
 test result: ok. 0 passed; 0 failed; ...; 1 filtered out
 $ echo $?
-0                       # <-- FALSO POSITIVO
+0                       # <-- FALSO POSITIVO: nao existe modulo `tests`, filtro nao casa nada
 
-$ cargo test tests::test_add -- --exact   # nome QUALIFICADO — CORRETO
+$ cargo test test_add -- --exact          # nome CURTO — CORRETO aqui
 test result: FAILED. 0 passed; 1 failed
 $ echo $?
 101
 ```
-O filtro é por substring do **caminho completo** (`tests::test_add`). O nome curto não
-casa e o `cargo` sai com 0 sem avisar. **[V]**
+O filtro do `cargo test` é por substring do **caminho completo** do teste, e o caminho de um
+teste de integração sem módulo **é** o próprio nome da função. Qualificar com `tests::` não
+casa nada e o `cargo` sai com 0 sem avisar. **[V]**
 
-**Regra**: monte sempre `<módulo>::<nome>`. Ou, mais simples e mais seguro num desafio
-de um arquivo só: **não filtre** — rode `cargo test` inteiro.
+**Regra**: filtre pelo nome CURTO (o mesmo de `scenarios[].test_name`), sempre com `--
+--exact` — sem ele o filtro é por substring e casa mais do que se pediu. **Só** se o teste
+estivesse dentro de `#[cfg(test)] mod tests { ... }` (layout diferente do usado aqui) o nome
+precisaria ser qualificado como `tests::<nome>`.
 
 ### 2.4 Python — `unittest` com zero testes dá `EXIT=5`
 
@@ -162,7 +168,7 @@ Nove linguagens fecham o ciclo completo (desafio + teste + gráfico) sem instala
 |---|---|---|---|---|
 | **Python** 3.14.7 | `python3 --version` | `unittest` (stdlib) | `python3 -m unittest discover -s tests -p "test_*.py" -v` | **1** (5 = zero testes) **[V]** |
 | **Node** 24.19.0 | `node --version` | `node:test` + `node:assert` | `node --test --test-reporter=tap tests/stub.test.js` | **1** (0 se o arquivo estiver vazio — §2.2) **[V]** |
-| **Rust** 1.98.0 | `cargo --version` | `cargo test` | `cargo test` (sem filtro; se filtrar: `cargo test tests::<nome> -- --exact`) | **101** **[V]** |
+| **Rust** 1.98.0 | `cargo --version` | `cargo test` | `cargo test` (sem filtro; se filtrar: `cargo test <nome> -- --exact` — nome CURTO, §2.3) | **101** **[V]** |
 | **Go** 1.26.5 | `go version` | `go test` + `testing` | `go test ./... -v` | **1** **[V]** |
 | **C** gcc 16.2.1 | `gcc --version` | `assert.h` | `gcc -std=c11 -g stub.c tests/test_stub.c -o runner -lm && ./runner` | **134** (SIGABRT) **[V]** |
 | **C++** g++ 16.2.1 | `g++ --version` | `<cassert>` | `g++ -std=c++17 -g stub.cpp tests/test_stub.cpp -o runner && ./runner` | **134** (SIGABRT) **[V]** |

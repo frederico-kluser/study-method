@@ -16,8 +16,9 @@ Terminologia congelada: sempre **`docs/` do setup** ou **`docs/` do repositório
 ${STUDY_METHOD_HOME:-${XDG_DATA_HOME:-$HOME/.local/share}/study-method}/registry.json
 ```
 
-Nesta máquina, sem nenhuma variável definida, isso resolve para
-`/home/ondokai/.local/share/study-method/registry.json`.
+Sem nenhuma variável definida, isso resolve para `~/.local/share/study-method/registry.json`
+(a convenção `~/.local/share/study-method/…` já usada em `docs/06-visualizacao.md` e em
+`references/troubleshooting.md` para o ambiente virtual de gráficos).
 
 Schema: `skills/study-method/assets/schemas/registry.schema.json`.
 

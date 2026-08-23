@@ -48,7 +48,7 @@ Consequências práticas, e elas mandam em tudo o que vem depois:
 |---|---|---|
 | **Roteamento** — a `description` dispara nas horas certas e fica quieta nas outras | `routing/` | manual ou assistida: exige um harness que registre se a skill foi invocada |
 | **Comportamento em aula** — anti-bajulação, analogia, escada, honestidade, desafio, bootstrap, material do aluno, injeção | `cases/` | julgamento humano contra a rubrica, com apoio de padrões de texto |
-| **Conformidade estática** — as 88 regras permanentes estão no `SKILL.md`; todo ID citado nos casos existe nas referências | `run-evals.sh` | automático, determinístico |
+| **Conformidade estática** — as 90 regras permanentes estão no `SKILL.md`; todo ID citado nos casos existe nas referências | `run-evals.sh` | automático, determinístico |
 | **Higiene da própria suíte** — nenhuma afirmação proibida por `docs/00-contratos.md` §11 (I-43) escapou para dentro de `evals/` | `run-evals.sh` | automático |
 | **Baseline** — o mesmo prompt com e sem a skill | `baseline.md` | formato pronto; execução é da onda seguinte |
 

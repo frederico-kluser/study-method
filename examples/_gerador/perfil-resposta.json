@@ -101,7 +101,7 @@
     {
       "claim_key": "antipattern_erro_numerico_analogia_da_regua",
       "procedure_kind": "antipattern",
-      "target_topic": "erro-numerico",
+      "target_topic": "erro_numerico",
       "how": "Explicar erro de arredondamento pela analogia da régua de marcas grossas ('medir algo minúsculo com marcação grossa dá erro').",
       "outcome": "backfired",
       "known_limit": "A analogia mapeia o erro para a FERRAMENTA e esconde que a causa é a subtração de dois números quase iguais. A concepção errada que ela implantou sobreviveu a duas sessões e a um experimento do próprio aluno.",
@@ -118,7 +118,7 @@
     {
       "claim_key": "hint_strategy_erro_numerico_contar_digitos",
       "procedure_kind": "hint_strategy",
-      "target_topic": "erro-numerico",
+      "target_topic": "erro_numerico",
       "how": "Escada de três degraus que devolve a conta ao aluno: 'olhe os dois números antes da subtração' -> 'quantos dígitos eles têm em comum?' -> 'quantos dígitos sobram depois de subtrair?'.",
       "outcome": "unlocked",
       "observation_type": "observed",
@@ -132,7 +132,7 @@
     {
       "claim_key": "hint_strategy_derivada_numerica_dica_de_tipo_generica",
       "procedure_kind": "hint_strategy",
-      "target_topic": "derivada-numerica",
+      "target_topic": "derivada_numerica",
       "how": "Dar a dica genérica 'olhe o tipo do primeiro argumento' antes de mandar ler o traceback.",
       "outcome": "no_effect",
       "known_limit": "Dois minutos parado, sem mexer em nada. A autópsia do traceback logo depois destravou em menos de um minuto — a ordem importa mais que a dica.",
@@ -147,7 +147,7 @@
     {
       "claim_key": "hands_on_regra_da_potencia_tabular_e_prever",
       "procedure_kind": "hands_on_activity",
-      "target_topic": "regra-da-potencia",
+      "target_topic": "regra_da_potencia",
       "how": "Mandar derivar numericamente x**2, x**3 e x**4 e escrever os resultados numa coluna, sem dizer o que procurar; depois pedir a previsão para x**5 ANTES de rodar.",
       "outcome": "unlocked",
       "observation_type": "observed",
@@ -161,7 +161,7 @@
     {
       "claim_key": "explanation_path_derivada_numerica_exemplo_exato_primeiro",
       "procedure_kind": "explanation_path",
-      "target_topic": "derivada-numerica",
+      "target_topic": "derivada_numerica",
       "how": "Resolver a diferença centrada com h grande e exato (h = 0,5) e mostrar o termo h**2 como NÚMERO antes de falar em h pequeno.",
       "outcome": "unlocked",
       "observation_type": "observed",
@@ -175,7 +175,7 @@
     {
       "claim_key": "presentation_order_regra_da_cadeia_topico_novo_no_fim",
       "procedure_kind": "presentation_order",
-      "target_topic": "regra-da-cadeia",
+      "target_topic": "regra_da_cadeia",
       "how": "Encaixar um tópico novo nos últimos dez minutos, depois de o tópico principal já estar fechado.",
       "outcome": "partial",
       "known_limit": "Ele acompanha o exemplo conduzido, mas não tenta nenhum sozinho — e acompanhar não é evidência de nada.",

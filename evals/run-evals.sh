@@ -41,7 +41,7 @@ RULE_PREFIX='(C|AS|AN|ESC|ERR|MEM|PRIV|SEG|DES|VIZ|BOOT)'
 RULE_RE="\\b${RULE_PREFIX}-([0-9]+[ab]?|INICIAL|S|D|R)\\b"
 
 CHECKS=(
-  "E-01|as 88 regras permanentes do contrato §9 estão no corpo do SKILL.md"
+  "E-01|as 90 regras permanentes do contrato §9 estão no corpo do SKILL.md"
   "E-02|todo ID de regra citado nos casos existe no SKILL.md ou nas references/"
   "E-03|os casos têm front-matter completo, id único e são pelo menos 10"
   "E-04|os conjuntos de roteamento estão bem formados, sem duplicata e nos dois idiomas"
@@ -141,17 +141,17 @@ trap 'rm -rf -- "$TMPD"' EXIT
 
 # ================================================================== E-01
 if active E-01; then
-section E-01 "as 88 regras permanentes do contrato §9 estão no corpo do SKILL.md"
+section E-01 "as 90 regras permanentes do contrato §9 estão no corpo do SKILL.md"
 
 awk '/^### 9\.1 /,/^## 10\. /' "$CONTRACT" \
   | grep -oE "^\| *${RULE_PREFIX}-[0-9A-Za-z]+" \
   | sed -E 's/^\| *//' | sort -u > "$TMPD/contract-ids.txt" || true
 
 n_contract=$(wc -l < "$TMPD/contract-ids.txt" | tr -d ' ')
-if [ "$n_contract" -eq 88 ]; then
-  ok "o contrato §9 declara 88 regras com ID"
+if [ "$n_contract" -eq 90 ]; then
+  ok "o contrato §9 declara 90 regras com ID"
 else
-  bad "o contrato §9 declara $n_contract regras com ID, esperado 88 (§9.8 é a fonte do número)"
+  bad "o contrato §9 declara $n_contract regras com ID, esperado 90 (§9.8 é a fonte do número)"
 fi
 
 missing=0
@@ -464,17 +464,18 @@ if active E-08; then
 section E-08 "higiene da suíte: nenhuma afirmação proibida por I-43 nem promessa de ganho pedagógico"
 
 hits=0
-while IFS= read -r claim; do
+CLAIMS_PROIBIDAS=(
+  '2 sigma'                                  # afirmação proibida por I-43
+  'd = 1,11'                                 # afirmação proibida por I-43
+  'programar desenvolve raciocínio lógico'   # afirmação proibida por I-43
+)
+for claim in "${CLAIMS_PROIBIDAS[@]}"; do
   [ -n "$claim" ] || continue
   if grep -rqF -e "$claim" "$SELF_DIR" --include='*.md' --include='*.tsv' 2>/dev/null; then
     bad "afirmação proibida por I-43 presente em evals/: «$claim»"
     hits=$((hits+1))
   fi
-done <<'CLAIMS'
-2 sigma
-d = 1,11
-programar desenvolve raciocínio lógico
-CLAIMS
+done
 [ "$hits" -eq 0 ] && ok "nenhuma das afirmações literais proibidas por I-43 aparece nos .md/.tsv de evals/"
 note "o próprio run-evals.sh é excluído da busca: ele PRECISA conter a lista literal para procurá-la"
 

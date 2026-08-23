@@ -4,7 +4,7 @@
 
 O campo `description` do frontmatter do `SKILL.md` é o **único** insumo de roteamento da skill. O
 harness não lê o corpo, não lê as `references/`, não executa nada: ele compara o pedido do usuário
-com aquele parágrafo e decide sozinho se carrega a skill. Tudo o que está escrito nas 88 regras
+com aquele parágrafo e decide sozinho se carrega a skill. Tudo o que está escrito nas 90 regras
 permanentes é irrelevante nos turnos em que a skill não foi invocada.
 
 Duas falhas simétricas, com custos **assimétricos**:

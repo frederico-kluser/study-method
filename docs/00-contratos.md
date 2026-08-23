@@ -262,12 +262,11 @@ coisa é**, não onde ela aparece:
 `erro-numerico` e **a comparação não casa nunca** — o playbook fica mudo sem nada falhar em lugar
 nenhum. Era um bug real, e a causa era exatamente esta ambiguidade.
 
-⚠ **Resíduo declarado, não escondido.** O pattern de `target_topic` ainda é o de kebab-case em
-`session.schema.json`, `profile.schema.json` e no par `memory-compact.{request,response}` — e a
-tabela de patterns canônicos de `tests/validate.sh` ainda espera kebab ali. **Este documento
-vence** (§1); alinhar os quatro schemas e o gate é a correção pendente, e o dono dela é o dono dos
-schemas. Enquanto ela não acontece, quem grava `target_topic` deve gravá-lo na **mesma** grafia de
-`topics[]` daquela sessão — igualdade de string é tudo o que a recuperação tem.
+✅ **Resíduo fechado.** Os quatro schemas (`session.schema.json`, `profile.schema.json` e o par
+`memory-compact.{request,response}`) e a tabela de patterns canônicos de `tests/validate.sh`
+(I-16) já casam `target_topic` com `^[a-z][a-z0-9_]{1,62}$` — o mesmo pattern de `topics[]`. Não
+existe mais partição kebab × snake para `target_topic`: quem grava o campo grava **snake_case,
+sem exceção**, e a igualdade de string com `topics[]` daquela sessão funciona de verdade.
 
 ### 4.3 `$id` dos schemas — convenção única ⚑
 
@@ -348,7 +347,7 @@ Estes não são produzidos pela skill — são produzidos pelo ambiente e **têm
 | **2** | `mix test`, .NET com MTP | Falha de teste. |
 | **134** | SIGABRT: `assert.h` em C, `<cassert>` em C++ | Aborta no **primeiro** erro e esconde os demais — por isso o `counter_protocol` é obrigatório nessas linguagens. |
 | **5** | `python3 -m unittest` sem testes coletados | `Ran 0 tests` + `NO TESTS RAN`. É o falso positivo que a igualdade de contagem pega. |
-| **0 com falha** | `testthat` em R · `go test ./...` com layout errado · `node --test` em arquivo sem `test()` · `cargo test <nome-curto>` · `java` sem `-ea` | Cinco formas verificadas de "passou" sem nada ter rodado. **Por isso o gate é igualdade com `expected_test_count`, nunca `> 0`.** |
+| **0 com falha** | `testthat` em R · `go test ./...` com layout errado · `node --test` em arquivo sem `test()` · `cargo test tests::<nome>` num teste de integração sem `mod tests` (o nome que casa aqui é o CURTO, `references/languages.md` §2.3) · `java` sem `-ea` | Cinco formas verificadas de "passou" sem nada ter rodado. **Por isso o gate é igualdade com `expected_test_count`, nunca `> 0`.** |
 
 **Regra permanente de leitura:** `!= 0` significa falha. **Jamais** `== 1`.
 **Regra de pipe:** `comando | tail -1` devolve o status do `tail`. Todo script usa
@@ -829,7 +828,7 @@ Insumo direto de `tests/validate.sh`. Cada linha é uma asserção verificável;
 | I-13 | Todo pattern de timestamp nos 7 schemas contém `([.][0-9]+)?`. | grep sobre os patterns. |
 | I-14 | ⚑ O enum `language` tem **20** entradas em `setup-manifest` e `registry` e **19** em `challenge-manifest`; os **19 primeiros** são idênticos e na mesma ordem nos três, e o 20º é `none`, presente só nos dois primeiros (§4.1). | `jq -c` + igualdade contra as duas listas esperadas; `.[0:19]` igual nos três **e** `challenge-manifest` sem `none`. Igualdade dos três contra uma lista só **reprovaria schema correto**. |
 | I-15 | `cross_read` existe com enum `["ask","allow","never"]` em `registry.schema.json` e em `setup-manifest.schema.json` → `privacy`; `allow_cross_read` não aparece em lugar nenhum. | `jq` + grep. |
-| I-16 | Os dois namespaces de §4.2 não se misturam: **conceito ou tópico** (`concept_id`, `scenario_id`, `topics[]`, `target_topic`, `skill`) casa `^[a-z][a-z0-9_]{1,62}$`; **slug de caminho** (`setup_name`, `subject_slug`, `<slug>` de diretório, slug de research) casa `^[a-z0-9]+(-[a-z0-9]+)*$`. | validação dos exemplos em `examples/` e dos patterns nos schemas. ⚠ Enquanto o resíduo de §4.2 não for fechado, `target_topic` ainda é verificado como slug de caminho — é a única exceção, e ela é temporária. |
+| I-16 | Os dois namespaces de §4.2 não se misturam: **conceito ou tópico** (`concept_id`, `scenario_id`, `topics[]`, `target_topic`, `skill`) casa `^[a-z][a-z0-9_]{1,62}$`; **slug de caminho** (`setup_name`, `subject_slug`, `<slug>` de diretório, slug de research) casa `^[a-z0-9]+(-[a-z0-9]+)*$`. | validação dos exemplos em `examples/` e dos patterns nos schemas. `target_topic` já é verificado como conceito/tópico (§4.2), sem exceção — o resíduo está fechado. |
 | I-17 | Nenhum `challenge_id` de exemplo usa o formato `c-NNNN-<slug>`. | `grep -rE '"challenge_id": *"[^0-9]'` vazio. |
 | I-18 | Todo script de `SK/scripts/*.sh` (fora de `lib/`) usa apenas os exit codes `0 1 2 3 4 5 10`. | extração estática de `exit <n>` + `sm_die <n>`. |
 | I-19 | Os três arquivos de `lib/` não têm bit de execução e não contêm bloco `main`/`"$@"` de topo. | `test ! -x` + grep. |
@@ -874,6 +873,16 @@ nos números abaixo mexe aqui primeiro.
 ## 12. Registro das decisões arbitradas aqui ⚑
 
 Cada linha resolve uma contradição entre documentos escritos em paralelo. Nenhuma fica "a definir".
+
+**Convenção para decisão revista por onda posterior:** a mesma disciplina bitemporal de
+`memory/profile.json` (§5 — `status: active` × `superseded`, com `superseded_by` apontando para o
+registro novo) vale aqui. A linha original **não é apagada nem reescrita**: ela é o que foi
+decidido **na época**, e apagá-la destrói a explicação de por que código ou prosa já escritos têm
+a forma que têm. Ela ganha só a marcação `⚠ **SUPERADA por A-NN**` ao fim da coluna Decisão, e a
+arbitragem vigente entra como uma linha **nova**, com ID novo, que diz `**Supersede A-NN**` e
+registra o motivo da reversão na coluna Por quê. Nenhuma linha de `§12` muda de sentido depois de
+escrita — ela só pode ganhar essa marcação e ceder o lugar de "vigente" para a linha que a
+supersede.
 
 ### 12.0 ⭐ Mapa `AR-NN` → `A-NN` — a correspondência **não é 1:1**
 
@@ -930,7 +939,7 @@ aqui, ou é erro de citação — e nos dois casos a resolução é pelo assunto
 | A-12 | Sessão órfã: recuperação automática × menu de 3 opções na abertura | **Fechamento retroativo automático** para `status: "abandoned"`, `finalized_by: "auto_orphan_recovery"`, conteúdo preservado integralmente; **a retomada é oferecida como 1º item da agenda** em `plan_lesson` com razão `orphan_resume`. O "descartar" continua existindo, mas como pedido explícito do aluno (`memory/discarded/`), nunca como pergunta de abertura. | Perguntar na abertura viola BOOT-6 e a órfã já foi preservada sem perda; a decisão determinística é a que `memory-index.sh --verify` consegue implementar sem modelo no loop (D-A05, D-M06). |
 | A-13 | `memory/broken/` × `memory/discarded/` | **Ambos existem, sem sobreposição.** `broken/` = quarentena automática do que não parseia. `discarded/` = descarte pedido pelo aluno. | São dois eventos diferentes com auditorias diferentes; fundi-los perderia a distinção entre "corrompeu" e "ele não quis". |
 | A-14 | `cross_read` (`ask\|allow\|never`) × `allow_cross_read` (booleano) | **`cross_read`** com os três valores, em `registry.json` e em `setup.json` → `privacy.cross_read`. `allow_cross_read` é removido. | Booleano não expressa `ask`, que é o **default**; manter os dois criaria uma terceira fonte de verdade. |
-| A-15 | Identificador de conceito: snake_case × kebab-case | **Conceito = snake_case** (`^[a-z][a-z0-9_]{1,62}$`); **tópico/tag/slug = kebab-case**. Dois namespaces, declarados. | O conceito vira nome de símbolo e chave de agrupamento; o slug vira nome de diretório e de arquivo. `sm_normalize_concept_id` e `sm_normalize_slug` tornam a distinção mecânica. |
+| A-15 | Identificador de conceito: snake_case × kebab-case | **Conceito = snake_case** (`^[a-z][a-z0-9_]{1,62}$`); **tópico/tag/slug = kebab-case**. Dois namespaces, declarados. ⚠ **SUPERADA por `A-35`** (§12.2). | O conceito vira nome de símbolo e chave de agrupamento; o slug vira nome de diretório e de arquivo. `sm_normalize_concept_id` e `sm_normalize_slug` tornam a distinção mecânica. |
 | A-16 | `setup_id` como `^[a-z][a-z0-9_-]{1,63}$` em `progress.schema.json` | **`^[0-9a-f]{12}$`** em todo lugar. | Identidade sorteada, não legível; `progress.schema.json` é corrigido. |
 | A-17 | Timestamp com × sem fração de segundo | **Fração opcional** (`([.][0-9]+)?`) nos 7 schemas. | 5 dos 7 já a aceitam; rejeitar em 2 quebraria arquivos escritos por outro script do mesmo sistema. |
 | A-18 | Gráficos em `researchs/assets/` × `<sessão>/viz/` | **`researchs/assets/<NNNN>-<slug>/`.** | Não há diretório de sessão no contrato de árvore; a figura é um destilado visual e sobrevive ao desafio ser refeito, que era o argumento de D-V08. |
@@ -958,3 +967,9 @@ um valor que a especificação trazia e a medição derrubou.
 | A-32 | `max_hint_level_used`: máximo histórico × última evidência | **É o `hint_level` da evidência mais recente**, não o máximo histórico. **O nome do campo mente** e fica como está (renomear é MAJOR e migra evidência já escrita); a semântica é esta e está declarada aqui. | Máximo histórico é monotônico: uma vez em 5, para sempre em 5, e o degrau inicial de `ESC-INICIAL` nunca mais desceria. O consumidor quer o degrau da **última** tentativa. |
 | A-33 | `x_label`/`y_label` obrigatórios (VIZ-3) × opcionais no schema | **Vence o schema: não são obrigatórios.** `plot-spec.schema.json` exige apenas `type`, `series`, `title`, `takeaway`. Ausência vira **aviso** em `warnings[]` (exit 0), nunca erro. | VIZ-3 continua sendo a regra de qualidade que a skill deve seguir ao **autorar** a spec; transformar isso em falha do `render-plot.py` reprovaria gráfico correto de série sem unidade (contagem, categoria) e quebraria o contrato de "falha de rótulo não é erro" da CLI (§5.2). |
 | A-34 | escopo da busca por termo revogado (`AR-28`, I-01, I-03, I-04, I-05) | O grep de termo revogado **exclui**: `docs/00-contratos.md` (este arquivo — ele **cita** os termos revogados para poder revogá-los), `docs/research/` (pesquisa auditada, congelada), `tests/` (o gate carrega os termos como literais de busca) e `SK/assets/decisions.json` (registro histórico das decisões). | Sem o escopo, toda invariante de revogação falha **por causa do próprio texto que a define** — o gate reprovaria o repositório inteiro na primeira execução. Os quatro lugares excluídos são os únicos onde o termo revogado aparece **como menção**, nunca como uso. |
+
+### 12.2 Decisões revistas por ondas posteriores ⚑
+
+| # | Contradição | Decisão | Por quê |
+|---|---|---|---|
+| A-35 | **Supersede `A-15`.** "Tópico/tag/slug" tratados como um namespace só, todo em kebab-case, incluía `target_topic` — mas `target_topic` **não é** slug de caminho, é identificador de tópico. | **Conceito ou tópico → `snake_case`; slug de caminho → `kebab-case`** (§4.2). `target_topic` casa `^[a-z][a-z0-9_]{1,62}$`, o mesmo pattern de `session.topics[]` — não o de `setup_name`/`subject_slug`/diretório de desafio. | A recuperação do `procedural_playbook` compara `procedural_facts[].target_topic` com `session.topics[]` por **igualdade de string**: é o mecanismo inteiro, sem match o procedimento não é recuperado. `A-15` juntou num namespace só duas coisas com regra de comparação diferente — "o que se estuda" (comparado por igualdade, precisa de uma grafia única) e "o que vira caminho no disco" (nunca comparado, só precisa ser válido como nome de arquivo). Com `topics[]` em snake_case e `target_topic` em kebab-case pelo `A-15` antigo, `erro_numerico` nunca casava `erro-numerico` e a comparação não casava **nunca** — o playbook ficava mudo sem nada falhar em lugar nenhum. Era um bug real, e a causa era exatamente essa fusão de namespace. |
