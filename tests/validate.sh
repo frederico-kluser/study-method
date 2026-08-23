@@ -133,16 +133,39 @@ if __name__ == "__main__":
     sys.exit(main(sys.argv))
 PYEOF
 
-# grep_scope <ERE> — casa o padrão em SCAN_FILES descartando o contexto revogatório.
-grep_scope() {
-  [ "${#SCAN_FILES[@]}" -eq 0 ] && return 0
-  python3 "$SCANNER" revoke "$1" "$REVOKE_MARKERS" "$GATE_ROOT" "${SCAN_FILES[@]}"
+# _scope_into <nome-do-array> [glob-relativo...] — copia SCAN_FILES para o array, tirando
+# os caminhos que casam um dos globs. Cada glob usado aqui TEM de ter sido declarado por
+# `gate_scope_excl`: exclusão escondida é pior que exclusão conhecida.
+_scope_into() {
+  local -n _out="$1"; shift
+  _out=()
+  local f rel g skip
+  for f in "${SCAN_FILES[@]}"; do
+    rel="${f#"$GATE_ROOT"/}"
+    skip=0
+    for g in "$@"; do
+      # shellcheck disable=SC2254  # o glob é deliberado
+      case "$rel" in $g) skip=1; break ;; esac
+    done
+    [ "$skip" -eq 0 ] && _out+=("$f")
+  done
 }
 
-# grep_scope_raw <ERE> — igual, sem tolerância nenhuma.
+# grep_scope <ERE> [glob-excluído...] — casa o padrão em SCAN_FILES descartando o contexto
+# revogatório e os caminhos excluídos POR ESTE check (não globalmente).
+grep_scope() {
+  local pat="$1"; shift
+  local -a _f=(); _scope_into _f "$@"
+  [ "${#_f[@]}" -eq 0 ] && return 0
+  python3 "$SCANNER" revoke "$pat" "$REVOKE_MARKERS" "$GATE_ROOT" "${_f[@]}"
+}
+
+# grep_scope_raw <ERE> [glob-excluído...] — igual, sem tolerância de contexto.
 grep_scope_raw() {
-  [ "${#SCAN_FILES[@]}" -eq 0 ] && return 0
-  python3 "$SCANNER" raw "$1" "" "$GATE_ROOT" "${SCAN_FILES[@]}"
+  local pat="$1"; shift
+  local -a _f=(); _scope_into _f "$@"
+  [ "${#_f[@]}" -eq 0 ] && return 0
+  python3 "$SCANNER" raw "$pat" "" "$GATE_ROOT" "${_f[@]}"
 }
 
 declare -a SCHEMAS=()
@@ -406,7 +429,7 @@ else
   gate_pend "I-01" "os 9 nomes de passo aparecem no SKILL.md" "arquivo inexistente: $(gate_rel "$SKILL_MD")"
 fi
 
-hits="$(grep_scope 'resolve_target|verify_setup|bootstrap_or_ask|ingest_docs|teach_loop|challenge_cycle')"
+hits="$(grep_scope 'resolve_target|verify_setup|bootstrap_or_ask|ingest_docs|teach_loop|challenge_cycle' "skills/study-method/assets/decisions.json")"
 assert_grep_empty "I-01b" "nenhum nome de passo revogado (§2.2) em doc ou schema" \
   "zero ocorrências de resolve_target/verify_setup/bootstrap_or_ask/ingest_docs/teach_loop/challenge_cycle" "$hits"
 
@@ -426,24 +449,39 @@ else
   gate_pend "I-02" "setup_interview/load_docs marcados como condicionais" "arquivo inexistente: SKILL.md"
 fi
 
-hits="$(grep_scope 'session_status')"
+# O catálogo de decisões registra, em cada entrada, a opção que foi RECUSADA — pelo nome.
+# `assets/decisions.json` é onde `session_status` aparece como o id da alternativa perdedora
+# de D-A03/D-M08: citar o termo ali é o contrato do arquivo, não regressão. Mesma razão pela
+# qual `docs/00-contratos.md` já está fora de escopo. A exclusão vale SÓ para a família de
+# checks de termo revogado — G-09, I-17, I-42, I-43 e G-10 continuam varrendo o arquivo.
+DECISIONS_REL="skills/study-method/assets/decisions.json"
+gate_scope_excl "I-01b I-03 I-04 I-05 I-15b" "$DECISIONS_REL" \
+  "catálogo de decisões: cada entrada nomeia a opção RECUSADA (ex.: o id \`session_status\` em D-A03). Documentar a alternativa perdedora é o contrato do arquivo — os demais checks continuam varrendo-o."
+
+hits="$(grep_scope 'session_status' "$DECISIONS_REL")"
 assert_grep_empty "I-03" "o nome revogado do estado da sessão não aparece" \
   "zero ocorrências (o campo é \`status\`, §4.1)" "$hits"
 
-hits="$(grep_scope '\.study-method/|[^-a-z]manifest\.json|docs-manifest\.json|SETUP_CTL|PROFILE\.json')"
+hits="$(grep_scope '\.study-method/|[^-a-z]manifest\.json|docs-manifest\.json|SETUP_CTL|PROFILE\.json' "$DECISIONS_REL")"
 assert_grep_empty "I-04" "nenhum termo do diretório de controle revogado" \
   "zero ocorrências de .study-method/ · manifest.json · docs-manifest.json · SETUP_CTL · PROFILE.json" "$hits"
 
-hits="$(grep_scope 'challenge-run\.sh|render-html\.sh')"
+hits="$(grep_scope 'challenge-run\.sh|render-html\.sh' "$DECISIONS_REL")"
 assert_grep_empty "I-05" "nenhuma citação aos 2 scripts removidos (§8, A-19)" \
   "zero ocorrências de challenge-run.sh e render-html.sh" "$hits"
 
-hits="$(grep_scope 'allow_cross_read|last_used_at')"
+hits="$(grep_scope 'allow_cross_read|last_used_at' "$DECISIONS_REL")"
 assert_grep_empty "I-15b" "nenhum campo revogado de privacidade/registry" \
   "zero ocorrências de allow_cross_read (vencido por cross_read) e last_used_at (é last_seen_at)" "$hits"
 
 # ═══════════════════════════════════════════════════ B · inventário de scripts (I-06)
 gate_section "B · inventário dos 19 scripts (I-06)"
+
+# Auxiliares de prefixo `_` (lib/_jsonschema_min.py, lib/_mutate.py) são módulos internos
+# deliberados: o `_` É a marca de "não é entrada da tabela §8". Ficam fora da contagem dos 19
+# — mas qualquer script SEM o prefixo que não esteja na tabela continua reprovando.
+gate_scope_excl "I-06c" "SK/scripts/**/_*" \
+  "auxiliar interno: o prefixo \`_\` declara que o arquivo não é um dos 19 executáveis de §8. Script sem o prefixo e fora da tabela continua sendo FAIL."
 
 CANON_SCRIPTS="$(awk '/^## 8\./{f=1} /^## 9\./{f=0} f' "$CONTRACT" \
   | grep -oE '^\| `(lib/)?[a-z0-9-]+\.(sh|py)`' | sed 's/^| `//;s/`$//' | sort -u)"
@@ -454,15 +492,16 @@ if [ -d "$SCRIPT_DIR" ]; then
   FOUND_SCRIPTS="$(cd "$SCRIPT_DIR" && find . -type f \( -name '*.sh' -o -name '*.py' \) \
     | sed 's|^\./||' | sort -u)"
   missing="$(comm -23 <(printf '%s\n' "$CANON_SCRIPTS") <(printf '%s\n' "$FOUND_SCRIPTS") || true)"
-  extra="$(comm -13 <(printf '%s\n' "$CANON_SCRIPTS") <(printf '%s\n' "$FOUND_SCRIPTS") || true)"
+  extra="$(comm -13 <(printf '%s\n' "$CANON_SCRIPTS") <(printf '%s\n' "$FOUND_SCRIPTS") \
+    | grep -vE '(^|/)_' || true)"
   if [ -n "$missing" ]; then
     gate_pend "I-06b" "os 19 scripts de §8 existem em SK/scripts/" \
       "faltam $(printf '%s\n' "$missing" | grep -c . || true): $(printf '%s' "$missing" | tr '\n' ' ')"
   else
     gate_pass "I-06b" "os 19 scripts de §8 existem em SK/scripts/"
   fi
-  assert_grep_empty "I-06c" "nenhum script fora da tabela §8" \
-    "zero scripts não declarados no contrato" "$extra"
+  assert_grep_empty "I-06c" "nenhum script fora da tabela §8 (auxiliares \`_*\` à parte)" \
+    "zero scripts não declarados no contrato, fora os auxiliares de prefixo \`_\`" "$extra"
 else
   gate_pend "I-06b" "os 19 scripts de §8 existem" "diretório inexistente: $(gate_rel "$SCRIPT_DIR")"
 fi
@@ -567,17 +606,25 @@ if [ -f "$SCHEMA_DIR/progress.schema.json" ]; then
   else gate_fail "I-11b" "enum status de fato em progress.schema.json" "$FACT_STATUS_EXP em algum ponto do schema" "nenhum enum igual encontrado" "$(gate_rel "$SCHEMA_DIR/progress.schema.json")"; fi
 else gate_pend "I-11b" "enum status de fato em progress.schema.json" "arquivo inexistente"; fi
 
-# I-14 · enum language idêntico e na mesma ordem em 3 schemas
-LANG_EXP='["python","javascript","typescript","rust","go","java","csharp","ruby","elixir","kotlin","swift","c","cpp","php","lua","julia","r","haskell","bash"]'
+# I-14 · enum language: 19 linguagens, na mesma ordem, nos 3 schemas — mais `none` nos DOIS
+# que descrevem um SETUP. A assimetria é intencional e arbitrada: um setup pode não ter código
+# nenhum (`language: none` é caso legítimo), um DESAFIO em linguagem nenhuma não existe.
+# Portanto: setup-manifest 20 · registry 20 · challenge-manifest 19. Ordem idêntica nos 19
+# primeiros; `none` sempre por último, onde existe.
+LANG_BASE='"python","javascript","typescript","rust","go","java","csharp","ruby","elixir","kotlin","swift","c","cpp","php","lua","julia","r","haskell","bash"'
+LANG_EXP="[$LANG_BASE]"
+LANG_EXP_SETUP="[$LANG_BASE,\"none\"]"
 lang_of() {
   [ -f "$1" ] || { printf '<arquivo ausente>'; return; }
   jq -c '[paths(objects) as $p | getpath($p) | select(type=="object" and (.enum? // empty | type=="array") and ((.enum|length)>=15) and (.enum|index("python")) != null) | .enum] | (.[0] // "<enum language ausente>")' "$1" 2>/dev/null || printf '<erro jq>'
 }
-for pair in "setup-manifest.schema.json:I-14a" "registry.schema.json:I-14b" "challenge-manifest.schema.json:I-14c"; do
-  fn="${pair%%:*}"; iid="${pair##*:}"
+for pair in "setup-manifest.schema.json:I-14a:20" "registry.schema.json:I-14b:20" "challenge-manifest.schema.json:I-14c:19"; do
+  fn="${pair%%:*}"; rest="${pair#*:}"; iid="${rest%%:*}"; nexp="${rest##*:}"
   if [ ! -f "$SCHEMA_DIR/$fn" ]; then gate_pend "$iid" "enum language em $fn" "arquivo inexistente"; continue; fi
-  assert_eq "$iid" "enum language (19, mesma ordem) em $fn" "$LANG_EXP" "$(lang_of "$SCHEMA_DIR/$fn")" "$(gate_rel "$SCHEMA_DIR/$fn")"
+  if [ "$nexp" = 20 ]; then exp="$LANG_EXP_SETUP"; else exp="$LANG_EXP"; fi
+  assert_eq "$iid" "enum language ($nexp, mesma ordem) em $fn" "$exp" "$(lang_of "$SCHEMA_DIR/$fn")" "$(gate_rel "$SCHEMA_DIR/$fn")"
 done
+gate_note "I-14 · a assimetria 20/20/19 é deliberada: \`none\` existe onde se descreve um SETUP (que pode não ter código), não onde se descreve um DESAFIO. docs/00-contratos.md §4.1 e §11 ainda dizem «19» nos três — o texto do contrato é que precisa da correção."
 
 # I-15 · cross_read
 CR_EXP='["ask","allow","never"]'
@@ -589,7 +636,13 @@ check_enum "I-15c" "$SCHEMA_DIR/setup-manifest.schema.json" \
   "$CR_EXP" "enum cross_read em setup-manifest.schema.json → privacy"
 
 # I-17 · challenge_id nunca no formato c-NNNN-<slug>
-hits="$(grep_scope_raw '"challenge_id" *: *"[^0-9"]')"
+# `"challenge_id": "{{CHALLENGE_ID}}"` é o BURACO onde o id entra, não um id: o valor só
+# existe depois da substituição, e G-09 é quem garante que nenhum placeholder sobrevive ao
+# artefato. A exclusão é do PLACEHOLDER, não do arquivo: um *.tmpl que fixasse
+# `"challenge_id": "c-0001-merge-sort"` continua sendo FAIL, como qualquer outro artefato.
+gate_scope_excl "I-17" "valor que é placeholder \`{{…}}\`" \
+  "\`\"challenge_id\": \"{{CHALLENGE_ID}}\"\` é o buraco do id, não um id — e quem garante que o placeholder não sobrevive à renderização é G-09. Todo arquivo, *.tmpl inclusive, continua em escopo para um id literal no formato revogado."
+hits="$(grep_scope_raw '"challenge_id" *: *"(?!\{\{)[^0-9"]')"
 assert_grep_empty "I-17" "nenhum challenge_id de exemplo no formato revogado c-NNNN-slug" \
   "challenge_id sempre ^[0-9]{4}\$ (A-10)" "$hits"
 
@@ -597,12 +650,72 @@ assert_grep_empty "I-17" "nenhum challenge_id de exemplo no formato revogado c-N
 gate_section "D · scripts: exit codes, lib/, protocolo e escrita (I-18 .. I-27)"
 
 declare -a EXEC_SH=()
+declare -a LIB_SH=()
 if [ -d "$SCRIPT_DIR" ]; then
   while IFS= read -r -d '' f; do
-    case "$f" in "$LIB_DIR"/*) continue ;; esac
+    case "$f" in "$LIB_DIR"/*) LIB_SH+=("$f"); continue ;; esac
     EXEC_SH+=("$f")
   done < <(find "$SCRIPT_DIR" -type f -name '*.sh' -print0 2>/dev/null | sort -z)
 fi
+
+# ── escopo léxico: a diferença entre USAR um construto e FALAR dele ──────────────────────
+# `exit 10` dentro de `sm_request` é o contrato; a mesma linha noutra função é violação.
+# `"$@"` dentro de uma função é repasse de argumento; no nível de topo é bloco main.
+# `curl` num comentário é documentação; numa linha de código é rede. Um grep de linha não
+# separa os três casos — o classificador de tests/lib/assert.sh separa.
+SHELLSCOPE="$(gate_shell_scope_tool)"
+SCOPE_TSV="$GATE_TMPDIR/shellscope.tsv"
+: > "$SCOPE_TSV"
+if [ "$(( ${#EXEC_SH[@]} + ${#LIB_SH[@]} ))" -gt 0 ]; then
+  python3 "$SHELLSCOPE" classify "$GATE_ROOT" \
+    ${EXEC_SH[0]+"${EXEC_SH[@]}"} ${LIB_SH[0]+"${LIB_SH[@]}"} > "$SCOPE_TSV" 2>/dev/null || : > "$SCOPE_TSV"
+fi
+gate_limitation "I-19, I-23, I-26, I-27 e G-09 leem o fonte shell por um classificador léxico (comentário · here-document · string multilinha · escopo de função), não por um parser de shell completo. Ele se autoverifica: arquivo cuja profundidade de chaves não fecha em zero é reportado, e o check cai para a leitura crua daquele arquivo."
+
+# Autoverificação do classificador: se a profundidade não voltar a zero, ele não entendeu o
+# arquivo — e isso precisa aparecer, não ser engolido.
+SCOPE_BROKEN="$(awk -F'\t' '$3=="EOF" && $5!=0 {print $1}' "$SCOPE_TSV" 2>/dev/null || true)"
+if [ -n "$SCOPE_BROKEN" ]; then
+  gate_warn "SCOPE" "o classificador léxico não fechou as chaves em $(printf '%s' "$SCOPE_BROKEN" | grep -c .) arquivo(s)" \
+    "$(gate_trunc "$(printf '%s' "$SCOPE_BROKEN" | tr '\n' ' ')" 200) — nesses arquivos I-19/I-23/I-26/I-27 caem para leitura crua (mais falso positivo, nunca menos cobertura)"
+fi
+
+# scope_code_lines <rel-do-arquivo> — nº das linhas que EXECUTAM (nem comentário, nem corpo
+# de here-document, nem continuação de string multilinha). Arquivo que o classificador não
+# entendeu devolve todas as linhas: prefere-se falso positivo a buraco de cobertura.
+scope_code_lines() {
+  local rel="$1"
+  if printf '%s\n' "$SCOPE_BROKEN" | grep -qxF "$rel"; then
+    awk -F'\t' -v f="$rel" '$1==f && $3!="EOF" {print $2}' "$SCOPE_TSV"
+    return 0
+  fi
+  awk -F'\t' -v f="$rel" '$1==f && $3=="code" {print $2}' "$SCOPE_TSV"
+}
+
+# scope_filter_scan — filtra `rel:linha: texto` (saída de scan.py) deixando de fora as
+# linhas de shell que não executam: comentário, corpo de here-document e string multilinha.
+# Arquivo que não é shell classificado passa inteiro.
+scope_filter_scan() {
+  awk -F: -v tsv="$SCOPE_TSV" '
+    BEGIN {
+      while ((getline l < tsv) > 0) {
+        n = split(l, a, "\t")
+        if (n >= 3) { known[a[1]] = 1; if (a[3] == "code") ok[a[1] ":" a[2]] = 1 }
+      }
+    }
+    { rel=$1; ln=$2 }
+    !(rel in known) { print; next }
+    (rel ":" ln) in ok { print }
+  '
+}
+
+# scope_filter <rel> — filtra `nº:texto` (saída de grep -n) deixando só as linhas de código.
+scope_filter() {
+  local rel="$1" keep
+  keep="$(scope_code_lines "$rel")"
+  [ -z "$keep" ] && return 0
+  awk -F: -v k="$keep" 'BEGIN{n=split(k,a,"\n"); for(i=1;i<=n;i++) ok[a[i]]=1} ok[$1]'
+}
 
 if [ "${#EXEC_SH[@]}" -eq 0 ]; then
   for iid in I-18 I-21 I-22 I-24 I-25 I-26 I-27; do
@@ -675,37 +788,97 @@ else
     "escrita só em <setup_root> e \$STUDY_METHOD_HOME (SEG-8)" "${bad%$'\n'}"
 
   # I-26 zero rede
+  # `nc ` sem fronteira de palavra casa dentro de `func `, `sync ` e `Async ` — três palavras
+  # que aparecem em gerador de código Go/JS. A fronteira \b é o que separa o comando `nc` do
+  # sufixo de outra palavra. E só linha de CÓDIGO conta: `# nunca use curl` é documentação.
+  NET_RE='(^|[^A-Za-z0-9_.-])(curl|wget|nc|ncat|ssh|scp|sftp|rsync|telnet)([^A-Za-z0-9_-]|$)|/dev/(tcp|udp)/|ftp://'
   bad=""
   for f in "${EXEC_SH[@]}"; do
-    m="$(grep -nE 'curl |wget |nc |/dev/tcp|ftp://|ssh |scp |rsync ' "$f" 2>/dev/null | grep -vE '^\s*[0-9]+:\s*#' || true)"
-    [ -n "$m" ] && bad="$bad$(printf '%s\n' "$m" | sed "s|^|$(gate_rel "$f"):|")"$'\n'
+    rel="$(gate_rel "$f")"
+    m="$(grep -nE "$NET_RE" "$f" 2>/dev/null | scope_filter "$rel" || true)"
+    [ -n "$m" ] && bad="$bad$(printf '%s\n' "$m" | sed "s|^|$rel:|")"$'\n'
   done
   assert_grep_empty "I-26" "zero rede nos scripts" \
-    "nenhum curl/wget/nc//dev/tcp/ssh/scp/rsync fora de comentário" "${bad%$'\n'}"
+    "nenhum curl/wget/nc/ncat/ssh/scp/sftp/rsync/telnet como PALAVRA, nenhum /dev/tcp e nenhum ftp://, em linha de código" "${bad%$'\n'}"
 
   # I-27 derivados só por sm_atomic_write
-  DERIVED='INDEX\.json|profile\.json|progress\.json|docs-index\.json|setup\.json|meta\.json|registry\.json|README\.md'
-  bad=""
-  for f in "${EXEC_SH[@]}"; do
-    m="$(grep -nE "> *\"?[^ ]*($DERIVED)\"?" "$f" 2>/dev/null | grep -v 'sm_atomic_write' | grep -vE '>&2|2>' || true)"
-    [ -n "$m" ] && bad="$bad$(printf '%s\n' "$m" | sed "s|^|$(gate_rel "$f"):|")"$'\n'
-  done
-  assert_grep_empty "I-27" "todo derivado é escrito por sm_atomic_write, nunca por > direto" \
-    "sm_atomic_write em INDEX/profile/progress/docs-index/setup/meta/registry/README (§7.1)" "${bad%$'\n'}"
+  # Três precisões, todas necessárias e nenhuma permissiva:
+  #  1. o `>` tem de SER um redirecionamento — início de linha, ou precedido de espaço, `&`
+  #     ou descritor. Sem isso, o `>` de `<path>/setup.json` num texto de uso já acusava;
+  #  2. só linha de CÓDIGO — texto de uso vive em here-document, comentário é comentário;
+  #  3. o alvo tem de ser o destino FINAL. O padrão correto de §7.1 é montar em temporário
+  #     e publicar com `sm_atomic_write <final> < <temporário>`; escrever no temporário É o
+  #     caminho certo, e acusá-lo é acusar o contrato.
+  # A busca é feita em python porque o que importa é o ALVO do redirecionamento, não a linha:
+  # `jq . "$SM_TMP/meta.json" > "$CH_DIR/meta.json"` tem um temporário na ORIGEM e o destino
+  # final no ALVO — e é violação. Já `... > "$SM_TMP/meta.json"` seguido de
+  # `sm_atomic_write "$CH_DIR/meta.json" < "$SM_TMP/meta.json"` é o padrão de §7.1.
+  bad="$(python3 - "$SCOPE_TSV" <<'PYI27' 2>/dev/null || true
+import re
+import sys
+
+DERIVED = re.compile(r"(INDEX\.json|profile\.json|progress\.json|docs-index\.json|"
+                     r"setup\.json|meta\.json|registry\.json|README\.md)$")
+# um redirecionamento de verdade: inicio de linha, ou precedido de espaco/`&`; nunca `2>`,
+# nunca `>&N`, nunca `<`. O alvo vai ate o proximo separador de shell.
+REDIR = re.compile(r"(?:^|[\s&|;(])(?<![0-9])>>?(?![&>])\s*(\S+)")
+TEMP = re.compile(r"SM_TMP|TMPDIR|TEMPDIR|MKTEMP|mktemp|/tmp/|\.tmp\b|\.part\b|\.new\b|"
+                  r"_tmp|_TMP|WORK|\$\$", re.IGNORECASE)
+
+bad = []
+for row in open(sys.argv[1], encoding="utf-8", errors="replace"):
+    f = row.rstrip("\n").split("\t")
+    if len(f) < 6 or f[2] != "code":
+        continue
+    code = f[5]
+    if "sm_atomic_write" in code:
+        continue
+    for m in REDIR.finditer(code):
+        target = m.group(1).strip().strip('"').strip("'")
+        if not DERIVED.search(target):
+            continue
+        if TEMP.search(target):
+            continue          # escrever no temporario E o contrato de §7.1
+        bad.append("%s:%s: escreve direto no destino final -> %s   [%s]"
+                   % (f[0], f[1], target, code.strip()[:120]))
+sys.stdout.write("\n".join(bad) + ("\n" if bad else ""))
+PYI27
+)"
+  assert_grep_empty "I-27" "todo derivado é escrito por sm_atomic_write, nunca por > direto no destino final" \
+    "sm_atomic_write em INDEX/profile/progress/docs-index/setup/meta/registry/README (§7.1); escrita direta só em temporário" "${bad%$'\n'}"
+  gate_scope_excl "I-27" "redirecionamento cujo ALVO é temporário" \
+    "o padrão de §7.1 é montar em \$SM_TMP/… e publicar com \`sm_atomic_write <final> < <temporário>\`. Acusar a escrita no temporário é acusar o contrato; o teste é sobre o ALVO do \`>\`, então um temporário na ORIGEM não protege ninguém — a escrita no DESTINO FINAL continua sendo FAIL."
 fi
 
 # I-19/I-20/I-23 · lib/
 if [ ! -d "$LIB_DIR" ] || [ -z "$(ls -A "$LIB_DIR" 2>/dev/null | grep '\.sh$' || true)" ]; then
   for iid in I-19 I-20 I-23; do gate_pend "$iid" "invariante sobre SK/scripts/lib/" "nenhum .sh em $(gate_rel "$LIB_DIR")"; done
 else
+  # I-19 · LIB-1: modo 0644 e NENHUMA execução de nível de topo.
+  # A regra é sobre EXECUÇÃO NO TOPO, não sobre a string `"$@"`. Em lib/sandbox.sh o `"$@"`
+  # aparece (a) num comentário, (b) como repasse de argumento DENTRO de função e (c) dentro
+  # de um here-document que é o texto de um wrapper — nenhum dos três é bloco main. O que a
+  # LIB-1 proíbe é a lib rodar sozinha ao ser executada: definição/chamada de `main`, o
+  # repasse `"$@"` como COMANDO fora de função, e o guarda de auto-execução.
   bad=""
   for f in "$LIB_DIR"/*.sh; do
-    [ -x "$f" ] && bad="$bad$(gate_rel "$f"): tem bit de execução (modo $(stat -c '%a' "$f"))"$'\n'
-    grep -qE '^[[:space:]]*(main|_main)[[:space:]]*\(\)|^[[:space:]]*(main|_main)[[:space:]]+"\$@"|^[[:space:]]*"\$@"' "$f" \
-      && bad="$bad$(gate_rel "$f"): tem bloco main/\"\$@\" de topo"$'\n'
+    rel="$(gate_rel "$f")"
+    [ -x "$f" ] && bad="$bad$rel: tem bit de execução (modo $(stat -c '%a' "$f"))"$'\n'
+    m="$(awk -F'\t' -v f="$rel" '
+          $1==f && $3=="code" && $4=="" && $5==0 {
+            line=$6
+            sub(/^[[:space:]]+/, "", line)
+            if (line ~ /^(main|_main)[[:space:]]*\(\)/)                       { print $2": define bloco main de topo -> "line }
+            else if (line ~ /^(main|_main)([[:space:]]|$)/)                    { print $2": chama main no nível de topo -> "line }
+            else if (line ~ /^(exec[[:space:]]+)?"\$@"/)                       { print $2": repassa \"$@\" como comando no nível de topo -> "line }
+            else if (line ~ /BASH_SOURCE\[0\]/ && line ~ /\$0/)                { print $2": guarda de auto-execução no nível de topo -> "line }
+          }' "$SCOPE_TSV" || true)"
+    [ -n "$m" ] && bad="$bad$(printf '%s\n' "$m" | sed "s|^|$rel:|")"$'\n'
   done
-  assert_grep_empty "I-19" "lib/ sem bit de execução e sem bloco main (LIB-1)" \
-    "modo 0644, apenas \`source\`" "${bad%$'\n'}"
+  assert_grep_empty "I-19" "lib/ sem bit de execução e sem execução de nível de topo (LIB-1)" \
+    "modo 0644 e nenhuma linha executável fora de função: sem \`main\`, sem \`\"\$@\"\` como comando, sem guarda de auto-execução" "${bad%$'\n'}"
+  gate_scope_excl "I-19" "\`\"\$@\"\` em comentário, dentro de função ou em here-document" \
+    "LIB-1 proíbe a lib EXECUTAR ao ser rodada — não proíbe a string. Repasse de argumento dentro de função e texto de wrapper em here-document não são bloco main; \`\"\$@\"\` como comando no nível de topo continua sendo FAIL."
 
   CANON_FN="$(awk '/^### 7\.1/{f=1} /^### 7\.3/{f=0} f' "$CONTRACT" | grep -oE '^\| `sm_[a-z_]+' | sed 's/^| `//' | sort -u)"
   REAL_FN="$(grep -hoE '^[[:space:]]*(function[[:space:]]+)?sm_[a-z_]+[[:space:]]*\(\)' "$LIB_DIR/common.sh" "$LIB_DIR/json.sh" 2>/dev/null \
@@ -721,16 +894,25 @@ else
     gate_pass "I-20" "as 26 funções de lib/ batem com a tabela §7"
   fi
 
+  # I-23 · o `exit 10` é ESCOPO DE FUNÇÃO, não texto de linha. `json.sh:145` está DENTRO de
+  # `sm_request` (a função fecha na 146) — acusá-lo é acusar a própria implementação do §7.2.
+  # O que viola é `exit 10`/`return 10` em qualquer OUTRA função, ou no nível de topo.
   bad=""
   for f in "$LIB_DIR"/*.sh; do
-    m="$(grep -nE '(^|[^_a-z])(exit|return) +10' "$f" 2>/dev/null \
-         | grep -vE '^[0-9]+:[[:space:]]*#' | grep -v 'sm_request' || true)"
-    [ -n "$m" ] && bad="$bad$(printf '%s\n' "$m" | sed "s|^|$(gate_rel "$f"):|")"$'\n'
+    rel="$(gate_rel "$f")"
+    m="$(awk -F'\t' -v f="$rel" '
+          $1==f && $3=="code" && $6 ~ /(^|[^_a-zA-Z])(exit|return)[[:space:]]+10([^0-9]|$)/ {
+            if ($4 != "sm_request" && $4 !~ /(^|>)sm_request(>|$)/) {
+              line=$6; sub(/^[[:space:]]+/, "", line)
+              print $2": `exit 10` fora de sm_request (função: " ($4==""?"<nível de topo>":$4) ") -> " line
+            }
+          }' "$SCOPE_TSV" || true)"
+    [ -n "$m" ] && bad="$bad$(printf '%s\n' "$m" | sed "s|^|$rel:|")"$'\n'
   done
   bad="${bad%$'\n'}"
-  ok10="$(awk '/^sm_request\(\)/,/^}/' "$LIB_DIR/json.sh" 2>/dev/null | grep -cE '(exit|return) +10' || true)"
+  ok10="$(awk -F'\t' '$1 ~ /lib\/json\.sh$/ && $3=="code" && $4=="sm_request" && $6 ~ /(exit|return)[[:space:]]+10([^0-9]|$)/' "$SCOPE_TSV" | grep -c . || true)"
   assert_grep_empty "I-23" "só sm_request produz exit 10 em todo o projeto" \
-    "exit 10 apenas dentro de sm_request (§7.2)" "$bad"
+    "exit 10 apenas DENTRO do corpo de sm_request (§7.2)" "$bad"
   [ "${ok10:-0}" -ge 1 ] || gate_warn "I-23" "sm_request não parece produzir exit 10" \
     "nenhum \`exit 10\`/\`return 10\` encontrado no corpo de sm_request em $(gate_rel "$LIB_DIR/json.sh")"
 fi
@@ -769,12 +951,22 @@ if run_or_pend "I-28" "memory-digest.sh sai 0 nos 4 cenários de borda" "memory-
     got="$("$SCRIPT_DIR/memory-digest.sh" "$FX/$cen" 2>/dev/null | jq -r 'keys_unsorted | join(",")' 2>/dev/null || echo '<saída não é JSON>')"
     [ "$got" = "$DIGEST_KEYS" ] || badk="$badk$cen: $got"$'\n'
   done
-  assert_grep_empty "I-29" "o digest tem sempre as mesmas chaves de topo, na mesma ordem" \
+  assert_grep_empty "I-29a" "o digest tem sempre as mesmas chaves de topo, na mesma ordem" \
     "$DIGEST_KEYS" "${badk%$'\n'}"
-  gate_warn "I-29" "§11 diz «19 chaves de topo»; a ordem fixa de docs/03-memoria.md §? passo 13 enumera 18" \
-    "procedural_playbook.do e .avoid são aninhados, não chaves de topo — divergência a arbitrar no contrato"
+
+  # I-29b · a CONTAGEM. Arbitrado: são 18 chaves de topo, não 19. `procedural_playbook` é uma
+  # chave só; `do` e `avoid` vivem ANINHADOS dentro dela e nunca aparecem no topo — quem conta
+  # 19 contou um aninhado como se fosse de topo. O gate passa a checar 18.
+  DIGEST_N_EXP=18
+  n_keys="$(printf '%s' "$DIGEST_KEYS" | tr ',' '\n' | grep -c . || true)"
+  assert_eq "I-29b" "o digest tem exatamente $DIGEST_N_EXP chaves de topo" "$DIGEST_N_EXP" "$n_keys" \
+    "docs/03-memoria.md (ordem fixa do digest)"
+  got_n="$("$SCRIPT_DIR/memory-digest.sh" "$FX/vazia" 2>/dev/null | jq -r 'keys_unsorted | length' 2>/dev/null || echo '<saída não é JSON>')"
+  assert_eq "I-29c" "o digest produzido tem $DIGEST_N_EXP chaves de topo" "$DIGEST_N_EXP" "$got_n" \
+    "SK/scripts/memory-digest.sh"
+  gate_note "I-29 · docs/00-contratos.md §11 ainda diz «19 chaves de topo»: o texto do contrato é que precisa da correção — \`procedural_playbook.do\` e \`.avoid\` são aninhados. O gate implementa o número arbitrado (18)."
 else
-  gate_pend "I-29" "o digest tem sempre as mesmas 18/19 chaves de topo" "executável ausente: SK/scripts/memory-digest.sh"
+  gate_pend "I-29" "o digest tem sempre as mesmas 18 chaves de topo" "executável ausente: SK/scripts/memory-digest.sh"
 fi
 
 if run_or_pend "I-30" "readme-sync.sh é idempotente" "readme-sync.sh"; then
@@ -902,13 +1094,17 @@ else
     "toda reference é linkada DIRETO do SKILL.md e não referencia outra" "${bad%$'\n'}"
 
   if [ -f "$SKILL_MD" ]; then
+    # Isto NÃO é falso positivo: uma reference que o SKILL.md não cita é uma reference que o
+    # modelo nunca vai abrir — o grafo de um nível de §F só funciona se o nó de entrada
+    # apontar para todos. A mensagem nomeia o arquivo que falta e onde a linha precisa entrar.
     bad=""
     for f in "${REFS[@]}"; do
       b="$(basename "$f")"
-      grep -qF "$b" "$SKILL_MD" || bad="$bad$(gate_rel "$f"): não é citada pelo SKILL.md"$'\n'
+      grep -qF "$b" "$SKILL_MD" || \
+        bad="$bad$(gate_rel "$SKILL_MD") não cita «references/$b» — a reference existe em $(gate_rel "$f") ($(grep -c '' "$f" || true) linhas) e ficaria inalcançável"$'\n'
     done
     assert_grep_empty "I-34b" "toda reference é linkada direto do SKILL.md" \
-      "cada references/*.md citada no corpo do SKILL.md" "${bad%$'\n'}"
+      "uma linha no corpo do SKILL.md citando cada references/*.md pelo nome de arquivo" "${bad%$'\n'}"
   else
     gate_pend "I-34b" "toda reference é linkada direto do SKILL.md" "arquivo inexistente: SK/SKILL.md"
   fi
@@ -1049,10 +1245,24 @@ else
     "$( [ -n "$miss" ] && printf 'faltam: %s\n' "$miss"; printf '%s' "$extra" )"
 fi
 
-# G-09 · nenhum {{ }} sobrando em artefato materializado do repositório
-bad="$(grep_scope_raw '\{\{[A-Za-z0-9_ ]*\}\}' | grep -vE '\.tmpl:|MANIFEST\.tsv:|study-method:meta' || true)"
+# G-09 · nenhum {{ }} sobrando em ARTEFATO MATERIALIZADO do repositório
+# Artefato materializado é o que a construção PRODUZ. Não é artefato — e por isso fica fora:
+#   *.tmpl e MANIFEST.tsv   o template é o dono do placeholder; o manifesto o declara;
+#   docs/build-spec/**      contrato: os fragmentos DOCUMENTAM a sintaxe ("`{{PKG}}` — o mesmo
+#                           do stub"). Documentar o buraco não é deixar buraco;
+#   comentário e here-document de script   o `# Substitui {{PLACEHOLDER}}…` explica o
+#                           renderizador, e o here-document `<<'TMPL'` de session-new.sh e
+#                           research-new.sh É o template embutido (o mesmo conteúdo do *.tmpl,
+#                           usado quando o arquivo falta) — os dois passam pela substituição.
+# O que sobra é justamente o artefato: SKILL.md, references/, schemas, examples/, evals/,
+# docs/ normativo. Aí um {{ }} é FAIL. Em runtime, quem prova que nada sobrevive à
+# renderização é o smoke (S-06) sobre o material realmente produzido.
+gate_scope_excl "G-09" "docs/build-spec/** · *.tmpl · MANIFEST.tsv · comentário e here-document de script" \
+  "os fragmentos do BUILD_SPEC documentam a sintaxe de placeholder e os scripts carregam o template embutido; nenhum dos dois é artefato materializado. Placeholder em SKILL.md, reference, schema, examples/ ou doc normativo continua sendo FAIL, e o smoke (S-06) cobre o material produzido em runtime."
+bad="$(grep_scope_raw '\{\{[A-Za-z0-9_ ]*\}\}' '*.tmpl' 'docs/build-spec/*' '*MANIFEST.tsv' \
+      | scope_filter_scan | grep -vE 'study-method:meta' || true)"
 assert_grep_empty "G-09" "nenhum {{ }} órfão em artefato materializado" \
-  "placeholder só dentro de *.tmpl" "$bad"
+  "placeholder só em *.tmpl, no MANIFEST.tsv, no BUILD_SPEC que o documenta e no template embutido do renderizador" "$bad"
 
 # ═══════════════════════════════════════════════════ H · anti-regressão de conteúdo
 gate_section "H · anti-regressão de conteúdo (I-42, I-43)"
@@ -1143,28 +1353,117 @@ else
     gate_pend "G-12" "cada D-NNN tem as 3 camadas sincronizadas" \
       "assets/decisions.json ainda é o esqueleto: .decisions == [] (dona: sub-tarefa 3.0a/b/c)"
   else
+    # G-12a · a camada que existe hoje: o id do catálogo.
     bad=""
     while IFS= read -r did; do
       [ -z "$did" ] && continue
       printf '%s' "$did" | grep -qE '^D-[A-Z]{1,3}[0-9]{2,3}$' || bad="${bad}$did: id fora do pattern ^D-[A-Z]{1,3}[0-9]{2,3}\$"$'\n'
-      grep -rqF "$did" "$GATE_ROOT/docs" 2>/dev/null || bad="${bad}$did: sem camada humana (nenhum doc do repositório o cita)"$'\n'
-      grep -rqF "$did" "$GATE_ROOT/docs/build-spec" 2>/dev/null || bad="${bad}$did: sem marcador no BUILD_SPEC (docs/build-spec/)"$'\n'
     done <<< "$(jq -r '.decisions[].id // empty' "$DEC" 2>/dev/null)"
-    assert_grep_empty "G-12a" "cada D-NNN tem as 3 camadas (JSON · doc humano · BUILD_SPEC)" \
-      "id no pattern + citado em docs/ + marcado em docs/build-spec/" "${bad%$'\n'}"
+    assert_grep_empty "G-12a" "todo id do catálogo casa ^D-[A-Z]{1,3}[0-9]{2,3}\$ (camada JSON)" \
+      "$n_dec ids no pattern de §4.2" "${bad%$'\n'}"
 
-    SM_SCHEMA="$SCHEMA_DIR/setup-manifest.schema.json"
+    # G-12c · camada HUMANA. O alvo tem nome e dono declarados em docs/build-spec/10-decisoes.md
+    # §1: `docs/08-decisoes-abertas.md`, "Derivado (outra onda)". Enquanto o arquivo não existe,
+    # isto é PENDÊNCIA — "ainda não escrito", não "escrito errado". O gate continua vermelho
+    # (PEND conta como vermelho); só a mensagem muda, e ela diz o que falta e de quem é. No dia
+    # em que o arquivo nascer, cada id não citado nele vira FAIL.
+    HUMAN_DEC="$GATE_ROOT/docs/08-decisoes-abertas.md"
+    if [ ! -f "$HUMAN_DEC" ]; then
+      gate_pend "G-12c" "cada D-NNN tem a camada humana (render do catálogo)" \
+        "docs/08-decisoes-abertas.md — declarado «Derivado (outra onda)» em docs/build-spec/10-decisoes.md §1, junto de SK/scripts/decisions-ask.sh. Dono: a onda que gera os derivados do catálogo. Os $n_dec ids do catálogo esperam por ele."
+    else
+      bad=""
+      while IFS= read -r did; do
+        [ -z "$did" ] && continue
+        grep -qF "$did" "$HUMAN_DEC" 2>/dev/null || bad="${bad}$did: não aparece em docs/08-decisoes-abertas.md"$'\n'
+      done <<< "$(jq -r '.decisions[].id // empty' "$DEC" 2>/dev/null)"
+      assert_grep_empty "G-12c" "cada D-NNN tem a camada humana (docs/08-decisoes-abertas.md)" \
+        "todo id do catálogo citado no render humano" "${bad%$'\n'}"
+    fi
+
+    # G-12d · camada BUILD_SPEC. Só uma FATIA do catálogo ganha marcador — docs/build-spec/
+    # 10-decisoes.md §6.2: `audience ∈ {builder, both}` E `status == open`, 48 entradas. Exigir
+    # marcador das 114 é exigir o que o próprio contrato dispensa: as `student` viram pergunta
+    # em runtime (§6.4) e as 20 arbitradas viram uma linha de citação, não um marcador.
+    MARKED_IDS="$(jq -r '.decisions[] | select((.audience=="builder" or .audience=="both") and .status=="open") | .id' "$DEC" 2>/dev/null || true)"
+    n_marked="$(printf '%s\n' "$MARKED_IDS" | grep -c . || true)"
+    # Marcador de verdade tem a forma de §6.1. `10-decisoes.md` é o fragmento que DEFINE essa
+    # forma (o exemplo do §6.1, a tabela do §6.2, a contagem do §8): não conta como marcador.
+    n_real_markers="$(grep -rlE '\*\*PERGUNTE AO USUÁRIO \(D-[A-Z]{1,3}[0-9]{2,3}\)\*\*' "$GATE_ROOT/docs/build-spec" 2>/dev/null \
+      | grep -v '10-decisoes\.md' | grep -c . || true)"
     bad=""
-    while IFS= read -r wt; do
-      [ -z "$wt" ] && continue
-      [ "$wt" = "null" ] && continue
-      filt=".properties"; IFS='.' read -r -a parts <<< "$wt"
-      for p in "${parts[@]}"; do filt="$filt.\"$p\".properties"; done
-      filt="${filt%.properties}"
-      jq -e "$filt" "$SM_SCHEMA" >/dev/null 2>&1 || bad="${bad}writes_to «$wt» não existe em setup-manifest.schema.json"$'\n'
-    done <<< "$(jq -r '.decisions[].writes_to // empty' "$DEC" 2>/dev/null)"
+    while IFS= read -r did; do
+      [ -z "$did" ] && continue
+      grep -rqE "\*\*PERGUNTE AO USUÁRIO \($did\)\*\*" "$GATE_ROOT/docs/build-spec" 2>/dev/null \
+        || bad="${bad}$did: sem marcador «PERGUNTE AO USUÁRIO ($did)» em fragmento nenhum"$'\n'
+    done <<< "$MARKED_IDS"
+    bad="${bad%$'\n'}"
+    if [ "${n_real_markers:-0}" -eq 0 ] && [ -n "$bad" ]; then
+      gate_pend "G-12d" "cada D-NNN de build tem marcador no BUILD_SPEC (§6.2)" \
+        "a passada de marcação ainda não começou: zero marcadores «PERGUNTE AO USUÁRIO (D-…)» em docs/build-spec/ fora do 10-decisoes.md, que só define a forma. Faltam os $n_marked de audience builder/both com status open; o dono de cada um é o fragmento da tabela de roteamento de docs/build-spec/10-decisoes.md §6.3."
+    else
+      assert_grep_empty "G-12d" "cada D-NNN de build tem marcador no BUILD_SPEC (§6.2)" \
+        "marcador de §6.1 para os $n_marked ids de audience builder/both com status open" "$bad"
+    fi
+    gate_scope_excl "G-12d" "as $(( n_dec - n_marked )) entradas sem marcador de build" \
+      "docs/build-spec/10-decisoes.md §6.2: só \`audience ∈ {builder, both}\` com \`status == open\` ganha marcador. As \`student\` viram pergunta em runtime (§6.4) e as arbitradas viram uma linha de citação — exigir marcador delas é exigir o que o contrato dispensa."
+
+    # G-12b · todo writes_to resolve no schema do manifesto do setup.
+    # A resolução PARA num objeto extensível. `setup.json → decisions` é declarado
+    # `additionalProperties: true` SEM `properties` de propósito: é um MAPA de id de decisão
+    # para resposta, e o schema diz literalmente "Deliberadamente extensivel: novos ids de
+    # decisao entram sem mudanca de schema_version". Exigir que `decisions.D-A14` exista como
+    # `properties.decisions.properties."D-A14"` é exigir o oposto do que o schema promete.
+    # O que continua sendo FAIL: caminho que morre num objeto FECHADO.
+    SM_SCHEMA="$SCHEMA_DIR/setup-manifest.schema.json"
+    WT_RESOLVER="$GATE_TMPDIR/writes_to.py"
+    cat > "$WT_RESOLVER" <<'PYWT'
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""Resolve cada `writes_to` do catalogo contra setup-manifest.schema.json."""
+import json
+import sys
+
+try:
+    schema = json.load(open(sys.argv[1], encoding="utf-8"))
+except (OSError, ValueError) as exc:
+    sys.stderr.write("setup-manifest.schema.json ilegivel: %s\n" % exc)
+    sys.exit(0)
+
+
+def resolve(path):
+    node = schema
+    walked = []
+    for part in path.split("."):
+        props = node.get("properties")
+        addl = node.get("additionalProperties", True)
+        if not isinstance(props, dict) or part not in props:
+            if addl is True or isinstance(addl, dict):
+                return None      # objeto extensivel: o schema aceita a chave nao enumerada
+            return (u"writes_to \u00ab%s\u00bb morre em %s: objeto FECHADO "
+                    u"(additionalProperties: false) que nao declara \u00ab%s\u00bb"
+                    % (path, ".".join(walked) or "<raiz>", part))
+        node = props[part]
+        walked.append(part)
+    return None
+
+
+bad = []
+for line in sys.stdin.read().split("\n"):
+    wt = line.strip()
+    if not wt or wt == "null":
+        continue
+    why = resolve(wt)
+    if why:
+        bad.append(why)
+sys.stdout.write("\n".join(bad) + ("\n" if bad else ""))
+PYWT
+    bad="$(jq -r '.decisions[].writes_to // empty' "$DEC" 2>/dev/null \
+           | python3 "$WT_RESOLVER" "$SM_SCHEMA" 2>/dev/null || true)"
     assert_grep_empty "G-12b" "todo writes_to aponta para caminho existente em setup-manifest.schema.json" \
-      "cada writes_to resolvível como properties.<a>.properties.<b>…" "${bad%$'\n'}"
+      "cada writes_to resolvível em properties.<a>.properties.<b>…, parando em objeto extensível" "${bad%$'\n'}"
+    gate_scope_excl "G-12b" "sufixo de caminho abaixo de um objeto extensível" \
+      "\`setup.json → decisions\` é \`additionalProperties: true\` sem \`properties\`: um MAPA de id para resposta, que o próprio schema declara extensível. A resolução para ali. Caminho que morre em objeto FECHADO continua sendo FAIL."
   fi
 fi
 

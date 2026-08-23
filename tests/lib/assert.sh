@@ -34,6 +34,7 @@ GATE_FAILLOG=()
 GATE_PENDLOG=()
 GATE_WARNLOG=()
 GATE_LIMITS=()
+GATE_EXCLUSIONS=()
 
 if [ -t 1 ] && [ -z "${NO_COLOR:-}" ]; then
   C_RED=$'\033[31m'; C_GRN=$'\033[32m'; C_YEL=$'\033[33m'
@@ -87,6 +88,14 @@ gate_note() {
 # Limitação escondida é pior que limitação conhecida.
 gate_limitation() {
   GATE_LIMITS+=("$1")
+}
+
+# gate_scope_excl <ids> <o-que-fica-de-fora> <por-quê> — registra uma EXCLUSÃO DE ESCOPO
+# declarada: um caminho, um padrão de nome ou uma forma sintática que um check NÃO varre.
+# Sai num bloco próprio do resumo. Exclusão escondida é pior que exclusão conhecida: cada
+# uma precisa dizer QUAIS checks afeta, O QUE some do escopo e POR QUÊ.
+gate_scope_excl() {
+  GATE_EXCLUSIONS+=("$1|$2|$3")
 }
 
 # ---------------------------------------------------------------- resultados
@@ -497,6 +506,15 @@ gate_summary() {
       printf '    · %s\n' "$l"
     done
   fi
+  if [ "${#GATE_EXCLUSIONS[@]}" -gt 0 ]; then
+    printf '\n  %s\n' "${C_YEL}EXCLUSÕES DE ESCOPO DECLARADAS (o que estes checks NÃO varrem)${C_OFF}"
+    local e ids what why
+    for e in "${GATE_EXCLUSIONS[@]}"; do
+      ids="${e%%|*}"; what="${e#*|}"; why="${what#*|}"; what="${what%%|*}"
+      printf '    · %-28s %s\n' "$ids" "$what"
+      printf '      %s%s%s\n' "$C_DIM" "$why" "$C_OFF"
+    done
+  fi
   if [ "$GATE_FAIL" -gt 0 ]; then
     printf '\n  %s\n' "${C_RED}${C_BLD}FALHAS (violação de contrato)${C_OFF}"
     local f
@@ -518,4 +536,171 @@ gate_summary() {
   fi
   printf '  %s\n\n' "${C_GRN}${C_BLD}GATE VERDE${C_OFF}"
   return 0
+}
+
+# ---------------------------------------------------------------- escopo léxico de shell
+
+# gate_shell_scope_tool — materializa (uma vez) em $GATE_TMPDIR o classificador léxico de
+# fonte shell e imprime o caminho. Existe porque a diferença entre USAR um construto e
+# FALAR dele é a diferença entre um defeito e um falso positivo: `exit 10` dentro de
+# `sm_request` é o contrato; a mesma linha noutra função é violação. Um grep de linha não
+# distingue os dois — este classificador distingue.
+#
+#   shellscope.py classify <raiz> <arquivo...>
+#
+# Emite TSV, uma linha por linha de arquivo:
+#   rel <TAB> nº <TAB> kind <TAB> fn <TAB> depth <TAB> código
+#     kind   `code` (executa) · `comment` (comentário) · `heredoc` (corpo de here-document)
+#     fn     pilha de funções que envolvem a linha, separada por `>`; vazio no nível de topo
+#     depth  profundidade de chaves `{ }`
+#     código a linha SEM o comentário de fim de linha, com TAB trocado por espaço
+gate_shell_scope_tool() {
+  local dest="$GATE_TMPDIR/shellscope.py"
+  if [ -f "$dest" ]; then printf '%s\n' "$dest"; return 0; fi
+  mkdir -p "$GATE_TMPDIR"
+  cat > "$dest" <<'PYSHELLSCOPE'
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""Classificador lexico de fonte shell: comentario, here-document e escopo de funcao.
+
+Nao e um parser de shell completo e nao pretende ser. Cobre, deterministicamente:
+  · aspas simples e duplas, INCLUSIVE quando a string atravessa varias linhas
+    (um programa `jq` multilinha entre aspas simples nao muda profundidade);
+  · comentario de fim de linha (`#` no inicio de palavra, fora de aspas);
+  · here-document, com e sem aspas no delimitador, com e sem `<<-`;
+  · abertura/fechamento de funcao `nome() {` e `function nome {`, aninhadas, com o `{`
+    na mesma linha ou na seguinte;
+  · grupo de comandos `{ ...; }`, que conta profundidade mas nao nomeia funcao.
+Fora da cobertura, DECLARADO: continuacao de linha por barra invertida dentro de um
+comentario, e substituicao `$( ... )` com chave desbalanceada dentro. O gate valida a si
+mesmo: se a profundidade nao voltar a zero no fim de um arquivo, o proprio check acusa.
+"""
+import os
+import re
+import sys
+
+FN_DEF = re.compile(r"(?:^|[\s;&|(])(?:function\s+)?([A-Za-z_][A-Za-z0-9_:.\-]*)\s*\(\)\s*$")
+FN_DEF_KW = re.compile(r"(?:^|[\s;&|(])function\s+([A-Za-z_][A-Za-z0-9_:.\-]*)\s*$")
+HEREDOC = re.compile(r"(?<!<)<<(?!<)-?\s*(?:'([^']+)'|\"([^\"]+)\"|([A-Za-z_][A-Za-z0-9_]*))")
+
+WORD_BEFORE = set(" \t;&|(){}")
+
+
+def walk(line, quote):
+    """Percorre uma linha carregando o estado de aspas entre linhas.
+
+    Devolve (codigo, nu, tokens, quote_no_fim):
+      codigo  a linha sem o comentario de fim de linha;
+      nu      o mesmo texto com TODO trecho entre aspas trocado por espaco (as posicoes
+              sao preservadas) — e nele que se procura here-document e definicao de funcao,
+              para que uma dessas formas DENTRO de uma string nao conte;
+      tokens  lista de ('{'|'}', posicao) fora de aspas.
+    """
+    toks = []
+    bare = []
+    i = 0
+    n = len(line)
+    while i < n:
+        ch = line[i]
+        if ch == "\\" and quote != "'":
+            bare.append(" " if quote else ch)
+            if i + 1 < n:
+                bare.append(" " if quote else line[i + 1])
+            i += 2
+            continue
+        if quote is None:
+            if ch in "'\"":
+                quote = ch
+                bare.append(" ")
+            elif ch == "#" and (line[i - 1] if i else " ") in WORD_BEFORE:
+                return line[:i], "".join(bare), toks, None
+            else:
+                bare.append(ch)
+                if ch in "{}":
+                    prev = line[i - 1] if i else " "
+                    nxt = line[i + 1] if i + 1 < n else " "
+                    if ch == "{":
+                        if prev != "$" and prev in WORD_BEFORE and nxt in " \t":
+                            toks.append(("{", i))
+                    elif prev in WORD_BEFORE or prev == ";":
+                        toks.append(("}", i))
+        else:
+            bare.append(" ")
+            if ch == quote:
+                quote = None
+        i += 1
+    return line, "".join(bare), toks, quote
+
+
+def classify(path, root):
+    rel = os.path.relpath(path, root)
+    try:
+        lines = open(path, encoding="utf-8", errors="replace").read().split("\n")
+    except OSError:
+        return []
+    out = []
+    stack = []
+    pending_fn = None
+    heredocs = []
+    quote = None
+    for idx, raw in enumerate(lines):
+        lineno = idx + 1
+        fnstack = ">".join(x for x in stack if x)
+        if heredocs:
+            if raw.strip() == heredocs[0]:
+                heredocs.pop(0)
+            out.append((rel, lineno, "heredoc", fnstack, len(stack), raw.replace("\t", " ")))
+            continue
+        in_string = quote is not None
+        code, bare, toks, quote = walk(raw, quote)
+        if in_string:
+            kind = "string"
+        elif not code.strip():
+            kind = "blank" if code == raw else "comment"
+        else:
+            kind = "code"
+        out.append((rel, lineno, kind, fnstack, len(stack), code.replace("\t", " ")))
+        if kind in ("comment", "blank") or in_string:
+            continue
+        for m in HEREDOC.finditer(code):
+            # o `<<` precisa estar FORA de aspas; o delimitador pode vir entre aspas
+            # (`<<'"'"'EOF'"'"'`), e por isso a busca roda no texto original e nao no nu.
+            if m.start() < len(bare) and bare[m.start()] == "<":
+                heredocs.append(m.group(1) or m.group(2) or m.group(3))
+        for tok, pos in toks:
+            if tok == "{":
+                seg = bare[:pos]
+                m = FN_DEF.search(seg) or FN_DEF_KW.search(seg)
+                if m:
+                    stack.append(m.group(1))
+                elif pending_fn is not None and not seg.strip():
+                    stack.append(pending_fn)
+                else:
+                    stack.append("")
+                pending_fn = None
+            elif stack:
+                stack.pop()
+        if not toks:
+            m = FN_DEF.search(bare.rstrip()) or FN_DEF_KW.search(bare.rstrip())
+            pending_fn = m.group(1) if m else None
+    out.append((rel, 0, "EOF", "", len(stack), ""))
+    return out
+
+
+def main(argv):
+    if len(argv) < 3 or argv[1] != "classify":
+        sys.stderr.write("uso: shellscope.py classify <raiz> <arquivo...>\n")
+        return 2
+    root = argv[2]
+    rows = []
+    for path in argv[3:]:
+        rows.extend(classify(path, root))
+    sys.stdout.write("".join("%s\t%d\t%s\t%s\t%d\t%s\n" % r for r in rows))
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv))
+PYSHELLSCOPE
+  printf '%s\n' "$dest"
 }

@@ -123,15 +123,51 @@ fi
 
 # ─────────────────────────────────────────────────────────── L-03 {{ órfão
 gate_section "L-03 · {{ órfão e placeholder fora de template"
+# Duas fontes de placeholder NÃO são artefato e ficam fora, declaradas:
+#   docs/build-spec/**   os fragmentos DOCUMENTAM a sintaxe ("`{{PKG}}` — o mesmo do stub",
+#                        "Sobrar `{{` no material renderizado ⇒ 1"). Falar do buraco não é
+#                        deixar buraco;
+#   comentário e here-document de script  o comentário explica o renderizador e o
+#                        here-document `<<'TMPL'` É o template embutido de session-new.sh e
+#                        research-new.sh — o mesmo conteúdo do *.tmpl, usado quando o arquivo
+#                        falta, e que passa pela mesma substituição.
+# Em todo o resto (SKILL.md, references/, schemas, examples/, evals/, docs/ normativo) a
+# regra continua dura, inclusive para `{{` sem fechamento.
+gate_scope_excl "L-03" "docs/build-spec/** · *.tmpl · MANIFEST.tsv · comentário e here-document de script" \
+  "documentação da sintaxe de placeholder, template embutido no renderizador e o literal de busca \`'{{'\` do guarda final não são artefato materializado. Placeholder em SKILL.md, reference, schema, examples/ ou doc normativo continua sendo FAIL."
+SHELLSCOPE="$(gate_shell_scope_tool)"
+SCOPE_TSV="$GATE_TMPDIR/shellscope.tsv"
+: > "$SCOPE_TSV"
+declare -a SH_SRC=()
+for f in "${TXT[@]}"; do case "$f" in *.sh) SH_SRC+=("$f") ;; esac; done
+if [ "${#SH_SRC[@]}" -gt 0 ]; then
+  python3 "$SHELLSCOPE" classify "$GATE_ROOT" "${SH_SRC[@]}" > "$SCOPE_TSV" 2>/dev/null || : > "$SCOPE_TSV"
+fi
+lint_is_code() { # <rel> <nº> — 0 se a linha EXECUTA (ou se o arquivo não é shell classificado)
+  awk -F'\t' -v f="$1" -v n="$2" '
+    $1==f && $3!="EOF" { known=1; if ($2==n) { print $3; exit } }
+    END { if (!known) print "code" }' "$SCOPE_TSV" | grep -qx code
+}
 bad=""
 for f in "${TXT[@]}"; do
   rel="$(gate_rel "$f")"
-  case "$rel" in tests/*) continue ;; esac
+  case "$rel" in tests/*|docs/build-spec/*) continue ;; esac
   m="$(grep -nE '\{\{' "$f" 2>/dev/null || true)"
   [ -z "$m" ] && continue
   while IFS= read -r ln; do
     [ -z "$ln" ] && continue
+    lno="${ln%%:*}"
     txt="${ln#*:}"
+    case "$rel" in
+      *.sh)
+        lint_is_code "$rel" "$lno" || continue
+        # `'{{'` e `"{{"` — abertura entre aspas, sozinha — é LITERAL DE BUSCA, e é
+        # exatamente o que o guarda final de cada renderizador procura ("sobrou placeholder?").
+        # Contar essa como órfã é acusar o código que implementa esta mesma regra.
+        txt="${txt//\'\{\{\'/}"; txt="${txt//\"\{\{\"/}"
+        txt="${txt//\'\}\}\'/}"; txt="${txt//\"\}\}\"/}"
+        ;;
+    esac
     op="$(printf '%s' "$txt" | grep -o '{{' | grep -c . || true)"
     cl="$(printf '%s' "$txt" | grep -o '}}' | grep -c . || true)"
     if [ "$op" != "$cl" ]; then
@@ -147,7 +183,7 @@ for f in "${TXT[@]}"; do
   done <<< "$m"
 done
 assert_grep_empty "L-03" "nenhum {{ órfão e nenhum placeholder fora de template" \
-  "todo {{ tem }} na mesma linha, e {{NOME}} só existe dentro de *.tmpl" "${bad%$'\n'}"
+  "todo {{ tem }} na mesma linha, e {{NOME}} só existe em *.tmpl, no MANIFEST.tsv e no template embutido do renderizador" "${bad%$'\n'}"
 
 # ─────────────────────────────────────────────────────────── L-04 newline final
 gate_section "L-04 · arquivo de texto com newline final"
