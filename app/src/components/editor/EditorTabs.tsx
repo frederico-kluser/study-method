@@ -8,6 +8,7 @@
  * o dirty usa variante/avatar de "•".
  */
 import type { ReactElement } from 'react';
+import { useTranslation } from 'react-i18next';
 import Box from '@mui/material/Box';
 import Chip from '@mui/material/Chip';
 import type { EditorTab } from '../../lib/editorTabs';
@@ -34,12 +35,13 @@ export function EditorTabs({
   onActivate,
   onClose,
 }: EditorTabsProps): ReactElement | null {
+  const { t } = useTranslation();
   if (tabs.length === 0) return null;
 
   return (
     <Box
       role="tablist"
-      aria-label="Arquivos abertos"
+      aria-label={t('translation:editor.openTabsAria')}
       sx={{
         display: 'flex',
         gap: 0.5,
@@ -66,7 +68,7 @@ export function EditorTabs({
             avatar={
               tab.dirty ? (
                 <Box
-                  aria-label="não salvo"
+                  aria-label={t('translation:editor.unsaved')}
                   component="span"
                   sx={{
                     width: 8,

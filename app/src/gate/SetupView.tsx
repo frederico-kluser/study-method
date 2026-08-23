@@ -73,7 +73,7 @@ export function SetupView({ onDone }: { onDone: () => void }): ReactElement {
       patch(provider, (s) => ({
         ...s,
         valid: false,
-        invalidMsg: 'Digite a chave antes de validar.',
+        invalidMsg: t('translation:keys.needKeyBeforeValidate'),
       }));
       return;
     }
@@ -87,7 +87,7 @@ export function SetupView({ onDone }: { onDone: () => void }): ReactElement {
         ...s,
         validating: false,
         valid: false,
-        invalidMsg: `Erro de rede ao validar: ${String(err)}`,
+        invalidMsg: `${t('translation:keys.errorNetworkValidate')}: ${String(err)}`,
       }));
       return;
     }
@@ -142,7 +142,7 @@ export function SetupView({ onDone }: { onDone: () => void }): ReactElement {
               endAdornment: (
                 <InputAdornment position="end">
                   <IconButton
-                    aria-label={st.visible ? 'Ocultar chave' : 'Mostrar chave'}
+                    aria-label={st.visible ? t('translation:keys.hide') : t('translation:keys.show')}
                     edge="end"
                     onClick={() => patch(provider, (s) => ({ ...s, visible: !s.visible }))}
                   >

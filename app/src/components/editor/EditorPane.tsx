@@ -23,6 +23,7 @@ import {
   useState,
   type ReactElement,
 } from 'react';
+import { useTranslation } from 'react-i18next';
 import Box from '@mui/material/Box';
 import Alert from '@mui/material/Alert';
 import Button from '@mui/material/Button';
@@ -70,6 +71,7 @@ export const EditorPane = forwardRef<EditorPaneHandle, EditorPaneProps>(function
   { workspaceDir, files, onFilesChanged }: EditorPaneProps,
   ref,
 ): ReactElement {
+  const { t } = useTranslation();
   const [tabs, dispatch] = useReducer(editorTabsReducer, initialEditorTabs);
   const [error, setError] = useState('');
   const [busyPath, setBusyPath] = useState<string | null>(null);
@@ -109,13 +111,13 @@ export const EditorPane = forwardRef<EditorPaneHandle, EditorPaneProps>(function
           found ?? ({ path, name: path.split('/').pop() ?? path, size: 0, dir: false } as WorkspaceFile);
         dispatch({ type: 'open', file, content });
       } catch (err) {
-        setError(`Não consegui abrir "${path}": ${String(err)}`);
+        setError(`${t('translation:editor.openError')} "${path}": ${String(err)}`);
       } finally {
         setBusyPath(null);
       }
       // eslint-disable-next-line react-hooks/exhaustive-deps
     },
-    [tabs.tabs, workspaceDir, files, apiRead],
+    [tabs.tabs, workspaceDir, files, apiRead, t],
   );
 
   // Salva a aba informada; devolve sucesso.
@@ -130,12 +132,12 @@ export const EditorPane = forwardRef<EditorPaneHandle, EditorPaneProps>(function
         onFilesChanged?.();
         return true;
       } catch (err) {
-        setError(`Falha ao salvar "${path}": ${String(err)}`);
+        setError(`${t('translation:editor.saveError')} "${path}": ${String(err)}`);
         return false;
       }
       // eslint-disable-next-line react-hooks/exhaustive-deps
     },
-    [tabs.tabs, workspaceDir, apiWrite, onFilesChanged],
+    [tabs.tabs, workspaceDir, apiWrite, onFilesChanged, t],
   );
 
   // Troca de aba — se a atual está suja, salva antes.
@@ -173,9 +175,9 @@ export const EditorPane = forwardRef<EditorPaneHandle, EditorPaneProps>(function
           onFilesChanged?.();
           return openFile(name);
         })
-        .catch((err) => setError(`Falha ao criar "${name}": ${String(err)}`));
+        .catch((err) => setError(`${t('translation:editor.createError')} "${name}": ${String(err)}`));
     },
-    [workspaceDir, apiWrite, onFilesChanged, openFile],
+    [workspaceDir, apiWrite, onFilesChanged, openFile, t],
   );
 
   // Excluir arquivo (a toolbar já confirmou).
@@ -187,10 +189,10 @@ export const EditorPane = forwardRef<EditorPaneHandle, EditorPaneProps>(function
         dispatch({ type: 'close', path });
         onFilesChanged?.();
       } catch (err) {
-        setError(`Falha ao excluir "${path}": ${String(err)}`);
+        setError(`${t('translation:editor.deleteError')} "${path}": ${String(err)}`);
       }
     },
-    [workspaceDir, apiDelete, onFilesChanged],
+    [workspaceDir, apiDelete, onFilesChanged, t],
   );
 
   // Mudança de conteúdo (buffer) — marca dirty no reducer.
@@ -227,11 +229,11 @@ export const EditorPane = forwardRef<EditorPaneHandle, EditorPaneProps>(function
           size="small"
           variant="text"
           startIcon={<SaveIcon />}
-          title="Salvar (Ctrl+S ou ⌘S)"
+          title={`${t('translation:editor.save')} (Ctrl+S ou ⌘S)`}
           onClick={saveActive}
           disabled={!active}
         >
-          Salvar
+          {t('translation:editor.save')}
         </Button>
       </Box>
 
@@ -250,19 +252,19 @@ export const EditorPane = forwardRef<EditorPaneHandle, EditorPaneProps>(function
         ) : null}
         {busyPath ? (
           <Typography variant="body2" color="text.secondary" sx={{ p: 1 }}>
-            Abrindo {busyPath}…
+            {`${t('translation:editor.opening')} ${busyPath}…`}
           </Typography>
         ) : null}
         {empty ? (
           <Typography variant="body2" color="text.secondary" sx={{ p: 1 }}>
-            Selecione um arquivo na árvore à esquerda para começar a editar.
+            {t('translation:editor.selectFilePrompt')}
           </Typography>
         ) : active ? (
           <CodeMirrorField
             value={active.content}
             onChange={onContentChange}
             filename={active.name}
-            ariaLabel={`Editor — ${active.path}`}
+            ariaLabel={`${t('translation:editor.editorAria')} — ${active.path}`}
             onSave={saveActive}
           />
         ) : null}

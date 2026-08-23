@@ -182,13 +182,13 @@ export default function ChallengeView(): ReactElement {
       setChallenges(list);
       if (list.length === 0) {
         setListing('error');
-        setListError('Nenhum desafio disponível. Gere uma aula primeiro na aba "Aula".');
+        setListError(t('translation:challenge.noChallengesEmpty'));
       } else {
         setListing('idle');
       }
     } catch (err) {
       setListing('error');
-      setListError(`Não consegui listar os desafios: ${String(err)}`);
+      setListError(`${t('translation:challenge.listError')}: ${String(err)}`);
     }
   }, []);
 
@@ -213,7 +213,7 @@ export default function ChallengeView(): ReactElement {
         );
         setStatement(readme);
       } catch {
-        setStatementError('Enunciado (README.md) indisponível.');
+        setStatementError(t('translation:challenge.statementUnavailable'));
       }
       // Arquivos:
       const wsFiles = await (api.study.listWorkspaceFiles as (a: { workspaceDir: string }) => Promise<WorkspaceFile[]>)({
@@ -221,7 +221,7 @@ export default function ChallengeView(): ReactElement {
       });
       setFiles(wsFiles);
     } catch (err) {
-      setStatementError(`Erro ao carregar o workspace: ${String(err)}`);
+      setStatementError(`${t('translation:challenge.workspaceLoadError')}: ${String(err)}`);
     }
   }, []);
 
@@ -309,7 +309,7 @@ export default function ChallengeView(): ReactElement {
         setBlocks((b) => [...b, { kind: 'tool', text: `⚙ ${ev.toolName}` }]);
         break;
       case 'tool_end':
-        setBlocks((b) => [...b, { kind: 'tool', text: `✓ ${ev.toolName} (ok)` }]);
+        setBlocks((b) => [...b, { kind: 'tool', text: `✓ ${ev.toolName} ${t('translation:challenge.toolOk')}` }]);
         break;
       case 'error':
         setBlocks((b) => [...b, { kind: 'error', text: String(ev.data) }]);
@@ -317,7 +317,7 @@ export default function ChallengeView(): ReactElement {
       default:
         break;
     }
-  }, []);
+  }, [t]);
 
   /** Fase de feedback — decide o provedor e executa (pi DeepSeek OU modelo local). */
   const runPi = useCallback(async (): Promise<void> => {
@@ -387,9 +387,8 @@ export default function ChallengeView(): ReactElement {
         // erro e uma dica clara para voltar ao avaliaador remoto/ativo o local.
         setPiStatus('error');
         setPiError(
-          `O modelo local não conseguiu avaliar: ${String(err)}. ` +
-            'Ative o modelo local em Configurações ou troque o provedor de feedback para ' +
-            'DeepSeek e teste novamente.',
+          `${t('translation:challenge.localModelError')}: ${String(err)}. ` +
+            t('translation:challenge.localModelHint'),
         );
       }
       return;
@@ -416,8 +415,8 @@ export default function ChallengeView(): ReactElement {
         setPiStatus('error');
         setPiError(
           result.error?.includes('chave') || result.error?.includes('key')
-            ? 'Falha ao chamar o pi: chave DeepSeek ausente ou inválida. Abra as Configurações para cadastrar a chave.'
-            : `Falha ao chamar o pi: ${result.error ?? 'erro desconhecido'}`,
+            ? t('translation:challenge.piMissingKey')
+            : `${t('translation:challenge.piCallError')}: ${result.error ?? t('translation:challenge.unknownError')}`,
         );
       } else {
         setPiStatus('done');
@@ -426,7 +425,7 @@ export default function ChallengeView(): ReactElement {
       streamStopRef.current = undefined;
     } catch (err) {
       setPiStatus('error');
-      setPiError(`Erro ao executar o pi: ${String(err)}`);
+      setPiError(`${t('translation:challenge.piExecuteError')}: ${String(err)}`);
       streamStopRef.current?.();
       streamStopRef.current = undefined;
     }
@@ -497,9 +496,9 @@ export default function ChallengeView(): ReactElement {
               }}
             >
               {listing === 'loading' ? (
-                <MenuItem value="" disabled>Carregando…</MenuItem>
+                <MenuItem value="" disabled>{t('translation:common.loading')}</MenuItem>
               ) : challenges.length === 0 ? (
-                <MenuItem value="">Nenhum desafio</MenuItem>
+                <MenuItem value="">{t('translation:challenge.none')}</MenuItem>
               ) : (
                 challenges.map((c) => (
                   <MenuItem key={c.challengeId} value={c.challengeId}>
@@ -518,7 +517,7 @@ export default function ChallengeView(): ReactElement {
 
       {!active ? (
         <Typography variant="body1" color="text.secondary" sx={{ mt: 2 }}>
-          Selecione um desafio para começar.
+          {t('translation:challenge.selectPrompt')}
         </Typography>
       ) : (
         <Grid container spacing={2} sx={{ mt: 0, width: '100%' }}>
@@ -538,7 +537,7 @@ export default function ChallengeView(): ReactElement {
                   <ReactMarkdown components={MarkdownComponents()}>{statement}</ReactMarkdown>
                 </Box>
               ) : (
-                <Typography variant="body2" color="text.secondary">Carregando enunciado…</Typography>
+                <Typography variant="body2" color="text.secondary">{t('translation:challenge.statementLoading')}</Typography>
               )}
             </Paper>
           </Grid>
@@ -604,11 +603,11 @@ export default function ChallengeView(): ReactElement {
               <Stack direction="row" spacing={1} sx={{ alignItems: 'center', mt: 1 }}>
                 <Typography variant="subtitle2">{t('translation:challenge.output')}</Typography>
                 {testStatus === 'running' ? (
-                  <Chip size="small" label="rodando…" color="primary" variant="outlined" />
+                  <Chip size="small" label={t('translation:challenge.running')} color="primary" variant="outlined" />
                 ) : null}
               </Stack>
               <Box sx={{ mt: 0.5, height: 220 }}>
-                <AnswerTerminal ref={termRef} aria-label="Saída dos testes" />
+                <AnswerTerminal ref={termRef} aria-label={t('translation:challenge.outputAria')} />
               </Box>
 
               {/* Seção de feedback */}
@@ -619,10 +618,10 @@ export default function ChallengeView(): ReactElement {
                   <Chip label={t(`translation:${providerChipKey}`)} size="small" variant="outlined" color="secondary" />
                 ) : null}
                 {piRunning ? (
-                  <Chip size="small" label="rodando…" color="primary" variant="outlined" />
+                  <Chip size="small" label={t('translation:challenge.running')} color="primary" variant="outlined" />
                 ) : null}
                 {piStatus === 'aborted' ? (
-                  <Chip size="small" label="abortado" variant="outlined" />
+                  <Chip size="small" label={t('translation:challenge.aborted')} variant="outlined" />
                 ) : null}
               </Stack>
 
@@ -632,7 +631,7 @@ export default function ChallengeView(): ReactElement {
                   startIcon={showThinking ? <ExpandLessIcon /> : <ExpandMoreIcon />}
                   onClick={() => setShowThinking((s) => !s)}
                 >
-                  Raciocínio…
+                  {t('translation:challenge.thinking')}
                 </Button>
                 {blocks.filter((b) => b.kind === 'text' || b.kind === 'tool' || b.kind === 'error').length > 0 ? (
                   <Box

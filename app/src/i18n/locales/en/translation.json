@@ -45,7 +45,11 @@
     "hide": "Hide key",
     "error401": "Error 401: invalid key or missing permission.",
     "error429": "Error 429: request limit exceeded. Try again shortly.",
-    "errorNetwork": "Network error: could not reach the server."
+    "errorNetwork": "Network error: could not reach the server.",
+    "needKeyBeforeValidate": "Enter the key before validating.",
+    "errorNetworkValidate": "Network error while validating",
+    "needKeyBeforeSave": "Enter the key before saving.",
+    "saveError": "Failed to save the key."
   },
   "localAi": {
     "title": "Local model",
@@ -91,7 +95,13 @@
     "challengesEmpty": "No challenges generated yet.",
     "open": "Open",
     "sources": "Sources",
-    "statement": "Statement"
+    "statement": "Statement",
+    "sourcesEmpty": "No sources registered.",
+    "warning": "Warning:",
+    "invalidSubject": "Invalid subject.",
+    "starting": "Starting…",
+    "failGenerate": "Failed to generate the lesson.",
+    "errorGenerate": "Error generating the lesson"
   },
   "challenge": {
     "openChallenge": "Open challenge",
@@ -103,7 +113,25 @@
     "keyHint": "See the key hint in the statement.",
     "providerLocal": "Local model",
     "providerDeepseek": "DeepSeek",
-    "confirmDelete": "Delete {{name}}?"
+    "confirmDelete": "Delete {{name}}?",
+    "noChallengesEmpty": "No challenges available. Generate a lesson first in the \"Lesson\" tab.",
+    "listError": "Could not list the challenges",
+    "statementUnavailable": "Statement (README.md) unavailable.",
+    "workspaceLoadError": "Error loading the workspace",
+    "localModelError": "The local model could not grade",
+    "localModelHint": "Enable the local model in Settings or switch the feedback provider to DeepSeek and try again.",
+    "piMissingKey": "Failed to call the pi: DeepSeek key missing or invalid. Open Settings to register the key.",
+    "piCallError": "Failed to call the pi",
+    "piExecuteError": "Error running the pi",
+    "unknownError": "unknown error",
+    "running": "running…",
+    "aborted": "aborted",
+    "thinking": "Reasoning…",
+    "none": "No challenge",
+    "selectPrompt": "Select a challenge to start.",
+    "statementLoading": "Loading statement…",
+    "outputAria": "Test output",
+    "toolOk": "(ok)"
   },
   "gate": {
     "checking": "Checking setup…",
@@ -113,7 +141,8 @@
     "offline": "No internet connection.",
     "offlineTip": "Connect to the internet and try again.",
     "tryAgain": "Try again",
-    "title": "Before you start"
+    "title": "Before you start",
+    "readError": "Could not query the API key status. Check that the app started correctly and try again."
   },
   "editor": {
     "openFile": "Open file",
@@ -123,7 +152,17 @@
     "deleteFile": "Delete file",
     "confirmDelete": "Delete {{name}}?",
     "refresh": "Refresh",
-    "workspace": "Working directory"
+    "workspace": "Working directory",
+    "openTabsAria": "Open files",
+    "openError": "Could not open",
+    "saveError": "Failed to save",
+    "createError": "Failed to create",
+    "deleteError": "Failed to delete",
+    "create": "Create",
+    "opening": "Opening",
+    "selectFilePrompt": "Select a file in the tree on the left to start editing.",
+    "workspaceEmpty": "Empty workspace. Create a file.",
+    "editorAria": "Editor"
   },
   "terminal": {
     "passed": "Passed",

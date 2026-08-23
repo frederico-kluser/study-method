@@ -120,7 +120,7 @@ export function KeysPanel(): ReactElement {
       patch(provider, (s) => ({
         ...s,
         uiState: 'invalid',
-        message: t('translation:keys.invalid', 'Digite a chave antes de salvar.'),
+        message: t('translation:keys.needKeyBeforeSave'),
       }));
       return;
     }
@@ -131,14 +131,14 @@ export function KeysPanel(): ReactElement {
         ...s,
         saving: false,
         uiState: 'valid',
-        message: t('translation:keys.saved', 'Chave salva.'),
+        message: t('translation:keys.saved'),
       }));
     } catch (err) {
       patch(provider, (s) => ({
         ...s,
         saving: false,
         uiState: 'invalid',
-        message: t('translation:keys.errorNetwork', 'Falha ao salvar a chave.'),
+        message: t('translation:keys.saveError'),
       }));
       void err;
     }
@@ -154,7 +154,7 @@ export function KeysPanel(): ReactElement {
     patch(provider, (s) => ({
       ...s,
       uiState: 'validating',
-      message: t('translation:keys.validating', `Validando chave ${PROVIDER_META[provider].name}…`),
+      message: t('translation:keys.validating'),
     }));
 
     let result: ValidationResult;
@@ -165,7 +165,7 @@ export function KeysPanel(): ReactElement {
       patch(provider, (s) => ({
         ...s,
         uiState: 'invalid',
-        message: t('translation:keys.errorNetwork', 'Erro de rede/requisição ao validar a chave.'),
+        message: t('translation:keys.errorNetwork'),
       }));
       return;
     }
@@ -249,7 +249,7 @@ export function KeysPanel(): ReactElement {
                 onClick={() => void handleSave(provider)}
               >
                 {st.saving ? <CircularProgress size={16} sx={{ mr: 1 }} /> : null}
-                {st.saving ? t('translation:common.loading', 'Salvando…') : t('translation:keys.save')}
+                {st.saving ? t('translation:common.loading') : t('translation:keys.save')}
               </Button>
               <Button
                 variant="contained"

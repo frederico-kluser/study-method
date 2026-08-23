@@ -114,7 +114,7 @@ function GateError({ onRetry }: { onRetry: () => void }): ReactElement {
               {t('translation:common.error')}
             </Typography>
             <Typography variant="body2" component="div">
-              Não foi possível consultar o estado das chaves de API. Verifique se o app iniciou corretamente e tente novamente.
+              {t('translation:gate.readError')}
             </Typography>
           </Alert>
           <Button variant="contained" onClick={onRetry} sx={{ alignSelf: 'flex-start' }}>

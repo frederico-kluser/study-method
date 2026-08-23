@@ -13,6 +13,7 @@
  * Nenhuma dependência nova (sem @mui/x-tree-view) — usa List aninhado.
  */
 import { useMemo, useState, type ReactElement } from 'react';
+import { useTranslation } from 'react-i18next';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import IconButton from '@mui/material/IconButton';
@@ -134,6 +135,7 @@ export function FileExplorer({
   onRefresh,
   onDeleteFile,
 }: FileExplorerProps): ReactElement {
+  const { t } = useTranslation();
   // Diretórios expandidos (default: todos expandidos inicialmente).
   const [openDirs, setOpenDirs] = useState<ReadonlySet<string>>(() => {
     const all = new Set<string>();
@@ -176,25 +178,25 @@ export function FileExplorer({
     <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
       {/* Toolbar */}
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, px: 0.5, py: 0.25 }}>
-        <Tooltip title="Novo arquivo">
+        <Tooltip title={t('translation:editor.newFile')}>
           <IconButton
             size="small"
-            aria-label="Novo arquivo"
+            aria-label={t('translation:editor.newFile')}
             onClick={() => setShowNew((s) => !s)}
           >
             <NoteAddIcon fontSize="small" />
           </IconButton>
         </Tooltip>
-        <Tooltip title="Atualizar">
-          <IconButton size="small" aria-label="Atualizar workspace" onClick={onRefresh}>
+        <Tooltip title={t('translation:editor.refresh')}>
+          <IconButton size="small" aria-label={t('translation:editor.refresh')} onClick={onRefresh}>
             <RefreshIcon fontSize="small" />
           </IconButton>
         </Tooltip>
-        <Tooltip title="Excluir arquivo selecionado">
+        <Tooltip title={t('translation:editor.deleteFile')}>
           <span>
             <IconButton
               size="small"
-              aria-label="Excluir arquivo"
+              aria-label={t('translation:editor.deleteFile')}
               disabled={!selectedPath}
               onClick={confirmDelete}
               color="error"
@@ -222,7 +224,7 @@ export function FileExplorer({
             }}
           />
           <Button size="small" variant="contained" onClick={submitNew} disabled={!newName.trim()}>
-            Criar
+            {t('translation:editor.create')}
           </Button>
         </Box>
       ) : null}
@@ -231,7 +233,7 @@ export function FileExplorer({
       <Box component="div" sx={{ flexGrow: 1, overflow: 'auto' }}>
         {tree.length === 0 ? (
           <Typography variant="body2" color="text.secondary" sx={{ p: 1 }}>
-            Workspace vazio. Crie um arquivo.
+            {t('translation:editor.workspaceEmpty')}
           </Typography>
         ) : (
           <List disablePadding dense>

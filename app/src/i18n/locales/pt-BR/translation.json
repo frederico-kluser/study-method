@@ -45,7 +45,11 @@
     "hide": "Ocultar chave",
     "error401": "Erro 401: chave inválida ou sem permissão.",
     "error429": "Erro 429: limite de requisições excedido. Tente novamente em instantes.",
-    "errorNetwork": "Erro de rede: não foi possível contatar o servidor."
+    "errorNetwork": "Erro de rede: não foi possível contatar o servidor.",
+    "needKeyBeforeValidate": "Digite a chave antes de validar.",
+    "errorNetworkValidate": "Erro de rede ao validar",
+    "needKeyBeforeSave": "Digite a chave antes de salvar.",
+    "saveError": "Falha ao salvar a chave."
   },
   "localAi": {
     "title": "Modelo local",
@@ -91,7 +95,13 @@
     "challengesEmpty": "Nenhum desafio gerado ainda.",
     "open": "Abrir",
     "sources": "Fontes",
-    "statement": "Enunciado"
+    "statement": "Enunciado",
+    "sourcesEmpty": "Nenhuma fonte registrada.",
+    "warning": "Aviso:",
+    "invalidSubject": "Assunto inválido.",
+    "starting": "Iniciando…",
+    "failGenerate": "Falha ao gerar aula.",
+    "errorGenerate": "Erro ao gerar a aula"
   },
   "challenge": {
     "openChallenge": "Abrir desafio",
@@ -103,7 +113,25 @@
     "keyHint": "Veja a dica da chave no enunciado.",
     "providerLocal": "Modelo local",
     "providerDeepseek": "DeepSeek",
-    "confirmDelete": "Apagar {{name}}?"
+    "confirmDelete": "Apagar {{name}}?",
+    "noChallengesEmpty": "Nenhum desafio disponível. Gere uma aula primeiro na aba \"Aula\".",
+    "listError": "Não consegui listar os desafios",
+    "statementUnavailable": "Enunciado (README.md) indisponível.",
+    "workspaceLoadError": "Erro ao carregar o workspace",
+    "localModelError": "O modelo local não conseguiu avaliar",
+    "localModelHint": "Ative o modelo local em Configurações ou troque o provedor de feedback para DeepSeek e teste novamente.",
+    "piMissingKey": "Falha ao chamar o pi: chave DeepSeek ausente ou inválida. Abra as Configurações para cadastrar a chave.",
+    "piCallError": "Falha ao chamar o pi",
+    "piExecuteError": "Erro ao executar o pi",
+    "unknownError": "erro desconhecido",
+    "running": "rodando…",
+    "aborted": "abortado",
+    "thinking": "Raciocínio…",
+    "none": "Nenhum desafio",
+    "selectPrompt": "Selecione um desafio para começar.",
+    "statementLoading": "Carregando enunciado…",
+    "outputAria": "Saída dos testes",
+    "toolOk": "(ok)"
   },
   "gate": {
     "checking": "Verificando configuração…",
@@ -113,7 +141,8 @@
     "offline": "Sem conexão com a internet.",
     "offlineTip": "Conecte-se à internet e tente novamente.",
     "tryAgain": "Tentar novamente",
-    "title": "Antes de começar"
+    "title": "Antes de começar",
+    "readError": "Não foi possível consultar o estado das chaves de API. Verifique se o app iniciou corretamente e tente novamente."
   },
   "editor": {
     "openFile": "Abrir arquivo",
@@ -123,7 +152,17 @@
     "deleteFile": "Excluir arquivo",
     "confirmDelete": "Apagar {{name}}?",
     "refresh": "Atualizar",
-    "workspace": "Diretório de trabalho"
+    "workspace": "Diretório de trabalho",
+    "openTabsAria": "Arquivos abertos",
+    "openError": "Não consegui abrir",
+    "saveError": "Falha ao salvar",
+    "createError": "Falha ao criar",
+    "deleteError": "Falha ao excluir",
+    "create": "Criar",
+    "opening": "Abrindo",
+    "selectFilePrompt": "Selecione um arquivo na árvore à esquerda para começar a editar.",
+    "workspaceEmpty": "Workspace vazio. Crie um arquivo.",
+    "editorAria": "Editor"
   },
   "terminal": {
     "passed": "Passou",

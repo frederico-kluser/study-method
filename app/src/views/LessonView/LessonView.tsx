@@ -59,8 +59,13 @@ type GenerateStatus = 'idle' | 'running' | 'done' | 'error';
 
 /** Fonte (finding) da aula — item de List com Link. */
 function SourceList({ findings }: { findings: StudyFinding[] }): ReactElement {
+  const { t } = useTranslation();
   if (findings.length === 0) {
-    return <Typography variant="body2" color="text.secondary">Nenhuma fonte registrada.</Typography>;
+    return (
+      <Typography variant="body2" color="text.secondary">
+        {t('translation:lesson.sourcesEmpty')}
+      </Typography>
+    );
   }
   return (
     <List dense disablePadding>
@@ -151,7 +156,7 @@ function ChallengesSection({
       )}
       {rejected.length > 0 ? (
         <Alert severity="warning" sx={{ mt: 1 }}>
-          <strong>Aviso:</strong> {rejected.length} desafio(s) rejeitado(s) na geração.
+          <strong>{t('translation:lesson.warning')}</strong> {rejected.length} desafio(s) rejeitado(s) na geração.
           <ul style={{ margin: 0 }}>
             {rejected.map((r, i) => (
               <li key={i}>
@@ -229,14 +234,14 @@ export default function LessonView(): ReactElement {
   const generate = async (): Promise<void> => {
     const check = validateSubject(subject);
     if (!check.ok) {
-      setError(check.message ?? 'Assunto inválido.');
+      setError(check.message ?? t('translation:lesson.invalidSubject'));
       setStatus('error');
       return;
     }
     setError('');
     setParsed(null);
     setStatus('running');
-    setPhase({ phase: 'gerando', fraction: 0, message: 'Iniciando…', done: false });
+    setPhase({ phase: 'gerando', fraction: 0, message: t('translation:lesson.starting'), done: false });
     try {
       // generateLesson é tipado como ()=>Promise<unknown>; o runtime encaminha
       // args ao invoke — passamos o subject como primeiro argumento.
@@ -244,7 +249,7 @@ export default function LessonView(): ReactElement {
       const payload = await typed(subject.trim());
       const result = parseLessonResult(payload);
       if (!result.ok) {
-        setError(result.error ?? 'Falha ao gerar aula.');
+        setError(result.error ?? t('translation:lesson.failGenerate'));
         setStatus('error');
         return;
       }
@@ -252,7 +257,7 @@ export default function LessonView(): ReactElement {
       setPhase((prev) => ({ ...prev, phase: 'concluindo', done: true }));
       setStatus('done');
     } catch (err) {
-      setError(`Erro ao gerar a aula: ${String(err)}`);
+      setError(`${t('translation:lesson.errorGenerate')}: ${String(err)}`);
       setStatus('error');
     }
   };
@@ -326,7 +331,7 @@ export default function LessonView(): ReactElement {
           </Typography>
           {parsed.lesson.subject ? (
             <Typography variant="body2" color="text.secondary" gutterBottom>
-              Assunto: {parsed.lesson.subject}
+              {`${t('translation:lesson.subjectLabel')}: ${parsed.lesson.subject}`}
             </Typography>
           ) : null}
           <Box sx={{ mt: 1 }}>
