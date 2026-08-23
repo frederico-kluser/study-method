@@ -155,14 +155,13 @@ export const theme = createTheme({
   typography: {
     fontSize: 14,
   },
-  // `palette.primary.main` (top-level) = scheme default ('light'). Manter apenas
-  // por clareza/compatibilidade; o scheme de render é definido pelo `mode`
-  // (useColorScheme), não por este nível.
-  palette: {
-    primary: {
-      main: LIGHT_PRIMARY_MAIN,
-    },
-  },
+  // fix17c ACHADO-4: NÃO repetir `palette` top-level aqui. Declarar um bloco
+  // `palette` no topo JUNTO de `colorSchemes` faz o MUI v9 DERRUBAR os slots de
+  // cor customizada do scheme LIGHT (o `tertiary` de _inspect caía para
+  // undefined). Como o scheme de render é definido por `mode`/useColorScheme,
+  // o `theme.palette` top-level é derivado do scheme default — nada lê este
+  // nível — então o bloco redundante foi removido p/ os DOIS schemes expõem
+  // `tertiary` de verdade (assertado em tests/theme.test.ts).
   components: {
     MuiButton: {
       styleOverrides: {

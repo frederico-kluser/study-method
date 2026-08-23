@@ -67,4 +67,40 @@ describe('theme (MUI v9) — claro+escuro com toggle', () => {
     assert.equal(schemes.colorSchemes?.light?.palette?.mode, 'light');
     assert.equal(schemes.colorSchemes?.dark?.palette?.mode, 'dark');
   });
+
+  // fix17c ACHADO-4: a paleta dark REFINADA (onda 17A — elevação por camadas)
+  // deve ser assertado, não só o primary. Valores contratados em theme.ts.
+  it('dark declara a paleta de superfícies refinada (default/paper/text/divider)', () => {
+    const palette = (
+      theme as unknown as {
+        colorSchemes?: {
+          dark?: {
+            palette?: {
+              background?: { default?: string; paper?: string };
+              text?: { secondary?: string };
+              divider?: string;
+            };
+          };
+        };
+      }
+    ).colorSchemes?.dark?.palette;
+    assert.ok(palette, 'palette dark deve existir');
+    assert.equal(palette?.background?.default, '#0f1115');
+    assert.equal(palette?.background?.paper, '#171c23');
+    assert.equal(palette?.text?.secondary, '#aeb6c2');
+    assert.equal(palette?.divider, '#2b313c');
+  });
+
+  it('tertiary existe em AMBOS os schemes (chave de acento portátil)', () => {
+    const dark = (theme as unknown as {
+      colorSchemes?: { dark?: { palette?: { tertiary?: { main?: string } } } };
+    }).colorSchemes?.dark?.palette?.tertiary?.main;
+    const light = (theme as unknown as {
+      colorSchemes?: { light?: { palette?: { tertiary?: { main?: string } } } };
+    }).colorSchemes?.light?.palette?.tertiary?.main;
+    assert.equal(typeof dark, 'string');
+    assert.ok(dark!.length > 0, 'dark deve ter tertiary.main');
+    assert.equal(typeof light, 'string');
+    assert.ok(light!.length > 0, 'light deve ter tertiary.main');
+  });
 });

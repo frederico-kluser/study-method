@@ -34,7 +34,20 @@ export function setPendingSubject(subject: string): void {
   emit();
 }
 
-/** Lê e consome (limpa) o assunto pendente, devolvendo-o (ou null). */
+/**
+ * Lê e consome (limpa) o assunto pendente, devolvendo-o (ou null) — one-shot.
+ * Usado pela LessonView (onda 17b) NO lazy initializer do `useState` do assunto
+ * para pré-preencher o campo UMA vez e esvaziar o store (fix 17c ACHADO-1/3).
+ * Função PURA (sem React/DOM): testável via node:test.
+ */
+export function consumePendingSubject(): string | null {
+  return drainPendingSubject();
+}
+
+/**
+ * Lê e consome (limpa) o assunto pendente, devolvendo-o (ou null).
+ * `consumePendingSubject` delega a esta função — mesma semântica one-shot.
+ */
 export function drainPendingSubject(): string | null {
   const value = pendingSubject;
   pendingSubject = null;

@@ -24,7 +24,7 @@
  * documentado no contrato de requisição ("o renderer passa args").
  */
 import ReactMarkdown from 'react-markdown';
-import { useCallback, useState, type ReactElement, type ReactNode } from 'react';
+import { useCallback, useRef, useState, type ReactElement, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import Alert from '@mui/material/Alert';
 import Box from '@mui/material/Box';
@@ -58,7 +58,8 @@ import {
 } from '../../lib/lessonPhaseLabels';
 import { parseLessonResult, type ParsedLesson } from '../../lib/lessonParse';
 import { validateSubject } from '../../lib/validate';
-import { katexRemarkPlugins, katexRehypePlugins } from '../../lib/lessonMarkdown';
+import { consumePendingSubject } from '../../lib/pendingSubject';
+import { katexRemarkPlugins, katexRehypePlugins, escapeLoneDollarSigns } from '../../lib/lessonMarkdown';
 
 type GenerateStatus = 'idle' | 'running' | 'done' | 'error';
 
@@ -218,7 +219,18 @@ function MarkdownComponents() {
 export default function LessonView(): ReactElement {
   const { t } = useTranslation();
   const { setLastSetupRoot } = useChallengeNav();
-  const [subject, setSubject] = useState('');
+  // fix17c ACHADO-1/3: pré-preenche o assunto vindo da Home (chips). O valor é
+  // consumido UMA vez (lê + limpa o store pendente). Guard de ref faz o drain
+  // acontecer uma única vez por mount — mesmo com o StrictMode (dev) que
+  // invoca o render 2×: o `pendingRef.current` persiste entre as duas
+  // invocações, então o `consumePendingSubject` roda uma só vez e o campo recebe
+  // o valor. Remontar sem pendência (ex.: vir pela aba mudando de aba) devolve
+  // null e o campo fica vazio (não re-enche com valor velho).
+  const pendingRef = useRef<string | null | undefined>(undefined);
+  if (pendingRef.current === undefined) {
+    pendingRef.current = consumePendingSubject();
+  }
+  const [subject, setSubject] = useState<string>(pendingRef.current ?? '');
   const [status, setStatus] = useState<GenerateStatus>('idle');
   const [phase, setPhase] = useState<LessonPhaseState>({
     phase: 'gerando',
@@ -370,7 +382,7 @@ export default function LessonView(): ReactElement {
               rehypePlugins={katexRehypePlugins()}
               components={MarkdownComponents()}
             >
-              {parsed.lesson.markdown}
+              {escapeLoneDollarSigns(parsed.lesson.markdown)}
             </ReactMarkdown>
           </Box>
 

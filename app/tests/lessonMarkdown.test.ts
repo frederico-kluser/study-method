@@ -17,7 +17,7 @@
  */
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { katexReactMarkdownPlugins, renderLessonMarkdown } from '../src/lib/lessonMarkdown';
+import { escapeLoneDollarSigns, katexReactMarkdownPlugins, renderLessonMarkdown } from '../src/lib/lessonMarkdown';
 
 const katexMathml = 'class="katex"'; // a string presente em todo span KaTeX
 
@@ -64,6 +64,65 @@ describe('renderLessonMarkdown: fórmulas matemáticas', () => {
     const html = await renderLessonMarkdown('\n$$\n\\frac{a}{b + 1$$\n\nFim.');
     assert.equal(typeof html, 'string');
     assert.ok(html.length > 0);
+  });
+});
+
+describe('escapeLoneDollarSigns: $ de moeda vs delimitador LaTeX (fix17c)', () => {
+  it('escapa $ seguido de dígito (moeda "$5")', () => {
+    assert.equal(escapeLoneDollarSigns('Isto custa $5.'), 'Isto custa \\$5.');
+  });
+
+  it('escapa $10,50 (dígito + separador de decimal)', () => {
+    assert.equal(escapeLoneDollarSigns('Preço: $10,50.'), 'Preço: \\$10,50.');
+  });
+
+  it('escapa $1.000,00 (separador de milhar)', () => {
+    assert.equal(escapeLoneDollarSigns('Total $1.000,00.'), 'Total \\$1.000,00.');
+  });
+
+  it('escapa $5 e $10 na MESMA linha (o caso corrupto reportado — 2 moedas)', () => {
+    assert.equal(
+      escapeLoneDollarSigns('Este plano custa $5 e $10 no total.'),
+      'Este plano custa \\$5 e \\$10 no total.',
+    );
+  });
+
+  it('escapa $ seguido de branco + dígito (ex. "R$ 5")', () => {
+    assert.equal(escapeLoneDollarSigns('Custa R$ 5.'), 'Custa R\\$ 5.');
+  });
+
+  it('preserva LaTeX inline $x^2$ intacto', () => {
+    assert.equal(
+      escapeLoneDollarSigns('Teorema $x^2 + y^2 = r^2$.'),
+      'Teorema $x^2 + y^2 = r^2$.',
+    );
+  });
+
+  it('preserva bloco $$...$$ intacto (dentro da linha e multilinha)', () => {
+    assert.equal(escapeLoneDollarSigns('$$x^2$$'), '$$x^2$$');
+    assert.equal(
+      escapeLoneDollarSigns('$$\nx = \\frac{-b}{2a}\n$$\nFim.'),
+      '$$\nx = \\frac{-b}{2a}\n$$\nFim.',
+    );
+  });
+
+  it('render headless: moeda "$5 e $10" não vira KaTeX (fix do corrupto)', async () => {
+    const html = await renderLessonMarkdown('Este plano custa $5 e $10 no total.');
+    assert.equal(html.includes('class="katex"'), false, 'não deve gerar math para moeda');
+    assert.match(html, /\$5/);
+    assert.match(html, /\$10/);
+  });
+
+  it('deixa intacto markdown SEM $ (não toca em nada)', () => {
+    const input = '# Título\n\nTexto sem cifrão alguma coisa.';
+    assert.equal(escapeLoneDollarSigns(input), input);
+  });
+
+  it('mescla moeda e LaTeX na mesma linha: $5 é moeda, $x^2$ é matemática', () => {
+    assert.equal(
+      escapeLoneDollarSigns('O plano custa $5 e usa $x^2$.'),
+      'O plano custa \\$5 e usa $x^2$.',
+    );
   });
 });
 

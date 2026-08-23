@@ -44,6 +44,9 @@ test('e2e-lesson: assunto → aula com Stepper + fases + markdown + desafios', a
   await expect(page.getByText('Imagine uma fila ordenada.', { exact: false })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Desafios' })).toBeVisible();
 
+  // fix17c ACHADO-6: a aula contém fórmula $...$ → KaTeX renderiza .katex live.
+  await expect(page.locator('.katex').first()).toBeVisible({ timeout: 10000 });
+
   // Lista de desafios: o card mockado está presente.
   await expect(page.getByText('Ordenação (E2E)', { exact: false })).toBeVisible();
 });

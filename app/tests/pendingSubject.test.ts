@@ -9,6 +9,7 @@ import assert from 'node:assert/strict';
 import {
   __resetPendingSubjectForTests,
   clearPendingSubject,
+  consumePendingSubject,
   drainPendingSubject,
   peekPendingSubject,
   setPendingSubject,
@@ -48,5 +49,23 @@ describe('pendingSubject — Home → Aula', () => {
     setPendingSubject('primeiro');
     setPendingSubject('segundo');
     assert.equal(drainPendingSubject(), 'segundo');
+  });
+
+  // fix17c ACHADO-1: consumir no lazy initializer do useState (LessonView).
+  it('consumePendingSubject devolve o valor E limpa o store (one-shot)', () => {
+    setPendingSubject('Análise combinatória');
+    assert.equal(consumePendingSubject(), 'Análise combinatória');
+    assert.equal(peekPendingSubject(), null, 'store foi esvaziado após o consume');
+  });
+
+  // fix17c ACHADO-3: o consumo drena — re-mounts (sem novo set) não re-enchem.
+  it('segundo consume na MESMA montagem devolve null (JÁ consumido)', () => {
+    setPendingSubject('Grafos');
+    assert.equal(consumePendingSubject(), 'Grafos');
+    assert.equal(consumePendingSubject(), null, 'não há pendência nova');
+  });
+
+  it('consume com store vazio devolve null (remount sem pendência = campo vazio)', () => {
+    assert.equal(consumePendingSubject(), null);
   });
 });

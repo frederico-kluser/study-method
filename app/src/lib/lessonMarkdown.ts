@@ -31,6 +31,76 @@ import rehypeKatex from 'rehype-katex';
 import rehypeStringify from 'rehype-stringify';
 import type { PluggableList } from 'unified';
 
+/**
+ * fix17c ACHADO-2 — `$` de MOEDA vs delimitador de LaTeX.
+ * remark-math devora `$` solitários pareados: IA gerando copy com cifrão
+ * ("Este plano custa $5 e $10") vira matemática corrupta porque o remark-math
+ * casa o par `$5 e $10` como inline-math. Defense = escapar o `$` quando ele
+ * é claramente MOEDA, ANTES do parse (markdown literal `\$` — o remark-math só
+ * reage a `$` não escapado), sem nunca tocar delimitadores LaTeX válidos.
+ *
+ * REGRA (por linha, da simplificação aceita na onda 17c):
+ *   1. `$$` (bloco / math com `$$`): `$` imediatamente seguido de `$` → delimitador
+ *      LaTeX → NÃO toca (o par inteiro é preservado).
+ *   2. `$` imediatamente seguido (após brancos opcionais) de DÍGITO → MOEDA
+ *      (ex. `$5`, `$ 5`, `$1.000,00`, `$10,50`) → escapa para `\$`.
+ *   3. `$` seguido de conteúdo NÃO-numérico e com um fechador `$` na MESMA linha
+ *      (ex. `$x^2$`, `$P(t)=e^{-x}$`) → LaTeX inline válido → NÃO toca (preserva).
+ *   4. `$` solitário/sem par → deixado intacto.
+ *
+ * FALSO-POSITIVO assumido (documentado): `$5^2$` (math que COMEÇA com dígito)
+ * é tratado como moeda e escapado. É raro em LaTeX (número puro no início do
+ * math costuma usar `5^2` ou `\\text{...}`), e a prioridade é NÃO corromper a
+ * copy com cifrão gerada por IA. Monitorei a regra "par de $ … $ com conteúdo
+ * numérico entre = moeda" contra os casos reportados sem quebrar LaTeX comum.
+ */
+export function escapeLoneDollarSigns(markdown: string): string {
+  return markdown.split('\n').map(escapeDollarSignsInLine).join('\n');
+}
+
+function escapeDollarSignsInLine(line: string): string {
+  let out = '';
+  let i = 0;
+  const n = line.length;
+  // Normalização de novos tipos de separador de milhar reconhece só digito:
+  // a checagem "segue digito" já cobre `$1.000,00`/`$10,50` (o `$` está antes
+  // do primeiro dígito).
+  while (i < n) {
+    const ch = line[i];
+    if (ch !== '$') {
+      out += ch;
+      i += 1;
+      continue;
+    }
+    // Caso 1: `$$` (bloco) — preserva o par.
+    if (i + 1 < n && line[i + 1] === '$') {
+      out += '$$';
+      i += 2;
+      continue;
+    }
+    // Lookahead: pula brancos opcionais depois do `$` (ex. "R$ 10").
+    let j = i + 1;
+    while (j < n && /\s/.test(line[j])) j += 1;
+    // Caso 2: `$` seguido de dígito → moeda.
+    if (j < n && /[0-9]/.test(line[j])) {
+      out += '\\$';
+      i += 1;
+      continue;
+    }
+    // Caso 3: laço LaTeX inline — fecha no próximo `$` da mesma linha.
+    const close = line.indexOf('$', i + 1);
+    if (close !== -1) {
+      out += line.slice(i, close + 1);
+      i = close + 1;
+      continue;
+    }
+    // Caso 4: `$` solitário sem par — deixa intacto.
+    out += '$';
+    i += 1;
+  }
+  return out;
+}
+
 /** Plugins remark (parse) para o `<ReactMarkdown>` — `$...$` e `$$...$$`. */
 export function katexRemarkPlugins(): PluggableList {
   return [remarkMath];
@@ -62,6 +132,6 @@ export async function renderLessonMarkdown(markdown: string): Promise<string> {
     .use(remarkRehype)
     .use(rehypeKatex)
     .use(rehypeStringify)
-    .process(markdown);
+    .process(escapeLoneDollarSigns(markdown));
   return String(file);
 }

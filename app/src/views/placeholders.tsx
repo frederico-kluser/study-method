@@ -57,16 +57,6 @@ export interface ViewProps {
   onNavigate?: (key: NavKey) => void;
 }
 
-function PlaceholderCard({ title }: { title: string }): ReactElement {
-  return (
-    <section className="placeholder" data-testid={`view-${title.toLowerCase()}`}>
-      <span className="placeholder__badge">onda 1 — scaffold</span>
-      <h2 className="placeholder__title">{title}</h2>
-      <p className="placeholder__body">Em construção — chega na onda 3.</p>
-    </section>
-  );
-}
-
 /* ─── Passos numerados do fluxo recém-instalado (UX notes item 3) ─────────── */
 
 type HomeStepKey = 'configureKeys' | 'subject' | 'learn';
@@ -276,16 +266,4 @@ export function HomeView(props: ViewProps): ReactElement {
       </Stack>
     </Container>
   );
-}
-
-export function SettingsView(props: ViewProps): ReactElement {
-  return <PlaceholderCard title="Settings" />;
-}
-
-export function LessonView(props: ViewProps): ReactElement {
-  return <PlaceholderCard title="Aula" />;
-}
-
-export function ChallengeView(props: ViewProps): ReactElement {
-  return <PlaceholderCard title="Desafio" />;
 }

@@ -197,7 +197,7 @@ function buildLesson(subject: string, challenge: ChallengeInfo): StudyLesson {
   return {
     title: `Aula E2E sobre ${subject.trim()}`,
     subject: subject.trim(),
-    markdown: `# Aula E2E: ${subject.trim()}\n\n> Conteúdo mockado do harness E2E — sem LLM/DeepSeek.\n\n## Analogia\n\nImagine uma fila ordenada.\n\n\`\`\`python\nprint("olá")\n\`\`\`\n`,
+    markdown: `# Aula E2E: ${subject.trim()}\n\n> Conteúdo mockado do harness E2E — sem LLM/DeepSeek.\n\n## Analogia\n\nImagine uma fila ordenada.\n\n## Fórmula (KaTeX)\n\nPitágoras: $a^2 + b^2 = c^2$.\n\n\`\`\`python\nprint("olá")\n\`\`\`\n`,
     findings: lessonFindings(subject.trim()),
     challenges: [challenge],
     createdAt: new Date().toISOString(),
