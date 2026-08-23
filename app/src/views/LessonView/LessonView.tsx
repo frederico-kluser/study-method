@@ -16,8 +16,9 @@
  */
 import ReactMarkdown from 'react-markdown';
 import { useCallback, useState, type ReactElement } from 'react';
-import type { StudyFinding } from '../../../shared/ipc-contract';
+import type { ChallengeInfo, StudyFinding } from '../../../shared/ipc-contract';
 import { getApi } from '../../lib/apiBridge';
+import { useChallengeNav } from '../../lib/challengeNav';
 import { useLessonProgress } from '../../hooks/useLessonProgress';
 import { parseLessonProgressEvent, type LessonPhaseState } from '../../lib/lessonProgress';
 import { parseLessonResult, type ParsedLesson } from '../../lib/lessonParse';
@@ -63,7 +64,14 @@ function ChallengesSection({
   parsed: ParsedLesson;
   rejected: ParsedLesson['rejected'];
 }): ReactElement {
+  const { selectedChallenge, selectChallenge, navigateToChallenge } = useChallengeNav();
   const challenges = parsed.lesson?.challenges ?? [];
+
+  const openChallenge = (c: ChallengeInfo): void => {
+    selectChallenge(c);
+    navigateToChallenge();
+  };
+
   return (
     <section className="lesson__block">
       <h3 className="lesson__h3">Desafios aprovados</h3>
@@ -72,21 +80,29 @@ function ChallengesSection({
       ) : (
         <div className="challenge-grid">
           {challenges.map((c) => (
-            <article className="challenge-card" key={c.challengeId}>
-              <h4 className="challenge-card__title">{c.title}</h4>
-              <div className="challenge-card__meta">
+            <button
+              type="button"
+              key={c.challengeId}
+              className={
+                'challenge-card challenge-card--open' +
+                (selectedChallenge?.challengeId === c.challengeId ? ' is-selected' : '')
+              }
+              onClick={() => openChallenge(c)}
+            >
+              <span className="challenge-card__title">{c.title}</span>
+              <span className="challenge-card__meta">
                 <span className="badge badge--muted">{c.language}</span>
                 {c.verdict ? <span className="badge badge--ok">{c.verdict}</span> : null}
-              </div>
-              <span className="badge badge--accent">editor chega em breve</span>
-            </article>
+              </span>
+              <span className="badge badge--accent">abrir</span>
+            </button>
           ))}
         </div>
       )}
       {rejected.length > 0 ? (
         <div className="lesson__warn">
           <strong>Aviso:</strong> {rejected.length} desafio(s) rejeitado(s) na
-          geração (editor real chega na onda 4).
+          geração.
           <ul>
             {rejected.map((r, i) => (
               <li key={i}>

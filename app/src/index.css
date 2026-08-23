@@ -607,6 +607,418 @@ body {
   color: var(--text-muted);
 }
 
+/* ─── Desafio: card clicável (abrir) ─────────────────────────────────────── */
+.challenge-card--open {
+  appearance: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  text-align: left;
+  font: inherit;
+  color: var(--text);
+  width: 100%;
+  cursor: pointer;
+}
+.challenge-card--open:hover {
+  border-color: var(--accent-dim);
+}
+.challenge-card--open.is-selected {
+  border-color: var(--accent);
+  background: rgba(79, 140, 255, 0.06);
+}
+
+/* ─── Editor: abas, explorer, painel ─────────────────────────────────────── */
+.editor-pane {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+.editor-pane__toolbar {
+  display: flex;
+  gap: 8px;
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--border);
+  background: var(--panel);
+}
+.editor-pane__btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+}
+.editor-pane__body {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+.editor-pane__body .cm-editor {
+  height: 100%;
+}
+.editor-pane__empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: var(--text-muted);
+  padding: 24px;
+  text-align: center;
+}
+.editor-pane__empty p {
+  margin: 0;
+}
+.editor-pane__error {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  right: 8px;
+  z-index: 5;
+  background: rgba(224, 82, 82, 0.12);
+  border: 1px solid var(--danger);
+  color: var(--danger);
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 13px;
+}
+.editor-pane__loading {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  z-index: 5;
+  background: rgba(15, 17, 21, 0.9);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 6px 12px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+/* Abas */
+.editor-tabs {
+  display: flex;
+  gap: 2px;
+  overflow-x: auto;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+  padding: 4px 6px 0;
+  flex: 0 0 auto;
+}
+.editor-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px 6px 12px;
+  border: 1px solid transparent;
+  border-bottom: none;
+  border-radius: 8px 8px 0 0;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 12px;
+  cursor: pointer;
+  white-space: nowrap;
+  user-select: none;
+}
+.editor-tab:hover {
+  background: var(--panel-2);
+  color: var(--text);
+}
+.editor-tab.is-active {
+  background: var(--panel);
+  color: var(--text);
+  border-color: var(--border);
+}
+.editor-tab__name {
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.editor-tab__dirty {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+.editor-tab__close {
+  appearance: none;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 2px;
+  border-radius: 4px;
+  display: inline-flex;
+  align-items: center;
+}
+.editor-tab__close:hover {
+  background: rgba(224, 82, 82, 0.18);
+  color: var(--danger);
+}
+
+/* Explorer */
+.file-explorer {
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  height: 100%;
+}
+.file-explorer__toolbar {
+  display: flex;
+  gap: 6px;
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--border);
+  background: var(--panel);
+}
+.file-explorer__btn {
+  display: inline-flex;
+  align-items: center;
+  padding: 5px 8px;
+}
+.file-explorer__btn--danger:not(:disabled):hover {
+  border-color: var(--danger);
+  color: var(--danger);
+}
+.file-explorer__new {
+  display: flex;
+  gap: 6px;
+  padding: 8px;
+  border-bottom: 1px solid var(--border);
+}
+.file-explorer__tree {
+  overflow: auto;
+  flex: 1;
+  padding: 4px 0;
+}
+.file-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  cursor: pointer;
+  color: var(--text-muted);
+  font-size: 13px;
+  border-left: 2px solid transparent;
+  white-space: nowrap;
+}
+.file-row:hover {
+  background: var(--panel-2);
+  color: var(--text);
+}
+.file-row.is-active {
+  color: var(--accent);
+  border-left-color: var(--accent);
+  background: rgba(79, 140, 255, 0.06);
+}
+.file-row__icon {
+  display: inline-flex;
+  color: currentColor;
+  opacity: 0.85;
+}
+.file-row__name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.file-explorer__empty {
+  color: var(--text-muted);
+  font-size: 13px;
+  padding: 16px;
+  text-align: center;
+}
+
+/* ─── Terminal de saída (AnswerTerminal) ─────────────────────────────────── */
+.answer-terminal {
+  background: #0f1115;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+.answer-terminal__viewport {
+  height: 220px;
+  padding: 6px 8px;
+}
+.answer-terminal__viewport .xterm {
+  height: 100%;
+}
+
+/* ─── ChallengeView: layout em painéis ───────────────────────────────────── */
+.view.challenge {
+  height: calc(100vh - 56px);
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+}
+.challenge__header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding-bottom: 12px;
+}
+.challenge__title {
+  margin: 0;
+  font-size: 22px;
+}
+.challenge__picker {
+  min-width: 260px;
+}
+.challenge__body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  gap: 14px;
+}
+.challenge__panel {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+}
+.challenge__panel--statement {
+  flex: 1 1 30%;
+  min-width: 0;
+}
+.challenge__panel--editor {
+  flex: 1 1 44%;
+  min-width: 0;
+  padding: 0;
+  overflow: hidden;
+}
+.challenge__panel--output {
+  flex: 1 1 26%;
+  min-width: 0;
+  justify-content: flex-start;
+  gap: 10px;
+}
+.challenge__panel-title {
+  margin: 0 0 10px;
+  font-size: 15px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.challenge__markdown {
+  font-size: 14px;
+  line-height: 1.65;
+}
+.challenge__markdown h1,
+.challenge__markdown h2,
+.challenge__markdown h3,
+.challenge__markdown h4 {
+  margin: 1em 0 0.4em;
+  line-height: 1.25;
+}
+.challenge__markdown p,
+.challenge__markdown ul,
+.challenge__markdown ol {
+  margin: 0.5em 0;
+}
+.challenge__markdown a {
+  color: var(--accent);
+  text-decoration: none;
+}
+.challenge__markdown a:hover {
+  text-decoration: underline;
+}
+.challenge__actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.challenge__actions .btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.challenge__section-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  color: var(--text-muted);
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 4px;
+}
+.challenge__pi-running {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--accent);
+}
+.spin {
+  animation: spinner-rotate 0.9s linear infinite;
+}
+.challenge__terminal {
+  flex: 0 0 auto;
+}
+.challenge__feedback {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px;
+}
+.challenge__thinking-toggle {
+  appearance: none;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font: inherit;
+  font-size: 12px;
+  text-align: left;
+}
+.challenge__thinking-toggle:hover {
+  color: var(--text);
+}
+.mono {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.challenge__stream {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.challenge__stream-block.is-thinking {
+  color: var(--text-muted);
+  font-style: italic;
+}
+.challenge__stream-block.is-tool {
+  color: var(--accent);
+}
+.challenge__stream-block.is-error {
+  color: var(--danger);
+}
+.challenge__final {
+  margin: 4px 0 0;
+  border-top: 1px dashed var(--border);
+  padding-top: 8px;
+}
+
 ::-webkit-scrollbar {
   width: 10px;
 }

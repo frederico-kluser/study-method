@@ -2,9 +2,15 @@
  * src/App.tsx — shell do Study Method: sidebar com navegação (Início, Settings,
  * Aula, Desafio) e conteúdo por estado (useState), SEM router. Cada view é um
  * componente do registry src/views/index.ts; as ondas seguintes as preenchem.
+ *
+ * Ondas 3–4: Settings/Aula/Desafio são views reais; Desafio navega via contexto
+ * ChallengeNav (a LessonView seleciona um desafio e o shell mostra a tela dele).
+ * O provider envolve todo o shell para que Aula e Desafio compartilhem o
+ * desafio selecionado.
  */
 import { useState, type ComponentType, type ReactElement } from 'react';
 import { HomeView, SettingsView, LessonView, ChallengeView, type ViewProps } from './views';
+import { ChallengeNavProvider } from './components/challengeNav/ChallengeNavProvider';
 
 type NavKey = 'home' | 'settings' | 'lesson' | 'challenge';
 
@@ -22,9 +28,13 @@ const VIEWS: Record<NavKey, ComponentType<ViewProps>> = {
   challenge: ChallengeView,
 };
 
-export default function App(): ReactElement {
-  const [active, setActive] = useState<NavKey>('home');
-
+function Shell({
+  active,
+  setActive,
+}: {
+  active: NavKey;
+  setActive: (k: NavKey) => void;
+}): ReactElement {
   const View = VIEWS[active];
 
   return (
@@ -49,5 +59,14 @@ export default function App(): ReactElement {
         <View />
       </main>
     </div>
+  );
+}
+
+export default function App(): ReactElement {
+  const [active, setActive] = useState<NavKey>('home');
+  return (
+    <ChallengeNavProvider onNavigateChallenge={() => setActive('challenge')}>
+      <Shell active={active} setActive={setActive} />
+    </ChallengeNavProvider>
   );
 }
