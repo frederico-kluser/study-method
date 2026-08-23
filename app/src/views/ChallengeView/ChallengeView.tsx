@@ -49,6 +49,7 @@ import {
   buildPiFeedbackPrompt,
   digestStudyMethodRules,
 } from '../../lib/piFeedbackPrompt';
+import { mapTestAnswerPhase } from '../../lib/testAnswerEvents';
 import { useChallengeNav } from '../../lib/challengeNav';
 import { AnswerTerminal, printTestBanner, type AnswerTerminalHandle } from '../../components/terminal/AnswerTerminal';
 import { FileExplorer } from '../../components/editor/FileExplorer';
@@ -193,9 +194,10 @@ export default function ChallengeView(): ReactElement {
     let stop: (() => void) | undefined;
     try {
       stop = api.study.onTestAnswerEvent((raw: unknown) => {
-        const ev = raw as { type?: string } | null;
-        if (ev?.type === 'started') setTestStatus('running');
-        else if (ev?.type === 'done') setTestStatus('done');
+        const phase = mapTestAnswerPhase(raw);
+        if (phase === 'started') setTestStatus('running');
+        else if (phase === 'done') setTestStatus('done');
+        // null → não muda o status (evento desconhecido/irrelevante).
       });
     } catch {
       stop = undefined;
