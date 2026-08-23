@@ -4,40 +4,66 @@ Instrução operacional. Vale **toda vez** que a skill é invocada, não só na 
 Referência de primeiro nível: carregada direto do `SKILL.md`.
 
 ## Sumário
-Constantes · Passo 1 `resolve_target` · Passo 2 `verify_setup` · Passo 3 `bootstrap_or_ask`
-(a única parada obrigatória) · A entrevista de criação · Passo 4 `load_memory` ·
-Passo 5 `ingest_docs` · Passo 6 `open_session` · Modo efêmero · Regras permanentes ·
-Falas modelo · Decisões abertas geradas aqui
+Constantes · Os passos e quais são condicionais · `bootstrap` · `setup_interview` (CONDICIONAL —
+a única parada obrigatória) · A entrevista de criação · `load_memory` · `load_docs` (CONDICIONAL) ·
+`open_session` · Modo efêmero · Regras permanentes · Falas modelo · Decisões abertas geradas aqui
 
 ## Constantes
 
 ```
 SETUP_ROOT = raiz do setup do aluno
-SETUP_DOCS = $SETUP_ROOT/docs      # o `docs/` do setup — material teórico
+SETUP_DOCS = $SETUP_ROOT/docs             # o `docs/` do setup — material teórico
 SETUP_MEM  = $SETUP_ROOT/memory
-SETUP_CTL  = $SETUP_ROOT/.study-method
-MANIFEST   = $SETUP_CTL/manifest.json
+MANIFEST   = $SETUP_ROOT/setup.json       # manifesto do setup, VISÍVEL na raiz
+DOCS_INDEX = $SETUP_MEM/docs-index.json   # índice derivado do `docs/` do setup
+CACHE      = $SETUP_MEM/.cache            # derivados descartáveis
 REGISTRY   = ${STUDY_METHOD_HOME:-${XDG_DATA_HOME:-$HOME/.local/share}/study-method}/registry.json
 ```
 
-## Passo 1 — resolve_target
+**Não existe `.study-method/`.** O manifesto é `setup.json` na raiz do setup; derivados e cache
+vivem dentro de `memory/`.
+
+## Os passos, e quais são CONDICIONAIS
+
+Esta referência cobre os **cinco primeiros** dos nove passos canônicos. Os nomes são estáveis; use-os
+literalmente.
+
+| Passo | Condicional? | Quando roda |
+|---|---|---|
+| `bootstrap` | não | **sempre**, em toda invocação |
+| `setup_interview` | **SIM** | **só** quando não há setup em lugar nenhum. Numa retomada normal, **não roda** |
+| `load_memory` | não | sempre que houver um setup |
+| `load_docs` | **SIM** | só quando há `docs/` do setup para ler |
+| `open_session` | não | sempre que houver um setup gravável |
+
+⚠️ **Não leia os nove passos como uma fila obrigatória.** Se `setup_interview` for tratado como
+etapa fixa, você passa a perguntar "quer criar um setup?" em toda sessão — o oposto do que o aluno
+pediu. A pergunta existe **quando os arquivos base não são encontrados**, e só aí.
+
+Os quatro passos restantes — `plan_lesson`, `teach`, `challenge`, `close_session` — estão em outras
+referências.
+
+## Passo 1 — bootstrap
 
 Precedência **fixa**: argumento explícito > diretório corrente (ou ancestral) > registry.
 
-1. Se a invocação trouxe um caminho, use-o e pule para o passo 2.
+1. Se a invocação trouxe um caminho, use-o e vá direto para a classificação do alvo, abaixo.
 2. Senão, procure `MANIFEST` em `$PWD` e depois em cada ancestral, parando em `$HOME` **inclusive**.
    Nunca acima de `$HOME`.
 3. Senão, leia `REGISTRY`.
-   - ausente ou vazio → passo 3;
+   - ausente ou vazio → `setup_interview`;
    - entradas cujo diretório sumiu → marque `setup_status: missing`, avise em uma linha, continue;
    - exatamente 1 ativo → **abra e anuncie**, com o escape na mesma frase. Não é parada;
-   - 2 ou mais → menu curto, ordenado por `last_used_at`, mais recente primeiro.
+   - 2 ou mais → menu curto, ordenado por `last_seen_at`, mais recente primeiro.
 
 `REGISTRY` é índice derivado. Se estiver ilegível: **não sobrescreva**, avise, siga com registry
 vazio em memória, e só mova o arquivo quebrado para `registry.json.corrupt-<timestamp>` na hora em
 que houver algo real para gravar.
 
-## Passo 2 — verify_setup
+Ao abrir um setup, grave `last_seen_at` na entrada dele no registry — é o campo do registry, não
+`last_used_at`.
+
+### Ainda no `bootstrap`: classifique o alvo
 
 Classifique o alvo antes de confiar nele:
 
@@ -47,18 +73,20 @@ Classifique o alvo antes de confiar nele:
 | `incomplete` | falta diretório ou `README.md` | recrie **só estrutura vazia** e o `README.md` do template; avise em uma linha |
 | `corrupt` | `MANIFEST` não parseia | **pare e pergunte** (3 saídas, abaixo) |
 | `candidate` | sem `MANIFEST`, mas ≥2 diretórios canônicos | **pare e pergunte**: adotar (recriar só o controle)? |
-| `none` | nada | passo 3 |
+| `none` | nada | `setup_interview` |
 
-Nunca sobrescreva nem apague um `MANIFEST` corrompido. As três saídas: remontar o controle a partir
-do disco (movendo o quebrado para `.corrupt-<timestamp>`), abrir somente-leitura, ou apontar outro
-setup.
+Nunca sobrescreva nem apague um `setup.json` corrompido. As três saídas: remontar o controle a
+partir do disco (movendo o quebrado para `setup.json.corrupt-<timestamp>`), abrir somente-leitura,
+ou apontar outro setup.
 
 Antes de prometer qualquer gravação, teste `test -w "$SETUP_ROOT"`. Sem permissão de escrita: diga
 **agora**, não no meio da aula, e ofereça modo efêmero.
 
-## Passo 3 — bootstrap_or_ask (a ÚNICA parada obrigatória)
+## Passo 2 — setup_interview  ·  CONDICIONAL  ·  a ÚNICA parada obrigatória
 
-Só executa quando não há setup em lugar nenhum. Numa retomada normal, este passo **não roda**.
+**Só executa quando não há setup em lugar nenhum.** Numa retomada normal, este passo **não roda** —
+nem uma linha dele. Se você está prestes a perguntar "quer que eu crie um setup?" e existe um setup
+resolvido, você está no passo errado.
 
 Pergunte em três frases: diagnóstico sem drama · oferta com o custo declarado · saída na mesma
 mensagem. Depois **espere**. Não crie nada antes do "sim".
@@ -76,7 +104,7 @@ Tratamento das respostas:
 |---|---|
 | "sim" | entrevista abaixo |
 | "não" | **modo efêmero**; diga o que ainda consegue fazer e como reabrir depois; não volte ao assunto |
-| "já tenho um em `<caminho>`" | volte ao passo 1 com esse caminho (adoção, não criação) |
+| "já tenho um em `<caminho>`" | volte ao `bootstrap` com esse caminho (adoção, não criação) |
 | ambígua / pergunta de conteúdo | **responda a pergunta primeiro**, em modo efêmero; reofereça **uma vez**, em uma linha, no fim |
 | silêncio | nada foi gravado, nada a limpar |
 | caminho impossível (sem permissão) | teste antes de tentar, explique, proponha um caminho gravável |
@@ -109,13 +137,18 @@ analogia (observe, não pergunte).
 
 Ordem de escrita, e só depois do "pode":
 ```
-1. mkdir dos 4 diretórios + $SETUP_CTL/cache
+1. mkdir dos 4 diretórios + $CACHE
 2. README.md a partir do template
-3. $MANIFEST
+3. $MANIFEST  (= $SETUP_ROOT/setup.json)
 4. entrada no $REGISTRY   (por último — nunca aponte para setup pela metade)
 5. se theory_source == generated -> gere a base teórica (marcada, ver abaixo)
 ```
+Toda escrita de derivado é **atômica**: grava em `<arquivo>.tmp.$$` e `mv -f` por cima.
 `setup-init.sh` é idempotente: rodar duas vezes no mesmo caminho não duplica nem sobrescreve.
+
+**`$SETUP_DOCS/generated/` é a única exceção** à regra "a skill nunca escreve no `docs/` do setup":
+é o único caminho ali dentro em que você pode escrever, e só teoria gerada. A raiz do `docs/` do
+setup é do aluno.
 
 **Material gerado por você é sempre marcado**, em três camadas: mora em `$SETUP_DOCS/generated/`,
 tem `provenance: generated_researched|generated_unsourced` no frontmatter, e abre com o aviso em
@@ -123,36 +156,56 @@ pt-BR de que foi gerado por IA e pode conter erro. Na conversa, sempre que se ap
 onde veio. Material do aluno **vence** material gerado em qualquer conflito — e o conflito é
 apontado, nunca resolvido em silêncio.
 
-## Passo 4 — load_memory
+## Passo 3 — load_memory
 
-- `memory/` vazia → primeira aula: pule digest, proponha um roteiro curto.
+Ordem fixa: `memory-index.sh <setup_root> --verify` → `memory-digest.sh <setup_root> --now <ISO>`.
+
+- `memory/` vazia → primeira aula (`memory_state: "first_session"`): pule o digest, proponha um
+  roteiro curto e faça a calibração. Não finja conhecer o aluno.
 - Com histórico → leia `INDEX.json` + `profile.json` e use o digest montado **por código**. Nunca
   leia os brutos em sequência para "descobrir o que importa".
 - `INDEX.json` ausente ou mais velho que o bruto mais novo → reconstrua antes.
 - Bruto ilegível → pule, liste quais, siga. Nunca aborte a aula por causa disso.
-- Sessão com `status: in_progress` → menu de 3: retomar · fechar como está e abrir nova · descartar.
-  "Descartar" **move** para `memory/discarded/`, nunca apaga. Sessão órfã sem conteúdo nenhum:
-  descarte sozinho e mencione em quatro palavras.
+- Ramifique por `memory_state`: `first_session` (calibrar) · `warming_up` (há histórico, mas não
+  generalize a partir de 2 aulas) · `warm` (caminho normal) · `degraded` (algo ficou ilegível: não
+  afirme nada sobre histórico sem abrir o bruto, e diga isso uma vez, em uma linha).
+- **Sessão órfã: recuperação automática, sem perguntar nada.** Órfã é condição derivada —
+  `status: "in_progress"` **e** sem lock vivo em `memory/.session.lock` (`session_id` e `hostname`
+  batendo e `kill -0 pid` OK). Quem finaliza é `memory-index.sh --verify`, dono único: marca
+  `status: "abandoned"`, `finalized_by: "auto_orphan_recovery"`, preserva todo o conteúdo e não
+  inventa nada. **Não existe menu de 3 opções, não existe `memory/discarded/`, nada é apagado nem
+  movido.** O digest reporta em `orphan_sessions[]`; quando `days_ago <= 7`, abra a aula oferecendo
+  a retomada, em uma linha.
+- **Lock vivo** apontando para uma sessão `in_progress` é outra coisa: é uma sessão aberta **agora**
+  em outro terminal. Aí `open_session` sai com exit 4 e você pergunta: abortar (default) ou abrir
+  somente-leitura.
 - Fato com `needs_reconfirmation: true` → **pergunte**, não afirme. Nunca abra a aula tratando um
   rótulo antigo como verdade atual.
 
-## Passo 5 — ingest_docs
+## Passo 4 — load_docs  ·  CONDICIONAL
 
-Regido por `references/docs-ingest.md`, que é referência de primeiro nível do `SKILL.md` — não uma
-continuação deste arquivo. O contrato mínimo que este passo garante:
+Só roda quando há `docs/` do setup para ler. Regido por `references/docs-ingest.md`, que é
+referência de primeiro nível do `SKILL.md` — não uma continuação deste arquivo. O contrato mínimo
+que este passo garante:
 
 - `$SETUP_DOCS` ausente → recrie vazio, avise em uma linha, siga para o menu de pasta vazia;
 - vazio → menu de 3: você põe o material agora · eu gero a base (marcada) · seguimos sem base;
 - dentro do orçamento → leia tudo, anuncie em uma linha;
-- acima do orçamento → carregue só o relevante e **declare por nome o que ficou de fora**;
+- acima do orçamento → a escolha das seções passa pelo protocolo REQUEST/APPLY do
+  `docs-index.sh` (pedido `docs_section_pick`, exit 10, resposta por `--apply`); carregue só o que
+  foi selecionado e **declare por nome o que ficou de fora**;
 - nada legível (PDF sem extrator, binário) → diga qual arquivo e por quê, com saídas concretas.
 
 Nunca diga "li seu material" quando leu uma fração dele.
 
-## Passo 6 — open_session
+## Passo 5 — open_session
 
-Crie `memory/NNNN.json` (4 dígitos, zero-padded) com `status: in_progress`, e anuncie o plano da
-aula em uma frase, terminando com um convite a corrigir o rumo ("sigo por aí?").
+Crie `memory/NNNN.json` (4 dígitos, zero-padded) com `status: in_progress` e o `.session.lock`
+(JSON: `{pid, hostname, session_id, started_at}`), e anuncie o plano da aula em uma frase,
+terminando com um convite a corrigir o rumo ("sigo por aí?").
+
+Reescreva o `NNNN.json` inteiro **a cada marco** da aula (checkpoint). É isso que faz uma sessão
+interrompida ter valor: se o arquivo só fosse escrito no fim, toda órfã seria um arquivo vazio.
 
 Em modo efêmero e em modo somente-leitura este passo **não roda** — e você não promete memória.
 
@@ -170,9 +223,18 @@ Valem por toda a sessão, não só na abertura:
    única exceção, e é anunciado.
 2. Nenhum default aplicado em silêncio: grave `default_used: true` e diga uma vez.
 3. Nunca leia material pela metade sem declarar o que ficou de fora.
-4. Nunca apague dado do aluno; mova.
+4. Nunca apague dado do aluno. E, no fluxo normal, nem mova: sessão interrompida é recuperada no
+   lugar, com o conteúdo intacto.
 5. Anuncie em uma linha, não em um relatório de status.
 6. Depois de uma recusa, no máximo uma reoferta — e só com contexto novo.
+7. A skill **nunca** escreve na raiz do `docs/` do setup. Exceção única: `$SETUP_DOCS/generated/`.
+8. **Nunca escreva em outro setup.** A leitura cruzada lê **só** o `README.md` do setup do outro
+   assunto — nunca `researchs/`, `memory/`, `challenges/` ou o `docs/` dele — e é regida por
+   `privacy.cross_read: ask | allow | never` (default `ask`: pergunte antes, e o "sim" vale para
+   esta sessão).
+9. Quando um script sair com **exit 10** (`needs_model_input`), ele imprimiu um **pedido** em stdout
+   e **não escreveu nada**. Produza a resposta em JSON, grave num arquivo temporário e re-invoque o
+   **mesmo** script com `--apply <arquivo.json>`. Nunca contorne isso editando o arquivo-alvo na mão.
 
 ## Falas modelo
 
@@ -202,9 +264,8 @@ Confirmação antes de escrever:
 > "Vou criar em `~/estudos/calculo`: `docs`, `memory`, `researchs`, `challenges` e um `README.md`.
 > Pode?"
 
-Sessão órfã:
-> "A sessão de terça (0018) ficou aberta — a gente estava em derivada de função composta e parou no
-> meio. Retomo dali, fecho ela como está e começo uma nova, ou jogo fora?"
+Sessão órfã (já recuperada automaticamente — é uma oferta de retomada, não um menu):
+> "A gente parou no meio de derivada de função composta na terça — quer retomar dali?"
 
 Retomada depois de duas semanas:
 > "Faz duas semanas. A gente parou em limites laterais, e da última vez a definição formal estava
@@ -217,6 +278,6 @@ Retomada depois de duas semanas:
 | D-B03 | Quantas perguntas na criação do setup? | as 6 mínimas + confirmação · só o assunto e o resto no default · entrevista longa com todas as decisões | 6 + confirmação, com atalho de 2 trocas | cheap |
 | D-B04 | Onde eu crio o setup por padrão? | na pasta atual · em `~/estudos/<assunto>` · sempre perguntar | pasta atual se vazia, senão `~/estudos/<assunto>` | moderate |
 | D-B05 | Em que idioma o setup é escrito? | pt-BR fixo · o idioma da nossa conversa · perguntar | idioma da conversa | cheap |
-| D-B06 | O que fazer com uma sessão que ficou aberta da vez anterior? | perguntar · retomar automático · fechar automático · descartar automático | perguntar (menu de 3) | cheap |
+| D-B06 | **RESOLVIDA (AR-06).** O que fazer com uma sessão que ficou aberta da vez anterior? | perguntar (menu de 3) · **fechar automaticamente como `abandoned` e oferecer a retomada** · descartar automático | **Fechar automaticamente** em `memory-index.sh --verify`, preservando tudo. Catálogo: `ask_when: never` | cheap |
 | D-B07 | Quando você roda a skill fora de uma pasta de estudo e existe um setup só, eu abro ele direto? | abro e aviso · sempre pergunto | abro e aviso, com escape na mesma frase | cheap |
-| D-B10 | Onde fica o arquivo de controle do setup? | `.study-method/manifest.json` (oculto) · `setup.json` (visível na raiz) | `.study-method/manifest.json` — autoridade: sub-tarefa 2.1 | moderate |
+| D-B10 | **RESOLVIDA (AR-02).** Onde fica o arquivo de controle do setup? | `.study-method/manifest.json` (oculto) · `setup.json` (visível na raiz) | **`setup.json`, visível na raiz do setup.** `.study-method/` não existe | moderate |

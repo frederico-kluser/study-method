@@ -17,19 +17,20 @@ Nunca escrever `docs/` sozinho. Nos trechos operacionais, usa-se a constante:
 
 ```
 SETUP_ROOT   = raiz do setup de estudo do aluno
-SETUP_DOCS   = $SETUP_ROOT/docs        # o `docs/` do setup
+SETUP_DOCS   = $SETUP_ROOT/docs           # o `docs/` do setup
 SETUP_MEM    = $SETUP_ROOT/memory
 SETUP_RES    = $SETUP_ROOT/researchs
 SETUP_CHAL   = $SETUP_ROOT/challenges
-SETUP_CTL    = $SETUP_ROOT/.study-method     # controle e cache derivado
-MANIFEST     = $SETUP_CTL/manifest.json      # marcador canônico do setup
+MANIFEST     = $SETUP_ROOT/setup.json     # marcador canônico do setup, VISÍVEL na raiz
+DOCS_INDEX   = $SETUP_MEM/docs-index.json # índice derivado do `docs/` do setup
+CACHE        = $SETUP_MEM/.cache          # derivados descartáveis (texto extraído de PDF)
 REGISTRY     = ${STUDY_METHOD_HOME:-${XDG_DATA_HOME:-$HOME/.local/share}/study-method}/registry.json
 ```
 
-> `MANIFEST` e `SETUP_CTL` são **proposta** deste documento. A sub-tarefa 2.1
-> (`01-arquitetura.md` + `setup-manifest.schema.json`) é a autoridade sobre o caminho e o schema do
-> manifesto do setup. Toda a lógica abaixo depende só de "existe um marcador legível na raiz do
-> setup" — se 2.1 escolher outro caminho, troca-se o valor da constante e nada mais muda.
+> **Não existe `.study-method/`.** O manifesto do setup é `setup.json` na raiz — visível para quem
+> abre a pasta, e é o marcador que `bootstrap` procura subindo diretórios. Os derivados e o cache
+> vivem dentro de `memory/`, junto com o resto do que a máquina mantém
+> (`docs/01-arquitetura.md` do repositório §1.2 e §6, item 8).
 
 ---
 
@@ -40,7 +41,7 @@ diferentes:
 
 | # | Exigência literal | Onde é atendida | Modo de falha se ignorada |
 |---|---|---|---|
-| R1 | "verificar se tem uma pasta `docs/`" | §4, folhas B-17 a B-21 | a skill assume que existe material e alucina o conteúdo dele |
+| R1 | "verificar se tem uma pasta `docs/`" *(palavras do aluno; aqui é o `docs/` do setup)* | §4, folhas B-17 a B-21 | a skill assume que existe material e alucina o conteúdo dele |
 | R2 | "sempre ler o contexto de tudo que está lá" | §8 (ingestão com orçamento) | ou lê pouco e finge que leu tudo, ou lê demais e entende nada (§8.1) |
 | R3 | "se os arquivos base não forem encontrados, perguntar se quer criar um novo setup" | §5 (a parada obrigatória) | a skill cria pasta no diretório errado sem consentimento, ou trava sem saída |
 
@@ -82,7 +83,8 @@ nenhuma chamada de modelo. O resultado é um punhado de variáveis que a árvore
 | `registry_active` | entradas com `setup_status: active` e diretório existente | 0, 1 ou N |
 | `writable` | `test -w $SETUP_ROOT` | booleano |
 | `memory_count` | `ls $SETUP_MEM/[0-9][0-9][0-9][0-9].json \| wc -l` | inteiro |
-| `orphan_session` | sessão mais recente com `status: in_progress` | id ou vazio |
+| `orphan_sessions` | sessões com `status: in_progress` **e sem lock vivo** (§10) — órfã é condição derivada, nunca valor persistido | lista, possivelmente vazia |
+| `live_session` | sessão com `status: in_progress` **e** lock vivo (`memory/.session.lock` com `session_id` e `hostname` batendo e `kill -0 pid` OK) | id ou vazio |
 | `docs_state` | ver §3.3 | `absent` · `empty` · `readable` · `partially_readable` · `unreadable` |
 | `docs_bytes` | soma dos bytes **ingeríveis** (§8.3) | inteiro |
 
@@ -156,7 +158,8 @@ BOOT:
 
   # --- D. com setup em mãos ----------------------------------------------
   se not writable                          -> B-22
-  se orphan_session != ""                  -> B-16  [MENU CURTO]
+  se live_session != ""                    -> exit 4 (sessão concorrente; docs/01 §3, open_session)
+  se orphan_sessions não vazio             -> B-16  (recupera automaticamente, sem perguntar)
   se memory_count == 0                     -> B-14
   senão                                    -> B-15
   conforme docs_state:
@@ -193,7 +196,7 @@ só disparam em situação ambígua ou destrutiva — em uso normal, o aluno pas
 | B-13 | **nenhum setup em lugar nenhum** | **SIM — parada obrigatória** |
 | B-14 | setup válido, `memory/` vazia (primeira aula) | não |
 | B-15 | setup válido, `memory/` com histórico | não |
-| B-16 | sessão órfã `in_progress` da vez anterior | menu curto |
+| B-16 | sessão órfã da vez anterior (`in_progress` sem lock vivo) | **não** — recuperação automática |
 | B-17 | `docs/` do setup legível e dentro do orçamento | não |
 | B-18 | `docs/` do setup existe e está vazio | menu curto |
 | B-19 | `docs/` do setup não existe | não (recria e avisa) |
@@ -212,7 +215,7 @@ conversa), **Grava** (efeito persistente). "Grava: nada" é uma resposta válida
 #### B-01 — argumento aponta para setup válido
 - **Faz**: adota `SETUP_ROOT = arg_path`. Sem confirmação: o aluno acabou de nomear o caminho.
 - **Diz**: "Abri o setup de *Cálculo I* em `~/estudos/calculo`. Última aula foi dia 09/08."
-- **Grava**: `last_used_at` na entrada do registry (cria a entrada se o setup não estava registrado).
+- **Grava**: `last_seen_at` na entrada do registry (cria a entrada se o setup não estava registrado).
 
 #### B-02 — argumento aponta para caminho inexistente
 - **Faz**: **não cria nada.** Pergunta.
@@ -235,13 +238,13 @@ conversa), **Grava** (efeito persistente). "Grava: nada" é uma resposta válida
 - **Faz**: adota. É o caminho feliz da retomada (§9).
 - **Diz**: uma linha só, já com o gancho da aula. "Voltamos ao *Cálculo I*. Da última vez a gente
   parou em limites laterais — sigo daí?"
-- **Grava**: `last_used_at`.
+- **Grava**: `last_seen_at`.
 
 #### B-05 / B-09 — o corrente está dentro de um setup (ou um ancestral é setup)
 - **Faz**: sobe até a raiz, adota a raiz. Não trata o subdiretório como setup próprio.
-- **Diz**: "Você está dentro de `challenges/derivadas/`; o setup mesmo é `~/estudos/calculo`, abri
-  de lá."
-- **Grava**: `last_used_at`.
+- **Diz**: "Você está dentro de `challenges/0007-derivadas/`; o setup mesmo é `~/estudos/calculo`,
+  abri de lá."
+- **Grava**: `last_seen_at`.
 
 #### B-06 — setup incompleto
 - **Faz**: recria **só o que é estrutura vazia** (diretório canônico faltando) e regenera `README.md`
@@ -253,11 +256,11 @@ conversa), **Grava** (efeito persistente). "Grava: nada" é uma resposta válida
 
 #### B-07 — manifesto do setup corrompido
 - **Faz**: **não sobrescreve e não apaga.** Pergunta, com três saídas concretas.
-- **Diz**: "O arquivo de controle desse setup (`.study-method/manifest.json`) está ilegível — não
+- **Diz**: "O arquivo de controle desse setup (`setup.json`, na raiz da pasta) está ilegível — não
   consigo saber de que matéria ele é. Suas anotações e sessões estão intactas, é só o índice que
   quebrou. Posso: (1) remontar o controle a partir do que está em disco, (2) abrir só para leitura,
   sem gravar nada hoje, ou (3) você me aponta outro setup. Qual?"
-- **Respostas**: (1) reconstrói e move o quebrado para `manifest.json.corrupt-<timestamp>` — o
+- **Respostas**: (1) reconstrói e move o quebrado para `setup.json.corrupt-<timestamp>` — o
   arquivo antigo nunca é destruído · (2) segue em modo somente-leitura (nenhuma escrita na sessão
   inteira) · (3) volta ao passo A com o novo caminho.
 - **Grava**: só na opção (1).
@@ -277,15 +280,15 @@ conversa), **Grava** (efeito persistente). "Grava: nada" é uma resposta válida
   baixo e reversível numa frase.
 - **Diz**: "Você não está numa pasta de estudo, mas tenho seu setup de *Cálculo I* em
   `~/estudos/calculo` — abri ele. (Se você queria começar uma matéria nova, é só dizer *novo setup*.)"
-- **Grava**: `last_used_at`.
+- **Grava**: `last_seen_at`.
 
 #### B-11 — nenhum setup aqui, registry tem 2 ou mais
-- **Faz**: menu curto, ordenado por `last_used_at` desc, com o mais recente em primeiro.
+- **Faz**: menu curto, ordenado por `last_seen_at` desc, com o mais recente em primeiro.
 - **Diz**: "Tenho três setups seus: *Cálculo I* (usado ontem), *Rust* (há 3 semanas) e *Estatística*
   (há 2 meses). Continuo do Cálculo, ou é outro hoje?"
 - **Por que aqui vale parar**: abrir o setup errado escreve memória do aluno no lugar errado, e isso
   é caro de desfazer — mais caro que uma pergunta de uma linha.
-- **Grava**: `last_used_at` no escolhido.
+- **Grava**: `last_seen_at` no escolhido.
 
 #### B-12 — registry aponta para diretório que sumiu
 - **Faz**: marca `setup_status: missing` (não apaga a entrada — o aluno pode ter só desmontado um
@@ -305,21 +308,24 @@ Detalhada na §5.
 - **Grava**: `memory/0001.json` com `status: in_progress` (no passo `open_session`).
 
 #### B-15 — setup válido, `memory/` com histórico
-- **Faz**: lê `memory/INDEX.json` + `profile.json` e monta o digest **por código**, nunca "a LLM
-  decide o que copiar de N arquivos" (`research/02-memoria-llm.md` §2 e §4). Se `INDEX.json` está ausente ou
-  mais velho que o bruto mais novo, reconstrói antes. Bruto ilegível é **pulado e listado**, nunca
-  motivo para abortar.
+- **Faz**: `memory-index.sh <setup_root> --verify` (sincronia do índice + recuperação automática de
+  órfã, §10) e depois `memory-digest.sh <setup_root> --now <ISO>`: o digest é montado **por código**,
+  nunca "a LLM decide o que copiar de N arquivos"
+  (`docs/research/02-memoria-llm.md` do repositório §2 e §4). Se `INDEX.json` está ausente ou mais
+  velho que o bruto mais novo, reconstrói antes. Bruto ilegível é **pulado e listado**, nunca motivo
+  para abortar.
 - **Diz**: nada sobre a mecânica; entra direto no gancho pedagógico. Só fala se algo deu errado:
   "Dois arquivos de sessão (`0012`, `0019`) estão ilegíveis — segui sem eles."
 - **Grava**: `memory/INDEX.json` reconstruído, se foi o caso.
 
 #### B-16 — sessão órfã da vez anterior
-Detalhada na §10.
+Recuperação **automática**, sem pergunta e sem menu. Detalhada na §10.
 
 #### B-17 — `docs/` do setup legível e dentro do orçamento
 - **Faz**: lê tudo (§8.4).
 - **Diz**: "Li seu material: 4 arquivos, ~31 KB." Uma linha, sem lista de nomes.
-- **Grava**: `SETUP_CTL/cache/docs-manifest.json` (índice derivado, para a próxima vez).
+- **Grava**: `$DOCS_INDEX` = `memory/docs-index.json` (índice derivado, para a próxima vez),
+  atomicamente (`tmp` + `mv`).
 
 #### B-18 — `docs/` do setup existe e está vazio
 - **Faz**: **não trata como erro.** Oferece três caminhos, todos válidos.
@@ -352,7 +358,8 @@ Detalhada na §10.
 - **Diz**: "Seu material tem 340 páginas. Carreguei os capítulos 3 e 4 (limites e continuidade), que
   é onde a gente está. Ficaram de fora: séries, integrais, apêndice de trigonometria — se a aula
   esbarrar em algum, é só pedir que eu abro."
-- **Grava**: `SETUP_CTL/cache/docs-manifest.json`.
+- **Grava**: `$DOCS_INDEX` = `memory/docs-index.json`, incluindo o bloco `selection` devolvido pelo
+  `--apply` do pedido `docs_section_pick` (§8.5).
 
 #### B-22 — setup em local sem permissão de escrita
 - **Faz**: detecta **antes** de prometer qualquer registro. Entra em modo somente-leitura explícito.
@@ -390,7 +397,7 @@ impressão do projeto inteiro.
 
 ### 5.1 Como ela pergunta
 
-Tom de bate-papo, não interrogatório (`research/03-pedagogia.md` §8: estilo conversacional bate estilo formal
+Tom de bate-papo, não interrogatório (`docs/research/03-pedagogia.md` §8: estilo conversacional bate estilo formal
 em 11 de 11 testes de transferência; e §8.2: informal precisa carregar conteúdo, não decoração).
 
 Forma da pergunta, em três partes, uma frase cada:
@@ -507,7 +514,7 @@ não configurar.
 | Q3 | "Você já tem material — PDF, slides, anotações — ou eu começo do zero?" | `theory_source` | É o requisito explícito do aluno (R3/§7). Decide se a próxima coisa que acontece é ingestão, geração ou nada. Resposta de uma palavra. |
 | Q4 | "Vai ter exercício de código? Aqui na sua máquina tem Python, Node, Rust, Go e Java prontos." | `practice_language` (`none` é valor válido) | Decide se `challenges/` é usado e com qual toolchain. Errar aqui desperdiça o primeiro desafio inteiro. O menu já vem filtrado pelo que está instalado (`detect-toolchains.sh`) — o aluno não escolhe o que não roda. |
 | Q5 | "Quanto tempo você tem por sessão? 30, 60, 90 minutos?" | `session_minutes` | Define o escopo da **primeira** aula: quanto cobrir, se cabe desafio. Sem isso o tutor erra o tamanho da aula justo na hora em que ainda não conhece o aluno. Resposta: um número. |
-| Q6 | "Como você está nisso hoje: começando do zero, já vi mas está enferrujado, ou já manjo e quero aprofundar?" | `starting_level` (`beginner`/`intermediate`/`advanced`) | **Expertise reversal effect** (`research/03-pedagogia.md` §3.3): o andaime que ajuda o novato *atrapalha* o avançado. É o input pedagógico de maior alavancagem do setup inteiro, e custa uma palavra. Vira o valor inicial do perfil de proficiência, que se autocorrige nas sessões seguintes. |
+| Q6 | "Como você está nisso hoje: começando do zero, já vi mas está enferrujado, ou já manjo e quero aprofundar?" | `starting_level` (`beginner`/`intermediate`/`advanced`) | **Expertise reversal effect** (`docs/research/03-pedagogia.md` §3.3): o andaime que ajuda o novato *atrapalha* o avançado. É o input pedagógico de maior alavancagem do setup inteiro, e custa uma palavra. Vira o valor inicial do perfil de proficiência, que se autocorrige nas sessões seguintes. |
 | — | **Confirmação**: "Vou criar em `~/estudos/calculo`: `docs`, `memory`, `researchs`, `challenges` e um `README.md`. Pode?" | — | Não é pergunta, é o último ponto de arrependimento antes da primeira escrita em disco. Mostra exatamente o que vai aparecer. |
 
 ### 6.3 O que **NÃO** se pergunta agora (e quando se pergunta)
@@ -516,7 +523,7 @@ não configurar.
 |---|---|---|
 | versionar `memory/` no git | pergunta de privacidade, e não há nada em `memory/` ainda para proteger | primeira escrita de sessão |
 | orçamento de leitura do `docs/` do setup (D-B01) | só importa se o material passar do limite; até lá é ruído | quando estourar, uma vez |
-| estratégia de compactação / RAG local / grafo | irrelevante antes de ~15 sessões (`research/02-memoria-llm.md`, Recomendação) | `session-15` |
+| estratégia de compactação / RAG local / grafo | irrelevante antes de ~15 sessões (`docs/research/02-memoria-llm.md`, Recomendação) | `session-15` |
 | grafia `researchs` vs `research` | cosmético; o default é manter | `on-demand` |
 | formato de visualização, sandbox, Docker | não existe desafio ainda | `first-challenge` |
 | intervalos de repetição espaçada | não há o que revisar na aula 1 | `session-15` |
@@ -547,17 +554,17 @@ Defaults propostos (todos reversíveis em uma frase):
 |---|---|---|
 | `setup_path` | `$PWD/<subject_slug>` se `$PWD` está vazio; senão `~/estudos/<subject_slug>` | evita sujar um diretório com conteúdo |
 | `theory_source` | `generated` se o aluno disse que não tem material; `student_provided` se disse que tem | Q3 |
-| `practice_language` | primeira linguagem *detectada na máquina* que faz sentido para o assunto; `none` se o assunto não é de código | `detect-toolchains.sh` (`research/06-toolchains.md` §3) |
+| `practice_language` | primeira linguagem *detectada na máquina* que faz sentido para o assunto; `none` se o assunto não é de código | `detect-toolchains.sh` (`docs/research/06-toolchains.md` §3) |
 | `session_minutes` | `60` | valor mais comum; erra pouco nos dois sentidos |
-| `starting_level` | `beginner` | subestimar e subir é seguro; superestimar e frustrar não é (`research/03-pedagogia.md` §3.3) |
+| `starting_level` | `beginner` | subestimar e subir é seguro; superestimar e frustrar não é (`docs/research/03-pedagogia.md` §3.3) |
 | `language` | idioma da conversa | zero atrito |
 
 ### 6.5 O que a criação escreve, em ordem
 
 ```
-1. mkdir -p $SETUP_ROOT/{docs,memory,researchs,challenges} $SETUP_CTL/cache
+1. mkdir -p $SETUP_ROOT/{docs,memory,researchs,challenges} $CACHE
 2. escreve $SETUP_ROOT/README.md          (a partir do template de setup)
-3. escreve $MANIFEST                      (schema da sub-tarefa 2.1)
+3. escreve $MANIFEST = $SETUP_ROOT/setup.json   (setup-manifest.schema.json, sub-tarefa 2.1)
 4. escreve/atualiza $REGISTRY             (entrada nova, setup_status: active)
 5. se theory_source == generated -> §7
 6. se theory_source == student_provided -> §8, agora ou depois de o aluno copiar os arquivos
@@ -601,12 +608,17 @@ material do aluno.
 > "Sua apostila define continuidade por vizinhança e a base que eu gerei usa épsilon-delta. São
 > equivalentes, mas vou seguir a sua apostila — é ela que vai cair na sua prova."
 
-### 7.3 Onde é gravado
+### 7.3 Onde é gravado — a única exceção ao "nunca escreva no `docs/` do setup"
 
 ```
 $SETUP_DOCS/generated/0001-<slug>.md
 $SETUP_DOCS/generated/0002-<slug>.md
 ```
+
+A regra permanente do projeto é que a skill **não escreve no `docs/` do setup**. Ela tem **uma**
+exceção, nomeada e única: o subdiretório `generated/`, e só para teoria gerada, sempre marcada como
+tal (§7.4). A raiz do `docs/` do setup continua exclusiva do aluno, e qualquer escrita fora de
+`generated/` é bug de gate (`docs/01-arquitetura.md` do repositório §2.1 e §6, item 6).
 
 Três razões para ficar **dentro** do `docs/` do setup, e não em `researchs/`:
 
@@ -658,8 +670,13 @@ Campo barato com valor alto. Quando o aluno confere um trecho contra a fonte ofi
 "isso está certo", a skill vira `verified_by_student: true` com `verified_at`. Efeitos:
 
 - material verificado deixa de vir com o disclaimer conversacional a cada uso;
-- material **não** verificado que já foi contestado uma vez ganha `disputed: true` e é rebaixado na
-  seleção de seções da §8.5 (empate perde para material do aluno; contestado perde de todo mundo).
+- material **não** verificado continua vindo com o aviso, e em qualquer conflito com o material do
+  aluno é o material do aluno que vence — dito em voz alta, nunca resolvido em silêncio (§7.2).
+
+Não existe campo `disputed`. Ele foi proposto numa versão anterior deste documento e **está
+descartado**: nenhum schema do projeto o grava, e um peso de seleção sobre um campo que ninguém
+escreve é uma fórmula que não roda (AR-28). Material contestado é tratado na conversa e, se for o
+caso, corrigido no próprio arquivo gerado ou substituído pelo material do aluno.
 
 ### 7.6 O que a base gerada contém (e o que ela não contém)
 
@@ -688,7 +705,7 @@ O aluno pediu: "sempre ler o contexto de tudo que está lá". Isso é trivialmen
 três arquivos de anotação, e vira sabotagem quando ele joga um PDF de cálculo de 400 páginas na
 pasta.
 
-`research/02-memoria-llm.md` §2 é a razão de esta seção existir. Dois achados, ambos verificados:
+`docs/research/02-memoria-llm.md` do repositório §2 é a razão de esta seção existir. Dois achados, ambos verificados:
 
 - **Lost in the Middle** (Liu et al., TACL 2024): o desempenho segue uma curva em **U** — o modelo
   recupera bem o que está no início e no fim do contexto, e degrada no meio. Um capítulo relevante
@@ -733,7 +750,7 @@ cedo demais) custa uma frase de declaração; errar para o outro lado custa a qu
 | `.png` `.jpg` `.svg` | não ingerível por este caminho — declarado ao aluno | 0 |
 | binário / desconhecido | não ingerível — declarado | 0 |
 
-**Nunca** se assume que um extrator existe (antipadrão documentado em `research/01-agent-skills.md` §7:
+**Nunca** se assume que um extrator existe (antipadrão documentado em `docs/research/01-agent-skills.md` do repositório §7:
 "assumir que uma ferramenta/pacote está instalado"). Tudo é `command -v` antes de usar.
 
 Guardas duras, independentes do orçamento em bytes:
@@ -746,12 +763,13 @@ Guardas duras, independentes do orçamento em bytes:
 
 Sem sutileza: lê os arquivos inteiros, na ordem raiz do `docs/` do setup antes de
 `generated/` (material do aluno primeiro — posição inicial é a posição forte da curva em U).
-Anuncia em uma linha. Grava o manifesto derivado mesmo assim, porque na próxima sessão ele permite
+Anuncia em uma linha. Grava `$DOCS_INDEX` (`memory/docs-index.json`) mesmo assim, porque na próxima sessão ele permite
 detectar mudança sem reler nada.
 
 ### 8.5 Acima do limite → modo manifesto
 
-**Passo 1 — manifesto.** `docs-index.sh` gera `$SETUP_CTL/cache/docs-manifest.json`:
+**Passo 1 — índice (determinístico, exit 0).** `docs-index.sh <setup_root>` gera
+`$DOCS_INDEX` = `memory/docs-index.json`, com escrita atômica (`tmp` + `mv`):
 
 ```json
 {
@@ -782,7 +800,7 @@ detectar mudança sem reler nada.
       "kind": "pdf",
       "pages": 1368,
       "extracted_text_bytes": 3980221,
-      "extract_cache": "$SETUP_CTL/cache/docs-text/1cc90ff2.txt",
+      "extract_cache": "memory/.cache/docs-text/1cc90ff2.txt",
       "sections": [
         { "heading": "Capítulo 3 — Limites", "page_from": 121, "page_to": 190, "bytes": 210044 }
       ]
@@ -811,18 +829,52 @@ caminho relativo sobrevive ao aluno mover o setup de lugar.
   justamente por isso), e a contagem de páginas via `pdfinfo`. Extração de faixa:
   `pdftotext -layout -f 121 -l 190 arquivo.pdf -` (verificado nesta máquina).
 
-**Passo 3 — seleção por relevância ao tópico da aula.**
+**Passo 3 — seleção das seções relevantes: REQUEST/APPLY, não fórmula.**
+
+Escolher *quais capítulos deste livro importam para a aula de hoje* é julgamento. Um shell script
+não faz isso, e não adianta fingir que faz com uma soma de pesos. O que o script calcula sozinho,
+por seção, e que é genuinamente mecânico:
 
 ```
-score(secao) = 3 * (termos do tópico no heading)
-             + 1 * min(ocorrências dos termos no corpo, 10)
-             + 2 se a seção foi usada em alguma das últimas 3 sessões (memory/INDEX.json)
-             - 1 se provenance começa com "generated"     # material do aluno ganha empate
-             - 5 se disputed == true                       # §7.5
+sinais(secao) = {
+  heading_hits : quantos termos do tópico aparecem no heading,
+  body_hits    : min(ocorrências dos termos no corpo, 10),
+  bytes        : tamanho da seção (o que ela custa do orçamento),
+  provenance   : "student_provided" | "generated_researched" | "generated_unsourced"
+}
 ```
 
-Os "termos do tópico" saem de três lugares, nesta ordem: o que o aluno acabou de pedir nesta sessão,
-`next_topic` da última sessão fechada, e `subject` do manifesto do setup.
+Os "termos do tópico" saem de dois lugares, nesta ordem: o que o aluno acabou de pedir nesta sessão
+(chega por `--topics`) e o `subject` do manifesto do setup.
+
+**Três termos que existiam aqui e saíram (AR-28)**: `next_topic` da última sessão fechada, "+2 se a
+seção foi usada nas últimas 3 sessões" e "−5 se `disputed`". Nenhum dos três existe em schema algum
+do projeto — eram pesos sobre dados que ninguém grava. Um peso incomputável não é conservadorismo,
+é uma fórmula que não roda.
+
+A escolha em si vai pelo protocolo REQUEST/APPLY (`docs/01-arquitetura.md` do repositório §3.1):
+
+```
+1. docs-index.sh <setup_root>                      -> escreve memory/docs-index.json, exit 0
+2. docs-index.sh <setup_root> --select [--topics t1,t2]
+                                                   -> imprime o PEDIDO docs_section_pick em stdout
+                                                      e sai 10, SEM tocar em disco
+3. o modelo lê o pedido (seções + sinais + orçamento restante), responde com a lista de
+   section_ids escolhidos, e grava a resposta em um arquivo temporário
+4. docs-index.sh <setup_root> --apply <resposta.json>
+                                                   -> valida contra
+                                                      docs-section-pick.response.schema.json
+                                                      e grava o bloco `selection` no índice,
+                                                      atomicamente. Inválida -> exit 5, nada aplicado
+```
+
+Regras que a resposta precisa respeitar, e que o `--apply` **verifica** (não confia):
+
+- soma dos `bytes` das seções escolhidas ≤ `DOCS_BUDGET_BYTES * 0.60` (passo 4);
+- só `section_id` que existe no índice;
+- em empate de relevância, **material do aluno vence material gerado** — o `provenance` está no
+  pedido justamente para isso;
+- seções inteiras, nunca faixas parciais.
 
 **Passo 4 — o que entra.**
 
@@ -866,7 +918,7 @@ Detalhes verificados nesta máquina, que a implementação pode usar:
   antes de decidir extrair.
 
 **Cache de extração.** O texto extraído vai para
-`$SETUP_CTL/cache/docs-text/<sha256-do-pdf>.txt`. Um livro de 1300 páginas é extraído **uma vez**;
+`memory/.cache/docs-text/<sha256-do-pdf>.txt`. Um livro de 1300 páginas é extraído **uma vez**;
 nas sessões seguintes, se o sha256 bate, reusa. O cache é derivado: apagar não perde nada.
 
 **Quando não há extrator**, a skill não engole o problema nem propõe magia. Três saídas concretas,
@@ -888,7 +940,7 @@ por página) e diz o que é, em vez de reportar "PDF vazio":
 
 Barato antes de caro: compara **tamanho + mtime** de cada arquivo com o manifesto; só calcula
 `sha256` quando algum dos dois muda. Regenera **só as entradas afetadas**. Rebuild completo apenas
-quando `schema_version` do manifesto muda. Arquivo novo na pasta entra; arquivo sumido sai e é
+quando `schema_version` do `docs-index.json` muda. Arquivo novo na pasta entra; arquivo sumido sai e é
 anunciado ("o `notas-aula2.md` não está mais aí").
 
 ---
@@ -917,7 +969,7 @@ abertura muda:
 
 - **até ~7 dias**: retoma direto no ponto de parada;
 - **8 a 30 dias**: abre com uma **pergunta de calibração**, nunca com uma afirmação sobre o aluno.
-  Isso vem direto de `research/02-memoria-llm.md` §7 (ancoragem excessiva no perfil antigo: um rótulo nunca
+  Isso vem direto de `docs/research/02-memoria-llm.md` do repositório §7 (ancoragem excessiva no perfil antigo: um rótulo nunca
   reavaliado vira profecia autorrealizável). O digest expõe `needs_reconfirmation: true` nos fatos
   cujo `last_observed_at` está velho, e o tutor pergunta em vez de assumir:
 
@@ -926,7 +978,7 @@ abertura muda:
 
 - **acima de ~30 dias**: oferece 3 minutos de recuperação ativa antes de conteúdo novo — não uma
   revisão expositiva, mas duas ou três perguntas de recall, que é o que a literatura de espaçamento
-  sustenta (`research/03-pedagogia.md` §4 e §7). A escolha é do aluno: "quer 3 minutos de aquecimento ou
+  sustenta (`docs/research/03-pedagogia.md` §4 e §7). A escolha é do aluno: "quer 3 minutos de aquecimento ou
   prefere ir direto?"
 
 **O que não muda**: a regra de declarar o que ficou de fora da ingestão (§8.5, passo 5) vale toda
@@ -934,62 +986,111 @@ sessão, não só na primeira. O aluno não precisa lembrar do que a skill disse
 
 ---
 
-## 10. Sessão órfã (B-16)
+## 10. Sessão órfã (B-16) — recuperação automática
 
 O modo de falha **mais provável** em uso real: o aluno fecha o terminal no meio da aula, e a última
 sessão fica com `status: in_progress`.
 
-Detecção: a sessão de maior número em `$SETUP_MEM` com `status: in_progress`. É determinística e
-barata (o índice já carrega `status`).
+### Órfã é condição derivada, não valor de `status`
 
-Nunca resolvida em silêncio, porque as três saídas têm consequências pedagógicas diferentes e só o
-aluno sabe qual aconteceu. Menu curto, com a informação que permite escolher:
+O vocabulário de `status` é `in_progress | completed | abandoned`. **`orphaned` não existe.** Uma
+sessão é órfã quando:
 
-> "A sessão de terça (0018) ficou aberta — a gente estava em derivada de função composta e parou no
-> meio. Retomo dali, fecho ela como está e começo uma nova, ou jogo fora (não tinha muita coisa)?"
+```
+órfã(S)  ⇔  S.status == "in_progress"  ∧  ¬lock_vivo(S)
 
-| Resposta | O que faz | O que grava |
-|---|---|---|
-| **retomar** | continua a `0018`, sem abrir sessão nova | `resumed_at` na `0018` |
-| **fechar como está** | roda o fechamento normal sobre o que existe (resumo, índice, perfil) e abre `0019` | `0018` vira `status: closed` + `closed_by: recovery`; `0019` nova |
-| **descartar** | move para `$SETUP_MEM/discarded/0018.json` — **nunca apaga** | arquivo movido + nota no índice |
+lock_vivo(S) ⇔ existe memory/.session.lock
+             ∧ lock.session_id == S.session_id
+             ∧ lock.hostname   == hostname desta máquina
+             ∧ kill -0 lock.pid sucede
+```
 
-Regra de "descartar": mover, não deletar. Apagar dado do aluno por engano é irreversível; mover é
-reversível em um comando. (Apagamento **de verdade** existe, mas é operação distinta e explícita —
-o pedido de exclusão do próprio aluno, domínio da sub-tarefa 2.8.)
+A segunda metade não é detalhe: sem ela, uma sessão aberta agora em outro terminal seria confundida
+com órfã, e a detecção de concorrência (exit 4) — que é a razão de o `.session.lock` existir —
+desapareceria.
 
-Se a sessão órfã não tiver conteúdo nenhum (aberta e abandonada sem uma troca sequer), a skill não
-pergunta: descarta sozinha e menciona em quatro palavras. Perguntar sobre um arquivo vazio é
-burocracia.
+### Dono único, e nenhuma pergunta
 
-> Coordenação: esta folha provavelmente colide com uma decisão `D-M` da sub-tarefa 2.2 (memória).
-> Está registrada aqui como **D-B06** de qualquer forma; a sub-tarefa 3.0 deduplica.
+`memory-index.sh <setup_root> --verify`, dentro do passo `load_memory`, é o **único** componente que
+finaliza uma órfã. `session-close.sh` **não tem** `--recover`, e `memory-digest.sh` é
+somente-leitura.
+
+O que ele faz, sem perguntar nada:
+
+| Passo | Efeito |
+|---|---|
+| 1 | `status` ← `"abandoned"` |
+| 2 | `finalized_at` ← `mtime` do arquivo; `finalized_by` ← `"auto_orphan_recovery"` |
+| 3 | `one_line_summary`, se ainda for o provisório, vira `"Sessão interrompida sem fechamento (recuperada automaticamente)."` — **nada mais é inventado**: campo vazio continua vazio |
+| 4 | entrada do índice atualizada com `flags` incluindo `orphan_recovered`; `NNNN.json` e `INDEX.json` gravados por `tmp` + `mv` |
+| 5 | o `.session.lock` morto é removido |
+| 6 | o digest reporta a órfã em `orphan_sessions[]` com `days_ago`, e `plan_lesson` põe a retomada como **primeiro item da agenda** |
+
+**Nada é apagado e nada é movido.** Não existe `memory/discarded/`: o conteúdo parcial da sessão é
+justamente o que permite retomar de onde parou.
+
+### Por que automático, e não o menu de três opções
+
+O menu ("retomar / fechar como está / descartar") estava na versão anterior deste documento e
+**saiu**. Duas razões, ambas práticas:
+
+1. **É o caso de falha mais comum do sistema.** Fechar o terminal no meio é o normal, não a exceção.
+   Uma pergunta que aparece em toda retomada é atrito diário.
+2. **As três opções convergem para a mesma coisa.** "Retomar" e "fechar como está" diferem só em
+   qual `NNNN` recebe o resto da aula — e o conteúdo é preservado nos dois. "Descartar" nunca era
+   descarte de verdade (movia o arquivo). Perguntar para escolher entre três caminhos que preservam
+   tudo é burocracia.
+
+A decisão correspondente do catálogo (3.0) fica com `ask_when: never`. O que o aluno percebe é uma
+frase na abertura, quando `days_ago <= 7`:
+
+> "A gente parou no meio de derivada de função composta na terça — quer retomar dali?"
+
+Se a órfã não tiver conteúdo nenhum (aberta e abandonada sem uma troca sequer), ela é recuperada do
+mesmo jeito e **não é mencionada**: comentar um arquivo vazio é ruído.
+
+> Nota de coordenação: esta folha estava registrada como **D-B06** e como **D-M06** (sub-tarefa 2.2).
+> As duas foram resolvidas na mesma direção e apontam para o mesmo dono
+> (`memory-index.sh --verify`); ver `docs/03-memoria.md` do repositório §7.
 
 ---
 
-## 11. Nomes de passo propostos (reconciliar com a sub-tarefa 2.1)
+## 11. Os passos canônicos que este documento cobre
 
-A máquina de estados da sessão em 9 passos é definida por `01-arquitetura.md` (sub-tarefa 2.1), que
-roda em paralelo com este documento. **2.1 é a autoridade sobre os nomes.** Este documento é dono
-dos primeiros passos e propõe o seguinte, para facilitar a reconciliação:
+A máquina de estados da sessão tem **9 passos**, e os nomes canônicos são os de
+`docs/01-arquitetura.md` do repositório §3, que é a autoridade sobre eles:
 
-| # | Nome proposto | O que faz | Seção aqui |
-|---|---|---|---|
-| 1 | `resolve_target` | decide de qual setup estamos falando: argumento > corrente/ancestral > registry | §3, §4.1 A–C |
-| 2 | `verify_setup` | valida, repara o reparável, diagnostica o resto; classifica em `valid`/`incomplete`/`corrupt`/`candidate`/`none` | §3.1, folhas B-04 a B-09 |
-| 3 | `bootstrap_or_ask` | a parada obrigatória, a entrevista e a criação — **só executa quando não há setup** | §5, §6 |
-| 4 | `load_memory` | `INDEX.json` + `profile.json` + digest determinístico + tratamento de sessão órfã | B-14, B-15, §10 |
-| 5 | `ingest_docs` | ingestão do `docs/` do setup dentro do orçamento, com manifesto e declaração | §8 |
-| 6 | `open_session` | cria `memory/NNNN.json` com `status: in_progress` e anuncia o plano da aula | §12 |
+`bootstrap` · `setup_interview` · `load_memory` · `load_docs` · `open_session` · `plan_lesson` ·
+`teach` · `challenge` · `close_session`
 
-Os passos 7 a 9 (o ciclo de ensino, o ciclo de desafio e o fechamento) não são deste documento;
-nomes plausíveis para eles, sem nenhuma pretensão de autoridade: `teach_loop`, `challenge_cycle`,
-`close_session`.
+Os nomes propostos numa versão anterior deste arquivo — `resolve_target`, `verify_setup`,
+`bootstrap_or_ask`, `ingest_docs` — estão **descartados**. Não use nenhum deles em documento,
+script, comentário ou `reference/`.
 
-Nota de projeto: os passos 3 e 5 são **condicionais**, não sequenciais-obrigatórios. Numa retomada
-normal o passo 3 não roda de forma alguma. Se 2.1 modelar os 9 passos como sequência estrita, esse
-detalhe precisa aparecer no diagrama — senão a implementação lê "sempre pergunte" e o requisito R3
-vira uma pergunta em toda sessão, que é o oposto do que o aluno pediu.
+| # | Passo canônico | Condicional? | O que ele faz, na parte que é deste documento | Seções aqui |
+|---|---|---|---|---|
+| 1 | `bootstrap` | não — roda sempre | descobre de qual setup se trata (argumento > corrente/ancestral > registry), classifica o alvo, repara o reparável e diagnostica o resto | §3, §4.1 A–C, folhas B-01 a B-12 e B-22 a B-25 |
+| 2 | `setup_interview` | **SIM — condicional** | a parada obrigatória, a entrevista e a criação do setup | §5, §6, folha B-13 |
+| 3 | `load_memory` | não | `INDEX.json` + `profile.json` + digest determinístico + recuperação automática de sessão órfã | B-14, B-15, B-16, §10 |
+| 4 | `load_docs` | **SIM — condicional** | ingestão do `docs/` do setup dentro do orçamento, com índice e declaração do que ficou de fora | §8, folhas B-17 a B-21 |
+| 5 | `open_session` | não | cria `memory/NNNN.json` com `status: in_progress` e o `.session.lock` | §12 |
+
+Os quatro restantes — `plan_lesson`, `teach`, `challenge`, `close_session` — não são deste
+documento.
+
+### ⚠️ Os dois passos condicionais
+
+`setup_interview` e `load_docs` **não são etapas obrigatórias de uma sequência**. Ler os nove passos
+como uma fila estrita quebra o requisito do usuário de dois jeitos concretos:
+
+- se `setup_interview` for lido como obrigatório, a skill passa a perguntar "quer criar um setup?"
+  **em toda sessão** — o oposto exato de R3, que é "perguntar **quando** os arquivos base não forem
+  encontrados";
+- se `load_docs` for obrigatório, ela anuncia ingestão mesmo quando não há `docs/` do setup para ler,
+  e gasta a abertura da aula com um relatório de pasta vazia.
+
+Numa retomada normal — o caso mais frequente do sistema — `setup_interview` **não roda de forma
+alguma**, e `load_docs` roda em modo delta (§9).
 
 ---
 
@@ -999,15 +1100,19 @@ vira uma pergunta em toda sessão, que é o oposto do que o aluno pediu.
 |---|---|---|
 | `$SETUP_ROOT/{docs,memory,researchs,challenges}/` | criação (B-13a) e reparo (B-06, B-19) | `setup-init.sh` |
 | `$SETUP_ROOT/README.md` | criação e reparo | `setup-init.sh` (template) |
-| `$MANIFEST` | criação, adoção (B-08), reparo (B-07 opção 1) | `setup-init.sh` |
-| `$REGISTRY` | depois de o setup estar íntegro; e `last_used_at` a cada abertura | `setup-init.sh` / `setup-list.sh` |
-| `$SETUP_CTL/cache/docs-manifest.json` | toda ingestão | `docs-index.sh` |
-| `$SETUP_CTL/cache/docs-text/<sha>.txt` | primeira extração de cada PDF | `docs-index.sh` |
-| `$SETUP_DOCS/generated/NNNN-<slug>.md` | `theory_source: generated` | passo 5 da §6.5 |
-| `memory/NNNN.json` | passo `open_session` | `session-new.sh` |
+| `$MANIFEST` (= `$SETUP_ROOT/setup.json`) | criação, adoção (B-08), reparo (B-07 opção 1) | `setup-init.sh` |
+| `$REGISTRY` | depois de o setup estar íntegro; e `last_seen_at` a cada abertura | `setup-init.sh` / `setup-list.sh` |
+| `$DOCS_INDEX` (= `memory/docs-index.json`) | toda ingestão | `docs-index.sh` |
+| `$CACHE/docs-text/<sha>.txt` (= `memory/.cache/...`) | primeira extração de cada PDF | `docs-index.sh` |
+| `$SETUP_DOCS/generated/NNNN-<slug>.md` | `theory_source: generated` — **única** escrita da skill dentro do `docs/` do setup (§7.3) | passo 5 da §6.5 |
+| `memory/NNNN.json` + `memory/.session.lock` | passo `open_session` | `session-new.sh` |
+| `memory/NNNN.json` (finalização de órfã) + `memory/INDEX.json` | passo `load_memory` | `memory-index.sh --verify` |
 
-Tudo em `$SETUP_CTL/cache/` é **derivado e descartável**: apagar a pasta inteira custa uma
-reingestão, nunca dado do aluno. Isso é o que torna seguro regenerar sem perguntar.
+Toda escrita desta tabela é **atômica** (`tmp` + `mv` no mesmo diretório) — regra do projeto para
+qualquer derivado, não só para o registry.
+
+`$CACHE` e `$DOCS_INDEX` são **derivados e descartáveis**: apagar custa uma reingestão, nunca dado
+do aluno. Isso é o que torna seguro regenerar sem perguntar.
 
 ---
 
@@ -1029,11 +1134,12 @@ Casos-limite conferidos, cada um com destino:
 | setup existe, `docs/` do setup apagado | B-19 → B-18 |
 | setup existe, `memory/` vazia | B-14 |
 | setup existe, `INDEX.json` sumiu | B-15 (reconstrói) |
-| sessão órfã | B-16 |
+| sessão órfã (`in_progress` sem lock vivo) | B-16 → recuperação automática (§10) |
+| sessão viva em outro terminal (lock vivo) | exit 4 em `open_session` (`docs/01-arquitetura.md` do repositório §3) |
 | PDF gigante, sem extrator | B-20 |
 | PDF gigante, com extrator | B-21 |
 | PDF escaneado (sem texto) | B-20 via §8.6 |
-| manifesto do setup corrompido | B-07 |
+| `setup.json` do setup corrompido | B-07 |
 | registry corrompido | B-24 |
 | registry apontando para pasta que sumiu | B-12 |
 | `STUDY_METHOD_HOME` não gravável | B-25 |
@@ -1055,10 +1161,10 @@ Casos-limite conferidos, cada um com destino:
 | D-B03 | Quantas perguntas na criação do setup? | as 6 mínimas + confirmação · só o assunto e o resto no default · entrevista longa com todas as decisões | 6 + confirmação, com atalho de 2 trocas | cheap |
 | D-B04 | Onde eu crio o setup por padrão? | na pasta atual · em `~/estudos/<assunto>` · sempre perguntar | pasta atual se vazia, senão `~/estudos/<assunto>` | moderate |
 | D-B05 | Em que idioma o setup é escrito? | pt-BR fixo · o idioma da nossa conversa · perguntar | idioma da conversa | cheap |
-| D-B06 | O que fazer com uma sessão que ficou aberta da vez anterior? | perguntar · retomar automático · fechar automático · descartar automático | perguntar (menu de 3) | cheap |
+| D-B06 | **RESOLVIDA (AR-06).** O que fazer com uma sessão que ficou aberta da vez anterior? | perguntar (menu de 3) · **fechar automaticamente como `abandoned` e oferecer a retomada** · descartar automático | **Fechar automaticamente** em `memory-index.sh --verify`, preservando todo o conteúdo, e pôr a retomada como 1º item da agenda. É o caso de falha mais comum; perguntar a cada retomada é atrito diário. No catálogo (3.0): `ask_when: never` | cheap |
 | D-B07 | Quando você roda a skill fora de uma pasta de estudo e existe um setup só, eu abro ele direto? | abro e aviso · sempre pergunto | abro e aviso, com escape na mesma frase | cheap |
-| D-B08 | Onde fica o material que eu gero? | em `generated/` dentro do `docs/` do setup · em `researchs/` · fora do setup | `generated/` dentro do `docs/` do setup | moderate |
+| D-B08 | **RESOLVIDA (AR-09).** Onde fica o material que eu gero? | em `generated/` dentro do `docs/` do setup · em `researchs/` · fora do setup | **`generated/` dentro do `docs/` do setup** — e essa é a **única** exceção à regra "a skill não escreve no `docs/` do setup", sempre marcada como gerada (§7.3, §7.4) | moderate |
 | D-B09 | Se não houver extrator de PDF na máquina, o que eu faço? | sugiro o comando de instalação (sem rodar) · nunca menciono instalação · trato o PDF como inexistente | sugiro o comando, nunca executo | cheap |
-| D-B10 | Onde fica o arquivo de controle do setup? | `.study-method/manifest.json` (oculto) · `setup.json` (visível na raiz) | `.study-method/manifest.json` — **autoridade: sub-tarefa 2.1** | moderate |
+| D-B10 | **RESOLVIDA (AR-02).** Onde fica o arquivo de controle do setup? | `.study-method/manifest.json` (oculto) · `setup.json` (visível na raiz) | **`setup.json`, visível na raiz do setup.** `.study-method/` **não existe** em lugar nenhum do projeto; derivados e cache vivem em `memory/` | moderate |
 | D-B11 | Até que profundidade eu varro o `docs/` do setup? | só a raiz · 2 níveis · recursivo com teto de 200 arquivos | recursivo, teto de 200 arquivos | cheap |
 | D-B12 | Que fatia do orçamento o material pode ocupar, deixando o resto para a aula? | 40% · 60% · 80% | 60% para o material, 40% para a aula | cheap |

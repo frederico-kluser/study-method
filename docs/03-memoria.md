@@ -14,7 +14,9 @@
 | Setup do aluno | `docs/` do setup, `memory/`, `researchs/`, `challenges/` + `README.md` |
 | Desambiguação de `docs/` | **`docs/` do repositório** = documentação do projeto (onde este arquivo vive). **`docs/` do setup** = pasta de material do aluno. Nunca escrever a forma solta. |
 | Numeração | 4 dígitos zero-padded: `0001`, `0042`. `session_id` é sempre string, nunca inteiro (perde o zero à esquerda). |
-| Idioma | Prosa e campos de texto livre em **pt-BR** com acentuação normal. **Chaves, enums, tags, `skill`, `claim_key` e ids**: inglês, ASCII sem acento, `snake_case` para chaves/enums e `kebab-case` para tags e slugs. |
+| Idioma | Prosa e campos de texto livre em **pt-BR** com acentuação normal. **Chaves, enums, tags, `skill`, `claim_key` e ids**: ASCII sem acento. |
+| Identificador de conceito | **`snake_case` em todo o sistema**, pattern `^[a-z][a-z0-9_]{1,62}$`. Vale para `concept_id`, `skills_observed[].skill`, `topics`, `taxonomy`, `claim_key` (cada segmento) e `target_topic`. Não existe mais partição kebab × snake. A normalização é uma função só — `normalize_concept_id()` em `SK/scripts/lib/common.sh` — e nenhum script escreve a sua. Slug de **caminho** (`challenges/0007-derivada-numerica/`, `researchs/0003-cancelamento-catastrofico.md`) não é identificador de conceito e continua como está. |
+| Escrita de derivado | Sempre **atômica**: grava em `<arquivo>.tmp.$$` no mesmo diretório e `mv -f` por cima. Vale para `INDEX.json`, `profile.json`, `progress.json`, `docs-index.json` e qualquer outro derivado — não só para o registry. |
 | Caminhos em arquivo | Sempre relativos à raiz do setup do aluno. Nunca caminho absoluto: o setup pode ser movido. |
 
 ### O nome `status` aparece três vezes — são três coisas diferentes
@@ -72,7 +74,7 @@ Schema: `SK/assets/schemas/session.schema.json`.
 
 | Propriedade | Contrato |
 |---|---|
-| Quem escreve | A skill, duas vezes: na abertura da sessão (esqueleto com `status: in_progress`) e no fechamento (preenchimento + `status: completed`). |
+| Quem escreve | A skill, ao longo da sessão: esqueleto na abertura (`status: in_progress`, via `session-new.sh`), **reescrita completa a cada marco** da aula (checkpoint — `docs/01-arquitetura.md` do repositório §3, passo `teach`; é o que dá valor a uma sessão interrompida) e o preenchimento final no fechamento (`status: completed`, via `session-close.sh`). Fora esses caminhos, só a recuperação automática de órfã escreve aqui (§7). |
 | Quem lê | O digest lê **no máximo** o que o índice já resume. O tutor abre o arquivo inteiro **sob demanda**. A compactação lê os brutos (e só eles). |
 | Mutabilidade | Append-only entre sessões: um `NNNN.json` **nunca** é reescrito depois de finalizado. Correção de conteúdo é feita registrando o fato novo na sessão atual, não editando a antiga. |
 | Deleção | Nunca no fluxo normal. Só por purga explícita de privacidade (§9). |
@@ -192,17 +194,26 @@ A verificação roda no fechamento da sessão, nunca na abertura: compactar é u
 
 ### 4.2 O algoritmo
 
-1. Selecionar `S` = sessões com `compacted_at == null` e `status ∈ {completed, abandoned}`, em ordem crescente de `session_id`.
-2. Ler **os arquivos brutos** dessas sessões. **Regra dura: a compactação nunca lê uma consolidação anterior** — nem o `profile.json`, exceto para conhecer os `claim_key` já existentes e o `next_fact_seq`. Isso elimina a degradação por resumo-de-resumo-de-resumo, que é cumulativa e silenciosa.
-3. **Semântico**: cada `skills_observed[]` vira candidato a fato com `claim_key = "skill:<skill>:level"`; observações repetidas de dificuldade viram `difficulty:<topic>`; pontos fortes, `strength:<skill>`.
-4. **Procedimental**: cada `how_it_happened[]` vira candidato com `claim_key = "<procedure_kind>:<target_topic>:<apelido-kebab>"`. Itens com `outcome == "backfired"` viram `procedure_kind: antipattern` além do tipo original.
+**Quem faz o quê**: `memory-compact.sh` é determinístico até o ponto em que a consolidação vira
+julgamento; ali ele usa **REQUEST/APPLY** (`docs/01-arquitetura.md` do repositório §3.1). O pedido
+chama-se **`profile_compaction`**: o script emite em stdout os candidatos já agrupados e sai com
+**exit 10**, sem escrever nada; o modelo devolve a resposta (a `claim`/`how` consolidada, e o
+**apelido** de cada `claim_key` procedimental — o único campo que exige nomear algo); o script
+re-roda com `--apply <resposta.json>`, valida contra
+`SK/assets/schemas/requests/profile-compaction.response.schema.json` e só então escreve
+`profile.json`, atomicamente. Resposta inválida → exit 5, `profile.json` intocado.
+
+1. Selecionar `S` = sessões com `compacted_at == null` e `status ∈ {completed, abandoned}`, em ordem crescente de `session_id`. **Determinístico.**
+2. Ler **os arquivos brutos** dessas sessões. **Regra dura: a compactação nunca lê uma consolidação anterior** — nem o `profile.json`, exceto para conhecer os `claim_key` já existentes e o `next_fact_seq`. Isso elimina a degradação por resumo-de-resumo-de-resumo, que é cumulativa e silenciosa. **Determinístico.**
+3. **Semântico**: cada `skills_observed[]` vira candidato a fato com `claim_key = "skill:<skill>:level"`; observações repetidas de dificuldade viram `difficulty:<topic>`; pontos fortes, `strength:<skill>`. A chave é montada por concatenação — **determinístico**.
+4. **Procedimental**: cada `how_it_happened[]` vira candidato com `claim_key = "<procedure_kind>:<target_topic>:<apelido>"`. Os dois primeiros segmentos são copiados do item; o `<apelido>` é a única parte que precisa de julgamento e vem da **resposta** do pedido `profile_compaction`, normalizada por `normalize_concept_id()` (`^[a-z][a-z0-9_]{1,62}$`). Itens com `outcome == "backfired"` viram `procedure_kind: antipattern` além do tipo original. **Nenhum script inventa apelido sozinho.**
 5. Para cada candidato, comparar com o fato **`active` de mesmo `claim_key`**:
    - **Não existe** → criar fato novo, `status: active`, `supersedes: null`, `confidence` pela regra do passo 6.
    - **Existe e a afirmação é a mesma** → **reconfirmação, não mudança**: atualizar `last_observed_at`, acrescentar o `session_id` a `source_sessions[]`, recalcular `confidence`. **Não** cria fato novo e **não** supersede. (Distinguir os dois casos é o que impede o `profile.json` de inchar com dezenas de cópias do mesmo fato.)
    - **Existe e a afirmação mudou** → o antigo recebe `status: superseded` + `superseded_by`; nasce um fato novo `active` com `supersedes` apontando para o antigo. O antigo **permanece no arquivo**.
 6. `confidence` = `low` (1 sessão distinta) · `medium` (2) · `high` (3+). Tetos duros: um fato com `observation_type: "inferred"` **não pode** nascer `high`; um fato cujas `source_sessions` são **apenas** sessões `abandoned` fica em `low` (§7).
 7. Marcar no índice, para cada sessão de `S`: `compacted_at = <hoje>` e `digest_eligible = false` — **exceto** as 5 sessões de maior `session_id`, que permanecem `digest_eligible: true` sempre, para o bloco `recent_sessions` nunca esvaziar logo após uma compactação.
-8. Atualizar `compaction.last_compacted_at`, `last_compacted_session_id`, `compaction_count`, `next_fact_seq` e `updated_at`.
+8. Atualizar `compaction.last_compacted_at`, `last_compacted_session_id`, `compaction_count`, `next_fact_seq` e `updated_at`. Escrever `profile.json` e `INDEX.json` por `tmp` + `mv`; se a escrita do perfil falhar, o índice **não** é marcado como compactado — os dois passos são um só, ou nenhum.
 
 ### 4.3 O que é fundido, preservado, arquivado — e o que se perde
 
@@ -234,8 +245,8 @@ Elas divergem de verdade neste desenho: a sessão 0042 é de 20/08 e o fato só 
 Um fato **nunca** muda de conteúdo. Mudou o mundo? Novo registro, com o mesmo `claim_key`, superseding o anterior:
 
 ```
-f-0031  claim_key: skill:derivadas-conceito:level   status: superseded   superseded_by: f-0034
-f-0034  claim_key: skill:derivadas-conceito:level   status: active       supersedes: f-0031
+f-0031  claim_key: skill:derivadas_conceito:level   status: superseded   superseded_by: f-0034
+f-0034  claim_key: skill:derivadas_conceito:level   status: active       supersedes: f-0031
 ```
 
 **Por quê**, em uma frase: para não ancorar o tutor num perfil velho do aluno sem apagar o histórico de como ele chegou até aqui. Sobrescrever perderia a trajetória (que é informação pedagógica de primeira ordem: *quando* e *depois de quê* ele superou aquilo). Deletar perderia a auditoria. Supersede preserva os dois e ainda mantém o digest limpo, porque o digest só olha `status == "active"`.
@@ -270,18 +281,35 @@ Implementado em `SK/scripts/memory-digest.sh` (onda 3). **Montado por código, n
 
 | | |
 |---|---|
-| Invocação | `memory-digest.sh --memory-dir <caminho> [--topics t1,t2] [--budget-chars N] [--today AAAA-MM-DD]` |
-| Momento | **Antes** de criar o `NNNN.json` da sessão de hoje. Consequência direta: qualquer `status: in_progress` encontrado é, por definição, uma sessão órfã. |
+| Invocação | `memory-digest.sh <setup_root> [--topics t1,t2] [--budget-chars N] [--today AAAA-MM-DD] [--now <ISO 8601>]` — a raiz do setup é **posicional**, como em todo script de `SK/scripts/`; a memória é sempre `<setup_root>/memory`. |
+| `--now` | Carimbo usado em `generated_at`. Sem ele o script usa o relógio, e aí **o mesmo estado em disco produz bytes diferentes** — o que contradiz o determinismo que este documento promete. Toda comparação byte a byte (teste, gate, diff entre execuções) passa `--now`. |
+| Momento | No passo `load_memory`, **depois** de `memory-index.sh <setup_root> --verify` (que é quem recupera órfãs) e **antes** de criar o `NNNN.json` da sessão de hoje. |
 | Saída | **JSON em stdout**, uma linha por chave (pretty-print determinístico). Não persiste nada — um digest gravado em disco vira um digest velho lido como verdade. |
 | Código de saída | `0` sempre que produzir um digest, inclusive com `memory/` vazia, índice ausente, arquivo corrompido ou orçamento estourado. Só retorna `!= 0` se não conseguir escrever em stdout. **Falha de memória nunca impede uma aula de começar.** |
-| Forma da saída | **Fixa**. Nenhuma chave desaparece em nenhum cenário; ausência é `[]`, `{}` ou `null`. O consumidor nunca ramifica por formato — só por `memory_state`. |
+| Forma da saída | **Fixa**. Nenhuma chave desaparece em nenhum cenário; ausência é `[]`, `{}` ou `null`. O consumidor nunca ramifica por formato — só por `memory_state`, que é enumerado logo abaixo. |
 | Defaults | `BUDGET_CHARS=6000` · `RECENT_SESSIONS_K=5` · `AFFECT_WINDOW=3` · `TOPIC_WINDOW=3` · `SEMANTIC_FACTS_CAP=12` · `PROC_AVOID_CAP=5` · `PROC_DO_CAP=8` · `FOLLOWUP_CAP=6` · `TOP_TAGS=15` · `SUMMARY_TRUNC=160` |
 | Posicionamento | O bloco vai no **fim** do contexto de abertura, colado ao primeiro turno — o começo e o fim são as posições de melhor recuperação; o meio, a pior. |
+
+#### `memory_state` — vocabulário fechado
+
+O consumidor **ramifica por este campo**, então ele precisa estar enumerado, e o cálculo é
+mecânico. Avaliado nesta ordem, o primeiro que casar vence:
+
+| Valor | Condição | O que o `SKILL.md` faz |
+|---|---|---|
+| `first_session` | nenhum `NNNN.json` e nenhum `INDEX.json` em `memory/` | Sessão de calibração: perguntar o que o aluno quer, o que já sabe, quais domínios servem de base de analogia. **Nunca** fingir que conhece alguém. |
+| `degraded` | `errors[]` contém `index_missing`, `index_unparseable`, `index_stale`, `profile_unparseable` ou `session_unparseable`. **`profile_missing` não conta**: perfil ausente é o estado normal antes da 1ª compactação (§6.3), não avaria | Ensinar normalmente, mas **não afirmar** nada sobre histórico sem antes abrir o bruto. Dizer uma vez, em uma linha, o que ficou ilegível — nunca um relatório. |
+| `warm` | ≥ 5 sessões finalizadas **ou** `profile.json` com ≥ 1 fato `active` | Caminho normal: usar `student_profile`, `procedural_playbook` e `recent_sessions`; `read_as: "hypothesis"` vira pergunta. |
+| `warming_up` | 1 a 4 sessões finalizadas e sem perfil consolidado | Há histórico, mas nenhum fato consolidado ainda. Apoiar-se em `recent_sessions` e `pending_followups`; **não** generalizar o aluno a partir de duas aulas. |
+
+`degraded` vem antes de `warm` de propósito: saber que a base está incompleta muda o que se pode
+afirmar, e é mais importante do que saber que ela é grande.
 
 ### 6.2 Pseudocódigo
 
 ```
- 1. resolver MEM = --memory-dir; TODAY = --today ou data local de hoje
+ 1. MEM = <setup_root>/memory; TODAY = --today ou data local de hoje;
+    NOW = --now ou o relógio (NOW só alimenta generated_at)
     se MEM não existe ou não contém nenhum NNNN.json nem INDEX.json:
         emitir digest com memory_state="first_session", todos os blocos vazios,
         for_session_id="0001"; ir para o passo 13.
@@ -295,10 +323,15 @@ Implementado em `SK/scripts/memory-digest.sh` (onda 3). **Montado por código, n
         registrar errors[] {"kind":"index_stale"} e reconstruir em memória do mesmo jeito.
     ENTRADAS = entradas ordenadas por session_id crescente.
 
- 3. ORPHANS = [e ∈ ENTRADAS onde e.status == "in_progress"].
-    para cada órfã: emitir em orphan_sessions[] {session_id, date, one_line_summary,
-    topics, days_ago}. NÃO fechar o arquivo aqui — o digest é somente-leitura;
-    quem fecha é a rotina de abertura de sessão (§7).
+ 3. ORPHANS = [e ∈ ENTRADAS onde e.status == "abandoned"
+                e e.finalized_by == "auto_orphan_recovery"],
+    ordenadas por session_id desc, cortadas nas 3 mais recentes.
+    para cada uma: emitir em orphan_sessions[] {session_id, date, one_line_summary,
+    topics, days_ago}.
+    entradas ainda com status == "in_progress" NÃO entram aqui: ou memory-index.sh --verify
+    (que roda antes, no mesmo passo load_memory) já as converteu em "abandoned", ou existe
+    um lock vivo e a sessão está aberta em outro terminal — caso de open_session (exit 4),
+    não do digest. O digest é somente-leitura: não fecha, não altera, não remove nada.
 
  4. for_session_id = zero-pad(4, max(session_id de ENTRADAS) + 1)
 
@@ -311,9 +344,13 @@ Implementado em `SK/scripts/memory-digest.sh` (onda 3). **Montado por código, n
  6. TOPICS_IN_FOCUS, topics_source:
     se --topics veio:              lista do argumento          , source="argument"
     senão:                          união dos topics das últimas TOPIC_WINDOW entradas
-                                    finalizadas + tópicos citados em pending_followups
+                                    finalizadas (campo topics do índice, mecânico)
                                                                , source="inferred_from_recent"
-    (ordenar alfabeticamente e deduplicar — a saída precisa ser reproduzível)
+    (normalizar com normalize_concept_id, ordenar alfabeticamente e deduplicar — a saída
+     precisa ser reproduzível)
+    NÃO se extrai tópico de pending_followups: aquele texto é prosa livre em pt-BR, e tirar
+    tópico de prosa é julgamento, não fórmula. Quando a skill já sabe o assunto de hoje, ela
+    passa --topics — esse é o canal por onde o julgamento do modelo entra neste script.
 
  7. procedural_playbook:
     .avoid = procedural_facts com status=="active" e outcome=="backfired",
@@ -334,9 +371,10 @@ Implementado em `SK/scripts/memory-digest.sh` (onda 3). **Montado por código, n
     confidence, observation_type, last_observed_at, needs_reconfirmation, read_as,
     source_sessions.
 
- 9. recent_sessions = últimas RECENT_SESSIONS_K entradas com digest_eligible != false
-    e status != "in_progress", emitidas em ordem CRESCENTE (a mais recente por último,
-    colada ao turno atual).
+ 9. recent_sessions = últimas RECENT_SESSIONS_K entradas com digest_eligible != false,
+    status != "in_progress" e que NÃO estejam em orphan_sessions[] (uma órfã recuperada já
+    é reportada lá, com conteúdo parcial; entrar nos dois lugares é ruído duplicado),
+    emitidas em ordem CRESCENTE (a mais recente por último, colada ao turno atual).
     por item: {session_id, date, topics, one_line_summary (truncado em SUMMARY_TRUNC),
     flags}.
 
@@ -360,7 +398,8 @@ Implementado em `SK/scripts/memory-digest.sh` (onda 3). **Montado por código, n
                       date e abra apenas os memory/NNNN.json correspondentes."
     }
 
-13. serializar na ORDEM FIXA de chaves:
+13. calcular memory_state pela tabela de §6.1 e serializar na ORDEM FIXA de chaves
+    (generated_at = NOW):
     schema_version, generated_at, for_session_id, memory_state, topics_in_focus,
     topics_source, full_detail_available, student, recent_sessions, recent_affect,
     student_profile, procedural_playbook.do, procedural_playbook.avoid,
@@ -395,35 +434,74 @@ Implementado em `SK/scripts/memory-digest.sh` (onda 3). **Montado por código, n
 | `INDEX.json` ausente, corrompido ou defasado | Reconstruído em memória a partir dos brutos; `errors[]` registra; o digest sai normalmente. Índice é cache, não fonte da verdade. |
 | Um `NNNN.json` não parseável | Pula o arquivo, registra `errors[] {"kind":"session_unparseable","session_id":"NNNN"}` e segue. **Nunca aborta.** |
 | `profile.json` ausente (antes da 1ª compactação) | Blocos de perfil vazios; o digest vive de índice + últimas sessões. É o estado normal das primeiras ~15 sessões. |
-| Sessão órfã (`in_progress`) | Reportada em `orphan_sessions[]` (§7). O digest não a inclui em `recent_sessions` e não altera arquivo nenhum. |
+| Sessão órfã | Já recuperada por `memory-index.sh --verify` antes do digest rodar (§7). Chega aqui como `status: "abandoned"` + `finalized_by: "auto_orphan_recovery"`, é reportada em `orphan_sessions[]` e **não** entra em `recent_sessions`. O digest não altera arquivo nenhum. |
+| Entrada `in_progress` no índice na hora do digest | Sessão **viva** em outro terminal (lock vivo) — o `--verify` não a tocou de propósito. Fica fora de `recent_sessions` e fora de `orphan_sessions[]`. Quem reage é `open_session`, com exit 4. |
+| `errors[]` não vazio | `memory_state: "degraded"` (§6.1). O digest sai completo; o consumidor é que muda de postura. |
 | Orçamento estourado | Trunca pela ordem T1..T5, informa `truncated_fields[]`; em último caso emite com `budget_exceeded: true`. Nunca falha. |
 
 ---
 
 ## 7. Sessão órfã
 
-Cenário real, não hipótese: o aluno fecha o terminal no meio da aula. `memory/0042.json` fica com `status: in_progress` e conteúdo parcial.
+Cenário real, não hipótese: o aluno fecha o terminal no meio da aula. `memory/0043.json` fica com
+`status: in_progress` e conteúdo parcial. É o modo de falha **mais comum** do sistema em uso real.
 
-### Decisão
+### 7.1 Órfã é condição derivada, não valor de `status`
+
+Não existe `status: "orphaned"`. O vocabulário é `in_progress | completed | abandoned` e nada mais.
+Órfã é o resultado de uma conta feita em tempo de leitura:
+
+```
+órfã(S)  ⇔  S.status == "in_progress"  ∧  ¬lock_vivo(S)
+
+lock_vivo(S) ⇔ existe memory/.session.lock
+             ∧ lock.session_id == S.session_id
+             ∧ lock.hostname   == hostname desta máquina
+             ∧ kill -0 lock.pid sucede
+```
+
+O `.session.lock` é JSON com `{pid, hostname, session_id, started_at}` e **permanece** no desenho:
+é ele que distingue "o terminal morreu" de "tem outra sessão aberta agora". Tratar toda sessão
+`in_progress` como órfã por definição apagaria a detecção de concorrência, que é a razão de o lock
+existir.
+
+### 7.2 Decisão
 
 | Pergunta | Decisão | Justificativa |
 |---|---|---|
 | Conta no índice? | **Sim.** A entrada existe, com `status: "abandoned"` após a recuperação. | A sessão aconteceu. Descartá-la apaga a informação de que houve uma tentativa — e "começou e parou no meio" é sinal pedagógico legítimo (frustração, cansaço, assunto pesado demais). |
-| É fechada retroativamente? | **Sim**, pela rotina de abertura da próxima sessão, **antes** de criar o novo arquivo. | Deixar `in_progress` acumulando faz cada digest reportar as mesmas órfãs para sempre. |
+| É fechada retroativamente? | **Sim**, automaticamente, na abertura da próxima sessão. | Deixar `in_progress` acumulando faz cada digest reportar as mesmas órfãs para sempre. |
+| Pergunta-se ao aluno o que fazer? | **Não.** Zero perguntas. | É o caso de falha mais comum; um menu de três opções a cada retomada é atrito diário para uma pergunta cuja resposta certa é sempre a mesma. |
 | É descartada? | **Não.** Nunca. | Regra geral do sistema: nada é apagado fora de purga explícita de privacidade. |
 
-### Procedimento de recuperação (executado na abertura da sessão seguinte)
+### 7.3 Procedimento de recuperação — dono único
 
-1. Para cada `memory/NNNN.json` com `status: "in_progress"`:
-2. `status = "abandoned"`; `finalized_at = <agora>`; `finalized_by = "auto_orphan_recovery"`.
-3. **Nada de conteúdo é inventado.** Os campos preenchidos ficam como estão; os vazios ficam vazios. Se `one_line_summary` ainda for o provisório, é substituído pelo texto fixo `"Sessão interrompida sem fechamento (recuperada automaticamente)."`.
-4. Escrever/atualizar a entrada no índice com `flags` incluindo `orphan_recovered`.
-5. O digest da sessão atual reporta a órfã em `orphan_sessions[]` com `days_ago`. O `SKILL.md` instrui o tutor a **abrir com isso** quando `days_ago <= 7`: "a gente parou no meio de X da última vez — quer retomar dali?". Isso converte um acidente de UX em continuidade pedagógica.
-6. Na compactação, sessões `abandoned` **entram** normalmente (nada se perde), mas qualquer fato cujas `source_sessions` sejam **exclusivamente** sessões `abandoned` fica travado em `confidence: "low"` — observação de sessão interrompida é observação incompleta.
+`memory-index.sh <setup_root> --verify`, no passo `load_memory`, é o **único** componente que
+finaliza uma órfã. `session-close.sh` **não tem** `--recover`; `memory-digest.sh` é somente-leitura.
 
-Alternativas descartadas e por quê: *deixar `in_progress` para sempre* (o digest vira um mural de órfãs); *apagar o arquivo* (viola "nada é apagado" e destrói sinal); *pedir para a LLM reconstruir o que teria acontecido* (é fabricação de memória — exatamente a falha da §8.1). Registrado como **D-M06**.
+1. Para cada `memory/NNNN.json` com `status: "in_progress"`, avaliar `lock_vivo` (§7.1).
+   Lock vivo → **não toque**: é sessão concorrente, e quem reage é `open_session` (exit 4).
+2. Sem lock vivo: `status = "abandoned"`; `finalized_at = mtime do arquivo`;
+   `finalized_by = "auto_orphan_recovery"`.
+3. **Nada de conteúdo é inventado.** Os campos preenchidos ficam como estão; os vazios ficam vazios.
+   Se `one_line_summary` ainda for o provisório, é substituído pelo texto fixo
+   `"Sessão interrompida sem fechamento (recuperada automaticamente)."`.
+4. Escrever/atualizar a entrada no índice com `flags` incluindo `orphan_recovered`. `NNNN.json` e
+   `INDEX.json` são reescritos por `tmp` + `mv`.
+5. Remover o `.session.lock` morto correspondente.
+6. O digest da sessão atual reporta a órfã em `orphan_sessions[]` com `days_ago` — bloco que nunca é
+   truncado pelo orçamento. O `SKILL.md` instrui o tutor a **abrir com isso** quando `days_ago <= 7`:
+   "a gente parou no meio de X da última vez — quer retomar dali?". Isso converte um acidente de UX
+   em continuidade pedagógica, sem gastar uma pergunta de configuração.
+7. Na compactação, sessões `abandoned` **entram** normalmente (nada se perde) e contam para o limiar
+   (§4.1), mas qualquer fato cujas `source_sessions` sejam **exclusivamente** sessões `abandoned`
+   fica travado em `confidence: "low"` — observação de sessão interrompida é observação incompleta.
+   Esta é a única versão da regra; `docs/01-arquitetura.md` do repositório §4.2 diz o mesmo.
 
----
+Alternativas descartadas e por quê: *deixar `in_progress` para sempre* (o digest vira um mural de
+órfãs); *apagar o arquivo* (viola "nada é apagado" e destrói sinal); *perguntar ao aluno a cada
+retomada* (atrito diário no caso mais frequente); *pedir para a LLM reconstruir o que teria
+acontecido* (é fabricação de memória — exatamente a falha da §8.1). Registrado como **D-M06**.
 
 ## 8. Falhas conhecidas da pesquisa, e a defesa concreta deste desenho
 
@@ -485,7 +563,7 @@ Uma aula de derivadas em Python, de verdade — não um esqueleto com `"..."`. O
   "finalized_at": "2026-08-20T20:31:00-03:00",
   "finalized_by": "student",
   "status": "completed",
-  "topics": ["derivadas", "limites", "python", "erro-numerico"],
+  "topics": ["derivadas", "limites", "python", "erro_numerico"],
   "goal": "Entender o que a derivada mede e calcular uma derivada numérica em Python.",
   "what_was_done": "Implementamos derivada_numerica(f, x, h) com diferença progressiva e depois central; varremos h de 1e-1 a 1e-16 sobre f(x)=x**3 em x=2 e plotamos o erro absoluto contra o valor analítico 12.",
   "what_was_learned": [
@@ -538,7 +616,7 @@ Uma aula de derivadas em Python, de verdade — não um esqueleto com `"..."`. O
     {
       "move_type": "error_autopsy",
       "description": "Em vez de avisar do cancelamento catastrófico, deixei ele varrer h até 1e-16 e ver o erro voltar a subir; só depois explicamos por quê.",
-      "target_topic": "erro-numerico",
+      "target_topic": "erro_numerico",
       "outcome": "unlocked",
       "evidence": "Ele mesmo apontou a curva em U no gráfico do erro e perguntou 'por que piora se o h é menor?'.",
       "observation_type": "observed"
@@ -546,7 +624,7 @@ Uma aula de derivadas em Python, de verdade — não um esqueleto com `"..."`. O
   ],
   "skills_observed": [
     {
-      "skill": "derivadas-conceito",
+      "skill": "derivadas_conceito",
       "level": "beginner",
       "confidence": "medium",
       "last_observed_at": "2026-08-20",
@@ -555,7 +633,7 @@ Uma aula de derivadas em Python, de verdade — não um esqueleto com `"..."`. O
       "proficiency_state": "fragile"
     },
     {
-      "skill": "python-funcoes",
+      "skill": "python_funcoes",
       "level": "intermediate",
       "confidence": "high",
       "last_observed_at": "2026-08-20",
@@ -564,7 +642,7 @@ Uma aula de derivadas em Python, de verdade — não um esqueleto com `"..."`. O
       "proficiency_state": "mastered"
     },
     {
-      "skill": "erro-de-ponto-flutuante",
+      "skill": "erro_de_ponto_flutuante",
       "level": "beginner",
       "confidence": "low",
       "last_observed_at": "2026-08-20",
@@ -585,7 +663,7 @@ Uma aula de derivadas em Python, de verdade — não um esqueleto com `"..."`. O
     "Aplicar derivada_numerica em f(x)=sin(x) e conferir contra cos(x)."
   ],
   "artifacts": [
-    { "path": "challenges/0007-derivada-numerica.py", "kind": "challenge" },
+    { "path": "challenges/0007-derivada-numerica/stub.py", "kind": "challenge" },
     { "path": "researchs/0003-cancelamento-catastrofico.md", "kind": "research" }
   ],
   "one_line_summary": "Derivada via zoom no gráfico destravou o conceito; implementou derivada numérica e descobriu sozinho a curva em U do erro.",
@@ -612,7 +690,10 @@ O mesmo arquivo, válido contra o mesmo schema, no começo da aula — os 5 obri
 
 ### 10.3 `memory/INDEX.json` — trecho (entradas 0041 a 0043)
 
-Note que a 0043 está `in_progress` e virou órfã, e que a 0041 já foi compactada.
+Este é o índice **antes** do `memory-index.sh --verify` da sessão seguinte: a 0043 ainda está
+`in_progress`, e a 0041 já foi compactada. Depois do `--verify` (§7.3), a entrada 0043 passa a
+`"status": "abandoned"`, ganha `"flags": ["orphan_recovered"]` e o `one_line_summary` fixo de
+sessão interrompida — que é como ela aparece no digest do §10.5.
 
 ```json
 {
@@ -625,7 +706,7 @@ Note que a 0043 está `in_progress` e virou órfã, e que a 0041 já foi compact
       "date": "2026-08-13",
       "status": "completed",
       "topics": ["limites", "python"],
-      "skills_touched": ["limites-conceito", "python-funcoes"],
+      "skills_touched": ["limites_conceito", "python_funcoes"],
       "one_line_summary": "Primeiro contato com limites; entendeu 'chegar perto' numericamente, travou na notação.",
       "affect": "neutral",
       "flags": ["has_open_questions", "has_next_steps"],
@@ -637,8 +718,8 @@ Note que a 0043 está `in_progress` e virou órfã, e que a 0041 já foi compact
       "file": "memory/0042.json",
       "date": "2026-08-20",
       "status": "completed",
-      "topics": ["derivadas", "limites", "python", "erro-numerico"],
-      "skills_touched": ["derivadas-conceito", "erro-de-ponto-flutuante", "python-funcoes"],
+      "topics": ["derivadas", "limites", "python", "erro_numerico"],
+      "skills_touched": ["derivadas_conceito", "erro_de_ponto_flutuante", "python_funcoes"],
       "one_line_summary": "Derivada via zoom no gráfico destravou o conceito; implementou derivada numérica e descobriu sozinho a curva em U do erro.",
       "affect": "engaged",
       "flags": ["has_unlock", "has_backfire", "has_open_questions", "has_next_steps"],
@@ -690,7 +771,7 @@ Note que a 0043 está `in_progress` e virou órfã, e que a 0041 já foi compact
   "semantic_facts": [
     {
       "fact_id": "f-0031",
-      "claim_key": "skill:derivadas-conceito:level",
+      "claim_key": "skill:derivadas_conceito:level",
       "kind": "skill_level",
       "topic": "derivadas",
       "claim": "Nunca viu derivada; conhece inclinação só como 'o m da reta' decorado do ensino médio.",
@@ -709,7 +790,7 @@ Note que a 0043 está `in_progress` e virou órfã, e que a 0041 já foi compact
     },
     {
       "fact_id": "f-0034",
-      "claim_key": "skill:derivadas-conceito:level",
+      "claim_key": "skill:derivadas_conceito:level",
       "kind": "skill_level",
       "topic": "derivadas",
       "claim": "Explica derivada como a inclinação do zoom local, mas ainda não conecta isso com a definição de limite.",
@@ -728,7 +809,7 @@ Note que a 0043 está `in_progress` e virou órfã, e que a 0041 já foi compact
     },
     {
       "fact_id": "f-0035",
-      "claim_key": "strength:python-funcoes",
+      "claim_key": "strength:python_funcoes",
       "kind": "strength",
       "topic": "python",
       "claim": "Escreve funções Python do zero sem ajuda de sintaxe; erra por esquecimento (return), não por conceito.",
@@ -768,7 +849,7 @@ Note que a 0043 está `in_progress` e virou órfã, e que a 0041 já foi compact
   "procedural_facts": [
     {
       "fact_id": "f-0037",
-      "claim_key": "visualization:derivadas:zoom-local",
+      "claim_key": "visualization:derivadas:zoom_local",
       "procedure_kind": "visualization",
       "target_topic": "derivadas",
       "how": "Plotar a função e dar zoom sucessivo no ponto (janela ±1, ±0.1, ±0.01) até a curva ficar visualmente reta, ANTES de qualquer fórmula. Deixar ele nomear o que está vendo.",
@@ -792,7 +873,7 @@ Note que a 0043 está `in_progress` e virou órfã, e que a 0041 já foi compact
     },
     {
       "fact_id": "f-0032",
-      "claim_key": "presentation-order:limites:formalismo-primeiro",
+      "claim_key": "presentation_order:limites:formalismo_primeiro",
       "procedure_kind": "antipattern",
       "target_topic": "limites",
       "how": "NÃO abrir com a definição formal (epsilon-delta, notação) antes de um objeto concreto na tela. Com ele, sempre gráfico ou código primeiro, formalismo depois — e só quando ele pedir o nome da coisa.",
@@ -816,9 +897,9 @@ Note que a 0043 está `in_progress` e virou órfã, e que a 0041 já foi compact
     },
     {
       "fact_id": "f-0038",
-      "claim_key": "hands-on-activity:erro-numerico:varredura-de-h",
+      "claim_key": "hands_on_activity:erro_numerico:varredura_de_h",
       "procedure_kind": "hands_on_activity",
-      "target_topic": "erro-numerico",
+      "target_topic": "erro_numerico",
       "how": "Deixar ele varrer o parâmetro até o método quebrar (h de 1e-1 a 1e-16) e ver a curva de erro subir de novo, SEM avisar antes. Explicar a causa só depois que ele perguntar 'por quê'.",
       "base_domain": null,
       "mapping": null,
@@ -884,7 +965,11 @@ Note que a 0043 está `in_progress` e virou órfã, e que a 0041 já foi compact
 
 ### 10.5 Saída do digest para a sessão 0044
 
-Montado por `memory-digest.sh` a partir dos três arquivos acima, em 2026-08-24. Note a órfã 0043 reportada, o `read_as` em cada item e o `full_detail_available` fechando a lacuna do "sempre lemos os arquivos anteriores".
+Montado por `memory-digest.sh <setup_root> --now 2026-08-24T19:03:00-03:00` a partir dos três
+arquivos acima (já depois do `--verify`, que recuperou a 0043). Note a órfã reportada em
+`orphan_sessions[]` e **fora** de `recent_sessions`, o `read_as` em cada item, e o
+`full_detail_available` fechando a lacuna do "sempre lemos os arquivos anteriores". Com
+`RECENT_SESSIONS_K = 5` e 43 sessões, `sessions_not_in_recent` é `43 − 5 = 38`.
 
 ```json
 {
@@ -892,7 +977,7 @@ Montado por `memory-digest.sh` a partir dos três arquivos acima, em 2026-08-24.
   "generated_at": "2026-08-24T19:03:00-03:00",
   "for_session_id": "0044",
   "memory_state": "warm",
-  "topics_in_focus": ["derivadas", "erro-numerico", "limites", "python"],
+  "topics_in_focus": ["derivadas", "erro_numerico", "limites", "python"],
   "topics_source": "inferred_from_recent",
   "full_detail_available": {
     "session_count": 43,
@@ -904,7 +989,7 @@ Montado por `memory-digest.sh` a partir dos três arquivos acima, em 2026-08-24.
       { "tag": "python", "count": 27 },
       { "tag": "limites", "count": 6 },
       { "tag": "derivadas", "count": 3 },
-      { "tag": "erro-numerico", "count": 2 }
+      { "tag": "erro_numerico", "count": 2 }
     ],
     "how_to_open": "Filtre memory/INDEX.json por topics, skills_touched, flags ou date e abra apenas os memory/NNNN.json correspondentes."
   },
@@ -914,10 +999,11 @@ Montado por `memory-digest.sh` a partir dos três arquivos acima, em 2026-08-24.
     "known_base_domains": ["fotografia", "direção de carro", "planilhas"]
   },
   "recent_sessions": [
+    { "session_id": "0038", "date": "2026-08-04", "topics": ["python"], "one_line_summary": "Ajustou o ambiente e revisou funções; sem conteúdo novo de matemática.", "flags": [] },
     { "session_id": "0039", "date": "2026-08-06", "topics": ["python"], "one_line_summary": "Refatorou o script de plotagem em funções; sem conteúdo novo de matemática.", "flags": [] },
     { "session_id": "0040", "date": "2026-08-11", "topics": ["limites"], "one_line_summary": "Tentativa de limites por tabela de valores; entendeu 'chegar perto', ficou incomodado com a falta de fórmula.", "flags": ["has_open_questions"] },
     { "session_id": "0041", "date": "2026-08-13", "topics": ["limites", "python"], "one_line_summary": "Primeiro contato com limites; entendeu 'chegar perto' numericamente, travou na notação.", "flags": ["has_open_questions", "has_next_steps"] },
-    { "session_id": "0042", "date": "2026-08-20", "topics": ["derivadas", "limites", "python", "erro-numerico"], "one_line_summary": "Derivada via zoom no gráfico destravou o conceito; implementou derivada numérica e descobriu sozinho a curva em U do erro.", "flags": ["has_unlock", "has_backfire", "has_open_questions", "has_next_steps"] }
+    { "session_id": "0042", "date": "2026-08-20", "topics": ["derivadas", "limites", "python", "erro_numerico"], "one_line_summary": "Derivada via zoom no gráfico destravou o conceito; implementou derivada numérica e descobriu sozinho a curva em U do erro.", "flags": ["has_unlock", "has_backfire", "has_open_questions", "has_next_steps"] }
   ],
   "recent_affect": ["neutral", "neutral", "engaged"],
   "student_profile": {
@@ -930,7 +1016,7 @@ Montado por `memory-digest.sh` a partir dos três arquivos acima, em 2026-08-24.
   "procedural_playbook": {
     "do": [
       { "fact_id": "f-0037", "procedure_kind": "visualization", "target_topic": "derivadas", "how": "Plotar a função e dar zoom sucessivo no ponto (janela ±1, ±0.1, ±0.01) até a curva ficar visualmente reta, ANTES de qualquer fórmula. Deixar ele nomear o que está vendo.", "base_domain": "fotografia", "mapping": "Aproximar o suficiente faz a curva virar reta, do mesmo jeito que aproximar a foto faz a borda virar um degrau de pixels; a derivada é a inclinação dessa reta que aparece no zoom.", "known_limit": "Para de valer em pontos não diferenciáveis: no bico do |x| em x=0 o zoom nunca vira reta.", "outcome": "unlocked", "confidence": "low", "last_observed_at": "2026-08-20", "read_as": "current", "source_sessions": ["0042"] },
-      { "fact_id": "f-0038", "procedure_kind": "hands_on_activity", "target_topic": "erro-numerico", "how": "Deixar ele varrer o parâmetro até o método quebrar (h de 1e-1 a 1e-16) e ver a curva de erro subir de novo, SEM avisar antes. Explicar a causa só depois que ele perguntar 'por quê'.", "base_domain": null, "mapping": null, "known_limit": "Só funciona quando a quebra é visível em um gráfico em poucos segundos.", "outcome": "unlocked", "confidence": "low", "last_observed_at": "2026-08-20", "read_as": "current", "source_sessions": ["0042"] },
+      { "fact_id": "f-0038", "procedure_kind": "hands_on_activity", "target_topic": "erro_numerico", "how": "Deixar ele varrer o parâmetro até o método quebrar (h de 1e-1 a 1e-16) e ver a curva de erro subir de novo, SEM avisar antes. Explicar a causa só depois que ele perguntar 'por quê'.", "base_domain": null, "mapping": null, "known_limit": "Só funciona quando a quebra é visível em um gráfico em poucos segundos.", "outcome": "unlocked", "confidence": "low", "last_observed_at": "2026-08-20", "read_as": "current", "source_sessions": ["0042"] },
       { "fact_id": "f-0033", "procedure_kind": "analogy", "target_topic": "derivadas", "how": "Velocímetro do carro: velocidade média é distância/tempo do trecho; o velocímetro mostra o que sobra quando o trecho encolhe até quase zero. Usar como reforço DEPOIS do zoom, nunca no lugar dele.", "base_domain": "direção de carro", "mapping": "A taxa média sobre um intervalo vira taxa instantânea quando o intervalo encolhe.", "known_limit": "Ele não reusou a analogia espontaneamente; tratar como apoio secundário.", "outcome": "partial", "confidence": "low", "last_observed_at": "2026-08-20", "read_as": "current", "source_sessions": ["0042"] }
     ],
     "avoid": [
@@ -990,10 +1076,11 @@ Montado por `memory-digest.sh` a partir dos três arquivos acima, em 2026-08-24.
 
 | Artefato | Dono | Contrato resumido |
 |---|---|---|
-| `SK/scripts/memory-digest.sh` | onda 3 (sub-tarefa 3.4) | Exatamente §6. Somente leitura, saída fixa, sempre exit 0. |
-| Rotina de abertura de sessão | onda 3 | Recuperar órfãs (§7) → rodar o digest → criar `NNNN.json` com os 5 obrigatórios e `status: in_progress`. |
-| Rotina de fechamento | onda 3 | Preencher a sessão → validar contra o schema → reescrever `one_line_summary` → `status: completed` → append no índice (§2.1) → checar gatilho de compactação (§4.1). |
-| Rotina de compactação | onda 3 | Exatamente §4.2. É o único escritor de `profile.json`, e o único ponto onde a LLM escreve memória de longo prazo. |
+| `SK/scripts/memory-digest.sh` | onda 3 (sub-tarefa 3.4) | Exatamente §6. Raiz do setup posicional, `--now` obrigatório para saída reproduzível. Somente leitura, saída fixa, sempre exit 0. |
+| `SK/scripts/memory-index.sh --verify` | onda 3 (sub-tarefa 3.4) | Sincronia do índice **e** recuperação automática de órfã (§7.3). É o **único** componente que finaliza uma órfã. |
+| Abertura de sessão (`session-new.sh`) | onda 3 (sub-tarefa 3.3) | Depois de `--verify` e do digest: criar `NNNN.json` com os 5 obrigatórios e `status: in_progress`, mais o `.session.lock` JSON. Lock vivo → exit 4. |
+| Fechamento (`session-close.sh`) | onda 3 (sub-tarefa 3.3) | Preencher a sessão → validar contra o schema (faltou campo → pedido `session_close_fields`, exit 10, `--apply`) → reescrever `one_line_summary` → `status: completed` + `finalized_at` + `finalized_by` → append no índice (§2.1) → checar gatilho de compactação (§4.1). **Não escreve `profile.json`.** |
+| Compactação (`memory-compact.sh`) | onda 3 (sub-tarefa 3.4) | Exatamente §4.2, com o pedido `profile_compaction` (exit 10 / `--apply`). É o único escritor de `profile.json`, e o único ponto onde a LLM escreve memória de longo prazo. |
 | Validador dos schemas | gate | Verificador mínimo em Python stdlib. Requisito: aceitar `type` como string **ou** array de strings (`["string","null"]`), e suportar `required`, `enum`, `pattern`, `properties`, `items`, `additionalProperties: false`. Sem `$ref`, sem `allOf` aninhado, sem `if/then/else` — os três schemas foram escritos para caber nisso. |
 | `SKILL.md` | onda 3 | Três obrigações herdadas daqui: (i) `read_as: "hypothesis"` vira pergunta, nunca afirmação; (ii) assunto fora do digest → filtrar o índice e abrir o bruto antes de dizer "não me lembro"; (iii) `memory_state: "first_session"` → sessão de calibração, não fingir conhecer o aluno. |
 
@@ -1008,9 +1095,9 @@ Evolução de schema: adicionar campo opcional sobe MINOR; tornar obrigatório, 
 | D-M01 | "Sempre lemos os arquivos anteriores" será implementado como **índice + perfil + digest sempre**, com os `NNNN.json` brutos abertos **seletivamente** — e não como "carregar todos os arquivos no contexto". Confirma? | (a) índice+perfil+digest, brutos sob demanda; (b) carregar todos os brutos sempre; (c) carregar todos até N sessões e depois trocar para (a) | (a) | cheap — é política de leitura, nenhum dado muda de formato |
 | D-M02 | Gatilho de compactação: quantas sessões não consolidadas disparam o processo? | 15 · 20 · nunca (manual) | 15 (piso da faixa da pesquisa), configurável em `profile.json` | cheap — é um número num arquivo |
 | D-M03 | Versionar `memory/` no git? | (a) `.gitignore` (dado de runtime); (b) versionar; (c) versionar só `INDEX.json` e `profile.json` | (a) não versionar | moderate — se versionar e depois se arrepender, o histórico do git guarda o dado |
-| D-M04 | Sessões `abandoned` entram na compactação com `confidence` travada em `low`. Ou devem ser ignoradas por completo na consolidação? | (a) entram com teto `low`; (b) ignoradas na consolidação, preservadas no disco | (a) | cheap — regra da rotina de compactação |
+| D-M04 | **RESOLVIDA (reconciliação onda 29 — era o ponto em que `docs/01` e `docs/03` se contradiziam).** Sessões `abandoned` entram na compactação? | (a) entram, contam para o limiar e travam em `confidence: low` os fatos que só elas sustentam; (b) ignoradas na consolidação, preservadas no disco | **(a)** — nada se perde e nada é promovido além do que a evidência sustenta. Versão única, idêntica em `docs/01-arquitetura.md` do repositório §4.2 | cheap — regra da rotina de compactação |
 | D-M05 | Persistir `raw_notes` (trechos brutos de diálogo)? Ajuda a auditar e a reabrir um episódio; é o campo com maior risco de privacidade e o que mais infla o arquivo. | (a) nunca; (b) sempre; (c) só quando o aluno pedir; (d) sempre, mas purgado automaticamente após N meses | (c) só a pedido | cheap para desligar; expensive para desfazer o que já foi gravado |
-| D-M06 | Sessão órfã: fechar retroativamente como `abandoned`, contando no índice e sem inventar conteúdo. Confirma? | (a) fechar como `abandoned` (proposto); (b) deixar `in_progress` para sempre; (c) apagar o arquivo; (d) pedir à LLM para completar o que faltou | (a) | cheap — só a rotina de abertura muda |
+| D-M06 | **RESOLVIDA (AR-06).** Sessão órfã: fechar retroativamente como `abandoned`, contando no índice e sem inventar conteúdo. | (a) fechar como `abandoned`, **automaticamente, sem perguntar**; (b) perguntar ao aluno (menu de 3); (c) deixar `in_progress` para sempre; (d) apagar o arquivo; (e) pedir à LLM para completar o que faltou | **(a)**, em `memory-index.sh --verify`, dono único. No catálogo (3.0) a decisão fica com `ask_when: never`: é o caso de falha mais comum e perguntar a cada retomada é atrito diário | cheap — só o `--verify` muda |
 | D-M07 | RAG local (`sqlite-vec` + embedding local) para busca por conteúdo livre: adotar agora ou deixar como upgrade futuro? | (a) só quando passar de ~150-200 sessões; (b) desde já; (c) nunca | (a) — o schema já guarda os campos de texto que seriam embedados, então a porta fica aberta sem custo | cheap para adicionar depois; adicionar agora é complexidade desproporcional |
-| D-M08 | O nome `status` significa coisas diferentes na sessão (`in_progress\|completed\|abandoned`) e no fato (`active\|superseded`). Renomear para `session_status` / `fact_status`? | (a) manter `status` nos dois, com a tabela de desambiguação de §0; (b) renomear ambos | (a) manter — o contrato congelado já fixa os dois vocabulários | moderate — renomear depois exige migrar os arquivos já escritos |
+| D-M08 | **RESOLVIDA (AR-01).** O nome `status` significa coisas diferentes na sessão (`in_progress\|completed\|abandoned`) e no fato (`active\|superseded`). Renomear para `session_status` / `fact_status`? | (a) manter `status` nos dois, com a tabela de desambiguação de §0; (b) renomear ambos | **(a) manter** — vence `session.schema.json`. `session_status`, `closed` e `orphaned` estão descartados em todo o projeto; a desambiguação é feita pela tabela de §0, não pelo nome do campo | moderate — renomear depois exige migrar os arquivos já escritos |
 | D-M09 | Granularidade do que **não** persistir: `affect_note` pode registrar contexto emocional ancorado em comportamento observável, mas nada de contexto familiar, de saúde ou de terceiros nomeados. Esse limite está no lugar certo? | (a) limite proposto; (b) mais restritivo (só afeto categórico, sem nota); (c) mais permissivo | (a) | cheap para apertar; expensive para desfazer o que já foi gravado |

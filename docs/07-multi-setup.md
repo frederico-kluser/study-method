@@ -56,6 +56,10 @@ tmp="$REGISTRY.tmp.$$"
 jq '...' "$REGISTRY" > "$tmp" && mv -f "$tmp" "$REGISTRY"                # mv no mesmo FS é atômico
 ```
 
+- O par `tmp` + `mv` não é privilégio do registry: **toda** escrita de derivado do projeto é atômica
+  (`INDEX.json`, `profile.json`, `progress.json`, `docs-index.json`, o `README.md` do setup, o
+  `setup.json`). O que é exclusivo do registry é o **lock**, porque ele é o único estado compartilhado
+  entre setups e entre terminais.
 - `jq` está presente nesta máquina e é a única ferramenta de manipulação estruturada garantida.
 - Lock preso por mais de 60 s (comparar `mtime` do diretório de lock) é considerado morto e removido
   com aviso — o registry não pode travar uma aula.
@@ -165,6 +169,12 @@ Qual deles?
 Desempate é sempre por `path` + `last_session_at` + `session_count`, e **nunca** por adivinhação.
 `setup_id` é o que a skill usa internamente e o que aparece em `cross_setup_refs`.
 
+**`setup_name` é um handle de caminho, não um identificador de conceito**: ele continua em
+slug-com-hífen (`calculo-1`). Já os campos do registry que carregam **conceito** — `topics[]` e
+`taxonomy[]`, espelhados do `setup.json` — são `snake_case`, pattern `^[a-z][a-z0-9_]{1,62}$`, como
+em todo o resto do sistema (`docs/01-arquitetura.md` do repositório §6, item 11). `setup-list.sh
+--find` normaliza o termo de busca com `normalize_concept_id()` antes de comparar contra eles.
+
 ---
 
 ## 4. O `README.md` do setup como nó de grafo de conhecimento
@@ -191,14 +201,20 @@ escreveu fora dos marcadores é preservada intacta (D-A20):
 | `destilados` | Índice de `researchs/NNNN.md` → tópico + 1 linha + `status` | bloco de proveniência de cada `researchs/NNNN.md` |
 | `desafios` | Índice de `challenges/<slug>/` → tópico + `challenge_status` | `challenges/*/meta.json` |
 | `linha-do-tempo` | Resumo de topo das sessões: total, período, e o `one_line_summary` das últimas 10 | `memory/INDEX.json` |
-| `pontes` | Links explícitos para outros setups: `setup_id`, `title`, e **por que** a ponte existe | `cross_setup_refs` acumulados de `memory/INDEX.json` |
+| `pontes` | Links **unilaterais** para outros setups: `setup_id`, `title`, e **por que** a ponte existe | `cross_setup_refs` acumulados de `memory/INDEX.json` **deste** setup |
 | `estado-atual` | 3–5 linhas: o que está sólido, o que está frágil, o que ficou pendente | `memory/profile.json` + `memory/progress.json` |
 
-A seção `pontes` é o que transforma um conjunto de pastas em grafo: cada vez que uma sessão de
-Cálculo puxa algo de Álgebra Linear, `close_session` acrescenta a ponte **nos dois** setups
-(no setup de origem como "usei", no setup de destino como "foi usado por") — desde que o setup de
-destino esteja `active` e gravável. Se não estiver, a ponte fica registrada só de um lado, com
-`reciprocal: false`.
+A seção `pontes` é o que transforma um conjunto de pastas em grafo — e ela é **unilateral, sempre**.
+Cada vez que uma sessão de Cálculo puxa algo de Álgebra Linear, `readme-sync.sh` acrescenta a ponte
+**apenas no `README.md` do setup de Cálculo** ("usei Álgebra Linear para isto"). O setup de Álgebra
+Linear **não é tocado**: nenhum byte é escrito nele, nem uma linha de "foi usado por", nem em
+`README.md`, nem em `memory/`, nem em lugar nenhum.
+
+Isso é consequência direta da regra de segurança do §5.2: **escrita cruzada entre setups: nunca**.
+Ganhar reciprocidade custaria abrir escrita no diretório de outro assunto — e nenhuma comodidade de
+navegação paga esse preço. Não existe campo `reciprocal`: como a ponte só tem um lado, não há o que
+sinalizar. O grafo continua navegável porque o registry conhece todos os setups: para saber quem
+aponta para o setup X, varre-se a seção `pontes` dos `README.md` dos setups `active`, em leitura.
 
 ### 4.2 Quem atualiza e quando
 
@@ -244,14 +260,16 @@ Acontece dentro do passo `teach` (`docs/01-arquitetura.md` do repositório §3).
 5. **Extração.** Do que foi lido, entram no contexto da aula corrente somente as seções
    `taxonomia`, `base-teorica` e `estado-atual`. `linha-do-tempo` e `pontes` são lidas mas **não**
    entram — a primeira é episódica, a segunda é navegação.
-6. **Aprofundamento sob autorização.** Se o `README.md` do setup de destino apontar um destilado
-   relevante (`researchs/0012.md`), o tutor **pergunta** antes de abrir:
-   "Tem um resumo de mudança de base lá no setup de Álgebra Linear. Quer que eu puxe?".
-   Só então lê aquele arquivo específico — nunca o diretório todo.
+6. **Não há aprofundamento.** O `README.md` do setup é o **teto** da leitura cruzada, não o começo
+   dela. Se ele apontar um destilado relevante (`researchs/0012.md`) do outro setup, o tutor **não
+   abre** — nem perguntando. Ele diz que existe e ensina com o que tem:
+   "Tem um destilado de mudança de base no seu setup de Álgebra Linear; se você quiser trabalhar
+   nele a fundo, vale abrir uma sessão lá." `researchs/` de outro setup: **nunca**, sem exceção e
+   sem autorização que valha.
 7. **Anúncio.** O tutor sempre diz de onde tirou: *"isso você já viu no seu setup de Álgebra
    Linear — lá você chegou a `mastered` em mudança de base."* Referência cruzada silenciosa é
    indistinguível de alucinação.
-8. **Registro.** `close_session` grava em `memory/NNNN.json`:
+8. **Registro, sempre de um lado só.** `close_session` grava em `memory/NNNN.json` **deste** setup:
 
    ```json
    "cross_setup_refs": [
@@ -261,20 +279,25 @@ Acontece dentro do passo `teach` (`docs/01-arquitetura.md` do repositório §3).
    ]
    ```
 
-   E `readme-sync.sh` promove isso para a seção `pontes` dos dois `README.md` do setup envolvidos.
+   E `readme-sync.sh` promove isso para a seção `pontes` do `README.md` **deste** setup — só dele.
+   O setup de destino não recebe escrita nenhuma (§4.1).
 
 ### 5.2 O que a leitura cruzada nunca faz
 
 - Nunca lê `memory/` de outro setup. O que o aluno errou em Álgebra Linear em março não é assunto da
   aula de Cálculo de hoje, e trazer isso é ancoragem (`docs/research/02-memoria-llm.md` do
   repositório §7) com o agravante de cruzar contextos.
-- Nunca escreve em outro setup, exceto a linha da seção `pontes` via `readme-sync.sh`, e só se o
-  setup de destino estiver `active`.
+- **Nunca escreve em outro setup. Sem exceção.** Nem uma linha, nem no `README.md`, nem em
+  `memory/`, nem em `researchs/`. Um script que abra para escrita qualquer caminho fora do
+  `<setup_root>` corrente é bug de gate. A ponte é unilateral (§4.1) exatamente por causa disto.
+- Nunca lê `researchs/`, `challenges/`, o `docs/` do setup ou qualquer outro diretório de outro
+  setup: a
+  superfície de leitura cruzada é **um arquivo**, o `README.md` do setup.
 - Nunca abre mais de um setup por turno. Se o assunto puxa três setups, o tutor escolhe um e diz
   quais ficaram de fora.
 - Nunca lê setup com `setup_status` `missing` ou `archived`.
-- Nunca lê setup cujo manifesto tenha `privacy.allow_cross_read: false` (chave reservada no
-  `setup-manifest.schema.json`, default `true`).
+- Nunca lê setup cujo manifesto tenha `privacy.cross_read: "never"`; e com `"ask"` (o default) só lê
+  **depois** de o aluno autorizar naquela sessão.
 
 ### 5.3 O limite de privacidade
 
@@ -284,8 +307,26 @@ pessoal de um único aluno, isso é o comportamento desejado — é literalmente
 O risco aparece quando um setup deixa de ser só dele: sincronizado numa nuvem, versionado num
 repositório público, ou compartilhado com um colega.
 
-Por isso a arquitetura já reserva o interruptor (`privacy.allow_cross_read`), limita a superfície de
-leitura ao `README.md` do setup e exige anúncio explícito. **O tratamento completo — o que é dado
+Por isso o interruptor é **tri-estado**, e não booleano:
+
+```
+privacy.cross_read : "ask" | "allow" | "never"      # default: "ask"
+```
+
+| Valor | Comportamento |
+|---|---|
+| `ask` (default) | A skill pergunta antes de ler o `README.md` deste setup a partir de outro: "posso dar uma olhada no seu setup de Álgebra Linear?". Um "sim" vale para a **sessão corrente**, não para sempre. |
+| `allow` | Lê direto, sem perguntar, e **anuncia** de onde tirou (item 7 do §5.1). |
+| `never` | O setup fica invisível para a leitura cruzada. `setup-list.sh --find` nem o devolve. |
+
+Um booleano não conseguia representar `ask`, que é justamente o default certo: perguntar uma vez
+custa uma linha, e ler o perfil pedagógico do aluno de outro assunto sem avisar é o tipo de coisa
+que só se percebe depois. O campo vive em `setup.json` (`privacy.cross_read`) e é **espelhado** no
+registry, para que a leitura cruzada possa descartar um setup **antes** de abrir qualquer arquivo
+dele; em divergência, o manifesto manda e o registry é corrigido.
+
+A arquitetura ainda limita a superfície de leitura ao `README.md` do setup e exige anúncio
+explícito. **O tratamento completo — o que é dado
 pessoal, o que nunca se persiste, apagamento sob pedido, e se o setup vai ou não para o git — é da
 sub-tarefa 2.8** (`docs/11-seguranca-privacidade.md` do repositório). Este documento apenas garante
 que os pontos de controle existam e sejam implementáveis.
@@ -300,16 +341,24 @@ que os pontos de controle existam e sejam implementáveis.
 3. O `README.md` do setup usa marcadores `<!-- study-method:begin <secao> -->` /
    `<!-- study-method:end <secao> -->` com os 8 nomes de seção do §4.1. `readme-sync.sh` (3.4) é o
    único escritor dentro dos marcadores.
-4. `memory/NNNN.json` carrega `cross_setup_refs: []` com a forma do §5.1 item 8 (2.2).
-5. Toda escrita no registry passa por lock (`mkdir`) + `mv` atômico (3.3).
+4. `memory/NNNN.json` carrega `cross_setup_refs: []` com a forma do §5.1 item 8 (2.2), preenchido
+   **só no setup que leu**. Não existe registro espelhado no setup lido.
+5. Toda escrita no registry passa por lock (`mkdir`) + `mv` atômico (3.3); e toda escrita de
+   derivado, em qualquer setup, passa por `tmp` + `mv` (§1.3).
 6. A chave reservada `privacy` do `setup.json` é extensível e pertence à sub-tarefa 2.8; esta
-   sub-tarefa só define `privacy.allow_cross_read` (booleano, default `true`).
+   sub-tarefa só define **`privacy.cross_read`**, enum `ask | allow | never`, default `ask`,
+   espelhado no registry.
 7. `setup-list.sh` (3.3) precisa dos subcomandos `--resolve <cwd>`, `--find <termo> --json`,
    `--archive <setup_id>`, `--forget <setup_id>` e `--all`, além da listagem sem argumento.
    A tabela completa de interfaces de linha de comando está em `docs/01-arquitetura.md` do
    repositório §6.1.
 8. Todo campo do registry marcado como "espelho" no schema tem o `setup.json` como origem de
    verdade. Em divergência, o manifesto ganha e o registry é corrigido — nunca o contrário.
+9. **Escrita cruzada entre setups: nunca.** Nenhum script escreve fora do `<setup_root>` corrente —
+   a única escrita fora dele é a entrada do próprio setup no registry global. A seção `pontes` é
+   unilateral por causa disto (§4.1).
+10. **Leitura cruzada**: superfície máxima é o `README.md` do setup. `researchs/`, `challenges/`,
+    o `docs/` do setup e `memory/` de outro setup: **nunca**, nem sob autorização.
 
 ---
 
@@ -321,7 +370,8 @@ que os pontos de controle existam e sejam implementáveis.
 | D-A13 | O setup se auto-registra no registry, ou registrar é um comando explícito do aluno? | Auto-registro dentro de `setup-init.sh` · Comando `setup-list.sh --register <path>` · Auto-registro com confirmação de uma linha | Auto-registro em `setup-init.sh` — um setup que não está no registry é invisível para a leitura cruzada, e ninguém lembra de registrar depois | cheap |
 | D-A14 | O que fazer quando o registry aponta para um setup que não existe mais? | Marcar `missing` e seguir calado · Perguntar ao aluno o que fazer · Remover a entrada automaticamente | Marcar `missing`, manter a entrada para sempre, mencionar no máximo uma vez por sessão e só se for relevante | cheap |
 | D-A15 | A leitura cruzada é automática (a skill decide sozinha quando puxar outro setup) ou só quando o aluno menciona? | Só quando o aluno menciona/pergunta · Automática por similaridade de tópico a cada turno · Automática só no `plan_lesson` | Só quando o aluno menciona — automática por similaridade enche o contexto e desvia o foco da aula | cheap |
-| D-A16 | Quanto de outro setup a leitura cruzada pode ler? | Só o `README.md` do setup · `README.md` do setup + `researchs/` sob autorização · Também `memory/` | `README.md` do setup, com `researchs/NNNN.md` específico só sob autorização explícita; `memory/` nunca | moderate |
+| D-A16 | **RESOLVIDA (AR-11).** Quanto de outro setup a leitura cruzada pode ler, e como isso é configurado? | Só o `README.md` do setup · `README.md` do setup + `researchs/` sob autorização · Também `memory/` | **Só o `README.md` do setup.** `researchs/`, `challenges/`, `docs/` e `memory/` de outro setup: **nunca**, nem sob autorização. O interruptor é tri-estado `privacy.cross_read: ask \| allow \| never`, default `ask`, no `setup.json` e espelhado no registry — booleano não representa `ask` | moderate |
+| D-A23 | **RESOLVIDA (AR-10).** A ponte da seção `pontes` é registrada nos dois setups ou só no atual? | Nos dois (recíproca) · Só no setup atual (unilateral) | **Só no setup atual.** Reciprocidade exigiria escrever no diretório de outro assunto, e escrita cruzada entre setups é proibida sem exceção (§5.2). Não existe campo `reciprocal` | cheap |
 | D-A17 | O registry guarda um `default_setup_id` (o setup usado quando a skill roda fora de qualquer setup)? | Sim, com confirmação de uma linha · Sim, aplicado em silêncio · Não, sempre listar e perguntar | Sim, com confirmação de uma linha — economiza uma pergunta na maioria das sessões sem nunca abrir o setup errado calado | cheap |
 | D-A18 | Dois setups podem ter o mesmo `setup_name`? | Sim, desempatados por `path`/`last_session_at` · Não, `setup-init.sh` recusa nome repetido | Sim — unicidade global dependeria do registry, que é justamente o componente que pode estar desatualizado | moderate |
 | D-A19 | O aluno copiou a pasta de um setup; agora há dois caminhos vivos com o mesmo `setup_id`. O que fazer? | Sortear `setup_id` novo para a cópia recém-aberta · Recusar abrir até o aluno resolver · Tratar como o mesmo setup e usar o último caminho | Sortear `setup_id` novo para a cópia e registrar as duas — copiar pasta é backup ou fork, e nenhum dos dois deve corromper o histórico do original | moderate |
