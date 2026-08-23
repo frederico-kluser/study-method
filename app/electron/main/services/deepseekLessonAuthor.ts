@@ -43,6 +43,49 @@ export interface DeepSeekLessonAuthorDeps {
 /** Linguagens suportadas pelo layout dos scripts (docs/05 §2). */
 const SUPPORTED_LANGUAGES = ['python', 'javascript', 'go', 'rust', 'c'] as const;
 
+/**
+ * Nome da FUNÇÃO-PRINCIPAL de um desafio derivado do SLUG, no formato EXATO que a
+ * semente do desafio usa (challenge-new.sh: `FUNC_SNAKE`/`FUNC_CAMEL`/`FUNC_NAME`).
+ *
+ * O autor precisa deste mapeamento porque a materialização/validação é RÍGIDA:
+ * challenge-new.sh gera `empty_stub`, `reference` e `reference_alt_*` com um nome
+ * canônico derivado do slug (--slug), e o harness (challenge-verify.sh) COPIA um
+ * desses por cima do stub do aluno para rodar os testes. Se o `stubCode` (ou o
+ * `testCode`) da autoria declarar/chamar a função com OUTRO nome, o teste falha
+ * na linha de import/chamada (ex.: Python `ImportError: cannot import name`), e o
+ * desafio é rejeitado na validação (`verify` veredito != approved).
+ *
+ * Regra (espelha challenge-new.sh):
+ *   snake = slug com '-' → '_'; se começar com dígito prefixa `f_`
+ *   camel = snake → PascalCase (cada parte com a inicial maiúscula)
+ *   go                              → FUNC_NAME = camel  (função exportada em Go)
+ *   python | javascript | rust | c  → FUNC_NAME = snake  (identificador local)
+ *
+ * `language` é normalizado (node → javascript; fora do enum → python).
+ */
+export function slugifyToFunctionName(slug: string, language: string): string {
+  const lang = (language || '').trim().toLowerCase().replace(/^node$/, 'javascript');
+  let snake = (slug || '')
+    .trim()
+    .toLowerCase()
+    .replace(/-+/g, '-')
+    .replace(/[^a-z0-9_-]+/g, '')
+    .replace(/^-+|-+$/g, '')
+    .replace(/-/g, '_');
+  if (!snake) snake = 'f';
+  if (/^[0-9]/.test(snake)) snake = `f_${snake}`;
+
+  if (lang === 'go') {
+    // snake_case → PascalCase (função exportada do pacote de Go).
+    return snake
+      .split('_')
+      .filter((p) => p.length > 0)
+      .map((p) => p[0].toUpperCase() + p.slice(1))
+      .join('');
+  }
+  return snake;
+}
+
 /** System prompt pt-BR — pedagogia do tutor study-method. */
 const SYSTEM_PROMPT_PT_BR =
   'Você é o autor de aulas do tutor study-method. Você recebe um ASSUNTO, ' +
@@ -82,6 +125,20 @@ const SYSTEM_PROMPT_PT_BR =
   '  ],\n' +
   '  "expectedTestCount": <número de cenários>\n' +
   '}\n' +
+  'IMPORTANTE — NOME DA FUNÇÃO-PRINCIPAL (regra rígida, igual à semente do desafio):\n' +
+  'a função principal que o desafio pede (a que o stub declara, a que o teste importa/chama\n' +
+  'e a que a referência implementa) DEVE se chamar exatamente o nome derivado do SLUG deste\n' +
+  'desafio, na linguagem dele:\n' +
+  '  - python, javascript, rust, c: kebab-case do slug → snake_case (ex.: slug\n' +
+  '    "fatorial-recursivo" → função `fatorial_recursivo`);\n' +
+  '  - go: mesmo snake_case convertido a PascalCase (ex.: slug "fatorial-recursivo" →\n' +
+  '    função `FatorialRecursivo`, exportada no pacote);\n' +
+  '  - se o snake_case começar com dígito, prefixe "f_" (ex.: slug "3-soma" →\n' +
+  '    `f_3_soma`).\n' +
+  'O stubCode, a referenceCode E todas as chamadas no testCode DEVEM usar esse nome exato;\n' +
+  'nome diferente quebra o harness (a validação copia a semente canônica e falha na\n' +
+  'importação → desafio rejeitado). Escolha o slug curto em kebab-case e derive o nome\n' +
+  'dele — nunca invente um nome de função fora dessa regra.\n' +
   'Regras: precise de textos completos e corretos (stub/test/reference compilam e ' +
   'rodam); os cenários de cada desafio devem incluir PELO MENOS um example, um ' +
   'boundary e um error (property opcional); testCode deve conter um caso de teste ' +

@@ -126,7 +126,12 @@ function createWindow(): void {
       preload: join(__dirname, '../preload/index.js'),
       contextIsolation: true,
       nodeIntegration: false,
-      sandbox: false,
+      // sandbox: true — o preload é um bundle CJS enxuto que só `require('electron')`
+      // (contextBridge/ipcRenderer; a lógica de api-schema.ts é embutida no bundle).
+      // Isso é compatível com o sandbox de preload do Electron (a API polyfill de
+      // preload expõe exatamente contextBridge+ipcRenderer+afins). webSecurity
+      // permanece true (default) e o HTML carrega o CSP meta (app/index.html).
+      sandbox: true,
     },
   });
 

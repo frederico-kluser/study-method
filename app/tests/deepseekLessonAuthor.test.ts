@@ -9,7 +9,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { createDeepSeekLessonAuthor, validateLessonDraft } from '../electron/main/services/deepseekLessonAuthor';
+import { createDeepSeekLessonAuthor, slugifyToFunctionName, validateLessonDraft } from '../electron/main/services/deepseekLessonAuthor';
 import { DEEPSEEK_ERROR_CODES, DeepSeekError } from '../electron/main/services/deepseekClient';
 import type { StudyFinding } from '../shared/ipc-contract';
 
@@ -79,6 +79,53 @@ test('author: monta system pt-BR e user com subject + findings (fontes) + temper
   assert.equal(draft.challenges.length, 1);
   assert.equal(draft.challenges[0].language, 'javascript');
   assert.equal(draft.challenges[0].scenarios.length, 3);
+});
+
+test('author: system prompt instrui o nome da função derivado do slug (regra do challenge-new.sh)', async () => {
+  const { client, calls } = fakeClient(() => ({ content: validDraftJson() }));
+  const author = createDeepSeekLessonAuthor({ client });
+  await author({ subject: 'Closures', findings: [] });
+  const sys = calls[0].messages[0].content;
+  // A instrução de naming deve citar a regra rígida e o exemplo kebab→snake.
+  assert.match(sys, /NOME DA FUNÇÃO-PRINCIPAL/);
+  assert.match(sys, /fatorial-recursivo/);
+  assert.match(sys, /fatorial_recursivo/);
+  assert.match(sys, /FatorialRecursivo/, 'go usa PascalCase (exportada)');
+  assert.match(sys, /f_3_soma/, 'slug iniciado por dígito prefixa f_');
+  // Não deve pedir 'unsafe-eval' nem abrir execução arbitrária — só o layout da função.
+  assert.doesNotMatch(sys, /unsafe-eval/);
+});
+
+test('slugifyToFunctionName: python/javascript/rust/c usam snake_case a partir do kebab-case', () => {
+  assert.equal(slugifyToFunctionName('fatorial-recursivo', 'python'), 'fatorial_recursivo');
+  assert.equal(slugifyToFunctionName('fatorial-recursivo', 'javascript'), 'fatorial_recursivo');
+  assert.equal(slugifyToFunctionName('fatorial-recursivo', 'rust'), 'fatorial_recursivo');
+  assert.equal(slugifyToFunctionName('fatorial-recursivo', 'c'), 'fatorial_recursivo');
+});
+
+test('slugifyToFunctionName: go usa PascalCase (função exportada do pacote)', () => {
+  assert.equal(slugifyToFunctionName('fatorial-recursivo', 'go'), 'FatorialRecursivo');
+  assert.equal(slugifyToFunctionName('duplica-array', 'go'), 'DuplicaArray');
+});
+
+test('slugifyToFunctionName: node é normalizado para javascript (snake_case)', () => {
+  assert.equal(slugifyToFunctionName('ordena-lista', 'node'), 'ordena_lista');
+});
+
+test('slugifyToFunctionName: slug iniciado por dígito prefixa f_ em snake e Pascal', () => {
+  assert.equal(slugifyToFunctionName('3-soma', 'python'), 'f_3_soma');
+  assert.equal(slugifyToFunctionName('3-soma', 'go'), 'F3Soma');
+});
+
+test('slugifyToFunctionName: linguagem fora do enum cai no default snake_case; slug vazio vira f', () => {
+  assert.equal(slugifyToFunctionName('mdc', 'haskell'), 'mdc');
+  assert.equal(slugifyToFunctionName('', 'python'), 'f');
+});
+
+test('slugifyToFunctionName: saneia slug não-kebab e múltiplos hífens (só hífen vira _)', () => {
+  // espaço/símbolos são removidos (não viram '_'); só o hífen vira '_'.
+  assert.equal(slugifyToFunctionName('fatorial recursivo!', 'python'), 'fatorialrecursivo');
+  assert.equal(slugifyToFunctionName('a--b', 'go'), 'AB');
 });
 
 test('author: memória do aluno vai ao prompt quando presente', async () => {
