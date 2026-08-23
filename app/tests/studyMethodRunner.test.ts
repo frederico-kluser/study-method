@@ -108,6 +108,46 @@ describe('StudyMethodRunner', () => {
       assert.equal(res.exitCode, 1);
       assert.match(res.stderr, /script não encontrado/);
     });
+
+    it('path traversal (../x.sh) é rejeitado sem executar nada (exec fake não é chamado)', async () => {
+      const calls: Array<{ file: string; args: string[] }> = [];
+      const fakeExec = ((file: string, args: string[]) => {
+        calls.push({ file, args });
+        return { stdout: null, stderr: null, kill: () => {}, on: () => {} };
+      }) as unknown as typeof import('node:child_process').spawn;
+      const runner = makeRunner(undefined, { exec: fakeExec });
+      const res = await runner.runScript('../x.sh', []);
+      assert.equal(calls.length, 0, 'o exec fake NÃO deve ser chamado para traversal');
+      assert.equal(res.exitCode, -1, JSON.stringify(res));
+      assert.match(res.stderr, /inválido|traversal/);
+    });
+
+    it('path traversal (a/b.sh) é rejeitado sem executar nada (exec fake não é chamado)', async () => {
+      const calls: Array<{ file: string; args: string[] }> = [];
+      const fakeExec = ((file: string, args: string[]) => {
+        calls.push({ file, args });
+        return { stdout: null, stderr: null, kill: () => {}, on: () => {} };
+      }) as unknown as typeof import('node:child_process').spawn;
+      const runner = makeRunner(undefined, { exec: fakeExec });
+      const res = await runner.runScript('a/b.sh', []);
+      assert.equal(calls.length, 0, 'o exec fake NÃO deve ser chamado para traversal');
+      assert.equal(res.exitCode, -1, JSON.stringify(res));
+      assert.match(res.stderr, /inválido|traversal/);
+    });
+
+    it('backslash (a\\b.sh), vazio e ".." também são rejeitados sem executar', async () => {
+      const calls: Array<{ file: string; args: string[] }> = [];
+      const fakeExec = ((file: string, args: string[]) => {
+        calls.push({ file, args });
+        return { stdout: null, stderr: null, kill: () => {}, on: () => {} };
+      }) as unknown as typeof import('node:child_process').spawn;
+      const runner = makeRunner(undefined, { exec: fakeExec });
+      for (const name of ['..\\x.sh', '', '..']) {
+        const res = await runner.runScript(name, []);
+        assert.equal(calls.length, 0, `exec fake NÃO deve ser chamado para '${name}'`);
+        assert.equal(res.exitCode, -1, `'${name}' deveria ser rejeitado: ${JSON.stringify(res)}`);
+      }
+    });
   });
 
   // ────────────────────────── protocolo exit 10 ──────────────────────────────
@@ -278,6 +318,21 @@ describe('StudyMethodRunner', () => {
       });
     }
 
+    // P3(a)/(b): exits de infraestrutura (66) e desconhecidos (42) caem no caminho
+    // 'infra' — success:false, o exit é preservado e o veredito do output é infra.
+    for (const exit of [66, 42]) {
+      it(`mapeia exit ${exit} -> infra (success:false, exitCode preservado, verdict infra)`, async () => {
+        const dir = await buildRunnerChallenge(exit);
+        const runner = makeRunner();
+        const res = await runner.testStudentAnswer(dir);
+        assert.equal(res.success, false, JSON.stringify(res));
+        assert.equal(res.passed, false);
+        assert.equal(res.exitCode, exit);
+        assert.equal(res.verdict, 'infra');
+        unsetRunExit();
+      });
+    }
+
     it('runner ausente -> infra (success:false, exit 66)', async () => {
       const dir = path.join(tmp, `chal-no-runner-${Math.random().toString(36).slice(2)}`);
       await writeFile(path.join(dir, 'stub.py'), 'x');
@@ -287,6 +342,44 @@ describe('StudyMethodRunner', () => {
       assert.equal(res.exitCode, 66);
       assert.equal(res.passed, false);
       assert.match(res.output, /runner\.sh não encontrado/);
+    });
+
+    // P3(d): timeout primário vem de execution.timeout_seconds no meta.json (com
+    // floor de 5s). runner fake dorme 8s; meta pede 2s -> floor de 5s age -> o
+    // runner é morto em ~5s (verdict timeout), bem antes do backstop de 60s.
+    it('usa execution.timeout_seconds do meta.json como timeout primário (floor 5s) e seta CHALLENGE_TIMEOUT coerente', async () => {
+      const dir = path.join(tmp, `chal-meta-timeout-${Math.random().toString(36).slice(2)}`);
+      await writeFile(path.join(dir, 'stub.py'), 'x');
+      await writeFile(path.join(dir, 'meta.json'),
+        JSON.stringify({ execution: { timeout_seconds: 2 } }));
+      await writeFile(path.join(dir, 'runner.sh'),
+        '#!/usr/bin/env bash\n'
+        + 'echo "CHALLENGE_TIMEOUT=$CHALLENGE_TIMEOUT"\n'
+        + 'sleep 8\n'
+        + 'echo "TESTS_RUN=1 ESPERADO=1 EXIT_BRUTO=0 DECORRIDO_MS=2 LINGUAGEM=x"\n'
+        + 'echo "VEREDITO=passed"\nexit 0\n');
+      await fsp.chmod(path.join(dir, 'runner.sh'), 0o755);
+      const runner = makeRunner();
+      const t0 = Date.now();
+      const res = await runner.testStudentAnswer(dir);
+      const elapsed = Date.now() - t0;
+      assert.equal(res.exitCode, 3, JSON.stringify(res));
+      assert.equal(res.verdict, 'timeout');
+      // coerência: CHALLENGE_TIMEOUT reflete o floor aplicado (5s), não o 2 cru nem o 60 do backstop.
+      assert.match(res.output, /CHALLENGE_TIMEOUT=5/);
+      assert.ok(elapsed < 8000, `timeout primário do meta.json deveria matar em ~5s, levou ${elapsed}ms`);
+    });
+
+    it('sem meta.json válido cai no backstop de 60s (CHALLENGE_TIMEOUT=60)', async () => {
+      const dir = await buildRunnerChallenge(0);
+      // remove o meta.json (caso exista) para garantir backstop.
+      const metaPath = path.join(dir, 'meta.json');
+      if (await fileExists(metaPath)) await fsp.rm(metaPath);
+      const runner = makeRunner();
+      const res = await runner.testStudentAnswer(dir);
+      assert.equal(res.exitCode, 0, JSON.stringify(res));
+      assert.equal(res.verdict, 'passed');
+      unsetRunExit();
     });
   });
 

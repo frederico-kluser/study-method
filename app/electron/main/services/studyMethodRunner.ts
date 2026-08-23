@@ -17,8 +17,15 @@
  *     wrappers com parsing do stdout de cada script.
  *  5. `testStudentAnswer()` — execução DETERMINÍSTICA da resposta do aluno: copia o
  *     workspace do desafio (SEM `.solution/`) para tmp e roda `runner.sh` com
- *     `STUDY_METHOD_SKILL_DIR` setado, mapeando o contrato de exit code do runner
- *     (0 passou · 1 falhou · 2 contagem divergente · 3 timeout · 66 infra).
+ *     `STUDY_METHOD_SKILL_DIR` e `CHALLENGE_TIMEOUT` setados, mapeando o contrato de
+ *     exit code do runner (0 passou · 1 falhou · 2 contagem divergente · 3 timeout ·
+ *     66 infra). O timeout usa `execution.timeout_seconds` do `meta.json` do desafio
+ *     (mínimo 5s) como primário; backstop de `defaultTimeoutMs` (60s) sem meta válido.
+ *
+ * Segurança: `runScript` (e o wrapper de exit 10) rejeita qualquer nome de script que
+ * não seja um basename simples e re-verifica a contenção em `<skillDir>/scripts/` —
+ * nomes com `/`, `\`, `..`, `.` ou vazio retornam `{exitCode:-1, stderr:'...inválido...'}`
+ * sem executar nada (anti path traversal).
  *
  * O módulo 'electron' NÃO é importado aqui; `getAppPath` é injetável para que os
  * testes usem um caminho fake. Tudo roda em tmp — nunca se escreve setups reais.
@@ -248,13 +255,48 @@ export function createStudyMethodRunner(deps: StudyMethodRunnerDeps = {}): Study
     );
   }
 
+  /**
+   * Valida que `name` é um basename simples de script — sem separador de caminho,
+   * sem `..`, sem `.`/vazio. NÃO executa nada se inválido (anti path traversal).
+   * Retorna a mensagem de erro, ou null quando válido.
+   */
+  function validateScriptName(name: string): string | null {
+    if (name.length === 0) {
+      return 'StudyMethodRunner: nome de script vazio';
+    }
+    if (name === '.' || name === '..' || name.includes('/') || name.includes('\\')) {
+      return `StudyMethodRunner: nome de script inválido (path traversal): ${name}`;
+    }
+    return null;
+  }
+
+  /** true quando `target` está ESTRITAMENTE dentro de `baseDir` (bate-se o `.`). */
+  function containedIn(baseDir: string, target: string): boolean {
+    const rel = path.relative(baseDir, target);
+    return rel !== '' && rel !== '.' && !rel.startsWith('..') && !path.isAbsolute(rel);
+  }
+
   async function runScript(
     name: string,
     args: string[],
     opts: RunScriptOptions = {},
   ): Promise<RunScriptResult> {
+    // P1: rejeita names que não sejam um basename simples — nada é executado aqui.
+    const nameError = validateScriptName(name);
+    if (nameError) {
+      return { exitCode: -1, stdout: '', stderr: nameError };
+    }
     const skillDir = await resolveSkillDir();
-    const scriptPath = path.join(skillDir, 'scripts', name);
+    const scriptsDir = path.resolve(skillDir, 'scripts');
+    const scriptPath = path.resolve(scriptsDir, name);
+    // P1 (dupla checagem): o path FINAL deve estar contido em <skillDir>/scripts/.
+    if (!containedIn(scriptsDir, scriptPath)) {
+      return {
+        exitCode: -1,
+        stdout: '',
+        stderr: `StudyMethodRunner: nome de script inválido (fora de scripts/): ${name}`,
+      };
+    }
     try {
       await fspImp.access(scriptPath);
     } catch {
@@ -597,6 +639,31 @@ export function createStudyMethodRunner(deps: StudyMethodRunnerDeps = {}): Study
   }
 
   /**
+   * Resolve o timeout do runner (P2/fidelidade do contrato): lê `meta.json` do
+   * workspace copiado e usa `execution.timeout_seconds` (mínimo 5s) como primário;
+   * backstop de `defaultMs` (default 60s) quando o meta não existe/é inválido.
+   * Devolve o timeout em ms e o mesmo valor em segundos (para o env CHALLENGE_TIMEOUT).
+   */
+  async function resolveRunnerTimeout(workspace: string, defaultMs: number): Promise<{ timeoutMs: number; timeoutSeconds: number }> {
+    const backstopMs = defaultMs > 0 ? defaultMs : 60_000;
+    let seconds: number | null = null;
+    try {
+      const metaPath = path.join(workspace, 'meta.json');
+      const raw = await fspImp.readFile(metaPath, 'utf8');
+      const meta = JSON.parse(raw) as { execution?: { timeout_seconds?: unknown } };
+      const v = meta?.execution?.timeout_seconds;
+      if (typeof v === 'number' && Number.isFinite(v) && v > 0) seconds = v;
+    } catch {
+      // meta ausente ou inválido -> cai no backstop.
+    }
+    if (seconds === null) {
+      return { timeoutMs: backstopMs, timeoutSeconds: backstopMs / 1000 };
+    }
+    const clamped = Math.max(5, seconds);
+    return { timeoutMs: Math.round(clamped * 1000), timeoutSeconds: clamped };
+  }
+
+  /**
    * Execução determinística da resposta do aluno: copia o workspace do desafio SEM
    * `.solution/` (e `.git`) para tmp e roda `<tmp>/runner.sh` com STUDY_METHOD_SKILL_DIR.
    */
@@ -627,10 +694,16 @@ export function createStudyMethodRunner(deps: StudyMethodRunnerDeps = {}): Study
       };
     }
 
-    // 3) roda com env STUDY_METHOD_SKILL_DIR e cwd no tmp.
+    // 3) timeout do runner: usa execution.timeout_seconds do meta.json (mín 5s)
+    //    como primário; backstop de defaultTimeoutMs (default 60s) quando o meta
+    //    não existe ou é inválido. O env CHALLENGE_TIMEOUT (lido pelo runner.sh
+    //    do template real) recebe o MESMO valor em segundos para ficar coerente.
+    const { timeoutMs, timeoutSeconds } = await resolveRunnerTimeout(tmpWork, defaultTimeoutMs);
+
     const env: NodeJS.ProcessEnv = {
       ...process.env,
       STUDY_METHOD_SKILL_DIR: skillDir,
+      CHALLENGE_TIMEOUT: String(timeoutSeconds),
     };
     const res = await new Promise<RunScriptResult>((resolve) => {
       const child = spawnImp('bash', [runnerPath], { cwd: tmpWork, env, stdio: ['ignore', 'pipe', 'pipe'] });
@@ -642,7 +715,7 @@ export function createStudyMethodRunner(deps: StudyMethodRunnerDeps = {}): Study
         settled = true;
         child.kill('SIGKILL');
         resolve({ exitCode: RUNNER_EXIT_CODES.TIMEOUT, stdout, stderr: 'timeout' });
-      }, defaultTimeoutMs);
+      }, timeoutMs);
       child.stdout?.on('data', (c: Buffer) => {
         stdout += c.toString('utf8');
         if (stdout.length > limit) stdout = stdout.slice(-limit);
