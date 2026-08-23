@@ -1,0 +1,276 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "study-method/assets/schemas/progress.schema.json",
+  "title": "progress",
+  "description": "Estado de proficiencia por conceito dentro de um setup do study-method. E um fato consolidado e bitemporal, derivado da memoria episodica (memory/NNNN.json), nao um substituto dela: a memoria episodica registra o que aconteceu, este arquivo registra onde o aluno esta agora e qual evidencia sustenta essa afirmacao. Regra dura: todo campo escalar de um conceito e cache derivado de evidence[]; evidence[] e a unica fonte de verdade e deve ser suficiente para recomputar o estado do zero. Nenhum campo aqui expressa probabilidade, porcentagem ou score de dominio - com dados de um unico aluno esse numero seria teatro estatistico.",
+  "type": "object",
+  "required": ["schema_version", "setup_id", "recorded_at", "concepts"],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+$",
+      "description": "Versao do schema deste arquivo, no formato MAJOR.MINOR. Adicionar campo opcional incrementa MINOR; tornar campo obrigatorio, renomear campo ou mudar tipo incrementa MAJOR e exige migracao dos arquivos ja escritos. Valor corrente: 1.0."
+    },
+    "setup_id": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_-]{1,63}$",
+      "description": "Identificador do setup (trilha de estudo) a que este progresso pertence. Um arquivo progress.json por setup; conceitos nunca cruzam setups."
+    },
+    "declared_skill_level": {
+      "type": ["string", "null"],
+      "enum": ["beginner", "intermediate", "advanced", null],
+      "description": "Nivel que o proprio aluno declarou ao criar o setup. NUNCA participa de transicao de proficiency_state (auto-relato nao e evidencia observavel). Serve so para calibrar o tom e o andaime inicial enquanto todos os conceitos ainda estao em unknown. null quando o aluno nao declarou."
+    },
+    "recorded_at": {
+      "type": "string",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}([+-][0-9]{2}:[0-9]{2}|Z)$",
+      "description": "Transaction time: quando este arquivo foi escrito pela ultima vez. Distinto de qualquer observed_at, que e valid time (quando o fato foi verdadeiro no mundo)."
+    },
+    "policy": {
+      "type": "object",
+      "description": "Parametros do agendamento de revisao e do decaimento. Sao escolhas de produto, nao achados empiricos - por isso ficam no dado, versionados e auditaveis, e nao escondidos no codigo. Omitir o objeto inteiro significa usar todos os defaults.",
+      "properties": {
+        "interval_multiplier_mastered": {
+          "type": "number",
+          "default": 2.3,
+          "description": "Multiplicador aplicado a interval_days quando o estado resultante e mastered. Default 2.3, aproximando o crescimento do SM-2 bem-sucedido sem pedir nota manual ao aluno."
+        },
+        "interval_multiplier_fragile": {
+          "type": "number",
+          "default": 1.3,
+          "description": "Multiplicador aplicado a interval_days quando o estado resultante e fragile. Default 1.3: cresce, mas mantem a revisao proxima."
+        },
+        "interval_cap_mastered_days": {
+          "type": "integer",
+          "default": 180,
+          "description": "Teto de interval_days enquanto o estado for mastered. Default 180 dias."
+        },
+        "interval_cap_fragile_days": {
+          "type": "integer",
+          "default": 21,
+          "description": "Teto de interval_days enquanto o estado for fragile. Default 21 dias."
+        },
+        "decay_overdue_ratio": {
+          "type": "number",
+          "default": 1.0,
+          "description": "Atraso relativo que rebaixa mastered para fragile por decaimento temporal. Default 1.0 = rebaixa quando o atraso em relacao a next_review_at iguala o proprio interval_days (ou seja, quando days_since_observed >= 2 x interval_days). Valores menores tornam o decaimento mais agressivo; 0 desliga o rebaixamento por tempo."
+        },
+        "mastery_window_days": {
+          "type": "integer",
+          "default": 60,
+          "description": "Janela maxima, em dias, entre as duas passagens sem dica que promovem fragile para mastered. Passagem mais velha que isso nao conta mais como evidencia corrente."
+        },
+        "max_review_suggestions_per_session": {
+          "type": "integer",
+          "default": 2,
+          "description": "Quantos conceitos vencidos o tutor sugere na abertura da sessao. Sugestao, nunca obrigacao."
+        }
+      }
+    },
+    "concepts": {
+      "type": "array",
+      "description": "Um registro por conceito conhecido no setup, incluindo os superseded (nunca deletar - o historico de merge de conceitos e auditoria).",
+      "items": {
+        "type": "object",
+        "required": [
+          "concept_id",
+          "label",
+          "proficiency_state",
+          "state_reason",
+          "confidence",
+          "first_observed_at",
+          "observed_at",
+          "last_observed_at",
+          "recorded_at",
+          "status",
+          "evidence"
+        ],
+        "properties": {
+          "concept_id": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_]{1,62}$",
+            "description": "Identificador estavel e IMUTAVEL do conceito, em snake_case sem acento. Gerado uma unica vez a partir do nome canonico declarado na trilha do setup. Antes de criar um id novo, e obrigatorio procurar por match em concept_id e em aliases[] de todos os conceitos existentes - dois ids para a mesma coisa (recursao / funcoes_recursivas) fragmentam o progresso e sao um defeito, nao uma variacao."
+          },
+          "label": {
+            "type": "string",
+            "description": "Nome legivel do conceito em pt-BR, como aparece na trilha do setup. Unico campo de nome que pode mudar ao longo do tempo; concept_id nunca muda."
+          },
+          "aliases": {
+            "type": "array",
+            "description": "Outras formas pelas quais este mesmo conceito ja foi chamado pelo aluno ou pelo tutor. Alimenta a busca anti-fragmentacao antes de criar um concept_id novo. Toda vez que um nome diferente e reconhecido como sendo este conceito, ele entra aqui.",
+            "items": { "type": "string" }
+          },
+          "track_ref": {
+            "type": ["string", "null"],
+            "description": "Onde o conceito aparece na trilha, no docs/ do setup (ex.: 'modulo-03#recursao'). null para conceito criado fora da trilha - tipicamente um pre-requisito descoberto durante um desafio."
+          },
+          "proficiency_state": {
+            "type": "string",
+            "enum": ["unknown", "fragile", "mastered"],
+            "description": "Estado atual. E uma afirmacao sobre a EVIDENCIA que o tutor tem, nao sobre o cerebro do aluno. unknown = nao ha evidencia de sucesso autonomo (nunca tentou, falhou, ou so passou com dica de nivel 4-5). fragile = ha evidencia de sucesso, mas ela nao sustenta dominio (passou com dica de nivel 2-3, ou passou sem dica uma unica vez, ou regrediu). mastered = duas passagens sem dica (nivel 0-1), em sessoes distintas separadas por pelo menos um dia, dentro de policy.mastery_window_days, sem erro conceitual na janela."
+          },
+          "state_reason": {
+            "type": "string",
+            "enum": [
+              "no_evidence",
+              "passed_unassisted",
+              "passed_with_hints",
+              "failed",
+              "conceptual_error",
+              "temporal_decay",
+              "self_report",
+              "manual"
+            ],
+            "description": "Por que o estado atual e esse. Existe para separar o que e observacao de falha do que e ausencia de observacao: mastered->fragile por 'failed'/'conceptual_error' significa que o aluno errou; por 'temporal_decay' significa apenas que faz tempo demais e a evidencia envelheceu - o tratamento pedagogico dos dois casos e diferente. 'manual' = o aluno ou o operador ajustou o estado a mao; nunca deve ser escrito pelo tutor por conta propria."
+          },
+          "confidence": {
+            "type": "string",
+            "enum": ["low", "medium", "high"],
+            "description": "Confianca do tutor na CLASSIFICACAO do estado - nao probabilidade de dominio. Derivada mecanicamente: high = pelo menos 2 evidencias de desafio qualificadas e a mais recente tem no maximo 30 dias; medium = 1 evidencia qualificada, ou 2+ com a mais recente entre 31 e 90 dias; low = nenhuma evidencia de desafio (so exposicao/auto-relato) ou a mais recente com mais de 90 dias."
+          },
+          "attempts": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Cache derivado: soma de evidence[].attempts em todas as entradas de kind 'challenge'. Numero de execucoes de desafio observadas para este conceito, nao numero de desafios distintos."
+          },
+          "unassisted_passes": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Cache derivado: quantas entradas de kind 'challenge' tem result 'passed', hint_level <= 1 e error_type diferente de 'conceptual'. E o contador que dispara a promocao para mastered."
+          },
+          "max_hint_level_used": {
+            "type": ["integer", "null"],
+            "minimum": 0,
+            "maximum": 5,
+            "description": "Maior degrau da escada de dicas (0 a 5) atingido na evidencia de desafio mais recente. 0 = resolveu sem nenhuma dica. null = nao ha desafio registrado. null NUNCA deve ser lido como 0: ausencia de registro nao e prova de autonomia."
+          },
+          "last_error_type": {
+            "type": ["string", "null"],
+            "enum": ["slip", "conceptual", "prerequisite", "none", "unknown", null],
+            "description": "Classificacao do erro mais recente. slip = deslize de execucao, o aluno ja demonstrou conhecer a regra e corrige com dica de nivel 1. conceptual = regra errada porem consistente, reaplicada em 2+ lugares ou justificada verbalmente pelo aluno. prerequisite = a falha aqui foi causada por outro conceito; a evidencia penalizante foi gravada la (ver evidence[].attributed_to) e este conceito nao regride por ela. none = passou sem erro relevante. unknown = nao foi possivel classificar - nunca chutar; unknown nao dispara regressao por erro conceitual. null = nenhum erro registrado ainda."
+          },
+          "first_observed_at": {
+            "type": "string",
+            "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$",
+            "description": "Valid time da primeira evidencia de qualquer tipo sobre este conceito."
+          },
+          "observed_at": {
+            "type": ["string", "null"],
+            "description": "Valid time da evidencia que SUSTENTA o estado atual (formato YYYY-MM-DD). Diferente de last_observed_at quando o conceito foi visto de novo sem produzir evidencia de estado (ex.: apenas mencionado). Fica null quando state_reason e 'no_evidence'."
+          },
+          "last_observed_at": {
+            "type": "string",
+            "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$",
+            "description": "Valid time da evidencia mais recente de qualquer tipo, inclusive exposicao sem desafio. E o campo que alimenta o decaimento temporal."
+          },
+          "recorded_at": {
+            "type": "string",
+            "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}([+-][0-9]{2}:[0-9]{2}|Z)$",
+            "description": "Transaction time: quando este registro de conceito foi escrito pela ultima vez."
+          },
+          "interval_days": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Intervalo corrente de revisao espacada, em dias. Comeca em 1. Multiplicado por policy.interval_multiplier_* conforme o estado resultante; volta para 1 quando o estado resultante e unknown. Nao decorre de nota manual do aluno - e inferido do comportamento observado."
+          },
+          "next_review_at": {
+            "type": ["string", "null"],
+            "description": "Data (YYYY-MM-DD) em que o conceito entra na fila de sugestao de revisao: observed_at + interval_days. null quando nunca houve evidencia de desafio. O tutor SUGERE, nunca obriga."
+          },
+          "evidence": {
+            "type": "array",
+            "description": "Fonte de verdade do registro. Cada entrada e um evento observavel que aponta para um artefato existente no repositorio do setup. Regra dura: nenhuma transicao de proficiency_state pode ser gravada sem uma entrada aqui cujo session_id (e challenge_id, quando kind='challenge') exista de fato - impressao do modelo nao e evidencia. Entradas de kind 'exposure' e 'review_declined' podem ser podadas quando o array passa de 20 itens; entradas que causaram transicao (state_before != state_after) nunca sao podadas.",
+            "items": {
+              "type": "object",
+              "required": ["kind", "observed_at", "recorded_at", "state_before", "state_after"],
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "enum": ["challenge", "exposure", "self_report", "review_declined", "decay"],
+                  "description": "challenge = o aluno tentou um desafio com verificacao objetiva (teste rodou). exposure = o conceito apareceu na sessao (explicacao, leitura, discussao) sem desafio - NUNCA muda proficiency_state. self_report = o aluno falou sobre o proprio dominio; so pode rebaixar, nunca promover. review_declined = o tutor sugeriu revisao e o aluno recusou; nao altera estado nem intervalo. decay = rebaixamento automatico por tempo, sem interacao do aluno."
+                },
+                "session_id": {
+                  "type": ["string", "null"],
+                  "description": "Sessao em que o evento ocorreu, no mesmo formato de memory/NNNN.json (quatro digitos, ex.: '0037'). null apenas para kind 'decay', que nao acontece dentro de uma sessao."
+                },
+                "challenge_id": {
+                  "type": ["string", "null"],
+                  "description": "Identificador do desafio em challenges/ que produziu esta evidencia. Obrigatorio quando kind e 'challenge'; null nos demais casos."
+                },
+                "observed_at": {
+                  "type": "string",
+                  "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$",
+                  "description": "Valid time: quando o evento aconteceu de fato."
+                },
+                "recorded_at": {
+                  "type": "string",
+                  "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}([+-][0-9]{2}:[0-9]{2}|Z)$",
+                  "description": "Transaction time: quando o evento foi gravado. Pode ser bem posterior ao observed_at quando a sessao foi consolidada depois."
+                },
+                "result": {
+                  "type": ["string", "null"],
+                  "enum": ["passed", "failed", "not_attempted", null],
+                  "description": "Resultado objetivo do desafio: passed = a verificacao (teste) passou. failed = nao passou ate o fim da sessao. not_attempted = o desafio foi proposto e o aluno nao tentou - e neutro: grava evidencia mas nao muda proficiency_state nem interval_days, porque nao tentar nao e evidencia de falha. null quando kind nao e 'challenge'."
+                },
+                "attempts": {
+                  "type": ["integer", "null"],
+                  "minimum": 0,
+                  "description": "Quantas execucoes da verificacao ocorreram neste desafio ate o desfecho. Sinal de esforco, nao de dominio: muitas tentativas com erro do tipo slip nao rebaixam o estado."
+                },
+                "hint_level": {
+                  "type": ["integer", "null"],
+                  "minimum": 0,
+                  "maximum": 5,
+                  "description": "Maior degrau da escada de dicas usado neste desafio (0 = nenhuma dica; 5 = solucao completa entregue). null quando o degrau nao foi registrado - e null NAO equivale a 0."
+                },
+                "error_type": {
+                  "type": ["string", "null"],
+                  "enum": ["slip", "conceptual", "prerequisite", "none", "unknown", null],
+                  "description": "Classificacao do erro observado neste evento, pela regra de decisao do documento de proficiencia. Mesmos valores de last_error_type."
+                },
+                "attributed_to": {
+                  "type": ["string", "null"],
+                  "description": "Quando error_type e 'prerequisite': o concept_id do conceito que realmente falhou e onde a evidencia penalizante foi gravada. null nos demais casos."
+                },
+                "state_before": {
+                  "type": "string",
+                  "enum": ["unknown", "fragile", "mastered"],
+                  "description": "Estado imediatamente antes deste evento."
+                },
+                "state_after": {
+                  "type": "string",
+                  "enum": ["unknown", "fragile", "mastered"],
+                  "description": "Estado imediatamente depois deste evento. Igual a state_before quando o evento registra observacao sem mudar o estado - isso e um resultado legitimo e deve ser gravado assim mesmo."
+                },
+                "transition_rule": {
+                  "type": ["string", "null"],
+                  "enum": ["T1", "T2", "T3", "T4", "T5", "T6", "T7", "T8", null],
+                  "description": "Qual regra da maquina de estados justificou este par (state_before, state_after). null quando o evento nao mudou o estado por regra alguma (auto-loop de registro puro)."
+                },
+                "note": {
+                  "type": ["string", "null"],
+                  "maxLength": 240,
+                  "description": "Observacao curta em pt-BR sobre o evento, factual e verificavel (o que o aluno fez, nao o que o tutor achou). null e resposta valida e preferivel a texto vago."
+                }
+              }
+            }
+          },
+          "status": {
+            "type": "string",
+            "enum": ["active", "superseded"],
+            "description": "active = registro corrente. superseded = este concept_id foi fundido em outro (duplicata detectada) e nao deve mais receber evidencia; permanece no arquivo para auditoria, nunca e deletado."
+          },
+          "superseded_by": {
+            "type": ["string", "null"],
+            "description": "concept_id que substituiu este registro quando status e 'superseded'. null quando status e 'active'."
+          },
+          "supersedes": {
+            "type": "array",
+            "description": "concept_ids que foram fundidos NESTE registro. A evidencia dos fundidos e copiada para ca antes de o antigo virar superseded.",
+            "items": { "type": "string" }
+          }
+        }
+      }
+    }
+  }
+}
