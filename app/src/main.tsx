@@ -41,6 +41,9 @@ import { AppGate } from './gate/AppGate';
 import { initI18n } from './i18n';
 import { theme } from './theme';
 import './index.css';
+// Onda 17b (KaTeX): CSS de estilos das fórmulas matemáticas (.katex,
+// .katex-display, fontes/spacing). Importado no bundle do renderer.
+import 'katex/dist/katex.min.css';
 
 const rootElement = document.getElementById('root');
 

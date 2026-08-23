@@ -60,6 +60,7 @@ import { resolveFeedbackProvider } from '../../lib/feedbackProvider';
 import { feedbackProviderChipKey } from '../../lib/feedbackProviderUi';
 import { mapTestAnswerPhase } from '../../lib/testAnswerEvents';
 import { useChallengeNav } from '../../lib/challengeNav';
+import { katexRemarkPlugins, katexRehypePlugins } from '../../lib/lessonMarkdown';
 import { AnswerTerminal, printTestBanner, type AnswerTerminalHandle } from '../../components/terminal/AnswerTerminal';
 import { FileExplorer } from '../../components/editor/FileExplorer';
 import { EditorPane, type EditorPaneHandle } from '../../components/editor/EditorPane';
@@ -543,7 +544,13 @@ export default function ChallengeView(): ReactElement {
                 <Typography variant="body2" color="text.secondary">{statementError}</Typography>
               ) : statement ? (
                 <Box>
-                  <ReactMarkdown components={MarkdownComponents()}>{statement}</ReactMarkdown>
+                  <ReactMarkdown
+                    remarkPlugins={katexRemarkPlugins()}
+                    rehypePlugins={katexRehypePlugins()}
+                    components={MarkdownComponents()}
+                  >
+                    {statement}
+                  </ReactMarkdown>
                 </Box>
               ) : (
                 <Typography variant="body2" color="text.secondary">{t('translation:challenge.statementLoading')}</Typography>

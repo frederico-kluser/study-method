@@ -9,6 +9,10 @@
  *  3. Ao resolver, o payload é normalizado por `parseLessonResult` (aceita
  *     `StudyLesson` direto ou `{ lesson, rejected }`) e renderizado via
  *     react-markdown v9 com blocos de código estilizados (monospace).
+ *  4. O markdown da aula renderiza fórmulas com KaTeX (onda 17b): remark-math
+ *     (`$...$` inline, `$$...$$` bloco) + rehype-katex plugados no
+ *     `<ReactMarkdown>`. LaTeX malformado nunca derruba o render (o rehype-katex
+ *     v7 garante no-throw internamente — ver src/lib/lessonMarkdown.ts).
  *
  * Os parsers/src/lib (lessonParse, lessonProgress) são REUTILIZADOS — não
  * reescritos. O novo helper puro `lessonPhaseLabels.ts` mapeia a fase do parser
@@ -54,6 +58,7 @@ import {
 } from '../../lib/lessonPhaseLabels';
 import { parseLessonResult, type ParsedLesson } from '../../lib/lessonParse';
 import { validateSubject } from '../../lib/validate';
+import { katexRemarkPlugins, katexRehypePlugins } from '../../lib/lessonMarkdown';
 
 type GenerateStatus = 'idle' | 'running' | 'done' | 'error';
 
@@ -291,6 +296,7 @@ export default function LessonView(): ReactElement {
         <TextField
           label={t('translation:lesson.subjectLabel')}
           placeholder={t('translation:lesson.subjectPlaceholder')}
+          helperText={t('translation:lesson.subjectHelper')}
           value={subject}
           onChange={(e) => setSubject(e.target.value)}
           disabled={running}
@@ -303,7 +309,15 @@ export default function LessonView(): ReactElement {
           disabled={running}
           loading={running}
           onClick={() => void generate()}
-          sx={{ alignSelf: { xs: 'stretch', sm: 'flex-start' }, minWidth: { sm: 160 } }}
+          sx={{
+            // Consistência onda 17b: input (outlined, ~56px) e botão com a MESMA
+            // altura/baseline em desktop (sm+); em mobile (xs) o botão ocupa a
+            // largura toda (stretch). Preserva data-onboarding-target/signal.
+            alignSelf: { xs: 'stretch', sm: 'flex-start' },
+            minWidth: { xs: '100%', sm: 160 },
+            height: { xs: 'auto', sm: 56 },
+            whiteSpace: 'nowrap',
+          }}
         >
           {t('translation:lesson.generate')}
         </Button>
@@ -351,7 +365,11 @@ export default function LessonView(): ReactElement {
             </Typography>
           ) : null}
           <Box sx={{ mt: 1 }}>
-            <ReactMarkdown components={MarkdownComponents()}>
+            <ReactMarkdown
+              remarkPlugins={katexRemarkPlugins()}
+              rehypePlugins={katexRehypePlugins()}
+              components={MarkdownComponents()}
+            >
               {parsed.lesson.markdown}
             </ReactMarkdown>
           </Box>

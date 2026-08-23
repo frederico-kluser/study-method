@@ -80,6 +80,7 @@
   "lesson": {
     "subjectLabel": "Subject",
     "subjectPlaceholder": "What do you want to learn about?",
+    "subjectHelper": "Programming and math — e.g. invert a binary tree or solve a quadratic equation.",
     "generate": "Generate lesson",
     "generating": "Generating lesson…",
     "phase": {

@@ -80,6 +80,7 @@
   "lesson": {
     "subjectLabel": "Assunto",
     "subjectPlaceholder": "Sobre o que você quer aprender?",
+    "subjectHelper": "Programação e matemática — ex.: inverter uma árvore binária ou uma equação do 2º grau.",
     "generate": "Gerar aula",
     "generating": "Gerando aula…",
     "phase": {
