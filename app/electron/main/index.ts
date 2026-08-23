@@ -27,6 +27,7 @@ import { registerSttModelHandlers } from './ipc/stt-model-handlers';
 import { registerSttHandlers } from './ipc/stt-handlers';
 import { registerLocalTtsHandlers } from './ipc/localTts-handlers';
 import { buildMainSetup, emitToAll } from './main-setup';
+import { registerE2EStubs } from './services/e2eStubs';
 import { getSettingsStore } from './services/settingsStore';
 import { createPiAgentService } from './services/PiAgentService';
 import { createStudyMethodRunner } from './services/studyMethodRunner';
@@ -37,6 +38,13 @@ import { createBraveSearchService } from './services/braveSearchService';
 import { createResearchPlanner } from './services/researchPlanner';
 
 const isDev = !!process.env['ELECTRON_RENDERER_URL'];
+
+// MODO E2E (harness Playwright): ativado por STUDY_METHOD_E2E=1. O main registra
+// handlers STUB (services/e2eStubs) no lugar da fiação real de rede/LLM/voz —
+// nada de deepseek/brave/Pi/GGUF/STT/TTS. As chaves ficam em memória (sem tocar
+// o settingsStore real) e o userData é redirecionado a um tmp isolado para não
+// vazar/prejudicar o perfil do usuário durante os testes.
+const e2eMode = process.env.STUDY_METHOD_E2E === '1';
 
 // Instância única — um segundo launch foca a janela já aberta.
 const gotLock = app.requestSingleInstanceLock();
@@ -52,6 +60,20 @@ if (!gotLock) {
   });
 
   void app.whenReady().then(async () => {
+    if (e2eMode) {
+      // userData isolado e handlers stub — evita qualquer rede/inferência real.
+      const { tmpdir } = await import('node:os');
+      const { mkdtemp } = await import('node:fs/promises');
+      const { join } = await import('node:path');
+      app.setPath('userData', await mkdtemp(join(tmpdir(), 'study-method-e2e-user-')));
+      registerE2EStubs();
+      createWindow();
+      app.on('activate', () => {
+        if (BrowserWindow.getAllWindows().length === 0) createWindow();
+      });
+      return;
+    }
+
     // Registro dos handlers IPC — fiação real da onda 3-ui-wiring.
     try {
       const settingsStore = await getSettingsStore();

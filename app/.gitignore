@@ -3,3 +3,6 @@ node_modules/
 out/
 dist/
 *.tsbuildinfo
+# artefatos do harness E2E (Playwright) — nunca versionar
+test-results/
+playwright-report/
