@@ -359,7 +359,7 @@ Recuperação **automática**, sem pergunta e sem menu. Detalhada na §10.
   é onde a gente está. Ficaram de fora: séries, integrais, apêndice de trigonometria — se a aula
   esbarrar em algum, é só pedir que eu abro."
 - **Grava**: `$DOCS_INDEX` = `memory/docs-index.json`, incluindo o bloco `selection` devolvido pelo
-  `--apply` do pedido `docs_section_pick` (§8.5).
+  `--apply` do pedido `select_sections` (§8.5).
 
 #### B-22 — setup em local sem permissão de escrita
 - **Faz**: detecta **antes** de prometer qualquer registro. Entra em modo somente-leitura explícito.
@@ -403,14 +403,16 @@ em 11 de 11 testes de transferência; e §8.2: informal precisa carregar conteú
 Forma da pergunta, em três partes, uma frase cada:
 
 1. **O diagnóstico**, sem drama e sem jargão — o aluno não fez nada errado.
-2. **A oferta**, com o custo declarado ("são umas 5 perguntas rápidas") — porque a objeção real do
-   aluno não é "não quero", é "vai demorar".
+2. **A oferta**, com o custo declarado ("são 6 perguntas rápidas") — porque a objeção real do
+   aluno não é "não quero", é "vai demorar". ⚑ **O número vem do catálogo de §6.2 e é 6**
+   (Q1..Q6, mais a confirmação, que não é pergunta). Anunciar 5 e fazer 6 é quebrar a promessa no
+   meio da própria entrevista.
 3. **A saída**, na mesma mensagem — sempre existe um jeito de dizer não e ainda assim conseguir algo.
 
 Fala modelo:
 
 > "Dei uma olhada por aqui e não achei nenhum setup de estudo — nem nesta pasta, nem no meu registro.
-> Quer que eu monte um agora? São 5 perguntas rápidas e a gente já começa a aula.
+> Quer que eu monte um agora? São 6 perguntas rápidas e a gente já começa a aula.
 > Se preferir, dá pra gente só conversar sobre a matéria hoje, sem eu gravar nada."
 
 Variante quando o aluno já chegou com um assunto na primeira mensagem ("me ajuda com derivadas"):
@@ -633,23 +635,26 @@ Três razões para ficar **dentro** do `docs/` do setup, e não em `researchs/`:
 
 **Camada 1 — o caminho.** `generated/` no meio do path. Quem olha `ls` já sabe.
 
-**Camada 2 — frontmatter** (chaves e valores em inglês snake_case, conforme o contrato do projeto):
+**Camada 2 — o bloco `study-method:meta`, na primeira linha do arquivo** (chaves e valores em
+inglês snake_case, conforme o contrato do projeto). ⚑ **Não é frontmatter YAML.** A invariante
+`I-36` proíbe frontmatter YAML em artefato gerado — não há PyYAML nesta máquina, e um bloco que
+ninguém consegue parsear é metadado decorativo. A forma canônica é a de
+`docs/00-contratos.md` §3.4: um comentário HTML com **JSON**, legível por `jq`, idêntico ao de
+`researchs/NNNN.md`:
 
-```yaml
----
-provenance: generated_researched      # ou generated_unsourced
-generated_by: study-method
-generated_at: 2026-08-23
-subject: calculo-i
-topic: limites
-sources:
-  - https://exemplo.org/pagina-consultada
-verified_by_student: false
----
+```
+<!-- study-method:meta {"schema_version":"1.0","kind":"generated","id":"0001",
+     "topic":"limites","sources":["https://exemplo.org/pagina-consultada"],
+     "provenance":"generated_researched","created_in_session":"0007","status":"active",
+     "verified_by_student":false,"disputed":false} -->
 ```
 
-**Camada 3 — aviso em pt-BR, primeira linha do corpo**, para quem abre o arquivo sem ler
-frontmatter:
+`provenance` é `generated_researched` ou `generated_unsourced`. `sources[]` que apontem para
+arquivo do setup são **relativos à raiz do setup** — nenhum caminho absoluto entra em arquivo do
+setup, porque o setup pode ser movido.
+
+**Camada 3 — aviso em pt-BR, primeira linha do corpo**, para quem abre o arquivo sem ler o bloco
+de metadados:
 
 ```markdown
 > **Material gerado por IA.** Não foi escrito nem revisado por um professor e pode conter erro.
@@ -673,10 +678,13 @@ Campo barato com valor alto. Quando o aluno confere um trecho contra a fonte ofi
 - material **não** verificado continua vindo com o aviso, e em qualquer conflito com o material do
   aluno é o material do aluno que vence — dito em voz alta, nunca resolvido em silêncio (§7.2).
 
-Não existe campo `disputed`. Ele foi proposto numa versão anterior deste documento e **está
-descartado**: nenhum schema do projeto o grava, e um peso de seleção sobre um campo que ninguém
-escreve é uma fórmula que não roda (AR-28). Material contestado é tratado na conversa e, se for o
-caso, corrigido no próprio arquivo gerado ou substituído pelo material do aluno.
+Não existe **peso de seleção** por `disputed`. Ele foi proposto numa versão anterior deste
+documento e **está descartado**: nenhum script o preenche (`docs-index.sh` grava `disputed: null`
+em toda seção), e um peso sobre um campo que ninguém escreve é uma fórmula que não roda (AR-28).
+O **campo** existe — no bloco `study-method:meta` de §7.4 e como propriedade de seção em
+`docs-index.schema.json` —, e é isso que ele é: um espaço reservado, sempre `false`/`null` hoje.
+Material contestado é tratado na conversa e, se for o caso, corrigido no próprio arquivo gerado ou
+substituído pelo material do aluno.
 
 ### 7.6 O que a base gerada contém (e o que ela não contém)
 
@@ -857,13 +865,13 @@ A escolha em si vai pelo protocolo REQUEST/APPLY (`docs/01-arquitetura.md` do re
 ```
 1. docs-index.sh <setup_root>                      -> escreve memory/docs-index.json, exit 0
 2. docs-index.sh <setup_root> --select [--topics t1,t2]
-                                                   -> imprime o PEDIDO docs_section_pick em stdout
-                                                      e sai 10, SEM tocar em disco
+                                                   -> imprime o PEDIDO `kind: select_sections`
+                                                      em stdout e sai 10, SEM tocar em disco
 3. o modelo lê o pedido (seções + sinais + orçamento restante), responde com a lista de
    section_ids escolhidos, e grava a resposta em um arquivo temporário
 4. docs-index.sh <setup_root> --apply <resposta.json>
                                                    -> valida contra
-                                                      docs-section-pick.response.schema.json
+                                                      docs-index.response.schema.json
                                                       e grava o bloco `selection` no índice,
                                                       atomicamente. Inválida -> exit 5, nada aplicado
 ```

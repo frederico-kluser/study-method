@@ -86,8 +86,17 @@ gatilho); a data exata por lote não é reconstruível e não é usada por nenhu
 ```
 órfã(S) ⇔ S.status == "in_progress" ∧ ¬lock_vivo(S)
 lock_vivo(S) ⇔ existe memory/.session.lock ∧ lock.session_id == S.session_id
-              ∧ lock.hostname == uname -n ∧ kill -0 lock.pid sucede
+              ∧ lock.hostname == uname -n
+              ∧ ( lock.pid numérico -> kill -0 lock.pid sucede        # via (a)
+                  lock.pid == null  -> agora - started_at ≤ TTL )     # via (b), a COMUM
 ```
+
+⚑ **A última conjunção tem duas vias** (`docs/00-contratos.md` §7.4), e o predicado é **um só**:
+`sm_session_lock_alive` (§7.1 do contrato). `memory-index.sh --verify` **chama** a função, não a
+reimplementa. Exigir `pid` não-vazio **+** `kill -0` como critério **único** declara morto todo
+lock da via (b) — a comum, sem `SM_SESSION_OWNER_PID` — e fecha como `abandoned` a sessão que está
+**em andamento**, com o aluno no meio da aula. Foi o defeito medido, e é o inverso exato do furo
+que §7.4 veio corrigir.
 
 Com lock vivo: **não toca** (é sessão concorrente; quem reage é `open_session`, exit 4).
 Sem lock vivo, na ordem:
@@ -294,7 +303,7 @@ marcado. Ambos por `sm_atomic_write`.
 | M-03 | Duas execuções com `--now`/`--today` fixos produzem bytes idênticos | `diff` + `sha256sum` |
 | M-04 | `procedural_playbook.avoid`, `orphan_sessions` e `pending_followups` são idênticos com e sem orçamento apertado | `jq -c` dos três blocos, `--budget-chars 200000` × `--budget-chars 2500` |
 | M-05 | Reconstruir o índice de um setup já compactado não devolve nenhuma sessão a "não compactada" nem muda `compaction_count` | apagar `INDEX.json`, `--verify`, contar `compacted_at == null` e rodar `--if-due` |
-| M-06 | `--verify` fecha órfã sem lock vivo preservando todo o conteúdo, e **não toca** em sessão com lock vivo | fixture com lock morto (pid inexistente) e com lock vivo |
+| M-06 | `--verify` fecha órfã sem lock vivo preservando todo o conteúdo, e **não toca** em sessão com lock vivo — **nas duas vias** | 4 fixtures: via (a) com pid inexistente (morto) e pid vivo; via (b) com `pid: null` e `started_at` além do TTL (morto) e dentro do TTL (**vivo — este é o caso que a regra antiga matava**) |
 | M-07 | A fase de PEDIDO não escreve nada em disco e sai 10 | `find -printf '%p %s %T@' \| sha256sum` antes e depois |
 | M-08 | `claim_key` fora de `^[a-z][a-z0-9_]{1,62}$` é rejeitada com exit 5 e nada é gravado | resposta com `skill:derivadas-conceito:level` |
 | M-09 | `--apply` sobre estado alterado sai 5 (RA-2) | acrescentar uma sessão entre PEDIDO e APPLY |
@@ -311,6 +320,6 @@ marcado. Ambos por `sm_atomic_write`.
 | D-3 | `claim_key`: `docs/00` §4.2 ainda traz a gramática com dois-pontos; `profile.schema.json`, `docs/03` §0 e os request/response schemas usam `^[a-z][a-z0-9_]{1,62}$` | snake_case com `_`. A linha de §4.2 é a que está errada |
 | D-4 | `kind` do pedido: `compact_facts` (`docs/00` §6.1/§6.4) × `profile_compaction` (`docs/01`/`docs/03`) × `request_kind: memory_compact` (schemas) | `kind: "compact_facts"` no envelope (autoridade), `request_kind: "memory_compact"` no corpo (schema). São campos diferentes e coexistem |
 | D-5 | O request schema exige `generated_at` **dentro** do corpo, mas o `request_id` do §6.1 precisa ser função pura do disco (RA-2) | `generated_at` fica no envelope; o corpo validado contra o schema é `payload + {generated_at}` |
-| D-6 | `docs/00` §6.4 manda o caminho degradado gravar `compaction.deferred_at`; `profile.schema.json` fecha `compaction` com `additionalProperties: false` e não tem esse campo | O campo **não** é gravado (o schema vence sobre a nota do caminho degradado). Precisa entrar no schema antes de ser implementado |
+| D-6 | `docs/00` §6.4 manda o caminho degradado gravar `compaction.deferred_at` | ⚑ **Estado atualizado:** o campo **existe** em `profile.schema.json` → `compaction.deferred_at` (timestamp ISO ou `null`) — a barreira de schema caiu. O que falta é `memory-compact.sh` **gravá-lo**; enquanto não grava, o caminho degradado não marca nada e o gatilho reavalia no próximo fechamento (`docs/00` §6.5 L-1, dívida DEB-2) |
 | D-7 | `sm_request` (§7.2) não recebe `setup_id`, mas o envelope do §6.1 o exige | `memory-compact.sh` exporta `SM_SETUP_ROOT` e completa `setup_id` no envelope quando a lib o deixa vazio |
 | D-8 | A tabela de derivação de `docs/03` §2.1 não lista `cross_setup_refs`, que existe em `index.schema.json` | Derivado de `session.cross_setup_refs`; a tabela é que está incompleta |

@@ -143,39 +143,41 @@ gera 1 por ocorrência de leitura. Na referência canônica de 7 linhas isso dá
 
 | Código | O que significa | O que você faz |
 |---|---|---|
-| `0` | `verdict: approved` | pode entregar o desafio |
+| `0` | **um veredito foi emitido** — `approved`, `weak` ou `rejected`, e ele está no stdout | leia `verdict`: `approved` entrega; `weak`/`rejected` regenera (§4) |
 | `1` | erro de infraestrutura | não é o teste; leia o stderr |
-| `2` | uso incorreto (inclusive `--apply` recusado) | corrija a invocação ou a resposta |
+| `2` | uso incorreto | corrija a invocação |
 | `3` | desafio não encontrado | confira o caminho |
 | `4` | recurso travado | outro `challenge-verify.sh` está rodando |
-| `5` | `verdict: weak` ou `rejected` | regenere (§4) |
+| `5` | validação falhou: `meta.json` fora do schema, ou a RESPOSTA do `--apply` recusada | conserte o JSON e reenvie |
 | **`10`** | **`needs_model_input`** | **é a sua vez** — ver abaixo |
 
 ### ⭐ Exit 10: o passo 4 parou e precisa de você
 
 Quando o passo 4 encontra sobreviventes, o script **não pergunta nada** (script de shell não
-conversa com modelo) e **não escreve nada em disco**. Ele imprime em stdout um JSON
-`mutation_classification_request` e sai com **10**. O ciclo é:
+conversa com modelo) e **não escreve nada em disco**. Ele imprime em stdout o PEDIDO
+`kind: "classify_survivor"` e sai com **10**. O ciclo é:
 
-1. **Leia o pedido do stdout.** Ele traz `run_id` e a lista de sobreviventes, cada um com
-   `mutant_id`, `operator`, `line`, `before`, `after` e três linhas de contexto.
+1. **Leia o pedido do stdout.** O envelope traz `protocol`, `protocol_version`, `request_id`,
+   `kind` e `response_schema`; o `payload` traz `challenge_id` e a lista de sobreviventes, cada um
+   com `mutant_id`, `operator`, `file`, `line`, `before`, `after` e o contexto.
 2. **Classifique cada sobrevivente**, um por um, olhando só o diff:
    - **`equivalent`** — o mutante é comportamentalmente **idêntico** à referência; nenhum teste
      poderia matá-lo. Ex.: `range(2, n+1)` → `range(1, n+1)`, que só multiplica por 1 a mais.
      Exige `justification` escrita, com pelo menos 40 caracteres, dizendo **por que** a saída é a
      mesma para toda entrada.
-   - **`test_gap`** — falta um cenário. É o caso comum. `if n < 0` → `if n <= 0` sobrevivendo
-     significa que falta um caso em `n == 0`.
-   - Na dúvida, **`test_gap`**. Errar para o lado conservador custa uma regeneração; errar para o
-     lado `equivalent` aprova um teste furado.
-3. **Grave a resposta** num arquivo, com o **mesmo `run_id`** e **exatamente** os mesmos
-   `mutant_id` do pedido — nem a mais, nem a menos.
+   - **`not_equivalent`** — falta um cenário. É o caso comum. `if n < 0` → `if n <= 0`
+     sobrevivendo significa que falta um caso em `n == 0`. No `meta.json` ele vira `test_gap`.
+   - Na dúvida, **`not_equivalent`**. Errar para o lado conservador custa uma regeneração; errar
+     para o lado `equivalent` aprova um teste furado.
+3. **Grave a resposta** num arquivo, repetindo `protocol`, `protocol_version`, `kind` e o **mesmo
+   `request_id`** do pedido, com o corpo em `items[0]` e **exatamente** os mesmos `mutant_id` —
+   nem a mais, nem a menos. **Não existe `run_id`**: o que amarra as duas fases é o `request_id`.
 4. **Re-invoque**: `scripts/challenge-verify.sh --apply <resposta.json>`. O script valida contra o
    schema e só então grava, recalcula o score com os equivalentes fora do denominador e segue até
    o veredito.
 
-Se o `--apply` sair com **2**, a resposta está malformada — corrija o que a mensagem apontar e
-reenvie. **Não** edite `meta.json` à mão para "adiantar": a validação existe justamente para
+Se o `--apply` sair com **5**, a resposta está malformada ou o desafio mudou entre as duas fases
+(o `request_id` é recalculado do disco) — corrija o que a mensagem apontar e reenvie. **Não** edite `meta.json` à mão para "adiantar": a validação existe justamente para
 impedir que uma classificação inventada entre no manifesto.
 
 Veredito: `approved` → `challenge_status: "validated"`, pode entregar. `weak` ou `rejected` →

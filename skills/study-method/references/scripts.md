@@ -97,7 +97,7 @@ Só agora `profile.json` é atualizado — por escrita atômica, com os fatos no
 
 | Script | `kind` do pedido | O que pede a você | Caminho degradado (2 ciclos esgotados) |
 |---|---|---|---|
-| `memory-compact.sh` | `compact_facts` | Consolidar cada grupo de sessões brutas em prosa (`claim`/`how`) e nomear o `claim_key` | Não compacta nada; marca `compaction.deferred_at`. Nenhum bruto se perde — só não vira fato consolidado ainda. |
+| `memory-compact.sh` | `compact_facts` | Consolidar cada grupo de sessões brutas em prosa (`claim`/`how`) e nomear o `claim_key` | Não compacta nada e **não marca nada**: o gatilho reavalia sozinho no próximo fechamento. (`compaction.deferred_at` existe no schema, mas o script ainda não o grava.) Nenhum bruto se perde — só não vira fato consolidado ainda. |
 | `session-close.sh` | `fill_session_fields` | Preencher os campos que faltaram na sessão (`one_line_summary`, `topics`, `what_worked`, `what_didnt_work`, `open_questions`, `next_steps`), só com o que ela sustenta | Fecha do mesmo jeito: `status: "completed"` + `validation_errors[]`. **Nunca** deixa a sessão presa em `in_progress` por isso. |
 | `challenge-verify.sh` | `classify_survivor` | Classificar cada mutante sobrevivente como `equivalent` ou `test_gap` (`not_equivalent` na resposta), com justificativa auditável de uma linha | Todo sobrevivente vira `unclassified` → tratado como `test_gap`, o lado conservador. O score cai, o veredito tende a `weak`. |
 | `docs-index.sh --select` | `select_sections` | Escolher, entre as seções empatadas no score, quais entram no orçamento da aula | Usa a ordem de score pura e corta no teto — e você **declara em voz alta** que a seleção foi automática. |

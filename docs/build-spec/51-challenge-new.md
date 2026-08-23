@@ -195,7 +195,7 @@ interno significaria dois lugares dizendo o que é um desafio.
 | `challenge/rust/Cargo.toml.tmpl` | `CRATE` | precisa da seção `[lib] path = "src/lib.rs"` |
 | `challenge/rust/lib.rs.tmpl` | `FUNC_NAME SIGNATURE` | corpo entre as marcas |
 | `challenge/rust/test_stub.rs.tmpl` | `FUNC_NAME CRATE SCENARIOS_CODE` | `use {{CRATE}}::{{FUNC_NAME}};` no topo e `SCENARIOS_CODE` **dentro de `mod tests`** — é o que torna o nome reportado qualificado |
-| `challenge/c/stub.c.tmpl` | `FUNC_NAME SIGNATURE` | `#include "stub.h"`; corpo entre as marcas |
+| `challenge/c/stub.c.tmpl` | `FUNC_NAME SIGNATURE` | ⚑ **só `{{SIGNATURE}} { … }`, com o corpo entre as marcas e nenhum `#include`.** O `stub.h` que o script escreve depois (§5.1) é o protótipo **para o aluno ler**, não uma dependência do stub: quem junta as duas unidades é o `test_stub.c`, que faz `#include "../stub.c"` |
 | `challenge/c/test_stub.c.tmpl` | `FUNC_NAME SCENARIOS_CODE` | `counter_protocol` completo; `SCENARIOS_CODE` = chamadas `checa_long(...)` dentro de `main` |
 
 `stub.h` (C) e `tests/__init__.py` (Python) não têm template: o script os escreve direto, porque
@@ -223,7 +223,8 @@ desafio que não compila, não roda, ou — pior — passa sem testar:
 4. **`rust/test_stub.rs.tmpl`**: `SCENARIOS_CODE` fica **dentro de `mod tests`**; é isso que faz
    o cargo reportar `tests::<id>` e casa com `scenarios[].test_name`.
 5. **`c/test_stub.c.tmpl`**: implementa o `counter_protocol` (`checa_long`, `TESTS_RUN=`,
-   `TESTS_FAILED=`), inclui `"../stub.h"` e respeita `getenv("SM_ONLY")`.
+   `TESTS_FAILED=`), faz `#include "../stub.c"` — a **unidade de compilação inteira**, não o
+   header — e respeita `getenv("SM_ONLY")`.
 6. **`runner.sh.tmpl`**: `{{TEST_CMD}}` aparece **antes** do uso de `TIMEOUT_PADRAO`, e
    `{{COUNT_PROBE}}` **antes** da chamada de `contar_testes` / `mostrar_saida`.
 

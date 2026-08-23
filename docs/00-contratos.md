@@ -236,8 +236,8 @@ como tal no schema (`label`, `aliases[]`, `note`, `claim`, `how`, `description`,
 | `challenge_id` | `^[0-9]{4}$` | `meta.json`, `progress.json` | ⚑ Vence `c-0031-fatorial`. O `challenge_id` é o `NNNN`; o **diretório** é `<NNNN>-<slug>`. |
 | `research_id` | `^[0-9]{4}$` | bloco `study-method:meta` | — |
 | `fact_id` | `^f-[0-9]{4}$` | `profile.json` | — |
-| **identificador de conceito** (`concept_id`) | `^[a-z][a-z0-9_]{1,62}$` | `progress.json`, `meta.json.concepts[]`, `scenario_id` | ⚑ **snake_case em todo o sistema.** `Indução matemática` → `inducao_matematica`. |
-| slug / tag / tópico | `^[a-z0-9]+(-[a-z0-9]+)*$` | `topics[]`, `setup_name`, `subject_slug`, `target_topic`, `<slug>` de diretório | **kebab-case.** Namespace distinto do de conceito, e a distinção é normativa. |
+| **conceito ou tópico** | `^[a-z][a-z0-9_]{1,62}$` | `concept_id` (`progress.json`, `meta.json.concepts[]`), `scenario_id`, `session.topics[]`, `how_it_happened[].target_topic`, `procedural_facts[].target_topic`, `skill` | ⚑ **snake_case, sem exceção.** `Indução matemática` → `inducao_matematica`. Normalizado por `sm_normalize_concept_id`. É **coisa que se estuda**, e nunca vira nome de arquivo. |
+| **slug de caminho** | `^[a-z0-9]+(-[a-z0-9]+)*$` | `setup_name`, `subject_slug`, `<slug>` do diretório de desafio (`challenges/<NNNN>-<slug>/`), o `--topic <slug>` de `research-new.sh` | **kebab-case.** É **coisa que vira caminho no disco** (nome de setup, diretório de desafio, slug de research). Normalizado por `sm_normalize_slug`. |
 | `claim_key` | `^[a-z][a-z0-9_]{1,62}$` | `profile.json` → `semantic_facts[]`, `procedural_facts[]` | ⚑ **snake_case, um identificador só, sem dois-pontos.** Revoga a gramática antiga `dominio:alvo:aspecto`: domínio, alvo e (quando houver) aspecto são unidos por `_` — `skill_derivadas_conceito_level`, `difficulty_recursao`, `strength_python_funcoes`. É o **mesmo** vocabulário de `concept_id`, `topics` e `skill`: chave que atravessa arquivos não pode ter duas gramáticas. Só supersede quem tem `claim_key` idêntico — comparação por **igualdade de string**, nada mais. |
 | `schema_version` | `^[0-9]+\.[0-9]+$` | todos | Campo opcional novo = MINOR; obrigatório/renomeado/tipo novo = MAJOR + migração. |
 | data | `^[0-9]{4}-[0-9]{2}-[0-9]{2}$` | `date`, `observed_at`, `last_observed_at`, `next_review_at` | — |
@@ -246,6 +246,28 @@ como tal no schema (`label`, `aliases[]`, `note`, `claim`, `how`, `description`,
 | caminho de arquivo de sessão | `^memory/[0-9]{4}\.json$` | `index.schema.json` | Relativo à raiz do setup. |
 | `path` do registry | `^/` | `registry.json` | **Único** caminho absoluto de todo o sistema. Sem barra final, sem `~`. |
 | id de decisão | `^D-[A-Z]{1,3}[0-9]{2,3}$` | `setup.json.decisions` | Mapa extensível; ampliar não é MAJOR. |
+
+#### ⭐ A regra de desambiguação, e o bug que ela fecha ⚑
+
+Duas convenções circulavam para a **mesma** palavra ("tópico"), e o critério agora é **o que a
+coisa é**, não onde ela aparece:
+
+> **Conceito ou tópico → `snake_case`. Slug de caminho → `kebab-case`.**
+> O que se **estuda** é snake_case; o que vira **nome de arquivo ou diretório** é kebab-case.
+
+`target_topic` é **tópico**, não slug de caminho — ele nunca é um caminho. A recuperação do
+`procedural_playbook` compara `procedural_facts[].target_topic` com `session.topics[]` por
+**igualdade de string** (é o mecanismo inteiro: sem match, o procedimento não é recuperado). Com
+`topics[]` em snake_case e `target_topic` em kebab-case, `erro_numerico` nunca casa com
+`erro-numerico` e **a comparação não casa nunca** — o playbook fica mudo sem nada falhar em lugar
+nenhum. Era um bug real, e a causa era exatamente esta ambiguidade.
+
+⚠ **Resíduo declarado, não escondido.** O pattern de `target_topic` ainda é o de kebab-case em
+`session.schema.json`, `profile.schema.json` e no par `memory-compact.{request,response}` — e a
+tabela de patterns canônicos de `tests/validate.sh` ainda espera kebab ali. **Este documento
+vence** (§1); alinhar os quatro schemas e o gate é a correção pendente, e o dono dela é o dono dos
+schemas. Enquanto ela não acontece, quem grava `target_topic` deve gravá-lo na **mesma** grafia de
+`topics[]` daquela sessão — igualdade de string é tudo o que a recuperação tem.
 
 ### 4.3 `$id` dos schemas — convenção única ⚑
 
@@ -431,7 +453,7 @@ igual nos quatro scripts:
 
 | Script | `kind` (envelope) | `request_kind` (payload) | O que o script já fez sozinho | O que pede ao modelo | Caminho degradado (2 ciclos esgotados) |
 |---|---|---|---|---|---|
-| `memory-compact.sh` | `compact_facts` | `memory_compact` | Selecionou as sessões não consolidadas, leu **só os brutos**, agrupou candidatos, calculou `confidence` e detectou reconfirmação × mudança. | **Consolidar cada grupo em prosa (`claim` / `how`) e nomear a `claim_key`.** É a única porta de entrada da memória de longo prazo. | Não compacta e o gatilho reavalia no próximo fechamento. Nenhum bruto é perdido. ⚠ `compaction.deferred_at` **não é gravável hoje** — ver §6.5. |
+| `memory-compact.sh` | `compact_facts` | `memory_compact` | Selecionou as sessões não consolidadas, leu **só os brutos**, agrupou candidatos, calculou `confidence` e detectou reconfirmação × mudança. | **Consolidar cada grupo em prosa (`claim` / `how`) e nomear a `claim_key`.** É a única porta de entrada da memória de longo prazo. | Não compacta e o gatilho reavalia no próximo fechamento. Nenhum bruto é perdido. ⚠ `compaction.deferred_at` **existe no schema** mas `memory-compact.sh` ainda **não o grava** — ver §6.5. |
 | `session-close.sh` | `fill_session_fields` | `session_close` | Validou `memory/NNNN.json` contra `session.schema.json` e listou exatamente os campos ausentes ou inválidos. | **Preencher os campos ausentes** (`one_line_summary`, `topics`, `what_worked`, `what_didnt_work`, `open_questions`, `next_steps`), só com o que a sessão sustenta. | Fecha assim mesmo: `status: "completed"` + `validation_errors[]` preenchido. **Nunca deixa sessão presa em `in_progress`.** |
 | `challenge-verify.sh` | `classify_survivor` | `challenge_verify` | Rodou os passos 0–6, gerou os mutantes do catálogo fixo, matou o que dava, e isolou os sobreviventes com `operator`, `file`, `line`, `before`, `after`. | **Classificar cada sobrevivente como `equivalent` ou `test_gap`, com `justification` escrita.** Única etapa do protocolo em que o modelo opina, sobre um diff de uma linha, auditável. | Todo sobrevivente vira `unclassified`, tratado como `test_gap` (o lado conservador). O score cai e o veredito tende a `weak`. |
 | `docs-index.sh` | `select_sections` | `docs_index` | Varreu o `docs/` do setup, montou o manifesto com seções, offsets em bytes e sha256, e pontuou tudo pela heurística determinística. | **Escolher, dentre as seções empatadas no score, quais são relevantes ao tópico da aula**, respeitando o teto de 60% do orçamento. | Usa a ordem de score pura, corta no teto e **declara em voz alta** que a seleção foi automática. |
@@ -461,7 +483,7 @@ implementáveis**, e prometer é pior do que reconhecer.
 
 | # | Limitação | Estado | Onde o campo deveria morar |
 |---|---|---|---|
-| L-1 | `compaction.deferred_at` **não existe**. `profile.schema.json` fecha o objeto `compaction` com `additionalProperties: false` e declara apenas `trigger_uncompacted_sessions`, `last_compacted_at`, `last_compacted_session_id` e `compaction_count`. Gravar o campo hoje faz o próprio arquivo **falhar na validação** (exit 5). | **Não implementável sem MAJOR** no schema (campo novo opcional = MINOR; a decisão fica com o dono de `profile.schema.json`). Até lá o caminho degradado é: não compacta, não marca nada, e o gatilho de 15 sessões reavalia sozinho no próximo fechamento — o que já é correto, porque a condição que adiou continua verdadeira. | `profile.json` → `compaction.deferred_at`, timestamp ou `null`, ao lado de `last_compacted_at`. |
+| L-1 | ⚑ **A barreira de schema caiu; o que falta é a escrita.** `compaction.deferred_at` **existe** em `profile.schema.json` → `compaction` (timestamp ISO 8601 ou `null`, ao lado de `last_compacted_at`), com a semântica "gravado a cada vez que o caminho degradado se repete, limpo na próxima compactação bem-sucedida". O texto anterior — "o campo não existe, gravá-lo faz o arquivo falhar na validação" — está **revogado**. O que continua verdade é que **`memory-compact.sh` não grava o campo**. | **Implementável hoje, sem mexer em schema.** É uma escrita a fazer em `memory-compact.sh`, no ramo em que os 2 ciclos se esgotam. Enquanto ela não existe, o caminho degradado é: não compacta, **não marca nada**, e o gatilho de 15 sessões reavalia sozinho no próximo fechamento — o que já é correto, porque a condição que adiou continua verdadeira. Nenhum bruto se perde. | `profile.json` → `compaction.deferred_at`. Dono da pendência: `memory-compact.sh`. |
 | L-2 | O teto de **2 ciclos** de RA-6 não é implementável: cada `--apply` é um processo novo, e não há nenhum estado persistido entre invocações que diga em que ciclo o script está. | **Não implementável sem estado.** Hoje o teto é obrigação do chamador (o `SKILL.md` diz ao modelo para não insistir), e nenhuma invariante de §11 o verifica — verificá-la exigiria o contador em disco. | Se um dia for imposto pelo script: `profile.json` → `compaction.cycle_count` para `compact_facts`; `memory/NNNN.json` → `protocol_cycles` para `fill_session_fields`; `meta.json` → `validation.apply_cycles` para `classify_survivor`. Nunca em arquivo novo: o estado do protocolo pertence ao artefato que ele altera. |
 
 ---
@@ -616,7 +638,7 @@ no turno em que importa. Por isso cada regra abaixo cabe em uma linha e vai para
 `†` marca as que são **críticas de segurança** e não podem, em nenhuma hipótese, ser rebaixadas
 para uma `reference/`.
 
-### 9.1 Tom e anti-bajulação — 25 regras
+### 9.1 Tom e anti-bajulação — 26 regras
 
 | ID | Regra |
 |---|---|
@@ -645,6 +667,7 @@ para uma `reference/`.
 | AS-10 | Nunca descreva comportamento de função, biblioteca ou linguagem por plausibilidade: diga que não sabe e proponha verificar rodando. |
 | AS-11 | `affect` muda tom e velocidade, nunca o veredito: não transforma "está errado" em "está quase certo". |
 | AS-12 | Máximo 1 exclamação por turno; zero emoji em turno com feedback de erro; zero caixa-alta enfática. |
+| AS-13 | Proibido reportar porcentagem de domínio, score, nota, barra de progresso ou confiança numérica: `confidence` é enum (`low`/`medium`/`high`) e o domínio se diz em palavra — `unknown`/`fragile`/`mastered` — com a evidência que a sustenta. ⚑ Fonte literal: `docs/04-proficiencia.md` §4.1. `AS-9` cobre só "não declarar domínio sem `mastered`"; esta cobre o **número**, que é a forma mais eficiente de bajulação porque parece objetiva. |
 
 ### 9.2 Analogia, escada e resposta a erro — 19 regras
 
@@ -727,7 +750,7 @@ para uma `reference/`.
 | VIZ-5 | Biblioteca de plotagem é upgrade **oferecido** com custo explícito, nunca pré-requisito; nunca `pip install` no Python do sistema, nunca `--break-system-packages`. |
 | VIZ-6 | Nunca prometa animação/Manim, grafo com layout automático, mermaid como arquivo de imagem, 3D, nem imagem dentro do terminal — só "consigo isso se você instalar X". |
 
-### 9.7 Bootstrap e arquivos — 7 regras
+### 9.7 Bootstrap e arquivos — 8 regras
 
 | ID | Regra |
 |---|---|
@@ -738,25 +761,28 @@ para uma `reference/`.
 | BOOT-5 | Depois de uma recusa, no máximo **uma** reoferta, e só com contexto novo; perguntar três vezes fecha o terminal. |
 | BOOT-6 | Anuncie em uma linha, não em relatório de status; o bootstrap bem-sucedido custa uma frase ao aluno. |
 | BOOT-7 | Em modo efêmero e em modo somente-leitura: ensine normalmente, **não escreva nada**, não numere nada, não prometa memória, e diga uma vez por que o desafio com teste está indisponível. |
+| BOOT-8 | Em conflito, **o material do aluno vence** — sobre base gerada, destilado e o que você acha que sabe — e o conflito é **apontado** ao aluno em uma linha, nunca resolvido em silêncio. ⚑ Requisito literal do dono do projeto ("poderá prover o doc ou não"), escrito em `docs/10-bootstrap.md` §7.2, `SK/references/docs-ingest.md` e `SK/references/researchs.md`. `BOOT-3` cobre só a outra metade: declarar por nome o que não foi lido. |
 
 ### 9.8 ⭐ Orçamento de linhas
 
 | Item | Linhas |
 |---|---|
-| Regras permanentes (9.1 a 9.7): 25 + 19 + 14 + 8 + 9 + 6 + 7 | **88** |
+| Regras permanentes (9.1 a 9.7): 26 + 19 + 14 + 8 + 9 + 6 + 8 | **90** |
 | Roteador dos 9 passos (nome + guarda + reference de cada um) | **46** |
-| **Total no corpo do `SKILL.md`** | **134** |
+| **Total no corpo do `SKILL.md`** | **136** |
 | Teto de trabalho | **~200** |
-| **Folga** | **66** |
+| **Folga** | **64** |
 
 **Declaração honesta:** o revisor contou **71** regras distintas em 164 linhas. Minha consolidação
-fecha em **88** — 17 a mais. A diferença não é inflação: são as 6 regras de **visualização** e as
+fecha em **90** — 19 a mais. A diferença não é inflação: são as 6 regras de **visualização**, as
 11 regras de `AN-*`/`ESC-*`/`ERR-*` que a contagem original não separou por ter tratado o bloco
-pedagógico como um item só. Cada uma delas tem ID estável, é verificável por eval, e proíbe ou
-obriga algo que nenhuma outra cobre — fundi-las custaria testabilidade. **88 + 46 = 134 linhas
-contra o teto de ~200: cabe, com 66 linhas de folga.** Se o corpo apertar no futuro, a ordem de
-corte é: 9.6 (visualização) → `reference` · 9.2 (`AN`/`ESC`) → `reference` · nunca 9.4 nem as
-marcadas `†`.
+pedagógico como um item só, e as **duas últimas** (`AS-13` e `BOOT-8`), que já eram regras duras
+escritas em outros documentos e estavam **fora** da lista — o que as deixava valendo em papel e
+ausentes do único texto relido a cada turno. Cada uma tem ID estável, é verificável por eval, e
+proíbe ou obriga algo que nenhuma outra cobre — fundi-las custaria testabilidade. **90 + 46 = 136
+linhas contra o teto de ~200: cabe, com 64 linhas de folga.** Se o corpo apertar no futuro, a
+ordem de corte é: 9.6 (visualização) → `reference` · 9.2 (`AN`/`ESC`) → `reference` · nunca 9.4
+nem as marcadas `†`.
 
 ---
 
@@ -803,7 +829,7 @@ Insumo direto de `tests/validate.sh`. Cada linha é uma asserção verificável;
 | I-13 | Todo pattern de timestamp nos 7 schemas contém `([.][0-9]+)?`. | grep sobre os patterns. |
 | I-14 | ⚑ O enum `language` tem **20** entradas em `setup-manifest` e `registry` e **19** em `challenge-manifest`; os **19 primeiros** são idênticos e na mesma ordem nos três, e o 20º é `none`, presente só nos dois primeiros (§4.1). | `jq -c` + igualdade contra as duas listas esperadas; `.[0:19]` igual nos três **e** `challenge-manifest` sem `none`. Igualdade dos três contra uma lista só **reprovaria schema correto**. |
 | I-15 | `cross_read` existe com enum `["ask","allow","never"]` em `registry.schema.json` e em `setup-manifest.schema.json` → `privacy`; `allow_cross_read` não aparece em lugar nenhum. | `jq` + grep. |
-| I-16 | Todo `concept_id`/`scenario_id` no repositório casa `^[a-z][a-z0-9_]{1,62}$`; todo `topic`/`slug` casa `^[a-z0-9]+(-[a-z0-9]+)*$`. | validação dos exemplos em `examples/` e dos patterns nos schemas. |
+| I-16 | Os dois namespaces de §4.2 não se misturam: **conceito ou tópico** (`concept_id`, `scenario_id`, `topics[]`, `target_topic`, `skill`) casa `^[a-z][a-z0-9_]{1,62}$`; **slug de caminho** (`setup_name`, `subject_slug`, `<slug>` de diretório, slug de research) casa `^[a-z0-9]+(-[a-z0-9]+)*$`. | validação dos exemplos em `examples/` e dos patterns nos schemas. ⚠ Enquanto o resíduo de §4.2 não for fechado, `target_topic` ainda é verificado como slug de caminho — é a única exceção, e ela é temporária. |
 | I-17 | Nenhum `challenge_id` de exemplo usa o formato `c-NNNN-<slug>`. | `grep -rE '"challenge_id": *"[^0-9]'` vazio. |
 | I-18 | Todo script de `SK/scripts/*.sh` (fora de `lib/`) usa apenas os exit codes `0 1 2 3 4 5 10`. | extração estática de `exit <n>` + `sm_die <n>`. |
 | I-19 | Os três arquivos de `lib/` não têm bit de execução e não contêm bloco `main`/`"$@"` de topo. | `test ! -x` + grep. |
@@ -820,13 +846,13 @@ Insumo direto de `tests/validate.sh`. Cada linha é uma asserção verificável;
 | I-30 | `readme-sync.sh` é idempotente: duas execuções seguidas sem sessão nova produzem arquivos byte a byte iguais. | `diff` de duas execuções. |
 | I-31 | `progress-update.sh --recompute` reconstrói todo campo escalar a partir de `evidence[]` sem diferença. | fixture + `diff`. |
 | I-32 | `setup-init.sh` é idempotente: rodar duas vezes no mesmo caminho não duplica nem sobrescreve nada. | duas execuções + `diff`. |
-| I-33 | O corpo do `SKILL.md` (fora do frontmatter) tem ≤200 linhas e contém os 88 IDs de regra do §9. | `wc -l` + grep por cada ID. |
+| I-33 | O corpo do `SKILL.md` (fora do frontmatter) tem ≤200 linhas e contém os 90 IDs de regra do §9. | `wc -l` + grep por cada ID. |
 | I-34 | Toda `reference/` é linkada **direto** do `SKILL.md` (um nível só) e nenhuma referencia outra. | grafo de links. |
 | I-35 | Nenhuma `reference/` com mais de 100 linhas começa sem sumário. | `wc -l` + grep do heading `## Sumário`. |
 | I-36 | Nenhum arquivo do projeto usa frontmatter YAML em artefato gerado; a proveniência é o bloco `<!-- study-method:meta {…} -->`. | grep `^---$` nos templates de `researchs/` e `docs/generated/`. |
 | I-37 | Todo caminho gravado dentro de arquivo do setup é relativo; o único absoluto é `registry.json` → `setups[].path`. | validação dos fixtures contra `^/`. |
 | I-38 | `runner.sh` gerado usa `cd … \|\| exit 66` e trata 137 como timeout; nenhum template usa `exit 70` nem depende de 124. | grep nos templates de `challenge-new.sh`. |
-| I-39 | `sandbox.timeout_source` e `sandbox.mode` são gravados em todo `meta.json` com `verdict != not_run`. | `jq` sobre os fixtures. |
+| I-39 | ⚑ `execution.sandbox.mode` e `execution.sandbox.timeout_source` são gravados em todo `meta.json` com `verdict != not_run`. O objeto `sandbox` **não fica na raiz** do manifesto: ele vive sob `execution` (`challenge-manifest.schema.json` → `properties.execution.properties.sandbox`), e o caminho não qualificado fazia a verificação procurar onde o campo nunca esteve. | `jq -e '.execution.sandbox.mode and .execution.sandbox.timeout_source'` sobre os fixtures com `.validation.verdict != "not_run"`. |
 | I-40 | O `.gitignore` gerado pelo template de setup contém a linha `memory/`. | grep no template. |
 | I-41 | Os 8 nomes de seção de marcador do `README.md` do setup (§3.5) são exatamente os que `readme-sync.sh` escreve. | grep + diff. |
 | I-42 | Nenhum documento cita "todos os cenários de erro" como promessa ao aluno. | grep. |
@@ -840,7 +866,7 @@ nos números abaixo mexe aqui primeiro.
 | # | Dívida | Medição | Estado |
 |---|---|---|---|
 | DEB-1 | **O orçamento de 6000 caracteres do digest não cabe o playbook procedimental cheio.** Com 5 antipadrões (`procedural_playbook.avoid`) + 8 procedimentos (`procedural_playbook.do`) — e **ambos protegidos do truncamento** —, só esse bloco já passa dos 6000, e a escada de truncamento (T1…Tn) **não converge**: os campos que sobrariam para cortar são justamente os protegidos. | O digest sai com `budget_exceeded: true`, `truncated: true` e a saída **acima** do orçamento — que é exatamente o que a especificação manda fazer quando não dá para caber (§8: `memory-digest.sh` **sempre** produz digest e **sempre** sai 0). O comportamento está correto; o **limite** é que está apertado. | **Aberta.** Nada a consertar no script. O que merece revisão é o par (orçamento default, conjunto de campos protegidos) — p.ex. subir `SM_BUDGET_CHARS` ou permitir truncar `procedural_playbook.avoid` a partir de N itens. Enquanto não for revisto, o gate **não pode** tratar `budget_exceeded: true` como falha: é saída conforme. |
-| DEB-2 | `compaction.deferred_at` não é gravável (§6.5 L-1). | `profile.schema.json` fecha `compaction` com `additionalProperties: false`. | **Aberta**, ver §6.5. |
+| DEB-2 | `compaction.deferred_at` **existe no schema e não é gravado** por `memory-compact.sh` (§6.5 L-1). | `profile.schema.json` → `compaction.deferred_at` está declarado; `grep -n deferred_at SK/scripts/memory-compact.sh` é vazio. | **Aberta**, ver §6.5 — mas a dívida **mudou de dono**: era do schema, hoje é do script. Nenhuma perda de dado enquanto durar. |
 | DEB-3 | O teto de 2 ciclos de RA-6 não é verificável sem estado persistido (§6.5 L-2). | Cada `--apply` é processo novo. | **Aberta**, ver §6.5. Nenhuma invariante o cobra. |
 
 ---

@@ -245,11 +245,21 @@ projeto pode dizer "o script pergunta ao modelo" fora dele:
 5. o script **valida** a resposta contra o schema daquele pedido e só então aplica, atomicamente.
    Resposta inválida → **exit 5**, nada aplicado, nada corrompido.
 
-| Nome do pedido | Emitido por | Schemas (`SK/assets/schemas/requests/`) | Para quê |
+⚑ **Os quatro `kind` são estes, e os nomes de arquivo são derivados do script, não do pedido.**
+As grafias `session_close_fields`, `docs_section_pick` e `profile_compaction` — e os arquivos
+`session-close-fields.*`, `docs-section-pick.*`, `profile-compaction.*` — **estão revogadas e
+nunca existiram em disco**. A autoridade é `docs/00-contratos.md` §6.4/§6.5.
+
+| `kind` (envelope) | Emitido por | Schemas (`SK/assets/schemas/requests/`) | Para quê |
 |---|---|---|---|
-| `session_close_fields` | `session-close.sh` | `session-close-fields.request.schema.json` · `.response.schema.json` | preencher os campos obrigatórios que faltaram na validação do `NNNN.json` |
-| `docs_section_pick` | `docs-index.sh` | `docs-section-pick.request.schema.json` · `.response.schema.json` | escolher quais seções do `docs/` do setup entram no orçamento (§ passo `load_docs`) |
-| `profile_compaction` | `memory-compact.sh` | `profile-compaction.request.schema.json` · `.response.schema.json` | consolidar os candidatos brutos em fatos de `profile.json` (`docs/03-memoria.md` do repositório §4.2) |
+| `fill_session_fields` | `session-close.sh` | `session-close.request.schema.json` · `session-close.response.schema.json` | preencher os campos obrigatórios que faltaram na validação do `NNNN.json` |
+| `select_sections` | `docs-index.sh --select` | `docs-index.request.schema.json` · `docs-index.response.schema.json` | escolher quais seções do `docs/` do setup entram no orçamento (§ passo `load_docs`) |
+| `compact_facts` | `memory-compact.sh` | `memory-compact.request.schema.json` · `memory-compact.response.schema.json` | consolidar os candidatos brutos em fatos de `profile.json` (`docs/03-memoria.md` do repositório §4.2) |
+| `classify_survivor` | `challenge-verify.sh` | `challenge-verify.request.schema.json` · `challenge-verify.response.schema.json` | classificar cada mutante sobrevivente como `equivalent` ou `not_equivalent` (§ passo `challenge`) |
+
+O `kind` acima é o do **envelope**; dentro do `payload` viaja o `request_kind`
+(`session_close` · `docs_index` · `memory_compact` · `challenge_verify`), que é outro campo e
+coexiste com ele — trocar um pelo outro é **exit 5** (`docs/00-contratos.md` §6.5).
 
 Regras invariantes:
 
@@ -259,7 +269,7 @@ Regras invariantes:
 - **Sem `--apply`, sem julgamento.** Nenhum script infere a resposta por conta própria nem cai em
   um default silencioso no lugar dela.
 - **Idempotência**: aplicar a mesma resposta duas vezes produz o mesmo estado.
-- **Teto de tentativas** onde couber (ex.: `session_close_fields`, no máximo 2 pedidos por sessão);
+- **Teto de tentativas** onde couber (ex.: `fill_session_fields`, no máximo 2 pedidos por sessão);
   esgotado o teto, o script segue pelo caminho degradado definido no seu passo, e o registra.
 
 ---
@@ -314,7 +324,7 @@ O digest é montado **por código**, não por decisão do modelo sobre o que cop
 | **Script** | `docs-index.sh <setup_root>` (3.3) |
 | **Lê** | O `docs/` do setup inteiro (metadados sempre; conteúdo conforme o orçamento) |
 | **Escreve** | `memory/docs-index.json` — índice derivado: arquivo, tamanho, títulos de seção, offsets, hash. Escrita atômica. Cache de texto extraído de PDF em `memory/.cache/docs-text/<sha>.txt`. |
-| **Regra de orçamento** | Abaixo do teto (default de partida: ~20k tokens, `TASK_PLAN` C4) lê tudo; acima, entra em modo manifesto, em duas invocações: `docs-index.sh <setup_root>` mede e escreve o índice (determinístico, exit 0), e `docs-index.sh <setup_root> --select` **emite o pedido `docs_section_pick` em stdout e sai 10, sem tocar em disco** (§3.1) — a escolha das seções relevantes é julgamento, não fórmula. O modelo responde, `--apply` valida e grava a seleção, e a skill **declara em voz alta o que ficou de fora**. Detalhe em `docs/10-bootstrap.md` do repositório §8 e `SK/references/docs-ingest.md`. |
+| **Regra de orçamento** | Abaixo do teto (default de partida: ~20k tokens, `TASK_PLAN` C4) lê tudo; acima, entra em modo manifesto, em duas invocações: `docs-index.sh <setup_root>` mede e escreve o índice (determinístico, exit 0), e `docs-index.sh <setup_root> --select` **emite o pedido `select_sections` em stdout e sai 10, sem tocar em disco** (§3.1) — a escolha das seções relevantes é julgamento, não fórmula. O modelo responde, `--apply` valida e grava a seleção, e a skill **declara em voz alta o que ficou de fora**. Detalhe em `docs/10-bootstrap.md` do repositório §8 e `SK/references/docs-ingest.md`. |
 | **Erros** | `docs/` do setup vazio ou só com formatos que a skill não lê → não é erro: o tutor diz isso e segue com `docs_coverage: "none"`. Arquivo binário/ilegível → ignora com aviso único, registra em `docs-index.json` como `readable: false`. |
 | **Saída** | → `open_session` |
 
@@ -377,8 +387,8 @@ sessão corrente como se fosse histórico (D-A04).
 | **Script**, nesta ordem | `session-close.sh <setup_root>` (3.3) → `memory-index.sh <setup_root>` (3.4) → `progress-update.sh <setup_root> --recompute` (3.4) → `readme-sync.sh <setup_root>` (3.4) → `memory-compact.sh <setup_root> --if-due` (3.4). O `--recompute` **não é opcional**: `progress-update.sh` sai **2** quando invocado sem modo, e a chamada nua fazia `memory/progress.json` nunca nascer. |
 | **Lê** | `memory/NNNN.json` em progresso, `memory/INDEX.json`, `memory/profile.json`, `memory/progress.json`, `challenges/*/meta.json`, listagem de `researchs/` |
 | **Escreve** | `memory/NNNN.json` finalizado (`status: "completed"`, `finalized_at`, `finalized_by`, `one_line_summary` **obrigatório**, `topics`, `skills_observed`, `what_worked`, `what_didnt_work`, `open_questions`, `next_steps`, `cross_setup_refs`); `memory/INDEX.json` (append); `memory/progress.json`; `README.md` do setup (regeneração entre marcadores); `setup.json` (`updated_at`, `last_session_at`, `session_count`); entrada do registry; remove `memory/.session.lock`. **Não escreve `memory/profile.json`** — o perfil tem um escritor só, a compactação (`docs/03-memoria.md` do repositório §2, camada 3). Toda escrita por `tmp` + `mv`. |
-| **Validação** | `session-close.sh` valida o `NNNN.json` contra `session.schema.json` (2.2). Faltou campo obrigatório → emite o pedido **`session_close_fields`** em stdout e sai **10** (§3.1), **sem escrever**; o modelo responde e re-invoca com `--apply`. No máximo **2** pedidos por sessão; esgotado o teto, **fecha assim mesmo** com `status: "completed"` e `validation_errors[]` preenchido. **Nunca** deixar uma sessão presa em `in_progress` por causa de validação. |
-| **Compactação** | Se o número de sessões não consolidadas (`compacted_at == null` e `status ∈ {completed, abandoned}`) ≥ 15, `memory-compact.sh --if-due` roda (limiar de `docs/research/02-memoria-llm.md` do repositório, "Recomendação") e usa o pedido `profile_compaction` (§3.1). Brutos nunca são apagados — apenas deixam de ser lidos por padrão. |
+| **Validação** | `session-close.sh` valida o `NNNN.json` contra `session.schema.json` (2.2). Faltou campo obrigatório → emite o pedido **`fill_session_fields`** em stdout e sai **10** (§3.1), **sem escrever**; o modelo responde e re-invoca com `--apply`. No máximo **2** pedidos por sessão; esgotado o teto, **fecha assim mesmo** com `status: "completed"` e `validation_errors[]` preenchido. **Nunca** deixar uma sessão presa em `in_progress` por causa de validação. |
+| **Compactação** | Se o número de sessões não consolidadas (`compacted_at == null` e `status ∈ {completed, abandoned}`) ≥ 15, `memory-compact.sh --if-due` roda (limiar de `docs/research/02-memoria-llm.md` do repositório, "Recomendação") e usa o pedido `compact_facts` (§3.1). Brutos nunca são apagados — apenas deixam de ser lidos por padrão. |
 | **Erros** | Falha ao escrever um derivado → avisa e continua; o derivado é reconstruível. Falha ao escrever o próprio `NNNN.json` → é o único erro que o tutor deve declarar como perda real ao aluno, com o caminho exato. |
 | **Saída** | **FIM** |
 
@@ -432,8 +442,16 @@ open_session ──► in_progress ──(close_session)──► completed
 ### 4.1 Detecção e recuperação — dono único, automática
 
 `memory-index.sh <setup_root> --verify`, no passo `load_memory`, é o **único** componente que
-finaliza uma órfã. `session-close.sh` **não tem** `--recover`, e `memory-digest.sh` é somente-leitura:
-não fecha, não altera, não remove nada.
+finaliza uma órfã **automaticamente**, e `memory-digest.sh` é somente-leitura: não fecha, não
+altera, não remove nada.
+
+⚑ **`session-close.sh --recover <NNNN>` existe** (`docs/00-contratos.md` §8) e **não** é um segundo
+caminho automático: é a **porta manual** da mesma operação — fechamento retroativo pedido à mão,
+para a órfã que o `--verify` não alcançou (setup movido, arquivo fora da varredura). Ela grava
+exatamente o mesmo resultado: `status: "abandoned"`, `finalized_by: "auto_orphan_recovery"`,
+`finalized_at` = `mtime` do arquivo. O texto anterior — "`session-close.sh` **não tem**
+`--recover`" — está **revogado**; o que continua valendo é que **ninguém além do `--verify` fecha
+órfã sem alguém pedir**.
 
 O script varre `memory/[0-9][0-9][0-9][0-9].json` procurando `status == "in_progress"`. Para cada um:
 
@@ -544,13 +562,13 @@ convenção de exit code do §3.
 |---|---|---|
 | `setup-list.sh` (3.3) | `--resolve <cwd>` · `--find <termo> --json` · `--archive <setup_id>` · `--forget <setup_id>` · `--all` · sem argumento = listar `active` | `bootstrap`, `teach` |
 | `setup-init.sh` (3.3) | `<path>` + opções da entrevista (2.7); cria os quatro diretórios, `setup.json`, o `README.md` do setup e a entrada no registry | `setup_interview` |
-| `docs-index.sh` (3.3) | `<setup_root>` (mede e escreve `memory/docs-index.json`, exit 0) · `--select [--topics t1,t2]` (emite o pedido `docs_section_pick` e sai **10**, sem escrever) · `--apply <resposta.json>` | `load_docs` |
+| `docs-index.sh` (3.3) | `<setup_root>` (mede e escreve `memory/docs-index.json`, exit 0) · `--select [--topics t1,t2]` (emite o pedido `select_sections` e sai **10**, sem escrever) · `--apply <resposta.json>` | `load_docs` |
 | `session-new.sh` (3.3) | `<setup_root>`; imprime o `NNNN` alocado em stdout e cria o `.session.lock` | `open_session` |
-| `session-close.sh` (3.3) | `<setup_root>` · `--apply <resposta.json>`; pode sair **10** com o pedido `session_close_fields`. **Não tem `--recover`** — órfã é assunto de `memory-index.sh --verify` (§4.1) | `close_session` |
+| `session-close.sh` (3.3) | `<setup_root>` · `[--session <NNNN>]` · `[--recover <NNNN>]` · `--apply <resposta.json>`; pode sair **10** com o pedido `fill_session_fields`. `--recover` é a porta **manual** de fechamento de órfã; o dono do fechamento **automático** continua sendo `memory-index.sh --verify` (§4.1) | `close_session` |
 | `research-new.sh` (3.3) | `<setup_root> --topic <concept_id>`; imprime o caminho de `researchs/NNNN.md` | `teach` |
 | `memory-index.sh` (3.4) | `<setup_root>` · `--verify` (checa sincronia, detecta e **finaliza** órfãs) | `load_memory`, `close_session` |
 | `memory-digest.sh` (3.4) | `<setup_root>` [`--topics t1,t2`] [`--budget-chars N`] [`--today AAAA-MM-DD`] [`--now <ISO 8601>`]; imprime o digest JSON em stdout, somente leitura | `load_memory` |
-| `memory-compact.sh` (3.4) | `<setup_root> --if-due` (não faz nada abaixo do limiar) · `--apply <resposta.json>`; pode sair **10** com o pedido `profile_compaction` | `close_session` |
+| `memory-compact.sh` (3.4) | `<setup_root> --if-due` (não faz nada abaixo do limiar) · `--apply <resposta.json>`; pode sair **10** com o pedido `compact_facts` | `close_session` |
 | `progress-update.sh` (3.4) | `<setup_root> --due` (imprime conceitos vencidos, em `plan_lesson`) · `<setup_root> --recompute` (reconstrói os escalares e cria o arquivo se ausente, em `close_session`). Um dos modos é **obrigatório**: sem modo é exit 2 | `plan_lesson`, `close_session` |
 | `readme-sync.sh` (3.4) | `<setup_root>` · `--init` | `setup_interview`, `close_session` |
 | `challenge-new.sh` / `challenge-verify.sh` (3.5) | contrato da sub-tarefa 2.5 | `challenge` |

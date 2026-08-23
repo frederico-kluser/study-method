@@ -169,8 +169,10 @@ Ordem fixa: `memory-index.sh <setup_root> --verify` → `memory-digest.sh <setup
   generalize a partir de 2 aulas) · `warm` (caminho normal) · `degraded` (algo ficou ilegível: não
   afirme nada sobre histórico sem abrir o bruto, e diga isso uma vez, em uma linha).
 - **Sessão órfã: recuperação automática, sem perguntar nada.** Órfã é condição derivada —
-  `status: "in_progress"` **e** sem lock vivo em `memory/.session.lock` (`session_id` e `hostname`
-  batendo e `kill -0 pid` OK). Quem finaliza é `memory-index.sh --verify`, dono único: marca
+  `status: "in_progress"` **e** sem lock vivo em `memory/.session.lock`. Lock vivo exige
+  `session_id` e `hostname` batendo **e** uma das **duas** vias: `pid` numérico com `kill -0` OK,
+  **ou** `pid: null` com `started_at` dentro do TTL (`SM_SESSION_LOCK_TTL`, default 8 h) — esta
+  segunda é a comum. Quem finaliza é `memory-index.sh --verify`, dono único: marca
   `status: "abandoned"`, `finalized_by: "auto_orphan_recovery"`, preserva todo o conteúdo e não
   inventa nada. **Não existe menu de 3 opções, não existe `memory/discarded/`, nada é apagado nem
   movido.** O digest reporta em `orphan_sessions[]`; quando `days_ago <= 7`, abra a aula oferecendo
@@ -191,8 +193,8 @@ contrato mínimo que este passo garante:
 - vazio → menu de 3: você põe o material agora · eu gero a base (marcada) · seguimos sem base;
 - dentro do orçamento → leia tudo, anuncie em uma linha;
 - acima do orçamento → a escolha das seções passa pelo protocolo REQUEST/APPLY do
-  `docs-index.sh` (pedido `docs_section_pick`, exit 10, resposta por `--apply`); carregue só o que
-  foi selecionado e **declare por nome o que ficou de fora**;
+  `docs-index.sh --select` (pedido `select_sections`, exit 10, resposta por `--apply`); carregue só
+  o que foi selecionado e **declare por nome o que ficou de fora**;
 - nada legível (PDF sem extrator, binário) → diga qual arquivo e por quê, com saídas concretas.
 
 Nunca diga "li seu material" quando leu uma fração dele.
@@ -241,7 +243,7 @@ Exemplos de **tom**, não script para copiar. Adapte às palavras do aluno.
 
 Parada obrigatória:
 > "Dei uma olhada por aqui e não achei nenhum setup de estudo — nem nesta pasta, nem no meu
-> registro. Quer que eu monte um agora? São 5 perguntas rápidas e a gente já começa a aula. Se
+> registro. Quer que eu monte um agora? São 6 perguntas rápidas e a gente já começa a aula. Se
 > preferir, dá pra gente só conversar sobre a matéria hoje, sem eu gravar nada."
 
 O aluno já chegou com um assunto:

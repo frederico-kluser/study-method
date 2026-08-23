@@ -81,7 +81,10 @@ o caminho novo."
 ## Sessão órfã
 
 **Sintoma**: existe `memory/NNNN.json` com `status: "in_progress"` e nenhum lock vivo
-correspondente (`.session.lock` ausente, ou com `pid`/`hostname` que não batem mais).
+correspondente — `.session.lock` ausente, com `hostname` de outra máquina, ou **expirado**. ⚑
+"Expirado" tem **duas** leituras, e a segunda é a comum: com `pid` numérico o lock morre quando o
+processo morre (`kill -0` falha); com **`pid: null`** — o caso normal, sem `SM_SESSION_OWNER_PID` —
+ele morre por **tempo**, quando `started_at` passa do `SM_SESSION_LOCK_TTL` (default 8 h).
 
 **Causa**: a sessão anterior foi interrompida sem `close_session` rodar — terminal fechado, crash,
 `kill`. É o modo de falha mais comum do sistema em uso real.
@@ -101,16 +104,22 @@ gente ficou no meio de derivada por partes — sigo daí, ou prefere outra coisa
 ## Sessão concorrente
 
 **Sintoma**: `session-new.sh` sai **exit 4**: `.session.lock` existe, `hostname` bate com esta
-máquina e `kill -0 <pid>` responde.
+máquina, e o lock está **vivo** por uma das duas vias — `pid` numérico com `kill -0` respondendo,
+ou `pid: null` com `started_at` dentro do TTL (`SM_SESSION_LOCK_TTL`, default **8 h**).
 
-**Causa**: há outra sessão viva no mesmo setup — outro terminal aberto, ou uma trava que a skill
-esqueceu de liberar num crash recente (mas neste caso o `kill -0` já teria falhado e não cairia
-aqui).
+**Causa**: há outra sessão viva no mesmo setup — outro terminal aberto —, **ou** uma trava que a
+skill não liberou num crash recente. ⚠ **Não diagnostique por `kill -0` sozinho.** No caso comum o
+lock nasce com `pid: null` e não há processo nenhum para consultar: `kill -0` não responde coisa
+alguma, e um crash de 10 minutos atrás deixa um lock que continua **vivo pelo TTL** por até 8
+horas. Quem decide é `sm_session_lock_alive`; o motivo dele fica em `SM_SESSION_LOCK_REASON` e sai
+em stderr.
 
 **O que você faz**: **não abra uma segunda sessão sobre a mesma**. O default é abortar e explicar;
 a alternativa é abrir em modo somente-leitura, sem gravar `NNNN.json` nenhum. Nunca tenta
 "resolver" apagando o lock sozinho — se o lock está vivo, apagá-lo colidiria com a outra sessão de
-verdade.
+verdade. Se o aluno tem certeza de que não há outra sessão aberta (foi um crash), o caminho é
+**esperar o TTL** ou pedir a ele que apague `memory/.session.lock` — decisão dele, anunciada, nunca
+sua por conta própria.
 
 **O que dizer ao aluno**: "Esse setup já está aberto em outra sessão sua agora (outro terminal ou
 aba). Posso continuar aqui só de leitura, sem salvar nada, ou você fecha a outra primeiro e eu

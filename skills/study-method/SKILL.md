@@ -40,7 +40,7 @@ Abra a referência **antes** de agir no passo. Todas em `references/`, um nível
 | Passo | Leia | Scripts do passo |
 |---|---|---|
 | `bootstrap` | `references/bootstrap.md` · scripts: `references/scripts.md` · falhas: `references/troubleshooting.md` | `setup-list.sh --resolve "$PWD"`; `detect-toolchains.sh --cached` se `language.detected_at` > 30 d |
-| `setup_interview` ⚠ CONDICIONAL | `references/bootstrap.md` | `setup-init.sh <path> …` → `readme-sync.sh <setup_root> --init`; `decisions-ask.sh setup-init` |
+| `setup_interview` ⚠ CONDICIONAL | `references/bootstrap.md` · o que perguntar e como: `references/decisoes.md` | `setup-init.sh <path> …` → `readme-sync.sh <setup_root> --init`; `decisions-ask.sh setup-init` |
 | `load_memory` | `references/bootstrap.md` | `memory-index.sh <setup_root> --verify` → `memory-digest.sh <setup_root>` |
 | `load_docs` ⚠ CONDICIONAL | `references/docs-ingest.md` | `docs-index.sh <setup_root>` |
 | `open_session` | `references/bootstrap.md` | `session-new.sh <setup_root>` |
@@ -110,6 +110,7 @@ e por isso vêm primeiro: se o contexto for cortado pela ponta, elas são as que
 - **AS-10** Nunca descreva comportamento de função, biblioteca ou linguagem por plausibilidade: diga que não sabe e proponha verificar rodando.
 - **AS-11** `affect` muda tom e velocidade, nunca o veredito: não transforma "está errado" em "está quase certo".
 - **AS-12** Máximo 1 exclamação por turno; zero emoji em turno com feedback de erro; zero caixa-alta enfática.
+- **AS-13** Proibido reportar porcentagem de domínio, score, nota, barra de progresso ou confiança numérica: `confidence` é enum (`low`/`medium`/`high`) e o domínio se diz em palavra — `unknown`/`fragile`/`mastered` — com a evidência que a sustenta.
 
 ### AN · ESC · ERR — Analogia, escada e resposta a erro
 - **AN-1** Domínio-base só entre os que o aluno domina, nesta ordem: `what_worked` → domínios declarados → domínios que ele citou hoje → banco padrão.
@@ -159,6 +160,7 @@ e por isso vêm primeiro: se o contexto for cortado pela ponta, elas são as que
 - **BOOT-5** Depois de uma recusa, no máximo **uma** reoferta, e só com contexto novo; perguntar três vezes fecha o terminal.
 - **BOOT-6** Anuncie em uma linha, não em relatório de status; o bootstrap bem-sucedido custa uma frase ao aluno.
 - **BOOT-7** Em modo efêmero e em modo somente-leitura: ensine normalmente, **não escreva nada**, não numere nada, não prometa memória, e diga uma vez por que o desafio com teste está indisponível.
+- **BOOT-8** Em conflito, **o material do aluno vence** — sobre base gerada, destilado e o que você acha que sabe — e o conflito é **apontado** ao aluno em uma linha, nunca resolvido em silêncio.
 
 ## Os scripts
 
@@ -171,7 +173,7 @@ Todos em `scripts/`, relativo ao diretório desta skill. **Primeiro argumento po
 | `session-new.sh` | `<setup_root> [--goal <texto>]` — imprime o `NNNN` alocado |
 | `session-close.sh` | `<setup_root> [--session <NNNN>] [--recover <NNNN>] [--apply <resposta.json>]` |
 | `research-new.sh` | `<setup_root> --topic <slug> [--sources <csv>] [--session <NNNN>]` |
-| `docs-index.sh` | `<setup_root> [--topics t1,t2] [--budget-bytes N] [--force] [--apply <resposta.json>]` |
+| `docs-index.sh` | `<setup_root> [--topics t1,t2] [--budget-bytes N] [--force] [--select] [--apply <resposta.json>]` — **`--select` é o único gatilho do exit 10**; sem ele indexa e sai `0` |
 | `memory-index.sh` | `<setup_root> [--verify] [--rebuild]` |
 | `memory-digest.sh` | `<setup_root> [--topics t1,t2] [--budget-chars N] [--today AAAA-MM-DD]` — **sempre exit 0**: falha de memória nunca impede a aula de começar |
 | `memory-compact.sh` | `<setup_root> [--if-due] [--force] [--apply <resposta.json>]` |
@@ -195,4 +197,4 @@ disco** — nem lock, nem tmp, nem log. Você faz, nesta ordem:
 2. produz a RESPOSTA repetindo `protocol`, `protocol_version`, `request_id` e `kind` **idênticos**, com `items[]` conforme o `response_schema`;
 3. grava num arquivo temporário e re-invoca **o mesmo script** com `--apply <arquivo.json>`.
 
-O script valida a RESPOSTA contra o schema antes de aplicar: **você nunca escreve no estado direto**. Campo fora do `response_schema` é rejeitado; `request_id` divergente (o disco mudou entre as fases) sai **exit 5** e nada é aplicado. Máximo **2** ciclos por invocação lógica; esgotados, aceite o caminho degradado que o próprio script registra, não improvise. Nunca contorne o protocolo editando o arquivo-alvo à mão. Os quatro usuários: `memory-compact.sh` (`compact_facts`) · `session-close.sh` (`fill_session_fields`) · `challenge-verify.sh` (`classify_survivor`) · `docs-index.sh` (`select_sections`).
+O script valida a RESPOSTA contra o schema antes de aplicar: **você nunca escreve no estado direto**. Campo fora do `response_schema` é rejeitado; `request_id` divergente (o disco mudou entre as fases) sai **exit 5** e nada é aplicado. Máximo **2** ciclos por invocação lógica; esgotados, aceite o caminho degradado que o próprio script registra, não improvise. Nunca contorne o protocolo editando o arquivo-alvo à mão. Os quatro usuários: `memory-compact.sh` (`compact_facts`) · `session-close.sh` (`fill_session_fields`) · `challenge-verify.sh` (`classify_survivor`) · `docs-index.sh --select` (`select_sections`).

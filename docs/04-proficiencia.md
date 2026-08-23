@@ -267,9 +267,15 @@ Contam apenas os eventos classe **A** com `observed_at` **posterior ao último e
 
 ## 4. ⭐ Honestidade epistêmica: o que o tutor pode e não pode dizer
 
-### 4.1 A regra dura
+### 4.1 A regra dura — `AS-13`
 
 > **É proibido reportar ao aluno qualquer porcentagem de domínio, score numérico, nota, barra de progresso por conceito ou "confiança" numérica.**
+
+⚑ Esta regra é **`AS-13`** das regras permanentes (`docs/00-contratos.md` §9.1) e vive no corpo do
+`SKILL.md`, no grupo de anti-bajulação. Ela estava escrita e verificável aqui, mas **fora** da
+lista — e o corpo do `SKILL.md` é o único texto relido a cada turno, então uma regra ausente dele
+pode não estar valendo no turno em que importa. `AS-9` cobre só "não declarar domínio sem
+`mastered`"; o **número** é o que esta cobre.
 
 Não é uma preferência de estilo. Com um único aluno e um punhado de observações por conceito, um número de 0 a 100 é teatro:
 
@@ -827,27 +833,28 @@ calculados**, e é essa ausência de flag que faz valer a regra.
 
 #### O formato do evento
 
-Um objeto JSON, um evento por arquivo. O schema é
-`assets/schemas/requests/progress-event.schema.json` (dono: a sub-tarefa dos schemas); aqui fica a
-semântica de cada campo.
+Um objeto JSON, um evento por arquivo. O schema é `SK/assets/schemas/progress-event.schema.json`
+(dono: a sub-tarefa dos schemas) e **ele é a autoridade sobre os nomes**: fecha com
+`additionalProperties: false`, exige `concept_id` e não conhece as grafias `concept`,
+`last_result` nem `self_report_polarity` — um evento com qualquer uma delas é **recusado**. Aqui
+fica a semântica de cada campo.
 
 ```json
 {
   "schema_version": "1.0",
   "setup_id": "7b3e9a1c4f20",
   "kind": "challenge",
-  "concept": "Recursão",
-  "concept_id": null,
+  "concept_id": "recursao",
   "session_id": "0053",
   "challenge_id": "0053",
   "observed_at": "2026-08-10",
   "recorded_at": "2026-08-10T20:41:00-03:00",
-  "last_result": "passed",
+  "result": "passed",
   "attempts": 1,
   "hint_level": 0,
   "error_type": "none",
   "attributed_to": null,
-  "self_report_polarity": null,
+  "self_report_claim": null,
   "note": "checagem de recall após decaimento"
 }
 ```
@@ -857,18 +864,17 @@ semântica de cada campo.
 | `schema_version` | sim | Versão do formato do evento, `MAJOR.MINOR` |
 | `setup_id` | sim | `^[0-9a-f]{12}$`. Diferente do `setup_id` do `progress.json` alvo ⇒ **rejeita** (exit 5). É o que impede escrita cruzada entre setups |
 | `kind` | sim | `challenge` · `exposure` · `self_report` · `review_declined` · `decay` |
-| `concept` | sim | O **rótulo canônico** da trilha, em pt-BR, como ele aparece. O script resolve para `concept_id` pela busca em `concept_id` + `aliases[]` (§1.2 regra 3) |
-| `concept_id` | não | Atalho: quando presente, pula a resolução. Se estiver presente **e** discordar do que a resolução de `concept` daria, **rejeita** — discordância silenciosa aqui cria conceito duplicado |
+| `concept_id` | **sim** | O identificador do conceito em `snake_case`, `^[a-z][a-z0-9_]{1,62}$`. ⚑ **Não existe campo `concept` no evento** (`additionalProperties: false`): a resolução do rótulo canônico em pt-BR para o id — busca em `concept_id` + `aliases[]` (§1.2 regra 3), com `sm_normalize_concept_id` para o caso novo — acontece **antes** de montar o evento, em quem o monta. Resolver dentro do script exigiria um campo que o schema não tem, e id chutado fragmenta o progresso em silêncio |
 | `session_id` | quando `kind ≠ decay` | `^[0-9]{4}$`. Tem que existir em `memory/` |
 | `challenge_id` | quando `kind = challenge` | `^[0-9]{4}$`. Tem que existir em `challenges/` |
 | `observed_at` | sim | Data do fato (`YYYY-MM-DD`). É por ela que a ordem cronológica é decidida |
 | `recorded_at` | não | Instante da gravação. Ausente ⇒ agora. A diferença entre os dois é a bitemporalidade (§5.3 passo 2) |
-| `last_result` | quando `kind = challenge` | O valor **do manifesto do desafio**: `not_run` · `passed` · `failed` · `timeout` · `error`. O script normaliza para `result` pela tabela da §3.2 — o evento nunca traz `result` já mastigado, porque normalizar é responsabilidade de quem tem a tabela |
+| `result` | quando `kind = challenge` | ⚑ **Três valores, os do enum de `evidence[].result`: `passed` · `failed` · `not_attempted`** (`null` fora de `kind = challenge`). O vocabulário de **cinco** valores é o do manifesto (`student_progress.last_result` ∈ `not_run`, `passed`, `failed`, `timeout`, `error`) e a conversão da §3.2 acontece **antes** de o evento existir — o campo `last_result` não está no schema do evento. Por tolerância, `progress-update.sh` ainda aceita o vocabulário de manifesto e o normaliza no passo 0, mas o evento **conforme o schema** traz `result` |
 | `attempts` | não | Execuções da verificação neste desafio |
 | `hint_level` | não | **0 a 5** (§2). `null` (ou ausente) significa *não registrado*, e **não** é 0 |
 | `error_type` | não | `none` · `slip` · `conceptual` · `prerequisite` · `unknown`. Ausente ⇒ `unknown` |
 | `attributed_to` | quando `error_type = prerequisite` | Rótulo canônico (ou `concept_id`) do pré-requisito que causou a falha (§6.4) |
-| `self_report_polarity` | quando `kind = self_report` | `positive` ou `negative`. É o que distingue "acho que entendi" (nunca promove) de "não peguei isso" (pode rebaixar por T8). Sem esse campo o auto-relato é ilegível para o script |
+| `self_report_claim` | quando `kind = self_report` | ⚑ `mastery` ou `no_mastery` (nunca `positive`/`negative`). É o que distingue "acho que entendi" (`mastery`, **nunca promove**) de "não peguei isso" (`no_mastery`, pode rebaixar por T8). Sem esse campo o auto-relato é ilegível para o script |
 | `note` | não | pt-BR livre, para humano. Passa pelo crivo de gravação de `docs/11-seguranca-privacidade.md` §1.3 do repositório |
 
 O evento **não** carrega `state_before`, `state_after` nem `transition_rule`: os três são
@@ -940,7 +946,7 @@ Cada item é verificável.
 7. **Validação antes de gravar.** O arquivo resultante valida contra `progress.schema.json`. O verificador é stdlib do Python (não há `jsonschema` nesta máquina) e cobre `type`, `required`, `enum`, `pattern`, `minimum`/`maximum` — as restrições do schema foram escritas para caber nesse verificador (sem `$ref`, sem `allOf` aninhado, sem `if/then/else`).
 8. **`policy` ausente = defaults.** Ler o objeto se existir; senão usar os defaults documentados na §5.2.
 9. **Idempotência.** Reprocessar um evento com a mesma chave `(concept_id, kind, session_id, challenge_id, observed_at)` é no-op com exit 0: não duplica evidência nem reaplica transição (§9.1).
-10. **Normalização antes de classificar.** `last_result` → `result` pela tabela da §3.2, no passo 0 da §3.5. `timeout` e `error` viram `failed`; `not_run` vira `not_attempted`. Valor fora do enum é rejeitado com exit 5, **nunca** absorvido pelo ramo da classe B.
+10. **Normalização antes de classificar.** O evento conforme o schema já chega com `result` nos três valores do enum (§9.1); quando o vocabulário de cinco valores do manifesto chega mesmo assim, a tabela da §3.2 o converte no passo 0 da §3.5 — `timeout` e `error` viram `failed`, `not_run` vira `not_attempted`. Valor fora do enum é rejeitado com exit 5, **nunca** absorvido pelo ramo da classe B.
 11. **Códigos de saída.** A tabela da §9.1, sem exceção — `0/1/2/3/4/5`, com `10` reservado para `needs_model_input`.
 12. **`state_reason: manual` é preservado, nunca escrito.** Nenhum caminho de código do script o produz (§9.2).
 

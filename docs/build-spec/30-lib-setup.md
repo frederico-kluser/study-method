@@ -83,9 +83,22 @@ Medido: 5 processos concorrentes × 20 alocações = 100 sucessos, 100 valores d
 `$STUDY_METHOD_HOME` não criável ⇒ **4** com aviso.
 
 `sm_setup_lock <setup_root> [<session_id>]`: grava `memory/.session.lock` com
-`{pid, hostname, session_id, started_at}` por `sm_atomic_write`. Lock existente com `hostname`
-igual **e** `kill -0 <pid>` bem-sucedido ⇒ **4**. Qualquer outro caso é órfão: avisa em stderr,
-`rm -f` e prossegue. `session_id` cai para `$SM_SESSION_ID` e vira `null` quando ausente.
+`{pid, hostname, session_id, started_at}` por `sm_atomic_write`. ⚑ **A validade tem DUAS vias**
+(`docs/00-contratos.md` §7.4) e quem decide é `sm_session_lock_alive` — esta função só **age**
+sobre a decisão:
+
+| Via | Quando | Grava | Vivo enquanto |
+|---|---|---|---|
+| **(a) dono declarado** | `SM_SESSION_OWNER_PID` definida — um processo que **sobrevive à sessão** (harness, terminal, supervisor) | esse pid | `hostname` igual **e** `kill -0 <pid>` bem-sucedido |
+| **(b) TTL** — o caso **comum** | a variável está ausente | **`pid: null`** | idade de `started_at` ≤ `SM_SESSION_LOCK_TTL` (default **28800 s = 8 h**), com *fallback* para o `mtime` do lock |
+
+`hostname` diferente do atual é órfão nos **dois** casos, checado **antes** de pid e de TTL. Lock
+vivo ⇒ **4**. Qualquer outro caso é órfão: avisa em stderr, `rm -f` e prossegue. `session_id` cai
+para `$SM_SESSION_ID` e vira `null` quando ausente.
+
+⚠ Exigir `pid` não-vazio **+** `kill -0` como critério **único** declara morto **todo** lock da via
+(b) — que é a comum — e faz o `--verify` fechar como abandonada a sessão que está em andamento.
+Nenhum script reimplementa o predicado.
 
 ### 1.7 Tempo
 `sm_now_iso`: `date +%Y-%m-%dT%H:%M:%S%z` com o offset convertido para `±HH:MM`; honra

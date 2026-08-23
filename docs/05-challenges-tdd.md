@@ -419,9 +419,16 @@ desvios tolerados.
 | `5` | validação falhou |
 | **`10`** | **`needs_model_input`** — o script parou num ponto que exige julgamento; escreveu um JSON de PEDIDO em stdout e **não alterou nada em disco** (§4.6) |
 
-`challenge-verify.sh` segue essa tabela: `0` aprovado · `5` reprovado (`weak` ou `rejected`) ·
-`10` precisa da classificação de sobreviventes · `2` uso incorreto · `3` desafio não encontrado ·
-`1` erro de infraestrutura.
+`challenge-verify.sh` segue essa tabela: `0` **em todo veredito emitido** — `approved`, `weak` ou
+`rejected` —, com o veredito no stdout · `10` precisa da classificação de sobreviventes · `2` uso
+incorreto · `3` desafio não encontrado · `5` validação de schema do `meta.json` (ou da RESPOSTA do
+`--apply`) · `1` erro de infraestrutura.
+
+⚑ **Reprovar um desafio não é erro do script** (`docs/00-contratos.md` §8). O `5` é reservado a
+"o JSON não valida"; um `weak` é um veredito **bem-sucedido** sobre um teste fraco, e confundir os
+dois faz o chamador tratar um resultado legítimo como falha de execução — e perder o veredito, que
+está no stdout. Quem decide o que fazer com `weak`/`rejected` é a §4, lendo `validation.verdict`,
+nunca o exit code.
 
 **Exceção nomeada 1 — o `runner.sh` gerado dentro do desafio** usa **0/1/2/3**
 (`passed`/`failed`/`count_mismatch`/`timeout`). Ele não é um script da skill: é um artefato do
@@ -468,7 +475,7 @@ SAÍDAS  (gravadas em M.validation)
   rejections[] — código + mensagem em pt-BR, o insumo do prompt de regeneração
 
 SAÍDA INTERMEDIÁRIA  (stdout, exit 10, nada gravado em disco)
-  mutation_classification_request — o pedido de classificação dos sobreviventes (§4.6)
+  PEDIDO `kind: classify_survivor` — a classificação dos sobreviventes (§4.6)
 ```
 
 Sobre `mutation`: `score_bruto = killed / valid` e `score = killed / (valid - equivalent_count)`.
@@ -585,9 +592,10 @@ fica escrito no `detail`.
       matá-lo. Exige `justification` escrita. Mutantes equivalentes **saem do denominador**.
 
     Decidir entre as duas é julgamento, e **shell script não conversa com modelo**. Então
-    `challenge-verify.sh` **não pergunta**: ele escreve em **stdout** o pedido
-    `mutation_classification_request`, sai com **exit 10** (`needs_model_input`) e **não altera
-    nada em disco**. O modelo lê o pedido, produz `mutation_classification_response` e re-invoca
+    `challenge-verify.sh` **não pergunta**: ele escreve em **stdout** o PEDIDO
+    `kind: classify_survivor`, sai com **exit 10** (`needs_model_input`) e **não altera
+    nada em disco**. O modelo lê o pedido, produz a RESPOSTA conforme
+    `challenge-verify.response.schema.json` e re-invoca
     `challenge-verify.sh --apply <resposta.json>`, que **valida** a resposta contra o schema e só
     então grava. O detalhe do formato está em §4.6.
 
@@ -808,61 +816,90 @@ Quatro propriedades que fazem esse padrão valer o trabalho:
 - **Verificável.** O script recusa uma resposta malformada, incompleta ou que fale de mutantes que
   ele não pediu. O modelo não consegue aprovar nada por acidente de formato.
 
-#### O pedido — `mutation_classification_request`
+#### O pedido — `kind: classify_survivor`
 
 Escrito em stdout por `challenge-verify.sh` no passo 4.4, quando `survived > 0`. Schema:
-`assets/schemas/requests/mutation-classification-request.schema.json` (dono: a sub-tarefa dos
-schemas).
+`SK/assets/schemas/requests/challenge-verify.request.schema.json`
+(`urn:study-method:schema:challenge-verify-request:1`). ⚑ Os nomes
+`mutation-classification-request.schema.json` / `-response` **nunca existiram** — o par de
+arquivos é `challenge-verify.{request,response}.schema.json`, um por fronteira, e é ele que o
+`sm_apply_read` resolve a partir do `kind` do envelope.
+
+O envelope é o do produto inteiro (`docs/00-contratos.md` §6.1): `protocol`, `protocol_version`,
+`request_id`, `script`, `kind`, `setup_id`, `generated_at`, `response_schema`,
+`instructions_pt_br` e `payload`. O que é próprio desta fronteira mora no `payload`:
 
 ```json
 {
-  "request_type": "mutation_classification",
-  "schema_version": "1.0",
-  "challenge_id": "0007",
-  "run_id": "0007-a3f1c2",
-  "operators_version": "1.0",
-  "reference_path": ".solution/reference.py",
-  "mutation": { "generated": 17, "valid": 17, "killed": 16, "survived": 1,
-                "score_bruto": 0.9412, "sample_size": null },
-  "survivors": [
-    {
-      "mutant_id": "CRP@L5C20-",
-      "operator": "CRP",
-      "file": ".solution/reference.py",
-      "line": 5,
-      "before": "    for i in range(2, n + 1):",
-      "after":  "    for i in range(1, n + 1):",
-      "context": [
-        "    acc = 1",
-        "    for i in range(2, n + 1):",
-        "        acc *= i"
-      ]
-    }
-  ]
+  "protocol": "study-method/request-apply",
+  "protocol_version": "1.0",
+  "request_id": "a3f1c2d40e91",
+  "script": "challenge-verify.sh",
+  "kind": "classify_survivor",
+  "setup_id": "9f2c41ab77e0",
+  "generated_at": "2026-08-23T21:04:00-03:00",
+  "response_schema": "urn:study-method:schema:challenge-verify-response:1",
+  "instructions_pt_br": "Classifique cada sobrevivente. Na dúvida, not_equivalent.",
+  "payload": {
+    "schema_version": "1.0",
+    "request_kind": "challenge_verify",
+    "generated_at": "2026-08-23T20:59:11-03:00",
+    "challenge_id": "0007",
+    "language": "python",
+    "operators_version": "1.0",
+    "score": 0.9412,
+    "threshold": 0.8,
+    "valid": 17,
+    "survived": 1,
+    "survivors": [
+      {
+        "mutant_id": "CRP@L5C20-",
+        "operator": "CRP",
+        "file": ".solution/reference.py",
+        "line": 5,
+        "before": "    for i in range(2, n + 1):",
+        "after":  "    for i in range(1, n + 1):",
+        "context": "    acc = 1\n    for i in range(2, n + 1):\n        acc *= i"
+      }
+    ]
+  }
 }
 ```
 
-`run_id` amarra pedido e resposta: é derivado do `challenge_id` + hash do conteúdo de `R` e de
-`T`. Se qualquer um dos dois mudar entre o pedido e o `--apply`, o `run_id` não bate e o script
-recusa — é o que impede aplicar uma classificação velha a um teste que foi regenerado no meio.
+⚑ **Não existe `run_id`.** Quem amarra pedido e resposta é o **`request_id`** do envelope — os 12
+primeiros hex do `sha256` do `payload` serializado canonicamente (§6.1 do contrato). O `--apply`
+recalcula o `request_id` a partir do estado em disco; se `R` ou `T` mudou entre as duas fases, o
+id não bate e o script sai **5** sem aplicar nada (RA-2). O efeito é o mesmo que o `run_id`
+prometia — impedir que uma classificação velha caia sobre um teste regenerado —, mas por um
+mecanismo que existe.
 
-#### A resposta — `mutation_classification_response`
+#### A resposta — `challenge-verify.response.schema.json`
 
 Produzida pelo modelo, gravada num arquivo, e entregue por
 `challenge-verify.sh --apply <resposta.json>`. Schema:
-`assets/schemas/requests/mutation-classification-response.schema.json`.
+`SK/assets/schemas/requests/challenge-verify.response.schema.json`
+(`urn:study-method:schema:challenge-verify-response:1`). O documento validado é o **corpo**, que
+viaja em `items[0]` do envelope de RESPOSTA (§6.2 do contrato, RESP-1/RESP-2):
 
 ```json
 {
-  "request_type": "mutation_classification",
-  "schema_version": "1.0",
-  "challenge_id": "0007",
-  "run_id": "0007-a3f1c2",
-  "classifications": [
+  "protocol": "study-method/request-apply",
+  "protocol_version": "1.0",
+  "request_id": "a3f1c2d40e91",
+  "kind": "classify_survivor",
+  "items": [
     {
-      "mutant_id": "CRP@L5C20-",
-      "classification": "equivalent",
-      "justification": "range(1, n+1) apenas multiplica o acumulador por 1 antes do resto do produto. Para todo n >= 0 a saida e identica a da referencia, entao nenhum teste poderia matar este mutante."
+      "schema_version": "1.0",
+      "request_kind": "challenge_verify",
+      "challenge_id": "0007",
+      "classifications": [
+        {
+          "mutant_id": "CRP@L5C20-",
+          "classification": "equivalent",
+          "justification": "range(1, n+1) apenas multiplica o acumulador por 1 antes do resto do produto. Para todo n >= 0 a saida e identica a da referencia, entao nenhum teste poderia matar este mutante.",
+          "distinguishing_input": null
+        }
+      ]
     }
   ]
 }
@@ -870,17 +907,22 @@ Produzida pelo modelo, gravada num arquivo, e entregue por
 
 #### O que o `--apply` valida antes de gravar
 
-Falhar em qualquer item é **exit 2** (uso incorreto), com a mensagem dizendo o item — e, de novo,
-nada é escrito:
+Falhar em qualquer item é **exit 5** (validação falhou, RA-2/RA-3), com a mensagem dizendo o item
+— e, de novo, nada é escrito:
 
-1. a resposta valida contra o schema;
-2. `run_id` e `challenge_id` batem com o pedido pendente;
+1. a resposta valida contra o `response_schema`, e nenhum campo fora dele é aceito (RA-5);
+2. `protocol`, `protocol_version`, `kind` e `request_id` do envelope batem com o pedido pendente,
+   e o `request_id` é **recalculado do disco** — estado alterado entre as fases sai 5 (RA-2);
 3. o conjunto de `mutant_id` da resposta é **exatamente** o conjunto de sobreviventes do pedido —
    nem a mais (mutante inventado), nem a menos (sobrevivente sem veredito);
 4. `classification: "equivalent"` traz `justification` **não vazia** e com pelo menos 40
    caracteres — uma justificativa que não explica nada não é auditoria;
-5. `classification` ∈ {`equivalent`, `test_gap`, `unclassified`}; `unclassified` é aceito e conta
-   como `test_gap` no score.
+5. `classification` ∈ {`equivalent`, `not_equivalent`} — este é o vocabulário da **resposta**. No
+   `meta.json` ele vira `survivors[].classification` ∈ {`equivalent`, `test_gap`,
+   `unclassified`}: `not_equivalent` → `test_gap`, e o sobrevivente que ficou sem classificação
+   (caminho degradado) → `unclassified`, contado como `test_gap` no score. **Na dúvida, responda
+   `not_equivalent`**: chamar de equivalente um buraco real entrega ao aluno um teste que aprova
+   código errado.
 
 Aprovado, o script grava `mutation.survivors[].classification` e `.justification`, recalcula
 `equivalent_count` e `score`, retoma o protocolo em 4.5 e segue até o passo 7.
@@ -889,8 +931,10 @@ Aprovado, o script grava `mutation.survivors[].classification` e `.justification
 
 Toda vez que a especificação disser "o script pede ao modelo", o que ela quer dizer é este
 protocolo. Hoje há **um único** ponto assim em `challenge-verify.sh` — a classificação de
-sobreviventes. Se aparecer um segundo, ele ganha um `request_type` próprio, um par de schemas em
-`assets/schemas/requests/`, e reusa o mesmo exit 10 e a mesma flag `--apply`.
+sobreviventes —, e **quatro** no produto inteiro (`docs/00-contratos.md` §6.4): `fill_session_fields`,
+`select_sections`, `compact_facts` e `classify_survivor`. Se aparecer um quinto, ele ganha um `kind`
+próprio, um par `<script>.{request,response}.schema.json` em `SK/assets/schemas/requests/`, e reusa
+o mesmo exit 10 e a mesma flag `--apply`.
 
 **O que este protocolo não é**: uma brecha na regra do §1.2. O modelo continua sem decidir se o
 teste está bom. Ele decide uma coisa só, sobre um diff de uma linha, e o script continua sendo
@@ -1428,7 +1472,7 @@ mutação v1.0 (§5), com operadores compostos **não** mutáveis e as regras de
 §5.3 · limpar cache de bytecode antes de **cada** execução (§4.5) · extrair a contagem de testes
 pelo `test_count_probe` e exigir igualdade com `expected_test_count` (§3) · ler exit code como
 `!= 0`, **jamais** deduzir timeout de exit code (Regra 1b — é o tempo decorrido que decide) · usar
-`set -o pipefail` · parar no **exit 10** com o pedido `mutation_classification_request` em stdout e
+`set -o pipefail` · parar no **exit 10** com o PEDIDO `kind: classify_survivor` em stdout e
 retomar por `--apply` (§4.6) · gravar `score_bruto`, `score`, `equivalent_count`, `sample_size` e
 `detail` em `meta.json` · calcular ele mesmo os SHA-256 na aprovação, deixando-os `null` até lá
 (§9.1) · **nunca** aprovar por julgamento de modelo.
