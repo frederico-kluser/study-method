@@ -10,6 +10,12 @@
     "tagline": "Aprenda de verdade, com aulas geradas por IA e desafios práticos.",
     "shellNav": "Navegação principal"
   },
+  "settings": {
+    "keysTitle": "Chaves de API",
+    "keysDescription": "Configure as chaves do DeepSeek (geração de aulas) e do Brave Search (pesquisa de fontes). Valide cada uma antes de usar.",
+    "localAiTitle": "LLM local",
+    "localAiDescription": "Detecção de hardware e modelos locais. Baixe um modelo, ative-o e selecione \"Modelo local\" no provedor de feedback para avaliar desafios sem depender da nuvem."
+  },
   "keys": {
     "deepseek": {
       "label": "Chave DeepSeek",
@@ -27,6 +33,8 @@
     "notConfigured": "Não configurada",
     "save": "Salvar",
     "saved": "Salvo",
+    "show": "Mostrar chave",
+    "hide": "Ocultar chave",
     "error401": "Erro 401: chave inválida ou sem permissão.",
     "error429": "Erro 429: limite de requisições excedido. Tente novamente em instantes.",
     "errorNetwork": "Erro de rede: não foi possível contatar o servidor."
@@ -41,13 +49,21 @@
     "recommended": "Recomendado",
     "active": "Ativo",
     "download": "Baixar",
+    "downloaded": "Baixado",
     "downloading": "Baixando…",
     "use": "Usar",
+    "inUse": "Em uso",
     "delete": "Excluir",
     "feedbackProvider": "Provedor de feedback",
     "feedbackProviderDeepseek": "DeepSeek (nuvem)",
     "feedbackProviderLocal": "Modelo local",
-    "hintActive": "Este modelo está ativo e será o avaliador padrão."
+    "hintActive": "Este modelo está ativo e será o avaliador padrão.",
+    "errorSaveFeedback": "Falha ao salvar o provedor de feedback:",
+    "errorList": "Não foi possível listar os modelos:",
+    "errorDetect": "Falha ao detectar hardware:",
+    "errorDownload": "Falha ao iniciar download de",
+    "errorActivate": "Falha ao ativar",
+    "errorRemove": "Falha ao remover"
   },
   "lesson": {
     "subjectLabel": "Assunto",

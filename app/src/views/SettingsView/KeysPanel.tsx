@@ -170,11 +170,11 @@ export function KeysPanel(): ReactElement {
       return;
     }
 
-    // Feedback via lógica pura: decide i18nKey/severity do <Alert>.
+    // Feedback via lógica pura: o helper já devolve severity + i18nKey do <Alert>.
     const alert = validationAlert(result);
     patch(provider, (s) => ({
       ...s,
-      uiState: alert.i18nKey === 'translation:keys.valid' ? 'valid' : 'invalid',
+      uiState: alert.severity === 'success' ? 'valid' : 'invalid',
       message: t(alert.i18nKey),
     }));
   };
@@ -227,7 +227,7 @@ export function KeysPanel(): ReactElement {
                   endAdornment: (
                     <InputAdornment position="end">
                       <IconButton
-                        aria-label={st.visible ? 'Ocultar chave' : 'Mostrar chave'}
+                        aria-label={st.visible ? t('translation:keys.hide') : t('translation:keys.show')}
                         onClick={() =>
                           patch(provider, (s) => ({ ...s, visible: !s.visible }))
                         }

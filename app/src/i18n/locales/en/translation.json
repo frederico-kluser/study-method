@@ -10,6 +10,12 @@
     "tagline": "Learn for real, with AI-generated lessons and hands-on challenges.",
     "shellNav": "Main navigation"
   },
+  "settings": {
+    "keysTitle": "API keys",
+    "keysDescription": "Configure the DeepSeek (lesson generation) and Brave Search (source search) keys. Validate each one before using.",
+    "localAiTitle": "Local LLM",
+    "localAiDescription": "Hardware detection and local models. Download a model, activate it and select \"Local model\" in the feedback provider to evaluate challenges without relying on the cloud."
+  },
   "keys": {
     "deepseek": {
       "label": "DeepSeek key",
@@ -27,6 +33,8 @@
     "notConfigured": "Not configured",
     "save": "Save",
     "saved": "Saved",
+    "show": "Show key",
+    "hide": "Hide key",
     "error401": "Error 401: invalid key or missing permission.",
     "error429": "Error 429: request limit exceeded. Try again shortly.",
     "errorNetwork": "Network error: could not reach the server."
@@ -41,13 +49,21 @@
     "recommended": "Recommended",
     "active": "Active",
     "download": "Download",
+    "downloaded": "Downloaded",
     "downloading": "Downloading…",
     "use": "Use",
+    "inUse": "In use",
     "delete": "Delete",
     "feedbackProvider": "Feedback provider",
     "feedbackProviderDeepseek": "DeepSeek (cloud)",
     "feedbackProviderLocal": "Local model",
-    "hintActive": "This model is active and will be the default grader."
+    "hintActive": "This model is active and will be the default grader.",
+    "errorSaveFeedback": "Failed to save the feedback provider:",
+    "errorList": "Could not list the models:",
+    "errorDetect": "Failed to detect hardware:",
+    "errorDownload": "Failed to start download of",
+    "errorActivate": "Failed to activate",
+    "errorRemove": "Failed to remove"
   },
   "lesson": {
     "subjectLabel": "Subject",

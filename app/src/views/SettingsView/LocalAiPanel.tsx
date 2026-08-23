@@ -123,7 +123,7 @@ export function LocalAiPanel(): ReactElement {
       await getApi().settings.set({ defaultModelProvider: next });
     } catch (err) {
       setFeedbackProvider(prev);
-      setError(`Falha ao salvar o provedor de feedback: ${String(err)}`);
+      setError(`${t('translation:localAi.errorSaveFeedback')} ${String(err)}`);
     }
   };
 
@@ -136,7 +136,7 @@ export function LocalAiPanel(): ReactElement {
         if (!cancelled) setModels(list);
       })
       .catch((err) => {
-        if (!cancelled) setError(`Não foi possível listar os modelos: ${String(err)}`);
+        if (!cancelled) setError(`${t('translation:localAi.errorList')} ${String(err)}`);
       })
       .finally(() => {
         if (!cancelled) setLoadingModels(false);
@@ -173,7 +173,7 @@ export function LocalAiPanel(): ReactElement {
       const info = await getApi().localAi.detectHardware();
       setHardware(info);
     } catch (err) {
-      setError(`Falha ao detectar hardware: ${String(err)}`);
+      setError(`${t('translation:localAi.errorDetect')} ${String(err)}`);
     } finally {
       setDetecting(false);
     }
@@ -195,7 +195,7 @@ export function LocalAiPanel(): ReactElement {
     try {
       await getApi().localAi.download(modelId);
     } catch (err) {
-      setError(`Falha ao iniciar download de ${modelId}: ${String(err)}`);
+      setError(`${t('translation:localAi.errorDownload')} ${modelId}: ${String(err)}`);
       setDownloading(null);
     }
   };
@@ -207,7 +207,7 @@ export function LocalAiPanel(): ReactElement {
       await getApi().localAi.setActive(modelId);
       setModels((prev) => prev.map((m) => ({ ...m, active: m.id === modelId })));
     } catch (err) {
-      setError(`Falha ao ativar ${modelId}: ${String(err)}`);
+      setError(`${t('translation:localAi.errorActivate')} ${modelId}: ${String(err)}`);
     } finally {
       setBusy((b) => ({ ...b, [modelId]: false }));
     }
@@ -224,7 +224,7 @@ export function LocalAiPanel(): ReactElement {
         ),
       );
     } catch (err) {
-      setError(`Falha ao remover ${modelId}: ${String(err)}`);
+      setError(`${t('translation:localAi.errorRemove')} ${modelId}: ${String(err)}`);
     } finally {
       setBusy((b) => ({ ...b, [modelId]: false }));
     }
@@ -300,7 +300,7 @@ export function LocalAiPanel(): ReactElement {
                         <Chip size="small" color="success" label={t('translation:localAi.active')} />
                       ) : null}
                       {model.downloaded ? (
-                        <Chip size="small" variant="outlined" label={t('translation:localAi.download')} />
+                        <Chip size="small" variant="outlined" label={t('translation:localAi.downloaded')} />
                       ) : null}
                     </Stack>
                   </Box>
@@ -340,7 +340,7 @@ export function LocalAiPanel(): ReactElement {
                           {busy[model.id]
                             ? t('translation:common.loading')
                             : inUse
-                              ? t('translation:localAi.active')
+                              ? t('translation:localAi.inUse')
                               : t('translation:localAi.use')}
                         </Button>
                         <IconButton
