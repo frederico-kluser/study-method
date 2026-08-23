@@ -150,14 +150,18 @@ afterEach(() => {
   captured = null;
 });
 
-test('registerKeysHandlers registra exatamente os 4 canais do contrato KEYS_CHANNELS', () => {
+test('registerKeysHandlers registra os 4 canais keys:* que ELE possui (aditivo da onda 6)', () => {
   const store = makeFakeStore();
   const ipc = beforeEachRegister(store);
   const channels = [...ipc.handlers.keys()].sort();
+  // Onda 6 (startup gate): KEYS_CHANNELS ganhou STARTUP_STATUS aditivo, mas
+  // esse canal é registrado por registerStartupHandlers (registrador separado),
+  // NÃO por registerKeysHandlers. Aqui conferimos exatamente os 4 donos dele.
+  const owned = Object.values(KEYS_CHANNELS).filter((c) => c !== KEYS_CHANNELS.STARTUP_STATUS).sort();
   assert.deepEqual(
     channels,
-    Object.values(KEYS_CHANNELS).sort(),
-    'os channels registrados devem casar exatamente o contrato',
+    owned,
+    'os channels registrados por registerKeysHandlers devem casar os candeos keys:* (exceto startup-status)',
   );
 });
 

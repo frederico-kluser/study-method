@@ -19,6 +19,7 @@ import { app, BrowserWindow, shell } from 'electron';
 
 import { registerIpcHandlers } from './ipc';
 import { registerKeysHandlers } from './ipc/keys-handlers';
+import { registerStartupHandlers } from './ipc/startup-handlers';
 import { registerPiHandlers } from './ipc/pi-handlers';
 import { registerStudyHandlers, type RunnerLike, type LessonServiceLike } from './ipc/study-handlers';
 import { registerLocalAiHandlers } from './ipc/localAi-handlers';
@@ -94,6 +95,10 @@ if (!gotLock) {
         registerStudy: () =>
           registerStudyHandlers({ runner, lesson, emit: emitWindow }),
       });
+
+      // GATE DE INÍCIO (onda 6): registra keys:startup-status (aditivo, fora do
+      // buildMainSetup p/ não alterar a ordem dos 5 registradores testados).
+      registerStartupHandlers();
     } catch (err) {
       console.error('[main] falha ao registrar handlers IPC:', err);
     }

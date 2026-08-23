@@ -71,6 +71,8 @@ export async function readAppSettings(store: Pick<SettingsStore, 'getValue'>): P
   if (provider !== undefined) out.defaultModelProvider = provider;
   const modelId = await store.getValue<string>('defaultModelId');
   if (modelId !== undefined) out.defaultModelId = modelId;
+  const language = await store.getValue<string>('language');
+  if (language !== undefined) out.language = language;
   return out;
 }
 
@@ -86,6 +88,9 @@ export async function writeAppSettings(
   }
   if (settings.defaultModelId !== undefined) {
     await store.setValue('defaultModelId', settings.defaultModelId);
+  }
+  if (settings.language !== undefined) {
+    await store.setValue('language', settings.language);
   }
 }
 

@@ -13,6 +13,12 @@ export const KEYS_CHANNELS = {
   SET_KEY: 'keys:set-key',
   VALIDATE_DEEPSEEK: 'keys:validate-deepseek',
   VALIDATE_BRAVE: 'keys:validate-brave',
+  // ADITIVO (onda 6 — startup gate): o GATE DE INÍCIO consulta esse canal no
+  // montage do AppGate. Registrado por `registerStartupHandlers` (um
+  // registrador SEPARADO do registerKeysHandlers, que continua dono dos 4
+  // canais acima). O preload expõe `window.api.keys.startupStatus` de forma
+  // automática (deriva de API_GROUPS=KEYS_CHANNELS).
+  STARTUP_STATUS: 'keys:startup-status',
 } as const;
 
 // ─── Canais: pi coding agent ──────────────────────────────────────────────────
@@ -195,6 +201,33 @@ export interface KeysStatus {
   braveValidated: boolean;
 }
 
+/**
+ * Status do GATE DE INÍCIO (onda 6 — startup gate). Resultado de
+ * `keys:startup-status`: a validação real das DUAS chaves (DeepSeek + Brave)
+ * acontecida no main no primeiro acesso do renderer.
+ *
+ * `phase` interpreta o estado agregado:
+ * - 'checking' → ainda validando (o AppGate mostra splash);
+ * - 'blocked'  → alguma chave falta configurar ou é inválida (401/403).
+ *               O AppGate renderiza o SetupView obrigatório;
+ * - 'offline'  → ambas as chaves ESTÃO configuradas mas as DUAS falharam por
+ *               erro de rede — o app inicia com um aviso e as features online
+ *               ficam gateadas (LLM local continua utilizável);
+ * - 'ready'    → as duas chaves são válidas; app inicia livre.
+ *
+ * Por provedor: `configured` = há chave salva; `valid` = a validação passou
+ * (401/403 → false; 402/429/200 → true); `error` = mensagem clara quando a
+ * chave é inválida ou falhou por rede.
+ */
+export interface StartupStatus {
+  phase: 'checking' | 'ready' | 'blocked' | 'offline';
+  deepseek: { configured: boolean; valid: boolean; error?: string };
+  brave: { configured: boolean; valid: boolean; error?: string };
+  /** true APENAS quando ambas as chaves configuradas falharam por erro de rede. */
+  offline: boolean;
+  checkedAt: string;
+}
+
 // ─── Canais: settings ─────────────────────────────────────────────────────────
 export const SETTINGS_CHANNELS = {
   GET: 'settings:get',
@@ -208,4 +241,6 @@ export interface AppSettings {
   lastSubject?: string;
   defaultModelProvider?: 'deepseek' | 'local';
   defaultModelId?: string;
+  /** ADITIVO (onda 6): idioma ativo, persistido pelo LanguageSwitcher do i18n. */
+  language?: string;
 }

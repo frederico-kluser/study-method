@@ -116,3 +116,31 @@ test('writeAppSettings: {} não grava nada', async () => {
   await writeAppSettings(store, {});
   assert.deepEqual(store.writes, []);
 });
+
+// ─── ADAÇÃO ONDA 6 (i18n): persistência do idioma via settings ───────────────
+
+test('readAppSettings: lê a chave language quando o store a tem', async () => {
+  const store = makeStore({ language: 'en' });
+  const settings = await readAppSettings(store);
+  assert.equal(settings.language, 'en');
+});
+
+test('writeAppSettings: persiste language quando definida', async () => {
+  const store = makeStore();
+  await writeAppSettings(store, { language: 'en' });
+  assert.deepEqual(store.writes, [['language', 'en']]);
+});
+
+test('round-trip: settings:set({language}) → settings:get devolve language (persistência do i18n)', async () => {
+  // Espelha o caminho real do LanguageSwitcher: setValue → getValue num mesmo store.
+  const store = makeStore();
+  await writeAppSettings(store, { language: 'en' });
+  const persisted = await readAppSettings(store);
+  assert.equal(persisted.language, 'en');
+
+  // Parcial / outras chaves não sobrescrevem language já salva.
+  await writeAppSettings(store, { lastSubject: 'listas' });
+  const after = await readAppSettings(store);
+  assert.equal(after.language, 'en');
+  assert.equal(after.lastSubject, 'listas');
+});
