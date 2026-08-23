@@ -163,6 +163,22 @@ function extractBraveErrorMessage(payload: unknown): string | undefined {
  * Factory do serviço Brave. Tudo é passível de injeção; sem `resolveApiKey`
  * fornecido, a chave sai do settingsStore com fallback em env.
  */
+
+/** Quantas re-tentativas após o primeiro 429 com delayEmsOnRateLimit > 0. Spec: 1 retry. */
+const RATE_LIMIT_MAX_RETRIES = 1;
+
+/**
+ * Opts internos passados entre chamadas recursivas de `doSearch`, incluindo um
+ * contador de tentativas (attempts = 1 na primeira chamada) que limita o retry
+ * de 429 a um número EXATO de re-tentativas, evitando recursão sem teto.
+ */
+interface RateLimitedSearchProps {
+  count: number;
+  extraParams?: SearchOptions['extraParams'];
+  delayMsOnRateLimit?: number;
+  /** Tentativa corrente (1 = primeira chamada). Nunca deve ficar <= 0. */
+  attempts: number;
+}
 export function createBraveSearchService(deps: BraveSearchDeps = {}): {
   testConnection(): Promise<{ ok: boolean; message: string }>;
   search(query: string, opts?: SearchOptions): Promise<BraveResult[]>;
@@ -198,7 +214,7 @@ export function createBraveSearchService(deps: BraveSearchDeps = {}): {
   async function doSearch(
     query: string,
     key: string,
-    opts: { count: number; extraParams?: SearchOptions['extraParams']; delayMsOnRateLimit?: number },
+    opts: RateLimitedSearchProps,
   ): Promise<BraveResult[]> {
     const qs = new URLSearchParams();
     qs.set('q', query);
@@ -231,9 +247,10 @@ export function createBraveSearchService(deps: BraveSearchDeps = {}): {
     }
 
     if (response.status === 429) {
-      if (opts.delayMsOnRateLimit && opts.delayMsOnRateLimit > 0) {
+      const retriesLeft = RATE_LIMIT_MAX_RETRIES - (opts.attempts - 1);
+      if (opts.delayMsOnRateLimit && opts.delayMsOnRateLimit > 0 && retriesLeft > 0) {
         await new Promise((r) => setTimeout(r, opts.delayMsOnRateLimit));
-        return doSearch(query, key, opts);
+        return doSearch(query, key, { ...opts, attempts: opts.attempts + 1 });
       }
       const err = new Error('Rate limit atingido pela Brave Search API (429). Tente novamente em instantes.');
       (err as Error & { code?: string }).code = 'BRAVE_RATE_LIMIT';
@@ -309,6 +326,7 @@ export function createBraveSearchService(deps: BraveSearchDeps = {}): {
         count: opts.count ?? 10,
         extraParams: opts.extraParams,
         delayMsOnRateLimit: opts.delayMsOnRateLimit,
+        attempts: 1,
       });
     },
 
@@ -342,6 +360,7 @@ export function createBraveSearchService(deps: BraveSearchDeps = {}): {
               count: opts.count ?? 10,
               extraParams: opts.extraParams,
               delayMsOnRateLimit: opts.delayMsOnRateLimit,
+              attempts: 1,
             });
             for (const f of found) {
               if (!f.url || seenUrls.has(f.url)) continue;

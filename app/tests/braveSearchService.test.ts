@@ -1,7 +1,8 @@
 /**
  * tests/braveSearchService.test.ts — BraveSearchService com fetch FAKE injetado
- * (nunca usa rede real). Cobre: normalização 200, 401/403, 429 (com/sem retry),
- * erro de rede, chave ausente, multiSearch com limite de concorrência medido e
+ * (nunca usa rede real). Cobre: normalização 200, 401/403, 429 (sem retry, com
+ * retry 1 e 429 persistente com teto), erro de rede, chave ausente, multiSearch
+ * com limite de concorrência medido, delay entre lotes medido por relógio real e
  * dedup por url.
  */
 import { test } from 'node:test';
@@ -174,6 +175,23 @@ test('search: 429 com delayMsOnRateLimit > 0 → faz nova tentativa e retorna', 
   assert.equal(results.length, 1);
 });
 
+test('search: 429 persistente com delayMsOnRateLimit → exatamente 1 retry e erro (sem recursão)', async () => {
+  // Sempre 429: sem o teto de retries a recursão iria a ∞ e o teste estouraria.
+  // A spec é "retry 1": 1ª chamada + UMA re-tentativa → 2 chamadas, depois erro.
+  let calls = 0;
+  const fetchImpl = (async () => {
+    calls++;
+    return fakeResponse(429);
+  }) as unknown as typeof fetch;
+  const svc = createBraveSearchService({ fetchImpl, resolveApiKey: async () => 'k' });
+  await assert.rejects(() => svc.search('q', { delayMsOnRateLimit: 1 }), (err: unknown) => {
+    const e = err as Error & { code?: string };
+    assert.equal(e.code, 'BRAVE_RATE_LIMIT');
+    return true;
+  });
+  assert.equal(calls, 2, '429 persistente deve parar após exatamente 1 retry (2 chamadas no total)');
+});
+
 test('search: erro de rede → erro parseado', async () => {
   const fetchImpl = (async () => {
     throw new Error('ECONNREFUSED');
@@ -250,19 +268,25 @@ test('multiSearch: respeita o limite de concorrência (máx simultâneas)', asyn
   assert.ok(peak >= 1);
 });
 
-test('multiSearch: com delayMs > 0 há espera entre lotes (não dispara todas juntas)', async () => {
-  let started = 0;
-  const order: number[] = [];
-  const fetchImpl = (async () => {
-    const n = ++started;
-    order.push(n);
+test('multiSearch: com delayMs > 0 espera de fato entre lotes (diferença mínima >= delayMs)', async () => {
+  const delayMs = 150;
+  // Relógio real: registra o instante (Date.now) do início de CADA request, por query.
+  const starts = new Map<string, number>();
+  const fetchImpl = (async (url: any) => {
+    const query = /q=([^&]+)/.exec(String(url))?.[1] ?? '?';
+    starts.set(query, Date.now());
     await new Promise((r) => setTimeout(r, 2));
-    return fakeResponse(200, braveBody([sampleResult('r', `https://u${n}.example`)]));
+    return fakeResponse(200, braveBody([sampleResult('r', `https://${query}.example`)]));
   }) as unknown as typeof fetch;
   const svc = createBraveSearchService({ fetchImpl, resolveApiKey: async () => 'k' });
-  await svc.multiSearch(['a', 'b', 'c', 'd'], { concurrency: 2, delayMs: 1 });
-  // Com delay, os últimos índices começam depois; não é possível todos os 4 no tick 0.
-  assert.equal(order.length, 4);
+  await svc.multiSearch(['a', 'b', 'c', 'd'], { concurrency: 2, delayMs });
+  // 4 queries, concurrency 2 → lotes [a,b] e [c,d]; o delay ocorre antes do lote 2.
+  assert.deepEqual([...starts.keys()].sort(), ['a', 'b', 'c', 'd'], 'todos os 4 requests devem ter disparado');
+  const gap = (starts.get('c') ?? 0) - (starts.get('a') ?? 0);
+  assert.ok(
+    gap >= delayMs,
+    `início do 2º lote (c) deve vir >= ${delayMs}ms após o 1º (a) (visto ${gap}ms)`,
+  );
 });
 
 // ─── multiSearch: dedup por url (primeira vence) ─────────────────────────────
