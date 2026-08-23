@@ -36,7 +36,7 @@ test('validateDeepseekKey: 200 com modelo alvo → válida + modelAvailable true
 
 test('validateDeepseekKey: 200 com id exato 0731 → modelAvailable true', async () => {
   const fetchImpl = (async () =>
-    fakeResponse(200, { data: [{ id: 'deepseek-v4-flash-0731' }] })) as unknown as typeof fetch;
+    fakeResponse(200, { data: [{ id: 'deepseek-v4-flash' }] })) as unknown as typeof fetch;
   const result = await validateDeepseekKey('sk-123', { fetchImpl });
   assert.equal(result.isValid, true);
   assert.equal(result.modelAvailable, true);

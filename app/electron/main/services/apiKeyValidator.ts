@@ -23,7 +23,7 @@ import type { ValidationResult } from '@shared/ipc-contract';
  */
 export interface DeepSeekValidationResult extends ValidationResult {
   provider: 'deepseek';
-  /** true quando a resposta 200 listou o modelo alvo (deepseek-v4-flash-0731). */
+  /** true quando a resposta 200 listou o modelo alvo (deepseek-v4-flash). */
   modelAvailable?: boolean;
 }
 
@@ -45,8 +45,8 @@ export interface BraveValidateOptions {
   baseUrl?: string;
 }
 
-/** Model id alvo do contrato da onda (DeepSeek V4 Flash 0731). */
-const DEEPSEEK_TARGET_MODEL = 'deepseek-v4-flash-0731';
+/** Model id alvo (DeepSeek V4 Flash, validado em GET /models). */
+const DEEPSEEK_TARGET_MODEL = 'deepseek-v4-flash';
 /** Restringe o match a ids que contenham o alvo, para aceitar `deepseek-v4-flash` */
 const DEEPSEEK_MODEL_PATTERN = 'deepseek-v4-flash';
 

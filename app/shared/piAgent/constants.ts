@@ -17,15 +17,21 @@ export const PI_DEFAULTS = {
 } as const;
 
 /**
- * Identidade do modelo alvo (contrato da onda): DeepSeek V4 Flash 0731,
- * servido via OpenAI-compatible completions em https://api.deepseek.com.
- * O mutual-id oficial da API DeepSeek é `deepseek-v4-flash` (o checkpoint 0731
- * é servido sob este id); mantemos o literal `deepseek-v4-flash-0731` conforme
- * o contrato da onda — ver handoff para a ressalva das fontes oficiais.
+ * Identidade do modelo alvo: DeepSeek V4 Flash, servido via OpenAI-compatible
+ * completions em https://api.deepseek.com.
+ *
+ * O id foi CORRIGIDO para `deepseek-v4-flash` (VALIDADO na API real — GET
+ * /models devolve exatamente {deepseek-v4-flash, deepseek-v4-pro,
+ * deepseek-v4-flash-vision-exp}; POST /chat/completions com
+ * `deepseek-v4-flash` devolve 200 com content não-vazio). O literal anterior
+ * `deepseek-v4-flash-0731` NÃO existe e a API respondia HTTP 400
+ * "invalid_request_error: The supported API model names are ... but you passed
+ * deepseek-v4-flash-0731", que caía no caminho de sucesso do cliente e virava o
+ * enganoso "resposta sem choices[0].message.content". Ver handoff fix15.
  */
 export const DEEPSEEK_MODEL = {
-  id: 'deepseek-v4-flash-0731',
-  name: 'DeepSeek V4 Flash 0731',
+  id: 'deepseek-v4-flash',
+  name: 'DeepSeek V4 Flash',
   provider: 'deepseek',
   baseUrl: 'https://api.deepseek.com',
   contextWindow: 131072,

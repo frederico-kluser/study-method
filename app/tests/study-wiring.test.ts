@@ -111,7 +111,7 @@ describe('(b) pi:execute via buildPiHandlers', () => {
     const execute = handlers.get(PI_CHANNELS.EXECUTE)!;
     const result = await execute(undefined, {
       prompt: 'escreva um teste',
-      modelConfig: { provider: 'deepseek', model: 'deepseek-v4-flash-0731' },
+      modelConfig: { provider: 'deepseek', model: 'deepseek-v4-flash' },
     });
 
     assert.equal(calls.length, 1);

@@ -18,26 +18,26 @@ test('mapWorkflowProviderToPi: deepseek → deepseek; outros passam direto', () 
 });
 
 test('mapWorkflowModelToPi: passthrough', () => {
-  assert.equal(mapWorkflowModelToPi('deepseek', 'deepseek-v4-flash-0731'), 'deepseek-v4-flash-0731');
+  assert.equal(mapWorkflowModelToPi('deepseek', 'deepseek-v4-flash'), 'deepseek-v4-flash');
   assert.equal(mapWorkflowModelToPi('openai', 'gpt-x'), 'gpt-x');
 });
 
 test('buildPiModelConfig: mapeia provider + model + thinkingLevel off → sem thinkingLevel', () => {
-  const cfg = buildPiModelConfig('deepseek', 'deepseek-v4-flash-0731', 'off');
+  const cfg = buildPiModelConfig('deepseek', 'deepseek-v4-flash', 'off');
   assert.deepEqual(cfg, {
     provider: 'deepseek',
-    model: 'deepseek-v4-flash-0731',
+    model: 'deepseek-v4-flash',
     thinkingLevel: undefined,
   });
 });
 
 test('buildPiModelConfig: thinkingLevel != off é propagado', () => {
-  const cfg = buildPiModelConfig('deepseek', 'deepseek-v4-flash-0731', 'high');
+  const cfg = buildPiModelConfig('deepseek', 'deepseek-v4-flash', 'high');
   assert.equal(cfg.thinkingLevel, 'high');
 });
 
 test('buildPiModelConfig: default thinkingLevel é off (sem campo)', () => {
-  const cfg = buildPiModelConfig('deepseek', 'deepseek-v4-flash-0731');
+  const cfg = buildPiModelConfig('deepseek', 'deepseek-v4-flash');
   assert.equal('thinkingLevel' in cfg && cfg.thinkingLevel === undefined, true);
 });
 
@@ -56,8 +56,8 @@ test('piModelSupportsTemperature: OpenAI-native reasoning NÃO aceita temperatur
 test('buildDeepSeekModelObject: campos exatos do contrato', () => {
   const model = buildDeepSeekModelObject('sk-deepseek-123');
   assert.deepEqual(model, {
-    id: 'deepseek-v4-flash-0731',
-    name: 'DeepSeek V4 Flash 0731',
+    id: 'deepseek-v4-flash',
+    name: 'DeepSeek V4 Flash',
     api: 'openai-completions',
     provider: 'deepseek',
     baseUrl: 'https://api.deepseek.com',

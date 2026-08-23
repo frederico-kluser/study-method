@@ -403,7 +403,7 @@ export default function ChallengeView(): ReactElement {
       const result = (await api.pi.execute({
         prompt,
         workingDirectory: active.workspaceDir,
-        modelConfig: { provider: 'deepseek', model: 'deepseek-v4-flash-0731' },
+        modelConfig: { provider: 'deepseek', model: 'deepseek-v4-flash' },
         skillSystemPrompt: digestStudyMethodRules(),
         additionalContext:
           (primaryCodePath ? `\n[arquivo ${primaryCodePath}]\n\`\`\`\n${studentCode}\n\`\`\`\n` : '') +

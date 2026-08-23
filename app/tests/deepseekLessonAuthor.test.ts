@@ -20,7 +20,7 @@ function fakeClient(respond: (req: { messages: { role: string; content: string }
     chatCompletion: async (req: any) => {
       calls.push(req);
       const r = respond(req);
-      return { content: r.content, model: 'deepseek-v4-flash-0731' };
+      return { content: r.content, model: 'deepseek-v4-flash' };
     },
   };
   return { client, calls };
@@ -209,9 +209,9 @@ test('author: sem chave (getApiKey vazio/sem client) → DeepSeekError KEY_MISSI
 
 test('author: model injetado repassa ao cliente', async () => {
   const { client, calls } = fakeClient(() => ({ content: validDraftJson() }));
-  const author = createDeepSeekLessonAuthor({ client, model: 'deepseek-v4-flash-0731' });
+  const author = createDeepSeekLessonAuthor({ client, model: 'deepseek-v4-flash' });
   await author({ subject: 'X', findings: [] });
-  assert.equal(calls[0].model, 'deepseek-v4-flash-0731');
+  assert.equal(calls[0].model, 'deepseek-v4-flash');
 });
 
 test('validateLessonDraft: chama direto com draft válido → devolve normalizado', () => {

@@ -100,7 +100,7 @@ function makeService(
 function makeRequest(overrides?: Partial<PiExecuteRequest>): PiExecuteRequest {
   return {
     prompt: 'Faz X',
-    modelConfig: { provider: 'deepseek', model: 'deepseek-v4-flash-0731' },
+    modelConfig: { provider: 'deepseek', model: 'deepseek-v4-flash' },
     ...overrides,
   };
 }
@@ -125,7 +125,7 @@ test('deepseek: setRuntimeApiKey antes do createAgentSession; modelo explícito 
   assert.equal(result.success, true);
   assert.deepEqual(recorded.setRuntimeKey, ['deepseek', 'sk-deepseek-key']);
   const model = recorded.sessionConfig.model as Record<string, unknown>;
-  assert.equal(model.id, 'deepseek-v4-flash-0731');
+  assert.equal(model.id, 'deepseek-v4-flash');
   assert.equal(model.provider, 'deepseek');
   assert.equal(model.baseUrl, 'https://api.deepseek.com');
   assert.equal((model.headers as Record<string, string>).Authorization, 'Bearer sk-deepseek-key');
