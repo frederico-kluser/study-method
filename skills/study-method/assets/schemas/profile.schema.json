@@ -1,0 +1,333 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "study-method/profile.schema.json",
+  "title": "Perfil consolidado do aluno (memory/profile.json)",
+  "description": "Camada consolidada e bitemporal: memoria SEMANTICA (o que e verdade sobre o aluno) e memoria PROCEDIMENTAL (o que funciona com ESTE aluno). Escrito apenas pela compactacao, a partir dos memory/NNNN.json brutos. Um fato NUNCA e sobrescrito: quando muda, o antigo recebe status superseded e superseded_by, e um fato novo com o mesmo claim_key nasce active.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "updated_at", "next_fact_seq", "semantic_facts", "procedural_facts"],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+$",
+      "description": "Versao do schema do perfil, formato MAJOR.MINOR. Independente das versoes de sessao e indice."
+    },
+    "updated_at": {
+      "type": "string",
+      "description": "Timestamp ISO 8601 com offset de fuso da ultima escrita no perfil (ou seja, da ultima compactacao)."
+    },
+    "student": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Dados minimos do aluno. Principio de minimizacao: se um campo nao torna a proxima aula melhor, ele nao entra aqui.",
+      "properties": {
+        "display_name": {
+          "type": ["string", "null"],
+          "description": "Como o aluno quer ser chamado. Opcional e removivel a qualquer momento; nao registrar nome completo, escola, idade ou qualquer identificador que nao sirva a pedagogia."
+        },
+        "goals": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Objetivos declarados pelo aluno, um por item (ex.: 'entender calculo o suficiente para ler papers de ML')."
+        },
+        "known_base_domains": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Dominios que o aluno ja domina estruturalmente e que servem de base para analogias (ex.: xadrez, cozinha, musica, futebol). Uma analogia so funciona se a base for algo que ele conhece de verdade; este campo evita chutar a base a cada sessao."
+        }
+      }
+    },
+    "decay_policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Limiares em dias para o calculo DERIVADO de needs_reconfirmation. needs_reconfirmation nao e persistido e nao e um terceiro valor de status: e calculado a cada digest como (hoje - last_observed_at) > limiar do tipo do fato.",
+      "properties": {
+        "skill_fact_days": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Dias sem reobservacao a partir dos quais um fato semantico de habilidade vira hipotese a reconfirmar. Default 60."
+        },
+        "procedural_fact_days": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Dias sem reobservacao a partir dos quais um fato procedimental vira hipotese a reconfirmar. Default 180: uma analogia que pegou envelhece mais devagar que um nivel de habilidade."
+        },
+        "preference_fact_days": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Dias sem reobservacao a partir dos quais uma preferencia declarada vira hipotese a reconfirmar. Default 180."
+        }
+      }
+    },
+    "compaction": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Estado e politica da compactacao ciclica.",
+      "properties": {
+        "trigger_uncompacted_sessions": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Numero de sessoes com compacted_at null que dispara uma compactacao. Default 15 (faixa 15-20 da pesquisa; o menor valor da faixa e o default por seguranca)."
+        },
+        "last_compacted_at": {
+          "type": ["string", "null"],
+          "description": "Timestamp ISO 8601 da ultima compactacao. Null se nunca rodou."
+        },
+        "last_compacted_session_id": {
+          "type": ["string", "null"],
+          "pattern": "^[0-9]{4}$",
+          "description": "session_id mais alto ja consolidado no perfil. Todas as sessoes acima deste id ainda estao apenas na camada episodica."
+        },
+        "compaction_count": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Quantas compactacoes ja rodaram. Serve so para auditoria."
+        }
+      }
+    },
+    "next_fact_seq": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Proximo numero sequencial a usar ao criar um fact_id (semantico ou procedimental compartilham o mesmo contador). Incrementado a cada fato criado; nunca reaproveitado, nem para fatos superseded."
+    },
+    "semantic_facts": {
+      "type": "array",
+      "description": "MEMORIA SEMANTICA: o que e verdade sobre o aluno, derivado de multiplas sessoes. Inclui os fatos active e todo o historico superseded (nunca apagar; auditoria e 'quando isso mudou' sao informacao pedagogica).",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["fact_id", "claim_key", "kind", "claim", "observation_type", "confidence", "observed_at", "recorded_at", "last_observed_at", "status", "source_sessions"],
+        "properties": {
+          "fact_id": {
+            "type": "string",
+            "pattern": "^f-[0-9]{4}$",
+            "description": "Identificador unico do fato, 4 digitos zero-padded a partir de next_fact_seq. Nunca reaproveitado."
+          },
+          "claim_key": {
+            "type": "string",
+            "pattern": "^[a-z0-9]+(-[a-z0-9]+)*(:[a-z0-9]+(-[a-z0-9]+)*)+$",
+            "description": "Chave estavel do que esta sendo afirmado, no formato dominio:alvo[:aspecto] (ex.: skill:derivadas-conceito:level, difficulty:recursao). REGRA DE SUPERSEDE: um fato novo supersede o fato active de MESMO claim_key, e apenas esse. Dois fatos sobre o mesmo topico com claim_key diferente coexistem sem conflito."
+          },
+          "kind": {
+            "enum": ["strength", "difficulty", "preference", "skill_level", "context"],
+            "description": "Natureza do fato. strength: ponto forte. difficulty: dificuldade recorrente. preference: preferencia declarada de como estudar. skill_level: nivel em uma habilidade. context: circunstancia relevante e nao sensivel (ex.: 'estuda de madrugada, cansado')."
+          },
+          "topic": {
+            "type": ["string", "null"],
+            "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+            "description": "Tag do topico ou habilidade a que o fato se refere. E a chave pela qual o digest seleciona fatos relevantes para a sessao de hoje."
+          },
+          "claim": {
+            "type": "string",
+            "maxLength": 240,
+            "description": "A afirmacao em pt-BR, uma frase, ate 240 caracteres. Deve ser falsificavel: 'erra o caso base em recursao' e util; 'tem dificuldade com programacao' nao."
+          },
+          "observation_type": {
+            "enum": ["observed", "inferred"],
+            "description": "observed: sustentado por evidencia direta em pelo menos uma sessao. inferred: generalizacao do tutor. Um fato inferred NAO pode nascer com confidence high; so sobe apos reconfirmacao em outra sessao."
+          },
+          "confidence": {
+            "enum": ["low", "medium", "high"],
+            "description": "Confianca no fato. low: uma observacao unica ou inferida. medium: observado em duas sessoes distintas. high: observado em tres ou mais sessoes distintas, com evidencia."
+          },
+          "observed_at": {
+            "type": "string",
+            "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$",
+            "description": "VALID TIME inicial: a data da sessao em que o fato foi observado pela primeira vez."
+          },
+          "recorded_at": {
+            "type": "string",
+            "description": "TRANSACTION TIME: timestamp ISO 8601 de quando o fato foi gravado no arquivo (isto e, da compactacao que o criou). Pode ser muito posterior a observed_at."
+          },
+          "last_observed_at": {
+            "type": "string",
+            "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$",
+            "description": "Data da reobservacao mais recente do fato. E o que faz o decaimento funcionar: um fato nunca reconfirmado envelhece e vira hipotese, em vez de virar rotulo permanente do aluno."
+          },
+          "status": {
+            "enum": ["active", "superseded"],
+            "description": "active: e o que vale hoje sobre este claim_key. superseded: foi substituido por um fato mais novo, e permanece no arquivo como historico. Nao existe um terceiro valor para 'envelhecido': isso e derivado de last_observed_at."
+          },
+          "superseded_by": {
+            "type": ["string", "null"],
+            "pattern": "^f-[0-9]{4}$",
+            "description": "fact_id do fato que substituiu este. Obrigatoriamente preenchido quando status for superseded, e null quando active."
+          },
+          "supersedes": {
+            "type": ["string", "null"],
+            "pattern": "^f-[0-9]{4}$",
+            "description": "fact_id do fato que este substituiu. Null quando o fato e a primeira afirmacao sobre o claim_key."
+          },
+          "source_sessions": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string",
+              "pattern": "^[0-9]{4}$"
+            },
+            "description": "session_id de todas as sessoes que sustentam este fato, ordenados. E o que torna o perfil auditavel e re-derivavel: a partir daqui sempre da para abrir o episodio bruto e conferir se a consolidacao foi honesta."
+          },
+          "evidence": {
+            "type": ["string", "null"],
+            "description": "O observavel mais forte que sustenta o fato, copiado da sessao de origem. Um fato sem evidencia nao pode passar de confidence low."
+          },
+          "skill_level": {
+            "enum": ["beginner", "intermediate", "advanced", null],
+            "description": "Nivel consolidado, preenchido apenas quando kind for skill_level."
+          },
+          "proficiency_state": {
+            "enum": ["unknown", "fragile", "mastered", null],
+            "description": "Estado de proficiencia consolidado. As regras de transicao e de regressao por tempo pertencem ao documento de proficiencia e repeticao espacada; aqui o valor e apenas persistido e transportado para o digest."
+          }
+        }
+      }
+    },
+    "procedural_facts": {
+      "type": "array",
+      "description": "MEMORIA PROCEDIMENTAL: o COMO. O que funciona (e o que nunca mais deve ser tentado) com ESTE aluno especifico. Cada entrada e destilada de um ou mais how_it_happened[] das sessoes brutas e segue a mesma espinha bitemporal dos fatos semanticos.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["fact_id", "claim_key", "procedure_kind", "how", "outcome", "observation_type", "confidence", "observed_at", "recorded_at", "last_observed_at", "status", "source_sessions"],
+        "properties": {
+          "fact_id": {
+            "type": "string",
+            "pattern": "^f-[0-9]{4}$",
+            "description": "Identificador unico, do mesmo contador next_fact_seq dos fatos semanticos."
+          },
+          "claim_key": {
+            "type": "string",
+            "pattern": "^[a-z0-9]+(-[a-z0-9]+)*(:[a-z0-9]+(-[a-z0-9]+)*)+$",
+            "description": "Chave estavel no formato procedure_kind:topico:apelido (ex.: analogy:derivadas:zoom-local, presentation-order:limites:formalismo-primeiro). Mesma regra de supersede: so substitui o fato active de claim_key identico."
+          },
+          "procedure_kind": {
+            "enum": ["analogy", "explanation_path", "presentation_order", "hands_on_activity", "hint_strategy", "visualization", "antipattern"],
+            "description": "Tipo de procedimento consolidado. analogy: analogia com dominio-base validado. explanation_path: caminho de explicacao que funcionou. presentation_order: ordem de apresentacao das ideias. hands_on_activity: atividade que o aluno precisou fazer com as proprias maos. hint_strategy: forma de dar dica que funciona com ele. visualization: recurso visual que destravou. antipattern: procedimento que comprovadamente prejudica (sempre com outcome backfired)."
+          },
+          "target_topic": {
+            "type": ["string", "null"],
+            "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+            "description": "Topico ou conceito ao qual o procedimento se aplica. Chave de recuperacao: o digest seleciona os procedimentos cujo target_topic bate com os topicos da sessao de hoje."
+          },
+          "how": {
+            "type": "string",
+            "maxLength": 400,
+            "description": "O COMO, em ate 400 caracteres e em nivel de receita executavel: o que fazer, em que ordem, com que palavras. Deve ser reexecutavel numa proxima sessao sem consultar o episodio bruto. 'Plotar a funcao e dar zoom sucessivo ate a curva ficar reta antes de qualquer formula' e executavel; 'usar visualizacao' nao e."
+          },
+          "base_domain": {
+            "type": ["string", "null"],
+            "description": "Para analogias: o dominio que o aluno ja domina e que serve de base do mapeamento (ex.: velocimetro do carro, receita de cozinha). Null para os demais procedure_kind."
+          },
+          "mapping": {
+            "type": ["string", "null"],
+            "description": "Para analogias: o mapeamento RELACIONAL explicito, nao a etiqueta. O que importa e a relacao preservada ('a taxa media vira instantanea quando o trecho encolhe'), nao a semelhanca de aparencia. Analogia sem mapeamento relacional registrado tende a ser reintroduzida errada."
+          },
+          "known_limit": {
+            "type": ["string", "null"],
+            "description": "Onde a analogia ou o procedimento para de valer e passa a implantar concepcao errada (transferencia negativa). Registrar isto e o que permite marcar o limite ANTES do aluno esticar a analogia longe demais."
+          },
+          "validated": {
+            "type": ["boolean", "null"],
+            "description": "True apenas quando o aluno USOU o procedimento para prever ou resolver um caso NOVO, nao quando apenas repetiu de volta o que ouviu. Null quando ainda nao foi testado dessa forma."
+          },
+          "retired": {
+            "type": ["boolean", "null"],
+            "description": "True quando o aluno passou a resolver o assunto sem precisar do procedimento. Um andaime mantido depois de desnecessario vira ruido; o digest nao carrega procedimentos aposentados."
+          },
+          "outcome": {
+            "enum": ["unlocked", "partial", "no_effect", "backfired"],
+            "description": "Efeito consolidado do procedimento, com a mesma semantica de how_it_happened[].outcome na sessao. Entradas backfired sao as mais valiosas do arquivo e nunca sao truncadas pelo orcamento do digest."
+          },
+          "times_observed": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Em quantas sessoes distintas este procedimento foi observado com o mesmo outcome. E o que sustenta o valor de confidence."
+          },
+          "observation_type": {
+            "enum": ["observed", "inferred"],
+            "description": "observed: o efeito foi visto diretamente. inferred: generalizacao do tutor. Um procedimento inferred nao pode nascer com confidence high."
+          },
+          "confidence": {
+            "enum": ["low", "medium", "high"],
+            "description": "low: observado em uma sessao. medium: duas sessoes distintas. high: tres ou mais, com evidencia."
+          },
+          "observed_at": {
+            "type": "string",
+            "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$",
+            "description": "VALID TIME inicial: data da sessao em que o procedimento foi observado pela primeira vez."
+          },
+          "recorded_at": {
+            "type": "string",
+            "description": "TRANSACTION TIME: timestamp ISO 8601 de quando o registro foi gravado pela compactacao."
+          },
+          "last_observed_at": {
+            "type": "string",
+            "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$",
+            "description": "Data da ultima vez que o procedimento foi usado e teve o efeito observado. Base do calculo derivado de needs_reconfirmation."
+          },
+          "status": {
+            "enum": ["active", "superseded"],
+            "description": "active: vale hoje. superseded: substituido por registro mais novo de mesmo claim_key, preservado como historico."
+          },
+          "superseded_by": {
+            "type": ["string", "null"],
+            "pattern": "^f-[0-9]{4}$",
+            "description": "fact_id do registro que substituiu este. Preenchido quando status for superseded."
+          },
+          "supersedes": {
+            "type": ["string", "null"],
+            "pattern": "^f-[0-9]{4}$",
+            "description": "fact_id do registro substituido por este. Null na primeira versao."
+          },
+          "source_sessions": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string",
+              "pattern": "^[0-9]{4}$"
+            },
+            "description": "session_id de todas as sessoes que sustentam este procedimento. Torna a consolidacao auditavel e re-derivavel a partir do bruto."
+          },
+          "evidence": {
+            "type": ["string", "null"],
+            "description": "O observavel mais forte copiado da sessao de origem: o que o aluno disse, escreveu ou previu que comprova o outcome."
+          }
+        }
+      }
+    },
+    "pending_followups": {
+      "type": "array",
+      "description": "Pendencias explicitas que atravessam sessoes (promessas feitas ao aluno, perguntas nao respondidas). Sao carregadas integralmente no digest e nunca truncadas pelo orcamento.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["text", "created_in_session", "state"],
+        "properties": {
+          "text": {
+            "type": "string",
+            "maxLength": 240,
+            "description": "A pendencia em uma frase acionavel."
+          },
+          "created_in_session": {
+            "type": "string",
+            "pattern": "^[0-9]{4}$",
+            "description": "session_id em que a pendencia nasceu."
+          },
+          "state": {
+            "enum": ["open", "done", "dropped"],
+            "description": "Estado da pendencia. Chama-se state, e nao status, para nao criar um terceiro significado do nome status neste projeto. open: ainda pendente. done: cumprida. dropped: descartada por decisao explicita."
+          },
+          "closed_in_session": {
+            "type": ["string", "null"],
+            "pattern": "^[0-9]{4}$",
+            "description": "session_id em que a pendencia foi cumprida ou descartada. Null enquanto open."
+          },
+          "origin_field": {
+            "enum": ["open_questions", "next_steps", "manual", null],
+            "description": "De qual campo da sessao a pendencia veio, para auditoria da derivacao."
+          }
+        }
+      }
+    }
+  }
+}

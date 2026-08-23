@@ -1,0 +1,200 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "study-method/session.schema.json",
+  "title": "Registro episodico de uma sessao de estudo (memory/NNNN.json)",
+  "description": "Um arquivo por sessao no diretorio memory/ do setup do aluno. E a camada episodica: o que aconteceu, o que foi praticado e COMO isso aconteceu. Criado no inicio da sessao com status in_progress e finalizado no fim. Texto em pt-BR; chaves e valores de enum em ingles snake_case.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "session_id", "date", "status", "one_line_summary"],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+$",
+      "description": "Versao do schema deste registro, no formato MAJOR.MINOR. Adicionar campo opcional sobe MINOR; tornar campo obrigatorio, renomear ou mudar tipo sobe MAJOR e exige migracao dos arquivos ja escritos."
+    },
+    "session_id": {
+      "type": "string",
+      "pattern": "^[0-9]{4}$",
+      "description": "Identificador da sessao com 4 digitos zero-padded. E igual ao nome do arquivo sem extensao: session_id 0042 vive em memory/0042.json. Monotonico, nunca reaproveitado."
+    },
+    "date": {
+      "type": "string",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$",
+      "description": "Data local da sessao (AAAA-MM-DD). E o valid time da observacao: a data em que o fato foi observado no mundo, nao a data em que foi gravado."
+    },
+    "started_at": {
+      "type": ["string", "null"],
+      "description": "Timestamp ISO 8601 com offset de fuso de quando a sessao comecou. Opcional."
+    },
+    "finalized_at": {
+      "type": ["string", "null"],
+      "description": "Timestamp ISO 8601 com offset de fuso de quando a sessao foi finalizada. E o transaction time do registro. Null enquanto status for in_progress."
+    },
+    "finalized_by": {
+      "enum": ["student", "auto_orphan_recovery", null],
+      "description": "Quem fechou a sessao. student: fechamento normal no fim da aula. auto_orphan_recovery: a sessao ficou orfa (aluno fechou o terminal) e foi fechada retroativamente pela sessao seguinte, sem inventar conteudo. Null enquanto in_progress."
+    },
+    "status": {
+      "enum": ["in_progress", "completed", "abandoned"],
+      "description": "Ciclo de vida DESTA SESSAO (nao confundir com o campo status de profile.json, que vale active|superseded e se refere a fatos). in_progress: aberta agora. completed: finalizada normalmente. abandoned: ficou orfa e foi fechada retroativamente pela sessao seguinte."
+    },
+    "topics": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$"
+      },
+      "description": "Tags de topico em kebab-case ASCII sem acento (ex.: derivadas, erro-numerico, python). Sao a chave de busca seletiva: o digest e a recuperacao por tag dependem delas. Omitir equivale a lista vazia."
+    },
+    "goal": {
+      "type": ["string", "null"],
+      "description": "O que o aluno queria conseguir nesta sessao, em uma frase, escrito no inicio da sessao. Serve para o fechamento comparar intencao com resultado."
+    },
+    "what_was_done": {
+      "type": ["string", "null"],
+      "description": "O que foi feito concretamente na sessao (exercicios, codigo escrito, leitura), em 1-3 frases. Fatos observaveis, nao avaliacao."
+    },
+    "what_was_learned": {
+      "type": ["array", "null"],
+      "items": { "type": "string" },
+      "description": "O que foi aprendido ou praticado, uma afirmacao curta por item, na voz do que o aluno passou a conseguir fazer ou explicar. Nao repetir o conteudo da aula, so o que mudou nele."
+    },
+    "how_it_happened": {
+      "type": ["array", "null"],
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["move_type", "description", "outcome"],
+        "properties": {
+          "move_type": {
+            "enum": ["analogy", "worked_example", "hint_ladder", "socratic_question", "hands_on", "explanation_order", "visualization", "reference_lookup", "spaced_review", "error_autopsy"],
+            "description": "Tipo do movimento pedagogico executado. analogy: analogia oferecida. worked_example: exemplo resolvido mostrado. hint_ladder: dica em um nivel da escada de dicas. socratic_question: pergunta que devolve o problema ao aluno. hands_on: o aluno fez com as proprias maos. explanation_order: a ordem escolhida para apresentar as ideias. visualization: grafico, desenho ou diagrama. reference_lookup: consulta a documentacao ou fonte. spaced_review: retomada espacada de conceito antigo. error_autopsy: analise do erro cometido pelo aluno."
+          },
+          "description": {
+            "type": "string",
+            "description": "O movimento em 1-2 frases concretas: o que foi feito, nessa ordem, com essas palavras. Este e o COMO. Nao escrever 'expliquei derivadas'; escrever 'plotei x**3 e dei zoom sucessivo ate a curva ficar reta na tela'."
+          },
+          "target_topic": {
+            "type": ["string", "null"],
+            "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+            "description": "Tag do topico que este movimento atacou. Deve estar em topics. E a chave pela qual o movimento e recuperado numa sessao futura sobre o mesmo assunto."
+          },
+          "outcome": {
+            "enum": ["unlocked", "partial", "no_effect", "backfired"],
+            "description": "Efeito observado do movimento. unlocked: destravou (o aluno passou a resolver ou prever sozinho). partial: ajudou mas nao bastou. no_effect: nao mudou nada. backfired: piorou (confundiu, travou, frustrou, ou implantou uma concepcao errada)."
+          },
+          "evidence": {
+            "type": ["string", "null"],
+            "description": "O observavel concreto que sustenta o outcome: o que o aluno disse, escreveu ou fez. Sem evidencia, o outcome e opiniao e nunca deve ser promovido a fato procedimental no perfil com confidence acima de low."
+          },
+          "hint_level": {
+            "type": ["integer", "null"],
+            "minimum": 0,
+            "maximum": 5,
+            "description": "Nivel da escada de dicas usado, de 0 (nenhuma dica) a 5 (resposta pronta). Preencher apenas quando move_type for hint_ladder."
+          },
+          "observation_type": {
+            "enum": ["observed", "inferred", null],
+            "description": "observed: o efeito foi visto diretamente nesta sessao. inferred: e generalizacao do tutor a partir do que viu. Ausente equivale a observed. Separar os dois evita que inferencia vire fato estabelecido na proxima sessao."
+          }
+        }
+      },
+      "description": "MEMORIA PROCEDIMENTAL BRUTA: a sequencia de movimentos pedagogicos desta sessao, na ordem em que aconteceram, cada um com o efeito observado. E o COMO isso aconteceu pedido explicitamente pelo usuario. Registrar tambem os movimentos que falharam: o que nao funcionar e mais barato de reusar do que o que funcionou."
+    },
+    "skills_observed": {
+      "type": ["array", "null"],
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["skill"],
+        "properties": {
+          "skill": {
+            "type": "string",
+            "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+            "description": "Nome da habilidade em kebab-case ASCII sem acento (ex.: derivadas-conceito, python-funcoes). Mais granular que topics: um topico pode conter varias habilidades."
+          },
+          "level": {
+            "enum": ["beginner", "intermediate", "advanced", null],
+            "description": "Nivel observado da habilidade nesta sessao."
+          },
+          "confidence": {
+            "enum": ["low", "medium", "high", null],
+            "description": "Confianca do tutor nesta observacao especifica (nao a confianca do aluno). Uma unica observacao sem evidencia direta nao passa de low."
+          },
+          "last_observed_at": {
+            "type": ["string", "null"],
+            "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$",
+            "description": "Data da observacao mais recente desta habilidade. Numa sessao e sempre igual a date; existe aqui para o campo sobreviver identico ao ser promovido para profile.json."
+          },
+          "evidence": {
+            "type": ["string", "null"],
+            "description": "O observavel que sustenta o nivel atribuido: o que o aluno resolveu, com quanta dica, com que tipo de erro."
+          },
+          "observation_type": {
+            "enum": ["observed", "inferred", null],
+            "description": "observed: visto diretamente nesta sessao. inferred: deduzido de outra coisa. Ausente equivale a observed."
+          },
+          "proficiency_state": {
+            "enum": ["unknown", "fragile", "mastered", null],
+            "description": "Estado de proficiencia do conceito. As REGRAS de transicao entre estes valores nao pertencem a este documento: sao definidas pelo documento de proficiencia e repeticao espacada. Aqui o campo e apenas transportado e persistido."
+          }
+        }
+      },
+      "description": "Habilidades observadas nesta sessao, com o nivel visto e a evidencia. E a materia-prima da memoria semantica: a compactacao promove estas observacoes a fatos em profile.json."
+    },
+    "affect": {
+      "enum": ["engaged", "frustrated", "confident", "anxious", "unmotivated", "neutral", null],
+      "description": "Estado afetivo predominante do aluno nesta sessao. Vocabulario fechado de proposito: texto livre aqui deriva ('chateado', 'desanimado', 'meio pra baixo') e vira irrecuperavel por igualdade de string."
+    },
+    "affect_note": {
+      "type": ["string", "null"],
+      "description": "Uma frase sobre o afeto observado, ancorada em comportamento (ficou quieto, parou de perguntar, riu quando funcionou). Nao registrar contexto pessoal, familiar ou de saude alem do necessario para adaptar o ensino."
+    },
+    "what_worked": {
+      "type": ["string", "null"],
+      "description": "Resumo em uma frase do que funcionou pedagogicamente nesta sessao. E a versao curta de how_it_happened; existe porque alimenta o digest sem obrigar a abrir o array inteiro."
+    },
+    "what_didnt_work": {
+      "type": ["string", "null"],
+      "description": "Resumo em uma frase do que nao funcionou. Campo de alto valor: evita repetir na proxima sessao a abordagem que ja travou o aluno."
+    },
+    "open_questions": {
+      "type": ["array", "null"],
+      "items": { "type": "string" },
+      "description": "Perguntas que ficaram em aberto ao fim da sessao, uma por item. Entram no digest da sessao seguinte como pendencia, nunca truncadas pelo orcamento."
+    },
+    "next_steps": {
+      "type": ["array", "null"],
+      "items": { "type": "string" },
+      "description": "Proximos passos combinados com o aluno, uma acao concreta por item. Tambem entram no digest da sessao seguinte como pendencia."
+    },
+    "artifacts": {
+      "type": ["array", "null"],
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["path", "kind"],
+        "properties": {
+          "path": {
+            "type": "string",
+            "description": "Caminho relativo a raiz do setup do aluno (ex.: challenges/0007-derivada-numerica.py). Nunca caminho absoluto: o setup pode ser movido."
+          },
+          "kind": {
+            "enum": ["challenge", "research", "doc", "viz", "other"],
+            "description": "Tipo do artefato produzido. challenge: arquivo em challenges/. research: arquivo em researchs/. doc: arquivo no docs/ do setup do aluno. viz: visualizacao gerada. other: qualquer outro."
+          }
+        }
+      },
+      "description": "Arquivos criados ou alterados nesta sessao dentro do setup do aluno. Permite que uma sessao futura reabra o que foi feito sem depender de memoria textual."
+    },
+    "one_line_summary": {
+      "type": "string",
+      "maxLength": 160,
+      "description": "OBRIGATORIO. Uma unica frase, ate 160 caracteres, que responde 'o que aconteceu nesta sessao'. E o campo que alimenta o INDEX.json e o unico texto desta sessao que o digest carrega por padrao nas sessoes seguintes. No momento da criacao (status in_progress) recebe um valor provisorio e e reescrito na finalizacao."
+    },
+    "raw_notes": {
+      "type": ["string", "null"],
+      "description": "Anotacoes brutas da sessao (trechos de dialogo, transcricao parcial de exercicio). Nunca entra no digest; so e lido quando o arquivo e aberto sob demanda. Persistir ou nao e decisao aberta de privacidade (D-M05)."
+    }
+  }
+}
