@@ -49,7 +49,16 @@ const draft: LessonDraft = {
 };
 
 /** monta uma runner fake com filesystem real em tmp; verifyVerdict configura a validate. */
-function makeFakes(opts: { verifyVerdict?: string; nChallenges?: number } = {}) {
+function makeFakes(opts: {
+  verifyVerdict?: string;
+  nChallenges?: number;
+  /** protocolIssue devolvido pelo fake; só tem efeito quando verifyVerdict==='not_run'. */
+  protocolIssue?: 'request_unparseable' | 'apply_exhausted' | 'exit_setup_not_found' | 'exit_resource_locked' | undefined;
+  /** applyExhausted devolvido pelo fake (default FALSO, compatível com os testes antigos). */
+  applyExhausted?: boolean;
+  /** exitCode devolvido pelo fake (default 0). */
+  exitCode?: number;
+} = {}) {
   const { verifyVerdict = 'approved', nChallenges = 1 } = opts;
   const calls: string[] = [];
   let setupRoot = '';
@@ -143,7 +152,9 @@ function makeFakes(opts: { verifyVerdict?: string; nChallenges?: number } = {}) 
         survived: undefined,
         rejections: r.rejections,
         stdout: JSON.stringify(r),
-        applyExhausted: false,
+        exitCode: opts.exitCode ?? 0,
+        applyExhausted: opts.applyExhausted ?? false,
+        protocolIssue: r.verdict === 'not_run' ? opts.protocolIssue : undefined,
       };
     },
     async testStudentAnswer() {
@@ -249,6 +260,70 @@ describe('lessonOrchestrator (unit / fakes)', () => {
     assert.equal(result.rejected.length, 1);
     assert.equal(result.rejected[0].verdict, 'not_run');
     assert.match(result.rejected[0].reason ?? '', /juiz ausente/);
+  });
+
+  it('generateLesson: not_run + applyExhausted:true → reason "apply/esgotado" (branch antes sem cobertura)', async () => {
+    // COBERTURA OBRIGATÓRIA: o branch applyExhausted TRUE do reason (o fix anterior tinha ZERO).
+    const { runner, research, author } = makeFakes({
+      verifyVerdict: 'not_run',
+      protocolIssue: 'apply_exhausted',
+      applyExhausted: true,
+    });
+    const orch = createLessonOrchestrator({ research, runner, author, setupsDir: tmp });
+
+    const result = await orch.generateLesson('Recursão');
+    assert.equal(result.rejected.length, 1);
+    assert.equal(result.rejected[0].verdict, 'not_run');
+    const reason = result.rejected[0].reason ?? '';
+    assert.match(reason, /apply\/esgotado/);
+    assert.match(reason, /2 ciclos/);
+  });
+
+  it('generateLesson: not_run + pedido não-parseável (protocolIssue request_unparseable) → reason factual', async () => {
+    const { runner, research, author } = makeFakes({
+      verifyVerdict: 'not_run',
+      protocolIssue: 'request_unparseable',
+      applyExhausted: false,
+    });
+    const orch = createLessonOrchestrator({ research, runner, author, setupsDir: tmp });
+
+    const result = await orch.generateLesson('Recursão');
+    assert.equal(result.rejected.length, 1);
+    const reason = result.rejected[0].reason ?? '';
+    // NÃO pode mentir "juiz ausente" — havia juiz, mas o protocolo veio malformado.
+    assert.match(reason, /REQUEST|protocolo/i);
+    assert.match(reason, /malformado/);
+    assert.doesNotMatch(reason, /juiz ausente/);
+  });
+
+  it('generateLesson: not_run + exit 3 (setup não encontrado) → reason factual de infra', async () => {
+    const { runner, research, author } = makeFakes({
+      verifyVerdict: 'not_run',
+      protocolIssue: 'exit_setup_not_found',
+      exitCode: 3,
+    });
+    const orch = createLessonOrchestrator({ research, runner, author, setupsDir: tmp });
+
+    const result = await orch.generateLesson('Recursão');
+    assert.equal(result.rejected.length, 1);
+    const reason = result.rejected[0].reason ?? '';
+    assert.match(reason, /setup não encontrado/i);
+    assert.match(reason, /exit 3/);
+  });
+
+  it('generateLesson: not_run + exit 4 (recurso travado) → reason factual de infra', async () => {
+    const { runner, research, author } = makeFakes({
+      verifyVerdict: 'not_run',
+      protocolIssue: 'exit_resource_locked',
+      exitCode: 4,
+    });
+    const orch = createLessonOrchestrator({ research, runner, author, setupsDir: tmp });
+
+    const result = await orch.generateLesson('Recursão');
+    assert.equal(result.rejected.length, 1);
+    const reason = result.rejected[0].reason ?? '';
+    assert.match(reason, /recurso travado/i);
+    assert.match(reason, /exit 4/);
   });
 
   it('generateLesson: erro do autor → phase error no onProgress + rethrow', async () => {

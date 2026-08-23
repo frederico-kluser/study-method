@@ -117,6 +117,17 @@ export interface HandleExit10Result {
   cyclesUsed: number;
   /** true quando os 2 ciclos se esgotaram sem o script decidir (caminho degradado). */
   applyExhausted: boolean;
+  /**
+   * Discriminador honesto de POR QUE o script saiu no caminho degradado/not_run,
+   * para o lessonOrchestrator não mentir no `rejected.reason`:
+   *  - 'request_unparseable': exit 10 veio sem envelope JSON parseável no stdout;
+   *    não é "apply esgotado" nem "juiz ausente" (o juiz pode até estar configurado,
+   *    mas não há PEDIDO ao qual responder) — protocolo REQUEST/APPLY malformado.
+   *  - 'apply_exhausted': havia juiz E pedido parseável, mas os 2 ciclos se esgotaram
+   *    (ou a RESPOSTA do juiz foi recusada) sem o script decidir.
+   *  - undefined: caminho normal (OK/rejected/approved/weak) OU sem juiz configurado.
+   */
+  protocolIssue?: 'request_unparseable' | 'apply_exhausted';
 }
 
 /** Juiz injetável: recebe o PEDIDO e devolve o objeto da RESPOSTA (o corpo de items[0]). */
@@ -144,6 +155,20 @@ export interface VerifyChallengeResult {
   stdout: string;
   /** true quando o exit-10 esgotou os 2 ciclos (script seguiu pelo caminho degradado). */
   applyExhausted?: boolean;
+  /** exit code cru do script (exposto para o orchestrator distinguir infra 3/4). */
+  exitCode?: number;
+  /**
+   * Discriminador honesto de POR QUE o veredito ficou 'not_run' (mesmo semântica
+   * do HandleExit10Result.protocolIssue, estendida com os exits de infra):
+   *  - 'request_unparseable' | 'apply_exhausted' | 'exit_setup_not_found' (exit 3)
+   *    | 'exit_resource_locked' (exit 4).
+   *  - undefined: caminho normal OU 'juiz ausente' (runner sem llmJudge).
+   */
+  protocolIssue?:
+    | 'request_unparseable'
+    | 'apply_exhausted'
+    | 'exit_setup_not_found'
+    | 'exit_resource_locked';
 }
 
 export interface TestStudentAnswerResult {
@@ -465,14 +490,19 @@ export function createStudyMethodRunner(deps: StudyMethodRunnerDeps = {}): Study
       pendingRequest = extractRequest(result.stdout);
       if (!pendingRequest) {
         // exit 10 sem PEDIDO parseável: não podemos responder; retorna degradado.
+        // NOTA (não é "apply esgotado" nem "juiz ausente"): o protocolo REQUEST/APPLY
+        // está malformado — o script pediu julgamento mas não expôs um envelope
+        // JSON parseável, então mesmo com juiz configurado não há o que responder.
         return {
           result,
           cyclesUsed,
           applyExhausted: false,
+          protocolIssue: 'request_unparseable',
         };
       }
       if (!deps.llmJudge) {
         // sem juiz em loop de exit 10, não há como responder — degradado.
+        // Este é o único caso "juiz ausente" real: executor não configurou llmJudge.
         return {
           result,
           cyclesUsed,
@@ -487,6 +517,7 @@ export function createStudyMethodRunner(deps: StudyMethodRunnerDeps = {}): Study
           result: { ...result, stderr: `${result.stderr}\n${errMsg}`.trim() },
           cyclesUsed,
           applyExhausted: true,
+          protocolIssue: 'apply_exhausted',
         };
       }
       const tmpDir = await pickTmpCwd();
@@ -500,6 +531,10 @@ export function createStudyMethodRunner(deps: StudyMethodRunnerDeps = {}): Study
       result,
       cyclesUsed,
       applyExhausted: cyclesUsed >= REQUEST_APPLY_MAX_CYCLES && result.exitCode === SKILL_EXIT_CODES.NEEDS_MODEL_INPUT,
+      protocolIssue:
+        cyclesUsed >= REQUEST_APPLY_MAX_CYCLES && result.exitCode === SKILL_EXIT_CODES.NEEDS_MODEL_INPUT
+          ? 'apply_exhausted'
+          : undefined,
     };
   }
 
@@ -578,8 +613,16 @@ export function createStudyMethodRunner(deps: StudyMethodRunnerDeps = {}): Study
         res.exitCode === SKILL_EXIT_CODES.SCHEMA_FAILED) {
       throw new Error(`challenge-verify.sh falhou (exit ${res.exitCode}): ${res.stderr}`);
     }
-    // exit 0: veredito no stdout; exit 10 sem juiz → degradado.
+    // exit 0: veredito no stdout; exit 10 sem juiz → degradado;
+    // exits 3 (setup não encontrado) e 4 (recurso travado) seguem sem throw — o
+    // veredito fica 'not_run' e expomos protocolIssue para o orchestrator não mentir.
     const summary = parseVerifySummary(res.stdout);
+    const exitIssue =
+      res.exitCode === SKILL_EXIT_CODES.SETUP_NOT_FOUND
+        ? 'exit_setup_not_found'
+        : res.exitCode === SKILL_EXIT_CODES.RESOURCE_LOCKED
+          ? 'exit_resource_locked'
+          : undefined;
     return {
       verdict: summary?.verdict ?? 'not_run',
       mutationScore: summary?.mutation_score,
@@ -587,7 +630,9 @@ export function createStudyMethodRunner(deps: StudyMethodRunnerDeps = {}): Study
       survived: summary?.survived,
       rejections: summary?.rejections ?? [],
       stdout: res.stdout,
+      exitCode: res.exitCode,
       applyExhausted: handled.applyExhausted,
+      protocolIssue: exitIssue ?? handled.protocolIssue,
     };
   }
 

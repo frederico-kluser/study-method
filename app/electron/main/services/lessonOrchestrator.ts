@@ -185,6 +185,10 @@ export interface LessonOrchestratorDeps {
       rejections: string[];
       stdout: string;
       applyExhausted?: boolean;
+      /** exit code cru do script (infra 3/4 não lançam; ver studyMethodRunner.verifyChallenge). */
+      exitCode?: number;
+      /** discriminador honesto do not_run; ver HandleExit10Result.protocolIssue. */
+      protocolIssue?: 'request_unparseable' | 'apply_exhausted' | 'exit_setup_not_found' | 'exit_resource_locked';
     }>;
     testStudentAnswer(challengeDir: string, opts?: { outputLimit?: number }): Promise<{
       success: boolean;
@@ -409,16 +413,27 @@ export function createLessonOrchestrator(deps: LessonOrchestratorDeps) {
             statementPath: path.join(materialized.challengeDirAbs, 'README.md'),
           });
         } else {
-          // `not_run` tem DUAS origens distintas e não devemos confundi-las:
-          //  - runner SEM llmJudge  → applyExhausted fica FALSO (handleExit10 aborta
-          //    no exit 10 antes de gastar os ciclos; studyMethodRunner ~474).
-          //  - runner COM juiz, mas o REQUEST/APPLY esgotou os 2 ciclos sem decidir,
-          //    ou a resposta do juiz foi recusada → applyExhausted TRUE (~486,~502).
+          // `not_run` tem VÁRIAS origens distintas e não devemos confundi-las.
+          // O runner expõe `protocolIssue` (studyMethodRunner.verifyChallenge) para
+          // sermos factuais sobre POR QUE o veredito não aconteceu:
+          //  - 'request_unparseable': exit 10 sem envelope REQUEST parseável.
+          //  - 'apply_exhausted'     : juiz chamado, mas os 2 ciclos esgotaram/recusou.
+          //  - 'exit_setup_not_found': exit 3 (setup não encontrado pelo script).
+          //  - 'exit_resource_locked': exit 4 (recurso travado).
+          //  - undefined: caminho normal (rejected/weak) OU runner sem llmJudge.
           const reason =
             v.verdict === 'not_run'
-              ? v.applyExhausted === true
-                ? 'apply/esgotado (juiz não decidiu em 2 ciclos)'
-                : 'juiz ausente (runner sem llmJudge); veredito not_run'
+              ? v.protocolIssue === 'request_unparseable'
+                ? 'protocolo REQUEST/APPLY malformado (exit 10 sem pedido parseável)'
+                : v.protocolIssue === 'apply_exhausted'
+                  ? 'apply/esgotado (juiz não decidiu em 2 ciclos ou resposta recusada)'
+                  : v.protocolIssue === 'exit_setup_not_found'
+                    ? 'setup não encontrado pelo script (exit 3)'
+                    : v.protocolIssue === 'exit_resource_locked'
+                      ? 'recurso travado (exit 4)'
+                      : v.applyExhausted === true
+                        ? 'apply/esgotado (juiz não decidiu em 2 ciclos)'
+                        : 'juiz ausente (runner sem llmJudge); veredito not_run'
               : v.rejections?.join(', ') || 'rejeitado na validação';
           rejected.push({ slug: challengeDraft.slug, verdict: v.verdict, reason });
         }
