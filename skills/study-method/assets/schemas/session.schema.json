@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "study-method/session.schema.json",
+  "$id": "urn:study-method:schema:session:1",
   "title": "Registro episodico de uma sessao de estudo (memory/NNNN.json)",
   "description": "Um arquivo por sessao no diretorio memory/ do setup do aluno. E a camada episodica: o que aconteceu, o que foi praticado e COMO isso aconteceu. Criado no inicio da sessao com status in_progress e finalizado no fim. Texto em pt-BR; chaves e valores de enum em ingles snake_case.",
   "type": "object",
@@ -17,6 +17,11 @@
       "pattern": "^[0-9]{4}$",
       "description": "Identificador da sessao com 4 digitos zero-padded. E igual ao nome do arquivo sem extensao: session_id 0042 vive em memory/0042.json. Monotonico, nunca reaproveitado."
     },
+    "setup_id": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{12}$",
+      "description": "setup_id do setup em que esta sessao aconteceu, copiado de setup.json. Doze digitos hexadecimais minusculos. Redundante de proposito: um memory/NNNN.json copiado ou recuperado de backup continua sabendo a que setup pertence, e cross_setup_refs de outras sessoes podem ser resolvidos sem abrir o manifesto."
+    },
     "date": {
       "type": "string",
       "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$",
@@ -24,15 +29,27 @@
     },
     "started_at": {
       "type": ["string", "null"],
-      "description": "Timestamp ISO 8601 com offset de fuso de quando a sessao comecou. Opcional."
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}([.][0-9]+)?([+-]\\d{2}:\\d{2}|Z)$",
+      "description": "Timestamp ISO 8601 com offset de fuso de quando a sessao comecou. Fracao de segundo opcional. Opcional; null enquanto nao registrado."
+    },
+    "resumed_at": {
+      "type": ["string", "null"],
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}([.][0-9]+)?([+-]\\d{2}:\\d{2}|Z)$",
+      "description": "Timestamp ISO 8601 da ultima retomada DESTA sessao (o aluno voltou e continuou a mesma sessao em vez de abrir uma nova). Null quando a sessao nunca foi retomada. Retomar nao cria session_id novo: por isso a retomada precisa de carimbo proprio, separado de started_at."
     },
     "finalized_at": {
       "type": ["string", "null"],
-      "description": "Timestamp ISO 8601 com offset de fuso de quando a sessao foi finalizada. E o transaction time do registro. Null enquanto status for in_progress."
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}([.][0-9]+)?([+-]\\d{2}:\\d{2}|Z)$",
+      "description": "Timestamp ISO 8601 com offset de fuso de quando a sessao foi finalizada. E o transaction time do registro. Null enquanto status for in_progress. Numa sessao fechada por auto_orphan_recovery, este e o carimbo da recuperacao."
     },
     "finalized_by": {
       "enum": ["student", "auto_orphan_recovery", null],
       "description": "Quem fechou a sessao. student: fechamento normal no fim da aula. auto_orphan_recovery: a sessao ficou orfa (aluno fechou o terminal) e foi fechada retroativamente pela sessao seguinte, sem inventar conteudo. Null enquanto in_progress."
+    },
+    "orphan_recovered_by": {
+      "type": ["string", "null"],
+      "pattern": "^[0-9]{4}$",
+      "description": "session_id da sessao que encontrou esta sessao orfa e a fechou retroativamente. Preenchido junto com status abandoned e finalized_by auto_orphan_recovery; null em qualquer outro caso. Torna a recuperacao auditavel: da para abrir a sessao que fez o fechamento e ver o que ela sabia."
     },
     "status": {
       "enum": ["in_progress", "completed", "abandoned"],
@@ -41,14 +58,59 @@
     "topics": {
       "type": "array",
       "items": {
+        "description": "Uma tag de topico em snake_case ASCII sem acento.",
         "type": "string",
-        "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$"
+        "pattern": "^[a-z][a-z0-9_]{1,62}$"
       },
-      "description": "Tags de topico em kebab-case ASCII sem acento (ex.: derivadas, erro-numerico, python). Sao a chave de busca seletiva: o digest e a recuperacao por tag dependem delas. Omitir equivale a lista vazia."
+      "description": "Tags de topico em snake_case ASCII sem acento (ex.: derivadas, erro_numerico, python). Mesmo vocabulario de concept_id, taxonomy e skills_observed[].skill em todo o sistema - identificador so casa por igualdade de string, e duas grafias do mesmo topico sao dois topicos. Sao a chave de busca seletiva: o digest e a recuperacao por tag dependem delas. Omitir equivale a lista vazia."
+    },
+    "docs_coverage": {
+      "enum": ["full", "indexed", "none", null],
+      "description": "Quanto do docs/ do setup entrou nesta sessao, decidido no passo load_docs. full: o material coube no orcamento e foi lido inteiro. indexed: acima do orcamento, so as secoes mapeadas ao topico da aula foram carregadas - e o que ficou de fora foi declarado ao aluno. none: nao ha material legivel no docs/ do setup, estado legitimo e nao erro. Null equivale a nao registrado. Mesmo vocabulario de docs-index.json e de setup.json docs_ingest.mode."
     },
     "goal": {
       "type": ["string", "null"],
       "description": "O que o aluno queria conseguir nesta sessao, em uma frase, escrito no inicio da sessao. Serve para o fechamento comparar intencao com resultado."
+    },
+    "plan": {
+      "type": ["object", "null"],
+      "additionalProperties": false,
+      "description": "Agenda da aula montada no passo plan_lesson e anunciada ao aluno. Persistida porque o estado da sessao nao pode viver so na conversa: depois de uma auto-compactacao do contexto, e daqui que o tutor reconstroi em que ponto da aula estava. Null enquanto a agenda nao foi montada.",
+      "properties": {
+        "items": {
+          "type": "array",
+          "description": "Itens da agenda na ordem em que serao atacados. A prioridade que gerou a ordem esta em cada reason.",
+          "items": {
+            "description": "Um item da agenda da aula, com a razao que o colocou ali.",
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["text", "reason"],
+            "properties": {
+              "text": {
+                "type": "string",
+                "description": "O item da agenda em uma frase, em pt-BR, como foi dito ao aluno."
+              },
+              "reason": {
+                "enum": ["orphan_resume", "spaced_review", "student_request", "next_in_taxonomy"],
+                "description": "Por que este item entrou na agenda, na ordem de prioridade do passo plan_lesson. orphan_resume: retomada de sessao orfa ou pendencia. spaced_review: conceito com revisao vencida. student_request: o aluno pediu. next_in_taxonomy: proximo no da taxonomia do setup."
+              },
+              "topic": {
+                "type": ["string", "null"],
+                "pattern": "^[a-z][a-z0-9_]{1,62}$",
+                "description": "Tag de topico em snake_case a que este item se refere, quando ha uma. Deve estar em topics. Null para item sem topico definido."
+              },
+              "state": {
+                "enum": ["planned", "done", "skipped", null],
+                "description": "O que aconteceu com o item ate o fechamento. planned: ainda nao atacado. done: cumprido. skipped: deixado de fora por decisao na aula. Null equivale a planned."
+              }
+            }
+          }
+        },
+        "changed_by_student": {
+          "type": ["boolean", "null"],
+          "description": "True quando o aluno alterou a agenda proposta. E o registro de que a agenda foi negociada, nao imposta."
+        }
+      }
     },
     "what_was_done": {
       "type": ["string", "null"],
@@ -56,12 +118,13 @@
     },
     "what_was_learned": {
       "type": ["array", "null"],
-      "items": { "type": "string" },
+      "items": {"description": "Uma afirmacao curta, em pt-BR, do que o aluno passou a conseguir fazer ou explicar.",  "type": "string" },
       "description": "O que foi aprendido ou praticado, uma afirmacao curta por item, na voz do que o aluno passou a conseguir fazer ou explicar. Nao repetir o conteudo da aula, so o que mudou nele."
     },
     "how_it_happened": {
       "type": ["array", "null"],
       "items": {
+        "description": "Um movimento pedagogico executado na sessao, com o efeito observado.",
         "type": "object",
         "additionalProperties": false,
         "required": ["move_type", "description", "outcome"],
@@ -76,8 +139,8 @@
           },
           "target_topic": {
             "type": ["string", "null"],
-            "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
-            "description": "Tag do topico que este movimento atacou. Deve estar em topics. E a chave pela qual o movimento e recuperado numa sessao futura sobre o mesmo assunto."
+            "pattern": "^[a-z][a-z0-9_]{1,62}$",
+            "description": "Tag do topico que este movimento atacou, em snake_case ASCII sem acento. Deve estar em topics. E a chave pela qual o movimento e recuperado numa sessao futura sobre o mesmo assunto, e a mesma que sobrevive ao ser promovida para procedural_facts[].target_topic no perfil."
           },
           "outcome": {
             "enum": ["unlocked", "partial", "no_effect", "backfired"],
@@ -104,14 +167,15 @@
     "skills_observed": {
       "type": ["array", "null"],
       "items": {
+        "description": "Uma habilidade observada nesta sessao, com o nivel visto e a evidencia.",
         "type": "object",
         "additionalProperties": false,
         "required": ["skill"],
         "properties": {
           "skill": {
             "type": "string",
-            "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
-            "description": "Nome da habilidade em kebab-case ASCII sem acento (ex.: derivadas-conceito, python-funcoes). Mais granular que topics: um topico pode conter varias habilidades."
+            "pattern": "^[a-z][a-z0-9_]{1,62}$",
+            "description": "Nome da habilidade em snake_case ASCII sem acento (ex.: derivadas_conceito, python_funcoes). Mesmo vocabulario de concept_id em progress.json: e por igualdade de string que a habilidade observada aqui encontra o conceito la. Mais granular que topics: um topico pode conter varias habilidades."
           },
           "level": {
             "enum": ["beginner", "intermediate", "advanced", null],
@@ -160,17 +224,18 @@
     },
     "open_questions": {
       "type": ["array", "null"],
-      "items": { "type": "string" },
+      "items": {"description": "Uma pergunta que ficou em aberto, em pt-BR.",  "type": "string" },
       "description": "Perguntas que ficaram em aberto ao fim da sessao, uma por item. Entram no digest da sessao seguinte como pendencia, nunca truncadas pelo orcamento."
     },
     "next_steps": {
       "type": ["array", "null"],
-      "items": { "type": "string" },
+      "items": {"description": "Um proximo passo combinado com o aluno, uma acao concreta.",  "type": "string" },
       "description": "Proximos passos combinados com o aluno, uma acao concreta por item. Tambem entram no digest da sessao seguinte como pendencia."
     },
     "artifacts": {
       "type": ["array", "null"],
       "items": {
+        "description": "Um arquivo criado ou alterado nesta sessao dentro do setup do aluno.",
         "type": "object",
         "additionalProperties": false,
         "required": ["path", "kind"],
@@ -187,6 +252,41 @@
       },
       "description": "Arquivos criados ou alterados nesta sessao dentro do setup do aluno. Permite que uma sessao futura reabra o que foi feito sem depender de memoria textual."
     },
+    "cross_setup_refs": {
+      "type": ["array", "null"],
+      "description": "Leituras cruzadas feitas nesta sessao: outros setups do aluno cujo README.md foi aberto para sustentar a aula de hoje. Preenchido no passo teach e gravado no fechamento. Omitir ou null equivale a lista vazia. E a origem da secao pontes do README.md dos dois setups envolvidos: sem esta lista, a ponte nao existe. Referencia cruzada silenciosa e indistinguivel de alucinacao - por isso ela e registrada aqui e anunciada ao aluno.",
+      "items": {
+        "description": "Uma leitura cruzada: outro setup do aluno cujo README.md foi aberto para sustentar esta aula.",
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["setup_id", "setup_name", "sections_read", "reason"],
+        "properties": {
+          "setup_id": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{12}$",
+            "description": "setup_id do setup lido. E a identidade estavel: o caminho no disco pode mudar, este campo nao."
+          },
+          "setup_name": {
+            "type": "string",
+            "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+            "description": "Handle legivel do setup lido no momento da leitura, em kebab-case, copiado do manifesto daquele setup. Cache humano: se o setup for renomeado depois, este campo guarda como ele se chamava aqui."
+          },
+          "sections_read": {
+            "type": "array",
+            "description": "Secoes do README.md do outro setup que foram efetivamente lidas. Nomes das secoes do template de README do setup: taxonomia, base-teorica, estado-atual, linha-do-tempo, pontes. So taxonomia, base-teorica e estado-atual entram no contexto da aula.",
+            "items": {
+              "type": "string",
+              "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+              "description": "Nome da secao lida, em slug kebab-case sem acento."
+            }
+          },
+          "reason": {
+            "type": "string",
+            "description": "Por que a ponte existe, em uma frase curta em pt-BR (ex.: 'mudanca de variavel <-> mudanca de base'). E o texto que readme-sync.sh promove para a secao pontes dos dois README.md."
+          }
+        }
+      }
+    },
     "one_line_summary": {
       "type": "string",
       "maxLength": 160,
@@ -195,6 +295,14 @@
     "raw_notes": {
       "type": ["string", "null"],
       "description": "Anotacoes brutas da sessao (trechos de dialogo, transcricao parcial de exercicio). Nunca entra no digest; so e lido quando o arquivo e aberto sob demanda. Persistir ou nao e decisao aberta de privacidade (D-M05)."
+    },
+    "validation_errors": {
+      "type": ["array", "null"],
+      "description": "Erros que sobraram quando a sessao foi fechada mesmo sem validar contra este schema. O fechamento tenta no maximo duas vezes pedir os campos faltantes; depois disso fecha assim mesmo e registra aqui o que ficou errado - nenhuma sessao pode ficar presa em in_progress por causa de validacao. Lista vazia ou null significa que o arquivo validou. Uma sessao com esta lista nao vazia e material bruto degradado: a compactacao pode consolida-la, mas nao deve promover fato a confidence alta a partir dela.",
+      "items": {
+        "type": "string",
+        "description": "Um erro por item, no formato '<campo>: <motivo>' (ex.: 'one_line_summary: ausente'). Texto curto e factual, produzido pelo verificador, nunca julgamento do tutor."
+      }
     }
   }
 }

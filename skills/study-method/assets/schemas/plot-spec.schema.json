@@ -1,0 +1,131 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:study-method:schema:plot-spec:1",
+  "title": "Especificacao de grafico (entrada de render-plot.py)",
+  "description": "O UNICO objeto de entrada de `render-plot.py`, passado por --spec (arquivo ou stdin). Nao ha flags de dados soltas (--x, --y, --expr): tudo entra por este JSON, o que mantem uma superficie de CLI estavel e um so caminho de validacao. Chaves em ingles snake_case; textos livres (title, label, x_label, y_label, takeaway, caption, categories) em pt-BR com acento normal - eles vao para dentro da figura e da descricao lida pelo aluno. CHAVES OBRIGATORIAS (a lista que o exit code 1 'spec_missing_key' cobra): na raiz, 'type', 'series', 'title' e 'takeaway'; em cada serie, 'label'. title e takeaway sao obrigatorios porque a descricao textual em .md e a saida que nao pode faltar - e o unico canal pelo qual o proprio modelo descobre o que desenhou - e o conteudo minimo dela comeca pelo titulo e termina no takeaway. Exit codes: 1 spec invalida (JSON malformado ou chave obrigatoria ausente), 2 dados invalidos (series vazia, serie sem nenhuma das tres formas, nenhum ponto finito), 3 falha de escrita. VERIFICADOR MINIMO: este schema so usa type, required, enum, pattern, items, properties, minimum, maximum e additionalProperties booleano - minItems e maxLength sao documentacao e NAO sao verificados; as regras que dependem de combinacao de campos (exclusividade das tres formas de serie, 'categories' so em bar) estao escritas nas descriptions e sao verificadas pelo proprio render-plot.py.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["type", "series", "title", "takeaway"],
+  "properties": {
+    "type": {
+      "enum": ["function", "line", "scatter", "bar"],
+      "description": "O tipo de figura. function: amostra uma expressao de x e liga por polilinha, quebrando em valores indefinidos e recortando na moldura - para y=f(x), derivada numerica, serie de Taylor contra a funcao. line: serie ja discreta ligada na ordem dada, sem amostragem automatica - para convergencia por iteracao, erro por epoca. scatter: um marcador por ponto, sem ligacao - para tempo medido contra n, pares de dados, dispersao. bar: barras verticais agrupadas por categoria, SEMPRE ancoradas em zero exato e com padding so no topo - para comparar contagens entre algoritmos. Em function e line cada serie ganha marcadores esparsos alem da linha, como canal redundante a cor."
+    },
+    "title": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Titulo da figura em pt-BR. Obrigatorio: e o item 1 do conteudo minimo da descricao textual, e sem ele o modelo nao tem como narrar ao aluno o que foi desenhado."
+    },
+    "takeaway": {
+      "type": "string",
+      "minLength": 1,
+      "description": "A frase de leitura pedagogica: o que esta figura ensina que o texto nao ensinaria (ex.: 'onde sen(x) tem pico, cos(x) cruza zero'). Obrigatorio: e o ultimo item do conteudo minimo da descricao textual. Grafico decorativo e ruido - se nao ha takeaway a escrever, a figura nao devia estar sendo gerada."
+    },
+    "x_label": {
+      "type": "string",
+      "description": "Rotulo do eixo X em pt-BR, com unidade quando houver (ex.: 'x (radianos)', 'n (tamanho da entrada)'). Opcional no schema, esperado na pratica: sem ele a descricao textual so consegue dizer 'eixo X' e a figura perde a unidade."
+    },
+    "y_label": {
+      "type": "string",
+      "description": "Rotulo do eixo Y em pt-BR, com unidade quando houver (ex.: 'tempo (s)', 'erro absoluto'). Mesmo criterio de x_label."
+    },
+    "caption": {
+      "type": "string",
+      "maxLength": 400,
+      "description": "Legenda curta em pt-BR impressa sob a figura. Complementa o takeaway com contexto (de onde vieram os dados, qual execucao). Opcional."
+    },
+    "x_limits": {
+      "type": "array",
+      "description": "Limites do eixo X como [minimo, maximo], exatamente dois numeros. Ausente significa limites calculados dos dados. Series com valores fora sao recortadas na borda da moldura, nunca desenhadas por cima dos eixos.",
+      "items": {
+        "type": "number",
+        "description": "Um extremo do eixo X."
+      }
+    },
+    "y_limits": {
+      "type": "array",
+      "description": "Limites do eixo Y como [minimo, maximo], exatamente dois numeros. Ausente significa limites calculados dos dados, com padding. Em type bar o limite inferior e sempre zero, mesmo que este campo peca outra coisa: barra ancorada fora do zero mente sobre a proporcao entre as barras.",
+      "items": {
+        "type": "number",
+        "description": "Um extremo do eixo Y."
+      }
+    },
+    "categories": {
+      "type": "array",
+      "description": "Rotulos das categorias do eixo X, em pt-BR, apenas para type bar (ex.: ['bubble','merge']). O i-esimo valor de cada serie corresponde a i-esima categoria, e por isso o tamanho desta lista deve bater com o numero de valores por serie. Ignorado nos demais tipos.",
+      "items": {
+        "type": "string",
+        "description": "Rotulo de uma categoria, em pt-BR."
+      }
+    },
+    "force_legend": {
+      "type": "boolean",
+      "description": "Forca a legenda a aparecer mesmo com uma unica serie. Por padrao a legenda so aparece a partir de duas series, porque com uma so ela repete o titulo. Ausente equivale a false."
+    },
+    "series": {
+      "type": "array",
+      "minItems": 1,
+      "description": "As series a desenhar, na ordem em que aparecem na legenda. Lista vazia e erro de dados (exit code 2, 'series_invalid'), nao erro de spec. Prefira sempre plotar o que o codigo do aluno produziu, e nao o que o tutor calculou por fora: um grafico torto que ele produziu ensina mais que um grafico certo que ele apenas assistiu.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["label"],
+        "description": "Uma serie de dados. TRES FORMAS MUTUAMENTE EXCLUSIVAS de passar os dados, nesta precedencia: (1) 'expr' + 'domain' + 'samples'; (2) 'points'; (3) 'x' + 'y'. Uma serie sem nenhuma das tres e erro de dados (exit code 2). Se mais de uma forma estiver presente, vale a de maior precedencia e o renderizador emite um warning - a exclusividade nao e expressavel neste schema porque oneOf nao existe no verificador minimo do projeto.",
+        "properties": {
+          "label": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Nome da serie em pt-BR, como aparece na legenda e na descricao textual. Obrigatorio: a descricao lista, por serie, o rotulo, a cor nomeada em palavra, o marcador, o numero de pontos e os extremos - uma serie sem nome produz uma figura que a descricao nao consegue narrar."
+          },
+          "expr": {
+            "type": "string",
+            "minLength": 1,
+            "description": "FORMA 1. Expressao de x avaliada em amostras uniformes do dominio (ex.: 'sin(x)', 'x**3 - 2*x'). Avaliada num namespace RESTRITO: apenas os nomes de math, abs/min/max/round/pow e a variavel x, com builtins zerados. Amostra que levantar excecao (divisao por zero, log de negativo) vira null, o que quebra a linha ali em vez de interpolar por cima da assintota, e um warning registra quantas ficaram indefinidas. NOTA DE SEGURANCA: eval restrito nao e sandbox; este campo nunca deve receber texto colado pelo aluno sem o tutor ter lido."
+          },
+          "domain": {
+            "type": "array",
+            "description": "FORMA 1. Intervalo de amostragem como [a, b], exatamente dois numeros. Obrigatorio junto com expr.",
+            "items": {
+              "type": "number",
+              "description": "Um extremo do intervalo de amostragem."
+            }
+          },
+          "samples": {
+            "type": "integer",
+            "minimum": 2,
+            "maximum": 20000,
+            "description": "FORMA 1. Quantas amostras uniformes tomar no dominio. Default 400 quando ausente. Valores muito altos nao melhoram a figura e engordam o SVG."
+          },
+          "points": {
+            "type": "array",
+            "description": "FORMA 2. Pares explicitos [[x, y], ...]. O y pode ser null para quebrar a linha naquele ponto (descontinuidade, dado faltante); o x nunca e null.",
+            "items": {
+              "type": "array",
+              "description": "Um par [x, y]. Exatamente dois valores.",
+              "items": {
+                "type": ["number", "null"],
+                "description": "Coordenada do par. O segundo valor pode ser null para quebrar a linha; o primeiro nao."
+              }
+            }
+          },
+          "x": {
+            "type": "array",
+            "description": "FORMA 3. Valores do eixo X, em paralelo com y. As duas listas devem ter o mesmo tamanho.",
+            "items": {
+              "type": "number",
+              "description": "Um valor do eixo X."
+            }
+          },
+          "y": {
+            "type": "array",
+            "description": "FORMA 3. Valores do eixo Y, em paralelo com x. null quebra a linha naquele indice.",
+            "items": {
+              "type": ["number", "null"],
+              "description": "Um valor do eixo Y, ou null para quebrar a linha."
+            }
+          }
+        }
+      }
+    }
+  }
+}

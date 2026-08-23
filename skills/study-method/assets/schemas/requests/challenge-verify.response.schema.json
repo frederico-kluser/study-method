@@ -1,0 +1,69 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:study-method:schema:challenge-verify-response:1",
+  "title": "Resposta com a classificacao dos mutantes sobreviventes (challenge-verify.sh --apply)",
+  "description": "A resposta do modelo ao pedido challenge-verify.request.schema.json. Uma entrada por mutante sobrevivente, com a classificacao e a JUSTIFICATIVA OBRIGATORIA. E a unica etapa do protocolo de validacao em que o modelo opina, e por isso e a unica em que a justificativa e requisito de schema e nao de boa vontade: sem ela nao ha como auditar depois por que um buraco no teste foi perdoado. O script recusa a resposta que deixe qualquer mutant_id do pedido sem classificacao, que traga mutant_id inexistente, ou que traga justificativa vazia. Mapeamento para o manifesto do desafio: 'equivalent' vira validation.mutation.survivors[].classification 'equivalent' e entra na contagem de validation.mutation.equivalent_count; 'not_equivalent' vira 'test_gap' e obriga a regeneracao do teste - o desafio nao passa com um buraco conhecido. Textos livres em pt-BR; chaves e valores de enum em ingles snake_case sem acento. VERIFICADOR MINIMO: type, required, enum, pattern, items, properties, minimum, maximum e additionalProperties booleano; maxLength e minLength sao documentacao e NAO sao verificados - a obrigatoriedade da justificativa e garantida por 'required' e pela asseracao do proprio script, nunca por minLength.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "request_kind", "challenge_id", "classifications"],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+$",
+      "description": "Versao do schema desta resposta, MAJOR.MINOR. Deve ter o mesmo MAJOR do pedido."
+    },
+    "request_kind": {
+      "enum": ["challenge_verify"],
+      "description": "Ecoa o request_kind do pedido. O script recusa a resposta cujo request_kind nao bata."
+    },
+    "challenge_id": {
+      "type": "string",
+      "pattern": "^[0-9]{4}$",
+      "description": "Ecoa o challenge_id do pedido, quatro digitos zero-padded. Resposta com outro id e recusada: e a guarda contra aplicar classificacao no desafio errado."
+    },
+    "classifications": {
+      "type": "array",
+      "minItems": 1,
+      "description": "Uma entrada por mutante sobrevivente do pedido. Cobertura total e obrigatoria: nenhum mutante pode ficar sem classificacao, porque 'unclassified' que sobra vira aprovacao por omissao.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["mutant_id", "classification", "justification"],
+        "description": "A classificacao de um mutante, com a justificativa que a sustenta.",
+        "properties": {
+          "mutant_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 120,
+            "description": "Ecoa o mutant_id do pedido. Um id que nao estava la faz o script recusar a resposta inteira."
+          },
+          "classification": {
+            "enum": ["equivalent", "not_equivalent"],
+            "description": "equivalent: o mutante e comportamentalmente IDENTICO a referencia para toda entrada valida - nenhum teste poderia mata-lo, e portanto ele nao e falha do teste. not_equivalent: existe entrada para a qual o mutante se comporta diferente da referencia; a suite nao a cobre, e isso e um buraco no teste que obriga regeneracao. Na duvida, responda not_equivalent: classificar como equivalent o que na verdade e buraco entrega ao aluno um teste que aprova codigo errado, e esse erro chega ate ele; o erro contrario custa apenas uma regeneracao."
+          },
+          "justification": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 600,
+            "description": "OBRIGATORIA. Por que a classificacao e essa, em pt-BR, em nivel de argumento verificavel. Para equivalent, diga POR QUE nenhuma entrada distingue os dois codigos (ex.: 'a constante trocada so e usada como capacidade inicial de um buffer que cresce sozinho; nenhum resultado observavel depende dela'). Para not_equivalent, de a ENTRADA que distingue (ex.: 'com lista vazia o original devolve 0 e o mutante levanta excecao'). Frase generica do tipo 'parece equivalente' e recusada pelo gate: ela nao permite a ninguem discordar depois."
+          },
+          "distinguishing_input": {
+            "type": ["string", "null"],
+            "maxLength": 400,
+            "description": "Para not_equivalent: a entrada concreta que separa o mutante da referencia, quando ha uma exibivel. E o material direto do cenario de teste que falta - a regeneracao usa isto. null quando a distincao e estrutural e nao cabe numa entrada."
+          },
+          "suggested_scenario": {
+            "type": ["string", "null"],
+            "maxLength": 400,
+            "description": "Para not_equivalent: descricao em uma frase do cenario de teste que mataria este mutante, em pt-BR. Sugestao para a regeneracao; nao e gravada como teste por si so - quem escreve e valida o teste continua sendo o ciclo de geracao mais o harness."
+          }
+        }
+      }
+    },
+    "notes": {
+      "type": ["string", "null"],
+      "maxLength": 800,
+      "description": "Observacao geral do modelo sobre esta rodada, em pt-BR: padrao nos sobreviventes, suspeita de que a referencia esteja errada, operador que domina os buracos. Vai para validation.mutation.detail no manifesto do desafio."
+    }
+  }
+}

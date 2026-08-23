@@ -1,0 +1,83 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:study-method:schema:progress-event:1",
+  "title": "Evento de proficiencia (entrada de progress-update.sh --event)",
+  "description": "UM evento observavel sobre UM conceito, entregue a `progress-update.sh --event`. E a unica forma de escrever em memory/progress.json: a entrada e sempre o evento, NUNCA o estado novo - o estado e calculado pela maquina de transicoes T1-T8 a partir daqui e da evidencia ja gravada. Regra dura do projeto: sem artefato, sem transicao. O script recusa o evento cujo session_id nao exista em memory/ ou cujo challenge_id nao exista em challenges/; por isso os dois campos tem formato fixo, e nao texto livre. Idempotencia: reprocessar um evento com o mesmo session_id, challenge_id e observed_at nao duplica evidencia nem reaplica transicao. Textos livres em pt-BR; chaves e valores de enum em ingles snake_case sem acento. VERIFICADOR MINIMO: este schema so usa type, required, enum, pattern, items, properties, minimum, maximum e additionalProperties booleano; maxLength e documentacao e NAO e verificado.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "kind", "concept_id", "observed_at"],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+$",
+      "description": "Versao do schema deste evento, MAJOR.MINOR. Independente da versao de memory/progress.json: um evento antigo continua processavel enquanto o MAJOR bater."
+    },
+    "setup_id": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{12}$",
+      "description": "setup_id do setup cujo progress.json recebe este evento, doze digitos hexadecimais minusculos. Opcional quando o script ja recebeu a raiz do setup por argumento; quando presente e diverge do setup.json daquela raiz, o evento e recusado - conceito nunca cruza setup."
+    },
+    "kind": {
+      "enum": ["challenge", "exposure", "self_report", "review_declined", "decay"],
+      "description": "Natureza do evento; e o primeiro desvio da ordem de avaliacao. challenge: o aluno tentou um desafio com verificacao objetiva (o teste rodou) - o unico kind que pode promover estado. exposure: o conceito apareceu na aula sem desafio; NUNCA muda proficiency_state. self_report: o aluno falou do proprio dominio; so rebaixa (T8), nunca promove. review_declined: o tutor sugeriu revisao e o aluno recusou; nao altera estado nem intervalo. decay: rebaixamento automatico por tempo (T4), sem interacao do aluno - o unico kind que acontece fora de uma sessao."
+    },
+    "concept_id": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_]{1,62}$",
+      "description": "Conceito ao qual este evento se refere, em snake_case ASCII sem acento. Mesmo vocabulario e mesmo pattern de progress.json concepts[].concept_id, de challenge-manifest target_concepts[].concept_id e de session.skills_observed[].skill: a resolucao e por igualdade de string, procurando primeiro em concept_id e depois em aliases[]. Antes de criar um id novo e obrigatorio procurar match - dois ids para a mesma coisa fragmentam o progresso em silencio."
+    },
+    "session_id": {
+      "type": ["string", "null"],
+      "pattern": "^[0-9]{4}$",
+      "description": "Sessao em que o evento ocorreu, quatro digitos zero-padded, igual ao nome de memory/NNNN.json. null APENAS quando kind e 'decay'. O script confere que o arquivo existe antes de gravar qualquer transicao."
+    },
+    "challenge_id": {
+      "type": ["string", "null"],
+      "pattern": "^[0-9]{4}$",
+      "description": "Desafio que produziu esta evidencia, quatro digitos zero-padded, igual ao challenge_id de challenges/NNNN-slug/meta.json. Obrigatorio quando kind e 'challenge'; null nos demais casos. O script confere que o diretorio existe: e o que impede o modelo de 'sentir' que o aluno melhorou."
+    },
+    "result": {
+      "enum": ["passed", "failed", "not_attempted", null],
+      "description": "Resultado objetivo do desafio, lido do runner e nunca da impressao do tutor. passed: a verificacao ficou verde. failed: nao passou ate o fim da sessao. not_attempted: o desafio foi proposto e o aluno nao tentou - evento neutro, grava evidencia mas nao muda estado nem intervalo, porque nao tentar nao e evidencia de falha. null quando kind nao e 'challenge'."
+    },
+    "hint_level": {
+      "type": ["integer", "null"],
+      "minimum": 0,
+      "maximum": 5,
+      "description": "Maior degrau da escada de dicas usado neste desafio: 0 = nenhuma dica, 5 = solucao completa entregue. Mesma faixa 0-5 de session.how_it_happened[].hint_level e de challenge-manifest student_progress.hint_level_used. E o campo que separa a classe A (0-1) da classe B (2-3) e da classe C (4-5) na classificacao do evento. null quando o degrau nao foi registrado, e null NAO equivale a 0: ausencia de registro nao e prova de autonomia."
+    },
+    "error_type": {
+      "enum": ["slip", "conceptual", "prerequisite", "none", "unknown", null],
+      "description": "Classificacao do erro observado. slip: deslize de execucao, o aluno ja demonstrou conhecer a regra e corrige com dica de nivel 1. conceptual: regra errada porem consistente, reaplicada em 2 ou mais lugares ou justificada verbalmente. prerequisite: a falha veio de outro conceito - o evento vira 'exposure' neste conceito e a evidencia penalizante e regravada em attributed_to. none: passou sem erro relevante. unknown: nao foi possivel classificar; nunca chutar, porque unknown nao dispara regressao por erro conceitual. null quando kind nao e 'challenge'."
+    },
+    "attributed_to": {
+      "type": ["string", "null"],
+      "pattern": "^[a-z][a-z0-9_]{1,62}$",
+      "description": "Quando error_type e 'prerequisite': o concept_id do conceito que realmente falhou e onde a evidencia penalizante deve ser gravada. Mesmo pattern snake_case de concept_id. null nos demais casos."
+    },
+    "attempts": {
+      "type": ["integer", "null"],
+      "minimum": 0,
+      "description": "Quantas execucoes da verificacao ocorreram neste desafio ate o desfecho. Sinal de esforco, nao de dominio: muitas tentativas com erro do tipo slip nao rebaixam o estado. null quando nao registrado."
+    },
+    "self_report_claim": {
+      "enum": ["mastery", "no_mastery", null],
+      "description": "O que o aluno afirmou sobre o proprio dominio, quando kind e 'self_report'. no_mastery dispara T8 (mastered vira fragile). mastery NUNCA promove: auto-relato so tem efeito assimetrico, porque quem acha que sabe e a pessoa menos capaz de verificar isso. null fora de kind 'self_report'."
+    },
+    "observed_at": {
+      "type": "string",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$",
+      "description": "VALID TIME: a data (AAAA-MM-DD) em que o evento aconteceu no mundo. E a chave de ordenacao: os eventos sao processados em ordem crescente deste campo, um por vez. Deliberadamente uma data, e nao um timestamp, igual a progress.json evidence[].observed_at - a granularidade das regras de transicao e o dia (duas passagens em dias diferentes, janela de 60 dias)."
+    },
+    "recorded_at": {
+      "type": ["string", "null"],
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}([.][0-9]+)?([+-]\\d{2}:\\d{2}|Z)$",
+      "description": "TRANSACTION TIME: data-hora ISO 8601 em que o evento foi gravado. Pode ser bem posterior a observed_at quando a sessao e consolidada depois. null significa 'use o relogio agora' - o script preenche."
+    },
+    "note": {
+      "type": ["string", "null"],
+      "maxLength": 240,
+      "description": "Observacao curta em pt-BR sobre o evento, factual e verificavel: o que o aluno fez, nao o que o tutor achou. null e resposta valida e preferivel a texto vago."
+    }
+  }
+}

@@ -1,0 +1,206 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:study-method:schema:memory-compact-response:1",
+  "title": "Resposta de consolidacao da memoria (memory-compact.sh --apply)",
+  "description": "A resposta do modelo ao pedido memory-compact.request.schema.json: as afirmacoes consolidadas a partir das sessoes brutas. O modelo grava este objeto num arquivo e reinvoca `memory-compact.sh --apply <arquivo>`; o script valida contra este schema e SO ENTAO escreve memory/profile.json, numerando os fact_id a partir do next_fact_seq que ele mesmo controla. O modelo nao inventa fact_id, nao escreve no perfil e nao decide o que e superseded - ele devolve claim_key, e o superseding cai fora disso por igualdade de string. Textos livres em pt-BR; chaves e valores de enum em ingles snake_case sem acento. VERIFICADOR MINIMO: type, required, enum, pattern, items, properties, minimum, maximum e additionalProperties booleano; maxLength e minItems sao documentacao e NAO sao verificados.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "request_kind", "semantic_facts", "procedural_facts"],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+$",
+      "description": "Versao do schema desta resposta, MAJOR.MINOR. Deve ter o mesmo MAJOR do pedido."
+    },
+    "request_kind": {
+      "enum": ["memory_compact"],
+      "description": "Ecoa o request_kind do pedido. O script recusa a resposta cujo request_kind nao bata com o pedido que ele emitiu."
+    },
+    "semantic_facts": {
+      "type": "array",
+      "description": "Os fatos semanticos consolidados: o que passou a ser verdade sobre o aluno. Lista vazia e resposta legitima - sessoes podem nao sustentar nenhuma afirmacao nova, e inventar uma para preencher o array e pior do que devolver nada.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["claim_key", "kind", "claim", "observation_type", "confidence", "source_sessions"],
+        "description": "Uma afirmacao consolidada sobre o aluno, com as sessoes que a sustentam.",
+        "properties": {
+          "claim_key": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_]{1,62}$",
+            "description": "A chave estavel NORMALIZADA, em snake_case ASCII sem acento, formada juntando dominio, alvo e aspecto com underscore: skill_derivadas_conceito_level, difficulty_recursao, strength_python_funcoes. Se a afirmacao e sobre a mesma coisa de uma chave que veio em existing_claim_keys, REUSE aquela chave exata - e a igualdade de string que faz o fato novo substituir o antigo. Chave nova para a mesma coisa nao substitui nada: os dois fatos passam a coexistir, e o perfil fica dizendo duas coisas ao mesmo tempo."
+          },
+          "kind": {
+            "enum": ["strength", "difficulty", "preference", "skill_level", "context"],
+            "description": "Natureza do fato. strength: ponto forte. difficulty: dificuldade recorrente. preference: preferencia declarada de como estudar. skill_level: nivel em uma habilidade. context: circunstancia relevante e nao sensivel. Nunca registrar contexto familiar, de saude ou identificador pessoal - 'context' e para o que muda a aula, como 'estuda de madrugada, cansado'."
+          },
+          "topic": {
+            "type": ["string", "null"],
+            "pattern": "^[a-z][a-z0-9_]{1,62}$",
+            "description": "Topico ou habilidade a que o fato se refere, em snake_case. Reuse a grafia que veio no pedido: e por igualdade de string que o digest seleciona os fatos da aula de hoje. null quando o fato nao e sobre um topico especifico."
+          },
+          "claim": {
+            "type": "string",
+            "maxLength": 240,
+            "description": "A afirmacao em pt-BR, uma frase. Tem de ser FALSIFICAVEL: 'erra o caso base em recursao' e util porque da para observar que deixou de acontecer; 'tem dificuldade com programacao' nao e, e por isso vira rotulo permanente em vez de fato."
+          },
+          "observation_type": {
+            "enum": ["observed", "inferred"],
+            "description": "observed: sustentado por evidencia direta em pelo menos uma sessao. inferred: generalizacao. Um fato inferred NAO pode nascer com confidence high."
+          },
+          "confidence": {
+            "enum": ["low", "medium", "high"],
+            "description": "low: uma observacao unica, ou inferida, ou sem evidencia. medium: observado em duas sessoes distintas. high: tres ou mais sessoes distintas, com evidencia. Fato sustentado apenas por sessoes 'abandoned' fica travado em low."
+          },
+          "evidence": {
+            "type": ["string", "null"],
+            "description": "O observavel mais forte que sustenta o fato, COPIADO da sessao de origem, nao reescrito. Um fato sem evidencia nao pode passar de confidence low."
+          },
+          "source_sessions": {
+            "type": "array",
+            "minItems": 1,
+            "description": "session_id de todas as sessoes que sustentam este fato, em ordem crescente. E o que torna o perfil auditavel e re-derivavel: a partir daqui sempre da para abrir o episodio bruto e conferir se a consolidacao foi honesta. Um id que nao estava no pedido faz o script recusar a resposta inteira.",
+            "items": {
+              "type": "string",
+              "pattern": "^[0-9]{4}$",
+              "description": "session_id de uma sessao de origem, quatro digitos zero-padded."
+            }
+          },
+          "observed_at": {
+            "type": ["string", "null"],
+            "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$",
+            "description": "VALID TIME inicial: data da sessao mais antiga que sustenta o fato. null deixa o script derivar de source_sessions."
+          },
+          "last_observed_at": {
+            "type": ["string", "null"],
+            "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$",
+            "description": "Data da reobservacao mais recente. E o que faz o decaimento funcionar: fato nunca reconfirmado envelhece e vira hipotese em vez de rotulo permanente. null deixa o script derivar de source_sessions."
+          },
+          "skill_level": {
+            "enum": ["beginner", "intermediate", "advanced", null],
+            "description": "Nivel consolidado, preenchido apenas quando kind e skill_level. null nos demais casos."
+          },
+          "proficiency_state": {
+            "enum": ["unknown", "fragile", "mastered", null],
+            "description": "Estado de proficiencia transportado da sessao. NAO decida transicao aqui: quem move proficiency_state e progress-update.sh, por evento com artefato. null quando nao ha estado a transportar."
+          }
+        }
+      }
+    },
+    "procedural_facts": {
+      "type": "array",
+      "description": "Os procedimentos consolidados: o COMO que funciona - ou que comprovadamente prejudica - com ESTE aluno. Lista vazia e resposta legitima.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["claim_key", "procedure_kind", "how", "outcome", "observation_type", "confidence", "source_sessions"],
+        "description": "Um procedimento consolidado, em nivel de receita reexecutavel.",
+        "properties": {
+          "claim_key": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_]{1,62}$",
+            "description": "A chave estavel NORMALIZADA, em snake_case ASCII sem acento, formada juntando procedure_kind, topico e apelido com underscore: analogy_derivadas_zoom_local, presentation_order_limites_formalismo_primeiro. Mesma regra de reuso do claim_key semantico: chave identica substitui, chave nova coexiste."
+          },
+          "procedure_kind": {
+            "enum": ["analogy", "explanation_path", "presentation_order", "hands_on_activity", "hint_strategy", "visualization", "antipattern"],
+            "description": "Tipo do procedimento. antipattern e para o que comprovadamente prejudica, e vem sempre com outcome backfired - um movimento que deu errado gera DOIS registros: o do tipo original e o antipattern."
+          },
+          "target_topic": {
+            "type": ["string", "null"],
+            "pattern": "^[a-z][a-z0-9_]{1,62}$",
+            "description": "Topico ao qual o procedimento se aplica, em snake_case, reusando a grafia do pedido. E a chave de recuperacao no digest. null quando o procedimento vale para o aluno inteiro, nao para um topico."
+          },
+          "how": {
+            "type": "string",
+            "maxLength": 400,
+            "description": "O COMO, em nivel de receita EXECUTAVEL: o que fazer, em que ordem, com que palavras, de forma reexecutavel numa proxima sessao sem abrir o episodio bruto. 'Plotar a funcao e dar zoom sucessivo ate a curva ficar reta antes de qualquer formula' e executavel; 'usar visualizacao' nao e, e nao deve ser gravado."
+          },
+          "outcome": {
+            "enum": ["unlocked", "partial", "no_effect", "backfired"],
+            "description": "Efeito consolidado. unlocked: destravou. partial: ajudou mas nao bastou. no_effect: nao mudou nada. backfired: piorou - confundiu, travou, frustrou ou implantou concepcao errada. Entradas backfired sao as mais valiosas do arquivo e nunca sao truncadas pelo orcamento do digest."
+          },
+          "base_domain": {
+            "type": ["string", "null"],
+            "description": "Para analogias: o dominio que o aluno ja domina e que serve de base do mapeamento (velocimetro do carro, receita de cozinha). null nos demais tipos."
+          },
+          "mapping": {
+            "type": ["string", "null"],
+            "description": "Para analogias: o mapeamento RELACIONAL explicito, nao a etiqueta. O que se preserva e a relacao ('a taxa media vira instantanea quando o trecho encolhe'), nao a semelhanca de aparencia. Analogia sem mapeamento registrado tende a ser reintroduzida errada na sessao seguinte."
+          },
+          "known_limit": {
+            "type": ["string", "null"],
+            "description": "Onde o procedimento para de valer e passa a implantar concepcao errada. Registrar isto e o que permite marcar o limite ANTES de o aluno esticar a analogia longe demais."
+          },
+          "observation_type": {
+            "enum": ["observed", "inferred"],
+            "description": "observed: efeito visto diretamente. inferred: generalizacao. Um procedimento inferred nao pode nascer com confidence high."
+          },
+          "confidence": {
+            "enum": ["low", "medium", "high"],
+            "description": "low: uma sessao. medium: duas sessoes distintas. high: tres ou mais, com evidencia. Procedimento cujo item de origem tem evidence null nao passa de low: outcome sem evidencia e opiniao."
+          },
+          "times_observed": {
+            "type": ["integer", "null"],
+            "minimum": 1,
+            "description": "Em quantas sessoes distintas o procedimento foi observado com o mesmo outcome. null deixa o script derivar de source_sessions."
+          },
+          "evidence": {
+            "type": ["string", "null"],
+            "description": "O observavel mais forte copiado da sessao de origem: o que o aluno disse, escreveu ou previu que comprova o outcome."
+          },
+          "source_sessions": {
+            "type": "array",
+            "minItems": 1,
+            "description": "session_id das sessoes que sustentam este procedimento, em ordem crescente. Um id que nao estava no pedido faz o script recusar a resposta inteira.",
+            "items": {
+              "type": "string",
+              "pattern": "^[0-9]{4}$",
+              "description": "session_id de uma sessao de origem, quatro digitos zero-padded."
+            }
+          },
+          "observed_at": {
+            "type": ["string", "null"],
+            "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$",
+            "description": "VALID TIME inicial: data da sessao mais antiga que sustenta o procedimento. null deixa o script derivar."
+          },
+          "last_observed_at": {
+            "type": ["string", "null"],
+            "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$",
+            "description": "Data da ultima vez que o procedimento foi usado com o efeito observado. null deixa o script derivar."
+          }
+        }
+      }
+    },
+    "pending_followups": {
+      "type": "array",
+      "description": "Pendencias que atravessam sessoes, destiladas de open_questions e next_steps das sessoes brutas. Carregadas integralmente no digest e nunca truncadas pelo orcamento.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["text", "created_in_session"],
+        "description": "Uma pendencia acionavel, com a sessao em que nasceu.",
+        "properties": {
+          "text": {
+            "type": "string",
+            "maxLength": 240,
+            "description": "A pendencia em uma frase acionavel, em pt-BR."
+          },
+          "created_in_session": {
+            "type": "string",
+            "pattern": "^[0-9]{4}$",
+            "description": "session_id em que a pendencia nasceu, quatro digitos zero-padded."
+          },
+          "origin_field": {
+            "enum": ["open_questions", "next_steps", "manual", null],
+            "description": "De qual campo da sessao a pendencia veio, para auditoria da derivacao."
+          }
+        }
+      }
+    },
+    "notes": {
+      "type": ["string", "null"],
+      "maxLength": 800,
+      "description": "Observacao do modelo sobre esta consolidacao, em pt-BR: o que ficou ambiguo, o que foi deliberadamente deixado de fora. Nao e gravado no perfil - fica no log da compactacao, para quem investigar depois entender o que o destilador viu."
+    }
+  }
+}

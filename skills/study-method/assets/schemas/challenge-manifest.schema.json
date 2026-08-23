@@ -1,8 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://study-method.local/schemas/challenge-manifest.schema.json",
-  "title": "challenge_manifest",
-  "description": "Manifesto de um desafio (meta.json), gravado em challenges/<NNNN>-<slug>/meta.json. Chaves e valores de enum em ingles snake_case; textos livres em pt-BR. VERIFICADOR MINIMO: este schema usa apenas o subconjunto de palavras-chave { type, properties, required, additionalProperties (booleano), items, enum, pattern, minimum, maximum, minItems, minLength, maxLength, format } e NAO usa $ref, allOf, anyOf, oneOf, if/then/else nem referencia remota — um verificador escrito em Python stdlib (json + re) valida este arquivo por inteiro. O campo format e informativo e pode ser ignorado pelo verificador.",
+  "$id": "urn:study-method:schema:challenge-manifest:1",
+  "title": "Manifesto de um desafio (challenges/NNNN-slug/meta.json)",
+  "description": "Manifesto de um desafio (meta.json), gravado em challenges/<NNNN>-<slug>/meta.json. Chaves e valores de enum em ingles snake_case; textos livres em pt-BR. VERIFICADOR MINIMO: a validacao deste arquivo e feita por um verificador escrito em Python stdlib puro (json + re), porque nao ha a biblioteca jsonschema nesta maquina. Ele CHECA exatamente: type (inclusive como lista, ex. ['string','null']), required, enum, pattern, items, properties, minimum, maximum e additionalProperties booleano. NAO checa minLength, maxLength, minItems, format nem default - esses ficam aqui como documentacao e nenhuma garantia deve depender deles. Este schema NAO usa $ref, allOf, anyOf, oneOf, not, if/then/else, patternProperties, propertyNames, dependentSchemas nem $defs: nada disso existe no verificador. Onde uma regra e condicional (ex.: integrity.test_sha256 obrigatoriamente nao-null quando challenge_status e validated ou solved), ela esta escrita na description do campo e e verificada por asseracao propria do gate.",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -30,7 +30,7 @@
     "schema_version": {
       "description": "Versao do formato deste manifesto. Incrementar o minor em adicao compativel; o major em quebra.",
       "type": "string",
-      "pattern": "^1\\.[0-9]+$"
+      "pattern": "^[0-9]+\\.[0-9]+$"
     },
     "challenge_id": {
       "description": "Identificador sequencial do desafio, 4 digitos com zero a esquerda. E o mesmo numero que prefixa o diretorio do desafio.",
@@ -53,13 +53,13 @@
     "created_at": {
       "description": "Timestamp ISO 8601 com offset, do momento em que o desafio foi gerado.",
       "type": "string",
-      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}([.][0-9]+)?(Z|[+-][0-9]{2}:[0-9]{2})$",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}([.][0-9]+)?([+-]\\d{2}:\\d{2}|Z)$",
       "format": "date-time"
     },
     "updated_at": {
       "description": "Timestamp ISO 8601 com offset da ultima escrita neste manifesto.",
       "type": "string",
-      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}([.][0-9]+)?(Z|[+-][0-9]{2}:[0-9]{2})$",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}([.][0-9]+)?([+-]\\d{2}:\\d{2}|Z)$",
       "format": "date-time"
     },
     "language": {
@@ -106,14 +106,15 @@
       "type": "array",
       "minItems": 1,
       "items": {
+        "description": "Um conceito atacado por este desafio, com o papel que ele tem aqui.",
         "type": "object",
         "additionalProperties": false,
         "required": ["concept_id", "label", "role"],
         "properties": {
           "concept_id": {
-            "description": "Identificador estavel do conceito, compartilhado com o registro de proficiencia da memoria.",
+            "description": "Identificador estavel do conceito em snake_case ASCII sem acento, byte a byte o mesmo de progress.json concepts[].concept_id. E por igualdade de string que a evidencia deste desafio encontra o conceito no registro de proficiencia: grafia diferente aqui significa progresso gravado no lugar errado, em silencio.",
             "type": "string",
-            "pattern": "^[a-z0-9]+(_[a-z0-9]+)*$",
+            "pattern": "^[a-z][a-z0-9_]{1,62}$",
             "maxLength": 80
           },
           "label": {
@@ -159,7 +160,7 @@
           "maxLength": 200
         },
         "test_path": {
-          "description": "Arquivo de teste — o aluno le, mas nao deve editar.",
+          "description": "Arquivo de teste - o aluno le, mas nao deve editar.",
           "type": "string",
           "minLength": 1,
           "maxLength": 200
@@ -185,7 +186,7 @@
         "reference_alt_paths": {
           "description": "Implementacoes de referencia alternativas, corretas mas estruturalmente diferentes. Usadas no passo 3 do protocolo para detectar acoplamento a implementacao.",
           "type": "array",
-          "items": {"type": "string", "minLength": 1, "maxLength": 200}
+          "items": {"description": "Caminho relativo ao diretorio do desafio, nunca absoluto: o setup do aluno pode ser movido.", "type": "string", "minLength": 1, "maxLength": 200}
         },
         "empty_stub_path": {
           "description": "Copia canonica do stub vazio, preservada para o passo 1 do protocolo poder ser reexecutado depois que o aluno ja editou o stub.",
@@ -195,12 +196,12 @@
         "manifest_paths": {
           "description": "Manifestos exigidos pela linguagem (go.mod, Cargo.toml, package.json, mix.exs...). Vazio quando a linguagem nao exige nenhum.",
           "type": "array",
-          "items": {"type": "string", "minLength": 1, "maxLength": 200}
+          "items": {"description": "Caminho relativo ao diretorio do desafio, nunca absoluto: o setup do aluno pode ser movido.", "type": "string", "minLength": 1, "maxLength": 200}
         },
         "support_paths": {
           "description": "Arquivos auxiliares visiveis ao aluno (headers, fixtures, dados de entrada).",
           "type": "array",
-          "items": {"type": "string", "minLength": 1, "maxLength": 200}
+          "items": {"description": "Caminho relativo ao diretorio do desafio, nunca absoluto: o setup do aluno pode ser movido.", "type": "string", "minLength": 1, "maxLength": 200}
         }
       }
     },
@@ -214,12 +215,12 @@
           "description": "Comando como vetor argv (sem shell), para nao depender de quoting. Ex.: ['python3','-B','-m','unittest','discover','-s','tests','-p','test_*.py'].",
           "type": "array",
           "minItems": 1,
-          "items": {"type": "string", "minLength": 1}
+          "items": {"description": "Um argumento do vetor argv, sem quoting de shell e sem expansao: o comando e executado direto, nunca por um shell.", "type": "string", "minLength": 1}
         },
         "build_command": {
           "description": "Comando de compilacao previo, quando a linguagem exige (C, C++, Java). Vetor argv; ausente ou vazio quando nao ha etapa de build.",
           "type": "array",
-          "items": {"type": "string", "minLength": 1}
+          "items": {"description": "Um argumento do vetor argv, sem quoting de shell e sem expansao.", "type": "string", "minLength": 1}
         },
         "working_dir": {
           "description": "Diretorio de trabalho fixo, relativo ao diretorio do desafio. Nunca herdar o cwd de quem chamou.",
@@ -249,7 +250,7 @@
           "type": "object"
         },
         "expected_test_count": {
-          "description": "Numero de casos de teste que DEVEM ser executados. Precisa ser igual ao tamanho de scenarios. O harness reprova a execucao se a contagem observada divergir — e assim que se pega o falso positivo silencioso de 'nenhum teste rodou'.",
+          "description": "Numero de casos de teste que DEVEM ser executados. Precisa ser igual ao tamanho de scenarios. O harness reprova a execucao se a contagem observada divergir - e assim que se pega o falso positivo silencioso de 'nenhum teste rodou'.",
           "type": "integer",
           "minimum": 1
         },
@@ -320,10 +321,11 @@
       }
     },
     "scenarios": {
-      "description": "Enumeracao FECHADA e NOMEADA dos cenarios que este desafio cobre. Nao e 'todos os cenarios de erro possiveis' — e a lista explicita do que o teste verifica, para que o aluno saiba o que esta sendo cobrado. O tamanho desta lista deve ser igual a execution.expected_test_count.",
+      "description": "Enumeracao FECHADA e NOMEADA dos cenarios que este desafio cobre. Nao e 'todos os cenarios de erro possiveis' - e a lista explicita do que o teste verifica, para que o aluno saiba o que esta sendo cobrado. O tamanho desta lista deve ser igual a execution.expected_test_count.",
       "type": "array",
       "minItems": 1,
       "items": {
+        "description": "Um cenario de teste do desafio: o caso que o teste cobre, com o nome do teste que o implementa.",
         "type": "object",
         "additionalProperties": false,
         "required": ["scenario_id", "test_name", "kind", "description"],
@@ -346,7 +348,7 @@
             "enum": ["example", "boundary", "error", "property", "metamorphic", "regression"]
           },
           "description": {
-            "description": "O que este cenario cobra, em pt-BR e em linguagem do dominio — e o texto que vira a mensagem de falha didatica.",
+            "description": "O que este cenario cobra, em pt-BR e em linguagem do dominio - e o texto que vira a mensagem de falha didatica.",
             "type": "string",
             "minLength": 5,
             "maxLength": 400
@@ -370,6 +372,7 @@
           "type": "array",
           "minItems": 1,
           "items": {
+            "description": "Uma estrategia de oraculo usada por este desafio, do catalogo fixo.",
             "type": "string",
             "enum": [
               "reference_impl",
@@ -397,14 +400,16 @@
           "minimum": 0
         },
         "invariants": {
-          "description": "Propriedades invariantes verificadas sobre a referencia, independentes do valor esperado — a defesa contra o modelo ter errado a conta.",
+          "description": "Propriedades invariantes verificadas sobre a referencia, independentes do valor esperado - a defesa contra o modelo ter errado a conta.",
           "type": "array",
           "items": {
+            "description": "Um invariante que a solucao deve satisfazer, com a amostragem que o verificou.",
             "type": "object",
             "additionalProperties": false,
             "required": ["invariant_id", "statement"],
             "properties": {
               "invariant_id": {
+                "description": "Identificador estavel do invariante dentro do desafio, em snake_case ASCII sem acento. Serve para a mensagem de falha apontar qual invariante quebrou.",
                 "type": "string",
                 "pattern": "^[a-z0-9]+(_[a-z0-9]+)*$",
                 "maxLength": 80
@@ -435,23 +440,25 @@
       }
     },
     "validation": {
-      "description": "Resultado do protocolo validar_teste executado pelo harness determinístico. Nenhum campo aqui pode ser preenchido por julgamento de modelo — todos vem de execucao.",
+      "description": "Resultado do protocolo validar_teste executado pelo harness determinista. Nenhum campo aqui pode ser preenchido por julgamento de modelo - todos vem de execucao.",
       "type": "object",
       "additionalProperties": false,
       "required": ["protocol_version", "harness", "verdict", "steps", "generation_attempts"],
       "properties": {
         "protocol_version": {
+          "description": "Versao do protocolo de validacao (os passos 0 a 6) que produziu este resultado. Um resultado gravado por um protocolo mais antigo continua legivel e continua dizendo por qual regra foi aprovado.",
           "type": "string",
           "pattern": "^1\\.[0-9]+$"
         },
         "harness": {
-          "description": "Script que produziu este resultado. Sempre challenge-verify.sh — nunca um modelo.",
+          "description": "Script que produziu este resultado. Sempre challenge-verify.sh - nunca um modelo.",
           "type": "string",
           "enum": ["challenge-verify.sh"]
         },
         "validated_at": {
+          "description": "Data-hora ISO 8601 em que challenge-verify.sh terminou esta rodada de validacao. Ausente enquanto verdict for not_run.",
           "type": "string",
-          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}([.][0-9]+)?(Z|[+-][0-9]{2}:[0-9]{2})$",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}([.][0-9]+)?([+-]\\d{2}:\\d{2}|Z)$",
           "format": "date-time"
         },
         "verdict": {
@@ -480,57 +487,63 @@
           ],
           "properties": {
             "step_0_build": {
+              "description": "Passo 0 - build. Compila o desafio quando a linguagem exige etapa de compilacao. Reprovar aqui interrompe o protocolo: sem binario nao ha o que testar.",
               "type": "object",
               "additionalProperties": false,
               "required": ["status"],
               "properties": {
-                "status": {"type": "string", "enum": ["passed", "failed", "skipped", "not_applicable"]},
-                "detail": {"type": "string", "maxLength": 800}
+                "status": {"description": "Resultado deste passo do protocolo. passed = o passo rodou e o criterio foi satisfeito; failed = rodou e reprovou (o desafio nao pode ser entregue); skipped = nao rodou por decisao de configuracao; not_applicable = nao faz sentido nesta linguagem ou neste desafio. skipped e not_applicable nao sao aprovacao: um passo pulado nunca vira evidencia de qualidade.", "type": "string", "enum": ["passed", "failed", "skipped", "not_applicable"]},
+                "detail": {"description": "Detalhe em pt-BR do que aconteceu neste passo: comando, saida relevante, motivo do desfecho. Texto para humano ler ao investigar; nenhuma decisao automatica depende dele.", "type": "string", "maxLength": 800}
               }
             },
             "step_1_empty_stub": {
+              "description": "Passo 1 - stub vazio. Roda a suite contra o stub sem implementacao: ela TEM de ficar vermelha. Teste que passa no stub vazio nao testa nada, e este e o passo que pega isso.",
               "type": "object",
               "additionalProperties": false,
               "required": ["status"],
               "properties": {
-                "status": {"type": "string", "enum": ["passed", "failed", "skipped", "not_applicable"]},
-                "tests_run": {"type": "integer", "minimum": 0},
-                "tests_failed": {"type": "integer", "minimum": 0},
-                "exit_code": {"type": "integer", "minimum": 0, "maximum": 255},
-                "detail": {"type": "string", "maxLength": 800}
+                "status": {"description": "Resultado deste passo do protocolo. passed = o passo rodou e o criterio foi satisfeito; failed = rodou e reprovou (o desafio nao pode ser entregue); skipped = nao rodou por decisao de configuracao; not_applicable = nao faz sentido nesta linguagem ou neste desafio. skipped e not_applicable nao sao aprovacao: um passo pulado nunca vira evidencia de qualidade.", "type": "string", "enum": ["passed", "failed", "skipped", "not_applicable"]},
+                "tests_run": {"description": "Quantos testes a suite executou de fato. Zero e reprovacao, mesmo com exit code 0: em Go, Rust e unittest o exit code sozinho mente quando nenhum teste roda.", "type": "integer", "minimum": 0},
+                "tests_failed": {"description": "Quantos testes falharam. Contra o stub vazio, este numero tem de ser maior que zero.", "type": "integer", "minimum": 0},
+                "exit_code": {"description": "Exit code bruto do runner, preservado como veio. Lido sempre pela regra != 0, nunca == 1: cada linguagem devolve um numero diferente para falha.", "type": "integer", "minimum": 0, "maximum": 255},
+                "detail": {"description": "Detalhe em pt-BR do que aconteceu neste passo: comando, saida relevante, motivo do desfecho. Texto para humano ler ao investigar; nenhuma decisao automatica depende dele.", "type": "string", "maxLength": 800}
               }
             },
             "step_2_reference": {
+              "description": "Passo 2 - implementacao de referencia. Roda a suite contra a solucao correta oculta: ela TEM de ficar verde. Reprovar aqui significa que o teste esta errado, nao a solucao.",
               "type": "object",
               "additionalProperties": false,
               "required": ["status"],
               "properties": {
-                "status": {"type": "string", "enum": ["passed", "failed", "skipped", "not_applicable"]},
-                "tests_run": {"type": "integer", "minimum": 0},
-                "tests_failed": {"type": "integer", "minimum": 0},
-                "exit_code": {"type": "integer", "minimum": 0, "maximum": 255},
-                "detail": {"type": "string", "maxLength": 800}
+                "status": {"description": "Resultado deste passo do protocolo. passed = o passo rodou e o criterio foi satisfeito; failed = rodou e reprovou (o desafio nao pode ser entregue); skipped = nao rodou por decisao de configuracao; not_applicable = nao faz sentido nesta linguagem ou neste desafio. skipped e not_applicable nao sao aprovacao: um passo pulado nunca vira evidencia de qualidade.", "type": "string", "enum": ["passed", "failed", "skipped", "not_applicable"]},
+                "tests_run": {"description": "Quantos testes a suite executou de fato. Zero e reprovacao, mesmo com exit code 0.", "type": "integer", "minimum": 0},
+                "tests_failed": {"description": "Quantos testes falharam. Contra a referencia, tem de ser zero.", "type": "integer", "minimum": 0},
+                "exit_code": {"description": "Exit code bruto do runner, preservado como veio. Lido pela regra != 0.", "type": "integer", "minimum": 0, "maximum": 255},
+                "detail": {"description": "Detalhe em pt-BR do que aconteceu neste passo: comando, saida relevante, motivo do desfecho. Texto para humano ler ao investigar; nenhuma decisao automatica depende dele.", "type": "string", "maxLength": 800}
               }
             },
             "step_3_alternatives": {
+              "description": "Passo 3 - alternativas corretas. Roda a suite contra implementacoes corretas porem estruturalmente diferentes: todas TEM de passar. Rejeitar uma alternativa correta significa que o teste esta acoplado a uma implementacao especifica, e isso pune o aluno por resolver de outro jeito.",
               "type": "object",
               "additionalProperties": false,
               "required": ["status"],
               "properties": {
-                "status": {"type": "string", "enum": ["passed", "failed", "skipped", "not_applicable"]},
-                "alternatives_run": {"type": "integer", "minimum": 0},
+                "status": {"description": "Resultado deste passo do protocolo. passed = o passo rodou e o criterio foi satisfeito; failed = rodou e reprovou (o desafio nao pode ser entregue); skipped = nao rodou por decisao de configuracao; not_applicable = nao faz sentido nesta linguagem ou neste desafio. skipped e not_applicable nao sao aprovacao: um passo pulado nunca vira evidencia de qualidade.", "type": "string", "enum": ["passed", "failed", "skipped", "not_applicable"]},
+                "alternatives_run": {"description": "Quantas implementacoes alternativas foram executadas nesta rodada.", "type": "integer", "minimum": 0},
                 "alternatives_rejected": {
-                  "description": "Referencias alternativas corretas que o teste reprovou — cada uma e evidencia de acoplamento a implementacao.",
+                  "description": "Referencias alternativas corretas que o teste reprovou - cada uma e evidencia de acoplamento a implementacao.",
                   "type": "array",
                   "items": {
+                    "description": "Uma alternativa correta que a suite reprovou, com os testes que a reprovaram e o que foi feito a respeito.",
                     "type": "object",
                     "additionalProperties": false,
                     "required": ["path", "failing_test_names"],
                     "properties": {
-                      "path": {"type": "string", "minLength": 1, "maxLength": 200},
+                      "path": {"description": "Caminho relativo ao diretorio do desafio, nunca absoluto: o setup do aluno pode ser movido.", "type": "string", "minLength": 1, "maxLength": 200},
                       "failing_test_names": {
+                        "description": "Nomes dos testes que reprovaram esta alternativa correta. E a lista que aponta exatamente qual assercao esta acoplada a implementacao.",
                         "type": "array",
-                        "items": {"type": "string", "minLength": 1, "maxLength": 200}
+                        "items": {"description": "Nome de um teste, exatamente como o runner o imprime.", "type": "string", "minLength": 1, "maxLength": 200}
                       },
                       "resolution": {
                         "description": "assertion_relaxed = a assercao acoplada foi afrouxada e o protocolo reexecutado; test_regenerated = o teste inteiro foi refeito; unresolved = nada foi feito (nao pode coexistir com verdict approved).",
@@ -540,43 +553,46 @@
                     }
                   }
                 },
-                "detail": {"type": "string", "maxLength": 800}
+                "detail": {"description": "Detalhe em pt-BR do que aconteceu neste passo: comando, saida relevante, motivo do desfecho. Texto para humano ler ao investigar; nenhuma decisao automatica depende dele.", "type": "string", "maxLength": 800}
               }
             },
             "step_4_mutation": {
+              "description": "Passo 4 - mutacao. Gera mutantes mecanicos da referencia e mede quantos a suite mata. E a medida de o quanto o teste realmente discrimina; o resultado numerico fica em validation.mutation.",
               "type": "object",
               "additionalProperties": false,
               "required": ["status"],
               "properties": {
-                "status": {"type": "string", "enum": ["passed", "failed", "skipped", "not_applicable"]},
-                "detail": {"type": "string", "maxLength": 800}
+                "status": {"description": "Resultado deste passo do protocolo. passed = o passo rodou e o criterio foi satisfeito; failed = rodou e reprovou (o desafio nao pode ser entregue); skipped = nao rodou por decisao de configuracao; not_applicable = nao faz sentido nesta linguagem ou neste desafio. skipped e not_applicable nao sao aprovacao: um passo pulado nunca vira evidencia de qualidade.", "type": "string", "enum": ["passed", "failed", "skipped", "not_applicable"]},
+                "detail": {"description": "Detalhe em pt-BR do que aconteceu neste passo: comando, saida relevante, motivo do desfecho. Texto para humano ler ao investigar; nenhuma decisao automatica depende dele.", "type": "string", "maxLength": 800}
               }
             },
             "step_5_determinism": {
+              "description": "Passo 5 - determinismo. Repete a suite sob ambientes controlados para provar que o resultado nao depende de locale, fuso, ordem de hash ou relogio. Teste instavel reprova o aluno por acaso.",
               "type": "object",
               "additionalProperties": false,
               "required": ["status"],
               "properties": {
-                "status": {"type": "string", "enum": ["passed", "failed", "skipped", "not_applicable"]},
-                "repetitions": {"type": "integer", "minimum": 0},
+                "status": {"description": "Resultado deste passo do protocolo. passed = o passo rodou e o criterio foi satisfeito; failed = rodou e reprovou (o desafio nao pode ser entregue); skipped = nao rodou por decisao de configuracao; not_applicable = nao faz sentido nesta linguagem ou neste desafio. skipped e not_applicable nao sao aprovacao: um passo pulado nunca vira evidencia de qualidade.", "type": "string", "enum": ["passed", "failed", "skipped", "not_applicable"]},
+                "repetitions": {"description": "Quantas vezes a suite foi repetida nesta checagem.", "type": "integer", "minimum": 0},
                 "env_matrix": {
                   "description": "Combinacoes de ambiente efetivamente usadas nas repeticoes (ex.: 'LC_ALL=C TZ=UTC PYTHONHASHSEED=0').",
                   "type": "array",
-                  "items": {"type": "string", "minLength": 1, "maxLength": 200}
+                  "items": {"description": "Uma combinacao de variaveis de ambiente usada em uma das repeticoes.", "type": "string", "minLength": 1, "maxLength": 200}
                 },
-                "stable": {"type": "boolean"},
-                "detail": {"type": "string", "maxLength": 800}
+                "stable": {"description": "true quando todas as repeticoes deram exatamente o mesmo resultado. false e reprovacao do passo.", "type": "boolean"},
+                "detail": {"description": "Detalhe em pt-BR do que aconteceu neste passo: comando, saida relevante, motivo do desfecho. Texto para humano ler ao investigar; nenhuma decisao automatica depende dele.", "type": "string", "maxLength": 800}
               }
             },
             "step_6_counts": {
+              "description": "Passo 6 - contagem. Confere que o numero de testes executados bate com o declarado em execution.expected_test_count. Existe porque exit code 0 com zero teste executado e o modo de falha mais silencioso do conjunto.",
               "type": "object",
               "additionalProperties": false,
               "required": ["status"],
               "properties": {
-                "status": {"type": "string", "enum": ["passed", "failed", "skipped", "not_applicable"]},
-                "expected": {"type": "integer", "minimum": 0},
-                "observed": {"type": "integer", "minimum": 0},
-                "detail": {"type": "string", "maxLength": 800}
+                "status": {"description": "Resultado deste passo do protocolo. passed = o passo rodou e o criterio foi satisfeito; failed = rodou e reprovou (o desafio nao pode ser entregue); skipped = nao rodou por decisao de configuracao; not_applicable = nao faz sentido nesta linguagem ou neste desafio. skipped e not_applicable nao sao aprovacao: um passo pulado nunca vira evidencia de qualidade.", "type": "string", "enum": ["passed", "failed", "skipped", "not_applicable"]},
+                "expected": {"description": "Numero de testes declarado em execution.expected_test_count.", "type": "integer", "minimum": 0},
+                "observed": {"description": "Numero de testes efetivamente contados na execucao, pela sonda de execution.test_count_probe.", "type": "integer", "minimum": 0},
+                "detail": {"description": "Detalhe em pt-BR do que aconteceu neste passo: comando, saida relevante, motivo do desfecho. Texto para humano ler ao investigar; nenhuma decisao automatica depende dele.", "type": "string", "maxLength": 800}
               }
             }
           }
@@ -629,24 +645,40 @@
               "minimum": 0,
               "maximum": 1
             },
+            "equivalent_count": {
+              "description": "Quantos dos mutantes sobreviventes foram classificados como equivalent - comportamentalmente identicos a referencia, que teste nenhum poderia matar. E a correcao honesta do score: sobrevivente equivalente nao e buraco no teste. Deve ser igual ao numero de entradas de survivors[] com classification equivalent, e nunca maior que survived. Toda classificacao equivalent vem de um pedido explicito ao modelo, com justificativa gravada em survivors[].justification; o script nunca decide isso sozinho.",
+              "type": "integer",
+              "minimum": 0
+            },
+            "sample_size": {
+              "description": "Quantos mutantes foram efetivamente executados contra a suite nesta rodada, quando a geracao foi amostrada em vez de exaustiva. Igual a valid quando todos os mutantes validos rodaram. Existe para o score ser lido com o denominador certo: 0,80 sobre 10 mutantes amostrados nao e a mesma afirmacao que 0,80 sobre 200.",
+              "type": "integer",
+              "minimum": 0
+            },
+            "detail": {
+              "description": "Nota em pt-BR sobre esta rodada de mutacao: por que houve amostragem, qual operador dominou os sobreviventes, o que a proxima regeneracao deve atacar. Texto livre, lido por humano; nenhuma decisao automatica depende dele.",
+              "type": "string",
+              "maxLength": 800
+            },
             "survivors": {
               "description": "Lista dos mutantes sobreviventes, com a mutacao exata que sobreviveu. E o material que alimenta a regeneracao do teste.",
               "type": "array",
               "items": {
+                "description": "Um mutante que a suite nao matou, com a mutacao exata que passou despercebida.",
                 "type": "object",
                 "additionalProperties": false,
                 "required": ["mutant_id", "operator", "file", "line", "before", "after", "classification"],
                 "properties": {
-                  "mutant_id": {"type": "string", "minLength": 1, "maxLength": 120},
+                  "mutant_id": {"description": "Identificador do mutante dentro desta rodada. Serve para casar a classificacao devolvida pelo modelo com o mutante certo.", "type": "string", "minLength": 1, "maxLength": 120},
                   "operator": {
                     "description": "Operador do catalogo fixo que produziu este mutante.",
                     "type": "string",
                     "enum": ["ROR", "AOR", "LCR", "UOI", "CRP", "SDL", "RVR", "SVR"]
                   },
-                  "file": {"type": "string", "minLength": 1, "maxLength": 200},
-                  "line": {"type": "integer", "minimum": 1},
-                  "before": {"type": "string", "maxLength": 400},
-                  "after": {"type": "string", "maxLength": 400},
+                  "file": {"description": "Caminho relativo ao diretorio do desafio, nunca absoluto: o setup do aluno pode ser movido.", "type": "string", "minLength": 1, "maxLength": 200},
+                  "line": {"description": "Numero da linha mutada, contando a partir de 1.", "type": "integer", "minimum": 1},
+                  "before": {"description": "O trecho de codigo original, antes da mutacao.", "type": "string", "maxLength": 400},
+                  "after": {"description": "O trecho de codigo depois da mutacao. E o par before/after que torna a classificacao auditavel: da para reler os dois e discordar.", "type": "string", "maxLength": 400},
                   "classification": {
                     "description": "equivalent = o mutante e comportamentalmente identico a referencia, logo nenhum teste poderia mata-lo; test_gap = falta um cenario no teste; unclassified = ainda nao analisado.",
                     "type": "string",
@@ -666,12 +698,14 @@
           "description": "Historico de reprovacoes, uma por tentativa de geracao. E o que vai no prompt de regeneracao.",
           "type": "array",
           "items": {
+            "description": "Uma reprovacao: a tentativa de geracao, o codigo do motivo e o que exatamente falhou.",
             "type": "object",
             "additionalProperties": false,
             "required": ["attempt", "code", "message"],
             "properties": {
-              "attempt": {"type": "integer", "minimum": 1, "maximum": 10},
+              "attempt": {"description": "Numero da tentativa de geracao que produziu esta reprovacao, contando a partir de 1.", "type": "integer", "minimum": 1, "maximum": 10},
               "code": {
+                "description": "Codigo do motivo da reprovacao, do catalogo fixo. E o que o prompt de regeneracao usa para saber o que atacar; a frase livre fica em message.",
                 "type": "string",
                 "enum": [
                   "build_failed",
@@ -710,29 +744,32 @@
           "enum": ["off", "warn", "block"]
         },
         "test_sha256": {
-          "description": "SHA-256 do arquivo de teste no momento da aprovacao.",
-          "type": "string",
+          "description": "SHA-256 do arquivo de teste no momento da aprovacao, em hexadecimal minusculo. null enquanto nao ha aprovacao: um desafio com challenge_status draft ou rejected nao tem hash porque nao ha teste aprovado a proteger. REGRA CONDICIONAL, verificada por asseracao propria do gate e nao por este schema (if/then nao existe no verificador minimo do projeto): quando challenge_status e validated ou solved, este campo NAO pode ser null. A chave continua obrigatoria em qualquer caso - o que muda e o valor.",
+          "type": ["string", "null"],
           "pattern": "^[a-f0-9]{64}$"
         },
         "reference_sha256": {
-          "description": "SHA-256 da implementacao de referencia no momento da aprovacao.",
-          "type": "string",
+          "description": "SHA-256 da implementacao de referencia no momento da aprovacao, em hexadecimal minusculo. null pelo mesmo motivo de test_sha256, e sujeito a mesma asseracao do gate quando challenge_status e validated ou solved. Diferente de test_sha256, esta chave e opcional: pode simplesmente nao existir.",
+          "type": ["string", "null"],
           "pattern": "^[a-f0-9]{64}$"
         },
         "recorded_at": {
+          "description": "Data-hora ISO 8601 em que os hashes deste objeto foram calculados - isto e, o momento da aprovacao do desafio.",
           "type": "string",
-          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}([.][0-9]+)?(Z|[+-][0-9]{2}:[0-9]{2})$",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}([.][0-9]+)?([+-]\\d{2}:\\d{2}|Z)$",
           "format": "date-time"
         },
         "last_check": {
+          "description": "Resultado da ultima conferencia dos hashes contra os arquivos em disco.",
           "type": "object",
           "additionalProperties": false,
           "required": ["status"],
           "properties": {
-            "status": {"type": "string", "enum": ["match", "modified", "missing", "not_checked"]},
+            "status": {"description": "match = os arquivos continuam identicos ao que foi aprovado; modified = mudaram desde a aprovacao; missing = o arquivo sumiu; not_checked = a conferencia nunca rodou. modified nao e acusacao: o aluno pode ter editado o teste para entender, e a politica decide se isso avisa ou bloqueia.", "type": "string", "enum": ["match", "modified", "missing", "not_checked"]},
             "checked_at": {
+              "description": "Data-hora ISO 8601 em que a conferencia rodou pela ultima vez.",
               "type": "string",
-              "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}([.][0-9]+)?(Z|[+-][0-9]{2}:[0-9]{2})$",
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}([.][0-9]+)?([+-]\\d{2}:\\d{2}|Z)$",
               "format": "date-time"
             }
           }
@@ -758,36 +795,40 @@
         "failing_scenario_ids": {
           "description": "scenario_id dos cenarios vermelhos na ultima execucao. E o que o tutor usa para escolher a dica.",
           "type": "array",
-          "items": {"type": "string", "pattern": "^[a-z0-9]+(_[a-z0-9]+)*$", "maxLength": 80}
+          "items": {"description": "scenario_id de um cenario vermelho, no mesmo formato de scenarios[].scenario_id.", "type": "string", "pattern": "^[a-z0-9]+(_[a-z0-9]+)*$", "maxLength": 80}
         },
         "hint_level_used": {
-          "description": "Degrau mais alto da escada de dicas ja entregue ao aluno. 0 = nenhuma dica dada. A semantica dos degraus e definida pela escada de dicas, nao aqui.",
+          "description": "Degrau mais alto da escada de dicas ja entregue ao aluno, de 0 a 5. 0 = nenhuma dica dada; 5 = solucao pronta entregue. Mesma faixa de session.how_it_happened[].hint_level e de progress.evidence[].hint_level - o valor viaja entre os tres arquivos, e uma faixa mais larga aqui deixaria passar um numero que os outros dois rejeitam. A semantica dos degraus e definida pela escada de dicas, nao aqui.",
           "type": "integer",
           "minimum": 0,
-          "maximum": 10
+          "maximum": 5
         },
         "solution_revealed": {
           "description": "true quando o conteudo de hidden_dir foi mostrado ao aluno.",
           "type": "boolean"
         },
         "solution_revealed_at": {
+          "description": "Data-hora ISO 8601 em que a solucao oculta foi mostrada ao aluno. Ausente enquanto solution_revealed for false.",
           "type": "string",
-          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}([.][0-9]+)?(Z|[+-][0-9]{2}:[0-9]{2})$",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}([.][0-9]+)?([+-]\\d{2}:\\d{2}|Z)$",
           "format": "date-time"
         },
         "first_attempt_at": {
+          "description": "Data-hora ISO 8601 da primeira execucao do runner pelo aluno.",
           "type": "string",
-          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}([.][0-9]+)?(Z|[+-][0-9]{2}:[0-9]{2})$",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}([.][0-9]+)?([+-]\\d{2}:\\d{2}|Z)$",
           "format": "date-time"
         },
         "last_attempt_at": {
+          "description": "Data-hora ISO 8601 da execucao mais recente do runner pelo aluno.",
           "type": "string",
-          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}([.][0-9]+)?(Z|[+-][0-9]{2}:[0-9]{2})$",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}([.][0-9]+)?([+-]\\d{2}:\\d{2}|Z)$",
           "format": "date-time"
         },
         "solved_at": {
+          "description": "Data-hora ISO 8601 em que a suite ficou verde com o codigo do aluno. Ausente enquanto o desafio nao foi resolvido.",
           "type": "string",
-          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}([.][0-9]+)?(Z|[+-][0-9]{2}:[0-9]{2})$",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}([.][0-9]+)?([+-]\\d{2}:\\d{2}|Z)$",
           "format": "date-time"
         },
         "time_spent_seconds": {

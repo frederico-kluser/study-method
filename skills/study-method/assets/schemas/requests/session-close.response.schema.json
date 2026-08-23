@@ -1,0 +1,119 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:study-method:schema:session-close-response:1",
+  "title": "Resposta com os campos faltantes da sessao (session-close.sh --apply)",
+  "description": "A resposta do modelo ao pedido session-close.request.schema.json: os VALORES dos campos que faltavam, e nada alem deles. O script aplica cada valor no memory/NNNN.json, revalida contra session.schema.json e fecha a sessao. Regra: uma chave em 'values' que nao estava em missing_fields do pedido faz o script recusar a resposta - o fechamento nao e ocasiao de reescrever o que a sessao ja registrou. Se ainda faltar campo depois de max_attempts, a sessao fecha assim mesmo com validation_errors[] preenchido. Textos livres em pt-BR; chaves e valores de enum em ingles snake_case sem acento. VERIFICADOR MINIMO: type, required, enum, pattern, items, properties, minimum, maximum e additionalProperties booleano; maxLength e documentacao e NAO e verificado.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "request_kind", "session_id", "values"],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+$",
+      "description": "Versao do schema desta resposta, MAJOR.MINOR. Deve ter o mesmo MAJOR do pedido."
+    },
+    "request_kind": {
+      "enum": ["session_close"],
+      "description": "Ecoa o request_kind do pedido. O script recusa a resposta cujo request_kind nao bata."
+    },
+    "session_id": {
+      "type": "string",
+      "pattern": "^[0-9]{4}$",
+      "description": "Ecoa o session_id do pedido, quatro digitos zero-padded. Resposta com session_id diferente e recusada: e a guarda contra aplicar o fechamento na sessao errada."
+    },
+    "values": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Os valores pedidos, uma chave por campo de missing_fields. Cada chave aqui tem exatamente o tipo e o formato que o campo homonimo de session.schema.json exige. Objeto vazio significa que o modelo nao conseguiu preencher nada - resposta legitima, e melhor que texto inventado: a sessao fecha com validation_errors[].",
+      "properties": {
+        "one_line_summary": {
+          "type": "string",
+          "maxLength": 160,
+          "description": "Uma unica frase em pt-BR, ate 160 caracteres, respondendo 'o que aconteceu nesta sessao'. E o unico texto desta sessao que o digest carrega por padrao nas sessoes seguintes, e o que aparece no indice. Numa sessao abandonada, a frase honesta e 'sessao interrompida em <topico>' - nao invente o que nao aconteceu."
+        },
+        "topics": {
+          "type": "array",
+          "description": "Tags de topico da sessao, em snake_case ASCII sem acento. Reuse a grafia que ja existe no setup: identificador so casa por igualdade de string.",
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_]{1,62}$",
+            "description": "Uma tag de topico em snake_case ASCII sem acento."
+          }
+        },
+        "goal": {
+          "type": ["string", "null"],
+          "description": "O que o aluno queria conseguir nesta sessao, em uma frase."
+        },
+        "what_was_done": {
+          "type": ["string", "null"],
+          "description": "O que foi feito concretamente (exercicios, codigo escrito, leitura), em 1-3 frases. Fatos observaveis, nao avaliacao."
+        },
+        "what_was_learned": {
+          "type": ["array", "null"],
+          "description": "O que o aluno passou a conseguir fazer ou explicar, uma afirmacao curta por item. Nao repetir o conteudo da aula: so o que mudou nele.",
+          "items": {
+            "type": "string",
+            "description": "Uma afirmacao curta em pt-BR."
+          }
+        },
+        "what_worked": {
+          "type": ["string", "null"],
+          "description": "Resumo em uma frase do que funcionou pedagogicamente nesta sessao."
+        },
+        "what_didnt_work": {
+          "type": ["string", "null"],
+          "description": "Resumo em uma frase do que nao funcionou. Campo de alto valor: evita repetir na proxima sessao a abordagem que ja travou o aluno."
+        },
+        "open_questions": {
+          "type": ["array", "null"],
+          "description": "Perguntas que ficaram em aberto, uma por item. Entram no digest da sessao seguinte como pendencia e nunca sao truncadas pelo orcamento.",
+          "items": {
+            "type": "string",
+            "description": "Uma pergunta em aberto, em pt-BR."
+          }
+        },
+        "next_steps": {
+          "type": ["array", "null"],
+          "description": "Proximos passos combinados com o aluno, uma acao concreta por item.",
+          "items": {
+            "type": "string",
+            "description": "Um proximo passo concreto, em pt-BR."
+          }
+        },
+        "affect": {
+          "enum": ["engaged", "frustrated", "confident", "anxious", "unmotivated", "neutral", null],
+          "description": "Estado afetivo predominante do aluno nesta sessao. Vocabulario fechado de proposito: texto livre aqui deriva e vira irrecuperavel por igualdade de string."
+        },
+        "affect_note": {
+          "type": ["string", "null"],
+          "description": "Uma frase sobre o afeto observado, ancorada em COMPORTAMENTO (ficou quieto, parou de perguntar, riu quando funcionou). Nao registrar contexto pessoal, familiar ou de saude."
+        },
+        "docs_coverage": {
+          "enum": ["full", "indexed", "none", null],
+          "description": "Quanto do docs/ do setup entrou nesta sessao. full: lido inteiro. indexed: so as secoes relevantes, com o resto declarado ao aluno. none: nao ha material legivel."
+        }
+      }
+    },
+    "unfilled": {
+      "type": "array",
+      "description": "Campos de missing_fields que o modelo NAO conseguiu preencher, com o motivo. Declarar aqui e melhor que inventar valor: o script grava esses itens em validation_errors[] e fecha a sessao mesmo assim.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["field", "reason"],
+        "description": "Um campo que ficou sem valor, com o motivo.",
+        "properties": {
+          "field": {
+            "enum": ["one_line_summary", "topics", "goal", "what_was_done", "what_was_learned", "what_worked", "what_didnt_work", "open_questions", "next_steps", "affect", "affect_note", "docs_coverage"],
+            "description": "Qual campo ficou sem valor. Mesmo vocabulario fechado de missing_fields[].field no pedido."
+          },
+          "reason": {
+            "type": "string",
+            "maxLength": 240,
+            "description": "Por que nao foi possivel preencher, em pt-BR e em uma frase (ex.: 'a sessao foi interrompida antes de qualquer exercicio'). Vai para validation_errors[] da sessao."
+          }
+        }
+      }
+    }
+  }
+}

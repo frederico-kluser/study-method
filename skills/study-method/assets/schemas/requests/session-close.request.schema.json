@@ -1,0 +1,129 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:study-method:schema:session-close-request:1",
+  "title": "Pedido de campos faltantes no fechamento da sessao (session-close.sh, exit 10)",
+  "description": "PROTOCOLO REQUEST/APPLY: `session-close.sh` valida memory/NNNN.json contra session.schema.json. Se faltar campo obrigatorio, ele escreve ESTE objeto em stdout e sai com exit 10, pedindo ao modelo APENAS os campos faltantes - nunca a sessao inteira, para nao dar chance de o fechamento reescrever o que ja estava gravado. O modelo responde conforme session-close.response.schema.json e reinvoca `session-close.sh --apply <arquivo>`. LIMITE DURO: no maximo 2 tentativas; depois disso a sessao fecha assim mesmo, com status closed e validation_errors[] preenchido. Nenhuma sessao pode ficar presa em in_progress por causa de validacao. Textos livres em pt-BR; chaves e valores de enum em ingles snake_case sem acento. VERIFICADOR MINIMO: type, required, enum, pattern, items, properties, minimum, maximum e additionalProperties booleano; maxLength e minItems sao documentacao e NAO sao verificados.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "request_kind", "generated_at", "session_id", "attempt", "max_attempts", "missing_fields"],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+$",
+      "description": "Versao do schema deste pedido, MAJOR.MINOR."
+    },
+    "request_kind": {
+      "enum": ["session_close"],
+      "description": "Identifica que pedido e este. Enum de um valor so."
+    },
+    "generated_at": {
+      "type": "string",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}([.][0-9]+)?([+-]\\d{2}:\\d{2}|Z)$",
+      "description": "Data-hora ISO 8601 em que o pedido foi emitido."
+    },
+    "setup_id": {
+      "type": ["string", "null"],
+      "pattern": "^[0-9a-f]{12}$",
+      "description": "setup_id do setup da sessao, doze digitos hexadecimais minusculos. null quando o manifesto nao pode ser lido - o fechamento continua mesmo assim."
+    },
+    "session_id": {
+      "type": "string",
+      "pattern": "^[0-9]{4}$",
+      "description": "Sessao que esta sendo fechada, quatro digitos zero-padded. A resposta so e aplicada nesta sessao."
+    },
+    "session_path": {
+      "type": ["string", "null"],
+      "description": "Caminho do arquivo da sessao relativo a raiz do setup (memory/NNNN.json). Informativo: o modelo NAO deve escrever nele. Quem grava e o script."
+    },
+    "response_path": {
+      "type": ["string", "null"],
+      "description": "Caminho sugerido onde o modelo deve gravar a resposta antes de reinvocar com --apply. null significa que o script aceita qualquer caminho."
+    },
+    "attempt": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Numero desta tentativa, contando a partir de 1. Na tentativa igual a max_attempts, esta e a ultima chance: se a resposta nao resolver, a sessao fecha com validation_errors[] preenchido."
+    },
+    "max_attempts": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Teto de tentativas antes de o fechamento seguir sem os campos. Valor de projeto: 2."
+    },
+    "missing_fields": {
+      "type": "array",
+      "minItems": 1,
+      "description": "Exatamente os campos que faltam ou estao invalidos, um por entrada. O modelo responde SO estes: qualquer chave a mais na resposta e recusada, porque o fechamento nao e ocasiao de reescrever o que a sessao ja registrou.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["field", "problem"],
+        "description": "Um campo pendente, com o que exatamente esta errado nele.",
+        "properties": {
+          "field": {
+            "enum": ["one_line_summary", "topics", "goal", "what_was_done", "what_was_learned", "what_worked", "what_didnt_work", "open_questions", "next_steps", "affect", "affect_note", "docs_coverage"],
+            "description": "Qual campo de memory/NNNN.json esta pendente. Vocabulario fechado: sao os unicos campos que o fechamento pode pedir ao modelo. Campos derivados de execucao (session_id, date, status, finalized_at, artifacts, skills_observed, how_it_happened, cross_setup_refs) NUNCA entram aqui - eles vem do que aconteceu, e pedir ao modelo que os preencha seria pedir que ele invente o que a sessao foi."
+          },
+          "problem": {
+            "enum": ["missing", "empty", "invalid_format", "too_long"],
+            "description": "O que ha de errado. missing: a chave nao existe. empty: existe mas esta vazia ou null onde o valor e obrigatorio. invalid_format: nao casa com o formato exigido (ex.: topico fora do snake_case). too_long: passou do tamanho maximo documentado."
+          },
+          "detail": {
+            "type": ["string", "null"],
+            "maxLength": 400,
+            "description": "Mensagem do verificador em pt-BR sobre este campo, para o modelo saber exatamente o que corrigir."
+          },
+          "current_value": {
+            "type": ["string", "null"],
+            "maxLength": 400,
+            "description": "O valor atual do campo, em forma de texto, quando existe e e curto o bastante para caber aqui. Serve para o modelo corrigir em vez de reescrever do zero. null quando o campo nao existe ou o valor nao cabe."
+          }
+        }
+      }
+    },
+    "context": {
+      "type": ["object", "null"],
+      "additionalProperties": false,
+      "description": "O minimo de contexto da sessao para o modelo conseguir preencher os campos sem chutar. Deliberadamente pequeno: se o modelo precisar de mais que isso, ele deve abrir o arquivo da sessao, nao receber a sessao inteira aqui.",
+      "properties": {
+        "date": {
+          "type": ["string", "null"],
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$",
+          "description": "Data local da sessao (AAAA-MM-DD)."
+        },
+        "status": {
+          "enum": ["in_progress", "completed", "abandoned", null],
+          "description": "Estado da sessao no momento do fechamento. abandoned significa recuperacao de sessao orfa: nesse caso o modelo NAO deve inventar conteudo - o resumo honesto e 'sessao interrompida em <topico>'."
+        },
+        "topics": {
+          "type": "array",
+          "description": "Topicos ja registrados na sessao, em snake_case. Vocabulario a reusar na resposta.",
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_]{1,62}$",
+            "description": "Uma tag de topico em snake_case ASCII sem acento."
+          }
+        },
+        "goal": {
+          "type": ["string", "null"],
+          "description": "O que o aluno queria conseguir nesta sessao, se registrado."
+        },
+        "plan_items": {
+          "type": "array",
+          "description": "Textos dos itens da agenda montada no plan_lesson, na ordem. Contexto barato para o resumo de uma linha.",
+          "items": {
+            "type": "string",
+            "description": "Um item da agenda, em pt-BR."
+          }
+        },
+        "artifact_paths": {
+          "type": "array",
+          "description": "Caminhos dos artefatos produzidos na sessao. Evidencia concreta do que foi feito.",
+          "items": {
+            "type": "string",
+            "description": "Caminho relativo a raiz do setup."
+          }
+        }
+      }
+    }
+  }
+}

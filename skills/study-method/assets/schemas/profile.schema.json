@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "study-method/profile.schema.json",
+  "$id": "urn:study-method:schema:profile:1",
   "title": "Perfil consolidado do aluno (memory/profile.json)",
   "description": "Camada consolidada e bitemporal: memoria SEMANTICA (o que e verdade sobre o aluno) e memoria PROCEDIMENTAL (o que funciona com ESTE aluno). Escrito apenas pela compactacao, a partir dos memory/NNNN.json brutos. Um fato NUNCA e sobrescrito: quando muda, o antigo recebe status superseded e superseded_by, e um fato novo com o mesmo claim_key nasce active.",
   "type": "object",
@@ -14,7 +14,8 @@
     },
     "updated_at": {
       "type": "string",
-      "description": "Timestamp ISO 8601 com offset de fuso da ultima escrita no perfil (ou seja, da ultima compactacao)."
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}([.][0-9]+)?([+-]\\d{2}:\\d{2}|Z)$",
+      "description": "Timestamp ISO 8601 com offset de fuso da ultima escrita no perfil (ou seja, da ultima compactacao). Fracao de segundo opcional. Mesmo pattern de todo campo *_at do sistema."
     },
     "student": {
       "type": "object",
@@ -27,12 +28,12 @@
         },
         "goals": {
           "type": "array",
-          "items": { "type": "string" },
+          "items": {"description": "Um objetivo declarado pelo aluno, em pt-BR, em uma frase.",  "type": "string" },
           "description": "Objetivos declarados pelo aluno, um por item (ex.: 'entender calculo o suficiente para ler papers de ML')."
         },
         "known_base_domains": {
           "type": "array",
-          "items": { "type": "string" },
+          "items": {"description": "Um dominio que o aluno ja domina estruturalmente e que pode servir de base para analogias.",  "type": "string" },
           "description": "Dominios que o aluno ja domina estruturalmente e que servem de base para analogias (ex.: xadrez, cozinha, musica, futebol). Uma analogia so funciona se a base for algo que ele conhece de verdade; este campo evita chutar a base a cada sessao."
         }
       }
@@ -71,7 +72,8 @@
         },
         "last_compacted_at": {
           "type": ["string", "null"],
-          "description": "Timestamp ISO 8601 da ultima compactacao. Null se nunca rodou."
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}([.][0-9]+)?([+-]\\d{2}:\\d{2}|Z)$",
+          "description": "Timestamp ISO 8601 da ultima compactacao, com fracao de segundo opcional. Null se nunca rodou."
         },
         "last_compacted_session_id": {
           "type": ["string", "null"],
@@ -94,6 +96,7 @@
       "type": "array",
       "description": "MEMORIA SEMANTICA: o que e verdade sobre o aluno, derivado de multiplas sessoes. Inclui os fatos active e todo o historico superseded (nunca apagar; auditoria e 'quando isso mudou' sao informacao pedagogica).",
       "items": {
+        "description": "Um fato semantico sobre o aluno, com a espinha bitemporal completa e as sessoes que o sustentam.",
         "type": "object",
         "additionalProperties": false,
         "required": ["fact_id", "claim_key", "kind", "claim", "observation_type", "confidence", "observed_at", "recorded_at", "last_observed_at", "status", "source_sessions"],
@@ -105,8 +108,8 @@
           },
           "claim_key": {
             "type": "string",
-            "pattern": "^[a-z0-9]+(-[a-z0-9]+)*(:[a-z0-9]+(-[a-z0-9]+)*)+$",
-            "description": "Chave estavel do que esta sendo afirmado, no formato dominio:alvo[:aspecto] (ex.: skill:derivadas-conceito:level, difficulty:recursao). REGRA DE SUPERSEDE: um fato novo supersede o fato active de MESMO claim_key, e apenas esse. Dois fatos sobre o mesmo topico com claim_key diferente coexistem sem conflito."
+            "pattern": "^[a-z][a-z0-9_]{1,62}$",
+            "description": "Chave estavel do que esta sendo afirmado, em snake_case ASCII sem acento, formada juntando dominio, alvo e (quando houver) aspecto com underscore: skill_derivadas_conceito_level, difficulty_recursao, strength_python_funcoes. Um unico identificador snake_case, sem dois-pontos: e o mesmo vocabulario de concept_id, topics e skill em todo o sistema, e chave que atravessa arquivos nao pode ter duas gramaticas. REGRA DE SUPERSEDE: um fato novo supersede o fato active de MESMO claim_key, e apenas esse - a comparacao e igualdade de string, nada mais. Dois fatos sobre o mesmo topico com claim_key diferente coexistem sem conflito."
           },
           "kind": {
             "enum": ["strength", "difficulty", "preference", "skill_level", "context"],
@@ -114,8 +117,8 @@
           },
           "topic": {
             "type": ["string", "null"],
-            "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
-            "description": "Tag do topico ou habilidade a que o fato se refere. E a chave pela qual o digest seleciona fatos relevantes para a sessao de hoje."
+            "pattern": "^[a-z][a-z0-9_]{1,62}$",
+            "description": "Tag do topico ou habilidade a que o fato se refere, em snake_case ASCII sem acento. E a chave pela qual o digest seleciona fatos relevantes para a sessao de hoje, casando com session.topics por igualdade de string - por isso a grafia tem de ser a mesma dos dois lados."
           },
           "claim": {
             "type": "string",
@@ -137,7 +140,8 @@
           },
           "recorded_at": {
             "type": "string",
-            "description": "TRANSACTION TIME: timestamp ISO 8601 de quando o fato foi gravado no arquivo (isto e, da compactacao que o criou). Pode ser muito posterior a observed_at."
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}([.][0-9]+)?([+-]\\d{2}:\\d{2}|Z)$",
+            "description": "TRANSACTION TIME: timestamp ISO 8601 de quando o fato foi gravado no arquivo (isto e, da compactacao que o criou), com fracao de segundo opcional. Pode ser muito posterior a observed_at - e essa distancia e justamente o que torna a pergunta 'o que o tutor sabia no dia X?' respondivel."
           },
           "last_observed_at": {
             "type": "string",
@@ -162,6 +166,7 @@
             "type": "array",
             "minItems": 1,
             "items": {
+              "description": "session_id de uma sessao que sustenta o fato, quatro digitos zero-padded.",
               "type": "string",
               "pattern": "^[0-9]{4}$"
             },
@@ -186,6 +191,7 @@
       "type": "array",
       "description": "MEMORIA PROCEDIMENTAL: o COMO. O que funciona (e o que nunca mais deve ser tentado) com ESTE aluno especifico. Cada entrada e destilada de um ou mais how_it_happened[] das sessoes brutas e segue a mesma espinha bitemporal dos fatos semanticos.",
       "items": {
+        "description": "Um procedimento consolidado: o que funciona (ou o que prejudica) com este aluno, em nivel de receita executavel.",
         "type": "object",
         "additionalProperties": false,
         "required": ["fact_id", "claim_key", "procedure_kind", "how", "outcome", "observation_type", "confidence", "observed_at", "recorded_at", "last_observed_at", "status", "source_sessions"],
@@ -197,8 +203,8 @@
           },
           "claim_key": {
             "type": "string",
-            "pattern": "^[a-z0-9]+(-[a-z0-9]+)*(:[a-z0-9]+(-[a-z0-9]+)*)+$",
-            "description": "Chave estavel no formato procedure_kind:topico:apelido (ex.: analogy:derivadas:zoom-local, presentation-order:limites:formalismo-primeiro). Mesma regra de supersede: so substitui o fato active de claim_key identico."
+            "pattern": "^[a-z][a-z0-9_]{1,62}$",
+            "description": "Chave estavel em snake_case ASCII sem acento, formada juntando procedure_kind, topico e apelido com underscore: analogy_derivadas_zoom_local, presentation_order_limites_formalismo_primeiro. Mesmo vocabulario e mesmo pattern do claim_key semantico. Mesma regra de supersede: so substitui o fato active de claim_key identico, por igualdade de string."
           },
           "procedure_kind": {
             "enum": ["analogy", "explanation_path", "presentation_order", "hands_on_activity", "hint_strategy", "visualization", "antipattern"],
@@ -206,8 +212,8 @@
           },
           "target_topic": {
             "type": ["string", "null"],
-            "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
-            "description": "Topico ou conceito ao qual o procedimento se aplica. Chave de recuperacao: o digest seleciona os procedimentos cujo target_topic bate com os topicos da sessao de hoje."
+            "pattern": "^[a-z][a-z0-9_]{1,62}$",
+            "description": "Topico ou conceito ao qual o procedimento se aplica, em snake_case ASCII sem acento. Chave de recuperacao: o digest seleciona os procedimentos cujo target_topic bate com os topicos da sessao de hoje, por igualdade de string com session.topics e com how_it_happened[].target_topic da sessao de origem."
           },
           "how": {
             "type": "string",
@@ -258,7 +264,8 @@
           },
           "recorded_at": {
             "type": "string",
-            "description": "TRANSACTION TIME: timestamp ISO 8601 de quando o registro foi gravado pela compactacao."
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}([.][0-9]+)?([+-]\\d{2}:\\d{2}|Z)$",
+            "description": "TRANSACTION TIME: timestamp ISO 8601 de quando o registro foi gravado pela compactacao, com fracao de segundo opcional."
           },
           "last_observed_at": {
             "type": "string",
@@ -283,6 +290,7 @@
             "type": "array",
             "minItems": 1,
             "items": {
+              "description": "session_id de uma sessao que sustenta o procedimento, quatro digitos zero-padded.",
               "type": "string",
               "pattern": "^[0-9]{4}$"
             },
@@ -299,6 +307,7 @@
       "type": "array",
       "description": "Pendencias explicitas que atravessam sessoes (promessas feitas ao aluno, perguntas nao respondidas). Sao carregadas integralmente no digest e nunca truncadas pelo orcamento.",
       "items": {
+        "description": "Uma pendencia que atravessa sessoes, com a sessao em que nasceu e o estado atual.",
         "type": "object",
         "additionalProperties": false,
         "required": ["text", "created_in_session", "state"],

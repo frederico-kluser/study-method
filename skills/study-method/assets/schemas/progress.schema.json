@@ -1,9 +1,10 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "study-method/assets/schemas/progress.schema.json",
-  "title": "progress",
+  "$id": "urn:study-method:schema:progress:1",
+  "title": "Estado de proficiencia por conceito (memory/progress.json)",
   "description": "Estado de proficiencia por conceito dentro de um setup do study-method. E um fato consolidado e bitemporal, derivado da memoria episodica (memory/NNNN.json), nao um substituto dela: a memoria episodica registra o que aconteceu, este arquivo registra onde o aluno esta agora e qual evidencia sustenta essa afirmacao. Regra dura: todo campo escalar de um conceito e cache derivado de evidence[]; evidence[] e a unica fonte de verdade e deve ser suficiente para recomputar o estado do zero. Nenhum campo aqui expressa probabilidade, porcentagem ou score de dominio - com dados de um unico aluno esse numero seria teatro estatistico.",
   "type": "object",
+  "additionalProperties": false,
   "required": ["schema_version", "setup_id", "recorded_at", "concepts"],
   "properties": {
     "schema_version": {
@@ -13,8 +14,8 @@
     },
     "setup_id": {
       "type": "string",
-      "pattern": "^[a-z][a-z0-9_-]{1,63}$",
-      "description": "Identificador do setup (trilha de estudo) a que este progresso pertence. Um arquivo progress.json por setup; conceitos nunca cruzam setups."
+      "pattern": "^[0-9a-f]{12}$",
+      "description": "Identificador do setup a que este progresso pertence: os mesmos 12 digitos hexadecimais minusculos de setup.json.setup_id, sorteados na criacao do setup. Um arquivo progress.json por setup; conceitos nunca cruzam setups. Nao e um slug legivel: o handle legivel e setup.json.setup_name, e ele pode mudar - este campo nao."
     },
     "declared_skill_level": {
       "type": ["string", "null"],
@@ -23,11 +24,12 @@
     },
     "recorded_at": {
       "type": "string",
-      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}([+-][0-9]{2}:[0-9]{2}|Z)$",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}([.][0-9]+)?([+-]\\d{2}:\\d{2}|Z)$",
       "description": "Transaction time: quando este arquivo foi escrito pela ultima vez. Distinto de qualquer observed_at, que e valid time (quando o fato foi verdadeiro no mundo)."
     },
     "policy": {
       "type": "object",
+      "additionalProperties": false,
       "description": "Parametros do agendamento de revisao e do decaimento. Sao escolhas de produto, nao achados empiricos - por isso ficam no dado, versionados e auditaveis, e nao escondidos no codigo. Omitir o objeto inteiro significa usar todos os defaults.",
       "properties": {
         "interval_multiplier_mastered": {
@@ -71,7 +73,9 @@
       "type": "array",
       "description": "Um registro por conceito conhecido no setup, incluindo os superseded (nunca deletar - o historico de merge de conceitos e auditoria).",
       "items": {
+        "description": "Um conceito do setup, com o estado de proficiencia atual e a evidencia que o sustenta.",
         "type": "object",
+        "additionalProperties": false,
         "required": [
           "concept_id",
           "label",
@@ -98,7 +102,10 @@
           "aliases": {
             "type": "array",
             "description": "Outras formas pelas quais este mesmo conceito ja foi chamado pelo aluno ou pelo tutor. Alimenta a busca anti-fragmentacao antes de criar um concept_id novo. Toda vez que um nome diferente e reconhecido como sendo este conceito, ele entra aqui.",
-            "items": { "type": "string" }
+            "items": {
+              "type": "string",
+              "description": "Um nome alternativo, texto livre em pt-BR, como o aluno ou o tutor ja chamou este conceito."
+            }
           },
           "track_ref": {
             "type": ["string", "null"],
@@ -150,22 +157,22 @@
             "description": "Classificacao do erro mais recente. slip = deslize de execucao, o aluno ja demonstrou conhecer a regra e corrige com dica de nivel 1. conceptual = regra errada porem consistente, reaplicada em 2+ lugares ou justificada verbalmente pelo aluno. prerequisite = a falha aqui foi causada por outro conceito; a evidencia penalizante foi gravada la (ver evidence[].attributed_to) e este conceito nao regride por ela. none = passou sem erro relevante. unknown = nao foi possivel classificar - nunca chutar; unknown nao dispara regressao por erro conceitual. null = nenhum erro registrado ainda."
           },
           "first_observed_at": {
-            "type": "string",
+            "type": ["string", "null"],
             "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$",
-            "description": "Valid time da primeira evidencia de qualquer tipo sobre este conceito."
+            "description": "Valid time da primeira evidencia de qualquer tipo sobre este conceito (formato YYYY-MM-DD). REGRA CONDICIONAL, verificada por asseracao do gate e nao por este schema: null e permitido apenas quando state_reason e 'no_evidence' e evidence[] esta vazio - o conceito existe na trilha do setup mas nunca foi observado. Com qualquer evidencia registrada, este campo e obrigatoriamente uma data."
           },
           "observed_at": {
             "type": ["string", "null"],
             "description": "Valid time da evidencia que SUSTENTA o estado atual (formato YYYY-MM-DD). Diferente de last_observed_at quando o conceito foi visto de novo sem produzir evidencia de estado (ex.: apenas mencionado). Fica null quando state_reason e 'no_evidence'."
           },
           "last_observed_at": {
-            "type": "string",
+            "type": ["string", "null"],
             "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$",
-            "description": "Valid time da evidencia mais recente de qualquer tipo, inclusive exposicao sem desafio. E o campo que alimenta o decaimento temporal."
+            "description": "Valid time da evidencia mais recente de qualquer tipo, inclusive exposicao sem desafio (formato YYYY-MM-DD). E o campo que alimenta o decaimento temporal. REGRA CONDICIONAL, verificada por asseracao do gate e nao por este schema: null pelo mesmo motivo de first_observed_at - conceito da trilha ainda nao observado. Conceito com last_observed_at null nunca entra na fila de revisao: nao ha o que revisar."
           },
           "recorded_at": {
             "type": "string",
-            "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}([+-][0-9]{2}:[0-9]{2}|Z)$",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}([.][0-9]+)?([+-]\\d{2}:\\d{2}|Z)$",
             "description": "Transaction time: quando este registro de conceito foi escrito pela ultima vez."
           },
           "interval_days": {
@@ -181,7 +188,9 @@
             "type": "array",
             "description": "Fonte de verdade do registro. Cada entrada e um evento observavel que aponta para um artefato existente no repositorio do setup. Regra dura: nenhuma transicao de proficiency_state pode ser gravada sem uma entrada aqui cujo session_id (e challenge_id, quando kind='challenge') exista de fato - impressao do modelo nao e evidencia. Entradas de kind 'exposure' e 'review_declined' podem ser podadas quando o array passa de 20 itens; entradas que causaram transicao (state_before != state_after) nunca sao podadas.",
             "items": {
+              "description": "Um evento observavel sobre este conceito, com o par de estados antes e depois e a regra de transicao que os justificou.",
               "type": "object",
+              "additionalProperties": false,
               "required": ["kind", "observed_at", "recorded_at", "state_before", "state_after"],
               "properties": {
                 "kind": {
@@ -191,11 +200,13 @@
                 },
                 "session_id": {
                   "type": ["string", "null"],
-                  "description": "Sessao em que o evento ocorreu, no mesmo formato de memory/NNNN.json (quatro digitos, ex.: '0037'). null apenas para kind 'decay', que nao acontece dentro de uma sessao."
+                  "pattern": "^[0-9]{4}$",
+                  "description": "Sessao em que o evento ocorreu, no mesmo formato de memory/NNNN.json (quatro digitos zero-padded, ex.: '0037'). null apenas para kind 'decay', que nao acontece dentro de uma sessao. REGRA CONDICIONAL, verificada por asseracao do gate: o arquivo memory/<session_id>.json tem de existir - sem artefato, sem transicao."
                 },
                 "challenge_id": {
                   "type": ["string", "null"],
-                  "description": "Identificador do desafio em challenges/ que produziu esta evidencia. Obrigatorio quando kind e 'challenge'; null nos demais casos."
+                  "pattern": "^[0-9]{4}$",
+                  "description": "Identificador do desafio em challenges/ que produziu esta evidencia: quatro digitos zero-padded, o mesmo challenge_id de challenges/<NNNN>-<slug>/meta.json. Obrigatorio quando kind e 'challenge'; null nos demais casos. REGRA CONDICIONAL, verificada por asseracao do gate: o diretorio challenges/<challenge_id>-*/ tem de existir - e o pattern aqui e o que torna essa asseracao possivel, porque sem formato fixo nao ha o que procurar no disco."
                 },
                 "observed_at": {
                   "type": "string",
@@ -204,7 +215,7 @@
                 },
                 "recorded_at": {
                   "type": "string",
-                  "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}([+-][0-9]{2}:[0-9]{2}|Z)$",
+                  "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}([.][0-9]+)?([+-]\\d{2}:\\d{2}|Z)$",
                   "description": "Transaction time: quando o evento foi gravado. Pode ser bem posterior ao observed_at quando a sessao foi consolidada depois."
                 },
                 "result": {
@@ -230,7 +241,8 @@
                 },
                 "attributed_to": {
                   "type": ["string", "null"],
-                  "description": "Quando error_type e 'prerequisite': o concept_id do conceito que realmente falhou e onde a evidencia penalizante foi gravada. null nos demais casos."
+                  "pattern": "^[a-z][a-z0-9_]{1,62}$",
+                  "description": "Quando error_type e 'prerequisite': o concept_id do conceito que realmente falhou e onde a evidencia penalizante foi gravada. null nos demais casos. Mesmo pattern snake_case de concept_id, porque e um concept_id."
                 },
                 "state_before": {
                   "type": "string",
@@ -262,12 +274,17 @@
           },
           "superseded_by": {
             "type": ["string", "null"],
-            "description": "concept_id que substituiu este registro quando status e 'superseded'. null quando status e 'active'."
+            "pattern": "^[a-z][a-z0-9_]{1,62}$",
+            "description": "concept_id que substituiu este registro quando status e 'superseded'. null quando status e 'active'. Mesmo pattern snake_case de concept_id."
           },
           "supersedes": {
             "type": "array",
             "description": "concept_ids que foram fundidos NESTE registro. A evidencia dos fundidos e copiada para ca antes de o antigo virar superseded.",
-            "items": { "type": "string" }
+            "items": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9_]{1,62}$",
+              "description": "concept_id fundido, no mesmo pattern snake_case de concept_id."
+            }
           }
         }
       }

@@ -46,18 +46,18 @@
       "type": "string",
       "minLength": 1,
       "maxLength": 64,
-      "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
-      "description": "Area do conhecimento em slug, mais ampla que o titulo (ex.: 'matematica', 'sistemas-operacionais'). Usada pela leitura cruzada para casar setups relacionados."
+      "pattern": "^[a-z][a-z0-9_]{1,62}$",
+      "description": "Area do conhecimento em snake_case ASCII sem acento, mais ampla que o titulo (ex.: 'matematica', 'sistemas_operacionais'). Usada pela leitura cruzada para casar setups relacionados, comparada por igualdade de string com o subject e a taxonomy dos outros setups - por isso usa o mesmo vocabulario snake_case de taxonomy, topics e concept_id. Nao confundir com setup_name, que e o handle kebab-case do diretorio."
     },
     "taxonomy": {
       "type": "array",
-      "description": "Lista plana de topicos em slug que este setup cobre, do mais geral ao mais especifico (ex.: ['matematica','calculo','limites','derivadas']). E a chave de busca da leitura cruzada e a espinha da secao 'taxonomia' do README.md do setup. Lista plana, nao arvore: a hierarquia visual e montada por `readme-sync.sh` a partir da ordem e dos prefixos.",
+      "description": "Lista plana de topicos em snake_case ASCII sem acento que este setup cobre, do mais geral ao mais especifico (ex.: ['matematica','calculo','limites','derivadas']). E a chave de busca da leitura cruzada e a espinha da secao 'taxonomia' do README.md do setup. Lista plana, nao arvore: a hierarquia visual e montada por `readme-sync.sh` a partir da ordem e dos prefixos.",
       "items": {
         "type": "string",
         "minLength": 1,
         "maxLength": 64,
-        "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
-        "description": "Topico em slug kebab-case, sem acento."
+        "pattern": "^[a-z][a-z0-9_]{1,62}$",
+        "description": "Topico em snake_case ASCII sem acento (ex.: 'derivadas', 'erro_numerico'). Mesmo vocabulario de session.topics, progress.concepts[].concept_id e profile.semantic_facts[].topic: um topico da trilha so encontra o conceito correspondente por igualdade de string."
       }
     },
     "language": {
@@ -87,9 +87,10 @@
             "julia",
             "r",
             "haskell",
-            "bash"
+            "bash",
+            "none"
           ],
-          "description": "Vocabulario fechado, derivado da matriz de docs/research/06-toolchains.md do repositorio, secao 2. Ampliar esta lista e mudanca MAJOR de schema_version. Nesta maquina rodam desafio sem instalar nada: python, javascript (node:test), rust, go, c, cpp, lua e bash."
+          "description": "Vocabulario fechado, derivado da matriz de docs/research/06-toolchains.md do repositorio, secao 2. Ampliar esta lista e mudanca MAJOR de schema_version. Nesta maquina rodam desafio sem instalar nada: python, javascript (node:test), rust, go, c, cpp, lua e bash. O valor 'none' significa assunto sem codigo: o fluxo de criacao oferece essa resposta na pergunta sobre exercicios, e com ela o diretorio challenges/ nao e usado e nenhum desafio e gerado. 'none' e escolha legitima, nao ausencia de resposta - a ausencia se expressa omitindo o campo language inteiro, o que este schema nao permite porque language e obrigatorio."
         },
         "runtime_version": {
           "type": "string",
@@ -98,15 +99,30 @@
         },
         "detected_at": {
           "type": "string",
-          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}([.][0-9]+)?(Z|[+-][0-9]{2}:[0-9]{2})$",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}([.][0-9]+)?([+-]\\d{2}:\\d{2}|Z)$",
           "description": "Data-hora ISO 8601 da ultima deteccao do runtime. O passo 'bootstrap' redetecta se este carimbo tiver mais de 30 dias."
         },
         "chosen_at": {
           "type": "string",
-          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}([.][0-9]+)?(Z|[+-][0-9]{2}:[0-9]{2})$",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}([.][0-9]+)?([+-]\\d{2}:\\d{2}|Z)$",
           "description": "Data-hora ISO 8601 em que o aluno escolheu esta linguagem. Trocar de linguagem depois e permitido: atualiza este campo; desafios ja gerados na linguagem antiga continuam validos e nao sao reescritos."
         }
       }
+    },
+    "theory_source": {
+      "type": "string",
+      "enum": ["student_provided", "generated", "none"],
+      "description": "De onde vem a base teorica deste setup, respondido na entrevista de criacao. student_provided: o aluno trouxe material (PDF, slides, anotacoes) para o docs/ do setup. generated: o aluno nao tem material e a skill escreveu uma base inicial em docs/generated/. none: nem um nem outro - a aula corre sem base local, e o tutor declara isso em voz alta. Decide qual e a proxima coisa que acontece depois da criacao: ingestao, geracao ou nada."
+    },
+    "session_minutes": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Quantos minutos o aluno tem por sessao, respondido na entrevista de criacao (tipicamente 30, 60 ou 90; o default assumido e 60). Define o escopo da aula: quanto cobrir e se cabe desafio. Muda em uma frase do aluno, sem cerimonia. Se foi assumido por default e nao respondido, a decisao correspondente em 'decisions' carrega default_used true."
+    },
+    "repaired_at": {
+      "type": "string",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}([.][0-9]+)?([+-]\\d{2}:\\d{2}|Z)$",
+      "description": "Data-hora ISO 8601 do ultimo reparo estrutural feito pelo passo 'bootstrap' neste setup: diretorio canonico recriado ou README.md regenerado a partir do template. Reparo nunca inventa conteudo de memory/ nem do docs/ do setup - so recria estrutura vazia. Ausente significa que nunca foi preciso reparar nada."
     },
     "skill_level": {
       "type": "string",
@@ -115,17 +131,17 @@
     },
     "created_at": {
       "type": "string",
-      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}([.][0-9]+)?(Z|[+-][0-9]{2}:[0-9]{2})$",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}([.][0-9]+)?([+-]\\d{2}:\\d{2}|Z)$",
       "description": "Data-hora ISO 8601 de criacao do setup, escrita uma unica vez por `setup-init.sh`. Nunca alterada."
     },
     "updated_at": {
       "type": "string",
-      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}([.][0-9]+)?(Z|[+-][0-9]{2}:[0-9]{2})$",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}([.][0-9]+)?([+-]\\d{2}:\\d{2}|Z)$",
       "description": "Data-hora ISO 8601 da ultima escrita neste arquivo. Atualizada pelo passo 'close_session' e por qualquer script que altere o manifesto."
     },
     "last_session_at": {
       "type": "string",
-      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}([.][0-9]+)?(Z|[+-][0-9]{2}:[0-9]{2})$",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}([.][0-9]+)?([+-]\\d{2}:\\d{2}|Z)$",
       "description": "Data-hora ISO 8601 do fechamento da ultima sessao. Ausente enquanto nenhuma sessao tiver sido fechada. Espelhado no registry global para desempatar setups de mesmo nome."
     },
     "session_count": {
@@ -150,19 +166,50 @@
         },
         "last_indexed_at": {
           "type": "string",
-          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}([.][0-9]+)?(Z|[+-][0-9]{2}:[0-9]{2})$",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}([.][0-9]+)?([+-]\\d{2}:\\d{2}|Z)$",
           "description": "Data-hora ISO 8601 da ultima geracao de memory/docs-index.json por `docs-index.sh`."
+        },
+        "not_ingested": {
+          "type": "array",
+          "description": "Arquivos do docs/ do setup que NAO foram ingeridos, com o motivo. Persistido no manifesto para nao repetir a mesma tentativa e o mesmo aviso a cada sessao, e para o tutor poder nomear ao aluno o que existe na pasta mas ele nao consegue ler. Lista vazia significa que tudo que esta la foi ingerido. Espelha o campo not_ingested de memory/docs-index.json, que e o derivado recalculado a cada indexacao; aqui fica a versao estavel entre sessoes.",
+          "items": {
+            "description": "Um arquivo do docs/ do setup que nao foi ingerido, com o motivo.",
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["path", "reason"],
+            "properties": {
+              "path": {
+                "type": "string",
+                "minLength": 1,
+                "description": "Caminho do arquivo relativo a raiz do docs/ do setup. Nunca absoluto: o setup pode ser movido."
+              },
+              "reason": {
+                "enum": ["no_extractor", "unsupported_format", "unreadable", "too_large", "binary", "symlink_outside_setup"],
+                "description": "Por que ficou de fora. no_extractor: formato ingerivel em tese, mas nenhuma ferramenta de extracao disponivel nesta maquina (tipico de PDF sem poppler). unsupported_format: formato que a skill nao le. unreadable: erro de permissao ou arquivo corrompido. too_large: acima do teto de tamanho por arquivo. binary: conteudo binario. symlink_outside_setup: link simbolico apontando para fora da raiz do setup, que nunca e seguido."
+              },
+              "detail": {
+                "type": "string",
+                "maxLength": 240,
+                "description": "Detalhe em pt-BR sobre o motivo, quando ele ajuda o aluno a resolver (ex.: sugestao de instalar o extrator ou de exportar para .txt). Opcional."
+              },
+              "noticed_at": {
+                "type": "string",
+                "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}([.][0-9]+)?([+-]\\d{2}:\\d{2}|Z)$",
+                "description": "Data-hora ISO 8601 em que este arquivo foi visto pela ultima vez e continuava nao ingerivel."
+              }
+            }
+          }
         }
       }
     },
     "privacy": {
       "type": "object",
-      "additionalProperties": true,
-      "description": "Interruptores de privacidade do setup. Chave reservada: a politica completa (o que nunca se persiste, apagamento sob pedido, versionamento em git) e da sub-tarefa 2.8, que pode acrescentar campos aqui sem mudanca MAJOR. Esta sub-tarefa define apenas 'allow_cross_read'.",
+      "additionalProperties": false,
+      "description": "Interruptores de privacidade do setup. FECHADO a chaves desconhecidas de proposito: e o unico objeto do manifesto onde um erro de digitacao aceito em silencio muda o comportamento para o lado errado - um setup que o aluno pensou ter deixado privado e nao ficou. Acrescentar interruptor aqui (a politica completa - o que nunca se persiste, apagamento sob pedido, versionamento em git - e da sub-tarefa 2.8) e adicao de propriedade a este schema e incremento de MINOR, nunca de MAJOR. Esta sub-tarefa define apenas 'cross_read'. O campo booleano 'allow_cross_read' foi REMOVIDO: um manifesto antigo que ainda o tenha e recusado pela validacao, e a migracao e direta - true vira 'ask' (a postura padrao, que o booleano nunca soube expressar) e false vira 'never'.",
       "properties": {
-        "allow_cross_read": {
-          "type": "boolean",
-          "description": "Quando false, este setup fica invisivel para a leitura cruzada: nenhum outro setup pode abrir o README.md do setup por esse caminho (docs/07-multi-setup.md do repositorio, secao 5). Ausente equivale a true."
+        "cross_read": {
+          "enum": ["ask", "allow", "never"],
+          "description": "O que a leitura cruzada pode fazer com ESTE setup quando outro setup quer abrir o README.md dele (docs/07-multi-setup.md do repositorio, secao 5). ask: o tutor pergunta ao aluno antes de abrir, e so abre se ele autorizar - e o default, aplicado quando o campo esta ausente. allow: pode abrir sem perguntar, e o tutor apenas anuncia de onde tirou. never: o setup fica invisivel para a leitura cruzada; nenhum outro setup o abre por esse caminho, e ele nem aparece na lista de candidatos. Tres estados, nao dois: 'perguntar antes' e a postura padrao e nao e representavel por um booleano - era exatamente isso que o antigo campo booleano allow_cross_read (removido) nao conseguia dizer. Espelhado em registry.setups[].cross_read para que a decisao seja tomada sem abrir arquivo nenhum deste setup."
         }
       }
     },

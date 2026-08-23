@@ -14,7 +14,7 @@
     },
     "updated_at": {
       "type": "string",
-      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}([.][0-9]+)?(Z|[+-][0-9]{2}:[0-9]{2})$",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}([.][0-9]+)?([+-]\\d{2}:\\d{2}|Z)$",
       "description": "Data-hora ISO 8601 da ultima escrita neste arquivo, por qualquer script."
     },
     "default_setup_id": {
@@ -27,7 +27,7 @@
       "description": "Uma entrada por setup conhecido, incluindo os 'missing' e 'archived'. Entradas nunca sao removidas automaticamente: uma entrada 'missing' ainda da nome a referencias cruzadas antigas e volta sozinha a 'active' se o setup for restaurado. Remocao definitiva e operacao explicita (`setup-list.sh --forget <setup_id>`).",
       "items": {
         "type": "object",
-        "description": "Uma entrada de setup. Os campos 'setup_name', 'title', 'subject', 'taxonomy', 'language', 'last_session_at', 'session_count' e 'allow_cross_read' sao ESPELHOS do setup.json daquele setup: em caso de divergencia, o manifesto manda e o registry e corrigido no proximo 'bootstrap'. Os campos 'path', 'setup_status', 'last_seen_at', 'checked_at', 'missing_since', 'archived_at', 'topics' e 'readme_lines' existem so aqui.",
+        "description": "Uma entrada de setup. Os campos 'setup_name', 'title', 'subject', 'taxonomy', 'language', 'last_session_at', 'session_count' e 'cross_read' sao ESPELHOS do setup.json daquele setup: em caso de divergencia, o manifesto manda e o registry e corrigido no proximo 'bootstrap'. Os campos 'path', 'setup_status', 'last_seen_at', 'checked_at', 'missing_since', 'archived_at', 'topics' e 'readme_lines' existem so aqui.",
         "additionalProperties": false,
         "required": [
           "setup_id",
@@ -62,8 +62,8 @@
             "type": "string",
             "minLength": 1,
             "maxLength": 64,
-            "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
-            "description": "Espelho de setup.json.subject. Primeiro campo consultado pela busca da leitura cruzada."
+            "pattern": "^[a-z][a-z0-9_]{1,62}$",
+            "description": "Espelho de setup.json.subject, em snake_case ASCII sem acento. Primeiro campo consultado pela busca da leitura cruzada, por igualdade de string contra o subject e a taxonomy das outras entradas - a busca so funciona porque os dois lados usam o mesmo vocabulario."
           },
           "taxonomy": {
             "type": "array",
@@ -72,8 +72,8 @@
               "type": "string",
               "minLength": 1,
               "maxLength": 64,
-              "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
-              "description": "Topico em slug kebab-case, sem acento."
+              "pattern": "^[a-z][a-z0-9_]{1,62}$",
+              "description": "Topico em snake_case ASCII sem acento. Mesmo vocabulario de setup.json.taxonomy, session.topics e progress.concepts[].concept_id."
             }
           },
           "topics": {
@@ -83,8 +83,8 @@
               "type": "string",
               "minLength": 1,
               "maxLength": 64,
-              "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
-              "description": "Topico em slug kebab-case, sem acento."
+              "pattern": "^[a-z][a-z0-9_]{1,62}$",
+              "description": "Topico em snake_case ASCII sem acento. Mesmo vocabulario de setup.json.taxonomy, session.topics e progress.concepts[].concept_id."
             }
           },
           "path": {
@@ -114,9 +114,10 @@
               "julia",
               "r",
               "haskell",
-              "bash"
+              "bash",
+              "none"
             ],
-            "description": "Espelho de setup.json.language.name. Mesmo vocabulario fechado do manifesto (docs/research/06-toolchains.md do repositorio, secao 2). Serve para o aluno escolher entre setups por linguagem sem abrir cada manifesto."
+            "description": "Espelho de setup.json.language.name. Mesmo vocabulario fechado do manifesto (docs/research/06-toolchains.md do repositorio, secao 2), inclusive o valor 'none' para setup de assunto sem codigo - se este enum nao aceitasse 'none', um setup legitimo ficaria sem espelho no registry. Serve para o aluno escolher entre setups por linguagem sem abrir cada manifesto."
           },
           "setup_status": {
             "type": "string",
@@ -125,22 +126,22 @@
           },
           "created_at": {
             "type": "string",
-            "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}([.][0-9]+)?(Z|[+-][0-9]{2}:[0-9]{2})$",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}([.][0-9]+)?([+-]\\d{2}:\\d{2}|Z)$",
             "description": "Espelho de setup.json.created_at. Escrito uma unica vez, no registro inicial."
           },
           "last_seen_at": {
             "type": "string",
-            "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}([.][0-9]+)?(Z|[+-][0-9]{2}:[0-9]{2})$",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}([.][0-9]+)?([+-]\\d{2}:\\d{2}|Z)$",
             "description": "Ultima vez que o liveness check confirmou que o setup existe naquele path com aquele setup_id. Diferente de 'last_session_at': ver o setup e mais barato e mais frequente do que estudar nele."
           },
           "checked_at": {
             "type": "string",
-            "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}([.][0-9]+)?(Z|[+-][0-9]{2}:[0-9]{2})$",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}([.][0-9]+)?([+-]\\d{2}:\\d{2}|Z)$",
             "description": "Ultima vez que o liveness check RODOU sobre esta entrada, tenha ele confirmado ou nao. O passo 'bootstrap' so revarre entradas com checked_at de mais de 24 h, para nao pagar I/O em toda invocacao."
           },
           "last_session_at": {
             "type": "string",
-            "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}([.][0-9]+)?(Z|[+-][0-9]{2}:[0-9]{2})$",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}([.][0-9]+)?([+-]\\d{2}:\\d{2}|Z)$",
             "description": "Espelho de setup.json.last_session_at, escrito no passo 'close_session'. Criterio principal de desempate quando dois setups tem o mesmo nome. Ausente enquanto nenhuma sessao tiver sido fechada."
           },
           "session_count": {
@@ -150,17 +151,17 @@
           },
           "missing_since": {
             "type": "string",
-            "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}([.][0-9]+)?(Z|[+-][0-9]{2}:[0-9]{2})$",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}([.][0-9]+)?([+-]\\d{2}:\\d{2}|Z)$",
             "description": "Quando a entrada passou a 'missing' pela primeira vez. Escrito uma unica vez por episodio de sumico e apagado quando a entrada volta a 'active'. Existe para a skill poder dizer 'esse setup sumiu do disco em marco' em vez de so 'nao encontrado'."
           },
           "archived_at": {
             "type": "string",
-            "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}([.][0-9]+)?(Z|[+-][0-9]{2}:[0-9]{2})$",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}([.][0-9]+)?([+-]\\d{2}:\\d{2}|Z)$",
             "description": "Quando o aluno arquivou este setup por comando explicito. Presente somente quando setup_status e 'archived'."
           },
-          "allow_cross_read": {
-            "type": "boolean",
-            "description": "Espelho de setup.json.privacy.allow_cross_read. Fica no registry para que a leitura cruzada possa descartar o setup ANTES de abrir qualquer arquivo dele. Ausente equivale a true. Se o espelho e o manifesto divergirem, o manifesto manda e o registry e corrigido."
+          "cross_read": {
+            "enum": ["ask", "allow", "never"],
+            "description": "Espelho de setup.json.privacy.cross_read. ask (default quando ausente): o tutor pergunta ao aluno antes de abrir o README.md deste setup a partir de outro. allow: abre sem perguntar e anuncia a origem. never: nem entra na lista de candidatos. Fica no registry para que a leitura cruzada possa decidir ANTES de abrir qualquer arquivo deste setup. Se o espelho e o manifesto divergirem, o manifesto manda e o registry e corrigido no proximo 'bootstrap'."
           },
           "readme_lines": {
             "type": "integer",

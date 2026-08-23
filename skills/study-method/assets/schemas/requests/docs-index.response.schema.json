@@ -1,0 +1,67 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:study-method:schema:docs-index-response:1",
+  "title": "Resposta com as secoes escolhidas do material (docs-index.sh --apply)",
+  "description": "A resposta do modelo ao pedido docs-index.request.schema.json: as secoes escolhidas, cada uma com o motivo. O script confere que toda entrada existe entre as candidatas, que a soma dos bytes cabe em remaining_bytes, e so entao grava loaded[] e left_out[] em memory/docs-index.json. O motivo nao e enfeite: e o que alimenta a frase obrigatoria ao aluno sobre o que foi lido e o que ficou de fora - 'carreguei o capitulo 3 e a secao 4.1; ficaram de fora os capitulos 1-2 e 5 a 12, e se a gente esbarrar em algum eu abro na hora'. Nunca dizer 'li seu material' quando leu 4%. Textos livres em pt-BR; chaves e valores de enum em ingles snake_case sem acento. VERIFICADOR MINIMO: type, required, enum, pattern, items, properties, minimum, maximum e additionalProperties booleano; maxLength e documentacao e NAO e verificado.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "request_kind", "selected"],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+$",
+      "description": "Versao do schema desta resposta, MAJOR.MINOR. Deve ter o mesmo MAJOR do pedido."
+    },
+    "request_kind": {
+      "enum": ["docs_index"],
+      "description": "Ecoa o request_kind do pedido. O script recusa a resposta cujo request_kind nao bata."
+    },
+    "selected": {
+      "type": "array",
+      "description": "As secoes escolhidas, na ordem em que devem ser carregadas. Lista vazia e resposta legitima: quando nenhuma candidata sustenta a aula de hoje, carregar material irrelevante e pior do que nao carregar nada - e o tutor diz ao aluno que vai ensinar sem base local para este topico.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["file", "heading", "reason"],
+        "description": "Uma secao escolhida, com o motivo da escolha.",
+        "properties": {
+          "file": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Arquivo da secao, exatamente como veio em candidates[].file. Arquivo que nao estava entre as candidatas faz o script recusar a resposta inteira."
+          },
+          "heading": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Titulo da secao, exatamente como veio em candidates[].heading. Nao reescreva o titulo: e por igualdade de string que o script encontra a secao no manifesto."
+          },
+          "section_id": {
+            "type": ["string", "null"],
+            "pattern": "^[a-z0-9][a-z0-9_]{0,79}$",
+            "description": "section_id da candidata, quando ela tinha um. null quando nao tinha."
+          },
+          "reason": {
+            "type": "string",
+            "maxLength": 300,
+            "description": "Por que esta secao entra, em pt-BR e em uma frase concreta ligada ao topico da aula (ex.: 'define limite lateral, que e o pre-requisito da derivada como limite'). E o texto que o tutor usa ao declarar o que carregou. 'Parece relevante' nao e motivo."
+          },
+          "rank": {
+            "type": ["integer", "null"],
+            "minimum": 1,
+            "description": "Prioridade da secao dentro da selecao, 1 = mais importante. Serve para o script cortar do fim quando a soma dos bytes estourar o orcamento, em vez de descartar arbitrariamente. null deixa o script usar a ordem do array."
+          }
+        }
+      }
+    },
+    "left_out_note": {
+      "type": ["string", "null"],
+      "maxLength": 600,
+      "description": "A frase, em pt-BR, que resume ao aluno o que ficou de fora e como pedir (ex.: 'ficaram de fora os capitulos 1-2 e 5 a 12; se a gente esbarrar em algum, eu abro na hora'). O script tambem monta left_out[] item a item no manifesto; este campo e a versao falada. null deixa o script gerar a frase a partir de left_out[]."
+    },
+    "notes": {
+      "type": ["string", "null"],
+      "maxLength": 600,
+      "description": "Observacao do modelo sobre a selecao, em pt-BR: candidata em disputa que foi escolhida assim mesmo e por que, material que aparenta faltar na pasta, titulo que nao corresponde ao conteudo. Fica no log da ingestao."
+    }
+  }
+}

@@ -1,0 +1,196 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:study-method:schema:memory-compact-request:1",
+  "title": "Pedido de consolidacao da memoria (memory-compact.sh, exit 10)",
+  "description": "PROTOCOLO REQUEST/APPLY: nenhum script deste projeto chama um modelo. Quando `memory-compact.sh` precisa de julgamento - destilar sessoes brutas em fatos - ele escreve ESTE objeto em stdout e sai com exit 10. O modelo le o pedido, escreve a resposta conforme memory-compact.response.schema.json num arquivo e reinvoca `memory-compact.sh --apply <arquivo>`. Quem grava memory/profile.json e sempre o script, nunca o modelo: e o script que valida a resposta contra o schema e recusa o que estiver fora. O que este pedido carrega e SO material bruto (sessoes) mais os claim_key ja existentes e o next_fact_seq - a compactacao nunca le uma consolidacao anterior, para nao degradar por resumo-de-resumo. Textos livres em pt-BR; chaves e valores de enum em ingles snake_case sem acento. VERIFICADOR MINIMO: type, required, enum, pattern, items, properties, minimum, maximum e additionalProperties booleano; maxLength e minItems sao documentacao e NAO sao verificados.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "request_kind", "generated_at", "setup_id", "next_fact_seq", "existing_claim_keys", "sessions"],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+$",
+      "description": "Versao do schema deste pedido, MAJOR.MINOR."
+    },
+    "request_kind": {
+      "enum": ["memory_compact"],
+      "description": "Identifica que pedido e este. Enum de um valor so, de proposito: e o que permite a um mesmo leitor distinguir os quatro pedidos do protocolo sem adivinhar pelo formato."
+    },
+    "generated_at": {
+      "type": "string",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}([.][0-9]+)?([+-]\\d{2}:\\d{2}|Z)$",
+      "description": "Data-hora ISO 8601 em que o pedido foi emitido. A resposta que chegar depois de o perfil ter mudado e recusada: o script confere que nada foi gravado no intervalo."
+    },
+    "setup_id": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{12}$",
+      "description": "setup_id do setup sendo compactado, doze digitos hexadecimais minusculos. A resposta so e aplicada no mesmo setup."
+    },
+    "response_path": {
+      "type": ["string", "null"],
+      "description": "Caminho sugerido onde o modelo deve gravar a resposta antes de reinvocar com --apply. null significa que o script aceita qualquer caminho passado no --apply."
+    },
+    "next_fact_seq": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Proximo numero sequencial livre para fact_id. Vai no pedido porque e a unica coisa do perfil, junto com os claim_key, que a compactacao pode conhecer sem ler a consolidacao anterior. O modelo NAO precisa gerar fact_id: quem numera e o script."
+    },
+    "existing_claim_keys": {
+      "type": "array",
+      "description": "claim_key dos fatos hoje 'active' no perfil, semanticos e procedimentais juntos. Servem para o modelo REUSAR a chave existente quando a afirmacao nova e sobre a mesma coisa - e assim o fato novo supersede o antigo em vez de coexistir com ele. Nao trazem o conteudo dos fatos: so as chaves.",
+      "items": {
+        "type": "string",
+        "pattern": "^[a-z][a-z0-9_]{1,62}$",
+        "description": "Uma chave estavel ja usada no perfil, em snake_case ASCII sem acento."
+      }
+    },
+    "sessions": {
+      "type": "array",
+      "minItems": 1,
+      "description": "As sessoes brutas a consolidar, em ordem crescente de session_id: aquelas com compacted_at null e status 'completed' ou 'abandoned'. Sessao 'abandoned' entra normalmente, mas fato sustentado exclusivamente por sessao abandoned nao passa de confidence low - observacao de sessao interrompida e observacao incompleta.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["session_id", "date", "status"],
+        "description": "Uma sessao bruta, com o material que alimenta a destilacao.",
+        "properties": {
+          "session_id": {
+            "type": "string",
+            "pattern": "^[0-9]{4}$",
+            "description": "Identificador da sessao, quatro digitos zero-padded. E o que entra em source_sessions[] na resposta e o que torna o fato auditavel."
+          },
+          "date": {
+            "type": "string",
+            "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$",
+            "description": "Data local da sessao (AAAA-MM-DD). E o valid time das observacoes desta sessao."
+          },
+          "status": {
+            "enum": ["completed", "abandoned"],
+            "description": "Como a sessao terminou. abandoned significa que ela ficou orfa e foi fechada retroativamente: o conteudo e legitimo, mas incompleto."
+          },
+          "topics": {
+            "type": "array",
+            "description": "Tags de topico da sessao, em snake_case. Vocabulario que a resposta deve reusar em topic e target_topic.",
+            "items": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9_]{1,62}$",
+              "description": "Uma tag de topico em snake_case ASCII sem acento."
+            }
+          },
+          "one_line_summary": {
+            "type": ["string", "null"],
+            "description": "Resumo de uma linha da sessao, em pt-BR. Contexto para a destilacao; nao vira fato sozinho."
+          },
+          "affect": {
+            "enum": ["engaged", "frustrated", "confident", "anxious", "unmotivated", "neutral", null],
+            "description": "Estado afetivo predominante observado na sessao. Afeto e volatil: so vira fato de kind 'context' quando se repete em varias sessoes."
+          },
+          "what_worked": {
+            "type": ["string", "null"],
+            "description": "Resumo em uma frase do que funcionou pedagogicamente nesta sessao."
+          },
+          "what_didnt_work": {
+            "type": ["string", "null"],
+            "description": "Resumo em uma frase do que nao funcionou. Material de alto valor: vira antipattern."
+          },
+          "skills_observed": {
+            "type": "array",
+            "description": "Habilidades observadas nesta sessao. Materia-prima dos fatos semanticos: cada uma e candidata a um claim_key de nivel de habilidade.",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["skill"],
+              "description": "Uma habilidade observada, com o nivel visto e a evidencia.",
+              "properties": {
+                "skill": {
+                  "type": "string",
+                  "pattern": "^[a-z][a-z0-9_]{1,62}$",
+                  "description": "Nome da habilidade em snake_case ASCII sem acento."
+                },
+                "level": {
+                  "enum": ["beginner", "intermediate", "advanced", null],
+                  "description": "Nivel observado da habilidade nesta sessao."
+                },
+                "confidence": {
+                  "enum": ["low", "medium", "high", null],
+                  "description": "Confianca do tutor nesta observacao especifica, como registrada na sessao."
+                },
+                "evidence": {
+                  "type": ["string", "null"],
+                  "description": "O observavel que sustenta o nivel atribuido. Observacao sem evidencia NAO pode virar fato com confidence acima de low."
+                },
+                "observation_type": {
+                  "enum": ["observed", "inferred", null],
+                  "description": "observed: visto diretamente na sessao. inferred: generalizacao do tutor. Ausente equivale a observed."
+                },
+                "proficiency_state": {
+                  "enum": ["unknown", "fragile", "mastered", null],
+                  "description": "Estado de proficiencia registrado na sessao. Transportado, nao recalculado aqui: quem decide transicao e progress-update.sh."
+                }
+              }
+            }
+          },
+          "how_it_happened": {
+            "type": "array",
+            "description": "Os movimentos pedagogicos da sessao, na ordem em que aconteceram. Materia-prima dos fatos procedimentais. Os que falharam importam tanto quanto os que funcionaram: o que nao funcionar e mais barato de reusar do que o que funcionou.",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["move_type", "description", "outcome"],
+              "description": "Um movimento pedagogico com o efeito observado.",
+              "properties": {
+                "move_type": {
+                  "enum": ["analogy", "worked_example", "hint_ladder", "socratic_question", "hands_on", "explanation_order", "visualization", "reference_lookup", "spaced_review", "error_autopsy"],
+                  "description": "Tipo do movimento executado, no mesmo vocabulario de session.how_it_happened[].move_type."
+                },
+                "description": {
+                  "type": "string",
+                  "description": "O movimento em 1-2 frases concretas, em pt-BR: o que foi feito, nessa ordem, com essas palavras."
+                },
+                "target_topic": {
+                  "type": ["string", "null"],
+                  "pattern": "^[a-z][a-z0-9_]{1,62}$",
+                  "description": "Topico que o movimento atacou, em snake_case. E o que a resposta reusa em target_topic."
+                },
+                "outcome": {
+                  "enum": ["unlocked", "partial", "no_effect", "backfired"],
+                  "description": "Efeito observado. backfired e o mais valioso: vira procedure_kind 'antipattern' na resposta."
+                },
+                "evidence": {
+                  "type": ["string", "null"],
+                  "description": "O observavel concreto que sustenta o outcome. Sem evidencia, o outcome e opiniao e o fato resultante nao passa de confidence low."
+                },
+                "hint_level": {
+                  "type": ["integer", "null"],
+                  "minimum": 0,
+                  "maximum": 5,
+                  "description": "Degrau da escada de dicas usado, de 0 a 5, quando move_type e hint_ladder."
+                },
+                "observation_type": {
+                  "enum": ["observed", "inferred", null],
+                  "description": "observed: efeito visto diretamente. inferred: generalizacao do tutor. Ausente equivale a observed."
+                }
+              }
+            }
+          },
+          "open_questions": {
+            "type": "array",
+            "description": "Perguntas que ficaram em aberto na sessao. Alimentam pending_followups no perfil.",
+            "items": {
+              "type": "string",
+              "description": "Uma pergunta em aberto, em pt-BR."
+            }
+          },
+          "next_steps": {
+            "type": "array",
+            "description": "Proximos passos combinados com o aluno. Tambem alimentam pending_followups.",
+            "items": {
+              "type": "string",
+              "description": "Um proximo passo concreto, em pt-BR."
+            }
+          }
+        }
+      }
+    }
+  }
+}

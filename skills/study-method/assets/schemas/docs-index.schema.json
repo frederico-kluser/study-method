@@ -1,0 +1,269 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:study-method:schema:docs-index:1",
+  "title": "Manifesto do material teorico do setup (memory/docs-index.json)",
+  "description": "Saida de `docs-index.sh`, gravada em memory/docs-index.json. E um DERIVADO: descreve o que existe no docs/ do setup (arquivos, secoes, tamanho, hash) e o que a ultima ingestao carregou e deixou de fora. Pode ser reconstruido do zero varrendo o docs/ do setup, e nenhum campo aqui exige julgamento de modelo para ser preenchido - a escolha de quais secoes carregar, essa sim, e um pedido ao modelo, com schema proprio em requests/docs-index.request.schema.json. A skill NUNCA escreve no docs/ do setup: este arquivo vive em memory/. Textos livres em pt-BR; chaves e valores de enum em ingles snake_case sem acento. VERIFICADOR MINIMO: este schema so usa type, required, enum, pattern, items, properties, minimum, maximum e additionalProperties booleano - minLength, maxLength e minItems aparecem como documentacao e NAO sao verificados.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "generated_at",
+    "setup_id",
+    "docs_root",
+    "mode",
+    "files",
+    "loaded",
+    "left_out",
+    "not_ingested"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+$",
+      "description": "Versao do schema deste arquivo, MAJOR.MINOR. Adicionar campo opcional sobe MINOR; tornar campo obrigatorio, renomear ou mudar tipo sobe MAJOR. Independente das versoes dos demais arquivos."
+    },
+    "generated_at": {
+      "type": "string",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}([.][0-9]+)?([+-]\\d{2}:\\d{2}|Z)$",
+      "description": "Data-hora ISO 8601 da geracao deste manifesto, com fracao de segundo opcional. Comparado com o mtime dos arquivos do docs/ do setup para decidir se o manifesto esta defasado: se algum arquivo e mais novo que este carimbo, `docs-index.sh` reindexa."
+    },
+    "setup_id": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{12}$",
+      "description": "setup_id do setup a que este manifesto pertence, copiado de setup.json. Doze digitos hexadecimais minusculos. Redundante de proposito: um memory/ recuperado de backup continua sabendo de que setup e."
+    },
+    "docs_root": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Caminho do diretorio de material teorico, relativo a raiz do setup (tipicamente 'docs'). Todo `path` deste arquivo e relativo a ELE, nao a raiz do setup: assim o manifesto sobrevive ao aluno mover o setup de lugar."
+    },
+    "mode": {
+      "enum": ["full", "indexed"],
+      "description": "Como o material foi tratado na ultima ingestao. full: coube no orcamento e foi lido inteiro - `left_out` fica vazio e o tutor pode dizer 'li seu material' sem mentir. indexed: passou do orcamento, so as secoes mapeadas ao topico da aula foram carregadas, e o que ficou de fora TEM de ser declarado ao aluno por nome. Mesmo vocabulario de setup.json docs_ingest.mode e de session.docs_coverage (que tem ainda o valor 'none' para material inexistente)."
+    },
+    "budget_bytes": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Teto de bytes de material que a ingestao podia consumir nesta rodada. Registrado para que a decisao de ter deixado algo de fora seja reconstruivel depois: o mesmo docs/ com outro orcamento produz outra selecao."
+    },
+    "total_ingestible_bytes": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Soma dos bytes de texto ingerivel de todos os arquivos legiveis (para PDF, o texto extraido, nao o tamanho do binario). E o numero comparado com budget_bytes para escolher entre 'full' e 'indexed'."
+    },
+    "files": {
+      "type": "array",
+      "description": "Um registro por arquivo encontrado no docs/ do setup, inclusive os ilegiveis (com readable false). Ordem: material do aluno na raiz primeiro, material gerado depois - a mesma ordem em que a ingestao le, porque o comeco do contexto e a posicao forte e ela pertence ao material real.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["path", "provenance", "bytes", "kind", "readable"],
+        "description": "Um arquivo do docs/ do setup, com o que e preciso saber para decidir se vale abri-lo sem abri-lo.",
+        "properties": {
+          "path": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Caminho do arquivo relativo a docs_root. Nunca absoluto e nunca com '~': caminho relativo sobrevive ao setup ser movido, caminho absoluto nao."
+          },
+          "provenance": {
+            "enum": ["student_provided", "generated"],
+            "description": "student_provided: material que o aluno trouxe. generated: base teorica escrita pela propria skill em docs/generated/. A distincao decide desempate de relevancia - material do aluno ganha - e impede a skill de aprender de si mesma sem perceber."
+          },
+          "bytes": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Tamanho do arquivo em disco, em bytes. Para PDF e o tamanho do binario, nao o do texto extraido: os dois numeros diferem por ordens de grandeza e confundi-los estoura o orcamento."
+          },
+          "sha256": {
+            "type": ["string", "null"],
+            "pattern": "^[a-f0-9]{64}$",
+            "description": "SHA-256 do conteudo do arquivo, em hexadecimal minusculo. E o que permite detectar mudanca sem reler: hash igual, nada a refazer. null quando o arquivo nao pode ser lido para calcular o hash."
+          },
+          "mtime": {
+            "type": ["string", "null"],
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}([.][0-9]+)?([+-]\\d{2}:\\d{2}|Z)$",
+            "description": "Data-hora ISO 8601 da ultima modificacao do arquivo. Checagem barata antes do hash: mtime igual quase sempre significa conteudo igual, e o hash confirma quando importa."
+          },
+          "kind": {
+            "enum": ["markdown", "text", "pdf", "html", "binary", "unknown"],
+            "description": "Como o arquivo e tratado na extracao. markdown e text: lidos direto, secoes por cabecalho. pdf: extraido por faixa de paginas, quando ha extrator. html: texto extraido. binary e unknown: nao ingerivel - a entrada existe aqui para o tutor poder NOMEAR o arquivo ao aluno em vez de fingir que ele nao existe."
+          },
+          "readable": {
+            "type": "boolean",
+            "description": "true quando o conteudo pode ser lido nesta maquina com as ferramentas disponiveis. false para binario, formato sem extrator (PDF sem poppler) ou erro de permissao. Um arquivo com readable false aparece obrigatoriamente em not_ingested com o motivo."
+          },
+          "pages": {
+            "type": ["integer", "null"],
+            "minimum": 0,
+            "description": "Numero de paginas, apenas para kind pdf. Obtido sem extrair nada, o que permite estimar o custo antes de pagar por ele. null nos demais tipos."
+          },
+          "extracted_text_bytes": {
+            "type": ["integer", "null"],
+            "minimum": 0,
+            "description": "Bytes de texto efetivamente extraidos deste arquivo. Para PDF e o que conta no orcamento, nao o campo bytes. null quando nao houve extracao."
+          },
+          "extract_cache": {
+            "type": ["string", "null"],
+            "description": "Caminho, relativo a raiz do setup, do texto extraido em cache (tipicamente sob memory/). Existe para nao reextrair um PDF grande a cada sessao. null quando nao ha cache."
+          },
+          "sections": {
+            "type": "array",
+            "description": "Secoes descobertas no arquivo, na ordem em que aparecem. Lista vazia significa arquivo sem estrutura detectavel: ele e tratado como uma secao unica. Sao as unidades de carregamento - nunca se carrega uma janela de bytes cortando no meio da frase, sempre secoes inteiras.",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["heading"],
+              "description": "Uma secao do arquivo, com a ancora que permite abri-la depois sem reescanear nada.",
+              "properties": {
+                "section_id": {
+                  "type": ["string", "null"],
+                  "pattern": "^[a-z0-9][a-z0-9_]{0,79}$",
+                  "description": "Identificador estavel da secao dentro do arquivo, em snake_case ASCII sem acento, derivado do heading. Serve para loaded[] e left_out[] apontarem para a secao sem repetir o texto do titulo. null quando nao foi possivel derivar um identificador."
+                },
+                "heading": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "O titulo da secao exatamente como aparece no arquivo, em pt-BR e com acento. E o que o tutor diz em voz alta ao aluno ('carreguei o capitulo 3'), por isso nao e normalizado."
+                },
+                "level": {
+                  "type": ["integer", "null"],
+                  "minimum": 1,
+                  "maximum": 6,
+                  "description": "Profundidade do cabecalho, de 1 a 6 (numero de '#' em markdown). null quando a secao veio de heuristica sem nivel, como linha sublinhada ou faixa de paginas de PDF."
+                },
+                "offset": {
+                  "type": ["integer", "null"],
+                  "minimum": 0,
+                  "description": "Deslocamento do inicio da secao dentro do arquivo, EM BYTES, nao em caracteres. Contado com LC_ALL=C: sem isso o comprimento conta caracteres e o offset erra em todo texto acentuado, que e justamente o caso do material em pt-BR. null para secao de PDF, que se localiza por pagina."
+                },
+                "bytes": {
+                  "type": ["integer", "null"],
+                  "minimum": 0,
+                  "description": "Tamanho da secao em bytes. E o custo de carrega-la, e o que o orcamento consome."
+                },
+                "page_from": {
+                  "type": ["integer", "null"],
+                  "minimum": 1,
+                  "description": "Primeira pagina da secao, apenas para PDF, contando a partir de 1. A unidade de secao em PDF e a faixa de paginas, nao o cabecalho: sem arvore de bookmarks confiavel, pagina e a unica ancora honesta. null fora de PDF."
+                },
+                "page_to": {
+                  "type": ["integer", "null"],
+                  "minimum": 1,
+                  "description": "Ultima pagina da secao, inclusive. null fora de PDF."
+                },
+                "disputed": {
+                  "type": ["boolean", "null"],
+                  "description": "true quando esta secao contradiz outra fonte do proprio material do aluno. Secao em disputa e penalizada na selecao: ensinar por cima de uma contradicao nao resolvida implanta concepcao errada. null equivale a false."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "loaded": {
+      "type": "array",
+      "description": "O que foi efetivamente carregado no contexto da ultima ingestao, na ordem em que entrou. Em modo full, uma entrada por arquivo com heading null. Lista vazia com mode indexed significa que nada coube - e isso tambem tem de ser dito ao aluno.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["file", "reason"],
+        "description": "Uma unidade carregada: um arquivo inteiro (heading null) ou uma secao dele.",
+        "properties": {
+          "file": {
+            "type": "string",
+            "minLength": 1,
+            "description": "path do arquivo em files[], relativo a docs_root."
+          },
+          "heading": {
+            "type": ["string", "null"],
+            "description": "Titulo da secao carregada, como em files[].sections[].heading. null significa arquivo inteiro."
+          },
+          "section_id": {
+            "type": ["string", "null"],
+            "pattern": "^[a-z0-9][a-z0-9_]{0,79}$",
+            "description": "section_id da secao carregada, quando ha um. null para arquivo inteiro ou secao sem identificador."
+          },
+          "bytes": {
+            "type": ["integer", "null"],
+            "minimum": 0,
+            "description": "Bytes consumidos do orcamento por esta unidade."
+          },
+          "reason": {
+            "enum": ["full_mode", "table_of_contents", "topic_match", "recent_session", "student_request", "on_demand"],
+            "description": "Por que entrou. full_mode: o material inteiro coube. table_of_contents: o sumario de todos os cabecalhos, que entra SEMPRE em modo indexed - custa pouco e e o que impede o tutor de negar a existencia de algo que esta na pasta. topic_match: casou com o topico da aula. recent_session: foi usada nas ultimas sessoes. student_request: o aluno pediu explicitamente. on_demand: aberta no meio da aula porque o assunto virou para la."
+          },
+          "score": {
+            "type": ["number", "null"],
+            "description": "Pontuacao de relevancia que colocou esta unidade acima do corte. Guardada para a selecao ser auditavel: da para reler a lista e discordar do criterio. null quando a entrada nao veio de pontuacao (full_mode, table_of_contents, student_request)."
+          }
+        }
+      }
+    },
+    "left_out": {
+      "type": "array",
+      "description": "REQUISITO DO PROJETO: o que existe no material e NAO foi carregado. E a origem da frase obrigatoria que o tutor diz ao aluno ('ficaram de fora os capitulos 1-2 e 5 a 12 - se a gente esbarrar em algum, e so pedir'). Nunca dizer 'li seu material' quando leu 4% - e este campo que torna a frase honesta barata. Lista vazia em modo full e a afirmacao positiva de que nada ficou de fora; lista vazia em modo indexed exige que loaded[] cubra tudo, e qualquer outra coisa e defeito do indexador, nao ausencia de dado.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["file", "reason"],
+        "description": "Uma unidade que existe no material e nao entrou no contexto.",
+        "properties": {
+          "file": {
+            "type": "string",
+            "minLength": 1,
+            "description": "path do arquivo em files[], relativo a docs_root."
+          },
+          "heading": {
+            "type": ["string", "null"],
+            "description": "Titulo da secao que ficou de fora. null significa o arquivo inteiro."
+          },
+          "section_id": {
+            "type": ["string", "null"],
+            "pattern": "^[a-z0-9][a-z0-9_]{0,79}$",
+            "description": "section_id da secao que ficou de fora, quando ha um."
+          },
+          "bytes": {
+            "type": ["integer", "null"],
+            "minimum": 0,
+            "description": "Tamanho da unidade que ficou de fora. Ajuda a responder 'quanto do material eu nao li'."
+          },
+          "reason": {
+            "enum": ["budget_exhausted", "low_relevance", "disputed", "not_ingestible", "superseded_by_generated"],
+            "description": "Por que ficou de fora. budget_exhausted: relevante, mas o orcamento acabou antes. low_relevance: nao casou com o topico da aula. disputed: contradiz outra fonte e foi despriorizada. not_ingestible: nao ha como ler o arquivo nesta maquina - a entrada correspondente esta em not_ingested com o detalhe. superseded_by_generated: material gerado que perdeu para o material do aluno sobre o mesmo assunto."
+          },
+          "reopen_hint": {
+            "type": ["string", "null"],
+            "description": "Como abrir esta unidade na hora, se a aula virar para ela: o offset em bytes ou a faixa de paginas, ja resolvido. Existe para a reabertura sob demanda custar uma leitura direta, sem reescanear o material. Texto curto em pt-BR."
+          }
+        }
+      }
+    },
+    "not_ingested": {
+      "type": "array",
+      "description": "Arquivos que a skill nao consegue ler nesta maquina, com o motivo. Diferente de left_out: la a decisao foi de orcamento ou relevancia, aqui e impossibilidade tecnica. Espelhado em setup.json docs_ingest.not_ingested, que e a versao estavel entre sessoes. Lista vazia significa que tudo que esta no docs/ do setup e legivel.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["path", "reason"],
+        "description": "Um arquivo nao ingerivel, com o motivo e o que o aluno pode fazer a respeito.",
+        "properties": {
+          "path": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Caminho do arquivo relativo a docs_root."
+          },
+          "reason": {
+            "enum": ["no_extractor", "unsupported_format", "unreadable", "too_large", "binary", "symlink_outside_setup"],
+            "description": "Por que nao foi ingerido. Mesmo vocabulario fechado de setup.json docs_ingest.not_ingested[].reason. no_extractor: formato ingerivel em tese, mas sem ferramenta de extracao nesta maquina (PDF sem poppler e o caso classico). unsupported_format: a skill nao le esse formato. unreadable: permissao negada ou arquivo corrompido. too_large: acima do teto por arquivo. binary: conteudo binario. symlink_outside_setup: link apontando para fora da raiz do setup, que nunca e seguido."
+          },
+          "detail": {
+            "type": ["string", "null"],
+            "maxLength": 240,
+            "description": "Detalhe em pt-BR que ajuda o aluno a resolver (o comando de instalacao do extrator, a sugestao de exportar para .txt). A skill SUGERE, nunca executa instalacao por conta propria. null quando nao ha nada util a dizer alem do motivo."
+          }
+        }
+      }
+    }
+  }
+}
