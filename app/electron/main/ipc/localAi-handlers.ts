@@ -21,6 +21,7 @@ import { LOCAL_AI_CHANNELS } from '@shared/ipc-contract';
 import { detectHardware } from '../services/embeddedLlm/hardware';
 import { recommendDefault } from '../services/embeddedLlm/recommend';
 import { createModelStore, type ModelStore } from '../services/embeddedLlm/modelStore';
+import { safeHandleMap, type IpcHandlerFn } from './safeHandle';
 
 /** Fachada do motor usada pelos handlers (delete precisa do unload). */
 export interface LlmLike {
@@ -170,19 +171,23 @@ export function buildLocalAiHandlers(deps: LocalAiHandlerDeps = {}): LocalAiHand
 }
 
 /**
- * Entry real: constrói o mapa e liga cada canal ao ipcMain.handle (lazy
- * import de electron). Chamado por uma onda futura no boot do app.
+ * Entry real: constrói o mapa e liga cada canal ao ipcMain (lazy import de
+ * electron) via safeHandle — remove QUALQUER handler prévio (ex.: o placeholder
+ * de ipc/index.ts) antes de `handle`, tornando o registro idempotente com a
+ * fiação da onda 3. Chamado por buildMainSetup no boot.
  */
-export async function registerLocalAiHandlers(deps?: LocalAiHandlerDeps): Promise<void> {
-  const { ipcMain } = await (import('electron') as Promise<typeof import('electron')>);
+export async function registerLocalAiHandlers(deps?: LocalAiHandlerDeps, ipc?: { removeHandler(channel: string): void; handle(channel: string, fn: (...args: unknown[]) => unknown): void }): Promise<void> {
   const handlers = buildLocalAiHandlers(deps);
+  const map = new Map<string, IpcHandlerFn>();
   for (const [channel, handler] of handlers) {
-    ipcMain.handle(
-      channel,
-      (event: unknown, ...args: unknown[]) =>
-        handler(event as InvokeEventLike, ...args) as Promise<unknown>,
-    );
+    map.set(channel, ((...args: unknown[]) => handler(args[0] as InvokeEventLike, ...args.slice(1)) as Promise<unknown>));
   }
+  if (ipc) {
+    safeHandleMap(ipc, map);
+    return;
+  }
+  const { ipcMain } = await (import('electron') as Promise<typeof import('electron')>);
+  safeHandleMap(ipcMain, map);
 }
 
 /** Remove os handlers localAi:* de registrado (para testes/limpeza). */

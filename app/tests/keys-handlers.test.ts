@@ -88,12 +88,27 @@ function captureElectron(): FakeIpcMain {
  * Mock do fetch GLOBAL, usado pelos validadores quando o handler os chama sem
  * `fetchImpl` injetado. Roteia por URL: /models → lista de modelos; buscas
  * Brave → resultado vazio. Permite controlar o status por URL via `statuses`.
+ *
+ * Registra o cabeçalho Authorization/X-Subscription-Token de cada chamada em
+ * `fetchHeaders` para os testes provarem QUAL chave foi realmente validada.
  */
 function mockGlobalFetch(opts?: { statuses?: Record<string, number> }): void {
   const statuses = opts?.statuses ?? {};
   fetchMock?.mock.restore();
-  fetchMock = mock.method(globalThis, 'fetch', async (url: unknown) => {
+  fetchHeaders.length = 0;
+  fetchMock = mock.method(globalThis, 'fetch', async (url: unknown, init?: { headers?: Record<string, string> | Headers }) => {
     const u = String(url);
+    const headers = init?.headers ?? {};
+    const getHeader = (name: string): string | undefined => {
+      if (headers instanceof Headers) return headers.get(name) ?? undefined;
+      const rec = headers as Record<string, string>;
+      return rec[name] ?? rec[name.toLowerCase()];
+    };
+    fetchHeaders.push({
+      url: u,
+      authorization: getHeader('Authorization'),
+      subscriptionToken: getHeader('X-Subscription-Token'),
+    });
     if (u.includes('/models')) {
       return fakeResponse(statuses[u] ?? 200, { data: [{ id: 'deepseek-v4-flash' }] });
     }
@@ -103,6 +118,9 @@ function mockGlobalFetch(opts?: { statuses?: Record<string, number> }): void {
     return fakeResponse(500, { error: { message: 'unknown url' } });
   });
 }
+
+/** Cabeçalhos Authorization/X-Subscription-Token do ÚLTIMO mockGlobalFetch. */
+const fetchHeaders: Array<{ url: string; authorization?: string; subscriptionToken?: string }> = [];
 
 let captured: FakeIpcMain | null = null;
 let origLoad: ((...a: unknown[]) => unknown) | null = null;
@@ -209,6 +227,96 @@ test('keys:validate-brave com chave ausente → braveValidated false', async () 
     'braveValidated',
     false,
   ]);
+});
+
+// ─── keys:validate-* aceitam uma chave digitada no invoke (onda3-ui-wiring) ───
+
+test('keys:validate-deepseek com chave digitada → valida ESSA chave sem salvar a chave', async () => {
+  mockGlobalFetch();
+  // Store SEM chave deepseek: nada a cair de fallback — a digitada é a única fonte.
+  const store = makeFakeStore({});
+  const ipc = beforeEachRegister(store);
+
+  const handler = ipc.handlers.get(KEYS_CHANNELS.VALIDATE_DEEPSEEK)!;
+  const result = (await handler(undefined as never, 'sk-digitada')) as {
+    isValid: boolean;
+    modelAvailable?: boolean;
+  };
+
+  assert.equal(result.isValid, true);
+  assert.equal(result.modelAvailable, true);
+  // O fetch fake registra o Authorization da chave DIGITADA.
+  const auth = fetchHeaders.find((h) => h.url.includes('/models'))?.authorization;
+  assert.equal(auth, 'Bearer sk-digitada');
+  // O flag de validação é gravado; a CHAVE em si NÃO (sem setApiKey).
+  assert.deepEqual(store.setValueCalls.find(([k]) => k === 'deepseekValidated'), [
+    'deepseekValidated',
+    true,
+  ]);
+  assert.equal(store.setApiKeyCalls.length, 0, 'chave digitada NÃO deve ser salva');
+});
+
+test('keys:validate-deepseek sem chave digitada → não ENVIA Authorization (sem store)', async () => {
+  mockGlobalFetch();
+  const store = makeFakeStore({});
+  const ipc = beforeEachRegister(store);
+
+  const handler = ipc.handlers.get(KEYS_CHANNELS.VALIDATE_DEEPSEEK)!;
+  const result = (await handler(undefined as never, '')) as { isValid: boolean; errorMessage?: string };
+
+  assert.equal(result.isValid, false);
+  assert.equal(result.errorMessage, 'API key is empty');
+  assert.equal(fetchHeaders.length, 0, 'chave vazia não dispara rede');
+  assert.deepEqual(store.setValueCalls.find(([k]) => k === 'deepseekValidated'), [
+    'deepseekValidated',
+    false,
+  ]);
+  assert.equal(store.setApiKeyCalls.length, 0);
+});
+
+test('keys:validate-deepseek sem chave digitada → fallback para a chave do store', async () => {
+  mockGlobalFetch();
+  const store = makeFakeStore({ apiKeys: { deepseek: 'sk-store' } });
+  const ipc = beforeEachRegister(store);
+
+  const handler = ipc.handlers.get(KEYS_CHANNELS.VALIDATE_DEEPSEEK)!;
+  const result = (await handler(undefined as never, undefined)) as { isValid: boolean };
+
+  assert.equal(result.isValid, true);
+  // O fetch registra o Authorization da chave do STORE (fallback).
+  const auth = fetchHeaders.find((h) => h.url.includes('/models'))?.authorization;
+  assert.equal(auth, 'Bearer sk-store');
+});
+
+test('keys:validate-brave com chave digitada → valida ESSA chave (X-Subscription-Token) sem salvar', async () => {
+  mockGlobalFetch();
+  const store = makeFakeStore({});
+  const ipc = beforeEachRegister(store);
+
+  const handler = ipc.handlers.get(KEYS_CHANNELS.VALIDATE_BRAVE)!;
+  const result = (await handler(undefined as never, 'brave-digitada')) as { isValid: boolean };
+
+  assert.equal(result.isValid, true);
+  const token = fetchHeaders.find((h) => h.url.includes('/res/v1/web/search'))?.subscriptionToken;
+  assert.equal(token, 'brave-digitada');
+  assert.deepEqual(store.setValueCalls.find(([k]) => k === 'braveValidated'), [
+    'braveValidated',
+    true,
+  ]);
+  assert.equal(store.setApiKeyCalls.length, 0);
+});
+
+test('keys:validate-brave com chave em branco → valida a do store (fallback)', async () => {
+  mockGlobalFetch();
+  const store = makeFakeStore({ apiKeys: { brave: 'brave-store' } });
+  const ipc = beforeEachRegister(store);
+
+  const handler = ipc.handlers.get(KEYS_CHANNELS.VALIDATE_BRAVE)!;
+  const result = (await handler(undefined as never, '   ')) as { isValid: boolean };
+
+  assert.equal(result.isValid, true);
+  const token = fetchHeaders.find((h) => h.url.includes('/res/v1/web/search'))?.subscriptionToken;
+  assert.equal(token, 'brave-store');
 });
 
 test('keys:get-status → monta KeysStatus a partir do store', async () => {

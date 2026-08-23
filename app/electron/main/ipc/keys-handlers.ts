@@ -2,8 +2,10 @@
  * electron/main/ipc/keys-handlers.ts — handlers IPC de chaves de API.
  *
  * Canais (contrato congelado em shared/ipc-contract.ts, KEYS_CHANNELS):
- * - keys:validate-deepseek → validateDeepseekKey com a chave do store; grava
- *   settings values deepseekValidated/modelAvailable.
+ * - keys:validate-deepseek → validateDeepseekKey; se uma `key` (string não
+ *   vazia) for passada no invoke, valida ESSA chave (SEM salvá-la no store);
+ *   caso contrário valida a chave do store. Grava settings values
+ *   deepseekValidated/modelAvailable.
  * - keys:validate-brave     → validateBraveKey idem (braveValidated).
  * - keys:get-status          → lê o store e monta um KeysStatus.
  * - keys:set-key             → grava a chave no store.
@@ -41,24 +43,36 @@ export function registerKeysHandlers(deps: RegisterKeysHandlersDeps = {}): void 
   // eslint-disable-next-line @typescript-eslint/no-require-imports
   const { ipcMain } = require('electron') as typeof import('electron');
 
-  ipcMain.handle(KEYS_CHANNELS.VALIDATE_DEEPSEEK, async (): Promise<DeepSeekValidationResult> => {
-    const store = await getStore();
-    const apiKey = await store.getApiKey('deepseek');
-    const result = await validateDeepseekKey(apiKey);
-    await store.setValue('deepseekValidated', toBooleanFlag(result));
-    if (typeof result.modelAvailable === 'boolean') {
-      await store.setValue('modelAvailable', result.modelAvailable);
+  ipcMain.handle(
+    KEYS_CHANNELS.VALIDATE_DEEPSEEK,
+    async (_event, key?: unknown): Promise<DeepSeekValidationResult> => {
+      const store = await getStore();
+      const apiKey =
+        typeof key === 'string' && key.trim() !== ''
+          ? key.trim() // chave digitada validada SEM salvar
+          : await store.getApiKey('deepseek');
+      const result = await validateDeepseekKey(apiKey);
+      await store.setValue('deepseekValidated', toBooleanFlag(result));
+      if (typeof result.modelAvailable === 'boolean') {
+        await store.setValue('modelAvailable', result.modelAvailable);
+      }
+      return result;
     }
-    return result;
-  });
+  );
 
-  ipcMain.handle(KEYS_CHANNELS.VALIDATE_BRAVE, async (): Promise<ValidationResult> => {
-    const store = await getStore();
-    const apiKey = await store.getApiKey('brave');
-    const result = await validateBraveKey(apiKey);
-    await store.setValue('braveValidated', toBooleanFlag(result));
-    return result;
-  });
+  ipcMain.handle(
+    KEYS_CHANNELS.VALIDATE_BRAVE,
+    async (_event, key?: unknown): Promise<ValidationResult> => {
+      const store = await getStore();
+      const apiKey =
+        typeof key === 'string' && key.trim() !== ''
+          ? key.trim() // chave digitada validada SEM salvar
+          : await store.getApiKey('brave');
+      const result = await validateBraveKey(apiKey);
+      await store.setValue('braveValidated', toBooleanFlag(result));
+      return result;
+    }
+  );
 
   ipcMain.handle(KEYS_CHANNELS.GET_STATUS, async (): Promise<KeysStatus> => {
     const store = await getStore();

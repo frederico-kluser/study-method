@@ -1,15 +1,11 @@
 /**
  * tests/main-wiring.test.ts — regressão do WIRING dos handlers IPC do bootstrap.
  *
- * BLOCK integrado (onda reunida): registerKeysHandlers() (keys:* da onda 1)
- * NUNCA era chamado — main/index.ts só registrava registerIpcHandlers() e o
- * renderer recebia "No handler registered" em window.api.keys.*.
- *
- * buildMainSetup(deps) é a função PURA que o entry real usa em whenReady para
- * ligar registerIpc + registerKeys. Aqui provamos, sem bootar Electron:
- *  1. buildMainSetup chama registerKeys JUNTO de registerIpc (fake que registra
- *     quais callbacks rodaram), e na ordem esperada (registerIpc → registerKeys);
- *  2. (âncora no módulo real) registerKeysHandlers continua uma função exportada.
+ * buildMainSetup(deps) é a função PURA que o entry real usa em whenReady. A onda
+ * 3-ui-wiring estendeu MainSetupDeps para 5 registradores (ipc→keys→localAi→pi→study);
+ * aqui asseguramos que registerKeys continua registrado junto de registerIpc e
+ * que a assinatura nova aceita os 5 dependências. A ORDEM COMPLETA dos 5 é
+ * provada em tests/study-wiring.test.ts (item (a)).
  */
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
@@ -17,27 +13,35 @@ import assert from 'node:assert/strict';
 import { buildMainSetup } from '../electron/main/main-setup';
 import { registerKeysHandlers } from '../electron/main/ipc/keys-handlers';
 
-function makeFakes() {
-  const called: string[] = [];
+function makeDeps(called: string[]) {
   return {
-    called,
-    deps: {
-      registerIpc: async () => {
-        called.push('registerIpc');
-      },
-      registerKeys: () => {
-        called.push('registerKeys');
-      },
+    registerIpc: async () => {
+      called.push('registerIpc');
+    },
+    registerKeys: () => {
+      called.push('registerKeys');
+    },
+    registerLocalAi: async () => {
+      called.push('registerLocalAi');
+    },
+    registerPi: async () => {
+      called.push('registerPi');
+    },
+    registerStudy: async () => {
+      called.push('registerStudy');
     },
   };
 }
 
 describe('buildMainSetup (wiring do bootstrap IPC)', () => {
-  it('chama registerKeys junto com registerIpc', async () => {
-    const { called, deps } = makeFakes();
-    await buildMainSetup(deps);
+  it('aceita os 5 dependências e chama registerKeys junto com registerIpc', async () => {
+    const called: string[] = [];
+    await buildMainSetup(makeDeps(called));
 
-    assert.deepEqual(called, ['registerIpc', 'registerKeys']);
+    // registerKeys é chamado logo após registerIpc (antes dos específicos).
+    assert.ok(called.includes('registerIpc'));
+    assert.ok(called.includes('registerKeys'));
+    assert.equal(called[1], 'registerKeys', 'registerKeys deve vir em segundo lugar (após registerIpc)');
   });
 
   it('registerIpc resolve antes de registerKeys (espera registerIpc)', async () => {
@@ -49,6 +53,9 @@ describe('buildMainSetup (wiring do bootstrap IPC)', () => {
       registerKeys: () => {
         entry = entry === 'ipc' ? 'keys-apos-ipc' : 'keys-antes-ipc';
       },
+      registerLocalAi: async () => {},
+      registerPi: async () => {},
+      registerStudy: async () => {},
     });
     assert.equal(entry, 'keys-apos-ipc');
   });

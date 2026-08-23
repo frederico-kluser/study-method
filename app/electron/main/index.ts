@@ -5,15 +5,32 @@
  * handlers IPC (após whenReady), força instância única e lida com o ciclo de
  * vida padrão do Electron. Em dev carrega a URL do dev server
  * (process.env['ELECTRON_RENDERER_URL']); em prod carrega o bundle do
- * renderer (out/renderer/index.html). Motor LLM, terminal, pesquisa e editor
- * são ligados em ondas seguintes — este bootstrap não importa nada disso.
+ * renderer (out/renderer/index.html).
+ *
+ * Fiação da onda 3 (ui-wiring): no whenReady constrói os serviços REAIS
+ * (settingsStore, PiAgentService, runner/lesson/orchestrator com autor+juiz
+ * DeepSeek, brave + research) e entrega registerPi/registerStudy/registerLocalAi
+ * ao buildMainSetup, que então registra na ordem (ipc→keys→localAi→pi→study) com
+ * safeHandle (placeholders → reais). Motor LLM local e shim local do Pi ficam
+ * para ondas futuras (ver handoff).
  */
 import { join } from 'node:path';
 import { app, BrowserWindow, shell } from 'electron';
 
 import { registerIpcHandlers } from './ipc';
 import { registerKeysHandlers } from './ipc/keys-handlers';
-import { buildMainSetup } from './main-setup';
+import { registerPiHandlers } from './ipc/pi-handlers';
+import { registerStudyHandlers, type RunnerLike, type LessonServiceLike } from './ipc/study-handlers';
+import { registerLocalAiHandlers } from './ipc/localAi-handlers';
+import { buildMainSetup, emitToAll } from './main-setup';
+import { getSettingsStore } from './services/settingsStore';
+import { createPiAgentService } from './services/PiAgentService';
+import { createStudyMethodRunner } from './services/studyMethodRunner';
+import { createDeepSeekLlmJudge } from './services/deepseekLlmJudge';
+import { createDeepSeekLessonAuthor } from './services/deepseekLessonAuthor';
+import { createLessonOrchestrator } from './services/lessonOrchestrator';
+import { createBraveSearchService } from './services/braveSearchService';
+import { createResearchPlanner } from './services/researchPlanner';
 
 const isDev = !!process.env['ELECTRON_RENDERER_URL'];
 
@@ -31,11 +48,51 @@ if (!gotLock) {
   });
 
   void app.whenReady().then(async () => {
-    // Registro dos handlers IPC (settings:* reais; keys:* reais da onda 1; placeholders para as ondas futuras).
+    // Registro dos handlers IPC — fiação real da onda 3-ui-wiring.
     try {
+      const settingsStore = await getSettingsStore();
+
+      const judge = createDeepSeekLlmJudge({
+        getApiKey: () => settingsStore.getApiKey('deepseek'),
+      });
+
+      const runner = createStudyMethodRunner({
+        skillDir: undefined, // resolve pelo default (env/app path)
+        llmJudge: judge,
+      }) as unknown as RunnerLike;
+
+      const author = createDeepSeekLessonAuthor({
+        getApiKey: () => settingsStore.getApiKey('deepseek'),
+      });
+
+      const brave = createBraveSearchService({
+        resolveApiKey: () => settingsStore.getApiKey('brave'),
+      });
+      const research = createResearchPlanner({ search: brave });
+
+      const lesson = createLessonOrchestrator({
+        research,
+        runner: runner as Parameters<typeof createLessonOrchestrator>[0]['runner'],
+        author,
+        judge,
+      }) as unknown as LessonServiceLike;
+
+      const piService = createPiAgentService();
+      const getPiService = async () => piService;
+
+      /** Emite para a janela principal (a única hoje). */
+      const emitWindow = (channel: string, ev: unknown): void => {
+        const win = BrowserWindow.getAllWindows()[0];
+        emitToAll(win?.webContents, channel, ev);
+      };
+
       await buildMainSetup({
         registerIpc: registerIpcHandlers,
         registerKeys: registerKeysHandlers,
+        registerLocalAi: () => registerLocalAiHandlers(),
+        registerPi: () => registerPiHandlers({ getService: getPiService, emit: emitWindow }),
+        registerStudy: () =>
+          registerStudyHandlers({ runner, lesson, emit: emitWindow }),
       });
     } catch (err) {
       console.error('[main] falha ao registrar handlers IPC:', err);
