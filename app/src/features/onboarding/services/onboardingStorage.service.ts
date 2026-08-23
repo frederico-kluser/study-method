@@ -25,6 +25,9 @@
 import {
   ONBOARDING_STEPS,
 } from '../constants/onboardingSteps';
+import {
+  QUICK_START_STEPS,
+} from '../constants/quickStartSteps';
 import type {
   OnboardingProgress,
   OnboardingStatus,
@@ -48,6 +51,7 @@ const VALID_ONBOARDING_STATUSES = new Set<OnboardingStatus>([
 
 const VALID_ONBOARDING_STEP_IDS = new Set<OnboardingStepId>([
   ...ONBOARDING_STEPS.map((s) => s.id as OnboardingStepId),
+  ...QUICK_START_STEPS.map((s) => s.id as OnboardingStepId),
 ]);
 
 /** Forma mínima de localStorage usada nas leituras/escritas. */

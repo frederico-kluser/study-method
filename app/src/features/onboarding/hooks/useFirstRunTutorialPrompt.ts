@@ -24,12 +24,15 @@ import { useEffect, useRef } from 'react';
 import type { OnboardingStatus } from '../types/onboarding.types';
 import { onboardingStorageService } from '../services/onboardingStorage.service';
 import { shouldOfferFirstRunTutorial } from './firstRunTutorial.rule';
+import type { NavKey } from '../../../lib/shellNav';
 
 interface UseFirstRunTutorialPromptParams {
   /** Mesma elegibilidade do onboarding: só para sessões passadas do gate. */
   enabled: boolean;
   /** O status do tutorial (`progress.status`). */
   onboardingStatus: OnboardingStatus;
+  /** Aba ativa do shell — a oferta só abre na home. */
+  activeView: NavKey;
   /** Abre o `TutorialSelectionModal`. */
   openTutorialSelection: () => void;
 }
@@ -37,6 +40,7 @@ interface UseFirstRunTutorialPromptParams {
 export function useFirstRunTutorialPrompt({
   enabled,
   onboardingStatus,
+  activeView,
   openTutorialSelection,
 }: UseFirstRunTutorialPromptParams): void {
   const firedRef = useRef(false);
@@ -50,6 +54,7 @@ export function useFirstRunTutorialPrompt({
       return;
     }
     if (
+      activeView !== 'home' ||
       !shouldOfferFirstRunTutorial({
         enabled,
         alreadyOffered: false,
@@ -62,5 +67,6 @@ export function useFirstRunTutorialPrompt({
     firedRef.current = true;
     onboardingStorageService.markTutorialSelectionOffered();
     openTutorialSelection();
-  }, [enabled, onboardingStatus, openTutorialSelection]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [enabled, onboardingStatus, activeView, openTutorialSelection]);
 }

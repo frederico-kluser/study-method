@@ -1,15 +1,18 @@
 /**
- * e2e-onboarding.spec.ts — tutorial rápido de primeira execução (onda 13).
+ * e2e-onboarding.spec.ts — tutorial de primeira execução (onda 16: Quick Start vs Completo).
  *
  * Com o gate 'ready' e userData FRESCO (a fixture usa tmp isolado), o
  * OnboardingHost monta e o `useFirstRunTutorialPrompt` abre o
  * TutorialSelectionModal UMA vez. Esta spec valida:
- *   - o modal aparece na primeira abertura pós-gate (isReady);
- *   - iniciar o tutorial → o overlay abre com o step focado no alvo
+ *   - o modal de seleção aparece com as DUAS opções (Quick Start / Completo);
+ *   - iniciar o Tutorial Completo → o overlay abre com o step focado no alvo
  *     (data-onboarding-target presente no DOM — app-title/nav-tabs/etc);
- *   - navegar próximo e pular (com confirmação) → overlay fecha e o estado
- *     persiste (offered + skipped);
+ *   - navegar próximo (Continuar) e pular (com confirmação) → overlay fecha e o
+ *     estado persiste (offered + skipped);
  *   - após reload, o modal NÃO reaparece (persistência one-shot).
+ *
+ * No E2E com gate 'ready' as chaves DeepSeek+Brave vêm válidas do stub, então o
+ * Tutorial Completo (gateado por hasKeys) fica HABILITADO.
  */
 import { test, expect, type ElectronApplication, type Page } from '@playwright/test';
 import { launchApp, closeApp } from './helpers';
@@ -21,34 +24,38 @@ test.afterEach(async () => {
   if (app) await closeApp(app);
 });
 
-test('e2e-onboarding: modal de 1ª execução → overlay no alvo → concluir/skip → não reaparece', async () => {
+test('e2e-onboarding: modal com 2 opções → overlay no alvo → concluir/skip → não reaparece', async () => {
   // E2E_ONBOARDING='1' deixa a oferta de primeira execução disparar (por padrão
   // a fixture pré-marca a oferta como mostrada para não bloquear as outras specs).
   const launched = await launchApp({ env: { E2E_GATE: 'ready', E2E_ONBOARDING: '1' } });
   app = launched.app;
   page = launched.page;
 
-  // App destravado e o modal de tutorial aparece (primeira execução).
+  // App destravado e o modal de tutorial aparece (primeira execução), com as duas opções.
   await expect(page.getByRole('heading', { name: 'Quer um tour?' })).toBeVisible();
-  await expect(page.getByRole('button', { name: /Tour rápido/ })).toBeVisible();
+  await expect(page.getByRole('button', { name: /Quick Start/ })).toBeVisible();
+  const fullButton = page.getByRole('button', { name: /Tutorial Completo/ });
+  await expect(fullButton).toBeVisible();
+  await expect(fullButton).toBeEnabled(); // chaves válidas no stub → Completo habilitado
 
-  // Inicia o tutorial: fecha o modal e abre o overlay com o 1º step no alvo.
-  await page.getByRole('button', { name: /Tour rápido/ }).click();
+  // Inicia o Tutorial Completo: fecha o modal e abre o overlay com o 1º step no alvo.
+  await fullButton.click();
   const overlay = page.locator('[data-onboarding-panel]');
   await expect(overlay).toBeVisible();
   await expect(page.getByRole('heading', { name: 'O Study Method' })).toBeVisible();
 
   // O alvo do primeiro step está no DOM (app-title) e o overlay o cobre.
   await expect(page.locator('[data-onboarding-target="app-title"]')).toBeVisible();
-  await expect(page.getByText('Passo 1 / 10', { exact: false })).toBeVisible();
+  await expect(page.getByText('Passo 1 / 13', { exact: false })).toBeVisible();
 
-  // Avança um step: o próximo alvo (theme-toggle) também está presente.
+  // Avança um step (informativos avançam por "Continuar"): o próximo alvo
+  // (theme-toggle) também está presente.
   await page.getByRole('button', { name: 'Continuar' }).click();
   await expect(page.locator('[data-onboarding-target="theme-toggle"]')).toBeVisible();
-  await expect(page.getByText('Passo 2 / 10', { exact: false })).toBeVisible();
+  await expect(page.getByText('Passo 2 / 13', { exact: false })).toBeVisible();
 
   // Skip com confirmação encerra o tutorial.
-  await page.getByRole('button', { name: 'Pular', exact: true }).click();
+  await page.getByRole('button', { name: 'Pular tutorial', exact: true }).click();
   await page.getByRole('button', { name: 'Sim, pular' }).click();
   await expect(overlay).toHaveCount(0);
 

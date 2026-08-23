@@ -3,19 +3,16 @@
  *
  * Tipos do sistema de TUTORIAL/ONBOARDING interativo do Study Method.
  *
- * Portado do app Ondokai (`poc/electron-huu/src/features/onboarding/types`),
- * ADAPTADO ao nosso escopo: o Ondokai era fortemente acoplado ao editor de
- * workflows (React Flow) e a tutoriais dinâmicos (template-setup / dynamic-help),
- * com áudio e deep-links de Settings. O Study Method é uma GUI simples de 4
- * abas (Início/Settings/Aula/Desafio), então mantemos aqui apenas o núcleo:
- *   - um ÚNICO tutorial "quick tour" (capítulos + steps informativos);
- *   - alvos `data-onboarding-target` no DOM;
- *   - persistência de progresso em localStorage.
+ * Onda 16 — REFAZ fiel ao Ondokai (`poc/electron-huu/src/features/onboarding`):
+ *   - DOIS tutoriais: Tutorial Completo (`first-workflow`) e Quick Start
+ *     (`quick-start`), com steps compartilhados + prefixo `qs-*` no exclusivo;
+ *   - avaliação por SNAPSHOT (`expectedAction` → `evaluateStepAction`), com
+ *     auto-avanço ~220ms — sem expectedAction o user avança com "Continuar";
+ *   - contexto de runtime + snapshot (navegação, digitação de assunto, geração
+ *     de aula, editor, teste de resposta, chaves) lidos de forma confiável;
+ *   - a "rota" do Ondokai vira o `view` (NavKey do shell — home|settings|lesson|challenge).
  *
- * SEM ÁUDIO (decisão da onda 12): não portamos `audioPlayback`/`onboardingAudio`/
- * `phraseAudio` — não temos frases de áudio. Steps são informativos (título/corpo
- * por chave i18n + alvo), avançados manualmente por "Continuar" (nada de
- * auto-avanço por expectedAction/requirement).
+ * NTRO é o mesmo espírito do ondokai, adaptado a uma GUI de 4 abas.
  */
 
 import type { NavKey } from '../../../lib/shellNav';
@@ -24,34 +21,97 @@ import type { OnboardingI18nKey } from '../constants/onboardingI18n';
 /** Situação do tutorial (persistida). */
 export type OnboardingStatus = 'not_started' | 'in_progress' | 'completed' | 'skipped';
 
-/** Identifica o (único) tutorial ativo. Mantido como union para espelhar o
- * formato do Ondokai e permitir futuras expansões sem quebrar o storage. */
-export type OnboardingTutorialId = 'quick-tour';
+/** Identifica qual tutorial está ativo. */
+export type OnboardingTutorialId = 'first-workflow' | 'quick-start';
 
 /** Capítulo do tutorial (bloco de steps com título). */
 export type OnboardingChapterId = 'shell' | 'settings' | 'lesson' | 'challenge';
 
-/** Steps do tutorial rápido do Study Method. */
+/**
+ * Ações esperadas avaliadas por snapshot. Cada uma corresponde a um sinal REAL
+ * do Study Method (ver `OnboardingRuntimeContext`).
+ */
+export type OnboardingExpectedAction =
+  /** O usuário navegou o shell para a aba Settings. */
+  | 'open-settings'
+  /** O usuário navegou o shell para a aba Aula. */
+  | 'open-lesson'
+  /** O usuário navegou o shell para a aba Desafio. */
+  | 'open-challenge'
+  /** O campo de assunto da LessonView deixou de estar vazio. */
+  | 'fill-lesson-subject'
+  /** A geração de aula saiu de idle (running ou done). */
+  | 'generate-lesson'
+  /** O editor CodeMirror do desafio passou a ter conteúdo. */
+  | 'type-in-editor'
+  /** O usuário disparou "Testar resposta" no desafio. */
+  | 'test-answer'
+  /** As chaves DeepSeek + Brave foram preenchidas/validadas (settings). */
+  | 'settings-keys-filled';
+
+/** Steps do tutorial completo + quick start. */
 export type OnboardingStepId =
+  // Completo
   | 'shell-app-title'
   | 'shell-theme-toggle'
   | 'shell-language-switcher'
   | 'shell-nav-tabs'
-  | 'settings-keys'
-  | 'lesson-subject'
-  | 'challenge-editor'
-  | 'challenge-terminal'
+  | 'open-settings'
+  | 'settings-keys-fill'
+  | 'open-lesson'
+  | 'lesson-subject-fill'
+  | 'lesson-generate'
+  | 'open-challenge'
+  | 'challenge-editor-type'
   | 'challenge-test-answer'
-  | 'tour-complete';
+  | 'tour-complete'
+  // Quick Start (compartilha ids do completo + exclusivos `qs-*`)
+  | 'qs-shell-nav-tabs'
+  | 'qs-open-lesson'
+  | 'qs-open-challenge'
+  | 'qs-challenge-test-answer'
+  | 'qs-tour-complete'
+  // Hint pós-tutorial (1 passo, não persistido).
+  | 'help-hint';
+
+/**
+ * Contexto RUNTIME do Study Method, lido de forma confiável pelo
+ * `useOnboarding` (alimentado por navegação do shell + leitura de DOM/estado).
+ * É a fonte de verdade para o `evaluateStepAction`.
+ */
+export interface OnboardingRuntimeContext {
+  /** Aba ativa do shell. */
+  activeView: NavKey;
+  /** Campo de assunto da Lesson non-vazio (texto digitado). */
+  lessonSubjectNonEmpty: boolean;
+  /** Geração de aula em andamento ou concluída (idle → running/done). */
+  lessonRunningOrDone: boolean;
+  /** Editor CodeMirror do desafio com texto (non-vazio). */
+  studioCodeNonEmpty: boolean;
+  /** O usuário clicou "Testar resposta" (fase determinística rodando ou feita). */
+  testAnswerTriggered: boolean;
+  /** Chaves DeepSeek + Brave preenchidas (inputs do KeysPanel non-vazios). */
+  keysFilled: boolean;
+}
+
+/** Snapshot do contexto no início do passo (para delta-base). */
+export interface OnboardingStepSnapshot {
+  activeView: NavKey;
+  lessonSubjectNonEmpty: boolean;
+  lessonRunningOrDone: boolean;
+  studioCodeNonEmpty: boolean;
+  testAnswerTriggered: boolean;
+  keysFilled: boolean;
+}
 
 /**
  * Definição de um step do tutorial.
  *
- * Título e corpo são SEMPRE por chave i18n (`titleKey`/`descriptionKey`) — nunca
- * texto direto (regra da onda 12: todas as strings user-facing passam por
- * `t('translation:tutorial.<chave>')` com strictKeyChecks). A localização do
- * alvo usa `targetSelector` (CSS) que aponta para um elemento marcado com
- * `data-onboarding-target="<id>"`.
+ * Título e corpo são SEMPRE por chave i18n (`titleKey`/`descriptionKey` — typed,
+ * strictKeyChecks). Alvo via `targetSelector`/`alternateTargetSelector`
+ * (este tentado ANTES do primário, como no ondokai). `expectedAction` opcional:
+ * quando presente, o step auto-avança ao ser satisfeito (após ~220ms); quando
+ * ausente, o usuário avança com "Continuar".
  */
 export interface OnboardingStepDefinition {
   id: OnboardingStepId;
@@ -60,16 +120,23 @@ export interface OnboardingStepDefinition {
   titleKey: OnboardingI18nKey;
   /** Chave i18n do corpo. */
   descriptionKey: OnboardingI18nKey;
-  /** Seletor CSS do alvo a destacar (spotlight). */
+  /** Seletor CSS do alvo principal (spotlight). */
   targetSelector: string;
+  /** Seletor alternativo, tentado ANTES do primário (ex.: modal/panel sobre alvo). */
+  alternateTargetSelector?: string;
+  /** Índice do match para `targetSelector` (0 = primeiro; -1 = último). */
+  targetSelectorIndex?: number;
   /**
-   * Aba do shell em que o alvo é visível. Quando `undefined`, o alvo é
-   * sempre visível (elementos do AppBar, abas). O overlay usa isso para:
-   *   - mostrar uma dica "vá para a aba X" quando o usuário não está nela;
-   *   - PULAR o step caso o alvo não esteja montado no DOM (`enumeratePresentTargetIds`).
+   * Aba do shell em que o alvo é visível (a "rota" do Ondokai). Quando `undefined`,
+   * o alvo é sempre visível (AppBar/abas). Usado pelo overlay para a dica
+   * "vá para a aba X" e para decidir quando o spotlight pode pousar.
    */
   view?: NavKey;
-  /** True no último step (troca o rótulo do botão para "Concluir"). */
+  /** Ação esperada (auto-avanço por snapshot). Omissa ⇒ "Continuar" manual. */
+  expectedAction?: OnboardingExpectedAction;
+  /** Oculta o botão "Continuar" (steps de auto-avanço por input/navegação). */
+  hideContinueButton?: boolean;
+  /** True no último step (troca o rótulo para "Concluir"). */
   isLast?: boolean;
 }
 

@@ -138,7 +138,7 @@ export default function App(): ReactElement {
   return (
     <ChallengeNavProvider onNavigateChallenge={() => setActive('challenge')}>
       <Shell active={active} setActive={setActive} />
-      <OnboardingHost isReady={isReady} activeView={active} />
+      <OnboardingHost isReady={isReady} activeView={active} onNavigateView={setActive} />
     </ChallengeNavProvider>
   );
 }

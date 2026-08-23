@@ -596,6 +596,7 @@ export default function ChallengeView(): ReactElement {
                   startIcon={!busy ? <PlayArrowIcon /> : undefined}
                   onClick={testAnswerClick}
                   data-onboarding-target="challenge-test-answer"
+                  data-onboarding-signal={`test-status:${testStatus}`}
                 >
                   {t('translation:challenge.testAnswer')}
                 </Button>

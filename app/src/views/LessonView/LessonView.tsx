@@ -281,7 +281,7 @@ export default function LessonView(): ReactElement {
   const activeStep = Math.max(0, lessonPhaseIndex(phase.phase));
 
   return (
-    <Box component="section" sx={{ p: { xs: 1, md: 2 }, maxWidth: 960, mx: 'auto' }}>
+    <Box component="section" sx={{ p: { xs: 1, md: 2 }, maxWidth: 960, mx: 'auto' }} data-onboarding-signal={`lesson-status:${status}`}>
       <Typography variant="h4" component="h1" gutterBottom>
         {t('translation:nav.lesson')}
       </Typography>

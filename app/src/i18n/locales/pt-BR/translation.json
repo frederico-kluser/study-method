@@ -188,7 +188,9 @@
       "close": "Fechar tutorial",
       "skip": "Pular",
       "next": "Continuar",
-      "finish": "Concluir"
+      "finish": "Concluir",
+      "skipTutorial": "Pular tutorial",
+      "finishTutorial": "Concluir tutorial"
     },
     "confirm": {
       "skipMessage": "Pular o tutorial? Você pode reabri-lo depois pelo botão de ajuda.",
@@ -246,6 +248,44 @@
       "tourComplete": {
         "title": "Você já sabe o básico!",
         "description": "Navegue pelas abas para explorar. Você pode reabrir este tutorial a qualquer momento pelo botão de ajuda."
+      },
+      "settingsKeysFill": {
+        "description": "Preencha as chaves do DeepSeek e do Brave Search nesta seção. Elas usam a geração de aulas e a pesquisa de fontes."
+      },
+      "openSettings": {
+        "title": "Vá para Configurações",
+        "description": "Clique na aba Configurações para cadastrar suas chaves de API."
+      },
+      "openLesson": {
+        "title": "Vá para Aula",
+        "description": "Clique na aba Aula para gerar seu primeiro material de estudo."
+      },
+      "lessonSubjectFill": {
+        "description": "Digite o assunto que você quer estudar neste campo."
+      },
+      "lessonGenerate": {
+        "title": "Gerar a aula",
+        "description": "Clique em \"Gerar aula\" para pesquisar fontes e montar o material."
+      },
+      "openChallenge": {
+        "title": "Vá para Desafio",
+        "description": "Clique na aba Desafio para praticar com um exercício."
+      },
+      "challengeEditorType": {
+        "description": "Escreva sua solução neste editor de código (sem autocomplete)."
+      },
+      "quickStartComplete": {
+        "title": "Pronto!",
+        "description": "Você conhece o essencial. Recomece o tutorial a qualquer momento pelo botão de ajuda."
+      },
+      "qsOpenLesson": {
+        "description": "Navegue até a aba Aula para gerar um material de estudo."
+      },
+      "qsOpenChallenge": {
+        "description": "Navegue até a aba Desafio para praticar os desafios."
+      },
+      "qsChallengeTestAnswer": {
+        "description": "Ao resolver um desafio, clique em \"Testar resposta\" para validar."
       }
     },
     "selection": {
@@ -254,7 +294,26 @@
       "quickTourTitle": "Tour rápido",
       "quickTourDescription": "Veja a barra superior, as abas e aprenda a gerar uma aula e testar uma solução.",
       "badgeRecommended": "Recomendado",
-      "dismiss": "Agora não"
+      "dismiss": "Agora não",
+      "quickStartTitle": "Quick Start",
+      "quickStartDescription": "Uma visão rápida das abas, sem exigir configurar chaves. Ideal para começar agora.",
+      "fullTutorialTitle": "Tutorial Completo",
+      "fullTutorialDescription": "Guia passo a passo por todas as abas: configure as chaves, gere uma aula e teste uma solução.",
+      "badgeFull": "Simplificado",
+      "requiresKeys": "Requer as chaves de API (DeepSeek + Brave).",
+      "openSettings": "Configurar chaves"
+    },
+    "status": {
+      "readyToContinue": "Pronto — pode continuar",
+      "waitingForAction": "Aguardando a ação…"
+    },
+    "audio": {
+      "mute": "Mutar narração",
+      "unmute": "Ouvir narração"
+    },
+    "helpHint": {
+      "title": "Digite qualquer dúvida",
+      "description": "Este é o campo de assunto da aula. Digite o tema que quer estudar e gere uma aula por IA."
     }
   }
 }

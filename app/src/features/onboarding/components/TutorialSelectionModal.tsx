@@ -1,14 +1,18 @@
 /**
  * src/features/onboarding/components/TutorialSelectionModal.tsx
  *
- * MODAL de seleção do tutorial (primeira execução).
+ * MODAL de seleção do tutorial (primeira execução) — ondokai fiel.
  *
- * Portado e ADAPTADO de `ondokai/.../TutorialSelectionModal.tsx` + CSS. No
- * Ondokai havia duas opções (Quick Start vs Full com créditos de IA); no Study
- * Method há um ÚNICO "tour rápido" sem dependência de créditos/AI, então o
- * modal oferece uma opção (Iniciar) + dispensar ("Agora não" / "Nunca mais").
+ * Onda 16: duas opções (Quick Start e Tutorial Completo), no desenho do
+ * TutorialSelectionModal do ondokai:
+ *  - Quick Start — sempre disponível (não exige chaves), badge "Recomendado"
+ *    quando o Completo está bloqueado (faltam chaves);
+ *  - Tutorial Completo — guia por todas as abas (chaves → aula → desafio),
+ *    GATEADO por `hasKeys` (DeepSeek + Brave preenchidas). Sem chaves, fica
+ *    DESABILITADO com badge "Requer chaves" + CTA "Configurar chaves" que
+ *    navega para a aba Settings (fecha o modal).
  *
- * TODO o texto via `t('translation:tutorial.*')` (strictKeyChecks). MUI v9.
+ * Texto via `t('translation:tutorial.*')`. MUI v9. Portal em `document.body`.
  */
 
 import { type ReactElement } from 'react';
@@ -19,18 +23,24 @@ import Button from '@mui/material/Button';
 import Paper from '@mui/material/Paper';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
+import type { OnboardingTutorialId } from '../types/onboarding.types';
 
 export interface TutorialSelectionModalProps {
   isOpen: boolean;
   onClose: () => void;
-  /** Inicia o tutorial rápido. */
-  onStartTutorial: () => void;
+  onSelectTutorial: (tutorialId: OnboardingTutorialId) => void;
+  /** Chaves DeepSeek + Brave preenchidas (gate do Tutorial Completo). */
+  hasKeys: boolean;
+  /** Navega para a aba Settings (CTA "Configurar chaves"). */
+  onOpenSettings: () => void;
 }
 
 export function TutorialSelectionModal({
   isOpen,
   onClose,
-  onStartTutorial,
+  onSelectTutorial,
+  hasKeys,
+  onOpenSettings,
 }: TutorialSelectionModalProps): ReactElement | null {
   const { t } = useTranslation();
 
@@ -38,13 +48,18 @@ export function TutorialSelectionModal({
     return null;
   }
 
+  const goToSettings = (): void => {
+    onClose();
+    onOpenSettings();
+  };
+
   return createPortal(
     <Box
       onClick={onClose}
       sx={{
         position: 'fixed',
         inset: 0,
-        zIndex: 1300,
+        zIndex: 14500,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -58,7 +73,7 @@ export function TutorialSelectionModal({
         aria-modal="true"
         elevation={8}
         onClick={(e) => e.stopPropagation()}
-        sx={{ position: 'relative', maxWidth: 480, width: '100%', p: 3, borderRadius: 2 }}
+        sx={{ position: 'relative', maxWidth: 520, width: '100%', p: 3, borderRadius: 2 }}
       >
         <Stack direction="row" sx={{ alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
           <Typography variant="h5" component="h2">
@@ -74,44 +89,138 @@ export function TutorialSelectionModal({
           </Button>
         </Stack>
 
-        <Typography variant="body2" color="text.secondary">
+        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
           {t('translation:tutorial.selection.subtitle')}
         </Typography>
 
-        <Button
-          type="button"
-          variant="outlined"
-          fullWidth
-          onClick={onStartTutorial}
-          sx={{ mt: 3, textAlign: 'left', p: 2, alignItems: 'flex-start' }}
-        >
-          <Stack sx={{ gap: 0.5, textAlign: 'left' }}>
-            <Stack direction="row" sx={{ alignItems: 'center', gap: 1 }}>
-              <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
-                {t('translation:tutorial.selection.quickTourTitle')}
+        <Stack spacing={1.5}>
+          {/* Quick Start — sempre disponível */}
+          <Button
+            type="button"
+            variant="outlined"
+            fullWidth
+            onClick={() => onSelectTutorial('quick-start')}
+            sx={{ textAlign: 'left', p: 2, alignItems: 'flex-start', justifyContent: 'flex-start' }}
+          >
+            <Stack sx={{ gap: 0.5, textAlign: 'left', width: '100%' }}>
+              <Stack direction="row" sx={{ alignItems: 'center', gap: 1 }}>
+                <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
+                  {t('translation:tutorial.selection.quickStartTitle')}
+                </Typography>
+                {!hasKeys ? (
+                  <Box
+                    component="span"
+                    sx={{
+                      fontSize: 11,
+                      fontWeight: 700,
+                      textTransform: 'uppercase',
+                      letterSpacing: 0.08,
+                      px: 1,
+                      py: 0.25,
+                      borderRadius: 1,
+                      bgcolor: 'action.selected',
+                      color: 'primary.main',
+                    }}
+                  >
+                    {t('translation:tutorial.selection.badgeRecommended')}
+                  </Box>
+                ) : (
+                  <Box component="span" sx={{ color: 'text.secondary', fontSize: 16 }}>→</Box>
+                )}
+              </Stack>
+              <Typography variant="body2" color="text.secondary">
+                {t('translation:tutorial.selection.quickStartDescription')}
               </Typography>
-              <Box
-                component="span"
-                sx={{
-                  fontSize: 11,
-                  fontWeight: 700,
-                  textTransform: 'uppercase',
-                  letterSpacing: 0.08,
-                  px: 1,
-                  py: 0.25,
-                  borderRadius: 1,
-                  bgcolor: 'action.selected',
-                  color: 'primary.main',
-                }}
-              >
-                {t('translation:tutorial.selection.badgeRecommended')}
-              </Box>
             </Stack>
-            <Typography variant="body2" color="text.secondary">
-              {t('translation:tutorial.selection.quickTourDescription')}
-            </Typography>
-          </Stack>
-        </Button>
+          </Button>
+
+          {/* Tutorial Completo — gateado por hasKeys */}
+          <Button
+            type="button"
+            variant={hasKeys ? 'outlined' : 'text'}
+            fullWidth
+            disabled={!hasKeys}
+            onClick={() => onSelectTutorial('first-workflow')}
+            sx={{ textAlign: 'left', p: 2, alignItems: 'flex-start', justifyContent: 'flex-start' }}
+          >
+            <Stack sx={{ gap: 0.5, textAlign: 'left', width: '100%' }}>
+              <Stack direction="row" sx={{ alignItems: 'center', gap: 1 }}>
+                <Typography
+                  variant="subtitle1"
+                  sx={{ fontWeight: 600, ...(!hasKeys ? { color: 'text.disabled' } : {}) }}
+                >
+                  {t('translation:tutorial.selection.fullTutorialTitle')}
+                </Typography>
+                {hasKeys ? (
+                  <Box
+                    component="span"
+                    sx={{
+                      fontSize: 11,
+                      fontWeight: 700,
+                      textTransform: 'uppercase',
+                      letterSpacing: 0.08,
+                      px: 1,
+                      py: 0.25,
+                      borderRadius: 1,
+                      bgcolor: 'action.selected',
+                      color: 'primary.main',
+                    }}
+                  >
+                    {t('translation:tutorial.selection.badgeFull')}
+                  </Box>
+                ) : (
+                  <Box
+                    component="span"
+                    sx={{
+                      fontSize: 11,
+                      fontWeight: 700,
+                      textTransform: 'uppercase',
+                      letterSpacing: 0.08,
+                      px: 1,
+                      py: 0.25,
+                      borderRadius: 1,
+                      bgcolor: 'action.hover',
+                      color: 'text.secondary',
+                    }}
+                  >
+                    {t('translation:tutorial.selection.requiresKeys')}
+                  </Box>
+                )}
+              </Stack>
+              <Typography variant="body2" color="text.secondary">
+                {t('translation:tutorial.selection.fullTutorialDescription')}
+              </Typography>
+              {!hasKeys ? (
+                <Box
+                  component="span"
+                  role="button"
+                  tabIndex={0}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    goToSettings();
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.stopPropagation();
+                      goToSettings();
+                    }
+                  }}
+                  sx={{
+                    display: 'inline-block',
+                    mt: 0.5,
+                    color: 'primary.main',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    textDecoration: 'none',
+                    '&:hover': { textDecoration: 'underline' },
+                  }}
+                >
+                  {t('translation:tutorial.selection.openSettings')}
+                </Box>
+              ) : null}
+            </Stack>
+          </Button>
+        </Stack>
 
         <Stack direction="row" spacing={1} sx={{ justifyContent: 'flex-end', mt: 2.5 }}>
           <Button size="small" variant="text" color="inherit" onClick={onClose}>

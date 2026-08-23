@@ -188,7 +188,9 @@
       "close": "Close tutorial",
       "skip": "Skip",
       "next": "Continue",
-      "finish": "Finish"
+      "finish": "Finish",
+      "skipTutorial": "Skip tutorial",
+      "finishTutorial": "Finish tutorial"
     },
     "confirm": {
       "skipMessage": "Skip the tutorial? You can reopen it later from the help button.",
@@ -246,6 +248,44 @@
       "tourComplete": {
         "title": "You know the basics!",
         "description": "Browse the tabs to explore. You can reopen this tutorial anytime from the help button."
+      },
+      "settingsKeysFill": {
+        "description": "Fill in your DeepSeek and Brave Search keys in this section. They power lesson generation and source search."
+      },
+      "openSettings": {
+        "title": "Go to Settings",
+        "description": "Click the Settings tab to set up your API keys."
+      },
+      "openLesson": {
+        "title": "Go to Lesson",
+        "description": "Click the Lesson tab to generate your first study material."
+      },
+      "lessonSubjectFill": {
+        "description": "Type the subject you want to study into this field."
+      },
+      "lessonGenerate": {
+        "title": "Generate the lesson",
+        "description": "Click \"Generate lesson\" to research sources and build the material."
+      },
+      "openChallenge": {
+        "title": "Go to Challenge",
+        "description": "Click the Challenge tab to practice with an exercise."
+      },
+      "challengeEditorType": {
+        "description": "Write your solution in this code editor (no autocomplete)."
+      },
+      "quickStartComplete": {
+        "title": "Done!",
+        "description": "You now know the essentials. You can restart the tutorial anytime from the help button."
+      },
+      "qsOpenLesson": {
+        "description": "Navigate to the Lesson tab to generate a study material."
+      },
+      "qsOpenChallenge": {
+        "description": "Navigate to the Challenge tab to practice challenges."
+      },
+      "qsChallengeTestAnswer": {
+        "description": "When you solve a challenge, click \"Test answer\" to validate."
       }
     },
     "selection": {
@@ -254,7 +294,26 @@
       "quickTourTitle": "Quick tour",
       "quickTourDescription": "See the top bar, the tabs, and learn to generate a lesson and test a solution.",
       "badgeRecommended": "Recommended",
-      "dismiss": "Not now"
+      "dismiss": "Not now",
+      "quickStartTitle": "Quick Start",
+      "quickStartDescription": "A quick look at the tabs, with no key setup required. Great to get going now.",
+      "fullTutorialTitle": "Full Tutorial",
+      "fullTutorialDescription": "Step-by-step guide across all tabs: set up keys, generate a lesson and test a solution.",
+      "badgeFull": "Complete",
+      "requiresKeys": "Requires the API keys (DeepSeek + Brave).",
+      "openSettings": "Set up keys"
+    },
+    "status": {
+      "readyToContinue": "Ready — you can continue",
+      "waitingForAction": "Waiting for the action…"
+    },
+    "audio": {
+      "mute": "Mute narration",
+      "unmute": "Hear narration"
+    },
+    "helpHint": {
+      "title": "Type any doubt",
+      "description": "This is the lesson subject field. Type the topic you want to study and generate an AI-powered lesson."
     }
   }
 }

@@ -1,16 +1,15 @@
 /**
  * src/features/onboarding/constants/onboardingSteps.ts
  *
- * STEPS do tutorial rápido do Study Method.
+ * STEPS do TUTORIAL COMPLETO (`first-workflow`) do Study Method.
  *
- * Portado e ADAPTADO de `ondokai/.../onboardingSteps.ts`. O conteúdo original
- * era voltado ao editor de workflows (React Flow); aqui reescrevemos o
- * conteúdo para a nossa GUI (MUI v9): AppBar (título), ThemeToggleButton,
- * LanguageSwitcher, abas, área de assunto da Aula, editor CodeMirror, terminal,
- * botão "Testar resposta" e a seção de chaves de Configurações.
+ * Onda 16 — portado do Ondokai (`onboardingSteps.ts`) e adaptado ao fluxo REAL
+ * da GUI: shell → settings (chaves) → lesson (assunto + gerar → rodar) →
+ * challenge (editor + testar resposta). Steps com `expectedAction` AUTO-AVANÇAM
+ * quando o sinal correspondente do Study Method é satisfeito (avaliação por
+ * snapshot); steps informativos (sem expectedAction) avançam com "Continuar".
  *
- * REGRA i18n (onda 12): título e corpo são SEMPRE por chave `translation:tutorial.*`
- * (strictKeyChecks — paridade pt-BR/en exata). Nunca texto direto.
+ * REGRA i18n (onda 12): título/corpo SEMPRE por chave `translation:tutorial.*`.
  */
 
 import type {
@@ -18,7 +17,7 @@ import type {
   OnboardingStepDefinition,
 } from '../types/onboarding.types';
 
-/** Primeiro step do tutorial (ponto de entrada). */
+/** Primeiro step do tutorial completo (ponto de entrada). */
 export const FIRST_ONBOARDING_STEP_ID = 'shell-app-title';
 
 export const ONBOARDING_CHAPTERS: OnboardingChapterDefinition[] = [
@@ -59,42 +58,80 @@ export const ONBOARDING_STEPS: ReadonlyArray<OnboardingStepDefinition> = [
     targetSelector: '[data-onboarding-target="nav-tabs"]',
   },
 
-  // ─── Capítulo 2: Configurações ─────────────────────────────────────────────
+  // ─── Capítulo 2: Configurações (chaves) — navegação guiada por ação ──
   {
-    id: 'settings-keys',
+    id: 'open-settings',
+    chapterId: 'settings',
+    titleKey: 'translation:tutorial.steps.openSettings.title',
+    descriptionKey: 'translation:tutorial.steps.openSettings.description',
+    targetSelector: '[data-onboarding-target="nav-tabs"]',
+    view: 'settings',
+    expectedAction: 'open-settings',
+    hideContinueButton: true,
+  },
+  {
+    id: 'settings-keys-fill',
     chapterId: 'settings',
     titleKey: 'translation:tutorial.steps.settingsKeys.title',
-    descriptionKey: 'translation:tutorial.steps.settingsKeys.description',
+    descriptionKey: 'translation:tutorial.steps.settingsKeysFill.description',
     targetSelector: '[data-onboarding-target="settings-keys-section"]',
     view: 'settings',
+    expectedAction: 'settings-keys-filled',
+    hideContinueButton: true,
   },
 
-  // ─── Capítulo 3: Aula ──────────────────────────────────────────────────────
+  // ─── Capítulo 3: Aula — assunto + geração ────────────────────────────
   {
-    id: 'lesson-subject',
+    id: 'open-lesson',
+    chapterId: 'lesson',
+    titleKey: 'translation:tutorial.steps.openLesson.title',
+    descriptionKey: 'translation:tutorial.steps.openLesson.description',
+    targetSelector: '[data-onboarding-target="nav-tabs"]',
+    view: 'lesson',
+    expectedAction: 'open-lesson',
+    hideContinueButton: true,
+  },
+  {
+    id: 'lesson-subject-fill',
     chapterId: 'lesson',
     titleKey: 'translation:tutorial.steps.lessonSubject.title',
-    descriptionKey: 'translation:tutorial.steps.lessonSubject.description',
+    descriptionKey: 'translation:tutorial.steps.lessonSubjectFill.description',
     targetSelector: '[data-onboarding-target="lesson-subject"]',
     view: 'lesson',
+    expectedAction: 'fill-lesson-subject',
+    hideContinueButton: true,
+  },
+  {
+    id: 'lesson-generate',
+    chapterId: 'lesson',
+    titleKey: 'translation:tutorial.steps.lessonGenerate.title',
+    descriptionKey: 'translation:tutorial.steps.lessonGenerate.description',
+    targetSelector: '[data-onboarding-target="lesson-subject"]',
+    view: 'lesson',
+    expectedAction: 'generate-lesson',
+    hideContinueButton: true,
   },
 
-  // ─── Capítulo 4: Desafio ───────────────────────────────────────────────────
+  // ─── Capítulo 4: Desafio — editor + testar ───────────────────────────
   {
-    id: 'challenge-editor',
+    id: 'open-challenge',
     chapterId: 'challenge',
-    titleKey: 'translation:tutorial.steps.challengeEditor.title',
-    descriptionKey: 'translation:tutorial.steps.challengeEditor.description',
-    targetSelector: '[data-onboarding-target="challenge-editor"]',
+    titleKey: 'translation:tutorial.steps.openChallenge.title',
+    descriptionKey: 'translation:tutorial.steps.openChallenge.description',
+    targetSelector: '[data-onboarding-target="nav-tabs"]',
     view: 'challenge',
+    expectedAction: 'open-challenge',
+    hideContinueButton: true,
   },
   {
-    id: 'challenge-terminal',
+    id: 'challenge-editor-type',
     chapterId: 'challenge',
-    titleKey: 'translation:tutorial.steps.challengeTerminal.title',
-    descriptionKey: 'translation:tutorial.steps.challengeTerminal.description',
-    targetSelector: '[data-onboarding-target="challenge-terminal"]',
+    titleKey: 'translation:tutorial.steps.challengeEditor.title',
+    descriptionKey: 'translation:tutorial.steps.challengeEditorType.description',
+    targetSelector: '[data-onboarding-target="challenge-editor"]',
     view: 'challenge',
+    expectedAction: 'type-in-editor',
+    hideContinueButton: true,
   },
   {
     id: 'challenge-test-answer',
@@ -103,9 +140,11 @@ export const ONBOARDING_STEPS: ReadonlyArray<OnboardingStepDefinition> = [
     descriptionKey: 'translation:tutorial.steps.challengeTestAnswer.description',
     targetSelector: '[data-onboarding-target="challenge-test-answer"]',
     view: 'challenge',
+    expectedAction: 'test-answer',
+    hideContinueButton: true,
   },
 
-  // ─── Conclusão ─────────────────────────────────────────────────────────────
+  // ─── Conclusão ─────────────────────────────────────────────────────────
   {
     id: 'tour-complete',
     chapterId: 'challenge',
@@ -116,7 +155,7 @@ export const ONBOARDING_STEPS: ReadonlyArray<OnboardingStepDefinition> = [
   },
 ];
 
-/** Índice de um stepId no array de steps (ou -1). */
+/** Índice de um stepId no array de steps do completo (ou -1). */
 export function indexOfStepId(id: string): number {
   return ONBOARDING_STEPS.findIndex((s) => s.id === id);
 }

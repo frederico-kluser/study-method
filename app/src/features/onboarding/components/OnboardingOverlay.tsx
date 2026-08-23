@@ -1,23 +1,23 @@
 /**
  * src/features/onboarding/components/OnboardingOverlay.tsx
  *
- * OVERLAY de passo-a-passo do tutorial do Study Method.
+ * OVERLAY do tutorial (onda 16 — refaz fiel ao ondokai
+ * `InteractiveOnboardingOverlay`). Mantém a mecânica central:
  *
- * Portado e ADAPTADO de `ondokai/.../InteractiveOnboardingOverlay.tsx` + CSS.
- * Mantém a mecânica central:
+ *  - portal em `document.body` com z-index 14000 (acima dos modais);
+ *  - SPOTLIGHT que segue o alvo (`data-onboarding-target`) via getBoundingClientRect
+ *    num loop de RAF + resize/scroll, tentando o alvo ALTERNATIVO ANTES do primário;
+ *  - MÁSCARA de 4 segmentos ao redor do spotlight bloqueando interação FORA dele
+ *    (cursor not-allowed) + listener global em modo capture;
+ *  - PAINEL de instruções posicionado sem colidir com o spotlight
+ *    (`calculatePanelPosition`), com status de auto-avanço (`expectedAction`),
+ *    botões Continuar/Concluir, Skip (com confirmação) e Fechar;
+ *  - controles de áudio de narração (mute), exibidos quando disponíveis;
+ *  - dica "vá para a aba X" quando o step mira uma aba e o usuário não está nela.
  *
- *   - SPOTLIGHT que segue o alvo (`data-onboarding-target`) via `getBoundingClientRect`
- *     num loop de RAF + resize/scroll, com máscara (4 segmentos) bloqueando a
- *     interação FORA do destaque;
- *   - PAINEL de instruções posicionado sem colidir com o spotlight
- *     (`calculatePanelPosition` — clamp no viewport);
- *   - navegação por capítulos (próximo/anterior/skip/close), progresso, confirmação
- *     antes de skip/close;
- *   - dica "vá para a aba X" quando o step mira uma aba e o usuário não está nela.
- *
- * SEM ÁUDIO (onda 12) e SEM expectedAction/auto-avanço: steps são informativos,
- * o usuário avança com "Continuar". Estilo via MUI v9 (`sx`, path imports) +
- * CSS Module local (OnboardingOverlay.module.css) para o spotlight/efeitos.
+ * Estilo via MUI v9 (`sx`) + CSS Module (OnboardingOverlay.module.css) para
+ * spotlight/efeitos. z-index 1400 (abaixo do modal de seleção 1400+? usamos
+ * 14000 como no ondokai).
  */
 
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
@@ -29,7 +29,7 @@ import Paper from '@mui/material/Paper';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
 import type { NavKey } from '../../../lib/shellNav';
-import { ONBOARDING_CHAPTERS } from '../constants/onboardingTargets';
+import { ONBOARDING_CHAPTERS } from '../constants/onboardingSteps';
 import type { OnboardingStepDefinition } from '../types/onboarding.types';
 import {
   calculatePanelPosition,
@@ -62,10 +62,19 @@ export interface OnboardingOverlayProps {
   currentStep: OnboardingStepDefinition;
   currentStepIndex: number;
   totalSteps: number;
+  currentChapterIndex: number;
+  totalChapters: number;
+  currentChapterTitleKey: string;
   isLastStep: boolean;
-  /** Aba ativa do shell (opcional). Quando coincide com `currentStep.view`,
-   * a dica de navegação é suprimida e o spotlight pode pousar. */
+  isActionSatisfied: boolean;
+  canAdvance: boolean;
+  isStepTransitioning: boolean;
+  /** Aba ativa do shell (dica "vá para a aba X"). */
   activeView?: NavKey;
+  /** Narração está mudo? */
+  isAudioMuted?: boolean;
+  /** Alterna mute da narração. */
+  onToggleMute?: () => void;
   onNext: () => void;
   onSkip: () => void;
   onPause: () => void;
@@ -74,7 +83,6 @@ export interface OnboardingOverlayProps {
 const SPOTLIGHT_PADDING = 10;
 const SPOTLIGHT_RADIUS = 12;
 
-/** Rótulo i18n da aba do shell para a dica de navegação (typed — strictKeyChecks). */
 const NAV_TAB_KEY: Record<NavKey, 'translation:nav.home' | 'translation:nav.settings' | 'translation:nav.lesson' | 'translation:nav.challenge'> = {
   home: 'translation:nav.home',
   settings: 'translation:nav.settings',
@@ -83,24 +91,24 @@ const NAV_TAB_KEY: Record<NavKey, 'translation:nav.home' | 'translation:nav.sett
 };
 
 function getViewportSize(): ViewportSize {
-  if (typeof window === 'undefined') {
-    return { width: 0, height: 0 };
-  }
+  if (typeof window === 'undefined') return { width: 0, height: 0 };
   return { width: window.innerWidth, height: window.innerHeight };
 }
 
-function findTargetElement(selector?: string): Element | null {
-  if (!selector || typeof document === 'undefined') {
-    return null;
+function findTargetElement(selector?: string, index?: number): Element | null {
+  if (!selector || typeof document === 'undefined') return null;
+  if (index !== undefined && index !== 0) {
+    const all = document.querySelectorAll(selector);
+    if (all.length === 0) return null;
+    if (index === -1) return all[all.length - 1];
+    return all[index] ?? null;
   }
   return document.querySelector(selector);
 }
 
 function toSpotlightRect(target: Element): SpotlightRect | null {
   const rect = target.getBoundingClientRect();
-  if (rect.width <= 0 || rect.height <= 0) {
-    return null;
-  }
+  if (rect.width <= 0 || rect.height <= 0) return null;
   return {
     top: Math.max(0, rect.top - SPOTLIGHT_PADDING),
     left: Math.max(0, rect.left - SPOTLIGHT_PADDING),
@@ -116,15 +124,9 @@ function areViewportsEqual(a: ViewportSize, b: ViewportSize): boolean {
 function areSpotlightsEqual(a: SpotlightRect | null, b: SpotlightRect | null): boolean {
   if (!a && !b) return true;
   if (!a || !b) return false;
-  return (
-    a.top === b.top &&
-    a.left === b.left &&
-    a.width === b.width &&
-    a.height === b.height
-  );
+  return a.top === b.top && a.left === b.left && a.width === b.width && a.height === b.height;
 }
 
-/** Mapeia o sufixo de `getResponsiveSizeClass` para a classe hashada do CSS module. */
 const RESPONSIVE_CLASS: Record<string, string | undefined> = {
   'onboarding-overlay-panel--medium': styles.medium,
   'onboarding-overlay-panel--small': styles.small,
@@ -136,8 +138,16 @@ export function OnboardingOverlay({
   currentStep,
   currentStepIndex,
   totalSteps,
+  currentChapterIndex,
+  totalChapters,
+  currentChapterTitleKey,
   isLastStep,
+  isActionSatisfied,
+  canAdvance,
+  isStepTransitioning,
   activeView,
+  isAudioMuted = false,
+  onToggleMute,
   onNext,
   onSkip,
   onPause,
@@ -187,7 +197,7 @@ export function OnboardingOverlay({
 
   const handleConfirmCancel = useCallback(() => setConfirmAction(null), []);
 
-  // Esc abre o diálogo de confirmação (ou o cancela se já aberto).
+  // Esc abre/cancela o diálogo de confirmação.
   useEffect(() => {
     if (!shouldRender) return;
     const handleEscape = (event: KeyboardEvent) => {
@@ -206,12 +216,12 @@ export function OnboardingOverlay({
     return () => window.removeEventListener('keydown', handleEscape, true);
   }, [shouldRender, confirmAction, handleCloseRequest]);
 
-  // Bloqueia interação fora do spotlight (reforço além das máscaras).
   const handleMaskClick = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
     e.preventDefault();
   }, []);
 
+  // Bloqueia interação fora do spotlight (reforço além das máscaras).
   useEffect(() => {
     if (!shouldRender) return;
 
@@ -220,7 +230,6 @@ export function OnboardingOverlay({
       const target = e.target;
       if (!(target instanceof Element)) return;
 
-      // Permite o próprio painel / diálogo de confirmação.
       if (target.closest('[data-onboarding-panel]')) return;
       if (target.closest('[data-onboarding-confirm]')) return;
 
@@ -234,7 +243,6 @@ export function OnboardingOverlay({
         targetCenter.x <= spotlight.left + spotlight.width &&
         targetCenter.y >= spotlight.top &&
         targetCenter.y <= spotlight.top + spotlight.height;
-
       if (withinSpotlight) return;
 
       e.stopPropagation();
@@ -244,14 +252,16 @@ export function OnboardingOverlay({
     document.addEventListener('mousedown', blockInteraction, true);
     document.addEventListener('mouseup', blockInteraction, true);
     document.addEventListener('click', blockInteraction, true);
+    document.addEventListener('dblclick', blockInteraction, true);
     return () => {
       document.removeEventListener('mousedown', blockInteraction, true);
       document.removeEventListener('mouseup', blockInteraction, true);
       document.removeEventListener('click', blockInteraction, true);
+      document.removeEventListener('dblclick', blockInteraction, true);
     };
   }, [shouldRender, spotlight]);
 
-  // Sincroniza viewport + spotlight via RAF.
+  // Sincroniza viewport + spotlight via RAF (alternate ANTES do primário).
   useEffect(() => {
     if (!shouldRender) return;
 
@@ -263,7 +273,9 @@ export function OnboardingOverlay({
         viewportRef.current = nextViewport;
         setViewport(nextViewport);
       }
-      const target = findTargetElement(currentStep.targetSelector);
+      const target =
+        findTargetElement(currentStep.alternateTargetSelector) ??
+        findTargetElement(currentStep.targetSelector, currentStep.targetSelectorIndex);
       const rect = target ? toSpotlightRect(target) : null;
       if (!areSpotlightsEqual(spotlightRef.current, rect)) {
         spotlightRef.current = rect;
@@ -285,20 +297,27 @@ export function OnboardingOverlay({
       window.removeEventListener('resize', syncLayout);
       window.removeEventListener('scroll', syncLayout, true);
     };
-  }, [shouldRender, currentStep.targetSelector]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    shouldRender,
+    currentStep.id,
+    currentStep.targetSelector,
+    currentStep.alternateTargetSelector,
+    currentStep.targetSelectorIndex,
+  ]);
 
-  // Revela um alvo fora do viewport (rolando) quando o step ativa.
+  // Revela alvo fora do viewport quando o step ativa.
   const scrolledForStepRef = useRef<string | null>(null);
   useEffect(() => {
     if (!shouldRender) return;
-    const selector = currentStep.targetSelector;
+    const selector = currentStep.alternateTargetSelector ?? currentStep.targetSelector;
     if (!selector || scrolledForStepRef.current === currentStep.id) return;
     const smooth = !window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
     let attempts = 0;
     const maxAttempts = 40;
     const timer = window.setInterval(() => {
       attempts += 1;
-      const target = findTargetElement(selector);
+      const target = findTargetElement(selector, currentStep.targetSelectorIndex);
       if (target) {
         scrollTargetIntoView(target as unknown as RevealableElement, smooth);
         scrolledForStepRef.current = currentStep.id;
@@ -308,7 +327,7 @@ export function OnboardingOverlay({
       }
     }, 50);
     return () => window.clearInterval(timer);
-  }, [shouldRender, currentStep.id, currentStep.targetSelector]);
+  }, [shouldRender, currentStep.id, currentStep.targetSelector, currentStep.alternateTargetSelector, currentStep.targetSelectorIndex]);
 
   useLayoutEffect(() => {
     if (!shouldRender || typeof window === 'undefined' || !panelRef.current) return;
@@ -387,27 +406,28 @@ export function OnboardingOverlay({
   }, [panelPosition, panelSize.height, spotlight]);
 
   const chapter = ONBOARDING_CHAPTERS.find((c) => c.id === currentStep.chapterId);
-  // A dica de navegação aparece quando o step mira uma aba e o usuário não está nela.
   const needsNavigation =
     !targetPresent && currentStep.view !== undefined && activeView !== currentStep.view;
 
-  if (!shouldRender || typeof document === 'undefined') {
-    return null;
-  }
+  if (!shouldRender || typeof document === 'undefined') return null;
 
   const responsiveClass = RESPONSIVE_CLASS[getResponsiveSizeClass(viewport.width)] ?? '';
+  const hasAction = currentStep.expectedAction !== undefined;
+  const finishLabel = isLastStep
+    ? t('translation:tutorial.controls.finishTutorial')
+    : t('translation:tutorial.controls.next');
 
   return createPortal(
     <Box
       sx={{
         position: 'fixed',
         inset: 0,
-        zIndex: 1400,
+        zIndex: 14000,
         pointerEvents: 'none',
       }}
       aria-live="polite"
     >
-      {/* Máscaras bloqueiam interação fora do spotlight */}
+      {/* Máscaras */}
       {maskSegments.map((segment) => (
         <Box
           key={segment.key}
@@ -431,7 +451,7 @@ export function OnboardingOverlay({
         />
       ) : null}
 
-      {/* Painel de instruções */}
+      {/* Painel */}
       <Paper
         ref={panelRef}
         component="aside"
@@ -439,7 +459,7 @@ export function OnboardingOverlay({
         role="dialog"
         aria-modal="true"
         elevation={6}
-        className={`${responsiveClass} ${panelVisible ? styles.panelVisible : styles.panelHidden}`}
+        className={`${responsiveClass} ${isStepTransitioning ? styles.panelTransitioning : ''} ${panelVisible ? styles.panelVisible : styles.panelHidden}`}
         sx={{
           top: panelPosition.top,
           left: panelPosition.left,
@@ -464,18 +484,32 @@ export function OnboardingOverlay({
             variant="caption"
             sx={{ fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.08, color: 'primary.main' }}
           >
-            {`${t('translation:tutorial.progress.chapter')} ${
-              ONBOARDING_CHAPTERS.findIndex((c) => c.id === currentStep.chapterId) + 1
-            } / ${ONBOARDING_CHAPTERS.length}`}
+            {`${t('translation:tutorial.progress.chapter')} ${currentChapterIndex + 1} / ${totalChapters}`}
           </Typography>
-          <Button
-            size="small"
-            aria-label={t('translation:tutorial.controls.close')}
-            onClick={handleCloseRequest}
-            sx={{ minWidth: 28, minHeight: 28, p: 0, color: 'text.secondary' }}
-          >
-            ×
-          </Button>
+          <Stack direction="row" spacing={0.5} sx={{ alignItems: 'center' }}>
+            {onToggleMute ? (
+              <Button
+                size="small"
+                aria-label={
+                  isAudioMuted
+                    ? t('translation:tutorial.audio.unmute')
+                    : t('translation:tutorial.audio.mute')
+                }
+                onClick={onToggleMute}
+                sx={{ minWidth: 28, minHeight: 28, p: 0, color: 'text.secondary' }}
+              >
+                {isAudioMuted ? '🔇' : '🔊'}
+              </Button>
+            ) : null}
+            <Button
+              size="small"
+              aria-label={t('translation:tutorial.controls.close')}
+              onClick={handleCloseRequest}
+              sx={{ minWidth: 28, minHeight: 28, p: 0, color: 'text.secondary' }}
+            >
+              ×
+            </Button>
+          </Stack>
         </Stack>
 
         <Typography variant="h6" component="h3">
@@ -502,6 +536,27 @@ export function OnboardingOverlay({
           </Box>
         ) : null}
 
+        {hasAction ? (
+          <Box
+            role="status"
+            sx={{
+              mt: 0.5,
+              px: 1,
+              py: 0.5,
+              borderRadius: 1,
+              alignSelf: 'flex-start',
+              bgcolor: isActionSatisfied ? 'success.main' : 'action.hover',
+              color: isActionSatisfied ? 'success.contrastText' : 'text.secondary',
+              fontWeight: 600,
+              fontSize: 12,
+            }}
+          >
+            {isActionSatisfied
+              ? t('translation:tutorial.status.readyToContinue')
+              : t('translation:tutorial.status.waitingForAction')}
+          </Box>
+        ) : null}
+
         <Stack direction="row" spacing={1} sx={{ justifyContent: 'space-between', mt: 0.5 }}>
           <Typography variant="caption" color="text.secondary">
             {`${t('translation:tutorial.progress.step')} ${currentStepIndex + 1} / ${totalSteps}`}
@@ -513,13 +568,18 @@ export function OnboardingOverlay({
 
         <Stack direction="row" spacing={1} sx={{ justifyContent: 'flex-end', alignItems: 'center' }}>
           <Button size="small" variant="text" color="inherit" onClick={handleSkipRequest}>
-            {t('translation:tutorial.controls.skip')}
+            {t('translation:tutorial.controls.skipTutorial')}
           </Button>
-          <Button size="small" variant="contained" onClick={onNext}>
-            {isLastStep
-              ? t('translation:tutorial.controls.finish')
-              : t('translation:tutorial.controls.next')}
-          </Button>
+          {!currentStep.hideContinueButton ? (
+            <Button
+              size="small"
+              variant="contained"
+              onClick={onNext}
+              disabled={!canAdvance || isStepTransitioning}
+            >
+              {finishLabel}
+            </Button>
+          ) : null}
         </Stack>
       </Paper>
 
