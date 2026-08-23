@@ -1,0 +1,180 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:study-method:schema:setup-manifest:1",
+  "title": "Manifesto de um setup de estudo (setup.json)",
+  "description": "Arquivo 'setup.json' na raiz de cada setup. E o marcador que o passo 'bootstrap' procura subindo diretorios a partir do cwd, e a unica origem de verdade sobre a identidade do setup. O registry global e apenas cache de descoberta: se ele for perdido, este arquivo reconstroi a entrada. Documentacao: docs/01-arquitetura.md do repositorio e docs/07-multi-setup.md do repositorio. Texto voltado ao aluno e pt-BR; chaves e valores de enum sao ingles snake_case sem acento.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "setup_id",
+    "setup_name",
+    "title",
+    "subject",
+    "taxonomy",
+    "language",
+    "created_at",
+    "updated_at",
+    "session_count",
+    "decisions"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+$",
+      "description": "Versao do schema deste arquivo, no formato MAJOR.MINOR. Acrescentar campo opcional incrementa MINOR; tornar campo obrigatorio, remover campo ou mudar tipo/enum incrementa MAJOR e exige migracao dos setups existentes. Valor corrente: '1.0'."
+    },
+    "setup_id": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{12}$",
+      "description": "Identidade imutavel do setup: 12 digitos hexadecimais minusculos, sorteados na criacao com `od -An -N6 -tx1 /dev/urandom | tr -d ' \\n'`. Nunca muda, nem ao mover, renomear ou reinstalar. O caminho no disco NAO e identidade. E a chave usada pelo registry global e por `cross_setup_refs` nas sessoes."
+    },
+    "setup_name": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 64,
+      "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+      "description": "Handle legivel do setup, em slug kebab-case (ex.: 'calculo-1'). Pode ser alterado livremente. Nao precisa ser globalmente unico: dois setups com o mesmo nome sao permitidos e desambiguados por caminho e data da ultima sessao (ver D-A18 em docs/07-multi-setup.md do repositorio)."
+    },
+    "title": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 120,
+      "description": "Titulo do assunto em pt-BR, como o aluno o chama (ex.: 'Calculo I'). E o que aparece nas listas e nas mensagens ao aluno."
+    },
+    "subject": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 64,
+      "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+      "description": "Area do conhecimento em slug, mais ampla que o titulo (ex.: 'matematica', 'sistemas-operacionais'). Usada pela leitura cruzada para casar setups relacionados."
+    },
+    "taxonomy": {
+      "type": "array",
+      "description": "Lista plana de topicos em slug que este setup cobre, do mais geral ao mais especifico (ex.: ['matematica','calculo','limites','derivadas']). E a chave de busca da leitura cruzada e a espinha da secao 'taxonomia' do README.md do setup. Lista plana, nao arvore: a hierarquia visual e montada por `readme-sync.sh` a partir da ordem e dos prefixos.",
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 64,
+        "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+        "description": "Topico em slug kebab-case, sem acento."
+      }
+    },
+    "language": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name"],
+      "description": "A linguagem de programacao escolhida pelo aluno para este setup. E atraves dela que a matematica e ensinada e que os desafios sao gerados.",
+      "properties": {
+        "name": {
+          "type": "string",
+          "enum": [
+            "python",
+            "javascript",
+            "typescript",
+            "rust",
+            "go",
+            "java",
+            "csharp",
+            "ruby",
+            "elixir",
+            "kotlin",
+            "swift",
+            "c",
+            "cpp",
+            "php",
+            "lua",
+            "julia",
+            "r",
+            "haskell",
+            "bash"
+          ],
+          "description": "Vocabulario fechado, derivado da matriz de docs/research/06-toolchains.md do repositorio, secao 2. Ampliar esta lista e mudanca MAJOR de schema_version. Nesta maquina rodam desafio sem instalar nada: python, javascript (node:test), rust, go, c, cpp, lua e bash."
+        },
+        "runtime_version": {
+          "type": "string",
+          "maxLength": 64,
+          "description": "Versao do runtime detectada por `detect-toolchains.sh` no momento da escolha (ex.: '3.14.7'). Registrada para que um desafio validado hoje seja reproduzivel depois. Ausente significa 'ainda nao detectada'."
+        },
+        "detected_at": {
+          "type": "string",
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}([.][0-9]+)?(Z|[+-][0-9]{2}:[0-9]{2})$",
+          "description": "Data-hora ISO 8601 da ultima deteccao do runtime. O passo 'bootstrap' redetecta se este carimbo tiver mais de 30 dias."
+        },
+        "chosen_at": {
+          "type": "string",
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}([.][0-9]+)?(Z|[+-][0-9]{2}:[0-9]{2})$",
+          "description": "Data-hora ISO 8601 em que o aluno escolheu esta linguagem. Trocar de linguagem depois e permitido: atualiza este campo; desafios ja gerados na linguagem antiga continuam validos e nao sao reescritos."
+        }
+      }
+    },
+    "skill_level": {
+      "type": "string",
+      "enum": ["beginner", "intermediate", "advanced"],
+      "description": "Nivel autodeclarado do aluno neste assunto, informado na entrevista de criacao. Calibra a escada de dicas e o efeito de reversao de expertise (docs/research/03-pedagogia.md do repositorio, secao 3.3). E um ponto de partida declarado, nao a proficiencia observada: esta ultima vive em memory/progress.json e vale mais que este campo."
+    },
+    "created_at": {
+      "type": "string",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}([.][0-9]+)?(Z|[+-][0-9]{2}:[0-9]{2})$",
+      "description": "Data-hora ISO 8601 de criacao do setup, escrita uma unica vez por `setup-init.sh`. Nunca alterada."
+    },
+    "updated_at": {
+      "type": "string",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}([.][0-9]+)?(Z|[+-][0-9]{2}:[0-9]{2})$",
+      "description": "Data-hora ISO 8601 da ultima escrita neste arquivo. Atualizada pelo passo 'close_session' e por qualquer script que altere o manifesto."
+    },
+    "last_session_at": {
+      "type": "string",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}([.][0-9]+)?(Z|[+-][0-9]{2}:[0-9]{2})$",
+      "description": "Data-hora ISO 8601 do fechamento da ultima sessao. Ausente enquanto nenhuma sessao tiver sido fechada. Espelhado no registry global para desempatar setups de mesmo nome."
+    },
+    "session_count": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Quantas sessoes ja foram abertas neste setup, incluindo as marcadas como 'orphaned'. E igual ao maior NNNN alocado em memory/. Nao e o numero de sessoes concluidas."
+    },
+    "docs_ingest": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Politica e estado da ingestao do docs/ do setup. Os valores concretos (teto de tokens, heuristica de selecao de secao) sao da sub-tarefa 2.7; este objeto apenas reserva o lugar no manifesto.",
+      "properties": {
+        "mode": {
+          "type": "string",
+          "enum": ["full", "indexed"],
+          "description": "'full' = o docs/ do setup cabe no orcamento e e lido inteiro a cada sessao. 'indexed' = acima do orcamento; o passo 'load_docs' carrega apenas as secoes mapeadas ao topico da aula e declara em voz alta o que ficou de fora."
+        },
+        "token_budget": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Teto de tokens do docs/ do setup para o modo 'full'. Ponto de partida documentado: 20000."
+        },
+        "last_indexed_at": {
+          "type": "string",
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}([.][0-9]+)?(Z|[+-][0-9]{2}:[0-9]{2})$",
+          "description": "Data-hora ISO 8601 da ultima geracao de memory/docs-index.json por `docs-index.sh`."
+        }
+      }
+    },
+    "privacy": {
+      "type": "object",
+      "additionalProperties": true,
+      "description": "Interruptores de privacidade do setup. Chave reservada: a politica completa (o que nunca se persiste, apagamento sob pedido, versionamento em git) e da sub-tarefa 2.8, que pode acrescentar campos aqui sem mudanca MAJOR. Esta sub-tarefa define apenas 'allow_cross_read'.",
+      "properties": {
+        "allow_cross_read": {
+          "type": "boolean",
+          "description": "Quando false, este setup fica invisivel para a leitura cruzada: nenhum outro setup pode abrir o README.md do setup por esse caminho (docs/07-multi-setup.md do repositorio, secao 5). Ausente equivale a true."
+        }
+      }
+    },
+    "decisions": {
+      "type": "object",
+      "additionalProperties": true,
+      "description": "Respostas do aluno as decisoes abertas do catalogo. E um MAPA de id de decisao para registro de resposta; o id segue o padrao '^D-[A-Z]{1,3}[0-9]{2,3}$' (ex.: 'D-A15'). A sub-tarefa 3.0 escreve aqui atraves do campo 'writes_to' de SK/assets/decisions.json, que e a origem de verdade sobre quais ids existem e quais opcoes sao validas. Deliberadamente extensivel: novos ids de decisao entram sem mudanca de schema_version. Forma de cada valor: {\"value\": <string|boolean|numero, a opcao escolhida>, \"answered_at\": <ISO 8601>, \"default_used\": <boolean, true quando o aluno nao respondeu e o default foi aplicado>, \"asked_in_session\": <\"NNNN\">, \"note\": <string opcional em pt-BR>}. Regra permanente: 'default_used': true nunca e aplicado em silencio - a skill avisa uma vez que assumiu o default e como mudar."
+    },
+    "notes": {
+      "type": "string",
+      "maxLength": 2000,
+      "description": "Texto livre em pt-BR escrito pelo aluno sobre este setup (objetivo, prazo, prova que vem ai). A skill le, nunca sobrescreve."
+    }
+  }
+}
