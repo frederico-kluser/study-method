@@ -139,8 +139,8 @@
           },
           "target_topic": {
             "type": ["string", "null"],
-            "pattern": "^[a-z][a-z0-9_]{1,62}$",
-            "description": "Tag do topico que este movimento atacou, em snake_case ASCII sem acento. Deve estar em topics. E a chave pela qual o movimento e recuperado numa sessao futura sobre o mesmo assunto, e a mesma que sobrevive ao ser promovida para procedural_facts[].target_topic no perfil."
+            "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+            "description": "Tag do topico que este movimento atacou, em kebab-case ASCII sem acento. Deve estar em topics. E a chave pela qual o movimento e recuperado numa sessao futura sobre o mesmo assunto, e a mesma que sobrevive ao ser promovida para procedural_facts[].target_topic no perfil."
           },
           "outcome": {
             "enum": ["unlocked", "partial", "no_effect", "backfired"],

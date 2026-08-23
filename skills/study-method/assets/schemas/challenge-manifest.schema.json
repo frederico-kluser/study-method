@@ -333,7 +333,7 @@
           "scenario_id": {
             "description": "Identificador estavel do cenario dentro do desafio.",
             "type": "string",
-            "pattern": "^[a-z0-9]+(_[a-z0-9]+)*$",
+            "pattern": "^[a-z][a-z0-9_]{1,62}$",
             "maxLength": 80
           },
           "test_name": {
@@ -795,7 +795,7 @@
         "failing_scenario_ids": {
           "description": "scenario_id dos cenarios vermelhos na ultima execucao. E o que o tutor usa para escolher a dica.",
           "type": "array",
-          "items": {"description": "scenario_id de um cenario vermelho, no mesmo formato de scenarios[].scenario_id.", "type": "string", "pattern": "^[a-z0-9]+(_[a-z0-9]+)*$", "maxLength": 80}
+          "items": {"description": "scenario_id de um cenario vermelho, no mesmo formato de scenarios[].scenario_id.", "type": "string", "pattern": "^[a-z][a-z0-9_]{1,62}$", "maxLength": 80}
         },
         "hint_level_used": {
           "description": "Degrau mais alto da escada de dicas ja entregue ao aluno, de 0 a 5. 0 = nenhuma dica dada; 5 = solucao pronta entregue. Mesma faixa de session.how_it_happened[].hint_level e de progress.evidence[].hint_level - o valor viaja entre os tres arquivos, e uma faixa mais larga aqui deixaria passar um numero que os outros dois rejeitam. A semantica dos degraus e definida pela escada de dicas, nao aqui.",

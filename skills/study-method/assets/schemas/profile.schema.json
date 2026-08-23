@@ -84,6 +84,11 @@
           "type": "integer",
           "minimum": 0,
           "description": "Quantas compactacoes ja rodaram. Serve so para auditoria."
+        },
+        "deferred_at": {
+          "type": ["string", "null"],
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}([.][0-9]+)?([+-]\\d{2}:\\d{2}|Z)$",
+          "description": "Timestamp ISO 8601 de quando memory-compact.sh entrou no caminho degradado (docs/00-contratos.md SS6.4: os 2 ciclos PEDIDO/RESPOSTA se esgotaram e o script nao compactou). Nenhum bruto e perdido - as sessoes continuam com compacted_at null e o gatilho reavalia no proximo fechamento. Null quando nao ha adiamento pendente; gravado de novo a cada vez que o caminho degradado se repete, e limpo (volta a null) na proxima compactacao bem-sucedida."
         }
       }
     },
@@ -212,8 +217,8 @@
           },
           "target_topic": {
             "type": ["string", "null"],
-            "pattern": "^[a-z][a-z0-9_]{1,62}$",
-            "description": "Topico ou conceito ao qual o procedimento se aplica, em snake_case ASCII sem acento. Chave de recuperacao: o digest seleciona os procedimentos cujo target_topic bate com os topicos da sessao de hoje, por igualdade de string com session.topics e com how_it_happened[].target_topic da sessao de origem."
+            "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+            "description": "Topico ao qual o procedimento se aplica, em kebab-case ASCII sem acento. Chave de recuperacao: o digest seleciona os procedimentos cujo target_topic bate com os topicos da sessao de hoje, por igualdade de string com session.topics e com how_it_happened[].target_topic da sessao de origem."
           },
           "how": {
             "type": "string",

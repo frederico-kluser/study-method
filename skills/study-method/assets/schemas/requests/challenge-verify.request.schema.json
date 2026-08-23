@@ -1,120 +1,264 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "urn:study-method:schema:challenge-verify-request:1",
-  "title": "Pedido de classificacao dos mutantes sobreviventes (challenge-verify.sh, exit 10)",
-  "description": "PROTOCOLO REQUEST/APPLY: `challenge-verify.sh` e um harness determinista - seu veredito vem de exit codes e contagem de testes, nunca de opiniao. Ha UMA excecao em todo o protocolo, e e esta: decidir se um mutante sobrevivente e EQUIVALENTE (comportamentalmente identico a referencia, logo impossivel de matar) ou se e um BURACO no teste. Isso nao e decidivel por execucao. Entao o script escreve ESTE objeto em stdout, sai com exit 10, e o modelo responde conforme challenge-verify.response.schema.json e reinvoca `challenge-verify.sh --apply <arquivo>`. Como esta e a unica etapa em que o modelo opina, ela e a mais auditavel: a justificativa e obrigatoria e fica gravada no manifesto do desafio junto com o par before/after, para qualquer pessoa reler e discordar. O modelo NAO decide o verdict do desafio: ele classifica mutantes; o score corrigido e o veredito continuam sendo aritmetica do script. Textos livres em pt-BR; chaves e valores de enum em ingles snake_case sem acento. VERIFICADOR MINIMO: type, required, enum, pattern, items, properties, minimum, maximum e additionalProperties booleano; maxLength e minItems sao documentacao e NAO sao verificados.",
+  "title": "Envelope do PEDIDO de classificacao dos mutantes sobreviventes (challenge-verify.sh, exit 10)",
+  "description": "PROTOCOLO REQUEST/APPLY (docs/00-contratos.md SS6.1/SS6.4): este e o ENVELOPE completo que challenge-verify.sh escreve em stdout ao sair com exit 10, nao apenas o corpo. `challenge-verify.sh` e um harness determinista - seu veredito vem de exit codes e contagem de testes, nunca de opiniao. Ha UMA excecao em todo o protocolo, e e esta: decidir se um mutante sobrevivente e EQUIVALENTE (comportamentalmente identico a referencia, logo impossivel de matar) ou se e um BURACO no teste. Isso nao e decidivel por execucao. Entao o script monta ESTE envelope, sai com exit 10, e o modelo responde conforme challenge-verify.response.schema.json e reinvoca `challenge-verify.sh --apply <arquivo>`. O `kind` deste envelope e 'classify_survivor' (docs/00-contratos.md SS6.4) - campo distinto de `payload.request_kind` ('challenge_verify'): `kind` identifica o PEDIDO no protocolo REQUEST/APPLY, `request_kind` identifica o payload para o script que o consome; os dois coexistem e nao sao intercambiaveis. `request_id` e os primeiros 12 hex do sha256 do `payload` (sem o `generated_at` injetado) serializado canonicamente - e o que impede aplicar uma RESPOSTA sobre um estado que ja mudou: falta ou diverge, --apply recusa com exit 5 e nada e alterado em disco (RA-2). Como esta e a unica etapa em que o modelo opina, ela e a mais auditavel: a justificativa e obrigatoria e fica gravada no manifesto do desafio junto com o par before/after, para qualquer pessoa reler e discordar. O modelo NAO decide o verdict do desafio: ele classifica mutantes; o score corrigido e o veredito continuam sendo aritmetica do script. Textos livres em pt-BR; chaves e valores de enum em ingles snake_case sem acento. VERIFICADOR MINIMO: type, required, enum, pattern, items, properties, minimum, maximum e additionalProperties booleano; maxLength e minItems sao documentacao e NAO sao verificados.",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schema_version", "request_kind", "generated_at", "challenge_id", "survivors"],
+  "required": [
+    "protocol",
+    "protocol_version",
+    "request_id",
+    "script",
+    "kind",
+    "setup_id",
+    "generated_at",
+    "response_schema",
+    "instructions_pt_br",
+    "payload"
+  ],
   "properties": {
-    "schema_version": {
+    "protocol": {
+      "enum": [
+        "study-method/request-apply"
+      ],
+      "description": "Nome fixo do protocolo REQUEST/APPLY (docs/00-contratos.md SS6). Sempre este valor exato."
+    },
+    "protocol_version": {
       "type": "string",
       "pattern": "^[0-9]+\\.[0-9]+$",
-      "description": "Versao do schema deste pedido, MAJOR.MINOR."
+      "description": "Versao do protocolo REQUEST/APPLY, MAJOR.MINOR (SS6.1). Hoje sempre 1.0."
     },
-    "request_kind": {
-      "enum": ["challenge_verify"],
-      "description": "Identifica que pedido e este. Enum de um valor so."
+    "request_id": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{12}$",
+      "description": "Primeiros 12 hex do sha256 do `payload` serializado canonicamente (SS6.1), calculado ANTES do generated_at ser copiado para dentro do payload - e por isso funcao pura do estado em disco. --apply recalcula a partir do estado atual; divergiu, o script recusa com exit 5 e nada e aplicado (RA-2). E a unica protecao do protocolo contra aplicar uma resposta sobre um estado que ja mudou."
+    },
+    "script": {
+      "enum": [
+        "challenge-verify.sh"
+      ],
+      "description": "Nome do script que emitiu este pedido."
+    },
+    "kind": {
+      "enum": [
+        "classify_survivor"
+      ],
+      "description": "Identifica o tipo de pedido no nivel do ENVELOPE (docs/00-contratos.md SS6.4). Campo distinto de payload.request_kind ('challenge_verify'): kind e do envelope, request_kind e do payload - coexistem, e --apply confere os dois separadamente."
+    },
+    "setup_id": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "pattern": "^[0-9a-f]{12}$",
+      "description": "setup_id do setup dono do desafio, quando o script roda com esse contexto disponivel. null quando challenge-verify.sh roda isolado, sem setup_id em SM_SETUP_ID."
     },
     "generated_at": {
       "type": "string",
       "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}([.][0-9]+)?([+-]\\d{2}:\\d{2}|Z)$",
-      "description": "Data-hora ISO 8601 em que o pedido foi emitido. Se o teste ou a referencia mudarem depois disso, a resposta e recusada: os mutantes descreviam outro codigo."
+      "description": "Data-hora ISO 8601 em que o pedido foi emitido (SS6.1). NAO entra no calculo de request_id - so e copiada para dentro de payload.generated_at na hora de imprimir, para o objeto final ser autocontido."
     },
-    "challenge_id": {
+    "response_schema": {
+      "enum": [
+        "urn:study-method:schema:challenge-verify-response:1"
+      ],
+      "description": "URN do schema que a RESPOSTA deste pedido tem de satisfazer: challenge-verify.response.schema.json."
+    },
+    "instructions_pt_br": {
       "type": "string",
-      "pattern": "^[0-9]{4}$",
-      "description": "Desafio em validacao, quatro digitos zero-padded, igual ao challenge_id de meta.json. A resposta so e aplicada neste desafio."
+      "minLength": 1,
+      "maxLength": 4000,
+      "description": "Instrucoes em prosa, pt-BR, para o modelo que vai responder este pedido: como classificar cada mutante sobrevivente e o que a justificativa exige."
     },
-    "response_path": {
-      "type": ["string", "null"],
-      "description": "Caminho sugerido onde o modelo deve gravar a resposta antes de reinvocar com --apply. null significa que o script aceita qualquer caminho."
-    },
-    "language": {
-      "enum": ["python", "javascript", "typescript", "rust", "go", "java", "csharp", "ruby", "elixir", "kotlin", "swift", "c", "cpp", "php", "lua", "julia", "r", "haskell", "bash", null],
-      "description": "Linguagem do desafio. Importa para julgar equivalencia: o que e mutacao inocua em uma linguagem pode mudar comportamento em outra (aritmetica inteira, curto-circuito, ordem de avaliacao). null quando nao informada."
-    },
-    "operators_version": {
-      "type": ["string", "null"],
-      "pattern": "^[0-9]+\\.[0-9]+$",
-      "description": "Versao do catalogo fixo de operadores de mutacao que gerou estes mutantes. O catalogo e mecanico e nunca e pedido a um modelo."
-    },
-    "score": {
-      "type": ["number", "null"],
-      "minimum": 0,
-      "maximum": 1,
-      "description": "Score de mutacao ANTES da correcao por equivalentes: mortos dividido por validos. Informativo, para o modelo saber o tamanho do problema. Nao classifique um mutante como equivalent para fazer o score subir - a correcao existe para ser honesta, nao para aprovar o desafio."
-    },
-    "threshold": {
-      "type": ["number", "null"],
-      "minimum": 0,
-      "maximum": 1,
-      "description": "Limiar minimo de score para o veredito ser approved. Informativo."
-    },
-    "valid": {
-      "type": ["integer", "null"],
-      "minimum": 0,
-      "description": "Quantos mutantes validos rodaram contra a suite nesta rodada. E o denominador do score."
-    },
-    "survived": {
-      "type": ["integer", "null"],
-      "minimum": 0,
-      "description": "Quantos mutantes validos sobreviveram. Deve ser igual ao tamanho de survivors[]."
-    },
-    "reference_excerpt": {
-      "type": ["string", "null"],
-      "maxLength": 8000,
-      "description": "Trecho da implementacao de referencia em torno das linhas mutadas, para o modelo julgar equivalencia sem adivinhar o contexto. Este conteudo e OCULTO do aluno: nunca deve aparecer em explicacao, dica ou enunciado."
-    },
-    "survivors": {
-      "type": "array",
-      "minItems": 1,
-      "description": "Os mutantes que a suite NAO matou, um por entrada. O modelo classifica cada um; nenhum pode ficar sem resposta.",
-      "items": {
-        "type": "object",
-        "additionalProperties": false,
-        "required": ["mutant_id", "operator", "file", "line", "before", "after"],
-        "description": "Um mutante sobrevivente, com a mutacao exata que passou despercebida.",
-        "properties": {
-          "mutant_id": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 120,
-            "description": "Identificador do mutante nesta rodada. E a chave que casa a classificacao da resposta com o mutante certo."
-          },
-          "operator": {
-            "enum": ["ROR", "AOR", "LCR", "UOI", "CRP", "SDL", "RVR", "SVR"],
-            "description": "Operador do catalogo fixo que produziu o mutante. ROR: troca de operador relacional. AOR: troca de operador aritmetico. LCR: troca de conector logico. UOI: insercao de operador unario. CRP: troca de constante. SDL: remocao de comando. RVR: troca de valor de retorno. SVR: troca de referencia de variavel."
-          },
-          "file": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 200,
-            "description": "Arquivo mutado, caminho relativo ao diretorio do desafio."
-          },
-          "line": {
-            "type": "integer",
-            "minimum": 1,
-            "description": "Linha mutada, contando a partir de 1."
-          },
-          "before": {
-            "type": "string",
-            "maxLength": 400,
-            "description": "O trecho original, antes da mutacao."
-          },
-          "after": {
-            "type": "string",
-            "maxLength": 400,
-            "description": "O trecho depois da mutacao. E o par before/after que torna a classificacao auditavel: da para reler os dois e discordar."
-          },
-          "context": {
-            "type": ["string", "null"],
-            "maxLength": 2000,
-            "description": "Linhas vizinhas a mutacao, para dar o contexto minimo sem mandar o arquivo inteiro. null quando o trecho se basta."
-          },
-          "covered_by_tests": {
-            "type": ["boolean", "null"],
-            "description": "true quando a linha mutada e executada por algum teste da suite e mesmo assim o mutante sobreviveu - forte indicio de que o teste passa pela linha sem assertar o efeito dela, ou seja, test_gap. false quando a linha nunca e executada. null quando nao foi medido."
+    "payload": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "O corpo do pedido (docs/00-contratos.md SS6.1): exatamente o que o request_id resume por hash. generated_at aqui e uma COPIA do generated_at do envelope, injetada pelo script so na hora de imprimir, para que o objeto completo seja autocontido - o hash do request_id em si e calculado ANTES dessa copia, sobre o payload sem generated_at (docs/00-contratos.md SS6.1), o que faz o mesmo estado em disco produzir sempre o mesmo request_id.",
+      "required": [
+        "schema_version",
+        "request_kind",
+        "generated_at",
+        "challenge_id",
+        "survivors"
+      ],
+      "properties": {
+        "schema_version": {
+          "type": "string",
+          "pattern": "^[0-9]+\\.[0-9]+$",
+          "description": "Versao do schema deste pedido, MAJOR.MINOR."
+        },
+        "request_kind": {
+          "enum": [
+            "challenge_verify"
+          ],
+          "description": "Identifica que pedido e este. Enum de um valor so."
+        },
+        "generated_at": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}([.][0-9]+)?([+-]\\d{2}:\\d{2}|Z)$",
+          "description": "Data-hora ISO 8601 em que o pedido foi emitido. Se o teste ou a referencia mudarem depois disso, a resposta e recusada: os mutantes descreviam outro codigo."
+        },
+        "challenge_id": {
+          "type": "string",
+          "pattern": "^[0-9]{4}$",
+          "description": "Desafio em validacao, quatro digitos zero-padded, igual ao challenge_id de meta.json. A resposta so e aplicada neste desafio."
+        },
+        "response_path": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Caminho sugerido onde o modelo deve gravar a resposta antes de reinvocar com --apply. null significa que o script aceita qualquer caminho."
+        },
+        "language": {
+          "enum": [
+            "python",
+            "javascript",
+            "typescript",
+            "rust",
+            "go",
+            "java",
+            "csharp",
+            "ruby",
+            "elixir",
+            "kotlin",
+            "swift",
+            "c",
+            "cpp",
+            "php",
+            "lua",
+            "julia",
+            "r",
+            "haskell",
+            "bash",
+            null
+          ],
+          "description": "Linguagem do desafio. Importa para julgar equivalencia: o que e mutacao inocua em uma linguagem pode mudar comportamento em outra (aritmetica inteira, curto-circuito, ordem de avaliacao). null quando nao informada."
+        },
+        "operators_version": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[0-9]+\\.[0-9]+$",
+          "description": "Versao do catalogo fixo de operadores de mutacao que gerou estes mutantes. O catalogo e mecanico e nunca e pedido a um modelo."
+        },
+        "score": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Score de mutacao ANTES da correcao por equivalentes: mortos dividido por validos. Informativo, para o modelo saber o tamanho do problema. Nao classifique um mutante como equivalent para fazer o score subir - a correcao existe para ser honesta, nao para aprovar o desafio."
+        },
+        "threshold": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Limiar minimo de score para o veredito ser approved. Informativo."
+        },
+        "valid": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0,
+          "description": "Quantos mutantes validos rodaram contra a suite nesta rodada. E o denominador do score."
+        },
+        "survived": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0,
+          "description": "Quantos mutantes validos sobreviveram. Deve ser igual ao tamanho de survivors[]."
+        },
+        "reference_excerpt": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 8000,
+          "description": "Trecho da implementacao de referencia em torno das linhas mutadas, para o modelo julgar equivalencia sem adivinhar o contexto. Este conteudo e OCULTO do aluno: nunca deve aparecer em explicacao, dica ou enunciado."
+        },
+        "survivors": {
+          "type": "array",
+          "minItems": 1,
+          "description": "Os mutantes que a suite NAO matou, um por entrada. O modelo classifica cada um; nenhum pode ficar sem resposta.",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "mutant_id",
+              "operator",
+              "file",
+              "line",
+              "before",
+              "after"
+            ],
+            "description": "Um mutante sobrevivente, com a mutacao exata que passou despercebida.",
+            "properties": {
+              "mutant_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 120,
+                "description": "Identificador do mutante nesta rodada. E a chave que casa a classificacao da resposta com o mutante certo."
+              },
+              "operator": {
+                "enum": [
+                  "ROR",
+                  "AOR",
+                  "LCR",
+                  "UOI",
+                  "CRP",
+                  "SDL",
+                  "RVR",
+                  "SVR"
+                ],
+                "description": "Operador do catalogo fixo que produziu o mutante. ROR: troca de operador relacional. AOR: troca de operador aritmetico. LCR: troca de conector logico. UOI: insercao de operador unario. CRP: troca de constante. SDL: remocao de comando. RVR: troca de valor de retorno. SVR: troca de referencia de variavel."
+              },
+              "file": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200,
+                "description": "Arquivo mutado, caminho relativo ao diretorio do desafio."
+              },
+              "line": {
+                "type": "integer",
+                "minimum": 1,
+                "description": "Linha mutada, contando a partir de 1."
+              },
+              "before": {
+                "type": "string",
+                "maxLength": 400,
+                "description": "O trecho original, antes da mutacao."
+              },
+              "after": {
+                "type": "string",
+                "maxLength": 400,
+                "description": "O trecho depois da mutacao. E o par before/after que torna a classificacao auditavel: da para reler os dois e discordar."
+              },
+              "context": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "maxLength": 2000,
+                "description": "Linhas vizinhas a mutacao, para dar o contexto minimo sem mandar o arquivo inteiro. null quando o trecho se basta."
+              },
+              "covered_by_tests": {
+                "type": [
+                  "boolean",
+                  "null"
+                ],
+                "description": "true quando a linha mutada e executada por algum teste da suite e mesmo assim o mutante sobreviveu - forte indicio de que o teste passa pela linha sem assertar o efeito dela, ou seja, test_gap. false quando a linha nunca e executada. null quando nao foi medido."
+              }
+            }
           }
         }
       }

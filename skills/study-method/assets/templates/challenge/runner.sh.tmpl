@@ -4,6 +4,14 @@
 # Contrato: docs/00-contratos.md §5.2 (exceção nomeada 1) e docs/05-challenges-tdd.md §3.3.
 # Exit: 0 passou · 1 falhou · 2 contagem de testes divergente · 3 timeout
 #       66 = cd falhou (infraestrutura, NUNCA falha de teste)
+# TIMEOUT: veredito primário é por TEMPO DECORRIDO (Regra 1b), nunca por exit code — medido
+# nesta pilha de sandbox, `timeout -s KILL` mata com 137, NUNCA com 124 (o kill puro que o
+# `timeout` manda sem -s KILL não propaga através de unshare/systemd-run e o comando TRAVA:
+# 12002 ms medidos contra um limite de 2000 ms, nunca retorna 124). O exit 137 é tratado como
+# rede de segurança para quando o cronômetro deste script (T0/T1) não bate exatamente com o
+# instante em que o SIGKILL chegou — sem essa rede, um processo morto por 137 correria o risco
+# de ser classificado como "failed" (o aluno não fez nada de errado; foi morto pelo limite de
+# tempo) em vez de "timeout". Este runner NUNCA depende de 124.
 set -u -o pipefail                          # pipefail: pipe mascara exit code (docs/00 §5.3 Regra 3)
 
 DESAFIO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -18,7 +26,7 @@ COUNT_PROBE="{{COUNT_PROBE}}"
 # nunca deve gravar aspas simples dentro do valor de TEST_CMD (use aspas duplas quando precisar
 # citar algo dentro do comando).
 TEST_CMD='{{TEST_CMD}}'
-export CHALLENGE_TIMEOUT="$TIMEOUT_S"       # lib/sandbox.sh lê esta variável para o timeout interno
+export CHALLENGE_TIMEOUT="$TIMEOUT_S"       # normaliza a variável de entrada com o default aplicado
 
 SAIDA="$(mktemp)"; trap 'rm -f "$SAIDA"' EXIT
 
@@ -36,7 +44,11 @@ SANDBOX_LIB="${STUDY_METHOD_SKILL_DIR:-}/scripts/lib/sandbox.sh"
 if [ -r "$SANDBOX_LIB" ]; then
   # shellcheck source=/dev/null
   . "$SANDBOX_LIB"                          # define sm_sandbox_run (docs/00 §7.3)
-  sandbox_exec() { sm_sandbox_run "$DESAFIO_DIR" -- "$@"; }
+  # --wall é o relógio da PRÓPRIA sm_sandbox_run (SM_SANDBOX_WALL, default 30 s se omitido) — ela
+  # NÃO lê CHALLENGE_TIMEOUT sozinha, então TIMEOUT_S precisa ser passado explicitamente aqui, ou
+  # a pilha interna mataria o processo só no seu próprio default, bem depois do TIMEOUT_S
+  # configurado para este desafio.
+  sandbox_exec() { sm_sandbox_run "$DESAFIO_DIR" --wall "$TIMEOUT_S" -- "$@"; }
 else
   # PISO DECLARADO — nunca silencioso. Sem lib/sandbox.sh não há isolamento de rede,
   # confinamento de escrita nem limite de memória: só relógio e CPU.
@@ -81,8 +93,14 @@ TESTS_RUN="${TESTS_RUN:-0}"
 cat "$SAIDA"; echo "---"
 echo "TESTS_RUN=$TESTS_RUN ESPERADO=$ESPERADO EXIT_BRUTO=$EXIT_BRUTO DECORRIDO_MS=$DECORRIDO_MS LINGUAGEM={{LANGUAGE}}"
 
-# veredito: o TEMPO decide timeout, jamais o exit code (Regra 1b, docs/00 §5.3)
+# veredito: o TEMPO decide timeout, jamais o exit code (Regra 1b, docs/00 §5.3). A checagem de
+# 137 é rede de segurança, não a fonte primária: `timeout -s KILL` desta pilha mata com 137
+# (nunca com 124 — sem -s KILL o comando TRAVA em vez de retornar 124, ver comentário no topo);
+# se o cronômetro não tiver acusado o estouro por alguma imprecisão de amostragem, um exit 137
+# ainda assim é inequivocamente um SIGKILL do sandbox, nunca uma decisão do código do aluno, e
+# por isso vira "timeout" aqui também, antes de qualquer chance de virar "failed".
 if   [ "$DECORRIDO_MS" -ge $(( TIMEOUT_S * 1000 )) ]; then echo "VEREDITO=timeout";       exit 3
+elif [ "$EXIT_BRUTO" -eq 137 ];                      then echo "VEREDITO=timeout";        exit 3
 elif [ "$TESTS_RUN" -ne "$ESPERADO" ];               then echo "VEREDITO=count_mismatch"; exit 2
 elif [ "$EXIT_BRUTO" -ne 0 ];                        then echo "VEREDITO=failed";         exit 1
 else                                                      echo "VEREDITO=passed";         exit 0
