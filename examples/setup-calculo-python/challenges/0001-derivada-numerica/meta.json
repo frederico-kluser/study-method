@@ -1,0 +1,227 @@
+{
+  "schema_version": "1.0",
+  "challenge_id": "0001",
+  "slug": "derivada-numerica",
+  "title": "Desafio 0001 — derivada numérica pela diferença centrada",
+  "created_at": "2026-07-13T19:00:00-03:00",
+  "updated_at": "2026-07-13T19:00:00-03:00",
+  "language": "python",
+  "layout_profile": "generic",
+  "skill_level": "beginner",
+  "difficulty": 3,
+  "target_concepts": [
+    {
+      "concept_id": "derivada_numerica",
+      "label": "Derivada numérica",
+      "role": "primary",
+      "proficiency_state_at_creation": "unknown"
+    },
+    {
+      "concept_id": "derivada_como_taxa",
+      "label": "Derivada como taxa de variação",
+      "role": "supporting",
+      "proficiency_state_at_creation": "unknown"
+    },
+    {
+      "concept_id": "regra_da_potencia",
+      "label": "Regra da potência",
+      "role": "supporting",
+      "proficiency_state_at_creation": "unknown"
+    },
+    {
+      "concept_id": "erro_numerico",
+      "label": "Erro numérico (truncamento e cancelamento)",
+      "role": "supporting",
+      "proficiency_state_at_creation": "unknown"
+    }
+  ],
+  "challenge_status": "draft",
+  "artifacts": {
+    "statement_path": "README.md",
+    "stub_path": "stub.py",
+    "test_path": "tests/test_stub.py",
+    "runner_path": "runner.sh",
+    "hidden_dir": ".solution/",
+    "reference_path": ".solution/reference.py",
+    "reference_alt_paths": [
+      ".solution/reference_alt_divisao_separada.py",
+      ".solution/reference_alt_media_lateral.py"
+    ],
+    "empty_stub_path": ".solution/empty_stub.py",
+    "manifest_paths": [],
+    "support_paths": [
+      "tests/__init__.py"
+    ]
+  },
+  "execution": {
+    "test_command": [
+      "python3",
+      "-B",
+      "-m",
+      "unittest",
+      "discover",
+      "-s",
+      "tests",
+      "-t",
+      ".",
+      "-p",
+      "test_*.py",
+      "-v"
+    ],
+    "working_dir": ".",
+    "timeout_seconds": 15,
+    "cpu_seconds": 20,
+    "file_size_blocks": 65536,
+    "env": {
+      "LC_ALL": "C.UTF-8",
+      "TZ": "UTC",
+      "PYTHONHASHSEED": "0",
+      "PYTHONDONTWRITEBYTECODE": "1"
+    },
+    "expected_test_count": 6,
+    "test_count_probe": "python_unittest_ran_line",
+    "failure_exit_codes": {
+      "policy": "non_zero_is_failure",
+      "known_failure_code": 1,
+      "timeout_exit_code": 137,
+      "requires_output_grep": false
+    },
+    "sandbox": {
+      "mode": "posix_floor",
+      "network_isolated": false,
+      "timeout_source": "coreutils_timeout"
+    }
+  },
+  "scenarios": [
+    {
+      "scenario_id": "afim_e_exata",
+      "test_name": "test_afim_e_exata",
+      "kind": "example",
+      "description": "Para f(x) = 3x + 1 a diferenca centrada devolve 3 exatamente, para qualquer h."
+    },
+    {
+      "scenario_id": "quadratica_e_exata",
+      "test_name": "test_quadratica_e_exata",
+      "kind": "example",
+      "description": "Para f(x) = x**2 em x = 1 com h = 0.5 o resultado e 2.0 exato: os termos de erro de ordem par se cancelam."
+    },
+    {
+      "scenario_id": "constante_da_zero",
+      "test_name": "test_constante_da_zero",
+      "kind": "boundary",
+      "description": "Funcao constante tem derivada zero; o numerador precisa cancelar exatamente."
+    },
+    {
+      "scenario_id": "ponto_negativo",
+      "test_name": "test_ponto_negativo",
+      "kind": "boundary",
+      "description": "Em x = -4 a derivada de x**2 e -8: a formula nao pode assumir x positivo."
+    },
+    {
+      "scenario_id": "cubica_tem_erro_de_ordem_h2",
+      "test_name": "test_cubica_tem_erro_de_ordem_h2",
+      "kind": "example",
+      "description": "Em grau 3 sobra o erro de truncamento h**2: derivada(x**3, 2, 0.5) vale 12.25, e nao 12."
+    },
+    {
+      "scenario_id": "passo_negativo_da_o_mesmo",
+      "test_name": "test_passo_negativo_da_o_mesmo",
+      "kind": "metamorphic",
+      "description": "Trocar h por -h nao muda o resultado: numerador e denominador trocam de sinal juntos."
+    }
+  ],
+  "oracle": {
+    "strategies": [
+      "reference_impl",
+      "metamorphic_relation",
+      "anchor_cases_from_statement"
+    ],
+    "numeric_mode": "float_tolerance",
+    "rel_tol": 0.0,
+    "abs_tol": 1E-9
+  },
+  "validation": {
+    "protocol_version": "1.0",
+    "harness": "challenge-verify.sh",
+    "validated_at": "2026-07-13T19:00:00-03:00",
+    "verdict": "rejected",
+    "generation_attempts": 1,
+    "steps": {
+      "step_0_build": {
+        "status": "failed",
+        "detail": "o stub vazio nao compila (build_command saiu 127). "
+      },
+      "step_1_empty_stub": {
+        "status": "skipped",
+        "tests_run": 0,
+        "tests_failed": 0,
+        "exit_code": 0,
+        "detail": ""
+      },
+      "step_2_reference": {
+        "status": "skipped",
+        "tests_run": 0,
+        "tests_failed": 0,
+        "exit_code": 0,
+        "detail": ""
+      },
+      "step_3_alternatives": {
+        "status": "skipped",
+        "alternatives_run": 0,
+        "alternatives_rejected": [],
+        "detail": ""
+      },
+      "step_4_mutation": {
+        "status": "skipped",
+        "detail": ""
+      },
+      "step_5_determinism": {
+        "status": "skipped",
+        "repetitions": 3,
+        "env_matrix": [],
+        "stable": false,
+        "detail": ""
+      },
+      "step_6_counts": {
+        "status": "skipped",
+        "expected": 6,
+        "observed": 0,
+        "detail": ""
+      }
+    },
+    "mutation": {
+      "operators_version": "1.0",
+      "generated": 0,
+      "valid": 0,
+      "invalid": 0,
+      "killed": 0,
+      "survived": 0,
+      "score": 0,
+      "threshold": 0.90,
+      "equivalent_count": 0,
+      "sample_size": 0,
+      "detail": "",
+      "survivors": []
+    },
+    "rejections": [
+      {
+        "attempt": 1,
+        "code": "build_failed",
+        "message": "o stub vazio nao compila (build_command saiu 127). "
+      }
+    ]
+  },
+  "integrity": {
+    "policy": "warn",
+    "test_sha256": null,
+    "reference_sha256": null
+  },
+  "student_progress": {
+    "attempts": 0,
+    "last_result": "not_run",
+    "hint_level_used": 0,
+    "solution_revealed": false
+  },
+  "runtime_version": "Python 3.14.7",
+  "test_framework": "unittest (stdlib)"
+}

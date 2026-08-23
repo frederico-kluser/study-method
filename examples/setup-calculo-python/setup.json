@@ -1,0 +1,43 @@
+{
+  "schema_version": "1.0",
+  "setup_id": "1a4cb04a8753",
+  "setup_name": "calculo-python",
+  "title": "Cálculo em Python",
+  "subject": "calculo_diferencial",
+  "taxonomy": [
+    "calculo_diferencial",
+    "limites",
+    "derivadas",
+    "derivada_como_taxa",
+    "regra_da_potencia",
+    "regra_da_cadeia",
+    "derivada_numerica",
+    "erro_numerico"
+  ],
+  "language": {
+    "name": "python",
+    "chosen_at": "2026-07-06T19:02:00-03:00"
+  },
+  "theory_source": "student_provided",
+  "session_minutes": 50,
+  "created_at": "2026-07-06T19:02:00-03:00",
+  "updated_at": "2026-08-22T11:00:00-03:00",
+  "session_count": 5,
+  "decisions": {
+    "D-B02": {
+      "value": "student_provided",
+      "answered_at": "2026-07-06T19:02:00-03:00",
+      "default_used": true
+    },
+    "D-M05": {
+      "value": null,
+      "answered_at": "2026-07-06T19:02:00-03:00",
+      "default_used": true
+    }
+  },
+  "privacy": {
+    "cross_read": "ask"
+  },
+  "skill_level": "beginner",
+  "last_session_at": "2026-08-22T11:00:00-03:00"
+}

@@ -1,0 +1,20 @@
+# Gerado por setup-init.sh a partir de
+# skills/study-method/assets/templates/setup/gitignore.tmpl. Sem placeholders — todo setup recebe
+# o mesmo conteúdo.
+#
+# DECISÃO DE PRIVACIDADE (docs/00-contratos.md §3.2, §9.3 PRIV-6): memory/ fica de fora do
+# controle de versão de propósito. O git GUARDA TODAS AS VERSÕES de um arquivo rastreado para
+# sempre — apagar o arquivo depois não apaga o histórico. Como memory/ pode conter fatos sobre
+# você (o que funcionou, o que não funcionou, seu estado afetivo), a única forma honesta de um
+# "esquece isso" funcionar de verdade é memory/ nunca ter entrado no git.
+memory/
+
+# Artefatos de execução: derivados, descartáveis, reconstruíveis a qualquer momento a partir do
+# que está versionado. Não fazem parte do trabalho que vale a pena guardar.
+__pycache__/
+*.pyc
+.pytest_cache/
+node_modules/
+target/
+*.o
+*.class

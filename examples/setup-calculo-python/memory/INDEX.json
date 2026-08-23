@@ -1,0 +1,135 @@
+{
+  "schema_version": "1.0",
+  "updated_at": "2026-08-23T09:00:00-03:00",
+  "sessions": [
+    {
+      "session_id": "0001",
+      "file": "memory/0001.json",
+      "date": "2026-07-06",
+      "status": "completed",
+      "topics": [
+        "derivadas",
+        "limites"
+      ],
+      "skills_touched": [
+        "derivada_como_taxa"
+      ],
+      "one_line_summary": "Chegou à derivada como inclinação pelo zoom no gráfico; a definição formal veio cedo demais e atrapalhou.",
+      "affect": "engaged",
+      "flags": [
+        "has_unlock",
+        "has_backfire",
+        "has_open_questions",
+        "has_next_steps"
+      ],
+      "digest_eligible": true,
+      "compacted_at": "2026-08-23",
+      "cross_setup_refs": []
+    },
+    {
+      "session_id": "0002",
+      "file": "memory/0002.json",
+      "date": "2026-07-13",
+      "status": "completed",
+      "topics": [
+        "derivadas",
+        "derivada_como_taxa",
+        "derivada_numerica"
+      ],
+      "skills_touched": [
+        "derivada_como_taxa",
+        "derivada_numerica"
+      ],
+      "one_line_summary": "Escreveu a taxa média em Python; a autópsia do TypeError ensinou mais que a dica que veio antes dela.",
+      "affect": "confident",
+      "flags": [
+        "has_unlock",
+        "has_open_questions",
+        "has_next_steps"
+      ],
+      "digest_eligible": true,
+      "compacted_at": "2026-08-23",
+      "cross_setup_refs": []
+    },
+    {
+      "session_id": "0003",
+      "file": "memory/0003.json",
+      "date": "2026-07-21",
+      "status": "completed",
+      "topics": [
+        "derivadas",
+        "derivada_como_taxa",
+        "derivada_numerica",
+        "erro_numerico"
+      ],
+      "skills_touched": [
+        "derivada_como_taxa",
+        "erro_numerico"
+      ],
+      "one_line_summary": "Viu o erro subir de novo abaixo de 1e-11 e explicou como cansaço do computador; a causa real ficou para a próxima.",
+      "affect": "engaged",
+      "flags": [
+        "has_unlock",
+        "has_open_questions",
+        "has_next_steps"
+      ],
+      "digest_eligible": true,
+      "compacted_at": "2026-08-23",
+      "cross_setup_refs": []
+    },
+    {
+      "session_id": "0004",
+      "file": "memory/0004.json",
+      "date": "2026-08-04",
+      "status": "completed",
+      "topics": [
+        "derivada_numerica",
+        "erro_numerico",
+        "regra_da_potencia"
+      ],
+      "skills_touched": [
+        "derivada_numerica",
+        "erro_numerico",
+        "regra_da_potencia"
+      ],
+      "one_line_summary": "Passou no desafio 0001 com três degraus de dica; ainda acha que Decimal faz o cancelamento sumir.",
+      "affect": "frustrated",
+      "flags": [
+        "has_unlock",
+        "has_backfire",
+        "has_open_questions",
+        "has_next_steps"
+      ],
+      "digest_eligible": true,
+      "compacted_at": "2026-08-23",
+      "cross_setup_refs": []
+    },
+    {
+      "session_id": "0005",
+      "file": "memory/0005.json",
+      "date": "2026-08-22",
+      "status": "completed",
+      "topics": [
+        "regra_da_potencia",
+        "regra_da_cadeia",
+        "derivada_numerica",
+        "erro_numerico"
+      ],
+      "skills_touched": [
+        "derivada_numerica",
+        "regra_da_cadeia",
+        "regra_da_potencia"
+      ],
+      "one_line_summary": "Leu a regra da potência no padrão numérico e previu x**5 antes de rodar; a regra da cadeia ficou só no exemplo conduzido.",
+      "affect": "confident",
+      "flags": [
+        "has_unlock",
+        "has_open_questions",
+        "has_next_steps"
+      ],
+      "digest_eligible": true,
+      "compacted_at": "2026-08-23",
+      "cross_setup_refs": []
+    }
+  ]
+}

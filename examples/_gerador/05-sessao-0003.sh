@@ -1,0 +1,80 @@
+. "$(cd -- "$(dirname -- "$0")" && pwd -P)/00-env.sh"; . "$EX/lib-close.sh"
+export STUDY_METHOD_TODAY=2026-07-21
+export STUDY_METHOD_NOW=2026-07-21T19:10:00-03:00
+
+N="$("$S/session-new.sh" "$SETUP" --goal 'Entender por que h pequeno demais piora a conta em vez de melhorar.')"
+
+cat > "$WORK/patch-plan-$N.json" <<'JSON'
+{"plan": {"items": [
+  {"text": "Ver os cenários vermelhos que você trouxe do desafio 0001", "reason": "orphan_resume", "topic": "derivada_numerica", "state": "done"},
+  {"text": "Revisar a taxa média antes de mexer em h — faz duas semanas", "reason": "spaced_review", "topic": "derivada_como_taxa", "state": "done"},
+  {"text": "Varrer h de 1e-1 a 1e-15 e olhar o erro", "reason": "student_request", "topic": "erro_numerico", "state": "done"}
+], "changed_by_student": true}}
+JSON
+python3 "$EX/lib-tutor.py" "$SETUP/memory/$N.json" "$WORK/patch-plan-$N.json"
+
+cat > "$WORK/patch-teach-$N.json" <<'JSON'
+{
+  "docs_coverage": "indexed",
+  "affect": "engaged",
+  "affect_note": "Ficou visivelmente incomodado quando o erro subiu de novo: 'isso está errado, tem que continuar caindo'.",
+  "how_it_happened": [
+    {"move_type": "spaced_review",
+     "description": "Antes de qualquer coisa nova, pedi a taxa média de x**3 em x=2 de cabeça — duas semanas depois da primeira vez.",
+     "target_topic": "derivadas", "outcome": "unlocked",
+     "evidence": "Respondeu 12 sem hesitar e justificou pelo padrão numérico, não pela fórmula decorada.",
+     "observation_type": "observed"},
+    {"move_type": "worked_example",
+     "description": "Resolvi na frente dele, linha a linha, (f(2+h)-f(2-h))/(2h) para f(x)=x**3 com h=0,5, mostrando de onde sai o 0,25 que sobra em cima de 12.",
+     "target_topic": "derivada-numerica", "outcome": "unlocked",
+     "evidence": "Ele reconheceu o 0,25 como h**2 e perguntou 'então com h menor essa sobra some?'.",
+     "observation_type": "observed"},
+    {"move_type": "socratic_question",
+     "description": "Devolvi a pergunta dele sem responder: 'e se h fosse 1e-16 em vez de 0,5, o que você espera ver?'.",
+     "target_topic": "erro-numerico", "outcome": "partial",
+     "evidence": "Previu 'erro zero' e ficou parado quando o número saiu 0.0 — previu certo o motivo errado.",
+     "observation_type": "observed"},
+    {"move_type": "hands_on",
+     "description": "Ele mesmo escreveu o laço varrendo h de 1e-1 a 1e-15 e imprimindo o erro absoluto contra 12.",
+     "target_topic": "erro-numerico", "outcome": "partial",
+     "evidence": "Rodou, viu o erro cair até ~1e-11 e voltar a subir, e disse 'o computador está cansando'.",
+     "observation_type": "observed"}
+  ],
+  "skills_observed": [
+    {"skill": "derivada_como_taxa", "level": "intermediate", "confidence": "high",
+     "last_observed_at": "2026-07-21",
+     "evidence": "Recuperou a taxa média de x**3 duas semanas depois, sem consulta e sem dica.",
+     "observation_type": "observed", "proficiency_state": "mastered"},
+    {"skill": "erro_numerico", "level": "beginner", "confidence": "low",
+     "last_observed_at": "2026-07-21",
+     "evidence": "Viu o erro subir de novo e atribuiu a causa ao hardware, não à subtração.",
+     "observation_type": "observed", "proficiency_state": "unknown"}
+  ],
+  "artifacts": []
+}
+JSON
+python3 "$EX/lib-tutor.py" "$SETUP/memory/$N.json" "$WORK/patch-teach-$N.json"
+
+export STUDY_METHOD_NOW=2026-07-21T20:05:00-03:00
+cat > "$WORK/vals-$N.json" <<'JSON'
+{
+  "one_line_summary": "Viu o erro subir de novo abaixo de 1e-11 e explicou como cansaço do computador; a causa real ficou para a próxima.",
+  "topics": ["derivadas", "derivada_como_taxa", "derivada_numerica", "erro_numerico"],
+  "what_was_done": "Revisamos a taxa média de x**3 sem consulta, resolvi na frente dele a diferença centrada com h=0,5 mostrando o termo h**2, e ele escreveu o laço que varre h de 1e-1 a 1e-15 imprimindo o erro.",
+  "what_was_learned": [
+    "Reconhece o 0,25 de sobra em derivada(x**3, 2, 0.5) como o erro de truncamento h**2, e não como conta errada.",
+    "Recupera a taxa média de uma cúbica duas semanas depois, sem consultar nada."
+  ],
+  "what_worked": "Resolver o exemplo com h grande e exato antes de falar em h pequeno: o termo h**2 apareceu como número, não como teoria.",
+  "what_didnt_work": "Deixar a pergunta socrática sobre h=1e-16 sem fechamento na mesma hora: ele preencheu o vazio com 'o computador está cansando' e essa explicação grudou.",
+  "open_questions": [
+    "Por que o erro volta a subir se a fórmula diz que ele deveria cair com h**2?",
+    "Existe um h ótimo, ou é sempre tentativa e erro?"
+  ],
+  "next_steps": [
+    "Imprimir f(x+h) e f(x-h) lado a lado com repr() para h=1e-12 e olhar os dígitos.",
+    "Escrever em uma frase o que ele acha que acontece com os dois números antes da subtração."
+  ]
+}
+JSON
+fechar_sessao "$N" "$WORK/vals-$N.json"

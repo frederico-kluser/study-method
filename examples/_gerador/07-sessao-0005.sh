@@ -1,0 +1,84 @@
+. "$(cd -- "$(dirname -- "$0")" && pwd -P)/00-env.sh"; . "$EX/lib-close.sh"
+export STUDY_METHOD_TODAY=2026-08-22
+export STUDY_METHOD_NOW=2026-08-22T10:05:00-03:00
+
+N="$("$S/session-new.sh" "$SETUP" --goal 'Chegar na regra da potência sem decorar e dar o primeiro passo na regra da cadeia.')"
+
+cat > "$WORK/patch-plan-$N.json" <<'JSON'
+{"plan": {"items": [
+  {"text": "Ver o resultado do experimento com Decimal que você fez em casa", "reason": "orphan_resume", "topic": "erro_numerico", "state": "done"},
+  {"text": "Derivar x**2, x**3 e x**4 numericamente e ler o padrão", "reason": "next_in_taxonomy", "topic": "regra_da_potencia", "state": "done"},
+  {"text": "Primeiro contato com a regra da cadeia", "reason": "next_in_taxonomy", "topic": "regra_da_cadeia", "state": "done"}
+], "changed_by_student": true}}
+JSON
+python3 "$EX/lib-tutor.py" "$SETUP/memory/$N.json" "$WORK/patch-plan-$N.json"
+
+cat > "$WORK/patch-teach-$N.json" <<'JSON'
+{
+  "docs_coverage": "indexed",
+  "affect": "confident",
+  "affect_note": "Chegou com o script do Decimal pronto e quis mostrar antes de eu perguntar; ficou quieto de novo quando a regra da cadeia apareceu no fim.",
+  "how_it_happened": [
+    {"move_type": "spaced_review",
+     "description": "Deixei ele apresentar o experimento com Decimal de 50 dígitos que tinha rodado em casa, sem eu comentar o resultado antes.",
+     "target_topic": "erro-numerico", "outcome": "partial",
+     "evidence": "Mostrou que o erro voltou a subir, só que com h bem menor, e disse 'então não sumiu, mudou de lugar' — mas ainda não liga isso à subtração.",
+     "observation_type": "observed"},
+    {"move_type": "hands_on",
+     "description": "Pedi que ele rodasse a derivada numérica de x**2, x**3 e x**4 em x=2 e escrevesse os três resultados numa coluna, sem eu dizer o que procurar.",
+     "target_topic": "regra-da-potencia", "outcome": "unlocked",
+     "evidence": "Escreveu 4, 12, 32 e disse 'é o expoente vezes x elevado a um a menos' antes de eu perguntar qualquer coisa.",
+     "observation_type": "observed"},
+    {"move_type": "socratic_question",
+     "description": "Em vez de confirmar, perguntei o que ele apostaria para x**5 e por quê — e só depois mandei conferir na máquina.",
+     "target_topic": "regra-da-potencia", "outcome": "unlocked",
+     "evidence": "Previu 80 antes de rodar, acertou, e justificou pelo padrão e não pela fórmula da apostila.",
+     "observation_type": "observed"},
+    {"move_type": "explanation_order",
+     "description": "Deixei a regra da cadeia para os últimos dez minutos, depois de a regra da potência já estar fechada.",
+     "target_topic": "regra-da-cadeia", "outcome": "partial",
+     "evidence": "Acompanhou o exemplo (3x+1)**4 comigo conduzindo, mas não tentou nenhum sozinho — faltou tempo, não faltou entendimento.",
+     "observation_type": "observed"}
+  ],
+  "skills_observed": [
+    {"skill": "regra_da_potencia", "level": "intermediate", "confidence": "high",
+     "last_observed_at": "2026-08-22",
+     "evidence": "Previu a derivada de x**5 antes de rodar, justificando pelo padrão que ele mesmo leu na coluna de resultados.",
+     "observation_type": "observed", "proficiency_state": "mastered"},
+    {"skill": "derivada_numerica", "level": "intermediate", "confidence": "medium",
+     "last_observed_at": "2026-08-22",
+     "evidence": "Refez o varrimento de h sozinho em casa, em Decimal, sem dica.",
+     "observation_type": "observed", "proficiency_state": "fragile"},
+    {"skill": "regra_da_cadeia", "level": "beginner", "confidence": "low",
+     "last_observed_at": "2026-08-22",
+     "evidence": "Acompanhou um exemplo conduzido por mim; não resolveu nenhum sozinho.",
+     "observation_type": "inferred", "proficiency_state": "unknown"}
+  ],
+  "artifacts": []
+}
+JSON
+python3 "$EX/lib-tutor.py" "$SETUP/memory/$N.json" "$WORK/patch-teach-$N.json"
+
+export STUDY_METHOD_NOW=2026-08-22T11:00:00-03:00
+cat > "$WORK/vals-$N.json" <<'JSON'
+{
+  "one_line_summary": "Leu a regra da potência no padrão numérico e previu x**5 antes de rodar; a regra da cadeia ficou só no exemplo conduzido.",
+  "topics": ["regra_da_potencia", "regra_da_cadeia", "derivada_numerica", "erro_numerico"],
+  "what_was_done": "Ele apresentou o experimento com Decimal que fez em casa, derivou numericamente x**2, x**3 e x**4 em x=2, leu o padrão sozinho e previu x**5 antes de conferir. Nos últimos dez minutos mostrei um exemplo de regra da cadeia com (3x+1)**4.",
+  "what_was_learned": [
+    "Enuncia a regra da potência a partir do padrão numérico, sem recorrer à apostila.",
+    "Sabe que aumentar a precisão do tipo move o h ótimo em vez de eliminar o erro."
+  ],
+  "what_worked": "Mandar prever x**5 antes de rodar: a previsão obrigou a enunciar a regra, e a máquina só confirmou.",
+  "what_didnt_work": "Encaixar a regra da cadeia nos últimos dez minutos: ele acompanhou mas não chegou a tentar nada sozinho, e isso não é evidência de nada.",
+  "open_questions": [
+    "Na regra da cadeia, como eu sei qual é a função de dentro e qual é a de fora?",
+    "A regra da potência vale para expoente negativo e fracionário também?"
+  ],
+  "next_steps": [
+    "Começar a próxima sessão pela regra da cadeia, com você resolvendo, não me acompanhando.",
+    "Trazer três exemplos de (algo)**n em que você identifique a função de dentro."
+  ]
+}
+JSON
+fechar_sessao "$N" "$WORK/vals-$N.json"

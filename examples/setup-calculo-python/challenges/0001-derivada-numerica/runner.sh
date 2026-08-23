@@ -1,0 +1,133 @@
+#!/usr/bin/env bash
+# runner.sh — ponto de entrada ÚNICO deste desafio (python). Gerado por challenge-new.sh a
+# partir de skills/study-method/assets/templates/challenge/runner.sh.tmpl.
+# Contrato: docs/00-contratos.md §5.2 (exceção nomeada 1) e docs/05-challenges-tdd.md §3.3.
+# Exit: 0 passou · 1 falhou · 2 contagem de testes divergente · 3 timeout
+#       66 = cd falhou (infraestrutura, NUNCA falha de teste)
+# TIMEOUT: veredito primário é por TEMPO DECORRIDO (Regra 1b), nunca por exit code — medido
+# nesta pilha de sandbox, `timeout -s KILL` mata com 137, NUNCA com 124 (o kill puro que o
+# `timeout` manda sem -s KILL não propaga através de unshare/systemd-run e o comando TRAVA:
+# 12002 ms medidos contra um limite de 2000 ms, nunca retorna 124). O exit 137 é tratado como
+# rede de segurança para quando o cronômetro deste script (T0/T1) não bate exatamente com o
+# instante em que o SIGKILL chegou — sem essa rede, um processo morto por 137 correria o risco
+# de ser classificado como "failed" (o aluno não fez nada de errado; foi morto pelo limite de
+# tempo) em vez de "timeout". Este runner NUNCA depende de 124.
+set -u -o pipefail                          # pipefail: pipe mascara exit code (docs/00 §5.3 Regra 3)
+
+DESAFIO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "$DESAFIO_DIR" || exit 66                # cwd FIXO; 66 é infraestrutura, não falha de teste
+
+TIMEOUT_S="${CHALLENGE_TIMEOUT:-15}"
+ESPERADO="${CHALLENGE_EXPECTED_TESTS:-4}"
+COUNT_PROBE="contar_testes() {
+  # Ultima linha "Ran N tests" (o unittest escreve em stderr; o runner junta 2>&1).
+  local n
+  n="$(grep -Eo '^Ran [0-9]+ tests?' "$SAIDA" | tail -1 | grep -Eo '[0-9]+')" || n=""
+  printf '%s' "${n:-0}"
+}
+mostrar_saida() { cat "$SAIDA"; }"
+# TEST_CMD entre ASPAS SIMPLES de propósito: precisa preservar $ e crase literalmente até ser
+# passado para o `bash -c` mais abaixo — com aspas duplas, este `$?`/`$( )` seria expandido AQUI,
+# cedo demais, contra o estado deste script, não contra o processo de teste. challenge-new.sh
+# nunca deve gravar aspas simples dentro do valor de TEST_CMD (use aspas duplas quando precisar
+# citar algo dentro do comando).
+TEST_CMD='TIMEOUT_PADRAO=15
+
+traduzir_cenario() {
+  case "$1" in
+    derivada_numerica_de_zero) printf '%s' 'tests.test_stub.TesteDesafio.test_derivada_numerica_de_zero' ;;
+    derivada_numerica_de_um) printf '%s' 'tests.test_stub.TesteDesafio.test_derivada_numerica_de_um' ;;
+    derivada_numerica_de_cinco) printf '%s' 'tests.test_stub.TesteDesafio.test_derivada_numerica_de_cinco' ;;
+    derivada_numerica_de_dez) printf '%s' 'tests.test_stub.TesteDesafio.test_derivada_numerica_de_dez' ;;
+    *) return 1 ;;
+  esac
+}
+
+executar_testes() {
+  # SM_FILTRO vazio = suite inteira. Com filtro, o nome vai QUALIFICADO
+  # (tests.test_stub.TesteDesafio.test_<cenario>): nome curto o unittest nao resolve.
+  if [ -n "$SM_FILTRO" ]; then
+    sandbox_exec python3 -B -m unittest -v "$SM_FILTRO"
+  else
+    sandbox_exec python3 -B -m unittest discover -s tests -t . -p 'test_*.py' -v
+  fi
+}'
+export CHALLENGE_TIMEOUT="$TIMEOUT_S"       # normaliza a variável de entrada com o default aplicado
+
+SAIDA="$(mktemp)"; trap 'rm -f "$SAIDA"' EXIT
+
+# ambiente determinístico (docs/05-challenges-tdd.md §4.2 passo 5) — inofensivo para linguagens
+# que não usam cada variável.
+export LC_ALL="${LC_ALL:-C.UTF-8}" TZ="${TZ:-UTC}"
+export PYTHONHASHSEED="${PYTHONHASHSEED:-0}" PYTHONDONTWRITEBYTECODE=1
+export NODE_COMPILE_CACHE=""
+
+# cache de bytecode: um mutante do mesmo tamanho reusaria o .pyc antigo (docs/05 §4.5)
+find "$DESAFIO_DIR" -type d -name __pycache__ -prune -exec rm -rf {} + 2>/dev/null
+
+# ---- sandbox: UMA implementação só, a de lib/sandbox.sh (docs/00-contratos.md §7.3) ----
+SANDBOX_LIB="${STUDY_METHOD_SKILL_DIR:-}/scripts/lib/sandbox.sh"
+if [ -r "$SANDBOX_LIB" ]; then
+  # shellcheck source=/dev/null
+  . "$SANDBOX_LIB"                          # define sm_sandbox_run (docs/00 §7.3)
+  # --wall é o relógio da PRÓPRIA sm_sandbox_run (SM_SANDBOX_WALL, default 30 s se omitido) — ela
+  # NÃO lê CHALLENGE_TIMEOUT sozinha, então TIMEOUT_S precisa ser passado explicitamente aqui, ou
+  # a pilha interna mataria o processo só no seu próprio default, bem depois do TIMEOUT_S
+  # configurado para este desafio.
+  sandbox_exec() { sm_sandbox_run "$DESAFIO_DIR" --wall "$TIMEOUT_S" -- "$@"; }
+else
+  # PISO DECLARADO — nunca silencioso. Sem lib/sandbox.sh não há isolamento de rede,
+  # confinamento de escrita nem limite de memória: só relógio e CPU.
+  echo "AVISO: lib/sandbox.sh não encontrado; rodando no PISO DECLARADO (sem isolamento" >&2
+  echo "       de rede, sem confinamento de escrita, sem limite de memória)." >&2
+  sandbox_exec() {
+    ( ulimit -t "$(( TIMEOUT_S + 5 ))" 2>/dev/null; ulimit -f 65536 2>/dev/null
+      # DEGRADAÇÃO DECLARADA, não isolamento: proxy inválido é lombada, não muro — não
+      # impede socket bruto nem runtime que ignore as variáveis (docs/11 §2.1 G4).
+      export http_proxy=http://127.0.0.1:1 https_proxy=http://127.0.0.1:1 \
+             all_proxy=http://127.0.0.1:1 no_proxy=""
+      exec timeout -s KILL -k 5 "$TIMEOUT_S" "$@" )
+  }
+fi
+
+# ---- execução: mede o tempo, porque é o tempo que decide 'timeout' (Regra 1b, docs/05 §3) ----
+T0=$(date +%s%N)
+sandbox_exec bash -c "$TEST_CMD" >"$SAIDA" 2>&1
+EXIT_BRUTO=$?
+T1=$(date +%s%N); DECORRIDO_MS=$(( (T1 - T0) / 1000000 ))
+
+# probe de contagem de testes — catálogo fixo (docs/05-challenges-tdd.md §3.1), escolhido por
+# COUNT_PROBE. A igualdade com ESPERADO é o gate; nunca "> 0" (docs/00 §9.5 DES-4).
+case "$COUNT_PROBE" in
+  python_unittest_ran_line)
+    TESTS_RUN=$(grep -Eo '^Ran [0-9]+ tests?' "$SAIDA" | tail -1 | grep -Eo '[0-9]+') ;;
+  node_test_tap_summary)
+    TESTS_RUN=$(grep -Eo '^# tests [0-9]+' "$SAIDA" | tail -1 | grep -Eo '[0-9]+') ;;
+  go_test_json_run_events)
+    TESTS_RUN=$(jq -rs '[.[] | select(.Action=="run" and .Test != null) | .Test] | unique | length' \
+                  "$SAIDA" 2>/dev/null) ;;
+  cargo_test_running_lines)
+    TESTS_RUN=$(grep -Eo '^running [0-9]+ tests?' "$SAIDA" | grep -Eo '[0-9]+' \
+                  | awk '{s+=$1} END{print s+0}') ;;
+  counter_protocol)
+    TESTS_RUN=$(grep -Eo 'TESTS_RUN=[0-9]+' "$SAIDA" | tail -1 | cut -d= -f2) ;;
+  *)
+    TESTS_RUN="" ;;
+esac
+TESTS_RUN="${TESTS_RUN:-0}"
+
+cat "$SAIDA"; echo "---"
+echo "TESTS_RUN=$TESTS_RUN ESPERADO=$ESPERADO EXIT_BRUTO=$EXIT_BRUTO DECORRIDO_MS=$DECORRIDO_MS LINGUAGEM=python"
+
+# veredito: o TEMPO decide timeout, jamais o exit code (Regra 1b, docs/00 §5.3). A checagem de
+# 137 é rede de segurança, não a fonte primária: `timeout -s KILL` desta pilha mata com 137
+# (nunca com 124 — sem -s KILL o comando TRAVA em vez de retornar 124, ver comentário no topo);
+# se o cronômetro não tiver acusado o estouro por alguma imprecisão de amostragem, um exit 137
+# ainda assim é inequivocamente um SIGKILL do sandbox, nunca uma decisão do código do aluno, e
+# por isso vira "timeout" aqui também, antes de qualquer chance de virar "failed".
+if   [ "$DECORRIDO_MS" -ge $(( TIMEOUT_S * 1000 )) ]; then echo "VEREDITO=timeout";       exit 3
+elif [ "$EXIT_BRUTO" -eq 137 ];                      then echo "VEREDITO=timeout";        exit 3
+elif [ "$TESTS_RUN" -ne "$ESPERADO" ];               then echo "VEREDITO=count_mismatch"; exit 2
+elif [ "$EXIT_BRUTO" -ne 0 ];                        then echo "VEREDITO=failed";         exit 1
+else                                                      echo "VEREDITO=passed";         exit 0
+fi
