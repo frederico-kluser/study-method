@@ -179,6 +179,49 @@
     "back": "Voltar",
     "close": "Fechar"
   },
+  "home": {
+    "title": "Aprenda programação e matemática com aulas geradas por IA",
+    "description": "Digite um assunto — como \"Inverter uma árvore binária\" ou \"Equações do 2º grau\" — e receba uma aula com explicação, analogia, visualização e desafios práticos validados por testes.",
+    "cta": {
+      "setup": "Configurar chaves",
+      "start": "Começar aula"
+    },
+    "steps": {
+      "configureKeys": {
+        "title": "Configure as chaves de IA",
+        "description": "Cadastre e valide as chaves do DeepSeek e do Brave Search em Configurações."
+      },
+      "subject": {
+        "title": "Digite o assunto",
+        "description": "Por exemplo: \"Inverter uma árvore binária\" ou \"Equações do 2º grau\"."
+      },
+      "learn": {
+        "title": "Aprenda e pratique com desafios",
+        "description": "Leia a aula, acompanhe as visualizações e resolva os desafios validados por testes."
+      }
+    },
+    "setup": {
+      "checking": "Verificando a configuração…",
+      "ready": "Pronto para começar",
+      "missing": "Chaves de IA pendentes",
+      "readyDescription": "Suas chaves DeepSeek e Brave Search estão configuradas. Escolha um assunto e comece.",
+      "missingDescription": "Configure as chaves DeepSeek e Brave Search para o app gerar aulas e pesquisar fontes.",
+      "deepseek": "DeepSeek",
+      "brave": "Brave Search",
+      "configured": "configurada",
+      "pending": "pendente"
+    },
+    "suggestions": {
+      "title": "Ideias para começar",
+      "domainProgramming": "Programação",
+      "domainMath": "Matemática",
+      "invertBinaryTree": "Inverter uma árvore binária",
+      "mergeSort": "Ordenação por intercalação (merge sort)",
+      "hashTables": "Tabelas hash na prática",
+      "quadraticEquations": "Equações do 2º grau",
+      "pythagoreanTheorem": "Teorema de Pitágoras"
+    }
+  },
   "tutorial": {
     "progress": {
       "chapter": "Capítulo",

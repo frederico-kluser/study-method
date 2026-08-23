@@ -123,7 +123,7 @@ function Shell({
           p: { xs: 2, sm: 3, md: 4 },
         }}
       >
-        <View />
+        <View onNavigate={setActive} />
       </Box>
     </Box>
   );

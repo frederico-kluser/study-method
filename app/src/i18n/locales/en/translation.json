@@ -179,6 +179,49 @@
     "back": "Back",
     "close": "Close"
   },
+  "home": {
+    "title": "Learn programming and math with AI-generated lessons",
+    "description": "Type a subject — such as \"Invert a binary tree\" or \"Quadratic equations\" — and get a lesson with explanation, analogy, visualization and hands-on challenges validated by tests.",
+    "cta": {
+      "setup": "Set up keys",
+      "start": "Start a lesson"
+    },
+    "steps": {
+      "configureKeys": {
+        "title": "Set up your AI keys",
+        "description": "Add and validate your DeepSeek and Brave Search keys in Settings."
+      },
+      "subject": {
+        "title": "Type a subject",
+        "description": "For example: \"Invert a binary tree\" or \"Quadratic equations\"."
+      },
+      "learn": {
+        "title": "Learn and practice with challenges",
+        "description": "Read the lesson, follow the visualizations and solve test-validated challenges."
+      }
+    },
+    "setup": {
+      "checking": "Checking your setup…",
+      "ready": "Ready to start",
+      "missing": "AI keys pending",
+      "readyDescription": "Your DeepSeek and Brave Search keys are configured. Pick a subject and start.",
+      "missingDescription": "Configure the DeepSeek and Brave Search keys so the app can generate lessons and search sources.",
+      "deepseek": "DeepSeek",
+      "brave": "Brave Search",
+      "configured": "configured",
+      "pending": "pending"
+    },
+    "suggestions": {
+      "title": "Ideas to get started",
+      "domainProgramming": "Programming",
+      "domainMath": "Math",
+      "invertBinaryTree": "Invert a binary tree",
+      "mergeSort": "Merge sort",
+      "hashTables": "Hash tables in practice",
+      "quadraticEquations": "Quadratic equations",
+      "pythagoreanTheorem": "Pythagorean theorem"
+    }
+  },
   "tutorial": {
     "progress": {
       "chapter": "Chapter",

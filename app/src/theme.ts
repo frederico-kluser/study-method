@@ -37,7 +37,23 @@
  *   OVERRIDES mínimos: raio 8 (shape), font-size 14, e components p/ dar
  *   coerência (Button/Card/TextField/Paper) — ver bloco `components`.
  */
-import { createTheme } from '@mui/material/styles';
+import { createTheme, type PaletteColor, type PaletteColorOptions } from '@mui/material/styles';
+
+/**
+ * Onda 17A — `tertiary` como cor de paleta do Material 3 (acento de contraste
+ * sobre superfícies escuras). O type do MUI v9 não expõe `tertiary` no Palette
+ * por padrão; esta augmentação adiciona `main` ao Palette/PaletteOptions. Vive
+ * AQUI em theme.ts para ser visível tanto pelo tsconfig.json (renderer) quanto
+ * pelo tsconfig.node.json (que inclui `src/theme.ts` nos testes).
+ */
+declare module '@mui/material/styles' {
+  interface Palette {
+    tertiary: PaletteColor;
+  }
+  interface PaletteOptions {
+    tertiary?: PaletteColorOptions;
+  }
+}
 
 /**
  * Cor primária herdada do tema custom antigo (accent #4f8cff). Úsada no scheme
@@ -55,6 +71,39 @@ const PRIMARY_MAIN = '#4f8cff';
  */
 const LIGHT_PRIMARY_MAIN = '#1565c0';
 
+/**
+ * Onda 17A — REFINO DO DARK (UX notes: "dark theme ficou ruim").
+ *
+ * Dark NÃO é inverter o light: escuridão por camadas de ELEVAÇÃO. Aqui o scheme
+ * dark recebe uma paleta explícita de superfícies (background.default < paper)
+ * e um `text.secondary` com contraste AA (4.5:1) sobre AMBAS as camadas.
+ * `divider` visível para bordas `outlined` e separadores; `tertiary` serve de
+ * acento de contraste sobre fundo escuro (M3 spare palette), usado no card de
+ * status e destaques da Home. O primary #4f8cff sobre as superfícies novas
+ * mantém contraste suficiente para interações.
+ *
+ * Light permanece como estava (NÃO invertido) — só ganha `tertiary` para que a
+ * mesma chave de cor exista nos dois schemes e o `t` de acento seja portável.
+ */
+
+/** Texto secundário do DARK com contraste WCAG AA (≥4.5:1) sobre as superfícies. */
+const DARK_TEXT_SECONDARY = '#aeb6c2';
+
+/** Divider/borda 1px visível no dark (sem virar linha apagada). */
+const DARK_DIVIDER = '#2b313c';
+
+/** Superfície de camada 1 (app/background) — casa com o body do index.css. */
+const DARK_BACKGROUND_DEFAULT = '#0f1115';
+
+/** Superfície de camada 2 (cards/papers/sheets) — levemente mais clara. */
+const DARK_BACKGROUND_PAPER = '#171c23';
+
+/** Acento terciário (M3) legível sobre fundo escuro — destaques da Home. */
+const DARK_TERTIARY_MAIN = '#b8a6ff';
+
+/** Acento terciário do LIGHT — acompanha o primary escuro legível. */
+const LIGHT_TERTIARY_MAIN = '#6a4fbf';
+
 export const theme = createTheme({
   // Dois esquemas completos: light e dark (ambos com a paleta default do MUI +
   // primary custom). `light` vem primeiro → defaultColorScheme = 'light' (só
@@ -65,6 +114,9 @@ export const theme = createTheme({
         primary: {
           main: LIGHT_PRIMARY_MAIN,
         },
+        tertiary: {
+          main: LIGHT_TERTIARY_MAIN,
+        },
         // Demais cores seguem o default do esquema claro do MUI.
       },
     },
@@ -73,7 +125,20 @@ export const theme = createTheme({
         primary: {
           main: PRIMARY_MAIN,
         },
-        // Demais cores seguem o default do esquema escuro do MUI.
+        tertiary: {
+          main: DARK_TERTIARY_MAIN,
+        },
+        // Elevação por camadas (onda 17A): `paper` é a superfície de cards,
+        // `default` a base do app; `divider` vira borda 1px legível.
+        background: {
+          default: DARK_BACKGROUND_DEFAULT,
+          paper: DARK_BACKGROUND_PAPER,
+        },
+        text: {
+          primary: '#e8eaed',
+          secondary: DARK_TEXT_SECONDARY,
+        },
+        divider: DARK_DIVIDER,
       },
     },
   },
