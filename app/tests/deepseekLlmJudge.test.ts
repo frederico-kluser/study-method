@@ -133,6 +133,32 @@ test('judge: cliente rejeita com KEY_MISSING → degrada com null (não estoura)
   assert.equal(out, null);
 });
 
+test('judge: fix15c B2 — cliente lança EMPTY_CONTENT (2xx só com reasoning_content) → degrada com null', async () => {
+  // Antes da correção, o EMPTY_CONTENT era RE-LANÇADO e o handleExit10 (que não
+  // captura throw do juiz) derrubava a geração da aula inteira. Agora deve
+  // degradar como retorno não-objeto → buildApplyFile vira applyExhausted.
+  const client = {
+    chatCompletion: async () => {
+      throw new DeepSeekError(
+        DEEPSEEK_ERROR_CODES.EMPTY_CONTENT,
+        'DeepSeek: resposta com content vazio (o modelo devolveu apenas reasoning_content).'
+      );
+    },
+  };
+  const judge = createDeepSeekLlmJudge({ client });
+  assert.equal(await judge(makeEnvelope()), null);
+});
+
+test('judge: cliente lança NETWORK → degrada com null (sem conteúdo utilizável)', async () => {
+  const client = {
+    chatCompletion: async () => {
+      throw new DeepSeekError(DEEPSEEK_ERROR_CODES.NETWORK, 'DeepSeek: falha de rede.');
+    },
+  };
+  const judge = createDeepSeekLlmJudge({ client });
+  assert.equal(await judge(makeEnvelope()), null);
+});
+
 test('judge: erro não-degradante do cliente → propaga como DeepSeekError', async () => {
   const client = {
     chatCompletion: async () => {

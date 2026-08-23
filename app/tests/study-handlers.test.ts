@@ -478,6 +478,47 @@ describe('study-handlers (unit / fakes)', () => {
       // OK aqui — o que provamos é que NÃO lança 'requer setupRoot'.
       assert.ok(Array.isArray(res), 'list-challenges usa setupRoot derivado, sem lançar');
     });
+
+    it('FIX15C: generateLesson zera lastSetupRoot/lastSetupId NO INÍCIO (falha antes do materializing não usa setup velho)', async () => {
+      __resetStudyHandlersMemory();
+      const setupAntigo = path.join(tmp, 'setup-antigo');
+      let chamadas = 0;
+      const { deps } = makeDeps({
+        lesson: {
+          generateLesson: async (_subject, opts) => {
+            chamadas += 1;
+            if (chamadas === 1) {
+              // 1ª geração grava o setup no progresso `materializing`.
+              opts?.onProgress?.({
+                phase: 'materializing',
+                message: 'Setup criado',
+                fraction: 0.5,
+                setupRoot: setupAntigo,
+                setupId: 'setup-antigo-id',
+              });
+              return { lesson: { title: 'A', subject: 'x', markdown: '# A', findings: [], challenges: [], createdAt: 'now' }, rejected: [] };
+            }
+            // 2ª geração FALHA ANTES do materializing (ex.: pesquisa).
+            throw new Error('pesquisa falhou');
+          },
+        },
+      });
+      const handlers = buildStudyHandlers(deps);
+
+      // 1) gera e grava lastSetupRoot via progresso.
+      await handlers.get(STUDY_CHANNELS.GENERATE_LESSON)!(undefined, 'Iteração');
+      // 2) nova geração falha antes do materializing.
+      await assert.rejects(
+        async () => handlers.get(STUDY_CHANNELS.GENERATE_LESSON)!(undefined, 'Iteração 2'),
+        /pesquisa falhou/
+      );
+      // 3) o handler zerou o setup velho ao entrar na 2ª execução → list-challenges
+      //    sem setupRoot deve exigir setup agora, NÃO usar o antigo.
+      await assert.rejects(
+        async () => handlers.get(STUDY_CHANNELS.LIST_CHALLENGES)!(undefined, {}),
+        /requer `setupRoot`/
+      );
+    });
   });
 
   describe('study:create-challenge', () => {

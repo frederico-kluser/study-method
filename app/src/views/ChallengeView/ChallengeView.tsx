@@ -236,10 +236,13 @@ export default function ChallengeView(): ReactElement {
   }, [active, loadWorkspace]);
 
   // Ao montar: se veio com desafio do contexto, já está setado; senão lista.
+  // Fix15c-review: dispara também quando `lastSetupRoot` muda (loadChallenges é
+  // useCallback estável que só troca de identidade quando o root muda) — assim a
+  // lista recarrega com o setup novo mesmo com a view montada. Sem loop:
+  // listChallenges não altera o root, então a dep é estável.
   useEffect(() => {
     if (!nav.selectedChallenge) void loadChallenges();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [nav.selectedChallenge, loadChallenges]);
 
   /**
    * Assina o canal de eventos dos testes (main push). Mantido estável e vazio

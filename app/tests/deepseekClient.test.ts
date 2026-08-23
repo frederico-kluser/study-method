@@ -13,6 +13,7 @@ import {
   DEEPSEEK_ERROR_CODES,
   DeepSeekError,
   parseChoiceResult,
+  renderSanitizedBodyFragment,
 } from '../electron/main/services/deepseekClient';
 
 function fakeResponse(status: number, body: unknown = {}, statusText = ''): Response {
@@ -311,4 +312,39 @@ test('chatCompletion: baseUrl injetável sem barra final', async () => {
   const client = createDeepSeekClient({ fetchImpl, baseUrl: 'https://example.test/', apiKey: async () => 'k' });
   await client.chatCompletion({ messages: [{ role: 'user', content: 'x' }] });
   assert.equal(calls[0].url, 'https://example.test/chat/completions');
+});
+
+test('renderSanitizedBodyFragment: máscara a chave exata ANTES de truncar (não corta a chave ao meio)', () => {
+  // Chave longa que começaria ESTEJA no limite a ser cortado: com a ordem antiga
+  // (truncar→mascarar) metade da chave vazaria; agora a máscara vem primeiro.
+  const apiKey = 'sk-ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789abcdefghijklmnopqrstuvwxyz0123456789';
+  const long = `corpo com a chave ${apiKey} no meio e muito texto depois`;
+  const out = renderSanitizedBodyFragment(long, apiKey);
+  assert.ok(out.includes('***'), 'chave exata deve virar ***');
+  assert.equal(out.includes(apiKey), false, 'nunca deve expor a chave exata');
+  assert.ok(out.length <= 161, 'deve truncar a 160 chars + ellipsis');
+});
+
+test('renderSanitizedBodyFragment: mascara chave PARTIAL/base64/URL-encoded via regex sk-...', () => {
+  // apiKey exata desconhecida/diferente do fragmento — a defesa é o regex sk-...
+  const out = renderSanitizedBodyFragment(
+    'token sk-abcDEF123ghi456 e mais um sk-xYzQw999',
+    'outra-chave'
+  );
+  assert.equal(out.includes('sk-'), false, 'nenhum padrão sk- deve sobreviver');
+  assert.match(out, /\*\*\*/);
+});
+
+test('renderSanitizedBodyFragment: mascara "Bearer <chave>" (header refletido no corpo)', () => {
+  const apiKey = 'sk-BEARERTOKEN1234567890';
+  const out = renderSanitizedBodyFragment(`authorization: Bearer ${apiKey} no corpo`, apiKey);
+  assert.equal(out.includes(apiKey), false);
+  assert.match(out, /Bearer \*\*\*/);
+});
+
+test('renderSanitizedBodyFragment: segue truncando para FRAGMENTOS SEM chave', () => {
+  const body = { a: 'x'.repeat(400) };
+  const out = renderSanitizedBodyFragment(body, '');
+  assert.ok(out.length <= 161, 'deve truncar a 160 chars + ellipsis');
+  assert.ok(out.endsWith('…'));
 });

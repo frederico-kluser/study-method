@@ -318,6 +318,11 @@ export function buildStudyHandlers(deps: StudyHandlerDeps): Map<string, IpcHandl
   });
 
   map.set(STUDY_CHANNELS.GENERATE_LESSON, async (_event, payload: unknown) => {
+    // Fix15c-review: zera o setup do generate ANTERIOR NO INÍCIO — se esta
+    // geração falhar ANTES do `materializing` (ex.: pesquisa falha), o
+    // list-challenges não deve usar o setupRoot velho de outro generate.
+    memory.lastSetupRoot = null;
+    memory.lastSetupId = null;
     // Aceita uma STRING AVULSA (subject, como a UI chama: generateLesson(subject))
     // OU um objeto `{ subject, language?, goal? }`. Normaliza para o objeto antes
     // de delegar ao lesson-orchestrator (que aceita subject string).

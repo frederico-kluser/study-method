@@ -253,6 +253,10 @@ export default function LessonView(): ReactElement {
     setParsed(null);
     setStatus('running');
     setPhase({ phase: 'gerando', fraction: 0, message: t('translation:lesson.starting'), done: false });
+    // Fix15c-review: limpa o setupRoot do generate ANTERIOR ANTES de chamar a
+    // API — se esta geração falhar antes do `materializing`, a ChallengeView
+    // não relista com o setup velho.
+    setLastSetupRoot(null);
     try {
       // generateLesson é tipado como ()=>Promise<unknown>; o runtime encaminha
       // args ao invoke — passamos o subject como primeiro argumento.

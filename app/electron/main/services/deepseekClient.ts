@@ -139,14 +139,25 @@ function extractErrorText(payload: unknown): string | undefined {
   return undefined;
 }
 
+/** Escapa meta-caracteres de regex (para compor RegExp a partir da apiKey). */
+function escapeRegExp(s: string): string {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
 /**
  * Renderiza um fragmento SANITIZADO do corpo para mensagens de erro: vira JSON
  * compacto da chave/valor citada, com o valor truncado a `maxLen` e com qualquer
  * ocorrência da apiKey substituída por '***'. NUNCA expõe a chave nem dados
  * sensíveis. Devolve o campo alvo (`choices[0]`, `error.message`, etc.) ou o
  * corpo inteiro se `field` não existir.
+ *
+ * ORDEM corrigida (fix15c-review): MÁSCARA PRIMEIRO, TRUNCAMENTO DEPOIS — antes
+ * a chave era truncada a 160 chars e podia ser cortada ao meio, vazando metade
+ * dela. Além da substituição literal (split exato), também mascara padrões de
+ * chave parcial/tipo `sk-[A-Za-z0-9]{6,}` (base64, URL-encoded, truncada) via
+ * regex e o par `Bearer <chave>`.
  */
-function renderSanitizedBodyFragment(payload: unknown, apiKey: string, field?: string): string {
+export function renderSanitizedBodyFragment(payload: unknown, apiKey: string, field?: string): string {
   let target: unknown = payload;
   if (field) {
     let node: unknown = payload;
@@ -172,8 +183,19 @@ function renderSanitizedBodyFragment(payload: unknown, apiKey: string, field?: s
     text = String(target);
   }
   if (!text || text.length === 0) text = String(target);
+
+  // 1) MÁSCARA: a chave exata e padrões de chave parcial somem ANTES de cortar.
+  if (apiKey) {
+    text = text.split(apiKey).join('***');
+    // `Bearer <chave>` (ex.: header Authorization refletido no corpo) → `Bearer ***`.
+    text = text.replace(new RegExp(`(Bearer\\s+)${escapeRegExp(apiKey)}`, 'gi'), 'Bearer ***');
+  }
+  // Padrão de chave tipo `sk-...` (parcial/base64/URL-encoded) mesmo sem a chave
+  // exata conhecida — defensivo para não vazar metade de uma chave.
+  text = text.replace(/(sk-[A-Za-z0-9]{6,})/gi, '***');
+
+  // 2) TRUNCA por último — nunca pode cortar uma chave ao meio.
   if (text.length > 160) text = text.slice(0, 160) + '…';
-  if (apiKey) text = text.split(apiKey).join('***');
   return text;
 }
 

@@ -122,12 +122,17 @@ export function extractFirstJsonObject(text: string): unknown {
 /**
  * Fabrica o juiz LLM DeepSeek.
  *
- * Degradação (sem chave): NÃO lança exceção crua. `handleExit10` do runner NÃO
- * captura throw do juiz, e `buildApplyFile` converte um retorno não-objeto (ex.:
- * `null`) no caminho degradado `applyExhausted: true` sem fabricar dado nenhum —
- * retornamos `null` nesse caso. Demais erros do cliente (chave inválida, rate
- * limit, servidor, rede quando há chave) são re-lançados como DeepSeekError
- * documentado para o chamador decidir, NUNCA expondo a chave.
+ * Degradação (sem chave / sem conteúdo / rede): NÃO lança exceção crua.
+ * `handleExit10` do runner NÃO captura throw do juiz, e `buildApplyFile`
+ * converte um retorno não-objeto (ex.: `null`) no caminho degradado
+ * `applyExhausted: true` sem fabricar dado nenhum — retornamos `null` nesses
+ * casos. Com o B2, um 2xx com content vazio agora LANÇA DeepSeekError(
+ * EMPTY_CONTENT) no cliente (não devolve mais `{ content: '' }`), então esse
+ * caminho é tratado no catch como degradação (o `if (!raw || !raw.content)`
+ * viraria código morto). NETWORK também degrada (exceção de transporte sem
+ * conteúdo utilizável). Demais erros do cliente (chave inválida, rate limit,
+ * servidor) são re-lançados como DeepSeekError documentado para o chamador
+ * decidir, NUNCA expondo a chave.
  */
 export function createDeepSeekLlmJudge(deps: DeepSeekLlmJudgeDeps = {}): DeepSeekLlmJudge {
   const client = deps.client ?? createDeepSeekClient({ apiKey: deps.getApiKey });
@@ -152,10 +157,21 @@ export function createDeepSeekLlmJudge(deps: DeepSeekLlmJudgeDeps = {}): DeepSee
     try {
       raw = await client.chatCompletion({ messages, temperature: 0, ...(model ? { model } : {}) });
     } catch (error) {
-      // KEY_MISSING é tratável como degradação (sem chave): mesmo com client
-      // injetado, se o transporte reclamar de chave ausente, degrada em vez de
-      // estourar. Demais erros sobem como estão (runtime real).
-      if (error instanceof DeepSeekError && error.code === DEEPSEEK_ERROR_CODES.KEY_MISSING) {
+      // Erros tratáveis como DEGRADAÇÃO (sem resposta utilizável) → retorna
+      // null em vez de estourar, mantendo a doc de cima (buildApplyFile vira
+      // applyExhausted com retorno não-objeto):
+      //  - KEY_MISSING: sem chave (mesmo com client injetado).
+      //  - EMPTY_CONTENT: 2xx com content vazio (B2 — model devolveu só
+      //    reasoning_content). Antes quebrava a geração da aula inteira.
+      //  - NETWORK: transporte/leitura falhou além da chave — sem conteúdo.
+      // Demais erros sobem como estão (runtime real: chave inválida, rate limit,
+      // servidor).
+      if (
+        error instanceof DeepSeekError &&
+        (error.code === DEEPSEEK_ERROR_CODES.KEY_MISSING ||
+          error.code === DEEPSEEK_ERROR_CODES.EMPTY_CONTENT ||
+          error.code === DEEPSEEK_ERROR_CODES.NETWORK)
+      ) {
         return null;
       }
       throw error;
