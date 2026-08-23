@@ -1,0 +1,20 @@
+{
+  "schema_version": "1.0",
+  "generated_by": "onda3-decisoes (3.0a) — ESQUELETO do COMMIT PREP; preencher com as ~100 decisões",
+  "field_contract": {
+    "id": "D-<PREFIXO><NN>. Prefixos: A arquitetura · M memoria · P proficiencia · E ensino · C challenge · V visualizacao · B bootstrap · S seguranca",
+    "audience": "builder | student | both — builder e perguntada pelo BUILD_SPEC em build-time; student e perguntada pela skill em runtime",
+    "tier": "1 dia-zero (<=6, ask_when=setup-init) · 2 no-momento-certo · 3 sob-demanda · 4 congelada",
+    "ask_when": "setup-init | first-challenge | session-15 | on-demand | never",
+    "reversibility": "cheap | moderate | expensive",
+    "writes_to": "caminho no setup.json (ex.: privacy.cross_read). null quando audience=builder",
+    "question_ptbr": "a pergunta em linguagem de gente",
+    "why_it_matters": "1-3 linhas com analogia facil, no mesmo tom da skill",
+    "options": "[{id, label, value, pros[], cons[]}] — value e o dado de maquina gravado em writes_to",
+    "default": "id da opcao default",
+    "source": "caminho#secao do doc que sustenta o default",
+    "status": "open | resolved_by_arbitration",
+    "resolved_by": "AR-NN quando status=resolved_by_arbitration"
+  },
+  "decisions": []
+}

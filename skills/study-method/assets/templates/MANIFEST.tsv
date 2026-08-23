@@ -1,0 +1,25 @@
+# MANIFEST.tsv — contrato dos templates (COMMIT PREP onda 3). Colunas separadas por TAB.
+# caminho	script_consumidor	placeholders	obrigatorio
+# Sintaxe de placeholder: {{NOME}} — MAIUSCULA_COM_UNDERSCORE. Nenhum outro delimitador é aceito.
+# O gate (tests/validate.sh) falha se: um template usar placeholder fora desta lista; um script
+# consumir template ausente; ou sobrar {{ }} no artefato materializado.
+setup/README.md.tmpl	readme-sync.sh --init	SETUP_NAME,SUBJECT,SETUP_ID,CREATED_AT	sim
+setup/setup.json.tmpl	setup-init.sh	SETUP_ID,SETUP_NAME,SUBJECT,LANGUAGE,SESSION_MINUTES,THEORY_SOURCE,CREATED_AT,SCHEMA_VERSION	sim
+setup/gitignore.tmpl	setup-init.sh	-	sim
+session/session.json.tmpl	session-new.sh	SESSION_ID,SETUP_ID,DATE,STARTED_AT,SCHEMA_VERSION	sim
+research/research.md.tmpl	research-new.sh	RESEARCH_ID,TOPIC,CREATED_IN_SESSION,CREATED_AT,SOURCES_JSON	sim
+challenge/README.md.tmpl	challenge-new.sh	CHALLENGE_ID,TITLE,STATEMENT,SCENARIOS_TABLE,LANGUAGE,RUN_CMD	sim
+challenge/meta.json.tmpl	challenge-new.sh	CHALLENGE_ID,TITLE,LANGUAGE,LAYOUT_PROFILE,CONCEPT_IDS,SCENARIOS_JSON,EXPECTED_TEST_COUNT,CREATED_AT,SCHEMA_VERSION	sim
+challenge/runner.sh.tmpl	challenge-new.sh	LANGUAGE,TEST_CMD,EXPECTED_TEST_COUNT,COUNT_PROBE	sim
+challenge/python/stub.py.tmpl	challenge-new.sh	FUNC_NAME,SIGNATURE,DOCSTRING	sim
+challenge/python/test_stub.py.tmpl	challenge-new.sh	FUNC_NAME,MODULE,SCENARIOS_CODE	sim
+challenge/node/stub.mjs.tmpl	challenge-new.sh	FUNC_NAME,SIGNATURE	sim
+challenge/node/stub.test.mjs.tmpl	challenge-new.sh	FUNC_NAME,MODULE,SCENARIOS_CODE	sim
+challenge/go/stub.go.tmpl	challenge-new.sh	FUNC_NAME,SIGNATURE,PKG	sim
+challenge/go/stub_test.go.tmpl	challenge-new.sh	FUNC_NAME,PKG,SCENARIOS_CODE	sim
+challenge/go/go.mod.tmpl	challenge-new.sh	PKG,GO_VERSION	sim
+challenge/rust/Cargo.toml.tmpl	challenge-new.sh	CRATE	sim
+challenge/rust/lib.rs.tmpl	challenge-new.sh	FUNC_NAME,SIGNATURE	sim
+challenge/rust/test_stub.rs.tmpl	challenge-new.sh	FUNC_NAME,CRATE,SCENARIOS_CODE	sim
+challenge/c/stub.c.tmpl	challenge-new.sh	FUNC_NAME,SIGNATURE	sim
+challenge/c/test_stub.c.tmpl	challenge-new.sh	FUNC_NAME,SCENARIOS_CODE	sim
