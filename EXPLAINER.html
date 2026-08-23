@@ -1,0 +1,63 @@
+<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>Study Method — EXPLAINER (3 rodadas)</title>
+<style>body{font-family:system-ui;max-width:960px;margin:40px auto;padding:0 20px;line-height:1.55;color:#e6e8ec;background:#0f1115}
+h1,h2{color:#8be9fd}h3{color:#bd93f9}table{border-collapse:collapse;width:100%;margin:12px 0}
+td,th{border:1px solid #333;padding:8px;text-align:left;font-size:14px}code{background:#1c212b;padding:2px 6px;border-radius:4px}
+ul{margin:6px 0 14px}.ok{color:#50fa7b}.warn{color:#f1fa8c}</style></head>
+<body>
+<h1>Study Method — GUI Electron · EXPLAINER (3 rodadas)</h1>
+<p>Branch <code>do/wt/electronjs</code> · 17 squash commits (9 da rodada 2 + 7 da rodada 3, sobre a rodada 1) · gates: <b class="ok">build 0 · lint 0 · 622 unit (621 pass · 1 skip) · 11 E2E passed (2×) </b>· revisor adversarial final: <b class="ok">APTO-PARA-COMMIT</b>.</p>
+
+<h2>O que foi construído (resumo)</h2>
+<p>GUI desktop (Electron + React 19 + MUI v9) do tutor <b>Study Method</b>: aula → desafio → editor → teste → feedback, com LLM local embarcado, pesquisa Brave, vozes STT/TTS, i18n pt-BR/en, tema claro/escuro, onboarding interativo e E2E sem janela.</p>
+
+<h2>Rodadas e ondas</h2>
+<table>
+<tr><th>Onda</th><th>Rodada</th><th>Sub-tarefa</th><th>Entregue</th></tr>
+<tr><td>1-5</td><td>1</td><td>Scaffold Electron, Pi agent, Brave, LLM local, orquestrador de aula</td><td>GUI base: shell, settings, pesquisa, aula, juiz, editor + desafios</td></tr>
+<tr><td>6</td><td>2</td><td>i18n-core + startup-gate</td><td>i18next pt-BR/en + switcher; bloqueio sem chaves DeepSeek/Brave + validação a cada boot + modo offline</td></tr>
+<tr><td>7</td><td>2</td><td>mui-shell + mui-views (+2 fixes)</td><td>Layout TODO em MUI v9 tema dark; i18n real; tSafe eliminado</td></tr>
+<tr><td>8</td><td>2</td><td>voice (STT+TTS)</td><td>STT Nemotron (sherpa-onnx util-process) + TTS Piper en/pt (binário externo, isolamento GPL)</td></tr>
+<tr><td>9</td><td>2</td><td>e2e-playwright</td><td>Harness E2E Playwright _electron sem GPU/LLM (8 testes)</td></tr>
+<tr><td>10</td><td>2</td><td>closing+docs</td><td>Fixes voz, limpeza CSS órfão, wiring i18n testado, docs</td></tr>
+<tr><td>11</td><td>3</td><td>theme-toggle + dracula</td><td>Tema claro/escuro com botão (default SO, persistência); Dracula canônico editor+terminal</td></tr>
+<tr><td>12</td><td>3</td><td>tutorial + fixes (i18n views, homeview light, resolução)</td><td>Onboarding interativo portado do Ondokai; ressalva i18n corrigida; HomeView legível em light</td></tr>
+<tr><td>13</td><td>3</td><td>e2e-window</td><td>Janela oculta/não-focável (STUDY_METHOD_WINDOW_VISIBLE); OnboardingHost montado; +3 specs E2E (11 total)</td></tr>
+<tr><td>14</td><td>3</td><td>closing+logo</td><td>Prompt da logo (Nano Banana 2) + docs da rodada 3</td></tr>
+</table>
+
+<h2>Antes → Depois</h2>
+<ul>
+<li><b>Antes (fim rodada 2):</b> dark-only fixo · palette MUI dark · editor Dracula já presente · terminal one-dark-ish com SGR quebrado · strings pt-BR hardcoded em views · sem onboarding · janela aparecia nos E2E (8 testes) · sem prompt de logo.</li>
+<li><b>Depois (fim rodada 3):</b> claro/escuro com toggle seguindo SO + persistência · dark/light AA · Dracula canônico editor+terminal com truecolor · i18n completo nas views (paridade) · onboarding interativo first-run · janela oculta/não-focável nos E2E (11 testes) · prompt de logo Nano Banana 2.</li>
+</ul>
+
+<h2>Decisões técnicas (justificadas)</h2>
+<ul>
+<li><b>Tema:</b> colorSchemes light+dark com colorSchemeSelector:'class' (setMode funciona; media selector não) + defaultMode="system" (segue o SO) + modeStorageKey localStorage; anti-flash via primeColorSchemeClass() pré-render (CSP proíbe inline InitColorSchemeScript); light primary #1565c0 (AA 5.75:1) vs dark #4f8cff.</li>
+<li><b>Dracula:</b> paleta canônica extraída (draculaTheme.ts) compartilhada editor⇄terminal; fix SGR truecolor 38;2;r;g;b (o antigo \x1b[#hexm era inválido e silenciosamente ignorado pelo xterm).</li>
+<li><b>Onboarding:</b> portado do Ondokai sem áudio; i18n sem interpolação {{x}} (o t() estrito colapsa — concatenação em JS); alvos data-onboarding-target (1 linha, Box display:contents); host montado APÓS o tema (evita conflito de merge em App.tsx); sem dependência nova.</li>
+<li><b>Janela:</b> estudo profundo (headless do Electron não confirmado) → show:false+focusable:false por env STUDY_METHOD_WINDOW_VISIBLE + xvfb-run no CI; nunca --headless.</li>
+<li><b>i18n das views (ressalva rodada 2):</b> 59 chaves novas + existentes com paridade exata; terminalBanner mantido lib pura determinística (saída de log).</li>
+<li><b>Logo:</b> prompt entregue (docs/nano-banana-2-logo-prompt.md) para geração no Nano Banana 2 — não geramos a imagem (sem GPU).</li>
+</ul>
+
+<h2>Commits (squash, um por sub-tarefa)</h2>
+<ul>
+<li>Rodada 2 (9): 7bb9136 ● c24b991 ● 0b08fdb ● f990adf ● 39f058e ● c611d22 ● a21eacb ● 18e8ef4 ● d18d5ef</li>
+<li>Rodada 3 (7): 7bcfc21 ● cd8cc6b ● 0b7c134 ● 534f1e7 ● fbe27b3 ● 13933bb ● 32dbcd1</li>
+</ul>
+
+<h2>Notas pós-revisão (baixa severidade — trabalho futuro)</h2>
+<ul>
+<li><code>'(sem saída)'</code> em ChallengeView (contexto do feedback do LLM, não-UI) — candidato a lib determinística.</li>
+<li>README deve listar explicitamente as exceções de i18n ('n/d', atalhos de teclado, scaffold HomeView).</li>
+<li>LAUNCH-flake do Electron E2E (timeout de conexão) não reproduzida na rodada 3 (2× 100%) — monitorar; um retry no helpers é o mitigante se voltar.</li>
+</ul>
+
+<h2>Como rodar / validar</h2>
+<ul>
+<li><code>cd app && npm ci && npm run build</code> · <code>npm run lint</code> · <code>bash tools/t.sh tests</code> (unit)</li>
+<li><code>npm run test:e2e</code> — janela oculta por env; CI sem display: <code>xvfb-run -a npm run test:e2e</code></li>
+<li>Tema: botão na AppBar (claro/escuro/sistema) · Dracula no editor e terminal · Onboarding na 1ª execução pós-gate · Prompt da logo: <code>docs/nano-banana-2-logo-prompt.md</code></li>
+</ul>
+</body></html>
