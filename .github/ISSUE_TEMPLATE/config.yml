@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Vulnerabilidade de segurança ou vazamento de dado pessoal
+    url: https://docs.github.com/code-security/security-advisories/guidance-on-reporting-and-writing-information-about-vulnerabilities/privately-reporting-a-security-vulnerability
+    about: >-
+      Não abra issue pública. Use a aba Security deste repositório para relatar em privado.
+      Vale para qualquer coisa que permita executar código fora do sandbox, escrever fora dos
+      dois caminhos declarados, ou fazer a memória gravar dado que a regra PRIV-2 proíbe.

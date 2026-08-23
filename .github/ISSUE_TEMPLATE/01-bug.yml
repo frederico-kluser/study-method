@@ -1,0 +1,68 @@
+name: Bug
+description: Um script, um gate ou o tutor se comportou diferente do que o contrato diz.
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: >-
+        Antes: rode `tests/gate-build.sh`, `tests/gate-lint.sh`, `tests/validate.sh` e
+        `tests/smoke.sh`. Se um deles já pega o problema, cole o bloco de falha — é a metade
+        mais útil do relato.
+
+
+        **Nunca cole conteúdo de `memory/`.** Ele contém o seu perfil de estudo. Se o bug está
+        na memória, descreva o formato do campo, não o valor.
+
+  - type: textarea
+    id: o-que-aconteceu
+    attributes:
+      label: O que aconteceu
+      description: O comportamento observado, sem interpretação.
+      placeholder: |
+        Rodei `challenge-verify.sh challenges/0003-fatorial` e ele saiu 10 duas vezes seguidas
+        com o mesmo request_id, em vez de aplicar a resposta.
+    validations:
+      required: true
+
+  - type: textarea
+    id: o-que-o-contrato-diz
+    attributes:
+      label: O que o contrato diz que deveria acontecer
+      description: >-
+        Cite a seção de `docs/00-contratos.md`, a invariante (`I-NN`), a regra do `SKILL.md`
+        (`SEG-4`, `DES-2`, `AS-6`…) ou o fragmento em `docs/build-spec/`. Se você não achou onde
+        está escrito, diga isso — pode ser que o contrato é que esteja faltando.
+      placeholder: "docs/00-contratos.md §6: máximo 2 ciclos por invocação lógica."
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproducao
+    attributes:
+      label: Como reproduzir
+      description: Comandos exatos, do zero. Use um `STUDY_METHOD_HOME` temporário se puder.
+      render: shell
+    validations:
+      required: true
+
+  - type: textarea
+    id: saida
+    attributes:
+      label: Saída (stdout, stderr, exit code)
+      description: >-
+        Cole a saída crua. O exit code importa: falha é `!= 0`, e 137 é ambíguo (timeout, OOM ou
+        limite de CPU) — diga qual dos três, se souber.
+      render: text
+    validations:
+      required: true
+
+  - type: textarea
+    id: ambiente
+    attributes:
+      label: Ambiente
+      description: >-
+        Saída de `uname -sr`, `bash --version | head -1`, `python3 --version`, `jq --version`, e
+        `command -v bwrap shellcheck` (a ausência dessas duas muda o que o gate cobre).
+      render: shell
+    validations:
+      required: true

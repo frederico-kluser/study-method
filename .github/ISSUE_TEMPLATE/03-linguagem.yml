@@ -1,0 +1,78 @@
+name: Linguagem nova
+description: Implementar uma das 14 linguagens documentadas, ou acrescentar uma que não está no vocabulário.
+labels: ["linguagem"]
+body:
+  - type: markdown
+    attributes:
+      value: >-
+        Leia a seção "Acrescentar uma linguagem nova" do `CONTRIBUTING.md` antes. Uma linguagem
+        só conta como implementada quando o `smoke.sh` gera e valida um desafio real nela —
+        template sem prova é documentação.
+
+  - type: input
+    id: linguagem
+    attributes:
+      label: Linguagem
+      placeholder: "elixir"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: estado
+    attributes:
+      label: Estado atual
+      options:
+        - Está no enum `language` e documentada em references/languages.md §5 (falta implementar)
+        - Não está no vocabulário (precisa entrar no contrato primeiro)
+    validations:
+      required: true
+
+  - type: input
+    id: comando
+    attributes:
+      label: Comando de teste zero-install
+      description: O comando exato, sem build system pesado, rodando com o que a toolchain já traz.
+      placeholder: "mix test"
+    validations:
+      required: true
+
+  - type: input
+    id: exit
+    attributes:
+      label: Exit code de falha, medido
+      description: >-
+        Rode um teste que falha e cole o código. Não deduza — Rust dá 101, C dá 134, Elixir dá 2,
+        `unittest` sem teste dá 5, e R sai 0 mesmo com falha.
+      placeholder: "2 (medido: mix test com uma asserção falsa)"
+    validations:
+      required: true
+
+  - type: textarea
+    id: contagem
+    attributes:
+      label: Como extrair a contagem de testes da saída
+      description: >-
+        O `test_count_probe`. Se a linguagem não expõe contagem, a saída é o `counter_protocol`
+        (o teste imprime `TESTS_RUN=` e `TESTS_FAILED=`). O valor `none` é rejeitado no passo 0.
+      render: text
+    validations:
+      required: true
+
+  - type: textarea
+    id: armadilhas
+    attributes:
+      label: Armadilhas verificadas por execução
+      description: >-
+        Alguma forma de sair 0 sem rodar teste nenhum? Layout que quebra? Asserção desabilitada
+        por padrão? Cole o comando e a saída de cada caso que você reproduziu.
+      render: shell
+    validations:
+      required: true
+
+  - type: input
+    id: layout
+    attributes:
+      label: layout_profile e manifesto exigido
+      placeholder: "mix_project · mix.exs"
+    validations:
+      required: true

@@ -1,0 +1,69 @@
+name: Desafio inválido chegou até mim
+description: O harness aprovou um desafio cujo teste está errado, acoplado ou impossível.
+labels: ["bug", "harness"]
+body:
+  - type: markdown
+    attributes:
+      value: >-
+        Este é o defeito mais grave que o projeto pode ter: um teste com bug que passou pelas 8
+        provas do `challenge-verify.sh` e foi entregue como se fosse verdade. Ele merece
+        formulário próprio.
+
+
+        Se o desafio **não** chegou até você (o harness reprovou e ele foi descartado), o sistema
+        funcionou — abra um Bug comum, não este.
+
+  - type: dropdown
+    id: sintoma
+    attributes:
+      label: Qual foi o sintoma
+      options:
+        - O teste falha contra uma solução correta (over-specification)
+        - O teste passa contra uma solução errada (teste fraco)
+        - O teste passa contra o stub vazio (teste tautológico)
+        - O teste não roda nada e mesmo assim sai verde
+        - O valor esperado no enunciado está numericamente errado
+        - O teste é instável entre execuções (flaky)
+        - Outro
+    validations:
+      required: true
+
+  - type: textarea
+    id: meta
+    attributes:
+      label: O bloco de veredito do meta.json do desafio
+      description: >-
+        `jq '{language, layout_profile, validation, execution: {expected_test_count, test_count_probe}}'
+        meta.json`. **Não cole o `.solution/`**, e não cole nada de `memory/`.
+      render: json
+    validations:
+      required: true
+
+  - type: textarea
+    id: contraexemplo
+    attributes:
+      label: O contraexemplo
+      description: >-
+        A implementação correta que o teste rejeita, ou a implementação errada que ele aceita.
+        É o que transforma o relato em prova.
+      render: text
+    validations:
+      required: true
+
+  - type: input
+    id: mutation-score
+    attributes:
+      label: Mutation score registrado
+      description: "`jq -r '.validation.mutation_score' meta.json` — e diga se houve amostragem."
+      placeholder: "0.91, sem amostragem"
+
+  - type: textarea
+    id: passo
+    attributes:
+      label: Qual das 8 provas deveria ter pego isso
+      description: >-
+        0 build · 1 falha contra stub vazio · 2 passa contra a referência · 3 aceita
+        alternativas corretas · 4 mata mutantes · 5 determinismo · 6 contagens e nomes ·
+        7 veredito. Se você não sabe, diga — descobrir isso é parte do conserto.
+    validations:
+      required: true

@@ -1,0 +1,135 @@
+# Os 4 gates do study-method, na ordem em que fazem sentido.
+#
+# REGRA DESTE WORKFLOW: não instalamos nada. O projeto se declara sem dependência além de bash,
+# python3, jq e coreutils — se a CI precisasse de `apt-get install` para passar, a declaração
+# seria falsa. Tudo aqui usa só o que a imagem `ubuntu-latest` já traz.
+#
+# CONSEQUÊNCIA — o que fica SEM cobertura na CI, e é dito em voz alta no passo "ferramentas":
+#   · `bubblewrap` (bwrap) não está na imagem: o confinamento de escrita do sandbox NÃO é
+#     exercitado aqui. O gate degrada e declara a degradação, em vez de falhar — é o
+#     comportamento contratado, e é justamente ele que a CI verifica.
+#   · `shellcheck` pode ou não estar na imagem: quando falta, `gate-build.sh` reduz a análise
+#     estática de shell a `bash -n` (sintaxe, não uso) e diz isso no resumo.
+#   · Sem PyYAML, o frontmatter é lido por `awk`: a checagem cobre a FORMA, não a semântica YAML.
+#
+# `tests/validate.sh` pode reprovar por PENDÊNCIA (artefato que ainda não existe) e não só por
+# violação de contrato. Isso é de propósito: o placar do gate é o estado real do repositório, e
+# afrouxá-lo para pintar a CI de verde é exatamente o que o CONTRIBUTING.md proíbe.
+
+name: gate
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: gate-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  gate:
+    name: 4 gates (ubuntu-latest)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: checkout
+        uses: actions/checkout@v4
+
+      - name: ferramentas disponíveis (e o que fica sem cobertura)
+        run: |
+          set -u
+          echo "── obrigatórias ──"
+          bash --version | head -1
+          python3 --version
+          jq --version
+          echo "── usadas pelos desafios, se presentes ──"
+          for t in node go cargo gcc; do
+            if command -v "$t" >/dev/null 2>&1; then
+              printf '%-8s %s\n' "$t" "$("$t" --version 2>&1 | head -1)"
+            else
+              printf '%-8s AUSENTE\n' "$t"
+            fi
+          done
+          echo "── opcionais: a ausência DEGRADA o gate, não o quebra ──"
+          for t in bwrap shellcheck; do
+            if command -v "$t" >/dev/null 2>&1; then
+              printf '%-11s presente\n' "$t"
+            else
+              printf '%-11s AUSENTE — cobertura reduzida, declarada no resumo do gate\n' "$t"
+            fi
+          done
+
+      - name: gate-build (sintaxe e forma)
+        run: tests/gate-build.sh
+
+      - name: gate-lint (qualidade de texto e de arquivo)
+        if: ${{ !cancelled() }}
+        run: tests/gate-lint.sh
+
+      # Sem STUDY_METHOD_TODAY: cada gate já tem a sua data fixa de default, e sobrescrevê-la
+      # aqui trocaria o determinismo deles pelo palpite deste arquivo.
+      - name: validate (contrato — docs/00-contratos.md)
+        if: ${{ !cancelled() }}
+        run: tests/validate.sh
+
+      - name: smoke (integração ponta a ponta)
+        if: ${{ !cancelled() }}
+        run: tests/smoke.sh
+
+  install:
+    name: install.sh num HOME temporário
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: checkout
+        uses: actions/checkout@v4
+
+      - name: sintaxe
+        run: bash -n install.sh
+
+      - name: instalar, provar idempotência e desinstalar
+        run: |
+          set -euo pipefail
+          export HOME="$RUNNER_TEMP/fakehome"
+          mkdir -p "$HOME"
+
+          echo "── 1. instalação limpa ──"
+          ./install.sh </dev/null
+
+          echo "── 2. diff origem × destino (tem que ser vazio) ──"
+          diff -r -q skills/study-method "$HOME/.claude/skills/study-method"
+
+          echo "── 3. idempotência: a 2ª execução não faz nada ──"
+          out="$(./install.sh </dev/null)"
+          printf '%s\n' "$out"
+          printf '%s' "$out" | grep -q 'Nada a fazer'
+
+          echo "── 4. não sobrescreve sem confirmação (sem TTY, sem --force) ──"
+          touch "$HOME/.claude/skills/study-method/DIVERGENTE.txt"
+          if ./install.sh </dev/null; then
+            echo "FALHA: sobrescreveu sem perguntar"; exit 1
+          fi
+          test -f "$HOME/.claude/skills/study-method/DIVERGENTE.txt"
+
+          echo "── 5. --force substitui ──"
+          ./install.sh --force </dev/null
+          test ! -f "$HOME/.claude/skills/study-method/DIVERGENTE.txt"
+
+          echo "── 6. --uninstall remove e é idempotente ──"
+          ./install.sh --uninstall --force </dev/null
+          test ! -e "$HOME/.claude/skills/study-method"
+          ./install.sh --uninstall </dev/null
+
+          echo "── 7. --symlink ──"
+          ./install.sh --symlink </dev/null
+          test -L "$HOME/.claude/skills/study-method"
+          ./install.sh --uninstall --force </dev/null
+
+          echo "OK: install.sh idempotente, não destrutivo, reversível."
