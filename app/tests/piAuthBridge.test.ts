@@ -92,3 +92,63 @@ test('singleton reset existe (evita estado entre testes)', () => {
   __resetPiAuthBridgeSingleton();
   assert.ok(typeof __resetPiAuthBridgeSingleton === 'function');
 });
+
+test('getApiKey: provider "local" retorna "" sem consultar store nem env', async () => {
+  const bridge = make({ deepseek: 'sk-x' });
+  assert.equal(await bridge.getApiKey('local'), '');
+});
+
+test('getApiKey: store lanca exception → fallback silencioso para env', async () => {
+  const prev = process.env.DEEPSEEK_API_KEY;
+  process.env.DEEPSEEK_API_KEY = 'sk-fallback';
+  try {
+    const bridge = createPiAuthBridge({
+      getStore: async () => {
+        throw new Error('store exploded');
+      },
+    });
+    assert.equal(await bridge.getApiKey('deepseek'), 'sk-fallback');
+  } finally {
+    if (prev === undefined) delete process.env.DEEPSEEK_API_KEY;
+    else process.env.DEEPSEEK_API_KEY = prev;
+  }
+});
+
+test('getApiKey: store fallha mas sem env → ""', async () => {
+  const prev = process.env.DEEPSEEK_API_KEY;
+  delete process.env.DEEPSEEK_API_KEY;
+  try {
+    const bridge = createPiAuthBridge({
+      getStore: async () => {
+        throw new Error('store exploded');
+      },
+    });
+    assert.equal(await bridge.getApiKey('deepseek'), '');
+  } finally {
+    if (prev !== undefined) process.env.DEEPSEEK_API_KEY = prev;
+  }
+});
+
+test('getConfiguredProviders: descobre provider configurado via env', async () => {
+  const prev = process.env.DEEPSEEK_API_KEY;
+  process.env.DEEPSEEK_API_KEY = 'sk-env-only';
+  try {
+    const bridge = make({});
+    assert.deepEqual(await bridge.getConfiguredProviders(), ['deepseek']);
+  } finally {
+    if (prev === undefined) delete process.env.DEEPSEEK_API_KEY;
+    else process.env.DEEPSEEK_API_KEY = prev;
+  }
+});
+
+test('getEnvVars: usa a chave de env quando o store está vazio', async () => {
+  const prev = process.env.DEEPSEEK_API_KEY;
+  process.env.DEEPSEEK_API_KEY = 'sk-env-vars';
+  try {
+    const bridge = make({});
+    assert.deepEqual(await bridge.getEnvVars('deepseek'), { DEEPSEEK_API_KEY: 'sk-env-vars' });
+  } finally {
+    if (prev === undefined) delete process.env.DEEPSEEK_API_KEY;
+    else process.env.DEEPSEEK_API_KEY = prev;
+  }
+});

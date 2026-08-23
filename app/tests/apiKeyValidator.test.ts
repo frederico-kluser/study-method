@@ -163,3 +163,64 @@ test('validateBraveKey: 500 com corpo de erro → inválida com mensagem', async
   assert.equal(result.isValid, false);
   assert.equal(result.errorMessage, 'server exploded');
 });
+
+test('validateDeepseekKey: 500 com corpo { error: { message } } → mensagem extraída', async () => {
+  const fetchImpl = (async () =>
+    fakeResponse(500, { error: { message: 'deepseek down' } })) as unknown as typeof fetch;
+  const result = await validateDeepseekKey('sk-123', { fetchImpl });
+  assert.equal(result.isValid, false);
+  assert.equal(result.errorMessage, 'deepseek down');
+});
+
+test('validateDeepseekKey: 500 com corpo { message } (sem { error }) → mensagem extraída', async () => {
+  const fetchImpl = (async () =>
+    fakeResponse(500, { message: 'plain message' })) as unknown as typeof fetch;
+  const result = await validateDeepseekKey('sk-123', { fetchImpl });
+  assert.equal(result.isValid, false);
+  assert.equal(result.errorMessage, 'plain message');
+});
+
+test('validateDeepseekKey: 500 com corpo não-parseável → fallback HTTP status', async () => {
+  const fetchImpl = (async () =>
+    fakeResponse(500, 'not json', 'Internal Server Error')) as unknown as typeof fetch;
+  const result = await validateDeepseekKey('sk-123', { fetchImpl });
+  assert.equal(result.isValid, false);
+  assert.ok(result.errorMessage && result.errorMessage.includes('HTTP 500'));
+});
+
+test('validateDeepseekKey: 500 com corpo parseável mas sem mensagem → fallback HTTP status', async () => {
+  const fetchImpl = (async () => fakeResponse(500, { code: 'XYZ' })) as unknown as typeof fetch;
+  const result = await validateDeepseekKey('sk-123', { fetchImpl });
+  assert.equal(result.isValid, false);
+  assert.ok(result.errorMessage && result.errorMessage.includes('HTTP 500'));
+});
+
+test('validateBraveKey: chave vazia → inválida "API key is empty"', async () => {
+  const result = await validateBraveKey('', { fetchImpl: (async () => fakeResponse(200, {})) as unknown as typeof fetch });
+  assert.equal(result.isValid, false);
+  assert.equal(result.errorMessage, 'API key is empty');
+});
+
+test('validateBraveKey: baseUrl custom usada (com barras finais removidas)', async () => {
+  const seen: string[] = [];
+  const fetchImpl = (async (url: any) => {
+    seen.push(url);
+    return fakeResponse(200, {});
+  }) as unknown as typeof fetch;
+  await validateBraveKey('key-abc', { fetchImpl, baseUrl: 'https://proxy.brave.test/v1//' });
+  assert.equal(seen[0], 'https://proxy.brave.test/v1/res/v1/web/search?q=test&count=1');
+});
+
+test('validateBraveKey: 500 com corpo não-JSON → fallback HTTP status (json() lança)', async () => {
+  // json() do fake lança → o validador cai no fallback HTTP status.
+  const fetchImplThrows = (async () => {
+    const r = fakeResponse(500, {}, 'Server Error');
+    (r as { json: () => Promise<unknown> }).json = async () => {
+      throw new Error('bad json');
+    };
+    return r;
+  }) as unknown as typeof fetch;
+  const result = await validateBraveKey('key-abc', { fetchImpl: fetchImplThrows });
+  assert.equal(result.isValid, false);
+  assert.ok(result.errorMessage && result.errorMessage.includes('HTTP 500'));
+});

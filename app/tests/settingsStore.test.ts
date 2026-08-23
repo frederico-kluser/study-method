@@ -11,7 +11,7 @@ import assert from 'node:assert/strict';
 
 import { createSettingsStore } from '../electron/main/services/settingsStore';
 import type { SafeStorageLike } from '../electron/main/services/settingsStore';
-import { mkTempDir, rmrf, readFile, fileExists } from './_helpers/fs';
+import { mkTempDir, rmrf, readFile, fileExists, writeFile } from './_helpers/fs';
 
 /** SafeStorage fake determinístico: base64(<prefix>:<plain>), reversível. */
 function makeSafeStorage(encrypted: boolean): SafeStorageLike {
@@ -101,5 +101,101 @@ describe('createSettingsStore', () => {
     assert.equal(await store.getApiKey('deepseek'), '');
     assert.deepEqual(await store.getConfiguredProviders(), []);
     assert.equal(await fileExists(`${dir}/vazio-inexistente/settings.json`), false);
+  });
+
+  it('setApiKey com chave vazia APAGA a chave existente do provider', async () => {
+    await createSettingsStore({
+      safeStorage: makeSafeStorage(false),
+      userDataPath: dir,
+      fileName: 'empty-del.json',
+    }).setApiKey('deepseek', 'sk-to-delete');
+    const store = createSettingsStore({
+      safeStorage: makeSafeStorage(false),
+      userDataPath: dir,
+      fileName: 'empty-del.json',
+    });
+    await store.setApiKey('deepseek', '');
+    assert.equal(await store.getApiKey('deepseek'), '');
+    assert.deepEqual(await store.getConfiguredProviders(), []);
+    const parsed = JSON.parse(await readFile(`${dir}/empty-del.json`));
+    assert.equal(parsed.apiKeys.deepseek, undefined);
+  });
+
+  it('setValue/getValue: roundtrip e persistência entre instâncias', async () => {
+    const store = createSettingsStore({
+      safeStorage: makeSafeStorage(false),
+      userDataPath: dir,
+      fileName: 'values.json',
+    });
+    await store.setValue('lastSubject', 'listas encadeadas');
+    await store.setValue('defaultModelProvider', 'local');
+    assert.equal(await store.getValue<string>('lastSubject'), 'listas encadeadas');
+    assert.equal(await store.getValue<string>('defaultModelProvider'), 'local');
+    assert.equal(await store.getValue<string>('anything-not-set'), undefined);
+
+    const reloaded = createSettingsStore({
+      safeStorage: makeSafeStorage(false),
+      userDataPath: dir,
+      fileName: 'values.json',
+    });
+    assert.equal(await reloaded.getValue<string>('lastSubject'), 'listas encadeadas');
+    assert.equal(await reloaded.getValue<string>('defaultModelProvider'), 'local');
+  });
+
+  it('setValue sobrescreve valor anterior do mesmo key', async () => {
+    const store = createSettingsStore({
+      safeStorage: makeSafeStorage(false),
+      userDataPath: dir,
+      fileName: 'overwrite.json',
+    });
+    await store.setValue('setupsDir', '/primeiro');
+    await store.setValue('setupsDir', '/segundo');
+    assert.equal(await store.getValue<string>('setupsDir'), '/segundo');
+  });
+
+  it('getApiKey devolve "" quando a decifração falha (dado corrompido)', async () => {
+    const brokenStorage: SafeStorageLike = {
+      isEncryptionAvailable: () => true,
+      encryptString: () => Buffer.from('not-encrypted', 'utf8'),
+      decryptString: () => {
+        throw new Error('Bad encryption');
+      },
+    };
+    const store = createSettingsStore({
+      safeStorage: brokenStorage,
+      userDataPath: dir,
+      fileName: 'broken.json',
+    });
+    await store.setApiKey('deepseek', 'sk-teste');
+    assert.equal(await store.getApiKey('deepseek'), '');
+  });
+
+  it('getConfiguredProviders ignora chaves vazias do json', async () => {
+    await createSettingsStore({
+      safeStorage: makeSafeStorage(false),
+      userDataPath: dir,
+      fileName: 'mixed.json',
+    }).setApiKey('brave', 'real-key');
+    await writeFile(
+      `${dir}/mixed.json`,
+      JSON.stringify({ apiKeys: { brave: '', deepseek: 'ok-key' }, values: {}, encryption: false }),
+    );
+    const store = createSettingsStore({
+      safeStorage: makeSafeStorage(false),
+      userDataPath: dir,
+      fileName: 'mixed.json',
+    });
+    assert.deepEqual(await store.getConfiguredProviders(), ['deepseek']);
+  });
+
+  it('fileName custom é usado no caminho do arquivo', async () => {
+    const store = createSettingsStore({
+      safeStorage: makeSafeStorage(true),
+      userDataPath: dir,
+      fileName: 'custom-config.json',
+    });
+    assert.ok(store.filePath.endsWith('custom-config.json'));
+    await store.setApiKey('deepseek', 'sk-custom');
+    assert.equal(await fileExists(`${dir}/custom-config.json`), true);
   });
 });

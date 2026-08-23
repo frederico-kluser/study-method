@@ -296,3 +296,234 @@ test('sessões são efêmeras: dispose no finally mesmo em sucesso (cada execute
   assert.equal(recorded.disposeCalls, 1);
   assert.equal(recorded.promptText, 'primeiro');
 });
+
+test('SDK não carrega (loader lança) → execute retorna "Pi SDK not available" sem rede', async () => {
+  const service = createPiAgentService({
+    loadPiAi: async () => {
+      throw new Error('module missing');
+    },
+    loadPiCodingAgent: async () => {
+      throw new Error('module missing');
+    },
+    getAuthBridge: async () => ({
+      getApiKey: async () => 'sk-x',
+      getEnvVars: async () => ({}),
+      getConfiguredProviders: async () => ['deepseek'],
+    }),
+  });
+
+  const result = await service.execute(makeRequest());
+  assert.equal(result.success, false);
+  assert.ok(result.error && result.error.includes('Pi SDK not available'));
+});
+
+test('thinkingLevel != off é propagado para a config da sessão', async () => {
+  const recorded: RecordedSession = {
+    setRuntimeKey: ['', ''],
+    sessionConfig: {},
+    disposeCalls: 0,
+    abortCalls: 0,
+    streamEvents: [],
+  };
+  const fakeSession = makeSession(recorded);
+  const service = makeService(fakeSession, recorded);
+
+  const run = service.execute(makeRequest({ modelConfig: { provider: 'deepseek', model: 'x', thinkingLevel: 'medium' } }));
+  setImmediate(() => fakeSession.__resolvePrompt?.());
+  const res = await run;
+
+  assert.equal(res.success, true);
+  assert.equal(recorded.sessionConfig.thinkingLevel, 'medium');
+});
+
+test('skillSystemPrompt e additionalContext são prefixados ao prompt final', async () => {
+  const recorded: RecordedSession = {
+    setRuntimeKey: ['', ''],
+    sessionConfig: {},
+    disposeCalls: 0,
+    abortCalls: 0,
+    streamEvents: [],
+  };
+  const fakeSession = makeSession(recorded);
+  const service = makeService(fakeSession, recorded);
+
+  const run = service.execute(
+    makeRequest({
+      prompt: 'prompt do usuário',
+      skillSystemPrompt: 'SKILL-PROMPT',
+      additionalContext: 'CONTEXTO-EXTRA',
+    }),
+  );
+  setImmediate(() => fakeSession.__resolvePrompt?.());
+  const res = await run;
+
+  assert.equal(res.success, true);
+  assert.ok(recorded.promptText, 'prompt deveria ter sido chamado');
+  assert.ok(recorded.promptText!.includes('SKILL-PROMPT\n\n---\n\nprompt do usuário'));
+  assert.ok(recorded.promptText!.startsWith('CONTEXTO-EXTRA'));
+});
+
+test('temperatura 0 forçada no streamFn para deepseek; mantida p/ OpenAI-native reasoning', async () => {
+  const recorded: RecordedSession = {
+    setRuntimeKey: ['', ''],
+    sessionConfig: {},
+    disposeCalls: 0,
+    abortCalls: 0,
+    streamEvents: [],
+  };
+  const fakeSession = makeSession(recorded);
+  const service = makeService(fakeSession, recorded);
+
+  const run = service.execute(makeRequest());
+  setImmediate(() => fakeSession.__resolvePrompt?.());
+  const res = await run;
+  assert.equal(res.success, true);
+
+  // O streamFn original foi substituído na sessão; invoca o wrapped capturado.
+  const wrapped = fakeSession.agent.streamFn as (
+    model: unknown,
+    ctx: unknown,
+    opts?: Record<string, unknown>,
+  ) => Record<string, unknown>;
+  // deepseek (openai-completions) → força temperature:0.
+  const deepOpts = wrapped({ provider: 'deepseek', reasoning: true }, {}, { maxTokens: 5 });
+  assert.equal(deepOpts.temperature, 0);
+  assert.equal(deepOpts.maxTokens, 5);
+  // OpenAI-native reasoning → NÃO injeta temperature (mantém opções).
+  const openAiOpts = wrapped({ provider: 'openai', reasoning: true }, {}, { maxTokens: 5 });
+  assert.equal('temperature' in openAiOpts, false);
+  assert.equal(openAiOpts.maxTokens, 5);
+});
+
+test('provider não-deepseek com chave: resolve model via getModel/modelRegistry', async () => {
+  const recorded: RecordedSession = {
+    setRuntimeKey: ['', ''],
+    sessionConfig: {},
+    disposeCalls: 0,
+    abortCalls: 0,
+    streamEvents: [],
+  };
+  const fakeSession = makeSession(recorded);
+
+  const service = createPiAgentService({
+    loadPiAi: async () => ({
+      getModel: (provider: string, model: string) =>
+        provider === 'anthropic' ? { id: model, provider: 'anthropic', api: 'anthropic-chat' } : undefined,
+    }),
+    loadPiCodingAgent: async () => ({
+      createAgentSession: async (config: unknown) => {
+        recorded.sessionConfig = config as Record<string, unknown>;
+        return { session: fakeSession };
+      },
+      SessionManager: { inMemory: () => ({}) },
+      createCodingTools: () => [],
+      createReadTool: () => ({}),
+      AuthStorage: { create: () => ({ setRuntimeApiKey: () => undefined }) },
+      ModelRegistry: { inMemory: () => ({ find: () => undefined }) },
+    }),
+    getAuthBridge: async () => ({
+      getApiKey: async (provider: string) => (provider === 'anthropic' ? 'sk-anthropic' : ''),
+      getEnvVars: async () => ({}),
+      getConfiguredProviders: async () => ['anthropic'],
+    }),
+  });
+
+  const run = service.execute(
+    makeRequest({ modelConfig: { provider: 'anthropic', model: 'claude-sonnet-4' } }),
+  );
+  setImmediate(() => fakeSession.__resolvePrompt?.());
+  const res = await run;
+
+  assert.equal(res.success, true);
+  const model = recorded.sessionConfig.model as Record<string, unknown>;
+  assert.ok(model, 'model deveria vir do catálogo');
+  assert.equal(model.id, 'claude-sonnet-4');
+  assert.equal(model.provider, 'anthropic');
+});
+
+/** Cria várias sessões distintas (uma por execute) para abortAll/dispose. */
+function makeMultiSession() {
+  const sessions: any[] = [];
+  const authBridge: PiAuthBridge = {
+    getApiKey: async () => 'sk-deepseek-key',
+    getEnvVars: async () => ({ DEEPSEEK_API_KEY: 'sk-deepseek-key' }),
+    getConfiguredProviders: async () => ['deepseek'],
+  };
+  const service = createPiAgentService({
+    loadPiAi: async () => ({ getModel: () => undefined }),
+    loadPiCodingAgent: async () => {
+      const factory = async (config: unknown) => {
+        const recorded: RecordedSession = {
+          setRuntimeKey: ['', ''],
+          sessionConfig: config as Record<string, unknown>,
+          disposeCalls: 0,
+          abortCalls: 0,
+          streamEvents: [],
+        };
+        const s = makeSession(recorded);
+        sessions.push({ session: s, recorded });
+        return { session: s };
+      };
+      return {
+        createAgentSession: factory,
+        SessionManager: { inMemory: () => ({}) },
+        createCodingTools: () => [],
+        createReadTool: () => ({}),
+        AuthStorage: { create: () => ({ setRuntimeApiKey: () => undefined }) },
+        ModelRegistry: { inMemory: () => ({ find: () => undefined }) },
+      };
+    },
+    getAuthBridge: async () => authBridge,
+  });
+  return { service, sessions };
+}
+
+test('abortAll: aborta toda sessão ativa e os executes retornam "aborted"', async () => {
+  const { service, sessions } = makeMultiSession();
+  const events1: PiStreamEvent[] = [];
+  const events2: PiStreamEvent[] = [];
+  const run1 = service.execute(makeRequest({ prompt: 'um' }), (e) => events1.push(e));
+  const run2 = service.execute(makeRequest({ prompt: 'dois' }), (e) => events2.push(e));
+
+  setImmediate(() => {
+    service.abortAll();
+    for (const { session } of sessions) session.__resolvePrompt?.();
+  });
+  const [res1, res2] = await Promise.all([run1, run2]);
+
+  assert.equal(res1.success, false);
+  assert.equal(res2.success, false);
+  assert.equal(res1.error, 'Execution aborted by user');
+  assert.equal(res2.error, 'Execution aborted by user');
+  // Cada sessão ativa foi abortada (abort chamado ao menos uma vez por sessão).
+  for (const { recorded } of sessions) {
+    assert.ok(recorded.abortCalls >= 1);
+    assert.equal(recorded.disposeCalls, 1);
+  }
+});
+
+test('dispose: encerra todas as sessões ativas e limpa o registro', async () => {
+  const { service, sessions } = makeMultiSession();
+  const run1 = service.execute(makeRequest({ prompt: 'um' }));
+  const run2 = service.execute(makeRequest({ prompt: 'dois' }));
+
+  await new Promise<void>((r) => setImmediate(() => r()));
+  await service.dispose();
+  // Depois do dispose, as sessões que continuarem pendentes ainda recebem dispose.
+  for (const { session } of sessions) session.__resolvePrompt?.();
+  const [res1, res2] = await Promise.all([run1, run2]);
+
+  assert.equal(res1.success, true);
+  assert.equal(res2.success, true);
+  for (const { recorded } of sessions) {
+    assert.ok(recorded.disposeCalls >= 1, 'dispose() deveria chamar dispose na sessão');
+  }
+});
+
+test('abort de id inexistente é no-op (não lança)', async () => {
+  const { service } = makeMultiSession();
+  assert.doesNotThrow(() => service.abort('pi-inexistente'));
+  // abortAll/dispose com zero sessões também não lançam.
+  await assert.doesNotReject(() => service.dispose());
+  assert.doesNotThrow(() => service.abortAll());
+});

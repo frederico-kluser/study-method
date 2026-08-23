@@ -74,3 +74,13 @@ test('buildDeepSeekModelObject: campos exatos do contrato', () => {
     },
   });
 });
+
+test('piModelSupportsTemperature: OpenAI-native SEM reasoning aceita temperatura', () => {
+  // A regra só omite a temperatura quando o model é OpenAI-native E reasoning.
+  assert.equal(piModelSupportsTemperature({ provider: 'openai', reasoning: false }), true);
+  assert.equal(piModelSupportsTemperature({ provider: 'openai-codex', reasoning: false }), true);
+  assert.equal(piModelSupportsTemperature({ provider: 'openai', reasoning: undefined }), true);
+  assert.equal(piModelSupportsTemperature({ provider: 'openai' }), true);
+  // provider não-estringa (valor inesperado) → trata como não-OpenAI-native.
+  assert.equal(piModelSupportsTemperature({ provider: 123, reasoning: true } as never), true);
+});
