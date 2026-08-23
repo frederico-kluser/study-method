@@ -38,6 +38,8 @@ import { ChallengeNavProvider } from './components/challengeNav/ChallengeNavProv
 import ThemeToggleButton from './components/theme/ThemeToggleButton';
 import LanguageSwitcher from './i18n/LanguageSwitcher';
 import { NAV_ITEMS, navIndexOf, type NavKey } from './lib/shellNav';
+import { OnboardingHost } from './features/onboarding/OnboardingHost';
+import { useStartup } from './gate/AppGate';
 
 const VIEWS: Record<NavKey, ComponentType<ViewProps>> = {
   home: HomeView,
@@ -129,9 +131,14 @@ function Shell({
 
 export default function App(): ReactElement {
   const [active, setActive] = useState<NavKey>('home');
+  // O App roda DENTRO do StartupCtx.Provider (ver AppGate). Só liberamos o
+  // onboarding quando o gate está 'ready' (app destravado, não 'offline').
+  const startup = useStartup();
+  const isReady = startup.status?.phase === 'ready';
   return (
     <ChallengeNavProvider onNavigateChallenge={() => setActive('challenge')}>
       <Shell active={active} setActive={setActive} />
+      <OnboardingHost isReady={isReady} activeView={active} />
     </ChallengeNavProvider>
   );
 }

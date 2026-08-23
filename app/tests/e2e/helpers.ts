@@ -23,6 +23,13 @@ export interface LaunchOpts {
   cwd?: string;
 }
 
+/**
+ * Chave de localStorage da oferta de primeira execução do tutorial (mesma do
+ * `onboardingStorage.service`). Pré-marcá-la evita o TutorialSelectionModal /
+ * overlay bloquear a UI nas specs que interagem com o shell.
+ */
+const ONBOARDING_OFFERED_KEY = 'study-method-onboarding-offered-v1';
+
 /** Cria um diretório temporário para workspaces do teste. */
 export function makeWorkspaceRoot(): string {
   return fs.mkdtempSync(path.join(os.tmpdir(), 'study-method-e2e-ws-'));
@@ -40,6 +47,10 @@ export async function launchApp(opts: LaunchOpts = {}): Promise<{
   const env: Record<string, string> = {
     ...(process.env as Record<string, string>),
     STUDY_METHOD_E2E: '1',
+    // JANELA SEM SOBREPOR (onda 13): o main cria a janela oculta e não-focável
+    // com este valor — os testes rodam sem abrir janela sobre o desktop e sem
+    // roubar foco do usuário (o defaults ausente mantém o comportamento normal).
+    STUDY_METHOD_WINDOW_VISIBLE: '0',
     ...opts.env,
   };
 
@@ -52,6 +63,27 @@ export async function launchApp(opts: LaunchOpts = {}): Promise<{
   const page = await app.firstWindow();
   // Renderer iniciou: aguarda o elemento-raiz do app (AppGate montado).
   await page.waitForSelector('#root, [data-testid]', { timeout: 60_000 });
+
+  // ONBOARDING E2E (onda 13): o OnboardingHost está montado e, em 'ready' com
+  // userData fresco, abre o TutorialSelectionModal no boot — o backdrop do modal
+  // BLOQUEIA a interação com o shell. Por padrão pré-marcamos a oferta como já
+  // mostrada (via addInitScript) e recarregamos, então o modal não aparece nas
+  // specs que interagem com a UI. Só a spec de onboarding (E2E_ONBOARDING='1')
+  // deixa a primeira execução acontecer (modal visível, tutorial testável).
+  if (opts.env?.E2E_ONBOARDING === '1') {
+    // Fresh: nada a suprimir — a oferta de 1ª execução dispara normalmente.
+  } else {
+    await page.addInitScript((key: string) => {
+      try {
+        // localStorage (global do renderer) é o mesmo padrão de tests/e2e/e2e-i18n.ts.
+        localStorage.setItem(key, 'true');
+      } catch {
+        /* localStorage indisponível — no-op defensivo. */
+      }
+    }, ONBOARDING_OFFERED_KEY);
+    await page.reload();
+    await page.waitForSelector('#root, [data-testid]', { timeout: 60_000 });
+  }
   return { app, page };
 }
 

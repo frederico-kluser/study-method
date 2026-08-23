@@ -39,6 +39,13 @@ import { createResearchPlanner } from './services/researchPlanner';
 
 const isDev = !!process.env['ELECTRON_RENDERER_URL'];
 
+// JANELA SEM SOBREPOR (onda 13): por padrão (env ausente) a janela é visível e
+// focável — comportamento normal. Com STUDY_METHOD_WINDOW_VISIBLE='0' a janela
+// é criada OCULTA e NÃO-focável: o harness E2E roda o Electron sem abrir janela
+// sobre o desktop do usuário e sem roubar foco (ver tests/e2e/helpers.ts). O
+// valor é lido UMA vez (const) — o 'ready-to-show' só revela quando visível.
+const windowVisible = process.env.STUDY_METHOD_WINDOW_VISIBLE !== '0';
+
 // MODO E2E (harness Playwright): ativado por STUDY_METHOD_E2E=1. O main registra
 // handlers STUB (services/e2eStubs) no lugar da fiação real de rede/LLM/voz —
 // nada de deepseek/brave/Pi/GGUF/STT/TTS. As chaves ficam em memória (sem tocar
@@ -155,7 +162,12 @@ function createWindow(): void {
     height: 800,
     minWidth: 900,
     minHeight: 600,
+    // show:false inicial (anti-flicker) + revela no ready-to-show, MAS só quando
+    // windowVisible (env '0' ⇒ janela nasce oculta e não aparece no desktop).
     show: false,
+    // Não-focável/oculta com STUDY_METHOD_WINDOW_VISIBLE='0' (harness E2E) —
+    // evita roubar foco do usuário durante os testes. Default (env ausente) = focável.
+    focusable: windowVisible,
     backgroundColor: '#0f1115',
     autoHideMenuBar: true,
     webPreferences: {
@@ -171,7 +183,10 @@ function createWindow(): void {
     },
   });
 
-  win.on('ready-to-show', () => win.show());
+  win.on('ready-to-show', () => {
+    // Só revela quando a janela deve ser visível (env '0' ⇒ mantém oculta).
+    if (windowVisible) win.show();
+  });
 
   // Links externos (http/https) abrem no navegador do sistema, nunca na janela.
   win.webContents.setWindowOpenHandler(({ url }) => {

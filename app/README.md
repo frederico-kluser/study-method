@@ -30,7 +30,7 @@ npm run test:e2e  # Playwright `_electron` sobre o build (veja § E2E)
 ```
 
 > Os gates desta app (verdes antes de considerar concluído) são: `bash tools/t.sh tests` ·
-> `npm run lint` · `npm run build` · `npm run test:e2e` (8 specs verdes).
+> `npm run lint` · `npm run build` · `npm run test:e2e` (10 specs, 11 testes verdes).
 
 ## Fluxo principal (produto)
 
@@ -130,9 +130,18 @@ npm run build && npm run test:e2e        # 1 worker (Electron não paraleliza)
 xvfb-run -a npm run test:e2e            # sem display (CI), após `npm run build`
 ```
 
+A fixture `tests/e2e/helpers.ts` injeta `STUDY_METHOD_WINDOW_VISIBLE=0`, então o
+app abre **oculto e não-focável** durante a suíte — os testes **não sobrepõem o
+seu desktop nem roubam o foco** (o main respeita a env na criação da janela;
+env ausente ⇒ janela visível/focável, comportamento normal). As **duas formas
+acima rodam as mesmas 10 specs**; não usamos `--headless` (modo não confirmado
+para `_electron`).
+
 Envars de controle do stub (lidas pelo main em modo E2E): `E2E_GATE` (`blocked|invalid|offline|ready`),
-`E2E_KEYS=invalid`, `E2E_NETWORK=offline`, `E2E_WORKSPACE_ROOT` (raiz dos workspaces). Detalhes em
-`tests/e2e/README.md`.
+`E2E_KEYS=invalid`, `E2E_NETWORK=offline`, `E2E_WORKSPACE_ROOT` (raiz dos workspaces), e
+`E2E_ONBOARDING=1` (deixa a oferta de 1ª execução do tutorial disparar — usada pela spec de
+onboarding; por padrão a fixture pré-marca a oferta como mostrada para não bloquear a UI das
+demais specs, já que o OnboardingHost está montado). Detalhes em `tests/e2e/README.md`.
 
 ## LLM local
 
