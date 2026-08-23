@@ -280,8 +280,8 @@ do sandbox declara isso em vez de esconder.
 ## ⭐ Privacidade
 
 **`memory/` fica fora do controle de versão por padrão, e isso é uma decisão de projeto, não um
-descuido.** O `.gitignore` gerado em todo setup novo começa com a linha `memory/`, e a invariante
-`I-40` verifica que ela está lá.
+descuido.** O `.gitignore` gerado em todo setup novo traz `memory/` como a **primeira regra** —
+logo abaixo do comentário que explica por quê —, e a invariante `I-40` verifica que a linha está lá.
 
 O motivo: o git **guarda todas as versões** de um arquivo rastreado, para sempre. Apagar o arquivo
 depois não apaga o histórico. Como `memory/` pode conter fatos sobre você — o que funcionou, o que
@@ -387,7 +387,7 @@ O modelo de ameaça completo, incluindo o que declaradamente **não** é defendi
 | [`docs/build-spec/`](docs/build-spec/) | Os fragmentos de contrato de cada artefato implementado. |
 | [`tests/`](tests/) | Os gates: os 4 originais mais `spec-conformance.sh`. `validate.sh` é a tradução mecânica de `docs/00-contratos.md`; `spec-conformance.sh` confere o `BUILD_SPEC.md` contra o repositório. |
 | [`examples/`](examples/) | Um setup de exemplo completo (`setup-calculo-python`) e o gerador determinístico que o produz. |
-| [`evals/`](evals/) | A suíte de avaliação das regras de conversa: 17 casos com rubrica e baseline, mais `run-evals.sh` — verificação **estática**, sem modelo no loop. |
+| [`evals/`](evals/) | A suíte de avaliação das regras de conversa: 15 casos com rubrica e baseline, mais `run-evals.sh` — verificação **estática**, sem modelo no loop. |
 
 ---
 
@@ -428,7 +428,7 @@ Isso muda o que as afirmações acima valem, então vale separar:
 **Ainda não verificado / pendente:**
 
 - **nenhum eval com modelo no loop foi rodado.** As regras de conversa (`AS-*`, `C-*`, `ERR-*`)
-  têm ID estável e a suíte existe — 17 casos com rubrica e baseline em `evals/` —, mas
+  têm ID estável e a suíte existe — 15 casos com rubrica e baseline em `evals/` —, mas
   `run-evals.sh` é um verificador **estático**: ele confere a coerência entre suíte e contrato e
   aplica padrões de texto sobre transcrições já gravadas. Ele não conversa com modelo nenhum, e
   enumera como **MANUAL** tudo que depende de julgamento. Hoje o gate verifica que as regras

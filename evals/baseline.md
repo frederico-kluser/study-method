@@ -84,7 +84,7 @@ data: AAAA-MM-DD   harness: <versão>   modelo: <id>   execuções por célula: 
 | EV-09 | M-12 | | | | |
 | EV-10 | M-15 | | | | |
 | EV-11 | M-16 | | | | |
-| EV-12 | — | | | | material do aluno: sem regra com ID, ver `EV-12` |
+| EV-12 | — | | | | material do aluno: hoje é `BOOT-8` (o achado virou regra com ID); ainda sem métrica de contagem própria, ver `EV-12` |
 | EV-13 | M-13 | | | | |
 | EV-13 | M-14 | | | | |
 | EV-14 | M-12 | | | | |

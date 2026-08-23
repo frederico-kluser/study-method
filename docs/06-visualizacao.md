@@ -283,10 +283,10 @@ que veio de uma versão futura), e chave ausente da coluna "obrigatória" é `sp
 |---|---|---|---|
 | `type` | **sim** | `"function"\|"line"\|"scatter"\|"bar"` | Valor fora do enum ⇒ `spec_missing_key` |
 | `title` | **sim** | string pt-BR | Título da figura. String vazia ⇒ `spec_missing_key`: "Gráfico 1" não é título |
-| `x_label` | **sim** | string pt-BR | Rótulo do eixo X, **com unidade** (§5) |
-| `y_label` | **sim** | string pt-BR | Rótulo do eixo Y, **com unidade** (§5) |
+| `x_label` | não — **aviso** se ausente | string pt-BR | Rótulo do eixo X, **com unidade** (§5). `VIZ-3` obriga na **autoria**; a ausência vira `warnings[]` com exit 0, nunca `spec_missing_key` (A-33 de `docs/00` §12.1) |
+| `y_label` | não — **aviso** se ausente | string pt-BR | idem para o eixo Y |
 | `series` | **sim** | array, ≥1 item | Vazio ⇒ `series_invalid` (exit 2), não `spec_missing_key` — a spec estava bem-formada, os dados é que não |
-| `takeaway` | não | string pt-BR | A frase de leitura pedagógica. Vai para o fim da descrição (d) |
+| `takeaway` | **sim** | string pt-BR | A frase de leitura pedagógica. Vai para o fim da descrição (d). Está no `required` do schema e em `REQUIRED_ROOT` de `render-plot.py`: ausente, é `spec_missing_key` (exit 1) |
 | `caption` | não | string pt-BR | Legenda curta sob a figura |
 | `x_limits` / `y_limits` | não | `[min, max]` | Limites forçados. Ausentes ⇒ calculados dos dados com padding |
 | **`categories`** | **sim se `type == "bar"`**; proibida nos outros | array de strings pt-BR, ≥1 | Os rótulos do eixo X do gráfico de barras, **na ordem em que aparecem**. Presente com `type != "bar"` ⇒ ignorada |
@@ -754,4 +754,4 @@ Regra de comunicação: o tutor pode dizer "posso gerar isso se você instalar X
 | D-V07 | PNG deve ser gerado sempre (quando há rasterizador) ou só sob pedido (`--png`)? | (a) só com `--png`; (b) sempre que `rsvg-convert`/`magick` existir; (c) sempre, e falhar se não houver rasterizador | **(a)** — SVG+HTML já cobrem; PNG é para quando o aluno vai colar a imagem em outro lugar | cheap |
 | D-V11 | **RESOLVIDA (AR-23)** — onde fica o estado de setup (venv aceito, linguagem confirmada)? | `meta.json` do setup (**não existe**) · **`setup.json`** · registry global | **`setup.json`**, o manifesto na raiz do setup. `meta.json` é o manifesto de **um desafio**, em `challenges/<NNNN>-<slug>/`; gravar estado de setup ali significa reperguntar a cada desafio | — decidida |
 | D-V12 | **RESOLVIDA (§4.7)** — diretório de saída dos gráficos | `<sessão>/viz/` (**impossível**: sessão é um arquivo JSON) · **`researchs/assets/<NNNN>-<slug>/`** · `/tmp` | **`researchs/assets/<NNNN>-<slug>/`** (§4.7). A figura pertence ao material destilado, sobrevive ao desafio, e precisa de um diretório de verdade para caber nos quatro artefatos | cheap (mover arquivos) |
-| D-V13 | **RESOLVIDA** — chaves obrigatórias do `spec` e semântica de `categories`/`force_legend` | indefinidas (o exit `spec_missing_key` não cobrava nada) · **lista fechada na §4.2** | **lista fechada** (§4.2): obrigatórias `type`, `title`, `x_label`, `y_label`, `series`; `categories` obrigatória e exclusiva de `bar`; `force_legend` só **força** a legenda com uma série, nunca a esconde | cheap |
+| D-V13 | **RESOLVIDA** — chaves obrigatórias do `spec` e semântica de `categories`/`force_legend` | indefinidas (o exit `spec_missing_key` não cobrava nada) · **lista fechada na §4.2** | **lista fechada** (§4.2): obrigatórias `type`, `title`, `takeaway`, `series`; `x_label`/`y_label` são **aviso**, não erro (A-33); `categories` obrigatória e exclusiva de `bar`; `force_legend` só **força** a legenda com uma série, nunca a esconde | cheap |

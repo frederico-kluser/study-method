@@ -17,7 +17,7 @@ que mais silenciosamente diverge do que ele descreve.
 
 ## 1. Onde este gate vive na família de gates
 
-O projeto já tinha 4 gates (`CONTRIBUTING.md` §"Os 4 gates"): `gate-build.sh` (sintaxe e forma),
+O projeto já tinha 4 gates (`CONTRIBUTING.md` §"Rodando o gate localmente"): `gate-build.sh` (sintaxe e forma),
 `gate-lint.sh` (qualidade de texto), `validate.sh` (as invariantes de `docs/00-contratos.md` §11)
 e `smoke.sh` (integração ponta a ponta). `tests/spec-conformance.sh` é um quinto gate, com um
 escopo que nenhum dos quatro cobre:
@@ -82,7 +82,12 @@ está correto — sem exigir que "tudo" já tenha sido escrito.
 ## 3. O que a verificação NÃO cobre — limitações declaradas
 
 Limitação escondida é pior que limitação conhecida (mesma régua de `tests/lib/assert.sh`). O
-gate imprime esta lista no próprio resumo (`GATE_LIMITS`), e ela está aqui por extenso:
+gate imprime as suas no próprio resumo (`GATE_LIMITS`, hoje 7 entradas). A lista abaixo é a
+versão **por extenso** delas, e vai um pouco além: os itens 4 e 8 são limitações de projeto que o
+resumo não repete, e cada exclusão de escopo que o gate conta (as famílias nomeadas de `SC-01`, o
+registro de origem não-schema de `SC-06a`, os filtros de `SC-06b`) sai **com a contagem** na linha
+de PASS do próprio check. Quando quiser o número, leia a execução; quando quiser o porquê, leia
+aqui.
 
 1. **É verificação TEXTUAL, não semântica.** Ela pega caminho que sumiu, script fora do
    inventário, função sem definição, schema transcrito divergente, marcador de decisão sem par e
@@ -114,9 +119,13 @@ gate imprime esta lista no próprio resumo (`GATE_LIMITS`), e ela está aqui por
    reconhece enum em linha de tabela** `` `campo` | `v1` · `v2` … `` — o mesmo formato que
    `docs/00-contratos.md` §4.1 usa — cujo `campo` seja uma propriedade com `enum` em **algum**
    schema; ignora o token `null` (é convenção de nulidade do tipo, não um membro do array
-   `enum`); e quando dois schemas diferentes têm enums DIFERENTES para o mesmo nome de campo
-   (ex.: dois campos `status`, um de sessão e um de fato), ela aceita bater com qualquer um dos
-   dois — não pega troca cruzada entre eles.
+   `enum`); só compara linha cuja célula de valores seja **listagem pura** — tirados os code
+   spans e as anotações entre parênteses, tem de sobrar só separador, senão a linha é prosa ou
+   abreviação de intervalo e fica fora de escopo; e resolve o schema **dono** pela coluna «onde»
+   da própria linha, indexando os enums pelo **caminho pontilhado** e não pela folha — é isso que
+   impede `artifacts[].kind` de ser cobrado contra o `kind` de outro schema. Linha que não
+   atribui o enum a schema nenhum fica fora de escopo, contada no PASS. Onde dois schemas
+   declaram enums DIFERENTES para o MESMO caminho, aceita bater com qualquer um dos dois.
 7. **`SC-07` compara só a tabela §5.1** (códigos 0/1/2/3/4/5/10 → "Significado", texto
    normalizado por espaço). As exceções nomeadas de §5.2 (`runner.sh` gerado, `render-plot.py`) e
    os códigos observados de §5.3 (137, 124, 142, …) **não** são comparados mecanicamente — são

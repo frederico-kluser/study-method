@@ -103,7 +103,7 @@ O protocolo:
 
 ```
 docs-index.sh <setup_root> --select [--topics t1,t2]
-    -> imprime o PEDIDO docs_section_pick em stdout e sai 10, SEM tocar em disco
+    -> imprime o PEDIDO select_sections em stdout e sai 10, SEM tocar em disco
 você responde com a lista de section_ids, grava em um arquivo temporário
 docs-index.sh <setup_root> --apply <resposta.json>
     -> valida e grava o bloco `selection` no índice. Inválida -> exit 5, nada aplicado

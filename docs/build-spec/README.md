@@ -86,6 +86,9 @@ não só no arquivo montado.
 erro. O porquê vive nos documentos normativos do repositório (`docs/00`…`docs/13`) e é citado **por
 caminho**, nunca parafraseado — paráfrase de contrato passa a mentir sobre ele.
 
-⏳ **Dívida declarada:** `tests/spec-conformance.sh`, o verificador mecânico documento × disco, ainda
-não existe. Até ele existir, a auditoria de `BUILD_SPEC.md` contra o repositório é leitura humana
-contra os caminhos citados.
+✅ **Dívida fechada:** `tests/spec-conformance.sh`, o verificador mecânico documento × disco,
+**existe** — é o quinto gate do projeto, com 11 checagens `SC-01`…`SC-08`, descrito em
+`docs/12-conformidade.md`. Ele audita o `BUILD_SPEC.md` montado contra o repositório (caminhos
+citados, scripts, funções de `lib/`, schemas, decisões, patterns, enums, exit codes e termos
+revogados). A leitura humana continua valendo para o que ele não mecaniza — o gate imprime as
+próprias limitações no resumo.

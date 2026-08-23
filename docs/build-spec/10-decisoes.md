@@ -163,7 +163,8 @@ id em dois fragmentos é erro do BUILD_SPEC, não do catálogo.
 
 ### 6.4 Marcadores de runtime (as perguntas ao aluno)
 
-Os 46 `audience: student` mais os 7 `both` não geram marcador de build, mas o fragmento dono precisa
+Os 46 `audience: student` não geram marcador de build; os 7 `both` **geram** — entram nos 48 de §6.2 —
+e, como as `student`, também são perguntadas em runtime. Em todos os casos o fragmento dono precisa
 declarar o gatilho. Distribuição:
 
 | `ask_when` | N | Onde o gatilho é implementado |

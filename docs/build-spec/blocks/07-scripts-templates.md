@@ -52,9 +52,9 @@ nem numa frase de negação: a invariante **I-05** é um grep que precisa sair *
 | 18 | `render-plot.py` | `[--spec CAMINHO\|-] [--out-dir DIR] [--basename NOME] [--width N] [--height N] [--ascii-width N] [--ascii-height N] [--formats svg,html,txt,md] [--png] [--quiet]` | JSON: `{ok, type, outputs, description_text, ascii_text, warnings, stats}` | **Exceção nomeada** (§1.5.2): 0 · 1 · 2 · 3 | `teach` |
 | 19 | `decisions-ask.sh` | `<fase> --setup <setup_root> [--json] [--answer <id>=<valor>]`, com `fase ∈ {setup-init, first-challenge, session-15, on-demand}` | As decisões pendentes daquela fase, em JSON | 0 · 1 · 2 · 3 · 5 | `setup_interview` (`setup-init`) · `challenge` (`first-challenge`) |
 
-⏳ **Estado medido no repositório:** `decisions-ask.sh` está declarado nesta tabela e **ainda não
-existe em disco**. `tests/validate.sh` marca `I-06b` como **PEND** (vermelho, com o artefato faltante
-nomeado) enquanto ele não for escrito — ver §8.9.3. Os outros 18 existem.
+✅ **Estado medido no repositório:** `decisions-ask.sh` era a única entrada desta tabela sem arquivo
+em disco; **ele existe agora**, e `tests/validate.sh` marca `I-06b` como **PASS** — os 19 existem.
+Enquanto faltasse, o check ficaria **PEND** (vermelho, com o artefato nomeado) — ver §8.9.3.
 
 ### 7.1.1 Três afirmações que o `SKILL.md` precisa carregar
 
@@ -72,8 +72,8 @@ Porque mudam a decisão do modelo em runtime:
   à mão** (`status: "abandoned"`, `finalized_by: "auto_orphan_recovery"`), para o caso que o
   `--verify` não alcançou. **Não conflita com o dono único**: o fechamento **automático** de órfã
   continua sendo de `memory-index.sh --verify`, único; `--recover` é a porta **manual** da mesma
-  operação, nunca um segundo caminho automático. ⚠ `SK/references/scripts.md` afirma
-  "**Não tem `--recover`**" — divergência conhecida; o contrato vence (§7.15).
+  operação, nunca um segundo caminho automático. `SK/references/scripts.md` descreve a flag nesses
+  mesmos termos — os dois textos concordam (§7.15).
 - **`docs-index.sh --select` é o gatilho do exit 10, e é o único.** Sem ele o script indexa e sai 0
   pela heurística determinística. `--select` e `--apply` são **mutuamente exclusivos**: combiná-los
   é **2**.
@@ -150,7 +150,7 @@ Há **uma** exceção nomeada a LIB-4: `sm_request` (§7.7), que produz `exit 10
 todo o projeto que produz esse código (**I-23**).
 
 Invariantes que cobram estas regras: **I-19** (modo, ausência de `main`/`"$@"` de topo),
-**I-20** (toda função exportada está na tabela, e vice-versa — 26 funções entre `common.sh` e
+**I-20** (toda função exportada está na tabela, e vice-versa — 27 funções entre `common.sh` e
 `json.sh`), **I-23**.
 
 ---
@@ -605,9 +605,9 @@ O que esta parte acrescenta é a consequência para quem **escreve** os scripts:
 
 | Marca | Item | Estado |
 |---|---|---|
-| ⏳ | `decisions-ask.sh` declarado em §7.1 e **ausente do disco** | `I-06b` = **PEND** no gate hoje. Escrever o script fecha a pendência sem tocar no contrato |
+| — | `decisions-ask.sh` declarado em §7.1 e **presente no disco** | `I-06b` = **PASS**. A pendência fechou escrevendo o script, sem tocar no contrato — que era exatamente o desenho |
 | ⏳ | Versões da toolchain de §7.13 e os quatro parâmetros medidos da pilha de sandbox (§7.8) | medição de 2026-08-23 nesta máquina; revalidar ao trocar de máquina ou de versão |
 | ⏳ | O número medido da concorrência de `sm_next_seq` (100/100/0/0) | vale para o algoritmo, não para a máquina; o **mecanismo** (`noclobber`) é o que é contratual |
-| ⚠ | `SK/references/scripts.md` afirma que `session-close.sh` **não tem** `--recover`; o contrato §8 diz que **tem** | O contrato vence. A reference precisa de correção — ver §7.1.2 |
-| ⚠ | `SK/SKILL.md` lista `docs-index.sh` **sem** `--select` na tabela de flags | `--select` é o **único** gatilho do exit 10 do script; omiti-lo esconde o caminho REQUEST/APPLY do `load_docs` |
-| ⚠ | `docs/build-spec/51-challenge-new.md` §6 descreve `c/stub.c.tmpl` com `#include "stub.h"`; o template no disco não o tem | Divergência de documentação; o teste em C inclui `"../stub.h"` e a compilação funciona, mas os dois textos precisam concordar |
+| — | `SK/references/scripts.md` e o contrato §8 **concordam**: `session-close.sh` **tem** `--recover` | divergência fechada; a reference descreve a flag e diz que ela não é o caminho normal — ver §7.1.2 |
+| — | `SK/SKILL.md` lista `docs-index.sh` **com** `--select`, e com a nota de que ele é o **único** gatilho do exit 10 | divergência fechada; omiti-lo esconderia o caminho REQUEST/APPLY do `load_docs` |
+| — | `docs/build-spec/51-challenge-new.md` §6 e o `c/stub.c.tmpl` do disco **concordam**: nenhum `#include` no stub | divergência fechada; o `stub.h` é escrito pelo script e o teste em C inclui `"../stub.h"` |

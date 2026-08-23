@@ -1,7 +1,8 @@
 # `transcripts/` — as respostas gravadas
 
-Aqui entram as respostas reais do tutor, gravadas durante a execução dos casos. Enquanto a pasta
-estiver vazia, `run-evals.sh` reporta `PEND` para os padrões de `cases/patterns.tsv` — e isso está
+Aqui entram as respostas reais do tutor, gravadas durante a execução dos casos. Enquanto não
+houver nenhum `EV-NN.rNN.txt` aqui, `run-evals.sh` reporta `PEND` para os padrões de
+`cases/patterns.tsv` — e isso está
 correto: não há nada para verificar ainda, e fingir `PASS` seria pior.
 
 ## Formato do nome

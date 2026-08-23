@@ -19,12 +19,13 @@ O gerador roda nove fases, na ordem, e a última valida todo JSON produzido cont
 Ele **não** é parte da skill: é o roteiro de aula do aluno fictício, e vive em
 [`_gerador/`](_gerador/) exatamente para que a afirmação acima seja verificável.
 
-Duas diferenças entre o que você gera e o que está commitado, e só duas:
+Três diferenças entre o que você gera e o que está commitado:
 
 | o quê | por quê |
 |---|---|
 | `setup_id` (12 hex) | `setup-init.sh` sorteia um novo a cada execução, e ele aparece em `setup.json`, `memory/*.json` e no `README.md` do setup. |
 | `runtime_version` em `meta.json` | `challenge-new.sh` grava a versão do Python da máquina que gerou. No commit está `Python 3.14.7`. |
+| o bloco `validation` de `meta.json` | O commit guarda a saída de **antes** da correção de `lib/json.sh` — `verdict: rejected`, `challenge_status: draft`. Uma geração de hoje sai `approved` / `validated`. É de propósito: é essa saída que documenta o defeito #1 de "O que este exemplo denuncia". |
 
 Duas gerações seguidas, com o `setup_id` normalizado, dão `diff -r` vazio — inclusive nos quatro
 formatos do gráfico. Isso custou um `touch -d` na fase 01: `docs-index.sh` grava em
@@ -216,17 +217,23 @@ sessões gravam `docs_coverage`.
 
 ## ⚠️ O que este exemplo denuncia
 
-Gerar o exemplo **é** um teste de integração. Cinco defeitos apareceram só de rodar os scripts de
-ponta a ponta, e nenhum foi maquiado: o que está commitado é a saída real.
+Gerar o exemplo **é** um teste de integração. **Seis** defeitos maiores e **três** menores
+apareceram só de rodar os scripts de ponta a ponta, e nenhum foi maquiado: o que está commitado é a
+saída real.
 
-### 1. Nenhum desafio Python pode ser aprovado — `lib/json.sh:24`
+⚑ **Todos os nove já foram corrigidos.** Cada achado fica aqui com o diagnóstico original — é o
+valor deste documento — e termina com o que mudou. O que continua commitado em
+`setup-calculo-python/` é a saída gerada **antes** das correções: é ela que prova o defeito. Os
+achados citam o **símbolo** (função, check, template), não o número de linha: linha envelhece.
+
+### 1. [CORRIGIDO] Nenhum desafio Python podia ser aprovado — `lib/json.sh`, `sm_json_get`
 
 `meta.json` do desafio diz `"verdict": "rejected"`, `"challenge_status": "draft"`, com uma única
 rejeição: `build_failed — "o stub vazio nao compila (build_command saiu 127)"`. Um desafio em
 Python **não tem etapa de build**, e `meta.json` corretamente não declara `build_command`.
 
-A causa: `sm_json_get` termina com `printf '%s\n' "$out"` mesmo quando `jq` não produziu nada.
-`mapfile -t` recebe uma linha vazia e monta um array de **um** elemento vazio, em vez de zero
+A causa era: `sm_json_get` terminava com `printf '%s\n' "$out"` mesmo quando `jq` não produziu nada.
+`mapfile -t` recebia uma linha vazia e montava um array de **um** elemento vazio, em vez de zero
 elementos.
 
 ```bash
@@ -236,9 +243,9 @@ $ mapfile -t B < <(jq -r '.execution.build_command[]? // empty' meta.json); echo
 0
 ```
 
-Em `challenge-verify.sh:152` isso torna `CV_BUILD_CMD` "não vazio"; a linha 196 então executa a
-string vazia como comando, recebe 127, e o passo 0 reprova. Como só `approved` libera
-`challenge_status: validated` (DES-2), **nenhum desafio em Python ou JavaScript chega ao aluno**.
+Em `challenge-verify.sh` isso tornava `CV_BUILD_CMD` "não vazio"; o passo 0.5 então executava a
+string vazia como comando, recebia 127, e reprovava. Como só `approved` libera
+`challenge_status: validated` (DES-2), **nenhum desafio em Python ou JavaScript chegava ao aluno**.
 
 Verificado numa cópia isolada em que **essa linha, e só ela, foi corrigida** — `[ -n "$out" ] &&
 printf ...`: **este mesmo desafio**, byte a byte o que está commitado, percorre o protocolo inteiro
@@ -247,13 +254,26 @@ e passa nos sete passos. 17 mutantes gerados, 17 válidos, **17 mortos, 0 sobrev
 `LC_ALL`/`TZ`/`PYTHONHASHSEED`, as 2 alternativas corretas aceitas — **`verdict: approved`**,
 `challenge_status: validated`. O desafio está certo; o harness é que não consegue dizer isso.
 
+**Corrigido:** `sm_json_get` passou a usar um sentinel `x<status>` e devolve **zero** linha onde o
+`jq` devolve zero — a saída é a do `jq` byte a byte, e isso virou contrato declarado no próprio
+`lib/json.sh`. Confere assim, da raiz do repositório:
+
+```bash
+$ export SM_LIB_DIR=skills/study-method/scripts/lib
+$ source skills/study-method/scripts/lib/json.sh
+$ mapfile -t B < <(sm_json_get examples/setup-calculo-python/challenges/0001-derivada-numerica/meta.json \
+    '.execution.build_command[]? // empty'); echo ${#B[@]}
+0
+```
+
 **Consequência para a leitura deste exemplo:** `progress.json` registra o aluno resolvendo um
 desafio que `meta.json` diz estar reprovado. Num build correto isso não coexistiria. Os dois
 arquivos estão certos cada um por si — a incoerência entre eles é o defeito, não a ficção.
 `memory/0002.json` registra a decisão do tutor de entregar mesmo assim, e a pergunta em aberto
-chega até a seção "Estado atual" do `README.md` do setup.
+chega até a seção "Estado atual" do `README.md` do setup. O `meta.json` commitado ainda carrega o
+`verdict: rejected` produzido **antes** da correção: regerar o exemplo hoje sai `approved`.
 
-### 2. O stub gerado não é código válido em 4 das 5 linguagens — `challenge-new.sh:799-803`
+### 2. [CORRIGIDO] O stub gerado não era código válido em 4 das 5 linguagens — `challenge-new.sh`
 
 O que `challenge-new.sh` entregou, literalmente, antes de o tutor reescrever:
 
@@ -261,43 +281,58 @@ O que `challenge-new.sh` entregou, literalmente, antes de o tutor reescrever:
 def derivada_numerica(def derivada_numerica(n):):
 ```
 
-`SIGNATURE` é setado com a **declaração inteira** (`"def $FUNC_NAME(n):"`), mas
-`templates/challenge/python/stub.py.tmpl` a interpola **dentro** da declaração que ele mesmo monta:
+`SIGNATURE` era setado com a **declaração inteira** (`"def $FUNC_NAME(n):"`), mas
+`templates/challenge/python/stub.py.tmpl` a interpolava **dentro** da declaração que ele mesmo montava:
 a linha do template é `def`, o placeholder de `FUNC_NAME`, abre-parêntese, o placeholder de
 `SIGNATURE`, fecha-parêntese e dois-pontos — ou seja, `SIGNATURE` ali significa *lista de
-parâmetros*, e o script manda a assinatura toda. O mesmo desencontro está em `node/stub.mjs.tmpl`,
+parâmetros*, e o script manda a assinatura toda. O mesmo desencontro estava em `node/stub.mjs.tmpl`,
 `go/stub.go.tmpl` e `rust/lib.rs.tmpl`. Só `c/stub.c.tmpl`, que usa o placeholder de `SIGNATURE`
-sozinho no início da linha, casa com a convenção do script.
+sozinho no início da linha, casava com a convenção do script.
+
+**Corrigido:** os cinco `stub.*.tmpl` passaram a usar o placeholder de `SIGNATURE` sozinho na
+linha — a convenção que só o de C seguia. `head -1` de `challenge/python/stub.py.tmpl` é hoje o
+placeholder e nada mais.
 
 (O `README.md` que você está lendo não reproduz os placeholders com as chaves duplas de propósito:
 `tests/gate-lint.sh` L-03 reprova qualquer `{`+`{NOME}`+`}` fora de um `*.tmpl`.)
 
-### 3. `test_name` aponta para uma classe que não existe — `challenge-new.sh:451`
+### 3. [CORRIGIDO] `test_name` apontava para uma classe que não existia — `challenge-new.sh`
 
-O script grava `tests.test_stub.TesteDesafio.test_<cenario>`; o template
-`python/test_stub.py.tmpl` declara `class TestStub`. O nome declarado no manifesto não resolve.
+O script gravava `tests.test_stub.TesteDesafio.test_<cenario>`; o template
+`python/test_stub.py.tmpl` declara `class TestStub`. O nome declarado no manifesto não resolvia.
 
-### 4. E, mesmo corrigido o nome da classe, o passo 6 nunca casa — `challenge-verify.sh:374`
+**Corrigido:** `TesteDesafio` não existe mais em lugar nenhum do script
+(`grep -c TesteDesafio skills/study-method/scripts/challenge-new.sh` → `0`); o nome gravado é
+`TestStub`, o que o template declara.
+
+### 4. [CORRIGIDO] E, mesmo corrigido o nome da classe, o passo 6 nunca casava — `challenge-verify.sh`
 
 `cv_probe_names` extrai do `unittest -v` o nome **curto** (`test_afim_e_exata`), enquanto
-`challenge-new.sh:451` declara o **qualificado**. Comparação de igualdade de string entre as duas
-formas nunca dá verdadeiro, e o passo 6 reprova com "cenário declarado … não foi executado" **e**
+`challenge-new.sh` declarava o **qualificado**. Comparação de igualdade de string entre as duas
+formas nunca dava verdadeiro, e o passo 6 reprovava com "cenário declarado … não foi executado" **e**
 "caso executado … não está declarado". O próprio `challenge-manifest.schema.json` resolve a
 ambiguidade: `test_name` é o nome *"como o runner o reporta"* — o curto, em Python. É a forma
 usada neste exemplo.
 
-### 5. O `progress-update.sh` do fechamento nunca roda — `session-close.sh:335`
+**Corrigido:** `ch_test_name` grava o nome **curto** em `scenarios[].test_name`, e a forma
+qualificada sobrou só como filtro de execução única dentro do `runner.sh` — está dito em comentário
+nos dois scripts.
 
-`session-close.sh` chama `progress-update.sh "$SM_SETUP_ROOT"` sem modo. `progress-update.sh`
-exige exatamente um de `--event`, `--due` ou `--recompute`, e sai 2. O erro é engolido como aviso
-("o derivado é reconstruível"), então **toda** sessão fecha com essa mensagem e o passo simplesmente
-não acontece. Neste exemplo os eventos de proficiência são aplicados por fora, em
+### 5. [CORRIGIDO] O `progress-update.sh` do fechamento nunca rodava — `session-close.sh`
+
+`session-close.sh` chamava `progress-update.sh "$SM_SETUP_ROOT"` sem modo. `progress-update.sh`
+exige exatamente um de `--event`, `--due` ou `--recompute`, e sai 2. O erro era engolido como aviso
+("o derivado é reconstruível"), então **toda** sessão fechava com essa mensagem e o passo
+simplesmente não acontecia.
+
+**Corrigido:** a chamada é `progress-update.sh "$SM_SETUP_ROOT" --recompute`, com um comentário no
+próprio `session-close.sh` nomeando o bug antigo. Neste exemplo os eventos de proficiência são aplicados por fora, em
 `_gerador/08-progresso.sh`, um `--event` de cada vez.
 
-### 6. A invariante I-39 do gate lê o caminho errado — `tests/validate.sh:1226`
+### 6. [CORRIGIDO] A invariante I-39 do gate lia o caminho errado — `tests/validate.sh`, check `I-39`
 
 Este é o primeiro fixture que `examples/` já teve, e ele acendeu um check que nunca tinha rodado.
-`tests/validate.sh` procura `.sandbox.mode` e `.sandbox.timeout_source` na **raiz** do `meta.json`.
+`tests/validate.sh` procurava `.sandbox.mode` e `.sandbox.timeout_source` na **raiz** do `meta.json`.
 O `challenge-manifest.schema.json` põe os dois em `.execution.sandbox`, e a raiz é
 `additionalProperties: false` — um `sandbox` na raiz **não passa no schema**. O `meta.json` deste
 exemplo tem os dois campos, no lugar certo:
@@ -307,25 +342,32 @@ exemplo tem os dois campos, no lugar certo:
   "network_isolated": false, "timeout_source": "coreutils_timeout" } }
 ```
 
-Enquanto o `jq` do check não subir um nível, **I-39 é impossível de satisfazer** para qualquer
-`meta.json` válido. `docs/00-contratos.md:820` também escreve `sandbox.timeout_source` sem
-qualificar o caminho, e é de lá que a leitura literal veio. `tests/validate.sh` fica fora do escopo
-deste diretório; o achado está aqui, e o gate segue vermelho nesse único check até alguém corrigi-lo.
+Enquanto o `jq` do check não subisse um nível, **I-39 era impossível de satisfazer** para qualquer
+`meta.json` válido. O §11 do `docs/00-contratos.md` também escrevia `sandbox.timeout_source` sem
+qualificar o caminho, e era de lá que a leitura literal vinha.
+
+**Corrigido dos dois lados:** o contrato escreve `execution.sandbox.mode` e
+`execution.sandbox.timeout_source` qualificados (§11, `I-39`), e o `jq` do check subiu um nível.
+`GATE_ONLY=I-39 tests/validate.sh` fecha verde.
 
 ### Menores, mas reais
 
-- **`research-new.sh:179`** grava `provenance: "generated_researched"` sempre que há `--sources`.
+- **[CORRIGIDO] `research-new.sh`** gravava `provenance: "generated_researched"` sempre que havia `--sources`.
   `docs/13-researchs.md` §205 mapeia arquivo do `docs/` do setup para `student_provided`, e
   `SK/references/researchs.md:54` proíbe explicitamente marcar `generated_researched` sem ter
-  chamado a busca web. O script afirma uma pesquisa que não houve; o tutor corrige, e é o que o
-  gerador faz.
-- **`research-new.sh:193`** acrescenta uma chave `"id"` ao bloco de proveniência **além** do
-  `"research_id"` que o template já traz. O exemplo canônico de `docs/13-researchs.md:292` tem só
-  `research_id`.
-- **`session.schema.json`** — `how_it_happened[].target_topic` casa `^[a-z0-9]+(-[a-z0-9]+)*$`
-  (kebab) e a descrição dele manda estar em `topics`, cujos itens casam `^[a-z][a-z0-9_]{1,62}$`
-  (snake). Nenhuma tag de duas palavras satisfaz as duas ao mesmo tempo. Este exemplo usa kebab em
-  `target_topic` e snake em `topics` — o que os *patterns* aceitam, e o que a *prosa* proíbe.
+  chamado a busca web. O script afirmava uma pesquisa que não houve; o tutor corrigia, e é o que o
+  gerador faz. **Corrigido:** com fontes grava `student_provided`, sem fontes `generated_unsourced`,
+  e `generated_researched` deixou de ser gravável pela flag — está dito no `--help` do script.
+- **[CORRIGIDO] `research-new.sh`** acrescentava uma chave `"id"` ao bloco de proveniência **além**
+  do `"research_id"` que o template já traz. O exemplo canônico de `docs/13-researchs.md` tem só
+  `research_id`. **Corrigido:** o normalizador escreve apenas `.research_id`.
+- **[CORRIGIDO] `session.schema.json`** — `how_it_happened[].target_topic` casava
+  `^[a-z0-9]+(-[a-z0-9]+)*$` (kebab) enquanto a descrição dele mandava estar em `topics`, cujos
+  itens casam `^[a-z][a-z0-9_]{1,62}$` (snake). Nenhuma tag de duas palavras satisfazia as duas ao
+  mesmo tempo. **Corrigido:** `target_topic` é identificador de tópico, então é **snake_case**, o
+  mesmo pattern de `topics[]` — a decisão `A-35` do contrato registra a superseção da `A-15`, e a
+  razão é que a recuperação do playbook compara os dois por **igualdade de string**. Este exemplo
+  usa snake nos dois (`erro_numerico`, `regra_da_cadeia`).
 
 ---
 

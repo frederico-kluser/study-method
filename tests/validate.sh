@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # tests/validate.sh — O GATE DE CONTRATO. Implementa as 43 invariantes de
 # `docs/00-contratos.md` §11 (I-01..I-43), mais as verificações estruturais que o §4, o §7,
-# o §9 e o §10 exigem e que o §11 não numerou (G-01..G-12).
+# o §9 e o §10 exigem e que o §11 não numerou (G-01..G-13).
 #
 # `docs/00-contratos.md` VENCE. Este script é a tradução mecânica daquele documento: quando
 # um deles muda, o outro muda junto — e uma PR que muda vocabulário, caminho, exit code ou
@@ -51,7 +51,7 @@ TPL_DIR="$SK/assets/templates"
 gate_init "validate — as 43 invariantes de docs/00-contratos.md §11"
 gate_limitation "Verificador de JSON Schema MÍNIMO (stdlib): type (inclusive array, ex. [\"string\",\"null\"]), required, enum, const, pattern, properties, items, additionalProperties, minimum/maximum, minLength/maxLength, minItems/maxItems, uniqueItems. Nada além disso — \$ref, allOf/anyOf/oneOf, if/then/else, \$defs, patternProperties, propertyNames e dependentSchemas são RECUSADOS, não interpretados."
 gate_limitation "I-24, I-25, I-26 e I-27 são ANÁLISE ESTÁTICA de texto: acusam o padrão declarado no fonte, não provam ausência em todo caminho de execução."
-gate_limitation "A busca por termo revogado (I-01, I-03, I-04, I-05, I-15) aceita a linha em contexto explicitamente revogatório e ignora docs/00-contratos.md e docs/research/ — ambos citam os termos de propósito."
+gate_limitation "A busca por termo revogado (I-01, I-03, I-04, I-05, I-15, I-43) aceita a linha em contexto explicitamente revogatório e ignora docs/00-contratos.md e docs/research/ — ambos citam os termos de propósito."
 gate_limitation "\`format\` de JSON Schema nunca é validado pelo verificador mínimo: o contrato usa \`pattern\`, e um schema que dependesse de \`format\` passaria aqui sem checagem real."
 
 if [ ! -f "$CONTRACT" ]; then
@@ -575,7 +575,7 @@ assert_grep_empty "I-13" "todo pattern de timestamp tem a fração opcional ([.]
 assert_grep_empty "I-16" "concept_id/scenario_id/target_topic em snake_case e slug de caminho em kebab-case" \
   "^[a-z][a-z0-9_]{1,62}\$ para conceito/tópico e ^[a-z0-9]+(-[a-z0-9]+)*\$ para slug de caminho (§4.2, A-15)" \
   "$(audit_code I16)"
-gate_note "I-16 · docs/00-contratos.md §4.2 ainda lista \`target_topic\` na linha de kebab-case: é o texto do contrato que precisa da correção. \`target_topic\` é comparado com \`session.topics\` (snake) por igualdade de string — com padrões diferentes a recuperação do playbook procedimental nunca casaria. O gate implementa a regra arbitrada (snake)."
+gate_note "I-16 · a regra arbitrada é snake: \`target_topic\` é comparado com \`session.topics\` por igualdade de string, e com padrões diferentes a recuperação do playbook procedimental nunca casaria. docs/00-contratos.md §4.2 já lista \`target_topic\` no namespace de conceito/tópico e a decisão A-35 registra a superseção de A-15 — contrato, schemas e gate dizem a mesma coisa."
 
 assert_grep_empty "G-11" "hint_level e derivados na faixa 0..5" \
   "minimum 0 e maximum 5 em hint_level, hint_level_used e max_hint_level_used" \
@@ -632,7 +632,7 @@ for pair in "setup-manifest.schema.json:I-14a:20" "registry.schema.json:I-14b:20
   if [ "$nexp" = 20 ]; then exp="$LANG_EXP_SETUP"; else exp="$LANG_EXP"; fi
   assert_eq "$iid" "enum language ($nexp, mesma ordem) em $fn" "$exp" "$(lang_of "$SCHEMA_DIR/$fn")" "$(gate_rel "$SCHEMA_DIR/$fn")"
 done
-gate_note "I-14 · a assimetria 20/20/19 é deliberada: \`none\` existe onde se descreve um SETUP (que pode não ter código), não onde se descreve um DESAFIO. docs/00-contratos.md §4.1 e §11 ainda dizem «19» nos três — o texto do contrato é que precisa da correção."
+gate_note "I-14 · a assimetria 20/20/19 é deliberada: \`none\` existe onde se descreve um SETUP (que pode não ter código), não onde se descreve um DESAFIO — igualar os três reprovaria schema correto. docs/00-contratos.md §4.1 e §11 já registram 20/20/19: contrato, schemas e gate concordam."
 
 # I-15 · cross_read
 CR_EXP='["ask","allow","never"]'
@@ -972,7 +972,7 @@ if run_or_pend "I-28" "memory-digest.sh sai 0 nos 4 cenários de borda" "memory-
   got_n="$("$SCRIPT_DIR/memory-digest.sh" "$FX/vazia" 2>/dev/null | jq -r 'keys_unsorted | length' 2>/dev/null || echo '<saída não é JSON>')"
   assert_eq "I-29c" "o digest produzido tem $DIGEST_N_EXP chaves de topo" "$DIGEST_N_EXP" "$got_n" \
     "SK/scripts/memory-digest.sh"
-  gate_note "I-29 · docs/00-contratos.md §11 ainda diz «19 chaves de topo»: o texto do contrato é que precisa da correção — \`procedural_playbook.do\` e \`.avoid\` são aninhados. O gate implementa o número arbitrado (18)."
+  gate_note "I-29 · são 18 chaves de topo e 19 blocos: \`procedural_playbook.do\` e \`.avoid\` são aninhados, não chaves de topo — esperar 19 reprovaria um digest correto. docs/00-contratos.md §11 já registra 18: contrato e gate concordam."
 else
   gate_pend "I-29" "o digest tem sempre as mesmas 18 chaves de topo" "executável ausente: SK/scripts/memory-digest.sh"
 fi
@@ -1290,7 +1290,7 @@ else
   done
   assert_grep_empty "I-39" "execution.sandbox.mode e execution.sandbox.timeout_source em todo meta.json com verdict != not_run" \
     "os dois campos gravados sob execution.sandbox, onde o schema os declara (§11 I-39)" "${bad%$'\n'}"
-  gate_note "I-39 · docs/00-contratos.md §11 escreve os dois campos sem qualificar (\`sandbox.mode\`, \`sandbox.timeout_source\`): o texto do contrato precisa do prefixo \`execution.\`, que é onde challenge-manifest.schema.json os declara e o único lugar onde a raiz \`additionalProperties: false\` os aceita."
+  gate_note "I-39 · os dois campos vivem sob \`execution.sandbox\`, que é onde challenge-manifest.schema.json os declara e o único lugar onde a raiz \`additionalProperties: false\` os aceita; o caminho não qualificado faria a verificação procurar onde o campo nunca esteve. docs/00-contratos.md §11 já os escreve qualificados: contrato, schema e gate concordam."
 fi
 
 # I-41 · as 8 seções do README.md do setup
@@ -1350,22 +1350,15 @@ if [ -f "$D02" ]; then
 fi
 
 # `evals/run-evals.sh` procura a MESMA lista dentro de evals/, e para procurá-la precisa
-# DECLARÁ-LA literalmente — o here-document `<<'CLAIMS' … CLAIMS` é a declaração. É a mesma
-# situação de docs/02 §9: quem enuncia a proibição não está reincidindo nela. A exclusão é do
-# INTERVALO do here-document, não do arquivo: qualquer outra linha de run-evals.sh continua em
-# escopo, e todo o resto de evals/ também. (O próprio run-evals.sh já se exclui da busca dele,
-# pela mesma razão, e diz isso na saída.)
-EVR="$GATE_ROOT/evals/run-evals.sh"
-EVR_RANGE=""
-if [ -f "$EVR" ]; then
-  s="$(grep -n "<<'CLAIMS'" "$EVR" | head -1 | cut -d: -f1 || true)"
-  if [ -n "$s" ]; then
-    e="$(awk -v s="$s" 'NR>s && /^CLAIMS$/{print NR; exit}' "$EVR")"
-    [ -n "$e" ] && EVR_RANGE="$s $e"
-  fi
-fi
-[ -n "$EVR_RANGE" ] && gate_scope_excl "I-43" "evals/run-evals.sh, linhas $EVR_RANGE (here-document CLAIMS)" \
-  "é a DECLARAÇÃO da lista proibida, feita para procurá-la dentro de evals/ — mesma natureza de docs/02 §9. Só o intervalo do here-document sai; o resto de run-evals.sh e todo o resto de evals/ continuam em escopo."
+# DECLARÁ-LA literalmente — o array `CLAIMS_PROIBIDAS=( … )` é a declaração. É a mesma situação
+# de docs/02 §9: quem enuncia a proibição não está reincidindo nela. O que isenta cada uma
+# daquelas linhas é o MARCADOR (`# afirmação proibida por I-43`), que REVOKE_MARKERS reconhece
+# como contexto revogatório — e não uma exclusão de intervalo. A diferença importa: a isenção
+# acompanha o marcador dentro da janela de ±1 linha do modo `revoke` do SCANNER, então linha de
+# run-evals.sh fora dessa janela continua em escopo, e todo o resto de evals/ também. (O
+# próprio run-evals.sh já se exclui da busca dele, pela mesma razão, e diz isso na saída.)
+gate_scope_excl "I-43" "linha com o marcador \`# afirmação proibida por I-43\`" \
+  "é a DECLARAÇÃO da lista proibida: evals/run-evals.sh precisa enunciar os literais para procurá-los dentro de evals/ — mesma natureza de docs/02 §9. A isenção vem do marcador, na janela de ±1 linha do modo revoke; linha fora dessa janela continua em escopo, e todo o resto de evals/ também."
 raw="$(grep_scope '2 ?sigma|2 desvios-padr|d ?= ?1,11|d ?= ?1\.11|programar desenvolve raciocínio lógico|[0-9]+% de dom[íi]nio|[0-9]+% de recurs')"
 filtered=""
 while IFS= read -r ln; do
@@ -1373,10 +1366,6 @@ while IFS= read -r ln; do
   file="${ln%%:*}"; rest="${ln#*:}"; lno="${rest%%:*}"
   if [ "$file" = "docs/02-pedagogia.md" ] && [ -n "$D02_RANGE" ]; then
     set -- $D02_RANGE
-    if [ "$lno" -ge "$1" ] && [ "$lno" -le "$2" ]; then continue; fi
-  fi
-  if [ "$file" = "evals/run-evals.sh" ] && [ -n "$EVR_RANGE" ]; then
-    set -- $EVR_RANGE
     if [ "$lno" -ge "$1" ] && [ "$lno" -le "$2" ]; then continue; fi
   fi
   case "$rest" in *"Bloom"*|*"nintil"*|*"wikipedia"*) continue ;; esac

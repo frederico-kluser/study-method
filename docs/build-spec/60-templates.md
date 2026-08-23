@@ -158,7 +158,8 @@ interface real de `lib/sandbox.sh`:
   `runner.sh`**, não delegados a `sm_sandbox_classify_exit` — a função existe no contrato da lib
   mas `runner.sh` não depende dela para o veredito de timeout, porque isso mantém `runner.sh`
   corretamente testável mesmo com uma `lib/sandbox.sh` ainda incompleta (é exatamente o estado
-  desta onda: `lib/sandbox.sh` no repositório hoje é um stub de contrato, corpos `:;`).
+  da onda em que o `runner.sh` foi escrito, e a independência ficou de propósito). Hoje
+  `lib/sandbox.sh` está implementada — 800 linhas e 26 funções `sm_sandbox*`.
 
 Defesas presentes, todas exercitadas na verificação (§6 abaixo):
 

@@ -196,7 +196,7 @@ A verificação roda no fechamento da sessão, nunca na abertura: compactar é u
 
 **Quem faz o quê**: `memory-compact.sh` é determinístico até o ponto em que a consolidação vira
 julgamento; ali ele usa **REQUEST/APPLY** (`docs/01-arquitetura.md` do repositório §3.1). O pedido
-chama-se **`profile_compaction`**: o script emite em stdout os candidatos já agrupados e sai com
+chama-se **`compact_facts`** (a grafia `profile_compaction` está **revogada** — `docs/01` §3.1, `docs/00` §6.5): o script emite em stdout os candidatos já agrupados e sai com
 **exit 10**, sem escrever nada; o modelo devolve a resposta (a `claim`/`how` consolidada, e o
 **apelido** de cada `claim_key` procedimental — o único campo que exige nomear algo); o script
 re-roda com `--apply <resposta.json>`, valida contra
@@ -206,7 +206,7 @@ re-roda com `--apply <resposta.json>`, valida contra
 1. Selecionar `S` = sessões com `compacted_at == null` e `status ∈ {completed, abandoned}`, em ordem crescente de `session_id`. **Determinístico.**
 2. Ler **os arquivos brutos** dessas sessões. **Regra dura: a compactação nunca lê uma consolidação anterior** — nem o `profile.json`, exceto para conhecer os `claim_key` já existentes e o `next_fact_seq`. Isso elimina a degradação por resumo-de-resumo-de-resumo, que é cumulativa e silenciosa. **Determinístico.**
 3. **Semântico**: cada `skills_observed[]` vira candidato a fato com `claim_key = "skill_<skill>_level"`; observações repetidas de dificuldade viram `difficulty_<topic>`; pontos fortes, `strength_<skill>`. A chave é montada por junção com `_` — **determinístico**.
-4. **Procedimental**: cada `how_it_happened[]` vira candidato com `claim_key = "<procedure_kind>_<target_topic>_<apelido>"`. Os dois primeiros segmentos são copiados do item; o `<apelido>` é a única parte que precisa de julgamento e vem da **resposta** do pedido `profile_compaction`, normalizada por `normalize_concept_id()` (`^[a-z][a-z0-9_]{1,62}$`). Itens com `outcome == "backfired"` viram `procedure_kind: antipattern` além do tipo original. **Nenhum script inventa apelido sozinho.**
+4. **Procedimental**: cada `how_it_happened[]` vira candidato com `claim_key = "<procedure_kind>_<target_topic>_<apelido>"`. Os dois primeiros segmentos são copiados do item; o `<apelido>` é a única parte que precisa de julgamento e vem da **resposta** do pedido `compact_facts`, normalizada por `normalize_concept_id()` (`^[a-z][a-z0-9_]{1,62}$`). Itens com `outcome == "backfired"` viram `procedure_kind: antipattern` além do tipo original. **Nenhum script inventa apelido sozinho.**
 5. Para cada candidato, comparar com o fato **`active` de mesmo `claim_key`**:
    - **Não existe** → criar fato novo, `status: active`, `supersedes: null`, `confidence` pela regra do passo 6.
    - **Existe e a afirmação é a mesma** → **reconfirmação, não mudança**: atualizar `last_observed_at`, acrescentar o `session_id` a `source_sessions[]`, recalcular `confidence`. **Não** cria fato novo e **não** supersede. (Distinguir os dois casos é o que impede o `profile.json` de inchar com dezenas de cópias do mesmo fato.)
@@ -1088,8 +1088,8 @@ arquivos acima (já depois do `--verify`, que recuperou a 0043). Note a órfã r
 | `SK/scripts/memory-digest.sh` | onda 3 (sub-tarefa 3.4) | Exatamente §6. Raiz do setup posicional, `--now` obrigatório para saída reproduzível. Somente leitura, saída fixa, sempre exit 0. |
 | `SK/scripts/memory-index.sh --verify` | onda 3 (sub-tarefa 3.4) | Sincronia do índice **e** recuperação automática de órfã (§7.3). É o **único** componente que finaliza uma órfã. |
 | Abertura de sessão (`session-new.sh`) | onda 3 (sub-tarefa 3.3) | Depois de `--verify` e do digest: criar `NNNN.json` com os 5 obrigatórios e `status: in_progress`, mais o `.session.lock` JSON. Lock vivo → exit 4. |
-| Fechamento (`session-close.sh`) | onda 3 (sub-tarefa 3.3) | Preencher a sessão → validar contra o schema (faltou campo → pedido `session_close_fields`, exit 10, `--apply`) → reescrever `one_line_summary` → `status: completed` + `finalized_at` + `finalized_by` → append no índice (§2.1) → checar gatilho de compactação (§4.1). **Não escreve `profile.json`.** |
-| Compactação (`memory-compact.sh`) | onda 3 (sub-tarefa 3.4) | Exatamente §4.2, com o pedido `profile_compaction` (exit 10 / `--apply`). É o único escritor de `profile.json`, e o único ponto onde a LLM escreve memória de longo prazo. |
+| Fechamento (`session-close.sh`) | onda 3 (sub-tarefa 3.3) | Preencher a sessão → validar contra o schema (faltou campo → pedido `fill_session_fields`, exit 10, `--apply`) → reescrever `one_line_summary` → `status: completed` + `finalized_at` + `finalized_by` → append no índice (§2.1) → checar gatilho de compactação (§4.1). **Não escreve `profile.json`.** |
+| Compactação (`memory-compact.sh`) | onda 3 (sub-tarefa 3.4) | Exatamente §4.2, com o pedido `compact_facts` (exit 10 / `--apply`). É o único escritor de `profile.json`, e o único ponto onde a LLM escreve memória de longo prazo. |
 | Validador dos schemas | gate | Verificador mínimo em Python stdlib. Requisito: aceitar `type` como string **ou** array de strings (`["string","null"]`), e suportar `required`, `enum`, `pattern`, `properties`, `items`, `additionalProperties: false`. Sem `$ref`, sem `allOf` aninhado, sem `if/then/else` — os três schemas foram escritos para caber nisso. |
 | `SKILL.md` | onda 3 | Três obrigações herdadas daqui: (i) `read_as: "hypothesis"` vira pergunta, nunca afirmação; (ii) assunto fora do digest → filtrar o índice e abrir o bruto antes de dizer "não me lembro"; (iii) `memory_state: "first_session"` → sessão de calibração, não fingir conhecer o aluno. |
 

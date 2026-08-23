@@ -26,13 +26,14 @@ revogados** — e o gate procura por eles em todo `.md` normativo do repositóri
 
 ## Rodando o gate localmente
 
-Os quatro, nesta ordem — cada um só faz sentido depois do anterior:
+Os cinco, nesta ordem — cada um só faz sentido depois do anterior:
 
 ```bash
-tests/gate-build.sh   # 1. sintaxe e forma
-tests/gate-lint.sh    # 2. qualidade de texto e de arquivo
-tests/validate.sh     # 3. contrato  (o pesado; é o que decide)
-tests/smoke.sh        # 4. integração ponta a ponta
+tests/gate-build.sh        # 1. sintaxe e forma
+tests/gate-lint.sh         # 2. qualidade de texto e de arquivo
+tests/validate.sh          # 3. contrato  (o pesado; é o que decide)
+tests/smoke.sh             # 4. integração ponta a ponta
+tests/spec-conformance.sh  # 5. o BUILD_SPEC.md ainda descreve o repositório?
 ```
 
 | Gate | Pergunta que responde | O que NÃO faz |
@@ -41,11 +42,12 @@ tests/smoke.sh        # 4. integração ponta a ponta
 | `gate-lint.sh` | Os defeitos baratos que estragam a leitura: frontmatter malformado, link relativo quebrado, placeholder de template órfão, arquivo sem newline final, tabela markdown torta. | Não é contrato nem sintaxe. |
 | `validate.sh` | As 43 invariantes de `docs/00-contratos.md` §11 (`I-01`..`I-43`), mais os checks estruturais `G-*` que o §4, o §7, o §9 e o §10 exigem e o §11 não numerou. | Não roda o fluxo: análise estática e fixtures. |
 | `smoke.sh` | O fluxo inteiro funciona? Cria setup, abre e fecha 3 sessões, gera e valida um desafio, renderiza um gráfico, prova idempotência, valida todo JSON contra o schema dono. | O modelo **não** está no laço: as respostas do REQUEST/APPLY são sintetizadas mecanicamente. Prova o caminho, não a qualidade do julgamento. |
+| `spec-conformance.sh` | O `BUILD_SPEC.md` montado ainda descreve o repositório de verdade? As 11 checagens `SC-01`…`SC-08`: caminhos citados, scripts, funções de `lib/`, schemas, decisões, patterns, enums, exit codes e termos revogados. `docs/12-conformidade.md`. | Não valida contrato nem roda o fluxo: compara o documento com o disco. |
 
 Atalhos úteis:
 
 ```bash
-tests/validate.sh --list                 # lista os checks
+tests/validate.sh --list                 # lista os checks que têm cabeçalho de comentário (8 dos 77)
 GATE_ONLY=I-14,I-33 tests/validate.sh    # roda só os que começam por esses prefixos
 tests/smoke.sh --keep                    # não apaga o diretório de trabalho, para inspeção
 STUDY_METHOD_TODAY=2026-08-23 tests/validate.sh   # data fixa (determinismo)
@@ -84,6 +86,7 @@ verde sem rodar teste nenhum:
 | `swift` | `swiftpm` | `Package.swift` |
 | `julia` | `julia_project` | `Project.toml` |
 | `haskell` | `cabal_project` | `.cabal` |
+| `bash` | `bats_suite` | — |
 | demais | `generic` | — |
 
 Se a sua linguagem não couber no `generic`, o perfil novo entra **primeiro** no contrato
@@ -151,8 +154,8 @@ do derivado.**
 | Camada | Arquivo | Papel |
 |---|---|---|
 | Máquina (origem de verdade) | `skills/study-method/assets/decisions.json` | Quais decisões existem, quais opções são válidas, para quem, quando, a que custo, onde a resposta é gravada. |
-| Humana | `docs/08-decisoes-abertas.md` | Renderização legível do catálogo. **Derivado — ainda não existe**, e o gate cobra: `G-12c`. |
-| Runtime | `skills/study-method/scripts/decisions-ask.sh` | Lê o catálogo e conduz a entrevista. **Derivado — ainda não existe**, e o gate cobra: `I-06b`. |
+| Humana | `docs/08-decisoes-abertas.md` | Renderização legível do catálogo — as 114 decisões, uma seção por `D-NNN`. **Derivado**, e o gate cobra a cobertura: `G-12c`. |
+| Runtime | `skills/study-method/scripts/decisions-ask.sh` | Lê o catálogo e conduz a entrevista. **Derivado**, e o gate cobra: `I-06b`. |
 
 Uma entrada nova precisa de:
 
@@ -211,10 +214,10 @@ Corolários que aparecem com frequência:
 
 1. Ramo a partir de `main`.
 2. Se a mudança toca contrato: `docs/00-contratos.md` **no mesmo commit** que o código.
-3. Os 4 gates verdes localmente — ou, se algum já estava vermelho antes, a prova de que você não
+3. Os 5 gates verdes localmente — ou, se algum já estava vermelho antes, a prova de que você não
    piorou o placar (o resumo de cada gate imprime `N passou · N falhou · N pendente`).
 4. Na descrição da PR: o que mudou, qual invariante cobre, e o comando que reproduz o número que
    você citou.
 
-A CI (`.github/workflows/gate.yml`) roda os mesmos 4 scripts em `ubuntu-latest`. Ela não instala
+A CI (`.github/workflows/gate.yml`) roda os mesmos 5 scripts em `ubuntu-latest`. Ela não instala
 nada que o projeto não exija, então alguns checks degradam lá — o próprio workflow diz quais.

@@ -87,7 +87,8 @@ em lista numerada contínua, e cada um carrega a guarda na mesma linha.
 study-method/
 ├── docs/                                  # o `docs/` do REPOSITÓRIO
 │   ├── 00-contratos.md                    # este arquivo — autoridade sobre fronteiras
-│   ├── 01..11-*.md                         # documentos normativos por domínio
+│   ├── 01..13-*.md                         # documentos normativos por domínio (não há 09)
+│   ├── build-spec/**                       # as fontes do BUILD_SPEC.md da raiz
 │   └── research/0N-*.md                    # pesquisa auditada
 ├── skills/study-method/                   # = SK/ — nome idêntico ao `name` do frontmatter
 │   ├── SKILL.md                           # corpo ≤ ~200 linhas (roteador + regras permanentes)
@@ -95,7 +96,9 @@ study-method/
 │   ├── scripts/                           # os 19 scripts do §8
 │   │   └── lib/{common,json,sandbox}.sh    # apenas `source`, nunca executados
 │   └── assets/{schemas,templates,decisions.json}
-├── tests/validate.sh                      # o gate — insumo direto do §11
+├── tests/                                 # os 5 gates + lib/assert.sh (biblioteca)
+│   ├── validate.sh                        # o gate de contrato — insumo direto do §11
+│   └── gate-build.sh · gate-lint.sh · smoke.sh · spec-conformance.sh
 └── examples/
 ```
 
@@ -454,7 +457,7 @@ igual nos quatro scripts:
 |---|---|---|---|---|---|
 | `memory-compact.sh` | `compact_facts` | `memory_compact` | Selecionou as sessões não consolidadas, leu **só os brutos**, agrupou candidatos, calculou `confidence` e detectou reconfirmação × mudança. | **Consolidar cada grupo em prosa (`claim` / `how`) e nomear a `claim_key`.** É a única porta de entrada da memória de longo prazo. | Não compacta e o gatilho reavalia no próximo fechamento. Nenhum bruto é perdido. ⚠ `compaction.deferred_at` **existe no schema** mas `memory-compact.sh` ainda **não o grava** — ver §6.5. |
 | `session-close.sh` | `fill_session_fields` | `session_close` | Validou `memory/NNNN.json` contra `session.schema.json` e listou exatamente os campos ausentes ou inválidos. | **Preencher os campos ausentes** (`one_line_summary`, `topics`, `what_worked`, `what_didnt_work`, `open_questions`, `next_steps`), só com o que a sessão sustenta. | Fecha assim mesmo: `status: "completed"` + `validation_errors[]` preenchido. **Nunca deixa sessão presa em `in_progress`.** |
-| `challenge-verify.sh` | `classify_survivor` | `challenge_verify` | Rodou os passos 0–6, gerou os mutantes do catálogo fixo, matou o que dava, e isolou os sobreviventes com `operator`, `file`, `line`, `before`, `after`. | **Classificar cada sobrevivente como `equivalent` ou `test_gap`, com `justification` escrita.** Única etapa do protocolo em que o modelo opina, sobre um diff de uma linha, auditável. | Todo sobrevivente vira `unclassified`, tratado como `test_gap` (o lado conservador). O score cai e o veredito tende a `weak`. |
+| `challenge-verify.sh` | `classify_survivor` | `challenge_verify` | Rodou os passos 0–6, gerou os mutantes do catálogo fixo, matou o que dava, e isolou os sobreviventes com `operator`, `file`, `line`, `before`, `after`. | **Classificar cada sobrevivente como `equivalent` ou `not_equivalent`, com `justification` escrita.** `not_equivalent` é o vocabulário da **RESPOSTA** (`challenge-verify.response.schema.json`); é o script que o traduz para `test_gap` no `meta.json` (§6.5). Responder `test_gap` faz `sm_apply_read` recusar com exit 5. Única etapa do protocolo em que o modelo opina, sobre um diff de uma linha, auditável. | Todo sobrevivente vira `unclassified`, tratado como `test_gap` (o lado conservador). O score cai e o veredito tende a `weak`. |
 | `docs-index.sh` | `select_sections` | `docs_index` | Varreu o `docs/` do setup, montou o manifesto com seções, offsets em bytes e sha256, e pontuou tudo pela heurística determinística. | **Escolher, dentre as seções empatadas no score, quais são relevantes ao tópico da aula**, respeitando o teto de 60% do orçamento. | Usa a ordem de score pura, corta no teto e **declara em voz alta** que a seleção foi automática. |
 
 ### 6.5 ⭐ Os dois vocabulários de `kind`, e as duas limitações reconhecidas ⚑
@@ -489,8 +492,10 @@ implementáveis**, e prometer é pior do que reconhecer.
 
 ## 7. ⭐ Contrato de `lib/common.sh` e `lib/json.sh`
 
-Estes dois arquivos são a base dos outros 17 scripts e hoje têm **zero menções** em toda a
-especificação. A interface abaixo fica **congelada**: mudá-la exige mudar este documento primeiro.
+Estes dois arquivos são a base dos outros 17 scripts. Quando este §7 foi escrito eles tinham **zero
+menções** em toda a especificação; hoje o contrato de construção deles vive em
+`docs/build-spec/30-lib-setup.md` e é citado por `SK/references/scripts.md`, `docs/01` e `docs/03`.
+A interface abaixo fica **congelada**: mudá-la exige mudar este documento primeiro.
 
 **Regras que valem para os três arquivos de `lib/`:**
 
@@ -615,15 +620,15 @@ Convenção: **todo script recebe `<setup_root>` como primeiro argumento posicio
 | `research-new.sh` | `<setup_root> --topic <slug> [--sources <csv>] [--session <NNNN>]` | O caminho relativo de `researchs/NNNN.md` | 0 · 1 · 2 · 3 · 4 |
 | `docs-index.sh` | `<setup_root> [--topics t1,t2] [--budget-bytes N] [--force] [--select] [--apply <resposta.json>]` | JSON: `{mode, files, selected_sections, excluded, total_ingestible_bytes}` | 0 · 1 · 2 · 3 · 5 · **10** (`select_sections`). ⚑ **`--select` é o gatilho do exit 10**, e é o único: sem ele o script indexa e sai 0 pela heurística determinística. `--select` e `--apply` são **mutuamente exclusivos** (combiná-los é **2**). |
 | `memory-index.sh` | `<setup_root> [--verify] [--rebuild]` | Resumo JSON: `{sessions, orphans_closed, quarantined, rebuilt}` | 0 · 1 · 2 · 3 · 5 |
-| `memory-digest.sh` | `<setup_root> [--topics t1,t2] [--budget-chars N] [--today AAAA-MM-DD]` | **O digest JSON**, ordem de chaves fixa, forma fixa (nenhuma chave desaparece) | **0 sempre que produzir um digest** — inclusive com `memory/` vazia, índice ausente, bruto corrompido ou orçamento estourado. `!= 0` só se não conseguir escrever em stdout. Falha de memória **nunca** impede uma aula de começar. |
+| `memory-digest.sh` | `<setup_root> [--topics t1,t2] [--budget-chars N] [--today AAAA-MM-DD] [--now <ISO 8601>]` | **O digest JSON**, ordem de chaves fixa, forma fixa (nenhuma chave desaparece) | **0 sempre que produzir um digest** — inclusive com `memory/` vazia, índice ausente, bruto corrompido ou orçamento estourado. `!= 0` só se não conseguir escrever em stdout. Falha de memória **nunca** impede uma aula de começar. |
 | `memory-compact.sh` | `<setup_root> [--if-due] [--force] [--apply <resposta.json>]` | Resumo JSON: `{sessions_compacted, facts_created, facts_superseded, facts_reconfirmed}` | 0 · 1 · 2 · 3 · 5 · **10** (`compact_facts`). Com `--if-due` abaixo do limiar (**15**): não faz nada, exit 0. |
 | `progress-update.sh` | `<setup_root> [--event <evento.json>] [--due] [--recompute]` | `--due` imprime a lista de conceitos vencidos (JSON); `--recompute` imprime o diff | 0 · 1 · 2 · 3 · **4** · 5 (evento sem artefato correspondente **também** é 5). ⚑ **Sai 4**: tem lock próprio, `memory/.progress.lock` (diretório, `mkdir` atômico, mesma disciplina de `sm_registry_lock`), porque duas escritas concorrentes em `progress.json` corrompem o estado de proficiência. O lock é **do arquivo**, não da sessão: é ortogonal a `memory/.session.lock`, e um não substitui o outro. |
 | `readme-sync.sh` | `<setup_root> [--init]` | O número de linhas geradas | 0 · 1 · 2 · 3. **Idempotente**: duas execuções seguidas produzem o mesmo arquivo. |
 | `challenge-new.sh` | `<setup_root> --language <l> --slug <sl> --concept <concept_id> [--difficulty 1..5] [--skill-level <n>]` | O caminho relativo de `challenges/<NNNN>-<slug>/` | 0 · 1 · 2 · 3 · 4 · 5 |
-| `challenge-verify.sh` | `<challenge_dir> [--sample-size N] [--n-rep N] [--apply <resposta.json>]` | Resumo JSON: `{verdict, mutation_score, killed, survived, rejections}` | 0 (`approved`) · 1 (erro de execução) · 2 · 5 (schema do `meta.json`) · **10** (`classify_survivor`, §6.5). Veredito `weak`/`rejected` sai **0** com o veredito no stdout — reprovar o desafio não é erro do script. |
+| `challenge-verify.sh` | `<challenge_dir> [--sample-size N] [--n-rep N] [--threshold X] [--apply <resposta.json>]` | Resumo JSON: `{verdict, mutation_score, killed, survived, rejections}` | 0 (`approved`) · 1 (erro de execução) · 2 · 5 (schema do `meta.json`) · **10** (`classify_survivor`, §6.5). Veredito `weak`/`rejected` sai **0** com o veredito no stdout — reprovar o desafio não é erro do script. |
 | `detect-toolchains.sh` | `[--cached] [--setup <setup_root>] [--language <l>] [--json]` | JSON: por linguagem, `{available, version, command}` | 0 · 1 · 2 |
 | `render-plot.py` | `[--spec CAMINHO\|-] [--out-dir DIR] [--basename NOME] [--width N] [--height N] [--ascii-width N] [--ascii-height N] [--formats svg,html,txt,md] [--png] [--quiet]` | JSON: `{ok, type, outputs, description_text, ascii_text, warnings, stats}` | **Exceção nomeada** (§5.2): 0 · 1 · 2 · 3 |
-| `decisions-ask.sh` | `<fase> --setup <setup_root> [--json] [--answer <id>=<valor>]`, com `fase ∈ {setup-init, first-challenge, session-15, on-demand}` | As decisões pendentes daquela fase, em JSON | 0 · 1 · 2 · 3 · 5 |
+| `decisions-ask.sh` | `<fase> --setup <setup_root> [--json] [--answer <id>=<valor>]`, com `fase ∈ {setup-init, first-challenge, session-15, on-demand}`. Aceita também `<setup_root> <fase>` posicional, `--record <id> <opcao> [--value] [--note] [--session]`, `--defaults <fase>` e `--catalog-only <fase>` (`docs/08` §1.4) | As decisões pendentes daquela fase, em JSON | 0 · 1 · 2 · 3 · 5 |
 
 ---
 
@@ -818,20 +823,20 @@ Insumo direto de `tests/validate.sh`. Cada linha é uma asserção verificável;
 | I-03 | `session_status` não aparece em arquivo nenhum. | `grep -r 'session_status'` vazio **no escopo de A-34**. |
 | I-04 | Nenhum schema, doc ou script cita `.study-method/`, `manifest.json`, `docs-manifest.json`, `SETUP_CTL` ou `PROFILE.json`. | grep vazio **no escopo de A-34**. |
 | I-05 | Nenhum arquivo cita `challenge-run.sh` ou `render-html.sh`. | grep vazio **no escopo de A-34** (`docs/01` §* os cita para declarar a remoção — é menção, não uso). |
-| I-06 | Existem exatamente 19 entradas em `SK/scripts/` (contando `lib/`), e cada uma tem uma linha na tabela §8. | `find` + diff contra a tabela. |
+| I-06 | Existem exatamente 19 scripts **contratados** em `SK/scripts/` (contando os três `.sh` de `lib/`), e cada um tem uma linha na tabela §8. Auxiliares privados de prefixo `_` (`lib/_jsonschema_min.py`, `lib/_mutate.py`) e `.gitkeep` ficam **fora do escopo** e não têm linha em §8. | `find … ! -name '_*' ! -name '.gitkeep'` + diff contra a tabela. |
 | I-07 | Todo `$id` de `SK/assets/schemas/*.json` casa `^urn:study-method:schema:[a-z-]+:[0-9]+$`. | `jq -r '."$id"'` por arquivo. |
 | I-08 | Nenhum schema contém `$ref`, `allOf`, `anyOf`, `oneOf`, `if`, `then`, `else` ou `$defs`. | `grep -l` vazio. |
 | I-09 | Todo schema valida contra o metaschema mínimo e é parseável por `json.load` da stdlib. | `python3 -c 'import json,glob;[json.load(open(f)) for f in glob.glob(...)]'`. |
 | I-10 | O enum `status` de sessão é exatamente `["in_progress","completed","abandoned"]` em `session.schema.json` e `index.schema.json`. | `jq` + comparação literal. |
 | I-11 | O enum `status` de fato é exatamente `["active","superseded"]` em `profile.schema.json` e `progress.schema.json`. | idem. |
 | I-12 | `setup_id` casa `^[0-9a-f]{12}$` em **todos** os schemas que o declaram (inclusive `progress.schema.json`). | `jq` sobre cada `pattern`. |
-| I-13 | Todo pattern de timestamp nos 7 schemas contém `([.][0-9]+)?`. | grep sobre os patterns. |
+| I-13 | Todo pattern de timestamp contém `([.][0-9]+)?` — em **todos** os schemas que declaram campo `*_at` (hoje 9 de `SK/assets/schemas/*.json` e 4 de `requests/`; `decisions` e `plot-spec` não têm nenhum). | grep sobre os patterns, em todos os schemas. |
 | I-14 | ⚑ O enum `language` tem **20** entradas em `setup-manifest` e `registry` e **19** em `challenge-manifest`; os **19 primeiros** são idênticos e na mesma ordem nos três, e o 20º é `none`, presente só nos dois primeiros (§4.1). | `jq -c` + igualdade contra as duas listas esperadas; `.[0:19]` igual nos três **e** `challenge-manifest` sem `none`. Igualdade dos três contra uma lista só **reprovaria schema correto**. |
 | I-15 | `cross_read` existe com enum `["ask","allow","never"]` em `registry.schema.json` e em `setup-manifest.schema.json` → `privacy`; `allow_cross_read` não aparece em lugar nenhum. | `jq` + grep. |
 | I-16 | Os dois namespaces de §4.2 não se misturam: **conceito ou tópico** (`concept_id`, `scenario_id`, `topics[]`, `target_topic`, `skill`) casa `^[a-z][a-z0-9_]{1,62}$`; **slug de caminho** (`setup_name`, `subject_slug`, `<slug>` de diretório, slug de research) casa `^[a-z0-9]+(-[a-z0-9]+)*$`. | validação dos exemplos em `examples/` e dos patterns nos schemas. `target_topic` já é verificado como conceito/tópico (§4.2), sem exceção — o resíduo está fechado. |
 | I-17 | Nenhum `challenge_id` de exemplo usa o formato `c-NNNN-<slug>`. | `grep -rE '"challenge_id": *"[^0-9]'` vazio. |
 | I-18 | Todo script de `SK/scripts/*.sh` (fora de `lib/`) usa apenas os exit codes `0 1 2 3 4 5 10`. | extração estática de `exit <n>` + `sm_die <n>`. |
-| I-19 | Os três arquivos de `lib/` não têm bit de execução e não contêm bloco `main`/`"$@"` de topo. | `test ! -x` + grep. |
+| I-19 | Os três `.sh` de `lib/` (`common`, `json`, `sandbox`) não têm bit de execução e não contêm bloco `main`/`"$@"` de topo. Os auxiliares Python `_jsonschema_min.py` e `_mutate.py` estão fora deste invariante — `_mutate.py` é executável de propósito. | `test ! -x` sobre `lib/*.sh` + grep. |
 | I-20 | Toda função exportada por `lib/common.sh` e `lib/json.sh` está na tabela §7, e vice-versa. | extração de `^sm_[a-z_]*\(\)` + diff. |
 | I-21 | Todo script tem `set -o pipefail` (ou `${PIPESTATUS[0]}` em todo pipeline) e nenhum testa `== 1` para falha. | grep `-e 'pipefail'` + `grep -nE '\-eq 1\b.*exit\|== 1'`. |
 | I-22 | Os quatro scripts do REQUEST/APPLY aceitam `--apply` e são os **únicos** que podem sair com 10. | grep `--apply` + grep `exit 10`. |
@@ -887,7 +892,7 @@ supersede.
 ### 12.0 ⭐ Mapa `AR-NN` → `A-NN` — a correspondência **não é 1:1**
 
 Os documentos do repositório, as `references/` e o `decisions.json` citam rótulos **`AR-NN`** de um
-registro de arbitragens maior; esta tabela numera **`A-01`…`A-34`**. Os números **colidem sem
+registro de arbitragens maior; esta tabela numera **`A-01`…`A-35`** (`A-01`…`A-25` aqui, `A-26`…`A-34` em §12.1, `A-35` em §12.2). Os números **colidem sem
 coincidir** — e em dois casos estão trocados entre si:
 
 > `docs/01`, `docs/03`, `docs/10` e `SK/references/bootstrap.md` citam **`AR-06`** para a sessão
@@ -941,7 +946,7 @@ aqui, ou é erro de citação — e nos dois casos a resolução é pelo assunto
 | A-14 | `cross_read` (`ask\|allow\|never`) × `allow_cross_read` (booleano) | **`cross_read`** com os três valores, em `registry.json` e em `setup.json` → `privacy.cross_read`. `allow_cross_read` é removido. | Booleano não expressa `ask`, que é o **default**; manter os dois criaria uma terceira fonte de verdade. |
 | A-15 | Identificador de conceito: snake_case × kebab-case | **Conceito = snake_case** (`^[a-z][a-z0-9_]{1,62}$`); **tópico/tag/slug = kebab-case**. Dois namespaces, declarados. ⚠ **SUPERADA por `A-35`** (§12.2). | O conceito vira nome de símbolo e chave de agrupamento; o slug vira nome de diretório e de arquivo. `sm_normalize_concept_id` e `sm_normalize_slug` tornam a distinção mecânica. |
 | A-16 | `setup_id` como `^[a-z][a-z0-9_-]{1,63}$` em `progress.schema.json` | **`^[0-9a-f]{12}$`** em todo lugar. | Identidade sorteada, não legível; `progress.schema.json` é corrigido. |
-| A-17 | Timestamp com × sem fração de segundo | **Fração opcional** (`([.][0-9]+)?`) nos 7 schemas. | 5 dos 7 já a aceitam; rejeitar em 2 quebraria arquivos escritos por outro script do mesmo sistema. |
+| A-17 | Timestamp com × sem fração de segundo | **Fração opcional** (`([.][0-9]+)?`) em todo schema com campo `*_at`. | Na arbitragem eram 7 schemas e 5 deles já a aceitavam; rejeitar em 2 quebraria arquivos escritos por outro script do mesmo sistema. |
 | A-18 | Gráficos em `researchs/assets/` × `<sessão>/viz/` | **`researchs/assets/<NNNN>-<slug>/`.** | Não há diretório de sessão no contrato de árvore; a figura é um destilado visual e sobrevive ao desafio ser refeito, que era o argumento de D-V08. |
 | A-19 | 21 scripts × 19 scripts | **19.** `challenge-run.sh` e `render-html.sh` removidos. | Nenhum dos dois tinha contrato: rodar o desafio é o `runner.sh` gerado (que já normaliza exit code e conta testes), e o HTML autocontido já é uma das quatro saídas obrigatórias do `render-plot.py`. |
 | A-20 | Proveniência: comentário HTML+JSON (`researchs/`) × frontmatter YAML (`docs/generated/`) | **Comentário HTML com JSON nos dois.** YAML fica proibido em artefato gerado. | Não há PyYAML nesta máquina e o gate valida JSON com a stdlib; dois formatos exigiriam dois parsers para a mesma informação. |

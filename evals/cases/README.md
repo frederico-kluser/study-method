@@ -80,7 +80,10 @@ verificacao: automatica | assistida | julgamento
 Campo opcional **`regras_propostas`**: IDs que a suíte **propõe** e que **não existem** no contrato.
 `run-evals.sh` os separa dos IDs reais e os reporta como `MANUAL` — achado, não falha. Serve para
 registrar que um comportamento desejável não tem regra com ID, sem inventar contrato por conta
-própria. Hoje: `AS-13` (em `EV-08`) e `BOOT-8` (em `EV-12`).
+própria. Hoje: **nenhum** — nenhum caso usa o campo, e `E-02` fecha com `MANUAL 0`. Os dois achados que
+existiram foram **endereçados**: `AS-13` (de `EV-08`) e `BOOT-8` (de `EV-12`) viraram regras
+permanentes do §9 do contrato e do corpo do `SKILL.md`, e hoje aparecem no `regras:` comum. Ver
+"Achado — fechado" nos dois casos.
 
 Seções do corpo, nesta ordem: `Situação` · `Estado assumido` · `O turno do aluno` · `O que o tutor
 deve fazer` · `O que seria violação` (tabela com o ID) · `Sem ID` (quando aplicável) · `Notas do

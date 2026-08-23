@@ -90,7 +90,7 @@
             "bash",
             "none"
           ],
-          "description": "Vocabulario fechado, derivado da matriz de docs/research/06-toolchains.md do repositorio, secao 2. Ampliar esta lista e mudanca MAJOR de schema_version. Nesta maquina rodam desafio sem instalar nada: python, javascript (node:test), rust, go, c, cpp, lua e bash. O valor 'none' significa assunto sem codigo: o fluxo de criacao oferece essa resposta na pergunta sobre exercicios, e com ela o diretorio challenges/ nao e usado e nenhum desafio e gerado. 'none' e escolha legitima, nao ausencia de resposta - a ausencia se expressa omitindo o campo language inteiro, o que este schema nao permite porque language e obrigatorio."
+          "description": "Vocabulario fechado, derivado da matriz de docs/research/06-toolchains.md do repositorio, secao 2. Ampliar esta lista e mudanca MAJOR de schema_version. Nesta maquina rodam desafio sem instalar nada as NOVE de SK/references/languages.md SS3: python, javascript (node:test), rust, go, c, cpp, java (com -ea), lua e bash. O valor 'none' significa assunto sem codigo: o fluxo de criacao oferece essa resposta na pergunta sobre exercicios, e com ela o diretorio challenges/ nao e usado e nenhum desafio e gerado. 'none' e escolha legitima, nao ausencia de resposta - a ausencia se expressa omitindo o campo language inteiro, o que este schema nao permite porque language e obrigatorio."
         },
         "runtime_version": {
           "type": "string",

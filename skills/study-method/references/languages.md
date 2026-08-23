@@ -271,7 +271,12 @@ visualização, que o `SKILL.md` carrega no passo `teach` para gráfico.
 
 ## 5. Linguagens que exigem instalação
 
-**Nenhuma destas roda nesta máquina.** Nunca as ofereça como se estivessem prontas.
+**Nenhuma destas fecha o ciclo nesta máquina.** Nunca as ofereça como se estivessem prontas.
+
+⚑ **`typescript` é a 19ª do enum e não está em nenhuma das duas matrizes.** Ele roda por
+transpilação para Node, então o runtime existe, mas o desafio em TypeScript **não** está
+implementado (`challenge-new.sh` implementa cinco: `python`, `javascript`, `go`, `rust`, `c`). Na
+prática, ofereça `javascript` — a vizinha suportada, que é o que `challenge-new.sh` já sugere.
 
 | Linguagem | Falta | Teste zero-install | Exit de falha | Manifesto | Instalação (Arch/CachyOS) |
 |---|---|---|---|---|---|
@@ -332,7 +337,7 @@ Fixe no runner, sempre — independem da linguagem:
 ```bash
 export LC_ALL=C.UTF-8 TZ=UTC PYTHONHASHSEED=0
 cd "$CHALLENGE_DIR" || exit 66        # 66 = infraestrutura, NUNCA falha de teste
-sandbox_exec <comando>                # de lib/sandbox.sh — nunca monte sandbox à mão
+sandbox_exec <comando>                # embrulho local de sm_sandbox_run (lib/sandbox.sh) — nunca monte sandbox à mão
 ```
 
 Três coisas que **não** se improvisa aqui:
@@ -340,7 +345,7 @@ Três coisas que **não** se improvisa aqui:
 - **`|| exit 66`**, em todo lugar do produto. Não 1, não 70. É o código que distingue "o
   diretório do desafio não existe" de "o teste falhou", e ele só serve se for o mesmo em todos
   os scripts.
-- **O confinamento vem de `sandbox_exec`**, definido em `lib/sandbox.sh`. Ele já aplica
+- **O confinamento vem de `sm_sandbox_run`**, definido em `lib/sandbox.sh` e exposto no `runner.sh` gerado como `sandbox_exec`. Ele já aplica
   `timeout -s KILL -k 5`, `ulimit -t`/`-f`, namespaces e cgroup, na ordem certa e sondando cada
   camada. Um `timeout 10 <comando>` escrito à mão parece equivalente e não é: sem `-s KILL`, o
   `SIGTERM` chega ao wrapper (`unshare`/`systemd-run`) e **não** propaga ao processo do aluno —

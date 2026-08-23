@@ -164,13 +164,13 @@ estruturais `G-01`..`G-13` que o §4, o §7, o §9 e o §10 exigem sem terem sid
 | A — nomes e termos | `I-01`, `I-01b`, `I-02`, `I-03`, `I-04`, `I-05`, `I-15b` | Os 9 nomes de passo no `SKILL.md`; as guardas dos dois passos condicionais; ausência de todo nome e campo revogado |
 | B — inventário | `I-06a`, `I-06b`, `I-06c` | A tabela §8 declara 19 scripts; os 19 existem; nenhum script **sem prefixo `_`** fora da lista |
 | C — schemas | `I-07`..`I-17`, `G-01`, `G-02`, `G-03`, `G-03b`, `G-11`, `G-13` | `$id` no namespace único e sem repetição; nenhuma construção proibida; cobertura do metaschema mínimo; `description` em toda propriedade; assinatura única por vocabulário; enums literais de sessão, fato, linguagem e leitura cruzada; patterns de identidade, conceito, slug e timestamp |
-| D — scripts | `I-18`..`I-27` | Exit codes só `0 1 2 3 4 5 10`; `pipefail` presente; falha lida como `!= 0`; só os quatro scripts do protocolo aceitam `--apply` e saem com 10; `LIB-1`; as 26 funções de `lib/`; escrita confinada; zero rede; derivados por escrita atômica |
+| D — scripts | `I-18`..`I-27` | Exit codes só `0 1 2 3 4 5 10`; `pipefail` presente; falha lida como `!= 0`; só os quatro scripts do protocolo aceitam `--apply` e saem com 10; `LIB-1`; as 27 funções de `lib/`; escrita confinada; zero rede; derivados por escrita atômica |
 | E — runtime | `I-28`..`I-32` | O digest sai `0` nos quatro cenários de borda, mantém a ordem fixa de chaves (`I-29a`) e tem exatamente **18** chaves de topo, na tabela (`I-29b`) e no JSON produzido (`I-29c`); `readme-sync.sh` e `setup-init.sh` idempotentes |
 | F — `SKILL.md` | `I-33`, `I-34`, `I-35`, `G-04`..`G-07` | Corpo com no máximo 200 linhas e os 90 IDs de regra, incluindo as 11 marcadas `†`; grafo de references de **um nível**; sumário nas references longas; frontmatter só com os seis campos portáveis; `name` igual ao nome do diretório; `description` de no máximo 1024 caracteres |
 | G — templates | `I-36`..`I-41`, `G-08`, `G-09` | Proveniência por bloco de comentário e nunca por frontmatter; caminho relativo dentro do setup; campos de sandbox no manifesto do desafio; `exit 66` e tratamento de 137 no executor gerado; a linha `memory/` no arquivo de exclusão do git; as 8 seções de marcador; todo placeholder declarado no `MANIFEST.tsv` e nenhum sobrando fora de template |
 | H — conteúdo | `I-42`, `I-43` | Nenhuma promessa de cobertura exaustiva de cenários de erro; nenhuma das afirmações derrubadas pela auditoria de `../02-pedagogia.md` §9 |
 | I — terminologia | `G-10` | O termo do diretório de documentação sempre qualificado ("do repositório" ou "do setup"), §10 |
-| J — decisões | `G-12a`, `G-12b`, `G-12c`, `G-12d` | O id de cada decisão no pattern (`G-12a`); todo `writes_to` resolvível no manifesto do setup (`G-12b`); a camada humana (`G-12c`) e o marcador de BUILD_SPEC (`G-12d`), ambos **PEND** enquanto o artefato-alvo não existir |
+| J — decisões | `G-12a`, `G-12b`, `G-12c`, `G-12d` | O id de cada decisão no pattern (`G-12a`); todo `writes_to` resolvível no manifesto do setup (`G-12b`); a camada humana (`G-12c`) e o marcador de BUILD_SPEC (`G-12d`) — hoje os dois **PASS**; ficam **PEND** enquanto o artefato-alvo não existir |
 
 #### As três camadas de uma decisão (`G-12`)
 
@@ -180,8 +180,8 @@ e os outros dois como **derivados de outra onda**. O gate segue essa divisão:
 | Check | Camada | Estado hoje | Por quê |
 |---|---|---|---|
 | `G-12a` | JSON — o id de cada entrada | roda | O catálogo existe |
-| `G-12c` | humana — `docs/08-decisoes-abertas.md` | **PEND** | O arquivo é derivado e ainda não existe; a mensagem o nomeia e nomeia o dono |
-| `G-12d` | BUILD_SPEC — o marcador `PERGUNTE AO USUÁRIO (D-…)` | **PEND** | Nenhum fragmento recebeu marcador ainda. Vira FAIL assim que o primeiro aparecer: aí a passada começou, e o que falta é omissão |
+| `G-12c` | humana — `docs/08-decisoes-abertas.md` | **PASS** | O arquivo derivado existe. Enquanto não existia, o check ficava PEND e a mensagem o nomeava, junto com o dono |
+| `G-12d` | BUILD_SPEC — o marcador `PERGUNTE AO USUÁRIO (D-…)` | **PASS** | Os 48 marcadores existem, um por decisão elegível. Com **zero** seria PEND (a passada não começou); com alguns e não todos, FAIL — aí a passada começou, e o que falta é omissão |
 
 `G-12d` cobra marcador **só** de quem o §6.2 daquele fragmento manda marcar — `audience ∈
 {builder, both}` **e** `status == open`, 48 das 114 entradas. As `student` viram pergunta em
@@ -280,9 +280,9 @@ para a leitura crua, preferindo falso positivo a buraco de cobertura.
 | `I-29` | 19 chaves de topo no digest | **18** | `procedural_playbook` é uma chave só; `do` e `avoid` vivem **aninhados** dentro dela e nunca aparecem no topo. Quem contou 19 contou um aninhado |
 | `I-14` | 19 valores de `language` nos três schemas | **20** em `setup-manifest` e `registry`, **19** em `challenge-manifest` | `none` existe onde se descreve um **setup** — que pode legitimamente não ter código. Um **desafio** em linguagem nenhuma não existe. A assimetria é deliberada |
 
-`docs/00-contratos.md` §4.1 e §11 ainda carregam os números antigos: é o texto do contrato que
-precisa da correção. O gate imprime uma nota em cada execução dizendo isso — divergência
-conhecida, não divergência escondida.
+`docs/00-contratos.md` §4.1 e §11 já carregam os números arbitrados (18 chaves de topo; 20/20/19
+em `language`): contrato, schemas e gate dizem a mesma coisa. O gate imprime a nota em cada
+execução explicando a arbitragem — assimetria declarada, não assimetria escondida.
 
 ---
 

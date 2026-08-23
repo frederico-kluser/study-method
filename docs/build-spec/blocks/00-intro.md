@@ -53,7 +53,7 @@ O pedido é a autoridade sobre **o que** construir. Está preservado aqui litera
 | M1 | Uma LLM **sem este repositório** reconstrói a skill só com este documento. | Todo contrato que atravessa fronteira está **transcrito**, não resumido: schemas completos, máquina de estados, vocabulários, exit codes, envelopes de protocolo, interfaces de `lib/`. |
 | M2 | O documento nunca resume um contrato. | Onde não coube, há o **caminho exato** do arquivo, nunca uma paráfrase. Paráfrase de contrato passa a mentir sobre ele. |
 | M3 | O documento distingue **contrato** de **racional**. | Contrato aqui; o porquê no `docs/` do repositório, citado por caminho (§0.6). |
-| M4 | O documento é auditável contra o repositório. | Toda afirmação que envelhece está marcada com o que foi verificado (§0.7.3). ⚠ O verificador mecânico documento×disco (`tests/spec-conformance.sh`, previsto em `docs/build-spec/README.md`) **ainda não existe**; até ele existir, a auditoria é a leitura contra os caminhos citados. |
+| M4 | O documento é auditável contra o repositório. | Toda afirmação que envelhece está marcada com o que foi verificado (§0.7.3). ✅ O verificador mecânico documento×disco (`tests/spec-conformance.sh`, previsto em `docs/build-spec/README.md`) **existe**: é o quinto gate, com 11 checagens `SC-01`…`SC-08` (`docs/12-conformidade.md`). A leitura contra os caminhos citados continua valendo para o que ele não mecaniza — e ele imprime as próprias limitações no resumo. |
 
 ### 0.2.2 Os requisitos de produto, um a um
 
@@ -263,7 +263,7 @@ Dois pontos de ordem que costumam ser invertidos, e não podem ser:
 
 ## 0.5 Como verificar que está certo — os quatro gates
 
-Quatro scripts em `tests/`, cada um respondendo uma pergunta diferente. `tests/lib/assert.sh` é **biblioteca**: apenas `source`, modo `0644`, sem shebang, sem bloco `main` — a mesma disciplina de LIB-1 aplicada ao gate. Os quatro executáveis são `0755`, abrem com `#!/usr/bin/env bash` e `set -euo pipefail`.
+Quatro scripts em `tests/` respondem, cada um, a uma pergunta diferente sobre **o repositório que você vai construir** — e são eles o critério de aceitação da construção. Há um **quinto** executável em `tests/`, `spec-conformance.sh`, fora desta lista de propósito: ele não verifica a construção, verifica **este documento** contra o repositório (`docs/12-conformidade.md`). `tests/lib/assert.sh` é **biblioteca**: apenas `source`, modo `0644`, sem shebang, sem bloco `main` — a mesma disciplina de LIB-1 aplicada ao gate. Os quatro executáveis são `0755`, abrem com `#!/usr/bin/env bash` e `set -euo pipefail`.
 
 | Script | Pergunta que responde | Cobre | Depende de |
 |---|---|---|---|

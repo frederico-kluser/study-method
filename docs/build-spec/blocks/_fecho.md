@@ -20,7 +20,7 @@ Tudo o que atravessa fronteira entre artefatos está **transcrito**, não resumi
 | Os vocabulários controlados **completos** (todo enum, todo pattern de identificador) | §1.4.1, §1.4.2 |
 | A tabela de exit codes, as duas exceções nomeadas e os códigos observados do ambiente | §1.5 |
 | O protocolo REQUEST/APPLY: os dois envelopes verbatim, `RA-1`…`RA-7`, os dois vocabulários de `kind`, os quatro usuários e seus caminhos degradados | §1.6 |
-| A interface de `lib/` função a função (26 funções), e os algoritmos determinísticos das que não podem variar | §1.7, §7.6.1, §7.9, §7.10 |
+| A interface de `lib/` função a função (27 funções), e os algoritmos determinísticos das que não podem variar | §1.7, §7.6.1, §7.9, §7.10 |
 | Os três schemas de memória, **byte a byte** | §2.9 |
 | O algoritmo do digest em 15 passos, a escada de truncamento e todos os casos de borda | §2.5 |
 | O protocolo de validação de desafio em 8 passos, com o código de rejeição de cada um | §3.4 |
@@ -42,10 +42,10 @@ paráfrase de contrato passa a mentir sobre ele (critério **M2**, §0.2.1).
 
 | # | O que falta aqui | Buscar em | Por que não dá para inventar |
 |---|---|---|---|
-| 1 | **9 dos 12 schemas JSON**, verbatim. Estão aqui só `session`, `index` e `profile` (§2.9); `setup-manifest`, `registry`, `progress`, `progress-event`, `challenge-manifest`, `plot-spec`, `docs-index` e os 4 pares de `requests/` aparecem como **lista de campos e regras**, não byte a byte | `SK/assets/schemas/*.json` | Cada `description` de propriedade **faz parte do contrato** (invariante `G-02`) e é lida em runtime. Reescrevê-las produz um schema que valida os mesmos dados e **instrui o modelo de outro jeito** — a divergência não aparece em teste nenhum |
+| 1 | **15 dos 19 schemas JSON**, verbatim. Estão aqui `session`, `index` e `profile` (§2.9) e `progress-event` (§4.9); `setup-manifest`, `registry`, `progress`, `challenge-manifest`, `plot-spec`, `docs-index`, `decisions` e os 4 pares de `requests/` aparecem como **lista de campos e regras**, não byte a byte | `SK/assets/schemas/*.json` | Cada `description` de propriedade **faz parte do contrato** (invariante `G-02`) e é lida em runtime. Reescrevê-las produz um schema que valida os mesmos dados e **instrui o modelo de outro jeito** — a divergência não aparece em teste nenhum |
 | 2 | **O texto literal de `PRIV-1`…`PRIV-7` e `SEG-1`…`SEG-8`.** As outras 75 regras estão transcritas (§6.2–§6.6, §6.10.6, §3.15.1, §5.9); estas 15 aparecem citadas por ID e por efeito | `docs/00-contratos.md` §9.3 | São **11 das 11 regras `†`** (não rebaixáveis) mais 4 vizinhas. Uma regra crítica de segurança reescrita "com o mesmo sentido" é exatamente o modo de falha que o marcador `†` existe para impedir |
 | 3 | **O corpo do `SKILL.md`**, palavra por palavra | `SK/SKILL.md` | Este documento fixa a **estrutura**, a ordem normativa, o orçamento de linhas e o conteúdo obrigatório de cada seção (§8.4, §8.6, §8.7) — não a prosa. E a prosa é o que o harness carrega |
-| 4 | **O conteúdo das 8 `references/`** — em especial `analogy-bank.md` (o banco de analogias com mapeamento e fronteira de cada uma), `languages.md` (a matriz das 19 linguagens, comando de teste e sonda de contagem por linguagem) e `troubleshooting.md` | `SK/references/*.md` | A tabela de roteamento diz **qual abrir em cada passo** (§8.5.1); o que há dentro de cada uma é conteúdo, não contrato de fronteira |
+| 4 | **O conteúdo das 12 `references/`** (§8.5) — em especial `analogy-bank.md` (o banco de analogias com mapeamento e fronteira de cada uma), `languages.md` (a matriz das 19 linguagens, comando de teste e sonda de contagem por linguagem) e `troubleshooting.md` | `SK/references/*.md` | A tabela de roteamento diz **qual abrir em cada passo** (§8.5.1); o que há dentro de cada uma é conteúdo, não contrato de fronteira |
 | 5 | **O código-fonte dos 19 scripts** | `SK/scripts/**` | Este documento diz **o que** cada um faz e **como** — algoritmo, entradas, saídas, erros. Colar ~1.000 linhas de bash tornaria o documento não auditável sem torná-lo mais reconstruível (§0.6) |
 | 6 | **Os templates byte a byte** e o `MANIFEST.tsv` | `SK/assets/templates/**` | O `MANIFEST.tsv` é a **fonte de verdade** sobre quais placeholders existem (§7.11). Este documento escreve os delimitadores **reais** (`{{NOME}}`, §0.7.5), mas transcreve só os trechos citados — o corpo byte a byte de cada `*.tmpl` continua no repositório |
 | 7 | **A pesquisa auditada** — as fontes primárias, com as correções de autoria e de número que a auditoria fez | `docs/research/01`…`06` | É a base factual do racional. Sem ela, a construtora não consegue **verificar** as afirmações de §6.8 ("o que este projeto não afirma"), e uma afirmação derrubada que volta ao texto reprova o gate (`I-43`) |
@@ -54,10 +54,10 @@ paráfrase de contrato passa a mentir sobre ele (critério **M2**, §0.2.1).
 
 Duas ausências a mais, que não são "conteúdo que ficou de fora" e sim **dívida declarada**:
 
-- ⏳ **`tests/spec-conformance.sh` não existe.** É o verificador mecânico documento × disco previsto em
-  `docs/build-spec/README.md`. Enquanto ele não existir, a auditoria deste documento contra o
-  repositório é **leitura humana** contra os caminhos citados — e é por isso que toda afirmação que
-  envelhece está marcada com ⏳ e com o que foi verificado (§0.7.3).
+- ✅ **`tests/spec-conformance.sh` existe** (§F.5) e mecaniza a auditoria deste documento contra o
+  repositório. O que ele **não** mecaniza — as limitações que ele mesmo imprime no resumo —
+  continua sendo **leitura humana** contra os caminhos citados, e é por isso que toda afirmação
+  que envelhece está marcada com ⏳ e com o que foi verificado (§0.7.3).
 - ⏳ **O racional de cada decisão** — o argumento com bibliografia — vive em `docs/01`…`docs/13` do
   repositório, deliberadamente (§0.6). Este documento diz *o quê* e *como*; aqueles dizem *por quê*.
   Misturá-los faria o contrato ficar longo demais para ser conferido.
@@ -78,10 +78,16 @@ Rode os quatro gates na ordem de §8.15. Eles não verificam este arquivo — ve
 que ele descreve** —, e é exatamente por isso que servem: se o gate está verde e este documento
 descreve outra coisa, quem está errado é o documento.
 
-⏳ **Estado do repositório quando este documento foi fechado (2026-08-23):** `gate-build`, `gate-lint`
-e `smoke` verdes; `validate` com duas pendências declaradas e nomeadas — `I-06b` (`decisions-ask.sh`
-está no contrato e ainda não existe em disco) e a higiene da suíte de avaliação (`I-43`, cuja
-ocorrência restante é a **lista literal de afirmações proibidas** que o próprio verificador de
-`evals/` precisa conter para procurá-las). Nenhuma das duas é divergência entre este documento e o
-disco: as duas estão declaradas aqui e no resumo do gate.
+E rode `tests/spec-conformance.sh`, o quinto gate: esse verifica **este arquivo** contra o
+repositório, e é a resposta mecânica à pergunta desta seção — caminho citado que não existe,
+script ou função que sumiu, schema, decisão, exit code ou termo revogado que divergiu
+(`docs/12-conformidade.md`).
+
+⏳ **Estado do repositório na revisão em que este documento foi fechado (2026-08-23):** os **cinco**
+gates verdes e **sem nenhuma pendência** — `gate-build` 11, `validate` 77, `gate-lint` 6, `smoke` 65,
+`spec-conformance` 11. As duas últimas a fechar foram `I-06b` (o `decisions-ask.sh`, que estava no
+contrato e não existia em disco) e a higiene da suíte de avaliação (`I-43`, cuja ocorrência restante
+é a **lista literal de afirmações proibidas** que o próprio verificador de `evals/` precisa conter
+para procurá-las, isenta pelo marcador na linha). Nenhuma das duas é divergência entre este documento
+e o disco: as duas estão declaradas aqui e no resumo do gate.
 

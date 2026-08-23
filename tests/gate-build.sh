@@ -184,7 +184,7 @@ fi
 # ───────────────────────────────────────────────────────────── B-08 os próprios tests/
 gate_section "B-08 · os scripts do gate obedecem às mesmas regras"
 n8=0
-for name in gate-build.sh validate.sh gate-lint.sh smoke.sh; do
+for name in gate-build.sh validate.sh gate-lint.sh smoke.sh spec-conformance.sh; do
   f="$GATE_ROOT/tests/$name"
   if [ ! -f "$f" ]; then
     n8=$((n8 + 1)); gate_pend "B-08" "tests/$name existe" "arquivo inexistente: tests/$name"; continue
@@ -202,7 +202,7 @@ if [ -f "$f" ]; then
 else
   n8=$((n8 + 1)); gate_pend "B-08" "tests/lib/assert.sh existe" "arquivo inexistente"
 fi
-[ "$n8" -eq 0 ] && gate_pass "B-08" "os 4 scripts do gate + tests/lib/assert.sh estão na forma"
+[ "$n8" -eq 0 ] && gate_pass "B-08" "os 5 scripts do gate + tests/lib/assert.sh estão na forma"
 
 # ───────────────────────────────────────────────────────────── B-09 CRLF
 gate_section "B-09 · nenhum arquivo com fim de linha CRLF"

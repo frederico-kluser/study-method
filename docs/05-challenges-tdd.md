@@ -115,7 +115,7 @@ mensagem de falha, qualidade do texto do enunciado. **Nunca** como gate de corre
 | **Referências alternativas** (`.solution/reference_alt_*.<ext>`, **ocultas**) | Detectar over-specification por execução: corretas, mas estruturalmente diferentes | O teste pode estar acoplado a *uma* solução e reprovar o aluno que achou outra igualmente válida |
 | **Stub vazio canônico** (`.solution/empty_stub.<ext>`, **oculto**) | Permitir reexecutar o passo 1 depois que o aluno já editou o stub | Revalidar um desafio em andamento passa a ser impossível sem destruir o trabalho do aluno |
 | **Mutantes** (gerados em disco temporário, **nunca versionados**) | Medir se o teste detecta defeito de verdade | O teste pode ser tautológico e ninguém saber |
-| **Runner** (`runner.sh`) | Único ponto de entrada: chama `sandbox_exec` de `lib/sandbox.sh`, fixa `cwd` e ambiente, normaliza exit code e **extrai a contagem de testes** | Cada linguagem vaza suas idiossincrasias de exit code e layout para o resto do sistema |
+| **Runner** (`runner.sh`) | Único ponto de entrada: chama `sm_sandbox_run` de `lib/sandbox.sh` (embrulhado num `sandbox_exec()` local), fixa `cwd` e ambiente, normaliza exit code e **extrai a contagem de testes** | Cada linguagem vaza suas idiossincrasias de exit code e layout para o resto do sistema |
 | **Manifesto** (`meta.json`) | Registrar identidade, cenários, resultado da validação, mutation score, progresso | Nada é auditável nem retomável entre sessões |
 
 ### 2.2 A árvore, e o que o aluno vê
@@ -316,7 +316,7 @@ que muda por linguagem são as três linhas do comando e do probe de contagem).
 
 Três invariantes dele não são negociáveis, e cada uma existe por causa de um defeito observado:
 
-1. **O confinamento vem de `lib/sandbox.sh`, não daqui.** O `runner.sh` chama `sandbox_exec`; ele
+1. **O confinamento vem de `lib/sandbox.sh`, não daqui.** O `runner.sh` chama `sm_sandbox_run` — o `sandbox_exec()` do esqueleto abaixo é só o embrulho local dele; ele
    não monta pilha de sandbox própria. Uma segunda implementação de sandbox seria uma segunda
    verdade sobre o que está ligado, e a que o aluno vê no relatório é a de `lib/sandbox.sh`.
 2. **`timeout` é decidido por tempo decorrido** (Regra 1b), nunca por exit code.
@@ -348,7 +348,7 @@ find "$DESAFIO_DIR" -type d -name __pycache__ -prune -exec rm -rf {} + 2>/dev/nu
 # ---- sandbox: UMA implementação só, a de lib/sandbox.sh ----
 SANDBOX_LIB="${STUDY_METHOD_SKILL_DIR:-}/scripts/lib/sandbox.sh"
 if [ -r "$SANDBOX_LIB" ]; then
-  . "$SANDBOX_LIB"                          # define sandbox_exec
+  . "$SANDBOX_LIB"                          # define sm_sandbox_run
 else
   # PISO DECLARADO — nunca silencioso. Sem lib/sandbox.sh não há isolamento de rede,
   # confinamento de escrita nem limite de memória: só relógio e CPU.
@@ -1477,7 +1477,7 @@ retomar por `--apply` (§4.6) · gravar `score_bruto`, `score`, `equivalent_coun
 `detail` em `meta.json` · calcular ele mesmo os SHA-256 na aprovação, deixando-os `null` até lá
 (§9.1) · **nunca** aprovar por julgamento de modelo.
 
-`runner.sh` (o gerado dentro do desafio) deve: chamar `sandbox_exec` de `lib/sandbox.sh`, e cair no
+`runner.sh` (o gerado dentro do desafio) deve: chamar `sm_sandbox_run` de `lib/sandbox.sh` (pelo embrulho `sandbox_exec()`), e cair no
 **piso declarado em voz alta** quando a lib não estiver ao alcance (§3.3) · sair com **66** se o
 `cd` falhar · decidir `timeout` por tempo decorrido · usar os exit codes 0/1/2/3 da exceção
 nomeada 1 (§3.4).

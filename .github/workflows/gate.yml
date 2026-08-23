@@ -1,4 +1,4 @@
-# Os 4 gates do study-method, na ordem em que fazem sentido.
+# Os 5 gates do study-method, na ordem em que fazem sentido.
 #
 # REGRA DESTE WORKFLOW: não instalamos nada. O projeto se declara sem dependência além de bash,
 # python3, jq e coreutils — se a CI precisasse de `apt-get install` para passar, a declaração
@@ -33,7 +33,7 @@ concurrency:
 
 jobs:
   gate:
-    name: 4 gates (ubuntu-latest)
+    name: 5 gates (ubuntu-latest)
     runs-on: ubuntu-latest
     timeout-minutes: 30
 
@@ -81,6 +81,12 @@ jobs:
       - name: smoke (integração ponta a ponta)
         if: ${{ !cancelled() }}
         run: tests/smoke.sh
+
+      # O quinto gate: o BUILD_SPEC.md montado ainda descreve o repositório?
+      # Só bash + python3 + jq, como os outros — nada a instalar (docs/12-conformidade.md).
+      - name: spec-conformance (BUILD_SPEC.md × repositório)
+        if: ${{ !cancelled() }}
+        run: tests/spec-conformance.sh
 
   install:
     name: install.sh num HOME temporário

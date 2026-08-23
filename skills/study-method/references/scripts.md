@@ -235,8 +235,11 @@ Mesma forma de stdout/exit de `setup-init` acima, outra fase.
 **`session-close.sh <setup_root> [--session <NNNN>]`**
 Stdout: o `NNNN` fechado.
 Exit: `0` · `1` · `2` · `3` · `5` · `10` pedido `fill_session_fields` (§2.3).
-**Não tem `--recover`**: recuperar sessão órfã é trabalho exclusivo de `memory-index.sh --verify`,
-que já rodou em `load_memory`. `session-close.sh` só fecha a sessão corrente, viva agora.
+**`--recover <NNNN>` existe, mas não é o caminho normal**: a recuperação de sessão órfã acontece
+sozinha em `memory-index.sh --verify`, que já rodou em `load_memory`. Use `--recover` só para o
+fechamento retroativo explícito de uma órfã — ele grava `status: "abandoned"` e
+`finalized_by: "auto_orphan_recovery"`, e é mutuamente exclusivo com `--apply`. Sem a flag,
+`session-close.sh` só fecha a sessão corrente, viva agora.
 
 **`memory-index.sh <setup_root>`** — mesma chamada de `load_memory`, sem `--verify` aqui (a sessão
 que acabou de fechar já está com `status` final; isto é o *append* ao índice).

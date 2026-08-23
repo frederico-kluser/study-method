@@ -38,7 +38,8 @@ Mantém memory/INDEX.json em sincronia com os memory/NNNN.json.
   --verify       além de sincronizar: detecta índice ausente/ilegível/defasado e
                  RECUPERA sessões órfãs (status in_progress sem lock vivo ->
                  abandoned + finalized_by auto_orphan_recovery, sem perder
-                 conteúdo). É o dono ÚNICO da recuperação de órfã.
+                 conteúdo). É o dono da recuperação AUTOMATICA de órfã; o
+                 fechamento retroativo manual é session-close.sh --recover.
   --rebuild      descarta o índice atual e o reconstrói do zero a partir dos
                  brutos; o estado de compactação é recuperado do profile.json.
   -h, --help     esta ajuda

@@ -581,7 +581,7 @@ contrato próprio, e as funções deles já pertenciam a outros donos — a exec
 (3.7). Nenhum documento, script ou tabela deste projeto deve voltar a citá-los.
 
 Todo script de `SK/scripts/` que pode precisar de julgamento aceita `--apply <arquivo.json>` e o par
-"exit 10 + pedido em stdout" do §3.1. Os três pedidos existentes hoje estão na tabela daquela seção.
+"exit 10 + pedido em stdout" do §3.1. Os quatro pedidos existentes hoje estão na tabela daquela seção.
 
 ---
 

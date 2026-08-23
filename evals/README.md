@@ -58,8 +58,10 @@ Declarado, não escondido — limitação conhecida vale mais que cobertura fing
 
 - **Ganho de aprendizado.** Nada aqui mede se o aluno aprendeu. Ver o parágrafo de abertura.
 - **Os scripts de `SK/scripts/`.** Quem cobre exit codes, schemas, idempotência e sandbox é
-  `tests/validate.sh`, `tests/smoke.sh` e `tests/gate-*.sh` — as 43 invariantes de
-  `docs/00-contratos.md` §11. Esta suíte não duplica aquilo e não deve.
+  `tests/validate.sh`, `tests/smoke.sh`, `tests/gate-build.sh`, `tests/gate-lint.sh` e
+  `tests/spec-conformance.sh` — as 43 invariantes de `docs/00-contratos.md` §11, mais a
+  conformidade do `BUILD_SPEC.md` (`docs/12-conformidade.md`). Esta suíte não duplica aquilo e não
+  deve.
 - **Sessões longas.** Todo caso aqui é de 1 a 3 turnos. Deriva de comportamento ao longo de 40
   turnos (o ponto em que o `SKILL.md` sai da janela e as regras permanentes deixam de ser relidas)
   **não é testada**. É a lacuna mais séria da suíte, e é intencionalmente reconhecida: testá-la
@@ -102,7 +104,7 @@ evals/run-evals.sh --strict     # pendência (transcrição ausente) também rep
 evals/run-evals.sh --only E-02  # roda só os checks com esse prefixo
 ```
 
-Sem rede, sem dependência além de `bash`, `grep`, `sed`, `awk` e `find`. Não invoca modelo.
+Sem rede, sem dependência além de `bash` e dos utilitários POSIX de texto que ele usa (`grep`, `sed`, `awk`, `sort`, `comm`, `tr`, `wc`, `mktemp`, `basename`). Não invoca modelo.
 
 As duas frentes que **não** são automatizáveis se rodam assim:
 

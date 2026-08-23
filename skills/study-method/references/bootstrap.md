@@ -172,9 +172,10 @@ Ordem fixa: `memory-index.sh <setup_root> --verify` → `memory-digest.sh <setup
   `status: "in_progress"` **e** sem lock vivo em `memory/.session.lock`. Lock vivo exige
   `session_id` e `hostname` batendo **e** uma das **duas** vias: `pid` numérico com `kill -0` OK,
   **ou** `pid: null` com `started_at` dentro do TTL (`SM_SESSION_LOCK_TTL`, default 8 h) — esta
-  segunda é a comum. Quem finaliza é `memory-index.sh --verify`, dono único: marca
+  segunda é a comum. Quem finaliza no fluxo automático é `memory-index.sh --verify`: marca
   `status: "abandoned"`, `finalized_by: "auto_orphan_recovery"`, preserva todo o conteúdo e não
-  inventa nada. **Não existe menu de 3 opções, não existe `memory/discarded/`, nada é apagado nem
+  inventa nada (o fechamento retroativo manual da mesma órfã é `session-close.sh --recover`, que
+  grava exatamente os mesmos dois campos). **Não existe menu de 3 opções, não existe `memory/discarded/`, nada é apagado nem
   movido.** O digest reporta em `orphan_sessions[]`; quando `days_ago <= 7`, abra a aula oferecendo
   a retomada, em uma linha.
 - **Lock vivo** apontando para uma sessão `in_progress` é outra coisa: é uma sessão aberta **agora**

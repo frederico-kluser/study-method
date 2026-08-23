@@ -329,17 +329,18 @@ contrato exige sem terem sido numeradas.
 | **A — nomes e termos** | `I-01`, `I-01b`, `I-02`, `I-03`, `I-04`, `I-05`, `I-15b` | Os 9 nomes de passo literais no `SKILL.md`; as guardas dos dois passos condicionais; ausência de **todo** nome e campo revogado |
 | **B — inventário** | `I-06a`, `I-06b`, `I-06c` | A tabela canônica declara **19** scripts; os 19 existem; nenhum script **sem prefixo `_`** fora da lista |
 | **C — schemas** | `I-07`…`I-17`, `G-01`, `G-02`, `G-03`, `G-03b`, `G-11`, `G-13` | `$id` no namespace único e sem repetição; nenhuma construção proibida; cobertura do metaschema mínimo; `description` em toda propriedade; **assinatura única por vocabulário**; enums literais de sessão, fato, linguagem e leitura cruzada; patterns de identidade, conceito, slug e timestamp |
-| **D — scripts** | `I-18`…`I-27` | Exit codes só `0 1 2 3 4 5 10`; `pipefail` presente; falha lida como `!= 0`; só os quatro scripts do protocolo aceitam `--apply` e saem com 10; `LIB-1`; as **26** funções de `lib/`; escrita confinada; **zero rede**; derivados por escrita atômica |
+| **D — scripts** | `I-18`…`I-27` | Exit codes só `0 1 2 3 4 5 10`; `pipefail` presente; falha lida como `!= 0`; só os quatro scripts do protocolo aceitam `--apply` e saem com 10; `LIB-1`; as **27** funções de `lib/`; escrita confinada; **zero rede**; derivados por escrita atômica |
 | **E — runtime** | `I-28`…`I-32` | O digest sai `0` nos **quatro** cenários de borda, mantém a ordem fixa de chaves (`I-29a`) e tem exatamente **18** chaves de topo, na tabela (`I-29b`) e no JSON produzido (`I-29c`); `readme-sync.sh` e `setup-init.sh` **idempotentes** |
 | **F — `SKILL.md`** | `I-33`, `I-34`, `I-35`, `G-04`…`G-07` | Corpo com ≤200 linhas e os **90** IDs de regra, incluindo as **11** marcadas `†`; grafo de references de **um nível**; sumário nas references longas; frontmatter só com os campos portáveis; `name` igual ao nome do diretório; `description` ≤1024 caracteres |
 | **G — templates** | `I-36`…`I-41`, `G-08`, `G-09` | Proveniência por **bloco de comentário e nunca por frontmatter**; caminho relativo dentro do setup; campos de sandbox no manifesto do desafio; `exit 66` e tratamento de 137 no executor gerado; a linha `memory/` no arquivo de exclusão do git; as **8** seções de marcador; todo placeholder declarado no `MANIFEST.tsv` e nenhum sobrando fora de template |
 | **H — conteúdo** | `I-42`, `I-43` | Nenhuma promessa de cobertura exaustiva de cenários de erro; **nenhuma das afirmações derrubadas pela auditoria** (§6.8) |
 | **I — terminologia** | `G-10` | O termo do diretório de documentação **sempre qualificado** ("do repositório" ou "do setup") |
-| **J — decisões** | `G-12a`…`G-12d` | O id de cada decisão no pattern; todo `writes_to` resolvível no manifesto do setup; a camada humana (`docs/08-decisoes-abertas.md`, ainda **PEND**) e o marcador de BUILD_SPEC (`G-12d`, **verde**: os 48 marcadores existem) |
+| **J — decisões** | `G-12a`…`G-12d` | O id de cada decisão no pattern; todo `writes_to` resolvível no manifesto do setup; a camada humana (`docs/08-decisoes-abertas.md`, `G-12c`, **verde**) e o marcador de BUILD_SPEC (`G-12d`, **verde**: os 48 marcadores existem) |
 
-⏳ **Pendências reais hoje:** `I-06b` (o `decisions-ask.sh` declarado no contrato ainda não existe em
-disco) e `G-12c` (`docs/08-decisoes-abertas.md`, a camada humana do catálogo, é derivado de outra
-onda). **`G-12d` deixou de ser pendência**: os 48 marcadores existem, um por decisão elegível.
+✅ **Nenhuma pendência hoje:** `I-06b` (o `decisions-ask.sh` do contrato), `G-12c`
+(`docs/08-decisoes-abertas.md`, a camada humana do catálogo, derivada de outra onda) e `G-12d` (os 48
+marcadores, um por decisão elegível) **fecharam os três**, e `validate` sai com `0 pendente`. Os
+avisos que restam são exclusões de escopo declaradas, não pendências.
 
 ⭐ `G-12d` é uma verificação de **tudo ou nada**, e é assim de propósito. Enquanto **zero** marcador
 existia, ela era `PEND` ("a passada ainda não começou"); no instante em que o **primeiro** aparecesse
@@ -403,9 +404,9 @@ num obrigatório — e isso **não é divergência**.
 | `I-29` | 19 chaves de topo no digest | **18** | `procedural_playbook` é **uma** chave; `do` e `avoid` vivem **aninhados** dentro dela e nunca aparecem no topo. Quem contou 19 contou um aninhado. **Esperar 19 reprova um digest correto** |
 | `I-14` | 19 valores de `language` nos três schemas | **20** em `setup-manifest` e `registry`, **19** em `challenge-manifest` | `none` existe onde se descreve um **setup** — que pode legitimamente não ter código. Um **desafio** em linguagem nenhuma não existe. A assimetria é **deliberada**, e igualar os três **reprovaria schema correto** |
 
-⏳ `docs/00-contratos.md` §4.1 e §11 ainda carregam os números antigos: é o texto do contrato que
-precisa da correção. **O gate imprime uma nota em cada execução dizendo isso** — divergência
-conhecida, não divergência escondida.
+`docs/00-contratos.md` §4.1 e §11 **já carregam os números arbitrados** (18 chaves de topo;
+20/20/19 em `language`): contrato, schemas e gate dizem a mesma coisa. **O gate imprime a nota em
+cada execução explicando a arbitragem** — assimetria declarada, não assimetria escondida.
 
 ### 8.9.4 `tests/gate-lint.sh` — qualidade
 
@@ -556,7 +557,7 @@ Não são invariantes: são pontos onde a especificação e a medição **ainda 
 | # | Dívida | Estado |
 |---|---|---|
 | **DEB-1** | ⏳ **O orçamento de 6000 caracteres do digest não cabe o playbook procedimental cheio.** Com 5 antipadrões + 8 procedimentos — **ambos protegidos do truncamento** — só esse bloco já passa dos 6000, e a escada de truncamento **não converge**: os campos que sobrariam para cortar são justamente os protegidos. O digest sai com `budget_exceeded: true`, `truncated: true` e acima do orçamento — que é **exatamente o que a especificação manda** (`memory-digest.sh` **sempre** produz digest e **sempre** sai 0). O comportamento está correto; o **limite** é que está apertado | **Aberta.** Nada a consertar no script. **O gate não pode tratar `budget_exceeded: true` como falha**: é saída conforme |
-| **DEB-2** | `compaction.deferred_at` **não é gravável**: `profile.schema.json` fecha `compaction` com `additionalProperties: false` | **Aberta** |
+| **DEB-2** | `compaction.deferred_at` **é gravável**: está declarado em `profile.schema.json` → `compaction.properties`, e o `additionalProperties: false` não barra propriedade declarada. O que falta é `memory-compact.sh` **gravar o campo** no caminho degradado | **Aberta**, agora só do lado do script (§1.6.5 L-1) |
 | **DEB-3** | O teto de **2 ciclos** de RA-6 **não é verificável sem estado persistido** — cada `--apply` é processo novo | **Aberta.** Nenhuma invariante o cobra |
 
 ---
@@ -652,11 +653,11 @@ Auxiliares: `gate_repo_root`, `gate_rel`, `gate_trunc`, `gate_find_into`, `gate_
 
 | Marca | Item | Estado |
 |---|---|---|
-| ⏳ | As **194** linhas medidas do corpo e a folga de 6 | recontar a cada edição do `SKILL.md`; o teto normativo (**200**) é que é estável |
+| ⏳ | As linhas medidas do corpo e a folga até o teto — hoje **196**, folga **4** | recontar a cada edição do `SKILL.md`; `I-33a` imprime o número medido a cada execução do gate, e o teto normativo (**200**) é que é estável |
 | ⏳ | Os **907** caracteres da `description` | idem; o teto (**1024**) é estável |
 | ⏳ | A estimativa de **6.000–6.500 tokens** do corpo | depende do tokenizador; o teto normativo é o de **linhas** |
-| ⏳ | `I-06b`, `G-12c`, `G-12d` em **PEND** | fecham quando `decisions-ask.sh`, `docs/08-decisoes-abertas.md` e o primeiro marcador de BUILD_SPEC existirem |
+| — | `I-06b`, `G-12c`, `G-12d` | **fechados**: `decisions-ask.sh`, `docs/08-decisoes-abertas.md` e os marcadores do BUILD_SPEC existem, e os três passam. `G-12d` volta a `PEND` se os marcadores sumirem, e a `FAIL` se ficarem pela metade |
 | ⏳ | Ausência de `shellcheck` na máquina | `B-11` vira PASS/FAIL assim que a ferramenta existir; hoje é SKIP |
 | ⏳ | O default `2026-08-23` de `STUDY_METHOD_TODAY` | é fixação de determinismo, não data de validade |
-| ⚠ | `docs/00-contratos.md` §4.1 e §11 ainda carregam **19** chaves no digest e **19** valores de `language` nos três schemas | O gate checa **18** e **20/20/19**, e **imprime a divergência a cada execução**. É o texto do contrato que precisa da correção — não o gate |
+| — | `docs/00-contratos.md` §4.1 e §11 registram **18** chaves no digest e **20/20/19** valores de `language` | O gate checa os mesmos números e **imprime a arbitragem a cada execução**: contrato, schemas e gate concordam. A assimetria 20/20/19 é deliberada — igualar os três reprovaria schema correto |
 | — | `DEB-1`, `DEB-2`, `DEB-3` (§8.13.2) | dívidas abertas, declaradas |

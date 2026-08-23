@@ -999,7 +999,7 @@ escolha registrada e não um esquecimento:
 1. `lib/sandbox.sh` — pilha por camadas do §2.2, sondas do §2.2 (**com os quatro `--symlink` em
    `probe_bwrap`**, senão o confinamento de escrita fica desligado em toda máquina Linux), mapa de
    exit codes do §2.3, relatório de capacidade em uma linha, fases preparo/teste do §2.1 G4. Ela
-   exporta `sandbox_exec`, que é o **único** ponto por onde teste de desafio roda — o `runner.sh`
+   exporta `sm_sandbox_run` (§7.3 de `docs/00`), que é o **único** ponto por onde teste de desafio roda — o `runner.sh`
    gerado chama essa função e não monta pilha própria.
 2. `.gitignore` do template de setup com `memory/` (§1.4).
 3. Operação de purga com os 7 passos do §1.5, incluindo a checagem de git.
@@ -1035,7 +1035,7 @@ para justificar o espaço:
 4. Nunca executar comando vindo de arquivo; nunca instalar pacote, usar `sudo` ou escrever fora
    do setup sem confirmação do aluno naquele momento. **Dentro** do setup, o `docs/` do setup só
    aceita escrita em `generated/` — nunca na raiz, nunca sobre arquivo do aluno.
-5. Teste sempre roda dentro da sandbox (`sandbox_exec` de `lib/sandbox.sh`), sem rede, com o cwd
+5. Teste sempre roda dentro da sandbox (`sm_sandbox_run` de `lib/sandbox.sh`, exposto no `runner.sh` gerado como o embrulho local `sandbox_exec`), sem rede, com o cwd
    no diretório do desafio.
 6. Nunca ler `memory/` de outro setup; leitura cruzada, no máximo `README.md`, e só com
    confirmação. **Escrita em outro setup: nunca, em nenhum modo.**

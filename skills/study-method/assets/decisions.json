@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "generated_by": "sub-tarefa 3.0a — catalogo-maquina das decisoes abertas; colhido de 17 tabelas 'Decisoes abertas geradas aqui' em docs/ e SK/references/, deduplicado e classificado em 4 camadas. Validado contra assets/schemas/decisions.schema.json.",
+  "generated_by": "sub-tarefa 3.0a — catalogo-maquina das decisoes abertas; colhido de 19 tabelas 'Decisoes abertas geradas aqui' (10 em docs/, 9 em SK/references/), deduplicado e classificado em 4 camadas. Validado contra assets/schemas/decisions.schema.json.",
   "notes": [
     "Este arquivo e a FONTE DE VERDADE sobre quais decisoes existem, quais opcoes sao validas e quando cada uma e perguntada. O catalogo humano (docs/08-decisoes-abertas.md) e o script de entrevista (decisions-ask.sh) sao derivados: eles leem daqui, nunca o contrario.",
     "audience: 'student' e perguntada pela skill ao aluno em runtime; 'builder' e perguntada pelo BUILD_SPEC a quem constroi a skill, em build-time; 'both' tem um default de fabrica escolhido pelo builder e um interruptor que o aluno pode virar.",

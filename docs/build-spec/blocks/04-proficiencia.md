@@ -660,7 +660,7 @@ passo 0. O evento **não** carrega `state_before`, `state_after` nem `transition
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "urn:study-method:schema:progress-event:1",
   "title": "Evento de proficiencia (entrada de progress-update.sh --event)",
-  "description": "UM evento observavel sobre UM conceito, entregue a `progress-update.sh --event`. E a unica forma de escrever em memory/progress.json: a entrada e sempre o evento, NUNCA o estado novo - o estado e calculado pela maquina de transicoes T1-T8 a partir daqui e da evidencia ja gravada. Regra dura do projeto: sem artefato, sem transicao. O script recusa o evento cujo session_id nao exista em memory/ ou cujo challenge_id nao exista em challenges/; por isso os dois campos tem formato fixo, e nao texto livre. Idempotencia: reprocessar um evento com o mesmo session_id, challenge_id e observed_at nao duplica evidencia nem reaplica transicao. Textos livres em pt-BR; chaves e valores de enum em ingles snake_case sem acento. VERIFICADOR MINIMO: este schema so usa type, required, enum, pattern, items, properties, minimum, maximum e additionalProperties booleano; maxLength e documentacao e NAO e verificado.",
+  "description": "UM evento observavel sobre UM conceito, entregue a `progress-update.sh --event`. E a unica forma de escrever em memory/progress.json: a entrada e sempre o evento, NUNCA o estado novo - o estado e calculado pela maquina de transicoes T1-T8 a partir daqui e da evidencia ja gravada. Regra dura do projeto: sem artefato, sem transicao. O script recusa o evento cujo session_id nao exista em memory/ ou cujo challenge_id nao exista em challenges/; por isso os dois campos tem formato fixo, e nao texto livre. Idempotencia: reprocessar um evento com o mesmo session_id, challenge_id e observed_at nao duplica evidencia nem reaplica transicao. Textos livres em pt-BR; chaves e valores de enum em ingles snake_case sem acento. VERIFICADOR MINIMO: este schema so usa type, required, enum, pattern, items, properties, minimum, maximum e additionalProperties booleano; maxLength TAMBEM e verificado pelo verificador minimo.",
   "type": "object",
   "additionalProperties": false,
   "required": ["schema_version", "kind", "concept_id", "observed_at"],
@@ -841,7 +841,7 @@ stdlib do Python e cobre `type`, `required`, `enum`, `pattern`, `minimum`/`maxim
 | `state_before` | string | enum `unknown`, `fragile`, `mastered` | estado imediatamente **antes** |
 | `state_after` | string | enum `unknown`, `fragile`, `mastered` | **igual a `state_before` quando o evento registra observação sem mudar o estado — isso é resultado legítimo e deve ser gravado assim mesmo** |
 | `transition_rule` | string \| null | enum `T1`..`T8`, `null` | `null` quando o evento não mudou o estado por regra alguma |
-| `note` | string \| null | `maxLength: 240` (documentação, **não verificado**) | factual e verificável: o que o aluno fez, não o que o tutor achou |
+| `note` | string \| null | `maxLength: 240` (**verificado** pelo verificador mínimo — §1.4.3) | factual e verificável: o que o aluno fez, não o que o tutor achou |
 
 ### 4.10.4 Convenção de idioma no arquivo de dados
 

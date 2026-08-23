@@ -162,7 +162,7 @@ O pedido é a autoridade sobre **o que** construir. Está preservado aqui litera
 | M1 | Uma LLM **sem este repositório** reconstrói a skill só com este documento. | Todo contrato que atravessa fronteira está **transcrito**, não resumido: schemas completos, máquina de estados, vocabulários, exit codes, envelopes de protocolo, interfaces de `lib/`. |
 | M2 | O documento nunca resume um contrato. | Onde não coube, há o **caminho exato** do arquivo, nunca uma paráfrase. Paráfrase de contrato passa a mentir sobre ele. |
 | M3 | O documento distingue **contrato** de **racional**. | Contrato aqui; o porquê no `docs/` do repositório, citado por caminho (§0.6). |
-| M4 | O documento é auditável contra o repositório. | Toda afirmação que envelhece está marcada com o que foi verificado (§0.7.3). ⚠ O verificador mecânico documento×disco (`tests/spec-conformance.sh`, previsto em `docs/build-spec/README.md`) **ainda não existe**; até ele existir, a auditoria é a leitura contra os caminhos citados. |
+| M4 | O documento é auditável contra o repositório. | Toda afirmação que envelhece está marcada com o que foi verificado (§0.7.3). ✅ O verificador mecânico documento×disco (`tests/spec-conformance.sh`, previsto em `docs/build-spec/README.md`) **existe**: é o quinto gate, com 11 checagens `SC-01`…`SC-08` (`docs/12-conformidade.md`). A leitura contra os caminhos citados continua valendo para o que ele não mecaniza — e ele imprime as próprias limitações no resumo. |
 
 ### 0.2.2 Os requisitos de produto, um a um
 
@@ -372,7 +372,7 @@ Dois pontos de ordem que costumam ser invertidos, e não podem ser:
 
 ## 0.5 Como verificar que está certo — os quatro gates
 
-Quatro scripts em `tests/`, cada um respondendo uma pergunta diferente. `tests/lib/assert.sh` é **biblioteca**: apenas `source`, modo `0644`, sem shebang, sem bloco `main` — a mesma disciplina de LIB-1 aplicada ao gate. Os quatro executáveis são `0755`, abrem com `#!/usr/bin/env bash` e `set -euo pipefail`.
+Quatro scripts em `tests/` respondem, cada um, a uma pergunta diferente sobre **o repositório que você vai construir** — e são eles o critério de aceitação da construção. Há um **quinto** executável em `tests/`, `spec-conformance.sh`, fora desta lista de propósito: ele não verifica a construção, verifica **este documento** contra o repositório (`docs/12-conformidade.md`). `tests/lib/assert.sh` é **biblioteca**: apenas `source`, modo `0644`, sem shebang, sem bloco `main` — a mesma disciplina de LIB-1 aplicada ao gate. Os quatro executáveis são `0755`, abrem com `#!/usr/bin/env bash` e `set -euo pipefail`.
 
 | Script | Pergunta que responde | Cobre | Depende de |
 |---|---|---|---|
@@ -855,7 +855,7 @@ O detalhamento de erros por passo (o que acontece quando o registry corrompe, qu
 > **Opções:** **(a)** objeto livre, validação delegada ao catálogo — decisão nova entra sem virar `schema_version`, e o verificador mínimo não arrisca falso negativo em propriedade dinâmica; um id digitado errado passa pela validação do manifesto · **(b)** array validado pelo schema do manifesto — erro de digitação morre na validação, e toda decisão nova vira mudança de schema
 > **Default:** **(a)** · **Custo de mudar depois: moderate**
 
-**Nota normativa sobre `target_topic` ⚑ — a regra desambiguada:** `target_topic` é **identificador de tópico**, então é **snake_case** (`^[a-z][a-z0-9_]{1,62}$`) em `session.how_it_happened[].target_topic` e em `profile.procedural_facts[].target_topic` — o **mesmo** pattern de `topics[]`, de propósito. Kebab-case fica só para **slug de caminho** (`setup_name`, diretório de desafio, slug de research). A versão anterior deste documento dava kebab a `target_topic` e snake a `topics[]`: era **bug, não escolha**, porque a recuperação do playbook compara os dois **por igualdade de string** e, com padrões diferentes, eles nunca casariam. Os schemas em disco já trazem a regra desambiguada, e as `description` transcritas em §2.9 e §2.10 a explicam campo a campo; `docs/00-contratos.md` §4.2 ainda descreve o resíduo antigo, e a própria invariante `I-16` de lá o marca como temporário — **quem vale é o schema**.
+**Nota normativa sobre `target_topic` ⚑ — a regra desambiguada:** `target_topic` é **identificador de tópico**, então é **snake_case** (`^[a-z][a-z0-9_]{1,62}$`) em `session.how_it_happened[].target_topic` e em `profile.procedural_facts[].target_topic` — o **mesmo** pattern de `topics[]`, de propósito. Kebab-case fica só para **slug de caminho** (`setup_name`, diretório de desafio, slug de research). A versão anterior deste documento dava kebab a `target_topic` e snake a `topics[]`: era **bug, não escolha**, porque a recuperação do playbook compara os dois **por igualdade de string** e, com padrões diferentes, eles nunca casariam. Os schemas em disco já trazem a regra desambiguada, e as `description` transcritas em §2.9 e §2.10 a explicam campo a campo; `docs/00-contratos.md` §4.2 traz o **mesmo** pattern, a invariante `I-16` de lá verifica que os dois namespaces não se misturam e a decisão `A-35` registra que ela supersede a `A-15` por este motivo — **contrato, schemas e código concordam**. O que sustenta a regra continua sendo a comparação por **igualdade de string** entre `target_topic` e `session.topics[]`: mexer num dos dois lados sem o outro reabre exatamente o bug que ela fecha.
 
 ### 1.4.3 `$id` dos schemas — convenção única ⚑
 
@@ -1029,7 +1029,7 @@ O `kind` do envelope nomeia **o julgamento pedido**; o `request_kind` do payload
 
 | # | Limitação e estado |
 |---|---|
-| L-1 | `compaction.deferred_at` — o campo que o caminho degradado da compactação deveria gravar. **Estado atualizado, verificado no disco na revisão `df040b5`:** o campo **existe** em `profile.schema.json` → `compaction.deferred_at` (timestamp ISO ou `null`, com a semântica "gravado a cada vez que o caminho degradado se repete, e limpo na próxima compactação bem-sucedida"). Mas **`memory-compact.sh` ainda não o grava**. Ou seja: a barreira de schema caiu; falta a escrita no script. Enquanto isso, o caminho degradado é: não compacta, não marca nada, e o gatilho de 15 sessões reavalia sozinho no próximo fechamento — o que já é correto, porque a condição que adiou continua verdadeira. ⚠ `docs/00-contratos.md` §6.5 L-1 e a dívida DEB-2 ainda descrevem o campo como inexistente: **essa parte do texto está desatualizada**, e a correção é do dono daquele arquivo. |
+| L-1 | `compaction.deferred_at` — o campo que o caminho degradado da compactação deveria gravar. **Estado atualizado, verificado no disco na revisão `df040b5`:** o campo **existe** em `profile.schema.json` → `compaction.deferred_at` (timestamp ISO ou `null`, com a semântica "gravado a cada vez que o caminho degradado se repete, e limpo na próxima compactação bem-sucedida"). Mas **`memory-compact.sh` ainda não o grava**. Ou seja: a barreira de schema caiu; falta a escrita no script. Enquanto isso, o caminho degradado é: não compacta, não marca nada, e o gatilho de 15 sessões reavalia sozinho no próximo fechamento — o que já é correto, porque a condição que adiou continua verdadeira. `docs/00-contratos.md` §6.5 L-1 e a dívida `DEB-2` descrevem o **mesmo** estado: o campo existe no schema e a dívida mudou de dono — era do schema, hoje é do script. |
 | L-2 | O teto de **2 ciclos** de RA-6 **não é implementável** no script: cada `--apply` é um processo novo, e não há estado persistido entre invocações que diga em que ciclo o script está. Hoje o teto é obrigação do **chamador** (o `SKILL.md` diz ao modelo para não insistir), e nenhuma invariante o verifica. Se um dia for imposto pelo script, o contador vai para o artefato que ele altera — `profile.json` → `compaction.cycle_count`, `memory/NNNN.json` → `protocol_cycles`, `meta.json` → `validation.apply_cycles` — **nunca em arquivo novo**. |
 
 Exceção parcial a L-2, já implementada: `session-close.sh` resolve o problema **sem estado extra em disco**, porque `attempt` está *dentro* do payload e o `request_id` é o `sha256` do payload canônico — os dois pedidos possíveis têm ids diferentes, então o `--apply` descobre a qual deles a resposta responde apenas comparando.
@@ -4882,7 +4882,7 @@ passo 0. O evento **não** carrega `state_before`, `state_after` nem `transition
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "urn:study-method:schema:progress-event:1",
   "title": "Evento de proficiencia (entrada de progress-update.sh --event)",
-  "description": "UM evento observavel sobre UM conceito, entregue a `progress-update.sh --event`. E a unica forma de escrever em memory/progress.json: a entrada e sempre o evento, NUNCA o estado novo - o estado e calculado pela maquina de transicoes T1-T8 a partir daqui e da evidencia ja gravada. Regra dura do projeto: sem artefato, sem transicao. O script recusa o evento cujo session_id nao exista em memory/ ou cujo challenge_id nao exista em challenges/; por isso os dois campos tem formato fixo, e nao texto livre. Idempotencia: reprocessar um evento com o mesmo session_id, challenge_id e observed_at nao duplica evidencia nem reaplica transicao. Textos livres em pt-BR; chaves e valores de enum em ingles snake_case sem acento. VERIFICADOR MINIMO: este schema so usa type, required, enum, pattern, items, properties, minimum, maximum e additionalProperties booleano; maxLength e documentacao e NAO e verificado.",
+  "description": "UM evento observavel sobre UM conceito, entregue a `progress-update.sh --event`. E a unica forma de escrever em memory/progress.json: a entrada e sempre o evento, NUNCA o estado novo - o estado e calculado pela maquina de transicoes T1-T8 a partir daqui e da evidencia ja gravada. Regra dura do projeto: sem artefato, sem transicao. O script recusa o evento cujo session_id nao exista em memory/ ou cujo challenge_id nao exista em challenges/; por isso os dois campos tem formato fixo, e nao texto livre. Idempotencia: reprocessar um evento com o mesmo session_id, challenge_id e observed_at nao duplica evidencia nem reaplica transicao. Textos livres em pt-BR; chaves e valores de enum em ingles snake_case sem acento. VERIFICADOR MINIMO: este schema so usa type, required, enum, pattern, items, properties, minimum, maximum e additionalProperties booleano; maxLength TAMBEM e verificado pelo verificador minimo.",
   "type": "object",
   "additionalProperties": false,
   "required": ["schema_version", "kind", "concept_id", "observed_at"],
@@ -5063,7 +5063,7 @@ stdlib do Python e cobre `type`, `required`, `enum`, `pattern`, `minimum`/`maxim
 | `state_before` | string | enum `unknown`, `fragile`, `mastered` | estado imediatamente **antes** |
 | `state_after` | string | enum `unknown`, `fragile`, `mastered` | **igual a `state_before` quando o evento registra observação sem mudar o estado — isso é resultado legítimo e deve ser gravado assim mesmo** |
 | `transition_rule` | string \| null | enum `T1`..`T8`, `null` | `null` quando o evento não mudou o estado por regra alguma |
-| `note` | string \| null | `maxLength: 240` (documentação, **não verificado**) | factual e verificável: o que o aluno fez, não o que o tutor achou |
+| `note` | string \| null | `maxLength: 240` (**verificado** pelo verificador mínimo — §1.4.3) | factual e verificável: o que o aluno fez, não o que o tutor achou |
 
 ### 4.10.4 Convenção de idioma no arquivo de dados
 
@@ -6714,8 +6714,8 @@ orçamento sabota a leitura do material real do aluno.
 |---|---|---|
 | ⏳ | O limite de **8 KB** por tópico da base gerada e o orçamento de **80 KB** da ingestão | valores de produto, revisáveis; ver `docs/10-bootstrap.md` §8.2 |
 | ⏳ | Os tamanhos de efeito citados em §6.8 | vêm de literatura auditada em 2026-08; a **tabela de proibições** é que é estável, não os números da coluna "Correção" |
-| ⚠ | **Marcação da base gerada:** `docs/10-bootstrap.md` §7.4 descreve a camada 2 como **frontmatter YAML**; a invariante **I-36** e `docs/build-spec/90-researchs.md` §2 (campo `kind`) exigem o bloco `<!-- study-method:meta {…} -->` com `kind:"generated"` | **O contrato vence:** bloco de comentário, nunca frontmatter. Este bloco já registra a forma correta em §6.10.5 |
-| ⚠ | **`disputed`:** `docs/10-bootstrap.md` §7.5 declara "não existe campo `disputed`" para o material gerado; `docs/build-spec/90-researchs.md` §2 declara `disputed` como campo 13 **do bloco de `researchs/`** | Não é conflito de fato — são dois artefatos —, mas a redação convida a erro e merece uma linha explícita em cada lado |
+| — | **Marcação da base gerada:** `docs/10-bootstrap.md` §7.4 **já declara** "não é frontmatter YAML" e cita a invariante **I-36**; a forma única é o bloco `<!-- study-method:meta {…} -->` com `kind:"generated"`, igual a `docs/build-spec/90-researchs.md` §2 | divergência fechada; este bloco registra a mesma forma em §6.10.5 |
+| — | **`disputed`:** `docs/10-bootstrap.md` §7.5 descarta o **peso de seleção** por `disputed` (o campo existe, e `docs-index.sh` grava `disputed: null`); `docs/build-spec/90-researchs.md` §2 declara `disputed` como campo 13 **do bloco de `researchs/`** | Não é conflito: são dois artefatos e dois papéis do mesmo nome, e cada lado já diz qual é o seu |
 | — | `D-E01` (teto da escada), `D-E02` (degrau inicial amarrado ao `proficiency_state`), `D-E05` (política de elogio), `D-E09` (interleaving), `D-E03`/`D-E04`/`D-E06`/`D-E07`, `D-R01`…`D-R05`, `D-B03`…`D-B07` | decisões abertas com default sugerido; catálogo em `skills/study-method/assets/decisions.json` |
 
 ---
@@ -6778,9 +6778,9 @@ nem numa frase de negação: a invariante **I-05** é um grep que precisa sair *
 | 18 | `render-plot.py` | `[--spec CAMINHO\|-] [--out-dir DIR] [--basename NOME] [--width N] [--height N] [--ascii-width N] [--ascii-height N] [--formats svg,html,txt,md] [--png] [--quiet]` | JSON: `{ok, type, outputs, description_text, ascii_text, warnings, stats}` | **Exceção nomeada** (§1.5.2): 0 · 1 · 2 · 3 | `teach` |
 | 19 | `decisions-ask.sh` | `<fase> --setup <setup_root> [--json] [--answer <id>=<valor>]`, com `fase ∈ {setup-init, first-challenge, session-15, on-demand}` | As decisões pendentes daquela fase, em JSON | 0 · 1 · 2 · 3 · 5 | `setup_interview` (`setup-init`) · `challenge` (`first-challenge`) |
 
-⏳ **Estado medido no repositório:** `decisions-ask.sh` está declarado nesta tabela e **ainda não
-existe em disco**. `tests/validate.sh` marca `I-06b` como **PEND** (vermelho, com o artefato faltante
-nomeado) enquanto ele não for escrito — ver §8.9.3. Os outros 18 existem.
+✅ **Estado medido no repositório:** `decisions-ask.sh` era a única entrada desta tabela sem arquivo
+em disco; **ele existe agora**, e `tests/validate.sh` marca `I-06b` como **PASS** — os 19 existem.
+Enquanto faltasse, o check ficaria **PEND** (vermelho, com o artefato nomeado) — ver §8.9.3.
 
 ### 7.1.1 Três afirmações que o `SKILL.md` precisa carregar
 
@@ -6798,8 +6798,8 @@ Porque mudam a decisão do modelo em runtime:
   à mão** (`status: "abandoned"`, `finalized_by: "auto_orphan_recovery"`), para o caso que o
   `--verify` não alcançou. **Não conflita com o dono único**: o fechamento **automático** de órfã
   continua sendo de `memory-index.sh --verify`, único; `--recover` é a porta **manual** da mesma
-  operação, nunca um segundo caminho automático. ⚠ `SK/references/scripts.md` afirma
-  "**Não tem `--recover`**" — divergência conhecida; o contrato vence (§7.15).
+  operação, nunca um segundo caminho automático. `SK/references/scripts.md` descreve a flag nesses
+  mesmos termos — os dois textos concordam (§7.15).
 - **`docs-index.sh --select` é o gatilho do exit 10, e é o único.** Sem ele o script indexa e sai 0
   pela heurística determinística. `--select` e `--apply` são **mutuamente exclusivos**: combiná-los
   é **2**.
@@ -6876,7 +6876,7 @@ Há **uma** exceção nomeada a LIB-4: `sm_request` (§7.7), que produz `exit 10
 todo o projeto que produz esse código (**I-23**).
 
 Invariantes que cobram estas regras: **I-19** (modo, ausência de `main`/`"$@"` de topo),
-**I-20** (toda função exportada está na tabela, e vice-versa — 26 funções entre `common.sh` e
+**I-20** (toda função exportada está na tabela, e vice-versa — 27 funções entre `common.sh` e
 `json.sh`), **I-23**.
 
 ---
@@ -7331,12 +7331,12 @@ O que esta parte acrescenta é a consequência para quem **escreve** os scripts:
 
 | Marca | Item | Estado |
 |---|---|---|
-| ⏳ | `decisions-ask.sh` declarado em §7.1 e **ausente do disco** | `I-06b` = **PEND** no gate hoje. Escrever o script fecha a pendência sem tocar no contrato |
+| — | `decisions-ask.sh` declarado em §7.1 e **presente no disco** | `I-06b` = **PASS**. A pendência fechou escrevendo o script, sem tocar no contrato — que era exatamente o desenho |
 | ⏳ | Versões da toolchain de §7.13 e os quatro parâmetros medidos da pilha de sandbox (§7.8) | medição de 2026-08-23 nesta máquina; revalidar ao trocar de máquina ou de versão |
 | ⏳ | O número medido da concorrência de `sm_next_seq` (100/100/0/0) | vale para o algoritmo, não para a máquina; o **mecanismo** (`noclobber`) é o que é contratual |
-| ⚠ | `SK/references/scripts.md` afirma que `session-close.sh` **não tem** `--recover`; o contrato §8 diz que **tem** | O contrato vence. A reference precisa de correção — ver §7.1.2 |
-| ⚠ | `SK/SKILL.md` lista `docs-index.sh` **sem** `--select` na tabela de flags | `--select` é o **único** gatilho do exit 10 do script; omiti-lo esconde o caminho REQUEST/APPLY do `load_docs` |
-| ⚠ | `docs/build-spec/51-challenge-new.md` §6 descreve `c/stub.c.tmpl` com `#include "stub.h"`; o template no disco não o tem | Divergência de documentação; o teste em C inclui `"../stub.h"` e a compilação funciona, mas os dois textos precisam concordar |
+| — | `SK/references/scripts.md` e o contrato §8 **concordam**: `session-close.sh` **tem** `--recover` | divergência fechada; a reference descreve a flag e diz que ela não é o caminho normal — ver §7.1.2 |
+| — | `SK/SKILL.md` lista `docs-index.sh` **com** `--select`, e com a nota de que ele é o **único** gatilho do exit 10 | divergência fechada; omiti-lo esconderia o caminho REQUEST/APPLY do `load_docs` |
+| — | `docs/build-spec/51-challenge-new.md` §6 e o `c/stub.c.tmpl` do disco **concordam**: nenhum `#include` no stub | divergência fechada; o `stub.h` é escrito pelo script e o teste em C inclui `"../stub.h"` |
 
 ---
 
@@ -7675,17 +7675,18 @@ contrato exige sem terem sido numeradas.
 | **A — nomes e termos** | `I-01`, `I-01b`, `I-02`, `I-03`, `I-04`, `I-05`, `I-15b` | Os 9 nomes de passo literais no `SKILL.md`; as guardas dos dois passos condicionais; ausência de **todo** nome e campo revogado |
 | **B — inventário** | `I-06a`, `I-06b`, `I-06c` | A tabela canônica declara **19** scripts; os 19 existem; nenhum script **sem prefixo `_`** fora da lista |
 | **C — schemas** | `I-07`…`I-17`, `G-01`, `G-02`, `G-03`, `G-03b`, `G-11`, `G-13` | `$id` no namespace único e sem repetição; nenhuma construção proibida; cobertura do metaschema mínimo; `description` em toda propriedade; **assinatura única por vocabulário**; enums literais de sessão, fato, linguagem e leitura cruzada; patterns de identidade, conceito, slug e timestamp |
-| **D — scripts** | `I-18`…`I-27` | Exit codes só `0 1 2 3 4 5 10`; `pipefail` presente; falha lida como `!= 0`; só os quatro scripts do protocolo aceitam `--apply` e saem com 10; `LIB-1`; as **26** funções de `lib/`; escrita confinada; **zero rede**; derivados por escrita atômica |
+| **D — scripts** | `I-18`…`I-27` | Exit codes só `0 1 2 3 4 5 10`; `pipefail` presente; falha lida como `!= 0`; só os quatro scripts do protocolo aceitam `--apply` e saem com 10; `LIB-1`; as **27** funções de `lib/`; escrita confinada; **zero rede**; derivados por escrita atômica |
 | **E — runtime** | `I-28`…`I-32` | O digest sai `0` nos **quatro** cenários de borda, mantém a ordem fixa de chaves (`I-29a`) e tem exatamente **18** chaves de topo, na tabela (`I-29b`) e no JSON produzido (`I-29c`); `readme-sync.sh` e `setup-init.sh` **idempotentes** |
 | **F — `SKILL.md`** | `I-33`, `I-34`, `I-35`, `G-04`…`G-07` | Corpo com ≤200 linhas e os **90** IDs de regra, incluindo as **11** marcadas `†`; grafo de references de **um nível**; sumário nas references longas; frontmatter só com os campos portáveis; `name` igual ao nome do diretório; `description` ≤1024 caracteres |
 | **G — templates** | `I-36`…`I-41`, `G-08`, `G-09` | Proveniência por **bloco de comentário e nunca por frontmatter**; caminho relativo dentro do setup; campos de sandbox no manifesto do desafio; `exit 66` e tratamento de 137 no executor gerado; a linha `memory/` no arquivo de exclusão do git; as **8** seções de marcador; todo placeholder declarado no `MANIFEST.tsv` e nenhum sobrando fora de template |
 | **H — conteúdo** | `I-42`, `I-43` | Nenhuma promessa de cobertura exaustiva de cenários de erro; **nenhuma das afirmações derrubadas pela auditoria** (§6.8) |
 | **I — terminologia** | `G-10` | O termo do diretório de documentação **sempre qualificado** ("do repositório" ou "do setup") |
-| **J — decisões** | `G-12a`…`G-12d` | O id de cada decisão no pattern; todo `writes_to` resolvível no manifesto do setup; a camada humana (`docs/08-decisoes-abertas.md`, ainda **PEND**) e o marcador de BUILD_SPEC (`G-12d`, **verde**: os 48 marcadores existem) |
+| **J — decisões** | `G-12a`…`G-12d` | O id de cada decisão no pattern; todo `writes_to` resolvível no manifesto do setup; a camada humana (`docs/08-decisoes-abertas.md`, `G-12c`, **verde**) e o marcador de BUILD_SPEC (`G-12d`, **verde**: os 48 marcadores existem) |
 
-⏳ **Pendências reais hoje:** `I-06b` (o `decisions-ask.sh` declarado no contrato ainda não existe em
-disco) e `G-12c` (`docs/08-decisoes-abertas.md`, a camada humana do catálogo, é derivado de outra
-onda). **`G-12d` deixou de ser pendência**: os 48 marcadores existem, um por decisão elegível.
+✅ **Nenhuma pendência hoje:** `I-06b` (o `decisions-ask.sh` do contrato), `G-12c`
+(`docs/08-decisoes-abertas.md`, a camada humana do catálogo, derivada de outra onda) e `G-12d` (os 48
+marcadores, um por decisão elegível) **fecharam os três**, e `validate` sai com `0 pendente`. Os
+avisos que restam são exclusões de escopo declaradas, não pendências.
 
 ⭐ `G-12d` é uma verificação de **tudo ou nada**, e é assim de propósito. Enquanto **zero** marcador
 existia, ela era `PEND` ("a passada ainda não começou"); no instante em que o **primeiro** aparecesse
@@ -7749,9 +7750,9 @@ num obrigatório — e isso **não é divergência**.
 | `I-29` | 19 chaves de topo no digest | **18** | `procedural_playbook` é **uma** chave; `do` e `avoid` vivem **aninhados** dentro dela e nunca aparecem no topo. Quem contou 19 contou um aninhado. **Esperar 19 reprova um digest correto** |
 | `I-14` | 19 valores de `language` nos três schemas | **20** em `setup-manifest` e `registry`, **19** em `challenge-manifest` | `none` existe onde se descreve um **setup** — que pode legitimamente não ter código. Um **desafio** em linguagem nenhuma não existe. A assimetria é **deliberada**, e igualar os três **reprovaria schema correto** |
 
-⏳ `docs/00-contratos.md` §4.1 e §11 ainda carregam os números antigos: é o texto do contrato que
-precisa da correção. **O gate imprime uma nota em cada execução dizendo isso** — divergência
-conhecida, não divergência escondida.
+`docs/00-contratos.md` §4.1 e §11 **já carregam os números arbitrados** (18 chaves de topo;
+20/20/19 em `language`): contrato, schemas e gate dizem a mesma coisa. **O gate imprime a nota em
+cada execução explicando a arbitragem** — assimetria declarada, não assimetria escondida.
 
 ### 8.9.4 `tests/gate-lint.sh` — qualidade
 
@@ -7902,7 +7903,7 @@ Não são invariantes: são pontos onde a especificação e a medição **ainda 
 | # | Dívida | Estado |
 |---|---|---|
 | **DEB-1** | ⏳ **O orçamento de 6000 caracteres do digest não cabe o playbook procedimental cheio.** Com 5 antipadrões + 8 procedimentos — **ambos protegidos do truncamento** — só esse bloco já passa dos 6000, e a escada de truncamento **não converge**: os campos que sobrariam para cortar são justamente os protegidos. O digest sai com `budget_exceeded: true`, `truncated: true` e acima do orçamento — que é **exatamente o que a especificação manda** (`memory-digest.sh` **sempre** produz digest e **sempre** sai 0). O comportamento está correto; o **limite** é que está apertado | **Aberta.** Nada a consertar no script. **O gate não pode tratar `budget_exceeded: true` como falha**: é saída conforme |
-| **DEB-2** | `compaction.deferred_at` **não é gravável**: `profile.schema.json` fecha `compaction` com `additionalProperties: false` | **Aberta** |
+| **DEB-2** | `compaction.deferred_at` **é gravável**: está declarado em `profile.schema.json` → `compaction.properties`, e o `additionalProperties: false` não barra propriedade declarada. O que falta é `memory-compact.sh` **gravar o campo** no caminho degradado | **Aberta**, agora só do lado do script (§1.6.5 L-1) |
 | **DEB-3** | O teto de **2 ciclos** de RA-6 **não é verificável sem estado persistido** — cada `--apply` é processo novo | **Aberta.** Nenhuma invariante o cobra |
 
 ---
@@ -7998,13 +7999,13 @@ Auxiliares: `gate_repo_root`, `gate_rel`, `gate_trunc`, `gate_find_into`, `gate_
 
 | Marca | Item | Estado |
 |---|---|---|
-| ⏳ | As **194** linhas medidas do corpo e a folga de 6 | recontar a cada edição do `SKILL.md`; o teto normativo (**200**) é que é estável |
+| ⏳ | As linhas medidas do corpo e a folga até o teto — hoje **196**, folga **4** | recontar a cada edição do `SKILL.md`; `I-33a` imprime o número medido a cada execução do gate, e o teto normativo (**200**) é que é estável |
 | ⏳ | Os **907** caracteres da `description` | idem; o teto (**1024**) é estável |
 | ⏳ | A estimativa de **6.000–6.500 tokens** do corpo | depende do tokenizador; o teto normativo é o de **linhas** |
-| ⏳ | `I-06b`, `G-12c`, `G-12d` em **PEND** | fecham quando `decisions-ask.sh`, `docs/08-decisoes-abertas.md` e o primeiro marcador de BUILD_SPEC existirem |
+| — | `I-06b`, `G-12c`, `G-12d` | **fechados**: `decisions-ask.sh`, `docs/08-decisoes-abertas.md` e os marcadores do BUILD_SPEC existem, e os três passam. `G-12d` volta a `PEND` se os marcadores sumirem, e a `FAIL` se ficarem pela metade |
 | ⏳ | Ausência de `shellcheck` na máquina | `B-11` vira PASS/FAIL assim que a ferramenta existir; hoje é SKIP |
 | ⏳ | O default `2026-08-23` de `STUDY_METHOD_TODAY` | é fixação de determinismo, não data de validade |
-| ⚠ | `docs/00-contratos.md` §4.1 e §11 ainda carregam **19** chaves no digest e **19** valores de `language` nos três schemas | O gate checa **18** e **20/20/19**, e **imprime a divergência a cada execução**. É o texto do contrato que precisa da correção — não o gate |
+| — | `docs/00-contratos.md` §4.1 e §11 registram **18** chaves no digest e **20/20/19** valores de `language` | O gate checa os mesmos números e **imprime a arbitragem a cada execução**: contrato, schemas e gate concordam. A assimetria 20/20/19 é deliberada — igualar os três reprovaria schema correto |
 | — | `DEB-1`, `DEB-2`, `DEB-3` (§8.13.2) | dívidas abertas, declaradas |
 
 ---
@@ -8032,7 +8033,7 @@ Tudo o que atravessa fronteira entre artefatos está **transcrito**, não resumi
 | Os vocabulários controlados **completos** (todo enum, todo pattern de identificador) | §1.4.1, §1.4.2 |
 | A tabela de exit codes, as duas exceções nomeadas e os códigos observados do ambiente | §1.5 |
 | O protocolo REQUEST/APPLY: os dois envelopes verbatim, `RA-1`…`RA-7`, os dois vocabulários de `kind`, os quatro usuários e seus caminhos degradados | §1.6 |
-| A interface de `lib/` função a função (26 funções), e os algoritmos determinísticos das que não podem variar | §1.7, §7.6.1, §7.9, §7.10 |
+| A interface de `lib/` função a função (27 funções), e os algoritmos determinísticos das que não podem variar | §1.7, §7.6.1, §7.9, §7.10 |
 | Os três schemas de memória, **byte a byte** | §2.9 |
 | O algoritmo do digest em 15 passos, a escada de truncamento e todos os casos de borda | §2.5 |
 | O protocolo de validação de desafio em 8 passos, com o código de rejeição de cada um | §3.4 |
@@ -8054,10 +8055,10 @@ paráfrase de contrato passa a mentir sobre ele (critério **M2**, §0.2.1).
 
 | # | O que falta aqui | Buscar em | Por que não dá para inventar |
 |---|---|---|---|
-| 1 | **9 dos 12 schemas JSON**, verbatim. Estão aqui só `session`, `index` e `profile` (§2.9); `setup-manifest`, `registry`, `progress`, `progress-event`, `challenge-manifest`, `plot-spec`, `docs-index` e os 4 pares de `requests/` aparecem como **lista de campos e regras**, não byte a byte | `SK/assets/schemas/*.json` | Cada `description` de propriedade **faz parte do contrato** (invariante `G-02`) e é lida em runtime. Reescrevê-las produz um schema que valida os mesmos dados e **instrui o modelo de outro jeito** — a divergência não aparece em teste nenhum |
+| 1 | **15 dos 19 schemas JSON**, verbatim. Estão aqui `session`, `index` e `profile` (§2.9) e `progress-event` (§4.9); `setup-manifest`, `registry`, `progress`, `challenge-manifest`, `plot-spec`, `docs-index`, `decisions` e os 4 pares de `requests/` aparecem como **lista de campos e regras**, não byte a byte | `SK/assets/schemas/*.json` | Cada `description` de propriedade **faz parte do contrato** (invariante `G-02`) e é lida em runtime. Reescrevê-las produz um schema que valida os mesmos dados e **instrui o modelo de outro jeito** — a divergência não aparece em teste nenhum |
 | 2 | **O texto literal de `PRIV-1`…`PRIV-7` e `SEG-1`…`SEG-8`.** As outras 75 regras estão transcritas (§6.2–§6.6, §6.10.6, §3.15.1, §5.9); estas 15 aparecem citadas por ID e por efeito | `docs/00-contratos.md` §9.3 | São **11 das 11 regras `†`** (não rebaixáveis) mais 4 vizinhas. Uma regra crítica de segurança reescrita "com o mesmo sentido" é exatamente o modo de falha que o marcador `†` existe para impedir |
 | 3 | **O corpo do `SKILL.md`**, palavra por palavra | `SK/SKILL.md` | Este documento fixa a **estrutura**, a ordem normativa, o orçamento de linhas e o conteúdo obrigatório de cada seção (§8.4, §8.6, §8.7) — não a prosa. E a prosa é o que o harness carrega |
-| 4 | **O conteúdo das 8 `references/`** — em especial `analogy-bank.md` (o banco de analogias com mapeamento e fronteira de cada uma), `languages.md` (a matriz das 19 linguagens, comando de teste e sonda de contagem por linguagem) e `troubleshooting.md` | `SK/references/*.md` | A tabela de roteamento diz **qual abrir em cada passo** (§8.5.1); o que há dentro de cada uma é conteúdo, não contrato de fronteira |
+| 4 | **O conteúdo das 12 `references/`** (§8.5) — em especial `analogy-bank.md` (o banco de analogias com mapeamento e fronteira de cada uma), `languages.md` (a matriz das 19 linguagens, comando de teste e sonda de contagem por linguagem) e `troubleshooting.md` | `SK/references/*.md` | A tabela de roteamento diz **qual abrir em cada passo** (§8.5.1); o que há dentro de cada uma é conteúdo, não contrato de fronteira |
 | 5 | **O código-fonte dos 19 scripts** | `SK/scripts/**` | Este documento diz **o que** cada um faz e **como** — algoritmo, entradas, saídas, erros. Colar ~1.000 linhas de bash tornaria o documento não auditável sem torná-lo mais reconstruível (§0.6) |
 | 6 | **Os templates byte a byte** e o `MANIFEST.tsv` | `SK/assets/templates/**` | O `MANIFEST.tsv` é a **fonte de verdade** sobre quais placeholders existem (§7.11). Este documento escreve os delimitadores **reais** (`{{NOME}}`, §0.7.5), mas transcreve só os trechos citados — o corpo byte a byte de cada `*.tmpl` continua no repositório |
 | 7 | **A pesquisa auditada** — as fontes primárias, com as correções de autoria e de número que a auditoria fez | `docs/research/01`…`06` | É a base factual do racional. Sem ela, a construtora não consegue **verificar** as afirmações de §6.8 ("o que este projeto não afirma"), e uma afirmação derrubada que volta ao texto reprova o gate (`I-43`) |
@@ -8066,10 +8067,10 @@ paráfrase de contrato passa a mentir sobre ele (critério **M2**, §0.2.1).
 
 Duas ausências a mais, que não são "conteúdo que ficou de fora" e sim **dívida declarada**:
 
-- ⏳ **`tests/spec-conformance.sh` não existe.** É o verificador mecânico documento × disco previsto em
-  `docs/build-spec/README.md`. Enquanto ele não existir, a auditoria deste documento contra o
-  repositório é **leitura humana** contra os caminhos citados — e é por isso que toda afirmação que
-  envelhece está marcada com ⏳ e com o que foi verificado (§0.7.3).
+- ✅ **`tests/spec-conformance.sh` existe** (§F.5) e mecaniza a auditoria deste documento contra o
+  repositório. O que ele **não** mecaniza — as limitações que ele mesmo imprime no resumo —
+  continua sendo **leitura humana** contra os caminhos citados, e é por isso que toda afirmação
+  que envelhece está marcada com ⏳ e com o que foi verificado (§0.7.3).
 - ⏳ **O racional de cada decisão** — o argumento com bibliografia — vive em `docs/01`…`docs/13` do
   repositório, deliberadamente (§0.6). Este documento diz *o quê* e *como*; aqueles dizem *por quê*.
   Misturá-los faria o contrato ficar longo demais para ser conferido.
@@ -8090,12 +8091,18 @@ Rode os quatro gates na ordem de §8.15. Eles não verificam este arquivo — ve
 que ele descreve** —, e é exatamente por isso que servem: se o gate está verde e este documento
 descreve outra coisa, quem está errado é o documento.
 
-⏳ **Estado do repositório quando este documento foi fechado (2026-08-23):** `gate-build`, `gate-lint`
-e `smoke` verdes; `validate` com duas pendências declaradas e nomeadas — `I-06b` (`decisions-ask.sh`
-está no contrato e ainda não existe em disco) e a higiene da suíte de avaliação (`I-43`, cuja
-ocorrência restante é a **lista literal de afirmações proibidas** que o próprio verificador de
-`evals/` precisa conter para procurá-las). Nenhuma das duas é divergência entre este documento e o
-disco: as duas estão declaradas aqui e no resumo do gate.
+E rode `tests/spec-conformance.sh`, o quinto gate: esse verifica **este arquivo** contra o
+repositório, e é a resposta mecânica à pergunta desta seção — caminho citado que não existe,
+script ou função que sumiu, schema, decisão, exit code ou termo revogado que divergiu
+(`docs/12-conformidade.md`).
+
+⏳ **Estado do repositório na revisão em que este documento foi fechado (2026-08-23):** os **cinco**
+gates verdes e **sem nenhuma pendência** — `gate-build` 11, `validate` 77, `gate-lint` 6, `smoke` 65,
+`spec-conformance` 11. As duas últimas a fechar foram `I-06b` (o `decisions-ask.sh`, que estava no
+contrato e não existia em disco) e a higiene da suíte de avaliação (`I-43`, cuja ocorrência restante
+é a **lista literal de afirmações proibidas** que o próprio verificador de `evals/` precisa conter
+para procurá-las, isenta pelo marcador na linha). Nenhuma das duas é divergência entre este documento
+e o disco: as duas estão declaradas aqui e no resumo do gate.
 
 ---
 
