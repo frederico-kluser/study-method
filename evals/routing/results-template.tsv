@@ -1,0 +1,17 @@
+data	harness_version	id	execucao	disparou	evidencia	veredito
+# Preencha uma linha por (prompt, execucao). Três execuções por prompt — ver routing/README.md.
+# data            AAAA-MM-DD da execução
+# harness_version versão do Claude Code / harness usado (resultado só é comparável dentro da mesma versão)
+# id              RT-NN ou RN-NN, de should-trigger.tsv / should-not-trigger.tsv
+# execucao        1 | 2 | 3
+# disparou        sim | nao
+# evidencia       o que você observou (indicador do harness, ou o comportamento que denunciou a skill)
+# veredito        preencha só na 3ª execução: ok | falha | instavel
+#                   ok        as 3 execuções bateram com `esperado`
+#                   falha     as 3 execuções contrariaram `esperado`
+#                   instavel  as execuções divergiram entre si — trate como falha de calibração
+#
+# Exemplo (apague antes de usar):
+# 2026-08-24	claude-code-2.1.0	RT-01	1	sim	sessão abriu com pergunta de recuperação
+# 2026-08-24	claude-code-2.1.0	RT-01	2	sim	idem
+# 2026-08-24	claude-code-2.1.0	RT-01	3	sim	idem	ok

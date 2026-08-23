@@ -1,0 +1,21 @@
+id	idioma	esperado	fronteira	prompt	por_que
+RN-01	pt-BR	nao_disparar	nao	corrige esse bug no meu parser	"Não use para trabalho normal de programação — escrever, depurar ou revisar código de produção"
+RN-02	pt-BR	nao_disparar	nao	revisa meu PR	revisão de código de produção, exclusão explícita na description
+RN-03	pt-BR	nao_disparar	nao	o que essa função faz?	"explicar um trecho sem intenção de estudo continuado", exclusão explícita
+RN-04	pt-BR	nao_disparar	nao	escreve um script que renomeia esses arquivos	tarefa de automação, nada a ver com estudo
+RN-05	pt-BR	nao_disparar	nao	por que meu teste falha?	depuração de código de produção, exclusão explícita
+RN-06	pt-BR	nao_disparar	nao	roda o build e me diz qual foi o erro	execução de build; nenhuma intenção de estudo
+RN-07	pt-BR	nao_disparar	nao	refatora esse módulo pra usar async	escrita de código de produção
+RN-08	pt-BR	nao_disparar	nao	atualiza as dependências do projeto e roda os testes	manutenção de projeto
+RN-09	pt-BR	nao_disparar	nao	meu container não sobe, olha o log e me diz o que é	depuração de infraestrutura
+RN-10	pt-BR	nao_disparar	sim	qual a sintaxe de list comprehension em Python?	"responder dúvida pontual de sintaxe", exclusão explícita — mas soa a aprendizado
+RN-11	pt-BR	nao_disparar	sim	me explica o que esse regex faz	"me explica" é palavra-gatilho, mas o objeto é um trecho de código sem estudo continuado
+RN-12	pt-BR	nao_disparar	sim	preciso aprender a usar o cliente HTTP dessa lib pra terminar a task hoje	tem "aprender", mas é desbloqueio de tarefa de produção, não estudo continuado
+RN-13	en	nao_disparar	nao	fix this failing CI job	trabalho normal de programação
+RN-14	en	nao_disparar	nao	write unit tests for this module	escrita de código de produção
+RN-15	en	nao_disparar	nao	optimize this SQL query	trabalho normal de programação
+RN-16	en	nao_disparar	nao	review this diff for security issues	revisão de código de produção
+RN-17	en	nao_disparar	nao	deploy the app to staging	operação, nenhuma intenção de estudo
+RN-18	en	nao_disparar	sim	what does this stack trace mean?	explicação de trecho sem estudo continuado; a fronteira é o "mean"
+RN-19	en	nao_disparar	sim	explain how our auth middleware works	"explain how" é próximo de "walk me through", mas o objeto é o código de produção do usuário
+RN-20	en	nao_disparar	sim	I need to understand this codebase before I change it	tem "understand", mas é onboarding em código de produção, não estudo continuado

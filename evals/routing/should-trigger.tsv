@@ -1,0 +1,21 @@
+id	idioma	esperado	fronteira	prompt	por_que
+RT-01	pt-BR	disparar	nao	quero estudar recursão	"Use quando a pessoa quiser estudar" — gatilho literal da description
+RT-02	pt-BR	disparar	nao	me ensina derivada	"me ensina" está na lista de gatilhos, e derivada é a matemática que aparece na programação
+RT-03	pt-BR	disparar	nao	vamos continuar de onde paramos	"vamos continuar de onde paramos" é gatilho literal; é a memória entre sessões
+RT-04	pt-BR	disparar	nao	me dá um exercício de Python	pedido de exercício com intenção de estudo; "me explica e me dá exercício" é gatilho listado
+RT-05	pt-BR	disparar	nao	como estou indo nos meus estudos?	"como estou indo" é gatilho literal; é o relatório de progresso
+RT-06	pt-BR	disparar	nao	sou iniciante em Rust, monta uma aula pra mim	"sou iniciante em X" e "monta uma aula" são gatilhos literais
+RT-07	pt-BR	disparar	nao	me dá um desafio de complexidade de algoritmo	"me dá um desafio" é gatilho literal; desafio validado por teste é função da skill
+RT-08	pt-BR	disparar	nao	quero revisar o que a gente viu de listas ligadas semana passada	"revisar" com continuidade entre sessões — o núcleo da description
+RT-09	pt-BR	disparar	nao	cria um setup de estudo pra álgebra linear	"criar, retomar, listar ou arquivar um setup de estudo" está explícito na description
+RT-10	pt-BR	disparar	sim	coloquei o PDF do livro numa pasta, usa ele nas nossas aulas	"ingerir o material teórico do aluno" está na description, mas o prompt parece tarefa de arquivo
+RT-11	pt-BR	disparar	sim	desenha o gráfico de x² pra eu entender a concavidade	"desenhar um conceito em gráfico" está na description; sem o "pra eu entender" viraria pedido de plotagem
+RT-12	pt-BR	disparar	sim	me explica ponteiros e depois me dá um exercício	"me explica e me dá exercício" é gatilho literal, mas a primeira metade sozinha seria dúvida pontual
+RT-13	en	disparar	nao	teach me binary search	"teach me" é gatilho literal em inglês
+RT-14	en	disparar	nao	quiz me on big-O notation	"quiz me" é gatilho literal em inglês
+RT-15	en	disparar	nao	give me a challenge in Go	"give me a challenge" é gatilho literal em inglês
+RT-16	en	disparar	nao	I want to study dynamic programming	intenção de estudo declarada; equivalente inglês de "quero estudar"
+RT-17	en	disparar	nao	start a study session on probability	"study session" é gatilho literal em inglês
+RT-18	en	disparar	nao	I'm a beginner at SQL, tutor me	"tutor" é gatilho literal; "beginner" é o equivalente de "sou iniciante em X"
+RT-19	en	disparar	sim	let's pick up where we left off	equivalente inglês de "vamos continuar de onde paramos", mas a description só traz a forma pt-BR
+RT-20	en	disparar	sim	can you walk me through how hash tables work, step by step?	intenção de aprender com andaime, sem nenhuma das palavras-gatilho literais
