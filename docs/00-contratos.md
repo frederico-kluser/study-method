@@ -207,7 +207,7 @@ como tal no schema (`label`, `aliases[]`, `note`, `claim`, `how`, `description`,
 | `finalized_by` | `student` · `auto_orphan_recovery` (`null`) | `session.schema.json` | ⚑ Vence `closed_by: recovery`. |
 | `flags` (índice) | `has_unlock` · `has_backfire` · `has_open_questions` · `has_next_steps` · `orphan_recovered` | `index.schema.json` | Emitidos nesta ordem, por regra fixa. |
 | `artifacts[].kind` | `challenge` · `research` · `doc` · `viz` · `other` | `session.schema.json` | — |
-| `language` | `python` `javascript` `typescript` `rust` `go` `java` `csharp` `ruby` `elixir` `kotlin` `swift` `c` `cpp` `php` `lua` `julia` `r` `haskell` `bash` | `setup-manifest`, `registry`, `challenge-manifest` | Enum fechado (19). Ampliar é **MAJOR**. |
+| `language` | `python` `javascript` `typescript` `rust` `go` `java` `csharp` `ruby` `elixir` `kotlin` `swift` `c` `cpp` `php` `lua` `julia` `r` `haskell` `bash` `none` | `setup-manifest` e `registry` (**20**) · `challenge-manifest` (**19**) | ⚑ **Assimetria intencional, não bug.** `none` é o 20º valor e existe só onde descreve o *setup*: estudar sem código é caso legítimo e o fluxo de criação já o oferece. Desafio em linguagem nenhuma **não existe**, então `challenge-manifest` para em `bash`. Os 19 primeiros valores são idênticos e **na mesma ordem** nos três schemas. Ampliar é **MAJOR**. |
 | `layout_profile` | `generic` `go_module` `cargo_crate` `java_classfile` `dotnet_project` `mix_project` `swiftpm` `julia_project` `cabal_project` `bats_suite` | `challenge-manifest.schema.json` | — |
 | `test_count_probe` | `python_unittest_ran_line` `node_test_tap_summary` `go_test_json_run_events` `cargo_test_running_lines` `junit_console_summary` `counter_protocol` `none` | `challenge-manifest.schema.json` | `none` é proibido em desafio entregue. |
 | `scenarios[].kind` | `example` · `boundary` · `error` · `property` · `metamorphic` · `regression` | `challenge-manifest.schema.json` | — |
@@ -223,7 +223,7 @@ como tal no schema (`label`, `aliases[]`, `note`, `claim`, `how`, `description`,
 | `docs_ingest.mode` | `full` · `indexed` | `setup-manifest.schema.json` | — |
 | `provenance` | `student_provided` · `generated_researched` · `generated_unsourced` | bloco `study-method:meta` (§3.4) | — |
 | `theory_source` | `student_provided` · `generated` · `none` | `setup-manifest.schema.json` | — |
-| `memory_state` (digest) | `first_session` · `warm` | saída de `memory-digest.sh` | Forma da saída é **fixa**; só este campo ramifica o consumidor. |
+| `memory_state` (digest) | `first_session` · `warming_up` · `warm` · `degraded` | saída de `memory-digest.sh` | ⚑ **Quatro** valores, nesta ordem de precedência na derivação: `first_session` (nenhuma sessão fechada) → `degraded` (índice ausente/obsoleto/ilegível, perfil ou bruto que não parseia, erro interno) → `warm` (≥5 sessões fechadas **ou** ≥1 fato `active`) → `warming_up` (o resto: há histórico, ainda abaixo do piso). Derivado, nunca persistido. Forma da saída é **fixa**; só este campo ramifica o consumidor. |
 | `read_as` (digest) | `current` · `hypothesis` | saída de `memory-digest.sh` | Derivado, nunca persistido. |
 | razão de item de `plan` | `orphan_resume` · `spaced_review` · `student_request` · `next_in_taxonomy` | `session.schema.json` → `plan[].reason` | Prioridade nesta ordem. |
 
@@ -238,7 +238,7 @@ como tal no schema (`label`, `aliases[]`, `note`, `claim`, `how`, `description`,
 | `fact_id` | `^f-[0-9]{4}$` | `profile.json` | — |
 | **identificador de conceito** (`concept_id`) | `^[a-z][a-z0-9_]{1,62}$` | `progress.json`, `meta.json.concepts[]`, `scenario_id` | ⚑ **snake_case em todo o sistema.** `Indução matemática` → `inducao_matematica`. |
 | slug / tag / tópico | `^[a-z0-9]+(-[a-z0-9]+)*$` | `topics[]`, `setup_name`, `subject_slug`, `target_topic`, `<slug>` de diretório | **kebab-case.** Namespace distinto do de conceito, e a distinção é normativa. |
-| `claim_key` | `^[a-z0-9]+(-[a-z0-9]+)*(:[a-z0-9]+(-[a-z0-9]+)*)+$` | `profile.json` | Só supersede quem tem `claim_key` idêntico. |
+| `claim_key` | `^[a-z][a-z0-9_]{1,62}$` | `profile.json` → `semantic_facts[]`, `procedural_facts[]` | ⚑ **snake_case, um identificador só, sem dois-pontos.** Revoga a gramática antiga `dominio:alvo:aspecto`: domínio, alvo e (quando houver) aspecto são unidos por `_` — `skill_derivadas_conceito_level`, `difficulty_recursao`, `strength_python_funcoes`. É o **mesmo** vocabulário de `concept_id`, `topics` e `skill`: chave que atravessa arquivos não pode ter duas gramáticas. Só supersede quem tem `claim_key` idêntico — comparação por **igualdade de string**, nada mais. |
 | `schema_version` | `^[0-9]+\.[0-9]+$` | todos | Campo opcional novo = MINOR; obrigatório/renomeado/tipo novo = MAJOR + migração. |
 | data | `^[0-9]{4}-[0-9]{2}-[0-9]{2}$` | `date`, `observed_at`, `last_observed_at`, `next_review_at` | — |
 | **timestamp** | `^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}([.][0-9]+)?(Z\|[+-][0-9]{2}:[0-9]{2})$` | `created_at`, `updated_at`, `recorded_at`, `started_at`, … | ⚑ **Fração opcional em todos os schemas.** `progress.schema.json` a omitia. |
@@ -266,6 +266,24 @@ Restrições de forma, para caber no verificador mínimo em Python stdlib: **sem
 aninhado, sem `if/then/else`, sem `$defs` referenciados**. O verificador cobre `type` (string ou
 array de strings), `required`, `enum`, `pattern`, `properties`, `items`, `additionalProperties:
 false`, `minimum`/`maximum`, `minLength`/`maxLength`, `minItems`. Cobertura parcial **por design**.
+
+### 4.4 Variáveis de ambiente — vocabulário fechado ⚑
+
+Nenhum script lê variável fora desta tabela. `STUDY_METHOD_*` é a superfície pública (o aluno e o
+gate podem definir); `SM_*` é interna do processo. As duas de determinismo existem para o **mesmo**
+motivo: sem elas o gate não consegue comparar duas execuções byte a byte.
+
+| Variável | Default | Efeito |
+|---|---|---|
+| `STUDY_METHOD_HOME` | `${XDG_DATA_HOME:-$HOME/.local/share}/study-method` | Raiz do estado global (§3.3). |
+| `XDG_DATA_HOME` | `$HOME/.local/share` | Só consultada quando `STUDY_METHOD_HOME` está ausente. |
+| `STUDY_METHOD_TODAY` | data do sistema | Congela `sm_today` (`YYYY-MM-DD`). |
+| **`STUDY_METHOD_NOW`** | relógio do sistema | ⚑ **Par de `STUDY_METHOD_TODAY` para o instante.** Congela `sm_now_iso`; é o que torna determinísticos `generated_at`, `created_at`, `recorded_at`, `started_at` e o digest inteiro no gate. Valor que não casa o pattern de timestamp de §4.2 é **ignorado com aviso em stderr**, nunca aceito calado. |
+| `STUDY_METHOD_LOG` | `info` | `debug` liga o nível `debug` de `sm_log`. |
+| `STUDY_METHOD_SKILL_DIR` | derivado do caminho do script | Raiz de `SK/`; só para instalação fora do lugar canônico. |
+| `SM_SESSION_OWNER_PID` | ausente | Pid do processo **que sobrevive à sessão** (§7.1, `sm_setup_lock`). |
+| `SM_SESSION_LOCK_TTL` | `28800` (8 h) | TTL do lock de sessão sem dono declarado (§7.1). |
+| `SM_SANDBOX_*` | ver `docs/11` §2 | Limites e consentimento do sandbox; documentadas em `lib/sandbox.sh`. |
 
 ---
 
@@ -358,6 +376,21 @@ escrita passa por validação de schema e por código que o revisor humano leu.
 `request_id` = primeiros 12 hex do `sha256` do `payload` serializado canonicamente. É o que amarra
 a RESPOSTA ao PEDIDO.
 
+**Normativo — `generated_at` do payload é derivado do DISCO, nunca "agora".** ⚑ O carimbo que entra
+no material de que o `request_id` é calculado é o do **estado** que originou o pedido — `mtime` do
+artefato lido (o `memory/NNNN.json` da sessão, o `meta.json` do desafio, os arquivos do `docs/` do
+setup, os brutos não consolidados) —, jamais `sm_now_iso`. É essa escolha que dá as duas
+propriedades que o protocolo promete:
+
+| Propriedade | Por quê |
+|---|---|
+| **Reprodutibilidade** | Dois PEDIDOS emitidos sobre o mesmo estado têm o mesmo `request_id`. Com relógio no payload, o id mudaria a cada segundo e RA-2 nunca poderia ser verificado. |
+| **Recusa de estado alterado** | Qualquer escrita no artefato entre as duas fases move o `mtime`, muda o `request_id` e faz `--apply` sair **5** (RA-2). É a detecção, não um efeito colateral dela. |
+
+O `generated_at` do **envelope** (irmão de `request_id`, fora do `payload`) é o relógio de emissão e
+**não entra** no cálculo — por isso ele pode honrar `STUDY_METHOD_NOW` sem afetar o id. Quando um
+script precisa expor o carimbo do estado dentro do payload, ele o copia para lá explicitamente.
+
 ### 6.2 Envelope da RESPOSTA (`--apply <arquivo>`)
 
 ```json
@@ -366,9 +399,21 @@ a RESPOSTA ao PEDIDO.
   "protocol_version": "1.0",
   "request_id": "a1b2c3d4e5f6",
   "kind": "compact_facts",
-  "items": [ { "…": "conforme o response_schema" } ]
+  "items": [ { "…": "o objeto do response_schema" } ]
 }
 ```
+
+**Normativo — `items` transporta um OBJETO, não uma lista de itens.** ⚑ Os quatro
+`*.response.schema.json` descrevem **um objeto de topo** (`{schema_version, request_kind, …}`), não
+um elemento de array; o texto que dizia "array de itens" está revogado. A convenção, implementada
+igual nos quatro scripts:
+
+| # | Regra |
+|---|---|
+| RESP-1 | A forma canônica é `items: [ <objeto> ]` — array de **exatamente um** elemento, e esse elemento é o documento que valida contra o `response_schema`. `items[0]` é a resposta. |
+| RESP-2 | Os scripts **também aceitam** `items` sendo o objeto direto (`items: { … }`), sem envolvê-lo em array. As duas formas são equivalentes e nenhuma é erro. |
+| RESP-3 | `items` com **mais de um** elemento é **exit 5**: não existe pedido com múltiplas respostas. |
+| RESP-4 | O objeto carrega `request_kind` (vocabulário de payload, §6.4) e o envelope carrega `kind` (vocabulário de envelope). Confundir os dois é **exit 5**, não aviso. |
 
 ### 6.3 Regras duras
 
@@ -379,17 +424,46 @@ a RESPOSTA ao PEDIDO.
 | RA-3 | A RESPOSTA valida contra `response_schema` antes de qualquer escrita. Falhou → **exit 5**, nada é aplicado, o PEDIDO original continua válido para nova tentativa. |
 | RA-4 | Toda aplicação usa `sm_atomic_write` (tmp + `mv`). Nunca escrita parcial. |
 | RA-5 | O script **nunca** aceita campos que não estejam no `response_schema`; `additionalProperties: false` é obrigatório no schema de resposta. |
-| RA-6 | Máximo **2** ciclos PEDIDO/RESPOSTA por invocação lógica. Esgotados, o script segue pelo caminho degradado documentado e registra o fato. |
+| RA-6 | Máximo **2** ciclos PEDIDO/RESPOSTA por invocação lógica. Esgotados, o script segue pelo caminho degradado documentado e registra o fato. ⚠ **Limitação reconhecida (§6.5):** cada invocação é um processo novo e o contador **não é persistido**; na prática o script não tem como saber que já está no 2º ciclo. Hoje o teto é obrigação do **chamador** (o modelo, pelo `SKILL.md`), não do script, e nenhuma invariante de §11 o verifica. |
 | RA-7 | Um script sem `--apply` pendente **nunca** sai com 10. Exit 10 é sempre acompanhado de um PEDIDO bem formado em stdout. |
 
 ### 6.4 Os quatro usuários do protocolo
 
-| Script | `kind` | O que o script já fez sozinho | O que pede ao modelo | Caminho degradado (2 ciclos esgotados) |
-|---|---|---|---|---|
-| `memory-compact.sh` | `compact_facts` | Selecionou as sessões não consolidadas, leu **só os brutos**, agrupou candidatos, calculou `confidence` e detectou reconfirmação × mudança. | **Consolidar cada grupo em prosa (`claim` / `how`) e nomear a `claim_key`.** É a única porta de entrada da memória de longo prazo. | Não compacta. Marca `compaction.deferred_at` e o gatilho reavalia no próximo fechamento. Nenhum bruto é perdido. |
-| `session-close.sh` | `fill_session_fields` | Validou `memory/NNNN.json` contra `session.schema.json` e listou exatamente os campos ausentes ou inválidos. | **Preencher os campos ausentes** (`one_line_summary`, `topics`, `what_worked`, `what_didnt_work`, `open_questions`, `next_steps`), só com o que a sessão sustenta. | Fecha assim mesmo: `status: "completed"` + `validation_errors[]` preenchido. **Nunca deixa sessão presa em `in_progress`.** |
-| `challenge-verify.sh` | `classify_survivor` | Rodou os passos 0–6, gerou os mutantes do catálogo fixo, matou o que dava, e isolou os sobreviventes com `operator`, `file`, `line`, `before`, `after`. | **Classificar cada sobrevivente como `equivalent` ou `test_gap`, com `justification` escrita.** Única etapa do protocolo em que o modelo opina, sobre um diff de uma linha, auditável. | Todo sobrevivente vira `unclassified`, tratado como `test_gap` (o lado conservador). O score cai e o veredito tende a `weak`. |
-| `docs-index.sh` | `select_sections` | Varreu o `docs/` do setup, montou o manifesto com seções, offsets em bytes e sha256, e pontuou tudo pela heurística determinística. | **Escolher, dentre as seções empatadas no score, quais são relevantes ao tópico da aula**, respeitando o teto de 60% do orçamento. | Usa a ordem de score pura, corta no teto e **declara em voz alta** que a seleção foi automática. |
+| Script | `kind` (envelope) | `request_kind` (payload) | O que o script já fez sozinho | O que pede ao modelo | Caminho degradado (2 ciclos esgotados) |
+|---|---|---|---|---|---|
+| `memory-compact.sh` | `compact_facts` | `memory_compact` | Selecionou as sessões não consolidadas, leu **só os brutos**, agrupou candidatos, calculou `confidence` e detectou reconfirmação × mudança. | **Consolidar cada grupo em prosa (`claim` / `how`) e nomear a `claim_key`.** É a única porta de entrada da memória de longo prazo. | Não compacta e o gatilho reavalia no próximo fechamento. Nenhum bruto é perdido. ⚠ `compaction.deferred_at` **não é gravável hoje** — ver §6.5. |
+| `session-close.sh` | `fill_session_fields` | `session_close` | Validou `memory/NNNN.json` contra `session.schema.json` e listou exatamente os campos ausentes ou inválidos. | **Preencher os campos ausentes** (`one_line_summary`, `topics`, `what_worked`, `what_didnt_work`, `open_questions`, `next_steps`), só com o que a sessão sustenta. | Fecha assim mesmo: `status: "completed"` + `validation_errors[]` preenchido. **Nunca deixa sessão presa em `in_progress`.** |
+| `challenge-verify.sh` | `mutant_equivalence` | `challenge_verify` | Rodou os passos 0–6, gerou os mutantes do catálogo fixo, matou o que dava, e isolou os sobreviventes com `operator`, `file`, `line`, `before`, `after`. | **Classificar cada sobrevivente como `equivalent` ou `test_gap`, com `justification` escrita.** Única etapa do protocolo em que o modelo opina, sobre um diff de uma linha, auditável. | Todo sobrevivente vira `unclassified`, tratado como `test_gap` (o lado conservador). O score cai e o veredito tende a `weak`. |
+| `docs-index.sh` | `select_sections` | `docs_index` | Varreu o `docs/` do setup, montou o manifesto com seções, offsets em bytes e sha256, e pontuou tudo pela heurística determinística. | **Escolher, dentre as seções empatadas no score, quais são relevantes ao tópico da aula**, respeitando o teto de 60% do orçamento. | Usa a ordem de score pura, corta no teto e **declara em voz alta** que a seleção foi automática. |
+
+### 6.5 ⭐ Os dois vocabulários de `kind`, e as duas limitações reconhecidas ⚑
+
+**Três grafias circulavam para a mesma fronteira.** São **dois campos diferentes**, em dois lugares
+diferentes, e eles **coexistem** — nenhum substitui o outro:
+
+| Campo | Onde vive | Vocabulário fechado |
+|---|---|---|
+| `kind` | **envelope** do PEDIDO (§6.1) e da RESPOSTA (§6.2), na raiz do JSON, ao lado de `protocol` e `request_id` | `fill_session_fields` · `select_sections` · `compact_facts` · `mutant_equivalence` |
+| `request_kind` | **payload/corpo**, dentro de `payload` no PEDIDO e dentro do objeto de `items` na RESPOSTA; é o enum de um valor só declarado em cada `*.request/response.schema.json` | `session_close` · `docs_index` · `memory_compact` · `challenge_verify` |
+
+O `kind` do envelope nomeia **o julgamento pedido**; o `request_kind` do payload nomeia **a
+fronteira que o pediu**. `sm_apply_read` confere o primeiro; o verificador de schema confere o
+segundo. Ler um pelo outro é **exit 5** (RESP-4), nunca aviso.
+
+| Grafia revogada | Onde ainda aparece | Substituto canônico |
+|---|---|---|
+| `classify_survivor` | `challenge-verify.sh` (`CV_KIND`), `SKILL.md`, `SK/references/scripts.md`, `docs/build-spec/20`, `docs/build-spec/52`, `tests/smoke.sh` | `mutant_equivalence` (envelope) |
+| `SM_REQUEST_KIND` carregando o valor de **envelope** | `session-close.sh` (`fill_session_fields`), `docs-index.sh` (`select_sections`) | a variável que guarda o valor de envelope chama-se `SM_KIND`; `SM_REQUEST_KIND` guarda o valor de payload — é o que `memory-compact.sh` já faz certo |
+
+**As duas limitações reconhecidas do caminho degradado da compactação.**
+
+Declaradas aqui em vez de fingidas: o texto anterior prometia duas coisas que hoje **não são
+implementáveis**, e prometer é pior do que reconhecer.
+
+| # | Limitação | Estado | Onde o campo deveria morar |
+|---|---|---|---|
+| L-1 | `compaction.deferred_at` **não existe**. `profile.schema.json` fecha o objeto `compaction` com `additionalProperties: false` e declara apenas `trigger_uncompacted_sessions`, `last_compacted_at`, `last_compacted_session_id` e `compaction_count`. Gravar o campo hoje faz o próprio arquivo **falhar na validação** (exit 5). | **Não implementável sem MAJOR** no schema (campo novo opcional = MINOR; a decisão fica com o dono de `profile.schema.json`). Até lá o caminho degradado é: não compacta, não marca nada, e o gatilho de 15 sessões reavalia sozinho no próximo fechamento — o que já é correto, porque a condição que adiou continua verdadeira. | `profile.json` → `compaction.deferred_at`, timestamp ou `null`, ao lado de `last_compacted_at`. |
+| L-2 | O teto de **2 ciclos** de RA-6 não é implementável: cada `--apply` é um processo novo, e não há nenhum estado persistido entre invocações que diga em que ciclo o script está. | **Não implementável sem estado.** Hoje o teto é obrigação do chamador (o `SKILL.md` diz ao modelo para não insistir), e nenhuma invariante de §11 o verifica — verificá-la exigiria o contador em disco. | Se um dia for imposto pelo script: `profile.json` → `compaction.cycle_count` para `compact_facts`; `memory/NNNN.json` → `protocol_cycles` para `fill_session_fields`; `meta.json` → `validation.apply_cycles` para `mutant_equivalence`. Nunca em arquivo novo: o estado do protocolo pertence ao artefato que ele altera. |
 
 ---
 
@@ -413,7 +487,7 @@ especificação. A interface abaixo fica **congelada**: mudá-la exige mudar est
 
 | Função | Argumentos | stdout | Exit code |
 |---|---|---|---|
-| `sm_setup_root [<hint>]` | `<hint>` = caminho explícito, ou vazio para usar `$PWD` | Caminho **absoluto** da raiz do setup (sem barra final) | `0` achou · `3` nenhum `setup.json` legível em `<hint>` nem em ancestral até `$HOME` **inclusive** — nunca acima de `$HOME` |
+| `sm_setup_root [<hint>]` | `<hint>` = caminho explícito, ou vazio para usar `$PWD` | Caminho **absoluto** da raiz do setup (sem barra final) | `0` achou · `3` nenhum `setup.json` legível. ⚑ **Dois tetos, e a diferença é normativa:** (a) **sem `<hint>`** (ou com `<hint>` sob `$HOME`) sobe de `$PWD` até `$HOME` **inclusive** e para ali — subir acima de `$HOME` varreria o sistema inteiro atrás de manifesto alheio; (b) **com `<hint>` explícito fora de `$HOME`** sobe até `/`, porque o aluno que aponta um caminho fora do `$HOME` está declarando onde procurar e o setup pode estar em outro ponto de montagem. Em ambos, a subida para no primeiro `setup.json` legível, e `..` que não muda de diretório encerra o laço. |
 | `sm_die <code> <mensagem…>` | código da tabela §5.1 + mensagem em pt-BR | — | Termina o processo com `<code>`; mensagem prefixada `study-method: erro <code>:` em **stderr** |
 | `sm_log <nivel> <mensagem…>` | `debug\|info\|warn\|error` | — | Sempre `0`. Escreve em **stderr**, com carimbo ISO. `debug` só quando `STUDY_METHOD_LOG=debug`. |
 | `sm_require_cmd <cmd>…` | nomes de comando | — | `0` todos presentes · `1` e nomeia em stderr o que falta e como instalar (**nunca instala**) |
@@ -424,9 +498,9 @@ especificação. A interface abaixo fica **congelada**: mudá-la exige mudar est
 | `sm_registry_path` | — | Caminho absoluto de `${STUDY_METHOD_HOME:-${XDG_DATA_HOME:-$HOME/.local/share}/study-method}/registry.json` | `0` sempre |
 | `sm_registry_lock` | — | — | `0` obteve · `4` ocupado. `mkdir "$(dirname "$REGISTRY")/.registry.lock"` (atômico) + `trap 'rmdir' EXIT`. Lock com `mtime` > **60 s** é considerado morto, removido com aviso em stderr, e a tomada é retentada uma vez. |
 | `sm_registry_unlock` | — | — | `0` sempre (idempotente) |
-| `sm_setup_lock <setup_root>` | — | — | `0` obteve · `4` sessão viva. Escreve `memory/.session.lock` com `pid`, `hostname`, `session_id`, `started_at`. Lock existente com `hostname` igual e `kill -0 <pid>` bem-sucedido → **4**. Caso contrário é lock órfão: remove, avisa em stderr, prossegue. |
+| `sm_setup_lock <setup_root>` | — | — | `0` obteve · `4` sessão viva. Escreve `memory/.session.lock` com `pid`, `hostname`, `session_id`, `started_at`. ⚑ **Duas vias de validação — ver §7.4.** (a) Com `SM_SESSION_OWNER_PID` definida, grava esse pid e valida por `hostname` igual **+** `kill -0 <pid>`. (b) Sem ela, grava **`pid: null`** e valida por **TTL**: lock com `started_at` mais novo que `SM_SESSION_LOCK_TTL` (default **28800 s = 8 h**) → **4**; mais velho → órfão. `hostname` diferente do atual = órfão nos **dois** casos, sem consultar pid nem TTL. Órfão: remove, avisa em stderr, prossegue. |
 | `sm_setup_unlock <setup_root>` | — | — | `0` sempre (idempotente) |
-| `sm_now_iso` | — | Timestamp ISO 8601 com offset de fuso, casando o pattern de §4.2 | `0` |
+| `sm_now_iso` | — | Timestamp ISO 8601 com offset de fuso, casando o pattern de §4.2. ⚑ Honra **`STUDY_METHOD_NOW`** (§4.4), o par de `STUDY_METHOD_TODAY` para o instante: valor válido é impresso como veio; valor que não casa o pattern é **ignorado com aviso em stderr** e o relógio real vale. | `0` |
 | `sm_today` | — | `YYYY-MM-DD`. Honra `STUDY_METHOD_TODAY` para tornar o gate determinístico. | `0` |
 | `sm_relpath <caminho> <raiz>` | — | Caminho relativo a `<raiz>`, sem `./` inicial | `0` · `2` se `<caminho>` estiver fora de `<raiz>` |
 | `sm_chmod_private <caminho>` | — | — | `0` · `1`. Aplica `chmod 700` em diretório recém-criado. |
@@ -439,7 +513,7 @@ especificação. A interface abaixo fica **congelada**: mudá-la exige mudar est
 | `sm_json_get_raw <arquivo> <filtro-jq>` | — | Resultado como **JSON** (`jq -c`) | idem |
 | `sm_json_set <arquivo> <filtro-jq>` | filtro que devolve o documento inteiro | — | `0` · `1` I/O · `5` resultado não parseia. Aplica `jq` e grava por `sm_atomic_write`. |
 | `sm_json_ok <arquivo>` | — | — | `0` parseia · `5` não parseia. Barato: `jq -e . >/dev/null`. |
-| `sm_json_validate <arquivo> <schema>` | `<schema>` = caminho em `SK/assets/schemas/` | — | `0` válido · `5` inválido, com uma linha por erro em **stderr** no formato `<json-pointer>: <motivo>`. Implementado pelo verificador mínimo em **Python stdlib** (§4.3) — não há `jsonschema` nesta máquina. |
+| `sm_json_validate <arquivo> <schema>` | `<arquivo>` = caminho comum **ou caminho de FIFO** (`/dev/fd/N`, `/dev/stdin`, substituição de processo `<(…)`); `<schema>` = caminho em `SK/assets/schemas/` | — | `0` válido · `5` inválido, com uma linha por erro em **stderr** no formato `<json-pointer>: <motivo>`. Implementado pelo verificador mínimo em **Python stdlib** (§4.3) — não há `jsonschema` nesta máquina. ⚑ **Duas obrigações que vêm de RA-1:** (1) aceitar caminho de FIFO; (2) **ler o arquivo uma única vez** — nada de `test -r` seguido de `open`, nada de duas passadas, nada de reabrir para contar linha. Sem as duas, validar na fase de PEDIDO só seria possível gravando um temporário, **e temporário é escrita** — RA-1 seria inaplicável em vez de cumprido. FIFO ilegível ou vazia é **5**, nunca 0. |
 | `sm_json_canon <arquivo\|-\ >` | — | JSON canônico: chaves ordenadas, sem espaço supérfluo (`jq -cS .`) | `0` · `5`. Base do `request_id`. |
 | `sm_request <script> <kind> <response_schema> <instrucoes> <payload-json>` | — | O **envelope de PEDIDO** do §6.1, com `request_id` calculado de `sm_json_canon` do payload | **Sempre 10.** É a única função de todo o projeto que produz exit 10. Não escreve nada em disco. |
 | `sm_apply_read <arquivo> <kind> <request_id_esperado>` | — | O array `.items` da RESPOSTA, em JSON compacto | `0` · `2` arquivo ausente/ilegível · `5` `protocol`/`protocol_version`/`kind`/`request_id` divergentes, ou a RESPOSTA não valida contra o `response_schema` |
@@ -455,9 +529,37 @@ especificação. A interface abaixo fica **congelada**: mudá-la exige mudar est
 | `sm_sandbox_classify_exit <code> <elapsed> <wall>` | Uma palavra: `passed\|failed\|timeout\|oom\|cpu\|infra` | `0`. Implementa a desambiguação do 137 (§5.3). |
 
 Pilha canônica, de fora para dentro: `timeout -s KILL -k 5` → `systemd-run --user --scope
--p MemoryMax -p MemorySwapMax=0 -p TasksMax=128` → `unshare --user --net --pid --fork
---map-current-user` → `bash -c 'ulimit -t … -f …; cd "$1" || exit 66; shift; exec "$@"'`.
+-p MemoryMax -p MemorySwapMax=0 -p TasksMax=512 -p OOMPolicy=continue` → **`bwrap --unshare-all`
+quando disponível**, senão `unshare --user --net --pid --fork --map-current-user` →
+`bash -c 'ulimit -t … -f …; cd "$1" || exit 66; shift; exec "$@"'`.
 Cada camada é sondada antes de entrar; a ordem **não** pode ser invertida.
+
+Quatro parâmetros da pilha são **medidos**, não escolhidos por gosto (arbitragens A-26 a A-29):
+
+| Parâmetro | Valor canônico | O que a medição mostrou |
+|---|---|---|
+| `TasksMax` | **512** (`SM_SANDBOX_TASKS`) | `128` **derruba `go test`**: o cgroup conta *threads*, e o Go abre um processo de compilação por CPU. O default antigo de `docs/11` §2.2 está revogado. |
+| `OOMPolicy` | **`continue`** — obrigatório | Sem ele o systemd para o **escopo inteiro** no OOM: o código vira **143** e `memory.events.oom_kill` some antes de ser lido, então a desambiguação do 137 (§5.3) perde a evidência do estouro. Existe a partir do systemd 243, e por isso é sondado à parte: ausente, a camada de cgroup entra sem ele e o relato ao aluno declara a perda. |
+| confinamento de escrita | **`bwrap --unshare-all`** substitui `unshare` quando presente | `--unshare-all` já traz os namespaces que o `unshare` trazia; o `unshare` sozinho **não confina escrita** (o processo grava em `$HOME` sem erro). `bwrap` exige os quatro `--symlink` (`usr/bin`, `usr/sbin`, `usr/lib`, `usr/lib64`) ou a sonda falha calada. |
+| caches de toolchain | remapeados para **`/sm/…`**, com a variável reapontada (`CARGO_HOME`, `RUSTUP_HOME`, `GOMODCACHE`, `npm_config_cache`) | Montar no **caminho original** faz o `bwrap` **criar `/home/<aluno>` dentro do sandbox**, e o diretório criado é **gravável**: o aluno vê a escrita em `$HOME` funcionar. Com o remapeamento, `/home` não existe lá dentro e a tentativa falha com "arquivo não encontrado" — que é a verdade. **Nada é montado sob `/home`.** |
+
+### 7.4 O furo do `sm_setup_lock`, e por que a correção tem duas vias ⚑
+
+Medido: o `pid` gravado no `memory/.session.lock` era o do **script**, que termina em segundos. Na
+próxima invocação o `kill -0` falha sempre, **todo lock nasce órfão**, e a detecção de sessão
+concorrente — a razão de o lock existir — nunca dispara. O exit **4** de `session-new.sh` virava
+código morto.
+
+Não há um pid único que sirva: a "sessão" é uma conversa, não um processo. Daí as duas vias:
+
+| Via | Quando | Como valida | Órfão quando |
+|---|---|---|---|
+| **(a) dono declarado** | `SM_SESSION_OWNER_PID` definida — um processo que **sobrevive à sessão** (o harness, o terminal, o supervisor) | `hostname` igual **e** `kill -0 <pid>` bem-sucedido | pid morto, ou `hostname` diferente |
+| **(b) TTL** | variável ausente — o caso comum | `pid` gravado é **`null`**; vale `started_at` + `SM_SESSION_LOCK_TTL` (default **8 h**) | `now - started_at > TTL`, ou `hostname` diferente |
+
+`hostname` diferente é órfão nos dois casos, e a checagem vem **antes** de pid e de TTL: setup em
+disco compartilhado não pode travar por causa de uma máquina que ninguém alcança. Lock removido
+como órfão é sempre **anunciado em stderr**, nunca silencioso.
 
 ---
 
@@ -480,16 +582,16 @@ Convenção: **todo script recebe `<setup_root>` como primeiro argumento posicio
 | `setup-init.sh` | `<path> --subject <s> --subject-slug <sl> --title <t> [--language <l>] [--skill-level <n>] [--session-minutes <n>] [--theory-source <ts>] [--defaults-used <csv>]` | O `setup_id` alocado | 0 · 1 · 2 · 4 (registry) · 5 |
 | `setup-list.sh` | sem argumento = lista `active` · `--resolve <cwd>` · `--find <termo> --json` · `--archive <setup_id>` · `--forget <setup_id>` · `--all` · `--json` | Lista legível, ou JSON com `--json`; `--resolve` imprime o caminho absoluto do setup | 0 · 1 · 2 · 3 (`--resolve` sem achar nada) · 4 |
 | `session-new.sh` | `<setup_root> [--goal <texto>]` | O `NNNN` alocado | 0 · 1 · 2 · 3 · 4 (lock vivo) · 5 |
-| `session-close.sh` | `<setup_root> [--session <NNNN>] [--recover <NNNN>] [--apply <resposta.json>]` | O `NNNN` fechado | 0 · 1 · 2 · 3 · 5 · **10** (`fill_session_fields`) |
+| `session-close.sh` | `<setup_root> [--session <NNNN>] [--recover <NNNN>] [--apply <resposta.json>]` | O `NNNN` fechado | 0 · 1 · 2 · 3 · 5 · **10** (`fill_session_fields`). ⚑ **`--recover <NNNN>` fica** — é o fechamento retroativo de órfã **pedido à mão** (`status: "abandoned"`, `finalized_by: "auto_orphan_recovery"`), para o caso que o `--verify` não alcançou. **Não conflita com A-12:** o dono do fechamento **automático** de órfã continua sendo `memory-index.sh --verify`, único; `--recover` é a porta manual da mesma operação, nunca um segundo caminho automático. |
 | `research-new.sh` | `<setup_root> --topic <slug> [--sources <csv>] [--session <NNNN>]` | O caminho relativo de `researchs/NNNN.md` | 0 · 1 · 2 · 3 · 4 |
-| `docs-index.sh` | `<setup_root> [--topics t1,t2] [--budget-bytes N] [--force] [--apply <resposta.json>]` | JSON: `{mode, files, selected_sections, excluded, total_ingestible_bytes}` | 0 · 1 · 2 · 3 · 5 · **10** (`select_sections`) |
+| `docs-index.sh` | `<setup_root> [--topics t1,t2] [--budget-bytes N] [--force] [--select] [--apply <resposta.json>]` | JSON: `{mode, files, selected_sections, excluded, total_ingestible_bytes}` | 0 · 1 · 2 · 3 · 5 · **10** (`select_sections`). ⚑ **`--select` é o gatilho do exit 10**, e é o único: sem ele o script indexa e sai 0 pela heurística determinística. `--select` e `--apply` são **mutuamente exclusivos** (combiná-los é **2**). |
 | `memory-index.sh` | `<setup_root> [--verify] [--rebuild]` | Resumo JSON: `{sessions, orphans_closed, quarantined, rebuilt}` | 0 · 1 · 2 · 3 · 5 |
 | `memory-digest.sh` | `<setup_root> [--topics t1,t2] [--budget-chars N] [--today AAAA-MM-DD]` | **O digest JSON**, ordem de chaves fixa, forma fixa (nenhuma chave desaparece) | **0 sempre que produzir um digest** — inclusive com `memory/` vazia, índice ausente, bruto corrompido ou orçamento estourado. `!= 0` só se não conseguir escrever em stdout. Falha de memória **nunca** impede uma aula de começar. |
 | `memory-compact.sh` | `<setup_root> [--if-due] [--force] [--apply <resposta.json>]` | Resumo JSON: `{sessions_compacted, facts_created, facts_superseded, facts_reconfirmed}` | 0 · 1 · 2 · 3 · 5 · **10** (`compact_facts`). Com `--if-due` abaixo do limiar (**15**): não faz nada, exit 0. |
-| `progress-update.sh` | `<setup_root> [--event <evento.json>] [--due] [--recompute]` | `--due` imprime a lista de conceitos vencidos (JSON); `--recompute` imprime o diff | 0 · 1 · 2 · 3 · 5 (evento sem artefato correspondente **também** é 5) |
+| `progress-update.sh` | `<setup_root> [--event <evento.json>] [--due] [--recompute]` | `--due` imprime a lista de conceitos vencidos (JSON); `--recompute` imprime o diff | 0 · 1 · 2 · 3 · **4** · 5 (evento sem artefato correspondente **também** é 5). ⚑ **Sai 4**: tem lock próprio, `memory/.progress.lock` (diretório, `mkdir` atômico, mesma disciplina de `sm_registry_lock`), porque duas escritas concorrentes em `progress.json` corrompem o estado de proficiência. O lock é **do arquivo**, não da sessão: é ortogonal a `memory/.session.lock`, e um não substitui o outro. |
 | `readme-sync.sh` | `<setup_root> [--init]` | O número de linhas geradas | 0 · 1 · 2 · 3. **Idempotente**: duas execuções seguidas produzem o mesmo arquivo. |
 | `challenge-new.sh` | `<setup_root> --language <l> --slug <sl> --concept <concept_id> [--difficulty 1..5] [--skill-level <n>]` | O caminho relativo de `challenges/<NNNN>-<slug>/` | 0 · 1 · 2 · 3 · 4 · 5 |
-| `challenge-verify.sh` | `<challenge_dir> [--sample-size N] [--n-rep N] [--apply <resposta.json>]` | Resumo JSON: `{verdict, mutation_score, killed, survived, rejections}` | 0 (`approved`) · 1 (erro de execução) · 2 · 5 (schema do `meta.json`) · **10** (`classify_survivor`). Veredito `weak`/`rejected` sai **0** com o veredito no stdout — reprovar o desafio não é erro do script. |
+| `challenge-verify.sh` | `<challenge_dir> [--sample-size N] [--n-rep N] [--apply <resposta.json>]` | Resumo JSON: `{verdict, mutation_score, killed, survived, rejections}` | 0 (`approved`) · 1 (erro de execução) · 2 · 5 (schema do `meta.json`) · **10** (`mutant_equivalence`, §6.5). Veredito `weak`/`rejected` sai **0** com o veredito no stdout — reprovar o desafio não é erro do script. |
 | `detect-toolchains.sh` | `[--cached] [--setup <setup_root>] [--language <l>] [--json]` | JSON: por linguagem, `{available, version, command}` | 0 · 1 · 2 |
 | `render-plot.py` | `[--spec CAMINHO\|-] [--out-dir DIR] [--basename NOME] [--width N] [--height N] [--ascii-width N] [--ascii-height N] [--formats svg,html,txt,md] [--png] [--quiet]` | JSON: `{ok, type, outputs, description_text, ascii_text, warnings, stats}` | **Exceção nomeada** (§5.2): 0 · 1 · 2 · 3 |
 | `decisions-ask.sh` | `<fase> --setup <setup_root> [--json] [--answer <id>=<valor>]`, com `fase ∈ {setup-init, first-challenge, session-15, on-demand}` | As decisões pendentes daquela fase, em JSON | 0 · 1 · 2 · 3 · 5 |
@@ -678,11 +780,11 @@ Insumo direto de `tests/validate.sh`. Cada linha é uma asserção verificável;
 
 | ID | Invariante | Como verificar |
 |---|---|---|
-| I-01 | Os 9 nomes de passo aparecem literalmente no `SKILL.md` e nenhum nome revogado (§2.2) aparece em nenhum `.md` do repositório ou da skill. | `grep -rE 'resolve_target\|verify_setup\|bootstrap_or_ask\|ingest_docs\|teach_loop\|challenge_cycle'` deve ser vazio. |
+| I-01 | Os 9 nomes de passo aparecem literalmente no `SKILL.md` e nenhum nome revogado (§2.2) aparece em nenhum `.md` do repositório ou da skill. | `grep -rE 'resolve_target\|verify_setup\|bootstrap_or_ask\|ingest_docs\|teach_loop\|challenge_cycle'` deve ser vazio **no escopo de A-34** (fora de `docs/00-contratos.md`, `docs/research/`, `tests/` e `SK/assets/decisions.json`). |
 | I-02 | `setup_interview` e `load_docs` aparecem no `SKILL.md` com a palavra "condicional" ou a guarda na mesma linha. | grep contextual. |
-| I-03 | `session_status` não aparece em arquivo nenhum. | `grep -r 'session_status'` vazio. |
-| I-04 | Nenhum schema, doc ou script cita `.study-method/`, `manifest.json`, `docs-manifest.json`, `SETUP_CTL` ou `PROFILE.json`. | grep vazio. |
-| I-05 | Nenhum arquivo cita `challenge-run.sh` ou `render-html.sh`. | grep vazio. |
+| I-03 | `session_status` não aparece em arquivo nenhum. | `grep -r 'session_status'` vazio **no escopo de A-34**. |
+| I-04 | Nenhum schema, doc ou script cita `.study-method/`, `manifest.json`, `docs-manifest.json`, `SETUP_CTL` ou `PROFILE.json`. | grep vazio **no escopo de A-34**. |
+| I-05 | Nenhum arquivo cita `challenge-run.sh` ou `render-html.sh`. | grep vazio **no escopo de A-34** (`docs/01` §* os cita para declarar a remoção — é menção, não uso). |
 | I-06 | Existem exatamente 19 entradas em `SK/scripts/` (contando `lib/`), e cada uma tem uma linha na tabela §8. | `find` + diff contra a tabela. |
 | I-07 | Todo `$id` de `SK/assets/schemas/*.json` casa `^urn:study-method:schema:[a-z-]+:[0-9]+$`. | `jq -r '."$id"'` por arquivo. |
 | I-08 | Nenhum schema contém `$ref`, `allOf`, `anyOf`, `oneOf`, `if`, `then`, `else` ou `$defs`. | `grep -l` vazio. |
@@ -691,7 +793,7 @@ Insumo direto de `tests/validate.sh`. Cada linha é uma asserção verificável;
 | I-11 | O enum `status` de fato é exatamente `["active","superseded"]` em `profile.schema.json` e `progress.schema.json`. | idem. |
 | I-12 | `setup_id` casa `^[0-9a-f]{12}$` em **todos** os schemas que o declaram (inclusive `progress.schema.json`). | `jq` sobre cada `pattern`. |
 | I-13 | Todo pattern de timestamp nos 7 schemas contém `([.][0-9]+)?`. | grep sobre os patterns. |
-| I-14 | O enum `language` tem exatamente as mesmas 19 entradas, na mesma ordem, em `setup-manifest`, `registry` e `challenge-manifest`. | `jq -c` + comparação de igualdade. |
+| I-14 | ⚑ O enum `language` tem **20** entradas em `setup-manifest` e `registry` e **19** em `challenge-manifest`; os **19 primeiros** são idênticos e na mesma ordem nos três, e o 20º é `none`, presente só nos dois primeiros (§4.1). | `jq -c` + igualdade contra as duas listas esperadas; `.[0:19]` igual nos três **e** `challenge-manifest` sem `none`. Igualdade dos três contra uma lista só **reprovaria schema correto**. |
 | I-15 | `cross_read` existe com enum `["ask","allow","never"]` em `registry.schema.json` e em `setup-manifest.schema.json` → `privacy`; `allow_cross_read` não aparece em lugar nenhum. | `jq` + grep. |
 | I-16 | Todo `concept_id`/`scenario_id` no repositório casa `^[a-z][a-z0-9_]{1,62}$`; todo `topic`/`slug` casa `^[a-z0-9]+(-[a-z0-9]+)*$`. | validação dos exemplos em `examples/` e dos patterns nos schemas. |
 | I-17 | Nenhum `challenge_id` de exemplo usa o formato `c-NNNN-<slug>`. | `grep -rE '"challenge_id": *"[^0-9]'` vazio. |
@@ -706,7 +808,7 @@ Insumo direto de `tests/validate.sh`. Cada linha é uma asserção verificável;
 | I-26 | Zero rede nos scripts: `grep -rnE 'curl\|wget\|nc \|/dev/tcp\|https?://\|ftp://\|ssh \|scp \|rsync ' SK/scripts/` só casa comentários e URLs de documentação. | o mesmo grep publicado no `README.md` do repositório. |
 | I-27 | Todo derivado (`INDEX.json`, `profile.json`, `progress.json`, `docs-index.json`, `setup.json`, `meta.json`, `registry.json`, `README.md` do setup) é escrito por `sm_atomic_write`, nunca por `>` direto. | análise estática. |
 | I-28 | `memory-digest.sh` sai 0 em todos os cenários de borda do gate (memória vazia, índice ausente, bruto corrompido, orçamento estourado). | 4 execuções com fixtures. |
-| I-29 | A saída de `memory-digest.sh` tem sempre as mesmas 19 chaves de topo, na mesma ordem, em todos os cenários. | `jq -r 'keys_unsorted \| @csv'` comparado com o esperado. |
+| I-29 | ⚑ A saída de `memory-digest.sh` tem sempre as mesmas **18** chaves de topo, na mesma ordem, em todos os cenários: `schema_version` · `generated_at` · `for_session_id` · `memory_state` · `topics_in_focus` · `topics_source` · `full_detail_available` · `student` · `recent_sessions` · `recent_affect` · `student_profile` · `procedural_playbook` · `orphan_sessions` · `pending_followups` · `truncated` · `truncated_fields` · `budget_exceeded` · `errors`. **São 18 chaves e 19 blocos**: `procedural_playbook` aninha `do` e `avoid`, que são conteúdo dela, não chaves de topo. Confirmado por medição independente em duas frentes. | `jq -r 'keys_unsorted \| @csv'` comparado com a lista acima. Esperar 19 **reprova um digest correto** — este era o defeito. |
 | I-30 | `readme-sync.sh` é idempotente: duas execuções seguidas sem sessão nova produzem arquivos byte a byte iguais. | `diff` de duas execuções. |
 | I-31 | `progress-update.sh --recompute` reconstrói todo campo escalar a partir de `evidence[]` sem diferença. | fixture + `diff`. |
 | I-32 | `setup-init.sh` é idempotente: rodar duas vezes no mesmo caminho não duplica nem sobrescreve nada. | duas execuções + `diff`. |
@@ -722,11 +824,61 @@ Insumo direto de `tests/validate.sh`. Cada linha é uma asserção verificável;
 | I-42 | Nenhum documento cita "todos os cenários de erro" como promessa ao aluno. | grep. |
 | I-43 | Nenhum documento nem template contém as afirmações proibidas de `docs/02` §9 ("2 sigma", "d = 1,11", "programar desenvolve raciocínio lógico", percentual de domínio). | grep por cada string. |
 
+### 11.1 Dívidas conhecidas — declaradas, não escondidas ⚑
+
+Não são invariantes: são pontos onde a especificação e a medição **ainda não fecham**. Quem mexer
+nos números abaixo mexe aqui primeiro.
+
+| # | Dívida | Medição | Estado |
+|---|---|---|---|
+| DEB-1 | **O orçamento de 6000 caracteres do digest não cabe o playbook procedimental cheio.** Com 5 antipadrões (`procedural_playbook.avoid`) + 8 procedimentos (`procedural_playbook.do`) — e **ambos protegidos do truncamento** —, só esse bloco já passa dos 6000, e a escada de truncamento (T1…Tn) **não converge**: os campos que sobrariam para cortar são justamente os protegidos. | O digest sai com `budget_exceeded: true`, `truncated: true` e a saída **acima** do orçamento — que é exatamente o que a especificação manda fazer quando não dá para caber (§8: `memory-digest.sh` **sempre** produz digest e **sempre** sai 0). O comportamento está correto; o **limite** é que está apertado. | **Aberta.** Nada a consertar no script. O que merece revisão é o par (orçamento default, conjunto de campos protegidos) — p.ex. subir `SM_BUDGET_CHARS` ou permitir truncar `procedural_playbook.avoid` a partir de N itens. Enquanto não for revisto, o gate **não pode** tratar `budget_exceeded: true` como falha: é saída conforme. |
+| DEB-2 | `compaction.deferred_at` não é gravável (§6.5 L-1). | `profile.schema.json` fecha `compaction` com `additionalProperties: false`. | **Aberta**, ver §6.5. |
+| DEB-3 | O teto de 2 ciclos de RA-6 não é verificável sem estado persistido (§6.5 L-2). | Cada `--apply` é processo novo. | **Aberta**, ver §6.5. Nenhuma invariante o cobra. |
+
 ---
 
 ## 12. Registro das decisões arbitradas aqui ⚑
 
 Cada linha resolve uma contradição entre documentos escritos em paralelo. Nenhuma fica "a definir".
+
+### 12.0 ⭐ Mapa `AR-NN` → `A-NN` — a correspondência **não é 1:1**
+
+Os documentos do repositório, as `references/` e o `decisions.json` citam rótulos **`AR-NN`** de um
+registro de arbitragens maior; esta tabela numera **`A-01`…`A-34`**. Os números **colidem sem
+coincidir** — e em dois casos estão trocados entre si:
+
+> `docs/01`, `docs/03`, `docs/10` e `SK/references/bootstrap.md` citam **`AR-06`** para a sessão
+> órfã, que aqui é **`A-12`**; `docs/05` cita **`AR-12`** para o timeout 137, que aqui é **`A-06`**.
+> Ler o rótulo como se fosse desta tabela leva à decisão errada nas duas direções.
+
+**Regra de leitura, normativa:** dentro deste documento vale **sempre** `A-NN`. Fora dele, `AR-NN` é
+citação do registro externo e **só** o mapa abaixo o traduz; na dúvida, desempata pelo **assunto**,
+nunca pelo número. Documento novo cita `A-NN`; documento existente que ainda cita `AR-NN` não está
+errado — está usando o rótulo de origem, e esta tabela é a ponte.
+
+| `AR-NN` citado | Assunto da citação | Linha canônica aqui | Onde é citado |
+|---|---|---|---|
+| `AR-00` | REQUEST/APPLY: como um script obtém julgamento do modelo | **§6 inteiro** (não tem linha em §12; é contrato, não arbitragem) | `docs/05` D-C14 |
+| `AR-01` | `status` de sessão × `session_status` | **`A-01`** | `docs/01` D-A03, `docs/03` D-M08 |
+| `AR-02` | `setup.json` na raiz; `.study-method/` não existe | **`A-02`** (e **`A-03`** para os derivados em `memory/`) | `docs/01` D-A01/D-A02, `docs/10` D-B10, `references/bootstrap.md` |
+| `AR-06` | sessão órfã: fechamento retroativo automático | **`A-12`** ⚠ **não** `A-06` | `docs/01` D-A05, `docs/03` D-M06, `docs/10` D-B06, `references/bootstrap.md` |
+| `AR-09` | base teórica gerada vive em `docs/generated/` | **`A-25`** | `docs/10` D-B08, `references/docs-ingest.md` |
+| `AR-10` | ponte de `pontes` é unilateral (só no setup atual) | **sem linha** — decisão de `docs/07` §5.2, não arbitrada aqui | `docs/07` D-A23 |
+| `AR-11` | `cross_read` tri-estado × `allow_cross_read` booleano | **`A-14`** | `docs/07` D-A16 |
+| `AR-12` | timeout chega como 137, não 124 | **`A-06`** ⚠ **não** `A-12` | `docs/05` D-C17 |
+| `AR-13` / `AR-15` / `AR-16` | os três identificadores, citados em bloco | **`A-16`** (`setup_id` hex) · **`A-15`** (`concept_id` snake_case) · **`A-10`** (`challenge_id` `^[0-9]{4}$`) | `docs/04` D-P09 (que grafa `AR-13/15/16`; `decisions.json` grafa `AR-10/15/16` — a divergência é de rótulo, não de decisão) |
+| `AR-19` | `integrity.test_sha256` aceita `null` até a aprovação | **sem linha** — `docs/05` §9.1 é o dono ⚠ `A-19` aqui é a contagem de scripts | `docs/05` D-C16 |
+| `AR-23` | estado do setup vive em `setup.json`, nunca no `meta.json` do desafio | **§10** (terminologia obrigatória) ⚠ `A-23` aqui é `<setup_root>` posicional | `docs/06` D-V11 |
+| `AR-24` | `progress-update.sh --event <arquivo.json>` | **§8** (tabela de CLI) | `docs/04` D-P08 |
+| `AR-25` | `challenge-run.sh` e `render-html.sh` removidos | **`A-19`** | `docs/01` §*, `docs/10` D-B08 via `decisions.json` |
+| `AR-26` | catálogo de mutação fixo; compostos não mutáveis; 17 mutantes de referência | **§4.1** (linha "operador de mutação") + `docs/05` §5 | `docs/05` D-C15 |
+| `AR-27` | `probe_bwrap` exige os quatro `--symlink` | **`A-28`** (nova) | `docs/11` D-S14 |
+| `AR-28` | termos que saíram por não existir em schema nenhum (`next_topic`, "seção usada nas últimas 3 sessões", `disputed`) | **`A-34`** (nova — define o escopo da busca) | `docs/10`, `docs/build-spec/31`, `docs-index.sh` |
+| `AR-30` | `progress.json` é dado primário, não cache reconstruível | **sem linha** — `docs/04` §0.1 é o dono | `docs/04` D-P10 |
+| `AR-03` `AR-04` `AR-05` `AR-14` `AR-18` `AR-20` | usados **só** em `SK/assets/decisions.json`, que já aplicou a convenção "quando existe linha em §12, use o número dela" | **identidade**: `A-03` `A-04` `A-05` `A-14` `A-18` `A-20` | `decisions.json` |
+
+Rótulo `AR-NN` que não aparece acima **não tem tradução**: ou é do registro externo sem contrapartida
+aqui, ou é erro de citação — e nos dois casos a resolução é pelo assunto.
 
 | # | Contradição | Decisão | Por quê |
 |---|---|---|---|
@@ -755,3 +907,20 @@ Cada linha resolve uma contradição entre documentos escritos em paralelo. Nenh
 | A-23 | `memory-digest.sh --memory-dir <caminho>` × `<setup_root>` posicional | **`<setup_root>` posicional em todo script**, com as demais opções como flags. | Uma convenção só de invocação torna o roteador do `SKILL.md` uniforme e o gate trivial. |
 | A-24 | Nomes de passo de `docs/10` §11 e de `bootstrap.md` | **Revogados**, mapeados na tabela §2.2. | `docs/01` já se declarava autoridade sobre os nomes e `docs/10` já pedia a reconciliação. |
 | A-25 | Onde vive a base teórica gerada | **`<setup_root>/docs/generated/NNNN-<slug>.md`** — única exceção à regra de nunca escrever no `docs/` do setup, com três camadas de marcação (caminho · bloco `study-method:meta` · aviso em pt-BR na 1ª linha do corpo). | D-B08: a ingestão já varre essa pasta, `researchs/` tem outra função, e o subdiretório mantém a raiz do `docs/` do setup exclusiva do aluno. |
+
+### 12.1 Arbitragens desta onda — `A-26` em diante ⚑
+
+Estas nove não vieram de leitura comparada de documentos: vieram de **execução**. Cada uma corrige
+um valor que a especificação trazia e a medição derrubou.
+
+| # | Contradição | Decisão | Por quê |
+|---|---|---|---|
+| A-26 | `TasksMax=128` (`docs/11` §2.2, §7.3 antigo) × o que `go test` precisa | **`TasksMax=512`** (`SM_SANDBOX_TASKS`). | Medido: **128 derruba `go test`**. O cgroup conta *threads*, não processos, e o Go abre um processo de compilação por CPU — num desktop moderno o teto estoura antes de o primeiro teste rodar. 512 passa com folga e continua sendo teto real contra fork bomb. |
+| A-27 | `systemd-run` com × sem `-p OOMPolicy=continue` | **`OOMPolicy=continue` é obrigatório** na camada de cgroup; ausente no systemd (< 243), a camada entra sem ele e a degradação é **declarada** ao aluno. | Sem ele o systemd para o **escopo inteiro** quando o OOM killer age: o exit code vira **143** (SIGTERM do escopo) em vez de 137, e `memory.events.oom_kill` some antes de ser lido. A evidência do estouro desaparece e a desambiguação do 137 (§5.3) passa a mentir — o aluno ouve "limite de CPU" onde faltou memória. |
+| A-28 | caches de toolchain montados no caminho original × remapeados | **Remapeados para `/sm/…`** (`/sm/cargo`, `/sm/rustup`, `/sm/gomodcache`, `/sm/npm`), com `CARGO_HOME`/`RUSTUP_HOME`/`GOMODCACHE`/`npm_config_cache` reapontadas. **Nada é montado sob `/home`.** `probe_bwrap` exige os quatro `--symlink` (`usr/bin`, `usr/sbin`, `usr/lib`, `usr/lib64`) — absorve `AR-27`. | Montar em `"$HOME/.cargo"` faz o `bwrap` **criar `/home/<aluno>` dentro do sandbox**, e esse diretório criado é **gravável**. Verificado: com os binds no caminho original, um programa escreveu em `"$HOME/arquivo"` sem erro. A garantia para o *host* continuava valendo, mas o aluno **via** que escreveu em `$HOME` — e a lição que ele leva é a errada. Com o remapeamento, `/home` não existe lá dentro e a tentativa falha com "arquivo não encontrado", que é a verdade. |
+| A-29 | `unshare --user --net --pid --fork` × `bwrap` | **`bwrap` substitui o `unshare` quando disponível**; `--unshare-all` já traz os namespaces. `unshare` continua como fallback sondado. | `unshare` sozinho **não confina escrita**: dá isolamento de rede e de pid, e nada de sistema de arquivos. Confinamento real só com `bwrap` (ou Docker). Manter os dois em série seria uma camada a mais sem ganho. |
+| A-30 | `confidence` de fato vindo do modelo × calculada | **Calculada pelo script**, nunca aceita da RESPOSTA: **1 sessão de suporte = `low` · 2 = `medium` · 3+ = `high`**, com tetos — `observation_type: inferred` **nunca nasce `high`**, e `outcome` sem `evidence` trava em `low` (§4.1). Campo `confidence` na RESPOSTA é **ignorado**, não é erro. | `confidence` é função do **número de sessões que sustentam o fato**, um dado que o script já tem em mãos e o modelo não tem como conferir. Aceitá-lo do modelo transformaria uma contagem em opinião — e é a contagem que AS-9 e MEM-7 consomem. |
+| A-31 | `unassisted_passes`: a `description` do schema × §3.6 de `docs/04` | **Vence §3.6 de `docs/04`**: conta as evidências de **classe A** (passou sem dica) **posteriores ao último evento classe C**; um evento com dica **zera** a contagem. A `description` do `progress.schema.json` está errada e é corrigida. | Contagem histórica acumulada nunca voltaria a zero depois de uma regressão, e é exatamente a regressão que T4/T6 precisam enxergar. O contador existe para responder "ele passa sozinho **agora**". |
+| A-32 | `max_hint_level_used`: máximo histórico × última evidência | **É o `hint_level` da evidência mais recente**, não o máximo histórico. **O nome do campo mente** e fica como está (renomear é MAJOR e migra evidência já escrita); a semântica é esta e está declarada aqui. | Máximo histórico é monotônico: uma vez em 5, para sempre em 5, e o degrau inicial de `ESC-INICIAL` nunca mais desceria. O consumidor quer o degrau da **última** tentativa. |
+| A-33 | `x_label`/`y_label` obrigatórios (VIZ-3) × opcionais no schema | **Vence o schema: não são obrigatórios.** `plot-spec.schema.json` exige apenas `type`, `series`, `title`, `takeaway`. Ausência vira **aviso** em `warnings[]` (exit 0), nunca erro. | VIZ-3 continua sendo a regra de qualidade que a skill deve seguir ao **autorar** a spec; transformar isso em falha do `render-plot.py` reprovaria gráfico correto de série sem unidade (contagem, categoria) e quebraria o contrato de "falha de rótulo não é erro" da CLI (§5.2). |
+| A-34 | escopo da busca por termo revogado (`AR-28`, I-01, I-03, I-04, I-05) | O grep de termo revogado **exclui**: `docs/00-contratos.md` (este arquivo — ele **cita** os termos revogados para poder revogá-los), `docs/research/` (pesquisa auditada, congelada), `tests/` (o gate carrega os termos como literais de busca) e `SK/assets/decisions.json` (registro histórico das decisões). | Sem o escopo, toda invariante de revogação falha **por causa do próprio texto que a define** — o gate reprovaria o repositório inteiro na primeira execução. Os quatro lugares excluídos são os únicos onde o termo revogado aparece **como menção**, nunca como uso. |
