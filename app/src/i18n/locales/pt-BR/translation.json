@@ -10,6 +10,14 @@
     "tagline": "Aprenda de verdade, com aulas geradas por IA e desafios práticos.",
     "shellNav": "Navegação principal"
   },
+  "theme": {
+    "mode": {
+      "toggle": "Tema",
+      "light": "Modo claro",
+      "dark": "Modo escuro",
+      "system": "Padrão do sistema"
+    }
+  },
   "settings": {
     "keysTitle": "Chaves de API",
     "keysDescription": "Configure as chaves do DeepSeek (geração de aulas) e do Brave Search (pesquisa de fontes). Valide cada uma antes de usar.",

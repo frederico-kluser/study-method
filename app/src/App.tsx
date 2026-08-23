@@ -35,6 +35,7 @@ import {
   type ViewProps,
 } from './views';
 import { ChallengeNavProvider } from './components/challengeNav/ChallengeNavProvider';
+import ThemeToggleButton from './components/theme/ThemeToggleButton';
 import LanguageSwitcher from './i18n/LanguageSwitcher';
 import { NAV_ITEMS, navIndexOf, type NavKey } from './lib/shellNav';
 
@@ -70,6 +71,7 @@ function Shell({
           >
             {t('translation:app.title')}
           </Typography>
+          <ThemeToggleButton />
           <LanguageSwitcher variant="menu" />
         </Toolbar>
       </AppBar>

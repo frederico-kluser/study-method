@@ -10,6 +10,14 @@
     "tagline": "Learn for real, with AI-generated lessons and hands-on challenges.",
     "shellNav": "Main navigation"
   },
+  "theme": {
+    "mode": {
+      "toggle": "Theme",
+      "light": "Light mode",
+      "dark": "Dark mode",
+      "system": "System default"
+    }
+  },
   "settings": {
     "keysTitle": "API keys",
     "keysDescription": "Configure the DeepSeek (lesson generation) and Brave Search (source search) keys. Validate each one before using.",
