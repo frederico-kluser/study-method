@@ -4,6 +4,7 @@
     "target": "ES2022",
     "module": "ESNext",
     "moduleResolution": "bundler",
+    "resolveJsonModule": true,
     "lib": ["ES2022"],
     "strict": true,
     "skipLibCheck": true,
@@ -16,5 +17,5 @@
       "@shared/*": ["./shared/*"]
     }
   },
-  "include": ["electron", "tests", "tools", "shared", "src/lib"]
+  "include": ["electron", "tests", "tools", "shared", "src/lib", "src/i18n/index.ts"]
 }

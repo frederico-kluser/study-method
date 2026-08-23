@@ -1,0 +1,118 @@
+{
+  "nav": {
+    "home": "Home",
+    "settings": "Settings",
+    "lesson": "Lesson",
+    "challenge": "Challenge"
+  },
+  "app": {
+    "title": "Study Method — Tutor",
+    "tagline": "Learn for real, with AI-generated lessons and hands-on challenges."
+  },
+  "keys": {
+    "deepseek": {
+      "label": "DeepSeek key",
+      "placeholder": "Paste your DeepSeek key"
+    },
+    "brave": {
+      "label": "Brave Search key",
+      "placeholder": "Paste your Brave key"
+    },
+    "validate": "Validate",
+    "validating": "Validating…",
+    "valid": "Valid",
+    "invalid": "Invalid",
+    "configured": "Configured",
+    "notConfigured": "Not configured",
+    "save": "Save",
+    "saved": "Saved",
+    "error401": "Error 401: invalid key or missing permission.",
+    "error429": "Error 429: request limit exceeded. Try again shortly.",
+    "errorNetwork": "Network error: could not reach the server."
+  },
+  "localAi": {
+    "title": "Local model",
+    "detect": "Detect hardware",
+    "ram": "RAM",
+    "vram": "VRAM",
+    "cpu": "CPU",
+    "backend": "Backend",
+    "recommended": "Recommended",
+    "active": "Active",
+    "download": "Download",
+    "downloading": "Downloading…",
+    "use": "Use",
+    "delete": "Delete",
+    "feedbackProvider": "Feedback provider",
+    "feedbackProviderDeepseek": "DeepSeek (cloud)",
+    "feedbackProviderLocal": "Local model",
+    "hintActive": "This model is active and will be the default grader."
+  },
+  "lesson": {
+    "subjectLabel": "Subject",
+    "subjectPlaceholder": "What do you want to learn about?",
+    "generate": "Generate lesson",
+    "generating": "Generating lesson…",
+    "phase": {
+      "research": "Researching",
+      "authoring": "Authoring",
+      "materializing": "Materializing",
+      "validating": "Validating",
+      "done": "Done",
+      "error": "Error"
+    },
+    "findings": "Sources found",
+    "challenges": "Challenges",
+    "challengesEmpty": "No challenges generated yet.",
+    "open": "Open",
+    "sources": "Sources",
+    "statement": "Statement"
+  },
+  "challenge": {
+    "openChallenge": "Open challenge",
+    "testAnswer": "Test answer",
+    "abort": "Abort",
+    "output": "Output",
+    "feedback": "Feedback",
+    "noChallengesYet": "No challenges available yet.",
+    "keyHint": "See the key hint in the statement.",
+    "providerLocal": "Local model",
+    "providerDeepseek": "DeepSeek",
+    "confirmDelete": "Delete {{name}}?"
+  },
+  "gate": {
+    "checking": "Checking setup…",
+    "blocked": "Setup pending",
+    "missingKeys": "API keys are missing to get started.",
+    "invalidKeys": "Some keys are invalid.",
+    "offline": "No internet connection.",
+    "offlineTip": "Connect to the internet and try again.",
+    "tryAgain": "Try again",
+    "title": "Before you start"
+  },
+  "editor": {
+    "openFile": "Open file",
+    "save": "Save",
+    "unsaved": "Unsaved changes",
+    "newFile": "New file",
+    "deleteFile": "Delete file",
+    "confirmDelete": "Delete {{name}}?",
+    "refresh": "Refresh",
+    "workspace": "Working directory"
+  },
+  "terminal": {
+    "passed": "Passed",
+    "failed": "Failed",
+    "timeout": "Timed out",
+    "countMismatch": "Test count mismatch",
+    "infra": "Infrastructure failure"
+  },
+  "common": {
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "error": "Error",
+    "loading": "Loading…",
+    "back": "Back",
+    "close": "Close"
+  }
+}

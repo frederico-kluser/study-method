@@ -1,0 +1,118 @@
+{
+  "nav": {
+    "home": "Início",
+    "settings": "Settings",
+    "lesson": "Aula",
+    "challenge": "Desafio"
+  },
+  "app": {
+    "title": "Study Method — Tutor",
+    "tagline": "Aprenda de verdade, com aulas geradas por IA e desafios práticos."
+  },
+  "keys": {
+    "deepseek": {
+      "label": "Chave DeepSeek",
+      "placeholder": "Cole sua chave DeepSeek"
+    },
+    "brave": {
+      "label": "Chave Brave Search",
+      "placeholder": "Cole sua chave Brave"
+    },
+    "validate": "Validar",
+    "validating": "Validando…",
+    "valid": "Válida",
+    "invalid": "Inválida",
+    "configured": "Configurada",
+    "notConfigured": "Não configurada",
+    "save": "Salvar",
+    "saved": "Salvo",
+    "error401": "Erro 401: chave inválida ou sem permissão.",
+    "error429": "Erro 429: limite de requisições excedido. Tente novamente em instantes.",
+    "errorNetwork": "Erro de rede: não foi possível contatar o servidor."
+  },
+  "localAi": {
+    "title": "Modelo local",
+    "detect": "Detectar hardware",
+    "ram": "RAM",
+    "vram": "VRAM",
+    "cpu": "CPU",
+    "backend": "Backend",
+    "recommended": "Recomendado",
+    "active": "Ativo",
+    "download": "Baixar",
+    "downloading": "Baixando…",
+    "use": "Usar",
+    "delete": "Excluir",
+    "feedbackProvider": "Provedor de feedback",
+    "feedbackProviderDeepseek": "DeepSeek (nuvem)",
+    "feedbackProviderLocal": "Modelo local",
+    "hintActive": "Este modelo está ativo e será o avaliador padrão."
+  },
+  "lesson": {
+    "subjectLabel": "Assunto",
+    "subjectPlaceholder": "Sobre o que você quer aprender?",
+    "generate": "Gerar aula",
+    "generating": "Gerando aula…",
+    "phase": {
+      "research": "Pesquisando",
+      "authoring": "Escrevendo",
+      "materializing": "Materializando",
+      "validating": "Validando",
+      "done": "Concluído",
+      "error": "Erro"
+    },
+    "findings": "Fontes encontradas",
+    "challenges": "Desafios",
+    "challengesEmpty": "Nenhum desafio gerado ainda.",
+    "open": "Abrir",
+    "sources": "Fontes",
+    "statement": "Enunciado"
+  },
+  "challenge": {
+    "openChallenge": "Abrir desafio",
+    "testAnswer": "Testar resposta",
+    "abort": "Abortar",
+    "output": "Saída",
+    "feedback": "Feedback",
+    "noChallengesYet": "Nenhum desafio disponível ainda.",
+    "keyHint": "Veja a dica da chave no enunciado.",
+    "providerLocal": "Modelo local",
+    "providerDeepseek": "DeepSeek",
+    "confirmDelete": "Apagar {{name}}?"
+  },
+  "gate": {
+    "checking": "Verificando configuração…",
+    "blocked": "Configuração pendente",
+    "missingKeys": "Faltam chaves de API para começar.",
+    "invalidKeys": "Algumas chaves são inválidas.",
+    "offline": "Sem conexão com a internet.",
+    "offlineTip": "Conecte-se à internet e tente novamente.",
+    "tryAgain": "Tentar novamente",
+    "title": "Antes de começar"
+  },
+  "editor": {
+    "openFile": "Abrir arquivo",
+    "save": "Salvar",
+    "unsaved": "Alterações não salvas",
+    "newFile": "Novo arquivo",
+    "deleteFile": "Excluir arquivo",
+    "confirmDelete": "Apagar {{name}}?",
+    "refresh": "Atualizar",
+    "workspace": "Diretório de trabalho"
+  },
+  "terminal": {
+    "passed": "Passou",
+    "failed": "Falhou",
+    "timeout": "Tempo esgotado",
+    "countMismatch": "Contagem de testes divergente",
+    "infra": "Falha de infraestrutura"
+  },
+  "common": {
+    "cancel": "Cancelar",
+    "confirm": "Confirmar",
+    "error": "Erro",
+    "loading": "Carregando…",
+    "back": "Voltar",
+    "close": "Fechar"
+  }
+}
