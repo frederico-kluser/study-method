@@ -205,7 +205,9 @@ function computePlacementPosition(
  * 2. Se todos colidirem, tenta em modo COMPACTO (painel menor);
  * 3. Se ainda colidir, escolhe o lado com MENOR área de sobreposição.
  *
- * Sem spotlight: painel no canto inferior-direito.
+ * Sem spotlight: painel centralizado no viewport (card central com leve viés
+ * para cima — feedback: "o tutorial nao ficou bom as vezes o modal fica muito
+ * final"; antes colava no canto inferior-direito).
  */
 export function calculatePanelPosition(
   spotlight: Rect | null,
@@ -224,9 +226,22 @@ export function calculatePanelPosition(
   if (!spotlight) {
     const w = Math.min(normalMaxWidth, availableWidth);
     const effectiveWidth = Math.min(w, panelWidth || w);
+    // Sem spotlight (steps informativos — ex.: `shell-app-title`, `tour-complete` —
+    // ou alvo ausente no DOM), o painel vira um CARD CENTRAL: centralizado no
+    // viewport com leve viés para cima (~8% da altura) — feedback do usuário:
+    // "o tutorial nao ficou bom as vezes o modal fica muito final" (antes o painel
+    // colava no canto inferior-direito). Mantém clamp no viewport.
     return {
-      top: clamp(viewport.height - panelHeight - margin, margin, viewport.height - margin),
-      left: clamp(viewport.width - effectiveWidth - margin, margin, viewport.width - margin),
+      top: clamp(
+        (viewport.height - panelHeight) / 2 - viewport.height * 0.08,
+        margin,
+        viewport.height - panelHeight - margin
+      ),
+      left: clamp(
+        (viewport.width - effectiveWidth) / 2,
+        margin,
+        viewport.width - effectiveWidth - margin
+      ),
       width: w,
       compact: false,
     };

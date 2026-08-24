@@ -4,7 +4,7 @@
  * Porta `onboardingPositioning.utils.test.ts` do Ondokai para node:test + tsx
  * (sem jsdom). Cobre colisão (rectsOverlap), overlap area, responsividade,
  * ordem de lados e o cálculo `calculatePanelPosition` com clamp no viewport
- * (sem sobrepor o spotlight; compact em telas pequenas; bottom-right sem alvo).
+ * (sem sobrepor o spotlight; compact em telas pequenas; CENTRALIZADO sem alvo).
  */
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
@@ -136,10 +136,53 @@ describe('calculatePanelPosition', () => {
     assert.equal(pos.compact, true);
   });
 
-  it('sem spotlight: canto inferior-direito', () => {
-    const pos = calculatePanelPosition(null, 420, 300, fullHD, 0);
-    assert.ok(pos.top > fullHD.height / 2);
-    assert.ok(pos.left > fullHD.width / 2);
+  it('sem spotlight: painel CENTRALIZADO no viewport (não cola no canto inferior-direito)', () => {
+    // Feedback: "o tutorial nao ficou bom as vezes o modal fica muito final" —
+    // antes o painel sem alvo ia para o canto inferior-direito; agora vira um
+    // card central (centro-x ≈ metade do viewport; centro-y ≈ metade com leve
+    // viés de 8% da altura para cima). panelWidth == normalMaxWidth (460) para
+    // que a largura EFETIVA usada no left seja a mesma retornada em `width`
+    // (comportamento preservado: `width` não muda).
+    const panelWidth = 460;
+    const panelHeight = 300;
+    const pos = calculatePanelPosition(null, panelWidth, panelHeight, fullHD, 0);
+    assert.equal(pos.width, panelWidth, 'width permanece a largura nominal (não muda)');
+
+    // Dentro do viewport (clamp).
+    assert.ok(pos.top >= 0);
+    assert.ok(pos.left >= 0);
+    assert.ok(pos.top + panelHeight <= fullHD.height, 'não estoura vertical');
+    assert.ok(pos.left + pos.width <= fullHD.width, 'não estoura horizontal');
+
+    // Centro-x ≈ metade do viewport (centralização horizontal).
+    const centerX = pos.left + pos.width / 2;
+    assert.ok(
+      Math.abs(centerX - fullHD.width / 2) <= 1,
+      `centro-x ${centerX} deveria ser ≈ ${fullHD.width / 2}`
+    );
+
+    // Centro-y ≈ metade do viewport com leve viés para cima (8% da altura).
+    const expectedCenterY = fullHD.height / 2 - fullHD.height * 0.08;
+    const centerY = pos.top + panelHeight / 2;
+    assert.ok(
+      Math.abs(centerY - expectedCenterY) <= 1,
+      `centro-y ${centerY} deveria ser ≈ ${expectedCenterY}`
+    );
+
+    // OPOSTO do comportamento antigo (que colava no canto: top/left > metade).
+    assert.ok(pos.top < fullHD.height / 2, 'não fica na metade inferior');
+    assert.ok(pos.left < fullHD.width / 2, 'não fica na metade direita');
+    assert.equal(pos.compact, false);
+  });
+
+  it('sem spotlight: viewport pequeno (320×480) ainda fica dentro do viewport', () => {
+    const tiny: ViewportSize = { width: 320, height: 480 };
+    const panelHeight = 320;
+    const pos = calculatePanelPosition(null, 280, panelHeight, tiny, 0);
+    assert.ok(pos.top >= 0);
+    assert.ok(pos.left >= 0);
+    assert.ok(pos.top + panelHeight <= tiny.height, 'não estoura vertical');
+    assert.ok(pos.left + pos.width <= tiny.width, 'não estoura horizontal');
     assert.equal(pos.compact, false);
   });
 
