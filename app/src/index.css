@@ -1,0 +1,150 @@
+/**
+ * src/index.css — tema do shell Study Method (escuro por default).
+ *
+ * Variáveis de tema centralizadas: fundo bg/panel, borda border, destaque
+ * accent e texto. Classes de código (.cm-, .xterm) herdam fonte monospace para
+ * que CodeMirror e o terminal das ondas seguintes sejam consistentes sem
+ * tocar no default deles.
+ *
+ * SCHEME-AWARE (onda 11 — tema claro/escuro, colorSchemeSelector 'class'):
+ *   O MUI aplica `.light`/`.dark` no <html> (colorSchemeNode) e o CssBaseline
+ *   é quem pinta o fundo/cor do body em cada scheme. Estas variáveis :root são
+ *   os valores DARK (default). O bloco `html.light` abaixo sobrepõe somente as
+ *   cores de TEXTO/SURFACE das classes VIVAS (`.home__*`, `.placeholder*`) para
+ *   o modo claro — tornando a HomeView (primeira aba) legível em light e dark.
+ *   `--bg` é mantida escura nos dois schemes de propósito: alimenta o `.xterm`
+ *   (terminal Dracula escuro fixo) e o fallback do body; no modo claro o fundo
+ *   do corpo vem do CssBaseline (background.default do scheme). `--danger`/
+ *   `--success` continuam declaradas mas não são consumidas por nenhuma classe
+ *   viva (mortas) — mantidas por herança/compatibilidade.
+ */
+
+:root {
+  --bg: #0f1115;
+  --panel: #161a21;
+  --panel-2: #1c212b;
+  --border: #262c38;
+  --text: #e6e8ec;
+  --text-muted: #9aa3b2;
+  --accent: #4f8cff;
+  --accent-dim: #2f5bbd;
+  --danger: #e05252;
+  --success: #49b36b;
+  --radius: 10px;
+  --font-ui: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-mono: "SFMono-Regular", "JetBrains Mono", Menlo, Consolas, monospace;
+}
+
+/* ─── Modo claro: cores de TEXTO/SURFACE das classes vivas (onda 11) ─────── */
+html.light {
+  --panel: #ffffff;          /* placas placeholder sobre corpo claro */
+  --panel-2: #f3f4f6;        /* fundo do badge placeholder */
+  --border: #d1d5db;         /* bordas/borda tracejada + scrollbar */
+  --text: #1f2937;           /* texto do body/títulos em claro (≈14.7:1) */
+  --text-muted: #4b5563;     /* muted legível em claro (≈7.6:1) */
+  --accent: #1565c0;         /* primary claro (par com theme.ts; ≈5.7:1) */
+  --accent-dim: #b8d0f3;     /* seleção sutil em claro (texto selecionado legível) */
+  /* --bg permanece #0f1115: usado pelo .xterm (Dracula fixo escuro) e pelo
+     fallback do body; o fundo do corpo em claro é do CssBaseline. */
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-ui);
+  -webkit-font-smoothing: antialiased;
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+/* ─── Shell (onda 7): agora em MUI (AppBar+Tabs) — nada de CSS custom aqui. ── */
+
+/* ─── Placeholder das views ──────────────────────────────────────────────── */
+.placeholder {
+  max-width: 560px;
+  border: 1px dashed var(--border);
+  background: var(--panel);
+  border-radius: var(--radius);
+  padding: 28px 32px;
+}
+
+.placeholder__badge {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  color: var(--accent);
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 3px 10px;
+  margin-bottom: 14px;
+}
+
+.placeholder__title {
+  margin: 0 0 8px;
+  font-size: 20px;
+}
+
+.placeholder__body {
+  margin: 0;
+  color: var(--text-muted);
+}
+
+/* ─── View Início ────────────────────────────────────────────────────────── */
+.home__title {
+  margin: 0 0 10px;
+  font-size: 26px;
+}
+
+.home__body,
+.home__hint {
+  color: var(--text-muted);
+  max-width: 620px;
+}
+
+/* ─── Código e terminal das ondas seguintes ──────────────────────────────── */
+.cm-editor,
+.xterm {
+  font-family: var(--font-mono);
+  font-size: 13px;
+}
+
+.xterm {
+  background: var(--bg);
+  height: 100%;
+}
+
+/* ─── Terminal de saída (AnswerTerminal) ─────────────────────────────────── */
+.answer-terminal__viewport {
+  height: 220px;
+  padding: 6px 8px;
+}
+.answer-terminal__viewport .xterm {
+  height: 100%;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 999px;
+}
+
+::selection {
+  background: var(--accent-dim);
+}

@@ -1,0 +1,363 @@
+{
+  "nav": {
+    "home": "Home",
+    "settings": "Settings",
+    "lesson": "Lesson",
+    "challenge": "Challenge"
+  },
+  "app": {
+    "title": "Study Method — Tutor",
+    "tagline": "Learn for real, with AI-generated lessons and hands-on challenges.",
+    "shellNav": "Main navigation"
+  },
+  "theme": {
+    "mode": {
+      "toggle": "Theme",
+      "light": "Light mode",
+      "dark": "Dark mode",
+      "system": "System default"
+    }
+  },
+  "settings": {
+    "keysTitle": "API keys",
+    "keysDescription": "Configure the DeepSeek (lesson generation) and Brave Search (source search) keys. Validate each one before using.",
+    "localAiTitle": "Local LLM",
+    "localAiDescription": "Hardware detection and local models. Download a model, activate it and select \"Local model\" in the feedback provider to evaluate challenges without relying on the cloud."
+  },
+  "keys": {
+    "deepseek": {
+      "label": "DeepSeek key",
+      "placeholder": "Paste your DeepSeek key"
+    },
+    "brave": {
+      "label": "Brave Search key",
+      "placeholder": "Paste your Brave key"
+    },
+    "validate": "Validate",
+    "validating": "Validating…",
+    "valid": "Valid",
+    "invalid": "Invalid",
+    "configured": "Configured",
+    "notConfigured": "Not configured",
+    "save": "Save",
+    "saved": "Saved",
+    "show": "Show key",
+    "hide": "Hide key",
+    "error401": "Error 401: invalid key or missing permission.",
+    "error429": "Error 429: request limit exceeded. Try again shortly.",
+    "errorNetwork": "Network error: could not reach the server.",
+    "needKeyBeforeValidate": "Enter the key before validating.",
+    "errorNetworkValidate": "Network error while validating",
+    "needKeyBeforeSave": "Enter the key before saving.",
+    "saveError": "Failed to save the key."
+  },
+  "localAi": {
+    "title": "Local model",
+    "detect": "Detect hardware",
+    "ram": "RAM",
+    "vram": "VRAM",
+    "cpu": "CPU",
+    "backend": "Backend",
+    "recommended": "Recommended",
+    "active": "Active",
+    "download": "Download",
+    "downloaded": "Downloaded",
+    "downloading": "Downloading…",
+    "use": "Use",
+    "inUse": "In use",
+    "delete": "Delete",
+    "feedbackProvider": "Feedback provider",
+    "feedbackProviderDeepseek": "DeepSeek (cloud)",
+    "feedbackProviderLocal": "Local model",
+    "hintActive": "This model is active and will be the default grader.",
+    "errorSaveFeedback": "Failed to save the feedback provider:",
+    "errorList": "Could not list the models:",
+    "errorDetect": "Failed to detect hardware:",
+    "errorDownload": "Failed to start download of",
+    "errorActivate": "Failed to activate",
+    "errorRemove": "Failed to remove"
+  },
+  "lesson": {
+    "subjectLabel": "Subject",
+    "subjectPlaceholder": "What do you want to learn about?",
+    "subjectHelper": "Programming and math — e.g. invert a binary tree or solve a quadratic equation.",
+    "generate": "Generate lesson",
+    "generating": "Generating lesson…",
+    "phase": {
+      "research": "Researching",
+      "authoring": "Authoring",
+      "materializing": "Materializing",
+      "validating": "Validating",
+      "done": "Done",
+      "error": "Error"
+    },
+    "findings": "Sources found",
+    "challenges": "Challenges",
+    "challengesEmpty": "No challenges generated yet.",
+    "open": "Open",
+    "sources": "Sources",
+    "statement": "Statement",
+    "sourcesEmpty": "No sources registered.",
+    "warning": "Warning:",
+    "invalidSubject": "Invalid subject.",
+    "starting": "Starting…",
+    "failGenerate": "Failed to generate the lesson.",
+    "errorGenerate": "Error generating the lesson"
+  },
+  "challenge": {
+    "openChallenge": "Open challenge",
+    "testAnswer": "Test answer",
+    "abort": "Abort",
+    "output": "Output",
+    "feedback": "Feedback",
+    "noChallengesYet": "No challenges available yet.",
+    "keyHint": "See the key hint in the statement.",
+    "providerLocal": "Local model",
+    "providerDeepseek": "DeepSeek",
+    "confirmDelete": "Delete {{name}}?",
+    "noChallengesEmpty": "No challenges available. Generate a lesson first in the \"Lesson\" tab.",
+    "listError": "Could not list the challenges",
+    "statementUnavailable": "Statement (README.md) unavailable.",
+    "workspaceLoadError": "Error loading the workspace",
+    "localModelError": "The local model could not grade",
+    "localModelHint": "Enable the local model in Settings or switch the feedback provider to DeepSeek and try again.",
+    "piMissingKey": "Failed to call the pi: DeepSeek key missing or invalid. Open Settings to register the key.",
+    "piCallError": "Failed to call the pi",
+    "piExecuteError": "Error running the pi",
+    "unknownError": "unknown error",
+    "running": "running…",
+    "aborted": "aborted",
+    "thinking": "Reasoning…",
+    "none": "No challenge",
+    "selectPrompt": "Select a challenge to start.",
+    "statementLoading": "Loading statement…",
+    "outputAria": "Test output",
+    "toolOk": "(ok)"
+  },
+  "gate": {
+    "checking": "Checking setup…",
+    "blocked": "Setup pending",
+    "missingKeys": "API keys are missing to get started.",
+    "invalidKeys": "Some keys are invalid.",
+    "offline": "No internet connection.",
+    "offlineTip": "Connect to the internet and try again.",
+    "tryAgain": "Try again",
+    "title": "Before you start",
+    "readError": "Could not query the API key status. Check that the app started correctly and try again."
+  },
+  "editor": {
+    "openFile": "Open file",
+    "save": "Save",
+    "unsaved": "Unsaved changes",
+    "newFile": "New file",
+    "deleteFile": "Delete file",
+    "confirmDelete": "Delete {{name}}?",
+    "refresh": "Refresh",
+    "workspace": "Working directory",
+    "openTabsAria": "Open files",
+    "openError": "Could not open",
+    "saveError": "Failed to save",
+    "createError": "Failed to create",
+    "deleteError": "Failed to delete",
+    "create": "Create",
+    "opening": "Opening",
+    "selectFilePrompt": "Select a file in the tree on the left to start editing.",
+    "workspaceEmpty": "Empty workspace. Create a file.",
+    "editorAria": "Editor"
+  },
+  "terminal": {
+    "passed": "Passed",
+    "failed": "Failed",
+    "timeout": "Timed out",
+    "countMismatch": "Test count mismatch",
+    "infra": "Infrastructure failure"
+  },
+  "common": {
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "error": "Error",
+    "loading": "Loading…",
+    "back": "Back",
+    "close": "Close"
+  },
+  "home": {
+    "title": "Learn programming and math with AI-generated lessons",
+    "description": "Type a subject — such as \"Invert a binary tree\" or \"Quadratic equations\" — and get a lesson with explanation, analogy, visualization and hands-on challenges validated by tests.",
+    "cta": {
+      "setup": "Set up keys",
+      "start": "Start a lesson"
+    },
+    "steps": {
+      "configureKeys": {
+        "title": "Set up your AI keys",
+        "description": "Add and validate your DeepSeek and Brave Search keys in Settings."
+      },
+      "subject": {
+        "title": "Type a subject",
+        "description": "For example: \"Invert a binary tree\" or \"Quadratic equations\"."
+      },
+      "learn": {
+        "title": "Learn and practice with challenges",
+        "description": "Read the lesson, follow the visualizations and solve test-validated challenges."
+      }
+    },
+    "setup": {
+      "checking": "Checking your setup…",
+      "ready": "Ready to start",
+      "missing": "AI keys pending",
+      "readyDescription": "Your DeepSeek and Brave Search keys are configured. Pick a subject and start.",
+      "missingDescription": "Configure the DeepSeek and Brave Search keys so the app can generate lessons and search sources.",
+      "deepseek": "DeepSeek",
+      "brave": "Brave Search",
+      "configured": "configured",
+      "pending": "pending"
+    },
+    "suggestions": {
+      "title": "Ideas to get started",
+      "domainProgramming": "Programming",
+      "domainMath": "Math",
+      "invertBinaryTree": "Invert a binary tree",
+      "mergeSort": "Merge sort",
+      "hashTables": "Hash tables in practice",
+      "quadraticEquations": "Quadratic equations",
+      "pythagoreanTheorem": "Pythagorean theorem"
+    }
+  },
+  "tutorial": {
+    "progress": {
+      "chapter": "Chapter",
+      "step": "Step"
+    },
+    "controls": {
+      "close": "Close tutorial",
+      "skip": "Skip",
+      "next": "Continue",
+      "finish": "Finish",
+      "skipTutorial": "Skip tutorial",
+      "finishTutorial": "Finish tutorial"
+    },
+    "confirm": {
+      "skipMessage": "Skip the tutorial? You can reopen it later from the help button.",
+      "closeMessage": "Close the tutorial? You can reopen it later from the help button.",
+      "cancel": "Cancel",
+      "skipConfirm": "Yes, skip",
+      "closeConfirm": "Yes, close"
+    },
+    "nav": {
+      "goToTab": "Go to the tab:"
+    },
+    "chapter": {
+      "shell": "The interface",
+      "settings": "Settings",
+      "lesson": "Lesson",
+      "challenge": "Challenge"
+    },
+    "steps": {
+      "shellAppTitle": {
+        "title": "Study Method",
+        "description": "This is the coding tutor. Generate AI-powered lessons and solve hands-on challenges in the tabs below."
+      },
+      "shellThemeToggle": {
+        "title": "Light/dark theme",
+        "description": "Switch between light, dark or system theme using the theme button in the top bar."
+      },
+      "shellLanguageSwitcher": {
+        "title": "Language",
+        "description": "Switch the interface language between Portuguese and English here. Your choice is saved automatically."
+      },
+      "shellNavTabs": {
+        "title": "Navigation",
+        "description": "Use the tabs to navigate: Settings (configuration), Lesson (lesson generation) and Challenge (practice)."
+      },
+      "settingsKeys": {
+        "title": "API keys",
+        "description": "In Settings you set up and validate the DeepSeek (lesson generation) and Brave Search (sources) keys, and manage the local model."
+      },
+      "lessonSubject": {
+        "title": "Generate a lesson",
+        "description": "Type the subject you want to learn about and click \"Generate lesson\" to research sources and build the material."
+      },
+      "challengeEditor": {
+        "title": "Code editor",
+        "description": "Open a challenge and write your solution in this editor (CodeMirror), without autocomplete — practice coding from memory."
+      },
+      "challengeTerminal": {
+        "title": "Test output",
+        "description": "The deterministic test results appear in this terminal, with a pass verdict or failure details."
+      },
+      "challengeTestAnswer": {
+        "title": "Test answer",
+        "description": "Click \"Test answer\" to run the tests and get feedback from the grader on your solution."
+      },
+      "tourComplete": {
+        "title": "You know the basics!",
+        "description": "Browse the tabs to explore. You can reopen this tutorial anytime from the help button."
+      },
+      "settingsKeysFill": {
+        "description": "Fill in your DeepSeek and Brave Search keys in this section. They power lesson generation and source search."
+      },
+      "openSettings": {
+        "title": "Go to Settings",
+        "description": "Click the Settings tab to set up your API keys."
+      },
+      "openLesson": {
+        "title": "Go to Lesson",
+        "description": "Click the Lesson tab to generate your first study material."
+      },
+      "lessonSubjectFill": {
+        "description": "Type the subject you want to study into this field."
+      },
+      "lessonGenerate": {
+        "title": "Generate the lesson",
+        "description": "Click \"Generate lesson\" to research sources and build the material."
+      },
+      "openChallenge": {
+        "title": "Go to Challenge",
+        "description": "Click the Challenge tab to practice with an exercise."
+      },
+      "challengeEditorType": {
+        "description": "Write your solution in this code editor (no autocomplete)."
+      },
+      "quickStartComplete": {
+        "title": "Done!",
+        "description": "You now know the essentials. You can restart the tutorial anytime from the help button."
+      },
+      "qsOpenLesson": {
+        "description": "Navigate to the Lesson tab to generate a study material."
+      },
+      "qsOpenChallenge": {
+        "description": "Navigate to the Challenge tab to practice challenges."
+      },
+      "qsChallengeTestAnswer": {
+        "description": "When you solve a challenge, click \"Test answer\" to validate."
+      }
+    },
+    "selection": {
+      "title": "Want a tour?",
+      "subtitle": "A short tutorial introduces the interface and shows how to generate lessons and solve challenges.",
+      "quickTourTitle": "Quick tour",
+      "quickTourDescription": "See the top bar, the tabs, and learn to generate a lesson and test a solution.",
+      "badgeRecommended": "Recommended",
+      "dismiss": "Not now",
+      "quickStartTitle": "Quick Start",
+      "quickStartDescription": "A quick look at the tabs, with no key setup required. Great to get going now.",
+      "fullTutorialTitle": "Full Tutorial",
+      "fullTutorialDescription": "Step-by-step guide across all tabs: set up keys, generate a lesson and test a solution.",
+      "badgeFull": "Complete",
+      "requiresKeys": "Requires the API keys (DeepSeek + Brave).",
+      "openSettings": "Set up keys"
+    },
+    "status": {
+      "readyToContinue": "Ready — you can continue",
+      "waitingForAction": "Waiting for the action…"
+    },
+    "audio": {
+      "mute": "Mute narration",
+      "unmute": "Hear narration"
+    },
+    "helpHint": {
+      "title": "Type any doubt",
+      "description": "This is the lesson subject field. Type the topic you want to study and generate an AI-powered lesson."
+    }
+  }
+}

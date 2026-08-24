@@ -1,0 +1,10 @@
+# Modelos e binários de voz (onda 8) — GITIGNORED (são staged, não commitados).
+# Mantidos versionados: resources/licenses/** e resources/.gitkeep.
+
+# STT (Nemotron via sherpa-onnx-node) — ~683 MB
+stt-models/
+
+# TTS (Piper — engine binário s/ plataforma + modelos + dados espeak-ng GPLv3)
+tts-engine/
+tts-models/
+espeak-ng-data/

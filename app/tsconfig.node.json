@@ -1,0 +1,62 @@
+{
+  "compilerOptions": {
+    "composite": true,
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "resolveJsonModule": true,
+    "lib": ["ES2022"],
+    "strict": true,
+    "skipLibCheck": true,
+    "isolatedModules": true,
+    "moduleDetection": "force",
+    "noEmit": true,
+    "types": ["node"],
+    "paths": {
+      "@/*": ["./*"],
+      "@shared/*": ["./shared/*"]
+    }
+  },
+  "include": [
+    "electron",
+    "tests",
+    "tools",
+    "shared",
+    "src/lib",
+    // Onda 8 (voz): código compartilhado do TTS (catálogo de modelos Piper) sob
+    // este projeto composite (noEmit, mas composite exige listar arquivos
+    // alcançáveis por import dos services de localTts).
+    "src/shared/constants/ttsModels.constants.ts",
+    "src/shared/utils/audioResample.utils.ts",
+    // src/gate/startupState.ts é PURO (sem React/DOM) e é testado de
+    // tests/startupState.test.ts (projeto composite exige listar arquivos
+    // alcançáveis por import). Os componentes React de src/gate (AppGate.tsx,
+    // SetupView.tsx) ficam FORA daqui — pertencem ao tsconfig.json do renderer.
+    "src/gate/startupState.ts",
+    "src/i18n/index.ts",
+    // src/theme.ts é PURO (createTheme, sem JSX/DOM) e é testado de
+    // tests/theme.test.ts — adicionado ao projeto composite de testes.
+    "src/theme.ts",
+    // src/components/theme/themeModeState.ts é PURO (lógica do toggle de tema,
+    // sem React/DOM) e é testado de tests/themeModeState.test.ts — listado aqui
+    // como os demais módulos puros alcançáveis por import nos testes.
+    "src/components/theme/themeModeState.ts",
+    // src/features/onboarding/* (onda 12 — tutorial): módulos PUROS (storage,
+    // posicionamento, steps/alvos, regra de oferta) testados de tests/onboarding*.test.ts
+    // sem jsdom. Os componentes React (overlay/modal/host) ficam FORA daqui —
+    // pertencem ao tsconfig.json do renderer (não são unit-testados).
+    "src/features/onboarding/types/onboarding.types.ts",
+    "src/features/onboarding/constants/onboardingI18n.ts",
+    "src/features/onboarding/constants/onboardingSteps.ts",
+    "src/features/onboarding/constants/quickStartSteps.ts",
+    "src/features/onboarding/constants/onboardingTargets.ts",
+    "src/features/onboarding/logic/evaluateStepAction.ts",
+    "src/features/onboarding/logic/onboardingSignals.ts",
+    "src/features/onboarding/logic/stepTargetPresence.ts",
+    "src/features/onboarding/services/onboardingStorage.service.ts",
+    "src/features/onboarding/utils/onboardingPositioning.utils.ts",
+    "src/features/onboarding/components/tutorialSelectionHelpers.ts",
+    "src/features/onboarding/hooks/firstRunTutorial.rule.ts",
+    "src/features/onboarding/hooks/helpHint.rule.ts"
+  ]
+}

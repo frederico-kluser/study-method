@@ -1,0 +1,673 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="plannotator-theme" content="host">
+<title>Study Method — EXPLAINER (4 rodadas)</title>
+<style>
+  :root{
+    --background: oklch(0.97 0.005 260);
+    --foreground: oklch(0.18 0.02 260);
+    --card: oklch(1 0 0);
+    --card-foreground: oklch(0.18 0.02 260);
+    --muted: oklch(0.92 0.01 260);
+    --muted-foreground: oklch(0.40 0.02 260);
+    --primary: oklch(0.50 0.25 280);
+    --primary-foreground: oklch(1 0 0);
+    --secondary: oklch(0.50 0.18 180);
+    --accent: oklch(0.60 0.22 50);
+    --accent-foreground: oklch(0.18 0.02 260);
+    --destructive: oklch(0.50 0.25 25);
+    --success: oklch(0.45 0.20 150);
+    --warning: oklch(0.55 0.18 85);
+    --border: oklch(0.88 0.01 260);
+    --code-bg: oklch(0.92 0.01 260);
+    --ring: oklch(0.50 0.25 280);
+    --radius: 0.625rem;
+    --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+    --font-mono: 'JetBrains Mono', 'Fira Code', ui-monospace, monospace;
+    --font-display: ui-serif, Georgia, 'Times New Roman', serif;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --background: oklch(0.15 0.02 260);
+      --foreground: oklch(0.90 0.01 260);
+      --card: oklch(0.22 0.02 260);
+      --card-foreground: oklch(0.90 0.01 260);
+      --muted: oklch(0.26 0.02 260);
+      --muted-foreground: oklch(0.72 0.02 260);
+      --primary: oklch(0.75 0.18 280);
+      --primary-foreground: oklch(0.15 0.02 260);
+      --accent: oklch(0.70 0.20 60);
+      --border: oklch(0.35 0.02 260);
+      --code-bg: oklch(0.26 0.02 260);
+      --destructive: oklch(0.65 0.20 25);
+      --success: oklch(0.72 0.17 150);
+      --warning: oklch(0.75 0.15 85);
+      --secondary: oklch(0.72 0.15 180);
+    }
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--background);color:var(--foreground);
+    font-family:var(--font-sans);line-height:1.6;overflow-wrap:break-word}
+  .page{max-width:1080px;margin:0 auto;padding:48px 24px 96px}
+  header.hero{max-width:820px;margin:0 auto 56px}
+  .eyebrow{font-family:var(--font-mono);font-size:12px;letter-spacing:.16em;
+    text-transform:uppercase;color:var(--primary)}
+  h1{font-family:var(--font-display);font-size:clamp(30px,4.5vw,46px);
+    line-height:1.12;margin:.3rem 0 .6rem;text-wrap:balance;text-shadow:none}
+  .ver{direct:inline;font-family:var(--font-mono);font-size:12px;color:var(--muted-foreground);
+    background:var(--muted);border:1px solid var(--border);border-radius:999px;padding:2px 10px;
+    display:inline-block;margin-left:.6rem;vertical-align:middle}
+  .lede{font-size:clamp(16px,2vw,20px);color:var(--muted-foreground);text-wrap:balance;max-width:72ch}
+  .lede b{color:var(--foreground)}
+  section{margin-top:64px}
+  h2{font-family:var(--font-display);font-size:26px;margin:0 0 4px;text-wrap:balance;text-shadow:none}
+  .sec-note{color:var(--muted-foreground);border-bottom:1px solid var(--border);padding-bottom:14px;
+    margin-bottom:24px;max-width:72ch}
+  /* depth tiers */
+  .ve-card{background:var(--card);border:1.5px solid var(--border);border-radius:var(--radius);
+    padding:20px}
+  .ve-card--hero{background:color-mix(in oklab, var(--primary) 5%, var(--card));
+    border-color:var(--primary);box-shadow:0 4px 24px color-mix(in oklab, var(--primary) 10%, transparent)}
+  .ve-card--recessed{background:var(--muted);border-color:transparent}
+  .grid{display:grid;gap:16px}
+  .g3{grid-template-columns:repeat(auto-fit,minmax(210px,1fr))}
+  .g2{grid-template-columns:repeat(auto-fit,minmax(280px,1fr))}
+  /* KPI/stat cards */
+  .kpi-card{background:var(--card);border:1.5px solid var(--border);border-radius:var(--radius);
+    padding:18px 20px}
+  .kpi-card .num{font-family:var(--font-display);font-size:34px;font-weight:700;line-height:1;
+    color:var(--primary);font-variant-numeric:tabular-nums}
+  .kpi-card .lbl{color:var(--muted-foreground);font-size:13px;margin-top:6px;text-wrap:balance}
+  .kpi-card .sub{font-size:12px;color:var(--muted-foreground);margin-top:4px}
+  /* pills/badges */
+  .pill{display:inline-block;font-family:var(--font-mono);font-size:11px;border-radius:999px;
+    padding:2px 9px;border:1px solid var(--border);color:var(--foreground);margin:2px 2px 2px 0}
+  .pill.ok,.b-ok{color:var(--success);border-color:color-mix(in oklab,var(--success) 40%,transparent)}
+  .pill.warn,.b-warn{color:var(--warning);border-color:color-mix(in oklab,var(--warning) 40%,transparent)}
+  .pill.err,.b-err{color:var(--destructive);border-color:color-mix(in oklab,var(--destructive) 40%,transparent)}
+  .pill.acc{color:var(--primary);border-color:color-mix(in oklab,var(--primary) 45%,transparent)}
+  code{background:var(--code-bg);border:1px solid var(--border);border-radius:5px;
+    padding:1px 6px;font-family:var(--font-mono);font-size:.88em}
+  pre{background:var(--code-bg);border:1.5px solid var(--border);border-radius:var(--radius);
+    padding:16px 20px;overflow-x:auto;font-family:var(--font-mono);font-size:13px;line-height:1.5}
+  pre .cm{color:var(--muted-foreground);font-style:italic}
+  th,td{font-variant-numeric:tabular-nums}
+  table{border-collapse:collapse;width:100%;margin:8px 0;font-size:14px}
+  td,th{border:1px solid var(--border);padding:9px 12px;text-align:left;vertical-align:top}
+  th{background:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted-foreground)}
+  /* callout (TL;DR) */
+  .tldr{border-left:4px solid var(--primary);padding:16px 18px;background:
+    color-mix(in oklab,var(--primary) 4%,var(--card));border-radius:0 var(--radius) var(--radius) 0}
+  .tldr p{margin:0}
+  /* figure */
+  figure{margin:24px 0 0}
+  figcaption{font-size:13px;color:var(--muted-foreground);margin-top:10px;line-height:1.5;
+    border-left:3px solid var(--accent);padding-left:10px;text-wrap:balance}
+  /* diagram shell */
+  .diagram-shell{background:var(--card);border:1.5px solid var(--border);border-radius:var(--radius);
+    overflow:hidden}
+  .mermaid-wrap{position:relative}
+  .mermaid-viewport{overflow:auto;max-height:520px;padding:16px;cursor:grab}
+  .mermaid-viewport:active{cursor:grabbing}
+  .mermaid-canvas{min-width:100%;display:flex;justify-content:center}
+  .mermaid-canvas svg{max-width:none}
+  figure[role=img],.mermaid-wrap{position:relative}
+  .zoom-controls{display:flex;gap:6px;justify-content:flex-end;padding:8px 12px;
+    border-top:1px solid var(--border);background:var(--muted)}
+  .zoom-controls button{font-family:var(--font-mono);font-size:12px;padding:3px 10px;cursor:pointer;
+    background:var(--card);border:1px solid var(--border);border-radius:6px;color:var(--foreground)}
+  .zoom-controls button:hover{border-color:var(--ring)}
+  .alt{font-size:12px;color:var(--muted-foreground);padding:10px 14px}
+  /* steps */
+  ol.steps{margin:12px 0;padding-left:22px;counter-reset:step}
+  ol.steps li{margin:10px 0;padding-left:6px}
+  ol.steps b,ul.steps b{color:var(--primary)}
+  /* critical path marker */
+  .crit{border:1.5px dashed var(--accent);border-radius:var(--radius);padding:14px 18px;
+    background:color-mix(in oklab,var(--accent) 6%,var(--card))}
+  .crit b{color:var(--accent)}
+  .crit-callout{display:inline-block;font-family:var(--font-mono);font-size:11px;font-weight:700;
+    letter-spacing:.08em;color:var(--accent);border:1px solid var(--accent);border-radius:4px;
+    padding:1px 8px;text-transform:uppercase;margin-bottom:6px}
+  ul.plain{margin:8px 0;padding-left:20px}
+  ul.plain li{margin:6px 0}
+  .path-sign{font-family:var(--font-mono);font-size:12px;color:var(--success);margin-bottom:6px}
+  details{border:1px solid var(--border);border-radius:var(--radius);background:var(--card);margin:12px 0}
+  details summary{cursor:pointer;padding:14px 18px;font-weight:600;color:var(--primary)}
+  details .inner{padding:0 18px 16px}
+  hr{border:none;border-top:1px solid var(--border);margin:24px 0}
+  .tag{font-family:var(--font-mono);font-size:11px;letter-spacing:.05em;color:var(--muted-foreground)}
+  @media (max-width:640px){.page{padding:28px 16px 64px}}
+</style>
+</head>
+<body>
+<div class="page">
+
+<header class="hero">
+  <div class="eyebrow">Study Method · GUI Electron · Explainer</div>
+  <h1>Como o tutor virou completo de programação <em>e</em> matemática
+      <span class="ver">4 rodadas · 118 commits</span></h1>
+  <p class="lede"><b>O Study Method virou um tutor completo de programação e matemática:</b>
+    são 4 rodadas — GUI+IA local, i18n/voz/gate, tema+janela oculta+onboarding, e nesta rodada:
+    bugs <b>B1</b>/<b>B2</b> corrigidos com causa-raiz provada, tutorial fiel ao Ondokai, UX
+    refinada e fórmulas em KaTeX, com E2E real validando a didática. Nesta página você vê a
+    rodada 4 em detalhe, sobre as três anteriores.</p>
+  <p class="tag" style="margin-top:18px">Versão do conteúdo: 2026-08-23 · modelo alvo
+    <code>deepseek-v4-flash</code></p>
+</header>
+
+<!-- ============================= TIMELINE ============================= -->
+<section id="linha-do-tempo">
+  <h2>Linha do tempo das 4 rodadas</h2>
+  <p class="sec-note">Ordem e dependências entre as rodadas — o que cada um carregou de alicerce.
+    A sequência é obrigatória: cada rodada só existiu porque a anterior fechou os gates.</p>
+
+  <div class="diagram-shell" role="img" aria-label="Linha do tempo das 4 rodadas">
+    <div class="mermaid-wrap">
+      <div class="mermaid-viewport">
+        <div class="mermaid-canvas">
+          <pre class="mermaid">
+flowchart LR
+  R1["<b>R1</b> · base<br/>ondas 1–5<br/><code>0b08fdb</code><br/>GUI + IA local"] -- "alicerce da GUI" --> R2["<b>R2</b> · i18n + gate + voz<br/>ondas 6–10<br/><code>c611d22</code><br/>MUI v9 · DeepSeek gate · STT+Piper"]
+  R2 -- "UI localizável e vigilada" --> R3["<b>R3</b> · tema + onboarding<br/>ondas 11–14<br/><code>13933bb</code><br/>claro/escuro · Dracula · janela oculta"]
+  R3 -- "base visual + onboarding" --> R4["<b>R4</b> · esta rodada<br/>ondas 15–18<br/><code>280c3df</code><br/>bugs · tutorial · UX · KaTeX · E2E real"]
+  R4 --> DONE["<b>Tutor completo</b><br/>programação + matemática<br/>721 unit · 15 mock · 3 reais"]
+  style R4 stroke:#e89a3c,stroke-width:2.5px
+  style DONE stroke:#12a150,stroke-width:2px
+          </pre>
+        </div>
+      </div>
+    </div>
+    <div class="zoom-controls" data-zoom>
+      <button data-zoom-out>−</button>
+      <button data-zoom-in>+</button>
+      <button data-zoom-reset>Reset</button>
+      <button data-zoom-expand>Expandir</button>
+    </div>
+  </div>
+  <figcaption><b>Afirmação:</b> a rodada 4 sentou sobre as três anteriores (GUI, i18n/gate/voz, tema/onboarding) e fechou o tutor — cada seta nomeia o que uma rodada entregou à seguinte; o traço laranja marca a rodada atual.</figcaption>
+</section>
+
+<!-- ============================= METRICAS ============================= -->
+<section id="metricas">
+  <h2>Números finais (fim da rodada 4)</h2>
+  <div class="grid g3">
+    <div class="kpi-card"><div class="num">721</div>
+      <div class="lbl">testes unit pass / 0 fail</div><div class="sub">era 622 no fim da R3</div></div>
+    <div class="kpi-card"><div class="num">15</div>
+      <div class="lbl">E2E mock passed</div><div class="sub">+ 3 specs reais skipped sem chaves</div></div>
+    <div class="kpi-card"><div class="num">3</div>
+      <div class="lbl">E2E real passed (~8 min)</div><div class="sub">com as suas chaves DeepSeek/Brave</div></div>
+    <div class="kpi-card"><div class="num">4</div>
+      <div class="lbl">ondas na rodada 4</div><div class="sub">W15 bugs · W16 tutorial · W17 UX+math · W18 E2E</div></div>
+    <div class="kpi-card"><div class="num">118</div>
+      <div class="lbl">commits no total</div><div class="sub">squash, um por sub-tarefa</div></div>
+    <div class="kpi-card"><div class="num">3+1</div>
+      <div class="lbl">modelo alvo</div><div class="sub"><code>deepseek-v4-flash</code> validado</div></div>
+  </div>
+</section>
+
+<!-- ============================= RODADA 4 ============================= -->
+<section id="rodada4">
+  <h2>Rodada 4 em destaque</h2>
+  <p class="sec-note">O comando da rodada foi “no-stop + feedback denso”: dark ruim, bug B1
+    (list-challenges), bug B2 (DeepSeek sem content), tutorial que não imitava o Ondokai, tela
+    inicial pouco clara, input/botão diferentes, UX a pesquisar e refazer, mais E2E com chaves
+    reais, e matemática/LaTeX. Quatro ondas resolveram isso.</p>
+
+  <figure>
+    <div class="diagram-shell" role="img" aria-label="Fluxo das ondas da rodada 4">
+      <div class="mermaid-wrap">
+        <div class="mermaid-viewport">
+          <div class="mermaid-canvas">
+            <pre class="mermaid">
+flowchart LR
+  W15["<b>W15 · BUGS CORE</b><br/><code>3a087a7</code> B2 DeepSeek<br/><code>73f749f</code> B1 list-challenges<br/><code>838c307</code> revisão<br/>tests 629→639"] -- "mundo gira" --> W16["<b>W16 · TUTORIAL</b><br/><code>7459808</code> overlay ondokai<br/><code>699737d</code> fix dead-lock<br/>tests 665→688"]
+  W16 -- "didática guiada" --> W17["<b>W17 · UX + MATH</b><br/><code>3a106e2</code> UX dark+Home<br/><code>27d8d1a</code> KaTeX<br/><code>b13dda0</code> escape \$<br/>tests 700→721"]
+  W17 -- "didática com fórmula" --> W18["<b>W18 · E2E REAL</b><br/><code>f801c30</code> suite real<br/><code>280c3df</code> fix review<br/>3 passed · 15 mock"]
+  style W18 stroke:#e89a3c,stroke-width:2.5px
+            </pre>
+          </div>
+        </div>
+      </div>
+    </div>
+    <figcaption><b>Afirmação:</b> a rodada 4 seguiu bugs → tutorial → UX+matemática → validação real, com cada etapa subindo a contagem de testes; a seta rotulada “didática” mostra o que cada onda destravou para a próxima.</figcaption>
+  </figure>
+</section>
+
+<!-- ============================= BUG B2 ============================= -->
+<section id="bug-b2">
+  <h2>Bug B2 · <em>DeepSeek sem content</em> — causa-raiz provada</h2>
+  <p class="sec-note">O sintoma na tela era um erro enganoso:<br/><code>sem choices[0].message.content</code>. A causa verdadeira estava um passo antes, no <b>HTTP status code</b>.</p>
+
+  <figure>
+    <div class="diagram-shell" role="img" aria-label="Fluxo do erro B2 no DeepSeek">
+      <div class="mermaid-wrap">
+        <div class="mermaid-viewport">
+          <div class="mermaid-canvas">
+            <pre class="mermaid">
+flowchart TD
+  A["cliente manda POST<br/>id = <code>deepseek-v4-flash-0731</code><br/>(não existia)"] --> B["API responde<br/><b>HTTP 400</b> invalid_request_error<br/>lista os ids válidos"]
+  B --> C["cliente antigo só tratava<br/>401 · 403 · 429 · 5xx<br/>400 <b>não</b> era tratado"]
+  C --> D["400 caía no caminho de <b>sucesso</b>"]
+  D --> E["API sem choices<br/>código lê choices[0] → erro enganoso"]
+  C --> F["<b>CORREÇÃO</b><br/>id validado <code>deepseek-v4-flash</code> (200)<br/>novos BAD_REQUEST (4xx)<br/>+ EMPTY_CONTENT (2xx sem content)<br/>parsing puro exportado · corpo sanitizado"]
+  F --> G["retry deliberadamente NÃO adicionado<br/>diag provou determinismo"]
+  style C stroke:#e2362f,stroke-width:2px
+  style D stroke:#e2362f,stroke-width:2px
+  style F stroke:#12a150,stroke-width:2px
+            </pre>
+          </div>
+        </div>
+      </div>
+    </div>
+    <figcaption><b>Afirmação:</b> o 400 que caiu no caminho de sucesso é a causa-raiz de um erro que mentia; a correção valida o id e distingue <code>BAD_REQUEST</code> de <code>EMPTY_CONTENT</code>, e não adiciona retry porque o erro era determinístico.</figcaption>
+  </figure>
+
+  <p class="crit-callout">Caminho crítico</p>
+  <div class="crit">
+    <p><b>O leitor experiente pula as caixas vermelhas:</b> o essencial é que um <b>HTTP 400</b>
+    (requisição rejeitada pela API) era engolido pelo cliente porque ele só sabia tratar
+    <code>401/403/429/5xx</code>. Como 400 não encaixava em nenhum tratamento, o código seguia
+    como “sucesso” até <code>choices[0]</code> não existir e produzir o erro enganoso. A prova da
+    causa foi feita <b>na API real</b>, com a sua chave: o id <code>…-0731</code> devolvia 400; o
+    id validado <code>deepseek-v4-flash</code> devolveu 200.</p>
+  </div>
+
+  <!-- buzzword termin soltas -->
+  <p><span class="pill acc">orchestrator</span>
+     <span class="pill acc">setupRoot</span>
+     <span class="pill acc">IPC</span></p>
+</section>
+
+<!-- ============================= BUG B1 ============================= -->
+<section id="bug-b1">
+  <h2>Bug B1 · <em>list-challenges “requer setupRoot”</em></h2>
+  <p class="sec-note">Frase do usuário: “list-challenges: setupRoot not found — requer setupRoot”. O
+    valor era gerado corretamente na aula, mas não fluía até o desafio.</p>
+
+  <blockquote class="crit">
+    <p><b>Definições inline.</b> <b>setupRoot</b> = o diretório de trabalho de uma aula (um
+    workspace, raiz do “setup”) onde os arquivos do desafio são preparados e testados.
+    <b>orchestrator</b> = o processo central que divide o fluxo “gerar aula → listar desafios →
+    rodar testes” e emite eventos de progresso pelos canais. <b>IPC</b> = Inter‑Process
+    Communication, o canal main(processo Node)⇄renderer(React) do Electron.</p>
+  </blockquote>
+
+  <figure>
+    <div class="diagram-shell" role="img" aria-label="Fluxo do bug B1 setupRoot">
+      <div class="mermaid-wrap">
+        <div class="mermaid-viewport">
+          <div class="mermaid-canvas">
+            <pre class="mermaid">
+sequenceDiagram
+  participant Gen as generateLesson
+  participant Orch as orchestrator
+  participant H as handler (memória)
+  participant UI as ChallengeNav (contexto)
+  participant Ch as ChallengeView
+  Gen->>Orch: gera aula (cria setupRoot)
+  Note over Orch: <b>antes:</b> setupRoot não fluía<br/>future memoria.lastSetupRoot = null
+  Orch->>H: 📤 progresso <code>materializing</code><br/>+ setupRoot + setupId
+  H->>H: grava memória a partir do evento
+  H->>UI: compartilha via contexto ChallengeNav<br/>(Lesson → Challenge)
+  UI->>Ch: passa {setupRoot} explícito
+  Ch->>Ch: list-challenges OK (sem “requer setupRoot”)
+            </pre>
+          </div>
+        </div>
+      </div>
+    </div>
+    <figcaption><b>Afirmação:</b> o fix transformou um evento de progresso do orchestrator em memória persistida e depois em estado compartilhado da UI, fazendo <code>setupRoot</code> fluir do <code>generateLesson</code> até o <code>list-challenges</code>. As caixas verdes marcam o novo elo que fecha o circuito.</figcaption>
+  </figure>
+
+  <p class="path-sign">→ caminho crítico sinalizado no texto</p>
+  <p>O ponto que resolveu o bug foi o orchestrator emitir progresso <code>materializing</code>
+  carregando <code>setupRoot</code>/<code>setupId</code>; o handler gravou isso na memória, e a UI
+  (contexto <code>ChallengeNav</code>) passou a entregar <code>{setupRoot}</code> explícito à
+  <code>ChallengeView</code>. O revisor ainda exigiu reset do <code>lastSetupRoot</code> em novo
+  <code>generate</code> e effect de listagem com dependência correta.</p>
+</section>
+
+<!-- ============================= TUTORIAL ============================= -->
+<section id="tutorial">
+  <h2>W16 · Tutorial refeito fiel ao Ondokai</h2>
+  <p class="sec-note">O onboarding parou de ser um tour informativo e virou um sistema de
+    spotlight real: overlay, máscara, 2 tutoriais, avaliação por snapshot e narração local.</p>
+
+  <figure>
+    <div class="diagram-shell" role="img" aria-label="Arquitetura do overlay de tutorial">
+      <div class="mermaid-wrap">
+        <div class="mermaid-viewport">
+          <div class="mermaid-canvas">
+            <pre class="mermaid">
+flowchart TD
+  P["portal <br/><code>z-14000</code>"] --> M["máscara 4 segmentos"]
+  P --> S["spotlight<br/><code>alternateTargetSelector</code>"]
+  P --> B["bloqueio de clique"]
+  M --> T["passo atual<br/>destaca só 1 alvo"]
+  S --> T
+  B --> V["avalia por snapshot<br/>8 <code>expectedActions</code><br/><code>evaluateStepAction</code> puro"]
+  V --> A["auto-avanço ~220ms<br/>próximo passo"]
+  A --> T
+  T --> K["first-run latch síncrono<br/>StrictMode-safe"]
+  T --> H["hint pós-tutorial 1x<br/>aponta o input de assunto"]
+  T --> TTS["narração · TTS local Piper"]
+  style T stroke:#e89a3c,stroke-width:2px
+            </pre>
+          </div>
+        </div>
+      </div>
+    </div>
+    <figcaption><b>Afirmação:</b> o overlay combina portal em camada máxima (z‑14000), máscara de 4 segmentos ao redor de um spotlight, bloqueio de clique fora do alvo e auto‑avanço de ~220ms, avaliando cada passo por snapshot de 8 <code>expectedActions</code>. O passo (laranja) é o coração do loop.</figcaption>
+  </figure>
+
+  <div class="grid g2" style="margin-top:20px">
+    <div class="ve-card">
+      <h3 style="margin-top:0">Os 2 tutoriais</h3>
+      <ul class="plain">
+        <li><b>Tutorial Completo</b> — ~13 passos; cobre a jornada inteira (configurar chaves, aula, desafio, editor, teste).</li>
+        <li><b>Quick Start</b> — ~6 passos; vai direto ao essencial para o usuário que quer começar logo.</li>
+        <li>Modal de seleção com <b>gate de chaves</b> (Completo) e CTA <b>Configurar chaves</b>.</li>
+      </ul>
+    </div>
+    <div class="ve-card">
+      <h3 style="margin-top:0">Avaliação e reforço</h3>
+      <ul class="plain">
+        <li><b>Snapshot</b>: estado da UI num instante; 8 <b>expectedActions</b> esperados por passo (função pura <code>evaluateStepAction</code>).</li>
+        <li>Dead-lock corrigido: alvo ausente é saltado com fallback <b>Continuar</b>.</li>
+        <li>Hint pós-tutorial de 1x apontando o input de assunto; TTS local Piper narra cada passo.</li>
+        <li>i18n <code>tutorial.*</code> pt/en.</li>
+      </ul>
+    </div>
+  </div>
+
+  <p class="crit-callout">Caminho crítico</p>
+  <div class="crit">
+    <p>O que destrava a didática não é o visual do spotlight, mas a <b>avaliação por snapshot com 8
+    <code>expectedActions</code></b>: o tutorial só avança quando a ação esperada acontece de
+    verdade. O <b>first-run latch síncrono StrictMode-safe</b> garante que o latch (que marca a
+    1ª execução) seja montado sem dupla-invocação de efeito do React StrictMode — sem isso, o
+    tutorial poderia tocar duas vezes ou ser marcado como visto antes de rodar.</p>
+  </div>
+</section>
+
+<!-- ============================= UX ============================= -->
+<section id="ux">
+  <h2>W17 · UX refinada</h2>
+  <p class="sec-note">Dark por camadas de elevação com contraste AA medido, e Home guiada em 3
+    passos com CTA contextual.</p>
+
+  <table>
+    <tr><th>Token (dark)</th><th>Hex</th><th>Papel</th></tr>
+    <tr><td><code>default</code> (fundo base)</td><td><code>#0f1115</code></td><td>paginação / camada recessa</td></tr>
+    <tr><td><code>paper</code></td><td><code>#171c23</code></td><td>superfície das views / cards</td></tr>
+    <tr><td><code>text.secondary</code></td><td><code>#aeb6c2</code></td><td>texto secundário — <b>AA</b> verificado por medição</td></tr>
+    <tr><td><code>divider</code></td><td><code>#2b313c</code></td><td>separadores / bordas</td></tr>
+    <tr><td><code>tertiary</code></td><td><code>#b8a6ff</code></td><td>acento M3 de destaque</td></tr>
+  </table>
+
+  <div class="grid g3" style="margin-top:16px">
+    <div class="kpi-card"><div class="lbl"><b>Home guiada</b></div>
+      <ul class="plain" style="margin:6px 0 0">
+        <li>copy programação <b>e</b> matemática</li>
+        <li><b>3 passos numerados</b></li>
+        <li>CTA único contextual (Configurar chaves / Começar aula)</li>
+      </ul></div>
+    <div class="kpi-card"><div class="lbl"><b>Card de status real</b></div>
+      <ul class="plain" style="margin:6px 0 0">
+        <li>via <code>keys.getStatus</code></li>
+        <li>mostra o estado das chaves de verdade</li>
+      </ul></div>
+    <div class="kpi-card"><div class="lbl"><b>Chips com pré-preenchimento</b></div>
+      <ul class="plain" style="margin:6px 0 0">
+        <li>sugestões de assunto</li>
+        <li>preenchem o input da LessonView</li>
+        <li>consumo one-shot (não re-dispara)</li>
+      </ul></div>
+  </div>
+
+  <p><span class="pill">KaTeX</span> <span class="pill">remark-math@6</span>
+     <span class="pill">rehype-katex@7</span> <span class="pill">katex@0.16</span></p>
+</section>
+
+<!-- ============================= MATH ============================= -->
+<section id="math">
+  <h2>W17 · Matemática em KaTeX</h2>
+  <figure>
+    <div class="diagram-shell" role="img" aria-label="Pipeline do markdown com LaTeX para KaTeX">
+      <div class="mermaid-wrap">
+        <div class="mermaid-viewport">
+          <div class="mermaid-canvas">
+            <pre class="mermaid">
+flowchart LR
+  MD["markdown da aula/desafio<br/><code>$...$</code> e <code>$$...$$</code>"] --> RM["remark-math@6<br/>parseia o LaTeX"]
+  RM --> RK["rehype-katex@7<br/>vira HTML + CSS"]
+  RK --> K["katex@0.16<br/>renderiza a fórmula"]
+  MD --> ESC["escape de \$ de moeda<br/>antes do KaTeX"]
+  ESC --> RM
+  K --> OUT["ReactMarkdown<br/>aulas e desafios"]
+  style K stroke:#12a150,stroke-width:2px
+            </pre>
+          </div>
+        </div>
+      </div>
+    </div>
+    <figcaption><b>Afirmação:</b> o markdown passa por <code>remark-math</code> → <code>rehype-katex</code> → <code>katex</code>, e o símbolo <code>$</code> de moeda é escapado antes para não virar LaTeX; o resultado aparece nas aulas e nos desafios. A caixa verde é o render final entregue ao usuário.</figcaption>
+  </figure>
+  <p><b>KaTeX</b> é a biblioteca que desenha fórmulas LaTeX no navegador (ex.: <code>\frac{a}{b}</code>);
+  <code>remark-math</code>/<code>rehype-katex</code> são plugins de processamento de markdown que ligam
+  o LaTeX escrito no texto ao render do KaTeX. O CSS vem junto no bundle. Teste E2E valida o render
+  de <code>.katex</code> ao vivo.</p>
+</section>
+
+<!-- ============================= E2E ============================= -->
+<section id="e2e">
+  <h2>W18 · E2E real validando a didática</h2>
+  <p class="sec-note">Além do E2E mock determinístico (sem GPU/LLM), a rodada 4 trouxe a suíte
+    <i>real</i>: aula de verdade, resposta certa/errada e busca Brave, com as suas chaves vindas
+    do ambiente — chaves <b>nunca</b> versionadas.</p>
+
+  <figure>
+    <div class="diagram-shell" role="img" aria-label="Fluxo do E2E real">
+      <div class="mermaid-wrap">
+        <div class="mermaid-viewport">
+          <div class="mermaid-canvas">
+            <pre class="mermaid">
+flowchart TD
+  KS["chaves via env<br/>DEEPSEEK_API_KEY · BRAVE_API_KEY<br/><code>.env.local</code> gitignored"] --> L["aula real<br/>“Inverter uma árvore binária”"]
+  L --> LC["list-challenges OK<br/><b>B1 provado</b> (sem requer setupRoot)"]
+  LC --> C["desafio"]
+  C --> R["resposta"]
+  R --> C1{"didática certa?"}
+  C1 -->|sim| P["PASSOU + feedback ✔"]
+  C1 -->|não| NP["NÃO PASSOU + dicas"]
+  KS --> SR["busca Brave<br/>round-trip validado"]
+  style P stroke:#12a150,stroke-width:2px
+  style NP stroke:#e89a3c,stroke-width:2px
+            </pre>
+          </div>
+        </div>
+      </div>
+    </div>
+    <figcaption><b>Afirmação:</b> o E2E real fechou o círculo da didática — aula real gera desafios sem o erro do bug B1, e a resposta certa passa com feedback enquanto a errada reprova com dicas, tudo com chaves vindas do ambiente e nunca versionadas.</figcaption>
+  </figure>
+
+  <div class="grid g2">
+    <div class="ve-card">
+      <h3 style="margin-top:0">Resultados</h3>
+      <ul class="plain">
+        <li><b>E2E real</b> <code>npm run test:e2e:real</code>: <b>3 passed</b> (~8 min)</li>
+        <li><b>E2E mock</b> sem chaves: <b>15 passed</b> + 3 specs <code>real-*</code> <b>skipped</b></li>
+        <li><b>Unit</b>: 720 pass / 0 fail</li>
+      </ul>
+    </div>
+    <div class="ve-card">
+      <h3 style="margin-top:0">Segurança e flake</h3>
+      <ul class="plain">
+        <li>Chaves <b>nunca versionadas</b> (grep limpo)</li>
+        <li>Helpers isolam <code>userData</code> em TMP e apagam; <code>.gitignore .env.local</code></li>
+        <li>Geração real tem cauda pesada (2.5–9 min) e transientes “content vazio” → retry 1x + timeout 1.8M</li>
+        <li>Lock de sessão do runner (TTL 8h) pode pedir re-run</li>
+      </ul>
+    </div>
+  </div>
+
+  <p class="crit-callout">Caminho crítico</p>
+  <div class="crit">
+    <p>O ponto que prova a didática de verdade é o <b>ramo resposta→juiz</b>: certa → <b>PASSOU</b>
+    + feedback; errada → <b>NÃO PASSOU</b> + dicas. Isso é o que diferencia “a GUI funciona” de
+    “o tutor ensina certo”. O bug B1 ficou <b>provado</b> aqui: a aula real <code>list-challenges</code>
+    trouxe os desafios sem o erro “requer setupRoot”.</p>
+  </div>
+</section>
+
+<!-- ============================= TERMOS / METODO ============================= -->
+<section id="glossario">
+  <h2>Método de trabalho e glossário</h2>
+  <p class="sec-note">Como o repositório foi construído, e as buzzwords definidas na primeira
+    aparição — para quem não vive este vocabulário.</p>
+  <div class="grid g2">
+    <div class="ve-card">
+      <h3 style="margin-top:0">Arquitetura de entrega</h3>
+      <ul class="plain">
+        <li><b>worktree</b> — cópia de trabalho isolada do repositório (git worktree), sem tocar no checkout principal.</li>
+        <li><b>wave (onda)</b> — fatia paralela de trabalho dentro de uma rodada; a rodada 4 usou 4.</li>
+        <li><b>gate</b> — checagem obrigatória (build · lint · unit · E2E) que cada onda precisa passar antes de integrar.</li>
+        <li><b>squash-merge</b> — colapsa uma fila de commits da onda num único commit, mantendo a história limpa.</li>
+        <li><b>revisão adversarial</b> — um revisor crítico caça defeitos no trabalho de cada onda; os commits <code>fix1X*</code> fecham esses achados.</li>
+      </ul>
+    </div>
+    <div class="ve-card">
+      <h3 style="margin-top:0">Testes</h3>
+      <ul class="plain">
+        <li><b>unit</b> — testes por função/módulo (node:test + tsx); estado puro e determinístico.</li>
+        <li><b>E2E mock</b> — Playwright <code>_electron</code> controlando o app com stubs determinísticos, sem GPU/LLM/rede real; janela oculta via env.</li>
+        <li><b>E2E real</b> — mesma suíte, mas com chaves de verdade e rede real; exige <code>DEEPSEEK_API_KEY</code>/<code>BRAVE_API_KEY</code> no shell; <b>falha</b> se as chaves faltam.</li>
+        <li><b>jest/playwright</b> — ecossistema de testes JS: jest (assert/unit) e Playwright (navegação/aplicação Electron).</li>
+        <li><b>snapshot</b> — captura instantânea do estado da UI usada para avaliar passos do tutorial.</li>
+        <li><b>expectedAction</b> — ação que o tutorial espera ver num passo para considerar ele concluído.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ============================= DOBRADO ============================= -->
+<section id="dobrado">
+  <h2>Dobrado (para quem quer derivar o essencial)</h2>
+  <details>
+    <summary>E por que não houve retry no B2?</summary>
+    <div class="inner">
+      <p>A tentação era “pega o 400 e tenta de novo”. O diagnóstico provou <b>determinismo</b>: o
+      id <code>deepseek-v4-flash-0731</code> sempre devolve 400, então retry só repetiria o mesmo
+      erro e daria a sensação de progresso sem correção. A correção certa foi trocar para o id
+      válido <code>deepseek-v4-flash</code> e virar o erro em algo legível (<code>BAD_REQUEST</code>
+      / <code>EMPTY_CONTENT</code>). Retry é para falhas transitórias; causa-raiz fixa é para erro
+      determinístico.</p>
+    </div>
+  </details>
+  <details>
+    <summary>Por que o 400 caía no “sucesso” em código?</summary>
+    <div class="inner">
+      <p>O parser antigo só ramificava em “erro” para um conjunto fechado de status
+      (401/403/429/5xx). Qualquer outro código — inclusive o 400 — caía no <code>else</code>
+      default, que tratava a resposta como bem-sucedida e tentava ler <code>choices[0].message.content</code>.
+      Como a resposta de erro não tinha esse campo, o app produzia o erro enganoso em vez de
+      rejeitar a chamada logo no status code.</p>
+    </div>
+  </details>
+  <details>
+    <summary>Como o setupRoot deixou de “requerer” mas seguia preso em list-challenges?</summary>
+    <div class="inner">
+      <p><code>list-challenges</code> precisa da raiz de setup para achar os arquivos do desafio.
+      O <code>generateLesson</code> criava essa raiz, mas o valor não atravessava a fronteira
+      main⇄renderer enquanto o desafio era listado. O fix padrão do projeto — evento de progresso
+      <code>materializing</code> com <code>setupRoot</code>/<code>setupId</code> → gravação em
+      memória no main → estado compartilhado na UI via contexto — é o elo que faltava.</p>
+    </div>
+  </details>
+</section>
+
+<footer style="margin-top:48px;font-size:12px;color:var(--muted-foreground);border-top:1px solid var(--border);padding-top:16px">
+  <p>Explainer do fluxo <code>do/wt/electronjs</code> · orquestrador multi-agente ·
+  118 commits no total · gates verdes (build 0 · lint 0 · unit ~721 · E2E mock 15 + real 3).
+  <br>Chaves de API nunca inclusas neste documento. Modelo alvo: <code>deepseek-v4-flash</code>.
+  Data/versão deste conteúdo: <b>2026-08-23</b>.</p>
+  <p>Rodadas: <span class="pill">R1 base</span><span class="pill">R2 i18n+gate+voz</span>
+     <span class="pill">R3 tema+dracula+onboarding+janela oculta</span>
+     <span class="pill ok">R4 bugs · tutorial · UX · KaTeX · E2E real</span></p>
+</footer>
+
+</div><!-- /page -->
+
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+<script>
+(function(){
+  var colorScheme = getComputedStyle(document.documentElement).colorScheme;
+  var isDark = colorScheme === 'dark'
+    || (colorScheme === 'normal'
+      && window.matchMedia('(prefers-color-scheme: dark)').matches);
+  var v = isDark
+    ? { darkMode:true, primaryColor:'#1e242e', primaryTextColor:'#dadee5',
+        primaryBorderColor:'#343b45', lineColor:'#9da5b2', secondaryColor:'#1e242e',
+        secondaryTextColor:'#dadee5', tertiaryColor:'#1e242e', tertiaryTextColor:'#dadee5',
+        background:'#070b14' }
+    : { primaryColor:'#5537eb', primaryTextColor:'#ffffff', primaryBorderColor:'#d4d8de',
+        lineColor:'#414853', secondaryColor:'#e1e5eb', secondaryTextColor:'#414853',
+        tertiaryColor:'#e1e5eb', tertiaryTextColor:'#414853', background:'#f3f5f9' };
+  mermaid.initialize({
+    startOnLoad:false,
+    securityLevel:'loose',
+    theme:'base',
+    themeVariables:Object.assign({}, v, { fontFamily:"'Inter', system-ui, sans-serif", fontSize:'14px' })
+  });
+
+  // zoom/pan/expand controls attached to each .diagram-shell
+  document.querySelectorAll('.diagram-shell').forEach(function(shell){
+    var viewport = shell.querySelector('.mermaid-viewport');
+    var canvas = shell.querySelector('.mermaid-canvas');
+    var controls = shell.querySelector('[data-zoom]');
+    var scale = 1, tx = 0, ty = 0;
+    function apply(){ canvas.style.transform = 'translate('+tx+'px,'+ty+'px) scale('+scale+')';
+      canvas.style.transformOrigin = '0 0'; }
+    apply();
+    function zoomBy(f){ scale = Math.min(3, Math.max(.5, scale*f)); apply(); }
+    if(controls){
+      controls.querySelector('[data-zoom-out]').addEventListener('click', function(){zoomBy(.9);});
+      controls.querySelector('[data-zoom-in]').addEventListener('click', function(){zoomBy(1.15);});
+      controls.querySelector('[data-zoom-reset]').addEventListener('click', function(){scale=1;tx=0;ty=0;apply();});
+      controls.querySelector('[data-zoom-expand]').addEventListener('click', function(){
+        if(viewport.style.maxHeight){ viewport.style.maxHeight=null; viewport.style.maxHeight='none';
+          viewport.style.height='auto';
+        } else { viewport.style.maxHeight='520px'; }
+      });
+    }
+    var down=false, sx=0, sy=0, stx=0, sty=0;
+    viewport.addEventListener('mousedown', function(e){ down=true; sx=e.clientX; sy=e.clientY; stx=tx; sty=ty; });
+    window.addEventListener('mousemove', function(e){ if(!down) return; tx=stx+(e.clientX-sx); ty=sty+(e.clientY-sy); apply(); });
+    window.addEventListener('mouseup', function(){ down=false; });
+    viewport.addEventListener('wheel', function(e){
+      if(!e.ctrlKey && !e.metaKey) return; e.preventDefault();
+      zoomBy(e.deltaY < 0 ? 1.08 : .92);
+    }, {passive:false});
+  });
+
+  // relative links for the two-palette theme setting (only cosmetic)
+  async function render(){
+    try {
+      await mermaid.run({ querySelector:'.mermaid' });
+      document.querySelectorAll('.diagram-shell').forEach(function(shell){
+        var viewport = shell.querySelector('.mermaid-viewport');
+        viewport.style.maxHeight='none'; // let tall diagrams breathe once rendered
+      });
+    } catch(e){ console.error('mermaid', e); }
+  }
+  if(document.readyState === 'loading'){ document.addEventListener('DOMContentLoaded', render); }
+  else { render(); }
+})();
+</script>
+</body>
+</html>

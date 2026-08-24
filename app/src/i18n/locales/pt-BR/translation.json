@@ -1,0 +1,363 @@
+{
+  "nav": {
+    "home": "Início",
+    "settings": "Settings",
+    "lesson": "Aula",
+    "challenge": "Desafio"
+  },
+  "app": {
+    "title": "Study Method — Tutor",
+    "tagline": "Aprenda de verdade, com aulas geradas por IA e desafios práticos.",
+    "shellNav": "Navegação principal"
+  },
+  "theme": {
+    "mode": {
+      "toggle": "Tema",
+      "light": "Modo claro",
+      "dark": "Modo escuro",
+      "system": "Padrão do sistema"
+    }
+  },
+  "settings": {
+    "keysTitle": "Chaves de API",
+    "keysDescription": "Configure as chaves do DeepSeek (geração de aulas) e do Brave Search (pesquisa de fontes). Valide cada uma antes de usar.",
+    "localAiTitle": "LLM local",
+    "localAiDescription": "Detecção de hardware e modelos locais. Baixe um modelo, ative-o e selecione \"Modelo local\" no provedor de feedback para avaliar desafios sem depender da nuvem."
+  },
+  "keys": {
+    "deepseek": {
+      "label": "Chave DeepSeek",
+      "placeholder": "Cole sua chave DeepSeek"
+    },
+    "brave": {
+      "label": "Chave Brave Search",
+      "placeholder": "Cole sua chave Brave"
+    },
+    "validate": "Validar",
+    "validating": "Validando…",
+    "valid": "Válida",
+    "invalid": "Inválida",
+    "configured": "Configurada",
+    "notConfigured": "Não configurada",
+    "save": "Salvar",
+    "saved": "Salvo",
+    "show": "Mostrar chave",
+    "hide": "Ocultar chave",
+    "error401": "Erro 401: chave inválida ou sem permissão.",
+    "error429": "Erro 429: limite de requisições excedido. Tente novamente em instantes.",
+    "errorNetwork": "Erro de rede: não foi possível contatar o servidor.",
+    "needKeyBeforeValidate": "Digite a chave antes de validar.",
+    "errorNetworkValidate": "Erro de rede ao validar",
+    "needKeyBeforeSave": "Digite a chave antes de salvar.",
+    "saveError": "Falha ao salvar a chave."
+  },
+  "localAi": {
+    "title": "Modelo local",
+    "detect": "Detectar hardware",
+    "ram": "RAM",
+    "vram": "VRAM",
+    "cpu": "CPU",
+    "backend": "Backend",
+    "recommended": "Recomendado",
+    "active": "Ativo",
+    "download": "Baixar",
+    "downloaded": "Baixado",
+    "downloading": "Baixando…",
+    "use": "Usar",
+    "inUse": "Em uso",
+    "delete": "Excluir",
+    "feedbackProvider": "Provedor de feedback",
+    "feedbackProviderDeepseek": "DeepSeek (nuvem)",
+    "feedbackProviderLocal": "Modelo local",
+    "hintActive": "Este modelo está ativo e será o avaliador padrão.",
+    "errorSaveFeedback": "Falha ao salvar o provedor de feedback:",
+    "errorList": "Não foi possível listar os modelos:",
+    "errorDetect": "Falha ao detectar hardware:",
+    "errorDownload": "Falha ao iniciar download de",
+    "errorActivate": "Falha ao ativar",
+    "errorRemove": "Falha ao remover"
+  },
+  "lesson": {
+    "subjectLabel": "Assunto",
+    "subjectPlaceholder": "Sobre o que você quer aprender?",
+    "subjectHelper": "Programação e matemática — ex.: inverter uma árvore binária ou uma equação do 2º grau.",
+    "generate": "Gerar aula",
+    "generating": "Gerando aula…",
+    "phase": {
+      "research": "Pesquisando",
+      "authoring": "Escrevendo",
+      "materializing": "Materializando",
+      "validating": "Validando",
+      "done": "Concluído",
+      "error": "Erro"
+    },
+    "findings": "Fontes encontradas",
+    "challenges": "Desafios",
+    "challengesEmpty": "Nenhum desafio gerado ainda.",
+    "open": "Abrir",
+    "sources": "Fontes",
+    "statement": "Enunciado",
+    "sourcesEmpty": "Nenhuma fonte registrada.",
+    "warning": "Aviso:",
+    "invalidSubject": "Assunto inválido.",
+    "starting": "Iniciando…",
+    "failGenerate": "Falha ao gerar aula.",
+    "errorGenerate": "Erro ao gerar a aula"
+  },
+  "challenge": {
+    "openChallenge": "Abrir desafio",
+    "testAnswer": "Testar resposta",
+    "abort": "Abortar",
+    "output": "Saída",
+    "feedback": "Feedback",
+    "noChallengesYet": "Nenhum desafio disponível ainda.",
+    "keyHint": "Veja a dica da chave no enunciado.",
+    "providerLocal": "Modelo local",
+    "providerDeepseek": "DeepSeek",
+    "confirmDelete": "Apagar {{name}}?",
+    "noChallengesEmpty": "Nenhum desafio disponível. Gere uma aula primeiro na aba \"Aula\".",
+    "listError": "Não consegui listar os desafios",
+    "statementUnavailable": "Enunciado (README.md) indisponível.",
+    "workspaceLoadError": "Erro ao carregar o workspace",
+    "localModelError": "O modelo local não conseguiu avaliar",
+    "localModelHint": "Ative o modelo local em Configurações ou troque o provedor de feedback para DeepSeek e teste novamente.",
+    "piMissingKey": "Falha ao chamar o pi: chave DeepSeek ausente ou inválida. Abra as Configurações para cadastrar a chave.",
+    "piCallError": "Falha ao chamar o pi",
+    "piExecuteError": "Erro ao executar o pi",
+    "unknownError": "erro desconhecido",
+    "running": "rodando…",
+    "aborted": "abortado",
+    "thinking": "Raciocínio…",
+    "none": "Nenhum desafio",
+    "selectPrompt": "Selecione um desafio para começar.",
+    "statementLoading": "Carregando enunciado…",
+    "outputAria": "Saída dos testes",
+    "toolOk": "(ok)"
+  },
+  "gate": {
+    "checking": "Verificando configuração…",
+    "blocked": "Configuração pendente",
+    "missingKeys": "Faltam chaves de API para começar.",
+    "invalidKeys": "Algumas chaves são inválidas.",
+    "offline": "Sem conexão com a internet.",
+    "offlineTip": "Conecte-se à internet e tente novamente.",
+    "tryAgain": "Tentar novamente",
+    "title": "Antes de começar",
+    "readError": "Não foi possível consultar o estado das chaves de API. Verifique se o app iniciou corretamente e tente novamente."
+  },
+  "editor": {
+    "openFile": "Abrir arquivo",
+    "save": "Salvar",
+    "unsaved": "Alterações não salvas",
+    "newFile": "Novo arquivo",
+    "deleteFile": "Excluir arquivo",
+    "confirmDelete": "Apagar {{name}}?",
+    "refresh": "Atualizar",
+    "workspace": "Diretório de trabalho",
+    "openTabsAria": "Arquivos abertos",
+    "openError": "Não consegui abrir",
+    "saveError": "Falha ao salvar",
+    "createError": "Falha ao criar",
+    "deleteError": "Falha ao excluir",
+    "create": "Criar",
+    "opening": "Abrindo",
+    "selectFilePrompt": "Selecione um arquivo na árvore à esquerda para começar a editar.",
+    "workspaceEmpty": "Workspace vazio. Crie um arquivo.",
+    "editorAria": "Editor"
+  },
+  "terminal": {
+    "passed": "Passou",
+    "failed": "Falhou",
+    "timeout": "Tempo esgotado",
+    "countMismatch": "Contagem de testes divergente",
+    "infra": "Falha de infraestrutura"
+  },
+  "common": {
+    "cancel": "Cancelar",
+    "confirm": "Confirmar",
+    "error": "Erro",
+    "loading": "Carregando…",
+    "back": "Voltar",
+    "close": "Fechar"
+  },
+  "home": {
+    "title": "Aprenda programação e matemática com aulas geradas por IA",
+    "description": "Digite um assunto — como \"Inverter uma árvore binária\" ou \"Equações do 2º grau\" — e receba uma aula com explicação, analogia, visualização e desafios práticos validados por testes.",
+    "cta": {
+      "setup": "Configurar chaves",
+      "start": "Começar aula"
+    },
+    "steps": {
+      "configureKeys": {
+        "title": "Configure as chaves de IA",
+        "description": "Cadastre e valide as chaves do DeepSeek e do Brave Search em Configurações."
+      },
+      "subject": {
+        "title": "Digite o assunto",
+        "description": "Por exemplo: \"Inverter uma árvore binária\" ou \"Equações do 2º grau\"."
+      },
+      "learn": {
+        "title": "Aprenda e pratique com desafios",
+        "description": "Leia a aula, acompanhe as visualizações e resolva os desafios validados por testes."
+      }
+    },
+    "setup": {
+      "checking": "Verificando a configuração…",
+      "ready": "Pronto para começar",
+      "missing": "Chaves de IA pendentes",
+      "readyDescription": "Suas chaves DeepSeek e Brave Search estão configuradas. Escolha um assunto e comece.",
+      "missingDescription": "Configure as chaves DeepSeek e Brave Search para o app gerar aulas e pesquisar fontes.",
+      "deepseek": "DeepSeek",
+      "brave": "Brave Search",
+      "configured": "configurada",
+      "pending": "pendente"
+    },
+    "suggestions": {
+      "title": "Ideias para começar",
+      "domainProgramming": "Programação",
+      "domainMath": "Matemática",
+      "invertBinaryTree": "Inverter uma árvore binária",
+      "mergeSort": "Ordenação por intercalação (merge sort)",
+      "hashTables": "Tabelas hash na prática",
+      "quadraticEquations": "Equações do 2º grau",
+      "pythagoreanTheorem": "Teorema de Pitágoras"
+    }
+  },
+  "tutorial": {
+    "progress": {
+      "chapter": "Capítulo",
+      "step": "Passo"
+    },
+    "controls": {
+      "close": "Fechar tutorial",
+      "skip": "Pular",
+      "next": "Continuar",
+      "finish": "Concluir",
+      "skipTutorial": "Pular tutorial",
+      "finishTutorial": "Concluir tutorial"
+    },
+    "confirm": {
+      "skipMessage": "Pular o tutorial? Você pode reabri-lo depois pelo botão de ajuda.",
+      "closeMessage": "Fechar o tutorial? Você pode reabri-lo depois pelo botão de ajuda.",
+      "cancel": "Cancelar",
+      "skipConfirm": "Sim, pular",
+      "closeConfirm": "Sim, fechar"
+    },
+    "nav": {
+      "goToTab": "Vá para a aba:"
+    },
+    "chapter": {
+      "shell": "A interface",
+      "settings": "Configurações",
+      "lesson": "Aula",
+      "challenge": "Desafio"
+    },
+    "steps": {
+      "shellAppTitle": {
+        "title": "O Study Method",
+        "description": "Este é o tutor de programação. Crie aulas geradas por IA e resolva desafios práticos nas abas abaixo."
+      },
+      "shellThemeToggle": {
+        "title": "Tema claro/escuro",
+        "description": "Alterne entre os temas claro, escuro ou padrão do sistema pelo botão de tema na barra superior."
+      },
+      "shellLanguageSwitcher": {
+        "title": "Idioma",
+        "description": "Troque o idioma da interface entre Português e Inglês aqui. A preferência é salva automaticamente."
+      },
+      "shellNavTabs": {
+        "title": "Navegação",
+        "description": "Use as abas para navegar: Settings (configurações), Aula (geração de aula) e Desafio (prática)."
+      },
+      "settingsKeys": {
+        "title": "Chaves de API",
+        "description": "Em Configurações você cadastra e valida as chaves do DeepSeek (geração de aulas) e do Brave Search (fontes), além de gerenciar o modelo local."
+      },
+      "lessonSubject": {
+        "title": "Gerar uma aula",
+        "description": "Digite aqui o assunto que você quer aprender e clique em \"Gerar aula\" para pesquisar fontes e montar o material."
+      },
+      "challengeEditor": {
+        "title": "Editor de código",
+        "description": "Abra um desafio e escreva sua solução neste editor (CodeMirror), sem autocomplete — treine o código de memória."
+      },
+      "challengeTerminal": {
+        "title": "Saída dos testes",
+        "description": "O resultado dos testes determinísticos aparece neste terminal, com a resposta de aprovação ou detalhes da falha."
+      },
+      "challengeTestAnswer": {
+        "title": "Testar resposta",
+        "description": "Clique em \"Testar resposta\" para rodar os testes e receber feedback do avaliador sobre a sua solução."
+      },
+      "tourComplete": {
+        "title": "Você já sabe o básico!",
+        "description": "Navegue pelas abas para explorar. Você pode reabrir este tutorial a qualquer momento pelo botão de ajuda."
+      },
+      "settingsKeysFill": {
+        "description": "Preencha as chaves do DeepSeek e do Brave Search nesta seção. Elas usam a geração de aulas e a pesquisa de fontes."
+      },
+      "openSettings": {
+        "title": "Vá para Configurações",
+        "description": "Clique na aba Configurações para cadastrar suas chaves de API."
+      },
+      "openLesson": {
+        "title": "Vá para Aula",
+        "description": "Clique na aba Aula para gerar seu primeiro material de estudo."
+      },
+      "lessonSubjectFill": {
+        "description": "Digite o assunto que você quer estudar neste campo."
+      },
+      "lessonGenerate": {
+        "title": "Gerar a aula",
+        "description": "Clique em \"Gerar aula\" para pesquisar fontes e montar o material."
+      },
+      "openChallenge": {
+        "title": "Vá para Desafio",
+        "description": "Clique na aba Desafio para praticar com um exercício."
+      },
+      "challengeEditorType": {
+        "description": "Escreva sua solução neste editor de código (sem autocomplete)."
+      },
+      "quickStartComplete": {
+        "title": "Pronto!",
+        "description": "Você conhece o essencial. Recomece o tutorial a qualquer momento pelo botão de ajuda."
+      },
+      "qsOpenLesson": {
+        "description": "Navegue até a aba Aula para gerar um material de estudo."
+      },
+      "qsOpenChallenge": {
+        "description": "Navegue até a aba Desafio para praticar os desafios."
+      },
+      "qsChallengeTestAnswer": {
+        "description": "Ao resolver um desafio, clique em \"Testar resposta\" para validar."
+      }
+    },
+    "selection": {
+      "title": "Quer um tour?",
+      "subtitle": "Um breve tutorial apresenta a interface e mostra como gerar aulas e resolver desafios.",
+      "quickTourTitle": "Tour rápido",
+      "quickTourDescription": "Veja a barra superior, as abas e aprenda a gerar uma aula e testar uma solução.",
+      "badgeRecommended": "Recomendado",
+      "dismiss": "Agora não",
+      "quickStartTitle": "Quick Start",
+      "quickStartDescription": "Uma visão rápida das abas, sem exigir configurar chaves. Ideal para começar agora.",
+      "fullTutorialTitle": "Tutorial Completo",
+      "fullTutorialDescription": "Guia passo a passo por todas as abas: configure as chaves, gere uma aula e teste uma solução.",
+      "badgeFull": "Simplificado",
+      "requiresKeys": "Requer as chaves de API (DeepSeek + Brave).",
+      "openSettings": "Configurar chaves"
+    },
+    "status": {
+      "readyToContinue": "Pronto — pode continuar",
+      "waitingForAction": "Aguardando a ação…"
+    },
+    "audio": {
+      "mute": "Mutar narração",
+      "unmute": "Ouvir narração"
+    },
+    "helpHint": {
+      "title": "Digite qualquer dúvida",
+      "description": "Este é o campo de assunto da aula. Digite o tema que quer estudar e gere uma aula por IA."
+    }
+  }
+}

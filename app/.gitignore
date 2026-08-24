@@ -1,0 +1,10 @@
+# app/ — GUI Electron do study-method
+node_modules/
+out/
+dist/
+*.tsbuildinfo
+# artefatos do harness E2E (Playwright) — nunca versionar
+test-results/
+playwright-report/
+# chaves reais do harness E2E REAL — NUNCA versionar (o dev exporta no shell)
+.env.local

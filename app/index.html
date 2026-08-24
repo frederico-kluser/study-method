@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!--
+      Content-Security-Policy da GUI (aplicada também pelo webSecurity do
+      BrowserWindow em electron/main/index.ts — true por default; sem exception).
+
+      style-src 'unsafe-inline': o CodeMirror (@uiw/react-codemirror) e o xterm
+      (@xterm/xterm) injetam estilos via atributo `style` (highlight/gutter,
+      cursor, seleção, folhas dinâmicas). Sem 'unsafe-inline' o CSP bloqueia
+      essas marcações e editor/terminal perdem cor/posicionamento.
+
+      NÃO usamos 'unsafe-eval': o CodeMirror é compilado e não usa eval / new
+      Function (a extensão de autocomplete está desligada nesta onda). Todo o
+      tráfego de rede (DeepSeek, Pi, Brave, download de modelo local) roda no
+      PROCESSO MAIN (electron/main/services/*), não no renderer — por isso a
+      connect-src do renderer fica restrita a 'self' (dev server / file). Os
+      assets de build (out/renderer/assets/*) saem do próprio app.
+    -->
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self'"
+    />
+    <title>Study Method — Tutor</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
