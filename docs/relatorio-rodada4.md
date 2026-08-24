@@ -12,8 +12,8 @@ O conteúdo técnico detalhado de cada entrega vive em [`docs/rodada4.md`](rodad
 
 ## Como a execução rodou (onda a onda)
 
-A rodada 4 saiu de `32dbcd1` (fim da rodada 3 / `COMMIT-FINAL` da GUI, 3 rodadas) e terminou em
-`280c3df` (HEAD atual). Foram **10 squashs**, organizados em 4 ondas — cada uma com
+A rodada 4 saiu de `cd1fdfb` (fim da rodada 3 / `COMMIT-FINAL` da GUI, 3 rodadas) e terminou em
+`4c686e0` (HEAD atual). Foram **13 squash commits**, organizados em 4 ondas — cada uma com
 **construção + revisão adversarial**, e os achados da revisão fechados num `fixNx-review` no
 fim da própria onda (subwaves de teste/validação rodando junto da onda seguinte).
 
@@ -107,7 +107,7 @@ build + unit + E2E mock) foi confirmado no fim de cada onda e **verde no fechame
 
 | Métrica | fim Rodada 3 | fim Rodada 4 |
 |---|---|---|
-| Testes unitários (node:test) | **622** | **~721** (720 pass / 0 fail / 1 skipped) |
+| Testes unitários (node:test) | **622** | **721** (720 pass / 0 fail / 1 skipped) |
 | E2E **mock** | 11 testes | **15** testes (11 specs) |
 | E2E **real** | — | **+3** specs (`real-lesson`, `real-didactics`, `real-search`) |
 | Modelo DeepSeek | `deepseek-v4-flash-0731` (inválido) | **`deepseek-v4-flash`** (validado na API) |
@@ -167,7 +167,10 @@ build + unit + E2E mock) foi confirmado no fim de cada onda e **verde no fechame
 ## Referência — commits da rodada 4
 
 ```
-280c3df fix18a-review ...                  (HEAD)
+4c686e0 fix-seguranca                           (HEAD)
+cb353d5 COMMIT-FINAL EXPLAINER
+4a336ca onda19-closing docs
+280c3df fix18a-review
 f801c30 onda18-e2e-real
 b13dda0 fix17c-review
 27d8d1a onda17b-math
@@ -177,5 +180,5 @@ b13dda0 fix17c-review
 838c307 fix15c-review
 73f749f fix15-list-challenges
 3a087a7 fix15-deepseek-parse
-32dbcd1 onda14-closing  (fim da rodada 3 — ponto de partida)
+cd1fdfb COMMIT-FINAL (fim da rodada 3 — ponto de partida)
 ```
