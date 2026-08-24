@@ -30,10 +30,41 @@ npm run test:e2e  # Playwright `_electron` sobre o build (veja § E2E)
 npm run test:e2e:real  # Playwright `_electron` REAL — exige DEEPSEEK_API_KEY/BRAVE_API_KEY no shell (veja § E2E)
 ```
 
-> Os gates desta app (verdes antes de considerar concluído) são: `bash tools/t.sh tests` ·
-> `npm run lint` · `npm run build` · `npm run test:e2e` (11 specs mock, 15 testes verdes;
-> as 3 specs reais `real-*` — real-lesson, real-didactics, real-search — ficam `skipped`
-> sem as chaves e rodam via `npm run test:e2e:real` com `DEEPSEEK_API_KEY`/`BRAVE_API_KEY`).
+> Os gates desta app (verdes antes de considerar concluído) são: `bash tools/t.sh tests`
+> (**721 testes unitários: 720 pass / 0 fail** / 1 skipped) · `npm run lint` · `npm run build`
+> · `npm run test:e2e` (11 specs mock, **15 testes verdes**; as 3 specs reais `real-*` —
+> real-lesson, real-didactics, real-search — ficam `skipped` sem as chaves e rodam via
+> `npm run test:e2e:real` com `DEEPSEEK_API_KEY`/`BRAVE_API_KEY`).
+
+## Rodada 4 (ondas 15–18) — resumo
+
+A **quarta rodada** fechou os dois bugs da rodada 3, refez o onboarding fiel ao ondokai,
+refinou o tema escuro + Home, adicionou matemática KaTeX e entregou uma suíte E2E **real**. As
+sessões abaixo detalham cada parte; o relatório orquestrado (ondas, commits, gates, revisões)
+está em [`docs/relatorio-rodada4.md`](../docs/relatorio-rodada4.md):
+
+- **Bugs corrigidos:**
+  - **B1** — `list-challenges "requer setupRoot"`: o `setupRoot` agora **flui do
+    `generateLesson`** para o `list-challenges` (progresso `materializing` + memória
+    `lastSetupRoot` no handler + contexto `ChallengeNav`), provado na **API real** pelo
+    `real-lesson`.
+  - **B2** — "resposta sem `choices[0].message.content`": causa-raiz era o **id de modelo
+    `deepseek-v4-flash-0731` inexistente** (HTTP 400 caía no caminho de sucesso). Corrigido
+    para **`deepseek-v4-flash`** (validado na API) + erros claros `BAD_REQUEST`/`EMPTY_CONTENT`
+    e `parseChoiceResult` puro.
+- **Tutorial refeito fiel ao ondokai**: overlay `z-14000` (máscara 4 segmentos + spotlight +
+  bloqueio de clique), auto-avanço por `expectedAction`, **Tutorial Completo** (14 steps) +
+  **Quick Start** (6), modal com gate de chaves, first-run latch síncrono, hint pós-tutorial 1x,
+  narração TTS local, skip de alvo ausente, persistência/retomada.
+- **UX**: dark refinado por camadas de elevação (`#0f1115`/`#171c23`/`text.secondary` `#aeb6c2`
+  AA/divider/tertiary M3) + **Home guiada** (copy programação+matemática, 3 passos, CTA único
+  contextual, card de status real das chaves, chips de sugestão com pré-preenchimento) +
+  consistência de altura input/botão na `LessonView`.
+- **Matemática**: **KaTeX** (`katex@0.16`+`remark-math@6`+`rehype-katex@7`) nas aulas/desafios,
+  com **escape de `$` de moeda** antes do parse.
+- **E2E real**: suíte com as chaves do usuário (`npm run test:e2e:real`) — aula real (B1
+  provado), didática certa/errada com feedback do juiz, Brave round-trip; chaves **nunca**
+  versionadas (`.gitignore .env.local`).
 
 ## Fluxo principal (produto)
 
@@ -104,11 +135,24 @@ Variáveis de caminho/execução:
 - Teste de **wiring** dessa camada: `tests/i18n-wiring.test.ts` (sem jsdom, roda no
   `bash tools/t.sh tests`).
 
-## Tutorial / onboarding (onda 12 + montagem na 13)
+## Matemática (KaTeX) — onda 17B
 
-O **quick tour** é portado do app Ondokai e adaptado ao nosso escopo (4 abas):
+O markdown de aulas **e** desafios renderiza fórmulas matemáticas com **KaTeX**
+(`katex@0.16` + `remark-math@6` + `rehype-katex@7`, pipeline em `src/lib/lessonMarkdown.ts`);
+o CSS do KaTeX entra no bundle do renderer (`src/main.tsx`). Para não corromper copy com
+cifrão gerada por IA, `escapeLoneDollarSigns()` **escapa `$` de moeda** (`$5`, `$ 5`,
+`$1.000,00`) **antes** do parse, preservando delimitadores LaTeX válidos (`$x^2$`, `$$...$$`).
+Ver [`docs/rodada4.md`](../docs/rodada4.md) → Matemática.
+
+## Tutorial / onboarding (portado do Ondokai — onda 12+13; refeito fiel ao ondokai na onda 16)
+
+O **onboarding** é portado do app Ondokai e adaptado ao nosso escopo (4 abas):
 um **tutorial interativo** com **overlay com spotlight** no alvo destacado e um
-**modal** na primeira execução.
+**modal** na primeira execução. Na **onda 16** foi **refeito** com fidelidade ao
+ondokai: overlay `z-14000` com **máscara em 4 segmentos** + spotlight + **bloqueio de
+clique** fora deles, **auto-avanço** por `expectedAction` (~220ms), dois tours
+(**Tutorial Completo** de 14 steps / **Quick Start** de 6), e **narração por TTS local**
+(Piper) — ver detalhes em [`docs/rodada4.md`](../docs/rodada4.md).
 
 - **Host:** `OnboardingHost` (`src/features/onboarding/OnboardingHost.tsx`) é
   montado em `src/App.tsx` assim:
@@ -121,6 +165,26 @@ um **tutorial interativo** com **overlay com spotlight** no alvo destacado e um
   abre antes de o app estar liberado, nem em `offline`); `activeView` é a aba
   ativa do shell (usa a **dica de navegação** "vá para a aba X"). Sem
   `activeView`, steps cujo alvo está em outra aba são pulados.
+- **Auto-avanço por ação:** steps com `expectedAction` (8 ações discretas —
+  `open-settings`, `settings-keys-filled`, `open-lesson`, `fill-lesson-subject`,
+  `generate-lesson`, `open-challenge`, `type-in-editor`, `test-answer`) avançam sozinhos
+  quando a ação é satisfeita (`evaluateStepAction` **puro**, `tests/evaluateStepAction.test.ts`);
+  steps informativos usam "Continuar".
+- **Overlay fiel ao ondokai:** portal em `document.body` com **`z-index: 14000`**, máscara em
+  **4 segmentos** ao redor do spotlight, **bloqueio de clique** fora dele, `alternateTargetSelector`
+  e **posicionamento via RAF** (`OnboardingOverlay.tsx`).
+- **Modal de seleção com gate de chaves:** `TutorialSelectionModal` oferece Quick Start ou
+  Tutorial Completo; **sem as chaves** (DeepSeek + Brave) mostra um **CTA "Configurar chaves"**
+  que leva à aba Settings — o Tutorial Completo **exige chaves** (steps de aula/geração
+  dependem delas), o Quick Start pode seguir.
+- **First-run latch síncrono (StrictMode-safe):** a oferta da 1ª execução é marcada **antes**
+  de abrir (double-invoke de dev não dispara o modal duas vezes).
+- **Hint pós-tutorial (1x):** após concluir **ou pular** o tutorial, um mini-hint de 1 passo
+  aponta o **campo de assunto** na 1ª chegada à aba Aula.
+- **Narração TTS local:** gera a fala do passo com Piper em runtime (mute persistente;
+  ausência de modelo nunca é erro).
+- **Robustez:** skip de alvo ausente (não trava), **persistência/retomada** do progresso entre
+  reloads.
 - **Estados (persistidos):** `not_started | in_progress | completed | skipped`
   (`src/features/onboarding/types/onboarding.types.ts`).
 - **Storage (localStorage, `onboardingStorage.service.ts`):**
@@ -132,7 +196,8 @@ um **tutorial interativo** com **overlay com spotlight** no alvo destacado e um
 - **Reabertura:** `useOnboardingController().openFromHelp()` reabre o tutorial
   a partir do início (ex.: botão de ajuda).
 - Testes: `tests/onboarding*.test.ts` (node:test) + spec E2E
-  `tests/e2e/e2e-onboarding.spec.ts`.
+  `tests/e2e/e2e-onboarding.spec.ts` + `tests/e2e/more-flows.spec.ts` (Quick Start completo e
+  persistência).
 
 ## Logo (prompt p/ geração)
 
@@ -195,8 +260,11 @@ A fixture `tests/e2e/helpers.ts` injeta `STUDY_METHOD_WINDOW_VISIBLE=0`, então 
 app abre **oculto e não-focável** durante a suíte — os testes **não sobrepõem o
 seu desktop nem roubam o foco** (o main respeita a env na criação da janela;
 env ausente ⇒ janela visível/focável, comportamento normal). As **duas formas
-acima rodam as mesmas 11 specs mock** (o subconjunto `real-*` fica `skipped`
-sem chaves reais); não usamos `--headless` (modo não confirmado para `_electron`).
+acima rodam as mesmas 11 specs mock = 15 testes** (`e2e-gate` 2, `e2e-onboarding` 2,
+`more-flows` 3, demais 1; o subconjunto `real-*` fica `skipped` sem chaves reais); não usamos
+`--headless` (modo não confirmado para `_electron`). A spec `more-flows` cobre fluxos
+transversais: idioma+tema (pt→en→pt, claro→escuro→system persistindo juntos), **Quick Start
+completo (6 passos → `completed`)** e **persistência do tutorial entre reloads**.
 
 Envars de controle do stub (lidas pelo main em modo E2E): `E2E_GATE` (`blocked|invalid|offline|ready`),
 `E2E_KEYS=invalid`, `E2E_NETWORK=offline`, `E2E_WORKSPACE_ROOT` (raiz dos workspaces), e
@@ -266,7 +334,7 @@ app/
 │  │               theme (ThemeToggleButton + themeModeState)
 │  └─ lib/                     lógica pura (incl. draculaTheme.ts p/ editor⇄terminal)
 │                              + apiBridge (porta única para window.api)
-└─ tests/                      ~620+ testes (node:test, sem jsdom) + tests/e2e (Playwright)
+└─ tests/                      ~720+ testes (node:test, sem jsdom) + tests/e2e (Playwright)
 ```
 
 Três alvos de build (electron-vite): `main` (inclui os processos `llm-engine` e `asr-engine`), `preload` e
@@ -327,5 +395,12 @@ handler) está coberta por testes de wiring em `tests/study-wiring.test.ts`.
   `fatorial_recursivo` em python/js/rust/c e `FatorialRecursivo` em go). Se o modelo desviar,
   a validação rejeita.
 - **Persistência de seleção em Desafio** não é restaurada entre sessões (ver `docs/app-gui.md`).
+- **Geração real de aula é cauda pesada/flaky** — a geração de uma aula real (pesquisa +
+  autoria + validação com juiz LLM) leva 3-6min e pode falhar transitoriamente no DeepSeek
+  ("content vazio"/só `reasoning_content`); a geração é repetida 1× nos specs reais, mas o
+  corredor com chaves pode exigir re-run. **KaTeX/TTS dependem de o modelo gerar markdown
+  bem-formado** (delimitadores `$`/`$$` e texto de voz corretos); LaTeX mal formado degrada o
+  render visualmente. O **Tutorial Completo exige as duas chaves** configuradas (sem elas a UI
+  fica no gate de chaves do modal).
 
 Detalhes, arquitetura técnica e o manual pt-BR completo: [`docs/app-gui.md`](../docs/app-gui.md).
