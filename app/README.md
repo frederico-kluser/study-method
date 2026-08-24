@@ -31,7 +31,7 @@ npm run test:e2e:real  # Playwright `_electron` REAL — exige DEEPSEEK_API_KEY/
 ```
 
 > Os gates desta app (verdes antes de considerar concluído) são: `bash tools/t.sh tests`
-> (**721 testes unitários: 720 pass / 0 fail** / 1 skipped) · `npm run lint` · `npm run build`
+> (**729 testes unitários: 728 pass / 0 fail** / 1 skipped) · `npm run lint` · `npm run build`
 > · `npm run test:e2e` (11 specs mock, **15 testes verdes**; as 3 specs reais `real-*` —
 > real-lesson, real-didactics, real-search — ficam `skipped` sem as chaves e rodam via
 > `npm run test:e2e:real` com `DEEPSEEK_API_KEY`/`BRAVE_API_KEY`).
@@ -65,6 +65,28 @@ está em [`docs/relatorio-rodada4.md`](../docs/relatorio-rodada4.md):
 - **E2E real**: suíte com as chaves do usuário (`npm run test:e2e:real`) — aula real (B1
   provado), didática certa/errada com feedback do juiz, Brave round-trip; chaves **nunca**
   versionadas (`.gitignore .env.local`).
+
+## Rodada 5 (ondas 20a/20b + fix20c) — resumo
+
+A **quinta rodada** corrigiu dois bugs de UX do usuário e fechou um terceiro achado da revisão
+adversarial. O relatório orquestrado (ondas, commits, gates, revisões) está em
+[`docs/relatorio-rodada5.md`](../docs/relatorio-rodada5.md):
+
+- **Bug A — tutorial/modal centralizado (`onda20a`)** — o painel do onboarding **sem spotlight**
+  (steps informativos/conclusão) caía no **canto inferior-direito**; agora é um **card central**
+  com viés de 8% para cima + clamp no viewport
+  (`onboardingPositioning.utils.ts`, ramo `!spotlight`). Testes novos em
+  `tests/onboardingPositioning.test.ts`. Fechado pelo **fix20c-clamp**: o `top` nunca fica
+  negativo mesmo com painel mais alto que a viewport (`Math.max(margin, …)` no max do clamp).
+- **Bug B — dark Dracula de verdade (`onda20b`)** — o dark agora importa a paleta Dracula
+  canônica de `src/lib/draculaTheme.ts` (`#282a36` / `#2f3142` / `#f8f8f2` / `#44475a` /
+  `#bd93f9` / `#8be9fd`; a lib **não** foi tocada). O `AppBar` deixou de usar
+  `color="primary"` (nada de header azul `#4f8cff`): `color="default"` + `applyStyles`
+  (light = primary `#1565c0` intacto; dark = `background.paper` + borda `divider`). Contraste
+  WCAG 2.2 ≥ 4.5:1 **medido no teste** (text.primary 13.4:1, secondary 6.96:1, contrastText
+  6.78:1, tertiary 10.3:1, primary 5.9:1). Bootstrap da janela segue o bg Dracula `#282a36`.
+  Testes: `tests/theme.test.ts` (valores + contraste) e `tests/e2e/e2e-theme.spec.ts` (asserts
+  de cor dark/light reais).
 
 ## Fluxo principal (produto)
 
@@ -114,14 +136,18 @@ Variáveis de caminho/execução:
   sem valor salvo = `system` (segue o SO). **Anti-flash:** com `cssVariables:
   true` o MUI resolve o scheme de forma síncrona antes do 1º paint, e o
   bootstrap chama `primeColorSchemeClass()` no `<html>` antes do render. O
-  `primary` é `#4f8cff` em **dark** e `#1565c0` (WCAG AA) em **light**.
+  dark (onda 20B) é a paleta **Dracula** (`background.default` `#282a36`, `paper`
+  `#2f3142`, `primary` `#bd93f9`, `tertiary` `#8be9fd` e contraste AA medido); o
+  `primary` do **light** é `#1565c0` (WCAG AA). Detalhe em
+  `tests/theme.test.ts`.
   Lógica pura do ciclo/persistência em `src/components/theme/themeModeState.ts`.
 - **Dracula no editor e terminal (onda 11)** — o editor CodeMirror usa o tema
   real Dracula (`@uiw/codemirror-theme-dracula`) e o terminal xterm pinta a
   saída com a **mesma** paleta (`src/lib/draculaTheme.ts`, `DRACULA = { ... }`,
-  `truecolorForeground` para SGR `38;2`). A cor `accent` do terminal é o roxo
-  Dracula `#bd93f9`; o azul/ciano da UI é `#4f8cff`/`#8be9fd`. Editor e terminal
-  permanecem **Dracula escuro fixo** nos dois temas da shell.
+  `truecolorForeground` para SGR `38;2`). Na onda 20B o **dark da shell** passou
+  a importar a mesma paleta (bg `#282a36`, paper `#2f3142`, primary `#bd93f9`,
+  ciano `#8be9fd`) — o editor e o terminal permanecem **Dracula escuro fixo** nos
+  dois temas da shell.
 - **Componentes:** AppBar + Tabs (shell), Stepper (fases da aula), painéis/Select/Menu do
   Desafio e Settings. O CSS custom legado (`src/index.css`) ficou só para variáveis de tema
   + os placeholders (view Início) + os estilos de CodeMirror/xterm; as views reais usam MUI `sx`.
@@ -203,7 +229,7 @@ clique** fora deles, **auto-avanço** por `expectedAction` (~220ms), dois tours
 
 O **prompt-excelente** da logo do Study Method para o **Nano Banana 2** (fal.ai)
 vive em [`docs/nano-banana-2-logo-prompt.md`](../docs/nano-banana-2-logo-prompt.md):
-identidade visual (azul `#4f8cff` → ciano `#8be9fd`, fundo dark, Dracula `#bd93f9`),
+identidade visual (roxo Dracula `#bd93f9` → ciano `#8be9fd`, fundo dark `#282a36`),
 prompt pronto para colar (versão com placeholders + versão pronta com fundo dark),
 variantes (ícone / com wordmark / mono) e "como usar" (parâmetros na fal, o que
 ajustar e pós-processamento de fundo transparente). Não geramos a imagem — só o
