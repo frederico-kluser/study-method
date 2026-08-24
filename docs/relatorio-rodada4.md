@@ -129,9 +129,9 @@ build + unit + E2E mock) foi confirmado no fim de cada onda e **verde no fechame
 - Nos specs reais, o `userData` vai para um **TMP** (com as chaves em claro sem keyring) que é
   **apagado ao fim — inclusive em falha de launch** (fix18a). As chaves entram pelo canal IPC
   real sem tocar as settings do dev.
-- **Grep limpo no HEAD**: nenhuma chave real (`sk-a774…`/`BSAq…`) nos arquivos versionados —
-  só *placeholders* lacônicos (`sk-…`, `BSAq…`) em docs/scripts e valores de teste fictícios
-  (`sk-test…`).
+- **Grep limpo no HEAD**: nenhuma chave real nos arquivos versionados — só strings genéricas
+  `sk-…`/`BSAq-…` redigidas em prosa como *placeholders* lacônicos em docs/scripts e valores de
+  teste fictícios (`sk-test…`).
 
 ---
 
