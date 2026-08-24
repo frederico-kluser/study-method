@@ -24,9 +24,12 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { launchRealApp, closeRealApp, skipIfNoRealKeys, generateRealLesson, type RealApp } from './helpers-real';
 
-// Geração real: pesquisa + autoria + validação com juiz LLM podem levar minutos.
-// 2 tentativas de até 7min cada na geração (transientes do DeepSeek) + asserts.
-test.setTimeout(900_000);
+// CÁLCULO DO TIMEOUT (pior caso real):
+//   geração: até 2 tentativas × perAttemptMs 420s = 840s (14min);
+//   + validação com juiz LLM + asserts de render/lista/abertura do desafio.
+//   O teto de 30min (1.8×10⁶ ms) absorve a cauda lenta da rede/LLM sem matar
+//   o progresso real (o antigo 900s podia estourar na ponta lenta).
+test.setTimeout(1_800_000);
 
 let real: RealApp | undefined;
 let page: Page;

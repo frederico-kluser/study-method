@@ -93,53 +93,77 @@ export async function launchRealApp(opts: LaunchRealOpts = {}): Promise<RealApp>
 
   const userDataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'sm-real-user-'));
 
-  const env: Record<string, string> = {
-    ...(process.env as Record<string, string>),
-    STUDY_METHOD_WINDOW_VISIBLE: '0', // janela oculta (nada sobre o desktop)
-    ...(opts.setupsDir ? { STUDY_METHOD_SETUPS_DIR: opts.setupsDir } : {}),
-    ...opts.extraEnv,
-  };
-  // NUNCA seta STUDY_METHOD_E2E → fiação real.
+  // Se QUALQUER passo abaixo falhar (launch, janela, set de chaves, gate), o
+  // possível userDataDir com chaves em claro NÃO pode ficar órfão em /tmp —
+  // remove-o antes de propagar, para não vazar chaves no disco nem acumular lixo.
+  try {
+    const env: Record<string, string> = {
+      ...(process.env as Record<string, string>),
+      STUDY_METHOD_WINDOW_VISIBLE: '0', // janela oculta (nada sobre o desktop)
+      ...(opts.setupsDir ? { STUDY_METHOD_SETUPS_DIR: opts.setupsDir } : {}),
+      ...opts.extraEnv,
+    };
+    // NUNCA seta STUDY_METHOD_E2E → fiação real.
 
-  const app = await _electron.launch({
-    args: [MAIN_ENTRY, '--disable-gpu', `--user-data-dir=${userDataDir}`],
-    env,
-    cwd: APP_ROOT,
-  });
+    const app = await _electron.launch({
+      args: [MAIN_ENTRY, '--disable-gpu', `--user-data-dir=${userDataDir}`],
+      env,
+      cwd: APP_ROOT,
+    });
 
-  const page = await app.firstWindow();
-  await page.waitForSelector('#root, [data-testid]', { timeout: 60_000 });
+    const page = await app.firstWindow();
+    await page.waitForSelector('#root, [data-testid]', { timeout: 60_000 });
 
-  // Suprime o modal de tutorial de 1ª execução (a menos que `onboardingOffered:false`),
-  // idêntico ao comportamento do helper stub — o OnboardingHost bloquearia a UI.
-  if (opts.onboardingOffered !== false) {
-    await page.addInitScript((key: string) => {
-      try {
-        (globalThis as { localStorage?: Storage }).localStorage?.setItem(key, 'true');
-      } catch {
-        /* no-op defensivo */
-      }
-    }, ONBOARDING_OFFERED_KEY);
+    // Suprime o modal de tutorial de 1ª execução (a menos que `onboardingOffered:false`),
+    // idêntico ao comportamento do helper stub — o OnboardingHost bloquearia a UI.
+    if (opts.onboardingOffered !== false) {
+      await page.addInitScript((key: string) => {
+        try {
+          (globalThis as { localStorage?: Storage }).localStorage?.setItem(key, 'true');
+        } catch {
+          /* no-op defensivo */
+        }
+      }, ONBOARDING_OFFERED_KEY);
+      await page.reload();
+      await page.waitForSelector('#root, [data-testid]', { timeout: 60_000 });
+    }
+
+    // SetupView (sem chaves) — injeta as chaves reais SEQUENCIALMENTE (o setKey
+    // concorrente perde uma das chaves por race de leitura/escrita do store).
+    await expect(page.getByRole('heading', { name: 'Antes de começar' })).toBeVisible();
+    await page.evaluate((d) => (globalThis as any).api.keys.setKey('deepseek', d), keys.deepseek);
+    await page.evaluate((b) => (globalThis as any).api.keys.setKey('brave', b), keys.brave);
+
+    // Reload → AppGate relê o store e valida AMBAS de verdade (rede real).
     await page.reload();
     await page.waitForSelector('#root, [data-testid]', { timeout: 60_000 });
+
+    // Shell do app (gate 'ready'). Timeout generoso: validação real de rede.
+    const shell = page.getByRole('banner').getByText('Study Method — Tutor', { exact: false });
+    await expect(shell).toBeVisible({ timeout: 90_000 });
+    await expect(page.getByRole('tab', { name: 'Aula' })).toBeVisible({ timeout: 30_000 });
+
+    return { app, page, userDataDir, deepseekApiKey: keys.deepseek, braveApiKey: keys.brave };
+  } catch (err) {
+    // Lanço falhou → limpa o perfil isolado (nada de chaves em claro no disco).
+    try {
+      fs.rmSync(userDataDir, { recursive: true, force: true });
+    } catch {
+      /* tmp já removido — no-op */
+    }
+    // Se um setupsDir tmp foi passado (as specs criam um com mkdtemp) e o launch
+    // fracassou, o diretório fica órfão — remove-o também para não deixar lixo.
+    // Só toca em dirs SOB os.tmpdir() (nunca um setups dir do usuário).
+    const setupsDir = opts.setupsDir;
+    if (setupsDir && path.dirname(setupsDir) === os.tmpdir()) {
+      try {
+        fs.rmSync(setupsDir, { recursive: true, force: true });
+      } catch {
+        /* tmp já removido — no-op */
+      }
+    }
+    throw err;
   }
-
-  // SetupView (sem chaves) — injeta as chaves reais SEQUENCIALMENTE (o setKey
-  // concorrente perde uma das chaves por race de leitura/escrita do store).
-  await expect(page.getByRole('heading', { name: 'Antes de começar' })).toBeVisible();
-  await page.evaluate((d) => (globalThis as any).api.keys.setKey('deepseek', d), keys.deepseek);
-  await page.evaluate((b) => (globalThis as any).api.keys.setKey('brave', b), keys.brave);
-
-  // Reload → AppGate relê o store e valida AMBAS de verdade (rede real).
-  await page.reload();
-  await page.waitForSelector('#root, [data-testid]', { timeout: 60_000 });
-
-  // Shell do app (gate 'ready'). Timeout generoso: validação real de rede.
-  const shell = page.getByRole('banner').getByText('Study Method — Tutor', { exact: false });
-  await expect(shell).toBeVisible({ timeout: 90_000 });
-  await expect(page.getByRole('tab', { name: 'Aula' })).toBeVisible({ timeout: 30_000 });
-
-  return { app, page, userDataDir, deepseekApiKey: keys.deepseek, braveApiKey: keys.brave };
 }
 
 /** Fecha o app e remove o perfil tmp (que pode conter as chaves em claro). */

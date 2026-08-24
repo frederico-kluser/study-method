@@ -31,8 +31,9 @@ npm run test:e2e:real  # Playwright `_electron` REAL — exige DEEPSEEK_API_KEY/
 ```
 
 > Os gates desta app (verdes antes de considerar concluído) são: `bash tools/t.sh tests` ·
-> `npm run lint` · `npm run build` · `npm run test:e2e` (13 specs, 15 testes verdes; as 3
-> specs reais `real-*` ficam skipped sem as chaves).
+> `npm run lint` · `npm run build` · `npm run test:e2e` (11 specs mock, 15 testes verdes;
+> as 3 specs reais `real-*` — real-lesson, real-didactics, real-search — ficam `skipped`
+> sem as chaves e rodam via `npm run test:e2e:real` com `DEEPSEEK_API_KEY`/`BRAVE_API_KEY`).
 
 ## Fluxo principal (produto)
 
@@ -194,7 +195,7 @@ A fixture `tests/e2e/helpers.ts` injeta `STUDY_METHOD_WINDOW_VISIBLE=0`, então 
 app abre **oculto e não-focável** durante a suíte — os testes **não sobrepõem o
 seu desktop nem roubam o foco** (o main respeita a env na criação da janela;
 env ausente ⇒ janela visível/focável, comportamento normal). As **duas formas
-acima rodam as mesmas 13 specs mock** (o subconjunto `real-*` fica `skipped`
+acima rodam as mesmas 11 specs mock** (o subconjunto `real-*` fica `skipped`
 sem chaves reais); não usamos `--headless` (modo não confirmado para `_electron`).
 
 Envars de controle do stub (lidas pelo main em modo E2E): `E2E_GATE` (`blocked|invalid|offline|ready`),

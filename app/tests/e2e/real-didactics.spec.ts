@@ -24,8 +24,13 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { launchRealApp, closeRealApp, skipIfNoRealKeys, generateRealLesson, type RealApp } from './helpers-real';
 
-// Geração real (2 tentativas de até 7min) + 2 avaliações DeepSeek (feedback).
-test.setTimeout(900_000);
+// CÁLCULO DO TIMEOUT (pior caso real):
+//   geração: até 2 tentativas × perAttemptMs 420s = 840s (14min);
+//   + 2 avaliações didáticas DeepSeek (feedback certa + errada) ≈ até ~5min;
+//   + vereditos/asserts do runner e latência de rede/LLM.
+//   840s + ~2×150s avaliações + folga ≈ 25min. O teto de 30min (1.8×10⁶ ms)
+//   absorve a cauda lenta e o retry 1x sem matar progresso real.
+test.setTimeout(1_800_000);
 
 let real: RealApp | undefined;
 let page: Page;

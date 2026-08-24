@@ -33,7 +33,7 @@ Sem display (CI sem X/GPU), rode via `xvfb-run`:
 xvfb-run -a npm run test:e2e
 ```
 
-**Duas formas, mesmas 13 specs mock (`real-*` ficam skipped sem chaves reais):**
+**Duas formas, mesmas 11 specs mock (`real-*` ficam skipped sem chaves reais):**
 - **Desktop com display (dev):** `npm run test:e2e` — a env injetada pela fixture
   já mantém a janela oculta; nada aparece sobre o seu desktop.
 - **CI/sem display:** `xvfb-run -a npm run test:e2e` — o X virtual serve de
@@ -73,7 +73,10 @@ que a fixture injeta por padrão e que não devem ser desligadas em massa:
 - `e2e-i18n.spec.ts` — default pt-BR e troca de idioma (localStorage gravado).
 - `more-flows.spec.ts` — UB3: idioma pt→en→pt reflete no Home/aula; tema claro→escuro→system persiste junto; onboarding first-run com o Quick Start COMPLETO (6 passos → `completed`); persistência do progresso do tutorial entre reloads.
 
-> **13 specs, 15 testes** rodam em modo stub determinístico com a janela oculta.
+> **11 specs mock, 15 testes** rodam em modo stub determinístico com a janela oculta
+> (11 arquivos `*.spec.ts`; `e2e-gate` tem 2 testes, `e2e-onboarding` 2 e `more-flows`
+> 3, os demais 1). Somam-se as **3 specs reais** (`real-lesson`, `real-didactics`,
+> `real-search`), que rodam via `npm run test:e2e:real` com as chaves no shell.
 > Estes arquivos são `*.spec.ts` (Playwright), **fora** do glob
 > `tests/**/*.test.ts` usado por `bash tools/t.sh tests` — a suíte unitária
 > não é afetada nem a EMPTY-GLOB GUARD se engana.
@@ -120,8 +123,11 @@ npm run test:e2e:real
   do dev; ao fim o TMP (que pode conter as chaves em claro sem keyring) é apagado.
 - **Tempos realistas:** a geração de uma aula real (pesquisa + autoria + validação
   com juiz LLM) costuma levar **3-6min** e pode variar/estourar com a latência da
-  rede/LLM — os specs usam `test.setTimeout` generoso (600s em `real-lesson`,
-  700s em `real-didactics`) e documentam essa instabilidade inerente.
+  rede/LLM — a geração usa até 2 tentativas de `perAttemptMs` 420s, mais até
+  2 avaliações didáticas (`real-didactics`), então os specs usam
+  `test.setTimeout` gen­eroso: **1 800 000 ms = 30min** em `real-lesson` e
+  `real-didactics` (teto que cobre o pior caso ≈25min e absorve a cauda lenta),
+  e 120s em `real-search` (só round-trip, sem geração).
 - ``.env.local`` (gitignored em ``app/``) existe como alternativa a exportar no
   shell — mas o `tools/run-e2e-real.sh` não o lê; prefira exportar as chaves no
   shell do teste conforme as instruções de segurança do orquestrador.

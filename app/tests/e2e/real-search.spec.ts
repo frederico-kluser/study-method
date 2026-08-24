@@ -62,6 +62,9 @@ test('real-search: chave Brave REAL validada contra a API (round-trip); status r
   };
   expect(status.braveConfigured).toBe(true);
   expect(status.deepseekConfigured).toBe(true);
+  // A validação real (`validate-brave`) também gravou `braveValidated:true` no
+  // settingsStore isolado — não basta configured: a chave foi reaprovada de fato.
+  expect(status.braveValidated).toBe(true);
 
-  console.log('REAL_SEARCH_OK: Brave real validada (round-trip) e status reflete chaves configuradas');
+  console.log('REAL_SEARCH_OK: Brave real validada (round-trip) e status reflete configurada+validada');
 });
