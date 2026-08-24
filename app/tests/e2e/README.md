@@ -33,7 +33,7 @@ Sem display (CI sem X/GPU), rode via `xvfb-run`:
 xvfb-run -a npm run test:e2e
 ```
 
-**Duas formas, mesmas 10 specs:**
+**Duas formas, mesmas 13 specs mock (`real-*` ficam skipped sem chaves reais):**
 - **Desktop com display (dev):** `npm run test:e2e` — a env injetada pela fixture
   já mantém a janela oculta; nada aparece sobre o seu desktop.
 - **CI/sem display:** `xvfb-run -a npm run test:e2e` — o X virtual serve de
@@ -71,8 +71,57 @@ que a fixture injeta por padrão e que não devem ser desligadas em massa:
 - `e2e-offline.spec.ts` — banner offline com chaves ok + rede fora.
 - `e2e-dracula.spec.ts` — tema Dracula no editor CodeMirror (`.cm-editor` fundo `#282a36`) e no terminal.
 - `e2e-i18n.spec.ts` — default pt-BR e troca de idioma (localStorage gravado).
+- `more-flows.spec.ts` — UB3: idioma pt→en→pt reflete no Home/aula; tema claro→escuro→system persiste junto; onboarding first-run com o Quick Start COMPLETO (6 passos → `completed`); persistência do progresso do tutorial entre reloads.
 
-> **10 specs, 11 testes** rodam em modo stub determinístico com a janela oculta.
+> **13 specs, 15 testes** rodam em modo stub determinístico com a janela oculta.
 > Estes arquivos são `*.spec.ts` (Playwright), **fora** do glob
 > `tests/**/*.test.ts` usado por `bash tools/t.sh tests` — a suíte unitária
-> (550+) não é afetada nem a EMPTY-GLOB GUARD se engana.
+> não é afetada nem a EMPTY-GLOB GUARD se engana.
+
+## E2E REAL (`real-*.spec.ts`) — didática com as CHAVES REAIS do usuário
+
+A onda 18 acrescenta um subconjunto **REAL**: o app é lançado **SEM**
+`STUDY_METHOD_E2E` (a fiação real da onda 3 flui: pesquisa Brave + autoria
+DeepSeek + runner/juiz de verdade) e as chaves reais entram por envars. São os
+specs que validam a **didática de fato**:
+
+- `real-search.spec.ts` — round-trip real com o Brave (`keys:validate-brave` com
+  a chave real ⇒ `isValid:true`) + `get-status` refletindo `braveValidated`. As
+  **fontes** da pesquisa real (findings com URLs externas) são cobertas dentro do
+  `real-lesson` (o app não expõe um canal IPC de busca direta de referências).
+- `real-lesson.spec.ts` — gera UMA aula REAL ("Inverter uma árvore binária"):
+  publica markdown real (título + seções + código) e os **desafios LISTAM**
+  (regressão B1: list-challenges não falha com "requer setupRoot") e abrem.
+- `real-didactics.spec.ts` — didática CERTA/ERRADA: no MESMO desafio real, uma
+  resposta CORRETA (solução de referência escrita no stub) → veredito `PASSOU` +
+  feedback didático do DeepSeek na UI; e uma resposta ERRADA/parcial (stub vazio)
+  → veredito `NÃO PASSOU` + feedback didático com dicas.
+
+### Como rodar a suíte real
+
+```bash
+# 1. Build de release (obrigatório — o harness roda sobre out/, como o mock):
+npm run build
+
+# 2. Exporte as chaves reais NO SHELL (NUNCA em arquivo versionado):
+export DEEPSEEK_API_KEY=sk-...
+export BRAVE_API_KEY=BSAq...
+
+# 3. Rode só os specs reais (falha com mensagem se faltar alguma env):
+npm run test:e2e:real
+```
+
+- O script `tools/run-e2e-real.sh` **falha com mensagem clara** quando
+  `DEEPSEEK_API_KEY`/`BRAVE_API_KEY` não estão exportadas — nunca grava as chaves.
+- As specs reais fazem `test.skip` (reason claro) quando as chaves faltam, então a
+  suíte mock `npm run test:e2e` **segue verde** sem chaves (`real-*` aparecem como skipped).
+- **Segurança:** o `userData` do app é redirecionado a um TMP (`--user-data-dir`) e
+  as chaves entram pelo canal IPC real (`keys:set-key`) SEM tocar as settings reais
+  do dev; ao fim o TMP (que pode conter as chaves em claro sem keyring) é apagado.
+- **Tempos realistas:** a geração de uma aula real (pesquisa + autoria + validação
+  com juiz LLM) costuma levar **3-6min** e pode variar/estourar com a latência da
+  rede/LLM — os specs usam `test.setTimeout` generoso (600s em `real-lesson`,
+  700s em `real-didactics`) e documentam essa instabilidade inerente.
+- ``.env.local`` (gitignored em ``app/``) existe como alternativa a exportar no
+  shell — mas o `tools/run-e2e-real.sh` não o lê; prefira exportar as chaves no
+  shell do teste conforme as instruções de segurança do orquestrador.

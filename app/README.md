@@ -27,10 +27,12 @@ npm run build   # main + preload + renderer em out/
 npm run lint    # tsc --noEmit (tsconfig.json + tsconfig.node.json)
 npm test        # bash tools/t.sh tests — node:test + tsx (suite completa)
 npm run test:e2e  # Playwright `_electron` sobre o build (veja § E2E)
+npm run test:e2e:real  # Playwright `_electron` REAL — exige DEEPSEEK_API_KEY/BRAVE_API_KEY no shell (veja § E2E)
 ```
 
 > Os gates desta app (verdes antes de considerar concluído) são: `bash tools/t.sh tests` ·
-> `npm run lint` · `npm run build` · `npm run test:e2e` (10 specs, 11 testes verdes).
+> `npm run lint` · `npm run build` · `npm run test:e2e` (13 specs, 15 testes verdes; as 3
+> specs reais `real-*` ficam skipped sem as chaves).
 
 ## Fluxo principal (produto)
 
@@ -192,14 +194,31 @@ A fixture `tests/e2e/helpers.ts` injeta `STUDY_METHOD_WINDOW_VISIBLE=0`, então 
 app abre **oculto e não-focável** durante a suíte — os testes **não sobrepõem o
 seu desktop nem roubam o foco** (o main respeita a env na criação da janela;
 env ausente ⇒ janela visível/focável, comportamento normal). As **duas formas
-acima rodam as mesmas 10 specs**; não usamos `--headless` (modo não confirmado
-para `_electron`).
+acima rodam as mesmas 13 specs mock** (o subconjunto `real-*` fica `skipped`
+sem chaves reais); não usamos `--headless` (modo não confirmado para `_electron`).
 
 Envars de controle do stub (lidas pelo main em modo E2E): `E2E_GATE` (`blocked|invalid|offline|ready`),
 `E2E_KEYS=invalid`, `E2E_NETWORK=offline`, `E2E_WORKSPACE_ROOT` (raiz dos workspaces), e
 `E2E_ONBOARDING=1` (deixa a oferta de 1ª execução do tutorial disparar — usada pela spec de
 onboarding; por padrão a fixture pré-marca a oferta como mostrada para não bloquear a UI das
 demais specs, já que o OnboardingHost está montado). Detalhes em `tests/e2e/README.md`.
+
+### Suíte E2E REAL (`real-*`) — didática com as chaves reais
+
+Onda 18: `real-search`, `real-lesson` e `real-didactics` lançam o app **sem** o stub
+(`STUDY_METHOD_E2E` ausente) para validar a didática de fato — pesquisa Brave, aula
+real e a avaliação certa/errada do aluno por DeepSeek. As chaves reais entram por
+envars do shell e o `userData` é isolado em tmp (apagado no fim).
+
+```bash
+export DEEPSEEK_API_KEY=sk-…
+export BRAVE_API_KEY=BSAq…
+npm run test:e2e:real        # falha com msg clara se faltar alguma env
+```
+
+A geração de uma aula real (pesquisa + autoria + validação com juiz LLM) costuma
+levar 3-6min e pode falhar transitoriamente no DeepSeek — `real-lesson`/`real-didactics`
+repetem a geração 1× nesse caso. Sem chaves, essas specs fazem `test.skip`.
 
 ## LLM local
 

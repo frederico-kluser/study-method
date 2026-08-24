@@ -12,6 +12,7 @@
     "lint": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.node.json",
     "test": "bash tools/t.sh tests",
     "test:e2e": "playwright test",
+    "test:e2e:real": "bash tools/run-e2e-real.sh",
     "clean": "rm -rf out dist"
   },
   "dependencies": {
