@@ -168,7 +168,10 @@ function createWindow(): void {
     // Não-focável/oculta com STUDY_METHOD_WINDOW_VISIBLE='0' (harness E2E) —
     // evita roubar foco do usuário durante os testes. Default (env ausente) = focável.
     focusable: windowVisible,
-    backgroundColor: '#0f1115',
+    // Cor de bootstrap da janela antes do primeiro paint (janela nasce oculta e
+    // só revela no ready-to-show). Onda 20B: segue o fundo DARK Dracula
+    // (#282a36 — background.default do tema; ver src/theme.ts).
+    backgroundColor: '#282a36',
     autoHideMenuBar: true,
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),

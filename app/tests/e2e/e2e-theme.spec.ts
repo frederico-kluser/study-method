@@ -39,14 +39,26 @@ test('e2e-theme: toggle → classe .light/.dark no <html> + localStorage theme-m
   expect(await storedMode()).toBeNull();
 
   // 1º clique: system → light → .light no <html> e 'light' no localStorage.
+  // Onda 20B: LIGHT INTACTO — o header continua primary azul (#1565c0 →
+  // rgb(21,101,192)) e o body usa o background.default claro do MUI (branco).
   await toggle.click();
   await expect(html).toHaveClass(/light/);
   expect(await storedMode()).toBe('light');
+  await expect(page.getByRole('banner')).toHaveCSS('background-color', 'rgb(21, 101, 192)');
+  await expect(page.locator('body')).toHaveCSS('background-color', 'rgb(255, 255, 255)');
 
-  // 2º clique: light → dark → .dark.
+  // 2º clique: light → dark → .dark. Onda 20B (dark Dracula): o header NÃO é
+  // mais primary (nada de azul/roxo) — vira superfície Dracula
+  // (background.paper #2f3142 → rgb(47,49,66) + borda divider #44475a →
+  // rgb(68,71,90)); o body usa o fundo Dracula canônico background.default
+  // #282a36 (rgb(40,42,54)).
   await toggle.click();
   await expect(html).toHaveClass(/dark/);
   expect(await storedMode()).toBe('dark');
+  const banner = page.getByRole('banner');
+  await expect(banner).toHaveCSS('background-color', 'rgb(47, 49, 66)');
+  await expect(banner).toHaveCSS('border-bottom-color', 'rgb(68, 71, 90)');
+  await expect(page.locator('body')).toHaveCSS('background-color', 'rgb(40, 42, 54)');
 
   // 3º clique: dark → system → volta a ter exatamente um de light/dark (segue o SO).
   await toggle.click();

@@ -63,7 +63,28 @@ function Shell({
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-      <AppBar position="static" color="primary" enableColorOnDark>
+      {/* Onda 20B — header por scheme (Regra 4: applyStyles, nunca palette.mode):
+          LIGHT mantém o primary azul (#1565c0 + contrastText) de sempre; DARK
+          NÃO usa color="primary" (nada de header azul/roxo) — o header vira
+          superfície Dracula: background.paper + borda divider (text.primary). */}
+      <AppBar
+        position="static"
+        color="default"
+        sx={[
+          (theme) =>
+            theme.applyStyles('light', {
+              bgcolor: 'primary.main',
+              color: 'primary.contrastText',
+            }),
+          (theme) =>
+            theme.applyStyles('dark', {
+              bgcolor: 'background.paper',
+              color: 'text.primary',
+              borderBottom: 1,
+              borderColor: 'divider',
+            }),
+        ]}
+      >
         <Toolbar sx={{ gap: 1 }}>
           <Typography
             variant="h6"

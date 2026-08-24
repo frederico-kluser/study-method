@@ -38,6 +38,7 @@
  *   coerência (Button/Card/TextField/Paper) — ver bloco `components`.
  */
 import { createTheme, type PaletteColor, type PaletteColorOptions } from '@mui/material/styles';
+import { DRACULA } from './lib/draculaTheme';
 
 /**
  * Onda 17A — `tertiary` como cor de paleta do Material 3 (acento de contraste
@@ -56,13 +57,6 @@ declare module '@mui/material/styles' {
 }
 
 /**
- * Cor primária herdada do tema custom antigo (accent #4f8cff). Úsada no scheme
- * DARK: sobre superfícies escuras (#121212) o #4f8cff tem contraste suficiente
- * (texto claro/luminoso em primary é legível sobre o fundo escuro do app).
- */
-const PRIMARY_MAIN = '#4f8cff';
-
-/**
  * Cor primária do scheme LIGHT. #4f8cff sobre fundo claro cai pra ~3.2:1 (texto
  * branco em botão primary), abaixo do 4.5:1 do WCAG AA. Para o modo claro
  * escolhemos um azul mais escuro e legível: #1565c0 (blue[800]) ≈ 5.7:1 com
@@ -72,34 +66,44 @@ const PRIMARY_MAIN = '#4f8cff';
 const LIGHT_PRIMARY_MAIN = '#1565c0';
 
 /**
- * Onda 17A — REFINO DO DARK (UX notes: "dark theme ficou ruim").
+ * Onda 20B — DARK MODE DRACULA (feedback: "o Header todo azul não ficou bom no
+ * darkmode").
  *
- * Dark NÃO é inverter o light: escuridão por camadas de ELEVAÇÃO. Aqui o scheme
- * dark recebe uma paleta explícita de superfícies (background.default < paper)
- * e um `text.secondary` com contraste AA (4.5:1) sobre AMBAS as camadas.
- * `divider` visível para bordas `outlined` e separadores; `tertiary` serve de
- * acento de contraste sobre fundo escuro (M3 spare palette), usado no card de
- * status e destaques da Home. O primary #4f8cff sobre as superfícies novas
- * mantém contraste suficiente para interações.
+ * O scheme dark vira a paleta Dracula canônica, IMPORTADA de
+ * `src/lib/draculaTheme.ts` (a MESMA do editor CodeMirror e do terminal — sem
+ * duplicar hex; o contrato da lib NÃO muda). O AppBar deixa de usar
+ * `color="primary"` no dark (nada de header azul): vira superfície Dracula
+ * (`background.paper` + `divider`) — ver src/App.tsx. Light permanece INTACTO.
  *
- * Light permanece como estava (NÃO invertido) — só ganha `tertiary` para que a
- * mesma chave de cor exista nos dois schemes e o `t` de acento seja portável.
+ * Decisões medidas (WCAG 2.2 — contraste calculado e assertado em
+ * tests/theme.test.ts, função de contraste local):
+ *   - background.default = DRACULA.background #282a36 (fundo canônico);
+ *   - background.paper   = #2f3142 — ELEVAÇÃO LEVE sobre o fundo (1.11:1 vs bg),
+ *     entre o fundo e o currentLine #44475a. Evitamos o #44475a como paper
+ *     (vira "excesso de elevação" e derruba o contraste do secondary p/ 1.94:1);
+ *   - text.primary   = DRACULA.foreground #f8f8f2 (13.4:1 sobre o bg);
+ *   - text.secondary = #aeb6c2 — o comment canônico #6272a4 cai a 3.03:1 sobre
+ *     #282a36 (abaixo do AA 4.5:1), então usamos cinza-claro frio legível:
+ *     6.96:1 sobre bg e 6.27:1 sobre paper;
+ *   - divider = #44475a (Dracula currentLine) — borda 1px visível (1.56:1);
+ *   - primary.main = DRACULA.purple #bd93f9 (accent canônico; 5.9:1 sobre bg);
+ *     primary.contrastText = #1e1f29 — texto escuro legível (6.78:1 sobre o
+ *     roxo; o branco canônico cairia a 2.26:1);
+ *   - tertiary.main = DRACULA.cyan #8be9fd (acento M3 de contraste — 10.3:1).
  */
 
-/** Texto secundário do DARK com contraste WCAG AA (≥4.5:1) sobre as superfícies. */
+/** Borda/divider 1px do dark — Dracula currentLine. Não vive no objeto DRACULA
+ *  exportado (contrato do editor/terminal não muda); declarado aqui. */
+const DARK_DIVIDER = '#44475a';
+
+/** text.secondary do dark — ver decisão medida acima (comment falha AA 4.5:1). */
 const DARK_TEXT_SECONDARY = '#aeb6c2';
 
-/** Divider/borda 1px visível no dark (sem virar linha apagada). */
-const DARK_DIVIDER = '#2b313c';
+/** Superfície de camada 2 (cards/papers/AppBar) — elevação Dracula sutil. */
+const DARK_BACKGROUND_PAPER = '#2f3142';
 
-/** Superfície de camada 1 (app/background) — casa com o body do index.css. */
-const DARK_BACKGROUND_DEFAULT = '#0f1115';
-
-/** Superfície de camada 2 (cards/papers/sheets) — levemente mais clara. */
-const DARK_BACKGROUND_PAPER = '#171c23';
-
-/** Acento terciário (M3) legível sobre fundo escuro — destaques da Home. */
-const DARK_TERTIARY_MAIN = '#b8a6ff';
+/** contrastText do primary dark (roxo #bd93f9) — texto escuro legível (6.78:1). */
+const DARK_PRIMARY_CONTRAST_TEXT = '#1e1f29';
 
 /** Acento terciário do LIGHT — acompanha o primary escuro legível. */
 const LIGHT_TERTIARY_MAIN = '#6a4fbf';
@@ -122,20 +126,25 @@ export const theme = createTheme({
     },
     dark: {
       palette: {
+        // Onda 20B: accent canônico Dracula (#bd93f9) + contrastText escuro
+        // legível (6.78:1) — o branco sobre o roxo cai a 2.26:1.
         primary: {
-          main: PRIMARY_MAIN,
+          main: DRACULA.purple,
+          contrastText: DARK_PRIMARY_CONTRAST_TEXT,
         },
+        // Onda 20B: acento M3 de contraste = ciano Dracula (10.3:1 sobre bg).
         tertiary: {
-          main: DARK_TERTIARY_MAIN,
+          main: DRACULA.cyan,
         },
-        // Elevação por camadas (onda 17A): `paper` é a superfície de cards,
-        // `default` a base do app; `divider` vira borda 1px legível.
+        // Dracula por camadas de elevação (onda 20B): `default` = fundo canônico
+        // #282a36; `paper` = elevação leve #2f3142 (cards/AppBar); `divider` =
+        // currentLine #44475a (borda 1px visível). Valores medidos no header.
         background: {
-          default: DARK_BACKGROUND_DEFAULT,
+          default: DRACULA.background,
           paper: DARK_BACKGROUND_PAPER,
         },
         text: {
-          primary: '#e8eaed',
+          primary: DRACULA.foreground,
           secondary: DARK_TEXT_SECONDARY,
         },
         divider: DARK_DIVIDER,
