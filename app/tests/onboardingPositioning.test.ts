@@ -186,6 +186,22 @@ describe('calculatePanelPosition', () => {
     assert.equal(pos.compact, false);
   });
 
+  it('sem spotlight: painel MUITO ALTO (panelHeight > viewport) nunca tem top negativo', () => {
+    // ACHADO (fix20c-clamp): antes, o arg max do clamp podia ficar NEGATIVO quando
+    // panelHeight > viewport.height - 2*margin; o `Math.min` capava o top nesse
+    // negativo e o painel sumia para cima da tela. Agora o max é protegido com
+    // Math.max(margin, ...) (mesma proteção do ramo com spotlight, linha 170).
+    const tiny: ViewportSize = { width: 600, height: 400 };
+    const panelHeight = tiny.height + 100; // 500 > viewport (400)
+    const margin = 8; // getEffectiveMargin(600 < 1024) → 8
+    const pos = calculatePanelPosition(null, 280, panelHeight, tiny, 0);
+    assert.ok(pos.top >= 0, `top nunca negativo (obtido ${pos.top})`);
+    // Clamp no min (margin): o painel pode transbordar a altura, mas top = margin.
+    assert.equal(pos.top, margin, 'top = margin quando o painel é maior que a viewport');
+    assert.ok(pos.width >= 0, 'width sempre não-negativo');
+    assert.equal(pos.compact, false);
+  });
+
   it('dá clamp dentro do viewport (nunca estoura borda)', () => {
     const spotlight: Rect = { top: -200, left: -200, width: 200, height: 40 };
     const pos = calculatePanelPosition(spotlight, 420, 300, smallScreen, 0);

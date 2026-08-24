@@ -232,10 +232,11 @@ export function calculatePanelPosition(
     // "o tutorial nao ficou bom as vezes o modal fica muito final" (antes o painel
     // colava no canto inferior-direito). Mantém clamp no viewport.
     return {
+      // max protegido: painel muito alto nunca gera top negativo (cf. linha 170).
       top: clamp(
         (viewport.height - panelHeight) / 2 - viewport.height * 0.08,
         margin,
-        viewport.height - panelHeight - margin
+        Math.max(margin, viewport.height - panelHeight - margin)
       ),
       left: clamp(
         (viewport.width - effectiveWidth) / 2,
