@@ -254,6 +254,9 @@ const runner: RunnerLike = {
     await fsp.mkdir(root, { recursive: true });
     return { setupId: 'e2e-setup', setupRoot: root };
   },
+  // fix-session-reuse: o runner real ganhou o 3º param (opts.reuseLive), mas a
+  // interface RunnerLike (study-handlers.ts) declara só 2; args extras são
+  // ignorados aqui por semântica do JS — o stub nunca recebe o reuseLive via IPC.
   async newSession(_setupRoot, _goal) {
     return 'e2e-session';
   },

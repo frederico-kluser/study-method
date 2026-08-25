@@ -430,6 +430,65 @@ describe('StudyMethodRunner', () => {
       }
     });
 
+    // fix-session-reuse: geração pode reusar a sessão viva do setup (exit 4 da
+    // skill). O stderr real traz `session_id <NNNN>` no corpo da mensagem de erro
+    // (sm_die 4 de session-new.sh); o runner só devolve esse id com reuseLive:true.
+    // Sem reuseLive, ou sem id parseável, o erro original da skill continua lançado.
+    const LOCKED_STDERR =
+      'study-method: erro 4: já há uma sessão viva neste setup (session_id 0001; lock com TTL 8h). ' +
+      'Feche-a com session-close.sh, ou siga em modo somente-leitura (sem gravar NNNN.json).';
+
+    /** child fake no padrão fakeExec do arquivo: emite stderr no 'data' e exitCode no 'close'. */
+    function fakeSessionChild(
+      exitCode: number,
+      stderrText: string,
+    ): { fakeExec: typeof import('node:child_process').spawn; calls: Array<{ file: string; args: string[] }> } {
+      const calls: Array<{ file: string; args: string[] }> = [];
+      const fakeExec = ((file: string, args: string[]) => {
+        calls.push({ file, args });
+        const stream = {
+          on: (ev: string, cb: (chunk: Buffer) => void) => {
+            if (ev === 'data') cb(Buffer.from(stderrText));
+            return stream;
+          },
+        };
+        return {
+          stdout: null,
+          stderr: stream,
+          kill: () => {},
+          on: (ev: string, cb: (code?: number) => void) => {
+            if (ev === 'close') cb(exitCode);
+          },
+        };
+      }) as unknown as typeof import('node:child_process').spawn;
+      return { fakeExec, calls };
+    }
+
+    it('exit 4 + reuseLive:true devolve o session_id da sessão viva (0001)', async () => {
+      const { fakeExec } = fakeSessionChild(4, LOCKED_STDERR);
+      const runner = makeRunner(undefined, { exec: fakeExec });
+      const nnnn = await runner.newSession('/tmp/setup-mat', 'estudar limites', { reuseLive: true });
+      assert.equal(nnnn, '0001');
+    });
+
+    it('exit 4 SEM reuseLive lança a mensagem original da skill (ação explícita do aluno)', async () => {
+      const { fakeExec } = fakeSessionChild(4, LOCKED_STDERR);
+      const runner = makeRunner(undefined, { exec: fakeExec });
+      await assert.rejects(
+        () => runner.newSession('/tmp/setup-mat', 'estudar limites'),
+        /já há uma sessão viva neste setup \(session_id 0001/,
+      );
+    });
+
+    it('exit 4 + reuseLive:true mas stderr sem session_id NÃO degrada em silêncio: lança o erro original', async () => {
+      const { fakeExec } = fakeSessionChild(4, 'study-method: erro 4: recurso travado (sem id visível).');
+      const runner = makeRunner(undefined, { exec: fakeExec });
+      await assert.rejects(
+        () => runner.newSession('/tmp/setup-mat', 'estudar limites', { reuseLive: true }),
+        /session-new\.sh falhou \(exit 4\)/,
+      );
+    });
+
     it('createChallenge invoca challenge-new.sh com language/slug/concept e devolve o caminho', async () => {
       const rec = path.join(tmp, 'chal-record.txt');
       const prev = process.env['STUDY_METHOD_FIXTURE_RECORD'];

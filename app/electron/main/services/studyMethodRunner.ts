@@ -14,7 +14,11 @@
  *     (`llmJudge`), valida a RESPOSTA contra o envelope (request_id/kind/protocol),
  *     grava num tmp e re-invoca com `--apply <arquivo>`. Máximo 2 ciclos.
  *  4. `createSetup()` / `newSession()` / `createChallenge()` / `verifyChallenge()` —
- *     wrappers com parsing do stdout de cada script.
+ *     wrappers com parsing do stdout de cada script. `newSession` aceita
+ *     `{ reuseLive: true }` para REUSAR a sessão viva do setup quando a skill sai
+ *     com exit 4 (RESOURCE_LOCKED): extrai o `session_id <NNNN>` do stderr e devolve-o
+ *     em vez de lançar (caminho usado pela geração de aula; a ação explícita do aluno
+ *     via IPC segue lançando o erro da skill).
  *  5. `testStudentAnswer()` — execução DETERMINÍSTICA da resposta do aluno: copia o
  *     workspace do desafio (SEM `.solution/`) para tmp e roda `runner.sh` com
  *     `STUDY_METHOD_SKILL_DIR` e `CHALLENGE_TIMEOUT` setados, mapeando o contrato de
@@ -209,7 +213,13 @@ export interface StudyMethodRunner {
   runScript(name: string, args: string[], opts?: RunScriptOptions): Promise<RunScriptResult>;
   handleExit10(name: string, args: string[], opts?: RunScriptOptions): Promise<HandleExit10Result>;
   createSetup(spec: CreateSetupSpec): Promise<{ setupId: string; setupRoot: string }>;
-  newSession(setupRoot: string, goal?: string): Promise<string>;
+  /**
+   * Abre uma sessão de estudo no setup (session-new.sh) e devolve o NNNN alocado.
+   * Com `opts.reuseLive` e exit 4 (RESOURCE_LOCKED) da skill, devolve o session_id
+   * da sessão viva (extraído do stderr) em vez de lançar — usado pela geração de
+   * aula, que só precisa que EXISTA uma sessão para registrar os desafios.
+   */
+  newSession(setupRoot: string, goal?: string, opts?: { reuseLive?: boolean }): Promise<string>;
   createChallenge(
     setupRoot: string,
     c: { language: string; slug: string; concept: string; difficulty?: number; skillLevel?: string },
@@ -561,11 +571,21 @@ export function createStudyMethodRunner(deps: StudyMethodRunnerDeps = {}): Study
     return { setupId, setupRoot: spec.path };
   }
 
-  async function newSession(setupRoot: string, goal?: string): Promise<string> {
+  async function newSession(setupRoot: string, goal?: string, opts?: { reuseLive?: boolean }): Promise<string> {
     const args = [setupRoot];
     if (goal) args.push('--goal', goal);
     const res = await runScript('session-new.sh', args);
     if (res.exitCode !== SKILL_EXIT_CODES.OK) {
+      // fix-session-reuse: a geração pode reusar a sessão viva do setup (exit 4 da
+      // skill, RESOURCE_LOCKED). O session_id da sessão viva vem no stderr no formato
+      // `session_id <NNNN>`; com reuseLive:true, devolve-o em vez de lançar — a
+      // geração só precisa que EXISTA uma sessão para registrar os desafios. Sem
+      // reuseLive (ação explícita do aluno) OU sem id parseável no stderr, NUNCA
+      // degradar em silêncio: lança o erro original.
+      if (res.exitCode === SKILL_EXIT_CODES.RESOURCE_LOCKED && opts?.reuseLive === true) {
+        const liveId = /session_id ([0-9]{4})/.exec(res.stderr);
+        if (liveId) return liveId[1];
+      }
       throw new Error(`session-new.sh falhou (exit ${res.exitCode}): ${res.stderr}`);
     }
     const nnnn = res.stdout.trim().split('\n').pop() ?? '';

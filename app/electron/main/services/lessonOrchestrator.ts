@@ -172,7 +172,7 @@ export interface LessonOrchestratorDeps {
       sessionMinutes?: number;
       theorySource?: string;
     }): Promise<{ setupId: string; setupRoot: string }>;
-    newSession(setupRoot: string, goal?: string): Promise<string>;
+    newSession(setupRoot: string, goal?: string, opts?: { reuseLive?: boolean }): Promise<string>;
     createChallenge(
       setupRoot: string,
       c: { language: string; slug: string; concept: string; difficulty?: number; skillLevel?: string },
@@ -382,7 +382,9 @@ export function createLessonOrchestrator(deps: LessonOrchestratorDeps) {
         setupRoot: setup.setupRoot,
         setupId: setup.setupId,
       });
-      const session = await deps.runner.newSession(setup.setupRoot, opts.goal ?? `Aula sobre ${subject}`);
+      // fix-session-reuse: geração pode reusar a sessão viva do setup (exit 4 da skill);
+      // o retorno é ignorado — só precisa que EXISTA uma sessão para registrar os desafios.
+      const session = await deps.runner.newSession(setup.setupRoot, opts.goal ?? `Aula sobre ${subject}`, { reuseLive: true });
 
       const challengeInfos: ChallengeInfo[] = [];
       const rejected: RejectedChallenge[] = [];
