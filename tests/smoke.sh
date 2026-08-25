@@ -9,6 +9,9 @@
 #   PASSO 2  abre e fecha 3 sessões (session-new.sh → session-close.sh, com REQUEST/APPLY)
 #   PASSO 3  gera 1 desafio Python e o valida pelo protocolo completo (challenge-new.sh →
 #            challenge-verify.sh, incluindo o ciclo de `classify_survivor`)
+#   PASSO 3b gera 2 desafios Rust e os valida pelo protocolo completo: o esqueleto
+#            canônico vira `approved`; um teste que NÃO compila vira `rejected` com
+#            exit 0 — regressão do bug "challenge-verify.sh falhou (exit 1)"
 #   PASSO 4  renderiza 1 gráfico (render-plot.py) e confere as 4 saídas obrigatórias
 #   PASSO 5  roda readme-sync.sh e prova idempotência byte a byte
 #   PASSO 6  valida TODO JSON produzido contra o schema dono
@@ -491,6 +494,125 @@ if [ -n "$CH_DIR" ] && [ -d "$CH_DIR" ]; then
         "valid > 0 e killed > 0" "valid/killed = $mut" "$CH_DIR/meta.json → validation.mutation"
     fi
   fi
+fi
+
+# ─────────────────── PASSO 3b · desafio Rust — compile-failure vira rejected (exit 0)
+# Regressão do bug "Erro ao gerar a aula: challenge-verify.sh falhou (exit 1)": um
+# desafio Rust cujo teste NÃO COMPILA (cargo test → exit 101, zero linhas "running N
+# tests") derrubava o script com exit 1 e stderr vazio — com `set -o pipefail`, as
+# pipelines de probe (grep|awk) que não casavam morriam antes de devolver a contagem.
+# Hoje devolvem valor neutro e o fluxo segue até o veredito `rejected` com exit 0
+# (docs/00-contratos.md §5.1: weak/rejected saem exit 0 com o veredito no stdout).
+# O caminho feliz também é coberto: o esqueleto canônico Rust (crate SEMPRE
+# `desafio`, layout cargo_crate) precisa fechar `approved` de ponta a ponta.
+# Requer cargo instalado (sondado por `command -v`): sem ele o passo inteiro fica PEND.
+gate_section "PASSO 3b · desafio Rust — compile-failure vira rejected (exit 0)"
+if command -v cargo >/dev/null 2>&1; then
+  gate_pass "S-03j" "toolchain cargo disponível ($(command -v cargo))"
+
+  RSETUP="$WORK/setup-rust"
+  if "$SCRIPTS/setup-init.sh" "$RSETUP" --subject "Estruturas de Dados" --subject-slug estruturas \
+       --title "Estruturas" --language rust --skill-level beginner --session-minutes 45 \
+       --theory-source student_provided >/dev/null 2>"$GATE_TMPDIR/err.txt"; then
+    gate_pass "S-03k" "setup rust criado em $(gate_rel "$RSETUP")"
+  else
+    gate_fail "S-03k" "setup-init.sh cria o setup rust" "exit 0 e o setup_id em stdout" \
+      "exit $? — $(gate_trunc "$(cat "$GATE_TMPDIR/err.txt")")" "$SCRIPTS/setup-init.sh"
+  fi
+
+  if out="$("$SCRIPTS/challenge-new.sh" "$RSETUP" --language rust --slug arvore \
+            --concept arvore_recursiva --difficulty 2 2>"$GATE_TMPDIR/err.txt")"; then
+    ROK_REL="$(printf '%s' "$out" | tr -d '[:space:]')"
+    ROK_DIR="$RSETUP/$ROK_REL"
+    gate_pass "S-03l" "desafio rust (esqueleto) gerado em $ROK_REL"
+  else
+    ROK_DIR=""
+    gate_fail "S-03l" "challenge-new.sh gera o desafio rust" "exit 0 e o caminho relativo em stdout" \
+      "exit $? — $(gate_trunc "$(cat "$GATE_TMPDIR/err.txt")")" "$SCRIPTS/challenge-new.sh"
+  fi
+  if [ -n "$ROK_DIR" ] && [ -d "$ROK_DIR" ]; then
+    # O crate fixo `desafio` é o que o prompt do autor ensina (deepseekLessonAuthor.ts):
+    # o teste do desafio substitui o arquivo inteiro de tests/test_stub.rs e importa
+    # `use desafio::<fn>;` — um import de crate errado (ex.: `invert_tree`) NÃO compila.
+    assert_match "S-03m" "o Cargo.toml declara o crate fixo \`desafio\`" \
+      "$(grep -E '^name[[:space:]]*=' "$ROK_DIR/Cargo.toml" 2>/dev/null || true)" \
+      '^name[[:space:]]*=[[:space:]]*"desafio"' "$ROK_DIR/Cargo.toml"
+    assert_match "S-03n" "tests/test_stub.rs importa \`use desafio::<fn>;\` (o contrato do prompt do autor)" \
+      "$(grep -E '^use desafio::' "$ROK_DIR/tests/test_stub.rs" 2>/dev/null || true)" \
+      '^use desafio::' "$ROK_DIR/tests/test_stub.rs"
+
+    # NÃO sobrescreve nada: o esqueleto canônico precisa ser aprovado como está.
+    SMOKE_OUT=""  # o PASSO 3 (python) deixou o valor anterior; só leio o que ESTE passo escreveu
+    run_protocol "S-03o" "challenge-verify.sh roda o protocolo completo no esqueleto Rust intacto" \
+      "$SCRIPTS/challenge-verify.sh" "$ROK_DIR" || true
+    if [ -n "${SMOKE_OUT:-}" ]; then
+      rv_ok="$(printf '%s' "$SMOKE_OUT" | jq -r '.verdict // "?"' 2>/dev/null || echo '?')"
+      if [ "$rv_ok" = approved ]; then
+        gate_pass "S-03p" "veredito do harness no esqueleto rust: approved"
+      else
+        gate_fail "S-03p" "challenge-verify.sh aprova a semente canônica em Rust" \
+          "approved (o esqueleto é bem formado por construção; DES-2 só deixa approved virar validated)" \
+          "«$rv_ok» — rejeições: $(gate_trunc "$(jq -rc '[.validation.rejections[]? | "\(.code): \(.message)"] | join(" | ")' "$ROK_DIR/meta.json" 2>/dev/null || echo '?')")" \
+          "stdout de challenge-verify.sh + $ROK_DIR/meta.json"
+      fi
+    fi
+
+    # ── o cenário da regressão: teste que NÃO compila (cargo test → 101, zero "running N tests")
+    if out="$("$SCRIPTS/challenge-new.sh" "$RSETUP" --language rust --slug invert \
+              --concept arvore_recursiva --difficulty 2 2>"$GATE_TMPDIR/err.txt")"; then
+      RBAD_REL="$(printf '%s' "$out" | tr -d '[:space:]')"
+      RBAD_DIR="$RSETUP/$RBAD_REL"
+      gate_pass "S-03q" "desafio rust da regressão gerado em $RBAD_REL"
+      cat > "$RBAD_DIR/tests/test_stub.rs" <<'RSEOF'
+// Regressão do bug "challenge-verify.sh falhou (exit 1)": este teste NÃO compila.
+// O crate do desafio é `desafio` (Cargo.toml); `invert_tree` não existe → E0432,
+// cargo test sai 101 e NENHUMA linha "running N tests" é impressa — exatamente o
+// cenário em que o pipefail matava o verify com exit 1 e stderr vazio.
+use invert_tree::*;
+
+#[test]
+fn caso_nao_compila() {
+    assert_eq!(2 + 2, 4);
+}
+RSEOF
+      if out="$("$SCRIPTS/challenge-verify.sh" "$RBAD_DIR" 2>"$GATE_TMPDIR/err.txt")"; then
+        gate_pass "S-03r" "verify com teste que não compila sai exit 0 (nunca exit 1)"
+        ROUT="$out"
+      else
+        rc=$?
+        gate_fail "S-03r" "verify com teste que não compila sai exit 0 (nunca exit 1)" \
+          "exit 0 — o compile-failure vira veredito rejected no stdout (§5.1)" \
+          "exit $rc — stderr: $(gate_trunc "$(cat "$GATE_TMPDIR/err.txt")")" "$SCRIPTS/challenge-verify.sh"
+      fi
+      if [ -n "${ROUT:-}" ]; then
+        rv="$(printf '%s' "$ROUT" | jq -r '.verdict // "?"' 2>/dev/null || echo '?')"
+        rn="$(printf '%s' "$ROUT" | jq -r '[.rejections[]?] | length' 2>/dev/null || echo '?')"
+        if [ "$rv" = rejected ] && [ "${rn:-0}" -gt 0 ]; then
+          gate_pass "S-03s" "veredito rejected com $rn rejeição(ões) de diagnóstico no stdout"
+        else
+          gate_fail "S-03s" "compile-failure devolve veredito rejected com diagnóstico" \
+            "verdict=rejected e rejections não-vazia no stdout" \
+            "«$rv» com $rn rejeições — stdout: $(gate_trunc "$ROUT")" "stdout de challenge-verify.sh"
+        fi
+        cs_r="$(jq -r '.challenge_status // "?"' "$RBAD_DIR/meta.json" 2>/dev/null || echo '?')"
+        assert_ne "S-03t" "compile-failure NUNCA vira challenge_status validated (DES-2)" \
+          "validated" "$cs_r" "$RBAD_DIR/meta.json"
+        s1exit="$(jq -r '.validation.steps.step_1_empty_stub.exit_code // -1' "$RBAD_DIR/meta.json" 2>/dev/null || echo -1)"
+        assert_eq "S-03u" "o passo 1 registra cargo test exit 101 (erro de compilação, não caso falho)" \
+          "101" "$s1exit" "$RBAD_DIR/meta.json → validation.steps.step_1_empty_stub"
+      fi
+    else
+      gate_fail "S-03q" "challenge-new.sh gera o desafio rust da regressão" \
+        "exit 0 e o caminho relativo em stdout" \
+        "exit $? — $(gate_trunc "$(cat "$GATE_TMPDIR/err.txt")")" "$SCRIPTS/challenge-new.sh"
+    fi
+  fi
+  if [ -n "${ROK_DIR:-}" ] && [ -f "$ROK_DIR/meta.json" ]; then
+    validate_json "S-03v" "$ROK_DIR/meta.json" "$SCHEMAS/challenge-manifest.schema.json"
+  fi
+else
+  gate_pend "S-03j" "toolchain cargo disponível para o cenário Rust" \
+    "cargo não está no PATH — o PASSO 3b inteiro fica pendente (registrado, não escondido)"
 fi
 
 # ────────────────────────────────────────────────────── PASSO 4 · gráfico
