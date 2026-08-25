@@ -22,7 +22,21 @@
     "keysTitle": "API keys",
     "keysDescription": "Configure the DeepSeek (lesson generation) and Brave Search (source search) keys. Validate each one before using.",
     "localAiTitle": "Local LLM",
-    "localAiDescription": "Hardware detection and local models. Download a model, activate it and select \"Local model\" in the feedback provider to evaluate challenges without relying on the cloud."
+    "localAiDescription": "Hardware detection and local models. Download a model, activate it and select \"Local model\" in the feedback provider to evaluate challenges without relying on the cloud.",
+    "section": {
+      "keys": "API keys",
+      "localAi": "Local AI",
+      "appearance": "Appearance",
+      "sound": "Sound"
+    },
+    "sound": {
+      "label": "Sound on confirmations",
+      "hint": "Off by default. A short sound when tests pass."
+    },
+    "motion": {
+      "label": "Reduced motion",
+      "hint": "Follows the system preference. Information never depends on animation."
+    }
   },
   "keys": {
     "deepseek": {
@@ -102,7 +116,19 @@
     "invalidSubject": "Invalid subject.",
     "starting": "Starting…",
     "failGenerate": "Failed to generate the lesson.",
-    "errorGenerate": "Error generating the lesson"
+    "errorGenerate": "Error generating the lesson",
+    "trail": {
+      "aria": "Lesson trail",
+      "title": "In this lesson",
+      "phases": "Phases",
+      "challenges": "Challenges",
+      "done": "Done",
+      "current": "Where you are",
+      "pending": "Not started yet"
+    },
+    "reading": {
+      "aria": "Lesson content"
+    }
   },
   "challenge": {
     "openChallenge": "Open challenge",
@@ -132,7 +158,21 @@
     "selectPrompt": "Select a challenge to start.",
     "statementLoading": "Loading statement…",
     "outputAria": "Test output",
-    "toolOk": "(ok)"
+    "toolOk": "(ok)",
+    "dock": {
+      "aria": "Output, tests and feedback panel",
+      "output": "Output",
+      "tests": "Tests",
+      "feedback": "Feedback",
+      "collapse": "Collapse panel",
+      "expand": "Open panel"
+    },
+    "split": {
+      "aria": "Divider between statement and editor",
+      "hint": "Drag, or use the arrow keys while the divider has focus"
+    },
+    "statementPane": "Statement",
+    "editorPane": "Editor"
   },
   "gate": {
     "checking": "Checking setup…",
@@ -221,6 +261,12 @@
       "hashTables": "Hash tables in practice",
       "quadraticEquations": "Quadratic equations",
       "pythagoreanTheorem": "Pythagorean theorem"
+    },
+    "trail": {
+      "title": "Where you left off",
+      "empty": "Nothing in progress — pick a subject below",
+      "resume": "Resume",
+      "lastSubject": "Last subject"
     }
   },
   "tutorial": {
@@ -359,5 +405,60 @@
       "title": "Type any doubt",
       "description": "This is the lesson subject field. Type the topic you want to study and generate an AI-powered lesson."
     }
+  },
+  "shell": {
+    "rail": {
+      "aria": "Main navigation",
+      "expand": "Expand navigation",
+      "collapse": "Collapse navigation"
+    },
+    "session": {
+      "aria": "Session state",
+      "subject": "Subject",
+      "noSubject": "No subject yet",
+      "phase": "Phase",
+      "idle": "Ready to start"
+    },
+    "focus": {
+      "enter": "Focus mode",
+      "exit": "Leave focus mode",
+      "hint": "Hides navigation and leaves only the work"
+    }
+  },
+  "feedback": {
+    "result": {
+      "aria": "Test results"
+    },
+    "pass": {
+      "title": "Tests passed"
+    },
+    "fail": {
+      "title": "Not passing yet",
+      "hint": "See the failing case below"
+    },
+    "competence": {
+      "intro": "What this shows:"
+    },
+    "cases": {
+      "passed": "cases passed",
+      "failed": "cases failed"
+    },
+    "diagnostic": {
+      "title": "Diagnostic",
+      "expected": "Expected",
+      "received": "Received"
+    }
+  },
+  "palette": {
+    "open": "Open command palette",
+    "title": "Go to",
+    "placeholder": "Type to search screens, challenges and actions",
+    "empty": "Nothing found",
+    "group": {
+      "navigate": "Navigate",
+      "challenges": "Challenges",
+      "actions": "Actions"
+    },
+    "hint": "Ctrl+K"
   }
 }

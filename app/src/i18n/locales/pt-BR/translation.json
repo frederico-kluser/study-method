@@ -22,7 +22,21 @@
     "keysTitle": "Chaves de API",
     "keysDescription": "Configure as chaves do DeepSeek (geração de aulas) e do Brave Search (pesquisa de fontes). Valide cada uma antes de usar.",
     "localAiTitle": "LLM local",
-    "localAiDescription": "Detecção de hardware e modelos locais. Baixe um modelo, ative-o e selecione \"Modelo local\" no provedor de feedback para avaliar desafios sem depender da nuvem."
+    "localAiDescription": "Detecção de hardware e modelos locais. Baixe um modelo, ative-o e selecione \"Modelo local\" no provedor de feedback para avaliar desafios sem depender da nuvem.",
+    "section": {
+      "keys": "Chaves de API",
+      "localAi": "IA local",
+      "appearance": "Aparência",
+      "sound": "Som"
+    },
+    "sound": {
+      "label": "Som nas confirmações",
+      "hint": "Desligado por padrão. Um som curto ao passar nos testes."
+    },
+    "motion": {
+      "label": "Movimento reduzido",
+      "hint": "Segue a preferência do sistema. A informação nunca depende de animação."
+    }
   },
   "keys": {
     "deepseek": {
@@ -102,7 +116,19 @@
     "invalidSubject": "Assunto inválido.",
     "starting": "Iniciando…",
     "failGenerate": "Falha ao gerar aula.",
-    "errorGenerate": "Erro ao gerar a aula"
+    "errorGenerate": "Erro ao gerar a aula",
+    "trail": {
+      "aria": "Trilha da aula",
+      "title": "Nesta aula",
+      "phases": "Fases",
+      "challenges": "Desafios",
+      "done": "Concluído",
+      "current": "Onde você está",
+      "pending": "Ainda não começou"
+    },
+    "reading": {
+      "aria": "Conteúdo da aula"
+    }
   },
   "challenge": {
     "openChallenge": "Abrir desafio",
@@ -132,7 +158,21 @@
     "selectPrompt": "Selecione um desafio para começar.",
     "statementLoading": "Carregando enunciado…",
     "outputAria": "Saída dos testes",
-    "toolOk": "(ok)"
+    "toolOk": "(ok)",
+    "dock": {
+      "aria": "Painel de saída, testes e feedback",
+      "output": "Saída",
+      "tests": "Testes",
+      "feedback": "Feedback",
+      "collapse": "Recolher painel",
+      "expand": "Abrir painel"
+    },
+    "split": {
+      "aria": "Divisória entre enunciado e editor",
+      "hint": "Arraste, ou use as setas com a divisória em foco"
+    },
+    "statementPane": "Enunciado",
+    "editorPane": "Editor"
   },
   "gate": {
     "checking": "Verificando configuração…",
@@ -221,6 +261,12 @@
       "hashTables": "Tabelas hash na prática",
       "quadraticEquations": "Equações do 2º grau",
       "pythagoreanTheorem": "Teorema de Pitágoras"
+    },
+    "trail": {
+      "title": "De onde você parou",
+      "empty": "Nada em andamento — escolha um assunto abaixo",
+      "resume": "Retomar",
+      "lastSubject": "Último assunto"
     }
   },
   "tutorial": {
@@ -359,5 +405,60 @@
       "title": "Digite qualquer dúvida",
       "description": "Este é o campo de assunto da aula. Digite o tema que quer estudar e gere uma aula por IA."
     }
+  },
+  "shell": {
+    "rail": {
+      "aria": "Navegação principal",
+      "expand": "Expandir navegação",
+      "collapse": "Recolher navegação"
+    },
+    "session": {
+      "aria": "Estado da sessão",
+      "subject": "Assunto",
+      "noSubject": "Nenhum assunto ainda",
+      "phase": "Fase",
+      "idle": "Pronto para começar"
+    },
+    "focus": {
+      "enter": "Modo foco",
+      "exit": "Sair do modo foco",
+      "hint": "Esconde a navegação e deixa só o trabalho"
+    }
+  },
+  "feedback": {
+    "result": {
+      "aria": "Resultado dos testes"
+    },
+    "pass": {
+      "title": "Os testes passaram"
+    },
+    "fail": {
+      "title": "Ainda não passou",
+      "hint": "Veja o caso que falhou abaixo"
+    },
+    "competence": {
+      "intro": "O que isso mostra:"
+    },
+    "cases": {
+      "passed": "casos que passaram",
+      "failed": "casos que falharam"
+    },
+    "diagnostic": {
+      "title": "Diagnóstico",
+      "expected": "Esperado",
+      "received": "Recebido"
+    }
+  },
+  "palette": {
+    "open": "Abrir paleta de comandos",
+    "title": "Ir para",
+    "placeholder": "Digite para buscar telas, desafios e ações",
+    "empty": "Nada encontrado",
+    "group": {
+      "navigate": "Navegar",
+      "challenges": "Desafios",
+      "actions": "Ações"
+    },
+    "hint": "Ctrl+K"
   }
 }
