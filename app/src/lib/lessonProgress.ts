@@ -2,11 +2,13 @@
  * src/lib/lessonProgress.ts — parser puro dos eventos de progresso de aula.
  *
  * O canal `study:lesson-progress` entrega payloads de forma `unknown` no
- * api-schema (o main da geração ainda não está implementado nesta onda). Este
- * módulo normaliza qualquer payload em um estado de fase tipado para a UI,
- * tolerando formas variadas:
+ * api-schema. Este módulo normaliza qualquer payload em um estado de fase
+ * tipado para a UI, tolerando formas variadas:
  *   { phase: 'pesquisando'|'autorando'|..., progress: 0..1, message?, status? }
+ *   { phase: 'research'|'authoring'|'materializing'|'validating'|'done'|'error',
+ *     message?, fraction? }  ← vocabulário real do main (lessonOrchestrator)
  *   { status: 'generating', stage: 'research'|'writing'|..., percent: 0..100 }
+ * `phase` aceita pt-BR E inglês (mapeado via STAGE_TO_PHASE).
  * Se nada for reconhecível, devolve 'gerando' com progresso 0.
  */
 
@@ -26,6 +28,9 @@ export interface LessonPhaseState {
   message: string;
   /** true quando o payload indica fim (done/success/completo). */
   done: boolean;
+  /** true quando o payload sinaliza erro (phase:'error' / error:true). A fase
+   *  não é tocada: a decisão de preservar a fase anterior é da view. */
+  failed: boolean;
 }
 
 const PHASE_MESSAGES: Record<LessonPhaseKey, string> = {
@@ -36,6 +41,9 @@ const PHASE_MESSAGES: Record<LessonPhaseKey, string> = {
   concluindo: 'Concluindo e revisando…',
   gerando: 'Gerando a aula…',
 };
+
+/** Fallback pt-BR quando o evento de erro não traz message (parser é puro). */
+const ERROR_MESSAGE = 'Falha na geração da aula.';
 
 const STAGE_TO_PHASE: Record<string, LessonPhaseKey> = {
   research: 'pesquisando',
@@ -69,6 +77,7 @@ export function parseLessonProgressEvent(raw: unknown): LessonPhaseState {
     fraction: 0,
     message: PHASE_MESSAGES.gerando,
     done: false,
+    failed: false,
   };
   if (!isRecord(raw)) return base;
 
@@ -77,6 +86,21 @@ export function parseLessonProgressEvent(raw: unknown): LessonPhaseState {
     base.done = true;
     base.phase = 'concluindo';
     base.message = PHASE_MESSAGES.concluindo;
+  }
+
+  // erro explícito: phase 'error' (main) ou flag error — sinaliza `failed`
+  // sem tocar na fase (a view preserva a última fase real; o fallback do
+  // parser para a fase permanece 'gerando' quando nada é reconhecido).
+  if (
+    (typeof raw.phase === 'string' && raw.phase.toLowerCase() === 'error') ||
+    raw.error === true
+  ) {
+    base.failed = true;
+    base.done = false;
+    base.message =
+      typeof raw.message === 'string' && raw.message.trim()
+        ? raw.message.trim()
+        : ERROR_MESSAGE;
   }
 
   // stage em ingles → fase
@@ -88,7 +112,7 @@ export function parseLessonProgressEvent(raw: unknown): LessonPhaseState {
     }
   }
 
-  // phase nomeada direto (aceita também 'done')
+  // phase nomeada direto (aceita pt-BR, 'done' e o vocabulário em inglês do main)
   if (typeof raw.phase === 'string') {
     const asKey = raw.phase.toLowerCase();
     if (PHASE_MESSAGES[asKey as LessonPhaseKey]) {
@@ -98,6 +122,14 @@ export function parseLessonProgressEvent(raw: unknown): LessonPhaseState {
       base.phase = 'concluindo';
       base.message = PHASE_MESSAGES.concluindo;
       base.done = true;
+    } else {
+      // fallback inglês: 'research'|'authoring'|'materializing'|'validating'…
+      // (o que o main REALMENTE emite) → fase pt-BR interna
+      const mapped = STAGE_TO_PHASE[asKey];
+      if (mapped) {
+        base.phase = mapped;
+        base.message = PHASE_MESSAGES[mapped];
+      }
     }
   }
 
@@ -106,6 +138,10 @@ export function parseLessonProgressEvent(raw: unknown): LessonPhaseState {
     base.fraction = normalizeFraction(raw.progress);
   } else if (typeof raw.percent === 'number') {
     base.fraction = normalizeFraction(raw.percent);
+  } else if (typeof raw.fraction === 'number') {
+    // `fraction` é o campo que o main (lessonOrchestrator) REALMENTE emite
+    // (0..1, ex.: {phase:'research', fraction: 0.1}).
+    base.fraction = normalizeFraction(raw.fraction);
   }
 
   // mensagem custom

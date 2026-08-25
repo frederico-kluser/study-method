@@ -12,9 +12,9 @@
  *   materializando → lesson.phase.materializing
  *   validando    → lesson.phase.validating
  *   concluindo   → lesson.phase.done
- *   gerando (estado inicial/genérico do parser) → lesson.phase.done (não há chave
- *   'gerando'; 'done' é o rótulo neutro final — a UI usa o Stepper só quando a
- *   fase é conhecida).
+ *   gerando (estado inicial/genérico do parser) → lesson.phase.research (não há
+ *   chave 'gerando'; aponta para a PRIMEIRA etapa — o Stepper do início mostra a
+ *   1ª fase ativa com as demais pendentes, em vez de pular para o fim).
  */
 
 import type { LessonPhaseState } from './lessonProgress';
@@ -43,7 +43,8 @@ export function lessonPhaseIndex(phase: LessonPhaseState['phase']): number {
 
 /**
  * Devolve a i18n-key de rótulo para a fase do parser. Fases válidas do tipo
- * sempre encontram um rótulo; a fase 'gerando' cai em 'done' (rótulo neutro).
+ * sempre encontram um rótulo; a fase 'gerando' (inicial/genérica) aponta para
+ * a primeira etapa ('research').
  */
 export function lessonPhaseKey(phase: LessonPhaseState['phase']): LessonPhaseLabelKey {
   switch (phase) {
@@ -56,8 +57,11 @@ export function lessonPhaseKey(phase: LessonPhaseState['phase']): LessonPhaseLab
     case 'validando':
       return 'lesson.phase.validating';
     case 'concluindo':
-    case 'gerando':
       return 'lesson.phase.done';
+    case 'gerando':
+      // Fase inicial/genérica do parser: aponta para a PRIMEIRA etapa do
+      // Stepper, não para a última (bug fix: o início mostrava 4 etapas ✓).
+      return 'lesson.phase.research';
     default:
       return 'lesson.phase.done';
   }

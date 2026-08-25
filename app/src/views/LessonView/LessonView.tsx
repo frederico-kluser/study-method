@@ -237,6 +237,7 @@ export default function LessonView(): ReactElement {
     fraction: 0,
     message: '',
     done: false,
+    failed: false,
   });
   const [parsed, setParsed] = useState<ParsedLesson | null>(null);
   const [error, setError] = useState('');
@@ -244,7 +245,15 @@ export default function LessonView(): ReactElement {
   const onProgress = useCallback(
     (raw: unknown) => {
       const next = parseLessonProgressEvent(raw);
-      setPhase(next);
+      // fix-progress-error: evento de erro (`phase:'error'` / `error:true`) —
+      // o parser devolve `failed` sem tocar na fase; aqui PRESERVAMOS a última
+      // fase real alcançada (senão o Stepper pularia para o fim ao cair no
+      // fallback 'gerando' do parser).
+      if (next.failed) {
+        setPhase((prev) => ({ ...prev, failed: true, message: next.message }));
+      } else {
+        setPhase(next);
+      }
       setStatus((s) => (s === 'idle' ? 'running' : s));
       // Fix15-list-challenges: o main expõe o setup materializado na fase
       // `materializing` (orchestrator). Guardamos em estado local/contexto para a
@@ -269,7 +278,13 @@ export default function LessonView(): ReactElement {
     setError('');
     setParsed(null);
     setStatus('running');
-    setPhase({ phase: 'gerando', fraction: 0, message: t('translation:lesson.starting'), done: false });
+    setPhase({
+      phase: 'gerando',
+      fraction: 0,
+      message: t('translation:lesson.starting'),
+      done: false,
+      failed: false,
+    });
     // Fix15c-review: limpa o setupRoot do generate ANTERIOR ANTES de chamar a
     // API — se esta geração falhar antes do `materializing`, a ChallengeView
     // não relista com o setup velho.
@@ -296,6 +311,10 @@ export default function LessonView(): ReactElement {
 
   const running = status === 'running';
   const activeStep = Math.max(0, lessonPhaseIndex(phase.phase));
+  // fix-progress-error: "fase alcançada" = a geração chegou a uma fase real (ou
+  // o próprio evento de erro marcou failed). No erro, o Stepper só permanece
+  // visível se houve fase alcançada — erro de validação (idle puro) não mostra.
+  const phaseReached = phase.phase !== 'gerando' || phase.failed;
 
   return (
     <Box component="section" sx={{ p: { xs: 1, md: 2 }, maxWidth: 960, mx: 'auto' }} data-onboarding-signal={`lesson-status:${status}`}>
@@ -336,12 +355,17 @@ export default function LessonView(): ReactElement {
       </Stack>
 
       {/* Progresso das fases */}
-      {status === 'running' || status === 'done' ? (
+      {running || status === 'done' || (status === 'error' && phaseReached) ? (
         <Box sx={{ mt: 2 }} role="status" aria-live="polite">
           <Stepper activeStep={activeStep} alternativeLabel>
-            {LESSON_PHASE_ORDER.map((labelKey) => (
+            {LESSON_PHASE_ORDER.map((labelKey, i) => (
               <Step key={labelKey}>
-                <StepLabel>{t(`translation:${labelKey}`)}</StepLabel>
+                {/* fix-progress-error: no erro, a etapa ATUAL (a última fase
+                    alcançada) é marcada com error no StepLabel — as anteriores
+                    ficam ✓ e as seguintes pendentes. */}
+                <StepLabel error={phase.failed && i === activeStep}>
+                  {t(`translation:${labelKey}`)}
+                </StepLabel>
               </Step>
             ))}
           </Stepper>

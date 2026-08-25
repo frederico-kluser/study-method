@@ -16,8 +16,8 @@ describe('lessonPhaseKey', () => {
     assert.equal(lessonPhaseKey('concluindo'), 'lesson.phase.done');
   });
 
-  it("fase 'gerando' (inicial/genérica) cai no rótulo neutro done", () => {
-    assert.equal(lessonPhaseKey('gerando'), 'lesson.phase.done');
+  it("fase 'gerando' (inicial/genérica) aponta para a PRIMEIRA etapa (research)", () => {
+    assert.equal(lessonPhaseKey('gerando'), 'lesson.phase.research');
   });
 });
 
@@ -28,6 +28,8 @@ describe('lessonPhaseIndex', () => {
     assert.equal(lessonPhaseIndex('materializando'), 2);
     assert.equal(lessonPhaseIndex('validando'), 3);
     assert.equal(lessonPhaseIndex('concluindo'), 4);
+    // bug fix: fase inicial/genérica fica na 1ª etapa (Stepper não pula pro fim)
+    assert.equal(lessonPhaseIndex('gerando'), 0);
   });
 
   it('a ordem de exibição contém 5 rótulos válidos', () => {
