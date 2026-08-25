@@ -113,6 +113,7 @@ const SYSTEM_PROMPT_PT_BR =
   'ch_test_name: python test_<id> (ex. test_duplica_vazia), node/javascript/rust/c ' +
   'o id curto direto, go Test<CamelCaseComId>>",\n' +
   '  "referenceCode": "<implementação de referência correta e completa>",\n' +
+  '  "referenceAlternates": ["<2 implementações alternativas corretas e estruturalmente DIFERENTES da referenceCode, com a MESMA assinatura>"],\n' +
   '  "scenarios": [\n' +
   '    {\n' +
   '      "id": "<snake_case ascii>",\n' +
@@ -155,6 +156,18 @@ const SYSTEM_PROMPT_PT_BR =
   '  - python: módulo `stub.py` na raiz → importe com `from stub import <função>` (nunca o\n' +
   '    slug como módulo).\n' +
   'Identificador errado quebra a compilação/importação e o desafio é rejeitado na validação.\n' +
+  'IMPORTANTE — ASSINATURA IDÊNTICA em stubCode, testCode, referenceCode E referenceAlternates:\n' +
+  'os 4 artefatos declaram a função principal com a MESMA assinatura — nunca use assinatura\n' +
+  'placeholder genérica (ex.: `pub fn maior_elemento_vetor(n: u64) -> u64`) só para "esboçar"\n' +
+  'o stub. O harness (challenge-verify.sh) COPIA empty_stub — a cópia canônica do stub — e\n' +
+  'cada reference_alt_* por cima do stub do aluno e roda os testes contra eles; assinatura\n' +
+  'diferente quebra a compilação do passo 1 (zero_tests_executed) e do passo 3\n' +
+  '(rejects_correct_alternative), e o desafio é rejeitado. Exemplo Rust: os 4 artefatos\n' +
+  'declaram a MESMA assinatura, ex. `pub fn maior_elemento_vetor(vetor: Vec<i32>) -> Option<i32>`\n' +
+  'repetida em stubCode, testCode, referenceCode E referenceAlternates; o corpo do stubCode é\n' +
+  '`unimplemented!()` (ou o equivalente da linguagem) MANTENDO a assinatura real. As 2\n' +
+  'alternativas devem resolver o MESMO problema com estratégias idiomáticas DIFERENTES da\n' +
+  'referenceCode (ex.: recursão vs. acumulador), nunca variantes cosméticas.\n' +
 
   'Regras: precise de textos completos e corretos (stub/test/reference compilam e ' +
   'rodam); os cenários de cada desafio devem incluir PELO MENOS um example, um ' +
@@ -237,6 +250,13 @@ function validateChallenge(c: unknown, idx: number): string | null {
   if (typeof o.stubCode !== 'string' || !o.stubCode.trim()) missing.push('stubCode');
   if (typeof o.testCode !== 'string' || !o.testCode.trim()) missing.push('testCode');
   if (typeof o.referenceCode !== 'string' || !o.referenceCode.trim()) missing.push('referenceCode');
+  // referenceAlternates alimentam .solution/reference_alt_* — o passo 3 do harness
+  // roda o teste contra cada uma; sem >= 2 corretas o desafio é rejeitado na validação.
+  const alts = Array.isArray(o.referenceAlternates) ? (o.referenceAlternates as unknown[]) : [];
+  const nonEmptyAlts = alts.filter((a) => typeof a === 'string' && (a as string).trim().length > 0).length;
+  if (nonEmptyAlts < 2) {
+    missing.push('referenceAlternates (array com >= 2 implementações alternativas corretas e não vazias, MESMA assinatura da referenceCode)');
+  }
   if (!Array.isArray(o.scenarios) || o.scenarios.length === 0) {
     missing.push('scenarios (array com >= 1 cenário)');
   }
@@ -319,6 +339,11 @@ export function validateLessonDraft(raw: unknown): LessonDraft | null {
       stubCode: String(co.stubCode),
       testCode: String(co.testCode),
       referenceCode: String(co.referenceCode),
+      // validateChallenge já exigiu >= 2 não vazias; o array é propagado tal qual
+      // (sem trim — o código deve chegar à materialização byte a byte).
+      referenceAlternates: Array.isArray(co.referenceAlternates)
+        ? (co.referenceAlternates as unknown[]).map((a) => String(a))
+        : [],
       scenarios,
       expectedTestCount,
     };

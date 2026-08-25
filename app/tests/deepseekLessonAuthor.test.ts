@@ -48,6 +48,10 @@ function validDraftJson(): string {
         testCode:
           "import { test } from 'node:test';\nimport assert from 'node:assert/strict';\nimport { criaContador } from './stub.mjs';\n\ntest('incrementa', () => {\n  const c = criaContador();\n  header: assert.equal(c(), 1);\n});\n",
         referenceCode: 'export function criaContador() { let n = 0; return () => ++n; }',
+        referenceAlternates: [
+          'export function criaContador() { let n = 0; return () => ++n; }',
+          'export function criaContador() { const estado = { n: 0 }; return () => ++estado.n; }',
+        ],
         scenarios: [
           { id: 'incrementa', name: 'Incrementa', type: 'example', input: 'chama()', expected: '1', description: 'Primeira chamada retorna 1' },
           { id: 'limite_zero', name: 'Limite zero', type: 'boundary', input: 'chama 0 vezes', expected: 'sem chamada não muda', description: 'Nenhuma chamada mantém estado' },
@@ -120,6 +124,23 @@ test('author: system prompt instrui os identificadores FIXOS por linguagem no te
   assert.match(sys, /TESTS_FAILED=<m>/);
   // Python: o stub é o módulo `stub.py` — `from stub import ...`, nunca o slug como módulo.
   assert.match(sys, /from stub import <função>/);
+});
+
+test('author: system prompt impõe ASSINATURA IDÊNTICA em stub/test/reference/alternates (regra do harness)', async () => {
+  const { client, calls } = fakeClient(() => ({ content: validDraftJson() }));
+  const author = createDeepSeekLessonAuthor({ client });
+  await author({ subject: 'Closures', findings: [] });
+  const sys = calls[0].messages[0].content;
+  // O layout do desafio pede referenceAlternates e a regra rígida cita o exemplo Rust
+  // com a MESMA assinatura repetida nos 4 artefatos (o bug real: stub toy `n: u64 ->
+  // u64` vs. teste com `Vec<i32> -> Option<i32>` → zero_tests_executed).
+  assert.match(sys, /referenceAlternates/);
+  assert.match(sys, /ASSINATURA IDÊNTICA/);
+  assert.match(sys, /pub fn maior_elemento_vetor\(vetor: Vec<i32>\) -> Option<i32>/, 'exemplo Rust concreto com a assinatura real');
+  assert.match(sys, /unimplemented!\(\)/, 'corpo do stub é unimplemented!() MANTENDO a assinatura real');
+  assert.match(sys, /zero_tests_executed/, 'menciona a rejeição do passo 1 (teste contra empty_stub)');
+  assert.match(sys, /rejects_correct_alternative/, 'menciona a rejeição do passo 3 (alternatives)');
+  assert.match(sys, /empty_stub/, 'explica que empty_stub é a cópia canônica do stub');
 });
 
 test('slugifyToFunctionName: python/javascript/rust/c usam snake_case a partir do kebab-case', () => {
@@ -244,6 +265,33 @@ test('validateLessonDraft: chama direto com draft válido → devolve normalizad
   const draft = validateLessonDraft(JSON.parse(validDraftJson()));
   assert.equal(draft!.lessonTitle, 'Closures em JavaScript');
   assert.equal(draft!.challenges.length, 1);
+});
+
+test('validateLessonDraft: desafio SEM referenceAlternates → erro claro apontando o campo', () => {
+  const body = JSON.parse(validDraftJson());
+  delete body.challenges[0].referenceAlternates;
+  assert.throws(() => validateLessonDraft(body), /referenceAlternates/);
+});
+
+test('validateLessonDraft: referenceAlternates com < 2 strings não vazias → erro claro', () => {
+  const body = JSON.parse(validDraftJson());
+  body.challenges[0].referenceAlternates = ['só uma alternativa'];
+  assert.throws(() => validateLessonDraft(body), /referenceAlternates/);
+  body.challenges[0].referenceAlternates = ['', '   '];
+  assert.throws(() => validateLessonDraft(body), /referenceAlternates/);
+  body.challenges[0].referenceAlternates = 'não é array';
+  assert.throws(() => validateLessonDraft(body), /referenceAlternates/);
+});
+
+test('validateLessonDraft: com 2 referenceAlternates → aceito e propagado no ChallengeDraft', () => {
+  const draft = validateLessonDraft(JSON.parse(validDraftJson()));
+  const alts = draft!.challenges[0].referenceAlternates ?? [];
+  assert.equal(alts.length, 2);
+  assert.equal(
+    alts[0],
+    'export function criaContador() { let n = 0; return () => ++n; }',
+  );
+  assert.match(alts[1], /estado/);
 });
 
 test('validateLessonDraft: null / primitivo / array → lança "não devolveu um LessonDraft"', () => {

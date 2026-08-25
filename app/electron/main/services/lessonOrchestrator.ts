@@ -150,6 +150,12 @@ export interface MetaShape {
     stub_path?: unknown;
     test_path?: unknown;
     reference_path?: unknown;
+    /** Cópia canônica do stub (.solution/empty_stub.<ext>) — passo 1 do harness. */
+    empty_stub_path?: unknown;
+    /** Implementações alternativas corretas (.solution/reference_alt_*.<ext>) — passo 3. */
+    reference_alt_paths?: unknown;
+    /** Arquivos de suporte por linguagem — para C o seed lista `stub.h` (fix-c-stubh). */
+    support_paths?: unknown;
   };
   target_concepts?: unknown;
   scenarios?: unknown;
@@ -287,6 +293,66 @@ export function createLessonOrchestrator(deps: LessonOrchestratorDeps) {
     await fsp.writeFile(testPath, draft.testCode, 'utf8');
     await fsp.writeFile(referencePath, draft.referenceCode, 'utf8');
     await fsp.writeFile(statementPath, draft.statement, 'utf8');
+
+    // -- ocultos de .solution/ que o harness VALIDA (challenge-verify.sh) --------
+    // empty_stub é a CÓPIA CANÔNICA do stub recem-materializado (semântica de
+    // challenge-new.sh §12: "empty_stub e a COPIA CANONICA do stub recem-materializado",
+    // o que permite reexecutar o passo 1 depois que o aluno edita o stub). Como a
+    // autoria substitui o stub, ela também substitui a cópia canônica — senão a
+    // assinatura placeholder da semente quebra a compilação do teste contra o stub
+    // vazio (zero_tests_executed) e o desafio é rejeitado no passo 1.
+    const rawEmptyStub = artifacts.empty_stub_path;
+    if (typeof rawEmptyStub === 'string' && rawEmptyStub.length > 0) {
+      const emptyStubPath = path.join(ch.challengeDirAbs, rawEmptyStub);
+      await fsp.mkdir(path.dirname(emptyStubPath), { recursive: true });
+      await fsp.writeFile(emptyStubPath, draft.stubCode, 'utf8');
+    }
+    // reference_alt_*: implementações alternativas CORRETAS, com a MESMA assinatura
+    // (passo 3 do harness — o teste DEVE aceitá-las; senão rejects_correct_alternative).
+    // Fallback para a referenceCode em paths além das alternativas autoradas, para
+    // nunca deixar um path declarado no meta sem conteúdo compilável.
+    if (Array.isArray(artifacts.reference_alt_paths)) {
+      const altPaths = artifacts.reference_alt_paths.map((p) =>
+        path.join(ch.challengeDirAbs, String(p)),
+      );
+      for (let i = 0; i < altPaths.length; i++) {
+        await fsp.mkdir(path.dirname(altPaths[i]), { recursive: true });
+        await fsp.writeFile(altPaths[i], draft.referenceAlternates?.[i] ?? draft.referenceCode, 'utf8');
+      }
+    }
+
+    // -- stub.h (C): regrava o header do seed com a assinatura AUTORADA ------------
+    // O seed (challenge-new.sh §11) grava `stub.h` na RAIZ do desafio com o
+    // protótipo TOY (`long <funcao>(long n)`) — SUPPORT_PATHS '["stub.h",".build/"]'
+    // — e o build_command compila `gcc stub.c tests/test_stub.c`, onde
+    // tests/test_stub.c faz `#include "../stub.h"` (NUNCA o ../stub.c: incluir o
+    // .c daria dupla definição no link). Para uma assinatura autorada NÃO-toy
+    // (multi-arg, arrays, retorno não-long), o protótipo da semente CONFLITA com
+    // a definição do stub.c autorado → gcc rejeita o teste e o passo 0 do harness
+    // vira build_failed/zero_tests_executed — MESMO com stub/test/reference/
+    // alternates consistentes (fix-c-stubh; mesma classe do Rust que a onda
+    // eliminou). Aqui derivamos o protótipo do stubCode AUTORADO (até o primeiro
+    // '{' com parênteses fechados) e regravamos o stub.h no MESMO formato do seed
+    // (`#ifndef STUB_H / #define STUB_H / <protótipo>; / #endif`). Se a extração
+    // falhar (sem '{' — stubCode é só um protótipo) ou o stub.h não existir, o
+    // header do seed é PRESERVADO — comportamento atual, nunca pior que hoje.
+    if (normalizeLanguage(languageOf(language ?? draft.language)) === 'c') {
+      const supportPaths = Array.isArray(artifacts.support_paths)
+        ? artifacts.support_paths.map((p) => String(p))
+        : [];
+      const headerRel = supportPaths.find((p) => /stub\.h$/.test(p));
+      if (headerRel !== undefined) {
+        const stubHeaderPath = path.join(ch.challengeDirAbs, headerRel);
+        const proto = extractCPrototype(draft.stubCode);
+        if (proto !== null && (await fileExists(stubHeaderPath))) {
+          await fsp.writeFile(
+            stubHeaderPath,
+            `#ifndef STUB_H\n#define STUB_H\n\n${proto};\n\n#endif\n`,
+            'utf8',
+          );
+        }
+      }
+    }
 
     await writeMeta(ch.challengeDirAbs, meta, draft, difficulty);
     return {
@@ -526,6 +592,85 @@ function languageOf(raw: string | undefined): string {
 function slugifySafely(slug: string): string {
   const s = (slug || '').trim();
   return s || 'challenge';
+}
+
+/**
+ * Deriva o protótipo C de UMA definição de função no stubCode autorado
+ * (fix-c-stubh). O seed do template `challenge/c/stub.c.tmpl` começa com a
+ * assinatura (`{{SIGNATURE}} {` na PRIMEIRA linha) — aqui:
+ *  1. acha o PRIMEIRO '{' com profundidade de parênteses 0 (conta '(' e ')';
+ *     quando parenDepth volta a 0 e aparece '{', o corpo da função começou);
+ *  2. recua até o início da declaração: logo após o último ';' ou '}' de nível
+ *     topo anterior (fim da declaração/definição anterior), ou começo do código;
+ *  3. pula o que NÃO é parte da assinatura entre o terminator e a declaração:
+ *     espaços, linhas de preprocessador (`#include ...`) e comentários (linha
+ *     `//` ou bloco iniciado por `/` + `*`).
+ * Devolve a assinatura colapsada para uma linha (ex.: `long maior(const int*
+ * vetor, int tamanho)`), ou `null` quando não há '{' (ex.: stubCode é só um
+ * protótipo) — nesse caso o caller PRESERVA o stub.h do seed.
+ */
+export function extractCPrototype(stubCode: string): string | null {
+  const code = stubCode ?? '';
+  let parenDepth = 0;
+  let braceIdx = -1;
+  for (let i = 0; i < code.length; i++) {
+    const ch = code[i];
+    if (ch === '(') parenDepth += 1;
+    else if (ch === ')') parenDepth = Math.max(0, parenDepth - 1);
+    else if (ch === '{' && parenDepth === 0) {
+      braceIdx = i;
+      break;
+    }
+  }
+  if (braceIdx === -1) return null;
+
+  // início da declaração: logo após o último ';' ou '}' ANTES da assinatura
+  // (fim da declaração/definição anterior). Sem terminator anterior → começo.
+  let declStart = 0;
+  for (let i = braceIdx - 1; i >= 0; i--) {
+    const ch = code[i];
+    if (ch === ';' || ch === '}') {
+      declStart = i + 1;
+      break;
+    }
+  }
+
+  // pula o que separa o terminator anterior da declaração: espaços, linhas de
+  // preprocessador e comentários (// e /* */). Para no início da assinatura.
+  let i = declStart;
+  for (;;) {
+    while (i < braceIdx && /\s/.test(code[i])) i += 1;
+    if (i >= braceIdx) break;
+    if (code[i] === '#') {
+      const nl = code.indexOf('\n', i);
+      i = nl === -1 ? braceIdx : nl + 1;
+      continue;
+    }
+    if (code[i] === '/' && code[i + 1] === '/') {
+      const nl = code.indexOf('\n', i);
+      i = nl === -1 ? braceIdx : nl + 1;
+      continue;
+    }
+    if (code[i] === '/' && code[i + 1] === '*') {
+      const end = code.indexOf('*/', i + 2);
+      i = end === -1 ? braceIdx : end + 2;
+      continue;
+    }
+    break;
+  }
+
+  const signature = code.slice(i, braceIdx).replace(/\s+/g, ' ').trim();
+  return signature.length > 0 ? signature : null;
+}
+
+/** true se o arquivo existe (fakes podem não criar o stub.h do seed). */
+async function fileExists(p: string): Promise<boolean> {
+  try {
+    await fsp.access(p);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 /** Lê setups criados em <setupsDir> (subdiretórios com setup.json). */

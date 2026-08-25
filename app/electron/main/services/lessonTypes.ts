@@ -65,6 +65,15 @@ export interface ChallengeDraft {
   testCode: string;
   /** Implementação de referência correta (oculta) → .solution/reference.<ext>. */
   referenceCode: string;
+  /**
+   * 2 implementações alternativas CORRETAS, estruturalmente DIFERENTES da
+   * referenceCode, com a MESMA assinatura — alimentam .solution/reference_alt_*.
+   * O harness (challenge-verify.sh passo 3) roda o teste contra cada uma para
+   * detectar over-specification; a autoria (validateChallenge) EXIGE >= 2 strings
+   * não vazias. Opcional no tipo apenas para não quebrar fixtures antigas fora da
+   * autoria — o orquestrador cai para a referenceCode quando ausente.
+   */
+  referenceAlternates?: string[];
   /** Cenários cobrados — alimentam meta.json.scenarios[] e expected_test_count. */
   scenarios: ScenarioDraft[];
   /** expected_test_count (deve == scenarios.length; default = scenarios.length). */

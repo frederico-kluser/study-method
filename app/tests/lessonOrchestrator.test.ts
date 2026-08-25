@@ -40,6 +40,10 @@ const draft: LessonDraft = {
       stubCode: 'def fatorial(n):\n    raise NotImplementedError\n',
       testCode: 'import unittest\nfrom stub import fatorial\nclass TestStub(unittest.TestCase):\n    def test_fatorial_de_cinco(self):\n        self.assertEqual(fatorial(5), 120)\n',
       referenceCode: 'def fatorial(n):\n    return 1 if n <= 1 else n * fatorial(n - 1)\n',
+      referenceAlternates: [
+        'def fatorial(n):\n    resultado = 1\n    for i in range(2, n + 1):\n        resultado *= i\n    return resultado\n',
+        'def fatorial(n):\n    if n <= 1:\n        return 1\n    return n * fatorial(n - 1)\n',
+      ],
       scenarios: [
         { id: 'fatorial_de_cinco', name: 'Fatorial de cinco', type: 'example', input: '5', expected: '120', description: 'fatorial(5) = 120' },
       ],
@@ -126,6 +130,8 @@ function makeFakes(opts: {
           runner_path: 'runner.sh',
           hidden_dir: '.solution',
           reference_path: '.solution/reference.py',
+          empty_stub_path: '.solution/empty_stub.py',
+          reference_alt_paths: ['.solution/reference_alt_recursiva.py', '.solution/reference_alt_acumulador.py'],
         },
         execution: { test_command: ['.'], working_dir: '.', timeout_seconds: 15, expected_test_count: 1, test_count_probe: 'python_unittest_ran_line', failure_exit_codes: { policy: 'non_zero_is_failure' } },
         scenarios: [],
@@ -227,6 +233,25 @@ describe('lessonOrchestrator (unit / fakes)', () => {
     assert.equal(meta.scenarios[0].kind, 'example');
     assert.equal(meta.difficulty, 2);
     assert.equal(meta.target_concepts[0].concept_id, 'recursao');
+  });
+
+  it('generateLesson: materializa empty_stub (cópia canônica do stub) e reference_alt_* (alternativas da autoria) nos paths do meta', async () => {
+    const { runner, research, author } = makeFakes({ verifyVerdict: 'approved' });
+    const orch = createLessonOrchestrator({ research, runner, author, setupsDir: tmp });
+
+    const result = await orch.generateLesson('Recursão');
+    const ws = result.lesson.challenges[0].workspaceDir;
+
+    // empty_stub é a CÓPIA CANÔNICA do stub recem-materializado (challenge-new.sh §12):
+    // o passo 1 do harness roda o teste contra ELE — o conteúdo é o stubCode da autoria.
+    const emptyStub = await fsp.readFile(path.join(ws, '.solution', 'empty_stub.py'), 'utf8');
+    assert.equal(emptyStub, draft.challenges[0].stubCode);
+    // alternativas: uma por path declarado em artifacts.reference_alt_paths, na ordem.
+    const alternates = draft.challenges[0].referenceAlternates ?? [];
+    const altRecursiva = await fsp.readFile(path.join(ws, '.solution', 'reference_alt_recursiva.py'), 'utf8');
+    assert.equal(altRecursiva, alternates[0]);
+    const altAcumulador = await fsp.readFile(path.join(ws, '.solution', 'reference_alt_acumulador.py'), 'utf8');
+    assert.equal(altAcumulador, alternates[1]);
   });
 
   it('generateLesson: desafio weak vai para rejected (não entra na aula) — DES-2', async () => {
@@ -369,6 +394,9 @@ describe('lessonOrchestrator (unit / fakes)', () => {
             runner_path: 'runner.sh',
             hidden_dir: '.solution',
             reference_path: '.solution/reference.go',
+            // 3 paths: os 2 canônicos + um EXTRA para provar o fallback → referenceCode.
+            empty_stub_path: '.solution/empty_stub.go',
+            reference_alt_paths: ['.solution/reference_alt_recursiva.go', '.solution/reference_alt_acumulador.go', '.solution/reference_alt_extra.go'],
           },
           execution: { test_command: ['.'], working_dir: '.', timeout_seconds: 20, expected_test_count: 1, test_count_probe: 'go_test_ran_line', failure_exit_codes: { policy: 'non_zero_is_failure' } },
           scenarios: [],
@@ -393,6 +421,10 @@ describe('lessonOrchestrator (unit / fakes)', () => {
     goDraft.stubCode = 'package main\n\n// Fatorial computa n!\nfunc Fatorial(n int) int { panic("todo") }\n';
     goDraft.testCode = 'package main\n\nimport "testing"\n\nfunc TestFatorialCinco(t *testing.T) {\n\tif Fatorial(5) != 120 {\n\t\tt.Fatal("esperado 120")\n\t}\n}\n';
     goDraft.referenceCode = 'package main\n\nfunc Fatorial(n int) int {\n\tif n <= 1 { return 1 }\n\treturn n * Fatorial(n-1)\n}\n';
+    goDraft.referenceAlternates = [
+      'package main\n\nfunc Fatorial(n int) int {\n\tif n <= 1 { return 1 }\n\treturn n * Fatorial(n - 1)\n}\n',
+      'package main\n\nfunc Fatorial(n int) int {\n\tresultado := 1\n\tfor i := 2; i <= n; i++ { resultado *= i }\n\treturn resultado\n}\n',
+    ];
     goDraft.scenarios = [{ id: 'fatorial_cinco', name: 'Fatorial cinco', type: 'example', input: '5', expected: '120', description: 'fatorial(5) = 120' }];
     goDraft.expectedTestCount = 1;
 
@@ -408,6 +440,13 @@ describe('lessonOrchestrator (unit / fakes)', () => {
     assert.equal(await fsp.readFile(path.join(challengeDir, 'stub_test.go'), 'utf8'), goDraft.testCode);
     assert.equal(await fsp.readFile(path.join(challengeDir, '.solution', 'reference.go'), 'utf8'), goDraft.referenceCode);
     assert.equal(await fsp.readFile(path.join(challengeDir, 'README.md'), 'utf8'), goDraft.statement);
+    // ocultos do harness: empty_stub = cópia canônica do stub; alternates = da autoria.
+    assert.equal(await fsp.readFile(path.join(challengeDir, '.solution', 'empty_stub.go'), 'utf8'), goDraft.stubCode);
+    assert.equal(await fsp.readFile(path.join(challengeDir, '.solution', 'reference_alt_recursiva.go'), 'utf8'), goDraft.referenceAlternates[0]);
+    assert.equal(await fsp.readFile(path.join(challengeDir, '.solution', 'reference_alt_acumulador.go'), 'utf8'), goDraft.referenceAlternates[1]);
+    // path EXTRA além das 2 alternativas autoradas → fallback para a referenceCode
+    // (nunca deixa um path declarado no meta sem conteúdo compilável).
+    assert.equal(await fsp.readFile(path.join(challengeDir, '.solution', 'reference_alt_extra.go'), 'utf8'), goDraft.referenceCode);
 
     // meta.json re-mergeado; test_name em go = Test<Camel>(id) (computeTestName).
     const meta = JSON.parse(await fsp.readFile(path.join(challengeDir, 'meta.json'), 'utf8'));
@@ -415,6 +454,166 @@ describe('lessonOrchestrator (unit / fakes)', () => {
     assert.equal(meta.scenarios.length, 1);
     assert.equal(meta.scenarios[0].test_name, 'TestFatorialCinco');
     assert.equal(meta.execution.expected_test_count, 1);
+  });
+
+  /** runner fake cujo createChallenge grava o meta.json dado + arquivos extras e devolve o dir. */
+  function makeMetaRunner(metaJson: string, extraFiles: Array<{ rel: string; content: string }>) {
+    let challengeDir = '';
+    const relativePath = 'challenges/0021-maior-elemento';
+    const runner = {
+      async resolveSkillDir() { return '/tmp/skill'; },
+      async createSetup(spec: { path: string }) {
+        return { setupId: 'a1b2c3d4e5f6', setupRoot: spec.path };
+      },
+      async newSession() { return '0001'; },
+      async createChallenge(root: string, c: { language: string; slug: string; concept: string }) {
+        challengeDir = path.join(root, relativePath);
+        await fsp.mkdir(challengeDir, { recursive: true });
+        await writeFile(path.join(challengeDir, 'meta.json'), metaJson);
+        for (const f of extraFiles) {
+          await fsp.mkdir(path.dirname(path.join(challengeDir, f.rel)), { recursive: true });
+          await writeFile(path.join(challengeDir, f.rel), f.content);
+        }
+        return { challengeDirAbs: challengeDir, relativePath };
+      },
+      async verifyChallenge() {
+        return { verdict: 'approved', rejections: [], stdout: '', applyExhausted: false };
+      },
+      async testStudentAnswer() { throw new Error('not used'); },
+    };
+    return { runner, get challengeDir() { return challengeDir; } };
+  }
+
+  /** stub.h do seed: protótipo TOY (`long <funcao>(long n)` — challenge-new.sh §11.13/SIGNATURE c). */
+  const SEED_STUB_H = (funcName: string) =>
+    `#ifndef STUB_H\n#define STUB_H\n\nlong ${funcName}(long n);\n\n#endif\n`;
+
+  /** meta.json no layout C (como challenge-new.sh materializa: stub.h na raiz, em support_paths). */
+  function cLayoutMeta(language: string): string {
+    return JSON.stringify({
+      schema_version: '1.0',
+      challenge_id: '0021',
+      slug: 'maior-elemento',
+      title: 'Maior elemento',
+      created_at: '2026-08-23T00:00:00Z',
+      updated_at: '2026-08-23T00:00:00Z',
+      language,
+      layout_profile: language === 'rust' ? 'cargo_crate' : 'generic',
+      skill_level: 'beginner',
+      difficulty: 2,
+      target_concepts: [{ concept_id: 'vetores', label: 'vetores', role: 'primary' }],
+      challenge_status: 'draft',
+      artifacts: {
+        statement_path: 'README.md',
+        stub_path: language === 'rust' ? 'src/lib.rs' : 'stub.c',
+        test_path: language === 'rust' ? 'tests/test_stub.rs' : 'tests/test_stub.c',
+        runner_path: 'runner.sh',
+        hidden_dir: '.solution',
+        reference_path: language === 'rust' ? '.solution/reference.rs' : '.solution/reference.c',
+        empty_stub_path: language === 'rust' ? '.solution/empty_stub.rs' : '.solution/empty_stub.c',
+        reference_alt_paths: [],
+        manifest_paths: language === 'rust' ? ['Cargo.toml'] : [],
+        // stub.h propositalmente listado ATÉ no fake rust — o guard de linguagem
+        // ('c') é o que decide; se o rust tocasse stub.h, o teste falharia.
+        support_paths: ['stub.h', '.build/'],
+      },
+      execution: { test_command: ['.'], working_dir: '.', timeout_seconds: 20, expected_test_count: 1, test_count_probe: 'c_counter_protocol', failure_exit_codes: { policy: 'non_zero_is_failure' } },
+      scenarios: [],
+      oracle: { strategies: ['reference_impl'], numeric_mode: 'exact_int' },
+      validation: { protocol_version: '1.0', harness: 'challenge-verify.sh', verdict: 'not_run', generation_attempts: 0, steps: {} },
+      integrity: { policy: 'warn', test_sha256: null },
+      student_progress: { attempts: 0, last_result: 'not_run', hint_level_used: 0, solution_revealed: false },
+    }, null, 2);
+  }
+
+  it('materializeChallenge: C — regrava stub.h com a assinatura AUTORADA (multi-arg) no formato do seed', async () => {
+    const seedStubH = SEED_STUB_H('maior');
+    // challengeDir só é conhecido DEPOIS do createChallenge → lê via getter no fim.
+    const fake = makeMetaRunner(cLayoutMeta('c'), [
+      { rel: 'stub.h', content: seedStubH },
+    ]);
+    const { runner } = fake;
+
+    const cDraft: typeof draft.challenges[0] = JSON.parse(JSON.stringify(draft.challenges[0]));
+    cDraft.language = 'c';
+    cDraft.slug = 'maior-elemento';
+    cDraft.title = 'Maior elemento';
+    cDraft.stubCode = 'long maior(const int* vetor, int tamanho) {\n    return 0;\n}\n';
+    cDraft.testCode = '#include <stdio.h>\n\n#include "../stub.h"\n\nint main(void) {\n    printf("TESTS_RUN=1\\nTESTS_FAILED=0\\n");\n    return 0;\n}\n';
+    cDraft.referenceCode = 'long maior(const int* vetor, int tamanho) {\n    int m = vetor[0];\n    for (int i = 1; i < tamanho; i++) if (vetor[i] > m) m = vetor[i];\n    return m;\n}\n';
+    cDraft.referenceAlternates = [cDraft.referenceCode];
+    cDraft.scenarios = [{ id: 'vetor_crescente', name: 'Vetor crescente', type: 'example', input: '[1,2,3]', expected: '3', description: 'maior do vetor' }];
+    cDraft.expectedTestCount = 1;
+
+    const research = { async plan() { return { subject: 'x', queries: [], findings: [], createdAt: '' }; } };
+    const author: AuthorFn = async () => ({ lessonTitle: 'x', lessonMarkdown: '# x', challenges: [cDraft] });
+    const orch = createLessonOrchestrator({ research, runner, author, setupsDir: tmp });
+
+    await orch.materializeChallenge(tmp, cDraft, 2, 'c');
+
+    // stub.h regravado com a assinatura AUTORADA (multi-arg) no MESMO formato do
+    // seed (#ifndef STUB_H / #define STUB_H / <protótipo>; / #endif) — o protótipo
+    // toy da semente quebraria o build de tests/test_stub.c (include "../stub.h").
+    const challengeDir = fake.challengeDir;
+    const stubH = await fsp.readFile(path.join(challengeDir, 'stub.h'), 'utf8');
+    assert.equal(stubH, '#ifndef STUB_H\n#define STUB_H\n\nlong maior(const int* vetor, int tamanho);\n\n#endif\n');
+    // os demais artefatos seguem materializados normalmente (nada regrediu).
+    assert.equal(await fsp.readFile(path.join(challengeDir, 'stub.c'), 'utf8'), cDraft.stubCode);
+    assert.equal(await fsp.readFile(path.join(challengeDir, '.solution', 'empty_stub.c'), 'utf8'), cDraft.stubCode);
+  });
+
+  it('materializeChallenge: C — stubCode sem { (extração falha) → stub.h do seed INTOCADO', async () => {
+    const seedStubH = SEED_STUB_H('maior');
+    const fake = makeMetaRunner(cLayoutMeta('c'), [
+      { rel: 'stub.h', content: seedStubH },
+    ]);
+    const { runner } = fake;
+
+    const cDraft: typeof draft.challenges[0] = JSON.parse(JSON.stringify(draft.challenges[0]));
+    cDraft.language = 'c';
+    cDraft.slug = 'maior-elemento';
+    // stubCode é só um protótipo — SEM '{': a extração falha e o stub.h do seed
+    // é preservado (comportamento atual — nunca pior que hoje).
+    cDraft.stubCode = 'long maior(const int* vetor, int tamanho);\n';
+    cDraft.testCode = '#include <stdio.h>\n\n#include "../stub.h"\n\nint main(void) {\n    return 0;\n}\n';
+    cDraft.referenceCode = 'long maior(const int* vetor, int tamanho) {\n    return 0;\n}\n';
+    cDraft.scenarios = [{ id: 'vetor_crescente', name: 'Vetor crescente', type: 'example', input: '[1,2,3]', expected: '3', description: 'maior do vetor' }];
+    cDraft.expectedTestCount = 1;
+
+    const research = { async plan() { return { subject: 'x', queries: [], findings: [], createdAt: '' }; } };
+    const author: AuthorFn = async () => ({ lessonTitle: 'x', lessonMarkdown: '# x', challenges: [cDraft] });
+    const orch = createLessonOrchestrator({ research, runner, author, setupsDir: tmp });
+
+    await orch.materializeChallenge(tmp, cDraft, 2, 'c');
+
+    assert.equal(await fsp.readFile(path.join(fake.challengeDir, 'stub.h'), 'utf8'), seedStubH);
+  });
+
+  it('materializeChallenge: não-C (rust) → stub.h não é tocado (guard de linguagem)', async () => {
+    // meta RUST com support_paths CONTENDO stub.h + stub.h presente no disco:
+    // o guard `lang === 'c'` impede qualquer escrita mesmo assim.
+    const seedStubH = SEED_STUB_H('maior');
+    const fake = makeMetaRunner(cLayoutMeta('rust'), [
+      { rel: 'stub.h', content: seedStubH },
+    ]);
+    const { runner } = fake;
+
+    const rustDraft: typeof draft.challenges[0] = JSON.parse(JSON.stringify(draft.challenges[0]));
+    rustDraft.language = 'rust';
+    rustDraft.slug = 'maior-elemento';
+    rustDraft.stubCode = 'pub fn maior(n: u64) -> u64 { todo!() }\n';
+    rustDraft.testCode = 'use desafio::maior;\n\n#[test]\nfn vetor_crescente() {\n    assert_eq!(maior(3), 3);\n}\n';
+    rustDraft.referenceCode = 'pub fn maior(n: u64) -> u64 { n }\n';
+    rustDraft.scenarios = [{ id: 'vetor_crescente', name: 'Vetor crescente', type: 'example', input: '3', expected: '3', description: 'maior do vetor' }];
+    rustDraft.expectedTestCount = 1;
+
+    const research = { async plan() { return { subject: 'x', queries: [], findings: [], createdAt: '' }; } };
+    const author: AuthorFn = async () => ({ lessonTitle: 'x', lessonMarkdown: '# x', challenges: [rustDraft] });
+    const orch = createLessonOrchestrator({ research, runner, author, setupsDir: tmp });
+
+    await orch.materializeChallenge(tmp, rustDraft, 2, 'rust');
+
+    assert.equal(await fsp.readFile(path.join(fake.challengeDir, 'stub.h'), 'utf8'), seedStubH);
   });
 });
 
