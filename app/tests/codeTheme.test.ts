@@ -21,6 +21,17 @@
  *  5. Contrato quebrado para a onda 2. Os nomes semânticos de `writeLine`
  *     (`default`/`green`/`red`/`yellow`/`accent`/`muted`/`cyan`) são os mesmos
  *     de antes; trocar a fonte das cores não pode trocar a interface.
+ *  6. Tabela ANSI que só PARECE completa. 16 hex válidas, todas acima do piso
+ *     e nenhuma em red flash, ainda podem ser 15 cores — basta um `bright`
+ *     colapsado no seu `normal` — ou um `bright` de outra família. Nada disso
+ *     move contraste nem red flash, então nada disso era pego. Aqui a tabela é
+ *     assertada DISTINTA duas a duas, e cada `bright` cromático é provado ser
+ *     a MESMA MATIZ do seu `normal` levada a 7:1 contra o well: o invariante
+ *     que `codeTheme.ts` declara em prosa vira asserção.
+ *  7. Cursor "qualquer cor que passe em 3:1". `codeTheme.ts` documenta que o
+ *     cursor É o acento `action` — mas o piso não-texto de 3:1, sozinho,
+ *     aceitaria a tinta primária no lugar dele. A IDENTIDADE do cursor é
+ *     assertada nos dois esquemas.
  *
  * NADA aqui pode passar por vacuidade: a varredura itera a paleta REAL via
  * `codeColorEntries`, e a contagem de entradas é assertada — paleta esvaziada
@@ -54,6 +65,7 @@ import {
   type CodePalette,
   type CodeScheme,
   type CodeChrome,
+  type CodeAnsi,
 } from '../src/lib/codeTheme';
 import {
   SURFACE_LIGHT,
@@ -62,10 +74,13 @@ import {
   INK_DARK,
   FONT_STACK,
   TYPE,
+  ACCENT_LIGHT,
+  ACCENT_DARK,
   CONTRAST_FLOOR,
   CELEBRATION,
   contrastRatio,
   redFlashRatio,
+  relativeLuminance,
   isRedFlashColor,
 } from '../src/lib/designTokens';
 
@@ -75,6 +90,71 @@ const SCHEMES: readonly CodeScheme[] = ['light', 'dark'];
 
 /** 9 papéis de sintaxe + 5 de estado + 16 ANSI + 3 do cromo. */
 const EXPECTED_COLOR_ENTRIES = 9 + 5 + 16 + 3;
+
+/**
+ * Os SEIS pares cromáticos da tabela ANSI. Os outros quatro slots
+ * (`black`/`brightBlack`/`white`/`brightWhite`) são a escada de cinzas e seguem
+ * outra regra — a "REGRA DOS QUATRO CINZAS" de `codeTheme.ts` —, por isso não
+ * entram no invariante de matiz.
+ */
+const ANSI_CHROMATIC_PAIRS: readonly (readonly [keyof CodeAnsi, keyof CodeAnsi])[] = [
+  ['red', 'brightRed'],
+  ['green', 'brightGreen'],
+  ['yellow', 'brightYellow'],
+  ['blue', 'brightBlue'],
+  ['magenta', 'brightMagenta'],
+  ['cyan', 'brightCyan'],
+];
+
+/**
+ * O `bright` ANSI é a mesma matiz do `normal` levada a 7:1 contra o well
+ * (`codeTheme.ts`, e é isso que a última seção do `docs/ux-redesign/coderamp.ts`
+ * roda: `BRIGHT_FLOOR = 7`). A varredura anda o L em passos de 0,005 e PARA no
+ * primeiro valor que alcança o piso, então o resultado pousa em cima de 7:1 e
+ * não muito além — daí a BANDA, e não só um piso: sem teto, "bright = preto"
+ * também passaria por um piso de 7:1, e o invariante declarado não é "escureça
+ * o quanto quiser", é "leve ATÉ 7:1". Pior caso entregue: 7,140 (green escuro).
+ */
+const ANSI_BRIGHT_FLOOR = 7;
+const ANSI_BRIGHT_CEILING = 7.25;
+
+/**
+ * Tolerância de MATIZ, em graus. Ela existe porque a matiz não sobrevive
+ * exatamente ao hex: `coderamp.ts` gera a cor em HSL e arredonda cada canal
+ * para 8 bits, e esse arredondamento move a matiz de volta em até ~0,3° por
+ * cor (o pior par entregue é `yellow` claro, 0,65° entre normal e bright).
+ * 1° dá folga sobre esse arredondamento sem afrouxar nada: as matizes vizinhas
+ * desta tabela estão a 26° uma da outra (cyan 196 e blue 222, o par mais
+ * próximo), então trocar a família de um `bright` continua sendo pego.
+ */
+const HUE_TOLERANCE_DEG = 1;
+
+/**
+ * Matiz HSL (0–360) de uma hex; `NaN` quando a cor é acromática (matiz
+ * indefinida). Existe porque o invariante do `bright` e a identidade do cursor
+ * são declarados em MATIZ, e matiz é justamente o que contraste e red flash NÃO
+ * enxergam. Reaproveita `hexToRgb` da produção — nenhuma fórmula é
+ * reimplementada aqui, e contraste/red flash continuam vindo de `designTokens`.
+ */
+function hueOf(hex: string): number {
+  const { r, g, b } = hexToRgb(hex);
+  const [rn, gn, bn] = [r / 255, g / 255, b / 255];
+  const max = Math.max(rn, gn, bn);
+  const chroma = max - Math.min(rn, gn, bn);
+  if (chroma === 0) return Number.NaN;
+  let h: number;
+  if (max === rn) h = (gn - bn) / chroma;
+  else if (max === gn) h = (bn - rn) / chroma + 2;
+  else h = (rn - gn) / chroma + 4;
+  h *= 60;
+  return h < 0 ? h + 360 : h;
+}
+
+/** Distância angular entre duas matizes — o círculo fecha em 360°. */
+function hueDistance(a: number, b: number): number {
+  const d = Math.abs(a - b) % 360;
+  return d > 180 ? 360 - d : d;
+}
 
 /** Todo campo de `CodeChrome` — escrito à mão de propósito (detecta remoção). */
 const CHROME_KEYS: readonly (keyof CodeChrome)[] = [
@@ -156,6 +236,30 @@ describe('CODE_LIGHT / CODE_DARK — as duas paletas existem e são completas', 
 
     it(`[${scheme}] a tinta padrão é a do esquema`, () => {
       assert.equal(p.chrome.ink, scheme === 'dark' ? INK_DARK.primary : INK_LIGHT.primary);
+    });
+
+    it(`[${scheme}] o cursor É o acento \`action\` — não uma hex avulsa que passa em 3:1`, () => {
+      // `codeTheme.ts` declara: "Cursor/caret. É o acento `action` — o único
+      // ponto vivo da superfície quieta." O piso de 3:1 sozinho aceitaria a
+      // tinta primária aqui (ela passa folgado), então a identidade precisa de
+      // asserção própria. O `action` desta paleta é o mesmo hex que pinta
+      // `keyword`, `state.error` e `ansi.red`.
+      assert.equal(p.chrome.cursor, p.syntax.keyword, `cursor ${p.chrome.cursor} deixou de ser o acento action`);
+      assert.equal(p.chrome.cursor, p.state.error);
+      assert.equal(p.chrome.cursor, p.ansi.red);
+      // ...e é a família `action` de `designTokens` DE VERDADE: mesma matiz,
+      // só o L foi re-resolvido contra o well (é isso que "derivada dos
+      // acentos" significa). Sem esta linha, mover cursor E keyword juntos
+      // para outra família passaria.
+      const accent = scheme === 'dark' ? ACCENT_DARK : ACCENT_LIGHT;
+      const d = hueDistance(hueOf(p.chrome.cursor), hueOf(accent.action.text));
+      assert.ok(
+        d <= HUE_TOLERANCE_DEG,
+        `cursor ${p.chrome.cursor} está a ${d.toFixed(2)}° da família action (${accent.action.text}) em ${scheme}`,
+      );
+      // um cursor da cor da tinta é um cursor invisível dentro do texto
+      assert.notEqual(p.chrome.cursor, p.chrome.ink);
+      assert.notEqual(p.chrome.cursor, p.syntax.variable);
     });
   }
 });
@@ -281,6 +385,106 @@ describe('red flash — SC 2.3.1 Nota 3, R/(R+G+B) < 0,8', () => {
         CELEBRATION.redFlashRatioThreshold - r >= 0.05,
         `erro ${p.state.error} R/(R+G+B) = ${r.toFixed(3)} — folga de apenas ${(CELEBRATION.redFlashRatioThreshold - r).toFixed(3)}`,
       );
+    });
+  }
+});
+
+/* ───────────────────────────────────────────────────────────────────────── */
+
+describe('tabela ANSI — 16 cores DISTINTAS e o invariante do `bright`', () => {
+  for (const scheme of SCHEMES) {
+    const p = codePalette(scheme);
+
+    it(`[${scheme}] as 16 entradas são 16 cores diferentes (tabela colapsada não passa)`, () => {
+      // 16 hex válidas não são 16 CORES. Um `bright` colapsado no seu `normal`
+      // passa em formato, em contraste e em red flash — e apaga a distinção
+      // que o terminal usa para separar ênfase de texto normal.
+      const seen = new Map<string, keyof CodeAnsi>();
+      for (const key of CODE_ANSI_KEYS) {
+        const hex = p.ansi[key];
+        const first = seen.get(hex);
+        assert.equal(
+          first,
+          undefined,
+          `${scheme}: ansi.${key} repete a hex de ansi.${first} (${hex}) — a tabela tem menos de 16 cores`,
+        );
+        seen.set(hex, key);
+      }
+      assert.equal(seen.size, 16);
+    });
+
+    it(`[${scheme}] cada bright cromático é a MESMA MATIZ do seu normal`, () => {
+      assert.equal(ANSI_CHROMATIC_PAIRS.length, 6);
+      for (const [normal, bright] of ANSI_CHROMATIC_PAIRS) {
+        const hn = hueOf(p.ansi[normal]);
+        const hb = hueOf(p.ansi[bright]);
+        assert.ok(
+          Number.isFinite(hn) && Number.isFinite(hb),
+          `${scheme}: ansi.${normal}/ansi.${bright} virou acromático — perdeu a matiz da família`,
+        );
+        const d = hueDistance(hn, hb);
+        assert.ok(
+          d <= HUE_TOLERANCE_DEG,
+          `${scheme}: ansi.${bright} (${p.ansi[bright]}, h=${hb.toFixed(2)}) não é a matiz de ansi.${normal} (${p.ansi[normal]}, h=${hn.toFixed(2)}) — ${d.toFixed(2)}° de distância, teto ${HUE_TOLERANCE_DEG}°`,
+        );
+      }
+    });
+
+    it(`[${scheme}] cada bright cromático foi levado A 7:1 contra o well (e o normal não chega lá)`, () => {
+      for (const [normal, bright] of ANSI_CHROMATIC_PAIRS) {
+        const rb = contrastRatio(p.ansi[bright], p.chrome.surface);
+        assert.ok(
+          rb >= ANSI_BRIGHT_FLOOR,
+          `${scheme}: ansi.${bright} ${p.ansi[bright]} = ${rb.toFixed(3)}:1 contra o well (piso ${ANSI_BRIGHT_FLOOR})`,
+        );
+        assert.ok(
+          rb <= ANSI_BRIGHT_CEILING,
+          `${scheme}: ansi.${bright} ${p.ansi[bright]} = ${rb.toFixed(3)}:1 passou MUITO de 7:1 — o invariante é "levado a 7:1", não "escurecido à vontade" (teto ${ANSI_BRIGHT_CEILING})`,
+        );
+        // e o par não pode empatar em ênfase: `bright` é mais forte que `normal`
+        const rn = contrastRatio(p.ansi[normal], p.chrome.surface);
+        assert.ok(
+          rn < ANSI_BRIGHT_FLOOR,
+          `${scheme}: ansi.${normal} ${p.ansi[normal]} = ${rn.toFixed(3)}:1 já está no patamar do bright — o par perdeu a diferença de ênfase`,
+        );
+        assert.ok(rb > rn, `${scheme}: ansi.${bright} não é mais enfático que ansi.${normal}`);
+      }
+    });
+
+    it(`[${scheme}] "brilhante" empurra na direção da POLARIDADE, não sempre para o claro`, () => {
+      // Em polaridade positiva, "bright" significa MAIS ESCURO (mais ênfase no
+      // papel); em negativa, mais claro. Clarear no esquema claro apagaria a
+      // saída — é a inversão que `codeTheme.ts` documenta e que só a luminância
+      // (não o contraste, que é simétrico) consegue provar.
+      for (const [normal, bright] of ANSI_CHROMATIC_PAIRS) {
+        const ln = relativeLuminance(p.ansi[normal]);
+        const lb = relativeLuminance(p.ansi[bright]);
+        if (scheme === 'light') {
+          assert.ok(lb < ln, `light: ansi.${bright} devia ser mais ESCURO que ansi.${normal}`);
+        } else {
+          assert.ok(lb > ln, `dark: ansi.${bright} devia ser mais CLARO que ansi.${normal}`);
+        }
+      }
+    });
+
+    it(`[${scheme}] o normal cromático é o valor do estado/sintaxe (sem hex órfã)`, () => {
+      assert.equal(p.ansi.red, p.state.error);
+      assert.equal(p.ansi.green, p.state.success);
+      assert.equal(p.ansi.yellow, p.state.warn);
+      assert.equal(p.ansi.cyan, p.state.info);
+      assert.equal(p.ansi.magenta, p.syntax.constant);
+      // `blue` é a ÚNICA cromática exclusiva do ANSI: a família `info` (h=196)
+      // é ciano e ocupa o slot `cyan`; sem uma matiz própria, `blue` e `cyan`
+      // sairiam iguais. Ver `blue (ansi)` em `docs/ux-redesign/coderamp.ts`.
+      const roles = new Set([
+        ...CODE_SYNTAX_ROLES.map((r) => p.syntax[r]),
+        ...CODE_STATE_ROLES.map((r) => p.state[r]),
+      ]);
+      assert.ok(
+        !roles.has(p.ansi.blue),
+        `${scheme}: ansi.blue ${p.ansi.blue} reciclou uma cor de sintaxe/estado — ele é matiz PRÓPRIA (h≈222)`,
+      );
+      assert.ok(hueDistance(hueOf(p.ansi.blue), hueOf(p.ansi.cyan)) > HUE_TOLERANCE_DEG);
     });
   }
 });

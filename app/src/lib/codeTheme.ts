@@ -15,12 +15,17 @@
  * `designTokens.ts` (é isso que "derivada dos acentos" quer dizer); só a
  * LUMINOSIDADE foi re-resolvida, porque o fundo mudou: o acento da UI é medido
  * contra o nível 0 e o token de código é lido contra o well.
- * Duas matizes novas existem só aqui:
+ * Três matizes novas existem só aqui:
  *   - `rose` (h=330) para constante/magenta — o roxo `study` (h=272) é violeta,
  *     não magenta, e ocupar os dois slots com ele apagaria a distinção;
  *   - `slate` (h=215, s≈0.15) para comentário — FRIO de propósito, para não
  *     colidir com a tinta secundária QUENTE do esquema claro (#544e45), que é
- *     quem pinta o operador. Dois cinzas mornos lado a lado viram um só.
+ *     quem pinta o operador. Dois cinzas mornos lado a lado viram um só;
+ *   - `blue` (h≈222, s≈0.62) para o slot `blue` do ANSI — ele não pertence a
+ *     nenhuma família de acento: a família `info` (h=196) é CIANO e já ocupa o
+ *     slot `cyan`, então sem matiz própria `blue` e `cyan` sairiam iguais na
+ *     tabela de 16. O `coderamp.ts` o imprime como família à parte,
+ *     `blue (ansi)`; ele é a única cromática do ANSI sem par em sintaxe/estado.
  * A varredura que produziu os valores está em `docs/ux-redesign/coderamp.ts`
  * (mesmo método do `ramp2.py`, rodável: `npx tsx ../docs/ux-redesign/coderamp.ts`).
  *
@@ -322,7 +327,8 @@ export const CODE_LIGHT: CodePalette = {
  * O vermelho escuro sai salmão (#f08a7a) e não vinho: vermelho tem coeficiente
  * de luminância baixo (0,2126), então alcançar 4,5:1 contra uma superfície
  * média-escura EXIGE clarear. Compare com o #ff5555 do Dracula, que dá só
- * 4,72:1 contra o próprio fundo e ZERO folga sobre a seleção.
+ * 4,53:1 contra o próprio fundo (#282a36) — e 2,91:1 sobre a seleção dele
+ * (#44475a), ou seja, ABAIXO do piso assim que o texto é selecionado.
  */
 export const CODE_DARK: CodePalette = {
   scheme: 'dark',
