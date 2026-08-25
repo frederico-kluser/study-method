@@ -47,8 +47,11 @@ export const ONBOARDING_TARGET_CATALOG: Record<string, OnboardingTargetMeta> = {
     description: 'Seletor de idioma na AppBar.',
     everywhere: true,
   },
+  // O id continua 'nav-tabs' de propósito (13 specs e2e e os steps do tutorial
+  // apontam para ele), mas desde a onda 2 do redesign o alvo é o NAVIGATION
+  // RAIL vertical à esquerda — não mais uma fileira de abas no topo.
   'nav-tabs': {
-    description: 'Abas de navegação do shell (Início/Settings/Aula/Desafio).',
+    description: 'Rail de navegação à esquerda do shell (Início/Settings/Aula/Desafio).',
     everywhere: true,
   },
 

@@ -7,8 +7,7 @@
   },
   "app": {
     "title": "Study Method — Tutor",
-    "tagline": "Learn for real, with AI-generated lessons and hands-on challenges.",
-    "shellNav": "Main navigation"
+    "tagline": "Learn for real, with AI-generated lessons and hands-on challenges."
   },
   "theme": {
     "mode": {

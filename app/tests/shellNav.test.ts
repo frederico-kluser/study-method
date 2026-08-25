@@ -11,6 +11,8 @@ import {
   navIndexOf,
   navIsContiguous,
   navItemAt,
+  navPanelId,
+  navTabId,
 } from '../src/lib/shellNav';
 
 describe('NAV_ITEMS — ordem canônica do shell', () => {
@@ -46,5 +48,25 @@ describe('NAV_ITEMS — ordem canônica do shell', () => {
     assert.equal(navIndexOf('challenge'), 3);
     // @ts-expect-error chave inválida de propósito
     assert.equal(navIndexOf('bogus'), -1);
+  });
+});
+
+/**
+ * Onda 2 do redesign: as abas horizontais viraram o RAIL vertical, e o vínculo
+ * de a11y passou a ser escrito em dois arquivos diferentes — `id` no tab (rail)
+ * e `aria-labelledby` no painel (App.tsx). Estas funções são a fonte única da
+ * fórmula justamente para que os dois lados não possam divergir em silêncio.
+ */
+describe('navTabId / navPanelId — o vínculo tab ↔ tabpanel', () => {
+  it('gera ids estáveis e distintos por destino', () => {
+    assert.equal(navTabId('home'), 'sm-tab-home');
+    assert.equal(navPanelId('home'), 'sm-panel-home');
+    assert.equal(navTabId('challenge'), 'sm-tab-challenge');
+    assert.equal(navPanelId('challenge'), 'sm-panel-challenge');
+  });
+
+  it('nenhum id colide entre destinos nem entre os dois papéis', () => {
+    const ids = NAV_ITEMS.flatMap((n) => [navTabId(n.key), navPanelId(n.key)]);
+    assert.equal(new Set(ids).size, ids.length, `ids duplicados em ${ids.join(', ')}`);
   });
 });

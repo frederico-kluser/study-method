@@ -1,32 +1,39 @@
 /**
  * src/App.tsx — shell do Study Method em Material UI v9.
  *
- * Onda 7 (MUI shell): subistitui o shell CSS-custom por AppBar + Tabs do MUI.
- * Navegação por estado (useState — SEM router), fiel ao comportamento antigo:
+ * ─── O QUE MUDOU NA ONDA 2 DO REDESIGN ─────────────────────────────────────
+ * O shell era `AppBar` + `Tabs` HORIZONTAIS. Agora é:
  *
- *   - AppBar (static) com o título `app.title` e o `<LanguageSwitcher/>` à
- *     direita (i18n da onda 6).
- *   - `<Tabs>` com 4 abas (Início/Settings/Aula/Desafio), rótulos via i18n
- *     `nav.*`, conectadas aos painéis por `id`/`aria-controls` (a11y).
- *   - O conteúdo ativo é renderizado abaixo das abas num `main` com
- *     `overflow: auto` e padding responsivo.
+ *   ┌──────────────────────────────────────────────────────┐
+ *   │  QUADRO DE ESTADO DA SESSÃO  (AppBar = role=banner)   │  ← SessionFrame
+ *   ├────────┬─────────────────────────────────────────────┤
+ *   │  RAIL  │  view ativa (role=tabpanel)                  │  ← NavigationRail
+ *   │ (vert.)│                                              │
+ *   └────────┴─────────────────────────────────────────────┘
  *
- * Mantém o registry `views/index.ts` (HomeView/SettingsView/LessonView/
- * ChallengeView) e o `ChallengeNavProvider` (Aula↔Desafio compartilham o
- * desafio selecionado — a LessonView navega para o shell via
- * `onNavigateChallenge`).
+ * Os dois porquês, com a fonte:
+ *   - RAIL: o Material 3 documenta *"Navigation bar if the width or height is
+ *     compact… Navigation rail for everything else"*, e uma janela Electron de
+ *     desktop é sempre "everything else" (docs/ux-redesign.md §7.2).
+ *   - QUADRO SUPERIOR: padrão do HOME Menu do 3DS — estado transitório e global
+ *     num quadro à parte ACIMA do conteúdo, chamável sem derrubar o trabalho de
+ *     baixo (§1).
  *
- * A11y: cada Tab tem `aria-label`/label e o painel ativo é referenciado por
- * `role="tabpanel"` + `aria-labelledby` da aba correspondente.
+ * ─── O QUE **NÃO** MUDOU (e é de propósito) ────────────────────────────────
+ * A navegação continua por ESTADO (`useState`, sem router) e os papéis ARIA
+ * continuam `tablist`/`tab`/`tabpanel`. Isso não é herança preguiçosa: para um
+ * seletor de view sem rota, é o papel correto — e mantém verdes as 13 specs e2e
+ * que usam `getByRole('tab')` e as 7 que usam `getByRole('banner')`.
+ *
+ * ─── POR QUE O `SessionStateProvider` ENVOLVE TUDO ─────────────────────────
+ * O shell monta SÓ a view ativa. Enquanto `subject`/`phase` viviam em `useState`
+ * local da LessonView, sair da aba Aula desmontava a view e APAGAVA o assunto e
+ * a fase — o quadro superior nasceria vazio. O estado de sessão sobe para um
+ * contexto acima das views (`src/lib/sessionState.ts`); a LessonView publica
+ * nele via `publishSession` (onda 3).
  */
 import { useState, type ComponentType, type ReactElement } from 'react';
-import AppBar from '@mui/material/AppBar';
 import Box from '@mui/material/Box';
-import Toolbar from '@mui/material/Toolbar';
-import Typography from '@mui/material/Typography';
-import Tabs from '@mui/material/Tabs';
-import Tab from '@mui/material/Tab';
-import { useTranslation } from 'react-i18next';
 import {
   HomeView,
   SettingsView,
@@ -35,9 +42,10 @@ import {
   type ViewProps,
 } from './views';
 import { ChallengeNavProvider } from './components/challengeNav/ChallengeNavProvider';
-import ThemeToggleButton from './components/theme/ThemeToggleButton';
-import LanguageSwitcher from './i18n/LanguageSwitcher';
-import { NAV_ITEMS, navIndexOf, type NavKey } from './lib/shellNav';
+import { SessionStateProvider } from './components/sessionState/SessionStateProvider';
+import NavigationRail from './components/shell/NavigationRail';
+import SessionFrame from './components/shell/SessionFrame';
+import { navPanelId, navTabId, type NavKey } from './lib/shellNav';
 import { OnboardingHost } from './features/onboarding/OnboardingHost';
 import { useStartup } from './gate/AppGate';
 
@@ -55,96 +63,29 @@ function Shell({
   active: NavKey;
   setActive: (k: NavKey) => void;
 }): ReactElement {
-  const { t } = useTranslation();
-  const activeIndex = navIndexOf(active);
   const View = VIEWS[active];
-  const panelId = `sm-panel-${active}`;
-  const tabId = (key: NavKey) => `sm-tab-${key}`;
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-      {/* Onda 20B — header por scheme (Regra 4: applyStyles, nunca palette.mode):
-          LIGHT mantém o primary azul (#1565c0 + contrastText) de sempre; DARK
-          NÃO usa color="primary" (nada de header azul/roxo) — o header vira
-          superfície Dracula: background.paper + borda divider (text.primary). */}
-      <AppBar
-        position="static"
-        color="default"
-        sx={[
-          (theme) =>
-            theme.applyStyles('light', {
-              bgcolor: 'primary.main',
-              color: 'primary.contrastText',
-            }),
-          (theme) =>
-            theme.applyStyles('dark', {
-              bgcolor: 'background.paper',
-              color: 'text.primary',
-              borderBottom: 1,
-              borderColor: 'divider',
-            }),
-        ]}
-      >
-        <Toolbar sx={{ gap: 1 }}>
-          <Typography
-            variant="h6"
-            noWrap
-            component="div"
-            data-onboarding-target="app-title"
-            sx={{ flexGrow: 1, minWidth: 0, fontWeight: 600 }}
-          >
-            {t('translation:app.title')}
-          </Typography>
-          <Box data-onboarding-target="theme-toggle" component="span" sx={{ display: 'contents' }}>
-            <ThemeToggleButton />
-          </Box>
-          <Box data-onboarding-target="language-switcher" component="span" sx={{ display: 'contents' }}>
-            <LanguageSwitcher variant="menu" />
-          </Box>
-        </Toolbar>
-      </AppBar>
+    <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0 }}>
+      <SessionFrame />
 
-      <Tabs
-        value={activeIndex}
-        onChange={(_e, next: number | false) => {
-          const item = typeof next === 'number' ? NAV_ITEMS[next] : undefined;
-          if (item) setActive(item.key);
-        }}
-        variant="scrollable"
-        scrollButtons="auto"
-        data-onboarding-target="nav-tabs"
-        aria-label={t('translation:app.shellNav')}
-        sx={{
-          px: { xs: 1, sm: 2 },
-          borderBottom: 1,
-          borderColor: 'divider',
-          bgcolor: 'background.paper',
-        }}
-      >
-        {NAV_ITEMS.map((item, i) => (
-          <Tab
-            key={item.key}
-            id={tabId(item.key)}
-            aria-controls={item.key === NAV_ITEMS[activeIndex].key ? panelId : undefined}
-            label={t(item.i18nKey)}
-            value={i}
-          />
-        ))}
-      </Tabs>
+      <Box sx={{ display: 'flex', flexDirection: 'row', flexGrow: 1, minHeight: 0 }}>
+        <NavigationRail active={active} onChange={setActive} />
 
-      <Box
-        component="main"
-        role="tabpanel"
-        id={panelId}
-        aria-labelledby={tabId(active)}
-        sx={{
-          flexGrow: 1,
-          minWidth: 0,
-          overflow: 'auto',
-          p: { xs: 2, sm: 3, md: 4 },
-        }}
-      >
-        <View onNavigate={setActive} />
+        <Box
+          component="main"
+          role="tabpanel"
+          id={navPanelId(active)}
+          aria-labelledby={navTabId(active)}
+          sx={{
+            flexGrow: 1,
+            minWidth: 0,
+            overflow: 'auto',
+            p: { xs: 2, sm: 3, md: 4 },
+          }}
+        >
+          <View onNavigate={setActive} />
+        </Box>
       </Box>
     </Box>
   );
@@ -157,9 +98,11 @@ export default function App(): ReactElement {
   const startup = useStartup();
   const isReady = startup.status?.phase === 'ready';
   return (
-    <ChallengeNavProvider onNavigateChallenge={() => setActive('challenge')}>
-      <Shell active={active} setActive={setActive} />
-      <OnboardingHost isReady={isReady} activeView={active} onNavigateView={setActive} />
-    </ChallengeNavProvider>
+    <SessionStateProvider>
+      <ChallengeNavProvider onNavigateChallenge={() => setActive('challenge')}>
+        <Shell active={active} setActive={setActive} />
+        <OnboardingHost isReady={isReady} activeView={active} onNavigateView={setActive} />
+      </ChallengeNavProvider>
+    </SessionStateProvider>
   );
 }
