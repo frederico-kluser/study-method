@@ -17,6 +17,10 @@
  *      Aplicar `spatial` a `color`/`background-color`/`opacity` é bug.
  *   3. Prosa longa e código só nas superfícies de nível 0 e 1 — do nível 3 em
  *      diante o texto secundário deixa de alcançar 7:1 (AAA).
+ *   3b. ACENTO-COMO-TEXTO vale nos níveis 0, 1 e 2 — e só neles. Nos níveis 3 e
+ *      4 (o chrome: rail, dock, estado selecionado) o texto é TINTA; ali o
+ *      acento só aparece como preenchimento, ícone ou borda. A mesma fronteira
+ *      vale para NONTEXT_*: >= 3:1 apenas nos níveis 0 e 1.
  *   4. Nenhuma cor que participe de animação pode ter R/(R+G+B) >= 0.8 — esse é
  *      o limiar de "red flash" do WCAG 2.2 SC 2.3.1 (o vermelho #E60012 da
  *      Nintendo dá 0,927 e por isso NÃO é usado).
@@ -69,11 +73,23 @@ export const INK_DARK = {
  * Cada família tem DOIS valores por esquema, porque acento-como-texto e
  * acento-como-preenchimento são requisitos diferentes. Usar o `fill` como cor
  * de link é o erro clássico que reprova AA.
- *   `text` = >= 4,5:1 contra a superfície de nível 0 do esquema
+ *   `text` = >= 4,5:1 contra os níveis 0, 1 E 2 do esquema
  *   `fill` = fundo de botão cujo `onFill` alcança >= 4,5:1
+ *
+ * ONDE O ACENTO PODE SER TEXTO (regra de projeto, não só número): níveis 0, 1 e
+ * 2 — fundo do app, cartão de leitura e painel afundado. Um <Link> dentro de um
+ * <Paper> é caso REAL nesta base (LessonView, lista de fontes), então calibrar
+ * `text` só contra o nível 0 era um furo esperando acontecer. Nos níveis 3 e 4
+ * (chrome: rail, dock, estado selecionado) o texto é TINTA — `text` cai para
+ * ~4,0:1 no nível 3 e ~3,4:1 no nível 4 nos dois esquemas; ali o acento entra
+ * como preenchimento, ícone ou borda, papéis cujo piso é 3:1.
+ *
+ * Os seis `text` abaixo foram recalibrados contra o NÍVEL 2 (o mais exigente dos
+ * três), e por isso passam nos três de uma vez. Nenhum deles chega perto do
+ * limiar de red flash (0,8): o pior é `error` claro, em 0,605.
  */
 export interface AccentPair {
-  /** Acento legível como TEXTO sobre a superfície de nível 0. */
+  /** Acento legível como TEXTO sobre as superfícies de nível 0, 1 e 2. */
   readonly text: string;
   /** Acento como PREENCHIMENTO de botão/chip. */
   readonly fill: string;
@@ -81,29 +97,59 @@ export interface AccentPair {
   readonly onFill: string;
 }
 
-export type AccentFamily = 'action' | 'success' | 'info' | 'warn' | 'study';
+export type AccentFamily = 'action' | 'success' | 'info' | 'warn' | 'study' | 'error';
 
-/** light: `fill` + texto branco. action 4,53 · success 4,57 · info 4,60 · warn 4,52 · study 4,54 */
+/**
+ * light: `fill` + texto branco. action 4,53 · success 4,57 · info 4,60 ·
+ * warn 4,52 · study 4,54 · error 4,50.
+ * `text` contra os níveis 0 · 1 · 2:
+ *   action  4,89 · 5,22 · 4,52     success 4,93 · 5,26 · 4,55
+ *   info    4,87 · 5,20 · 4,50     warn    4,90 · 5,24 · 4,53
+ *   study   4,89 · 5,22 · 4,52     error   4,88 · 5,22 · 4,52
+ */
 export const ACCENT_LIGHT: Readonly<Record<AccentFamily, AccentPair>> = {
-  action: { text: '#d5331a', fill: '#de351b', onFill: '#ffffff' },
-  success: { text: '#1e804f', fill: '#1f8653', onFill: '#ffffff' },
-  info: { text: '#0d79a0', fill: '#0e7ea7', onFill: '#ffffff' },
-  warn: { text: '#9d6607', fill: '#a46a07', onFill: '#ffffff' },
-  study: { text: '#964dd5', fill: '#9a54d7', onFill: '#ffffff' },
+  action: { text: '#cc3119', fill: '#de351b', onFill: '#ffffff' },
+  success: { text: '#1d7b4c', fill: '#1f8653', onFill: '#ffffff' },
+  info: { text: '#0d759b', fill: '#0e7ea7', onFill: '#ffffff' },
+  warn: { text: '#966106', fill: '#a46a07', onFill: '#ffffff' },
+  study: { text: '#9146d3', fill: '#9a54d7', onFill: '#ffffff' },
+  // ERRO É UMA FAMÍLIA PRÓPRIA, em carmim (matiz 338 — 30° do vermelho-laranja
+  // da `action`, matiz 8). Sem isto "Apagar" e "Testar resposta" seriam o MESMO
+  // vermelho, e esta base tem exclusão real (editor.confirmDelete /
+  // challenge.confirmDelete). red flash do `text` = 0,605 (teto 0,8).
+  error: { text: '#cd2462', fill: '#db306f', onFill: '#ffffff' },
 } as const;
 
-/** dark: preenchimento VIVO com tinta quase-preta — branco sobre #e73f25 cairia a 4,09:1. */
+/**
+ * dark: preenchimento VIVO com tinta quase-preta — branco sobre #e73f25 cairia a
+ * 4,09:1. Aqui `text` DEIXA de ser igual a `fill`: o preenchimento escuro o
+ * bastante para carregar tinta quase-preta é escuro demais para ser lido como
+ * texto sobre o nível 2, então cada família clareia o seu valor de texto.
+ * `text` contra os níveis 0 · 1 · 2:
+ *   action  5,56 · 5,04 · 4,50     success 5,58 · 5,05 · 4,51
+ *   info    5,57 · 5,04 · 4,51     warn    5,58 · 5,05 · 4,51
+ *   study   5,61 · 5,08 · 4,54     error   5,59 · 5,06 · 4,52
+ */
 export const ACCENT_DARK: Readonly<Record<AccentFamily, AccentPair>> = {
-  action: { text: '#e73f25', fill: '#e73f25', onFill: '#12141a' },
-  success: { text: '#218f58', fill: '#218f58', onFill: '#12141a' },
-  info: { text: '#1489b3', fill: '#1489b3', onFill: '#12141a' },
-  warn: { text: '#ae7209', fill: '#ae7209', onFill: '#12141a' },
-  study: { text: '#a45be4', fill: '#a45be4', onFill: '#12141a' },
+  action: { text: '#eb614c', fill: '#e73f25', onFill: '#12141a' },
+  success: { text: '#26a163', fill: '#218f58', onFill: '#12141a' },
+  info: { text: '#1698c7', fill: '#1489b3', onFill: '#12141a' },
+  warn: { text: '#c37f0a', fill: '#ae7209', onFill: '#12141a' },
+  study: { text: '#b171e8', fill: '#a45be4', onFill: '#12141a' },
+  // carmim escuro, par do `error` claro. red flash do `text` = 0,489.
+  error: { text: '#e55f90', fill: '#e03e79', onFill: '#12141a' },
 } as const;
 
 /* ─── Camada não-texto (>= 3:1) — borda de campo, ícone informativo, anel de foco
  * Divisor puramente decorativo NÃO usa esta camada (é isento por "Incidental");
  * borda de formulário e anel de foco USAM.
+ *
+ * MESMA FRONTEIRA DE NÍVEL, e ela é mais apertada que a do acento-como-texto:
+ * estes três valores só alcançam 3:1 nos níveis 0 e 1 (light 3,03/3,23 ·
+ * dark 3,36/3,04). No nível 2 já caem para ~2,8 (light) e ~2,7 (dark), e no 4
+ * chegam a ~2,0. Do nível 2 em diante o contorno de 3:1 tem que vir da TINTA —
+ * é exatamente por isso que o anel de foco deste tema é de DUAS cores (traço em
+ * `focus` + halo em `text.primary`), técnica do Understanding do SC 1.4.11.
  */
 export const NONTEXT_LIGHT = {
   neutral: '#978e7f',
