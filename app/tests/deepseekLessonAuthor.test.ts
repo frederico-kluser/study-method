@@ -359,3 +359,72 @@ test('author: cliente lança DeepSeekError → NÃO é re-embrulhado (propaga o 
   );
   assert.equal(err, original, 'deve propagar o DeepSeekError original, sem novo wrap');
 });
+
+// fix-generation-robustness: retry de 1 re-tentativa (máximo 2 tentativas) APENAS
+// para a classe "content vazio" (EMPTY_CONTENT — DeepSeek devolveu só
+// reasoning_content, transitório do modelo). Evita abortar a aula inteira.
+const EMPTY_CONTENT_ERROR = new DeepSeekError(
+  DEEPSEEK_ERROR_CODES.EMPTY_CONTENT,
+  'DeepSeek: resposta com content vazio (o modelo devolveu apenas reasoning_content, sem conteúdo de aula).'
+);
+
+test('author: content vazio na 1ª chamada → re-tenta e resolve na 2ª (2 chamadas ao client)', async () => {
+  let attempts = 0;
+  const client = {
+    chatCompletion: async () => {
+      attempts++;
+      if (attempts === 1) throw EMPTY_CONTENT_ERROR;
+      return { content: validDraftJson(), model: 'deepseek-v4-flash' };
+    },
+  };
+  const author = createDeepSeekLessonAuthor({ client });
+  const draft = await author({ subject: 'Closures', findings: [] });
+  assert.equal(attempts, 2, 'deve tentar 2x (1 re-tentativa)');
+  assert.equal(draft.lessonTitle, 'Closures em JavaScript');
+});
+
+test('author: content vazio 2× → rejeita com o erro original (sem retry infinito)', async () => {
+  let attempts = 0;
+  const client = {
+    chatCompletion: async () => {
+      attempts++;
+      throw EMPTY_CONTENT_ERROR;
+    },
+  };
+  const author = createDeepSeekLessonAuthor({ client });
+  const err = await author({ subject: 'X', findings: [] }).then(
+    () => null,
+    (e) => e,
+  );
+  assert.equal(attempts, 2, 'máximo de 2 tentativas');
+  assert.equal(err, EMPTY_CONTENT_ERROR, 'propaga o erro original da classe content vazio');
+});
+
+test('author: cliente lança erro GENÉRICO → SEM retry (1 chamada)', async () => {
+  let attempts = 0;
+  const client = {
+    chatCompletion: async () => {
+      attempts++;
+      throw new Error('falha de rede 500');
+    },
+  };
+  const author = createDeepSeekLessonAuthor({ client });
+  await assert.rejects(
+    author({ subject: 'X', findings: [] }),
+    (e) => e instanceof DeepSeekError && e.code === DEEPSEEK_ERROR_CODES.NETWORK,
+  );
+  assert.equal(attempts, 1, 'erros fora da classe content vazio não ganham retry');
+});
+
+test('author: draft inválido (resposta parseável mas fora do schema) → SEM retry (1 chamada)', async () => {
+  let attempts = 0;
+  const client = {
+    chatCompletion: async () => {
+      attempts++;
+      return { content: 'isto não é JSON algum', model: 'deepseek-v4-flash' };
+    },
+  };
+  const author = createDeepSeekLessonAuthor({ client });
+  await assert.rejects(author({ subject: 'X', findings: [] }), /LessonDraft inválido|não devolveu um LessonDraft/);
+  assert.equal(attempts, 1, 'erro de schema do draft não ganha retry');
+});

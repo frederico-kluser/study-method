@@ -629,6 +629,22 @@ export function createStudyMethodRunner(deps: StudyMethodRunnerDeps = {}): Study
 
     const handled = await handleExit10('challenge-verify.sh', args);
     const res = handled.result;
+    // Exit 5 (SCHEMA_FAILED, RA-3) DURANTE um ciclo --apply: o apply foi escrito e o
+    // SCRIPT recusou a RESPOSTA do juiz (sm_apply_read contra o response_schema —
+    // juiz devolveu JSON estruturalmente válido mas fora do schema, ex.: faltou
+    // schema_version/request_kind). Resposta do juiz recusada → o desafio DEGRADA
+    // honestamente para 'not_run'; a aula NÃO aborta. Exit 5 SEM ciclo --apply
+    // (meta.json inválido — infra real) continua lançando.
+    if (res.exitCode === SKILL_EXIT_CODES.SCHEMA_FAILED && handled.cyclesUsed >= 1) {
+      return {
+        verdict: 'not_run',
+        rejections: [],
+        stdout: res.stdout,
+        exitCode: res.exitCode,
+        applyExhausted: true,
+        protocolIssue: 'apply_exhausted',
+      };
+    }
     if (res.exitCode === SKILL_EXIT_CODES.EXEC_ERROR || res.exitCode === SKILL_EXIT_CODES.USAGE ||
         res.exitCode === SKILL_EXIT_CODES.SCHEMA_FAILED) {
       throw new Error(`challenge-verify.sh falhou (exit ${res.exitCode}): ${res.stderr}`);

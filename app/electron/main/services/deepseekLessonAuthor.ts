@@ -382,16 +382,27 @@ export function createDeepSeekLessonAuthor(deps: DeepSeekLessonAuthorDeps = {}):
       { role: 'user', content: buildUserPrompt(ctx) },
     ];
 
-    let raw: { content: string; model: string } | null;
-    try {
-      raw = await client.chatCompletion({ messages, temperature: 0.2, ...(model ? { model } : {}) });
-    } catch (error) {
-      if (error instanceof DeepSeekError) throw error;
-      throw new DeepSeekError(
-        DEEPSEEK_ERROR_CODES.NETWORK,
-        `Autor DeepSeek falhou: ${error instanceof Error ? error.message : String(error)}`,
-        error
-      );
+    // Retry de NO MÁXIMO 2 tentativas (1 re-tentativa) APENAS para a classe "content
+    // vazio" (DeepSeekError EMPTY_CONTENT — o modelo devolveu só reasoning_content,
+    // sem conteúdo de aula; transitório do modelo, a re-chamada é barata e evita
+    // abortar a aula inteira). Na 2ª falha, propaga o erro original. Outros erros
+    // (schema inválido do draft, rede, chave) NÃO ganham retry.
+    let raw: { content: string; model: string } | null = null;
+    for (let attempt = 1; attempt <= 2; attempt++) {
+      try {
+        raw = await client.chatCompletion({ messages, temperature: 0.2, ...(model ? { model } : {}) });
+        break;
+      } catch (error) {
+        const isEmptyContent =
+          error instanceof DeepSeekError && error.code === DEEPSEEK_ERROR_CODES.EMPTY_CONTENT;
+        if (isEmptyContent && attempt === 1) continue;
+        if (error instanceof DeepSeekError) throw error;
+        throw new DeepSeekError(
+          DEEPSEEK_ERROR_CODES.NETWORK,
+          `Autor DeepSeek falhou: ${error instanceof Error ? error.message : String(error)}`,
+          error
+        );
+      }
     }
 
     if (!raw || !raw.content || raw.content.trim().length === 0) {

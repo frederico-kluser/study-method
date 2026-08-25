@@ -252,6 +252,91 @@ describe('StudyMethodRunner', () => {
       assert.equal(res.verdict, 'not_run');
       assert.equal(res.applyExhausted, false);
     });
+
+    /** envelope de PEDIDO do fixture challenge-verify.sh (fase 1 do fake). */
+    const VERIFY_ENVELOPE = JSON.stringify({
+      protocol: 'study-method/request-apply', protocol_version: '1.0',
+      request_id: 'f1e2d3c4b5a6', script: 'challenge-verify.sh', kind: 'classify_survivor',
+      setup_id: null, generated_at: '2026-08-23T21:00:00-03:00',
+      response_schema: 'urn:study-method:schema:challenge-verify-response:1',
+      instructions_pt_br: 'Classifique cada mutante sobrevivente como equivalent ou not_equivalent, com justification.',
+      payload: { items: [] },
+    });
+
+    /**
+     * child fake no padrão fakeExec do arquivo: emite stdout/stderr via 'data' e o
+     * exitCode via 'close', com comportamento POR CHAMADA (a última fase se repete).
+     */
+    function fakeVerifyChild(
+      phases: Array<{ exitCode: number; stdout?: string; stderr?: string }>,
+    ): { fakeExec: typeof import('node:child_process').spawn; calls: Array<{ file: string; args: string[] }> } {
+      const calls: Array<{ file: string; args: string[] }> = [];
+      const fakeExec = ((file: string, args: string[]) => {
+        calls.push({ file, args });
+        const phase = phases[Math.min(calls.length - 1, phases.length - 1)];
+        const stream = {
+          on: (ev: string, cb: (chunk: Buffer) => void) => {
+            if (ev === 'data') {
+              if (phase.stdout) cb(Buffer.from(phase.stdout));
+              if (phase.stderr) cb(Buffer.from(phase.stderr));
+            }
+            return stream;
+          },
+        };
+        return {
+          stdout: stream,
+          stderr: stream,
+          kill: () => {},
+          on: (ev: string, cb: (code?: number) => void) => {
+            if (ev === 'close') cb(phase.exitCode);
+          },
+        };
+      }) as unknown as typeof import('node:child_process').spawn;
+      return { fakeExec, calls };
+    }
+
+    // fix-generation-robustness: juiz malformado (JSON válido mas fora do
+    // response_schema, ex.: faltou schema_version/request_kind) → o SCRIPT recusa o
+    // apply com exit 5 (sm_apply_read → SCHEMA_FAILED, RA-3). O desafio DEGRADA para
+    // not_run (apply_exhausted) em vez de abortar a aula inteira: verifyChallenge NÃO lança.
+    it('exit 5 no ciclo --apply (juiz recusado pelo schema) NÃO lança: degrada para not_run/apply_exhausted', async () => {
+      const { fakeExec, calls } = fakeVerifyChild([
+        // 1º ciclo SEM --apply: pedido REQUEST parseável no stdout, sai 10.
+        { exitCode: 10, stdout: `${VERIFY_ENVELOPE}\n` },
+        // 2º ciclo COM --apply: o script recusa a RESPOSTA do juiz (SCHEMA_FAILED).
+        { exitCode: 5, stderr: 'sm_apply_read: resposta fora do response_schema (faltou schema_version/request_kind)' },
+      ]);
+      // o juiz devolve algo que passa no buildApplyFile para o apply ser escrito.
+      const judge = async (_p: StudyRequestEnvelope) => ({ request_kind: 'challenge_verify', classifications: [] });
+      const runner = makeRunner(judge, { exec: fakeExec });
+      const dir = path.join(tmp, 'chal-apply-rejected');
+      await writeFile(path.join(dir, 'meta.json'), '{}');
+      const res = await runner.verifyChallenge(dir);
+
+      assert.equal(calls.length, 2, JSON.stringify(calls));
+      assert.match(calls[1].args.join(' '), /--apply/, 'o 2º ciclo re-invoca com --apply');
+      assert.equal(res.verdict, 'not_run');
+      assert.equal(res.protocolIssue, 'apply_exhausted');
+      assert.equal(res.applyExhausted, true);
+      assert.equal(res.exitCode, 5);
+      assert.deepEqual(res.rejections, []);
+    });
+
+    // meta.json inválido (infra REAL, sem ciclo --apply): exit 5 na 1ª chamada
+    // continua sendo erro de infraestrutura — verifyChallenge LANÇA (aula deve abortar).
+    it('exit 5 SEM ciclo --apply (meta inválido — infra) continua lançando', async () => {
+      const { fakeExec, calls } = fakeVerifyChild([
+        { exitCode: 5, stderr: 'challenge-verify.sh: meta.json inválido (SCHEMA_FAILED)' },
+      ]);
+      const runner = makeRunner(undefined, { exec: fakeExec });
+      const dir = path.join(tmp, 'chal-meta-invalido');
+      await writeFile(path.join(dir, 'meta.json'), '{ inválido');
+      await assert.rejects(
+        () => runner.verifyChallenge(dir),
+        /challenge-verify\.sh falhou \(exit 5\)/,
+      );
+      assert.equal(calls.length, 1, 'sem ciclo --apply, o script é invocado 1x só');
+    });
   });
 
   // ───────────────────────────── testStudentAnswer ───────────────────────────
