@@ -330,6 +330,9 @@ cv_execute() {  # <implementacao> [--names]
 }
 
 # ---------------------------------------------------------------- probes
+# Invariante dos probes: com `set -o pipefail`, um grep que nao casa derruba a
+# pipeline inteira e o script morre com stderr vazio. Toda pipeline abaixo
+# devolve valor NEUTRO (contagem 0 / lista vazia) quando nada casa.
 cv_probe_counts() {  # <arquivo de saida> -> CV_TESTS_RUN / CV_TESTS_FAILED
   local f="$1" n="" fl=""
   case "$CV_PROBE" in
@@ -339,7 +342,7 @@ cv_probe_counts() {  # <arquivo de saida> -> CV_TESTS_RUN / CV_TESTS_FAILED
         fl=0
       else
         fl="$(grep -Eo '(failures|errors)=[0-9]+' "$f" \
-              | grep -Eo '[0-9]+' | awk '{s+=$1} END{print s+0}')"
+              | grep -Eo '[0-9]+' | awk '{s+=$1} END{print s+0}' || true)"
       fi
       ;;
     node_test_tap_summary)
@@ -353,8 +356,8 @@ cv_probe_counts() {  # <arquivo de saida> -> CV_TESTS_RUN / CV_TESTS_FAILED
            | grep -o '"Test":"[^"]*"' | sort -u | wc -l || true)"
       ;;
     cargo_test_running_lines)
-      n="$(grep -Eo '^running [0-9]+ tests?' "$f" | grep -Eo '[0-9]+' | awk '{s+=$1} END{print s+0}')"
-      fl="$(grep -Eo '[0-9]+ failed' "$f" | grep -Eo '[0-9]+' | awk '{s+=$1} END{print s+0}')"
+      n="$(grep -Eo '^running [0-9]+ tests?' "$f" | grep -Eo '[0-9]+' | awk '{s+=$1} END{print s+0}' || true)"
+      fl="$(grep -Eo '[0-9]+ failed' "$f" | grep -Eo '[0-9]+' | awk '{s+=$1} END{print s+0}' || true)"
       ;;
     junit_console_summary)
       n="$(grep -Eo '[0-9]+ tests successful' "$f" | grep -Eo '^[0-9]+' | tail -1 || true)"
@@ -382,14 +385,14 @@ cv_probe_names() {  # <arquivo de saida> -> um nome por linha em stdout
       # call last):`, `FAILED (errors=2)` ou uma docstring como "derivada (numerica) ..."
       # entrem na lista como se fossem casos executados.
       grep -Eo '^[A-Za-z_][A-Za-z0-9_]* \([A-Za-z_][A-Za-z0-9_]*(\.[A-Za-z_][A-Za-z0-9_]*)+\)' "$f" \
-        | sed -E 's/ \(.*$//' | sort -u ;;
+        | sed -E 's/ \(.*$//' | sort -u || true ;;
     node_test_tap_summary)
-      grep -E '^(not )?ok [0-9]+ - ' "$f" | sed -E 's/^(not )?ok [0-9]+ - //' | sort -u ;;
+      grep -E '^(not )?ok [0-9]+ - ' "$f" | sed -E 's/^(not )?ok [0-9]+ - //' | sort -u || true ;;
     go_test_json_run_events)
       grep -o '"Action":"run"[^}]*"Test":"[^"]*"' "$f" \
-        | grep -o '"Test":"[^"]*"' | sed 's/"Test":"//; s/"$//' | sort -u ;;
+        | grep -o '"Test":"[^"]*"' | sed 's/"Test":"//; s/"$//' | sort -u || true ;;
     cargo_test_running_lines)
-      grep -Eo '^test [^ ]+ \.\.\.' "$f" | awk '{print $2}' | sort -u ;;
+      grep -Eo '^test [^ ]+ \.\.\.' "$f" | awk '{print $2}' | sort -u || true ;;
     *) : ;;
   esac
 }
@@ -508,14 +511,14 @@ cv_failing_names() {  # <saida> -> nomes dos casos que falharam
   local f="$1"
   case "$CV_PROBE" in
     python_unittest_ran_line)
-      grep -Eo '^(FAIL|ERROR): [A-Za-z_][A-Za-z0-9_]*' "$f" | awk '{print $2}' | sort -u ;;
+      grep -Eo '^(FAIL|ERROR): [A-Za-z_][A-Za-z0-9_]*' "$f" | awk '{print $2}' | sort -u || true ;;
     node_test_tap_summary)
-      grep -E '^not ok [0-9]+ - ' "$f" | sed -E 's/^not ok [0-9]+ - //' | sort -u ;;
+      grep -E '^not ok [0-9]+ - ' "$f" | sed -E 's/^not ok [0-9]+ - //' | sort -u || true ;;
     go_test_json_run_events)
       grep -o '"Action":"fail"[^}]*"Test":"[^"]*"' "$f" \
-        | grep -o '"Test":"[^"]*"' | sed 's/"Test":"//; s/"$//' | sort -u ;;
+        | grep -o '"Test":"[^"]*"' | sed 's/"Test":"//; s/"$//' | sort -u || true ;;
     cargo_test_running_lines)
-      grep -Eo '^test [^ ]+ \.\.\. FAILED' "$f" | awk '{print $2}' | sort -u ;;
+      grep -Eo '^test [^ ]+ \.\.\. FAILED' "$f" | awk '{print $2}' | sort -u || true ;;
     *) : ;;
   esac
 }
