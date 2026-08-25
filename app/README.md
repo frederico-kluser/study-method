@@ -145,13 +145,25 @@ Variáveis de caminho/execução:
   `primary` do **light** é `#1565c0` (WCAG AA). Detalhe em
   `tests/theme.test.ts`.
   Lógica pura do ciclo/persistência em `src/components/theme/themeModeState.ts`.
-- **Dracula no editor e terminal (onda 11)** — o editor CodeMirror usa o tema
-  real Dracula (`@uiw/codemirror-theme-dracula`) e o terminal xterm pinta a
-  saída com a **mesma** paleta (`src/lib/draculaTheme.ts`, `DRACULA = { ... }`,
-  `truecolorForeground` para SGR `38;2`). Na onda 20B o **dark da shell** passou
-  a importar a mesma paleta (bg `#282a36`, paper `#2f3142`, primary `#bd93f9`,
-  ciano `#8be9fd`) — o editor e o terminal permanecem **Dracula escuro fixo** nos
-  dois temas da shell.
+- **Editor e terminal SEGUEM o tema (redesign, §7.4)** — antes o editor CodeMirror
+  e o terminal xterm eram **Dracula escuro fixo** (`#282a36`) nos dois esquemas da
+  shell: uma janela preta dentro de um app claro. Agora os dois leem a paleta de
+  código **bi-polar** de `src/lib/codeTheme.ts` (`CODE_LIGHT`/`CODE_DARK`,
+  derivada dos mesmos acentos do tema, com todo token a ≥ 4,5:1 **contra a faixa
+  de seleção**) — claro no esquema claro, escuro no escuro. A coerência
+  editor ⇄ terminal, que era a propriedade boa do arranjo Dracula, continua: as
+  duas superfícies são o **mesmo** nível 2 da rampa, e a **tipografia** dos dois
+  (família *e* corpo) sai de um contrato único, `codeTypography()` —
+  `FONT_STACK.mono` + `TYPE.codeSize`, exposto nas duas formas que os dois
+  consumidores exigem (número em px para `new Terminal({ fontSize })`, string
+  com unidade para o CodeMirror). No terminal nenhuma folha de CSS global
+  governa isso: o DomRenderer do xterm injeta uma regra `.xterm-rows` mais
+  específica que qualquer `.xterm`, então valem só as opções do construtor.
+  O editor pinta via `createTheme` de `@uiw/codemirror-themes` +
+  tags do `@lezer/highlight`; o terminal via `xtermTheme(scheme)` e
+  `truecolorForeground` (SGR `38;2`), e **reimprime** o scrollback na paleta nova
+  ao trocar de tema (o SGR já escrito é absoluto e não se desfaz sozinho).
+  Provado em `tests/codeTheme.test.ts` e `tests/e2e/e2e-code-theme.spec.ts`.
 - **Componentes:** AppBar + Tabs (shell), Stepper (fases da aula), painéis/Select/Menu do
   Desafio e Settings. O CSS custom legado (`src/index.css`) ficou só para variáveis de tema
   + os placeholders (view Início) + os estilos de CodeMirror/xterm; as views reais usam MUI `sx`.
@@ -362,7 +374,8 @@ app/
 │  ├─ features/onboarding/     OnboardingHost (tutorial interativo) + overlay/modal/steps
 │  ├─ components/  editor, terminal (xterm), CodeMirror, voice (MicButton/SpeakButton),
 │  │               theme (ThemeToggleButton + themeModeState)
-│  └─ lib/                     lógica pura (incl. draculaTheme.ts p/ editor⇄terminal)
+│  └─ lib/                     lógica pura (incl. codeTheme.ts, a paleta de código
+│                              bi-polar que editor e terminal compartilham)
 │                              + apiBridge (porta única para window.api)
 └─ tests/                      ~720+ testes (node:test, sem jsdom) + tests/e2e (Playwright)
 ```

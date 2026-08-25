@@ -69,7 +69,10 @@ que a fixture injeta por padrão e que não devem ser desligadas em massa:
 - `e2e-editor.spec.ts` — abrir/editar/salvar no editor (persistência em disco real).
 - `e2e-test-answer.spec.ts` — "Testar resposta" com runner mockado (executando→score).
 - `e2e-offline.spec.ts` — banner offline com chaves ok + rede fora.
-- `e2e-dracula.spec.ts` — tema Dracula no editor CodeMirror (`.cm-editor` fundo `#282a36`) e no terminal.
+- `e2e-code-theme.spec.ts` — editor CodeMirror e terminal xterm SEGUEM o tema: claro no
+  esquema claro, escuro no escuro, os dois lendo `src/lib/codeTheme.ts` (era
+  `e2e-dracula.spec.ts`, que exigia o `#282a36` fixo nos dois esquemas — ver §7.4 do
+  redesign). Cobre também a repintura do scrollback do terminal ao trocar de tema.
 - `e2e-i18n.spec.ts` — default pt-BR e troca de idioma (localStorage gravado).
 - `more-flows.spec.ts` — UB3: idioma pt→en→pt reflete no Home/aula; tema claro→escuro→system persiste junto; onboarding first-run com o Quick Start COMPLETO (6 passos → `completed`); persistência do progresso do tutorial entre reloads.
 

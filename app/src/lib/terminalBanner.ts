@@ -6,17 +6,19 @@
  * e devolve a lista de linhas a imprimir, cada uma com a cor ANSI nomeada. O
  * componente React (`components/terminal/AnswerTerminal.printTestBanner`) apenas
  * itera estas linhas chamando `terminal.writeLine(line.text, line.color)`.
+ *
+ * O CONTRATO DE COR NÃO MUDOU nesta onda — a FONTE mudou. `TerminalBannerColor`
+ * era uma união escrita à mão, byte a byte igual à de `draculaTheme.ts`; agora
+ * é um ALIAS de `TerminalColorName` (`lib/codeTheme`), de onde `writeLine`
+ * resolve o hex. Os sete nomes seguem os mesmos, e o alias existe para que
+ * acrescentar um nome aqui e esquecê-lo lá deixe de compilar: duas cópias de
+ * uma união só divergem em silêncio. É import de TIPO (apagado na emissão),
+ * então este módulo continua puro e sem dependência de runtime.
  */
+import type { TerminalColorName } from './codeTheme';
 
 /** Cores nomeadas compatíveis com o mapeamento ANSI do AnswerTerminal. */
-export type TerminalBannerColor =
-  | 'default'
-  | 'green'
-  | 'red'
-  | 'yellow'
-  | 'accent'
-  | 'muted'
-  | 'cyan';
+export type TerminalBannerColor = TerminalColorName;
 
 /** Uma linha do banner: texto + cor nomeada. */
 export interface TerminalBannerLine {

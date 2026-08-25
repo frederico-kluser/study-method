@@ -390,6 +390,57 @@ export function codePalette(scheme: CodeScheme): CodePalette {
   return scheme === 'dark' ? CODE_DARK : CODE_LIGHT;
 }
 
+/* ─── Contrato de TIPOGRAFIA (editor E terminal) ──────────────────────────── */
+
+/**
+ * A tipografia do código, em UMA declaração para os dois consumidores.
+ *
+ * ─── POR QUE ISTO EXISTE ──────────────────────────────────────────────────
+ * `xtermTheme()` exporta só COR (`XtermCodeTheme extends CodeAnsi`). Sem um
+ * contrato de tipografia, o terminal ficou com uma pilha própria escrita à mão
+ * — `'SFMono-Regular', 'JetBrains Mono', Menlo, Consolas, monospace`, SEM a
+ * variável `'JetBrains Mono Variable'` que é a única realmente empacotada — e
+ * com um corpo de 13 literal. O editor, lendo daqui, ia para JetBrains Mono
+ * Variable 14px: família E tamanho divergentes, exatamente na propriedade que a
+ * §7.4 nomeia como a que importa (editor e terminal pintam da MESMA fonte de
+ * verdade). O defeito era invisível enquanto as fontes nem carregavam — os dois
+ * lados caíam no `monospace` do sistema e pareciam iguais.
+ *
+ * ─── POR QUE NÃO É POR POLARIDADE ─────────────────────────────────────────
+ * Não é `Record<CodeScheme, …>` nem campo de `CodePalette`: a fonte do código
+ * não muda entre claro e escuro, e duplicá-la nas duas polaridades criaria o
+ * lugar exato onde elas voltariam a divergir. Uma constante só.
+ *
+ * ─── AS DUAS FORMAS DO MESMO NÚMERO ───────────────────────────────────────
+ * `new Terminal({ fontSize })` do xterm exige NÚMERO em px; `settings.fontSize`
+ * do `@uiw/codemirror-themes` exige STRING com unidade. As duas saem daqui já
+ * prontas, para que nenhum consumidor componha `${...}px` na mão — é assim que
+ * um `13` literal reaparece.
+ */
+export interface CodeTypography {
+  /** Pilha monoespaçada — a MESMA de `FONT_STACK.mono` (a `@fontsource-variable`). */
+  readonly fontFamily: string;
+  /** Corpo em px, como NÚMERO — a forma que o construtor do xterm exige. */
+  readonly fontSizePx: number;
+  /** O MESMO corpo com unidade — a forma que o CodeMirror exige. */
+  readonly fontSize: string;
+}
+
+/** A tipografia do código. Única, compartilhada, sem polaridade. */
+export const CODE_TYPOGRAPHY: CodeTypography = {
+  fontFamily: FONT_STACK.mono,
+  fontSizePx: TYPE.codeSize,
+  fontSize: `${TYPE.codeSize}px`,
+} as const;
+
+/**
+ * Acessor da tipografia do código — a porta que editor e terminal usam.
+ * Sem parâmetro de propósito: ver "POR QUE NÃO É POR POLARIDADE" acima.
+ */
+export function codeTypography(): CodeTypography {
+  return CODE_TYPOGRAPHY;
+}
+
 /* ─── Contrato do terminal ────────────────────────────────────────────────── */
 
 /**
@@ -499,8 +550,8 @@ function toCodeMirrorSettings(p: CodePalette): CodeMirrorCodeSettings {
     gutterForeground: p.chrome.gutterForeground,
     gutterActiveForeground: p.chrome.gutterActiveForeground,
     gutterBorder: p.chrome.gutterBorder,
-    fontFamily: FONT_STACK.mono,
-    fontSize: `${TYPE.codeSize}px`,
+    fontFamily: CODE_TYPOGRAPHY.fontFamily,
+    fontSize: CODE_TYPOGRAPHY.fontSize,
   };
 }
 
