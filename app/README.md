@@ -12,6 +12,10 @@ manual do usuário + arquitetura técnica + mapa de contratos — vive em
 
 ## Como rodar
 
+**Atalho (da raiz do repositório):** `./install.sh` instala tudo (skill + `npm ci` aqui + cria
+`app/.env.local` a partir do exemplo) e `./run.sh` sobe a janela. Os comandos abaixo são o que
+esses atalhos fazem por baixo.
+
 Requisitos: Node ≥ 20 (Node v24 testado), npm ≥ 11. O `.npmrc` libera `allow-scripts` para os
 `postinstall` de esbuild/electron que o build exige.
 

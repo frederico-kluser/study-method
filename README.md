@@ -84,9 +84,7 @@ arquivo de referência (invariantes `I-33b` e `I-33c`).
 
 ## Instalação
 
-Requisitos: **Linux**, `bash`, `python3`, `jq`, e um agente que carregue Agent Skills (o
-`install.sh` instala em `~/.claude/skills/`). Nenhuma dependência é baixada — nem na instalação,
-nem em runtime.
+Dois comandos, sem flags:
 
 ```bash
 git clone <url-do-repositorio> study-method
@@ -95,25 +93,34 @@ cd study-method
 # leia antes de rodar (é o único controle real que existe aqui — ver "Segurança" abaixo)
 less skills/study-method/SKILL.md
 
-./install.sh              # copia skills/study-method/ para ~/.claude/skills/study-method/
-./install.sh --symlink    # ou aponta um symlink, para desenvolver no clone
-./install.sh --uninstall  # remove
+./install.sh   # instala TUDO, sempre: skill + dependências do app + app/.env.local
+./run.sh       # roda o app GUI (janela Electron)
 ```
+
+- `./install.sh` — **instala** o projeto inteiro em um comando: a skill em `~/.claude/skills/`
+  (cópia do clone), as dependências do app (`npm ci` em `app/`) e `app/.env.local` a partir de
+  `app/.env.local.example` se faltar.
+- `./run.sh` — **roda** o app GUI (carrega `app/.env.local` se existir e sobe o
+  `electron-vite dev`). Sem `app/node_modules`, ele avisa para rodar `./install.sh` primeiro.
+
+Requisitos: **Linux**, `bash`, `python3`, `jq` e um agente que carrega Agent Skills (a skill),
+mais **Node ≥ 20** e **npm ≥ 11** (o app). A skill em si não baixa nada — nem na instalação,
+nem em runtime; o único download é o `npm ci` da parte do app (o `.npmrc` do app libera os
+`postinstall` de esbuild/electron que o build exige).
 
 O que o `install.sh` faz, e só isso:
 
 1. confere que o diretório de origem existe e tem `SKILL.md`;
 2. confere que o campo `name:` do frontmatter **bate com o nome do diretório** — se não bater, a
-   skill simplesmente não carrega, e o script para antes de instalar em vez de deixar você
-   descobrir depois;
-3. cria `~/.claude/skills/` se não existir;
-4. copia (ou aponta um symlink com `--symlink`);
-5. diz exatamente o que fez, e o que **não** fez.
+   skill simplesmente não carrega, e o script para antes de instalar;
+3. cria `~/.claude/skills/` se não existir (modo 0700);
+4. instala a skill por cópia — confere que o destino é reconhecidamente esta skill antes de
+   substituir (recusa substituir uma pasta que não pareça a skill);
+5. cria `app/.env.local` a partir de `app/.env.local.example` se faltar (chaves vazias — você
+   preenche; o `.env.local` é gitignored);
+6. roda `npm ci` em `app/` (a única parte com download).
 
-Ele **não sobrescreve sem perguntar**: se já houver uma instalação diferente no destino, ele
-mostra o que existe e pede confirmação — ou exige `--force` quando não há terminal interativo. Se
-o destino já for idêntico à origem, ele não faz nada e diz isso. Não usa rede, não usa `sudo`, não
-edita `PATH` nem arquivo de shell.
+A parte da skill não usa rede, não usa `sudo`, não edita `PATH` nem arquivo de shell.
 
 ### À mão
 

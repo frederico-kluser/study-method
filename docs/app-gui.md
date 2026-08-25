@@ -25,7 +25,8 @@ solução.
 
 ### 1.2 Primeiros passos
 
-1. **Rode** (`cwd = app/`): `npm ci && npm run dev`.
+1. **Rode** (`cwd = app/`): `npm ci && npm run dev` — ou, da raiz do repositório,
+   `./install.sh` (instala tudo) e `./run.sh` (sobe a janela).
 2. **Configurações** (ícone de engrenagem):
    - Aba **Chaves**: cole `DEEPSEEK_API_KEY` e `BRAVE_API_KEY`. O app valida a chave digitada
      antes de salvar (ícone de status verde/vermelho).
