@@ -400,6 +400,30 @@ test('author: content vazio 2× → rejeita com o erro original (sem retry infin
   assert.equal(err, EMPTY_CONTENT_ERROR, 'propaga o erro original da classe content vazio');
 });
 
+// EMPTY_CONTENT na 1ª (ganha a re-tentativa) + erro GENÉRICO na 2ª: o retry NÃO
+// mascara o erro novo — propaga o GENÉRICO (wrap NETWORK), nunca o EMPTY_CONTENT
+// stale da 1ª tentativa (taxonomia honesta para o caller reportar a causa real).
+test('author: EMPTY_CONTENT na 1ª e erro GENÉRICO na 2ª → propaga o GENÉRICO, não o EMPTY_CONTENT stale', async () => {
+  let attempts = 0;
+  const client = {
+    chatCompletion: async () => {
+      attempts++;
+      if (attempts === 1) throw EMPTY_CONTENT_ERROR;
+      throw new Error('falha de rede 500');
+    },
+  };
+  const author = createDeepSeekLessonAuthor({ client });
+  const err = await author({ subject: 'X', findings: [] }).then(
+    () => null,
+    (e) => e,
+  );
+  assert.equal(attempts, 2, 'a 1ª falha EMPTY_CONTENT consome a re-tentativa');
+  assert.ok(err instanceof DeepSeekError, 'propagado como DeepSeekError (taxonomia)');
+  assert.equal(err.code, DEEPSEEK_ERROR_CODES.NETWORK, 'erro GENÉRICO vira NETWORK, não EMPTY_CONTENT');
+  assert.match(err.message, /falha de rede 500/, 'mensagem do erro da 2ª tentativa preservada');
+  assert.notEqual(err, EMPTY_CONTENT_ERROR, 'NÃO propaga o EMPTY_CONTENT stale da 1ª tentativa');
+});
+
 test('author: cliente lança erro GENÉRICO → SEM retry (1 chamada)', async () => {
   let attempts = 0;
   const client = {

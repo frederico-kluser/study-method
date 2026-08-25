@@ -115,9 +115,20 @@ describe('lesson-orchestrator integration (env-guarded)', () => {
 
       // AUTHOR fake: LessonDraft python, 1 desafio. CRÍTICO para o approve real:
       //  (a) o nome da função é `fatorial_recursivo` = mesmo nome que challenge-new.sh
-      //      DERIVA do slug (`fatorial-recursivo` → fatorial_recursivo); assim o
-      //      `empty_stub` e as `reference_alt_*` (que o orchestrator NÃO sobrescreve
-      //      — só stub.py/reference.py/tests/README) continuam importáveis;
+      //      DERIVA do slug (`fatorial-recursivo` → fatorial_recursivo). Desde o
+      //      fix-author-consistency (7b5155b) o orchestrator NÃO depende da semente
+      //      para os ocultos de .solution: materializeChallenge REGRAVA stub.py/
+      //      tests/test_stub.py/README.md, a referência canônica `.solution/reference.py`
+      //      (com draft.referenceCode; por linguagem: reference.rs, reference.c, ...),
+      //      a cópia canônica `.solution/empty_stub.py` (com draft.stubCode) e as
+      //      `reference_alt_*` (com draft.referenceAlternates ?? draft.referenceCode —
+      //      fallback que nunca deixa um path declarado no meta sem conteúdo
+      //      compilável). Ou seja: os ocultos vêm da AUTORIA, com a MESMA assinatura
+      //      do stub — a assinatura toy da semente não vaza para a validação nas
+      //      linguagens sem header externo; em C o stub.h do seed só é substituído
+      //      quando a extração do protótipo autorado tem sucesso (se a extração
+      //      falhar ou o arquivo não existir, o header do seed é PRESERVADO — nunca
+      //      pior que antes);
       //  (b) a referência é a ITERATIVA SEM guarda de negativo, porque as alternativas
       //      da semente (recursiva e reduce) também não guardam — um teste com
       //      ValueError(-1) seria over-specification (passo 3) e derrubaria o approve.

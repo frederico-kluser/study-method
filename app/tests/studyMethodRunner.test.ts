@@ -322,6 +322,31 @@ describe('StudyMethodRunner', () => {
       assert.deepEqual(res.rejections, []);
     });
 
+    // mesma degradação, mas com stdout DURANTE o ciclo --apply: o retorno degradado
+    // PRESERVA o stdout da última fase (res.stdout = fase 2) — só verdict/protocolIssue
+    // mudam; se o stdout sumisse, o caller perderia observabilidade do ciclo.
+    it('exit 5 no --apply preserva o stdout da última fase no retorno degradado', async () => {
+      const { fakeExec, calls } = fakeVerifyChild([
+        // 1º ciclo SEM --apply: pedido REQUEST parseável no stdout, sai 10.
+        { exitCode: 10, stdout: `${VERIFY_ENVELOPE}\n` },
+        // 2º ciclo COM --apply: recusa a resposta do juiz (exit 5) mas emite stdout.
+        { exitCode: 5, stdout: 'saida-parcial-do-apply', stderr: 'sm_apply_read: resposta fora do response_schema' },
+      ]);
+      const judge = async (_p: StudyRequestEnvelope) => ({ request_kind: 'challenge_verify', classifications: [] });
+      const runner = makeRunner(judge, { exec: fakeExec });
+      const dir = path.join(tmp, 'chal-apply-stdout');
+      await writeFile(path.join(dir, 'meta.json'), '{}');
+      const res = await runner.verifyChallenge(dir);
+
+      assert.equal(calls.length, 2, JSON.stringify(calls));
+      assert.match(calls[1].args.join(' '), /--apply/);
+      assert.equal(res.verdict, 'not_run');
+      assert.equal(res.protocolIssue, 'apply_exhausted');
+      assert.equal(res.applyExhausted, true);
+      assert.equal(res.exitCode, 5);
+      assert.match(res.stdout, /saida-parcial-do-apply/, 'stdout da fase --apply preservado no retorno degradado');
+    });
+
     // meta.json inválido (infra REAL, sem ciclo --apply): exit 5 na 1ª chamada
     // continua sendo erro de infraestrutura — verifyChallenge LANÇA (aula deve abortar).
     it('exit 5 SEM ciclo --apply (meta inválido — infra) continua lançando', async () => {
