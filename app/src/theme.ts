@@ -658,9 +658,27 @@ export const theme = createTheme({
     },
 
     // Código e terminal: mono, 14/1,5. Escolha de projeto declarada na spec.
+    //
+    // O `fontSize` desta variante — e SÓ desta — é STRING COM UNIDADE, não o
+    // número de `TYPE.codeSize`. Motivo medido, não estético: com
+    // `cssVariables`, o MUI publica cada variante como o shorthand `font` em
+    // `--mui-font-<variante>`, e o gerador
+    // (@mui/system/cssVars/prepareTypographyVars.mjs:7) concatena `fontSize`
+    // CRU, sem sufixar 'px'. Com o número 14 o var saía
+    //     --mui-font-code: 14/1.5 'JetBrains Mono Variable', …
+    // e `14` sem unidade NÃO é um <font-size> válido no shorthand `font`
+    // (unitless só vale para 0, e index.html é standards mode). A declaração
+    // inteira caía, EM SILÊNCIO: `.cm-editor, .xterm { font: var(--mui-font-code) }`
+    // media family="Inter Variable" / 16px / lh normal no Blink. Com a string
+    // o var vira `14px/1.5 '…'`, shorthand válido, e o CSS de bootstrap
+    // (src/index.css) volta a ter UMA fonte de verdade para a fonte de código.
+    //
+    // `TYPE.codeSize` continua sendo o NÚMERO 14 no contrato: o construtor do
+    // xterm exige número em `fontSize`. Quem precisa de CSS compõe a unidade,
+    // como aqui e em `codeTheme.ts` (`${TYPE.codeSize}px`).
     code: {
       fontFamily: FONT_STACK.mono,
-      fontSize: TYPE.codeSize,
+      fontSize: `${TYPE.codeSize}px`,
       lineHeight: TYPE.codeLineHeight,
     },
 

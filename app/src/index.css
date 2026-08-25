@@ -1,53 +1,159 @@
 /**
- * src/index.css — tema do shell Study Method (escuro por default).
+ * src/index.css — CSS de bootstrap do renderer.
  *
- * Variáveis de tema centralizadas: fundo bg/panel, borda border, destaque
- * accent e texto. Classes de código (.cm-, .xterm) herdam fonte monospace para
- * que CodeMirror e o terminal das ondas seguintes sejam consistentes sem
- * tocar no default deles.
+ * ESCOPO, a partir desta onda: só o que precisa valer ANTES do React montar
+ * (o primeiro paint, quando `#root` ainda está vazio) e o punhado de regras
+ * globais que caem em DOM de TERCEIRO — xterm e CodeMirror montam nós fora da
+ * árvore do MUI, onde `sx`/`styleOverrides` não alcançam. Todo o resto do
+ * visual é TEMA (src/theme.ts) sobre o contrato congelado
+ * (src/lib/designTokens.ts), com origem em docs/ux-redesign.md.
  *
- * SCHEME-AWARE (onda 11 — tema claro/escuro, colorSchemeSelector 'class'):
- *   O MUI aplica `.light`/`.dark` no <html> (colorSchemeNode) e o CssBaseline
- *   é quem pinta o fundo/cor do body em cada scheme. Estas variáveis :root são
- *   os valores DARK (default). O bloco `html.light` abaixo sobrepõe somente as
- *   cores de TEXTO/SURFACE das classes VIVAS (`.home__*`, `.placeholder*`) para
- *   o modo claro — tornando a HomeView (primeira aba) legível em light e dark.
- *   `--bg` é mantida escura nos dois schemes de propósito: alimenta o `.xterm`
- *   (terminal Dracula escuro fixo) e o fallback do body; no modo claro o fundo
- *   do corpo vem do CssBaseline (background.default do scheme). `--danger`/
- *   `--success` continuam declaradas mas não são consumidas por nenhuma classe
- *   viva (mortas) — mantidas por herança/compatibilidade.
+ * ══════════════════════════════════════════════════════════════════════════
+ * DECISÃO 1 — ESTE ARQUIVO NÃO TEM MAIS PALETA PRÓPRIA
+ * ══════════════════════════════════════════════════════════════════════════
+ * Até aqui ele mantinha um conjunto PARALELO de tokens escritos em hex à mão
+ * (`--bg`, `--panel`, `--panel-2`, `--border`, `--text`, `--text-muted`,
+ * `--accent`, `--accent-dim`, `--danger`, `--success`, `--radius`,
+ * `--font-ui`, `--font-mono`) mais um bloco `html.light` que sobrescrevia
+ * alguns deles. Era uma SEGUNDA fonte de verdade de cor — e ela já tinha
+ * divergido da primeira:
+ *   - `--accent` era `#1565c0`/`#4f8cff`, o `primary` de um tema que não
+ *     existe mais (o de hoje é a família `action`, vermelho-laranja);
+ *   - `--bg` ficava ESCURO também no tema claro, de propósito, para alimentar
+ *     um `.xterm` Dracula fixo — ou seja, o primeiro paint do modo claro
+ *     piscava preto por desenho;
+ *   - `--danger`/`--success` já eram tokens mortos (nenhuma regra os lia).
+ *
+ * O tema da onda 1 roda com `cssVariables: { colorSchemeSelector: 'class' }`,
+ * e isso quer dizer que o MUI PUBLICA a paleta inteira como CSS vars de
+ * verdade no <html>, em três folhas, nesta ordem (verificado no código
+ * instalado, @mui/system/cssVars/prepareCssVars.mjs, com
+ * defaultColorScheme = 'light'):
+ *
+ *     :root           vars sem esquema (--mui-shape-*, --mui-font-*, ...)
+ *     :root, .light   paleta CLARA
+ *     .dark           paleta ESCURA
+ *
+ * `.dark` vem por ÚLTIMA de propósito: ela empata em especificidade com
+ * `:root` (0,1,0 para as duas) e ganha por ordem de fonte. Como
+ * `primeColorSchemeClass()` (src/main.tsx) põe `.light`/`.dark` no <html>
+ * ANTES do primeiro render, toda regra abaixo que lê `var(--mui-palette-*)`
+ * troca de esquema sozinha — sem ternário, sem duplicata, e sem um segundo
+ * bloco `html.light` para alguém esquecer de atualizar.
+ *
+ * REGRA DURA QUE ESTE ARQUIVO PASSA A OBEDECER: nenhum hexadecimal de cor de
+ * tema mora aqui. Se a cor não sai de `var(--mui-palette-*)`, ela não entra.
+ * O único literal que sobrou é DIMENSÃO (largura de scrollbar, altura do
+ * terminal, padding) — não é cor e não tem var equivalente no tema.
+ *
+ * ══════════════════════════════════════════════════════════════════════════
+ * DECISÃO 2 — O ANTI-FLASH DEIXA DE SER UM HEX E VIRA `color-scheme`
+ * ══════════════════════════════════════════════════════════════════════════
+ * As vars do MUI são injetadas em RUNTIME (o ThemeProvider monta uma folha via
+ * Emotion). Entre o primeiro paint e a montagem do React existe uma janela em
+ * que `var(--mui-palette-*)` simplesmente não resolve — era essa janela que o
+ * `--bg` hardcoded cobria, e cobria ERRADO (escuro nos dois esquemas).
+ *
+ * A troca: `color-scheme`. Ela não é cor, é uma declaração de qual polaridade
+ * a página suporta, e o Chromium usa isso para pintar o CANVAS quando a página
+ * ainda não pintou nada. `:root { color-scheme: light dark }` faz a janela
+ * pré-hidratação seguir o `prefers-color-scheme` do SO; `html.light`/`html.dark`
+ * fixam a escolha assim que `primeColorSchemeClass()` marca o <html>. O branco
+ * do canvas claro fica a um passo de `surface.level0` (#faf7f2) e o quase-preto
+ * do escuro a um passo de #12141a — o repaint da hidratação deixa de ser um
+ * flash e vira um ajuste imperceptível. Zero hex envolvido.
+ *
+ * CASO DE BORDA CONHECIDO E ACEITO: com override MANUAL contrário ao SO (SO no
+ * claro + `localStorage['theme-mode'] = 'dark'`), `color-scheme: light dark`
+ * segue o SO e pinta o canvas BRANCO na janela anterior ao
+ * `primeColorSchemeClass()` — justamente onde o `--bg` escuro antigo acertava,
+ * por acidente (ele acertava esse par e errava todos os outros, inclusive o
+ * caso comum SO-claro + app-claro). A janela é quase nula: o bootstrap é um
+ * module script e `primeColorSchemeClass()` roda antes do primeiro paint.
+ * Trocar por um script inline que lesse o localStorage é o que o CSP
+ * `script-src 'self'` desta app proíbe. Custo assumido de propósito.
+ *
+ * O `<CssBaseline/>` continua sendo quem pinta `body` de verdade
+ * (`background.default` = nível 0, `color` = `text.primary`, `typography.body1`)
+ * — por isso este arquivo NÃO declara mais background, color, font nem
+ * font-smoothing no body: seria duplicata que só existe para divergir. O que
+ * fica é a geometria (`height: 100%`, `margin: 0`, `box-sizing`), que precisa
+ * valer antes da hidratação para o layout não pular.
+ *
+ * ══════════════════════════════════════════════════════════════════════════
+ * DECISÃO 3 — TIPOGRAFIA DE CÓDIGO VEM DE `--mui-font-code`, NÃO DE CÓPIA
+ * ══════════════════════════════════════════════════════════════════════════
+ * `shouldSkipGeneratingVar` do MUI pula a chave `typography` (conferido em
+ * @mui/material/styles/shouldSkipGeneratingVar.js), então NÃO existe
+ * `--mui-font-family-*`. Mas o v9 publica a variante inteira como shorthand
+ * `font`: o `typography.code` do nosso tema (mono 14/1,5, docs/ux-redesign.md
+ * §4.2) sai como
+ *     --mui-font-code: 14px/1.5 'JetBrains Mono Variable', 'JetBrains Mono', ...
+ * e `font: var(--mui-font-code)` é CSS válido. Assim o stack mono do
+ * `FONT_STACK` continua com UMA fonte de verdade e o `--font-mono` copiado
+ * some. (O `font` shorthand zera `font-weight` para `normal`; os spans de
+ * sintaxe do CodeMirror declaram o peso deles, então isso é inócuo aqui.)
+ *
+ * ARMADILHA QUE ESTA DECISÃO JÁ PISOU — o `px` do var acima não é decorativo.
+ * O gerador do MUI (@mui/system/cssVars/prepareTypographyVars.mjs:7) concatena
+ * `fontSize` CRU no shorthand. O tema default do MUI usa strings em `rem`, mas
+ * este tema pina os tamanhos em NÚMERO; enquanto `typography.code.fontSize` foi
+ * o número 14, o var saía `14/1.5 '…'` e `14` sem unidade não é <font-size>
+ * válido (unitless só é length para 0, e app/index.html é standards mode). A
+ * declaração inteira era *invalid at computed-value time* e caía EM SILÊNCIO —
+ * medido em Blink: family="Inter Variable", size=16px, lh=normal, ou seja o
+ * editor perdia a mono do contrato e a numeração de linha (`.cm-gutters`, que
+ * herda de `.cm-editor` e não declara tamanho próprio) subia de 13 para 16px.
+ * O conserto mora em src/theme.ts: `code.fontSize` é `${TYPE.codeSize}px`,
+ * STRING COM UNIDADE, enquanto `TYPE.codeSize` segue número para o construtor
+ * do xterm. A trava está em tests/theme.test.ts (nível de var) e em
+ * tests/e2e/e2e-fonts.spec.ts (computed de `.cm-editor`/`.cm-gutters`/`.xterm`
+ * no app rodando) — nenhum teste de `document.fonts` pega esta classe de bug,
+ * porque a fonte pode estar CARREGADA no documento e mesmo assim não APLICADA.
+ *
+ * ══════════════════════════════════════════════════════════════════════════
+ * DECISÃO 4 — O QUE SAIU DAQUI E FOI PARA O DONO CERTO
+ * ══════════════════════════════════════════════════════════════════════════
+ * - `.xterm { background: var(--bg) }` FOI REMOVIDA. Pintar o fundo do
+ *   terminal a partir do CSS global é o que mantinha o `--bg` escuro nos dois
+ *   esquemas; e era uma pintura ERRADA, porque cobria com #0f1115 um Paper que
+ *   o AnswerTerminal pinta de #282a36. A partir da onda de editor/terminal
+ *   quem manda na cor do terminal é `xtermTheme(scheme)`
+ *   (src/lib/codeTheme.ts) — uma fonte só, bipolar, igual à do editor.
+ * - `.placeholder*` e `.home__*` FORAM REMOVIDAS: eram fósseis das ondas 7/11,
+ *   sem um único consumidor (grep em src/, tests/, electron/, shared/ e
+ *   index.html = 0 ocorrências). As views são 100% MUI hoje
+ *   (`views/placeholders.tsx` usa Card/Stepper/Chip/Typography), e a convenção
+ *   do projeto desde a onda 12 é: estilo de view vive em CSS Module local ou
+ *   em `sx`, nunca aqui.
  */
 
 :root {
-  --bg: #0f1115;
-  --panel: #161a21;
-  --panel-2: #1c212b;
-  --border: #262c38;
-  --text: #e6e8ec;
-  --text-muted: #9aa3b2;
-  --accent: #4f8cff;
-  --accent-dim: #2f5bbd;
-  --danger: #e05252;
-  --success: #49b36b;
-  --radius: 10px;
-  --font-ui: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  --font-mono: "SFMono-Regular", "JetBrains Mono", Menlo, Consolas, monospace;
+  /* Polaridade do canvas antes da hidratação — ver DECISÃO 2. Não é cor: é a
+     declaração de quais esquemas a página suporta. Sem classe no <html>
+     ainda, o Chromium segue o prefers-color-scheme do SO. */
+  color-scheme: light dark;
+
+  /* Altura do viewport do terminal de resposta. É DIMENSÃO, não cor, e é o
+     ponto de extensão combinado com o dock recolhível: quem quiser pilotar a
+     altura (por exemplo `sx={{ '--answer-terminal-height': '100%' }}` num
+     ancestral) sobrescreve esta var em vez de brigar com um `height` fixo. O
+     default de 220px preserva exatamente o comportamento de hoje. */
+  --answer-terminal-height: 220px;
 }
 
-/* ─── Modo claro: cores de TEXTO/SURFACE das classes vivas (onda 11) ─────── */
+/* `primeColorSchemeClass()` fixa a polaridade no <html> antes do primeiro
+   render; o MUI redeclara o mesmo `color-scheme` em runtime nas folhas
+   `:root, .light` / `.dark`, então as duas fontes concordam. */
 html.light {
-  --panel: #ffffff;          /* placas placeholder sobre corpo claro */
-  --panel-2: #f3f4f6;        /* fundo do badge placeholder */
-  --border: #d1d5db;         /* bordas/borda tracejada + scrollbar */
-  --text: #1f2937;           /* texto do body/títulos em claro (≈14.7:1) */
-  --text-muted: #4b5563;     /* muted legível em claro (≈7.6:1) */
-  --accent: #1565c0;         /* primary claro (par com theme.ts; ≈5.7:1) */
-  --accent-dim: #b8d0f3;     /* seleção sutil em claro (texto selecionado legível) */
-  /* --bg permanece #0f1115: usado pelo .xterm (Dracula fixo escuro) e pelo
-     fallback do body; o fundo do corpo em claro é do CssBaseline. */
+  color-scheme: light;
 }
 
+html.dark {
+  color-scheme: dark;
+}
+
+/* ─── Geometria do shell (precisa valer antes da hidratação) ─────────────── */
 * {
   box-sizing: border-box;
 }
@@ -59,92 +165,42 @@ body,
   margin: 0;
 }
 
-body {
-  background: var(--bg);
-  color: var(--text);
-  font-family: var(--font-ui);
-  -webkit-font-smoothing: antialiased;
-  font-size: 14px;
-  line-height: 1.55;
-}
-
-/* ─── Shell (onda 7): agora em MUI (AppBar+Tabs) — nada de CSS custom aqui. ── */
-
-/* ─── Placeholder das views ──────────────────────────────────────────────── */
-.placeholder {
-  max-width: 560px;
-  border: 1px dashed var(--border);
-  background: var(--panel);
-  border-radius: var(--radius);
-  padding: 28px 32px;
-}
-
-.placeholder__badge {
-  display: inline-block;
-  font-family: var(--font-mono);
-  font-size: 11px;
-  letter-spacing: 0.4px;
-  text-transform: uppercase;
-  color: var(--accent);
-  background: var(--panel-2);
-  border: 1px solid var(--border);
-  border-radius: 999px;
-  padding: 3px 10px;
-  margin-bottom: 14px;
-}
-
-.placeholder__title {
-  margin: 0 0 8px;
-  font-size: 20px;
-}
-
-.placeholder__body {
-  margin: 0;
-  color: var(--text-muted);
-}
-
-/* ─── View Início ────────────────────────────────────────────────────────── */
-.home__title {
-  margin: 0 0 10px;
-  font-size: 26px;
-}
-
-.home__body,
-.home__hint {
-  color: var(--text-muted);
-  max-width: 620px;
-}
-
-/* ─── Código e terminal das ondas seguintes ──────────────────────────────── */
+/* ─── DOM de terceiro: editor e terminal ─────────────────────────────────── */
+/* Fonte de código a partir do tema (DECISÃO 3). A COR de editor e terminal
+   não passa por aqui: é `codeMirrorSettings(scheme)` / `xtermTheme(scheme)`. */
 .cm-editor,
 .xterm {
-  font-family: var(--font-mono);
-  font-size: 13px;
-}
-
-.xterm {
-  background: var(--bg);
-  height: 100%;
+  font: var(--mui-font-code);
 }
 
 /* ─── Terminal de saída (AnswerTerminal) ─────────────────────────────────── */
 .answer-terminal__viewport {
-  height: 220px;
+  block-size: var(--answer-terminal-height);
   padding: 6px 8px;
 }
+
 .answer-terminal__viewport .xterm {
-  height: 100%;
+  block-size: 100%;
 }
 
+/* ─── Cromo do documento ─────────────────────────────────────────────────── */
+/* O polegar da barra de rolagem é COMPONENTE DE UI, não divisor decorativo:
+   o piso dele é 3:1 (SC 1.4.11), então ele usa a camada não-texto do contrato
+   (`nonText.neutral`, 3,03:1 no claro e 3,36:1 no escuro contra o nível 0) e
+   NÃO o `divider`, que fica abaixo de 3:1 de propósito. */
 ::-webkit-scrollbar {
   width: 10px;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--border);
+  background: var(--mui-palette-nonText-neutral);
   border-radius: 999px;
 }
 
+/* Seleção = "estado selecionado / hover forte", que é literalmente o papel do
+   nível 4 da rampa tonal. Tinta explícita por cima para o texto selecionado
+   não depender de herança. */
 ::selection {
-  background: var(--accent-dim);
+  background: var(--mui-palette-surface-level4);
+  color: var(--mui-palette-text-primary);
 }

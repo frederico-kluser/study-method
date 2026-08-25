@@ -755,10 +755,44 @@ describe('theme "Cartucho" — forma e tipografia', () => {
     }
   });
 
-  it('a variante `code` usa a stack MONO em 14/1,5', () => {
+  it('a variante `code` usa a stack MONO em 14/1,5, com o tamanho em PX EXPLÍCITO', () => {
     assert.equal(theme.typography.code.fontFamily, FONT_STACK.mono);
-    assert.equal(theme.typography.code.fontSize, TYPE.codeSize);
     assert.equal(theme.typography.code.lineHeight, TYPE.codeLineHeight);
+    // A UNIDADE é a invariante, não o número. `--mui-font-code` é montado por
+    // @mui/system/cssVars/prepareTypographyVars.mjs concatenando `fontSize`
+    // CRU no shorthand `font`; com o número 14 o var saía `14/1.5 '…'`, que é
+    // <font-size> inválido, e `font: var(--mui-font-code)` em src/index.css
+    // caía inteiro em silêncio (o editor voltava a Inter/16px/lh normal).
+    assert.equal(
+      theme.typography.code.fontSize,
+      `${TYPE.codeSize}px`,
+      'typography.code.fontSize precisa ser STRING COM UNIDADE: o shorthand ' +
+        '`font` de --mui-font-code não aceita <font-size> sem unidade e a ' +
+        'declaração `font: var(--mui-font-code)` cai inteira, sem erro nenhum',
+    );
+  });
+
+  it('--mui-font-code sai como shorthand `font` VÁLIDO (com unidade no tamanho)', () => {
+    // Reproduz o gerador do MUI (prepareTypographyVars) sobre a variante real e
+    // exige que o <font-size> tenha unidade. É a trava de nível de VAR: se
+    // alguém repinar `code.fontSize` num número, o shorthand volta a ser
+    // inválido e este teste morde ANTES do e2e.
+    const style = theme.typography.code as {
+      fontSize?: unknown;
+      lineHeight?: unknown;
+      fontFamily?: unknown;
+    };
+    const fontVar = `${style.fontSize ?? ''}${style.lineHeight ? `/${style.lineHeight} ` : ''}${style.fontFamily ?? ''}`;
+    assert.match(
+      fontVar,
+      /^\d+(?:\.\d+)?(?:px|rem|em|pt|%)\//,
+      `--mui-font-code seria "${fontVar}" — o <font-size> tem que trazer unidade ` +
+        '(unitless só é length válido para 0, e app/index.html é standards mode)',
+    );
+    assert.ok(
+      fontVar.includes(FONT_STACK.mono),
+      '--mui-font-code tem que terminar na stack MONO de FONT_STACK',
+    );
   });
 
   it('body1 é a superfície de prosa: 16px na entrelinha de 1,6', () => {

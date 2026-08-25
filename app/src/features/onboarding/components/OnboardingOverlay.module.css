@@ -11,17 +11,44 @@
  * Os modificadores `--medium/--small/--xsmall` espelham exatamente os sufixos
  * devolvidos por `onboardingPositioning.utils.ts::getResponsiveSizeClass` —
  * o componente mapeia o sufixo para a classe hashada deste modulo.
+ *
+ * ─── CORES DO SPOTLIGHT: por que elas mudaram nesta onda ──────────────────
+ * O anel era `var(--accent, #1976d2)` e os halos eram `rgba(25, 118, 210, α)`,
+ * ou seja o MESMO azul escrito de duas formas. Esse `--accent` vinha do bloco
+ * de tokens paralelos do `src/index.css`, que esta onda eliminou (o tema do
+ * MUI publica a paleta inteira como `--mui-palette-*`). Este era o ÚNICO
+ * consumidor de `var(--)` fora do index.css em todo o `src/` — apagar o token
+ * lá teria feito o spotlight cair, EM SILÊNCIO, no fallback `#1976d2`: um azul
+ * que não existe em nenhuma das duas paletas do redesign e que não reage à
+ * troca de esquema. Por isso o conserto vem junto.
+ *
+ * Para onde cada cor foi, e por quê:
+ *   - o ANEL de 2px é objeto gráfico não-textual e o piso dele é 3:1
+ *     (WCAG 2.2 SC 1.4.11). O token do contrato para exatamente esse papel é
+ *     `nonText.focus` — o "anel de foco" da tabela de docs/ux-redesign.md §3.3
+ *     (#109acb no claro, 3,02:1; #0c7196 no escuro, 3,35/3,03:1). Um spotlight
+ *     que aponta o alvo do tutorial É um anel de foco, então o token é o
+ *     mesmo, e ele troca sozinho com a classe `.light`/`.dark` do <html>.
+ *   - os HALOS ficam na mesma família (info/azul) pelo canal RGB que o próprio
+ *     MUI publica para composição com alfa,
+ *     `--mui-palette-info-mainChannel` (14 126 167 no claro, 20 137 179 no
+ *     escuro). Alfa não é matemática de cor derivada — é composição, e é a via
+ *     documentada do MUI (`rgba(var(--mui-palette-*-mainChannel) / α)`).
+ *     A rampa tonal continua sendo hex explícito por esquema no
+ *     `designTokens.ts`, como manda o guarda-corpo #5 da spec.
+ *   - o anel interno de 1px continua `rgba(0, 0, 0, α)`: é SOMBRA, não cor de
+ *     tema (as próprias `--mui-shadows-*` do MUI são todas preto com alfa).
  */
 
 /* ── Spotlight: transição entre alvos + pulso quando assenta ───────── */
 .spotlight {
   position: fixed;
   pointer-events: none;
-  border: 2px solid var(--accent, #1976d2);
+  border: 2px solid var(--mui-palette-nonText-focus);
   box-shadow:
     0 0 0 1px rgba(0, 0, 0, 0.18),
-    0 0 0 6px rgba(25, 118, 210, 0.2),
-    0 14px 36px rgba(25, 118, 210, 0.38);
+    0 0 0 6px rgb(var(--mui-palette-info-mainChannel) / 0.2),
+    0 14px 36px rgb(var(--mui-palette-info-mainChannel) / 0.38);
   transition:
     top 0.4s ease-out,
     left 0.4s ease-out,
@@ -44,14 +71,14 @@
   100% {
     box-shadow:
       0 0 0 1px rgba(0, 0, 0, 0.18),
-      0 0 0 6px rgba(25, 118, 210, 0.2),
-      0 14px 36px rgba(25, 118, 210, 0.32);
+      0 0 0 6px rgb(var(--mui-palette-info-mainChannel) / 0.2),
+      0 14px 36px rgb(var(--mui-palette-info-mainChannel) / 0.32);
   }
   50% {
     box-shadow:
       0 0 0 1px rgba(0, 0, 0, 0.22),
-      0 0 0 8px rgba(25, 118, 210, 0.3),
-      0 16px 42px rgba(25, 118, 210, 0.45);
+      0 0 0 8px rgb(var(--mui-palette-info-mainChannel) / 0.3),
+      0 16px 42px rgb(var(--mui-palette-info-mainChannel) / 0.45);
   }
 }
 

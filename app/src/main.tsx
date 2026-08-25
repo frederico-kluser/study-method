@@ -32,7 +32,32 @@
  * timing de borda o primeiro frame já traz o scheme certo. Não usamos
  * `InitColorSchemeScript`: ele é anti-flicker só no SSR e seria bloqueado pelo
  * CSP `script-src 'self'` (inline script) desta app.
+ *
+ * TIPOGRAFIA (redesign "Cartucho"): `./fonts` é um módulo de EFEITO COLATERAL
+ * (não exporta nada) que registra as três famílias locais do @fontsource —
+ * Inter, Nunito e JetBrains Mono. O bug que ele conserta era o import AUSENTE:
+ * sem `import './fonts'` nenhuma `@font-face` entrava no bundle e as stacks de
+ * FONT_STACK caíam, em silêncio, no fallback de sistema.
+ *
+ * Ele também é o PRIMEIRO import de CSS do bootstrap, mas essa ordem NÃO é o
+ * que faz a fonte valer: `@font-face` tem escopo de DOCUMENTO — ela serve a
+ * qualquer regra da página, esteja antes ou depois na folha; o motor casa
+ * `font-family` contra o registro do documento inteiro, não contra o prefixo da
+ * folha lido até ali. O que a ordem de fato garante é DETERMINISMO DE CASCATA:
+ * duas `@font-face` de MESMA família resolvem por LAST-WINS, e o Vite concatena
+ * o CSS na ordem em que os módulos são importados. Com `./fonts` fixo em
+ * primeiro lugar, as três famílias do contrato têm um ponto de declaração único
+ * e conhecido, e qualquer redeclaração vinda de CSS de terceiro (o KaTeX traz
+ * as próprias faces) fica visivelmente DEPOIS, em vez de a resolução mudar
+ * sozinha a cada refactor de import. É essa convenção — e só ela — que os
+ * testes de ordem de `tests/bootstrapFonts.test.ts` travam.
+ *
+ * Arquivos LOCAIS e não CDN porque o renderer roda sob `font-src 'self'` e o
+ * app precisa abrir offline (o cabeçalho de src/fonts.ts detalha as duas
+ * frentes); o `font-display: swap` do Fontsource é quem encurta o FOUT do
+ * primeiro paint enquanto o .woff2 chega.
  */
+import './fonts';
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { ThemeProvider } from '@mui/material/styles';
