@@ -96,6 +96,32 @@ test('author: system prompt instrui o nome da função derivado do slug (regra d
   assert.doesNotMatch(sys, /unsafe-eval/);
 });
 
+test('author: system prompt instrui os identificadores FIXOS por linguagem no testCode (crate/pacote/módulo/header/stub)', async () => {
+  const { client, calls } = fakeClient(() => ({ content: validDraftJson() }));
+  const author = createDeepSeekLessonAuthor({ client });
+  await author({ subject: 'Closures', findings: [] });
+  const sys = calls[0].messages[0].content;
+  // Rust: o crate é SEMPRE "desafio" (challenge-new.sh ch_set CRATE) — `use desafio::<fn>;`,
+  // nunca o slug como crate (o bug original: E0432 → cargo test 101).
+  assert.match(sys, /crate SEMPRE `desafio`/);
+  assert.match(sys, /use desafio::<função>;/);
+  assert.match(sys, /use <slug>::/);
+  // Go: o pacote é SEMPRE "desafio" (ch_set PKG; go.mod `module desafio`) e o teste vive no
+  // mesmo diretório/pacote do stub — `package desafio`.
+  assert.match(sys, /module desafio/);
+  assert.match(sys, /package desafio/);
+  // JavaScript: o stub é `stub.mjs` na raiz, o teste em tests/ — import do caminho exato.
+  assert.match(sys, /\.\.\/stub\.mjs/);
+  assert.match(sys, /stub\.mjs/);
+  // C: o protótipo está no header stub.h (nunca incluir o ../stub.c) e o main() deve manter
+  // o protocolo do harness (TESTS_RUN/TESTS_FAILED).
+  assert.match(sys, /stub\.h/);
+  assert.match(sys, /TESTS_RUN=<n>/);
+  assert.match(sys, /TESTS_FAILED=<m>/);
+  // Python: o stub é o módulo `stub.py` — `from stub import ...`, nunca o slug como módulo.
+  assert.match(sys, /from stub import <função>/);
+});
+
 test('slugifyToFunctionName: python/javascript/rust/c usam snake_case a partir do kebab-case', () => {
   assert.equal(slugifyToFunctionName('fatorial-recursivo', 'python'), 'fatorial_recursivo');
   assert.equal(slugifyToFunctionName('fatorial-recursivo', 'javascript'), 'fatorial_recursivo');

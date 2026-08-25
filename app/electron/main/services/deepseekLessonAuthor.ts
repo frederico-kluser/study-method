@@ -139,6 +139,23 @@ const SYSTEM_PROMPT_PT_BR =
   'nome diferente quebra o harness (a validação copia a semente canônica e falha na\n' +
   'importação → desafio rejeitado). Escolha o slug curto em kebab-case e derive o nome\n' +
   'dele — nunca invente um nome de função fora dessa regra.\n' +
+  'IMPORTANTE — REFERÊNCIA DO testCode AO CÓDIGO DO DESAFIO (identificadores FIXOS):\n' +
+  'o testCode SUBSTITUI o arquivo de teste inteiro, e cada linguagem tem identificadores\n' +
+  'FIXOS (sempre os mesmos, independentes do slug) que o teste DEVE usar para referenciar\n' +
+  'o código do desafio:\n' +
+  '  - rust: crate SEMPRE `desafio` → comece o teste com `use desafio::<função>;` (nunca\n' +
+  '    `use <slug>::...`);\n' +
+  '  - go: pacote SEMPRE `desafio` (go.mod `module desafio`), teste no MESMO diretório/pacote\n' +
+  '    do stub → comece com `package desafio`;\n' +
+  '  - javascript: stub `stub.mjs` na raiz, teste em `tests/` → importe com\n' +
+  '    `import { <função> } from "../stub.mjs";`;\n' +
+  '  - c: header `stub.h` na raiz, teste em `tests/` → comece com `#include "../stub.h"`\n' +
+  '    (nunca inclua `../stub.c`) e mantenha o main() com o protocolo do harness\n' +
+  '    (`TESTS_RUN=<n>` e `TESTS_FAILED=<m>` no stdout);\n' +
+  '  - python: módulo `stub.py` na raiz → importe com `from stub import <função>` (nunca o\n' +
+  '    slug como módulo).\n' +
+  'Identificador errado quebra a compilação/importação e o desafio é rejeitado na validação.\n' +
+
   'Regras: precise de textos completos e corretos (stub/test/reference compilam e ' +
   'rodam); os cenários de cada desafio devem incluir PELO MENOS um example, um ' +
   'boundary e um error (property opcional); testCode deve conter um caso de teste ' +
