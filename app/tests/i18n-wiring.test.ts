@@ -11,6 +11,18 @@
  * (node:test), então resolvemos pt-BR ou o `lng` explícito — o que é exatamente o
  * que queremos travar.
  *
+ * NOTA DE NAVIGATOR SINTÉTICO (Node 21+):
+ *   Node 21+ expõe um `navigator` NATIVO sintético em `globalThis` (com
+ *   `language: 'en-US'`). Sem neutralizar, `detectSystemLanguage()` resolve 'en'
+ *   e `resolveInitialLanguage()` devolve 'en' em vez do DEFAULT 'pt-BR',
+ *   quebrando a premissa "SEM navigator → DEFAULT" acima. Por isso este arquivo
+ *   neutraliza `globalThis.navigator` ANTES do primeiro `initI18n()` e o
+ *   restaura no fim (o node:test roda cada arquivo em processo próprio, então
+ *   isto NÃO afeta `i18n-resources.test.ts`, que mocka `navigator` via
+ *   defineProperty para testar a DETECÇÃO). O código de produção
+ *   (`src/i18n/index.ts`) NÃO muda: a detecção por `navigator.language` é
+ *   correta no renderer do Electron.
+ *
  * NOTA DE MODULE IDENTITY (falso negativo de duplicação do react-i18next):
  *   o pacote exporta `dist/commonjs` E `dist/es` (dual-package). Sob o runner
  *   oficial (`node --test --import tsx`, ESM), TODOS os imports de `react-i18next`
@@ -20,12 +32,32 @@
  *   runner resolver um import para cjs e outro para es, este teste dispara falso
  *   negativo — documente/pr��� o runner, não contorne o check.
  */
-import { describe, it } from 'node:test';
+import { after, describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 
 // Imports do app NORMAL — o que o t.sh roda. Resolvem como o renderer (ESM).
 import { initI18n, getDefaultI18n, DEFAULT_LANGUAGE } from '../src/i18n/index';
 import { getI18n } from 'react-i18next';
+
+// ─── Neutraliza o `navigator` sintético do Node 21+ ────────────────────────
+// Em node:test (sem jsdom) este arquivo pressupõe "SEM navigator → DEFAULT
+// 'pt-BR'". O Node 21+ injeta um `navigator` nativo em `globalThis` com
+// `language: 'en-US'`, que faria `resolveInitialLanguage()` devolver 'en'.
+// Capturamos o descriptor original, o neutralizamos ANTES do primeiro
+// `initI18n()` e o restauramos no fim do arquivo (hook `after` do node:test).
+// O processo de teste é isolado por arquivo, então isto não afeta
+// `i18n-resources.test.ts` (que mocka navigator para testar a detecção).
+const _navigatorDescriptor = Object.getOwnPropertyDescriptor(globalThis, 'navigator');
+Object.defineProperty(globalThis, 'navigator', { value: undefined, configurable: true });
+
+after(() => {
+  if (_navigatorDescriptor) {
+    Object.defineProperty(globalThis, 'navigator', _navigatorDescriptor);
+  } else {
+    // Não havia navigator antes (Node < 21): remove o que acabamos de definir.
+    delete (globalThis as { navigator?: unknown }).navigator;
+  }
+});
 
 describe('i18n wiring: initI18n → instância default → t()', () => {
   it('initI18n() seta a instância default e o react-i18next (getI18n) a enxerga', async () => {

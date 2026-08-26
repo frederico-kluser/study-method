@@ -21,7 +21,9 @@
  *   createAppI18n/initI18n  >  localStorage('app-language')  >  detecção do
  *   idioma do sistema (navigator.language, pt→pt-BR / en→en)  >  DEFAULT
  *   ('pt-BR'). Em runtime (senha sandbox) localStorage/navigator existem; nos
- *   testes node:test (sem jsdom) ambos ausentes → sempre cai em DEFAULT/explicit.
+ *   testes node:test (sem jsdom) não há localStorage, mas o Node 21+ injeta um
+ *   `navigator` sintético em `globalThis` (language 'en-US') — o teste de wiring
+ *   o neutraliza para preservar a premissa "sem navigator → DEFAULT/explicit".
  */
 
 import i18next, { type i18n as I18nInstance, type InitOptions } from 'i18next';
@@ -57,7 +59,8 @@ export const RESOURCES: Record<SupportedLng, { translation: typeof ptBR }> = {
   en: { translation: en },
 };
 
-// ─── Acesso seguro a localStorage/navigator (no node:test ambos inexistem) ────
+// ─── Acesso seguro a localStorage/navigator (node:test: sem localStorage; o ───
+// ─── Node 21+ injeta um `navigator` sintético — o teste de wiring neutraliza) ──
 
 interface StorageLike {
   getItem(key: string): string | null;
