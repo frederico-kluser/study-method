@@ -11,6 +11,12 @@
 #   bash tools/t.sh <glob>       roda arquivos que casam o padrão
 #   npm test                     roda `bash tools/t.sh tests`
 #
+# Portabilidade: a coleta recursiva do caso DIRETÓRIO usa find (portável
+# bash 3.2+/5) — o globstar do bash 5 não existe no bash 3.2 do macOS
+# (shopt: globstar: invalid shell option name), então "$target"/** degradaria
+# para um nível só de profundidade. O caso GLOB continua usando expansão de
+# shell (comportamento esperado para padrões passados pelo usuário).
+#
 # Exit codes:
 #   0  todo arquivo de teste casado passou
 #   1  GUARD: nenhum arquivo de teste casou (nunca um verde silencioso)
@@ -48,9 +54,10 @@ if [[ "$target" == *'*'* || "$target" == *'?'* || "$target" == *'['* ]]; then
   files=($target)
 elif [[ -d "$target" ]]; then
   # Diretório — coleta todo arquivo de teste abaixo dele, recursivamente.
-  shopt -s globstar nullglob dotglob
-  # shellcheck disable=SC2206
-  files=("$target"/**/*.test.ts "$target"/**/*.test.tsx)
+  # coleta por find (portável bash 3.2+/5) — o globstar do bash 5 não existe
+  # no bash 3.2 do macOS. find inclui dotfiles por padrão; sort garante ordem
+  # determinística; while/read evita problemas com espaços em paths.
+  while IFS= read -r f; do files+=("$f"); done < <(find "$target" -type f \( -name '*.test.ts' -o -name '*.test.tsx' \) | sort)
 else
   files=("$target")
 fi
