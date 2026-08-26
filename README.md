@@ -104,7 +104,7 @@ less skills/study-method/SKILL.md
   `electron-vite dev`). Sem `app/node_modules`, ele avisa para rodar `./install.sh` primeiro.
 
 Requisitos: **Linux**, `bash`, `python3`, `jq` e um agente que carrega Agent Skills (a skill),
-mais **Node ≥ 20** e **npm ≥ 11** (o app). A skill em si não baixa nada — nem na instalação,
+mais **Node ≥ 22.13** e **npm ≥ 11** (o app). A skill em si não baixa nada — nem na instalação,
 nem em runtime; o único download é o `npm ci` da parte do app (o `.npmrc` do app libera os
 `postinstall` de esbuild/electron que o build exige).
 

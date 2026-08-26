@@ -58,12 +58,12 @@ if [ ! -f "$APP/package.json" ] || [ ! -f "$APP/package-lock.json" ]; then
   exit 1
 fi
 if ! command -v node >/dev/null 2>&1 || ! command -v npm >/dev/null 2>&1; then
-  echo "erro: faltam node/npm no PATH (o app exige Node ≥ 20, npm ≥ 11). Instale e rode de novo." >&2
+  echo "erro: faltam node/npm no PATH (o app exige Node ≥ 22.13 (node:sqlite), npm ≥ 11). Instale e rode de novo." >&2
   exit 1
 fi
-node_major="$(node -p 'Number(process.versions.node.split(".")[0])')"
-if [ "${node_major:-0}" -lt 20 ]; then
-  echo "erro: node $(node --version) é velho demais — o app exige Node ≥ 20." >&2
+node_ok="$(node -p 'const [m,n]=process.versions.node.split(".").map(Number); m>22||(m===22&&n>=13) ? "ok" : "old"' 2>/dev/null || echo old)"
+if [ "$node_ok" != "ok" ]; then
+  echo "erro: node $(node --version) é velho demais — o app exige Node ≥ 22.13 (node:sqlite unflagged)." >&2
   exit 1
 fi
 
