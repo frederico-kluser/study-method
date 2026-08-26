@@ -422,3 +422,10 @@ Não usamos `--headless` (modo não confirmado para `_electron`). Detalhes em
 8. **ApiSchema com alguns métodos `study.*` tipados sem parâmetros** (placeholders da onda
    inicial): o runtime já espera os payloads; o padrão aceito é o **cast local** no renderer.
    A verificação fim-a-fim de assinatura está coberta em `tests/study-wiring.test.ts`.
+9. **Módulos nativos (Electron × Node)**: o `npm ci` instala o prebuild do Node do sistema para
+   `better-sqlite3` 13.x (NAPI 10+), mas o Electron 33 embute Node 20 (NAPI 9) — carregar esse
+   prebuild dentro do Electron segfaulta em silêncio no boot. Por isso o app usa o alias
+   `better-sqlite3-electron` (`npm:better-sqlite3@12.11.1`) compilado para o ABI do Electron por
+   `app/tools/ensure-native-abi.sh` (roda automaticamente em `postinstall`/`predev`); os testes
+   usam o `better-sqlite3` canônico. **Troubleshooting**: se o app fechar sem erro logo após um
+   `npm ci`, rode `bash app/tools/ensure-native-abi.sh`.
