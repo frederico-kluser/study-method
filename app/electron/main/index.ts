@@ -22,6 +22,8 @@ import { registerKeysHandlers } from './ipc/keys-handlers';
 import { registerStartupHandlers } from './ipc/startup-handlers';
 import { registerPiHandlers } from './ipc/pi-handlers';
 import { registerStudyHandlers, type RunnerLike, type LessonServiceLike } from './ipc/study-handlers';
+import { createLessonRepo, type LessonRepo } from './db/repo';
+import { openMigratedSqlite } from './db/connection';
 import { registerLocalAiHandlers } from './ipc/localAi-handlers';
 import { registerSttModelHandlers } from './ipc/stt-model-handlers';
 import { registerSttHandlers } from './ipc/stt-handlers';
@@ -119,13 +121,26 @@ if (!gotLock) {
         emitToAll(win?.webContents, channel, ev);
       };
 
+      // PERSISTÊNCIA (onda 3 — seleção de aulas): abre o SQLite do usuário de
+      // forma TOLERANTE — se a abertura/migração falhar (ex.: disco corrompido),
+      // o app ainda sobe: a repo fica `undefined` e os canais de persistência
+      // respondem gracioso ([]/{lesson:null}/{ok:false,error}).
+      let repo: LessonRepo | undefined;
+      try {
+        const conn = await openMigratedSqlite(join(app.getPath('userData'), 'study.db'));
+        repo = createLessonRepo(() => conn.db);
+      } catch (err) {
+        console.error('[main] falha ao abrir o banco de estudo (persistência desabilitada):', err);
+        repo = undefined;
+      }
+
       await buildMainSetup({
         registerIpc: registerIpcHandlers,
         registerKeys: registerKeysHandlers,
         registerLocalAi: () => registerLocalAiHandlers(),
         registerPi: () => registerPiHandlers({ getService: getPiService, emit: emitWindow }),
         registerStudy: () =>
-          registerStudyHandlers({ runner, lesson, emit: emitWindow }),
+          registerStudyHandlers({ runner, lesson, emit: emitWindow, repo }),
       });
 
       // GATE DE INÍCIO (onda 6): registra keys:startup-status (aditivo, fora do

@@ -29,6 +29,8 @@ import type {
   DownloadProgress,
   HardwareInfo,
   KeysStatus,
+  LessonRow,
+  LessonSummary,
   LocalModelInfo,
   LocalTtsPreference,
   PiExecuteRequest,
@@ -36,6 +38,7 @@ import type {
   PiStreamEvent,
   SttModelProgressPayload,
   SttPartialPayload,
+  SubjectSummary,
   TtsDownloadProgressPayload,
   TtsGenerateRequest,
   TtsGenerateResult,
@@ -187,6 +190,12 @@ export interface ApiSchema {
     readWorkspaceFile(): Promise<unknown>;
     writeWorkspaceFile(): Promise<unknown>;
     deleteWorkspaceFile(): Promise<unknown>;
+    // Onda 3 (seleção de aulas — persistência): ligam a camada SQL ao renderer.
+    listTopics(): Promise<SubjectSummary[]>;
+    listLessonsBySubject(subjectSlug: string): Promise<LessonSummary[]>;
+    getLessonById(lessonId: string): Promise<{ lesson: LessonRow | null }>;
+    recordAnswer(input: { lessonId: string; answerText: string }): Promise<unknown>;
+    markLessonCompleted(lessonId: string): Promise<unknown>;
     onLessonProgress(cb: (ev: unknown) => void): () => void;
     onTestAnswerEvent(cb: (ev: unknown) => void): () => void;
   };

@@ -138,7 +138,52 @@ export const STUDY_CHANNELS = {
   READ_WORKSPACE_FILE: 'study:read-workspace-file',
   WRITE_WORKSPACE_FILE: 'study:write-workspace-file',
   DELETE_WORKSPACE_FILE: 'study:delete-workspace-file',
+  // Onda 3 (seleção de aulas — persistência): fiação da camada SQL (repo.ts)
+  // aos canais IPC. O renderer lista os assuntos com aulas persistidas, lista/
+  // lê aulas de um assunto e registra respostas/lição concluída.
+  LIST_TOPICS: 'study:list-topics',
+  LIST_LESSONS_BY_SUBJECT: 'study:list-lessons-by-subject',
+  GET_LESSON_BY_ID: 'study:get-lesson-by-id',
+  RECORD_ANSWER: 'study:record-answer',
+  MARK_LESSON_COMPLETED: 'study:mark-lesson-completed',
 } as const;
+
+// ─── DTOs de persistência (onda 3 — seleção de aulas) ─────────────────────────
+// Estas interfaces são STANDALONE — shared é importado pelo renderer, então NUNCA
+// importa de electron/main. Espelham os shapes da camada SQL (db/repo.ts):
+// `listSubjects`/`listLessonsBySubject` de lá são a fonte de verdade; estes DTOs
+// são a forma tipada que trafega pelos canais study:* abaixo.
+
+/** Assunto com contagens (de `study:list-topics` ← repo.listSubjects). */
+export interface SubjectSummary {
+  id: string;
+  name: string;
+  slug: string;
+  lessonCount: number;
+  answeredCount: number;
+}
+
+/** Aula resumida por assunto (de `study:list-lessons-by-subject`). */
+export interface LessonSummary {
+  id: string;
+  title: string;
+  body: string;
+  difficulty: number;
+  completedAt: string | null;
+}
+
+/** Aula completa (de `study:get-lesson-by-id`). */
+export interface LessonRow {
+  id: string;
+  subject_id: string;
+  title: string;
+  body: string;
+  difficulty: number;
+  parent_lesson_id: string | null;
+  origin_lesson_id: string | null;
+  created_at: string;
+  completed_at: string | null;
+}
 
 export interface StudyFinding {
   query: string;

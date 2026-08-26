@@ -48,7 +48,10 @@ import * as path from 'node:path';
 
 import type {
   ChallengeInfo,
+  LessonRow,
+  LessonSummary,
   StudyLesson,
+  SubjectSummary,
   TestAnswerResult,
   WorkspaceFile,
 } from '@shared/ipc-contract';
@@ -102,6 +105,22 @@ export interface RunnerLike {
   }>;
 }
 
+/**
+ * Subconjunto da camada SQL (db/repo.ts) usado pelos handlers de persistência
+ * da onda 3 (seleção de aulas). OPCIONAL em `StudyHandlerDeps` — quando ausente,
+ * os canais study:list-topics/list-lessons-by-subject/get-lesson-by-id/
+ * record-answer/mark-lesson-completed respondem de forma graciosa (lista vazia/
+ * null/{ok:false}), para não quebrar os testes existentes nem o harness E2E que
+ * injetam deps sem repo.
+ */
+export interface LessonPersistenceLike {
+  listSubjects(): Promise<SubjectSummary[]>;
+  listLessonsBySubject(subjectSlug: string): Promise<LessonSummary[]>;
+  getLessonById(id: string): Promise<LessonRow | null>;
+  recordAnswer(lessonId: string, answerText: string): Promise<void>;
+  markLessonCompleted(id: string): Promise<void>;
+}
+
 export interface StudyHandlerDeps {
   /** Subconjunto do StudyMethodRunner usado pelos handlers. */
   runner: RunnerLike;
@@ -109,6 +128,9 @@ export interface StudyHandlerDeps {
   lesson: LessonServiceLike;
   /** Emite um evento para a UI (ex.: webContents.send). */
   emit: (channel: string, ev: unknown) => void;
+  /** OPCIONAL (onda 3): repo de persistência das aulas. Ausente → canais de
+   *  persistência respondem gracioso ([]{lesson:null}/{ok:false,error}). */
+  repo?: LessonPersistenceLike;
 }
 
 /** Estado em memória de módulo (get-lesson/get-findings/list-challenges/workspace). */
@@ -275,7 +297,7 @@ export function normalizeGenerateLessonPayload(payload: unknown): NormalizedGene
  * injeta o orchestrator; `deps.emit` é o canal para a UI.
  */
 export function buildStudyHandlers(deps: StudyHandlerDeps): Map<string, IpcHandlerFn> {
-  const { runner, lesson, emit } = deps;
+  const { runner, lesson, emit, repo } = deps;
   memory.lastSkillDirProvider = () => runner.resolveSkillDir();
 
   const map: Map<string, IpcHandlerFn> = new Map();
@@ -480,6 +502,60 @@ export function buildStudyHandlers(deps: StudyHandlerDeps): Map<string, IpcHandl
     const resolved = resolveContainedWorkspacePath(workspaceDir, p.path);
     if ('error' in resolved) throw new Error(resolved.error);
     await fsp.rm(resolved.path, { force: true });
+    return { ok: true };
+  });
+
+  // ─── persistência (onda 3 — seleção de aulas) ──────────────────────────────
+  // Ligam a camada SQL (db/repo.ts) aos canais IPC. Quando `repo` está ausente
+  // (OU o input é vazio/inválido), respondem de forma GRACIOSA em vez de lançar:
+  //   - list-topics             → SubjectSummary[]
+  //   - list-lessons-by-subject → LessonSummary[]      (input {subjectSlug})
+  //   - get-lesson-by-id        → { lesson: LessonRow|null } (input {lessonId})
+  //   - record-answer           → { ok }               (input {lessonId,answerText})
+  //   - mark-lesson-completed   → { ok }               (input {lessonId})
+  map.set(STUDY_CHANNELS.LIST_TOPICS, async (): Promise<SubjectSummary[]> => {
+    if (!repo) return [];
+    return repo.listSubjects();
+  });
+
+  map.set(STUDY_CHANNELS.LIST_LESSONS_BY_SUBJECT, async (_event, payload: unknown): Promise<LessonSummary[]> => {
+    if (!repo) return [];
+    const p = (payload ?? {}) as Record<string, unknown>;
+    const subjectSlug =
+      typeof p.subjectSlug === 'string' ? p.subjectSlug.trim() : '';
+    if (!subjectSlug) return [];
+    return repo.listLessonsBySubject(subjectSlug);
+  });
+
+  map.set(STUDY_CHANNELS.GET_LESSON_BY_ID, async (_event, payload: unknown): Promise<{ lesson: LessonRow | null }> => {
+    if (!repo) return { lesson: null };
+    const p = (payload ?? {}) as Record<string, unknown>;
+    const lessonId =
+      typeof p.lessonId === 'string' ? p.lessonId.trim() : '';
+    if (!lessonId) return { lesson: null };
+    const lesson = await repo.getLessonById(lessonId);
+    return { lesson };
+  });
+
+  map.set(STUDY_CHANNELS.RECORD_ANSWER, async (_event, payload: unknown): Promise<{ ok: boolean; error?: string }> => {
+    if (!repo) return { ok: false, error: 'study: persistência indisponível (repo ausente).' };
+    const p = (payload ?? {}) as Record<string, unknown>;
+    const lessonId =
+      typeof p.lessonId === 'string' ? p.lessonId.trim() : '';
+    const answerText =
+      typeof p.answerText === 'string' ? p.answerText.trim() : '';
+    if (!lessonId || !answerText) return { ok: false, error: 'study: record-answer requer `lessonId` e `answerText`.' };
+    await repo.recordAnswer(lessonId, answerText);
+    return { ok: true };
+  });
+
+  map.set(STUDY_CHANNELS.MARK_LESSON_COMPLETED, async (_event, payload: unknown): Promise<{ ok: boolean; error?: string }> => {
+    if (!repo) return { ok: false, error: 'study: persistência indisponível (repo ausente).' };
+    const p = (payload ?? {}) as Record<string, unknown>;
+    const lessonId =
+      typeof p.lessonId === 'string' ? p.lessonId.trim() : '';
+    if (!lessonId) return { ok: false, error: 'study: mark-lesson-completed requer `lessonId`.' };
+    await repo.markLessonCompleted(lessonId);
     return { ok: true };
   });
 
