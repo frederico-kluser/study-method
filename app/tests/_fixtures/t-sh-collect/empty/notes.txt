@@ -1,0 +1,2 @@
+Diretório sem nenhum *.test.ts / *.test.tsx — usado para exercitar a EMPTY-GLOB
+GUARD do tools/t.sh (deve sair com exit 1 e "[t.sh GUARD]").
