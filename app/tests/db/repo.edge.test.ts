@@ -4,8 +4,8 @@
  *
  * Cobre o que a suíte básica NÃO pinça: inputs vazios/nulos, idempotência do
  * upsertSubject sob colisão de slug com acento, createLesson com subjectSlug
- * inexistente, recordAnswer/recordHintBreak em lesson inexistente (comportamento
- * observado: THROW de FK, não no-op — ver handoff), hints fora de ordem na leitura,
+ * inexistente, recordAnswer/recordHintBreak em lesson inexistente (agora no-op
+ * seguro — não lança, não grava), hints fora de ordem na leitura,
  * getTree com ciclo/raiz ausente/assunto inexistente, e os métodos de leitura em
  * alvo inexistente (getAnswerForLesson, getHintsForChallenge, lessonCount...).
  *
@@ -97,9 +97,19 @@ describe('createLessonRepo — createLesson valida subjectSlug', () => {
 });
 
 describe('createLessonRepo — recordAnswer em lesson inexistente', () => {
-  it('comportamento observado: LANÇA erro de FK (não é no-op)', async () => {
-    const { repo, close } = makeRepo();
-    await assert.rejects(() => repo.recordAnswer('lesson-inexistente', 'resposta'), /FOREIGN KEY/i);
+  it('no-op seguro: NÃO lança, NÃO grava resposta nem mexe no progress', async () => {
+    const { repo, db, close } = makeRepo();
+    let threw = false;
+    try {
+      await repo.recordAnswer('lesson-inexistente', 'resposta');
+    } catch {
+      threw = true;
+    }
+    assert.equal(threw, false, 'não deve lançar (lesson inexistente → no-op)');
+    const answers = db.prepare('SELECT COUNT(*) AS n FROM lesson_answers').get() as { n: number };
+    assert.equal(answers.n, 0, 'nada gravado em lesson_answers');
+    const progress = db.prepare('SELECT COUNT(*) AS n FROM progress').get() as { n: number };
+    assert.equal(progress.n, 0, 'nenhuma linha de progress criada');
     close();
   });
 
@@ -115,12 +125,43 @@ describe('createLessonRepo — recordAnswer em lesson inexistente', () => {
 });
 
 describe('createLessonRepo — recordHintBreak em lesson/challenge inexistente', () => {
-  it('lança erro de FK quando a lesson não existe', async () => {
-    const { repo, close } = makeRepo();
-    await assert.rejects(
-      () => repo.recordHintBreak('lesson-inexistente', 'chal-inexistente', 'hint-4th', 'nota'),
-      /FOREIGN KEY/i,
+  it('no-op seguro: NÃO lança, NÃO grava evento nem mexe no progress', async () => {
+    const { repo, db, close } = makeRepo();
+    let threw = false;
+    try {
+      await repo.recordHintBreak('lesson-inexistente', 'chal-inexistente', 'hint-4th', 'nota');
+    } catch {
+      threw = true;
+    }
+    assert.equal(threw, false, 'não deve lançar (lesson inexistente → no-op)');
+    const events = db.prepare('SELECT COUNT(*) AS n FROM hint_break_events').get() as { n: number };
+    assert.equal(events.n, 0, 'nada gravado em hint_break_events');
+    const progress = db.prepare('SELECT COUNT(*) AS n FROM progress').get() as { n: number };
+    assert.equal(progress.n, 0, 'nenhuma linha de progress criada');
+    close();
+  });
+
+  it('recordHintBreak em lesson válida grava evento (regressão do no-op anterior)', async () => {
+    const { repo, db, close } = makeRepo();
+    await repo.upsertSubject('algoritmos');
+    const lessonId = await repo.createLesson(
+      lessonInput({
+        challenge: {
+          slug: 's', title: 'T', language: 'py', concept: 'c',
+          statement: 'st', testCasesJson: '[]', solutionJson: '{}',
+        },
+      }),
     );
+    const ch = db.prepare('SELECT id FROM challenges LIMIT 1').get() as { id: string };
+    await repo.recordHintBreak(lessonId, ch.id, 'pediu a resposta', 'nota');
+    const ev = db
+      .prepare('SELECT * FROM hint_break_events LIMIT 1')
+      .get() as { reason: string; note: string; lesson_id: string };
+    assert.equal(ev.reason, 'pediu a resposta');
+    assert.equal(ev.note, 'nota');
+    assert.equal(ev.lesson_id, lessonId);
+    const totals = await repo.answeredTopicCount('algoritmos');
+    assert.equal(totals.becameChildren, 1);
     close();
   });
 });

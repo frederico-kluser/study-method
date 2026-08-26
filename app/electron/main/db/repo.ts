@@ -386,16 +386,15 @@ export function createLessonRepo(open: OpenFn): LessonRepo {
 
     async recordAnswer(lessonId, answerText) {
       const tx = db.transaction(() => {
+        const subjectId = subjectOfLesson(lessonId);
+        if (!subjectId) return; // lesson inexistente -> no-op seguro (sem FK throw)
         db.prepare(
           'INSERT INTO lesson_answers (id, lesson_id, answer_text, created_at) VALUES (?, ?, ?, ?)',
         ).run(newId(), lessonId, answerText, now());
-        const subjectId = subjectOfLesson(lessonId);
-        if (subjectId) {
-          ensureProgress(subjectId, lessonId);
-          db.prepare(
-            'UPDATE progress SET answered = answered + 1 WHERE subject_id = ? AND lesson_id = ?',
-          ).run(subjectId, lessonId);
-        }
+        ensureProgress(subjectId, lessonId);
+        db.prepare(
+          'UPDATE progress SET answered = answered + 1 WHERE subject_id = ? AND lesson_id = ?',
+        ).run(subjectId, lessonId);
       });
       tx();
     },
@@ -445,17 +444,16 @@ export function createLessonRepo(open: OpenFn): LessonRepo {
 
     async recordHintBreak(lessonId, challengeId, reason, note = null) {
       const tx = db.transaction(() => {
+        const subjectId = subjectOfLesson(lessonId);
+        if (!subjectId) return; // lesson inexistente -> no-op seguro (sem FK throw)
         db.prepare(
           `INSERT INTO hint_break_events (challenge_id, lesson_id, reason, note, created_at)
            VALUES (?, ?, ?, ?, ?)`,
         ).run(challengeId, lessonId, reason, note ?? null, now());
-        const subjectId = subjectOfLesson(lessonId);
-        if (subjectId) {
-          ensureProgress(subjectId, lessonId);
-          db.prepare(
-            'UPDATE progress SET became_lesson_children = became_lesson_children + 1 WHERE subject_id = ? AND lesson_id = ?',
-          ).run(subjectId, lessonId);
-        }
+        ensureProgress(subjectId, lessonId);
+        db.prepare(
+          'UPDATE progress SET became_lesson_children = became_lesson_children + 1 WHERE subject_id = ? AND lesson_id = ?',
+        ).run(subjectId, lessonId);
       });
       tx();
     },
