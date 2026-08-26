@@ -1,27 +1,29 @@
 /**
- * src/views/LessonView/LessonView.tsx — tela de Aula: assunto → pesquisa → aula.
+ * src/views/LessonView/LessonView.tsx — tela de Aula: assunto → pesquisa → aula
+ * curta (1-2 parágrafos) + input de resposta + avanço para a próxima aula.
  * CHROME MUI v9 (path imports, sx responsivo mobile-first, a11y).
  *
- * Fluxo:
- *  1. O usuário digita o assunto e clica "Gerar aula".
- *  2. A view assina `study.onLessonProgress` (fases pesquisando/autorando/
- *     materializando/validando/concluindo) antes de chamar `study.generateLesson`.
- *  3. Ao resolver, o payload é normalizado por `parseLessonResult` (aceita
- *     `StudyLesson` direto ou `{ lesson, rejected }`) e renderizado via
- *     react-markdown v9 com blocos de código estilizados (monospace).
- *  4. O markdown da aula renderiza fórmulas com KaTeX (onda 17b): remark-math
- *     (`$...$` inline, `$$...$$` bloco) + rehype-katex plugados no
- *     `<ReactMarkdown>`. LaTeX malformado nunca derruba o render (o rehype-katex
- *     v7 garante no-throw internamente — ver src/lib/lessonMarkdown.ts).
+ * Fluxo (onda 3 — gerar nova aula):
+ *  1. O usuário digita o assunto e clica no botão primário. O rótulo vem de
+ *     `newLessonActionLabel(hasPendingLesson)`:
+ *       - sem aula pendente → "Gerar nova aula" (gera via `study.generateLesson`);
+ *       - com próxima aula pendente → "Continuar" (carrega a aula pendente local).
+ *  2. A view assina `study.onLessonProgress` (fases pesquisando/autorando/…) só
+ *     durante a geração. Ao resolver, normaliza por `parseLessonResult`, resume o
+ *     markdown por `summarizeLessonToShort` (aula curta), extrai a pergunta
+ *     (`extractQuestion`) e monta o prompt do input (`buildLessonLesson`).
+ *  3. O aluno digita o que entendeu (ou responde a pergunta) e clica em enviar.
+ *     Ao responder não-vazio (`canAdvance`), marca a aula como concluída
+ *     (localmente), TENTA persistir via IPC de forma DEFENSIVA
+ *     (`recordAnswer`/`markLessonCompleted` — ainda não expostos no ApiSchema;
+ *     fallback = registro local), e `nextAfterAnswer` encadeia:
+ *       - há próxima aula pendente → carrega esse body local;
+ *       - senão → mantém o botão "Gerar nova aula".
  *
- * Os parsers/src/lib (lessonParse, lessonProgress) são REUTILIZADOS — não
- * reescritos. O novo helper puro `lessonPhaseLabels.ts` mapeia a fase do parser
- * para a i18n-key do rótulo.
- *
- * Assinatura de generateLesson: no api-schema está `generateLesson(): Promise<unknown>`
- * (a implementação do main chega em outra onda), mas o runtime do preload encaminha
- * argumentos ao invoke; passamos o `subject` como primeiro argumento — conforme
- * documentado no contrato de requisição ("o renderer passa args").
+ * Os engines/parsers (lessonParse, lessonProgress, lessonPhaseLabels,
+ * lessonMarkdown, lessonEngine) são REUTILIZADOS — não reescritos. A lógica pura
+ * do encadeamento mora em src/lib/answerFlow.ts. Preserva o
+ * `data-onboarding-target="lesson-subject"` e NÃO introduz gamificação (XP/streak).
  */
 import ReactMarkdown from 'react-markdown';
 import { useCallback, useRef, useState, type ReactElement, type ReactNode } from 'react';
@@ -51,15 +53,19 @@ import { getApi } from '../../lib/apiBridge';
 import { useChallengeNav } from '../../lib/challengeNav';
 import { useLessonProgress } from '../../hooks/useLessonProgress';
 import { parseLessonProgressEvent, type LessonPhaseState } from '../../lib/lessonProgress';
-import {
-  lessonPhaseKey,
-  lessonPhaseIndex,
-  LESSON_PHASE_ORDER,
-} from '../../lib/lessonPhaseLabels';
+import { lessonPhaseIndex, LESSON_PHASE_ORDER } from '../../lib/lessonPhaseLabels';
 import { parseLessonResult, type ParsedLesson } from '../../lib/lessonParse';
 import { validateSubject } from '../../lib/validate';
 import { consumePendingSubject } from '../../lib/pendingSubject';
 import { katexRemarkPlugins, katexRehypePlugins, escapeLoneDollarSigns } from '../../lib/lessonMarkdown';
+import { canAdvance, nextAfterAnswer, newLessonActionLabel } from '../../lib/answerFlow';
+import {
+  summarizeLessonToShort,
+  extractQuestion,
+  buildLessonLesson,
+  ensureSubjectSlug,
+  type LessonCandidate,
+} from '../../../electron/main/domain/lessonEngine';
 
 type GenerateStatus = 'idle' | 'running' | 'done' | 'error';
 
@@ -80,12 +86,7 @@ function SourceList({ findings }: { findings: StudyFinding[] }): ReactElement {
           <ListItemText
             primary={
               <Box>
-                <Link
-                  href={f.url}
-                  target="_blank"
-                  rel="noreferrer noopener"
-                  underline="hover"
-                >
+                <Link href={f.url} target="_blank" rel="noreferrer noopener" underline="hover">
                   {f.title}
                 </Link>
                 {f.description ? (
@@ -134,10 +135,7 @@ function ChallengesSection({
             const selected = selectedChallenge?.challengeId === c.challengeId;
             return (
               <Grid key={c.challengeId} size={{ xs: 12, sm: 6, md: 4 }}>
-                <Card
-                  variant={selected ? 'elevation' : 'outlined'}
-                  sx={{ height: '100%' }}
-                >
+                <Card variant={selected ? 'elevation' : 'outlined'} sx={{ height: '100%' }}>
                   <CardActionArea onClick={() => openChallenge(c)}>
                     <CardContent>
                       <Typography variant="subtitle2" noWrap>
@@ -162,7 +160,8 @@ function ChallengesSection({
       )}
       {rejected.length > 0 ? (
         <Alert severity="warning" sx={{ mt: 1 }}>
-          <strong>{t('translation:lesson.warning')}</strong> {rejected.length} desafio(s) rejeitado(s) na geração.
+          <strong>{t('translation:lesson.warning')}</strong>{' '}
+          {rejected.length} desafio(s) rejeitado(s) na geração.
           <ul style={{ margin: 0 }}>
             {rejected.map((r, i) => (
               <li key={i}>
@@ -216,16 +215,76 @@ function MarkdownComponents() {
   };
 }
 
+/** Sessão do corpo curto da aula + input de resposta (onda 3). */
+function AnswerSection({
+  body,
+  prompt,
+  onAnswer,
+  disabled,
+}: {
+  body: string;
+  prompt: string;
+  onAnswer: (text: string) => void;
+  disabled: boolean;
+}): ReactElement {
+  const { t } = useTranslation();
+  const [draft, setDraft] = useState('');
+  const valid = canAdvance(draft);
+  const submit = (): void => {
+    if (!valid || disabled) return;
+    onAnswer(draft.trim());
+    setDraft('');
+  };
+  return (
+    <Box component="section" sx={{ mt: 2 }}>
+      <Box
+        sx={{
+          p: { xs: 1.5, md: 2 },
+          bgcolor: 'background.paper',
+          border: '1px solid',
+          borderColor: 'divider',
+          borderRadius: 1,
+        }}
+        data-onboarding-target="lesson-short-body"
+      >
+        <ReactMarkdown
+          remarkPlugins={katexRemarkPlugins()}
+          rehypePlugins={katexRehypePlugins()}
+          components={MarkdownComponents()}
+        >
+          {escapeLoneDollarSigns(body)}
+        </ReactMarkdown>
+      </Box>
+      <TextField
+        label={t('translation:lesson.answerLabel')}
+        placeholder={prompt}
+        value={draft}
+        onChange={(e) => setDraft(e.target.value)}
+        disabled={disabled}
+        fullWidth
+        multiline
+        minRows={2}
+        variant="outlined"
+        sx={{ mt: 1.5 }}
+        slotProps={{ htmlInput: { 'data-onboarding-target': 'lesson-answer-input' } }}
+      />
+      <Button
+        variant="contained"
+        disabled={!valid || disabled}
+        onClick={submit}
+        sx={{ mt: 1 }}
+        data-onboarding-target="lesson-answer-submit"
+      >
+        {t('translation:lesson.answerSubmit')}
+      </Button>
+    </Box>
+  );
+}
+
 export default function LessonView(): ReactElement {
   const { t } = useTranslation();
   const { setLastSetupRoot } = useChallengeNav();
-  // fix17c ACHADO-1/3: pré-preenche o assunto vindo da Home (chips). O valor é
-  // consumido UMA vez (lê + limpa o store pendente). Guard de ref faz o drain
-  // acontecer uma única vez por mount — mesmo com o StrictMode (dev) que
-  // invoca o render 2×: o `pendingRef.current` persiste entre as duas
-  // invocações, então o `consumePendingSubject` roda uma só vez e o campo recebe
-  // o valor. Remontar sem pendência (ex.: vir pela aba mudando de aba) devolve
-  // null e o campo fica vazio (não re-enche com valor velho).
+  // fix17c ACHADO-1/3: pré-preenche o assunto vindo da Home (chips).
   const pendingRef = useRef<string | null | undefined>(undefined);
   if (pendingRef.current === undefined) {
     pendingRef.current = consumePendingSubject();
@@ -242,22 +301,72 @@ export default function LessonView(): ReactElement {
   const [parsed, setParsed] = useState<ParsedLesson | null>(null);
   const [error, setError] = useState('');
 
+  // ── Fluxo encadeado (onda 3) ────────────────────────────────────────────────
+  // Estado local DEFENSIVO: como recordAnswer/listLessons ainda não são expostos
+  // no ApiSchema, mantemos por assunto uma lista local de LessonCandidate com id
+  // sintetizado + um map de bodies.
+  const [lessonList, setLessonList] = useState<LessonCandidate[]>([]);
+  const [lessonBodies, setLessonBodies] = useState<Record<string, string>>({});
+  const [currentLessonId, setCurrentLessonId] = useState<string | null>(null);
+  const [currentBody, setCurrentBody] = useState('');
+  const [currentPrompt, setCurrentPrompt] = useState('');
+
+  /** Persistência defensiva via IPC (fallback = marca só localmente). */
+  const tryPersist = useCallback(
+    async (lessonId: string, answerText: string): Promise<void> => {
+      const study = getApi().study as unknown as Record<string, unknown>;
+      try {
+        const record = study.recordAnswer;
+        if (typeof record === 'function') {
+          await (record as (id: string, text: string) => Promise<unknown>)(
+            lessonId,
+            answerText,
+          );
+        }
+        const mark = study.markLessonCompleted;
+        if (typeof mark === 'function') {
+          await (mark as (id: string) => Promise<unknown>)(lessonId);
+        }
+      } catch {
+        // IPC ainda não disponível/exposto — segue localmente. Nunca quebra a UI.
+      }
+    },
+    [],
+  );
+
+  /** Registra UMA aula gerada/resumida na lista local + seleciona como atual. */
+  const registerLesson = useCallback(
+    (lesson: ParsedLesson['lesson'], sourceSubject: string): void => {
+      if (!lesson) return;
+      const short = summarizeLessonToShort(lesson.markdown);
+      const question = extractQuestion(lesson);
+      const presentation = buildLessonLesson(short.shortBody, question);
+      const id = `local-${ensureSubjectSlug(lesson.subject || sourceSubject)}-${Date.now().toString(36)}`;
+      const candidate: LessonCandidate = {
+        id,
+        title: lesson.title,
+        difficulty: 1,
+        completedAt: null,
+      };
+      setLessonList((prev) => [...prev, candidate]);
+      setLessonBodies((prev) => ({ ...prev, [id]: presentation.body }));
+      setCurrentLessonId(id);
+      setCurrentBody(presentation.body);
+      setCurrentPrompt(presentation.prompt);
+      setParsed({ ok: true, lesson, rejected: [] });
+    },
+    [],
+  );
+
   const onProgress = useCallback(
     (raw: unknown) => {
       const next = parseLessonProgressEvent(raw);
-      // fix-progress-error: evento de erro (`phase:'error'` / `error:true`) —
-      // o parser devolve `failed` sem tocar na fase; aqui PRESERVAMOS a última
-      // fase real alcançada (senão o Stepper pularia para o fim ao cair no
-      // fallback 'gerando' do parser).
       if (next.failed) {
         setPhase((prev) => ({ ...prev, failed: true, message: next.message }));
       } else {
         setPhase(next);
       }
       setStatus((s) => (s === 'idle' ? 'running' : s));
-      // Fix15-list-challenges: o main expõe o setup materializado na fase
-      // `materializing` (orchestrator). Guardamos em estado local/contexto para a
-      // ChallengeView listar desafios com setupRoot explícito quando disponível.
       const rec = raw as { setupRoot?: unknown };
       if (rec && typeof rec.setupRoot === 'string' && rec.setupRoot.trim()) {
         setLastSetupRoot(rec.setupRoot.trim());
@@ -268,7 +377,8 @@ export default function LessonView(): ReactElement {
 
   useLessonProgress(onProgress);
 
-  const generate = async (): Promise<void> => {
+  /** Gera UMA aula nova a partir do assunto digitado. */
+  const generateNew = async (): Promise<void> => {
     const check = validateSubject(subject);
     if (!check.ok) {
       setError(check.message ?? t('translation:lesson.invalidSubject'));
@@ -285,13 +395,8 @@ export default function LessonView(): ReactElement {
       done: false,
       failed: false,
     });
-    // Fix15c-review: limpa o setupRoot do generate ANTERIOR ANTES de chamar a
-    // API — se esta geração falhar antes do `materializing`, a ChallengeView
-    // não relista com o setup velho.
     setLastSetupRoot(null);
     try {
-      // generateLesson é tipado como ()=>Promise<unknown>; o runtime encaminha
-      // args ao invoke — passamos o subject como primeiro argumento.
       const typed = getApi().study.generateLesson as (s: string) => Promise<unknown>;
       const payload = await typed(subject.trim());
       const result = parseLessonResult(payload);
@@ -300,7 +405,7 @@ export default function LessonView(): ReactElement {
         setStatus('error');
         return;
       }
-      setParsed(result);
+      registerLesson(result.lesson, subject);
       setPhase((prev) => ({ ...prev, phase: 'concluindo', done: true }));
       setStatus('done');
     } catch (err) {
@@ -309,20 +414,75 @@ export default function LessonView(): ReactElement {
     }
   };
 
+  /** Carrega uma aula pendente existente (fluxo "Continuar"). */
+  const continueTo = (lessonId: string): void => {
+    const body = lessonBodies[lessonId] ?? '';
+    const prompt = buildLessonLesson(body).prompt;
+    setCurrentLessonId(lessonId);
+    setCurrentBody(body);
+    setCurrentPrompt(body ? prompt : '');
+    setParsed(null);
+    setStatus('done');
+    setError('');
+  };
+
+  /** Resposta do aluno: marca concluída, persiste defensivo e encadeia. */
+  const submitAnswer = async (answerText: string): Promise<void> => {
+    if (!answerText || !currentLessonId) return;
+    // 1) Marca localmente como concluída.
+    setLessonList((prev) =>
+      prev.map((c) =>
+        c.id === currentLessonId ? { ...c, completedAt: new Date().toISOString() } : c,
+      ),
+    );
+    // 2) Persiste via IPC de forma DEFENSIVA (fallback = só local).
+    await tryPersist(currentLessonId, answerText);
+    // 3) Encadeia: decide a próxima aula do mesmo assunto.
+    const outcome = nextAfterAnswer({ lessons: lessonList, answerText });
+    if (outcome.nextLessonId && lessonBodies[outcome.nextLessonId]) {
+      continueTo(outcome.nextLessonId);
+    } else {
+      // Sem próxima (ou sem body local) → volta ao "Gerar nova aula".
+      setCurrentLessonId(null);
+      setCurrentBody('');
+      setCurrentPrompt('');
+      setParsed(null);
+      setStatus('idle');
+      setError('');
+    }
+  };
+
   const running = status === 'running';
   const activeStep = Math.max(0, lessonPhaseIndex(phase.phase));
-  // fix-progress-error: "fase alcançada" = a geração chegou a uma fase real (ou
-  // o próprio evento de erro marcou failed). No erro, o Stepper só permanece
-  // visível se houve fase alcançada — erro de validação (idle puro) não mostra.
   const phaseReached = phase.phase !== 'gerando' || phase.failed;
+  // "Continuar" quando há aula pendente no assunto atual; caso contrário "Gerar nova aula".
+  const hasPendingLesson = lessonList.some((c) => c.completedAt == null);
+  const primaryLabelKey = newLessonActionLabel(hasPendingLesson);
+
+  const onPrimary = (): void => {
+    if (hasPendingLesson) {
+      // "Continuar": carrega a próxima aula pendente do assunto.
+      const pending = lessonList.find((c) => c.completedAt == null);
+      if (pending) {
+        continueTo(pending.id);
+        return;
+      }
+    }
+    // "Gerar nova aula": gera uma aula nova.
+    void generateNew();
+  };
 
   return (
-    <Box component="section" sx={{ p: { xs: 1, md: 2 }, maxWidth: 960, mx: 'auto' }} data-onboarding-signal={`lesson-status:${status}`}>
+    <Box
+      component="section"
+      sx={{ p: { xs: 1, md: 2 }, maxWidth: 960, mx: 'auto' }}
+      data-onboarding-signal={`lesson-status:${status}`}
+    >
       <Typography variant="h4" component="h1" gutterBottom>
         {t('translation:nav.lesson')}
       </Typography>
 
-      {/* Entrada do assunto + gerar */}
+      {/* Entrada do assunto + ação primária (gerar nova / continuar) */}
       <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
         <TextField
           label={t('translation:lesson.subjectLabel')}
@@ -339,30 +499,24 @@ export default function LessonView(): ReactElement {
           variant="contained"
           disabled={running}
           loading={running}
-          onClick={() => void generate()}
+          onClick={onPrimary}
           sx={{
-            // Consistência onda 17b: input (outlined, ~56px) e botão com a MESMA
-            // altura/baseline em desktop (sm+); em mobile (xs) o botão ocupa a
-            // largura toda (stretch). Preserva data-onboarding-target/signal.
             alignSelf: { xs: 'stretch', sm: 'flex-start' },
             minWidth: { xs: '100%', sm: 160 },
             height: { xs: 'auto', sm: 56 },
             whiteSpace: 'nowrap',
           }}
         >
-          {t('translation:lesson.generate')}
+          {t(`translation:${primaryLabelKey}`)}
         </Button>
       </Stack>
 
-      {/* Progresso das fases */}
+      {/* Progresso das fases (só durante a geração) */}
       {running || status === 'done' || (status === 'error' && phaseReached) ? (
         <Box sx={{ mt: 2 }} role="status" aria-live="polite">
           <Stepper activeStep={activeStep} alternativeLabel>
             {LESSON_PHASE_ORDER.map((labelKey, i) => (
               <Step key={labelKey}>
-                {/* fix-progress-error: no erro, a etapa ATUAL (a última fase
-                    alcançada) é marcada com error no StepLabel — as anteriores
-                    ficam ✓ e as seguintes pendentes. */}
                 <StepLabel error={phase.failed && i === activeStep}>
                   {t(`translation:${labelKey}`)}
                 </StepLabel>
@@ -375,7 +529,7 @@ export default function LessonView(): ReactElement {
             aria-label={t('translation:lesson.generate')}
             sx={{ mt: 1 }}
           />
-          {status === 'running' && phase.message ? (
+          {running && phase.message ? (
             <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
               {phase.message}
             </Typography>
@@ -389,17 +543,44 @@ export default function LessonView(): ReactElement {
         </Alert>
       ) : null}
 
-      {/* Conteúdo da aula */}
-      {parsed?.lesson && status === 'done' ? (
+      {/* Aula curta + input de resposta (onda 3) */}
+      {currentBody && currentLessonId && status !== 'running' ? (
+        <Paper variant="outlined" sx={{ mt: 2, p: { xs: 1.5, md: 2 } }}>
+          <Typography variant="h5" component="h2">
+            {lessonList.find((c) => c.id === currentLessonId)?.title ?? ''}
+          </Typography>
+          {subject ? (
+            <Typography variant="body2" color="text.secondary" gutterBottom>
+              {`${t('translation:lesson.subjectLabel')}: ${subject}`}
+            </Typography>
+          ) : null}
+          <AnswerSection
+            body={currentBody}
+            prompt={currentPrompt}
+            onAnswer={(text) => void submitAnswer(text)}
+            disabled={running}
+          />
+          {parsed?.lesson ? (
+            <Box sx={{ mt: 2 }}>
+              <ChallengesSection parsed={parsed} rejected={parsed.rejected} />
+            </Box>
+          ) : null}
+          {parsed?.lesson && parsed.lesson.findings.length > 0 ? (
+            <Box component="section" sx={{ mt: 2 }}>
+              <Typography variant="h6" component="h3" gutterBottom>
+                {t('translation:lesson.sources')}
+              </Typography>
+              <SourceList findings={parsed.lesson.findings} />
+            </Box>
+          ) : null}
+        </Paper>
+      ) : null}
+
+      {!currentBody && parsed?.lesson && status === 'done' ? (
         <Paper variant="outlined" sx={{ mt: 2, p: { xs: 1.5, md: 2 } }}>
           <Typography variant="h5" component="h2">
             {parsed.lesson.title}
           </Typography>
-          {parsed.lesson.subject ? (
-            <Typography variant="body2" color="text.secondary" gutterBottom>
-              {`${t('translation:lesson.subjectLabel')}: ${parsed.lesson.subject}`}
-            </Typography>
-          ) : null}
           <Box sx={{ mt: 1 }}>
             <ReactMarkdown
               remarkPlugins={katexRemarkPlugins()}
@@ -408,17 +589,6 @@ export default function LessonView(): ReactElement {
             >
               {escapeLoneDollarSigns(parsed.lesson.markdown)}
             </ReactMarkdown>
-          </Box>
-
-          <Box component="section" sx={{ mt: 2 }}>
-            <Typography variant="h6" component="h3" gutterBottom>
-              {t('translation:lesson.sources')}
-            </Typography>
-            <SourceList findings={parsed.lesson.findings} />
-          </Box>
-
-          <Box sx={{ mt: 2 }}>
-            <ChallengesSection parsed={parsed} rejected={parsed.rejected} />
           </Box>
         </Paper>
       ) : null}

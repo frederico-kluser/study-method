@@ -127,7 +127,11 @@
     },
     "reading": {
       "aria": "Lesson content"
-    }
+    },
+    "newLesson": "Generate new lesson",
+    "continue": "Continue",
+    "answerLabel": "Your answer",
+    "answerSubmit": "Submit"
   },
   "challenge": {
     "openChallenge": "Open challenge",
