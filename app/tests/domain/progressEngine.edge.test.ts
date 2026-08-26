@@ -3,9 +3,10 @@
  * (electron/main/domain/progressEngine.ts), complemento do progressEngine.test.ts.
  *
  * Cobre o que a suíte básica não pina: nextStep com nós raiz DUPLICADOS na árvore,
- * breakIntoChildren com breakPlan de 1 item (contrato "≥2 ou trata", comportamento
- * observado: 1 filha), treeToView com nó órfão (parent aponta para id ausente), e
- * treeToView com ciclo (A ⊆ B, B ⊆ A) que não trava nem duplica nós.
+ * breakIntoChildren com breakPlan DEGENERADO (0 ou 1 item) garantindo o contrato "≥2
+ * filhas por quebra" (auto-suficiente mesmo quando a fiação injeta plano de 0/1 item),
+ * treeToView com nó órfão (parent aponta para id ausente), e treeToView com ciclo
+ * (A ⊆ B, B ⊆ A) que não trava nem duplica nós.
  */
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
@@ -100,8 +101,8 @@ describe('progressionDifficulty — extremos', () => {
   });
 });
 
-describe('breakIntoChildren — breakPlan de 1 item (contrato ≥2 ou trata)', () => {
-  it('comportamento observado: breakPlan de 1 item → 1 filha (não garante ≥2 no motor puro)', () => {
+describe('breakIntoChildren — breakPlan de 1 item (contrato ≥2 por quebra)', () => {
+  it('breakPlan de 1 item → devolve ≥2 filhas, cada uma com parent/origin = id quebrado e body não vazio', () => {
     const children = breakIntoChildren({
       lessonId: 'orig-1',
       lessonTitle: 'Loops',
@@ -109,14 +110,19 @@ describe('breakIntoChildren — breakPlan de 1 item (contrato ≥2 ou trata)', (
       difficulty: 3,
       breakPlan: { items: [{ title: 'Só uma', bodySubset: 'x' }] },
     });
-    assert.equal(children.length, 1);
-    assert.equal(children[0].parentLessonId, 'orig-1');
-    assert.equal(children[0].originLessonId, 'orig-1');
+    assert.ok(children.length >= 2, 'garante ≥2 filhas por quebra');
+    for (const c of children) {
+      assert.equal(c.parentLessonId, 'orig-1');
+      assert.equal(c.originLessonId, 'orig-1');
+      assert.ok(c.title.trim(), 'título não vazio');
+    }
+    assert.equal(children[0].title, 'Só uma', '1ª filha = a ideia-chave do plano');
     assert.equal(children[0].difficultyK, 1, '1ª filha no nível base');
-    assert.deepEqual(children[0].title, 'Só uma');
+    // 2ª filha é revisão/prática derivada do corpo (não vazia).
+    assert.ok(children[1].body.trim(), '2ª filha (revisão guiada) tem body não vazio');
   });
 
-  it('breakPlan com item sem title → usa `${lessonTitle} (parte N)`', () => {
+  it('breakPlan com item sem title → 1ª usa `${lessonTitle} (parte N)`; ainda gera 2ª filha', () => {
     const children = breakIntoChildren({
       lessonId: 'orig-2',
       lessonTitle: 'Funções',
@@ -124,6 +130,7 @@ describe('breakIntoChildren — breakPlan de 1 item (contrato ≥2 ou trata)', (
       difficulty: 2,
       breakPlan: { items: [{ title: '  ', bodySubset: 'p1' }] },
     });
+    assert.ok(children.length >= 2);
     assert.equal(children[0].title, 'Funções (parte 1)');
     assert.equal(children[0].body, 'p1');
   });
@@ -138,6 +145,82 @@ describe('breakIntoChildren — breakPlan de 1 item (contrato ≥2 ou trata)', (
       breakPlan: { items: [{ title: 'T', bodySubset: 'p' }] },
     });
     assert.equal(children[0].difficultyK, 1);
+  });
+});
+
+describe('breakIntoChildren — breakPlan vazio (contrato ≥2 por quebra)', () => {
+  it('breakPlan vazio MAS lessonBody não vazio → devolve ≥2 filhas de prática guiada derivadas', () => {
+    const children = breakIntoChildren({
+      lessonId: 'orig-empty',
+      lessonTitle: 'Vocabulário',
+      lessonBody: 'corpo robusto a recapitular',
+      difficulty: 2,
+      breakPlan: { items: [] },
+    });
+    assert.ok(children.length >= 2, 'garante ≥2 filhas mesmo sem plano');
+    for (const c of children) {
+      assert.equal(c.parentLessonId, 'orig-empty');
+      assert.equal(c.originLessonId, 'orig-empty');
+      assert.ok(c.body.trim(), 'corpo derivado não vazio');
+    }
+  });
+
+  it('breakPlan vazio E lessonBody vazio → devolve [] (sem conteúdo para quebrar)', () => {
+    const children = breakIntoChildren({
+      lessonId: 'orig-no-content',
+      lessonTitle: 'Vazio',
+      lessonBody: '   ',
+      difficulty: 2,
+      breakPlan: { items: [] },
+    });
+    assert.equal(children.length, 0, 'sem corpo não fabrica conteúdo do nada');
+  });
+});
+
+describe('breakIntoChildren — regressão 1:1 para breakPlan de 2+ itens', () => {
+  it('breakPlan de 2 itens → devolve exatamente 2 filhas (1:1 preservada)', () => {
+    const children = breakIntoChildren({
+      lessonId: 'orig-n',
+      lessonTitle: 'Assunto',
+      lessonBody: 'corpo',
+      difficulty: 2,
+      breakPlan: {
+        items: [
+          { title: 'P1', bodySubset: 'a' },
+          { title: 'P2', bodySubset: 'b' },
+        ],
+      },
+    });
+    assert.equal(children.length, 2, '1:1 preservada para 2 itens');
+    assert.equal(children[0].title, 'P1');
+    assert.equal(children[1].title, 'P2');
+    assert.equal(children[0].body, 'a');
+    assert.equal(children[1].body, 'b');
+  });
+
+  it('dificuldades seguem a ramp (base, base+1...) sem cap 5 e valem 1..5', () => {
+    const children = breakIntoChildren({
+      lessonId: 'orig-ramp',
+      lessonTitle: 'Assunto',
+      lessonBody: 'corpo',
+      difficulty: 1,
+      breakPlan: {
+        items: [
+          { title: 'A', bodySubset: 'a' },
+          { title: 'B', bodySubset: 'b' },
+          { title: 'C', bodySubset: 'c' },
+        ],
+      },
+    });
+    assert.equal(children.length, 3);
+    assert.deepEqual(
+      children.map((c) => c.difficultyK),
+      [1, 2, 3],
+      'ramp gradual base+unidade, sem cap aqui',
+    );
+    for (const c of children) {
+      assert.ok(c.difficultyK >= 1 && c.difficultyK <= 5);
+    }
   });
 });
 

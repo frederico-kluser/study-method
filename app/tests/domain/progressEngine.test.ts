@@ -160,15 +160,31 @@ describe('breakIntoChildren — quebra da aula em filhas', () => {
     assert.ok(children[1].difficultyK > children[0].difficultyK, '2ª filha deve subir em relação à 1ª');
   });
 
-  it('breakPlan vazio → nenhuma filha', () => {
+  it('breakPlan vazio com lessonBody vazio → nenhuma filha (sem conteúdo para quebrar)', () => {
     const children = breakIntoChildren({
       lessonId: 'orig-3',
       lessonTitle: 'X',
-      lessonBody: 'x',
+      lessonBody: '',
       difficulty: 2,
       breakPlan: { items: [] },
     });
     assert.deepEqual(children, []);
+  });
+
+  it('breakPlan vazio MAS lessonBody não vazio → devolve ≥2 filhas de prática guiada derivadas', () => {
+    const children = breakIntoChildren({
+      lessonId: 'orig-3b',
+      lessonTitle: 'X',
+      lessonBody: 'corpo para recapitular',
+      difficulty: 2,
+      breakPlan: { items: [] },
+    });
+    assert.ok(children.length >= 2, `esperava 2+ filhas, veio ${children.length}`);
+    for (const child of children) {
+      assert.equal(child.parentLessonId, 'orig-3b');
+      assert.equal(child.originLessonId, 'orig-3b');
+      assert.ok(child.body.length > 0, 'corpo derivado deve estar preenchido');
+    }
   });
 });
 

@@ -226,18 +226,65 @@ export function breakIntoChildren(input: {
   const {
     lessonId,
     lessonTitle,
+    lessonBody,
     difficulty,
     breakPlan,
     baselineDifficulty = 1,
   } = input;
+  // Contracto: quebrar uma aula implica gerar "mais aulas" → SEMPRE ≥2 filhas
+  // (dificuldade crescente, prática guiada). O hintEngine.buildBreakPlan gera ≥2
+  // itens, mas a fiação pode injetar um plano degenerado (0 ou 1 item); o motor
+  // precisa ser auto-suficiente mesmo assim.
   const items = breakPlan?.items ?? [];
-  if (items.length === 0) return [];
+
+  // Sem breakPlan útil E sem corpo para derivar prática → não há o que transformar
+  // em aulas-filhas (não fabricamos conteúdo do nada).
+  const trimmedBody = lessonBody?.trim() ?? '';
+  if (items.length === 0 && trimmedBody.length === 0) return [];
 
   const base = Number.isFinite(baselineDifficulty)
     ? baselineDifficulty
     : DIFFICULTY_BASELINE_FLOOR;
 
-  return items.map((item, index) => {
+  // Simplificação interna: deriva sempre ≥2 "unidades" de prática; quando o
+  // breakPlan tem 1 item, completa a 2ª unidade com uma revisão derivada do corpo.
+  const units =
+    items.length >= 2
+      ? items.map((item, index) => ({
+          title: item.title?.trim() ? item.title : `${lessonTitle} (parte ${index + 1})`,
+          body: item.bodySubset ?? '',
+        }))
+      : // 0 ou 1 item: ainda garante ≥2 filhas de revisão/prática derivadas.
+        items.length === 1
+        ? [
+            // 1ª: a ideia-chave que o aluno NÃO entendeu (a sub-aula focada do plano).
+            {
+              title: items[0].title?.trim() ? items[0].title : `${lessonTitle} (parte 1)`,
+              body: items[0].bodySubset ?? '',
+            },
+            // 2ª: prática guiada/revisão do próprio conceito (recapitula o corpo
+            // quebrado) para honrar o contrato "≥2 filhas por quebra".
+            {
+              title: `${lessonTitle} (parte 2)`,
+              body: trimmedBody.length > 0
+                ? `Revisão guiada de "${lessonTitle}": recapitula o conceito a seguir.\n\n${trimmedBody}`
+                : `Revisão guiada de "${lessonTitle}".`,
+            },
+          ]
+        : // 0 itens com corpo não-vazio: o trecho que ele não entendeu é desconhecido,
+          // mas a quebra ainda entrega prática guiada em ≥2 pedaços derivados do corpo.
+          [
+            {
+              title: `${lessonTitle} (parte 1)`,
+              body: `Leitura fatiada de "${lessonTitle}" (1/2).\n\n${trimmedBody}`,
+            },
+            {
+              title: `${lessonTitle} (parte 2)`,
+              body: `Prática guiada de revisão de "${lessonTitle}" (2/2).\n\n${trimmedBody}`,
+            },
+          ];
+
+  return units.map((unit, index) => {
     // 1ª filha recomeça no nível base (mais gradual — refazer o que não entendeu);
     // cada filha seguinte acumula um alvo de prática a mais na ramp, de modo que
     // suba ~1 unidade por filha (base + 1, base + 2, ... cap 5) e continue a
@@ -246,10 +293,9 @@ export function breakIntoChildren(input: {
       index === 0
         ? clampDifficulty(base)
         : progressionDifficulty(index * TARGET_ANSWERS_PER_STEP, base);
-    const title = item.title?.trim() ? item.title : `${lessonTitle} (parte ${index + 1})`;
     return {
-      title,
-      body: item.bodySubset ?? '',
+      title: unit.title,
+      body: unit.body,
       difficultyK: childDifficulty,
       parentLessonId: lessonId,
       originLessonId: lessonId,
