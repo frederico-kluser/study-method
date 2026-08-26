@@ -100,13 +100,17 @@ export async function launchRealApp(opts: LaunchRealOpts = {}): Promise<RealApp>
     const env: Record<string, string> = {
       ...(process.env as Record<string, string>),
       STUDY_METHOD_WINDOW_VISIBLE: '0', // janela oculta (nada sobre o desktop)
+      // LOCALE PINADO (determinismo): as specs reais assumem UI pt-BR (tabs
+      // "Aula", headings "Antes de começar", botão "Gerar nova aula"). O
+      // `--lang=pt-BR` fixa o locale do app; o LANG é fallback defensivo (CI).
+      LANG: 'pt_BR.UTF-8',
       ...(opts.setupsDir ? { STUDY_METHOD_SETUPS_DIR: opts.setupsDir } : {}),
       ...opts.extraEnv,
     };
     // NUNCA seta STUDY_METHOD_E2E → fiação real.
 
     const app = await _electron.launch({
-      args: [MAIN_ENTRY, '--disable-gpu', `--user-data-dir=${userDataDir}`],
+      args: [MAIN_ENTRY, '--disable-gpu', '--lang=pt-BR', `--user-data-dir=${userDataDir}`],
       env,
       cwd: APP_ROOT,
     });
@@ -188,7 +192,7 @@ export async function closeRealApp(real: RealApp | undefined): Promise<void> {
  * A geração real usa DeepSeek + Brave + runner: pode demorar minutos E as vezes
  * falhar transitoriamente (ex.: o modelo devolveu `reasoning_content` sem
  * `content`, rate limit, rede). Em vez de NÃO observar o erro (esperar só pelo
- * `done` e travar até o timeout), esta função espera o botão "Gerar aula"
+ * `done` e travar até o timeout), esta função espera o botão "Gerar nova aula"
  * re-habilitar (estado terminal) e, se o sinal for `lesson-status:error`,
  * retorna a mensagem da UI — o caller decide repetir.
  */
@@ -202,7 +206,7 @@ export async function generateRealLesson(
   await page.getByRole('tab', { name: 'Aula' }).click();
   for (let attempt = 1; attempt <= attempts; attempt++) {
     await page.getByLabel('Assunto').fill(subject);
-    const generateBtn = page.getByRole('button', { name: 'Gerar aula' });
+    const generateBtn = page.getByRole('button', { name: 'Gerar nova aula' });
     await generateBtn.click();
     try {
       // Estado terminal = geração terminou ⇒ botão re-habilitado.

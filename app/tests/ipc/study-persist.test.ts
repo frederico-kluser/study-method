@@ -10,7 +10,7 @@
  */
 import { describe, it, before, after } from 'node:test';
 import assert from 'node:assert/strict';
-import Database from 'better-sqlite3';
+import { DatabaseSync } from 'node:sqlite';
 
 import { STUDY_CHANNELS } from '../../shared/ipc-contract';
 import {
@@ -67,7 +67,7 @@ function makeBaseDeps() {
 
 /** Monta uma repo real sobre `:memory:` e um map de handlers com ela injetada. */
 function makeWithRepo(): { handlers: Map<string, IpcHandlerFn>; repo: LessonRepo } {
-  const db = new Database(':memory:');
+  const db = new DatabaseSync(':memory:');
   const repo = createLessonRepo(() => db);
   const base = makeBaseDeps();
   const handlers = buildStudyHandlers({ ...base, repo });

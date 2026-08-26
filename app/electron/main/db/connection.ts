@@ -1,7 +1,7 @@
 /**
  * electron/main/db/connection.ts — abertura de conexão SQLite DI-friendly.
  *
- * `openSqlite(path)` devolve um wrapper com `db` (conexão better-sqlite3),
+ * `openSqlite(path)` devolve um wrapper com `db` (conexão `node:sqlite`),
  * `close()` e `migrate()`. Usado pela fiação (main-setup) para abrir o banco do
  * usuário e em testes para abrir bancos em arquivos tmp.
  *
@@ -10,46 +10,27 @@
  * diretório pai quando ausente e ativa `PRAGMA foreign_keys = ON` para que as
  * FKs declaradas no schema sejam, de fato, enforced em runtime.
  *
- * CARREGAMENTO LAZY DO ADDON NATIVO: este módulo NÃO importa 'better-sqlite3'
- * estaticamente. O mesmo node_modules serve dois runtimes com ABIs diferentes:
- * - Node do sistema → `better-sqlite3` canônico (13.x, prebuild NAPI do sistema);
- * - Electron 33 (Node 20 embutido, NAPI 9) → alias `better-sqlite3-electron`
- *   (12.11.1) compilado para o ABI do Electron por tools/ensure-native-abi.sh.
- * Um import estático carregaria o addon errado no boot do main (SIGSEGV silencioso
- * — segfault não é exceção JS, nenhum try/catch salva). Aqui o addon é resolvido
- * por NOME em variável na primeira abertura, então o pacote certo é escolhido
- * conforme o runtime antes de qualquer require.
+ * POR QUE `node:sqlite` (DatabaseSync) em vez de um addon nativo:
+ * - `node:sqlite` é EMBUTIDO no Node (>= 22.5, unflagged desde 22.13) E no
+ *   Electron (aqui Electron 37, que embute Node 22.16). NÃO é addon nativo:
+ *   não há `.node` compilado, não há ABI a casar entre o Node do sistema e o
+ *   Node embutido do Electron, e não há pós-install de compilação.
+ * - O addon anterior (`better-sqlite3`) é sensível ao ABI do runtime: o prebuild
+ *   do Node do sistema segfaultava em silêncio (SIGSEGV) ao ser carregado dentro
+ *   do Electron 33 (Node 20 embutido) — segfault não é exceção JS, nenhum
+ *   try/catch salva. Com `node:sqlite` o mesmo banco abre nos DOIS runtimes sem
+ *   nada disso.
+ * - A API usada aqui (`exec`, `prepare().get/run/all`, `close`) mapeia 1:1 para
+ *   `DatabaseSync`; `db.pragma(...)` vira `db.exec('PRAGMA ...')`.
  */
 
 import { promises as fsp } from 'node:fs';
 import { dirname } from 'node:path';
-import type { Database as SqliteDatabase } from 'better-sqlite3';
+import { DatabaseSync } from 'node:sqlite';
 import { createMigrator, type Migrator } from './migrate';
 
-/** Nome do pacote npm que carrega o addon sqlite no runtime em questão. */
-export function pickSqlitePackageName(electronRuntime: boolean): 'better-sqlite3' | 'better-sqlite3-electron' {
-  return electronRuntime ? 'better-sqlite3-electron' : 'better-sqlite3';
-}
-
-/**
- * Módulo do addon carregado preguiçosamente. `typeof import('better-sqlite3')` é
- * o tipo do construtor (o @types usa `export =`), logo é newable.
- */
-let sqliteModule: typeof import('better-sqlite3') | null = null;
-
-function getSqliteModule(): typeof import('better-sqlite3') {
-  if (!sqliteModule) {
-    // Resolve por NOME em variável: o `require` dinâmico impede o TypeScript de
-    // resolver o módulo aliased e escolhe o pacote certo conforme o runtime.
-    const pkg = pickSqlitePackageName(!!process.versions.electron);
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    sqliteModule = require(pkg as string) as typeof import('better-sqlite3');
-  }
-  return sqliteModule;
-}
-
 export interface SqliteConnection {
-  db: SqliteDatabase;
+  db: DatabaseSync;
   /** fecha a conexão subjacente (idempotente quanto a abrir/fechar repetidamente) */
   close(): void;
   /** migrator do schema (aplica + lê user_version) */
@@ -61,14 +42,11 @@ export interface SqliteConnection {
  * - Cria o diretório pai quando não existe.
  * - Liga o enforcement de foreign keys.
  * - Não aplica o schema; use `.migrate()` (ou `openMigratedSqlite`) para isso.
- *
- * O addon é carregado lazy (getSqliteModule) — sem import estático, o main do
- * Electron não segfaulta no boot. O acelerador de locking do WAL não é usado aqui.
  */
 export async function openSqlite(dbPath: string): Promise<SqliteConnection> {
   await fsp.mkdir(dirname(dbPath), { recursive: true });
-  const db = new (getSqliteModule())(dbPath);
-  db.pragma('foreign_keys = ON');
+  const db = new DatabaseSync(dbPath);
+  db.exec('PRAGMA foreign_keys = ON');
   const migrator = createMigrator(db);
   let closed = false;
   return {

@@ -14,7 +14,7 @@
  */
 import { describe, it, before, after } from 'node:test';
 import assert from 'node:assert/strict';
-import Database from 'better-sqlite3';
+import { DatabaseSync } from 'node:sqlite';
 
 import {
   createLessonRepo,
@@ -23,8 +23,8 @@ import {
   type CreateLessonInput,
 } from '../../electron/main/db/repo';
 
-function makeRepo(): { repo: LessonRepo; db: Database.Database; close: () => void } {
-  const db = new Database(':memory:');
+function makeRepo(): { repo: LessonRepo; db: DatabaseSync; close: () => void } {
+  const db = new DatabaseSync(':memory:');
   const repo = createLessonRepo(() => db);
   return { repo, db, close: () => db.close() };
 }

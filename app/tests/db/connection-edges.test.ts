@@ -2,14 +2,12 @@
  * tests/db/connection-edges.test.ts — lacunas do wrapper de conexão (connection.ts).
  *
  * Complementa (sem duplicar) o que já está coberto:
- *   - tests/db/sqlite-loader.test.ts  → `pickSqlitePackageName` (pura) e o caminho
- *     Node do `openMigratedSqlite` (schema + CRUD);
- *   - tests/db/schema.test.ts         → migrator idempotente, tabelas, FKs e round
- *     trip sobre conexão MIGRADA.
+ *   - tests/db/schema.test.ts → migrator idempotente, tabelas, FKs e round trip
+ *     sobre conexão MIGRADA.
  *
  * Aqui ficam os edges do wrapper em si: criação recursiva do diretório pai,
  * `close()` idempotente e o estado de uma conexão recém-aberta SEM migrate
- * (foreign_keys ON já na abertura — o loader default sob Node abre um banco real).
+ * (foreign_keys ON já na abertura — o `node:sqlite` abre um banco real).
  */
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
@@ -56,7 +54,7 @@ describe('connection.ts — edges do wrapper', () => {
     const { dir, db } = await makeDbPath('conn-fk-');
     try {
       const conn = await openSqlite(db);
-      // loader default sob Node: o addon canônico (better-sqlite3) abre de verdade.
+      // node:sqlite abre o banco real e liga foreign_keys já na abertura.
       const row = conn.db.prepare('PRAGMA foreign_keys').get() as {
         foreign_keys: unknown;
       };

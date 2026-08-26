@@ -394,19 +394,22 @@ Três alvos de build (electron-vite): `main` (inclui os processos `llm-engine` e
 
 ## Módulos nativos (Electron × Node)
 
-O addon nativo do SQLite (`better-sqlite3`) é sensível ao ABI do runtime:
+O SQL interno usa **`node:sqlite`** (`DatabaseSync`), o módulo SQLite **embutido** no Node
+(>= 22.5, unflagged desde 22.13) e **também no Electron** — aqui **Electron 37** (Node 22.16
+embutido). Por isso o app **não tem addon nativo de SQLite**:
 
-- O `npm ci` instala o **prebuild do Node do sistema** para `better-sqlite3` 13.x (NAPI 10+).
-- O **Electron 33 embute Node 20** (NAPI 9). Carregar o prebuild do sistema dentro do
-  Electron → **SIGSEGV silencioso** no boot (segfault não é exceção JS — nenhum try/catch salva).
-- Por isso o app usa o alias **`better-sqlite3-electron`** (`npm:better-sqlite3@12.11.1`),
-  compilado para o **ABI do Electron** por [`tools/ensure-native-abi.sh`](./tools/ensure-native-abi.sh)
-  (roda automaticamente em `postinstall`/`predev`). O loader em
-  `electron/main/db/connection.ts` escolhe o pacote por runtime, de forma **lazy** (sem import
-  estático = sem segfault no boot).
-- Os **testes** usam o `better-sqlite3` canônico (rodam sob o Node do sistema).
+- **Zero compilação pós-install**: não há `.node` para compilar nem ABI para casar. O mesmo
+  banco abre nos DOIS runtimes (Node do sistema e Electron) sem rebuild, sem alias, sem script
+  de ciclo de vida.
+- O addon anterior (`better-sqlite3`) era sensível ao ABI do runtime: o prebuild do Node do
+  sistema **segfaultava em silêncio** (SIGSEGV) ao carregar dentro do Electron 33 (Node 20
+  embutido) — segfault não é exceção JS, nenhum try/catch salva. `node:sqlite` elimina essa
+  classe de problema por construção.
+- A API usada (`db.exec`, `db.prepare().get/run/all`, `db.close`) mapeia 1:1 para
+  `DatabaseSync`; `db.pragma(...)` vira `db.exec('PRAGMA ...')` e `db.transaction(fn)()` vira
+  um helper `withTransaction` (BEGIN/COMMIT/ROLLBACK) em `electron/main/db/repo.ts`.
 
-Se o app fechar sem erro logo após um `npm ci`, rode: `bash app/tools/ensure-native-abi.sh`.
+Nenhum `postinstall`/`predev` especial é necessário — `npm ci` é suficiente.
 
 ## Segurança
 

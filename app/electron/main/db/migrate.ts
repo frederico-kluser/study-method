@@ -13,12 +13,18 @@
 
 import { SCHEMA_SQL, SCHEMA_VERSION } from './schema';
 
-/** Interface mínima da conexão (evita importar melhor-sqlite3 aqui). */
+/**
+ * Interface mínima da conexão — estruturalmente compatível com o `DatabaseSync`
+ * do `node:sqlite` (evita importar o tipo concreto aqui). O `get` do
+ * `StatementSync` devolve `Record<string, SQLOutputValue> | undefined` nos tipos;
+ * aqui a interface o alarga para `unknown`, e quem lê faz o cast para um Record
+ * (ver `getUserVersion`).
+ */
 export interface DbConnectionLike {
   exec(sql: string): void;
-  /** executa uma função/consulta e retorna a primeira linha (Record<string, unknown>) */
+  /** prepara uma consulta e devolve a primeira linha como `unknown` (cast no chamador) */
   prepare(sql: string): {
-    get(...params: unknown[]): { [key: string]: unknown } | undefined;
+    get(...params: unknown[]): unknown;
   };
 }
 
@@ -42,7 +48,10 @@ export function createMigrator(db: DbConnectionLike): Migrator {
       db.exec(`PRAGMA user_version = ${SCHEMA_VERSION}`);
     },
     getUserVersion(): number {
-      const row = db.prepare('PRAGMA user_version').get();
+      // `db.prepare(...).get()` devolve `unknown` nesta interface → cast para Record.
+      const row = db.prepare('PRAGMA user_version').get() as
+        | { user_version?: unknown }
+        | undefined;
       const raw = row ? Number(row['user_version']) : 0;
       return Number.isFinite(raw) ? raw : 0;
     },

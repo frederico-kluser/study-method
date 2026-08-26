@@ -33,7 +33,7 @@ test('e2e-test-answer: executando → sucesso com score determinístico', async 
   await expect(page.getByRole('banner').getByText('Study Method — Tutor', { exact: false })).toBeVisible();
   await page.getByRole('tab', { name: 'Aula' }).click();
   await page.getByLabel('Assunto').fill('Ordenação');
-  await page.getByRole('button', { name: 'Gerar aula' }).click();
+  await page.getByRole('button', { name: 'Gerar nova aula' }).click();
   await page.getByText('Ordenação (E2E)', { exact: false }).first().click();
 
   // Desafio carregado e botão "Testar resposta" pronto.

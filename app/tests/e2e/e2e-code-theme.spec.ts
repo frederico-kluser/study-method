@@ -182,7 +182,7 @@ test('e2e-code-theme: editor e terminal pintam CLARO no tema claro e ESCURO no e
   // ── Chega ao Desafio e abre o arquivo (o editor só monta com aba ativa) ──
   await page.getByRole('tab', { name: 'Aula' }).click();
   await page.getByLabel('Assunto').fill('Ordenação');
-  await page.getByRole('button', { name: 'Gerar aula' }).click();
+  await page.getByRole('button', { name: 'Gerar nova aula' }).click();
   await page.getByText('Ordenação (E2E)', { exact: false }).first().click();
   await expect(page.getByRole('heading', { name: 'Desafio E2E: ordenação' })).toBeVisible();
   await page.getByRole('button', { name: 'solution.py', exact: true }).click();

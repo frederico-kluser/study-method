@@ -322,7 +322,7 @@ test('e2e-fonts: a mono do contrato é APLICADA ao editor, à sarjeta e ao termi
   /* ─── Navega até o Desafio e abre o arquivo (o editor só monta aí) ─────── */
   await page.getByRole('tab', { name: 'Aula' }).click();
   await page.getByLabel('Assunto').fill('Ordenação');
-  await page.getByRole('button', { name: 'Gerar aula' }).click();
+  await page.getByRole('button', { name: 'Gerar nova aula' }).click();
   await page.getByText('Ordenação (E2E)', { exact: false }).first().click();
   await expect(page.getByRole('heading', { name: 'Desafio E2E: ordenação' })).toBeVisible();
   await page.getByRole('button', { name: 'solution.py', exact: true }).click();

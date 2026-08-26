@@ -16,12 +16,12 @@
  * `schema.ts` com as MESMAS tabelas, a cola continua funcionando — `IF NOT
  * EXISTS` é idempotente diante das duas fontes.
  */
-import type BetterSqlite3 from 'better-sqlite3';
+import { DatabaseSync } from 'node:sqlite';
 import { randomUUID } from 'node:crypto';
 
 /** Factory de conexão injetável (DI): quem chama decide como abrir o sqlite
  * (caminho de usuário do app, `:memory:`, etc.). NUNCA importa Electron. */
-export type OpenFn = () => BetterSqlite3.Database;
+export type OpenFn = () => DatabaseSync;
 
 export interface SubjectRow {
   id: string;
@@ -230,12 +230,32 @@ export function slugify(name: string): string {
 const now = () => new Date().toISOString();
 const newId = () => randomUUID();
 
+/**
+ * Roda `fn` dentro de uma transação BEGIN/COMMIT, com ROLLBACK em erro.
+ *
+ * `node:sqlite` (DatabaseSync) NÃO tem o helper `db.transaction(fn)` do
+ * better-sqlite3 — aqui o equivalente é explícito. Os usos nesta repo NÃO se
+ * aninham (cada método público abre e fecha a própria transação), então
+ * BEGIN/COMMIT simples basta (sem SAVEPOINT por nível).
+ */
+function withTransaction<T>(db: DatabaseSync, fn: () => T): T {
+  db.exec('BEGIN');
+  try {
+    const result = fn();
+    db.exec('COMMIT');
+    return result;
+  } catch (err) {
+    db.exec('ROLLBACK');
+    throw err;
+  }
+}
+
 export function createLessonRepo(open: OpenFn): LessonRepo {
   const db = open();
   db.exec(SCHEMA);
 
   const findSubjectBySlug = (slug: string): SubjectRow | undefined =>
-    db.prepare('SELECT id, name, slug FROM subjects WHERE slug = ?').get(slug) as
+    db.prepare('SELECT id, name, slug FROM subjects WHERE slug = ?').get(slug) as unknown as
       | SubjectRow
       | undefined;
 
@@ -251,7 +271,7 @@ export function createLessonRepo(open: OpenFn): LessonRepo {
   const subjectOfLesson = (lessonId: string): string | null => {
     const row = db
       .prepare('SELECT subject_id FROM lessons WHERE id = ?')
-      .get(lessonId) as { subject_id: string } | undefined;
+      .get(lessonId) as unknown as { subject_id: string } | undefined;
     return row ? row.subject_id : null;
   };
 
@@ -259,7 +279,7 @@ export function createLessonRepo(open: OpenFn): LessonRepo {
   const challengeOfLesson = (lessonId: string): string | null => {
     const row = db
       .prepare('SELECT id FROM challenges WHERE lesson_id = ?')
-      .get(lessonId) as { id: string } | undefined;
+      .get(lessonId) as unknown as { id: string } | undefined;
     return row ? row.id : null;
   };
 
@@ -290,7 +310,7 @@ export function createLessonRepo(open: OpenFn): LessonRepo {
     },
 
     async createLesson(input) {
-      const tx = db.transaction((): string => {
+      return withTransaction(db, (): string => {
         const subject = findSubjectBySlug(input.subjectSlug);
         if (!subject) {
           throw new Error(`assunto desconhecido: ${input.subjectSlug}`);
@@ -342,7 +362,6 @@ export function createLessonRepo(open: OpenFn): LessonRepo {
         }
         return lessonId;
       });
-      return tx();
     },
 
     async getLessonById(id) {
@@ -352,7 +371,7 @@ export function createLessonRepo(open: OpenFn): LessonRepo {
                   created_at, completed_at
            FROM lessons WHERE id = ?`,
         )
-        .get(id) as LessonRow | undefined;
+        .get(id) as unknown as LessonRow | undefined;
       return row ?? null;
     },
 
@@ -364,7 +383,7 @@ export function createLessonRepo(open: OpenFn): LessonRepo {
           `SELECT id, title, body, difficulty, completed_at
            FROM lessons WHERE subject_id = ? ORDER BY created_at ASC`,
         )
-        .all(subject.id) as Array<{
+        .all(subject.id) as unknown as Array<{
         id: string;
         title: string;
         body: string;
@@ -385,7 +404,7 @@ export function createLessonRepo(open: OpenFn): LessonRepo {
     },
 
     async recordAnswer(lessonId, answerText) {
-      const tx = db.transaction(() => {
+      withTransaction(db, () => {
         const subjectId = subjectOfLesson(lessonId);
         if (!subjectId) return; // lesson inexistente -> no-op seguro (sem FK throw)
         db.prepare(
@@ -396,7 +415,6 @@ export function createLessonRepo(open: OpenFn): LessonRepo {
           'UPDATE progress SET answered = answered + 1 WHERE subject_id = ? AND lesson_id = ?',
         ).run(subjectId, lessonId);
       });
-      tx();
     },
 
     async getAnswerForLesson(lessonId) {
@@ -405,7 +423,7 @@ export function createLessonRepo(open: OpenFn): LessonRepo {
           `SELECT id, lesson_id, answer_text, created_at FROM lesson_answers
            WHERE lesson_id = ? ORDER BY rowid DESC LIMIT 1`,
         )
-        .get(lessonId) as AnswerRow | undefined;
+        .get(lessonId) as unknown as AnswerRow | undefined;
       return row ?? null;
     },
 
@@ -420,10 +438,10 @@ export function createLessonRepo(open: OpenFn): LessonRepo {
     },
 
     async consumeHint(challengeId, hintText) {
-      const tx = db.transaction(() => {
+      withTransaction(db, () => {
         const challenge = db
           .prepare('SELECT id, lesson_id FROM challenges WHERE id = ?')
-          .get(challengeId) as { id: string; lesson_id: string } | undefined;
+          .get(challengeId) as unknown as { id: string; lesson_id: string } | undefined;
         if (!challenge) {
           throw new Error(`challenge desconhecido: ${challengeId}`);
         }
@@ -439,11 +457,10 @@ export function createLessonRepo(open: OpenFn): LessonRepo {
           ).run(subjectId, challenge.lesson_id);
         }
       });
-      tx();
     },
 
     async recordHintBreak(lessonId, challengeId, reason, note = null) {
-      const tx = db.transaction(() => {
+      withTransaction(db, () => {
         const subjectId = subjectOfLesson(lessonId);
         if (!subjectId) return; // lesson inexistente -> no-op seguro (sem FK throw)
         db.prepare(
@@ -455,7 +472,6 @@ export function createLessonRepo(open: OpenFn): LessonRepo {
           'UPDATE progress SET became_lesson_children = became_lesson_children + 1 WHERE subject_id = ? AND lesson_id = ?',
         ).run(subjectId, lessonId);
       });
-      tx();
     },
 
     async getHintsForChallenge(challengeId) {
@@ -464,7 +480,7 @@ export function createLessonRepo(open: OpenFn): LessonRepo {
           `SELECT id, challenge_id, position, hint_text, used_at
            FROM challenge_hints WHERE challenge_id = ? ORDER BY position ASC`,
         )
-        .all(challengeId) as HintRow[];
+        .all(challengeId) as unknown as HintRow[];
     },
 
     async lessonCountForSubject(subjectSlug) {
@@ -472,7 +488,7 @@ export function createLessonRepo(open: OpenFn): LessonRepo {
       if (!subject) return 0;
       const row = db
         .prepare('SELECT COUNT(*) AS n FROM lessons WHERE subject_id = ?')
-        .get(subject.id) as { n: number };
+        .get(subject.id) as unknown as { n: number };
       return row.n;
     },
 
@@ -488,8 +504,10 @@ export function createLessonRepo(open: OpenFn): LessonRepo {
                   COALESCE(SUM(became_lesson_children), 0) AS becameChildren
            FROM progress WHERE subject_id = ?`,
         )
-        .get(subject.id) as { answered: number; hintConsumed: number; becameChildren: number };
-      return row;
+        .get(subject.id) as unknown as { answered: number; hintConsumed: number; becameChildren: number };
+      // node:sqlite devolve a linha com protótipo `null`; normaliza para um objeto
+      // plano (Object.prototype) — preserva o contrato público da repo.
+      return { ...row };
     },
 
     async getTree(subjectSlug) {
@@ -502,7 +520,7 @@ export function createLessonRepo(open: OpenFn): LessonRepo {
           `SELECT id, title, parent_lesson_id, origin_lesson_id, completed_at
            FROM lessons WHERE subject_id = ?`,
         )
-        .all(subject.id) as Array<{
+        .all(subject.id) as unknown as Array<{
         id: string;
         title: string;
         parent_lesson_id: string | null;

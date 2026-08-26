@@ -31,7 +31,7 @@ test('e2e-editor: abre arquivo, edita e salva por IPC (persistência em disco)',
   await expect(page.getByRole('banner').getByText('Study Method — Tutor', { exact: false })).toBeVisible();
   await page.getByRole('tab', { name: 'Aula' }).click();
   await page.getByLabel('Assunto').fill('Ordenação');
-  await page.getByRole('button', { name: 'Gerar aula' }).click();
+  await page.getByRole('button', { name: 'Gerar nova aula' }).click();
 
   // Desafio aparece; clica no card → navega para a aba Desafio.
   const card = page.getByText('Ordenação (E2E)', { exact: false }).first();

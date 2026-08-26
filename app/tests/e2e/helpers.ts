@@ -51,11 +51,20 @@ export async function launchApp(opts: LaunchOpts = {}): Promise<{
     // com este valor — os testes rodam sem abrir janela sobre o desktop e sem
     // roubar foco do usuário (o defaults ausente mantém o comportamento normal).
     STUDY_METHOD_WINDOW_VISIBLE: '0',
+    // LOCALE PINADO (determinismo do harness): as specs assumem UI em pt-BR. Sem
+    // isto, o app detecta o idioma do HOST via navigator.language (ex.: 'en-US'
+    // num macOS em inglês) e renderiza 'en', quebrando TODAS as asserções de
+    // texto pt-BR. O `--lang=pt-BR` (switch Chromium, abaixo) fixa o locale do
+    // app; o LANG é fallback defensivo para runtimes/CI que leem a env antes do
+    // switch. O idioma NÃO é objeto de teste aqui (a DETECÇÃO real é coberta por
+    // unit tests — tests/i18n-resources.test.ts — com navigator mockado).
+    LANG: 'pt_BR.UTF-8',
     ...opts.env,
   };
 
   const app = await _electron.launch({
-    args: [MAIN_ENTRY, '--disable-gpu'],
+    // `--lang=pt-BR` garante navigator.language='pt-BR' independente do host.
+    args: [MAIN_ENTRY, '--disable-gpu', '--lang=pt-BR'],
     env,
     cwd: opts.cwd ?? APP_ROOT,
   });

@@ -33,19 +33,24 @@ test('e2e-lesson: assunto → aula com Stepper + fases + markdown + desafios', a
 
   // Digita o assunto e gera.
   await page.getByLabel('Assunto').fill('Ordenação');
-  await page.getByRole('button', { name: 'Gerar aula' }).click();
+  await page.getByRole('button', { name: 'Gerar nova aula' }).click();
 
   // Aguarda o Stepper de fases renderizar (a geração emite events + resolve).
   await expect(page.getByText('Pesquisando', { exact: true })).toBeVisible();
   await expect(page.getByText('Concluído', { exact: true })).toBeVisible();
 
-  // Conteúdo da aula: título (markdown) + heading dos desafios.
+  // Conteúdo da aula CURTA (AnswerSection): título + lead (blockquote mockado) +
+  // exemplo de código. O markdown completo é resumido a 1–2 parágrafos + 1 code
+  // block por `summarizeLessonToShort`, então as seções "## Analogia" ("Imagine
+  // uma fila ordenada.") e "## Fórmula (KaTeX)" NÃO entram no resumo curto — a
+  // renderização KaTeX continua coberta por tests/lessonMarkdown.test.ts (unit,
+  // headless, mesmos plugins remark-math + rehype-katex).
   await expect(page.getByText('Aula E2E sobre Ordenação', { exact: false })).toBeVisible();
-  await expect(page.getByText('Imagine uma fila ordenada.', { exact: false })).toBeVisible();
+  await expect(
+    page.getByText('Conteúdo mockado do harness E2E — sem LLM/DeepSeek.', { exact: false }),
+  ).toBeVisible();
+  await expect(page.getByText('print("olá")', { exact: false })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Desafios' })).toBeVisible();
-
-  // fix17c ACHADO-6: a aula contém fórmula $...$ → KaTeX renderiza .katex live.
-  await expect(page.locator('.katex').first()).toBeVisible({ timeout: 10000 });
 
   // Lista de desafios: o card mockado está presente.
   await expect(page.getByText('Ordenação (E2E)', { exact: false })).toBeVisible();
