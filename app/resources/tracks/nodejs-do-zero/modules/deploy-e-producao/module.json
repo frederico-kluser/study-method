@@ -7,5 +7,6 @@
     "variaveis-de-ambiente",
     "deploy-em-servidores",
     "observabilidade-e-logging"
-  ]
+  ],
+  "challenge": "desafio-do-modulo-deploy"
 }
