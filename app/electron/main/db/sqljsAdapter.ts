@@ -30,23 +30,28 @@
 
 import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
-import initSqlJs, { type Database as SqlDatabase, type Statement } from 'sql.js';
+import initSqlJs, {
+  type BindParams,
+  type Database as SqlDatabase,
+  type SqlJsStatic,
+  type Statement,
+} from 'sql.js';
 
 // Caminho absoluto do WASM — resolução robusta ao bundler do main (electron-vite
 // externaliza deps, então `require.resolve` acha o arquivo real no node_modules).
 const WASM_PATH = join(dirname(require.resolve('sql.js/package.json')), 'dist', 'sql-wasm.wasm');
 
-let _Sql: Awaited<ReturnType<typeof initSqlJs>> | null = null;
+let _Sql: SqlJsStatic | null = null;
 
-/** Carrega a instância do sql.js (singleton, síncrono no primeiro uso). */
-export function getSqlJs(): Awaited<ReturnType<typeof initSqlJs>> {
+/** Carrega a instância do sql.js (singleton — o init é assíncrono, aguardado aqui). */
+export async function getSqlJs(): Promise<SqlJsStatic> {
   if (_Sql) return _Sql;
   const wasmBinary = readFileSync(WASM_PATH);
   // initSqlJs pode aceitar `{ locateFile }` ou `{ wasmBinary }`; aqui passamos o
   // buffer pronto para evitar race de I/O e compat com o loader do node.
   // (local: o sql.js aceita `locateFile` que devolve o Caminho do .wasm; passamos
   // `wasmBinary` para não depender mais ainda.)
-  _Sql = initSqlJs({ wasmBinary });
+  _Sql = await initSqlJs({ wasmBinary });
   return _Sql;
 }
 
@@ -94,7 +99,7 @@ function wrapStatement(stmt: Statement, raw: SqlDatabase): SqlJsStatement {
     run(...params: unknown[]): { changes: number; lastInsertRowid: number } {
       try {
         stmt.reset();
-        if (params.length > 0) stmt.bind(params);
+        if (params.length > 0) stmt.bind(params as BindParams);
         stmt.step();
         stmt.reset();
         const changesRaw = raw.exec('SELECT changes() AS c')[0]?.values?.[0]?.[0];
@@ -110,7 +115,7 @@ function wrapStatement(stmt: Statement, raw: SqlDatabase): SqlJsStatement {
 
     get(...params: unknown[]): Record<string, unknown> | undefined {
       stmt.reset();
-      if (params.length > 0) stmt.bind(params);
+      if (params.length > 0) stmt.bind(params as BindParams);
       const names = stmt.getColumnNames();
       const has = stmt.step();
       const row = has ? stmt.getAsObject() : undefined;
@@ -125,7 +130,7 @@ function wrapStatement(stmt: Statement, raw: SqlDatabase): SqlJsStatement {
 
     all(...params: unknown[]): Array<Record<string, unknown>> {
       stmt.reset();
-      if (params.length > 0) stmt.bind(params);
+      if (params.length > 0) stmt.bind(params as BindParams);
       const names = stmt.getColumnNames();
       const rows: Array<Record<string, unknown>> = [];
       const seen: string[] = [];
