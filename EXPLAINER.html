@@ -4,8 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="plannotator-theme" content="host">
-<title>Rodada 7 — o ciclo de estudo fechado</title>
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%235537eb'/%3E%3Ctext x='32' y='45' font-family='Georgia,serif' font-size='38' font-weight='700' fill='white' text-anchor='middle'%3E7%3C/text%3E%3C/svg%3E">
+<title>Rodada 9 — do zero ao especialista, sem loading infinito</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%235537eb'/%3E%3Ctext x='32' y='45' font-family='Georgia,serif' font-size='38' font-weight='700' fill='white' text-anchor='middle'%3E9%3C/text%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
@@ -33,9 +33,6 @@
     --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
     --font-mono: 'JetBrains Mono', 'Fira Code', ui-monospace, 'SF Mono', monospace;
     --font-display: ui-serif, Georgia, 'Times New Roman', serif;
-    --crit-fill: #fde68a;
-    --crit-text: #451a03;
-    --crit-stroke: #b45309;
   }
 
   @media (prefers-color-scheme: dark) {
@@ -93,7 +90,7 @@
     html { scroll-behavior: auto; }
   }
 
-  /* ============ NAV ============ */
+  /* ============ TOPNAV ============ */
   .topnav {
     position: sticky;
     top: 0;
@@ -503,59 +500,64 @@
 
 <nav class="topnav" aria-label="Navegação do documento">
   <div class="topnav__inner">
-    <a href="#pedidos">1 · Pedidos</a>
-    <a href="#aula-veredito">2 · Aula com veredito</a>
-    <a href="#regra-mestra">3 · Regra da matemática</a>
-    <a href="#estrelas">4 · Estrelas e confete</a>
-    <a href="#nunca-repetir">5 · Nunca-repetir</a>
-    <a href="#persistencia">6 · Banco à prova de queda</a>
-    <a href="#navegar">7 · Home e Trilha</a>
-    <a href="#validacao">8 · Validação</a>
+    <a href="#pedidos">1 · Pedido</a>
+    <a href="#aula-sem-espera">2 · Aula sem espera</a>
+    <a href="#veredito">3 · Veredito honesto</a>
+    <a href="#desafio-modulo">4 · Desafio de módulo</a>
+    <a href="#seguranca">5 · Segurança</a>
+    <a href="#ondas">6 · As 6 ondas</a>
+    <a href="#validacao">7 · Validação</a>
   </div>
 </nav>
 
 <div class="container">
 
   <header>
-    <p class="eyebrow animate" style="--i:0">Rodada 7 · Study-Method · 2026-08-27</p>
-    <h1 class="animate" style="--i:1">O que a rodada 7 entregou ao study-method</h1>
+    <p class="eyebrow animate" style="--i:0">Rodada 9 · Study-Method · 2026-08-27</p>
+    <h1 class="animate" style="--i:1">O que a rodada 9 entregou ao study-method</h1>
 
     <div class="answer-card animate" style="--i:2">
-      A rodada 7 fechou o ciclo pedagógico do study-method: toda aula agora termina num
-      <strong>veredito</strong> (decisão final sobre a resposta do aluno: certa, parcial ou errada)
-      — matemática conferida por execução, interpretação por <strong>LLM</strong> (modelo de
-      linguagem, o &ldquo;cérebro&rdquo; que escreve e julga), programação por <strong>TDD</strong>
-      (testes que só passam com o código certo) —, desafios tentados nunca mais se repetem, e
-      matérias, lições e tentativas ficam salvas num banco local à prova de queda.
+      A rodada 9 (ciclo de desenvolvimento do produto; esta é a nona) levou a
+      <strong>trilha</strong> <code>nodejs-do-zero</code> — a sequência de <strong>módulos</strong>
+      (blocos de aulas com um desafio final) que o aluno percorre do básico ao avançado — de 8 para
+      <strong>18 módulos e 118 aulas</strong>, do zero absoluto ao especialista. Cada módulo passou a
+      terminar num <strong>desafio de módulo multi-arquivo</strong> (2–3 arquivos que se importam entre
+      si). No app, abrir a aula deixou de esperar o <strong>LLM</strong> (modelo de linguagem grande: a
+      IA que escreve, responde e gera): a teoria e o primeiro desafio já vêm prontos do arquivo. E o
+      resultado da correção de cada desafio agora mostra, teste por teste, o que passou e o que falhou —
+      aprovação parcial, &ldquo;N de M testes passaram&rdquo;, não tudo-ou-nada. Tudo verificado por
+      execução: <strong>136/136 desafios rodados de verdade</strong> e <strong>1688 testes verdes</strong>.
     </div>
 
     <div class="stats animate" style="--i:3">
       <div class="stat">
-        <div class="stat__num">9</div>
-        <div class="stat__label">pedidos do dono entregues, em 6 ondas (fases) de trabalho</div>
+        <div class="stat__num">18</div>
+        <div class="stat__label">módulos na trilha nodejs-do-zero (eram 8)</div>
       </div>
       <div class="stat">
-        <div class="stat__num">1562</div>
-        <div class="stat__label">testes verdes (de 1563) na suíte do app</div>
+        <div class="stat__num">118</div>
+        <div class="stat__label">aulas, do zero absoluto ao especialista</div>
       </div>
       <div class="stat">
-        <div class="stat__num">19</div>
-        <div class="stat__label">testes E2E verdes — o app completo rodado de ponta a ponta</div>
+        <div class="stat__num">136</div>
+        <div class="stat__label">desafios verificados por execução real · 0 NÃO VERIFICADO</div>
       </div>
       <div class="stat">
-        <div class="stat__num">20.000</div>
-        <div class="stat__label">problemas de matemática conferidos por uma via independente — 0 divergências</div>
+        <div class="stat__num">1688</div>
+        <div class="stat__label">testes verdes na suíte do app · 0 falhas · E2E (ponta a ponta) 19/19</div>
       </div>
     </div>
 
     <div class="prompt-box animate" style="--i:4">
       <span class="prompt-box__label">O que o dono pediu nesta rodada</span>
-      <strong>Pesquisa na web ao vivo</strong> durante a geração de aulas, com checklist estilo surf;
-      <strong>trilha</strong> separável em iniciante/intermediário/avançado; <strong>aula curta</strong>
-      focada em interação, com veredito; <strong>confete</strong> ao passar; <strong>cronômetro das
-      3 estrelas</strong> (velocidade conta); <strong>nunca repetir problema</strong> (errou → outro;
-      salvar matéria e problema no banco); <strong>telas de matérias separadas</strong> matemática e
-      programação, com aviso de troca; <strong>chave Brave sempre obrigatória</strong>.
+      <strong>Trilha <code>nodejs-do-zero</code> do zero ao ESPECIALISTA</strong>, com um
+      <strong>DESAFIO DE MÓDULO</strong> multi-arquivo e elaborado no fim de cada módulo;
+      <strong>MUITO mais que 36 aulas</strong>, conhecimentos bem separados, uma aula por propriedade
+      principal de array/objeto, <strong>POO</strong>; <strong>UX:</strong> ao abrir a aula,
+      <strong>NUNCA loading infinito</strong> — o texto da aula e o primeiro desafio já prontos;
+      <strong>veredito do desafio</strong> com os <strong>CHECKS de aprovação</strong> de cada teste
+      rodado; aprovação não é tudo-ou-nada (ex.: 5/10). &ldquo;Pode usar muitos sub-agentes. Apenas
+      pare quando terminar.&rdquo;
     </div>
   </header>
 
@@ -563,620 +565,510 @@
 
     <!-- ================= SEGMENTO 1 ================= -->
     <section id="pedidos">
-      <h2><span class="num">01</span> Os 9 pedidos do dono — e onde cada um foi parar</h2>
+      <h2><span class="num">01</span> O pedido: uma trilha enorme que nunca trava</h2>
       <p class="lead">
-        Uma <strong>rodada</strong> (ciclo de desenvolvimento do produto; esta é a 7ª) é organizada em
-        <strong>ondas</strong> (fases de trabalho). Cada onda desta rodada entregou pedaços de vários
-        pedidos — o quadro abaixo mostra cada pedido, em que onda nasceu e como ficou.
+        Uma <strong>rodada</strong> é executada em <strong>ondas</strong> (levas de agentes trabalhando
+        em paralelo na mesma frente de tarefas). O pedido tinha quatro pontas: conteúdo gigante e bem
+        separado, desafio de módulo multi-arquivo, zero loading infinito e veredito por teste. O quadro
+        abaixo mostra cada ponta e onde ela foi parar.
       </p>
 
       <div class="table-wrap">
         <table>
-          <caption>As 9 entregas da rodada 7</caption>
+          <caption>Os 4 pedidos e onde cada um foi parar</caption>
           <thead>
             <tr>
               <th scope="col">#</th>
-              <th scope="col">Onda</th>
-              <th scope="col">O pedido do dono</th>
-              <th scope="col">Como ficou</th>
+              <th scope="col">O pedido</th>
+              <th scope="col">Onde foi parar</th>
             </tr>
           </thead>
           <tbody>
             <tr>
               <td class="num-col">1</td>
-              <td class="num-col"><span class="chip">2</span></td>
-              <td>Pesquisa na web <strong>ao vivo</strong> durante a geração, com checklist estilo surf</td>
-              <td>A geração pesquisa de verdade no buscador <strong>Brave</strong> (buscador usado para achar fontes reais da aula) e a tela mostra um <strong>checklist ao vivo</strong> (lista que se atualiza a cada consulta): cada pergunta vira consultas, cada consulta mostra spinner → ✓ com nº de resultados ou ✗ com erro. Término garantido em no máximo 2 rodadas.</td>
+              <td>Trilha do zero ao <strong>especialista</strong>, com <strong>desafio de módulo</strong> multi-arquivo e elaborado no fim de cada módulo</td>
+              <td>Ondas 2–5: a mecânica do desafio de módulo (seção 4) + <strong>18/18 módulos</strong> com desafio multi-arquivo</td>
             </tr>
             <tr>
               <td class="num-col">2</td>
-              <td class="num-col"><span class="chip">2</span></td>
-              <td>Trilha/roadmap separável em iniciante / intermediário / avançado</td>
-              <td>Nova aba <strong>Trilha</strong> (mapa de progresso da matéria por níveis): Iniciante (1–2), Intermediário (3), Avançado (4–5), com nós <code>done</code>/<code>current</code>/<code>pending</code>. Clicar num nó <strong>abre a lição salva</strong> — nada de regenerar do zero.</td>
+              <td>Muito mais que 36 aulas; conhecimentos bem separados; uma aula por propriedade principal de array/objeto; <strong>POO</strong> (programação orientada a objetos)</td>
+              <td>Ondas 3–4: <strong>10 módulos novos</strong>, 82 aulas — incluindo <code>arrays-profundas</code> (14 aulas) e <code>poo</code> (11) (seção 6)</td>
             </tr>
             <tr>
               <td class="num-col">3</td>
-              <td class="num-col"><span class="chip">3</span></td>
-              <td>Aula curta focada em interação, com veredito</td>
-              <td>Toda aula termina numa pergunta avaliada: <strong>interpretação</strong> por LLM; <strong>matemática</strong> por biblioteca conferida <em>antes</em> de gerar; <strong>programação</strong> por TDD, com falhas orientadas só pela saída dos testes (detalhe na seção 2).</td>
+              <td>UX: ao abrir a aula, <strong>nunca loading infinito</strong> — texto e primeiro desafio já prontos</td>
+              <td>Onda 1: o <code>next</code> do tutor ficou <strong>determinístico</strong> — teoria direto do arquivo, sem LLM (seção 2)</td>
             </tr>
             <tr>
               <td class="num-col">4</td>
-              <td class="num-col"><span class="chip">1</span></td>
-              <td>Confete ao passar</td>
-              <td>Rajada curta de confete quando os testes passam — respeita quem pede menos animação (<strong>acessibilidade</strong>: tornar o app usável para todos, inclusive com menos animação), anuncia o resultado em <code>role="status"</code> e evita o &ldquo;Parabéns!&rdquo; ritualizado: vale o feedback específico do avaliador.</td>
-            </tr>
-            <tr>
-              <td class="num-col">5</td>
-              <td class="num-col"><span class="chip">1</span></td>
-              <td>Cronômetro das 3 estrelas — velocidade conta</td>
-              <td>Cada desafio começa com <strong>3 estrelas</strong> e um cronômetro regressivo de <code>90s + dificuldade × 60s</code> (dificuldade = nível 1 a 5 do desafio). Perde estrela por janela sem foco (blur), tempo esgotado, teste falho e demora (usar ≥ 60% do limite custa 1; ≥ 85% custa outra). Saldo nunca fica abaixo de 0 (seção 4).</td>
-            </tr>
-            <tr>
-              <td class="num-col">6</td>
-              <td class="num-col"><span class="chip">4</span></td>
-              <td>Nunca repetir problema: errou → outro; salvar matéria e problema no banco</td>
-              <td>Desafio tentado <strong>some da lista</strong>. Programação usa o <strong>slug</strong> (nome estável, ex.: <code>fatorial-recursivo</code>); matemática usa <strong>seed</strong> (número que dá origem ao problema) por tentativa — errou, o próximo problema é outro. Matéria, problema e tentativas ficam gravados no banco (seção 5).</td>
-            </tr>
-            <tr>
-              <td class="num-col">7</td>
-              <td class="num-col"><span class="chip">4</span></td>
-              <td>Telas de matérias separadas (matemática / programação) com aviso de troca</td>
-              <td>Home com seções <strong>Programação</strong> e <strong>Matemática</strong>. Trocar de matéria com aula em andamento de outra abre um diálogo de aviso — a avaliação da aula atual é feita pela LLM (seção 7).</td>
-            </tr>
-            <tr>
-              <td class="num-col">8</td>
-              <td class="num-col"><span class="chip">1 + 4</span></td>
-              <td>Persistência no banco</td>
-              <td>Matérias, lições e tentativas gravadas num <strong>SQLite</strong> (banco de dados local do app), com <strong>migração</strong> (atualização do formato do banco) até a versão 3, passo a passo e <strong>crash-safe</strong> — cair no meio não corrompe nem perde dados (seção 6).</td>
-            </tr>
-            <tr>
-              <td class="num-col">9</td>
-              <td class="num-col"><span class="chip">2</span></td>
-              <td>Chave Brave sempre obrigatória</td>
-              <td>Sem chave, ou com chave rejeitada (0 fontes encontradas), a geração <strong>aborta com mensagem clara</strong> — qualidade da aula não se negocia.</td>
+              <td>Veredito com os <strong>checks de aprovação</strong> de cada teste; aprovação não é tudo-ou-nada (ex.: 5/10)</td>
+              <td>Onda 1: <code>parseSpecChecks</code> + lista <code>checks[]</code> no veredito, com razão &ldquo;N de M testes passaram&rdquo; (seção 3)</td>
             </tr>
           </tbody>
         </table>
       </div>
 
       <p class="lead">
-        Duas ondas fecharam o restante da história: a <strong>onda 5</strong> levou o veredito para a
-        interface (botão &ldquo;Avançar mesmo assim&rdquo;, aula reaberta por id, registro terminal da
-        tentativa) e a <strong>onda 6</strong> documentou tudo. As seções abaixo percorrem o
-        mecanismo de cada pedido.
+        As seções abaixo percorrem o mecanismo de cada entrega, na ordem em que o aluno encontra:
+        abrir a aula, corrigir um desafio, encarar o desafio de módulo — e, no fim, como tudo foi
+        construído e verificado.
       </p>
     </section>
 
     <!-- ================= SEGMENTO 2 ================= -->
-    <section id="aula-veredito">
-      <h2><span class="num">02</span> A aula curta com veredito</h2>
+    <section id="aula-sem-espera">
+      <h2><span class="num">02</span> A aula que abre sem esperar: teoria pronta no arquivo</h2>
       <p class="lead">
-        O coração da rodada: a aula não acaba na leitura — termina numa pergunta que é avaliada.
-        Há três ramos, decididos pelo tipo de aula; todos convergem para um veredito, e o veredito
-        é pré-requisito do avanço.
+        O pedido de UX tem um nome técnico: <strong>determinístico</strong> — sempre produz o mesmo
+        resultado para a mesma entrada, sem IA e sem sorteio. Antes, o tutor do chat escrevia a teoria
+        na hora; agora o <code>next</code> (o passo que avança a aula) lê o markdown da seção direto do
+        <code>lesson.json</code> — na íntegra, igual para todo mundo. O <strong>LLM</strong> só entra
+        em dois momentos: tirar dúvida (<code>answer</code>) e gerar desafio novo. Os dois dependem de
+        <strong>chave de API</strong> (segredo que autoriza o app a chamar o serviço de IA); sem chave,
+        em vez de <strong>loading infinito</strong> (tela de espera que não termina porque a resposta
+        nunca chega), o app devolve o erro estruturado <code>TUTOR_UNAVAILABLE</code> — falha rápida
+        que diz exatamente o que falta.
       </p>
 
       <figure class="figure">
-        <div class="diagram-shell" role="img" aria-label="Fluxo da aula: pesquisa ao vivo, geração, três ramos de avaliação e o avanço sempre pelo botão primário">
+        <div class="diagram-shell" role="img" aria-label="Fluxo da aula: teoria e primeiro desafio vêm do arquivo lesson.json sem LLM; o LLM só entra em dúvida ou desafio novo, e sem chave de API a falha é rápida com TUTOR_UNAVAILABLE">
           <p class="diagram-shell__hint">
-            Ctrl/Cmd + rolagem dá zoom · arraste para mover · duplo clique ajusta · ⛶ abre em nova aba
+            Ctrl/Cmd + roda para zoom. Arraste para pan quando ampliado. Duplo clique para ajustar.
           </p>
           <div class="mermaid-wrap">
             <div class="zoom-controls">
-              <button type="button" data-action="zoom-in" title="Aproximar">+</button>
-              <button type="button" data-action="zoom-out" title="Afastar">&minus;</button>
-              <button type="button" data-action="zoom-fit" title="Ajustar">&#8634;</button>
-              <button type="button" data-action="zoom-one" title="100%">1:1</button>
-              <button type="button" data-action="zoom-expand" title="Abrir em nova aba">&#x26F6;</button>
-              <span class="zoom-label">Carregando…</span>
+              <button type="button" data-action="zoom-in" title="Aumentar zoom">+</button>
+              <button type="button" data-action="zoom-out" title="Diminuir zoom">&minus;</button>
+              <button type="button" data-action="zoom-fit" title="Ajustar à tela">&#8634;</button>
+              <button type="button" data-action="zoom-one" title="Zoom 1:1">1:1</button>
+              <button type="button" data-action="zoom-expand" title="Abrir em tamanho real">&#x26F6;</button>
+              <span class="zoom-label">Loading...</span>
             </div>
             <div class="mermaid-viewport">
               <div class="mermaid mermaid-canvas"></div>
             </div>
           </div>
           <script type="text/plain" class="diagram-source">
-            flowchart TD
-              A["Assunto digitado"] --> B["Pesquisa Brave ao vivo<br/>+ checklist na tela"]
-              B --> C["Aula curta gerada"]
-              C --> D{"Qual o tipo de aula?"}
-              D -->|"matemática"| E["Exercício gerado<br/>pela mathLib"]
-              E --> F["Aluno digita a resposta"]
-              F --> G["check-math-answer:<br/>re-computa o gabarito<br/>SEM LLM"]:::crit
-              G -->|"certa"| V["Veredito"]:::crit
-              G -->|"errada"| H["Mostra o gabarito<br/>e permite tentar de novo"]
-              H --> F
-              D -->|"conceito"| I["Pergunta de interpretação"]
-              I --> J["Aluno responde em texto"]
-              J --> K["judge-answer:<br/>LLM julga"]
-              K -->|"certa"| V
-              K -->|"parcial ou errada"| L["Feedback na tela<br/>+ 'Avançar mesmo assim'"]
-              D -->|"programação"| M["Desafio TDD no editor"]
-              M --> N["Testar resposta"]
-              N -->|"testes passaram"| V
-              N -->|"testes falharam"| O["Só a saída dos testes<br/>orienta a correção"]
-              O --> M
-              L --> P["Avanço sempre pelo<br/>botão primário"]:::crit
-              V --> P
-              classDef crit fill:#fde68a,stroke:#b45309,color:#451a03,stroke-width:2px
+flowchart TD
+  A["Aluno abre a aula"] --> B{"O que a aula precisa?"}
+  B -->|"teoria ou primeiro desafio"| C["Lê o arquivo lesson.json:<br/>markdown da seção, na íntegra"]:::crit
+  C -->|"sem LLM"| D["Aula renderizada na hora"]:::crit
+  B -->|"dúvida ou desafio novo"| E{"Chave de API presente?"}
+  E -->|"sim"| F["LLM responde ou gera"]
+  E -->|"não"| G["Erro estruturado<br/>TUTOR_UNAVAILABLE"]
+  G -->|"em vez de spinner"| H["Falha rápida:<br/>o aluno sabe o que falta"]:::crit
+  classDef crit fill:#fde68a,stroke:#b45309,color:#451a03,stroke-width:2px
           </script>
         </div>
         <figcaption>
-          <strong>Figura 1.</strong> Toda aula termina num veredito — e o avanço para a próxima é
-          sempre por botão, nunca automático.
+          <strong>Figura 1 · O fluxo da aula sem loading.</strong> Teoria e primeiro desafio já vêm
+          prontos do arquivo: abrir aula não espera o LLM — o LLM só entra na dúvida e no desafio novo.
         </figcaption>
       </figure>
 
       <div class="signal">
-        <strong>O caminho crítico:</strong> o veredito é pré-requisito do avanço. Nada de
-        encadeamento automático para a aula seguinte — quem avança é o botão primário
-        (&ldquo;Continuar&rdquo; quando há aula pendente, senão &ldquo;Gerar nova aula&rdquo;), e o
-        veredito permanece visível.
+        <strong>O caminho crítico é o caminho feliz (nós em âmbar):</strong> abrir a aula não usa LLM
+        nenhum. O LLM existe, mas fica atrás de um pedido explícito do aluno (dúvida ou desafio novo)
+        <em>e</em> da chave de API — sem ela, a falha é rápida, nunca um spinner.
       </div>
 
+      <p>
+        Na interface, o indicador &ldquo;tutor digitando…&rdquo; agora só aparece quando o
+        <code>answer</code> está trabalhando — nunca no avanço da aula. E os textos do app ganharam
+        <strong>i18n</strong> (internacionalização: as mesmas mensagens em vários idiomas), incluindo
+        as novas frases do veredito e do desafio de módulo.
+      </p>
+
       <details class="scaffold">
-        <summary>O que é TDD? E por que três formas de avaliar?</summary>
+        <summary>O que é Electron e o que é o IPC? (pré-treino)</summary>
         <div class="scaffold__body">
           <p>
-            Na prática, no study-method: o desafio de programação vem com testes prontos, e o
-            código do aluno só é considerado correto quando eles passam. A avaliação é a
-            <strong>saída dos testes</strong> — o LLM orienta o feedback, mas quem decide o
-            certo/errado é a execução.
+            O study-method é um app <strong>Electron</strong>: programa de desktop feito com tecnologias
+            web (HTML, CSS e JavaScript). Dentro dele há dois mundos: a <em>interface</em> — o que o
+            aluno vê e clica — e o <em>processo principal</em> — onde o Node roda os testes do código
+            do aluno e fala com o serviço de IA. A ponte entre os dois é o <strong>IPC</strong>
+            (comunicação entre processos): a interface pede, o processo principal responde.
           </p>
           <p>
-            <strong>Interpretação</strong> (aula de conceito) não tem certo/errado executável — por
-            isso o julgamento é do LLM (DeepSeek, com queda automática para o modelo local), com
-            veredito <code>correct</code> / <code>partial</code> / <code>incorrect</code> e feedback
-            em pt-BR. O LLM é instruído a nunca elogiar no vazio e nunca inventar um acerto; se o
-            julgamento falhar por erro de serviço, não há veredito inventado — aparece um erro de
-            serviço.
-          </p>
-          <p>
-            <strong>Matemática</strong> é o caso mais rígido: o gabarito é calculado por uma
-            biblioteca (nunca por LLM) — a seção 3 mostra essa regra-mestra.
+            Nesta rodada, o contrato dessa ponte (<code>shared/ipc-contract.ts</code>) cresceu de
+            forma <em>aditiva</em>: os campos novos — checks do veredito e o conceito de desafio de
+            módulo — foram somados sem quebrar o que já existia.
           </p>
         </div>
       </details>
     </section>
 
     <!-- ================= SEGMENTO 3 ================= -->
-    <section id="regra-mestra">
-      <h2><span class="num">03</span> A regra-mestra da matemática: o gabarito nunca vem de cabeça</h2>
+    <section id="veredito">
+      <h2><span class="num">03</span> O veredito honesto: cada teste conta</h2>
       <p class="lead">
-        &ldquo;Esperado de cabeça nunca — esperado vem da execução.&rdquo; O valor correto de um
-        exercício de matemática não é um número chutado pelo LLM, pela tela ou por constante fixa:
-        ele é <strong>computado</strong> por uma biblioteca dedicada, na geração e de novo a cada
-        resposta.
+        Quando o aluno submete o código, um <strong>runner</strong> (processo que executa o código
+        contra os testes) roda a suíte com <strong>node:test</strong> (o executor de testes embutido no
+        Node.js) e gera um relatório. Esse relatório é texto bruto de terminal, cheio de
+        <strong>ANSI</strong> (códigos de cor que o terminal injeta no texto) e de ruído. A função
+        <strong><code>parseSpecChecks</code></strong> limpa tudo e extrai a lista
+        <strong><code>checks[]</code></strong>: o resultado de cada teste, com nome e se passou. O
+        <strong>veredito</strong> (resultado da correção da submissão) passa a mostrar o checklist ✓/✗
+        e a razão &ldquo;<strong>N de M testes passaram</strong>&rdquo;.
       </p>
 
       <figure class="figure">
-        <div class="diagram-shell" role="img" aria-label="Regra-mestra: o seed entra na mathLib, que gera o problema e calcula o gabarito; o check-math-answer re-computa sem LLM; errou, o próximo seed muda">
+        <div class="diagram-shell" role="img" aria-label="Veredito por teste: runner com node:test gera relatório bruto, parseSpecChecks limpa e extrai checks[] por teste, razão N de M decide passed=true com confete ou checklist parcial com novo desafio">
           <p class="diagram-shell__hint">
-            Ctrl/Cmd + rolagem dá zoom · arraste para mover · duplo clique ajusta · ⛶ abre em nova aba
+            Ctrl/Cmd + roda para zoom. Arraste para pan quando ampliado. Duplo clique para ajustar.
           </p>
           <div class="mermaid-wrap">
             <div class="zoom-controls">
-              <button type="button" data-action="zoom-in" title="Aproximar">+</button>
-              <button type="button" data-action="zoom-out" title="Afastar">&minus;</button>
-              <button type="button" data-action="zoom-fit" title="Ajustar">&#8634;</button>
-              <button type="button" data-action="zoom-one" title="100%">1:1</button>
-              <button type="button" data-action="zoom-expand" title="Abrir em nova aba">&#x26F6;</button>
-              <span class="zoom-label">Carregando…</span>
+              <button type="button" data-action="zoom-in" title="Aumentar zoom">+</button>
+              <button type="button" data-action="zoom-out" title="Diminuir zoom">&minus;</button>
+              <button type="button" data-action="zoom-fit" title="Ajustar à tela">&#8634;</button>
+              <button type="button" data-action="zoom-one" title="Zoom 1:1">1:1</button>
+              <button type="button" data-action="zoom-expand" title="Abrir em tamanho real">&#x26F6;</button>
+              <span class="zoom-label">Loading...</span>
             </div>
             <div class="mermaid-viewport">
               <div class="mermaid mermaid-canvas"></div>
             </div>
           </div>
           <script type="text/plain" class="diagram-source">
-            flowchart TD
-              S["Seed: contagem de tentativas<br/>+ família do exercício"] --> M["mathLib: gera o problema<br/>E calcula o gabarito<br/>com aritmética exata"]
-              M -->|"mesmo seed → mesmo problema<br/>(determinístico)"| G["A aula mostra<br/>só o problema"]
-              M -->|"conferidos por aritmética<br/>independente"| C2["20.000 problemas<br/>verificados — 0 divergências"]
-              G --> A["Aluno digita a resposta"]
-              A --> C["check-math-answer:<br/>re-computa o gabarito<br/>no app — SEM LLM"]:::crit
-              C -->|"compara"| X{"Resposta bate<br/>com o gabarito?"}:::crit
-              X -->|"sim"| OK["Certa —<br/>aula concluída"]
-              X -->|"não"| NOK["Errada — o gabarito<br/>aparece só agora"]
-              NOK -->|"errou → a próxima tentativa<br/>muda o seed"| S
-              classDef crit fill:#fde68a,stroke:#b45309,color:#451a03,stroke-width:2px
+flowchart TD
+  A["Aluno submete<br/>o código"] --> B["Runner executa<br/>com node:test"]
+  B -->|"gera"| C["Relatório spec bruto:<br/>cores ANSI e ruído"]
+  C -->|"limpa o texto"| D["parseSpecChecks"]:::crit
+  D -->|"extrai"| E["checks[]: nome + passou<br/>por teste"]
+  E -->|"alimenta"| F["N de M testes<br/>passaram"]:::crit
+  F -->|"decide"| G{"passed=true?"}
+  G -->|"sim"| H["Confete + aprovação"]
+  G -->|"não: parcial,<br/>falhou ou timeout"| I["Checklist ✓/✗ +<br/>gerar novo desafio"]
+  classDef crit fill:#fde68a,stroke:#b45309,color:#451a03,stroke-width:2px
           </script>
         </div>
         <figcaption>
-          <strong>Figura 2.</strong> O gabarito da matemática é calculado por execução na geração e
-          re-computado a cada resposta — o LLM nunca chuta.
+          <strong>Figura 2 · O veredito honesto.</strong> Aprovação não é tudo-ou-nada: o veredito
+          lista cada teste ✓/✗ e a razão &ldquo;N de M testes passaram&rdquo; antes da próxima
+          tentativa.
         </figcaption>
       </figure>
 
       <div class="signal">
-        <strong>O caminho crítico:</strong> a <strong>mathLib</strong> (biblioteca que gera o
-        problema e calcula o <strong>gabarito</strong> — o valor correto que a resposta deve dar)
-        nunca recebe o gabarito do LLM: o LLM só vê o enunciado. E o <code>check-math-answer</code>
-        re-computa o gabarito dentro do app, <strong>sem LLM</strong>, a cada resposta digitada. A
-        tela só mostra o gabarito depois da 1ª tentativa errada.
+        <strong>O caminho crítico é o meio do caminho (nós em âmbar):</strong> 5 de 10 é um veredito
+        útil, não um fracasso. O aluno vê exatamente o que passou e o que falta antes de tentar de
+        novo; o confete só dispara com <code>passed=true</code>, e o botão &ldquo;gerar novo
+        desafio&rdquo; aparece em qualquer não-aprovação total — falhou ou deu timeout, incluindo
+        <strong>parcial</strong> (submissão em que só parte dos testes passou).
       </div>
 
       <p>
-        A prova de que a biblioteca não está &ldquo;acertando por sorte&rdquo;: <strong>20.000
-        problemas</strong> foram conferidos por uma via independente (aritmética exata) — 0
-        divergências.
+        Os filtros do <code>parseSpecChecks</code> são defensivos de propósito: remove as cores ANSI,
+        descarta durações, ignora linhas do tipo &ldquo;failing tests:&rdquo; e monta nomes limpos
+        para os testes. O resultado alimenta o <code>TrackSubmitResult</code> — o pacote que a
+        interface recebe com <code>checks[]</code>, <code>passedCount</code> e <code>totalCount</code>.
       </p>
 
       <details class="scaffold">
-        <summary>Como o seed vira um problema (exemplo resolvido)</summary>
+        <summary>Exemplo resolvido: o caminho de uma submissão até o veredito 5/10</summary>
         <div class="scaffold__body">
-          <p>
-            <strong>Seed</strong> = o número que dá origem ao problema; o mesmo seed sempre produz o
-            mesmo problema (comportamento <strong>determinístico</strong> — sempre o mesmo resultado
-            para a mesma entrada). Para o aluno, o seed é a contagem de tentativas: tentativa 1 →
-            problema A; errou → tentativa 2 → problema B — <strong>errou, o próximo problema é
-            outro</strong>.
-          </p>
-          <p>
-            Exemplo na família <code>arithmetic</code>: o gerador (PRNG semeado, mulberry32) produz
-            números a partir do seed — ex.: <code>12 + 7 = 19</code>. A divisão é sempre exata por
-            construção. Frações (<code>1/2 + 1/3</code>), porcentagem (<code>15% de 80</code>) e
-            equações lineares (<code>2x + 3 = 11</code>) seguem o mesmo princípio com aritmética
-            racional exata — o resultado é guardado na forma canônica reduzida (<code>5/6</code>, não
-            <code>10/12</code>).
-          </p>
+          <ol>
+            <li>O aluno submete o código de um desafio com 10 testes.</li>
+            <li>O runner executa com <code>node:test</code> e produz o relatório spec.</li>
+            <li>O relatório é um texto bruto: cores ANSI, durações, cabeçalhos — nada pronto para a tela.</li>
+            <li><code>parseSpecChecks</code> limpa o texto e extrai 10 entradas <code>checks[]</code>: 5 com ✓, 5 com ✗.</li>
+            <li>O veredito mostra a lista e a razão: &ldquo;5 de 10 testes passaram&rdquo;.</li>
+            <li><code>passed=true</code>? Não. Sem confete; o aluno vê o checklist ✓/✗ e o botão &ldquo;gerar novo desafio&rdquo; — e sabe quais 5 testes ainda faltam.</li>
+          </ol>
         </div>
       </details>
 
       <details class="scaffold">
-        <summary>O que a resposta digitada aceita (e o que ela nunca adivinha)</summary>
+        <summary>O gate de igualdade do runner: por que três números precisam bater</summary>
         <div class="scaffold__body">
           <p>
-            O aluno digita: inteiros (<code>-12</code>, <code>+12</code>), decimais com vírgula
-            pt-BR ou ponto (<code>12,5</code>, <code>12.5</code>, <code>.5</code>) e frações com
-            espaços só em volta da barra (<code>1/2</code>, <code> 1 / 2 </code>). Formas
-            equivalentes passam: <code>1/2</code> ≡ <code>2/4</code> ≡ <code>0.5</code>.
+            A aprovação só sai quando três números coincidem: o processo terminou com saída 0
+            (<code>exit 0</code>), o número de testes executados (<code>testsRun</code>) é o esperado
+            (<code>expectedTestCount</code>) e o declarado no desafio (<code>declared</code>). A
+            igualdade <code>testsRun === expectedTestCount === declared</code> garante que um relatório
+            que rodou pela metade não vire &ldquo;passou&rdquo;.
           </p>
           <p>
-            O que <strong>não</strong> é aceito (e nunca é adivinhado): número misto
-            (<code>1 1/2</code>), notação científica, sufixo <code>%</code> e divisão por zero.
-            Entrada irreconhecível recebe a mensagem de formato — não um &ldquo;errado&rdquo;
-            disfarçado.
+            E o runner acha o Node certo do app via <code>nodeBinary()</code>: usa o caminho que o
+            Electron passa (<code>npm_node_execpath</code>) ou cai para <code>node</code>.
           </p>
         </div>
       </details>
     </section>
 
     <!-- ================= SEGMENTO 4 ================= -->
-    <section id="estrelas">
-      <h2><span class="num">04</span> 3 estrelas, cronômetro e confete</h2>
+    <section id="desafio-modulo">
+      <h2><span class="num">04</span> O desafio de módulo: amarrar o módulo inteiro</h2>
       <p class="lead">
-        No desafio de programação, a velocidade conta. Cada desafio começa com 3 estrelas e um
-        cronômetro regressivo cujo limite vem da <strong>dificuldade</strong> do desafio:
-        <code>T = 90s + dificuldade × 60s</code>. Quatro causas podem custar estrelas — cada uma no
-        máximo 1 vez, e o saldo nunca fica abaixo de 0.
+        Além dos desafios de aula, cada módulo ganhou um desafio de MÓDULO: elaborado, que mexe em
+        vários arquivos de verdade. O modelo de desafio cresceu para aceitar
+        <strong><code>files[]</code></strong> (a lista de arquivos do desafio — 2–3 arquivos que se
+        importam entre si). O tipo que marca esse desafio é o <strong>target <code>'module'</code></strong>.
+        E como ele é <strong>autoral</strong> (escrito à mão, não gerado), a
+        <strong>regeneração</strong> — pedir ao LLM que crie um desafio novo — fica <strong>oculta</strong>
+        para ele: o botão não aparece, o conteúdo não muda.
       </p>
 
       <figure class="figure">
-        <div class="diagram-shell" role="img" aria-label="Estrelas e cronômetro: causas de perda de estrela, timeout registra a tentativa, PASS dispara confete">
+        <div class="diagram-shell" role="img" aria-label="Anatomia do desafio de módulo: 18 módulos terminam em module.json.challenge com files[] de 2-3 arquivos que se importam entre si; editor com abas, submit envia todos juntos e regeneração por LLM fica oculta">
           <p class="diagram-shell__hint">
-            Ctrl/Cmd + rolagem dá zoom · arraste para mover · duplo clique ajusta · ⛶ abre em nova aba
+            Ctrl/Cmd + roda para zoom. Arraste para pan quando ampliado. Duplo clique para ajustar.
           </p>
           <div class="mermaid-wrap">
             <div class="zoom-controls">
-              <button type="button" data-action="zoom-in" title="Aproximar">+</button>
-              <button type="button" data-action="zoom-out" title="Afastar">&minus;</button>
-              <button type="button" data-action="zoom-fit" title="Ajustar">&#8634;</button>
-              <button type="button" data-action="zoom-one" title="100%">1:1</button>
-              <button type="button" data-action="zoom-expand" title="Abrir em nova aba">&#x26F6;</button>
-              <span class="zoom-label">Carregando…</span>
+              <button type="button" data-action="zoom-in" title="Aumentar zoom">+</button>
+              <button type="button" data-action="zoom-out" title="Diminuir zoom">&minus;</button>
+              <button type="button" data-action="zoom-fit" title="Ajustar à tela">&#8634;</button>
+              <button type="button" data-action="zoom-one" title="Zoom 1:1">1:1</button>
+              <button type="button" data-action="zoom-expand" title="Abrir em tamanho real">&#x26F6;</button>
+              <span class="zoom-label">Loading...</span>
             </div>
             <div class="mermaid-viewport">
               <div class="mermaid mermaid-canvas"></div>
             </div>
           </div>
           <script type="text/plain" class="diagram-source">
-            flowchart TD
-              A["Desafio abre no editor"] --> B["3 estrelas + cronômetro:<br/>90s + dificuldade × 60s"]
-              B --> C{"O que acontece?"}
-              C -->|"janela perdeu o foco"| D["blur: −1 estrela"]
-              C -->|"teste determinístico falhou"| E["erro: −1 estrela"]
-              C -->|"usou ≥ 60% do limite"| F["demora: −1 estrela<br/>(≥ 85%: −1 a mais)"]
-              C -->|"tempo esgotou"| G["timeout: −1 estrela<br/>+ registra a tentativa"]
-              C -->|"testes passaram"| H["PASS — confete!"]:::crit
-              D -->|"cada causa só 1×;<br/>saldo nunca abaixo de 0"| B
-              E -->|"segue no desafio"| B
-              F -->|"segue no desafio"| B
-              G --> I["Fim: estrelas e duração<br/>vão para o banco"]
-              H --> I
-              H -->|"respeita menos animação<br/>(reduced-motion)"| J["Anúncio em role=status,<br/>sem 'Parabéns!'"]
-              classDef crit fill:#fde68a,stroke:#b45309,color:#451a03,stroke-width:2px
+flowchart TD
+  M["18 módulos"] -->|"cada um termina em"| DM["Desafio do módulo:<br/>module.json.challenge"]
+  M -->|"ao todo"| L["118 aulas"]
+  DM -->|"declara"| F["files[]: 2–3 arquivos<br/>que se importam entre si"]:::crit
+  E["Editor com abas<br/>por arquivo"] -->|"edita cada um"| F
+  S["Submit envia<br/>todos os arquivos"] -->|"juntos"| R["Runner roda<br/>os testes"]
+  DM -->|"mas é autoral:"| H["Regeneração por LLM<br/>oculta no target module"]
+  classDef crit fill:#fde68a,stroke:#b45309,color:#451a03,stroke-width:2px
           </script>
         </div>
         <figcaption>
-          <strong>Figura 3.</strong> Cada desafio começa com 3 estrelas e um limite de tempo; cada
-          causa de perda custa no máximo 1 estrela.
+          <strong>Figura 3 · A anatomia do desafio de módulo.</strong> Cada um dos 18 módulos termina
+          num desafio multi-arquivo autoral — 2–3 arquivos que se importam entre si — e o LLM nunca o
+          regenera.
         </figcaption>
       </figure>
 
       <div class="signal">
-        <strong>O caminho crítico:</strong> passar nos testes dispara a rajada de confete — que
-        respeita a preferência do sistema por menos animação (via <code>prefers-reduced-motion</code>),
-        anuncia o resultado em <code>role="status"</code> e não usa &ldquo;Parabéns!&rdquo;
-        ritualizado. Quem merece o crédito é o feedback específico do avaliador, não o glitter.
+        <strong>O crítico é o <code>files[]</code> (nós em âmbar):</strong> um desafio de aula roda um
+        arquivo; um desafio de módulo exige vários que se chamam uns aos outros. Por isso o editor
+        ganhou <strong>abas por arquivo</strong>, o submit envia <strong>todos</strong> os arquivos
+        juntos — e a regeneração por LLM fica oculta para o target <code>'module'</code>, porque o
+        desafio é autoral.
       </div>
 
+      <p>
+        A autoria ganhou um comando novo no CLI: <code>track:module:challenge:new</code>, que cria o
+        esqueleto do desafio de módulo. Na trilha, cada módulo mostra o card &ldquo;Desafio do
+        módulo&rdquo; (pendente / concluído / tentado). E no contrato da ponte, o target
+        <code>'module'</code> e o <code>files[]</code> entraram como campos aditivos — sem quebrar o
+        que já existia.
+      </p>
+
       <details class="scaffold">
-        <summary>Exemplo: dificuldade 3 → quanto tempo?</summary>
+        <summary>Como é um desafio de módulo, por dentro</summary>
         <div class="scaffold__body">
           <p>
-            <code>T = 90 + 3 × 60 = 270 segundos</code> = <strong>4 minutos e 30 segundos</strong>.
-            Na escala: dificuldade 1 → 2min30; dificuldade 5 → 6min30. Sem dificuldade exposta pelo
-            desafio, vale o fallback de 5 minutos. Decaimento por velocidade: ≥ 60% do limite
-            usado custa 1 estrela; ≥ 85% custa outra (só se ainda houver estrelas para perder).
+            São 18 no total, um por módulo. Os 10 módulos novos nasceram com o seu (5 na onda 3, 5 na
+            onda 4); os 8 módulos originais ganharam os seus na onda 5, em 4 lotes de 2 módulos. Cada
+            desafio declara um <code>files[]</code> com 2–3 arquivos que se importam entre si e um
+            <em>statement</em> elaborado — um cenário que amarra o conteúdo do módulo inteiro.
           </p>
         </div>
       </details>
     </section>
 
     <!-- ================= SEGMENTO 5 ================= -->
-    <section id="nunca-repetir">
-      <h2><span class="num">05</span> Nunca-repetir: o desafio tentado some da lista</h2>
+    <section id="seguranca">
+      <h2><span class="num">05</span> A brecha que a revisão adversa achou (e fechou)</h2>
       <p class="lead">
-        A regra é simples: <strong>só o fim real do desafio registra a tentativa</strong> — e o
-        desafio registrado some da lista. Um <strong>evento terminal</strong> (fim real do desafio:
-        passou, tempo esgotou ou abandonou) é o único que grava. O primeiro teste falho nunca
-        esconde nada: o aluno ainda está trabalhando no desafio.
+        Toda rodada passa por <strong>revisão adversarial</strong> (revisão que tenta quebrar de
+        propósito, em vez de confirmar o trabalho). Foi ela que achou uma brecha no envio
+        multi-arquivo: <strong>path traversal</strong> — ataque em que o nome de um arquivo &ldquo;sobe
+        de diretório&rdquo; com <code>../</code> para alcançar arquivos fora da área permitida.
       </p>
 
       <figure class="figure">
-        <div class="diagram-shell" role="img" aria-label="Máquina de estados do nunca-repetir: do desafio ativo aos três eventos terminais que registram a tentativa e ocultam o desafio">
+        <div class="diagram-shell" role="img" aria-label="Fix de path traversal: nome de cada arquivo validado no envio pelo SAFE_FILE_PATH_RE e de novo no runner pelo guard; subir com ../ é rejeitado antes de salvar">
           <p class="diagram-shell__hint">
-            Ctrl/Cmd + rolagem dá zoom · arraste para mover · duplo clique ajusta · ⛶ abre em nova aba
+            Ctrl/Cmd + roda para zoom. Arraste para pan quando ampliado. Duplo clique para ajustar.
           </p>
           <div class="mermaid-wrap">
             <div class="zoom-controls">
-              <button type="button" data-action="zoom-in" title="Aproximar">+</button>
-              <button type="button" data-action="zoom-out" title="Afastar">&minus;</button>
-              <button type="button" data-action="zoom-fit" title="Ajustar">&#8634;</button>
-              <button type="button" data-action="zoom-one" title="100%">1:1</button>
-              <button type="button" data-action="zoom-expand" title="Abrir em nova aba">&#x26F6;</button>
-              <span class="zoom-label">Carregando…</span>
+              <button type="button" data-action="zoom-in" title="Aumentar zoom">+</button>
+              <button type="button" data-action="zoom-out" title="Diminuir zoom">&minus;</button>
+              <button type="button" data-action="zoom-fit" title="Ajustar à tela">&#8634;</button>
+              <button type="button" data-action="zoom-one" title="Zoom 1:1">1:1</button>
+              <button type="button" data-action="zoom-expand" title="Abrir em tamanho real">&#x26F6;</button>
+              <span class="zoom-label">Loading...</span>
             </div>
             <div class="mermaid-viewport">
               <div class="mermaid mermaid-canvas"></div>
             </div>
           </div>
           <script type="text/plain" class="diagram-source">
-            stateDiagram-v2
-              [*] --> Ativo: desafio aparece na lista
-              Ativo --> Ativo: 1º teste falho<br/>não registra nada
-              Ativo --> Passed: testes passaram
-              Ativo --> Timeout: tempo esgotou
-              Ativo --> Abandoned: trocou de desafio<br/>sem concluir
-              Passed --> Registrado: marca "passed"<br/>+ estrelas + duração
-              Timeout --> Registrado: marca "timeout"
-              Abandoned --> Registrado: marca "abandoned"<br/>(trocar = fim; é o design)
-              Registrado --> Registrado: 1º evento terminal<br/>vence (idempotente)
-              Registrado --> Oculto: some da lista<br/>do mesmo assunto
-              Oculto --> [*]
+flowchart TD
+  A["Aluno envia os<br/>arquivos do desafio"] --> B["Validação 1 no envio:<br/>SAFE_FILE_PATH_RE"]:::crit
+  B -->|"casa com o<br/>padrão permitido"| C["Passa para o runner"]
+  B -->|"tentou subir<br/>com ../"| D["Rejeitado<br/>antes de salvar"]
+  C --> E["Validação 2 no runner:<br/>guard"]:::crit
+  E -->|"confere de novo"| F["Código roda<br/>contra os testes"]
+  E -->|"desconfiou"| D
+  classDef crit fill:#fde68a,stroke:#b45309,color:#451a03,stroke-width:2px
+  classDef rej fill:#fdecea,stroke:#dc2626,color:#7f1d1d,stroke-width:2px
+  class D rej
           </script>
         </div>
         <figcaption>
-          <strong>Figura 4.</strong> Só o evento terminal registra a tentativa — e o desafio
-          registrado some da lista; o primeiro teste falho nunca esconde nada.
+          <strong>Figura 4 · A brecha fechada.</strong> O nome de cada arquivo é validado em dois
+          pontos — no envio e na execução — e subir de diretório é rejeitado nos dois.
         </figcaption>
       </figure>
 
       <div class="signal">
-        <strong>O caminho crítico:</strong> a transição &ldquo;1º teste falho → nada&rdquo;. O
-        registro (<strong>registrar tentativa</strong> — anotar no banco que o desafio foi tentado)
-        só acontece nos eventos terminais, e é <strong>idempotente</strong> (repetir não muda nada:
-        só a 1ª marca vale).
+        <strong>O crítico é a dupla validação (nós em âmbar):</strong> no envio, o submitter confere o
+        nome contra o <code>SAFE_FILE_PATH_RE</code> — uma <strong>regex</strong> (padrão de validação
+        de caminho) que só aceita nomes comuns de arquivo; no runner, um <em>guard</em> confere de
+        novo antes de executar. Escapar por um dos dois é impossível.
       </div>
 
-      <div class="table-wrap">
-        <table>
-          <caption>Os 3 eventos terminais</caption>
-          <thead>
-            <tr>
-              <th scope="col">Evento terminal</th>
-              <th scope="col">Quando acontece</th>
-              <th scope="col">O que fica registrado</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td><code>passed</code> <span class="chip chip--ok">passou</span></td>
-              <td>os testes passaram</td>
-              <td>a tentativa, com estrelas e duração</td>
-            </tr>
-            <tr>
-              <td><code>timeout</code> <span class="chip chip--warn">tempo esgotou</span></td>
-              <td>o cronômetro zerou sem passar</td>
-              <td>a tentativa, com duração</td>
-            </tr>
-            <tr>
-              <td><code>abandoned</code> <span class="chip chip--warn">abandonou</span></td>
-              <td>trocou de desafio sem concluir</td>
-              <td>a tentativa — e o desafio some da lista</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-
-      <div class="callout">
-        <strong>Limitações documentadas (honestidade antes de tudo):</strong> o registro é
-        <strong>otimista</strong> — a tela marca &ldquo;já tentado&rdquo; antes de o banco
-        confirmar. Uma falha transitória na ponte interna do app (IPC) pode, portanto, perder
-        <em>um</em> registro na sessão: o desafio reaparece uma vez na lista, e a próxima tentativa
-        terminal re-grava. E a <strong>troca = abandoned</strong> é o design: trocar de desafio sem
-        concluir conta como fim — o desafio tentado some, mesmo sem veredito de passou/falhou.
-      </div>
+      <p>
+        O fix entrou na onda 2, e a subwave de testes cobriu os dois lados: path inseguro é
+        rejeitado, subdiretório aninhado (legítimo) é aceito, e o loader multi-arquivo funciona como
+        esperado.
+      </p>
 
       <details class="scaffold">
-        <summary>Matemática também nunca repete — de outro jeito</summary>
+        <summary>Como o ataque funciona</summary>
         <div class="scaffold__body">
           <p>
-            Programação usa o <strong>slug</strong> (nome estável do desafio, sem o prefixo numérico:
-            <code>0007-fatorial-recursivo</code> → <code>fatorial-recursivo</code>). Na matemática
-            não existe &ldquo;lista de desafios&rdquo; — o exercício é gerado. A identidade é o
-            <strong>slug sintético</strong> <code>math:&lt;assunto&gt;:&lt;família&gt;:&lt;seed&gt;</code>:
-            cada tentativa (certa ou errada) incrementa a contagem do assunto, e o próximo seed
-            muda — <em>errou → o próximo problema é outro</em>. O problema errado também fica salvo
-            no banco, como o dono pediu.
+            Um desafio multi-arquivo guarda os arquivos numa pasta própria. Se o app confiasse no nome
+            que o aluno manda, um nome como <code>../../segredo.txt</code> faria o app alcançar um
+            arquivo fora da pasta do desafio — o <code>../</code> &ldquo;sobe&rdquo; um nível de cada
+            vez. A regex só aceita nomes comuns de arquivo: <code>../</code> não casa com o padrão, e
+            a submissão é rejeitada antes de salvar. No runner, o guard repete a conferência para o
+            código nunca rodar com um caminho suspeito.
           </p>
         </div>
       </details>
     </section>
 
     <!-- ================= SEGMENTO 6 ================= -->
-    <section id="persistencia">
-      <h2><span class="num">06</span> Persistir sem medo: o banco e a migração à prova de queda</h2>
+    <section id="ondas">
+      <h2><span class="num">06</span> Como 118 aulas nasceram em 6 ondas</h2>
       <p class="lead">
-        Matérias, lições e tentativas agora vivem no banco de dados local do app — o SQLite
-        apresentado no quadro da seção 1. O banco já existia em versões anteriores, e atualizá-lo da
-        versão 1 para a versão 3 (a migração descrita no quadro) era o ponto mais delicado da
-        rodada: se o app cair no meio, nada pode se perder nem se corromper.
+        Cada onda trabalhou numa <strong>worktree</strong> (cópia de trabalho isolada do repositório:
+        a onda mexe na cópia sem encostar no projeto principal). Cada integração só entrava com
+        <strong>gate verde</strong> — a barreira de qualidade: build, lint e testes passando — e as
+        <strong>subwaves</strong> (ondas de teste e validação) rodavam junto da onda seguinte.
       </p>
 
       <figure class="figure">
-        <div class="diagram-shell" role="img" aria-label="Migração do banco: passo a passo v1→v2→v3, transação única, rollback em crash, guardedAlter que pula colunas existentes">
+        <div class="diagram-shell" role="img" aria-label="Máquina da rodada: 6 ondas em sequência, cada integração com gate verde; subwaves de testes rodam junto das ondas seguintes; revisor de plano confere no disco e declara convergência antes do commit final">
           <p class="diagram-shell__hint">
-            Ctrl/Cmd + rolagem dá zoom · arraste para mover · duplo clique ajusta · ⛶ abre em nova aba
+            Ctrl/Cmd + roda para zoom. Arraste para pan quando ampliado. Duplo clique para ajustar.
           </p>
           <div class="mermaid-wrap">
             <div class="zoom-controls">
-              <button type="button" data-action="zoom-in" title="Aproximar">+</button>
-              <button type="button" data-action="zoom-out" title="Afastar">&minus;</button>
-              <button type="button" data-action="zoom-fit" title="Ajustar">&#8634;</button>
-              <button type="button" data-action="zoom-one" title="100%">1:1</button>
-              <button type="button" data-action="zoom-expand" title="Abrir em nova aba">&#x26F6;</button>
-              <span class="zoom-label">Carregando…</span>
+              <button type="button" data-action="zoom-in" title="Aumentar zoom">+</button>
+              <button type="button" data-action="zoom-out" title="Diminuir zoom">&minus;</button>
+              <button type="button" data-action="zoom-fit" title="Ajustar à tela">&#8634;</button>
+              <button type="button" data-action="zoom-one" title="Zoom 1:1">1:1</button>
+              <button type="button" data-action="zoom-expand" title="Abrir em tamanho real">&#x26F6;</button>
+              <span class="zoom-label">Loading...</span>
             </div>
             <div class="mermaid-viewport">
               <div class="mermaid mermaid-canvas"></div>
             </div>
           </div>
           <script type="text/plain" class="diagram-source">
-            flowchart TD
-              A["App abre o banco"] --> B{"Em que versão está?"}
-              B -->|"já atual (v3)"| NOP["No-op:<br/>nada muda"]
-              B -->|"v1"| C["Passo v2:<br/>domínio da matéria<br/>+ tabela de tentativas"]
-              C --> D["Passo v3:<br/>exercício de matemática<br/>na aula"]
-              B -->|"v2"| D
-              D --> E["Passos + versão nova:<br/>uma ÚNICA transação"]:::crit
-              E -->|"commit"| F["Banco v3 —<br/>nada se perde"]
-              E -->|"crash no meio"| R["ROLLBACK: nada fica<br/>meio-feito; a próxima<br/>abertura retoma"]:::crit
-              R --> A
-              C -.->|"confere: coluna já existe?"| G["guardedAlter: pula<br/>o que já foi feito<br/>(re-tentar não quebra)"]:::crit
-              D -.->|"confere: coluna já existe?"| G
-              classDef crit fill:#fde68a,stroke:#b45309,color:#451a03,stroke-width:2px
+flowchart TD
+  O1["Onda 1<br/>UX: teoria pronta"] -->|"gate verde"| O2["Onda 2<br/>Desafio de módulo<br/>+ fix de segurança"]
+  O2 -->|"gate verde"| O3["Onda 3<br/>5 agentes: linguagem"]
+  O3 -->|"gate verde"| O4["Onda 4<br/>5 agentes: backend"]
+  O4 -->|"gate verde"| O5["Onda 5<br/>4 agentes: desafios<br/>dos módulos originais"]
+  O5 -->|"gate verde"| O6["Onda 6<br/>Documentação"]
+  O6 -->|"gate final"| R["REVISOR DE PLANO:<br/>confere no disco"]:::crit
+  R -->|"CONVERGÊNCIA"| FINAL["COMMIT-FINAL"]:::crit
+  T1["Subwave testes<br/>onda 1: +10"] -.->|"roda junto da<br/>onda seguinte"| O2
+  T2["Subwave testes<br/>onda 2: +9"] -.->|"roda junto da<br/>onda seguinte"| O3
+  classDef crit fill:#fde68a,stroke:#b45309,color:#451a03,stroke-width:2px
           </script>
         </div>
         <figcaption>
-          <strong>Figura 5.</strong> A migração do banco roda passo a passo num pacote único: um
-          crash no meio desfaz tudo e a próxima abertura retoma de onde parou.
+          <strong>Figura 5 · A máquina da rodada.</strong> Seis ondas em worktrees isoladas, cada
+          integração só entra com gate verde, e um revisor independente confere os números no disco
+          antes da convergência.
         </figcaption>
       </figure>
 
       <div class="signal">
-        <strong>O caminho crítico:</strong> os passos e a gravação da nova versão acontecem numa
-        <strong>transação</strong> única (bloco de operações que vale inteiro — ou tudo, ou nada).
-        Crash antes do <code>commit</code> → <code>ROLLBACK</code>: o banco volta a ficar como
-        estava e a migração é retomada na próxima abertura.
+        <strong>O crítico é o fim do funil (nós em âmbar):</strong> cada onda entrou uma a uma, com
+        gate verde — e no fim o <strong>REVISOR DE PLANO</strong>, um agente independente que confere
+        a sanidade no disco, verificou 18 módulos, 118 <code>lesson.json</code>, 136
+        <code>challenge.json</code>, 18 com <code>files[]</code> — e declarou
+        <strong>CONVERGÊNCIA</strong>: o plano e a realidade batem. Só então veio o commit final.
       </div>
 
       <p>
-        Duas garantias extras: rodar a migração duas vezes nunca falha nem duplica, e o
-        <code>guardedAlter</code> só altera o que falta — se o app caiu entre criar a coluna e
-        gravar a versão, a coluna já existente é detectada e o passo é pulado, em vez de quebrar com
-        &ldquo;coluna duplicada&rdquo;.
+        As ondas 3 e 4 produziram o conteúdo novo — 10 módulos, 82 aulas, 10 desafios de módulo,
+        escritos por 10 agentes em paralelo:
+      </p>
+
+      <div class="table-wrap">
+        <table>
+          <caption>Os 10 módulos novos (ondas 3 e 4)</caption>
+          <thead>
+            <tr>
+              <th scope="col">Onda</th>
+              <th scope="col">Módulo</th>
+              <th scope="col">Aulas</th>
+              <th scope="col">Desafio de módulo</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td class="num-col">3</td><td><code>arrays-profundas</code></td><td class="num-col">14</td><td><span class="chip chip--ok">sim</span></td></tr>
+            <tr><td class="num-col">3</td><td><code>objetos-profundos</code></td><td class="num-col">8</td><td><span class="chip chip--ok">sim</span></td></tr>
+            <tr><td class="num-col">3</td><td><code>poo</code></td><td class="num-col">11</td><td><span class="chip chip--ok">sim</span></td></tr>
+            <tr><td class="num-col">3</td><td><code>funcoes-avancadas</code></td><td class="num-col">8</td><td><span class="chip chip--ok">sim</span></td></tr>
+            <tr><td class="num-col">3</td><td><code>assincronismo-avancado</code></td><td class="num-col">6</td><td><span class="chip chip--ok">sim</span></td></tr>
+            <tr><td class="num-col">4</td><td><code>nodejs-avancado</code></td><td class="num-col">8</td><td><span class="chip chip--ok">sim</span></td></tr>
+            <tr><td class="num-col">4</td><td><code>http-avancado</code></td><td class="num-col">6</td><td><span class="chip chip--ok">sim</span></td></tr>
+            <tr><td class="num-col">4</td><td><code>banco-de-dados-avancado</code></td><td class="num-col">5</td><td><span class="chip chip--ok">sim</span></td></tr>
+            <tr><td class="num-col">4</td><td><code>arquitetura-e-padroes</code></td><td class="num-col">8</td><td><span class="chip chip--ok">sim</span></td></tr>
+            <tr><td class="num-col">4</td><td><code>especialista</code></td><td class="num-col">8</td><td><span class="chip chip--ok">sim</span></td></tr>
+            <tr><td class="num-col">3+4</td><td><strong>Total</strong></td><td class="num-col"><strong>82</strong></td><td><strong>10</strong></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p>
+        A onda 5 completou o quadro com os desafios de módulo dos 8 módulos originais (em 4 lotes de 2
+        módulos), e a onda 6 documentou tudo: <code>docs/15-trilha-nodejs.md</code> (a especificação
+        dos 18 módulos), <code>docs/relatorio-rodada9.md</code> e o resumo no
+        <code>app/README.md</code>. No caminho, a onda 2 ainda ganhou um fix de CLI: a
+        <code>challengePairFromSource</code> (função que monta o par desafio/solução a partir do
+        conteúdo) foi extraída para o <code>challengeExec</code>, e um <strong>smoke test</strong>
+        (teste rápido que confere se o caminho principal funciona) roda o CLI
+        <code>track:validate</code> multi-arquivo como subprocesso.
       </p>
 
       <details class="scaffold">
-        <summary>O que cada tabela do banco guarda</summary>
+        <summary>Nota de ambiente: disco externo lento</summary>
         <div class="scaffold__body">
-          <ul>
-            <li><strong>Matérias</strong> — o assunto estudado, com o domínio (<code>programming</code> ou <code>math</code>) e um slug único.</li>
-            <li><strong>Lições</strong> — as aulas persistidas, com dificuldade, árvore de origem, data de conclusão e o exercício de matemática serializado (a novidade da v3).</li>
-            <li><strong>Respostas</strong> — as respostas do aluno a cada aula.</li>
-            <li><strong>Desafios</strong> — o desafio da lição: enunciado, casos de teste e solução de referência.</li>
-            <li><strong>Tentativas</strong> — uma linha por tentativa terminal: matéria, lição, desafio, veredito, estrelas, duração e data.</li>
-          </ul>
           <p>
-            Um detalhe de resiliência: se a persistência falhar na hora de salvar uma aula gerada,
-            a geração <strong>não é derrubada</strong> — a aula segue sem os ids de banco, como nas
-            ondas anteriores.
+            A máquina roda o projeto num disco externo lento. Por isso os
+            <strong><code>npm ci</code></strong> (instalação limpa das dependências) foram
+            serializados — um de cada vez, nunca concorrentes — e, quando locks de worktree
+            expiraram, foram restaurados manualmente.
           </p>
         </div>
       </details>
     </section>
 
     <!-- ================= SEGMENTO 7 ================= -->
-    <section id="navegar">
-      <h2><span class="num">07</span> Navegar por matéria: Home e Trilha</h2>
-      <p class="lead">
-        Com matérias persistidas, a navegação virou por matéria: a <strong>Home</strong> separa os
-        domínios (Programação e Matemática) e a <strong>Trilha</strong> organiza o progresso por
-        níveis.
-      </p>
-
-      <figure class="figure">
-        <div class="diagram-shell" role="img" aria-label="Navegação: Home com aviso de troca e Trilha que abre a lição salva por id">
-          <p class="diagram-shell__hint">
-            Ctrl/Cmd + rolagem dá zoom · arraste para mover · duplo clique ajusta · ⛶ abre em nova aba
-          </p>
-          <div class="mermaid-wrap">
-            <div class="zoom-controls">
-              <button type="button" data-action="zoom-in" title="Aproximar">+</button>
-              <button type="button" data-action="zoom-out" title="Afastar">&minus;</button>
-              <button type="button" data-action="zoom-fit" title="Ajustar">&#8634;</button>
-              <button type="button" data-action="zoom-one" title="100%">1:1</button>
-              <button type="button" data-action="zoom-expand" title="Abrir em nova aba">&#x26F6;</button>
-              <span class="zoom-label">Carregando…</span>
-            </div>
-            <div class="mermaid-viewport">
-              <div class="mermaid mermaid-canvas"></div>
-            </div>
-          </div>
-          <script type="text/plain" class="diagram-source">
-            flowchart TD
-              H["Home: seções<br/>Programação e Matemática"] --> D{"Aula em andamento<br/>de outra matéria?"}
-              D -->|"sim"| W["Diálogo de aviso:<br/>'a avaliação da aula<br/>atual é feita pela LLM'"]
-              W -->|"confirmar"| L["Abre a matéria nova"]
-              W -->|"cancelar"| H
-              D -->|"não"| L
-              T["Trilha: Iniciante 1–2<br/>Intermediário 3<br/>Avançado 4–5"] -->|"clica num nó<br/>done / current / pending"| P["Abre a lição salva<br/>por id — sem regenerar"]:::crit
-              L -->|"abre a aula"| P
-              classDef crit fill:#fde68a,stroke:#b45309,color:#451a03,stroke-width:2px
-          </script>
-        </div>
-        <figcaption>
-          <strong>Figura 6.</strong> Home e Trilha levam à aula certa sem perder o trabalho em
-          andamento: a Home avisa antes de trocar; a Trilha abre a lição salva.
-        </figcaption>
-      </figure>
-
-      <div class="signal">
-        <strong>O caminho crítico:</strong> a Trilha <strong>reabre a lição persistida por id</strong>
-        — o aluno continua de onde parou, sem gerar tudo de novo.
-      </div>
-
-      <details class="scaffold">
-        <summary>Por que o aviso de troca existe</summary>
-        <div class="scaffold__body">
-          <p>
-            Trocar de matéria no meio de uma aula significaria abandonar uma avaliação que a LLM
-            está fazendo sobre a aula atual. O diálogo pergunta antes (&ldquo;não dá para trocar de
-            matéria no meio da aula — a avaliação da aula atual é feita pela LLM&rdquo;), e o estado
-            da sessão (assunto, fase, status) é publicado para a Home e o quadro do app — com guarda
-            de identidade para descartar continuamentos de gerações antigas.
-          </p>
-        </div>
-      </details>
-    </section>
-
-    <!-- ================= SEGMENTO 8 ================= -->
     <section id="validacao">
-      <h2><span class="num">08</span> Validação: os números, e a nota honesta</h2>
+      <h2><span class="num">07</span> Os números verificados</h2>
       <p class="lead">
-        Tudo o que a rodada tocou foi verificado — e a verificação também foi checada, incluindo o
-        que <em>não</em> deu para rodar.
+        Tudo o que a rodada tocou foi verificado por execução — e a verificação também foi conferida,
+        inclusive pelo revisor independente.
       </p>
 
       <div class="table-wrap">
@@ -1190,50 +1082,127 @@
           </thead>
           <tbody>
             <tr>
-              <td>Suíte de testes do app</td>
-              <td>1563 testes: <span class="chip chip--ok">1562 verdes</span> · 0 falhas · 1 pulado (pré-existente — teste de integração que exige ambiente)</td>
+              <td>Conteúdo verificado por execução (<code>track:validate</code>, o validador que roda cada desafio de verdade)</td>
+              <td>18 módulos · 118 aulas · 136 desafios — <span class="chip chip--ok">136 verificado ✓</span> · 0 NÃO VERIFICADO · <strong>proficiência</strong> (avaliação final da trilha, além dos desafios) ok</td>
             </tr>
             <tr>
-              <td>E2E — app completo, 13 roteiros <span class="chip chip--primary">Playwright</span></td>
-              <td><span class="chip chip--ok">19 verdes</span>; os 3 roteiros que usam chaves reais ficam de fora sem as chaves</td>
+              <td>Desafios de módulo com <code>files[]</code> multi-arquivo</td>
+              <td><span class="chip chip--ok">18/18</span></td>
             </tr>
             <tr>
-              <td>Lint (checador de qualidade do código) e build (empacotamento)</td>
-              <td><span class="chip chip--ok">verdes</span></td>
+              <td>Suíte de testes do app (gate <code>BASE_DIR</code>)</td>
+              <td><span class="chip chip--ok">1688 pass</span> · 0 fail</td>
             </tr>
             <tr>
-              <td>Matemática — verificação por propriedade independente</td>
-              <td>20.000 problemas conferidos por aritmética exata <span class="chip chip--ok">0 divergências</span></td>
+              <td>Lint (checador de qualidade) e build (empacotamento)</td>
+              <td><span class="chip chip--ok">ok</span></td>
             </tr>
             <tr>
-              <td>Revisão adversarial (revisão que tenta quebrar o app de propósito)</td>
-              <td>2 revisões sem bloqueio; <span class="chip chip--warn">4 alertas (WARNING)</span> corrigidos na hora e re-verificados: migração crash-safe, corrida entre desafios, contadores de delta, sessão publicada desatualizada</td>
+              <td>E2E (ponta a ponta: o app real no caminho do usuário)</td>
+              <td><span class="chip chip--ok">19/19</span> (com mock)</td>
             </tr>
             <tr>
-              <td>Gates do repositório <em>nesta máquina</em></td>
-              <td><span class="chip chip--warn">não executam</span>: o macOS traz bash 3.2, sem dois recursos que os scripts usam — problema <strong>pré-existente</strong>, não desta rodada; as checagens equivalentes foram replicadas à mão e ficaram verdes</td>
+              <td>Subwaves de validação de conteúdo</td>
+              <td>val-onda1 <span class="chip chip--ok">4/4 PASS</span> · val-onda2 <span class="chip chip--ok">4/4 PASS</span> · val-onda3-content <span class="chip chip--ok">PASS</span> · val-onda4-content <span class="chip chip--ok">PASS</span></td>
+            </tr>
+            <tr>
+              <td>Revisor de plano — sanidade no disco</td>
+              <td><span class="chip chip--ok">CONVERGÊNCIA</span>: 18 módulos, 118 <code>lesson.json</code>, 136 <code>challenge.json</code>, 18 com <code>files[]</code></td>
             </tr>
           </tbody>
         </table>
       </div>
 
-      <div class="callout">
-        <strong>Nota honesta sobre os gates:</strong> os scripts de verificação do repositório não
-        rodam neste Mac (o bash 3.2 do macOS não tem os recursos <code>nameref</code> e
-        <code>${s,,}</code> que eles usam). Isso é pré-existente — não foi introduzido nesta rodada.
-        Para não entregar &ldquo;verde&rdquo; sem prova, cada checagem equivalente foi replicada à
-        mão e passou: lint duplo, build e as regras de banco, com os 4 WARNING da revisão
-        adversarial corrigidos e re-verificados.
+      <p>
+        Onde mora o núcleo da entrega:
+      </p>
+
+      <div class="table-wrap">
+        <table>
+          <caption>Arquivos principais tocados</caption>
+          <thead>
+            <tr>
+              <th scope="col">Arquivo</th>
+              <th scope="col">Papel</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>shared/ipc-contract.ts</code></td>
+              <td>contrato da ponte, crescido de forma aditiva: checks, target <code>'module'</code>, <code>files[]</code></td>
+            </tr>
+            <tr>
+              <td><code>electron/main/services/tutorChat.ts</code></td>
+              <td>o <code>next</code> determinístico — a teoria pronta no arquivo</td>
+            </tr>
+            <tr>
+              <td><code>electron/main/services/challengeExec.ts</code></td>
+              <td><code>parseSpecChecks</code>, <code>runStudentCode</code> com guard e <code>challengePairFromSource</code></td>
+            </tr>
+            <tr>
+              <td><code>electron/main/ipc/track-handlers.ts</code></td>
+              <td>validação <code>SAFE_FILE_PATH_RE</code> no envio; target <code>'module'</code></td>
+            </tr>
+            <tr>
+              <td><code>electron/main/content/trackTypes.ts</code> + <code>trackLoader.ts</code> + <code>services/trackService.ts</code></td>
+              <td>o modelo <code>files[]</code> e o desafio de módulo</td>
+            </tr>
+            <tr>
+              <td><code>tools/track-cli.ts</code></td>
+              <td><code>track:module:challenge:new</code>; verify/validate multi-arquivo</td>
+            </tr>
+            <tr>
+              <td><code>src/views/ChallengeView/TrackChallengePanel.tsx</code></td>
+              <td>checklist por teste, abas por arquivo, &ldquo;gerar novo desafio&rdquo; oculto no módulo</td>
+            </tr>
+            <tr>
+              <td><code>src/views/RoadmapView/RoadmapView.tsx</code></td>
+              <td>o card &ldquo;Desafio do módulo&rdquo; na trilha</td>
+            </tr>
+            <tr>
+              <td><code>src/views/LessonView/LessonView.tsx</code></td>
+              <td>o indicador &ldquo;tutor digitando…&rdquo; só em <code>answer</code></td>
+            </tr>
+            <tr>
+              <td><code>app/resources/tracks/nodejs-do-zero/</code></td>
+              <td>18 módulos, 118 aulas, 136 desafios + proficiência</td>
+            </tr>
+          </tbody>
+        </table>
       </div>
+
+      <p>
+        A execução começou às <strong>18:15</strong> de 2026-08-27 (fases 0–2). As ondas 1–6 foram
+        executadas e integradas com gates verdes, as subwaves de teste e validação foram processadas,
+        e às <strong>23:41</strong> o revisor de plano declarou <strong>CONVERGÊNCIA</strong> — seguido
+        do commit final (gate final + EXPLAINER + commit + evolução).
+      </p>
+
+      <div class="callout">
+        <strong>O que ainda depende de chave:</strong> tirar dúvida (<code>answer</code>) e gerar
+        desafio novo de aula continuam sendo LLM — sem chave de API, devolvem erro estruturado, nunca
+        spinner. Os desafios de módulo não passam por isso: são autorais, com regeneração oculta.
+      </div>
+
+      <details class="scaffold">
+        <summary>O desvio cosmético documentado</summary>
+        <div class="scaffold__body">
+          <p>
+            Na validação do conteúdo (val-onda4-content), foi documentado um desvio puramente
+            cosmético: 14 aulas têm 1 ou 4 <strong>sources</strong> (fontes de referência da aula) em
+            vez das 2–3 esperadas. Sem impacto funcional — registrado para não virar surpresa.
+          </p>
+        </div>
+      </details>
     </section>
 
   </main>
 
   <footer>
     <p>
-      <strong>Rodada 7 do study-method</strong> · concluída em 2026-08-27 · este documento vale
-      contra o estado do repositório nessa data. Fontes: <code>docs/14-respostas-nunca-repetir.md</code>,
-      <code>docs/app-gui.md</code> e <code>app/README.md</code>.
+      <strong>Rodada 9 do study-method</strong> · concluída em 2026-08-27 · este documento vale contra
+      o estado do repositório nessa data. Fontes: <code>docs/relatorio-rodada9.md</code>,
+      <code>docs/15-trilha-nodejs.md</code>, <code>app/README.md</code>.
     </p>
   </footer>
 
@@ -1494,7 +1463,7 @@
 
       const html = `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8">
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>Diagrama — Rodada 7</title><style>
+      <title>Diagrama — Rodada 9</title><style>
       body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;
       background:${bg};padding:40px;box-sizing:border-box}
       svg{max-width:100%;max-height:90vh;height:auto}
@@ -1647,13 +1616,9 @@
 
   document.querySelectorAll('.diagram-shell').forEach(initDiagram);
 
+  // Mermaid bakes colors into the SVG at render time, so a page that swaps the
+  // palette at runtime must re-render every diagram to follow it.
   window.rerenderDiagrams = () => Promise.all(rerenderers.map((render) => render()));
-
-  // Re-renderiza todos os diagramas quando o esquema claro/escuro muda.
-  matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
-    applyMermaidTheme();
-    window.rerenderDiagrams();
-  });
 </script>
 
 </body>
