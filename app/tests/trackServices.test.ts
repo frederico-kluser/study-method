@@ -26,6 +26,7 @@ import { TRACK_SCHEMA_VERSION, type TrackLessonSource } from '../electron/main/c
 import {
   countTestDeclarations,
   pairIsValid,
+  parseSpecChecks,
   runStudentCode,
   verifyChallengePair,
 } from '../electron/main/services/challengeExec';
@@ -99,13 +100,21 @@ describe('challengeExec — execução determinística', () => {
   });
 
   it('gate de igualdade: contagem de testes divergente NUNCA passa', async () => {
-    // 1 teste declarado mas expectedTestCount=3 → não passa mesmo com exit 0
+    // 2 testes declarados mas expectedTestCount=3 → não passa mesmo com exit 0
     const res = await runStudentCode({
       studentCode: 'export function f(x) { return x + 1; }\n',
       testsCode: GOOD_TEST,
       expectedTestCount: 3,
     });
     assert.equal(res.passed, false);
+    // F5 (onda1-ux): TODOS os checks passaram (o relatório não mente) — e
+    // MESMO ASSIM passed=false. Os checks NUNCA fabricam passed: o gate de
+    // igualdade (exit 0 && testsRun === expected) continua sendo a única
+    // fonte de aprovação.
+    assert.equal(res.checks.length, 2);
+    assert.ok(res.checks.every((c) => c.passed), 'checks todos passados — mas passed segue false');
+    assert.equal(res.passedCount, 2);
+    assert.equal(res.totalCount, 2);
   });
 
   it('checks por teste: 1 de 2 passando → veredito parcial visível', async () => {
@@ -402,5 +411,76 @@ describe('challengeExec — parse com ANSI (cores herdadas do ambiente)', () => 
     const { parseSpecCounts } = require('../electron/main/services/challengeExec') as typeof import('../electron/main/services/challengeExec');
     const colored = '\x1b[32m✔ caso 1\x1b[39m\n\x1b[34mℹ tests 3\x1b[39m\n\x1b[34mℹ pass 3\x1b[39m\n\x1b[34mℹ fail 0\x1b[39m\n';
     assert.deepEqual(parseSpecCounts(colored), { testsRun: 3, pass: 3, fail: 0 });
+  });
+});
+
+describe('parseSpecChecks — checks individuais do relatório spec (ONDA 1)', () => {
+  // Fixtures fiéis ao relatório REAL do node:test v24 (medido: ✔/✖ + duração
+  // "(0.42175ms)" no fim da linha; a seção "failing tests:" vem DEPOIS do
+  // resumo `ℹ tests N` e repete cada teste falho).
+
+  it('nome sai sem a duração (ms e s)', () => {
+    const checks = parseSpecChecks('✔ caso 1 (0.42175ms)\n✖ caso 2 (1.203ms)\n✖ caso 3 (5s)\nℹ tests 3\n');
+    assert.deepEqual(
+      checks.map((c) => c.name),
+      ['caso 1', 'caso 2', 'caso 3'],
+    );
+    assert.deepEqual(
+      checks.map((c) => c.passed),
+      [true, false, false],
+    );
+  });
+
+  it('mistura ANSI + duração na MESMA linha → nome limpo e passed correto', () => {
+    // node:test pinta quando o ambiente pede cor (FORCE_COLOR herdado do
+    // Playwright): o escape vem ANTES do ✔/✖ e no FIM da linha.
+    const colored = '\x1b[32m✔ caso 1 (0.440166ms)\x1b[39m\n\x1b[31m✖ caso 2 (0.538459ms)\x1b[39m\n\x1b[34mℹ tests 2\x1b[39m\n\x1b[34mℹ pass 1\x1b[39m\n\x1b[34mℹ fail 1\x1b[39m\n';
+    const checks = parseSpecChecks(colored);
+    assert.deepEqual(checks, [
+      { name: 'caso 1', passed: true },
+      { name: 'caso 2', passed: false },
+    ]);
+  });
+
+  it('seção "failing tests:" NÃO duplica os checks (truncamento no resumo)', () => {
+    // Relatório REAL de execução com 1 de 2 passando: cada teste falho aparece
+    // no corpo E de novo na seção do fim — só a 1ª ocorrência pode contar.
+    const output = '✔ caso 1 (0.440166ms)\n✖ caso 2 (0.538459ms)\nℹ tests 2\nℹ pass 1\nℹ fail 1\n\n✖ failing tests:\n✖ caso 2 (0.538459ms)\n';
+    const checks = parseSpecChecks(output);
+    assert.equal(checks.length, 2, 'caso 2 não pode entrar DUAS vezes');
+    assert.deepEqual(checks, [
+      { name: 'caso 1', passed: true },
+      { name: 'caso 2', passed: false },
+    ]);
+  });
+
+  it('nomes SINTÉTICOS de falha de load são filtrados (test.mjs / test failed / tests failed)', () => {
+    // Sintaxe no solution.mjs → o node:test trata O ARQUIVO como um teste e
+    // emite `✖ test.mjs` (v24, com duração) / `✖ test failed` (v20):
+    const v24 = '✖ test.mjs (30.848791ms)\nℹ tests 1\nℹ pass 0\nℹ fail 1\n';
+    assert.deepEqual(parseSpecChecks(v24), []);
+    const v20 = '✖ test failed\nℹ tests 1\nℹ pass 0\nℹ fail 1\n';
+    assert.deepEqual(parseSpecChecks(v20), []);
+    const plural = '✖ tests failed\nℹ tests 1\nℹ pass 0\nℹ fail 1\n';
+    assert.deepEqual(parseSpecChecks(plural), []);
+  });
+
+  it('linha ✔ sem nome não vira check fantasma', () => {
+    assert.deepEqual(parseSpecChecks('✔ \nℹ tests 1\n'), []);
+    assert.deepEqual(parseSpecChecks('ℹ tests 0\nℹ pass 0\nℹ fail 0\n'), []);
+  });
+
+  it('subtestes INDENTADOS nunca entram (ancoragem no início da linha)', () => {
+    // Relatório real de teste pai com filhos: `✖ pai` (sem duração) antes dos
+    // filhos indentados e `✖ pai (1.23ms)` depois — filhos ficam de fora.
+    const output = '✖ pai\n  ✔ filho ok (0.302916ms)\n  ✖ filho ruim (0.466375ms)\n✖ pai (1.230917ms)\nℹ tests 3\nℹ pass 1\nℹ fail 2\n';
+    const checks = parseSpecChecks(output);
+    assert.ok(checks.every((c) => !c.name.includes('filho')), 'nenhum subteste indentado pode entrar');
+    assert.ok(checks.every((c) => c.name === 'pai'), `só o teste pai conta (2x, como no relatório real) — veio: ${JSON.stringify(checks.map((c) => c.name))}`);
+  });
+
+  it('nome de teste com duração NO MEIO não é cortado (regex âncora no fim)', () => {
+    const checks = parseSpecChecks('✔ dobro (par) 2 (0.5ms)\nℹ tests 1\n');
+    assert.deepEqual(checks, [{ name: 'dobro (par) 2', passed: true }]);
   });
 });

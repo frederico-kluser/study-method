@@ -246,6 +246,77 @@ describe('buildTrackHandlers — trilhas', () => {
     assert.ok(result.message.includes('Teoria simples'));
   });
 
+  it("track:tutor-chat 'answer' sem deepseek (sem cliente) → TUTOR_UNAVAILABLE imediato (ONDA 1)", async () => {
+    // F2: falha RÁPIDA — sem cliente o handler nunca deixa o renderer em
+    // spinner infinito; o erro estruturado chega na hora.
+    const dir = await makeTrackDir();
+    const map = buildTrackHandlers({ getTracksDir: () => path.dirname(dir), repo: fakeRepo() });
+    const result = await call<TutorReply>(map, TRACK_CHANNELS.TUTOR_CHAT, {
+      trackSlug: 'trilha-teste',
+      lessonId: 'aula-1',
+      presentedSections: [],
+      history: [{ role: 'user', content: 'não entendi' }],
+      action: 'answer',
+    });
+    assert.equal(result.ok, false);
+    assert.equal(result.error?.code, 'TUTOR_UNAVAILABLE');
+    assert.equal(result.message, '');
+    assert.equal(result.done, false);
+  });
+
+  it("track:tutor-chat 'answer' com deepseek que LANÇA → TUTOR_UNAVAILABLE imediato", async () => {
+    // F2: erro de rede/LLM também é falha rápida — nunca resposta inventada.
+    const dir = await makeTrackDir();
+    const map = buildTrackHandlers({
+      getTracksDir: () => path.dirname(dir),
+      repo: fakeRepo(),
+      deepseek: {
+        chatCompletion: async () => {
+          throw new Error('network down');
+        },
+      } as never,
+    });
+    const result = await call<TutorReply>(map, TRACK_CHANNELS.TUTOR_CHAT, {
+      trackSlug: 'trilha-teste',
+      lessonId: 'aula-1',
+      presentedSections: [],
+      history: [{ role: 'user', content: 'dúvida' }],
+      action: 'answer',
+    });
+    assert.equal(result.ok, false);
+    assert.equal(result.error?.code, 'TUTOR_UNAVAILABLE');
+  });
+
+  it("track:tutor-chat 'answer' com deepseek ok → responde com o texto do chat", async () => {
+    const dir = await makeTrackDir();
+    let sawMessages = 0;
+    const map = buildTrackHandlers({
+      getTracksDir: () => path.dirname(dir),
+      repo: fakeRepo(),
+      deepseek: {
+        chatCompletion: async (req: { messages: Array<{ role: string; content: string }> }) => {
+          sawMessages = req.messages.length;
+          return { content: 'Resposta do tutor para sua dúvida.', model: 'fake' };
+        },
+      } as never,
+    });
+    const result = await call<TutorReply>(map, TRACK_CHANNELS.TUTOR_CHAT, {
+      trackSlug: 'trilha-teste',
+      lessonId: 'aula-1',
+      presentedSections: ['intro'],
+      history: [
+        { role: 'assistant', content: 'Seção 1...' },
+        { role: 'user', content: 'não entendi' },
+      ],
+      action: 'answer',
+    });
+    assert.equal(result.ok, true);
+    assert.equal(result.message, 'Resposta do tutor para sua dúvida.');
+    assert.equal(result.sectionId, null);
+    // system + 2 do histórico (assistant + user) — o material da aula entra.
+    assert.equal(sawMessages, 3);
+  });
+
   it('track:challenge devolve a spec sem os testes', async () => {
     const dir = await makeTrackDir();
     const map = buildTrackHandlers({ getTracksDir: () => path.dirname(dir), repo: fakeRepo() });

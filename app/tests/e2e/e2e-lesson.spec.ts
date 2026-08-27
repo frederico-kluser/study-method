@@ -56,10 +56,14 @@ test('e2e-lesson: trilha → aula em chat (teoria progressiva + fontes + desafio
   // O chat começa vazio: "Começar aula" apresenta a 1ª seção (stub).
   await page.getByRole('button', { name: 'Começar aula' }).click();
   await expect(page.getByText('Tutor E2E:', { exact: false }).first()).toBeVisible();
+  // ONDA 1 (teoria-pronta): 'next' é DETERMINÍSTICO (sem LLM) — o indicador
+  // "tutor digitando…" NUNCA aparece nesse fluxo (só existe em 'answer').
+  await expect(page.getByText(/tutor digitando|tutor typing/i)).toHaveCount(0);
 
   // Próximo → segunda seção da teoria (progressiva, uma por vez).
   await page.getByRole('button', { name: 'Próximo →' }).click();
   await expect(page.getByText('Tutor E2E:', { exact: false }).nth(1)).toBeVisible();
+  await expect(page.getByText(/tutor digitando|tutor typing/i)).toHaveCount(0);
 
   // Concluir aula → botão vira "Concluída ✓".
   await page.getByRole('button', { name: 'Concluir aula' }).click();
