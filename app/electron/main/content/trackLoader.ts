@@ -49,6 +49,12 @@ export interface LoadedTrack {
 export interface LoadedModule {
   meta: TrackModuleSource;
   lessons: LoadedLesson[];
+  /**
+   * ADITIVO (rodada 9): DESAFIO DO MÓDULO (fim do módulo) — desafio próprio do
+   * módulo em challenges/<slug>/challenge.json. null quando o módulo não declara
+   * um (module.json sem campo challenge).
+   */
+  challenge: TrackChallengeSource | null;
 }
 
 export interface LoadedLesson {
@@ -154,7 +160,28 @@ export async function loadTrack(trackDir: string): Promise<LoadedTrack> {
 
       lessons.push({ meta: lesson, challenges });
     }
-    modules.push({ meta: module, lessons });
+
+    // ADITIVO (rodada 9): desafio do MÓDULO — módulo declarou challenge? O
+    // arquivo PRECISA existir e validar (integridade de referência, mesmo
+    // padrão dos desafios de aula). Módulo sem challenge → null (válido).
+    let moduleChallenge: TrackChallengeSource | null = null;
+    if (typeof module.challenge === 'string') {
+      const moduleChallengePath = path.join(moduleDir, 'challenges', module.challenge, CHALLENGE_FILE);
+      let challengeRaw: unknown;
+      try {
+        challengeRaw = await readJson(moduleChallengePath);
+      } catch {
+        throw new TrackLoadError(`trilha inválida em ${trackDir}`, [
+          { file: moduleChallengePath, message: `desafio do módulo '${module.challenge}' declarado no módulo ${moduleSlug} mas arquivo ausente/ilegível` },
+        ]);
+      }
+      issues.push(...validateChallengeSource(challengeRaw, moduleChallengePath));
+      if (issues.length > 0) {
+        throw new TrackLoadError(`trilha inválida em ${trackDir}`, issues);
+      }
+      moduleChallenge = challengeRaw as TrackChallengeSource;
+    }
+    modules.push({ meta: module, lessons, challenge: moduleChallenge });
   }
 
   // Passo 2: integridade de referências (só depois que TODOS os slugs são conhecidos).

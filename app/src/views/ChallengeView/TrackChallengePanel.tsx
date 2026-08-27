@@ -10,14 +10,18 @@
  *      imediatas.
  *   2. RESOLUÇÃO — editor (autocomplete OFF) + "Testar resposta" →
  *      track:challenge-submit (o main roda o código contra os testes — os
- *      testes nunca aparecem na UI).
+ *      testes nunca aparecem na UI). ADITIVO (rodada 9): desafio MULTI-ARQUIVO
+ *      → SELETOR DE ARQUIVOS (abas MUI), um editor CodeMirror por arquivo; o
+ *      submit envia o código de TODOS os arquivos (files no request).
  *   3. VEREDITO — passou: confete + mark 'passed' (estrelas/duração) via
  *      study:mark-challenge-attempt; errou: o ERRO é apresentado + botão
  *      "Gerar novo desafio" — a LLM vê TODOS os desafios que o aluno errou
  *      naquela aula e não repete nenhum (nunca-repetir da rodada 8).
  *
  * A proficiência usa o MESMO painel (target 'proficiency'); ao passar, o main
- * grava o veredito e destrava a trilha inteira.
+ * grava o veredito e destrava a trilha inteira. ADITIVO (rodada 9): o desafio
+ * do MÓDULO (target 'module' + moduleSlug) usa o mesmo painel — sem botão de
+ * regeneração (conteúdo autoral).
  */
 import ReactMarkdown from 'react-markdown';
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactElement, type ReactNode } from 'react';
@@ -34,6 +38,8 @@ import {
   ListItemIcon,
   ListItemText,
   Stack,
+  Tab,
+  Tabs,
   Typography,
 } from '@mui/material';
 import StarIcon from '@mui/icons-material/Star';
@@ -109,6 +115,10 @@ export function TrackChallengePanel({ selection }: { selection: TrackChallengeNa
 
   // Editor + teste.
   const [code, setCode] = useState('');
+  /** ADITIVO (rodada 9): desafio MULTI-ARQUIVO — código por caminho de arquivo. */
+  const [filesCode, setFilesCode] = useState<Record<string, string>>({});
+  /** arquivo ativo no seletor de abas (path; default = primeiro arquivo). */
+  const [activeFile, setActiveFile] = useState<string | null>(null);
   const [running, setRunning] = useState(false);
   const [result, setResult] = useState<TrackSubmitResult | null>(null);
   const [submissionError, setSubmissionError] = useState<string | null>(null);
@@ -126,7 +136,9 @@ export function TrackChallengePanel({ selection }: { selection: TrackChallengeNa
       const req =
         sel.target === 'proficiency'
           ? { trackSlug: sel.trackSlug, target: 'proficiency' as const, challengeId: sel.challengeId }
-          : { trackSlug: sel.trackSlug, target: 'lesson' as const, lessonId: sel.lessonId, challengeId: sel.challengeId };
+          : sel.target === 'module'
+            ? { trackSlug: sel.trackSlug, target: 'module' as const, moduleSlug: sel.moduleSlug, challengeId: sel.challengeId }
+            : { trackSlug: sel.trackSlug, target: 'lesson' as const, lessonId: sel.lessonId, challengeId: sel.challengeId };
       const call = sel.target === 'proficiency' ? getApi().track.proficiency : getApi().track.challenge;
       call(req)
         .then((res) => {
@@ -140,7 +152,18 @@ export function TrackChallengePanel({ selection }: { selection: TrackChallengeNa
             return;
           }
           setSpec(res.challenge);
-          setCode(res.challenge.starterCode);
+          // ADITIVO (rodada 9): multi-arquivo — um editor por arquivo, starters
+          // de cada um; sem files, editor único com starterCode (comportamento atual).
+          if (res.challenge.files && res.challenge.files.length > 0) {
+            setFilesCode(
+              Object.fromEntries(res.challenge.files.map((f) => [f.path, f.starterCode])),
+            );
+            setActiveFile(res.challenge.files[0].path);
+          } else {
+            setFilesCode({});
+            setActiveFile(null);
+            setCode(res.challenge.starterCode);
+          }
           setStarted(false);
           setElapsedMs(0);
           setStarsLeft(3);
@@ -163,7 +186,7 @@ export function TrackChallengePanel({ selection }: { selection: TrackChallengeNa
   useEffect(() => {
     loadSpec(selection);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selection.trackSlug, selection.challengeId, selection.target, selection.lessonId]);
+  }, [selection.trackSlug, selection.challengeId, selection.target, selection.lessonId, selection.moduleSlug]);
 
   /** Marca a tentativa (nunca-repetir) — idempotente por desafio+veredito. */
   const markAttempt = useCallback(
@@ -256,12 +279,19 @@ export function TrackChallengePanel({ selection }: { selection: TrackChallengeNa
     setRunning(true);
     setSubmissionError(null);
     try {
+      // ADITIVO (rodada 9): multi-arquivo — o submit envia o código de TODOS
+      // os arquivos (files); sem files, envia o code único (comportamento atual).
+      const multiFile = spec.files && spec.files.length > 0;
       const payload = {
         trackSlug: selection.trackSlug,
         target: selection.target,
         lessonId: selection.target === 'lesson' ? selection.lessonId : undefined,
+        moduleSlug: selection.target === 'module' ? selection.moduleSlug : undefined,
         challengeId: spec.slug,
-        code,
+        code: multiFile ? (filesCode[activeFile ?? ''] ?? '') : code,
+        ...(multiFile
+          ? { files: spec.files.map((f) => ({ path: f.path, code: filesCode[f.path] ?? '' })) }
+          : {}),
         ...(selection.target === 'proficiency' ? { stars: starsLeft } : {}),
       };
       const res = await getApi().track.challengeSubmit(payload as never);
@@ -283,7 +313,7 @@ export function TrackChallengePanel({ selection }: { selection: TrackChallengeNa
     } finally {
       setRunning(false);
     }
-  }, [spec, started, running, concluded, selection, code, starsLeft, markAttempt]);
+  }, [spec, started, running, concluded, selection, code, filesCode, activeFile, starsLeft, markAttempt]);
 
   /** Regenera o desafio: a LLM vê os erros do aluno nesta aula e não repete. */
   const handleRegenerate = useCallback(async (): Promise<void> => {
@@ -331,7 +361,15 @@ export function TrackChallengePanel({ selection }: { selection: TrackChallengeNa
   }
 
   const clock = formatClock(Math.max(0, spec.timeLimitMs - elapsedMs));
-  const canSubmit = started && !concluded && !running && code.trim().length > 0;
+  // ADITIVO (rodada 9): multi-arquivo — TODOS os arquivos precisam de código.
+  const multiFile = !!(spec.files && spec.files.length > 0);
+  const canSubmit =
+    started &&
+    !concluded &&
+    !running &&
+    (multiFile
+      ? spec.files!.every((f) => (filesCode[f.path] ?? '').trim().length > 0)
+      : code.trim().length > 0);
 
   return (
     <Box sx={{ p: 2, maxWidth: 720, mx: 'auto' }}>
@@ -397,18 +435,53 @@ export function TrackChallengePanel({ selection }: { selection: TrackChallengeNa
           <>
             <Divider />
 
-            {/* Ato 2: editor (autocomplete OFF) + testar. */}
+            {/* Ato 2: editor (autocomplete OFF) + testar. ADITIVO (rodada 9):
+                multi-arquivo → SELETOR DE ARQUIVOS (abas MUI) com UM editor
+                CodeMirror por arquivo; o submit envia o código de TODOS. */}
             <Box>
               <Typography variant="subtitle2" gutterBottom>
-                {t('translation:challenge.editorLabel')}
+                {multiFile
+                  ? t('translation:challenge.filesTitle')
+                  : t('translation:challenge.editorLabel')}
               </Typography>
-              <CodeMirrorField
-                value={code}
-                onChange={setCode}
-                filename="solution.mjs"
-                ariaLabel={t('translation:challenge.editorLabel')}
-                readOnly={concluded !== null}
-              />
+              {multiFile ? (
+                <>
+                  <Tabs
+                    value={activeFile ?? spec.files![0].path}
+                    onChange={(_e, v: unknown) => setActiveFile(String(v))}
+                    variant="scrollable"
+                    scrollButtons="auto"
+                    sx={{ mb: 1, minHeight: 36 }}
+                  >
+                    {spec.files!.map((f) => (
+                      <Tab
+                        key={f.path}
+                        value={f.path}
+                        label={f.path}
+                        sx={{ textTransform: 'none', minHeight: 36 }}
+                        aria-label={tI('challenge.fileTabAria', { file: f.path })}
+                      />
+                    ))}
+                  </Tabs>
+                  <CodeMirrorField
+                    value={filesCode[activeFile ?? ''] ?? ''}
+                    onChange={(v) =>
+                      setFilesCode((prev) => ({ ...prev, [activeFile ?? '']: v }))
+                    }
+                    filename={activeFile ?? 'solution.mjs'}
+                    ariaLabel={tI('challenge.fileTabAria', { file: activeFile ?? '' })}
+                    readOnly={concluded !== null}
+                  />
+                </>
+              ) : (
+                <CodeMirrorField
+                  value={code}
+                  onChange={setCode}
+                  filename="solution.mjs"
+                  ariaLabel={t('translation:challenge.editorLabel')}
+                  readOnly={concluded !== null}
+                />
+              )}
               <Button
                 variant="contained"
                 onClick={() => void handleSubmit()}
@@ -474,8 +547,10 @@ export function TrackChallengePanel({ selection }: { selection: TrackChallengeNa
 
             {/* Nunca-repetir: qualquer NÃO-aprovação (falhou OU timeout) →
                 erro + botão de NOVO desafio. Veredito parcial (passou alguns
-                testes) também conta como não-aprovação: só passed=true aprova. */}
-            {concluded === 'failed' || concluded === 'timeout' ? (
+                testes) também conta como não-aprovação: só passed=true aprova.
+                ADITIVO (rodada 9): desafios de MÓDULO são autorais — a
+                regeneração é por AULA, então não aparece para target 'module'. */}
+            {selection.target !== 'module' && (concluded === 'failed' || concluded === 'timeout') ? (
               <Button
                 variant="outlined"
                 color="secondary"

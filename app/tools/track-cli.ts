@@ -12,8 +12,9 @@
  *   track:module:new <slug> <moduleSlug> --title "Fundamentos" --order 1
  *   track:lesson:new <slug> <moduleSlug> <lessonSlug> --title "..." --summary "..." [--difficulty N]
  *   track:challenge:new <slug> <moduleSlug> <lessonSlug> <challengeSlug> --title "..." --concept <id> [--difficulty N]
+ *   track:module:challenge:new <slug> <moduleSlug> <challengeSlug> --title "..." --concept <id> [--difficulty N] [--files "lib/a.mjs,lib/b.mjs"]
  *   track:proficiency:new <slug> --title "..." --concept <id>   (desafio que cobre TUDO)
- *   track:challenge:verify <slug> <moduleSlug> <lessonSlug> <challengeSlug>
+ *   track:challenge:verify <slug> <moduleSlug> <lessonSlug> <challengeSlug>   (multi-arquivo OK)
  *   track:validate <slug>          — valida a trilha inteira (loader completo)
  *   track:list                     — lista as trilhas disponíveis
  *
@@ -60,6 +61,7 @@ comandos:
   track:module:new <slug> <moduleSlug> --title "..." --order N
   track:lesson:new <slug> <moduleSlug> <lessonSlug> --title "..." --summary "..." [--difficulty N]
   track:challenge:new <slug> <moduleSlug> <lessonSlug> <challengeSlug> --title "..." --concept <id> [--difficulty N]
+  track:module:challenge:new <slug> <moduleSlug> <challengeSlug> --title "..." --concept <id> [--difficulty N] [--files "lib/a.mjs,lib/b.mjs"]
   track:proficiency:new <slug> --title "..." --concept <id>
   track:challenge:verify <slug> <moduleSlug> <lessonSlug> <challengeSlug>
   track:validate <slug>
@@ -269,6 +271,72 @@ async function cmdChallengeNew(pos: string[], flags: Record<string, string>): Pr
   console.log(`  npm run track -- track:challenge:verify ${track} ${moduleSlug} ${lessonSlug} ${challengeSlug}`);
 }
 
+/**
+ * ADITIVO (rodada 9): template de desafio MULTI-ARQUIVO — N arquivos, cada um
+ * com starter (TODO) e solução próprios; os testes importam de TODOS. O scaffold
+ * nasce VÁLIDO para o loader (files presente → starter/solution de topo não são
+ * exigidos); o autor preenche o código e verifica com track:validate.
+ */
+function multiFileChallengeTemplate(
+  slug: string,
+  title: string,
+  concept: string,
+  difficulty: number,
+  filePaths: string[],
+): TrackChallengeSource {
+  const names = filePaths.map((p) => slugToFunctionName(path.basename(p, '.mjs')));
+  const files = filePaths.map((p, i) => ({
+    path: p,
+    starterCode: `export function ${names[i]}(x) {\n  // TODO: implemente a função\n  throw new Error('não implementado');\n}\n`,
+    solutionCode: `export function ${names[i]}(x) {\n  return x;\n}\n`,
+  }));
+  const imports = files.map((f, i) => `import { ${names[i]} } from './${f.path}';`).join('\n');
+  const tests = files.map((f, i) => `test('${names[i]} caso 1', () => {\n  assert.equal(${names[i]}(1), 1);\n});`).join('\n');
+  return {
+    schemaVersion: TRACK_SCHEMA_VERSION,
+    slug,
+    title,
+    concept,
+    difficulty,
+    language: 'nodejs',
+    statement: `# ${title}\n\nTODO: escreva o enunciado (o que o aluno deve fazer, em pt-BR, linguagem simples).\n\n**Importante:** leia o enunciado com calma e clique em **Começar** para iniciar o cronômetro.`,
+    files,
+    testsCode: `import { test } from 'node:test';\nimport assert from 'node:assert/strict';\n${imports}\n${tests}\n`,
+    expectedTestCount: files.length,
+    minFirstStarMs: DEFAULT_MIN_FIRST_STAR_MS,
+  };
+}
+
+async function cmdModuleChallengeNew(pos: string[], flags: Record<string, string>): Promise<void> {
+  const [track, moduleSlug, challengeSlug] = pos;
+  if (!track || !moduleSlug || !challengeSlug) fail('track:module:challenge:new <slug> <moduleSlug> <challengeSlug>');
+  const title = needFlag(flags, 'title');
+  const concept = needFlag(flags, 'concept');
+  const difficulty = Number(flags.difficulty ?? '2');
+
+  // --files "lib/soma.mjs,lib/multiplica.mjs" → desafio MULTI-ARQUIVO.
+  const filePaths = (flags.files ?? '')
+    .split(',')
+    .map((s) => s.trim())
+    .filter((s) => s.length > 0);
+  const challenge =
+    filePaths.length > 0
+      ? multiFileChallengeTemplate(challengeSlug, title, concept, difficulty, filePaths)
+      : challengeTemplate(challengeSlug, title, concept, difficulty);
+
+  const dir = path.join(moduleDir(track, moduleSlug), 'challenges', challengeSlug);
+  await writeJson(path.join(dir, CHALLENGE_FILE), challenge);
+
+  // declara no module.json (campo challenge — ADITIVO rodada 9).
+  const modulePath = path.join(moduleDir(track, moduleSlug), MODULE_FILE);
+  const meta = JSON.parse(await fs.readFile(modulePath, 'utf8')) as TrackModuleSource;
+  meta.challenge = challengeSlug;
+  await writeJson(modulePath, meta);
+  console.log(`✓ desafio do módulo '${challengeSlug}' criado em ${path.dirname(dir)} e declarado no module.json.`);
+  console.log(`  preencha statement/starter/tests/solution e verifique:`);
+  console.log(`  npm run track -- track:validate ${track}`);
+}
+
 async function cmdProficiencyNew(pos: string[], flags: Record<string, string>): Promise<void> {
   const [track] = pos;
   if (!track) fail('track:proficiency:new <slug>');
@@ -285,6 +353,51 @@ async function cmdProficiencyNew(pos: string[], flags: Record<string, string>): 
 // Implementação ÚNICA em electron/main/services/challengeExec.ts — o CLI e o
 // main usam o MESMO runner (um comportamento, dois chamadores).
 
+/**
+ * ADITIVO (rodada 9): monta o PAR solução/starter de um desafio — multi-arquivo
+ * quando `files` presente (cada lado com TODOS os arquivos), senão arquivo
+ * único solution.mjs. Função pura (sem disco) para o verify e o validate.
+ */
+export function challengePairFromSource(challenge: TrackChallengeSource): {
+  solutionCode: string;
+  starterCode: string;
+  testsCode: string;
+  expectedTestCount: number;
+  solutionFiles?: { path: string; code: string }[];
+  starterFiles?: { path: string; code: string }[];
+} {
+  return {
+    // `?? ''`: multi-arquivo (files presente) não carrega starter/solution de
+    // topo — o verify usa os solutionFiles/starterFiles quando presentes.
+    solutionCode: challenge.solutionCode ?? '',
+    starterCode: challenge.starterCode ?? '',
+    testsCode: challenge.testsCode,
+    expectedTestCount: challenge.expectedTestCount,
+    solutionFiles: challenge.files?.map((f) => ({ path: f.path, code: f.solutionCode })),
+    starterFiles: challenge.files?.map((f) => ({ path: f.path, code: f.starterCode })),
+  };
+}
+
+/** Provas de execução de UM desafio (multi-arquivo OK) + log. Retorna ok. */
+async function verifyAndLogChallenge(slug: string, title: string, challenge: TrackChallengeSource): Promise<boolean> {
+  const result = await verifyChallengePair(challengePairFromSource(challenge));
+  const tests = countTestDeclarations(challenge.testsCode);
+  const ok = result.solutionPasses && result.starterFails && tests === challenge.expectedTestCount;
+  console.log(`desafio '${slug}' (${title})`);
+  if (challenge.files && challenge.files.length > 0) {
+    console.log(`  arquivos:                 ${challenge.files.map((f) => f.path).join(', ')}`);
+  }
+  console.log(`  testes declarados:        ${challenge.expectedTestCount}`);
+  console.log(`  testes no arquivo:        ${tests}`);
+  console.log(`  solução de referência:    ${result.solutionPasses ? 'PASSA ✓' : 'FALHA ✗'}`);
+  console.log(`  starter (aluno):          ${result.starterFails ? 'FALHA (ok) ✓' : 'PASSA (problema!) ✗'}`);
+  if (!ok) {
+    console.error('\n--- saída ---');
+    console.error(result.output.slice(0, 4000));
+  }
+  return ok;
+}
+
 async function cmdChallengeVerify(pos: string[]): Promise<void> {
   const [track, moduleSlug, lessonSlug, challengeSlug] = pos;
   if (!track || !moduleSlug || !lessonSlug || !challengeSlug) {
@@ -293,25 +406,8 @@ async function cmdChallengeVerify(pos: string[]): Promise<void> {
   const dir = path.join(lessonDir(track, moduleSlug, lessonSlug), 'challenges', challengeSlug);
   const challengePath = path.join(dir, CHALLENGE_FILE);
   const challenge = JSON.parse(await fs.readFile(challengePath, 'utf8')) as TrackChallengeSource;
-  const result = await verifyChallengePair({
-    solutionCode: challenge.solutionCode,
-    starterCode: challenge.starterCode,
-    testsCode: challenge.testsCode,
-    expectedTestCount: challenge.expectedTestCount,
-  });
-
-  const tests = countTestDeclarations(challenge.testsCode);
-  const ok = result.solutionPasses && result.starterFails && tests === challenge.expectedTestCount;
-  console.log(`desafio '${challengeSlug}' (${challenge.title})`);
-  console.log(`  testes declarados:        ${challenge.expectedTestCount}`);
-  console.log(`  testes no arquivo:        ${tests}`);
-  console.log(`  solução de referência:    ${result.solutionPasses ? 'PASSA ✓' : 'FALHA ✗'}`);
-  console.log(`  starter (aluno):          ${result.starterFails ? 'FALHA (ok) ✓' : 'PASSA (problema!) ✗'}`);
-  if (!ok) {
-    console.error('\n--- saída ---');
-    console.error(result.output.slice(0, 4000));
-    process.exit(1);
-  }
+  const ok = await verifyAndLogChallenge(challengeSlug, challenge.title, challenge);
+  if (!ok) process.exit(1);
   console.log(`✓ desafio aprovado pelas provas de execução.`);
 }
 
@@ -328,31 +424,28 @@ async function cmdValidate(pos: string[]): Promise<void> {
       (n, m) => n + m.lessons.reduce((c, l) => c + l.challenges.length, 0),
       0,
     );
+    const moduleChallengeCount = track.modules.filter((m) => m.challenge !== null).length;
     console.log(`✓ trilha '${slug}' — ${track.root.title}`);
     console.log(`  módulos: ${track.modules.length}`);
     console.log(`  aulas:   ${lessonCount}`);
     console.log(`  desafios: ${challengeCount}`);
+    console.log(`  desafios de módulo: ${moduleChallengeCount}`);
     console.log(`  proficiência: ${track.proficiency ? `${track.proficiency.title} ✓` : 'ausente'}`);
     if (track.proficiency) {
-      const v = await verifyChallengePair({
-        solutionCode: track.proficiency.solutionCode,
-        starterCode: track.proficiency.starterCode,
-        testsCode: track.proficiency.testsCode,
-        expectedTestCount: track.proficiency.expectedTestCount,
-      });
+      const v = await verifyChallengePair(challengePairFromSource(track.proficiency));
       const tests = countTestDeclarations(track.proficiency.testsCode);
       const ok = pairIsValid(v) && tests === track.proficiency.expectedTestCount;
       console.log(`    provas de execução: ${ok ? 'ok ✓' : 'FALHOU ✗ (rode track:challenge:verify)'}`);
     }
     for (const mod of track.modules) {
+      // ADITIVO (rodada 9): desafio do MÓDULO também passa pelas provas.
+      if (mod.challenge) {
+        const ok = await verifyAndLogChallenge(mod.challenge.slug, mod.challenge.title, mod.challenge);
+        console.log(`  [${mod.meta.slug}/module] ${mod.challenge.slug}: ${ok ? 'verificado ✓' : 'NÃO VERIFICADO ✗'}`);
+      }
       for (const lesson of mod.lessons) {
         for (const ch of lesson.challenges) {
-          const v = await verifyChallengePair({
-            solutionCode: ch.solutionCode,
-            starterCode: ch.starterCode,
-            testsCode: ch.testsCode,
-            expectedTestCount: ch.expectedTestCount,
-          });
+          const v = await verifyChallengePair(challengePairFromSource(ch));
           const tests = countTestDeclarations(ch.testsCode);
           const ok = pairIsValid(v) && tests === ch.expectedTestCount;
           console.log(`  [${mod.meta.slug}/${lesson.meta.slug}] ${ch.slug}: ${ok ? 'verificado ✓' : 'NÃO VERIFICADO ✗'}`);
@@ -416,6 +509,9 @@ async function main(): Promise<void> {
       break;
     case 'track:challenge:new':
       await cmdChallengeNew(rest, flags);
+      break;
+    case 'track:module:challenge:new':
+      await cmdModuleChallengeNew(rest, flags);
       break;
     case 'track:proficiency:new':
       await cmdProficiencyNew(rest, flags);

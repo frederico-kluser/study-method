@@ -72,7 +72,10 @@ function lesson(slug: string, over: Partial<TrackLessonSource> = {}): TrackLesso
   };
 }
 
-function makeTrack(lessons: Array<{ moduleSlug: string; lesson: TrackLessonSource; challenge?: TrackChallengeSource }>): LoadedTrack {
+function makeTrack(
+  lessons: Array<{ moduleSlug: string; lesson: TrackLessonSource; challenge?: TrackChallengeSource }>,
+  moduleChallenges: Array<{ moduleSlug: string; challenge: TrackChallengeSource }> = [],
+): LoadedTrack {
   const modules = new Map<string, { schemaVersion: number; slug: string; title: string; order: number; lessons: string[] }>();
   const byModule = new Map<string, Array<{ meta: TrackLessonSource; challenges: TrackChallengeSource[] }>>();
   for (const { moduleSlug, lesson, challenge } of lessons) {
@@ -93,11 +96,13 @@ function makeTrack(lessons: Array<{ moduleSlug: string; lesson: TrackLessonSourc
     domain: 'programming',
     modules: [...modules.values()].sort((a, b) => a.order - b.order).map((m) => m.slug),
   };
+  // ADITIVO (rodada 9): desafios de MÓDULO por módulo.
+  const challengeByModule = new Map(moduleChallenges.map((x) => [x.moduleSlug, x.challenge]));
   return {
     root: track,
     modules: [...modules.values()]
       .sort((a, b) => a.order - b.order)
-      .map((m) => ({ meta: m, lessons: byModule.get(m.slug)! })),
+      .map((m) => ({ meta: m, lessons: byModule.get(m.slug)!, challenge: challengeByModule.get(m.slug) ?? null })),
     proficiency: null,
     dir: '/fake',
   };
@@ -233,6 +238,39 @@ describe('buildTrackDetail / buildTrackLesson — DTOs', () => {
     const payload = await buildTrackLesson(track, 'm1', 'nao-existe', fakeRepo());
     assert.equal(payload, null);
   });
+
+  // ─── ADITIVO (rodada 9): desafio do MÓDULO ──────────────────────────────────
+
+  it('ADITIVO: buildTrackDetail marca challengeAvailable e o estado do aluno', async () => {
+    const track = makeTrack(
+      [{ moduleSlug: 'm1', lesson: lesson('a1') }],
+      [{ moduleSlug: 'm1', challenge: challenge('desafio-do-modulo', { difficulty: 3 }) }],
+    );
+    const repo = fakeRepo({
+      getAttemptsForChallenge: async (id: string) =>
+        id === 'desafio-do-modulo'
+          ? [
+              { id: '1', subjectId: 's', lessonId: 'l', challengeId: id, verdict: 'failed', stars: 2, durationMs: 0, createdAt: '1' },
+              { id: '2', subjectId: 's', lessonId: 'l', challengeId: id, verdict: 'passed', stars: 1, durationMs: 0, createdAt: '2' },
+            ]
+          : [],
+    });
+    const detail = await buildTrackDetail(track, repo);
+    const mod = detail.modules[0];
+    assert.equal(mod.challengeAvailable, true);
+    assert.deepEqual(mod.challenge, { slug: 'desafio-do-modulo', title: 'desafio-do-modulo' });
+    assert.equal(mod.challengeLastVerdict, 'passed');
+    assert.equal(mod.challengeStars, 1);
+  });
+
+  it('ADITIVO: buildTrackDetail sem desafio de módulo → challengeAvailable false', async () => {
+    const track = makeTrack([{ moduleSlug: 'm1', lesson: lesson('a1') }]);
+    const detail = await buildTrackDetail(track, fakeRepo());
+    assert.equal(detail.modules[0].challengeAvailable, false);
+    assert.equal(detail.modules[0].challenge, null);
+    assert.equal(detail.modules[0].challengeLastVerdict, null);
+    assert.equal(detail.modules[0].challengeStars, 0);
+  });
 });
 
 describe('resolveChallengeSpec — desafios da trilha e regenerados', () => {
@@ -283,6 +321,52 @@ describe('resolveChallengeSpec — desafios da trilha e regenerados', () => {
   it('sem proficiência na trilha → proficiency null', async () => {
     const track = makeTrack([{ moduleSlug: 'm1', lesson: lesson('a1') }]);
     const spec = await resolveChallengeSpec(track, 'proficiency', undefined, 'proficiencia', fakeRepo());
+    assert.equal(spec, null);
+  });
+
+  // ─── ADITIVO (rodada 9): target 'module' (desafio do módulo) ────────────────
+
+  it('ADITIVO: resolve desafio do MÓDULO com os STARTERS por arquivo (sem soluções)', async () => {
+    const track = makeTrack(
+      [{ moduleSlug: 'm1', lesson: lesson('a1') }],
+      [
+        {
+          moduleSlug: 'm1',
+          challenge: challenge('desafio-do-modulo', {
+            difficulty: 3,
+            files: [
+              { path: 'lib/soma.mjs', starterCode: 'export function soma(a, b) { throw new Error("x"); }\n', solutionCode: 'export function soma(a, b) { return a + b; }\n' },
+              { path: 'lib/multiplica.mjs', starterCode: 'export function multiplica(a, b) { throw new Error("x"); }\n', solutionCode: 'export function multiplica(a, b) { return a * b; }\n' },
+            ],
+          }),
+        },
+      ],
+    );
+    const spec = await resolveChallengeSpec(track, 'module', undefined, 'desafio-do-modulo', fakeRepo(), 'm1');
+    assert.ok(spec);
+    assert.equal(spec.source, 'track');
+    assert.equal(spec.files?.length, 2);
+    assert.equal(spec.files?.[0].path, 'lib/soma.mjs');
+    assert.equal(spec.files?.[0].starterCode, 'export function soma(a, b) { throw new Error("x"); }\n');
+    // starters sim, soluções NUNCA:
+    assert.equal((spec.files?.[0] as { solutionCode?: unknown }).solutionCode, undefined);
+    // starterCode único carrega o do PRIMEIRO arquivo (fallback da UI):
+    assert.equal(spec.starterCode, 'export function soma(a, b) { throw new Error("x"); }\n');
+    assert.equal(spec.timeLimitMs, timeLimitForDifficultyMs(3));
+  });
+
+  it('ADITIVO: target module com moduleSlug errado ou slug divergente → null', async () => {
+    const track = makeTrack(
+      [{ moduleSlug: 'm1', lesson: lesson('a1') }],
+      [{ moduleSlug: 'm1', challenge: challenge('desafio-do-modulo') }],
+    );
+    assert.equal(await resolveChallengeSpec(track, 'module', undefined, 'desafio-do-modulo', fakeRepo(), 'outro-modulo'), null);
+    assert.equal(await resolveChallengeSpec(track, 'module', undefined, 'outro-slug', fakeRepo(), 'm1'), null);
+  });
+
+  it('ADITIVO: módulo sem desafio → null', async () => {
+    const track = makeTrack([{ moduleSlug: 'm1', lesson: lesson('a1') }]);
+    const spec = await resolveChallengeSpec(track, 'module', undefined, 'desafio-do-modulo', fakeRepo(), 'm1');
     assert.equal(spec, null);
   });
 });

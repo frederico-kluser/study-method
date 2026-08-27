@@ -187,6 +187,96 @@ describe('challengeExec — execução determinística', () => {
     assert.equal(countTestDeclarations(GOOD_TEST), 2);
     assert.equal(countTestDeclarations('// test( no comentário\n'), 0);
   });
+
+  // ─── ADITIVO (rodada 9): desafio MULTI-ARQUIVO ──────────────────────────────
+  // O aluno edita TODOS os arquivos (lib/soma.mjs + lib/multiplica.mjs); os
+  // testes importam dos dois. Execução REAL (node --test) em dir temporário.
+
+  const MULTI_TEST = `import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { soma } from './lib/soma.mjs';
+import { multiplica } from './lib/multiplica.mjs';
+test('soma 2+3', () => { assert.equal(soma(2, 3), 5); });
+test('multiplica 2*3', () => { assert.equal(multiplica(2, 3), 6); });
+test('juntos', () => { assert.equal(multiplica(soma(1, 2), 2), 6); });
+`;
+
+  it('ADITIVO: runStudentCode com files — todos os arquivos certos passam', async () => {
+    const res = await runStudentCode({
+      studentCode: '', // ignorado — files presente.
+      files: [
+        { path: 'lib/soma.mjs', code: 'export function soma(a, b) { return a + b; }\n' },
+        { path: 'lib/multiplica.mjs', code: 'export function multiplica(a, b) { return a * b; }\n' },
+      ],
+      testsCode: MULTI_TEST,
+      expectedTestCount: 3,
+    });
+    assert.equal(res.passed, true);
+    assert.equal(res.testsRun, 3);
+    assert.equal(res.fail, 0);
+    assert.equal(res.checks.length, 3);
+  });
+
+  it('ADITIVO: runStudentCode com files — um arquivo errado falha com parcial', async () => {
+    const res = await runStudentCode({
+      studentCode: '',
+      files: [
+        { path: 'lib/soma.mjs', code: 'export function soma(a, b) { return a - b; }\n' },
+        { path: 'lib/multiplica.mjs', code: 'export function multiplica(a, b) { return a * b; }\n' },
+      ],
+      testsCode: MULTI_TEST,
+      expectedTestCount: 3,
+    });
+    assert.equal(res.passed, false);
+    // soma errada quebra o teste da soma E o "juntos" (que chama soma) — só a
+    // multiplicação isolada passa: 1 de 3.
+    assert.equal(res.fail, 2);
+    assert.equal(res.passedCount, 1);
+    assert.equal(res.totalCount, 3);
+  });
+
+  it('ADITIVO: verifyChallengePair multi-arquivo — solução (2 arquivos) passa + starter falha', async () => {
+    const v = await verifyChallengePair({
+      solutionCode: '',
+      starterCode: '',
+      testsCode: MULTI_TEST,
+      expectedTestCount: 3,
+      solutionFiles: [
+        { path: 'lib/soma.mjs', code: 'export function soma(a, b) { return a + b; }\n' },
+        { path: 'lib/multiplica.mjs', code: 'export function multiplica(a, b) { return a * b; }\n' },
+      ],
+      starterFiles: [
+        { path: 'lib/soma.mjs', code: 'export function soma(a, b) { throw new Error("não implementado"); }\n' },
+        { path: 'lib/multiplica.mjs', code: 'export function multiplica(a, b) { throw new Error("não implementado"); }\n' },
+      ],
+    });
+    assert.equal(v.solutionPasses, true);
+    assert.equal(v.starterFails, true);
+    assert.equal(v.countMatches, true);
+    assert.equal(pairIsValid(v), true);
+  });
+
+  it('ADITIVO: verifyChallengePair multi-arquivo — starter com UM arquivo certo NÃO passa (todos importam)', async () => {
+    // só soma implementado; multiplica ainda lança → os testes importam dos
+    // dois, então a execução falha (starter continua FALHANDO — correto).
+    const v = await verifyChallengePair({
+      solutionCode: '',
+      starterCode: '',
+      testsCode: MULTI_TEST,
+      expectedTestCount: 3,
+      solutionFiles: [
+        { path: 'lib/soma.mjs', code: 'export function soma(a, b) { return a + b; }\n' },
+        { path: 'lib/multiplica.mjs', code: 'export function multiplica(a, b) { return a * b; }\n' },
+      ],
+      starterFiles: [
+        { path: 'lib/soma.mjs', code: 'export function soma(a, b) { return a + b; }\n' },
+        { path: 'lib/multiplica.mjs', code: 'export function multiplica(a, b) { throw new Error("não implementado"); }\n' },
+      ],
+    });
+    assert.equal(v.solutionPasses, true);
+    assert.equal(v.starterFails, true);
+    assert.equal(pairIsValid(v), true);
+  });
 });
 
 describe('tutorChat — chat progressivo da aula', () => {
@@ -411,6 +501,22 @@ describe('challengeExec — parse com ANSI (cores herdadas do ambiente)', () => 
     const { parseSpecCounts } = require('../electron/main/services/challengeExec') as typeof import('../electron/main/services/challengeExec');
     const colored = '\x1b[32m✔ caso 1\x1b[39m\n\x1b[34mℹ tests 3\x1b[39m\n\x1b[34mℹ pass 3\x1b[39m\n\x1b[34mℹ fail 0\x1b[39m\n';
     assert.deepEqual(parseSpecCounts(colored), { testsRun: 3, pass: 3, fail: 0 });
+  });
+});
+
+describe('challengeExec — parseSpecChecks defensivo (revisão adversarial)', () => {
+  it('cabeçalho `✖ failing tests:` sem resumo não vira check sintético (não infla totalCount)', () => {
+    const { parseSpecChecks } = require('../electron/main/services/challengeExec') as typeof import('../electron/main/services/challengeExec');
+    // output TRUNCADO: o resumo `ℹ tests N` não chegou → o cabeçalho da seção
+    // de falhas entra no parse e viraria um check falso.
+    const checks = parseSpecChecks('✔ caso 1 (1.2ms)\n✖ failing tests:\n');
+    assert.deepEqual(checks, [{ name: 'caso 1', passed: true }]);
+  });
+
+  it('teste sem nome (`test(\'\')`) — só duração — não vira check com nome = duração', () => {
+    const { parseSpecChecks } = require('../electron/main/services/challengeExec') as typeof import('../electron/main/services/challengeExec');
+    const checks = parseSpecChecks('✔ caso 1 (1.2ms)\n✖ (0.42175ms)\n');
+    assert.deepEqual(checks, [{ name: 'caso 1', passed: true }]);
   });
 });
 

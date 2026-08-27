@@ -373,15 +373,19 @@ async function checkPiSdk(): Promise<boolean> {
 /**
  * Escreve a FIXTURE da trilha em `workspaceRoot()/fixture-tracks/nodejs-do-zero`
  * — conteúdo REAL no formato do produto (o loader do main consome): 1 módulo,
- * 2 aulas, 1 desafio com código que roda (node:test REAL no submit) e 1 teste
- * de proficiência. O spec E2E navega: Home → Trilha → Aula → Desafio.
+ * 2 aulas, 1 desafio com código que roda (node:test REAL no submit), 1 teste
+ * de proficiência e — ADITIVO (rodada 9) — 1 DESAFIO DE MÓDULO MULTI-ARQUIVO
+ * (lib/soma.mjs + lib/multiplica.mjs, testes que importam dos dois). O spec
+ * E2E navega: Home → Trilha → Aula → Desafio (e módulo → desafio do módulo).
  */
 async function writeFixtureTrack(): Promise<void> {
   const root = path.join(workspaceRoot(), 'fixture-tracks', 'nodejs-do-zero');
-  const lessonDir = path.join(root, 'modules', 'modulo-1', 'lessons');
+  const moduleDir = path.join(root, 'modules', 'modulo-1');
+  const lessonDir = path.join(moduleDir, 'lessons');
   const chalDir = path.join(lessonDir, 'aula-1', 'challenges', 'dobro-do-numero');
   await fsp.mkdir(chalDir, { recursive: true });
   await fsp.mkdir(path.join(lessonDir, 'aula-2'), { recursive: true });
+  await fsp.mkdir(path.join(moduleDir, 'challenges', 'desafio-do-modulo'), { recursive: true });
 
   const track = {
     schemaVersion: 1,
@@ -398,6 +402,8 @@ async function writeFixtureTrack(): Promise<void> {
     title: 'Módulo 1 (E2E)',
     order: 1,
     lessons: ['aula-1', 'aula-2'],
+    // ADITIVO (rodada 9): desafio do MÓDULO (multi-arquivo).
+    challenge: 'desafio-do-modulo',
   };
   const aula1 = {
     schemaVersion: 1,
@@ -476,12 +482,57 @@ async function writeFixtureTrack(): Promise<void> {
     expectedTestCount: 1,
   };
 
+  // ADITIVO (rodada 9): desafio do MÓDULO multi-arquivo — o aluno edita
+  // lib/soma.mjs E lib/multiplica.mjs; os testes importam dos dois.
+  const desafioDoModulo = {
+    schemaVersion: 1,
+    slug: 'desafio-do-modulo',
+    title: 'Desafio do módulo',
+    concept: 'funcoes',
+    difficulty: 2,
+    language: 'nodejs',
+    statement: '# Desafio do módulo\n\nImplemente as funções de soma e multiplicação nos DOIS arquivos do desafio.\n\nLeia o enunciado com calma e clique em Começar para iniciar o cronômetro.',
+    files: [
+      {
+        path: 'lib/soma.mjs',
+        starterCode: 'export function soma(a, b) {\n  // TODO: implemente\n  throw new Error(\'não implementado\');\n}\n',
+        solutionCode: 'export function soma(a, b) {\n  return a + b;\n}\n',
+      },
+      {
+        path: 'lib/multiplica.mjs',
+        starterCode: 'export function multiplica(a, b) {\n  // TODO: implemente\n  throw new Error(\'não implementado\');\n}\n',
+        solutionCode: 'export function multiplica(a, b) {\n  return a * b;\n}\n',
+      },
+    ],
+    testsCode: [
+      `import { test } from 'node:test';`,
+      `import assert from 'node:assert/strict';`,
+      `import { soma } from './lib/soma.mjs';`,
+      `import { multiplica } from './lib/multiplica.mjs';`,
+      ``,
+      `test('soma 2 + 3 é 5', () => {`,
+      `  assert.equal(soma(2, 3), 5);`,
+      `});`,
+      ``,
+      `test('multiplica 2 * 3 é 6', () => {`,
+      `  assert.equal(multiplica(2, 3), 6);`,
+      `});`,
+      ``,
+      `test('soma e multiplica juntos', () => {`,
+      `  assert.equal(multiplica(soma(1, 2), 2), 6);`,
+      `});`,
+      ``,
+    ].join('\n'),
+    expectedTestCount: 3,
+  };
+
   await fsp.writeFile(path.join(root, 'track.json'), JSON.stringify(track, null, 2), 'utf8');
-  await fsp.writeFile(path.join(root, 'modules', 'modulo-1', 'module.json'), JSON.stringify(moduleMeta, null, 2), 'utf8');
+  await fsp.writeFile(path.join(moduleDir, 'module.json'), JSON.stringify(moduleMeta, null, 2), 'utf8');
   await fsp.writeFile(path.join(lessonDir, 'aula-1', 'lesson.json'), JSON.stringify(aula1, null, 2), 'utf8');
   await fsp.writeFile(path.join(lessonDir, 'aula-2', 'lesson.json'), JSON.stringify(aula2, null, 2), 'utf8');
   await fsp.writeFile(path.join(chalDir, 'challenge.json'), JSON.stringify(desafio, null, 2), 'utf8');
   await fsp.writeFile(path.join(root, 'proficiency.json'), JSON.stringify(proficiencia, null, 2), 'utf8');
+  await fsp.writeFile(path.join(moduleDir, 'challenges', 'desafio-do-modulo', 'challenge.json'), JSON.stringify(desafioDoModulo, null, 2), 'utf8');
 }
 
 /** Repo fake em memória (TrackRepoLike) — progresso determinístico do E2E. */
@@ -589,7 +640,8 @@ export function buildTrackStubHandlers(): Map<string, IpcHandlerFn> {
     const { loadTrack } = await import('../content/trackLoader');
     const { resolveChallengeSpec } = await import('../services/trackService');
     const track = await loadTrack(path.join(workspaceRoot(), 'fixture-tracks', p.trackSlug ?? ''));
-    const spec = await resolveChallengeSpec(track, p.target, p.lessonId, p.challengeId, buildE2ETrackRepo());
+    // ADITIVO (rodada 9): p.moduleSlug resolve o desafio do MÓDULO.
+    const spec = await resolveChallengeSpec(track, p.target, p.lessonId, p.challengeId, buildE2ETrackRepo(), p.moduleSlug);
     return { ok: true, challenge: spec };
   });
   map.set(TRACK_CHANNELS.PROFICIENCY_GET, async (_e, payload: unknown): Promise<TrackChallengeResult> => {
@@ -607,9 +659,13 @@ export function buildTrackStubHandlers(): Map<string, IpcHandlerFn> {
     const { loadTrack } = await import('../content/trackLoader');
     const track = await loadTrack(path.join(workspaceRoot(), 'fixture-tracks', p.trackSlug ?? ''));
     const { resolveChallengeSpec } = await import('../services/trackService');
+    const repo = buildE2ETrackRepo();
+    // ADITIVO (rodada 9): target 'module' (desafio do módulo, com moduleSlug).
     const spec = p.target === 'proficiency'
-      ? await resolveChallengeSpec(track, 'proficiency', undefined, p.challengeId, buildE2ETrackRepo())
-      : await resolveChallengeSpec(track, 'lesson', p.lessonId, p.challengeId, buildE2ETrackRepo());
+      ? await resolveChallengeSpec(track, 'proficiency', undefined, p.challengeId, repo)
+      : p.target === 'module'
+        ? await resolveChallengeSpec(track, 'module', undefined, p.challengeId, repo, p.moduleSlug)
+        : await resolveChallengeSpec(track, 'lesson', p.lessonId, p.challengeId, repo);
     if (!spec) {
       return {
         ok: false,
@@ -627,8 +683,17 @@ export function buildTrackStubHandlers(): Map<string, IpcHandlerFn> {
     const { runStudentCode } = await import('../services/challengeExec');
     const testsCode = p.target === 'proficiency'
       ? track.proficiency!.testsCode
-      : track.modules.flatMap((m) => m.lessons).find((l) => l.meta.slug === p.lessonId)?.challenges.find((c) => c.slug === p.challengeId)?.testsCode ?? '';
-    const res = await runStudentCode({ studentCode: p.code, testsCode, expectedTestCount: spec.expectedTestCount });
+      : p.target === 'module'
+        ? track.modules.find((m) => m.meta.slug === p.moduleSlug)?.challenge?.testsCode ?? ''
+        : track.modules.flatMap((m) => m.lessons).find((l) => l.meta.slug === p.lessonId)?.challenges.find((c) => c.slug === p.challengeId)?.testsCode ?? '';
+    // ADITIVO (rodada 9): multi-arquivo — o aluno envia TODOS os arquivos.
+    const hasFiles = Array.isArray(p.files) && p.files.length > 0;
+    const res = await runStudentCode({
+      studentCode: typeof p.code === 'string' ? p.code : '',
+      files: hasFiles ? p.files : undefined,
+      testsCode,
+      expectedTestCount: spec.expectedTestCount,
+    });
     // ONDA 1 (checks por teste): propaga os checks do runStudentCode REAL —
     // o stub roda node --test de verdade; só repassa os campos novos.
     return {

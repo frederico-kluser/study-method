@@ -261,7 +261,9 @@
     "regenerateButton": "Gerar novo desafio",
     "checksTitle": "Resultado por teste",
     "partialCount": "{{passed}} de {{total}} testes passaram",
-    "proficiencyPassed": "Proficiência aprovada — a trilha inteira está destravada!"
+    "proficiencyPassed": "Proficiência aprovada — a trilha inteira está destravada!",
+    "filesTitle": "Arquivos do desafio",
+    "fileTabAria": "Arquivo {{file}}"
   },
   "gate": {
     "checking": "Verificando configuração…",
@@ -609,6 +611,9 @@
     "proficiencyStart": "Fazer o teste",
     "proficiencyRetake": "Refazer",
     "proficientBadge": "proficiência aprovada ✓",
-    "sequentialHint": "As aulas destravam em ordem: conclua uma para liberar a próxima — ou passe no teste de proficiência para liberar tudo."
+    "sequentialHint": "As aulas destravam em ordem: conclua uma para liberar a próxima — ou passe no teste de proficiência para liberar tudo.",
+    "moduleChallenge": "Desafio do módulo",
+    "moduleChallengeDone": "Concluído ✓",
+    "moduleChallengeTried": "Tentado"
   }
 }

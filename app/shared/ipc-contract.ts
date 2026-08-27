@@ -336,6 +336,17 @@ export interface TrackModuleEntry {
   title: string;
   order: number;
   lessons: TrackLessonEntry[];
+  /**
+   * ADITIVO (rodada 9): true quando o módulo tem um desafio próprio definido
+   * (module.json challenge — desafio do FIM do módulo, multi-arquivo).
+   */
+  challengeAvailable: boolean;
+  /** ADITIVO (rodada 9): o desafio do módulo (slug + título). null quando não há. */
+  challenge: { slug: string; title: string } | null;
+  /** ADITIVO (rodada 9): último veredito do aluno no desafio do módulo (null = nunca tentou). */
+  challengeLastVerdict: TrackVerdict | null;
+  /** ADITIVO (rodada 9): estrelas do último veredito do desafio do módulo (0..3). */
+  challengeStars: number;
 }
 
 export interface TrackDetailPayload {
@@ -447,6 +458,13 @@ export interface TrackChallengeSpec {
   concept: string;
   difficulty: number;
   statement: string;
+  /**
+   * ADITIVO (rodada 9): desafio MULTI-ARQUIVO — os arquivos do desafio com os
+   * STARTERS por arquivo (nunca as soluções). Ausente = desafio de arquivo
+   * único (solution.mjs, starterCode vale). Quando presente, `starterCode`
+   * carrega o starter do PRIMEIRO arquivo (fallback — a UI usa `files`).
+   */
+  files?: { path: string; starterCode: string }[];
   starterCode: string;
   expectedTestCount: number;
   /** carência da 1ª estrela (ms) — antes disso o tempo não tira estrela. */
@@ -467,19 +485,32 @@ export type TrackChallengeResult =
 
 export interface TrackChallengeGetRequest {
   trackSlug: string;
-  /** 'lesson' (desafio de aula) ou 'proficiency' (teste da trilha). */
-  target: 'lesson' | 'proficiency';
+  /**
+   * 'lesson' (desafio de aula), 'proficiency' (teste da trilha) ou 'module'
+   * (desafio do módulo — ADITIVO rodada 9).
+   */
+  target: 'lesson' | 'proficiency' | 'module';
   lessonId?: string;
+  /** slug do módulo (target 'module'). */
+  moduleSlug?: string;
   challengeId?: string;
 }
 
 /** Submissão de código contra os testes de um desafio (execução determinística). */
 export interface TrackSubmitRequest {
   trackSlug: string;
-  target: 'lesson' | 'proficiency';
+  target: 'lesson' | 'proficiency' | 'module';
   lessonId?: string;
+  /** slug do módulo (target 'module'). */
+  moduleSlug?: string;
   challengeId?: string;
   code: string;
+  /**
+   * ADITIVO (rodada 9): código do aluno POR ARQUIVO (desafio multi-arquivo) —
+   * o aluno edita TODOS os arquivos do desafio. Quando presente, o main roda
+   * estes arquivos (o `code` único é ignorado).
+   */
+  files?: { path: string; code: string }[];
 }
 
 export interface TrackSubmitResult {

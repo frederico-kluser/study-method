@@ -23,8 +23,14 @@ import type { ChallengeInfo } from '../../shared/ipc-contract';
  */
 export interface TrackChallengeNavSelection {
   trackSlug: string;
-  target: 'lesson' | 'proficiency';
+  /**
+   * 'lesson' (desafio de aula), 'proficiency' (teste da trilha) ou 'module'
+   * (desafio do MÓDULO — ADITIVO rodada 9).
+   */
+  target: 'lesson' | 'proficiency' | 'module';
   lessonId?: string;
+  /** slug do módulo (target 'module'). */
+  moduleSlug?: string;
   challengeId: string;
   /** título do desafio para o cabeçalho (vem do payload da aula). */
   title?: string;

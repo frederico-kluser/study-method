@@ -10,6 +10,9 @@
  *   - o TESTE DE PROFICIÊNCIA no topo: desafio que cobre TUDO — destrava a
  *     trilha inteira quando passado. Só começa quando o aluno lê o enunciado
  *     e clica em "Começar" (na ChallengeView);
+ *   - ADITIVO (rodada 9): o DESAFIO DO MÓDULO — card/botão por módulo (quando
+ *     module.json declara challenge) com o estado do aluno; clicar → seleção
+ *     track com target 'module' + moduleSlug → aba Desafio;
  *   - clicar numa aula → pendingTrackLesson + navega para a aba Aula (chat);
  *   - clicar na proficiência → seleção track (ChallengeView, fluxo track).
  *
@@ -43,6 +46,7 @@ import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import LockIcon from '@mui/icons-material/Lock';
 import PlayCircleIcon from '@mui/icons-material/PlayCircle';
 import WorkspacePremiumIcon from '@mui/icons-material/WorkspacePremium';
+import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
 
 import { getApi } from '../../lib/apiBridge';
 import { useChallengeNav } from '../../lib/challengeNav';
@@ -111,11 +115,13 @@ function LessonRow({
 function ModuleCard({
   mod,
   onOpenLesson,
+  onOpenModuleChallenge,
   defaultOpen,
   tI,
 }: {
   mod: TrackModuleEntry;
   onOpenLesson: (l: TrackLessonEntry) => void;
+  onOpenModuleChallenge: (mod: TrackModuleEntry) => void;
   defaultOpen: boolean;
   tI: (key: string, options?: Record<string, string | number>) => string;
 }): ReactElement {
@@ -144,6 +150,28 @@ function ModuleCard({
               <LessonRow key={l.slug} lesson={l} onOpen={onOpenLesson} tI={tI} />
             ))}
           </Stack>
+          {/* ADITIVO (rodada 9): DESAFIO DO MÓDULO — o desafio elaborado do fim
+              do módulo (mexe em VÁRIOS arquivos), com o estado do aluno. */}
+          {mod.challengeAvailable && mod.challenge ? (
+            <Box sx={{ mt: 1 }}>
+              <Button
+                fullWidth
+                size="small"
+                variant="outlined"
+                color="secondary"
+                onClick={() => onOpenModuleChallenge(mod)}
+                startIcon={<EmojiEventsIcon fontSize="small" />}
+                aria-label={`${tI('roadmap.moduleChallenge')} ${mod.challenge.title}`}
+              >
+                {tI('roadmap.moduleChallenge')}
+                {mod.challengeLastVerdict === 'passed'
+                  ? ` · ${tI('roadmap.moduleChallengeDone')}`
+                  : mod.challengeLastVerdict
+                    ? ` · ${tI('roadmap.moduleChallengeTried')}`
+                    : ''}
+              </Button>
+            </Box>
+          ) : null}
         </Collapse>
       </CardContent>
     </Card>
@@ -241,6 +269,23 @@ export function RoadmapView(props: ViewProps): ReactElement {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [track, nav]);
 
+  /** ADITIVO (rodada 9): DESAFIO DO MÓDULO → ChallengeView (fluxo track, target 'module'). */
+  const openModuleChallenge = useCallback(
+    (mod: TrackModuleEntry): void => {
+      if (!track || !mod.challenge) return;
+      nav.selectTrackChallenge({
+        trackSlug: track.slug,
+        target: 'module',
+        moduleSlug: mod.slug,
+        challengeId: mod.challenge.slug,
+        title: mod.challenge.title,
+      });
+      nav.navigateToChallenge();
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    },
+    [track, nav],
+  );
+
   // Seletor de trilha (quando nenhuma veio pendente).
   if (selected === null && !loading && tracks && tracks.length > 0) {
     return (
@@ -319,7 +364,14 @@ export function RoadmapView(props: ViewProps): ReactElement {
 
           {/* Módulos com as aulas (itens JÁ PRONTOS da trilha). */}
           {track.modules.map((mod, i) => (
-            <ModuleCard key={mod.slug} mod={mod} onOpenLesson={openLesson} defaultOpen={i === 0} tI={tI} />
+            <ModuleCard
+              key={mod.slug}
+              mod={mod}
+              onOpenLesson={openLesson}
+              onOpenModuleChallenge={openModuleChallenge}
+              defaultOpen={i === 0}
+              tI={tI}
+            />
           ))}
 
           <Tooltip title={t('translation:roadmap.sequentialHint')}>

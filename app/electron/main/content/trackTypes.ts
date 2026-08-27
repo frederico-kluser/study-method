@@ -50,6 +50,26 @@ export const PROFICIENCY_MIN_FIRST_STAR_MS = 120_000;
 
 export type TrackChallengeLanguage = 'nodejs';
 
+/**
+ * Regex de caminho seguro de arquivo de desafio multi-arquivo (rodada 9):
+ * só letras/dígitos/_/-//, termina em .mjs. Proíbe '..', pontos no meio e
+ * qualquer outra coisa que escape do diretório de execução.
+ */
+export const SAFE_FILE_PATH_RE = /^[a-zA-Z0-9_\-/]+\.mjs$/;
+
+/**
+ * UM arquivo de um desafio MULTI-ARQUIVO (rodada 9): o aluno edita TODOS os
+ * arquivos do desafio — cada um com starter e solução próprios.
+ */
+export interface TrackChallengeFileSource {
+  /** caminho relativo dentro do dir de execução (ex.: 'lib/soma.mjs'). */
+  path: string;
+  /** código inicial que o aluno edita neste arquivo. */
+  starterCode: string;
+  /** solução de referência deste arquivo. */
+  solutionCode: string;
+}
+
 export interface TrackChallengeSource {
   schemaVersion: number;
   slug: string;
@@ -60,12 +80,25 @@ export interface TrackChallengeSource {
   language: TrackChallengeLanguage;
   /** enunciado em markdown (o aluno lê antes de clicar em "Começar"). */
   statement: string;
-  /** código inicial que o aluno edita (arquivo unico, ESM). */
-  starterCode: string;
+  /**
+   * ADITIVO (rodada 9): arquivos do desafio MULTI-ARQUIVO. Presente → o aluno
+   * edita TODOS os arquivos (starterCode/solutionCode de topo não valem; os
+   * arquivos carregam os próprios). Ausente → comportamento atual: arquivo
+   * único solution.mjs com starterCode/solutionCode.
+   */
+  files?: TrackChallengeFileSource[];
+  /**
+   * código inicial que o aluno edita (arquivo unico, ESM). OPCIONAL quando
+   * `files` presente (o conteúdo vive nos arquivos); obrigatório sem files.
+   */
+  starterCode?: string;
   /** testes node:test que importam o código do aluno (especificação executável). */
   testsCode: string;
-  /** solução de referência (o main roda contra para conferir o desafio). */
-  solutionCode: string;
+  /**
+   * solução de referência (o main roda contra para conferir o desafio).
+   * OPCIONAL quando `files` presente (as soluções vivem nos arquivos).
+   */
+  solutionCode?: string;
   /** nº de testes executáveis do arquivo de testes (gate de igualdade). */
   expectedTestCount: number;
   /** carência da 1ª estrela em ms (default: DEFAULT_MIN_FIRST_STAR_MS). */
@@ -113,6 +146,12 @@ export interface TrackModuleSource {
   order: number;
   /** slugs das aulas do módulo, na ordem da trilha. */
   lessons: string[];
+  /**
+   * ADITIVO (rodada 9): slug do DESAFIO DO MÓDULO (fim do módulo) — vive em
+   * challenges/<slug>/challenge.json dentro da pasta do módulo. Ausente =
+   * módulo sem desafio próprio.
+   */
+  challenge?: string;
 }
 
 export interface TrackSource {
@@ -175,9 +214,38 @@ export function validateChallengeSource(raw: unknown, file: string): TrackValida
   issues.push(...validateNumber(c.difficulty, file, 'difficulty', 1, 5));
   if (c.language !== 'nodejs') issues.push({ file, message: `language inválido: ${JSON.stringify(c.language)} (somente 'nodejs')` });
   if (!isNonEmptyString(c.statement)) issues.push({ file, message: 'statement vazio' });
-  if (typeof c.starterCode !== 'string') issues.push({ file, message: 'starterCode ausente' });
+  // ADITIVO (rodada 9): desafio MULTI-ARQUIVO — cada entry precisa de path
+  // seguro + starterCode string + solutionCode não-vazio; paths ÚNICOS;
+  // mínimo 1 arquivo. Com files presente, os starter/solution DE TOPO deixam
+  // de ser exigidos (o conteúdo vive nos arquivos).
+  if (c.files !== undefined) {
+    if (!Array.isArray(c.files) || c.files.length === 0) {
+      issues.push({ file, message: 'files presente mas vazio (mínimo 1 arquivo)' });
+    } else {
+      const seen = new Set<string>();
+      c.files.forEach((rawF, i) => {
+        const f = rawF as Partial<TrackChallengeFileSource> | null;
+        const p = f && typeof f === 'object' ? f.path : undefined;
+        if (typeof p !== 'string' || !SAFE_FILE_PATH_RE.test(p)) {
+          issues.push({ file, message: `files[${i}].path inválido: ${JSON.stringify(p)} (esperado caminho seguro ^[a-zA-Z0-9_\\-/]+\\.mjs$, ex.: 'lib/soma.mjs')` });
+        } else if (seen.has(p)) {
+          issues.push({ file, message: `files[${i}].path duplicado: ${JSON.stringify(p)} (paths devem ser únicos)` });
+        } else {
+          seen.add(p);
+        }
+        if (typeof f?.starterCode !== 'string') {
+          issues.push({ file, message: `files[${i}].starterCode ausente` });
+        }
+        if (typeof f?.solutionCode !== 'string' || f.solutionCode.trim().length === 0) {
+          issues.push({ file, message: `files[${i}].solutionCode vazio` });
+        }
+      });
+    }
+  } else {
+    if (typeof c.starterCode !== 'string') issues.push({ file, message: 'starterCode ausente' });
+    if (typeof c.solutionCode !== 'string' || c.solutionCode.trim().length === 0) issues.push({ file, message: 'solutionCode vazio' });
+  }
   if (typeof c.testsCode !== 'string' || c.testsCode.trim().length === 0) issues.push({ file, message: 'testsCode vazio' });
-  if (typeof c.solutionCode !== 'string' || c.solutionCode.trim().length === 0) issues.push({ file, message: 'solutionCode vazio' });
   issues.push(...validateNumber(c.expectedTestCount, file, 'expectedTestCount', 1, 100));
   if (c.minFirstStarMs !== undefined) {
     issues.push(...validateNumber(c.minFirstStarMs, file, 'minFirstStarMs', 1, 3_600_000));
@@ -247,6 +315,11 @@ export function validateModuleSource(raw: unknown, file: string): TrackValidatio
   issues.push(...validateNumber(m.order, file, 'order', 1, 999));
   if (!Array.isArray(m.lessons) || m.lessons.length === 0) {
     issues.push({ file, message: 'lessons ausente/vazio (o módulo precisa de aulas)' });
+  }
+  // ADITIVO (rodada 9): desafio do módulo — slug declarado precisa ser válido
+  // (a INTEGRIDADE do arquivo é conferida pelo loader).
+  if (m.challenge !== undefined) {
+    issues.push(...validateSlug(m.challenge, file));
   }
   return issues;
 }

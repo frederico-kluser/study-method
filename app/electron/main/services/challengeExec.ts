@@ -6,7 +6,9 @@
  *
  * Modelo de desafio: solution.mjs (código do aluno) + test.mjs (node:test
  * ESM) + package.json {type:'module'} num diretório temporário; roda
- * `node --test`. Verdict por EXECUÇÃO com gate de IGUALDADE:
+ * `node --test`. ADITIVO (rodada 9): desafio MULTI-ARQUIVO — N arquivos
+ * (paths relativos, mkdir dos subdirs) + test.mjs; o aluno edita todos.
+ * Verdict por EXECUÇÃO com gate de IGUALDADE:
  *   passed = exit 0 && testsRun === expectedTestCount
  * (exit code sozinho mente — arquivo de teste vazio sai 0; mesma armadilha
  * documentada em skills/study-method/references/languages.md).
@@ -16,6 +18,8 @@ import { promises as fs } from 'node:fs';
 import * as os from 'node:os';
 import * as path from 'node:path';
 import { spawn } from 'node:child_process';
+
+import { SAFE_FILE_PATH_RE } from '../content/trackTypes';
 
 export interface ExecResult {
   code: number;
@@ -71,13 +75,26 @@ export const nodeExec: ExecFn = (dir, args, opts) =>
     });
   });
 
-/** Prepara o diretório de execução: solution.mjs + test.mjs + package.json. */
+/**
+ * Prepara o diretório de execução: package.json + test.mjs + o código do
+ * aluno. ADITIVO (rodada 9): `files` (multi-arquivo) escreve cada arquivo no
+ * caminho relativo dele (mkdir dos subdirs) — sem `files`, escreve o arquivo
+ * único solution.mjs (comportamento atual intacto).
+ */
 export async function prepareChallengeDir(
   workDir: string,
-  files: { solutionCode: string; testsCode: string },
+  files: { solutionCode: string; testsCode: string; files?: { path: string; code: string }[] },
 ): Promise<void> {
   await fs.writeFile(path.join(workDir, 'package.json'), JSON.stringify({ type: 'module' }), 'utf8');
-  await fs.writeFile(path.join(workDir, 'solution.mjs'), files.solutionCode, 'utf8');
+  if (files.files && files.files.length > 0) {
+    for (const f of files.files) {
+      const full = path.join(workDir, f.path);
+      await fs.mkdir(path.dirname(full), { recursive: true });
+      await fs.writeFile(full, f.code, 'utf8');
+    }
+  } else {
+    await fs.writeFile(path.join(workDir, 'solution.mjs'), files.solutionCode, 'utf8');
+  }
   await fs.writeFile(path.join(workDir, 'test.mjs'), files.testsCode, 'utf8');
 }
 
@@ -116,8 +133,9 @@ export function parseSpecCounts(output: string): { testsRun: number; pass: numbe
  * DUAS vezes. O nome sai sem a duração traiçoeira (` (0.42175ms)`) e sem os
  * códigos ANSI (mesma limpeza do parseSpecCounts — o node:test pinta quando o
  * ambiente pede cor). Linhas ancoradas no INÍCIO da linha: subtests indentados
- * (`  ✔ filho`) e o cabeçalho `✖ failing tests:` (já cortado pelo truncamento)
- * nunca entram.
+ * (`  ✔ filho`) nunca entram; o cabeçalho `✖ failing tests:` é filtrado
+ * explicitamente (sem o resumo `ℹ tests N` — output truncado — ele NÃO é
+ * cortado pelo truncamento e viraria um check sintético falso).
  */
 export function parseSpecChecks(output: string): { name: string; passed: boolean }[] {
   const plain = output.replace(/\x1b\[[0-9;]*m/g, '');
@@ -132,12 +150,18 @@ export function parseSpecChecks(output: string): { name: string; passed: boolean
     if (!raw) continue;
     // tira a duração do fim ("caso 1 (0.42175ms)" → "caso 1").
     const name = raw.replace(/\s*\(\d+(?:\.\d+)?\s*m?s\)\s*$/, '');
+    // DEFENSIVO (revisão adversarial): teste SEM nome (`test('')`) deixa só a
+    // duração — sem fallback para a duração (não é um check de verdade).
+    if (!name) continue;
     // Nomes SINTÉTICOS de falha de LOAD: quando o arquivo não carrega (sintaxe
     // no solution.mjs), o node:test trata O ARQUIVO como um teste e emite
     // `✖ test.mjs` (v24) / `✖ test failed` (v20) — não é um check de verdade;
-    // a saída já traz o SyntaxError para o aluno ver.
-    if (/^test\.mjs$/.test(name) || /^tests? failed$/.test(name)) continue;
-    checks.push({ name: name || raw, passed: m[0].charAt(0) === '✔' });
+    // a saída já traz o SyntaxError para o aluno ver. DEFENSIVO (revisão
+    // adversarial): `✖ failing tests:` — sem a linha de resumo `ℹ tests N`
+    // (output truncado), o cabeçalho vira um check sintético falso que
+    // inflaria totalCount.
+    if (/^test\.mjs$/.test(name) || /^tests? failed$/.test(name) || /^failing tests?:/.test(name)) continue;
+    checks.push({ name, passed: m[0].charAt(0) === '✔' });
   }
   return checks;
 }
@@ -145,6 +169,12 @@ export function parseSpecChecks(output: string): { name: string; passed: boolean
 export interface RunStudentCodeInput {
   /** código enviado pelo aluno (substitui o starter). */
   studentCode: string;
+  /**
+   * ADITIVO (rodada 9): código do aluno POR ARQUIVO (desafio multi-arquivo).
+   * Presente → roda estes arquivos (studentCode ignorado); ausente → roda
+   * studentCode como solution.mjs (comportamento atual).
+   */
+  files?: { path: string; code: string }[];
   testsCode: string;
   expectedTestCount: number;
   timeoutMs?: number;
@@ -174,9 +204,30 @@ export async function runStudentCode(
   input: RunStudentCodeInput,
   exec: ExecFn = nodeExec,
 ): Promise<RunStudentCodeResult> {
+  // FIX (revisão adversarial): defesa em profundidade — valida os paths dos
+  // arquivos ANTES de criar o workdir. Este runner é usado pelo main E pelo
+  // CLI; um path malicioso ('a/../../escape.mjs') escreveria FORA do workdir
+  // (path.join resolve o '..' antes do writeFile). Nunca lança.
+  if (input.files && input.files.some((f) => typeof f?.path !== 'string' || !SAFE_FILE_PATH_RE.test(f.path))) {
+    return {
+      passed: false,
+      testsRun: 0,
+      pass: 0,
+      fail: 0,
+      error: 'path inválido',
+      checks: [],
+      passedCount: 0,
+      totalCount: 0,
+      output: '',
+    };
+  }
   const work = await fs.mkdtemp(path.join(os.tmpdir(), 'track-submit-'));
   try {
-    await prepareChallengeDir(work, { solutionCode: input.studentCode, testsCode: input.testsCode });
+    await prepareChallengeDir(work, {
+      solutionCode: input.studentCode,
+      testsCode: input.testsCode,
+      files: input.files,
+    });
     const res = await exec(work, ['--test', '--test-reporter=spec', 'test.mjs'], {
       timeoutMs: input.timeoutMs ?? 30_000,
     });
@@ -223,6 +274,14 @@ export interface ChallengePair {
   starterCode: string;
   testsCode: string;
   expectedTestCount: number;
+  /**
+   * ADITIVO (rodada 9): desafio MULTI-ARQUIVO — arquivos da SOLUÇÃO e do
+   * STARTER por caminho. Presentes → o par roda TODOS os arquivos de cada lado
+   * (solutionCode/starterCode de topo ignorados); ausentes → arquivo único
+   * solution.mjs (comportamento atual).
+   */
+  solutionFiles?: { path: string; code: string }[];
+  starterFiles?: { path: string; code: string }[];
 }
 
 export interface ChallengePairVerdict {
@@ -247,13 +306,20 @@ export function pairIsValid(v: ChallengePairVerdict): boolean {
 export async function verifyChallengePair(pair: ChallengePair, exec: ExecFn = nodeExec): Promise<ChallengePairVerdict> {
   const work = await fs.mkdtemp(path.join(os.tmpdir(), 'track-verify-'));
   try {
-    await prepareChallengeDir(work, { solutionCode: pair.solutionCode, testsCode: pair.testsCode });
+    // ADITIVO (rodada 9): multi-arquivo — solução roda TODOS os arquivos;
+    // starter idem. Sem files → solution.mjs único (comportamento atual).
+    const solutionFiles: { path: string; code: string }[] =
+      pair.solutionFiles && pair.solutionFiles.length > 0 ? pair.solutionFiles : [{ path: 'solution.mjs', code: pair.solutionCode }];
+    const starterFiles: { path: string; code: string }[] =
+      pair.starterFiles && pair.starterFiles.length > 0 ? pair.starterFiles : [{ path: 'solution.mjs', code: pair.starterCode }];
+
+    await prepareChallengeDir(work, { solutionCode: pair.solutionCode, testsCode: pair.testsCode, files: solutionFiles });
     const sol = await exec(work, ['--test', '--test-reporter=spec', 'test.mjs'], { timeoutMs: 30_000 });
     const solCounts = parseSpecCounts(`${sol.stdout}\n${sol.stderr}`);
     const declared = countTestDeclarations(pair.testsCode);
     const solutionPasses = sol.code === 0 && solCounts.testsRun === pair.expectedTestCount && declared === pair.expectedTestCount;
 
-    await fs.writeFile(path.join(work, 'solution.mjs'), pair.starterCode, 'utf8');
+    await prepareChallengeDir(work, { solutionCode: pair.starterCode, testsCode: pair.testsCode, files: starterFiles });
     const stub = await exec(work, ['--test', '--test-reporter=spec', 'test.mjs'], { timeoutMs: 30_000 });
     const starterFails = stub.code !== 0;
 

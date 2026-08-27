@@ -119,6 +119,24 @@ export async function openTrackChallenge(page: Page): Promise<void> {
   await page.getByRole('heading', { name: 'O dobro do número' }).first().waitFor();
 }
 
+/**
+ * ADITIVO (rodada 9 — desafio do módulo): navega do app pronto até o DESAFIO
+ * DO MÓDULO da trilha fixture. Fluxo: Home (cartão da trilha) → Trilha (aba) →
+ * card "Desafio do módulo" do módulo → aba Desafio (target 'module'). Usado
+ * pela spec do desafio multi-arquivo (2 abas de arquivo, submit com ambos).
+ */
+export async function openModuleChallenge(page: Page): Promise<void> {
+  await page.getByRole('banner').getByText('Study Method — Tutor', { exact: false }).first().waitFor();
+  // Home: cartão da trilha fixture → navega para a Trilha (setPendingTrackSlug).
+  await page.getByText('Node.js do Zero', { exact: false }).first().click();
+  // Trilha: card do desafio do MÓDULO (fixture module.json declara challenge).
+  const moduleChallengeBtn = page.getByRole('button', { name: /Desafio do módulo/ }).first();
+  await moduleChallengeBtn.waitFor();
+  await moduleChallengeBtn.click();
+  // Enunciado do desafio do módulo carregado (pré-"Começar").
+  await page.getByRole('heading', { name: 'Desafio do módulo' }).first().waitFor();
+}
+
 /** Fecha a aplicação de forma robusta (desvia app.quit via evaluate). */
 export async function closeApp(app: ElectronApplication): Promise<void> {
   try {

@@ -174,24 +174,41 @@ export async function buildTrackDetail(track: LoadedTrack, repo: TrackProgressLi
   const states = computeUnlockStates(track, doneSet, proficient);
   const flat = flattenTrackLessons(track);
 
-  const modules: TrackDetailPayload['modules'] = [...track.modules]
-    .sort((a, b) => a.meta.order - b.meta.order)
-    .map((mod) => {
-      const lessons: TrackLessonEntry[] = mod.lessons.map((lesson) => {
-        const st = states.get(lesson.meta.slug)!;
-        return {
-          slug: lesson.meta.slug,
-          moduleSlug: mod.meta.slug,
-          title: lesson.meta.title,
-          summary: lesson.meta.summary,
-          difficulty: lesson.meta.difficulty,
-          locked: st.locked,
-          done: st.done,
-          current: st.current,
-        };
-      });
-      return { slug: mod.meta.slug, title: mod.meta.title, order: mod.meta.order, lessons };
+  const modules: TrackDetailPayload['modules'] = [];
+  for (const mod of [...track.modules].sort((a, b) => a.meta.order - b.meta.order)) {
+    const lessons: TrackLessonEntry[] = mod.lessons.map((lesson) => {
+      const st = states.get(lesson.meta.slug)!;
+      return {
+        slug: lesson.meta.slug,
+        moduleSlug: mod.meta.slug,
+        title: lesson.meta.title,
+        summary: lesson.meta.summary,
+        difficulty: lesson.meta.difficulty,
+        locked: st.locked,
+        done: st.done,
+        current: st.current,
+      };
     });
+    // ADITIVO (rodada 9): desafio do MÓDULO — disponibilidade + estado do aluno
+    // (último veredito/estrelas via getAttemptsForChallenge do slug).
+    let challengeLastVerdict: TrackVerdict | null = null;
+    let challengeStars = 0;
+    if (mod.challenge) {
+      const sum = summarizeAttempts(await repo.getAttemptsForChallenge(mod.challenge.slug));
+      challengeLastVerdict = sum.lastVerdict;
+      challengeStars = sum.stars;
+    }
+    modules.push({
+      slug: mod.meta.slug,
+      title: mod.meta.title,
+      order: mod.meta.order,
+      lessons,
+      challengeAvailable: mod.challenge !== null,
+      challenge: mod.challenge ? { slug: mod.challenge.slug, title: mod.challenge.title } : null,
+      challengeLastVerdict,
+      challengeStars,
+    });
+  }
 
   return {
     slug: track.root.slug,
@@ -298,15 +315,17 @@ export async function buildChallengeSummaries(
 }
 
 /**
- * Resolve a especificação de UM desafio (aula ou proficiência), incluindo
- * desafios REGENERADOS (source 'generated'). null quando não existe.
+ * Resolve a especificação de UM desafio (aula, proficiência ou módulo — ADITIVO
+ * rodada 9), incluindo desafios REGENERADOS (source 'generated'). null quando
+ * não existe.
  */
 export async function resolveChallengeSpec(
   track: LoadedTrack,
-  target: 'lesson' | 'proficiency',
+  target: 'lesson' | 'proficiency' | 'module',
   lessonId: string | undefined,
   challengeId: string | undefined,
   repo: TrackProgressLike,
+  moduleSlug?: string,
 ): Promise<TrackChallengeSpec | null> {
   let source: TrackChallengeSource | null = null;
   let baseMinFirstStar = DEFAULT_MIN_FIRST_STAR_MS;
@@ -315,6 +334,12 @@ export async function resolveChallengeSpec(
     if (!track.proficiency || !challengeId || challengeId !== track.proficiency.slug) return null;
     source = track.proficiency;
     baseMinFirstStar = PROFICIENCY_MIN_FIRST_STAR_MS;
+  } else if (target === 'module') {
+    // ADITIVO (rodada 9): desafio do MÓDULO (fim do módulo) — o slug precisa
+    // bater com o declarado no module.json (mesmo padrão da proficiência).
+    const mod = track.modules.find((m) => m.meta.slug === moduleSlug);
+    if (!mod || !mod.challenge || !challengeId || challengeId !== mod.challenge.slug) return null;
+    source = mod.challenge;
   } else {
     if (!lessonId) return null;
     // desafio da trilha?
@@ -360,7 +385,11 @@ export async function resolveChallengeSpec(
     concept: source.concept,
     difficulty: source.difficulty,
     statement: source.statement,
-    starterCode: source.starterCode,
+    // ADITIVO (rodada 9): multi-arquivo — os STARTERS por arquivo vão no spec
+    // (nunca as soluções); o starterCode único carrega o do PRIMEIRO arquivo
+    // (fallback — a UI usa `files` quando presente).
+    files: source.files?.map((f) => ({ path: f.path, starterCode: f.starterCode })),
+    starterCode: source.files && source.files.length > 0 ? (source.files[0].starterCode ?? '') : (source.starterCode ?? ''),
     expectedTestCount: source.expectedTestCount,
     minFirstStarMs: source.minFirstStarMs ?? baseMinFirstStar,
     timeLimitMs: timeLimitForDifficultyMs(source.difficulty),

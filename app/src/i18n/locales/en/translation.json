@@ -261,7 +261,9 @@
     "regenerateButton": "Generate new challenge",
     "checksTitle": "Result per test",
     "partialCount": "{{passed}} of {{total}} tests passed",
-    "proficiencyPassed": "Proficiency approved — the whole track is unlocked!"
+    "proficiencyPassed": "Proficiency approved — the whole track is unlocked!",
+    "filesTitle": "Challenge files",
+    "fileTabAria": "File {{file}}"
   },
   "gate": {
     "checking": "Checking setup…",
@@ -609,6 +611,9 @@
     "proficiencyStart": "Take the test",
     "proficiencyRetake": "Retake",
     "proficientBadge": "proficiency approved ✓",
-    "sequentialHint": "Lessons unlock in order: finish one to release the next — or pass the proficiency test to unlock everything."
+    "sequentialHint": "Lessons unlock in order: finish one to release the next — or pass the proficiency test to unlock everything.",
+    "moduleChallenge": "Module challenge",
+    "moduleChallengeDone": "Completed ✓",
+    "moduleChallengeTried": "Tried"
   }
 }

@@ -35,6 +35,7 @@ import { TRACK_CHANNELS } from '../shared/ipc-contract';
 import { buildTrackHandlers, type TrackRepoLike } from '../electron/main/ipc/track-handlers';
 import type { IpcHandlerFn } from '../electron/main/ipc/safeHandle';
 import { TRACK_SCHEMA_VERSION } from '../electron/main/content/trackTypes';
+import { runStudentCode } from '../electron/main/services/challengeExec';
 
 /** Chama um handler com (null, payload) e tipa o resultado (invoke real é (event, ...args)). */
 function call<T>(map: Map<string, IpcHandlerFn>, channel: string, payload?: unknown): Promise<T> {
@@ -67,6 +68,30 @@ const PROFICIENCY = {
   difficulty: 5,
 };
 
+// ADITIVO (rodada 9): desafio do MÓDULO MULTI-ARQUIVO (2 arquivos, testes que
+// importam dos dois — execução REAL no submit).
+const MODULE_CHALLENGE = {
+  schemaVersion: TRACK_SCHEMA_VERSION,
+  slug: 'desafio-do-modulo',
+  title: 'Desafio do módulo',
+  concept: 'funcoes',
+  difficulty: 2,
+  language: 'nodejs',
+  statement: 'Implemente soma e multiplicação nos dois arquivos.',
+  files: [
+    { path: 'lib/soma.mjs', starterCode: 'export function soma(a, b) { throw new Error("não implementado"); }\n', solutionCode: 'export function soma(a, b) { return a + b; }\n' },
+    { path: 'lib/multiplica.mjs', starterCode: 'export function multiplica(a, b) { throw new Error("não implementado"); }\n', solutionCode: 'export function multiplica(a, b) { return a * b; }\n' },
+  ],
+  testsCode: `import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { soma } from './lib/soma.mjs';
+import { multiplica } from './lib/multiplica.mjs';
+test('soma 2+3', () => { assert.equal(soma(2, 3), 5); });
+test('multiplica 2*3', () => { assert.equal(multiplica(2, 3), 6); });
+`,
+  expectedTestCount: 2,
+};
+
 async function makeTrackDir(): Promise<string> {
   const root = mkdtempSync(path.join(os.tmpdir(), 'track-handlers-'));
   const track = path.join(root, 'trilha-teste');
@@ -86,7 +111,14 @@ async function makeTrackDir(): Promise<string> {
   );
   await fs.writeFile(
     path.join(track, 'modules', 'mod-1', 'module.json'),
-    JSON.stringify({ schemaVersion: TRACK_SCHEMA_VERSION, slug: 'mod-1', title: 'Módulo 1', order: 1, lessons: ['aula-1'] }),
+    JSON.stringify({
+      schemaVersion: TRACK_SCHEMA_VERSION,
+      slug: 'mod-1',
+      title: 'Módulo 1',
+      order: 1,
+      lessons: ['aula-1'],
+      challenge: 'desafio-do-modulo',
+    }),
     'utf8',
   );
   await fs.writeFile(
@@ -108,6 +140,12 @@ async function makeTrackDir(): Promise<string> {
   await fs.writeFile(
     path.join(track, 'modules', 'mod-1', 'lessons', 'aula-1', 'challenges', 'desafio-1', 'challenge.json'),
     JSON.stringify(CHALLENGE),
+    'utf8',
+  );
+  await fs.mkdir(path.join(track, 'modules', 'mod-1', 'challenges', 'desafio-do-modulo'), { recursive: true });
+  await fs.writeFile(
+    path.join(track, 'modules', 'mod-1', 'challenges', 'desafio-do-modulo', 'challenge.json'),
+    JSON.stringify(MODULE_CHALLENGE),
     'utf8',
   );
   await fs.writeFile(path.join(track, 'proficiency.json'), JSON.stringify(PROFICIENCY), 'utf8');
@@ -446,5 +484,122 @@ describe('buildTrackHandlers — trilhas', () => {
     });
     assert.equal(result.ok, false);
     assert.ok(result.error);
+  });
+
+  // ─── ADITIVO (rodada 9): desafio do MÓDULO (target 'module') ────────────────
+
+  it('track:challenge devolve o desafio do MÓDULO com os starters por arquivo', async () => {
+    const dir = await makeTrackDir();
+    const map = buildTrackHandlers({ getTracksDir: () => path.dirname(dir), repo: fakeRepo() });
+    const result = await call<TrackChallengeResult>(map, TRACK_CHANNELS.CHALLENGE_GET, {
+      trackSlug: 'trilha-teste',
+      target: 'module',
+      moduleSlug: 'mod-1',
+      challengeId: 'desafio-do-modulo',
+    });
+    assert.equal(result.ok, true);
+    assert.equal(result.challenge?.slug, 'desafio-do-modulo');
+    assert.equal(result.challenge?.files?.length, 2);
+    assert.equal(result.challenge?.files?.[0].path, 'lib/soma.mjs');
+    // os testes NUNCA chegam ao renderer:
+    assert.equal((result.challenge as unknown as Record<string, unknown>).testsCode, undefined);
+    // as SOLUÇÕES nunca chegam ao renderer:
+    assert.equal((result.challenge?.files?.[0] as unknown as Record<string, unknown>).solutionCode, undefined);
+  });
+
+  it('track:challenge-submit com target module + files: TODOS os arquivos certos passam', async () => {
+    const dir = await makeTrackDir();
+    const map = buildTrackHandlers({ getTracksDir: () => path.dirname(dir), repo: fakeRepo() });
+    const result = await call<TrackSubmitResult>(map, TRACK_CHANNELS.CHALLENGE_SUBMIT, {
+      trackSlug: 'trilha-teste',
+      target: 'module',
+      moduleSlug: 'mod-1',
+      challengeId: 'desafio-do-modulo',
+      code: '', // ignorado — files presente.
+      files: [
+        { path: 'lib/soma.mjs', code: 'export function soma(a, b) { return a + b; }\n' },
+        { path: 'lib/multiplica.mjs', code: 'export function multiplica(a, b) { return a * b; }\n' },
+      ],
+    });
+    assert.equal(result.ok, true);
+    assert.equal(result.passed, true);
+    assert.equal(result.testsRun, 2);
+  });
+
+  it('track:challenge-submit com target module: um arquivo errado → falha com parcial', async () => {
+    const dir = await makeTrackDir();
+    const map = buildTrackHandlers({ getTracksDir: () => path.dirname(dir), repo: fakeRepo() });
+    const result = await call<TrackSubmitResult>(map, TRACK_CHANNELS.CHALLENGE_SUBMIT, {
+      trackSlug: 'trilha-teste',
+      target: 'module',
+      moduleSlug: 'mod-1',
+      challengeId: 'desafio-do-modulo',
+      code: '',
+      files: [
+        { path: 'lib/soma.mjs', code: 'export function soma(a, b) { return a - b; }\n' },
+        { path: 'lib/multiplica.mjs', code: 'export function multiplica(a, b) { return a * b; }\n' },
+      ],
+    });
+    assert.equal(result.ok, true);
+    assert.equal(result.passed, false);
+    assert.equal(result.passedCount, 1);
+    assert.equal(result.totalCount, 2);
+  });
+
+  it('track:challenge-submit com target module + moduleSlug errado → CHALLENGE_NOT_FOUND', async () => {
+    const dir = await makeTrackDir();
+    const map = buildTrackHandlers({ getTracksDir: () => path.dirname(dir), repo: fakeRepo() });
+    const result = await call<TrackSubmitResult>(map, TRACK_CHANNELS.CHALLENGE_SUBMIT, {
+      trackSlug: 'trilha-teste',
+      target: 'module',
+      moduleSlug: 'modo-inexistente',
+      challengeId: 'desafio-do-modulo',
+      code: '',
+      files: [{ path: 'lib/soma.mjs', code: 'export function soma(a, b) { return a + b; }\n' }],
+    });
+    assert.equal(result.ok, false);
+    assert.equal(result.error?.code, 'CHALLENGE_NOT_FOUND');
+  });
+
+  // FIX (revisão adversarial): submit malicioso — path com '..' escreveria
+  // FORA do workdir de execução (path.join resolve o '..' no writeFile).
+  it('track:challenge-submit: files com path que escapa do workdir → SUBMIT_BAD_REQUEST e nada é escrito', async () => {
+    const dir = await makeTrackDir();
+    const map = buildTrackHandlers({ getTracksDir: () => path.dirname(dir), repo: fakeRepo() });
+    const escapeName = `escape-${Date.now()}.mjs`;
+    // Onde o path malicioso escreveria SEM a validação: o workdir é
+    // os.tmpdir()/track-submit-*/ — '../..' resolve para o PAI do tmpdir.
+    const escapedPath = path.join(os.tmpdir(), '..', escapeName);
+    await fs.rm(escapedPath, { force: true });
+
+    // 1. Handler: rejeita com erro estruturado ANTES de rodar/gravar qualquer coisa.
+    const result = await call<TrackSubmitResult>(map, TRACK_CHANNELS.CHALLENGE_SUBMIT, {
+      trackSlug: 'trilha-teste',
+      target: 'module',
+      moduleSlug: 'mod-1',
+      challengeId: 'desafio-do-modulo',
+      code: '',
+      files: [{ path: `../../${escapeName}`, code: 'export const x = 1;\n' }],
+    });
+    assert.equal(result.ok, false);
+    assert.equal(result.error?.code, 'SUBMIT_BAD_REQUEST');
+
+    // 2. Defesa em profundidade: o runner sozinho (main E CLI) também recusa.
+    const runner = await runStudentCode({
+      studentCode: '',
+      files: [{ path: `../../${escapeName}`, code: 'export const x = 1;\n' }],
+      testsCode: `import { test } from 'node:test';\ntest('nada', () => {});\n`,
+      expectedTestCount: 1,
+    });
+    assert.equal(runner.passed, false);
+    assert.equal(runner.error, 'path inválido');
+    assert.equal(runner.checks.length, 0);
+    assert.equal(runner.totalCount, 0);
+
+    // 3. NENHUM arquivo foi criado fora do workdir (o path resolvido não existe).
+    await assert.rejects(fs.access(escapedPath), (err) => {
+      assert.equal((err as NodeJS.ErrnoException).code, 'ENOENT');
+      return true;
+    });
   });
 });

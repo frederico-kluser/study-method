@@ -25,9 +25,11 @@ import {
   TRACK_SCHEMA_VERSION,
   validateChallengeSource,
   validateLessonSource,
+  validateModuleSource,
   validateTrackSource,
   type TrackChallengeSource,
   type TrackLessonSource,
+  type TrackModuleSource,
   type TrackSource,
 } from '../electron/main/content/trackTypes';
 import {
@@ -93,14 +95,24 @@ function track(over: Partial<TrackSource> = {}): TrackSource {
   };
 }
 
-async function writeTrack(dir: string, t: TrackSource, lessons: TrackLessonSource[], prof: TrackChallengeSource | null = null): Promise<void> {
+async function writeTrack(
+  dir: string,
+  t: TrackSource,
+  lessons: TrackLessonSource[],
+  prof: TrackChallengeSource | null = null,
+  opts: { moduleChallenge?: TrackChallengeSource; declareModuleChallenge?: boolean } = {},
+): Promise<void> {
   await fs.mkdir(path.join(dir, 'modules', 'modulo-1', 'lessons', 'aula-1', 'challenges', 'desafio-1'), { recursive: true });
   await fs.writeFile(path.join(dir, 'track.json'), JSON.stringify(t), 'utf8');
-  await fs.writeFile(
-    path.join(dir, 'modules', 'modulo-1', 'module.json'),
-    JSON.stringify({ schemaVersion: TRACK_SCHEMA_VERSION, slug: 'modulo-1', title: 'Módulo 1', order: 1, lessons: lessons.map((l) => l.slug) }),
-    'utf8',
-  );
+  const moduleMeta: TrackModuleSource = {
+    schemaVersion: TRACK_SCHEMA_VERSION,
+    slug: 'modulo-1',
+    title: 'Módulo 1',
+    order: 1,
+    lessons: lessons.map((l) => l.slug),
+    ...(opts.declareModuleChallenge && opts.moduleChallenge ? { challenge: opts.moduleChallenge.slug } : {}),
+  };
+  await fs.writeFile(path.join(dir, 'modules', 'modulo-1', 'module.json'), JSON.stringify(moduleMeta), 'utf8');
   for (const l of lessons) {
     await fs.writeFile(path.join(dir, 'modules', 'modulo-1', 'lessons', l.slug, 'lesson.json'), JSON.stringify(l), 'utf8');
     for (const ch of l.challenges) {
@@ -110,6 +122,14 @@ async function writeTrack(dir: string, t: TrackSource, lessons: TrackLessonSourc
         'utf8',
       );
     }
+  }
+  if (opts.moduleChallenge) {
+    await fs.mkdir(path.join(dir, 'modules', 'modulo-1', 'challenges', opts.moduleChallenge.slug), { recursive: true });
+    await fs.writeFile(
+      path.join(dir, 'modules', 'modulo-1', 'challenges', opts.moduleChallenge.slug, 'challenge.json'),
+      JSON.stringify(opts.moduleChallenge),
+      'utf8',
+    );
   }
   if (prof) {
     await fs.writeFile(path.join(dir, 'proficiency.json'), JSON.stringify(prof), 'utf8');
@@ -146,6 +166,78 @@ describe('trackTypes — validação de schema', () => {
     assert.deepEqual(validateChallengeSource(challenge({ minFirstStarMs: 30_000 }), 'challenge.json'), []);
     const issues = validateChallengeSource(challenge({ minFirstStarMs: -5 }), 'challenge.json');
     assert.ok(issues.some((i) => i.message.includes('minFirstStarMs')));
+  });
+
+  it('ADITIVO: aceita desafio MULTI-ARQUIVO válido (files[] com path/starter/solution)', () => {
+    const multi = challenge({
+      files: [
+        { path: 'lib/soma.mjs', starterCode: 'export function soma(a, b) { throw new Error("x"); }\n', solutionCode: 'export function soma(a, b) { return a + b; }\n' },
+        { path: 'lib/multiplica.mjs', starterCode: 'export function multiplica(a, b) { throw new Error("x"); }\n', solutionCode: 'export function multiplica(a, b) { return a * b; }\n' },
+      ],
+    });
+    assert.deepEqual(validateChallengeSource(multi, 'challenge.json'), []);
+  });
+
+  it('ADITIVO: multi-arquivo dispensa starter/solution DE TOPO (vivem nos arquivos)', () => {
+    const multi = challenge({ files: [{ path: 'lib/soma.mjs', starterCode: 'export const x = 1;\n', solutionCode: 'export const x = 2;\n' }] });
+    // remove os campos de topo — o conteúdo agora vive em files[].
+    const { starterCode: _s, solutionCode: _sol, ...semTopo } = multi;
+    assert.deepEqual(validateChallengeSource(semTopo, 'challenge.json'), []);
+  });
+
+  it('ADITIVO: rejeita files vazio, path inseguro e path duplicado', () => {
+    const vazio = validateChallengeSource(challenge({ files: [] }), 'challenge.json');
+    assert.ok(vazio.some((i) => i.message.includes('files')));
+    assert.ok(vazio.some((i) => i.message.includes('vazio')));
+
+    const inseguro = validateChallengeSource(
+      challenge({ files: [{ path: '../escapa.mjs', starterCode: 'a', solutionCode: 'b' }] }),
+      'challenge.json',
+    );
+    assert.ok(inseguro.some((i) => i.message.includes('files[0].path')));
+    const semExt = validateChallengeSource(
+      challenge({ files: [{ path: 'lib/soma.js', starterCode: 'a', solutionCode: 'b' }] }),
+      'challenge.json',
+    );
+    assert.ok(semExt.some((i) => i.message.includes('files[0].path')));
+
+    const duplicado = validateChallengeSource(
+      challenge({
+        files: [
+          { path: 'lib/soma.mjs', starterCode: 'a', solutionCode: 'b' },
+          { path: 'lib/soma.mjs', starterCode: 'c', solutionCode: 'd' },
+        ],
+      }),
+      'challenge.json',
+    );
+    assert.ok(duplicado.some((i) => i.message.includes('duplicado')));
+  });
+
+  it('ADITIVO: rejeita entry de files sem starterCode ou com solutionCode vazio', () => {
+    const semStarter = validateChallengeSource(
+      challenge({ files: [{ path: 'lib/soma.mjs', solutionCode: 'export const x = 1;\n' } as never] }),
+      'challenge.json',
+    );
+    assert.ok(semStarter.some((i) => i.message.includes('files[0].starterCode')));
+    const solVazia = validateChallengeSource(
+      challenge({ files: [{ path: 'lib/soma.mjs', starterCode: 'a', solutionCode: '   ' }] }),
+      'challenge.json',
+    );
+    assert.ok(solVazia.some((i) => i.message.includes('files[0].solutionCode')));
+  });
+
+  it('ADITIVO: module.json aceita challenge slug válido e rejeita inválido', () => {
+    const modOk: TrackModuleSource = {
+      schemaVersion: TRACK_SCHEMA_VERSION,
+      slug: 'modulo-1',
+      title: 'Módulo 1',
+      order: 1,
+      lessons: ['aula-1'],
+      challenge: 'desafio-do-modulo',
+    };
+    assert.deepEqual(validateModuleSource(modOk, 'module.json'), []);
+    const issues = validateModuleSource({ ...modOk, challenge: 'Desafio Errado!' }, 'module.json');
+    assert.ok(issues.some((i) => i.message.includes('slug inválido')));
   });
 });
 
@@ -249,5 +341,88 @@ describe('trackLoader — carregamento', () => {
     const ch = findChallenge(found!, 'desafio-1');
     assert.ok(ch);
     assert.equal(findChallenge(found!, 'x'), null);
+  });
+
+  it('ADITIVO: módulo com challenge declarado carrega o desafio do módulo', async () => {
+    const dir = path.join(tmpDir(), 'mod-challenge');
+    const moduleChallenge = challenge({ slug: 'desafio-do-modulo', title: 'Desafio do módulo' });
+    await writeTrack(dir, track(), [lesson()], null, {
+      moduleChallenge,
+      declareModuleChallenge: true,
+    });
+    const loaded = await loadTrack(dir);
+    assert.equal(loaded.modules[0].challenge?.slug, 'desafio-do-modulo');
+    assert.equal(loaded.modules[0].challenge?.title, 'Desafio do módulo');
+  });
+
+  it('ADITIVO: módulo SEM challenge → challenge null (válido)', async () => {
+    const dir = path.join(tmpDir(), 'mod-sem-challenge');
+    await writeTrack(dir, track(), [lesson()]);
+    const loaded = await loadTrack(dir);
+    assert.equal(loaded.modules[0].challenge, null);
+  });
+
+  it('ADITIVO: module.json declara challenge mas o arquivo não existe → TrackLoadError', async () => {
+    const dir = path.join(tmpDir(), 'mod-challenge-fantasma');
+    // monta manualmente: module.json declara 'fantasma' sem o arquivo em disco.
+    await fs.mkdir(path.join(dir, 'modules', 'modulo-1', 'lessons', 'aula-1'), { recursive: true });
+    await fs.writeFile(path.join(dir, 'track.json'), JSON.stringify(track()), 'utf8');
+    await fs.writeFile(
+      path.join(dir, 'modules', 'modulo-1', 'module.json'),
+      JSON.stringify({
+        schemaVersion: TRACK_SCHEMA_VERSION,
+        slug: 'modulo-1',
+        title: 'Módulo 1',
+        order: 1,
+        lessons: ['aula-1'],
+        challenge: 'fantasma',
+      }),
+      'utf8',
+    );
+    // aula sem challenges próprios — o único problema da trilha é o desafio do
+    // módulo declarado e ausente (senão o loader falharia ANTES, na aula).
+    await fs.writeFile(path.join(dir, 'modules', 'modulo-1', 'lessons', 'aula-1', 'lesson.json'), JSON.stringify(lesson({ challenges: [] })), 'utf8');
+    await assert.rejects(
+      () => loadTrack(dir),
+      (err: unknown) => {
+        assert.ok(err instanceof TrackLoadError);
+        assert.ok(err.issues.some((i) => i.message.includes('fantasma')));
+        return true;
+      },
+    );
+  });
+
+  it('ADITIVO: desafio do módulo INVÁLIDO → TrackLoadError com issues do challenge', async () => {
+    const dir = path.join(tmpDir(), 'mod-challenge-invalido');
+    await writeTrack(dir, track(), [lesson()], null, {
+      moduleChallenge: challenge({ slug: 'desafio-do-modulo', testsCode: '' }),
+      declareModuleChallenge: true,
+    });
+    await assert.rejects(
+      () => loadTrack(dir),
+      (err: unknown) => {
+        assert.ok(err instanceof TrackLoadError);
+        assert.ok(err.issues.some((i) => i.message.includes('testsCode')));
+        return true;
+      },
+    );
+  });
+
+  it('ADITIVO: desafio do módulo MULTI-ARQUIVO carrega com os arquivos', async () => {
+    const dir = path.join(tmpDir(), 'mod-challenge-multi');
+    const moduleChallenge = challenge({
+      slug: 'desafio-do-modulo',
+      files: [
+        { path: 'lib/soma.mjs', starterCode: 'export function soma(a, b) { throw new Error("x"); }\n', solutionCode: 'export function soma(a, b) { return a + b; }\n' },
+        { path: 'lib/multiplica.mjs', starterCode: 'export function multiplica(a, b) { throw new Error("x"); }\n', solutionCode: 'export function multiplica(a, b) { return a * b; }\n' },
+      ],
+    });
+    await writeTrack(dir, track(), [lesson()], null, {
+      moduleChallenge,
+      declareModuleChallenge: true,
+    });
+    const loaded = await loadTrack(dir);
+    assert.equal(loaded.modules[0].challenge?.files?.length, 2);
+    assert.equal(loaded.modules[0].challenge?.files?.[1].path, 'lib/multiplica.mjs');
   });
 });

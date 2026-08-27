@@ -38,6 +38,7 @@ import {
   loadTrack,
 } from '../content/trackLoader';
 import { findLessonAnywhere } from '../content/trackLoader';
+import { SAFE_FILE_PATH_RE } from '../content/trackTypes';
 import {
   TrackProgressLike,
   buildTrackDetail,
@@ -229,7 +230,8 @@ export function buildTrackHandlers(deps: TrackHandlerDeps): Map<string, IpcHandl
     const loaded = await loadTrackOrError(p.trackSlug);
     if ('error' in loaded) return { ok: false, error: loaded.error };
     try {
-      const spec = await resolveChallengeSpec(loaded, p.target, p.lessonId, p.challengeId, repo);
+      // ADITIVO (rodada 9): p.moduleSlug resolve o desafio do MÓDULO (target 'module').
+      const spec = await resolveChallengeSpec(loaded, p.target, p.lessonId, p.challengeId, repo, p.moduleSlug);
       return { ok: true, challenge: spec };
     } catch (err) {
       return { ok: false, error: String(err) };
@@ -256,6 +258,12 @@ export function buildTrackHandlers(deps: TrackHandlerDeps): Map<string, IpcHandl
       if (!prof || (p.challengeId && p.challengeId !== prof.slug)) return null;
       return { testsCode: prof.testsCode, expectedTestCount: prof.expectedTestCount };
     }
+    // ADITIVO (rodada 9): desafio do MÓDULO (target 'module').
+    if (p.target === 'module') {
+      const mod = loaded.modules.find((m) => m.meta.slug === p.moduleSlug);
+      if (!mod?.challenge || (p.challengeId && p.challengeId !== mod.challenge.slug)) return null;
+      return { testsCode: mod.challenge.testsCode, expectedTestCount: mod.challenge.expectedTestCount };
+    }
     const found = findLessonAnywhere(loaded, p.lessonId ?? '');
     if (!found) return null;
     const ch = found.lesson.challenges.find((c) => c.slug === p.challengeId);
@@ -280,8 +288,22 @@ export function buildTrackHandlers(deps: TrackHandlerDeps): Map<string, IpcHandl
     totalCount: 0,
   });
   const submitter = async (p: TrackSubmitRequest, isProficiency: boolean): Promise<TrackSubmitResult> => {
-    if (!p.trackSlug || typeof p.code !== 'string') {
-      return submitError('SUBMIT_BAD_REQUEST', 'requer trackSlug + code.');
+    // ADITIVO (rodada 9): multi-arquivo — o aluno envia `files` (todos os
+    // arquivos editados); o `code` único é exigido só no fluxo de arquivo único.
+    const hasFiles = Array.isArray(p.files) && p.files.length > 0;
+    if (!p.trackSlug || (typeof p.code !== 'string' && !hasFiles)) {
+      return submitError('SUBMIT_BAD_REQUEST', 'requer trackSlug + code (ou files).');
+    }
+    // FIX (revisão adversarial): valida cada path de arquivo ANTES de qualquer
+    // escrita — path malicioso ('a/../../escape.mjs') faria o runner escrever
+    // FORA do workdir de execução (path.join resolve o '..' no writeFile).
+    if (
+      hasFiles &&
+      (p.files as { path: string; code: string }[]).some(
+        (f) => typeof f?.path !== 'string' || !SAFE_FILE_PATH_RE.test(f.path),
+      )
+    ) {
+      return submitError('SUBMIT_BAD_REQUEST', 'path de arquivo inválido (esperado ^[a-zA-Z0-9_\\-/]+\\.mjs$).');
     }
     if (!repo) return submitError('NO_REPO', 'persistência indisponível.');
     const loaded = await loadTrackOrError(p.trackSlug);
@@ -291,7 +313,8 @@ export function buildTrackHandlers(deps: TrackHandlerDeps): Map<string, IpcHandl
     if (!testSpec) return submitError('CHALLENGE_NOT_FOUND', 'desafio não encontrado.');
 
     const res = await runStudentCode({
-      studentCode: p.code,
+      studentCode: typeof p.code === 'string' ? p.code : '',
+      files: hasFiles ? p.files : undefined,
       testsCode: testSpec.testsCode,
       expectedTestCount: testSpec.expectedTestCount,
     });
