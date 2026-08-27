@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "slug": "formatar-lista-de-compras",
+  "title": "Formatar a lista de compras",
+  "concept": "juntar_em_texto",
+  "difficulty": 2,
+  "language": "nodejs",
+  "statement": "# Formatar a lista de compras\n\nVocê vai escrever `formatarListaDeCompras(lista, separador)`, que transforma uma lista de compras em um texto único.\n\nA função recebe:\n\n- `lista` — a lista de itens (por exemplo, `['arroz', 'feijão', 'café']`)\n- `separador` — o texto colado entre os itens. Se não vier nada, use `', '` (vírgula e espaço)\n\nExemplos:\n\n- `formatarListaDeCompras(['arroz', 'feijão', 'café'])` deve devolver `'arroz, feijão, café'`\n- `formatarListaDeCompras(['a', 'b', 'c'], '-')` deve devolver `'a-b-c'`\n- `formatarListaDeCompras(['Ana', 'Beto'], ' e ')` deve devolver `'Ana e Beto'`\n- `formatarListaDeCompras([])` deve devolver `''` — lista vazia vira texto vazio\n\nSe `lista` NÃO for uma lista, a função deve parar com um erro.\n\nLeia o enunciado com calma e clique em Começar para iniciar o cronômetro.",
+  "starterCode": "export function formatarListaDeCompras(lista, separador = ', ') {\n  // TODO: implemente a função\n  throw new Error('não implementado');\n}\n",
+  "testsCode": "import { test } from 'node:test';\nimport assert from 'node:assert/strict';\nimport { formatarListaDeCompras } from './solution.mjs';\n\ntest('junta os itens com vírgula e espaço por padrão', () => {\n  assert.equal(formatarListaDeCompras(['arroz', 'feijão', 'café']), 'arroz, feijão, café');\n});\n\ntest('aceita um separador personalizado', () => {\n  assert.equal(formatarListaDeCompras(['a', 'b', 'c'], '-'), 'a-b-c');\n  assert.equal(formatarListaDeCompras(['Ana', 'Beto'], ' e '), 'Ana e Beto');\n});\n\ntest('lista vazia vira texto vazio', () => {\n  assert.equal(formatarListaDeCompras([]), '');\n});\n\ntest('recusa valor que não é lista', () => {\n  assert.throws(() => formatarListaDeCompras('arroz,feijão'));\n});\n",
+  "solutionCode": "export function formatarListaDeCompras(lista, separador = ', ') {\n  if (!Array.isArray(lista)) {\n    throw new Error('lista precisa ser um array');\n  }\n  return lista.join(separador);\n}\n",
+  "expectedTestCount": 4
+}

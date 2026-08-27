@@ -1,0 +1,55 @@
+{
+  "schemaVersion": 1,
+  "slug": "filtrar-elementos",
+  "title": "Filtrar elementos: filter",
+  "summary": "Montar uma lista nova só com os itens que passam num teste, com filter.",
+  "difficulty": 3,
+  "concepts": [
+    "filtrar_elementos"
+  ],
+  "prerequisites": [
+    "encontrar-elemento"
+  ],
+  "theory": [
+    {
+      "id": "a-peneira",
+      "title": "A peneira: filter",
+      "markdown": "Farinha com caroços? Você passa tudo pela peneira e fica só com o que é fino. `filter` é a peneira das listas: ele percorre a lista, aplica um teste em cada item e devolve uma lista NOVA só com os que passaram.\n\n**`lista.filter(funcaoDeTeste)`**\n\n- a função de teste recebe cada item, um por vez, e devolve `true` (passa) ou `false` (fica de fora);\n- o resultado é SEMPRE uma lista — menor ou igual à original, nunca maior;\n- a lista original não muda: os itens que ficaram de fora não são apagados dela.\n\nPense na analogia da seleção de time: todos os candidatos fazem o teste (\"sabe jogar?\"), e só quem passa entra na lista nova — os outros voltam para casa, sem ninguém ser apagado da existência.\n\n**Atenção que vale ouro:** `filter` devolve uma LISTA, mesmo quando só um item passa. Se você quer o item único (ou `undefined`), é o `find` da aula 8; se você quer o subconjunto inteiro, é o `filter`."
+    },
+    {
+      "id": "na-pratica",
+      "title": "Na prática: filter",
+      "markdown": "O exemplo clássico, filtrar números pares:\n\n```\nconst numeros = [1, 2, 3, 4, 5, 6];\n\nconst pares = numeros.filter((n) => n % 2 === 0);\n// devolve: [2, 4, 6]\n```\n\nE com objetos — o caso do dia a dia:\n\n```\nconst clientes = [\n  { nome: 'Ana', idade: 17 },\n  { nome: 'Beto', idade: 22 },\n  { nome: 'Caio', idade: 15 }\n];\n\nconst maiores = clientes.filter((c) => c.idade >= 18);\n// devolve: [{ nome: 'Beto', idade: 22 }]\n```\n\nQuando NENHUM item passa, o resultado é a lista vazia `[]` — não é erro, é uma resposta válida: \"não sobrou ninguém na peneira\".",
+      "code": {
+        "language": "js",
+        "code": "const numeros = [1, 2, 3, 4, 5, 6];\n\nconst pares = numeros.filter((n) => n % 2 === 0);\nconsole.log(pares);  // [2, 4, 6]\n\nconst impares = numeros.filter((n) => n % 2 !== 0);\nconsole.log(impares); // [1, 3, 5]\n\nconsole.log(numeros.filter((n) => n > 100)); // [] — ninguém passou\nconsole.log(numeros); // [1, 2, 3, 4, 5, 6] — a original continua inteira",
+        "explanation": "Cada item passa pelo teste da setinha: par → true entra, ímpar → false fica de fora. O resultado é sempre uma lista nova; a original continua com os 6 números."
+      }
+    },
+    {
+      "id": "exemplo-completo",
+      "title": "Exemplo completo: os clientes maiores de idade",
+      "markdown": "**Objetivo:** escrever `filtrarMaioresDeIdade(clientes)`, que devolve uma lista nova só com os clientes de 18 anos ou mais.\n\nPasso 1 — confira a entrada.\nGarantimos que `clientes` é uma lista de verdade.\n\nPasso 2 — a peneira da idade.\nO teste `c.idade >= 18` deixa passar só quem é maior de idade.\n\nPasso 3 — devolva a lista nova.\n`filter` já entrega a lista certa — e a original fica intacta.",
+      "code": {
+        "language": "js",
+        "code": "// Passo 1: conferimos que veio uma lista de verdade.\nfunction filtrarMaioresDeIdade(clientes) {\n  if (!Array.isArray(clientes)) {\n    throw new Error('clientes precisa ser uma lista');\n  }\n\n  // Passo 2 e 3: filter devolve a lista nova só com quem passou no teste.\n  return clientes.filter((cliente) => cliente.idade >= 18);\n}\n\nconst lista = [\n  { nome: 'Ana', idade: 17 },\n  { nome: 'Beto', idade: 22 },\n  { nome: 'Caio', idade: 15 }\n];\n\nconsole.log(filtrarMaioresDeIdade(lista));\n// imprime: [{ nome: 'Beto', idade: 22 }]",
+        "explanation": "A setinha roda uma vez por cliente: Ana (17 → false, fora), Beto (22 → true, dentro), Caio (15 → false, fora). Resultado: uma lista nova com um único objeto — e a lista original continua com os três."
+      }
+    }
+  ],
+  "sources": [
+    {
+      "title": "Array.prototype.filter() — MDN",
+      "url": "https://developer.mozilla.org/pt-BR/docs/Web/JavaScript/Reference/Global_Objects/Array/filter",
+      "description": "Montar uma lista nova só com os itens que passam no teste."
+    },
+    {
+      "title": "Array — MDN (referência)",
+      "url": "https://developer.mozilla.org/pt-BR/docs/Web/JavaScript/Reference/Global_Objects/Array/",
+      "description": "A página de referência de todos os métodos de lista."
+    }
+  ],
+  "challenges": [
+    "filtrar-pares"
+  ]
+}

@@ -1,0 +1,55 @@
+{
+  "schemaVersion": 1,
+  "slug": "juntar-em-texto",
+  "title": "Juntar em texto: join e toString",
+  "summary": "Transformar uma lista inteira em um único texto com join e toString.",
+  "difficulty": 2,
+  "concepts": [
+    "juntar_em_texto"
+  ],
+  "prerequisites": [
+    "concatenar-arrays"
+  ],
+  "theory": [
+    {
+      "id": "a-lista-vira-texto",
+      "title": "A lista vira texto: join e toString",
+      "markdown": "Uma lista é uma coleção de valores; um texto é uma linha só. `join` constrói a ponte entre os dois: ele transforma a lista inteira em UM texto.\n\n**`join` — o cordão que amarra os itens.**\n`lista.join(separador)` devolve um texto com todos os itens colados pelo separador que você escolher.\n\n```\nconst compras = ['arroz', 'feijão', 'café'];\ncompras.join(', '); // 'arroz, feijão, café'\n```\n\nPense na analogia do recibo: os itens viram uma linha só, com vírgulas entre eles — e você decide qual é a \"colinha\" (separador).\n\n**`toString` — o join automático.**\n`lista.toString()` é o atalho de `join(',')` (vírgula sem espaço). Toda lista tem esse método, e ele aparece sozinho quando o JavaScript precisa transformar a lista em texto.\n\n**Estratégia:** quer controlar o separador? Use `join`. Quer o texto \"padrão\" com vírgulas? `toString` resolve. E lembre: a lista original não muda — os dois devolvem um texto NOVO."
+    },
+    {
+      "id": "na-pratica",
+      "title": "Na prática: join e toString",
+      "markdown": "O separador é um texto — pode ser vírgula, espaço, traço ou até o texto vazio:\n\n```\nconst letras = ['a', 'b', 'c'];\n\nletras.join(', ');  // 'a, b, c'\nletras.join('-');   // 'a-b-c'\nletras.join('');    // 'abc' — colado, sem separador\nletras.join(' e '); // 'a e b e c'\nletras.toString();  // 'a,b,c' — o join de vírgula pura\n```\n\nDetalhes que pegam:\n\n- `join` não adiciona o separador depois do último item — só ENTRE os itens.\n- lista vazia devolve o texto vazio `''` (nenhum item, nenhum separador).\n- os itens viram texto na hora de colar: números, por exemplo, funcionam sem conversão manual.",
+      "code": {
+        "language": "js",
+        "code": "const letras = ['a', 'b', 'c'];\n\nconsole.log(letras.join(', '));  // a, b, c\nconsole.log(letras.join(''));    // abc\nconsole.log(letras.join(' e ')); // a e b e c\nconsole.log(letras.toString());  // a,b,c\nconsole.log([].join('-'));       // (linha vazia) — lista vazia vira texto vazio",
+        "explanation": "O separador só aparece ENTRE os itens — nunca depois do último. Com a lista vazia não há itens nem separadores: o resultado é o texto vazio."
+      }
+    },
+    {
+      "id": "exemplo-completo",
+      "title": "Exemplo completo: formar uma frase",
+      "markdown": "**Objetivo:** escrever `formarFrase(palavras)`, que recebe uma lista de palavras e devolve uma frase com um espaço entre as palavras.\n\nPasso 1 — confira a entrada.\nGarantimos que `palavras` é uma lista de verdade.\n\nPasso 2 — cole com espaço.\n`join(' ')`: uma \"colinha\" de espaço entre cada palavra.\n\nPasso 3 — devolva o texto.\nA lista original fica intacta — só o texto novo existe.",
+      "code": {
+        "language": "js",
+        "code": "// Passo 1: conferimos que veio uma lista de verdade.\nfunction formarFrase(palavras) {\n  if (!Array.isArray(palavras)) {\n    throw new Error('palavras precisa ser uma lista');\n  }\n\n  // Passo 2: join cola as palavras com um espaço entre elas.\n  return palavras.join(' ');\n}\n\nconsole.log(formarFrase(['eu', 'estudo', 'node']));\n// imprime: eu estudo node",
+        "explanation": "join(' ') coloca um espaço ENTRE cada par de palavras: 'eu', 'estudo', 'node' → 'eu estudo node'. Não existe espaço sobrando no começo nem no fim — join só cola."
+      }
+    }
+  ],
+  "sources": [
+    {
+      "title": "Array.prototype.join() — MDN",
+      "url": "https://developer.mozilla.org/pt-BR/docs/Web/JavaScript/Reference/Global_Objects/Array/join",
+      "description": "Transformar a lista em texto com um separador escolhido."
+    },
+    {
+      "title": "Array.prototype.toString() — MDN",
+      "url": "https://developer.mozilla.org/pt-BR/docs/Web/JavaScript/Reference/Global_Objects/Array/toString",
+      "description": "O atalho de join com vírgula."
+    }
+  ],
+  "challenges": [
+    "formatar-lista-de-compras"
+  ]
+}

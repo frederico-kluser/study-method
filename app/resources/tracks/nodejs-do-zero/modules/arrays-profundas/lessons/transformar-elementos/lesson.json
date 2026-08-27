@@ -1,0 +1,55 @@
+{
+  "schemaVersion": 1,
+  "slug": "transformar-elementos",
+  "title": "Transformar elementos: map",
+  "summary": "Aplicar a mesma regra em todos os itens com map e receber uma lista nova.",
+  "difficulty": 3,
+  "concepts": [
+    "transformar_elementos"
+  ],
+  "prerequisites": [
+    "filtrar-elementos"
+  ],
+  "theory": [
+    {
+      "id": "a-maquina-de-transformar",
+      "title": "A máquina de transformar: map",
+      "markdown": "Uma esteira de produção: cada peça entra por um lado, passa pela MESMA máquina e sai do outro lado transformada. `map` é essa esteira para listas.\n\n**`lista.map(funcaoDeTransformacao)`**\n\n- a função recebe cada item, um por vez, e devolve a versão transformada dele;\n- o resultado é uma lista NOVA, com o MESMO tamanho da original — um item entra, um item sai;\n- a lista original não muda.\n\nDiferença para o `filter` (aula 9): a peneira SAI e o transformador ENTRA. `filter` muda o tamanho (alguns ficam de fora); `map` muda os valores (ninguém fica de fora — todo item vira outro).\n\n**Estratégia:** pergunte \"quero menos itens ou itens diferentes?\". Menos → `filter`. Diferentes, na mesma quantidade → `map`."
+    },
+    {
+      "id": "na-pratica",
+      "title": "Na prática: map",
+      "markdown": "Transformar números e objetos:\n\n```\nconst precos = [10, 20, 30];\n\n// Dobrar cada preço:\nconst dobrados = precos.map((p) => p * 2);\n// devolve: [20, 40, 60]\n\n// Transformar cada número em texto formatado:\nconst etiquetas = precos.map((p) => `R$ ${p},00`);\n// devolve: ['R$ 10,00', 'R$ 20,00', 'R$ 30,00']\n\n// Extrair uma propriedade de cada objeto:\nconst clientes = [{ nome: 'Ana' }, { nome: 'Beto' }];\nconst nomes = clientes.map((c) => c.nome);\n// devolve: ['Ana', 'Beto']\n```\n\nOs três exemplos seguem o mesmo esqueleto: `lista.map((item) => transformacaoDoItem)`. A setinha diz COMO cada item vira.",
+      "code": {
+        "language": "js",
+        "code": "const precos = [10, 20, 30];\n\nconst dobrados = precos.map((p) => p * 2);\nconsole.log(dobrados); // [20, 40, 60]\n\nconst etiquetas = precos.map((p) => `R$ ${p},00`);\nconsole.log(etiquetas); // ['R$ 10,00', 'R$ 20,00', 'R$ 30,00']\n\nconsole.log(precos); // [10, 20, 30] — a original não mudou\nconsole.log(precos.length, dobrados.length); // 3 3 — mesmo tamanho",
+        "explanation": "Cada item entra na setinha e sai transformado: 10 → 20, 20 → 40, 30 → 60. O tamanho nunca muda (3 entram, 3 saem) e a lista original fica intacta."
+      }
+    },
+    {
+      "id": "exemplo-completo",
+      "title": "Exemplo completo: a lista de nomes",
+      "markdown": "**Objetivo:** escrever `obterNomes(clientes)`, que devolve uma lista com só os nomes dos clientes, na mesma ordem.\n\nPasso 1 — confira a entrada.\nGarantimos que `clientes` é uma lista de verdade.\n\nPasso 2 — transforme cada cliente no nome dele.\n`clientes.map((c) => c.nome)`: cada objeto vira a propriedade `nome`.\n\nPasso 3 — devolva a lista nova.\nMesmo tamanho da original: cada cliente virou exatamente um nome.",
+      "code": {
+        "language": "js",
+        "code": "// Passo 1: conferimos que veio uma lista de verdade.\nfunction obterNomes(clientes) {\n  if (!Array.isArray(clientes)) {\n    throw new Error('clientes precisa ser uma lista');\n  }\n\n  // Passo 2 e 3: cada cliente vira o nome dele, na mesma ordem.\n  return clientes.map((cliente) => cliente.nome);\n}\n\nconsole.log(obterNomes([{ nome: 'Ana' }, { nome: 'Beto' }]));\n// imprime: ['Ana', 'Beto']",
+        "explanation": "A setinha roda uma vez por cliente: o objeto {nome:'Ana'} vira 'Ana', o objeto {nome:'Beto'} vira 'Beto'. Resultado: ['Ana','Beto'] — dois itens entram, dois saem, a original não mudou."
+      }
+    }
+  ],
+  "sources": [
+    {
+      "title": "Array.prototype.map() — MDN",
+      "url": "https://developer.mozilla.org/pt-BR/docs/Web/JavaScript/Reference/Global_Objects/Array/map",
+      "description": "Transformar cada item da lista e receber uma lista nova."
+    },
+    {
+      "title": "Array — MDN (referência)",
+      "url": "https://developer.mozilla.org/pt-BR/docs/Web/JavaScript/Reference/Global_Objects/Array/",
+      "description": "A página de referência de todos os métodos de lista."
+    }
+  ],
+  "challenges": [
+    "transformar-valores"
+  ]
+}

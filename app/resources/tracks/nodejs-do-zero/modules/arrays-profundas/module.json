@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "slug": "arrays-profundas",
+  "title": "Arrays: domine cada método",
+  "order": 9,
+  "lessons": [
+    "adicionar-e-remover",
+    "concatenar-arrays",
+    "juntar-em-texto",
+    "fatiar-arrays",
+    "cortar-e-substituir",
+    "procurar-posicao",
+    "verificar-existencia",
+    "encontrar-elemento",
+    "filtrar-elementos",
+    "transformar-elementos",
+    "reduzir-a-um-valor",
+    "testar-todos",
+    "ordenar-arrays",
+    "achatar-e-criar"
+  ],
+  "challenge": "desafio-do-modulo-arrays"
+}

@@ -1,0 +1,60 @@
+{
+  "schemaVersion": 1,
+  "slug": "adicionar-e-remover",
+  "title": "Adicionar e remover itens: push, pop, shift e unshift",
+  "summary": "Colocar e tirar itens das pontas de uma lista com push, pop, shift e unshift.",
+  "difficulty": 2,
+  "concepts": [
+    "adicionar_remover"
+  ],
+  "prerequisites": [
+    "arrays-e-objetos"
+  ],
+  "theory": [
+    {
+      "id": "as-pontas-da-fila",
+      "title": "As pontas da fila: push, pop, shift e unshift",
+      "markdown": "A lista é uma fila: tem um começo e um fim. Os quatro métodos desta aula mexem nas PONTAS da fila — e cada um mexe em uma ponta diferente.\n\n- `push(valor)` — coloca um item no FIM. É o cliente novo entrando na fila do banco.\n- `pop()` — tira o item do FIM e devolve ele. É o último da fila saindo.\n- `shift()` — tira o item do COMEÇO e devolve ele. É o primeiro da fila sendo atendido.\n- `unshift(valor)` — coloca um item no COMEÇO. É alguém entrando na frente.\n\nOs nomes ajudam a lembrar: push é empurrar para dentro (no fim); shift é a fila inteira andando para a frente (o primeiro sai).\n\n**Atenção que vale ouro:** esses quatro métodos MUDAM a lista original. Nenhum devolve uma lista nova — eles mexem na própria lista. O que sobra para quem chama: `push` e `unshift` devolvem o novo tamanho da lista; `pop` e `shift` devolvem o item que saiu.\n\n**Estratégia:** pergunte \"qual ponta?\". Entra ou sai pelo FIM? `push` ou `pop`. Entra ou sai pelo COMEÇO? `unshift` ou `shift`."
+    },
+    {
+      "id": "na-pratica",
+      "title": "Na prática: os quatro movimentos",
+      "markdown": "Vamos ver os quatro trabalhando na mesma lista. O comentário de cada linha diz ONDE a lista está depois do movimento.\n\n```\nconst fila = ['Ana', 'Beto'];\nfila.push('Caio');        // ['Ana', 'Beto', 'Caio'] — Caio entra no fim\nconst saiu = fila.pop();   // ['Ana', 'Beto'] — Caio sai; saiu vale 'Caio'\nfila.unshift('Zeca');     // ['Zeca', 'Ana', 'Beto'] — Zeca entra no começo\nconst primeiro = fila.shift(); // ['Ana', 'Beto'] — Zeca sai; primeiro vale 'Zeca'\n```\n\nDois detalhes finais:\n\n- `pop()` e `shift()` DEVOLVEM o item removido — guarde em uma variável se precisar dele depois.\n- chamar `pop()` ou `shift()` em uma lista vazia não quebra o programa: devolve `undefined` e a lista continua vazia.\n\nEsses quatro métodos constroem estruturas famosas: `push` + `pop` formam uma pilha (o último a entrar é o primeiro a sair); `push` + `shift` formam uma fila de verdade (o primeiro a entrar é o primeiro a sair).",
+      "code": {
+        "language": "js",
+        "code": "const fila = ['Ana', 'Beto'];\n\nfila.push('Caio');           // FIM +1: ['Ana', 'Beto', 'Caio']\nconst saiu = fila.pop();      // FIM -1: ['Ana', 'Beto'] — saiu = 'Caio'\n\nfila.unshift('Zeca');        // COMEÇO +1: ['Zeca', 'Ana', 'Beto']\nconst primeiro = fila.shift(); // COMEÇO -1: ['Ana', 'Beto'] — primeiro = 'Zeca'",
+        "explanation": "A cada linha a lista é alterada NO LUGAR — depois de push ela tem um item a mais no fim; depois de pop, um a menos. pop e shift devolvem o item que saiu; push e unshift devolvem o novo tamanho."
+      }
+    },
+    {
+      "id": "exemplo-completo",
+      "title": "Exemplo completo: a fila do caixa",
+      "markdown": "**Objetivo:** escrever `atenderFila(fila, novoCliente)`, que atende o PRIMEIRO da fila e coloca um cliente novo no FIM. Devolve quem foi atendido e a fila atualizada.\n\nPasso 1 — confira a entrada.\nAntes de mexer, garantimos que `fila` é uma lista de verdade.\n\nPasso 2 — atenda o primeiro.\n`shift()` tira o primeiro da fila e devolve ele: exatamente o que o caixa faz.\n\nPasso 3 — o novo cliente entra no fim.\n`push()` coloca no fim, sem bagunçar a ordem de quem já estava.\n\nPasso 4 — devolva os dois resultados.\nAssim quem chamou a função fica sabendo quem foi atendido e como está a fila agora.",
+      "code": {
+        "language": "js",
+        "code": "// Passo 1: conferimos que veio uma lista de verdade.\nfunction atenderFila(fila, novoCliente) {\n  if (!Array.isArray(fila)) {\n    throw new Error('fila precisa ser uma lista');\n  }\n\n  // Passo 2: shift tira o primeiro da fila e devolve ele.\n  const atendido = fila.shift();\n\n  // Passo 3: push coloca o novo cliente no fim da fila.\n  fila.push(novoCliente);\n\n  // Passo 4: devolvemos quem foi atendido e a fila atualizada.\n  return { atendido, fila };\n}\n\nconsole.log(atenderFila(['Ana', 'Beto'], 'Caio'));\n// imprime: { atendido: 'Ana', fila: ['Beto', 'Caio'] }",
+        "explanation": "atenderFila(['Ana','Beto'], 'Caio'): shift devolve 'Ana' e a fila vira ['Beto']; push acrescenta 'Caio' no fim → fila ['Beto','Caio']. As duas pontas foram usadas no mesmo passo: sair da frente, entrar no fim."
+      }
+    }
+  ],
+  "sources": [
+    {
+      "title": "Array.prototype.push() — MDN",
+      "url": "https://developer.mozilla.org/pt-BR/docs/Web/JavaScript/Reference/Global_Objects/Array/push",
+      "description": "Como colocar um item no fim da lista e o que a função devolve."
+    },
+    {
+      "title": "Array.prototype.pop() — MDN",
+      "url": "https://developer.mozilla.org/pt-BR/docs/Web/JavaScript/Reference/Global_Objects/Array/pop",
+      "description": "Como tirar o último item da lista e recebê-lo de volta."
+    },
+    {
+      "title": "Array.prototype.shift() — MDN",
+      "url": "https://developer.mozilla.org/pt-BR/docs/Web/JavaScript/Reference/Global_Objects/Array/shift",
+      "description": "Como tirar o primeiro item da lista."
+    }
+  ],
+  "challenges": [
+    "fila-de-operacoes"
+  ]
+}

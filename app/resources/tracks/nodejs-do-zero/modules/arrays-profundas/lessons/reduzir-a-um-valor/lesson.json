@@ -1,0 +1,55 @@
+{
+  "schemaVersion": 1,
+  "slug": "reduzir-a-um-valor",
+  "title": "Reduzir a um valor: reduce",
+  "summary": "Percorrer uma lista acumulando um resultado único com reduce.",
+  "difficulty": 3,
+  "concepts": [
+    "reduzir_a_um_valor"
+  ],
+  "prerequisites": [
+    "transformar-elementos"
+  ],
+  "theory": [
+    {
+      "id": "a-caixa-registradora",
+      "title": "A caixa registradora: reduce",
+      "markdown": "O caixa de uma loja passa item por item da compra e vai batendo o total na caixa registradora: o total VELHO, mais o item NOVO, vira o total NOVO. É isso que o `reduce` faz com listas — percorre tudo acumulando um único resultado.\n\n**`lista.reduce(funcao, valorInicial)`**\n\n- a função recebe DOIS argumentos: o ACUMULADOR (o valor que está sendo construído) e o ITEM atual;\n- ela devolve o acumulador ATUALIZADO;\n- no fim, `reduce` devolve o acumulador final — UM valor.\n\nPense na analogia do registro: `(total, item) => total + item` lê-se \"o total novo é o total velho mais o item\".\n\n**Atenção que vale ouro:** o `valorInicial` é o ponto de partida do acumulador — somar números começa de 0, multiplicar começa de 1. Sem o valor inicial, o PRIMEIRO item da lista vira o acumulador — funciona para muitas contas, mas surpreende em lista vazia (dá erro)."
+    },
+    {
+      "id": "na-pratica",
+      "title": "Na prática: reduce",
+      "markdown": "O esqueleto é sempre o mesmo: acumulador + item → acumulador novo.\n\n```\nconst numeros = [1, 2, 3, 4];\n\n// Soma: o total novo é o total velho mais o item.\nconst soma = numeros.reduce((total, n) => total + n, 0);\n// 0 → 1 → 3 → 6 → 10\n\n// Maior valor: o acumulador guarda o maior visto até agora.\nconst maior = numeros.reduce((maior, n) => (n > maior ? n : maior), numeros[0]);\n// 1 → 2 → 3 → 4\n```\n\nAcompanhe a soma passo a passo: começa 0; chega 1 → vira 1; chega 2 → vira 3; chega 3 → vira 6; chega 4 → vira 10. O `reduce` devolve 10.\n\n**Reduza SEMPRE com valor inicial?** Sim, por hábito: deixa o comportamento explícito e protege a lista vazia (com inicial, lista vazia devolve o inicial — sem erro).",
+      "code": {
+        "language": "js",
+        "code": "const numeros = [1, 2, 3, 4];\n\nconst soma = numeros.reduce((total, n) => total + n, 0);\nconsole.log(soma); // 10 — 0+1=1, +2=3, +3=6, +4=10\n\nconst maior = numeros.reduce((m, n) => (n > m ? n : m), numeros[0]);\nconsole.log(maior); // 4\n\nconsole.log([].reduce((t, n) => t + n, 0)); // 0 — vazia com inicial: devolve o inicial",
+        "explanation": "O primeiro argumento da setinha é o acumulador (começa no valor inicial); o segundo é o item da vez. A cada passo o acumulador é atualizado e o reduce devolve o estado final — um valor só."
+      }
+    },
+    {
+      "id": "exemplo-completo",
+      "title": "Exemplo completo: o total do pedido",
+      "markdown": "**Objetivo:** escrever `calcularTotal(itens)`, que soma o preço de todos os itens de um pedido. Cada item é um objeto com `preco`.\n\nPasso 1 — confira a entrada.\nGarantimos que `itens` é uma lista de verdade.\n\nPasso 2 — o registro começa zerado.\n`0` como valor inicial: pedido vazio devolve 0, sem erro.\n\nPasso 3 — cada item entra no registro.\n`(total, item) => total + item.preco`: o total novo é o velho mais o preço do item.\n\nPasso 4 — devolva o total final.",
+      "code": {
+        "language": "js",
+        "code": "// Passo 1: conferimos que veio uma lista de verdade.\nfunction calcularTotal(itens) {\n  if (!Array.isArray(itens)) {\n    throw new Error('itens precisa ser uma lista');\n  }\n\n  // Passos 2 e 3: registro começa em 0 e soma o preço de cada item.\n  return itens.reduce((total, item) => total + item.preco, 0);\n}\n\nconsole.log(calcularTotal([{ preco: 10 }, { preco: 20 }, { preco: 30 }]));\n// imprime: 60\nconsole.log(calcularTotal([])); // imprime: 0",
+        "explanation": "Passo a passo: total=0, item {preco:10} → 10; item {preco:20} → 30; item {preco:30} → 60. Com lista vazia, o valor inicial 0 é devolvido direto — caso limite de graça."
+      }
+    }
+  ],
+  "sources": [
+    {
+      "title": "Array.prototype.reduce() — MDN",
+      "url": "https://developer.mozilla.org/pt-BR/docs/Web/JavaScript/Reference/Global_Objects/Array/reduce",
+      "description": "Percorrer a lista acumulando um resultado único."
+    },
+    {
+      "title": "Array — MDN (referência)",
+      "url": "https://developer.mozilla.org/pt-BR/docs/Web/JavaScript/Reference/Global_Objects/Array/",
+      "description": "A página de referência de todos os métodos de lista."
+    }
+  ],
+  "challenges": [
+    "calcular-total"
+  ]
+}

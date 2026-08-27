@@ -1,0 +1,55 @@
+{
+  "schemaVersion": 1,
+  "slug": "cortar-e-substituir",
+  "title": "Cortar e substituir: splice",
+  "summary": "Remover, inserir e trocar itens no meio de uma lista com splice.",
+  "difficulty": 3,
+  "concepts": [
+    "cortar_e_substituir"
+  ],
+  "prerequisites": [
+    "fatiar-arrays"
+  ],
+  "theory": [
+    {
+      "id": "o-canivete",
+      "title": "O canivete suíço: splice",
+      "markdown": "`slice` só FATIA, sem tocar na lista. `splice` é o canivete suíço: com UMA chamada ele REMOVE itens do meio, INSERE itens novos e até TROCA um trecho por outro.\n\n**`splice(posicao, quantosRemover, ...itensNovos)`**\n\n- `posicao` — onde o corte começa.\n- `quantosRemover` — quantos itens saem a partir dali (pode ser 0: não sai ninguém).\n- `...itensNovos` — os itens que ENTRAM no lugar (pode ser nenhum).\n\nPense na analogia da frase com erro de digitação: você corta fora as palavras erradas e cola as certas no mesmo lugar — tudo em uma operação.\n\n**Atenção que vale ouro:** `splice` MEXE NA LISTA ORIGINAL (é o primo perigoso do `slice`). O que ele devolve é a lista dos itens REMOVIDOS — não a lista arrumada. Se você precisa da lista original inteira depois, faça uma cópia antes (a aula 4 mostrou o `slice()` de cópia)."
+    },
+    {
+      "id": "na-pratica",
+      "title": "Na prática: splice",
+      "markdown": "Os três usos principais, sempre na MESMA lista:\n\n```\nconst frutas = ['maçã', 'banana', 'uva', 'manga'];\n\n// 1. REMOVER: tira 2 a partir da posição 1 ('banana' e 'uva').\nconst removidas = frutas.splice(1, 2);\n// frutas: ['maçã', 'manga']  |  removidas: ['banana', 'uva']\n\n// 2. TROCAR: na posição 1, remove 1 e coloca 2 no lugar.\nfrutas.splice(1, 1, 'abacaxi', 'kiwi');\n// frutas: ['maçã', 'abacaxi', 'kiwi', 'manga']\n\n// 3. INSERIR SEM REMOVER: na posição 2, remove 0 e coloca 1.\nfrutas.splice(2, 0, 'pera');\n// frutas: ['maçã', 'abacaxi', 'pera', 'kiwi', 'manga']\n```\n\nRegra de bolso: o segundo número é a \"faca\" — quanto maior, mais itens saem. Zero significa \"não corte nada, só encaixe\" e vira o jeito de inserir no meio.",
+      "code": {
+        "language": "js",
+        "code": "const frutas = ['maçã', 'banana', 'uva', 'manga'];\n\nconst removidas = frutas.splice(1, 2); // tira 'banana' e 'uva'\nconsole.log(frutas);    // ['maçã', 'manga']\nconsole.log(removidas); // ['banana', 'uva'] — splice devolve o que saiu\n\nfrutas.splice(1, 1, 'abacaxi', 'kiwi'); // troca 'manga' por 2 novas\nconsole.log(frutas); // ['maçã', 'abacaxi', 'kiwi']",
+        "explanation": "splice devolve os itens REMOVIDOS, e a lista original fica com o resultado do corte. Se quantosRemover for 0, ninguém sai — só entram os novos (inserção no meio)."
+      }
+    },
+    {
+      "id": "exemplo-completo",
+      "title": "Exemplo completo: editar a lista de tarefas",
+      "markdown": "**Objetivo:** escrever `editarTarefas(lista, posicao, tarefaNova)`, que troca a tarefa da posição por outra — SEM destruir a lista original.\n\nPasso 1 — confira a entrada.\nGarantimos que `lista` é uma lista de verdade.\n\nPasso 2 — copie antes de cortar.\nComo `splice` mexe na lista, trabalhamos numa CÓPIA (`slice()` de cópia da aula 4) e deixamos a original intacta.\n\nPasso 3 — troque no lugar certo.\n`copia.splice(posicao, 1, tarefaNova)`: remove 1 na posição e coloca a nova.\n\nPasso 4 — devolva a cópia arrumada.",
+      "code": {
+        "language": "js",
+        "code": "// Passo 1: conferimos que veio uma lista de verdade.\nfunction editarTarefas(lista, posicao, tarefaNova) {\n  if (!Array.isArray(lista)) {\n    throw new Error('lista precisa ser um array');\n  }\n\n  // Passo 2: copia primeiro — splice mexe na lista que recebe.\n  const copia = lista.slice();\n\n  // Passo 3: remove 1 item na posição e coloca a tarefa nova no lugar.\n  copia.splice(posicao, 1, tarefaNova);\n\n  // Passo 4: devolve a cópia arrumada.\n  return copia;\n}\n\nconsole.log(editarTarefas(['lavar', 'cozinhar', 'estudar'], 1, 'dançar'));\n// imprime: ['lavar', 'dançar', 'estudar']",
+        "explanation": "A cópia protege a original: splice corta dentro da cópia. Na posição 1 saem 1 item ('cozinhar') e entra 'dançar' — a lista devolvida tem 3 itens, a original continua intacta."
+      }
+    }
+  ],
+  "sources": [
+    {
+      "title": "Array.prototype.splice() — MDN",
+      "url": "https://developer.mozilla.org/pt-BR/docs/Web/JavaScript/Reference/Global_Objects/Array/splice",
+      "description": "Remover, inserir e trocar itens no meio da lista."
+    },
+    {
+      "title": "Array — MDN (referência)",
+      "url": "https://developer.mozilla.org/pt-BR/docs/Web/JavaScript/Reference/Global_Objects/Array/",
+      "description": "A página de referência de todos os métodos de lista."
+    }
+  ],
+  "challenges": [
+    "substituir-trecho"
+  ]
+}

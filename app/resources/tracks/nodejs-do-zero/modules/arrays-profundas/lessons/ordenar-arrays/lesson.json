@@ -1,0 +1,55 @@
+{
+  "schemaVersion": 1,
+  "slug": "ordenar-arrays",
+  "title": "Ordenar arrays: sort e reverse",
+  "summary": "Colocar a lista em ordem com sort e virá-la com reverse — sem sujar a original.",
+  "difficulty": 3,
+  "concepts": [
+    "ordenar_arrays"
+  ],
+  "prerequisites": [
+    "testar-todos"
+  ],
+  "theory": [
+    {
+      "id": "a-arrumacao",
+      "title": "A arrumação: sort e reverse",
+      "markdown": "Você tem um baralho bagunçado e quer arrumar do menor para o maior — ou virar o baralho inteiro de ponta-cabeça. `sort` e `reverse` fazem isso, com uma armadilha cada.\n\n- `lista.sort(funcaoDeComparacao)` — coloca os itens em ordem. A função de comparação é OPCIONAL e decide quem vem antes de quem.\n- `lista.reverse()` — vira a ordem: o primeiro vira o último.\n\n**A armadilha nº 1 — `sort` MEXE NA LISTA ORIGINAL.**\nEle não devolve uma lista nova: ele REORGANIZA a própria lista. Se você precisa da original, copie antes (o `slice()` sem argumentos da aula 4).\n\n**A armadilha nº 2 — o `sort` sem comparação ordena como TEXTO.**\n`[10, 2, 1].sort()` devolve `[1, 10, 2]`, não `[1, 2, 10]`! Para números, a comparação é `(a, b) => a - b`: se o resultado for negativo, `a` vem antes de `b`; positivo, `b` vem antes; zero, ordem mantida.\n\nPense na analogia do árbitro: a função de comparação recebe dois itens e responde \"este vem primeiro\" (negativo), \"aquele vem primeiro\" (positivo) ou \"empate\" (zero)."
+    },
+    {
+      "id": "na-pratica",
+      "title": "Na prática: sort e reverse",
+      "markdown": "A comparação numérica é a regra de ouro:\n\n```\nconst numeros = [10, 2, 1, 20];\n\nnumeros.sort((a, b) => a - b); // [1, 2, 10, 20] — crescente\nnumeros.sort((a, b) => b - a); // [20, 10, 2, 1] — decrescente\n```\n\nO mesmo `sort`, com a comparação invertida, muda a direção. E o `reverse` não compara nada — só vira:\n\n```\nconst letras = ['a', 'b', 'c'];\nletras.reverse(); // ['c', 'b', 'a']\n```\n\n**Atenção que vale ouro (de novo):** `reverse` TAMBÉM mexe na lista original. A dupla que não suja nada é: `lista.slice().sort(...)` e `lista.slice().reverse()` — copia primeiro, arruma a cópia.",
+      "code": {
+        "language": "js",
+        "code": "const numeros = [10, 2, 1, 20];\n\nconst crescente = numeros.slice().sort((a, b) => a - b);\nconsole.log(crescente); // [1, 2, 10, 20] — comparação numérica!\n\nconsole.log([10, 2, 1].sort()); // [1, 10, 2] — sem comparação vira texto!\n\nconst invertida = numeros.slice().reverse();\nconsole.log(invertida); // [20, 1, 2, 10]\nconsole.log(numeros);   // [10, 2, 1, 20] — a original não mudou",
+        "explanation": "sort compara os itens de dois em dois com a setinha: (a,b) => a - b devolve negativo quando a é menor → a vem primeiro. Sem a setinha, os números viram texto e 10 \"vem antes\" de 2. slice() antes de tudo protege a original."
+      }
+    },
+    {
+      "id": "exemplo-completo",
+      "title": "Exemplo completo: ordenar sem sujar",
+      "markdown": "**Objetivo:** escrever `ordenarSemSujar(lista)`, que devolve a lista em ordem CRESCENTE sem alterar a original.\n\nPasso 1 — confira a entrada.\nGarantimos que `lista` é uma lista de verdade.\n\nPasso 2 — copie primeiro.\n`lista.slice()` faz uma cópia — porque o `sort` reorganiza a lista que recebe.\n\nPasso 3 — ordene a cópia com comparação numérica.\n`(a, b) => a - b` garante ordem de número (não de texto).\n\nPasso 4 — devolva a cópia ordenada.",
+      "code": {
+        "language": "js",
+        "code": "// Passo 1: conferimos que veio uma lista de verdade.\nfunction ordenarSemSujar(lista) {\n  if (!Array.isArray(lista)) {\n    throw new Error('lista precisa ser um array');\n  }\n\n  // Passo 2: copia antes — sort mexe na lista que recebe.\n  const copia = lista.slice();\n\n  // Passo 3: ordena a cópia com comparação de números.\n  return copia.sort((a, b) => a - b);\n}\n\nconst original = [10, 2, 1, 20];\nconsole.log(ordenarSemSujar(original)); // [1, 2, 10, 20]\nconsole.log(original);                  // [10, 2, 1, 20] — intacta",
+        "explanation": "A cópia recebe o sort; a original fica de fora. A setinha (a,b) => a - b faz o JavaScript comparar como números: 2 é menor que 10, 20 é o maior — ordem [1, 2, 10, 20]."
+      }
+    }
+  ],
+  "sources": [
+    {
+      "title": "Array.prototype.sort() — MDN",
+      "url": "https://developer.mozilla.org/pt-BR/docs/Web/JavaScript/Reference/Global_Objects/Array/sort",
+      "description": "Ordenar a lista (e a função de comparação)."
+    },
+    {
+      "title": "Array.prototype.reverse() — MDN",
+      "url": "https://developer.mozilla.org/pt-BR/docs/Web/JavaScript/Reference/Global_Objects/Array/reverse",
+      "description": "Inverter a ordem da lista."
+    }
+  ],
+  "challenges": [
+    "ordenar-numeros"
+  ]
+}

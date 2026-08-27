@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "slug": "procurar-posicao",
+  "title": "Procurar a posição de um item",
+  "concept": "procurar_posicao",
+  "difficulty": 2,
+  "language": "nodejs",
+  "statement": "# Procurar a posição de um item\n\nVocê vai escrever duas funções:\n\n- `procurarPosicao(lista, item)` — devolve a posição da PRIMEIRA vez que `item` aparece na lista, ou `-1` se não aparecer.\n- `procurarUltimaPosicao(lista, item)` — devolve a posição da ÚLTIMA vez que `item` aparece na lista, ou `-1` se não aparecer.\n\nExemplos:\n\n- `procurarPosicao(['a', 'b', 'c'], 'b')` deve devolver `1`\n- `procurarPosicao([1, 2, 1], 1)` deve devolver `0` — a primeira vez\n- `procurarUltimaPosicao([1, 2, 1], 1)` deve devolver `2` — a última vez\n- `procurarPosicao([1, 2], 3)` deve devolver `-1` — não existe\n- `procurarUltimaPosicao([], 1)` deve devolver `-1`\n\nSe `lista` NÃO for uma lista, a função deve parar com um erro.\n\nLeia o enunciado com calma e clique em Começar para iniciar o cronômetro.",
+  "starterCode": "export function procurarPosicao(lista, item) {\n  // TODO: implemente a função\n  throw new Error('não implementado');\n}\n\nexport function procurarUltimaPosicao(lista, item) {\n  // TODO: implemente a função\n  throw new Error('não implementado');\n}\n",
+  "testsCode": "import { test } from 'node:test';\nimport assert from 'node:assert/strict';\nimport { procurarPosicao, procurarUltimaPosicao } from './solution.mjs';\n\ntest('acha a posição de um item do meio', () => {\n  assert.equal(procurarPosicao(['a', 'b', 'c'], 'b'), 1);\n});\n\ntest('indexOf acha a primeira; lastIndexOf acha a última', () => {\n  assert.equal(procurarPosicao([1, 2, 1], 1), 0);\n  assert.equal(procurarUltimaPosicao([1, 2, 1], 1), 2);\n});\n\ntest('item ausente devolve -1', () => {\n  assert.equal(procurarPosicao([1, 2], 3), -1);\n  assert.equal(procurarUltimaPosicao([], 1), -1);\n});\n\ntest('recusa valor que não é lista', () => {\n  assert.throws(() => procurarPosicao('ab', 'a'));\n});\n",
+  "solutionCode": "export function procurarPosicao(lista, item) {\n  if (!Array.isArray(lista)) {\n    throw new Error('lista precisa ser um array');\n  }\n  return lista.indexOf(item);\n}\n\nexport function procurarUltimaPosicao(lista, item) {\n  if (!Array.isArray(lista)) {\n    throw new Error('lista precisa ser um array');\n  }\n  return lista.lastIndexOf(item);\n}\n",
+  "expectedTestCount": 4
+}
