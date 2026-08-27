@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "slug": "apresentar-usuario",
+  "title": "Apresentar o usuário",
+  "concept": "destructuring",
+  "difficulty": 2,
+  "language": "nodejs",
+  "statement": "# Apresentar o usuário\n\nO site precisa apresentar cada usuário com uma frase. Você vai implementar duas funções que usam destructuring.\n\n1. `formatarUsuario(usuario)` — recebe um objeto com `nome`, `idade` e, às vezes, `cidade`. Devolve uma frase:\n\n   - `formatarUsuario({ nome: 'Ana', idade: 15, cidade: 'São Paulo' })` devolve `'Ana tem 15 anos e mora em São Paulo.'`\n   - `formatarUsuario({ nome: 'Bruno', idade: 17 })` devolve `'Bruno tem 17 anos e mora em algum lugar.'` — quando a ficha NÃO tem cidade, use o valor padrão `'algum lugar'`.\n\n   Dica: tire as três propriedades na hora com destructuring: `const { nome, idade, cidade = 'algum lugar' } = usuario;`\n\n2. `iniciais(usuario)` — recebe um objeto com `nome` e, às vezes, `sobrenome`. Devolve a primeira letra de cada um, juntas:\n\n   - `iniciais({ nome: 'Ana', sobrenome: 'Souza' })` devolve `'AS'`\n   - `iniciais({ nome: 'Bruno' })` devolve `'B'` — sem sobrenome, só a inicial do nome.\n\n   Dica: sobrenome pode faltar — dê a ele o valor padrão `''` (texto vazio) no destructuring.\n\nLeia o enunciado com calma e clique em **Começar** para iniciar o cronômetro.\n",
+  "starterCode": "export function formatarUsuario(usuario) {\n  // TODO: implemente a função\n  throw new Error('não implementado');\n}\n\nexport function iniciais(usuario) {\n  // TODO: implemente a função\n  throw new Error('não implementado');\n}\n",
+  "testsCode": "import { test } from 'node:test';\nimport assert from 'node:assert/strict';\nimport { formatarUsuario, iniciais } from './solution.mjs';\n\ntest('formatarUsuario monta a frase com a ficha completa', () => {\n  assert.equal(formatarUsuario({ nome: 'Ana', idade: 15, cidade: 'São Paulo' }), 'Ana tem 15 anos e mora em São Paulo.');\n});\n\ntest('formatarUsuario usa o padrão quando a cidade não existe', () => {\n  assert.equal(formatarUsuario({ nome: 'Bruno', idade: 17 }), 'Bruno tem 17 anos e mora em algum lugar.');\n});\n\ntest('iniciais junta a primeira letra do nome e do sobrenome', () => {\n  assert.equal(iniciais({ nome: 'Ana', sobrenome: 'Souza' }), 'AS');\n});\n\ntest('iniciais sem sobrenome devolve só a inicial do nome', () => {\n  assert.equal(iniciais({ nome: 'Bruno' }), 'B');\n});\n",
+  "solutionCode": "export function formatarUsuario(usuario) {\n  const { nome, idade, cidade = 'algum lugar' } = usuario;\n  return `${nome} tem ${idade} anos e mora em ${cidade}.`;\n}\n\nexport function iniciais(usuario) {\n  const { nome, sobrenome = '' } = usuario;\n  return `${nome.slice(0, 1)}${sobrenome.slice(0, 1)}`;\n}\n",
+  "expectedTestCount": 4
+}

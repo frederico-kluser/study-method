@@ -1,0 +1,60 @@
+{
+  "schemaVersion": 1,
+  "slug": "destructuring-de-objetos",
+  "title": "Destructuring: extrair valores de uma vez",
+  "summary": "Tirar várias propriedades de um objeto numa linha só, com valores padrão e novos nomes de variável.",
+  "difficulty": 2,
+  "concepts": [
+    "destructuring"
+  ],
+  "prerequisites": [
+    "shorthand-e-chaves-dinamicas"
+  ],
+  "theory": [
+    {
+      "id": "abrir-a-ficha",
+      "title": "Abrir a ficha e tirar os campos de uma vez",
+      "markdown": "Toda hora a gente precisa tirar DUAS ou TRÊS propriedades de um objeto para usar como variáveis. Sem atalho, fica repetitivo:\n\n```\nconst nome = usuario.nome;\nconst idade = usuario.idade;\n```\n\nO **destructuring** (desestruturação) faz a mesma coisa em uma linha: as chaves na atribuição DECLARAM as variáveis e JÁ colocam nelas os valores das propriedades de mesmo nome:\n\n```\nconst { nome, idade } = usuario;\n```\n\nLeia assim: \"abra o objeto `usuario` e tire as propriedades `nome` e `idade`\".\n\n**Analogia:** o objeto é uma mala fechada; o destructuring é abrir a mala e tirar as peças que você vai usar agora — sem tirar uma a uma. Quem chega depois pode tirar as que quiser da mesma mala.\n\nA variável criada recebe o VALOR da propriedade de mesmo nome — nada é apagado do objeto original.\n"
+    },
+    {
+      "id": "padroes-e-nomes-novos",
+      "title": "Valores padrão e nomes novos",
+      "markdown": "**Valor padrão: e se a propriedade não existir?**\n\nQuando a ficha não tem o campo, a variável viria `undefined` — e muitas vezes queremos um valor de reserva. O destructuring aceita um padrão com o sinal de igual:\n\n```\nconst { cidade = 'Desconhecida' } = usuario;\n```\n\nSe `usuario.cidade` existir, `cidade` recebe o valor da ficha. Se NÃO existir, `cidade` vira `'Desconhecida'`. Funciona como \"o valor da ficha, ou este aqui se faltar\".\n\n**Renomear: nome de variável diferente do rótulo.**\n\nNem sempre queremos a variável com o mesmo nome da chave. Com dois pontos, o lado esquerdo é a chave do objeto e o direito é o nome da variável:\n\n```\nconst { nome: apelido } = usuario;\n// apelido recebe o valor de usuario.nome\n```\n\n**Usar as duas técnicas juntas** é comum — padrão e nome novo na mesma linha:\n\n```\nconst { nome: apelido = 'Anônimo' } = usuario;\n```\n\nE o destructuring funciona com QUANTAS propriedades você quiser, numa linha só — inclusive objetos aninhados, acessando nível por nível com os dois pontos:\n\n```\nconst { endereco: { cidade } } = usuario;  // cidade = usuario.endereco.cidade\n```\n",
+      "code": {
+        "language": "js",
+        "code": "const usuario = { nome: 'Ana', idade: 15, endereco: { cidade: 'São Paulo' } };\n\n// Tirar duas propriedades de uma vez.\nconst { nome, idade } = usuario;\nconsole.log(nome, idade);   // Ana 15\n\n// Valor padrão: a ficha não tem cidade — usa o padrão.\nconst { cidade = 'Desconhecida' } = usuario;\nconsole.log(cidade);        // Desconhecida\n\n// Renomear: a variável é apelido, o valor vem de usuario.nome.\nconst { nome: apelido } = usuario;\nconsole.log(apelido);       // Ana\n\n// Aninhado: descer com os dois pontos.\nconst { endereco: { cidade: cidadeDoAluno } } = usuario;\nconsole.log(cidadeDoAluno); // São Paulo\n",
+        "explanation": "As chaves declaram o que tirar: nome da propriedade no lado esquerdo, nome da variável no direito. O = depois de uma variável é o plano B; os dois pontos descem um nível."
+      }
+    },
+    {
+      "id": "exemplo-completo",
+      "title": "Exemplo completo: apresentar um usuário",
+      "markdown": "**Objetivo:** uma função que recebe a ficha de um usuário e devolve uma frase de apresentação — usando destructuring com padrão para não quebrar quando falta campo.\n\nPasso 1 — tire as propriedades de uma vez.\nUma linha, três campos: nome, idade, cidade.\n\nPasso 2 — o padrão do campo que pode faltar.\nNem toda ficha tem cidade — quem não tem vira `'algum lugar'`.\n\nPasso 3 — monte a frase.\nTemplate literals, com as variáveis já prontas.\n\nPasso 4 — teste os dois caminhos.\nFicha completa e ficha sem cidade — a mesma função, dois resultados.\n\nSub-objetivos: destructuring com várias propriedades, valor padrão, frase com as variáveis extraídas. O desafio desta aula pede exatamente isso.\n",
+      "code": {
+        "language": "js",
+        "code": "// Passo 1 e 2: destructuring na hora — com padrão para a cidade.\nfunction apresentar(usuario) {\n  const { nome, idade, cidade = 'algum lugar' } = usuario;\n\n  // Passo 3: a frase usa as variáveis já prontas.\n  return `${nome} tem ${idade} anos e mora em ${cidade}.`;\n}\n\n// Passo 4: os dois caminhos.\nconst ana = { nome: 'Ana', idade: 15, cidade: 'São Paulo' };\nconst bruno = { nome: 'Bruno', idade: 17 }; // sem cidade!\n\nconsole.log(apresentar(ana));   // Ana tem 15 anos e mora em São Paulo.\nconsole.log(apresentar(bruno)); // Bruno tem 17 anos e mora em algum lugar.\n",
+        "explanation": "Uma linha tirou tudo que a função precisava. O padrão \"algum lugar\" segura o caso da ficha incompleta — sem ele, Bruno moraria em undefined."
+      }
+    }
+  ],
+  "sources": [
+    {
+      "title": "MDN — Destructuring assignment",
+      "url": "https://developer.mozilla.org/pt-BR/docs/Web/JavaScript/Reference/Operators/Destructuring_assignment",
+      "description": "Referência oficial: destructuring de objetos e arrays."
+    },
+    {
+      "title": "MDN — Trabalhando com objetos",
+      "url": "https://developer.mozilla.org/pt-BR/docs/Web/JavaScript/Guide/Working_with_Objects",
+      "description": "Guia oficial do objeto: criação, acesso e métodos."
+    },
+    {
+      "title": "MDN — Object initializer",
+      "url": "https://developer.mozilla.org/pt-BR/docs/Web/JavaScript/Reference/Operators/Object_initializer",
+      "description": "A sintaxe de criação de objetos: shorthand e chaves computadas."
+    }
+  ],
+  "challenges": [
+    "apresentar-usuario"
+  ]
+}

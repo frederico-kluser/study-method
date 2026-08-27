@@ -1,0 +1,60 @@
+{
+  "schemaVersion": 1,
+  "slug": "shorthand-e-chaves-dinamicas",
+  "title": "Propriedades curtas e chaves dinâmicas",
+  "summary": "Escrever objetos mais rápido com shorthand e criar chaves com nomes que vêm de variáveis.",
+  "difficulty": 2,
+  "concepts": [
+    "shorthand_e_chaves_dinamicas"
+  ],
+  "prerequisites": [
+    "objetos-base"
+  ],
+  "theory": [
+    {
+      "id": "atalhos-da-ficha",
+      "title": "Os atalhos da ficha",
+      "markdown": "Quando o rótulo e a variável têm o mesmo nome, o JavaScript permite escrever só o nome — é o **shorthand** (forma curta). Em vez de repetir:\n\n```\nconst nome = 'Ana';\nconst idade = 15;\nconst aluno = { nome: nome, idade: idade };\n```\n\nescrevemos uma vez só:\n\n```\nconst aluno = { nome, idade };\n```\n\nA variável `nome` vira a chave, e o valor dela vira o valor. A ficha entende sozinha. É só uma forma mais rápida de escrever a MESMA coisa — o resultado é idêntico.\n\n**Analogia:** é como preencher um formulário onde o campo já traz o nome escrito: você só cola o valor. O JavaScript faz a colagem sozinho quando rótulo e variável têm o mesmo nome.\n\nO shorthand aparece em todo código JavaScript moderno — principalmente quando uma função recebe várias informações e monta um objeto com elas.\n"
+    },
+    {
+      "id": "chaves-dinamicas",
+      "title": "Chaves dinâmicas: o nome da chave também pode ser variável",
+      "markdown": "No objeto, a CHAVE é o nome do campo — e esse nome pode vir de uma variável. Para isso usamos os colchetes DENTRO das chaves do objeto:\n\n```\nconst campo = 'cidade';\nconst valor = 'São Paulo';\nconst ficha = { [campo]: valor };\n// ficha é { cidade: 'São Paulo' }\n```\n\nO JavaScript resolve o que está dentro dos colchetes — no caso, o texto `'cidade'` — e usa como nome da chave. A isso chamamos **chave dinâmica** (ou chave computada).\n\nSem os colchetes, o nome da variável viraria o rótulo, o que quase nunca é o que queremos:\n\n```\nconst ficha = { campo: valor };\n// ficha é { campo: 'São Paulo' } — a chave é literalmente 'campo'!\n```\n\n**Para que serve?** Quando o programa não sabe de antemão qual campo vai precisar. Exemplos: um formulário onde o usuário escolhe o campo, uma tela que monta a ficha conforme os dados que chegam, um relatório que agrupa por categoria — a categoria muda, o código continua o mesmo.\n\nO colchete com variável funciona tanto na HORA DE CRIAR (dentro de `{ }`) quanto depois, para ler ou alterar (`ficha[campo]`).\n",
+      "code": {
+        "language": "js",
+        "code": "// O nome da chave vem de uma variável — colchetes dentro das chaves.\nconst chave = 'cidade';\nconst perfil = { [chave]: 'São Paulo' };\nconsole.log(perfil);        // { cidade: 'São Paulo' }\n\n// Sem colchetes, o RÓTULO vira o nome da variável — não é o que queremos.\nconst errado = { chave: 'São Paulo' };\nconsole.log(errado);        // { chave: 'São Paulo' }\n\n// Chave dinâmica em ação: agrupar por categoria.\nfunction agrupar(lista, categoria) {\n  const grupos = {};\n  for (const item of lista) {\n    if (!grupos[item[categoria]]) grupos[item[categoria]] = [];\n    grupos[item[categoria]].push(item);\n  }\n  return grupos;\n}\n\nconsole.log(agrupar([{ setor: 'vendas', nome: 'Ana' }, { setor: 'ti', nome: 'Bruno' }], 'setor'));\n// { vendas: [...], ti: [...] } — o nome do grupo veio de item[categoria]\n",
+        "explanation": "Os colchetes dizem: \"resolva o que está aqui dentro e use como nome da chave\". Sem eles, o texto literal vira o rótulo. A função agrupar usa uma variável como chave a cada volta — é o padrão para montar relatórios."
+      }
+    },
+    {
+      "id": "exemplo-completo",
+      "title": "Exemplo completo: o perfil do usuário",
+      "markdown": "**Objetivo:** montar o perfil de um usuário do site — com shorthand para os campos básicos e uma chave dinâmica para o campo extra que muda.\n\nPasso 1 — os campos fixos, com shorthand.\n`nome`, `idade` e `cidade` chegam como variáveis; o objeto usa o atalho.\n\nPasso 2 — o campo extra, com chave dinâmica.\nA função recebe o NOME do campo extra (por exemplo `'telefone'`) e o valor. Monta um segundo objeto com `[campoExtra]: valor`.\n\nPasso 3 — juntar as duas fichas.\nPara juntar, usamos `...` (spread) — tema da próxima aula. Não precisa decorar agora: ele espalha as propriedades de um objeto dentro de outro.\n\nPasso 4 — devolver o perfil completo.\n\nSub-objetivos: criar objeto com shorthand, criar objeto com chave dinâmica, combinar os dois num perfil único. É exatamente o que o desafio desta aula pede.\n",
+      "code": {
+        "language": "js",
+        "code": "// Passo 1: campos fixos com shorthand — variável e rótulo têm o mesmo nome.\nfunction montarPerfil(nome, idade, cidade) {\n  return { nome, idade, cidade };\n}\n\n// Passo 2 e 3: chave dinâmica + spread para juntar as fichas.\nfunction comCampoExtra(perfil, campoExtra, valor) {\n  const extra = { [campoExtra]: valor };\n  return { ...perfil, ...extra };\n}\n\n// Passo 4: usar as duas juntas.\nconst perfil = montarPerfil('Ana', 15, 'São Paulo');\nconst completo = comCampoExtra(perfil, 'telefone', '(11) 9999-0000');\n\nconsole.log(completo); // { nome: 'Ana', idade: 15, cidade: 'São Paulo', telefone: '(11) 9999-0000' }\n",
+        "explanation": "Shorthand escreve os campos fixos; a chave dinâmica cria o campo extra com o nome que chegou na variável. O spread junta tudo num objeto só — veremos ele por dentro na aula de spread e rest."
+      }
+    }
+  ],
+  "sources": [
+    {
+      "title": "MDN — Object initializer",
+      "url": "https://developer.mozilla.org/pt-BR/docs/Web/JavaScript/Reference/Operators/Object_initializer",
+      "description": "A sintaxe de criação de objetos: shorthand e chaves computadas."
+    },
+    {
+      "title": "MDN — Trabalhando com objetos",
+      "url": "https://developer.mozilla.org/pt-BR/docs/Web/JavaScript/Guide/Working_with_Objects",
+      "description": "Guia oficial do objeto: criação, acesso e métodos."
+    },
+    {
+      "title": "MDN — Noções básicas de objetos",
+      "url": "https://developer.mozilla.org/pt-BR/docs/Learn/JavaScript/Objects/Basics",
+      "description": "Guia oficial: criar objetos, acessar propriedades e aninhar."
+    }
+  ],
+  "challenges": [
+    "montar-perfil"
+  ]
+}

@@ -1,0 +1,65 @@
+{
+  "schemaVersion": 1,
+  "slug": "getters-e-setters",
+  "title": "Getters e setters: propriedades que calculam",
+  "summary": "Criar propriedades que calculam o valor na hora (getters) e que validam antes de guardar (setters).",
+  "difficulty": 3,
+  "concepts": [
+    "getters_setters"
+  ],
+  "prerequisites": [
+    "object-keys-values-entries"
+  ],
+  "theory": [
+    {
+      "id": "propriedade-que-calcula",
+      "title": "A propriedade que calcula na hora",
+      "markdown": "Nem toda propriedade guarda um valor guardado. Algumas CALCULAM o valor na hora em que são lidas — são os **getters**.\n\nDentro do objeto, a palavra `get` na frente de uma propriedade transforma ela numa função que é chamada SEM parênteses, toda vez que a propriedade é lida:\n\n```\nconst quadrado = {\n  lado: 4,\n  get area() {\n    return this.lado * this.lado;\n  }\n};\n\nconsole.log(quadrado.area);   // 16 — sem parênteses!\n```\n\nQuando a gente lê `quadrado.area`, o JavaScript RODA a função `get area()` e devolve o resultado. Se o `lado` mudar, a área calculada muda junto — nenhum valor guardado para desatualizar.\n\n**Analogia:** um getter é como o mostrador de um medidor — você olha e ele mostra o valor AGORA. Não é uma anotação fixa; é uma leitura calculada na hora. O mostrador não \"desatualiza\".\n\n**Para que serve?** Sempre que o valor deriva de outros: área a partir do lado, preço com imposto a partir do preço base, nome completo a partir de nome e sobrenome. Quem lê a propriedade não precisa saber que ela é calculada.\n",
+      "code": {
+        "language": "js",
+        "code": "const pessoa = {\n  nome: 'Ana',\n  sobrenome: 'Souza',\n  get nomeCompleto() {\n    return `${this.nome} ${this.sobrenome}`;\n  }\n};\n\nconsole.log(pessoa.nomeCompleto); // Ana Souza — calculado na hora\n\npessoa.sobrenome = 'Silva';\nconsole.log(pessoa.nomeCompleto); // Ana Silva — acompanha a mudança\n",
+        "explanation": "nomeCompleto não existe como valor guardado: a cada leitura a função roda com os valores atuais. Mudou o sobrenome, mudou o resultado — sem nada para sincronizar."
+      }
+    },
+    {
+      "id": "validar-antes-de-guardar",
+      "title": "Set: validar antes de guardar",
+      "markdown": "O **setter** é a via de mão dupla: em vez de guardar direto, ele RODA uma função quando a propriedade recebe um valor — perfeito para validar antes de aceitar.\n\n```\nconst conta = {\n  _saldo: 0,\n  get saldo() {\n    return this._saldo;\n  },\n  set saldo(valor) {\n    if (valor < 0) {\n      throw new Error('saldo não pode ser negativo');\n    }\n    this._saldo = valor;\n  }\n};\n\nconta.saldo = 50;   // roda o set — valida e guarda\nconsole.log(conta.saldo); // 50 — roda o get\n\nconta.saldo = -5;   // erro! o set rejeitou\n```\n\nDetalhe importante: a PROPRIEDADE calculada chama-se `saldo`; o valor GUARDADO vive em `_saldo` (com `_` na frente, indicando \"guarde aqui dentro\"). Se o set guardasse em `this.saldo`, ele chamaria ele mesmo de novo, para sempre — o setter chamando o setter, numa repetição infinita.\n\n**Analogia:** o setter é o porteiro do prédio: ninguém entra sem conferir o crachá. O `_saldo` é o apartamento onde o morador de verdade vive.\n\nO conjunto `get` + `set` da MESMA propriedade é o padrão completo: ler passa pelo get (calculado ou não), escrever passa pelo set (validado ou não). Quem usa a propriedade não vê nenhum dos dois — a sintaxe é a mesma de uma propriedade normal.\n",
+      "code": {
+        "language": "js",
+        "code": "function criarConta() {\n  return {\n    _saldo: 0,\n    get saldo() {\n      return this._saldo;\n    },\n    set saldo(valor) {\n      if (valor < 0) {\n        throw new Error('saldo não pode ser negativo');\n      }\n      this._saldo = valor;\n    }\n  };\n}\n\nconst conta = criarConta();\nconta.saldo = 50;\nconsole.log(conta.saldo); // 50\n\ntry {\n  conta.saldo = -5; // o set rejeita\n} catch (erro) {\n  console.log('rejeitado:', erro.message); // rejeitado: saldo não pode ser negativo\n}\nconsole.log(conta.saldo); // 50 — o valor antigo continuou\n",
+        "explanation": "O set valida e só então guarda em _saldo; o get devolve _saldo. Valor inválido é rejeitado na hora, e o saldo antigo permanece — o porteiro barrou a entrada."
+      }
+    },
+    {
+      "id": "exemplo-completo",
+      "title": "Exemplo completo: o termômetro em duas escalas",
+      "markdown": "**Objetivo:** um termômetro que guarda a temperatura em celsius e mostra em fahrenheit — o getter converte na hora, o setter aceita fahrenheit e converte de volta.\n\nPasso 1 — guarde UMA medida só.\n`_celsius` guarda o valor de verdade; `celsius` é o getter que devolve `_celsius`.\n\nPasso 2 — o getter de fahrenheit.\nLer `fahrenheit` CALCULA: celsius × 9/5 + 32.\n\nPasso 3 — o setter de fahrenheit.\nEscrever em fahrenheit converte para celsius e guarda.\n\nPasso 4 — a mágica: só um valor guardado, duas escalas sempre sincronizadas.\n\nSub-objetivos: getter que calcula, setter que converte, e a prova do round-trip (escrever 212°F e ler 100°C). O desafio desta aula pede exatamente este termômetro.\n",
+      "code": {
+        "language": "js",
+        "code": "// Passo 1: a medida guardada é só o celsius.\nfunction criarTermometro(celsiusInicial) {\n  return {\n    _celsius: celsiusInicial,\n    get celsius() {\n      return this._celsius;\n    },\n    set celsius(valor) {\n      this._celsius = valor;\n    },\n    // Passo 2: fahrenheit é SEMPRE calculado — nunca fica desatualizado.\n    get fahrenheit() {\n      return this._celsius * 9 / 5 + 32;\n    },\n    // Passo 3: escrever em fahrenheit converte e guarda em celsius.\n    set fahrenheit(valor) {\n      this._celsius = (valor - 32) * 5 / 9;\n    }\n  };\n}\n\n// Passo 4: round-trip — escreve 212°F, lê 100°C.\nconst termometro = criarTermometro(0);\nconsole.log(termometro.fahrenheit); // 32 — 0°C é 32°F\n\ntermometro.fahrenheit = 212;\nconsole.log(termometro.celsius);    // 100 — de volta ao celsius\n\ntermometro.celsius = 50;\nconsole.log(termometro.fahrenheit); // 122 — 50°C é 122°F\n",
+        "explanation": "Uma medida só (celsius) e duas escalas sempre certas: o getter calcula na leitura, o setter converte na escrita. É a aplicação clássica de get/set."
+      }
+    }
+  ],
+  "sources": [
+    {
+      "title": "MDN — get",
+      "url": "https://developer.mozilla.org/pt-BR/docs/Web/JavaScript/Reference/Functions/get",
+      "description": "Referência do getter (propriedade que calcula na leitura)."
+    },
+    {
+      "title": "MDN — set",
+      "url": "https://developer.mozilla.org/pt-BR/docs/Web/JavaScript/Reference/Functions/set",
+      "description": "Referência do setter (função na escrita)."
+    },
+    {
+      "title": "MDN — Trabalhando com objetos",
+      "url": "https://developer.mozilla.org/pt-BR/docs/Web/JavaScript/Guide/Working_with_Objects",
+      "description": "Guia oficial do objeto: criação, acesso e métodos."
+    }
+  ],
+  "challenges": [
+    "temperatura-inteligente"
+  ]
+}

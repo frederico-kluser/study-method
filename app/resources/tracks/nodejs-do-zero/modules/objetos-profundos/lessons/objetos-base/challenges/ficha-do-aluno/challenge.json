@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "slug": "ficha-do-aluno",
+  "title": "A ficha do aluno",
+  "concept": "objetos_base",
+  "difficulty": 1,
+  "language": "nodejs",
+  "statement": "# A ficha do aluno\n\nVocê vai implementar duas funções que trabalham com a ficha de um aluno — um objeto com nome, idade e cidade.\n\n1. `montarFicha(nome, idade, cidade)` — recebe três informações e devolve um objeto com essas três propriedades:\n\n   - `montarFicha('Ana', 15, 'São Paulo')` devolve `{ nome: 'Ana', idade: 15, cidade: 'São Paulo' }`\n\n2. `atualizarFicha(ficha, campo, valor)` — recebe a ficha, o NOME de um campo e um valor novo. Deve guardar o valor no campo indicado e devolver a ficha:\n\n   - `atualizarFicha(ficha, 'idade', 16)` troca a idade para 16;\n   - `atualizarFicha(ficha, 'telefone', '(11) 9999-0000')` cria o campo telefone, que não existia.\n\n   Dica: o campo chega como TEXTO numa variável — para acessar a propriedade com o nome guardado numa variável, use os colchetes: `ficha[campo] = valor`.\n\nLeia o enunciado com calma e clique em **Começar** para iniciar o cronômetro.\n",
+  "starterCode": "export function montarFicha(nome, idade, cidade) {\n  // TODO: implemente a função\n  throw new Error('não implementado');\n}\n\nexport function atualizarFicha(ficha, campo, valor) {\n  // TODO: implemente a função\n  throw new Error('não implementado');\n}\n",
+  "testsCode": "import { test } from 'node:test';\nimport assert from 'node:assert/strict';\nimport { montarFicha, atualizarFicha } from './solution.mjs';\n\ntest('montarFicha cria o objeto com as três propriedades', () => {\n  assert.deepEqual(montarFicha('Ana', 15, 'São Paulo'), { nome: 'Ana', idade: 15, cidade: 'São Paulo' });\n});\n\ntest('montarFicha com outra pessoa troca os valores', () => {\n  assert.deepEqual(montarFicha('Bruno', 17, 'Campinas'), { nome: 'Bruno', idade: 17, cidade: 'Campinas' });\n});\n\ntest('atualizarFicha troca um campo que já existe', () => {\n  const ficha = montarFicha('Ana', 15, 'São Paulo');\n  atualizarFicha(ficha, 'idade', 16);\n  assert.equal(ficha.idade, 16);\n});\n\ntest('atualizarFicha cria um campo que não existia', () => {\n  const ficha = montarFicha('Ana', 15, 'São Paulo');\n  atualizarFicha(ficha, 'telefone', '(11) 9999-0000');\n  assert.equal(ficha.telefone, '(11) 9999-0000');\n  assert.equal(ficha.nome, 'Ana');\n});\n",
+  "solutionCode": "export function montarFicha(nome, idade, cidade) {\n  return { nome: nome, idade: idade, cidade: cidade };\n}\n\nexport function atualizarFicha(ficha, campo, valor) {\n  ficha[campo] = valor;\n  return ficha;\n}\n",
+  "expectedTestCount": 4
+}

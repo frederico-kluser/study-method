@@ -1,0 +1,60 @@
+{
+  "schemaVersion": 1,
+  "slug": "objetos-base",
+  "title": "Objetos: criar, acessar e alterar",
+  "summary": "Criar objetos, ler e trocar propriedades com ponto e colchetes, e aninhar objetos dentro de objetos.",
+  "difficulty": 1,
+  "concepts": [
+    "objetos_base"
+  ],
+  "prerequisites": [
+    "arrays-e-objetos"
+  ],
+  "theory": [
+    {
+      "id": "ficha-de-cadastro",
+      "title": "O objeto é uma ficha de cadastro",
+      "markdown": "Um **objeto** é uma ficha de cadastro: um monte de informações sobre UMA coisa, cada uma com seu rótulo.\n\nPense na ficha da biblioteca: título, autor, ano — cada informação tem um nome que identifica o que ela é. No JavaScript, escrevemos:\n\n```\nconst aluno = {\n  nome: 'Ana',\n  idade: 15\n};\n```\n\n- As chaves `{ }` criam o objeto — a ficha.\n- `nome` e `idade` são os RÓTULOS (chaves da propriedade).\n- `'Ana'` e `15` são os VALORES.\n\nDepois de criada, a ficha não é um documento parado: a gente lê um campo, troca um valor, adiciona um campo novo. É disso que esta aula trata: criar, acessar e alterar.\n\nO objeto é a ferramenta mais usada para organizar informações no JavaScript — quase tudo que um programa guarda sobre uma coisa (um usuário, um pedido, um produto) vira um objeto.\n"
+    },
+    {
+      "id": "ponto-e-colchetes",
+      "title": "Ponto e colchetes: as duas formas de acessar",
+      "markdown": "Para LER uma propriedade, usamos o ponto:\n\n```\naluno.nome   // 'Ana'\naluno.idade  // 15\n```\n\nPara TROCAR o valor de uma propriedade, usamos o ponto também — atribuímos como numa variável:\n\n```\naluno.idade = 16;\n```\n\nPara ADICIONAR uma propriedade que não existe, é a mesma coisa: se o rótulo não existe, ele é criado na hora.\n\n```\naluno.cidade = 'São Paulo';   // cria a propriedade cidade\n```\n\n**Colchetes: quando o nome do rótulo não é um nome de variável válido.** Chaves com espaço ou caractere especial (ex.: `'nome completo'`) não podem ser usadas com o ponto — precisam dos colchetes com o texto entre aspas:\n\n```\naluno['nome completo'] = 'Ana Souza';\n```\n\n**Colchetes com variável.** O colchete aceita QUALQUER texto — inclusive o valor de uma variável. É assim que a gente acessa uma propriedade sem saber o nome dela de antemão:\n\n```\nconst campo = 'idade';\naluno[campo];  // 16 — o mesmo que aluno['idade']\n```\n\nSe o rótulo não existe, ler devolve `undefined` — a ficha responde \"não tenho esse campo\".\n\n**Aninhamento.** O valor de uma propriedade pode ser outro objeto (ou uma lista). Formamos assim objetos dentro de objetos — a ficha do aluno ganha uma ficha de endereço dentro dela:\n\n```\nconst aluno = {\n  nome: 'Ana',\n  endereco: {\n    cidade: 'São Paulo',\n    cep: '01000-000'\n  }\n};\n```\n\nPara ler algo lá dentro, encadeamos os pontos: `aluno.endereco.cidade`. Primeiro o aluno, depois o endereço, depois a cidade — cada ponto desce um nível.\n",
+      "code": {
+        "language": "js",
+        "code": "const aluno = {\n  nome: 'Ana',\n  idade: 15,\n  endereco: { cidade: 'São Paulo', cep: '01000-000' }\n};\n\nconsole.log(aluno.nome);              // Ana — ponto lê\naluno.idade = 16;                     // ponto troca\naluno.cidade = 'Campinas';            // cria uma propriedade nova\naluno['nome completo'] = 'Ana Souza'; // colchetes para chave com espaço\n\nconst campo = 'idade';\nconsole.log(aluno[campo]);            // 16 — colchete com variável\nconsole.log(aluno.telefone);          // undefined — não existe\n\nconsole.log(aluno.endereco.cidade);   // Campinas — pontos encadeados\n",
+        "explanation": "O ponto é o atalho; os colchetes são o caminho geral — aceitam qualquer texto, inclusive o de uma variável. Descer níveis aninhados é só encadear pontos."
+      }
+    },
+    {
+      "id": "exemplo-completo",
+      "title": "Exemplo completo: a ficha do aluno com notas",
+      "markdown": "**Objetivo:** montar a ficha de um aluno com endereço aninhado e um boletim com notas.\n\nPasso 1 — crie a ficha.\nUm objeto com nome, idade e cidade.\n\nPasso 2 — aninhe o boletim.\nDentro da ficha, a propriedade `notas` guarda uma LISTA de objetos — cada um com matéria e valor. Lista dentro de objeto é o padrão mais comum do dia a dia.\n\nPasso 3 — leia e altere.\nMostre a nota de matemática (dois níveis de acesso) e troque a nota de português.\n\nPasso 4 — adicione um campo novo.\nA ficha nasceu sem telefone; depois de criada, a gente adiciona.\n\nSub-objetivos: criar um objeto, aninhar listas e objetos, acessar com pontos encadeados, trocar e adicionar propriedades. Tudo que o desafio desta aula pede.\n",
+      "code": {
+        "language": "js",
+        "code": "// Passo 1: criamos a ficha do aluno.\nconst aluno = {\n  nome: 'Ana',\n  idade: 15,\n  cidade: 'São Paulo'\n};\n\n// Passo 2: aninhamos uma lista de objetos — o boletim.\naluno.notas = [\n  { materia: 'matemática', valor: 8 },\n  { materia: 'português', valor: 7 }\n];\n\n// Passo 3: acessamos com pontos encadeados e alteramos um valor.\nconsole.log(aluno.notas[0].valor);   // 8 — primeiro item da lista, campo valor\naluno.notas[1].valor = 9;            // troca a nota de português para 9\n\n// Passo 4: adicionamos um campo que não existia.\naluno.telefone = '(11) 99999-0000';\n\n// Conferência: a ficha completa.\nconsole.log(aluno);\n",
+        "explanation": "O ponto resolve cada nível: aluno.notas[0].valor lê \"pega o aluno, depois a lista de notas, depois o primeiro item, depois o campo valor\". Alterar e adicionar usam a mesma atribuição com ponto."
+      }
+    }
+  ],
+  "sources": [
+    {
+      "title": "MDN — Noções básicas de objetos",
+      "url": "https://developer.mozilla.org/pt-BR/docs/Learn/JavaScript/Objects/Basics",
+      "description": "Guia oficial: criar objetos, acessar propriedades e aninhar."
+    },
+    {
+      "title": "MDN — Trabalhando com objetos",
+      "url": "https://developer.mozilla.org/pt-BR/docs/Web/JavaScript/Guide/Working_with_Objects",
+      "description": "Guia oficial do objeto: criação, acesso e métodos."
+    },
+    {
+      "title": "MDN — Object",
+      "url": "https://developer.mozilla.org/pt-BR/docs/Web/JavaScript/Reference/Global_Objects/Object",
+      "description": "Referência do objeto e seus métodos nativos."
+    }
+  ],
+  "challenges": [
+    "ficha-do-aluno"
+  ]
+}

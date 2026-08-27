@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "slug": "contador-de-pontos",
+  "title": "O contador de pontos",
+  "concept": "this_contexto",
+  "difficulty": 3,
+  "language": "nodejs",
+  "statement": "# O contador de pontos\n\nVocê vai criar um contador de pontos usando `this`. A função `criarContador(inicial)` devolve um objeto com:\n\n- uma propriedade `pontos` que começa com o valor `inicial`;\n- o método `somar(valor)` — aumenta `this.pontos` pelo valor recebido;\n- o método `zerar()` — volta `this.pontos` para 0;\n- o método `total()` — devolve `this.pontos`.\n\nExemplos de uso:\n\n- `const contador = criarContador(10);` → `contador.total()` devolve `10`;\n- depois de `contador.somar(5)` e `contador.somar(3)`, `contador.total()` devolve `18`;\n- `contador.zerar()` e `contador.total()` devolve `0`.\n\n**Atenção:** os métodos têm que usar `this.pontos` — assim, quando você criar DOIS contadores com a mesma função, cada um mexe na própria pontuação.\n\nLeia o enunciado com calma e clique em **Começar** para iniciar o cronômetro.\n",
+  "starterCode": "export function criarContador(inicial) {\n  // TODO: implemente a função\n  throw new Error('não implementado');\n}\n",
+  "testsCode": "import { test } from 'node:test';\nimport assert from 'node:assert/strict';\nimport { criarContador } from './solution.mjs';\n\ntest('contador começa com o valor inicial', () => {\n  const contador = criarContador(10);\n  assert.equal(contador.total(), 10);\n});\n\ntest('somar acumula os pontos', () => {\n  const contador = criarContador(0);\n  contador.somar(5);\n  contador.somar(3);\n  assert.equal(contador.total(), 8);\n});\n\ntest('cada contador é dono dos próprios pontos', () => {\n  const primeiro = criarContador(10);\n  const segundo = criarContador(0);\n  primeiro.somar(5);\n  segundo.somar(2);\n  assert.equal(primeiro.total(), 15);\n  assert.equal(segundo.total(), 2);\n});\n\ntest('zerar volta os pontos para zero', () => {\n  const contador = criarContador(7);\n  contador.somar(10);\n  contador.zerar();\n  assert.equal(contador.total(), 0);\n});\n",
+  "solutionCode": "export function criarContador(inicial) {\n  return {\n    pontos: inicial,\n    somar(valor) {\n      this.pontos = this.pontos + valor;\n    },\n    zerar() {\n      this.pontos = 0;\n    },\n    total() {\n      return this.pontos;\n    }\n  };\n}\n",
+  "expectedTestCount": 4
+}
