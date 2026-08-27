@@ -1,0 +1,51 @@
+{
+  "schemaVersion": 1,
+  "slug": "headers-e-cors",
+  "title": "Headers e CORS",
+  "summary": "Headers comuns de resposta (Content-Type, Authorization) e o que é CORS na prática.",
+  "difficulty": 4,
+  "concepts": [
+    "headers_http",
+    "cors"
+  ],
+  "prerequisites": [
+    "tokens-e-sessoes"
+  ],
+  "theory": [
+    {
+      "id": "headers-comuns",
+      "title": "Headers: as etiquetas do envelope",
+      "markdown": "Toda requisição HTTP tem duas partes: a mensagem em si (o conteúdo) e um conjunto de etiquetas sobre a mensagem — os **headers**.\n\nPense em uma carta: o conteúdo é o que está dentro do envelope; os headers são as etiquetas de fora — remetente, destinatário, tipo de conteúdo (\"fotos\", \"documentos\"), data. Quem recebe a carta lê as etiquetas ANTES de abrir o envelope, para saber como tratar o que vem dentro.\n\nNo HTTP, os headers funcionam igual. Alguns aparecem em quase todo servidor:\n\n- `Content-Type`: diz o formato do conteúdo — `application/json` para JSON, `text/html` para página, `text/plain` para texto simples.\n- `Authorization`: transporta o token de autenticação (você viu na aula anterior).\n- `Access-Control-Allow-Origin`: diz qual site tem permissão de ler a resposta.\n\nNa prática, o servidor monta um objeto com os headers e entrega junto com a resposta. É isso que vamos fazer agora."
+    },
+    {
+      "id": "cors",
+      "title": "CORS: a portaria do navegador",
+      "markdown": "CORS (Cross-Origin Resource Sharing) é uma regra de segurança dos navegadores. Imagine um prédio com portaria: o navegador é o porteiro. Quando o site `https://meusite.com` tenta ler dados de `https://api.com`, o navegador pergunta: \"essa visita está na lista?\". A resposta está no header `Access-Control-Allow-Origin` que a API envia.\n\n- Se a API responder `Access-Control-Allow-Origin: https://meusite.com`, o navegador libera.\n- Se responder `*`, libera para qualquer site (pode ser perigoso quando há autenticação).\n- Se não responder o header, o navegador BLOQUEIA a leitura da resposta.\n\nCuidado: o bloqueio acontece no navegador do cliente, não no servidor. O servidor envia a resposta normalmente; quem decide liberar ou não é o porteiro (o navegador). Por isso, configurar CORS não protege o servidor de outros servidores — ele só controla o que os navegadores exibem.\n\nTambém existe o `Access-Control-Allow-Methods`, que lista os métodos HTTP permitidos, e o `Content-Type`, que vimos antes. Um servidor de API costuma enviar os três juntos:\n\n```js\nfunction montarHeaders(config) {\n  return {\n    'Content-Type': config.contentType || 'application/json',\n    'Access-Control-Allow-Origin': config.origemPermitida || '*',\n    'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',\n  };\n}\n```\n\nQuando a config não diz o valor, usamos um padrão sensato: JSON por padrão, origem liberada para qualquer um por padrão. É essa função que o desafio pede."
+    },
+    {
+      "id": "exemplo-completo",
+      "title": "Exemplo completo: montando headers de resposta",
+      "markdown": "Exemplo resolvido, com o porquê de cada decisão.\n\n```js\n// Config de exemplo vinda de fora (pode ser de um arquivo de config).\n// - contentType: o formato do conteúdo enviado.\n// - origemPermitida: qual site pode ler a resposta (CORS).\nfunction headersECors(config) {\n  const headers = {};\n\n  // 1. Content-Type: usa o pedido na config, ou JSON como padrão.\n  //    JSON é o formato de uma API, então é a escolha segura.\n  headers['Content-Type'] = (config && config.contentType) || 'application/json';\n\n  // 2. CORS: se a config diz quem pode acessar, respeitamos. Sem\n  //    informação, '*' libera para qualquer origem (ok para testes).\n  headers['Access-Control-Allow-Origin'] = (config && config.origemPermitida) || '*';\n\n  // 3. Métodos permitidos: os verbos de uma API REST + OPTIONS\n  //    (o navegador usa OPTIONS para \"perguntar\" antes, no preflight).\n  headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS';\n\n  return headers;\n}\n\nconst h = headersECors({ contentType: 'text/plain', origemPermitida: 'https://meusite.com' });\nconsole.log(h['Content-Type']);                // text/plain\nconsole.log(h['Access-Control-Allow-Origin']); // https://meusite.com\n```\n\nNo Express, esses headers seriam enviados assim: `res.set(headersECors(config)).json(dados)`. A função do desafio é a parte de montar o objeto — o resto fica para o servidor."
+    }
+  ],
+  "sources": [
+    {
+      "title": "MDN: CORS",
+      "url": "https://developer.mozilla.org/pt-BR/docs/Web/HTTP/CORS",
+      "description": "Documentação completa de CORS: o que é e como os headers controlam o acesso."
+    },
+    {
+      "title": "MDN: header Content-Type",
+      "url": "https://developer.mozilla.org/pt-BR/docs/Web/HTTP/Headers/Content-Type",
+      "description": "Documentação do header que informa o formato do conteúdo enviado."
+    },
+    {
+      "title": "MDN: cabeçalhos HTTP",
+      "url": "https://developer.mozilla.org/pt-BR/docs/Web/HTTP/Headers",
+      "description": "Lista de referência dos headers HTTP mais usados."
+    }
+  ],
+  "challenges": [
+    "headers-e-cors"
+  ]
+}

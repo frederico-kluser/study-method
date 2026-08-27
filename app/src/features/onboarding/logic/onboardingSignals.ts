@@ -97,7 +97,7 @@ export function buildRuntimeContext(activeView: string): {
 
   return {
     activeView,
-    lessonSubjectNonEmpty: readInputValue('lesson-subject').trim().length > 0,
+    lessonSubjectNonEmpty: readInputValue('lesson-chat-input').trim().length > 0,
     lessonRunningOrDone:
       lessonStatus === 'running' || lessonStatus === 'done',
     studioCodeNonEmpty: readEditorText('challenge-editor').length > 0,

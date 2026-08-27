@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "slug": "descrever-ambiente-node",
+  "title": "Descrever o ambiente",
+  "concept": "nodejs",
+  "difficulty": 2,
+  "language": "nodejs",
+  "statement": "# Descrever o ambiente\n\nVocê tem uma função chamada `descreverAmbiente` que recebe a versão do Node.js — uma string como `\"v24.19.0\"`.\n\nEla deve devolver uma frase descrevendo onde o código está rodando:\n\n- se a versão for informada, a frase é: `Node.js <versão> — JavaScript fora do navegador, sem acesso ao DOM, com acesso a arquivos e rede.`\n- se a versão vier vazia ou ausente, a frase é: `Node.js — JavaScript fora do navegador, sem acesso ao DOM, com acesso a arquivos e rede.`\n\nEsta função simula o que você veria ao rodar `node --version` e comparar com o navegador.\n\nLeia o enunciado com calma e clique em **Começar** para iniciar o cronômetro.\n",
+  "starterCode": "export function descreverAmbiente(versao) {\n  // TODO: implemente a função\n  throw new Error('não implementado');\n}\n",
+  "testsCode": "import { test } from 'node:test';\nimport assert from 'node:assert/strict';\nimport { descreverAmbiente } from './solution.mjs';\n\ntest('informa a versão recebida', () => {\n  assert.equal(\n    descreverAmbiente('v24.19.0'),\n    'Node.js v24.19.0 — JavaScript fora do navegador, sem acesso ao DOM, com acesso a arquivos e rede.'\n  );\n});\n\ntest('versão vazia cai no texto sem versão', () => {\n  assert.equal(\n    descreverAmbiente(''),\n    'Node.js — JavaScript fora do navegador, sem acesso ao DOM, com acesso a arquivos e rede.'\n  );\n});\n\ntest('versão ausente não quebra o programa', () => {\n  assert.equal(\n    descreverAmbiente(undefined),\n    'Node.js — JavaScript fora do navegador, sem acesso ao DOM, com acesso a arquivos e rede.'\n  );\n});\n",
+  "solutionCode": "export function descreverAmbiente(versao) {\n  if (versao === undefined || versao === '') {\n    return 'Node.js — JavaScript fora do navegador, sem acesso ao DOM, com acesso a arquivos e rede.';\n  }\n  return `Node.js ${versao} — JavaScript fora do navegador, sem acesso ao DOM, com acesso a arquivos e rede.`;\n}\n",
+  "expectedTestCount": 3,
+  "minFirstStarMs": 60000
+}

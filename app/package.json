@@ -16,6 +16,7 @@
     "test": "bash tools/t.sh tests",
     "test:e2e": "playwright test",
     "test:e2e:real": "bash tools/run-e2e-real.sh",
+    "track": "tsx tools/track-cli.ts",
     "clean": "rm -rf out dist"
   },
   "dependencies": {

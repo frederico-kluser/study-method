@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "slug": "somar-valores",
+  "title": "Somar valores de uma lista",
+  "concept": "modulos",
+  "difficulty": 2,
+  "language": "nodejs",
+  "statement": "# Somar valores de uma lista\n\nVocê tem uma função chamada `somarValores` que recebe uma lista de números e devolve a soma de todos eles.\n\nAssim como um módulo exporta uma função para outros arquivos usarem, a sua função é exportada e usada pelo arquivo de testes.\n\nExemplos:\n\n- `somarValores([10, 20, 30])` devolve `60`\n- `somarValores([])` devolve `0`\n- `somarValores([-2, 3])` devolve `1`\n\nDica: use o `for...of` do módulo 1 para percorrer a lista.\n\nLeia o enunciado com calma e clique em **Começar** para iniciar o cronômetro.\n",
+  "starterCode": "export function somarValores(lista) {\n  // TODO: implemente a função\n  throw new Error('não implementado');\n}\n",
+  "testsCode": "import { test } from 'node:test';\nimport assert from 'node:assert/strict';\nimport { somarValores } from './solution.mjs';\n\ntest('soma os valores da lista', () => {\n  assert.equal(somarValores([10, 20, 30]), 60);\n});\n\ntest('lista vazia soma zero', () => {\n  assert.equal(somarValores([]), 0);\n});\n\ntest('lista com um único valor', () => {\n  assert.equal(somarValores([5]), 5);\n});\n\ntest('soma valores negativos', () => {\n  assert.equal(somarValores([-2, 3]), 1);\n});\n",
+  "solutionCode": "export function somarValores(lista) {\n  let total = 0;\n  for (const valor of lista) {\n    total = total + valor;\n  }\n  return total;\n}\n",
+  "expectedTestCount": 4,
+  "minFirstStarMs": 60000
+}

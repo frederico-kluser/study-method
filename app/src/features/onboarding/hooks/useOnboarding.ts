@@ -406,7 +406,7 @@ export function useOnboarding({ activeView }: UseOnboardingParams): UseOnboardin
         chapterId: 'lesson',
         titleKey: 'translation:tutorial.helpHint.title',
         descriptionKey: 'translation:tutorial.helpHint.description',
-        targetSelector: '[data-onboarding-target="lesson-subject"]',
+        targetSelector: '[data-onboarding-target="lesson-chat-input"]',
         view: 'lesson',
       },
     ]);

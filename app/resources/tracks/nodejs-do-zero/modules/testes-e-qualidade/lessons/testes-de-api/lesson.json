@@ -1,0 +1,62 @@
+{
+  "schemaVersion": 1,
+  "slug": "testes-de-api",
+  "title": "Testando sua API",
+  "summary": "Aprender a testar rotas HTTP de verdade: subir o servidor, chamar com fetch e conferir status e body nos cenários feliz e de erro.",
+  "difficulty": 5,
+  "concepts": [
+    "testes_de_api",
+    "status_http",
+    "cenarios_de_teste"
+  ],
+  "prerequisites": [
+    "node-test-basico"
+  ],
+  "theory": [
+    {
+      "id": "o-que-e-testar-uma-api",
+      "title": "Testar uma API é provar o cardápio",
+      "markdown": "Um restaurante novo faz uma degustação antes de abrir: pede cada prato do cardápio, prova e confere se saiu como deveria. Uma API é igual: cada rota é um prato, e testar é **fazer o pedido (request) e conferir o que chega (response)**.\n\nMas uma resposta HTTP não é só o conteúdo — é um pacote com duas coisas para conferir:\n\n1. **O status code**: o número que diz como foi — `200` (deu certo), `404` (não achei), `500` (erro interno)...\n2. **O body**: o conteúdo em si, geralmente JSON.\n\nUm teste que confere só o body está pela metade: se a rota devolve o usuário certo, mas com status `500`, o app do celular quebra do mesmo jeito. O teste completo confere **status e body juntos**.\n\nE os cenários? Os mesmos do checklist:\n\n- **Feliz**: a rota existe e os dados existem → `200` + body certo.\n- **Erro esperado**: o usuário não existe, a rota não existe → `404`."
+    },
+    {
+      "id": "fetch-contra-o-servidor-de-teste",
+      "title": "Testando rotas com fetch de verdade",
+      "markdown": "O jeito mais honesto de testar uma API é **chamar a rota de verdade**, como um cliente faria: o teste sobe o servidor numa porta e usa a função `fetch` (embutida no Node) para fazer o pedido.\n\nO truque da porta: em vez de escolher uma porta fixa (3000, 4000), o teste pede a porta `0` — o sistema sorteia uma porta livre na hora. Assim o teste nunca conflita com outros programas rodando na sua máquina.\n\nO padrão do teste de rota:\n\n1. **Subir o app** com `app.listen(0)` e descobrir a porta sorteada;\n2. **Fazer o fetch** na rota — `fetch('http://localhost:PORTA/usuarios/1')`;\n3. **Conferir status e body** com `assert`;\n4. **Fechar o servidor** no final (`server.close()`), para o teste não deixar nada pendurado.\n\nO fetch é assíncrono: o teste precisa ser uma função `async` e usar `await` em cada passo — o mesmo `async/await` das aulas de assincronismo.",
+      "code": {
+        "language": "js",
+        "code": "import { test } from 'node:test';\nimport assert from 'node:assert/strict';\nimport { app } from './app.mjs'; // o app Express que já existe\n\n// sobe o servidor numa porta livre (0 = o sistema escolhe)\nconst server = app.listen(0);\nconst porta = server.address().port;\nconst base = `http://localhost:${porta}`;\n\ntest('GET /usuarios/1 devolve Ana com status 200', async () => {\n  const resposta = await fetch(`${base}/usuarios/1`); // 1. pede na rota\n  assert.equal(resposta.status, 200);                  // 2. confere o status\n  const corpo = await resposta.json();                 // 3. lê o body\n  assert.equal(corpo.nome, 'Ana');                     // 4. confere o body\n});\n\ntest('GET /usuarios/99 devolve 404', async () => {\n  const resposta = await fetch(`${base}/usuarios/99`);\n  assert.equal(resposta.status, 404);                  // erro esperado\n});\n\ntest('encerra o servidor de teste', async () => {\n  await new Promise((resolve) => server.close(resolve));\n});",
+        "explanation": "O primeiro teste é o cenário feliz (200 + body), o segundo é o erro esperado (404). O terceiro garante a limpeza: `server.close()` derruba o servidor de teste — sem ele, o processo do `node --test` fica aberto esperando conexões."
+      }
+    },
+    {
+      "id": "exemplo-completo-rota",
+      "title": "Exemplo completo: a rota de usuários",
+      "markdown": "Exemplo trabalhado completo: uma API com a rota `GET /usuarios/:id`. Os sub-objetivos:\n\n1. **Criar o app** com uma lista de usuários em memória;\n2. **Definir a rota** que procura o usuário pelo id e devolve `200` com o usuário;\n3. **Definir o 404** — usuário que não existe;\n4. **Escrever os testes** (feliz + 404) e rodar com `node --test`.\n\nA rota usa `Number(req.params.id)` para transformar o id (que chega como texto) em número, e `usuarios[id]` para procurar: se não existir, o valor é `undefined` (falsy) e caímos no 404.",
+      "code": {
+        "language": "js",
+        "code": "// app.mjs — a API\nimport express from 'express';\n\nconst usuarios = {\n  1: { id: 1, nome: 'Ana' },\n  2: { id: 2, nome: 'Bruno' },\n};\n\nconst app = express();\napp.get('/usuarios/:id', (req, res) => {\n  const id = Number(req.params.id); // o id chega como texto (\"1\")\n  const usuario = usuarios[id];     // procura na lista\n  if (!usuario) {\n    return res.status(404).json({ erro: 'usuário não encontrado' });\n  }\n  res.json(usuario); // 200 com o usuário\n});\n\nexport { app };\n\n// app.test.mjs — os testes da rota\nimport { test } from 'node:test';\nimport assert from 'node:assert/strict';\nimport { app } from './app.mjs';\n\nconst server = app.listen(0);\nconst porta = server.address().port;\nconst base = `http://localhost:${porta}`;\n\ntest('cenário feliz: usuário existente devolve 200 e o nome', async () => {\n  const resposta = await fetch(`${base}/usuarios/1`);\n  assert.equal(resposta.status, 200);\n  const corpo = await resposta.json();\n  assert.equal(corpo.nome, 'Ana');\n});\n\ntest('erro esperado: usuário inexistente devolve 404', async () => {\n  const resposta = await fetch(`${base}/usuarios/99`);\n  assert.equal(resposta.status, 404);\n});\n\ntest('encerra o servidor de teste', async () => {\n  await new Promise((resolve) => server.close(resolve));\n});",
+        "explanation": "O teste não chama a função da rota diretamente — ele faz um pedido HTTP de verdade, como o app do celular faria. Por isso o teste pega também erros de rota, de status e de formatação do body, que um teste interno não pegaria."
+      }
+    }
+  ],
+  "sources": [
+    {
+      "title": "Node.js — Test runner (node:test)",
+      "url": "https://nodejs.org/docs/latest/api/test.html",
+      "description": "Documentação oficial do runner de testes do Node."
+    },
+    {
+      "title": "MDN — Fetch API",
+      "url": "https://developer.mozilla.org/pt-BR/docs/Web/API/Fetch_API",
+      "description": "Guia da MDN sobre a função fetch, em português."
+    },
+    {
+      "title": "Express — Testes",
+      "url": "https://expressjs.com/en/guide/testing.html",
+      "description": "Guia oficial do Express sobre como testar o app."
+    }
+  ],
+  "challenges": [
+    "rota-de-usuarios"
+  ]
+}

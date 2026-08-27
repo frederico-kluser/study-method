@@ -1,0 +1,50 @@
+{
+  "schemaVersion": 1,
+  "slug": "tokens-e-sessoes",
+  "title": "Tokens e sessões",
+  "summary": "O que é um token de autenticação, como gerar e validar, e o header Authorization.",
+  "difficulty": 4,
+  "concepts": [
+    "tokens_de_autenticacao"
+  ],
+  "prerequisites": [
+    "senhas-e-hash"
+  ],
+  "theory": [
+    {
+      "id": "o-que-e-token",
+      "title": "O que é um token",
+      "markdown": "Depois que o usuário faz login, o servidor precisa lembrar quem ele é nas próximas requisições. Mas o HTTP não tem memória: cada requisição é uma visita nova.\n\nA solução clássica é o **token**: um \"carimbo de entrada\" que o servidor entrega na mão do usuário quando ele faz login. A partir daí, a cada requisição, o usuário mostra o carimbo — e o servidor sabe quem ele é sem precisar pedir a senha de novo.\n\nPense em um show com pulseira: na entrada, você mostra o ingresso e ganha uma pulseira. Depois, para entrar e sair da pista, basta mostrar a pulseira. O segurança não pede seu documento toda hora. A pulseira é o token.\n\nUm token real tem duas propriedades importantes:\n\n1. **É difícil de falsificar.** Ele carrega informações (como o id do usuário) misturadas com um segredo que só o servidor conhece.\n2. **Tem validade.** Depois de um tempo, o servidor recusa tokens antigos — como a pulseira que vale só até o fim do show.\n\nNesta aula vamos montar um token SIMPLES, só para entender o mecanismo. Importante: este formato é didático. Em produção, tokens de verdade usam bibliotecas prontas e testadas (como JWT), porque criar criptografia caseira é uma das formas mais comuns de abrir brecha de segurança."
+    },
+    {
+      "id": "header-authorization",
+      "title": "O header Authorization",
+      "markdown": "Como o navegador entrega o token ao servidor? Através de um **header** — um campo extra que vai junto com a requisição.\n\nO header `Authorization` é o lugar padrão para isso. O formato mais comum é:\n\n```\nAuthorization: Bearer <token>\n```\n\nA palavra `Bearer` (que significa \"portador\") diz: \"quem está enviando este token é o dono dele\". O servidor lê esse header, pega o token e o valida.\n\nVamos criar um token didático com o formato `sm-token.<payload>`, em que o payload carrega o id e o nome do usuário:\n\n```js\nimport { randomBytes } from 'node:crypto';\n\n// Gera um token para o usuário. O randomBytes só garante que cada\n// token seja único — a lógica principal está no formato.\nfunction gerarToken(usuario) {\n  const aleatorio = randomBytes(6).toString('hex');\n  return 'sm-token.' + usuario.id + ':' + usuario.nome + ':' + aleatorio;\n}\n```\n\nE a validação faz o caminho inverso: confere o prefixo, separa o payload e devolve o usuário — ou `null` se o token não for válido. É esse mecanismo que o desafio pede."
+    },
+    {
+      "id": "exemplo-completo",
+      "title": "Exemplo completo: validando um token",
+      "markdown": "Exemplo resolvido de uma função que valida o token e devolve o usuário (ou `null`). Cada passo tem o porquê.\n\n```js\n// Formato do token: sm-token.<id>:<nome>\n// Exemplo válido: sm-token.7:ana\n\nfunction tokensESessoes(token) {\n  const PREFIXO = 'sm-token.';\n\n  // 1. Sem string não há token. Quem não tem o prefixo também não.\n  if (typeof token !== 'string') return null;\n  if (!token.startsWith(PREFIXO)) return null;\n\n  // 2. O payload é tudo que vem depois do prefixo.\n  const payload = token.slice(PREFIXO.length);\n\n  // 3. Separamos id e nome pelo ':'. Um token válido tem exatamente\n  //    duas partes, e nenhuma pode ser vazia.\n  const partes = payload.split(':');\n  if (partes.length !== 2) return null;\n  if (partes[0] === '' || partes[1] === '') return null;\n\n  // 4. Tudo certo: devolve o usuário identificado pelo token.\n  return { id: partes[0], nome: partes[1] };\n}\n\nconsole.log(tokensESessoes('sm-token.7:ana'));    // { id: '7', nome: 'ana' }\nconsole.log(tokensESessoes('7:ana'));             // null (sem prefixo)\nconsole.log(tokensESessoes('sm-token.sem-nada')); // null (payload quebrado)\n```\n\nNo mundo real, o token não deixa o id visível assim: ele é assinado com um segredo e criptografado. Mas o MECANISMO — \"cliente envia token, servidor valida e descobre o usuário\" — é exatamente este, e é o que importa agora."
+    }
+  ],
+  "sources": [
+    {
+      "title": "MDN: header Authorization",
+      "url": "https://developer.mozilla.org/pt-BR/docs/Web/HTTP/Headers/Authorization",
+      "description": "Documentação do header Authorization, onde o token viaja na requisição."
+    },
+    {
+      "title": "MDN: autenticação HTTP",
+      "url": "https://developer.mozilla.org/pt-BR/docs/Web/HTTP/Authentication",
+      "description": "Visão geral dos mecanismos de autenticação HTTP, incluindo o esquema Bearer."
+    },
+    {
+      "title": "Documentação do Node.js: módulo crypto",
+      "url": "https://nodejs.org/docs/latest/api/crypto.html",
+      "description": "Referência do node:crypto, usado para gerar valores aleatórios seguros."
+    }
+  ],
+  "challenges": [
+    "tokens-e-sessoes"
+  ]
+}

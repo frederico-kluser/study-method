@@ -117,6 +117,71 @@ export function clearPendingDomain(): void {
   emit();
 }
 
+/* ── pendingTrackLesson / pendingTrackSlug (rodada 8 — Trilha → Aula chat) ── */
+
+let pendingTrackLesson: { trackSlug: string; lessonId: string } | null = null;
+let pendingTrackSlug: string | null = null;
+
+/**
+ * Grava a aula de TRILHA pré-selecionada (Trilha → Aula em modo chat). Na
+ * rodada 8 o aluno NÃO gera aula: ele abre a trilha, escolhe a aula e a
+ * LessonView monta o chat com o tutor. O par (trackSlug, lessonId) é one-shot.
+ */
+export function setPendingTrackLesson(trackSlug: string, lessonId: string): void {
+  pendingTrackLesson =
+    trackSlug.trim().length > 0 && lessonId.trim().length > 0
+      ? { trackSlug: trackSlug.trim(), lessonId: lessonId.trim() }
+      : null;
+  emit();
+}
+
+/** Lê e consome (limpa) a aula de trilha pendente — one-shot. */
+export function drainPendingTrackLesson(): { trackSlug: string; lessonId: string } | null {
+  const value = pendingTrackLesson;
+  pendingTrackLesson = null;
+  emit();
+  return value;
+}
+
+/** Lê a aula pendente sem consumir. */
+export function peekPendingTrackLesson(): { trackSlug: string; lessonId: string } | null {
+  return pendingTrackLesson;
+}
+
+/** Limpa a aula pendente sem retornar. */
+export function clearPendingTrackLesson(): void {
+  pendingTrackLesson = null;
+  emit();
+}
+
+/**
+ * Grava a TRILHA pré-selecionada (Home → Trilha): a RoadmapView abre o detalhe
+ * da trilha clicada na Home (rodada 8 — a trilha já vem com os itens prontos).
+ */
+export function setPendingTrackSlug(trackSlug: string): void {
+  pendingTrackSlug = trackSlug.trim().length > 0 ? trackSlug.trim() : null;
+  emit();
+}
+
+/** Lê e consome (limpa) a trilha pendente — one-shot. */
+export function drainPendingTrackSlug(): string | null {
+  const value = pendingTrackSlug;
+  pendingTrackSlug = null;
+  emit();
+  return value;
+}
+
+/** Lê a trilha pendente sem consumir. */
+export function peekPendingTrackSlug(): string | null {
+  return pendingTrackSlug;
+}
+
+/** Limpa a trilha pendente sem retornar. */
+export function clearPendingTrackSlug(): void {
+  pendingTrackSlug = null;
+  emit();
+}
+
 /* ── pendingLessonId (onda 5 — Trilha → Aula por id) ─────────────────────── */
 
 /**
@@ -170,10 +235,12 @@ export function usePendingSubjectInitial(): string | null {
   return useSyncExternalStore(subscribe, getSnapshot, () => null);
 }
 
-/** Reseta o estado do módulo (para testes) — subject, domain E lessonId. */
+/** Reseta o estado do módulo (para testes) — todos os pendentes. */
 export function __resetPendingSubjectForTests(): void {
   pendingSubject = null;
   pendingDomain = null;
   pendingLessonId = null;
+  pendingTrackLesson = null;
+  pendingTrackSlug = null;
   listeners.clear();
 }

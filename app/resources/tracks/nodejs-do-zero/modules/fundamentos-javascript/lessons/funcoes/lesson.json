@@ -1,0 +1,60 @@
+{
+  "schemaVersion": 1,
+  "slug": "funcoes",
+  "title": "Funções",
+  "summary": "Criar funções com parâmetros e retorno, e entender por que elas organizam o código.",
+  "difficulty": 1,
+  "concepts": [
+    "funcoes"
+  ],
+  "prerequisites": [
+    "variaveis-e-tipos"
+  ],
+  "theory": [
+    {
+      "id": "o-que-e-uma-funcao",
+      "title": "Funções: receitas com nome",
+      "markdown": "Uma **função** é um bloco de instruções com nome. Em vez de repetir as mesmas linhas várias vezes, você escreve uma vez, dá um nome, e chama quando precisar.\n\nPense na máquina de café: você coloca café e água (entrada), aperta o botão (chamada), e recebe a xícara pronta (saída). Não importa quantas vezes você aperta — o funcionamento é o mesmo; só muda o que você coloca.\n\nUma função tem quatro partes:\n\n1. **O nome** — como você chama a receita.\n2. **Os parâmetros** — os valores de entrada, entre parênteses.\n3. **O corpo** — as instruções, entre chaves `{}`.\n4. **O retorno** — o que ela devolve, com a palavra `return`.\n\nExemplo:\n\n`function dobro(numero) { return numero * 2; }`\n\n- `function` — a palavra que cria a função.\n- `dobro` — o nome.\n- `numero` — o parâmetro.\n- `return numero * 2;` — o que a função devolve.\n\nPara usar, chamamos pelo nome: `dobro(5)` devolve `10`.\n\n**Estratégia:** uma função deve fazer UMA coisa e ter um nome que diga o que é. Se o nome precisa de \"e\" (ex.: `calcularEImprimir`), ela provavelmente deveria ser duas."
+    },
+    {
+      "id": "parametros-e-retorno",
+      "title": "Parâmetros e retorno em detalhe",
+      "markdown": "Os parâmetros funcionam como variáveis locais: existem dentro da função e recebem os valores passados na chamada.\n\n`dobro(5)` chama a função com `numero = 5`. Dentro do corpo, `numero` vale 5.\n\nO `return` faz duas coisas:\n\n1. Decide o valor que a função devolve.\n2. Encerra a função na hora — o que vier depois dele não roda.\n\nSem `return`, a função devolve `undefined` (o \"sem valor\" do JavaScript).\n\nO resultado costuma ser guardado numa variável:\n\n`const resultado = dobro(5);`\n\nDepois usamos `resultado` onde precisarmos.\n\nDetalhe importante: a função devolve um valor, mas não mostra nada na tela. Quem mostra é o `console.log` — e só se você pedir. Por isso os desafios desta trilha testam o que a função devolve, não o que ela imprime.",
+      "code": {
+        "language": "js",
+        "code": "function dobro(numero) {\n  return numero * 2; // devolve o resultado e encerra\n}\n\nconst resultado = dobro(5); // guarda o que a função devolveu\nconsole.log(resultado);     // imprime: 10",
+        "explanation": "A função só calcula e devolve. Quem chama guarda o valor e decide o que fazer — imprimir, somar com outro, mandar para outra função."
+      }
+    },
+    {
+      "id": "exemplo-completo",
+      "title": "Exemplo completo: uma função de apresentação",
+      "markdown": "**Objetivo:** criar uma função que recebe um nome e uma idade, e devolve uma frase de apresentação.\n\nPasso 1 — declare a função com nome claro.\nO nome `apresentar` diz exatamente o que ela faz.\n\nPasso 2 — escolha os parâmetros.\nPrecisamos de duas informações: nome e idade. Cada uma vira um parâmetro, separados por vírgula.\n\nPasso 3 — confira as entradas antes de usar.\nNúmero no lugar do nome quebraria a frase. Conferimos com `typeof` e lançamos erro com `throw`.\n\nPasso 4 — monte a frase e devolva com `return`.\nO `return` entrega a frase para quem chamou. Nada de `console.log` aqui dentro: a função devolve, não imprime.\n\nPasso 5 — chame a função e imprima o resultado.\nFora da função, guardamos a frase e mostramos na tela.",
+      "code": {
+        "language": "js",
+        "code": "// Passos 1 e 2: função apresentar, com os parâmetros nome e idade.\nfunction apresentar(nome, idade) {\n  // Passo 3: conferimos as entradas antes de montar a frase.\n  if (typeof nome !== 'string' || typeof idade !== 'number') {\n    throw new Error('nome precisa ser texto e idade precisa ser número');\n  }\n\n  // Passo 4: montamos a frase com crases e devolvemos.\n  return `${nome} tem ${idade} anos.`;\n}\n\n// Passo 5: usamos a função e imprimimos o que ela devolveu.\nconst frase = apresentar('Maria', 25);\nconsole.log(frase); // imprime: Maria tem 25 anos.",
+        "explanation": "A função devolve a frase pronta; quem chama decide o que fazer com ela. Mesma entrada → mesma saída: funções assim são as mais fáceis de entender e de testar."
+      }
+    }
+  ],
+  "sources": [
+    {
+      "title": "MDN — Funções reutilizáveis",
+      "url": "https://developer.mozilla.org/pt-BR/docs/Learn_web_development/Core/Scripting/Functions",
+      "description": "Guia oficial: declaração, chamada, parâmetros e retorno."
+    },
+    {
+      "title": "MDN — return",
+      "url": "https://developer.mozilla.org/pt-BR/docs/Web/JavaScript/Reference/Statements/return",
+      "description": "Documentação da palavra que devolve o valor da função."
+    },
+    {
+      "title": "MDN — Guia de funções",
+      "url": "https://developer.mozilla.org/pt-BR/docs/Web/JavaScript/Guide/Functions",
+      "description": "Referência completa sobre funções, para consulta futura."
+    }
+  ],
+  "challenges": [
+    "dobro-do-numero"
+  ]
+}

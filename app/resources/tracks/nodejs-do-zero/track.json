@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "slug": "nodejs-do-zero",
+  "title": "Node.js do Zero",
+  "description": "Do absoluto zero (nenhuma experiência de programação) até rodar seu próprio servidor com API, banco de dados e testes — em linguagem simples, aula por aula.",
+  "language": "pt-BR",
+  "domain": "programming",
+  "modules": [
+    "fundamentos-javascript",
+    "nodejs-primeiros-passos",
+    "assincronismo",
+    "http-e-express",
+    "dados-e-persistencia",
+    "autenticacao-e-seguranca",
+    "testes-e-qualidade",
+    "deploy-e-producao"
+  ]
+}

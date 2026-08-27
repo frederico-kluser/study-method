@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 1,
+  "slug": "observabilidade-e-logging",
+  "title": "Observabilidade e logging",
+  "summary": "Enxergue o que acontece no servidor: logs estruturados, a diferença entre 404 e 500, o morgan e o que monitorar.",
+  "difficulty": 5,
+  "concepts": [
+    "logs_estruturados",
+    "monitoramento"
+  ],
+  "prerequisites": [
+    "deploy-em-servidores"
+  ],
+  "theory": [
+    {
+      "id": "o-que-e-observabilidade",
+      "title": "O que é observabilidade",
+      "markdown": "Quando o restaurante está lotado na sexta à noite, o dono precisa saber o que está acontecendo em tempo real: quantas mesas estão ocupadas, qual prato vendeu mais, se a cozinha está atrasada. Sem esse painel, qualquer problema é descoberto horas depois — quando o cliente já foi embora reclamando.\n\n**Observabilidade** é isso para o seu servidor: a capacidade de saber O QUE aconteceu, QUANDO aconteceu e POR QUÊ, olhando de fora. A peça mais simples de observabilidade é o **log**: uma anotação com data e hora do que o servidor fez.\n\n`console.log` já imprime mensagens, mas imprimir só texto é como anotar num guardanapo: 'deu erro' — quando? em qual rota? para qual usuário? Daí a segunda ideia: **log estruturado** — uma anotação em formato organizado, com campos fixos que qualquer ferramenta consegue ler, buscar e filtrar:\n\n```json\n{\"level\":\"error\",\"status\":500,\"rota\":\"/pedidos\",\"timestamp\":\"2026-08-27T21:30:01.123Z\"}\n```\n\nA terceira peça é **saber o que olhar**: nem todo erro é igual, e saber distinguir os tipos de erro é metade do trabalho de investigar um problema."
+    },
+    {
+      "id": "logs-estruturados-e-status",
+      "title": "Logs estruturados e a diferença entre 404 e 500",
+      "markdown": "**1. Status 4xx é erro de quem chamou; 5xx é erro do servidor.**\n\n- **404** — o cliente pediu algo que não existe (URL errada). O servidor está PERFEITO; quem errou foi quem chamou. Registrar como aviso (`warn`) é o certo: é normal acontecer.\n- **500** — algo quebrou DENTRO do servidor (bug, banco fora do ar). Isso é `error` de verdade: precisa de investigação.\n\nSe você tratar todo erro igual, o 404 vai esconder o 500. E se você correr a cada 404, vai gastar o dia com avisos normais.\n\n**2. Log estruturado na prática.** A ideia é um objeto com campos fixos virado em JSON:\n\n```js\nfunction registrarLog(level, mensagem, extras = {}) {\n  const linha = {\n    level,                            // 'info' | 'warn' | 'error'\n    msg: mensagem,                    // o que aconteceu\n    timestamp: new Date().toISOString(), // quando (formato ISO, hora UTC)\n    ...extras,                        // contexto: rota, status, duração...\n  };\n  console.log(JSON.stringify(linha)); // imprime UMA linha de JSON\n}\n```\n\n**3. morgan.** É um middleware de log de requisições HTTP para Express: para cada requisição, imprime uma linha com método, rota, status e tempo de resposta — sem você escrever nada na mão:\n\n```bash\nnpm install morgan\n```\n\n```js\nimport morgan from 'morgan';\n\napp.use(morgan('combined')); // formato completo, estilo Apache\n// ou o resumido e legível:\napp.use(morgan(':method :url :status :response-time ms'));\n```\n\nO `:status` do morgan já pinta o status por faixa (2xx verde, 4xx amarelo, 5xx vermelho) — a mesma lógica da função `classificarStatus` do desafio desta aula."
+    },
+    {
+      "id": "exemplo-completo",
+      "title": "Exemplo completo: API com morgan e log estruturado de erros",
+      "markdown": "**Passo 1 — instale o morgan:**\n\n```bash\nnpm install morgan\n```\n\n**Passo 2 — servidor com morgan + log estruturado** (server.mjs):\n\n```js\nimport express from 'express';\nimport morgan from 'morgan';\n\nconst app = express();\napp.use(morgan(':method :url :status :response-time ms')); // 1 linha por requisição\n\n// imprime UMA linha de JSON (fácil de buscar depois)\nfunction registrarLog(level, msg, extras = {}) {\n  console.log(JSON.stringify({\n    level,\n    msg,\n    timestamp: new Date().toISOString(),\n    ...extras,\n  }));\n}\n\napp.get('/health', (req, res) => {\n  registrarLog('info', 'health check', { status: 200 });\n  res.status(200).json({ status: 'ok' });\n});\n\n// rota que pode quebrar — para ver o 500 no log\napp.get('/divide/:numero', (req, res) => {\n  const numero = Number(req.params.numero);\n  if (numero === 0) {\n    registrarLog('error', 'divisão por zero', { rota: req.originalUrl, status: 500 });\n    return res.status(500).json({ erro: 'não divido por zero' });\n  }\n  registrarLog('info', 'divisão ok', { numero, resultado: 10 / numero });\n  res.json({ resultado: 10 / numero });\n});\n\nconst porta = process.env.PORT ?? 3000;\napp.listen(porta, () => registrarLog('info', 'servidor subiu', { porta }));\n```\n\n**Passo 3 — o que monitorar (a lista curta):**\n\n1. **Erros 5xx** — se o número sobe, algo quebrou: procure no log as linhas com \"level\":\"error\".\n2. **Erros 4xx** — volume alto pode ser cliente quebrado ou ataque; é aviso, não pânico.\n3. **Tempo de resposta** — o `:response-time ms` do morgan mostra requisições lentas antes de virarem reclamação.\n4. **Health check** — monitorar o `/health` de fora avisa quando o servidor caiu, mesmo que ninguém tenha visto o erro.\n\nAcessando `/divide/0` com o servidor rodando, o log mostra a linha do morgan com status 500 e a linha estruturada `level: \"error\"` — exatamente o que você precisa para descobrir o problema de onde estiver, sem abrir o código."
+    }
+  ],
+  "sources": [
+    {
+      "title": "morgan — pacote npm",
+      "url": "https://www.npmjs.com/package/morgan",
+      "description": "Middleware de log de requisições HTTP para Express."
+    },
+    {
+      "title": "console — documentação do Node.js",
+      "url": "https://nodejs.org/docs/latest/api/console.html",
+      "description": "A referência oficial de console.log e console.error no Node.js."
+    }
+  ],
+  "challenges": [
+    "observabilidade-e-logging"
+  ]
+}

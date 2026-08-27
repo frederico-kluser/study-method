@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "slug": "assincronismo",
+  "title": "Assincronismo: código que espera",
+  "order": 3,
+  "lessons": [
+    "operacoes-lentas",
+    "callbacks",
+    "promises",
+    "async-await",
+    "event-loop-e-fs-assincrono"
+  ]
+}

@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "slug": "somar-ate",
+  "title": "Somar de 1 até N",
+  "concept": "loops",
+  "difficulty": 1,
+  "language": "nodejs",
+  "statement": "# Somar de 1 até N\n\nVocê vai escrever uma função que soma de 1 até um número.\n\nA função `somarAte` recebe um número `n` e devolve a soma de todos os inteiros de 1 até `n`.\n\nExemplos:\n\n- `somarAte(5)` deve devolver `15` (1 + 2 + 3 + 4 + 5)\n- `somarAte(1)` deve devolver `1`\n- `somarAte(0)` deve devolver `0` (nenhum número para somar)\n\nSe o que chegar NÃO for um número, ou for um número negativo, a função deve parar com um erro.\n\nLeia o enunciado com calma e clique em Começar para iniciar o cronômetro.",
+  "starterCode": "export function somarAte(n) {\n  // TODO: implemente a função\n  throw new Error('não implementado');\n}\n",
+  "testsCode": "import { test } from 'node:test';\nimport assert from 'node:assert/strict';\nimport { somarAte } from './solution.mjs';\n\ntest('soma de 1 até 5 é 15', () => {\n  assert.equal(somarAte(5), 15);\n});\n\ntest('soma de 1 até 1 é 1', () => {\n  assert.equal(somarAte(1), 1);\n});\n\ntest('soma de 1 até 0 é 0', () => {\n  assert.equal(somarAte(0), 0);\n});\n\ntest('recusa número negativo', () => {\n  assert.throws(() => somarAte(-1));\n});\n",
+  "solutionCode": "export function somarAte(n) {\n  if (typeof n !== 'number' || n < 0) {\n    throw new Error('n precisa ser um número maior ou igual a 0');\n  }\n  let soma = 0;\n  for (let i = 1; i <= n; i++) {\n    soma = soma + i;\n  }\n  return soma;\n}\n",
+  "expectedTestCount": 4
+}

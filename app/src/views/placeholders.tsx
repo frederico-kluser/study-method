@@ -65,7 +65,7 @@ import {
   type HomeDomain,
   type HomeSuggestionLabelKey,
 } from '../lib/homeSetup';
-import { setPendingDomain, setPendingSubject } from '../lib/pendingSubject';
+import { setPendingDomain, setPendingSubject , setPendingTrackSlug } from '../lib/pendingSubject';
 import { useSessionState } from '../lib/sessionState';
 
 export interface ViewProps {
@@ -147,7 +147,7 @@ function SetupStatusCard({ status }: { status: KeysStatus | null }): ReactElemen
       sx={{ bgcolor: 'background.paper', borderColor: ready ? 'divider' : 'warning.main' }}
     >
       <CardContent>
-        <Stack direction="row" spacing={1} sx={{ mb: 1, alignItems: 'center' }}>
+ <Stack direction="row" spacing={1} sx={{ mb: 1, alignItems: 'center' }}>
           {ready ? (
             <CheckCircleOutlined color="success" fontSize="small" />
           ) : (
@@ -164,7 +164,7 @@ function SetupStatusCard({ status }: { status: KeysStatus | null }): ReactElemen
             ? t('translation:home.setup.readyDescription')
             : t('translation:home.setup.missingDescription')}
         </Typography>
-        <Stack direction="row" spacing={1} sx={{ mt: 1.5, flexWrap: 'wrap' }}>
+ <Stack direction="row" spacing={1} sx={{ mt: 1.5, flexWrap: 'wrap' }}>
           {rows.map((r) => (
             <Chip
               key={r.label}
@@ -211,7 +211,7 @@ function SubjectSuggestions({
   };
 
   return (
-    <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap' }} useFlexGap>
+ <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap',  }} >
       {suggestions.map((s) => (
         <Chip
           key={s.labelKey}
@@ -304,13 +304,13 @@ function SubjectSections({
   };
 
   return (
-    <Stack spacing={2}>
+ <Stack spacing={2}>
       {sections.map((section) => (
         <Box key={section.domain}>
           <Typography variant="subtitle1" sx={{ fontWeight: 600 }} gutterBottom>
             {sectionTitle[section.domain]}
           </Typography>
-          <Stack spacing={1}>
+ <Stack spacing={1}>
             {section.subjects.map((subject) => (
               <SubjectCard key={subject.id} subject={subject} onPick={onPick} tI={tI} />
             ))}
@@ -322,6 +322,93 @@ function SubjectSections({
 }
 
 /** View inicial (Início) — tela inicial guiada do tutor (onda 17A + onda 4). */
+/* ─── Trilhas (rodada 8) — cursos prontos, criados pelo CLI de autoria ────── */
+
+function TracksSection({
+  onOpen,
+  tI,
+}: {
+  onOpen: (slug: string) => void;
+  tI: (key: string, options?: Record<string, string | number>) => string;
+}): ReactElement | null {
+  const { t } = useTranslation();
+  const [tracks, setTracks] = useState<Array<{
+    slug: string;
+    title: string;
+    description: string;
+    doneCount: number;
+    lessonCount: number;
+  }> | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    getApi()
+      .track.list()
+      .then((res) => {
+        if (cancelled) return;
+        setTracks(
+          res.ok && res.tracks.length > 0
+            ? res.tracks.map((x) => ({
+                slug: x.slug,
+                title: x.title,
+                description: x.description,
+                doneCount: x.doneCount,
+                lessonCount: x.lessonCount,
+              }))
+            : [],
+        );
+      })
+      .catch(() => {
+        if (!cancelled) setTracks([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // null = ainda carregando (nada mostra); [] = sem trilhas instaladas.
+  if (tracks === null || tracks.length === 0) return null;
+
+  return (
+    <Box>
+      <Typography variant="subtitle1" sx={{ fontWeight: 600 }} gutterBottom>
+        {t('translation:home.tracksTitle')}
+      </Typography>
+      <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
+        {t('translation:home.tracksDescription')}
+      </Typography>
+ <Stack spacing={1}>
+        {tracks.map((tr) => (
+          <Card
+            key={tr.slug}
+            variant="outlined"
+            sx={{ cursor: 'pointer', '&:hover': { bgcolor: 'action.hover' } }}
+            onClick={() => onOpen(tr.slug)}
+          >
+            <CardContent sx={{ p: 1.5, '&:last-child': { pb: 1.5 } }}>
+ <Stack direction="row" spacing={1} sx={{ alignItems: 'center', justifyContent: 'space-between' }}>
+                <Box>
+                  <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
+                    {tr.title}
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    {tr.description}
+                  </Typography>
+                </Box>
+                <Chip
+                  size="small"
+                  variant="outlined"
+                  label={tI('home.trackProgress', { done: tr.doneCount, total: tr.lessonCount })}
+                />
+              </Stack>
+            </CardContent>
+          </Card>
+        ))}
+      </Stack>
+    </Box>
+  );
+}
+
 export function HomeView(props: ViewProps): ReactElement {
   const { t } = useTranslation();
   // Interpolação ({{var}}): mesmo cast aprovado do ChallengeView (tI).
@@ -410,7 +497,7 @@ export function HomeView(props: ViewProps): ReactElement {
 
   return (
     <Container maxWidth="md" sx={{ py: 2 }}>
-      <Stack spacing={3}>
+ <Stack spacing={3}>
         {/* Copy: o que o app faz (não é pressuposto). */}
         <Box>
           <Typography variant="h4" component="h1" gutterBottom>
@@ -438,6 +525,13 @@ export function HomeView(props: ViewProps): ReactElement {
             {ready ? t('translation:home.cta.start') : t('translation:home.cta.setup')}
           </Button>
         </Box>
+
+        {/* Rodada 8: TRILHAS — cursos prontos (criados pelo CLI de autoria).
+            O aluno escolhe a trilha; os itens já vêm definidos. */}
+        <TracksSection onOpen={(slug) => {
+          setPendingTrackSlug(slug);
+          navigate('roadmap');
+        }} tI={tI} />
 
         {/* Onda 4: matérias escolhidas por domínio OU onboarding (chips). */}
         {hasSubjects ? (

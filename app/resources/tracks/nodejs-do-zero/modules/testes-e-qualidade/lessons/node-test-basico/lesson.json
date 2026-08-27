@@ -1,0 +1,62 @@
+{
+  "schemaVersion": 1,
+  "slug": "node-test-basico",
+  "title": "node:test e assert: escrevendo testes",
+  "summary": "Aprender a declarar testes com test(), usar as asserções do assert (equal, strictEqual, throws, rejects) e rodar tudo com node --test.",
+  "difficulty": 5,
+  "concepts": [
+    "node_test",
+    "assert",
+    "casos_de_teste"
+  ],
+  "prerequisites": [
+    "por-que-testar"
+  ],
+  "theory": [
+    {
+      "id": "o-teste-como-checklist",
+      "title": "O teste como checklist do piloto",
+      "markdown": "Antes de decolar, o piloto confere uma lista de itens: combustível, portas, instrumentos... Nenhum item é opcional: cada um tem uma condição clara (cheio? fechado? funcionando?) e, se um falhar, o avião não sai.\n\nUm teste automatizado funciona igual: é um **checklist** que o computador roda sozinho. Cada `test()` é um item do checklist — ele declara uma condição (\"a função devolve X quando recebe Y\") e o computador confere.\n\nUm bom checklist de testes cobre três tipos de caso:\n\n1. **Caso normal**: o caminho feliz — entrada comum, resultado esperado.\n2. **Caso limite**: o \"quase\" — o mínimo de caracteres, o valor zero, a primeira página. É onde os bugs moram.\n3. **Caso de erro**: o que NÃO pode acontecer — entrada inválida, valor ausente, senha fraca.\n\nQuem testa só o caminho feliz encontra o bug mais tarde, na mão do usuário. Quem testa os três tipos dorme tranquilo."
+    },
+    {
+      "id": "test-e-assert-na-pratica",
+      "title": "test(), assert e os casos de teste",
+      "markdown": "Na aula anterior você viu o básico: `test()` declara o teste e `assert` confere. Agora as asserções mais úteis:\n\n- `assert.equal(real, esperado)` — confere que o valor é igual ao esperado.\n- `assert.strictEqual(real, esperado)` — igualdade rígida: além do valor, o tipo precisa bater (5 é diferente de \"5\"). Prefira sempre esta.\n- `assert.throws(() => funcao())` — confere que a função **lança um erro** quando deve lançar.\n- `assert.rejects(promessa)` — igual ao anterior, mas para funções **assíncronas**: confere que a Promise falha.\n\nO padrão de um teste bom tem três passos:\n\n1. **Arrumar** os dados de entrada;\n2. **Agir** — chamar a função;\n3. **Conferir** — o assert.\n\nPara rodar, o comando é `node --test`. Ele encontra os arquivos `.test.mjs` e executa cada `test()`, mostrando ✔ e ✖ no terminal.",
+      "code": {
+        "language": "js",
+        "code": "// calculadora.mjs — funções para testar\nexport function dividir(a, b) {\n  if (b === 0) throw new Error('não pode dividir por zero');\n  return a / b;\n}\n\nexport async function buscarUsuario(id) {\n  if (id <= 0) throw new Error('id inválido');\n  return { id, nome: 'Ana' };\n}\n\n// calculadora.test.mjs — os três tipos de caso\nimport { test } from 'node:test';\nimport assert from 'node:assert/strict';\nimport { dividir, buscarUsuario } from './calculadora.mjs';\n\ntest('caso normal: divisão comum', () => {\n  assert.strictEqual(dividir(10, 2), 5);\n});\n\ntest('caso de erro: dividir por zero lança erro', () => {\n  assert.throws(() => dividir(1, 0), /zero/); // espera um erro que mencione \"zero\"\n});\n\ntest('caso de erro assíncrono: id inválido rejeita a Promise', async () => {\n  await assert.rejects(buscarUsuario(0), /inválido/);\n});",
+        "explanation": "Repare nos três casos: normal (10 / 2 = 5), erro (divisão por zero) e erro assíncrono (id inválido). `assert.throws` recebe uma função que executa o código perigoso; `assert.rejects` recebe a Promise que deve falhar. Com `node --test`, os três aparecem ✔."
+      }
+    },
+    {
+      "id": "exemplo-completo-validacao",
+      "title": "Exemplo completo: testando uma validação",
+      "markdown": "Vamos aplicar o checklist completo a uma função de validação: `validarEmail(email)` devolve `true` se o e-mail tem o formato básico (um @ e um ponto depois dele) e `false` se não tem.\n\nA ordem de um exemplo trabalhado, com os sub-objetivos:\n\n1. **Escrever o teste do caso normal** — e-mail comum.\n2. **Escrever o teste do caso limite** — tem @ mas não tem ponto depois.\n3. **Escrever o teste do caso de erro** — texto sem @ nenhum.\n4. **Rodar tudo com `node --test`** e conferir o verde.\n\nO teste define o comportamento antes do código (red-green): com @ e ponto, `true`; sem qualquer um dos dois, `false`. É isso que os testes abaixo garantem para sempre.",
+      "code": {
+        "language": "js",
+        "code": "// validarEmail.mjs — a função de validação\nexport function validarEmail(email) {\n  const temArroba = email.includes('@');       // precisa ter @\n  const depois = email.split('@')[1] || '';    // o que vem depois do @\n  const temPontoDepois = depois.includes('.'); // e um ponto depois\n  return temArroba && temPontoDepois;          // só é válido com os dois\n}\n\n// validarEmail.test.mjs — o checklist de testes\nimport { test } from 'node:test';\nimport assert from 'node:assert/strict';\nimport { validarEmail } from './validarEmail.mjs';\n\ntest('caso normal: e-mail comum é aceito', () => {\n  assert.strictEqual(validarEmail('ana@exemplo.com'), true);\n});\n\ntest('caso limite: sem ponto depois do @ é rejeitado', () => {\n  assert.strictEqual(validarEmail('ana@exemplo'), false);\n});\n\ntest('caso de erro: sem @ é rejeitado', () => {\n  assert.strictEqual(validarEmail('anaexemplo.com'), false);\n});",
+        "explanation": "Cada teste cobre um tipo de caso: normal (e-mail comum), limite (tem @, falta o ponto) e erro (nem @ tem). Se qualquer um falhar, o `node --test` aponta exatamente qual teste — e o `assert.strictEqual` mostra o esperado contra o recebido."
+      }
+    }
+  ],
+  "sources": [
+    {
+      "title": "Node.js — Test runner (node:test)",
+      "url": "https://nodejs.org/docs/latest/api/test.html",
+      "description": "Documentação oficial do runner de testes do Node."
+    },
+    {
+      "title": "Node.js — Assert",
+      "url": "https://nodejs.org/docs/latest/api/assert.html",
+      "description": "Documentação oficial do módulo de asserções assert."
+    },
+    {
+      "title": "Node.js — CLI: --test",
+      "url": "https://nodejs.org/docs/latest/api/cli.html#--test",
+      "description": "Documentação do comando node --test."
+    }
+  ],
+  "challenges": [
+    "validar-senha"
+  ]
+}

@@ -1,0 +1,60 @@
+{
+  "schemaVersion": 1,
+  "slug": "rotas-e-middleware",
+  "title": "Rotas dinâmicas e middleware",
+  "summary": "Leia dados dinâmicos da URL com req.params e req.query e entenda o papel e a ordem dos middlewares.",
+  "difficulty": 3,
+  "concepts": [
+    "middleware"
+  ],
+  "prerequisites": [
+    "express-primeiros-passos"
+  ],
+  "theory": [
+    {
+      "id": "conceito-e-analogia",
+      "title": "O corredor de portas",
+      "markdown": "Pense num prédio com um corredor. Antes de chegar à sala certa (a rota), o visitante passa por portas: a portaria anota o nome, a segurança confere a identidade, o porteiro chama o elevador... Na web, cada uma dessas portas é um **middleware** — uma função por onde TODO pedido passa antes de chegar à rota.\n\nO `app.use` adiciona uma porta ao corredor: `app.use(express.json())` ensina o servidor a ler o corpo JSON dos pedidos que chegam.\n\n**A ordem importa**: se a portaria ficar depois da sala, ninguém é anotado. Em código, a ordem dos `app.use` e das rotas é a ordem das portas no corredor.\n\nMiddlewares são ótimos para tarefas repetidas: registrar um log de cada pedido, conferir se o usuário está logado, transformar o corpo em JSON. Eles também podem enriquecer o `req`: um middleware de log pode anotar o pedido antes de ele seguir."
+    },
+    {
+      "id": "aprofundamento",
+      "title": "params, query e o coração do middleware",
+      "markdown": "Rotas podem ter partes **dinâmicas**. Em `app.get('/usuarios/:id', ...)`, o `:id` é um curinga: `/usuarios/7` e `/usuarios/42` caem na mesma rota, e o valor fica em `req.params.id`.\n\nDados extras na URL vêm na **query string**: em `/usuarios?ordenar=nome`, o valor fica em `req.query.ordenar`.\n\nUm middleware tem a mesma cara de uma rota, mas com um terceiro argumento: `next`. Chamar `next()` empurra o pedido para a próxima porta do corredor; não chamar segura o pedido ali.",
+      "code": {
+        "language": "js",
+        "code": "import express from 'express';\n\nconst app = express();\n\n// middleware 1: log — registra cada pedido no terminal\napp.use((req, res, next) => {\n  console.log(`${req.method} ${req.url}`);\n  next(); // sem next, o pedido para aqui\n});\n\n// middleware 2: ensina o servidor a ler JSON do corpo\napp.use(express.json());\n\n// rota com parte dinâmica: /usuarios/7\napp.get('/usuarios/:id', (req, res) => {\n  res.json({ id: req.params.id });\n});\n\napp.listen(3000);",
+        "explanation": "O middleware de log roda para todo pedido e chama next() para liberar o pedido; a rota :id captura o valor dinâmico em req.params."
+      }
+    },
+    {
+      "id": "exemplo-completo",
+      "title": "Exemplo completo: log + rota com params e query",
+      "markdown": "Exemplo completo juntando tudo: um middleware de log, um middleware que lê JSON, e uma rota dinâmica que usa `req.params` e `req.query`. Rode e faça um pedido no navegador: `http://localhost:3000/usuarios/7?detalhes=true` — o terminal mostra o log, e a resposta usa o id 7.",
+      "code": {
+        "language": "js",
+        "code": "import express from 'express';\n\nconst app = express();\n\n// 1. Middleware de log: todo pedido passa aqui primeiro.\n//    next() libera o pedido para o próximo passo do corredor.\napp.use((req, res, next) => {\n  console.log('pedido recebido:', req.method, req.url);\n  next();\n});\n\n// 2. Middleware que transforma o corpo em JSON (express.json()).\n//    Sem ele, req.body chega vazio nas rotas.\napp.use(express.json());\n\n// 3. Rota dinâmica: o :id aceita QUALQUER valor no caminho.\napp.get('/usuarios/:id', (req, res) => {\n  // req.params guarda os curingas da rota: { id: '7' }\n  // req.query guarda o que veio depois do ?: { detalhes: 'true' }\n  const resposta = { id: req.params.id, detalhes: req.query.detalhes ?? 'false' };\n  res.json(resposta);\n});\n\napp.listen(3000);",
+        "explanation": "Os middlewares rodam em ordem antes da rota; a rota lê o curinga (:id) em req.params e a query string em req.query."
+      }
+    }
+  ],
+  "sources": [
+    {
+      "title": "Roteamento no Express (guia pt-BR)",
+      "url": "https://expressjs.com/pt-br/guide/routing.html",
+      "description": "Rotas dinâmicas com :param, query string e o funcionamento das rotas."
+    },
+    {
+      "title": "Usando middlewares no Express (guia pt-BR)",
+      "url": "https://expressjs.com/pt-br/guide/using-middleware.html",
+      "description": "O que são middlewares, como criar os seus e por que a ordem importa."
+    },
+    {
+      "title": "Rotas no Express (MDN)",
+      "url": "https://developer.mozilla.org/pt-BR/docs/Learn/Server-side/Express_Nodejs/routes",
+      "description": "Rotas do Express explicadas em português, com exemplos completos."
+    }
+  ],
+  "challenges": [
+    "aplicar-middlewares"
+  ]
+}

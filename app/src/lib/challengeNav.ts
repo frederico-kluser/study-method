@@ -14,12 +14,32 @@
 import { createContext, useCallback, useContext, useReducer } from 'react';
 import type { ChallengeInfo } from '../../shared/ipc-contract';
 
+/**
+ * ADITIVO (rodada 8 — trilhas): seleção de UM desafio de trilha para a
+ * ChallengeView. O aluno abre a aula da trilha e escolhe um desafio (ou o
+ * teste de proficiência) — a ChallengeView detecta este campo e usa o fluxo
+ * track (track:challenge / challenge-submit / challenge-regenerate) em vez do
+ * fluxo legado (workspace da geração).
+ */
+export interface TrackChallengeNavSelection {
+  trackSlug: string;
+  target: 'lesson' | 'proficiency';
+  lessonId?: string;
+  challengeId: string;
+  /** título do desafio para o cabeçalho (vem do payload da aula). */
+  title?: string;
+}
+
 /** Estado+functors expostos pelo contexto. */
 export interface ChallengeNavValue {
   /** Desafio selecionado (navegação direta da Aula), ou null. */
   selectedChallenge: ChallengeInfo | null;
   /** Seleciona/limpa o desafio ativo. */
   selectChallenge: (challenge: ChallengeInfo | null) => void;
+  /** ADITIVO (rodada 8): desafio de TRILHA selecionado (fluxo track). */
+  trackChallenge: TrackChallengeNavSelection | null;
+  /** Seleciona/limpa o desafio de trilha ativo. */
+  selectTrackChallenge: (sel: TrackChallengeNavSelection | null) => void;
   /** Version que muda quando a seleção muda — facilita involidar caches. */
   version: number;
   /**
@@ -48,6 +68,10 @@ export const DEFAULT_CHALLENGE_NAV: ChallengeNavValue = {
   selectChallenge: () => {
     /* no-op sem provider */
   },
+  trackChallenge: null,
+  selectTrackChallenge: () => {
+    /* no-op sem provider */
+  },
   version: 0,
   navigateToChallenge: () => {
     /* no-op sem provider */
@@ -63,17 +87,22 @@ export const ChallengeNavCtx = createContext<ChallengeNavValue>(DEFAULT_CHALLENG
 /** Estado traduzido pelo reducer de navegação. */
 export interface ChallengeNavState {
   selectedChallenge: ChallengeInfo | null;
+  /** ADITIVO (rodada 8): desafio de trilha ativo. */
+  trackChallenge: TrackChallengeNavSelection | null;
   version: number;
 }
 
 export const initialChallengeNavState: ChallengeNavState = {
   selectedChallenge: null,
+  trackChallenge: null,
   version: 0,
 };
 
 export type ChallengeNavAction =
   | { type: 'set'; challenge: ChallengeInfo | null }
-  | { type: 'clear' };
+  | { type: 'clear' }
+  | { type: 'setTrack'; selection: TrackChallengeNavSelection | null }
+  | { type: 'clearTrack' };
 
 /**
  * Reducer PURO da navegação (testável no gate node:test, sem jsdom). Seleciona
@@ -85,9 +114,13 @@ export function challengeNavReducer(
 ): ChallengeNavState {
   switch (action.type) {
     case 'set':
-      return { selectedChallenge: action.challenge, version: state.version + 1 };
+      return { ...state, selectedChallenge: action.challenge, version: state.version + 1 };
     case 'clear':
-      return { selectedChallenge: null, version: state.version + 1 };
+      return { ...state, selectedChallenge: null, version: state.version + 1 };
+    case 'setTrack':
+      return { ...state, trackChallenge: action.selection, version: state.version + 1 };
+    case 'clearTrack':
+      return { ...state, trackChallenge: null, version: state.version + 1 };
     default:
       return state;
   }
@@ -95,26 +128,30 @@ export function challengeNavReducer(
 
 /**
  * Hook da máquina de navegação: usa o reducer puro para manter
- * `selectedChallenge` + contador de versão.
+ * `selectedChallenge`/`trackChallenge` + contador de versão.
  */
 export function useNavChallengeState(initial: ChallengeInfo | null = null): {
   selectedChallenge: ChallengeInfo | null;
   selectChallenge: (c: ChallengeInfo | null) => void;
+  trackChallenge: TrackChallengeNavSelection | null;
+  selectTrackChallenge: (sel: TrackChallengeNavSelection | null) => void;
   version: number;
 } {
   const [state, dispatch] = useReducer(challengeNavReducer, {
     ...initialChallengeNavState,
     selectedChallenge: initial,
   });
-  const selectChallenge = useCallback(
-    (c: ChallengeInfo | null): void => {
-      dispatch({ type: 'set', challenge: c });
-    },
-    [],
-  );
+  const selectChallenge = useCallback((c: ChallengeInfo | null): void => {
+    dispatch({ type: 'set', challenge: c });
+  }, []);
+  const selectTrackChallenge = useCallback((sel: TrackChallengeNavSelection | null): void => {
+    dispatch({ type: 'setTrack', selection: sel });
+  }, []);
   return {
     selectedChallenge: state.selectedChallenge,
     selectChallenge,
+    trackChallenge: state.trackChallenge,
+    selectTrackChallenge,
     version: state.version,
   };
 }

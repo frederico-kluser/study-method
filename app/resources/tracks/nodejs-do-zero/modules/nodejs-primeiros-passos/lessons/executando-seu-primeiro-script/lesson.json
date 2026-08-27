@@ -1,0 +1,60 @@
+{
+  "schemaVersion": 1,
+  "slug": "executando-seu-primeiro-script",
+  "title": "Executando seu primeiro script",
+  "summary": "Rodar um arquivo .mjs com o comando node, ler o console.log no terminal e entender os argumentos de process.argv.",
+  "difficulty": 2,
+  "concepts": [
+    "executar_script"
+  ],
+  "prerequisites": [
+    "o-que-e-nodejs"
+  ],
+  "theory": [
+    {
+      "id": "conceito",
+      "title": "Do código ao terminal",
+      "markdown": "Um programa JavaScript é um arquivo de texto. Para ele rodar, alguém precisa ler o arquivo e executar as instruções. No navegador, quem faz isso é o próprio navegador. Com o Node.js, é o comando `node`.\n\nDepois de salvar um arquivo, por exemplo `ola.mjs`, você roda no terminal:\n\n```bash\nnode ola.mjs\n```\n\nO Node.js lê o arquivo de cima para baixo e executa linha por linha. Cada `console.log` aparece na tela do terminal.\n\nA extensão `.mjs` avisa que o arquivo usa os módulos do JavaScript moderno (o `import` e o `export` da próxima aula). O Node.js também aceita `.js`, mas nesta trilha usamos `.mjs` sempre.\n\n**Analogia**: o arquivo é a receita escrita no papel; o comando `node` é o cozinheiro. Sem o cozinheiro, a receita é só papel."
+    },
+    {
+      "id": "aprofundamento",
+      "title": "Erros acontecem — e o Node explica",
+      "markdown": "Quando algo dá errado, o Node.js para e imprime um erro no terminal. Erro não é castigo: é um aviso com endereço.\n\nTrês erros comuns:\n\n1. **Arquivo não encontrado** — `node ola.mjs` numa pasta que não tem esse arquivo. O Node.js avisa que não achou o módulo.\n2. **Erro de sintaxe** (`SyntaxError`) — faltou um parêntese, uma chave ou uma vírgula. O Node.js aponta a linha exata.\n3. **Erro de referência** (`ReferenceError`) — você usou um nome de variável que não existe.\n\nLer o erro é um hábito: ele diz o tipo, o arquivo e a linha. Quanto antes você ler, mais rápido acha o problema.\n\nE os **argumentos**? O comando pode receber extras:\n\n```bash\nnode ola.mjs Ana\n```\n\nO Node.js guarda tudo numa lista global chamada `process.argv`:\n\n- posição 0: o caminho do programa `node`;\n- posição 1: o caminho do seu arquivo;\n- posição 2 em diante: o que você digitou.\n\nÉ assim que um programa recebe uma \"entrada\" sem precisar abrir arquivo nenhum.",
+      "code": {
+        "language": "js",
+        "code": "// ola.mjs — rode com: node ola.mjs Ana\nconst argumentos = process.argv; // lista com tudo o que veio no comando\n\nconsole.log('Argumentos recebidos:', argumentos);\n// Ex.: [ '/usr/bin/node', '/home/ana/ola.mjs', 'Ana' ]\n",
+        "explanation": "A posição 2 é a primeira coisa que você digitou. É por isso que o desafio desta aula usa a posição 2."
+      }
+    },
+    {
+      "id": "exemplo-completo",
+      "title": "Exemplo completo: um script que cumprimenta",
+      "markdown": "Vamos transformar o `ola.mjs` num cumprimentador: quem roda `node ola.mjs <nome>` recebe um \"Olá\" com o nome. Sem nome, o padrão é \"mundo\".\n\n**Sub-objetivos** (o desafio desta aula é a mesma função, sem o terminal):\n\n1. ler `process.argv` e achar a posição 2;\n2. tratar a ausência do nome com um valor padrão;\n3. montar a frase com template literal e imprimir.\n\nSe o passo 2 falhar (esquecer o padrão), o programa imprime `Olá, undefined!` — um bug famoso. Os comentários mostram o porquê de cada guarda.",
+      "code": {
+        "language": "js",
+        "code": "// ola.mjs — rode com: node ola.mjs Ana\n\n// 1. process.argv é a lista do comando: [node, arquivo, ...seus argumentos].\n//    O primeiro argumento de verdade fica na posição 2.\nconst argumentos = process.argv;\n\n// 2. Se ninguém passou nome, argumentos[2] é undefined. Numa frase,\n//    undefined viraria a palavra 'undefined' — feio e confuso.\n//    Por isso o padrão com || (que você viu em condicionais):\nconst nome = argumentos[2] || 'mundo';\n\n// 3. Template literal monta a frase; console.log imprime no terminal.\nconsole.log(`Olá, ${nome}!`);\n\n// node ola.mjs Ana  ->  Olá, Ana!\n// node ola.mjs      ->  Olá, mundo!\n",
+        "explanation": "O passo 2 é o mais fácil de esquecer: sem o valor padrão, o script imprime \"Olá, undefined!\". O desafio desta aula testa exatamente esse caso."
+      }
+    }
+  ],
+  "sources": [
+    {
+      "title": "Node.js — Run Node.js scripts from the command line",
+      "url": "https://nodejs.org/en/learn/command-line/run-nodejs-scripts-from-the-command-line",
+      "description": "Como rodar scripts Node.js pelo terminal, na documentação oficial."
+    },
+    {
+      "title": "Node.js — process.argv",
+      "url": "https://nodejs.org/docs/latest/api/process.html#processargv",
+      "description": "A lista de argumentos do comando, documentada em detalhe."
+    },
+    {
+      "title": "Node.js — Errors",
+      "url": "https://nodejs.org/docs/latest/api/errors.html",
+      "description": "Os tipos de erro do Node.js e como lê-los."
+    }
+  ],
+  "challenges": [
+    "montar-saudacao"
+  ]
+}

@@ -280,7 +280,7 @@ describe('banco NOVO — nasce direto em v2 (SCHEMA_SQL completo)', () => {
       assert.equal(conn.migrate.getUserVersion(), SCHEMA_VERSION);
       // ONDA4: a versão atual é 3 (migration-v3.test.ts cobre o passo v2→v3;
       // este teste cobre a cadeia v1→v2 e o banco novo nasce na versão ATUAL).
-      assert.equal(SCHEMA_VERSION, 3, 'o SCHEMA_VERSION desta onda é 3');
+      assert.equal(SCHEMA_VERSION, 4, 'o SCHEMA_VERSION desta onda é 4 (v4: trilhas)');
       const db = conn.db;
       // todas as tabelas (v1 + challenge_attempts) existem de cara
       for (const t of TABLE_NAMES) {

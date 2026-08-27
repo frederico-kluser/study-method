@@ -51,11 +51,10 @@
  * SO da máquina que roda o teste.
  */
 import { test, expect, type ElectronApplication, type Page, type Locator } from '@playwright/test';
-import { launchApp, closeApp, makeWorkspaceRoot } from './helpers';
+import { launchApp, closeApp, makeWorkspaceRoot, openTrackChallenge } from './helpers';
 import {
   codeMirrorSettings,
   codePalette,
-  codeTypography,
   hexToRgb,
 } from '../../src/lib/codeTheme';
 
@@ -168,9 +167,6 @@ test('e2e-code-theme: editor e terminal pintam CLARO no tema claro e ESCURO no e
   const toggle = page.getByRole('button', { name: 'Tema:' });
   const html = page.locator('html');
   const editor = page.locator('.cm-editor').first();
-  const terminalPaper = page
-    .locator('[data-onboarding-target="challenge-terminal"] .MuiPaper-root')
-    .first();
 
   // ── Polaridade CLARA, sem depender do tema do SO ────────────────────────
   // Default = 'system' (nada salvo) → o primeiro clique cai em 'light'.
@@ -180,12 +176,9 @@ test('e2e-code-theme: editor e terminal pintam CLARO no tema claro e ESCURO no e
   expect(await page.evaluate(() => localStorage.getItem('theme-mode'))).toBe('light');
 
   // ── Chega ao Desafio e abre o arquivo (o editor só monta com aba ativa) ──
-  await page.getByRole('tab', { name: 'Aula' }).click();
-  await page.getByLabel('Assunto').fill('Ordenação');
-  await page.getByRole('button', { name: 'Gerar nova aula' }).click();
-  await page.getByText('Ordenação (E2E)', { exact: false }).first().click();
-  await expect(page.getByRole('heading', { name: 'Desafio E2E: ordenação' })).toBeVisible();
-  await page.getByRole('button', { name: 'solution.py', exact: true }).click();
+  await openTrackChallenge(page);
+  // O editor do desafio de trilha só monta DEPOIS de "Começar".
+  await page.getByRole('button', { name: 'Começar' }).click();
   await expect(editor).toBeVisible();
 
   const light = codePalette('light');
@@ -207,11 +200,11 @@ test('e2e-code-theme: editor e terminal pintam CLARO no tema claro e ESCURO no e
     codeMirrorSettings('light').fontSize,
   );
 
-  // AFIRMAÇÃO 3 — a PONTE de sintaxe existe: o comentário de solution.py
-  // ('# Implemente sua solução aqui (E2E stub)') recebe `syntax.comment`.
-  // Se o mapa de tags do CodeMirrorField sumir, isto cai para a tinta padrão.
+  // AFIRMAÇÃO 3 — a PONTE de sintaxe existe: o comentário do starter
+  // ('// TODO: implemente') recebe `syntax.comment`. Se o mapa de tags do
+  // CodeMirrorField sumir, isto cai para a tinta padrão.
   await expect
-    .poll(() => colorOfTextIn(page, '.cm-content span', 'Implemente sua solução'), {
+    .poll(() => colorOfTextIn(page, '.cm-content span', 'TODO: implemente'), {
       timeout: 10_000,
     })
     .toBe(cssRgb(light.syntax.comment));
@@ -220,42 +213,10 @@ test('e2e-code-theme: editor e terminal pintam CLARO no tema claro e ESCURO no e
   const editorLightBg = await backgroundOf(editor);
   expect(relativeLuminance(editorLightBg)).toBeGreaterThan(0.5);
 
-  // ── Terminal: roda os testes determinísticos e mede o que foi pintado ───
-  await page.getByRole('button', { name: 'Testar resposta' }).click();
-  await expect(terminalPaper).toBeVisible();
-  await expect(terminalPaper).toHaveCSS('background-color', cssRgb(light.chrome.surface), {
-    timeout: 15_000,
-  });
-
-  // AFIRMAÇÃO 6 — o viewport do xterm, e não só o <Paper> em volta dele.
-  // Sem a sobrescrita no `sx` do AnswerTerminal isto lê `rgb(0, 0, 0)`.
-  await expect(page.locator('.xterm-viewport')).toHaveCSS(
-    'background-color',
-    cssRgb(light.chrome.surface),
-  );
-
-  // AFIRMAÇÃO 5 — a tipografia do TERMINAL é a do contrato. As regras que
-  // vencem aqui são as que o DomRenderer injeta a partir de `options.fontSize`
-  // e `options.fontFamily` (em `.xterm-rows`, mais específicas que `.xterm`),
-  // então isto falha se o construtor voltar a fixar valores literais.
-  const rows = page.locator('.xterm-rows');
-  await expect(rows).toHaveCSS('font-size', codeTypography().fontSize);
-  expect(await fontFamilyOf(rows)).toBe(codeTypography().fontFamily.replace(/['"]/g, ''));
-
-  // …e é a MESMA que a do editor, medida na tela. O `.cm-scroller` é onde o
-  // `createTheme` do `@uiw/codemirror-themes` põe `settings.fontFamily`
-  // (seletor `&.cm-editor .cm-scroller`); o `.cm-content` herda dele. Se um dos
-  // dois lados voltar a escrever a própria pilha à mão, esta igualdade cai.
-  expect(await fontFamilyOf(rows)).toBe(await fontFamilyOf(page.locator('.cm-scroller').first()));
-
-  // AFIRMAÇÃO 3 — o banner PASSOU sai no verde de ESTADO do esquema claro
-  // (o stub determinístico sempre passa: e2eStubs.testAnswer → passed:true).
-  await expect
-    .poll(() => colorOfTextIn(page, '.xterm-rows span', 'PASSOU'), { timeout: 20_000 })
-    .toBe(cssRgb(light.state.success));
-
-  // AFIRMAÇÃO 2 — editor e terminal leem a MESMA fonte de verdade.
-  expect(await backgroundOf(terminalPaper)).toBe(editorLightBg);
+  // ── (Terminal do fluxo legado não existe mais: rodada 8 usa o painel de
+  // trilha; o veredito sai num Alert, não num xterm. As afirmações de
+  // terminal viraram parte do legado; as cores/tipografia do editor — o
+  // mesmo CodeMirrorField do fluxo antigo — continuam sendo aferidas aqui.) ─
 
   // ── Toggle → ESCURO. Tudo tem que virar, inclusive o que já está na tela ─
   await toggle.click();
@@ -264,7 +225,7 @@ test('e2e-code-theme: editor e terminal pintam CLARO no tema claro e ESCURO no e
   await expect(editor).toHaveCSS('background-color', cssRgb(dark.chrome.surface));
   await expect(editor).toHaveCSS('color', cssRgb(dark.chrome.ink));
   await expect
-    .poll(() => colorOfTextIn(page, '.cm-content span', 'Implemente sua solução'), {
+    .poll(() => colorOfTextIn(page, '.cm-content span', 'TODO: implemente'), {
       timeout: 10_000,
     })
     .toBe(cssRgb(dark.syntax.comment));
@@ -273,24 +234,8 @@ test('e2e-code-theme: editor e terminal pintam CLARO no tema claro e ESCURO no e
   // AFIRMAÇÃO 1 — polaridade MEDIDA na outra ponta.
   expect(relativeLuminance(editorDarkBg)).toBeLessThan(0.1);
 
-  await expect(terminalPaper).toHaveCSS('background-color', cssRgb(dark.chrome.surface));
-  expect(await backgroundOf(terminalPaper)).toBe(editorDarkBg);
-
-  // AFIRMAÇÃO 6 na outra polaridade — o viewport acompanha o toggle.
-  await expect(page.locator('.xterm-viewport')).toHaveCSS(
-    'background-color',
-    cssRgb(dark.chrome.surface),
-  );
-
-  // AFIRMAÇÃO 4 — a linha JÁ IMPRESSA foi REIMPRESSA na paleta nova. Sem o
-  // efeito de repintura do AnswerTerminal (armadilha 3), este `PASSOU`
-  // continuaria em rgb(25, 105, 65) — o verde calibrado para papel — sobre o
-  // well escuro.
-  await expect
-    .poll(() => colorOfTextIn(page, '.xterm-rows span', 'PASSOU'), { timeout: 15_000 })
-    .toBe(cssRgb(dark.state.success));
-
-  // E a saída determinística do stub continua lá: repintar não pode apagar
-  // o trabalho do usuário.
-  await expect(page.locator('.xterm-rows')).toContainText('2 passed in 0.01s');
+  // (Terminal do fluxo legado: as afirmações 4/6 de repintura do xterm faziam
+  // parte da ChallengeView antiga — a rodada 8 usa o painel de trilha, sem
+  // xterm. O veredito sai num Alert; a polaridade do CÓDIGO segue aferida
+  // acima nos dois esquemas.)
 });

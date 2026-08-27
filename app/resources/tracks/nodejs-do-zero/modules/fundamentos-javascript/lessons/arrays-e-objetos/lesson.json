@@ -1,0 +1,60 @@
+{
+  "schemaVersion": 1,
+  "slug": "arrays-e-objetos",
+  "title": "Arrays e objetos",
+  "summary": "Guardar listas com arrays, descrever coisas com objetos e combinar os dois.",
+  "difficulty": 1,
+  "concepts": [
+    "arrays_e_objetos"
+  ],
+  "prerequisites": [
+    "loops"
+  ],
+  "theory": [
+    {
+      "id": "listas-e-fichas",
+      "title": "Listas e fichas: arrays e objetos",
+      "markdown": "Duas caixinhas novas resolvem problemas gigantes: **arrays** (listas) e **objetos** (fichas).\n\n**Array — guarda vários valores em ordem.**\n\nPense na fila do mercado: cada pessoa tem uma posição — a primeira, a segunda...\n\n```\nconst numeros = [10, 20, 30];\n```\n\n- Os colchetes `[...]` criam a lista.\n- Cada valor ocupa uma posição (**índice**), começando do 0.\n- `numeros[0]` é 10, `numeros[1]` é 20, `numeros[2]` é 30.\n\n**Objeto — guarda informações com rótulos.**\n\nPense na ficha da biblioteca: título, autor, ano — cada informação tem um nome.\n\n```\nconst livro = {\n  titulo: 'Dom Casmurro',\n  autor: 'Machado de Assis',\n  ano: 1899\n};\n```\n\n- As chaves `{...}` criam o objeto.\n- Cada linha é um par **rótulo: valor** (propriedade).\n- `livro.titulo` devolve `'Dom Casmurro'` — o ponto acessa a propriedade.\n\n**Estratégia:** a pergunta \"é uma lista ou uma ficha?\" resolve tudo. Vários valores em ordem → array. Uma coisa com várias informações → objeto."
+    },
+    {
+      "id": "operacoes-comuns",
+      "title": "Operações comuns: length, push e for...of",
+      "markdown": "**Arrays — três operações para o dia a dia:**\n\n- `lista.length` — quantos valores a lista tem. `[10, 20, 30].length` é 3.\n- `lista.push(valor)` — adiciona um valor no final. `numeros.push(40)` transforma `[10, 20, 30]` em `[10, 20, 30, 40]`.\n- `lista[i]` — lê ou troca o valor da posição i. `numeros[0] = 99` troca o primeiro.\n\n**Pegadinha dos índices:** a primeira posição é 0, então a última é `length - 1`. Esquecer isso é o erro mais comum com listas.\n\n**Percorrer uma lista:** o laço `for...of` visita cada valor da lista, um por vez, sem precisar de índice:\n\n```\nfor (const valor of numeros) {\n  console.log(valor);\n}\n```\n\nLeia assim: \"para cada valor de numeros, imprima o valor\". É o laço preferido para listas — mais curto que o for com contador.\n\n**Aninhamento:** listas guardam objetos, e objetos guardam listas. Exemplo: uma lista de livros, cada um com título e ano:\n\n```\nconst livros = [\n  { titulo: 'Dom Casmurro', ano: 1899 },\n  { titulo: 'Memórias Póstumas', ano: 1881 }\n];\n\nconsole.log(livros[0].titulo); // Dom Casmurro\n```\n\nPrimeiro escolhemos o item da lista (`livros[0]`), depois a propriedade (`.titulo`).",
+      "code": {
+        "language": "js",
+        "code": "const numeros = [10, 20, 30];\n\nconsole.log(numeros.length);   // imprime: 3\nnumeros.push(40);              // adiciona no final\nconsole.log(numeros[0]);       // imprime: 10 (primeira posição!)\nconsole.log(numeros[3]);       // imprime: 40 (a posição 3 é a quarta)\n\nfor (const valor of numeros) {\n  console.log(valor);          // imprime 10, 20, 30, 40\n}",
+        "explanation": "O índice começa em 0: por isso o terceiro valor está na posição 2. O push adicionou o 40 no final, na posição 3. O for...of passa por todos sem contar posição."
+      }
+    },
+    {
+      "id": "exemplo-completo",
+      "title": "Exemplo completo: somar uma lista",
+      "markdown": "**Objetivo:** escrever `somaDaLista(numeros)`, que devolve a soma de todos os valores da lista.\n\nPasso 1 — confira a entrada.\nPrecisamos de uma lista de verdade. O comando `Array.isArray(x)` devolve `true` só para listas — texto ou número não passam.\n\nPasso 2 — o pote do acumulador, fora do laço.\nMesmo padrão da aula de laços: pote fora, soma dentro.\n\nPasso 3 — percorra a lista com `for...of`.\nNão precisamos do índice — só dos valores.\n\nPasso 4 — devolva o total.\nLista vazia? O laço não roda e o pote continua 0 — caso limite de graça.",
+      "code": {
+        "language": "js",
+        "code": "// Passo 1: conferimos que veio uma lista de verdade.\nfunction somaDaLista(numeros) {\n  if (!Array.isArray(numeros)) {\n    throw new Error('numeros precisa ser uma lista');\n  }\n\n  // Passo 2: o pote começa vazio.\n  let soma = 0;\n\n  // Passo 3: para cada valor da lista, jogamos no pote.\n  for (const valor of numeros) {\n    soma = soma + valor;\n  }\n\n  // Passo 4: devolvemos o total.\n  return soma;\n}\n\nconsole.log(somaDaLista([1, 2, 3])); // imprime: 6",
+        "explanation": "O for...of faz o trabalho pesado: pega cada valor e entrega na variável valor, um por vez — sem contar posições, sem conferir o fim. somaDaLista([1, 2, 3]): valor=1 → soma 1; valor=2 → soma 3; valor=3 → soma 6."
+      }
+    }
+  ],
+  "sources": [
+    {
+      "title": "MDN — Arrays",
+      "url": "https://developer.mozilla.org/pt-BR/docs/Learn_web_development/Core/Scripting/Arrays",
+      "description": "Guia oficial: criar, ler, alterar e percorrer listas."
+    },
+    {
+      "title": "MDN — Array",
+      "url": "https://developer.mozilla.org/pt-BR/docs/Web/JavaScript/Reference/Global_Objects/Array",
+      "description": "Referência do array: push, length e muito mais."
+    },
+    {
+      "title": "MDN — Noções básicas de objetos",
+      "url": "https://developer.mozilla.org/pt-BR/docs/Learn/JavaScript/Objects/Basics",
+      "description": "Guia oficial de objetos: propriedades e aninhamento."
+    }
+  ],
+  "challenges": [
+    "soma-da-lista"
+  ]
+}

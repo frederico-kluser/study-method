@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 1,
+  "slug": "variaveis-de-ambiente",
+  "title": "Variáveis de ambiente",
+  "summary": "Guarde a configuração (porta, senhas, chaves) fora do código com variáveis de ambiente e o arquivo .env.",
+  "difficulty": 5,
+  "concepts": [
+    "variaveis_de_ambiente"
+  ],
+  "prerequisites": [
+    "testes-de-api",
+    "apis-rest-e-json"
+  ],
+  "theory": [
+    {
+      "id": "o-que-sao-variaveis-de-ambiente",
+      "title": "O que são variáveis de ambiente",
+      "markdown": "Imagine um restaurante. O molho secreto fica no armário da cozinha, e o garçom não carrega a receita no bolso quando vai para casa. Cada filial do restaurante tem o MESMO garçom (o mesmo código), mas cada uma tem o SEU armário com os seus segredos: a filial da rua A usa o banco de dados da rua A, a filial da rua B usa o da rua B.\n\nNo Node.js, esse armário se chama **variáveis de ambiente**: um conjunto de valores que o sistema operacional guarda para cada programa que roda. O código não precisa saber qual banco usar, qual porta abrir ou qual senha conectar — ele só pergunta 'qual é o valor de DATABASE_URL?' e a resposta vem do ambiente, não do código.\n\nPor que isso importa? Porque o MESMO código roda em lugares diferentes com configurações DIFERENTES:\n\n- **Na sua máquina (desenvolvimento)**: porta 3000, banco local.\n- **Nos testes**: banco de testes, sem custo.\n- **No servidor (produção)**: porta 80, banco de verdade, cartão de crédito da API de pagamento.\n\nSe você escrevesse '3000' e a senha do banco dentro do código, precisaria mudar o código a cada ambiente — e a senha iria parar no git, visível para todo mundo que tem acesso ao repositório. Variável de ambiente resolve os dois problemas de uma vez: o código fica igual em todo lugar, e os segredos ficam fora dele."
+    },
+    {
+      "id": "process-env-e-arquivo-env",
+      "title": "process.env e o arquivo .env",
+      "markdown": "**process.env** é um objeto que o Node.js cria para você com todas as variáveis de ambiente do processo. Ler uma é simples:\n\n```js\n// server.mjs\nconst porta = process.env.PORT ?? '3000';\nconsole.log(`ouvindo na porta ${porta}`);\n```\n\nQuando você roda `PORT=8080 node server.mjs`, o `process.env.PORT` vale `'8080'`. Repare: **tudo em variável de ambiente é texto** — `'8080'`, não `8080`. Se precisar de número, converta com `Number()`.\n\nMas digitar `PORT=8080 node server.mjs` toda vez é chato. Por isso existe o arquivo **.env**: um arquivo de texto com uma variável por linha, um arquivo por máquina:\n\n```env\nPORT=8080\nDATABASE_URL=sqlite:./dados.db\nAPI_SECRET=um-segredo-muito-longo\n```\n\nO Node.js não lê o .env sozinho: usamos o pacote **dotenv**, que lê o arquivo e preenche o `process.env` para você. E o arquivo **.gitignore** garante que o .env nunca entre no git — o armário fica na máquina, não no repositório:\n\n```gitignore\nnode_modules/\n.env\n```\n\nAssim, quem baixar seu repositório cria o próprio .env. O repositório guarda só um exemplo: **.env.example**, com os MESMOS nomes de variáveis e valores fictícios, mostrando o que precisa ser preenchido."
+    },
+    {
+      "id": "exemplo-completo",
+      "title": "Exemplo completo: uma API que lê a configuração do ambiente",
+      "markdown": "Vamos juntar tudo num exemplo real: uma API pequena que usa a porta e a senha do banco — tudo vindo do ambiente, nada no código.\n\n**Passo 1 — instale o dotenv:**\n\n```bash\nnpm install dotenv\n```\n\n**Passo 2 — crie os arquivos:**\n\n.env (na sua máquina — não vai para o git):\n\n```env\nPORT=8080\nDB_PASS=senha-do-banco-local\n```\n\n.env.example (versionado — mostra os nomes, sem os valores):\n\n```env\nPORT=8080\nDB_PASS=troque-por-sua-senha\n```\n\n.gitignore:\n\n```gitignore\nnode_modules/\n.env\n```\n\n**Passo 3 — o servidor** (server.mjs), com o porquê de cada linha:\n\n```js\nimport 'dotenv/config';          // lê o .env e preenche process.env ANTES de tudo\n\nconst porta = process.env.PORT ?? '3000';  // se PORT faltar, usamos 3000\nconst dbPass = process.env.DB_PASS;        // se não existir, vale undefined\n\nconsole.log('porta:', porta);              // qual porta vamos ouvir\nconsole.log('senha do banco:', dbPass ? 'configurada' : 'AUSENTE');\n```\n\n**Passo 4 — o script de start** (package.json), para rodar sempre do mesmo jeito:\n\n```json\n{\n  \"scripts\": {\n    \"start\": \"node server.mjs\"\n  }\n}\n```\n\n**Por que funciona?** O `import 'dotenv/config'` roda o dotenv automaticamente: ele procura o arquivo .env na pasta do projeto e copia cada `CHAVE=valor` para o `process.env`. O código só pergunta 'quanto vale PORT?' — ele não sabe (nem precisa saber) se o valor veio de um arquivo, do terminal ou do painel do servidor."
+    }
+  ],
+  "sources": [
+    {
+      "title": "process.env — documentação do Node.js",
+      "url": "https://nodejs.org/docs/latest/api/process.html#processenv",
+      "description": "A referência oficial do objeto process.env, com exemplos de leitura e escrita."
+    },
+    {
+      "title": "dotenv — pacote npm",
+      "url": "https://www.npmjs.com/package/dotenv",
+      "description": "O pacote que lê o arquivo .env e preenche process.env."
+    }
+  ],
+  "challenges": [
+    "variaveis-de-ambiente"
+  ]
+}

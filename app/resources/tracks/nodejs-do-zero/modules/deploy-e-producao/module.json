@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "slug": "deploy-e-producao",
+  "title": "Deploy e produção",
+  "order": 8,
+  "lessons": [
+    "variaveis-de-ambiente",
+    "deploy-em-servidores",
+    "observabilidade-e-logging"
+  ]
+}

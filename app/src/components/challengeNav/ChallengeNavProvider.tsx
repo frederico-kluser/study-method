@@ -39,6 +39,9 @@ export function ChallengeNavProvider({
     () => ({
       selectedChallenge: value.selectedChallenge,
       selectChallenge: value.selectChallenge,
+      // ADITIVO (rodada 8): desafio de trilha (fluxo track da ChallengeView).
+      trackChallenge: value.trackChallenge,
+      selectTrackChallenge: value.selectTrackChallenge,
       version: value.version,
       navigateToChallenge: navigate,
       lastSetupRoot,
@@ -47,6 +50,8 @@ export function ChallengeNavProvider({
     [
       value.selectedChallenge,
       value.selectChallenge,
+      value.trackChallenge,
+      value.selectTrackChallenge,
       value.version,
       navigate,
       lastSetupRoot,

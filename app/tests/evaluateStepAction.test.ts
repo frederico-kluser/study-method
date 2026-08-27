@@ -68,35 +68,21 @@ describe('evaluateStepAction: navegação de abas (open-*)', () => {
   });
 });
 
-describe('evaluateStepAction: digitar/gerar (lesson)', () => {
-  it('fill-lesson-subject satisfaz quando o assunto preenchido', () => {
-    const step = stepFor('fill-lesson-subject');
-    const snapshot = createSnapshot(ctx({ lessonSubjectNonEmpty: false }));
-    assert.equal(evaluateStepAction(step, snapshot, ctx({ lessonSubjectNonEmpty: true })), true);
+describe('evaluateStepAction: aula (rodada 8 — sem geração)', () => {
+  // RODADA 8: o aluno NÃO gera mais aula — as ações 'fill-lesson-subject' e
+  // 'generate-lesson' foram REMOVIDAS do catálogo. O capítulo Aula começa com
+  // 'open-lesson' (navegar para a aba) e o chat do tutor não tem auto-avanço
+  // (o tutor é conversa, não step). Sem expectedAction → avanço manual.
+  it('step sem expectedAction avança manualmente (nunca auto-satisfaz)', () => {
+    const step = stepFor(undefined);
+    const snapshot = createSnapshot(ctx({ activeView: 'lesson' }));
+    assert.equal(evaluateStepAction(step, snapshot, ctx({ activeView: 'lesson' })), false);
   });
 
-  it('fill-lesson-subject NÃO satisfaz com assunto vazio', () => {
-    const step = stepFor('fill-lesson-subject');
-    const snapshot = createSnapshot(ctx({ lessonSubjectNonEmpty: false }));
-    assert.equal(evaluateStepAction(step, snapshot, ctx({ lessonSubjectNonEmpty: false })), false);
-  });
-
-  it('generate-lesson satisfaz se a geração saiu de idle', () => {
-    const step = stepFor('generate-lesson');
-    const snapshot = createSnapshot(ctx({ lessonRunningOrDone: false }));
-    assert.equal(evaluateStepAction(step, snapshot, ctx({ lessonRunningOrDone: true })), true);
-  });
-
-  it('generate-lesson satisfaz mesmo se o snapshot já indicava rodando (ACHADO-3 delta opcional)', () => {
-    const step = stepFor('generate-lesson');
-    const snapshot = createSnapshot(ctx({ lessonRunningOrDone: true }));
-    assert.equal(evaluateStepAction(step, snapshot, ctx({ lessonRunningOrDone: true })), true);
-  });
-
-  it('generate-lesson NÃO satisfaz com a geração idle', () => {
-    const step = stepFor('generate-lesson');
-    const snapshot = createSnapshot(ctx({ lessonRunningOrDone: false }));
-    assert.equal(evaluateStepAction(step, snapshot, ctx({ lessonRunningOrDone: false })), false);
+  it('open-lesson segue satisfazendo pela troca de aba', () => {
+    const step = stepFor('open-lesson');
+    const snapshot = createSnapshot(ctx({ activeView: 'home' }));
+    assert.equal(evaluateStepAction(step, snapshot, ctx({ activeView: 'lesson' })), true);
   });
 });
 
@@ -142,7 +128,7 @@ describe('evaluateStepAction: sem expectedAction', () => {
 
   it('hasExpectedAction é true p/ steps com ação', () => {
     assert.equal(hasExpectedAction(stepFor('open-settings')), true);
-    assert.equal(hasExpectedAction(stepFor('generate-lesson')), true);
+    assert.equal(hasExpectedAction(stepFor('type-in-editor')), true);
   });
 });
 

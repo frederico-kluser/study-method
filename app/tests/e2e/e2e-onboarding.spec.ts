@@ -46,13 +46,13 @@ test('e2e-onboarding: modal com 2 opções → overlay no alvo → concluir/skip
 
   // O alvo do primeiro step está no DOM (app-title) e o overlay o cobre.
   await expect(page.locator('[data-onboarding-target="app-title"]')).toBeVisible();
-  await expect(page.getByText('Passo 1 / 13', { exact: false })).toBeVisible();
+  await expect(page.getByText('Passo 1 / 11', { exact: false })).toBeVisible();
 
   // Avança um step (informativos avançam por "Continuar"): o próximo alvo
   // (theme-toggle) também está presente.
   await page.getByRole('button', { name: 'Continuar' }).click();
   await expect(page.locator('[data-onboarding-target="theme-toggle"]')).toBeVisible();
-  await expect(page.getByText('Passo 2 / 13', { exact: false })).toBeVisible();
+  await expect(page.getByText('Passo 2 / 11', { exact: false })).toBeVisible();
 
   // Skip com confirmação encerra o tutorial.
   await page.getByRole('button', { name: 'Pular tutorial', exact: true }).click();

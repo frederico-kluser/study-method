@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "slug": "fundamentos-javascript",
+  "title": "Fundamentos de JavaScript",
+  "order": 1,
+  "lessons": [
+    "o-que-e-programacao",
+    "variaveis-e-tipos",
+    "funcoes",
+    "condicionais",
+    "loops",
+    "arrays-e-objetos",
+    "erros-e-debug"
+  ]
+}

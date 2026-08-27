@@ -74,6 +74,35 @@ export interface MarkChallengeAttemptInput {
   durationMs?: number;
 }
 
+/** v4 (rodada8-trilhas): desafio REGENERADO para um aluno (generated_challenges). */
+export interface GeneratedChallengeRow {
+  id: string;
+  trackSlug: string;
+  lessonId: string;
+  challengeId: string;
+  statement: string;
+  starterCode: string;
+  testsCode: string;
+  solutionCode: string;
+  expectedTestCount: number;
+  createdAt: string;
+}
+
+/** v4: linha de progresso de lição de trilha (track_progress). */
+export interface TrackLessonProgressRow {
+  trackSlug: string;
+  lessonId: string;
+  completedAt: string;
+}
+
+/** v4: veredito de proficiência da trilha (track_proficiency). */
+export interface TrackProficiencyRow {
+  trackSlug: string;
+  verdict: 'passed' | 'failed';
+  stars: number;
+  passedAt: string;
+}
+
 /** Assunto com contagens (listSubjects). */
 export interface SubjectSummary extends SubjectRow {
   lessonCount: number;
@@ -240,6 +269,25 @@ export interface LessonRepo {
   listAttemptedChallengeSlugs(subjectId?: string): Promise<string[]>;
   /** Histórico de tentativas de um desafio, da mais antiga para a mais recente. */
   getAttemptsForChallenge(challengeId: string): Promise<ChallengeAttemptRow[]>;
+  // ─── v4 (rodada8-trilhas): progresso de trilha + desafios regenerados ───
+  /** Marca uma lição de trilha como concluída (upsert idempotente). */
+  markTrackLessonDone(trackSlug: string, lessonId: string): Promise<void>;
+  /** Lições concluídas de uma trilha (para derivar locked/done/current). */
+  listTrackLessonProgress(trackSlug: string): Promise<TrackLessonProgressRow[]>;
+  /** Grava/atualiza o veredito do teste de proficiência da trilha. */
+  setTrackProficiency(trackSlug: string, verdict: 'passed' | 'failed', stars: number): Promise<void>;
+  /** Veredito de proficiência da trilha (null = nunca feito). */
+  getTrackProficiency(trackSlug: string): Promise<TrackProficiencyRow | null>;
+  /** Persiste um desafio REGENERADO para o aluno (nunca-repetir). */
+  insertGeneratedChallenge(input: GeneratedChallengeRow): Promise<void>;
+  /** Desafios regenerados de uma aula (na ordem de criação). */
+  listGeneratedChallenges(trackSlug: string, lessonId: string): Promise<GeneratedChallengeRow[]>;
+  /**
+   * Slugs de desafios que o aluno FALHOU numa aula da trilha (verdict
+   * failed|timeout, lesson_id = 'lesson:<lessonId>') — o contexto do
+   * nunca-repetir da regeneração. Único por slug, mais recente primeiro.
+   */
+  listFailedChallengeSlugs(trackSlug: string, lessonId: string): Promise<string[]>;
 }
 
 /**
@@ -323,6 +371,30 @@ CREATE TABLE IF NOT EXISTS challenge_attempts (
 );
 CREATE INDEX IF NOT EXISTS idx_challenge_attempts_challenge_id ON challenge_attempts(challenge_id);
 CREATE INDEX IF NOT EXISTS idx_challenge_attempts_subject_id ON challenge_attempts(subject_id);
+CREATE TABLE IF NOT EXISTS track_progress (
+  track_slug   TEXT NOT NULL,
+  lesson_id    TEXT NOT NULL,
+  completed_at TEXT NOT NULL DEFAULT (datetime('now')),
+  PRIMARY KEY (track_slug, lesson_id)
+);
+CREATE TABLE IF NOT EXISTS track_proficiency (
+  track_slug TEXT PRIMARY KEY,
+  verdict    TEXT NOT NULL CHECK (verdict IN ('passed','failed')),
+  stars      INTEGER NOT NULL DEFAULT 0 CHECK (stars BETWEEN 0 AND 3),
+  passed_at  TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE TABLE IF NOT EXISTS generated_challenges (
+  id                  TEXT PRIMARY KEY,
+  track_slug          TEXT NOT NULL,
+  lesson_id           TEXT NOT NULL,
+  challenge_id        TEXT NOT NULL,
+  statement           TEXT NOT NULL,
+  starter_code        TEXT NOT NULL,
+  tests_code          TEXT NOT NULL,
+  solution_code       TEXT NOT NULL,
+  expected_test_count INTEGER NOT NULL,
+  created_at          TEXT NOT NULL DEFAULT (datetime('now'))
+);
 `;
 
 /** Deriva um slug kebab-case (sem acento) a partir de um nome humano. */
@@ -813,6 +885,132 @@ export function createLessonRepo(open: OpenFn): LessonRepo {
         durationMs: r.duration_ms,
         createdAt: r.created_at,
       }));
+    },
+
+    // ─── v4 (rodada8-trilhas) ────────────────────────────────────────────────
+
+    async markTrackLessonDone(trackSlug, lessonId) {
+      db.prepare(
+        `INSERT OR IGNORE INTO track_progress (track_slug, lesson_id, completed_at)
+         VALUES (?, ?, ?)`,
+      ).run(trackSlug, lessonId, now());
+    },
+
+    async listTrackLessonProgress(trackSlug) {
+      const rows = db
+        .prepare(
+          `SELECT track_slug, lesson_id, completed_at
+           FROM track_progress
+           WHERE track_slug = ?
+           ORDER BY completed_at ASC`,
+        )
+        .all(trackSlug) as unknown as Array<{
+        track_slug: string;
+        lesson_id: string;
+        completed_at: string;
+      }>;
+      return rows.map((r) => ({
+        trackSlug: r.track_slug,
+        lessonId: r.lesson_id,
+        completedAt: r.completed_at,
+      }));
+    },
+
+    async setTrackProficiency(trackSlug, verdict, stars) {
+      db.prepare(
+        `INSERT INTO track_proficiency (track_slug, verdict, stars, passed_at)
+         VALUES (?, ?, ?, ?)
+         ON CONFLICT(track_slug) DO UPDATE SET
+           verdict = excluded.verdict,
+           stars = excluded.stars,
+           passed_at = excluded.passed_at`,
+      ).run(trackSlug, verdict, stars, now());
+    },
+
+    async getTrackProficiency(trackSlug) {
+      const r = db
+        .prepare(
+          `SELECT track_slug, verdict, stars, passed_at
+           FROM track_proficiency
+           WHERE track_slug = ?`,
+        )
+        .get(trackSlug) as
+        | { track_slug: string; verdict: 'passed' | 'failed'; stars: number; passed_at: string }
+        | undefined;
+      if (!r) return null;
+      return { trackSlug: r.track_slug, verdict: r.verdict, stars: r.stars, passedAt: r.passed_at };
+    },
+
+    async insertGeneratedChallenge(input) {
+      db.prepare(
+        `INSERT INTO generated_challenges
+           (id, track_slug, lesson_id, challenge_id, statement, starter_code, tests_code,
+            solution_code, expected_test_count, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      ).run(
+        input.id,
+        input.trackSlug,
+        input.lessonId,
+        input.challengeId,
+        input.statement,
+        input.starterCode,
+        input.testsCode,
+        input.solutionCode,
+        input.expectedTestCount,
+        now(),
+      );
+    },
+
+    async listGeneratedChallenges(trackSlug, lessonId) {
+      const rows = db
+        .prepare(
+          `SELECT id, track_slug, lesson_id, challenge_id, statement, starter_code,
+                  tests_code, solution_code, expected_test_count, created_at
+           FROM generated_challenges
+           WHERE track_slug = ? AND lesson_id = ?
+           ORDER BY created_at ASC, id ASC`,
+        )
+        .all(trackSlug, lessonId) as unknown as Array<{
+        id: string;
+        track_slug: string;
+        lesson_id: string;
+        challenge_id: string;
+        statement: string;
+        starter_code: string;
+        tests_code: string;
+        solution_code: string;
+        expected_test_count: number;
+        created_at: string;
+      }>;
+      return rows.map((r) => ({
+        id: r.id,
+        trackSlug: r.track_slug,
+        lessonId: r.lesson_id,
+        challengeId: r.challenge_id,
+        statement: r.statement,
+        starterCode: r.starter_code,
+        testsCode: r.tests_code,
+        solutionCode: r.solution_code,
+        expectedTestCount: r.expected_test_count,
+        createdAt: r.created_at,
+      }));
+    },
+
+    async listFailedChallengeSlugs(trackSlug, lessonId) {
+      const subject = db
+        .prepare(`SELECT id FROM subjects WHERE slug = ?`)
+        .get(trackSlug) as { id: string } | undefined;
+      if (!subject) return [];
+      const rows = db
+        .prepare(
+          `SELECT challenge_id AS slug
+           FROM challenge_attempts
+           WHERE subject_id = ? AND lesson_id = ? AND verdict IN ('failed','timeout')
+           GROUP BY challenge_id
+           ORDER BY MAX(created_at) DESC`,
+        )
+        .all(subject.id, `lesson:${lessonId}`) as unknown as Array<{ slug: string }>;
+      return rows.map((r) => r.slug);
     },
   };
 }

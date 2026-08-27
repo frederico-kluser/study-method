@@ -111,7 +111,7 @@
     "open": "Open",
     "sources": "Sources",
     "statement": "Statement",
-    "sourcesEmpty": "No sources registered.",
+    "sourcesEmpty": "This lesson has no external sources.",
     "warning": "Warning:",
     "invalidSubject": "Invalid subject.",
     "starting": "Starting…",
@@ -172,7 +172,31 @@
       "wrong": "Wrong answer. The expected answer was {{expected}}.",
       "malformed": "I couldn't read your answer as a number. Type just the value (e.g., 7 or 5/6).",
       "error": "Could not check the answer right now."
-    }
+    },
+    "emptyTitle": "No lesson selected",
+    "emptyDescription": "Pick a track in the Track tab and open a lesson — the content is ready, just study.",
+    "emptyCta": "Browse tracks",
+    "sourcesButton": "Sources",
+    "theoryProgress": "Theory progress: {{percent}}%",
+    "theoryCount": "Section {{current}} of {{total}}",
+    "prerequisitesLabel": "Stuck? Review:",
+    "chatStart": "This lesson is a chat with the tutor. Click below to start the first theory section.",
+    "startButton": "Start lesson",
+    "typing": "tutor typing…",
+    "askInput": "Your question…",
+    "askSend": "Ask",
+    "nextButton": "Next →",
+    "finishButton": "Finish lesson",
+    "doneMarked": "Done ✓",
+    "challengesTitle": "Challenges in this lesson",
+    "difficulty": "difficulty {{n}}",
+    "generatedBadge": "generated for you",
+    "challengePassed": "Passed with {{stars}} star(s)",
+    "challengeFailedCount": "Failed {{n}} time(s) — try again",
+    "challengeUntried": "Never tried",
+    "sourcesTitle": "Sources for this lesson",
+    "trackNotFound": "Lesson not found in the track.",
+    "trackLoadFailed": "Could not load the lesson."
   },
   "challenge": {
     "openChallenge": "Open challenge",
@@ -206,7 +230,7 @@
     "starsAria": "Challenge stars: {{current}} of {{total}}",
     "timerAria": "Time left: {{time}}",
     "timedOut": "Time's up",
-    "timedOutAnnounce": "Time's up — 1 star less.",
+    "timedOutAnnounce": "Time's up.",
     "starLostFocus": "Focus lost — 1 star less.",
     "starLostSlow": "Time limit approaching — 1 star less.",
     "announcePassed": "Tests passed: {{testsRun}} of {{expectedTests}} cases.",
@@ -224,7 +248,18 @@
       "hint": "Drag, or use the arrow keys while the divider has focus"
     },
     "statementPane": "Statement",
-    "editorPane": "Editor"
+    "editorPane": "Editor",
+    "trackNotFound": "Challenge not found in the track.",
+    "difficulty": "difficulty {{n}}",
+    "testsCount": "{{n}} test(s)",
+    "generatedBadge": "new challenge",
+    "startButton": "Start",
+    "editorLabel": "Your code (solution.mjs)",
+    "testButton": "Test answer",
+    "passedAnnounce": "Passed with {{stars}} star(s)!",
+    "failedSummary": "Failed: {{testsRun}} of {{expected}} tests passed. See output:",
+    "regenerateButton": "Generate new challenge",
+    "proficiencyPassed": "Proficiency approved — the whole track is unlocked!"
   },
   "gate": {
     "checking": "Checking setup…",
@@ -329,7 +364,10 @@
       "empty": "Nothing in progress — pick a subject below",
       "resume": "Resume",
       "lastSubject": "Last subject"
-    }
+    },
+    "tracksTitle": "Tracks",
+    "tracksDescription": "Ready-made courses, from zero to professional. Pick a track and start.",
+    "trackProgress": "{{done}}/{{total}}"
   },
   "tutorial": {
     "progress": {
@@ -550,5 +588,25 @@
       "noLessons": "This subject has no lessons yet. Generate the first lesson to start the trail.",
       "noLessonsCta": "Generate first lesson"
     }
+  },
+  "roadmap": {
+    "done": "Done",
+    "current": "In progress",
+    "locked": "Locked — finish the previous one (or pass the proficiency test)",
+    "pending": "Available",
+    "difficulty": "difficulty {{n}}",
+    "moduleCount": "{{done}} of {{total}} lessons done",
+    "toggleModule": "Toggle module {{module}}",
+    "trackCount": "{{done}} of {{total}} lessons done",
+    "pickTitle": "Pick a track",
+    "notFound": "Track not found.",
+    "loadFailed": "Could not load the track.",
+    "noTracks": "No tracks installed yet. Tracks are created by the tool authors (CLI).",
+    "proficiencyTitle": "Proficiency test",
+    "proficiencyDescription": "One challenge covering ALL modules of the track. Pass it to unlock the whole course and start wherever you want.",
+    "proficiencyStart": "Take the test",
+    "proficiencyRetake": "Retake",
+    "proficientBadge": "proficiency approved ✓",
+    "sequentialHint": "Lessons unlock in order: finish one to release the next — or pass the proficiency test to unlock everything."
   }
 }

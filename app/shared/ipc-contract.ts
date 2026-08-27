@@ -252,12 +252,259 @@ export interface MarkChallengeAttemptRequest {
   stars?: number;
   /** milissegundos de duração (default 0). */
   durationMs?: number;
+  /** ADITIVO (rodada8-trilhas): lessonId da AULA da trilha — grava
+   * `lesson:<lessonId>` na tentativa (o padrão antigo deriva do subjectSlug).
+   * Permite o nunca-repetir por aula (desafios errados DAQUELA aula). */
+  lessonId?: string;
 }
 
 /** Resultado de `study:mark-challenge-attempt`. */
 export type MarkChallengeAttemptResult =
   | { ok: true; attempt: ChallengeAttemptRow }
   | { ok: false; error: string };
+
+// ─── Canais: TRILHAS (rodada 8 — conteúdo pré-definido por CLI) ──────────────
+// A partir da rodada 8 o aluno NÃO GERA mais aula: as trilhas chegam prontas
+// (resources/tracks, criadas pelo CLI de autoria tools/track-cli.ts) e o aluno
+// abre a trilha e escolhe a aula. Estes canais são ADITIVOS ao contrato
+// congelado (grupo novo = window.api.track.* no preload); os canais antigos de
+// geração (study:generate-lesson etc.) continuam existindo e são usados apenas
+// pelos fluxos legados.
+
+export const TRACK_CHANNELS = {
+  /** Lista as trilhas disponíveis com progresso do aluno. → TrackListResult */
+  LIST: 'track:list',
+  /** Detalhe de UMA trilha (módulos + aulas com estados locked/done/current). */
+  GET: 'track:get',
+  /** Conteúdo de UMA aula (teoria, fontes, pré-requisitos, desafios). */
+  LESSON: 'track:lesson',
+  /** Marca a aula como concluída (progressão sequencial da trilha). */
+  LESSON_DONE: 'track:lesson-done',
+  /** Chat com o tutor da aula: apresenta a próxima seção ou tira dúvida. */
+  TUTOR_CHAT: 'track:tutor-chat',
+  /** Desafio de UMA aula (enunciado + starter + tempo + carência de estrela). */
+  CHALLENGE_GET: 'track:challenge',
+  /** Executa o código do aluno contra os testes do desafio (determinístico). */
+  CHALLENGE_SUBMIT: 'track:challenge-submit',
+  /** Regenera UM desafio da aula: a LLM vê os desafios que o aluno ERROU e não repete. */
+  CHALLENGE_REGENERATE: 'track:challenge-regenerate',
+  /** Teste de proficiência da trilha (cobre tudo — destrava as aulas). */
+  PROFICIENCY_GET: 'track:proficiency',
+  /** Executa o código do aluno contra o teste de proficiência. */
+  PROFICIENCY_SUBMIT: 'track:proficiency-submit',
+} as const;
+
+export type TrackVerdict = 'passed' | 'failed' | 'timeout' | 'abandoned';
+
+/** Uma trilha na listagem (track:list). */
+export interface TrackListEntry {
+  slug: string;
+  title: string;
+  description: string;
+  domain: 'programming' | 'math';
+  moduleCount: number;
+  lessonCount: number;
+  /** lições concluídas pelo aluno (progresso sequencial). */
+  doneCount: number;
+  /** true quando o aluno passou no teste de proficiência. */
+  proficient: boolean;
+}
+
+export type TrackListResult =
+  | { ok: true; tracks: TrackListEntry[] }
+  | { ok: false; error: string };
+
+/** Aula resumida dentro do detalhe da trilha (track:get). */
+export interface TrackLessonEntry {
+  slug: string;
+  moduleSlug: string;
+  title: string;
+  summary: string;
+  difficulty: number;
+  /**
+   * Progressão: aula destravada quando a anterior está concluída OU a
+   * proficiência foi passada. A primeira aula da trilha sempre destrava.
+   */
+  locked: boolean;
+  done: boolean;
+  /** próxima aula a fazer (primeira destravada e não concluída) — no máx. 1. */
+  current: boolean;
+}
+
+export interface TrackModuleEntry {
+  slug: string;
+  title: string;
+  order: number;
+  lessons: TrackLessonEntry[];
+}
+
+export interface TrackDetailPayload {
+  slug: string;
+  title: string;
+  description: string;
+  domain: 'programming' | 'math';
+  modules: TrackModuleEntry[];
+  /** true quando a trilha tem teste de proficiência definido. */
+  proficiencyAvailable: boolean;
+  proficient: boolean;
+  doneCount: number;
+  lessonCount: number;
+}
+
+export type TrackDetailResult =
+  | { ok: true; track: TrackDetailPayload | null }
+  | { ok: false; error: string };
+
+/** Seção de teoria da aula (o tutor apresenta em modo chat, seção a seção). */
+export interface TrackTheorySectionDto {
+  id: string;
+  title: string;
+  markdown: string;
+  code?: { language: string; code: string; explanation?: string };
+}
+
+/** Fonte do conteúdo — exibida SOMENTE pelo botão "Fontes", nunca no fluxo. */
+export interface TrackSourceLinkDto {
+  title: string;
+  url: string;
+  description: string;
+}
+
+/** Desafio resumido dentro do conteúdo da aula. */
+export interface TrackChallengeSummaryDto {
+  slug: string;
+  title: string;
+  concept: string;
+  difficulty: number;
+  /** último veredito do aluno (null = nunca tentou). */
+  lastVerdict: TrackVerdict | null;
+  /** estrelas do último veredito (0..3). */
+  stars: number;
+  /** nº de vezes que o aluno falhou este desafio (para a UI exibir). */
+  failedCount: number;
+  /** true quando foi REGENERADO para este aluno (não existe na trilha). */
+  generated: boolean;
+}
+
+/** Conteúdo completo de UMA aula (track:lesson). */
+export interface TrackLessonPayload {
+  slug: string;
+  moduleSlug: string;
+  title: string;
+  summary: string;
+  difficulty: number;
+  concepts: string[];
+  /** aulas ANTERIORES da trilha — revisão quando o aluno não entender. */
+  prerequisites: { slug: string; title: string }[];
+  theory: TrackTheorySectionDto[];
+  sources: TrackSourceLinkDto[];
+  challenges: TrackChallengeSummaryDto[];
+  locked: boolean;
+  done: boolean;
+}
+
+export type TrackLessonResult =
+  | { ok: true; lesson: TrackLessonPayload | null }
+  | { ok: false; error: string };
+
+export type TrackLessonDoneResult = { ok: boolean; error?: string };
+
+/** Mensagem do chat do tutor (histórico enviado pelo renderer). */
+export interface TutorMessage {
+  role: 'assistant' | 'user';
+  content: string;
+}
+
+export interface TutorChatRequest {
+  trackSlug: string;
+  lessonId: string;
+  /** ids das seções JÁ apresentadas (o main decide qual é a próxima). */
+  presentedSections: string[];
+  history: TutorMessage[];
+  /**
+   * 'next' — apresenta a próxima seção da teoria em linguagem simples;
+   * 'answer' — responde à dúvida do aluno (última mensagem do history).
+   */
+  action: 'next' | 'answer';
+}
+
+export interface TutorReply {
+  ok: boolean;
+  error?: { code: string; message: string };
+  /** texto do tutor (seção apresentada ou resposta à dúvida). */
+  message: string;
+  /** seção apresentada por 'next' (null em 'answer' ou fim). */
+  sectionId: string | null;
+  sectionTitle?: string;
+  /** true quando TODAS as seções já foram apresentadas. */
+  done: boolean;
+}
+
+/** Especificação de UM desafio (track:challenge / regeneração). */
+export interface TrackChallengeSpec {
+  slug: string;
+  title: string;
+  concept: string;
+  difficulty: number;
+  statement: string;
+  starterCode: string;
+  expectedTestCount: number;
+  /** carência da 1ª estrela (ms) — antes disso o tempo não tira estrela. */
+  minFirstStarMs: number;
+  /** limite de tempo derivado da dificuldade (T = 90s + difficulty*60s). */
+  timeLimitMs: number;
+  /** 'track' = veio da trilha; 'generated' = regenerado para este aluno. */
+  source: 'track' | 'generated';
+  /** última tentativa do aluno neste desafio. */
+  lastVerdict: TrackVerdict | null;
+  stars: number;
+  failedCount: number;
+}
+
+export type TrackChallengeResult =
+  | { ok: true; challenge: TrackChallengeSpec | null }
+  | { ok: false; error: string };
+
+export interface TrackChallengeGetRequest {
+  trackSlug: string;
+  /** 'lesson' (desafio de aula) ou 'proficiency' (teste da trilha). */
+  target: 'lesson' | 'proficiency';
+  lessonId?: string;
+  challengeId?: string;
+}
+
+/** Submissão de código contra os testes de um desafio (execução determinística). */
+export interface TrackSubmitRequest {
+  trackSlug: string;
+  target: 'lesson' | 'proficiency';
+  lessonId?: string;
+  challengeId?: string;
+  code: string;
+}
+
+export interface TrackSubmitResult {
+  ok: boolean;
+  error?: { code: string; message: string };
+  /** true = TODOS os testes passaram. */
+  passed: boolean;
+  testsRun: number;
+  expectedTests: number;
+  output: string;
+}
+
+/** Regeneração de desafio — a LLM vê os desafios que o aluno errou na aula. */
+export interface TrackRegenerateRequest {
+  trackSlug: string;
+  lessonId: string;
+}
+
+export interface TrackRegenerateResult {
+  ok: boolean;
+  error?: { code: string; message: string };
+  challenge?: TrackChallengeSpec;
+  /** desafios que o aluno errou nesta aula (contexto do nunca-repetir). */
+  failedContext?: { slug: string; title: string }[];
+}
 
 export interface StudyFinding {
   query: string;

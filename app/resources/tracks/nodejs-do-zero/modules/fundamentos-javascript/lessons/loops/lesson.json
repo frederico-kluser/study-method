@@ -1,0 +1,60 @@
+{
+  "schemaVersion": 1,
+  "slug": "loops",
+  "title": "Loops",
+  "summary": "Repetir instruções com while e for, e dominar o padrão do acumulador.",
+  "difficulty": 1,
+  "concepts": [
+    "loops"
+  ],
+  "prerequisites": [
+    "condicionais"
+  ],
+  "theory": [
+    {
+      "id": "repetir-sem-repetir",
+      "title": "Repetir sem escrever de novo",
+      "markdown": "Programas repetem coisas o tempo todo: imprimir de 1 a 10, somar uma lista, tentar de novo.\n\nEscrever dez `console.log` seria chato — e se fossem mil? Para isso existem os **laços** (loops): estruturas que repetem um bloco enquanto uma condição for verdadeira.\n\nPense na fila do banco: \"enquanto houver gente na fila, atenda o próximo\". O laço `while` (enquanto) é exatamente isso:\n\n```\nwhile (condição) {\n  // instruções que se repetem\n}\n```\n\nO computador faz assim:\n\n1. Verifica a condição.\n2. Se for verdadeira, executa o bloco e volta ao passo 1.\n3. Se for falsa, segue o programa.\n\n**Cuidado com o laço infinito:** se a condição nunca vira falsa, o bloco roda para sempre e o programa trava. Sempre pergunte: \"o que muda dentro do bloco para a condição parar?\".\n\n**Estratégia:** \"para cada\", \"de 1 até N\", \"enquanto\", \"até que\" — é laço. \"Se\" — é if. Essa distinção resolve metade das dúvidas de quem está começando."
+    },
+    {
+      "id": "for-e-acumulador",
+      "title": "O laço for e a variável acumuladora",
+      "markdown": "O laço `for` é o mais usado para contar. Ele junta três partes em uma linha:\n\n```\nfor (início; condição; passo) {\n  // bloco que se repete\n}\n```\n\n- **início** — cria o contador: `let i = 1;`\n- **condição** — quando parar: `i <= 10;`\n- **passo** — o que muda a cada volta: `i++`\n\nO `i++` é a abreviação de `i = i + 1`: \"guarde em i o valor de i mais um\".\n\n**Padrão do acumulador:** para somar de 1 até N, criamos uma variável fora do laço (o \"pote\") e somamos cada valor dentro dele:\n\n```\nlet soma = 0;              // o pote começa vazio, FORA do laço\nfor (let i = 1; i <= 3; i++) {\n  soma = soma + i;         // joga i dentro do pote\n}\nconsole.log(soma);         // imprime: 6\n```\n\nAcompanhe a tabela da soma:\n\n| volta | i | soma (antes) | soma (depois) |\n|---|---|---|---|\n| 1 | 1 | 0 | 1 |\n| 2 | 2 | 1 | 3 |\n| 3 | 3 | 3 | 6 |\n| fim | 4 | — | condição falsa, para |\n\n**break e continue:**\n\n- `break` — sai do laço na hora, mesmo com a condição verdadeira.\n- `continue` — pula para a próxima volta, ignorando o resto do bloco.\n\nUse os dois com moderação: na maioria dos casos, a condição do laço já resolve.",
+      "code": {
+        "language": "js",
+        "code": "// imprime os números de 1 a 5\nfor (let i = 1; i <= 5; i++) {\n  console.log(i);\n}",
+        "explanation": "A primeira volta roda com i=1; a condição é conferida ANTES de cada volta; o passo i++ roda DEPOIS de cada volta. Quando i chega a 6, 6 <= 5 é falso e o laço termina."
+      }
+    },
+    {
+      "id": "exemplo-completo",
+      "title": "Exemplo completo: somar de 1 até N",
+      "markdown": "**Objetivo:** escrever `somarAte(n)`, que devolve a soma de 1 até n. Exemplo: `somarAte(4)` = 1 + 2 + 3 + 4 = 10.\n\nPasso 1 — confira a entrada.\nSomar de 1 até um texto não faz sentido. Número negativo? Não existe \"de 1 até -3\" — erro também.\n\nPasso 2 — crie o pote do acumulador FORA do laço.\nSe o pote fosse criado dentro, ele zeraria a cada volta. Fora, ele acumula.\n\nPasso 3 — repita a soma com o laço for.\nO contador i começa em 1, vai até n, e cresce de 1 em 1.\n\nPasso 4 — devolva o conteúdo do pote.\nDepois da última volta, `soma` tem o total. O `return` entrega o valor.",
+      "code": {
+        "language": "js",
+        "code": "// Passo 1: conferimos a entrada antes de calcular.\nfunction somarAte(n) {\n  if (typeof n !== 'number' || n < 0) {\n    throw new Error('n precisa ser um número maior ou igual a 0');\n  }\n\n  // Passo 2: o pote começa vazio, FORA do laço.\n  let soma = 0;\n\n  // Passo 3: i vai de 1 até n, somando 1 a cada volta.\n  for (let i = 1; i <= n; i++) {\n    soma = soma + i; // joga o valor de i dentro do pote\n  }\n\n  // Passo 4: devolvemos o total acumulado.\n  return soma;\n}\n\nconsole.log(somarAte(4)); // imprime: 10",
+        "explanation": "As voltas de somarAte(4): i=1 → soma 1; i=2 → soma 3; i=3 → soma 6; i=4 → soma 10; i=5 → condição falsa, para. E para n=0? O laço nem começa e o pote continua 0 — o caso limite sai de graça."
+      }
+    }
+  ],
+  "sources": [
+    {
+      "title": "MDN — Laços e iteração",
+      "url": "https://developer.mozilla.org/pt-BR/docs/Web/JavaScript/Guide/Loops_and_iteration",
+      "description": "Guia oficial de todos os laços do JavaScript."
+    },
+    {
+      "title": "MDN — for",
+      "url": "https://developer.mozilla.org/pt-BR/docs/Web/JavaScript/Reference/Statements/for",
+      "description": "Documentação do laço for (contador)."
+    },
+    {
+      "title": "MDN — while",
+      "url": "https://developer.mozilla.org/pt-BR/docs/Web/JavaScript/Reference/Statements/while",
+      "description": "Documentação do laço while (enquanto condição)."
+    }
+  ],
+  "challenges": [
+    "somar-ate"
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "slug": "tokens-e-sessoes",
+  "title": "Tokens e sessões",
+  "concept": "tokens_de_autenticacao",
+  "difficulty": 4,
+  "language": "nodejs",
+  "statement": "# Tokens e sessões\n\nDepois do login, o servidor precisa saber quem faz cada requisição. Para isso, ele entrega um token ao cliente, e o cliente devolve o token a cada pedido.\n\nVocê vai implementar a função `tokensESessoes(token)` que valida um token simulado e devolve o usuário — ou `null` se o token não for válido.\n\n**Formato do token:** `sm-token.<id>:<nome>`\n\nExemplo de token válido: `sm-token.7:ana` — deve devolver `{ id: '7', nome: 'ana' }`.\n\nRegras:\n\n- Se o valor recebido não for uma string, devolva `null`.\n- Se o token não começar com o prefixo `sm-token.`, devolva `null`.\n- Separe o payload (a parte depois do prefixo) com `split(':')`. Se não houver exatamente duas partes, devolva `null`.\n- Se alguma parte for vazia, devolva `null`.\n- Nos outros casos, devolva um objeto `{ id, nome }` com as duas partes.\n\nLeia o enunciado com calma e clique em **Começar** para iniciar o cronômetro.",
+  "starterCode": "// Valida um token e devolve o usuário { id, nome } ou null.\nexport function tokensESessoes(token) {\n  // TODO: implemente\n  throw new Error('não implementado');\n}\n",
+  "testsCode": "import { test } from 'node:test';\nimport assert from 'node:assert/strict';\nimport { tokensESessoes } from './solution.mjs';\n\ntest('token válido devolve o usuário', () => {\n  assert.deepEqual(tokensESessoes('sm-token.7:ana'), { id: '7', nome: 'ana' });\n});\n\ntest('token sem o prefixo é recusado', () => {\n  assert.equal(tokensESessoes('7:ana'), null);\n});\n\ntest('payload sem duas partes é recusado', () => {\n  assert.equal(tokensESessoes('sm-token.sem-nada'), null);\n});\n\ntest('valores que não são string são recusados', () => {\n  assert.equal(tokensESessoes(42), null);\n  assert.equal(tokensESessoes(undefined), null);\n});\n",
+  "solutionCode": "export function tokensESessoes(token) {\n  const PREFIXO = 'sm-token.';\n\n  if (typeof token !== 'string') return null;\n  if (!token.startsWith(PREFIXO)) return null;\n\n  const payload = token.slice(PREFIXO.length);\n  const partes = payload.split(':');\n  if (partes.length !== 2) return null;\n  if (partes[0] === '' || partes[1] === '') return null;\n\n  return { id: partes[0], nome: partes[1] };\n}\n",
+  "expectedTestCount": 4,
+  "minFirstStarMs": 60000
+}

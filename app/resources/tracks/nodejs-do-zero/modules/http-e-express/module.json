@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "slug": "http-e-express",
+  "title": "HTTP e Express: servidores",
+  "order": 4,
+  "lessons": [
+    "como-a-web-funciona",
+    "http-com-node",
+    "express-primeiros-passos",
+    "rotas-e-middleware",
+    "apis-rest-e-json"
+  ]
+}

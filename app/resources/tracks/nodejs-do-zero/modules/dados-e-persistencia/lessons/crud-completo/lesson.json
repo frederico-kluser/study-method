@@ -1,0 +1,60 @@
+{
+  "schemaVersion": 1,
+  "slug": "crud-completo",
+  "title": "CRUD completo: a API com banco de verdade",
+  "summary": "As rotas de uma API (GET, POST, PUT, DELETE) ligadas às tabelas do SQLite — o servidor que devolve e grava dados por id.",
+  "difficulty": 4,
+  "concepts": [
+    "crud_completo"
+  ],
+  "prerequisites": [
+    "sqlite-basico"
+  ],
+  "theory": [
+    {
+      "id": "cada-verbo-e-uma-operacao",
+      "title": "Cada verbo HTTP é uma operação",
+      "markdown": "Agora juntamos tudo: as rotas do Express (módulo 4) com o banco SQLite (aula anterior). Cada verbo HTTP vira uma operação do CRUD — como um atendente de balcão que recebe pedidos (as requisições) e anota no fichário (o banco):\n\n- `GET /tarefas` — LER: devolve a lista (`SELECT * FROM tarefas`);\n- `GET /tarefas/:id` — LER um item: devolve o item com aquele id, ou 404;\n- `POST /tarefas` — CRIAR: recebe o corpo JSON, insere e devolve 201 (criado) com o item novo;\n- `PUT /tarefas/:id` — ATUALIZAR: recebe o corpo JSON, muda o item daquele id e devolve o item atualizado (404 se o id não existe);\n- `DELETE /tarefas/:id` — DELETAR: apaga o item daquele id e devolve 204 (sem conteúdo) ou 404.\n\nDuas convenções importantes de API REST:\n\n1. **O corpo da requisição é JSON** — o middleware `express.json()` transforma o corpo em objeto (`req.body`);\n2. **O status code fala** — 200 = ok, 201 = criado, 404 = não encontrado, 400 = pedido inválido. Quem consome sua API decide o que fazer lendo o status.\n"
+    },
+    {
+      "id": "as-quatro-rotas-na-pratica",
+      "title": "As quatro rotas na prática",
+      "markdown": "Cada rota segue o mesmo esqueleto: receber a requisição → conversar com o banco → devolver a resposta com o status certo. O banco é aberto uma vez, no início do arquivo, e todas as rotas usam os mesmos comandos preparados.\n\nO id da URL chega em `req.params.id` — sempre texto. Compare com `Number(...)` antes de usar no SQL:\n\n- **GET /tarefas** → `SELECT * FROM tarefas` → `res.json(linhas)`;\n- **POST /tarefas** → INSERT com `req.body.nome` → `res.status(201).json(item novo)`. O `.run()` devolve um objeto com `lastInsertRowid` — o id gerado pelo banco — que você usa para buscar o item criado;\n- **PUT /tarefas/:id** → UPDATE com `WHERE id = ?` → se `changes === 0`, nada foi alterado: o id não existe, responda 404;\n- **DELETE /tarefas/:id** → DELETE com `WHERE id = ?` → mesmo teste: `changes === 0` → 404; senão 204 (sem corpo).\n\nCuidado com o erro mais comum: esquecer de tratar o id que não existe. O aluno testa com um id válido e funciona; depois envia um id inválido e o servidor responde \"ok\" sem ter feito nada. A checagem de 404 é parte do CRUD, não um extra.\n",
+      "code": {
+        "language": "javascript",
+        "code": "// ATUALIZAR — 404 se o id não existe\napp.put('/tarefas/:id', (req, res) => {\n  const info = atualizar.run(req.body.nome, Number(req.params.id));\n  if (info.changes === 0) {\n    return res.status(404).json({ erro: 'tarefa não encontrada' });\n  }\n  res.json(buscar.get(Number(req.params.id)));\n});\n",
+        "explanation": "A rota de atualizar: executa o UPDATE preparado e checa changes. Se nada mudou, o id não existe — resposta 404."
+      }
+    },
+    {
+      "id": "exemplo-completo",
+      "title": "Exemplo completo: servidor de tarefas com SQLite",
+      "markdown": "Aqui está a API completa: cinco rotas, banco SQLite, e cada resposta com o status code certo. Este é o padrão de servidor que a próxima aula (segurança) vai proteger. Leia os comentários com calma — cada bloco de rota tem o porquê de cada linha.\n\nPara testar na sua máquina: rode o arquivo (`node server.mjs`) e envie as requisições com o curl ou o Postman.\n",
+      "code": {
+        "language": "javascript",
+        "code": "import express from 'express';\nimport { DatabaseSync } from 'node:sqlite';\n\nconst app = express();\napp.use(express.json()); // transforma o corpo JSON da requisição em req.body\n\n// ─── banco: aberto uma vez, usado por todas as rotas ───\nconst db = new DatabaseSync('tarefas.db');\ndb.exec(`CREATE TABLE IF NOT EXISTS tarefas (\n  id INTEGER PRIMARY KEY,\n  nome TEXT NOT NULL,\n  feito INTEGER DEFAULT 0\n)`);\n\n// comandos preparados uma única vez\nconst listar = db.prepare('SELECT * FROM tarefas');\nconst buscar = db.prepare('SELECT * FROM tarefas WHERE id = ?');\nconst inserir = db.prepare('INSERT INTO tarefas (nome) VALUES (?)');\nconst atualizar = db.prepare('UPDATE tarefas SET nome = ?, feito = ? WHERE id = ?');\nconst apagar = db.prepare('DELETE FROM tarefas WHERE id = ?');\n\n// LER a lista inteira\napp.get('/tarefas', (req, res) => {\n  res.json(listar.all());\n});\n\n// LER um item pelo id — 404 se não existir\napp.get('/tarefas/:id', (req, res) => {\n  const tarefa = buscar.get(Number(req.params.id));\n  if (!tarefa) return res.status(404).json({ erro: 'tarefa não encontrada' });\n  res.json(tarefa);\n});\n\n// CRIAR — 201 com o item novo (lastInsertRowid dá o id gerado)\napp.post('/tarefas', (req, res) => {\n  const info = inserir.run(req.body.nome);\n  res.status(201).json(buscar.get(Number(info.lastInsertRowid)));\n});\n\n// ATUALIZAR — 404 se o id não existe\napp.put('/tarefas/:id', (req, res) => {\n  const info = atualizar.run(req.body.nome, req.body.feito ?? 0, Number(req.params.id));\n  if (info.changes === 0) return res.status(404).json({ erro: 'tarefa não encontrada' });\n  res.json(buscar.get(Number(req.params.id)));\n});\n\n// DELETAR — 404 se o id não existe; 204 (sem corpo) se deu certo\napp.delete('/tarefas/:id', (req, res) => {\n  const info = apagar.run(Number(req.params.id));\n  if (info.changes === 0) return res.status(404).json({ erro: 'tarefa não encontrada' });\n  res.status(204).end();\n});\n\napp.listen(3000, () => console.log('API em http://localhost:3000'));\n",
+        "explanation": "Exemplo completo resolvido: as cinco rotas do CRUD com SQLite, cada uma com o status code certo."
+      }
+    }
+  ],
+  "sources": [
+    {
+      "title": "SQLite — node:sqlite (Node.js)",
+      "url": "https://nodejs.org/docs/latest/api/sqlite.html",
+      "description": "Documentação oficial do módulo embutido de SQLite do Node."
+    },
+    {
+      "title": "Roteamento — Express",
+      "url": "https://expressjs.com/en/guide/routing.html",
+      "description": "Como definir rotas e usar os parâmetros de URL (req.params)."
+    },
+    {
+      "title": "Métodos HTTP — MDN",
+      "url": "https://developer.mozilla.org/pt-BR/docs/Web/HTTP/Methods",
+      "description": "O que cada método (GET, POST, PUT, DELETE) significa e quando usar."
+    }
+  ],
+  "challenges": [
+    "atualizar-item-por-id"
+  ]
+}

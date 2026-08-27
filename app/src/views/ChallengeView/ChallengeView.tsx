@@ -74,6 +74,7 @@ import { resolveFeedbackProvider } from '../../lib/feedbackProvider';
 import { feedbackProviderChipKey } from '../../lib/feedbackProviderUi';
 import { mapTestAnswerPhase } from '../../lib/testAnswerEvents';
 import { useChallengeNav } from '../../lib/challengeNav';
+import { TrackChallengePanel } from './TrackChallengePanel';
 import {
   createStarTracker,
   formatClock,
@@ -147,6 +148,15 @@ function MarkdownComponents() {
 export default function ChallengeView(): ReactElement {
   const { t } = useTranslation();
   const nav = useChallengeNav();
+
+  // RODADA 8 (trilhas): quando há um desafio de TRILHA selecionado (aula ou
+  // proficiência), o fluxo é o TrackChallengePanel — o aluno NÃO gera aula e o
+  // desafio vem da trilha (enunciado → Começar → editor → testar → veredito →
+  // "Gerar novo desafio" com nunca-repetir). O fluxo legado (workspace da
+  // geração) continua intacto abaixo para compatibilidade.
+  if (nav.trackChallenge) {
+    return <TrackChallengePanel selection={nav.trackChallenge} />;
+  }
 
   // t() com interpolação: o t() strict-typed desta base (src/i18n/i18next.d.ts)
   // rejeita options porque os valores dos JSONs chegam como `string` (não

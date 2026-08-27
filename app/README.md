@@ -92,6 +92,21 @@ adversarial. O relatório orquestrado (ondas, commits, gates, revisões) está e
   Testes: `tests/theme.test.ts` (valores + contraste) e `tests/e2e/e2e-theme.spec.ts` (asserts
   de cor dark/light reais).
 
+## Rodada 8 (ondas R8-1..R8-6) — resumo
+
+A **oitava rodada** fez o pivô de produto: **o aluno NÃO GERA mais aula**. As
+trilhas (cursos inteiros) são criadas pelos AUTORES via **CLI**
+(`npm run track -- ...`) e chegam prontas no app; o aluno abre a trilha,
+escolhe a aula e estuda num **chat direto com a IA** (teoria progressiva uma
+seção por vez + dúvidas; fontes atrás do botão "Fontes"). Desafios com botão
+"Começar" (o cronômetro só roda depois), **carência da 1ª estrela**
+(`minFirstStarMs`), **teste de proficiência** que cobre tudo e destrava a
+trilha, e **"Gerar novo desafio"** ao errar (a LLM vê os desafios que o aluno
+errou naquela aula e não repete — validado por execução antes de chegar).
+Trilha completa **Node.js do Zero** incluída: 8 módulos, 36 aulas, 36 desafios
++ proficiência, todos verificados por execução. Relatório completo em
+[`docs/relatorio-rodada8.md`](../docs/relatorio-rodada8.md).
+
 ## Rodada 7 (ondas R7-1..R7-5) — resumo
 
 A **sétima rodada** fechou o ciclo pedagógico do produto: avaliar a **resposta

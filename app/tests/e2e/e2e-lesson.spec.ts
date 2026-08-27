@@ -1,9 +1,17 @@
 /**
- * e2e-lesson.spec.ts — fluxo assunto → aula (research/author materializados).
+ * e2e-lesson.spec.ts — TRILHA → AULA em modo CHAT (rodada 8).
  *
- * Com o gate 'ready', vai para a aba Aula, digita o assunto, gera a aula e
- * aguarda: Stepper de fases + conteúdo markdown + lista de desafios.
- * No modo E2E o orchestrator/author são stub (sem LLM/rede).
+ * O aluno NÃO gera mais aula: a Home mostra as TRILHAS (fixture do harness
+ * E2E), a Trilha lista os itens já prontos e a aula é um chat com o tutor.
+ * Asserts do fluxo novo:
+ *   - Home mostra o cartão da trilha (com contagem de aulas);
+ *   - a Trilha abre com módulos/aulas pré-carregados (item já existe, sem
+ *     geração) e o teste de proficiência disponível;
+ *   - a aula abre como CHAT: "Começar aula" → mensagem do tutor (stub
+ *     determinístico) → "Próximo" → segunda seção → "Concluir aula";
+ *   - as FONTES ficam atrás do botão "Fontes" (nunca no fluxo);
+ *   - os DESAFIOS da aula aparecem abaixo (card clicável → aba Desafio).
+ * No modo E2E o tutor é stub (sem LLM/rede).
  */
 import { test, expect, type ElectronApplication, type Page } from '@playwright/test';
 import { launchApp, closeApp, makeWorkspaceRoot } from './helpers';
@@ -20,38 +28,53 @@ test.afterEach(async () => {
   if (app) await closeApp(app);
 });
 
-test('e2e-lesson: assunto → aula com Stepper + fases + markdown + desafios', async () => {
+test('e2e-lesson: trilha → aula em chat (teoria progressiva + fontes + desafios)', async () => {
   const launched = await launchApp({
     env: { E2E_GATE: 'ready', E2E_WORKSPACE_ROOT: wsRoot! },
   });
   app = launched.app;
   page = launched.page;
 
-  // App pronto: navega para a aba "Aula".
   await expect(page.getByRole('banner').getByText('Study Method — Tutor', { exact: false })).toBeVisible();
-  await page.getByRole('tab', { name: 'Aula' }).click();
 
-  // Digita o assunto e gera.
-  await page.getByLabel('Assunto').fill('Ordenação');
-  await page.getByRole('button', { name: 'Gerar nova aula' }).click();
+  // Home: a TRILHA já aparece como cartão (conteúdo pronto, nada a gerar).
+  await expect(page.getByText('Node.js do Zero', { exact: false }).first()).toBeVisible();
+  await expect(page.getByText('Trilhas', { exact: true }).first()).toBeVisible();
 
-  // Aguarda o Stepper de fases renderizar (a geração emite events + resolve).
-  await expect(page.getByText('Pesquisando', { exact: true })).toBeVisible();
-  await expect(page.getByText('Concluído', { exact: true })).toBeVisible();
+  // Abre a trilha → a aba Trilha já vem com os ITENS prontos.
+  await page.getByText('Node.js do Zero', { exact: false }).first().click();
+  await expect(page.getByRole('heading', { name: 'Node.js do Zero' })).toBeVisible();
+  await expect(page.getByText('Aula E2E sobre funções', { exact: false })).toBeVisible();
+  await expect(page.getByText('Aula E2E seguinte', { exact: false })).toBeVisible();
+  // Teste de proficiência disponível (cobre tudo).
+  await expect(page.getByRole('heading', { name: 'Teste de proficiência' })).toBeVisible();
 
-  // Conteúdo da aula CURTA (AnswerSection): título + lead (blockquote mockado) +
-  // exemplo de código. O markdown completo é resumido a 1–2 parágrafos + 1 code
-  // block por `summarizeLessonToShort`, então as seções "## Analogia" ("Imagine
-  // uma fila ordenada.") e "## Fórmula (KaTeX)" NÃO entram no resumo curto — a
-  // renderização KaTeX continua coberta por tests/lessonMarkdown.test.ts (unit,
-  // headless, mesmos plugins remark-math + rehype-katex).
-  await expect(page.getByText('Aula E2E sobre Ordenação', { exact: false })).toBeVisible();
-  await expect(
-    page.getByText('Conteúdo mockado do harness E2E — sem LLM/DeepSeek.', { exact: false }),
-  ).toBeVisible();
-  await expect(page.getByText('print("olá")', { exact: false })).toBeVisible();
-  await expect(page.getByRole('heading', { name: 'Desafios' })).toBeVisible();
+  // Abre a aula → CHAT com o tutor (nada de gerar).
+  await page.getByText('Aula E2E sobre funções', { exact: false }).first().click();
+  await expect(page.getByRole('heading', { name: 'Aula E2E sobre funções' })).toBeVisible();
 
-  // Lista de desafios: o card mockado está presente.
-  await expect(page.getByText('Ordenação (E2E)', { exact: false })).toBeVisible();
+  // O chat começa vazio: "Começar aula" apresenta a 1ª seção (stub).
+  await page.getByRole('button', { name: 'Começar aula' }).click();
+  await expect(page.getByText('Tutor E2E:', { exact: false }).first()).toBeVisible();
+
+  // Próximo → segunda seção da teoria (progressiva, uma por vez).
+  await page.getByRole('button', { name: 'Próximo →' }).click();
+  await expect(page.getByText('Tutor E2E:', { exact: false }).nth(1)).toBeVisible();
+
+  // Concluir aula → botão vira "Concluída ✓".
+  await page.getByRole('button', { name: 'Concluir aula' }).click();
+  await expect(page.getByRole('button', { name: 'Concluída ✓' })).toBeVisible();
+
+  // FONTES: atrás do botão, nunca no fluxo (o diálogo lista a fonte fixture).
+  await page.getByRole('button', { name: 'Fontes' }).click();
+  await expect(page.getByRole('heading', { name: 'Fontes desta aula' })).toBeVisible();
+  await expect(page.getByText('MDN', { exact: false })).toBeVisible();
+  await page.getByRole('button', { name: 'Fechar' }).click().catch(() => page.keyboard.press('Escape'));
+
+  // DESAFIOS da aula: card clicável → aba Desafio (fluxo track).
+  await expect(page.getByRole('heading', { name: 'Desafios desta aula' })).toBeVisible();
+  await page.getByText('O dobro do número', { exact: false }).first().click();
+  await expect(page.getByRole('heading', { name: 'O dobro do número' }).first()).toBeVisible();
+  // Enunciado presente e o botão "Começar" (cronômetro só depois dele).
+  await expect(page.getByRole('button', { name: 'Começar' })).toBeVisible();
 });

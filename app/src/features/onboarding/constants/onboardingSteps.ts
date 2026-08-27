@@ -91,26 +91,6 @@ export const ONBOARDING_STEPS: ReadonlyArray<OnboardingStepDefinition> = [
     expectedAction: 'open-lesson',
     hideContinueButton: true,
   },
-  {
-    id: 'lesson-subject-fill',
-    chapterId: 'lesson',
-    titleKey: 'translation:tutorial.steps.lessonSubject.title',
-    descriptionKey: 'translation:tutorial.steps.lessonSubjectFill.description',
-    targetSelector: '[data-onboarding-target="lesson-subject"]',
-    view: 'lesson',
-    expectedAction: 'fill-lesson-subject',
-    hideContinueButton: true,
-  },
-  {
-    id: 'lesson-generate',
-    chapterId: 'lesson',
-    titleKey: 'translation:tutorial.steps.lessonGenerate.title',
-    descriptionKey: 'translation:tutorial.steps.lessonGenerate.description',
-    targetSelector: '[data-onboarding-target="lesson-subject"]',
-    view: 'lesson',
-    expectedAction: 'generate-lesson',
-    hideContinueButton: true,
-  },
 
   // ─── Capítulo 4: Desafio — editor + testar ───────────────────────────
   {

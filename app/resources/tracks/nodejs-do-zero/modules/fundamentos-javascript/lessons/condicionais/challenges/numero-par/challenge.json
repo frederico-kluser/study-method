@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "slug": "numero-par",
+  "title": "Número par ou ímpar",
+  "concept": "condicionais",
+  "difficulty": 1,
+  "language": "nodejs",
+  "statement": "# Número par ou ímpar\n\nVocê vai escrever uma função que decide se um número é par.\n\nA função `numeroPar` recebe um número e devolve `true` se ele for par, e `false` se for ímpar.\n\nExemplos:\n\n- `numeroPar(4)` deve devolver `true`\n- `numeroPar(7)` deve devolver `false`\n- `numeroPar(-2)` deve devolver `true` — número negativo par também é par\n\nLembrete: use o operador `%` para calcular o resto da divisão por 2.\n\nSe o que chegar NÃO for um número, a função deve parar com um erro.\n\nLeia o enunciado com calma e clique em Começar para iniciar o cronômetro.",
+  "starterCode": "export function numeroPar(numero) {\n  // TODO: implemente a função\n  throw new Error('não implementado');\n}\n",
+  "testsCode": "import { test } from 'node:test';\nimport assert from 'node:assert/strict';\nimport { numeroPar } from './solution.mjs';\n\ntest('número par positivo', () => {\n  assert.equal(numeroPar(4), true);\n});\n\ntest('número ímpar', () => {\n  assert.equal(numeroPar(7), false);\n});\n\ntest('número negativo par também é par', () => {\n  assert.equal(numeroPar(-2), true);\n});\n\ntest('recusa texto em vez de número', () => {\n  assert.throws(() => numeroPar('4'));\n});\n",
+  "solutionCode": "export function numeroPar(numero) {\n  if (typeof numero !== 'number') {\n    throw new Error('numero precisa ser um número');\n  }\n  return numero % 2 === 0;\n}\n",
+  "expectedTestCount": 4
+}

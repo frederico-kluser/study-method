@@ -1,0 +1,61 @@
+{
+  "schemaVersion": 1,
+  "slug": "como-a-web-funciona",
+  "title": "Como a Web funciona",
+  "summary": "Entenda a conversa entre cliente e servidor: request, response, URL, métodos HTTP e códigos de status.",
+  "difficulty": 3,
+  "concepts": [
+    "http"
+  ],
+  "prerequisites": [
+    "async-await",
+    "promises"
+  ],
+  "theory": [
+    {
+      "id": "conceito-e-analogia",
+      "title": "A web é um restaurante: o pedido e o prato",
+      "markdown": "Você já pediu comida em um restaurante? A web funciona igual. Quando você quer ver uma página, acontece uma conversa entre dois papéis:\n\n- O **cliente** (você, no navegador) faz o **pedido**. Na web, o pedido se chama **request**.\n- O **servidor** (o computador onde o site mora) prepara e entrega o prato. Na web, o prato se chama **response**.\n\nO navegador é o garçom: ele anota o seu pedido, leva até a cozinha e traz o prato de volta. O protocolo **HTTP** é a língua que o garçom e a cozinha usam para combinar o pedido — todo pedido HTTP segue o mesmo formato básico.\n\nCada prato do cardápio tem um nome. Na web, cada prato tem um **caminho** (path) dentro da **URL**: em `https://exemplo.com/sobre`, o caminho é `/sobre`.\n\nE assim como o restaurante tem entradas, pratos principais e sobremesas, o HTTP tem **métodos** que dizem o que você quer fazer:\n\n- `GET` — quero ver esse prato (pedir uma página).\n- `POST` — quero entregar um prato novo (enviar dados, como um formulário).\n\nQuando a cozinha responde, ela avisa se deu certo com um código de **status**:\n\n- `200` — pronto, aqui está! (deu certo).\n- `404` — esse prato não existe no cardápio (página não encontrada).\n- `500` — a cozinha quebrou (erro no servidor).\n\nResumo: o cliente manda um pedido com método e caminho; o servidor devolve um prato com um status."
+    },
+    {
+      "id": "aprofundamento",
+      "title": "A anatomia de uma request e de uma response",
+      "markdown": "Quando o navegador pede uma página, a primeira linha da request tem três partes separadas por espaço:\n\n1. o **método** (`GET`, `POST`, ...);\n2. o **caminho** (`/sobre`);\n3. a **versão do protocolo** (`HTTP/1.1`).\n\nO caminho pode carregar informação extra depois de um `?` — a **query string**. Em `GET /busca?q=node`, o caminho é `/busca` e o parâmetro `q` vale `node`.\n\nDo outro lado, a response começa com uma linha de status — `HTTP/1.1 200 OK` — e também tem cabeçalhos. O mais importante deles é o `Content-Type`, que diz o formato do conteúdo:\n\n- `text/html` — uma página;\n- `application/json` — dados em JSON (o formato que vamos usar nas próximas aulas).\n\nPor fim vem o **corpo** (body): o conteúdo de verdade — o HTML da página ou os dados JSON.\n\nEsse formato parece burocrático, mas é ele que permite que QUALQUER programa — navegador, celular, outro servidor — entenda qualquer site.",
+      "code": {
+        "language": "http",
+        "code": "# o pedido (request): o que o cliente envia\nGET /sobre HTTP/1.1\nHost: exemplo.com\nAccept: text/html\n\n# a resposta (response): o que o servidor devolve\nHTTP/1.1 200 OK\nContent-Type: text/html; charset=utf-8\n\n<h1>Página sobre</h1>",
+        "explanation": "A conversa inteira: o cliente pede o caminho /sobre com o método GET, e o servidor devolve o status 200 com o conteúdo no formato anunciado pelo Content-Type."
+      }
+    },
+    {
+      "id": "exemplo-completo",
+      "title": "Exemplo completo: lendo uma linha de request",
+      "markdown": "Vamos transformar a teoria em código. O desafio desta aula é interpretar uma linha de request. Antes do desafio, veja o exemplo resolvido — leia cada comentário como se fosse um professor explicando em voz alta.\n\nA função recebe uma linha como `GET /sobre HTTP/1.1` e devolve um objeto com o método e o caminho.",
+      "code": {
+        "language": "js",
+        "code": "// interpreta uma linha de request HTTP e devolve { method, path }\nfunction interpretarLinhaDeRequest(linha) {\n  // 1. Proteção: uma linha vazia não é um pedido válido.\n  //    Lançar erro aqui evita que o resto do código quebre com dados estranhos.\n  if (typeof linha !== 'string' || linha.trim() === '') {\n    throw new Error('linha de request inválida');\n  }\n\n  // 2. A linha tem partes separadas por espaço: metodo, caminho, versao.\n  //    trim() tira espaços extras do começo e do fim.\n  const partes = linha.trim().split(' ');\n  const metodo = partes[0]; // 'GET'\n\n  // 3. O caminho pode ter uma query string depois do '?'.\n  //    O servidor quer saber o CAMINHO; o resto fica para depois.\n  const caminhoCompleto = partes[1];              // '/busca?q=node'\n  const caminho = caminhoCompleto.split('?')[0];  // '/busca'\n\n  // 4. Devolvemos um objeto com as duas informações úteis.\n  return { method: metodo, path: caminho };\n}\n\n// Testando com o exemplo do início da aula:\nconsole.log(interpretarLinhaDeRequest('GET /sobre HTTP/1.1'));\n// → { method: 'GET', path: '/sobre' }",
+        "explanation": "Cada passo tem um motivo: validar antes de usar, separar por espaço, e cortar a query string para ficar só com o caminho."
+      }
+    }
+  ],
+  "sources": [
+    {
+      "title": "Visão geral do HTTP (MDN)",
+      "url": "https://developer.mozilla.org/pt-BR/docs/Web/HTTP/Overview",
+      "description": "Como a web funciona por baixo dos panos: mensagens, conexões e o papel de cada lado."
+    },
+    {
+      "title": "Métodos de requisição HTTP (MDN)",
+      "url": "https://developer.mozilla.org/pt-BR/docs/Web/HTTP/Methods",
+      "description": "A lista dos métodos HTTP (GET, POST e amigos) e quando usar cada um."
+    },
+    {
+      "title": "Códigos de status HTTP (MDN)",
+      "url": "https://developer.mozilla.org/pt-BR/docs/Web/HTTP/Status",
+      "description": "O que significa cada código de resposta, de 200 a 500."
+    }
+  ],
+  "challenges": [
+    "interpretar-linha-de-request"
+  ]
+}

@@ -46,8 +46,17 @@
  * Versão do schema. Bancos NOVOS nascem direto nesta versão (o migrator aplica
  * o `SCHEMA_SQL` completo quando `user_version` é 0). Bancos ANTIGOS sobem
  * versão a versão pela lista `MIGRATIONS` (ver migrate.ts) — SEM perder dados.
+ *
+ * v4 (rodada8-trilhas): o conteúdo das trilhas vive em ARQUIVOS estáticos
+ * (resources/tracks, criados pelo CLI); o banco guarda o PROGRESSO do aluno:
+ *   track_progress          lições concluídas por trilha (progressão sequencial)
+ *   track_proficiency       veredito do teste de proficiência da trilha
+ *   generated_challenges    desafios REGENERADOS por aluno (nunca-repetir)
+ *     (challenge_id NÃO é FK — o desafio pode ser gerado sem estar na tabela
+ *     challenges; o slug é a chave estável do nunca-repetir, igual a
+ *     challenge_attempts)
  */
-export const SCHEMA_VERSION = 3;
+export const SCHEMA_VERSION = 4;
 
 /**
  * Tabela de tentativas de desafio (v2): uma linha por execução de um desafio
@@ -157,6 +166,38 @@ CREATE TABLE IF NOT EXISTS progress (
 );`,
 
   CHALLENGE_ATTEMPTS_TABLE,
+
+  `-- track_progress (v4: lições concluídas por trilha — progressão sequencial)
+CREATE TABLE IF NOT EXISTS track_progress (
+  track_slug   TEXT NOT NULL,
+  lesson_id    TEXT NOT NULL,
+  completed_at TEXT NOT NULL DEFAULT (datetime('now')),
+  PRIMARY KEY (track_slug, lesson_id)
+);`,
+
+  `-- track_proficiency (v4: veredito do teste de proficiência da trilha)
+CREATE TABLE IF NOT EXISTS track_proficiency (
+  track_slug TEXT PRIMARY KEY,
+  verdict    TEXT NOT NULL CHECK (verdict IN ('passed','failed')),
+  stars      INTEGER NOT NULL DEFAULT 0 CHECK (stars BETWEEN 0 AND 3),
+  passed_at  TEXT NOT NULL DEFAULT (datetime('now'))
+);`,
+
+  `-- generated_challenges (v4: desafios REGENERADOS para este aluno — a LLM
+-- vê os desafios que ele errou na aula e não repete; challenge_id é o slug
+-- estável usado no nunca-repetir de challenge_attempts)
+CREATE TABLE IF NOT EXISTS generated_challenges (
+  id                  TEXT PRIMARY KEY,
+  track_slug          TEXT NOT NULL,
+  lesson_id           TEXT NOT NULL,
+  challenge_id        TEXT NOT NULL,
+  statement           TEXT NOT NULL,
+  starter_code        TEXT NOT NULL,
+  tests_code          TEXT NOT NULL,
+  solution_code       TEXT NOT NULL,
+  expected_test_count INTEGER NOT NULL,
+  created_at          TEXT NOT NULL DEFAULT (datetime('now'))
+);`,
 ];
 
 /**
@@ -187,6 +228,9 @@ export const TABLE_NAMES: readonly string[] = [
   'hint_break_events',
   'progress',
   'challenge_attempts',
+  'track_progress',
+  'track_proficiency',
+  'generated_challenges',
 ];
 
 /** Concatenação completa do schema: tabelas + índices, na ordem de dependência. */
@@ -261,5 +305,35 @@ export const MIGRATIONS: readonly MigrationStep[] = [
       `-- v3: lessons.exercise_json (bancos v2 -> v3) — sem tabela nova; o ALTER é guardedAlter`,
     ].join('\n'),
     guardedAlter: { table: 'lessons', column: 'exercise_json', sql: LESSONS_EXERCISE_ALTER },
+  },
+  {
+    version: 4,
+    sql: [
+      `-- v4: trilhas (rodada8) — tabelas novas, todas CREATE IF NOT EXISTS`,
+      `CREATE TABLE IF NOT EXISTS track_progress (
+  track_slug   TEXT NOT NULL,
+  lesson_id    TEXT NOT NULL,
+  completed_at TEXT NOT NULL DEFAULT (datetime('now')),
+  PRIMARY KEY (track_slug, lesson_id)
+);`,
+      `CREATE TABLE IF NOT EXISTS track_proficiency (
+  track_slug TEXT PRIMARY KEY,
+  verdict    TEXT NOT NULL CHECK (verdict IN ('passed','failed')),
+  stars      INTEGER NOT NULL DEFAULT 0 CHECK (stars BETWEEN 0 AND 3),
+  passed_at  TEXT NOT NULL DEFAULT (datetime('now'))
+);`,
+      `CREATE TABLE IF NOT EXISTS generated_challenges (
+  id                  TEXT PRIMARY KEY,
+  track_slug          TEXT NOT NULL,
+  lesson_id           TEXT NOT NULL,
+  challenge_id        TEXT NOT NULL,
+  statement           TEXT NOT NULL,
+  starter_code        TEXT NOT NULL,
+  tests_code          TEXT NOT NULL,
+  solution_code       TEXT NOT NULL,
+  expected_test_count INTEGER NOT NULL,
+  created_at          TEXT NOT NULL DEFAULT (datetime('now'))
+);`,
+    ].join('\n'),
   },
 ];

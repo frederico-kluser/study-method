@@ -1,15 +1,16 @@
 /**
- * e2e-test-answer.spec.ts — "Testar resposta" com runner mockado.
+ * e2e-test-answer.spec.ts — "Testar resposta" no desafio de TRILHA (rodada 8).
  *
- * No desafio aberto, clicar em "Testar resposta" dispara a fase determinística
- * (study:test-answer → stub com TESTS_RUN determinístico, evento started/done)
- * e depois a fase pi (pi:execute → stub streaming + score fixo). Assert:
- *  - a fase 'executando' é refletida (chip "rodando…");
- *  - o resultado final aparece com score determinístico (pi <pre>);
- *  - o feedback usa o provider DeepSeek (stub, sem rede).
+ * O desafio só começa depois de ler o enunciado e clicar em "Começar" (o
+ * cronômetro não roda antes). O main roda o código do aluno contra os testes
+ * (node --test REAL sobre a fixture — determinístico). Asserts:
+ *  - antes de "Começar" o editor NÃO está ativo (enunciado primeiro);
+ *  - após "Começar", o editor CodeMirror aparece e o cronômetro roda;
+ *  - resposta CORRETA → "Passou" (confete + estrelas);
+ *  - resposta ERRADA → erro apresentado + botão "Gerar novo desafio".
  */
 import { test, expect, type ElectronApplication, type Page } from '@playwright/test';
-import { launchApp, closeApp, makeWorkspaceRoot } from './helpers';
+import { launchApp, closeApp, makeWorkspaceRoot, openTrackChallenge } from './helpers';
 
 let app: ElectronApplication | undefined;
 let page: Page;
@@ -23,34 +24,43 @@ test.afterEach(async () => {
   if (app) await closeApp(app);
 });
 
-test('e2e-test-answer: executando → sucesso com score determinístico', async () => {
+test('e2e-test-answer: Começar → editor → resposta certa passa; errada mostra erro + gerar novo', async () => {
   const launched = await launchApp({
     env: { E2E_GATE: 'ready', E2E_WORKSPACE_ROOT: wsRoot! },
   });
   app = launched.app;
   page = launched.page;
 
-  await expect(page.getByRole('banner').getByText('Study Method — Tutor', { exact: false })).toBeVisible();
-  await page.getByRole('tab', { name: 'Aula' }).click();
-  await page.getByLabel('Assunto').fill('Ordenação');
-  await page.getByRole('button', { name: 'Gerar nova aula' }).click();
-  await page.getByText('Ordenação (E2E)', { exact: false }).first().click();
+  await openTrackChallenge(page);
 
-  // Desafio carregado e botão "Testar resposta" pronto.
-  await expect(page.getByRole('button', { name: 'Testar resposta' })).toBeVisible();
+  // ENUNCIADO primeiro; o editor SÓ aparece depois de "Começar".
+  await expect(page.getByText('Escreva uma função que devolve o dobro', { exact: false })).toBeVisible();
+  await expect(page.locator('.cm-content')).toHaveCount(0);
+
+  // "Começar" → cronômetro começa e o editor aparece.
+  await page.getByRole('button', { name: 'Começar' }).click();
+  await expect(page.locator('.cm-content').first()).toBeVisible();
+  await expect(page.getByRole('timer')).toBeVisible();
+
+  // Resposta ERRADA → erro apresentado + botão "Gerar novo desafio"
+  // (o editor trava após o veredito — o caminho de saída é o novo desafio).
+  await page.locator('.cm-content').first().click();
+  await page.keyboard.press('ControlOrMeta+a');
+  await page.keyboard.type('export function dobroDoNumero(n) { return n; }');
   await page.getByRole('button', { name: 'Testar resposta' }).click();
+  await expect(page.getByText('Falhou:', { exact: false })).toBeVisible({ timeout: 20_000 });
+  await expect(page.getByRole('button', { name: 'Gerar novo desafio' })).toBeVisible();
+  // E2E: a regeneração exige LLM — OFF no stub; o erro é honesto (sem inventar).
+  await page.getByRole('button', { name: 'Gerar novo desafio' }).click();
+  await expect(page.getByText('regeneração desativada no modo E2E', { exact: false })).toBeVisible();
 
-  // Fase 'executando' → chip "rodando…" reflete (determinístico stub).
-  await expect(page.getByText('rodando…', { exact: false }).first()).toBeVisible({ timeout: 15_000 });
-
-  // Resultado com score determinístico do stub pi.
-  await expect(
-    page.locator('pre').filter({ hasText: 'score: 87/100' }).first(),
-  ).toBeVisible({ timeout: 20_000 });
-
-  // Provider de feedback: DeepSeek (stub resolved via flag default), sem rede.
-  await expect(page.getByText('DeepSeek', { exact: false })).toBeVisible();
-
-  // Nada mais "rodando" ao final.
-  await expect(page.getByText('rodando…', { exact: false })).toHaveCount(0);
+  // Reload → desafio recomeça do enunciado (estado fresco) → resposta CERTA.
+  await page.reload();
+  await openTrackChallenge(page);
+  await page.getByRole('button', { name: 'Começar' }).click();
+  await page.locator('.cm-content').first().click();
+  await page.keyboard.press('ControlOrMeta+a');
+  await page.keyboard.type('export function dobroDoNumero(n) { return n * 2; }');
+  await page.getByRole('button', { name: 'Testar resposta' }).click();
+  await expect(page.getByText('Passou com', { exact: false })).toBeVisible({ timeout: 20_000 });
 });

@@ -1,0 +1,60 @@
+{
+  "schemaVersion": 1,
+  "slug": "condicionais",
+  "title": "Condicionais",
+  "summary": "Fazer o programa decidir com if/else, comparar valores e combinar condições com &&, || e !.",
+  "difficulty": 1,
+  "concepts": [
+    "condicionais"
+  ],
+  "prerequisites": [
+    "funcoes"
+  ],
+  "theory": [
+    {
+      "id": "programa-que-decide",
+      "title": "Um programa que decide",
+      "markdown": "Até agora, o programa faz tudo do mesmo jeito. Mas programas de verdade decidem: \"se o usuário é adulto, libera; senão, não\".\n\nPara decidir, o JavaScript tem o `if` (se) e o `else` (senão):\n\n```\nif (condição) {\n  // o que fazer quando a condição é verdadeira\n} else {\n  // o que fazer quando a condição é falsa\n}\n```\n\nPense no semáforo: se a luz está verde, você atravessa; senão, espera. O computador verifica a condição e segue um dos dois caminhos — sempre um.\n\nA condição precisa ser um **booleano**: `true` (verdadeiro) ou `false` (falso). É o tipo booleano da aula de variáveis voltando para trabalhar.\n\n**Estratégia:** antes de programar, leia em voz alta: \"se X for verdadeiro, faço Y; senão, faço Z\". Se a frase fizer sentido, o código vai fazer.\n\nPara mais de dois caminhos, encadeamos com `else if`:\n\n- se for X, faço A;\n- senão, se for Y, faço B;\n- senão, faço C."
+    },
+    {
+      "id": "comparacoes-e-operadores-logicos",
+      "title": "Comparações e operadores lógicos",
+      "markdown": "Para construir condições, usamos **comparações** — elas sempre devolvem `true` ou `false`:\n\n| Operador | Significado | Exemplo verdadeiro |\n|---|---|---|\n| `===` | igual (mesmo valor E mesmo tipo) | `2 === 2` |\n| `!==` | diferente | `2 !== 3` |\n| `>` | maior que | `5 > 3` |\n| `<` | menor que | `3 < 5` |\n| `>=` | maior ou igual | `5 >= 5` |\n| `<=` | menor ou igual | `3 <= 5` |\n\nSempre use `===` (três sinais). O `==` (dois sinais) é uma pegadinha do JavaScript: ele compara \"quase igual\" e esconde erros. Exemplo: `0 == ''` é `true` — coisa que você não quer.\n\nPara combinar condições, usamos os **operadores lógicos**:\n\n- `&&` (e) — verdadeiro só se os DOIS lados forem verdadeiros.\n- `||` (ou) — verdadeiro se PELO MENOS UM lado for verdadeiro.\n- `!` (não) — inverte: o que era true vira false, e vice-versa.\n\nExemplo: \"maior de idade E com ingresso\":\n\n`idade >= 18 && temIngresso` — só passa se as duas forem verdadeiras.\n\n**Truthy e falsy:** dentro do `if`, todo valor \"conta\" como verdadeiro ou falso. Os falsy são poucos: `false`, `0`, `''` (texto vazio), `null`, `undefined` e `NaN`. Todo o resto é truthy. Por isso `if (nome)` funciona: texto vazio é falso, texto com conteúdo é verdadeiro.",
+      "code": {
+        "language": "js",
+        "code": "const idade = 17;\n\nif (idade >= 18) {\n  console.log('Pode entrar.');\n} else {\n  console.log('Volte quando for maior de idade.');\n}\n\n// combinando condições com && (e)\nconst temIngresso = true;\nif (idade >= 18 && temIngresso) {\n  console.log('Entrada liberada.');\n} else {\n  console.log('Entrada negada.');\n}",
+        "explanation": "O primeiro if escolhe um dos dois caminhos pela idade. O segundo exige que as DUAS condições sejam verdadeiras — idade e ingresso. Repare que cada if tem seu else."
+      }
+    },
+    {
+      "id": "exemplo-completo",
+      "title": "Exemplo completo: número par ou ímpar",
+      "markdown": "**Objetivo:** escrever a função `ehPar`, que recebe um número e devolve `true` se ele for par e `false` se for ímpar.\n\nPasso 1 — o truque do resto.\nTodo número par dividido por 2 deixa resto 0. O operador `%` calcula o resto da divisão: `4 % 2` é 0, `7 % 2` é 1.\n\nPasso 2 — escreva a condição.\n`numero % 2 === 0` é `true` exatamente quando o número é par.\n\nPasso 3 — devolva a condição direto.\nA comparação já devolve `true` ou `false`. O `return` pode devolver a própria comparação — sem precisar de if/else.\n\nPasso 4 — confira a entrada.\nSó números podem ser par ou ímpar. Texto chegando aqui é erro.",
+      "code": {
+        "language": "js",
+        "code": "// Passos 1, 2 e 3: % calcula o resto; a comparação vira o retorno.\nfunction ehPar(numero) {\n  // Passo 4: conferimos a entrada antes de decidir.\n  if (typeof numero !== 'number') {\n    throw new Error('numero precisa ser um número');\n  }\n\n  // A expressão já é true ou false — devolvemos ela inteira.\n  return numero % 2 === 0;\n}\n\nconsole.log(ehPar(4)); // imprime: true\nconsole.log(ehPar(7)); // imprime: false",
+        "explanation": "Não precisamos de if/else dentro da função: `numero % 2 === 0` já É um booleano, e o return devolve ele direto. A mesma função, duas entradas, duas respostas — a função decide sozinha."
+      }
+    }
+  ],
+  "sources": [
+    {
+      "title": "MDN — Tomando decisões no código",
+      "url": "https://developer.mozilla.org/pt-BR/docs/Learn_web_development/Core/Scripting/Conditionals",
+      "description": "Guia oficial de if, else e operadores de comparação."
+    },
+    {
+      "title": "MDN — if...else",
+      "url": "https://developer.mozilla.org/pt-BR/docs/Web/JavaScript/Reference/Statements/if...else",
+      "description": "Documentação da estrutura de decisão."
+    },
+    {
+      "title": "MDN — Operador lógico E (&&)",
+      "url": "https://developer.mozilla.org/pt-BR/docs/Web/JavaScript/Reference/Operators/Logical_AND",
+      "description": "Documentação do operador que exige duas condições verdadeiras."
+    }
+  ],
+  "challenges": [
+    "numero-par"
+  ]
+}

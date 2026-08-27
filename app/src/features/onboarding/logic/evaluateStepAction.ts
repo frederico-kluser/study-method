@@ -10,7 +10,7 @@
  *
  *  - `open-settings|open-lesson|open-challenge` → a aba ativa do shell mudou
  *    para a esperada (delta em relação ao snapshot);
- *  - `fill-lesson-subject` / `type-in-editor` / `settings-keys-filled` → os
+ *  - `type-in-editor` / `settings-keys-filled` → os
  *    sinais DOM ficaram non-vazios;
  *  - `generate-lesson` / `test-answer` → a ação foi disparada (saída de idle).
  *    Delta OPCIONAL (ACHADO-3): se o snapshot já indicava cumprido no início do
@@ -58,12 +58,6 @@ export function evaluateStepAction(
       return ctx.activeView === 'lesson' && snapshot.activeView !== 'lesson';
     case 'open-challenge':
       return ctx.activeView === 'challenge' && snapshot.activeView !== 'challenge';
-    case 'fill-lesson-subject':
-      return ctx.lessonSubjectNonEmpty;
-    case 'generate-lesson':
-      // Delta opcional (ACHADO-3): satisfaz também quando o snapshot já indicava
-      // a geração em andamento/concluída (re-run não trava por dead-lock de delta).
-      return ctx.lessonRunningOrDone;
     case 'type-in-editor':
       return ctx.studioCodeNonEmpty;
     case 'test-answer':
@@ -83,8 +77,6 @@ export const EXPECTED_ACTION_LABELS: Record<OnboardingExpectedAction, string> = 
   'open-settings': 'navegar para Configurações',
   'open-lesson': 'navegar para Aula',
   'open-challenge': 'navegar para Desafio',
-  'fill-lesson-subject': 'digitar o assunto da aula',
-  'generate-lesson': 'gerar a aula',
   'type-in-editor': 'escrever no editor',
   'test-answer': 'testar a resposta',
   'settings-keys-filled': 'preencher as chaves de API',

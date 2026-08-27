@@ -1,0 +1,60 @@
+{
+  "schemaVersion": 1,
+  "slug": "core-modules-do-node",
+  "title": "Módulos nativos do Node",
+  "summary": "path, fs, os e process.env: as ferramentas que já vêm com o Node.js para mexer em caminhos, arquivos e configurações.",
+  "difficulty": 2,
+  "concepts": [
+    "core_modules"
+  ],
+  "prerequisites": [
+    "npm-e-package-json"
+  ],
+  "theory": [
+    {
+      "id": "conceito",
+      "title": "A caixa de ferramentas que vem de fábrica",
+      "markdown": "Nem tudo precisa ser baixado do npm. O Node.js já vem com módulos prontos — os **core modules** (módulos nativos). Eles são a caixa de ferramentas que vem de fábrica.\n\nNesta aula você conhece os quatro mais úteis:\n\n- **`node:path`** — trabalha com caminhos de arquivos e pastas. O `path.join` une pedaços de caminho do jeito certo;\n- **`node:fs`** — lê e escreve arquivos no computador (fs = *file system*, \"sistema de arquivos\");\n- **`node:os`** — informações do sistema operacional;\n- **`process.env`** — variáveis de ambiente: configurações que chegam de fora do programa.\n\n**Analogia**: os core modules são a cozinha padrão do Node.js — fogão, geladeira e panelas. O npm são os utensílios especiais que você compra quando precisa. Primeiro a cozinha, depois as compras."
+    },
+    {
+      "id": "aprofundamento",
+      "title": "Ler um core module",
+      "markdown": "Para usar um core module, importamos com o prefixo `node:` — isso deixa claro que é nativo, não um pacote do npm:\n\n```js\nimport { join } from 'node:path';\nimport { readFileSync, writeFileSync } from 'node:fs';\n```\n\nO **path.join** une pedaços de caminho com o separador certo para o seu sistema — barra (`/`) no Mac e no Linux, contra-barra no Windows. Você não precisa saber qual é qual:\n\n```js\njoin('pasta', 'diario.txt') // 'pasta/diario.txt' no Mac/Linux\n```\n\nO **fs** tem duas operações que vamos usar já:\n\n- `readFileSync(caminho, 'utf8')` — lê o arquivo inteiro e devolve o texto. O `'utf8'` diz ao Node.js para interpretar os caracteres como texto;\n- `writeFileSync(caminho, conteudo)` — cria um arquivo com o conteúdo (ou substitui, se já existir).\n\nO **Sync** no nome significa síncrono: o programa espera a operação terminar antes de seguir para a próxima linha. Para arquivos pequenos, tudo bem. Numa aula mais adiante vamos conhecer o jeito assíncrono, que não deixa o programa parado.\n\nAs **variáveis de ambiente** (`process.env`) são configurações passadas de fora: rodar `SAUDACAO=oi node app.mjs` no terminal faz `process.env.SAUDACAO` valer `'oi'` dentro do programa. É assim que chaves e configurações entram sem ficar escritas no código.\n\nO **`node:os`** entrega informações do sistema: `os.platform()` diz o sistema operacional e `os.homedir()` devolve a pasta principal do usuário.",
+      "code": {
+        "language": "js",
+        "code": "import { join } from 'node:path';\nimport { platform, homedir } from 'node:os';\n\nconsole.log(join('pasta', 'arquivo.txt')); // caminho montado para o seu sistema\nconsole.log(platform());                   // 'darwin' | 'linux' | 'win32' ...\nconsole.log(homedir());                    // pasta principal do usuário\n",
+        "explanation": "O prefixo node: é o sinal de \"módulo nativo\". Cada função responde uma pergunta: qual caminho, qual sistema, qual pasta."
+      }
+    },
+    {
+      "id": "exemplo-completo",
+      "title": "Exemplo completo: ler, contar e gravar",
+      "markdown": "Um mini-programa que lê um arquivo de texto, conta as linhas e grava um resumo num arquivo novo.\n\n**Sub-objetivos** (o desafio desta aula simula os passos 1 e 3 com strings):\n\n1. montar o caminho com `path.join` (funciona em qualquer sistema);\n2. ler o arquivo com `fs.readFileSync`;\n3. contar as linhas com `split`;\n4. gravar o resumo com `fs.writeFileSync`.\n\nPara testar: crie a pasta `diario`, salve um texto em `diario/diario.txt` (uma frase por linha) e rode `node resumo.mjs`. Depois abra `diario/resumo.txt` — ele deve ter o resumo.",
+      "code": {
+        "language": "js",
+        "code": "// resumo.mjs\nimport { join } from 'node:path';                     // core module: caminhos\nimport { readFileSync, writeFileSync } from 'node:fs'; // core module: arquivos\n\n// 1. path.join monta o caminho. Funciona no seu sistema, seja qual for.\nconst caminhoDiario = join('diario', 'diario.txt');\n\n// 2. readFileSync lê o arquivo inteiro. 'utf8' diz: \"é texto\".\nconst texto = readFileSync(caminhoDiario, 'utf8');\n\n// 3. split('\\n') divide o texto no caractere de quebra de linha.\n//    Cada pedaço é uma linha — o tamanho da lista é o número de linhas.\nconst quantidade = texto.split('\\n').length;\n\n// 4. writeFileSync grava (ou substitui) o arquivo de resumo.\nconst resumo = `O diario.txt tem ${quantidade} linhas.`;\nwriteFileSync(join('diario', 'resumo.txt'), resumo);\n\n// 5. Confirma no terminal.\nconsole.log(resumo);\n",
+        "explanation": "Cada core module faz um trabalho: path monta o endereço, fs lê e grava. O split('\\n') é a \"contagem de linhas\" que o desafio desta aula pede."
+      }
+    }
+  ],
+  "sources": [
+    {
+      "title": "Node.js — path",
+      "url": "https://nodejs.org/docs/latest/api/path.html",
+      "description": "Documentação do módulo path (join e amigos)."
+    },
+    {
+      "title": "Node.js — fs (file system)",
+      "url": "https://nodejs.org/docs/latest/api/fs.html",
+      "description": "Documentação do módulo fs: ler e escrever arquivos."
+    },
+    {
+      "title": "Node.js — process.env",
+      "url": "https://nodejs.org/docs/latest/api/process.html#processenv",
+      "description": "As variáveis de ambiente, na documentação do process."
+    }
+  ],
+  "challenges": [
+    "caminhos-e-linhas"
+  ]
+}

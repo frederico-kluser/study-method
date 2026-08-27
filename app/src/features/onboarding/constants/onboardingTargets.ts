@@ -61,11 +61,9 @@ export const ONBOARDING_TARGET_CATALOG: Record<string, OnboardingTargetMeta> = {
     view: 'settings',
   },
 
-  // ─── Aula (aba lesson) ─────────────────────────────────────────────────────
-  'lesson-subject': {
-    description: 'Área de assunto (campo de digitar o assunto da aula).',
-    view: 'lesson',
-  },
+  // ─── Aula (aba lesson) — rodada 8: sem campo de assunto (não se gera aula);
+  // o alvo do chat é `lesson-chat-input` (declarado na LessonView, sem entrada
+  // no catálogo porque o hint pós-tutorial é o único consumidor).
 
   // ─── Desafio (aba challenge) ───────────────────────────────────────────────
   'challenge-editor': {

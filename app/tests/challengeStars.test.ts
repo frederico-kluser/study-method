@@ -14,6 +14,7 @@ import {
   starLossI18nKey,
   INITIAL_STARS,
   DEFAULT_TIME_LIMIT_MS,
+  DEFAULT_MIN_FIRST_STAR_MS,
   BASE_TIME_MS,
   TIME_PER_DIFFICULTY_MS,
   SLOWNESS_60_RATIO,
@@ -161,7 +162,8 @@ describe('createStarTracker — decaimento por velocidade (onTick)', () => {
 
 describe('createStarTracker — limite customizado', () => {
   it('60%/85% escalam com timeLimitMs próprio', () => {
-    const tr = createStarTracker({ timeLimitMs: 10_000 });
+    // carência de 1s para a demora não interferir (rodada 8)
+    const tr = createStarTracker({ timeLimitMs: 10_000, minFirstStarMs: 1_000 });
     tr.onTick(5_999);
     assert.equal(tr.stars(), 3);
     tr.onTick(6_000); // 60% de 10s
@@ -178,6 +180,39 @@ describe('createStarTracker — limite customizado', () => {
     assert.equal(tr.isTimedOut(T), true);
     const tr2 = createStarTracker({ timeLimitMs: 0 });
     assert.equal(tr2.isTimedOut(T), true);
+  });
+});
+
+describe('createStarTracker — carência da 1ª estrela (rodada 8)', () => {
+  it('antes de minFirstStarMs a demora NÃO tira estrela', () => {
+    const t = createStarTracker({ timeLimitMs: T, minFirstStarMs: 60_000 });
+    // 61s: 61/300 ≈ 20% — sem perda mesmo assim (carência manda)
+    t.onTick(61_000);
+    assert.equal(t.stars(), 3);
+    // perda explícita continua imediata dentro da carência
+    t.onBlur();
+    assert.equal(t.stars(), 2);
+  });
+
+  it('após a carência o decaimento funciona normal (60%/85%)', () => {
+    const t = createStarTracker({ timeLimitMs: T, minFirstStarMs: 60_000 });
+    t.onTick(180_000); // 60% de 300s — passou da carência
+    assert.equal(t.stars(), 2);
+  });
+
+  it('default do produto: DEFAULT_MIN_FIRST_STAR_MS (60s)', () => {
+    const t = createStarTracker({ timeLimitMs: T });
+    t.onTick(DEFAULT_MIN_FIRST_STAR_MS - 1);
+    assert.equal(t.stars(), 3);
+    t.onTick(DEFAULT_MIN_FIRST_STAR_MS + 1000);
+    // 61s < 60% de 300s (180s) → ainda sem perda (carência satisfeita, limiar não)
+    assert.equal(t.stars(), 3);
+  });
+
+  it('minFirstStarMs inválido → default; zero não desliga a carência', () => {
+    const t = createStarTracker({ timeLimitMs: T, minFirstStarMs: -1 });
+    t.onTick(1);
+    assert.equal(t.stars(), 3);
   });
 });
 

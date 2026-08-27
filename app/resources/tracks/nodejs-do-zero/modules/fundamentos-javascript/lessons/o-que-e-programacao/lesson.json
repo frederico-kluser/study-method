@@ -1,0 +1,58 @@
+{
+  "schemaVersion": 1,
+  "slug": "o-que-e-programacao",
+  "title": "O que é programação",
+  "summary": "O que é um programa, o que é código e como o JavaScript roda — com o seu primeiro cumprimento na tela.",
+  "difficulty": 1,
+  "concepts": [
+    "programacao"
+  ],
+  "prerequisites": [],
+  "theory": [
+    {
+      "id": "o-que-e-um-programa",
+      "title": "O que é um programa, afinal?",
+      "markdown": "Um programa é uma lista de instruções que o computador segue, uma de cada vez.\n\nPense numa receita de bolo. A receita diz: \"pegue 3 ovos\", \"bata por 5 minutos\", \"leve ao forno\". O computador faz a mesma coisa: ele lê suas instruções e executa cada uma, na ordem.\n\nCódigo é o nome que damos a essas instruções escritas. O código é escrito numa linguagem de programação — uma língua que o computador entende.\n\nJavaScript é uma dessas linguagens. É a língua que você vai aprender nesta trilha.\n\n**Estratégia da aula:** preste atenção em duas ideias e nada mais:\n\n1. O computador faz exatamente o que você escreveu — nem mais, nem menos.\n2. Erro não é castigo: é o computador dizendo que não entendeu algo."
+    },
+    {
+      "id": "como-o-javascript-roda",
+      "title": "Como o JavaScript roda",
+      "markdown": "O computador não entende JavaScript direto. Ele entende uma língua bem mais primitiva, a linguagem de máquina.\n\nPor isso o JavaScript passa por um **motor** (engine): um programa que traduz seu código para a língua do computador. O motor mais famoso se chama V8.\n\nO motor roda em dois lugares:\n\n- **No navegador** (Chrome, Firefox, Edge): é ele que faz os sites \"pensarem\".\n- **No Node.js**: um programa que roda JavaScript fora do navegador. É nele que seus códigos vão rodar nesta trilha.\n\nResumindo: você escreve o código, o motor traduz, o computador executa.\n\nPara ver o resultado de uma instrução, usamos o comando `console.log`, que imprime um valor na tela. Olhe com atenção os detalhes dele — cada um importa:\n\n- `console.log` é o comando de imprimir.\n- Os parênteses `()` dizem o que será impresso.\n- As aspas `'...'` marcam que o conteúdo é texto.\n- O ponto e vírgula `;` no final encerra a instrução.\n\nVocê não precisa decorar isso. Só precisa saber que existe.\n\nUm programa de verdade junta pedaços pequenos: guardar valores, decidir, repetir — e **funções**, blocos com nome que você chama quando precisa. O exemplo completo a seguir mostra a primeira função da trilha.",
+      "code": {
+        "language": "js",
+        "code": "// A primeira instrução de todo mundo: imprimir um texto na tela.\nconsole.log('Olá, mundo!');",
+        "explanation": "As aspas marcam o texto. O console.log o imprime. O ponto e vírgula termina a instrução. Linhas que começam com // são comentários: o computador ignora, o programador lê."
+      }
+    },
+    {
+      "id": "exemplo-completo",
+      "title": "Exemplo completo: um programa que cumprimenta",
+      "markdown": "**Objetivo:** um programa que cumprimenta qualquer pessoa pelo nome — a base do seu primeiro desafio.\n\nPasso 1 — crie uma função com nome claro.\nUma função é um bloco de instruções com nome. `cumprimentar` diz exatamente o que ela faz.\n\nPasso 2 — receba o nome.\nEntre os parênteses fica o **parâmetro**: o valor que a função recebe. Aqui, o nome da pessoa.\n\nPasso 3 — confira a entrada antes de usar.\nSe chegar um número no lugar do nome, a frase sairia estranha. Conferimos com `typeof` — ele diz o tipo de um valor: `typeof 42` é `'number'`, `typeof 'Maria'` é `'string'`. Se não for texto, lançamos um erro com `throw`.\n\nPasso 4 — devolva a frase com `return`.\nO `return` entrega o resultado para quem chamou a função.\n\nPasso 5 — use a função.\nChamamos `cumprimentar('Maria')` e imprimimos o que ela devolveu.",
+      "code": {
+        "language": "js",
+        "code": "// Passos 1 e 2: a função cumprimentar recebe o parâmetro nome.\nfunction cumprimentar(nome) {\n  // Passo 3: conferimos se nome é um texto (string).\n  // Se não for, paramos com um erro — número não tem nome.\n  if (typeof nome !== 'string') {\n    throw new Error('nome precisa ser um texto');\n  }\n\n  // Passo 4: juntamos os textos com + e devolvemos com return.\n  return 'Olá, ' + nome + '!';\n}\n\n// Passo 5: chamamos a função e imprimimos o resultado.\nconsole.log(cumprimentar('Maria')); // imprime: Olá, Maria!",
+        "explanation": "O sinal de + junta textos: 'Olá, ' + 'Maria' + '!' vira 'Olá, Maria!'. A função confere a entrada, monta a frase e devolve. Quem chamou decide o que fazer com ela — aqui, imprimir."
+      }
+    }
+  ],
+  "sources": [
+    {
+      "title": "MDN — O que é JavaScript",
+      "url": "https://developer.mozilla.org/pt-BR/docs/Learn_web_development/Core/Scripting/What_is_JavaScript",
+      "description": "Guia oficial: o que é JavaScript e o que ele faz, em linguagem simples."
+    },
+    {
+      "title": "MDN — Referência do JavaScript",
+      "url": "https://developer.mozilla.org/pt-BR/docs/Web/JavaScript",
+      "description": "A referência completa da linguagem — use como dicionário, não para ler do início."
+    },
+    {
+      "title": "MDN — console.log",
+      "url": "https://developer.mozilla.org/pt-BR/docs/Web/API/console/log_static",
+      "description": "Documentação do comando que imprime valores na tela."
+    }
+  ],
+  "challenges": [
+    "cumprimentar"
+  ]
+}

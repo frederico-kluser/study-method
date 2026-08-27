@@ -96,6 +96,29 @@ export async function launchApp(opts: LaunchOpts = {}): Promise<{
   return { app, page };
 }
 
+/**
+ * RODADA 8 (trilhas): navega do app pronto até o DESAFIO da trilha fixture.
+ * Fluxo: Home (cartão da trilha) → Trilha (aba) → aula → aba Aula (chat) →
+ * "Começar aula" → card do desafio → aba Desafio. Usado pelas specs que
+ * interagem com o editor/teste do desafio (editor, code-theme, fonts,
+ * test-answer). Determinístico no modo E2E (fixture em disco).
+ */
+export async function openTrackChallenge(page: Page): Promise<void> {
+  await page.getByRole('banner').getByText('Study Method — Tutor', { exact: false }).first().waitFor();
+  // Home: cartão da trilha fixture → navega para a Trilha (setPendingTrackSlug).
+  await page.getByText('Node.js do Zero', { exact: false }).first().click();
+  // Trilha: módulo com a aula → abre o chat da aula.
+  await page.getByText('Aula E2E sobre funções', { exact: false }).first().click();
+  // Aula (chat): inicia a teoria e avança UMA seção (texto determinístico do stub).
+  await page.getByRole('button', { name: 'Começar aula' }).click();
+  await page.getByText('Tutor E2E:', { exact: false }).first().waitFor();
+  // Card do desafio → aba Desafio (fluxo track).
+  await page.getByText('O dobro do número', { exact: false }).first().click();
+  // Enunciado do desafio carregado (pré-"Começar"). O título aparece no
+  // cabeçalho do painel E no markdown do enunciado — usa o primeiro.
+  await page.getByRole('heading', { name: 'O dobro do número' }).first().waitFor();
+}
+
 /** Fecha a aplicação de forma robusta (desvia app.quit via evaluate). */
 export async function closeApp(app: ElectronApplication): Promise<void> {
   try {

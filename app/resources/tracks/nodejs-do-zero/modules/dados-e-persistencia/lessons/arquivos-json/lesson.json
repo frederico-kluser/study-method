@@ -1,0 +1,66 @@
+{
+  "schemaVersion": 1,
+  "slug": "arquivos-json",
+  "title": "Arquivos JSON: dados que sobrevivem ao reinício",
+  "summary": "Salvar a lista em um arquivo .json com o módulo fs — depois desta aula, seus dados continuam existindo quando o servidor desliga.",
+  "difficulty": 4,
+  "concepts": [
+    "persistencia_em_arquivo",
+    "json_parse"
+  ],
+  "prerequisites": [
+    "dados-em-memoria"
+  ],
+  "theory": [
+    {
+      "id": "o-quadro-branco-vira-caderno",
+      "title": "O quadro branco vira caderno",
+      "markdown": "Na aula anterior, os dados viviam na memória: um quadro branco que apaga quando a luz apaga. Para os dados sobreviverem ao reinício do servidor, precisamos de um caderno — um arquivo no disco do computador.\n\nO caderno tem um idioma: o **JSON** (JavaScript Object Notation). JSON é um formato de TEXTO que representa dados. Ele se parece muito com um objeto JavaScript, e qualquer linguagem de programação consegue ler e escrever. Um arquivo JSON de tarefas fica assim:\n\n```json\n[{\"id\":1,\"nome\":\"estudar Node\"}]\n```\n\nQuem escreve e lê o caderno é o módulo `fs` (file system) do Node, que já vem embutido. Com ele, o servidor pode:\n\n- ler o arquivo quando sobe (carregar os dados na memória);\n- gravar o arquivo depois de cada mudança (salvar os dados).\n\nO fluxo completo: memória (rápida, mas apaga) + arquivo (lento, mas guarda). A memória atende as requisições; o arquivo é o que sobrevive ao reinício.\n",
+      "code": {
+        "language": "javascript",
+        "code": "import { readFileSync, writeFileSync } from 'node:fs';\n\n// LER: transforma o texto do arquivo em dados (JSON.parse)\nconst texto = readFileSync('tarefas.json', 'utf8');\nconst tarefas = JSON.parse(texto);\n\n// GRAVAR: transforma os dados em texto (JSON.stringify) e escreve no arquivo\nwriteFileSync('tarefas.json', JSON.stringify(tarefas, null, 2));\n",
+        "explanation": "readFileSync lê o arquivo como texto; JSON.parse transforma em dados. JSON.stringify transforma dados em texto; writeFileSync grava no arquivo. O \"null, 2\" deixa o texto indentado (legível)."
+      }
+    },
+    {
+      "id": "parse-e-stringify",
+      "title": "JSON.parse e JSON.stringify: a ponte",
+      "markdown": "As duas funções do JSON são a ponte entre dados e texto:\n\n- `JSON.stringify(dados)` — dados → texto. Aceita objetos, arrays, números, booleanos, null e strings.\n- `JSON.parse(texto)` — texto → dados. Devolve o objeto/array que estava escrito no texto.\n\nRegras que você precisa conhecer:\n\n1. JSON só aceita aspas DUPLAS: `{\"nome\": \"estudar\"}` — aspas simples dão erro.\n2. Não existe vírgula \"sobrando\": `{ \"a\": 1, }` é inválido.\n3. `JSON.parse` de um texto que não é JSON lança um `SyntaxError` — e um erro não tratado derruba o servidor.\n\nAo ler um arquivo, o código deve tratar o erro: o arquivo pode estar vazio, corrompido ou nem existir ainda (na primeira execução, o arquivo não existe!). O código ao lado mostra o padrão seguro para carregar os dados na subida do servidor.\n",
+      "code": {
+        "language": "javascript",
+        "code": "import { readFileSync, writeFileSync } from 'node:fs';\n\nlet tarefas = [];\ntry {\n  // na primeira execução o arquivo não existe: o erro cai no catch\n  tarefas = JSON.parse(readFileSync('tarefas.json', 'utf8'));\n} catch (erro) {\n  tarefas = []; // começa vazio — o arquivo nasce no primeiro save\n}\n\ntarefas.push({ id: tarefas.length + 1, nome: 'estudar Node' });\nwriteFileSync('tarefas.json', JSON.stringify(tarefas, null, 2));\n",
+        "explanation": "Ler na subida (com try/catch), mexer em memória, gravar no fim. O arquivo nasce no primeiro writeFileSync."
+      }
+    },
+    {
+      "id": "exemplo-completo",
+      "title": "Exemplo completo: um caderno de tarefas",
+      "markdown": "Vamos montar as mesmas funções da aula anterior, agora persistindo em arquivo. O padrão é sempre o mesmo: **CARREGAR na subida → MEXER em memória → GRAVAR de volta**. Leia os comentários: eles explicam o porquê de cada passo.\n\nPontos para prestar atenção:\n\n- `carregarTarefas` usa `try/catch` porque o arquivo não existe na primeira execução;\n- `salvarTarefas` grava o texto com `JSON.stringify` — é o que faz os dados sobreviverem;\n- a cada operação, o arquivo é relido e regravado: o arquivo é SEMPRE a fonte da verdade.\n",
+      "code": {
+        "language": "javascript",
+        "code": "import { readFileSync, writeFileSync } from 'node:fs';\n\nconst ARQUIVO = 'tarefas.json';\n\n// CARREGAR: lê o arquivo e devolve a lista (vazia na primeira vez)\nfunction carregarTarefas() {\n  try {\n    return JSON.parse(readFileSync(ARQUIVO, 'utf8'));\n  } catch (erro) {\n    return []; // arquivo ainda não existe ou está vazio\n  }\n}\n\n// SALVAR: transforma a lista em texto e grava no arquivo\nfunction salvarTarefas(tarefas) {\n  writeFileSync(ARQUIVO, JSON.stringify(tarefas, null, 2));\n}\n\n// CRIAR: carrega, adiciona e grava — o arquivo sempre atualizado\nfunction adicionarTarefa(nome) {\n  const tarefas = carregarTarefas();\n  const proximoId = tarefas.reduce((maior, t) => Math.max(maior, t.id), 0) + 1;\n  tarefas.push({ id: proximoId, nome });\n  salvarTarefas(tarefas);\n  return tarefas;\n}\n\n// LER: devolve o item pelo id (ou undefined)\nfunction buscarTarefa(id) {\n  return carregarTarefas().find(t => t.id === id);\n}\n\n// uso\nadicionarTarefa('estudar Node');\nadicionarTarefa('fazer exercício');\nconsole.log(buscarTarefa(1)); // { id: 1, nome: 'estudar Node' }\n// reinicie o script: as tarefas continuam lá, no arquivo tarefas.json\n",
+        "explanation": "Exemplo completo resolvido: carregar, mexer, salvar. Cada operação relê o arquivo — o arquivo é sempre a fonte da verdade."
+      }
+    }
+  ],
+  "sources": [
+    {
+      "title": "JSON — MDN (referência)",
+      "url": "https://developer.mozilla.org/pt-BR/docs/Web/JavaScript/Reference/Global_Objects/JSON",
+      "description": "Documentação oficial de JSON.parse e JSON.stringify."
+    },
+    {
+      "title": "Trabalhando com JSON — MDN",
+      "url": "https://developer.mozilla.org/pt-BR/docs/Learn/JavaScript/Objects/JSON",
+      "description": "Guia prático de JSON em JavaScript, com exemplos do mundo real."
+    },
+    {
+      "title": "fs — Node.js (file system)",
+      "url": "https://nodejs.org/docs/latest/api/fs.html",
+      "description": "Referência oficial do módulo fs: leitura e escrita de arquivos."
+    }
+  ],
+  "challenges": [
+    "parse-json-seguro"
+  ]
+}

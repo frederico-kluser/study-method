@@ -111,7 +111,7 @@
     "open": "Abrir",
     "sources": "Fontes",
     "statement": "Enunciado",
-    "sourcesEmpty": "Nenhuma fonte registrada.",
+    "sourcesEmpty": "Esta aula não tem fontes externas.",
     "warning": "Aviso:",
     "invalidSubject": "Assunto inválido.",
     "starting": "Iniciando…",
@@ -172,7 +172,31 @@
       "wrong": "Resposta errada. O esperado era {{expected}}.",
       "malformed": "Não consegui ler sua resposta como número. Digite apenas o valor (ex.: 7 ou 5/6).",
       "error": "Não consegui verificar a resposta agora."
-    }
+    },
+    "emptyTitle": "Nenhuma aula selecionada",
+    "emptyDescription": "Escolha uma trilha na aba Trilha e depois abra uma aula — o conteúdo já está pronto, é só estudar.",
+    "emptyCta": "Ver trilhas",
+    "sourcesButton": "Fontes",
+    "theoryProgress": "Progresso da teoria: {{percent}}%",
+    "theoryCount": "Seção {{current}} de {{total}}",
+    "prerequisitesLabel": "Não entendeu? Revisar:",
+    "chatStart": "Esta aula é um chat com o tutor. Clique abaixo para começar a primeira seção da teoria.",
+    "startButton": "Começar aula",
+    "typing": "tutor digitando…",
+    "askInput": "Sua dúvida…",
+    "askSend": "Perguntar",
+    "nextButton": "Próximo →",
+    "finishButton": "Concluir aula",
+    "doneMarked": "Concluída ✓",
+    "challengesTitle": "Desafios desta aula",
+    "difficulty": "dificuldade {{n}}",
+    "generatedBadge": "gerado para você",
+    "challengePassed": "Passou com {{stars}} estrela(s)",
+    "challengeFailedCount": "Falhou {{n}} vez(es) — tente de novo",
+    "challengeUntried": "Nunca tentado",
+    "sourcesTitle": "Fontes desta aula",
+    "trackNotFound": "Aula não encontrada na trilha.",
+    "trackLoadFailed": "Não foi possível carregar a aula."
   },
   "challenge": {
     "openChallenge": "Abrir desafio",
@@ -206,7 +230,7 @@
     "starsAria": "Estrelas do desafio: {{current}} de {{total}}",
     "timerAria": "Tempo restante: {{time}}",
     "timedOut": "Tempo esgotado",
-    "timedOutAnnounce": "Tempo esgotado — 1 estrela a menos.",
+    "timedOutAnnounce": "Tempo esgotado.",
     "starLostFocus": "Foco perdido — 1 estrela a menos.",
     "starLostSlow": "Limite de tempo se aproximando — 1 estrela a menos.",
     "announcePassed": "Os testes passaram: {{testsRun}} de {{expectedTests}} casos.",
@@ -224,7 +248,18 @@
       "hint": "Arraste, ou use as setas com a divisória em foco"
     },
     "statementPane": "Enunciado",
-    "editorPane": "Editor"
+    "editorPane": "Editor",
+    "trackNotFound": "Desafio não encontrado na trilha.",
+    "difficulty": "dificuldade {{n}}",
+    "testsCount": "{{n}} teste(s)",
+    "generatedBadge": "novo desafio",
+    "startButton": "Começar",
+    "editorLabel": "Seu código (solution.mjs)",
+    "testButton": "Testar resposta",
+    "passedAnnounce": "Passou com {{stars}} estrela(s)!",
+    "failedSummary": "Falhou: {{testsRun}} de {{expected}} testes passaram. Veja a saída:",
+    "regenerateButton": "Gerar novo desafio",
+    "proficiencyPassed": "Proficiência aprovada — a trilha inteira está destravada!"
   },
   "gate": {
     "checking": "Verificando configuração…",
@@ -329,7 +364,10 @@
       "empty": "Nada em andamento — escolha um assunto abaixo",
       "resume": "Retomar",
       "lastSubject": "Último assunto"
-    }
+    },
+    "tracksTitle": "Trilhas",
+    "tracksDescription": "Cursos prontos, do zero ao profissional. Escolha uma trilha e comece.",
+    "trackProgress": "{{done}}/{{total}}"
   },
   "tutorial": {
     "progress": {
@@ -550,5 +588,25 @@
       "noLessons": "Esta matéria ainda não tem aulas. Gere a primeira aula para começar a trilha.",
       "noLessonsCta": "Gerar primeira aula"
     }
+  },
+  "roadmap": {
+    "done": "Concluída",
+    "current": "Em andamento",
+    "locked": "Travada — conclua a anterior (ou passe na proficiência)",
+    "pending": "Disponível",
+    "difficulty": "dificuldade {{n}}",
+    "moduleCount": "{{done}} de {{total}} aulas concluídas",
+    "toggleModule": "Alternar módulo {{module}}",
+    "trackCount": "{{done}} de {{total}} aulas concluídas",
+    "pickTitle": "Escolha uma trilha",
+    "notFound": "Trilha não encontrada.",
+    "loadFailed": "Não foi possível carregar a trilha.",
+    "noTracks": "Nenhuma trilha instalada ainda. As trilhas são criadas pelos autores da ferramenta (CLI).",
+    "proficiencyTitle": "Teste de proficiência",
+    "proficiencyDescription": "Um desafio que cobre TODOS os módulos da trilha. Passe nele para destravar o curso inteiro e começar de onde quiser.",
+    "proficiencyStart": "Fazer o teste",
+    "proficiencyRetake": "Refazer",
+    "proficientBadge": "proficiência aprovada ✓",
+    "sequentialHint": "As aulas destravam em ordem: conclua uma para liberar a próxima — ou passe no teste de proficiência para liberar tudo."
   }
 }

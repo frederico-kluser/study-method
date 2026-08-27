@@ -1,0 +1,60 @@
+{
+  "schemaVersion": 1,
+  "slug": "variaveis-e-tipos",
+  "title": "Variáveis e tipos",
+  "summary": "Guardar valores em variáveis (let e const), conhecer os tipos texto, número e booleano, e conferir tipos com typeof.",
+  "difficulty": 1,
+  "concepts": [
+    "variaveis"
+  ],
+  "prerequisites": [
+    "o-que-e-programacao"
+  ],
+  "theory": [
+    {
+      "id": "caixinhas-com-nome",
+      "title": "Variáveis: caixinhas com nome",
+      "markdown": "Um programa precisa lembrar de coisas: o nome do usuário, a idade, o resultado de uma conta.\n\nPara isso o JavaScript tem **variáveis**: caixinhas com nome onde você guarda um valor.\n\nPense na geladeira: o potinho pode estar vazio ou cheio, mas a etiqueta \"leite\" continua a mesma. A variável é assim — o nome é a etiqueta, o valor pode mudar.\n\nDeclaramos uma variável com a palavra `let`:\n\n`let idade = 25;`\n\n- `let` — a palavra que cria a caixinha.\n- `idade` — o nome (a etiqueta).\n- `=` — \"guarde dentro\".\n- `25` — o valor guardado.\n- `;` — fim da instrução.\n\nDepois de criar, usamos o nome no lugar do valor:\n\n`console.log(idade);` imprime `25`.\n\nE o conteúdo pode ser trocado:\n\n`idade = 26;` — a etiqueta continua, o conteúdo mudou.\n\n**Estratégia:** toda vez que o programa precisar lembrar de um valor, pergunte: \"que nome eu daria a essa caixinha?\". Nome claro vale mais que código esperto."
+    },
+    {
+      "id": "const-e-os-tipos",
+      "title": "const e os três tipos mais comuns",
+      "markdown": "Existe uma segunda palavra para criar variáveis: `const`.\n\nA diferença é uma só: com `const` o valor não pode ser trocado depois. É uma caixinha lacrada.\n\n- Use `let` quando o valor vai mudar (um contador, uma entrada do usuário).\n- Use `const` quando o valor é fixo.\n\nRegra prática: comece com `const`. Se o JavaScript reclamar que você tentou trocar o valor, troque para `let`.\n\nTodo valor tem um **tipo** — uma categoria. Os três mais comuns:\n\n| Tipo | O que guarda | Exemplo |\n|---|---|---|\n| `string` | Texto | `'Maria'`, `\"Olá\"` |\n| `number` | Número | `42`, `3.14`, `-7` |\n| `boolean` | Verdadeiro ou falso | `true`, `false` |\n\nTexto pode usar aspas simples ou duplas — as duas funcionam igual. Só não misture no mesmo texto.\n\nPara conferir o tipo de um valor, existe o comando `typeof`:\n\n- `typeof 42` devolve `'number'`\n- `typeof 'oi'` devolve `'string'`\n\nE tem um truque para textos que mudam: o texto com crases (template literal). O que estiver dentro de `${...}` é calculado, não impresso ao pé da letra:\n\n`Oi, ${nome}! Você tem ${idade} anos.`\n\nAs crases são diferentes das aspas — confira na hora de digitar.",
+      "code": {
+        "language": "js",
+        "code": "const nome = 'Maria';      // texto — valor fixo\nlet idade = 25;            // número — pode mudar\n\nconsole.log(typeof nome);  // imprime: string\nconsole.log(typeof idade); // imprime: number\n\nidade = 26;                // ok: let permite trocar\n// nome = 'João';          // erro! const não permite trocar",
+        "explanation": "Cada linha cria ou consulta uma variável. Repare nos comentários: eles explicam o porquê de cada escolha — const para o fixo, let para o mutável."
+      }
+    },
+    {
+      "id": "exemplo-completo",
+      "title": "Exemplo completo: a idade daqui a 10 anos",
+      "markdown": "**Objetivo:** guardar uma idade, calcular a idade daqui a 10 anos e imprimir a frase completa.\n\nPasso 1 — guarde a idade atual numa variável.\nUse `const`: durante o programa, essa idade não muda.\n\nPasso 2 — calcule a idade futura e guarde em outra variável.\nA conta `idadeAtual + 10` produz um número novo. Guarde-o numa caixinha com nome claro.\n\nPasso 3 — monte a frase com crases e imprima.\nO que estiver dentro de `${...}` é calculado antes de virar texto.",
+      "code": {
+        "language": "js",
+        "code": "// Passo 1: a idade de hoje — const, porque não muda neste programa.\nconst idadeAtual = 25;\n\n// Passo 2: 25 + 10 vira 35, guardado em idadeFutura.\nconst idadeFutura = idadeAtual + 10;\n\n// Passo 3: crases + ${...} encaixam os valores dentro do texto.\nconsole.log(`Daqui a 10 anos, você terá ${idadeFutura} anos.`);\n// imprime: Daqui a 10 anos, você terá 35 anos.",
+        "explanation": "O JavaScript primeiro calcula cada ${...} (aqui, o valor 35), depois monta o texto completo e imprime. Não escrevemos \"35\" no texto — escrevemos o nome da caixinha. Se a idade mudasse, a frase mudaria junto: uma fonte única de verdade."
+      }
+    }
+  ],
+  "sources": [
+    {
+      "title": "MDN — Guardando informações com variáveis",
+      "url": "https://developer.mozilla.org/pt-BR/docs/Learn_web_development/Core/Scripting/Variables",
+      "description": "Guia oficial de let e const: quando usar cada um."
+    },
+    {
+      "title": "MDN — Template literals",
+      "url": "https://developer.mozilla.org/pt-BR/docs/Web/JavaScript/Reference/Template_literals",
+      "description": "Documentação do texto com crases e ${...}."
+    },
+    {
+      "title": "MDN — typeof",
+      "url": "https://developer.mozilla.org/pt-BR/docs/Web/JavaScript/Reference/Operators/typeof",
+      "description": "Comando que diz o tipo de um valor."
+    }
+  ],
+  "challenges": [
+    "somar"
+  ]
+}

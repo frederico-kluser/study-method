@@ -8,6 +8,6 @@
 export type { ViewProps } from './placeholders';
 export { HomeView } from './placeholders';
 export { default as SettingsView } from './SettingsView/SettingsView';
-export { default as LessonView } from './LessonView/LessonView';
-export { default as RoadmapView } from './RoadmapView/RoadmapView';
+export { LessonView } from './LessonView/LessonView';
+export { RoadmapView } from './RoadmapView/RoadmapView';
 export { default as ChallengeView } from './ChallengeView/ChallengeView';

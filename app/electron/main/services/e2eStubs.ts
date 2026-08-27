@@ -44,8 +44,23 @@ import {
   PI_CHANNELS,
   STT_CHANNELS,
   STUDY_CHANNELS,
+  TRACK_CHANNELS,
   TTS_CHANNELS,
 } from '@shared/ipc-contract';
+import type {
+  TrackChallengeGetRequest,
+  TrackChallengeResult,
+  TrackDetailResult,
+  TrackLessonDoneResult,
+  TrackLessonResult,
+  TrackListResult,
+  TrackRegenerateResult,
+  TrackSubmitRequest,
+  TrackSubmitResult,
+  TutorChatRequest,
+  TutorReply,
+} from '@shared/ipc-contract';
+import type { TrackRepoLike } from '../ipc/track-handlers';
 import { buildPiHandlers, type PiAgentServiceLike } from '../ipc/pi-handlers';
 import {
   buildStudyHandlers,
@@ -353,6 +368,272 @@ async function checkPiSdk(): Promise<boolean> {
   return true;
 }
 
+// ─── TRILHAS (rodada 8): fixture determinística em disco + repo fake ────────
+
+/**
+ * Escreve a FIXTURE da trilha em `workspaceRoot()/fixture-tracks/nodejs-do-zero`
+ * — conteúdo REAL no formato do produto (o loader do main consome): 1 módulo,
+ * 2 aulas, 1 desafio com código que roda (node:test REAL no submit) e 1 teste
+ * de proficiência. O spec E2E navega: Home → Trilha → Aula → Desafio.
+ */
+async function writeFixtureTrack(): Promise<void> {
+  const root = path.join(workspaceRoot(), 'fixture-tracks', 'nodejs-do-zero');
+  const lessonDir = path.join(root, 'modules', 'modulo-1', 'lessons');
+  const chalDir = path.join(lessonDir, 'aula-1', 'challenges', 'dobro-do-numero');
+  await fsp.mkdir(chalDir, { recursive: true });
+  await fsp.mkdir(path.join(lessonDir, 'aula-2'), { recursive: true });
+
+  const track = {
+    schemaVersion: 1,
+    slug: 'nodejs-do-zero',
+    title: 'Node.js do Zero',
+    description: 'Trilha fixture do harness E2E (sem rede/LLM).',
+    language: 'pt-BR',
+    domain: 'programming',
+    modules: ['modulo-1'],
+  };
+  const moduleMeta = {
+    schemaVersion: 1,
+    slug: 'modulo-1',
+    title: 'Módulo 1 (E2E)',
+    order: 1,
+    lessons: ['aula-1', 'aula-2'],
+  };
+  const aula1 = {
+    schemaVersion: 1,
+    slug: 'aula-1',
+    title: 'Aula E2E sobre funções',
+    summary: 'Resumo da aula fixture (E2E).',
+    difficulty: 1,
+    concepts: ['funcoes'],
+    prerequisites: [],
+    theory: [
+      { id: 'introducao', title: 'Introdução', markdown: 'Conteúdo mockado do harness E2E — sem LLM/DeepSeek.\n\n## Analogia\nImagine uma fila ordenada.' },
+      { id: 'funcoes', title: 'Funções', markdown: 'Função recebe um número e devolve o dobro.', code: { language: 'js', code: 'const dobro = (n) => n * 2;', explanation: 'n * 2 é o dobro.' } },
+    ],
+    sources: [{ title: 'MDN', url: 'https://example.org', description: 'Fonte fixture E2E.' }],
+    challenges: ['dobro-do-numero'],
+  };
+  const aula2 = {
+    schemaVersion: 1,
+    slug: 'aula-2',
+    title: 'Aula E2E seguinte',
+    summary: 'Segunda aula fixture (E2E).',
+    difficulty: 1,
+    concepts: ['variaveis'],
+    prerequisites: ['aula-1'],
+    theory: [{ id: 'intro', title: 'Introdução', markdown: 'Conteúdo da segunda aula (E2E).' }],
+    sources: [],
+    challenges: [],
+  };
+  const desafio = {
+    schemaVersion: 1,
+    slug: 'dobro-do-numero',
+    title: 'O dobro do número',
+    concept: 'funcoes',
+    difficulty: 1,
+    language: 'nodejs',
+    statement: '# O dobro do número\n\nEscreva uma função que devolve o dobro de um número.\n\nLeia o enunciado com calma e clique em Começar para iniciar o cronômetro.',
+    starterCode: 'export function dobroDoNumero(n) {\n  // TODO: implemente\n  throw new Error(\'não implementado\');\n}\n',
+    testsCode: [
+      `import { test } from 'node:test';`,
+      `import assert from 'node:assert/strict';`,
+      `import { dobroDoNumero } from './solution.mjs';`,
+      ``,
+      `test('dobro de 2 é 4', () => {`,
+      `  assert.equal(dobroDoNumero(2), 4);`,
+      `});`,
+      ``,
+      `test('dobro de 0 é 0', () => {`,
+      `  assert.equal(dobroDoNumero(0), 0);`,
+      `});`,
+      ``,
+      `test('dobro de -3 é -6', () => {`,
+      `  assert.equal(dobroDoNumero(-3), -6);`,
+      `});`,
+      ``,
+    ].join('\n'),
+    solutionCode: 'export function dobroDoNumero(n) {\n  return n * 2;\n}\n',
+    expectedTestCount: 3,
+  };
+  const proficiencia = {
+    ...desafio,
+    slug: 'proficiencia',
+    title: 'Proficiência E2E',
+    concept: 'proficiencia_e2e',
+    difficulty: 5,
+    minFirstStarMs: 120_000,
+    testsCode: [
+      `import { test } from 'node:test';`,
+      `import assert from 'node:assert/strict';`,
+      `import { dobroDoNumero } from './solution.mjs';`,
+      ``,
+      `test('dobro de 5 é 10', () => {`,
+      `  assert.equal(dobroDoNumero(5), 10);`,
+      `});`,
+      ``,
+    ].join('\n'),
+    expectedTestCount: 1,
+  };
+
+  await fsp.writeFile(path.join(root, 'track.json'), JSON.stringify(track, null, 2), 'utf8');
+  await fsp.writeFile(path.join(root, 'modules', 'modulo-1', 'module.json'), JSON.stringify(moduleMeta, null, 2), 'utf8');
+  await fsp.writeFile(path.join(lessonDir, 'aula-1', 'lesson.json'), JSON.stringify(aula1, null, 2), 'utf8');
+  await fsp.writeFile(path.join(lessonDir, 'aula-2', 'lesson.json'), JSON.stringify(aula2, null, 2), 'utf8');
+  await fsp.writeFile(path.join(chalDir, 'challenge.json'), JSON.stringify(desafio, null, 2), 'utf8');
+  await fsp.writeFile(path.join(root, 'proficiency.json'), JSON.stringify(proficiencia, null, 2), 'utf8');
+}
+
+/** Repo fake em memória (TrackRepoLike) — progresso determinístico do E2E. */
+function buildE2ETrackRepo(): TrackRepoLike {
+  const attempts = new Map<string, Array<{ verdict: string; stars: number }>>();
+  const done = new Set<string>();
+  let prof: { verdict: 'passed' | 'failed'; stars: number } | null = null;
+  const generated: Array<Record<string, unknown>> = [];
+  return {
+    listTrackLessonProgress: async () =>
+      Array.from(done).map((lessonId) => ({ trackSlug: 'nodejs-do-zero', lessonId, completedAt: 'e2e' })),
+    getTrackProficiency: async () =>
+      prof ? { trackSlug: 'nodejs-do-zero', verdict: prof.verdict, stars: prof.stars, passedAt: 'e2e' } : null,
+    listGeneratedChallenges: async () => generated as never,
+    getAttemptsForChallenge: async (id: string) =>
+      (attempts.get(id) ?? []).map((a, i) => ({
+        id: `${id}#${i}`,
+        subjectId: 'e2e-subject',
+        lessonId: 'lesson:aula-1',
+        challengeId: id,
+        verdict: a.verdict as 'passed' | 'failed' | 'timeout' | 'abandoned',
+        stars: a.stars,
+        durationMs: 0,
+        createdAt: String(i),
+      })),
+    markTrackLessonDone: async (_t, lessonId) => void done.add(lessonId),
+    setTrackProficiency: async (_t, v, s) => void (prof = { verdict: v, stars: s }),
+    insertGeneratedChallenge: async (input) => void generated.push(input as never),
+    listFailedChallengeSlugs: async () => [],
+  };
+}
+
+/** DeepSeek fake: o tutor responde texto determinístico (sem rede). */
+const e2eDeepseek = {
+  chatCompletion: async (req: unknown) => ({
+    content: 'Seção apresentada pelo tutor E2E (stub determinístico, sem rede).\n\nO que você quer saber?',
+    model: 'e2e-stub',
+    ...(req as { messages?: unknown }).messages ? {} : {},
+  }),
+} as never;
+
+export function buildTrackStubHandlers(): Map<string, IpcHandlerFn> {
+  const map = new Map<string, IpcHandlerFn>();
+  void writeFixtureTrack();
+  map.set(TRACK_CHANNELS.LIST, async (): Promise<TrackListResult> => {
+    await writeFixtureTrack();
+    const { loadAllTracks } = await import('../content/trackLoader');
+    const { buildTrackList } = await import('../services/trackService');
+    const { tracks } = await loadAllTracks(path.join(workspaceRoot(), 'fixture-tracks'));
+    return { ok: true, tracks: await buildTrackList(tracks, buildE2ETrackRepo()) };
+  });
+  map.set(TRACK_CHANNELS.GET, async (_e, payload: unknown): Promise<TrackDetailResult> => {
+    const p = (payload ?? {}) as { trackSlug?: string };
+    await writeFixtureTrack();
+    const { loadTrack } = await import('../content/trackLoader');
+    const { buildTrackDetail } = await import('../services/trackService');
+    const track = await loadTrack(path.join(workspaceRoot(), 'fixture-tracks', p.trackSlug ?? ''));
+    return { ok: true, track: await buildTrackDetail(track, buildE2ETrackRepo()) };
+  });
+  map.set(TRACK_CHANNELS.LESSON, async (_e, payload: unknown): Promise<TrackLessonResult> => {
+    const p = (payload ?? {}) as { trackSlug?: string; lessonId?: string };
+    await writeFixtureTrack();
+    const { loadTrack, findLessonAnywhere } = await import('../content/trackLoader');
+    const { buildTrackLesson } = await import('../services/trackService');
+    const track = await loadTrack(path.join(workspaceRoot(), 'fixture-tracks', p.trackSlug ?? ''));
+    const found = findLessonAnywhere(track, p.lessonId ?? '');
+    if (!found) return { ok: true, lesson: null };
+    return { ok: true, lesson: await buildTrackLesson(track, found.moduleSlug, p.lessonId!, buildE2ETrackRepo()) };
+  });
+  map.set(TRACK_CHANNELS.LESSON_DONE, async (_e, payload: unknown): Promise<TrackLessonDoneResult> => {
+    const p = (payload ?? {}) as { trackSlug?: string; lessonId?: string };
+    await buildE2ETrackRepo().markTrackLessonDone(p.trackSlug ?? '', p.lessonId ?? '');
+    return { ok: true };
+  });
+  map.set(TRACK_CHANNELS.TUTOR_CHAT, async (_e, payload: unknown): Promise<TutorReply> => {
+    const p = (payload ?? {}) as TutorChatRequest;
+    const { nextSection } = await import('../services/tutorChat');
+    const { loadTrack, findLessonAnywhere } = await import('../content/trackLoader');
+    const track = await loadTrack(path.join(workspaceRoot(), 'fixture-tracks', p.trackSlug ?? ''));
+    const found = findLessonAnywhere(track, p.lessonId ?? '');
+    if (!found) return { ok: false, message: '', sectionId: null, done: false, error: { code: 'LESSON_NOT_FOUND', message: 'não encontrada' } };
+    if (p.action === 'next') {
+      const section = nextSection(found.lesson.meta, p.presentedSections ?? []);
+      if (!section) return { ok: true, message: '', sectionId: null, done: true };
+      const done = nextSection(found.lesson.meta, [...(p.presentedSections ?? []), section.id]) === null;
+      return {
+        ok: true,
+        message: `Tutor E2E: ${section.title} — ${section.markdown.slice(0, 80)}`,
+        sectionId: section.id,
+        sectionTitle: section.title,
+        done,
+      };
+    }
+    const last = [...(p.history ?? [])].reverse().find((m) => m.role === 'user');
+    return {
+      ok: true,
+      message: `Tutor E2E responde a dúvida: ${last?.content ?? '(sem pergunta)'}`,
+      sectionId: null,
+      done: false,
+    };
+  });
+  map.set(TRACK_CHANNELS.CHALLENGE_GET, async (_e, payload: unknown): Promise<TrackChallengeResult> => {
+    const p = (payload ?? {}) as TrackChallengeGetRequest;
+    await writeFixtureTrack();
+    const { loadTrack } = await import('../content/trackLoader');
+    const { resolveChallengeSpec } = await import('../services/trackService');
+    const track = await loadTrack(path.join(workspaceRoot(), 'fixture-tracks', p.trackSlug ?? ''));
+    const spec = await resolveChallengeSpec(track, p.target, p.lessonId, p.challengeId, buildE2ETrackRepo());
+    return { ok: true, challenge: spec };
+  });
+  map.set(TRACK_CHANNELS.PROFICIENCY_GET, async (_e, payload: unknown): Promise<TrackChallengeResult> => {
+    const p = (payload ?? {}) as TrackChallengeGetRequest;
+    await writeFixtureTrack();
+    const { loadTrack } = await import('../content/trackLoader');
+    const { resolveChallengeSpec } = await import('../services/trackService');
+    const track = await loadTrack(path.join(workspaceRoot(), 'fixture-tracks', p.trackSlug ?? ''));
+    const spec = await resolveChallengeSpec(track, 'proficiency', undefined, p.challengeId, buildE2ETrackRepo());
+    return { ok: true, challenge: spec };
+  });
+  map.set(TRACK_CHANNELS.CHALLENGE_SUBMIT, async (_e, payload: unknown): Promise<TrackSubmitResult> => {
+    const p = (payload ?? {}) as TrackSubmitRequest;
+    await writeFixtureTrack();
+    const { loadTrack } = await import('../content/trackLoader');
+    const track = await loadTrack(path.join(workspaceRoot(), 'fixture-tracks', p.trackSlug ?? ''));
+    const { resolveChallengeSpec } = await import('../services/trackService');
+    const spec = p.target === 'proficiency'
+      ? await resolveChallengeSpec(track, 'proficiency', undefined, p.challengeId, buildE2ETrackRepo())
+      : await resolveChallengeSpec(track, 'lesson', p.lessonId, p.challengeId, buildE2ETrackRepo());
+    if (!spec) return { ok: false, error: { code: 'CHALLENGE_NOT_FOUND', message: 'não encontrado' }, passed: false, testsRun: 0, expectedTests: 0, output: '' };
+    // Execução REAL (node --test) sobre o código do aluno — determinístico.
+    const { runStudentCode } = await import('../services/challengeExec');
+    const testsCode = p.target === 'proficiency'
+      ? track.proficiency!.testsCode
+      : track.modules.flatMap((m) => m.lessons).find((l) => l.meta.slug === p.lessonId)?.challenges.find((c) => c.slug === p.challengeId)?.testsCode ?? '';
+    const res = await runStudentCode({ studentCode: p.code, testsCode, expectedTestCount: spec.expectedTestCount });
+    return { ok: true, passed: res.passed, testsRun: res.testsRun, expectedTests: spec.expectedTestCount, output: res.output };
+  });
+  map.set(TRACK_CHANNELS.PROFICIENCY_SUBMIT, async (_e, payload: unknown): Promise<TrackSubmitResult> => {
+    const p = (payload ?? {}) as TrackSubmitRequest & { stars?: number };
+    const base = (await map.get(TRACK_CHANNELS.CHALLENGE_SUBMIT)!(_e, { ...p, target: 'proficiency' })) as TrackSubmitResult;
+    if (base.ok && base.passed) {
+      await buildE2ETrackRepo().setTrackProficiency(p.trackSlug, 'passed', typeof p.stars === 'number' ? p.stars : 0);
+    }
+    return base;
+  });
+  map.set(TRACK_CHANNELS.CHALLENGE_REGENERATE, async (): Promise<TrackRegenerateResult> => ({
+    ok: false,
+    error: { code: 'REGEN_UNAVAILABLE', message: 'regeneração desativada no modo E2E (sem LLM).' },
+  }));
+  return map;
+}
+
 // ─── LLM local + voz: OFF no modo E2E ────────────────────────────────────────
 
 function buildLocalAiStubHandlers(): Map<string, IpcHandlerFn> {
@@ -454,6 +735,7 @@ export function registerE2EStubs(ipc?: IpcMainHandleLike): boolean {
 
   safeHandleMap(resolved, buildLocalAiStubHandlers());
   safeHandleMap(resolved, buildVoiceStubHandlers());
+  safeHandleMap(resolved, buildTrackStubHandlers());
 
   void fsp.mkdir(workspaceRoot(), { recursive: true }).catch(() => undefined);
   return true;

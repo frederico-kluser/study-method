@@ -1,0 +1,45 @@
+{
+  "schemaVersion": 1,
+  "slug": "callbacks",
+  "title": "Callbacks: funções que avisam quando terminam",
+  "summary": "Aprenda a passar funções como argumento para receber o resultado ou o erro de uma operação lenta — e conheça o problema do callback hell.",
+  "difficulty": 3,
+  "concepts": [
+    "callbacks"
+  ],
+  "prerequisites": [
+    "operacoes-lentas"
+  ],
+  "theory": [
+    {
+      "id": "deixe-o-seu-numero",
+      "title": "Deixe seu número que a gente te chama",
+      "markdown": "No dia a dia, quando um lugar está cheio, você não fica parado em frente ao balcão esperando. Você deixa o seu número e a equipe te chama quando a sua vez chegar. Enquanto isso, você pode fazer outras coisas.\n\nUm **callback** é isso: você entrega uma função (o seu \"número\") para uma operação lenta. Quando a operação terminar, ela chama a sua função para avisar.\n\nEm JavaScript, funções são valores como qualquer outro. Você pode guardar uma função numa variável, passar uma função como argumento... e é exatamente isso que um callback é: **uma função passada como argumento para outra função**.\n\nO `setTimeout` já faz isso! Ele recebe uma função e um tempo de espera. Quando o tempo passa, ele chama a sua função:\n\n```js\nsetTimeout(funcaoAvisar, 2000);\n```\n\nO programa não para por 2 segundos. Ele anota \"me chame daqui a 2 segundos\" e segue a vida. Quando o tempo chega, o event loop chama a sua função.\n\nCallbacks são a forma mais antiga (e mais simples) de lidar com operações lentas no JavaScript. Elas funcionam, mas têm um problema — que você verá no fim desta aula."
+    },
+    {
+      "id": "sucesso-e-erro",
+      "title": "Dois callbacks: o que deu certo e o que deu errado",
+      "markdown": "Uma operação lenta pode dar certo ou dar errado. O arquivo pode não existir. A internet pode cair. Por isso, o padrão clássico usa DOIS callbacks — ou um callback que recebe o erro primeiro.\n\nO `fs.readFile` (a versão assíncrona, sem o \"Sync\" no nome) funciona com o padrão **error-first**:\n\n```js\nfs.readFile('cardapio.txt', 'utf8', (erro, dados) => {\n  if (erro) {\n    console.log('Deu problema:', erro.message);\n    return; // para aqui se deu erro\n  }\n  console.log('Cardápio lido:', dados);\n});\n```\n\nRepare:\n\n- A leitura NÃO bloqueia o programa.\n- Quando termina, o Node chama a função que você passou.\n- Se deu errado, o primeiro parâmetro (`erro`) tem um valor. Se deu certo, ele é `null` e o segundo parâmetro (`dados`) tem o conteúdo.\n- Você testa o erro primeiro e sai com `return` se algo falhou. Esse é o padrão \"error-first\".\n\nSua própria função também pode receber callbacks. Você decide quando chamá-los:\n\n```js\nfunction lavarPrato(prato, quandoTerminar) {\n  console.log('Lavando', prato);\n  quandoTerminar(prato); // aviso que terminei!\n}\n\nlavarPrato('panela', (prato) => {\n  console.log(prato, 'lavado!');\n});\n```\n\nPassar funções como argumento é a ideia central. O resto é organização: um callback para o sucesso, outro (ou o primeiro parâmetro) para o erro."
+    },
+    {
+      "id": "exemplo-completo",
+      "title": "Exemplo completo: o pedido com callback",
+      "markdown": "Vamos resolver um exemplo passo a passo: um restaurante que anota o pedido, \"cozinha\" (espera um tempo) e depois avisa o cliente.\n\n```js\n// 1. Uma função que simula a cozinha.\n//    Ela recebe o pedido e uma função de aviso (o callback).\nfunction cozinhar(pedido, avisarPronto) {\n  console.log('Cozinhando:', pedido);\n  setTimeout(() => {\n    avisarPronto(pedido + ' está pronto!'); // a cozinha chama de volta\n  }, 2000);\n}\n\n// 2. Uma função que atende o cliente com callbacks de sucesso e de erro.\nfunction atenderCliente(cliente, pedido, aoSucesso, aoErro) {\n  if (!pedido) {\n    aoErro(new Error('Cliente não escolheu nada!'));\n    return; // erro: chama o callback de erro e para\n  }\n  cozinhar(pedido, (mensagem) => aoSucesso(cliente, mensagem));\n}\n\n// 3. Usando: passamos as funções de aviso na chamada.\natenderCliente(\n  'Ana',\n  'arroz com feijão',\n  (cliente, mensagem) => console.log(cliente, 'recebeu:', mensagem),\n  (erro) => console.log('Problema:', erro.message),\n);\n\nconsole.log('O garçom segue atendendo outras mesas...');\n```\n\nO que acontece:\n\n1. \"Cozinhando: arroz com feijão\" aparece.\n2. O programa NÃO espera. \"O garçom segue atendendo outras mesas...\" aparece na hora.\n3. Dois segundos depois, o callback dispara: \"Ana recebeu: arroz com feijão está pronto!\".\n\nEsse é o poder do callback: o programa segue vivo enquanto a cozinha trabalha.\n\n**O problema:** quando uma operação depende da outra, os callbacks se aninham. Três leituras seguidas viram uma \"pirâmide\":\n\n```js\nfs.readFile('a.txt', 'utf8', (erro, a) => {\n  fs.readFile('b.txt', 'utf8', (erro, b) => {\n    fs.readFile('c.txt', 'utf8', (erro, c) => {\n      console.log(a + b + c);\n    });\n  });\n});\n```\n\nQuanto mais passos, mais fundo fica o aninhamento — difícil de ler e de consertar. Isso tem até nome: **callback hell**. A próxima aula apresenta a ferramenta criada para resolver isso: as promises."
+    }
+  ],
+  "sources": [
+    {
+      "title": "Função de callback (MDN, glossário)",
+      "url": "https://developer.mozilla.org/pt-BR/docs/Glossary/Callback_function",
+      "description": "O que é uma função de callback em uma frase simples."
+    },
+    {
+      "title": "Bloqueio e não bloqueio: o básico (Node.js)",
+      "url": "https://nodejs.org/en/learn/asynchronous-work/overview-of-blocking-vs-non-blocking",
+      "description": "O padrão error-first do fs.readFile com callback, comparado ao síncrono."
+    }
+  ],
+  "challenges": [
+    "processar-numero"
+  ]
+}

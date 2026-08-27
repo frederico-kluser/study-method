@@ -51,6 +51,18 @@ import type {
   TtsGenerateRequest,
   TtsGenerateResult,
   TestAnswerResult,
+  TrackChallengeGetRequest,
+  TrackChallengeResult,
+  TrackDetailResult,
+  TrackLessonDoneResult,
+  TrackLessonResult,
+  TrackListResult,
+  TrackRegenerateRequest,
+  TrackRegenerateResult,
+  TrackSubmitRequest,
+  TrackSubmitResult,
+  TutorChatRequest,
+  TutorReply,
   ValidationResult,
   WorkspaceFile,
 } from '@shared/ipc-contract';
@@ -62,6 +74,7 @@ import {
   SETTINGS_CHANNELS,
   STT_CHANNELS,
   STUDY_CHANNELS,
+  TRACK_CHANNELS,
   TTS_CHANNELS,
 } from '@shared/ipc-contract';
 
@@ -88,6 +101,8 @@ export const API_GROUPS = {
   pi: PI_CHANNELS,
   localAi: LOCAL_AI_CHANNELS,
   study: STUDY_CHANNELS,
+  /** ADITIVO (rodada 8 — trilhas): conteúdo pré-definido por CLI + chat do tutor. */
+  track: TRACK_CHANNELS,
   stt: STT_CHANNELS,
   localTts: TTS_CHANNELS,
 } as const;
@@ -233,6 +248,19 @@ export interface ApiSchema {
     /** ADITIVO (onda3-respostas): avalia a INTERPRETAÇÃO digitada com LLM
      *  (deepseek → fallback embeddedLlm). Falha total ⇒ { ok:false, error }. */
     judgeAnswer(input: JudgeAnswerRequest): Promise<JudgeAnswerOutcome>;
+  };
+  /** ADITIVO (rodada 8 — trilhas): o aluno consome conteúdo pronto (CLI), não gera. */
+  track: {
+    list(): Promise<TrackListResult>;
+    get(input: { trackSlug: string }): Promise<TrackDetailResult>;
+    lesson(input: { trackSlug: string; lessonId: string }): Promise<TrackLessonResult>;
+    lessonDone(input: { trackSlug: string; lessonId: string }): Promise<TrackLessonDoneResult>;
+    tutorChat(input: TutorChatRequest): Promise<TutorReply>;
+    challenge(input: TrackChallengeGetRequest): Promise<TrackChallengeResult>;
+    challengeSubmit(input: TrackSubmitRequest): Promise<TrackSubmitResult>;
+    challengeRegenerate(input: TrackRegenerateRequest): Promise<TrackRegenerateResult>;
+    proficiency(input: TrackChallengeGetRequest): Promise<TrackChallengeResult>;
+    proficiencySubmit(input: TrackSubmitRequest & { stars?: number }): Promise<TrackSubmitResult>;
   };
   /** Onda 8 (voz local): STT — envelope { success, data?, error? }. */
   stt: {

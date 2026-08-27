@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "slug": "dados-e-persistencia",
+  "title": "Dados e persistência",
+  "order": 5,
+  "lessons": [
+    "dados-em-memoria",
+    "arquivos-json",
+    "sqlite-basico",
+    "crud-completo"
+  ]
+}

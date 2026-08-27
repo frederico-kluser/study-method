@@ -1,0 +1,66 @@
+{
+  "schemaVersion": 1,
+  "slug": "dados-em-memoria",
+  "title": "Dados em memória: seu primeiro banco",
+  "summary": "Como guardar dados dentro do servidor usando um array — e fazer as quatro operações de um CRUD manualmente, sem arquivo e sem banco.",
+  "difficulty": 4,
+  "concepts": [
+    "crud_em_memoria"
+  ],
+  "prerequisites": [
+    "apis-rest-e-json",
+    "express-primeiros-passos"
+  ],
+  "theory": [
+    {
+      "id": "o-que-e-memoria",
+      "title": "Dados que vivem na memória",
+      "markdown": "Quando seu servidor Express recebe uma requisição, ele pode guardar dados num array que fica na memória do computador. Enquanto o processo do Node está rodando, esse array existe e pode ser consultado por qualquer rota.\n\nPense na memória como um quadro branco de sala de aula: você escreve uma lista de tarefas nele e consulta quantas vezes quiser — mas quando a luz apaga (o servidor reinicia, o computador desliga), tudo some. Nada é gravado em lugar nenhum.\n\nUm array de objetos é a forma mais simples de guardar dados em memória:\n\n- cada item da lista é um objeto com campos (id, nome, ...);\n- o `id` é o \"RG\" do item: um número único que identifica aquele item;\n- as operações básicas de qualquer sistema de dados são 4: **Criar** (adicionar), **Ler** (buscar), **Atualizar** (mudar) e **Deletar** (remover). Essas quatro juntas têm um nome famoso: CRUD (Create, Read, Update, Delete).\n\nVocê não precisa de nenhuma biblioteca para fazer CRUD em memória: são métodos de array que você já conhece (push, find, filter) usados com um pouco de organização.\n",
+      "code": {
+        "language": "javascript",
+        "code": "// Guardar dados em memória é só criar um array no início do arquivo\nconst tarefas = [\n  { id: 1, nome: 'estudar Node' },\n  { id: 2, nome: 'fazer exercício' },\n];\n",
+        "explanation": "O array \"tarefas\" vive enquanto o servidor estiver rodando. Cada objeto é um registro, e o \"id\" identifica cada um deles."
+      }
+    },
+    {
+      "id": "crud-com-array",
+      "title": "CRUD manual com métodos de array",
+      "markdown": "As quatro operações do CRUD têm um método de array para cada uma. O importante é sempre usar o `id` para encontrar o item certo — nunca a posição.\n\n- **Criar** — `push` adiciona um item novo no fim da lista;\n- **Ler** — `find` devolve o primeiro item que satisfaz a condição, ou `undefined` se não achar nenhum;\n- **Atualizar** — `find` para achar o item e depois trocar os campos que mudaram;\n- **Deletar** — `filter` devolve uma lista nova só com os itens que passam no teste — o que não passa fica de fora, e a lista original não é alterada.\n\nNo código ao lado você vê as quatro operações juntas, com comentários explicando cada uma.\n\nRegra de ouro: **nunca confie em posições** (`tarefas[0]`) para achar um item — quando você remove um item do meio, todas as posições mudam. O `id` é a única referência estável.\n",
+      "code": {
+        "language": "javascript",
+        "code": "// CRIAR: push adiciona no fim da lista\ntarefas.push({ id: 3, nome: 'ler um capítulo' });\n\n// LER: find devolve o item com o id pedido (ou undefined)\nconst tarefa = tarefas.find(t => t.id === 3);\n\n// ATUALIZAR: achar o item e trocar os campos que mudaram\nconst t = tarefas.find(t => t.id === 3);\nt.nome = 'ler dois capítulos';\n\n// DELETAR: filter devolve uma lista nova sem o item removido\ntarefas = tarefas.filter(t => t.id !== 3);\n",
+        "explanation": "As quatro operações do CRUD: push cria, find lê, find + atribuição atualiza, filter remove."
+      }
+    },
+    {
+      "id": "exemplo-completo",
+      "title": "Exemplo completo: um mini banco de tarefas",
+      "markdown": "Vamos montar um pequeno \"banco\" de tarefas em memória com funções organizadas — o mesmo padrão que usaremos nas próximas aulas com arquivo e banco. Leia cada comentário: ele explica o porquê de cada passo.\n\n- `adicionarTarefa` cria uma tarefa nova e devolve a lista atualizada;\n- `buscarTarefa` procura pelo id;\n- `removerTarefa` tira a tarefa pelo id.\n\nRepare que as funções não alteram a lista que recebem: elas devolvem uma lista **NOVA**. Isso evita bugs difíceis de encontrar (efeitos colaterais) e é um hábito que os testes das próximas aulas vão cobrar.\n",
+      "code": {
+        "language": "javascript",
+        "code": "// ─── o \"banco\" em memória: começa vazio e vai enchendo ───\nlet tarefas = [];\n\n// CRIAR: devolve uma lista nova com a tarefa adicionada no fim\nfunction adicionarTarefa(lista, nome) {\n  // id automático: o maior id existente + 1 (na lista vazia, 0 + 1 = 1)\n  const proximoId = lista.reduce((maior, t) => Math.max(maior, t.id), 0) + 1;\n  // espalhamos a lista antiga com ... e acrescentamos o item novo\n  return [...lista, { id: proximoId, nome }];\n}\n\n// LER: devolve o item com aquele id, ou undefined se não existir\nfunction buscarTarefa(lista, id) {\n  return lista.find(t => t.id === id);\n}\n\n// DELETAR: devolve uma lista nova SEM o item com aquele id\nfunction removerTarefa(lista, id) {\n  return lista.filter(t => t.id !== id);\n}\n\n// uso: cada operação devolve a lista nova, que guardamos de volta\ntarefas = adicionarTarefa(tarefas, 'estudar Node');\ntarefas = adicionarTarefa(tarefas, 'fazer exercício');\nconsole.log(buscarTarefa(tarefas, 1).nome); // 'estudar Node'\ntarefas = removerTarefa(tarefas, 1);\nconsole.log(tarefas.length); // 1 — sobrou só 'fazer exercício'\n\n// ─── numa rota Express, o mesmo padrão ───\n// app.get('/tarefas', (req, res) => res.json(tarefas));\n// app.post('/tarefas', (req, res) => {\n//   tarefas = adicionarTarefa(tarefas, req.body.nome);\n//   res.status(201).json(tarefas.at(-1));\n// });\n",
+        "explanation": "Exemplo completo resolvido: as funções do CRUD recebem a lista como parâmetro e devolvem uma lista nova — o mesmo formato que o desafio desta aula vai cobrar."
+      }
+    }
+  ],
+  "sources": [
+    {
+      "title": "Array — MDN (métodos de array)",
+      "url": "https://developer.mozilla.org/pt-BR/docs/Web/JavaScript/Reference/Global_Objects/Array",
+      "description": "Referência dos métodos de array usados no CRUD: push, find, filter e outros."
+    },
+    {
+      "title": "Array.prototype.find — MDN",
+      "url": "https://developer.mozilla.org/pt-BR/docs/Web/JavaScript/Reference/Global_Objects/Array/find",
+      "description": "Como o find percorre a lista e devolve o primeiro item que satisfaz a condição."
+    },
+    {
+      "title": "Array.prototype.filter — MDN",
+      "url": "https://developer.mozilla.org/pt-BR/docs/Web/JavaScript/Reference/Global_Objects/Array/filter",
+      "description": "Como criar uma lista nova só com os itens que passam no teste — o método usado para remover."
+    }
+  ],
+  "challenges": [
+    "crud-em-memoria"
+  ]
+}

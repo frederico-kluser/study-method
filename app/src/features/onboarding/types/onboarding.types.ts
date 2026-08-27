@@ -38,10 +38,6 @@ export type OnboardingExpectedAction =
   | 'open-lesson'
   /** O usuário navegou o shell para a aba Desafio. */
   | 'open-challenge'
-  /** O campo de assunto da LessonView deixou de estar vazio. */
-  | 'fill-lesson-subject'
-  /** A geração de aula saiu de idle (running ou done). */
-  | 'generate-lesson'
   /** O editor CodeMirror do desafio passou a ter conteúdo. */
   | 'type-in-editor'
   /** O usuário disparou "Testar resposta" no desafio. */
@@ -59,8 +55,6 @@ export type OnboardingStepId =
   | 'open-settings'
   | 'settings-keys-fill'
   | 'open-lesson'
-  | 'lesson-subject-fill'
-  | 'lesson-generate'
   | 'open-challenge'
   | 'challenge-editor-type'
   | 'challenge-test-answer'

@@ -1,0 +1,52 @@
+{
+  "schemaVersion": 1,
+  "slug": "erros-comuns-de-seguranca",
+  "title": "Erros comuns de segurança",
+  "summary": "Injeção de SQL, XSS e segredos no código: reconhecer os erros e aplicar defesas simples.",
+  "difficulty": 4,
+  "concepts": [
+    "injecao_de_sql",
+    "xss",
+    "segredos_no_codigo"
+  ],
+  "prerequisites": [
+    "headers-e-cors"
+  ],
+  "theory": [
+    {
+      "id": "erros-mais-comuns",
+      "title": "Os três erros que mais derrubam sistemas",
+      "markdown": "Existem falhas de segurança que aparecem repetidamente em aplicações feitas por quem está aprendendo — e até em sistemas grandes. Vamos conhecer as três mais comuns, com analogias.\n\n**1. Injeção de SQL — o bilhete falso.**\n\nSeu servidor recebe um texto do usuário e o usa para montar uma consulta ao banco. Se o texto for usado \"cru\", o usuário pode escrever uma frase que o banco obedece — apagando tabelas, lendo dados alheios. É como um bilhete de acesso que alguém escreve com uma \"frase mágica\" que o porteiro aceita como se fosse a assinatura certa.\n\nExemplo clássico: no campo de nome, em vez de `ana`, o usuário digita `ana' OR '1'='1`. A consulta montada vira algo que devolve TUDO, porque `'1'='1'` é sempre verdadeiro.\n\n**2. XSS — o recado com veneno.**\n\nSe o servidor devolve texto do usuário sem tratamento, e o navegador interpreta esse texto como código, o usuário malicioso pode injetar JavaScript que roda no navegador de OUTRA pessoa. É como deixar um recado na porta do vizinho que, ao ser lido, explode na cara dele.\n\n**3. Segredos no código — a chave no tapete.**\n\nChave de API, senha de banco, token secreto... tudo isso é um \"segredo\": só o servidor deve conhecer. Colocar a chave dentro do arquivo de código é como esconder a chave de casa embaixo do tapete: qualquer um que veja o código (e código vai para o git, para o GitHub, para outras máquinas) encontra na hora."
+    },
+    {
+      "id": "como-se-proteger",
+      "title": "Como se proteger",
+      "markdown": "A boa notícia: para cada erro existe uma defesa simples.\n\n**Contra injeção de SQL:**\n\nA regra de ouro é NUNCA montar consulta juntando texto do usuário com template string. Exemplo do que NÃO fazer:\n\n```js\n// PERIGO: texto do usuário vai direto para a consulta\nawait db.exec('SELECT * FROM usuarios WHERE nome = \"' + nomeDoUsuario + '\"');\n```\n\nA defesa em camadas: validar o tipo, sanitizar (remover caracteres perigosos) e, principalmente, usar consultas parametrizadas (onde o banco trata o valor como dado, não como comando). No desafio vamos treinar a sanitização:\n\n```js\nfunction sanitizarEntrada(texto) {\n  if (typeof texto !== 'string') return '';\n  return texto\n    .replace(/--/g, '')       // tira comentário de SQL\n    .replace(/['\";]/g, '')    // tira aspas e ponto e vírgula\n    .trim();                  // tira espaços das pontas\n}\n```\n\n**Contra XSS:**\n\nA defesa é tratar o texto do usuário como TEXTO, nunca como código: escapar caracteres como `<` e `>` antes de mostrar na página. Escapar significa transformar `<script>` em algo inofensivo que o navegador exibe literalmente.\n\n**Contra segredos no código:**\n\nSegredos vivem em variáveis de ambiente (o `process.env` que você já viu), nunca no código. E antes de subir um commit, vale conferir se nenhum segredo vazou — é exatamente o que a função `temSegredoVazado` do desafio faz."
+    },
+    {
+      "id": "exemplo-completo",
+      "title": "Exemplo completo: protegendo a entrada e o código",
+      "markdown": "Exemplo resolvido com as duas defesas do desafio, comentado passo a passo.\n\n```js\n// 1. Sanitização: remove caracteres que o banco poderia interpretar\n//    como parte do COMANDO em vez de parte do DADO.\nfunction sanitizarEntrada(texto) {\n  // 1.1. Valor que não é texto não entra — devolve string vazia.\n  if (typeof texto !== 'string') return '';\n\n  // 1.2. Remove comentários de SQL (--), aspas e ponto e vírgula,\n  //      e os espaços das pontas. O que sobra é só o texto útil.\n  return texto\n    .replace(/--/g, '')\n    .replace(/['\";]/g, '')\n    .trim();\n}\n\n// 2. Verificação de segredos: procura cada segredo conhecido dentro\n//    do código antes de ele ir para o git.\nfunction temSegredoVazado(codigo, segredos) {\n  // 2.1. Entrada inválida não tem o que verificar.\n  if (typeof codigo !== 'string' || !Array.isArray(segredos)) return false;\n\n  // 2.2. Se QUALQUER segredo da lista aparecer no código, vazou.\n  return segredos.some((segredo) =>\n    typeof segredo === 'string' && segredo !== '' && codigo.includes(segredo)\n  );\n}\n\nconsole.log(sanitizarEntrada(\"ana'; DROP TABLE usuarios --\")); // 'ana DROP TABLE usuarios'\nconsole.log(temSegredoVazado('const chave = \"sk-abc\";', ['sk-abc'])); // true\n```\n\nJuntas, as duas funções protegem dois pontos diferentes: a entrada do usuário (o que entra) e o código (o que sai para o mundo). Sanitizar ajuda contra injeção; checar segredos evita que a chave do banco viaje para o repositório."
+    }
+  ],
+  "sources": [
+    {
+      "title": "OWASP: SQL Injection",
+      "url": "https://owasp.org/www-community/attacks/SQL_Injection",
+      "description": "O que é injeção de SQL, como funciona o ataque e como se defender."
+    },
+    {
+      "title": "OWASP: Cross-site Scripting (XSS)",
+      "url": "https://owasp.org/www-community/attacks/xss/",
+      "description": "O que é XSS, os tipos do ataque e formas de prevenção."
+    },
+    {
+      "title": "MDN: Cross-site scripting (glossário)",
+      "url": "https://developer.mozilla.org/pt-BR/docs/Glossary/Cross-site_scripting",
+      "description": "Explicação simples do que é um ataque XSS."
+    }
+  ],
+  "challenges": [
+    "erros-comuns-de-seguranca"
+  ]
+}

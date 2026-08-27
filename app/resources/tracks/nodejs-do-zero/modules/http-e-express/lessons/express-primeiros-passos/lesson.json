@@ -1,0 +1,60 @@
+{
+  "schemaVersion": 1,
+  "slug": "express-primeiros-passos",
+  "title": "Express: primeiros passos com um framework",
+  "summary": "Conheça o Express, o framework web mais usado do Node, e crie sua primeira rota com app.get e res.send.",
+  "difficulty": 3,
+  "concepts": [
+    "express"
+  ],
+  "prerequisites": [
+    "http-com-node"
+  ],
+  "theory": [
+    {
+      "id": "conceito-e-analogia",
+      "title": "A cozinha já pronta",
+      "markdown": "Na aula anterior você construiu um balcão do zero com o módulo `http`. Funciona, mas a cada novo pedido do cardápio você repete bastante coisa: checar o método, checar o caminho, escrever o status...\n\nUm **framework** resolve isso: é como uma cozinha já pronta, com fogão, panelas e utensílios organizados — você só define os pratos. O **Express** é o framework web mais usado do Node.\n\nCom o Express, cada prato do cardápio é uma **rota**, declarada em uma linha:\n\n- `app.get('/sobre', ...)` — \"quando chegar um GET em `/sobre`, faça isso\".\n- O primeiro argumento é o caminho; o segundo é a função que prepara a resposta.\n\nEssa função recebe `req` e `res` (os mesmos objetos da aula passada), mas com poderes a mais: `res.send` já escolhe o formato sozinho — string vira texto, objeto vira JSON."
+    },
+    {
+      "id": "aprofundamento",
+      "title": "Instalando e criando as primeiras rotas",
+      "markdown": "Primeiro, instale o Express na pasta do projeto:\n\n`npm install express`\n\nDepois, o esqueleto do app tem três passos:\n\n1. **Importar** o Express e criar o app: `const app = express()`.\n2. **Definir rotas** com `app.get('/caminho', (req, res) => { ... })`.\n3. **Ligar** o servidor com `app.listen(3000)`.\n\nO `res.send` é o atalho esperto da aula: se você passar uma string, ela vira texto; se passar um objeto, ele vira JSON automaticamente. E o `res.json` é ainda mais explícito: sempre envia JSON.",
+      "code": {
+        "language": "js",
+        "code": "import express from 'express';\n\nconst app = express();\n\n// rota 1: a página inicial\napp.get('/', (req, res) => {\n  res.send('Bem-vindo ao meu site!');\n});\n\n// rota 2: dados em JSON\napp.get('/api/saudacao', (req, res) => {\n  res.json({ mensagem: 'olá!' });\n});\n\n// liga o servidor na porta 3000\napp.listen(3000);",
+        "explanation": "app.get declara uma rota; res.send escolhe o formato pelo valor; app.listen liga o servidor."
+      }
+    },
+    {
+      "id": "exemplo-completo",
+      "title": "Exemplo completo: duas rotas, dois formatos",
+      "markdown": "Exemplo completo com duas rotas: uma que devolve texto e outra que devolve JSON. Rode o arquivo e abra `http://localhost:3000/` e `http://localhost:3000/api/usuario` no navegador — repare que as duas respostas chegam com `Content-Type` diferentes, escolhidos pelo Express sozinho.",
+      "code": {
+        "language": "js",
+        "code": "import express from 'express';\n\nconst app = express();\n\n// 1. Rota raiz: devolve TEXTO.\n//    res.send percebe que é string e escolhe o formato de texto sozinho.\napp.get('/', (req, res) => {\n  res.send('Olá, aluno!');\n});\n\n// 2. Rota de API: devolve um OBJETO.\n//    res.send percebe que é objeto e envia JSON.\n//    (res.json faz a mesma coisa de forma explícita.)\napp.get('/api/usuario', (req, res) => {\n  const usuario = { nome: 'Ana', nivel: 3 };\n  res.send(usuario);\n});\n\n// 3. Liga o servidor e avisa no terminal.\n//    O log ajuda: é aqui que você vê que o servidor subiu.\napp.listen(3000, () => {\n  console.log('servidor ouvindo na porta 3000');\n});",
+        "explanation": "O mesmo res.send escolhe formatos diferentes pelo tipo do valor — texto ou JSON — e o listen confirma no terminal."
+      }
+    }
+  ],
+  "sources": [
+    {
+      "title": "Instalando o Express (documentação pt-BR)",
+      "url": "https://expressjs.com/pt-br/starter/installing.html",
+      "description": "Como instalar o Express e o que aparece na pasta do projeto."
+    },
+    {
+      "title": "Hello world no Express (documentação pt-BR)",
+      "url": "https://expressjs.com/pt-br/starter/hello-world.html",
+      "description": "O primeiro servidor com Express: o exemplo mínimo que roda."
+    },
+    {
+      "title": "Rotas básicas do Express (documentação pt-BR)",
+      "url": "https://expressjs.com/pt-br/starter/basic-routing.html",
+      "description": "Como declarar rotas e usar req e res dentro delas."
+    }
+  ],
+  "challenges": [
+    "responder-rota-get"
+  ]
+}

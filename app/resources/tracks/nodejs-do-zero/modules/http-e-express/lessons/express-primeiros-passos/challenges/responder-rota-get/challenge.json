@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "slug": "responder-rota-get",
+  "title": "Responder uma rota GET",
+  "concept": "express",
+  "difficulty": 3,
+  "language": "nodejs",
+  "statement": "# Responder uma rota GET\n\nNo Express, a função `res.send` é esperta: se você passar uma **string**, ela vira texto com `Content-Type: text/plain`; se passar um **objeto**, ele vira JSON com `Content-Type: application/json`.\n\nEscreva a função `responderRotaGet(valor)` que simula esse comportamento. Ela devolve um objeto de resposta com:\n\n- `statusCode` — sempre `200`;\n- `contentType` — `text/plain; charset=utf-8` para string, `application/json` para objeto;\n- `body` — a própria string, ou o objeto transformado com `JSON.stringify`.\n\nSe `valor` for `undefined` ou `null`, a função deve **lançar um erro** com a mensagem `valor vazio não pode ser enviado`.\n\nExemplo de uso:\n\n```js\nresponderRotaGet({ nome: 'Ana' });\n// → { statusCode: 200, contentType: 'application/json', body: '{\"nome\":\"Ana\"}' }\n\nresponderRotaGet('Olá!');\n// → { statusCode: 200, contentType: 'text/plain; charset=utf-8', body: 'Olá!' }\n```\n\nLeia o enunciado com calma e clique em **Começar** para iniciar o cronômetro.",
+  "starterCode": "export function responderRotaGet(valor) {\n  throw new Error('não implementado');\n}\n",
+  "testsCode": "import { test } from 'node:test';\nimport assert from 'node:assert/strict';\nimport { responderRotaGet } from './solution.mjs';\n\ntest('objeto vira JSON', () => {\n  assert.deepEqual(responderRotaGet({ nome: 'Ana' }), {\n    statusCode: 200,\n    contentType: 'application/json',\n    body: '{\"nome\":\"Ana\"}',\n  });\n});\n\ntest('string vira texto', () => {\n  assert.deepEqual(responderRotaGet('Olá!'), {\n    statusCode: 200,\n    contentType: 'text/plain; charset=utf-8',\n    body: 'Olá!',\n  });\n});\n\ntest('limite: objeto vazio vira {}', () => {\n  const resposta = responderRotaGet({});\n  assert.equal(resposta.statusCode, 200);\n  assert.equal(resposta.contentType, 'application/json');\n  assert.equal(resposta.body, '{}');\n});\n\ntest('valor vazio: lança erro', () => {\n  assert.throws(() => responderRotaGet(undefined), /vazio/);\n  assert.throws(() => responderRotaGet(null), /vazio/);\n});\n",
+  "solutionCode": "export function responderRotaGet(valor) {\n  if (valor === undefined || valor === null) {\n    throw new Error('valor vazio não pode ser enviado');\n  }\n\n  if (typeof valor === 'string') {\n    return {\n      statusCode: 200,\n      contentType: 'text/plain; charset=utf-8',\n      body: valor,\n    };\n  }\n\n  return {\n    statusCode: 200,\n    contentType: 'application/json',\n    body: JSON.stringify(valor),\n  };\n}\n",
+  "expectedTestCount": 4,
+  "minFirstStarMs": 60000
+}

@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "slug": "soma-da-lista",
+  "title": "Somar uma lista de números",
+  "concept": "arrays_e_objetos",
+  "difficulty": 1,
+  "language": "nodejs",
+  "statement": "# Somar uma lista de números\n\nVocê vai escrever uma função que soma todos os números de uma lista.\n\nA função `somaDaLista` recebe uma lista de números e devolve a soma de todos eles.\n\nExemplos:\n\n- `somaDaLista([1, 2, 3])` deve devolver `6`\n- `somaDaLista([5])` deve devolver `5`\n- `somaDaLista([])` deve devolver `0` — lista vazia, nada a somar\n\nSe o que chegar NÃO for uma lista (por exemplo, um texto), a função deve parar com um erro. Use `Array.isArray` para conferir.\n\nLeia o enunciado com calma e clique em Começar para iniciar o cronômetro.",
+  "starterCode": "export function somaDaLista(numeros) {\n  // TODO: implemente a função\n  throw new Error('não implementado');\n}\n",
+  "testsCode": "import { test } from 'node:test';\nimport assert from 'node:assert/strict';\nimport { somaDaLista } from './solution.mjs';\n\ntest('soma uma lista comum', () => {\n  assert.equal(somaDaLista([1, 2, 3]), 6);\n});\n\ntest('soma uma lista com um único número', () => {\n  assert.equal(somaDaLista([5]), 5);\n});\n\ntest('lista vazia soma zero', () => {\n  assert.equal(somaDaLista([]), 0);\n});\n\ntest('recusa valor que não é lista', () => {\n  assert.throws(() => somaDaLista('1,2,3'));\n});\n",
+  "solutionCode": "export function somaDaLista(numeros) {\n  if (!Array.isArray(numeros)) {\n    throw new Error('numeros precisa ser uma lista');\n  }\n  let soma = 0;\n  for (const valor of numeros) {\n    soma = soma + valor;\n  }\n  return soma;\n}\n",
+  "expectedTestCount": 4
+}

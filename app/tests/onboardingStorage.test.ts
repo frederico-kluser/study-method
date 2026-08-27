@@ -135,11 +135,11 @@ describe('onboardingStorageService: flags one-shot independentes', () => {
   });
 
   it('dismiss da oferta (offer) NÃO toca o progresso do tutorial', () => {
-    onboardingStorageService.save({ status: 'in_progress', currentStepId: 'lesson-subject-fill', updatedAt: 7 });
+    onboardingStorageService.save({ status: 'in_progress', currentStepId: 'open-lesson', updatedAt: 7 });
     onboardingStorageService.markTutorialSelectionOffered();
     const loaded = onboardingStorageService.load();
     assert.equal(loaded?.status, 'in_progress');
-    assert.equal(loaded?.currentStepId, 'lesson-subject-fill');
+    assert.equal(loaded?.currentStepId, 'open-lesson');
   });
 
   it('clear() (progresso) NÃO rearra a oferta de primeira execução', () => {

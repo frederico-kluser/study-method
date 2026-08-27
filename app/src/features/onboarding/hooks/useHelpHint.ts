@@ -3,7 +3,7 @@
  *
  * DICA pós-tutorial (hint): um mini-tour de 1 passo, exibido UMA vez, após o
  * usuário CONCLUIR OU PULAR o tutorial, na 1ª vez que ele chega à aba Aula
- * (`lesson`). Aponta o campo de assunto (`lesson-subject`) e diz "digite
+ * (`lesson`). Aponta o input do chat da aula (`lesson-chat-input`) e diz "digite
  * qualquer dúvida". Reusa o caminho do hint in-memory do `useOnboarding`
  * (`startHelpHint`), sem tutorial novo/persistência. Flag one-shot separada
  * (`study-method-onboarding-help-hint-v1`) — re-rodar o tutorial não rearra.

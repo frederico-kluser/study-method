@@ -40,9 +40,10 @@ test('more-flows: idioma pt → en → pt reflete no Home e na aula; tema claro�
   await expect(page.getByRole('heading', { name: 'Aprenda programação e matemática com aulas geradas por IA' })).toBeVisible();
   await expect(page.getByRole('tab', { name: 'Aula' })).toBeVisible();
 
-  // Vai para a aba Aula e confere o rótulo pt-BR do campo de assunto.
+  // Vai para a aba Aula e confere o estado vazio pt-BR (rodada 8: o aluno
+  // escolhe a aula na Trilha — não há campo de assunto).
   await page.getByRole('tab', { name: 'Aula' }).click();
-  await expect(page.getByLabel('Assunto')).toBeVisible();
+  await expect(page.getByText('Nenhuma aula selecionada', { exact: false })).toBeVisible();
 
   // Troca para English: o Home (ao voltar) e a aba passam a en.
   await page.getByLabel('Select language').click();
@@ -137,13 +138,13 @@ test('more-flows: progresso do tutorial persiste entre reloads (retoma onde paro
 
   const overlay = page.locator('[data-onboarding-panel]');
   await expect(overlay).toBeVisible();
-  await expect(page.getByText('Passo 1 / 13', { exact: false })).toBeVisible();
+  await expect(page.getByText('Passo 1 / 11', { exact: false })).toBeVisible();
 
-  // Avança dois passos → estaciona em "Passo 3 / 13", com o estado persistido.
+  // Avança dois passos → estaciona em "Passo 3 / 11", com o estado persistido.
   await page.getByRole('button', { name: 'Continuar' }).click();
-  await expect(page.getByText('Passo 2 / 13', { exact: false })).toBeVisible();
+  await expect(page.getByText('Passo 2 / 11', { exact: false })).toBeVisible();
   await page.getByRole('button', { name: 'Continuar' }).click();
-  await expect(page.getByText('Passo 3 / 13', { exact: false })).toBeVisible();
+  await expect(page.getByText('Passo 3 / 11', { exact: false })).toBeVisible();
 
   // O progresso (in_progress + step atual) está gravado no localStorage.
   const mid = await page.evaluate(() =>

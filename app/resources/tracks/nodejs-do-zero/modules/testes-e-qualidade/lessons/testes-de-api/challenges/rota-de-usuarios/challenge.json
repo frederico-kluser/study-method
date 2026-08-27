@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "slug": "rota-de-usuarios",
+  "title": "Rota de usuários",
+  "concept": "testes_de_api",
+  "difficulty": 5,
+  "language": "nodejs",
+  "statement": "# Uma rota de usuários\n\nVocê está criando uma API que devolve usuários cadastrados. A rota é `GET /usuarios/<id>`.\n\nA função `rotaDeUsuarios(request)` recebe um objeto que simula a requisição HTTP:\n\n```js\n{ method: 'GET', path: '/usuarios/1', body: null }\n```\n\nE devolve a resposta no formato `{ status, body }`:\n\n- Usuário encontrado → `{ status: 200, body: { id, nome } }`.\n- Usuário não encontrado (ou rota desconhecida) → `{ status: 404, body: { erro: 'não encontrado' } }`.\n\nOs usuários cadastrados são:\n\n```js\n{ 1: { id: 1, nome: 'Ana' }, 2: { id: 2, nome: 'Bruno' } }\n```\n\nExemplo: `rotaDeUsuarios({ method: 'GET', path: '/usuarios/2' })` devolve `{ status: 200, body: { id: 2, nome: 'Bruno' } }`.\n\nDica: `'/usuarios/1'.split('/')` vira `['', 'usuarios', '1']` — o id está na posição 2 do array. Converta o id com `Number()` antes de procurar.\n\nLeia o enunciado com calma e clique em Começar para iniciar o cronômetro.",
+  "starterCode": "export function rotaDeUsuarios(request) {\n  // TODO: implemente a função\n  throw new Error('não implementado');\n}\n",
+  "testsCode": "import { test } from 'node:test';\nimport assert from 'node:assert/strict';\nimport { rotaDeUsuarios } from './solution.mjs';\n\ntest('cenário feliz: devolve o usuário pedido', () => {\n  const resposta = rotaDeUsuarios({ method: 'GET', path: '/usuarios/1', body: null });\n  assert.equal(resposta.status, 200);\n  assert.equal(resposta.body.nome, 'Ana');\n});\n\ntest('devolve 404 quando o usuário não existe', () => {\n  const resposta = rotaDeUsuarios({ method: 'GET', path: '/usuarios/99', body: null });\n  assert.equal(resposta.status, 404);\n});\n\ntest('devolve 404 para rota desconhecida', () => {\n  const resposta = rotaDeUsuarios({ method: 'GET', path: '/produtos', body: null });\n  assert.equal(resposta.status, 404);\n});\n",
+  "solutionCode": "const usuarios = {\n  1: { id: 1, nome: 'Ana' },\n  2: { id: 2, nome: 'Bruno' },\n};\n\nexport function rotaDeUsuarios(request) {\n  // Só sabemos responder GET nesta rota\n  if (request.method !== 'GET') {\n    return { status: 404, body: { erro: 'não encontrado' } };\n  }\n\n  // '/usuarios/1' vira ['', 'usuarios', '1'] — o id está na posição 2\n  const partes = request.path.split('/');\n  const id = Number(partes[2]);\n\n  const usuario = usuarios[id];\n  if (!usuario) {\n    return { status: 404, body: { erro: 'não encontrado' } };\n  }\n\n  return { status: 200, body: usuario };\n}\n",
+  "expectedTestCount": 3
+}

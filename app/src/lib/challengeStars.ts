@@ -15,6 +15,12 @@
  *                         → -1 (perdida por demora, sem repetir); elapsed ≥ 85%
  *                         → mais -1.
  *
+ * CARÊNCIA DA 1ª ESTRELA (rodada 8 — requisito do dono do produto): o
+ * decaimento por DEMORA só começa depois de `minFirstStarMs` de cronômetro —
+ * antes disso o tempo NÃO tira estrela ("tem um número mínimo de tempo pra
+ * sumir a primeira estrela"). Perdas EXPLÍCITAS (blur/timeout/wrong-answer)
+ * continuam imediatas — a carência é só para a demora.
+ *
  * Limite de tempo por dificuldade: T = 90s + difficulty*60s (difficulty 1..5 →
  * 2min30s a 6min30s). Se o desafio não expuser difficulty (undefined/NaN/<1),
  * usa T = 300s (fallback documentado em `timeLimitForDifficulty`).
@@ -40,7 +46,8 @@ export interface StarEvent {
 export interface StarTracker {
   /** Estrelas restantes (0..INITIAL_STARS). */
   stars(): number;
-  /** Alimenta o decaimento por velocidade: elapsed ≥ 60% → -1; ≥ 85% → -1. */
+  /** Alimenta o decaimento por velocidade: elapsed ≥ 60% → -1; ≥ 85% → -1
+   *  (só após `minFirstStarMs` — carência da 1ª estrela por demora). */
   onTick(elapsedMs: number): void;
   /** Janela perdeu o foco (window blur / document.hidden): -1 (1×). */
   onBlur(): void;
@@ -70,6 +77,14 @@ export const SLOWNESS_85_RATIO = 0.85;
 
 /** Maior cota de estrelas que um único desafio pode perder. */
 export const MAX_STARS = INITIAL_STARS;
+
+/**
+ * Carência da 1ª estrela (rodada 8): tempo mínimo de cronômetro antes de o
+ * DECAIMENTO POR DEMORA poder tirar a primeira estrela. Default do produto
+ * (aulas): 60s. A proficiência usa 120s (desafio mais longo).
+ */
+export const DEFAULT_MIN_FIRST_STAR_MS = 60_000;
+export const PROFICIENCY_MIN_FIRST_STAR_MS = 120_000;
 
 /**
  * Limite de tempo por dificuldade do desafio: T = 90s + difficulty*60s.
@@ -124,13 +139,20 @@ export function starLossI18nKey(cause: StarLossCause): StarLossI18nKey | null {
  *
  * @param opts.timeLimitMs limite de tempo do desafio (default 300s). Usar
  *   `timeLimitForDifficulty(difficulty)` para derivar da dificuldade.
+ * @param opts.minFirstStarMs carência da 1ª estrela por demora (rodada 8;
+ *   default DEFAULT_MIN_FIRST_STAR_MS). Antes desse tempo, o tick de demora
+ *   NÃO perde estrela.
  */
-export function createStarTracker(opts: { timeLimitMs?: number } = {}): StarTracker {
+export function createStarTracker(opts: { timeLimitMs?: number; minFirstStarMs?: number } = {}): StarTracker {
   const rawLimit = opts.timeLimitMs;
   const timeLimitMs =
     typeof rawLimit === 'number' && Number.isFinite(rawLimit) && rawLimit > 0
       ? rawLimit
       : DEFAULT_TIME_LIMIT_MS;
+  const minFirstStarMs =
+    typeof opts.minFirstStarMs === 'number' && Number.isFinite(opts.minFirstStarMs) && opts.minFirstStarMs > 0
+      ? opts.minFirstStarMs
+      : DEFAULT_MIN_FIRST_STAR_MS;
 
   let starsLeft = INITIAL_STARS;
   const fired = new Set<StarLossCause>();
@@ -148,6 +170,8 @@ export function createStarTracker(opts: { timeLimitMs?: number } = {}): StarTrac
       return starsLeft;
     },
     onTick(elapsedMs: number): void {
+      // carência da 1ª estrela: demora não tira estrela antes do tempo mínimo
+      if (elapsedMs < minFirstStarMs) return;
       if (elapsedMs >= timeLimitMs * SLOWNESS_60_RATIO) applyLoss('slowness-60');
       if (elapsedMs >= timeLimitMs * SLOWNESS_85_RATIO) applyLoss('slowness-85');
     },

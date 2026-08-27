@@ -1,0 +1,60 @@
+{
+  "schemaVersion": 1,
+  "slug": "apis-rest-e-json",
+  "title": "APIs REST e JSON",
+  "summary": "Aprenda a organizar uma API no estilo REST com res.json, respostas 404 e rotas separadas em arquivos.",
+  "difficulty": 3,
+  "concepts": [
+    "api_rest"
+  ],
+  "prerequisites": [
+    "rotas-e-middleware"
+  ],
+  "theory": [
+    {
+      "id": "conceito-e-analogia",
+      "title": "O cardápio da API",
+      "markdown": "Uma **API** é o cardápio de um serviço: a lista do que dá para pedir e como pedir, sem precisar saber o que acontece na cozinha. Quando a API usa HTTP, chamamos de **API web**: cada \"prato\" é um **recurso** — um usuário, uma receita, um produto.\n\n**REST** é um conjunto de regras de bom senso para organizar esse cardápio:\n\n- os recursos são substantivos no plural (`/usuarios`, `/receitas`);\n- os **verbos HTTP** dizem a ação: `GET` lê, `POST` cria, `PUT` atualiza, `DELETE` remove;\n- cada recurso tem um endereço único: `/usuarios/7` é o usuário 7.\n\nE o prato vem sempre no mesmo formato: **JSON**. Por isso `res.json` é o garçom preferido do Express — ele garante o `Content-Type` certo e o corpo no formato certo.\n\nRegra de ouro do cardápio: pediu um prato que não existe, o garçom avisa com **404** — não é erro do servidor (500), é pedido inexistente."
+    },
+    {
+      "id": "aprofundamento",
+      "title": "res.json e o 404 honesto",
+      "markdown": "Uma API REST em Express é uma coleção de rotas sobre recursos. O exemplo clássico: uma lista de usuários em memória (um array) e duas rotas — a lista inteira e um usuário por id.\n\nA rota por id usa `req.params.id` e procura no array com `find`. O detalhe que separa quem entendeu HTTP de quem está decorando: quando o id não existe, a resposta é **404 com um corpo JSON explicando o erro** — assim o programa que consome a API consegue tratar a falha no código dele.",
+      "code": {
+        "language": "js",
+        "code": "const usuarios = [\n  { id: 1, nome: 'Ana' },\n  { id: 2, nome: 'Bia' },\n];\n\n// GET /api/usuarios — a lista inteira\napp.get('/api/usuarios', (req, res) => {\n  res.json(usuarios);\n});\n\n// GET /api/usuarios/:id — um usuário só\napp.get('/api/usuarios/:id', (req, res) => {\n  const id = Number(req.params.id);\n  const usuario = usuarios.find((u) => u.id === id);\n\n  if (!usuario) {\n    // id não existe: 404 com explicação em JSON\n    res.status(404).json({ erro: 'usuário não encontrado' });\n    return;\n  }\n\n  res.json(usuario);\n});",
+        "explanation": "res.status(404) muda só o código da resposta; res.json manda o corpo em JSON. Sem o return, a resposta seguiria com o usuário inexistente."
+      }
+    },
+    {
+      "id": "exemplo-completo",
+      "title": "Exemplo completo: API de usuários com 404",
+      "markdown": "Exemplo completo de uma API REST com Express: a lista de usuários, a busca por id com 404, e as rotas separadas em um arquivo próprio com `express.Router` — o app principal fica enxuto, e cada grupo de rotas mora no seu lugar.\n\nO arquivo do app principal só pendura o router no caminho:",
+      "code": {
+        "language": "js",
+        "code": "// arquivo: rotas/usuarios.js — as rotas da API vivem aqui\nimport { Router } from 'express';\n\nconst router = Router();\n\n// o \"banco de dados\" da aula: uma lista em memória\nconst usuarios = [\n  { id: 1, nome: 'Ana' },\n  { id: 2, nome: 'Bia' },\n];\n\n// 1. GET /api/usuarios — devolve a lista inteira\nrouter.get('/', (req, res) => {\n  res.json(usuarios);\n});\n\n// 2. GET /api/usuarios/:id — devolve UM usuário\n//    Number() transforma o texto do params em número, para comparar com o id.\nrouter.get('/:id', (req, res) => {\n  const id = Number(req.params.id);\n  const usuario = usuarios.find((u) => u.id === id);\n\n  // 3. Não achou: 404 com corpo JSON — o cliente sabe o que aconteceu.\n  if (!usuario) {\n    res.status(404).json({ erro: 'usuário não encontrado' });\n    return;\n  }\n\n  // 4. Achou: 200 com o usuário em JSON.\n  res.json(usuario);\n});\n\nexport default router;",
+        "explanation": "O Router guarda as rotas da API; o app principal as pendura com app.use. O find procura pelo id e o 404 responde quando nada é achado."
+      }
+    }
+  ],
+  "sources": [
+    {
+      "title": "REST (Glossário MDN)",
+      "url": "https://developer.mozilla.org/pt-BR/docs/Glossary/REST",
+      "description": "O que é REST em uma página curta e direta."
+    },
+    {
+      "title": "API do Express: res.json (referência pt-BR)",
+      "url": "https://expressjs.com/pt-br/api.html",
+      "description": "A referência completa do Express, incluindo res.json e res.status."
+    },
+    {
+      "title": "Introdução ao Express (MDN)",
+      "url": "https://developer.mozilla.org/pt-BR/docs/Learn/Server-side/Express_Nodejs/Introduction",
+      "description": "O que é o Express e o que ele resolve, em português."
+    }
+  ],
+  "challenges": [
+    "buscar-por-id"
+  ]
+}

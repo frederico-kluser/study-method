@@ -1,0 +1,51 @@
+{
+  "schemaVersion": 1,
+  "slug": "event-loop-e-fs-assincrono",
+  "title": "Event loop e leitura de arquivos assíncrona",
+  "summary": "Veja como o event loop organiza microtasks e macrotasks e como ler arquivos com fs.promises sem travar o programa.",
+  "difficulty": 3,
+  "concepts": [
+    "event_loop",
+    "io_assincrono"
+  ],
+  "prerequisites": [
+    "async-await"
+  ],
+  "theory": [
+    {
+      "id": "o-garcom-as-contas-e-a-cozinha",
+      "title": "O garçom, as contas e a cozinha",
+      "markdown": "Agora que você já viu promises e async/await, dá para entender de verdade o **event loop** — o \"motor\" que cuida das operações lentas.\n\nPense no garçom (o event loop). Ele tem duas filas diferentes:\n\n1. **As contas rápidas**: calcular o troco, anotar um pedido. São as **microtasks** — exemplos: callbacks de promises e `.then`.\n2. **Os pratos da cozinha**: demoram. São as **macrotasks** — exemplos: `setTimeout`, ler arquivo, esperar a rede.\n\nA regra do garçom: ele SÓ vai para a cozinha quando a fila de contas rápidas estiver vazia. E entre um prato e outro, ele volta para conferir se não chegou conta nova.\n\nTraduzindo para JavaScript:\n\n- **Microtasks** (promises, `.then`, `await`) sempre rodam ANTES.\n- **Macrotasks** (`setTimeout`, I/O) rodam depois — e cada uma espera a fila de microtasks esvaziar.\n\nPor isso este código imprime `1, 3, 2`:\n\n```js\nconsole.log(1); // tarefa na hora (roda primeiro)\nsetTimeout(() => console.log(2), 0); // macrotask: vai para a cozinha\nPromise.resolve().then(() => console.log(3)); // microtask: antes da cozinha\n```\n\n- O `console.log(1)` roda na hora.\n- O `setTimeout` vai para a fila da cozinha (macrotask).\n- O `.then` entra na fila de microtasks — e o garçom atende microtasks primeiro.\n- Resultado: `1`, `3`, `2`.\n\nVocê não precisa decorar a fila inteira. O essencial: **promises passam na frente de timers e I/O**. E é por isso que o `await` sempre entrega o resultado no tempo certo."
+    },
+    {
+      "id": "ler-arquivos-sem-travar",
+      "title": "Ler arquivos sem travar",
+      "markdown": "No módulo 2 você leu arquivos com `fs.readFileSync` (síncrono — trava). Agora você tem a ferramenta certa para a versão assíncrona: o `fs.promises`.\n\nO `fs.promises` é o mesmo módulo fs, mas cada função devolve uma Promise. A leitura vira uma macrotask: o programa pede, o event loop cuida, e o resultado chega no seu `await`.\n\n```js\nimport { readFile, writeFile } from 'node:fs/promises';\n\nasync function salvarAnotacao() {\n  const conteudo = await readFile('notas.txt', 'utf8'); // não trava!\n  const nova = conteudo + '\\n- estudar event loop';\n  await writeFile('notas.txt', nova); // também não trava\n  console.log('Anotação salva');\n}\n\nsalvarAnotacao();\nconsole.log('Programa segue rodando...');\n```\n\nRegra prática: se uma função do fs termina com **Sync** (`readFileSync`, `writeFileSync`), use a versão sem Sync (`readFile`, `writeFile`) quando a operação puder demorar — ela devolve Promise e funciona com `await`.\n\nE o `setTimeout`? Ele também é uma macrotask — útil para simular atrasos (como nas aulas passadas) e para dar um \"respiro\" ao event loop:\n\n```js\nawait new Promise((resolve) => setTimeout(resolve, 2000));\nconsole.log('2 segundos depois...');\n```\n\nLer arquivo, escrever arquivo, esperar um tempo: todas essas operações seguem o mesmo fluxo — o programa pede, o event loop organiza, o resultado chega no `await`."
+    },
+    {
+      "id": "exemplo-completo",
+      "title": "Exemplo completo: o expediente do restaurante",
+      "markdown": "Juntando tudo: um expediente que lê o cardápio do disco (fs.promises), espera a cozinha (setTimeout) e anota o pedido — tudo sem travar.\n\n```js\nimport { readFile, writeFile } from 'node:fs/promises';\n\n// 1. Espera simulada: a cozinha trabalhando.\nfunction esperar(ms) {\n  return new Promise((resolve) => setTimeout(resolve, ms));\n}\n\n// 2. Função principal: segue a ordem da receita, linha por linha.\nasync function expediente() {\n  try {\n    // Leitura assíncrona: o programa NÃO trava aqui.\n    const cardapio = await readFile('cardapio.txt', 'utf8');\n    console.log('Cardápio carregado:', cardapio.trim());\n\n    // A cozinha demora — mas o garçom (event loop) não parou.\n    await esperar(1000);\n    console.log('Prato pronto!');\n\n    // Gravação assíncrona: outro pedido de I/O.\n    await writeFile('pedidos.txt', 'arroz com feijão\\n');\n    console.log('Pedido anotado no caderno');\n  } catch (erro) {\n    console.log('Problema no expediente:', erro.message);\n  }\n}\n\n// 3. Dispara e segue a vida: a função cuida da própria espera.\nexpediente();\nconsole.log('O restaurante já está atendendo outras mesas...');\n```\n\nO que acontece:\n\n1. \"O restaurante já está atendendo outras mesas...\" aparece primeiro.\n2. O event loop dispara a leitura do arquivo; quando ela termina, a microtask roda: \"Cardápio carregado\".\n3. O setTimeout (macrotask) conta 1 segundo; depois: \"Prato pronto!\".\n4. A gravação termina: \"Pedido anotado no caderno\".\n\nEsse é o fluxo completo do assincronismo no Node.js: o programa pede, o event loop organiza, e as promises (com `await`) trazem o resultado na hora certa — sem ninguém ficar preso na fila."
+    }
+  ],
+  "sources": [
+    {
+      "title": "Event loop, timers e nextTick (Node.js)",
+      "url": "https://nodejs.org/en/learn/asynchronous-work/event-loop-timers-and-nexttick",
+      "description": "As fases do event loop explicadas pela documentação oficial."
+    },
+    {
+      "title": "Lendo arquivos com Node.js",
+      "url": "https://nodejs.org/en/learn/manipulating-files/reading-files-with-nodejs",
+      "description": "Como ler arquivos com fs.promises e await."
+    },
+    {
+      "title": "fs (Node.js, referência da API)",
+      "url": "https://nodejs.org/api/fs.html",
+      "description": "Referência completa do módulo fs, incluindo fs.promises."
+    }
+  ],
+  "challenges": [
+    "ler-arquivo-fake"
+  ]
+}

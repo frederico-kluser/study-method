@@ -738,8 +738,12 @@ export function buildStudyHandlers(deps: StudyHandlerDeps): Map<string, IpcHandl
     }
     const explicitSubjectId = typeof p.subjectId === 'string' && p.subjectId.trim() ? p.subjectId.trim() : '';
     const subjectSlug = typeof p.subjectSlug === 'string' && p.subjectSlug.trim() ? p.subjectSlug.trim() : '';
+    const lessonId = typeof p.lessonId === 'string' && p.lessonId.trim() ? p.lessonId.trim() : '';
     let subjectId = explicitSubjectId;
-    let lessonIdRef = subjectSlug || explicitSubjectId || 'unknown';
+    // ADITIVO rodada8-trilhas: lessonId explícito da aula tem precedência —
+    // grava `lesson:<lessonId>` (nunca-repetir por aula); sem ele, o padrão
+    // antigo deriva do subjectSlug.
+    let lessonIdRef = lessonId || subjectSlug || explicitSubjectId || 'unknown';
     if (!subjectId) {
       if (!subjectSlug) return { ok: false, error: 'study: mark-challenge-attempt requer `subjectId` ou `subjectSlug`.' };
       if (repo.findSubjectBySlug) {

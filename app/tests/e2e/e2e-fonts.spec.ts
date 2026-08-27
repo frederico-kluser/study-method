@@ -77,7 +77,7 @@
  * `.cm-content` = monospace/16px, `.xterm-rows` = SFMono-Regular…/13px.
  */
 import { test, expect, type ElectronApplication, type Page } from '@playwright/test';
-import { launchApp, closeApp, makeWorkspaceRoot } from './helpers';
+import { launchApp, closeApp, makeWorkspaceRoot, openTrackChallenge } from './helpers';
 import { FONT_STACK, TYPE } from '../../src/lib/designTokens';
 
 let app: ElectronApplication | undefined;
@@ -320,12 +320,9 @@ test('e2e-fonts: a mono do contrato é APLICADA ao editor, à sarjeta e ao termi
   ).toMatch(/^\d+(?:\.\d+)?(?:px|rem|em|pt|%)\//);
 
   /* ─── Navega até o Desafio e abre o arquivo (o editor só monta aí) ─────── */
-  await page.getByRole('tab', { name: 'Aula' }).click();
-  await page.getByLabel('Assunto').fill('Ordenação');
-  await page.getByRole('button', { name: 'Gerar nova aula' }).click();
-  await page.getByText('Ordenação (E2E)', { exact: false }).first().click();
-  await expect(page.getByRole('heading', { name: 'Desafio E2E: ordenação' })).toBeVisible();
-  await page.getByRole('button', { name: 'solution.py', exact: true }).click();
+  await openTrackChallenge(page);
+  // O editor do desafio de trilha só monta DEPOIS de "Começar".
+  await page.getByRole('button', { name: 'Começar' }).click();
   await expect(page.locator('.cm-editor').first()).toBeVisible();
 
   const MONO = firstFamily(FONT_STACK.mono);
@@ -369,23 +366,4 @@ test('e2e-fonts: a mono do contrato é APLICADA ao editor, à sarjeta e ao termi
       `porque a fonte de código não foi aplicada; var = "${fontCodeVar}".`,
   ).toBe(CODE_SIZE);
 
-  /* ─── (3) `.xterm`: o outro DOM de terceiro da mesma regra ──────────────
-   * "Testar resposta" monta o AnswerTerminal. O `.xterm` (raiz) é o elemento
-   * que `src/index.css` pinta; `.xterm-rows` é pintado pela opção `fontFamily`
-   * do construtor do xterm e não é assunto desta spec. */
-  await page.getByRole('button', { name: 'Testar resposta' }).click();
-  await expect(page.locator('.xterm').first()).toBeVisible({ timeout: 20_000 });
-
-  const term = (await computedFonts(page, ['.xterm']))['.xterm'];
-  expect(term, 'o `.xterm` não montou após "Testar resposta"').not.toBeNull();
-  expect(
-    term && firstFamily(term.family),
-    `.xterm computa font-family "${term?.family}" — a stack tem que ABRIR em ` +
-      `'${MONO}'. Mesma causa do editor: as duas superfícies dividem a ÚNICA ` +
-      `regra \`.cm-editor, .xterm { font: var(--mui-font-code) }\`; var = "${fontCodeVar}".`,
-  ).toBe(MONO);
-  expect(
-    term && term.size,
-    `.xterm computa font-size ${term?.size}, esperado ${CODE_SIZE} (TYPE.codeSize).`,
-  ).toBe(CODE_SIZE);
 });

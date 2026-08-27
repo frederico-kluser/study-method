@@ -22,6 +22,7 @@ import { registerKeysHandlers } from './ipc/keys-handlers';
 import { registerStartupHandlers } from './ipc/startup-handlers';
 import { registerPiHandlers } from './ipc/pi-handlers';
 import { registerStudyHandlers, type RunnerLike, type LessonServiceLike } from './ipc/study-handlers';
+import { registerTrackHandlers, resolveTracksDir } from './ipc/track-handlers';
 import { createLessonRepo, type LessonRepo } from './db/repo';
 import { openMigratedSqlite } from './db/connection';
 import { registerLocalAiHandlers } from './ipc/localAi-handlers';
@@ -194,6 +195,18 @@ if (!gotLock) {
       registerSttModelHandlers();
       registerSttHandlers();
       registerLocalTtsHandlers();
+
+      // TRILHAS (rodada 8): o conteúdo das trilhas vive em resources/tracks
+      // (criado pelo CLI de autoria tools/track-cli.ts) — o aluno consome, não
+      // gera. Registro ADITIVO, fora do buildMainSetup (mesma convenção da voz).
+      registerTrackHandlers({
+        getTracksDir: () =>
+          app.isPackaged
+            ? resolveTracksDir('', process.resourcesPath)
+            : resolveTracksDir(app.getAppPath()),
+        repo,
+        deepseek: plannerDeepseek,
+      });
     } catch (err) {
       console.error('[main] falha ao registrar handlers IPC:', err);
     }
