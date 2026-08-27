@@ -83,10 +83,11 @@ export interface OnboardingOverlayProps {
 const SPOTLIGHT_PADDING = 10;
 const SPOTLIGHT_RADIUS = 12;
 
-const NAV_TAB_KEY: Record<NavKey, 'translation:nav.home' | 'translation:nav.settings' | 'translation:nav.lesson' | 'translation:nav.challenge'> = {
+const NAV_TAB_KEY: Record<NavKey, 'translation:nav.home' | 'translation:nav.settings' | 'translation:nav.lesson' | 'translation:nav.roadmap' | 'translation:nav.challenge'> = {
   home: 'translation:nav.home',
   settings: 'translation:nav.settings',
   lesson: 'translation:nav.lesson',
+  roadmap: 'translation:nav.roadmap',
   challenge: 'translation:nav.challenge',
 };
 

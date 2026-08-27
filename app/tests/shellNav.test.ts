@@ -16,10 +16,10 @@ import {
 } from '../src/lib/shellNav';
 
 describe('NAV_ITEMS — ordem canônica do shell', () => {
-  it('tem exatamente 4 abas na ordem Início→Settings→Aula→Desafio', () => {
+  it('tem exatamente 5 abas na ordem Início→Settings→Aula→Trilha→Desafio', () => {
     assert.deepEqual(
       NAV_ITEMS.map((n) => n.key),
-      ['home', 'settings', 'lesson', 'challenge'],
+      ['home', 'settings', 'lesson', 'roadmap', 'challenge'],
     );
   });
 
@@ -30,6 +30,7 @@ describe('NAV_ITEMS — ordem canônica do shell', () => {
         'translation:nav.home',
         'translation:nav.settings',
         'translation:nav.lesson',
+        'translation:nav.roadmap',
         'translation:nav.challenge',
       ],
     );
@@ -45,7 +46,8 @@ describe('NAV_ITEMS — ordem canônica do shell', () => {
   });
 
   it('navIndexOf devolve -1 para chave desconhecida', () => {
-    assert.equal(navIndexOf('challenge'), 3);
+    assert.equal(navIndexOf('challenge'), 4);
+    assert.equal(navIndexOf('roadmap'), 3);
     // @ts-expect-error chave inválida de propósito
     assert.equal(navIndexOf('bogus'), -1);
   });

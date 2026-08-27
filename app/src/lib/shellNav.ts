@@ -14,7 +14,7 @@
  * Este módulo permanece SEM React e SEM JSX de propósito — o ícone de cada
  * destino mora no componente do rail, não aqui.
  */
-export type NavKey = 'home' | 'settings' | 'lesson' | 'challenge';
+export type NavKey = 'home' | 'settings' | 'lesson' | 'roadmap' | 'challenge';
 
 /**
  * Chaves i18n dos rótulos das abas. Usam o namespace explícito `translation:`
@@ -26,6 +26,7 @@ export type NavI18nKey =
   | 'translation:nav.home'
   | 'translation:nav.settings'
   | 'translation:nav.lesson'
+  | 'translation:nav.roadmap'
   | 'translation:nav.challenge';
 
 export interface NavItem {
@@ -34,11 +35,12 @@ export interface NavItem {
   i18nKey: NavI18nKey;
 }
 
-/** Ordem canônica das abas do shell (Início → Settings → Aula → Desafio). */
+/** Ordem canônica das abas do shell (Início → Settings → Aula → Trilha → Desafio). */
 export const NAV_ITEMS: ReadonlyArray<NavItem> = [
   { key: 'home', i18nKey: 'translation:nav.home' },
   { key: 'settings', i18nKey: 'translation:nav.settings' },
   { key: 'lesson', i18nKey: 'translation:nav.lesson' },
+  { key: 'roadmap', i18nKey: 'translation:nav.roadmap' },
   { key: 'challenge', i18nKey: 'translation:nav.challenge' },
 ];
 

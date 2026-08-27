@@ -3,7 +3,8 @@
     "home": "Home",
     "settings": "Settings",
     "lesson": "Lesson",
-    "challenge": "Challenge"
+    "challenge": "Challenge",
+    "roadmap": "Trail"
   },
   "app": {
     "title": "Study Method — Tutor",
@@ -471,5 +472,33 @@
       "actions": "Actions"
     },
     "hint": "Ctrl+K"
+  },
+  "trilha": {
+    "title": "Study trail",
+    "description": "Follow your lesson progress per subject, from beginner to advanced.",
+    "subjectLabel": "Subject",
+    "loading": "Loading trail…",
+    "levels": {
+      "beginner": "Beginner",
+      "intermediate": "Intermediate",
+      "advanced": "Advanced"
+    },
+    "state": {
+      "done": "Completed",
+      "current": "In progress",
+      "pending": "Pending"
+    },
+    "progress": "{{done}} of {{total}} lessons completed",
+    "completed": "Trail complete — congratulations!",
+    "aria": {
+      "sectionToggle": "Toggle {{level}} section",
+      "subjectSelector": "Choose trail subject"
+    },
+    "empty": {
+      "noTopics": "You don't have subjects with lessons yet. Generate your first lesson in the Lesson tab.",
+      "noTopicsCta": "Go to Home",
+      "noLessons": "This subject has no lessons yet. Generate the first lesson to start the trail.",
+      "noLessonsCta": "Generate first lesson"
+    }
   }
 }

@@ -36,6 +36,7 @@ import Tabs from '@mui/material/Tabs';
 import HomeRoundedIcon from '@mui/icons-material/HomeRounded';
 import TuneRoundedIcon from '@mui/icons-material/TuneRounded';
 import MenuBookRoundedIcon from '@mui/icons-material/MenuBookRounded';
+import RouteRoundedIcon from '@mui/icons-material/RouteRounded';
 import TerminalRoundedIcon from '@mui/icons-material/TerminalRounded';
 import { useTranslation } from 'react-i18next';
 
@@ -84,6 +85,7 @@ const NAV_ICON: Record<NavKey, ReactElement> = {
   home: <HomeRoundedIcon />,
   settings: <TuneRoundedIcon />,
   lesson: <MenuBookRoundedIcon />,
+  roadmap: <RouteRoundedIcon />,
   challenge: <TerminalRoundedIcon />,
 };
 

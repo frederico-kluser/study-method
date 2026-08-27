@@ -3,7 +3,8 @@
     "home": "Início",
     "settings": "Settings",
     "lesson": "Aula",
-    "challenge": "Desafio"
+    "challenge": "Desafio",
+    "roadmap": "Trilha"
   },
   "app": {
     "title": "Study Method — Tutor",
@@ -471,5 +472,33 @@
       "actions": "Ações"
     },
     "hint": "Ctrl+K"
+  },
+  "trilha": {
+    "title": "Trilha de estudos",
+    "description": "Acompanhe o progresso das suas aulas por matéria, do iniciante ao avançado.",
+    "subjectLabel": "Matéria",
+    "loading": "Carregando trilha…",
+    "levels": {
+      "beginner": "Iniciante",
+      "intermediate": "Intermediário",
+      "advanced": "Avançado"
+    },
+    "state": {
+      "done": "Concluída",
+      "current": "Em andamento",
+      "pending": "Pendente"
+    },
+    "progress": "{{done}} de {{total}} aulas concluídas",
+    "completed": "Trilha concluída — parabéns!",
+    "aria": {
+      "sectionToggle": "Alternar seção {{level}}",
+      "subjectSelector": "Escolher matéria da trilha"
+    },
+    "empty": {
+      "noTopics": "Você ainda não tem matérias com aulas. Gere a sua primeira aula na aba Aula.",
+      "noTopicsCta": "Ir para a Home",
+      "noLessons": "Esta matéria ainda não tem aulas. Gere a primeira aula para começar a trilha.",
+      "noLessonsCta": "Gerar primeira aula"
+    }
   }
 }

@@ -14,7 +14,12 @@
  *
  * O EvolutionTree NÃO introduz XP/streak/placar — este helper NÃO calcula
  * gamificação; só deriva "concluído vs pendente" de `completedAt`.
+ *
+ * ONDA 2 (trilha): o estado 'current' e o campo `level` entram aqui porque o
+ * mesmo componente renderiza o roadmap (onde a primeira aula pendente é a
+ * "em andamento" e cada nó pode carregar o nível da trilha).
  */
+import type { DifficultyLevel } from './levels';
 
 /** Nó da árvore do motor (redeclarado estruturalmente; sem import de electron/). */
 export interface TreeViewSourceNode {
@@ -25,7 +30,7 @@ export interface TreeViewSourceNode {
 }
 
 /** Estado visual derivado de um nó. */
-export type TreeNodeState = 'done' | 'pending';
+export type TreeNodeState = 'done' | 'pending' | 'current';
 
 /** Nó pronto para o EvolutionTree renderizar. */
 export interface TreeViewNode {
@@ -34,6 +39,8 @@ export interface TreeViewNode {
   state: TreeNodeState;
   /** `completedAt` cru (para title/aria-label de contexto). */
   completedAt: string | null;
+  /** Nível da trilha quando o nó participa de um roadmap (opcional; onda2-trilha). */
+  level?: DifficultyLevel;
   children: TreeViewNode[];
 }
 

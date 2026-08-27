@@ -38,6 +38,7 @@ import {
   HomeView,
   SettingsView,
   LessonView,
+  RoadmapView,
   ChallengeView,
   type ViewProps,
 } from './views';
@@ -53,6 +54,7 @@ const VIEWS: Record<NavKey, ComponentType<ViewProps>> = {
   home: HomeView,
   settings: SettingsView,
   lesson: LessonView,
+  roadmap: RoadmapView,
   challenge: ChallengeView,
 };
 
