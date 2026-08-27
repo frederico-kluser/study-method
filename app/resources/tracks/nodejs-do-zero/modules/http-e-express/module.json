@@ -9,5 +9,6 @@
     "express-primeiros-passos",
     "rotas-e-middleware",
     "apis-rest-e-json"
-  ]
+  ],
+  "challenge": "desafio-do-modulo-http-express"
 }

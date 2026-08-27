@@ -9,5 +9,6 @@
     "promises",
     "async-await",
     "event-loop-e-fs-assincrono"
-  ]
+  ],
+  "challenge": "desafio-do-modulo-assincronismo"
 }
