@@ -1,0 +1,45 @@
+{
+  "schemaVersion": 1,
+  "slug": "events",
+  "title": "EventEmitter: avisos entre partes do programa",
+  "summary": "Use o EventEmitter para avisar outras partes do programa: on, once, emit e o tratamento especial do evento error.",
+  "difficulty": 4,
+  "concepts": [
+    "event_emitter"
+  ],
+  "prerequisites": [
+    "fs-em-profundidade"
+  ],
+  "theory": [
+    {
+      "id": "caixa-de-som",
+      "title": "A caixa de som da festa",
+      "markdown": "Festa com caixa de som e DJ. O DJ anuncia: 'pedido pronto!'. Quem estiver ASSINADO para ouvir esse aviso reage; quem não estiver, nem percebe.\n\nO `EventEmitter` do Node é a caixa de som do seu programa. Partes diferentes (o balcão, o estoque, a cozinha) podem:\n\n- **assinar** um aviso com `on` — 'me avise TODA vez que isso acontecer';\n- **assinar só a primeira vez** com `once`;\n- **soltar o aviso** com `emit` — 'aviso pra quem quiser ouvir: isso aconteceu'.\n\nA grande vantagem: a cozinha NÃO precisa conhecer o balcão. Ela só solta o aviso; quem estiver ouvindo, reage. Partes do programa ficam independentes e só se comunicam pelos avisos."
+    },
+    {
+      "id": "on-once-e-o-erro",
+      "title": "on, once e o evento error",
+      "markdown": "```js\nimport { EventEmitter } from 'node:events';\n\n// 1. A caixa de som.\nconst caixaDeSom = new EventEmitter();\n\n// 2. on: ouvir TODAS as vezes.\ncaixaDeSom.on('aviso', (mensagem) => {\n  console.log('ouvi:', mensagem);\n});\n\n// 3. once: ouvir só a PRIMEIRA vez.\ncaixaDeSom.once('abertura', () => {\n  console.log('porta abriu!');\n});\n\n// 4. emit: soltar o aviso (leva argumentos junto).\ncaixaDeSom.emit('aviso', 'chegou uma entrega');\ncaixaDeSom.emit('aviso', 'chegou outra entrega');\ncaixaDeSom.emit('abertura'); // 'porta abriu!'\ncaixaDeSom.emit('abertura'); // ninguém ouviu: o once já foi gasto\n\n// 5. O evento 'error' é ESPECIAL: se ninguém estiver ouvindo,\n//    o Node derruba o processo com o erro. Sempre tenha um ouvinte.\ncaixaDeSom.on('error', (erro) => {\n  console.log('problema tratado:', erro.message);\n});\ncaixaDeSom.emit('error', new Error('senha errada')); // seguro\n```\n\nA regra de ouro: em um servidor de verdade, `emit('error', ...)` SEM ouvinte de `error` mata o processo. Por isso o evento `error` é sempre tratado.",
+      "code": {
+        "language": "js",
+        "code": "import { EventEmitter } from 'node:events';\n\nconst caixaDeSom = new EventEmitter();\n\ncaixaDeSom.on('aviso', (mensagem) => console.log('ouvi:', mensagem));\ncaixaDeSom.once('abertura', () => console.log('porta abriu!'));\n\ncaixaDeSom.emit('aviso', 'chegou uma entrega');\ncaixaDeSom.emit('abertura'); // 'porta abriu!'\ncaixaDeSom.emit('abertura'); // ninguém ouve (once já gasto)\n\ncaixaDeSom.on('error', (erro) => console.log('tratado:', erro.message));\ncaixaDeSom.emit('error', new Error('senha errada'));",
+        "explanation": "on assina todas as vezes, once assina só a primeira, e error sempre precisa de ouvinte."
+      }
+    },
+    {
+      "id": "exemplo-completo",
+      "title": "Exemplo completo: o restaurante que avisa",
+      "markdown": "Vamos montar um restaurante onde cada setor escuta só o que lhe interessa. Cada comentário explica o porquê:\n\n```js\nimport { EventEmitter } from 'node:events';\n\n// 1. A cozinha é uma caixa de som: quem quiser, escuta.\nconst cozinha = new EventEmitter();\n\n// 2. O balcão quer saber de pedidos prontos e de erros.\ncozinha.on('pedido-pronto', (pedido) => {\n  console.log('Balcão:', pedido, 'para o cliente!');\n});\ncozinha.on('erro', (erro) => {\n  console.log('Balcão avisado:', erro.message);\n});\n\n// 3. O estoque quer saber só da PRIMEIRA entrega do dia (uma vez basta).\ncozinha.once('entrega', (item) => {\n  console.log('Estoque:', item, 'chegou (primeira de hoje).');\n});\n\n// 4. A cozinha trabalha e solta os avisos — sem conhecer ninguém.\nfunction cozinhar(pedido) {\n  setTimeout(() => {\n    cozinha.emit('pedido-pronto', pedido); // avisa quem estiver ouvindo\n  }, 100);\n}\n\ncozinhar('arroz com feijão');\ncozinhar('bife');\ncozinha.emit('entrega', 'arroz');\ncozinha.emit('entrega', 'feijão'); // o estoque não escuta a segunda vez\n\n// Saída (a ordem das duas últimas linhas pode variar):\n// Estoque: arroz chegou (primeira de hoje).\n// Balcão: arroz com feijão para o cliente!\n// Balcão: bife para o cliente!\n```\n\nO detalhe que importa: a cozinha `emit` sem saber quem escuta. Se amanhã o gerente quiser um painel novo ouvindo 'pedido-pronto', é só registrar mais um `on` — a cozinha não muda uma linha."
+    }
+  ],
+  "sources": [
+    {
+      "title": "Events — documentação oficial do Node.js",
+      "url": "https://nodejs.org/docs/latest/api/events.html",
+      "description": "EventEmitter, on, once, emit e o evento error."
+    }
+  ],
+  "challenges": [
+    "events"
+  ]
+}

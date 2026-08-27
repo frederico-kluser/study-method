@@ -1,0 +1,45 @@
+{
+  "schemaVersion": 1,
+  "slug": "cluster",
+  "title": "cluster: vários processos para atender mais",
+  "summary": "Entenda o cluster: um processo primário distribui conexões entre vários workers para usar todos os núcleos do computador.",
+  "difficulty": 4,
+  "concepts": [
+    "cluster"
+  ],
+  "prerequisites": [
+    "worker-threads"
+  ],
+  "theory": [
+    {
+      "id": "balcao-com-atendentes",
+      "title": "O balcão com vários atendentes",
+      "markdown": "Uma lanchonete com UM atendente atende um cliente por vez. Com quatro atendentes — todos com o mesmo treinamento — ela atende quatro ao mesmo tempo. `cluster` faz isso com o seu programa.\n\nO Node roda UM processo por programa. Um processo usa UM núcleo do processador. Computadores modernos têm vários núcleos — ou seja, a lanchonete tem balcões vazios.\n\nO cluster resolve assim:\n\n- um processo **primário** (o gerente) cria N processos **workers** (os atendentes), cada um rodando o MESMO código;\n- o gerente NÃO atende: ele só distribui as conexões que chegam;\n- em sistemas POSIX (macOS/Linux), a distribuição é em RODÍZIO (round-robin): primeira conexão para o atendente 1, segunda para o 2, e assim por diante.\n\nResultado: um servidor HTTP que usa TODOS os núcleos do computador em vez de um só."
+    },
+    {
+      "id": "primario-e-workers",
+      "title": "O primário e os workers",
+      "markdown": "```js\nimport cluster from 'node:cluster';\nimport http from 'node:http';\nimport { availableParallelism } from 'node:os';\n\n// 1. O mesmo arquivo roda DUAS vezes: uma como primário, outras como workers.\n//    O primário decide: 'sou o gerente, vou criar os atendentes'.\nif (cluster.isPrimary) {\n  const total = availableParallelism(); // quantos núcleos existem\n\n  for (let i = 0; i < total; i++) {\n    cluster.fork(); // cada fork cria UM processo worker com este mesmo arquivo\n  }\n\n  // 2. Se um atendente morrer, dá para repor.\n  cluster.on('exit', (worker, codigo) => {\n    console.log('worker', worker.process.pid, 'saiu com', codigo);\n  });\n} else {\n  // 3. TODO worker sobe o mesmo servidor — e todos escutam a mesma porta.\n  http.createServer((req, res) => {\n    res.end('atendido pelo processo ' + process.pid);\n  }).listen(3000);\n}\n```\n\nO ponto-chave: `isPrimary` separa o papel. O gerente nunca atende; os atendentes nem sabem que são 'atendentes' — eles só rodam o servidor. Quem distribui as conexões entre eles é o sistema operacional.",
+      "code": {
+        "language": "js",
+        "code": "import cluster from 'node:cluster';\nimport http from 'node:http';\nimport { availableParallelism } from 'node:os';\n\nif (cluster.isPrimary) {\n  const total = availableParallelism();\n  for (let i = 0; i < total; i++) cluster.fork();\n\n  cluster.on('exit', (worker, codigo) => {\n    console.log('worker', worker.process.pid, 'saiu com', codigo);\n  });\n} else {\n  http.createServer((req, res) => {\n    res.end('atendido pelo processo ' + process.pid);\n  }).listen(3000);\n}",
+        "explanation": "O primário faz fork de um worker por núcleo; todo worker sobe o mesmo servidor."
+      }
+    },
+    {
+      "id": "exemplo-completo",
+      "title": "Exemplo completo: servidor com cluster",
+      "markdown": "Vamos montar um servidor que usa todos os núcleos E se recupera quando um atendente cai. Cada comentário explica o porquê:\n\n```js\nimport cluster from 'node:cluster';\nimport http from 'node:http';\nimport { availableParallelism } from 'node:os';\n\nconst PORTA = 3000;\n\n// 1. O primário é o gerente: ele NÃO atende, só distribui.\nif (cluster.isPrimary) {\n  const total = availableParallelism();\n  console.log('Gerente criando', total, 'atendentes...');\n\n  // 2. Cria um processo por núcleo. Cada um roda este MESMO arquivo.\n  for (let i = 0; i < total; i++) cluster.fork();\n\n  // 3. Se um atendente morrer, o gerente repõe na hora.\n  cluster.on('exit', (worker, codigo) => {\n    console.log('Atendente', worker.process.pid, 'caiu. Repondo...');\n    cluster.fork();\n  });\n} else {\n  // 4. Atendente: o servidor comum, que agora roda em paralelo em cada processo.\n  http.createServer((req, res) => {\n    res.writeHead(200, { 'Content-Type': 'text/plain; charset=utf-8' });\n    res.end('Atendido pelo processo ' + process.pid);\n  }).listen(PORTA);\n\n  console.log('Atendente', process.pid, 'escutando na porta', PORTA);\n}\n```\n\nO passo 3 é o toque de produção: se um atendente morrer (bug, falta de memória), o gerente cria outro na hora — o servidor não fica com menos capacidade do que deveria."
+    }
+  ],
+  "sources": [
+    {
+      "title": "Cluster — documentação oficial do Node.js",
+      "url": "https://nodejs.org/docs/latest/api/cluster.html",
+      "description": "isPrimary, fork, workers e balanceamento."
+    }
+  ],
+  "challenges": [
+    "cluster"
+  ]
+}

@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "slug": "nodejs-avancado",
+  "title": "Node.js avançado",
+  "order": 14,
+  "lessons": [
+    "buffers",
+    "streams",
+    "fs-em-profundidade",
+    "events",
+    "child-process",
+    "worker-threads",
+    "cluster",
+    "process-e-utilitarios"
+  ],
+  "challenge": "desafio-do-modulo-node"
+}

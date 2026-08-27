@@ -1,0 +1,45 @@
+{
+  "schemaVersion": 1,
+  "slug": "fs-em-profundidade",
+  "title": "fs em profundidade: diretórios, watch e mais",
+  "summary": "Vá além do readFile: fs/promises com mkdir recursivo, listagem de diretórios, stat e observação de mudanças com watch.",
+  "difficulty": 4,
+  "concepts": [
+    "fs_profundo"
+  ],
+  "prerequisites": [
+    "streams"
+  ],
+  "theory": [
+    {
+      "id": "arquivista-e-vigia",
+      "title": "O arquivista e o vigia",
+      "markdown": "Pense no disco do computador como um escritório. O módulo `fs` é o arquivista: ele lê papéis, escreve, cria gavetas (pastas) e lista o que existe dentro delas.\n\nVocê já conhece o básico (`readFile`, `writeFile`). Em profundidade, o arquivista ganha três superpoderes:\n\n1. **Criar pastas aninhadas de uma vez** — pedir a pasta `relatorios/2026/agosto` sem que `relatorios` exista: com `recursive: true` ele cria a árvore inteira.\n2. **Listar e percorrer** — `readdir` diz o que existe DENTRO de uma pasta, e cada item pode dizer se é pasta ou arquivo. É assim que programas varrem projetos inteiros.\n3. **Vigiar** — `watch` é o vigia do escritório: você pede para observar um arquivo ou pasta, e o Node te avisa quando algo muda. É assim que ferramentas recarregam sozinhas quando você salva.\n\nE tem o `stat`: o boletim de um arquivo — tamanho, quando foi criado, se é arquivo ou pasta."
+    },
+    {
+      "id": "fs-promises-alem-do-basico",
+      "title": "fs/promises além do básico",
+      "markdown": "Tudo abaixo usa `node:fs/promises` — a versão com Promise, que você já sabe usar com `await`.\n\n```js\nimport { mkdir, readdir, stat, watch } from 'node:fs/promises';\n\n// 1. Criar pastas aninhadas de uma vez. O recursive evita erro\n//    se a pasta já existir — e cria as intermediárias que faltam.\nawait mkdir('relatorios/2026/agosto', { recursive: true });\n\n// 2. Listar uma pasta. Com withFileTypes, cada item já sabe\n//    se é pasta (isDirectory) ou arquivo (isFile).\nconst itens = await readdir('relatorios', { withFileTypes: true });\nfor (const item of itens) {\n  console.log(item.name, item.isDirectory() ? '(pasta)' : '(arquivo)');\n}\n\n// 3. O boletim de um arquivo: tamanho, tipo e mais.\nconst info = await stat('relatorios/2026/agosto/vendas.txt');\nconsole.log(info.size);     // bytes\nconsole.log(info.isFile()); // true\n\n// 4. Vigiar mudanças: cada alteração vira uma iteração.\n//    (Este loop não termina sozinho — é um vigia de plantão.)\nfor await (const evento of watch('relatorios/2026/agosto/vendas.txt')) {\n  console.log('mudou:', evento.eventType, evento.filename);\n}\n```\n\nO `watch` devolve um async iterator: o `for await` fica 'dormindo' até algo mudar, e então roda o corpo com o evento. Perfeito para recarregar um servidor quando o código muda.",
+      "code": {
+        "language": "js",
+        "code": "import { mkdir, readdir, stat, watch } from 'node:fs/promises';\n\nawait mkdir('relatorios/2026/agosto', { recursive: true });\n\nconst itens = await readdir('relatorios', { withFileTypes: true });\nfor (const item of itens) {\n  console.log(item.name, item.isDirectory() ? '(pasta)' : '(arquivo)');\n}\n\nconst info = await stat('relatorios/2026/agosto/vendas.txt');\nconsole.log(info.size, info.isFile());\n\nfor await (const evento of watch('relatorios/2026/agosto/vendas.txt')) {\n  console.log('mudou:', evento.eventType, evento.filename);\n}",
+        "explanation": "Criar árvore de pastas, listar com tipos, boletim do arquivo e vigiar mudanças."
+      }
+    },
+    {
+      "id": "exemplo-completo",
+      "title": "Exemplo completo: listando arquivos de uma pasta",
+      "markdown": "Vamos percorrer uma árvore de pastas e anotar TODOS os arquivos — inclusive os que estão dentro de subpastas. Cada comentário explica o porquê:\n\n```js\nimport { readdir } from 'node:fs/promises';\nimport { join } from 'node:path';\n\nasync function listarArquivos(diretorio) {\n  const arquivos = [];\n\n  // 1. Perguntamos ao arquivista o que existe nesta pasta...\n  const itens = await readdir(diretorio, { withFileTypes: true });\n\n  // 2. ...e decidimos o que fazer com cada item.\n  for (const item of itens) {\n    const caminho = join(diretorio, item.name); // monta o caminho completo\n\n    if (item.isDirectory()) {\n      // É uma pasta: a mesma função se chama de novo (recursão)\n      // e o resultado é juntado na lista.\n      arquivos.push(...await listarArquivos(caminho));\n    } else {\n      // É um arquivo: anota o caminho.\n      arquivos.push(caminho);\n    }\n  }\n\n  return arquivos;\n}\n\nconst todos = await listarArquivos('projeto');\nconsole.log(todos);\n// ['projeto/package.json', 'projeto/src/index.mjs', ...]\n```\n\nA recursão é o coração do exemplo: cada pasta vira uma nova chamada da MESMA função, que devolve os arquivos dela. O programa inteiro é 'desça uma pasta, liste, repita'."
+    }
+  ],
+  "sources": [
+    {
+      "title": "File system (fs) — documentação oficial do Node.js",
+      "url": "https://nodejs.org/docs/latest/api/fs.html",
+      "description": "fs/promises: readdir, mkdir, stat e watch."
+    }
+  ],
+  "challenges": [
+    "fs-em-profundidade"
+  ]
+}

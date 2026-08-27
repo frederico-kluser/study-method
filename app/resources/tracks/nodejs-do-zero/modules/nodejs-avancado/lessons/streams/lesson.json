@@ -1,0 +1,45 @@
+{
+  "schemaVersion": 1,
+  "slug": "streams",
+  "title": "Streams: dados em pedaços, sem esperar o arquivo inteiro",
+  "summary": "Aprenda o padrão de streams do Node: Readable, Writable e Transform, o pipe e por que processar dados em pedaços economiza memória.",
+  "difficulty": 4,
+  "concepts": [
+    "streams"
+  ],
+  "prerequisites": [
+    "buffers"
+  ],
+  "theory": [
+    {
+      "id": "esteira-da-fabrica",
+      "title": "A esteira da fábrica",
+      "markdown": "Imagine uma fábrica de biscoitos. O caminhão chega com uma TONELADA de farinha — mas ninguém espera descarregar tudo para começar a produzir. A farinha vai chegando aos poucos, e cada biscoito é feito com o que já chegou.\n\n**Streams** (canais/esteiras) são isso: em vez de esperar o dado inteiro (um arquivo de 5 GB, uma resposta de rede) para começar, o Node entrega em **pedaços** (chunks) — e você processa cada pedaço assim que ele chega. A memória usada é constante: o que já foi processado pode ser descartado.\n\nA torneira é outra analogia: para encher um copo, você não espera a piscina inteira encher. Abre a torneira, enche o copo, fecha.\n\nPor que isso importa: ler um arquivo gigante com `readFile` carrega TUDO na memória de uma vez (e pode derrubar o programa). Ler com stream processa na esteira, sem nunca segurar o arquivo inteiro."
+    },
+    {
+      "id": "readable-writable-e-transform",
+      "title": "Readable, Writable e Transform",
+      "markdown": "O Node tem três tipos principais de stream:\n\n- **Readable**: a FONTE — entrega pedaços (arquivo, resposta de rede, lista).\n- **Writable**: o DESTINO — recebe pedaços (arquivo de saída, resposta HTTP).\n- **Transform**: a ESTEIRA — recebe um pedaço, transforma e repassa.\n\n```js\nimport { Readable, Transform, Writable } from 'node:stream';\n\n// 1. Fonte: cria um Readable a partir de uma lista.\nconst leitura = Readable.from(['um ', 'dois ', 'três']);\n\n// 2. Esteira: um Transform que deixa cada pedaço em maiúsculas.\nconst maiusculas = new Transform({\n  transform(pedaco, encoding, cb) {\n    cb(null, pedaco.toString().toUpperCase()); // repassa transformado\n  },\n});\n\n// 3. pipe: liga a saída de um na entrada do outro (o encanamento).\nleitura.pipe(maiusculas);\nmaiusculas.on('data', (pedaco) => console.log(pedaco)); // UM DOIS TRÊS\n```\n\nO `pipe` faz o encanamento inteiro: ele também cuida do **backpressure** — se o destino está lento, a fonte espera, em vez de despejar tudo de uma vez.\n\nO jeito moderno de ler uma stream é o `for await...of` (a stream vira uma sequência assíncrona):\n\n```js\nfor await (const pedaco of leitura) {\n  console.log(pedaco); // um pedaço por vez\n}\n```\n\nFunciona com QUALQUER coisa iterável — inclusive listas comuns. É esse padrão que você vai usar no desafio.",
+      "code": {
+        "language": "js",
+        "code": "import { Readable, Transform } from 'node:stream';\n\nconst leitura = Readable.from(['um ', 'dois ', 'três']);\n\nconst maiusculas = new Transform({\n  transform(pedaco, encoding, cb) {\n    cb(null, pedaco.toString().toUpperCase());\n  },\n});\n\nleitura.pipe(maiusculas);\nmaiusculas.on('data', (pedaco) => console.log(pedaco)); // UM DOIS TRÊS\n\nfor await (const pedaco of leitura) {\n  console.log(pedaco); // jeito moderno: um pedaço por vez\n}",
+        "explanation": "Fonte entrega pedaços, a esteira transforma cada um e o pipe liga as pontas."
+      }
+    },
+    {
+      "id": "exemplo-completo",
+      "title": "Exemplo completo: contando palavras na esteira",
+      "markdown": "Vamos contar as palavras de um texto grande SEM guardar o texto inteiro na memória. Cada comentário explica o porquê:\n\n```js\nimport { Readable, Transform, Writable } from 'node:stream';\n\n// 1. A fonte: pedaços do texto (na vida real: um arquivo ou a rede).\nconst pedacos = ['O Node ', 'lê aos poucos ', 'e processa ', 'cada pedaço.'];\n\n// 2. A esteira: conta as palavras de cada pedaço e repassa o pedaço.\nconst contador = new Transform({\n  transform(pedaco, encoding, cb) {\n    const palavras = pedaco.toString().trim().split(/\\s+/).filter(Boolean).length;\n    this.total = (this.total ?? 0) + palavras; // acumula de pedaço em pedaço\n    cb(null, pedaco); // repassa o pedaço adiante\n  },\n  // 3. No fim (quando a fonte acabar), anexa o total à saída.\n  final(cb) {\n    this.push('Total de palavras: ' + (this.total ?? 0));\n    cb();\n  },\n});\n\n// 4. O destino: mostra cada pedaço que chega.\nconst saida = new Writable({\n  write(pedaco, encoding, cb) {\n    console.log('chegou:', pedaco.toString().trim());\n    cb();\n  },\n});\n\n// 5. Liga tudo: fonte -> esteira -> destino.\nReadable.from(pedacos).pipe(contador).pipe(saida);\n// chegou: O Node\n// chegou: lê aos poucos\n// chegou: e processa\n// chegou: cada pedaço.\n// chegou: Total de palavras: 8\n```\n\nRepare no fluxo: a fonte nunca segura o texto inteiro; a esteira nunca guarda tudo; o destino só vê um pedaço por vez. O `this.total` é a ÚNICA coisa acumulada — e é só um número."
+    }
+  ],
+  "sources": [
+    {
+      "title": "Stream — documentação oficial do Node.js",
+      "url": "https://nodejs.org/docs/latest/api/stream.html",
+      "description": "Readable, Writable, Transform e pipe."
+    }
+  ],
+  "challenges": [
+    "streams"
+  ]
+}
