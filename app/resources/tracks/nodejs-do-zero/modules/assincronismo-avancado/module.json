@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "slug": "assincronismo-avancado",
+  "title": "Assincronismo avançado: por dentro do event loop",
+  "order": 13,
+  "lessons": [
+    "event-loop-em-profundidade",
+    "microtasks-e-macrotasks",
+    "promise-api",
+    "async-iterators",
+    "abort-e-timeout",
+    "async-em-serie-vs-paralelo"
+  ],
+  "challenge": "desafio-do-modulo-assincrono"
+}

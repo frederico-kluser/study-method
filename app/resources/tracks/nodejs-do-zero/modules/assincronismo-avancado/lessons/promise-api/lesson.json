@@ -1,0 +1,55 @@
+{
+  "schemaVersion": 1,
+  "slug": "promise-api",
+  "title": "A família Promise: all, allSettled, race e any",
+  "summary": "Orquestre várias promises ao mesmo tempo com Promise.all, allSettled, race e any — e saiba qual usar em cada situação.",
+  "difficulty": 4,
+  "concepts": [
+    "promise_api"
+  ],
+  "prerequisites": [
+    "microtasks-e-macrotasks"
+  ],
+  "theory": [
+    {
+      "id": "quatro-maneiras-de-orquestrar",
+      "title": "Quatro maneiras de orquestrar",
+      "markdown": "Você já conhece uma promessa sozinha. Mas o mundo real dispara VÁRIAS ao mesmo tempo: buscar o preço, o estoque e o frete de um produto. O JavaScript tem quatro ferramentas para juntar promises — cada uma com uma regra própria.\n\nPense em quatro entregadores que saíram ao mesmo tempo com um pacote cada:\n\n- **`Promise.all`** — \"espero o grupo todo\". Devolve a lista de TODAS as entregas. Se UM entregador sofrer um acidente (rejeitar), o grupo todo falha — mesmo que os outros estejam chegando.\n- **`Promise.allSettled`** — \"espero todos e anoto quem falhou\". Nunca falha: devolve o status de CADA entrega (`fulfilled` = entregue, `rejected` = falhou), e você decide o que fazer com cada uma.\n- **`Promise.race`** — \"o primeiro que chegar vence\". Devolve a primeira entrega a terminar, esteja ela certa ou errada (resolve OU rejeita).\n- **`Promise.any`** — \"o primeiro que CONSEGUIR entregar vence\". Devolve a primeira entrega que RESOLVER; se todas falharem, rejeita com um `AggregateError` (a lista de erros).\n\nA pergunta que decide a ferramenta: **uma falha derruba o pedido todo?** Se sim, `all`. Se não, `allSettled`. Preciso do primeiro que aparecer, de qualquer jeito? `race`. Preciso do primeiro que der CERTO? `any`."
+    },
+    {
+      "id": "cada-uma-na-pratica",
+      "title": "Cada ferramenta na prática",
+      "markdown": "Suponha duas promises: uma busca de preço (2ms) e uma busca de estoque (6ms).\n\n```js\nconst preco = new Promise((resolve) => setTimeout(resolve, 2, 99.9));\nconst estoque = new Promise((resolve) => setTimeout(resolve, 6, 12));\n\n// all: espera as DUAS. Resultado: [99.9, 12] (na ordem da lista).\nconst [p, e] = await Promise.all([preco, estoque]);\n\n// allSettled: espera as duas e mostra o status de cada uma.\nconst estados = await Promise.allSettled([preco, estoque]);\n// [{ status: 'fulfilled', value: 99.9 }, { status: 'fulfilled', value: 12 }]\n\n// race: a primeira a terminar (2ms) — certa ou errada.\nconst vencedora = await Promise.race([preco, estoque]); // 99.9\n\n// any: a primeira a RESOLVER — ignora rejeições até sobrar só falha.\nconst primeiraOk = await Promise.any([estoque, preco]); // 99.9\n```\n\nRepare na diferença entre `race` e `any`: se a promise mais rápida FALHAR, o `race` rejeita (o primeiro que chegou foi o erro); o `any` ignora e espera a próxima que resolver.\n\nE o padrão clássico com `allSettled`: separar quem deu certo de quem falhou.\n\n```js\nconst resultados = await Promise.allSettled([buscarPreco(), buscarEstoque()]);\nconst ok = resultados.filter((r) => r.status === 'fulfilled');\nconst erros = resultados.filter((r) => r.status === 'rejected');\n```\n\nFiltrar pelo `status` é o jeito canônico de \"continuar mesmo com falhas\"."
+    },
+    {
+      "id": "exemplo-completo",
+      "title": "Exemplo completo: a loja que não desiste fácil",
+      "markdown": "Uma função de loja que busca preço e estoque ao mesmo tempo, tenta o grupo todo e, se algo falhar, continua com o que conseguiu:\n\n```js\n// Suponha estas duas funções de API (cada uma devolve uma Promise):\n// const buscarPreco = () => new Promise((r) => setTimeout(r, 3, 99.9));\n// const buscarEstoque = () => new Promise((r, j) => setTimeout(() => j(new Error('estoque fora do ar')), 6));\n\nasync function montarFichaDoProduto() {\n  // 1. Dispara as duas buscas AO MESMO TEMPO.\n  const buscas = [buscarPreco(), buscarEstoque()];\n\n  // 2. Tenta o grupo todo: se ambas responderem, ótimo.\n  try {\n    const [preco, estoque] = await Promise.all(buscas);\n    return { preco, estoque };\n  } catch (erro) {\n    // 3. Alguém falhou. Em vez de desistir, espera TODOS e aproveita\n    //    quem conseguiu responder — allSettled nunca rejeita.\n    const estados = await Promise.allSettled(buscas);\n    const ficha = { preco: null, estoque: null };\n    for (const estado of estados) {\n      if (estado.status !== 'fulfilled') continue; // ignora a falha\n      if (typeof estado.value === 'number') ficha.preco = estado.value;\n      else ficha.estoque = estado.value;\n    }\n    return ficha; // preço chega, estoque fica null — a tela ainda renderiza\n  }\n}\n```\n\nO padrão é real: primeiro tenta tudo (`all`), e se falhar, não desiste — recolhe o que deu certo (`allSettled`) e devolve uma resposta parcial. É assim que sistemas de verdade se comportam quando uma das APIs parceiras cai."
+    }
+  ],
+  "sources": [
+    {
+      "title": "Promise.all (MDN)",
+      "url": "https://developer.mozilla.org/pt-BR/docs/Web/JavaScript/Reference/Global_Objects/Promise/all",
+      "description": "Espera todas as promises; falha se qualquer uma falhar."
+    },
+    {
+      "title": "Promise.allSettled (MDN)",
+      "url": "https://developer.mozilla.org/pt-BR/docs/Web/JavaScript/Reference/Global_Objects/Promise/allSettled",
+      "description": "Espera todas e devolve o status de cada uma, sem nunca falhar."
+    },
+    {
+      "title": "Promise.race (MDN)",
+      "url": "https://developer.mozilla.org/pt-BR/docs/Web/JavaScript/Reference/Global_Objects/Promise/race",
+      "description": "A primeira promise a terminar vence — resolvida ou rejeitada."
+    },
+    {
+      "title": "Promise.any (MDN)",
+      "url": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise/any",
+      "description": "A primeira promise a RESOLVER vence; rejeita só se todas falharem."
+    }
+  ],
+  "challenges": [
+    "situacao-das-promessas"
+  ]
+}

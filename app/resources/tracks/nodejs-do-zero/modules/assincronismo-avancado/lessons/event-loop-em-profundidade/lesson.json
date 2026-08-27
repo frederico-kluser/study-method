@@ -1,0 +1,51 @@
+{
+  "schemaVersion": 1,
+  "slug": "event-loop-em-profundidade",
+  "title": "Event loop em profundidade: o motor que nunca para",
+  "summary": "Entenda as fases do event loop do Node.js (timers, poll, check) e por que o JavaScript nunca trava esperando arquivos ou redes.",
+  "difficulty": 4,
+  "concepts": [
+    "event_loop"
+  ],
+  "prerequisites": [
+    "async-await",
+    "event-loop-e-fs-assincrono"
+  ],
+  "theory": [
+    {
+      "id": "o-garcom-e-as-filas",
+      "title": "O garçom que nunca fica parado",
+      "markdown": "No módulo 3 você conheceu a analogia do restaurante: o JavaScript é um garçom ÚNICO que atende uma mesa por vez. Aqui vamos abrir a cozinha e ver como o garçom decide o que fazer a cada segundo.\n\nO garçom (o **event loop**) tem uma rotina fixa, e cada volta dessa rotina é chamada de TURNO (em inglês, tick). Em cada turno, ele passa por FASES numa ordem sempre igual. As três fases que você vai usar no dia a dia:\n\n1. **Timers** — as tarefas agendadas com `setTimeout` e `setInterval` que JÁ VENCERAM.\n2. **Poll** — a fase de ESPERA: ler arquivos, esperar respostas de rede, esperar qualquer coisa que foi pedida e ainda não chegou.\n3. **Check** — as tarefas agendadas com `setImmediate` (\"faça logo depois desta volta\").\n\nPor que isso importa? Porque explica o comportamento mais importante do Node: **o garçom nunca fica parado esperando**. Quando um arquivo é lento, o Node não espera na fase poll: ele continua dando voltas, atendendo os timers que venceram, e quando o arquivo finalmente responde, o callback entra na fase poll do próximo turno.\n\nÉ por isso que um servidor com mil clientes conectados não trava quando um deles demora: as fases garantem que TODO mundo recebe atenção aos poucos, sem nunca bloquear."
+    },
+    {
+      "id": "fases-em-acao",
+      "title": "As fases em ação: código que mostra a ordem",
+      "markdown": "A ordem das fases aparece no código assim:\n\n```js\nsetTimeout(() => console.log('1. timer venceu'), 0);\nsetImmediate(() => console.log('3. check (setImmediate)'));\n\nPromise.resolve().then(() => console.log('2. microtarefa'));\n\nconsole.log('0. código síncrono');\n```\n\nA saída é sempre `0, 2, 1, 3`. O `0` sai primeiro porque é síncrono e roda por inteiro. O `2` é a microtarefa do `Promise.then`, que roda ainda no fim do mesmo turno (você vai se aprofundar nela na próxima aula). O `1` sai quando a fase de timers chega — o `setTimeout(0)` é atendido no PRÓXIMO turno, não \"agora\". O `3` sai na fase check, logo depois.\n\nDois detalhes que você vai encontrar na vida real:\n\n- **`setTimeout(fn, 0)` NÃO é imediato**: a função só roda no próximo turno do event loop, na fase de timers. Zero é o atraso mínimo, não \"agora\".\n- **`setImmediate` roda na fase check**, que vem DEPOIS da fase de timers — por isso, no código de cima, o timer imprime antes. (Cuidado: dentro de callbacks de I/O a ordem entre `setTimeout(0)` e `setImmediate` pode variar — o Node.js documenta essa imprecisão.)\n\nO importante não é decorar a ordem exata: é entender que existe UMA rotina fixa, e que todo código assíncrono entra nela em algum ponto."
+    },
+    {
+      "id": "exemplo-completo",
+      "title": "Exemplo completo: um turno do event loop com comentários",
+      "markdown": "Junte tudo — código síncrono, microtarefa, timer e setImmediate — e observe a rotina do garçom passando pelas fases.\n\n```js\n// 1. A rotina começa: o código síncrono roda POR INTEIRO, de cima a baixo.\nconsole.log('A. código síncrono — roda já, sem esperar ninguém');\n\n// 2. Agendamos duas macrotarefas. Nenhuma roda agora: cada uma espera a\n//    SUA fase. O timer entra na fila da fase de timers; o setImmediate\n//    entra na fila da fase de check.\nsetTimeout(() => console.log('C. timer venceu — fase de timers'), 0);\nsetImmediate(() => console.log('D. setImmediate — fase de check'));\n\n// 3. As microtarefas (continuações de promises) rodam ANTES da próxima\n//    macrotarefa — ainda no fim deste turno.\nPromise.resolve().then(() => console.log('B. microtarefa — fim deste turno'));\n\n// 4. Saída: A, B, C, D.\n//    A: síncrono. B: microtarefa. C: fase de timers. D: fase de check.\n```\n\nRepare no que NÃO acontece: o programa não para em lugar nenhum. Se no lugar da microtarefa houvesse uma leitura de arquivo (fase poll), o comportamento seria o mesmo: o Node pede a leitura ao sistema operacional, termina o turno, e atende a resposta quando ela chegar — sem travar nada enquanto espera.\n\nEssa é a resposta para a pergunta do módulo: o JavaScript não bloqueia porque o garçom NUNCA espera — ele só pergunta, volta para a rotina e atende cada resposta quando ela chega."
+    }
+  ],
+  "sources": [
+    {
+      "title": "Event loop, timers e process.nextTick (Node.js)",
+      "url": "https://nodejs.org/en/learn/asynchronous-work/event-loop-timers-and-nexttick",
+      "description": "A documentação oficial do Node.js sobre as fases do event loop."
+    },
+    {
+      "title": "Não bloqueie o event loop (Node.js)",
+      "url": "https://nodejs.org/en/learn/asynchronous-work/dont-block-the-event-loop",
+      "description": "Por que código lento na fase errada trava o servidor inteiro."
+    },
+    {
+      "title": "Modelo de concorrência e event loop (MDN)",
+      "url": "https://developer.mozilla.org/pt-BR/docs/Web/JavaScript/Event_loop",
+      "description": "A visão do navegador sobre o event loop, com pilha, heap e fila de mensagens."
+    }
+  ],
+  "challenges": [
+    "tarefas-em-fila"
+  ]
+}

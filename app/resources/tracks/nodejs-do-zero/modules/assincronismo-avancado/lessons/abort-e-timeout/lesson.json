@@ -1,0 +1,50 @@
+{
+  "schemaVersion": 1,
+  "slug": "abort-e-timeout",
+  "title": "Abortar e dar timeout: quando desistir de esperar",
+  "summary": "Cancele tarefas pendentes com AbortController e crie limites de tempo com Promise.race.",
+  "difficulty": 4,
+  "concepts": [
+    "abort_signal"
+  ],
+  "prerequisites": [
+    "async-iterators"
+  ],
+  "theory": [
+    {
+      "id": "o-sino-do-cancelamento",
+      "title": "O sino do cancelamento",
+      "markdown": "Você pediu um prato no restaurante e ele está demorando demais. Duas coisas podem acontecer: você MESMO chama o garçom e cancela, ou o restaurante tem uma regra de tempo máximo e cancela sozinho.\n\nNo JavaScript, o **AbortController** é o sino de cancelamento. Ele tem duas peças:\n\n- o **controller** — o objeto em que você toca o sino: `controle.abort()`;\n- o **signal** — o som do sino, que você entrega para as operações demoradas escutarem (`fetch(url, { signal })`, por exemplo).\n\nQuando `abort()` é chamado, todas as operações que estiverem escutando aquele signal reagem — normalmente rejeitando com um erro. É um cancelamento DE VERDADE: a tarefa para de fazer sentido e libera os recursos.\n\nO **timeout** é o cancelamento automático: \"se não responder em X milissegundos, desisto\". O jeito clássico de implementar é `Promise.race` (que você viu na aula anterior) entre a operação e um timer que rejeita.\n\nUma diferença importante entre os dois: o `race` do timeout apenas DEVOLVE o resultado da perdedora — a operação que perdeu continua rodando em segundo plano. Já o `AbortController` CANCELA a operação de verdade, avisando ela para parar."
+    },
+    {
+      "id": "abortcontroller-e-race-na-pratica",
+      "title": "AbortController e Promise.race na prática",
+      "markdown": "O timeout com `Promise.race` é um padrão de duas linhas:\n\n```js\nfunction comTimeout(promessa, ms) {\n  return Promise.race([\n    promessa,\n    new Promise((_, rejeitar) => {\n      setTimeout(() => rejeitar(new Error('tempo esgotado')), ms);\n    }),\n  ]);\n}\n\n// Uso: se a busca demorar mais de 5s, rejeita com 'tempo esgotado'.\nconst dados = await comTimeout(buscarDados(), 5000);\n```\n\nO `AbortController` é igualmente simples:\n\n```js\nconst controle = new AbortController();\n\n// O botão de cancelar da tela toca o sino:\nbotaoCancelar.addEventListener('click', () => controle.abort());\n\n// A operação escuta o sino: se abortar, rejeita com 'cancelado'.\nfunction buscarDados(signal) {\n  return new Promise((resolve, reject) => {\n    signal.addEventListener('abort', () => reject(new Error('cancelado')));\n    setTimeout(() => resolve('dados'), 1000);\n  });\n}\n\n// O signal viaja junto com o pedido — e o fetch do Node aceita ele também:\n// const resposta = await fetch(url, { signal: controle.signal });\n```\n\nDetalhe importante: depois de `abort()`, o `signal` fica marcado para sempre (`signal.aborted` vira `true`). Se você precisar cancelar de novo, crie outro controller. E existe um atalho pronto do Node 17+:\n\n```js\nconst resposta = await fetch(url, { signal: AbortSignal.timeout(5000) });\n```\n\nUm `AbortSignal.timeout(5000)` é um sino que toca SOZINHO depois de 5 segundos."
+    },
+    {
+      "id": "exemplo-completo",
+      "title": "Exemplo completo: busca com timeout e botão de cancelar",
+      "markdown": "O cenário completo: uma busca que respeita o cancelamento do usuário E tem um tempo máximo. Comentários de auto-explicação:\n\n```js\n// 1. O sino: um controller para o usuário e um timeout automático.\nconst controle = new AbortController();\n\n// 2. A operação demorada escuta o signal e obedece o timer.\nfunction buscarDados(signal) {\n  return new Promise((resolve, reject) => {\n    signal.addEventListener('abort', () => reject(new Error('cancelado')));\n    const timer = setTimeout(() => resolve('dados chegaram'), 2); // simula rede\n    signal.addEventListener('abort', () => clearTimeout(timer)); // libera o timer\n  });\n}\n\n// 3. O timeout: quem vencer primeiro define o resultado.\nfunction comTimeout(promessa, ms) {\n  return Promise.race([\n    promessa,\n    new Promise((_, rejeitar) => {\n      setTimeout(() => rejeitar(new Error('tempo esgotado')), ms);\n    }),\n  ]);\n}\n\n// 4. Uso: tenta a busca com 1ms de limite — estoura e cai no catch.\ntry {\n  const dados = await comTimeout(buscarDados(controle.signal), 1);\n  console.log('resposta:', dados);\n} catch (erro) {\n  console.log('desistimos:', erro.message); // 'tempo esgotado'\n}\n\n// 5. Se fosse o usuário cancelando, o mesmo fluxo: controle.abort() faria\n//    a promise rejeitar com 'cancelado' e o catch trataria igual.\n```\n\nRepare na divisão de papéis: o `race` decide o VEREDITO (o que o programa vai fazer: usar o dado ou desistir), e o `signal` AVISA a operação que ela não precisa mais trabalhar. Um bom código de produção costuma usar os dois juntos."
+    }
+  ],
+  "sources": [
+    {
+      "title": "AbortController (MDN)",
+      "url": "https://developer.mozilla.org/en-US/docs/Web/API/AbortController",
+      "description": "O controlador do cancelamento: abort() dispara o sinal."
+    },
+    {
+      "title": "AbortSignal (MDN)",
+      "url": "https://developer.mozilla.org/pt-BR/docs/Web/API/AbortSignal",
+      "description": "O sinal que as operações escutam, com o atalho AbortSignal.timeout()."
+    },
+    {
+      "title": "Promise.race (MDN)",
+      "url": "https://developer.mozilla.org/pt-BR/docs/Web/JavaScript/Reference/Global_Objects/Promise/race",
+      "description": "A base do padrão de timeout: o primeiro a terminar vence."
+    }
+  ],
+  "challenges": [
+    "promessa-com-timeout"
+  ]
+}
