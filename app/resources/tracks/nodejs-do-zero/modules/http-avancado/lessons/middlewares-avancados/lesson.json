@@ -1,0 +1,60 @@
+{
+  "schemaVersion": 1,
+  "slug": "middlewares-avancados",
+  "title": "Middlewares avançados: cadeias, erros e async",
+  "summary": "Encadeie middlewares com propósito, desvie erros para um tratador, use async middlewares sem travar a cadeia e crie fábricas de middleware.",
+  "difficulty": 4,
+  "concepts": [
+    "middlewares_avancados"
+  ],
+  "prerequisites": [
+    "validacao-de-entrada"
+  ],
+  "theory": [
+    {
+      "id": "conceito-e-analogia",
+      "title": "A linha de montagem",
+      "markdown": "Imagine uma fábrica com uma linha de montagem. Cada estação faz UMA coisa: uma monta a peça, outra pinta, outra embala. O pedido passa por todas, na ordem. Se uma estação percebe uma peça com defeito, ela não conserta — ela desvia a peça para a esteira de reparo.\n\nO middleware é exatamente isso: uma estação da linha. Você já viu o básico (`app.use`, `next()`). Agora vamos aos três avanços:\n\n1. **Erro na linha**: se uma estação quebra, a peça vai para a esteira de reparo — no Express, um middleware de erro especial (com QUATRO argumentos). Chamar `next(erro)` desvia o pedido para lá.\n2. **Estações que demoram**: buscar um usuário no banco demora. Um middleware assíncrono (`async`) não segura a fábrica inteira — ele espera a própria tarefa e depois libera a peça.\n3. **Fábricas de estação**: às vezes você quer a MESMA estação com configurações diferentes (uma portaria que confere o campo X, outra que confere o campo Y). Uma função que devolve um middleware pronto é uma **fábrica de middleware**."
+    },
+    {
+      "id": "aprofundamento",
+      "title": "Error middleware, async e fábricas",
+      "markdown": "O middleware de erro tem QUATRO argumentos — é assim que o Express o reconhece. Ele recebe o erro que alguém lançou na linha:",
+      "code": {
+        "language": "js",
+        "code": "// Este middleware só roda quando alguém chamou next(erro).\napp.use((erro, req, res, next) => {\n  console.error('a linha quebrou:', erro.message); // detalhe no servidor\n  res.status(500).json({ mensagem: 'erro interno' }); // resposta genérica\n});\n\n// Rota que detecta um problema e DESVIA a peça para a esteira de reparo:\napp.get('/contas/:id', (req, res, next) => {\n  const conta = contas.find((c) => c.id === req.params.id);\n  if (!conta) {\n    return next(new Error('conta não encontrada')); // next COM argumento = desvio\n  }\n  res.json(conta);\n});\n\n// Middleware assíncrono: espera a busca, depois libera a peça.\napp.use(async (req, res, next) => {\n  try {\n    req.usuario = await buscarUsuario(req.headers.token);\n    next(); // a estação terminou; a peça segue\n  } catch (erro) {\n    next(erro); // a busca falhou; peça vai para o reparo\n  }\n});\n\n// Fábrica de middleware: uma função que devolve um middleware pronto.\nfunction exigirCampo(campo) {\n  return (req, res, next) => {\n    if (req.body?.[campo] === undefined) {\n      return res.status(400).json({ erros: [campo + ' é obrigatório'] });\n    }\n    next();\n  };\n}\n\n// A mesma estação com configurações diferentes, em sequência:\napp.post('/api/produtos', exigirCampo('nome'), exigirCampo('preco'), (req, res) => {\n  res.status(201).json({ criado: true });\n});",
+        "explanation": "next(erro) desvia para o error middleware (4 argumentos); async middleware precisa de try/catch para mandar erros adiante; fábricas devolvem middlewares configurados."
+      }
+    },
+    {
+      "id": "exemplo-completo",
+      "title": "Exemplo completo: a linha do usuário logado",
+      "markdown": "Uma cadeia completa: log → exigir token (fábrica) → buscar usuário (async) → rota protegida → esteira de reparo. Rode e visite `http://localhost:3000/api/me`: sem o cabeçalho `x-token` você leva 400; com um token, a rota responde com o usuário simulado.",
+      "code": {
+        "language": "js",
+        "code": "import express from 'express';\n\nconst app = express();\napp.use(express.json());\n\n// 1. Estação 1: registra todo pedido que passa.\napp.use((req, res, next) => {\n  console.log('pedido:', req.method, req.url);\n  next();\n});\n\n// 2. Fábrica: devolve uma estação que exige um campo no body.\nfunction exigirCampo(campo) {\n  return (req, res, next) => {\n    if (req.body?.[campo] === undefined || req.body[campo].trim() === '') {\n      // 3. Problema do cliente: recusa na hora, sem desviar para o reparo.\n      return res.status(400).json({ erros: [campo + ' é obrigatório'] });\n    }\n    next();\n  };\n}\n\n// 4. Estação async: espera a busca do usuário antes de liberar.\napp.use(async (req, res, next) => {\n  try {\n    // Busca simulada: na vida real, viria do banco.\n    req.usuario = await Promise.resolve({ id: 1, nome: 'Ana' });\n    next();\n  } catch (erro) {\n    next(erro); // falha na estação → esteira de reparo\n  }\n});\n\n// 5. A rota final: recebe a peça pronta pelas estações anteriores.\napp.post('/api/mensagens', exigirCampo('texto'), (req, res) => {\n  res.status(201).json({ enviadaPor: req.usuario.nome, texto: req.body.texto });\n});\n\n// 6. Esteira de reparo: o error middleware — QUATRO argumentos.\napp.use((erro, req, res, next) => {\n  console.error('a linha quebrou:', erro.message);\n  res.status(500).json({ mensagem: 'erro interno' });\n});\n\napp.listen(3000);",
+        "explanation": "A cadeia roda em ordem: log → fábrica que exige campo → estação async que enriquece o req → rota final; erros das estações caem no error middleware."
+      }
+    }
+  ],
+  "sources": [
+    {
+      "title": "Usando middlewares no Express (guia pt-BR)",
+      "url": "https://expressjs.com/pt-br/guide/using-middleware.html",
+      "description": "O que é middleware, como encadear e por que a ordem importa."
+    },
+    {
+      "title": "Escrevendo middlewares no Express (guia pt-BR)",
+      "url": "https://expressjs.com/pt-br/guide/writing-middleware.html",
+      "description": "Como criar middlewares configuráveis (fábricas) e usar a função next."
+    },
+    {
+      "title": "Tratamento de erros no Express (guia pt-BR)",
+      "url": "https://expressjs.com/pt-br/guide/error-handling.html",
+      "description": "O error middleware de quatro argumentos e o desvio com next(err)."
+    }
+  ],
+  "challenges": [
+    "cadeia-de-middlewares"
+  ]
+}

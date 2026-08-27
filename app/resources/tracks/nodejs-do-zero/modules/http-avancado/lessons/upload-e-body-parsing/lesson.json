@@ -1,0 +1,65 @@
+{
+  "schemaVersion": 1,
+  "slug": "upload-e-body-parsing",
+  "title": "Upload e parsing de corpo: arquivos e limites",
+  "summary": "Receba formulários e arquivos (multipart), imponha limites de tamanho e entenda por que corpos grandes chegam como stream.",
+  "difficulty": 4,
+  "concepts": [
+    "upload_e_body_parsing"
+  ],
+  "prerequisites": [
+    "rest-na-pratica"
+  ],
+  "theory": [
+    {
+      "id": "conceito-e-analogia",
+      "title": "O correio das encomendas",
+      "markdown": "O correio separa as entregas em dois mundos. Uma **carta** é fina e leve: um texto com um remetente e um destinatário. Uma **encomenda** é uma caixa: pode carregar um objeto (o arquivo) junto com uma ficha de papel (os campos do formulário).\n\nNo HTTP acontece o mesmo:\n\n- `application/json` é a carta: um texto que vira objeto JavaScript com `express.json()`.\n- `application/x-www-form-urlencoded` é o formulário de página antiga: campos simples, um `nome=valor` atrás do outro.\n- `multipart/form-data` é a encomenda: uma caixa que carrega **arquivos E campos** juntos. É o formato que o navegador usa quando um formulário tem `<input type=\"file\">`.\n\nToda agência tem uma regra de tamanho: encomenda acima de X quilos não entra. O servidor também: **limite de tamanho** de corpo e de arquivo — estourou, o correio devolve a encomenda (status `413`).\n\nE tem mais um segredo: o corpo NÃO chega inteiro de uma vez. Ele chega como um **stream** — um caminhão descarregando aos poucos. O parser (express.json, multer) vai montando o pedaço a pedaço enquanto o caminhão chega. É assim que o servidor consegue receber um vídeo de 2 GB sem segurar 2 GB na memória."
+    },
+    {
+      "id": "aprofundamento",
+      "title": "Parsers, multer e limites",
+      "markdown": "Cada formato tem o seu parser. O Express traz os parsers de texto embutidos; para multipart com arquivos, a biblioteca mais usada é a **multer**.",
+      "code": {
+        "language": "js",
+        "code": "import express from 'express';\nimport multer from 'multer';\n\nconst app = express();\n\n// Cartas: JSON (API) e formulário de página (urlencoded) — com LIMITES.\napp.use(express.json({ limit: '100kb' }));\napp.use(express.urlencoded({ extended: true }));\n\n// Encomendas: multer guarda o upload na memória e libera em req.file.\nconst upload = multer({\n  storage: multer.memoryStorage(), // conteúdo fica em req.file.buffer\n  limits: { fileSize: 5 * 1024 * 1024 }, // 5 MB — regra da agência\n});\n\napp.post('/api/perfil', upload.single('avatar'), (req, res) => {\n  // req.file existe quando o cliente mandou um arquivo no campo 'avatar'.\n  res.json({\n    nome: req.file?.originalname,\n    tamanho: req.file?.size,\n    campos: req.body, // os campos do formulário chegam juntos\n  });\n});\n\n// Estourou o limite? O multer lança um erro com código LIMIT_FILE_SIZE.\napp.use((erro, req, res, next) => {\n  if (erro.code === 'LIMIT_FILE_SIZE') {\n    return res.status(413).json({ erro: 'arquivo excede o limite' });\n  }\n  next(erro); // erro desconhecido segue para o tratamento central\n});",
+        "explanation": "express.json e express.urlencoded leem corpos de texto com limite; multer lê multipart e entrega o arquivo em req.file; arquivo grande vira 413."
+      }
+    },
+    {
+      "id": "exemplo-completo",
+      "title": "Exemplo completo: o cadastro de perfil com foto",
+      "markdown": "Um servidor que recebe um formulário com foto de perfil (multipart), impõe o limite de 5 MB e responde com os dados do arquivo. Rode e mande um formulário com o campo `avatar` — ou use o formulário HTML no final do exemplo.",
+      "code": {
+        "language": "js",
+        "code": "import express from 'express';\nimport multer from 'multer';\n\nconst app = express();\napp.use(express.json({ limit: '100kb' }));\n\n// 1. Encomenda: multer recebe o multipart e entrega o arquivo em req.file.\nconst upload = multer({\n  storage: multer.memoryStorage(),\n  limits: { fileSize: 5 * 1024 * 1024 }, // 5 MB\n});\n\napp.post('/api/perfil', upload.single('avatar'), (req, res) => {\n  // 2. Sem arquivo no campo 'avatar', req.file é undefined — recusamos.\n  if (!req.file) {\n    return res.status(400).json({ erro: 'arquivo avatar é obrigatório' });\n  }\n  // 3. Chegou: devolvemos o nome e o tamanho. O conteúdo vive em req.file.buffer.\n  res.status(201).json({\n    nome: req.file.originalname,\n    tamanho: req.file.size,\n    camposDoFormulario: req.body,\n  });\n});\n\n// 4. Erros do multer caem aqui como QUALQUER outro erro da cadeia.\napp.use((erro, req, res, next) => {\n  // 5. Arquivo grande demais é problema do CLIENTE → 413 (Payload Too Large).\n  if (erro.code === 'LIMIT_FILE_SIZE') {\n    return res.status(413).json({ erro: 'arquivo excede o limite de 5MB' });\n  }\n  // 6. Qualquer outra coisa é erro interno do servidor.\n  res.status(500).json({ erro: 'erro interno do servidor' });\n});\n\napp.listen(3000);\n\n// Para testar no navegador, uma página com formulário:\n// <form action=\"http://localhost:3000/api/perfil\" method=\"post\" enctype=\"multipart/form-data\">\n//   <input type=\"file\" name=\"avatar\">\n//   <button>Enviar</button>\n// </form>",
+        "explanation": "O multipart é interpretado pelo multer; sem arquivo → 400; dentro do limite → 201 com os dados; acima do limite → 413; o error middleware trata tudo."
+      }
+    }
+  ],
+  "sources": [
+    {
+      "title": "Usando middlewares no Express (guia pt-BR)",
+      "url": "https://expressjs.com/pt-br/guide/using-middleware.html",
+      "description": "express.json() e express.urlencoded(): parsers de corpo e seus limites."
+    },
+    {
+      "title": "Multer (middleware do Express)",
+      "url": "https://expressjs.com/en/resources/middleware/multer.html",
+      "description": "A biblioteca multer para upload de arquivos multipart, com limites e armazenamento."
+    },
+    {
+      "title": "Content-Type (MDN)",
+      "url": "https://developer.mozilla.org/pt-BR/docs/Web/HTTP/Headers/Content-Type",
+      "description": "O cabeçalho que diz ao servidor em que formato o corpo chegou."
+    },
+    {
+      "title": "FormData (MDN)",
+      "url": "https://developer.mozilla.org/pt-BR/docs/Web/API/FormData",
+      "description": "Como o navegador monta um corpo multipart com arquivos e campos."
+    }
+  ],
+  "challenges": [
+    "parsear-upload"
+  ]
+}

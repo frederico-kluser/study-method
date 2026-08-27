@@ -1,0 +1,65 @@
+{
+  "schemaVersion": 1,
+  "slug": "websockets",
+  "title": "WebSockets: a conexão que fica aberta",
+  "summary": "Converse em tempo real com uma conexão persistente baseada em eventos — e entenda quando isso é melhor (ou pior) que o polling.",
+  "difficulty": 4,
+  "concepts": [
+    "websockets"
+  ],
+  "prerequisites": [
+    "upload-e-body-parsing"
+  ],
+  "theory": [
+    {
+      "id": "conceito-e-analogia",
+      "title": "O telefone vs. o carteiro",
+      "markdown": "HTTP comum é um carteiro: você manda uma carta (o pedido) e espera a resposta. Para saber se chegou coisa nova, você manda OUTRA carta. Perguntar de novo de tempos em tempos — \"chegou algo novo?\" — é o **polling**: funciona, mas é atrasado (o novo sempre chega depois da pergunta) e gastão (a maioria das respostas é \"não chegou nada\").\n\nWebSocket é o **telefone**: você liga uma vez, a linha fica aberta, e os dois lados falam quando quiserem. Se o servidor tem algo a dizer, ele fala NA HORA — sem esperar o cliente perguntar. É assim que funcionam chats, jogos em tempo real, notificações de preço e editores colaborativos.\n\nO preço do telefone: a linha precisa ser cuidada (ela pode cair, e os dois lados precisam saber), e o servidor tem que lembrar quem está na linha. Para consultas pontuais (buscar um produto, listar pedidos), o HTTP comum continua sendo o jeito certo.\n\n**Resumo**: precisa de resposta imediata e bidirecional? WebSocket. Pode esperar alguns segundos e o dado muda pouco? Polling resolve — e com bem menos trabalho."
+    },
+    {
+      "id": "aprofundamento",
+      "title": "O handshake e a sala de eventos",
+      "markdown": "A ligação começa com um aperto de mão (handshake): o cliente pede \"vamos conversar?\" por HTTP, e o servidor responde `101 Switching Protocols` — a partir dali, a linha é do WebSocket. A biblioteca `ws` cuida da parte difícil:",
+      "code": {
+        "language": "js",
+        "code": "import { WebSocketServer } from 'ws';\nimport http from 'node:http';\n\n// 1. O servidor HTTP comum atende os pedidos normais...\nconst servidor = http.createServer((req, res) => res.end('ok'));\n\n// 2. ...e o WebSocketServer escuta a MESMA porta, no caminho /chat.\nconst ws = new WebSocketServer({ server: servidor, path: '/chat' });\n\nws.on('connection', (socket) => {\n  // 3. Cada cliente conectado tem um socket = uma linha aberta.\n  socket.on('message', (dados) => {\n    // 4. Broadcast: repassa para TODOS os clientes conectados.\n    for (const cliente of ws.clients) {\n      cliente.send(dados.toString());\n    }\n  });\n});\n\nservidor.listen(3000);",
+        "explanation": "O handshake HTTP vira 101; depois disso a conexão é persistente e os eventos (message) trafegam em tempo real; broadcast percorre ws.clients."
+      }
+    },
+    {
+      "id": "exemplo-completo",
+      "title": "Exemplo completo: a sala que conta presença",
+      "markdown": "Um servidor WebSocket que conta quantas pessoas estão na linha e repassa cada mensagem para todos. E o cliente no navegador — uma página simples que conversa em tempo real.",
+      "code": {
+        "language": "js",
+        "code": "import { WebSocketServer } from 'ws';\nimport http from 'node:http';\n\n// 1. O servidor HTTP que também serve a página (ou uma API normal).\nconst servidor = http.createServer((req, res) => {\n  res.setHeader('content-type', 'text/html; charset=utf-8');\n  res.end('Abra o console e conecte em ws://localhost:3000/chat');\n});\n\nconst ws = new WebSocketServer({ server: servidor, path: '/chat' });\n\nws.on('connection', (socket) => {\n  // 2. Alguém entrou na sala: avisa todo mundo (inclusive o recém-chegado).\n  socket.send('bem-vindo! ' + ws.clients.size + ' pessoa(s) na linha');\n\n  socket.on('message', (dados) => {\n    const texto = dados.toString();\n    // 3. Repassa a mensagem para todos — é assim que um chat funciona.\n    for (const cliente of ws.clients) {\n      cliente.send(texto);\n    }\n  });\n\n  socket.on('close', () => {\n    // 4. A linha caiu: ninguém precisa perguntar de novo, o evento avisa.\n    console.log('alguém saiu; restam', ws.clients.size);\n  });\n});\n\nservidor.listen(3000);\n\n// Cliente no navegador:\n// const socket = new WebSocket('ws://localhost:3000/chat');\n// socket.onopen = () => socket.send('oi, servidor!');       // fala quando abrir\n// socket.onmessage = (e) => console.log('recebi:', e.data); // escuta a resposta",
+        "explanation": "Conexão persistente com eventos: connection, message e close; o broadcast repassa em tempo real e o servidor sabe quem está na linha."
+      }
+    }
+  ],
+  "sources": [
+    {
+      "title": "A API WebSockets (MDN)",
+      "url": "https://developer.mozilla.org/pt-BR/docs/Web/API/WebSockets_API",
+      "description": "O que é WebSocket, o handshake e quando usar."
+    },
+    {
+      "title": "WebSocket (MDN)",
+      "url": "https://developer.mozilla.org/pt-BR/docs/Web/API/WebSocket",
+      "description": "A classe WebSocket no navegador: onopen, onmessage, onclose."
+    },
+    {
+      "title": "101 Switching Protocols (MDN)",
+      "url": "https://developer.mozilla.org/pt-BR/docs/Web/HTTP/Status/101",
+      "description": "O status do handshake: o servidor aceitou trocar o protocolo."
+    },
+    {
+      "title": "Gerenciamento de conexões HTTP/1.x (MDN)",
+      "url": "https://developer.mozilla.org/pt-BR/docs/Web/HTTP/Connection_management_in_HTTP_1.x",
+      "description": "O mecanismo de upgrade que transforma HTTP em WebSocket."
+    }
+  ],
+  "challenges": [
+    "fila-de-eventos"
+  ]
+}
