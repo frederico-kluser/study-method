@@ -1,0 +1,55 @@
+{
+  "schemaVersion": 1,
+  "slug": "getters-setters-de-classe",
+  "title": "Getters e setters: leitura e escrita controladas",
+  "summary": "Usar get e set para expor campos com cálculo ou validação, com a mesma sintaxe de propriedade — sem parênteses.",
+  "difficulty": 3,
+  "concepts": [
+    "getters_setters"
+  ],
+  "prerequisites": [
+    "metodos"
+  ],
+  "theory": [
+    {
+      "id": "portaria-de-leitura-e-escrita",
+      "title": "A portaria do prédio",
+      "markdown": "Nosso objeto virou um prédio com portaria: os métodos validam quem entra (saque, depósito). Mas os campos continuam com porta aberta — qualquer pessoa pode ler ou escrever `conta.saldo` sem passar pela portaria.\n\n**Getters e setters** são dois métodos especiais que controlam justamente isso, com uma vantagem: quem usa o objeto nem percebe que passou por uma portaria, porque a sintaxe é de campo comum (sem parênteses).\n\n- **Getter** (`get`) — controla a LEITURA: o que acontece quando alguém lê `objeto.campo`.\n- **Setter** (`set`) — controla a ESCRITA: o que acontece quando alguém faz `objeto.campo = valor`.\n\nPense na portaria de um prédio: para SAIR (ler), o porteiro apenas registra; para ENTRAR (escrever), ele confere identidade antes de deixar passar. O getter é a saída, o setter é a entrada com conferência.\n\n**Onde isso brilha:** (1) campos calculados — em vez de guardar dois dados que se repetem, calcula um na hora da leitura; (2) validação na escrita — o setter recusa valor inválido antes de deixar entrar."
+    },
+    {
+      "id": "get-e-set-na-pratica",
+      "title": "get e set em código",
+      "markdown": "Um caso clássico é a temperatura: o valor de verdade é em Celsius, mas muita gente pensa em Fahrenheit. Guardamos UMA coisa (celsius) e oferecemos `fahrenheit` como campo calculado:\n\n```js\nclass Temperatura {\n  constructor(celsius) {\n    this.celsius = celsius;\n  }\n\n  // GETTER: ler .fahrenheit dispara esta função\n  get fahrenheit() {\n    return (this.celsius * 9) / 5 + 32;\n  }\n\n  // SETTER: escrever .fahrenheit dispara esta função\n  set fahrenheit(valor) {\n    if (typeof valor !== 'number') {\n      throw new Error('fahrenheit precisa ser um número');\n    }\n    this.celsius = ((valor - 32) * 5) / 9; // converte de volta\n  }\n}\n```\n\n```js\nconst hoje = new Temperatura(25);\nconsole.log(hoje.fahrenheit); // imprime: 77  (getter calculou)\nhoje.fahrenheit = 212;       // setter validou e converteu\nconsole.log(hoje.celsius);   // imprime: 100\n```\n\nRepare: `hoje.fahrenheit` SEM parênteses. O objeto finge que `fahrenheit` é um campo comum — mas por trás roda o getter (leitura) e o setter (escrita com validação).\n\n**Estratégia:** use getter quando o valor é DERIVADO de outros campos (não precisa guardar uma cópia que pode dessincronizar). Use setter quando a escrita precisa de validação ou de efeito colateral."
+    },
+    {
+      "id": "exemplo-completo",
+      "title": "Exemplo completo: cliente com nome completo controlado",
+      "markdown": "**Objetivo:** um `Cliente` que guarda nome e sobrenome separados (para relatórios) e oferece `nomeCompleto` como campo calculado, com setter que valida e divide.\n\nPasso 1 — guarde as partes, não o todo.\nO constructor recebe `nome` e `sobrenome` e guarda os dois. `nomeCompleto` NÃO é guardado: é calculado na hora — assim nunca fica dessincronizado com as partes.\n\nPasso 2 — o getter junta as partes.\n`cliente.nomeCompleto` devolve nome e sobrenome montados. A leitura sempre devolve o estado atual, mesmo se o nome mudar depois.\n\nPasso 3 — o setter valida e divide.\nEscrever `cliente.nomeCompleto = 'Maria Silva Santos'` valida (texto não vazio), corta em partes e guarda `nome = 'Maria'` e `sobrenome = 'Silva Santos'`. Escrita torta é recusada na portaria.\n\nPasso 4 — use com sintaxe de campo.\nSem parênteses: ler e escrever parece campo comum, mas passa pelo controle.",
+      "code": {
+        "language": "js",
+        "code": "// Passos 1 a 3: cliente que guarda as partes e controla o todo.\nclass Cliente {\n  constructor(nome, sobrenome) {\n    this.nome = nome;\n    this.sobrenome = sobrenome;\n  }\n\n  // Passo 2: getter — monta o nome completo na hora da leitura.\n  get nomeCompleto() {\n    return `${this.nome} ${this.sobrenome}`.trim();\n  }\n\n  // Passo 3: setter — valida, divide e guarda as partes.\n  set nomeCompleto(valor) {\n    if (typeof valor !== 'string' || valor.trim() === '') {\n      throw new Error('nome completo não pode ser vazio');\n    }\n    const partes = valor.trim().split(' ');\n    this.nome = partes[0];\n    this.sobrenome = partes.slice(1).join(' ');\n  }\n}\n\n// Passo 4: sintaxe de campo comum, controle por trás.\nconst cliente = new Cliente('Ana', 'Souza');\nconsole.log(cliente.nomeCompleto); // imprime: Ana Souza\n\ncliente.nomeCompleto = 'Bia Santos Lima'; // setter divide\nconsole.log(cliente.nome);         // imprime: Bia\nconsole.log(cliente.sobrenome);    // imprime: Santos Lima\nconsole.log(cliente.nomeCompleto); // imprime: Bia Santos Lima",
+        "explanation": "Guardar as partes e calcular o todo evita dado duplicado que dessincroniza. O setter é a única porta para mudar o nome — e ela valida antes de deixar entrar."
+      }
+    }
+  ],
+  "sources": [
+    {
+      "title": "MDN — get",
+      "url": "https://developer.mozilla.org/pt-BR/docs/Web/JavaScript/Reference/Functions/get",
+      "description": "Documentação oficial do getter: leitura com sintaxe de propriedade."
+    },
+    {
+      "title": "MDN — set",
+      "url": "https://developer.mozilla.org/pt-BR/docs/Web/JavaScript/Reference/Functions/set",
+      "description": "Documentação oficial do setter: escrita com validação."
+    },
+    {
+      "title": "MDN — Classes",
+      "url": "https://developer.mozilla.org/pt-BR/docs/Web/JavaScript/Reference/Classes",
+      "description": "Documentação oficial de class e métodos especiais."
+    }
+  ],
+  "challenges": [
+    "temperatura-com-getters"
+  ]
+}

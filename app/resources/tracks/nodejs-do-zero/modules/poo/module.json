@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "slug": "poo",
+  "title": "Programação Orientada a Objetos",
+  "order": 11,
+  "lessons": [
+    "o-que-e-poo",
+    "classes",
+    "construtor-e-campos",
+    "metodos",
+    "getters-setters-de-classe",
+    "membros-estaticos",
+    "heranca",
+    "super",
+    "encapsulamento",
+    "polimorfismo",
+    "composicao-vs-heranca"
+  ],
+  "challenge": "desafio-do-modulo-poo"
+}

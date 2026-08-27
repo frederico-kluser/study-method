@@ -1,0 +1,56 @@
+{
+  "schemaVersion": 1,
+  "slug": "o-que-e-poo",
+  "title": "O que é Programação Orientada a Objetos",
+  "summary": "Entender o paradigma dos objetos: agrupar dados e comportamentos em \"coisas\" — como casas construídas a partir de uma planta.",
+  "difficulty": 3,
+  "concepts": [
+    "poo"
+  ],
+  "prerequisites": [
+    "objetos-base",
+    "funcoes"
+  ],
+  "theory": [
+    {
+      "id": "o-paradigma-dos-objetos",
+      "title": "Um jeito de organizar: os objetos",
+      "markdown": "Um **paradigma** é um jeito de pensar e organizar o código. Até aqui, você organizou com variáveis (os dados) e funções (as ações) separadas. A **Programação Orientada a Objetos (POO)** propõe outra organização: juntar dados e ações na mesma \"coisa\" — o **objeto**.\n\nPense numa casa. A **planta** da casa descreve como a casa deve ser: quantos quartos, onde fica a porta, para onde abre a janela. A planta não é a casa — ela é o desenho que guia a construção. Cada **casa construída** a partir da planta é uma casa de verdade, com paredes e telhado.\n\nNa POO é a mesma ideia: desenhamos **plantas** (que descrevem estrutura e comportamento) e **construímos casas** (os objetos de verdade, que guardam dados próprios). Duas casas construídas da mesma planta são iguais no formato, mas podem ter donos diferentes — assim como dois objetos criados do mesmo molde têm a mesma estrutura, mas valores diferentes.\n\n**Por que usar objetos?** Porque o mundo real tem \"coisas\" com dados e comportamentos juntos: um aluno TEM nome e idade e SABE se apresentar; uma conta bancária TEM saldo e SABE depositar e sacar. Juntar isso num objeto faz o código acompanhar o jeito natural de pensar — e evita espalhar os dados de um aluno por dez variáveis soltas."
+    },
+    {
+      "id": "objetos-que-ja-conhecemos",
+      "title": "Você já usa objetos — o que falta é o molde",
+      "markdown": "Nas aulas anteriores você já criou objetos com as chaves `{}` (objetos literais):\n\n`const aluna = { nome: 'Ana', idade: 18 };`\n\nIsso agrupa dados, mas tem um problema: se você precisa de dez alunas, escreve a mesma estrutura dez vezes — e cada uma pode ter sido escrita com um campo diferente (uma com `idade`, outra sem, outra com o nome errado).\n\nA POO resolve isso com o **molde**: em vez de escrever cada objeto à mão, você descreve a estrutura UMA vez (a planta) e usa o molde para criar quantos objetos quiser — todos com a mesma estrutura garantida. É a diferença entre desenhar uma casa do zero todo dia e usar a mesma planta.\n\nNesta aula o importante é a IDEIA. A partir da próxima você vai escrever molde de verdade. Por enquanto, guarde as três palavras:\n\n1. **Classe** — a planta: descreve a estrutura e o comportamento.\n2. **Objeto (instância)** — a casa: uma coisa de verdade, criada a partir da classe.\n3. **Método** — uma ação que o objeto sabe fazer (detalhamos nas próximas aulas)."
+    },
+    {
+      "id": "exemplo-completo",
+      "title": "Exemplo completo: o problema que a POO resolve",
+      "markdown": "**Objetivo:** ver com os próprios olhos o problema de espalhar dados em objetos literais — e como a POO organiza melhor.\n\nPasso 1 — imagine duas fichas de aluna escritas à mão.\nCada ficha é um objeto literal. Repare que a estrutura é digitada duas vezes — se amanhã mudar o campo `nome` para `nomeCompleto`, tem que lembrar de mudar nos dois lugares (e nos outros oito, se fossem dez alunas).\n\nPasso 2 — o comportamento mora FORA do objeto.\nA função `apresentar` recebe QUALQUER objeto e espera que ele tenha `nome` e `idade`. Se alguém passar um objeto sem esses campos, a frase sai quebrada — e ninguém avisou antes.\n\nPasso 3 — a POO ataca os dois problemas.\nCom uma classe (planta), a estrutura é escrita uma vez e todo objeto criado tem os mesmos campos. E o comportamento (apresentar) pode morar DENTRO do objeto — ele nunca esquece de se apresentar do jeito certo. As próximas aulas mostram exatamente como escrever isso.\n\nPasso 4 — rode o exemplo e veja a frase.\nO código abaixo é o \"jeito antigo\" (objetos soltos). A partir da próxima aula você vai reescrever isso com classes e ver a diferença.",
+      "code": {
+        "language": "js",
+        "code": "// Passo 1: duas fichas escritas à mão — a estrutura é repetida.\nconst ana = { nome: 'Ana', idade: 18 };\nconst bia = { nome: 'Bia', idade: 20 };\n\n// Passo 2: o comportamento vive FORA dos objetos.\nfunction apresentar(pessoa) {\n  // Se o objeto não tiver nome ou idade, a frase quebra — sem aviso.\n  return `${pessoa.nome} tem ${pessoa.idade} anos.`;\n}\n\n// Passo 3: funciona, mas com risco: nada garante a estrutura.\nconsole.log(apresentar(ana)); // imprime: Ana tem 18 anos.\nconsole.log(apresentar(bia)); // imprime: Bia tem 20 anos.\n\n// Passo 4: e se alguém passar um objeto sem nome?\nconsole.log(apresentar({ idade: 30 })); // imprime: undefined tem 30 anos.",
+        "explanation": "O problema não é o resultado — é a falta de garantia: a estrutura não é obrigatória e o comportamento não é dono do dado. Com classes (próximas aulas), a planta garante a estrutura e o método mora junto do objeto."
+      }
+    }
+  ],
+  "sources": [
+    {
+      "title": "MDN — Classes",
+      "url": "https://developer.mozilla.org/pt-BR/docs/Web/JavaScript/Reference/Classes",
+      "description": "Documentação oficial: o que é uma classe e como declarar."
+    },
+    {
+      "title": "MDN — Guia: classes em JavaScript",
+      "url": "https://developer.mozilla.org/pt-BR/docs/Learn_web_development/Extensions/Advanced_JavaScript_objects/Classes_in_JavaScript",
+      "description": "Guia passo a passo com a ideia de molde e instância."
+    },
+    {
+      "title": "MDN — new",
+      "url": "https://developer.mozilla.org/pt-BR/docs/Web/JavaScript/Reference/Operators/new",
+      "description": "Documentação do operador que constrói objetos a partir da classe."
+    }
+  ],
+  "challenges": [
+    "criar-pessoa"
+  ]
+}

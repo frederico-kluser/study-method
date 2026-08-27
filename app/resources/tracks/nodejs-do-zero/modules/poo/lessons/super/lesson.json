@@ -1,0 +1,55 @@
+{
+  "schemaVersion": 1,
+  "slug": "super",
+  "title": "super: a ponte para a classe mãe",
+  "summary": "Chamar super() no constructor e super.metodo() para reaproveitar a inicialização e os métodos da classe mãe.",
+  "difficulty": 3,
+  "concepts": [
+    "super"
+  ],
+  "prerequisites": [
+    "heranca"
+  ],
+  "theory": [
+    {
+      "id": "a-ponte",
+      "title": "A ponte para a mãe",
+      "markdown": "Na aula passada você viu a herança e encontrou uma peça nova no código: `super(titulo, ano)` dentro do constructor de `Livro`. Esta aula explica essa ponte.\n\nQuando a classe filha tem o SEU PRÓPRIO constructor, ela precisa chamar `super(...)` — o constructor da mãe — ANTES de usar `this`. Pense numa empresa familiar: o filho assume a gestão, mas primeiro passa na sala da mãe para receber o que ela já tinha montado (clientes, contratos). Só depois ele organiza as coisas novas dele.\n\n```js\nclass Veiculo {\n  constructor(marca, ano) {\n    this.marca = marca; // a mãe guarda estes campos\n    this.ano = ano;\n  }\n}\n\nclass Carro extends Veiculo {\n  constructor(marca, ano, portas) {\n    super(marca, ano); // 'mãe, inicializa marca e ano para mim'\n    this.portas = portas; // agora sim: o campo novo da filha\n  }\n}\n```\n\n**Regra de ouro:** `super(...)` é sempre a PRIMEIRA linha do constructor da filha. Antes dela, `this` ainda não existe — a fundação da casa da filha é a casa da mãe."
+    },
+    {
+      "id": "super-metodo",
+      "title": "super.metodo(): reaproveitar sem repetir",
+      "markdown": "`super` também funciona com métodos: `super.metodo()` chama a versão da MÃE de um método que a filha substituiu (override). Isso evita copiar e colar o texto da mãe:\n\n```js\nclass Veiculo {\n  constructor(marca, ano) {\n    this.marca = marca;\n    this.ano = ano;\n  }\n  descricao() {\n    return `Veiculo: ${this.marca} (${this.ano})`;\n  }\n}\n\nclass Carro extends Veiculo {\n  constructor(marca, ano, portas) {\n    super(marca, ano);\n    this.portas = portas;\n  }\n  descricao() {\n    // pega a parte da mãe e acrescenta a da filha\n    return `${super.descricao()} com ${this.portas} portas`;\n  }\n}\n```\n\n```js\nconst carro = new Carro('Fiat', 2020, 4);\nconsole.log(carro.descricao()); // imprime: Veiculo: Fiat (2020) com 4 portas\n```\n\nA frase da mãe (`Veiculo: Fiat (2020)`) foi escrita UMA vez — na classe mãe. A filha chama essa parte com `super.descricao()` e acrescenta o detalhe dela.\n\n**Por que isso importa:** se amanhã a descrição da mãe mudar (ex.: incluir o país), TODOS os carros herdam a mudança automaticamente. Repetir o texto na filha quebraria essa corrente — cada cópia envelhece no seu ritmo."
+    },
+    {
+      "id": "exemplo-completo",
+      "title": "Exemplo completo: funcionário e gerente com bônus",
+      "markdown": "**Objetivo:** `Funcionario` com bônus de 10% do salário; `Gerente` É UM funcionário, recebe o bônus de funcionário MAIS um extra fixo — sem repetir o cálculo da mãe.\n\nPasso 1 — a classe mãe calcula o bônus do funcionário comum.\n`calcularBonus()` devolve 10% do salário.\n\nPasso 2 — o gerente chama super() no constructor.\n`super(nome, salario)` inicializa nome e salário na sala da mãe; depois o gerente guarda o campo novo (equipe).\n\nPasso 3 — o gerente substitui calcularBonus.\nA regra do gerente é: o bônus de funcionário (calculado pela mãe) MAIS um extra fixo. Em vez de reescrever `salario * 0.1`, chama `super.calcularBonus()` e soma o extra.\n\nPasso 4 — as validações da mãe continuam valendo.\nSe a mãe recusa salário não numérico, o gerente também recusa — a regra é herdada junto com os campos.\n\nPasso 5 — veja os dois cálculos funcionando.\nUm funcionário comum e um gerente com o mesmo salário: o gerente recebe o bônus do funcionário + o extra. Cada um responde a `calcularBonus()` do seu jeito.",
+      "code": {
+        "language": "js",
+        "code": "// Passos 1 e 4: classe mãe com validação e bônus de funcionário comum.\nclass Funcionario {\n  constructor(nome, salario) {\n    if (typeof salario !== 'number' || salario < 0) {\n      throw new Error('salario precisa ser um número não negativo');\n    }\n    this.nome = nome;\n    this.salario = salario;\n  }\n  calcularBonus() {\n    return this.salario * 0.1; // 10% do salário\n  }\n}\n\n// Passos 2 e 3: gerente herda, inicializa com super() e estende o cálculo.\nclass Gerente extends Funcionario {\n  constructor(nome, salario, equipe) {\n    super(nome, salario); // a mãe valida e guarda nome e salario\n    this.equipe = equipe; // campo novo da filha\n  }\n  calcularBonus() {\n    // reaproveita o cálculo da mãe e acrescenta o extra de gerente\n    return super.calcularBonus() + 500;\n  }\n}\n\n// Passo 5: mesmo salário, regras diferentes — cada um responde do seu jeito.\nconst ana = new Funcionario('Ana', 5000);\nconst carlos = new Gerente('Carlos', 5000, 4);\nconsole.log(ana.calcularBonus());    // imprime: 500\nconsole.log(carlos.calcularBonus()); // imprime: 1000  (500 da mãe + 500 extra)\nconsole.log(carlos.nome);            // imprime: Carlos  (inicializado por super)",
+        "explanation": "super() entrega a inicialização da parte herdada; super.calcularBonus() entrega o cálculo da mãe sem copiar o texto. A filha só escreve o que é DELA — e herda validações e regras de brinde."
+      }
+    }
+  ],
+  "sources": [
+    {
+      "title": "MDN — super",
+      "url": "https://developer.mozilla.org/pt-BR/docs/Web/JavaScript/Reference/Operators/super",
+      "description": "Documentação oficial de super() e super.metodo()."
+    },
+    {
+      "title": "MDN — extends",
+      "url": "https://developer.mozilla.org/pt-BR/docs/Web/JavaScript/Reference/Classes/extends",
+      "description": "Documentação oficial da herança de classes."
+    },
+    {
+      "title": "MDN — Classes",
+      "url": "https://developer.mozilla.org/pt-BR/docs/Web/JavaScript/Reference/Classes",
+      "description": "Documentação oficial de class e herança."
+    }
+  ],
+  "challenges": [
+    "veiculo-e-carro"
+  ]
+}

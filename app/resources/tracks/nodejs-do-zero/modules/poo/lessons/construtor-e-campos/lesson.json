@@ -1,0 +1,50 @@
+{
+  "schemaVersion": 1,
+  "slug": "construtor-e-campos",
+  "title": "Construtor e campos: a inicialização",
+  "summary": "Usar o constructor para receber valores, inicializar campos com padrão e validar o que entra — o objeto nasce pronto para ser usado.",
+  "difficulty": 3,
+  "concepts": [
+    "construtor_e_campos"
+  ],
+  "prerequisites": [
+    "classes"
+  ],
+  "theory": [
+    {
+      "id": "o-momento-da-construcao",
+      "title": "O construtor: o momento em que a casa ganha vida",
+      "markdown": "A planta diz onde ficam as portas e janelas, mas quem instala cada porta é a obra. Na POO, essa obra é o **constructor**: um método especial que roda sozinho, no exato momento em que `new` constrói o objeto.\n\nPense na entrega de uma casa pronta: a construtora recebe os materiais (os **parâmetros**), instala cada um no lugar certo (atribui aos **campos**) e entrega uma casa habitável. O constructor faz o mesmo com o objeto: recebe os valores e inicializa os campos.\n\n```js\nclass Produto {\n  constructor(nome, preco) {\n    this.nome = nome;   // instala o material 'nome' no lugar certo\n    this.preco = preco; // idem para 'preco'\n  }\n}\n```\n\nUm objeto que passou pelo constructor nasce **inicializado**: não é uma casa pela metade, com campos faltando — é uma casa pronta, com todos os cômodos no lugar."
+    },
+    {
+      "id": "padrao-e-validacao",
+      "title": "Valores padrão e portaria de entrada",
+      "markdown": "O constructor também é o lugar para duas proteções:\n\n**1. Valor padrão.** Às vezes um campo tem um valor óbvio quando a pessoa não informa. Usamos o mesmo truque de funções — parâmetro com valor padrão:\n\n```js\nclass Produto {\n  constructor(nome, preco, quantidade = 1) {\n    // quantidade vale 1 quando não for passada\n    this.nome = nome;\n    this.preco = preco;\n    this.quantidade = quantidade;\n  }\n}\n\nnew Produto('Caneta', 2);        // quantidade = 1\nnew Produto('Caderno', 12.5, 3); // quantidade = 3\n```\n\n**2. Portaria de entrada.** Antes de instalar os materiais, confira se eles são válidos. Se algo estiver errado, lançamos erro com `throw` — melhor recusar a entrega do que construir uma casa torta:\n\n```js\nclass Produto {\n  constructor(nome, preco) {\n    if (typeof preco !== 'number') {\n      throw new Error('preco precisa ser um número'); // porta fechada\n    }\n    this.nome = nome;\n    this.preco = preco;\n  }\n}\n```\n\n**Estratégia:** valide no constructor, o mais cedo possível. Quanto antes o erro aparecer, mais fácil achar o problema — um objeto inválido que nasce sem erro só quebra lá na frente, longe da causa."
+    },
+    {
+      "id": "exemplo-completo",
+      "title": "Exemplo completo: produto de loja com inicialização protegida",
+      "markdown": "**Objetivo:** construir a classe `Produto` com três campos, um deles com padrão, e portaria de entrada em todos.\n\nPasso 1 — declare os campos no constructor.\nNome, preço e quantidade. A quantidade recebe padrão `1`: quem não informar, leva uma unidade.\n\nPasso 2 — valide o nome.\nNome precisa ser texto não vazio — produto sem nome é prateleira vazia com etiqueta.\n\nPasso 3 — valide o preço.\nPreço precisa ser número e não pode ser negativo — ninguém paga para levar.\n\nPasso 4 — valide a quantidade.\nQuantidade precisa ser número maior ou igual a 1 — pedir zero unidade não faz sentido.\n\nPasso 5 — construa produtos e veja os campos.\n`new Produto('Caderno', 12.5, 3)` monta a ficha completa; `new Produto('Borracha', 3)` usa o padrão. As duas são casas construídas com todas as portas instaladas.",
+      "code": {
+        "language": "js",
+        "code": "// Passos 1 a 4: constructor com padrão e validações (a portaria de entrada).\nclass Produto {\n  constructor(nome, preco, quantidade = 1) {\n    if (typeof nome !== 'string' || nome.trim() === '') {\n      throw new Error('nome precisa ser um texto não vazio');\n    }\n    if (typeof preco !== 'number' || preco < 0) {\n      throw new Error('preco precisa ser um número não negativo');\n    }\n    if (typeof quantidade !== 'number' || quantidade < 1) {\n      throw new Error('quantidade precisa ser um número maior ou igual a 1');\n    }\n    this.nome = nome;           // instala os materiais validados\n    this.preco = preco;\n    this.quantidade = quantidade;\n  }\n}\n\n// Passo 5: construindo produtos — um com quantidade, outro com o padrão.\nconst caderno = new Produto('Caderno', 12.5, 3);\nconst borracha = new Produto('Borracha', 3); // quantidade vira 1\n\nconsole.log(caderno.quantidade);  // imprime: 3\nconsole.log(borracha.quantidade); // imprime: 1\n\n// Portaria fechada: objeto inválido não nasce.\ntry {\n  new Produto('Caneta', -1);\n} catch (erro) {\n  console.log(erro.message); // imprime: preco precisa ser um número não negativo\n}",
+        "explanation": "O constructor valida antes de atribuir: o objeto só nasce inteiro e válido. Valor padrão evita campo esquecido — quem não informa quantidade recebe 1, não um buraco no objeto."
+      }
+    }
+  ],
+  "sources": [
+    {
+      "title": "MDN — constructor",
+      "url": "https://developer.mozilla.org/pt-BR/docs/Web/JavaScript/Reference/Classes/constructor",
+      "description": "Documentação oficial do método que roda na criação da instância."
+    },
+    {
+      "title": "MDN — Classes",
+      "url": "https://developer.mozilla.org/pt-BR/docs/Web/JavaScript/Reference/Classes",
+      "description": "Documentação oficial de class e constructor."
+    }
+  ],
+  "challenges": [
+    "produto-com-campos"
+  ]
+}

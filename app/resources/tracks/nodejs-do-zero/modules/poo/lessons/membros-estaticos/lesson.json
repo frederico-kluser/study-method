@@ -1,0 +1,50 @@
+{
+  "schemaVersion": 1,
+  "slug": "membros-estaticos",
+  "title": "Membros estáticos: o que pertence à classe",
+  "summary": "Usar static para criar métodos e campos da classe inteira — utilidades que não precisam de instância e valores compartilhados.",
+  "difficulty": 3,
+  "concepts": [
+    "membros_estaticos"
+  ],
+  "prerequisites": [
+    "getters-setters-de-classe"
+  ],
+  "theory": [
+    {
+      "id": "anotacoes-da-planta",
+      "title": "Anotações que valem para todas as casas",
+      "markdown": "Até agora, tudo o que a classe declara vira parte de CADA instância — cada casa tem as suas portas e janelas. Mas nem tudo é por casa: algumas coisas pertencem à PLANTA, não às casas.\n\nPense na planta da casa com uma anotação: \"tijolo padrão: 9x19 cm\". Essa anotação não está em nenhuma casa em específico — está no projeto, valendo para todas. Na POO, isso é um **membro estático** (palavra `static`): pertence à classe, não às instâncias.\n\nNa prática, você já usa membros estáticos sem saber! O `Math.max(...)` de JavaScript é um método estático: você não cria um \"Math\" com `new` — chama direto no objeto global `Math`. É uma **utilidade**: não precisa de instância, só do nome.\n\n**Quando usar estático:**\n\n1. **Utilidades puras** — conversões (`metrosParaCentimetros`), formatações: não há estado de instância envolvido.\n2. **Valores compartilhados** — um desconto que vale para todos os produtos, um contador de quantos objetos foram criados (a planta sabe quantas casas já foram construídas)."
+    },
+    {
+      "id": "static-na-pratica",
+      "title": "Escrevendo membros estáticos",
+      "markdown": "Método estático — chamado com o nome da CLASSE, sem `new`:\n\n```js\nclass Conversor {\n  static metrosParaCentimetros(metros) {\n    return metros * 100;\n  }\n}\n\nconsole.log(Conversor.metrosParaCentimetros(2)); // imprime: 200\n```\n\nDentro de um método estático NÃO existe `this` de instância — não há casa específica. Por isso ele recebe tudo por parâmetro: é uma função de utilidade que mora na classe para ficar organizada ao lado do que faz sentido.\n\nCampo estático — um valor da classe inteira:\n\n```js\nclass Produto {\n  static descontoGlobal = 0.1; // 10% para TODOS os produtos\n  constructor(nome, preco) {\n    this.nome = nome;\n    this.preco = preco;\n  }\n}\n\nconsole.log(Produto.descontoGlobal); // imprime: 0.1\n```\n\nRepare a diferença de endereço:\n\n- `this.preco` (instância) → CADA produto tem o seu.\n- `Produto.descontoGlobal` (classe) → UM valor só, para todos.\n\nSe amanhã a loja mudar o desconto, muda em um lugar só — nenhuma instância carrega o desconto no bolso."
+    },
+    {
+      "id": "exemplo-completo",
+      "title": "Exemplo completo: desconto global e contagem de criações",
+      "markdown": "**Objetivo:** uma classe `Produto` com um campo estático (desconto global) e um método estático (aplicar desconto), além do constructor de instância.\n\nPasso 1 — o campo estático guarda o desconto da loja.\n`static descontoGlobal = 0.1` — o valor vale para a classe inteira. Qualquer função da loja lê `Produto.descontoGlobal`.\n\nPasso 2 — o método estático aplica o desconto.\n`static aplicarDesconto(preco)` recebe o preço por parâmetro (não tem this) e devolve o preço com o desconto aplicado. É pura: mesma entrada, mesma saída.\n\nPasso 3 — o constructor continua sendo de instância.\nCada produto guarda o SEU nome e o SEU preço — isso continua por casa.\n\nPasso 4 — conte as criações com outro campo estático.\n`static totalCriados = 0` e o constructor faz `Produto.totalCriados += 1` — a planta conta quantas casas já saíram da obra. Como é estático, o contador é UM para todas as instâncias.\n\nPasso 5 — veja a diferença de endereço funcionando.\nCada produto tem preço próprio, mas o desconto e o total são da classe — compartilhados.",
+      "code": {
+        "language": "js",
+        "code": "// Passos 1, 2 e 4: campo estático, método estático e contador de criações.\nclass Produto {\n  static descontoGlobal = 0.1; // 1 campo, vale para a classe inteira\n  static totalCriados = 0;     // contador compartilhado\n\n  constructor(nome, preco) {\n    this.nome = nome;   // por instância: cada produto tem o seu\n    this.preco = preco;\n    Produto.totalCriados += 1; // conta mais uma casa construída\n  }\n\n  // Passo 2: utilidade pura — não usa this, recebe tudo por parâmetro.\n  static aplicarDesconto(preco) {\n    return preco * (1 - Produto.descontoGlobal);\n  }\n}\n\n// Passo 3: instâncias com estado próprio.\nconst caderno = new Produto('Caderno', 12.5);\nconst caneta = new Produto('Caneta', 2);\n\n// Passo 5: o desconto é um só — e o contador mostra duas criações.\nconsole.log(Produto.aplicarDesconto(caneta.preco)); // imprime: 1.8\nconsole.log(Produto.totalCriados);                  // imprime: 2\nconsole.log(caderno.preco);                         // imprime: 12.5 (instância)",
+        "explanation": "Estático = endereço da classe: o desconto muda num lugar só e o contador é único. Instância = endereço do objeto: cada produto guarda o seu preço. Usar cada um no lugar certo evita repetição e estado duplicado."
+      }
+    }
+  ],
+  "sources": [
+    {
+      "title": "MDN — static",
+      "url": "https://developer.mozilla.org/pt-BR/docs/Web/JavaScript/Reference/Classes/static",
+      "description": "Documentação oficial de métodos e campos estáticos."
+    },
+    {
+      "title": "MDN — Classes",
+      "url": "https://developer.mozilla.org/pt-BR/docs/Web/JavaScript/Reference/Classes",
+      "description": "Documentação oficial de class, constructor e membros estáticos."
+    }
+  ],
+  "challenges": [
+    "conversor-de-unidades"
+  ]
+}

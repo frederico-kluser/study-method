@@ -1,0 +1,55 @@
+{
+  "schemaVersion": 1,
+  "slug": "classes",
+  "title": "Classes: o molde dos objetos",
+  "summary": "Criar uma classe com a palavra class, construir objetos com new e entender a diferença entre a planta e a casa.",
+  "difficulty": 3,
+  "concepts": [
+    "classes"
+  ],
+  "prerequisites": [
+    "o-que-e-poo"
+  ],
+  "theory": [
+    {
+      "id": "a-planta-e-a-casa",
+      "title": "A planta vira código",
+      "markdown": "Na aula passada você viu a ideia: **classe** é a planta, **objeto** é a casa. Agora vamos escrever as duas.\n\nUma classe é um molde criado com a palavra `class`, seguida de um nome (sempre com letra maiúscula no início, por convenção — `Pessoa`, `Retangulo`, `ContaBancaria`):\n\n```js\nclass Pessoa {\n  // o conteúdo do molde fica aqui dentro\n}\n```\n\nPara CONSTRUIR uma casa a partir da planta, usamos a palavra `new`:\n\n```js\nconst ana = new Pessoa();\n```\n\n`new Pessoa()` constrói um objeto novo do tipo Pessoa — uma **instância**. A partir da MESMA planta você constrói quantas casas quiser:\n\n```js\nconst ana = new Pessoa();\nconst bia = new Pessoa(); // outra casa, mesma planta\n```\n\n**Diferença importante:** a classe não é um objeto. Ela é a descrição. `new` é o pedreiro que lê a planta e constrói a casa. Sem `new`, nada é construído — a classe fica só no papel."
+    },
+    {
+      "id": "estrutura-dentro-do-molde",
+      "title": "O que vai dentro do molde",
+      "markdown": "Uma classe vazia constrói casas vazias. Para dar estrutura, usamos o **constructor** — um método especial que roda NO MOMENTO em que `new` constrói o objeto:\n\n```js\nclass Pessoa {\n  constructor(nome, idade) {\n    this.nome = nome;   // 'this' é a casa que está sendo construída\n    this.idade = idade;\n  }\n}\n```\n\nOs valores recebidos viram **campos** — dados que cada instância guarda para si. `this` é a palavra para \"esta casa que estou construindo\": `this.nome = nome` significa \"guarda o nome recebido no campo nome desta casa\".\n\n```js\nconst ana = new Pessoa('Ana', 18); // this é o objeto ana\nconst bia = new Pessoa('Bia', 20); // this é o objeto bia\n```\n\nCada instância tem os MESMOS campos com valores PRÓPRIOS — como duas casas da mesma planta, uma com dono Ana, outra com dono Bia.\n\nDois detalhes de JavaScript:\n\n1. Por convenção, nome de classe começa com maiúscula; variável que guarda instância, com minúscula.\n2. Diferente de funções, uma classe precisa ser declarada ANTES de usada com `new`."
+    },
+    {
+      "id": "exemplo-completo",
+      "title": "Exemplo completo: a ficha do aluno vira classe",
+      "markdown": "**Objetivo:** reescrever o exemplo da aula passada (fichas de aluno) usando uma classe — a planta que garante a estrutura.\n\nPasso 1 — desenhe a planta.\nA classe `FichaDeAluno` declara o constructor com os dois campos: `nome` e `turma`. Todo objeto criado com `new FichaDeAluno(...)` tem esses dois campos, SEM exceção.\n\nPasso 2 — construa duas casas.\n`new FichaDeAluno('Ana', '3A')` constrói a primeira ficha; `new FichaDeAluno('Bia', '3B')`, a segunda. Mesma planta, casas diferentes: cada ficha guarda os seus próprios valores.\n\nPasso 3 — confira a estrutura com as próprias mãos.\nAcessar `ana.nome` e `bia.nome` devolve valores diferentes, mas os campos são os mesmos — isso é o molde funcionando.\n\nPasso 4 — perceba a garantia.\nCom objetos literais, esquecer um campo era possível. Com a classe, o constructor obriga: para criar uma ficha, nome e turma precisam ser passados. A planta não deixa construir casa sem porta.",
+      "code": {
+        "language": "js",
+        "code": "// Passo 1: a planta — classe com o constructor que recebe nome e turma.\nclass FichaDeAluno {\n  constructor(nome, turma) {\n    this.nome = nome;   // campo nome: cada ficha guarda o seu\n    this.turma = turma; // campo turma: idem\n  }\n}\n\n// Passo 2: construindo casas a partir da planta.\nconst ana = new FichaDeAluno('Ana', '3A');\nconst bia = new FichaDeAluno('Bia', '3B');\n\n// Passo 3: mesmos campos, valores próprios de cada instância.\nconsole.log(ana.nome);  // imprime: Ana\nconsole.log(bia.nome);  // imprime: Bia\nconsole.log(ana.turma); // imprime: 3A\n\n// Passo 4: a estrutura é garantida — toda ficha tem nome e turma.\nconsole.log(ana instanceof FichaDeAluno); // imprime: true",
+        "explanation": "A classe é declarada uma vez; cada new constrói uma instância independente com os campos do molde. O mesmo código constrói quantas fichas o sistema precisar."
+      }
+    }
+  ],
+  "sources": [
+    {
+      "title": "MDN — Classes",
+      "url": "https://developer.mozilla.org/pt-BR/docs/Web/JavaScript/Reference/Classes",
+      "description": "Documentação oficial de class, constructor e instâncias."
+    },
+    {
+      "title": "MDN — new",
+      "url": "https://developer.mozilla.org/pt-BR/docs/Web/JavaScript/Reference/Operators/new",
+      "description": "Documentação do operador que constrói a instância."
+    },
+    {
+      "title": "MDN — Guia: classes em JavaScript",
+      "url": "https://developer.mozilla.org/pt-BR/docs/Learn_web_development/Extensions/Advanced_JavaScript_objects/Classes_in_JavaScript",
+      "description": "Guia com exemplos de molde e instância."
+    }
+  ],
+  "challenges": [
+    "classe-retangulo"
+  ]
+}

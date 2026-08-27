@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "slug": "classe-retangulo",
+  "title": "Classe Retângulo",
+  "concept": "classes",
+  "difficulty": 3,
+  "language": "nodejs",
+  "statement": "# Classe Retângulo\n\nVocê vai criar a classe `Retangulo` — o molde para construir retângulos com largura e altura.\n\nA classe recebe duas informações no constructor: `largura` e `altura`. Ela guarda as duas nos campos `this.largura` e `this.altura`.\n\nRegras:\n\n- `largura` e `altura` precisam ser números — se qualquer uma não for, lance um erro;\n- zero é um tamanho válido (retângulo de largura 0 é permitido).\n\nExemplos de uso:\n\n- `new Retangulo(5, 3)` → objeto com `largura` igual a `5` e `altura` igual a `3`;\n- `new Retangulo(0, 0)` → objeto válido;\n- `new Retangulo('5', 3)` → erro (largura não é número).\n\nCada instância criada é uma casa independente: mudar a largura de um retângulo não pode mudar a do outro.\n\nLeia o enunciado com calma e clique em Começar para iniciar o cronômetro.",
+  "starterCode": "export class Retangulo {\n  // TODO: implemente a classe Retangulo\n  constructor() {\n    throw new Error('não implementado');\n  }\n}\n",
+  "testsCode": "import { test } from 'node:test';\nimport assert from 'node:assert/strict';\nimport { Retangulo } from './solution.mjs';\n\ntest('cria um retângulo com largura e altura', () => {\n  const retangulo = new Retangulo(5, 3);\n  assert.equal(retangulo instanceof Retangulo, true);\n  assert.equal(retangulo.largura, 5);\n  assert.equal(retangulo.altura, 3);\n});\n\ntest('aceita largura e altura zero', () => {\n  const retangulo = new Retangulo(0, 0);\n  assert.equal(retangulo.largura, 0);\n  assert.equal(retangulo.altura, 0);\n});\n\ntest('recusa valores que não são números', () => {\n  assert.throws(() => new Retangulo('5', 3));\n  assert.throws(() => new Retangulo(5, '3'));\n});\n\ntest('instâncias são independentes entre si', () => {\n  const primeiro = new Retangulo(5, 3);\n  const segundo = new Retangulo(5, 3);\n  primeiro.largura = 99;\n  assert.equal(segundo.largura, 5);\n});\n",
+  "solutionCode": "// O molde do retângulo: mesma planta, casas independentes.\nexport class Retangulo {\n  constructor(largura, altura) {\n    // Portaria de entrada: largura e altura precisam ser números.\n    if (typeof largura !== 'number' || typeof altura !== 'number') {\n      throw new Error('largura e altura precisam ser números');\n    }\n    this.largura = largura;\n    this.altura = altura;\n  }\n}\n",
+  "expectedTestCount": 4
+}

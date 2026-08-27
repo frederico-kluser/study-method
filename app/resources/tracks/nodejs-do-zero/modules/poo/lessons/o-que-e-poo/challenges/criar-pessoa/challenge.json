@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "slug": "criar-pessoa",
+  "title": "Criar uma pessoa",
+  "concept": "poo",
+  "difficulty": 3,
+  "language": "nodejs",
+  "statement": "# Criar uma pessoa\n\nVocê vai criar a classe `Pessoa`, o molde que garante a estrutura de toda pessoa do sistema.\n\nA classe recebe duas informações no constructor: `nome` (texto) e `idade` (número). Ela deve guardar as duas nos campos `this.nome` e `this.idade`.\n\nRegras:\n\n- `nome` precisa ser um texto não vazio (só espaços não contam como nome) — senão, erro;\n- `idade` precisa ser um número — senão, erro.\n\nExemplos de uso:\n\n- `new Pessoa('Maria', 25)` → objeto com `nome` igual a `'Maria'` e `idade` igual a `25`;\n- `new Pessoa('', 25)` → erro (nome vazio);\n- `new Pessoa('Maria', '25')` → erro (idade não é número).\n\nLeia o enunciado com calma e clique em Começar para iniciar o cronômetro.",
+  "starterCode": "export class Pessoa {\n  // TODO: implemente a classe Pessoa\n  constructor() {\n    throw new Error('não implementado');\n  }\n}\n",
+  "testsCode": "import { test } from 'node:test';\nimport assert from 'node:assert/strict';\nimport { Pessoa } from './solution.mjs';\n\ntest('cria uma pessoa com nome e idade', () => {\n  const pessoa = new Pessoa('Maria', 25);\n  assert.equal(pessoa.nome, 'Maria');\n  assert.equal(pessoa.idade, 25);\n});\n\ntest('cada instância é um objeto independente', () => {\n  const ana = new Pessoa('Ana', 18);\n  const bia = new Pessoa('Bia', 20);\n  assert.notEqual(ana, bia);\n  assert.equal(ana.nome, 'Ana');\n  assert.equal(bia.idade, 20);\n});\n\ntest('recusa nome vazio ou só com espaços', () => {\n  assert.throws(() => new Pessoa('', 25));\n  assert.throws(() => new Pessoa('   ', 25));\n});\n\ntest('recusa idade que não é número', () => {\n  assert.throws(() => new Pessoa('Maria', '25'));\n});\n",
+  "solutionCode": "// O molde de toda pessoa: constructor recebe e guarda nome e idade.\nexport class Pessoa {\n  constructor(nome, idade) {\n    // Portaria de entrada: nome precisa ser texto não vazio.\n    if (typeof nome !== 'string' || nome.trim() === '') {\n      throw new Error('nome precisa ser um texto não vazio');\n    }\n    // Idade precisa ser número — comparação de idade com texto não faz sentido.\n    if (typeof idade !== 'number') {\n      throw new Error('idade precisa ser um número');\n    }\n    // Guarda os valores nos campos da instância que está nascendo.\n    this.nome = nome;\n    this.idade = idade;\n  }\n}\n",
+  "expectedTestCount": 4
+}
