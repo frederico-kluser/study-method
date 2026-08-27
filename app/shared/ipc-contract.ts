@@ -490,6 +490,16 @@ export interface TrackSubmitResult {
   testsRun: number;
   expectedTests: number;
   output: string;
+  /**
+   * ADITIVO (rodada 9): checks INDIVIDUAIS do relatório spec do node:test
+   * (linhas `✔ nome` / `✖ nome`). Vazio quando a execução nem chegou a rodar
+   * os testes (erro de sintaxe, spawn falhou etc.).
+   */
+  checks: { name: string; passed: boolean }[];
+  /** nº de checks que passaram (parcial: aprovado só quando passed=true). */
+  passedCount: number;
+  /** nº total de checks do relatório. */
+  totalCount: number;
 }
 
 /** Regeneração de desafio — a LLM vê os desafios que o aluno errou na aula. */

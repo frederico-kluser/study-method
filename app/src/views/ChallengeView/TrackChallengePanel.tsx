@@ -29,6 +29,10 @@ import {
   Chip,
   CircularProgress,
   Divider,
+  List,
+  ListItem,
+  ListItemIcon,
+  ListItemText,
   Stack,
   Typography,
 } from '@mui/material';
@@ -37,6 +41,8 @@ import StarBorderIcon from '@mui/icons-material/StarBorder';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import CancelIcon from '@mui/icons-material/Cancel';
 
 import { getApi } from '../../lib/apiBridge';
 import { fireConfetti } from '../../lib/confetti';
@@ -424,8 +430,40 @@ export function TrackChallengePanel({ selection }: { selection: TrackChallengeNa
             ) : null}
 
             {result && !result.passed ? (
-              <Alert severity="error" sx={{ whiteSpace: 'pre-wrap', fontFamily: 'monospace', fontSize: '0.75rem' }}>
-                {tI('challenge.failedSummary', { testsRun: result.testsRun, expected: result.expectedTests })}
+              <Alert severity="error" sx={{ fontFamily: 'monospace', fontSize: '0.75rem' }}>
+                {/* ONDA 1 (checks por teste): razão PARCIAL (N de M) + checklist
+                    individual — o veredito não é tudo-ou-nada; o aluno vê o que
+                    passou e o que falta antes da próxima tentativa. Sem checks
+                    (erro de sintaxe etc.) a razão some — a saída fala por si. */}
+                {result.checks.length > 0 ? (
+                  <Box sx={{ mt: 0.5 }}>
+                    <Typography variant="body2" sx={{ fontWeight: 600, fontFamily: 'inherit' }}>
+                      {tI('challenge.partialCount', { passed: result.passedCount, total: result.totalCount })}
+                    </Typography>
+                    <Box sx={{ mt: 1 }}>
+                    <Typography variant="caption" sx={{ fontFamily: 'inherit' }}>
+                      {t('translation:challenge.checksTitle')}
+                    </Typography>
+                    <List dense disablePadding>
+                      {result.checks.map((c, i) => (
+                        <ListItem key={i} disableGutters dense sx={{ py: 0 }}>
+                          <ListItemIcon sx={{ minWidth: 28 }}>
+                            {c.passed ? (
+                              <CheckCircleIcon fontSize="small" color="success" />
+                            ) : (
+                              <CancelIcon fontSize="small" color="error" />
+                            )}
+                          </ListItemIcon>
+                          <ListItemText
+                            primary={c.name}
+                            slotProps={{ primary: { variant: 'body2', sx: { fontFamily: 'inherit' } } }}
+                          />
+                        </ListItem>
+                      ))}
+                    </List>
+                    </Box>
+                  </Box>
+                ) : null}
                 <Box component="pre" sx={{ m: 0, mt: 1, maxHeight: 200, overflowY: 'auto' }}>
                   {result.output.slice(0, 4000)}
                 </Box>
@@ -434,8 +472,10 @@ export function TrackChallengePanel({ selection }: { selection: TrackChallengeNa
 
             {submissionError ? <Alert severity="error">{submissionError}</Alert> : null}
 
-            {/* Nunca-repetir: errou → erro + botão de NOVO desafio. */}
-            {concluded === 'failed' ? (
+            {/* Nunca-repetir: qualquer NÃO-aprovação (falhou OU timeout) →
+                erro + botão de NOVO desafio. Veredito parcial (passou alguns
+                testes) também conta como não-aprovação: só passed=true aprova. */}
+            {concluded === 'failed' || concluded === 'timeout' ? (
               <Button
                 variant="outlined"
                 color="secondary"

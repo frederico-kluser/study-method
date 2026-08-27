@@ -205,13 +205,17 @@ describe('buildTrackHandlers — trilhas', () => {
     assert.equal(done, true);
   });
 
-  it("track:tutor-chat 'next' apresenta a seção (LLM fake)", async () => {
+  it("track:tutor-chat 'next' é DETERMINÍSTICO — markdown verbatim, LLM NÃO é chamada (ONDA 1)", async () => {
     const dir = await makeTrackDir();
+    let llmCalls = 0;
     const map = buildTrackHandlers({
       getTracksDir: () => path.dirname(dir),
       repo: fakeRepo(),
       deepseek: {
-        chatCompletion: async () => ({ content: 'Bem-vindo à aula!', model: 'fake' }),
+        chatCompletion: async () => {
+          llmCalls += 1;
+          return { content: 'Bem-vindo à aula!', model: 'fake' };
+        },
       } as never,
     });
     const result = await call<TutorReply>(map, TRACK_CHANNELS.TUTOR_CHAT, {
@@ -223,10 +227,12 @@ describe('buildTrackHandlers — trilhas', () => {
     });
     assert.equal(result.ok, true);
     assert.equal(result.sectionId, 'intro');
-    assert.ok(result.message.length > 0);
+    assert.equal(result.done, true); // única seção da aula fixture.
+    assert.ok(result.message.includes('Teoria simples'));
+    assert.equal(llmCalls, 0, "'next' nunca chama a LLM");
   });
 
-  it('track:tutor-chat sem deepseek → fallback verbatim (ok ainda true)', async () => {
+  it("track:tutor-chat 'next' sem deepseek → markdown verbatim (ok ainda true)", async () => {
     const dir = await makeTrackDir();
     const map = buildTrackHandlers({ getTracksDir: () => path.dirname(dir), repo: fakeRepo() });
     const result = await call<TutorReply>(map, TRACK_CHANNELS.TUTOR_CHAT, {
@@ -268,6 +274,11 @@ describe('buildTrackHandlers — trilhas', () => {
     assert.equal(good.ok, true);
     assert.equal(good.passed, true);
     assert.equal(good.testsRun, 2);
+    // ONDA 1 (checks por teste): veredito não é tudo-ou-nada.
+    assert.equal(good.checks.length, 2);
+    assert.equal(good.passedCount, 2);
+    assert.equal(good.totalCount, 2);
+    assert.ok(good.checks.every((c) => c.passed));
 
     const bad = await call<TrackSubmitResult>(map, TRACK_CHANNELS.CHALLENGE_SUBMIT, {
       trackSlug: 'trilha-teste',
@@ -279,6 +290,11 @@ describe('buildTrackHandlers — trilhas', () => {
     assert.equal(bad.ok, true);
     assert.equal(bad.passed, false);
     assert.equal(bad.expectedTests, 2);
+    // badAnswer = f(x)=x → caso 1 f(1)=1≠2 ✖ e caso 2 f(2)=2≠3 ✖ (0 de 2):
+    assert.equal(bad.checks.length, 2);
+    assert.equal(bad.passedCount, 0);
+    assert.equal(bad.totalCount, 2);
+    assert.ok(bad.checks.every((c) => !c.passed));
   });
 
   it('track:proficiency-submit passado grava o veredito (destravamento)', async () => {

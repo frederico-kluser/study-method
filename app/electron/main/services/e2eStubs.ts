@@ -610,14 +610,37 @@ export function buildTrackStubHandlers(): Map<string, IpcHandlerFn> {
     const spec = p.target === 'proficiency'
       ? await resolveChallengeSpec(track, 'proficiency', undefined, p.challengeId, buildE2ETrackRepo())
       : await resolveChallengeSpec(track, 'lesson', p.lessonId, p.challengeId, buildE2ETrackRepo());
-    if (!spec) return { ok: false, error: { code: 'CHALLENGE_NOT_FOUND', message: 'não encontrado' }, passed: false, testsRun: 0, expectedTests: 0, output: '' };
+    if (!spec) {
+      return {
+        ok: false,
+        error: { code: 'CHALLENGE_NOT_FOUND', message: 'não encontrado' },
+        passed: false,
+        testsRun: 0,
+        expectedTests: 0,
+        output: '',
+        checks: [],
+        passedCount: 0,
+        totalCount: 0,
+      };
+    }
     // Execução REAL (node --test) sobre o código do aluno — determinístico.
     const { runStudentCode } = await import('../services/challengeExec');
     const testsCode = p.target === 'proficiency'
       ? track.proficiency!.testsCode
       : track.modules.flatMap((m) => m.lessons).find((l) => l.meta.slug === p.lessonId)?.challenges.find((c) => c.slug === p.challengeId)?.testsCode ?? '';
     const res = await runStudentCode({ studentCode: p.code, testsCode, expectedTestCount: spec.expectedTestCount });
-    return { ok: true, passed: res.passed, testsRun: res.testsRun, expectedTests: spec.expectedTestCount, output: res.output };
+    // ONDA 1 (checks por teste): propaga os checks do runStudentCode REAL —
+    // o stub roda node --test de verdade; só repassa os campos novos.
+    return {
+      ok: true,
+      passed: res.passed,
+      testsRun: res.testsRun,
+      expectedTests: spec.expectedTestCount,
+      output: res.output,
+      checks: res.checks,
+      passedCount: res.passedCount,
+      totalCount: res.totalCount,
+    };
   });
   map.set(TRACK_CHANNELS.PROFICIENCY_SUBMIT, async (_e, payload: unknown): Promise<TrackSubmitResult> => {
     const p = (payload ?? {}) as TrackSubmitRequest & { stars?: number };

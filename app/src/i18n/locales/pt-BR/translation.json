@@ -259,6 +259,8 @@
     "passedAnnounce": "Passou com {{stars}} estrela(s)!",
     "failedSummary": "Falhou: {{testsRun}} de {{expected}} testes passaram. Veja a saída:",
     "regenerateButton": "Gerar novo desafio",
+    "checksTitle": "Resultado por teste",
+    "partialCount": "{{passed}} de {{total}} testes passaram",
     "proficiencyPassed": "Proficiência aprovada — a trilha inteira está destravada!"
   },
   "gate": {

@@ -5,12 +5,16 @@
  *
  * Contratos que mordem:
  *   1. runStudentCode: passed exige exit 0 E igualdade de contagem
- *      (testsRun === expectedTestCount === testes declarados).
+ *      (testsRun === expectedTestCount === testes declarados). ONDA 1: o
+ *      resultado traz os CHECKS individuais (nome + passou?) parseados do
+ *      relatório spec — veredito parcial visível (N de M).
  *   2. verifyChallengePair: solução passa + starter falha + contagem bate.
- *   3. tutorChat 'next': apresenta a próxima seção e devolve sectionId; ao
- *      terminar todas, done=true; LLM falhou → fallback verbatim (nunca trava).
+ *   3. tutorChat 'next' (ONDA 1, teoria-pronta): DETERMINÍSTICO — devolve o
+ *      markdown da seção (com code block/explanation) SEM chamar a LLM (uma
+ *      chat que LANÇA continua funcionando); ao terminar todas, done=true.
  *   4. tutorChat 'answer': usa o histórico; sem pergunta → erro EMPTY_REPLY;
- *      LLM falhou → TUTOR_UNAVAILABLE (nunca inventa resposta).
+ *      chat que lança → TUTOR_UNAVAILABLE imediato (falha rápida, nunca
+ *      spinner infinito).
  *   5. regenerateChallenge: JSON inválido/código inválido → retry e, no fim,
  *      erro estruturado (nunca devolve desafio ruim); sucesso só com o par
  *      validado por execução.
@@ -104,6 +108,59 @@ describe('challengeExec — execução determinística', () => {
     assert.equal(res.passed, false);
   });
 
+  it('checks por teste: 1 de 2 passando → veredito parcial visível', async () => {
+    // f(x) = 2x passa o caso 1 (f(1)=2) e falha o caso 2 (f(2)=4 ≠ 3)
+    const res = await runStudentCode({
+      studentCode: 'export function f(x) { return x * 2; }\n',
+      testsCode: GOOD_TEST,
+      expectedTestCount: 2,
+    });
+    assert.equal(res.passed, false);
+    assert.equal(res.checks.length, 2);
+    assert.equal(res.checks[0].name, 'caso 1');
+    assert.equal(res.checks[0].passed, true);
+    assert.equal(res.checks[1].name, 'caso 2');
+    assert.equal(res.checks[1].passed, false);
+    assert.equal(res.passedCount, 1);
+    assert.equal(res.totalCount, 2);
+  });
+
+  it('checks por teste: todos passando → todos os checks true', async () => {
+    const res = await runStudentCode({
+      studentCode: 'export function f(x) { return x + 1; }\n',
+      testsCode: GOOD_TEST,
+      expectedTestCount: 2,
+    });
+    assert.equal(res.passed, true);
+    assert.equal(res.passedCount, 2);
+    assert.equal(res.totalCount, 2);
+    assert.deepEqual(
+      res.checks.map((c) => c.passed),
+      [true, true],
+    );
+  });
+
+  it('checks por teste: nome sai sem a duração do relatório', async () => {
+    const res = await runStudentCode({
+      studentCode: 'export function f(x) { return x + 1; }\n',
+      testsCode: GOOD_TEST,
+      expectedTestCount: 2,
+    });
+    assert.ok(res.checks.every((c) => !/\([0-9.]+m?s\)$/.test(c.name)));
+  });
+
+  it('checks por teste: erro de sintaxe → checks vazio (0 de 0)', async () => {
+    const res = await runStudentCode({
+      studentCode: 'export function f( { return 1; }\n',
+      testsCode: GOOD_TEST,
+      expectedTestCount: 2,
+    });
+    assert.equal(res.passed, false);
+    assert.deepEqual(res.checks, []);
+    assert.equal(res.passedCount, 0);
+    assert.equal(res.totalCount, 0);
+  });
+
   it('verifyChallengePair: solução passa + starter falha', async () => {
     const v = await verifyChallengePair({
       solutionCode: 'export function f(x) { return x + 1; }\n',
@@ -131,23 +188,45 @@ describe('tutorChat — chat progressivo da aula', () => {
     throw new Error('boom');
   };
 
-  it('next: apresenta a próxima seção com sectionId', async () => {
+  // ONDA 1 (teoria-pronta): 'next' é DETERMINÍSTICO — o markdown da seção
+  // vira a mensagem SEM chamar a LLM. Uma chat que LANÇA continua funcionando.
+
+  it('next: devolve o markdown da seção VERBATIM sem chamar o chat', async () => {
+    let chatCalls = 0;
     const r = await tutorChat(
       { trackTitle: 'T', lesson: lesson(), prereqTitles: ['Aula 0'], presentedSections: [], history: [], action: 'next' },
-      okChat,
+      async () => {
+        chatCalls += 1;
+        return { content: 'resposta da LLM (NÃO deve aparecer)' };
+      },
     );
     assert.equal(r.ok, true);
     assert.equal(r.sectionId, 's1');
     assert.equal(r.done, false);
-    assert.ok(r.message.includes('resposta do tutor'));
+    assert.ok(r.message.includes('Texto da seção 1'));
+    assert.equal(chatCalls, 0, 'next NUNCA chama a LLM');
   });
 
-  it('next: seção seguinte respeita as apresentadas', async () => {
+  it('next: seção seguinte respeita as apresentadas (verbatim)', async () => {
     const r = await tutorChat(
       { trackTitle: 'T', lesson: lesson(), prereqTitles: [], presentedSections: ['s1'], history: [], action: 'next' },
       okChat,
     );
     assert.equal(r.sectionId, 's2');
+    assert.ok(r.message.includes('Texto da seção 2'));
+  });
+
+  it('next: seção com code block → markdown + código + explanation', async () => {
+    const r = await tutorChat(
+      { trackTitle: 'T', lesson: lesson(), prereqTitles: [], presentedSections: ['s1'], history: [], action: 'next' },
+      failChat, // lança — e mesmo assim funciona (não há chamada).
+    );
+    assert.equal(r.ok, true);
+    assert.equal(r.sectionId, 's2');
+    assert.ok(r.message.includes('Texto da seção 2'));
+    assert.ok(r.message.includes('const x = 1;'));
+    assert.ok(r.message.includes('Explica.'));
+    assert.ok(r.message.includes('```js'));
   });
 
   it('next: com todas as seções apresentadas → done sem mensagem', async () => {
@@ -159,7 +238,7 @@ describe('tutorChat — chat progressivo da aula', () => {
     assert.equal(r.sectionId, null);
   });
 
-  it('next: LLM falhou → fallback verbatim do markdown (nunca trava)', async () => {
+  it('next: chat que LANÇA — ainda funciona (determinístico, sem LLM)', async () => {
     const r = await tutorChat(
       { trackTitle: 'T', lesson: lesson(), prereqTitles: [], presentedSections: [], history: [], action: 'next' },
       failChat,
@@ -194,7 +273,7 @@ describe('tutorChat — chat progressivo da aula', () => {
     assert.equal(r.error?.code, TUTOR_ERROR_CODES.EMPTY_REPLY);
   });
 
-  it('answer: LLM falhou → TUTOR_UNAVAILABLE (nunca inventa)', async () => {
+  it('answer: sem chat (lança) → TUTOR_UNAVAILABLE imediato (falha rápida)', async () => {
     const r = await tutorChat(
       {
         trackTitle: 'T',

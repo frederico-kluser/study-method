@@ -108,6 +108,40 @@ export function parseSpecCounts(output: string): { testsRun: number; pass: numbe
   return { testsRun, pass, fail };
 }
 
+/**
+ * Extrai os checks INDIVIDUAIS do relatório spec do node:test (linhas
+ * `✔ nome` / `✖ nome` — ONDA 1, checks por teste no veredito). Apenas as
+ * linhas ANTES do resumo (`ℹ tests N`) contam: o relatório REPRIME cada teste
+ * falho numa seção "failing tests:" no fim — sem truncar, cada falha entraria
+ * DUAS vezes. O nome sai sem a duração traiçoeira (` (0.42175ms)`) e sem os
+ * códigos ANSI (mesma limpeza do parseSpecCounts — o node:test pinta quando o
+ * ambiente pede cor). Linhas ancoradas no INÍCIO da linha: subtests indentados
+ * (`  ✔ filho`) e o cabeçalho `✖ failing tests:` (já cortado pelo truncamento)
+ * nunca entram.
+ */
+export function parseSpecChecks(output: string): { name: string; passed: boolean }[] {
+  const plain = output.replace(/\x1b\[[0-9;]*m/g, '');
+  const lines = plain.split('\n');
+  const summaryIdx = lines.findIndex((l) => /^ℹ tests /m.test(l));
+  const head = (summaryIdx >= 0 ? lines.slice(0, summaryIdx) : lines).join('\n');
+  const checks: { name: string; passed: boolean }[] = [];
+  const re = /^[✔✖] (.+)$/gm;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(head)) !== null) {
+    const raw = m[1].trim();
+    if (!raw) continue;
+    // tira a duração do fim ("caso 1 (0.42175ms)" → "caso 1").
+    const name = raw.replace(/\s*\(\d+(?:\.\d+)?\s*m?s\)\s*$/, '');
+    // Nomes SINTÉTICOS de falha de LOAD: quando o arquivo não carrega (sintaxe
+    // no solution.mjs), o node:test trata O ARQUIVO como um teste e emite
+    // `✖ test.mjs` (v24) / `✖ test failed` (v20) — não é um check de verdade;
+    // a saída já traz o SyntaxError para o aluno ver.
+    if (/^test\.mjs$/.test(name) || /^tests? failed$/.test(name)) continue;
+    checks.push({ name: name || raw, passed: m[0].charAt(0) === '✔' });
+  }
+  return checks;
+}
+
 export interface RunStudentCodeInput {
   /** código enviado pelo aluno (substitui o starter). */
   studentCode: string;
@@ -122,6 +156,15 @@ export interface RunStudentCodeResult {
   pass: number;
   fail: number;
   output: string;
+  /**
+   * ADITIVO (onda1-ux): checks INDIVIDUAIS do relatório spec (nome + passou?).
+   * Vazio quando a execução não chegou a rodar os testes (sintaxe, spawn).
+   */
+  checks: { name: string; passed: boolean }[];
+  /** nº de checks que passaram. */
+  passedCount: number;
+  /** nº total de checks (0 quando o parse não achou linha real — erro de execução). */
+  totalCount: number;
   /** erro de execução (spawn falhou, timeout etc.) — output tem o detalhe. */
   error?: string;
 }
@@ -137,15 +180,26 @@ export async function runStudentCode(
     const res = await exec(work, ['--test', '--test-reporter=spec', 'test.mjs'], {
       timeoutMs: input.timeoutMs ?? 30_000,
     });
-    const counts = parseSpecCounts(`${res.stdout}\n${res.stderr}`);
+    const output = `${res.stdout}\n${res.stderr}`.trim();
+    const counts = parseSpecCounts(output);
     const declared = countTestDeclarations(input.testsCode);
     const passed = res.code === 0 && counts.testsRun === input.expectedTestCount && declared === input.expectedTestCount;
+    const checks = parseSpecChecks(output);
+    // totalCount/passedCount vêm dos checks; se o parse não achou NENHUMA
+    // linha real (ex.: erro de sintaxe — sobra só o `✖ test.mjs` sintético,
+    // filtrado), caem nas contagens do resumo quando a execução foi limpa
+    // (exit 0), senão 0 — a UI nunca mostra "N de M" inventado.
+    const totalCount = checks.length > 0 ? checks.length : res.code === 0 ? counts.testsRun : 0;
+    const passedCount = checks.length > 0 ? checks.filter((c) => c.passed).length : res.code === 0 ? counts.pass : 0;
     return {
       passed,
       testsRun: counts.testsRun,
       pass: counts.pass,
       fail: counts.fail,
-      output: `${res.stdout}\n${res.stderr}`.trim(),
+      output,
+      checks,
+      passedCount,
+      totalCount,
     };
   } catch (err) {
     return {
@@ -154,6 +208,9 @@ export async function runStudentCode(
       pass: 0,
       fail: 0,
       output: String(err),
+      checks: [],
+      passedCount: 0,
+      totalCount: 0,
       error: String(err),
     };
   } finally {

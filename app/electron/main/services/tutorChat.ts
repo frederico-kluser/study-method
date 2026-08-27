@@ -8,11 +8,16 @@
  * PRÉ-REQUISITOS são aulas anteriores da trilha que o tutor pode recomendar
  * quando o aluno não entender.
  *
+ * ONDA 1 (teoria-pronta): 'next' é DETERMINÍSTICO — o markdown da seção
+ * (com o code block e explanation quando houver) vira a mensagem do chat,
+ * SEM chamar a LLM (o conteúdo vem pronto do arquivo da trilha; o texto
+ * aparece INSTANTANEAMENTE, nunca esperando LLM). A LLM é usada SÓ em
+ * 'answer' (dúvida do aluno) e na regeneração de desafios.
+ *
  * Degradação honesta:
- *   - 'next' com LLM indisponível → apresenta a seção VERBATIM (markdown do
- *     arquivo) — o conteúdo nunca trava por falha de serviço;
  *   - 'answer' com LLM indisponível → erro estruturado TUTOR_UNAVAILABLE
- *     (nunca inventa resposta).
+ *     imediato (falha RÁPIDA — nunca spinner infinito, nunca inventa
+ *     resposta).
  *
  * PURE/DI: `chat` injetável (testes com fake; produção = deepseekClient).
  */
@@ -99,36 +104,26 @@ export async function tutorChat(input: TutorChatInput, chat: ChatFn): Promise<Tu
   const section = nextSection(input.lesson, input.presentedSections);
 
   if (input.action === 'next') {
+    // ONDA 1 (teoria-pronta): apresentação DETERMINÍSTICA — o markdown da
+    // seção (com o code block e explanation quando houver) vira a mensagem,
+    // SEM chamar a LLM. Nenhum estado de "digitando" no renderer: o texto já
+    // está no arquivo da trilha e aparece instantaneamente.
     if (!section) {
       // todas as seções apresentadas — a aula teórica terminou.
       return { ok: true, message: '', sectionId: null, done: true };
     }
-    const messages: Array<{ role: TutorRole; content: string }> = [
-      { role: 'system', content: buildSystemPrompt(input) },
-      {
-        role: 'user',
-        content: `Apresente a SEÇÃO "${section.title}" (id=${section.id}) agora, em linguagem simples, como mensagem de chat. Use o material da seção. Uma seção só. Termine com uma pergunta curta. Não cite fontes.`,
-      },
-    ];
+    const markdown = section.code
+      ? `${section.markdown}\n\n\`\`\`${section.code.language}\n${section.code.code}\n\`\`\`${section.code.explanation ? `\n\n${section.code.explanation}` : ''}`
+      : section.markdown;
     // done = NÃO há mais seções depois desta (a última seção fecha a teoria —
     // a UI mostra "Concluir aula" assim que a última seção é apresentada).
     const done = nextSection(input.lesson, [...input.presentedSections, section.id]) === null;
-    try {
-      const res = await chat({ messages, temperature: 0.4, timeoutMs: 45_000 });
-      const text = res.content.trim();
-      if (!text) throw new Error('empty');
-      return { ok: true, message: text, sectionId: section.id, sectionTitle: section.title, done };
-    } catch (err) {
-      // Fallback DETERMINÍSTICO: apresenta o markdown da seção verbatim.
-      // O conteúdo da aula é o que importa; a adaptação de tom é luxo.
-      const markdown = section.code
-        ? `${section.markdown}\n\n\`\`\`${section.code.language}\n${section.code.code}\n\`\`\`${section.code.explanation ? `\n\n${section.code.explanation}` : ''}`
-        : section.markdown;
-      return { ok: true, message: markdown, sectionId: section.id, sectionTitle: section.title, done };
-    }
+    return { ok: true, message: markdown, sectionId: section.id, sectionTitle: section.title, done };
   }
 
-  // action === 'answer' — precisa de uma pergunta do aluno.
+  // action === 'answer' — precisa de uma pergunta do aluno. Falha RÁPIDA:
+  // qualquer erro do chat (cliente ausente, rede, timeout) → TUTOR_UNAVAILABLE
+  // imediato — o renderer nunca fica em spinner infinito.
   const lastUser = [...trimHistory(input.history)].reverse().find((m) => m.role === 'user');
   if (!lastUser || !lastUser.content.trim()) {
     return {

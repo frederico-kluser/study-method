@@ -259,6 +259,8 @@
     "passedAnnounce": "Passed with {{stars}} star(s)!",
     "failedSummary": "Failed: {{testsRun}} of {{expected}} tests passed. See output:",
     "regenerateButton": "Generate new challenge",
+    "checksTitle": "Result per test",
+    "partialCount": "{{passed}} of {{total}} tests passed",
     "proficiencyPassed": "Proficiency approved — the whole track is unlocked!"
   },
   "gate": {

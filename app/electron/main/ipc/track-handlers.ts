@@ -275,6 +275,9 @@ export function buildTrackHandlers(deps: TrackHandlerDeps): Map<string, IpcHandl
     testsRun: 0,
     expectedTests: 0,
     output: '',
+    checks: [],
+    passedCount: 0,
+    totalCount: 0,
   });
   const submitter = async (p: TrackSubmitRequest, isProficiency: boolean): Promise<TrackSubmitResult> => {
     if (!p.trackSlug || typeof p.code !== 'string') {
@@ -298,6 +301,11 @@ export function buildTrackHandlers(deps: TrackHandlerDeps): Map<string, IpcHandl
       testsRun: res.testsRun,
       expectedTests: testSpec.expectedTestCount,
       output: res.output,
+      // ONDA 1 (checks por teste): repassa os checks individuais do relatório
+      // spec — o veredito não é mais tudo-ou-nada, a UI mostra progresso parcial.
+      checks: res.checks,
+      passedCount: res.passedCount,
+      totalCount: res.totalCount,
     };
   };
   map.set(TRACK_CHANNELS.CHALLENGE_SUBMIT, (_event, payload: unknown) =>

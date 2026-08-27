@@ -161,6 +161,10 @@ export function LessonView(props: ViewProps): ReactElement {
   const [lesson, setLesson] = useState<TrackLessonPayload | null>(null);
   const [chat, setChat] = useState<TrackLessonUiState>(createTrackLessonState);
   const [busy, setBusy] = useState(false);
+  // ONDA 1 (teoria-pronta): a ação em voo — 'next' é DETERMINÍSTICO (instantâneo,
+  // sem LLM) e NUNCA mostra "digitando…"; o indicador só aparece em 'answer'
+  // (dúvida do aluno, que chama a LLM e pode demorar).
+  const [pendingAction, setPendingAction] = useState<'next' | 'answer' | null>(null);
   const [draft, setDraft] = useState('');
   const [loadError, setLoadError] = useState<string | null>(null);
   const [sourcesOpen, setSourcesOpen] = useState(false);
@@ -204,6 +208,7 @@ export function LessonView(props: ViewProps): ReactElement {
   const sendNext = useCallback(async (): Promise<void> => {
     if (!trackLesson || busy) return;
     setBusy(true);
+    setPendingAction('next');
     try {
       const res = await getApi().track.tutorChat({
         trackSlug: trackLesson.trackSlug,
@@ -217,6 +222,7 @@ export function LessonView(props: ViewProps): ReactElement {
       setChat((s) => ({ ...s, lastError: String(err) }));
     } finally {
       setBusy(false);
+      setPendingAction(null);
     }
   }, [trackLesson, busy, chat.presentedSections, chat.history]);
 
@@ -226,6 +232,7 @@ export function LessonView(props: ViewProps): ReactElement {
     setDraft('');
     setChat((s) => pushUserMessage(s, text));
     setBusy(true);
+    setPendingAction('answer');
     try {
       const res = await getApi().track.tutorChat({
         trackSlug: trackLesson.trackSlug,
@@ -239,6 +246,7 @@ export function LessonView(props: ViewProps): ReactElement {
       setChat((s) => ({ ...s, lastError: String(err) }));
     } finally {
       setBusy(false);
+      setPendingAction(null);
     }
   }, [trackLesson, draft, busy, chat.presentedSections, chat.history]);
 
@@ -433,7 +441,9 @@ export function LessonView(props: ViewProps): ReactElement {
           ) : (
             chat.history.map((m, i) => <ChatBubble key={i} role={m.role} content={m.content} />)
           )}
-          {busy ? (
+          {/* ONDA 1 (teoria-pronta): "digitando…" SÓ em 'answer' (LLM). 'next' é
+              instantâneo — o markdown da seção já está no arquivo da trilha. */}
+          {busy && pendingAction === 'answer' ? (
             <Box sx={{ display: 'flex', justifyContent: 'flex-start' }}>
               <Typography variant="caption" color="text.secondary" sx={{ fontStyle: 'italic' }}>
                 {t('translation:lesson.typing')}
