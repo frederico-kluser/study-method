@@ -22,8 +22,9 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { TRACK_SCHEMA_VERSION, type TrackLessonSource } from '../electron/main/content/trackTypes';
+import { TRACK_SCHEMA_VERSION, type TrackChallengeSource, type TrackLessonSource } from '../electron/main/content/trackTypes';
 import {
+  challengePairFromSource,
   countTestDeclarations,
   pairIsValid,
   parseSpecChecks,
@@ -349,6 +350,107 @@ test('multiplica profunda', () => { assert.equal(multiplica(2, 3), 6); });
     } finally {
       await fs.rm(work, { recursive: true, force: true });
     }
+  });
+});
+
+// ─── F6 (fix onda3-cli): challengePairFromSource ─────────────────────────────
+// A conversão files[] → solutionFiles/starterFiles é a ÚNICA porta de entrada
+// do track:validate (E do track:challenge:verify) para desafios multi-arquivo
+// e de módulo. Extraída do CLI para o módulo puro — guarda unitária aqui.
+
+describe('challengePairFromSource — conversão files[] → par solução/starter (F6)', () => {
+  const singleSource: TrackChallengeSource = {
+    schemaVersion: TRACK_SCHEMA_VERSION,
+    slug: 'desafio-unico',
+    title: 'Desafio único',
+    concept: 'variaveis',
+    difficulty: 2,
+    language: 'nodejs',
+    statement: 'Stmt.',
+    starterCode: 'export function f(x) { throw new Error("não implementado"); }',
+    testsCode: '// T',
+    solutionCode: 'export function f(x) { return x + 1; }',
+    expectedTestCount: 1,
+  };
+
+  const multiSource: TrackChallengeSource = {
+    schemaVersion: TRACK_SCHEMA_VERSION,
+    slug: 'desafio-multi',
+    title: 'Desafio multi',
+    concept: 'variaveis',
+    difficulty: 2,
+    language: 'nodejs',
+    statement: 'Stmt.',
+    files: [
+      { path: 'lib/soma.mjs', starterCode: 'STARTER_SOMA', solutionCode: 'SOL_SOMA' },
+      { path: 'lib/multiplica.mjs', starterCode: 'STARTER_MULT', solutionCode: 'SOL_MULT' },
+      { path: 'util/const.mjs', starterCode: 'STARTER_CONST', solutionCode: 'SOL_CONST' },
+    ],
+    testsCode: '// T',
+    expectedTestCount: 3,
+  };
+
+  it('single-file (sem files): usa starterCode/solutionCode de topo, sem solutionFiles/starterFiles', () => {
+    const pair = challengePairFromSource(singleSource);
+    assert.equal(pair.solutionCode, singleSource.solutionCode);
+    assert.equal(pair.starterCode, singleSource.starterCode);
+    assert.equal(pair.testsCode, '// T');
+    assert.equal(pair.expectedTestCount, 1);
+    assert.equal(pair.solutionFiles, undefined);
+    assert.equal(pair.starterFiles, undefined);
+  });
+
+  it('multi-arquivo: solutionFiles/starterFiles com TODOS os paths — starter/solution de topo ficam vazios', () => {
+    const pair = challengePairFromSource(multiSource);
+    assert.deepEqual(pair.solutionFiles, [
+      { path: 'lib/soma.mjs', code: 'SOL_SOMA' },
+      { path: 'lib/multiplica.mjs', code: 'SOL_MULT' },
+      { path: 'util/const.mjs', code: 'SOL_CONST' },
+    ]);
+    assert.deepEqual(pair.starterFiles, [
+      { path: 'lib/soma.mjs', code: 'STARTER_SOMA' },
+      { path: 'lib/multiplica.mjs', code: 'STARTER_MULT' },
+      { path: 'util/const.mjs', code: 'STARTER_CONST' },
+    ]);
+    // files presente → os códigos vivem nos arquivos; topo NÃO é exigido.
+    assert.equal(pair.solutionCode, '');
+    assert.equal(pair.starterCode, '');
+  });
+
+  it('desafio de MÓDULO sem files: fallback de topo (mesmo caminho do single-file)', () => {
+    // Desafio de módulo pode ser single-file — o fallback não pode quebrar.
+    const moduleChallenge: TrackChallengeSource = {
+      ...singleSource,
+      slug: 'desafio-modulo',
+      starterCode: 'MOD_STARTER',
+      solutionCode: 'MOD_SOL',
+    };
+    const pair = challengePairFromSource(moduleChallenge);
+    assert.equal(pair.solutionCode, 'MOD_SOL');
+    assert.equal(pair.starterCode, 'MOD_STARTER');
+    assert.equal(pair.solutionFiles, undefined);
+    assert.equal(pair.starterFiles, undefined);
+  });
+
+  it('integração: par multi-arquivo gerado roda no verifyChallengePair (solução passa + starter falha)', async () => {
+    const source: TrackChallengeSource = {
+      ...multiSource,
+      files: [
+        { path: 'lib/soma.mjs', starterCode: 'export function soma(a, b) { throw new Error("não implementado"); }', solutionCode: 'export function soma(a, b) { return a + b; }' },
+        { path: 'lib/multiplica.mjs', starterCode: 'export function multiplica(a, b) { throw new Error("não implementado"); }', solutionCode: 'export function multiplica(a, b) { return a * b; }' },
+      ],
+      testsCode: `import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { soma } from './lib/soma.mjs';
+import { multiplica } from './lib/multiplica.mjs';
+test('soma 2+3', () => { assert.equal(soma(2, 3), 5); });
+test('multiplica 2*3', () => { assert.equal(multiplica(2, 3), 6); });
+`,
+      expectedTestCount: 2,
+    };
+    const pair = challengePairFromSource(source);
+    const v = await verifyChallengePair(pair);
+    assert.equal(pairIsValid(v), true);
   });
 });
 

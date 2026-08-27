@@ -27,6 +27,7 @@
 import { promises as fs } from 'node:fs';
 import * as path from 'node:path';
 import {
+  challengePairFromSource,
   countTestDeclarations,
   pairIsValid,
   verifyChallengePair,
@@ -351,32 +352,9 @@ async function cmdProficiencyNew(pos: string[], flags: Record<string, string>): 
 
 // ─── verificação de desafio (provas 1 e 2 do protocolo, por execução) ────────
 // Implementação ÚNICA em electron/main/services/challengeExec.ts — o CLI e o
-// main usam o MESMO runner (um comportamento, dois chamadores).
-
-/**
- * ADITIVO (rodada 9): monta o PAR solução/starter de um desafio — multi-arquivo
- * quando `files` presente (cada lado com TODOS os arquivos), senão arquivo
- * único solution.mjs. Função pura (sem disco) para o verify e o validate.
- */
-export function challengePairFromSource(challenge: TrackChallengeSource): {
-  solutionCode: string;
-  starterCode: string;
-  testsCode: string;
-  expectedTestCount: number;
-  solutionFiles?: { path: string; code: string }[];
-  starterFiles?: { path: string; code: string }[];
-} {
-  return {
-    // `?? ''`: multi-arquivo (files presente) não carrega starter/solution de
-    // topo — o verify usa os solutionFiles/starterFiles quando presentes.
-    solutionCode: challenge.solutionCode ?? '',
-    starterCode: challenge.starterCode ?? '',
-    testsCode: challenge.testsCode,
-    expectedTestCount: challenge.expectedTestCount,
-    solutionFiles: challenge.files?.map((f) => ({ path: f.path, code: f.solutionCode })),
-    starterFiles: challenge.files?.map((f) => ({ path: f.path, code: f.starterCode })),
-  };
-}
+// main usam o MESMO runner (um comportamento, dois chamadores). A conversão
+// files[] → solutionFiles/starterFiles (challengePairFromSource) também vive
+// lá — extraída para o módulo puro testado (guarda do track:validate).
 
 /** Provas de execução de UM desafio (multi-arquivo OK) + log. Retorna ok. */
 async function verifyAndLogChallenge(slug: string, title: string, challenge: TrackChallengeSource): Promise<boolean> {

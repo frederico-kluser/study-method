@@ -19,7 +19,7 @@ import * as os from 'node:os';
 import * as path from 'node:path';
 import { spawn } from 'node:child_process';
 
-import { SAFE_FILE_PATH_RE } from '../content/trackTypes';
+import { SAFE_FILE_PATH_RE, TrackChallengeSource } from '../content/trackTypes';
 
 export interface ExecResult {
   code: number;
@@ -296,6 +296,27 @@ export interface ChallengePairVerdict {
 
 export function pairIsValid(v: ChallengePairVerdict): boolean {
   return v.solutionPasses && v.starterFails && v.countMatches;
+}
+
+/**
+ * ADITIVO (rodada 9): monta o PAR solução/starter de um desafio — multi-arquivo
+ * quando `files` presente (cada lado com TODOS os arquivos), senão arquivo
+ * único solution.mjs. Função pura (sem disco) — implementação ÚNICA usada pelo
+ * CLI de autoria (track:challenge:verify / track:validate) E pelo main. Antes
+ * vivia no track-cli.ts; extraída aqui para o runner (módulo puro já testado)
+ * e para o validate ter guarda automatizada.
+ */
+export function challengePairFromSource(challenge: TrackChallengeSource): ChallengePair {
+  return {
+    // `?? ''`: multi-arquivo (files presente) não carrega starter/solution de
+    // topo — o verify usa os solutionFiles/starterFiles quando presentes.
+    solutionCode: challenge.solutionCode ?? '',
+    starterCode: challenge.starterCode ?? '',
+    testsCode: challenge.testsCode,
+    expectedTestCount: challenge.expectedTestCount,
+    solutionFiles: challenge.files?.map((f) => ({ path: f.path, code: f.solutionCode })),
+    starterFiles: challenge.files?.map((f) => ({ path: f.path, code: f.starterCode })),
+  };
 }
 
 /**
