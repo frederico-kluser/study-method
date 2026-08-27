@@ -27,6 +27,7 @@ import {
   countTestDeclarations,
   pairIsValid,
   parseSpecChecks,
+  prepareChallengeDir,
   runStudentCode,
   verifyChallengePair,
 } from '../electron/main/services/challengeExec';
@@ -276,6 +277,78 @@ test('juntos', () => { assert.equal(multiplica(soma(1, 2), 2), 6); });
     assert.equal(v.solutionPasses, true);
     assert.equal(v.starterFails, true);
     assert.equal(pairIsValid(v), true);
+  });
+
+  // ─── ADITIVO (rodada 9): SUBDIR ANINHADO (mkdir recursivo multi-nível) ─────
+  // O contrato exige que o runner crie os subdirs de TODOS os arquivos — um
+  // path 'lib/util/soma.mjs' precisa de DOIS níveis de pasta ANTES do write.
+
+  const DEEP_MULTI_TEST = `import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { soma } from './lib/util/soma.mjs';
+import { multiplica } from './lib/util/multiplica.mjs';
+test('soma profunda', () => { assert.equal(soma(2, 3), 5); });
+test('multiplica profunda', () => { assert.equal(multiplica(2, 3), 6); });
+`;
+
+  it('ADITIVO: runStudentCode com files em SUBDIR ANINHADO — passa por execução real', async () => {
+    const res = await runStudentCode({
+      studentCode: '',
+      files: [
+        { path: 'lib/util/soma.mjs', code: 'export function soma(a, b) { return a + b; }\n' },
+        { path: 'lib/util/multiplica.mjs', code: 'export function multiplica(a, b) { return a * b; }\n' },
+      ],
+      testsCode: DEEP_MULTI_TEST,
+      expectedTestCount: 2,
+    });
+    assert.equal(res.passed, true);
+    assert.equal(res.testsRun, 2);
+    assert.equal(res.fail, 0);
+    assert.equal(res.checks.length, 2);
+  });
+
+  it('ADITIVO: verifyChallengePair multi-arquivo com SUBDIR ANINHADO — solução passa + starter falha', async () => {
+    const v = await verifyChallengePair({
+      solutionCode: '',
+      starterCode: '',
+      testsCode: DEEP_MULTI_TEST,
+      expectedTestCount: 2,
+      solutionFiles: [
+        { path: 'lib/util/soma.mjs', code: 'export function soma(a, b) { return a + b; }\n' },
+        { path: 'lib/util/multiplica.mjs', code: 'export function multiplica(a, b) { return a * b; }\n' },
+      ],
+      starterFiles: [
+        { path: 'lib/util/soma.mjs', code: 'export function soma(a, b) { throw new Error("não implementado"); }\n' },
+        { path: 'lib/util/multiplica.mjs', code: 'export function multiplica(a, b) { throw new Error("não implementado"); }\n' },
+      ],
+    });
+    assert.equal(v.solutionPasses, true);
+    assert.equal(v.starterFails, true);
+    assert.equal(v.countMatches, true);
+    assert.equal(pairIsValid(v), true);
+  });
+
+  it('ADITIVO: prepareChallengeDir escreve package.json + TODOS os arquivos (mkdir dos subdirs) + test.mjs', async () => {
+    const { mkdtempSync, promises: fs } = await import('node:fs');
+    const os = await import('node:os');
+    const path = await import('node:path');
+    const work = mkdtempSync(path.join(os.tmpdir(), 'track-prepare-'));
+    try {
+      await prepareChallengeDir(work, {
+        solutionCode: 'ignorado',
+        testsCode: 'export const t = 1;\n',
+        files: [
+          { path: 'lib/util/soma.mjs', code: 'export const soma = 1;\n' },
+          { path: 'lib/multiplica.mjs', code: 'export const multiplica = 2;\n' },
+        ],
+      });
+      assert.equal(JSON.parse(await fs.readFile(path.join(work, 'package.json'), 'utf8')).type, 'module');
+      assert.equal(await fs.readFile(path.join(work, 'lib', 'util', 'soma.mjs'), 'utf8'), 'export const soma = 1;\n');
+      assert.equal(await fs.readFile(path.join(work, 'lib', 'multiplica.mjs'), 'utf8'), 'export const multiplica = 2;\n');
+      assert.equal(await fs.readFile(path.join(work, 'test.mjs'), 'utf8'), 'export const t = 1;\n');
+    } finally {
+      await fs.rm(work, { recursive: true, force: true });
+    }
   });
 });
 

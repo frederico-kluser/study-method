@@ -10,7 +10,9 @@
  *    lib/multiplica.mjs), um editor por arquivo;
  *  - editar OS DOIS arquivos e "Testar resposta" → submissão com AMBOS os
  *    arquivos → "Passou";
- *  - um arquivo errado → veredito parcial (1 de 2) — o submit envia os dois.
+ *  - um arquivo errado → veredito parcial (1 de 2) — o submit envia os dois;
+ *  - veredito FALHOU no desafio do módulo → a regeneração NÃO aparece
+ *    ("Gerar novo desafio" é só de aula — conteúdo autoral).
  */
 import { test, expect, type ElectronApplication, type Page } from '@playwright/test';
 import { launchApp, closeApp, makeWorkspaceRoot, openModuleChallenge } from './helpers';
@@ -76,4 +78,8 @@ test('e2e-module-challenge: card do módulo → 2 abas de arquivo → editar os 
   await page.getByRole('button', { name: 'Testar resposta' }).click();
   // soma errada quebra o teste da soma E o "juntos" (que chama soma) — 1 de 3.
   await expect(page.getByText('1 de 3 testes passaram', { exact: false })).toBeVisible({ timeout: 20_000 });
+
+  // F8: veredito FALHOU — e MESMO ASSIM a regeneração NÃO aparece para o
+  // desafio do MÓDULO (o conteúdo é autoral; "Gerar novo desafio" é só de aula).
+  await expect(page.getByRole('button', { name: 'Gerar novo desafio' })).toHaveCount(0);
 });

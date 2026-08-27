@@ -100,7 +100,12 @@ async function writeTrack(
   t: TrackSource,
   lessons: TrackLessonSource[],
   prof: TrackChallengeSource | null = null,
-  opts: { moduleChallenge?: TrackChallengeSource; declareModuleChallenge?: boolean } = {},
+  opts: {
+    moduleChallenge?: TrackChallengeSource;
+    declareModuleChallenge?: boolean;
+    /** ADITIVO (rodada 9): substitui o challenge.json da aula (ex.: multi-arquivo). */
+    lessonChallenge?: TrackChallengeSource;
+  } = {},
 ): Promise<void> {
   await fs.mkdir(path.join(dir, 'modules', 'modulo-1', 'lessons', 'aula-1', 'challenges', 'desafio-1'), { recursive: true });
   await fs.writeFile(path.join(dir, 'track.json'), JSON.stringify(t), 'utf8');
@@ -118,7 +123,7 @@ async function writeTrack(
     for (const ch of l.challenges) {
       await fs.writeFile(
         path.join(dir, 'modules', 'modulo-1', 'lessons', l.slug, 'challenges', ch, 'challenge.json'),
-        JSON.stringify(challenge({ slug: ch })),
+        JSON.stringify(opts.lessonChallenge && opts.lessonChallenge.slug === ch ? opts.lessonChallenge : challenge({ slug: ch })),
         'utf8',
       );
     }
@@ -424,5 +429,77 @@ describe('trackLoader — carregamento', () => {
     const loaded = await loadTrack(dir);
     assert.equal(loaded.modules[0].challenge?.files?.length, 2);
     assert.equal(loaded.modules[0].challenge?.files?.[1].path, 'lib/multiplica.mjs');
+  });
+
+  it('ADITIVO: desafio MULTI-ARQUIVO de AULA carrega com os arquivos (loader-level)', async () => {
+    const dir = path.join(tmpDir(), 'aula-multi');
+    const multi = challenge({
+      slug: 'desafio-1',
+      files: [
+        { path: 'lib/soma.mjs', starterCode: 'export function soma(a, b) { throw new Error("x"); }\n', solutionCode: 'export function soma(a, b) { return a + b; }\n' },
+        { path: 'lib/multiplica.mjs', starterCode: 'export function multiplica(a, b) { throw new Error("x"); }\n', solutionCode: 'export function multiplica(a, b) { return a * b; }\n' },
+      ],
+    });
+    await writeTrack(dir, track(), [lesson()], null, { lessonChallenge: multi });
+    const loaded = await loadTrack(dir);
+    assert.equal(loaded.modules[0].lessons[0].challenges[0].files?.length, 2);
+    assert.equal(loaded.modules[0].lessons[0].challenges[0].files?.[0].path, 'lib/soma.mjs');
+  });
+
+  // F9 (autoria): a validação de files[] com path inseguro NÃO é só do
+  // validateChallengeSource — o LOADER também precisa rejeitar a trilha
+  // quando um challenge.json em disco carrega um path que escaparia do
+  // diretório de execução ('../../x.mjs' → path.join resolveria o '..').
+  it('ADITIVO: loader rejeita desafio de AULA com files[] path inseguro → TrackLoadError', async () => {
+    const dir = path.join(tmpDir(), 'aula-path-traversal');
+    const malicioso = challenge({
+      slug: 'desafio-1',
+      files: [{ path: '../../escapa.mjs', starterCode: 'export const a = 1;\n', solutionCode: 'export const a = 2;\n' }],
+    });
+    await writeTrack(dir, track(), [lesson()], null, { lessonChallenge: malicioso });
+    await assert.rejects(
+      () => loadTrack(dir),
+      (err: unknown) => {
+        assert.ok(err instanceof TrackLoadError);
+        assert.ok(err.issues.some((i) => i.message.includes('files[0].path')));
+        return true;
+      },
+    );
+  });
+
+  it('ADITIVO: loader rejeita DESAFIO DO MÓDULO com files[] path inseguro → TrackLoadError', async () => {
+    const dir = path.join(tmpDir(), 'mod-path-traversal');
+    const malicioso = challenge({
+      slug: 'desafio-do-modulo',
+      files: [{ path: 'a/../../escapa.mjs', starterCode: 'export const a = 1;\n', solutionCode: 'export const a = 2;\n' }],
+    });
+    await writeTrack(dir, track(), [lesson()], null, {
+      moduleChallenge: malicioso,
+      declareModuleChallenge: true,
+    });
+    await assert.rejects(
+      () => loadTrack(dir),
+      (err: unknown) => {
+        assert.ok(err instanceof TrackLoadError);
+        assert.ok(err.issues.some((i) => i.message.includes('files[0].path')));
+        return true;
+      },
+    );
+  });
+
+  it('ADITIVO: loader rejeita desafio do MÓDULO com files[] vazio → TrackLoadError', async () => {
+    const dir = path.join(tmpDir(), 'mod-files-vazio');
+    await writeTrack(dir, track(), [lesson()], null, {
+      moduleChallenge: challenge({ slug: 'desafio-do-modulo', files: [] }),
+      declareModuleChallenge: true,
+    });
+    await assert.rejects(
+      () => loadTrack(dir),
+      (err: unknown) => {
+        assert.ok(err instanceof TrackLoadError);
+        assert.ok(err.issues.some((i) => i.message.includes('files') && i.message.includes('vazio')));
+        return true;
+      },
+    );
   });
 });

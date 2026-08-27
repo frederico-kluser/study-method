@@ -68,6 +68,30 @@ const PROFICIENCY = {
   difficulty: 5,
 };
 
+// ADITIVO (rodada 9): desafio MULTI-ARQUIVO de AULA (2 arquivos, testes que
+// importam dos dois — execução REAL no submit pelo fluxo de aula com files[]).
+const LESSON_MULTI_CHALLENGE = {
+  schemaVersion: TRACK_SCHEMA_VERSION,
+  slug: 'desafio-multi',
+  title: 'Desafio multi',
+  concept: 'funcoes',
+  difficulty: 1,
+  language: 'nodejs',
+  statement: 'Implemente soma e multiplicação nos dois arquivos.',
+  files: [
+    { path: 'lib/soma.mjs', starterCode: 'export function soma(a, b) { throw new Error("não implementado"); }\n', solutionCode: 'export function soma(a, b) { return a + b; }\n' },
+    { path: 'lib/multiplica.mjs', starterCode: 'export function multiplica(a, b) { throw new Error("não implementado"); }\n', solutionCode: 'export function multiplica(a, b) { return a * b; }\n' },
+  ],
+  testsCode: `import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { soma } from './lib/soma.mjs';
+import { multiplica } from './lib/multiplica.mjs';
+test('soma 2+3', () => { assert.equal(soma(2, 3), 5); });
+test('multiplica 2*3', () => { assert.equal(multiplica(2, 3), 6); });
+`,
+  expectedTestCount: 2,
+};
+
 // ADITIVO (rodada 9): desafio do MÓDULO MULTI-ARQUIVO (2 arquivos, testes que
 // importam dos dois — execução REAL no submit).
 const MODULE_CHALLENGE = {
@@ -133,13 +157,19 @@ async function makeTrackDir(): Promise<string> {
       prerequisites: [],
       theory: [{ id: 'intro', title: 'Intro', markdown: 'Teoria simples.' }],
       sources: [{ title: 'MDN', url: 'https://example.org', description: 'Fonte' }],
-      challenges: ['desafio-1'],
+      challenges: ['desafio-1', 'desafio-multi'],
     }),
     'utf8',
   );
   await fs.writeFile(
     path.join(track, 'modules', 'mod-1', 'lessons', 'aula-1', 'challenges', 'desafio-1', 'challenge.json'),
     JSON.stringify(CHALLENGE),
+    'utf8',
+  );
+  await fs.mkdir(path.join(track, 'modules', 'mod-1', 'lessons', 'aula-1', 'challenges', 'desafio-multi'), { recursive: true });
+  await fs.writeFile(
+    path.join(track, 'modules', 'mod-1', 'lessons', 'aula-1', 'challenges', 'desafio-multi', 'challenge.json'),
+    JSON.stringify(LESSON_MULTI_CHALLENGE),
     'utf8',
   );
   await fs.mkdir(path.join(track, 'modules', 'mod-1', 'challenges', 'desafio-do-modulo'), { recursive: true });
@@ -542,6 +572,63 @@ describe('buildTrackHandlers — trilhas', () => {
     });
     assert.equal(result.ok, true);
     assert.equal(result.passed, false);
+    // F7: os checks NOMINAIS mostram QUAL teste falhou no desafio do módulo.
+    const somaCheck = result.checks.find((c) => c.name === 'soma 2+3');
+    const multCheck = result.checks.find((c) => c.name === 'multiplica 2*3');
+    assert.ok(somaCheck, 'check da soma deve existir');
+    assert.equal(somaCheck!.passed, false, 'soma errada → teste da soma falha');
+    assert.ok(multCheck, 'check da multiplicação deve existir');
+    assert.equal(multCheck!.passed, true, 'multiplicação certa → teste dela passa');
+    assert.equal(result.passedCount, 1);
+    assert.equal(result.totalCount, 2);
+  });
+
+  // ADITIVO (rodada 9): desafio MULTI-ARQUIVO DE AULA — o painel envia files[]
+  // para QUALQUER desafio com files[] (não só módulo); o caminho lesson do
+  // resolveTestsCode precisa resolver o testsCode do desafio e rodar os arquivos.
+  it('track:challenge-submit de AULA com files: todos os arquivos certos passam', async () => {
+    const dir = await makeTrackDir();
+    const map = buildTrackHandlers({ getTracksDir: () => path.dirname(dir), repo: fakeRepo() });
+    const result = await call<TrackSubmitResult>(map, TRACK_CHANNELS.CHALLENGE_SUBMIT, {
+      trackSlug: 'trilha-teste',
+      target: 'lesson',
+      lessonId: 'aula-1',
+      challengeId: 'desafio-multi',
+      code: '',
+      files: [
+        { path: 'lib/soma.mjs', code: 'export function soma(a, b) { return a + b; }\n' },
+        { path: 'lib/multiplica.mjs', code: 'export function multiplica(a, b) { return a * b; }\n' },
+      ],
+    });
+    assert.equal(result.ok, true);
+    assert.equal(result.passed, true);
+    assert.equal(result.testsRun, 2);
+    assert.equal(result.totalCount, 2);
+  });
+
+  it('track:challenge-submit de AULA com files: um arquivo errado → falha com checks nominais', async () => {
+    const dir = await makeTrackDir();
+    const map = buildTrackHandlers({ getTracksDir: () => path.dirname(dir), repo: fakeRepo() });
+    const result = await call<TrackSubmitResult>(map, TRACK_CHANNELS.CHALLENGE_SUBMIT, {
+      trackSlug: 'trilha-teste',
+      target: 'lesson',
+      lessonId: 'aula-1',
+      challengeId: 'desafio-multi',
+      code: '',
+      files: [
+        { path: 'lib/soma.mjs', code: 'export function soma(a, b) { return a - b; }\n' },
+        { path: 'lib/multiplica.mjs', code: 'export function multiplica(a, b) { return a * b; }\n' },
+      ],
+    });
+    assert.equal(result.ok, true);
+    assert.equal(result.passed, false);
+    // os checks NOMINAIS mostram exatamente qual teste falhou (F7):
+    const somaCheck = result.checks.find((c) => c.name === 'soma 2+3');
+    const multCheck = result.checks.find((c) => c.name === 'multiplica 2*3');
+    assert.ok(somaCheck, 'check da soma deve existir');
+    assert.equal(somaCheck!.passed, false, 'soma errada → teste da soma falha');
+    assert.ok(multCheck, 'check da multiplicação deve existir');
+    assert.equal(multCheck!.passed, true, 'multiplicação certa → teste dela passa');
     assert.equal(result.passedCount, 1);
     assert.equal(result.totalCount, 2);
   });
