@@ -20,6 +20,13 @@
  *   hint_break_events gatilho de quebra: motivo "hint-4th" (4º clique = "estou
  *                 perdido") ou "lost-manual" (perdido manual), + o que o aluno disse
  *   progress      contagem agregada por (subject, lesson)
+ *   challenge_attempts tentativas de desafio (v2): uma linha por execução, com
+ *                 verdict/stars/duration; subject_id FK para subjects
+ *
+ * v2: subjects ganha `domain` ('programming' | 'math') e entra a tabela
+ * challenge_attempts. Bancos NOVOS nascem em v2 via SCHEMA_SQL; bancos v1
+ * existentes sobem via MIGRATIONS (ALTER ADD COLUMN + CREATE TABLE IF NOT
+ * EXISTS) sem perder dados — ver migrate.ts.
  *
  * Colunas de id são TEXT com ids gerados pela aplicação (uuid), exceto
  * challenge_hints e hint_break_events que usam INTEGER AUTOINCREMENT.
@@ -29,7 +36,38 @@
 
 /** Pedido: a constante SQL das tabelas e a consulta de migração. */
 
-export const SCHEMA_VERSION = 1;
+/**
+ * Versão do schema. Bancos NOVOS nascem direto nesta versão (o migrator aplica
+ * o `SCHEMA_SQL` completo quando `user_version` é 0). Bancos ANTIGOS sobem
+ * versão a versão pela lista `MIGRATIONS` (ver migrate.ts) — SEM perder dados.
+ */
+export const SCHEMA_VERSION = 2;
+
+/**
+ * Tabela de tentativas de desafio (v2): uma linha por execução de um desafio
+ * pelo aluno. `subject_id` referencia subjects; `challenge_id`/`lesson_id` são
+ * TEXT puros (o desafio pode ter sido gerado sem estar persistido em
+ * `challenges`). Definida como constante ANTES de TABLES para o caminho de
+ * CRIAÇÃO NOVA (TABLES) e o de MIGRAÇÃO v1→v2 (MIGRATIONS) compartilharem o
+ * MESMO SQL.
+ */
+export const CHALLENGE_ATTEMPTS_TABLE: string = `-- challenge_attempts (tentativas de desafio)
+CREATE TABLE IF NOT EXISTS challenge_attempts (
+  id           TEXT PRIMARY KEY,
+  subject_id   TEXT NOT NULL REFERENCES subjects(id),
+  lesson_id    TEXT NOT NULL,
+  challenge_id TEXT NOT NULL,
+  verdict      TEXT NOT NULL CHECK (verdict IN ('passed','failed','timeout','abandoned')),
+  stars        INTEGER NOT NULL DEFAULT 0 CHECK (stars BETWEEN 0 AND 3),
+  duration_ms  INTEGER NOT NULL DEFAULT 0,
+  created_at   TEXT NOT NULL DEFAULT (datetime('now'))
+);`;
+
+/** Índices da tabela de tentativas (mesma definição nos dois caminhos). */
+export const CHALLENGE_ATTEMPTS_INDEXES: string[] = [
+  `CREATE INDEX IF NOT EXISTS idx_challenge_attempts_challenge_id ON challenge_attempts(challenge_id);`,
+  `CREATE INDEX IF NOT EXISTS idx_challenge_attempts_subject_id   ON challenge_attempts(subject_id);`,
+];
 
 /**
  * Tabelas do schema, em ordem de criação (respecta dependências FK —
@@ -42,6 +80,7 @@ CREATE TABLE IF NOT EXISTS subjects (
   id         TEXT PRIMARY KEY,
   name       TEXT NOT NULL,
   slug       TEXT NOT NULL UNIQUE,
+  domain     TEXT NOT NULL DEFAULT 'programming' CHECK (domain IN ('programming','math')),
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );`,
 
@@ -109,6 +148,8 @@ CREATE TABLE IF NOT EXISTS progress (
   became_lesson_children INTEGER NOT NULL DEFAULT 0,
   PRIMARY KEY (subject_id, lesson_id)
 );`,
+
+  CHALLENGE_ATTEMPTS_TABLE,
 ];
 
 /**
@@ -126,6 +167,7 @@ export const INDEXES: string[] = [
   `CREATE INDEX IF NOT EXISTS idx_challenge_hints_challenge   ON challenge_hints(challenge_id);`,
   `CREATE INDEX IF NOT EXISTS idx_hint_break_events_challenge ON hint_break_events(challenge_id);`,
   `CREATE INDEX IF NOT EXISTS idx_hint_break_events_lesson    ON hint_break_events(lesson_id);`,
+  ...CHALLENGE_ATTEMPTS_INDEXES,
 ];
 
 /** Nome de todas as tabelas criadas pelo schema (para verificação/teste). */
@@ -137,7 +179,58 @@ export const TABLE_NAMES: readonly string[] = [
   'challenge_hints',
   'hint_break_events',
   'progress',
+  'challenge_attempts',
 ];
 
 /** Concatenação completa do schema: tabelas + índices, na ordem de dependência. */
 export const SCHEMA_SQL: string = [...TABLES, ...INDEXES].join('\n');
+
+/**
+ * v2: ALTER que adiciona `domain` a subjects (bancos v1 -> v2). Executado por
+ * migrate.ts SOMENTE quando a coluna ainda não existe (via `guardedAlter`) —
+ * um boot anterior pode ter adicionado a coluna e crashado antes de gravar
+ * `user_version = 2`; re-rodar o ALTER lançaria "duplicate column name:
+ * domain". Limitação do SQLite: ALTER ADD COLUMN não pode carregar CHECK — o
+ * CHECK do domain só existe no caminho de CRIAÇÃO NOVA (TABLES); bancos
+ * migrados validam o domínio apenas pela aplicação (repo). O DEFAULT
+ * 'programming' faz as linhas antigas ganharem o domínio default sem tocar
+ * em dados.
+ */
+export const SUBJECTS_DOMAIN_ALTER: string = `ALTER TABLE subjects ADD COLUMN domain TEXT NOT NULL DEFAULT 'programming';`;
+
+/** Um passo de migração versionada (ver MIGRATIONS). */
+export interface MigrationStep {
+  /** versão-alvo do passo (user_version após aplicá-lo) */
+  version: number;
+  /** SQL idempotente que leva de (version-1) até version e roda SEMPRE no
+   * passo (CREATE TABLE/INDEX IF NOT EXISTS — re-rodar é no-op seguro) */
+  sql: string;
+  /** ALTER ADD COLUMN CONDICIONADO à existência da coluna (crash-safe): o
+   * migrator só o executa quando `PRAGMA table_info(table)` não listar
+   * `column`. Evita o "duplicate column name" de um boot anterior que
+   * adicionou a coluna e crashou antes de gravar a versão. */
+  guardedAlter?: { table: string; column: string; sql: string };
+}
+
+/**
+ * Migrações VERSIONADAS para bancos criados por versões ANTERIORES do app.
+ * Aplicadas por migrate.ts quando `user_version < version`, na ordem, sem
+ * nunca recriar tabelas (dados do usuário preservados).
+ *
+ * v2 (SCHEMA_VERSION=2):
+ *   - subjects ganha `domain` via `SUBJECTS_DOMAIN_ALTER`, guardado por
+ *     `guardedAlter` (só roda com a coluna ausente — crash-safe);
+ *   - challenge_attempts é criada NOVA (CREATE TABLE IF NOT EXISTS), então
+ *     carrega todos os CHECKs normalmente.
+ */
+export const MIGRATIONS: readonly MigrationStep[] = [
+  {
+    version: 2,
+    sql: [
+      `-- v2: challenge_attempts (bancos v1 -> v2) — roda sempre, idempotente`,
+      CHALLENGE_ATTEMPTS_TABLE,
+      ...CHALLENGE_ATTEMPTS_INDEXES,
+    ].join('\n'),
+    guardedAlter: { table: 'subjects', column: 'domain', sql: SUBJECTS_DOMAIN_ALTER },
+  },
+];

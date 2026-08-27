@@ -3,7 +3,9 @@
  * a camada CRUD que PERSISTE e LÊ aulas (1-2 parágrafos), assuntos, respostas do
  * aluno (que encadeiam para a próxima aula), desafios fundidos, hints, eventos
  * de quebra de hint, progresso/contagem por assunto e a árvore de evolução
- * (pai→filhos).
+ * (pai→filhos). v2: subjects carrega `domain` e a repo persiste tentativas de
+ * desafio (markChallengeAttempt / listAttemptedChallengeSlugs /
+ * getAttemptsForChallenge).
  *
  * DI-FRIENDLY: `createLessonRepo` recebe UMA FACTORY de conexão (`open`) e NUNCA
  * importa Electron — todo o estado vive nas tabelas, criadas idempotentemente
@@ -30,6 +32,33 @@ export interface SubjectRow {
   id: string;
   name: string;
   slug: string;
+  /** domínio do assunto ('programming' | 'math') — v2, default 'programming'. */
+  domain: 'programming' | 'math';
+}
+
+/** Verdict de uma tentativa de desafio (CHECK da coluna challenge_attempts.verdict). */
+export type ChallengeAttemptVerdict = 'passed' | 'failed' | 'timeout' | 'abandoned';
+
+/** Linha de tentativa de desafio (challenge_attempts), em camelCase. */
+export interface ChallengeAttemptRow {
+  id: string;
+  subjectId: string;
+  lessonId: string;
+  challengeId: string;
+  verdict: ChallengeAttemptVerdict;
+  stars: number;
+  durationMs: number;
+  createdAt: string;
+}
+
+/** Input de markChallengeAttempt — stars/durationMs opcionais (default 0). */
+export interface MarkChallengeAttemptInput {
+  subjectId: string;
+  lessonId: string;
+  challengeId: string;
+  verdict: ChallengeAttemptVerdict;
+  stars?: number;
+  durationMs?: number;
 }
 
 /** Assunto com contagens (listSubjects). */
@@ -129,7 +158,10 @@ export interface LessonTree {
 
 /** Instância da repo: todos os métodos retornam Promise. */
 export interface LessonRepo {
-  upsertSubject(name: string): Promise<{ subject: SubjectRow; slug: string }>;
+  upsertSubject(
+    name: string,
+    domain?: 'programming' | 'math',
+  ): Promise<{ subject: SubjectRow; slug: string }>;
   listSubjects(): Promise<SubjectSummary[]>;
   createLesson(input: CreateLessonInput): Promise<string>;
   getLessonById(id: string): Promise<LessonRow | null>;
@@ -149,6 +181,17 @@ export interface LessonRepo {
   lessonCountForSubject(subjectSlug: string): Promise<number>;
   answeredTopicCount(subjectSlug: string): Promise<ProgressTotals>;
   getTree(subjectSlug: string): Promise<LessonTree>;
+  /** Grava UMA tentativa de desafio; devolve a linha criada (com id/created_at). */
+  markChallengeAttempt(input: MarkChallengeAttemptInput): Promise<ChallengeAttemptRow>;
+  /**
+   * Slugs (challenge_slug) distintos já tentados — de um subject específico
+   * (subjectId) ou de todos quando omitido. Tentativas cujo desafio não está
+   * persistido em `challenges` caem no challenge_id (COALESCE). Ordena pela
+   * tentativa mais recente.
+   */
+  listAttemptedChallengeSlugs(subjectId?: string): Promise<string[]>;
+  /** Histórico de tentativas de um desafio, da mais antiga para a mais recente. */
+  getAttemptsForChallenge(challengeId: string): Promise<ChallengeAttemptRow[]>;
 }
 
 /**
@@ -161,6 +204,7 @@ CREATE TABLE IF NOT EXISTS subjects (
   id TEXT PRIMARY KEY,
   name TEXT NOT NULL,
   slug TEXT NOT NULL UNIQUE,
+  domain TEXT NOT NULL DEFAULT 'programming' CHECK (domain IN ('programming','math')),
   created_at TEXT NOT NULL
 );
 CREATE TABLE IF NOT EXISTS lessons (
@@ -218,6 +262,18 @@ CREATE TABLE IF NOT EXISTS progress (
   became_lesson_children INTEGER NOT NULL DEFAULT 0,
   PRIMARY KEY (subject_id, lesson_id)
 );
+CREATE TABLE IF NOT EXISTS challenge_attempts (
+  id TEXT PRIMARY KEY,
+  subject_id TEXT NOT NULL REFERENCES subjects(id),
+  lesson_id TEXT NOT NULL,
+  challenge_id TEXT NOT NULL,
+  verdict TEXT NOT NULL CHECK (verdict IN ('passed','failed','timeout','abandoned')),
+  stars INTEGER NOT NULL DEFAULT 0 CHECK (stars BETWEEN 0 AND 3),
+  duration_ms INTEGER NOT NULL DEFAULT 0,
+  created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_challenge_attempts_challenge_id ON challenge_attempts(challenge_id);
+CREATE INDEX IF NOT EXISTS idx_challenge_attempts_subject_id ON challenge_attempts(subject_id);
 `;
 
 /** Deriva um slug kebab-case (sem acento) a partir de um nome humano. */
@@ -258,7 +314,7 @@ export function createLessonRepo(open: OpenFn): LessonRepo {
   db.exec(SCHEMA);
 
   const findSubjectBySlug = (slug: string): SubjectRow | undefined =>
-    db.prepare('SELECT id, name, slug FROM subjects WHERE slug = ?').get(slug) as unknown as
+    db.prepare('SELECT id, name, slug, domain FROM subjects WHERE slug = ?').get(slug) as unknown as
       | SubjectRow
       | undefined;
 
@@ -287,16 +343,16 @@ export function createLessonRepo(open: OpenFn): LessonRepo {
   };
 
   return {
-    async upsertSubject(name) {
+    async upsertSubject(name, domain = 'programming') {
       const slug = slugify(name);
       const existing = findSubjectBySlug(slug);
       if (existing) {
         return { subject: existing, slug };
       }
-      const subject: SubjectRow = { id: newId(), name, slug };
+      const subject: SubjectRow = { id: newId(), name, slug, domain };
       db.prepare(
-        'INSERT INTO subjects (id, name, slug, created_at) VALUES (?, ?, ?, ?)',
-      ).run(subject.id, subject.name, subject.slug, now());
+        'INSERT INTO subjects (id, name, slug, domain, created_at) VALUES (?, ?, ?, ?, ?)',
+      ).run(subject.id, subject.name, subject.slug, subject.domain, now());
       return { subject, slug };
     },
 
@@ -304,7 +360,7 @@ export function createLessonRepo(open: OpenFn): LessonRepo {
       return db
         .prepare(
           `SELECT
-             s.id, s.name, s.slug,
+             s.id, s.name, s.slug, s.domain,
              (SELECT COUNT(*) FROM lessons l WHERE l.subject_id = s.id) AS lessonCount,
              (SELECT COALESCE(SUM(p.answered), 0) FROM progress p WHERE p.subject_id = s.id) AS answeredCount
            FROM subjects s`,
@@ -542,6 +598,79 @@ export function createLessonRepo(open: OpenFn): LessonRepo {
       const root =
         nodes.find((n) => n.parentLessonId === null && n.originLessonId === null) ?? null;
       return { root, nodes };
+    },
+
+    async markChallengeAttempt(input) {
+      const attempt: ChallengeAttemptRow = {
+        id: newId(),
+        subjectId: input.subjectId,
+        lessonId: input.lessonId,
+        challengeId: input.challengeId,
+        verdict: input.verdict,
+        stars: input.stars ?? 0,
+        durationMs: input.durationMs ?? 0,
+        createdAt: now(),
+      };
+      db.prepare(
+        `INSERT INTO challenge_attempts
+           (id, subject_id, lesson_id, challenge_id, verdict, stars, duration_ms, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      ).run(
+        attempt.id,
+        attempt.subjectId,
+        attempt.lessonId,
+        attempt.challengeId,
+        attempt.verdict,
+        attempt.stars,
+        attempt.durationMs,
+        attempt.createdAt,
+      );
+      return attempt;
+    },
+
+    async listAttemptedChallengeSlugs(subjectId) {
+      const rows = db
+        .prepare(
+          `SELECT COALESCE(c.challenge_slug, ca.challenge_id) AS slug
+           FROM challenge_attempts ca
+           LEFT JOIN challenges c ON c.id = ca.challenge_id
+           WHERE (? IS NULL OR ca.subject_id = ?)
+           GROUP BY COALESCE(c.challenge_slug, ca.challenge_id)
+           ORDER BY MAX(ca.created_at) DESC`,
+        )
+        .all(subjectId ?? null, subjectId ?? null) as unknown as Array<{ slug: string }>;
+      return rows.map((r) => r.slug);
+    },
+
+    async getAttemptsForChallenge(challengeId) {
+      const rows = db
+        .prepare(
+          `SELECT id, subject_id, lesson_id, challenge_id, verdict, stars, duration_ms, created_at
+           FROM challenge_attempts
+           WHERE challenge_id = ?
+           ORDER BY created_at ASC, id ASC`,
+        )
+        .all(challengeId) as unknown as Array<{
+        id: string;
+        subject_id: string;
+        lesson_id: string;
+        challenge_id: string;
+        verdict: ChallengeAttemptVerdict;
+        stars: number;
+        duration_ms: number;
+        created_at: string;
+      }>;
+      // snake_case do banco -> camelCase do contrato (padrão listLessonsBySubject).
+      return rows.map((r) => ({
+        id: r.id,
+        subjectId: r.subject_id,
+        lessonId: r.lesson_id,
+        challengeId: r.challenge_id,
+        verdict: r.verdict,
+        stars: r.stars,
+        durationMs: r.duration_ms,
+        createdAt: r.created_at,
+      }));
     },
   };
 }

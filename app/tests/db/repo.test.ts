@@ -64,6 +64,20 @@ describe('createLessonRepo — subject', () => {
     assert.equal(list[0].answeredCount, 2);
     close();
   });
+
+  it('upsertSubject aceita domain (v2): default programming, math explícito', async () => {
+    const { repo, close } = makeRepo();
+    const d1 = await repo.upsertSubject('Vetores');
+    assert.equal(d1.subject.domain, 'programming', 'default é programming');
+    await repo.upsertSubject('Cálculo', 'math');
+    const list = await repo.listSubjects();
+    assert.equal(list.length, 2);
+    const calc = list.find((s) => s.slug === 'calculo');
+    assert.equal(calc?.domain, 'math');
+    const vet = list.find((s) => s.slug === 'vetores');
+    assert.equal(vet?.domain, 'programming');
+    close();
+  });
 });
 
 describe('createLessonRepo — lesson', () => {

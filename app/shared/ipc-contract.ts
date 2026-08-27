@@ -159,6 +159,8 @@ export interface SubjectSummary {
   id: string;
   name: string;
   slug: string;
+  /** domínio do assunto (v2) — 'programming' | 'math', default 'programming'. */
+  domain: 'programming' | 'math';
   lessonCount: number;
   answeredCount: number;
 }
