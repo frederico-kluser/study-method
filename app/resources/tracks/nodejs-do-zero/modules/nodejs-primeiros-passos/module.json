@@ -9,5 +9,6 @@
     "modulos-e-import",
     "npm-e-package-json",
     "core-modules-do-node"
-  ]
+  ],
+  "challenge": "desafio-do-modulo-nodejs-basico"
 }
