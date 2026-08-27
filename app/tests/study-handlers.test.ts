@@ -14,7 +14,7 @@ import { describe, it, after, before } from 'node:test';
 import assert from 'node:assert/strict';
 import * as path from 'node:path';
 
-import { STUDY_CHANNELS } from '../shared/ipc-contract';
+import { STUDY_CHANNELS, type JudgeAnswerOutcome, type MathAnswerCheckResult } from '../shared/ipc-contract';
 import {
   buildStudyHandlers,
   languageForFile,
@@ -27,6 +27,8 @@ import {
   type RunnerLike,
   type StudyHandlerDeps,
 } from '../electron/main/ipc/study-handlers';
+import { generateMathProblem } from '../electron/main/services/mathLib';
+import type { AnswerJudgeLike } from '../electron/main/services/answerJudge';
 import { mkTempDir, rmrf, writeFile } from './_helpers/fs';
 
 /** Fakes configuráveis que satisfazem LessonServiceLike e RunnerLike. */
@@ -36,6 +38,8 @@ function makeDeps(overrides: {
   emit?: (channel: string, ev: unknown) => void;
   /** ADITIVO (onda2-research-live): repo parcial (só os métodos do teste). */
   repo?: Partial<LessonPersistenceLike>;
+  /** ADITIVO (onda3-respostas): avaliador de resposta digitada (fake). */
+  answerJudge?: AnswerJudgeLike;
 } = {}) {
   const emitCalls: Array<{ channel: string; ev: unknown }> = [];
   const emit = overrides.emit ?? ((channel: string, ev: unknown) => emitCalls.push({ channel, ev }));
@@ -73,6 +77,7 @@ function makeDeps(overrides: {
     lesson,
     emit,
     ...(overrides.repo ? { repo: overrides.repo as LessonPersistenceLike } : {}),
+    ...(overrides.answerJudge ? { answerJudge: overrides.answerJudge } : {}),
   };
   return { deps, lesson, runner, emitCalls, emit };
 }
@@ -118,8 +123,13 @@ describe('study-handlers (unit / fakes)', () => {
   });
 
   describe('normalizeGenerateLessonPayload', () => {
-    it('string avulsa → { subject } com trim + campos vazios', () => {
-      assert.deepEqual(normalizeGenerateLessonPayload('  Closures  '), { subject: 'Closures', language: undefined, goal: undefined });
+    it('string avulsa → { subject } com trim + campos vazios (domain undefined)', () => {
+      assert.deepEqual(normalizeGenerateLessonPayload('  Closures  '), {
+        subject: 'Closures',
+        language: undefined,
+        goal: undefined,
+        domain: undefined,
+      });
     });
 
     it('string vazia / só espaços → lança', () => {
@@ -145,6 +155,24 @@ describe('study-handlers (unit / fakes)', () => {
         language: undefined,
         goal: undefined,
       });
+    });
+
+    it('ADITIVO (onda3-respostas): domain "math"|"programming" normaliza; inválido é ignorado', () => {
+      assert.deepEqual(normalizeGenerateLessonPayload({ subject: 'a', domain: 'math' }), {
+        subject: 'a',
+        language: undefined,
+        goal: undefined,
+        domain: 'math',
+      });
+      assert.deepEqual(normalizeGenerateLessonPayload({ subject: 'a', domain: 'programming' }), {
+        subject: 'a',
+        language: undefined,
+        goal: undefined,
+        domain: 'programming',
+      });
+      // Valor fora do enum → undefined (o orquestrador resolve por heurística).
+      const out = normalizeGenerateLessonPayload({ subject: 'a', domain: 'ciência' });
+      assert.equal(out.domain, undefined);
     });
   });
 
@@ -791,5 +819,151 @@ describe('study-handlers (unit / fakes)', () => {
       assert.ok(handlersMap.has(STUDY_CHANNELS.GENERATE_LESSON));
       assert.ok(handlersMap.has(STUDY_CHANNELS.LIST_WORKSPACE_FILES));
     });
+  });
+});
+describe('study:check-math-answer (onda3-respostas — verificação por execução, SEM LLM)', () => {
+  it('resposta correta → { correct: true, expectedNormalized } recomputado pelo main', async () => {
+    const { deps } = makeDeps();
+    const handlers = buildStudyHandlers(deps);
+    // O main RECOMPUTA o esperado de (family, seed) — a UI só envia family/seed.
+    for (const family of ['arithmetic', 'fractions', 'percentages', 'linear-equations']) {
+      const problem = generateMathProblem(family as never, 7);
+      const res = (await handlers.get(STUDY_CHANNELS.CHECK_MATH_ANSWER)!(undefined, {
+        family,
+        seed: 7,
+        answerText: problem.normalized,
+      })) as MathAnswerCheckResult;
+      assert.deepEqual(res, { correct: true, expectedNormalized: problem.normalized });
+    }
+  });
+
+  it('resposta errada → { correct: false, reason: "wrong" } com o esperado canônico', async () => {
+    const { deps } = makeDeps();
+    const handlers = buildStudyHandlers(deps);
+    const problem = generateMathProblem('arithmetic', 3);
+    const wrong = problem.expected.num === 0 ? '1' : String(problem.expected.num + 1);
+    const res = (await handlers.get(STUDY_CHANNELS.CHECK_MATH_ANSWER)!(undefined, {
+      family: 'arithmetic',
+      seed: 3,
+      answerText: wrong,
+    })) as MathAnswerCheckResult;
+    assert.equal(res.correct, false);
+    assert.equal(res.reason, 'wrong');
+    assert.equal(res.expectedNormalized, problem.normalized);
+  });
+
+  it('resposta malformada → { correct: false, reason: "malformed" }', async () => {
+    const { deps } = makeDeps();
+    const handlers = buildStudyHandlers(deps);
+    const res = (await handlers.get(STUDY_CHANNELS.CHECK_MATH_ANSWER)!(undefined, {
+      family: 'fractions',
+      seed: 5,
+      answerText: 'não sei',
+    })) as MathAnswerCheckResult;
+    assert.equal(res.correct, false);
+    assert.equal(res.reason, 'malformed');
+    assert.equal(typeof res.expectedNormalized, 'string');
+  });
+
+  it('aceita formas equivalentes (fração não reduzida, vírgula pt-BR)', async () => {
+    const { deps } = makeDeps();
+    const handlers = buildStudyHandlers(deps);
+    const problem = generateMathProblem('fractions', 9);
+    const { num, den } = problem.expected;
+    const equivalent = den === 1 ? `${num}.0` : `${num * 3}/${den * 3}`;
+    const res = (await handlers.get(STUDY_CHANNELS.CHECK_MATH_ANSWER)!(undefined, {
+      family: 'fractions',
+      seed: 9,
+      answerText: equivalent,
+    })) as MathAnswerCheckResult;
+    assert.equal(res.correct, true, `equivalente "${equivalent}" aceito para ${problem.normalized}`);
+  });
+
+  it('family inválida / seed ausente / answerText vazio → erro claro', async () => {
+    const { deps } = makeDeps();
+    const handlers = buildStudyHandlers(deps);
+    await assert.rejects(
+      async () => handlers.get(STUDY_CHANNELS.CHECK_MATH_ANSWER)!(undefined, { family: 'trigonometria', seed: 1, answerText: '2' }),
+      /family/,
+    );
+    await assert.rejects(
+      async () => handlers.get(STUDY_CHANNELS.CHECK_MATH_ANSWER)!(undefined, { family: 'arithmetic', answerText: '2' }),
+      /seed/,
+    );
+    await assert.rejects(
+      async () => handlers.get(STUDY_CHANNELS.CHECK_MATH_ANSWER)!(undefined, { family: 'arithmetic', seed: 1, answerText: '  ' }),
+      /answerText/,
+    );
+  });
+});
+
+describe('study:judge-answer (onda3-respostas — interpretação com LLM)', () => {
+  const VALID_INPUT = {
+    answerText: 'Uma closure captura o escopo.',
+    context: { subject: 'Closures em JavaScript', lessonExcerpt: 'Trecho do material.' },
+  };
+
+  it('delega ao answerJudge injetado e devolve o resultado estruturado', async () => {
+    const calls: unknown[] = [];
+    const answerJudge: AnswerJudgeLike = {
+      async judgeAnswer(input) {
+        calls.push(input);
+        return { ok: true, verdict: 'correct', feedback: 'Ótima descrição.', provider: 'deepseek' };
+      },
+    };
+    const { deps } = makeDeps({ answerJudge });
+    const handlers = buildStudyHandlers(deps);
+    const res = (await handlers.get(STUDY_CHANNELS.JUDGE_ANSWER)!(undefined, { ...VALID_INPUT, lessonId: 'L42' })) as JudgeAnswerOutcome;
+    assert.deepEqual(res, { ok: true, verdict: 'correct', feedback: 'Ótima descrição.', provider: 'deepseek' });
+    assert.equal(calls.length, 1);
+    const input = calls[0] as { lessonId: string; answerText: string; context: { subject: string; lessonExcerpt: string } };
+    assert.equal(input.lessonId, 'L42');
+    assert.equal(input.answerText, VALID_INPUT.answerText);
+    assert.equal(input.context.subject, VALID_INPUT.context.subject);
+    assert.equal(input.context.lessonExcerpt, VALID_INPUT.context.lessonExcerpt);
+  });
+
+  it('sem answerJudge injetado → { ok:false, error.code: ANSWER_JUDGE_UNAVAILABLE } (nunca inventa veredito)', async () => {
+    const { deps } = makeDeps(); // sem answerJudge
+    const handlers = buildStudyHandlers(deps);
+    const res = (await handlers.get(STUDY_CHANNELS.JUDGE_ANSWER)!(undefined, VALID_INPUT)) as JudgeAnswerOutcome;
+    assert.ok(!res.ok);
+    if (!res.ok) {
+      assert.equal(res.error.code, 'ANSWER_JUDGE_UNAVAILABLE');
+      assert.ok(!('verdict' in res), 'falha total não carrega veredito');
+    }
+  });
+
+  it('falha do provedor → erro estruturado do serviço repassado (verdict nunca inventado)', async () => {
+    const answerJudge: AnswerJudgeLike = {
+      async judgeAnswer() {
+        return { ok: false, error: { code: 'ANSWER_JUDGE_UNAVAILABLE', message: 'sem LLM.' } };
+      },
+    };
+    const { deps } = makeDeps({ answerJudge });
+    const handlers = buildStudyHandlers(deps);
+    const res = (await handlers.get(STUDY_CHANNELS.JUDGE_ANSWER)!(undefined, VALID_INPUT)) as JudgeAnswerOutcome;
+    assert.ok(!res.ok);
+    if (!res.ok) assert.equal(res.error.code, 'ANSWER_JUDGE_UNAVAILABLE');
+  });
+
+  it('payload inválido → erro claro (answerText / context obrigatórios)', async () => {
+    const { deps } = makeDeps();
+    const handlers = buildStudyHandlers(deps);
+    await assert.rejects(
+      async () => handlers.get(STUDY_CHANNELS.JUDGE_ANSWER)!(undefined, { ...VALID_INPUT, answerText: '' }),
+      /answerText/,
+    );
+    await assert.rejects(
+      async () => handlers.get(STUDY_CHANNELS.JUDGE_ANSWER)!(undefined, { answerText: 'x', context: {} }),
+      /subject/,
+    );
+    await assert.rejects(
+      async () => handlers.get(STUDY_CHANNELS.JUDGE_ANSWER)!(undefined, {
+        answerText: 'x',
+        context: { subject: 's' },
+      }),
+      /lessonExcerpt/,
+    );
   });
 });

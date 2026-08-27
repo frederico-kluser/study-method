@@ -94,10 +94,13 @@ const SYSTEM_PROMPT_PT_BR =
   'O JSON segue EXATAMENTE este layout:\n' +
   '{\n' +
   '  "lessonTitle": "<título da aula em pt-BR>",\n' +
-  '  "lessonMarkdown": "<markdown completo da aula: introdução com analogia do ' +
-  'cotidiano, explicação do conceito, um WORKED EXAMPLE resolvido passo a passo, ' +
-  'e uma seção de prática com exercícios>",\n' +
-  '  "challenges": [ <1 a 2 desafios, nunca mais que 2> ]\n' +
+  '  "lessonMarkdown": "<markdown CURTO da aula — poucos parágrafos —: introdução ' +
+  'com analogia do cotidiano, explicação do conceito, um WORKED EXAMPLE resolvido ' +
+  'passo a passo e uma seção de prática com exercícios; focado em interação, sem ' +
+  'encher de texto>",\n' +
+  '  "challenges": [ <1 a 2 desafios, nunca mais que 2 — OU [] quando o DOMÍNIO ' +
+  'é matemática: a aula de matemática não tem desafio de código (TDD), o exercício ' +
+  'é fornecido no contexto e você apenas o usa> ]\n' +
   '}\n' +
   'Cada desafio usa ESTE layout:\n' +
   '{\n' +
@@ -173,12 +176,43 @@ const SYSTEM_PROMPT_PT_BR =
   'rodam); os cenários de cada desafio devem incluir PELO MENOS um example, um ' +
   'boundary e um error (property opcional); testCode deve conter um caso de teste ' +
   'por cenário, com o nome no padrão ch_test_name correspondente à linguagem; ' +
-  'expectedTestCount == scenarios.length; maximo 2 desafios; dificuldade entre 1 e 3.';
+  'expectedTestCount == scenarios.length; maximo 2 desafios; dificuldade entre 1 e 3.\n' +
+  'IMPORTANTE — MATERIAL CURTO: o lessonMarkdown deve ser CURTO (poucos parágrafos) ' +
+  'e focado em interação — o tutor conversa, não despeja texto; sem seções longas, ' +
+  'sem enciclopédia.\n' +
+  'IMPORTANTE — DOMÍNIO MATEMÁTICA (regra rígida do produto, DES-6): quando o ' +
+  'DOMÍNIO do contexto for "math", (1) produza challenges: [] — aula de matemática ' +
+  'NÃO tem desafio de código; (2) o EXERCÍCIO DE MATEMÁTICA fornecido no contexto ' +
+  'já foi gerado e conferido pela biblioteca de matemática do tutor: use o prompt ' +
+  'dele EXATAMENTE como está na seção de prática da aula, sem alterar números, sem ' +
+  'inventar outros exercícios com números novos e NUNCA inclua a resposta/expected ' +
+  'no material (o sistema confere a resposta do aluno por execução).';
 
-/** Serializa o lado do usuário: assunto + findings (com fontes) + memória. */
-function buildUserPrompt(ctx: { subject: string; findings: Array<{ title?: string; url?: string; description?: string }>; memory?: AuthorMemory }): string {
+/** Serializa o lado do usuário: assunto + findings (com fontes) + memória + domínio/exercício. */
+function buildUserPrompt(ctx: {
+  subject: string;
+  findings: Array<{ title?: string; url?: string; description?: string }>;
+  memory?: AuthorMemory;
+  domain?: 'programming' | 'math';
+  mathExercise?: { kind: 'math'; family: string; seed: number; prompt: string };
+}): string {
   const parts: string[] = [];
   parts.push(`ASSUNTO:\n${ctx.subject}`);
+
+  // ADITIVO (onda3-respostas): domínio resolvido — a UI pode passar opts.domain;
+  // a heurística do orquestrador resolve quando ausente. Default 'programming'.
+  parts.push(`DOMÍNIO: ${ctx.domain === 'math' ? 'math' : 'programming'}`);
+
+  // ADITIVO (onda3-respostas): exercício de matemática da mathLib (só para
+  // 'math'). O LLM usa o prompt fornecido — NUNCA inventa números (DES-6) nem
+  // revela o esperado (o esperado fica no orquestrador; o sistema confere por
+  // execução quando o aluno responder).
+  if (ctx.domain === 'math' && ctx.mathExercise) {
+    parts.push(
+      'EXERCÍCIO DE MATEMÁTICA (gerado e conferido pela biblioteca de matemática do tutor — ' +
+        `use EXATAMENTE este prompt na seção de prática, sem alterar números):\n${ctx.mathExercise.prompt}`
+    );
+  }
 
   if (ctx.findings && ctx.findings.length > 0) {
     const findingsLines = ctx.findings
@@ -283,8 +317,15 @@ function validateChallenge(c: unknown, idx: number): string | null {
 /**
  * Valida integralmente um LessonDraft (aula + desafios). Devolve a mensagem de
  * erro humanizada com a parte que faltou, ou null se válido. NÃO lança.
+ *
+ * ADITIVO (onda3-respostas): `opts.allowEmptyChallenges` — true para o domínio
+ * 'math' (aula de matemática não tem desafio de código TDD; o exercício vem da
+ * mathLib). Default false: o fluxo 'programming' continua exigindo >= 1 desafio.
  */
-export function validateLessonDraft(raw: unknown): LessonDraft | null {
+export function validateLessonDraft(
+  raw: unknown,
+  opts?: { allowEmptyChallenges?: boolean }
+): LessonDraft | null {
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
     throw new Error('Autor DeepSeek: o modelo não devolveu um LessonDraft (objeto JSON).');
   }
@@ -293,7 +334,9 @@ export function validateLessonDraft(raw: unknown): LessonDraft | null {
   if (typeof o.lessonTitle !== 'string' || !o.lessonTitle.trim()) missing.push('lessonTitle');
   if (typeof o.lessonMarkdown !== 'string' || !o.lessonMarkdown.trim()) missing.push('lessonMarkdown');
   if (!Array.isArray(o.challenges)) missing.push('challenges (array)');
-  else if (o.challenges.length === 0) missing.push('challenges (>= 1 desafio)');
+  else if (o.challenges.length === 0 && !opts?.allowEmptyChallenges) {
+    missing.push('challenges (>= 1 desafio; para matemática use challenges: [] e o exercício da mathLib)');
+  }
   if (missing.length) {
     throw new Error(`Autor DeepSeek: LessonDraft inválido — faltou: ${missing.join(', ')}.`);
   }
@@ -415,7 +458,10 @@ export function createDeepSeekLessonAuthor(deps: DeepSeekLessonAuthorDeps = {}):
     const parsed = extractFirstJsonObject(raw.content);
     // validateLessonDraft valida o shape + lança erros claros; parse não-objeto
     // é convertido em erro de um único passo de validação.
-    const draft = validateLessonDraft(parsed);
+    // ADITIVO (onda3-respostas): domínio 'math' permite challenges: [] — a aula
+    // de matemática não tem desafio de código TDD (o exercício vem da mathLib).
+    const isMath = ctx.domain === 'math';
+    const draft = validateLessonDraft(parsed, { allowEmptyChallenges: isMath });
     return draft as LessonDraft;
   };
 }

@@ -14,6 +14,27 @@
 
 import type { StudyFinding, StudyLesson } from '@shared/ipc-contract';
 
+/**
+ * Domínio da aula (onda3-respostas): 'programming' (default — fluxo TDD
+ * existente) | 'math' (exercício gerado pela mathLib, verificado por execução,
+ * sem desafio de código). Resolvido em lessonOrchestrator: `opts.domain` da UI
+ * quando passado, senão heurística por palavra-chave no assunto.
+ */
+export type LessonDomain = 'programming' | 'math';
+
+/**
+ * Exercício de matemática como o AUTOR o recebe (sem o esperado): o LLM usa o
+ * prompt fornecido — nunca inventa números nem revela a resposta. O esperado
+ * (expectedNormalized) é computado pela mathLib e anexado à aula pelo
+ * ORQUESTRADOR (LessonExercise do contrato), não pelo autor.
+ */
+export interface AuthorMathExercise {
+  kind: 'math';
+  family: string;
+  seed: number;
+  prompt: string;
+}
+
 /** Tipo fechado de cenário de desafio (docs/05-challenges-tdd.md §1.1/§4.1). */
 export type ScenarioType = 'example' | 'boundary' | 'error' | 'property';
 
@@ -95,6 +116,19 @@ export type AuthorFn = (ctx: {
   subject: string;
   findings: StudyFinding[];
   memory?: AuthorMemory;
+  /**
+   * ADITIVO (onda3-respostas): domínio resolvido da aula — 'programming'
+   * (default) | 'math'. Para 'math' o autor NÃO produz desafios de código
+   * (challenges: []) — o exercício vem da mathLib no campo `mathExercise`.
+   */
+  domain?: LessonDomain;
+  /**
+   * ADITIVO (onda3-respostas): exercício de matemática GERADO pela mathLib
+   * quando domain === 'math'. O LLM usa o `prompt` fornecido no material e
+   * NUNCA inventa números nem revela a resposta (o esperado fica com o
+   * orquestrador — conferido ANTES de gerar, DES-6).
+   */
+  mathExercise?: AuthorMathExercise;
 }) => Promise<LessonDraft>;
 
 /** Progresso emitido via onProgress → evento `study:lesson-progress` do contrato. */

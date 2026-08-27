@@ -132,8 +132,9 @@ describe('contrato IPC (shared/ipc-contract.ts)', () => {
     }
 
     // Garante que a string do canal chega ao transporte (invoke) ou à subscrição (on).
-    // Onda 8 (voz) adicionou stt (11) + localTts (9) → 60 canais no total.
-    assert.ok(checked >= 60, `cobertura abaixo do esperado para o contrato (${checked})`);
+    // Onda 8 (voz) adicionou stt (11) + localTts (9) → 60; onda3-respostas
+    // adicionou study:check-math-answer + study:judge-answer → 62 canais no total.
+    assert.ok(checked >= 62, `cobertura abaixo do esperado para o contrato (${checked})`);
 
     // Invoca alguns membros e confere que o channel do contrato chega ao transporte.
     await (api as unknown as ApiRef).settings.get();
@@ -144,6 +145,11 @@ describe('contrato IPC (shared/ipc-contract.ts)', () => {
     assert.ok(ipc.invoked.includes(PI_CHANNELS.EXECUTE), 'pi:execute deveria invocar o transporte');
     assert.ok(ipc.invoked.includes(STUDY_CHANNELS.TEST_ANSWER), 'study:test-answer deveria invocar');
     assert.ok(ipc.invoked.includes(LOCAL_AI_CHANNELS.CHAT), 'localAi:chat deveria invocar o transporte');
+    // Onda3-respostas: os 2 canais novos chegam ao transporte via membros derivados.
+    await (api as unknown as ApiRef).study.checkMathAnswer({ family: 'arithmetic', seed: 1, answerText: '2' });
+    await (api as unknown as ApiRef).study.judgeAnswer({ answerText: 'x', context: { subject: 's', lessonExcerpt: 'e' } });
+    assert.ok(ipc.invoked.includes(STUDY_CHANNELS.CHECK_MATH_ANSWER), 'study:check-math-answer deveria invocar');
+    assert.ok(ipc.invoked.includes(STUDY_CHANNELS.JUDGE_ANSWER), 'study:judge-answer deveria invocar');
 
     // Subscreve os eventos expostos e confere que cada um toca o transporte.
     const unsubs: Array<() => void> = [
@@ -178,6 +184,8 @@ interface ApiRef {
   };
   study: {
     testAnswer: () => Promise<unknown>;
+    checkMathAnswer: (input: { family: string; seed: number; answerText: string }) => Promise<unknown>;
+    judgeAnswer: (input: { answerText: string; context: { subject: string; lessonExcerpt: string } }) => Promise<unknown>;
     onLessonProgress: (cb: () => void) => () => void;
     onResearchProgress: (cb: () => void) => () => void;
     onTestAnswerEvent: (cb: () => void) => () => void;

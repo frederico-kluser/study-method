@@ -12,8 +12,9 @@ import assert from 'node:assert/strict';
 import { promises as fsp } from 'node:fs';
 import * as path from 'node:path';
 
-import { createLessonOrchestrator, slugify, mapLanguageExtension, computeTestName } from '../electron/main/services/lessonOrchestrator';
+import { createLessonOrchestrator, resolveLessonDomain, slugify, mapLanguageExtension, computeTestName } from '../electron/main/services/lessonOrchestrator';
 import type { AuthorFn, LessonDraft, LessonProgress } from '../electron/main/services/lessonTypes';
+import { generateMathProblem, verifyAnswer, type MathFamily as MathFamilyType } from '../electron/main/services/mathLib';
 import type { StudyFinding } from '@shared/ipc-contract';
 import { mkTempDir, rmrf, writeFile } from './_helpers/fs';
 
@@ -731,5 +732,143 @@ describe('helpers puros', () => {
     assert.equal(computeTestName('go', 'fabr_cinco'), 'TestFabrCinco');
     assert.equal(computeTestName('rust', 'fabr_cinco'), 'fabr_cinco');
     assert.equal(computeTestName('c', 'fabr_cinco'), 'fabr_cinco');
+  });
+});
+describe('lessonOrchestrator: domínio e caminho de matemática (onda3-respostas)', () => {
+  let tmp = '';
+  before(async () => { tmp = await mkTempDir('lesson-orch-math-'); });
+  after(async () => { await rmrf(tmp); });
+
+  /**
+   * Fakes com CAPTURA do ctx do autor e runner que FALHA se tentar
+   * materializar/verificar desafio (o caminho math NÃO pode chamá-los).
+   */
+  function makeMathFakes() {
+    const calls: string[] = [];
+    let authorCtx: Parameters<AuthorFn>[0] | null = null;
+    const runner = {
+      async resolveSkillDir() { return '/tmp/skill'; },
+      async createSetup(spec: { path: string }) {
+        calls.push('createSetup');
+        await fsp.mkdir(spec.path, { recursive: true });
+        return { setupId: 'math1', setupRoot: spec.path };
+      },
+      async newSession() { calls.push('newSession'); return '0001'; },
+      async createChallenge() {
+        calls.push('createChallenge');
+        throw new Error('math NÃO deve materializar desafio de código');
+      },
+      async verifyChallenge() {
+        calls.push('verifyChallenge');
+        throw new Error('math NÃO deve rodar verifyChallenge (a verificação é a mathLib)');
+      },
+      async testStudentAnswer() { throw new Error('não usado'); },
+    };
+    const research = {
+      async plan(subject: string) {
+        calls.push('plan');
+        return { subject, queries: [], findings: [], createdAt: new Date().toISOString() };
+      },
+    };
+    const author: AuthorFn = async (ctx) => {
+      calls.push('author');
+      authorCtx = ctx;
+      return {
+        lessonTitle: 'Equações do primeiro grau',
+        lessonMarkdown: '# Equações\n\nMaterial curto.\n',
+        challenges: [],
+      };
+    };
+    const orch = createLessonOrchestrator({
+      research: research as never,
+      runner: runner as never,
+      author,
+      setupsDir: path.join(tmp, 'setups'),
+    });
+    return { orch, calls, getCtx: () => authorCtx };
+  }
+
+  it('resolveLessonDomain: explícito vence; heurística por palavra-chave; default programming', () => {
+    // Heurística (sem acento, lowercase) — palavras-chave de matemática.
+    assert.equal(resolveLessonDomain('matemática básica'), 'math');
+    assert.equal(resolveLessonDomain('Álgebra linear'), 'math');
+    assert.equal(resolveLessonDomain('geometria analítica'), 'math');
+    assert.equal(resolveLessonDomain('aritmética'), 'math');
+    assert.equal(resolveLessonDomain('porcentagem e frações'), 'math');
+    assert.equal(resolveLessonDomain('equações do segundo grau'), 'math');
+    // Fora das palavras-chave → programming.
+    assert.equal(resolveLessonDomain('Closures em JavaScript'), 'programming');
+    assert.equal(resolveLessonDomain('Python para iniciantes'), 'programming');
+    assert.equal(resolveLessonDomain('recursão em Go'), 'programming');
+    assert.equal(resolveLessonDomain(''), 'programming');
+    assert.equal(resolveLessonDomain(undefined as unknown as string), 'programming');
+    // O campo explícito da UI tem precedência sobre a heurística.
+    assert.equal(resolveLessonDomain('matemática', 'programming'), 'programming');
+    assert.equal(resolveLessonDomain('programação em Rust', 'math'), 'math');
+  });
+
+  it('math: autor recebe domain=math + mathExercise (SEM o esperado) e a aula carrega o exercício conferido', async () => {
+    const { orch, calls, getCtx } = makeMathFakes();
+    const { lesson, rejected } = await orch.generateLesson('equações do primeiro grau');
+
+    // Autor recebe o domínio e o exercício da mathLib — sem expectedNormalized
+    // (o LLM não pode revelar a resposta no material).
+    const ctx = getCtx();
+    assert.ok(ctx, 'autor foi chamado');
+    assert.equal(ctx?.domain, 'math');
+    assert.ok(ctx?.mathExercise, 'autor recebe o exercício de matemática');
+    assert.equal(ctx?.mathExercise?.kind, 'math');
+    assert.ok(!('expectedNormalized' in (ctx?.mathExercise ?? {})), 'o autor NUNCA recebe o esperado');
+
+    // A aula carrega o exercício com o esperado COMPUTADO pela biblioteca
+    // (conferido antes de apresentar — DES-6).
+    assert.ok(lesson.exercise, 'StudyLesson.exercise presente');
+    assert.equal(lesson.exercise?.kind, 'math');
+    assert.equal(lesson.exercise?.family, ctx?.mathExercise?.family);
+    assert.equal(lesson.exercise?.seed, ctx?.mathExercise?.seed);
+    assert.equal(lesson.exercise?.prompt, ctx?.mathExercise?.prompt);
+    assert.ok(typeof lesson.exercise?.expectedNormalized === 'string' && lesson.exercise.expectedNormalized.length > 0);
+
+    // O esperado anexado BATE com a re-computação da mathLib (family, seed) —
+    // e a resposta canônica verifica contra o problema (verificação por execução).
+    const family = lesson.exercise!.family as MathFamilyType;
+    const recheck = generateMathProblem(family, lesson.exercise!.seed);
+    assert.equal(recheck.normalized, lesson.exercise!.expectedNormalized);
+    assert.equal(recheck.prompt, lesson.exercise!.prompt);
+    assert.equal(verifyAnswer(family, lesson.exercise!.seed, lesson.exercise!.expectedNormalized), true);
+
+    // PULA verifyChallenge / materialização de desafio TDD.
+    assert.equal(lesson.challenges.length, 0);
+    assert.deepEqual(rejected, []);
+    assert.ok(calls.includes('plan') && calls.includes('author'));
+    assert.ok(calls.includes('createSetup') && calls.includes('newSession'));
+    assert.ok(!calls.includes('verifyChallenge'), 'verifyChallenge PULADO para math');
+    assert.ok(!calls.includes('createChallenge'), 'nenhum desafio de código materializado para math');
+  });
+
+  it('math: o exercício é DETERMINÍSTICO por assunto (mesma geração produz o mesmo exercício)', async () => {
+    const { orch } = makeMathFakes();
+    const a = await orch.generateLesson('porcentagem básica');
+    const b = await orch.generateLesson('porcentagem básica');
+    assert.deepEqual(a.lesson.exercise, b.lesson.exercise);
+  });
+
+  it('math: opts.domain explícito da UI ativa o caminho mesmo com assunto de programação', async () => {
+    const { orch, calls } = makeMathFakes();
+    const { lesson } = await orch.generateLesson('funções em Python', { domain: 'math' });
+    assert.ok(lesson.exercise, 'domain explícito math ⇒ exercício presente');
+    assert.equal(lesson.challenges.length, 0);
+    assert.ok(!calls.includes('verifyChallenge'));
+  });
+
+  it('programming: fluxo TDD intacto — desafio materializado/verificado, sem exercise', async () => {
+    const { runner, research, author, calls } = makeFakes({ verifyVerdict: 'approved' });
+    const orch = createLessonOrchestrator({ research, runner, author, setupsDir: tmp });
+    const { lesson, rejected } = await orch.generateLesson('Closures em JavaScript');
+    assert.equal(lesson.challenges.length, 1, 'desafio aprovado entra na aula');
+    assert.equal(lesson.challenges[0].verdict, 'approved');
+    assert.equal(lesson.exercise, undefined, 'programming não carrega exercise');
+    assert.ok(calls.includes('verifyChallenge'), 'verifyChallenge RODA no fluxo programming');
+    assert.deepEqual(rejected, []);
   });
 });

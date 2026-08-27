@@ -28,11 +28,15 @@ import type {
   ChallengeInfo,
   DownloadProgress,
   HardwareInfo,
+  JudgeAnswerOutcome,
+  JudgeAnswerRequest,
   KeysStatus,
   LessonRow,
   LessonSummary,
   LocalModelInfo,
   LocalTtsPreference,
+  MathAnswerCheckRequest,
+  MathAnswerCheckResult,
   PiExecuteRequest,
   PiExecuteResult,
   PiStreamEvent,
@@ -203,6 +207,13 @@ export interface ApiSchema {
      *  style) durante generate-lesson — união discriminada ResearchProgressEvent. */
     onResearchProgress(cb: (ev: ResearchProgressEvent) => void): () => void;
     onTestAnswerEvent(cb: (ev: unknown) => void): () => void;
+    /** ADITIVO (onda3-respostas): verificação POR EXECUÇÃO da resposta de um
+     *  exercício de matemática (SEM LLM) — o main re-computa o esperado de
+     *  (family, seed) via mathLib. `family`/`seed` vêm do `exercise` da lição. */
+    checkMathAnswer(input: MathAnswerCheckRequest): Promise<MathAnswerCheckResult>;
+    /** ADITIVO (onda3-respostas): avalia a INTERPRETAÇÃO digitada com LLM
+     *  (deepseek → fallback embeddedLlm). Falha total ⇒ { ok:false, error }. */
+    judgeAnswer(input: JudgeAnswerRequest): Promise<JudgeAnswerOutcome>;
   };
   /** Onda 8 (voz local): STT — envelope { success, data?, error? }. */
   stt: {

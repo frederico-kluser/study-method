@@ -151,6 +151,14 @@ export const STUDY_CHANNELS = {
   GET_LESSON_BY_ID: 'study:get-lesson-by-id',
   RECORD_ANSWER: 'study:record-answer',
   MARK_LESSON_COMPLETED: 'study:mark-lesson-completed',
+  // ADITIVO (onda3-respostas): verificação POR EXECUÇÃO da resposta de um
+  // exercício de matemática (invoke, SEM LLM): o handler RECOMPUTA o esperado
+  // a partir de (family, seed) via mathLib — nunca confia no renderer.
+  CHECK_MATH_ANSWER: 'study:check-math-answer',
+  // ADITIVO (onda3-respostas): avaliação da RESPOSTA DIGITADA (interpretação)
+  // com LLM — deepseek primeiro, fallback embeddedLlm local; falha total
+  // devolve erro estruturado com `code` (nunca inventa veredito).
+  JUDGE_ANSWER: 'study:judge-answer',
 } as const;
 
 // ─── DTOs de persistência (onda 3 — seleção de aulas) ─────────────────────────
@@ -207,6 +215,26 @@ export interface StudyLesson {
   findings: StudyFinding[];
   challenges: ChallengeInfo[];
   createdAt: string;
+  /**
+   * ADITIVO (onda3-respostas): exercício da aula quando o domínio é 'math'.
+   * O esperado (expectedNormalized) foi computado PELA mathLib no momento da
+   * geração (= conferido ANTES de gerar — regra do produto, DES-6): o LLM
+   * NUNCA inventa números para matemática.
+   */
+  exercise?: LessonExercise;
+}
+
+/** Exercício de matemática gerado pela mathLib (verificação por execução). */
+export interface LessonExercise {
+  kind: 'math';
+  /** Família da mathLib: arithmetic | fractions | percentages | linear-equations. */
+  family: string;
+  /** Seed determinístico — (family, seed) re-computa o problema via mathLib. */
+  seed: number;
+  /** Enunciado em pt-BR (o que o aluno lê). */
+  prompt: string;
+  /** Valor esperado na forma canônica ('7' | '5/6') — computado pela biblioteca. */
+  expectedNormalized: string;
 }
 
 export interface ChallengeInfo {
@@ -329,6 +357,67 @@ export interface WorkspaceFile {
   dir: boolean;
   language?: string;
 }
+
+// ─── DTOs de respostas (onda3-respostas — check-math-answer / judge-answer) ───
+// `study:check-math-answer` é a verificação POR EXECUÇÃO do exercício de
+// matemática (SEM LLM): o main RECOMPUTA o esperado de (family, seed) via
+// mathLib e compara com a resposta digitada — a UI nunca envia o esperado.
+// `study:judge-answer` avalia a INTERPRETAÇÃO digitada com LLM (deepseek →
+// fallback embeddedLlm); em falha total devolve erro estruturado com `code`
+// (nunca inventa veredito).
+
+/** Pedido de `study:check-math-answer` (invoke, sem LLM). */
+export interface MathAnswerCheckRequest {
+  /** Família da mathLib (vem do LessonExercise.family da lição). */
+  family: string;
+  /** Seed do exercício (vem do LessonExercise.seed da lição). */
+  seed: number;
+  /** O que o aluno digitou como resposta. */
+  answerText: string;
+}
+
+/** Resultado de `study:check-math-answer`. */
+export interface MathAnswerCheckResult {
+  correct: boolean;
+  /**
+   * Esperado na forma canônica, RECOMPUTADO pelo main a partir de
+   * (family, seed) — presente sempre que family/seed são válidos
+   * (ex.: '7' | '5/6'); null apenas se o esperado não pôde ser computado.
+   */
+  expectedNormalized: string | null;
+  /** 'wrong' = resposta válida mas diferente do esperado; 'malformed' = não é
+   *  um número reconhecível (parse falhou). Ausente quando correct === true. */
+  reason?: 'wrong' | 'malformed';
+}
+
+/** Pedido de `study:judge-answer` (invoke, LLM com fallback local). */
+export interface JudgeAnswerRequest {
+  /** Id da lição quando a resposta pertence a uma aula persistida. */
+  lessonId?: string;
+  /** O que o aluno digitou (a interpretação dele). */
+  answerText: string;
+  context: {
+    /** Assunto da aula (ex.: 'Closures em JavaScript'). */
+    subject: string;
+    /** Trecho do material da aula (contexto do que foi ensinado). */
+    lessonExcerpt: string;
+  };
+}
+
+/**
+ * Resultado de `study:judge-answer`. União discriminada por `ok`:
+ * - ok:true  → veredito + feedback em pt-BR (provider informa quem julgou);
+ * - ok:false → erro estruturado com `code` (ANSWER_JUDGE_* — nunca veredito
+ *   inventado em falha total).
+ */
+export type JudgeAnswerOutcome =
+  | {
+      ok: true;
+      verdict: 'correct' | 'partial' | 'incorrect';
+      feedback: string;
+      provider: 'deepseek' | 'embedded';
+    }
+  | { ok: false; error: { code: string; message: string } };
 
 // ─── Canais: validação de chaves ──────────────────────────────────────────────
 export interface ValidationResult {

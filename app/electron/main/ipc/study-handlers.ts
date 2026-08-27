@@ -48,8 +48,11 @@ import * as path from 'node:path';
 
 import type {
   ChallengeInfo,
+  JudgeAnswerOutcome,
+  JudgeAnswerRequest,
   LessonRow,
   LessonSummary,
+  MathAnswerCheckResult,
   ResearchProgressEvent,
   StudyLesson,
   SubjectSummary,
@@ -57,8 +60,16 @@ import type {
   WorkspaceFile,
 } from '@shared/ipc-contract';
 import { STUDY_CHANNELS } from '@shared/ipc-contract';
-import type { LessonProgress } from '../services/lessonTypes';
+import type { LessonDomain, LessonProgress } from '../services/lessonTypes';
 import { safeHandleMap, type IpcMainHandleLike, type IpcHandlerFn } from './safeHandle';
+import {
+  MATH_FAMILIES,
+  generateMathProblem,
+  isMathFamily,
+  parseMathAnswer,
+  type MathFamily,
+} from '../services/mathLib';
+import type { AnswerJudgeLike } from '../services/answerJudge';
 
 /** Conjunto de métodos do lesson-orchestrator que os handlers usam. */
 export interface LessonServiceLike {
@@ -70,6 +81,8 @@ export interface LessonServiceLike {
       onResearchProgress?: (ev: ResearchProgressEvent) => void;
       language?: string;
       goal?: string;
+      /** ADITIVO (onda3-respostas): domínio explícito da UI ('math' | 'programming'). */
+      domain?: LessonDomain;
     },
   ): Promise<{ lesson: StudyLesson; rejected: unknown[] }>;
   testAnswer(challengeDir: string, opts?: { outputLimit?: number }): Promise<TestAnswerResult>;
@@ -148,6 +161,13 @@ export interface StudyHandlerDeps {
   /** OPCIONAL (onda 3): repo de persistência das aulas. Ausente → canais de
    *  persistência respondem gracioso ([]{lesson:null}/{ok:false,error}). */
   repo?: LessonPersistenceLike;
+  /**
+   * ADITIVO (onda3-respostas): avaliador da resposta digitada
+   * (`study:judge-answer`). OPCIONAL — ausente ⇒ o canal responde
+   * { ok:false, error:{ code:'ANSWER_JUDGE_UNAVAILABLE', … } } (nunca inventa
+   * veredito). A fiação real injeta `createAnswerJudge(...)` no index.ts.
+   */
+  answerJudge?: AnswerJudgeLike;
 }
 
 /** Estado em memória de módulo (get-lesson/get-findings/list-challenges/workspace). */
@@ -310,27 +330,31 @@ interface NormalizedGenerateLesson {
   subject: string;
   language?: string;
   goal?: string;
+  /** ADITIVO (onda3-respostas): domínio explícito da UI ('math' | 'programming'). */
+  domain?: LessonDomain;
 }
 
 /**
  * Normaliza o payload de `study:generate-lesson`. O renderer chama com uma
  * STRING AVULSA (subject.trim()), mas o contrato também permite um objeto
- * `{ subject, language?, goal? }`. Devolve um objeto normalizado ou lança um
- * erro claro quando o shape é inválido (subject ausente/vazio).
+ * `{ subject, language?, goal?, domain? }`. Devolve um objeto normalizado ou
+ * lança um erro claro quando o shape é inválido (subject ausente/vazio).
  */
 export function normalizeGenerateLessonPayload(payload: unknown): NormalizedGenerateLesson {
   if (typeof payload === 'string') {
     const subject = payload.trim();
     if (!subject) throw new Error('study: generate-lesson requer `subject` (string não vazia).');
-    return { subject, language: undefined, goal: undefined };
+    return { subject, language: undefined, goal: undefined, domain: undefined };
   }
   const p = (payload ?? {}) as Record<string, unknown>;
   const subject = typeof p.subject === 'string' ? p.subject.trim() : '';
   if (!subject) throw new Error('study: generate-lesson requer `subject` (string não vazia).');
+  const domain = p.domain === 'math' || p.domain === 'programming' ? p.domain : undefined;
   return {
     subject,
     language: typeof p.language === 'string' ? p.language : undefined,
     goal: typeof p.goal === 'string' ? p.goal : undefined,
+    ...(domain ? { domain } : {}),
   };
 }
 
@@ -339,7 +363,7 @@ export function normalizeGenerateLessonPayload(payload: unknown): NormalizedGene
  * injeta o orchestrator; `deps.emit` é o canal para a UI.
  */
 export function buildStudyHandlers(deps: StudyHandlerDeps): Map<string, IpcHandlerFn> {
-  const { runner, lesson, emit, repo } = deps;
+  const { runner, lesson, emit, repo, answerJudge } = deps;
   memory.lastSkillDirProvider = () => runner.resolveSkillDir();
 
   const map: Map<string, IpcHandlerFn> = new Map();
@@ -414,6 +438,9 @@ export function buildStudyHandlers(deps: StudyHandlerDeps): Map<string, IpcHandl
       },
       language: normalized.language,
       goal: normalized.goal,
+      // ADITIVO (onda3-respostas): domínio explícito da UI — o orquestrador
+      // resolve por heurística quando ausente (default 'programming').
+      ...(normalized.domain ? { domain: normalized.domain } : {}),
     });
     memory.lastGenerateResult = result;
     memory.lastFindings = result.lesson.findings;
@@ -606,6 +633,77 @@ export function buildStudyHandlers(deps: StudyHandlerDeps): Map<string, IpcHandl
     await repo.markLessonCompleted(lessonId);
     return { ok: true };
   });
+
+  // ─── respostas (onda3-respostas — verificação por execução + interpretação) ─
+  // study:check-math-answer: verificação POR EXECUÇÃO (SEM LLM). O main
+  // RECOMPUTA o esperado de (family, seed) via mathLib — nunca confia no
+  // renderer (a UI envia family/seed que vêm do `exercise` da lição, não o
+  // esperado). reason 'malformed' quando a resposta não é um número
+  // reconhecível; 'wrong' quando é um número mas diverge do esperado.
+  map.set(
+    STUDY_CHANNELS.CHECK_MATH_ANSWER,
+    async (_event, payload: unknown): Promise<MathAnswerCheckResult> => {
+      const p = (payload ?? {}) as Record<string, unknown>;
+      if (!isMathFamily(p.family)) {
+        throw new Error(
+          `study: check-math-answer requer \`family\` válida (${MATH_FAMILIES.join(' | ')}).`
+        );
+      }
+      const family = p.family as MathFamily;
+      if (typeof p.seed !== 'number' || !Number.isInteger(p.seed)) {
+        throw new Error('study: check-math-answer requer `seed` (inteiro).');
+      }
+      if (typeof p.answerText !== 'string' || p.answerText.trim() === '') {
+        throw new Error('study: check-math-answer requer `answerText` (string não vazia).');
+      }
+      // Re-computa o esperado a partir de (family, seed) — a fonte de verdade
+      // é a biblioteca determinística, nunca o renderer.
+      const problem = generateMathProblem(family, p.seed);
+      const parsed = parseMathAnswer(p.answerText);
+      const correct = parsed !== null && problem.verify(p.answerText);
+      return {
+        correct,
+        expectedNormalized: problem.normalized,
+        ...(correct ? {} : { reason: parsed === null ? ('malformed' as const) : ('wrong' as const) }),
+      };
+    },
+  );
+
+  // study:judge-answer: avalia a INTERPRETAÇÃO digitada com LLM (deepseek →
+  // fallback embeddedLlm). Falha total ⇒ { ok:false, error:{ code } } — nunca
+  // inventa veredito. Sem `answerJudge` injetado, responde estruturado
+  // (ANSWER_JUDGE_UNAVAILABLE), igual aos demais canais opcionais.
+  map.set(
+    STUDY_CHANNELS.JUDGE_ANSWER,
+    async (_event, payload: unknown): Promise<JudgeAnswerOutcome> => {
+      const p = (payload ?? {}) as Record<string, unknown>;
+      if (typeof p.answerText !== 'string' || p.answerText.trim() === '') {
+        throw new Error('study: judge-answer requer `answerText` (string não vazia).');
+      }
+      const ctx = (p.context ?? {}) as Record<string, unknown>;
+      if (typeof ctx.subject !== 'string' || ctx.subject.trim() === '') {
+        throw new Error('study: judge-answer requer `context.subject` (string não vazia).');
+      }
+      if (typeof ctx.lessonExcerpt !== 'string' || ctx.lessonExcerpt.trim() === '') {
+        throw new Error('study: judge-answer requer `context.lessonExcerpt` (string não vazia).');
+      }
+      if (!answerJudge) {
+        return {
+          ok: false,
+          error: {
+            code: 'ANSWER_JUDGE_UNAVAILABLE',
+            message: 'study: avaliador de resposta indisponível (answerJudge não injetado).',
+          },
+        };
+      }
+      const req: JudgeAnswerRequest = {
+        ...(typeof p.lessonId === 'string' && p.lessonId.trim() ? { lessonId: p.lessonId.trim() } : {}),
+        answerText: p.answerText,
+        context: { subject: ctx.subject, lessonExcerpt: ctx.lessonExcerpt },
+      };
+      return answerJudge.judgeAnswer(req);
+    },
+  );
 
   return map;
 }

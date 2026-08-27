@@ -41,6 +41,7 @@ import * as os from 'node:os';
 
 import type {
   ChallengeInfo,
+  LessonExercise,
   ResearchProgressEvent,
   StudyFinding,
   StudyLesson,
@@ -51,9 +52,11 @@ import type {
   AuthorFn,
   ChallengeDraft,
   GenerateLessonResult,
+  LessonDomain,
   LessonProgress,
   RejectedChallenge,
 } from './lessonTypes';
+import { generateMathProblem, pickMathExercise, type MathFamily } from './mathLib';
 
 /** Caminho default de setups (aula a aula do aluno). Sobrescrevível por env/DI. */
 export function defaultSetupsDir(): string {
@@ -236,6 +239,44 @@ export interface GenerateLessonOptions {
   concept?: string;
   goal?: string;
   memory?: { whatWorked?: string[]; whatDidntWork?: string[]; proficiency?: Record<string, string> };
+  /**
+   * ADITIVO (onda3-respostas): domínio da aula vindo da UI. Ausente ⇒
+   * `resolveLessonDomain(subject)` (heurística por palavra-chave no assunto,
+   * default 'programming'). 'math' ativa o caminho de matemática: exercício
+   * gerado/conferido pela mathLib ANTES da autoria, sem desafio de código TDD.
+   */
+  domain?: LessonDomain;
+}
+
+/**
+ * Resolução de domínio da aula (onda3-respostas): `opts.domain` explícito da UI
+ * tem precedência; senão heurística por palavra-chave no assunto (normalizado
+ * sem acentos, lowercase). Palavras-chave de matemática: matematica, algebra,
+ * geometria, aritmetica, porcentagem, fracao, equacao (e plurais).
+ * Default: 'programming'. Função pura — testada em tests/lessonOrchestrator.test.ts.
+ */
+const MATH_KEYWORDS = [
+  'matematica',
+  'matematicas',
+  'algebra',
+  'geometria',
+  'aritmetica',
+  'porcentagem',
+  'porcentagens',
+  'fracao',
+  'fracoes',
+  'equacao',
+  'equacoes',
+] as const;
+
+export function resolveLessonDomain(subject: string, explicit?: LessonDomain): LessonDomain {
+  if (explicit === 'math' || explicit === 'programming') return explicit;
+  const normalized = String(subject ?? '')
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .toLowerCase();
+  if (MATH_KEYWORDS.some((kw) => normalized.includes(kw))) return 'math';
+  return 'programming';
 }
 
 export interface ListSetupsResult {
@@ -439,9 +480,47 @@ export function createLessonOrchestrator(deps: LessonOrchestratorDeps) {
       const plan = await deps.research.plan(subject, { onProgress: opts.onResearchProgress });
       const findings = plan.findings ?? [];
 
+      // ADITIVO (onda3-respostas): resolução de domínio + exercício de
+      // matemática. O esperado é COMPUTADO pela mathLib AGORA (= conferido
+      // ANTES de gerar — regra do produto, DES-6): o LLM NUNCA inventa números
+      // para matemática; ele só recebe o prompt do exercício no contexto.
+      const domain = resolveLessonDomain(subject, opts.domain);
+      const mathExercise: LessonExercise | undefined =
+        domain === 'math'
+          ? (() => {
+              const { family, seed } = pickMathExercise(subject);
+              const problem = generateMathProblem(family, seed);
+              return {
+                kind: 'math',
+                family,
+                seed,
+                prompt: problem.prompt,
+                expectedNormalized: problem.normalized,
+              };
+            })()
+          : undefined;
+
       // 2) AUTORIA
-      emit(onProgress, { phase: 'authoring', message: 'Autorando a aula…', fraction: 0.35 });
-      const draft = await deps.author({ subject, findings, memory: opts.memory });
+      emit(onProgress, {
+        phase: 'authoring',
+        message: domain === 'math' ? 'Autorando a aula de matemática…' : 'Autorando a aula…',
+        fraction: 0.35,
+      });
+      const draft = await deps.author({
+        subject,
+        findings,
+        memory: opts.memory,
+        domain,
+        // O autor recebe o exercício SEM o esperado (não revela a resposta).
+        mathExercise: mathExercise
+          ? {
+              kind: mathExercise.kind,
+              family: mathExercise.family,
+              seed: mathExercise.seed,
+              prompt: mathExercise.prompt,
+            }
+          : undefined,
+      });
 
       // 3) MATERIALIZAÇÃO
       const slug = slugify(subject);
@@ -471,80 +550,112 @@ export function createLessonOrchestrator(deps: LessonOrchestratorDeps) {
 
       const challengeInfos: ChallengeInfo[] = [];
       const rejected: RejectedChallenge[] = [];
-      const total = draft.challenges.length;
-      for (let i = 0; i < total; i++) {
-        const challengeDraft = draft.challenges[i];
-        const label = `"${challengeDraft.title ?? challengeDraft.slug}"`;
-        emit(onProgress, {
-          phase: 'materializing',
-          message: `Materializando desafio ${i + 1}/${total}: ${label}`,
-          fraction: 0.55 + (0.2 * i) / Math.max(1, total),
-        });
-        const materialized = await materializeChallenge(
-          setup.setupRoot,
-          challengeDraft,
-          opts.difficulty,
-          opts.language,
-        );
 
-        // 4) VALIDAÇÃO
+      if (domain === 'math') {
+        // 4) VALIDAÇÃO DE MATEMÁTICA (onda3-respostas): não há código TDD para
+        // matemática pura — a verificação É a mathLib (DES-6). O exercício foi
+        // computado pela biblioteca ANTES da autoria (conferido antes de gerar);
+        // aqui RE-verificamos re-computando (family, seed): se a biblioteca não
+        // reproduzir o prompt/esperado anexado à aula, a aula é ABORTADA — um
+        // problema de matemática nunca chega ao aluno sem estar conferido.
         emit(onProgress, {
           phase: 'validating',
-          message: `Validando desafio ${i + 1}/${total}: ${label}`,
-          fraction: 0.75 + (0.2 * i) / Math.max(1, total),
+          message: 'Conferindo o exercício de matemática…',
+          fraction: 0.75,
         });
-        const v = await deps.runner.verifyChallenge(materialized.challengeDirAbs);
-
-        if (v.verdict === 'approved') {
-          // ADITIVO (onda2-research-live): subjectId quando o desafio JÁ está
-          // persistido na camada SQL (challenges→lessons→subject_id, via
-          // challenge_attempts.subject_id) — recém-materializado ainda não tem
-          // linha, então é undefined na montagem (o list-challenges resolve).
-          let subjectId: string | undefined;
-          if (deps.resolveSubjectId) {
-            try {
-              const resolved = await deps.resolveSubjectId(materialized.challengeId);
-              if (resolved) subjectId = resolved;
-            } catch {
-              subjectId = undefined; // resolução falhou ⇒ omite (nunca derruba a geração)
-            }
-          }
-          challengeInfos.push({
-            challengeId: materialized.challengeId,
-            title: challengeDraft.title,
-            language: languageOf(challengeDraft.language),
-            concept: challengeDraft.concept,
-            difficulty: opts.difficulty ?? challengeDraft.difficulty ?? 2,
-            status: 'validated',
-            verdict: v.verdict,
-            workspaceDir: materialized.challengeDirAbs,
-            statementPath: path.join(materialized.challengeDirAbs, 'README.md'),
-            ...(subjectId ? { subjectId } : {}),
+        if (!mathExercise) {
+          const msg = `generateLesson("${subject}") [math] falhou: aula de matemática sem exercício gerado pela mathLib.`;
+          emit(onProgress, { phase: 'error', message: msg });
+          throw new Error(msg);
+        }
+        // family vem do contrato (string); a mathLib valida o enum em runtime.
+        const recheck = generateMathProblem(mathExercise.family as MathFamily, mathExercise.seed);
+        if (recheck.prompt !== mathExercise.prompt || recheck.normalized !== mathExercise.expectedNormalized) {
+          const msg =
+            `generateLesson("${subject}") [math] falhou: exercício não conferido pela mathLib ` +
+            `(re-computação divergente do esperado "${mathExercise.expectedNormalized}").`;
+          emit(onProgress, { phase: 'error', message: msg });
+          throw new Error(msg);
+        }
+        // PULA verifyChallenge (sem TDD); desafios de código não existem para 'math'
+        // (o draft é validado com challenges: [] pelo autor) — challengeInfos fica [].
+      } else {
+        // 3/4) MATERIALIZAÇÃO + VALIDAÇÃO TDD — fluxo 'programming' INTACTO.
+        const total = draft.challenges.length;
+        for (let i = 0; i < total; i++) {
+          const challengeDraft = draft.challenges[i];
+          const label = `"${challengeDraft.title ?? challengeDraft.slug}"`;
+          emit(onProgress, {
+            phase: 'materializing',
+            message: `Materializando desafio ${i + 1}/${total}: ${label}`,
+            fraction: 0.55 + (0.2 * i) / Math.max(1, total),
           });
-        } else {
-          // `not_run` tem VÁRIAS origens distintas e não devemos confundi-las.
-          // O runner expõe `protocolIssue` (studyMethodRunner.verifyChallenge) para
-          // sermos factuais sobre POR QUE o veredito não aconteceu:
-          //  - 'request_unparseable': exit 10 sem envelope REQUEST parseável.
-          //  - 'apply_exhausted'     : juiz chamado, mas os 2 ciclos esgotaram/recusou.
-          //  - 'exit_setup_not_found': exit 3 (setup não encontrado pelo script).
-          //  - 'exit_resource_locked': exit 4 (recurso travado).
-          //  - undefined: caminho normal (rejected/weak) OU runner sem llmJudge.
-          const reason =
-            v.verdict === 'not_run'
-              ? v.protocolIssue === 'request_unparseable'
-                ? 'protocolo REQUEST/APPLY malformado (exit 10 sem pedido parseável)'
-                : v.protocolIssue === 'apply_exhausted'
-                  ? 'apply/esgotado (juiz não decidiu em 2 ciclos ou resposta recusada)'
-                  : v.protocolIssue === 'exit_setup_not_found'
-                    ? 'setup não encontrado pelo script (exit 3)'
-                    : v.protocolIssue === 'exit_resource_locked'
-                      ? 'recurso travado (exit 4)'
-                      : v.applyExhausted === true
-                        ? 'apply/esgotado (juiz não decidiu em 2 ciclos)'
-                        : 'juiz ausente (runner sem llmJudge); veredito not_run'
-              : v.rejections?.join(', ') || 'rejeitado na validação';
-          rejected.push({ slug: challengeDraft.slug, verdict: v.verdict, reason });
+          const materialized = await materializeChallenge(
+            setup.setupRoot,
+            challengeDraft,
+            opts.difficulty,
+            opts.language,
+          );
+
+          // 4) VALIDAÇÃO
+          emit(onProgress, {
+            phase: 'validating',
+            message: `Validando desafio ${i + 1}/${total}: ${label}`,
+            fraction: 0.75 + (0.2 * i) / Math.max(1, total),
+          });
+          const v = await deps.runner.verifyChallenge(materialized.challengeDirAbs);
+
+          if (v.verdict === 'approved') {
+            // ADITIVO (onda2-research-live): subjectId quando o desafio JÁ está
+            // persistido na camada SQL (challenges→lessons→subject_id, via
+            // challenge_attempts.subject_id) — recém-materializado ainda não tem
+            // linha, então é undefined na montagem (o list-challenges resolve).
+            let subjectId: string | undefined;
+            if (deps.resolveSubjectId) {
+              try {
+                const resolved = await deps.resolveSubjectId(materialized.challengeId);
+                if (resolved) subjectId = resolved;
+              } catch {
+                subjectId = undefined; // resolução falhou ⇒ omite (nunca derruba a geração)
+              }
+            }
+            challengeInfos.push({
+              challengeId: materialized.challengeId,
+              title: challengeDraft.title,
+              language: languageOf(challengeDraft.language),
+              concept: challengeDraft.concept,
+              difficulty: opts.difficulty ?? challengeDraft.difficulty ?? 2,
+              status: 'validated',
+              verdict: v.verdict,
+              workspaceDir: materialized.challengeDirAbs,
+              statementPath: path.join(materialized.challengeDirAbs, 'README.md'),
+              ...(subjectId ? { subjectId } : {}),
+            });
+          } else {
+            // `not_run` tem VÁRIAS origens distintas e não devemos confundi-las.
+            // O runner expõe `protocolIssue` (studyMethodRunner.verifyChallenge) para
+            // sermos factuais sobre POR QUE o veredito não aconteceu:
+            //  - 'request_unparseable': exit 10 sem envelope REQUEST parseável.
+            //  - 'apply_exhausted'     : juiz chamado, mas os 2 ciclos esgotaram/recusou.
+            //  - 'exit_setup_not_found': exit 3 (setup não encontrado pelo script).
+            //  - 'exit_resource_locked': exit 4 (recurso travado).
+            //  - undefined: caminho normal (rejected/weak) OU runner sem llmJudge.
+            const reason =
+              v.verdict === 'not_run'
+                ? v.protocolIssue === 'request_unparseable'
+                  ? 'protocolo REQUEST/APPLY malformado (exit 10 sem pedido parseável)'
+                  : v.protocolIssue === 'apply_exhausted'
+                    ? 'apply/esgotado (juiz não decidiu em 2 ciclos ou resposta recusada)'
+                    : v.protocolIssue === 'exit_setup_not_found'
+                      ? 'setup não encontrado pelo script (exit 3)'
+                      : v.protocolIssue === 'exit_resource_locked'
+                        ? 'recurso travado (exit 4)'
+                        : v.applyExhausted === true
+                          ? 'apply/esgotado (juiz não decidiu em 2 ciclos)'
+                          : 'juiz ausente (runner sem llmJudge); veredito not_run'
+                : v.rejections?.join(', ') || 'rejeitado na validação';
+            rejected.push({ slug: challengeDraft.slug, verdict: v.verdict, reason });
+          }
         }
       }
 
@@ -555,9 +666,16 @@ export function createLessonOrchestrator(deps: LessonOrchestratorDeps) {
         findings,
         challenges: challengeInfos,
         createdAt: new Date().toISOString(),
+        // ADITIVO (onda3-respostas): exercício de matemática conferido pela
+        // mathLib (esperado computado na geração — DES-6). Só para 'math'.
+        ...(mathExercise ? { exercise: mathExercise } : {}),
       };
 
-      emit(onProgress, { phase: 'done', message: 'Aula pronta.', fraction: 1 });
+      emit(onProgress, {
+        phase: 'done',
+        message: domain === 'math' ? 'Aula de matemática pronta.' : 'Aula pronta.',
+        fraction: 1,
+      });
       return { lesson, rejected };
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
