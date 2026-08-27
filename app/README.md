@@ -92,6 +92,38 @@ adversarial. O relatório orquestrado (ondas, commits, gates, revisões) está e
   Testes: `tests/theme.test.ts` (valores + contraste) e `tests/e2e/e2e-theme.spec.ts` (asserts
   de cor dark/light reais).
 
+## Rodada 9 (ondas R9-1..R9-6) — resumo
+
+A **nona rodada** expandiu a trilha **Node.js do Zero** de 8 para **18 módulos**
+(118 aulas) — do zero absoluto até o nível **especialista** — e entregou uma
+**UX de aula sem LLM**: a teoria é apresentada de forma **determinística**
+(direto do arquivo, seção por seção, sem loading), o LLM fica **só** para
+dúvidas (`answer`) e para gerar novo desafio, e sem chave a falha é rápida
+(erro estruturado `TUTOR_UNAVAILABLE`, nunca spinner infinito). Relatório
+completo em [`docs/relatorio-rodada9.md`](../docs/relatorio-rodada9.md):
+
+- **UX: teoria pronta + checks por teste (R9-1)** — aula em chat apresenta o
+  markdown do `lesson.json` sem LLM; o veredito do desafio mostra a **lista de
+  checks individuais** (✓/✗ por teste, com nome) e a razão **"N de M testes
+  passaram"** — aprovação não é tudo-ou-nada; "Gerar novo desafio" aparece em
+  qualquer não-aprovação total e o confete só sai com `passed=true`.
+- **Desafio de MÓDULO (R9-2)** — no fim de cada módulo, um desafio
+  **multi-arquivo** (`files[]` com 2–3 arquivos que se importam entre si) e
+  **elaborado** (statement longo, cenário do mundo real, 4–6 testes): card
+  "Desafio do módulo" na trilha, editor com **abas por arquivo**, submit envia
+  todos os arquivos; por ser **autoral**, a regeneração por LLM fica **oculta**
+  para o target `module`.
+- **Conteúdo (R9-3..R9-5)** — 10 módulos novos: linguagem em profundidade
+  (arrays-profundas 14, objetos-profundos 8, poo 11, funcoes-avancadas 8,
+  assincronismo-avancado 6) e backend em profundidade (nodejs-avancado 8,
+  http-avancado 6, banco-de-dados-avancado 5, arquitetura-e-padroes 8,
+  especialista 8); + desafios de módulo dos 8 módulos originais. Trilha total:
+  **18 módulos, 118 aulas, 137 desafios** (118 de aula + 18 de módulo +
+  proficiência), todos verificados por execução (`track:validate` **136/136
+  "verificado ✓"** + proficiência ok).
+- **Gate** — suíte unitária + integração: **1688 testes — 1688 pass / 0 fail**;
+  `npm run lint` / `build` / `test:e2e` verdes.
+
 ## Rodada 8 (ondas R8-1..R8-6) — resumo
 
 A **oitava rodada** fez o pivô de produto: **o aluno NÃO GERA mais aula**. As
