@@ -42,11 +42,46 @@ solução.
 
 ### 1.3 Aula (aba Aula)
 
-- Digite um **assunto** (ex.: "closures em JavaScript") e clique em gerar.
-- Progresso por fases (barra/mensagens): `research` → `authoring` → `materializing` →
-  `validating`.
-- O resultado é um arquivo markdown da aula + uma lista de **desafios aprovados**.
-- Clique num desafio para abrir a aba **Desafio** com ele pré-selecionado.
+- Digite um **assunto** (ex.: "closures em JavaScript") e clique em gerar. O
+  payload aceita o assunto como string **ou** objeto `{ subject, language?, goal?,
+  domain? }` — o `domain` explícito (`'math'` | `'programming'`) vem da Home;
+  ausente, o backend resolve por heurística (default `'programming'`).
+- Progresso por fases (barra/mensagens): `research` → `authoring` →
+  `materializing` → `validating`. Durante a fase `research`, um **checklist de
+  pesquisa ao vivo** (canal `study:research-progress`) mostra as sub-perguntas e
+  queries por rodada (spinner → ✓ com nº de resultados / ✗ com erro); sem
+  chave Brave ou com chave rejeitada a geração é **abortada** com mensagem
+  clara. O checklist é aditivo: sem o canal (backend antigo/E2E), a barra de
+  fases continua soberana.
+- O resultado é a aula curta (markdown) + uma lista de **desafios aprovados**
+  (programação) ou um **exercício de matemática** (domínio math). Clique num
+  desafio para abrir a aba **Desafio** com ele pré-selecionado. Com
+  `pendingLessonId` (vindo da aba **Trilha**), a aula persistida é **aberta por
+  id** (`study:get-lesson-by-id`) em vez de gerada.
+
+**Resposta digitada e veredito.** Toda aula tem um input de resposta. O ramo é
+decidido pela aula atual:
+
+- **Matemática** (`exercise.kind === 'math'`) — verificação **por execução, sem
+  LLM** (`study:check-math-answer`): o main **re-computa** o esperado da
+  `mathLib` a partir de `(family, seed)` e compara com o que você digitou.
+  Correto → veredito verde e aula marcada concluída; errado → mostra o
+  **esperado só após a 1ª tentativa errada**; malformado (não é número
+  reconhecível) → mensagem de formato. Cada resposta registra uma tentativa.
+- **Interpretação** (sem exercício) — juiz com LLM (`study:judge-answer`):
+  DeepSeek primeiro, fallback para o modelo local; devolve veredito
+  `correct`/`partial`/`incorrect` + feedback pt-BR específico (nunca elogio
+  vazio). `ok:false` é erro de serviço — **nunca** um veredito inventado.
+
+**Regra de avanço.** O veredito é o ponto terminal: `correct` marca a aula
+concluída (local + persistência, veredito permanece visível); `partial`/
+`incorrect` deixam veredito + feedback visíveis com o escape **"Avançar mesmo
+assim"**; o avanço para a próxima aula é **sempre do botão primário**
+("Continuar" / "Gerar nova aula"). A `LessonView` publica o estado da sessão
+(assunto/fase/status) no `SessionStateProvider` — o quadro do shell e a Home
+leem; uma guarda de identidade (token por processo) descarta continuamentos de
+gerações antigas. Contrato completo:
+[`docs/14-respostas-nunca-repetir.md`](14-respostas-nunca-repetir.md).
 
 ### 1.4 Desafio (aba Desafio)
 
@@ -79,6 +114,30 @@ O painel de feedback informa qual provedor executou a última avaliação (badge
 
 Botão **Abortar** interrompe a execução do pi (guarda o `sessionId` no `pi:abort`); não se
 aplica ao bloco único do modelo local.
+
+**Estrelas e cronômetro (requisito do dono, onda R7-1).** Cada desafio começa com
+**3 estrelas** e um cronômetro regressivo; o limite é derivado da dificuldade —
+`T = 90s + difficulty × 60s` (dificuldade 1..5 → 2min30s a 6min30s; sem
+dificuldade exposta, fallback de 5 min). Causas de perda (cada uma no máximo 1×,
+saldo nunca abaixo de 0): a janela perdeu o foco (`blur`/`visibilitychange`),
+o tempo esgotou antes de concluir, o teste determinístico falhou, e o
+**decaimento por velocidade** — ≥ 60% do limite custa 1 estrela, ≥ 85% custa
+outra. Passar nos testes dispara uma **rajada curta de confete** que respeita
+`prefers-reduced-motion` (desliga a animação) e anuncia o resultado em
+`role="status"`; **sem** "Parabéns!" ritualizado (o feedback específico do
+provedor é o que vale). Lógica pura em `src/lib/challengeStars.ts` /
+`src/lib/confetti.ts`.
+
+**Nunca-repetir.** Eventos terminais do desafio marcam **uma tentativa** via
+`study:mark-challenge-attempt`: passou nos testes → `passed` (com estrelas e
+duração), tempo esgotado → `timeout`, trocar de desafio sem concluir →
+`abandoned` (captura antes da troca). O primeiro teste falho **nunca** marca. O
+registro é **otimista** (a UI marca antes do invoke): uma falha transitória de
+IPC pode perder um registro na sessão e o desafio reaparece uma vez — limitação
+documentada. Após cada mark, a lista é re-buscada: **desafios tentados somem
+da seleção** (filtro por slug no `list-challenges`; matemática usa o slug
+sintético `math:<subjectSlug>:<family>:<seed>`). Trocar de desafio sem concluir
+conta como `abandoned` e o desafio também some da lista — é o design.
 
 ### 1.5 Verificação de desafio — regras rígidas
 
@@ -150,7 +209,15 @@ por todos os grupos específicos. O contrato de canais/tipos é **único e conge
 
 | Caminho (UI) | Canal (`study:*`) | Handler devolve | Observação |
 |---|---|---|---|
-| `listChallenges({setupRoot?})` | `study:list-challenges` | `ChallengeInfo[]` (plano) | usa `lastSetupRoot` se `setupRoot` ausente |
+| `listChallenges({setupRoot?})` | `study:list-challenges` | `ChallengeInfo[]` (plano) | usa `lastSetupRoot` se `setupRoot` ausente; **exclui desafios já tentados** (nunca-repetir, por slug) |
+| `generateLesson(subject \| {subject,language?,goal?,domain?})` | `study:generate-lesson` | `{ lesson, rejected, lessonId?, subjectId? }` | payload objeto (onda 3/5); + push `lesson-progress` (fases) e `research-progress` (checklist ao vivo) |
+| `listTopics()` | `study:list-topics` | `SubjectSummary[]` | matérias persistidas com `domain` e contagens (Home/Trilha) |
+| `listLessonsBySubject({subjectSlug})` | `study:list-lessons-by-subject` | `LessonSummary[]` | aula resumida por matéria |
+| `getLessonById({lessonId})` | `study:get-lesson-by-id` | `GetLessonByIdResult` | `{ lesson, exercise, domain, subjectSlug, challenge }` — reabre lição persistida (Trilha → Aula) |
+| `markChallengeAttempt({subjectId?,subjectSlug?,challengeId,verdict,stars?,durationMs?})` | `study:mark-challenge-attempt` | `MarkChallengeAttemptResult` | uma tentativa por evento terminal; `verdict` `passed\|failed\|timeout\|abandoned`; subject resolvido ou upsert sob demanda |
+| `checkMathAnswer({family,seed,answerText})` | `study:check-math-answer` | `MathAnswerCheckResult` | **sem LLM**: main re-computa o esperado da mathLib e compara |
+| `judgeAnswer({lessonId?,answerText,context})` | `study:judge-answer` | `JudgeAnswerOutcome` | LLM (deepseek → modelo local); `ok:false` = erro de serviço |
+| `onResearchProgress(cb)` | push `study:research-progress` | `ResearchProgressEvent` | eventos `research:*` (plan/query-start/query-done/round-*/done); `errorKind` `brave-missing`/`brave-key-invalid` aborta a geração |
 | `testAnswer({challengeDir})` | `study:test-answer` | `TestAnswerResult` | + evento `test-answer-event` com `phase: started\|done` |
 | `listWorkspaceFiles({workspaceDir})` | `study:list-workspace-files` | `WorkspaceFile[]` (plano) | restrito ao `workspaceDir` (contenção de path) |
 | `readWorkspaceFile({workspaceDir,path})` | `study:read-workspace-file` | `string` (conteúdo) | |
@@ -388,6 +455,11 @@ Não usamos `--headless` (modo não confirmado para `_electron`). Detalhes em
 | Onda 11 | **Tema claro+escuro com toggle** (`ThemeToggleButton`, `defaultMode=system` segue SO, localStorage `theme-mode`, anti-flash, primary `#1565c0` light) + **Dracula** no editor e terminal (`draculaTheme.ts`, SGR truecolor no xterm) | `src/theme.ts`, `src/main.tsx`, `src/lib/draculaTheme.ts`, `src/components/theme/*` |
 | Onda 12 | **Tutorial/onboarding** portado do Ondokai (OnboardingHost, overlay+modal, steps, storage localStorage, posicionamento, i18n `tutorial.*`; host montado na Onda 13) | `src/features/onboarding/*` |
 | Onda 13 | **Janela oculta/não-focável no E2E** (`STUDY_METHOD_WINDOW_VISIBLE='0'`) + monta `OnboardingHost` (isReady+activeView) + +3 specs E2E (tema/onboarding/dracula) | `electron/main/index.ts`, `src/App.tsx`, `tests/e2e/*` |
+| Onda R7-1 | **3 estrelas + cronômetro no desafio** (perda por blur/timeout/erro/decaimento por velocidade; `T = 90s + difficulty×60s`, fallback 300s) + **confete em PASS** (reduced-motion, `role="status"`, sem "Parabéns!") + **schema v2** (`subjects.domain`, `challenge_attempts`) com migração crash-safe | `src/lib/challengeStars.ts`, `src/lib/confetti.ts`, `electron/main/db/schema.ts` |
+| Onda R7-2 | **Pesquisa Brave ao vivo por query** (`study:research-progress`: plan/query-*/round-*/done; planner LLM com fallback heurístico; cap 2 rodadas; chave ausente/inválida aborta) + **aba Trilha** (Iniciante 1–2 / Intermediário 3 / Avançado 4–5, done/current/pending, abre lição por id) | `researchPlanner.ts`, `src/views/RoadmapView/`, `src/lib/roadmap.ts`, `src/lib/levels.ts` |
+| Onda R7-3 | **Resposta digitada**: ramo math (`study:check-math-answer` SEM LLM — main re-computa da mathLib; esperado só após 1ª tentativa errada; 4 famílias, seed determinístico por tentativa) + ramo interpretação (`study:judge-answer` LLM deepseek→local; correct/partial/incorrect; `ok:false` = erro de serviço) + **checklist de pesquisa na UI** | `mathLib.ts`, `answerJudge.ts`, `src/lib/answerFlow.ts`, `src/lib/researchProgress.ts`, `ResearchChecklist.tsx` |
+| Onda R7-4 | **Persistência + nunca-repetir**: matérias/lições/tentativas no SQLite (schema **v3** `exercise_json`); `study:mark-challenge-attempt` (verdict/stars/duração; slug ou `math:<subjectSlug>:<family>:<seed>`); `list-challenges` filtra tentados; **Home por domínio** (seções Programação/Matemática + diálogo de troca com aula em andamento) | `electron/main/db/repo.ts`, `study-handlers.ts`, `lessonOrchestrator.ts`, `src/lib/homeSetup.ts`, `src/lib/pendingSubject.ts` |
+| Onda R7-5 | **Aula por id + sessão global**: `study:get-lesson-by-id` com `subjectSlug`/`challenge` (reabertura da Trilha); `publishSession` da LessonView no shell/Home; guarda de identidade de geração (token por processo) | `study-handlers.ts`, `src/lib/sessionState.ts`, `src/lib/lessonGenerationGuard.ts`, `LessonView` |
 
 **Contratos congelados (não editar sem atualizar juntos):** `shared/ipc-contract.ts`,
 `eletron/preload/*` (FROZEN), `package.json`/lock, `.npmrc`, `electron.vite.config.ts`.

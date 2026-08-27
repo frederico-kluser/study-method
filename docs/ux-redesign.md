@@ -377,9 +377,10 @@ estudo. `[INFERÊNCIA — sem evidência de eficácia verificada]`
 
 | Tela | Layout novo |
 |---|---|
-| **Início** | Coluna única ≤72ch. Continua sendo a tela guiada que já é (o CTA único e contextual funciona) — ganha o quadro de progresso da trilha atual e cartões de assunto com resposta espacial ao hover/press. |
-| **Aula** | Duas colunas: prosa ≤72ch à esquerda (níveis 0/1, `text-align: left`), trilha de fases + desafios à direita. Stepper de fase com *pop* espacial a cada fase concluída. |
-| **Desafio** | **Split-pane real**: enunciado ⟷ editor, com divisória arrastável e razão persistida. Dock inferior com abas Saída / Testes / Feedback. Fim da pilha de três `Paper`. |
+| **Início** | Coluna única ≤72ch. Continua sendo a tela guiada que já é (o CTA único e contextual funciona) — ganha o quadro de progresso da trilha atual e cartões de assunto com resposta espacial ao hover/press. Com matérias persistidas, a Home mostra **seções por domínio (Programação/Matemática)** com um cartão por matéria (nome + "x de y aulas"); clicar num cartão vai para a aba Aula com a matéria pré-selecionada. Se houver aula em andamento de **outra** matéria, o clique abre um **diálogo de aviso** ("não dá para trocar de matéria no meio da aula — a avaliação da aula atual é feita pela LLM") com as opções "Ir para a aula" / "Continuar na matéria atual". Estado vazio (nada persistido) mantém os chips de sugestão como onboarding. |
+| **Aula** | Duas colunas: prosa ≤72ch à esquerda (níveis 0/1, `text-align: left`), trilha de fases + desafios à direita. Stepper de fase com *pop* espacial a cada fase concluída. A fase de pesquisa ganha o **checklist de pesquisa ao vivo** (sub-perguntas/queries por rodada). A aula curta termina num **input de resposta** com veredito visível (correto/parcial/incorreto + feedback) e o avanço no botão primário — ver §8. |
+| **Trilha** | Aba dedicada, **uma matéria por vez** (chips no topo; inicial = matéria da sessão). Roadmap de seções por nível — **Iniciante (dificuldade 1–2) → Intermediário (3) → Avançado (4–5)** — colapsáveis, cada aula um nó `done` (✓) / `current` (a primeira pendente, destaque de acento) / `pending`. Seções vazias não aparecem. Clicar num nó abre a **lição persistida por id** na aba Aula. Somente-leitura: não publica no quadro de sessão. |
+| **Desafio** | **Split-pane real**: enunciado ⟷ editor, com divisória arrastável e razão persistida. Dock inferior com abas Saída / Testes / Feedback. Fim da pilha de três `Paper`. O cabeçalho do desafio ganha **estrelas (0–3) + cronômetro** (§8.3). |
 | **Configurações** | Lista de seções em coluna ≤72ch; a chave de API deixa de ser um formulário nu e vira cartão de estado com verdict. |
 
 ### 7.4 Editor e terminal seguem o tema
@@ -511,6 +512,29 @@ da resposta ao ato, não num prêmio pendurado nele.
 > está resolvido** (Cerasoli et al. 2014, k=183, N=212.468, ainda descreve o campo como
 > "the debate"). A célula *performance-contingent* (d=−0,28) é o ponto exato de
 > discordância frontal entre os campos — não a cite como pacificada.
+
+### 8.3 Estrelas e cronômetro no desafio — requisito do dono (implementado na onda R7)
+
+Requisito **explícito do dono do produto**, implementado em `src/lib/challengeStars.ts`
+(máquina pura) + `src/lib/confetti.ts` (rajada) + `ChallengeView`. Não é
+gamificação nova: a tabela de decisão acima proíbe XP/pontos/streak/leaderboard —
+as estrelas são o **verdict por desafio quantificado** ("ligado à competência
+específica", linha *Fazer*), não uma moeda acumulável.
+
+| Regra do dono | Detalhe |
+|---|---|
+| Estado inicial | **3 estrelas** por desafio (reset ao trocar de desafio) |
+| Causas de perda (cada uma no máximo 1×, saldo nunca < 0) | janela perdeu o foco (`blur`/`visibilitychange`); tempo esgotou antes de concluir; teste determinístico falhou; **decaimento por velocidade** — `elapsed ≥ 60%` do limite custa 1, `≥ 85%` custa outra |
+| Limite de tempo | `T = 90s + difficulty × 60s` (dificuldade 1..5 → 2min30s a 6min30s); sem `difficulty` exposta, **T = 300s** (fallback documentado em `timeLimitForDifficulty`) |
+| Confete em PASS | rajada curta causada por estado real (teste verde); **sem "Parabéns!" ritualizado** — o feedback específico do provedor é o anúncio (ver decisão d = −0,40 acima) |
+| Perda anunciada | cada causa de perda anuncia em pt-BR via `role="status"` (a perda por teste falho é coberta pelo anúncio do resultado do teste) |
+
+**Conformidade com o contrato de a11y do §8.1 (mantido intacto):** a rajada
+dura < 5 s (SC 2.2.2), partículas com fade contínuo sem strobe (SC 2.3.1),
+`prefers-reduced-motion: reduce` desliga a animação e o resultado nunca depende
+do movimento (SC 2.3.3), o anúncio usa `role="status"` presente no DOM antes da
+atualização (SC 4.1.3) e som fica opt-in (omitido). O timing do veredito/estrelas
+é o do §8: o painel dá o *snap* espacial e o anúncio acontece sem mover foco.
 
 ---
 

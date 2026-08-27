@@ -35,8 +35,8 @@ npm run test:e2e:real  # Playwright `_electron` REAL — exige DEEPSEEK_API_KEY/
 ```
 
 > Os gates desta app (verdes antes de considerar concluído) são: `bash tools/t.sh tests`
-> (**729 testes unitários: 728 pass / 0 fail** / 1 skipped) · `npm run lint` · `npm run build`
-> · `npm run test:e2e` (11 specs mock, **15 testes verdes**; as 3 specs reais `real-*` —
+> (**1563 testes unitários: 1562 pass / 0 fail** / 1 skipped) · `npm run lint` · `npm run build`
+> · `npm run test:e2e` (13 specs mock, **19 testes verdes**; as 3 specs reais `real-*` —
 > real-lesson, real-didactics, real-search — ficam `skipped` sem as chaves e rodam via
 > `npm run test:e2e:real` com `DEEPSEEK_API_KEY`/`BRAVE_API_KEY`).
 
@@ -92,19 +92,88 @@ adversarial. O relatório orquestrado (ondas, commits, gates, revisões) está e
   Testes: `tests/theme.test.ts` (valores + contraste) e `tests/e2e/e2e-theme.spec.ts` (asserts
   de cor dark/light reais).
 
+## Rodada 7 (ondas R7-1..R7-5) — resumo
+
+A **sétima rodada** fechou o ciclo pedagógico do produto: avaliar a **resposta
+digitada** (matemática por execução, interpretação por LLM), **nunca repetir
+desafios tentados** e mostrar **progresso por matéria** (Home por domínio +
+Trilha), com **persistência** de matérias/lições/tentativas no SQLite (schema
+v3). O relatório orquestrado está em
+[`docs/relatorio-rodada7.md`](../docs/relatorio-rodada7.md); o contrato das
+features em [`docs/14-respostas-nunca-repetir.md`](../docs/14-respostas-nunca-repetir.md):
+
+- **Estrelas + cronômetro no desafio (R7-1)** — 3 estrelas iniciais; perda por
+  blur/timeout/erro/decaimento por velocidade (`T = 90s + difficulty×60s`,
+  fallback 300s); confete em PASS respeitando `prefers-reduced-motion` com
+  anúncio `role="status"`; sem "Parabéns!" ritualizado
+  (`src/lib/challengeStars.ts` + `src/lib/confetti.ts`).
+- **Pesquisa Brave ao vivo (R7-2)** — canal `study:research-progress` com
+  eventos por query/rodada durante a geração; planner LLM com fallback
+  heurístico; rodadas cap 2; chave ausente/inválida **aborta** a geração com
+  mensagem clara; **checklist na UI** com deltas por rodada e término garantido.
+- **Trilha (R7-2)** — aba dedicada com seções Iniciante (1–2) / Intermediário
+  (3) / Avançado (4–5), estados done/current/pending; clicar num nó **abre a
+  lição persistida por id** (`get-lesson-by-id` com `subjectSlug`/`challenge`).
+- **Resposta digitada (R7-3)** — ramo matemática (`check-math-answer`, **sem
+  LLM**: o main re-computa o esperado da `mathLib`; esperado exibido só após a
+  1ª tentativa errada; 4 famílias, seed determinístico — errou, o próximo
+  problema é outro) e ramo interpretação (`judge-answer` LLM deepseek→local com
+  veredito `correct`/`partial`/`incorrect`; `ok:false` = erro de serviço, nunca
+  veredito inventado). Avanço por **veredito terminal** + botão primário
+  ("Avançar mesmo assim" para parcial/incorreto).
+- **Persistência + nunca-repetir (R7-4)** — matérias/lições/tentativas no
+  SQLite (schema v3 com `exercise_json`, migração v1→v3 crash-safe sem perda);
+  `mark-challenge-attempt` (verdict/stars/duração; programação por slug, math
+  por slug sintético `math:<subjectSlug>:<family>:<seed>`); `list-challenges`
+  filtra desafios tentados; trocar de desafio sem concluir = `abandoned`
+  (design); mark **otimista** (falha transitória de IPC pode perder um registro
+  na sessão — limitação documentada).
+- **Home por domínio (R7-4)** — seções Programação/Matemática com matérias
+  escolhidas + **diálogo de aviso** ao trocar de matéria com aula em andamento
+  (a avaliação da aula atual é feita pela LLM); `publishSession` da LessonView
+  alimenta o quadro de sessão do shell e a Home (com guarda de identidade de
+  geração por token).
+
 ## Fluxo principal (produto)
 
-1. **Configurações** (aba Settings): cadastre as chaves de API e, opcionalmente, baixe um
+1. **Home** (aba Início): com matérias persistidas, mostra **seções por domínio**
+   — Programação e Matemática — com um cartão por matéria (nome + "x de y aulas").
+   Clicar numa matéria vai para a aba Aula com ela pré-selecionada; se houver
+   **aula em andamento de outra matéria**, um **diálogo de aviso** pergunta antes
+   de trocar ("não dá para trocar de matéria no meio da aula — a avaliação da
+   aula atual é feita pela LLM"). Sem matérias, a Home guiada (3 passos + chips de
+   sugestão) é o onboarding.
+2. **Configurações** (aba Settings): cadastre as chaves de API e, opcionalmente, baixe um
    modelo **LLM local**.
-2. **Aula** (aba Aula): digite um **assunto** → o app pesquisa (Brave), autora a aula
-   (DeepSeek), materializa um `setup` e **valida os desafios** antes de mostrá-los.
-3. **Desafio** (aba Desafio): edite o stub no editor (CodeMirror), salve (Ctrl+S ou ⌘S),
+3. **Aula** (aba Aula): digite um **assunto** → o app pesquisa (Brave, com
+   **checklist de pesquisa ao vivo** por query/rodada — chave ausente/inválida
+   aborta a geração), autora a aula (DeepSeek), materializa um `setup` e
+   **valida os desafios** antes de mostrá-los (domínio math: gera um exercício de
+   matemática conferido pela `mathLib`, sem desafio de código TDD).
+4. **Resposta digitada**: cada aula termina num input de resposta com **veredito**:
+   - **Matemática** — verificação **por execução, sem LLM** (`check-math-answer`):
+     o main re-computa o esperado da `mathLib` e compara; o esperado só aparece
+     após a 1ª tentativa errada; errou, o próximo problema é outro (seed
+     determinístico por tentativa).
+   - **Interpretação** — juiz LLM (`judge-answer`, DeepSeek → modelo local):
+     veredito `correct`/`partial`/`incorrect` + feedback pt-BR. `correct` conclui
+     a aula; `partial`/`incorrect` deixam veredito visível com "Avançar mesmo
+     assim". O avanço é sempre do botão primário.
+5. **Desafio** (aba Desafio): edite o stub no editor (CodeMirror), salve (Ctrl+S ou ⌘S),
    e clique **Testar resposta**.
    - Fase **determinística**: rodam os testes do desafio no workspace (resultado PASS/FAIL,
      contagem de testes, saída no terminal).
    - Fase **pi coding agent** (DeepSeek): o app monta um prompt com o código + saída dos
      testes e envia ao `pi` para um **feedback** revisto por LLM, com streaming
      (texto/raciocínio/ferramentas) em painel colapsável.
+   - **3 estrelas + cronômetro** por desafio (limite `90s + difficulty×60s`;
+     perda por foco/tempo/erro/demora) e **confete** ao passar — sem "Parabéns!"
+     ritualizado, anúncio em `role="status"` respeitando reduced-motion.
+   - **Nunca-repetir**: eventos terminais marcam a tentativa e **desafios tentados
+     somem da lista** (trocar sem concluir conta como `abandoned`).
+6. **Trilha** (aba Trilha): roadmap da matéria em seções **Iniciante (1–2) /
+   Intermediário (3) / Avançado (4–5)**, com nós `done`/`current`/`pending`;
+   clicar num nó **abre a lição persistida por id** na aba Aula.
 
 ## Onde estão as chaves
 
@@ -302,8 +371,9 @@ A fixture `tests/e2e/helpers.ts` injeta `STUDY_METHOD_WINDOW_VISIBLE=0`, então 
 app abre **oculto e não-focável** durante a suíte — os testes **não sobrepõem o
 seu desktop nem roubam o foco** (o main respeita a env na criação da janela;
 env ausente ⇒ janela visível/focável, comportamento normal). As **duas formas
-acima rodam as mesmas 11 specs mock = 15 testes** (`e2e-gate` 2, `e2e-onboarding` 2,
-`more-flows` 3, demais 1; o subconjunto `real-*` fica `skipped` sem chaves reais); não usamos
+acima rodam as mesmas 13 specs mock = 19 testes** (`e2e-gate` 2, `e2e-onboarding` 2,
+`more-flows` 3, `e2e-fonts` 2, `e2e-theme` 2, demais 1; o subconjunto `real-*` fica
+`skipped` sem chaves reais); não usamos
 `--headless` (modo não confirmado para `_electron`). A spec `more-flows` cobre fluxos
 transversais: idioma+tema (pt→en→pt, claro→escuro→system persistindo juntos), **Quick Start
 completo (6 passos → `completed`)** e **persistência do tutorial entre reloads**.
@@ -370,14 +440,17 @@ app/
 │  └─ preload/api-schema.ts    createExposedApi (puro) + tipagem ApiSchema
 ├─ shared/ipc-contract.ts      CONTRATO único de canais e tipos (congelado)
 ├─ src/                        renderer React
-│  ├─ views/                   Settings / Aula (LessonView) / Desafio (ChallengeView)
+│  ├─ views/                   Home (por domínio) / Aula (LessonView) / Desafio
+│  │                           (ChallengeView) / Trilha (RoadmapView) / Settings
 │  ├─ features/onboarding/     OnboardingHost (tutorial interativo) + overlay/modal/steps
 │  ├─ components/  editor, terminal (xterm), CodeMirror, voice (MicButton/SpeakButton),
 │  │               theme (ThemeToggleButton + themeModeState)
 │  └─ lib/                     lógica pura (incl. codeTheme.ts, a paleta de código
-│                              bi-polar que editor e terminal compartilham)
+│                              bi-polar que editor e terminal compartilham,
+│                              challengeStars.ts, researchProgress.ts, roadmap.ts,
+│                              sessionState.ts, lessonGenerationGuard.ts)
 │                              + apiBridge (porta única para window.api)
-└─ tests/                      ~720+ testes (node:test, sem jsdom) + tests/e2e (Playwright)
+└─ tests/                      1563 testes (node:test, sem jsdom) + tests/e2e (Playwright)
 ```
 
 Três alvos de build (electron-vite): `main` (inclui os processos `llm-engine` e `asr-engine`), `preload` e
