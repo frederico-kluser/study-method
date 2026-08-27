@@ -9,13 +9,17 @@ import assert from 'node:assert/strict';
 import {
   __resetPendingSubjectForTests,
   clearPendingDomain,
+  clearPendingLessonId,
   clearPendingSubject,
   consumePendingSubject,
   drainPendingDomain,
+  drainPendingLessonId,
   drainPendingSubject,
   peekPendingDomain,
+  peekPendingLessonId,
   peekPendingSubject,
   setPendingDomain,
+  setPendingLessonId,
   setPendingSubject,
 } from '../src/lib/pendingSubject';
 
@@ -125,5 +129,61 @@ describe('pendingDomain — Home → payload do generate-lesson (onda 5)', () =>
     assert.equal(drainPendingSubject(), 'Grafos');
     assert.equal(peekPendingDomain(), null);
     assert.equal(peekPendingSubject(), null);
+  });
+});
+
+// ─── pendingLessonId (onda 5 — Trilha → Aula por id) ──────────────────────
+
+describe('pendingLessonId — Trilha → Aula (onda 5)', () => {
+  it('começa vazio (peek/drain = null)', () => {
+    assert.equal(peekPendingLessonId(), null);
+    assert.equal(drainPendingLessonId(), null);
+  });
+
+  it('set → drain devolve o id e consome (one-shot)', () => {
+    setPendingLessonId('lesson-abc');
+    assert.equal(peekPendingLessonId(), 'lesson-abc');
+    assert.equal(drainPendingLessonId(), 'lesson-abc');
+    assert.equal(drainPendingLessonId(), null, 'dado já foi consumido');
+  });
+
+  it('set com brancos só é consumido se houver id (trim)', () => {
+    setPendingLessonId('   ');
+    assert.equal(peekPendingLessonId(), null);
+    setPendingLessonId('  lesson-xyz  ');
+    assert.equal(drainPendingLessonId(), 'lesson-xyz');
+  });
+
+  it('sempre o último set vence', () => {
+    setPendingLessonId('lesson-1');
+    setPendingLessonId('lesson-2');
+    assert.equal(drainPendingLessonId(), 'lesson-2');
+  });
+
+  it('clear zera sem devolver', () => {
+    setPendingLessonId('lesson-1');
+    clearPendingLessonId();
+    assert.equal(peekPendingLessonId(), null);
+  });
+
+  it('é independente de subject/domain (mesma navegação grava os TRÊS)', () => {
+    setPendingSubject('Filas em C');
+    setPendingDomain('programming');
+    setPendingLessonId('lesson-abc');
+    // A LessonView drena os TRÊS na montagem — a ordem não pode interferir.
+    assert.equal(drainPendingLessonId(), 'lesson-abc');
+    assert.equal(drainPendingSubject(), 'Filas em C');
+    assert.equal(drainPendingDomain(), 'programming');
+    assert.equal(peekPendingLessonId(), null);
+  });
+
+  it('__reset limpa subject, domain E lessonId juntos', () => {
+    setPendingSubject('Grafos');
+    setPendingDomain('math');
+    setPendingLessonId('lesson-abc');
+    __resetPendingSubjectForTests();
+    assert.equal(peekPendingSubject(), null);
+    assert.equal(peekPendingDomain(), null);
+    assert.equal(peekPendingLessonId(), null);
   });
 });

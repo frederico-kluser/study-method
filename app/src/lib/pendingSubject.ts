@@ -23,6 +23,12 @@
  * Os DOIS pendentes são gravados juntos pela Home (setPendingSubject +
  * setPendingDomain) e consumidos como one-shot independentes.
  *
+ * ONDA 5 (Trilha → Aula por id): o módulo ganha o TERCEIRO gêmeo
+ * `pendingLessonId` — a Trilha grava o id da lição persistida ao clicar num nó
+ * (RoadmapView.openLesson) e a LessonView drena na MONTAGEM para abrir a lição
+ * por `study.getLessonById` (ids reais para recordAnswer/judge-answer). Sem id
+ * pendente, o fluxo atual (assunto → generate) segue intacto.
+ *
  * Mantido puro (sem DOM): `setPendingSubject`/`drainPendingSubject` e as
  * funções de `pendingDomain` são testáveis via node:test (tsconfig.node.json
  * inclui `src/lib`); o hook React usa as funções puras e só existe para o
@@ -32,6 +38,7 @@ import { useSyncExternalStore } from 'react';
 
 let pendingSubject: string | null = null;
 let pendingDomain: PendingDomain | null = null;
+let pendingLessonId: string | null = null;
 const listeners = new Set<() => void>();
 
 /** Domínio da matéria pré-selecionada ('programming' | 'math'). */
@@ -110,6 +117,39 @@ export function clearPendingDomain(): void {
   emit();
 }
 
+/* ── pendingLessonId (onda 5 — Trilha → Aula por id) ─────────────────────── */
+
+/**
+ * Grava o id de UMA lição persistida pré-selecionada (Trilha → Aula). O GÊMEO
+ * one-shot de `pendingSubject`/`pendingDomain`: a LessonView drena na MONTAGEM
+ * e, se houver id, tenta `study.getLessonById(id)` para abrir a lição
+ * persistida de verdade (recordAnswer/judge-answer com id real). Sem id
+ * pendente, o fluxo atual (assunto → generate) segue intacto.
+ */
+export function setPendingLessonId(lessonId: string): void {
+  pendingLessonId = lessonId.trim().length > 0 ? lessonId.trim() : null;
+  emit();
+}
+
+/** Lê e consome (limpa) o id pendente — one-shot (mesma semântica dos outros). */
+export function drainPendingLessonId(): string | null {
+  const value = pendingLessonId;
+  pendingLessonId = null;
+  emit();
+  return value;
+}
+
+/** Lê o id pendente sem consumir (assinatura externa / debug). */
+export function peekPendingLessonId(): string | null {
+  return pendingLessonId;
+}
+
+/** Limpa o id pendente sem retornar. */
+export function clearPendingLessonId(): void {
+  pendingLessonId = null;
+  emit();
+}
+
 /* ── Assinatura externa p/ o hook useSyncExternalStore ─────────────────── */
 
 function subscribe(fn: () => void): () => void {
@@ -130,9 +170,10 @@ export function usePendingSubjectInitial(): string | null {
   return useSyncExternalStore(subscribe, getSnapshot, () => null);
 }
 
-/** Reseta o estado do módulo (para testes) — subject E domain. */
+/** Reseta o estado do módulo (para testes) — subject, domain E lessonId. */
 export function __resetPendingSubjectForTests(): void {
   pendingSubject = null;
   pendingDomain = null;
+  pendingLessonId = null;
   listeners.clear();
 }

@@ -158,6 +158,20 @@
         "BRAVE_KEY_MISSING": "Generating the lesson requires the Brave Search key — register it in Settings to research.",
         "BRAVE_KEY_INVALID": "The Brave Search key was rejected — review it in Settings and try again."
       }
+    },
+    "answer": {
+      "correct": "Your answer is correct.",
+      "partial": "Partial answer.",
+      "incorrect": "Incorrect answer.",
+      "serviceError": "Could not evaluate your answer right now.",
+      "continueAnyway": "Continue anyway"
+    },
+    "math": {
+      "instruction": "Solve the exercise:",
+      "correct": "Correct answer!",
+      "wrong": "Wrong answer. The expected answer was {{expected}}.",
+      "malformed": "I couldn't read your answer as a number. Type just the value (e.g., 7 or 5/6).",
+      "error": "Could not check the answer right now."
     }
   },
   "challenge": {

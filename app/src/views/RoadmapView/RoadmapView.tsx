@@ -23,10 +23,10 @@
  *
  * ─── SOMENTE-LEITURA ────────────────────────────────────────────────────────
  * A Trilha NÃO publica no SessionStateProvider e não altera o fluxo da aula.
- * Clicar num nó navega para a aba Aula pré-preenchendo o assunto com o TÍTULO
- * da lição via `pendingSubject` (mesmo mecanismo dos chips da Home) — a
- * LessonView gera a aula a partir do assunto; abrir uma lição persistida por
- * id é um gap registrado no handoff (a LessonView hoje não abre lição salva).
+ * Clicar num nó navega para a aba Aula gravando `pendingLessonId` (onda 5 — a
+ * LessonView ABRE a lição persistida por id via getLessonById) + o TÍTULO da
+ * lição via `pendingSubject` como fallback (se a abertura por id falhar, a
+ * LessonView degrada para o comportamento atual — gerar a aula do assunto).
  */
 import { useEffect, useState, type ReactElement } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -45,7 +45,7 @@ import type { LessonSummary, SubjectSummary } from '../../../shared/ipc-contract
 import EvolutionTree, { type TreeStateLabels } from '../../components/tree/EvolutionTree';
 import { getApi } from '../../lib/apiBridge';
 import { levelI18nKey, type DifficultyLevel } from '../../lib/levels';
-import { setPendingSubject } from '../../lib/pendingSubject';
+import { setPendingLessonId, setPendingSubject } from '../../lib/pendingSubject';
 import {
   buildRoadmapSections,
   isRoadmapComplete,
@@ -232,10 +232,17 @@ export default function RoadmapView({ onNavigate }: RoadmapViewProps): ReactElem
 
   const selectedTopic = topics?.find((s) => s.slug === selectedSlug) ?? null;
 
-  // Navegação: clique num nó → aba Aula com o assunto = título da lição.
+  // Navegação: clique num nó → aba Aula ABRINDO A LIÇÃO POR ID (onda 5). A
+  // LessonView drena `pendingLessonId` na montagem e carrega a lição persistida
+  // via getLessonById (recordAnswer/judge-answer com id real). O assunto segue
+  // gravado como FALLBACK: se a LessonView não conseguir abrir por id em algum
+  // caminho (ex.: lição apagada), degrada para o comportamento atual — gera a
+  // aula a partir do título.
   const openLesson = (lessonId: string): void => {
     const node = roadmap?.sections.flatMap((s) => s.lessons).find((n) => n.lessonId === lessonId);
-    if (node) setPendingSubject(node.title);
+    if (!node) return;
+    setPendingLessonId(node.lessonId);
+    setPendingSubject(node.title);
     navigate('lesson');
   };
 

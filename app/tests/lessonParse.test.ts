@@ -67,4 +67,97 @@ describe('parseLessonResult', () => {
     assert.equal(r.ok, false);
     assert.match(r.error ?? '', /inesperada/);
   });
+
+  // ─── ONDA5: campos novos (opcionais — shapes antigos intactos) ──────────────
+
+  it('ONDA5: StudyLesson direto carrega exercise (math), lessonId e subjectId', () => {
+    const payload = {
+      ...lessonPayload,
+      exercise: {
+        kind: 'math',
+        family: 'arithmetic',
+        seed: 42,
+        prompt: 'Quanto é 7 × 6?',
+        expectedNormalized: '42',
+      },
+      lessonId: 'lesson-abc',
+      subjectId: 'subject-xyz',
+    };
+    const r = parseLessonResult(payload);
+    assert.equal(r.ok, true);
+    assert.equal(r.lesson?.exercise?.kind, 'math');
+    assert.equal(r.lesson?.exercise?.family, 'arithmetic');
+    assert.equal(r.lesson?.exercise?.seed, 42);
+    assert.equal(r.lesson?.exercise?.prompt, 'Quanto é 7 × 6?');
+    assert.equal(r.lesson?.exercise?.expectedNormalized, '42');
+    assert.equal(r.lesson?.lessonId, 'lesson-abc');
+    assert.equal(r.lesson?.subjectId, 'subject-xyz');
+  });
+
+  it('ONDA5: exercise não-math é IGNORADO (undefined — shape antigo intacto)', () => {
+    const payload = { ...lessonPayload, exercise: { kind: 'essay', family: 'x' } };
+    const r = parseLessonResult(payload);
+    assert.equal(r.lesson?.exercise, undefined);
+  });
+
+  it('ONDA5: exercise com seed não-numérico vira 0 (defensivo)', () => {
+    const payload = {
+      ...lessonPayload,
+      exercise: { kind: 'math', family: 'fractions', seed: 'nope', prompt: 'p', expectedNormalized: '1/2' },
+    };
+    const r = parseLessonResult(payload);
+    assert.equal(r.lesson?.exercise?.seed, 0);
+  });
+
+  it('ONDA5: {lesson, rejected} carrega lessonId/subjectId do TOPO (fallback do próprio lesson)', () => {
+    const payload = {
+      lesson: { ...lessonPayload, lessonId: 'lesson-inner' },
+      rejected: [],
+      lessonId: 'lesson-top',
+      subjectId: 'subject-top',
+    };
+    const r = parseLessonResult(payload);
+    assert.equal(r.ok, true);
+    assert.equal(r.lessonId, 'lesson-top', 'topo vence');
+    assert.equal(r.subjectId, 'subject-top');
+  });
+
+  it('ONDA5: sem ids no topo, o ParsedLesson usa os do próprio StudyLesson', () => {
+    const payload = {
+      lesson: { ...lessonPayload, lessonId: 'lesson-inner', subjectId: 'subject-inner' },
+      rejected: [],
+    };
+    const r = parseLessonResult(payload);
+    assert.equal(r.lessonId, 'lesson-inner');
+    assert.equal(r.subjectId, 'subject-inner');
+  });
+
+  it('ONDA5: sem ids em lugar nenhum → undefined (retrocompat total)', () => {
+    const r = parseLessonResult(lessonPayload);
+    assert.equal(r.lessonId, undefined);
+    assert.equal(r.subjectId, undefined);
+    assert.equal(r.lesson?.lessonId, undefined);
+  });
+
+  it('ONDA5: normalizeChallenge carrega slug e subjectId (opcionais)', () => {
+    const payload = {
+      ...lessonPayload,
+      challenges: [
+        {
+          ...lessonPayload.challenges[0],
+          slug: 'fatorial-recursivo',
+          subjectId: 'subject-xyz',
+        },
+      ],
+    };
+    const r = parseLessonResult(payload);
+    assert.equal(r.lesson?.challenges[0].slug, 'fatorial-recursivo');
+    assert.equal(r.lesson?.challenges[0].subjectId, 'subject-xyz');
+  });
+
+  it('ONDA5: challenge sem slug/subjectId → undefined (shape antigo intacto)', () => {
+    const r = parseLessonResult(lessonPayload);
+    assert.equal(r.lesson?.challenges[0].slug, undefined);
+    assert.equal(r.lesson?.challenges[0].subjectId, undefined);
+  });
 });

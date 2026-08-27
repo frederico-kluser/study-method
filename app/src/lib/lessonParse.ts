@@ -23,6 +23,16 @@ export interface ParsedLesson {
   rejected: RejectedChallengeInfo[];
   /** Mensagem de erro user-facing em pt-BR quando `ok` é false. */
   error?: string;
+  /**
+   * ONDA5: id da lição PERSISTIDA — lido do TOPO do resultado do generate
+   * (`{lesson, rejected, lessonId, subjectId}`) com fallback para os campos do
+   * próprio StudyLesson (a onda 4 grava nos dois lugares). undefined quando a
+   * geração rodou sem repo. A LessonView usa para recordAnswer/
+   * markLessonCompleted/judge-answer com ids reais.
+   */
+  lessonId?: string;
+  /** ONDA5: id do subject persistido (mesma origem do lessonId). */
+  subjectId?: string;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -56,6 +66,9 @@ function normalizeChallenge(c: unknown): ChallengeInfo | null {
     verdict: asString(c.verdict),
     workspaceDir: asString(c.workspaceDir),
     statementPath: asString(c.statementPath),
+    // ONDA5: campos ADITIVOS (opcionais — undefined preserva shapes antigos).
+    slug: asString(c.slug) || undefined,
+    subjectId: asString(c.subjectId) || undefined,
   };
 }
 
@@ -76,6 +89,24 @@ function normalizeLesson(l: unknown): StudyLesson | null {
     findings,
     challenges,
     createdAt: asString(l.createdAt),
+    // ONDA5: campos ADITIVOS (undefined tolerado — nada quebra shapes antigos).
+    // `exercise` é o exercício de matemática (kind 'math'); `lessonId`/
+    // `subjectId` são os ids PERSISTIDOS da onda 4 (recordAnswer/judge-answer).
+    ...(isRecord(l.exercise) && asString((l.exercise as Record<string, unknown>).kind) === 'math'
+      ? {
+          exercise: {
+            kind: 'math' as const,
+            family: asString((l.exercise as Record<string, unknown>).family),
+            seed: typeof (l.exercise as Record<string, unknown>).seed === 'number'
+              ? ((l.exercise as Record<string, unknown>).seed as number)
+              : 0,
+            prompt: asString((l.exercise as Record<string, unknown>).prompt),
+            expectedNormalized: asString((l.exercise as Record<string, unknown>).expectedNormalized),
+          },
+        }
+      : {}),
+    ...(asString(l.lessonId) ? { lessonId: asString(l.lessonId) } : {}),
+    ...(asString(l.subjectId) ? { subjectId: asString(l.subjectId) } : {}),
   };
 }
 
@@ -114,7 +145,18 @@ export function parseLessonResult(payload: unknown): ParsedLesson {
         error: 'A geração da aula terminou sem conteúdo de aula válido.',
       };
     }
-    return { ok: true, lesson, rejected };
+    // ONDA5: ids reais vêm no TOPO do resultado ({lesson, rejected, lessonId,
+    // subjectId} — a onda 4 grava nos dois lugares); o campo do StudyLesson
+    // serve de fallback defensivo.
+    const topLessonId = asString(payload.lessonId);
+    const topSubjectId = asString(payload.subjectId);
+    return {
+      ok: true,
+      lesson,
+      rejected,
+      ...(topLessonId || lesson.lessonId ? { lessonId: topLessonId || lesson.lessonId } : {}),
+      ...(topSubjectId || lesson.subjectId ? { subjectId: topSubjectId || lesson.subjectId } : {}),
+    };
   }
 
   const lesson = normalizeLesson(payload);

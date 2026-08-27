@@ -23,6 +23,15 @@
  *
  * Regras de UI pt-BR: veredito factual, sem bajulação automática (C-12 — o
  * feedback VEM do pi; a UI apenas não distorce).
+ *
+ * ONDA 5 (mark terminal — nunca-repetir): `markChallengeAttempt` é chamado SÓ
+ * em eventos TERMINAIS — passou nos testes → 'passed' (estrelas + duração);
+ * tempo esgotado sem passar → 'timeout'; troca de desafio sem concluir →
+ * 'abandoned' (captura ANTES de trocar: picker, contexto de aula e a guarda de
+ * identidade de runTests). NUNCA no primeiro teste falho. Decisão pura em
+ * src/lib/answerFlow.ts (shouldMarkAttempt); após cada mark bem-sucedido a
+ * lista de desafios é RE-BUSCADA (o filtro nunca-repetir esconde o desafio
+ * tentado).
  */
 import ReactMarkdown from 'react-markdown';
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactElement, type ReactNode } from 'react';
@@ -49,6 +58,8 @@ import StarBorderIcon from '@mui/icons-material/StarBorder';
 import TimerIcon from '@mui/icons-material/Timer';
 import type {
   ChallengeInfo,
+  MarkChallengeAttemptRequest,
+  MarkChallengeAttemptResult,
   PiExecuteResult,
   PiStreamEvent,
   TestAnswerResult,
@@ -74,6 +85,7 @@ import {
   type StarTracker,
 } from '../../lib/challengeStars';
 import { announceStatus, fireConfetti } from '../../lib/confetti';
+import { resolveChallengeSlug, shouldMarkAttempt, type MarkAttemptVerdict } from '../../lib/answerFlow';
 import { katexRemarkPlugins, katexRehypePlugins, escapeLoneDollarSigns } from '../../lib/lessonMarkdown';
 import { AnswerTerminal, printTestBanner, type AnswerTerminalHandle } from '../../components/terminal/AnswerTerminal';
 import { FileExplorer } from '../../components/editor/FileExplorer';
@@ -176,6 +188,16 @@ export default function ChallengeView(): ReactElement {
   const timedOutRef = useRef(false);
   const concludedRef = useRef(false);
 
+  // ONDA5 (mark terminal — nunca-repetir): o id do ÚLTIMO desafio com tentativa
+  // JÁ marcada (key `${challengeId}:${workspaceDir}`). Idempotência POR
+  // DESAFIO: guardas baseadas em key (não em boolean) sobrevivem à troca A→B —
+  // marcar 'abandoned' de A não impede o 'timeout' de B.
+  const markedForKeyRef = useRef<string | null>(null);
+  // Desafio ativo "mais recente" (rewrite a cada render — mesmo padrão do
+  // activeKeyRef) para o tick/timeout marcar com o desafio certo.
+  const activeRef = useRef<ChallengeInfo | null>(null);
+  activeRef.current = active;
+
   // Estado da fase pi.
   const [piStatus, setPiStatus] = useState<PiStatus>('idle');
   const [sessionId, setSessionId] = useState<string | null>(null);
@@ -196,10 +218,30 @@ export default function ChallengeView(): ReactElement {
 
   /**
    * Quando o contexto muda (aula → desafio), sincroniza o desafio ativo e
-   * recarrega o workspace.
+   * recarrega o workspace. ONDA5: TROCA DE DESAFIO SEM CONCLUIR é evento
+   * TERMINAL — marca 'abandoned' do desafio ANTERIOR ANTES de trocar
+   * (captura `active` do render anterior; a guarda de identidade em runTests
+   * descarta o resultado em voo — o mark aqui é a captura antecipada).
    */
   useEffect(() => {
     if (nav.selectedChallenge) {
+      const newKey = `${nav.selectedChallenge.challengeId}:${nav.selectedChallenge.workspaceDir}`;
+      if (active && activeKey && activeKey !== newKey) {
+        const verdict = shouldMarkAttempt({
+          event: 'switched',
+          alreadyMarked: markedForKeyRef.current === activeKey,
+          concluded: concludedRef.current,
+          timedOut: timedOutRef.current,
+        });
+        if (verdict) {
+          markAttempt(
+            active,
+            verdict,
+            trackerRef.current?.stars() ?? INITIAL_STARS,
+            Date.now() - startTsRef.current,
+          );
+        }
+      }
       setActive(nav.selectedChallenge);
     }
   }, [nav.selectedChallenge, nav.version]);
@@ -231,6 +273,40 @@ export default function ChallengeView(): ReactElement {
       setListError(`${t('translation:challenge.listError')}: ${String(err)}`);
     }
   }, [nav.lastSetupRoot]);
+
+  /**
+   * ONDA5 — marca UMA tentativa terminal do desafio (nunca-repetir). Só
+   * eventos TERMINAIS chamam (verificado por `shouldMarkAttempt`): passou nos
+   * testes → 'passed'; tempo esgotado → 'timeout'; troca sem concluir →
+   * 'abandoned'. NUNCA no primeiro teste falho. Idempotente por desafio
+   * (markedForKeyRef). Após ok:true, RE-BUSCA a lista de desafios — o filtro
+   * nunca-repetir deve sumir com o desafio tentado da seleção.
+   */
+  const markAttempt = useCallback(
+    (ch: ChallengeInfo, verdict: MarkAttemptVerdict, stars: number, durationMs: number): void => {
+      const key = `${ch.challengeId}:${ch.workspaceDir}`;
+      markedForKeyRef.current = key; // registra ANTES do invoke (idempotência)
+      const api = getApi();
+      void (api.study.markChallengeAttempt as (
+        input: MarkChallengeAttemptRequest,
+      ) => Promise<MarkChallengeAttemptResult>)({
+        // subjectId quando o desafio o expõe (onda 4 — fluxo normal com repo);
+        // sem ele o handler responde ok:false — a UI segue (defensivo).
+        ...(ch.subjectId ? { subjectId: ch.subjectId } : {}),
+        challengeId: resolveChallengeSlug(ch),
+        verdict,
+        stars,
+        durationMs,
+      })
+        .then((res) => {
+          if (res.ok) void loadChallenges();
+        })
+        .catch(() => {
+          // Defensivo: falha de persistência nunca quebra o fluxo do desafio.
+        });
+    },
+    [loadChallenges],
+  );
 
   // Carrega arquivos + enunciado do desafio ativo.
   const loadWorkspace = useCallback(async (ch: ChallengeInfo): Promise<void> => {
@@ -347,6 +423,24 @@ export default function ChallengeView(): ReactElement {
         syncStars();
         announceNewLosses();
         setTimedOut(true);
+        // ONDA5 mark TERMINAL: tempo esgotou SEM passar → 'timeout' (só se o
+        // desafio não foi concluído nem já marcado — 1ª tentativa terminal
+        // vence). O tick só chega aqui com concludedRef false (early return).
+        const key = activeKeyRef.current;
+        const verdict = shouldMarkAttempt({
+          event: 'timed-out',
+          alreadyMarked: markedForKeyRef.current === key,
+          concluded: concludedRef.current,
+          timedOut: true,
+        });
+        if (verdict && activeRef.current) {
+          markAttempt(
+            activeRef.current,
+            verdict,
+            trackerRef.current?.stars() ?? INITIAL_STARS,
+            elapsed,
+          );
+        }
       }
     };
 
@@ -360,7 +454,7 @@ export default function ChallengeView(): ReactElement {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.clearInterval(interval);
     };
-  }, [activeKey, t]);
+  }, [activeKey, markAttempt, t]);
 
   // Ao montar: se veio com desafio do contexto, já está setado; senão lista.
   // Fix15c-review: dispara também quando `lastSetupRoot` muda (loadChallenges é
@@ -421,6 +515,26 @@ export default function ChallengeView(): ReactElement {
       // o anúncio não pode usar os números de A). Sem nenhum write de estado:
       // a troca de desafio já resetou status/resultado via loadWorkspace.
       if (!isStillCurrent(startedKey, activeKeyRef.current)) {
+        // ONDA5: o resultado em voo pertence ao desafio que COMEÇOU o teste (o
+        // closure ainda o carrega) — a troca sem concluir já marcou
+        // 'abandoned' no efeito de contexto/picker (captura antes de trocar);
+        // este mark é a REDE DE SEGURANÇA idempotente para qualquer caminho
+        // que troque o ativo sem passar por eles (nunca duplica: o mark do
+        // caminho original já registrou markedForKeyRef).
+        const verdict = shouldMarkAttempt({
+          event: 'switched',
+          alreadyMarked: markedForKeyRef.current === startedKey,
+          concluded: concludedRef.current,
+          timedOut: timedOutRef.current,
+        });
+        if (verdict) {
+          markAttempt(
+            active,
+            verdict,
+            trackerRef.current?.stars() ?? INITIAL_STARS,
+            Date.now() - startTsRef.current,
+          );
+        }
         return false;
       }
       setTestResult(result);
@@ -439,7 +553,8 @@ export default function ChallengeView(): ReactElement {
       // terminal continua como está.
       if (result.passed) {
         concludedRef.current = true;
-        setElapsedMs(Date.now() - startTsRef.current);
+        const durationMs = Date.now() - startTsRef.current;
+        setElapsedMs(durationMs);
         fireConfetti();
         announceStatus(
           tI('translation:challenge.announcePassed', {
@@ -447,6 +562,23 @@ export default function ChallengeView(): ReactElement {
             expectedTests: result.expectedTests,
           }),
         );
+        // ONDA5 mark TERMINAL: passou nos testes → 'passed' (estrelas do
+        // tracker + duração real; o relógio congelou em concludedRef).
+        const passKey = activeKeyRef.current;
+        const passVerdict = shouldMarkAttempt({
+          event: 'tests-passed',
+          alreadyMarked: markedForKeyRef.current === passKey,
+          concluded: true,
+          timedOut: timedOutRef.current,
+        });
+        if (passVerdict && activeRef.current) {
+          markAttempt(
+            activeRef.current,
+            passVerdict,
+            trackerRef.current?.stars() ?? INITIAL_STARS,
+            durationMs,
+          );
+        }
       } else {
         trackerRef.current?.onWrongAnswer();
         setStarsLeft(trackerRef.current?.stars() ?? INITIAL_STARS);
@@ -470,7 +602,7 @@ export default function ChallengeView(): ReactElement {
       // Mantém o fluxo atual: erro da fase determinística não aborta a fase pi.
       return true;
     }
-  }, [active, activeKey, t]);
+  }, [active, activeKey, markAttempt, t]);
 
   /** Assina os eventos do pi (stream) e guarda o unsubscribe. */
   const streamStopRef = useRef<(() => void) | undefined>(undefined);
@@ -655,6 +787,28 @@ export default function ChallengeView(): ReactElement {
 
   // Painéis de layout conforme o estado.
   const pickChallenge = (ch: ChallengeInfo): void => {
+    // ONDA5: trocar de desafio pelo picker SEM concluir o atual é evento
+    // TERMINAL — marca 'abandoned' ANTES de trocar (captura o desafio anterior
+    // e o estado dos refs; o picker está desabilitado em busy, então aqui o
+    // teste/pi não estão em voo — a guarda de identidade de runTests cobre o
+    // caminho de contexto de aula separadamente).
+    const oldKey = activeKey;
+    if (oldKey && oldKey !== `${ch.challengeId}:${ch.workspaceDir}`) {
+      const verdict = shouldMarkAttempt({
+        event: 'switched',
+        alreadyMarked: markedForKeyRef.current === oldKey,
+        concluded: concludedRef.current,
+        timedOut: timedOutRef.current,
+      });
+      if (verdict && active) {
+        markAttempt(
+          active,
+          verdict,
+          trackerRef.current?.stars() ?? INITIAL_STARS,
+          Date.now() - startTsRef.current,
+        );
+      }
+    }
     setActive(ch);
     void loadWorkspace(ch);
   };
