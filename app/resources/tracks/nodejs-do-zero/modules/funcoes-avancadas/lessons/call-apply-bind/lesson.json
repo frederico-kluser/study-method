@@ -1,0 +1,60 @@
+{
+  "schemaVersion": 1,
+  "slug": "call-apply-bind",
+  "title": "Controlando o this: call, apply e bind",
+  "summary": "Escolher o objeto do this na hora de chamar uma função com call, apply e bind.",
+  "difficulty": 3,
+  "concepts": [
+    "call_apply_bind"
+  ],
+  "prerequisites": [
+    "higher-order-functions"
+  ],
+  "theory": [
+    {
+      "id": "o-this-e-o-objeto-da-chamada",
+      "title": "this: quem segura o microfone",
+      "markdown": "Numa função comum, `this` é quem segura o microfone: **o objeto da chamada**. `pessoa.saudar()` — dentro de `saudar`, `this` é `pessoa`. `saudar()` solto — `this` depende de onde roda (no navegador, a janela; no módulo ESM, `undefined`).\n\nÀs vezes temos uma função pronta e um objeto diferente quer usar: \"a função de saudação está aí, mas eu quero que ela trate MEU objeto como o `this`\". Três métodos de função resolvem isso — eles **escolhem o microfone**: `call`, `apply` e `bind`.\n\nA analogia: a função é uma música pronta. `call` e `apply` fazem a música tocar AGORA com o cantor que você indicar (diferem só na forma de passar os argumentos). `bind` não toca nada: ele devolve uma **nova função com o cantor já fixado**, pronta para tocar depois — quantas vezes você quiser.\n\nRegras de bolso:\n\n1. `funcao.call(objeto, arg1, arg2)` — chama na hora; argumentos um a um.\n2. `funcao.apply(objeto, [arg1, arg2])` — chama na hora; argumentos num array.\n3. `funcao.bind(objeto, arg1)` — devolve função nova com o `this` fixado; nada é chamado ainda.\n\n**Estratégia:** `bind` é o mais usado no dia a dia — fixar o `this` antes de entregar a função para outra parte do código (um evento, um callback). `apply` brilha quando a lista de argumentos já é um array. `call` para chamadas pontuais."
+    },
+    {
+      "id": "call-apply-e-bind-na-pratica",
+      "title": "Os três na prática",
+      "markdown": "Vamos usar uma função de saudação que lê `this.nome`:\n\n`function saudacao(prefixo) { return prefixo + ', ' + this.nome + '!'; }`\n\nEla está pronta — mas o `this` dela depende de quem chamar. Com os três métodos, controlamos isso:\n\n- `saudacao.call({ nome: 'Ana' }, 'Olá')` → `'Olá, Ana!'` — `call` passa os argumentos **um a um**.\n- `saudacao.apply({ nome: 'Bia' }, ['Bom dia'])` → `'Bom dia, Bia!'` — `apply` passa **um array**.\n- `const saudarCauê = saudacao.bind({ nome: 'Cauê' }, 'Oi')` → devolve uma NOVA função; chamar `saudarCauê()` dá `'Oi, Cauê!'`. O `this` e até o prefixo já ficaram fixos na criação.\n\nDois detalhes que confundem:\n\n1. **`bind` não chama a função.** Ele devolve outra função. Esquecer dos parênteses e não chamar é o erro clássico: `saudarCauê` (a função) vs `saudarCauê()` (o resultado).\n2. **A função original não muda.** `bind` cria uma cópia com o `this` fixado; a função de origem continua com o `this` de sempre.\n\nE lembre: **arrow function ignora tudo isso** — `call`, `apply` e `bind` não mudam o `this` de uma arrow, porque ela nem tem `this` próprio. Esses métodos são para funções comuns.",
+      "code": {
+        "language": "js",
+        "code": "function saudacao(prefixo) {\n  return `${prefixo}, ${this.nome}!`;\n}\n\nconsole.log(saudacao.call({ nome: 'Ana' }, 'Olá'));   // Olá, Ana!\nconsole.log(saudacao.apply({ nome: 'Bia' }, ['Oi'])); // Oi, Bia!\n\nconst saudarCauê = saudacao.bind({ nome: 'Cauê' }, 'Bom dia');\nconsole.log(saudarCauê()); // Bom dia, Cauê!\n\n// A original não mudou e a nova não quebra ao ser chamada de novo:\nconsole.log(saudacao.call({ nome: 'Duda' }, 'Olá')); // Olá, Duda!\nconsole.log(saudarCauê()); // Bom dia, Cauê! (this continua fixo)",
+        "explanation": "call e apply chamam na hora (argumentos um a um vs. array). bind devolve função nova com this fixado — chamável quantas vezes quiser, sem perder o objeto."
+      }
+    },
+    {
+      "id": "exemplo-completo",
+      "title": "Exemplo completo: reutilizando uma função em vários objetos",
+      "markdown": "**Objetivo:** um sistema de cadastro tem UMA função de apresentação e quer usá-la para clientes e funcionários — sem duplicar código.\n\nPasso 1 — crie a função genérica de apresentação.\nEla lê `this.nome` e `this.idade` — não sabe nada do tipo de pessoa.\n\nPasso 2 — crie os objetos de dados.\nCliente e funcionário são só dados.\n\nPasso 3 — use `call` para a chamada pontual.\nUma apresentação de cada vez, com o objeto certo.\n\nPasso 4 — use `bind` para criar apresentações fixas.\nCada pessoa ganha a própria função pronta, com o `this` já certo.\n\nPasso 5 — confira que a função original segue intacta.\nO código reutilizou a MESMA função para dois objetos diferentes.",
+      "code": {
+        "language": "js",
+        "code": "// Passo 1: função genérica — só usa o this (nome e idade).\nfunction apresentar(prefixo) {\n  return `${prefixo} ${this.nome}, ${this.idade} anos`;\n}\n\n// Passo 2: objetos de dados, sem métodos.\nconst cliente = { nome: 'Ana', idade: 30 };\nconst funcionario = { nome: 'Bia', idade: 25 };\n\n// Passo 3: call — chamada pontual, this escolhido na hora.\nconsole.log(apresentar.call(cliente, 'Cliente:'));      // Cliente: Ana, 30 anos\nconsole.log(apresentar.call(funcionario, 'Funcionária:')); // Funcionária: Bia, 25 anos\n\n// Passo 4: bind — funções prontas, this fixado para sempre.\nconst apresentarAna = apresentar.bind(cliente, 'Cliente:');\nconst apresentarBia = apresentar.bind(funcionario, 'Funcionária:');\nconsole.log(apresentarAna()); // Cliente: Ana, 30 anos\nconsole.log(apresentarBia()); // Funcionária: Bia, 25 anos\n\n// Passo 5: a original continua funcionando com qualquer this.\nconsole.log(apresentar.call({ nome: 'Cauê', idade: 18 }, 'Visitante:')); // Visitante: Cauê, 18 anos",
+        "explanation": "Uma função, muitos objetos: call para chamadas avulsas, bind para gerar versões fixas. Nenhum objeto precisa de método próprio — o código não foi duplicado."
+      }
+    }
+  ],
+  "sources": [
+    {
+      "title": "MDN — Function.prototype.call (pt-BR)",
+      "url": "https://developer.mozilla.org/pt-BR/docs/Web/JavaScript/Reference/Global_Objects/Function/call",
+      "description": "Documentação do call: chama a função com o this escolhido, argumentos um a um."
+    },
+    {
+      "title": "MDN — Function.prototype.apply (pt-BR)",
+      "url": "https://developer.mozilla.org/pt-BR/docs/Web/JavaScript/Reference/Global_Objects/Function/apply",
+      "description": "Documentação do apply: chama com o this escolhido e argumentos em array."
+    },
+    {
+      "title": "MDN — Function.prototype.bind (pt-BR)",
+      "url": "https://developer.mozilla.org/pt-BR/docs/Web/JavaScript/Reference/Global_Objects/Function/bind",
+      "description": "Documentação do bind: devolve nova função com this e argumentos fixos."
+    }
+  ],
+  "challenges": [
+    "controlando-o-this"
+  ]
+}

@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "slug": "this-e-arrow",
+  "title": "this: função comum vs. arrow",
+  "concept": "arrow_functions",
+  "difficulty": 3,
+  "language": "nodejs",
+  "statement": "# this: função comum vs. arrow\n\nUma equipe está montando componentes de chat e descobriu na prática a diferença entre `function` e arrow function. Você vai recriar o experimento.\n\nA função `criarSaudador(nome)` devolve um objeto com duas propriedades:\n\n- `nome` — o nome recebido.\n- `saudar` — um MÉTODO feito com `function` comum que devolve a frase `Olá, eu sou ${this.nome}!`.\n- `saudarArrow` — um método feito com ARROW function que tenta devolver a mesma frase usando `${this.nome}`.\n\nA função `criarContadorRapido()` devolve um objeto com `valor` (começando em 0) e o método `incrementarDepois` (feito com `function` comum). Dentro desse método, uma ARROW function soma 1 a `this.valor` — e o método chama essa arrow DUAS vezes.\n\nO que os testes conferem:\n\n- `saudar()` funciona (a função comum vê o `this` do objeto).\n- `saudarArrow()` LANÇA erro (a arrow não tem `this` próprio — no topo do módulo, `this` é `undefined`).\n- depois de `incrementarDepois()`, `valor` é `2` (a arrow aninhada herda o `this` do método).\n\nLeia o enunciado com calma e clique em Começar para iniciar o cronômetro.",
+  "starterCode": "export function criarSaudador(nome) {\n  // TODO: implemente a função\n  throw new Error('não implementado');\n}\n\nexport function criarContadorRapido() {\n  // TODO: implemente a função\n  throw new Error('não implementado');\n}\n",
+  "testsCode": "import { test } from 'node:test';\nimport assert from 'node:assert/strict';\nimport { criarSaudador, criarContadorRapido } from './solution.mjs';\n\ntest('método com function comum usa o this do objeto', () => {\n  const pessoa = criarSaudador('Maria');\n  assert.equal(pessoa.saudar(), 'Olá, eu sou Maria!');\n});\n\ntest('arrow no topo do módulo não tem this próprio', () => {\n  const pessoa = criarSaudador('Maria');\n  assert.throws(() => pessoa.saudarArrow());\n});\n\ntest('arrow dentro de método comum herda o this do método', () => {\n  const contador = criarContadorRapido();\n  contador.incrementarDepois();\n  assert.equal(contador.valor, 2);\n});\n",
+  "solutionCode": "export function criarSaudador(nome) {\n  return {\n    nome,\n    saudar: function () {\n      return `Olá, eu sou ${this.nome}!`;\n    },\n    saudarArrow: () => `Olá, eu sou ${this.nome}!`,\n  };\n}\n\nexport function criarContadorRapido() {\n  return {\n    valor: 0,\n    incrementarDepois: function () {\n      const incrementar = () => {\n        this.valor += 1;\n      };\n      incrementar();\n      incrementar();\n    },\n  };\n}\n",
+  "expectedTestCount": 3
+}

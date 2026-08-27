@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "slug": "funcoes-avancadas",
+  "title": "Funções avançadas",
+  "order": 12,
+  "lessons": [
+    "closures",
+    "escopo-e-hoisting",
+    "arrow-vs-function",
+    "parametros-default-e-rest",
+    "higher-order-functions",
+    "call-apply-bind",
+    "iife-e-encapsulamento",
+    "recursao"
+  ],
+  "challenge": "desafio-do-modulo-funcoes"
+}

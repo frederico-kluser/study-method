@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "slug": "parametros-flexiveis",
+  "title": "Parâmetros flexíveis: default e rest",
+  "concept": "parametros_default_rest",
+  "difficulty": 3,
+  "language": "nodejs",
+  "statement": "# Parâmetros flexíveis: default e rest\n\nUma central de atendimento precisa de três funções que aceitam chamadas de jeitos diferentes. Você vai implementá-las usando parâmetros default e rest.\n\n**1. `saudar(nome, saudacao = 'Olá')`** — devolve a frase `\"${saudacao}, ${nome}!\"`.\n\n- `saudar('Ana')` deve devolver `'Olá, Ana!'` (usa o default).\n- `saudar('Ana', 'Bom dia')` deve devolver `'Bom dia, Ana!'` (ignora o default).\n\n**2. `somarTodos(...numeros)`** — devolve a soma de todos os números recebidos. O array `numeros` precisa ser criado com o parâmetro rest.\n\n- `somarTodos(1, 2, 3)` deve devolver `6`.\n- `somarTodos()` deve devolver `0` (sem argumentos, a soma é zero).\n\n**3. `juntarNomes(separador = ', ', ...nomes)`** — junta todos os nomes usando o separador.\n\n- `juntarNomes(' | ', 'Ana', 'Bia', 'Cauê')` deve devolver `'Ana | Bia | Cauê'`.\n\nLeia o enunciado com calma e clique em Começar para iniciar o cronômetro.",
+  "starterCode": "export function saudar(nome, saudacao = 'Olá') {\n  // TODO: implemente a função\n  throw new Error('não implementado');\n}\n\nexport function somarTodos(...numeros) {\n  // TODO: implemente a função\n  throw new Error('não implementado');\n}\n\nexport function juntarNomes(separador = ', ', ...nomes) {\n  // TODO: implemente a função\n  throw new Error('não implementado');\n}\n",
+  "testsCode": "import { test } from 'node:test';\nimport assert from 'node:assert/strict';\nimport { saudar, somarTodos, juntarNomes } from './solution.mjs';\n\ntest('default é usado quando o segundo argumento não vem', () => {\n  assert.equal(saudar('Ana'), 'Olá, Ana!');\n});\n\ntest('default é ignorado quando o segundo argumento vem', () => {\n  assert.equal(saudar('Ana', 'Bom dia'), 'Bom dia, Ana!');\n});\n\ntest('rest soma qualquer quantidade de números', () => {\n  assert.equal(somarTodos(1, 2, 3), 6);\n  assert.equal(somarTodos(5), 5);\n  assert.equal(somarTodos(), 0);\n});\n\ntest('rest captura os nomes depois do separador', () => {\n  assert.equal(juntarNomes(' | ', 'Ana', 'Bia', 'Cauê'), 'Ana | Bia | Cauê');\n  assert.equal(juntarNomes('! ', 'Ana', 'Bia'), 'Ana! Bia');\n});\n",
+  "solutionCode": "export function saudar(nome, saudacao = 'Olá') {\n  return `${saudacao}, ${nome}!`;\n}\n\nexport function somarTodos(...numeros) {\n  let total = 0;\n  for (const n of numeros) {\n    total += n;\n  }\n  return total;\n}\n\nexport function juntarNomes(separador = ', ', ...nomes) {\n  return nomes.join(separador);\n}\n",
+  "expectedTestCount": 4
+}

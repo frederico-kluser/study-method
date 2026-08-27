@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "slug": "contador-com-closure",
+  "title": "Contador com closure",
+  "concept": "closures",
+  "difficulty": 3,
+  "language": "nodejs",
+  "statement": "# Contador com closure\n\nUma empresa de eventos precisa sortear números de senha. Você vai criar uma máquina de senhas usando o que aprendeu sobre closures.\n\nA função `criarContador` **não recebe nada** e devolve uma função. A função devolvida, a cada chamada, devolve o próximo número da sequência, começando em 1.\n\nExemplos:\n\n- `const contar = criarContador();` — depois:\n  - `contar()` deve devolver `1`\n  - `contar()` deve devolver `2`\n  - `contar()` deve devolver `3`\n\nCada chamada de `criarContador` cria uma sequência **independente**: se você criar dois contadores, um não atrapalha o outro.\n\nLeia o enunciado com calma e clique em Começar para iniciar o cronômetro.",
+  "starterCode": "export function criarContador() {\n  // TODO: implemente a função\n  throw new Error('não implementado');\n}\n",
+  "testsCode": "import { test } from 'node:test';\nimport assert from 'node:assert/strict';\nimport { criarContador } from './solution.mjs';\n\ntest('começa em 1 e conta para cima', () => {\n  const contar = criarContador();\n  assert.equal(contar(), 1);\n  assert.equal(contar(), 2);\n  assert.equal(contar(), 3);\n});\n\ntest('dois contadores são independentes', () => {\n  const contadorA = criarContador();\n  const contadorB = criarContador();\n  contadorA();\n  contadorA();\n  assert.equal(contadorA(), 3);\n  assert.equal(contadorB(), 1);\n});\n\ntest('cada chamada de criarContador recomeça a contagem', () => {\n  const primeiro = criarContador();\n  primeiro();\n  const segundo = criarContador();\n  assert.equal(segundo(), 1);\n  assert.equal(primeiro(), 2);\n});\n",
+  "solutionCode": "export function criarContador() {\n  let valor = 0;\n  return function () {\n    valor += 1;\n    return valor;\n  };\n}\n",
+  "expectedTestCount": 3
+}

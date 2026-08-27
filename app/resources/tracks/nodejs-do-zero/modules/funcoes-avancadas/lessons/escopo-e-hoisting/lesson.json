@@ -1,0 +1,60 @@
+{
+  "schemaVersion": 1,
+  "slug": "escopo-e-hoisting",
+  "title": "Escopo e hoisting",
+  "summary": "Entender onde cada variável vive (escopo), o içamento de declarações (hoisting) e a zona morta temporal do let/const.",
+  "difficulty": 3,
+  "concepts": [
+    "escopo_hoisting"
+  ],
+  "prerequisites": [
+    "closures"
+  ],
+  "theory": [
+    {
+      "id": "o-que-e-escopo",
+      "title": "Casas com cômodos: onde cada variável vive",
+      "markdown": "**Escopo** é o conjunto de lugares onde uma variável existe. Pense numa casa: cada cômodo tem os próprios armários, mas existe também a área comum. Você enxerga o que está no seu cômodo e o que está na área comum — mas não o que está no cômodo do vizinho, com a porta fechada.\n\nNo JavaScript, as chaves `{}` criam um cômodo novo. Uma variável declarada com `let` ou `const` dentro de um bloco **só existe dentro daquele bloco** — é o **escopo de bloco**. Isso vale para `if`, `for`, `while` e até para um bloco solto.\n\nJá uma variável declarada fora de qualquer função ou bloco vive no **escopo global** (a área comum). Toda função também cria um escopo: variáveis declaradas dentro dela não vazam para fora.\n\nRegras rápidas:\n\n1. `let` e `const` — escopo de bloco (o cômodo das chaves).\n2. `var` — escopo de função (ignora as chaves do `if`/`for`; por isso hoje evitamos `var`).\n3. De dentro para fora você enxerga; de fora para dentro, não.\n4. Se você criar uma variável com o MESMO nome em um bloco, ela \"cobre\" a de fora dentro daquele bloco (chamamos isso de *shadowing*).\n\n**Estratégia:** declare cada variável no menor escopo em que ela é usada. Variável de `if` declarada dentro do `if`; acumulador de função, dentro da função. Escopo pequeno = menos surpresas."
+    },
+    {
+      "id": "var-let-const-e-hoisting",
+      "title": "Hoisting e a zona morta temporal",
+      "markdown": "**Hoisting** (içamento) é o comportamento de o JavaScript \"levantar\" as declarações para o topo do escopo antes de executar o código. As três palavras-chave se comportam diferente:\n\n1. **`function`** — a função inteira é içada. Você pode chamar a função ANTES da linha onde ela foi escrita.\n2. **`var`** — a declaração é içada, mas o valor fica `undefined` até a linha da atribuição. Acessar antes não quebra — devolve `undefined`.\n3. **`let` e `const`** — a declaração também é içada, MAS a variável fica numa **zona morta temporal** (TDZ, do inglês *temporal dead zone*): do início do escopo até a linha da declaração, acessá-la **lança um erro** `ReferenceError`. O JavaScript está dizendo: \"ela existe aqui, mas ainda não está pronta\".\n\nA TDZ é uma proteção: se você tenta usar a variável antes de inicializá-la, é quase sempre um bug — e o erro avisa na hora, em vez de dar `undefined` silencioso.\n\nResumo do que usar no dia a dia: `const` por padrão, `let` quando o valor vai mudar, e `var`... não use. `var` é o jeito antigo, com escopo de função e sem TDZ — exatamente as duas fontes dos bugs que `let`/`const` eliminam.",
+      "code": {
+        "language": "js",
+        "code": "function verHoisting() {\n  console.log(typeof mensagem); // 'undefined' — var foi içada (sem erro)\n\n  var mensagem = 'oi';\n\n  try {\n    console.log(valor);   // ReferenceError: valor está na zona morta temporal\n  } catch {\n    console.log('valor ainda não está pronta');\n  }\n\n  let valor = 10;         // só a partir daqui 'valor' existe\n  return mensagem + valor;\n}",
+        "explanation": "A var é içada com valor undefined (não quebra). A let também é içada, mas fica em TDZ até a linha da declaração — acessá-la antes lança ReferenceError."
+      }
+    },
+    {
+      "id": "exemplo-completo",
+      "title": "Exemplo completo: escopos e hoisting na prática",
+      "markdown": "**Objetivo:** montar uma função que usa escopo de bloco, shadowing e a TDZ, e devolve um relatório do que aconteceu.\n\nPasso 1 — declare a variável do escopo de fora.\n`nome` pertence ao escopo da função inteira.\n\nPasso 2 — crie um bloco e declare uma variável com o mesmo nome.\nDentro das chaves, `nome` é OUTRA variável (shadowing). Mudar ela não afeta a de fora.\n\nPasso 3 — declare uma variável só dentro do bloco.\nDepois das chaves, `segredo` não existe mais.\n\nPasso 4 — demonstre a zona morta temporal.\nTentamos ler uma `let` antes da declaração e capturamos o erro com `try/catch`.\n\nPasso 5 — devolva o relatório com o que aprendemos.\nO objeto de retorno mostra cada comportamento observado.",
+      "code": {
+        "language": "js",
+        "code": "// Passo 1: variável do escopo da função (visível em todo o corpo).\nlet nome = 'Ana';\n\n// Passo 2: bloco com shadowing — 'nome' aqui é OUTRA variável.\n{\n  let nome = 'Bia';\n  nome = 'Bia-editada';   // muda só a do bloco\n}\n// Passo 3: fora do bloco, 'nome' continua a de fora.\nconst nomeFora = nome;    // 'Ana'\n\n// Passo 4: TDZ — let usada antes da declaração lança erro.\nlet deuErroDeTdz = false;\ntry {\n  const x = aindaNaoExiste; // linha anterior à declaração: zona morta temporal\n} catch (erro) {\n  deuErroDeTdz = erro instanceof ReferenceError;\n}\nlet aindaNaoExiste = 'agora existe';\n\n// Passo 5: relatório dos comportamentos observados.\nconsole.log({ nomeFora, deuErroDeTdz }); // { nomeFora: 'Ana', deuErroDeTdz: true }",
+        "explanation": "O bloco isolou a segunda 'nome' (a de fora não mudou), a variável do bloco sumiu após as chaves, e o acesso a 'aindaNaoExiste' antes da declaração caiu na TDZ — capturado como ReferenceError."
+      }
+    }
+  ],
+  "sources": [
+    {
+      "title": "MDN — let (pt-BR)",
+      "url": "https://developer.mozilla.org/pt-BR/docs/Web/JavaScript/Reference/Statements/let",
+      "description": "Documentação da declaração let, incluindo a zona morta temporal."
+    },
+    {
+      "title": "MDN — var (pt-BR)",
+      "url": "https://developer.mozilla.org/pt-BR/docs/Web/JavaScript/Reference/Statements/var",
+      "description": "Documentação da declaração var e do hoisting com undefined."
+    },
+    {
+      "title": "MDN — Glossário: escopo (pt-BR)",
+      "url": "https://developer.mozilla.org/pt-BR/docs/Glossary/Scope",
+      "description": "Definição curta de escopo no glossário da MDN."
+    }
+  ],
+  "challenges": [
+    "escopo-de-bloco"
+  ]
+}

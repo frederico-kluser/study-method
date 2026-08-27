@@ -1,0 +1,60 @@
+{
+  "schemaVersion": 1,
+  "slug": "iife-e-encapsulamento",
+  "title": "IIFE e encapsulamento",
+  "summary": "Criar escopos privados com IIFE (Immediately Invoked Function Expression) e proteger estado com o padrão de módulo.",
+  "difficulty": 3,
+  "concepts": [
+    "iife"
+  ],
+  "prerequisites": [
+    "call-apply-bind"
+  ],
+  "theory": [
+    {
+      "id": "o-que-e-uma-iife",
+      "title": "IIFE: o entregador que trava a porta ao sair",
+      "markdown": "Uma **IIFE** (Immediately Invoked Function Expression) é uma função que **cria e executa na mesma hora**: `(function () { ... })()`. Os parênteses da frente transformam a função numa expressão, e o par de parênteses no fim a chama imediatamente.\n\nPense no entregador que entra na sala, faz a entrega e trava a porta ao sair: nada que ele organizou fica exposto a quem passou no corredor. A IIFE cria um **escopo privado** — as variáveis declaradas dentro dela não vazam para fora, e rodam imediatamente.\n\nPor que isso era importante? Antes dos módulos ES (import/export), TODO arquivo JavaScript compartilhava o mesmo escopo global. Dois arquivos com uma variável `total` se atropelavam. A IIFE foi a solução: cada arquivo embrulhava o código numa IIFE, e o escopo global ficava protegido.\n\nHoje usamos `import`/`export`, mas a IIFE continua valiosa para **encapsular estado**: criar um \"quartinho fechado\" onde uma variável nasce, vive e só é tocada pelas funções que você decide expor.\n\nHá também a versão com arrow: `(() => { ... })()`.\n\n**Estratégia:** use IIFE quando quiser executar código uma única vez e guardar estado que ninguém de fora deve alcançar diretamente. O resultado da IIFE costuma ser um **objeto com métodos** — as únicas portas de entrada do quartinho."
+    },
+    {
+      "id": "encapsulando-estado",
+      "title": "O padrão de módulo: estado privado com portas",
+      "markdown": "O uso mais clássico da IIFE é o **padrão de módulo**: a IIFE devolve um objeto com métodos, e as variáveis internas ficam inacessíveis de fora.\n\nExemplo — um cofre com contador:\n\n`const cofre = (function () { let valor = 0; return { guardar: function () { valor += 1; return valor; }, ver: function () { return valor; } }; })();`\n\nO que aconteceu:\n\n1. A IIFE rodou na hora e devolveu o objeto `{ guardar, ver }`.\n2. `valor` vive SÓ dentro da IIFE. `cofre.valor` é `undefined` — não existe.\n3. Os métodos `guardar` e `ver` são closures: enxergam `valor` pela mochila (aula de closures) e são as ÚNICAS portas de acesso.\n\nPor que isso é bom? **Controle.** Quem usa o cofre só consegue o que os métodos permitem — ninguém zera o valor por acidente, ninguém lê no meio de uma conta. O estado fica protegido por uma interface mínima.\n\nA mesma ideia protege configurações: um registro de configurações onde só existem `obter` e `definir`, com a configuração inteira trancada na IIFE. Qualquer outra coisa no programa não consegue \"espiar\" as variáveis internas nem criar versões paralelas delas.",
+      "code": {
+        "language": "js",
+        "code": "const cofre = (function () {\n  let valor = 0; // vive apenas dentro da IIFE\n\n  return {\n    guardar: function () {\n      valor += 1;\n      return valor;\n    },\n    ver: function () {\n      return valor;\n    },\n  };\n})();\n\nconsole.log(cofre.ver());      // 0\nconsole.log(cofre.guardar());  // 1\nconsole.log(cofre.guardar());  // 2\nconsole.log(cofre.ver());      // 2\nconsole.log(cofre.valor);      // undefined — a porta está trancada",
+        "explanation": "A IIFE rodou na hora e devolveu só os métodos. 'valor' é inacessível de fora (undefined); as closures guardar/ver são as únicas portas — estado privado de verdade."
+      }
+    },
+    {
+      "id": "exemplo-completo",
+      "title": "Exemplo completo: registro de configurações trancado",
+      "markdown": "**Objetivo:** um aplicativo precisa de um registro de configurações global que ninguém possa bagunçar. Vamos encapsulá-lo numa IIFE.\n\nPasso 1 — embrulhe o registro numa IIFE.\nTudo o que vive aqui dentro é privado.\n\nPasso 2 — crie o estado interno.\n`configuracoes` é um objeto que só a IIFE enxerga.\n\nPasso 3 — exponha o mínimo: obter e definir.\n`obter` devolve uma CÓPIA (para quem pega não mexer no original); `definir` valida antes de guardar.\n\nPasso 4 — use o registro pelo módulo.\nFora da IIFE, só existem os métodos devolvidos.\n\nPasso 5 — confira o encapsulamento.\nO objeto interno não é acessível e a cópia não afeta o original.",
+      "code": {
+        "language": "js",
+        "code": "// Passo 1 e 2: a IIFE roda na hora e guarda o estado internamente.\nconst registro = (function () {\n  const configuracoes = { tema: 'claro', volume: 70 };\n\n  // Passo 3: expomos só o mínimo, com proteções.\n  return {\n    obter: function () {\n      return { ...configuracoes }; // cópia: o original não pode ser editado de fora\n    },\n    definir: function (chave, valor) {\n      if (!(chave in configuracoes)) {\n        throw new Error(`configuração desconhecida: ${chave}`);\n      }\n      configuracoes[chave] = valor;\n    },\n  };\n})();\n\n// Passo 4: quem usa só tem as portas obter/definir.\nregistro.definir('tema', 'escuro');\n\n// Passo 5: a cópia não vaza mudanças para dentro da IIFE.\nconst copia = registro.obter();\ncopia.tema = 'bagunçado';\nconsole.log(registro.obter().tema); // 'escuro' — a bagunça ficou só na cópia",
+        "explanation": "A IIFE trancou 'configuracoes'. O mundo externo interage só por obter (cópia defensiva) e definir (validação). Encapsulamento = estado protegido + interface mínima."
+      }
+    }
+  ],
+  "sources": [
+    {
+      "title": "MDN — Glossário: IIFE (pt-BR)",
+      "url": "https://developer.mozilla.org/pt-BR/docs/Glossary/IIFE",
+      "description": "Definição oficial da Immediately Invoked Function Expression."
+    },
+    {
+      "title": "MDN — Closures (pt-BR)",
+      "url": "https://developer.mozilla.org/pt-BR/docs/Web/JavaScript/Closures",
+      "description": "O mecanismo (closure) que torna o estado privado da IIFE possível."
+    },
+    {
+      "title": "MDN — Glossário: escopo (pt-BR)",
+      "url": "https://developer.mozilla.org/pt-BR/docs/Glossary/Scope",
+      "description": "Por que as variáveis da IIFE não vazam para o escopo de fora."
+    }
+  ],
+  "challenges": [
+    "contador-secreto"
+  ]
+}
