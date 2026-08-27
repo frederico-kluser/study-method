@@ -1,0 +1,60 @@
+{
+  "schemaVersion": 1,
+  "slug": "injecao-de-dependencias",
+  "title": "Injeção de dependências: receba pronto em vez de criar",
+  "summary": "Receber dependências prontas em vez de criar por dentro — o caminho para trocar implementações e testar com fakes.",
+  "difficulty": 5,
+  "concepts": [
+    "injecao_dependencias"
+  ],
+  "prerequisites": [
+    "middleware-pattern"
+  ],
+  "theory": [
+    {
+      "id": "receber-pronto-em-vez-de-ir-buscar",
+      "title": "Receber pronto em vez de ir buscar",
+      "markdown": "Você chega a um hotel e o carregador leva sua mala ao quarto. Agora imagine se, para usar o carregador, você tivesse que ir à recepção, chamá-lo, esperar, e ainda por cima escolher ENTRE os carregadores que o hotel tem. Você não quer escolher: quer RECEBER o que precisa, pronto, na hora.\n\nÉ essa a ideia da **injeção de dependências** (DI): um objeto não sai criando as coisas de que precisa dentro de si — ele RECEBE as dependências prontas, de fora.\n\nSem DI, a função vai buscar a dependência sozinha:\n\n```js\nfunction registrarPedido(dados) {\n  const repositorio = criarRepositorio(); // a função CRIOU a dependência\n  ...\n}\n```\n\nCom DI, a função recebe:\n\n```js\nfunction criarServiceDePedidos(repositorio) { // recebe PRONTO de quem chama\n  ...\n}\n```\n\nPor que isso importa tanto? Porque quem cria por dentro também esconde: impossível trocar o repositório real por um fake num teste — a função SEMPRE vai criar o real. Quem recebe de fora deixa a troca na mão de quem chama: o app real entrega o repositório de verdade; o teste entrega um fake que não toca em arquivo nenhum. Mesmo código, dois mundos.\n\nO nome vem da imagem: a dependência é \"injetada\" de fora para dentro, como uma seringa. (E tem um ditado famoso por trás disso: \"Don't call us, we'll call you\" — não me ligue, nós ligamos para você. Quem recebe, não vai atrás.)\n\n**Estratégia:** toda vez que uma função criar algo com `const x = criarX()` no corpo, pergunte: quem precisa trocar isso um dia — o teste, o ambiente, um outro módulo? Se a resposta é sim, receba `x` como parâmetro.\n"
+    },
+    {
+      "id": "a-di-em-codigo",
+      "title": "A DI em código: o mesmo processador, dois mundos",
+      "markdown": "O exemplo clássico: um processador de pagamento que precisa calcular uma taxa e notificar alguém. Compare os dois lados.\n\n**Sem DI — a função cria tudo por dentro:**\n\n\nPara testar, você teria que fazer o e-mail real ser enviado — ou usar truques de import. Feio e frágil.\n\n**Com DI — a função recebe as dependências:**\n\n\n**O app real injeta o real; o teste injeta o fake — o mesmo `processar`:**\n\n\nRepare: o código do processador não mudou entre produção e teste — só o que foi injetado. A DI não é mágica: é só receber por parâmetro o que você precisaria criar por dentro.\n",
+      "code": {
+        "language": "js",
+        "code": "// processador-com-di.mjs — recebe as dependências PRONTAS de quem chama.\nexport function criarProcessadorDePagamento(dependencias) {\n  if (typeof dependencias?.calcularTaxa !== 'function') {\n    throw new Error('dependência calcularTaxa precisa ser uma função');\n  }\n  if (typeof dependencias?.notificar !== 'function') {\n    throw new Error('dependência notificar precisa ser uma função');\n  }\n\n  return {\n    processar(pedido) {\n      if (typeof pedido?.total !== 'number' || pedido.total < 0) {\n        throw new Error('pedido precisa ter total numérico maior ou igual a 0');\n      }\n      const taxa = dependencias.calcularTaxa(pedido.total); // COMO? ela decide\n      const valorFinal = pedido.total + taxa;\n      dependencias.notificar(`Pagamento de R$ ${valorFinal.toFixed(2)} aprovado`); // COMO? ela decide\n      return { total: pedido.total, taxa, valorFinal, status: 'aprovado' };\n    },\n  };\n}\n\n// app.mjs — produção injeta as dependências de verdade.\nconst processador = criarProcessadorDePagamento({\n  calcularTaxa: (total) => total * 0.1, // taxa de 10%\n  notificar: (mensagem) => enviarEmailReal(mensagem),\n});\n\n// teste.mjs — o teste injeta fakes: rápido, sem e-mail, sem surpresa.\nconst notificacoes = [];\nconst processadorDeTeste = criarProcessadorDePagamento({\n  calcularTaxa: () => 5, // taxa fixa: previsível\n  notificar: (mensagem) => notificacoes.push(mensagem), // grava em vez de enviar\n});\n",
+        "explanation": "O processador recebe as dependências prontas e valida a entrada na construção; produção injeta o real, o teste injeta fakes — o código do processador é o mesmo nos dois."
+      }
+    },
+    {
+      "id": "exemplo-completo",
+      "title": "Exemplo completo: a factory injeta, o teste troca",
+      "markdown": "**Objetivo:** juntar as duas aulas anteriores — a factory monta o objeto; quem monta injeta as dependências; quem testa troca por fakes.\n\nPasso 1 — o processador RECEBE as dependências (`criarProcessadorDePagamento({ calcularTaxa, notificar })`).\n\nPasso 2 — a factory de produção injeta as versões REAIS: taxa de 10% e e-mail de verdade.\n\nPasso 3 — o teste injeta fakes: taxa fixa e uma função que só grava mensagens.\n\nPasso 4 — o mesmo `processar` roda nos dois mundos, com resultados diferentes — sem tocar no código do processador.\n\nPasso 5 — confira a prova: a notificação gravada pelo fake é exatamente a que o processador mandou.\n\n\nEssa é a DI em ação: quem RECEBE não escolhe; quem INJETA decide. O app de produção decide o real; o teste decide o fake — e o código testado é literalmente o mesmo.\n",
+      "code": {
+        "language": "js",
+        "code": "// Passo 1: o processador — as dependências chegam prontas, de fora.\nexport function criarProcessadorDePagamento(dependencias) {\n  return {\n    processar(pedido) {\n      const taxa = dependencias.calcularTaxa(pedido.total);   // COMO? ela decide\n      const valorFinal = pedido.total + taxa;\n      dependencias.notificar(`Pagamento de R$ ${valorFinal.toFixed(2)} aprovado`);\n      return { total: pedido.total, taxa, valorFinal, status: 'aprovado' };\n    },\n  };\n}\n\n// Passo 2: produção — a factory injeta as versões reais.\nfunction criarAppDePagamento() {\n  return criarProcessadorDePagamento({\n    calcularTaxa: (total) => total * 0.1, // 10% de taxa\n    notificar: (mensagem) => enviarEmailReal(mensagem), // e-mail de verdade\n  });\n}\n\n// Passo 3: teste — a MESMA factory de teste injeta fakes.\nfunction criarAppDePagamentoDeTeste() {\n  const notificacoes = [];\n  const processador = criarProcessadorDePagamento({\n    calcularTaxa: () => 5, // taxa fixa, previsível\n    notificar: (mensagem) => notificacoes.push(mensagem), // grava, não envia\n  });\n  return { processador, notificacoes };\n}\n\n// Passo 4: os dois mundos, o mesmo processar.\nconst producao = criarAppDePagamento();\nconsole.log(producao.processar({ total: 100 }).valorFinal); // imprime: 110\n\nconst teste = criarAppDePagamentoDeTeste();\nconsole.log(teste.processar({ total: 100 }).valorFinal); // imprime: 105\n\n// Passo 5: a prova — o fake gravou o que o processador mandou.\nconsole.log(teste.notificacoes); // imprime: ['Pagamento de R$ 105.00 aprovado']\n",
+        "explanation": "A factory injeta as versões reais; o teste injeta fakes; o mesmo processar roda nos dois mundos com resultados diferentes e a notificação gravada prova a troca."
+      }
+    }
+  ],
+  "sources": [
+    {
+      "title": "Martin Fowler — Injeção de dependências",
+      "url": "https://martinfowler.com/articles/injection.html",
+      "description": "O artigo clássico que nomeou o padrão de injeção de dependências."
+    },
+    {
+      "title": "Refactoring Guru — Catálogo de padrões de projeto",
+      "url": "https://refactoring.guru/pt-br/design-patterns",
+      "description": "Catálogo com os padrões de projeto explicados em linguagem simples."
+    },
+    {
+      "title": "Node.js Design Patterns",
+      "url": "https://www.nodejsdesignpatterns.com/",
+      "description": "O livro oficial dos padrões de design para Node.js."
+    }
+  ],
+  "challenges": [
+    "processador-com-dependencias"
+  ]
+}

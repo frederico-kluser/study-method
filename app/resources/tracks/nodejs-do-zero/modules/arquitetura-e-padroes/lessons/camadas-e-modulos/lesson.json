@@ -1,0 +1,61 @@
+{
+  "schemaVersion": 1,
+  "slug": "camadas-e-modulos",
+  "title": "Camadas e módulos: cada coisa no seu lugar",
+  "summary": "Separar o código em camadas e módulos — cada arquivo com uma responsabilidade — para mudar uma parte sem quebrar o resto.",
+  "difficulty": 5,
+  "concepts": [
+    "camadas_modulos"
+  ],
+  "prerequisites": [
+    "apis-rest-e-json",
+    "rotas-e-middleware"
+  ],
+  "theory": [
+    {
+      "id": "a-cozinha-organizada",
+      "title": "A cozinha organizada",
+      "markdown": "Pense num restaurante de verdade. Ninguém espera que o mesmo funcionário receba o pedido, corte os legumes, cozinhe, monte o prato, lave a louça e atenda o caixa. Isso até funciona — enquanto o restaurante é pequeno. No dia em que o movimento cresce, tudo trava: uma coisa depende da outra, e qualquer problema vira caos.\n\nPor isso a cozinha é dividida em **estações**: quem recebe, quem prepara, quem cozinha, quem monta. Cada estação tem UMA responsabilidade e conversa com a estação vizinha por uma regra clara (o prato pronto passa adiante). Mudar o cardápio não exige reformar a cozinha inteira.\n\nO mesmo vale para código. **Camadas** são estações: cada parte do seu programa tem uma responsabilidade própria.\n\n- **Apresentação (o que o cliente vê)**: receber o pedido, validar o formato, devolver a resposta.\n- **Regras de negócio (o que o restaurante decide)**: quanto cobrar, qual desconto aplicar, o que pode ou não ser pedido.\n- **Dados (onde as coisas ficam guardadas)**: a lista de pedidos, o arquivo, o banco de dados.\n\nE **módulos** são os arquivos: cada arquivo `.mjs` é uma peça com uma função (ou um grupo de funções) bem definida. Um arquivo chama o outro por `import`, e ninguém precisa saber COMO a outra peça faz o trabalho — só o QUE ela entrega.\n\n**Estratégia:** antes de escrever uma função nova, pergunte: de que camada ela é? Se a função mistura cálculo, regra e formatação no mesmo corpo, separe — você verá a diferença quando precisar consertar uma delas.\n"
+    },
+    {
+      "id": "modulos-e-import",
+      "title": "Módulos: arquivos que se chamam",
+      "markdown": "Na trilha você já viu `import` e `export` — módulos do Node. Aqui o foco é o PRINCÍPIO por trás: cada arquivo cuida de uma coisa, e o arquivo que compõe o trabalho final é fino, quase só chamadas.\n\nTrês arquivos, três responsabilidades:\n\n1. `calculo.mjs` — a camada de cálculo: soma preço x quantidade. Não valida, não formata.\n2. `formatacao.mjs` — a camada de apresentação: transforma número em texto. Não calcula.\n3. `pedido.mjs` — a composição: valida, calcula, formata, na ordem certa.\n\nObserve: `pedido.mjs` usa `import` dos outros dois e NÃO copia nada — se a regra do cálculo mudar, muda só em `calculo.mjs`; `pedido.mjs` nem precisa ser aberto.\n\n\n\n\nRepare no fluxo da composição: `calcularTotal(itens)` roda primeiro (o resultado sai de dentro para fora), e só depois `formatarTotal` recebe esse resultado. A ordem importa: cálculo antes de formatação.\n\n**Import limpo:** `pedido.mjs` não declara `item`, não soma nada, não escreve \"R$\". Ele só ORQUESTRA. Se um dia a formatação mudar (cifrão antes, vírgula em vez de ponto), o arquivo `pedido.mjs` continua igual.\n",
+      "code": {
+        "language": "js",
+        "code": "// calculo.mjs — UMA responsabilidade: matemática pura.\nexport function calcularTotal(itens) {\n  return itens.reduce((soma, item) => soma + item.preco * item.quantidade, 0);\n}\n\n// formatacao.mjs — UMA responsabilidade: transformar número em texto bonito.\nexport function formatarTotal(total) {\n  return `R$ ${total.toFixed(2)}`;\n}\n\n// pedido.mjs — composição: chama as outras camadas, sem repetir o trabalho delas.\nimport { calcularTotal } from './calculo.mjs';\nimport { formatarTotal } from './formatacao.mjs';\n\nexport function processarPedido(itens) {\n  return formatarTotal(calcularTotal(itens));\n}\n",
+        "explanation": "Três arquivos, três responsabilidades: calculo.mjs calcula, formatacao.mjs formata e pedido.mjs apenas compõe com import — mudar uma camada não toca nas outras."
+      }
+    },
+    {
+      "id": "exemplo-completo",
+      "title": "Exemplo completo: a API de pedidos em camadas",
+      "markdown": "**Objetivo:** montar o fluxo de um pedido com cada camada no seu arquivo — o mesmo desenho que você usará nos próximos desafios.\n\nPasso 1 — a camada de dados: `pedidos.mjs` guarda a lista. É a única que mexe no \"banco\".\n\nPasso 2 — a camada de cálculo: `calculo.mjs` soma preço x quantidade, pura.\n\nPasso 3 — a camada de apresentação: `formatacao.mjs` vira número em texto.\n\nPasso 4 — a composição: `api.mjs` junta as três na ordem certa (guardar, calcular, formatar).\n\nPasso 5 — confira a troca: se a regra de formatação mudar, só `formatacao.mjs` muda. As outras nem abrem.\n\n\nRepare: `registrarPedido` é a única função que \"conversa\" com as três camadas — as outras não se conhecem. É essa separação que permite mudar uma estação sem reformar a cozinha.\n",
+      "code": {
+        "language": "js",
+        "code": "// Passo 1: camada de dados — só ela toca na lista de pedidos.\nconst pedidos = [];\nexport function salvarPedido(pedido) { pedidos.push(pedido); return pedido; }\n\n// Passo 2: camada de cálculo — matemática pura, sem tocar em lista nem em texto.\nexport function calcularTotal(itens) {\n  return itens.reduce((soma, item) => soma + item.preco * item.quantidade, 0);\n}\n\n// Passo 3: camada de apresentação — número vira texto, sem tocar em cálculo.\nexport function formatarTotal(total) {\n  return `R$ ${total.toFixed(2)}`;\n}\n\n// Passo 4: composição — orquestra as camadas na ordem certa.\nexport function registrarPedido(itens) {\n  const total = calcularTotal(itens);      // primeiro o cálculo...\n  const pedido = { itens, total };         // ...depois monta o registro...\n  salvarPedido(pedido);                    // ...guarda na camada de dados...\n  return { ...pedido, totalFormatado: formatarTotal(total) }; // ...e formata na saída.\n}\n\n// Passo 5: prova — a API devolve o pedido com o total já formatado.\nconsole.log(registrarPedido([{ nome: 'Café', preco: 8, quantidade: 2 }]));\n// imprime: { itens: [{ nome: 'Café', preco: 8, quantidade: 2 }], total: 16, totalFormatado: 'R$ 16.00' }\n",
+        "explanation": "Cada passo é uma camada: guardar, calcular, formatar e compor. registrarPedido é a única função que conversa com as três — o resto nem se conhece."
+      }
+    }
+  ],
+  "sources": [
+    {
+      "title": "Martin Fowler — Camadas: apresentação, domínio e dados",
+      "url": "https://martinfowler.com/bliki/PresentationDomainDataLayering.html",
+      "description": "O artigo original sobre dividir o código em camadas e por quê."
+    },
+    {
+      "title": "MDN — Módulos JavaScript",
+      "url": "https://developer.mozilla.org/pt-BR/docs/Web/JavaScript/Guide/Modules",
+      "description": "Guia oficial de import/export e arquivos-módulo."
+    },
+    {
+      "title": "Node.js — Módulos ESM",
+      "url": "https://nodejs.org/api/esm.html",
+      "description": "Documentação oficial dos módulos ECMAScript no Node."
+    }
+  ],
+  "challenges": [
+    "camadas-do-pedido"
+  ]
+}

@@ -1,0 +1,60 @@
+{
+  "schemaVersion": 1,
+  "slug": "service",
+  "title": "Service: a lógica de negócio no centro",
+  "summary": "Concentrar as regras de negócio num service que recebe o repositório pronto, deixando os handlers finos e a regra testável.",
+  "difficulty": 5,
+  "concepts": [
+    "service"
+  ],
+  "prerequisites": [
+    "repository"
+  ],
+  "theory": [
+    {
+      "id": "o-gerente-do-restaurante",
+      "title": "O gerente do restaurante",
+      "markdown": "No restaurante, o garçom anota o pedido e leva à cozinha. Mas quem decide as REGRAS não é o garçom: é o gerente. \"Pedido com mais de 5 itens ganha 10% de desconto\", \"quantidade mínima é 1\", \"preço nunca negativo\" — essas regras moram na cabeça do gerente, não na do garçom, e muito menos no estoque.\n\nNo código, o **service** é o gerente. Ele é a camada onde moram as **regras de negócio** — as decisões que fazem o seu programa ser o que ele é:\n\n- validações de regra (\"quantidade precisa ser 1 ou mais\");\n- cálculos de decisão (\"o total é preço vezes quantidade\");\n- fluxos (\"todo pedido novo ganha um id na sequência\").\n\nE o que o service NÃO faz? Não conversa com o mundo externo (não é HTTP, não é banco) — essas conversas são de outras camadas. O service recebe os dados, aplica as regras e entrega o resultado: para a camada de apresentação (que responde ao cliente) e para o repositório (que guarda).\n\nNa prática, o service costuma ser uma função que RECEBE o repositório pronto e devolve um objeto com as operações de negócio:\n\n```js\n// service.mjs — o gerente: regras de negócio no centro, dados de fora.\nexport function criarServiceDePedidos(repositorio) {\n  return {\n    registrarPedido(dados) {\n      // regras do gerente vão aqui dentro...\n      const pedido = { id: proximoId, ...dados };\n      repositorio.salvar(pedido); // ...e a guarda fica com o repositório\n      return pedido;\n    },\n  };\n}\n```\n\n**Estratégia:** quando uma regra de negócio precisar existir, resista à tentação de escrevê-la dentro do handler da rota (o \"garçom\") ou dentro do repositório (o \"estoque\"). Ela tem um lugar: o service.\n"
+    },
+    {
+      "id": "o-service-em-codigo",
+      "title": "O service em código: regras, e nada além",
+      "markdown": "Compare dois jeitos de registrar um pedido.\n\n**Jeito errado — regra de negócio no handler (o garçom decide tudo):**\n\n\nAqui o handler faz três papéis: responde HTTP, decide regras e mexe nos dados. Testar a regra exige simular a rota inteira; mudar o banco exige mexer na rota.\n\n**Jeito certo — regra no service, cada um no seu papel:**\n\n\n\nRepare na divisão: o handler só traduz o resultado em resposta HTTP; o repositório só guarda; o service concentra as regras. Agora dá para testar a regra SEM HTTP e trocar o banco SEM tocar na regra.\n",
+      "code": {
+        "language": "js",
+        "code": "// service.mjs — o gerente: só regras de negócio, nada de HTTP nem de banco.\nexport function criarServiceDePedidos(repositorio) {\n  let proximoId = 1; // regra: ids são sequenciais começando em 1\n\n  return {\n    registrarPedido({ produto, quantidade, precoUnitario } = {}) {\n      // Regras do gerente, todas no mesmo lugar:\n      if (typeof produto !== 'string' || produto.trim() === '') {\n        throw new Error('produto precisa ser um texto não vazio');\n      }\n      if (!Number.isInteger(quantidade) || quantidade < 1) {\n        throw new Error('quantidade precisa ser um inteiro maior ou igual a 1');\n      }\n      if (typeof precoUnitario !== 'number' || precoUnitario < 0) {\n        throw new Error('precoUnitario precisa ser um número maior ou igual a 0');\n      }\n\n      const pedido = { id: proximoId, produto, quantidade, precoUnitario, total: quantidade * precoUnitario };\n      proximoId += 1;\n\n      repositorio.salvar(pedido); // guardar é com o repositório\n      return pedido;\n    },\n\n    totalDeTodos() {\n      return repositorio.listar().reduce((soma, pedido) => soma + pedido.total, 0);\n    },\n  };\n}\n\n// rota.mjs — o garçom: fino, só liga HTTP ao service.\nimport { criarServiceDePedidos } from './service.mjs';\n\nconst service = criarServiceDePedidos(repositorio); // recebe o repositório pronto\n\nexport function rotaRegistrarPedido(body) {\n  try {\n    return { status: 201, corpo: service.registrarPedido(body) }; // regra? o service decide\n  } catch (erro) {\n    return { status: 400, corpo: { erro: erro.message } };\n  }\n}\n",
+        "explanation": "O service concentra as regras (validação, id sequencial, cálculo do total) e usa apenas salvar e listar do repositório recebido; o handler fica fino, só ligando HTTP ao service."
+      }
+    },
+    {
+      "id": "exemplo-completo",
+      "title": "Exemplo completo: service de pedidos com repositório de fora",
+      "markdown": "**Objetivo:** montar o fluxo completo — repositório, service e \"rota\" — e provar que a regra de negócio fica testável sem HTTP.\n\nPasso 1 — crie o repositório (a sala do arquivo morto) com `criarRepositorio()`.\n\nPasso 2 — crie o service PASSANDO o repositório: `criarServiceDePedidos(repositorio)`. O service recebe de fora a porta de dados — ele não cria nada.\n\nPasso 3 — registre pedidos: o service valida, calcula o total, atribui o id e manda salvar.\n\nPasso 4 — use o repositório pela porta certa: `listar()` mostra o que o service guardou.\n\nPasso 5 — confira a divisão: a regra (\"quantidade inválida lança\") é testada SEM HTTP — chamando o service direto.\n\n\nRepare no fluxo de responsabilidades: quem chama `registrarPedido` não precisa saber nada de arquivo; quem guarda não decide regra nenhuma; a regra vive inteira no service. Mudou uma parte, as outras ficam de pé.\n",
+      "code": {
+        "language": "js",
+        "code": "// Passo 1: o repositório guarda; service e rota não sabem onde os dados moram.\nconst repositorio = criarRepositorio();\n\n// Passo 2: o service recebe o repositório pronto (injeção de dependência).\nconst service = criarServiceDePedidos(repositorio);\n\n// Passo 3: registrarPedido aplica as regras e devolve o pedido completo.\nconst pedido = service.registrarPedido({ produto: 'Café', quantidade: 2, precoUnitario: 8 });\nconsole.log(pedido); // imprime: { id: 1, produto: 'Café', quantidade: 2, precoUnitario: 8, total: 16 }\n\n// Passo 4: o repositório guardou o que o service mandou.\nconsole.log(repositorio.listar().length); // imprime: 1\n\n// Passo 5: a regra é testável direto, sem servidor nem rota.\nconsole.log(service.registrarPedido({ produto: 'Café', quantidade: 0, precoUnitario: 8 }));\n// lança: quantidade precisa ser um inteiro maior ou igual a 1\n",
+        "explanation": "Repositório, service e uso final: o service recebe o repositório pronto, aplica as regras e devolve o pedido — a regra é testável sem servidor."
+      }
+    }
+  ],
+  "sources": [
+    {
+      "title": "Martin Fowler — Service Layer",
+      "url": "https://martinfowler.com/eaaCatalog/serviceLayer.html",
+      "description": "A camada de serviço no catálogo de padrões de arquitetura."
+    },
+    {
+      "title": "Martin Fowler — Camadas: apresentação, domínio e dados",
+      "url": "https://martinfowler.com/bliki/PresentationDomainDataLayering.html",
+      "description": "Onde a camada de serviço se encaixa na divisão em camadas."
+    },
+    {
+      "title": "Node.js Design Patterns",
+      "url": "https://www.nodejsdesignpatterns.com/",
+      "description": "O livro oficial dos padrões de design para Node.js."
+    }
+  ],
+  "challenges": [
+    "service-de-pedidos"
+  ]
+}
