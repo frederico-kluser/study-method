@@ -132,7 +132,33 @@
     "newLesson": "Generate new lesson",
     "continue": "Continue",
     "answerLabel": "Your answer",
-    "answerSubmit": "Submit"
+    "answerSubmit": "Submit",
+    "research": {
+      "title": "Live research",
+      "round": "Round {{current}} of {{total}}",
+      "concluded": "{{done}} of {{total}} completed",
+      "uniqueSources": "{{count}} unique sources",
+      "summary": "Research complete: {{ok}} ok, {{failed}} failed, {{unique}} unique sources",
+      "stopped": "Research stopped",
+      "status": {
+        "pending": "Pending",
+        "running": "Researching…",
+        "done": "Done",
+        "failed": "Failed"
+      },
+      "hits": "{{count}} results",
+      "queryFailed": "Search failed",
+      "errorCodes": {
+        "BRAVE_KEY_MISSING": "Brave Search key not set",
+        "BRAVE_KEY_INVALID": "Brave Search key invalid",
+        "BRAVE_RATE_LIMIT": "Brave Search rate limit reached",
+        "BRAVE_SERVER_ERROR": "Brave Search server error"
+      },
+      "phaseError": {
+        "BRAVE_KEY_MISSING": "Generating the lesson requires the Brave Search key — register it in Settings to research.",
+        "BRAVE_KEY_INVALID": "The Brave Search key was rejected — review it in Settings and try again."
+      }
+    }
   },
   "challenge": {
     "openChallenge": "Open challenge",

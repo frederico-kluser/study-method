@@ -31,6 +31,10 @@ export interface LessonPhaseState {
   /** true quando o payload sinaliza erro (phase:'error' / error:true). A fase
    *  não é tocada: a decisão de preservar a fase anterior é da view. */
   failed: boolean;
+  /** Código de erro estruturado do main (ex.: 'BRAVE_KEY_MISSING') quando o
+   *  erro de fase o carrega — aditivo (onda3-pesquisa-checklist-ui); undefined
+   *  quando ausente. */
+  code?: string;
 }
 
 const PHASE_MESSAGES: Record<LessonPhaseKey, string> = {
@@ -147,6 +151,12 @@ export function parseLessonProgressEvent(raw: unknown): LessonPhaseState {
   // mensagem custom
   if (typeof raw.message === 'string' && raw.message.trim()) {
     base.message = raw.message.trim();
+  }
+
+  // código de erro estruturado (aditivo — ex.: BRAVE_KEY_MISSING do erro de
+  // fase da pesquisa; a view mapeia para i18n via researchPhaseErrorKey).
+  if (typeof raw.code === 'string' && raw.code.trim()) {
+    base.code = raw.code.trim();
   }
 
   return base;

@@ -83,6 +83,36 @@ describe('parseLessonProgressEvent', () => {
     assert.match(p.message, /Brave falhou/);
   });
 
+  it("phase 'error' com code estruturado (BRAVE_*) → code preservado (onda3-checklist)", () => {
+    const p = parseLessonProgressEvent({
+      phase: 'error',
+      message: 'Chave ausente',
+      code: 'BRAVE_KEY_MISSING',
+    });
+    assert.equal(p.failed, true);
+    assert.equal(p.code, 'BRAVE_KEY_MISSING');
+    assert.match(p.message, /Chave ausente/);
+  });
+
+  it('code é aditivo: eventos sem code não o definem (undefined)', () => {
+    assert.equal(parseLessonProgressEvent({ phase: 'pesquisando' }).code, undefined);
+    assert.equal(parseLessonProgressEvent({ phase: 'done' }).code, undefined);
+    assert.equal(parseLessonProgressEvent({ error: true }).code, undefined);
+    assert.equal(parseLessonProgressEvent({ phase: 'error' }).code, undefined);
+  });
+
+  it('code só de espaços/vazio é ignorado', () => {
+    const p = parseLessonProgressEvent({ phase: 'error', code: '   ' });
+    assert.equal(p.failed, true);
+    assert.equal(p.code, undefined);
+  });
+
+  it('code é extraído também de error:true (sem phase nomeada)', () => {
+    const p = parseLessonProgressEvent({ error: true, code: 'BRAVE_KEY_INVALID' });
+    assert.equal(p.failed, true);
+    assert.equal(p.code, 'BRAVE_KEY_INVALID');
+  });
+
   it('error:true → failed true', () => {
     const p = parseLessonProgressEvent({ error: true, message: 'LLM indisponível' });
     assert.equal(p.failed, true);

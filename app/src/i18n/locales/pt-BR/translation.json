@@ -132,7 +132,33 @@
     "newLesson": "Gerar nova aula",
     "continue": "Continuar",
     "answerLabel": "Sua resposta",
-    "answerSubmit": "Enviar"
+    "answerSubmit": "Enviar",
+    "research": {
+      "title": "Pesquisa ao vivo",
+      "round": "Rodada {{current}} de {{total}}",
+      "concluded": "{{done}} de {{total}} concluídas",
+      "uniqueSources": "{{count}} fontes únicas",
+      "summary": "Pesquisa concluída: {{ok}} ok, {{failed}} falhas, {{unique}} fontes únicas",
+      "stopped": "Pesquisa interrompida",
+      "status": {
+        "pending": "Aguardando",
+        "running": "Pesquisando…",
+        "done": "Concluída",
+        "failed": "Falhou"
+      },
+      "hits": "{{count}} resultados",
+      "queryFailed": "Falha na busca",
+      "errorCodes": {
+        "BRAVE_KEY_MISSING": "Chave da Brave Search não configurada",
+        "BRAVE_KEY_INVALID": "Chave da Brave Search inválida",
+        "BRAVE_RATE_LIMIT": "Limite da Brave Search atingido",
+        "BRAVE_SERVER_ERROR": "Erro do servidor da Brave Search"
+      },
+      "phaseError": {
+        "BRAVE_KEY_MISSING": "A geração da aula exige a chave da Brave Search — cadastre-a em Configurações para pesquisar.",
+        "BRAVE_KEY_INVALID": "A chave da Brave Search foi rejeitada — revise-a em Configurações e tente de novo."
+      }
+    }
   },
   "challenge": {
     "openChallenge": "Abrir desafio",

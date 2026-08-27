@@ -26,7 +26,15 @@
  * `data-onboarding-target="lesson-subject"` e NÃO introduz gamificação (XP/streak).
  */
 import ReactMarkdown from 'react-markdown';
-import { useCallback, useRef, useState, type ReactElement, type ReactNode } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactElement,
+  type ReactNode,
+} from 'react';
 import { useTranslation } from 'react-i18next';
 import Alert from '@mui/material/Alert';
 import Box from '@mui/material/Box';
@@ -53,6 +61,15 @@ import { getApi } from '../../lib/apiBridge';
 import { useChallengeNav } from '../../lib/challengeNav';
 import { useLessonProgress } from '../../hooks/useLessonProgress';
 import { parseLessonProgressEvent, type LessonPhaseState } from '../../lib/lessonProgress';
+import {
+  applyResearchEvent,
+  createResearchChecklist,
+  markResearchErrored,
+  markResearchResolved,
+  researchPhaseErrorKey,
+  type ResearchChecklistState,
+} from '../../lib/researchProgress';
+import ResearchChecklist from './ResearchChecklist';
 import { lessonPhaseIndex, LESSON_PHASE_ORDER } from '../../lib/lessonPhaseLabels';
 import { parseLessonResult, type ParsedLesson } from '../../lib/lessonParse';
 import { validateSubject } from '../../lib/validate';
@@ -283,6 +300,13 @@ function AnswerSection({
 
 export default function LessonView(): ReactElement {
   const { t } = useTranslation();
+  // Interpolação ({{var}}): mesmo escape aprovado do ChallengeView (cast tI).
+  // Memoizado sobre `t` (estável entre renders) para onProgress não re-assinar
+  // o canal a cada render.
+  const tI = useMemo(
+    () => t as unknown as (key: string, options?: Record<string, string | number>) => string,
+    [t],
+  );
   const { setLastSetupRoot } = useChallengeNav();
   // fix17c ACHADO-1/3: pré-preenche o assunto vindo da Home (chips).
   const pendingRef = useRef<string | null | undefined>(undefined);
@@ -300,6 +324,15 @@ export default function LessonView(): ReactElement {
   });
   const [parsed, setParsed] = useState<ParsedLesson | null>(null);
   const [error, setError] = useState('');
+  // ── Checklist de pesquisa AO VIVO (onda3-pesquisa-checklist-ui) ─────────────
+  // Máquina pura em src/lib/researchProgress.ts. No modo E2E nenhum evento
+  // `research:*` chega (emit do stub é no-op): sem `research:plan` o checklist
+  // fica invisível (retrocompat) e a barra de fases continua soberana; a máquina
+  // fecha SEMPRE no resolve/rejeição da generateLesson (markResolved/Errored).
+  const [research, setResearch] = useState<ResearchChecklistState>(createResearchChecklist);
+  // Código do último erro de fase (lesson-progress phase:'error' com code?) —
+  // lido na rejeição da generateLesson para a mensagem i18n clara de chave Brave.
+  const phaseCodeRef = useRef<string | undefined>(undefined);
 
   // ── Fluxo encadeado (onda 3) ────────────────────────────────────────────────
   // Estado local DEFENSIVO: como recordAnswer/listLessons ainda não são expostos
@@ -362,7 +395,17 @@ export default function LessonView(): ReactElement {
     (raw: unknown) => {
       const next = parseLessonProgressEvent(raw);
       if (next.failed) {
-        setPhase((prev) => ({ ...prev, failed: true, message: next.message }));
+        // Erro de fase com code de chave Brave (BRAVE_KEY_MISSING/INVALID) →
+        // mensagem i18n clara ("a chave Brave é obrigatória"); demais erros
+        // mantêm a mensagem crua do main.
+        const phaseKey = researchPhaseErrorKey(next.code);
+        phaseCodeRef.current = next.code;
+        setPhase((prev) => ({
+          ...prev,
+          failed: true,
+          message: phaseKey ? tI(phaseKey) : next.message,
+          code: next.code,
+        }));
       } else {
         setPhase(next);
       }
@@ -372,10 +415,26 @@ export default function LessonView(): ReactElement {
         setLastSetupRoot(rec.setupRoot.trim());
       }
     },
-    [setLastSetupRoot],
+    [setLastSetupRoot, tI],
   );
 
   useLessonProgress(onProgress);
+
+  // Canal NOVO `study:research-progress` (aditivo ao contrato congelado):
+  // alimenta a máquina do checklist ao vivo. Mesmo padrão do onTestAnswerEvent
+  // da ChallengeView — unsubscribe no unmount, nunca quebra se a API faltar.
+  useEffect(() => {
+    const api = getApi();
+    let stop: (() => void) | undefined;
+    try {
+      stop = api.study.onResearchProgress((ev) => {
+        setResearch((s) => applyResearchEvent(s, ev));
+      });
+    } catch {
+      stop = undefined;
+    }
+    return () => stop?.();
+  }, []);
 
   /** Gera UMA aula nova a partir do assunto digitado. */
   const generateNew = async (): Promise<void> => {
@@ -395,21 +454,36 @@ export default function LessonView(): ReactElement {
       done: false,
       failed: false,
     });
+    // Reinicia o checklist da pesquisa ao vivo (e o código de erro de fase).
+    setResearch(createResearchChecklist());
+    phaseCodeRef.current = undefined;
     setLastSetupRoot(null);
     try {
       const typed = getApi().study.generateLesson as (s: string) => Promise<unknown>;
       const payload = await typed(subject.trim());
       const result = parseLessonResult(payload);
       if (!result.ok) {
-        setError(result.error ?? t('translation:lesson.failGenerate'));
+        // Erro de fase com code de chave Brave → mensagem i18n clara.
+        const phaseKey = researchPhaseErrorKey(phaseCodeRef.current);
+        setResearch((s) => markResearchErrored(s));
+        setError(phaseKey ? tI(phaseKey) : (result.error ?? t('translation:lesson.failGenerate')));
         setStatus('error');
         return;
       }
       registerLesson(result.lesson, subject);
       setPhase((prev) => ({ ...prev, phase: 'concluindo', done: true }));
+      // Término OBRIGATÓRIO: no modo E2E nenhum `research:done` chega (emit do
+      // stub é no-op) — sem isso o spinner do checklist travaria.
+      setResearch((s) => markResearchResolved(s));
       setStatus('done');
     } catch (err) {
-      setError(`${t('translation:lesson.errorGenerate')}: ${String(err)}`);
+      const phaseKey = researchPhaseErrorKey(phaseCodeRef.current);
+      setResearch((s) => markResearchErrored(s));
+      setError(
+        phaseKey
+          ? tI(phaseKey)
+          : `${t('translation:lesson.errorGenerate')}: ${String(err)}`,
+      );
       setStatus('error');
     }
   };
@@ -529,11 +603,16 @@ export default function LessonView(): ReactElement {
             aria-label={t('translation:lesson.generate')}
             sx={{ mt: 1 }}
           />
-          {running && phase.message ? (
+          {(running || phase.failed) && phase.message ? (
             <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
               {phase.message}
             </Typography>
           ) : null}
+          {/* Checklist de pesquisa AO VIVO (aditivo na fase research — não toca
+              no stepper de fases acima). Invisível sem research:plan (retrocompat
+              / E2E); congela (terminal) no research:done ou no resolve/erro da
+              generateLesson. */}
+          <ResearchChecklist state={research} />
         </Box>
       ) : null}
 
