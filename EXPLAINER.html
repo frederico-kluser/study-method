@@ -3,543 +3,1658 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>O crash silencioso do run.sh — ABI, NAPI e a solução pela raiz (node:sqlite)</title>
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔍</text></svg>">
+<meta name="plannotator-theme" content="host">
+<title>Rodada 7 — o ciclo de estudo fechado</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%235537eb'/%3E%3Ctext x='32' y='45' font-family='Georgia,serif' font-size='38' font-weight='700' fill='white' text-anchor='middle'%3E7%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
-  :root{
-    --bg:#0f1420; --panel:#161d2e; --panel2:#1c2438; --ink:#e8ecf6;
-    --muted:#9aa6bd; --line:#2a3450; --accent:#6ea8fe; --accent2:#9ef0d0;
-    --ok:#6ee7a0; --warn:#ffd166; --danger:#ff7b7b; --orange:#ffb86b; --chip:#223052;
+  /* ============ TOKENS DE TEMA (Plannotator) ============ */
+  :root {
+    --background: oklch(0.97 0.005 260);
+    --foreground: oklch(0.18 0.02 260);
+    --card: oklch(1 0 0);
+    --card-foreground: oklch(0.18 0.02 260);
+    --muted: oklch(0.92 0.01 260);
+    --muted-foreground: oklch(0.40 0.02 260);
+    --primary: oklch(0.50 0.25 280);
+    --primary-foreground: oklch(1 0 0);
+    --secondary: oklch(0.50 0.18 180);
+    --accent: oklch(0.60 0.22 50);
+    --accent-foreground: oklch(0.18 0.02 260);
+    --destructive: oklch(0.50 0.25 25);
+    --success: oklch(0.45 0.20 150);
+    --warning: oklch(0.55 0.18 85);
+    --border: oklch(0.88 0.01 260);
+    --code-bg: oklch(0.92 0.01 260);
+    --ring: oklch(0.50 0.25 280);
+    --radius: 0.625rem;
+    --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+    --font-mono: 'JetBrains Mono', 'Fira Code', ui-monospace, 'SF Mono', monospace;
+    --font-display: ui-serif, Georgia, 'Times New Roman', serif;
+    --crit-fill: #fde68a;
+    --crit-text: #451a03;
+    --crit-stroke: #b45309;
   }
-  *{box-sizing:border-box}
-  html,body{margin:0;padding:0}
-  body{
-    background:var(--bg); color:var(--ink);
-    font:16px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --background: oklch(0.15 0.02 260);
+      --foreground: oklch(0.90 0.01 260);
+      --card: oklch(0.22 0.02 260);
+      --card-foreground: oklch(0.90 0.01 260);
+      --muted: oklch(0.26 0.02 260);
+      --muted-foreground: oklch(0.72 0.02 260);
+      --primary: oklch(0.75 0.18 280);
+      --primary-foreground: oklch(0.15 0.02 260);
+      --accent: oklch(0.70 0.20 60);
+      --border: oklch(0.35 0.02 260);
+      --code-bg: oklch(0.26 0.02 260);
+      --destructive: oklch(0.65 0.20 25);
+      --success: oklch(0.72 0.17 150);
+      --warning: oklch(0.75 0.15 85);
+    }
   }
-  .wrap{max-width:900px;margin:0 auto;padding:36px 22px 80px}
-  h1{font-size:1.7rem;line-height:1.25;margin:8px 0 2px}
-  .subtitle{color:var(--muted);font-size:1.02rem;margin:4px 0 14px}
-  h2{font-size:1.28rem;margin:48px 0 10px;padding-bottom:6px;border-bottom:2px solid var(--line)}
-  h2 .num{color:var(--accent);margin-right:8px}
-  h3{font-size:1.05rem;margin:24px 0 6px;color:var(--accent2)}
-  p{margin:10px 0}
-  .lead{color:var(--muted);font-size:1.02rem}
-  code{background:var(--chip);border:1px solid var(--line);border-radius:5px;padding:1px 6px;font-size:.88em;color:#cfe3ff;white-space:nowrap}
-  pre{background:#0b0f1a;border:1px solid var(--line);border-radius:10px;padding:14px 16px;overflow-x:auto;font-size:.84rem;line-height:1.55}
-  pre code{background:none;border:none;padding:0;white-space:pre}
-  a{color:var(--accent);text-decoration:none}
-  a:hover{text-decoration:underline}
-  .chips{display:flex;flex-wrap:wrap;gap:8px;margin:14px 0 4px}
-  .chip{background:var(--chip);border:1px solid var(--line);border-radius:999px;padding:3px 12px;font-size:.8rem;color:var(--muted)}
-  .answer{
-    background:linear-gradient(180deg,var(--panel2),var(--panel));
-    border:1px solid var(--line);border-left:4px solid var(--accent);
-    border-radius:10px;padding:16px 18px;margin:18px 0;font-size:1.05rem;
+
+  /* ============ RESET + BASE ============ */
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background-color: var(--background);
+    background-image: radial-gradient(circle, var(--border) 1px, transparent 1px);
+    background-size: 26px 26px;
+    color: var(--foreground);
+    font-family: var(--font-sans);
+    line-height: 1.65;
+    padding: 0;
+    min-height: 100vh;
   }
-  .answer strong{color:var(--accent2)}
-  .reader{
-    background:var(--panel);border:1px solid var(--line);border-radius:10px;
-    padding:14px 16px;margin:14px 0;
+
+  /* ============ ANIMAÇÃO ============ */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
   }
-  .reader .t{font-weight:700;color:var(--accent);font-size:.86rem;letter-spacing:.04em;text-transform:uppercase}
-  details{
-    background:var(--panel);border:1px solid var(--line);border-radius:10px;
-    margin:14px 0;padding:0 16px 14px;
+
+  .animate {
+    animation: fadeUp 0.4s ease-out both;
+    animation-delay: calc(var(--i, 0) * 0.06s);
   }
-  details summary{cursor:pointer;font-weight:700;color:var(--accent);padding:12px 0;list-style:none}
-  details summary::-webkit-details-marker{display:none}
-  details summary::before{content:"▸ ";color:var(--muted)}
-  details[open] summary::before{content:"▾ "}
-  table{border-collapse:collapse;width:100%;margin:14px 0;font-size:.92rem}
-  th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top}
-  th{background:var(--panel2);color:var(--accent2)}
-  tr:nth-child(even) td{background:rgba(255,255,255,.015)}
-  .figure{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:18px 18px 14px;margin:22px 0}
-  .figure .figtag{font-size:.76rem;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin-bottom:6px}
-  .figure svg{width:100%;height:auto;display:block}
-  .figure figcaption{margin-top:12px;font-size:.9rem;color:var(--muted);border-left:3px solid var(--accent);padding-left:10px}
-  .figure figcaption b{color:var(--accent2)}
-  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px;margin:14px 0}
-  .card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 14px}
-  .card .t{font-weight:700;color:var(--accent2)}
-  .ok{color:var(--ok);font-weight:700}
-  .bad{color:var(--danger);font-weight:700}
-  .warn{color:var(--warn);font-weight:700}
-  ul,ol{margin:8px 0;padding-left:22px}
-  li{margin:4px 0}
-  .small{font-size:.86rem;color:var(--muted)}
-  .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.9em}
-  .toc{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px 18px;margin:18px 0}
-  .toc ol{margin:6px 0 0}
-  .tag{display:inline-block;font-size:.72rem;font-weight:700;padding:1px 8px;border-radius:999px;vertical-align:middle;letter-spacing:.03em}
-  .tag.onda1{background:#4a3520;color:var(--orange);border:1px solid #6b4d2c}
-  .tag.onda2{background:#1d3a30;color:var(--ok);border:1px solid #2c5a48}
-  .tag.subst{background:#3a2a2a;color:var(--danger);border:1px solid #5c3f3f}
-  .tag.final{background:#1d3a30;color:var(--ok);border:1px solid #2c5a48}
-  footer{margin-top:56px;padding-top:16px;border-top:2px solid var(--line);color:var(--muted);font-size:.88rem}
-  @media (max-width:560px){
-    body{font-size:15px}
-    h1{font-size:1.4rem}
-    .wrap{padding:24px 14px 60px}
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-delay: 0ms !important;
+      transition-duration: 0.01ms !important;
+    }
+    html { scroll-behavior: auto; }
   }
-  @media print{
-    body{background:#fff;color:#111}
-    details{background:#f5f6f8;border-color:#ccc}
-    .figure{background:#f5f6f8;border-color:#ccc}
-    pre{background:#eee}
+
+  /* ============ NAV ============ */
+  .topnav {
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    background: color-mix(in oklab, var(--card) 92%, transparent);
+    backdrop-filter: blur(6px);
+    border-bottom: 1px solid var(--border);
+  }
+  .topnav__inner {
+    max-width: 1080px;
+    margin: 0 auto;
+    padding: 8px 24px;
+    display: flex;
+    gap: 4px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+  .topnav a {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.02em;
+    color: var(--muted-foreground);
+    text-decoration: none;
+    padding: 4px 9px;
+    border-radius: 6px;
+    white-space: nowrap;
+  }
+  .topnav a:hover { background: var(--muted); color: var(--foreground); }
+  .topnav a:focus-visible { outline: 2px solid var(--ring); outline-offset: 1px; }
+
+  /* ============ LAYOUT ============ */
+  .container {
+    max-width: 1080px;
+    margin: 0 auto;
+    padding: 48px 24px 96px;
+  }
+
+  header { margin-bottom: 48px; }
+
+  .eyebrow {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--primary);
+    margin-bottom: 14px;
+  }
+
+  h1 {
+    font-family: var(--font-display);
+    font-size: clamp(30px, 4.6vw, 46px);
+    font-weight: 600;
+    line-height: 1.15;
+    letter-spacing: -0.01em;
+    margin-bottom: 20px;
+    text-wrap: balance;
+  }
+
+  .answer-card {
+    background: var(--card);
+    border: 1.5px solid var(--border);
+    border-left: 4px solid var(--primary);
+    border-radius: var(--radius);
+    padding: 22px 26px;
+    font-family: var(--font-display);
+    font-size: clamp(17px, 2.2vw, 21px);
+    line-height: 1.5;
+    margin-bottom: 28px;
+    box-shadow: 0 2px 14px color-mix(in oklab, var(--primary) 8%, transparent);
+  }
+  .answer-card code {
+    font-family: var(--font-mono);
+    font-size: 0.78em;
+  }
+
+  /* ============ STATS ============ */
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 14px;
+    margin-bottom: 32px;
+  }
+  .stat {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px 18px;
+  }
+  .stat__num {
+    font-family: var(--font-display);
+    font-size: 30px;
+    font-weight: 600;
+    color: var(--primary);
+    line-height: 1.1;
+    font-variant-numeric: tabular-nums;
+  }
+  .stat__label {
+    font-size: 12.5px;
+    color: var(--muted-foreground);
+    margin-top: 4px;
+    line-height: 1.4;
+  }
+
+  /* ============ PROMPT BOX ============ */
+  .prompt-box {
+    background: var(--muted);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px 20px;
+    font-size: 13.5px;
+    color: var(--muted-foreground);
+    line-height: 1.6;
+  }
+  .prompt-box strong { color: var(--foreground); }
+  .prompt-box__label {
+    display: block;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--primary);
+    margin-bottom: 6px;
+  }
+
+  /* ============ SEÇÕES ============ */
+  section { margin-bottom: 64px; scroll-margin-top: 64px; }
+
+  h2 {
+    font-family: var(--font-display);
+    font-size: clamp(22px, 3vw, 29px);
+    font-weight: 600;
+    line-height: 1.2;
+    margin-bottom: 14px;
+    text-wrap: balance;
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+  }
+  h2 .num {
+    font-family: var(--font-mono);
+    font-size: 14px;
+    color: var(--primary);
+    letter-spacing: 0.08em;
+    flex-shrink: 0;
+  }
+
+  p { margin: 0 0 14px; max-width: 72ch; }
+
+  .lead { color: var(--muted-foreground); font-size: 15px; max-width: 68ch; }
+
+  code {
+    font-family: var(--font-mono);
+    font-size: 0.86em;
+    background: color-mix(in oklab, var(--primary) 10%, transparent);
+    color: var(--primary);
+    padding: 1px 6px;
+    border-radius: 5px;
+    overflow-wrap: anywhere;
+  }
+
+  strong code, .answer-card code { background: none; padding: 0; color: inherit; }
+
+  .signal {
+    background: color-mix(in oklab, var(--warning) 14%, var(--card));
+    border: 1px solid color-mix(in oklab, var(--warning) 45%, var(--border));
+    border-left: 4px solid var(--warning);
+    border-radius: var(--radius);
+    padding: 14px 18px;
+    font-size: 14.5px;
+    line-height: 1.6;
+    margin: 18px 0 8px;
+  }
+  .signal strong { color: var(--foreground); }
+
+  .callout {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-left: 4px solid var(--accent);
+    border-radius: var(--radius);
+    padding: 16px 20px;
+    font-size: 14px;
+    line-height: 1.6;
+    color: var(--muted-foreground);
+    margin-top: 20px;
+  }
+  .callout strong { color: var(--foreground); }
+  .callout code { background: color-mix(in oklab, var(--accent) 12%, transparent); color: var(--foreground); }
+
+  /* ============ FIGURAS ============ */
+  .figure { margin: 26px 0 10px; }
+  .figure figcaption {
+    font-size: 13.5px;
+    color: var(--muted-foreground);
+    margin-top: 10px;
+    max-width: 74ch;
+    line-height: 1.55;
+  }
+  .figure figcaption strong {
+    font-family: var(--font-mono);
+    font-size: 11.5px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--primary);
+  }
+
+  /* ============ MERMAID CONTAINER (shell canônico) ============ */
+  .diagram-shell { position: relative; }
+
+  .diagram-shell__hint {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--muted-foreground);
+    margin-bottom: 8px;
+    opacity: 0.75;
+  }
+
+  .mermaid-wrap {
+    position: relative;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 32px 24px;
+    overflow: auto;
+    margin-bottom: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 400px;
+  }
+
+  .zoom-controls {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    display: flex;
+    gap: 2px;
+    z-index: 10;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 2px;
+  }
+
+  .zoom-controls button {
+    width: 28px;
+    height: 28px;
+    border: none;
+    background: transparent;
+    color: var(--muted-foreground);
+    font-family: var(--font-mono);
+    font-size: 14px;
+    cursor: pointer;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.15s ease, color 0.15s ease;
+  }
+  .zoom-controls button:hover { background: var(--muted); color: var(--foreground); }
+  .zoom-controls button:focus-visible { outline: 2px solid var(--ring); outline-offset: -1px; }
+
+  .mermaid-wrap { cursor: grab; }
+  .mermaid-wrap.is-panning { cursor: grabbing; user-select: none; }
+
+  .mermaid-viewport {
+    position: relative;
+    overflow: hidden;
+    width: 100%;
+    height: 100%;
+    min-height: 300px;
+  }
+
+  .mermaid-canvas { position: absolute; top: 0; left: 0; }
+
+  .zoom-label {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--muted-foreground);
+    padding: 0 6px;
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+  }
+
+  /* ============ MERMAID SVG OVERRIDES ============ */
+  .mermaid .nodeLabel {
+    font-family: var(--font-sans) !important;
+    font-size: 14px !important;
+  }
+  .mermaid .edgeLabel {
+    font-family: var(--font-mono) !important;
+    font-size: 11.5px !important;
+  }
+  .mermaid .node rect,
+  .mermaid .node circle,
+  .mermaid .node polygon,
+  .mermaid .node path {
+    stroke-width: 1.5px !important;
+  }
+  .mermaid .edge-pattern-solid { stroke-width: 1.5px !important; }
+
+  /* ============ TABELAS ============ */
+  .table-wrap {
+    overflow-x: auto;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--card);
+    margin: 18px 0;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13.5px;
+    line-height: 1.55;
+    min-width: 620px;
+  }
+  caption {
+    text-align: left;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--primary);
+    padding: 12px 16px 0;
+  }
+  th {
+    text-align: left;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--muted-foreground);
+    font-weight: 500;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+    background: color-mix(in oklab, var(--muted) 55%, transparent);
+  }
+  td {
+    padding: 11px 16px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+  }
+  tr:last-child td { border-bottom: none; }
+  td .chip {
+    display: inline-block;
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    letter-spacing: 0.06em;
+    padding: 1px 8px;
+    border-radius: 99px;
+    border: 1px solid var(--border);
+    color: var(--muted-foreground);
+    white-space: nowrap;
+  }
+  .chip--ok { color: var(--success); border-color: color-mix(in oklab, var(--success) 40%, var(--border)); }
+  .chip--warn { color: var(--warning); border-color: color-mix(in oklab, var(--warning) 45%, var(--border)); }
+  .chip--primary { color: var(--primary); border-color: color-mix(in oklab, var(--primary) 40%, var(--border)); }
+  .num-col { font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+  /* ============ ANDAIME DOBRADO ============ */
+  details.scaffold {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 4px 16px;
+    margin: 14px 0;
+  }
+  details.scaffold summary {
+    cursor: pointer;
+    font-size: 13.5px;
+    font-weight: 600;
+    color: var(--primary);
+    padding: 10px 0;
+    list-style-position: inside;
+  }
+  details.scaffold summary:hover { color: var(--foreground); }
+  details.scaffold summary:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; border-radius: 4px; }
+  details.scaffold[open] summary { border-bottom: 1px dashed var(--border); margin-bottom: 8px; }
+  details.scaffold .scaffold__body { padding: 8px 0 14px; font-size: 14px; line-height: 1.65; max-width: 74ch; }
+  details.scaffold .scaffold__body p { margin-bottom: 10px; }
+  details.scaffold .scaffold__body ul { margin: 0 0 10px 20px; }
+  details.scaffold .scaffold__body li { margin-bottom: 5px; }
+
+  /* ============ FOOTER ============ */
+  footer {
+    border-top: 1px solid var(--border);
+    margin-top: 40px;
+    padding-top: 18px;
+    font-size: 12.5px;
+    color: var(--muted-foreground);
+    line-height: 1.7;
+    max-width: 80ch;
+  }
+
+  /* ============ RESPONSIVE ============ */
+  @media (max-width: 768px) {
+    .container { padding: 32px 16px 80px; }
+    .topnav__inner { padding: 8px 16px; }
+    .mermaid-wrap { padding: 16px 12px; }
+    h1 { font-size: 27px; }
+    .stats { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
   }
 </style>
 </head>
 <body>
-<div class="wrap">
 
-<header>
-  <h1>O crash silencioso do <code>run.sh</code></h1>
-  <p class="subtitle">Como um addon nativo com o ABI errado matava o app Electron em segundos — e como a solução final eliminou o problema pela raiz (<code>node:sqlite</code> + Electron 37.2.4)</p>
-  <div class="chips">
-    <span class="chip">Execução do orquestrador deep-orchestrator-agent-skill</span>
-    <span class="chip">Data: 2026-08-26</span>
-    <span class="chip">run: 20260826-151907-24415</span>
-    <span class="chip">repo: study-method</span>
-    <span class="chip">Idioma: pt-BR</span>
+<nav class="topnav" aria-label="Navegação do documento">
+  <div class="topnav__inner">
+    <a href="#pedidos">1 · Pedidos</a>
+    <a href="#aula-veredito">2 · Aula com veredito</a>
+    <a href="#regra-mestra">3 · Regra da matemática</a>
+    <a href="#estrelas">4 · Estrelas e confete</a>
+    <a href="#nunca-repetir">5 · Nunca-repetir</a>
+    <a href="#persistencia">6 · Banco à prova de queda</a>
+    <a href="#navegar">7 · Home e Trilha</a>
+    <a href="#validacao">8 · Validação</a>
   </div>
-</header>
-
-<nav class="toc">
-  <strong>Navegação</strong>
-  <ol>
-    <li><a href="#s1">Resposta em uma frase</a></li>
-    <li><a href="#s2">Para quem é este documento</a></li>
-    <li><a href="#s3">O problema: o app morre em silêncio</a></li>
-    <li><a href="#s4">A investigação: crash reports e probes</a></li>
-    <li><a href="#s5">A causa raiz: addon nativo com o ABI errado</a></li>
-    <li><a href="#s6">Mergulho técnico (opcional)</a></li>
-    <li><a href="#s7">A solução, em duas ondas</a></li>
-    <li><a href="#s8">O que mais foi consertado no caminho</a></li>
-    <li><a href="#s9">Validação: tudo verde</a></li>
-    <li><a href="#s10">Tabela de buzzwords (fechada)</a></li>
-    <li><a href="#s11">Decisões autônomas</a></li>
-    <li><a href="#s12">Commits (squash)</a></li>
-    <li><a href="#s13">Arquivos principais</a></li>
-  </ol>
 </nav>
 
-<section id="s1">
-  <h2><span class="num">1.</span>Resposta em uma frase</h2>
-  <div class="answer">
-    <p>O <code>./run.sh</code> do study-method (app Electron) passou a abrir e <strong>morrer em silêncio</strong> (exit 0) porque o banco SQLite era acessado por um <strong>addon nativo</strong> — o <code>better-sqlite3</code> 13, compilado para o <strong>NAPI 10</strong> do Node 24 do sistema — que era incompatível com o <strong>Node 20.18</strong> embutido no Electron 33 (<strong>NAPI 9</strong>), e carregar esse addon no runtime errado causava um <strong>segfault</strong>; a execução consertou isso em duas ondas e terminou com a solução definitiva: substituir o addon pelo SQLite embutido (<code>node:sqlite</code> / <code>DatabaseSync</code>), subir o Electron de 33.2.0 para <strong>37.2.4</strong>, e validar com <strong>1245 testes / 0 falhas</strong> e o app vivo por ~135s.</p>
-  </div>
-  <p class="small">Tarefa original: <em>«pesquise profundamente e arrume o projeto que além de fontes roda e quebra o run.sh»</em>, seguida da diretiva: <em>«quero que troque o sqlite por algo que funcione e quero que só pare quando terminar»</em>.</p>
-</section>
+<div class="container">
 
-<section id="s2">
-  <h2><span class="num">2.</span>Para quem é este documento</h2>
-  <div class="reader">
-    <p class="t">Leitor declarado</p>
-    <p><strong>Leitor misto — desenvolvedor curioso e usuário do projeto.</strong> O texto assume um leitor <strong>novato com dobradura</strong>: conhece JavaScript/Node só superficialmente, não conhece C++, compiladores nem o funcionamento interno do Electron. Todo termo técnico é definido na primeira ocorrência (em itálico com a definição ao lado) e repetido na <a href="#s10">tabela de buzzwords fechada</a>. Seções longas ficam dobráveis em <code>&lt;details&gt;</code> — abra só o que precisar.</p>
-  </div>
-  <p class="small">Este documento é <strong>self-contained</strong>: HTML + CSS embutidos, figuras SVG inline, zero JavaScript e zero dependência de rede — funciona offline, sem Mermaid, sem CDN.</p>
-</section>
+  <header>
+    <p class="eyebrow animate" style="--i:0">Rodada 7 · Study-Method · 2026-08-27</p>
+    <h1 class="animate" style="--i:1">O que a rodada 7 entregou ao study-method</h1>
 
-<section id="s3">
-  <h2><span class="num">3.</span>O problema: o app morre em silêncio</h2>
-  <p>O sintoma era assustador justamente porque <strong>não parecia um erro</strong>:</p>
-  <ul>
-    <li><code>./run.sh</code> <strong>buildava e abria</strong> o Electron normalmente;</li>
-    <li>o processo <strong>morria em silêncio</strong>, com <strong>exit code 0</strong> (código de saída de sucesso) — como se o app tivesse fechado sozinho;</li>
-    <li>~<strong>40s</strong> depois de abrir no Linux (Acer) e em <strong>&lt;1s</strong> no macOS (reproduzido);</li>
-    <li>o log não tinha <strong>nenhum erro</strong>: só warnings de fontconfig/GTK (avisos de fontes e de toolkit gráfico, inofensivos).</li>
-  </ul>
-  <p>Sem stack trace, sem mensagem, sem exceção: um processo que "some". Para um usuário, parece bug aleatório; para o orquestrador, era um convite à <strong>investigação empírica</strong>.</p>
-</section>
+    <div class="answer-card animate" style="--i:2">
+      A rodada 7 fechou o ciclo pedagógico do study-method: toda aula agora termina num
+      <strong>veredito</strong> (decisão final sobre a resposta do aluno: certa, parcial ou errada)
+      — matemática conferida por execução, interpretação por <strong>LLM</strong> (modelo de
+      linguagem, o &ldquo;cérebro&rdquo; que escreve e julga), programação por <strong>TDD</strong>
+      (testes que só passam com o código certo) —, desafios tentados nunca mais se repetem, e
+      matérias, lições e tentativas ficam salvas num banco local à prova de queda.
+    </div>
 
-<section id="s4">
-  <h2><span class="num">4.</span>A investigação: crash reports e probes</h2>
-  <p>Como o app não imprimia nada, a pista veio de <strong>fora do app</strong>: os relatórios de crash do sistema operacional e <strong>probes</strong> (testes isolados e mínimos) que reproduziam o problema em ambiente controlado.</p>
-  <details>
-    <summary>Ver a investigação completa (evidências)</summary>
-    <ul>
-      <li><strong>Crash reports do macOS</strong> (<span class="mono">Electron-*.ips</span> — relatórios nativos de crash do sistema): <strong>SIGSEGV</strong> na thread <span class="mono">CrBrowserMain</span> dentro de <span class="mono">node_module_register → napi_register_module_v1</span>; a imagem binária apontada era <span class="mono">darwin-arm64.node</span> — ou seja, o crash acontecia <strong>ao registrar um addon nativo</strong> no processo principal do Electron (não num <strong>utility process</strong> — processo auxiliar do Electron, como rede/GPU/utilidades, que roda código nativo fora do processo principal — e não no renderer).</li>
-      <li><strong>Probe isolado 1</strong>: <span class="mono">require('better-sqlite3')</span> dentro do Electron 33.2.0 → <strong>SIGSEGV</strong>. No Node 24 do sistema → <strong>OK</strong>. Mesmo código, dois destinos: um morre, outro não.</li>
-      <li><strong>Provas numéricas</strong> (via <span class="mono">ELECTRON_RUN_AS_NODE</span> — variável que faz o binário do Electron rodar como Node puro): Electron 33 → Node <strong>20.18.0</strong>, <strong>napi 9</strong>, <span class="mono">process.versions.modules=130</span>; Node do sistema → <strong>napi 10</strong>, modules <strong>137</strong>.</li>
-      <li><strong>Teste extra</strong>: o <code>better-sqlite3</code> v13 <strong>compilado manualmente contra os headers do Electron também crashava</strong> — provando que o problema não era "prebuild velho", e sim a versão do NAPI do próprio addon.</li>
-      <li><strong>Contraste útil</strong>: as versões v11/v12 (que usam o ABI V8 clássico, em vez de NAPI) <em>funcionavam</em> quando compiladas para o ABI do Electron — isso abriu o caminho da onda 1 (validado: alias v12.11.1 → probe OK, <span class="mono">rows=3</span>).</li>
-    </ul>
-    <figure class="figure" id="fig-crash">
-      <div class="figtag">Figura 3 · a cadeia do crash</div>
-      <svg viewBox="0 0 900 610" role="img" aria-label="Cadeia do crash: require do addon até SIGSEGV silencioso">
-        <defs>
-          <marker id="mc-a" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto"><path d="M0,0 L10,4 L0,8 z" fill="#6ea8fe"/></marker>
-        </defs>
-        <rect x="60" y="20" width="700" height="84" rx="10" fill="#1c2438" stroke="#6ea8fe" stroke-width="1.5"/>
-        <text x="80" y="44" font-size="13" font-weight="700" fill="#6ea8fe">1 · main process do app</text>
-        <text x="80" y="66" font-size="11.5" fill="#e8ecf6">require('better-sqlite3') ao abrir o banco de estudo</text>
-        <text x="80" y="86" font-size="11.5" fill="#9aa6bd">thread CrBrowserMain (processo principal do Electron)</text>
-        <line x1="410" y1="104" x2="410" y2="134" stroke="#6ea8fe" stroke-width="1.6" marker-end="url(#mc-a)"/>
-        <text x="430" y="122" font-size="11" fill="#9aa6bd">npm ci instalou o prebuild do Node do sistema (v24, NAPI 10)</text>
-        <rect x="60" y="138" width="700" height="84" rx="10" fill="#1c2438" stroke="#6ea8fe" stroke-width="1.5"/>
-        <text x="80" y="162" font-size="13" font-weight="700" fill="#6ea8fe">2 · carrega darwin-arm64.node</text>
-        <text x="80" y="184" font-size="11.5" fill="#e8ecf6">o addon NAPI 10, compilado para o runtime errado</text>
-        <text x="80" y="204" font-size="11.5" fill="#9aa6bd">o .node é registrado via node_module_register</text>
-        <line x1="410" y1="222" x2="410" y2="252" stroke="#6ea8fe" stroke-width="1.6" marker-end="url(#mc-a)"/>
-        <text x="430" y="240" font-size="11" fill="#9aa6bd">runtime NAPI 9 (Electron 33) não implementa NAPI 10</text>
-        <rect x="60" y="256" width="700" height="84" rx="10" fill="#1c2438" stroke="#ffd166" stroke-width="1.5"/>
-        <text x="80" y="280" font-size="13" font-weight="700" fill="#ffd166">3 · node_module_register → napi_register_module_v1</text>
-        <text x="80" y="302" font-size="11.5" fill="#e8ecf6">ponto exato do crash apontado pelos crash reports .ips</text>
-        <text x="80" y="322" font-size="11.5" fill="#9aa6bd">a assinatura do segfault é a mesma do probe isolado</text>
-        <line x1="410" y1="340" x2="410" y2="370" stroke="#ff7b7b" stroke-width="1.6" marker-end="url(#mc-a)"/>
-        <text x="430" y="358" font-size="11" fill="#ff7b7b">segfault não é exceção JS — nenhum try/catch intercepta</text>
-        <rect x="60" y="374" width="700" height="84" rx="10" fill="#2a2020" stroke="#ff7b7b" stroke-width="1.6"/>
-        <text x="80" y="398" font-size="13" font-weight="700" fill="#ff7b7b">4 · SIGSEGV</text>
-        <text x="80" y="420" font-size="11.5" fill="#e8ecf6">o processo é morto pelo sistema — sem stack JS, sem mensagem</text>
-        <text x="80" y="440" font-size="11.5" fill="#9aa6bd">o app "morre em silêncio": exit 0, log limpo</text>
-        <line x1="410" y1="458" x2="410" y2="488" stroke="#9ef0d0" stroke-width="1.6" marker-end="url(#mc-a)"/>
-        <text x="430" y="476" font-size="11" fill="#9ef0d0">controle: o mesmo .node carrega OK no Node 24 (NAPI 10 casa)</text>
-        <rect x="60" y="492" width="700" height="84" rx="10" fill="#1d3a30" stroke="#6ee7a0" stroke-width="1.6"/>
-        <text x="80" y="516" font-size="13" font-weight="700" fill="#6ee7a0">5 · conclusão do diagnóstico</text>
-        <text x="80" y="538" font-size="11.5" fill="#e8ecf6">o addon não estava "quebrado": estava no runtime errado</text>
-        <text x="80" y="558" font-size="11.5" fill="#9aa6bd">qualquer solução que evite o addon elimina a classe do problema</text>
-      </svg>
-      <figcaption><b>Afirmação da figura:</b> o crash é um <strong>segfault durante o registro do addon</strong>, não um erro de JavaScript — por isso o app morreu em silêncio (exit 0), sem mensagem e sem chance de <code>try/catch</code>; a prova de controle (o mesmo <code>.node</code> funciona no Node 24) mostra que o binário era válido, só que para outro runtime.</figcaption>
-    </figure>
-  </details>
-</section>
+    <div class="stats animate" style="--i:3">
+      <div class="stat">
+        <div class="stat__num">9</div>
+        <div class="stat__label">pedidos do dono entregues, em 6 ondas (fases) de trabalho</div>
+      </div>
+      <div class="stat">
+        <div class="stat__num">1562</div>
+        <div class="stat__label">testes verdes (de 1563) na suíte do app</div>
+      </div>
+      <div class="stat">
+        <div class="stat__num">19</div>
+        <div class="stat__label">testes E2E verdes — o app completo rodado de ponta a ponta</div>
+      </div>
+      <div class="stat">
+        <div class="stat__num">20.000</div>
+        <div class="stat__label">problemas de matemática conferidos por uma via independente — 0 divergências</div>
+      </div>
+    </div>
 
-<section id="s5">
-  <h2><span class="num">5.</span>A causa raiz: o addon nativo com o ABI errado</h2>
+    <div class="prompt-box animate" style="--i:4">
+      <span class="prompt-box__label">O que o dono pediu nesta rodada</span>
+      <strong>Pesquisa na web ao vivo</strong> durante a geração de aulas, com checklist estilo surf;
+      <strong>trilha</strong> separável em iniciante/intermediário/avançado; <strong>aula curta</strong>
+      focada em interação, com veredito; <strong>confete</strong> ao passar; <strong>cronômetro das
+      3 estrelas</strong> (velocidade conta); <strong>nunca repetir problema</strong> (errou → outro;
+      salvar matéria e problema no banco); <strong>telas de matérias separadas</strong> matemática e
+      programação, com aviso de troca; <strong>chave Brave sempre obrigatória</strong>.
+    </div>
+  </header>
 
-  <p>Para entender, três conceitos em sequência (cada um definido na primeira ocorrência):</p>
-  <ol>
-    <li><strong>Addon nativo</strong> — um pedaço de código escrito em C/C++ e <em>compilado</em> para uma biblioteca binária (<span class="mono">.node</span>) que o Node carrega via <code>require()</code> para ganhar velocidade ou acessar o sistema (é assim que o SQLite roda no <code>better-sqlite3</code>). É diferente de um pacote JavaScript puro: ele é <em>máquina</em>, não texto.</li>
-    <li><strong>ABI</strong> (<em>Application Binary Interface</em>) — o "contrato binário" entre o addon compilado e o runtime que o carrega: layout das funções, convenções de chamada, estruturas de memória. Se os dois lados não concordam, o comportamento é indefinido — em geral, <strong>crash</strong>. O Node expõe um número identificador do ABI em <span class="mono">process.versions.modules</span> (ex.: 130 no Node 20.18, 137 no Node 24).</li>
-    <li><strong>NAPI</strong> (<em>Node-API</em>) — uma camada de compatibilidade <em>estável</em> que o Node oferece para addons, com versões numeradas (NAPI 9, NAPI 10, …). A ideia é: um addon compilado contra a NAPI X deveria rodar em qualquer runtime que implemente a NAPI X. O detalhe fatal: <strong>o runtime precisa implementar a versão usada pelo addon</strong> — um addon NAPI 10 não roda num runtime que só tem NAPI 9.</li>
-  </ol>
+  <main>
 
-  <p>Agora a montagem do problema, peça por peça:</p>
-  <ul>
-    <li>O <strong>Electron 33.2.0</strong> embute um <strong>Node 20.18</strong> (<span class="mono">process.versions.modules=130</span>, <strong>NAPI 9</strong>);</li>
-    <li>o <strong>better-sqlite3 13.0.3</strong> <em>hardcoda</em> (fixa no código-fonte do build) <span class="mono">NAPI_VERSION=10</span> no <span class="mono">binding.gyp</span> — ou seja, todo binário dele é NAPI 10;</li>
-    <li>o <code>npm ci</code> instala o <strong>prebuild</strong> (binário <span class="mono">.node</span> já compilado, baixado pronto em vez de ser compilado na sua máquina) — e esse prebuild é o do <strong>Node do SISTEMA</strong> (v24: modules 137, NAPI 10), porque o npm não sabe nada sobre o Node embutido no Electron;</li>
-    <li>carregar esse addon NAPI 10 dentro do Electron (runtime NAPI 9) → <strong>SIGSEGV</strong> na thread <span class="mono">CrBrowserMain</span>, dentro de <span class="mono">node_module_register → napi_register_module_v1</span>.</li>
-  </ul>
+    <!-- ================= SEGMENTO 1 ================= -->
+    <section id="pedidos">
+      <h2><span class="num">01</span> Os 9 pedidos do dono — e onde cada um foi parar</h2>
+      <p class="lead">
+        Uma <strong>rodada</strong> (ciclo de desenvolvimento do produto; esta é a 7ª) é organizada em
+        <strong>ondas</strong> (fases de trabalho). Cada onda desta rodada entregou pedaços de vários
+        pedidos — o quadro abaixo mostra cada pedido, em que onda nasceu e como ficou.
+      </p>
 
-  <p>E o motivo de ser tão silencioso: <strong>segfault</strong> (<em>segmentation fault</em> / SIGSEGV) é uma falha de memória no nível do sistema — o processo tenta acessar memória inválida e o sistema o mata na hora. Não é uma <strong>exceção JavaScript</strong>; nenhum <code>try/catch</code> consegue capturá-lo. Por isso "não tinha erro no log": o log nunca teve chance de escrever.</p>
+      <div class="table-wrap">
+        <table>
+          <caption>As 9 entregas da rodada 7</caption>
+          <thead>
+            <tr>
+              <th scope="col">#</th>
+              <th scope="col">Onda</th>
+              <th scope="col">O pedido do dono</th>
+              <th scope="col">Como ficou</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="num-col">1</td>
+              <td class="num-col"><span class="chip">2</span></td>
+              <td>Pesquisa na web <strong>ao vivo</strong> durante a geração, com checklist estilo surf</td>
+              <td>A geração pesquisa de verdade no buscador <strong>Brave</strong> (buscador usado para achar fontes reais da aula) e a tela mostra um <strong>checklist ao vivo</strong> (lista que se atualiza a cada consulta): cada pergunta vira consultas, cada consulta mostra spinner → ✓ com nº de resultados ou ✗ com erro. Término garantido em no máximo 2 rodadas.</td>
+            </tr>
+            <tr>
+              <td class="num-col">2</td>
+              <td class="num-col"><span class="chip">2</span></td>
+              <td>Trilha/roadmap separável em iniciante / intermediário / avançado</td>
+              <td>Nova aba <strong>Trilha</strong> (mapa de progresso da matéria por níveis): Iniciante (1–2), Intermediário (3), Avançado (4–5), com nós <code>done</code>/<code>current</code>/<code>pending</code>. Clicar num nó <strong>abre a lição salva</strong> — nada de regenerar do zero.</td>
+            </tr>
+            <tr>
+              <td class="num-col">3</td>
+              <td class="num-col"><span class="chip">3</span></td>
+              <td>Aula curta focada em interação, com veredito</td>
+              <td>Toda aula termina numa pergunta avaliada: <strong>interpretação</strong> por LLM; <strong>matemática</strong> por biblioteca conferida <em>antes</em> de gerar; <strong>programação</strong> por TDD, com falhas orientadas só pela saída dos testes (detalhe na seção 2).</td>
+            </tr>
+            <tr>
+              <td class="num-col">4</td>
+              <td class="num-col"><span class="chip">1</span></td>
+              <td>Confete ao passar</td>
+              <td>Rajada curta de confete quando os testes passam — respeita quem pede menos animação (<strong>acessibilidade</strong>: tornar o app usável para todos, inclusive com menos animação), anuncia o resultado em <code>role="status"</code> e evita o &ldquo;Parabéns!&rdquo; ritualizado: vale o feedback específico do avaliador.</td>
+            </tr>
+            <tr>
+              <td class="num-col">5</td>
+              <td class="num-col"><span class="chip">1</span></td>
+              <td>Cronômetro das 3 estrelas — velocidade conta</td>
+              <td>Cada desafio começa com <strong>3 estrelas</strong> e um cronômetro regressivo de <code>90s + dificuldade × 60s</code> (dificuldade = nível 1 a 5 do desafio). Perde estrela por janela sem foco (blur), tempo esgotado, teste falho e demora (usar ≥ 60% do limite custa 1; ≥ 85% custa outra). Saldo nunca fica abaixo de 0 (seção 4).</td>
+            </tr>
+            <tr>
+              <td class="num-col">6</td>
+              <td class="num-col"><span class="chip">4</span></td>
+              <td>Nunca repetir problema: errou → outro; salvar matéria e problema no banco</td>
+              <td>Desafio tentado <strong>some da lista</strong>. Programação usa o <strong>slug</strong> (nome estável, ex.: <code>fatorial-recursivo</code>); matemática usa <strong>seed</strong> (número que dá origem ao problema) por tentativa — errou, o próximo problema é outro. Matéria, problema e tentativas ficam gravados no banco (seção 5).</td>
+            </tr>
+            <tr>
+              <td class="num-col">7</td>
+              <td class="num-col"><span class="chip">4</span></td>
+              <td>Telas de matérias separadas (matemática / programação) com aviso de troca</td>
+              <td>Home com seções <strong>Programação</strong> e <strong>Matemática</strong>. Trocar de matéria com aula em andamento de outra abre um diálogo de aviso — a avaliação da aula atual é feita pela LLM (seção 7).</td>
+            </tr>
+            <tr>
+              <td class="num-col">8</td>
+              <td class="num-col"><span class="chip">1 + 4</span></td>
+              <td>Persistência no banco</td>
+              <td>Matérias, lições e tentativas gravadas num <strong>SQLite</strong> (banco de dados local do app), com <strong>migração</strong> (atualização do formato do banco) até a versão 3, passo a passo e <strong>crash-safe</strong> — cair no meio não corrompe nem perde dados (seção 6).</td>
+            </tr>
+            <tr>
+              <td class="num-col">9</td>
+              <td class="num-col"><span class="chip">2</span></td>
+              <td>Chave Brave sempre obrigatória</td>
+              <td>Sem chave, ou com chave rejeitada (0 fontes encontradas), a geração <strong>aborta com mensagem clara</strong> — qualidade da aula não se negocia.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
 
-  <p><strong>A frase que resume tudo:</strong> o addon certo (que funciona no Node 24) no runtime errado (Node 20.18 do Electron) segfaulta; e o addon recompilado contra o Electron também segfaulta, porque o runtime NAPI 9 simplesmente <em>não implementa</em> a NAPI 10. Não havia "prebuild mágico" do v13 que salvasse.</p>
+      <p class="lead">
+        Duas ondas fecharam o restante da história: a <strong>onda 5</strong> levou o veredito para a
+        interface (botão &ldquo;Avançar mesmo assim&rdquo;, aula reaberta por id, registro terminal da
+        tentativa) e a <strong>onda 6</strong> documentou tudo. As seções abaixo percorrem o
+        mecanismo de cada pedido.
+      </p>
+    </section>
 
-  <figure class="figure" id="fig-abi">
-    <div class="figtag">Figura 2 · runtime vs addon</div>
-    <svg viewBox="0 0 1000 400" role="img" aria-label="Três colunas comparando runtime com addon: Node 24 OK, Electron 33 segfault, Electron 37 com node:sqlite OK">
-      <defs>
-        <marker id="ma-g" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto"><path d="M0,0 L10,4 L0,8 z" fill="#6ee7a0"/></marker>
-        <marker id="ma-r" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto"><path d="M0,0 L10,4 L0,8 z" fill="#ff7b7b"/></marker>
-      </defs>
-      <text x="500" y="18" font-size="13" font-weight="700" fill="#9aa6bd" text-anchor="middle">Runtime × addon: o que casa e o que segfaulta</text>
+    <!-- ================= SEGMENTO 2 ================= -->
+    <section id="aula-veredito">
+      <h2><span class="num">02</span> A aula curta com veredito</h2>
+      <p class="lead">
+        O coração da rodada: a aula não acaba na leitura — termina numa pergunta que é avaliada.
+        Há três ramos, decididos pelo tipo de aula; todos convergem para um veredito, e o veredito
+        é pré-requisito do avanço.
+      </p>
 
-      <!-- coluna A: Node 24 -->
-      <rect x="20" y="30" width="300" height="92" rx="10" fill="#1c2438" stroke="#6ee7a0" stroke-width="1.5"/>
-      <text x="40" y="54" font-size="13" font-weight="700" fill="#6ee7a0">Node 24 (sistema)</text>
-      <text x="40" y="76" font-size="11.5" fill="#e8ecf6">NAPI 10 · modules 137</text>
-      <text x="40" y="94" font-size="11.5" fill="#9aa6bd">o runtime que o npm ci enxerga</text>
-      <text x="40" y="112" font-size="11.5" fill="#9aa6bd">(é para ele que o prebuild nasce)</text>
-      <line x1="170" y1="122" x2="170" y2="202" stroke="#6ee7a0" stroke-width="1.6" marker-end="url(#ma-g)"/>
-      <text x="185" y="162" font-size="11.5" fill="#6ee7a0">ABI casa (10 = 10)</text>
-      <text x="185" y="180" font-size="11.5" fill="#6ee7a0" font-weight="700">→ carrega ✓</text>
-      <rect x="20" y="208" width="300" height="130" rx="10" fill="#1d3a30" stroke="#6ee7a0" stroke-width="1.5"/>
-      <text x="40" y="232" font-size="13" font-weight="700" fill="#e8ecf6">better-sqlite3 13.0.3</text>
-      <text x="40" y="254" font-size="11.5" fill="#cfe3ff">prebuild do Node do sistema</text>
-      <text x="40" y="272" font-size="11.5" fill="#cfe3ff">binding.gyp hardcoda NAPI_VERSION=10</text>
-      <text x="40" y="290" font-size="11.5" fill="#cfe3ff">compilado para NAPI 10</text>
-      <text x="40" y="308" font-size="11.5" fill="#9aa6bd">(o .node que o npm ci instala)</text>
-      <text x="40" y="366" font-size="11.5" fill="#6ee7a0" font-weight="700">✓ roda sem problema</text>
+      <figure class="figure">
+        <div class="diagram-shell" role="img" aria-label="Fluxo da aula: pesquisa ao vivo, geração, três ramos de avaliação e o avanço sempre pelo botão primário">
+          <p class="diagram-shell__hint">
+            Ctrl/Cmd + rolagem dá zoom · arraste para mover · duplo clique ajusta · ⛶ abre em nova aba
+          </p>
+          <div class="mermaid-wrap">
+            <div class="zoom-controls">
+              <button type="button" data-action="zoom-in" title="Aproximar">+</button>
+              <button type="button" data-action="zoom-out" title="Afastar">&minus;</button>
+              <button type="button" data-action="zoom-fit" title="Ajustar">&#8634;</button>
+              <button type="button" data-action="zoom-one" title="100%">1:1</button>
+              <button type="button" data-action="zoom-expand" title="Abrir em nova aba">&#x26F6;</button>
+              <span class="zoom-label">Carregando…</span>
+            </div>
+            <div class="mermaid-viewport">
+              <div class="mermaid mermaid-canvas"></div>
+            </div>
+          </div>
+          <script type="text/plain" class="diagram-source">
+            flowchart TD
+              A["Assunto digitado"] --> B["Pesquisa Brave ao vivo<br/>+ checklist na tela"]
+              B --> C["Aula curta gerada"]
+              C --> D{"Qual o tipo de aula?"}
+              D -->|"matemática"| E["Exercício gerado<br/>pela mathLib"]
+              E --> F["Aluno digita a resposta"]
+              F --> G["check-math-answer:<br/>re-computa o gabarito<br/>SEM LLM"]:::crit
+              G -->|"certa"| V["Veredito"]:::crit
+              G -->|"errada"| H["Mostra o gabarito<br/>e permite tentar de novo"]
+              H --> F
+              D -->|"conceito"| I["Pergunta de interpretação"]
+              I --> J["Aluno responde em texto"]
+              J --> K["judge-answer:<br/>LLM julga"]
+              K -->|"certa"| V
+              K -->|"parcial ou errada"| L["Feedback na tela<br/>+ 'Avançar mesmo assim'"]
+              D -->|"programação"| M["Desafio TDD no editor"]
+              M --> N["Testar resposta"]
+              N -->|"testes passaram"| V
+              N -->|"testes falharam"| O["Só a saída dos testes<br/>orienta a correção"]
+              O --> M
+              L --> P["Avanço sempre pelo<br/>botão primário"]:::crit
+              V --> P
+              classDef crit fill:#fde68a,stroke:#b45309,color:#451a03,stroke-width:2px
+          </script>
+        </div>
+        <figcaption>
+          <strong>Figura 1.</strong> Toda aula termina num veredito — e o avanço para a próxima é
+          sempre por botão, nunca automático.
+        </figcaption>
+      </figure>
 
-      <!-- coluna B: Electron 33 -->
-      <rect x="350" y="30" width="300" height="92" rx="10" fill="#2a2020" stroke="#ff7b7b" stroke-width="1.5"/>
-      <text x="370" y="54" font-size="13" font-weight="700" fill="#ff7b7b">Electron 33.2.0 (ANTES)</text>
-      <text x="370" y="76" font-size="11.5" fill="#e8ecf6">Node 20.18 embutido</text>
-      <text x="370" y="94" font-size="11.5" fill="#9aa6bd">NAPI 9 · modules 130</text>
-      <text x="370" y="112" font-size="11.5" fill="#9aa6bd">o runtime do app que abre o banco</text>
-      <line x1="500" y1="122" x2="500" y2="202" stroke="#ff7b7b" stroke-width="1.8" marker-end="url(#ma-r)"/>
-      <text x="515" y="162" font-size="11.5" fill="#ff7b7b" font-weight="700">carrega? →</text>
-      <text x="515" y="180" font-size="11.5" fill="#ff7b7b" font-weight="700">SEGFAULT ✗</text>
-      <rect x="350" y="208" width="300" height="130" rx="10" fill="#2a2020" stroke="#ff7b7b" stroke-width="1.8"/>
-      <text x="370" y="232" font-size="13" font-weight="700" fill="#ffb86b">o MESMO .node (NAPI 10)</text>
-      <text x="370" y="254" font-size="11.5" fill="#e8ecf6">instalado pelo npm ci (do sistema)</text>
-      <text x="370" y="272" font-size="11.5" fill="#e8ecf6">NAPI_VERSION=10</text>
-      <text x="370" y="290" font-size="11.5" fill="#9aa6bd">o runtime NAPI 9 não implementa</text>
-      <text x="370" y="308" font-size="11.5" fill="#9aa6bd">a NAPI 10 (nem recompilado: testado)</text>
-      <text x="370" y="366" font-size="11.5" fill="#ff7b7b" font-weight="700">✗ SIGSEGV na thread CrBrowserMain — try/catch não salva</text>
+      <div class="signal">
+        <strong>O caminho crítico:</strong> o veredito é pré-requisito do avanço. Nada de
+        encadeamento automático para a aula seguinte — quem avança é o botão primário
+        (&ldquo;Continuar&rdquo; quando há aula pendente, senão &ldquo;Gerar nova aula&rdquo;), e o
+        veredito permanece visível.
+      </div>
 
-      <!-- coluna C: Electron 37 + node:sqlite -->
-      <rect x="680" y="30" width="300" height="92" rx="10" fill="#1c2438" stroke="#6ee7a0" stroke-width="1.5"/>
-      <text x="700" y="54" font-size="13" font-weight="700" fill="#6ee7a0">Electron 37.2.4 (DEPOIS)</text>
-      <text x="700" y="76" font-size="11.5" fill="#e8ecf6">Node 22.17.1 embutido</text>
-      <text x="700" y="94" font-size="11.5" fill="#9aa6bd">node:sqlite unflagged (desde 22.13)</text>
-      <text x="700" y="112" font-size="11.5" fill="#9aa6bd">sem NAPI a casar</text>
-      <line x1="830" y1="122" x2="830" y2="202" stroke="#6ee7a0" stroke-width="1.6" marker-end="url(#ma-g)"/>
-      <text x="845" y="162" font-size="11.5" fill="#6ee7a0" font-weight="700">embutido ✓</text>
-      <text x="845" y="180" font-size="11.5" fill="#6ee7a0">zero addon nativo</text>
-      <rect x="680" y="208" width="300" height="130" rx="10" fill="#1d3a30" stroke="#6ee7a0" stroke-width="1.5"/>
-      <text x="700" y="232" font-size="13" font-weight="700" fill="#6ee7a0">node:sqlite (DatabaseSync)</text>
-      <text x="700" y="254" font-size="11.5" fill="#cfe3ff">EMBUTIDO no Node e no Electron</text>
-      <text x="700" y="272" font-size="11.5" fill="#cfe3ff">zero addon nativo · zero compilação</text>
-      <text x="700" y="290" font-size="11.5" fill="#cfe3ff">zero ABI · zero pós-install</text>
-      <text x="700" y="308" font-size="11.5" fill="#9aa6bd">(o mesmo banco abre nos dois runtimes)</text>
-      <text x="700" y="366" font-size="11.5" fill="#6ee7a0" font-weight="700">✓ abre o mesmo banco nos 3 runtimes</text>
-    </svg>
-    <figcaption><b>Afirmação da figura:</b> <strong>o addon certo no runtime errado segfaulta, e o addon "recompilado" também</strong> (o runtime NAPI 9 não tem a NAPI 10) — a única saída que elimina a classe inteira do problema é <strong>não ter addon</strong>: <code>node:sqlite</code> é embutido, então não existe ABI a casar entre o Node do sistema e o Node do Electron.</figcaption>
-  </figure>
-</section>
+      <details class="scaffold">
+        <summary>O que é TDD? E por que três formas de avaliar?</summary>
+        <div class="scaffold__body">
+          <p>
+            Na prática, no study-method: o desafio de programação vem com testes prontos, e o
+            código do aluno só é considerado correto quando eles passam. A avaliação é a
+            <strong>saída dos testes</strong> — o LLM orienta o feedback, mas quem decide o
+            certo/errado é a execução.
+          </p>
+          <p>
+            <strong>Interpretação</strong> (aula de conceito) não tem certo/errado executável — por
+            isso o julgamento é do LLM (DeepSeek, com queda automática para o modelo local), com
+            veredito <code>correct</code> / <code>partial</code> / <code>incorrect</code> e feedback
+            em pt-BR. O LLM é instruído a nunca elogiar no vazio e nunca inventar um acerto; se o
+            julgamento falhar por erro de serviço, não há veredito inventado — aparece um erro de
+            serviço.
+          </p>
+          <p>
+            <strong>Matemática</strong> é o caso mais rígido: o gabarito é calculado por uma
+            biblioteca (nunca por LLM) — a seção 3 mostra essa regra-mestra.
+          </p>
+        </div>
+      </details>
+    </section>
 
-<section id="s6">
-  <h2><span class="num">6.</span>Mergulho técnico (opcional)</h2>
-  <details>
-    <summary>Ver o detalhamento da cadeia NAPI (para quem quer o "porquê" fino)</summary>
-    <ul>
-      <li><span class="mono">binding.gyp</span> é o arquivo de build do addon. No better-sqlite3 13.0.3, a linha <span class="mono">NAPI_VERSION=10</span> está <em>hardcoded</em> — o binário declara "eu quero a NAPI 10".</li>
-      <li>O <strong>prebuild</strong> é baixado pelo npm porque o pacote publica binários prontos por plataforma/arquitetura (ex.: <span class="mono">darwin-arm64.node</span>). O npm ci instala o prebuild do <strong>Node do sistema</strong> — o npm não sabe que o destino real é o Node embutido do Electron.</li>
-      <li>Ao carregar, o runtime chama a função de registro do addon: <span class="mono">node_module_register → napi_register_module_v1</span>. É aí que o runtime NAPI 9 encontra chamadas NAPI 10 e a memória estoura → <strong>SIGSEGV</strong>.</li>
-      <li>O teste empírico decisivo: compilar o v13 <em>contra os headers do Electron</em> (eliminando a "culpa" do prebuild) <strong>também crashava</strong>. Isso prova que a incompatibilidade é de <em>versão da NAPI</em> (10 não existe no runtime 9), não de binário velho.</li>
-      <li>Por que v11/v12 funcionavam compilados para o Electron? Porque usam o <strong>ABI V8 clássico</strong> (não NAPI): com <span class="mono">node-gyp --target=&lt;versão-do-electron&gt;</span> o binário é gerado exatamente para o ABI do runtime — a base da onda 1.</li>
-    </ul>
-  </details>
-</section>
+    <!-- ================= SEGMENTO 3 ================= -->
+    <section id="regra-mestra">
+      <h2><span class="num">03</span> A regra-mestra da matemática: o gabarito nunca vem de cabeça</h2>
+      <p class="lead">
+        &ldquo;Esperado de cabeça nunca — esperado vem da execução.&rdquo; O valor correto de um
+        exercício de matemática não é um número chutado pelo LLM, pela tela ou por constante fixa:
+        ele é <strong>computado</strong> por uma biblioteca dedicada, na geração e de novo a cada
+        resposta.
+      </p>
 
-<section id="s7">
-  <h2><span class="num">7.</span>A solução, em duas ondas</h2>
+      <figure class="figure">
+        <div class="diagram-shell" role="img" aria-label="Regra-mestra: o seed entra na mathLib, que gera o problema e calcula o gabarito; o check-math-answer re-computa sem LLM; errou, o próximo seed muda">
+          <p class="diagram-shell__hint">
+            Ctrl/Cmd + rolagem dá zoom · arraste para mover · duplo clique ajusta · ⛶ abre em nova aba
+          </p>
+          <div class="mermaid-wrap">
+            <div class="zoom-controls">
+              <button type="button" data-action="zoom-in" title="Aproximar">+</button>
+              <button type="button" data-action="zoom-out" title="Afastar">&minus;</button>
+              <button type="button" data-action="zoom-fit" title="Ajustar">&#8634;</button>
+              <button type="button" data-action="zoom-one" title="100%">1:1</button>
+              <button type="button" data-action="zoom-expand" title="Abrir em nova aba">&#x26F6;</button>
+              <span class="zoom-label">Carregando…</span>
+            </div>
+            <div class="mermaid-viewport">
+              <div class="mermaid mermaid-canvas"></div>
+            </div>
+          </div>
+          <script type="text/plain" class="diagram-source">
+            flowchart TD
+              S["Seed: contagem de tentativas<br/>+ família do exercício"] --> M["mathLib: gera o problema<br/>E calcula o gabarito<br/>com aritmética exata"]
+              M -->|"mesmo seed → mesmo problema<br/>(determinístico)"| G["A aula mostra<br/>só o problema"]
+              M -->|"conferidos por aritmética<br/>independente"| C2["20.000 problemas<br/>verificados — 0 divergências"]
+              G --> A["Aluno digita a resposta"]
+              A --> C["check-math-answer:<br/>re-computa o gabarito<br/>no app — SEM LLM"]:::crit
+              C -->|"compara"| X{"Resposta bate<br/>com o gabarito?"}:::crit
+              X -->|"sim"| OK["Certa —<br/>aula concluída"]
+              X -->|"não"| NOK["Errada — o gabarito<br/>aparece só agora"]
+              NOK -->|"errou → a próxima tentativa<br/>muda o seed"| S
+              classDef crit fill:#fde68a,stroke:#b45309,color:#451a03,stroke-width:2px
+          </script>
+        </div>
+        <figcaption>
+          <strong>Figura 2.</strong> O gabarito da matemática é calculado por execução na geração e
+          re-computado a cada resposta — o LLM nunca chuta.
+        </figcaption>
+      </figure>
 
-  <p>O orquestrador trabalha em <strong>ondas</strong> (grupos de trabalho paralelos em worktrees isoladas, integrados com gate). Aqui foram duas ondas — a segunda só existiu porque o usuário, vendo a primeira funcionar, pediu algo melhor:</p>
+      <div class="signal">
+        <strong>O caminho crítico:</strong> a <strong>mathLib</strong> (biblioteca que gera o
+        problema e calcula o <strong>gabarito</strong> — o valor correto que a resposta deve dar)
+        nunca recebe o gabarito do LLM: o LLM só vê o enunciado. E o <code>check-math-answer</code>
+        re-computa o gabarito dentro do app, <strong>sem LLM</strong>, a cada resposta digitada. A
+        tela só mostra o gabarito depois da 1ª tentativa errada.
+      </div>
 
-  <details>
-    <summary>Onda 1 (tentativa): contornar o ABI com um alias compilado <span class="tag onda1">onda 1</span></summary>
-    <p>A primeira resposta ao crash foi <strong>fazer o addon certo para o Electron</strong>, sem trocar de biblioteca:</p>
-    <ul>
-      <li><strong>Alias npm</strong> (instalar um pacote sob outro nome): <span class="mono">better-sqlite3-electron = npm:better-sqlite3@12.11.1</span> — a v12 usa ABI V8 clássico e <em>funciona</em> quando compilada para o ABI do Electron (validado: probe OK, <span class="mono">rows=3</span>).</li>
-      <li><strong><span class="mono">tools/ensure-native-abi.sh</span></strong>: compila o alias para o ABI do Electron com <span class="mono">node-gyp --target=&lt;electron&gt; --dist-url=https://electronjs.org/headers</span>, <span class="mono">npm_config_force_build=1</span>, com <em>marker</em> idempotente (segunda execução é instantânea).</li>
-      <li><strong>Loader lazy</strong> no <span class="mono">connection.ts</span>: escolhe o pacote pelo runtime (<span class="mono">!!process.versions.electron</span>) e faz <code>require</code> só na hora do uso — sem import estático, para nunca carregar addon no runtime errado.</li>
-      <li><strong>Hooks</strong> <span class="mono">postinstall</span>/<span class="mono">predev</span>/<span class="mono">pretest:e2e</span>: o script roda sozinho (self-healing) após instalações.</li>
-    </ul>
-    <p><strong>Veredito da onda 1: funcionou</strong> — o app abria e permanecia vivo. <strong>Mas</strong> exigia <strong>toolchain de build nativo</strong> (Xcode Command Line Tools no macOS / build-essential + python3 no Linux) e <strong>rede</strong> para baixar os headers do Electron; sem isso, a instalação falhava. Era uma solução frágil: dependia de compilação pós-install — exatamente o tipo de coisa que quebra em outra máquina.</p>
-  </details>
+      <p>
+        A prova de que a biblioteca não está &ldquo;acertando por sorte&rdquo;: <strong>20.000
+        problemas</strong> foram conferidos por uma via independente (aritmética exata) — 0
+        divergências.
+      </p>
 
-  <h3>Onda 2 (solução final): <code>node:sqlite</code> + Electron 37.2.4 <span class="tag final">onda 2 · final</span></h3>
-  <p>O usuário então deu a diretiva: <em>«quero que troque o sqlite por algo que funcione e quero que só pare quando terminar»</em>. A onda 2 substituiu a convergência da onda 1 pela solução definitiva:</p>
-  <ul>
-    <li><strong><span class="mono">node:sqlite</span> (<span class="mono">DatabaseSync</span>)</strong> — o SQLite <strong>embutido no próprio Node</strong> (disponível desde o Node 22.5, sem flag desde 22.13) e, portanto, <strong>também no Electron</strong>. Zero addon nativo, zero compilação pós-install, zero ABI a casar — a classe inteira do problema deixa de existir.</li>
-    <li><strong>Electron 33.2.0 → 37.2.4</strong>, que embute <strong>Node 22.17.1</strong> — já com <code>node:sqlite</code> unflagged (sem precisar de flag experimental).</li>
-    <li><strong>Removidos</strong>: o alias, o <span class="mono">ensure-native-abi.sh</span>, os hooks e o loader — o código volta a ser simples.</li>
-    <li><strong>e2e determinístico</strong>: o launch passa <span class="mono">--lang=pt-BR</span> (switch do Chromium) — as specs assumem a UI em pt-BR, então o <em>locale do host</em> não pode mais afetar o veredito; 2 specs foram alinhadas ao produto real ("Gerar nova aula" é o botão de verdade, e a aula exibida é a <strong>curta</strong> — o markdown completo renderiza corretamente e é coberto por testes unitários).</li>
-  </ul>
+      <details class="scaffold">
+        <summary>Como o seed vira um problema (exemplo resolvido)</summary>
+        <div class="scaffold__body">
+          <p>
+            <strong>Seed</strong> = o número que dá origem ao problema; o mesmo seed sempre produz o
+            mesmo problema (comportamento <strong>determinístico</strong> — sempre o mesmo resultado
+            para a mesma entrada). Para o aluno, o seed é a contagem de tentativas: tentativa 1 →
+            problema A; errou → tentativa 2 → problema B — <strong>errou, o próximo problema é
+            outro</strong>.
+          </p>
+          <p>
+            Exemplo na família <code>arithmetic</code>: o gerador (PRNG semeado, mulberry32) produz
+            números a partir do seed — ex.: <code>12 + 7 = 19</code>. A divisão é sempre exata por
+            construção. Frações (<code>1/2 + 1/3</code>), porcentagem (<code>15% de 80</code>) e
+            equações lineares (<code>2x + 3 = 11</code>) seguem o mesmo princípio com aritmética
+            racional exata — o resultado é guardado na forma canônica reduzida (<code>5/6</code>, não
+            <code>10/12</code>).
+          </p>
+        </div>
+      </details>
 
-  <p>O código que passou a abrir o banco (de <span class="mono">app/electron/main/db/connection.ts</span>):</p>
-  <pre><code>import { DatabaseSync } from 'node:sqlite';
+      <details class="scaffold">
+        <summary>O que a resposta digitada aceita (e o que ela nunca adivinha)</summary>
+        <div class="scaffold__body">
+          <p>
+            O aluno digita: inteiros (<code>-12</code>, <code>+12</code>), decimais com vírgula
+            pt-BR ou ponto (<code>12,5</code>, <code>12.5</code>, <code>.5</code>) e frações com
+            espaços só em volta da barra (<code>1/2</code>, <code> 1 / 2 </code>). Formas
+            equivalentes passam: <code>1/2</code> ≡ <code>2/4</code> ≡ <code>0.5</code>.
+          </p>
+          <p>
+            O que <strong>não</strong> é aceito (e nunca é adivinhado): número misto
+            (<code>1 1/2</code>), notação científica, sufixo <code>%</code> e divisão por zero.
+            Entrada irreconhecível recebe a mensagem de formato — não um &ldquo;errado&rdquo;
+            disfarçado.
+          </p>
+        </div>
+      </details>
+    </section>
 
-export async function openSqlite(dbPath: string) {
-  await fsp.mkdir(dirname(dbPath), { recursive: true });
-  const db = new DatabaseSync(dbPath);         // banco de arquivo
-  db.exec('PRAGMA foreign_keys = ON');         // FKs de fato enforced
-  const migrator = createMigrator(db);
-  let closed = false;
-  return {
-    db,
-    migrate: migrator,
-    close() { if (closed) return; closed = true; db.close(); }, // idempotente
-  };
-}</code></pre>
-  <p class="small">Notas: o <code>PRAGMA foreign_keys</code> (configuração de chave estrangeira do SQLite) passou a ser aplicado via <code>exec</code>, e o <code>close()</code> é idempotente (fechar duas vezes não quebra).</p>
+    <!-- ================= SEGMENTO 4 ================= -->
+    <section id="estrelas">
+      <h2><span class="num">04</span> 3 estrelas, cronômetro e confete</h2>
+      <p class="lead">
+        No desafio de programação, a velocidade conta. Cada desafio começa com 3 estrelas e um
+        cronômetro regressivo cujo limite vem da <strong>dificuldade</strong> do desafio:
+        <code>T = 90s + dificuldade × 60s</code>. Quatro causas podem custar estrelas — cada uma no
+        máximo 1 vez, e o saldo nunca fica abaixo de 0.
+      </p>
 
-  <p>E as transações, em <span class="mono">app/electron/main/db/repo.ts</span> — o <code>DatabaseSync</code> não tem o helper <code>db.transaction(fn)</code> do better-sqlite3, então o equivalente é explícito:</p>
-  <pre><code>function withTransaction&lt;T&gt;(db: DatabaseSync, fn: () =&gt; T): T {
-  db.exec('BEGIN');
-  try {
-    const result = fn();
-    db.exec('COMMIT');
-    return result;
-  } catch (err) {
-    db.exec('ROLLBACK');
-    throw err;
-  }
-}</code></pre>
+      <figure class="figure">
+        <div class="diagram-shell" role="img" aria-label="Estrelas e cronômetro: causas de perda de estrela, timeout registra a tentativa, PASS dispara confete">
+          <p class="diagram-shell__hint">
+            Ctrl/Cmd + rolagem dá zoom · arraste para mover · duplo clique ajusta · ⛶ abre em nova aba
+          </p>
+          <div class="mermaid-wrap">
+            <div class="zoom-controls">
+              <button type="button" data-action="zoom-in" title="Aproximar">+</button>
+              <button type="button" data-action="zoom-out" title="Afastar">&minus;</button>
+              <button type="button" data-action="zoom-fit" title="Ajustar">&#8634;</button>
+              <button type="button" data-action="zoom-one" title="100%">1:1</button>
+              <button type="button" data-action="zoom-expand" title="Abrir em nova aba">&#x26F6;</button>
+              <span class="zoom-label">Carregando…</span>
+            </div>
+            <div class="mermaid-viewport">
+              <div class="mermaid mermaid-canvas"></div>
+            </div>
+          </div>
+          <script type="text/plain" class="diagram-source">
+            flowchart TD
+              A["Desafio abre no editor"] --> B["3 estrelas + cronômetro:<br/>90s + dificuldade × 60s"]
+              B --> C{"O que acontece?"}
+              C -->|"janela perdeu o foco"| D["blur: −1 estrela"]
+              C -->|"teste determinístico falhou"| E["erro: −1 estrela"]
+              C -->|"usou ≥ 60% do limite"| F["demora: −1 estrela<br/>(≥ 85%: −1 a mais)"]
+              C -->|"tempo esgotou"| G["timeout: −1 estrela<br/>+ registra a tentativa"]
+              C -->|"testes passaram"| H["PASS — confete!"]:::crit
+              D -->|"cada causa só 1×;<br/>saldo nunca abaixo de 0"| B
+              E -->|"segue no desafio"| B
+              F -->|"segue no desafio"| B
+              G --> I["Fim: estrelas e duração<br/>vão para o banco"]
+              H --> I
+              H -->|"respeita menos animação<br/>(reduced-motion)"| J["Anúncio em role=status,<br/>sem 'Parabéns!'"]
+              classDef crit fill:#fde68a,stroke:#b45309,color:#451a03,stroke-width:2px
+          </script>
+        </div>
+        <figcaption>
+          <strong>Figura 3.</strong> Cada desafio começa com 3 estrelas e um limite de tempo; cada
+          causa de perda custa no máximo 1 estrela.
+        </figcaption>
+      </figure>
 
-  <figure class="figure" id="fig-timeline">
-    <div class="figtag">Figura 1 · linha do tempo da execução</div>
-    <svg viewBox="0 0 900 690" role="img" aria-label="Linha do tempo: sintoma, diagnóstico, onda 1, onda 2 e validação verde">
-      <defs>
-        <marker id="mt-a" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto"><path d="M0,0 L10,4 L0,8 z" fill="#9aa6bd"/></marker>
-      </defs>
-      <rect x="150" y="20" width="600" height="96" rx="10" fill="#2a2418" stroke="#ffd166" stroke-width="1.5"/>
-      <text x="170" y="44" font-size="13" font-weight="700" fill="#ffd166">1 · Sintoma</text>
-      <text x="170" y="68" font-size="11.5" fill="#e8ecf6">run.sh abre o app Electron e o processo morre em silêncio</text>
-      <text x="170" y="88" font-size="11.5" fill="#e8ecf6">exit 0 — &lt;1s no macOS (reproduzido); ~40s no Linux</text>
-      <text x="170" y="106" font-size="11.5" fill="#9aa6bd">log sem erros: só warnings de fontconfig/GTK</text>
-      <line x1="450" y1="116" x2="450" y2="146" stroke="#9aa6bd" stroke-width="1.6" marker-end="url(#mt-a)"/>
-      <text x="470" y="134" font-size="11" fill="#9aa6bd">crash reports .ips + probes isolados (prova empírica)</text>
-      <rect x="150" y="150" width="600" height="100" rx="10" fill="#1c2438" stroke="#6ea8fe" stroke-width="1.5"/>
-      <text x="170" y="174" font-size="13" font-weight="700" fill="#6ea8fe">2 · Diagnóstico (evidência)</text>
-      <text x="170" y="198" font-size="11.5" fill="#e8ecf6">crash reports .ips: SIGSEGV na thread CrBrowserMain dentro de</text>
-      <text x="170" y="218" font-size="11.5" fill="#e8ecf6">node_module_register → napi_register_module_v1 (imagem darwin-arm64.node)</text>
-      <text x="170" y="238" font-size="11.5" fill="#9aa6bd">probe isolado: better-sqlite3 em Electron 33 → SIGSEGV; em Node 24 → OK</text>
-      <line x1="450" y1="250" x2="450" y2="280" stroke="#9aa6bd" stroke-width="1.6" marker-end="url(#mt-a)"/>
-      <text x="470" y="268" font-size="11" fill="#9aa6bd">onda 1: contornar o ABI com um alias compilado</text>
-      <rect x="150" y="284" width="600" height="96" rx="10" fill="#2a1e14" stroke="#ffb86b" stroke-width="1.5"/>
-      <text x="170" y="308" font-size="13" font-weight="700" fill="#ffb86b">3 · Onda 1 (tentativa)</text>
-      <text x="170" y="332" font-size="11.5" fill="#e8ecf6">alias better-sqlite3-electron (npm:better-sqlite3@12.11.1)</text>
-      <text x="170" y="352" font-size="11.5" fill="#e8ecf6">compilado para o ABI do Electron (ensure-native-abi.sh + hooks)</text>
-      <text x="170" y="372" font-size="11.5" fill="#9aa6bd">funciona (probe rows=3) — mas exige toolchain de build + rede</text>
-      <line x1="450" y1="380" x2="450" y2="410" stroke="#9aa6bd" stroke-width="1.6" marker-end="url(#mt-a)"/>
-      <text x="470" y="398" font-size="11" fill="#9aa6bd">diretiva do usuário: «troque o sqlite por algo que funcione»</text>
-      <rect x="150" y="414" width="600" height="96" rx="10" fill="#1c2438" stroke="#9ef0d0" stroke-width="1.5"/>
-      <text x="170" y="438" font-size="13" font-weight="700" fill="#9ef0d0">4 · Onda 2 (solução final)</text>
-      <text x="170" y="462" font-size="11.5" fill="#e8ecf6">node:sqlite (DatabaseSync) — embutido no Node E no Electron</text>
-      <text x="170" y="482" font-size="11.5" fill="#e8ecf6">Electron 33.2.0 → 37.2.4 (Node 22.17.1; node:sqlite unflagged)</text>
-      <text x="170" y="502" font-size="11.5" fill="#9aa6bd">removidos: alias, ensure-native-abi.sh, hooks, loader</text>
-      <line x1="450" y1="510" x2="450" y2="540" stroke="#9aa6bd" stroke-width="1.6" marker-end="url(#mt-a)"/>
-      <text x="470" y="528" font-size="11" fill="#9aa6bd">validação completa + app vivo</text>
-      <rect x="150" y="544" width="600" height="104" rx="10" fill="#1d3a30" stroke="#6ee7a0" stroke-width="1.8"/>
-      <text x="170" y="568" font-size="13" font-weight="700" fill="#6ee7a0">5 · VERDE</text>
-      <text x="170" y="592" font-size="11.5" fill="#e8ecf6">1245 testes / 1244 pass / 0 fail (+1 skip pré-existente)</text>
-      <text x="170" y="612" font-size="11.5" fill="#e8ecf6">e2e 19 passed / 3 skipped · build e lint verdes</text>
-      <text x="170" y="632" font-size="11.5" fill="#9aa6bd">app vivo ~135s no ./run.sh (antes: SIGSEGV em &lt;1s)</text>
-    </svg>
-    <figcaption><b>Afirmação da figura:</b> a onda 1 <strong>funcionou mas não era a solução final</strong> — ela contornava o ABI (com custo de toolchain e rede); foi a <strong>diretiva do usuário</strong> que levou à onda 2, que <strong>eliminou a classe do problema</strong> (addon nativo) em vez de contorná-la, terminando em verde com 0 falhas.</figcaption>
-  </figure>
-</section>
+      <div class="signal">
+        <strong>O caminho crítico:</strong> passar nos testes dispara a rajada de confete — que
+        respeita a preferência do sistema por menos animação (via <code>prefers-reduced-motion</code>),
+        anuncia o resultado em <code>role="status"</code> e não usa &ldquo;Parabéns!&rdquo;
+        ritualizado. Quem merece o crédito é o feedback específico do avaliador, não o glitter.
+      </div>
 
-<section id="s8">
-  <h2><span class="num">8.</span>O que mais foi consertado no caminho</h2>
-  <p>Durante a execução, o orquestrador encontrou e corrigiu outros três problemas que se misturavam ao crash (mais um requisito levantado pela solução):</p>
-  <ul>
-    <li><strong><span class="mono">t.sh</span> portável bash 3.2/5</strong> — o runner de testes usava <span class="mono">globstar</span> (<span class="mono">**</span>, recurso do bash 5) para coletar os testes recursivamente; no macOS o bash é 3.2, o globstar não existe e o <code>npm test</code> rodava só <strong>14 de 90</strong> arquivos. A coleta do caso diretório passou a usar <code>find</code> + <code>sort</code> (portável), mantendo a <em>empty-glob guard</em> (o runner falha se nenhum teste casar — nunca verde silencioso):</li>
-  </ul>
-  <pre><code>while IFS= read -r f; do files+=("$f"); done &lt; &lt;(
-  find "$target" -type f \( -name '*.test.ts' -o -name '*.test.tsx' \) | sort
-)</code></pre>
-  <ul>
-    <li><strong>Teste i18n-wiring robusto ao navigator sintético do Node 21+</strong> — no Node 24, o <code>navigator.language</code> sintético vira <span class="mono">'en-US'</span> e quebrava o default <span class="mono">pt-BR</span> do app; o teste passou a neutralizar o navigator (defineProperty com <code>value: undefined</code> + restore no <code>after()</code>) — a produção só ganhou comentários.</li>
-    <li><strong>e2e determinístico</strong> — <span class="mono">--lang=pt-BR</span> no launch do Electron (mais <span class="mono">LANG</span> como fallback no harness real): o locale do host não pode mais mudar o idioma da UI e, com isso, o veredito das specs.</li>
-    <li><strong>Floor de Node ≥ 22.13</strong> — como o <code>node:sqlite</code> só é unflagged desde 22.13, o requisito mínimo de Node subiu para <span class="mono">&gt;=22.13</span> no <span class="mono">install.sh</span>, READMEs e no campo <code>engines</code> do <span class="mono">package.json</span>.</li>
-  </ul>
-</section>
+      <details class="scaffold">
+        <summary>Exemplo: dificuldade 3 → quanto tempo?</summary>
+        <div class="scaffold__body">
+          <p>
+            <code>T = 90 + 3 × 60 = 270 segundos</code> = <strong>4 minutos e 30 segundos</strong>.
+            Na escala: dificuldade 1 → 2min30; dificuldade 5 → 6min30. Sem dificuldade exposta pelo
+            desafio, vale o fallback de 5 minutos. Decaimento por velocidade: ≥ 60% do limite
+            usado custa 1 estrela; ≥ 85% custa outra (só se ainda houver estrelas para perder).
+          </p>
+        </div>
+      </details>
+    </section>
 
-<section id="s9">
-  <h2><span class="num">9.</span>Validação: tudo verde</h2>
-  <p>Os números finais da execução (fonte: fatos + commit <span class="mono">test-onda2-sqlite</span>):</p>
-  <table>
-    <thead>
-      <tr><th>Checagem</th><th>Resultado</th><th>Leitura</th></tr>
-    </thead>
-    <tbody>
-      <tr><td><span class="mono">npm test</span></td><td><strong>1245 testes</strong> — 1244 pass · 0 fail (+1 skip pré-existente, env-guarded)</td><td class="ok">verde</td></tr>
-      <tr><td><span class="mono">npm run test:e2e</span></td><td>19 passed · 3 skipped (specs reais sem chaves) · 0 failed</td><td class="ok">verde</td></tr>
-      <tr><td><span class="mono">npm run build</span></td><td>electron-vite build sem erros</td><td class="ok">verde</td></tr>
-      <tr><td><span class="mono">npm run lint</span></td><td>tsc --noEmit (os dois tsconfigs) sem erros</td><td class="ok">verde</td></tr>
-      <tr><td>Probe <code>node:sqlite</code></td><td>OK nos 3 runtimes: Node 24 do sistema · Electron 37 real · Electron 37 via <span class="mono">ELECTRON_RUN_AS_NODE</span> — sem segfault</td><td class="ok">verde</td></tr>
-      <tr><td>Gates de snapshot</td><td>onda 1 e onda 2: build/lint/test verdes no estado integrado</td><td class="ok">verde</td></tr>
-      <tr><td>ADRs (revisão adversarial)</td><td>todos APPROVE / WARNING não-bloqueante</td><td class="ok">verde</td></tr>
-      <tr><td><span class="mono">./run.sh</span></td><td>app <strong>vivo ~135s</strong> (antes: SIGSEGV em &lt;1s no macOS)</td><td class="ok">verde</td></tr>
-    </tbody>
-  </table>
-  <details>
-    <summary>Como a suíte cresceu durante a execução (contexto)</summary>
-    <ul>
-      <li>Gates da onda 1: <strong>1204</strong> testes / 1203 pass / 0 fail;</li>
-      <li>+ subwave <span class="mono">test-onda1-tools-coverage</span> (regressão do t.sh + edges): <strong>1221</strong> / 1220 / 0;</li>
-      <li>a onda 2 <em>removeu</em> os testes do alias/loader (arquivos deletados junto com a solução): <strong>1216</strong> / 1215 / 0 / 1 skip (snapshot registrado nos fatos);</li>
-      <li>+ subwave <span class="mono">test-onda2-sqlite</span> (29 testes da camada <code>node:sqlite</code>: withTransaction discriminante, migrate, FK enforcement isolado, persistência em arquivo): <strong>1245</strong> / 0 fail — o número final.</li>
-    </ul>
-  </details>
-</section>
+    <!-- ================= SEGMENTO 5 ================= -->
+    <section id="nunca-repetir">
+      <h2><span class="num">05</span> Nunca-repetir: o desafio tentado some da lista</h2>
+      <p class="lead">
+        A regra é simples: <strong>só o fim real do desafio registra a tentativa</strong> — e o
+        desafio registrado some da lista. Um <strong>evento terminal</strong> (fim real do desafio:
+        passou, tempo esgotou ou abandonou) é o único que grava. O primeiro teste falho nunca
+        esconde nada: o aluno ainda está trabalhando no desafio.
+      </p>
 
-<section id="s10">
-  <h2><span class="num">10.</span>Tabela de buzzwords (fechada)</h2>
-  <p class="small">Tabela <strong>fechada</strong>: todo termo técnico usado neste documento está definido aqui (e na primeira ocorrência no texto).</p>
-  <table>
-    <thead>
-      <tr><th>Termo</th><th>O que é (didático)</th><th>Onde apareceu aqui</th></tr>
-    </thead>
-    <tbody>
-      <tr><td><strong>ABI</strong> <em>(Application Binary Interface)</em></td><td>O "contrato binário" entre código compilado e o runtime que o carrega (funções, layouts de memória, convenções). Identificado por números como <span class="mono">process.versions.modules</span> (130 vs 137).</td><td>Causa raiz</td></tr>
-      <tr><td><strong>NAPI</strong> <em>(Node-API)</em></td><td>Camada estável de compatibilidade do Node para addons nativos; versionada (9, 10, …). O runtime precisa <em>implementar</em> a versão que o addon usa.</td><td>Causa raiz</td></tr>
-      <tr><td><strong>Addon nativo</strong></td><td>Biblioteca C/C++ compilada (<span class="mono">.node</span>) carregada via <code>require</code>; ex.: <code>better-sqlite3</code>.</td><td>Problema / causa raiz</td></tr>
-      <tr><td><strong>Segfault</strong> <em>(SIGSEGV)</em></td><td>Falha de segmentação: o processo acessa memória inválida e o sistema o mata. Não é exceção JS — <code>try/catch</code> não captura.</td><td>Sintoma / investigação</td></tr>
-      <tr><td><strong>Prebuild</strong></td><td>Binário <span class="mono">.node</span> já compilado, baixado pronto pelo npm em vez de compilar na instalação; é gerado para um ABI específico (aqui: o do Node do sistema).</td><td>Causa raiz</td></tr>
-      <tr><td><strong>Utility process</strong></td><td>Processo auxiliar do Electron (rede, GPU, utilidades) que roda código nativo fora do processo principal. O crash ocorreu no <em>processo principal</em> (thread CrBrowserMain), não num utility process.</td><td>Investigação (contexto)</td></tr>
-      <tr><td><strong>node-gyp</strong></td><td>Ferramenta que compila addons nativos a partir do <span class="mono">binding.gyp</span>; usada pelo <span class="mono">ensure-native-abi.sh</span> com <span class="mono">--target=&lt;electron&gt;</span>.</td><td>Onda 1</td></tr>
-      <tr><td><strong>binding.gyp</strong></td><td>Arquivo de build do addon; no better-sqlite3 13.0.3 ele <em>hardcoda</em> <span class="mono">NAPI_VERSION=10</span>.</td><td>Causa raiz</td></tr>
-      <tr><td><strong>Alias npm</strong></td><td>Instalar um pacote sob outro nome: <span class="mono">better-sqlite3-electron = npm:better-sqlite3@12.11.1</span>.</td><td>Onda 1</td></tr>
-      <tr><td><strong>Loader lazy</strong></td><td>Importar/requerer só no momento do uso (e escolhendo o pacote por runtime) — evita carregar addon no runtime errado.</td><td>Onda 1</td></tr>
-      <tr><td><strong>globstar</strong></td><td>Recurso do bash 5 (<span class="mono">**</span>); não existe no bash 3.2 do macOS — origem do "npm test rodava 14/90 arquivos".</td><td>t.sh</td></tr>
-      <tr><td><strong>ELECTRON_RUN_AS_NODE</strong></td><td>Variável que faz o binário do Electron rodar como Node puro — usada nas provas numéricas do diagnóstico.</td><td>Investigação</td></tr>
-      <tr><td><strong>DatabaseSync</strong></td><td>Classe principal do <code>node:sqlite</code> (API síncrona: <code>prepare</code>/<code>run</code>/<code>get</code>/<code>all</code>/<code>exec</code>).</td><td>Solução</td></tr>
-      <tr><td><strong>Unflag</strong> <em>(node:sqlite unflagged)</em></td><td>Recurso que deixou de exigir flag experimental — desde o Node 22.13 (base do floor <span class="mono">&gt;=22.13</span>).</td><td>Solução</td></tr>
-      <tr><td><strong>PRAGMA</strong></td><td>Instrução de configuração do SQLite; ex.: <span class="mono">PRAGMA foreign_keys = ON</span> liga o enforcement de chaves estrangeiras.</td><td>Solução</td></tr>
-      <tr><td><strong>Gate</strong></td><td>Verificação obrigatória (build/lint/test) antes de integrar cada onda no orquestrador.</td><td>Validação</td></tr>
-      <tr><td><strong>Squash merge</strong></td><td>Juntar os commits de um trabalho num único commit ao integrar (os 7 commits abaixo são squash).</td><td>Commits</td></tr>
-      <tr><td><strong>Worktree</strong></td><td>Checkout isolado do git — o orquestrador cria um por onda para nunca mexer no branch principal enquanto trabalha.</td><td>Contexto do orquestrador</td></tr>
-      <tr><td><strong>ADR</strong> <em>(revisão adversarial)</em></td><td>Revisão crítica do diff por outro ponto de vista, antes de aceitar a integração.</td><td>Validação</td></tr>
-      <tr><td><strong>Crash report (.ips)</strong></td><td>Relatório nativo do macOS que grava o stack do crash (aqui: SIGSEGV em <span class="mono">node_module_register</span>).</td><td>Investigação</td></tr>
-      <tr><td><strong>env-guarded skip</strong></td><td>Teste que pula condicionalmente conforme o ambiente — conta como skip, não como falha (o 1 skip da suíte).</td><td>Validação</td></tr>
-      <tr><td><strong>Harness</strong></td><td>Infraestrutura de teste; aqui, o launcher do Playwright que sobe o Electron com envars de controle e <span class="mono">--lang=pt-BR</span>.</td><td>e2e</td></tr>
-      <tr><td><strong>engines</strong></td><td>Campo do <span class="mono">package.json</span> que declara a versão mínima do Node: <span class="mono">"node": "&gt;=22.13"</span>.</td><td>Floor do Node</td></tr>
-      <tr><td><strong>try/catch</strong></td><td>Mecanismo de exceções do JavaScript — captura erros JS, <em>nunca</em> um segfault.</td><td>Causa raiz</td></tr>
-      <tr><td><strong>electron-vite</strong></td><td>Ferramenta de build/empacotamento do app (o <span class="mono">npm run build</span> dele é o gate de build).</td><td>Validação</td></tr>
-      <tr><td><strong>Playwright</strong></td><td>Framework de testes e2e usado pelo <span class="mono">npm run test:e2e</span>.</td><td>e2e</td></tr>
-      <tr><td><strong>node --test / tsx</strong></td><td>Runner nativo de testes do Node (com tsx para TypeScript) — o motor por trás do <span class="mono">t.sh</span>.</td><td>t.sh</td></tr>
-      <tr><td><strong>DI</strong> <em>(injeção de dependência)</em></td><td>Passar dependências por parâmetro em vez de importar direto — a camada de banco é DI-friendly (nunca importa Electron), o que a torna testável.</td><td>Arquitetura do repo</td></tr>
-    </tbody>
-  </table>
-</section>
+      <figure class="figure">
+        <div class="diagram-shell" role="img" aria-label="Máquina de estados do nunca-repetir: do desafio ativo aos três eventos terminais que registram a tentativa e ocultam o desafio">
+          <p class="diagram-shell__hint">
+            Ctrl/Cmd + rolagem dá zoom · arraste para mover · duplo clique ajusta · ⛶ abre em nova aba
+          </p>
+          <div class="mermaid-wrap">
+            <div class="zoom-controls">
+              <button type="button" data-action="zoom-in" title="Aproximar">+</button>
+              <button type="button" data-action="zoom-out" title="Afastar">&minus;</button>
+              <button type="button" data-action="zoom-fit" title="Ajustar">&#8634;</button>
+              <button type="button" data-action="zoom-one" title="100%">1:1</button>
+              <button type="button" data-action="zoom-expand" title="Abrir em nova aba">&#x26F6;</button>
+              <span class="zoom-label">Carregando…</span>
+            </div>
+            <div class="mermaid-viewport">
+              <div class="mermaid mermaid-canvas"></div>
+            </div>
+          </div>
+          <script type="text/plain" class="diagram-source">
+            stateDiagram-v2
+              [*] --> Ativo: desafio aparece na lista
+              Ativo --> Ativo: 1º teste falho<br/>não registra nada
+              Ativo --> Passed: testes passaram
+              Ativo --> Timeout: tempo esgotou
+              Ativo --> Abandoned: trocou de desafio<br/>sem concluir
+              Passed --> Registrado: marca "passed"<br/>+ estrelas + duração
+              Timeout --> Registrado: marca "timeout"
+              Abandoned --> Registrado: marca "abandoned"<br/>(trocar = fim; é o design)
+              Registrado --> Registrado: 1º evento terminal<br/>vence (idempotente)
+              Registrado --> Oculto: some da lista<br/>do mesmo assunto
+              Oculto --> [*]
+          </script>
+        </div>
+        <figcaption>
+          <strong>Figura 4.</strong> Só o evento terminal registra a tentativa — e o desafio
+          registrado some da lista; o primeiro teste falho nunca esconde nada.
+        </figcaption>
+      </figure>
 
-<section id="s11">
-  <h2><span class="num">11.</span>Decisões autônomas</h2>
-  <p>Decisões tomadas pelo orquestrador sem consultar o usuário (além da diretriz geral), registradas nos fatos:</p>
-  <ul>
-    <li><strong>Onda 2 por diretiva</strong>: a troca do sqlite veio de ordem do usuário; a <em>escolha de como</em> — <code>node:sqlite</code> + Electron 37 — foi autônoma, por serem <strong>nativos/embutidos</strong>: sem addon, sem ABI, sem toolchain de build (a fragilidade exata da onda 1).</li>
-    <li><strong>e2e: determinismo no harness, não nas specs</strong>: o fix de locale foi no launcher (<span class="mono">--lang=pt-BR</span>), em vez de reescrever as specs em inglês — preserva o produto (UI pt-BR) e torna o veredito independente do host.</li>
-    <li><strong>Tolerância a falha de persistência</strong>: se o sqlite falhar ao abrir, o app <strong>sobe mesmo assim</strong>, sem persistência (try/catch no <span class="mono">index.ts</span> → repo <code>undefined</code> e canais de persistência desativados) — <strong>degradacão graciosa, nunca crash</strong>.</li>
-  </ul>
-</section>
+      <div class="signal">
+        <strong>O caminho crítico:</strong> a transição &ldquo;1º teste falho → nada&rdquo;. O
+        registro (<strong>registrar tentativa</strong> — anotar no banco que o desafio foi tentado)
+        só acontece nos eventos terminais, e é <strong>idempotente</strong> (repetir não muda nada:
+        só a 1ª marca vale).
+      </div>
 
-<section id="s12">
-  <h2><span class="num">12.</span>Commits (squash)</h2>
-  <p>Os 7 squash commits da execução (todos de 2026-08-26, na ordem da história do repo):</p>
-  <table>
-    <thead>
-      <tr><th>Commit</th><th>Descrição</th><th>Papel</th></tr>
-    </thead>
-    <tbody>
-      <tr><td><span class="mono">38222c5</span></td><td>onda1-sqlite-electron-abi — fix do crash do run.sh: alias better-sqlite3-electron 12.11.1 compilado para o ABI do Electron (ensure-native-abi.sh + hooks), loader lazy em connection.ts</td><td><span class="tag onda1">onda 1</span> <span class="tag subst">substituído</span></td></tr>
-      <tr><td><span class="mono">0c036f9</span></td><td>onda1-t-sh-globstar — t.sh portável bash 3.2/5 (find no lugar do globstar)</td><td><span class="tag onda1">onda 1</span> <span class="tag final">mantido</span></td></tr>
-      <tr><td><span class="mono">900a191</span></td><td>onda1-i18n-wiring-node24 — teste i18n-wiring robusto ao navigator sintético do Node 21+</td><td><span class="tag onda1">onda 1</span> <span class="tag final">mantido</span></td></tr>
-      <tr><td><span class="mono">bce3924</span></td><td>test-onda1-tools-coverage — testes de regressão do t.sh + edges do connection.ts + fluxo de erro do ensure-native-abi.sh</td><td><span class="tag onda1">subwave de teste</span></td></tr>
-      <tr><td><span class="mono">87f373b</span></td><td>onda2-node-sqlite — <strong>solução final</strong>: substitui better-sqlite3 por node:sqlite (DatabaseSync) + Electron 33.2.0 → 37.2.4; remove alias/ensure-native-abi.sh/loader; e2e determinístico (--lang=pt-BR) e specs alinhadas ao produto</td><td><span class="tag final">onda 2 · final</span></td></tr>
-      <tr><td><span class="mono">4262778</span></td><td>onda2-fix-node-floor — floor de Node subido para ≥ 22.13 (node:sqlite) em install.sh/READMEs + engines no package.json</td><td><span class="tag final">onda 2</span></td></tr>
-      <tr><td><span class="mono">b063c50</span></td><td>test-onda2-sqlite — 29 testes da camada node:sqlite (withTransaction discriminante, migrate, FK enforcement isolado, persistência em arquivo) — suite 1245 / 0 fail</td><td><span class="tag final">subwave de teste</span></td></tr>
-    </tbody>
-  </table>
-</section>
+      <div class="table-wrap">
+        <table>
+          <caption>Os 3 eventos terminais</caption>
+          <thead>
+            <tr>
+              <th scope="col">Evento terminal</th>
+              <th scope="col">Quando acontece</th>
+              <th scope="col">O que fica registrado</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>passed</code> <span class="chip chip--ok">passou</span></td>
+              <td>os testes passaram</td>
+              <td>a tentativa, com estrelas e duração</td>
+            </tr>
+            <tr>
+              <td><code>timeout</code> <span class="chip chip--warn">tempo esgotou</span></td>
+              <td>o cronômetro zerou sem passar</td>
+              <td>a tentativa, com duração</td>
+            </tr>
+            <tr>
+              <td><code>abandoned</code> <span class="chip chip--warn">abandonou</span></td>
+              <td>trocou de desafio sem concluir</td>
+              <td>a tentativa — e o desafio some da lista</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
 
-<section id="s13">
-  <h2><span class="num">13.</span>Arquivos principais</h2>
-  <div class="grid">
-    <div class="card"><span class="t">connection.ts</span><br><span class="small mono">app/electron/main/db/</span><br>Abre o banco com <code>DatabaseSync</code>, aplica <code>PRAGMA foreign_keys</code> via <code>exec</code>, <code>close()</code> idempotente.</div>
-    <div class="card"><span class="t">repo.ts</span><br><span class="small mono">app/electron/main/db/</span><br>CRUD com <code>withTransaction</code> (BEGIN/COMMIT/ROLLBACK); API <code>prepare/run/get/all</code>.</div>
-    <div class="card"><span class="t">migrate.ts</span><br><span class="small mono">app/electron/main/db/</span><br>Versão do schema via <code>user_version</code>; <code>DbConnectionLike</code> ajustada ao novo tipo.</div>
-    <div class="card"><span class="t">t.sh</span><br><span class="small mono">app/tools/</span><br>Runner de testes portável (find|sort no caso diretório; empty-glob guard).</div>
-    <div class="card"><span class="t">i18n-wiring.test.ts</span><br><span class="small mono">app/tests/</span><br>Teste do wiring de idioma robusto ao <code>navigator</code> sintético do Node 21+.</div>
-    <div class="card"><span class="t">helpers.ts / helpers-real.ts</span><br><span class="small mono">app/tests/e2e/</span><br>Harness e2e com <code>--lang=pt-BR</code> (+ <code>LANG</code>) — veredito independente do host.</div>
-    <div class="card"><span class="t">package.json</span><br><span class="small mono">app/</span><br>Electron 37.2.4; sem better-sqlite3 / @types/better-sqlite3 / better-sqlite3-electron; <code>engines.node ≥ 22.13</code>.</div>
-    <div class="card"><span class="t">index.ts</span><br><span class="small mono">app/electron/main/</span><br>Try/catch na abertura do banco: se falhar, app sobe sem persistência (degradação graciosa).</div>
-  </div>
-</section>
+      <div class="callout">
+        <strong>Limitações documentadas (honestidade antes de tudo):</strong> o registro é
+        <strong>otimista</strong> — a tela marca &ldquo;já tentado&rdquo; antes de o banco
+        confirmar. Uma falha transitória na ponte interna do app (IPC) pode, portanto, perder
+        <em>um</em> registro na sessão: o desafio reaparece uma vez na lista, e a próxima tentativa
+        terminal re-grava. E a <strong>troca = abandoned</strong> é o design: trocar de desafio sem
+        concluir conta como fim — o desafio tentado some, mesmo sem veredito de passou/falhou.
+      </div>
 
-<footer>
-  <p><strong>EXPLAINER</strong> — artefato de execução do orquestrador <strong>deep-orchestrator-agent-skill</strong> (repo study-method).</p>
-  <p>Data da execução: <strong>2026-08-26</strong> · run <span class="mono">20260826-151907-24415</span> · fonte primária: <span class="mono">.deep-orchestrator/run-20260826-151907-24415/explainer/fatos.md</span> (nada aqui foi inventado — figuras, números e vereditos refletem os fatos, o plano da execução e a história do repo).</p>
-  <p class="small">Documento self-contained: HTML + CSS embutidos, figuras SVG inline, sem JavaScript e sem dependência de rede — abre offline em qualquer navegador.</p>
-</footer>
+      <details class="scaffold">
+        <summary>Matemática também nunca repete — de outro jeito</summary>
+        <div class="scaffold__body">
+          <p>
+            Programação usa o <strong>slug</strong> (nome estável do desafio, sem o prefixo numérico:
+            <code>0007-fatorial-recursivo</code> → <code>fatorial-recursivo</code>). Na matemática
+            não existe &ldquo;lista de desafios&rdquo; — o exercício é gerado. A identidade é o
+            <strong>slug sintético</strong> <code>math:&lt;assunto&gt;:&lt;família&gt;:&lt;seed&gt;</code>:
+            cada tentativa (certa ou errada) incrementa a contagem do assunto, e o próximo seed
+            muda — <em>errou → o próximo problema é outro</em>. O problema errado também fica salvo
+            no banco, como o dono pediu.
+          </p>
+        </div>
+      </details>
+    </section>
+
+    <!-- ================= SEGMENTO 6 ================= -->
+    <section id="persistencia">
+      <h2><span class="num">06</span> Persistir sem medo: o banco e a migração à prova de queda</h2>
+      <p class="lead">
+        Matérias, lições e tentativas agora vivem no banco de dados local do app — o SQLite
+        apresentado no quadro da seção 1. O banco já existia em versões anteriores, e atualizá-lo da
+        versão 1 para a versão 3 (a migração descrita no quadro) era o ponto mais delicado da
+        rodada: se o app cair no meio, nada pode se perder nem se corromper.
+      </p>
+
+      <figure class="figure">
+        <div class="diagram-shell" role="img" aria-label="Migração do banco: passo a passo v1→v2→v3, transação única, rollback em crash, guardedAlter que pula colunas existentes">
+          <p class="diagram-shell__hint">
+            Ctrl/Cmd + rolagem dá zoom · arraste para mover · duplo clique ajusta · ⛶ abre em nova aba
+          </p>
+          <div class="mermaid-wrap">
+            <div class="zoom-controls">
+              <button type="button" data-action="zoom-in" title="Aproximar">+</button>
+              <button type="button" data-action="zoom-out" title="Afastar">&minus;</button>
+              <button type="button" data-action="zoom-fit" title="Ajustar">&#8634;</button>
+              <button type="button" data-action="zoom-one" title="100%">1:1</button>
+              <button type="button" data-action="zoom-expand" title="Abrir em nova aba">&#x26F6;</button>
+              <span class="zoom-label">Carregando…</span>
+            </div>
+            <div class="mermaid-viewport">
+              <div class="mermaid mermaid-canvas"></div>
+            </div>
+          </div>
+          <script type="text/plain" class="diagram-source">
+            flowchart TD
+              A["App abre o banco"] --> B{"Em que versão está?"}
+              B -->|"já atual (v3)"| NOP["No-op:<br/>nada muda"]
+              B -->|"v1"| C["Passo v2:<br/>domínio da matéria<br/>+ tabela de tentativas"]
+              C --> D["Passo v3:<br/>exercício de matemática<br/>na aula"]
+              B -->|"v2"| D
+              D --> E["Passos + versão nova:<br/>uma ÚNICA transação"]:::crit
+              E -->|"commit"| F["Banco v3 —<br/>nada se perde"]
+              E -->|"crash no meio"| R["ROLLBACK: nada fica<br/>meio-feito; a próxima<br/>abertura retoma"]:::crit
+              R --> A
+              C -.->|"confere: coluna já existe?"| G["guardedAlter: pula<br/>o que já foi feito<br/>(re-tentar não quebra)"]:::crit
+              D -.->|"confere: coluna já existe?"| G
+              classDef crit fill:#fde68a,stroke:#b45309,color:#451a03,stroke-width:2px
+          </script>
+        </div>
+        <figcaption>
+          <strong>Figura 5.</strong> A migração do banco roda passo a passo num pacote único: um
+          crash no meio desfaz tudo e a próxima abertura retoma de onde parou.
+        </figcaption>
+      </figure>
+
+      <div class="signal">
+        <strong>O caminho crítico:</strong> os passos e a gravação da nova versão acontecem numa
+        <strong>transação</strong> única (bloco de operações que vale inteiro — ou tudo, ou nada).
+        Crash antes do <code>commit</code> → <code>ROLLBACK</code>: o banco volta a ficar como
+        estava e a migração é retomada na próxima abertura.
+      </div>
+
+      <p>
+        Duas garantias extras: rodar a migração duas vezes nunca falha nem duplica, e o
+        <code>guardedAlter</code> só altera o que falta — se o app caiu entre criar a coluna e
+        gravar a versão, a coluna já existente é detectada e o passo é pulado, em vez de quebrar com
+        &ldquo;coluna duplicada&rdquo;.
+      </p>
+
+      <details class="scaffold">
+        <summary>O que cada tabela do banco guarda</summary>
+        <div class="scaffold__body">
+          <ul>
+            <li><strong>Matérias</strong> — o assunto estudado, com o domínio (<code>programming</code> ou <code>math</code>) e um slug único.</li>
+            <li><strong>Lições</strong> — as aulas persistidas, com dificuldade, árvore de origem, data de conclusão e o exercício de matemática serializado (a novidade da v3).</li>
+            <li><strong>Respostas</strong> — as respostas do aluno a cada aula.</li>
+            <li><strong>Desafios</strong> — o desafio da lição: enunciado, casos de teste e solução de referência.</li>
+            <li><strong>Tentativas</strong> — uma linha por tentativa terminal: matéria, lição, desafio, veredito, estrelas, duração e data.</li>
+          </ul>
+          <p>
+            Um detalhe de resiliência: se a persistência falhar na hora de salvar uma aula gerada,
+            a geração <strong>não é derrubada</strong> — a aula segue sem os ids de banco, como nas
+            ondas anteriores.
+          </p>
+        </div>
+      </details>
+    </section>
+
+    <!-- ================= SEGMENTO 7 ================= -->
+    <section id="navegar">
+      <h2><span class="num">07</span> Navegar por matéria: Home e Trilha</h2>
+      <p class="lead">
+        Com matérias persistidas, a navegação virou por matéria: a <strong>Home</strong> separa os
+        domínios (Programação e Matemática) e a <strong>Trilha</strong> organiza o progresso por
+        níveis.
+      </p>
+
+      <figure class="figure">
+        <div class="diagram-shell" role="img" aria-label="Navegação: Home com aviso de troca e Trilha que abre a lição salva por id">
+          <p class="diagram-shell__hint">
+            Ctrl/Cmd + rolagem dá zoom · arraste para mover · duplo clique ajusta · ⛶ abre em nova aba
+          </p>
+          <div class="mermaid-wrap">
+            <div class="zoom-controls">
+              <button type="button" data-action="zoom-in" title="Aproximar">+</button>
+              <button type="button" data-action="zoom-out" title="Afastar">&minus;</button>
+              <button type="button" data-action="zoom-fit" title="Ajustar">&#8634;</button>
+              <button type="button" data-action="zoom-one" title="100%">1:1</button>
+              <button type="button" data-action="zoom-expand" title="Abrir em nova aba">&#x26F6;</button>
+              <span class="zoom-label">Carregando…</span>
+            </div>
+            <div class="mermaid-viewport">
+              <div class="mermaid mermaid-canvas"></div>
+            </div>
+          </div>
+          <script type="text/plain" class="diagram-source">
+            flowchart TD
+              H["Home: seções<br/>Programação e Matemática"] --> D{"Aula em andamento<br/>de outra matéria?"}
+              D -->|"sim"| W["Diálogo de aviso:<br/>'a avaliação da aula<br/>atual é feita pela LLM'"]
+              W -->|"confirmar"| L["Abre a matéria nova"]
+              W -->|"cancelar"| H
+              D -->|"não"| L
+              T["Trilha: Iniciante 1–2<br/>Intermediário 3<br/>Avançado 4–5"] -->|"clica num nó<br/>done / current / pending"| P["Abre a lição salva<br/>por id — sem regenerar"]:::crit
+              L -->|"abre a aula"| P
+              classDef crit fill:#fde68a,stroke:#b45309,color:#451a03,stroke-width:2px
+          </script>
+        </div>
+        <figcaption>
+          <strong>Figura 6.</strong> Home e Trilha levam à aula certa sem perder o trabalho em
+          andamento: a Home avisa antes de trocar; a Trilha abre a lição salva.
+        </figcaption>
+      </figure>
+
+      <div class="signal">
+        <strong>O caminho crítico:</strong> a Trilha <strong>reabre a lição persistida por id</strong>
+        — o aluno continua de onde parou, sem gerar tudo de novo.
+      </div>
+
+      <details class="scaffold">
+        <summary>Por que o aviso de troca existe</summary>
+        <div class="scaffold__body">
+          <p>
+            Trocar de matéria no meio de uma aula significaria abandonar uma avaliação que a LLM
+            está fazendo sobre a aula atual. O diálogo pergunta antes (&ldquo;não dá para trocar de
+            matéria no meio da aula — a avaliação da aula atual é feita pela LLM&rdquo;), e o estado
+            da sessão (assunto, fase, status) é publicado para a Home e o quadro do app — com guarda
+            de identidade para descartar continuamentos de gerações antigas.
+          </p>
+        </div>
+      </details>
+    </section>
+
+    <!-- ================= SEGMENTO 8 ================= -->
+    <section id="validacao">
+      <h2><span class="num">08</span> Validação: os números, e a nota honesta</h2>
+      <p class="lead">
+        Tudo o que a rodada tocou foi verificado — e a verificação também foi checada, incluindo o
+        que <em>não</em> deu para rodar.
+      </p>
+
+      <div class="table-wrap">
+        <table>
+          <caption>Resultado das checagens</caption>
+          <thead>
+            <tr>
+              <th scope="col">Checagem</th>
+              <th scope="col">Resultado</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Suíte de testes do app</td>
+              <td>1563 testes: <span class="chip chip--ok">1562 verdes</span> · 0 falhas · 1 pulado (pré-existente — teste de integração que exige ambiente)</td>
+            </tr>
+            <tr>
+              <td>E2E — app completo, 13 roteiros <span class="chip chip--primary">Playwright</span></td>
+              <td><span class="chip chip--ok">19 verdes</span>; os 3 roteiros que usam chaves reais ficam de fora sem as chaves</td>
+            </tr>
+            <tr>
+              <td>Lint (checador de qualidade do código) e build (empacotamento)</td>
+              <td><span class="chip chip--ok">verdes</span></td>
+            </tr>
+            <tr>
+              <td>Matemática — verificação por propriedade independente</td>
+              <td>20.000 problemas conferidos por aritmética exata <span class="chip chip--ok">0 divergências</span></td>
+            </tr>
+            <tr>
+              <td>Revisão adversarial (revisão que tenta quebrar o app de propósito)</td>
+              <td>2 revisões sem bloqueio; <span class="chip chip--warn">4 alertas (WARNING)</span> corrigidos na hora e re-verificados: migração crash-safe, corrida entre desafios, contadores de delta, sessão publicada desatualizada</td>
+            </tr>
+            <tr>
+              <td>Gates do repositório <em>nesta máquina</em></td>
+              <td><span class="chip chip--warn">não executam</span>: o macOS traz bash 3.2, sem dois recursos que os scripts usam — problema <strong>pré-existente</strong>, não desta rodada; as checagens equivalentes foram replicadas à mão e ficaram verdes</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="callout">
+        <strong>Nota honesta sobre os gates:</strong> os scripts de verificação do repositório não
+        rodam neste Mac (o bash 3.2 do macOS não tem os recursos <code>nameref</code> e
+        <code>${s,,}</code> que eles usam). Isso é pré-existente — não foi introduzido nesta rodada.
+        Para não entregar &ldquo;verde&rdquo; sem prova, cada checagem equivalente foi replicada à
+        mão e passou: lint duplo, build e as regras de banco, com os 4 WARNING da revisão
+        adversarial corrigidos e re-verificados.
+      </div>
+    </section>
+
+  </main>
+
+  <footer>
+    <p>
+      <strong>Rodada 7 do study-method</strong> · concluída em 2026-08-27 · este documento vale
+      contra o estado do repositório nessa data. Fontes: <code>docs/14-respostas-nunca-repetir.md</code>,
+      <code>docs/app-gui.md</code> e <code>app/README.md</code>.
+    </p>
+  </footer>
 
 </div>
+
+<script type="module">
+  import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
+  import elkLayouts from 'https://cdn.jsdelivr.net/npm/@mermaid-js/layout-elk/dist/mermaid-layout-elk.esm.min.mjs';
+
+  const config = {
+    fitPadding: 28,
+    minHeight: 360,
+    maxHeightPx: 960,
+    maxHeightVh: 0.84,
+    maxInitialZoom: 1.8,
+    minZoom: 0.08,
+    maxZoom: 6.5,
+    zoomStep: 0.14,
+    readabilityFloor: 0.58
+  };
+
+  const THEMES = {
+    light: {
+      darkMode: false,
+      primaryColor: '#eef0f7',
+      primaryTextColor: '#1c2130',
+      primaryBorderColor: '#5537eb',
+      secondaryColor: '#e1e5eb',
+      secondaryTextColor: '#1c2130',
+      secondaryBorderColor: '#5b6472',
+      tertiaryColor: '#f8ecd4',
+      tertiaryTextColor: '#1c2130',
+      tertiaryBorderColor: '#b07d0e',
+      background: '#f3f5f9',
+      lineColor: '#414853',
+      edgeLabelBackground: '#ffffff',
+      noteBkgColor: '#fdf3e3',
+      noteTextColor: '#1c2130',
+      noteBorderColor: '#b07d0e'
+    },
+    dark: {
+      darkMode: true,
+      primaryColor: '#232a37',
+      primaryTextColor: '#e8ebf2',
+      primaryBorderColor: '#9a9dff',
+      secondaryColor: '#1e242e',
+      secondaryTextColor: '#dadee5',
+      secondaryBorderColor: '#6b7480',
+      tertiaryColor: '#352b19',
+      tertiaryTextColor: '#f5ead2',
+      tertiaryBorderColor: '#e0b341',
+      background: '#0d1119',
+      lineColor: '#9da5b2',
+      edgeLabelBackground: '#14181f',
+      noteBkgColor: '#2c2417',
+      noteTextColor: '#f5ead2',
+      noteBorderColor: '#e0b341'
+    }
+  };
+
+  function currentIsDark() {
+    const cs = getComputedStyle(document.documentElement).colorScheme;
+    if (cs === 'dark') return true;
+    if (cs === 'normal' && matchMedia('(prefers-color-scheme: dark)').matches) return true;
+    return false;
+  }
+
+  const clamp = (n, lo, hi) => Math.max(lo, Math.min(hi, n));
+
+  let activeDrag = null;
+
+  addEventListener('mousemove', (e) => activeDrag?.onMove(e));
+  addEventListener('mouseup', () => {
+    activeDrag?.onEnd();
+    activeDrag = null;
+  });
+
+  mermaid.registerLayoutLoaders(elkLayouts);
+
+  function applyMermaidTheme() {
+    const themeVars = currentIsDark() ? THEMES.dark : THEMES.light;
+    mermaid.initialize({
+      startOnLoad: false,
+      theme: 'base',
+      look: 'classic',
+      layout: 'elk',
+      themeVariables: {
+        ...themeVars,
+        fontFamily: "'Inter', system-ui, sans-serif",
+        fontSize: '14px'
+      }
+    });
+  }
+
+  applyMermaidTheme();
+
+  const rerenderers = [];
+
+  function initDiagram(shell) {
+    const wrap = shell.querySelector('.mermaid-wrap');
+    const viewport = shell.querySelector('.mermaid-viewport');
+    const canvas = shell.querySelector('.mermaid-canvas');
+    const source = shell.querySelector('.diagram-source');
+    const label = shell.querySelector('.zoom-label');
+
+    if (!wrap || !viewport || !canvas || !source || !label) {
+      console.error('initDiagram: missing required elements in', shell);
+      return;
+    }
+
+    let zoom = 1;
+    let fitMode = 'contain';
+    let panX = 0;
+    let panY = 0;
+    let svgW = 0;
+    let svgH = 0;
+
+    let sx = 0;
+    let sy = 0;
+    let spx = 0;
+    let spy = 0;
+
+    let touchDist = 0;
+    let touchCx = 0;
+    let touchCy = 0;
+
+    function constrainPan() {
+      const vpW = viewport.clientWidth;
+      const vpH = viewport.clientHeight;
+      const rW = svgW * zoom;
+      const rH = svgH * zoom;
+      const pad = config.fitPadding;
+
+      panX = (rW + pad * 2 <= vpW)
+        ? (vpW - rW) / 2
+        : clamp(panX, vpW - rW - pad, pad);
+      panY = (rH + pad * 2 <= vpH)
+        ? (vpH - rH) / 2
+        : clamp(panY, vpH - rH - pad, pad);
+    }
+
+    function applyTransform() {
+      const svg = canvas.querySelector('svg');
+      if (!svg || !svgW) return;
+
+      constrainPan();
+      svg.style.width = (svgW * zoom) + 'px';
+      svg.style.height = (svgH * zoom) + 'px';
+      canvas.style.transform = `translate(${panX}px, ${panY}px)`;
+      label.textContent = Math.round(zoom * 100) + '% — ' + fitMode;
+    }
+
+    function canPan() {
+      const rW = svgW * zoom;
+      const rH = svgH * zoom;
+      return rW + config.fitPadding * 2 > viewport.clientWidth
+          || rH + config.fitPadding * 2 > viewport.clientHeight;
+    }
+
+    function computeSmartFit() {
+      const vpW = viewport.clientWidth;
+      const vpH = viewport.clientHeight;
+      const aW = Math.max(80, vpW - config.fitPadding * 2);
+      const aH = Math.max(80, vpH - config.fitPadding * 2);
+      const contain = Math.min(aW / svgW, aH / svgH);
+
+      let z = contain;
+      let mode = 'contain';
+      if (contain < config.readabilityFloor) {
+        const chartR = svgH / svgW;
+        const vpR = vpH / Math.max(vpW, 1);
+        if (chartR >= vpR) {
+          z = aW / svgW;
+          mode = 'width-priority';
+        } else {
+          z = aH / svgH;
+          mode = 'height-priority';
+        }
+      }
+      return { zoom: clamp(z, config.minZoom, config.maxInitialZoom), mode };
+    }
+
+    function fitDiagram() {
+      if (!svgW) return;
+      const fit = computeSmartFit();
+      zoom = fit.zoom;
+      fitMode = fit.mode;
+      panX = (viewport.clientWidth - svgW * zoom) / 2;
+      panY = (viewport.clientHeight - svgH * zoom) / 2;
+      applyTransform();
+    }
+
+    function setOneToOne() {
+      zoom = clamp(1, config.minZoom, config.maxZoom);
+      fitMode = '1:1';
+      panX = (viewport.clientWidth - svgW * zoom) / 2;
+      panY = (viewport.clientHeight - svgH * zoom) / 2;
+      applyTransform();
+    }
+
+    function zoomAround(factor, cx, cy) {
+      const next = clamp(zoom * factor, config.minZoom, config.maxZoom);
+      const ratio = next / zoom;
+      panX = cx - ratio * (cx - panX);
+      panY = cy - ratio * (cy - panY);
+      zoom = next;
+      fitMode = 'custom';
+      applyTransform();
+    }
+
+    function readSvgNaturalSize(svg) {
+      let w = 0;
+      let h = 0;
+      if (svg.viewBox?.baseVal?.width > 0) {
+        w = svg.viewBox.baseVal.width;
+        h = svg.viewBox.baseVal.height;
+      }
+      if (!w) {
+        w = parseFloat(svg.getAttribute('width')) || 0;
+        h = parseFloat(svg.getAttribute('height')) || 0;
+      }
+      if (!w) {
+        const b = svg.getBBox();
+        w = b.width;
+        h = b.height;
+      }
+      if (!w) {
+        const r = svg.getBoundingClientRect();
+        w = r.width || 1000;
+        h = r.height || 700;
+      }
+      if (!svg.getAttribute('viewBox')) {
+        svg.setAttribute('viewBox', `0 0 ${w} ${h}`);
+      }
+      return { w, h };
+    }
+
+    function setAdaptiveHeight() {
+      if (!svgW) return;
+      const usableW = Math.max(280, wrap.getBoundingClientRect().width - 2);
+      const idealH = (svgH / svgW) * usableW + config.fitPadding * 2;
+      const maxVp = Math.floor(innerHeight * config.maxHeightVh);
+      const hardMax = Math.min(config.maxHeightPx, Math.max(config.minHeight + 40, maxVp));
+      wrap.style.height = Math.round(clamp(idealH, config.minHeight, hardMax)) + 'px';
+    }
+
+    function openInNewTab() {
+      const svg = canvas.querySelector('svg');
+      if (!svg) return;
+
+      const clone = svg.cloneNode(true);
+      clone.style.width = '';
+      clone.style.height = '';
+
+      const bg = getComputedStyle(document.documentElement)
+        .getPropertyValue('--background').trim()
+        || (currentIsDark() ? '#0d1119' : '#f3f5f9');
+
+      const html = `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>Diagrama — Rodada 7</title><style>
+      body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;
+      background:${bg};padding:40px;box-sizing:border-box}
+      svg{max-width:100%;max-height:90vh;height:auto}
+      </style></head><body>${clone.outerHTML}</body></html>`;
+
+      open(URL.createObjectURL(new Blob([html], { type: 'text/html' })), '_blank');
+    }
+
+    async function render() {
+      try {
+        const code = source.textContent.trim();
+        if (!code) {
+          label.textContent = 'Erro: fonte vazia';
+          return;
+        }
+
+        const id = 'diagram-' + Date.now() + '-' + Math.random().toString(36).slice(2, 8);
+        const { svg } = await mermaid.render(id, code);
+        const parsed = new DOMParser().parseFromString(svg, 'text/html');
+        const parsedSvg = parsed.body.querySelector('svg');
+        if (!parsedSvg) {
+          label.textContent = 'Erro: SVG ausente';
+          return;
+        }
+        canvas.replaceChildren(document.adoptNode(parsedSvg));
+
+        const svgNode = canvas.querySelector('svg');
+        if (!svgNode) {
+          label.textContent = 'Erro: SVG ausente';
+          return;
+        }
+
+        const size = readSvgNaturalSize(svgNode);
+        svgW = size.w;
+        svgH = size.h;
+
+        svgNode.removeAttribute('width');
+        svgNode.removeAttribute('height');
+        svgNode.style.maxWidth = 'none';
+        svgNode.style.display = 'block';
+
+        setAdaptiveHeight();
+        fitDiagram();
+      } catch (err) {
+        console.error('Mermaid render failed:', err);
+        label.textContent = 'Erro: ' + (err.message || 'Render failed');
+      }
+    }
+
+    const actions = {
+      'zoom-in': () => zoomAround(1 + config.zoomStep, viewport.clientWidth / 2, viewport.clientHeight / 2),
+      'zoom-out': () => zoomAround(1 / (1 + config.zoomStep), viewport.clientWidth / 2, viewport.clientHeight / 2),
+      'zoom-fit': fitDiagram,
+      'zoom-one': setOneToOne,
+      'zoom-expand': openInNewTab
+    };
+
+    Object.entries(actions).forEach(([action, handler]) => {
+      wrap.querySelector(`[data-action="${action}"]`)?.addEventListener('click', handler);
+    });
+
+    viewport.addEventListener('dblclick', fitDiagram);
+
+    viewport.addEventListener('wheel', (e) => {
+      if (e.ctrlKey || e.metaKey) {
+        e.preventDefault();
+        const rect = viewport.getBoundingClientRect();
+        const factor = e.deltaY < 0 ? 1 + config.zoomStep : 1 / (1 + config.zoomStep);
+        zoomAround(factor, e.clientX - rect.left, e.clientY - rect.top);
+        return;
+      }
+      if (canPan()) {
+        e.preventDefault();
+        panX -= e.deltaX;
+        panY -= e.deltaY;
+        applyTransform();
+      }
+    }, { passive: false });
+
+    viewport.addEventListener('mousedown', (e) => {
+      if (e.target.closest('.zoom-controls') || !canPan()) return;
+      wrap.classList.add('is-panning');
+      sx = e.clientX;
+      sy = e.clientY;
+      spx = panX;
+      spy = panY;
+      e.preventDefault();
+
+      activeDrag = {
+        onMove: (ev) => {
+          panX = spx + (ev.clientX - sx);
+          panY = spy + (ev.clientY - sy);
+          applyTransform();
+        },
+        onEnd: () => {
+          wrap.classList.remove('is-panning');
+        }
+      };
+    });
+
+    viewport.addEventListener('touchstart', (e) => {
+      if (e.touches.length === 1) {
+        sx = e.touches[0].clientX;
+        sy = e.touches[0].clientY;
+        spx = panX;
+        spy = panY;
+      } else if (e.touches.length === 2) {
+        const dx = e.touches[0].clientX - e.touches[1].clientX;
+        const dy = e.touches[0].clientY - e.touches[1].clientY;
+        touchDist = Math.sqrt(dx * dx + dy * dy);
+        const r = viewport.getBoundingClientRect();
+        touchCx = (e.touches[0].clientX + e.touches[1].clientX) / 2 - r.left;
+        touchCy = (e.touches[0].clientY + e.touches[1].clientY) / 2 - r.top;
+      }
+    }, { passive: true });
+
+    viewport.addEventListener('touchmove', (e) => {
+      if (e.touches.length === 1 && canPan()) {
+        if (touchDist > 0) {
+          sx = e.touches[0].clientX;
+          sy = e.touches[0].clientY;
+          spx = panX;
+          spy = panY;
+          touchDist = 0;
+        }
+        e.preventDefault();
+        panX = spx + (e.touches[0].clientX - sx);
+        panY = spy + (e.touches[0].clientY - sy);
+        applyTransform();
+      } else if (e.touches.length === 2 && touchDist > 0) {
+        e.preventDefault();
+        const dx = e.touches[0].clientX - e.touches[1].clientX;
+        const dy = e.touches[0].clientY - e.touches[1].clientY;
+        const d = Math.sqrt(dx * dx + dy * dy);
+        zoomAround(d / touchDist, touchCx, touchCy);
+        touchDist = d;
+      }
+    }, { passive: false });
+
+    new ResizeObserver(() => {
+      if (svgW) {
+        setAdaptiveHeight();
+        fitDiagram();
+      }
+    }).observe(wrap);
+
+    rerenderers.push(render);
+    render();
+  }
+
+  document.querySelectorAll('.diagram-shell').forEach(initDiagram);
+
+  window.rerenderDiagrams = () => Promise.all(rerenderers.map((render) => render()));
+
+  // Re-renderiza todos os diagramas quando o esquema claro/escuro muda.
+  matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+    applyMermaidTheme();
+    window.rerenderDiagrams();
+  });
+</script>
+
 </body>
 </html>
