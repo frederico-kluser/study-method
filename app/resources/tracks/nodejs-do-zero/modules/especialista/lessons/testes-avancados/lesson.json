@@ -1,0 +1,53 @@
+{
+  "schemaVersion": 1,
+  "slug": "testes-avancados",
+  "title": "Testes avançados",
+  "summary": "Cobertura que diz a verdade, testes de integração reais, mocking de dependências e testes por propriedades.",
+  "difficulty": 5,
+  "concepts": [
+    "cobertura",
+    "testes_de_integracao",
+    "mocking",
+    "testes_por_propriedade"
+  ],
+  "prerequisites": [
+    "seguranca-avancada"
+  ],
+  "theory": [
+    {
+      "id": "a-rede-de-seguranca",
+      "title": "O teste é a rede de segurança",
+      "markdown": "Um malabarista de circo ensaia SEMPRE com a rede embaixo: sem ela, qualquer erro custa caro demais para ser tentado. O teste automatizado é a rede do programador — e o módulo 7 (testes-e-qualidade) já te deu a base: node:test, assert e testes de API com fetch.\n\nEsta aula sobe o nível com as quatro técnicas que separam \"tem testes\" de \"testa de verdade\":\n\n1. **Cobertura** — a régua que mostra QUANTO do código os testes percorrem. Aviso: é termômetro, não meta — 100% de cobertura com testes que não afirmam nada é 100% de nada.\n2. **Testes de integração** — não só a função isolada: o SISTEMA funcionando junto (servidor real + banco real), como o cliente usa.\n3. **Mocking** — trocar uma dependência (relógio, banco, serviço de pagamento) por uma versão controlada, para testar o seu código sem depender do mundo.\n4. **Testes por propriedade** — em vez de um caso de cada vez, gerar MUITOS casos aleatórios e afirmar as propriedades que SEMPRE valem (ex.: \"ordenar nunca muda a quantidade de elementos\").\n\nA regra de ouro continua a mesma: um teste que nunca falha não testa nada."
+    },
+    {
+      "id": "cobertura-integracao-mock-e-propriedades",
+      "title": "Cobertura, integração, mock e propriedades na prática",
+      "markdown": "**1. Cobertura.** O Node mede sozinho — quantas linhas os testes percorreram:\n\n```bash\nnode --test --experimental-test-coverage\n# imprime no fim: % funcs, % lines, % branches por arquivo\n```\n\n**2. Testes de integração: o sistema de verdade.** Em vez de testar a função isolada, sobe o servidor real numa porta livre e bate nele com fetch (o padrão do módulo 7), agora com o BANCO real — o fluxo inteiro do jeito que o cliente vive:\n\n```js\nimport { test, before, after } from 'node:test';\nimport assert from 'node:assert/strict';\nimport { criarServidor } from './app.mjs';\n\nlet servidor;\nlet porta;\n\nbefore(async () => {\n  servidor = criarServidor();                     // app de verdade\n  await new Promise((resolve) => {\n    servidor.listen(0, () => {                    // porta 0 = porta livre\n      porta = servidor.address().port;\n      resolve();\n    });\n  });\n});\n\nafter(() => servidor.close());\n\ntest('fluxo completo: criar pedido e buscar de volta', async () => {\n  const resposta = await fetch(`http://localhost:${porta}/pedidos`, {\n    method: 'POST',\n    headers: { 'content-type': 'application/json' },\n    body: JSON.stringify({ cliente: 'Ana', itens: [{ item: 'pão', quantidade: 3 }] }),\n  });\n  assert.equal(resposta.status, 201);\n  const pedido = await resposta.json();\n  assert.equal(pedido.total, 7.5);\n});\n```\n\n**3. Mocking.** O teste de integração é ótimo, mas às vezes a dependência é cara, instável ou impossível (um gateway de pagamento real). Aí você troca a dependência por um duplo — o **mock** — e afirma que o SEU código se comporta certo (chamou a função com os argumentos certos, tratou o erro):\n\n```js\nimport { test, mock } from 'node:test';\n\ntest('quando o pagamento falha, o pedido não é criado', async () => {\n  const pagamentoMock = mock.fn(async () => ({ aprovado: false, motivo: 'sem limite' }));\n  const resultado = await criarPedido({ cliente: 'Ana' }, pagamentoMock);\n  assert.equal(resultado.ok, false);\n  assert.equal(pagamentoMock.mock.calls.length, 1); // foi chamado exatamente uma vez\n});\n```\n\nPara o relógio (o mock mais útil de todos), o node:test também tem `mock.timers` — você avança o tempo sem esperar de verdade.\n\n**4. Testes por propriedade.** Em vez de `test('ordena lista pequena')`, gerar 200 listas aleatórias e afirmar as propriedades que SEMPRE valem:\n\n```js\ntest('ordenar preserva tamanho e conteúdo (propriedade)', () => {\n  for (let i = 0; i < 200; i++) {\n    const original = Array.from({ length: 20 }, () => Math.floor(Math.random() * 100));\n    const ordenada = [...original].sort((a, b) => a - b);\n    assert.equal(ordenada.length, original.length);          // tamanho preservado\n    assert.deepEqual([...ordenada].sort(), [...original].sort()); // mesmos elementos\n    for (let j = 1; j < ordenada.length; j++) {\n      assert.ok(ordenada[j - 1] <= ordenada[j]);             // ordem respeitada\n    }\n  }\n});\n```\n\nO teste por propriedade encontra os casos que você NÃO pensou em escrever — e o nome é exatamente isso: você testa as propriedades que o resultado sempre deve ter."
+    },
+    {
+      "id": "exemplo-completo",
+      "title": "Exemplo completo: a suíte da API de descontos",
+      "markdown": "A Pão & Prosa tem uma função de desconto que já causou dois incidentes. Vamos montar a suíte completa — cobertura, integração, mock e propriedade — com o porquê de cada teste:\n\n```js\n// app.mjs — o que vamos testar\nexport function calcularDesconto(total, percentual) {\n  if (typeof total !== 'number' || total < 0 || percentual < 0 || percentual > 100) {\n    throw new Error('total e percentual inválidos');\n  }\n  return Math.round(total * (1 - percentual / 100) * 100) / 100;\n}\n```\n\n```js\n// app.test.mjs — a suíte\nimport { test, mock } from 'node:test';\nimport assert from 'node:assert/strict';\nimport { calcularDesconto } from './app.mjs';\n\n// 1. casos normais + limites (o que o cliente pediu)\ntest('desconto de 10% em 100 dá 90', () => assert.equal(calcularDesconto(100, 10), 90));\ntest('desconto de 0% e 100% são os limites válidos', () => {\n  assert.equal(calcularDesconto(100, 0), 100);\n  assert.equal(calcularDesconto(100, 100), 0);\n});\n\n// 2. erros: entrada inválida é recusada (nunca desconto negativo)\ntest('percentual fora de 0..100 lança erro', () => {\n  assert.throws(() => calcularDesconto(100, -1));\n  assert.throws(() => calcularDesconto(100, 150));\n});\n\n// 3. propriedade: para 200 totais aleatórios, o desconto NUNCA é negativo\n//    nem maior que o total — a invariante que os casos manuais não cobrem\ntest('desconto nunca fica negativo nem maior que o total (propriedade)', () => {\n  for (let i = 0; i < 200; i++) {\n    const total = Math.random() * 1000;\n    const percentual = Math.random() * 100;\n    const resultado = calcularDesconto(total, percentual);\n    assert.ok(resultado >= 0, 'desconto nunca pode ser negativo');\n    assert.ok(resultado <= total, 'desconto nunca pode ser maior que o total');\n  }\n});\n\n// 4. mock: a rota usa o serviço de cupons — o teste controla o serviço\ntest('rota aplica o cupom informado pelo serviço (mock)', async () => {\n  const servicoCupons = { buscarPercentual: mock.fn(() => 15) };\n  const resultado = calcularDesconto(200, servicoCupons.buscarPercentual());\n  assert.equal(resultado, 170);\n  assert.equal(servicoCupons.buscarPercentual.mock.calls.length, 1);\n});\n```\n\n**A ordem importa:** os casos normais provam o contrato; os de erro provam a recusa; a propriedade prova a invariante em território que ninguém pensou; o mock prova a integração sem depender do serviço real. Rode com `node --test --experimental-test-coverage` e a régua mostra o que ainda não foi percorrido — e o dia em que um percentual inválido parar de lançar erro, é a propriedade (teste 3) que apita primeiro."
+    }
+  ],
+  "sources": [
+    {
+      "title": "node:test — documentação oficial do Node.js",
+      "url": "https://nodejs.org/api/test.html",
+      "description": "A referência do runner de testes embutido (test, mock, mock.timers, cobertura)."
+    },
+    {
+      "title": "node:assert — documentação oficial do Node.js",
+      "url": "https://nodejs.org/api/assert.html",
+      "description": "As asserções do Node: equal, deepEqual, throws, ok."
+    },
+    {
+      "title": "Mocking em node:test",
+      "url": "https://nodejs.org/docs/latest/api/test.html#mocking",
+      "description": "mock.fn, mock.method e mock.timers para trocar dependências nos testes."
+    }
+  ],
+  "challenges": [
+    "testes-avancados"
+  ]
+}

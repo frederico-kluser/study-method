@@ -1,0 +1,52 @@
+{
+  "schemaVersion": 1,
+  "slug": "performance-e-profiling",
+  "title": "Performance e profiling",
+  "summary": "Meça antes de otimizar: timing de código, CPU profile, os gargalos mais comuns e a saúde do event loop.",
+  "difficulty": 5,
+  "concepts": [
+    "performance",
+    "profiling",
+    "event_loop_lag"
+  ],
+  "prerequisites": [
+    "debugging-profundo"
+  ],
+  "theory": [
+    {
+      "id": "otimizar-sem-medir-e-apostar",
+      "title": "Otimizar sem medir é apostar",
+      "markdown": "O dono da Pão & Prosa resolveu que o problema do serviço lento era o garçom que anota o pedido devagar — e pagou um curso de anotação rápida para a equipe. O serviço continuou lento. A cozinha é que era o gargalo, e ninguém mediu.\n\nCom código é a mesma coisa. **Otimizar sem medir é apostar**: quase todo o tempo de um programa costuma estar em pouquíssimas linhas — e quase nunca nas linhas que você imagina. O trabalho de verdade é achar ONDE o tempo vai, e só então mexer ali.\n\nAs regras da aula:\n\n1. **Meça antes** — o tempo atual, em números, antes de tocar em qualquer coisa.\n2. **Meça depois** — a mesma medição após a mudança, para provar que melhorou.\n3. **Guarde a régua** — o teste de performance de hoje é a régua que evita o problema voltar amanhã.\n\nO nome técnico de \"achar onde o tempo vai\" é **profiling**: gerar um mapa de quanto tempo cada função consumiu. Sem esse mapa, \"otimização\" é chute com pressa."
+    },
+    {
+      "id": "como-medir-e-encontrar-o-gargalo",
+      "title": "Como medir e encontrar o gargalo",
+      "markdown": "**1. Cronômetro simples.** Para medir um trecho no meio do código:\n\n```js\nconsole.time('processar');\nprocessar();\nconsole.timeEnd('processar');   // imprime: processar: 1.234ms\n\nconst inicio = performance.now(); // performance: API de alta precisão\nprocessar();\nconsole.log(`levou ${performance.now() - inicio} ms`);\n```\n\n**2. CPU profile — o mapa de tempo do Node.** Para ACHAR onde o tempo vai, o Node gera o mapa sozinho:\n\n```bash\nnode --cpu-prof server.mjs     # roda e grava um arquivo .cpuprofile\n# abra o .cpuprofile no DevTools do Chrome (aba Performance > Load)\n```\n\nO profile vira um **flame graph**: cada barra é uma função, e a LARGURA da barra é o tempo que ela consumiu. A barra mais larga é o suspeito número um — não a função que você \"acha\" que é lenta. (O modo clássico `node --prof server.mjs` + `node --prof-process isolate-*.log` faz o mesmo por linha de comando.)\n\n**3. A saúde do event loop.** Você já sabe que o event loop é o garçom único que atende tudo (módulo 3). Se alguém trancar o loop com um trabalho pesado SÍNCRONO, TODAS as requisições atrasam junto. Dá para medir o atraso com um relógio:\n\n```js\nlet lagMaximo = 0;\nlet ultimoTick = Date.now();\nsetInterval(() => {\n  const agora = Date.now();\n  const lag = agora - ultimoTick - 1000; // quanto o relógio atrasou além do prometido\n  lagMaximo = Math.max(lagMaximo, lag);\n  ultimoTick = agora;\n}, 1000);\n\n// em produção, exponha lagMaximo numa rota de métricas\n```\n\n**4. Os gargalos mais comuns no Node:**\n\n- **Loops aninhados** sobre a mesma lista (O(n²)) — o clássico `lista.filter(x => lista.includes(x))`.\n- **I/O síncrono no meio do fluxo** — `readFileSync`/`writeFileSync` numa rota trancam o event loop inteiro.\n- **Parsing de texto grande** repetido (JSON.parse de um arquivo gigante a cada requisição em vez de uma vez na subida).\n- **Regex com backtracking explosivo** — padrões como `(a+)+b` sobre entradas grandes podem travar minutos (veja a aula de segurança: mesma família do ReDoS).\n- **Trabalho pesado no event loop** — loops de milhões de itens numa rota; o certo é mover para worker (módulo de Node avançado)."
+    },
+    {
+      "id": "exemplo-completo",
+      "title": "Exemplo completo: achando o gargalo de verdade",
+      "markdown": "A Pão & Prosa agora tem 50 mil pedidos no arquivo, e a rota `/duplicados` (que encontra pedidos com o mesmo cliente na mesma data) leva 3 segundos. Vamos medir, achar e corrigir.\n\n**Passo 1 — medir o ponto exato:**\n\n```js\n// server.mjs\napp.get('/duplicados', (req, res) => {\n  const inicio = performance.now();\n  const duplicados = acharDuplicados(pedidos);\n  console.log(`acharDuplicados levou ${performance.now() - inicio} ms`); // 2.998 ms\n  res.json({ duplicados: duplicados.length });\n});\n\n// a implementação \"óbvia\" — e lenta:\nfunction acharDuplicados(pedidos) {\n  return pedidos.filter((a) =>\n    pedidos.some((b) => a !== b && a.cliente === b.cliente && a.data === b.data),\n  );\n}\n```\n\n**Passo 2 — confirmar com o CPU profile.** `node --cpu-prof server.mjs`, bater na rota, abrir o `.cpuprofile` no DevTools: a barra mais larga é `acharDuplicados` — e dentro dela, o `.some` rodando 50 mil × 50 mil comparações: **2,5 bilhões de passos**. O código \"óbvio\" é O(n²).\n\n**Passo 3 — trocar o algoritmo, medir de novo:**\n\n```js\nfunction acharDuplicados(pedidos) {\n  const vistos = new Map();          // Map: consulta em tempo quase constante\n  const duplicados = [];\n  for (const pedido of pedidos) {\n    const chave = `${pedido.cliente}|${pedido.data}`;\n    if (vistos.has(chave)) {\n      duplicados.push(pedido);       // já vimos esse cliente+data: é duplicado\n    } else {\n      vistos.set(chave, pedido);\n    }\n  }\n  return duplicados;\n}\n```\n\nO loop agora passa UMA vez pela lista (O(n)): a mesma rota cai de 3 segundos para 5 milissegundos — 600x mais rápida, com 3 linhas a menos. O que mudou não foi \"esforço\": foi olhar o mapa (profile) e atacar a barra mais larga. E o passo 1 deixou o `console.time` no código para a próxima pessoa ver a régua — se um dia voltar a 3 segundos, o próprio log denuncia."
+    }
+  ],
+  "sources": [
+    {
+      "title": "Flame graphs — guia de diagnósticos do Node.js",
+      "url": "https://nodejs.org/en/learn/diagnostics/flame-graphs",
+      "description": "Como ler um flame graph e achar a função que consome o tempo."
+    },
+    {
+      "title": "Poor performance — guia de diagnósticos do Node.js",
+      "url": "https://nodejs.org/en/learn/diagnostics/poor-performance",
+      "description": "Sintomas e causas comuns de performance ruim em Node.js."
+    },
+    {
+      "title": "Opções de linha de comando do Node.js",
+      "url": "https://nodejs.org/docs/latest/api/cli.html",
+      "description": "As flags --cpu-prof e --prof para gerar perfis de CPU."
+    }
+  ],
+  "challenges": [
+    "performance-e-profiling"
+  ]
+}

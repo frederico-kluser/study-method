@@ -1,0 +1,58 @@
+{
+  "schemaVersion": 1,
+  "slug": "deploy-avancado",
+  "title": "Deploy avançado",
+  "summary": "Containers, CI/CD, blue-green, rollback e a paridade entre ambientes — deploy que não assusta.",
+  "difficulty": 5,
+  "concepts": [
+    "containers",
+    "ci_cd",
+    "blue_green",
+    "rollback"
+  ],
+  "prerequisites": [
+    "testes-avancados"
+  ],
+  "theory": [
+    {
+      "id": "deploy-repetivel",
+      "title": "Deploy repetível é deploy seguro",
+      "markdown": "O módulo 8 te levou ao servidor: scripts de start, porta, health check e o PM2 vigiando o processo. Agora o problema muda de escala: a Pão & Prosa abriu a segunda filial, e o dono não quer que cada filial monte a cozinha de um jeito. **Se o deploy depende de passos manuais que só uma pessoa sabe, ele é um acidente esperando para acontecer.**\n\nDeploy avançado resolve três perguntas:\n\n1. **Repetível** — o MESMO artefato, montado do mesmo jeito, em qualquer máquina. O `na minha máquina funciona` morre aqui: se o artefato é igual, o ambiente não é mais desculpa.\n2. **Testado** — ninguém deploya no chute: a máquina roda os testes antes de publicar (CI/CD), e a versão nova só assume quando passa no health check (blue-green).\n3. **Reversível** — se a versão nova der problema, voltar para a versão boa tem que ser rápido e barato (rollback).\n\nAs ferramentas da aula: **containers** (a cozinha padronizada), **CI/CD** (a linha de montagem que testa e publica sozinha), **blue-green** (a troca sem risco) e **paridade entre ambientes** (o 12-factor de novo)."
+    },
+    {
+      "id": "containers-ci-cd-blue-green-e-rollback",
+      "title": "Containers, CI/CD, blue-green e rollback",
+      "markdown": "**1. Containers — a cozinha padronizada.** Um **container** empacota o SEU código + o Node + as configurações num pacote que roda igual em qualquer lugar. O Dockerfile é a receita:\n\n```dockerfile\nFROM node:22-alpine          # a base: Node 22 (alpine = imagem pequena)\nWORKDIR /app                 # o diretório de trabalho dentro do container\nCOPY package*.json ./        # 1º os manifests...\nRUN npm ci                   # ...para instalar as dependências (lockfile exato)\nCOPY . .                     # ...e só então o código (camadas em cache)\nENV NODE_ENV=production\nCMD [\"node\", \"server.mjs\"]   # o comando de start\n```\n\n```bash\ndocker build -t minha-api .        # monta a imagem\ndocker run -p 3000:3000 minha-api  # roda o container (porta 3000 do host -> 3000 do container)\n```\n\nE um `.dockerignore` (igual ao .gitignore) para não copiar `node_modules` para dentro da imagem: quem instala as dependências é o `RUN npm ci`, com o lockfile.\n\n**2. CI/CD — a linha de montagem.** **CI** (integração contínua): a cada commit, a máquina roda lint + testes + build automaticamente. **CD** (entrega contínua): se a CI passou, publica o artefato. A regra de ouro: **nada vai para produção sem passar pela CI** — e se um passo falha, a linha PARA (não se deploya com teste vermelho):\n\n```text\n1. lint      → node --check nos arquivos (erros bobos)\n2. test      → node --test (a suíte inteira — módulos 7 e 8)\n3. build     → docker build (a imagem)\n4. deploy    → só roda se os 3 anteriores passaram\n```\n\n**3. Blue-green — a troca sem risco.** Duas versões vivas ao mesmo tempo: a **blue** é a que atende o público; a **green** é a versão nova, que sobe ao lado. O roteador (ou balanceador) aponta para a blue. Quando a green passa no health check, o roteador troca o ponteiro — os usuários nem percebem. **Rollback** é trocar o ponteiro de volta: um clique, sem redeploy.\n\n**4. Paridade entre ambientes (12-factor).** Se o que roda em dev é diferente do que roda em produção, os bugs vão nascer exatamente na fronteira. A regra: **dev, staging e prod com o MESMO código, MESMA dependência (lockfile), MESMA configuração de ferramentas** — mudando só as variáveis de ambiente (`.env.development`, `.env.production`, nunca comitados). Quanto menor o gap, menores as surpresas."
+    },
+    {
+      "id": "exemplo-completo",
+      "title": "Exemplo completo: da imagem ao blue-green",
+      "markdown": "O fluxo completo da Pão & Prosa, peça por peça, com o porquê de cada uma:\n\n**Peça 1 — a imagem (Dockerfile):**\n\n```dockerfile\nFROM node:22-alpine\nWORKDIR /app\nCOPY package*.json ./\nRUN npm ci                      # instala do lockfile: versões EXATAS\nCOPY . .\nENV NODE_ENV=production\nEXPOSE 3000                     # documenta a porta\nCMD [\"node\", \"server.mjs\"]\n```\n\n**Peça 2 — o pipeline de CI/CD (resumo do arquivo de workflow):**\n\n```yaml\n# .github/workflows/deploy.yml (conceitual)\nname: pipeline\non: [push]\njobs:\n  qualidade:\n    runs-on: ubuntu-latest\n    steps:\n      - run: npm ci            # 1. dependências exatas\n      - run: node --test       # 2. suíte de testes\n      - run: docker build -t minha-api .   # 3. a imagem\n  deploy:\n    needs: qualidade           # só roda se a qualidade passou\n    steps:\n      - run: docker push minha-api:latest\n      - run: atualizar-green   # 4. sobe a green ao lado da blue\n```\n\n**Peça 3 — blue-green com rollback:**\n\n```text\nantes:   roteador ──► blue (v12, estável)     green (v13, nova, subindo)\nteste:   roteador bate no /health da green → 200? só então continua\ntroca:   roteador ──► green (v13)             blue fica parada, pronta\nrollback: 5 min depois, erro no monitor → roteador ──► blue de novo (v12)\n```\n\n**A ordem importa:** a imagem garante que o artefato é idêntico em todos os ambientes; a CI garante que só artefato testado chega ao deploy; o health check da green garante que a troca só acontece com a versão nova saudável; e a blue parada garante que o rollback é instantâneo. Deploy deixa de ser um evento de nervos e vira uma troca de ponteiro — a Pão & Prosa deploya no meio do expediente sem fechar a loja."
+    }
+  ],
+  "sources": [
+    {
+      "title": "12 Factor App — a metodologia",
+      "url": "https://12factor.net/",
+      "description": "Os 12 fatores para aplicações de produção: config, logs, processos, paridade..."
+    },
+    {
+      "title": "Paridade entre ambientes — 12 Factor App",
+      "url": "https://12factor.net/dev-prod-parity",
+      "description": "Por que dev, staging e prod devem ficar o mais próximos possível."
+    },
+    {
+      "title": "Docker — primeiros passos",
+      "url": "https://docs.docker.com/get-started/",
+      "description": "O guia oficial de containers, imagens e Dockerfile."
+    },
+    {
+      "title": "BlueGreenDeployment — Martin Fowler",
+      "url": "https://martinfowler.com/bliki/BlueGreenDeployment.html",
+      "description": "A técnica blue-green explicada pelo autor do termo."
+    }
+  ],
+  "challenges": [
+    "deploy-avancado"
+  ]
+}

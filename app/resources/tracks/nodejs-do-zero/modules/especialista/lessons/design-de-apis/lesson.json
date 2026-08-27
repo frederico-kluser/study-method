@@ -1,0 +1,52 @@
+{
+  "schemaVersion": 1,
+  "slug": "design-de-apis",
+  "title": "Design de APIs",
+  "summary": "Versionamento, contratos, documentação e compatibilidade: APIs que evoluem sem quebrar quem usa.",
+  "difficulty": 5,
+  "concepts": [
+    "versionamento",
+    "contratos",
+    "documentacao"
+  ],
+  "prerequisites": [
+    "observabilidade"
+  ],
+  "theory": [
+    {
+      "id": "api-e-um-contrato",
+      "title": "Sua API é um contrato",
+      "markdown": "Quando a Pão & Prosa fechou com o fornecedor de pães, os dois assinaram um contrato: preço, prazo, quantidade. Quem quebra uma cláusula paga o prejuízo — do outro lado. Sua API é um contrato igual, só que com quem consome seu sistema: **uma vez que o campo `preco` existe com o formato número, mudá-lo para string é quebrar o contrato — e o custo da quebra é do cliente, não seu.**\n\nA evolução é inevitável: o produto muda, o contrato precisa mudar. A diferença entre um time que quebra a API toda semana e um que evolui em paz é o **design**:\n\n- **Mudanças aditivas** — adicionar campo novo, endpoint novo, parâmetro opcional — nunca quebram ninguém.\n- **Mudanças que quebram** — remover ou renomear campo, mudar o tipo de um valor, mudar o significado de um status — só entram em VERSÃO NOVA, com aviso prévio.\n\nE, como todo contrato, o documento importa: quem usa precisa saber o que pode esperar — é para isso que existe a documentação (OpenAPI) e o formato de erro consistente."
+    },
+    {
+      "id": "versionar-contratar-e-documentar",
+      "title": "Versionar, contratar e documentar",
+      "markdown": "**1. Versionamento.** A versão mora na URL (o jeito mais simples e transparente):\n\n```js\napp.use('/v1/pedidos', rotasPedidosV1);   // versão antiga: contratos congelados\napp.use('/v2/pedidos', rotasPedidosV2);   // versão nova: a evolução\n```\n\nA v1 nunca mais muda; a v2 é onde a API evolui. (Alternativa: o header `Accept: application/vnd.paoeprosa.v2+json` — mesmo princípio, a versão no contrato de mídia.)\n\n**2. Avisar antes de quebrar.** Quando uma versão vai morrer, o servidor AVISA quem usa, com antecedência e carinho — os headers `Deprecation` e `Sunset` são o padrão:\n\n```js\napp.use('/v1/pedidos', (req, res, next) => {\n  res.set('Deprecation', 'true');                        // \"esta versão está aposentando\"\n  res.set('Sunset', 'Wed, 01 Jan 2027 00:00:00 GMT');    // \"a partir desta data, morre\"\n  next();\n});\n```\n\n**3. Contrato de erro consistente.** Todo erro com a MESMA forma, para quem consome tratar SEMPRE do mesmo jeito:\n\n```js\napp.use((req, res) => {\n  res.status(404).json({ error: { code: 'nao_encontrado', message: 'recurso não existe' } });\n});\n// 400 → { error: { code: 'campo_invalido', message: 'quantidade deve ser número' } }\n// 429 → { error: { code: 'muitas_requisicoes', message: 'tente mais tarde' } }\n```\n\nO `code` é estável (o código do cliente depende dele); o `message` é humano (pode mudar sem quebrar ninguém).\n\n**4. Status certos.** 200 = sucesso; 201 = criado; 400 = requisição inválida; 401 = não autenticado; 403 = sem permissão; 404 = não existe; 409 = conflito (duplicado); 422 = entidade incompreensível; 429 = limite de requisições. Usar o status certo é metade do contrato.\n\n**5. Documentação — OpenAPI.** O [OpenAPI](https://swagger.io/specification/) descreve a API inteira num arquivo (rotas, parâmetros, respostas, erros) que máquinas leem — gera documentação interativa, clientes de código e testes de contrato. Regra de ouro: **se o campo está no OpenAPI, ele é contrato; se não está, ninguém deve depender dele.**"
+    },
+    {
+      "id": "exemplo-completo",
+      "title": "Exemplo completo: a v2 que não quebrou a v1",
+      "markdown": "A Pão & Prosa precisa adicionar paginação na lista de pedidos — sem derrubar os 12 clientes que já usam a v1. O caminho completo, com o porquê de cada passo:\n\n**Passo 1 — a v1 fica CONGELADA (o contrato que os 12 clientes assinaram):**\n\n```js\n// rotas-v1.mjs — nada aqui muda nunca mais\napp.get('/v1/pedidos', (req, res) => {\n  res.json(pedidos);                    // lista inteira, como sempre foi\n});\n```\n\n**Passo 2 — a v2 nasce com a novidade (mudança ADITIVA: parâmetro opcional):**\n\n```js\n// rotas-v2.mjs\napp.get('/v2/pedidos', (req, res) => {\n  const pagina = Number(req.query.pagina ?? 1);   // opcional: sem ele, igual à v1\n  const tamanho = Number(req.query.tamanho ?? 10);\n  const inicio = (pagina - 1) * tamanho;\n  res.json({\n    pedidos: pedidos.slice(inicio, inicio + tamanho),\n    pagina,\n    total: pedidos.length,\n  });\n});\n```\n\n**Passo 3 — o aviso de aposentadoria da v1 (nunca de surpresa):**\n\n```js\napp.use('/v1', (req, res, next) => {\n  res.set('Deprecation', 'true');\n  res.set('Sunset', 'Wed, 01 Jan 2027 00:00:00 GMT'); // 6 meses para migrar\n  next();\n});\n```\n\n**Passo 4 — o contrato de erro igual nas duas versões:**\n\n```js\nfunction erro(res, status, code, message) {\n  res.status(status).json({ error: { code, message } });\n}\n// app.use('/v1/pedidos') e '/v2/pedidos' usam a mesma função erro()\n```\n\n**A ordem importa:** a v1 não muda (contrato), a v2 evolui (aditiva), o aviso chega ANTES do corte (Deprecation/Sunset), e o erro é consistente nas duas (quem consome trata um formato só). Os 12 clientes não quebraram, os novos usam paginação, e daqui a 6 meses a v1 sai do ar com todo mundo avisado — contrato cumprido dos dois lados."
+    }
+  ],
+  "sources": [
+    {
+      "title": "API versioning — RESTful API",
+      "url": "https://restfulapi.net/versioning/",
+      "description": "As estratégias de versionamento de API: URL, header e mídia type."
+    },
+    {
+      "title": "OpenAPI Specification — Swagger",
+      "url": "https://swagger.io/specification/",
+      "description": "O padrão para descrever e documentar APIs de forma legível por máquina."
+    },
+    {
+      "title": "SemVer — Versionamento Semântico",
+      "url": "https://semver.org/",
+      "description": "O padrão de versões MAJOR.MINOR.PATCH — a base do versionamento de APIs."
+    }
+  ],
+  "challenges": [
+    "design-de-apis"
+  ]
+}
