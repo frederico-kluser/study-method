@@ -12,6 +12,7 @@ import {
   slugify,
   type LessonRepo,
   type CreateLessonInput,
+  type LessonExercise,
 } from '../../electron/main/db/repo';
 
 /** Abre um banco em memória (alguns cenários checam persistência). */
@@ -78,6 +79,37 @@ describe('createLessonRepo — subject', () => {
     assert.equal(vet?.domain, 'programming');
     close();
   });
+
+  it('ONDA4: upsertSubject ATUALIZA o domain quando o subject já existe e o domínio vem explícito', async () => {
+    const { repo, close } = makeRepo();
+    await repo.upsertSubject('Geometria', 'math');
+    // Re-upsert do MESMO subject com domain explícito DIFERENTE → atualiza.
+    const again = await repo.upsertSubject('geometria', 'programming');
+    assert.equal(again.subject.domain, 'programming', 'domain explícito deve atualizar a linha existente');
+    // E o UPDATE persiste no banco (não é só o retorno).
+    const list = await repo.listSubjects();
+    assert.equal(list[0].domain, 'programming');
+    close();
+  });
+
+  it('ONDA4: upsertSubject SEM domain preserva a linha existente (não reseta o domínio)', async () => {
+    const { repo, close } = makeRepo();
+    await repo.upsertSubject('Geometria', 'math');
+    const again = await repo.upsertSubject('geometria'); // domain undefined
+    assert.equal(again.subject.domain, 'math', 'linha existente não muda sem domain explícito');
+    close();
+  });
+
+  it('ONDA4: findSubjectBySlug devolve o subject persistido (null quando ausente)', async () => {
+    const { repo, close } = makeRepo();
+    await repo.upsertSubject('Cálculo I', 'math');
+    const found = await repo.findSubjectBySlug('calculo-i');
+    assert.ok(found);
+    assert.equal(found.id, (await repo.upsertSubject('Cálculo I')).subject.id);
+    assert.equal(found.domain, 'math');
+    assert.equal(await repo.findSubjectBySlug('nao-existe'), null);
+    close();
+  });
 });
 
 describe('createLessonRepo — lesson', () => {
@@ -104,11 +136,14 @@ describe('createLessonRepo — lesson', () => {
         ],
       },
     });
-    const lesson = await repo.getLessonById(id);
-    assert.ok(lesson);
-    assert.equal(lesson.title, 'Ordenação');
-    assert.equal(lesson.difficulty, 3);
-    assert.equal(lesson.completed_at, null);
+    const found = await repo.getLessonById(id);
+    assert.ok(found);
+    assert.equal(found.lesson.title, 'Ordenação');
+    assert.equal(found.lesson.difficulty, 3);
+    assert.equal(found.lesson.completed_at, null);
+    // ONDA4: sem exercício persistido ⇒ exercise null; domain do subject.
+    assert.equal(found.exercise, null);
+    assert.equal(found.domain, 'programming');
 
     close();
   });
@@ -302,6 +337,72 @@ describe('createLessonRepo — tree', () => {
     const f = tree.nodes.find((n) => n.lessonId === filha);
     assert.equal(f?.parentLessonId, root);
     assert.equal(f?.originLessonId, null);
+    close();
+  });
+});
+
+describe('createLessonRepo — exercise_json (v3, onda4-desafio-persistencia)', () => {
+  const EXERCISE: LessonExercise = {
+    kind: 'math',
+    family: 'fractions',
+    seed: 42,
+    prompt: 'Quanto é 1/2 + 1/4?',
+    expectedNormalized: '3/4',
+  };
+
+  it('createLesson com exercise serializa para exercise_json; getLessonById parseia de volta', async () => {
+    const { repo, db, close } = makeRepo();
+    await repo.upsertSubject('Frações', 'math');
+    const id = await repo.createLesson({
+      subjectSlug: 'fracoes',
+      title: 'Aula de frações',
+      body: 'corpo',
+      exercise: EXERCISE,
+    });
+    // O JSON no banco é o serializado do exercício.
+    const raw = db.prepare('SELECT exercise_json FROM lessons WHERE id = ?').get(id) as { exercise_json: string | null };
+    assert.ok(typeof raw.exercise_json === 'string' && raw.exercise_json.includes('"expectedNormalized":"3/4"'));
+
+    const found = await repo.getLessonById(id);
+    assert.ok(found);
+    assert.deepEqual(found.exercise, EXERCISE, 'exercise parseado de volta (mesmo shape)');
+    assert.deepEqual(found.lesson.exercise, EXERCISE, 'LessonRow.exercise também carrega o parse');
+    assert.equal(found.domain, 'math', 'domain vem do subject (JOIN)');
+    close();
+  });
+
+  it('getLessonById sem exercise_json → exercise null (nunca lança)', async () => {
+    const { repo, close } = makeRepo();
+    await repo.upsertSubject('Algoritmos');
+    const id = await repo.createLesson({ subjectSlug: 'algoritmos', title: 'A', body: 'b' });
+    const found = await repo.getLessonById(id);
+    assert.ok(found);
+    assert.equal(found.exercise, null);
+    assert.equal(found.domain, 'programming');
+    close();
+  });
+
+  it('parse DEFENSIVO: exercise_json inválido (corrompido) ⇒ exercise null, nunca lança', async () => {
+    const { repo, db, close } = makeRepo();
+    await repo.upsertSubject('Frações', 'math');
+    const id = await repo.createLesson({ subjectSlug: 'fracoes', title: 'A', body: 'b' });
+    // Corrompe o JSON diretamente no banco (simula dados antigos/parciais).
+    db.prepare('UPDATE lessons SET exercise_json = ? WHERE id = ?').run('{nao-e-json', id);
+    assert.doesNotThrow(async () => repo.getLessonById(id));
+    const found = await repo.getLessonById(id);
+    assert.ok(found);
+    assert.equal(found.exercise, null, 'JSON inválido ⇒ null (nunca lança)');
+    // E o resto da lição continua legível.
+    assert.equal(found.lesson.title, 'A');
+    // JSON válido mas de forma fora do contrato ⇒ null também.
+    db.prepare('UPDATE lessons SET exercise_json = ? WHERE id = ?').run(JSON.stringify({ kind: 'math', family: 7 }), id);
+    assert.equal((await repo.getLessonById(id))!.exercise, null, 'forma fora do contrato ⇒ null');
+    close();
+  });
+
+  it('lesson inexistente → null (getLessonById)', async () => {
+    const { repo, close } = makeRepo();
+    assert.equal(await repo.getLessonById('nao-existe'), null);
     close();
   });
 });

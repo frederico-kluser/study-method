@@ -13,6 +13,14 @@
  * torna a camada 100% testável (sqlite `:memory:`) e reutilizável de qualquer
  * processo (main, worker, CLI).
  *
+ * v3 (onda4-desafio-persistencia): lessons ganha `exercise_json` (TEXT nullable)
+ * — o exercício de matemática (LessonExercise) serializado em JSON na criação.
+ * `LessonRow` expõe `exercise` PARSEADO (defensivo: JSON inválido/ausente ⇒
+ * null — nunca lança) e `getLessonById` devolve `{ lesson, exercise, domain }`
+ * (o domínio do subject da lição). `upsertSubject` passou a ATUALIZAR o domain
+ * quando o subject já existe e o domínio é fornecido explicitamente (antes
+ * mantinha o antigo em silêncio).
+ *
  * O CONTRATO das tabelas é definido pelo ORQUESTRADOR (fonte de verdade). Este
  * módulo assume exatamente essas colunas; quando a onda1-sql-schema mergear o
  * `schema.ts` com as MESMAS tabelas, a cola continua funcionando — `IF NOT
@@ -67,6 +75,17 @@ export interface SubjectSummary extends SubjectRow {
   answeredCount: number;
 }
 
+/** Exercício de matemática persistido (v3) — espelho do LessonExercise do
+ * contrato (shared/ipc-contract.ts), definido aqui para a repo não importar
+ * shared (é estruturalmente idêntico). */
+export interface LessonExercise {
+  kind: 'math';
+  family: string;
+  seed: number;
+  prompt: string;
+  expectedNormalized: string;
+}
+
 export interface LessonRow {
   id: string;
   subject_id: string;
@@ -77,6 +96,17 @@ export interface LessonRow {
   origin_lesson_id: string | null;
   created_at: string;
   completed_at: string | null;
+  /** v3: exercício de matemática PARSEADO de exercise_json. Parse DEFENSIVO:
+   * JSON inválido/ausente ⇒ null (nunca lança). */
+  exercise: LessonExercise | null;
+}
+
+/** getLessonById — a lição + o exercício parseado + o domínio do subject. */
+export interface LessonWithMeta {
+  lesson: LessonRow;
+  exercise: LessonExercise | null;
+  /** domínio do subject da lição (subjects.domain). */
+  domain: 'programming' | 'math';
 }
 
 /** Aula resumida por assunto (listLessonsBySubject). */
@@ -140,6 +170,8 @@ export interface CreateLessonInput {
   parentLessonId?: string | null;
   originLessonId?: string | null;
   challenge?: ChallengeInput;
+  /** v3: exercício de matemática — serializado para lessons.exercise_json. */
+  exercise?: LessonExercise;
 }
 
 /** Nó da árvore de evolução (getTree). */
@@ -163,8 +195,12 @@ export interface LessonRepo {
     domain?: 'programming' | 'math',
   ): Promise<{ subject: SubjectRow; slug: string }>;
   listSubjects(): Promise<SubjectSummary[]>;
+  /** v3/onda4: devolve um subject pelo slug (undefined se não persistido). */
+  findSubjectBySlug(slug: string): Promise<SubjectRow | null>;
   createLesson(input: CreateLessonInput): Promise<string>;
-  getLessonById(id: string): Promise<LessonRow | null>;
+  /** v3/onda4: devolve { lesson, exercise (parse de exercise_json), domain } —
+   * null quando a lição não existe. */
+  getLessonById(id: string): Promise<LessonWithMeta | null>;
   listLessonsBySubject(subjectSlug: string): Promise<LessonSummary[]>;
   markLessonCompleted(id: string): Promise<void>;
   recordAnswer(lessonId: string, answerText: string): Promise<void>;
@@ -216,7 +252,8 @@ CREATE TABLE IF NOT EXISTS lessons (
   parent_lesson_id TEXT NULL REFERENCES lessons(id),
   origin_lesson_id TEXT NULL REFERENCES lessons(id),
   created_at TEXT NOT NULL,
-  completed_at TEXT NULL
+  completed_at TEXT NULL,
+  exercise_json TEXT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_lessons_subject ON lessons(subject_id);
 CREATE TABLE IF NOT EXISTS lesson_answers (
@@ -290,6 +327,39 @@ const now = () => new Date().toISOString();
 const newId = () => randomUUID();
 
 /**
+ * Parse DEFENSIVO do exercise_json de uma lesson (v3): devolve null para
+ * ausente/vazio/JSON inválido/forma fora do contrato — NUNCA lança. A repo
+ * nunca derruba uma leitura por causa de um JSON corrompido.
+ */
+export function parseLessonExercise(raw: unknown): LessonExercise | null {
+  if (typeof raw !== 'string' || raw.trim() === '') return null;
+  try {
+    const parsed = JSON.parse(raw) as unknown;
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return null;
+    const o = parsed as Record<string, unknown>;
+    if (
+      o.kind !== 'math' ||
+      typeof o.family !== 'string' ||
+      typeof o.seed !== 'number' ||
+      !Number.isInteger(o.seed) ||
+      typeof o.prompt !== 'string' ||
+      typeof o.expectedNormalized !== 'string'
+    ) {
+      return null;
+    }
+    return {
+      kind: 'math',
+      family: o.family,
+      seed: o.seed,
+      prompt: o.prompt,
+      expectedNormalized: o.expectedNormalized,
+    };
+  } catch {
+    return null; // JSON inválido ⇒ null (nunca lança)
+  }
+}
+
+/**
  * Roda `fn` dentro de uma transação BEGIN/COMMIT, com ROLLBACK em erro.
  *
  * Nenhum dos backends (node:sqlite, sql.js) tem helper `db.transaction(fn)` —
@@ -343,17 +413,29 @@ export function createLessonRepo(open: OpenFn): LessonRepo {
   };
 
   return {
-    async upsertSubject(name, domain = 'programming') {
+    async upsertSubject(name, domain) {
       const slug = slugify(name);
       const existing = findSubjectBySlug(slug);
       if (existing) {
+        // ONDA4: quando o domínio é fornecido EXPLICITAMENTE e difere do atual,
+        // ATUALIZA a linha (antes mantinha o antigo em silêncio — a Trilha veria
+        // o domínio errado). `domain === undefined` preserva a linha (cria com
+        // default 'programming').
+        if (domain !== undefined && domain !== existing.domain) {
+          db.prepare('UPDATE subjects SET domain = ? WHERE id = ?').run(domain, existing.id);
+          return { subject: { ...existing, domain }, slug };
+        }
         return { subject: existing, slug };
       }
-      const subject: SubjectRow = { id: newId(), name, slug, domain };
+      const subject: SubjectRow = { id: newId(), name, slug, domain: domain ?? 'programming' };
       db.prepare(
         'INSERT INTO subjects (id, name, slug, domain, created_at) VALUES (?, ?, ?, ?, ?)',
       ).run(subject.id, subject.name, subject.slug, subject.domain, now());
       return { subject, slug };
+    },
+
+    async findSubjectBySlug(slug) {
+      return findSubjectBySlug(slug) ?? null;
     },
 
     async listSubjects() {
@@ -377,8 +459,8 @@ export function createLessonRepo(open: OpenFn): LessonRepo {
         const lessonId = newId();
         db.prepare(
           `INSERT INTO lessons
-             (id, subject_id, title, body, difficulty, parent_lesson_id, origin_lesson_id, created_at, completed_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, NULL)`,
+             (id, subject_id, title, body, difficulty, parent_lesson_id, origin_lesson_id, created_at, completed_at, exercise_json)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, NULL, ?)`,
         ).run(
           lessonId,
           subject.id,
@@ -388,6 +470,7 @@ export function createLessonRepo(open: OpenFn): LessonRepo {
           input.parentLessonId ?? null,
           input.originLessonId ?? null,
           now(),
+          input.exercise ? JSON.stringify(input.exercise) : null,
         );
         ensureProgress(subject.id, lessonId);
 
@@ -424,14 +507,34 @@ export function createLessonRepo(open: OpenFn): LessonRepo {
     },
 
     async getLessonById(id) {
+      // v3: JOIN com subjects para o domínio + exercise_json para o exercício
+      // parseado (defensivo — JSON inválido ⇒ exercise null, nunca lança).
       const row = db
         .prepare(
-          `SELECT id, subject_id, title, body, difficulty, parent_lesson_id, origin_lesson_id,
-                  created_at, completed_at
-           FROM lessons WHERE id = ?`,
+          `SELECT l.id, l.subject_id, l.title, l.body, l.difficulty, l.parent_lesson_id,
+                  l.origin_lesson_id, l.created_at, l.completed_at, l.exercise_json,
+                  COALESCE(s.domain, 'programming') AS domain
+           FROM lessons l LEFT JOIN subjects s ON s.id = l.subject_id
+           WHERE l.id = ?`,
         )
-        .get(id) as unknown as LessonRow | undefined;
-      return row ?? null;
+        .get(id) as unknown as
+        | (Omit<LessonRow, 'exercise'> & { exercise_json: string | null; domain: string })
+        | undefined;
+      if (!row) return null;
+      const lesson: LessonRow = {
+        id: row.id,
+        subject_id: row.subject_id,
+        title: row.title,
+        body: row.body,
+        difficulty: row.difficulty,
+        parent_lesson_id: row.parent_lesson_id,
+        origin_lesson_id: row.origin_lesson_id,
+        created_at: row.created_at,
+        completed_at: row.completed_at,
+        exercise: parseLessonExercise(row.exercise_json),
+      };
+      const domain = row.domain === 'math' ? ('math' as const) : ('programming' as const);
+      return { lesson, exercise: lesson.exercise, domain };
     },
 
     async listLessonsBySubject(subjectSlug) {

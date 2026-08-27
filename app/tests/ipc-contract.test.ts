@@ -133,8 +133,9 @@ describe('contrato IPC (shared/ipc-contract.ts)', () => {
 
     // Garante que a string do canal chega ao transporte (invoke) ou à subscrição (on).
     // Onda 8 (voz) adicionou stt (11) + localTts (9) → 60; onda3-respostas
-    // adicionou study:check-math-answer + study:judge-answer → 62 canais no total.
-    assert.ok(checked >= 62, `cobertura abaixo do esperado para o contrato (${checked})`);
+    // adicionou study:check-math-answer + study:judge-answer → 62; onda4
+    // (desafio-persistencia) adicionou study:mark-challenge-attempt → 63.
+    assert.ok(checked >= 63, `cobertura abaixo do esperado para o contrato (${checked})`);
 
     // Invoca alguns membros e confere que o channel do contrato chega ao transporte.
     await (api as unknown as ApiRef).settings.get();
@@ -150,6 +151,13 @@ describe('contrato IPC (shared/ipc-contract.ts)', () => {
     await (api as unknown as ApiRef).study.judgeAnswer({ answerText: 'x', context: { subject: 's', lessonExcerpt: 'e' } });
     assert.ok(ipc.invoked.includes(STUDY_CHANNELS.CHECK_MATH_ANSWER), 'study:check-math-answer deveria invocar');
     assert.ok(ipc.invoked.includes(STUDY_CHANNELS.JUDGE_ANSWER), 'study:judge-answer deveria invocar');
+    // Onda4 (desafio-persistencia): mark-challenge-attempt chega ao transporte.
+    await (api as unknown as ApiRef).study.markChallengeAttempt({
+      subjectSlug: 'algoritmos',
+      challengeId: 'bubble-sort',
+      verdict: 'failed',
+    });
+    assert.ok(ipc.invoked.includes(STUDY_CHANNELS.MARK_CHALLENGE_ATTEMPT), 'study:mark-challenge-attempt deveria invocar');
 
     // Subscreve os eventos expostos e confere que cada um toca o transporte.
     const unsubs: Array<() => void> = [
@@ -186,6 +194,14 @@ interface ApiRef {
     testAnswer: () => Promise<unknown>;
     checkMathAnswer: (input: { family: string; seed: number; answerText: string }) => Promise<unknown>;
     judgeAnswer: (input: { answerText: string; context: { subject: string; lessonExcerpt: string } }) => Promise<unknown>;
+    markChallengeAttempt: (input: {
+      subjectId?: string;
+      subjectSlug?: string;
+      challengeId: string;
+      verdict: 'passed' | 'failed' | 'timeout' | 'abandoned';
+      stars?: number;
+      durationMs?: number;
+    }) => Promise<unknown>;
     onLessonProgress: (cb: () => void) => () => void;
     onResearchProgress: (cb: () => void) => () => void;
     onTestAnswerEvent: (cb: () => void) => () => void;

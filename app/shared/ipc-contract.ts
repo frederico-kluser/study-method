@@ -159,6 +159,11 @@ export const STUDY_CHANNELS = {
   // com LLM — deepseek primeiro, fallback embeddedLlm local; falha total
   // devolve erro estruturado com `code` (nunca inventa veredito).
   JUDGE_ANSWER: 'study:judge-answer',
+  // ADITIVO (onda4-desafio-persistencia): registra UMA tentativa de desafio
+  // (nunca-repetir). challengeId = slug estável do desafio OU slug sintético de
+  // math 'math:<subjectSlug>:<family>:<seed>'. O handler resolve o subjectId
+  // (explícito, ou por subjectSlug, ou upsert sob demanda) e grava a linha.
+  MARK_CHALLENGE_ATTEMPT: 'study:mark-challenge-attempt',
 } as const;
 
 // ─── DTOs de persistência (onda 3 — seleção de aulas) ─────────────────────────
@@ -198,7 +203,51 @@ export interface LessonRow {
   origin_lesson_id: string | null;
   created_at: string;
   completed_at: string | null;
+  /** ONDA4 (v3): exercício de matemática PERSISTIDO (parse defensivo de
+   * exercise_json) — null quando ausente/inválido (nunca lança). */
+  exercise: LessonExercise | null;
 }
+
+/** Resultado de `study:get-lesson-by-id` (ONDA4: exercício + domínio). */
+export interface GetLessonByIdResult {
+  lesson: LessonRow | null;
+  /** exercício parseado de exercise_json (null para lição inexistente/ausente). */
+  exercise: LessonExercise | null;
+  /** domínio do assunto da lição (subjects.domain); null quando inexistente. */
+  domain: 'programming' | 'math' | null;
+}
+
+/** Linha de tentativa de desafio (de `study:mark-challenge-attempt`). */
+export interface ChallengeAttemptRow {
+  id: string;
+  subjectId: string;
+  lessonId: string;
+  challengeId: string;
+  verdict: 'passed' | 'failed' | 'timeout' | 'abandoned';
+  stars: number;
+  durationMs: number;
+  createdAt: string;
+}
+
+/** Pedido de `study:mark-challenge-attempt` (nunca-repetir). */
+export interface MarkChallengeAttemptRequest {
+  /** subjectId explícito (tem precedência sobre subjectSlug). */
+  subjectId?: string;
+  /** subjectSlug do setup — resolvido via findSubjectBySlug ou upsert sob demanda. */
+  subjectSlug?: string;
+  /** slug estável do desafio OU slug sintético de math 'math:<subjectSlug>:<family>:<seed>'. */
+  challengeId: string;
+  verdict: 'passed' | 'failed' | 'timeout' | 'abandoned';
+  /** 0..3 (default 0). */
+  stars?: number;
+  /** milissegundos de duração (default 0). */
+  durationMs?: number;
+}
+
+/** Resultado de `study:mark-challenge-attempt`. */
+export type MarkChallengeAttemptResult =
+  | { ok: true; attempt: ChallengeAttemptRow }
+  | { ok: false; error: string };
 
 export interface StudyFinding {
   query: string;
@@ -222,6 +271,15 @@ export interface StudyLesson {
    * NUNCA inventa números para matemática.
    */
   exercise?: LessonExercise;
+  /**
+   * ONDA4 (desafio-persistencia): id da lição PERSISTIDA (createLesson) —
+   * presente quando a geração rodou com repo e a persistência funcionou.
+   * A onda 5 usa para recordAnswer/markLessonCompleted/judge-answer com ids
+   * reais (também devolvido no topo do resultado do generate-lesson).
+   */
+  lessonId?: string;
+  /** ONDA4: id do subject persistido (upsertSubject) — mesmo gate do lessonId. */
+  subjectId?: string;
 }
 
 /** Exercício de matemática gerado pela mathLib (verificação por execução). */
@@ -247,6 +305,15 @@ export interface ChallengeInfo {
   verdict: string;
   workspaceDir: string;
   statementPath: string;
+  /**
+   * ADITIVO (onda4-desafio-persistencia): slug ESTÁVEL do desafio — basename do
+   * workspaceDir SEM o prefixo NNNN ('0007-fatorial-recursivo' →
+   * 'fatorial-recursivo'). A MESMA string que a UI grava como challengeId nas
+   * tentativas (mark-challenge-attempt) e que o list-challenges usa para
+   * nunca-repetir. Sempre presente no main; opcional no tipo por retrocompat
+   * com consumidores que constroem o shape sem o campo (renderer).
+   */
+  slug?: string;
   /**
    * ADITIVO (onda2-research-live): subject_id do assunto ao qual o desafio
    * pertence, quando persistido na camada SQL (challenges→lessons→subject_id /

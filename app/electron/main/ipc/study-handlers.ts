@@ -47,11 +47,14 @@ import { promises as fsp } from 'node:fs';
 import * as path from 'node:path';
 
 import type {
+  ChallengeAttemptRow,
   ChallengeInfo,
+  GetLessonByIdResult,
   JudgeAnswerOutcome,
   JudgeAnswerRequest,
-  LessonRow,
   LessonSummary,
+  MarkChallengeAttemptRequest,
+  MarkChallengeAttemptResult,
   MathAnswerCheckResult,
   ResearchProgressEvent,
   StudyLesson,
@@ -61,6 +64,7 @@ import type {
 } from '@shared/ipc-contract';
 import { STUDY_CHANNELS } from '@shared/ipc-contract';
 import type { LessonDomain, LessonProgress } from '../services/lessonTypes';
+import { stableChallengeSlug } from '../services/lessonOrchestrator';
 import { safeHandleMap, type IpcMainHandleLike, type IpcHandlerFn } from './safeHandle';
 import {
   MATH_FAMILIES,
@@ -83,8 +87,10 @@ export interface LessonServiceLike {
       goal?: string;
       /** ADITIVO (onda3-respostas): domínio explícito da UI ('math' | 'programming'). */
       domain?: LessonDomain;
+      /** ADITIVO (onda4): salt explícito do exercício de matemática (override). */
+      mathSeed?: string;
     },
-  ): Promise<{ lesson: StudyLesson; rejected: unknown[] }>;
+  ): Promise<{ lesson: StudyLesson; rejected: unknown[]; lessonId?: string; subjectId?: string }>;
   testAnswer(challengeDir: string, opts?: { outputLimit?: number }): Promise<TestAnswerResult>;
   listSetups(): Promise<{ rows: Array<{ setupId: string; setupRoot: string; subjectSlug?: string }> }>;
   resolveSkillDirInfo(): Promise<{ skillDir: string }>;
@@ -139,7 +145,8 @@ export interface RunnerLike {
 export interface LessonPersistenceLike {
   listSubjects(): Promise<SubjectSummary[]>;
   listLessonsBySubject(subjectSlug: string): Promise<LessonSummary[]>;
-  getLessonById(id: string): Promise<LessonRow | null>;
+  /** ONDA4: devolve { lesson, exercise, domain } — null quando a lição não existe. */
+  getLessonById(id: string): Promise<GetLessonByIdResult | null>;
   recordAnswer(lessonId: string, answerText: string): Promise<void>;
   markLessonCompleted(id: string): Promise<void>;
   /**
@@ -149,6 +156,24 @@ export interface LessonPersistenceLike {
    * que mapeia challengeId→subjectId). Ausente ⇒ subjectId undefined.
    */
   getAttemptsForChallenge?(challengeId: string): Promise<Array<{ subjectId?: string }>>;
+  /** ONDA4 (nunca-repetir): subject persistido pelo slug (null se não existe). */
+  findSubjectBySlug?(slug: string): Promise<{ id: string; slug: string; domain: 'programming' | 'math' } | null>;
+  /** ONDA4 (nunca-repetir): slugs já tentados de um subject (vazio quando nenhum). */
+  listAttemptedChallengeSlugs?(subjectId: string): Promise<string[]>;
+  /** ONDA4 (nunca-repetir): grava UMA tentativa (FK subject_id respeitada). */
+  markChallengeAttempt?(input: {
+    subjectId: string;
+    lessonId: string;
+    challengeId: string;
+    verdict: 'passed' | 'failed' | 'timeout' | 'abandoned';
+    stars?: number;
+    durationMs?: number;
+  }): Promise<ChallengeAttemptRow>;
+  /** ONDA4 (nunca-repetir): cria/atualiza um subject (usado sob demanda no mark). */
+  upsertSubject?(
+    name: string,
+    domain?: 'programming' | 'math',
+  ): Promise<{ subject: { id: string; slug: string; domain: 'programming' | 'math' }; slug: string }>;
 }
 
 export interface StudyHandlerDeps {
@@ -251,6 +276,16 @@ export function resolveContainedWorkspacePath(
  * getAttemptsForChallenge, resolve `subjectId` do desafio PERSISTIDO na camada
  * SQL (challenge_attempts.subject_id — a via existente challenges→lessons→
  * subject_id); sem repo/sem tentativas ⇒ undefined.
+ *
+ * ONDA4 (nunca-repetir):
+ *   - `subjectId` é resolvido PRIMARIAMENTE via subject_slug do setup.json
+ *     (`<setupRoot>/setup.json` → findSubjectBySlug; undefined quando o subject
+ *     ainda não foi persistido) e o mesmo subjectId entra em TODOS os
+ *     ChallengeInfo do setup;
+ *   - desafios cujo slug estável (basename sem o prefixo NNNN) ∈
+ *     `listAttemptedChallengeSlugs(subjectId)` são EXCLUÍDOS da listagem
+ *     ("errou → o próximo é outro problema"). Sem setup.json legível ou sem
+ *     repo, nenhum filtro é aplicado (lista intacta — retrocompat).
  */
 async function listChallengesFrom(
   setupRoot: string,
@@ -263,6 +298,38 @@ async function listChallengesFrom(
   } catch {
     return []; // sem challenges/ ⇒ lista vazia (setup novo).
   }
+
+  // subjectId do SETUP (setup.json subject_slug → findSubjectBySlug). Falha de
+  // leitura/parse NUNCA derruba a lista — cai para undefined.
+  let subjectId: string | undefined;
+  try {
+    if (repo?.findSubjectBySlug) {
+      const setupMeta = JSON.parse(
+        await fsp.readFile(path.join(setupRoot, 'setup.json'), 'utf8'),
+      ) as Record<string, unknown>;
+      const subjectSlug =
+        typeof setupMeta.subject_slug === 'string' && setupMeta.subject_slug.trim()
+          ? setupMeta.subject_slug.trim()
+          : '';
+      if (subjectSlug) {
+        const subj = await repo.findSubjectBySlug(subjectSlug);
+        if (subj) subjectId = subj.id;
+      }
+    }
+  } catch {
+    subjectId = undefined;
+  }
+
+  // nunca-repetir: slugs já tentados do subject do setup (uma única query).
+  let attempted: string[] = [];
+  try {
+    if (subjectId && repo?.listAttemptedChallengeSlugs) {
+      attempted = await repo.listAttemptedChallengeSlugs(subjectId);
+    }
+  } catch {
+    attempted = [];
+  }
+
   const infos: ChallengeInfo[] = [];
   for (const ent of entries) {
     if (!ent.isDirectory()) continue;
@@ -278,22 +345,28 @@ async function listChallengesFrom(
     const id = /^[0-9]{4}/.exec(base)?.[0] ?? '';
     const artifacts = (meta.artifacts ?? {}) as Record<string, unknown>;
     const challengeId = typeof meta.challenge_id === 'string' ? meta.challenge_id : id;
+    // ONDA4: slug ESTÁVEL (basename sem o prefixo NNNN — mesma string do
+    // orchestrator/ChallengeInfo e das tentativas da UI).
+    const slug = stableChallengeSlug(chDir);
+    // ONDA4: nunca-repetir — exclui desafios cujo slug já foi tentado.
+    if (attempted.includes(slug)) continue;
 
-    // subjectId: última tentativa persistida do desafio (se houver). Falha de
-    // resolução NUNCA derruba a lista — cai para undefined.
-    let subjectId: string | undefined;
+    // Fallback de subjectId (retrocompat onda2): última tentativa persistida do
+    // desafio. Falha de resolução NUNCA derruba a lista — cai para undefined.
+    let attemptSubjectId: string | undefined;
     if (repo?.getAttemptsForChallenge && challengeId) {
       try {
         const attempts = await repo.getAttemptsForChallenge(challengeId);
         const last = attempts[attempts.length - 1];
-        if (last?.subjectId && typeof last.subjectId === 'string') subjectId = last.subjectId;
+        if (last?.subjectId && typeof last.subjectId === 'string') attemptSubjectId = last.subjectId;
       } catch {
-        subjectId = undefined;
+        attemptSubjectId = undefined;
       }
     }
 
     infos.push({
       challengeId,
+      slug,
       title: typeof meta.title === 'string' ? meta.title : base,
       language: typeof meta.language === 'string' ? meta.language : '',
       concept:
@@ -306,6 +379,7 @@ async function listChallengesFrom(
       workspaceDir: chDir,
       statementPath: path.join(chDir, String(artifacts.statement_path ?? 'README.md')),
       ...(subjectId ? { subjectId } : {}),
+      ...(!subjectId && attemptSubjectId ? { subjectId: attemptSubjectId } : {}),
     });
   }
   return infos;
@@ -602,14 +676,16 @@ export function buildStudyHandlers(deps: StudyHandlerDeps): Map<string, IpcHandl
     return repo.listLessonsBySubject(subjectSlug);
   });
 
-  map.set(STUDY_CHANNELS.GET_LESSON_BY_ID, async (_event, payload: unknown): Promise<{ lesson: LessonRow | null }> => {
-    if (!repo) return { lesson: null };
+  map.set(STUDY_CHANNELS.GET_LESSON_BY_ID, async (_event, payload: unknown): Promise<GetLessonByIdResult> => {
+    if (!repo) return { lesson: null, exercise: null, domain: null };
     const p = (payload ?? {}) as Record<string, unknown>;
     const lessonId =
       typeof p.lessonId === 'string' ? p.lessonId.trim() : '';
-    if (!lessonId) return { lesson: null };
-    const lesson = await repo.getLessonById(lessonId);
-    return { lesson };
+    if (!lessonId) return { lesson: null, exercise: null, domain: null };
+    const found = await repo.getLessonById(lessonId);
+    if (!found) return { lesson: null, exercise: null, domain: null };
+    // ONDA4: o repo devolve { lesson, exercise (parse de exercise_json), domain }.
+    return found;
   });
 
   map.set(STUDY_CHANNELS.RECORD_ANSWER, async (_event, payload: unknown): Promise<{ ok: boolean; error?: string }> => {
@@ -632,6 +708,60 @@ export function buildStudyHandlers(deps: StudyHandlerDeps): Map<string, IpcHandl
     if (!lessonId) return { ok: false, error: 'study: mark-lesson-completed requer `lessonId`.' };
     await repo.markLessonCompleted(lessonId);
     return { ok: true };
+  });
+
+  // ─── nunca-repetir (onda4-desafio-persistencia) ────────────────────────────
+  // study:mark-challenge-attempt: registra UMA tentativa de desafio. challengeId
+  // = slug estável do desafio OU slug sintético de math
+  // 'math:<subjectSlug>:<family>:<seed>'. O subjectId é resolvido: explícito no
+  // payload > findSubjectBySlug(subjectSlug) > upsertSubject(subjectSlug) sob
+  // demanda (a FK subject_id é NOT NULL). lesson_id da tentativa é sintético
+  // ('lesson:<slug>') — a tabela não tem FK em lesson_id; a onda 5 pode
+  // sobrepor com o lessonId real do generate-lesson quando disponível.
+  map.set(STUDY_CHANNELS.MARK_CHALLENGE_ATTEMPT, async (_event, payload: unknown): Promise<MarkChallengeAttemptResult> => {
+    if (!repo) return { ok: false, error: 'study: persistência indisponível (repo ausente).' };
+    const p = (payload ?? {}) as MarkChallengeAttemptRequest;
+    const challengeId = typeof p.challengeId === 'string' && p.challengeId.trim() ? p.challengeId.trim() : '';
+    if (!challengeId) throw new Error('study: mark-challenge-attempt requer `challengeId` (slug do desafio ou slug sintético de math).');
+    if (p.verdict !== 'passed' && p.verdict !== 'failed' && p.verdict !== 'timeout' && p.verdict !== 'abandoned') {
+      throw new Error('study: mark-challenge-attempt requer `verdict` (passed|failed|timeout|abandoned).');
+    }
+    const stars = typeof p.stars === 'number' ? p.stars : 0;
+    if (!Number.isInteger(stars) || stars < 0 || stars > 3) {
+      throw new Error('study: mark-challenge-attempt requer `stars` inteiro 0..3.');
+    }
+    const durationMs = typeof p.durationMs === 'number' ? p.durationMs : 0;
+    if (!Number.isInteger(durationMs) || durationMs < 0) {
+      throw new Error('study: mark-challenge-attempt requer `durationMs` inteiro >= 0.');
+    }
+    const explicitSubjectId = typeof p.subjectId === 'string' && p.subjectId.trim() ? p.subjectId.trim() : '';
+    const subjectSlug = typeof p.subjectSlug === 'string' && p.subjectSlug.trim() ? p.subjectSlug.trim() : '';
+    let subjectId = explicitSubjectId;
+    let lessonIdRef = subjectSlug || explicitSubjectId || 'unknown';
+    if (!subjectId) {
+      if (!subjectSlug) return { ok: false, error: 'study: mark-challenge-attempt requer `subjectId` ou `subjectSlug`.' };
+      if (repo.findSubjectBySlug) {
+        const found = await repo.findSubjectBySlug(subjectSlug);
+        if (found) subjectId = found.id;
+      }
+      if (!subjectId) {
+        if (!repo.upsertSubject) return { ok: false, error: 'study: mark-challenge-attempt não resolveu subjectId (sem findSubjectBySlug/upsertSubject).' };
+        const up = await repo.upsertSubject(subjectSlug); // sob demanda (FK NOT NULL)
+        subjectId = up.subject.id;
+      }
+    }
+    if (!repo.markChallengeAttempt) {
+      return { ok: false, error: 'study: mark-challenge-attempt indisponível (repo sem markChallengeAttempt).' };
+    }
+    const attempt = await repo.markChallengeAttempt({
+      subjectId,
+      lessonId: `lesson:${lessonIdRef}`,
+      challengeId,
+      verdict: p.verdict,
+      stars,
+      durationMs,
+    });
+    return { ok: true, attempt };
   });
 
   // ─── respostas (onda3-respostas — verificação por execução + interpretação) ─

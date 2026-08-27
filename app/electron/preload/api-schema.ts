@@ -27,14 +27,16 @@ import type {
   AppSettings,
   ChallengeInfo,
   DownloadProgress,
+  GetLessonByIdResult,
   HardwareInfo,
   JudgeAnswerOutcome,
   JudgeAnswerRequest,
   KeysStatus,
-  LessonRow,
   LessonSummary,
   LocalModelInfo,
   LocalTtsPreference,
+  MarkChallengeAttemptRequest,
+  MarkChallengeAttemptResult,
   MathAnswerCheckRequest,
   MathAnswerCheckResult,
   PiExecuteRequest,
@@ -199,9 +201,13 @@ export interface ApiSchema {
     // Onda 3 (seleção de aulas — persistência): ligam a camada SQL ao renderer.
     listTopics(): Promise<SubjectSummary[]>;
     listLessonsBySubject(subjectSlug: string): Promise<LessonSummary[]>;
-    getLessonById(lessonId: string): Promise<{ lesson: LessonRow | null }>;
+    /** ONDA4: devolve { lesson, exercise (parse de exercise_json), domain }. */
+    getLessonById(lessonId: string): Promise<GetLessonByIdResult>;
     recordAnswer(input: { lessonId: string; answerText: string }): Promise<unknown>;
     markLessonCompleted(lessonId: string): Promise<unknown>;
+    /** ONDA4 (nunca-repetir): registra UMA tentativa de desafio (resolve
+     *  subjectId por subjectSlug/upsert sob demanda). */
+    markChallengeAttempt(input: MarkChallengeAttemptRequest): Promise<MarkChallengeAttemptResult>;
     onLessonProgress(cb: (ev: unknown) => void): () => void;
     /** ADITIVO (onda2-research-live): progresso da pesquisa Brave (surf-research
      *  style) durante generate-lesson — união discriminada ResearchProgressEvent. */

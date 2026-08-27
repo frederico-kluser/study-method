@@ -168,4 +168,12 @@ export interface GenerateLessonResult {
   lesson: StudyLesson;
   /** Desafios que NÃO passaram na validação (weak/rejected/not_run sem juiz). */
   rejected: RejectedChallenge[];
+  /**
+   * ONDA4 (desafio-persistencia): id da lição PERSISTIDA (createLesson) —
+   * presente quando o repo foi injetado no orquestrador. A onda 5 usa para
+   * recordAnswer/markLessonCompleted/judge-answer com ids reais.
+   */
+  lessonId?: string;
+  /** ONDA4: id do subject persistido (upsertSubject) — mesmo gate do lessonId. */
+  subjectId?: string;
 }

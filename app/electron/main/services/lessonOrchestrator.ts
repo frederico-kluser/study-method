@@ -89,6 +89,18 @@ export function slugify(subject: string): string {
 }
 
 /**
+ * ONDA4 (nunca-repetir): slug ESTÁVEL de um desafio — basename do workspaceDir
+ * SEM o prefixo NNNN ('challenges/0007-fatorial-recursivo' → 'fatorial-recursivo').
+ * Exportada porque o handler list-challenges (study-handlers) usa EXATAMENTE a
+ * mesma string no ChallengeInfo.slug; a UI grava a MESMA string nas tentativas
+ * (mark-challenge-attempt) — o nunca-repetir compara slug vs slugs tentados.
+ */
+export function stableChallengeSlug(workspaceDir: string): string {
+  const base = path.basename(workspaceDir || '');
+  return base.replace(/^[0-9]{4}-/, '') || base;
+}
+
+/**
  * Extensões de arquivo por linguagem (mapeamento quem lê/gera os artefatos).
  * Formato: `[extPrimária, ...extras]` (ex.: c → ['c','h']). A extensão PRIMÁRIA
  * é a da implementação de referência (`.solution/reference.<ext>`).
@@ -225,6 +237,44 @@ export interface LessonOrchestratorDeps {
    * normalmente ainda não tem linha persistida). Ausente ⇒ subjectId undefined.
    */
   resolveSubjectId?: (challengeId: string) => Promise<string | null>;
+  /**
+   * ONDA4 (desafio-persistencia): repo de persistência (subconjunto estrutural
+   * do LessonRepo real). Presente ⇒ a geração persiste o subject (upsert ANTES
+   * de gerar o exercício — para o seed por tentativa da math) e a lição
+   * (createLesson DEPOIS da validação), e devolve lessonId/subjectId reais.
+   * Ausente ⇒ nada é persistido e os ids ficam undefined (comportamento das
+   * ondas anteriores, retrocompat com os testes sem repo).
+   */
+  repo?: LessonPersistRepoLike;
+}
+
+/**
+ * ONDA4: subconjunto do repo (db/repo.ts) usado pelo orquestrador — estrutural,
+ * DI-friendly (o LessonRepo real satisfaz; fakes de teste implementam só isto).
+ */
+export interface LessonPersistRepoLike {
+  upsertSubject(
+    name: string,
+    domain?: LessonDomain,
+  ): Promise<{ subject: { id: string; name: string; slug: string; domain: LessonDomain }; slug: string }>;
+  listAttemptedChallengeSlugs(subjectId?: string): Promise<string[]>;
+  createLesson(input: {
+    subjectSlug: string;
+    title: string;
+    body: string;
+    difficulty?: number;
+    exercise?: LessonExercise;
+    challenge?: {
+      slug: string;
+      title: string;
+      language: string;
+      concept: string;
+      difficulty?: number;
+      statement: string;
+      testCasesJson: string;
+      solutionJson: string;
+    };
+  }): Promise<string>;
 }
 
 export interface GenerateLessonOptions {
@@ -246,6 +296,14 @@ export interface GenerateLessonOptions {
    * gerado/conferido pela mathLib ANTES da autoria, sem desafio de código TDD.
    */
   domain?: LessonDomain;
+  /**
+   * ONDA4 (nunca-repetir): salt EXPLÍCITO do exercício de matemática
+   * (pickMathExercise(subject, salt)). Quando o repo está presente, o
+   * orquestrador calcula sozinho `${subject}#<n>` (n = tentativas registradas
+   * do subject) ANTES de gerar o exercício — `mathSeed` é o OVERRIDE para
+   * testes/UI. Ausente + sem repo = comportamento atual (sem salt).
+   */
+  mathSeed?: string;
 }
 
 /**
@@ -311,6 +369,11 @@ export function createLessonOrchestrator(deps: LessonOrchestratorDeps) {
     const base = path.basename(relativePath);
     const id = base.split('-')[0] ?? '';
     return /^[0-9]{4}$/.test(id) ? id : '';
+  }
+
+  /** ONDA4: slug estável do desafio (mesma função exportada no módulo). */
+  function stableSlugFromDir(dir: string): string {
+    return stableChallengeSlug(dir);
   }
 
   /**
@@ -485,10 +548,39 @@ export function createLessonOrchestrator(deps: LessonOrchestratorDeps) {
       // ANTES de gerar — regra do produto, DES-6): o LLM NUNCA inventa números
       // para matemática; ele só recebe o prompt do exercício no contexto.
       const domain = resolveLessonDomain(subject, opts.domain);
+
+      // ONDA4 (nunca-repetir): persistência do subject + seed por tentativa.
+      // A ORDEM IMPORTA: upsertSubject + contagem de tentativas acontecem ANTES
+      // de gerar o exercício (pickMathExercise) — cada tentativa nova (certa ou
+      // errada) incrementa n e o salt `${subject}#${n}` muda o problema
+      // ("errou → outro problema"). Sem repo (ou com `mathSeed` explícito da
+      // UI/teste), o seed fica o atual (determinístico por assunto).
+      let subjectId: string | undefined;
+      let lessonId: string | undefined;
+      let mathSeed: string | undefined;
+      if (deps.repo) {
+        try {
+          const upserted = await deps.repo.upsertSubject(subject, domain);
+          subjectId = upserted.subject.id;
+          const attempts = await deps.repo.listAttemptedChallengeSlugs(subjectId);
+          mathSeed = `${subject}#${attempts.length}`;
+        } catch (err) {
+          // Persistência falhou: NÃO derruba a geração — segue sem ids (o
+          // assunto/lição simplesmente não fica na Trilha; a UI ainda recebe a
+          // aula, como nas ondas anteriores). Loga no stderr do main.
+          console.error(
+            '[lessonOrchestrator] persistência do subject falhou (aula seguirá sem ids):',
+            err instanceof Error ? err.message : err,
+          );
+          subjectId = undefined;
+          mathSeed = undefined;
+        }
+      }
+      const exerciseSalt = opts.mathSeed ?? mathSeed;
       const mathExercise: LessonExercise | undefined =
         domain === 'math'
           ? (() => {
-              const { family, seed } = pickMathExercise(subject);
+              const { family, seed } = pickMathExercise(subject, exerciseSalt);
               const problem = generateMathProblem(family, seed);
               return {
                 kind: 'math',
@@ -550,6 +642,10 @@ export function createLessonOrchestrator(deps: LessonOrchestratorDeps) {
 
       const challengeInfos: ChallengeInfo[] = [];
       const rejected: RejectedChallenge[] = [];
+      // ONDA4: drafts APROVADOS (com slug estável) — o 1º alimenta o challenge
+      // do createLesson persistido (a tabela challenges tem UMA linha por
+      // lesson; os demais aprovados vivem só no setup/workspace e na UI).
+      const approvedChallenges: Array<{ draft: ChallengeDraft; slug: string; dir: string }> = [];
 
       if (domain === 'math') {
         // 4) VALIDAÇÃO DE MATEMÁTICA (onda3-respostas): não há código TDD para
@@ -610,17 +706,23 @@ export function createLessonOrchestrator(deps: LessonOrchestratorDeps) {
             // persistido na camada SQL (challenges→lessons→subject_id, via
             // challenge_attempts.subject_id) — recém-materializado ainda não tem
             // linha, então é undefined na montagem (o list-challenges resolve).
-            let subjectId: string | undefined;
+            let resolvedSubjectId: string | undefined;
             if (deps.resolveSubjectId) {
               try {
                 const resolved = await deps.resolveSubjectId(materialized.challengeId);
-                if (resolved) subjectId = resolved;
+                if (resolved) resolvedSubjectId = resolved;
               } catch {
-                subjectId = undefined; // resolução falhou ⇒ omite (nunca derruba a geração)
+                resolvedSubjectId = undefined; // resolução falhou ⇒ omite (nunca derruba a geração)
               }
             }
+            // ONDA4: slug ESTÁVEL (basename sem o prefixo NNNN) — mesma string
+            // que o list-challenges expõe e que a UI grava nas tentativas
+            // (mark-challenge-attempt) para o nunca-repetir.
+            const stableSlug = stableSlugFromDir(materialized.challengeDirAbs);
+            approvedChallenges.push({ draft: challengeDraft, slug: stableSlug, dir: materialized.challengeDirAbs });
             challengeInfos.push({
               challengeId: materialized.challengeId,
+              slug: stableSlug,
               title: challengeDraft.title,
               language: languageOf(challengeDraft.language),
               concept: challengeDraft.concept,
@@ -629,7 +731,7 @@ export function createLessonOrchestrator(deps: LessonOrchestratorDeps) {
               verdict: v.verdict,
               workspaceDir: materialized.challengeDirAbs,
               statementPath: path.join(materialized.challengeDirAbs, 'README.md'),
-              ...(subjectId ? { subjectId } : {}),
+              ...(resolvedSubjectId ? { subjectId: resolvedSubjectId } : {}),
             });
           } else {
             // `not_run` tem VÁRIAS origens distintas e não devemos confundi-las.
@@ -659,6 +761,55 @@ export function createLessonOrchestrator(deps: LessonOrchestratorDeps) {
         }
       }
 
+      // ONDA4 (desafio-persistencia): PERSISTE a lição gerada — subject
+      // (idempotente; garante o slug/domain atuais) + createLesson com o
+      // exercício (math) ou o 1º desafio aprovado (programming, slug estável
+      // SEM o prefixo NNNN). Falha de persistência NÃO derruba a geração: a
+      // aula segue sem ids (o resultado da UI é o mesmo das ondas anteriores).
+      if (deps.repo) {
+        try {
+          const upserted = await deps.repo.upsertSubject(subject, domain);
+          subjectId = upserted.subject.id;
+          const firstApproved = approvedChallenges[0];
+          lessonId = await deps.repo.createLesson({
+            subjectSlug: upserted.slug,
+            title: draft.lessonTitle,
+            body: draft.lessonMarkdown,
+            difficulty: opts.difficulty ?? 1,
+            ...(mathExercise ? { exercise: mathExercise } : {}),
+            ...(firstApproved
+              ? {
+                  challenge: {
+                    slug: firstApproved.slug,
+                    title: firstApproved.draft.title,
+                    language: languageOf(firstApproved.draft.language),
+                    concept: firstApproved.draft.concept,
+                    difficulty: opts.difficulty ?? firstApproved.draft.difficulty ?? 2,
+                    statement: firstApproved.draft.statement,
+                    // O teste executável (especificação) e a referência da autoria,
+                    // serializados — as colunas test_cases_json/solution_json do
+                    // contrato de challenges.
+                    testCasesJson: JSON.stringify({
+                      language: languageOf(firstApproved.draft.language),
+                      testCode: firstApproved.draft.testCode,
+                    }),
+                    solutionJson: JSON.stringify({
+                      referenceCode: firstApproved.draft.referenceCode,
+                      referenceAlternates: firstApproved.draft.referenceAlternates ?? [],
+                    }),
+                  },
+                }
+              : {}),
+          });
+        } catch (err) {
+          console.error(
+            '[lessonOrchestrator] persistência da lição falhou (aula seguirá sem ids):',
+            err instanceof Error ? err.message : err,
+          );
+          lessonId = undefined;
+        }
+      }
+
       const lesson: StudyLesson = {
         title: draft.lessonTitle,
         subject,
@@ -669,6 +820,11 @@ export function createLessonOrchestrator(deps: LessonOrchestratorDeps) {
         // ADITIVO (onda3-respostas): exercício de matemática conferido pela
         // mathLib (esperado computado na geração — DES-6). Só para 'math'.
         ...(mathExercise ? { exercise: mathExercise } : {}),
+        // ONDA4: ids reais persistidos (presentes quando o repo foi injetado e
+        // a persistência funcionou) — a onda 5 usa para recordAnswer/
+        // markLessonCompleted/judge-answer com ids reais.
+        ...(lessonId ? { lessonId } : {}),
+        ...(subjectId ? { subjectId } : {}),
       };
 
       emit(onProgress, {
@@ -676,7 +832,12 @@ export function createLessonOrchestrator(deps: LessonOrchestratorDeps) {
         message: domain === 'math' ? 'Aula de matemática pronta.' : 'Aula pronta.',
         fraction: 1,
       });
-      return { lesson, rejected };
+      return {
+        lesson,
+        rejected,
+        ...(lessonId ? { lessonId } : {}),
+        ...(subjectId ? { subjectId } : {}),
+      };
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       // ADITIVO (onda2-research-live): erro ESTRUTURADO da fase research — o

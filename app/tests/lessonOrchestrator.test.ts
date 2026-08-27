@@ -742,8 +742,9 @@ describe('lessonOrchestrator: domínio e caminho de matemática (onda3-respostas
   /**
    * Fakes com CAPTURA do ctx do autor e runner que FALHA se tentar
    * materializar/verificar desafio (o caminho math NÃO pode chamá-los).
+   * ONDA4: `repo` opcional injeta o repo de persistência no orquestrador.
    */
-  function makeMathFakes() {
+  function makeMathFakes(opts: { repo?: unknown } = {}) {
     const calls: string[] = [];
     let authorCtx: Parameters<AuthorFn>[0] | null = null;
     const runner = {
@@ -784,6 +785,7 @@ describe('lessonOrchestrator: domínio e caminho de matemática (onda3-respostas
       runner: runner as never,
       author,
       setupsDir: path.join(tmp, 'setups'),
+      ...(opts.repo ? { repo: opts.repo as never } : {}),
     });
     return { orch, calls, getCtx: () => authorCtx };
   }
@@ -871,4 +873,151 @@ describe('lessonOrchestrator: domínio e caminho de matemática (onda3-respostas
     assert.ok(calls.includes('verifyChallenge'), 'verifyChallenge RODA no fluxo programming');
     assert.deepEqual(rejected, []);
   });
+
+describe('lessonOrchestrator: persistência ONDA4 (desafio-persistencia)', () => {
+
+  /** Repo fake com captura: upsertSubject/contagem ANTES do exercício, createLesson com input. */
+  function makePersistRepo(overrides: {
+    attempts?: string[];
+    subjectId?: string;
+    lessonId?: string;
+  } = {}) {
+    const calls: string[] = [];
+    const { attempts = [], subjectId = 'sub-persist', lessonId = 'les-persist' } = overrides;
+    let createdInput: Record<string, unknown> | null = null;
+    const repo = {
+      async upsertSubject(name: string, domain?: string) {
+        calls.push(`upsert:${domain}`);
+        return { subject: { id: subjectId, name, slug: 'slug-persist', domain: domain ?? 'programming' }, slug: 'slug-persist' };
+      },
+      async listAttemptedChallengeSlugs() {
+        calls.push('count');
+        return attempts;
+      },
+      async createLesson(input: Record<string, unknown>) {
+        calls.push('createLesson');
+        createdInput = input;
+        return lessonId;
+      },
+    };
+    return { repo, calls, getInput: () => createdInput };
+  }
+
+  it('math: persiste subject + lição com domain/exercise e devolve lessonId/subjectId (ids na lesson e no resultado)', async () => {
+    const persist = makePersistRepo();
+    const { orch } = makeMathFakes({ repo: persist.repo });
+    const result = await orch.generateLesson('equações do primeiro grau', { domain: 'math' });
+
+    assert.equal(result.lessonId, 'les-persist', 'resultado carrega lessonId real');
+    assert.equal(result.subjectId, 'sub-persist', 'resultado carrega subjectId real');
+    assert.equal(result.lesson.lessonId, 'les-persist', 'StudyLesson carrega lessonId');
+    assert.equal(result.lesson.subjectId, 'sub-persist', 'StudyLesson carrega subjectId');
+
+    // upsert ANTES de gerar o exercício (ordem obrigatória) + createLesson no fim.
+    const seq = persist.calls.map(String);
+    assert.ok(seq.indexOf('upsert:math') < seq.indexOf('count'), 'upsert antes da contagem');
+    assert.ok(seq.indexOf('count') < seq.indexOf('createLesson'), 'contagem antes do createLesson');
+
+    // createLesson recebe domain/subjectSlug e o exercício COMPLETO (com esperado).
+    const input = persist.getInput() as {
+      subjectSlug: string;
+      title: string;
+      body: string;
+      exercise: { family: string; seed: number; prompt: string; expectedNormalized: string };
+      challenge?: unknown;
+    };
+    assert.equal(input.subjectSlug, 'slug-persist');
+    assert.equal(input.title, 'Equações do primeiro grau');
+    assert.equal(input.body, '# Equações\n\nMaterial curto.\n');
+    assert.deepEqual(input.exercise, result.lesson.exercise, 'exercise persistido = o da lição (com esperado)');
+    assert.equal(input.challenge, undefined, 'math não persiste challenge de código');
+
+    // A lição persistida mantém o exercício ORIGINAL (mesma lição, mesmo problema):
+    // re-gerar SEM nova tentativa devolve o MESMO exercício.
+    const again = await orch.generateLesson('equações do primeiro grau', { domain: 'math' });
+    assert.deepEqual(again.lesson.exercise, result.lesson.exercise);
+  });
+
+  it('math: seed por tentativa — n cresce após mark ⇒ exercício diferente; estável sem nova tentativa', async () => {
+    const attempts: string[] = [];
+    const persist = makePersistRepo({ attempts });
+    const { orch } = makeMathFakes({ repo: persist.repo });
+
+    const a = await orch.generateLesson('porcentagem básica');
+    const seedA = a.lesson.exercise!.seed;
+    // Mark de uma tentativa (como a UI faria via study:mark-challenge-attempt —
+    // slug sintético de math) → n=1 → salt `${subject}#1`.
+    attempts.push('math:porcentagem-basica:percentages:123');
+    const b = await orch.generateLesson('porcentagem básica');
+    assert.notEqual(b.lesson.exercise!.seed, seedA, 'após 1 tentativa o seed muda ("errou → outro problema")');
+    // Sem nova tentativa, o seed fica estável (mesmo salt → mesmo exercício).
+    const c = await orch.generateLesson('porcentagem básica');
+    assert.equal(c.lesson.exercise!.seed, b.lesson.exercise!.seed);
+  });
+
+  it('programming: createLesson persiste o 1º desafio APROVADO com slug estável (sem prefixo NNNN) e ChallengeInfo.slug', async () => {
+    const persist = makePersistRepo();
+    const { runner, research, author } = makeFakes({ verifyVerdict: 'approved' });
+    const orch = createLessonOrchestrator({
+      research,
+      runner,
+      author,
+      setupsDir: tmp,
+      repo: persist.repo as never,
+    });
+    const result = await orch.generateLesson('Recursão');
+
+    assert.equal(result.lessonId, 'les-persist');
+    assert.equal(result.lesson.challenges[0].slug, 'fatorial-recursivo', 'ChallengeInfo.slug sem o prefixo NNNN');
+    assert.equal(result.lesson.challenges[0].workspaceDir.endsWith('0007-fatorial-recursivo'), true);
+
+    const input = persist.getInput() as {
+      challenge?: {
+        slug: string;
+        title: string;
+        language: string;
+        concept: string;
+        difficulty: number;
+        statement: string;
+        testCasesJson: string;
+        solutionJson: string;
+      };
+    };
+    assert.ok(input.challenge, 'programming persiste o desafio');
+    assert.equal(input.challenge!.slug, 'fatorial-recursivo', 'slug do desafio persistido = slug estável');
+    assert.equal(input.challenge!.language, 'python');
+    assert.equal(input.challenge!.concept, 'recursao');
+    assert.equal(input.challenge!.statement, draft.challenges[0].statement);
+    const testCases = JSON.parse(input.challenge!.testCasesJson) as { language: string; testCode: string };
+    assert.equal(testCases.language, 'python');
+    assert.equal(testCases.testCode, draft.challenges[0].testCode, 'teste executável da autoria persistido');
+    const solution = JSON.parse(input.challenge!.solutionJson) as { referenceCode: string };
+    assert.equal(solution.referenceCode, draft.challenges[0].referenceCode);
+    // A lição programming NÃO carrega exercise.
+    assert.equal(result.lesson.exercise, undefined);
+  });
+
+  it('sem repo: nada é persistido e ids ficam undefined (retrocompat)', async () => {
+    const { orch } = makeMathFakes();
+    const result = await orch.generateLesson('equações do primeiro grau');
+    assert.equal(result.lessonId, undefined);
+    assert.equal(result.subjectId, undefined);
+    assert.equal(result.lesson.lessonId, undefined);
+    assert.ok(result.lesson.exercise, 'sem repo o caminho math continua gerando exercício');
+  });
+
+  it('falha do createLesson NÃO derruba a geração (aula segue sem ids)', async () => {
+    const repo = {
+      async upsertSubject(name: string, domain?: string) {
+        return { subject: { id: 'sub-x', name, slug: 's', domain: domain ?? 'programming' }, slug: 's' };
+      },
+      async listAttemptedChallengeSlugs() { return []; },
+      async createLesson() { throw new Error('disco cheio'); },
+    };
+    const { orch } = makeMathFakes({ repo });
+    const result = await orch.generateLesson('equações do primeiro grau');
+    assert.equal(result.lessonId, undefined, 'persistência falhou ⇒ sem lessonId');
+    assert.ok(result.lesson.exercise, 'a aula em si continua sendo gerada e devolvida');
+  });
+});
 });

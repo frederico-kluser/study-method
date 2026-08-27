@@ -367,10 +367,16 @@ export function verifyAnswer(family: MathFamily, seed: number, answerText: strin
 
 /**
  * Escolha DETERMINÍSTICA de (family, seed) a partir do assunto — usada pelo
- * lesson-orchestrator no caminho 'math': o mesmo assunto gera sempre o mesmo
- * exercício (e o esperado é conferido pela biblioteca ANTES de gerar a aula).
+ * lesson-orchestrator no caminho 'math': o mesmo assunto (e o mesmo salt) gera
+ * sempre o mesmo exercício (e o esperado é conferido pela biblioteca ANTES de
+ * gerar a aula).
+ *
+ * ONDA4 (nunca-repetir): `salt` opcional mistura o seed — o orquestrador passa
+ * `${subject}#<n>` (n = tentativas já registradas do subject), então CADA
+ * tentativa nova (certa ou errada) muda o problema ("errou → outro problema").
+ * Salt ausente = comportamento atual (seed = hash do assunto).
  */
-export function pickMathExercise(subject: string): { family: MathFamily; seed: number } {
-  const seed = hashString(subject);
+export function pickMathExercise(subject: string, salt?: string): { family: MathFamily; seed: number } {
+  const seed = hashString(`${subject}:${salt ?? ''}`);
   return { family: MATH_FAMILIES[seed % MATH_FAMILIES.length], seed };
 }

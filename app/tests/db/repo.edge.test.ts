@@ -82,7 +82,7 @@ describe('createLessonRepo — createLesson valida subjectSlug', () => {
     );
     const lesson = await repo.getLessonById(id);
     assert.ok(lesson, 'deveria persistir mesmo com conteúdo em branco');
-    assert.equal(lesson!.difficulty, 1, 'difficulty default 1 quando omitida');
+    assert.equal(lesson!.lesson.difficulty, 1, 'difficulty default 1 quando omitida');
     close();
   });
 
@@ -91,7 +91,7 @@ describe('createLessonRepo — createLesson valida subjectSlug', () => {
     await repo.upsertSubject('algoritmos');
     const id = await repo.createLesson(lessonInput({ difficulty: undefined }));
     const lesson = await repo.getLessonById(id);
-    assert.equal((lesson as any)?.difficulty, 1);
+    assert.equal((lesson as any)?.lesson.difficulty, 1);
     close();
   });
 });

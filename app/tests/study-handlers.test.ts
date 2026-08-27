@@ -967,3 +967,273 @@ describe('study:judge-answer (onda3-respostas — interpretação com LLM)', () 
     );
   });
 });
+
+describe('study:mark-challenge-attempt (onda4-desafio-persistencia — nunca-repetir)', () => {
+  /** Repo fake com captura da tentativa e resolução por slug. */
+  function makeAttemptRepo(overrides: {
+    subject?: { id: string; slug: string; domain: 'programming' | 'math' } | null;
+    recorded?: unknown[];
+  } = {}) {
+    const recorded: Array<Record<string, unknown>> = [];
+    const repo = {
+      findSubjectBySlug: async (slug: string) =>
+        overrides.subject && overrides.subject.slug === slug ? overrides.subject : null,
+      upsertSubject: async (name: string, domain?: string) => {
+        const subj = { id: 'sub-upserted', name, slug: name, domain: domain ?? 'programming' };
+        return { subject: subj, slug: subj.slug };
+      },
+      markChallengeAttempt: async (input: Record<string, unknown>) => {
+        recorded.push(input);
+        return {
+          id: 'att-1',
+          subjectId: input.subjectId as string,
+          lessonId: input.lessonId as string,
+          challengeId: input.challengeId as string,
+          verdict: input.verdict as string,
+          stars: (input.stars as number) ?? 0,
+          durationMs: (input.durationMs as number) ?? 0,
+          createdAt: '2026-08-27T00:00:00.000Z',
+        };
+      },
+    };
+    return { repo, recorded };
+  }
+
+  it('resolves subjectId por subjectSlug (findSubjectBySlug) e grava a tentativa', async () => {
+    const { repo, recorded } = makeAttemptRepo({ subject: { id: 'sub-1', slug: 'algoritmos', domain: 'programming' } });
+    const { deps } = makeDeps({ repo: repo as unknown as Partial<LessonPersistenceLike> });
+    const handlers = buildStudyHandlers(deps);
+    const res = (await handlers.get(STUDY_CHANNELS.MARK_CHALLENGE_ATTEMPT)!(undefined, {
+      subjectSlug: 'algoritmos',
+      challengeId: 'bubble-sort',
+      verdict: 'failed',
+      stars: 1,
+      durationMs: 500,
+    })) as { ok: boolean; attempt: { id: string; subjectId: string; verdict: string } };
+    assert.equal(res.ok, true);
+    assert.equal(res.attempt.subjectId, 'sub-1', 'subjectId resolvido pelo slug');
+    assert.equal(res.attempt.verdict, 'failed');
+    assert.equal(recorded.length, 1);
+    assert.equal(recorded[0].subjectId, 'sub-1');
+    assert.equal(recorded[0].lessonId, 'lesson:algoritmos', 'lessonId sintético do subject');
+    assert.equal(recorded[0].stars, 1);
+    assert.equal(recorded[0].durationMs, 500);
+  });
+
+  it('subjectId explícito tem precedência sobre subjectSlug', async () => {
+    const { repo, recorded } = makeAttemptRepo({ subject: { id: 'sub-1', slug: 'algoritmos', domain: 'programming' } });
+    const { deps } = makeDeps({ repo: repo as unknown as Partial<LessonPersistenceLike> });
+    const handlers = buildStudyHandlers(deps);
+    const res = (await handlers.get(STUDY_CHANNELS.MARK_CHALLENGE_ATTEMPT)!(undefined, {
+      subjectId: 'sub-explicito',
+      subjectSlug: 'algoritmos',
+      challengeId: 'bubble-sort',
+      verdict: 'passed',
+    })) as { ok: boolean; attempt: { subjectId: string } };
+    assert.equal(res.ok, true);
+    assert.equal(res.attempt.subjectId, 'sub-explicito', 'subjectId explícito vence');
+    assert.equal(recorded[0].subjectId, 'sub-explicito');
+  });
+
+  it('subjectSlug sem subject persistido → upsertSubject SOB DEMANDA (FK NOT NULL respeitada)', async () => {
+    const { repo, recorded } = makeAttemptRepo({ subject: null }); // findSubjectBySlug → null
+    const { deps } = makeDeps({ repo: repo as unknown as Partial<LessonPersistenceLike> });
+    const handlers = buildStudyHandlers(deps);
+    const res = (await handlers.get(STUDY_CHANNELS.MARK_CHALLENGE_ATTEMPT)!(undefined, {
+      subjectSlug: 'novo-assunto',
+      challengeId: 'math:novo-assunto:arithmetic:42',
+      verdict: 'timeout',
+    })) as { ok: boolean; attempt: { subjectId: string } };
+    assert.equal(res.ok, true);
+    assert.equal(res.attempt.subjectId, 'sub-upserted', 'upsert sob demanda criou o subject');
+    assert.equal(recorded[0].challengeId, 'math:novo-assunto:arithmetic:42', 'slug sintético de math vai como challengeId');
+  });
+
+  it('sem repo → { ok:false } gracioso', async () => {
+    const { deps } = makeDeps(); // sem repo
+    const handlers = buildStudyHandlers(deps);
+    const res = (await handlers.get(STUDY_CHANNELS.MARK_CHALLENGE_ATTEMPT)!(undefined, {
+      subjectSlug: 'algoritmos',
+      challengeId: 'x',
+      verdict: 'passed',
+    })) as { ok: boolean };
+    assert.equal(res.ok, false);
+  });
+
+  it('sem subjectId E sem subjectSlug → { ok:false, error }', async () => {
+    const { repo } = makeAttemptRepo();
+    const { deps } = makeDeps({ repo: repo as unknown as Partial<LessonPersistenceLike> });
+    const handlers = buildStudyHandlers(deps);
+    const res = (await handlers.get(STUDY_CHANNELS.MARK_CHALLENGE_ATTEMPT)!(undefined, {
+      challengeId: 'x',
+      verdict: 'passed',
+    })) as { ok: boolean; error?: string };
+    assert.equal(res.ok, false);
+    assert.match(res.error ?? '', /subjectId|subjectSlug/);
+  });
+
+  it('payload inválido → erro claro (challengeId/verdict/stars/durationMs)', async () => {
+    const { repo } = makeAttemptRepo();
+    const { deps } = makeDeps({ repo: repo as unknown as Partial<LessonPersistenceLike> });
+    const handlers = buildStudyHandlers(deps);
+    const mark = handlers.get(STUDY_CHANNELS.MARK_CHALLENGE_ATTEMPT)!;
+    await assert.rejects(async () => mark(undefined, { subjectId: 's', verdict: 'passed' }), /challengeId/);
+    await assert.rejects(
+      async () => mark(undefined, { subjectId: 's', challengeId: 'x', verdict: 'maybe' }),
+      /verdict/,
+    );
+    await assert.rejects(
+      async () => mark(undefined, { subjectId: 's', challengeId: 'x', verdict: 'passed', stars: 9 }),
+      /stars/,
+    );
+    await assert.rejects(
+      async () => mark(undefined, { subjectId: 's', challengeId: 'x', verdict: 'passed', durationMs: -5 }),
+      /durationMs/,
+    );
+  });
+});
+
+describe('study:list-challenges — nunca-repetir (onda4-desafio-persistencia)', () => {
+  let dirNunca = '';
+  before(async () => { dirNunca = await mkTempDir('study-handlers-nunca-'); });
+  after(async () => { if (dirNunca) await rmrf(dirNunca); });
+
+  const META_JSON = (challengeId: string, title: string) => JSON.stringify({
+    challenge_id: challengeId,
+    title,
+    language: 'python',
+    target_concepts: [{ concept_id: 'recursao' }],
+    difficulty: 2,
+    verdict: 'approved',
+    artifacts: { statement_path: 'README.md' },
+  });
+
+  async function seedSetup(root: string, challenges: string[]): Promise<void> {
+    for (const ch of challenges) {
+      await writeFile(path.join(root, 'challenges', ch, 'meta.json'), META_JSON(ch.split('-')[0], ch));
+    }
+  }
+
+  it('setup.json subject_slug → subjectId em TODOS; exclui desafios com slug tentado; sem attempts lista intacta', async () => {
+    const setupRoot = path.join(dirNunca, 'setup-nunca');
+    await writeFile(path.join(setupRoot, 'setup.json'), JSON.stringify({ setup_id: 's1', subject_slug: 'algoritmos' }));
+    await seedSetup(setupRoot, ['0007-fatorial', '0008-loops']);
+
+    const repo = {
+      findSubjectBySlug: async (slug: string) =>
+        slug === 'algoritmos' ? { id: 'sub-1', slug, domain: 'programming' } : null,
+      listAttemptedChallengeSlugs: async () => ['fatorial'],
+    };
+    const { deps } = makeDeps({ repo: repo as unknown as Partial<LessonPersistenceLike> });
+    const handlers = buildStudyHandlers(deps);
+    const list = (await handlers.get(STUDY_CHANNELS.LIST_CHALLENGES)!(undefined, { setupRoot })) as Array<{
+      challengeId: string;
+      slug?: string;
+      subjectId?: string;
+    }>;
+    assert.equal(list.length, 1, 'desafio tentado (fatorial) EXCLUÍDO');
+    assert.equal(list[0].challengeId, '0008');
+    assert.equal(list[0].slug, 'loops', 'slug estável sem o prefixo NNNN');
+    assert.equal(list[0].subjectId, 'sub-1', 'subjectId vem do subject_slug do setup');
+
+    // Sem attempts registrados → a listagem fica INTACTA (nada é filtrado).
+    const repoNoAttempts = { ...repo, listAttemptedChallengeSlugs: async () => [] };
+    const { deps: deps2 } = makeDeps({ repo: repoNoAttempts as unknown as Partial<LessonPersistenceLike> });
+    const handlers2 = buildStudyHandlers(deps2);
+    const full = (await handlers2.get(STUDY_CHANNELS.LIST_CHALLENGES)!(undefined, { setupRoot })) as unknown[];
+    assert.equal(full.length, 2, 'sem tentativas ⇒ lista completa');
+  });
+
+  it('subject não persistido ainda (findSubjectBySlug null) → sem filtro e subjectId undefined', async () => {
+    const setupRoot = path.join(dirNunca, 'setup-sem-subject');
+    await writeFile(path.join(setupRoot, 'setup.json'), JSON.stringify({ setup_id: 's2', subject_slug: 'algoritmos' }));
+    await seedSetup(setupRoot, ['0007-fatorial']);
+
+    const repo = {
+      findSubjectBySlug: async () => null,
+      listAttemptedChallengeSlugs: async () => ['fatorial'],
+    };
+    const { deps } = makeDeps({ repo: repo as unknown as Partial<LessonPersistenceLike> });
+    const handlers = buildStudyHandlers(deps);
+    const list = (await handlers.get(STUDY_CHANNELS.LIST_CHALLENGES)!(undefined, { setupRoot })) as Array<{
+      subjectId?: string;
+    }>;
+    assert.equal(list.length, 1, 'subject não persistido ⇒ nada é filtrado');
+    assert.equal(list[0].subjectId, undefined, 'subjectId undefined quando o subject ainda não foi persistido');
+  });
+
+  it('falha do listAttemptedChallengeSlugs NUNCA derruba a lista (sem filtro)', async () => {
+    const setupRoot = path.join(dirNunca, 'setup-att-falha');
+    await writeFile(path.join(setupRoot, 'setup.json'), JSON.stringify({ setup_id: 's3', subject_slug: 'algoritmos' }));
+    await seedSetup(setupRoot, ['0007-fatorial']);
+
+    const repo = {
+      findSubjectBySlug: async () => ({ id: 'sub-1', slug: 'algoritmos', domain: 'programming' as const }),
+      listAttemptedChallengeSlugs: async () => { throw new Error('db fechado'); },
+    };
+    const { deps } = makeDeps({ repo: repo as unknown as Partial<LessonPersistenceLike> });
+    const handlers = buildStudyHandlers(deps);
+    const list = (await handlers.get(STUDY_CHANNELS.LIST_CHALLENGES)!(undefined, { setupRoot })) as unknown[];
+    assert.equal(list.length, 1, 'falha da contagem não derruba a lista');
+  });
+});
+
+describe('study:get-lesson-by-id — ONDA4 ({ lesson, exercise, domain })', () => {
+  it('com repo: devolve lesson + exercise (parse de exercise_json) + domain', async () => {
+    const repo = {
+      getLessonById: async () => ({
+        lesson: {
+          id: 'les-1',
+          subject_id: 'sub-1',
+          title: 'Frações',
+          body: 'corpo',
+          difficulty: 1,
+          parent_lesson_id: null,
+          origin_lesson_id: null,
+          created_at: '2026-08-27T00:00:00.000Z',
+          completed_at: null,
+          exercise: null,
+        },
+        exercise: { kind: 'math', family: 'fractions', seed: 7, prompt: 'Quanto é 1/2 + 1/4?', expectedNormalized: '3/4' },
+        domain: 'math',
+      }),
+    };
+    const { deps } = makeDeps({ repo: repo as unknown as Partial<LessonPersistenceLike> });
+    const handlers = buildStudyHandlers(deps);
+    const res = (await handlers.get(STUDY_CHANNELS.GET_LESSON_BY_ID)!(undefined, { lessonId: 'les-1' })) as {
+      lesson: { title: string } | null;
+      exercise: { family: string; expectedNormalized: string } | null;
+      domain: string | null;
+    };
+    assert.equal(res.lesson?.title, 'Frações');
+    assert.equal(res.exercise?.family, 'fractions');
+    assert.equal(res.exercise?.expectedNormalized, '3/4');
+    assert.equal(res.domain, 'math');
+  });
+
+  it('sem repo / id inexistente → { lesson: null, exercise: null, domain: null }', async () => {
+    // sem repo
+    const { deps } = makeDeps();
+    const handlers = buildStudyHandlers(deps);
+    assert.deepEqual(await handlers.get(STUDY_CHANNELS.GET_LESSON_BY_ID)!(undefined, { lessonId: 'x' }), {
+      lesson: null,
+      exercise: null,
+      domain: null,
+    });
+    // com repo mas id inexistente
+    const repo = { getLessonById: async () => null };
+    const { deps: deps2 } = makeDeps({ repo: repo as unknown as Partial<LessonPersistenceLike> });
+    const handlers2 = buildStudyHandlers(deps2);
+    assert.deepEqual(await handlers2.get(STUDY_CHANNELS.GET_LESSON_BY_ID)!(undefined, { lessonId: 'nope' }), {
+      lesson: null,
+      exercise: null,
+      domain: null,
+    });
+    // lessonId vazio → mesmo shape gracioso
+    assert.deepEqual(await handlers.get(STUDY_CHANNELS.GET_LESSON_BY_ID)!(undefined, {}), {
+      lesson: null,
+      exercise: null,
+      domain: null,
+    });
+  });
+});

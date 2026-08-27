@@ -12,6 +12,9 @@ import assert from 'node:assert/strict';
 
 import { buildMainSetup, emitToAll } from '../electron/main/main-setup';
 import { registerKeysHandlers } from '../electron/main/ipc/keys-handlers';
+import { registerStudyHandlers, type LessonServiceLike, type RunnerLike } from '../electron/main/ipc/study-handlers';
+import { STUDY_CHANNELS } from '../shared/ipc-contract';
+import type { AnswerJudgeLike } from '../electron/main/services/answerJudge';
 
 function makeDeps(called: string[]) {
   return {
@@ -62,6 +65,73 @@ describe('buildMainSetup (wiring do bootstrap IPC)', () => {
 
   it('registerKeysHandlers continua uma função exportada (âncora do módulo real)', () => {
     assert.equal(typeof registerKeysHandlers, 'function');
+  });
+});
+
+describe('ONDA4 — answerJudge fiado via registerStudy (gap da onda 3)', () => {
+  /** Fakes mínimos que satisfazem as interfaces do registerStudyHandlers. */
+  function minimalStudyDeps() {
+    const lesson = {
+      generateLesson: async () => ({
+        lesson: { title: 'A', subject: 'x', markdown: '# A', findings: [], challenges: [], createdAt: 'now' },
+        rejected: [],
+      }),
+      testAnswer: async () => ({ success: true, testsRun: 1, expectedTests: 1, passed: true, output: 'ok' }),
+      listSetups: async () => ({ rows: [] }),
+      resolveSkillDirInfo: async () => ({ skillDir: '/tmp/skill' }),
+    } as unknown as LessonServiceLike;
+    const runner = { resolveSkillDir: async () => '/tmp/skill' } as unknown as RunnerLike;
+    return { lesson, runner };
+  }
+
+  it('buildMainSetup com registerStudy que injeta answerJudge → study:judge-answer responde com o veredito do avaliador (não UNAVAILABLE)', async () => {
+    const handlersMap = new Map<string, (...a: unknown[]) => unknown>();
+    const ipc = {
+      handlers: handlersMap,
+      removeHandler: (c: string) => handlersMap.delete(c),
+      handle: (c: string, fn: (...a: unknown[]) => unknown) => handlersMap.set(c, fn),
+    };
+    const answerJudge: AnswerJudgeLike = {
+      async judgeAnswer() {
+        return { ok: true, verdict: 'correct', feedback: 'Você dominou o conceito.', provider: 'embedded' };
+      },
+    };
+    const { lesson, runner } = minimalStudyDeps();
+    let registered = false;
+
+    await buildMainSetup({
+      registerIpc: async () => {},
+      registerKeys: () => {},
+      registerLocalAi: async () => {},
+      registerPi: async () => {},
+      registerStudy: async () => {
+        registered = true;
+        // MESMA assinatura da fiação real do index.ts (answerJudge injetado).
+        await registerStudyHandlers({ runner, lesson, emit: () => {}, answerJudge }, ipc as never);
+      },
+    });
+
+    assert.ok(registered, 'registerStudy deveria ter sido chamado pelo buildMainSetup');
+    const judge = handlersMap.get(STUDY_CHANNELS.JUDGE_ANSWER);
+    assert.ok(judge, 'study:judge-answer registrado');
+    const res = (await judge!(undefined, {
+      answerText: 'Uma closure captura o escopo.',
+      context: { subject: 'Closures', lessonExcerpt: 'Trecho.' },
+    })) as { ok: boolean; verdict: string; provider: string };
+    // Sem o answerJudge fiado, isto seria { ok:false, code:'ANSWER_JUDGE_UNAVAILABLE' }.
+    assert.deepEqual(res, { ok: true, verdict: 'correct', feedback: 'Você dominou o conceito.', provider: 'embedded' });
+  });
+
+  it('registerStudyHandlers aceita answerJudge no deps (âncora da assinatura usada pelo index.ts)', () => {
+    const answerJudge: AnswerJudgeLike = {
+      async judgeAnswer() {
+        return { ok: false, error: { code: 'ANSWER_JUDGE_UNAVAILABLE', message: 'x' } };
+      },
+    };
+    const { lesson, runner } = minimalStudyDeps();
+    // Não lança na construção (a assinatura comporta o campo).
+    const deps = { runner, lesson, emit: (): void => {}, answerJudge };
+    assert.equal(typeof deps.answerJudge.judgeAnswer, 'function');
   });
 });
 

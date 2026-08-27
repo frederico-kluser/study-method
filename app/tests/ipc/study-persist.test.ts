@@ -163,17 +163,17 @@ describe('study persistência — get-lesson-by-id', () => {
   it('id inexistente → {lesson: null}', async () => {
     const { handlers } = makeWithRepo();
     const res = await handlers.get(STUDY_CHANNELS.GET_LESSON_BY_ID)!(null, { lessonId: 'nao-existe' });
-    assert.deepEqual(res, { lesson: null });
+    assert.deepEqual(res, { lesson: null, exercise: null, domain: null });
   });
 
   it('lessonId vazio → {lesson: null}', async () => {
     const { handlers } = makeWithRepo();
-    assert.deepEqual(await handlers.get(STUDY_CHANNELS.GET_LESSON_BY_ID)!(null, {}), { lesson: null });
+    assert.deepEqual(await handlers.get(STUDY_CHANNELS.GET_LESSON_BY_ID)!(null, {}), { lesson: null, exercise: null, domain: null });
   });
 
   it('sem repo → {lesson: null}', async () => {
     const handlers = buildStudyHandlers(makeBaseDeps());
-    assert.deepEqual(await handlers.get(STUDY_CHANNELS.GET_LESSON_BY_ID)!(null, { lessonId: 'x' }), { lesson: null });
+    assert.deepEqual(await handlers.get(STUDY_CHANNELS.GET_LESSON_BY_ID)!(null, { lessonId: 'x' }), { lesson: null, exercise: null, domain: null });
   });
 });
 
@@ -220,11 +220,11 @@ describe('study persistência — mark-lesson-completed', () => {
     const { handlers, repo } = makeWithRepo();
     await repo.upsertSubject('Vetores');
     const id = await repo.createLesson({ subjectSlug: 'vetores', title: 'A1', body: 'b' });
-    assert.equal((await repo.getLessonById(id))!.completed_at, null);
+    assert.equal((await repo.getLessonById(id))!.lesson.completed_at, null);
 
     const res = (await handlers.get(STUDY_CHANNELS.MARK_LESSON_COMPLETED)!(null, { lessonId: id })) as { ok: boolean };
     assert.equal(res.ok, true);
-    assert.ok((await repo.getLessonById(id))!.completed_at, 'completed_at deveria estar preenchido');
+    assert.ok((await repo.getLessonById(id))!.lesson.completed_at, 'completed_at deveria estar preenchido');
   });
 
   it('lessonId vazio → {ok:false,error}', async () => {

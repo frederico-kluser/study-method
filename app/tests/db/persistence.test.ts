@@ -66,9 +66,9 @@ describe('openMigratedSqlite — persistência em arquivo real', () => {
       const repo2 = createLessonRepo(() => conn2.db);
       const lesson = await repo2.getLessonById(lessonId);
       assert.ok(lesson, 'lesson deveria ter persistido');
-      assert.equal(lesson!.title, 'Sobrevive ao restart');
-      assert.equal(lesson!.body, 'corpo da aula');
-      assert.ok(lesson!.completed_at, 'completed_at deveria ter persistido');
+      assert.equal(lesson!.lesson.title, 'Sobrevive ao restart');
+      assert.equal(lesson!.lesson.body, 'corpo da aula');
+      assert.ok(lesson!.lesson.completed_at, 'completed_at deveria ter persistido');
       const answer = await repo2.getAnswerForLesson(lessonId);
       assert.equal(answer?.answer_text, 'resposta persistida');
       const totals = await repo2.answeredTopicCount(subject.slug);

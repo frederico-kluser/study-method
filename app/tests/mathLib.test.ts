@@ -280,4 +280,24 @@ describe('mathLib: pickMathExercise (escolha determinística por assunto)', () =
     );
     assert.ok(others.size >= 2, 'assuntos diferentes devem variar a família (deterministicamente)');
   });
+
+  it('ONDA4: salt muda o seed DETERMINISTICAMENTE; salt ausente = comportamento atual', () => {
+    const base = pickMathExercise('equações do primeiro grau');
+    // Salt ausente (ou vazio) ⇒ mesmo (family, seed) de sempre.
+    assert.deepEqual(pickMathExercise('equações do primeiro grau'), base, 'sem salt não muda nada');
+    assert.deepEqual(pickMathExercise('equações do primeiro grau', ''), base, 'salt vazio ≡ ausente');
+
+    // Mesmo salt ⇒ exatamente o mesmo (family, seed) — pureza/determinismo.
+    const s0 = pickMathExercise('equações do primeiro grau', 'equações do primeiro grau#0');
+    const s0Again = pickMathExercise('equações do primeiro grau', 'equações do primeiro grau#0');
+    assert.deepEqual(s0, s0Again, 'mesmo salt ⇒ mesmo (family, seed)');
+
+    // Salts diferentes ⇒ seeds diferentes ("errou → outro problema").
+    const s1 = pickMathExercise('equações do primeiro grau', 'equações do primeiro grau#1');
+    assert.notEqual(s0.seed, s1.seed, 'salt #0 ≠ salt #1 ⇒ seeds diferentes');
+    assert.notDeepEqual(s0, s1, 'salt diferente ⇒ exercício diferente (deterministicamente)');
+    assert.ok(MATH_FAMILIES.includes(s0.family));
+    assert.ok(Number.isInteger(s0.seed) && s0.seed >= 0);
+    assert.ok(Number.isInteger(s1.seed) && s1.seed >= 0);
+  });
 });

@@ -39,6 +39,8 @@ import { createLessonOrchestrator } from './services/lessonOrchestrator';
 import { createBraveSearchService } from './services/braveSearchService';
 import { createDeepSeekClient } from './services/deepseekClient';
 import { createResearchPlanner, followUpsWithLlm, planWithLlm } from './services/researchPlanner';
+import { createAnswerJudge } from './services/answerJudge';
+import { embeddedLlm } from './services/embeddedLlm/EmbeddedLlmService';
 
 const isDev = !!process.env['ELECTRON_RENDERER_URL'];
 
@@ -132,6 +134,16 @@ if (!gotLock) {
         generateFollowUps: async (ctx) => followUpsWithLlm(plannerDeepseek, ctx),
       });
 
+      // ONDA4 (gap da onda 3): o avaliador da RESPOSTA DIGITADA (judge-answer)
+      // fiado de verdade — deepseek primeiro (reusa o createDeepSeekClient já
+      // criado para o planner), fallback embeddedLlm (singleton existente). Sem
+      // isto, study:judge-answer respondia ANSWER_JUDGE_UNAVAILABLE em produção.
+      const answerJudge = createAnswerJudge({
+        deepseek: plannerDeepseek,
+        getApiKey: () => settingsStore.getApiKey('deepseek'),
+        embedded: embeddedLlm,
+      });
+
       const lesson = createLessonOrchestrator({
         research,
         runner: runner as Parameters<typeof createLessonOrchestrator>[0]['runner'],
@@ -149,6 +161,10 @@ if (!gotLock) {
             return null;
           }
         },
+        // ONDA4 (desafio-persistencia): o repo da geração — persiste o subject
+        // (upsert ANTES do exercício, para o seed por tentativa da math) e a
+        // lição (createLesson com exercise/challenge), devolvendo ids reais.
+        ...(repo ? { repo } : {}),
       }) as unknown as LessonServiceLike;
 
       const piService = createPiAgentService();
@@ -166,7 +182,7 @@ if (!gotLock) {
         registerLocalAi: () => registerLocalAiHandlers(),
         registerPi: () => registerPiHandlers({ getService: getPiService, emit: emitWindow }),
         registerStudy: () =>
-          registerStudyHandlers({ runner, lesson, emit: emitWindow, repo }),
+          registerStudyHandlers({ runner, lesson, emit: emitWindow, repo, answerJudge }),
       });
 
       // GATE DE INÍCIO (onda 6): registra keys:startup-status (aditivo, fora do

@@ -28,6 +28,12 @@
  * existentes sobem via MIGRATIONS (ALTER ADD COLUMN + CREATE TABLE IF NOT
  * EXISTS) sem perder dados — ver migrate.ts.
  *
+ * v3 (onda4-desafio-persistencia): lessons ganha `exercise_json` (TEXT nullable)
+ * — o exercício de matemática (LessonExercise) da lição, serializado em JSON na
+ * persistência do fluxo generate-lesson. Bancos NOVOS nascem em v3; bancos v2
+ * sobem via MIGRATIONS (ALTER ADD COLUMN guardado — crash-safe), sem perder
+ * dados.
+ *
  * Colunas de id são TEXT com ids gerados pela aplicação (uuid), exceto
  * challenge_hints e hint_break_events que usam INTEGER AUTOINCREMENT.
  * Foreign keys são declaradas em SQL e pode-se exigir enforcement em runtime
@@ -41,7 +47,7 @@
  * o `SCHEMA_SQL` completo quando `user_version` é 0). Bancos ANTIGOS sobem
  * versão a versão pela lista `MIGRATIONS` (ver migrate.ts) — SEM perder dados.
  */
-export const SCHEMA_VERSION = 2;
+export const SCHEMA_VERSION = 3;
 
 /**
  * Tabela de tentativas de desafio (v2): uma linha por execução de um desafio
@@ -94,7 +100,8 @@ CREATE TABLE IF NOT EXISTS lessons (
   parent_lesson_id TEXT REFERENCES lessons(id),   -- árvore pai→filha
   origin_lesson_id TEXT REFERENCES lessons(id),   -- quando quebrou de outra aula
   created_at       TEXT NOT NULL DEFAULT (datetime('now')),
-  completed_at     TEXT
+  completed_at     TEXT,
+  exercise_json    TEXT                    -- v3: exercício de matemática serializado (LessonExercise)
 );`,
 
   `-- lesson_answers (resposta do aluno que encadeia para a próxima aula)
@@ -198,6 +205,16 @@ export const SCHEMA_SQL: string = [...TABLES, ...INDEXES].join('\n');
  */
 export const SUBJECTS_DOMAIN_ALTER: string = `ALTER TABLE subjects ADD COLUMN domain TEXT NOT NULL DEFAULT 'programming';`;
 
+/**
+ * v3: ALTER que adiciona `exercise_json` a lessons (bancos v2 -> v3).
+ * Executado por migrate.ts SOMENTE quando a coluna ainda não existe (via
+ * `guardedAlter`) — um boot anterior pode ter adicionado a coluna e crashado
+ * antes de gravar `user_version = 3`; re-rodar o ALTER lançaria "duplicate
+ * column name: exercise_json". Coluna nullable: lessons antigas ficam com NULL
+ * (sem exercício), o que o repo parseia como `exercise: null`.
+ */
+export const LESSONS_EXERCISE_ALTER: string = `ALTER TABLE lessons ADD COLUMN exercise_json TEXT;`;
+
 /** Um passo de migração versionada (ver MIGRATIONS). */
 export interface MigrationStep {
   /** versão-alvo do passo (user_version após aplicá-lo) */
@@ -222,6 +239,11 @@ export interface MigrationStep {
  *     `guardedAlter` (só roda com a coluna ausente — crash-safe);
  *   - challenge_attempts é criada NOVA (CREATE TABLE IF NOT EXISTS), então
  *     carrega todos os CHECKs normalmente.
+ *
+ * v3 (SCHEMA_VERSION=3, onda4-desafio-persistencia):
+ *   - lessons ganha `exercise_json` via `LESSONS_EXERCISE_ALTER`, guardado por
+ *     `guardedAlter` (mesmo padrão crash-safe do v2). Sem tabela nova — o `sql`
+ *     do passo é apenas um comentário (roda sempre, no-op idempotente).
  */
 export const MIGRATIONS: readonly MigrationStep[] = [
   {
@@ -232,5 +254,12 @@ export const MIGRATIONS: readonly MigrationStep[] = [
       ...CHALLENGE_ATTEMPTS_INDEXES,
     ].join('\n'),
     guardedAlter: { table: 'subjects', column: 'domain', sql: SUBJECTS_DOMAIN_ALTER },
+  },
+  {
+    version: 3,
+    sql: [
+      `-- v3: lessons.exercise_json (bancos v2 -> v3) — sem tabela nova; o ALTER é guardedAlter`,
+    ].join('\n'),
+    guardedAlter: { table: 'lessons', column: 'exercise_json', sql: LESSONS_EXERCISE_ALTER },
   },
 ];
