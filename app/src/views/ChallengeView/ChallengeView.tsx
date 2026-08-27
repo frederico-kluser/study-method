@@ -44,6 +44,9 @@ import BlockIcon from '@mui/icons-material/Block';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import MemoryIcon from '@mui/icons-material/Memory';
+import StarIcon from '@mui/icons-material/Star';
+import StarBorderIcon from '@mui/icons-material/StarBorder';
+import TimerIcon from '@mui/icons-material/Timer';
 import type {
   ChallengeInfo,
   PiExecuteResult,
@@ -60,6 +63,17 @@ import { resolveFeedbackProvider } from '../../lib/feedbackProvider';
 import { feedbackProviderChipKey } from '../../lib/feedbackProviderUi';
 import { mapTestAnswerPhase } from '../../lib/testAnswerEvents';
 import { useChallengeNav } from '../../lib/challengeNav';
+import {
+  createStarTracker,
+  formatClock,
+  isStillCurrent,
+  starLossI18nKey,
+  timeLimitForDifficulty,
+  INITIAL_STARS,
+  type StarLossI18nKey,
+  type StarTracker,
+} from '../../lib/challengeStars';
+import { announceStatus, fireConfetti } from '../../lib/confetti';
 import { katexRemarkPlugins, katexRehypePlugins, escapeLoneDollarSigns } from '../../lib/lessonMarkdown';
 import { AnswerTerminal, printTestBanner, type AnswerTerminalHandle } from '../../components/terminal/AnswerTerminal';
 import { FileExplorer } from '../../components/editor/FileExplorer';
@@ -122,6 +136,14 @@ export default function ChallengeView(): ReactElement {
   const { t } = useTranslation();
   const nav = useChallengeNav();
 
+  // t() com interpolação: o t() strict-typed desta base (src/i18n/i18next.d.ts)
+  // rejeita options porque os valores dos JSONs chegam como `string` (não
+  // template literals) — o InterpolationMap não resolve, e NENHUMA chave
+  // interpolada é chamada hoje. O RUNTIME interpola normal (verificado em
+  // tests/i18n-resources.test.ts) — cast local e documentado para as mensagens
+  // com contagem (anúncios passou/falhou e aria-labels de estrelas/tempo).
+  const tI = t as unknown as (key: string, options?: Record<string, string | number>) => string;
+
   // Estado da listagem e do desafio ativo.
   const [challenges, setChallenges] = useState<ChallengeInfo[]>([]);
   const [listing, setListing] = useState<'idle' | 'loading' | 'error'>('idle');
@@ -142,6 +164,17 @@ export default function ChallengeView(): ReactElement {
   // Estado da fase determinística.
   const [testStatus, setTestStatus] = useState<TestRunStatus>('idle');
   const [testResult, setTestResult] = useState<TestAnswerResult | null>(null);
+
+  // Estrelas + cronômetro do desafio (pedido do dono do produto; máquina pura
+  // em src/lib/challengeStars.ts — SÓ estrelas, sem gamificação extra).
+  const [starsLeft, setStarsLeft] = useState(INITIAL_STARS);
+  const [elapsedMs, setElapsedMs] = useState(0);
+  const [timedOut, setTimedOut] = useState(false);
+  const trackerRef = useRef<StarTracker | null>(null);
+  const startTsRef = useRef(0);
+  const lastEventCountRef = useRef(0);
+  const timedOutRef = useRef(false);
+  const concludedRef = useRef(false);
 
   // Estado da fase pi.
   const [piStatus, setPiStatus] = useState<PiStatus>('idle');
@@ -236,6 +269,99 @@ export default function ChallengeView(): ReactElement {
     if (active) void loadWorkspace(active);
   }, [active, loadWorkspace]);
 
+  // Limite de tempo do desafio ativo: T = 90s + difficulty*60s (sem difficulty
+  // exposta → fallback 300s documentado em timeLimitForDifficulty).
+  const timeLimitMs = useMemo(
+    () => timeLimitForDifficulty(active ? active.difficulty : undefined),
+    [active],
+  );
+
+  // KEY do desafio ativo: trocar de desafio RESETA estrelas + cronômetro.
+  const activeKey = active ? `${active.challengeId}:${active.workspaceDir}` : null;
+
+  // Guarda de identidade do teste em voo (corrida cross-desafio): ref com a key
+  // do desafio ATUAL, reescrito a CADA render. A continuação do `await
+  // testAnswer` lê ESTE ref — o `active` capturado no closure do useCallback
+  // fica stale (a promise em voo segura o closure antigo, do desafio que
+  // começou o teste). Reescrito no corpo do render (não em useEffect) de
+  // propósito: effects passivos são agendados de forma assíncrona e podem rodar
+  // DEPOIS da microtask do resultado — a janela da corrida voltaria a abrir.
+  const activeKeyRef = useRef<string | null>(null);
+  activeKeyRef.current = activeKey;
+
+  // Reset da máquina de estrelas e do cronômetro ao (des)montar um desafio.
+  useEffect(() => {
+    trackerRef.current = active
+      ? createStarTracker({ timeLimitMs: timeLimitForDifficulty(active.difficulty) })
+      : null;
+    setStarsLeft(INITIAL_STARS);
+    setElapsedMs(0);
+    setTimedOut(false);
+    timedOutRef.current = false;
+    concludedRef.current = false;
+    lastEventCountRef.current = 0;
+    startTsRef.current = Date.now();
+  }, [activeKey, active]);
+
+  // Tick do cronômetro (1s) + listeners de perda de foco (blur/visibility).
+  // Registrados por desafio ativo; removidos ao desmontar (sem vazamento).
+  useEffect(() => {
+    const tracker = trackerRef.current;
+    if (!activeKey || !tracker) return undefined;
+
+    const syncStars = (): void => setStarsLeft(tracker.stars());
+
+    // Anuncia perdas NOVAS do log (decaimento por demora no tick; foco). A
+    // perda por resposta errada fica fora: o anúncio do resultado cobre.
+    const announceNewLosses = (): void => {
+      const events = tracker.getEvents();
+      const fresh = events.slice(lastEventCountRef.current);
+      lastEventCountRef.current = events.length;
+      const texts = fresh
+        .map((e) => starLossI18nKey(e.cause))
+        .filter((k): k is StarLossI18nKey => k !== null)
+        .map((k) => t(`translation:${k}`));
+      if (texts.length > 0) announceStatus(texts.join(' '));
+    };
+
+    const handleBlur = (): void => {
+      if (concludedRef.current) return; // desafio concluído: estrelas travadas
+      tracker.onBlur();
+      syncStars();
+      announceNewLosses();
+    };
+    const handleVisibilityChange = (): void => {
+      if (document.hidden) handleBlur();
+    };
+
+    const tick = (): void => {
+      if (concludedRef.current) return; // relógio congelado após concluir
+      const elapsed = Date.now() - startTsRef.current;
+      setElapsedMs(elapsed);
+      tracker.onTick(elapsed);
+      syncStars();
+      announceNewLosses();
+      if (tracker.isTimedOut(elapsed) && !timedOutRef.current) {
+        timedOutRef.current = true;
+        tracker.onTimeout();
+        syncStars();
+        announceNewLosses();
+        setTimedOut(true);
+      }
+    };
+
+    window.addEventListener('blur', handleBlur);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    const interval = window.setInterval(tick, 1000);
+    tick(); // primeiro tique imediato (sincroniza o display)
+
+    return () => {
+      window.removeEventListener('blur', handleBlur);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.clearInterval(interval);
+    };
+  }, [activeKey, t]);
+
   // Ao montar: se veio com desafio do contexto, já está setado; senão lista.
   // Fix15c-review: dispara também quando `lastSetupRoot` muda (loadChallenges é
   // useCallback estável que só troca de identidade quando o root muda) — assim a
@@ -266,9 +392,16 @@ export default function ChallengeView(): ReactElement {
     return () => stop?.();
   }, []);
 
-  /** Fase determinística dos testes. */
-  const runTests = useCallback(async (): Promise<void> => {
-    if (!active) return;
+  /**
+   * Fase determinística dos testes. Retorna true quando o resultado foi aplicado
+   * ao desafio ativo; false quando o resultado foi DESCARTADO (o desafio mudou
+   * enquanto o teste rodava) — o chamador não deve seguir para a fase pi.
+   */
+  const runTests = useCallback(async (): Promise<boolean> => {
+    if (!active) return false;
+    // Identidade do desafio no momento em que o teste COMEÇA: o resultado só
+    // pode ser aplicado se este desafio ainda for o ativo quando voltar.
+    const startedKey = activeKey;
     setTestStatus('running');
     setPiStatus('idle');
     setBlocks([]);
@@ -279,6 +412,17 @@ export default function ChallengeView(): ReactElement {
       const result = (await (api.study.testAnswer as (
         args: TestArgs,
       ) => Promise<TestAnswerResult>)({ challengeDir: active.workspaceDir })) as TestAnswerResult;
+      // GUARDA DE CORRIDA CROSS-DESAFIO: o usuário trocou de desafio (picker ou
+      // contexto de aula) enquanto o teste rodava? O resultado pertence ao
+      // desafio que COMEÇOU o teste — se não é mais o ativo, descarta TUDO:
+      // sem setTestResult, sem banner, sem onWrongAnswer, sem confete, sem
+      // concluir/concludedRef, sem anúncio (o tracker de B não pode ser
+      // atingido por um teste de A; o confete não pode explodir na tela de B;
+      // o anúncio não pode usar os números de A). Sem nenhum write de estado:
+      // a troca de desafio já resetou status/resultado via loadWorkspace.
+      if (!isStillCurrent(startedKey, activeKeyRef.current)) {
+        return false;
+      }
       setTestResult(result);
       setTestStatus('done');
       if (termRef.current) {
@@ -289,12 +433,44 @@ export default function ChallengeView(): ReactElement {
           output: result.output,
         });
       }
+      // Veredito + estrelas (docs/ux-redesign.md §8): passou → rajada curta de
+      // confete + anúncio específico (NUNCA "Parabéns!" ritualizado); falhou →
+      // perde 1 estrela e o anúncio aponta o caso que falhou. O banner do
+      // terminal continua como está.
+      if (result.passed) {
+        concludedRef.current = true;
+        setElapsedMs(Date.now() - startTsRef.current);
+        fireConfetti();
+        announceStatus(
+          tI('translation:challenge.announcePassed', {
+            testsRun: result.testsRun,
+            expectedTests: result.expectedTests,
+          }),
+        );
+      } else {
+        trackerRef.current?.onWrongAnswer();
+        setStarsLeft(trackerRef.current?.stars() ?? INITIAL_STARS);
+        // Descarta o evento de estrela do log (o anúncio abaixo já cobre) —
+        // o próximo tick não anuncia a perda em duplicado.
+        if (trackerRef.current) {
+          lastEventCountRef.current = trackerRef.current.getEvents().length;
+        }
+        announceStatus(
+          tI('translation:challenge.announceFailed', {
+            testsRun: result.testsRun,
+            expectedTests: result.expectedTests,
+          }),
+        );
+      }
+      return true;
     } catch (err) {
       setTestStatus('error');
       setTestResult(null);
       termRef.current?.writeLine(`Erro na fase determinística: ${String(err)}`, 'red');
+      // Mantém o fluxo atual: erro da fase determinística não aborta a fase pi.
+      return true;
     }
-  }, [active]);
+  }, [active, activeKey, t]);
 
   /** Assina os eventos do pi (stream) e guarda o unsubscribe. */
   const streamStopRef = useRef<(() => void) | undefined>(undefined);
@@ -457,7 +633,10 @@ export default function ChallengeView(): ReactElement {
   /** Testar resposta: fase determinística + fase pi. */
   const testAnswerClick = useCallback((): void => {
     void (async () => {
-      await runTests();
+      const applied = await runTests();
+      // Resultado descartado (o desafio trocou enquanto o teste rodava): não
+      // segue para a fase pi — ela avaliaria o desafio antigo na tela do novo.
+      if (!applied) return;
       await runPi();
     })();
   }, [runTests, runPi]);
@@ -486,6 +665,24 @@ export default function ChallengeView(): ReactElement {
 
   return (
     <Box component="section" sx={{ p: { xs: 1, md: 2 }, maxWidth: 1200, mx: 'auto' }}>
+      {/* Região de status (SC 4.1.3 / docs §8): sempre no DOM, visualmente
+          oculta; announceStatus() reutiliza este elemento. */}
+      <Box
+        component="div"
+        role="status"
+        aria-live="polite"
+        sx={{
+          position: 'absolute',
+          width: 1,
+          height: 1,
+          m: -1,
+          p: 0,
+          overflow: 'hidden',
+          clip: 'rect(0 0 0 0)',
+          whiteSpace: 'nowrap',
+          border: 0,
+        }}
+      />
       {/* Cabeçalho */}
       <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} sx={{ alignItems: { sm: 'center' }, justifyContent: 'space-between' }}>
         <Typography variant="h4" component="h1">
@@ -499,7 +696,12 @@ export default function ChallengeView(): ReactElement {
               id="challenge-picker"
               label={t('translation:challenge.openChallenge')}
               value={active?.challengeId ?? ''}
-              disabled={listing === 'loading'}
+              // Desabilitado durante a lista E durante o teste em voo (fase
+              // determinística + pi): trocar de desafio no meio deixaria um
+              // resultado de A caindo na tela de B (a guarda de identidade em
+              // runTests cobre a troca por contexto de aula, que não passa
+              // por aqui).
+              disabled={listing === 'loading' || busy}
               onChange={(e) => {
                 const ch = challenges.find((c) => c.challengeId === e.target.value);
                 if (ch) pickChallenge(ch);
@@ -520,6 +722,53 @@ export default function ChallengeView(): ReactElement {
           </FormControl>
         ) : null}
       </Stack>
+
+      {/* Estrelas + cronômetro do desafio (visíveis enquanto há desafio ativo).
+          3 estrelas no início; perdas por foco/tempo/resposta errada/demora
+          (máquina pura em src/lib/challengeStars.ts). */}
+      {active ? (
+        <Stack
+          direction="row"
+          spacing={1}
+          sx={{ alignItems: 'center', mt: 0.5, flexWrap: 'wrap', minHeight: 28 }}
+        >
+          <Box
+            component="span"
+            role="img"
+            aria-label={tI('translation:challenge.starsAria', {
+              current: starsLeft,
+              total: INITIAL_STARS,
+            })}
+            sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.25 }}
+          >
+            {Array.from({ length: INITIAL_STARS }, (_, i) =>
+              i < starsLeft ? (
+                <StarIcon key={i} fontSize="small" sx={{ color: 'warning.main' }} />
+              ) : (
+                <StarBorderIcon key={i} fontSize="small" sx={{ color: 'action.disabled' }} />
+              ),
+            )}
+          </Box>
+          <Chip
+            size="small"
+            variant="outlined"
+            icon={timedOut ? undefined : <TimerIcon />}
+            label={
+              timedOut
+                ? t('translation:challenge.timedOut')
+                : formatClock(Math.max(0, timeLimitMs - elapsedMs))
+            }
+            color={timedOut ? 'error' : 'default'}
+            aria-label={
+              timedOut
+                ? t('translation:challenge.timedOut')
+                : tI('translation:challenge.timerAria', {
+                    time: formatClock(Math.max(0, timeLimitMs - elapsedMs)),
+                  })
+            }
+          />
+        </Stack>
+      ) : null}
 
       {listing === 'error' && !active ? (
         <Alert severity="error" sx={{ mt: 1 }}>{listError}</Alert>
