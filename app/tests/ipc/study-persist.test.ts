@@ -163,17 +163,18 @@ describe('study persistência — get-lesson-by-id', () => {
   it('id inexistente → {lesson: null}', async () => {
     const { handlers } = makeWithRepo();
     const res = await handlers.get(STUDY_CHANNELS.GET_LESSON_BY_ID)!(null, { lessonId: 'nao-existe' });
-    assert.deepEqual(res, { lesson: null, exercise: null, domain: null });
+    // ONDA5: campos novos do contrato (subjectSlug/challenge) também nascem null.
+    assert.deepEqual(res, { lesson: null, exercise: null, domain: null, subjectSlug: null, challenge: null });
   });
 
   it('lessonId vazio → {lesson: null}', async () => {
     const { handlers } = makeWithRepo();
-    assert.deepEqual(await handlers.get(STUDY_CHANNELS.GET_LESSON_BY_ID)!(null, {}), { lesson: null, exercise: null, domain: null });
+    assert.deepEqual(await handlers.get(STUDY_CHANNELS.GET_LESSON_BY_ID)!(null, {}), { lesson: null, exercise: null, domain: null, subjectSlug: null, challenge: null });
   });
 
   it('sem repo → {lesson: null}', async () => {
     const handlers = buildStudyHandlers(makeBaseDeps());
-    assert.deepEqual(await handlers.get(STUDY_CHANNELS.GET_LESSON_BY_ID)!(null, { lessonId: 'x' }), { lesson: null, exercise: null, domain: null });
+    assert.deepEqual(await handlers.get(STUDY_CHANNELS.GET_LESSON_BY_ID)!(null, { lessonId: 'x' }), { lesson: null, exercise: null, domain: null, subjectSlug: null, challenge: null });
   });
 });
 

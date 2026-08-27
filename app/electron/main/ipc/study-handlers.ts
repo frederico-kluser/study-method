@@ -145,7 +145,8 @@ export interface RunnerLike {
 export interface LessonPersistenceLike {
   listSubjects(): Promise<SubjectSummary[]>;
   listLessonsBySubject(subjectSlug: string): Promise<LessonSummary[]>;
-  /** ONDA4: devolve { lesson, exercise, domain } — null quando a lição não existe. */
+  /** ONDA4+5: devolve { lesson, exercise, domain, subjectSlug, challenge } —
+   * null quando a lição não existe. */
   getLessonById(id: string): Promise<GetLessonByIdResult | null>;
   recordAnswer(lessonId: string, answerText: string): Promise<void>;
   markLessonCompleted(id: string): Promise<void>;
@@ -659,7 +660,7 @@ export function buildStudyHandlers(deps: StudyHandlerDeps): Map<string, IpcHandl
   // (OU o input é vazio/inválido), respondem de forma GRACIOSA em vez de lançar:
   //   - list-topics             → SubjectSummary[]
   //   - list-lessons-by-subject → LessonSummary[]      (input {subjectSlug})
-  //   - get-lesson-by-id        → { lesson: LessonRow|null } (input {lessonId})
+  //   - get-lesson-by-id        → GetLessonByIdResult (input {lessonId})
   //   - record-answer           → { ok }               (input {lessonId,answerText})
   //   - mark-lesson-completed   → { ok }               (input {lessonId})
   map.set(STUDY_CHANNELS.LIST_TOPICS, async (): Promise<SubjectSummary[]> => {
@@ -677,14 +678,15 @@ export function buildStudyHandlers(deps: StudyHandlerDeps): Map<string, IpcHandl
   });
 
   map.set(STUDY_CHANNELS.GET_LESSON_BY_ID, async (_event, payload: unknown): Promise<GetLessonByIdResult> => {
-    if (!repo) return { lesson: null, exercise: null, domain: null };
+    if (!repo) return { lesson: null, exercise: null, domain: null, subjectSlug: null, challenge: null };
     const p = (payload ?? {}) as Record<string, unknown>;
     const lessonId =
       typeof p.lessonId === 'string' ? p.lessonId.trim() : '';
-    if (!lessonId) return { lesson: null, exercise: null, domain: null };
+    if (!lessonId) return { lesson: null, exercise: null, domain: null, subjectSlug: null, challenge: null };
     const found = await repo.getLessonById(lessonId);
-    if (!found) return { lesson: null, exercise: null, domain: null };
-    // ONDA4: o repo devolve { lesson, exercise (parse de exercise_json), domain }.
+    if (!found) return { lesson: null, exercise: null, domain: null, subjectSlug: null, challenge: null };
+    // ONDA4+5: o repo devolve { lesson, exercise (parse de exercise_json),
+    // domain, subjectSlug, challenge } — repasse DIRETO (pass-through).
     return found;
   });
 

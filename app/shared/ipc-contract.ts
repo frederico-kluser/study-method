@@ -208,13 +208,23 @@ export interface LessonRow {
   exercise: LessonExercise | null;
 }
 
-/** Resultado de `study:get-lesson-by-id` (ONDA4: exercício + domínio). */
+/** Resultado de `study:get-lesson-by-id` (ONDA4: exercício + domínio; ONDA5:
+ * subjectSlug + challenge — aditivo, campos nullable, consumidores antigos
+ * seguem funcionando). */
 export interface GetLessonByIdResult {
   lesson: LessonRow | null;
   /** exercício parseado de exercise_json (null para lição inexistente/ausente). */
   exercise: LessonExercise | null;
   /** domínio do assunto da lição (subjects.domain); null quando inexistente. */
   domain: 'programming' | 'math' | null;
+  /** ONDA5: slug do subject da lição (subjects.slug, do mesmo JOIN do domain) —
+   *  usado pela UI para resolver o setupRoot ao reabrir uma lição persistida;
+   *  null quando a lição não existe. */
+  subjectSlug: string | null;
+  /** ONDA5: desafio fundido da lição (challenges por lesson_id — createLesson
+   *  persiste no máximo 1 por lição) — a UI reabre o desafio pelo slug; null
+   *  para lições math / sem desafio persistido. */
+  challenge: { slug: string; title: string } | null;
 }
 
 /** Linha de tentativa de desafio (de `study:mark-challenge-attempt`). */

@@ -20,6 +20,7 @@ import {
   STT_CHANNELS,
   STUDY_CHANNELS,
   TTS_CHANNELS,
+  type GetLessonByIdResult,
 } from '../shared/ipc-contract';
 
 import { API_GROUPS, createExposedApi } from '../electron/preload/api-schema';
@@ -179,6 +180,27 @@ describe('contrato IPC (shared/ipc-contract.ts)', () => {
       'todos os canais de evento deveriam subscrever o transporte',
     );
     unsubs.forEach((stop) => assert.equal(typeof stop, 'function'));
+  });
+
+  it('ONDA5: GetLessonByIdResult expõe subjectSlug + challenge (campos aditivos, nullable)', () => {
+    // Checagem de TIPO (falha no tsc/lint se o contrato regredir): os campos
+    // novos existem com o shape prometido, e os da onda 4 continuam presentes.
+    const result = {} as GetLessonByIdResult;
+    result.subjectSlug satisfies string | null;
+    result.challenge satisfies { slug: string; title: string } | null;
+    result.domain satisfies 'programming' | 'math' | null;
+    result.exercise satisfies { kind: 'math'; family: string; seed: number; prompt: string; expectedNormalized: string } | null;
+    // Runtime (defensivo): o shape default gracioso dos handlers fecha com o
+    // contrato — os campos novos nascem null, sem quebrar consumidores.
+    const graceful: GetLessonByIdResult = {
+      lesson: null,
+      exercise: null,
+      domain: null,
+      subjectSlug: null,
+      challenge: null,
+    };
+    assert.equal(graceful.subjectSlug, null);
+    assert.equal(graceful.challenge, null);
   });
 });
 

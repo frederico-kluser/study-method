@@ -405,4 +405,63 @@ describe('createLessonRepo — exercise_json (v3, onda4-desafio-persistencia)', 
     assert.equal(await repo.getLessonById('nao-existe'), null);
     close();
   });
+
+  it('ONDA5: getLessonById devolve subjectSlug + challenge (lição programming com desafio persistido)', async () => {
+    const { repo, close } = makeRepo();
+    await repo.upsertSubject('Algoritmos');
+    const id = await repo.createLesson({
+      subjectSlug: 'algoritmos',
+      title: 'Ordenação',
+      body: 'Bubble sort.',
+      challenge: {
+        slug: 'bubble-sort',
+        title: 'Bubble Sort',
+        language: 'python',
+        concept: 'sorting',
+        statement: 'Ordene a lista.',
+        testCasesJson: '[]',
+        solutionJson: '{}',
+      },
+    });
+    const found = await repo.getLessonById(id);
+    assert.ok(found);
+    assert.equal(found.subjectSlug, 'algoritmos', 'slug do subject (JOIN com subjects)');
+    assert.deepEqual(
+      found.challenge,
+      { slug: 'bubble-sort', title: 'Bubble Sort' },
+      'desafio fundido da lição (LEFT JOIN challenges por lesson_id)',
+    );
+    // Campos da onda 4 continuam intactos (aditivo).
+    assert.equal(found.domain, 'programming');
+    assert.equal(found.exercise, null);
+    close();
+  });
+
+  it('ONDA5: math (sem challenge) → subjectSlug preenchido e challenge null', async () => {
+    const { repo, close } = makeRepo();
+    await repo.upsertSubject('Frações', 'math');
+    const id = await repo.createLesson({
+      subjectSlug: 'fracoes',
+      title: 'Frações',
+      body: 'corpo',
+      exercise: EXERCISE,
+    });
+    const found = await repo.getLessonById(id);
+    assert.ok(found);
+    assert.equal(found.subjectSlug, 'fracoes', 'math também expõe o slug do subject');
+    assert.equal(found.challenge, null, 'math não tem linha em challenges → null');
+    assert.equal(found.domain, 'math');
+    close();
+  });
+
+  it('ONDA5: programming SEM challenge persistido → challenge null (nunca inventa)', async () => {
+    const { repo, close } = makeRepo();
+    await repo.upsertSubject('Vetores');
+    const id = await repo.createLesson({ subjectSlug: 'vetores', title: 'A', body: 'b' });
+    const found = await repo.getLessonById(id);
+    assert.ok(found);
+    assert.equal(found.challenge, null, 'sem desafio → null (não lança, não inventa)');
+    assert.equal(found.subjectSlug, 'vetores');
+    close();
+  });
 });

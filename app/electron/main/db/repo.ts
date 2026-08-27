@@ -21,6 +21,11 @@
  * quando o subject já existe e o domínio é fornecido explicitamente (antes
  * mantinha o antigo em silêncio).
  *
+ * v4 (onda5-reabrir-lição): `getLessonById` também devolve `subjectSlug`
+ * (subjects.slug — mesmo JOIN do domain) e `challenge` (`{ slug, title }` do
+ * desafio fundido da lição via LEFT JOIN challenges por lesson_id; null para
+ * lições math/sem desafio) — a UI reabre a lição persistida por esses campos.
+ *
  * O CONTRATO das tabelas é definido pelo ORQUESTRADOR (fonte de verdade). Este
  * módulo assume exatamente essas colunas; quando a onda1-sql-schema mergear o
  * `schema.ts` com as MESMAS tabelas, a cola continua funcionando — `IF NOT
@@ -107,6 +112,13 @@ export interface LessonWithMeta {
   exercise: LessonExercise | null;
   /** domínio do subject da lição (subjects.domain). */
   domain: 'programming' | 'math';
+  /** ONDA5: slug do subject da lição (subjects.slug) — usado para reabrir a
+   *  lição persistida (a UI resolve o setupRoot pelo slug). null quando a
+   *  lição não existe. */
+  subjectSlug: string | null;
+  /** ONDA5: desafio fundido da lição (challenges por lesson_id — createLesson
+   *  persiste no máximo 1 por lição). null para lições math / sem desafio. */
+  challenge: { slug: string; title: string } | null;
 }
 
 /** Aula resumida por assunto (listLessonsBySubject). */
@@ -198,8 +210,8 @@ export interface LessonRepo {
   /** v3/onda4: devolve um subject pelo slug (undefined se não persistido). */
   findSubjectBySlug(slug: string): Promise<SubjectRow | null>;
   createLesson(input: CreateLessonInput): Promise<string>;
-  /** v3/onda4: devolve { lesson, exercise (parse de exercise_json), domain } —
-   * null quando a lição não existe. */
+  /** v3/onda4+5: devolve { lesson, exercise (parse de exercise_json), domain,
+   * subjectSlug, challenge } — null quando a lição não existe. */
   getLessonById(id: string): Promise<LessonWithMeta | null>;
   listLessonsBySubject(subjectSlug: string): Promise<LessonSummary[]>;
   markLessonCompleted(id: string): Promise<void>;
@@ -509,16 +521,30 @@ export function createLessonRepo(open: OpenFn): LessonRepo {
     async getLessonById(id) {
       // v3: JOIN com subjects para o domínio + exercise_json para o exercício
       // parseado (defensivo — JSON inválido ⇒ exercise null, nunca lança).
+      // ONDA5: o MESMO JOIN com subjects também traz o slug (subjectSlug) e um
+      // LEFT JOIN com challenges traz o desafio fundido da lição (challenge) —
+      // createLesson persiste no máximo 1 desafio por lição, então o join
+      // devolve no máximo 1 linha (`.get()` pega a primeira de qualquer forma).
       const row = db
         .prepare(
           `SELECT l.id, l.subject_id, l.title, l.body, l.difficulty, l.parent_lesson_id,
                   l.origin_lesson_id, l.created_at, l.completed_at, l.exercise_json,
-                  COALESCE(s.domain, 'programming') AS domain
-           FROM lessons l LEFT JOIN subjects s ON s.id = l.subject_id
+                  COALESCE(s.domain, 'programming') AS domain,
+                  s.slug AS subject_slug,
+                  ch.challenge_slug AS challenge_slug, ch.title AS challenge_title
+           FROM lessons l
+           LEFT JOIN subjects s ON s.id = l.subject_id
+           LEFT JOIN challenges ch ON ch.lesson_id = l.id
            WHERE l.id = ?`,
         )
         .get(id) as unknown as
-        | (Omit<LessonRow, 'exercise'> & { exercise_json: string | null; domain: string })
+        | (Omit<LessonRow, 'exercise'> & {
+            exercise_json: string | null;
+            domain: string;
+            subject_slug: string | null;
+            challenge_slug: string | null;
+            challenge_title: string | null;
+          })
         | undefined;
       if (!row) return null;
       const lesson: LessonRow = {
@@ -534,7 +560,20 @@ export function createLessonRepo(open: OpenFn): LessonRepo {
         exercise: parseLessonExercise(row.exercise_json),
       };
       const domain = row.domain === 'math' ? ('math' as const) : ('programming' as const);
-      return { lesson, exercise: lesson.exercise, domain };
+      const subjectSlug =
+        typeof row.subject_slug === 'string' && row.subject_slug.trim() !== ''
+          ? row.subject_slug
+          : null;
+      // Defensivo (padrão parseLessonExercise): desafio parcial/fora do shape ⇒
+      // null — nunca quebra a leitura da lição.
+      const challenge =
+        typeof row.challenge_slug === 'string' && row.challenge_slug.trim() !== ''
+          ? {
+              slug: row.challenge_slug,
+              title: typeof row.challenge_title === 'string' ? row.challenge_title : '',
+            }
+          : null;
+      return { lesson, exercise: lesson.exercise, domain, subjectSlug, challenge };
     },
 
     async listLessonsBySubject(subjectSlug) {

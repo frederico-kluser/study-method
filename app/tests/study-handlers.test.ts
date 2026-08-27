@@ -1178,8 +1178,8 @@ describe('study:list-challenges — nunca-repetir (onda4-desafio-persistencia)',
   });
 });
 
-describe('study:get-lesson-by-id — ONDA4 ({ lesson, exercise, domain })', () => {
-  it('com repo: devolve lesson + exercise (parse de exercise_json) + domain', async () => {
+describe('study:get-lesson-by-id — ONDA4+5 ({ lesson, exercise, domain, subjectSlug, challenge })', () => {
+  it('com repo: devolve lesson + exercise (parse de exercise_json) + domain + subjectSlug + challenge', async () => {
     const repo = {
       getLessonById: async () => ({
         lesson: {
@@ -1196,6 +1196,8 @@ describe('study:get-lesson-by-id — ONDA4 ({ lesson, exercise, domain })', () =
         },
         exercise: { kind: 'math', family: 'fractions', seed: 7, prompt: 'Quanto é 1/2 + 1/4?', expectedNormalized: '3/4' },
         domain: 'math',
+        subjectSlug: 'fracoes',
+        challenge: null,
       }),
     };
     const { deps } = makeDeps({ repo: repo as unknown as Partial<LessonPersistenceLike> });
@@ -1204,36 +1206,61 @@ describe('study:get-lesson-by-id — ONDA4 ({ lesson, exercise, domain })', () =
       lesson: { title: string } | null;
       exercise: { family: string; expectedNormalized: string } | null;
       domain: string | null;
+      subjectSlug: string | null;
+      challenge: { slug: string; title: string } | null;
     };
     assert.equal(res.lesson?.title, 'Frações');
     assert.equal(res.exercise?.family, 'fractions');
     assert.equal(res.exercise?.expectedNormalized, '3/4');
     assert.equal(res.domain, 'math');
+    // ONDA5: repasse dos campos novos (pass-through do repo → contrato).
+    assert.equal(res.subjectSlug, 'fracoes');
+    assert.equal(res.challenge, null);
   });
 
-  it('sem repo / id inexistente → { lesson: null, exercise: null, domain: null }', async () => {
+  it('ONDA5: repassa challenge preenchido (lição programming reaberta pelo desafio)', async () => {
+    const repo = {
+      getLessonById: async () => ({
+        lesson: {
+          id: 'les-2',
+          subject_id: 'sub-2',
+          title: 'Ordenação',
+          body: 'corpo',
+          difficulty: 2,
+          parent_lesson_id: null,
+          origin_lesson_id: null,
+          created_at: '2026-08-27T00:00:00.000Z',
+          completed_at: null,
+          exercise: null,
+        },
+        exercise: null,
+        domain: 'programming',
+        subjectSlug: 'algoritmos',
+        challenge: { slug: 'bubble-sort', title: 'Bubble Sort' },
+      }),
+    };
+    const { deps } = makeDeps({ repo: repo as unknown as Partial<LessonPersistenceLike> });
+    const handlers = buildStudyHandlers(deps);
+    const res = (await handlers.get(STUDY_CHANNELS.GET_LESSON_BY_ID)!(undefined, { lessonId: 'les-2' })) as {
+      subjectSlug: string | null;
+      challenge: { slug: string; title: string } | null;
+    };
+    assert.equal(res.subjectSlug, 'algoritmos');
+    assert.deepEqual(res.challenge, { slug: 'bubble-sort', title: 'Bubble Sort' });
+  });
+
+  it('sem repo / id inexistente → { lesson: null, exercise: null, domain: null, subjectSlug: null, challenge: null }', async () => {
+    const GRACEFUL = { lesson: null, exercise: null, domain: null, subjectSlug: null, challenge: null };
     // sem repo
     const { deps } = makeDeps();
     const handlers = buildStudyHandlers(deps);
-    assert.deepEqual(await handlers.get(STUDY_CHANNELS.GET_LESSON_BY_ID)!(undefined, { lessonId: 'x' }), {
-      lesson: null,
-      exercise: null,
-      domain: null,
-    });
+    assert.deepEqual(await handlers.get(STUDY_CHANNELS.GET_LESSON_BY_ID)!(undefined, { lessonId: 'x' }), GRACEFUL);
     // com repo mas id inexistente
     const repo = { getLessonById: async () => null };
     const { deps: deps2 } = makeDeps({ repo: repo as unknown as Partial<LessonPersistenceLike> });
     const handlers2 = buildStudyHandlers(deps2);
-    assert.deepEqual(await handlers2.get(STUDY_CHANNELS.GET_LESSON_BY_ID)!(undefined, { lessonId: 'nope' }), {
-      lesson: null,
-      exercise: null,
-      domain: null,
-    });
+    assert.deepEqual(await handlers2.get(STUDY_CHANNELS.GET_LESSON_BY_ID)!(undefined, { lessonId: 'nope' }), GRACEFUL);
     // lessonId vazio → mesmo shape gracioso
-    assert.deepEqual(await handlers.get(STUDY_CHANNELS.GET_LESSON_BY_ID)!(undefined, {}), {
-      lesson: null,
-      exercise: null,
-      domain: null,
-    });
+    assert.deepEqual(await handlers.get(STUDY_CHANNELS.GET_LESSON_BY_ID)!(undefined, {}), GRACEFUL);
   });
 });

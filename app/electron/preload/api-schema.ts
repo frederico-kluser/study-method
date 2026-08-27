@@ -45,6 +45,7 @@ import type {
   ResearchProgressEvent,
   SttModelProgressPayload,
   SttPartialPayload,
+  StudyLesson,
   SubjectSummary,
   TtsDownloadProgressPayload,
   TtsGenerateRequest,
@@ -185,7 +186,19 @@ export interface ApiSchema {
     createSetup(): Promise<unknown>;
     newSession(): Promise<unknown>;
     planLesson(): Promise<unknown>;
-    generateLesson(): Promise<unknown>;
+    /**
+     * ONDA5: retipado — o payload é o que o main NORMALIZA em
+     * normalizeGenerateLessonPayload (study-handlers): a STRING AVULSA
+     * (subject, forma que a UI usava: generateLesson('algoritmos')) OU o objeto
+     * `{ subject, domain?, language?, goal? }` — o branch-objeto é o shape
+     * normalizado do contrato. Devolve `{ lesson, rejected }` — lesson do tipo
+     * do contrato (StudyLesson); lessonId/subjectId chegam quando a geração
+     * rodou com repo (onda4-desafio-persistencia). SÓ TIPO: o runtime do
+     * preload continua passando os args adiante (invoke) sem tocar no payload.
+     */
+    generateLesson(
+      input: string | { subject: string; domain?: 'math' | 'programming'; language?: string; goal?: string },
+    ): Promise<{ lesson: StudyLesson; rejected: unknown[]; lessonId?: string; subjectId?: string }>;
     getLesson(): Promise<unknown>;
     getFindings(): Promise<unknown>;
     /** ADITIVO (fix15-list-challenges): `setupRoot` opcional — sem argumento segue
