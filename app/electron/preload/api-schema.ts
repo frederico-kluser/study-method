@@ -36,6 +36,7 @@ import type {
   PiExecuteRequest,
   PiExecuteResult,
   PiStreamEvent,
+  ResearchProgressEvent,
   SttModelProgressPayload,
   SttPartialPayload,
   SubjectSummary,
@@ -89,6 +90,7 @@ const EVENT_CHANNELS: ReadonlySet<string> = new Set<string>([
   PI_CHANNELS.STREAM_EVENT,
   LOCAL_AI_CHANNELS.DOWNLOAD_PROGRESS,
   STUDY_CHANNELS.LESSON_PROGRESS,
+  STUDY_CHANNELS.RESEARCH_PROGRESS,
   STUDY_CHANNELS.TEST_ANSWER_EVENT,
   STT_CHANNELS.MODEL_DOWNLOAD_PROGRESS,
   STT_CHANNELS.STREAM_PARTIAL,
@@ -197,6 +199,9 @@ export interface ApiSchema {
     recordAnswer(input: { lessonId: string; answerText: string }): Promise<unknown>;
     markLessonCompleted(lessonId: string): Promise<unknown>;
     onLessonProgress(cb: (ev: unknown) => void): () => void;
+    /** ADITIVO (onda2-research-live): progresso da pesquisa Brave (surf-research
+     *  style) durante generate-lesson — união discriminada ResearchProgressEvent. */
+    onResearchProgress(cb: (ev: ResearchProgressEvent) => void): () => void;
     onTestAnswerEvent(cb: (ev: unknown) => void): () => void;
   };
   /** Onda 8 (voz local): STT — envelope { success, data?, error? }. */

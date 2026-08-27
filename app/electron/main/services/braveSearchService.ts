@@ -65,13 +65,54 @@ export interface MultiSearchOptions {
   count?: number;
   extraParams?: SearchOptions['extraParams'];
   delayMsOnRateLimit?: number;
+  /** ADITIVO (onda2-research-live): chamado quando UM worker começa uma query. */
+  onQueryStart?: (query: string) => void;
+  /**
+   * ADITIVO (onda2-research-live): chamado quando UM worker termina UMA query
+   * (sucesso OU erro), com métricas por query. `credits` fica undefined —
+   * a Brave Search API não expõe saldo (ver ResearchProgressEvent.credits).
+   */
+  onQueryDone?: (info: QueryDoneInfo) => void;
+}
+
+/** Resultado de UMA query da multiSearch (callback onQueryDone). */
+export interface QueryDoneInfo {
+  query: string;
+  ok: boolean;
+  provider: 'brave';
+  /** nº de resultados (hits) devolvidos pela API para esta query (sucesso). */
+  hits?: number;
+  latencyMs?: number;
+  /** Créditos restantes — undefined no provider 'brave' (a API não expõe). */
+  credits?: number;
+  /** Erro mapeado pelos códigos existentes (BRAVE_KEY_MISSING/INVALID/RATE_LIMIT/SERVER_ERROR). */
+  error?: { code?: string; message?: string };
 }
 
 export interface MultiSearchResult {
   /** Resultados deduplicados por url (a primeira ocorrência vence). */
   results: StudyFinding[];
   /** Erros por query — uma query falha não derruba as demais. */
-  errors: Array<{ query: string; error: string }>;
+  errors: Array<{ query: string; error: string; code?: string }>;
+}
+
+/**
+ * Resolve a chave Brave pelo caminho PADRÃO do serviço: settingsStore
+ * (getApiKey('brave')) com fallback em process.env.BRAVE_API_KEY. Devolve ''
+ * quando indisponível — NUNCA lança (quem precisa do erro tipado usa o serviço).
+ * Exportado para o researchPlanner checar a chave ANTES de rodar queries
+ * (regra "Brave SEMPRE obrigatória") pelo MESMO caminho do serviço.
+ */
+export async function resolveBraveApiKey(): Promise<string> {
+  try {
+    // Import lazy do settingsStore para não tocar em 'electron' em testes.
+    const { getSettingsStore } = await import('./settingsStore');
+    const stored = await (await getSettingsStore()).getApiKey('brave');
+    if (stored) return stored;
+  } catch {
+    // settingsStore indisponível (ex.: fora do runtime): segue para o env.
+  }
+  return process.env.BRAVE_API_KEY ?? '';
 }
 
 export type BraveSearchService = ReturnType<typeof createBraveSearchService>;
@@ -187,17 +228,7 @@ export function createBraveSearchService(deps: BraveSearchDeps = {}): {
   const baseUrl = (deps.baseUrl ?? BRAVE_DEFAULT_BASE).replace(/\/+$/, '');
   const fetchImpl = deps.fetchImpl ?? fetch;
 
-  const defaultResolveApiKey = deps.resolveApiKey ?? (async (): Promise<string> => {
-    try {
-      // Import lazy do settingsStore para não tocar em 'electron' em testes.
-      const { getSettingsStore } = await import('./settingsStore');
-      const stored = await (await getSettingsStore()).getApiKey('brave');
-      if (stored) return stored;
-    } catch {
-      // settingsStore indisponível (ex.: fora do runtime): segue para o env.
-    }
-    return process.env.BRAVE_API_KEY ?? '';
-  });
+  const defaultResolveApiKey = deps.resolveApiKey ?? resolveBraveApiKey;
 
   async function resolveKey(): Promise<string> {
     const key = (await defaultResolveApiKey()).trim();
@@ -338,7 +369,7 @@ export function createBraveSearchService(deps: BraveSearchDeps = {}): {
       const concurrency = Math.max(1, opts.concurrency ?? 2);
       const delayMs = Math.max(0, opts.delayMs ?? 250);
       const results: StudyFinding[] = [];
-      const errors: Array<{ query: string; error: string }> = [];
+      const errors: Array<{ query: string; error: string; code?: string }> = [];
       const seenUrls = new Set<string>();
 
       // Fila real: pool de workers com limite de concorrência + delay entre lotes.
@@ -354,6 +385,8 @@ export function createBraveSearchService(deps: BraveSearchDeps = {}): {
             await new Promise((r) => setTimeout(r, delayMs));
           }
           const query = uniqueQueries[idx];
+          opts.onQueryStart?.(query);
+          const startedAt = Date.now();
           try {
             const key = await resolveKey();
             const found = await doSearch(query.trim(), key, {
@@ -367,8 +400,32 @@ export function createBraveSearchService(deps: BraveSearchDeps = {}): {
               seenUrls.add(f.url);
               results.push(f);
             }
+            opts.onQueryDone?.({
+              query,
+              ok: true,
+              provider: 'brave',
+              hits: found.length,
+              latencyMs: Date.now() - startedAt,
+            });
           } catch (error) {
-            errors.push({ query, error: error instanceof Error ? error.message : String(error) });
+            const code =
+              (error as Error & { code?: string }).code !== undefined
+                ? (error as Error & { code?: string }).code
+                : undefined;
+            errors.push({
+              query,
+              error: error instanceof Error ? error.message : String(error),
+              ...(code !== undefined ? { code } : {}),
+            });
+            opts.onQueryDone?.({
+              query,
+              ok: false,
+              provider: 'brave',
+              latencyMs: Date.now() - startedAt,
+              ...(code !== undefined
+                ? { error: { code, message: error instanceof Error ? error.message : String(error) } }
+                : { error: { message: error instanceof Error ? error.message : String(error) } }),
+            });
           }
         }
       };

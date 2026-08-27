@@ -41,6 +41,7 @@ import * as os from 'node:os';
 
 import type {
   ChallengeInfo,
+  ResearchProgressEvent,
   StudyFinding,
   StudyLesson,
   TestAnswerResult,
@@ -214,10 +215,22 @@ export interface LessonOrchestratorDeps {
   setupsDir?: string;
   /** Resolve o diretório generated/ dentro de um setup (default: <setupRoot>/docs/generated). */
   getGeneratedDir?: (setupRoot: string) => string;
+  /**
+   * ADITIVO (onda2-research-live): resolve o subject_id de um desafio na camada
+   * SQL quando PERSISTIDO (challenges→lessons→subject_id / challenge_attempts).
+   * null/ausente ⇒ ChallengeInfo.subjectId fica undefined (aula recém-gerada
+   * normalmente ainda não tem linha persistida). Ausente ⇒ subjectId undefined.
+   */
+  resolveSubjectId?: (challengeId: string) => Promise<string | null>;
 }
 
 export interface GenerateLessonOptions {
   onProgress?: (p: LessonProgress) => void;
+  /**
+   * ADITIVO (onda2-research-live): push dos eventos `research:*` da pesquisa
+   * Brave (canal study:research-progress) — repassado ao researchPlanner.plan.
+   */
+  onResearchProgress?: (ev: ResearchProgressEvent) => void;
   language?: string;
   difficulty?: number;
   concept?: string;
@@ -419,7 +432,11 @@ export function createLessonOrchestrator(deps: LessonOrchestratorDeps) {
     try {
       // 1) PESQUISA
       emit(onProgress, { phase: 'research', message: `Pesquisando "${subject}"…`, fraction: 0.1 });
-      const plan = await deps.research.plan(subject);
+      // O planner emite os events `research:*` (plan/query-start/query-done/
+      // round-start/round-done/done) via onResearchProgress — o handler os
+      // repassa ao canal study:research-progress. Sem callback, só o progresso
+      // por fases (study:lesson-progress) é emitido (retrocompat).
+      const plan = await deps.research.plan(subject, { onProgress: opts.onResearchProgress });
       const findings = plan.findings ?? [];
 
       // 2) AUTORIA
@@ -479,6 +496,19 @@ export function createLessonOrchestrator(deps: LessonOrchestratorDeps) {
         const v = await deps.runner.verifyChallenge(materialized.challengeDirAbs);
 
         if (v.verdict === 'approved') {
+          // ADITIVO (onda2-research-live): subjectId quando o desafio JÁ está
+          // persistido na camada SQL (challenges→lessons→subject_id, via
+          // challenge_attempts.subject_id) — recém-materializado ainda não tem
+          // linha, então é undefined na montagem (o list-challenges resolve).
+          let subjectId: string | undefined;
+          if (deps.resolveSubjectId) {
+            try {
+              const resolved = await deps.resolveSubjectId(materialized.challengeId);
+              if (resolved) subjectId = resolved;
+            } catch {
+              subjectId = undefined; // resolução falhou ⇒ omite (nunca derruba a geração)
+            }
+          }
           challengeInfos.push({
             challengeId: materialized.challengeId,
             title: challengeDraft.title,
@@ -489,6 +519,7 @@ export function createLessonOrchestrator(deps: LessonOrchestratorDeps) {
             verdict: v.verdict,
             workspaceDir: materialized.challengeDirAbs,
             statementPath: path.join(materialized.challengeDirAbs, 'README.md'),
+            ...(subjectId ? { subjectId } : {}),
           });
         } else {
           // `not_run` tem VÁRIAS origens distintas e não devemos confundi-las.
@@ -530,7 +561,11 @@ export function createLessonOrchestrator(deps: LessonOrchestratorDeps) {
       return { lesson, rejected };
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
-      emit(onProgress, { phase: 'error', message: msg });
+      // ADITIVO (onda2-research-live): erro ESTRUTURADO da fase research — o
+      // planner lança com code (ex.: BRAVE_KEY_MISSING) e o progresso carrega
+      // o código para a UI tratar o aborto com mensagem clara.
+      const code = (err as Error & { code?: string }).code;
+      emit(onProgress, { phase: 'error', message: msg, ...(code ? { code } : {}) });
       throw new Error(`generateLesson("${subject}") falhou: ${msg}`, { cause: err });
     }
   }

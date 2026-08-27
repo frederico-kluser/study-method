@@ -50,6 +50,7 @@ import type {
   ChallengeInfo,
   LessonRow,
   LessonSummary,
+  ResearchProgressEvent,
   StudyLesson,
   SubjectSummary,
   TestAnswerResult,
@@ -61,7 +62,16 @@ import { safeHandleMap, type IpcMainHandleLike, type IpcHandlerFn } from './safe
 
 /** Conjunto de métodos do lesson-orchestrator que os handlers usam. */
 export interface LessonServiceLike {
-  generateLesson(subject: string, opts?: { onProgress?: (p: LessonProgress) => void; language?: string; goal?: string }): Promise<{ lesson: StudyLesson; rejected: unknown[] }>;
+  generateLesson(
+    subject: string,
+    opts?: {
+      onProgress?: (p: LessonProgress) => void;
+      /** ADITIVO (onda2-research-live): events `research:*` (estudo:research-progress). */
+      onResearchProgress?: (ev: ResearchProgressEvent) => void;
+      language?: string;
+      goal?: string;
+    },
+  ): Promise<{ lesson: StudyLesson; rejected: unknown[] }>;
   testAnswer(challengeDir: string, opts?: { outputLimit?: number }): Promise<TestAnswerResult>;
   listSetups(): Promise<{ rows: Array<{ setupId: string; setupRoot: string; subjectSlug?: string }> }>;
   resolveSkillDirInfo(): Promise<{ skillDir: string }>;
@@ -119,6 +129,13 @@ export interface LessonPersistenceLike {
   getLessonById(id: string): Promise<LessonRow | null>;
   recordAnswer(lessonId: string, answerText: string): Promise<void>;
   markLessonCompleted(id: string): Promise<void>;
+  /**
+   * ADITIVO (onda2-research-live): histórico de tentativas de um desafio —
+   * usado para resolver ChallengeInfo.subjectId (challenges→lessons→subject_id
+   * quando PERSISTIDO; challenge_attempts.subject_id é a única via existente
+   * que mapeia challengeId→subjectId). Ausente ⇒ subjectId undefined.
+   */
+  getAttemptsForChallenge?(challengeId: string): Promise<Array<{ subjectId?: string }>>;
 }
 
 export interface StudyHandlerDeps {
@@ -208,8 +225,17 @@ export function resolveContainedWorkspacePath(
   return { path: target };
 }
 
-/** Lê todos os desafios `<setupRoot>/challenges/<NNNN>-<slug>/meta.json` como ChallengeInfo. */
-async function listChallengesFrom(setupRoot: string): Promise<ChallengeInfo[]> {
+/**
+ * Lê todos os desafios `<setupRoot>/challenges/<NNNN>-<slug>/meta.json` como
+ * ChallengeInfo. ADITIVO (onda2-research-live): quando `repo` expõe
+ * getAttemptsForChallenge, resolve `subjectId` do desafio PERSISTIDO na camada
+ * SQL (challenge_attempts.subject_id — a via existente challenges→lessons→
+ * subject_id); sem repo/sem tentativas ⇒ undefined.
+ */
+async function listChallengesFrom(
+  setupRoot: string,
+  repo?: LessonPersistenceLike,
+): Promise<ChallengeInfo[]> {
   const challengesRoot = path.join(setupRoot, 'challenges');
   let entries;
   try {
@@ -231,8 +257,23 @@ async function listChallengesFrom(setupRoot: string): Promise<ChallengeInfo[]> {
     const base = ent.name;
     const id = /^[0-9]{4}/.exec(base)?.[0] ?? '';
     const artifacts = (meta.artifacts ?? {}) as Record<string, unknown>;
+    const challengeId = typeof meta.challenge_id === 'string' ? meta.challenge_id : id;
+
+    // subjectId: última tentativa persistida do desafio (se houver). Falha de
+    // resolução NUNCA derruba a lista — cai para undefined.
+    let subjectId: string | undefined;
+    if (repo?.getAttemptsForChallenge && challengeId) {
+      try {
+        const attempts = await repo.getAttemptsForChallenge(challengeId);
+        const last = attempts[attempts.length - 1];
+        if (last?.subjectId && typeof last.subjectId === 'string') subjectId = last.subjectId;
+      } catch {
+        subjectId = undefined;
+      }
+    }
+
     infos.push({
-      challengeId: typeof meta.challenge_id === 'string' ? meta.challenge_id : id,
+      challengeId,
       title: typeof meta.title === 'string' ? meta.title : base,
       language: typeof meta.language === 'string' ? meta.language : '',
       concept:
@@ -244,6 +285,7 @@ async function listChallengesFrom(setupRoot: string): Promise<ChallengeInfo[]> {
       verdict: typeof meta.verdict === 'string' ? meta.verdict : 'unknown',
       workspaceDir: chDir,
       statementPath: path.join(chDir, String(artifacts.statement_path ?? 'README.md')),
+      ...(subjectId ? { subjectId } : {}),
     });
   }
   return infos;
@@ -364,6 +406,12 @@ export function buildStudyHandlers(deps: StudyHandlerDeps): Map<string, IpcHandl
         }
         emit(STUDY_CHANNELS.LESSON_PROGRESS, prog);
       },
+      // ADITIVO (onda2-research-live): o planner emite os events `research:*`
+      // (plan/query-start/query-done/round-*/done) — repassa ao canal novo
+      // study:research-progress. O canal por fases continua intacto acima.
+      onResearchProgress: (ev: ResearchProgressEvent) => {
+        emit(STUDY_CHANNELS.RESEARCH_PROGRESS, ev);
+      },
       language: normalized.language,
       goal: normalized.goal,
     });
@@ -402,7 +450,7 @@ export function buildStudyHandlers(deps: StudyHandlerDeps): Map<string, IpcHandl
     const setupRoot =
       (typeof p.setupRoot === 'string' && p.setupRoot.trim()) ? p.setupRoot : memory.lastSetupRoot;
     if (!setupRoot) throw new Error('study: list-challenges requer `setupRoot` (ou um setup já usado).');
-    const challenges = await listChallengesFrom(setupRoot);
+    const challenges = await listChallengesFrom(setupRoot, repo);
     memory.lastSetupRoot = setupRoot;
     return challenges;
   });

@@ -22,6 +22,7 @@ import {
   registerStudyHandlers,
   resolveContainedWorkspacePath,
   __resetStudyHandlersMemory,
+  type LessonPersistenceLike,
   type LessonServiceLike,
   type RunnerLike,
   type StudyHandlerDeps,
@@ -33,6 +34,8 @@ function makeDeps(overrides: {
   lesson?: Partial<LessonServiceLike>;
   runner?: Partial<RunnerLike>;
   emit?: (channel: string, ev: unknown) => void;
+  /** ADITIVO (onda2-research-live): repo parcial (só os métodos do teste). */
+  repo?: Partial<LessonPersistenceLike>;
 } = {}) {
   const emitCalls: Array<{ channel: string; ev: unknown }> = [];
   const emit = overrides.emit ?? ((channel: string, ev: unknown) => emitCalls.push({ channel, ev }));
@@ -65,7 +68,12 @@ function makeDeps(overrides: {
     ...overrides.runner,
   };
 
-  const deps: StudyHandlerDeps = { runner, lesson, emit };
+  const deps: StudyHandlerDeps = {
+    runner,
+    lesson,
+    emit,
+    ...(overrides.repo ? { repo: overrides.repo as LessonPersistenceLike } : {}),
+  };
   return { deps, lesson, runner, emitCalls, emit };
 }
 
@@ -344,6 +352,40 @@ describe('study-handlers (unit / fakes)', () => {
       seen.onProgress!({ phase: 'research', detail: 'x' });
       assert.ok(emitCalls.some((e) => e.channel === STUDY_CHANNELS.LESSON_PROGRESS));
     });
+
+    it('ONDA2-RESEARCH: repassa onResearchProgress e emite study:research-progress', async () => {
+      __resetStudyHandlersMemory();
+      let seenOnResearch: ((ev: import('@shared/ipc-contract').ResearchProgressEvent) => void) | undefined;
+      const { deps, emitCalls } = makeDeps({
+        lesson: {
+          generateLesson: async (_subject, opts) => {
+            seenOnResearch = opts?.onResearchProgress;
+            return {
+              lesson: { title: 'A', subject: 'X', markdown: '# A', findings: [], challenges: [], createdAt: 'now' },
+              rejected: [],
+            };
+          },
+        },
+      });
+      const handlers = buildStudyHandlers(deps);
+      await handlers.get(STUDY_CHANNELS.GENERATE_LESSON)!(undefined, 'Closures');
+
+      // O handler injeta o callback no orchestrator…
+      assert.equal(typeof seenOnResearch, 'function', 'onResearchProgress repassado ao orchestrator');
+      // …e eventos vindos do planner são emitidos no canal novo.
+      seenOnResearch!({ kind: 'research:plan', subQuestions: [], queries: [], maxRounds: 1 });
+      assert.ok(
+        emitCalls.some((e) => e.channel === STUDY_CHANNELS.RESEARCH_PROGRESS),
+        'research-progress deve ser emitido',
+      );
+      const emitted = emitCalls.find((e) => e.channel === STUDY_CHANNELS.RESEARCH_PROGRESS);
+      assert.deepEqual(emitted?.ev, { kind: 'research:plan', subQuestions: [], queries: [], maxRounds: 1 });
+      // O canal por fases segue intacto (retrocompat).
+      assert.ok(
+        !emitCalls.some((e) => e.channel === STUDY_CHANNELS.LESSON_PROGRESS),
+        'sem onProgress de fases neste fluxo',
+      );
+    });
   });
 
   describe('study:list-challenges', () => {
@@ -377,12 +419,77 @@ describe('study-handlers (unit / fakes)', () => {
       const handlers = buildStudyHandlers(deps);
       const res = await handlers.get(STUDY_CHANNELS.LIST_CHALLENGES)!(undefined, { setupRoot });
       // Contrato: devolve ChallengeInfo[] DIRETO (sem wrapper {challenges}).
-      const list = res as Array<{ challengeId: string; title: string; verdict: string; concept: string }>;
+      const list = res as Array<{ challengeId: string; title: string; verdict: string; concept: string; subjectId?: string }>;
       assert.ok(Array.isArray(list), 'list-challenges deve devolver array');
       assert.equal(list.length, 1);
       assert.equal(list[0].challengeId, '0007');
       assert.equal(list[0].verdict, 'approved');
       assert.equal(list[0].concept, 'recursao');
+      // Sem repo (ou sem tentativas persistidas) ⇒ subjectId undefined.
+      assert.equal(list[0].subjectId, undefined, 'subjectId undefined quando não persistido');
+    });
+
+    it('ONDA2-RESEARCH: list-challenges resolve subjectId via repo.getAttemptsForChallenge (persistido)', async () => {
+      const setupRoot = path.join(tmp, 'setup-subject');
+      await writeFile(path.join(setupRoot, 'challenges', '0007-fatorial', 'meta.json'), JSON.stringify({
+        challenge_id: '0007',
+        title: 'Fatorial',
+        language: 'python',
+        target_concepts: [{ concept_id: 'recursao' }],
+        difficulty: 2,
+        verdict: 'approved',
+        artifacts: { statement_path: 'README.md' },
+      }));
+      await writeFile(path.join(setupRoot, 'challenges', '0008-loops', 'meta.json'), JSON.stringify({
+        challenge_id: '0008',
+        title: 'Loops',
+        language: 'python',
+        target_concepts: [{ concept_id: 'iteracao' }],
+        difficulty: 1,
+        verdict: 'approved',
+        artifacts: { statement_path: 'README.md' },
+      }));
+
+      const { deps } = makeDeps({
+        repo: {
+          // Sem tentativas → subjectId fica undefined.
+          getAttemptsForChallenge: async (challengeId: string) =>
+            challengeId === '0007' ? [{ subjectId: 'subj-recursao' }] : [],
+        },
+      });
+      const handlers = buildStudyHandlers(deps);
+      const res = await handlers.get(STUDY_CHANNELS.LIST_CHALLENGES)!(undefined, { setupRoot });
+      const list = res as Array<{ challengeId: string; subjectId?: string }>;
+      assert.equal(list.length, 2);
+      const fatorial = list.find((c) => c.challengeId === '0007');
+      const loops = list.find((c) => c.challengeId === '0008');
+      assert.equal(fatorial?.subjectId, 'subj-recursao', 'subjectId do desafio PERSISTIDO');
+      assert.equal(loops?.subjectId, undefined, 'sem tentativa persistida ⇒ undefined');
+    });
+
+    it('ONDA2-RESEARCH: falha do getAttemptsForChallenge NUNCA derruba a lista', async () => {
+      const setupRoot = path.join(tmp, 'setup-subject-falha');
+      await writeFile(path.join(setupRoot, 'challenges', '0007-fatorial', 'meta.json'), JSON.stringify({
+        challenge_id: '0007',
+        title: 'Fatorial',
+        language: 'python',
+        target_concepts: [{ concept_id: 'recursao' }],
+        difficulty: 2,
+        verdict: 'approved',
+        artifacts: { statement_path: 'README.md' },
+      }));
+      const { deps } = makeDeps({
+        repo: {
+          getAttemptsForChallenge: async () => {
+            throw new Error('db fechado');
+          },
+        },
+      });
+      const handlers = buildStudyHandlers(deps);
+      const res = await handlers.get(STUDY_CHANNELS.LIST_CHALLENGES)!(undefined, { setupRoot });
+      const list = res as Array<{ challengeId: string; subjectId?: string }>;
+      assert.equal(list.length, 1, 'lista sobrevive à falha de resolução');
+      assert.equal(list[0].subjectId, undefined);
     });
 
     it('sem diretório challenges/ → lista vazia', async () => {

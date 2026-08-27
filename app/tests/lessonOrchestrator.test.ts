@@ -361,6 +361,84 @@ describe('lessonOrchestrator (unit / fakes)', () => {
     assert.equal(progress[progress.length - 1].phase, 'error');
   });
 
+  it('ONDA2-RESEARCH: research com erro BRAVE_KEY_MISSING → fase error com code + aborta a geração', async () => {
+    const { runner } = makeFakes();
+    const research = {
+      async plan() {
+        const err = new Error('Pesquisa cancelada: chave Brave não configurada.');
+        (err as Error & { code?: string }).code = 'BRAVE_KEY_MISSING';
+        throw err;
+      },
+    };
+    const author: AuthorFn = async () => ({ ...draft });
+    const progress: LessonProgress[] = [];
+    const orch = createLessonOrchestrator({ research, runner, author, setupsDir: tmp });
+    await assert.rejects(() => orch.generateLesson('Recursão', { onProgress: (p) => progress.push(p) }), /Brave/);
+    const errPhase = progress[progress.length - 1];
+    assert.equal(errPhase.phase, 'error');
+    assert.equal(errPhase.code, 'BRAVE_KEY_MISSING', 'fase error carrega o código estruturado');
+  });
+
+  it('ONDA2-RESEARCH: research com erro BRAVE_KEY_INVALID → fase error com code + aborta a geração (autor não roda)', async () => {
+    const { runner } = makeFakes();
+    const research = {
+      async plan() {
+        const err = new Error('Pesquisa cancelada: a chave da Brave Search foi rejeitada (401/403).');
+        (err as Error & { code?: string }).code = 'BRAVE_KEY_INVALID';
+        throw err;
+      },
+    };
+    let authorRan = false;
+    const author: AuthorFn = async () => {
+      authorRan = true;
+      return { ...draft };
+    };
+    const progress: LessonProgress[] = [];
+    const orch = createLessonOrchestrator({ research, runner, author, setupsDir: tmp });
+    await assert.rejects(() => orch.generateLesson('Recursão', { onProgress: (p) => progress.push(p) }), /Brave/);
+    const errPhase = progress[progress.length - 1];
+    assert.equal(errPhase.phase, 'error');
+    assert.equal(errPhase.code, 'BRAVE_KEY_INVALID', 'fase error carrega o código estruturado');
+    assert.equal(authorRan, false, 'aborto na pesquisa impede a autoria (nenhuma geração prossegue)');
+  });
+
+  it('ONDA2-RESEARCH: repassa onResearchProgress ao planner e reemite os events research:*', async () => {
+    const { runner, author } = makeFakes();
+    const events: unknown[] = [];
+    const research = {
+      async plan(_subject: string, opts?: { onProgress?: (ev: unknown) => void }) {
+        opts?.onProgress?.({ kind: 'research:plan', subQuestions: [], queries: [], maxRounds: 1 });
+        opts?.onProgress?.({ kind: 'research:done', sources: 0, rounds: 0, stopReason: 'x' });
+        return { subject: 'x', queries: [], findings: [], createdAt: '' };
+      },
+    };
+    const orch = createLessonOrchestrator({ research, runner, author, setupsDir: tmp });
+    await orch.generateLesson('Recursão', { onResearchProgress: (ev) => events.push(ev) });
+    assert.deepEqual(events.map((e) => (e as { kind: string }).kind), [
+      'research:plan',
+      'research:done',
+    ], 'events do planner chegam ao callback do handler/UI');
+  });
+
+  it('ONDA2-RESEARCH: resolveSubjectId presente → ChallengeInfo.subjectId; ausente → undefined', async () => {
+    const { runner, author, research } = makeFakes({ verifyVerdict: 'approved' });
+    const orch = createLessonOrchestrator({
+      research,
+      runner,
+      author,
+      setupsDir: tmp,
+      resolveSubjectId: async (challengeId: string) =>
+        challengeId === '0007' ? 'subj-recursao' : null,
+    });
+    const result = await orch.generateLesson('Recursão');
+    assert.equal(result.lesson.challenges[0].subjectId, 'subj-recursao');
+
+    // Sem resolver: montagem omite o campo (undefined).
+    const orchSem = createLessonOrchestrator({ research, runner, author, setupsDir: tmp });
+    const resultSem = await orchSem.generateLesson('Recursão');
+    assert.equal(resultSem.lesson.challenges[0].subjectId, undefined);
+  });
+
   it('materializeChallenge: layout GO (não fixa extensão py) via meta.json.artifacts', async () => {
     // runner fake com meta.json no layout GO (stub.go / stub_test.go / .solution/reference.go).
     let challengeDir = '';

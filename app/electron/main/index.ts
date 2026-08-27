@@ -37,7 +37,8 @@ import { createDeepSeekLlmJudge } from './services/deepseekLlmJudge';
 import { createDeepSeekLessonAuthor } from './services/deepseekLessonAuthor';
 import { createLessonOrchestrator } from './services/lessonOrchestrator';
 import { createBraveSearchService } from './services/braveSearchService';
-import { createResearchPlanner } from './services/researchPlanner';
+import { createDeepSeekClient } from './services/deepseekClient';
+import { createResearchPlanner, followUpsWithLlm, planWithLlm } from './services/researchPlanner';
 
 const isDev = !!process.env['ELECTRON_RENDERER_URL'];
 
@@ -103,13 +104,51 @@ if (!gotLock) {
       const brave = createBraveSearchService({
         resolveApiKey: () => settingsStore.getApiKey('brave'),
       });
-      const research = createResearchPlanner({ search: brave });
+
+      // PERSISTÊNCIA (onda 3 — seleção de aulas): abre o SQLite do usuário de
+      // forma TOLERANTE — se a abertura/migração falhar (ex.: disco corrompido),
+      // o app ainda sobe: a repo fica `undefined` e os canais de persistência
+      // respondem gracioso ([]/{lesson:null}/{ok:false,error}). Aberta ANTES do
+      // orchestrator para o resolveSubjectId (onda2-research-live) poder usá-la.
+      let repo: LessonRepo | undefined;
+      try {
+        const conn = await openMigratedSqlite(join(app.getPath('userData'), 'study.db'));
+        repo = createLessonRepo(() => conn.db);
+      } catch (err) {
+        console.error('[main] falha ao abrir o banco de estudo (persistência desabilitada):', err);
+        repo = undefined;
+      }
+
+      // PLANEJADOR/ANALISTA LLM da pesquisa (onda2-research-live): o mesmo
+      // deepseekClient do juiz/autor, usado pelos helpers do researchPlanner
+      // (JSON estrito, temperature baixa). Falhas degradam para a heurística.
+      const plannerDeepseek = createDeepSeekClient({
+        apiKey: () => settingsStore.getApiKey('deepseek'),
+      });
+      const research = createResearchPlanner({
+        search: brave,
+        resolveApiKey: () => settingsStore.getApiKey('brave'),
+        generatePlan: async (subject) => planWithLlm(plannerDeepseek, subject),
+        generateFollowUps: async (ctx) => followUpsWithLlm(plannerDeepseek, ctx),
+      });
 
       const lesson = createLessonOrchestrator({
         research,
         runner: runner as Parameters<typeof createLessonOrchestrator>[0]['runner'],
         author,
         judge,
+        // subjectId de challengeInfos: via challenge_attempts (challenges→
+        // lessons→subject_id) QUANDO persistido — recém-gerado ⇒ null ⇒ omitido.
+        resolveSubjectId: async (challengeId) => {
+          if (!repo) return null;
+          try {
+            const attempts = await repo.getAttemptsForChallenge(challengeId);
+            const last = attempts[attempts.length - 1];
+            return last?.subjectId ?? null;
+          } catch {
+            return null;
+          }
+        },
       }) as unknown as LessonServiceLike;
 
       const piService = createPiAgentService();
@@ -120,19 +159,6 @@ if (!gotLock) {
         const win = BrowserWindow.getAllWindows()[0];
         emitToAll(win?.webContents, channel, ev);
       };
-
-      // PERSISTÊNCIA (onda 3 — seleção de aulas): abre o SQLite do usuário de
-      // forma TOLERANTE — se a abertura/migração falhar (ex.: disco corrompido),
-      // o app ainda sobe: a repo fica `undefined` e os canais de persistência
-      // respondem gracioso ([]/{lesson:null}/{ok:false,error}).
-      let repo: LessonRepo | undefined;
-      try {
-        const conn = await openMigratedSqlite(join(app.getPath('userData'), 'study.db'));
-        repo = createLessonRepo(() => conn.db);
-      } catch (err) {
-        console.error('[main] falha ao abrir o banco de estudo (persistência desabilitada):', err);
-        repo = undefined;
-      }
 
       await buildMainSetup({
         registerIpc: registerIpcHandlers,

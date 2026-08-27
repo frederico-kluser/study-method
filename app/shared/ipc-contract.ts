@@ -127,6 +127,11 @@ export const STUDY_CHANNELS = {
   PLAN_LESSON: 'study:plan-lesson',
   GENERATE_LESSON: 'study:generate-lesson',
   LESSON_PROGRESS: 'study:lesson-progress',
+  // ADITIVO (onda2-research-live): progresso em TEMPO REAL da pesquisa Brave
+  // (surf-research style) durante study:generate-lesson — plan/query-start/
+  // query-done/round-start/round-done/done. O canal study:lesson-progress por
+  // FASES continua intacto (retrocompat — a UI antiga segue funcionando).
+  RESEARCH_PROGRESS: 'study:research-progress',
   GET_LESSON: 'study:get-lesson',
   GET_FINDINGS: 'study:get-findings',
   LIST_CHALLENGES: 'study:list-challenges',
@@ -214,7 +219,99 @@ export interface ChallengeInfo {
   verdict: string;
   workspaceDir: string;
   statementPath: string;
+  /**
+   * ADITIVO (onda2-research-live): subject_id do assunto ao qual o desafio
+   * pertence, quando persistido na camada SQL (challenges→lessons→subject_id /
+   * challenge_attempts.subject_id). undefined quando ainda não persistido
+   * (ex.: aula recém-gerada sem tentativas registradas).
+   */
+  subjectId?: string;
 }
+
+// ─── DTOs de progresso da pesquisa (onda2-research-live — surf-research style) ─
+// Canal push `study:research-progress` durante study:generate-lesson. União
+// discriminada por `kind`; a ORDEM de emissão é fixa por rodada:
+//   research:plan → (research:round-start → (research:query-start →
+//   research:query-done)* → research:round-done)* → research:done.
+// Retrocompat: o canal study:lesson-progress por fases continua sendo emitido
+// intacto — estes eventos são um canal NOVO, aditivo ao contrato congelado.
+
+/** Categorias fixas das queries de pesquisa (estilo deep-orchestrator). */
+export type ResearchQueryCategory =
+  | 'official-docs'
+  | 'practice'
+  | 'common-errors'
+  | 'comparison'
+  | 'exercises';
+
+/** Sub-pergunta do plano de pesquisa (id estável referenciado por queries[].sub). */
+export interface ResearchSubQuestion {
+  id: string;
+  question: string;
+}
+
+/** Uma query planejada: id estável (referenciado por query-start/query-done). */
+export interface ResearchQuerySpec {
+  id: string;
+  q: string;
+  /** id da sub-pergunta à qual a query pertence ('sq1', 'sq2', …). */
+  sub: string;
+  category: ResearchQueryCategory | null;
+}
+
+/** Erro de UMA query (códigos do braveSearchService quando conhecidos). */
+export interface ResearchQueryError {
+  /** 'BRAVE_KEY_MISSING' | 'BRAVE_KEY_INVALID' | 'BRAVE_RATE_LIMIT' | 'BRAVE_SERVER_ERROR'. */
+  code?: string;
+  message?: string;
+}
+
+export type ResearchProgressEvent =
+  | {
+      kind: 'research:plan';
+      subQuestions: ResearchSubQuestion[];
+      queries: ResearchQuerySpec[];
+      maxRounds: number;
+    }
+  | { kind: 'research:query-start'; queryId: string; q: string }
+  | {
+      kind: 'research:query-done';
+      queryId: string;
+      q: string;
+      ok: boolean;
+      provider: 'brave';
+      /** nº de resultados (hits) devolvidos pela API para esta query. */
+      hits?: number;
+      latencyMs?: number;
+      /**
+       * Créditos restantes quando a API os expõe. A Brave Search API NÃO expõe
+       * saldo — o campo existe no DTO para futuras fontes que o façam (Tavily
+       * etc.) e fica undefined no provider 'brave'.
+       */
+      credits?: number;
+      error?: ResearchQueryError;
+    }
+  | { kind: 'research:round-start'; round: number; totalRounds: number }
+  | {
+      kind: 'research:round-done';
+      round: number;
+      ok: number;
+      failed: number;
+      /** fontes ÚNICAS (dedup por url) acumuladas até o fim desta rodada. */
+      uniqueSources: number;
+    }
+  | {
+      kind: 'research:done';
+      sources: number;
+      rounds: number;
+      stopReason: string;
+      /**
+       * 'brave-missing' ⇒ chave Brave ausente; nenhuma query foi executada.
+       * 'brave-key-invalid' ⇒ chave Brave rejeitada (401/403) em TODAS as
+       * queries de uma rodada sem nenhuma fonte coletada; aborta a geração.
+       */
+      errorKind?: 'brave-missing' | 'brave-key-invalid';
+    };
 
 export interface TestAnswerResult {
   success: boolean;

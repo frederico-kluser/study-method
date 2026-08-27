@@ -113,6 +113,12 @@ export interface LessonProgress {
   setupRoot?: string;
   /** Id do setup materializado (mesmo evento da materialização). */
   setupId?: string;
+  /**
+   * ADITIVO (onda2-research-live): código de erro estruturado presente na fase
+   * `error` quando o fallout tem causa tipada (ex.: BRAVE_KEY_MISSING na
+   * pesquisa) — a UI usa para mensagem clara e o gerenciador pode ramificar.
+   */
+  code?: string;
 }
 
 /** Resultado do generateLesson: a StudyLesson montada + os desafios rejeitados. */

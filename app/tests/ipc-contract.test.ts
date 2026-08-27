@@ -30,6 +30,7 @@ const EVENT_CHANNELS: ReadonlySet<string> = new Set([
   PI_CHANNELS.STREAM_EVENT,
   LOCAL_AI_CHANNELS.DOWNLOAD_PROGRESS,
   STUDY_CHANNELS.LESSON_PROGRESS,
+  STUDY_CHANNELS.RESEARCH_PROGRESS,
   STUDY_CHANNELS.TEST_ANSWER_EVENT,
   STT_CHANNELS.MODEL_DOWNLOAD_PROGRESS,
   STT_CHANNELS.STREAM_PARTIAL,
@@ -149,6 +150,8 @@ describe('contrato IPC (shared/ipc-contract.ts)', () => {
       (api as unknown as ApiRef).pi.onStreamEvent(() => {}),
       (api as unknown as ApiRef).localAi.onDownloadProgress(() => {}),
       (api as unknown as ApiRef).study.onLessonProgress(() => {}),
+      // Onda2-research-live: canal novo do progresso da pesquisa (surf-research).
+      (api as unknown as ApiRef).study.onResearchProgress(() => {}),
       (api as unknown as ApiRef).study.onTestAnswerEvent(() => {}),
       // Onda 8 (voz): eventos de STT e TTS.
       (api as unknown as ApiRef).stt.onModelDownloadProgress(() => {}),
@@ -176,6 +179,7 @@ interface ApiRef {
   study: {
     testAnswer: () => Promise<unknown>;
     onLessonProgress: (cb: () => void) => () => void;
+    onResearchProgress: (cb: () => void) => () => void;
     onTestAnswerEvent: (cb: () => void) => () => void;
   };
   stt: {

@@ -289,6 +289,104 @@ test('multiSearch: com delayMs > 0 espera de fato entre lotes (diferença mínim
   );
 });
 
+// ─── multiSearch: callbacks por query (onQueryStart/onQueryDone) ─────────────
+test('multiSearch: onQueryStart/onQueryDone por query com hits/latencyMs/provider', async () => {
+  let seenUrl = '';
+  const fetchImpl = (async (url: any) => {
+    seenUrl = String(url);
+    await new Promise((r) => setTimeout(r, 3));
+    return fakeResponse(200, braveBody([sampleResult('A', `https://${/q=([^&]+)/.exec(String(url))?.[1] ?? 'x'}.example`)]));
+  }) as unknown as typeof fetch;
+  const svc = createBraveSearchService({ fetchImpl, resolveApiKey: async () => 'k' });
+
+  const starts: string[] = [];
+  const dones: Array<Record<string, unknown>> = [];
+  await svc.multiSearch(['a', 'b'], {
+    delayMs: 0,
+    concurrency: 2,
+    onQueryStart: (q) => starts.push(q),
+    onQueryDone: (info) => dones.push({ ...info }),
+  });
+
+  assert.deepEqual(starts.sort(), ['a', 'b'], 'onQueryStart chamado para cada query');
+  assert.equal(dones.length, 2);
+  for (const d of dones) {
+    assert.equal(d.ok, true);
+    assert.equal(d.provider, 'brave');
+    assert.equal(d.hits, 1, 'hits = resultados devolvidos pela API');
+    assert.equal(typeof d.latencyMs, 'number');
+    assert.ok((d.latencyMs as number) >= 0);
+    assert.equal(d.credits, undefined, 'brave não expõe créditos');
+    assert.equal(d.error, undefined);
+  }
+  assert.ok(seenUrl.startsWith('https://api.search.brave.com/res/v1/web/search?'));
+});
+
+test('multiSearch: onQueryDone com ok:false e error.code mapeado (429 → BRAVE_RATE_LIMIT)', async () => {
+  const fetchImpl = (async (url: any) => {
+    if (String(url).includes('q=boom')) return fakeResponse(429);
+    return fakeResponse(200, braveBody([sampleResult('ok', 'https://ok.example')]));
+  }) as unknown as typeof fetch;
+  const svc = createBraveSearchService({ fetchImpl, resolveApiKey: async () => 'k' });
+
+  const dones: Array<Record<string, unknown>> = [];
+  await svc.multiSearch(['ok', 'boom'], {
+    delayMs: 0,
+    onQueryDone: (info) => dones.push({ ...info }),
+  });
+
+  const boom = dones.find((d) => d.query === 'boom');
+  assert.ok(boom);
+  assert.equal(boom.ok, false);
+  assert.equal((boom.error as { code?: string })?.code, 'BRAVE_RATE_LIMIT');
+  assert.ok((boom.error as { message?: string })?.message);
+  const ok = dones.find((d) => d.query === 'ok');
+  assert.equal(ok?.ok, true);
+});
+
+test('multiSearch: onQueryDone com error.code BRAVE_KEY_MISSING e error BRAVE_SERVER_ERROR no errors[]', async () => {
+  // Sem chave: resolveApiKey devolve '' → resolveKey lança BRAVE_KEY_MISSING.
+  const svcMissing = createBraveSearchService({ resolveApiKey: async () => '' });
+  const donesMissing: Array<Record<string, unknown>> = [];
+  const { errors: errorsMissing } = await svcMissing.multiSearch(['q'], {
+    delayMs: 0,
+    onQueryDone: (info) => donesMissing.push({ ...info }),
+  });
+  assert.equal(donesMissing.length, 1);
+  assert.equal(donesMissing[0].ok, false);
+  assert.equal((donesMissing[0].error as { code?: string })?.code, 'BRAVE_KEY_MISSING');
+  assert.equal(errorsMissing[0].code, 'BRAVE_KEY_MISSING', 'errors[] agora carrega o código');
+
+  // 5xx → BRAVE_SERVER_ERROR com mensagem parseada do corpo.
+  const fetchImpl = (async () =>
+    fakeResponse(502, { error: { message: 'upstream down' } })) as unknown as typeof fetch;
+  const svc5xx = createBraveSearchService({ fetchImpl, resolveApiKey: async () => 'k' });
+  const dones5xx: Array<Record<string, unknown>> = [];
+  const { errors: errors5xx } = await svc5xx.multiSearch(['q'], {
+    delayMs: 0,
+    onQueryDone: (info) => dones5xx.push({ ...info }),
+  });
+  assert.equal((dones5xx[0].error as { code?: string })?.code, 'BRAVE_SERVER_ERROR');
+  assert.match((dones5xx[0].error as { message?: string })?.message ?? '', /upstream down/);
+  assert.equal(errors5xx[0].code, 'BRAVE_SERVER_ERROR');
+});
+
+test('multiSearch: onQueryStart NÃO é chamado para query vazia/duplicada (fila real)', async () => {
+  const fetchImpl = (async () =>
+    fakeResponse(200, braveBody([sampleResult('A', 'https://a.example')]))) as unknown as typeof fetch;
+  const svc = createBraveSearchService({ fetchImpl, resolveApiKey: async () => 'k' });
+  const starts: string[] = [];
+  const dones: Array<Record<string, unknown>> = [];
+  // '  ' vazia é filtrada e 'a' duplicada vira uma só na fila.
+  await svc.multiSearch(['a', 'a', '  '], {
+    delayMs: 0,
+    onQueryStart: (q) => starts.push(q),
+    onQueryDone: (info) => dones.push({ ...info }),
+  });
+  assert.deepEqual(starts, ['a'], 'só a query única passa pela fila');
+  assert.equal(dones.length, 1);
+});
+
 // ─── multiSearch: dedup por url (primeira vence) ─────────────────────────────
 test('multiSearch: mesmo url de queries distintas → dedup por url (primeira vence)', async () => {
   let call = 0;

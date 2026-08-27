@@ -31,6 +31,7 @@ import type {
   PiExecuteResult,
   PiExecuteRequest,
   PiStreamEvent,
+  ResearchProgressEvent,
   StartupStatus,
   StudyFinding,
   StudyLesson,
@@ -204,6 +205,45 @@ function buildLesson(subject: string, challenge: ChallengeInfo): StudyLesson {
   };
 }
 
+/**
+ * Emite a sequência COMPLETA de events `research:*` do stub (determinístico,
+ * sem rede): research:plan com 2 sub-perguntas e 2 queries → rodada 1 com
+ * query-start/query-done por query → round-done → research:done. Usado pelo
+ * lessonService stub para alimentar o canal study:research-progress no E2E.
+ */
+async function emitFakeResearch(
+  subject: string,
+  onResearchProgress?: (ev: ResearchProgressEvent) => void,
+): Promise<void> {
+  if (!onResearchProgress) return; // ninguém assinou o canal novo — no-op.
+  const base = subject || 'assunto';
+  const subQuestions = [
+    { id: 'sq1', question: `${base}: conceito e fundamentos` },
+    { id: 'sq2', question: `${base}: exemplos e erros comuns` },
+  ];
+  const queries = [
+    { id: 'q1', q: `${base} conceito`, sub: 'sq1', category: 'official-docs' as const },
+    { id: 'q2', q: `${base} erros comuns`, sub: 'sq2', category: 'common-errors' as const },
+  ];
+  onResearchProgress({ kind: 'research:plan', subQuestions, queries, maxRounds: 1 });
+  onResearchProgress({ kind: 'research:round-start', round: 1, totalRounds: 1 });
+  for (const q of queries) {
+    onResearchProgress({ kind: 'research:query-start', queryId: q.id, q: q.q });
+    await sleep(60); // deixa o progresso por query observável no teste.
+    onResearchProgress({
+      kind: 'research:query-done',
+      queryId: q.id,
+      q: q.q,
+      ok: true,
+      provider: 'brave',
+      hits: 1,
+      latencyMs: 12,
+    });
+  }
+  onResearchProgress({ kind: 'research:round-done', round: 1, ok: 2, failed: 0, uniqueSources: 1 });
+  onResearchProgress({ kind: 'research:done', sources: 1, rounds: 1, stopReason: 'pesquisa planejada concluída (E2E stub)' });
+}
+
 const lessonService: LessonServiceLike = {
   async generateLesson(subject, opts) {
     const emit = (phase: LessonProgress['phase'], fraction: number, message: string): void => {
@@ -215,6 +255,13 @@ const lessonService: LessonServiceLike = {
     emit('materializing', 0.75, 'Materializando exemplos E2E…');
     emit('validating', 1, 'Validando conclusões E2E…');
     opts?.onProgress?.({ phase: 'done', message: 'Concluído.', fraction: 1 });
+
+    // ADITIVO (onda2-research-live): o canal novo `study:research-progress`
+    // precisa dos events `research:*` também no STUB (fake determinístico) —
+    // os specs E2E que assinarem o canal novo os consomem. Ordem garantida:
+    // plan → round-start → (query-start → query-done)* → round-done → done.
+    // As fases lesson-progress acima permanecem EXATAMENTE como estavam.
+    await emitFakeResearch(subject.trim(), opts?.onResearchProgress);
 
     await fsp.mkdir(workspaceRoot(), { recursive: true });
     const subjectSlug =
