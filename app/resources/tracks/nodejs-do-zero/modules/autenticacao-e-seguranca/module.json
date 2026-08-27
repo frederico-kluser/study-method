@@ -8,5 +8,6 @@
     "tokens-e-sessoes",
     "headers-e-cors",
     "erros-comuns-de-seguranca"
-  ]
+  ],
+  "challenge": "desafio-do-modulo-seguranca"
 }

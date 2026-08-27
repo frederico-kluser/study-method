@@ -8,5 +8,6 @@
     "arquivos-json",
     "sqlite-basico",
     "crud-completo"
-  ]
+  ],
+  "challenge": "desafio-do-modulo-dados"
 }
