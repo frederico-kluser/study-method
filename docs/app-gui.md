@@ -422,10 +422,14 @@ Não usamos `--headless` (modo não confirmado para `_electron`). Detalhes em
 8. **ApiSchema com alguns métodos `study.*` tipados sem parâmetros** (placeholders da onda
    inicial): o runtime já espera os payloads; o padrão aceito é o **cast local** no renderer.
    A verificação fim-a-fim de assinatura está coberta em `tests/study-wiring.test.ts`.
-9. **SQLite embutido (`node:sqlite`)**: o SQL interno usa `node:sqlite` (`DatabaseSync`),
-   embutido no Node (>= 22.5, unflagged desde 22.13) e no Electron — aqui **Electron 37** (Node
-   22.16 embutido). Sem addon nativo: não há `.node` compilado, não há ABI a casar entre o Node
-   do sistema e o Node do Electron, e não há pós-install de compilação. `db.pragma(...)` vira
-   `db.exec('PRAGMA ...')` e `db.transaction(fn)()` vira o helper `withTransaction`
-   (BEGIN/COMMIT/ROLLBACK) em `electron/main/db/repo.ts`. O mesmo banco abre nos dois runtimes;
-   `npm ci` basta (sem rebuild, sem alias, sem script de ciclo de vida).
+9. **SQLite sem addon nativo (`node:sqlite` no Node; sql.js no Electron)**: o SQL interno usa
+   `node:sqlite` (`DatabaseSync`) no Node do sistema (testes/CLI) e, no processo main do
+   Electron, o adaptador **sql.js (WASM)** — o Node embutido do Electron NÃO compila
+   `node:sqlite` (medido no 37.2.4: `require('node:sqlite')` lança
+   `ERR_UNKNOWN_BUILTIN_MODULE` e o app caía no boot). A seleção é em runtime em
+   `electron/main/db/connection.ts` (`openSqlite`), e o adaptador (`sqljsAdapter.ts`) expõe a
+   mesma superfície (`exec`/`prepare().get/run/all`/`close`) com persistência a cada commit;
+   `db.transaction(fn)()` vira o helper `withTransaction` (BEGIN/COMMIT/ROLLBACK) em
+   `electron/main/db/repo.ts`. Sem addon nativo: não há `.node` compilado, não há ABI a casar,
+   não há pós-install de compilação — o arquivo do banco é SQLite padrão e abre nos dois
+   runtimes; `npm ci` basta (sem rebuild, sem alias, sem script de ciclo de vida).

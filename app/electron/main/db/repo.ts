@@ -16,12 +16,15 @@
  * `schema.ts` com as MESMAS tabelas, a cola continua funcionando — `IF NOT
  * EXISTS` é idempotente diante das duas fontes.
  */
-import { DatabaseSync } from 'node:sqlite';
 import { randomUUID } from 'node:crypto';
+import type { SqliteDbLike } from './connection';
 
 /** Factory de conexão injetável (DI): quem chama decide como abrir o sqlite
- * (caminho de usuário do app, `:memory:`, etc.). NUNCA importa Electron. */
-export type OpenFn = () => DatabaseSync;
+ * (caminho de usuário do app, `:memory:`, etc.). NUNCA importa Electron.
+ * Tipo ESTRUTURAL (`SqliteDbLike`): vale para o `DatabaseSync` do node:sqlite
+ * (Node do sistema) e para o wrapper sql.js (Electron) — evita importar os
+ * backends aqui. */
+export type OpenFn = () => SqliteDbLike;
 
 export interface SubjectRow {
   id: string;
@@ -233,12 +236,12 @@ const newId = () => randomUUID();
 /**
  * Roda `fn` dentro de uma transação BEGIN/COMMIT, com ROLLBACK em erro.
  *
- * `node:sqlite` (DatabaseSync) NÃO tem o helper `db.transaction(fn)` do
- * better-sqlite3 — aqui o equivalente é explícito. Os usos nesta repo NÃO se
- * aninham (cada método público abre e fecha a própria transação), então
- * BEGIN/COMMIT simples basta (sem SAVEPOINT por nível).
+ * Nenhum dos backends (node:sqlite, sql.js) tem helper `db.transaction(fn)` —
+ * aqui o equivalente é explícito. Os usos nesta repo NÃO se aninham (cada
+ * método público abre e fecha a própria transação), então BEGIN/COMMIT simples
+ * basta (sem SAVEPOINT por nível).
  */
-function withTransaction<T>(db: DatabaseSync, fn: () => T): T {
+function withTransaction<T>(db: SqliteDbLike, fn: () => T): T {
   db.exec('BEGIN');
   try {
     const result = fn();

@@ -394,22 +394,32 @@ Três alvos de build (electron-vite): `main` (inclui os processos `llm-engine` e
 
 ## Módulos nativos (Electron × Node)
 
-O SQL interno usa **`node:sqlite`** (`DatabaseSync`), o módulo SQLite **embutido** no Node
-(>= 22.5, unflagged desde 22.13) e **também no Electron** — aqui **Electron 37** (Node 22.16
-embutido). Por isso o app **não tem addon nativo de SQLite**:
+O SQL interno usa **dois backends SQLite, selecionados em runtime** em
+`electron/main/db/connection.ts` (`openSqlite`):
+
+- **Node do sistema** (testes, CLI): `node:sqlite` (`DatabaseSync`), embutido no Node
+  (>= 22.5, unflagged desde 22.13);
+- **Electron main**: o Node embutido do Electron **NÃO compila `node:sqlite`** — medido no
+  Electron 37.2.4: `require('node:sqlite')` lança `ERR_UNKNOWN_BUILTIN_MODULE` e o app caía
+  no boot. O app usa então o adaptador **sql.js (WASM)**
+  (`electron/main/db/sqljsAdapter.ts`), que expõe a MESMA superfície
+  (`exec`/`prepare().get/run/all`/`close`) e persiste o arquivo a cada commit.
+
+Por isso o app **não tem addon nativo de SQLite**:
 
 - **Zero compilação pós-install**: não há `.node` para compilar nem ABI para casar. O mesmo
-  banco abre nos DOIS runtimes (Node do sistema e Electron) sem rebuild, sem alias, sem script
-  de ciclo de vida.
+  banco (SQLite padrão, legível pelos dois lados) abre nos DOIS runtimes sem rebuild, sem
+  alias, sem script de ciclo de vida.
 - O addon anterior (`better-sqlite3`) era sensível ao ABI do runtime: o prebuild do Node do
   sistema **segfaultava em silêncio** (SIGSEGV) ao carregar dentro do Electron 33 (Node 20
-  embutido) — segfault não é exceção JS, nenhum try/catch salva. `node:sqlite` elimina essa
-  classe de problema por construção.
+  embutido) — segfault não é exceção JS, nenhum try/catch salva. `node:sqlite` (Node) e
+  `sql.js` (Electron) eliminam essa classe de problema por construção.
 - A API usada (`db.exec`, `db.prepare().get/run/all`, `db.close`) mapeia 1:1 para
-  `DatabaseSync`; `db.pragma(...)` vira `db.exec('PRAGMA ...')` e `db.transaction(fn)()` vira
-  um helper `withTransaction` (BEGIN/COMMIT/ROLLBACK) em `electron/main/db/repo.ts`.
+  `DatabaseSync` e para o wrapper sql.js; `db.transaction(fn)()` vira um helper
+  `withTransaction` (BEGIN/COMMIT/ROLLBACK) em `electron/main/db/repo.ts`.
 
-Nenhum `postinstall`/`predev` especial é necessário — `npm ci` é suficiente.
+Nenhum `postinstall`/`predev` especial é necessário — `npm ci` é suficiente (sql.js é dep
+normal do npm; o WASM é lido de `node_modules/sql.js/dist`).
 
 ## Segurança
 
