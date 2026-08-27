@@ -13,6 +13,11 @@
     "dados-e-persistencia",
     "autenticacao-e-seguranca",
     "testes-e-qualidade",
-    "deploy-e-producao"
+    "deploy-e-producao",
+    "arrays-profundas",
+    "objetos-profundos",
+    "poo",
+    "funcoes-avancadas",
+    "assincronismo-avancado"
   ]
 }
