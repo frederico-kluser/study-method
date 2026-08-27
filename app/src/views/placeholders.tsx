@@ -13,38 +13,60 @@
  *     a aba Aula E pré-preenchem o assunto via `pendingSubject` (estado
  *     compartilhado que a LessonView da onda 17B consome).
  *
+ * ONDA 4 (matérias escolhidas): quando `study:list-topics` devolve matérias
+ * PERSISTIDAS, a Home mostra duas seções por domínio (Programação/Matemática)
+ * com um cartão por matéria (nome + progresso "x de y aulas" + ícone do
+ * domínio). Clique no cartão grava `pendingSubject` + `pendingDomain` (a onda 5
+ * lê o domínio no payload do generate-lesson) e navega para a aba Aula. Estado
+ * VAZIO (nada persistido / erro) continua EXATAMENTE como hoje — os chips de
+ * sugestão são o onboarding. Com sessão ativa de OUTRA matéria (SessionStateProvider),
+ * o clique abre o diálogo de aviso ("não dá — a LLM avalia a aula atual") em
+ * vez de trocar a sessão em silêncio.
+ *
  * Navigation: o shell passa `onNavigate: NavKey => void` (ViewProps aditivo) —
  * em App.tsx isso é `setActive`. Settings/Lesson/Challenge continuam como
  * funções exportadas (o registry views/index.ts as sobrescreve pelas reais).
  */
-import { useEffect, useState, type ReactElement } from 'react';
+import { useEffect, useMemo, useState, type ReactElement } from 'react';
 import { useTranslation } from 'react-i18next';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Card from '@mui/material/Card';
+import CardActionArea from '@mui/material/CardActionArea';
 import CardContent from '@mui/material/CardContent';
 import Chip from '@mui/material/Chip';
 import Container from '@mui/material/Container';
+import Dialog from '@mui/material/Dialog';
+import DialogActions from '@mui/material/DialogActions';
+import DialogContent from '@mui/material/DialogContent';
+import DialogTitle from '@mui/material/DialogTitle';
 import Stack from '@mui/material/Stack';
 import Step from '@mui/material/Step';
 import StepLabel from '@mui/material/StepLabel';
 import Stepper from '@mui/material/Stepper';
 import Typography from '@mui/material/Typography';
+import CalculateIcon from '@mui/icons-material/Calculate';
 import CheckCircleOutlined from '@mui/icons-material/CheckCircleOutlined';
+import CodeIcon from '@mui/icons-material/Code';
 import ErrorOutline from '@mui/icons-material/ErrorOutlined';
 import LockIcon from '@mui/icons-material/Lock';
 import PsychologyIcon from '@mui/icons-material/Psychology';
 import TerminalIcon from '@mui/icons-material/Terminal';
-import type { KeysStatus } from '../../shared/ipc-contract';
+import type { KeysStatus, SubjectSummary } from '../../shared/ipc-contract';
 import type { NavKey } from '../lib/shellNav';
 import { getApi } from '../lib/apiBridge';
 import {
+  groupSubjectsByDomain,
+  homeDomainSections,
   homeSetupStatus,
   homeSuggestedSubjects,
+  shouldWarnOnSubjectSwitch,
+  subjectProgressCounts,
   type HomeDomain,
   type HomeSuggestionLabelKey,
 } from '../lib/homeSetup';
-import { setPendingSubject } from '../lib/pendingSubject';
+import { setPendingDomain, setPendingSubject } from '../lib/pendingSubject';
+import { useSessionState } from '../lib/sessionState';
 
 export interface ViewProps {
   /** Caminho do setup de estudo ativo (quando houver), vazio caso contrário. */
@@ -158,8 +180,23 @@ function SetupStatusCard({ status }: { status: KeysStatus | null }): ReactElemen
   );
 }
 
-/** Chips de sugestões (programação + matemática) → navega p/ Aula + pré-preenche. */
-function SubjectSuggestions({ onNavigate }: { onNavigate: (key: NavKey) => void }): ReactElement {
+/** O que o usuário escolheu clicar: matéria + domínio (para o diálogo/commit). */
+export interface SubjectPick {
+  subject: string;
+  domain: HomeDomain;
+}
+
+/**
+ * Chips de sugestões (programação + matemática) — onboarding do estado VAZIO.
+ * Clicar roteia pelo MESMO fluxo dos cartões (`onPick`): aviso de troca de
+ * matéria se houver sessão ativa, senão grava pendingSubject/pendingDomain e
+ * navega p/ Aula.
+ */
+function SubjectSuggestions({
+  onPick,
+}: {
+  onPick: (pick: SubjectPick) => void;
+}): ReactElement {
   const { t } = useTranslation();
   const suggestions = homeSuggestedSubjects();
   const domainLabel: Record<HomeDomain, string> = {
@@ -168,11 +205,9 @@ function SubjectSuggestions({ onNavigate }: { onNavigate: (key: NavKey) => void 
   };
 
   const openInLesson = (labelKey: HomeSuggestionLabelKey): void => {
-    const subject = t(labelKey);
-    // Pré-preenche o assunto da aba Aula (estado compartilhado p/ a 17B).
-    setPendingSubject(subject);
-    // Navegação imediata para a aba Aula.
-    onNavigate('lesson');
+    const suggestion = suggestions.find((s) => s.labelKey === labelKey);
+    if (!suggestion) return;
+    onPick({ subject: t(labelKey), domain: suggestion.domain });
   };
 
   return (
@@ -190,11 +225,119 @@ function SubjectSuggestions({ onNavigate }: { onNavigate: (key: NavKey) => void 
   );
 }
 
-/** View inicial (Início) — tela inicial guiada do tutor. */
+/** Cartão de uma matéria persistida: nome + progresso + ícone do domínio. */
+function SubjectCard({
+  subject,
+  onPick,
+  tI,
+}: {
+  subject: SubjectSummary;
+  onPick: (pick: SubjectPick) => void;
+  tI: (key: string, options?: Record<string, string | number>) => string;
+}): ReactElement {
+  const { t } = useTranslation();
+  const { answered, total } = subjectProgressCounts(subject);
+  // Progresso "x de y aulas respondidas"; sem aulas ainda → convite à 1ª aula.
+  const progressLabel =
+    total > 0
+      ? tI('translation:home.subjects.answeredOfTotal', { answered, total })
+      : t('translation:home.subjects.noLessonsYet');
+
+  return (
+    <Card
+      variant="outlined"
+      sx={(theme) => ({
+        backgroundColor: theme.vars.palette.surface.level1,
+      })}
+    >
+      <CardActionArea
+        onClick={() => onPick({ subject: subject.name, domain: subject.domain })}
+        sx={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'flex-start',
+          gap: 1.5,
+          px: 2,
+          py: 1.5,
+          textAlign: 'left',
+        }}
+      >
+        <Box sx={{ display: 'flex', alignItems: 'center', color: 'text.secondary' }}>
+          {subject.domain === 'programming' ? (
+            <CodeIcon fontSize="small" />
+          ) : (
+            <CalculateIcon fontSize="small" />
+          )}
+        </Box>
+        <Box sx={{ minWidth: 0 }}>
+          <Typography variant="subtitle1" noWrap>
+            {subject.name}
+          </Typography>
+          <Typography variant="body2" color="text.secondary" noWrap>
+            {progressLabel}
+          </Typography>
+        </Box>
+      </CardActionArea>
+    </Card>
+  );
+}
+
+/**
+ * Seções por domínio (Programação/Matemática, ordem canônica) com um cartão por
+ * matéria ESCOLHIDA. Só renderiza domínios que têm matérias (lógica pura
+ * `homeDomainSections`).
+ */
+function SubjectSections({
+  topics,
+  onPick,
+  tI,
+}: {
+  topics: SubjectSummary[];
+  onPick: (pick: SubjectPick) => void;
+  tI: (key: string, options?: Record<string, string | number>) => string;
+}): ReactElement {
+  const { t } = useTranslation();
+  const sections = homeDomainSections(groupSubjectsByDomain(topics));
+  const sectionTitle: Record<HomeDomain, string> = {
+    programming: t('translation:home.suggestions.domainProgramming'),
+    math: t('translation:home.suggestions.domainMath'),
+  };
+
+  return (
+    <Stack spacing={2}>
+      {sections.map((section) => (
+        <Box key={section.domain}>
+          <Typography variant="subtitle1" sx={{ fontWeight: 600 }} gutterBottom>
+            {sectionTitle[section.domain]}
+          </Typography>
+          <Stack spacing={1}>
+            {section.subjects.map((subject) => (
+              <SubjectCard key={subject.id} subject={subject} onPick={onPick} tI={tI} />
+            ))}
+          </Stack>
+        </Box>
+      ))}
+    </Stack>
+  );
+}
+
+/** View inicial (Início) — tela inicial guiada do tutor (onda 17A + onda 4). */
 export function HomeView(props: ViewProps): ReactElement {
   const { t } = useTranslation();
+  // Interpolação ({{var}}): mesmo cast aprovado do ChallengeView (tI).
+  const tI = useMemo(
+    () => t as unknown as (key: string, options?: Record<string, string | number>) => string,
+    [t],
+  );
   const [keyStatus, setKeyStatus] = useState<KeysStatus | null>(null);
+  // Matérias PERSISTIDAS (onda 4): null = carregando → onboarding (chips) até a
+  // resposta; [] = vazio/erro → onboarding EXATAMENTE como hoje.
+  const [topics, setTopics] = useState<SubjectSummary[] | null>(null);
+  // Escolha aguardando confirmação do diálogo de troca de matéria (null = fechado).
+  const [pendingPick, setPendingPick] = useState<SubjectPick | null>(null);
   const navigate = props.onNavigate ?? (() => {});
+  // Sessão ativa publicada pela LessonView (subject da aula em andamento).
+  const { subject: activeSubject } = useSessionState();
 
   useEffect(() => {
     let cancelled = false;
@@ -218,12 +361,52 @@ export function HomeView(props: ViewProps): ReactElement {
     };
   }, []);
 
+  // Onda 4: carrega as matérias persistidas. `listTopics` devolve [] sem repo
+  // (main é gracioso) e o catch defende o caso do canal ausente — nos DOIS
+  // casos caímos no onboarding atual (chips), nunca numa tela quebrada.
+  useEffect(() => {
+    let cancelled = false;
+    Promise.resolve()
+      .then(() => getApi().study.listTopics())
+      .then((list) => {
+        if (!cancelled) setTopics(Array.isArray(list) ? list : []);
+      })
+      .catch(() => {
+        if (!cancelled) setTopics([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   const ready = homeSetupStatus(keyStatus) === 'ready';
 
   const primaryAction = (): void => {
     if (ready) navigate('lesson');
     else navigate('settings');
   };
+
+  /** Grava subject + domain pendentes e navega para a aba Aula. */
+  const commitPick = (pick: SubjectPick): void => {
+    setPendingSubject(pick.subject);
+    setPendingDomain(pick.domain);
+    navigate('lesson');
+  };
+
+  /**
+   * Porta ÚNICA de escolha de matéria (cartões E chips). Com sessão ativa de
+   * OUTRA matéria → abre o diálogo em vez de trocar em silêncio (a LLM avalia a
+   * aula atual); mesma matéria ou sem sessão → continua direto.
+   */
+  const handlePick = (pick: SubjectPick): void => {
+    if (shouldWarnOnSubjectSwitch(activeSubject, pick.subject)) {
+      setPendingPick(pick);
+      return;
+    }
+    commitPick(pick);
+  };
+
+  const hasSubjects = topics !== null && topics.length > 0;
 
   return (
     <Container maxWidth="md" sx={{ py: 2 }}>
@@ -256,14 +439,50 @@ export function HomeView(props: ViewProps): ReactElement {
           </Button>
         </Box>
 
-        {/* Sugestões de assunto. */}
-        <Box>
-          <Typography variant="subtitle1" sx={{ fontWeight: 600 }} gutterBottom>
-            {t('translation:home.suggestions.title')}
-          </Typography>
-          <SubjectSuggestions onNavigate={navigate} />
-        </Box>
+        {/* Onda 4: matérias escolhidas por domínio OU onboarding (chips). */}
+        {hasSubjects ? (
+          <Box>
+            <SubjectSections topics={topics} onPick={handlePick} tI={tI} />
+          </Box>
+        ) : (
+          <Box>
+            <Typography variant="subtitle1" sx={{ fontWeight: 600 }} gutterBottom>
+              {t('translation:home.suggestions.title')}
+            </Typography>
+            <SubjectSuggestions onPick={handlePick} />
+          </Box>
+        )}
       </Stack>
+
+      {/* Aviso de troca de matéria no meio da aula (onda 4). */}
+      <Dialog
+        open={pendingPick !== null}
+        onClose={() => setPendingPick(null)}
+        aria-labelledby="home-switch-dialog-title"
+      >
+        <DialogTitle id="home-switch-dialog-title">
+          {t('translation:home.switchDialog.title')}
+        </DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" color="text.secondary">
+            {t('translation:home.switchDialog.description')}
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          {/* Sem NENHUM pendingSubject: ir para a aula mantém a sessão atual. */}
+          <Button
+            onClick={() => {
+              setPendingPick(null);
+              navigate('lesson');
+            }}
+          >
+            {t('translation:home.switchDialog.goToLesson')}
+          </Button>
+          <Button variant="contained" onClick={() => setPendingPick(null)}>
+            {t('translation:home.switchDialog.continueCurrent')}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Container>
   );
 }

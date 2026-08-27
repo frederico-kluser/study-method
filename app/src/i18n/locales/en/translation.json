@@ -290,6 +290,10 @@
       "configured": "configured",
       "pending": "pending"
     },
+    "subjects": {
+      "answeredOfTotal": "{{answered}} of {{total}} lessons answered",
+      "noLessonsYet": "No lessons yet — start now"
+    },
     "suggestions": {
       "title": "Ideas to get started",
       "domainProgramming": "Programming",
@@ -299,6 +303,12 @@
       "hashTables": "Hash tables in practice",
       "quadraticEquations": "Quadratic equations",
       "pythagoreanTheorem": "Pythagorean theorem"
+    },
+    "switchDialog": {
+      "title": "Subject in progress",
+      "description": "You can't switch subjects mid-lesson — the current lesson is assessed by the LLM. Finish or end the current lesson before starting another subject.",
+      "continueCurrent": "Continue with the current subject",
+      "goToLesson": "Go to the lesson"
     },
     "trail": {
       "title": "Where you left off",

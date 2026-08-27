@@ -290,6 +290,10 @@
       "configured": "configurada",
       "pending": "pendente"
     },
+    "subjects": {
+      "answeredOfTotal": "{{answered}} de {{total}} aulas respondidas",
+      "noLessonsYet": "Sem aulas ainda — comece agora"
+    },
     "suggestions": {
       "title": "Ideias para começar",
       "domainProgramming": "Programação",
@@ -299,6 +303,12 @@
       "hashTables": "Tabelas hash na prática",
       "quadraticEquations": "Equações do 2º grau",
       "pythagoreanTheorem": "Teorema de Pitágoras"
+    },
+    "switchDialog": {
+      "title": "Matéria em andamento",
+      "description": "Não dá para trocar de matéria no meio da aula — a avaliação da aula atual é feita pela LLM. Termine ou encerre a aula atual antes de começar outra matéria.",
+      "continueCurrent": "Continuar na matéria atual",
+      "goToLesson": "Ir para a aula"
     },
     "trail": {
       "title": "De onde você parou",

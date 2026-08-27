@@ -15,14 +15,27 @@
  * `onNavigate`. Assim a navegação funciona desde já (mínimo do contrato) e o
  * pré-preenchimento fica pronto para a 17B, sem acoplar as duas ondas.
  *
- * Mantido puro (sem DOM): `setPendingSubject`/`drainPendingSubject` são
- * testáveis via node:test (tsconfig.node.json inclui `src/lib`); o hook React
- * usa as funções puras e só existe para o consumo futuro na view.
+ * ONDA 4 (matérias da Home): o módulo ganha o GÊMEO `pendingDomain`, o domínio
+ * ('programming' | 'math') da matéria pré-selecionada. A onda 5 vai consumi-lo
+ * com `drainPendingDomain()` na hora de montar o payload do generate-lesson,
+ * para enviar `domain` explícito — a heurística do backend cobre a ausência,
+ * mas o domínio explícito evita falso positivo tipo "Programação matemática".
+ * Os DOIS pendentes são gravados juntos pela Home (setPendingSubject +
+ * setPendingDomain) e consumidos como one-shot independentes.
+ *
+ * Mantido puro (sem DOM): `setPendingSubject`/`drainPendingSubject` e as
+ * funções de `pendingDomain` são testáveis via node:test (tsconfig.node.json
+ * inclui `src/lib`); o hook React usa as funções puras e só existe para o
+ * consumo futuro na view.
  */
 import { useSyncExternalStore } from 'react';
 
 let pendingSubject: string | null = null;
+let pendingDomain: PendingDomain | null = null;
 const listeners = new Set<() => void>();
+
+/** Domínio da matéria pré-selecionada ('programming' | 'math'). */
+export type PendingDomain = 'programming' | 'math';
 
 function emit(): void {
   for (const fn of listeners) fn();
@@ -66,6 +79,37 @@ export function clearPendingSubject(): void {
   emit();
 }
 
+/* ── pendingDomain (onda 4 — matérias da Home) ────────────────────────────── */
+
+/** Grava o domínio da matéria pré-selecionada (Home→Lesson, junto do subject). */
+export function setPendingDomain(domain: PendingDomain): void {
+  pendingDomain = domain;
+  emit();
+}
+
+/**
+ * Lê e consome (limpa) o domínio pendente — one-shot. A onda 5 vai chamar na
+ * montagem do payload do generate-lesson e, se o valor for null, deixar a
+ * heurística do backend decidir o domínio.
+ */
+export function drainPendingDomain(): PendingDomain | null {
+  const value = pendingDomain;
+  pendingDomain = null;
+  emit();
+  return value;
+}
+
+/** Lê o domínio pendente sem consumir (assinatura externa / debug). */
+export function peekPendingDomain(): PendingDomain | null {
+  return pendingDomain;
+}
+
+/** Limpa o domínio pendente sem retornar. */
+export function clearPendingDomain(): void {
+  pendingDomain = null;
+  emit();
+}
+
 /* ── Assinatura externa p/ o hook useSyncExternalStore ─────────────────── */
 
 function subscribe(fn: () => void): () => void {
@@ -86,8 +130,9 @@ export function usePendingSubjectInitial(): string | null {
   return useSyncExternalStore(subscribe, getSnapshot, () => null);
 }
 
-/** Reseta o estado do módulo (para testes). */
+/** Reseta o estado do módulo (para testes) — subject E domain. */
 export function __resetPendingSubjectForTests(): void {
   pendingSubject = null;
+  pendingDomain = null;
   listeners.clear();
 }

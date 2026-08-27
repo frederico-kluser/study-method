@@ -8,10 +8,14 @@ import { beforeEach, describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   __resetPendingSubjectForTests,
+  clearPendingDomain,
   clearPendingSubject,
   consumePendingSubject,
+  drainPendingDomain,
   drainPendingSubject,
+  peekPendingDomain,
   peekPendingSubject,
+  setPendingDomain,
   setPendingSubject,
 } from '../src/lib/pendingSubject';
 
@@ -67,5 +71,59 @@ describe('pendingSubject — Home → Aula', () => {
 
   it('consume com store vazio devolve null (remount sem pendência = campo vazio)', () => {
     assert.equal(consumePendingSubject(), null);
+  });
+});
+
+// ─── pendingDomain (onda 4 — matérias da Home) ──────────────────────────────
+
+describe('pendingDomain — Home → payload do generate-lesson (onda 5)', () => {
+  it('começa vazio (peek/drain = null)', () => {
+    assert.equal(peekPendingDomain(), null);
+    assert.equal(drainPendingDomain(), null);
+  });
+
+  it('set → drain devolve o domínio e consome (one-shot)', () => {
+    setPendingDomain('math');
+    assert.equal(peekPendingDomain(), 'math');
+    assert.equal(drainPendingDomain(), 'math');
+    assert.equal(drainPendingDomain(), null, 'dado já foi consumido');
+  });
+
+  it('aceita os DOIS domínios do contrato (programming | math)', () => {
+    setPendingDomain('programming');
+    assert.equal(drainPendingDomain(), 'programming');
+    setPendingDomain('math');
+    assert.equal(drainPendingDomain(), 'math');
+  });
+
+  it('sempre o último set vence', () => {
+    setPendingDomain('programming');
+    setPendingDomain('math');
+    assert.equal(drainPendingDomain(), 'math');
+  });
+
+  it('clear zera sem devolver', () => {
+    setPendingDomain('programming');
+    clearPendingDomain();
+    assert.equal(peekPendingDomain(), null);
+  });
+
+  it('__reset limpa subject E domain juntos', () => {
+    setPendingSubject('Grafos');
+    setPendingDomain('math');
+    __resetPendingSubjectForTests();
+    assert.equal(peekPendingSubject(), null);
+    assert.equal(peekPendingDomain(), null);
+  });
+
+  it('subject e domain são consumidos como one-shots INDEPENDENTES', () => {
+    setPendingSubject('Grafos');
+    setPendingDomain('programming');
+    // A onda 5 drena o domínio no payload do generate-lesson, depois (ou antes)
+    // a LessonView drena o subject — a ordem não pode interferir.
+    assert.equal(drainPendingDomain(), 'programming');
+    assert.equal(drainPendingSubject(), 'Grafos');
+    assert.equal(peekPendingDomain(), null);
+    assert.equal(peekPendingSubject(), null);
   });
 });
