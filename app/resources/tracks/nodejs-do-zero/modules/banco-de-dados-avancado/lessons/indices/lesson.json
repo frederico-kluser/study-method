@@ -1,0 +1,65 @@
+{
+  "schemaVersion": 1,
+  "slug": "indices",
+  "title": "Índices: o fichário do banco",
+  "summary": "O que é um índice, quando ele acelera as consultas, o que ele custa — e como criar com CREATE INDEX, inclusive compostos e UNIQUE.",
+  "difficulty": 4,
+  "concepts": [
+    "indices"
+  ],
+  "prerequisites": [
+    "transacoes"
+  ],
+  "theory": [
+    {
+      "id": "o-fichario",
+      "title": "O fichário da biblioteca",
+      "markdown": "Um índice é uma estrutura EXTRA que o banco mantém para achar linhas rápido, sem varrer a tabela inteira. Pense na biblioteca: sem fichário, para achar um livro você olha prateleira por prateleira. Com o fichário, você consulta \"autor = X\" e vai direto à estante certa — mesmo que a biblioteca tenha milhões de livros.\n\nNo banco é igual. Uma tabela sem índice é uma pilha de linhas: para responder `WHERE nome = 'Ana'`, o banco LÊ CADA LINHA e compara. Isso se chama \"varredura completa\" e funciona bem para tabelas pequenas — mas vira um desastre com um milhão de linhas.\n\nCom um índice na coluna `nome`, o banco guarda uma estrutura separada (tipo o fichário) que diz \"o valor X está nas linhas Y e Z\". A consulta vira: procurar X no fichário (rápido, como um dicionário) e buscar as linhas indicadas.\n\n## O que um índice tem de bom e de ruim\n\n**Bom:**\n\n- consultas com WHERE na coluna indexada ficam MUITO mais rápidas;\n- ajuda também nos JOINs (que juntam tabelas pela coluna) e no ORDER BY;\n- a estrutura é invisível: o SQL das suas consultas não muda.\n\n**Ruim (todo poder tem preço):**\n\n- ocupa espaço em disco — é outra estrutura para guardar;\n- toda escrita (INSERT, UPDATE, DELETE) fica um pouco mais lenta, porque o fichário precisa ser atualizado junto.\n\nPor isso o índice não é \"quanto mais, melhor\": você cria nos lugares onde a consulta realmente precisa — e não em toda coluna \"por garantia\". Tabela pequena nem precisa de índice: varrer 50 linhas é instantâneo.\n\n## Chave composta\n\nDá para criar um índice com VÁRIAS colunas: `(dia, hora)`, por exemplo. Aí o fichário é ordenado primeiro por dia, depois por hora. A ordem das colunas importa: o índice `(dia, hora)` ajuda consultas por `dia` ou por `dia + hora`, mas NÃO ajuda consulta só por `hora`."
+    },
+    {
+      "id": "criando-indices",
+      "title": "Criando índices no SQLite",
+      "markdown": "Criar um índice é um comando SQL único, `CREATE INDEX`:\n\n```sql\n-- acelera as consultas por paciente_id na tabela de consultas\nCREATE INDEX idx_consultas_paciente ON consultas(paciente_id);\n\n-- UNIQUE: além de acelerar, PROÍBE valor repetido (ex.: dois e-mails iguais)\nCREATE UNIQUE INDEX idx_usuarios_email ON usuarios(email);\n\n-- índice composto: (dia, hora) ajuda consultas por dia ou por dia + hora\nCREATE INDEX idx_consultas_dia_hora ON consultas(dia, hora);\n```\n\nNo `node:sqlite`, comandos de estrutura (DDL) rodam com `db.exec`, como o CREATE TABLE. O resto do seu código NÃO muda: os `prepare`/`run`/`all` continuam iguais — o índice é invisível para as consultas, elas só ficam mais rápidas.\n\nE como saber se o índice está fazendo efeito? Com o `EXPLAIN QUERY PLAN`:\n\n```sql\nEXPLAIN QUERY PLAN SELECT * FROM consultas WHERE paciente_id = 7;\n```\n\nAntes do índice o plano diz \"SCAN\"; depois, \"SEARCH ... USING INDEX\". Esse é o jeito honesto de verificar — não é no chute.",
+      "code": {
+        "language": "javascript",
+        "code": "import { DatabaseSync } from 'node:sqlite';\n\nconst db = new DatabaseSync('clinica.db');\n\n// DDL (estrutura) roda no exec, como o CREATE TABLE\ndb.exec(`CREATE TABLE IF NOT EXISTS consultas (\n  id INTEGER PRIMARY KEY,\n  paciente_id INTEGER NOT NULL,\n  dia TEXT NOT NULL,\n  hora TEXT NOT NULL\n)`);\n\n// cria o índice: uma vez só, na primeira execução\ndb.exec(`CREATE INDEX IF NOT EXISTS idx_consultas_paciente\n         ON consultas(paciente_id)`);\n\n// as consultas continuam IGUAIS — o índice trabalha por trás\nconst porPaciente = db.prepare('SELECT * FROM consultas WHERE paciente_id = ?');\nconsole.log(porPaciente.all(7));\n\n// conferindo o plano: SEARCH ... USING INDEX = o índice está em uso\nconst plano = db.prepare(\n  'EXPLAIN QUERY PLAN SELECT * FROM consultas WHERE paciente_id = ?',\n);\nconsole.log(plano.all(7).map((linha) => linha.detail));",
+        "explanation": "O CREATE INDEX roda uma vez e muda só a velocidade: as consultas continuam com o mesmo SQL. O EXPLAIN QUERY PLAN mostra SEARCH ... USING INDEX quando o índice está em uso."
+      }
+    },
+    {
+      "id": "exemplo-completo",
+      "title": "Exemplo completo: a agenda que destravou",
+      "markdown": "A clínica tem uma tabela de consultas que cresceu para 500 mil linhas. Antes do índice, a tela \"consultas do paciente\" demorava segundos; depois, milissegundos. O código abaixo mostra o passo a passo — incluindo o trade-off de criar um índice UNIQUE no e-mail dos médicos (agora o banco IMPEDE dois médicos com o mesmo e-mail, além de acelerar o login).\n\nLeia os comentários: eles explicam o porquê de cada decisão.",
+      "code": {
+        "language": "javascript",
+        "code": "import { DatabaseSync } from 'node:sqlite';\n\nconst db = new DatabaseSync('clinica.db');\n\ndb.exec(`CREATE TABLE IF NOT EXISTS medicos (\n  id INTEGER PRIMARY KEY,\n  nome TEXT NOT NULL,\n  email TEXT NOT NULL,\n  especialidade TEXT NOT NULL\n)`);\n\ndb.exec(`CREATE TABLE IF NOT EXISTS consultas (\n  id INTEGER PRIMARY KEY,\n  medico_id INTEGER NOT NULL,\n  paciente_id INTEGER NOT NULL,\n  dia TEXT NOT NULL,\n  hora TEXT NOT NULL\n)`);\n\n// Índice 1: o WHERE mais frequente da clínica é por paciente_id.\n// Sem ele, cada tela de \"consultas do paciente\" varre 500 mil linhas.\ndb.exec(`CREATE INDEX IF NOT EXISTS idx_consultas_paciente\n         ON consultas(paciente_id)`);\n\n// Índice 2: e-mail precisa ser único (dois médicos com o mesmo e-mail\n// seria um bug), então o índice UNIQUE resolve os DOIS problemas:\n// acelera a busca do login E bloqueia o duplicado na escrita.\ndb.exec(`CREATE UNIQUE INDEX IF NOT EXISTS idx_medicos_email\n         ON medicos(email)`);\n\n// Consulta de sempre — o SQL não mudou, só a velocidade\nconst consultasDoPaciente = db.prepare(\n  'SELECT dia, hora FROM consultas WHERE paciente_id = ?',\n);\nconsole.log(consultasDoPaciente.all(42));\n\n// Conferência honesta: o plano mostra o índice em uso\nconst plano = db.prepare(\n  'EXPLAIN QUERY PLAN SELECT * FROM consultas WHERE paciente_id = ?',\n);\nconsole.log(plano.all(42).map((linha) => linha.detail));\n// [ 'SEARCH consultas USING INDEX idx_consultas_paciente (patient_id=?)' ]",
+        "explanation": "Duas decisões em um código: o índice comum acelera a consulta mais frequente; o índice UNIQUE acelera E impõe a regra de negócio (e-mail único). O EXPLAIN QUERY PLAN confirma que o banco está usando o índice."
+      }
+    }
+  ],
+  "sources": [
+    {
+      "title": "SQLite — CREATE INDEX",
+      "url": "https://www.sqlite.org/lang_createindex.html",
+      "description": "A documentação oficial do comando CREATE INDEX (incluindo UNIQUE e índices compostos)."
+    },
+    {
+      "title": "SQLite — otimização de consultas",
+      "url": "https://www.sqlite.org/optoverview.html",
+      "description": "Quando o SQLite decide usar um índice e como o plano de consulta funciona."
+    },
+    {
+      "title": "SQLite — EXPLAIN QUERY PLAN",
+      "url": "https://www.sqlite.org/eqp.html",
+      "description": "Como ler o plano de execução de uma consulta e ver se o índice está em uso."
+    },
+    {
+      "title": "Node.js — node:sqlite",
+      "url": "https://nodejs.org/docs/latest/api/sqlite.html",
+      "description": "O módulo embutido de SQLite do Node: DatabaseSync, exec, prepare, run, all e get."
+    }
+  ],
+  "challenges": [
+    "indice-simulado"
+  ]
+}

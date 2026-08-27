@@ -1,0 +1,60 @@
+{
+  "schemaVersion": 1,
+  "slug": "migracoes",
+  "title": "Migrações: o schema tem história",
+  "summary": "Por que mudanças no schema precisam ser versionadas como código — e como aplicar (up) e reverter (down) migrações.",
+  "difficulty": 4,
+  "concepts": [
+    "migracoes"
+  ],
+  "prerequisites": [
+    "joins"
+  ],
+  "theory": [
+    {
+      "id": "o-schema-tem-historia",
+      "title": "O schema tem história",
+      "markdown": "O schema é a \"planta\" do banco: quais tabelas existem, quais colunas cada uma tem. E a planta MUDOU — o cadastro de pacientes ganhou a coluna telefone, o pedido ganhou desconto... Se cada dev alterar a tabela \"na mão\" no terminal, cada máquina fica com um schema diferente: funciona na sua, quebra na produção.\n\n**Migração** é a resposta: cada mudança na planta vira um PASSO NUMERADO, com duas versões — o que FAZ (up) e o que DESFAZ (down). Os passos ficam salvos no git, junto com o código, e o banco sabe em que passo está (numa tabela de controle de versão).\n\nÉ como a reforma de uma casa com projeto aprovado: cada mudança é registrada, tem número, e existe o desenho do \"como era antes\" caso precise voltar atrás. Sem projeto, cada pedreiro faz uma parede de um jeito e ninguém sabe qual é a certa.\n\nFerramentas famosas (knex, Prisma, Sequelize) automatizam isso. No nosso caso, vamos ver o MECANISMO com um mini-runner em `node:sqlite` — porque entender o mecanismo vale mais que decorar ferramenta.\n\nUma regra de ouro: **migração é o único jeito certo de mudar o schema.** `ALTER TABLE` digitado na mão no terminal não vale — ninguém mais consegue reproduzir, e o banco não fica com histórico."
+    },
+    {
+      "id": "up-e-down",
+      "title": "Up e down: aplicar e desfazer",
+      "markdown": "Uma migração é um par de funções: `up` (aplica a mudança) e `down` (desfaz). O runner guarda a versão atual numa tabela `schema_migrations` e aplica as migrações EM ORDEM, das antigas para as novas. Reverter roda o `down` na ordem INVERSA — desfazer a mais nova primeiro, como tirar pratos de uma pilha.\n\nExemplo de migração com `node:sqlite`:\n\n```js\nconst migracoes = [\n  {\n    versao: 1,\n    up(db) {\n      db.exec(`CREATE TABLE pacientes (\n        id INTEGER PRIMARY KEY,\n        nome TEXT NOT NULL\n      )`);\n    },\n    down(db) {\n      db.exec('DROP TABLE pacientes');\n    },\n  },\n  {\n    versao: 2,\n    up(db) {\n      db.exec('ALTER TABLE pacientes ADD COLUMN telefone TEXT');\n    },\n    down(db) {\n      db.exec('ALTER TABLE pacientes DROP COLUMN telefone');\n    },\n  },\n];\n```\n\nE o coração do runner: cada `up` que roda é registrado na tabela de versões — assim, da próxima vez, o runner sabe o que já foi aplicado e só aplica o que falta.",
+      "code": {
+        "language": "javascript",
+        "code": "import { DatabaseSync } from 'node:sqlite';\n\nconst db = new DatabaseSync('clinica.db');\n\n// Tabela de controle: guarda as versões de migração já aplicadas\ndb.exec(`CREATE TABLE IF NOT EXISTS schema_migrations (\n  versao INTEGER PRIMARY KEY\n)`);\n\n// As migrações do banco, em ordem de versão\nconst migracoes = [\n  {\n    versao: 1,\n    up(db) {\n      db.exec(`CREATE TABLE pacientes (\n        id INTEGER PRIMARY KEY,\n        nome TEXT NOT NULL\n      )`);\n    },\n    down(db) {\n      db.exec('DROP TABLE pacientes');\n    },\n  },\n  {\n    versao: 2,\n    up(db) {\n      db.exec('ALTER TABLE pacientes ADD COLUMN telefone TEXT');\n    },\n    down(db) {\n      db.exec('ALTER TABLE pacientes DROP COLUMN telefone');\n    },\n  },\n];\n\n// Aplicar: roda o up de cada migração entre a versão atual e o alvo,\n// e registra cada versão aplicada — na próxima rodada, só o que falta.\nfunction aplicarAte(db, migracoes, alvo) {\n  const linha = db.prepare('SELECT MAX(versao) AS v FROM schema_migrations').get();\n  const versaoAtual = linha.v ?? 0;\n  const registrar = db.prepare('INSERT INTO schema_migrations (versao) VALUES (?)');\n  for (const migracao of migracoes) {\n    if (migracao.versao > versaoAtual && migracao.versao <= alvo) {\n      migracao.up(db);\n      registrar.run(migracao.versao);\n    }\n  }\n}\n\n// Reverter: desfaz do mais novo para o mais antigo (pilha), até o alvo.\nfunction reverterAte(db, migracoes, alvo) {\n  const linha = db.prepare('SELECT MAX(versao) AS v FROM schema_migrations').get();\n  const versaoAtual = linha.v ?? 0;\n  const remover = db.prepare('DELETE FROM schema_migrations WHERE versao = ?');\n  for (const migracao of [...migracoes].reverse()) {\n    if (migracao.versao <= versaoAtual && migracao.versao > alvo) {\n      migracao.down(db);\n      remover.run(migracao.versao);\n    }\n  }\n}\n\naplicarAte(db, migracoes, 2);  // sobe para a versão 2 (cria tabela + telefone)\nreverterAte(db, migracoes, 1); // volta para a 1 (telefone some)",
+        "explanation": "O coração da migração: aplicar sobe as versões em ordem e registra cada uma; reverter desce na ordem inversa e apaga o registro. Quem roda o runner de novo aplica SÓ o que falta — o schema fica igual em qualquer máquina."
+      }
+    },
+    {
+      "id": "exemplo-completo",
+      "title": "Exemplo completo: a clínica ganha telefone",
+      "markdown": "A clínica precisa adicionar a coluna `telefone` no cadastro de pacientes — em produção, com outros devs e o banco em várias máquinas. Em vez de digitar ALTER TABLE no terminal, a mudança vira uma MIGRAÇÃO: aplicada com `up`, desfeita com `down`, registrada no git.\n\nLeia os comentários: eles mostram o passo a passo real — criar a migração nova, aplicar, conferir o schema, e o poder do `down` quando o negócio muda de ideia.",
+      "code": {
+        "language": "javascript",
+        "code": "import { DatabaseSync } from 'node:sqlite';\n\nconst db = new DatabaseSync('clinica.db');\n\ndb.exec(`CREATE TABLE IF NOT EXISTS schema_migrations (\n  versao INTEGER PRIMARY KEY\n)`);\n\n// Versão 1 — o começo: tabela básica de pacientes.\nconst migracoes = [\n  {\n    versao: 1,\n    up(db) {\n      db.exec(`CREATE TABLE pacientes (\n        id INTEGER PRIMARY KEY,\n        nome TEXT NOT NULL\n      )`);\n    },\n    down(db) {\n      db.exec('DROP TABLE pacientes');\n    },\n  },\n  // Versão 2 — o pedido novo: coluna telefone.\n  // O up adiciona; o down remove (o \"desenho do como era antes\").\n  {\n    versao: 2,\n    up(db) {\n      db.exec('ALTER TABLE pacientes ADD COLUMN telefone TEXT');\n    },\n    down(db) {\n      db.exec('ALTER TABLE pacientes DROP COLUMN telefone');\n    },\n  },\n];\n\nfunction aplicarAte(db, migracoes, alvo) {\n  const linha = db.prepare('SELECT MAX(versao) AS v FROM schema_migrations').get();\n  const atual = linha.v ?? 0;\n  const registrar = db.prepare('INSERT INTO schema_migrations (versao) VALUES (?)');\n  for (const migracao of migracoes) {\n    if (migracao.versao > atual && migracao.versao <= alvo) {\n      migracao.up(db);\n      registrar.run(migracao.versao);\n    }\n  }\n}\n\nfunction reverterAte(db, migracoes, alvo) {\n  const linha = db.prepare('SELECT MAX(versao) AS v FROM schema_migrations').get();\n  const atual = linha.v ?? 0;\n  const remover = db.prepare('DELETE FROM schema_migrations WHERE versao = ?');\n  for (const migracao of [...migracoes].reverse()) {\n    if (migracao.versao <= atual && migracao.versao > alvo) {\n      migracao.down(db);\n      remover.run(migracao.versao);\n    }\n  }\n}\n\n// Passo 1: sobe para a versão 2 — cria a tabela e adiciona o telefone\naplicarAte(db, migracoes, 2);\n\n// Passo 2: conferência — o schema tem a coluna nova?\nconst colunas = db.prepare(\n  \"SELECT name FROM pragma_table_info('pacientes')\",\n).all();\nconsole.log(colunas.map((c) => c.name));\n// [ 'id', 'nome', 'telefone' ]\n\n// Passo 3: o negócio mudou de ideia — volta para a versão 1.\n// O down remove a coluna; o banco fica EXATAMENTE como na versão 1.\nreverterAte(db, migracoes, 1);\nconsole.log(db.prepare(\n  \"SELECT name FROM pragma_table_info('pacientes')\",\n).all().map((c) => c.name));\n// [ 'id', 'nome' ]",
+        "explanation": "Cada mudança de schema vira uma versão com up e down. Aplicar registra a versão; reverter desfaz do mais novo para o mais antigo. Conferir com pragma_table_info mostra que o schema subiu e desceu sem resíduo."
+      }
+    }
+  ],
+  "sources": [
+    {
+      "title": "SQLite — ALTER TABLE",
+      "url": "https://www.sqlite.org/lang_altertable.html",
+      "description": "O comando que muda tabelas existentes (ADD/DROP COLUMN) — o que as migrações usam por baixo."
+    },
+    {
+      "title": "SQLite — CREATE TABLE",
+      "url": "https://www.sqlite.org/lang_createtable.html",
+      "description": "A documentação do CREATE TABLE, a base de qualquer migração."
+    },
+    {
+      "title": "Node.js — node:sqlite",
+      "url": "https://nodejs.org/docs/latest/api/sqlite.html",
+      "description": "O módulo embutido de SQLite do Node: DatabaseSync, exec, prepare, run, all e get."
+    }
+  ],
+  "challenges": [
+    "migracao-simulada"
+  ]
+}
