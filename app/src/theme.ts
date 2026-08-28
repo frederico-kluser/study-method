@@ -706,6 +706,21 @@ export const theme = createTheme({
         // esquemas). `theme.vars` é uma referência var(--mui-palette-*): troca
         // sozinha com a classe .light/.dark, sem ternário de esquema.
         '*:focus-visible': focusRingStyles(t),
+        // ONDA 1 (layout+a11y): campos de TEXTO e SELEÇÃO NÃO recebem o anel —
+        // o outline 3px + halo boxShadow ficam visualmente POR CIMA do campo
+        // (caso mais visível: o TextField do chat da aula). O campo mantém a
+        // indicação de foco PRÓPRIA (borda do OutlinedInput vira `primary` no
+        // estado Mui-focused), então a acessibilidade de teclado segue. A
+        // especificidade (0,1,1) vence o `*:focus-visible` (0,1,0) logo acima.
+        // Botões, links, chips e demais alvos clicáveis (MuiButtonBase)
+        // MANTÊM o anel — preservado onde ele ajuda. `[role="combobox"]`
+        // cobre o MuiSelect (o alvo de foco é um div com esse papel, não um
+        // <select>); o Autocomplete usa <input> por baixo (já coberto).
+        'input:focus-visible, textarea:focus-visible, select:focus-visible, [role="combobox"]:focus-visible': {
+          outline: 'none',
+          outlineOffset: 0,
+          boxShadow: 'none',
+        },
         // SC 2.3.3 (AAA) — técnica C39: a preferência do SO desliga o movimento
         // do app inteiro. O overshoot espacial é justamente o que não pode
         // sobreviver aqui; a INFORMAÇÃO (passou/falhou) nunca depende dele.

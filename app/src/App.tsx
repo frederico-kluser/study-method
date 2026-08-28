@@ -80,6 +80,15 @@ function Shell({
           id={navPanelId(active)}
           aria-labelledby={navTabId(active)}
           sx={{
+            // ONDA 1 (layout+a11y): o main vira flex COLUMN para a LessonView
+            // poder ocupar 100% da altura (cabeçalho fixo no topo, chat com
+            // scroll interno, entrada fixa embaixo). As demais views
+            // (Home/Settings/Roadmap/Challenge) seguem com altura de conteúdo:
+            // sem flexGrow, o comportamento é idêntico ao do layout de bloco —
+            // o `overflow: 'auto'` abaixo continua cobrindo conteúdo mais alto
+            // que o painel.
+            display: 'flex',
+            flexDirection: 'column',
             flexGrow: 1,
             minWidth: 0,
             overflow: 'auto',

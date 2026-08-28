@@ -426,9 +426,25 @@ export function LessonView(props: ViewProps): ReactElement {
 
   const theoryProgress = Math.min(100, Math.round((chat.presentedSections.length / Math.max(1, lesson.theory.length)) * 100));
 
+  // ONDA 1 (layout+a11y): a aula ATIVA ocupa TODA a altura do painel main —
+  // cabeçalho fixo no topo, região do chat com scroll INTERNO (flexGrow) e
+  // entrada fixa embaixo. `flexGrow: 1, minHeight: 0, height: '100%'` resolvem
+  // porque o `main` do shell virou flex column com altura definida (stretch).
+  // Os estados vazio/erro/loading acima seguem com altura de conteúdo.
   return (
-    <Box sx={{ p: 2, maxWidth: 760, mx: 'auto' }}>
- <Stack spacing={1.5}>
+    <Box
+      sx={{
+        flexGrow: 1,
+        minHeight: 0,
+        height: '100%',
+        display: 'flex',
+        flexDirection: 'column',
+        p: 2,
+        maxWidth: 760,
+        mx: 'auto',
+      }}
+    >
+      <Stack spacing={1.5} sx={{ flexGrow: 1, minHeight: 0 }}>
         {/* Cabeçalho: título + resumo + ações */}
         <Box>
  <Stack direction="row" spacing={1} sx={{ justifyContent: 'space-between', alignItems: 'flex-start' }}>
@@ -478,21 +494,34 @@ export function LessonView(props: ViewProps): ReactElement {
 
         <Divider />
 
-        {/* Chat com o tutor. */}
+        {/* Região do chat: ÚNICO scroll interno da aula ativa (janela pequena
+            ou grande — o main do shell nunca rola). `flexGrow` faz o chat
+            ocupar TODA a altura disponível do painel main; `minHeight: 0`
+            permite encolher até caber a entrada fixa embaixo. */}
         <Box
           sx={{
-            height: 360,
+            flexGrow: 1,
+            minHeight: 0,
             overflowY: 'auto',
             display: 'flex',
             flexDirection: 'column',
             gap: 1,
-            bgcolor: 'action.hover',
-            borderRadius: 2,
-            p: 1.5,
           }}
-          role="log"
-          aria-live="polite"
         >
+          {/* Painel das mensagens (rola junto com a região). */}
+          <Box
+            sx={{
+              flexGrow: 1,
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 1,
+              bgcolor: 'action.hover',
+              borderRadius: 2,
+              p: 1.5,
+            }}
+            role="log"
+            aria-live="polite"
+          >
           {chat.history.length === 0 ? (
             <Box sx={{ m: 'auto', textAlign: 'center', color: 'text.secondary' }}>
               <Typography variant="body2">{t('translation:lesson.chatStart')}</Typography>
@@ -517,6 +546,58 @@ export function LessonView(props: ViewProps): ReactElement {
               <Typography variant="caption" color="text.secondary" sx={{ fontStyle: 'italic' }}>
                 {t('translation:lesson.typing')}
               </Typography>
+            </Box>
+          ) : null}
+          </Box>
+
+          {/* Desafios da aula (gerados na trilha; abertos na ChallengeView).
+              Ficam DENTRO da região com scroll: em janela pequena o usuário
+              alcança a lista rolando o chat — o main do shell nunca rola. */}
+          {lesson.challenges.length > 0 ? (
+            <Box>
+              <Typography variant="h6" sx={{ mt: 1 }}>
+                {t('translation:lesson.challengesTitle')}
+              </Typography>
+              <List dense>
+                {lesson.challenges.map((ch) => (
+                  <ListItem
+                    key={ch.slug}
+                    component="button"
+                    onClick={() => openChallenge(ch)}
+                    sx={{
+                      border: '1px solid',
+                      borderColor: 'divider',
+                      borderRadius: 1,
+                      mb: 0.5,
+                      cursor: 'pointer',
+                      textAlign: 'left',
+                      width: '100%',
+                      '&:hover': { bgcolor: 'action.hover' },
+                    }}
+                  >
+                    <ListItemText
+                      primary={
+                        <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
+                          <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                            {ch.title}
+                          </Typography>
+                          <Chip size="small" variant="outlined" label={tI('lesson.difficulty', { n: ch.difficulty })} />
+                          {ch.generated ? <Chip size="small" color="secondary" label={t('translation:lesson.generatedBadge')} /> : null}
+                        </Stack>
+                      }
+                      secondary={
+                        ch.lastVerdict === 'passed' ? (
+                          tI('lesson.challengePassed', { stars: ch.stars })
+                        ) : ch.failedCount > 0 ? (
+                          tI('lesson.challengeFailedCount', { n: ch.failedCount })
+                        ) : (
+                          t('translation:lesson.challengeUntried')
+                        )
+                      }
+                    />
+                  </ListItem>
+                ))}
+              </List>
             </Box>
           ) : null}
         </Box>
@@ -577,54 +658,6 @@ export function LessonView(props: ViewProps): ReactElement {
           )}
         </Stack>
 
-        {/* Desafios da aula (gerados na trilha; abertos na ChallengeView). */}
-        {lesson.challenges.length > 0 ? (
-          <Box>
-            <Typography variant="h6" sx={{ mt: 1 }}>
-              {t('translation:lesson.challengesTitle')}
-            </Typography>
-            <List dense>
-              {lesson.challenges.map((ch) => (
-                <ListItem
-                  key={ch.slug}
-                  component="button"
-                  onClick={() => openChallenge(ch)}
-                  sx={{
-                    border: '1px solid',
-                    borderColor: 'divider',
-                    borderRadius: 1,
-                    mb: 0.5,
-                    cursor: 'pointer',
-                    textAlign: 'left',
-                    width: '100%',
-                    '&:hover': { bgcolor: 'action.hover' },
-                  }}
-                >
-                  <ListItemText
-                    primary={
- <Stack direction="row" spacing={1}  sx={{ alignItems: 'center' }}>
-                        <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                          {ch.title}
-                        </Typography>
-                        <Chip size="small" variant="outlined" label={tI('lesson.difficulty', { n: ch.difficulty })} />
-                        {ch.generated ? <Chip size="small" color="secondary" label={t('translation:lesson.generatedBadge')} /> : null}
-                      </Stack>
-                    }
-                    secondary={
-                      ch.lastVerdict === 'passed' ? (
-                        tI('lesson.challengePassed', { stars: ch.stars })
-                      ) : ch.failedCount > 0 ? (
-                        tI('lesson.challengeFailedCount', { n: ch.failedCount })
-                      ) : (
-                        t('translation:lesson.challengeUntried')
-                      )
-                    }
-                  />
-                </ListItem>
-              ))}
-            </List>
-          </Box>
-        ) : null}
       </Stack>
 
       {/* Fontes: NUNCA no fluxo — botão "Fontes" abre este diálogo. */}
