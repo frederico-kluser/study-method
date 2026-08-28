@@ -1,5 +1,5 @@
 /**
- * e2e-lesson.spec.ts — TRILHA → AULA em modo CHAT (rodada 8).
+ * e2e-lesson.spec.ts — TRILHA → AULA em modo CHAT (rodada 8 + ONDA2-imessage).
  *
  * O aluno NÃO gera mais aula: a Home mostra as TRILHAS (fixture do harness
  * E2E), a Trilha lista os itens já prontos e a aula é um chat com o tutor.
@@ -12,6 +12,32 @@
  *   - as FONTES ficam atrás do botão "Fontes" (nunca no fluxo);
  *   - os DESAFIOS da aula aparecem abaixo (card clicável → aba Desafio).
  * No modo E2E o tutor é stub (sem LLM/rede).
+ *
+ * ONDA2-IMESSAGE (streaming + gating — ajuste REGISTRADO do REPLAN):
+ *   - as DUAS asserções `toHaveCount(0)` de "tutor digitando" foram
+ *     INVERTIDAS pelo streaming: 'next' agora DIGITA a resposta (~100 tps,
+ *     ~400 chars/s — o stub devolve "Tutor E2E: <título> — <markdown
+ *     truncado>"), então o indicador APARECE durante a digitação e SÓ some
+ *     quando o texto COMPLETO foi digitado (mount condicional). A espera do
+ *     texto completo virou: mensagem visível → indicador APARECE → indicador
+ *     SOME (o unmount do indicador É a condição "typewriterIsDone" — o stub
+ *     é determinístico e o texto final fica íntegro no histórico);
+ *   - GATING do "Concluir aula" (REPLAN): com o desafio "O dobro do número"
+ *     NUNCA tentado (lastVerdict null no payload track.lesson), "Concluir
+ *     aula" fica DESABILITADO com tooltip "Conclua os desafios desta aula
+ *     primeiro" (via hover). DEPOIS o desafio é PASSADO (fluxo padrão:
+ *     Começar → resposta certa → Testar resposta → "Passou com") e a aula é
+ *     REABERTA pela Trilha (o chat volta do CACHE — mensagens completas, sem
+ *     redigitar).
+ *   - LIMITAÇÃO DO HARNESS E2E (documentada no fim da spec — ajuste
+ *     REGISTRADO do REPLAN): o stub do main NÃO persiste vereditos nem
+ *     lessonDone (buildE2ETrackRepo é em memória por chamada — electron/main
+ *     está FORA do escopo desta onda), então o galho "HABILITADO" do gating
+ *     NÃO é observável em e2e: após passar o desafio, a re-busca de
+ *     track.lesson devolve lastVerdict null (mesma aula segue desabilitada) e
+ *     a única aula da fixture sem desafios ('Aula E2E seguinte') está LOCKED.
+ *     Os dois galhos liberados ("sem desafios" e "todos passed") são cobertos
+ *     pelos unit tests de isLessonFinishBlocked (tests/trackLessonState.test.ts).
  */
 import { test, expect, type ElectronApplication, type Page } from '@playwright/test';
 import { launchApp, closeApp, makeWorkspaceRoot } from './helpers';
@@ -28,7 +54,20 @@ test.afterEach(async () => {
   if (app) await closeApp(app);
 });
 
-test('e2e-lesson: trilha → aula em chat (teoria progressiva + fontes + desafios)', async () => {
+/**
+ * ONDA2-IMESSAGE: espera o texto COMPLETO do stub ser digitado — o indicador
+ * "tutor digitando…" é montado SÓ durante a digitação (mount condicional) e o
+ * unmount dele É a condição "typewriterIsDone" (o texto completo está no
+ * DOM). Sem fixture-knowledge: o stub é determinístico, mas o contrato forte
+ * é o próprio indicador (nunca casamos texto oculto — ele não existe fora da
+ * digitação).
+ */
+async function waitFullTypewriter(page: Page): Promise<void> {
+  await expect(page.getByText(/tutor digitando|tutor typing/i)).toBeVisible();
+  await expect(page.getByText(/tutor digitando|tutor typing/i)).toHaveCount(0);
+}
+
+test('e2e-lesson: trilha → aula em chat (teoria progressiva + fontes + desafios + gating)', async () => {
   const launched = await launchApp({
     env: { E2E_GATE: 'ready', E2E_WORKSPACE_ROOT: wsRoot! },
   });
@@ -56,18 +95,14 @@ test('e2e-lesson: trilha → aula em chat (teoria progressiva + fontes + desafio
   // O chat começa vazio: "Começar aula" apresenta a 1ª seção (stub).
   await page.getByRole('button', { name: 'Começar aula' }).click();
   await expect(page.getByText('Tutor E2E:', { exact: false }).first()).toBeVisible();
-  // ONDA 1 (teoria-pronta): 'next' é DETERMINÍSTICO (sem LLM) — o indicador
-  // "tutor digitando…" NUNCA aparece nesse fluxo (só existe em 'answer').
-  await expect(page.getByText(/tutor digitando|tutor typing/i)).toHaveCount(0);
+  // ONDA2-IMESSAGE (REPLAN): 'next' também DIGITA — o indicador aparece
+  // durante a digitação e some quando o texto COMPLETO está no DOM.
+  await waitFullTypewriter(page);
 
   // Próximo → segunda seção da teoria (progressiva, uma por vez).
   await page.getByRole('button', { name: 'Próximo →' }).click();
   await expect(page.getByText('Tutor E2E:', { exact: false }).nth(1)).toBeVisible();
-  await expect(page.getByText(/tutor digitando|tutor typing/i)).toHaveCount(0);
-
-  // Concluir aula → botão vira "Concluída ✓".
-  await page.getByRole('button', { name: 'Concluir aula' }).click();
-  await expect(page.getByRole('button', { name: 'Concluída ✓' })).toBeVisible();
+  await waitFullTypewriter(page);
 
   // FONTES: atrás do botão, nunca no fluxo (o diálogo lista a fonte fixture).
   await page.getByRole('button', { name: 'Fontes' }).click();
@@ -75,10 +110,55 @@ test('e2e-lesson: trilha → aula em chat (teoria progressiva + fontes + desafio
   await expect(page.getByText('MDN', { exact: false })).toBeVisible();
   await page.getByRole('button', { name: 'Fechar' }).click().catch(() => page.keyboard.press('Escape'));
 
-  // DESAFIOS da aula: card clicável → aba Desafio (fluxo track).
+  // ─── ONDA2-IMESSAGE (gating): teoria concluída → "Concluir aula" fica
+  // DESABILITADO porque o desafio da aula NUNCA foi passado (lastVerdict
+  // null no payload track.lesson) — tooltip i18n via hover (o Tooltip MUI
+  // escuta o mouse no <span> que envolve o botão desabilitado). ───────────
+  const finishButton = page.getByRole('button', { name: 'Concluir aula' });
+  await expect(finishButton).toBeDisabled();
+  // Tooltip MUI escuta o mouse no <span> que envolve o botão DESABILITADO
+  // (o MUI põe pointer-events: none no próprio botão — hover() do Playwright
+  // falharia no hit-target check). mouse.move ao centro do botão passa pelo
+  // span e abre o tooltip.
+  const box = await finishButton.boundingBox();
+  if (box) {
+    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+  }
+  await expect(page.getByText('Conclua os desafios desta aula primeiro')).toBeVisible();
+
+  // DESAFIOS da aula: card clicável → aba Desafio (fluxo track) → PASSA o
+  // desafio com a resposta certa (o stub roda node --test de verdade).
   await expect(page.getByRole('heading', { name: 'Desafios desta aula' })).toBeVisible();
   await page.getByText('O dobro do número', { exact: false }).first().click();
   await expect(page.getByRole('heading', { name: 'O dobro do número' }).first()).toBeVisible();
-  // Enunciado presente e o botão "Começar" (cronômetro só depois dele).
-  await expect(page.getByRole('button', { name: 'Começar' })).toBeVisible();
+  await page.getByRole('button', { name: 'Começar' }).click();
+  await page.locator('.cm-content').first().click();
+  await page.keyboard.press('ControlOrMeta+a');
+  await page.keyboard.type('export function dobroDoNumero(n) { return n * 2; }');
+  await page.getByRole('button', { name: 'Testar resposta' }).click();
+  await expect(page.getByText('Passou com', { exact: false })).toBeVisible({ timeout: 20_000 });
+
+  // Volta à aula pela Trilha (a aba abre a LISTA de trilhas — o cartão da
+  // trilha primeiro, depois a aula; o item reabre a aula com
+  // setPendingTrackLesson) — o chat RESTAURADO do cache aparece COMPLETO e
+  // INSTANTÂNEO (nenhuma mensagem redigita — o indicador nunca monta para
+  // histórico restaurado).
+  await page.getByRole('tab', { name: 'Trilha' }).click();
+  await page.getByText('Node.js do Zero', { exact: false }).first().click();
+  await page.getByText('Aula E2E sobre funções', { exact: false }).first().click();
+  await expect(page.getByRole('heading', { name: 'Aula E2E sobre funções' })).toBeVisible();
+  await expect(page.getByText('Tutor E2E:', { exact: false })).toHaveCount(2);
+  await expect(page.getByText(/tutor digitando|tutor typing/i)).toHaveCount(0);
+
+  // OBSERVAÇÃO (ajuste REGISTRADO do REPLAN — limitação do harness E2E): o
+  // galho "HABILITADO" do gating NÃO é observável em e2e. (1) O stub do main
+  // NÃO persiste vereditos (buildE2ETrackRepo é em memória por chamada —
+  // electron/main está FORA do escopo desta onda), então após passar o
+  // desafio a re-busca de track.lesson devolve lastVerdict null e "Concluir
+  // aula" segue desabilitado na MESMA aula; (2) a única aula da fixture SEM
+  // desafios ('Aula E2E seguinte') está LOCKED (destrava em ordem — aula-1
+  // nunca é marcada done, e markTrackLessonDone também é em memória). Os dois
+  // galhos liberados ("sem desafios" e "todos passed") ficam cobertos pelos
+  // unit tests de isLessonFinishBlocked (tests/trackLessonState.test.ts) — o
+  // botão em si é o mesmo elemento, a condição é a função pura testada.
 });

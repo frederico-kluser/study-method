@@ -23,21 +23,19 @@
  * O seed da bolha é feito NA MONTAGEM (guard anti-StrictMode com ref) e o
  * "Gerar novo desafio" migrou para DENTRO da bolha (nunca-repetir intacto).
  *
+ * ONDA2-IMESSAGE (chat estilo iMessage + streaming + gating): as bolhas
+ * agora vivem em src/components/chat (ChatBubble com autor/nome/hora/avatar,
+ * TypewriterText e TypingIndicator). O streaming é SÓ EXIBIÇÃO: o texto
+ * COMPLETO fica no histórico (trackLessonState) e o corte é visual. O
+ * "Concluir aula" é BLOQUEADO enquanto houver desafio pendente
+ * (isLessonFinishBlocked — lê lastVerdict do payload track.lesson).
+ *
  * Entrada: `pendingTrackLesson` (Trilha → Aula) drenado na MONTAGEM
  * (src/lib/pendingSubject.ts) OU `nav.challengeErrorReport` (Desafio → Aula,
  * erro). Sem nenhum dos dois, a view mostra o seletor de trilhas (estado
  * vazio) — nunca gera.
  */
-import ReactMarkdown from 'react-markdown';
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  type ReactElement,
-  type ReactNode,
-} from 'react';
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState, type ReactElement } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   Alert,
@@ -67,7 +65,6 @@ import LockIcon from '@mui/icons-material/Lock';
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
 import MicIcon from '@mui/icons-material/Mic';
 import MicOffIcon from '@mui/icons-material/MicOff';
-import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 
 import { getApi } from '../../lib/apiBridge';
 import {
@@ -82,9 +79,11 @@ import { useChallengeNav } from '../../lib/challengeNav';
 import { useMicSTT } from '../../hooks/useMicSTT';
 import {
   applyTutorReply,
+  chatDaySeparator,
   chatHistory,
   clearChallengeError,
   createTrackLessonState,
+  isLessonFinishBlocked,
   pushUserMessage,
   seedChallengeError,
   type TrackLessonUiState,
@@ -99,113 +98,13 @@ import {
   createLessonChatHolder,
   saveLessonChat,
 } from '../../lib/lessonChatCache';
+import { ChatBubble } from '../../components/chat/ChatBubble';
+import { TypingIndicator } from '../../components/chat/TypingIndicator';
 import type {
   TrackChallengeSummaryDto,
   TrackLessonPayload,
 } from '../../../shared/ipc-contract';
 import type { ViewProps } from '../placeholders';
-
-/** Placeholder dos componentes de código do react-markdown (monospace). */
-function MarkdownComponents() {
-  return {
-    pre: ({ children }: { children?: ReactNode }) => (
-      <Box
-        component="pre"
-        sx={{
-          fontFamily: "'SFMono-Regular', 'JetBrains Mono', Menlo, Consolas, monospace",
-          bgcolor: 'action.hover',
-          borderRadius: 1,
-          p: 1,
-          overflowX: 'auto',
-          fontSize: '0.8125rem',
-          m: 0,
-        }}
-      >
-        {children}
-      </Box>
-    ),
-    code: ({ children }: { children?: ReactNode }) => (
-      <Box
-        component="code"
-        sx={{
-          fontFamily: "'SFMono-Regular', 'JetBrains Mono', Menlo, Consolas, monospace",
-          fontSize: '0.8125rem',
-        }}
-      >
-        {children}
-      </Box>
-    ),
-  };
-}
-
-/** Bolha de mensagem do chat (assistente à esquerda, aluno à direita). */
-function ChatBubble({
-  role,
-  content,
-  kind,
-  onRegenerate,
-  regenerateDisabled,
-}: {
-  role: 'assistant' | 'user';
-  content: string;
-  /** ONDA2 (error-flow): metadado de UI — a bolha de erro ganha a ação
-   *  "Gerar novo desafio" (o painel fechou; a regeneração migrou pra cá). */
-  kind?: 'message' | 'reply' | 'review';
-  onRegenerate?: () => void;
-  regenerateDisabled?: boolean;
-}): ReactElement {
-  const { t } = useTranslation();
-  const isUser = role === 'user';
-  return (
-    <Box
-      sx={{
-        display: 'flex',
-        justifyContent: isUser ? 'flex-end' : 'flex-start',
-      }}
-    >
-      <Box
-        sx={{
-          maxWidth: '78%',
-          bgcolor: isUser ? 'primary.main' : 'background.paper',
-          color: isUser ? 'primary.contrastText' : 'text.primary',
-          border: isUser ? 'none' : '1px solid',
-          borderColor: 'divider',
-          borderRadius: 2,
-          px: 1.5,
-          py: 1,
-        }}
-      >
-        {isUser ? (
-          <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap' }}>
-            {content}
-          </Typography>
-        ) : (
-          <>
-            <Box sx={{ '& p:first-of-type': { mt: 0 }, '& p:last-of-type': { mb: 0 } }}>
-              <ReactMarkdown components={MarkdownComponents()}>{content}</ReactMarkdown>
-            </Box>
-            {/* ONDA2 (error-flow, A4): "Gerar novo desafio" DENTRO da bolha de
-                erro (nunca-repetir preservado — a LLM vê os desafios errados
-                da aula). Desabilitado enquanto um turno está em voo. */}
-            {kind === 'review' ? (
-              <Button
-                size="small"
-                variant="outlined"
-                color="secondary"
-                onClick={onRegenerate}
-                disabled={regenerateDisabled}
-                startIcon={<AutoAwesomeIcon />}
-                sx={{ mt: 1 }}
-              >
-                {t('translation:challenge.regenerateButton')}
-              </Button>
-            ) : null}
-          </>
-        )}
-      </Box>
-    </Box>
-  );
-}
 
 export function LessonView(props: ViewProps): ReactElement {
   const { t, i18n } = useTranslation();
@@ -235,6 +134,63 @@ export function LessonView(props: ViewProps): ReactElement {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [sourcesOpen, setSourcesOpen] = useState(false);
   const [doneMarked, setDoneMarked] = useState(false);
+
+  // ─── ONDA2-IMESSAGE: streaming (efeito "digitação" ~100 tokens/s) ─────────
+  // O streaming é SÓ EXIBIÇÃO: o histórico guarda o texto COMPLETO (o modelo
+  // da Onda 1 é o contrato) e o TypewriterText corta visualmente. Só digitam
+  // as mensagens NOVAS desta sessão — `newMessageIndicesRef` marca (por
+  // índice no histórico) o que entrou DEPOIS da montagem/restauração: o par
+  // do seed NOVO (review + pergunta — reconhecido pelo ts do seed, pois o
+  // seedChallengeError recebe `now` injetado) e as respostas de 'next'/
+  // 'answer'. Mensagens RESTAURADAS do cache (ou de seed antigo) NÃO são
+  // marcadas → renderizam completas e instantâneas.
+  const newMessageIndicesRef = useRef<Set<number>>(new Set());
+  const markNew = useCallback((i: number): void => {
+    newMessageIndicesRef.current.add(i);
+  }, []);
+  // Índices das mensagens ATUALMENTE digitando (estado — vira o indicador
+  // "digitando" e o gating do "Gerar novo desafio" da review).
+  const [streamingIds, setStreamingIds] = useState<ReadonlySet<number>>(() => new Set());
+  const handleStreamStart = useCallback((i: number): void => {
+    setStreamingIds((prev) => {
+      if (prev.has(i)) return prev;
+      const next = new Set(prev);
+      next.add(i);
+      return next;
+    });
+  }, []);
+  const handleStreamDone = useCallback((i: number): void => {
+    setStreamingIds((prev) => {
+      if (!prev.has(i)) return prev;
+      const next = new Set(prev);
+      next.delete(i);
+      return next;
+    });
+  }, []);
+  // Região com scroll do chat (a Box com overflowY do render).
+  const logScrollRef = useRef<HTMLDivElement | null>(null);
+  // Auto-scroll DURANTE a digitação: a cada step do typewriter (onStreamTick)
+  // o painel desce direto ao fim (scrollTop = scrollHeight). DECISÃO
+  // (documentada no handoff — pedido explícito do dono): auto-scroll SEMPRE
+  // durante a digitação ativa, mesmo se o usuário rolou para cima.
+  const handleStreamTick = useCallback((): void => {
+    const el = logScrollRef.current;
+    if (el) el.scrollTop = el.scrollHeight;
+  }, []);
+  // Nudge de fim: quando o conjunto de mensagens digitando muda (início/fim)
+  // ou o histórico cresce (mensagem nova entra), garante o fim à vista.
+  useEffect(() => {
+    const el = logScrollRef.current;
+    if (el) el.scrollTop = el.scrollHeight;
+  }, [chat.history.length, streamingIds]);
+
+  // ONDA2-IMESSAGE (gating do "Concluir aula"): bloqueado quando há desafios
+  // E algum NÃO passou (lastVerdict !== 'passed' — null = nunca tentado). O
+  // payload track.lesson é RE-BUSCADO na abertura da aula — um desafio
+  // passado na ChallengeView reflete aqui na volta. Sem desafios → liberado.
+  // Guard de null ANTES do lesson carregar (os early returns de loading/erro
+  // usam o estado abaixo sem renderizar o botão).
+  const challengesPending = lesson ? isLessonFinishBlocked(lesson.challenges) : false;
 
   // ONDA2 (error-flow, A5): mic no input do chat — o aluno pode responder à
   // pergunta do erro por VOZ (ou tirar qualquer dúvida falando). DECISÃO:
@@ -403,8 +359,22 @@ export function LessonView(props: ViewProps): ReactElement {
           // as bolhas do erro entram depois (dedupe por challengeId do seed:
           // falha repetida do MESMO desafio não re-semeia). Sem cache, cai no
           // comportamento atual (seed sobre o estado vazio).
-          setChat((s) =>
-            seedChallengeError(cached ?? s, report, tIRef.current('lesson.errorQuestion'), {
+          //
+          // ONDA2-IMESSAGE (streaming): o seed é computado SINCRONAMENTE (a
+          // lib é pura) para MARCAR o par NOVO como digitável — a review
+          // seedada DIGITA (pedido explícito do dono) e a pergunta idem. O
+          // histórico RESTAURADO do cache NÃO digita (não marcado). O `now`
+          // do seed é INJETADO: as duas mensagens do par carregam o seedNow
+          // (a review com errorFor + a pergunta 'message'), então são
+          // reconhecidas pelo ts — inclusive quando o retry REPÕE o par no
+          // MEIO do histórico (índice menor que o do fim do cache).
+          const base = cached ?? createTrackLessonState();
+          const seedNow = Date.now();
+          const seeded = seedChallengeError(
+            base,
+            report,
+            tIRef.current('lesson.errorQuestion'),
+            {
               title: tIRef.current('lesson.errorBubbleTitle'),
               partialCount: tIRef.current('challenge.partialCount', {
                 passed: report.passedCount,
@@ -412,8 +382,13 @@ export function LessonView(props: ViewProps): ReactElement {
               }),
               checksTitle: tIRef.current('challenge.checksTitle'),
               outputTitle: tIRef.current('challenge.output'),
-            }),
+            },
+            seedNow,
           );
+          setChat(seeded);
+          for (let i = 0; i < seeded.history.length; i++) {
+            if (seeded.history[i].ts === seedNow) markNew(i);
+          }
           nav.clearChallengeError();
           return loadLesson(report.trackSlug, report.lessonId);
         }
@@ -437,7 +412,7 @@ export function LessonView(props: ViewProps): ReactElement {
     }
     return undefined;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [loadLesson, publishSession]);
+  }, [loadLesson, publishSession, markNew]);
 
   // FIX W1 (onda 4): canais de AÇÃO com withTimeout — se o IPC ficar MUDO
   // (main preso, resposta perdida), o `busy`/`pendingAction` SEMPRE limpam no
@@ -448,6 +423,10 @@ export function LessonView(props: ViewProps): ReactElement {
     if (!trackLesson || busy) return;
     setBusy(true);
     setPendingAction('next');
+    // ONDA2-IMESSAGE: a resposta do 'next' entra no FIM do histórico — marca
+    // o índice ANTES do append para o TypewriterText DIGITAR (se a resposta
+    // for vazia — teoria concluída — o índice não existe e o mark é no-op).
+    const nextIndex = chat.history.length;
     try {
       const res = await withTimeout(
         getApi().track.tutorChat({
@@ -464,6 +443,7 @@ export function LessonView(props: ViewProps): ReactElement {
       // retoma e a discussão do erro encerra (as bolhas continuam na
       // conversa; só o challengeError deixa de acompanhar os turnos).
       setChat((s) => clearChallengeError(applyTutorReply(s, res)));
+      markNew(nextIndex);
     } catch (err) {
       setChat((s) => ({
         ...s,
@@ -473,7 +453,7 @@ export function LessonView(props: ViewProps): ReactElement {
       setBusy(false);
       setPendingAction(null);
     }
-  }, [trackLesson, busy, chat.presentedSections, chat.history, tI]);
+  }, [trackLesson, busy, chat.presentedSections, chat.history, tI, markNew]);
 
   const sendAnswer = useCallback(async (): Promise<void> => {
     const text = draft.trim();
@@ -482,6 +462,10 @@ export function LessonView(props: ViewProps): ReactElement {
     // (o turno em voo desabilita o botão; sem o cancel, a gravação ficaria
     // presa sem como parar — a transcrição parcial não vira segundo envio).
     if (mic.transcribing) void mic.cancel();
+    // ONDA2-IMESSAGE: a pergunta entra no índice `nextIndex` e a resposta do
+    // tutor logo em seguida (`nextIndex + 1`) — marca a RESPOSTA para
+    // DIGITAR (a pergunta do aluno é instantânea — ele mesmo digitou).
+    const nextIndex = chat.history.length;
     setDraft('');
     setChat((s) => pushUserMessage(s, text));
     setBusy(true);
@@ -503,6 +487,7 @@ export function LessonView(props: ViewProps): ReactElement {
         'track.tutorChat:answer',
       );
       setChat((s) => applyTutorReply(s, res));
+      markNew(nextIndex + 1);
     } catch (err) {
       // Timeout → mensagem clara; o "digitando…" (pendingAction) desliga no finally.
       setChat((s) => ({
@@ -513,11 +498,14 @@ export function LessonView(props: ViewProps): ReactElement {
       setBusy(false);
       setPendingAction(null);
     }
-  }, [trackLesson, draft, busy, chat.presentedSections, chat.history, chat.challengeError, mic.transcribing, mic.cancel, tI]);
+  }, [trackLesson, draft, busy, chat.presentedSections, chat.history, chat.challengeError, mic.transcribing, mic.cancel, tI, markNew]);
 
   /** Conclui a aula (destrava a próxima) e publica a sessão. */
   const finishLesson = useCallback(async (): Promise<void> => {
-    if (!trackLesson || busy || !chat.theoryDone || doneMarked) return;
+    // ONDA2-IMESSAGE (gating): a aula SÓ termina com todos os desafios
+    // concluídos — defensivo (o botão já vem desabilitado, mas o guard
+    // também protege um possível disparo por atalho/estado antigo).
+    if (!trackLesson || busy || !chat.theoryDone || doneMarked || challengesPending) return;
     setBusy(true);
     try {
       await withTimeout(
@@ -544,7 +532,7 @@ export function LessonView(props: ViewProps): ReactElement {
     } finally {
       setBusy(false);
     }
-  }, [trackLesson, busy, chat.theoryDone, doneMarked, lesson?.title, publishSession, tI]);
+  }, [trackLesson, busy, chat.theoryDone, doneMarked, challengesPending, lesson?.title, publishSession, tI]);
 
   /** Abre UM desafio da aula na ChallengeView (fluxo track). */
   const openChallenge = useCallback(
@@ -735,6 +723,7 @@ export function LessonView(props: ViewProps): ReactElement {
             ocupar TODA a altura disponível do painel main; `minHeight: 0`
             permite encolher até caber a entrada fixa embaixo. */}
         <Box
+          ref={logScrollRef}
           sx={{
             flexGrow: 1,
             minHeight: 0,
@@ -773,26 +762,50 @@ export function LessonView(props: ViewProps): ReactElement {
               </Button>
             </Box>
           ) : (
-            chat.history.map((m, i) => (
-              <ChatBubble
-                key={i}
-                role={m.role}
-                content={m.content}
-                kind={m.kind}
-                onRegenerate={m.kind === 'review' ? handleRegenerateFromBubble : undefined}
-                regenerateDisabled={busy}
-              />
-            ))
+            <>
+              {chat.history.map((m, i) => {
+                // Separador de dia centralizado quando a data MUDOU em
+                // relação à bolha anterior ("Hoje"/"Ontem"/data completa —
+                // decisões documentadas em chatDaySeparator).
+                const prev = i > 0 ? chat.history[i - 1] : undefined;
+                const daySep = chatDaySeparator(m.ts, prev?.ts, i18n.language ?? 'pt-BR');
+                return (
+                  <Fragment key={i}>
+                    {daySep ? (
+                      <Box sx={{ textAlign: 'center', mt: 0.5 }}>
+                        <Typography variant="caption" color="text.secondary">
+                          {daySep.kind === 'today'
+                            ? t('translation:lesson.dayToday')
+                            : daySep.kind === 'yesterday'
+                              ? t('translation:lesson.dayYesterday')
+                              : daySep.label}
+                        </Typography>
+                      </Box>
+                    ) : null}
+                    <ChatBubble
+                      message={m}
+                      // Só mensagens NOVAS da sessão digitam (cache/seed
+                      // antigo → completas e instantâneas).
+                      isNew={newMessageIndicesRef.current.has(i)}
+                      streaming={streamingIds.has(i)}
+                      onRegenerate={m.kind === 'review' ? handleRegenerateFromBubble : undefined}
+                      regenerateDisabled={busy}
+                      onStreamStart={() => handleStreamStart(i)}
+                      onStreamDone={() => handleStreamDone(i)}
+                      onStreamTick={handleStreamTick}
+                    />
+                  </Fragment>
+                );
+              })}
+              {/* ONDA2-IMESSAGE: indicador "digitando" ANIMADO — montado SÓ
+                  enquanto a digitação está ativa (turno 'answer' aguardando a
+                  LLM OU alguma bolha digitando); sai do DOM ao terminar
+                  (mount condicional — os e2e nunca casam texto oculto). */}
+              {busy && pendingAction === 'answer' || streamingIds.size > 0 ? (
+                <TypingIndicator />
+              ) : null}
+            </>
           )}
-          {/* ONDA 1 (teoria-pronta): "digitando…" SÓ em 'answer' (LLM). 'next' é
-              instantâneo — o markdown da seção já está no arquivo da trilha. */}
-          {busy && pendingAction === 'answer' ? (
-            <Box sx={{ display: 'flex', justifyContent: 'flex-start' }}>
-              <Typography variant="caption" color="text.secondary" sx={{ fontStyle: 'italic' }}>
-                {t('translation:lesson.typing')}
-              </Typography>
-            </Box>
-          ) : null}
           </Box>
 
           {/* Desafios da aula (gerados na trilha; abertos na ChallengeView).
@@ -924,12 +937,23 @@ export function LessonView(props: ViewProps): ReactElement {
               {t('translation:lesson.nextButton')}
             </Button>
           ) : (
-            <Tooltip title={doneMarked ? t('translation:lesson.doneMarked') : ''}>
+            <Tooltip
+              title={
+                doneMarked
+                  ? t('translation:lesson.doneMarked')
+                  : challengesPending
+                    ? t('translation:lesson.finishBlockedTooltip')
+                    : ''
+              }
+            >
               <span>
                 <Button
                   variant="contained"
                   onClick={() => void finishLesson()}
-                  disabled={busy || doneMarked}
+                  // ONDA2-IMESSAGE (gating): DESABILITADO com desafios
+                  // pendentes (tooltip i18n só quando bloqueado); liberado com
+                  // todos passed ou sem desafios.
+                  disabled={busy || doneMarked || challengesPending}
                   startIcon={doneMarked ? <CheckCircleIcon /> : <LockIcon />}
                   sx={{ whiteSpace: 'nowrap' }}
                 >

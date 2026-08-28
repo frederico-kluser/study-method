@@ -45,6 +45,7 @@
 import type {
   TrackChallengeErrorReport,
   TrackSubmitResult,
+  TrackVerdict,
   TutorMessage,
   TutorReply,
 } from '../../shared/ipc-contract';
@@ -212,6 +213,92 @@ export function typewriterDelayPerChar(tps: number = 100): number {
 /** true quando o typewriter JÁ "digitou" o texto inteiro (cut >= length). */
 export function typewriterIsDone(text: string, elapsedMs: number, tps: number = 100): boolean {
   return typewriterCut(text, elapsedMs, tps) >= text.length;
+}
+
+// ─── ONDA2-IMESSAGE (chat estilo iMessage): hora, separador de dia e gating ──
+
+/**
+ * Hora da bolha (HH:MM — 24h fixo nos DOIS idiomas; decisão documentada no
+ * handoff: o pedido do dono é "HH:MM" e o relógio de 24h evita ambiguidade
+ * AM/PM nas duas línguas). O `ts` vem do modelo — o cache preserva, então uma
+ * mensagem restaurada mostra a hora ORIGINAL de criação. PURA e injetável.
+ */
+export function formatChatTime(ts: number, locale: string): string {
+  return new Intl.DateTimeFormat(locale, {
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  }).format(ts);
+}
+
+/**
+ * Separador de dia centralizado do chat (estilo iMessage): null quando a
+ * mensagem cai no MESMO dia da anterior; `{ kind: 'today' }` / `'yesterday'`
+ * (a UI traduz via i18n — a lib é pura) quando o dia muda para hoje/ontem;
+ * `{ kind: 'date', label }` com a data COMPLETA no locale do app (ex.:
+ * "15 de jul. de 2026" / "Jul 15, 2026") para dias mais antigos. Sem mensagem
+ * anterior → null (nenhum separador antes da primeira bolha). DECISÃO:
+ * sempre inclui o ano na data completa (uma aula retomada do cache pode
+ * atravessar anos). `now` injetável para testes determinísticos.
+ */
+export type ChatDaySeparator =
+  | { kind: 'today' }
+  | { kind: 'yesterday' }
+  | { kind: 'date'; label: string };
+
+export function chatDaySeparator(
+  ts: number,
+  prevTs: number | undefined,
+  locale: string,
+  now: number = Date.now(),
+): ChatDaySeparator | null {
+  if (prevTs === undefined) return null;
+  const d = new Date(ts);
+  const p = new Date(prevTs);
+  const sameDay =
+    d.getFullYear() === p.getFullYear() &&
+    d.getMonth() === p.getMonth() &&
+    d.getDate() === p.getDate();
+  if (sameDay) return null;
+  const today = new Date(now);
+  if (
+    d.getFullYear() === today.getFullYear() &&
+    d.getMonth() === today.getMonth() &&
+    d.getDate() === today.getDate()
+  ) {
+    return { kind: 'today' };
+  }
+  const yesterday = new Date(now);
+  yesterday.setDate(yesterday.getDate() - 1);
+  if (
+    d.getFullYear() === yesterday.getFullYear() &&
+    d.getMonth() === yesterday.getMonth() &&
+    d.getDate() === yesterday.getDate()
+  ) {
+    return { kind: 'yesterday' };
+  }
+  return {
+    kind: 'date',
+    label: new Intl.DateTimeFormat(locale, {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+    }).format(ts),
+  };
+}
+
+/**
+ * GATING do "Concluir aula" (ONDA2-imessage): a aula SÓ termina com todos os
+ * desafios concluídos — bloqueado quando há desafios E algum não passou
+ * (`lastVerdict !== 'passed'` — null = nunca tentado, failed/timeout/
+ * abandoned = não passou). Sem desafios → liberado. O payload `track.lesson`
+ * traz `lastVerdict` (a re-busca na abertura cobre o estado recém-gravado).
+ * PURA e testável.
+ */
+export function isLessonFinishBlocked(
+  challenges: readonly { lastVerdict: TrackVerdict | null }[],
+): boolean {
+  return challenges.length > 0 && challenges.some((c) => c.lastVerdict !== 'passed');
 }
 
 // ─── ONDA2 (error-flow): relatório do erro + bolha determinística ────────────

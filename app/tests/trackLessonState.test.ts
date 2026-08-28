@@ -41,16 +41,26 @@
  *  14. Helpers de streaming puros: typewriterCut (0ms→0, fim→length,
  *      monotônico, tps configurável), typewriterDelayPerChar (~2.5ms no
  *      default) e typewriterIsDone.
+ *
+ * ONDA2-IMESSAGE (chat estilo iMessage — a Onda 2 consome):
+ *  15. formatChatTime → HH:MM 24h fixo nos dois idiomas (ts do modelo).
+ *  16. chatDaySeparator → null mesmo dia/sem anterior; hoje/ontem/data
+ *      completa no locale (label com o ano).
+ *  17. isLessonFinishBlocked → sem desafios libera; todos passed libera;
+ *      pendente (null/failed) bloqueia.
  */
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   applyTutorReply,
   buildErrorReport,
+  chatDaySeparator,
   chatHistory,
   clearChallengeError,
   createTrackLessonState,
+  formatChatTime,
   formatErrorBubble,
+  isLessonFinishBlocked,
   presentedCount,
   pushUserMessage,
   seedChallengeError,
@@ -490,5 +500,60 @@ describe('trackLessonState — onda1 typewriter (streaming puro)', () => {
     assert.equal(typewriterIsDone(text, 5000, 50), true, 'tps=50 → 200 chars/s → 5s cobre');
     assert.equal(typewriterIsDone(text, 4000, 50), false, 'tps=50 → 4s cobre só 800 chars');
     assert.equal(typewriterIsDone('', 0), true, 'texto vazio já está "digitado"');
+  });
+});
+
+describe('trackLessonState — onda2-imessage (hora, separador de dia e gating)', () => {
+  it('formatChatTime: HH:MM 24h fixo nos dois idiomas (ts do modelo)', () => {
+    const ts = new Date(2026, 7, 28, 9, 5).getTime();
+    assert.equal(formatChatTime(ts, 'pt-BR'), '09:05', 'pt-BR → HH:MM 24h');
+    assert.equal(formatChatTime(ts, 'en'), '09:05', 'en → HH:MM 24h (sem AM/PM)');
+    const meiaNoite = new Date(2026, 7, 28, 0, 0).getTime();
+    assert.equal(formatChatTime(meiaNoite, 'pt-BR'), '00:00', 'meia-noite → 00:00');
+  });
+
+  it('chatDaySeparator: null no mesmo dia; hoje/ontem/data completa; sem anterior → null', () => {
+    // `now` fixo em 2026-08-28 12:00 (local) — os construtores com y/m/d são
+    // LOCAIS, então as comparações de dia independem do fuso do runner.
+    const now = new Date(2026, 7, 28, 12, 0).getTime();
+    const hojeManha = new Date(2026, 7, 28, 8, 0).getTime();
+    const hojeMadrugada = new Date(2026, 7, 28, 0, 10).getTime();
+    const ontem = new Date(2026, 7, 27, 10, 0).getTime();
+    const anteontem = new Date(2026, 7, 26, 10, 0).getTime();
+    const mesPassado = new Date(2026, 6, 15, 10, 0).getTime();
+    // mesmo dia → null (nada a separar).
+    assert.equal(chatDaySeparator(hojeManha, hojeMadrugada, 'pt-BR', now), null);
+    // primeira mensagem do histórico (sem anterior) → null.
+    assert.equal(chatDaySeparator(hojeManha, undefined, 'pt-BR', now), null);
+    // dia muda para HOJE (a mensagem é de hoje, a anterior é de ontem).
+    assert.deepEqual(chatDaySeparator(hojeManha, ontem, 'pt-BR', now), { kind: 'today' });
+    // dia muda para ONTEM.
+    assert.deepEqual(chatDaySeparator(ontem, anteontem, 'pt-BR', now), { kind: 'yesterday' });
+    // dia mais antigo → data completa no locale (label com o ano).
+    const sep = chatDaySeparator(mesPassado, ontem, 'pt-BR', now);
+    assert.ok(sep !== null && sep.kind === 'date', 'dia antigo → data completa');
+    if (sep && sep.kind === 'date') {
+      assert.ok(sep.label.includes('2026'), `label pt-BR traz o ano: ${sep.label}`);
+    }
+    const sepEn = chatDaySeparator(mesPassado, ontem, 'en', now);
+    if (sepEn && sepEn.kind === 'date') {
+      assert.ok(sepEn.label.includes('2026'), `label en traz o ano: ${sepEn.label}`);
+    }
+  });
+
+  it('isLessonFinishBlocked: sem desafios libera; todos passed libera; pendente/falha bloqueia', () => {
+    assert.equal(isLessonFinishBlocked([]), false, 'sem desafios → liberado');
+    assert.equal(
+      isLessonFinishBlocked([{ lastVerdict: 'passed' }, { lastVerdict: 'passed' }]),
+      false,
+      'todos passed → liberado',
+    );
+    assert.equal(isLessonFinishBlocked([{ lastVerdict: null }]), true, 'nunca tentado → bloqueia');
+    assert.equal(isLessonFinishBlocked([{ lastVerdict: 'failed' }]), true, 'failed → bloqueia');
+    assert.equal(
+      isLessonFinishBlocked([{ lastVerdict: 'passed' }, { lastVerdict: null }]),
+      true,
+      'um pendente entre passed → bloqueia',
+    );
   });
 });
