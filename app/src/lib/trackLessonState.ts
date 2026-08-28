@@ -21,8 +21,8 @@
  * da aula reabre com DUAS bolhas semeadas por `seedChallengeError`:
  * `kind: 'error-bubble'` (markdown determinístico do erro — ver
  * `formatErrorBubble`) e `kind: 'error-question'` (a pergunta do tutor "o que
- * você acha que errou?"). O `kind` é METADADOS DE UI — `chatHistory` o STRIPA
- * antes de enviar ao main (o histórico é texto puro).
+ * você acha que errou?"). O `kind` e o `errorFor` são METADADOS DE UI —
+ * `chatHistory` os STRIPA antes de enviar ao main (o histórico é texto puro).
  */
 import type {
   TrackChallengeErrorReport,
@@ -41,6 +41,15 @@ export interface TutorChatMessage {
    * (chatHistory stripa).
    */
   kind?: 'error-bubble' | 'error-question';
+  /**
+   * ADITIVO (onda3-fix): challengeId da bolha 'error-bubble' — o dedupe do
+   * seed escaneia o HISTÓRICO por ele (`clearChallengeError`/'next' zera o
+   * `challengeError` mas as bolhas ficam na conversa; uma 2ª falha do MESMO
+   * desafio não pode re-semeiar). Presente SÓ na mensagem 'error-bubble' (o
+   * 'error-question' não precisa). NUNCA trafega no histórico enviado ao main
+   * (chatHistory stripa).
+   */
+  errorFor?: string;
 }
 
 export interface TrackLessonUiState {
@@ -104,6 +113,8 @@ export function pushUserMessage(state: TrackLessonUiState, text: string): TrackL
  * O histórico enviado ao main (mensagens PURAS). ONDA2 (error-flow): o `kind`
  * das bolhas de erro é metadado de UI — STRIPADO aqui (o contrato do main
  * trafega só role/content; as bolhas continuam no histórico como texto).
+ * ONDA3-FIX: `errorFor` (challengeId da bolha) é o MESMO tipo de metadado e
+ * também é STRIPADO.
  */
 export function chatHistory(state: TrackLessonUiState): TutorChatMessage[] {
   return state.history.map((m) => ({ role: m.role, content: m.content }));
@@ -213,9 +224,16 @@ export function formatErrorBubble(
  *
  *   - DEDUPE POR challengeId: o MESMO desafio já semeado → no-op (guard
  *     anti-StrictMode/remount — a bolha nasce UMA única vez);
+ *   - DEDUPE PELO HISTÓRICO (onda3-fix): o `sendNext` zera `challengeError`
+ *     (`clearChallengeError`) mas MANTÉM as bolhas na conversa; uma 2ª falha
+ *     do MESMO desafio depois do 'next' já está representada no histórico
+ *     (bolha 'error-bubble' com `errorFor === challengeId`) → no-op. O
+ *     `errorFor` é o critério (não o markdown da bolha — duas tentativas do
+ *     mesmo desafio podem ter output/checks DIFERENTES);
  *   - desafio DIFERENTE → REPÕE as bolhas do erro anterior (remove as
  *     mensagens kind 'error-bubble'/'error-question' antigas e insere as
- *     novas no MESMO ponto);
+ *     novas no MESMO ponto — inclusive quando `challengeError` já foi zerado
+ *     pelo 'next' e o diálogo antigo só vive no histórico);
  *   - insere a bolha de erro (kind 'error-bubble', markdown de
  *     `formatErrorBubble`) + a bolha da pergunta (kind 'error-question') e
  *     grava `challengeError` no estado.
@@ -230,9 +248,15 @@ export function seedChallengeError(
   labels: Partial<ErrorBubbleLabels> = {},
 ): TrackLessonUiState {
   if (state.challengeError?.challengeId === report.challengeId) return state;
+  // ONDA3-FIX: o dedupe também escaneia o HISTÓRICO — após o 'next' o
+  // challengeError está null mas a bolha do erro anterior segue na conversa.
+  if (state.history.some((m) => m.kind === 'error-bubble' && m.errorFor === report.challengeId)) {
+    return state;
+  }
   const errorBubble: TutorChatMessage = {
     role: 'assistant',
     kind: 'error-bubble',
+    errorFor: report.challengeId,
     content: formatErrorBubble(report, labels),
   };
   const questionBubble: TutorChatMessage = {
@@ -240,11 +264,12 @@ export function seedChallengeError(
     kind: 'error-question',
     content: questionText,
   };
-  const prev = state.challengeError ? state.challengeError.challengeId : null;
   let history = state.history;
-  if (prev) {
+  if (history.some((m) => m.kind === 'error-bubble' || m.kind === 'error-question')) {
     // REPÕE: remove as bolhas do erro ANTERIOR no ponto em que estavam e
     // re-insere as novas no mesmo lugar (o diálogo do erro vira o novo erro).
+    // O dedupe de cima garante que as bolhas no histórico são de OUTRO
+    // desafio — aqui é sempre REPOSIÇÃO, nunca duplicação.
     const insertAt = history.findIndex((m) => m.kind === 'error-bubble' || m.kind === 'error-question');
     history = history.filter((m) => m.kind !== 'error-bubble' && m.kind !== 'error-question');
     if (insertAt >= 0) {

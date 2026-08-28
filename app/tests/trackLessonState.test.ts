@@ -16,6 +16,12 @@
  *      desafio diferente → REPÕE as bolhas antigas) e grava challengeError.
  *   8. clearChallengeError zera challengeError mantendo o histórico.
  *   9. chatHistory STRIPA o kind (o histórico ao main é texto puro).
+ *
+ * ONDA3-FIX (regressão do dedupe pós-'next'): o 'next' (clearChallengeError)
+ * zera o challengeError mas MANTÉM as bolhas — uma 2ª falha do MESMO desafio
+ * não pode re-semeiar (4 bolhas no chat). O seed agora deduplica também pelo
+ * HISTÓRICO (bolha 'error-bubble' com `errorFor` = challengeId) e o
+ * chatHistory STRIPA o `errorFor` junto com o `kind`.
  */
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
@@ -231,12 +237,44 @@ describe('trackLessonState — onda2 error-flow', () => {
     assert.equal(clearChallengeError(s2), s2, 'sem contexto, clear é no-op');
   });
 
-  it('chatHistory STRIPA o kind — o histórico ao main é texto puro', () => {
+  it('ONDA3-FIX: 2ª falha do MESMO desafio APÓS o next (clearChallengeError) NÃO re-semeia — dedupe pelo histórico', () => {
+    const s1 = seedChallengeError(createTrackLessonState(), report(), 'pergunta 1');
+    // Usuário aperta "Próximo": a teoria retoma — contexto zerado, bolhas FICAM.
+    const s2 = clearChallengeError(s1);
+    assert.equal(s2.challengeError, null);
+    assert.equal(s2.history.length, 2, 'bolhas seguem na conversa');
+    // O desafio falho segue clicável na lista da aula → nova falha do MESMO
+    // desafio com o contexto já zerado. ANTES da onda3-fix isto re-semeiava
+    // (4 bolhas no chat): o guard de dedupe via `challengeError` era cego ao
+    // histórico.
+    const s3 = seedChallengeError(s2, report(), 'pergunta 2 (não pode duplicar)');
+    assert.equal(s3, s2, 'estado NÃO pode ser objeto novo');
+    assert.equal(s3.history.length, 2, 'histórico continua com 2 bolhas (não 4)');
+    assert.equal(s3.history[1].content, 'pergunta 1');
+  });
+
+  it('ONDA3-FIX: desafio DIFERENTE APÓS o next (clearChallengeError) REPÕE as bolhas antigas', () => {
+    const s1 = seedChallengeError(createTrackLessonState(), report(), 'pergunta 1');
+    const s2 = clearChallengeError(s1);
+    assert.equal(s2.challengeError, null);
+    const segundo = report({ challengeId: 'dobro-outro', challengeTitle: 'Outro desafio' });
+    const s3 = seedChallengeError(s2, segundo, 'E agora?');
+    assert.equal(s3.history.length, 2, 'bolhas antigas REMOVIDAS, só as novas ficam');
+    assert.equal(s3.history[0].kind, 'error-bubble');
+    assert.equal(s3.history[0].errorFor, 'dobro-outro');
+    assert.ok(s3.history[0].content.includes('**Outro desafio**'));
+    assert.equal(s3.history[1].content, 'E agora?');
+    assert.equal(s3.challengeError?.challengeId, 'dobro-outro');
+  });
+
+  it('chatHistory STRIPA o kind E o errorFor — o histórico ao main é texto puro', () => {
     const s1 = seedChallengeError(createTrackLessonState(), report(), 'pergunta');
+    assert.equal(s1.history[0].errorFor, 'dobro-do-numero', 'no estado, a bolha carrega o errorFor');
     const hist = chatHistory(s1);
     assert.equal(hist.length, 2);
     for (const m of hist) {
       assert.ok(!('kind' in m), `kind não pode trafegar ao main (${JSON.stringify(m)})`);
+      assert.ok(!('errorFor' in m), `errorFor não pode trafegar ao main (${JSON.stringify(m)})`);
       assert.deepEqual(Object.keys(m).sort(), ['content', 'role']);
     }
     assert.equal(hist[0].content, s1.history[0].content);
