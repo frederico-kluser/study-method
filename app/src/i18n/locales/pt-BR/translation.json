@@ -134,32 +134,6 @@
     "continue": "Continuar",
     "answerLabel": "Sua resposta",
     "answerSubmit": "Enviar",
-    "research": {
-      "title": "Pesquisa ao vivo",
-      "round": "Rodada {{current}} de {{total}}",
-      "concluded": "{{done}} de {{total}} concluídas",
-      "uniqueSources": "{{count}} fontes únicas",
-      "summary": "Pesquisa concluída: {{ok}} ok, {{failed}} falhas, {{unique}} fontes únicas",
-      "stopped": "Pesquisa interrompida",
-      "status": {
-        "pending": "Aguardando",
-        "running": "Pesquisando…",
-        "done": "Concluída",
-        "failed": "Falhou"
-      },
-      "hits": "{{count}} resultados",
-      "queryFailed": "Falha na busca",
-      "errorCodes": {
-        "BRAVE_KEY_MISSING": "Chave da Brave Search não configurada",
-        "BRAVE_KEY_INVALID": "Chave da Brave Search inválida",
-        "BRAVE_RATE_LIMIT": "Limite da Brave Search atingido",
-        "BRAVE_SERVER_ERROR": "Erro do servidor da Brave Search"
-      },
-      "phaseError": {
-        "BRAVE_KEY_MISSING": "A geração da aula exige a chave da Brave Search — cadastre-a em Configurações para pesquisar.",
-        "BRAVE_KEY_INVALID": "A chave da Brave Search foi rejeitada — revise-a em Configurações e tente de novo."
-      }
-    },
     "answer": {
       "correct": "Sua resposta está correta.",
       "partial": "Resposta parcial.",
@@ -197,7 +171,8 @@
     "challengeUntried": "Nunca tentado",
     "sourcesTitle": "Fontes desta aula",
     "trackNotFound": "Aula não encontrada na trilha.",
-    "trackLoadFailed": "Não foi possível carregar a aula."
+    "trackLoadFailed": "Não foi possível carregar a aula.",
+    "trackLoadTimeout": "A aula não respondeu a tempo. Tente novamente."
   },
   "challenge": {
     "openChallenge": "Abrir desafio",
@@ -251,6 +226,7 @@
     "statementPane": "Enunciado",
     "editorPane": "Editor",
     "trackNotFound": "Desafio não encontrado na trilha.",
+    "trackLoadTimeout": "O desafio não respondeu a tempo. Tente novamente.",
     "difficulty": "dificuldade {{n}}",
     "testsCount": "{{n}} teste(s)",
     "generatedBadge": "novo desafio",
@@ -275,7 +251,8 @@
     "offlineTip": "Conecte-se à internet e tente novamente.",
     "tryAgain": "Tentar novamente",
     "title": "Antes de começar",
-    "readError": "Não foi possível consultar o estado das chaves de API. Verifique se o app iniciou corretamente e tente novamente."
+    "readError": "Não foi possível consultar o estado das chaves de API. Verifique se o app iniciou corretamente e tente novamente.",
+    "startupTimeout": "Não foi possível iniciar — o aplicativo não respondeu. Tente novamente."
   },
   "editor": {
     "openFile": "Abrir arquivo",
@@ -310,7 +287,8 @@
     "error": "Erro",
     "loading": "Carregando…",
     "back": "Voltar",
-    "close": "Fechar"
+    "close": "Fechar",
+    "tryAgain": "Tentar de novo"
   },
   "home": {
     "title": "Aprenda programação e matemática com aulas geradas por IA",
@@ -372,6 +350,8 @@
     },
     "tracksTitle": "Trilhas",
     "tracksDescription": "Cursos prontos, do zero ao profissional. Escolha uma trilha e comece.",
+    "tracksLoadFailed": "Não foi possível carregar as trilhas.",
+    "tracksTimeout": "As trilhas não responderam a tempo. Tente novamente.",
     "trackProgress": "{{done}}/{{total}}"
   },
   "tutorial": {
@@ -606,6 +586,7 @@
     "pickTitle": "Escolha uma trilha",
     "notFound": "Trilha não encontrada.",
     "loadFailed": "Não foi possível carregar a trilha.",
+    "loadTimeout": "A trilha não respondeu a tempo. Tente novamente.",
     "noTracks": "Nenhuma trilha instalada ainda. As trilhas são criadas pelos autores da ferramenta (CLI).",
     "proficiencyTitle": "Teste de proficiência",
     "proficiencyDescription": "Um desafio que cobre TODOS os módulos da trilha. Passe nele para destravar o curso inteiro e começar de onde quiser.",

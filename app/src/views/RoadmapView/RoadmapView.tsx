@@ -49,6 +49,7 @@ import WorkspacePremiumIcon from '@mui/icons-material/WorkspacePremium';
 import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
 
 import { getApi } from '../../lib/apiBridge';
+import { IPC_TIMEOUT_MS, isTimeoutError, withTimeout } from '../../lib/ipcTimeout';
 import { useChallengeNav } from '../../lib/challengeNav';
 import { drainPendingTrackSlug, setPendingTrackLesson } from '../../lib/pendingSubject';
 import type { TrackDetailPayload, TrackLessonEntry, TrackModuleEntry } from '../../../shared/ipc-contract';
@@ -197,8 +198,9 @@ export function RoadmapView(props: ViewProps): ReactElement {
     setLoading(true);
     setLoadError(null);
     let cancelled = false;
-    getApi()
-      .track.get({ trackSlug })
+    // Timeout: canal mudo (IPC nunca resolve) vira loadError com retry —
+    // nenhum spinner eterno no detalhe da trilha.
+    withTimeout(getApi().track.get({ trackSlug }), IPC_TIMEOUT_MS, 'track.get')
       .then((res) => {
         if (cancelled) return;
         if (res.ok === false) {
@@ -211,8 +213,39 @@ export function RoadmapView(props: ViewProps): ReactElement {
         }
         setTrack(res.track);
       })
-      .catch(() => {
-        if (!cancelled) setLoadError(t('translation:roadmap.loadFailed'));
+      .catch((err: unknown) => {
+        if (cancelled) return;
+        setLoadError(
+          isTimeoutError(err)
+            ? t('translation:roadmap.loadTimeout')
+            : t('translation:roadmap.loadFailed'),
+        );
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  /** Lista as trilhas instaladas (seletor) — com timeout (mesmo princípio). */
+  const loadTracks = useCallback((): void => {
+    let cancelled = false;
+    withTimeout(getApi().track.list(), IPC_TIMEOUT_MS, 'track.list')
+      .then((res) => {
+        if (cancelled) return;
+        if (res.ok && res.tracks.length > 0) {
+          setTracks(res.tracks.map((x) => ({ slug: x.slug, title: x.title, doneCount: x.doneCount, lessonCount: x.lessonCount })));
+        } else {
+          setLoadError(t('translation:roadmap.noTracks'));
+        }
+      })
+      .catch((err: unknown) => {
+        if (cancelled) return;
+        setLoadError(
+          isTimeoutError(err)
+            ? t('translation:roadmap.loadTimeout')
+            : t('translation:roadmap.noTracks'),
+        );
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -227,23 +260,7 @@ export function RoadmapView(props: ViewProps): ReactElement {
       setSelected(pending);
       loadTrack(pending);
     }
-    let cancelled = false;
-    getApi()
-      .track.list()
-      .then((res) => {
-        if (cancelled) return;
-        if (res.ok && res.tracks.length > 0) {
-          setTracks(res.tracks.map((x) => ({ slug: x.slug, title: x.title, doneCount: x.doneCount, lessonCount: x.lessonCount })));
-        } else {
-          setLoadError(t('translation:roadmap.noTracks'));
-        }
-      })
-      .catch(() => {
-        if (!cancelled) setLoadError(t('translation:roadmap.noTracks'));
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
+    loadTracks();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -316,8 +333,25 @@ export function RoadmapView(props: ViewProps): ReactElement {
 
   return (
     <Box sx={{ p: 2, maxWidth: 760, mx: 'auto' }}>
-      {loading && !track ? <LinearProgress /> : null}
-      {loadError ? <Alert severity="warning">{loadError}</Alert> : null}
+      {/* Spinner do DETALHE: só com trilha selecionada e ainda sem conteúdo
+          (nem erro). O spinner da LISTA (sem seleção) usa o `loading` — ambos
+          têm timeout: canal mudo vira loadError com retry, nunca spinner
+          eterno. */}
+      {selected !== null && !track && !loadError ? <LinearProgress /> : null}
+      {selected === null && loading && !loadError ? <LinearProgress /> : null}
+      {loadError ? (
+        <Box sx={{ mt: 1 }}>
+          <Alert severity="warning">{loadError}</Alert>
+          <Button
+            variant="outlined"
+            size="small"
+            onClick={() => (selected !== null ? loadTrack(selected) : loadTracks())}
+            sx={{ mt: 1 }}
+          >
+            {t('translation:common.tryAgain')}
+          </Button>
+        </Box>
+      ) : null}
 
       {track ? (
  <Stack spacing={2}>

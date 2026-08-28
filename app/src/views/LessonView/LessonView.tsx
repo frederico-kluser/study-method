@@ -57,6 +57,7 @@ import LockIcon from '@mui/icons-material/Lock';
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
 
 import { getApi } from '../../lib/apiBridge';
+import { IPC_TIMEOUT_MS, isTimeoutError, withTimeout } from '../../lib/ipcTimeout';
 import { useSessionState } from '../../lib/sessionState';
 import { useChallengeNav } from '../../lib/challengeNav';
 import {
@@ -170,6 +171,38 @@ export function LessonView(props: ViewProps): ReactElement {
   const [sourcesOpen, setSourcesOpen] = useState(false);
   const [doneMarked, setDoneMarked] = useState(false);
 
+  /** Carrega uma aula da trilha via IPC — SEMPRE com timeout: se o canal não
+   * responder em `IPC_TIMEOUT_MS`, cai no loadError com mensagem própria
+   * (nenhum spinner eterno) e o usuário tem o botão de tentar de novo. */
+  const loadLesson = useCallback(
+    (trackSlug: string, lessonId: string): (() => void) => {
+      let cancelled = false;
+      setLesson(null);
+      setLoadError(null);
+      withTimeout(getApi().track.lesson({ trackSlug, lessonId }), IPC_TIMEOUT_MS, 'track.lesson')
+        .then((res) => {
+          if (cancelled) return;
+          if (res.ok === false) {
+            setLoadError(res.error);
+            return;
+          }
+          if (!res.lesson) {
+            setLoadError(tI('lesson.trackNotFound'));
+            return;
+          }
+          setLesson(res.lesson);
+        })
+        .catch((err: unknown) => {
+          if (cancelled) return;
+          setLoadError(isTimeoutError(err) ? tI('lesson.trackLoadTimeout') : tI('lesson.trackLoadFailed'));
+        });
+      return () => {
+        cancelled = true;
+      };
+    },
+    [tI],
+  );
+
   // Drena a pendência da trilha NA MONTAGEM (one-shot). Pendências legadas
   // (subject/domain/lessonId) são descartadas — rodada 8: não se gera aula.
   useEffect(() => {
@@ -180,30 +213,9 @@ export function LessonView(props: ViewProps): ReactElement {
     if (!pending) return;
     setTrackLesson(pending);
     publishSession({ subject: pending.lessonId, status: 'idle' });
-    let cancelled = false;
-    getApi()
-      .track.lesson({ trackSlug: pending.trackSlug, lessonId: pending.lessonId })
-      .then((res) => {
-        if (cancelled) return;
-        if (res.ok === false) {
-          setLoadError(res.error);
-          return;
-        }
-        if (!res.lesson) {
-          setLoadError(tI('lesson.trackNotFound'));
-          return;
-        }
-        setLesson(res.lesson);
-        setLoadError(null);
-      })
-      .catch(() => {
-        if (!cancelled) setLoadError(tI('lesson.trackLoadFailed'));
-      });
-    return () => {
-      cancelled = true;
-    };
+    return loadLesson(pending.trackSlug, pending.lessonId);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [publishSession]);
+  }, [loadLesson, publishSession]);
 
   const sendNext = useCallback(async (): Promise<void> => {
     if (!trackLesson || busy) return;
@@ -294,31 +306,13 @@ export function LessonView(props: ViewProps): ReactElement {
     (slug: string): void => {
       if (!trackLesson) return;
       setTrackLesson({ trackSlug: trackLesson.trackSlug, lessonId: slug });
-      setLesson(null);
       setChat(createTrackLessonState);
       setDoneMarked(false);
       setLoadError(null);
       publishSession({ subject: slug, status: 'idle' });
-      let cancelled = false;
-      getApi()
-        .track.lesson({ trackSlug: trackLesson.trackSlug, lessonId: slug })
-        .then((res) => {
-          if (cancelled) return;
-          if (res.ok === false) {
-            setLoadError(res.error);
-            return;
-          }
-          if (!res.lesson) {
-            setLoadError(tI('lesson.trackNotFound'));
-            return;
-          }
-          setLesson(res.lesson);
-        })
-        .catch(() => {
-          if (!cancelled) setLoadError(tI('lesson.trackLoadFailed'));
-        });
+      loadLesson(trackLesson.trackSlug, slug);
     },
-    [trackLesson, publishSession, tI],
+    [trackLesson, loadLesson, publishSession],
   );
 
   // ─── estado vazio: nenhuma aula de trilha selecionada ─────────────────────
@@ -343,6 +337,13 @@ export function LessonView(props: ViewProps): ReactElement {
     return (
       <Box sx={{ p: 2, maxWidth: 640, mx: 'auto', pt: 4 }}>
         <Alert severity="error">{loadError}</Alert>
+        <Button
+          variant="outlined"
+          onClick={() => loadLesson(trackLesson.trackSlug, trackLesson.lessonId)}
+          sx={{ mt: 1 }}
+        >
+          {t('translation:common.tryAgain')}
+        </Button>
       </Box>
     );
   }

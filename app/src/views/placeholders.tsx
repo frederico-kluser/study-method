@@ -27,8 +27,9 @@
  * em App.tsx isso é `setActive`. Settings/Lesson/Challenge continuam como
  * funções exportadas (o registry views/index.ts as sobrescreve pelas reais).
  */
-import { useEffect, useMemo, useState, type ReactElement } from 'react';
+import { useCallback, useEffect, useMemo, useState, type ReactElement } from 'react';
 import { useTranslation } from 'react-i18next';
+import Alert from '@mui/material/Alert';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Card from '@mui/material/Card';
@@ -55,6 +56,7 @@ import TerminalIcon from '@mui/icons-material/Terminal';
 import type { KeysStatus, SubjectSummary } from '../../shared/ipc-contract';
 import type { NavKey } from '../lib/shellNav';
 import { getApi } from '../lib/apiBridge';
+import { IPC_TIMEOUT_MS, isTimeoutError, withTimeout } from '../lib/ipcTimeout';
 import {
   groupSubjectsByDomain,
   homeDomainSections,
@@ -339,15 +341,26 @@ function TracksSection({
     doneCount: number;
     lessonCount: number;
   }> | null>(null);
+  // ONDA 2c (blindagem): falha do track:list NÃO some em silêncio — mostra
+  // erro claro com detalhe + botão de tentar de novo (e timeout no canal mudo).
+  const [tracksError, setTracksError] = useState<string | null>(null);
 
-  useEffect(() => {
+  /** Lista as trilhas — com timeout: canal mudo ou falha viram erro VISÍVEL
+   * (com o detalhe do erro quando o canal devolve) + botão de tentar de novo. */
+  const loadTracks = useCallback((): (() => void) => {
     let cancelled = false;
-    getApi()
-      .track.list()
+    setTracksError(null);
+    withTimeout(getApi().track.list(), IPC_TIMEOUT_MS, 'track.list')
       .then((res) => {
         if (cancelled) return;
+        // ok:false = falha REAL (repo indisponível etc.) → erro visível;
+        // ok:true com lista vazia = nenhuma trilha instalada (vazio legítimo).
+        if (res.ok === false) {
+          setTracksError(res.error ?? t('translation:home.tracksLoadFailed'));
+          return;
+        }
         setTracks(
-          res.ok && res.tracks.length > 0
+          res.tracks.length > 0
             ? res.tracks.map((x) => ({
                 slug: x.slug,
                 title: x.title,
@@ -358,13 +371,33 @@ function TracksSection({
             : [],
         );
       })
-      .catch(() => {
-        if (!cancelled) setTracks([]);
+      .catch((err: unknown) => {
+        if (cancelled) return;
+        setTracksError(
+          isTimeoutError(err)
+            ? t('translation:home.tracksTimeout')
+            : t('translation:home.tracksLoadFailed'),
+        );
       });
     return () => {
       cancelled = true;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => loadTracks(), [loadTracks]);
+
+  // Falha/ausência de resposta → erro VISÍVEL com ação (nunca sumir em silêncio).
+  if (tracksError) {
+    return (
+      <Box>
+        <Alert severity="error">{tracksError}</Alert>
+        <Button variant="outlined" size="small" onClick={loadTracks} sx={{ mt: 1 }}>
+          {t('translation:common.tryAgain')}
+        </Button>
+      </Box>
+    );
+  }
 
   // null = ainda carregando (nada mostra); [] = sem trilhas instaladas.
   if (tracks === null || tracks.length === 0) return null;

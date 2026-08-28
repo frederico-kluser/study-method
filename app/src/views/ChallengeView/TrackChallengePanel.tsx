@@ -51,6 +51,7 @@ import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import CancelIcon from '@mui/icons-material/Cancel';
 
 import { getApi } from '../../lib/apiBridge';
+import { IPC_TIMEOUT_MS, isTimeoutError, withTimeout } from '../../lib/ipcTimeout';
 import { fireConfetti } from '../../lib/confetti';
 import { createStarTracker, formatClock, type StarTracker } from '../../lib/challengeStars';
 import { CodeMirrorField } from '../../components/cm/CodeMirrorField';
@@ -140,7 +141,9 @@ export function TrackChallengePanel({ selection }: { selection: TrackChallengeNa
             ? { trackSlug: sel.trackSlug, target: 'module' as const, moduleSlug: sel.moduleSlug, challengeId: sel.challengeId }
             : { trackSlug: sel.trackSlug, target: 'lesson' as const, lessonId: sel.lessonId, challengeId: sel.challengeId };
       const call = sel.target === 'proficiency' ? getApi().track.proficiency : getApi().track.challenge;
-      call(req)
+      // Timeout: canal mudo (IPC nunca resolve) vira loadError com retry —
+      // o CircularProgress do loading nunca fica eterno.
+      withTimeout(call(req), IPC_TIMEOUT_MS, sel.target === 'proficiency' ? 'track.proficiency' : 'track.challenge')
         .then((res) => {
           if (cancelled) return;
           if (res.ok === false) {
@@ -173,7 +176,8 @@ export function TrackChallengePanel({ selection }: { selection: TrackChallengeNa
           markedRef.current = null;
         })
         .catch((err: unknown) => {
-          if (!cancelled) setLoadError(String(err));
+          if (cancelled) return;
+          setLoadError(isTimeoutError(err) ? tI('challenge.trackLoadTimeout') : String(err));
         })
         .finally(() => {
           if (!cancelled) setLoading(false);
@@ -356,6 +360,9 @@ export function TrackChallengePanel({ selection }: { selection: TrackChallengeNa
     return (
       <Box sx={{ p: 2, maxWidth: 720, mx: 'auto', pt: 4 }}>
         <Alert severity="error">{loadError ?? t('translation:challenge.trackNotFound')}</Alert>
+        <Button variant="outlined" onClick={() => loadSpec(selection)} sx={{ mt: 1 }}>
+          {t('translation:common.tryAgain')}
+        </Button>
       </Box>
     );
   }

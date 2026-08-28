@@ -37,6 +37,7 @@ import Typography from '@mui/material/Typography';
 import type { StartupStatus } from '@shared/ipc-contract';
 import App from '../App';
 import { getApi } from '../lib/apiBridge';
+import { IPC_TIMEOUT_MS, isTimeoutError, withTimeout } from '../lib/ipcTimeout';
 import { applyOfflineFlags, type StartupFlags } from './startupState';
 import { SetupView } from './SetupView';
 
@@ -100,8 +101,19 @@ export function OfflineBanner(): ReactElement {
   );
 }
 
-/** Painel de erro do próprio gate (canal falhou — deveria raramente ocorrer). */
-function GateError({ onRetry }: { onRetry: () => void }): ReactElement {
+/**
+ * Painel de erro do próprio gate (canal falhou — deveria raramente ocorrer).
+ * `kind` distingue o TIMEOUT do canal (IPC nunca resolveu em IPC_TIMEOUT_MS —
+ * anti-spinner-eterno) da rejeição imediata: cada um com sua mensagem, ambos
+ * com o botão de tentar de novo.
+ */
+function GateError({
+  kind,
+  onRetry,
+}: {
+  kind: 'rejected' | 'timeout';
+  onRetry: () => void;
+}): ReactElement {
   const { t } = useTranslation();
   return (
     <Box
@@ -114,7 +126,9 @@ function GateError({ onRetry }: { onRetry: () => void }): ReactElement {
               {t('translation:common.error')}
             </Typography>
             <Typography variant="body2" component="div">
-              {t('translation:gate.readError')}
+              {kind === 'timeout'
+                ? t('translation:gate.startupTimeout')
+                : t('translation:gate.readError')}
             </Typography>
           </Alert>
           <Button variant="contained" onClick={onRetry} sx={{ alignSelf: 'flex-start' }}>
@@ -128,17 +142,19 @@ function GateError({ onRetry }: { onRetry: () => void }): ReactElement {
 
 export function AppGate(): ReactElement {
   const [status, setStatus] = useState<StartupStatus | null>(null);
-  const [readError, setReadError] = useState(false);
+  // null = ok; 'rejected' = canal respondeu com erro; 'timeout' = canal MUDO
+  // (nunca resolveu em IPC_TIMEOUT_MS) — splash nunca fica eterno.
+  const [readError, setReadError] = useState<null | 'rejected' | 'timeout'>(null);
 
   const runCheck = useCallback(async () => {
     setStatus(null);
-    setReadError(false);
+    setReadError(null);
     try {
       const api = getApi().keys as unknown as KeysWithStartupStatus;
-      const res = await api.startupStatus();
+      const res = await withTimeout(api.startupStatus(), IPC_TIMEOUT_MS, 'keys.startupStatus');
       setStatus(res);
-    } catch {
-      setReadError(true);
+    } catch (err) {
+      setReadError(isTimeoutError(err) ? 'timeout' : 'rejected');
     }
   }, []);
 
@@ -158,7 +174,7 @@ export function AppGate(): ReactElement {
 
   let content: ReactElement;
   if (readError) {
-    content = <GateError onRetry={() => void runCheck()} />;
+    content = <GateError kind={readError} onRetry={() => void runCheck()} />;
   } else if (!status || status.phase === 'checking') {
     content = <Splash />;
   } else if (status.phase === 'blocked') {

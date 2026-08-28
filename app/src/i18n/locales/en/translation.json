@@ -134,32 +134,6 @@
     "continue": "Continue",
     "answerLabel": "Your answer",
     "answerSubmit": "Submit",
-    "research": {
-      "title": "Live research",
-      "round": "Round {{current}} of {{total}}",
-      "concluded": "{{done}} of {{total}} completed",
-      "uniqueSources": "{{count}} unique sources",
-      "summary": "Research complete: {{ok}} ok, {{failed}} failed, {{unique}} unique sources",
-      "stopped": "Research stopped",
-      "status": {
-        "pending": "Pending",
-        "running": "Researching…",
-        "done": "Done",
-        "failed": "Failed"
-      },
-      "hits": "{{count}} results",
-      "queryFailed": "Search failed",
-      "errorCodes": {
-        "BRAVE_KEY_MISSING": "Brave Search key not set",
-        "BRAVE_KEY_INVALID": "Brave Search key invalid",
-        "BRAVE_RATE_LIMIT": "Brave Search rate limit reached",
-        "BRAVE_SERVER_ERROR": "Brave Search server error"
-      },
-      "phaseError": {
-        "BRAVE_KEY_MISSING": "Generating the lesson requires the Brave Search key — register it in Settings to research.",
-        "BRAVE_KEY_INVALID": "The Brave Search key was rejected — review it in Settings and try again."
-      }
-    },
     "answer": {
       "correct": "Your answer is correct.",
       "partial": "Partial answer.",
@@ -197,7 +171,8 @@
     "challengeUntried": "Never tried",
     "sourcesTitle": "Sources for this lesson",
     "trackNotFound": "Lesson not found in the track.",
-    "trackLoadFailed": "Could not load the lesson."
+    "trackLoadFailed": "Could not load the lesson.",
+    "trackLoadTimeout": "The lesson did not respond in time. Try again."
   },
   "challenge": {
     "openChallenge": "Open challenge",
@@ -251,6 +226,7 @@
     "statementPane": "Statement",
     "editorPane": "Editor",
     "trackNotFound": "Challenge not found in the track.",
+    "trackLoadTimeout": "The challenge did not respond in time. Try again.",
     "difficulty": "difficulty {{n}}",
     "testsCount": "{{n}} test(s)",
     "generatedBadge": "new challenge",
@@ -275,7 +251,8 @@
     "offlineTip": "Connect to the internet and try again.",
     "tryAgain": "Try again",
     "title": "Before you start",
-    "readError": "Could not query the API key status. Check that the app started correctly and try again."
+    "readError": "Could not query the API key status. Check that the app started correctly and try again.",
+    "startupTimeout": "Could not start — the app did not respond. Try again."
   },
   "editor": {
     "openFile": "Open file",
@@ -310,7 +287,8 @@
     "error": "Error",
     "loading": "Loading…",
     "back": "Back",
-    "close": "Close"
+    "close": "Close",
+    "tryAgain": "Try again"
   },
   "home": {
     "title": "Learn programming and math with AI-generated lessons",
@@ -372,6 +350,8 @@
     },
     "tracksTitle": "Tracks",
     "tracksDescription": "Ready-made courses, from zero to professional. Pick a track and start.",
+    "tracksLoadFailed": "Could not load the tracks.",
+    "tracksTimeout": "The tracks did not respond in time. Try again.",
     "trackProgress": "{{done}}/{{total}}"
   },
   "tutorial": {
@@ -606,6 +586,7 @@
     "pickTitle": "Pick a track",
     "notFound": "Track not found.",
     "loadFailed": "Could not load the track.",
+    "loadTimeout": "The track did not respond in time. Try again.",
     "noTracks": "No tracks installed yet. Tracks are created by the tool authors (CLI).",
     "proficiencyTitle": "Proficiency test",
     "proficiencyDescription": "One challenge covering ALL modules of the track. Pass it to unlock the whole course and start wherever you want.",
