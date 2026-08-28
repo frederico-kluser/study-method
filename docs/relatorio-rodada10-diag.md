@@ -2,6 +2,7 @@
 
 **Data:** 2026-08-27 · **Commit base:** 89f07ce (rodada 9) · **Autor:** sub-agente de diagnóstico (onda 1)
 **Escopo:** NENHUMA correção — apenas repro, causa raiz e lista de pontos de loading sem fallback para a Onda 2 blindar.
+**Relatório consolidado da rodada:** [docs/relatorio-rodada10.md](relatorio-rodada10.md) (fixes das Ondas 2-3, gates e verificação pelo usuário).
 
 ---
 
