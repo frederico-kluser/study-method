@@ -20,6 +20,7 @@ import {
 } from './llmEngine.process';
 import { LlmProxyService, localLlmProxy } from './LlmProxyService';
 import { getLocalModelById } from '@shared/constants/localModels';
+import { createModelStore } from './modelStore';
 
 /** Escape hatch — lido UMA vez no boot. */
 const IN_PROCESS = process.env.STUDY_METHOD_LLM_IN_PROCESS === '1';
@@ -150,7 +151,6 @@ async function _modelDir(modelId: string): Promise<string | null> {
   const { promises: fsp } = await import('node:fs');
   const path = await import('node:path');
   const modelsDir = path.join(app.getPath('userData'), 'models');
-  const { createModelStore } = await import('./modelStore');
   if (!_storeSingleton) _storeSingleton = createModelStore({ modelsDir, fs: fsp });
   return _storeSingleton.getModelPath(modelId);
 }

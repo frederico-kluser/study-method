@@ -18,6 +18,7 @@
 import type { KeysStatus, ValidationResult } from '@shared/ipc-contract';
 import { KEYS_CHANNELS } from '@shared/ipc-contract';
 import type { SettingsStore } from '../services/settingsStore';
+import { getSettingsStore } from '../services/settingsStore';
 import type { DeepSeekValidationResult } from '../services/apiKeyValidator';
 import { validateBraveKey, validateDeepseekKey } from '../services/apiKeyValidator';
 import { safeHandleMap, type IpcMainHandleLike, type IpcHandlerFn } from './safeHandle';
@@ -28,7 +29,6 @@ export interface RegisterKeysHandlersDeps {
 }
 
 async function defaultGetStore(): Promise<SettingsStore> {
-  const { getSettingsStore } = await import('../services/settingsStore');
   return getSettingsStore();
 }
 

@@ -31,6 +31,7 @@ import {
 import { pocketTts } from '../services/localTts/PocketTtsService';
 import { safeHandleMap, type IpcMainHandleLike, type IpcHandlerFn } from './safeHandle';
 import type { SettingsStore } from '../services/settingsStore';
+import { getSettingsStore } from '../services/settingsStore';
 
 export interface TtsIpcResult<T> {
   success: boolean;
@@ -49,7 +50,6 @@ const TTS_PREFERENCE_KEY = 'localTtsPreference';
 
 /** Getter default do SettingsStore (lazy/DI). Nunca chamado pelos testes. */
 async function defaultGetStore(): Promise<SettingsStore> {
-  const { getSettingsStore } = await import('../services/settingsStore');
   return getSettingsStore();
 }
 

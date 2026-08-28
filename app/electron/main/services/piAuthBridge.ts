@@ -8,6 +8,7 @@
  */
 
 import type { SettingsStore } from './settingsStore';
+import { getSettingsStore } from './settingsStore';
 import { DEEPSEEK_ENV_KEY, DEEPSEEK_PI_PROVIDER } from '@shared/piAgent/constants';
 
 export interface PiAuthBridgeDeps {
@@ -70,7 +71,6 @@ let _singleton: PiAuthBridge | null = null;
 /** Singleton de runtime com o SettingsStore real (lazy; não usado por testes). */
 export async function getPiAuthBridge(): Promise<PiAuthBridge> {
   if (_singleton) return _singleton;
-  const { getSettingsStore } = await import('./settingsStore');
   _singleton = createPiAuthBridge({ getStore: getSettingsStore });
   return _singleton;
 }

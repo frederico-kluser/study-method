@@ -24,6 +24,7 @@
 import type { StartupStatus, ValidationResult } from '@shared/ipc-contract';
 import { KEYS_CHANNELS } from '@shared/ipc-contract';
 import type { SettingsStore } from '../services/settingsStore';
+import { getSettingsStore } from '../services/settingsStore';
 import {
   validateBraveKey as defaultValidateBrave,
   validateDeepseekKey as defaultValidateDeepseek,
@@ -46,7 +47,6 @@ export interface RegisterStartupHandlersDeps {
 }
 
 async function defaultGetStore(): Promise<SettingsStore> {
-  const { getSettingsStore } = await import('../services/settingsStore');
   return getSettingsStore();
 }
 

@@ -69,6 +69,10 @@ import {
 } from '../ipc/study-handlers';
 import { safeHandleMap, type IpcMainHandleLike, type IpcHandlerFn } from '../ipc/safeHandle';
 import type { LessonProgress } from './lessonTypes';
+import { loadAllTracks, loadTrack, findLessonAnywhere } from '../content/trackLoader';
+import { buildTrackList, buildTrackDetail, buildTrackLesson, resolveChallengeSpec } from '../services/trackService';
+import { nextSection } from '../services/tutorChat';
+import { runStudentCode } from '../services/challengeExec';
 
 const E2E = process.env.STUDY_METHOD_E2E === '1';
 
@@ -579,24 +583,18 @@ export function buildTrackStubHandlers(): Map<string, IpcHandlerFn> {
   void writeFixtureTrack();
   map.set(TRACK_CHANNELS.LIST, async (): Promise<TrackListResult> => {
     await writeFixtureTrack();
-    const { loadAllTracks } = await import('../content/trackLoader');
-    const { buildTrackList } = await import('../services/trackService');
     const { tracks } = await loadAllTracks(path.join(workspaceRoot(), 'fixture-tracks'));
     return { ok: true, tracks: await buildTrackList(tracks, buildE2ETrackRepo()) };
   });
   map.set(TRACK_CHANNELS.GET, async (_e, payload: unknown): Promise<TrackDetailResult> => {
     const p = (payload ?? {}) as { trackSlug?: string };
     await writeFixtureTrack();
-    const { loadTrack } = await import('../content/trackLoader');
-    const { buildTrackDetail } = await import('../services/trackService');
     const track = await loadTrack(path.join(workspaceRoot(), 'fixture-tracks', p.trackSlug ?? ''));
     return { ok: true, track: await buildTrackDetail(track, buildE2ETrackRepo()) };
   });
   map.set(TRACK_CHANNELS.LESSON, async (_e, payload: unknown): Promise<TrackLessonResult> => {
     const p = (payload ?? {}) as { trackSlug?: string; lessonId?: string };
     await writeFixtureTrack();
-    const { loadTrack, findLessonAnywhere } = await import('../content/trackLoader');
-    const { buildTrackLesson } = await import('../services/trackService');
     const track = await loadTrack(path.join(workspaceRoot(), 'fixture-tracks', p.trackSlug ?? ''));
     const found = findLessonAnywhere(track, p.lessonId ?? '');
     if (!found) return { ok: true, lesson: null };
@@ -609,8 +607,6 @@ export function buildTrackStubHandlers(): Map<string, IpcHandlerFn> {
   });
   map.set(TRACK_CHANNELS.TUTOR_CHAT, async (_e, payload: unknown): Promise<TutorReply> => {
     const p = (payload ?? {}) as TutorChatRequest;
-    const { nextSection } = await import('../services/tutorChat');
-    const { loadTrack, findLessonAnywhere } = await import('../content/trackLoader');
     const track = await loadTrack(path.join(workspaceRoot(), 'fixture-tracks', p.trackSlug ?? ''));
     const found = findLessonAnywhere(track, p.lessonId ?? '');
     if (!found) return { ok: false, message: '', sectionId: null, done: false, error: { code: 'LESSON_NOT_FOUND', message: 'não encontrada' } };
@@ -637,8 +633,6 @@ export function buildTrackStubHandlers(): Map<string, IpcHandlerFn> {
   map.set(TRACK_CHANNELS.CHALLENGE_GET, async (_e, payload: unknown): Promise<TrackChallengeResult> => {
     const p = (payload ?? {}) as TrackChallengeGetRequest;
     await writeFixtureTrack();
-    const { loadTrack } = await import('../content/trackLoader');
-    const { resolveChallengeSpec } = await import('../services/trackService');
     const track = await loadTrack(path.join(workspaceRoot(), 'fixture-tracks', p.trackSlug ?? ''));
     // ADITIVO (rodada 9): p.moduleSlug resolve o desafio do MÓDULO.
     const spec = await resolveChallengeSpec(track, p.target, p.lessonId, p.challengeId, buildE2ETrackRepo(), p.moduleSlug);
@@ -647,8 +641,6 @@ export function buildTrackStubHandlers(): Map<string, IpcHandlerFn> {
   map.set(TRACK_CHANNELS.PROFICIENCY_GET, async (_e, payload: unknown): Promise<TrackChallengeResult> => {
     const p = (payload ?? {}) as TrackChallengeGetRequest;
     await writeFixtureTrack();
-    const { loadTrack } = await import('../content/trackLoader');
-    const { resolveChallengeSpec } = await import('../services/trackService');
     const track = await loadTrack(path.join(workspaceRoot(), 'fixture-tracks', p.trackSlug ?? ''));
     const spec = await resolveChallengeSpec(track, 'proficiency', undefined, p.challengeId, buildE2ETrackRepo());
     return { ok: true, challenge: spec };
@@ -656,9 +648,7 @@ export function buildTrackStubHandlers(): Map<string, IpcHandlerFn> {
   map.set(TRACK_CHANNELS.CHALLENGE_SUBMIT, async (_e, payload: unknown): Promise<TrackSubmitResult> => {
     const p = (payload ?? {}) as TrackSubmitRequest;
     await writeFixtureTrack();
-    const { loadTrack } = await import('../content/trackLoader');
     const track = await loadTrack(path.join(workspaceRoot(), 'fixture-tracks', p.trackSlug ?? ''));
-    const { resolveChallengeSpec } = await import('../services/trackService');
     const repo = buildE2ETrackRepo();
     // ADITIVO (rodada 9): target 'module' (desafio do módulo, com moduleSlug).
     const spec = p.target === 'proficiency'
@@ -680,7 +670,6 @@ export function buildTrackStubHandlers(): Map<string, IpcHandlerFn> {
       };
     }
     // Execução REAL (node --test) sobre o código do aluno — determinístico.
-    const { runStudentCode } = await import('../services/challengeExec');
     const testsCode = p.target === 'proficiency'
       ? track.proficiency!.testsCode
       : p.target === 'module'

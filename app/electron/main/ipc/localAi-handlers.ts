@@ -34,6 +34,7 @@ import { detectHardware } from '../services/embeddedLlm/hardware';
 import { recommendDefault } from '../services/embeddedLlm/recommend';
 import { createModelStore, type ModelStore } from '../services/embeddedLlm/modelStore';
 import { safeHandleMap, type IpcHandlerFn } from './safeHandle';
+import { embeddedLlm } from '../services/embeddedLlm/EmbeddedLlmService';
 
 /** Fachada do motor usada pelos handlers (delete precisa do unload). */
 export interface LlmLike {
@@ -86,7 +87,6 @@ export function buildLocalAiHandlers(deps: LocalAiHandlerDeps = {}): LocalAiHand
   const map: LocalAiHandlerMap = new Map();
   const getStore = deps.getStore ?? defaultStore;
   const getEngine = deps.getEngine ?? (async () => {
-    const { embeddedLlm } = await import('../services/embeddedLlm/EmbeddedLlmService');
     return embeddedLlm as unknown as LlmLike;
   });
   const detect = deps.detect ?? (() => detectHardware());

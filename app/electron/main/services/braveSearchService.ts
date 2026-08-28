@@ -18,6 +18,7 @@
  */
 
 import type { StudyFinding } from '@shared/ipc-contract';
+import { getSettingsStore } from './settingsStore';
 
 /** Base URL padrão da Brave Search API. Endpoint: /res/v1/web/search. */
 export const BRAVE_DEFAULT_BASE = 'https://api.search.brave.com';
@@ -105,8 +106,7 @@ export interface MultiSearchResult {
  */
 export async function resolveBraveApiKey(): Promise<string> {
   try {
-    // Import lazy do settingsStore para não tocar em 'electron' em testes.
-    const { getSettingsStore } = await import('./settingsStore');
+    // settingsStore importado estaticamente (só node:fs/node:path — sem electron).
     const stored = await (await getSettingsStore()).getApiKey('brave');
     if (stored) return stored;
   } catch {
