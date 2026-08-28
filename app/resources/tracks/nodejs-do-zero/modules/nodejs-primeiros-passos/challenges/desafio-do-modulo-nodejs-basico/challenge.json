@@ -10,7 +10,7 @@
     {
       "path": "lib/argumentos.mjs",
       "starterCode": "export function parseArgumentos(argv) {\n  // TODO: implemente a função\n  throw new Error('não implementado');\n}\n",
-      "solutionCode": "export function parseArgumentos(argv) {\n  if (!Array.isArray(argv)) {\n    throw new Error('argv precisa ser uma lista');\n  }\n  if (argv.includes('--ajuda')) {\n    return { ajuda: true };\n  }\n  const resultado = {};\n  for (let i = 0; i < argv.length; i = i + 2) {\n    const chave = argv[i];\n    const valor = argv[i + 1];\n    if (chave !== undefined && chave.startsWith('--')) {\n      resultado[chave.slice(2)] = valor;\n    }\n  }\n  return resultado;\n}\n"
+      "solutionCode": "export function parseArgumentos(argv) {\n  if (!Array.isArray(argv)) {\n    throw new Error('argv precisa ser uma lista');\n  }\n\n  // --ajuda em qualquer posição: devolve o objeto de ajuda.\n  for (const item of argv) {\n    if (item === '--ajuda') {\n      return { ajuda: true };\n    }\n  }\n\n  // Cada par --chave valor vira chave: valor.\n  // split('--') separa o prefixo: '--nome'.split('--') vira ['', 'nome'].\n  const resultado = {};\n  for (let i = 0; i < argv.length; i = i + 2) {\n    const chave = argv[i];\n    const valor = argv[i + 1];\n    const nomeDaChave = chave && chave.split('--')[1];\n    if (nomeDaChave !== undefined) {\n      resultado[nomeDaChave] = valor;\n    }\n  }\n  return resultado;\n}\n"
     },
     {
       "path": "lib/saudacao.mjs",
