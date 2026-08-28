@@ -5,15 +5,26 @@
  * Causa raiz (docs/relatorio-rodada10-diag.md): o fetch dos validadores no
  * main (apiKeyValidator) não tinha AbortSignal — rede que engole pacotes
  * deixava `keys:validate-*` pendurado INDEFINIDAMENTE e o spinner eterno.
- * Fix: timeout no validador (main, ~8s) + guarda de 10s no renderer.
+ * Fix: timeout no validador (main, ~8s, cobrindo fetch + leitura do corpo) +
+ * guarda de 10s no renderer.
  *
- * O harness E2E STUBÁ os canais keys:validate (e2eStubs responde imediato),
- * então esta spec INTERCEPTA no nível certo — o ipcMain do app, via
- * app.evaluate — substituindo o handler stub por um que PENDURA a resposta
- * por ~20s (mais que a guarda de 10s do renderer). Assim prova-se o contrato
- * real da UI: spinner liga, mensagem de erro clara aparece em ≤15s, spinner
- * some e o botão volta habilitado (retry). Segundo caso: resposta de erro
- * RÁPIDA (chave inválida) → mensagem clara sem espera.
+ * O QUE ESTA SPEC PROVA (honestidade): ela exercita EXCLUSIVAMENTE a GUARDA
+ * DO RENDERER (10s). O harness E2E stuba os canais keys:validate (e2eStubs
+ * responde imediato) e esta spec substitui o handler do ipcMain por um que
+ * PENDURA a resposta por ~20s — portanto o VALIDADOR REAL do main (com o
+ * novo timeout do apiKeyValidator) NUNCA roda aqui: o handler dele é removido
+ * antes da validação. O que derruba o spinner é o timer do renderer. Se o fix
+ * do main fosse removido, esta spec continuaria passando igual.
+ *
+ * O timeout do MAIN é coberto por unit tests (tests/apiKeyValidatorTimeout
+ * .test.ts: hangingFetch + body-stall + sync throw) — é lá que o validador
+ * real é exercitado com fetchImpl injetável.
+ *
+ * O que esta spec prova: com a resposta do canal pendurada além da guarda,
+ * a UI mostra spinner ligado, mensagem clara de "Tempo esgotado" em ≤15s,
+ * spinner some e o botão volta habilitado (retry) — sem spinner infinito no
+ * RENDERER. Segundo caso: resposta de erro RÁPIDA (chave inválida) →
+ * mensagem clara sem espera.
  *
  * Os canais são os do contrato congelado (KEYS_CHANNELS, shared/ipc-contract).
  */
@@ -30,8 +41,14 @@ test.afterEach(async () => {
 /**
  * Intercepta `keys:validate-deepseek` e `keys:validate-brave` no ipcMain do
  * app: remove o handler do stub E2E e registra um que PENDURA ~20s antes de
- * responder (simula a rede que engole pacotes do diagnóstico). Roda no MAIN
- * PROCESS via app.evaluate — os canais são os do contrato congelado.
+ * responder (simula, no nível do canal, uma resposta de validação que nunca
+ * chega — o análogo IPC da rede que engole pacotes do diagnóstico). Roda no
+ * MAIN PROCESS via app.evaluate — os canais são os do contrato congelado.
+ *
+ * ATENÇÃO (honestidade): ao substituir o handler, o VALIDADOR real do main
+ * (apiKeyValidator + withFetchTimeout) NÃO roda — o que derruba o spinner
+ * nesta spec é a guarda do renderer, não o timeout do main. O timeout do
+ * main é coberto por unit tests (ver cabeçalho desta spec).
  */
 async function hangValidateChannels(app: ElectronApplication, hangMs: number): Promise<void> {
   await app.evaluate(({ ipcMain }, ms: number) => {
@@ -59,7 +76,8 @@ test('e2e-setup-timeout: validação pendurada no SetupView → erro claro e spi
   await expect(page.getByRole('heading', { name: 'Antes de começar' })).toBeVisible();
 
   // Intercepta ANTES de validar: o handler stub é substituído por um que
-  // pendura ~20s (a guarda do renderer é 10s — muito abaixo).
+  // pendura ~20s (a guarda do renderer é 10s — muito abaixo). O validador do
+  // main com o novo timeout NÃO roda aqui (handler substituído — ver cabeçalho).
   await hangValidateChannels(app, 20_000);
 
   await page.getByLabel('Chave DeepSeek').fill('sk-pendurada-e2e');
@@ -79,7 +97,10 @@ test('e2e-setup-timeout: validação pendurada no SetupView → erro claro e spi
   // Spinner desapareceu e o botão voltou HABILITADO (retry possível).
   await expect(page.getByRole('progressbar')).toHaveCount(0);
   await expect(page.getByRole('button', { name: 'Validar' }).first()).toBeEnabled();
-  // A mensagem de erro segue visível (não foi sobrescrita pelo retorno tardio).
+  // A mensagem segue visível no instante desta checagem. HONESTIDADE: o
+  // retorno interceptado chegaria em ~20s — DEPOIS do fim do teste (~11s) —
+  // então a corrida "retorno tardio sobrescreve a mensagem" NÃO acontece de
+  // fato aqui; esta linha só prova o estado da UI no momento da checagem.
   await expect(page.getByText('Tempo esgotado', { exact: false })).toBeVisible();
 });
 

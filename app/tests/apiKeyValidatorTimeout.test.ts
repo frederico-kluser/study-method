@@ -6,8 +6,15 @@
  * validateBraveKey: fetch que PENDURA (rede que engole pacotes) nunca segura a
  * validação — o timeout dispara e o resultado é um erro de REDE identificável
  * ("Network error: timed out after Nms"), que o classificador do startup
- * handler (isNetworkError) reconhece. Fetch mockado por injeção de
- * `fetchImpl` + `timeoutMs` (nunca usa rede real nem timers longos).
+ * handler (isNetworkError) reconhece.
+ *
+ * O timeout cobre o pipeline COMPLETO (fetch + leitura do corpo): aqui também
+ * o BODY-STALL (headers chegam, corpo nunca chega — response.json()
+ * pendurado) e o throw SÍNCRONO do fetchImpl (timer não vaza). É esta suíte
+ * que prova o timeout do VALIDADOR do main — o e2e-setup-timeout.spec.ts
+ * substitui o handler do ipcMain e só exercita a guarda do renderer (ver
+ * cabeçalho da spec). Fetch mockado por injeção de `fetchImpl` + `timeoutMs`
+ * (nunca usa rede real nem timers longos).
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -138,4 +145,90 @@ test('validateDeepseekKey: chave vazia NÃO espera o timeout (valida antes do fe
   const result = await validateDeepseekKey('   ', { fetchImpl: hangingFetch(), timeoutMs: 50 });
   assert.equal(result.isValid, false);
   assert.equal(result.errorMessage, 'API key is empty');
+});
+
+test('validateDeepseekKey: BODY-STALL — headers chegam, corpo nunca chega → "timed out" no prazo', async () => {
+  // W1: rede que engole pacotes DEPOIS dos headers. O fetch resolve rápido com
+  // status 200, mas response.json() NUNCA resolve (corpo nunca termina). O
+  // timeout cobre a leitura do corpo: a validação resolve no prazo com erro de
+  // REDE, não fica pendurada.
+  let seenSignal: AbortSignal | null | undefined;
+  const bodyStallFetch = ((_input: unknown, init?: RequestInit) => {
+    seenSignal = init?.signal ?? undefined;
+    return Promise.resolve({
+      ok: true,
+      status: 200,
+      statusText: '',
+      json: () => new Promise(() => {}), // corpo que nunca chega — NUNCA resolve
+    } as Response);
+  }) as unknown as typeof fetch;
+
+  const t0 = Date.now();
+  const result = await validateDeepseekKey('sk-123', {
+    fetchImpl: bodyStallFetch,
+    timeoutMs: 60,
+  });
+  const elapsed = Date.now() - t0;
+
+  assert.equal(result.isValid, false);
+  assert.equal(result.provider, 'deepseek');
+  // Mensagem exata do contrato: prefixo de rede + marcador "timed out" + ms.
+  assert.match(result.errorMessage ?? '', /^Network error:/i);
+  assert.match(result.errorMessage ?? '', /timed out/i);
+  assert.match(result.errorMessage ?? '', /60ms/);
+  assert.ok(elapsed < 2000, `deveria resolver em ~60ms, levou ${elapsed}ms`);
+  // O classificador do startup-handlers trata como erro de REDE (≠ chave válida).
+  assert.equal(isNetworkError(result), true);
+  // O sinal foi abortado no prazo — o que cortaria o body read do fetch real.
+  assert.ok(seenSignal?.aborted === true, 'sinal deveria ter sido abortado no timeout');
+});
+
+test('validateBraveKey: BODY-STALL em status de erro — corpo nunca chega → "timed out" no prazo', async () => {
+  // Mesmo body-stall, mas no caminho de status não-200 (parse do corpo de
+  // erro): o timeout também cobre a leitura do corpo aqui.
+  const bodyStallErrorFetch = (() =>
+    Promise.resolve({
+      ok: false,
+      status: 500,
+      statusText: 'Internal Server Error',
+      json: () => new Promise(() => {}), // corpo que nunca chega — NUNCA resolve
+    } as Response)) as unknown as typeof fetch;
+
+  const t0 = Date.now();
+  const result = await validateBraveKey('key-abc', {
+    fetchImpl: bodyStallErrorFetch,
+    timeoutMs: 60,
+  });
+  const elapsed = Date.now() - t0;
+
+  assert.equal(result.isValid, false);
+  assert.equal(result.provider, 'brave');
+  assert.match(result.errorMessage ?? '', /^Network error:/i);
+  assert.match(result.errorMessage ?? '', /timed out/i);
+  assert.ok(elapsed < 2000, `deveria resolver em ~60ms, levou ${elapsed}ms`);
+  assert.equal(isNetworkError(result), true);
+});
+
+test('validateDeepseekKey: fetchImpl que lança SINCRONAMENTE → erro de rede imediato, sem timer vazado', async () => {
+  // W3: throw síncrono do fetchImpl (mock) não pode vazar o timer nem segurar
+  // a validação — rejeita imediatamente, ANTES do prazo do timeout (se o timer
+  // vazasse segurando o evento, o teste só terminaria depois do timeout).
+  const syncThrowFetch = ((_input: unknown, _init?: RequestInit) => {
+    throw new TypeError('sync boom');
+  }) as unknown as typeof fetch;
+
+  const t0 = Date.now();
+  const result = await validateDeepseekKey('sk-123', {
+    fetchImpl: syncThrowFetch,
+    timeoutMs: 60,
+  });
+  const elapsed = Date.now() - t0;
+
+  assert.equal(result.isValid, false);
+  assert.match(result.errorMessage ?? '', /^Network error:/i);
+  assert.match(result.errorMessage ?? '', /sync boom/i);
+  assert.equal(isNetworkError(result), true);
+  // Rejeição IMEDIATA (< timeout) prova que o clearTimeout rodou no caminho
+  // do sync throw — o timer não retém o processo até o prazo.
+  assert.ok(elapsed < 60, `deveria rejeitar na hora, levou ${elapsed}ms`);
 });
