@@ -26,10 +26,10 @@ Repro REAL e reproduzível, sem tocar em produção (nenhum arquivo de `src/`, `
 | Gate | Nos testes de fluxo, `keys:startup-status` é substituído por um fake `phase:'ready'` **no processo main** via `app.evaluate` + reload determinístico — simula o usuário com as duas chaves válidas SEM tocar rede nem produção |
 | Modo de lançamento | DOIS modos comparados (ver §4): `entry` (harness/entry direto) e `dot` (`electron .` — o modo do `npm run dev`) |
 
-Specs entregues (commitados na worktree):
-- `app/tests/e2e/e2e-clean-clone.spec.ts` — **spec de regressão FALSIFICÁVEL** (falha hoje no modo `entry`; verde após o fix da Onda 2): teste 1 = primeiro boot sem chaves → SetupView rápido (sem splash infinito); testes 2/3 = gate ready → Home → Trilha → aula abre.
-- `app/tests/e2e/probe-track.spec.ts` — sonda IPC (mede resolução de `track:list/get/lesson` + `keys:startup-status` no app real).
-- `app/tests/e2e/probe-ui-dump.spec.ts` — dump do que o usuário VÊ em cada aba nos dois modos.
+Spec entregue (commitado na worktree):
+- `app/tests/e2e/e2e-clean-clone.spec.ts` — **spec de regressão FALSIFICÁVEL** (falha hoje no modo `entry`; verde após o fix da Onda 2): teste 1 = primeiro boot sem chaves → SetupView rápido (sem splash infinito); testes 2/3 = gate ready → Home → Trilha → aula abre. Autocontida (sem dependência das sondas).
+
+As medições de IPC (`track:list/get/lesson`, `keys:startup-status`) e os dumps de tela foram coletados com sondas transitórias de diagnóstico (`probe-track.spec.ts`/`probe-ui-dump.spec.ts`), REMOVIDAS da história final a pedido do gate de integração — os números estão registrados nas seções 3, 5 e 7 deste relatório.
 
 Baseline (stub E2E): `e2e-lesson.spec.ts` PASSou (31.4s) — o fluxo de trilha→aula no modo stub com userData novo funciona.
 
@@ -123,16 +123,16 @@ npx playwright test tests/e2e/e2e-clean-clone.spec.ts        # modo entry (defau
 CLEAN_CLONE_LAUNCH_MODE=dot npx playwright test tests/e2e/e2e-clean-clone.spec.ts   # testes 2/3 PASS em <1s
 ```
 
-### Sonda dos canais (evidência do ENOENT)
+### Evidência dos canais (medições das sondas transitórias — arquivos removidos da história; reproduzível com o dump abaixo)
 ```
-CLEAN_CLONE_ENTRY=<repo>/app/out/main/index.js npx playwright test tests/e2e/probe-track.spec.ts   # modo entry: ok:false ENOENT
-CLEAN_CLONE_LAUNCH_MODE=dot                    npx playwright test tests/e2e/probe-track.spec.ts   # modo dot: ok:true em ~40ms
+# modo entry (app real, userData novo, gate override): track:* → ok:false ENOENT em 1-13ms
+# modo dot  (app real, userData novo, gate override): track:list 64ms / track:get 46ms / track:lesson 38ms → ok:true
 ```
 
-### Dump do que o usuário vê
+### Dump do que o usuário vê (medição das sondas transitórias, modo entry × dot)
 ```
-npx playwright test tests/e2e/probe-ui-dump.spec.ts    # entry: Home sem trilhas; Trilha: "Nenhuma trilha instalada"; Aula: vazio
-CLEAN_CLONE_LAUNCH_MODE=dot npx playwright test tests/e2e/probe-ui-dump.spec.ts  # dot: seletor de trilha com "Node.js do Zero (0 de 118 aulas)"
+entry: Home SEM a seção "Trilhas"; aba Trilha → "Nenhuma trilha instalada ainda…"; aba Aula → "Nenhuma aula selecionada".
+dot:   Home com cartão "Node.js do Zero (0 de 118 aulas)"; aula abre em <1s.
 ```
 
 ### Procedimento manual (se preferir sem Playwright)
@@ -176,9 +176,7 @@ Varredura completa de `LinearProgress`/`CircularProgress` no renderer (grep) + a
 ## 8. Entregáveis (commitados na worktree `onda1-repro-loader`)
 
 - `docs/relatorio-rodada10-diag.md` — este relatório.
-- `app/tests/e2e/e2e-clean-clone.spec.ts` — **spec de regressão falsificável**: falha hoje no modo `entry` (Bug 1); verde após o fix da Onda 2 (e já verde no modo `dot`).
-- `app/tests/e2e/probe-track.spec.ts` — sonda IPC (evidência das medições).
-- `app/tests/e2e/probe-ui-dump.spec.ts` — dump das telas (evidência do que o usuário vê).
+- `app/tests/e2e/e2e-clean-clone.spec.ts` — **spec de regressão falsificável**: falha hoje no modo `entry` (Bug 1); verde após o fix da Onda 2 (e já verde no modo `dot`). Autocontida; segue o padrão `RendererDom` das specs verdes (sem lib DOM no tsconfig.node).
 
 Nenhum arquivo de produção foi alterado. Instrumentação foi feita exclusivamente por runtime (`app.evaluate` no main, sem tocar código).
 

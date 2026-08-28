@@ -166,6 +166,18 @@ export async function forceGateReady(app: ElectronApplication, page: Page): Prom
   await page.waitForSelector('#root, [data-testid]', { timeout: 60_000 });
 }
 
+/**
+ * Fatia do DOM do renderer usada dentro dos `page.evaluate`. O tsconfig destes
+ * testes é o de NODE (`lib: ["ES2022"]`, sem DOM) porque o processo de teste é
+ * Node — mas o corpo do `evaluate` roda no RENDERER, que tem DOM. Mesmo padrão
+ * do `RendererDom` de `e2e-theme.spec.ts` / `e2e-code-theme.spec.ts`.
+ */
+interface RendererDom {
+  document: {
+    body: { innerText: string } | null;
+  };
+}
+
 /** Confirma que o --user-data-dir foi honrado pelo Electron (realpath — o
  * macOS resolve /var → /private/var nos dois lados). */
 export async function assertUserData(app: ElectronApplication, expected: string): Promise<void> {
@@ -185,7 +197,10 @@ export async function assertUserData(app: ElectronApplication, expected: string)
 
 /** Dump do estado da UI (loader? erro? aula?) — anexo de diagnóstico. */
 async function dumpUi(page: Page, testInfo: import('@playwright/test').TestInfo, tag: string): Promise<void> {
-  const bodyText = await page.evaluate(() => document.body?.innerText?.slice(0, 2000) ?? '(sem body)');
+  const bodyText = await page.evaluate(() => {
+    const dom = globalThis as unknown as RendererDom;
+    return dom.document.body?.innerText.slice(0, 2000) ?? '(sem body)';
+  });
   await testInfo.attach(`ui-${tag}.txt`, { body: bodyText });
   const progress = await page.locator('.MuiLinearProgress-root, .MuiCircularProgress-root').count();
   await testInfo.attach(`ui-${tag}-spinners`, { body: `spinners na tela: ${progress}` });
