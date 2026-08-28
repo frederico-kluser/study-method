@@ -29,6 +29,10 @@
  * antigo daquele challengeId (errorFor) e appenda o par novo no FIM — a
  * discussão antiga permanece, sem duplicação.
  *
+ * ONDA3-E2E-FENCE: formatErrorBubble usa fence DINÂMICO (`fenceFor`) nos
+ * code blocks de arquivo E de saída — conteúdo com run de 3+ backticks não
+ * quebra o markdown (fence = max(3, maior run + 1)).
+ *
  * ONDA1-MODELO-CHAT (chat iMessage — o modelo que a Onda 2 consome):
  *  10. Toda mensagem criada carrega `ts` (Date.now() no momento da CRIAÇÃO;
  *      `now` injetável nos testes) — push/apply/seed.
@@ -58,6 +62,7 @@ import {
   chatHistory,
   clearChallengeError,
   createTrackLessonState,
+  fenceFor,
   formatChatTime,
   formatErrorBubble,
   isLessonFinishBlocked,
@@ -232,6 +237,29 @@ describe('trackLessonState — onda2 error-flow', () => {
     const md = formatErrorBubble(report({ files: [] }));
     assert.ok(!md.includes('Código submetido'), 'sem arquivos, sem seção de código');
     assert.ok(md.includes('Resultado por teste'), 'resto do markdown intacto');
+  });
+
+  // ─── ONDA3-E2E-FENCE: fence dinâmico nos code blocks da bolha ────────────
+  it('fenceFor: sem backticks → fence padrão de 3; run de 3 → fence de 4', () => {
+    assert.equal(fenceFor('export function dobroDoNumero(n) { return n * 2; }'), '```', 'sem backticks → 3 (default)');
+    assert.equal(fenceFor('const s = `template`;'), '```', 'backticks avulsos (run 1) → 3');
+    assert.equal(fenceFor('```js\nconsole.log(`oi`)\n```'), '````', 'run de 3 → fence de 4');
+  });
+
+  it('fenceFor: run de 4+ backticks → fence SEMPRE maior que o maior run', () => {
+    assert.equal(fenceFor('````\nconsole.log(1)\n````'), '`````', 'run de 4 → fence de 5');
+    assert.equal(fenceFor('const s = `````;'), '``````', 'run de 5 → fence de 6');
+  });
+
+  it('formatErrorBubble: code blocks com backticks no código E na saída usam fenceFor (markdown íntegro)', () => {
+    const md = formatErrorBubble(report({
+      files: [{ path: 'solution.mjs', code: '```js\nconsole.log(`oi`)\n```' }],
+      output: '```\nconsole.log("backtick fence")\n```\nok',
+    }));
+    // Código com run de 3 → aberto/fechado com fence de 4 — o bloco sobrevive.
+    assert.ok(md.includes('````\n```js\nconsole.log(`oi`)\n```\n````'), 'código com ``` intacto dentro de fence de 4');
+    // Saída com run de 3 → fence de 4 com a info string 'text' — bloco íntegro.
+    assert.ok(md.includes('````text\n\n```\nconsole.log("backtick fence")\n```\nok\n\n````'), 'saída com ``` intacta dentro de fence de 4');
   });
 
   it('seedChallengeError insere bolha de erro + pergunta e grava challengeError', () => {

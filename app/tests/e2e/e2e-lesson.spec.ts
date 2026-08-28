@@ -61,10 +61,53 @@ test.afterEach(async () => {
  * DOM). Sem fixture-knowledge: o stub é determinístico, mas o contrato forte
  * é o próprio indicador (nunca casamos texto oculto — ele não existe fora da
  * digitação).
+ *
+ * ONDA3-E2E-FENCE (fix do flake): `toBeVisible` do indicador era polado via
+ * CDP a cada ~100ms — o indicador é TRANSIENTE (mensagens do stub com 62-95
+ * chars a ~400 chars/s = janela de ~155-240ms) e UM poll perdido virava
+ * falha dura. Trocamos por `waitForFunction` com `polling: 'raf'` (roda NO
+ * RENDERER a ~16ms — ~12 amostras dentro da janela). O predicado casa o
+ * TEXT CONTENT do `[role="status"]` com o texto i18n (pt/en) — NUNCA o role
+ * sozinho (o app tem outros role=status SEMPRE montados: SessionFrame,
+ * AppGate, OnboardingOverlay, ChallengeView). O predicado é auto-contido
+ * (sem closure): o Playwright serializa a função e a avalia no escopo
+ * global da página. O `undefined` explícito é o arg (senão o objeto de
+ * options seria interpretado como arg).
  */
 async function waitFullTypewriter(page: Page): Promise<void> {
-  await expect(page.getByText(/tutor digitando|tutor typing/i)).toBeVisible();
-  await expect(page.getByText(/tutor digitando|tutor typing/i)).toHaveCount(0);
+  // APARECE: o indicador monta durante a digitação (janela transiente).
+  await page.waitForFunction(
+    () => {
+      // tsconfig.node.json (que cobre tests/) NÃO tem lib DOM — o acesso ao
+      // DOM usa globalThis com cast explícito (o Playwright transpila o spec
+      // com esbuild: o `as any` some e o browser recebe `globalThis.document`).
+      // querySelectorAll + varredura: o PRIMEIRO [role="status"] na ordem do
+      // DOM é o do SessionFrame (SEMPRE montado, sem o texto do indicador) —
+      // querySelector só no primeiro elemento nunca alcançaria o indicador.
+      const doc = (globalThis as any).document;
+      const statuses = doc?.querySelectorAll('[role="status"]') ?? [];
+      for (const el of statuses) {
+        if (/tutor digitando|tutor typing/i.test(el.textContent ?? '')) return true;
+      }
+      return false;
+    },
+    undefined,
+    { polling: 'raf' },
+  );
+  // SOME: o unmount do indicador É a condição "typewriterIsDone" (se a
+  // digitação terminou entre as duas esperas, o predicado já nasce true).
+  await page.waitForFunction(
+    () => {
+      const doc = (globalThis as any).document;
+      const statuses = doc?.querySelectorAll('[role="status"]') ?? [];
+      for (const el of statuses) {
+        if (/tutor digitando|tutor typing/i.test(el.textContent ?? '')) return false;
+      }
+      return true;
+    },
+    undefined,
+    { polling: 'raf' },
+  );
 }
 
 test('e2e-lesson: trilha → aula em chat (teoria progressiva + fontes + desafios + gating)', async () => {

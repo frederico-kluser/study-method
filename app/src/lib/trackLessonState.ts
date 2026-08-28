@@ -363,6 +363,19 @@ const DEFAULT_BUBBLE_LABELS: ErrorBubbleLabels = {
 };
 
 /**
+ * ONDA3-E2E-FENCE: devolve o FENCE do code block adequado ao conteúdo — o
+ * fence fixo de 3 backticks quebra o markdown quando o conteúdo tem um run
+ * de 3+ backticks (`formatErrorBubble` embute o CÓDIGO DO ALUNO e a SAÍDA do
+ * runner — conteúdo de autoria não controlada, que pode ecoar backticks de
+ * console.log). Regra: fence = max(3, maiorRunDeBackticks + 1) — um fence de
+ * N+1 backticks nunca é fechado por uma linha de conteúdo com run <= N.
+ */
+export function fenceFor(code: string): string {
+  const longestRun = Math.max(0, ...(code.match(/`+/g) ?? []).map((m) => m.length));
+  return '`'.repeat(Math.max(3, longestRun + 1));
+}
+
+/**
  * Markdown DETERMINÍSTICO da bolha de erro — UMA mensagem do histórico (o
  * ChatBubble renderiza markdown): título do desafio, razão parcial (N de M,
  * mesmo padrão das chaves i18n `challenge.partialCount`/`checksTitle`), o
@@ -371,6 +384,11 @@ const DEFAULT_BUBBLE_LABELS: ErrorBubbleLabels = {
  * Onda 2 renderiza e o teste asserta a presença do código), checklist com
  * ✔/✖ e a saída em code block. `labels` permite à UI injetar as traduções
  * correntes (default = padrão pt-BR acima).
+ *
+ * ONDA3-E2E-FENCE: os code blocks de arquivo E o bloco de saída usam fence
+ * DINÂMICO (`fenceFor`) — o código do aluno e o output do runner podem
+ * conter backticks (o app compõe o fence com conteúdo de autoria do aluno);
+ * um fence fixo de 3 quebraria o markdown nesses casos.
  */
 export function formatErrorBubble(
   report: TrackChallengeErrorReport,
@@ -384,11 +402,19 @@ export function formatErrorBubble(
     ? report.checks.map((c) => `- ${c.passed ? '✔' : '✖'} ${c.name}`).join('\n')
     : '- _(nenhum check rodou — a execução nem chegou aos testes)_';
   // Código submetido: um code block por arquivo, com o path como título.
+  // ONDA3-E2E-FENCE: fence DINÂMICO por conteúdo (fenceFor) — o código do
+  // aluno pode conter backticks e um fence fixo de 3 quebraria o bloco.
   const files = report.files.length > 0
     ? report.files
-        .map((f) => `**${f.path}**\n\n\`\`\`\n${f.code}\n\`\`\``)
+        .map((f) => {
+          const fence = fenceFor(f.code);
+          return `**${f.path}**\n\n${fence}\n${f.code}\n${fence}`;
+        })
         .join('\n\n')
     : null;
+  // ONDA3-E2E-FENCE: fence dinâmico também na saída (o runner pode ecoar
+  // backticks do console.log do aluno) — o fence casa com o opening.
+  const outputFence = fenceFor(report.output);
   return [
     `## ${l.title}`,
     `**${report.challengeTitle}**`,
@@ -397,9 +423,9 @@ export function formatErrorBubble(
     `${l.checksTitle}`,
     checks,
     `${l.outputTitle}:`,
-    '```text',
+    `${outputFence}text`,
     report.output,
-    '```',
+    `${outputFence}`,
   ].join('\n\n');
 }
 
