@@ -4,15 +4,14 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="plannotator-theme" content="host">
-<title>O que mudou na aula do Study Method?</title>
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%235537eb'/%3E%3Cpath d='M14 14h36v28H34l-12 10v-10h-8z' fill='%23ffffff'/%3E%3Cpath d='M29 20h6v12h-6zM29 34h6v6h-6z' fill='%235537eb'/%3E%3C/svg%3E">
+<title>Do texto cru ao iMessage</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23de351b'/%3E%3Cpath d='M16 24a6 6 0 0 1 6-6h20a6 6 0 0 1 6 6v10a6 6 0 0 1-6 6H31l-9 7v-7h-6a6 6 0 0 1-6-6V24z' fill='%23ffffff'/%3E%3Ccircle cx='23' cy='29' r='2.7' fill='%23de351b'/%3E%3Ccircle cx='32' cy='29' r='2.7' fill='%23de351b'/%3E%3Ccircle cx='41' cy='29' r='2.7' fill='%23de351b'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
 <style>
-  /* ============ PLANNONATOR THEME TOKENS (theme-override) ============ */
+  /* ================= TEMA (tokens do Plannotator) ================= */
   :root {
-    color-scheme: light;
     --background: oklch(0.97 0.005 260);
     --foreground: oklch(0.18 0.02 260);
     --card: oklch(1 0 0);
@@ -34,11 +33,25 @@
     --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
     --font-mono: 'JetBrains Mono', 'Fira Code', ui-monospace, monospace;
     --font-display: 'Instrument Serif', ui-serif, Georgia, 'Times New Roman', serif;
+
+    /* Cores do app (tokens reais de designTokens.ts) usadas nos mockups */
+    --app-action: #de351b;
+    --app-action-text: #ffffff;
+    --app-study: #9a54d7;
+    --app-study-text: #ffffff;
+    --app-error: #db306f;
+    --app-paper: #ffffff;
+    --app-text: #1d2433;
+    --app-review-bg: #fbeaf0;
+    --app-review-border: #f5c5d7;
+    --app-message-border: #d8dce4;
+
+    /* Diagramas */
+    --diagram-edge-text: #1d2433;
   }
 
   @media (prefers-color-scheme: dark) {
     :root {
-      color-scheme: dark;
       --background: oklch(0.15 0.02 260);
       --foreground: oklch(0.90 0.01 260);
       --card: oklch(0.22 0.02 260);
@@ -53,239 +66,271 @@
       --destructive: oklch(0.65 0.20 25);
       --success: oklch(0.72 0.17 150);
       --warning: oklch(0.75 0.15 85);
+
+      --app-action: #e73f25;
+      --app-action-text: #ffffff;
+      --app-study: #a45be4;
+      --app-study-text: #ffffff;
+      --app-error: #e03e79;
+      --app-paper: #262b36;
+      --app-text: #dadee5;
+      --app-review-bg: #382d3d;
+      --app-review-border: #6d4457;
+      --app-message-border: #3a4150;
+
+      --diagram-edge-text: #dadee5;
     }
   }
 
-  /* ============ RESET + BASE ============ */
+  /* ================= RESET + BASE ================= */
   * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html { color-scheme: light dark; }
 
   body {
     background-color: var(--background);
-    background-image: radial-gradient(circle, color-mix(in oklab, var(--foreground) 7%, transparent) 1px, transparent 1px);
-    background-size: 26px 26px;
     color: var(--foreground);
     font-family: var(--font-sans);
-    font-size: 16px;
     line-height: 1.65;
-    padding: 48px 20px 72px;
-    min-height: 100vh;
+    padding: 48px 24px 72px;
+    -webkit-font-smoothing: antialiased;
   }
 
-  .container {
-    max-width: 1000px;
-    margin: 0 auto;
+  .container { max-width: 1020px; margin: 0 auto; }
+
+  code, pre, .mono {
+    font-family: var(--font-mono);
   }
 
-  h1, h2, h3 { text-wrap: balance; }
-  code { font-family: var(--font-mono); font-size: 0.86em; }
-
-  /* ============ ANIMATION (reduced-motion safe) ============ */
+  /* ================= ANIMAÇÃO (entrada sóbria) ================= */
   @keyframes fadeUp {
     from { opacity: 0; transform: translateY(10px); }
     to { opacity: 1; transform: translateY(0); }
   }
-  .animate { animation: fadeUp 0.4s ease-out both; animation-delay: calc(var(--i, 0) * 0.06s); }
+  .animate { animation: fadeUp 0.4s ease-out both; animation-delay: calc(var(--i, 0) * 0.05s); }
   @media (prefers-reduced-motion: reduce) {
-    *, *::before, *::after {
-      animation-duration: 0.01ms !important;
-      animation-delay: 0ms !important;
-      transition-duration: 0.01ms !important;
-    }
+    *, *::before, *::after { animation-duration: 0.01ms !important; animation-delay: 0ms !important; transition-duration: 0.01ms !important; }
   }
 
-  /* ============ HEADER ============ */
+  /* ================= HEADER ================= */
   .eyebrow {
     font-family: var(--font-mono);
-    font-size: 12px;
+    font-size: 11px;
+    font-weight: 500;
     letter-spacing: 0.14em;
     text-transform: uppercase;
-    color: var(--primary);
+    color: var(--muted-foreground);
     margin-bottom: 14px;
   }
-
   h1 {
     font-family: var(--font-display);
-    font-size: clamp(34px, 5vw, 52px);
+    font-size: clamp(34px, 5.4vw, 52px);
     font-weight: 400;
-    line-height: 1.06;
+    line-height: 1.04;
     letter-spacing: -0.01em;
+    text-wrap: balance;
     margin-bottom: 12px;
   }
-
   .subtitle {
     font-family: var(--font-mono);
     font-size: 13px;
     color: var(--muted-foreground);
-    margin-bottom: 28px;
+    margin-bottom: 36px;
   }
+  .subtitle b { color: var(--foreground); font-weight: 500; }
 
-  .prompt-box {
+  /* ================= TL;DR ================= */
+  .answer-card {
     background: var(--card);
     border: 1.5px solid var(--border);
     border-left: 4px solid var(--primary);
     border-radius: var(--radius);
-    padding: 20px 24px;
-    margin-bottom: 24px;
-  }
-  .prompt-box h2 {
-    font-size: 12px;
-    font-family: var(--font-mono);
-    text-transform: uppercase;
-    letter-spacing: 0.12em;
-    color: var(--muted-foreground);
-    margin-bottom: 10px;
-  }
-  .prompt-box ol { margin-left: 20px; }
-  .prompt-box li { margin-bottom: 6px; font-size: 14.5px; color: var(--card-foreground); }
-  .prompt-box li:last-child { margin-bottom: 0; }
-  .prompt-note { font-size: 12px; color: var(--muted-foreground); margin-top: 10px; font-style: italic; }
-
-  /* ============ ANSWER CARD (resposta antes do contexto) ============ */
-  .answer-card {
-    background: color-mix(in oklab, var(--primary) 6%, var(--card));
-    border: 1.5px solid var(--primary);
-    border-radius: var(--radius);
-    padding: 26px 28px;
-    margin-bottom: 32px;
+    padding: 22px 24px;
+    margin-bottom: 28px;
   }
   .answer-card .label {
     font-family: var(--font-mono);
     font-size: 11px;
     text-transform: uppercase;
-    letter-spacing: 0.14em;
+    letter-spacing: 0.12em;
     color: var(--primary);
-    margin-bottom: 10px;
+    margin-bottom: 8px;
   }
-  .answer-card p { font-size: 18.5px; line-height: 1.55; color: var(--card-foreground); }
-  .answer-card strong { color: var(--foreground); }
+  .answer-card p { font-size: 17px; line-height: 1.6; }
 
-  /* ============ STATS ============ */
-  .stats {
+  /* ================= KPI ================= */
+  .kpi-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-    gap: 14px;
-    margin-bottom: 48px;
+    gap: 12px;
+    margin-bottom: 44px;
   }
-  .kpi-card {
+  .kpi {
     background: var(--card);
     border: 1.5px solid var(--border);
     border-radius: var(--radius);
-    padding: 16px 18px;
+    padding: 14px 16px;
   }
-  .kpi-card .kpi-value {
-    font-family: var(--font-display);
-    font-size: 30px;
-    line-height: 1.1;
-    color: var(--foreground);
-    margin-bottom: 4px;
-  }
-  .kpi-card .kpi-label {
+  .kpi .num {
     font-family: var(--font-mono);
-    font-size: 11.5px;
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--primary);
+    font-variant-numeric: tabular-nums;
+  }
+  .kpi .cap {
+    font-size: 12.5px;
     color: var(--muted-foreground);
     line-height: 1.45;
+    margin-top: 2px;
   }
 
-  /* ============ SECTIONS ============ */
-  section.segment { margin-bottom: 56px; }
-
-  .segment-head {
-    display: flex;
-    align-items: baseline;
-    gap: 14px;
-    margin-bottom: 14px;
-    border-bottom: 1px solid var(--border);
-    padding-bottom: 10px;
-  }
-  .segment-num {
+  /* ================= SEÇÕES ================= */
+  section { margin-bottom: 52px; }
+  .sec-head { display: flex; align-items: baseline; gap: 12px; margin-bottom: 14px; }
+  .sec-num {
     font-family: var(--font-mono);
     font-size: 12px;
+    font-weight: 700;
     color: var(--primary);
-    letter-spacing: 0.08em;
+    letter-spacing: 0.06em;
   }
-  .segment-head h2 {
+  h2 {
     font-family: var(--font-display);
-    font-size: 28px;
+    font-size: 26px;
     font-weight: 400;
-    color: var(--foreground);
+    line-height: 1.15;
+    text-wrap: balance;
   }
-  .segment-head .tag {
-    margin-left: auto;
+  .lede { font-size: 15.5px; color: var(--muted-foreground); max-width: 72ch; margin-bottom: 18px; }
+  p.body { font-size: 15px; max-width: 72ch; margin-bottom: 14px; }
+  p.body strong { color: var(--foreground); }
+  .body code, p code, li code, td code {
     font-family: var(--font-mono);
-    font-size: 10.5px;
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
-    color: var(--muted-foreground);
-    border: 1px solid var(--border);
-    border-radius: 999px;
-    padding: 3px 10px;
+    font-size: 0.86em;
+    background: color-mix(in oklab, var(--primary) 10%, transparent);
+    color: var(--primary);
+    padding: 1px 6px;
+    border-radius: 5px;
     white-space: nowrap;
   }
+  .signal {
+    background: color-mix(in oklab, var(--accent) 12%, var(--card));
+    border: 1.5px solid color-mix(in oklab, var(--accent) 45%, var(--border));
+    border-left: 4px solid var(--accent);
+    border-radius: var(--radius);
+    padding: 14px 18px;
+    font-size: 14.5px;
+    line-height: 1.6;
+    margin: 18px 0;
+  }
+  .signal strong { color: var(--foreground); }
 
-  .prose { max-width: 72ch; font-size: 15.5px; color: var(--card-foreground); }
-  .prose p { margin-bottom: 12px; }
-  .prose strong { color: var(--foreground); }
-  .prose em { color: var(--foreground); }
-  .prose ul { margin: 0 0 12px 22px; }
-  .prose li { margin-bottom: 6px; }
-
+  /* ================= CARDS ================= */
+  .grid-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 14px; margin: 16px 0; }
   .ve-card {
     background: var(--card);
     border: 1.5px solid var(--border);
     border-radius: var(--radius);
-    padding: 20px 22px;
-    margin-bottom: 16px;
+    padding: 18px 20px;
   }
-  .ve-card--recessed {
-    background: var(--muted);
-    border-color: transparent;
-  }
-  .ve-card--hero {
-    background: color-mix(in oklab, var(--primary) 5%, var(--card));
-    border-color: var(--primary);
-  }
+  .ve-card h3 { font-size: 15.5px; font-weight: 600; margin-bottom: 8px; }
+  .ve-card p, .ve-card li { font-size: 14px; color: var(--muted-foreground); }
+  .ve-card ul { padding-left: 18px; }
+  .ve-card li { margin-bottom: 6px; }
 
-  .glossary-inline { font-size: 14px; }
-  .glossary-inline dt { font-family: var(--font-mono); font-weight: 500; color: var(--foreground); }
-  .glossary-inline dd { margin: 2px 0 10px 0; color: var(--card-foreground); }
-
-  .callout {
+  /* ================= LISTAS ================= */
+  .req-list { list-style: none; margin: 14px 0; }
+  .req-list li {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
     background: var(--card);
-    border: 1px solid var(--border);
-    border-left: 3px solid var(--warning);
-    border-radius: 0 var(--radius) var(--radius) 0;
-    padding: 14px 18px;
-    font-size: 14px;
-    line-height: 1.6;
-    color: var(--card-foreground);
-    margin: 16px 0;
-  }
-  .callout strong { color: var(--foreground); }
-
-  .signal {
-    background: color-mix(in oklab, var(--destructive) 9%, var(--card));
-    border: 1px solid color-mix(in oklab, var(--destructive) 45%, var(--border));
-    border-left: 4px solid var(--destructive);
+    border: 1.5px solid var(--border);
     border-radius: var(--radius);
-    padding: 14px 18px;
+    padding: 12px 16px;
+    margin-bottom: 8px;
     font-size: 14.5px;
-    color: var(--card-foreground);
+    line-height: 1.55;
+  }
+  .req-list .n {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--primary);
+    background: color-mix(in oklab, var(--primary) 10%, transparent);
+    border-radius: 6px;
+    min-width: 26px;
+    height: 22px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: none;
+    margin-top: 1px;
+  }
+
+  /* ================= TABELAS ================= */
+  .table-wrap { overflow-x: auto; margin: 16px 0; border: 1.5px solid var(--border); border-radius: var(--radius); }
+  table { border-collapse: collapse; width: 100%; background: var(--card); min-width: 560px; }
+  th {
+    font-family: var(--font-mono);
+    font-size: 11.5px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    text-align: left;
+    color: var(--muted-foreground);
+    padding: 12px 16px;
+    border-bottom: 1.5px solid var(--border);
+    background: var(--muted);
+  }
+  td { font-size: 14px; padding: 12px 16px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  tr:last-child td { border-bottom: none; }
+  td.kind { font-family: var(--font-mono); font-size: 12.5px; font-weight: 600; white-space: nowrap; }
+  .chip {
+    display: inline-block;
+    font-family: var(--font-mono);
+    font-size: 11.5px;
+    padding: 2px 9px;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    background: var(--muted);
+    color: var(--muted-foreground);
+    white-space: nowrap;
+  }
+  .chip.green { color: var(--success); border-color: color-mix(in oklab, var(--success) 40%, var(--border)); background: color-mix(in oklab, var(--success) 9%, transparent); }
+  .chip.red { color: var(--destructive); border-color: color-mix(in oklab, var(--destructive) 40%, var(--border)); background: color-mix(in oklab, var(--destructive) 9%, transparent); }
+  .chip.amber { color: var(--warning); border-color: color-mix(in oklab, var(--warning) 40%, var(--border)); background: color-mix(in oklab, var(--warning) 9%, transparent); }
+
+  /* ================= CÓDIGO ================= */
+  .code-block {
+    background: var(--code-bg);
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius);
+    padding: 18px 20px;
+    overflow-x: auto;
     margin: 16px 0;
   }
-  .signal strong { color: var(--foreground); }
+  .code-block pre { font-size: 13px; line-height: 1.65; }
+  .code-block .kw { color: var(--primary); }
+  .code-block .fn { color: var(--accent); }
+  .code-block .str { color: var(--success); }
+  .code-block .cm { color: var(--muted-foreground); font-style: italic; }
+  .code-block .nm { color: var(--warning); }
 
-  /* ============ FIGURES ============ */
-  figure.diagram-figure { margin-bottom: 20px; }
-  figure.diagram-figure figcaption {
-    font-size: 14px;
+  /* ================= FIGURAS ================= */
+  figure { margin: 22px 0; }
+  figcaption {
+    font-size: 13.5px;
     line-height: 1.55;
     color: var(--muted-foreground);
     border-left: 3px solid var(--primary);
-    padding: 6px 12px;
+    padding-left: 14px;
     margin-top: 10px;
   }
-  figure.diagram-figure figcaption strong { color: var(--foreground); }
+  figcaption strong { color: var(--foreground); }
 
+  /* ================= MERMAID (diagram-shell) ================= */
   .diagram-shell { position: relative; }
   .diagram-shell__hint {
     font-family: var(--font-mono);
@@ -294,18 +339,18 @@
     margin-bottom: 8px;
     opacity: 0.75;
   }
-
   .mermaid-wrap {
     position: relative;
     background: var(--card);
     border: 1.5px solid var(--border);
-    border-radius: var(--radius);
-    padding: 30px 20px 20px;
+    border-radius: 12px;
+    padding: 32px 24px;
     overflow: auto;
+    margin-bottom: 8px;
     display: flex;
     justify-content: center;
     align-items: center;
-    min-height: 360px;
+    min-height: 400px;
   }
   .zoom-controls {
     position: absolute;
@@ -334,17 +379,11 @@
     justify-content: center;
     transition: background 0.15s ease, color 0.15s ease;
   }
-  .zoom-controls button:hover { background: var(--muted); color: var(--foreground); }
+  .zoom-controls button:hover { background: var(--border); color: var(--foreground); }
   .zoom-controls button:focus-visible { outline: 2px solid var(--ring); outline-offset: 1px; }
   .mermaid-wrap { cursor: grab; }
   .mermaid-wrap.is-panning { cursor: grabbing; user-select: none; }
-  .mermaid-viewport {
-    position: relative;
-    overflow: hidden;
-    width: 100%;
-    height: 100%;
-    min-height: 300px;
-  }
+  .mermaid-viewport { position: relative; overflow: hidden; width: 100%; height: 100%; min-height: 320px; }
   .mermaid-canvas { position: absolute; top: 0; left: 0; }
   .zoom-label {
     font-family: var(--font-mono);
@@ -355,216 +394,227 @@
     display: flex;
     align-items: center;
   }
-
-  /* Mermaid SVG legibility overrides */
   .mermaid .nodeLabel { font-family: var(--font-sans) !important; font-size: 14px !important; }
   .mermaid .edgeLabel { font-family: var(--font-mono) !important; font-size: 11.5px !important; }
+  .mermaid .edgeLabel p { margin: 0 !important; }
+  .mermaid .edgeLabel span, .mermaid .edgeLabel p { color: var(--diagram-edge-text) !important; }
+  .mermaid .cluster-label span, .mermaid .cluster-label p { color: var(--diagram-edge-text) !important; }
+  .mermaid .cluster-label text { fill: var(--diagram-edge-text) !important; }
   .mermaid .node rect, .mermaid .node circle, .mermaid .node polygon { stroke-width: 1.5px !important; }
+  .mermaid .edge-pattern-solid { stroke-width: 1.5px !important; }
 
-  /* Legibilidade dos rótulos (Mermaid 11 pinta node E edge labels com a mesma
-     cor `textColor`): nos nós claros o texto branco sobre o roxo; nas pílulas
-     de aresta claras, texto escuro; em dark, texto claro sobre fundo escuro. */
-  .mermaid .nodeLabel p { color: #ffffff !important; }
-  .mermaid .edgeLabel p { color: #414853 !important; }
-  @media (prefers-color-scheme: dark) {
-    .mermaid .nodeLabel p, .mermaid .edgeLabel p { color: #dadee5 !important; }
-  }
+  .legend { display: flex; gap: 20px; flex-wrap: wrap; margin: 4px 0 6px; }
+  .legend-item { display: flex; align-items: center; gap: 7px; font-family: var(--font-mono); font-size: 11px; color: var(--muted-foreground); }
+  .legend-swatch { width: 13px; height: 13px; border-radius: 3px; border: 1px solid var(--border); }
 
-  /* ============ MOCKUPS (altura total) ============ */
-  .mockup-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 18px;
-    margin: 18px 0 8px;
-  }
-  @media (max-width: 680px) { .mockup-grid { grid-template-columns: 1fr; } }
-  .mockup-col .mockup-label {
-    font-family: var(--font-mono);
-    font-size: 11.5px;
-    color: var(--muted-foreground);
-    margin-bottom: 8px;
-  }
-  .mockup-frame {
-    background: var(--muted);
-    border: 1.5px solid var(--border);
-    border-radius: var(--radius);
-    padding: 12px;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-  }
-  .mockup-before { height: 280px; justify-content: center; }
-  .mockup-after { height: 320px; }
-  .m-slot {
+  /* ================= MOCKUP DO CHAT (iMessage) ================= */
+  .chat-mock {
     background: var(--card);
     border: 1.5px solid var(--border);
-    border-radius: 8px;
-    padding: 8px 12px;
-    font-family: var(--font-mono);
-    font-size: 10.5px;
+    border-radius: 14px;
+    padding: 22px;
+    max-width: 560px;
+    margin: 10px 0;
+  }
+  .cm-day {
+    text-align: center;
+    font-size: 11.5px;
     color: var(--muted-foreground);
-  }
-  .m-slot.m-head { flex: none; }
-  .m-slot.m-in { flex: none; }
-  .m-chat-short { height: 110px; display: flex; align-items: center; justify-content: center; color: var(--muted-foreground); }
-  .m-chat-tall { flex: 1 1 auto; min-height: 0; overflow: hidden; display: flex; align-items: center; justify-content: center; }
-  .m-chat-tall .inner, .m-chat-short .inner {
     background: var(--muted);
-    border-radius: 6px;
-    padding: 4px 10px;
-    font-size: 9.5px;
+    border-radius: 999px;
+    padding: 3px 12px;
+    width: fit-content;
+    margin: 0 auto 18px;
+    font-family: var(--font-mono);
   }
-  .m-gap {
-    flex: 1 1 auto;
-    min-height: 24px;
+  .cm-row { display: flex; margin-bottom: 10px; }
+  .cm-row.right { justify-content: flex-end; }
+  .cm-avatar {
+    width: 26px; height: 26px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    flex: none;
+    margin-top: 20px;
+  }
+  .cm-avatar.tutor { background: var(--app-study); color: var(--app-study-text); }
+  .cm-avatar.user { background: var(--app-action); color: var(--app-action-text); }
+  .cm-right .cm-avatar { order: 2; margin-left: 8px; }
+  .cm-left .cm-avatar { margin-right: 8px; }
+  .cm-body { max-width: 78%; min-width: 0; }
+  .cm-row.right .cm-body { display: flex; flex-direction: column; align-items: flex-end; }
+  .cm-caption { font-size: 11.5px; font-weight: 600; color: var(--muted-foreground); margin: 0 4px 3px; }
+  .cm-row.right .cm-caption { margin-right: 12px; }
+  .cm-bubble {
+    border-radius: 16px;
+    padding: 9px 13px;
+    font-size: 13.5px;
+    line-height: 1.5;
+    position: relative;
+  }
+  .cm-bubble .cm-time {
+    display: block;
+    text-align: right;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    margin-top: 4px;
+    opacity: 1;
+  }
+  .cm-message { background: var(--app-paper); color: var(--app-text); border: 1px solid var(--app-message-border); border-radius: 16px 16px 16px 4px; }
+  .cm-message .cm-time { opacity: 0.8; }
+  .cm-user { background: var(--app-action); color: var(--app-action-text); border-radius: 16px 16px 4px 16px; }
+  .cm-user .cm-time { opacity: 1; }
+  .cm-reply {
+    background: var(--app-study); color: var(--app-study-text);
+    border-radius: 16px 4px 16px 16px;
+    max-width: 70%;
+  }
+  .cm-reply .cm-time { opacity: 1; }
+  .cm-review {
+    background: var(--app-review-bg); color: var(--app-text);
+    border: 1px solid var(--app-review-border);
+    border-radius: 16px 16px 16px 4px;
+  }
+  .cm-review .cm-time { opacity: 0.8; }
+  .cm-code {
+    font-family: var(--font-mono);
+    font-size: 11.5px;
+    background: var(--muted);
+    border-radius: 8px;
+    padding: 8px 10px;
+    margin: 8px 0;
+    overflow-x: auto;
+    white-space: pre;
+  }
+  .cm-review-title { font-size: 12px; font-weight: 600; margin-top: 4px; }
+  .cm-review ul { padding-left: 16px; margin: 6px 0; }
+  .cm-review li { font-size: 12px; margin-bottom: 3px; }
+  .cm-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 12px;
+    font-weight: 600;
+    font-family: var(--font-sans);
+    color: var(--primary-foreground);
+    background: var(--primary);
+    border: none;
+    border-radius: 8px;
+    padding: 7px 13px;
+    margin-top: 8px;
+    cursor: pointer;
+  }
+
+  /* ================= MOCKUP DE BOTÕES ================= */
+  .btn-mock {
+    background: var(--card);
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px 22px;
+  }
+  .btn-mock h4 { font-size: 13.5px; font-weight: 600; margin-bottom: 4px; }
+  .btn-mock .cap { font-size: 12.5px; color: var(--muted-foreground); margin-bottom: 14px; }
+  .mbtn {
+    display: inline-flex;
+    align-items: center;
+    gap: 9px;
+    font-family: var(--font-sans);
+    font-size: 14px;
+    font-weight: 600;
+    padding: 10px 18px;
+    border-radius: 10px;
+    border: none;
+    min-width: 190px;
+    justify-content: center;
+  }
+  .mbtn.primary { background: var(--app-action); color: var(--app-action-text); }
+  .mbtn .spin {
+    width: 15px; height: 15px;
+    border: 2.5px solid currentColor;
+    border-top-color: transparent;
+    border-radius: 50%;
+    animation: mspin 0.8s linear infinite;
+    flex: none;
+  }
+  @keyframes mspin { to { transform: rotate(360deg); } }
+  .mbtn .micon { display: inline-flex; flex: none; }
+  .mcard {
     display: flex;
     align-items: center;
-    justify-content: center;
-    font-size: 10px;
-    color: var(--muted-foreground);
-    font-family: var(--font-mono);
-  }
-
-  /* ============ EXAMPLE CARDS (IA analisa) ============ */
-  .example-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 14px; margin: 16px 0; }
-  .example-card {
-    background: var(--card);
+    gap: 12px;
     border: 1.5px solid var(--border);
-    border-radius: var(--radius);
-    padding: 16px 18px;
+    border-radius: 12px;
+    padding: 14px 16px;
+    max-width: 220px;
+    background: var(--muted);
   }
-  .example-card h3 { font-size: 14.5px; margin-bottom: 8px; }
-  .example-card p { font-size: 13.5px; color: var(--card-foreground); line-height: 1.55; }
-  .example-card .chip {
-    display: inline-block;
-    font-family: var(--font-mono);
-    font-size: 10.5px;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    border-radius: 999px;
-    padding: 2px 10px;
-    margin-bottom: 10px;
-  }
-  .chip--ok { color: var(--success); border: 1px solid color-mix(in oklab, var(--success) 55%, var(--border)); }
-  .chip--warn { color: var(--warning); border: 1px solid color-mix(in oklab, var(--warning) 55%, var(--border)); }
-  .chip--crit { color: var(--destructive); border: 1px solid color-mix(in oklab, var(--destructive) 55%, var(--border)); }
-
-  /* ============ TABLES ============ */
-  .data-table-wrap { overflow-x: auto; margin: 16px 0; }
-  table.data-table {
-    width: 100%;
-    border-collapse: collapse;
+  .mcard .micon { color: var(--primary); flex: none; }
+  .mcard .t {
     font-size: 14px;
+    font-weight: 600;
+    line-height: 1.35;
+    min-width: 0;
+    flex-wrap: wrap;
+  }
+  .mcard.cut .t { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .mcard.wrap .t { white-space: normal; overflow-wrap: break-word; }
+
+  /* ================= DETAILS (andaime dobrado) ================= */
+  details {
     background: var(--card);
     border: 1.5px solid var(--border);
     border-radius: var(--radius);
+    margin: 14px 0;
+    padding: 0;
     overflow: hidden;
   }
-  table.data-table th {
-    text-align: left;
-    font-family: var(--font-mono);
-    font-size: 11px;
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
-    color: var(--muted-foreground);
-    background: var(--muted);
-    padding: 10px 14px;
-    border-bottom: 1.5px solid var(--border);
-  }
-  table.data-table td {
-    padding: 10px 14px;
-    border-bottom: 1px solid var(--border);
-    vertical-align: top;
-    color: var(--card-foreground);
-  }
-  table.data-table tr:last-child td { border-bottom: none; }
-  table.data-table td:first-child { white-space: nowrap; font-weight: 500; color: var(--foreground); }
-
-  .glossary-table { font-size: 13.5px; }
-  .glossary-table td:first-child { white-space: nowrap; font-family: var(--font-mono); }
-  .glossary-table td:nth-child(2) { white-space: nowrap; color: var(--muted-foreground); font-size: 12.5px; }
-
-  /* ============ DETAILS (dobradura) ============ */
-  details.scaffold {
-    background: var(--card);
-    border: 1.5px solid var(--border);
-    border-radius: var(--radius);
-    padding: 14px 18px;
-    margin: 16px 0;
-  }
-  details.scaffold summary {
+  details > summary {
     cursor: pointer;
-    font-weight: 600;
+    padding: 13px 18px;
     font-size: 14px;
+    font-weight: 600;
+    list-style: none;
+    display: flex;
+    align-items: center;
+    gap: 10px;
     color: var(--foreground);
-    user-select: none;
   }
-  details.scaffold summary:hover { color: var(--primary); }
-  details.scaffold[open] summary { margin-bottom: 12px; }
-  details.scaffold .inner { font-size: 14px; color: var(--card-foreground); line-height: 1.65; }
-  details.scaffold .inner p { margin-bottom: 10px; }
-  details.scaffold .inner ol { margin: 0 0 10px 22px; }
-  details.scaffold .inner li { margin-bottom: 6px; }
-  details.scaffold code { background: var(--code-bg); padding: 1px 6px; border-radius: 4px; font-size: 12.5px; }
-
-  /* ============ DECISIONS LIST ============ */
-  .decision-list { margin: 8px 0 0; }
-  .decision-list li { margin-bottom: 10px; font-size: 14.5px; color: var(--card-foreground); }
-  .decision-list li::marker { color: var(--primary); }
-
-  /* ============ TIMELINE ============ */
-  .timeline { position: relative; margin: 20px 0 8px; padding-left: 26px; }
-  .timeline::before {
-    content: '';
-    position: absolute;
-    left: 6px;
-    top: 4px;
-    bottom: 4px;
-    width: 2px;
-    background: var(--border);
-  }
-  .timeline-item { position: relative; margin-bottom: 22px; }
-  .timeline-item::before {
-    content: '';
-    position: absolute;
-    left: -26px;
-    top: 6px;
-    width: 12px;
-    height: 12px;
-    border-radius: 50%;
-    background: var(--primary);
-    border: 2px solid var(--background);
-  }
-  .timeline-item .t-date {
+  details > summary::before {
+    content: '+';
     font-family: var(--font-mono);
-    font-size: 11.5px;
+    font-size: 15px;
     color: var(--primary);
-    letter-spacing: 0.06em;
-    margin-bottom: 2px;
+    transition: transform 0.15s ease;
   }
-  .timeline-item h3 { font-size: 15.5px; margin-bottom: 4px; }
-  .timeline-item p { font-size: 13.5px; color: var(--card-foreground); line-height: 1.6; max-width: 76ch; }
-  .timeline-item .t-commits { font-family: var(--font-mono); font-size: 11px; color: var(--muted-foreground); margin-top: 4px; }
-
-  /* ============ GLOSSARY + FOOTER ============ */
-  .glossary-note { font-size: 13px; color: var(--muted-foreground); margin-bottom: 12px; }
-  footer {
-    margin-top: 48px;
-    padding-top: 18px;
-    border-top: 1px solid var(--border);
-    font-family: var(--font-mono);
-    font-size: 11.5px;
+  details[open] > summary::before { content: '−'; }
+  details > summary:hover { background: var(--muted); }
+  details > summary:focus-visible { outline: 2px solid var(--ring); outline-offset: -2px; border-radius: var(--radius); }
+  details .details-body { padding: 4px 20px 18px; font-size: 14px; color: var(--muted-foreground); max-width: 78ch; }
+  details .details-body p { margin-bottom: 12px; }
+  details .details-body code { color: var(--primary); }
+  details .details-body strong { color: var(--foreground); }
+  .hint-dobrar {
+    font-size: 12.5px;
     color: var(--muted-foreground);
-    line-height: 1.8;
+    font-style: italic;
+    margin: -8px 0 14px;
   }
 
-  /* ============ RESPONSIVE ============ */
+  /* ================= FOOTER ================= */
+  footer {
+    border-top: 1.5px solid var(--border);
+    margin-top: 64px;
+    padding-top: 22px;
+    font-size: 12.5px;
+    color: var(--muted-foreground);
+    max-width: 78ch;
+  }
+  footer .mono-line { font-family: var(--font-mono); font-size: 11.5px; margin-bottom: 8px; }
+
+  /* ================= RESPONSIVO ================= */
   @media (max-width: 768px) {
     body { padding: 28px 14px 56px; }
-    h1 { font-size: 32px; }
-    .segment-head { flex-wrap: wrap; }
-    .segment-head .tag { margin-left: 0; }
-    .mermaid-wrap { padding: 24px 10px 14px; }
+    h1 { font-size: 30px; }
+    .mermaid-wrap { padding: 16px 10px; }
   }
 </style>
 </head>
@@ -573,163 +623,169 @@
 <div class="container">
 
   <!-- ================= HEADER ================= -->
-  <p class="eyebrow animate" style="--i:0">EXPLAINER · STUDY METHOD · EXECUÇÃO DE 2026-08-28</p>
-  <h1 class="animate" style="--i:1">O que mudou na aula do Study Method?</h1>
-  <p class="subtitle animate" style="--i:2">Três ondas de ajustes · foco · altura total · o erro que vira conversa</p>
-
-  <div class="prompt-box animate" style="--i:3">
-    <h2>O que foi pedido</h2>
-    <ol>
-      <li>Remover o anel de foco (focus-visible) que fica por cima dos inputs de texto (parecia um artefato de acessibilidade sobre o campo).</li>
-      <li>Aula em altura total: o chat do tutor deve usar TODA a tela vertical (antes era um bloco compacto de 360px).</li>
-      <li>Fluxo de erro de execução de desafio: quando o código falha nos testes, o desafio FECHA e o chat da aula VOLTA com o erro como bolha de mensagem; o tutor pergunta "o que você acha que errou?"; o aluno TEM que responder (texto OU voz); a resposta é analisada por IA contra o erro real (código + saída + checklist): hipótese → confirma/corrige mostrando onde errou; "não sei" → a IA analisa e mostra onde ele errou; sem resolver o desafio por ele.</li>
-    </ol>
-    <p class="prompt-note">Termos técnicos são definidos na primeira vez em que aparecem no corpo do documento.</p>
-  </div>
+  <header>
+    <p class="eyebrow animate" style="--i:0">Explicação &middot; Execução de 2026-08-28 &middot; 3 ondas</p>
+    <h1 class="animate" style="--i:1">Do texto cru ao iMessage</h1>
+    <p class="subtitle animate" style="--i:2">o chat da aula &rarr; digitação simulada + bolhas com identidade + gating do &ldquo;Concluir aula&rdquo; &nbsp;&middot;&nbsp; <b>5 commits</b> integrados sobre b8f3dcd</p>
+  </header>
 
   <!-- ================= RESPOSTA EM UMA FRASE ================= -->
-  <div class="answer-card animate" style="--i:4">
-    <div class="label">Resposta em uma frase</div>
-    <p>Nesta execução a aula do Study Method ganhou <strong>três ajustes</strong>: o anel de foco deixou de
-    cobrir os campos de texto (botões e links continuam com ele), o chat do tutor passou a usar a
-    <strong>tela inteira em altura</strong> e o desafio que falha nos testes agora <strong>fecha o painel e vira uma
-    discussão no chat</strong> — o aluno diz o que acha que errou (digitando ou falando) e a IA confirma ou
-    corrige contra o erro real, sem resolver o desafio por ele.</p>
+  <div class="answer-card animate" style="--i:3">
+    <p class="label">Resposta em uma frase</p>
+    <p>Em 3 ondas com gates verdes, o chat da aula deixou de colar respostas prontas: hoje ele <strong>digita</strong> o que o tutor diria (a ~100 <strong>tokens</strong>/segundo — token é um pedaço de texto de ~4 caracteres que a IA processa), <strong>identifica cada bolha</strong> (mensagem, resposta e review têm cor, posição, nome e avatar — o ícone circular do autor — próprios), <strong>mostra data e hora</strong> do que foi feito — inclusive a reprovação num desafio, que vira uma review (a análise da reprovação, com o código do aluno e cor própria) — e o botão <strong>&ldquo;Concluir aula&rdquo; só libera depois que todos os desafios da aula passaram</strong> (gating: travar uma ação até uma condição ser cumprida).</p>
   </div>
 
-  <!-- ================= STATS ================= -->
-  <div class="stats animate" style="--i:5">
-    <div class="kpi-card"><div class="kpi-value">3</div><div class="kpi-label">ondas: foco e altura total · erro vira conversa · cache do chat</div></div>
-    <div class="kpi-card"><div class="kpi-value">8+1</div><div class="kpi-label">commits squash nas ondas + 1 fix final (ca7a37f)</div></div>
-    <div class="kpi-card"><div class="kpi-value">1&nbsp;814</div><div class="kpi-label">testes node:test na última onda (subindo de 1&nbsp;782)</div></div>
-    <div class="kpi-card"><div class="kpi-value">5</div><div class="kpi-label">e2e verdes no Electron real com stubs, build release</div></div>
-    <div class="kpi-card"><div class="kpi-value">12</div><div class="kpi-label">sub-agentes: 8 de features/fixes · 3 revisores adversariais · 3 de validação/replanejamento</div></div>
+  <!-- ================= KPI ================= -->
+  <div class="kpi-grid animate" style="--i:4">
+    <div class="kpi"><div class="num">3</div><div class="cap">ondas de trabalho, cada uma isolada da main</div></div>
+    <div class="kpi"><div class="num">5</div><div class="cap">commits integrados na main, um por entrega</div></div>
+    <div class="kpi"><div class="num">1815 → 1830</div><div class="cap">testes unitários verdes na checagem final de cada onda</div></div>
+    <div class="kpi"><div class="num">~100</div><div class="cap">tokens/s de digitação simulada (≈2,5 ms por caractere)</div></div>
+    <div class="kpi"><div class="num">3</div><div class="cap">tipos de bolha: mensagem · resposta · review</div></div>
+    <div class="kpi"><div class="num">2</div><div class="cap">achados graves de revisão corrigidos com reprodução</div></div>
   </div>
 
-  <!-- ================= 01 · DE ONDE PARTIMOS ================= -->
-  <section class="segment animate" style="--i:6">
-    <div class="segment-head">
-      <span class="segment-num">01</span>
-      <h2>De onde a gente partiu</h2>
-      <span class="tag">contexto</span>
-    </div>
-    <div class="prose">
-      <p>A aula do Study Method é um chat com o tutor: a teoria chega em <strong>seções</strong>, o botão
-      "Próximo" avança de forma <strong>determinística</strong> (sempre o mesmo resultado para a mesma entrada —
-      sem IA nem sorteio) e as dúvidas do aluno chamam a IA. Os desafios de código abrem na ChallengeView:
-      editor, "Testar resposta", testes rodando no processo principal e veredito com estrelas e confete
-      quando passa.</p>
-      <p>Três incômodos pediam ajuste:</p>
-      <ul>
-        <li><strong>O anel de foco</strong> — o contorno que o navegador desenha no elemento focado pelo
-        teclado, para a pessoa saber onde está — aparecia por CIMA do campo de digitação, parecendo um
-        artefato de acessibilidade sobre o texto.</li>
-        <li><strong>O chat da aula</strong> era um bloco compacto de ~360px de altura: a tela vertical sobrava.</li>
-        <li><strong>Quando o código falhava nos testes</strong>, a conversa parava: o erro aparecia no painel
-        do desafio e pronto — nada perguntava ao aluno o que ele achava que tinha errado.</li>
-      </ul>
-    </div>
+  <!-- ================= 01 O PEDIDO ================= -->
+  <section id="pedido">
+    <div class="sec-head"><span class="sec-num">01</span><h2>O pedido: 8 itens, 4 temas</h2></div>
+    <p class="lede">O dono do app listou oito desejos para a aula. Eles se agrupam em quatro temas, e cada tema virou pelo menos uma figura neste documento.</p>
+    <ul class="req-list">
+      <li><span class="n">1</span><span><strong>Botão completo.</strong> &ldquo;Fazer o teste&rdquo; devia mostrar ícone <em>e</em> texto juntos (a reclamação aparecia como &ldquo;[ICON] Fazer o teste&rdquo;).</span></li>
+      <li><span class="n">2</span><span><strong>Gating do fim.</strong> A aula só termina quando o desafio dela é concluído.</span></li>
+      <li><span class="n">3</span><span><strong>Digitação simulada.</strong> O chat digita a resposta a ~100 tokens/segundo — nunca cola a bolha de uma vez. (Digitação simulada: o texto aparece caractere a caractere, como se o tutor digitasse.)</span></li>
+      <li><span class="n">4</span><span><strong>Identidade por bolha.</strong> IA e Pessoa identificadas com nome e avatar (imagem/ícone circular do autor).</span></li>
+      <li><span class="n">5</span><span><strong>Auto-scroll.</strong> A lista rola sozinha para manter o fim — a mensagem em digitação — visível.</span></li>
+      <li><span class="n">6</span><span><strong>Data e hora.</strong> Cada mensagem carrega data/hora; ao reabrir a aula, vê-se o que foi feito. A reprovação no desafio entra como review (análise de desafio reprovado, com o código do aluno e cor de fundo própria).</span></li>
+      <li><span class="n">7</span><span><strong>&ldquo;tutor digitando&rdquo; caprichado.</strong> Indicador elaborado, com animação de pontinhos.</span></li>
+      <li><span class="n">8</span><span><strong>Review e reply distintos.</strong> Review do desafio reprovado: código do aluno na mensagem + cor própria; e a resposta do tutor à pergunta como reply (resposta presa à pergunta do usuário, com cor própria e conectada a ela) — mensagem, resposta e review visualmente separáveis.</span></li>
+    </ul>
+    <p class="body">Os oito pedidos se resolvem em quatro frentes: <strong>botões</strong> (item 1), <strong>gating</strong> (item 2) e <strong>o chat em si</strong> (itens 3–8), que concentrou o grosso do trabalho nas três ondas.</p>
   </section>
 
-  <!-- ================= 02 · ONDA 1A — FOCO ================= -->
-  <section class="segment animate" style="--i:7">
-    <div class="segment-head">
-      <span class="segment-num">02</span>
-      <h2>Onda 1 · Foco: o anel saiu de onde cobria, ficou onde ajuda</h2>
-      <span class="tag">ondas 1–3</span>
-    </div>
-    <div class="prose">
-      <p>A <strong>acessibilidade</strong> (as práticas que fazem o app funcionar para todas as pessoas,
-      inclusive navegando só com teclado) continua coberta — o que mudou foi <em>onde</em> o anel aparece.
-      No tema do app, duas regras de CSS se combinam:</p>
-      <ul>
-        <li>a <strong>regra global</strong>: todo foco por teclado recebe o anel de 3px;</li>
-        <li>a <strong>exceção nova</strong>: campos de texto e seleção (input, textarea, select, combobox,
-        textbox e contenteditable) ficam SEM o anel global — eles já têm a borda de foco própria do campo.</li>
-      </ul>
-      <p><strong>O caminho crítico desta figura é a exceção:</strong> sem ela, o anel continuaria cobrindo o
-      campo. O editor de código (CodeMirror) também recebia o anel por cima — a exceção o inclui, e um fix
-      adversarial confirmou a cobertura.</p>
-    </div>
-
-    <figure class="diagram-figure" role="img" aria-label="Duas regras CSS combinadas: a global mantém o anel em todo foco por teclado; a exceção de texto remove o anel dos campos, que ficam com a borda própria; botões, links e o editor de código seguem cobertos.">
-      <section class="diagram-shell">
-        <p class="diagram-shell__hint">Ctrl/Cmd + roda para zoom · arraste para pan · duplo clique para ajustar</p>
-        <div class="mermaid-wrap">
-          <div class="zoom-controls">
-            <button type="button" data-action="zoom-in" title="Aproximar" aria-label="Aproximar">+</button>
-            <button type="button" data-action="zoom-out" title="Afastar" aria-label="Afastar">&minus;</button>
-            <button type="button" data-action="zoom-fit" title="Ajustar" aria-label="Ajustar">&#8634;</button>
-            <button type="button" data-action="zoom-one" title="1:1" aria-label="1:1">1:1</button>
-            <button type="button" data-action="zoom-expand" title="Abrir em tamanho cheio" aria-label="Abrir em tamanho cheio">&#x26F6;</button>
-            <span class="zoom-label">Carregando…</span>
+  <!-- ================= 02 O MISTÉRIO DO [ICON] ================= -->
+  <section id="botao">
+    <div class="sec-head"><span class="sec-num">02</span><h2>O mistério do &ldquo;[ICON]&rdquo;: o botão sempre teve ícone e texto</h2></div>
+    <p class="lede">Antes de tocar em qualquer coisa, a Onda 1 investigou: existe um literal &ldquo;[ICON]&rdquo; no código? A busca varreu o código-fonte, o bundle, as traduções e os stubs (simulações de serviços usadas nos testes) — nada. E os 46/46 ícones da biblioteca <strong>@mui/icons-material 9.3.1</strong> existem. O &ldquo;ícone sumido&rdquo; não era um texto placeholder: era um comportamento.</p>
+    <p class="body">O achado real: o botão usava o estado de carregamento do <strong>MUI</strong> (Material UI — a biblioteca de componentes prontos, botões e avatares, que o app usa), e o MUI v9 coloca o <strong>spinner</strong> (a animação circular de &ldquo;carregando&rdquo;) no <strong>centro</strong> por padrão — <strong>loadingPosition</strong> &lsquo;center&rsquo; — escondendo o ícone e o rótulo enquanto carrega. Com <em>loadingPosition=&ldquo;start&rdquo;</em>, o spinner vai para a esquerda e ícone + texto voltam a aparecer. O mesmo hardening (endurecer: aplicar correções defensivas mesmo sem reproduzir o sintoma exato) foi aplicado ao card de proficiência &ldquo;Fazer o teste&rdquo;, cujo rótulo podia ser cortado.</p>
+    <figure>
+      <div class="chat-mock" style="max-width: 860px;">
+        <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 22px;">
+          <div class="btn-mock">
+            <h4>Antes — o que o usuário via</h4>
+            <p class="cap">loadingPosition default (&lsquo;center&rsquo;): o spinner ocupa o meio e o botão fica sem ícone e sem texto durante o carregamento.</p>
+            <button class="mbtn primary" type="button" disabled><span class="spin"></span></button>
           </div>
-          <div class="mermaid-viewport">
-            <div class="mermaid mermaid-canvas"></div>
+          <div class="btn-mock">
+            <h4>Depois — loadingPosition=&ldquo;start&rdquo;</h4>
+            <p class="cap">O spinner vai para a esquerda; ícone e texto completos convivem com o carregamento.</p>
+            <button class="mbtn primary" type="button"><span class="spin"></span><span class="micon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12h4l3-8 4 16 3-8h6"/></svg></span>Fazer o teste</button>
+          </div>
+          <div class="btn-mock">
+            <h4>Card de proficiência</h4>
+            <p class="cap">O rótulo nunca mais corta: flexWrap, minWidth e flexShrink fazem o texto quebrar em vez de sumir (…).</p>
+            <div class="mcard wrap"><span class="micon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12h4l3-8 4 16 3-8h6"/></svg></span><span class="t">Fazer o teste</span></div>
           </div>
         </div>
-        <script type="text/plain" class="diagram-source">
-flowchart TD
-  G["Regra global<br/>todo foco por teclado<br/>recebe o anel de 3px"]
-  E["Exceção nova<br/>input, textarea, select, combobox,<br/>textbox, contenteditable<br/>sem anel global"]
-  G -->|"se aplica a todo foco"| R["Resultado no app"]
-  E -->|"remove o anel dos campos"| R
-  R -->|"campos de texto"| C["Foco = borda própria do campo<br/>campo limpo, teclado segue"]
-  R -->|"botões e links"| B["Anel global mantido<br/>acessibilidade preservada"]
-  C -->|"inclui"| CM["CodeMirror (editor de código)<br/>antes recebia o anel por cima"]
-  class E hot
-        </script>
-      </section>
-      <figcaption><strong>Afirmação:</strong> duas regras de CSS se combinam — a exceção de texto tira o anel
-      só dos campos de texto (inclusive o editor de código), e o anel global continua nos botões e links:
-      o anel saiu de onde cobria e ficou onde ajuda.</figcaption>
+      </div>
+      <figcaption><strong>O botão sempre teve ícone e texto.</strong> O que os escondia era o loading central do MUI v9; mover o loading para &ldquo;start&rdquo; devolveu tudo, e o card de proficiência ganhou um rótulo que nunca corta.</figcaption>
     </figure>
+  </section>
 
-    <details class="scaffold">
-      <summary>Por que a exceção vence a regra global? (mecânica de CSS)</summary>
-      <div class="inner">
-        <p>A regra global usa o seletor universal <code>*:focus-visible</code> (peso de especificidade 0,1,0).
-        A exceção aponta para os elementos concretos —
-        <code>input:focus-visible, textarea:focus-visible, select:focus-visible, [role="combobox"]:focus-visible, [role="textbox"]:focus-visible, [contenteditable]:focus-visible</code> —
-        e cada seletor de elemento ou atributo soma peso, então a exceção (0,1,1) vence o universal (0,1,0)
-        e o campo fica sem o anel.</p>
-        <p>Os papéis cobertos são os pontos de foco reais da interface: <code>[role="combobox"]</code> é o
-        alvo do MUI Select (um div com esse papel, não um <code>&lt;select&gt;</code>); o Autocomplete usa um
-        <code>&lt;input&gt;</code> por baixo (já coberto); <code>[role="textbox"]</code> e
-        <code>[contenteditable]</code> cobrem o "editing host" do CodeMirror 6 — o editor de código da
-        ChallengeView, que antes recebia o anel do seletor global por cima do <code>outline: none</code> do
-        baseTheme. Botões, links e chips (MuiButtonBase) mantêm o anel, preservando a navegação por teclado
-        onde ela ajuda.</p>
+  <!-- ================= 03 O MODELO ================= -->
+  <section id="modelo">
+    <div class="sec-head"><span class="sec-num">03</span><h2>A mensagem ganhou um modelo</h2></div>
+    <p class="lede">Para dar identidade, hora e tipo a cada bolha, o chat precisou de uma estrutura de dados que representasse a mensagem — o <strong>modelo de mensagem</strong>. Sem ele, não há reply, não há review, não há hora.</p>
+    <p class="body">A Onda 1 criou o tipo <code>TutorChatMessage</code>: além do papel de quem fala e do texto, cada mensagem carrega o instante em que foi criada (<code>ts</code>, com relógio injetável para testes) e um <strong>kind</strong> — o tipo da bolha: &lsquo;message&rsquo; (conversa normal), &lsquo;reply&rsquo; (resposta do tutor a uma pergunta) ou &lsquo;review&rsquo; (erro de desafio, com <code>errorFor</code> apontando de qual desafio).</p>
+    <div class="code-block" role="img" aria-label="Estrutura de dados TutorChatMessage">
+      <pre><code><span class="kw">interface</span> TutorChatMessage {
+  <span class="fn">role</span>: <span class="str">'user'</span> | <span class="str">'assistant'</span>;   <span class="cm">// quem fala</span>
+  <span class="fn">content</span>: <span class="nm">string</span>;              <span class="cm">// texto completo (markdown — formato leve com marcações)</span>
+  <span class="fn">ts</span>: <span class="nm">number</span>;                   <span class="cm">// momento da criação → HH:MM na bolha</span>
+  <span class="fn">kind</span>: <span class="str">'message'</span> | <span class="str">'reply'</span> | <span class="str">'review'</span>; <span class="cm">// o tipo da bolha</span>
+  <span class="fn">errorFor</span>?: <span class="nm">string</span>;            <span class="cm">// review: de qual desafio é o erro</span>
+}</code></pre>
+    </div>
+    <p class="body">Duas regras nasceram junto: a <strong>regra do reply</strong> — a resposta do tutor vira &lsquo;reply&rsquo; quando a última mensagem é do aluno e não há seção de teoria em andamento (&ldquo;última &lsquo;user&rsquo; e sem sectionId&rdquo;) — e o <strong>contrato com o processo principal</strong>: o histórico enviado para fora do chat é &ldquo;descascado&rdquo; (stripped) de <code>ts</code>, <code>kind</code> e <code>errorFor</code>, porque a API externa só conhece o modelo antigo (<code>TutorMessage[]</code>). A LessonView ganhou um ajuste de 3 linhas para conviver com os kinds novos.</p>
+  </section>
+
+  <!-- ================= 04 IDENTIDADE IMESSAGE ================= -->
+  <section id="identidade">
+    <div class="sec-head"><span class="sec-num">04</span><h2>A identidade iMessage: quem fala, como aparece</h2></div>
+    <p class="lede">A Onda 2 trouxe três componentes (blocos de interface com função própria) novos para <code>src/components/chat/</code>. O coração é o <code>ChatBubble</code>: nome + avatar na bolha, hora dentro dela e uma cor por kind, usando tokens de tema (cores nomeadas do tema do app: <code>primary.main</code>, <code>secondary.main</code>, <code>error.main</code>) — nenhum token novo foi criado. O resultado é o visual estilo <strong>iMessage</strong> — o app de mensagens da Apple, onde cada autor tem bolha, nome e hora próprios.</p>
+    <figure>
+      <div class="chat-mock" role="img" aria-label="Mockup do chat com três tipos de bolha: mensagem, resposta conectada e review">
+        <div class="cm-day">Hoje</div>
+
+        <div class="cm-row left">
+          <div class="cm-avatar tutor" aria-hidden="true"><svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M4 5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2V5zm3 3v2h8V8H7zm0 4v2h8v-2H7z"/></svg></div>
+          <div class="cm-body">
+            <p class="cm-caption">Tutor</p>
+            <div class="cm-bubble cm-message">Funções: uma caixa que recebe um valor e devolve outro. <span class="cm-time">09:12</span></div>
+          </div>
+        </div>
+
+        <div class="cm-row right">
+          <div class="cm-body">
+            <p class="cm-caption">Você</p>
+            <div class="cm-bubble cm-user">E se eu chamar a função com o argumento errado? <span class="cm-time">09:14</span></div>
+          </div>
+          <div class="cm-avatar user" aria-hidden="true"><svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-6.5 8-6.5s8 2.5 8 6.5H4z"/></svg></div>
+        </div>
+
+        <div class="cm-row right">
+          <div class="cm-body">
+            <p class="cm-caption" style="margin-right:0;">Tutor</p>
+            <div class="cm-bubble cm-reply">Boa pergunta: o Node.js lança uma exceção — e o app mostra exatamente onde. <span class="cm-time">09:14</span></div>
+          </div>
+        </div>
+
+        <div class="cm-row left">
+          <div class="cm-avatar tutor" aria-hidden="true"><svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M4 5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2V5zm3 3v2h8V8H7zm0 4v2h8v-2H7z"/></svg></div>
+          <div class="cm-body">
+            <p class="cm-caption">Tutor</p>
+            <div class="cm-bubble cm-review">
+              <p class="cm-review-title">Desafio &ldquo;Dobro do número&rdquo; — 1 de 2 testes passou</p>
+              <p class="cm-review-title">Código submetido</p>
+              <div class="cm-code">solution.mjs
+export function dobro(n) {
+  return n + n + 1;
+}</div>
+              <ul>
+                <li>✔ retorna o dobro de 2</li>
+                <li>✖ retorna o dobro de 0</li>
+              </ul>
+              <button class="cm-btn" type="button"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.3-5.6"/><path d="M20 3v4h-4"/></svg>Gerar novo desafio</button>
+              <span class="cm-time">09:16</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <figcaption><strong>Cor, posição e avatar distinguem mensagem, resposta e review num relance.</strong> O tutor fala à esquerda; a pergunta do aluno é a bolha azul à direita; a reply é roxa, à direita, sem avatar e conectada à bolha do usuário (canto superior-direito pequeno); a review vem em tom de erro com o código do aluno dentro.</figcaption>
+    </figure>
+    <p class="body">A <strong>reply</strong> usa <code>secondary.main</code> sólido, é alinhada à direita, não tem avatar e se conecta à bolha do usuário acima dela (raio superior-direito pequeno, como a segunda bolha de um fio no iMessage). A <strong>review</strong> usa <code>color-mix</code> (função CSS que mistura duas cores — aqui, o vermelho de erro a 10% sobre o fundo) com texto na cor primária e borda; o &ldquo;Gerar novo desafio&rdquo; mora dentro dela e fica desabilitado enquanto a digitação não termina. O <strong>TypingIndicator</strong> (3 pontinhos animados, com <code>role=status</code> — atributo que marca o elemento como região anunciável por leitores de tela) só existe no DOM — a árvore de elementos da página — enquanto algo está digitando: montagem condicional, nunca escondido por CSS.</p>
+    <p class="body">Todo texto de interface é i18n (internacionalização: os textos do app existem por idioma, pt/en): 8 chaves novas por idioma — <code>tutorName</code>/<code>youName</code> (Tutor/Você), <code>typingIndicator</code> (&ldquo;tutor digitando…&rdquo;), <code>dayToday</code>/<code>dayYesterday</code> (Hoje/Ontem), <code>finishBlockedTooltip</code> e <code>errorBubbleFilesTitle</code> (&ldquo;Código submetido&rdquo;).</p>
+    <details>
+      <summary>Contraste calibrado: por que a hora da bolha mudou de opacidade</summary>
+      <div class="details-body">
+        <p>O <strong>contraste</strong> (relação de luminosidade entre texto e fundo; ≥4,5:1 é o padrão de acessibilidade WCAG AA) foi medido por par de cor: user 4,53:1 no claro e 4,50:1 no escuro; reply 4,54:1 nos dois; error 4,50:1. Com opacidade 0,8, a hora dentro das bolhas preenchidas (user/reply) compunha 3,38–3,69:1 — reprovado. A correção: <strong>opacidade 1</strong> nas bolhas preenchidas (o par cru passa 4,50–4,55:1) e 0,8 nas bolhas claras (message/review), onde o fundo claro dá folga enorme (8,69:1+). Um débito ficou registrado: os pares claros user/reply estão no teto do branco (4,535/4,542) — passam AA com margem mínima, e trocar os tokens ficou fora de escopo.</p>
       </div>
     </details>
   </section>
 
-  <!-- ================= 03 · ONDA 1B — ALTURA TOTAL ================= -->
-  <section class="segment animate" style="--i:8">
-    <div class="segment-head">
-      <span class="segment-num">03</span>
-      <h2>Onda 1 · Altura total: o chat ganhou a tela</h2>
-      <span class="tag">ondas 1–3</span>
-    </div>
-    <div class="prose">
-      <p>O painel principal do app virou uma <strong>coluna flexível</strong> (flex column: blocos empilhados
-      um abaixo do outro), e a aula ativa passou a ocupar TODA a altura dele: cabeçalho no topo, chat no meio
-      e entrada fixa embaixo. O truque é o <strong>flexGrow</strong> — o pedido de um bloco para esticar e
-      ocupar o espaço vazio restante — combinado com <code>minHeight: 0</code>: em janela pequena o chat
-      encolhe e rola por dentro; em janela grande, estica e preenche. <strong>O painel externo nunca
-      rola</strong> — o único scroll da aula ativa é o do chat.</p>
-    </div>
-
-    <figure class="diagram-figure" role="img" aria-label="O main do shell vira flex column; o chat ganha flexGrow 1 e minHeight 0; em janela pequena ele rola por dentro, em janela grande ele estica e preenche o vão.">
-      <section class="diagram-shell">
-        <p class="diagram-shell__hint">Ctrl/Cmd + roda para zoom · arraste para pan · duplo clique para ajustar</p>
+  <!-- ================= 05 DIGITAÇÃO ================= -->
+  <section id="digitacao">
+    <div class="sec-head"><span class="sec-num">05</span><h2>A digitação simulada: streaming que é só exibição</h2></div>
+    <p class="lede">O contrato da Onda 1 era ~100 tokens/s; a Onda 2 o implementou no componente <code>TypewriterText</code>. A regra de ouro: <strong>o histórico guarda o texto completo — o streaming (entrega gradual de conteúdo em pedaços, em vez de tudo de uma vez) é apenas exibição</strong>. O componente corta o texto por <code>typewriterCut(text, elapsedMs, tps)</code> e avança num intervalo de <code>typewriterDelayPerChar</code> (≈2,5 ms por caractere → ≈400 caracteres/s).</p>
+    <figure>
+      <div class="diagram-shell" role="img" aria-label="Fluxo da digitação simulada: mensagens novas digitam, restauradas do cache aparecem instantâneas">
+        <p class="diagram-shell__hint">Ctrl/Cmd + roda do mouse para zoom &middot; arraste para pan &middot; duplo clique ajusta &middot; ⛶ abre em tamanho cheio</p>
         <div class="mermaid-wrap">
           <div class="zoom-controls">
-            <button type="button" data-action="zoom-in" title="Aproximar" aria-label="Aproximar">+</button>
-            <button type="button" data-action="zoom-out" title="Afastar" aria-label="Afastar">&minus;</button>
-            <button type="button" data-action="zoom-fit" title="Ajustar" aria-label="Ajustar">&#8634;</button>
-            <button type="button" data-action="zoom-one" title="1:1" aria-label="1:1">1:1</button>
-            <button type="button" data-action="zoom-expand" title="Abrir em tamanho cheio" aria-label="Abrir em tamanho cheio">&#x26F6;</button>
+            <button type="button" data-action="zoom-in" title="Ampliar">+</button>
+            <button type="button" data-action="zoom-out" title="Reduzir">&minus;</button>
+            <button type="button" data-action="zoom-fit" title="Ajustar à tela">&#8634;</button>
+            <button type="button" data-action="zoom-one" title="Zoom 1:1">1:1</button>
+            <button type="button" data-action="zoom-expand" title="Abrir em tamanho cheio">&#x26F6;</button>
             <span class="zoom-label">Carregando…</span>
           </div>
           <div class="mermaid-viewport">
@@ -738,244 +794,112 @@ flowchart TD
         </div>
         <script type="text/plain" class="diagram-source">
 flowchart TD
-  A["main do shell<br/>flex column, altura 100%"]
-  A -->|"comportamento antigo"| B["Antes: chat em bloco<br/>de altura fixa ≈360px"]
-  A -->|"comportamento novo"| D["Depois: cabeçalho + chat + entrada<br/>chat com flexGrow: 1<br/>e minHeight: 0"]
-  B -->|"problema"| P["Espaço da tela desperdiçado<br/>aula 'flutua' no painel"]
-  D -->|"janela pequena"| S["Chat encolhe e rola por DENTRO<br/>overflow-y: auto<br/>— o painel externo não rola"]
-  D -->|"janela grande"| F["Chat estica<br/>e preenche o vão inteiro"]
-  class D hot
+  classDef crit fill:#fbbf24,stroke:#b45309,color:#1f1300;
+  A["Resposta da IA entra no histórico"] -- "mensagem nova" --> B{"É mensagem NOVA<br/>desta sessão?"}
+  B -- "sim" --> C["TypewriterText digita<br/>~100 tokens/s (≈2,5 ms/char)"]
+  C -- "a cada passo" --> D["Auto-scroll rola<br/>até o fim"]
+  C -- "terminou (onDone)" --> E["Indicador 'tutor digitando…'<br/>sai do DOM"]
+  B -- "não: veio do cache" --> F["Bolha completa<br/>instantânea"]
+  C -- "enquanto digita" --> G["streamingIds marca a<br/>bolha como 'em digitação'"]
+  class B crit
         </script>
-      </section>
-      <figcaption><strong>Afirmação:</strong> com a altura total, o chat estica (flexGrow) para ocupar todo o
-      vão vertical e rola por dentro — o painel externo nunca rola, em janela pequena ou grande.</figcaption>
+      </div>
+      <div class="legend">
+        <div class="legend-item"><div class="legend-swatch" style="background:#fbbf24"></div> nó crítico — a decisão</div>
+      </div>
+      <figcaption><strong>Só mensagens novas da sessão digitam; as restauradas do cache aparecem instantâneas, e o auto-scroll acompanha a digitação.</strong> A bolha marcada como &ldquo;nova&rdquo; nasce vazia e cresce caractere a caractere; a restaurada do cache monta completa, sem redigitar.</figcaption>
     </figure>
-
-    <div class="mockup-grid" role="img" aria-label="Comparação visual: antes, o chat era um bloco fixo de 360px no meio do painel; depois, o chat ocupa a altura inteira entre o cabeçalho e a entrada fixa.">
-      <div class="mockup-col">
-        <p class="mockup-label">Antes — bloco fixo de ~360px</p>
-        <div class="mockup-frame mockup-before">
-          <div class="m-slot m-head">título da aula</div>
-          <div class="m-chat-short">chat (bloco fixo)</div>
-          <div class="m-slot m-in">entrada</div>
-        </div>
-      </div>
-      <div class="mockup-col">
-        <p class="mockup-label">Depois — altura total</p>
-        <div class="mockup-frame mockup-after">
-          <div class="m-slot m-head">título da aula (fixo no topo)</div>
-          <div class="m-chat-tall"><span class="inner">chat estica — rola por dentro</span></div>
-          <div class="m-slot m-in">entrada (fixa embaixo)</div>
-        </div>
-      </div>
-    </div>
-
-    <div class="callout"><strong>Detalhe:</strong> as outras telas do app (início, configurações, trilha e
-    desafio) seguem com altura de conteúdo — sem flexGrow, o comportamento delas é idêntico ao do layout de
-    bloco anterior.</div>
-  </section>
-
-  <!-- ================= 04 · ONDA 2A — ERRO VIRA CONVERSA ================= -->
-  <section class="segment animate" style="--i:9">
-    <div class="segment-head">
-      <span class="segment-num">04</span>
-      <h2>Onda 2 · O erro virou conversa: desafio fecha, chat reabre com a bolha</h2>
-      <span class="tag">ondas 4–6</span>
-    </div>
-
-    <div class="ve-card ve-card--recessed glossary-inline">
-      <p style="margin-bottom:10px;font-size:13px;font-family:var(--font-mono);color:var(--muted-foreground)">Pré-treino — os termos antes da figura:</p>
-      <dl>
-        <dt>determinístico</dt><dd>sempre o mesmo resultado para a mesma entrada — sem IA nem sorteio.</dd>
-        <dt>checklist</dt><dd>a lista de verificações (os testes) que o código do aluno precisa passar.</dd>
-        <dt>target</dt><dd>o tipo de desafio — aula, proficiência ou módulo — que decide como o veredito é tratado.</dd>
-        <dt>markAttempt</dt><dd>o registro persistente do resultado de uma tentativa (passou ou falhou).</dd>
-        <dt>IPC</dt><dd>a ponte de comunicação entre o processo principal do app e a interface.</dd>
-        <dt>bolha</dt><dd>uma mensagem do chat; a de erro carrega checklist, saída e o botão "Gerar novo desafio".</dd>
-        <dt>semear (seed)</dt><dd>injetar mensagens iniciais no histórico do chat quando a tela abre.</dd>
-        <dt>"Gerar novo desafio" (nunca-repetir)</dt><dd>pede um desafio novo à IA, que nunca repete um já errado naquela aula.</dd>
-      </dl>
-    </div>
-
-    <div class="prose">
-      <p>Quando o código falha nos testes de um desafio de <strong>aula</strong>, o painel do desafio fecha e o
-      chat da aula reabre em tela cheia com o erro como <strong>bolha de mensagem</strong>: o checklist
-      parcial (X de Y verificações passaram), a saída dos testes e o botão "Gerar novo desafio" — o
-      nunca-repetir preservado, agora morando dentro da bolha.</p>
-    </div>
-
-    <div class="signal"><strong>Sinalizado na figura (caminho crítico):</strong> o fechamento do painel
-    acontece SÓ quando o target do desafio é de aula — os targets de proficiência e módulo mantêm o
-    comportamento antigo (erro mostrado no painel). E o fechamento é determinístico: só código, nenhuma
-    decisão de IA.</div>
-
-    <figure class="diagram-figure" role="img" aria-label="Fluxo do erro: o código falha nos testes; com target de aula, o painel fecha e o chat reabre com a bolha de erro e a pergunta do tutor.">
-      <section class="diagram-shell">
-        <p class="diagram-shell__hint">Ctrl/Cmd + roda para zoom · arraste para pan · duplo clique para ajustar</p>
-        <div class="mermaid-wrap">
-          <div class="zoom-controls">
-            <button type="button" data-action="zoom-in" title="Aproximar" aria-label="Aproximar">+</button>
-            <button type="button" data-action="zoom-out" title="Afastar" aria-label="Afastar">&minus;</button>
-            <button type="button" data-action="zoom-fit" title="Ajustar" aria-label="Ajustar">&#8634;</button>
-            <button type="button" data-action="zoom-one" title="1:1" aria-label="1:1">1:1</button>
-            <button type="button" data-action="zoom-expand" title="Abrir em tamanho cheio" aria-label="Abrir em tamanho cheio">&#x26F6;</button>
-            <span class="zoom-label">Carregando…</span>
-          </div>
-          <div class="mermaid-viewport">
-            <div class="mermaid mermaid-canvas"></div>
-          </div>
-        </div>
-        <script type="text/plain" class="diagram-source">
-flowchart TD
-  AL["Aluno envia o código<br/>no painel do desafio"]
-  AL -->|"Testar resposta"| T["Processo principal roda o código<br/>contra os testes<br/>— a checklist nunca aparece na UI"]
-  T -->|"roda a checklist"| V{Passou?}
-  V -->|"sim"| OK["Confete + estrelas<br/>markAttempt: passed"]
-  V -->|"não"| TG{target do desafio?}
-  TG -->|"'lesson' — aula<br/>CAMINHO CRÍTICO"| MF["markAttempt: failed"]
-  MF -->|"monta o relatório"| RE["Report do erro<br/>código + saída + checklist"]
-  RE -->|"determinístico, sem IA"| FC["Painel do desafio FECHA"]
-  FC -->|"navega de volta"| CH["Chat da aula reabre<br/>em tela cheia"]
-  CH -->|"seed na montagem"| BU["Bolha de erro:<br/>checklist parcial + saída<br/>+ 'Gerar novo desafio'"]
-  BU -->|"pergunta do tutor"| Q["'O que você acha que errou?'"]
-  Q -->|"texto ou voz"| AN["Aluno responde<br/>→ a IA analisa a hipótese"]
-  TG -->|"proficiency / module"| OL["Comportamento antigo:<br/>erro mostrado no painel<br/>— nada muda"]
-  class MF crit
-        </script>
-      </section>
-      <figcaption><strong>Afirmação:</strong> na falha de um desafio de aula, o fechamento do painel é
-      determinístico (só código, sem IA) e o erro vira bolha no chat com a pergunta do tutor — o desafio
-      nunca se repete na hora.</figcaption>
-    </figure>
-
-    <div class="prose">
-      <p>Depois da bolha, o tutor pergunta <strong>"o que você acha que errou?"</strong> — e o aluno
-      <strong>tem que responder</strong> antes de a conversa seguir, digitando ou falando: o microfone entrou
-      no campo de digitação da aula. A resposta sai acompanhada do relatório do erro (código + saída +
-      checklist) para a análise da IA. Terminada a discussão, o botão "Próximo" limpa o contexto de erro e a
-      teoria retoma — as bolhas continuam na conversa, só o contexto deixa de acompanhar os turnos.</p>
-    </div>
-  </section>
-
-  <!-- ================= 05 · ONDA 2B — IA ANALISA ================= -->
-  <section class="segment animate" style="--i:10">
-    <div class="segment-head">
-      <span class="segment-num">05</span>
-      <h2>Onda 2 · A IA analisa a hipótese do aluno</h2>
-      <span class="tag">ondas 4–6</span>
-    </div>
-    <div class="prose">
-      <p>Na resposta do tutor, o <strong>system prompt</strong> — as instruções fixas dadas à IA antes da
-      conversa, que definem o papel e as regras dela — ganha dois blocos extras: <em>CONTEXTO DE ERRO</em> e
-      <em>REGRAS DE ERRO</em>. O <strong>payload</strong> (os dados que uma mensagem carrega entre as partes
-      do sistema) traz o relatório completo: o código enviado, a saída dos testes e a checklist.</p>
-      <p>Isso vale <strong>só para a ação 'answer'</strong> (a resposta do aluno): a ação 'next' é
-      determinística e ignora o bloco — sem regressão no fluxo normal.</p>
-    </div>
-
-    <figure class="diagram-figure" role="img" aria-label="A IA valida a hipótese do aluno contra o erro real; se ele disse não sei, analisa sozinha; em qualquer caso, nunca resolve o desafio por ele.">
-      <section class="diagram-shell">
-        <p class="diagram-shell__hint">Ctrl/Cmd + roda para zoom · arraste para pan · duplo clique para ajustar</p>
-        <div class="mermaid-wrap">
-          <div class="zoom-controls">
-            <button type="button" data-action="zoom-in" title="Aproximar" aria-label="Aproximar">+</button>
-            <button type="button" data-action="zoom-out" title="Afastar" aria-label="Afastar">&minus;</button>
-            <button type="button" data-action="zoom-fit" title="Ajustar" aria-label="Ajustar">&#8634;</button>
-            <button type="button" data-action="zoom-one" title="1:1" aria-label="1:1">1:1</button>
-            <button type="button" data-action="zoom-expand" title="Abrir em tamanho cheio" aria-label="Abrir em tamanho cheio">&#x26F6;</button>
-            <span class="zoom-label">Carregando…</span>
-          </div>
-          <div class="mermaid-viewport">
-            <div class="mermaid mermaid-canvas"></div>
-          </div>
-        </div>
-        <script type="text/plain" class="diagram-source">
-flowchart TD
-  AL["Aluno responde à pergunta<br/>'o que você acha que errou?'"]
-  AL -->|"resposta do aluno"| M["'answer' com challengeError no payload<br/>código + saída + checklist"]
-  M -->|"só em 'answer';<br/>'next' ignora"| SP["System prompt ganha<br/>CONTEXTO DE ERRO<br/>+ REGRAS DE ERRO"]
-  SP -->|"analisa contra<br/>o erro real"| H{Hipótese do aluno}
-  H -->|"hipótese certa"| C1["Confirma a hipótese<br/>e mostra por quê"]
-  H -->|"hipótese errada"| C2["Corrige mostrando<br/>o trecho exato do erro"]
-  H -->|"aluno disse<br/>'não sei'"| C3["IA analisa sozinha<br/>e explica onde ele errou"]
-  C1 -->|"em qualquer caso"| NR["Nunca resolve<br/>o desafio por ele"]
-  C2 -->|"em qualquer caso"| NR
-  C3 -->|"em qualquer caso"| NR
-  class NR hot
-        </script>
-      </section>
-      <figcaption><strong>Afirmação:</strong> a análise do erro é governada por regras fixas no prompt —
-      validar a hipótese do aluno contra o erro real, analisar sozinha diante de "não sei" — e nunca
-      resolver o desafio por ele.</figcaption>
-    </figure>
-
-    <div class="example-grid" role="img" aria-label="Três comportamentos da IA diante da resposta do aluno: hipótese certa, hipótese errada e não sei.">
-      <div class="example-card">
-        <span class="chip chip--ok">hipótese certa</span>
-        <h3>O aluno acertou a causa</h3>
-        <p>A IA <strong>confirma</strong> a hipótese e mostra por que ela explica o erro real (saída + checks
-        + código do aluno).</p>
-      </div>
-      <div class="example-card">
-        <span class="chip chip--warn">hipótese errada</span>
-        <h3>O aluno apontou o lugar errado</h3>
-        <p>A IA <strong>corrige</strong>, mostrando exatamente onde está o erro real no código dele, citando
-        o trecho e o porquê.</p>
-      </div>
-      <div class="example-card">
-        <span class="chip chip--crit">"não sei"</span>
-        <h3>O aluno não faz ideia</h3>
-        <p>A IA <strong>analisa sozinha</strong> o código + saída + checklist e explica onde ele errou, com o
-        trecho e o porquê.</p>
-      </div>
-    </div>
-    <div class="callout"><strong>Regra transversal:</strong> nos três casos a IA explica — e em nenhum caso
-    entrega a solução pronta: resolver o desafio continua sendo trabalho do aluno.</div>
-
-    <details class="scaffold">
-      <summary>Por que 'next' ignora o bloco de erro? (duas ações, dois mundos)</summary>
-      <div class="inner">
-        <p>O chat da aula tem duas ações. <strong>'next'</strong> avança a teoria: é determinístico e
-        instantâneo — o markdown da seção já está no arquivo da trilha, nenhuma IA é chamada, e o contexto de
-        erro é limpo. <strong>'answer'</strong> é a dúvida ou a resposta do aluno: chama a IA e pode demorar.
-        Por isso o bloco CONTEXTO DE ERRO + REGRAS DE ERRO entra no system prompt <em>somente</em> em
-        'answer' — e sem challengeError no input, o prompt fica byte-idêntico ao fluxo normal (sem
-        regressão).</p>
+    <div class="signal"><strong>O nó que decide tudo é a pergunta &ldquo;é mensagem nova desta sessão?&rdquo;</strong> — o nó âmbar acima. Ela separa quem digita de quem aparece pronto: as mensagens novas são marcadas por <code>newMessageIndicesRef</code> e digitam no mount (mount: quando a bolha é criada na tela); as que vêm do cache ou das mensagens semeadas (inseridas de antemão no histórico, como a discussão do erro) em remontagem nunca digitam (<code>active=false</code> → texto completo instantâneo). O <code>streamingIds</code> — a lista de mensagens em digitação — alimenta o indicador &ldquo;tutor digitando…&rdquo;, o auto-scroll e o gating do &ldquo;Gerar novo desafio&rdquo;.</div>
+    <p class="body">O <code>TypingIndicator</code> entra em cena quando o turno &lsquo;answer&rsquo; aguarda a IA <em>ou</em> quando alguma bolha está digitando. E o auto-scroll roda a cada passo do typewriter — <code>onTick</code> — e não só no fim.</p>
+    <details>
+      <summary>Passo a passo: como o typewriter corta o texto (e por que não vaza timer)</summary>
+      <div class="details-body">
+        <p><strong>A conta.</strong> <code>typewriterCut</code> assume tokens ≈ 4 caracteres: caracteres digitados = ⌊tempo decorrido × tps × 4 / 1000⌋, clampado entre 0 e o tamanho do texto. O intervalo avança a cada <code>typewriterDelayPerChar</code> = 1000/(tps×4) ≈ 2,5 ms por caractere. A UI só exibe <code>text.slice(0, cut)</code> — o conteúdo integral vive no histórico.</p>
+        <p><strong>Cleanup.</strong> (limpeza: parar timers ao desmontar o componente) — trocar de aba desmonta a view e o intervalo morre junto; o StrictMode do desenvolvimento (modo do React que monta/desmonta componentes duas vezes para expor vazamentos) reinicia a digitação na segunda passada sem deixar o primeiro timer vivo. <code>onStart</code>/<code>onDone</code> avisam a LessonView (indicador, auto-scroll, gating do botão); <code>onTick</code> acompanha cada passo.</p>
+        <p><strong>O HIGH da Onda 2 (poda de streamingIds).</strong> HIGH é a severidade de achado de revisão: um erro real que precisa ser corrigido. Abrir um pré-requisito (<code>openPrerequisite</code>) no meio da digitação desmonta a bolha que digitava; sem poda, o id morto ficaria no <code>streamingIds</code> e o indicador &ldquo;tutor digitando…&rdquo; viveria para sempre. A correção: um efeito poda o conjunto contra o tamanho real do histórico (<code>history.length</code>) — o id órfão sai, o indicador desmonta.</p>
       </div>
     </details>
   </section>
 
-  <!-- ================= 06 · ONDA 3 — CACHE ================= -->
-  <section class="segment animate" style="--i:11">
-    <div class="segment-head">
-      <span class="segment-num">06</span>
-      <h2>Onda 3 · O chat não se perde na navegação (cache de sessão)</h2>
-      <span class="tag">ondas 7–8</span>
-    </div>
-    <div class="prose">
-      <p>Navegar entre a aula e o desafio desmonta a tela da aula — o <strong>unmount</strong>, o momento em
-      que a tela deixa de existir quando a pessoa vai para outra aba — e isso zerava o chat. Agora o estado
-      do chat é salvo num <strong>cache de sessão</strong> (a memória temporária que guarda o chat entre uma
-      abertura e outra da mesma aula; ela some ao fechar o app) no momento do unmount, chaveado por
-      <code>trackSlug:lessonId</code>, e restaurado na próxima montagem: histórico e teoria em curso voltam
-      exatamente onde estavam. A restauração é <strong>one-shot</strong> (lê uma única vez e esvazia — a
-      segunda leitura não encontra nada) e zera o último erro mostrado.</p>
-      <p><strong>Prioridade na entrada:</strong> o relatório de erro do desafio <strong>vence</strong> a
-      <strong>pendência da trilha</strong> (a escolha de "Trilha → Aula" guardada entre a navegação e a
-      montagem) — na ordem <code>report ?? pending</code>. Quando o erro está em foco, as bolhas do erro são
-      semeadas <strong>por cima</strong> do chat restaurado: a discussão não começa do zero.</p>
-    </div>
+  <!-- ================= 06 DATA E HORA ================= -->
+  <section id="tempo">
+    <div class="sec-head"><span class="sec-num">06</span><h2>Data e hora: o tempo virou parte da mensagem</h2></div>
+    <p class="lede">Cada bolha mostra a hora em <strong>HH:MM 24h</strong> (formato de 24 horas — 09:14, 17:03 — fixo nos dois idiomas, sem ambiguidade AM/PM) dentro da bolha, alinhada à direita. E entre mensagens de dias diferentes, um <strong>separador de dia</strong> centralizado: &ldquo;Hoje&rdquo;, &ldquo;Ontem&rdquo; ou a data completa no idioma do app.</p>
+    <p class="body">Esses três helpers são funções puras testadas: <code>formatChatTime</code> (HH:MM 24h), <code>chatDaySeparator</code> (Hoje/Ontem/data — sempre com o ano, porque uma aula retomada do cache pode atravessar anos) e <code>isLessonFinishBlocked</code> (que a seção 08 usa). A hora vem do <code>ts</code> do modelo — e como o <strong>cache de sessão</strong> (histórico do chat guardado em memória; reabrir a aula na mesma sessão restaura o histórico sem redigitar) preserva o <code>ts</code>, uma mensagem restaurada mostra a hora <em>original</em> de criação, não a de restauração.</p>
+    <p class="body">O e2e-lesson — e2e (end-to-end): teste que abre o app real e clica como usuário — foi reescrito para cobrir exatamente isso: a aula é reaberta pela Trilha e o chat volta do cache — mensagens completas, sem redigitar.</p>
+  </section>
 
-    <figure class="diagram-figure" role="img" aria-label="Ciclo do cache: a aula salva o chat no unmount e restaura na próxima montagem; o report de erro vence a pendência da trilha como alvo.">
-      <section class="diagram-shell">
-        <p class="diagram-shell__hint">Ctrl/Cmd + roda para zoom · arraste para pan · duplo clique para ajustar</p>
+  <!-- ================= 07 JORNADA DA REPROVAÇÃO ================= -->
+  <section id="jornada">
+    <div class="sec-head"><span class="sec-num">07</span><h2>A jornada da reprovação: review → pergunta → reply</h2></div>
+    <p class="lede">Quando um desafio de aula falha, o painel do desafio fecha e o chat da aula reabre em tela cheia com a discussão do erro. Esse fluxo — o item 8 do pedido — é a espinha dorsal da Onda 2, e a figura abaixo é o exemplo resolvido dele.</p>
+    <figure>
+      <div class="diagram-shell" role="img" aria-label="Sequência da reprovação: review com o código, pergunta do tutor, reply conectada e liberação do Concluir aula">
+        <p class="diagram-shell__hint">Ctrl/Cmd + roda do mouse para zoom &middot; arraste para pan &middot; duplo clique ajusta &middot; ⛶ abre em tamanho cheio</p>
         <div class="mermaid-wrap">
           <div class="zoom-controls">
-            <button type="button" data-action="zoom-in" title="Aproximar" aria-label="Aproximar">+</button>
-            <button type="button" data-action="zoom-out" title="Afastar" aria-label="Afastar">&minus;</button>
-            <button type="button" data-action="zoom-fit" title="Ajustar" aria-label="Ajustar">&#8634;</button>
-            <button type="button" data-action="zoom-one" title="1:1" aria-label="1:1">1:1</button>
-            <button type="button" data-action="zoom-expand" title="Abrir em tamanho cheio" aria-label="Abrir em tamanho cheio">&#x26F6;</button>
+            <button type="button" data-action="zoom-in" title="Ampliar">+</button>
+            <button type="button" data-action="zoom-out" title="Reduzir">&minus;</button>
+            <button type="button" data-action="zoom-fit" title="Ajustar à tela">&#8634;</button>
+            <button type="button" data-action="zoom-one" title="Zoom 1:1">1:1</button>
+            <button type="button" data-action="zoom-expand" title="Abrir em tamanho cheio">&#x26F6;</button>
+            <span class="zoom-label">Carregando…</span>
+          </div>
+          <div class="mermaid-viewport">
+            <div class="mermaid mermaid-canvas"></div>
+          </div>
+        </div>
+        <script type="text/plain" class="diagram-source">
+sequenceDiagram
+  autonumber
+  actor Aluno
+  participant Painel as Painel do desafio
+  participant Chat as Chat da aula
+  participant Tutor as Tutor (IA)
+  Aluno->>Painel: responde o desafio
+  Painel->>Tutor: envia a resposta (track)
+  Tutor-->>Painel: reprovado (veredito)
+  Painel->>Chat: reabre em tela cheia<br/>com o erro no payload
+  Chat->>Chat: montagem: seed da review<br/>+ pergunta (dedupe)
+  Tutor-->>Chat: review: código submetido +<br/>checklist + saída (kind 'review')
+  Tutor-->>Chat: pergunta "o que você acha<br/>que errou?" (kind 'message')
+  Aluno->>Chat: explica a hipótese
+  Chat->>Tutor: 'answer' com o erro no payload
+  Tutor-->>Chat: reply conectada à pergunta<br/>(cor própria, à direita)
+  Aluno->>Chat: refaz e passa no desafio
+  Tutor-->>Chat: "Gerar novo desafio"<br/>habilita após a digitação
+  Chat->>Chat: gating: todos 'passed' →<br/>"Concluir aula" liberado
+        </script>
+      </div>
+      <figcaption><strong>Desafio reprovado vira review com o código do aluno; a pergunta do aluno vira reply conectada; passando, o &ldquo;Concluir aula&rdquo; libera.</strong> A trinca review → pergunta → reply é exatamente a distinção de cores do pedido 8.</figcaption>
+    </figure>
+    <p class="body">O <strong>seed</strong> — semear: inserir mensagens iniciais no histórico; aqui, a discussão do erro — acontece na <strong>montagem</strong> do chat, quando o erro do desafio está no payload (payload: os dados que acompanham uma chamada). A bolha de review é markdown determinístico (a mesma entrada sempre gera o mesmo texto — testável) montado por <code>formatErrorBubble</code>: título do desafio, razão parcial (N de M), o <strong>código submetido</strong> — um code block (trecho de código formatado) por arquivo, com o path como título — o checklist de testes com ✔/✖ e a saída do runner. A pergunta do tutor vem logo atrás (kind &lsquo;message&rsquo;).</p>
+    <p class="body">A resposta do aluno — texto ou voz — viaja num turno &lsquo;answer&rsquo; com o erro no payload, e a IA analisa a hipótese ou o erro. Como a última mensagem agora é do aluno e não há seção em andamento, a resposta do tutor vira a <strong>reply</strong> conectada. Depois do fim da digitação, o &ldquo;Gerar novo desafio&rdquo; habilita; passando, o gating da seção 08 libera o &ldquo;Concluir aula&rdquo;.</p>
+    <details>
+      <summary>As regras do seed: dedupe sem duplicar discussão</summary>
+      <div class="details-body">
+        <p>O <strong>dedupe</strong> (impedir duplicação: não semear duas vezes o mesmo erro do mesmo desafio) tem um guard único — checagem defensiva: se já existe uma discussão ativa do <em>mesmo</em> desafio, não semeia de novo (protege contra StrictMode/remontagem). Três casos:</p>
+        <p><strong>Retry do mesmo desafio após &ldquo;next&rdquo;:</strong> o erro anterior foi limpo, mas as bolhas ficaram na conversa. O seed remove o par antigo daquele desafio (a review com <code>errorFor</code> e a pergunta imediatamente seguinte) e <strong>append</strong> o par novo no fim do histórico — a cronologia natural. A discussão antiga (resposta do aluno + análise do tutor) permanece como conversa legítima.</p>
+        <p><strong>Desafio diferente:</strong> repõe os pares de review antigos no ponto em que estavam, inserindo os novos no mesmo lugar — reposição, nunca duplicação.</p>
+        <p><strong>Novo seed:</strong> sem pares antigos, só anexa review + pergunta no fim. O par é sempre semeado adjacente (atomicamente), e é a adjacência que distingue a pergunta semeada de uma mensagem normal do tutor.</p>
+      </div>
+    </details>
+  </section>
+
+  <!-- ================= 08 GATING ================= -->
+  <section id="gating">
+    <div class="sec-head"><span class="sec-num">08</span><h2>O gating do &ldquo;Concluir aula&rdquo;</h2></div>
+    <p class="lede">A aula só termina quando todos os desafios dela estão concluídos. A regra mora numa função pura — <code>isLessonFinishBlocked</code> — que lê o <strong>lastVerdict</strong> (o veredito da última tentativa do desafio: &lsquo;passed&rsquo; = passou, ou não) de cada desafio do payload <code>track.lesson</code>.</p>
+    <figure>
+      <div class="diagram-shell" role="img" aria-label="Decisão do gating do Concluir aula">
+        <p class="diagram-shell__hint">Ctrl/Cmd + roda do mouse para zoom &middot; arraste para pan &middot; duplo clique ajusta &middot; ⛶ abre em tamanho cheio</p>
+        <div class="mermaid-wrap">
+          <div class="zoom-controls">
+            <button type="button" data-action="zoom-in" title="Ampliar">+</button>
+            <button type="button" data-action="zoom-out" title="Reduzir">&minus;</button>
+            <button type="button" data-action="zoom-fit" title="Ajustar à tela">&#8634;</button>
+            <button type="button" data-action="zoom-one" title="Zoom 1:1">1:1</button>
+            <button type="button" data-action="zoom-expand" title="Abrir em tamanho cheio">&#x26F6;</button>
             <span class="zoom-label">Carregando…</span>
           </div>
           <div class="mermaid-viewport">
@@ -984,242 +908,144 @@ flowchart TD
         </div>
         <script type="text/plain" class="diagram-source">
 flowchart TD
-  AB["Aula abre<br/>montagem da LessonView"]
-  AB -->|"primeiro take<br/>(one-shot)"| Q{"Qual alvo chega?"}
-  Q -->|"report do erro<br/>— VENCE"| R["Restaura o chat salvo<br/>histórico + teoria em curso"]
-  Q -->|"pendência da trilha<br/>— fallback"| R
-  Q -->|"nenhum"| N["Chat novo do zero<br/>— nada a restaurar"]
-  R -->|"erro em foco"| E["Bolhas do erro semeadas<br/>por cima do restaurado"]
-  R -->|"sem erro"| T2["Teoria continua<br/>de onde parou"]
-  E -->|"discussão em andamento"| S["Sai da aula (navega)<br/>— unmount"]
-  T2 -->|"teoria em andamento"| S
-  S -->|"save no unmount<br/>chave: trackSlug:lessonId"| C["Cache de sessão<br/>memória — morre no relaunch"]
-  C -->|"próxima montagem<br/>toma de volta"| AB
-  class R hot
+  classDef crit fill:#fbbf24,stroke:#b45309,color:#1f1300;
+  A["Aula aberta<br/>(payload track.lesson)"] -- "lê os desafios" --> B{"Aula tem<br/>desafios?"}
+  B -- "não" --> F["'Concluir aula' LIBERADO<br/>(aula sem desafios)"]
+  B -- "sim" --> C{"Algum desafio com<br/>lastVerdict ≠ 'passed'?"}
+  C -- "não: todos passaram" --> F
+  C -- "sim: pendente<br/>ou reprovado" --> D["Botão desabilitado<br/>+ tooltip 'Conclua os desafios<br/>desta aula primeiro'"]
+  D -- "proteção extra" --> E["guard no finishLesson:<br/>a ação não executa"]
+  F -- "clique" --> G["finishLesson roda<br/>(track: lesson-done)"]
+  class C crit
         </script>
-      </section>
-      <figcaption><strong>Afirmação:</strong> o chat da aula é salvo quando a tela fecha e restaurado quando
-      reabre — a discussão, inclusive a do erro, continua de onde parou, e o erro do desafio tem prioridade
-      sobre a pendência da trilha.</figcaption>
+      </div>
+      <div class="legend">
+        <div class="legend-item"><div class="legend-swatch" style="background:#fbbf24"></div> nó crítico — o teste que trava o botão</div>
+      </div>
+      <figcaption><strong>O &ldquo;Concluir aula&rdquo; só libera quando todos os desafios da aula têm lastVerdict &lsquo;passed&rsquo; — e aula sem desafios libera direto.</strong> Bloqueado, o botão mostra o tooltip e, mesmo assim, um guard impede a ação.</figcaption>
     </figure>
+    <div class="signal"><strong>O teste que trava o botão é um só:</strong> &ldquo;existe desafio que ainda não passou?&rdquo; (nó âmbar). Pendente (nunca tentado), reprovado, timeout ou abandonado — tudo conta como não passou. O tooltip (dica flutuante que aparece ao passar o mouse) explica: &ldquo;Conclua os desafios desta aula primeiro&rdquo;.</div>
+    <p class="body">A defesa é em camadas: o botão vem desabilitado com tooltip; e o <code>finishLesson</code> tem um <strong>guard</strong> — checagem defensiva que impede a ação se a condição falhar — mesmo que alguém clique por outro caminho. A regra vive só no <strong>renderer</strong> — a janela/interface do app, que roda sobre o Electron (a tecnologia que constrói apps de desktop com tecnologia web); o &ldquo;main&rdquo; é o processo que gerencia o sistema — decisão registrada, renderer-only.</p>
+    <p class="body">Limitação registrada: o galho &ldquo;Concluir HABILITADO&rdquo; não é observável em e2e — o stub do main (a simulação em memória do processo principal) não grava vereditos, e o processo principal do Electron (electron/**) ficou fora de escopo; a re-busca devolve <code>lastVerdict</code> nulo e a aula segue desabilitada no teste real. Os dois galhos liberados (&ldquo;sem desafios&rdquo; e &ldquo;todos passed&rdquo;) são cobertos por unit tests (testes de função isolada, sem abrir o app) de <code>isLessonFinishBlocked</code>.</p>
+  </section>
 
-    <details class="scaffold">
-      <summary>StrictMode e o holder: por que um "lê e esvazia" simples quebraria no desenvolvimento</summary>
-      <div class="inner">
-        <p>Em desenvolvimento, o React executa os efeitos de montagem duas vezes seguidas — o
-        <strong>StrictMode</strong> (double-invoke: setup → cleanup → setup) — de propósito, para expor bugs.
-        Um drain one-shot dentro do setup seria consumido na primeira passada; a segunda passada veria "nada"
-        e o load não seria disparado de novo — e o cleanup da primeira passada já tinha cancelado a chamada:
-        o spinner ficaria eterno.</p>
-        <p>A solução é o <strong>holder</strong>: um objeto guardado numa referência (ref) que sobrevive
-        entre as duas passadas do mesmo componente. O take acontece uma única vez, no primeiro acesso, e o
-        valor fica retido — cada passada do StrictMode vê o mesmo estado e re-dispara o load com a mesma
-        pendência. O mesmo padrão protege o seed da bolha de erro (uma vez só) e o load da aula (o
-        <code>tIRef</code> mantém a identidade do callback estável entre trocas de idioma).</p>
+  <!-- ================= 09 EXECUÇÃO ================= -->
+  <section id="execucao">
+    <div class="sec-head"><span class="sec-num">09</span><h2>Como a execução aconteceu: 3 ondas, gates e revisões</h2></div>
+    <p class="lede">O trabalho foi dividido em três ondas, cada uma numa <strong>worktree</strong> própria (cópia de trabalho isolada do repositório — cada onda desenvolve na sua, sem pisar na main), executada por ~14 <strong>sub-agentes</strong> (agentes de IA especializados: implementação, revisão e checagem final).</p>
+    <p class="body">O gate é uma checagem tripla: o <strong>build electron-vite</strong> (o empacotador que monta o app), os testes <strong>node:test</strong> (o runner de testes do Node) e o <strong>tsc --noEmit</strong> (o checador de tipos do TypeScript, rodado sem gerar arquivos) — os três ×2 (duas passadas).</p>
+    <figure>
+      <div class="diagram-shell" role="img" aria-label="Pipeline das três ondas até a main: implementação, revisão adversarial, validação, gate do snapshot e squash-merge">
+        <p class="diagram-shell__hint">Ctrl/Cmd + roda do mouse para zoom &middot; arraste para pan &middot; duplo clique ajusta &middot; ⛶ abre em tamanho cheio</p>
+        <div class="mermaid-wrap">
+          <div class="zoom-controls">
+            <button type="button" data-action="zoom-in" title="Ampliar">+</button>
+            <button type="button" data-action="zoom-out" title="Reduzir">&minus;</button>
+            <button type="button" data-action="zoom-fit" title="Ajustar à tela">&#8634;</button>
+            <button type="button" data-action="zoom-one" title="Zoom 1:1">1:1</button>
+            <button type="button" data-action="zoom-expand" title="Abrir em tamanho cheio">&#x26F6;</button>
+            <span class="zoom-label">Carregando…</span>
+          </div>
+          <div class="mermaid-viewport">
+            <div class="mermaid mermaid-canvas"></div>
+          </div>
+        </div>
+        <script type="text/plain" class="diagram-source">
+flowchart TD
+  classDef crit fill:#fbbf24,stroke:#b45309,color:#1f1300;
+  subgraph O1["Onda 1 — botões + modelo do chat"]
+    direction TB
+    O1A["Worktree própria"] -- "desenvolve em" --> O1B["Implementação<br/>(botoes-icon · modelo-chat)"]
+    O1B -- "revisão adversarial:<br/>2 APPROVEs · 0 HIGH" --> O1C["Validação 4 etapas: PASS"]
+  end
+  subgraph O2["Onda 2 — chat iMessage"]
+    direction TB
+    O2A["Worktree própria"] -- "desenvolve em" --> O2B["Implementação<br/>(3 componentes + LessonView)"]
+    O2B -- "revisão adversarial:<br/>2 HIGHs reproduzidos" --> O2C["Fix 9a9165a<br/>(poda + contraste)"]
+  end
+  subgraph O3["Onda 3 — e2e estável"]
+    direction TB
+    O3A["Worktree própria"] -- "desenvolve em" --> O3B["Implementação<br/>(fence + waitFullTypewriter)"]
+    O3B -- "revisão adversarial:<br/>APPROVE sem achados" --> O3C["Validação 4 etapas: PASS"]
+  end
+  O1C -- "gate do snapshot verde<br/>(build + testes + tsc ×2)" --> S["Squash-merge<br/>5 commits na main"]
+  O2C -- "gate do snapshot verde<br/>(build + testes + tsc ×2)" --> S
+  O3C -- "gate do snapshot verde<br/>(build + testes + tsc ×2)" --> S
+  class S crit
+        </script>
+      </div>
+      <div class="legend">
+        <div class="legend-item"><div class="legend-swatch" style="background:#fbbf24"></div> ponto crítico — o gate de integração</div>
+      </div>
+      <figcaption><strong>Cada onda só entrou na main depois de revisão adversarial e do gate do snapshot verde.</strong> O gate é a checagem final: build electron-vite + 1815→1830 testes node:test + tsc --noEmit ×2 — tudo verde em todas as ondas.</figcaption>
+    </figure>
+    <p class="body">Cada onda terminou com <strong>validação</strong> (sub-onda de checagem com 4 etapas — PASS nas três), passou pelo <strong>gate do snapshot de integração</strong> (snapshot: cópia verificada do código; nele rodam a checagem tripla acima) e entrou na main por <strong>squash-merge</strong> (juntar os commits da onda num único commit). Os 5 commits sobre b8f3dcd:</p>
+    <div class="code-block"><pre><code>753d2b0 onda1-botoes-icon &middot; 82095a3 onda1-modelo-chat &middot; 2d1f115 onda2-chat-imessage &middot; 9a9165a onda2-chat-imessage(fix) &middot; c2914a5 onda3-e2e-fence</code></pre></div>
+    <p class="body">As <strong>revisões adversariais</strong> — revisões que tentam achar erros de propósito, com reprodução antes de corrigir — foram o filtro de qualidade: a Onda 1 saiu com 2 APPROVEs e 0 HIGH; a Onda 2 achou 2 HIGHs — o streamingIds órfão (indicador eterno) e o contraste da hora — corrigidos no fix 9a9165a com reprodução; a Onda 3 recebeu APPROVE sem achados. Quatro <strong>REPLANs</strong> (replanejamentos da execução com base nos achados) ajustaram o contrato: REPLAN 1 (cache-restore sem typewriter, indicador com montagem condicional, e2e testando o gating), REPLAN 2 (reply conectada + filesTitle i18n), REPLAN 3 (o <strong>flake</strong> do e2e — teste que falha às vezes sem o código mudar — e a fence) e REPLAN 4 (convergência: 8/8 pedidos cobertos).</p>
+    <details>
+      <summary>O flake do e2e e a fence: o que a Onda 3 corrigiu</summary>
+      <div class="details-body">
+        <p><strong>O teste que piscava.</strong> O indicador &ldquo;tutor digitando…&rdquo; é transiente: monta durante a digitação e desmonta no fim. O <code>toBeVisible</code> antigo polava via CDP a cada ~100 ms — e o stub digita rápido, então um poll perdido virava falha dura. A correção: <code>waitForFunction</code> com <strong>polling &lsquo;raf&rsquo;</strong> (verificação repetida a cada frame de animação, ~16 ms), rodando no renderer. O predicado casa o <em>textContent</em> com /tutor digitando|tutor typing/i <strong>varrendo todos</strong> os <code>[role=status]</code> — porque o primeiro role=status do DOM é o do SessionFrame (sempre montado, sem esse texto): um querySelector simples no primeiro elemento nunca alcançaria o indicador (bug real achado e corrigido na Onda 3). O &ldquo;SOME&rdquo; é a negação: o unmount do indicador <em>é</em> a condição &ldquo;typewriterIsDone&rdquo;.</p>
+        <p><strong>A fence dinâmica.</strong> A bolha de review embute o código do aluno e a saída do runner — conteúdo de autoria não controlada, que pode ecoar backticks (as cercas ``` que delimitam um code block em markdown). Com fence fixa de 3, um <code>console.log(&quot;``&quot;)</code> do aluno fecharia o bloco e quebraria o markdown. <code>fenceFor(code)</code> devolve fence = <strong>max(3, maior run de backticks + 1)</strong> — um fence de N+1 backticks nunca é fechado por uma linha de conteúdo com run ≤ N. Aplicada aos code blocks de arquivo <em>e</em> ao bloco de saída; o markdown gerado é validado no remark-parse real (o parser de markdown do ecossistema), e 3 testes novos cobrem o caso.</p>
+      </div>
+    </details>
+    <details>
+      <summary>O que são worktree e squash-merge (com o exemplo desta execução)</summary>
+      <div class="details-body">
+        <p><strong>Worktree:</strong> o git permite ter mais de uma cópia de trabalho do mesmo repositório, em branches diferentes, simultaneamente. Cada onda teve a sua — implementação, testes e revisão aconteceram isolados; nada entrou na main antes da hora.</p>
+        <p><strong>Squash-merge:</strong> em vez de despejar dezenas de commits de trabalho na main, cada onda entrou como um único commit limpo — os 5 listados na seção 09, cada um correspondendo a uma onda (a Onda 2 entrou em dois: a implementação e o fix pós-revisão). A main fica legível: um commit = uma entrega.</p>
       </div>
     </details>
   </section>
 
-  <!-- ================= 07 · VERIFICAÇÃO ================= -->
-  <section class="segment animate" style="--i:12">
-    <div class="segment-head">
-      <span class="segment-num">07</span>
-      <h2>Como foi verificado</h2>
-      <span class="tag">gates · e2e · cobertura</span>
-    </div>
-    <div class="prose">
-      <p>Cada onda passou por um <strong>gate</strong> — o portão de qualidade que só deixa a mudança avançar
-      se build, testes e checagem de tipos passarem — no snapshot de integração: build electron-vite (a
-      ferramenta de build do app), testes <strong>node:test</strong> (o executor de testes embutido no Node,
-      crescendo de 1&nbsp;782 para 1&nbsp;814) e <strong>tsc --noEmit</strong> (a checagem de tipos do
-      TypeScript, sem gerar arquivos). Tudo verde nas três ondas. Depois, <strong>e2e</strong> — testes
-      automatizados que usam o app de verdade, como um usuário faria — no Electron real com <strong>stubs</strong>
-      (substitutos de serviços externos, para o teste não depender deles) e build release:
-      e2e-lesson, e2e-test-answer (reescrita), e2e-module-challenge, e2e-theme e e2e-spacing — todos verdes.</p>
-    </div>
-
-    <div class="data-table-wrap">
-      <table class="data-table">
-        <thead>
-          <tr><th>O quê</th><th>Resultado</th></tr>
-        </thead>
-        <tbody>
-          <tr><td>Gates de integração</td><td>verdes nas 3 ondas: build electron-vite + testes node:test (1&nbsp;782 → 1&nbsp;814) + tsc --noEmit ×2</td></tr>
-          <tr><td>Validação por onda</td><td>Onda 1: PASS (4 etapas) · Onda 2: PASS (4 etapas) · Onda 3: em curso (esperado PASS) · re-validação final (val-onda3-gate-r2): em curso (esperado PASS)</td></tr>
-          <tr><td>Revisões adversariais</td><td>encontradas e corrigidas com reprodução e teste: anel por cima do CodeMirror · race do submit em voo · duplicação de bolhas pós-'next' + 1 nit (validação de itens do relatório)</td></tr>
-          <tr><td>Testes dedicados</td><td>tutorChatError: 13 · trackLessonState: 22 · lessonChatCache: 14 · challengeNav: estendido — os e2e cobrem o fluxo de UI</td></tr>
-          <tr><td>Idiomas</td><td>6 novas chaves de tradução (pt-BR e en)</td></tr>
-        </tbody>
-      </table>
-    </div>
-
-    <details class="scaffold">
-      <summary>O que as revisões adversariais pegaram (e como foram corrigidas)</summary>
-      <div class="inner">
-        <ul style="margin-left:20px">
-          <li><strong>CodeMirror com anel:</strong> o editor de código recebia o anel global por cima do
-          <code>outline: none</code> do baseTheme — a exceção passou a cobrir <code>[role="textbox"]</code> e
-          <code>[contenteditable]</code> (commit de fix da onda 1).</li>
-          <li><strong>Race do submit em voo:</strong> um <strong>race condition</strong> — a corrida entre
-          dois eventos simultâneos, em que quem chega primeiro decide o resultado — podia duplicar o envio da
-          resposta; um ref cancelador (cancelledRef) passou a descartar o resultado da tentativa vencida
-          (fix da onda 2).</li>
-          <li><strong>Duplicação de bolhas pós-'next':</strong> retomar a teoria e errar o desafio de novo
-          podia semear a bolha duas vezes; o seed passou a conferir o histórico por <code>challengeId</code>
-          (fix da onda 3).</li>
-          <li><strong>Nit de validação:</strong> a validação do relatório passou a conferir os itens de
-          <code>files</code>/<code>checks</code> — um item nulo é descartado sem TypeError.</li>
+  <!-- ================= 10 VERIFICAÇÃO E DÉBITOS ================= -->
+  <section id="verificacao">
+    <div class="sec-head"><span class="sec-num">10</span><h2>Verificação e o que ficou de débito</h2></div>
+    <p class="lede">O que foi medido, e o que ficou registrado como dívida conhecida — sem sub-tarefa, mas documentado.</p>
+    <div class="grid-2">
+      <div class="ve-card">
+        <h3>Gates e e2e reais</h3>
+        <ul>
+          <li>Gates do snapshot <strong>verdes em todas as ondas</strong>: build electron-vite + 1815→1830 testes node:test + tsc --noEmit ×2.</li>
+          <li>Validação (4 etapas): <strong>PASS</strong> nas 3 ondas.</li>
+          <li>E2E reais (Electron + stubs, build release): <strong>e2e-lesson reescrito, 3× verde</strong>; e2e-test-answer verde (intacto); e2e-module-challenge verde.</li>
+          <li>Cobertura: <strong>trackLessonState com 33 testes</strong> (ts/kinds/typewriter/fence/gating/formatChatTime/chatDaySeparator), lessonChatCache com round-trip (ida e volta: gravar no cache e ler de volta) e e2e dos fluxos de UI.</li>
         </ul>
       </div>
-    </details>
-  </section>
-
-  <!-- ================= 08 · DECISÕES E DÉBITOS ================= -->
-  <section class="segment animate" style="--i:13">
-    <div class="segment-head">
-      <span class="segment-num">08</span>
-      <h2>Decisões autônomas e débitos documentados</h2>
-      <span class="tag">premissas · dívidas</span>
-    </div>
-    <div class="prose">
-      <p>Sem pedido de aprovação, o orquestrador tomou decisões de escopo — todas registradas:</p>
-    </div>
-    <ol class="decision-list">
-      <li>"no-top" no prompt não é prefixo da skill — foi tratado como parte do texto.</li>
-      <li>Fechamento do desafio <strong>só</strong> em target de aula — proficiência e módulo mantêm o comportamento antigo.</li>
-      <li>"Gerar novo desafio" (nunca-repetir) preservado como ação <strong>dentro</strong> da bolha de erro do chat.</li>
-      <li>Anel de foco mantido para botões/links (acessibilidade útil preservada); campos de texto usam a borda de foco própria do MUI.</li>
-      <li>Cache do chat em memória de sessão — não sobrevive a reiniciar o app (coerente); as pendências de navegação sobrevivem.</li>
-      <li>Erros de IPC/timeout <strong>não</strong> fecham o painel — só a falha determinística de código.</li>
-    </ol>
-
-    <details class="scaffold">
-      <summary>Débitos conhecidos (sem sub-tarefa nesta execução)</summary>
-      <div class="inner">
-        <ul style="margin-left:20px">
-          <li>Race em handleRegenerate/handleRegenerateFromBubble: setState após aguardar resposta em
-          componente desmontado não faz nada no React 18 — LOW, fix de 4 linhas para uma rodada futura.</li>
-          <li>Race do mic stop() após envio: texto stale no input, mas nunca duplica envio — LOW.</li>
-          <li>Strings de erro fixas em pt-BR dentro do hook useMicSTT.</li>
-          <li>Comentário desatualizado no e2e-test-answer.spec.ts (o Send já tem nome acessível).</li>
-          <li>Ações do reducer do challengeNav mortas em produção (padrão deliberado de lastSetupRoot, cobertas por teste).</li>
+      <div class="ve-card">
+        <h3>Limitações registradas</h3>
+        <ul>
+          <li>Galho &ldquo;Concluir HABILITADO&rdquo; só coberto por unit tests (stub do main em memória; electron/** fora de escopo).</li>
+          <li>Tooltip do gating verificado via mouse.move (o MUI põe <code>pointer-events: none</code> em botão desabilitado).</li>
+          <li>Contraste dos pares claros user/reply no teto do branco (4,535/4,542 — passa AA com margem mínima).</li>
+          <li>aria-live (região que leitores de tela anunciam quando o conteúdo muda) anuncia o texto em crescimento durante o streaming — a informação completa chega no fim.</li>
+          <li>1 frame cosmético de texto completo no openPrerequisite (sem ação).</li>
+          <li>node-llama-cpp postinstall bloqueado pelo allow-scripts (runtime futuro pode exigir npm approve-scripts).</li>
         </ul>
       </div>
-    </details>
-  </section>
-
-  <!-- ================= 09 · TIMELINE ================= -->
-  <section class="segment animate" style="--i:14">
-    <div class="segment-head">
-      <span class="segment-num">09</span>
-      <h2>Timeline da execução</h2>
-      <span class="tag">3 ondas + fixes</span>
-    </div>
-    <div class="prose">
-      <p>Três ondas em sequência, cada uma com <strong>squash merge</strong> (a união dos commits de uma
-      branch em um só, na main) e gate verde no snapshot de integração.</p>
-    </div>
-    <div class="timeline">
-      <div class="timeline-item">
-        <div class="t-date">2026-08-28 · ONDA 1</div>
-        <h3>Layout, foco e o contrato de erro</h3>
-        <p>Anel de foco removido dos campos de texto (theme.ts) com o main virando coluna flexível (App.tsx) e a
-        aula em altura total (LessonView). Na mesma onda, o contrato aditivo do erro: o relatório
-        TrackChallengeErrorReport e o <code>challengeError</code> no request do chat, com a análise no
-        processo principal (contexto + regras no system prompt) e a validação do relatório. Fix adversarial:
-        CodeMirror coberto.</p>
-        <p class="t-commits">commits 1–3</p>
-      </div>
-      <div class="timeline-item">
-        <div class="t-date">2026-08-28 · ONDA 2</div>
-        <h3>O fluxo de erro no renderer</h3>
-        <p>Fechamento determinístico do painel (target de aula), estado do erro no chat com os tipos de bolha,
-        seed na montagem, microfone no input, "Gerar novo desafio" dentro da bolha e limpeza no 'next';
-        navegação com relatório; 6 chaves de tradução; e2e-test-answer reescrita. Fixes: validação de itens e
-        race do submit.</p>
-        <p class="t-commits">commits 4–6</p>
-      </div>
-      <div class="timeline-item">
-        <div class="t-date">2026-08-28 · ONDA 3</div>
-        <h3>O cache do chat</h3>
-        <p>Cache de sessão por <code>trackSlug:lessonId</code>: save no unmount, restore com precedência
-        <code>report ?? pending</code>, take one-shot zerando o último erro, holder contra o StrictMode; a
-        aula restaura e o seed entra por cima; o botão Enviar ganhou nome acessível. Fix: dedupe do seed por
-        histórico (<code>challengeId</code>).</p>
-        <p class="t-commits">commits 7–8</p>
-      </div>
-      <div class="timeline-item">
-        <div class="t-date">2026-08-28 · FIX FINAL</div>
-        <h3>Retry do mesmo desafio após 'next'</h3>
-        <p>Fix final ca7a37f: o seed re-semeia quando o aluno erra de novo o MESMO desafio depois de retomar a
-        teoria — guarda única = discussão ativa; o par antigo de bolhas é removido e o par novo entra no fim;
-        o erro da tentativa atual volta a ser mostrado e analisado.</p>
-      </div>
-      <div class="timeline-item">
-        <div class="t-date">2026-08-28 · VALIDAÇÃO</div>
-        <h3>Sub-ondas de validação</h3>
-        <p>Onda 1: PASS (4 etapas) · Onda 2: PASS (4 etapas) · Onda 3: em curso (esperado PASS) · re-validação
-        final (val-onda3-gate-r2): em curso (esperado PASS).</p>
-      </div>
     </div>
   </section>
 
-  <!-- ================= GLOSSÁRIO ================= -->
-  <section class="segment animate" style="--i:15">
-    <div class="segment-head">
-      <span class="segment-num">+</span>
-      <h2>Glossário fechado</h2>
-      <span class="tag">complemento</span>
-    </div>
-    <p class="glossary-note">Cada termo já foi definido inline na primeira ocorrência; esta tabela é só o
-    complemento para consulta.</p>
-    <div class="data-table-wrap">
-      <table class="data-table glossary-table">
-        <thead>
-          <tr><th>Termo</th><th>Aparece em</th><th>Definição</th></tr>
-        </thead>
-        <tbody>
-          <tr><td>anel de foco (focus-visible)</td><td>seção 02</td><td>contorno que o navegador desenha no elemento focado pelo teclado, para a pessoa saber onde está</td></tr>
-          <tr><td>acessibilidade</td><td>seção 02</td><td>práticas que fazem o app funcionar para todas as pessoas, inclusive navegando só com teclado</td></tr>
-          <tr><td>flex column</td><td>seção 03</td><td>empilhamento vertical dos blocos da tela, um abaixo do outro</td></tr>
-          <tr><td>flexGrow</td><td>seção 03</td><td>pedido de um bloco para esticar e ocupar o espaço vazio restante</td></tr>
-          <tr><td>determinístico</td><td>seção 01</td><td>sempre o mesmo resultado para a mesma entrada — sem IA nem sorteio</td></tr>
-          <tr><td>checklist</td><td>seção 04</td><td>a lista de verificações (os testes) que o código do aluno precisa passar</td></tr>
-          <tr><td>target</td><td>seção 04</td><td>o tipo de desafio — aula, proficiência ou módulo — que decide como o veredito é tratado</td></tr>
-          <tr><td>markAttempt</td><td>seção 04</td><td>o registro persistente do resultado de uma tentativa (passou ou falhou)</td></tr>
-          <tr><td>IPC</td><td>seção 04</td><td>a ponte de comunicação entre o processo principal do app e a interface</td></tr>
-          <tr><td>bolha</td><td>seção 04</td><td>uma mensagem do chat; a de erro carrega checklist, saída e o botão "Gerar novo desafio"</td></tr>
-          <tr><td>semear (seed)</td><td>seção 04</td><td>injetar mensagens iniciais no histórico do chat quando a tela abre</td></tr>
-          <tr><td>"Gerar novo desafio"</td><td>seção 04</td><td>pede um desafio novo à IA, que nunca repete um já errado naquela aula (nunca-repetir)</td></tr>
-          <tr><td>system prompt</td><td>seção 05</td><td>as instruções fixas dadas à IA antes da conversa — definem o papel e as regras dela</td></tr>
-          <tr><td>payload</td><td>seção 05</td><td>os dados que uma mensagem carrega entre as partes do sistema</td></tr>
-          <tr><td>cache de sessão</td><td>seção 06</td><td>memória temporária que guarda o chat entre aberturas da mesma aula; some ao fechar o app</td></tr>
-          <tr><td>one-shot (drain)</td><td>seção 06</td><td>operação que lê uma única vez e esvazia — a segunda leitura não encontra nada</td></tr>
-          <tr><td>unmount</td><td>seção 06</td><td>o momento em que a tela deixa de existir (a pessoa navegou para outra aba)</td></tr>
-          <tr><td>pendência da trilha</td><td>seção 06</td><td>a escolha de "Trilha → Aula" guardada entre a navegação e a montagem da tela da aula</td></tr>
-          <tr><td>StrictMode (double-invoke)</td><td>dobradura 06</td><td>modo de desenvolvimento do React que executa os efeitos de montagem duas vezes para expor bugs</td></tr>
-          <tr><td>holder</td><td>dobradura 06</td><td>objeto guardado numa referência que sobrevive entre as duas passadas do StrictMode</td></tr>
-          <tr><td>race condition</td><td>dobradura 07</td><td>corrida entre dois eventos simultâneos — quem chega primeiro decide o resultado</td></tr>
-          <tr><td>e2e</td><td>seção 07</td><td>teste automatizado que usa o app de verdade, como um usuário faria</td></tr>
-          <tr><td>gate</td><td>seção 07</td><td>portão de qualidade: a onda só avança se build, testes e checagem de tipos passarem</td></tr>
-          <tr><td>stubs</td><td>seção 07</td><td>substitutos de serviços externos, para o teste não depender deles</td></tr>
-          <tr><td>squash merge</td><td>seção 09</td><td>a união dos commits de uma branch em um só, na main</td></tr>
-        </tbody>
-      </table>
-    </div>
-  </section>
-
+  <!-- ================= FOOTER ================= -->
   <footer>
-    <p>Válido contra a execução run-20260828-001713-37279 · gerado em 2026-08-28 · descreve o estado da main
-    ao fim das 3 ondas + fixes desta execução.</p>
-    <p>Este documento é uma explicação didática — não altera código e não é fonte normativa.</p>
+    <p class="mono-line">EXPLICAÇÃO DIDÁTICA &middot; EXECUÇÃO DE 2026-08-28 &middot; 3 ONDAS + 1 FIX CONSOLIDADO &middot; ~14 SUB-AGENTES</p>
+    <p><strong>Leitor assumido:</strong> misto/desconhecido — o texto trata como novato e dobra o aprofundamento nos blocos expansíveis (+), para quem já conhece pular.</p>
+    <p>Documento gerado a partir do arquivo de fatos da execução (<code>.deep-orchestrator/run-20260828-095101-64848/explainer/fatos.md</code>), com o código real do app consultado apenas para descrever o fluxo com precisão. Diagramas Mermaid 11 renderizados e verificados (legibilidade com contraste ≥ 4,5:1) nas paletas clara e escura. Valores como 1815→1830 testes, ~100 tokens/s, 33 testes e 2 HIGHs são os números da execução.</p>
   </footer>
 
 </div>
 
 <script type="module">
   import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
-  import elkLayouts from 'https://cdn.jsdelivr.net/npm/@mermaid-js/layout-elk/dist/mermaid-layout-elk.esm.min.mjs';
+
+  let elkRegistered = false;
+  try {
+    const elk = await import('https://cdn.jsdelivr.net/npm/@mermaid-js/layout-elk@0.5/dist/mermaid-layout-elk.esm.min.mjs');
+    mermaid.registerLayoutLoaders(elk.default);
+    elkRegistered = true;
+  } catch (e) {
+    console.warn('ELK não carregou do CDN; usando dagre.');
+  }
 
   const config = {
     fitPadding: 28,
@@ -1230,70 +1056,81 @@ flowchart TD
     minZoom: 0.08,
     maxZoom: 6.5,
     zoomStep: 0.14,
-    readabilityFloor: 0.58
+    readabilityFloor: 0.58,
   };
+
+  const mq = matchMedia('(prefers-color-scheme: dark)');
+  const isDark = () => mq.matches;
+
+  const THEME_VARS = {
+    light: {
+      darkMode: false,
+      background: '#f3f5f9',
+      primaryColor: '#5537eb',
+      primaryTextColor: '#ffffff',
+      primaryBorderColor: '#c9c3ee',
+      lineColor: '#414853',
+      secondaryColor: '#e1e5eb',
+      secondaryTextColor: '#414853',
+      tertiaryColor: '#e1e5eb',
+      tertiaryTextColor: '#414853',
+      textColor: '#1d2433',
+      labelTextColor: '#1d2433',
+      nodeTextColor: '#ffffff',
+      signalTextColor: '#1d2433',
+      actorTextColor: '#1d2433',
+      actorBkg: '#e1e5eb',
+      actorBorder: '#9aa3b2',
+      sequenceNumberColor: '#414853',
+      edgeLabelBackground: '#ffffff',
+      clusterBkg: '#e9ecf3',
+      clusterBorder: '#c4cad4',
+    },
+    dark: {
+      darkMode: true,
+      background: '#070b14',
+      primaryColor: '#1e242e',
+      primaryTextColor: '#dadee5',
+      primaryBorderColor: '#343b45',
+      lineColor: '#9da5b2',
+      secondaryColor: '#1e242e',
+      secondaryTextColor: '#dadee5',
+      tertiaryColor: '#1e242e',
+      tertiaryTextColor: '#dadee5',
+      textColor: '#dadee5',
+      labelTextColor: '#dadee5',
+      nodeTextColor: '#dadee5',
+      signalTextColor: '#dadee5',
+      actorTextColor: '#dadee5',
+      actorBkg: '#141a24',
+      actorBorder: '#2f3947',
+      sequenceNumberColor: '#dadee5',
+      edgeLabelBackground: '#11161f',
+      clusterBkg: '#0d121b',
+      clusterBorder: '#242e3b',
+    },
+  };
+
+  function applyTheme() {
+    mermaid.initialize({
+      startOnLoad: false,
+      theme: 'base',
+      look: 'classic',
+      layout: elkRegistered ? 'elk' : 'dagre',
+      fontFamily: "'Inter', system-ui, sans-serif",
+      fontSize: '14px',
+      themeVariables: THEME_VARS[isDark() ? 'dark' : 'light'],
+    });
+  }
+  applyTheme();
 
   const clamp = (n, lo, hi) => Math.max(lo, Math.min(hi, n));
 
   let activeDrag = null;
-
   addEventListener('mousemove', (e) => activeDrag?.onMove(e));
   addEventListener('mouseup', () => {
     activeDrag?.onEnd();
     activeDrag = null;
-  });
-
-  function readIsDark() {
-    const cs = getComputedStyle(document.documentElement).colorScheme;
-    if (cs === 'dark') return true;
-    if (cs === 'light') return false;
-    return matchMedia('(prefers-color-scheme: dark)').matches;
-  }
-
-  function themeVariablesFor(isDark) {
-    return isDark
-      ? {
-          darkMode: true,
-          primaryColor: '#1e242e',
-          primaryTextColor: '#dadee5',
-          primaryBorderColor: '#343b45',
-          lineColor: '#9da5b2',
-          secondaryColor: '#1e242e',
-          secondaryTextColor: '#dadee5',
-          tertiaryColor: '#1e242e',
-          tertiaryTextColor: '#dadee5',
-          labelTextColor: '#dadee5',
-          nodeTextColor: '#dadee5',
-          signalTextColor: '#dadee5',
-          background: '#070b14',
-        }
-      : {
-          primaryColor: '#5537eb',
-          primaryTextColor: '#ffffff',
-          primaryBorderColor: '#d4d8de',
-          lineColor: '#414853',
-          secondaryColor: '#e1e5eb',
-          secondaryTextColor: '#414853',
-          tertiaryColor: '#e1e5eb',
-          tertiaryTextColor: '#414853',
-          labelTextColor: '#414853',
-          nodeTextColor: '#ffffff',
-          signalTextColor: '#414853',
-          background: '#f3f5f9',
-        };
-  }
-
-  mermaid.registerLayoutLoaders(elkLayouts);
-  mermaid.initialize({
-    startOnLoad: false,
-    theme: 'base',
-    look: 'classic',
-    layout: 'elk',
-    themeVariables: {
-      ...themeVariablesFor(readIsDark()),
-      fontFamily: "'Inter', system-ui, sans-serif",
-      fontSize: '14px',
-    }
   });
 
   const rerenderers = [];
@@ -1305,10 +1142,7 @@ flowchart TD
     const source = shell.querySelector('.diagram-source');
     const label = shell.querySelector('.zoom-label');
 
-    if (!wrap || !viewport || !canvas || !source || !label) {
-      console.error('initDiagram: missing required elements in', shell);
-      return;
-    }
+    if (!wrap || !viewport || !canvas || !source || !label) return;
 
     let zoom = 1;
     let fitMode = 'contain';
@@ -1345,10 +1179,8 @@ flowchart TD
     }
 
     function canPan() {
-      const rW = svgW * zoom;
-      const rH = svgH * zoom;
-      return rW + config.fitPadding * 2 > viewport.clientWidth
-          || rH + config.fitPadding * 2 > viewport.clientHeight;
+      return svgW * zoom + config.fitPadding * 2 > viewport.clientWidth
+          || svgH * zoom + config.fitPadding * 2 > viewport.clientHeight;
     }
 
     function computeSmartFit() {
@@ -1362,8 +1194,13 @@ flowchart TD
       if (contain < config.readabilityFloor) {
         const chartR = svgH / svgW;
         const vpR = vpH / Math.max(vpW, 1);
-        if (chartR >= vpR) { z = aW / svgW; mode = 'width-priority'; }
-        else { z = aH / svgH; mode = 'height-priority'; }
+        if (chartR >= vpR) {
+          z = aW / svgW;
+          mode = 'width-priority';
+        } else {
+          z = aH / svgH;
+          mode = 'height-priority';
+        }
       }
       return { zoom: clamp(z, config.minZoom, config.maxInitialZoom), mode };
     }
@@ -1398,11 +1235,25 @@ flowchart TD
 
     function readSvgNaturalSize(svg) {
       let w = 0, h = 0;
-      if (svg.viewBox?.baseVal?.width > 0) { w = svg.viewBox.baseVal.width; h = svg.viewBox.baseVal.height; }
-      if (!w) { w = parseFloat(svg.getAttribute('width')) || 0; h = parseFloat(svg.getAttribute('height')) || 0; }
-      if (!w) { const b = svg.getBBox(); w = b.width; h = b.height; }
-      if (!w) { const r = svg.getBoundingClientRect(); w = r.width || 1000; h = r.height || 700; }
-      if (!svg.getAttribute('viewBox')) { svg.setAttribute('viewBox', `0 0 ${w} ${h}`); }
+      if (svg.viewBox?.baseVal?.width > 0) {
+        w = svg.viewBox.baseVal.width;
+        h = svg.viewBox.baseVal.height;
+      }
+      if (!w) {
+        w = parseFloat(svg.getAttribute('width')) || 0;
+        h = parseFloat(svg.getAttribute('height')) || 0;
+      }
+      if (!w) {
+        const b = svg.getBBox();
+        w = b.width; h = b.height;
+      }
+      if (!w) {
+        const r = svg.getBoundingClientRect();
+        w = r.width || 1000; h = r.height || 700;
+      }
+      if (!svg.getAttribute('viewBox')) {
+        svg.setAttribute('viewBox', `0 0 ${w} ${h}`);
+      }
       return { w, h };
     }
 
@@ -1421,8 +1272,8 @@ flowchart TD
       const clone = svg.cloneNode(true);
       clone.style.width = '';
       clone.style.height = '';
-      const bg = getComputedStyle(document.documentElement)
-        .getPropertyValue('--background').trim() || (readIsDark() ? '#070b14' : '#f3f5f9');
+      const bg = getComputedStyle(document.documentElement).getPropertyValue('--background').trim()
+        || (isDark() ? '#070b14' : '#f3f5f9');
       const html = `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8">
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
       <title>Diagrama</title><style>
@@ -1436,15 +1287,24 @@ flowchart TD
     async function render() {
       try {
         const code = source.textContent.trim();
-        if (!code) { label.textContent = 'Erro: fonte vazia'; return; }
+        if (!code) {
+          label.textContent = 'Erro: fonte vazia';
+          return;
+        }
         const id = 'diagram-' + Date.now() + '-' + Math.random().toString(36).slice(2, 8);
         const { svg } = await mermaid.render(id, code);
         const parsed = new DOMParser().parseFromString(svg, 'text/html');
         const parsedSvg = parsed.body.querySelector('svg');
-        if (!parsedSvg) { label.textContent = 'Erro: sem SVG'; return; }
+        if (!parsedSvg) {
+          label.textContent = 'Erro: SVG vazio';
+          return;
+        }
         canvas.replaceChildren(document.adoptNode(parsedSvg));
         const svgNode = canvas.querySelector('svg');
-        if (!svgNode) { label.textContent = 'Erro: sem SVG'; return; }
+        if (!svgNode) {
+          label.textContent = 'Erro: SVG vazio';
+          return;
+        }
         const size = readSvgNaturalSize(svgNode);
         svgW = size.w;
         svgH = size.h;
@@ -1455,8 +1315,8 @@ flowchart TD
         setAdaptiveHeight();
         fitDiagram();
       } catch (err) {
-        console.error('Mermaid render failed:', err);
-        label.textContent = 'Erro: ' + (err.message || 'Falha na renderização');
+        console.error('Falha ao renderizar diagrama:', err);
+        label.textContent = 'Erro: ' + (err.message || 'falha no render');
       }
     }
 
@@ -1465,7 +1325,7 @@ flowchart TD
       'zoom-out': () => zoomAround(1 / (1 + config.zoomStep), viewport.clientWidth / 2, viewport.clientHeight / 2),
       'zoom-fit': fitDiagram,
       'zoom-one': setOneToOne,
-      'zoom-expand': openInNewTab
+      'zoom-expand': openInNewTab,
     };
 
     Object.entries(actions).forEach(([action, handler]) => {
@@ -1493,17 +1353,24 @@ flowchart TD
     viewport.addEventListener('mousedown', (e) => {
       if (e.target.closest('.zoom-controls') || !canPan()) return;
       wrap.classList.add('is-panning');
-      sx = e.clientX; sy = e.clientY; spx = panX; spy = panY;
+      sx = e.clientX; sy = e.clientY;
+      spx = panX; spy = panY;
       e.preventDefault();
       activeDrag = {
-        onMove: (ev) => { panX = spx + (ev.clientX - sx); panY = spy + (ev.clientY - sy); applyTransform(); },
-        onEnd: () => { wrap.classList.remove('is-panning'); }
+        onMove: (ev) => {
+          panX = spx + (ev.clientX - sx);
+          panY = spy + (ev.clientY - sy);
+          applyTransform();
+        },
+        onEnd: () => wrap.classList.remove('is-panning'),
       };
     });
 
     viewport.addEventListener('touchstart', (e) => {
       if (e.touches.length === 1) {
-        sx = e.touches[0].clientX; sy = e.touches[0].clientY; spx = panX; spy = panY;
+        sx = e.touches[0].clientX;
+        sy = e.touches[0].clientY;
+        spx = panX; spy = panY;
       } else if (e.touches.length === 2) {
         const dx = e.touches[0].clientX - e.touches[1].clientX;
         const dy = e.touches[0].clientY - e.touches[1].clientY;
@@ -1517,7 +1384,8 @@ flowchart TD
     viewport.addEventListener('touchmove', (e) => {
       if (e.touches.length === 1 && canPan()) {
         if (touchDist > 0) {
-          sx = e.touches[0].clientX; sy = e.touches[0].clientY; spx = panX; spy = panY;
+          sx = e.touches[0].clientX; sy = e.touches[0].clientY;
+          spx = panX; spy = panY;
           touchDist = 0;
         }
         e.preventDefault();
@@ -1535,7 +1403,10 @@ flowchart TD
     }, { passive: false });
 
     new ResizeObserver(() => {
-      if (svgW) { setAdaptiveHeight(); fitDiagram(); }
+      if (svgW) {
+        setAdaptiveHeight();
+        fitDiagram();
+      }
     }).observe(wrap);
 
     rerenderers.push(render);
@@ -1546,18 +1417,8 @@ flowchart TD
 
   window.rerenderDiagrams = () => Promise.all(rerenderers.map((render) => render()));
 
-  matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
-    mermaid.initialize({
-      startOnLoad: false,
-      theme: 'base',
-      look: 'classic',
-      layout: 'elk',
-      themeVariables: {
-        ...themeVariablesFor(readIsDark()),
-        fontFamily: "'Inter', system-ui, sans-serif",
-        fontSize: '14px',
-      }
-    });
+  mq.addEventListener('change', () => {
+    applyTheme();
     window.rerenderDiagrams();
   });
 </script>
