@@ -24,6 +24,7 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactElement,
   type ReactNode,
@@ -73,10 +74,10 @@ import {
   type TrackLessonUiState,
 } from '../../lib/trackLessonState';
 import {
+  createTrackLessonPendingHolder,
   drainPendingDomain,
   drainPendingLessonId,
   drainPendingSubject,
-  drainPendingTrackLesson,
 } from '../../lib/pendingSubject';
 import type {
   TrackChallengeSummaryDto,
@@ -159,6 +160,11 @@ export function LessonView(props: ViewProps): ReactElement {
     () => t as unknown as (key: string, options?: Record<string, string | number>) => string,
     [t],
   );
+  // Ref de tradução SEMPRE atualizado: `t` (e `tI`) muda de identidade em
+  // `changeLanguage` (react-i18next v16) — um callback com deps [tI] seria
+  // re-criado a cada troca de idioma e re-executaria o efeito de montagem.
+  const tIRef = useRef(tI);
+  tIRef.current = tI;
   const navigate = props.onNavigate ?? (() => {});
   const { publishSession } = useSessionState();
   const nav = useChallengeNav();
@@ -179,7 +185,14 @@ export function LessonView(props: ViewProps): ReactElement {
 
   /** Carrega uma aula da trilha via IPC — SEMPRE com timeout: se o canal não
    * responder em `IPC_TIMEOUT_MS`, cai no loadError com mensagem própria
-   * (nenhum spinner eterno) e o usuário tem o botão de tentar de novo. */
+   * (nenhum spinner eterno) e o usuário tem o botão de tentar de novo.
+   *
+   * Deps [] de propósito (não [tI]): `loadLesson` entra nas deps do efeito de
+   * montagem; se dependesse de `t`, a troca de idioma (changeLanguage → `t`
+   * novo) re-criaria o callback e RE-EXECUTARIA o efeito — com o holder
+   * retido, a aula JÁ CARREGADA voltaria a `null` (flash de <LinearProgress/>),
+   * com refetch do IPC e reset do status de sessão. O `tIRef` lê a tradução
+   * ATUAL sem re-criar o callback: identidade estável, texto sempre novo. */
   const loadLesson = useCallback(
     (trackSlug: string, lessonId: string): (() => void) => {
       let cancelled = false;
@@ -190,25 +203,42 @@ export function LessonView(props: ViewProps): ReactElement {
           if (cancelled) return;
           if (res.ok === false) {
             // W3 (falsy-proof): '' é erro VÁLIDO — só null significa "sem erro".
-            setLoadError(resolveChannelError(res, tI('lesson.trackLoadFailed')));
+            setLoadError(resolveChannelError(res, tIRef.current('lesson.trackLoadFailed')));
             return;
           }
           if (!res.lesson) {
-            setLoadError(tI('lesson.trackNotFound'));
+            setLoadError(tIRef.current('lesson.trackNotFound'));
             return;
           }
           setLesson(res.lesson);
         })
         .catch((err: unknown) => {
           if (cancelled) return;
-          setLoadError(isTimeoutError(err) ? tI('lesson.trackLoadTimeout') : tI('lesson.trackLoadFailed'));
+          setLoadError(
+            isTimeoutError(err)
+              ? tIRef.current('lesson.trackLoadTimeout')
+              : tIRef.current('lesson.trackLoadFailed'),
+          );
         });
       return () => {
         cancelled = true;
       };
     },
-    [tI],
+    [],
   );
+
+  // FIX rodada 11 (anti-StrictMode — loading infinito no dev/run.sh): em dev o
+  // React roda os efeitos em setup → cleanup → setup (double-invoke). Um drain
+  // one-shot dentro do setup seria consumido na passada 1 e a passada 2 veria
+  // null — e o cleanup da passada 1 já cancelou o IPC da passada 1 → nenhum
+  // load novo, spinner eterno. O holder RETIDO num ref sobrevive entre as
+  // passadas do MESMO fiber (refs não são resetados pelo StrictMode), então
+  // cada setup re-dispara o load com a mesma pendência.
+  const pendingLessonHolderRef = useRef<ReturnType<typeof createTrackLessonPendingHolder> | null>(null);
+  if (pendingLessonHolderRef.current === null) {
+    pendingLessonHolderRef.current = createTrackLessonPendingHolder();
+  }
+  const pendingLessonHolder = pendingLessonHolderRef.current;
 
   // Drena a pendência da trilha NA MONTAGEM (one-shot). Pendências legadas
   // (subject/domain/lessonId) são descartadas — rodada 8: não se gera aula.
@@ -216,7 +246,9 @@ export function LessonView(props: ViewProps): ReactElement {
     drainPendingSubject();
     drainPendingDomain();
     drainPendingLessonId();
-    const pending = drainPendingTrackLesson();
+    // get() retém a pendência entre as passadas do double-invoke — o drain
+    // direto aqui veria null na 2ª passada e nenhum load novo seria disparado.
+    const pending = pendingLessonHolder.get();
     if (!pending) return;
     setTrackLesson(pending);
     publishSession({ subject: pending.lessonId, status: 'idle' });

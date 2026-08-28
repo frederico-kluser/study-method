@@ -155,6 +155,44 @@ export function clearPendingTrackLesson(): void {
 }
 
 /**
+ * Retentor da pendência de TRILHA para a MONTAGEM de componente (fix rodada 11
+ * — anti-StrictMode, loading infinito da LessonView no dev/run.sh).
+ *
+ * POR QUÊ: em dev o React <StrictMode> executa os efeitos em double-invoke
+ * (setup → cleanup → setup) do MESMO fiber. `drainPendingTrackLesson()` é
+ * one-shot: o setup da passada 1 consome a pendência e dispara o load; o
+ * cleanup da passada 1 CANCELA esse load (cancelled=true no IPC em voo); o
+ * setup da passada 2 veria null e NÃO dispararia nada novo → nenhuma chamada
+ * IPC viva, `lesson=null` + `loadError=null` → <LinearProgress/> eterno. Refs
+ * e estado do MESMO fiber SOBREVIVEM ao ciclo setup→cleanup→setup, então um
+ * holder retido num ref preserva o valor entre as passadas e cada setup volta
+ * a disparar o load (a passada 2 não fica órfã).
+ *
+ * Semântica: `get()` drena o store no PRIMEIRO acesso e RETÉM o valor dali em
+ * diante — nunca re-drena (uma instância não rouba a pendência de outra
+ * montagem real) e nunca devolve null depois de ter retido um valor. Store
+ * vazio no primeiro acesso → retém null (retorna null sempre).
+ *
+ * Módulo puro (sem React, sem jsdom): testável via node:test — a função fica
+ * em src/lib para isso (mesmo contrato dos demais pendentes).
+ */
+export function createTrackLessonPendingHolder(): {
+  get(): { trackSlug: string; lessonId: string } | null;
+} {
+  let held: { trackSlug: string; lessonId: string } | null = null;
+  let drained = false;
+  return {
+    get(): { trackSlug: string; lessonId: string } | null {
+      if (!drained) {
+        held = drainPendingTrackLesson();
+        drained = true;
+      }
+      return held;
+    },
+  };
+}
+
+/**
  * Grava a TRILHA pré-selecionada (Home → Trilha): a RoadmapView abre o detalhe
  * da trilha clicada na Home (rodada 8 — a trilha já vem com os itens prontos).
  */

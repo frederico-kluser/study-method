@@ -12,15 +12,18 @@ import {
   clearPendingLessonId,
   clearPendingSubject,
   consumePendingSubject,
+  createTrackLessonPendingHolder,
   drainPendingDomain,
   drainPendingLessonId,
   drainPendingSubject,
   peekPendingDomain,
   peekPendingLessonId,
   peekPendingSubject,
+  peekPendingTrackLesson,
   setPendingDomain,
   setPendingLessonId,
   setPendingSubject,
+  setPendingTrackLesson,
 } from '../src/lib/pendingSubject';
 
 beforeEach(() => {
@@ -185,5 +188,51 @@ describe('pendingLessonId — Trilha → Aula (onda 5)', () => {
     assert.equal(peekPendingSubject(), null);
     assert.equal(peekPendingDomain(), null);
     assert.equal(peekPendingLessonId(), null);
+  });
+});
+
+// ─── createTrackLessonPendingHolder (rodada 11 — retenção anti-StrictMode) ──
+// O holder existe para a MONTAGEM da LessonView: em dev o React <StrictMode>
+// executa os efeitos em setup → cleanup → setup do MESMO fiber. O drain puro é
+// one-shot — a 1ª passada consome e a 2ª veria null, enquanto o cleanup da 1ª
+// já cancelou o load → spinner eterno. O holder RETÉM o valor entre as
+// passadas (refs do mesmo fiber sobrevivem ao double-invoke), então cada setup
+// re-dispara o load. Estes testes travam essa semântica exata.
+
+describe('createTrackLessonPendingHolder — retenção anti-StrictMode', () => {
+  it('get() no primeiro acesso drena o store e devolve o valor', () => {
+    setPendingTrackLesson('ts', 'lesson-1');
+    const holder = createTrackLessonPendingHolder();
+    assert.deepEqual(holder.get(), { trackSlug: 'ts', lessonId: 'lesson-1' });
+    assert.equal(peekPendingTrackLesson(), null, 'store foi drenado no 1º acesso');
+  });
+
+  it('get() de novo (store JÁ vazio) devolve o MESMO valor — 2ª passada do double-invoke', () => {
+    setPendingTrackLesson('ts', 'lesson-1');
+    const holder = createTrackLessonPendingHolder();
+    assert.deepEqual(holder.get(), { trackSlug: 'ts', lessonId: 'lesson-1' });
+    // Simula o setup da passada 2 do StrictMode: o store já foi drenado, mas o
+    // holder RETÉM o valor — nunca devolve null aqui (senão: load órfão).
+    assert.deepEqual(holder.get(), { trackSlug: 'ts', lessonId: 'lesson-1' });
+    assert.equal(peekPendingTrackLesson(), null, 'o holder não re-drenou nada');
+  });
+
+  it('holder NOVO com store vazio devolve null — remontagem real sem pendência', () => {
+    setPendingTrackLesson('ts', 'lesson-1');
+    createTrackLessonPendingHolder().get();
+    // Remontagem de verdade cria um holder NOVO (ref novo por fiber); o store
+    // já foi consumido pela montagem anterior → null, como esperado.
+    const remount = createTrackLessonPendingHolder();
+    assert.equal(remount.get(), null);
+  });
+
+  it('store vazio no primeiro acesso → get() retorna null (e permanece null)', () => {
+    const holder = createTrackLessonPendingHolder();
+    assert.equal(holder.get(), null);
+    assert.equal(holder.get(), null, 'retém null — nunca muda depois');
+    // Pendência NOVA chegando DEPOIS não reabastece um holder já retido: ela
+    // pertence a uma nova navegação → nova montagem → novo holder.
+    setPendingTrackLesson('ts', 'lesson-2');
+    assert.equal(holder.get(), null, 'holder retido não re-drena pendência nova');
   });
 });
