@@ -716,7 +716,11 @@ export const theme = createTheme({
         // MANTÊM o anel — preservado onde ele ajuda. `[role="combobox"]`
         // cobre o MuiSelect (o alvo de foco é um div com esse papel, não um
         // <select>); o Autocomplete usa <input> por baixo (já coberto).
-        'input:focus-visible, textarea:focus-visible, select:focus-visible, [role="combobox"]:focus-visible': {
+        // `[role="textbox"]` e `[contenteditable]` cobrem o editing host do
+        // CodeMirror 6 (`.cm-content`, contenteditable com role="textbox",
+        // no editor de código da ChallengeView), que também recebia o anel do
+        // `*:focus-visible` por cima do `outline: none` do baseTheme.
+        'input:focus-visible, textarea:focus-visible, select:focus-visible, [role="combobox"]:focus-visible, [role="textbox"]:focus-visible, [contenteditable]:focus-visible': {
           outline: 'none',
           outlineOffset: 0,
           boxShadow: 'none',
