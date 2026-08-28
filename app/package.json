@@ -46,6 +46,7 @@
     "i18next-electron-fs-backend": "^3.0.3",
     "katex": "^0.16.11",
     "lucide-react": "^0.546.0",
+    "motion": "^13.1.1",
     "node-llama-cpp": "3.18.0",
     "react": "^19.0.1",
     "react-dom": "^19.0.1",

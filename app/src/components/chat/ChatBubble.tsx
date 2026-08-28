@@ -1,41 +1,51 @@
 /**
  * src/components/chat/ChatBubble.tsx — bolha de mensagem do chat da aula,
- * estilo iMessage (ONDA2-imessage).
+ * estilo iMessage (ONDA2-imessage) + animações Nintendo (ONDA2-CHAT-NINTENDO).
  *
  * Cada bolha identifica o AUTOR: nome acima (caption) + avatar circular
- * pequeno ao lado (à esquerda para o Tutor, à direita para "Você"). A bolha
- * 'reply' (resposta do tutor à pergunta do aluno) NÃO tem avatar — decisão
- * REPLAN documentada: sem avatar, a caption "Tutor" fica à direita e a bolha
- * se CONECTA à do usuário acima (raio superior-direito pequeno), como a
- * segunda bolha de um fio no iMessage. O tempo (HH:MM — `formatChatTime`, ts
- * do MODELO, preservado pelo cache) vive DENTRO da bolha, alinhado à direita
- * — decisão de layout documentada: assim a bolha 'reply' pode se CONECTAR à
- * bolha do usuário acima sem sobrepor uma legenda de hora solta no meio do
- * caminho.
+ * pequeno ao lado (à esquerda para o Tutor, à direita para "Você"). ONDA2-
+ * CHAT-NINTENDO (pedido do dono): a bolha 'reply' (resposta do tutor à
+ * pergunta do aluno) TAMBÉM é do TUTOR — foi movida para a ESQUERDA com
+ * avatar (AutoStoriesIcon 26px, cor secondary) e nome "Tutor" acima, raio
+ * PADRÃO do tutor com o canto quebrado inferior-ESQUERDO ('16px 16px 16px
+ * 4px' — a cauda aponta para o avatar, como todo balão do tutor). DECISÃO
+ * documentada: o pedido citava '16px 16px 4px 16px' (canto inferior-DIREITO
+ * quebrado — o raio do USUÁRIO), mas a intenção descrita é "espelhando o do
+ * tutor" com o canto inferior-ESQUERDO; como o reply agora fica no MESMO
+ * lado do tutor, o raio correto é o PRÓPRIO raio do tutor. A cor ROXA
+ * (secondary.main/contrastText) é MANTIDA — é a identidade de resposta do
+ * tutor; só a posição/avatar mudam. Mensagens do USUÁRIO continuam à direita.
+ *
+ * ONDA2-CHAT-NINTENDO (erro instantâneo): a bolha de ERRO de execução
+ * (kind 'review' com `errorFor` — markdown do `formatErrorBubble`/seed) NÃO
+ * passa pelo typewriter: TypewriterText com `instant` — o texto COMPLETO
+ * aparece de uma vez (a 10 tps o erro levaria ~55s). A review de APROVAÇÃO
+ * (kind 'review' SEM `errorFor` — hoje não existe no chat, mas o contrato a
+ * suporta) CONTINUA digitando a 10 tps (tps passado pela LessonView). O
+ * gating do "Gerar novo desafio" NÃO muda (é o turno em voo — `busy`), e o
+ * auto-scroll não quebra (a mensagem inteira já está no DOM no mount).
  *
  * Cores (tokens EXISTENTES do tema — nenhum token novo; contraste ≥4,5:1
  * garantido pelos pares calibrados de src/theme.ts e designTokens.ts):
- *   - 'user'     → primary.main + primary.contrastText (como antes — o "azul"
- *                  iMessage do app é o acento action, calibrado 4,53:1 claro
- *                  / 4,50:1 escuro);
+ *   - 'user'     → primary.main + primary.contrastText (o "azul" iMessage do
+ *                  app é o acento action, calibrado 4,53:1 claro / 4,50:1
+ *                  escuro);
  *   - 'message'  → background.paper + text.primary, borda divider (conversa
  *                  normal do tutor — como antes);
  *   - 'reply'    → secondary.main + secondary.contrastText (cor PRÓPRIA da
- *                  resposta a uma pergunta — o acento study, calibrado
- *                  4,54:1 nos DOIS esquemas); bolha MENOR (70% vs 78%),
- *                  alinhada à direita (REPLAN — a implementação anterior
- *                  caía no flex-start do Tutor) e conectada à bolha do
- *                  usuário acima pelo raio superior-direito pequeno (cauda
- *                  visual OPCIONAL do pedido — não implementada; documentado);
- *                  SEM avatar (decisão REPLAN — a caption "Tutor" à direita);
- *   - 'review'   → tom de ERRO suave: error.main a 10% sobre background.paper
- *                  composto com color-mix (o `alpha()` do MUI v9 LANÇA erro
- *                  com CSS var — MUI error #9; color-mix resolve as
- *                  referências var() por esquema), texto text.primary —
- *                  contraste: a tinta primária fica ≥ ~10:1 sobre o tint nos
- *                  dois esquemas (o error.main a 10% desloca a luminância da
- *                  superfície em <5%; o par calibrado do tema é ≥12:1 nos
- *                  níveis 0/1) — DIFERENTE das conversas de propósito.
+ *                  resposta a uma pergunta — acento study, calibrado 4,54:1
+ *                  nos DOIS esquemas); AGORA à ESQUERDA com avatar/nome do
+ *                  tutor (ONDA2-CHAT-NINTENDO), maxWidth 78% como os demais
+ *                  balões do tutor;
+ *   - 'review'   → ERRO: tom de ERRO suave: error.main a 10% sobre
+ *                  background.paper composto com color-mix (o `alpha()` do
+ *                  MUI v9 LANÇA erro com CSS var — MUI error #9; color-mix
+ *                  resolve as referências var() por esquema), texto
+ *                  text.primary — contraste: a tinta primária fica ≥ ~10:1
+ *                  sobre o tint nos dois esquemas — DIFERENTE das conversas
+ *                  de propósito; APROVAÇÃO (sem errorFor): mesmo padrão com
+ *                  success.main (glow breve na entrada — micro-detalhe
+ *                  Nintendo, sem confetti).
  *
  * A HORA (caption 13px — SC 1.4.3 exige 4,5:1) herda a cor de contraste do
  * par da bolha com opacidade 1 nas bolhas PREENCHIDAS (user/reply — FIX de
@@ -48,7 +58,16 @@
  * COMPLETO fica no histórico; o corte é exibição). ONDA1-NAV-UI (ajuste
  * registrado): o "Gerar novo desafio" da review NÃO espera mais o fim da
  * digitação (a review a 10 tps levaria ~55s — pedido do dono); o gating é só
- * o turno em voo (`regenerateDisabled`).
+ * o turno em voo (`regenerateDisabled`). ONDA2-CHAT-NINTENDO: a review de
+ * ERRO não digita mais (instantânea) — o texto inteiro já está no DOM no
+ * mount; o botão fica imediatamente disponível.
+ *
+ * Animações (ONDA2-CHAT-NINTENDO — motion):
+ *   - a ENTRADA da bolha (fadeInUp) é feita pelo WRAPPER da LessonView
+ *     (AnimatePresence — a bolha em si é o conteúdo); aqui vivem os
+ *     micro-detalhes: hover sutil na bolha de review (interativa — tem o
+ *     botão "Gerar novo desafio"): y -2 com spring snappy; press feedback
+ *     (scale 0.98) no botão; glow breve de sucesso na review de APROVAÇÃO.
  */
 import ReactMarkdown from 'react-markdown';
 import { useTranslation } from 'react-i18next';
@@ -57,10 +76,15 @@ import { Avatar, Box, Button, Typography } from '@mui/material';
 import AutoStoriesIcon from '@mui/icons-material/AutoStories';
 import PersonIcon from '@mui/icons-material/Person';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
+import { motion, type Transition } from 'motion/react';
 import type { ReactElement, ReactNode } from 'react';
 
 import { formatChatTime, type TutorChatMessage } from '../../lib/trackLessonState';
+import { springs } from '../../lib/animationTokens';
 import { TypewriterText } from './TypewriterText';
+
+/** Transição do glow de aprovação (uma passada, sem repetição). */
+const GLOW_TRANSITION: Transition = { duration: 1.4, times: [0, 0.45, 1], ease: 'easeInOut' };
 
 /** Placeholder dos componentes de código do react-markdown (monospace). */
 function MarkdownComponents(): Record<string, (props: { children?: ReactNode }) => ReactNode> {
@@ -97,8 +121,8 @@ function MarkdownComponents(): Record<string, (props: { children?: ReactNode }) 
 
 /** Avatar circular do autor (ícones MUI — decisão documentada: AutoStories
  *  para o Tutor, Person para o aluno; aria-label i18n com o nome do autor).
- *  A bolha 'reply' NÃO renderiza avatar (decisão REPLAN — a caption "Tutor"
- *  fica à direita, coerente com o raio superior-direito da conexão). */
+ *  ONDA2-CHAT-NINTENDO: TODA bolha do tutor (message/review/reply) renderiza
+ *  o avatar à esquerda — a reply voltou ao padrão de balão do tutor. */
 function AuthorAvatar({ isUser, label }: { isUser: boolean; label: string }): ReactElement {
   return (
     <Avatar
@@ -128,7 +152,9 @@ export interface ChatBubbleProps {
   isNew: boolean;
   /** ONDA1-NAV-UI: tokens por segundo do typewriter desta bolha (undefined =
    *  default do TypewriterText, ~100 tps — respostas do tutor "livres"). A
-   *  LessonView passa 10 para a review do desafio (pedido do dono). */
+   *  LessonView passa 10 para a review do desafio (pedido do dono). ONDA2-
+   *  CHAT-NINTENDO: a review de ERRO (com errorFor) NÃO usa o tps — o erro é
+   *  renderizado INSTANTÂNEO (prop `instant` do TypewriterText). */
   tps?: number;
   /** ONDA2 (error-flow): "Gerar novo desafio" DENTRO da bolha de review. */
   onRegenerate?: () => void;
@@ -153,6 +179,11 @@ export function ChatBubble({
   const isUser = message.role === 'user';
   const isReply = message.kind === 'reply';
   const isReview = message.kind === 'review';
+  // ONDA2-CHAT-NINTENDO (erro instantâneo): bolha de ERRO = review COM
+  // `errorFor` (o seed do erro de execução — `formatErrorBubble`); review de
+  // APROVAÇÃO = review SEM `errorFor` (continua digitando a 10 tps).
+  const isErrorReview = isReview && message.errorFor !== undefined;
+  const isApprovedReview = isReview && !isErrorReview;
   const lang = i18n.language ?? 'pt-BR';
   const authorName = isUser
     ? t('translation:lesson.youName')
@@ -160,46 +191,61 @@ export function ChatBubble({
   const time = formatChatTime(message.ts, lang);
 
   // Cor da bolha por kind (documentado no cabeçalho — tokens existentes).
-  // A review usa color-mix sobre as referências var() do TEMA (error.main e
-  // background.paper) — o `alpha()` do MUI v9 LANÇA erro com CSS var (MUI
-  // error #9), então o tint é composto direto em CSS (color-mix resolve por
-  // esquema — sem ternário de cor no JS).
+  // O motion.div recebe um STYLE PLAIN (sem processamento de sx do MUI), então
+  // TODOS os tokens são resolvidos via theme.vars ANTES (o mesmo padrão dos
+  // tints abaixo). O tint de review usa color-mix sobre as referências var()
+  // do TEMA — o `alpha()` do MUI v9 LANÇA erro com CSS var (MUI error #9),
+  // então o tint é composto direto em CSS (color-mix resolve por esquema —
+  // sem ternário de cor no JS). A review de APROVAÇÃO usa o MESMO padrão com
+  // success.main (ONDA2-CHAT-NINTENDO — hoje não existe no chat; o contrato
+  // suporta).
+  const primaryMain = theme.vars.palette.primary.main;
+  const primaryContrast = theme.vars.palette.primary.contrastText;
+  const secondaryMain = theme.vars.palette.secondary.main;
+  const secondaryContrast = theme.vars.palette.secondary.contrastText;
   const errorMain = theme.vars.palette.error.main;
+  const successMain = theme.vars.palette.success.main;
   const surfacePaper = theme.vars.palette.background.paper;
+  const textPrimary = theme.vars.palette.text.primary;
+  const divider = theme.vars.palette.divider;
   const bubbleStyle = isUser
-    ? { bgcolor: 'primary.main', color: 'primary.contrastText', border: 'none' }
+    ? { bgcolor: primaryMain, color: primaryContrast, border: 'none' }
     : isReply
-      ? { bgcolor: 'secondary.main', color: 'secondary.contrastText', border: 'none' }
-      : isReview
+      ? { bgcolor: secondaryMain, color: secondaryContrast, border: 'none' }
+      : isApprovedReview
         ? {
-            bgcolor: `color-mix(in srgb, ${errorMain} 10%, ${surfacePaper})`,
-            color: 'text.primary',
-            border: `1px solid color-mix(in srgb, ${errorMain} 28%, ${surfacePaper})`,
+            bgcolor: `color-mix(in srgb, ${successMain} 10%, ${surfacePaper})`,
+            color: textPrimary,
+            border: `1px solid color-mix(in srgb, ${successMain} 28%, ${surfacePaper})`,
           }
-        : {
-            bgcolor: 'background.paper',
-            color: 'text.primary',
-            border: '1px solid',
-            borderColor: 'divider',
-          };
+        : isReview
+          ? {
+              bgcolor: `color-mix(in srgb, ${errorMain} 10%, ${surfacePaper})`,
+              color: textPrimary,
+              border: `1px solid color-mix(in srgb, ${errorMain} 28%, ${surfacePaper})`,
+            }
+          : {
+              bgcolor: surfacePaper,
+              color: textPrimary,
+              border: `1px solid ${divider}`,
+            };
 
   // Raio "iMessage": o canto QUE APONTA PARA O AUTOR é pequeno (a cauda).
-  // user → inferior-direito; tutor → inferior-esquerdo; reply → superior-
-  // direito (conecta à bolha do usuário ACIMA — o raio pequeno + a cor
-  // própria + o alinhamento à direita fazem a "conexão" visual).
-  const radius = isReply
-    ? '16px 4px 16px 16px'
-    : isUser
-      ? '16px 16px 4px 16px'
-      : '16px 16px 16px 4px';
+  // user → inferior-direito; TODAS as bolhas do tutor (message/review/reply)
+  // → inferior-ESQUERDO (a cauda aponta para o avatar). ONDA2-CHAT-NINTENDO:
+  // a reply ANTES conectava à bolha do usuário acima pelo raio superior-
+  // direito; agora é um balão NORMAL do tutor à esquerda (decisão no
+  // cabeçalho — o valor literal do pedido, '16px 16px 4px 16px', quebraria o
+  // canto inferior-DIREITO, o raio do usuário; seguimos a intenção descrita:
+  // "raio padrão do tutor com canto quebrado inferior-ESQUERDO").
+  const radius = isUser ? '16px 16px 4px 16px' : '16px 16px 16px 4px';
 
-  // Alinhamento REPLAN: a reply NÃO cai no flex-start do Tutor — ela se
-  // CONECTA à bolha do usuário acima (a pergunta dele), então user E reply
-  // ancoram à direita; tutor (message) e review (erro do desafio) à esquerda.
+  // Alinhamento ONDA2-CHAT-NINTENDO: só o USUÁRIO ancora à direita; TODAS as
+  // bolhas do tutor (message, review, reply) ancoram à ESQUERDA com avatar.
   // O MESMO conjunto (user/reply) é o das bolhas PREENCHIDAS — usado também
   // no contraste da hora (opacidade 1 nas preenchidas, ver render).
   const isFilled = isUser || isReply;
-  const alignRight = isFilled;
+  const alignRight = isUser;
   return (
     <Box
       sx={{
@@ -209,11 +255,11 @@ export function ChatBubble({
         justifyContent: alignRight ? 'flex-end' : 'flex-start',
       }}
     >
-      {/* SEM avatar para a reply (decisão REPLAN documentada no cabeçalho). */}
-      {!isUser && !isReply ? <AuthorAvatar isUser={false} label={authorName} /> : null}
+      {/* Avatar do TUTOR em TODAS as bolhas dele (message/review/reply). */}
+      {!isUser ? <AuthorAvatar isUser={false} label={authorName} /> : null}
       <Box
         sx={{
-          maxWidth: isReply ? '70%' : '78%',
+          maxWidth: '78%',
           display: 'flex',
           flexDirection: 'column',
           alignItems: alignRight ? 'flex-end' : 'flex-start',
@@ -222,13 +268,47 @@ export function ChatBubble({
         <Typography variant="caption" color="text.secondary" sx={{ px: 0.5 }}>
           {authorName}
         </Typography>
-        <Box
-          sx={{
+        <motion.div
+          style={{
             ...bubbleStyle,
             borderRadius: radius,
-            px: 1.5,
-            py: 1,
+            padding: '8px 12px',
+            // FIX (overflow do balão — medido em e2e): a bolha é item de flex
+            // COLUMN (o Box de maxWidth 78%) com align-self flex-start → sua
+            // largura resolve por FIT-CONTENT = min(max-content, 78%) — e o
+            // max-content do markdown é dirigido pelo bloco de SAÍDA do erro
+            // (pre com overflowX auto): uma linha longa do output do runner
+            // (ex.: diagnóstico do node:test) ESTOURA a bolha além do painel
+            // (medido: 1226px num painel de 1000px). `maxWidth: '100%'`
+            // clampa o fit-content à largura da coluna (a bolha curta
+            // continua abraçando o conteúdo; o pre rola por dentro).
+            maxWidth: '100%',
           }}
+          // ONDA2-CHAT-NINTENDO: hover SUTIL na bolha interativa (a review —
+          // tem o botão "Gerar novo desafio"): leve elevação com spring
+          // snappy. As demais bolhas não têm interação → sem hover.
+          whileHover={isReview ? { y: -2 } : undefined}
+          // ONDA2-CHAT-NINTENDO (micro-detalhe): review de APROVAÇÃO entra
+          // com um GLOW breve na cor de sucesso (boxShadow em keyframes —
+          // uma vez, sem repetição; sem confetti). Hoje não existem reviews
+          // de aprovação no chat — o caminho fica pronto para quando houver.
+          animate={
+            isApprovedReview
+              ? {
+                  boxShadow: [
+                    `0 0 0 0 color-mix(in srgb, ${successMain} 0%, transparent)`,
+                    `0 0 16px 2px color-mix(in srgb, ${successMain} 45%, transparent)`,
+                    `0 0 0 0 color-mix(in srgb, ${successMain} 0%, transparent)`,
+                  ],
+                }
+              : undefined
+          }
+          // FIX de tipagem motion 13 (ver animationTokens.ts): a transição
+          // vai pelo PROP, nunca dentro do alvo. Na review de ERRO (o caso
+          // REAL) o hover usa o spring snappy; na de APROVAÇÃO (hoje não
+          // existe) o mesmo prop leva a transição do glow — o hover herdaria
+          // a duração do keyframe (aceitável; cenário teórico documentado).
+          transition={isApprovedReview ? GLOW_TRANSITION : springs.snappy}
         >
           {isUser ? (
             <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap' }}>
@@ -240,6 +320,10 @@ export function ChatBubble({
                 text={message.content}
                 active={isNew}
                 tps={tps}
+                // ONDA2-CHAT-NINTENDO (pedido do dono): o ERRO de execução
+                // escreve DIRETO de uma vez — `instant` renderiza o texto
+                // completo no mount, sem interval e sem callbacks de stream.
+                instant={isErrorReview}
                 onStart={onStreamStart}
                 onDone={onStreamDone}
                 onTick={onStreamTick}
@@ -253,23 +337,29 @@ export function ChatBubble({
               {/* ONDA2 (error-flow, A4): "Gerar novo desafio" DENTRO da bolha
                   de erro. ONDA1-NAV-UI (ajuste REGISTRADO): o gating pelo FIM
                   da digitação da review caiu — com a review a 10 tps (pedido
-                  do dono) o texto completo leva ~55s e o botão ficaria preso
-                  esse tempo todo. O gating que RESTA é o do turno em voo
-                  (busy/regenerateDisabled): a digitação é SÓ exibição (o
-                  histórico guarda o texto completo) — regenerar no meio
-                  desmonta a view (chat cacheado) sem perda. */}
-              {isReview ? (
-                <Button
-                  size="small"
-                  variant="outlined"
-                  color="secondary"
-                  onClick={onRegenerate}
-                  disabled={regenerateDisabled}
-                  startIcon={<AutoAwesomeIcon />}
-                  sx={{ mt: 1 }}
+                  do dono) o texto completo levaria ~55s e o botão ficaria
+                  preso esse tempo todo. O gating que RESTA é o do turno em
+                  voo (busy/regenerateDisabled). ONDA2-CHAT-NINTENDO: a review
+                  de ERRO agora é INSTANTÂNEA — o botão fica disponível no
+                  mount (a review de APROVAÇÃO não tem botão de regenerar). */}
+              {isErrorReview ? (
+                <motion.span
+                  whileTap={{ scale: 0.98 }}
+                  transition={springs.snappy}
+                  style={{ display: 'inline-block' }}
                 >
-                  {t('translation:challenge.regenerateButton')}
-                </Button>
+                  <Button
+                    size="small"
+                    variant="outlined"
+                    color="secondary"
+                    onClick={onRegenerate}
+                    disabled={regenerateDisabled}
+                    startIcon={<AutoAwesomeIcon />}
+                    sx={{ mt: 1 }}
+                  >
+                    {t('translation:challenge.regenerateButton')}
+                  </Button>
+                </motion.span>
               ) : null}
             </>
           )}
@@ -291,7 +381,7 @@ export function ChatBubble({
           >
             {time}
           </Typography>
-        </Box>
+        </motion.div>
       </Box>
       {isUser ? <AuthorAvatar isUser label={authorName} /> : null}
     </Box>

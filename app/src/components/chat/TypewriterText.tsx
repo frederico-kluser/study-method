@@ -23,6 +23,14 @@
  *     chama a cada step para o auto-scroll acompanhar a digitação;
  *   - `children(partial)` recebe o trecho já digitado (o render — markdown —
  *     fica com o consumidor; a review usa ReactMarkdown sobre o partial).
+ *
+ * ONDA2-CHAT-NINTENDO (erro instantâneo): `instant` desliga o efeito de
+ * digitação — o texto COMPLETO aparece no mount, sem interval, e NENHUM
+ * callback de stream é disparado (a bolha não está "digitando": o indicador
+ * não pisca e o auto-scroll não acompanha tick — a mensagem já está inteira).
+ * Usado pela ChatBubble nas bolhas de ERRO de execução (kind 'review' com
+ * `errorFor` — o seed `formatErrorBubble` pode ter centenas de chars; a 10 tps
+ * levariam ~55s). A review de APROVAÇÃO (sem `errorFor`) continua digitando.
  */
 import { useEffect, useRef, useState, type ReactElement, type ReactNode } from 'react';
 import { typewriterCut, typewriterDelayPerChar } from '../../lib/trackLessonState';
@@ -31,6 +39,7 @@ export function TypewriterText({
   text,
   active,
   tps = 100,
+  instant = false,
   onStart,
   onDone,
   onTick,
@@ -50,6 +59,12 @@ export function TypewriterText({
    *  em IA online" a 10 tps; mensagens/replies do tutor seguem "livres" com o
    *  default atual). */
   tps?: number;
+  /**
+   * ONDA2-CHAT-NINTENDO: true → texto COMPLETO de uma vez (bolha de ERRO de
+   * execução — nunca passa pelo typewriter). Sem interval, sem onStart/
+   * onDone/onTick. `instant` vence sobre `tps`/`active`.
+   */
+  instant?: boolean;
   /** Avisa que a digitação COMEÇOU (indicador "digitando" + auto-scroll). */
   onStart?: () => void;
   /** Avisa que a digitação TERMINOU (texto completo renderizado). */
@@ -59,8 +74,10 @@ export function TypewriterText({
   /** Recebe o trecho já digitado para renderizar. */
   children: (partial: string) => ReactNode;
 }): ReactElement {
-  // Estado de exibição: começa vazio quando vai digitar; completo quando não.
-  const [cut, setCut] = useState<number>(() => (active ? 0 : text.length));
+  // Estado de exibição: começa vazio quando vai digitar; completo quando não
+  // (restaurada do cache/seed antigo OU `instant` — erro de execução que NÃO
+  // passa pelo typewriter).
+  const [cut, setCut] = useState<number>(() => (instant || !active ? text.length : 0));
   const startedAtRef = useRef<number | null>(null);
   // Callbacks por REF (identidade estável): o interval não re-registra quando
   // o pai re-renderiza (mesmo padrão do tIRef da LessonView).
@@ -72,7 +89,10 @@ export function TypewriterText({
   onTickRef.current = onTick;
 
   useEffect(() => {
-    if (!active) return;
+    // `instant` (erro de execução) ou `active={false}` (restaurada) → texto
+    // completo imediato: sem interval e sem callbacks de stream (a bolha não
+    // "digita" — o indicador e o auto-scroll não precisam acompanhar nada).
+    if (!active || instant) return;
     onStartRef.current?.();
     startedAtRef.current = Date.now();
     const delay = typewriterDelayPerChar(tps);
@@ -91,7 +111,7 @@ export function TypewriterText({
     // Cleanup OBRIGATÓRIO: desmontagem (troca de aba) e StrictMode (dev) —
     // nenhum interval sobrevive ao fim do componente.
     return () => window.clearInterval(timer);
-  }, [active, text, tps]);
+  }, [active, instant, text, tps]);
 
   return <>{children(text.slice(0, cut))}</>;
 }

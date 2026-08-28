@@ -30,6 +30,16 @@
  * "Concluir aula" é BLOQUEADO enquanto houver desafio pendente
  * (isLessonFinishBlocked — lê lastVerdict do payload track.lesson).
  *
+ * ONDA2-CHAT-NINTENDO (pedidos do dono): coluna em min(1920px, 100%) com o
+ * painel de mensagens capado em 1000px centrado; balões entram com
+ * AnimatePresence + fadeInUp (só os NOVOS da sessão); auto-scroll SÓ quando o
+ * usuário está no fim (ou acabou de abrir) e SMOOTH nos nudges (o tick do
+ * typewriter segue INSTANTÂNEO — smooth a cada ~2.5ms pularia o streaming);
+ * press feedback (scale 0.98) nos botões do chat; o reply do tutor ficou à
+ * ESQUERDA com avatar (detalhes na ChatBubble) e o erro de execução é
+ * INSTANTÂNEO (TypewriterText `instant` — a review de APROVAÇÃO continua a
+ * 10 tps).
+ *
  * Entrada (precedência na MONTAGEM — onda1-nav-ui):
  *   1. `nav.challengeErrorReport` (Desafio → Aula, erro) — define o alvo;
  *   2. `pendingTrackLesson` (Trilha → Aula) drenado na MONTAGEM
@@ -40,7 +50,7 @@
  *   4. sem nenhum dos três, a view mostra o seletor de trilhas (estado
  *      vazio) — nunca gera.
  */
-import { Fragment, useCallback, useEffect, useMemo, useRef, useState, type ReactElement } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactElement } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   Alert,
@@ -104,6 +114,8 @@ import {
   saveLessonChat,
 } from '../../lib/lessonChatCache';
 import { peekLastLesson, saveLastLesson } from '../../lib/lastLesson';
+import { AnimatePresence, motion } from 'motion/react';
+import { fadeInUp, springs } from '../../lib/animationTokens';
 import { ChatBubble } from '../../components/chat/ChatBubble';
 import { TypingIndicator } from '../../components/chat/TypingIndicator';
 import type {
@@ -192,20 +204,40 @@ export function LessonView(props: ViewProps): ReactElement {
   }, [chat.history.length]);
   // Região com scroll do chat (a Box com overflowY do render).
   const logScrollRef = useRef<HTMLDivElement | null>(null);
+  // ONDA2-CHAT-NINTENDO (auto-scroll suave — pedido do dono: "suavize com
+  // scrollTo({behavior:'smooth'}) apenas quando o usuário está no fim"):
+  // o painel só é PUXADO para o fim quando o usuário ESTÁ no fim (ou acabou
+  // de abrir a aula — scrollTop 0 sem scroll manual). Se ele rolou para cima
+  // para reler, NADA o puxa de volta (mudança em relação à Onda 2, que
+  // puxava SEMPRE durante a digitação — decisão documentada: o novo
+  // comportamento respeita a leitura; o fim à vista no fluxo normal é
+  // preservado porque o usuário ativo está no fim).
+  const NEAR_BOTTOM_PX = 120;
+  const isNearBottom = useCallback((): boolean => {
+    const el = logScrollRef.current;
+    if (!el) return true;
+    return el.scrollHeight - el.scrollTop - el.clientHeight <= NEAR_BOTTOM_PX;
+  }, []);
   // Auto-scroll DURANTE a digitação: a cada step do typewriter (onStreamTick)
-  // o painel desce direto ao fim (scrollTop = scrollHeight). DECISÃO
-  // (documentada no handoff — pedido explícito do dono): auto-scroll SEMPRE
-  // durante a digitação ativa, mesmo se o usuário rolou para cima.
+  // o painel acompanha o fim — mas só se o usuário está no fim. DECISÃO:
+  // o tick usa scroll INSTANTÂNEO (scrollTop = scrollHeight), NUNCA smooth —
+  // a ~2.5ms por step a 100 tps o smooth não completaria e o streaming
+  // "pularia" (o tick é o que mantém a digitação visível).
   const handleStreamTick = useCallback((): void => {
     const el = logScrollRef.current;
-    if (el) el.scrollTop = el.scrollHeight;
-  }, []);
+    if (el && isNearBottom()) el.scrollTop = el.scrollHeight;
+  }, [isNearBottom]);
   // Nudge de fim: quando o conjunto de mensagens digitando muda (início/fim)
-  // ou o histórico cresce (mensagem nova entra), garante o fim à vista.
+  // ou o histórico cresce (mensagem nova entra), leva o fim à vista com
+  // SMOOTH — mas só se o usuário está no fim OU o painel acabou de montar
+  // (scrollTop 0 e histórico presente: abrir a aula — inclusive o fluxo de
+  // erro — deve cair no FIM, não ficar no topo).
   useEffect(() => {
     const el = logScrollRef.current;
-    if (el) el.scrollTop = el.scrollHeight;
-  }, [chat.history.length, streamingIds]);
+    if (!el) return;
+    const fresh = el.scrollTop === 0 && chat.history.length > 0;
+    if (isNearBottom() || fresh) el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' });
+  }, [chat.history.length, streamingIds, isNearBottom]);
 
   // ONDA2-IMESSAGE (gating do "Concluir aula"): bloqueado quando há desafios
   // E algum NÃO passou (lastVerdict !== 'passed' — null = nunca tentado). O
@@ -715,6 +747,14 @@ export function LessonView(props: ViewProps): ReactElement {
   // entrada fixa embaixo. `flexGrow: 1, minHeight: 0, height: '100%'` resolvem
   // porque o `main` do shell virou flex column com altura definida (stretch).
   // Os estados vazio/erro/loading acima seguem com altura de conteúdo.
+  //
+  // ONDA2-CHAT-NINTENDO (área de escrita MAIOR, limite fullhd — pedido do
+  // dono): a coluna subiu de 760 → min(1920px, 100%) — o conteúdo usa até
+  // uma tela fullhd de largura e NÃO estica além (monitores maiores mantêm
+  // 1920 centrado). O PAINEL de mensagens (role="log") fica CAPADO em 1000px
+  // centrado (linhas de leitura confortável — decisão visual documentada);
+  // a lista de desafios e o INPUT ocupam a largura MAIOR da coluna (pedido
+  // do dono: "o input fica na largura da coluna").
   return (
     <Box
       sx={{
@@ -724,7 +764,8 @@ export function LessonView(props: ViewProps): ReactElement {
         display: 'flex',
         flexDirection: 'column',
         p: 2,
-        maxWidth: 760,
+        maxWidth: 'min(1920px, 100%)',
+        width: '100%',
         mx: 'auto',
       }}
     >
@@ -793,7 +834,12 @@ export function LessonView(props: ViewProps): ReactElement {
             gap: 1,
           }}
         >
-          {/* Painel das mensagens (rola junto com a região). */}
+          {/* Painel das mensagens (rola junto com a região). ONDA2-CHAT-
+              NINTENDO: CAPADO em 1000px e CENTRALIZADO (mx auto) — os balões
+              (maxWidth 78% do painel) mantêm linhas de leitura confortável
+              mesmo com a coluna em fullhd; a lista de desafios e o input
+              seguem na largura MAIOR da coluna (decisão documentada no
+              render). */}
           <Box
             sx={{
               flexGrow: 1,
@@ -803,6 +849,9 @@ export function LessonView(props: ViewProps): ReactElement {
               bgcolor: 'action.hover',
               borderRadius: 2,
               p: 1.5,
+              maxWidth: 1000,
+              width: '100%',
+              mx: 'auto',
             }}
             role="log"
             aria-live="polite"
@@ -810,59 +859,93 @@ export function LessonView(props: ViewProps): ReactElement {
           {chat.history.length === 0 ? (
             <Box sx={{ m: 'auto', textAlign: 'center', color: 'text.secondary' }}>
               <Typography variant="body2">{t('translation:lesson.chatStart')}</Typography>
-              <Button
-                variant="contained"
-                size="small"
-                onClick={sendNext}
-                disabled={busy}
-                startIcon={<ArrowForwardIcon />}
-                sx={{ mt: 1 }}
+              {/* ONDA2-CHAT-NINTENDO: press feedback (scale 0.98, spring
+                  snappy) nos botões do chat — pedido do dono. */}
+              <motion.span
+                whileTap={{ scale: 0.98 }}
+                transition={springs.snappy}
+                style={{ display: 'inline-block' }}
               >
-                {t('translation:lesson.startButton')}
-              </Button>
+                <Button
+                  variant="contained"
+                  size="small"
+                  onClick={sendNext}
+                  disabled={busy}
+                  startIcon={<ArrowForwardIcon />}
+                  sx={{ mt: 1 }}
+                >
+                  {t('translation:lesson.startButton')}
+                </Button>
+              </motion.span>
             </Box>
           ) : (
             <>
-              {chat.history.map((m, i) => {
-                // Separador de dia centralizado quando a data MUDOU em
-                // relação à bolha anterior ("Hoje"/"Ontem"/data completa —
-                // decisões documentadas em chatDaySeparator).
-                const prev = i > 0 ? chat.history[i - 1] : undefined;
-                const daySep = chatDaySeparator(m.ts, prev?.ts, i18n.language ?? 'pt-BR');
-                return (
-                  <Fragment key={i}>
-                    {daySep ? (
-                      <Box sx={{ textAlign: 'center', mt: 0.5 }}>
-                        <Typography variant="caption" color="text.secondary">
-                          {daySep.kind === 'today'
-                            ? t('translation:lesson.dayToday')
-                            : daySep.kind === 'yesterday'
-                              ? t('translation:lesson.dayYesterday')
-                              : daySep.label}
-                        </Typography>
-                      </Box>
-                    ) : null}
-                    <ChatBubble
-                      message={m}
-                      // Só mensagens NOVAS da sessão digitam (cache/seed
-                      // antigo → completas e instantâneas).
-                      isNew={newMessageIndicesRef.current.has(i)}
-                      // ONDA1-NAV-UI (tps): a REVIEW do desafio DIGITA a 10
-                      // tokens/s (~40 chars/s — pedido do dono: "velocidade de
-                      // tokens por segundo seja de 10 ao escrever em IA
-                      // online (os desafios que já fizemos)"); as respostas
-                      // do tutor (message/reply — "respostas processadas por
-                      // IA pode ser livre") mantêm o default atual (~100 tps).
-                      tps={m.kind === 'review' ? 10 : undefined}
-                      onRegenerate={m.kind === 'review' ? handleRegenerateFromBubble : undefined}
-                      regenerateDisabled={busy}
-                      onStreamStart={() => handleStreamStart(i)}
-                      onStreamDone={() => handleStreamDone(i)}
-                      onStreamTick={handleStreamTick}
-                    />
-                  </Fragment>
-                );
-              })}
+              {/* ONDA2-CHAT-NINTENDO: balões ENTRAM animados — AnimatePresence
+                  + fadeInUp (opacity 0, y 10 → 0, spring gentle). Só os
+                  balões NOVOS da sessão animam (`initial={false}` nas
+                  restauradas do cache/seed antigo — elas montam completas e
+                  estáticas); o exit é o mesmo fadeInUp (remontagem por
+                  pré-requisito / re-place do seed). O separador de dia anima
+                  JUNTO com a bolha (mesmo wrapper — decisão visual: o dia
+                  novo "entra" com a primeira mensagem dele). */}
+              <AnimatePresence initial={false}>
+                {chat.history.map((m, i) => {
+                  // Separador de dia centralizado quando a data MUDOU em
+                  // relação à bolha anterior ("Hoje"/"Ontem"/data completa —
+                  // decisões documentadas em chatDaySeparator).
+                  const prev = i > 0 ? chat.history[i - 1] : undefined;
+                  const daySep = chatDaySeparator(m.ts, prev?.ts, i18n.language ?? 'pt-BR');
+                  // Só mensagens NOVAS da sessão digitam E animam (cache/seed
+                  // antigo → completas e instantâneas).
+                  const isNew = newMessageIndicesRef.current.has(i);
+                  return (
+                    <motion.div
+                      key={i}
+                      variants={fadeInUp}
+                      initial={isNew ? 'hidden' : false}
+                      animate="visible"
+                      exit="hidden"
+                      // FIX de tipagem motion 13: a transição NUNCA vai dentro
+                      // do alvo/variante (quebra o tipo sob TS strict) — o
+                      // spring entra pelo PROP (ver animationTokens.ts).
+                      transition={springs.gentle}
+                    >
+                      {daySep ? (
+                        <Box sx={{ textAlign: 'center', mt: 0.5 }}>
+                          <Typography variant="caption" color="text.secondary">
+                            {daySep.kind === 'today'
+                              ? t('translation:lesson.dayToday')
+                              : daySep.kind === 'yesterday'
+                                ? t('translation:lesson.dayYesterday')
+                                : daySep.label}
+                          </Typography>
+                        </Box>
+                      ) : null}
+                      <ChatBubble
+                        message={m}
+                        isNew={isNew}
+                        // ONDA1-NAV-UI (tps): a REVIEW do desafio DIGITA a 10
+                        // tokens/s (~40 chars/s — pedido do dono: "velocidade
+                        // de tokens por segundo seja de 10 ao escrever em IA
+                        // online (os desafios que já fizemos)"); as respostas
+                        // do tutor (message/reply — "respostas processadas por
+                        // IA pode ser livre") mantêm o default atual (~100
+                        // tps). ONDA2-CHAT-NINTENDO: a review de ERRO (com
+                        // errorFor) é INSTANTÂNEA na ChatBubble (prop
+                        // `instant` do TypewriterText) — o tps nem chega a
+                        // ser usado; a review de APROVAÇÃO (sem errorFor)
+                        // continua a 10 tps.
+                        tps={m.kind === 'review' ? 10 : undefined}
+                        onRegenerate={m.kind === 'review' ? handleRegenerateFromBubble : undefined}
+                        regenerateDisabled={busy}
+                        onStreamStart={() => handleStreamStart(i)}
+                        onStreamDone={() => handleStreamDone(i)}
+                        onStreamTick={handleStreamTick}
+                      />
+                    </motion.div>
+                  );
+                })}
+              </AnimatePresence>
               {/* ONDA2-IMESSAGE: indicador "digitando" ANIMADO — montado SÓ
                   enquanto a digitação está ativa (turno 'answer' aguardando a
                   LLM OU alguma bolha digitando); sai do DOM ao terminar
@@ -978,7 +1061,13 @@ export function LessonView(props: ViewProps): ReactElement {
                 endAdornment: (
                   <InputAdornment position="end">
                     <Tooltip title={t('translation:lesson.askSend')}>
-                      <span>
+                      {/* ONDA2-CHAT-NINTENDO: press feedback (scale 0.98)
+                          no Send — pedido do dono. */}
+                      <motion.span
+                        whileTap={{ scale: 0.98 }}
+                        transition={springs.snappy}
+                        style={{ display: 'inline-block' }}
+                      >
                         {/* ONDA3 (2.3, débito de a11y): o Send ganha nome
                             acessível (o mic já tinha na Onda 2). O Tooltip é
                             dica visual — o aria-label é o NOME acessível
@@ -991,7 +1080,7 @@ export function LessonView(props: ViewProps): ReactElement {
                         >
                           <SendIcon fontSize="small" />
                         </IconButton>
-                      </span>
+                      </motion.span>
                     </Tooltip>
                   </InputAdornment>
                 ),
@@ -999,9 +1088,17 @@ export function LessonView(props: ViewProps): ReactElement {
             }}
           />
           {!chat.theoryDone ? (
-            <Button variant="contained" onClick={() => void sendNext()} disabled={busy} sx={{ whiteSpace: 'nowrap' }}>
-              {t('translation:lesson.nextButton')}
-            </Button>
+            /* ONDA2-CHAT-NINTENDO: press feedback (scale 0.98) no "Próximo"
+               — pedido do dono. */
+            <motion.span
+              whileTap={{ scale: 0.98 }}
+              transition={springs.snappy}
+              style={{ display: 'inline-block' }}
+            >
+              <Button variant="contained" onClick={() => void sendNext()} disabled={busy} sx={{ whiteSpace: 'nowrap' }}>
+                {t('translation:lesson.nextButton')}
+              </Button>
+            </motion.span>
           ) : (
             <Tooltip
               title={
@@ -1013,18 +1110,26 @@ export function LessonView(props: ViewProps): ReactElement {
               }
             >
               <span>
-                <Button
-                  variant="contained"
-                  onClick={() => void finishLesson()}
-                  // ONDA2-IMESSAGE (gating): DESABILITADO com desafios
-                  // pendentes (tooltip i18n só quando bloqueado); liberado com
-                  // todos passed ou sem desafios.
-                  disabled={busy || doneMarked || challengesPending}
-                  startIcon={doneMarked ? <CheckCircleIcon /> : <LockIcon />}
-                  sx={{ whiteSpace: 'nowrap' }}
+                {/* ONDA2-CHAT-NINTENDO: mesmo press feedback no "Concluir
+                    aula" (mesma linha de ações). */}
+                <motion.span
+                  whileTap={{ scale: 0.98 }}
+                  transition={springs.snappy}
+                  style={{ display: 'inline-block' }}
                 >
-                  {doneMarked ? t('translation:lesson.doneMarked') : t('translation:lesson.finishButton')}
-                </Button>
+                  <Button
+                    variant="contained"
+                    onClick={() => void finishLesson()}
+                    // ONDA2-IMESSAGE (gating): DESABILITADO com desafios
+                    // pendentes (tooltip i18n só quando bloqueado); liberado com
+                    // todos passed ou sem desafios.
+                    disabled={busy || doneMarked || challengesPending}
+                    startIcon={doneMarked ? <CheckCircleIcon /> : <LockIcon />}
+                    sx={{ whiteSpace: 'nowrap' }}
+                  >
+                    {doneMarked ? t('translation:lesson.doneMarked') : t('translation:lesson.finishButton')}
+                  </Button>
+                </motion.span>
               </span>
             </Tooltip>
           )}
