@@ -250,4 +250,64 @@ describe('trackLessonState — onda2 error-flow', () => {
     assert.deepEqual(s3.challengeError, report());
     assert.equal(s3.history[s3.history.length - 1].content, 'eu acho que errei no retorno');
   });
+
+  // ONDA3 (chat-cache): o seed é APPEND-ONLY sobre o estado RESTAURADO do
+  // cache — a teoria em curso volta no histórico e as bolhas entram depois.
+  // Nenhum helper novo: o seedChallengeError existente já compõe sobre
+  // history; estes testes compõem o comportamento da restauração composta.
+
+  /** Estado com UMA seção de teoria apresentada (histórico = 2 mensagens). */
+  function theoryState() {
+    let s = applyTutorReply(createTrackLessonState(), reply());
+    s = pushUserMessage(s, 'e se eu usar um for?');
+    s = applyTutorReply(s, reply({ sectionId: null, message: 'Boa pergunta!' }));
+    return s;
+  }
+
+  it('seed sobre estado RESTAURADO com teoria → histórico = teoria + bolhas, SEM duplicação', () => {
+    const teoria = theoryState();
+    const s1 = seedChallengeError(teoria, report(), 'O que você acha que errou?');
+    assert.deepEqual(s1.presentedSections, ['s1'], 'teoria preservada (seção apresentada)');
+    assert.equal(s1.history.length, teoria.history.length + 2, 'bolhas ENTRAM DEPOIS da teoria');
+    assert.deepEqual(
+      s1.history.slice(0, teoria.history.length),
+      teoria.history,
+      'mensagens da teoria intactas e na ordem (sem duplicação)',
+    );
+    assert.equal(s1.history[teoria.history.length].kind, 'error-bubble');
+    assert.equal(s1.history[teoria.history.length + 1].kind, 'error-question');
+    assert.deepEqual(s1.challengeError, report());
+  });
+
+  it('falha repetida do MESMO desafio sobre estado restaurado NÃO re-semeia (no-op)', () => {
+    // Estado restaurado do cache: teoria + bolhas do erro A + challengeError A.
+    const restaurado = seedChallengeError(theoryState(), report(), 'pergunta 1');
+    const s2 = seedChallengeError(restaurado, report(), 'pergunta 2 (não pode duplicar)');
+    assert.equal(s2, restaurado, 'estado NÃO pode ser objeto novo');
+    assert.equal(s2.history.length, theoryState().history.length + 2, 'nenhuma bolha duplicada');
+    assert.equal(s2.history[s2.history.length - 1].content, 'pergunta 1');
+  });
+
+  it('desafio NOVO sobre estado restaurado REPÕE as bolhas antigas no mesmo ponto (teoria intacta)', () => {
+    const teoria = theoryState();
+    const restaurado = seedChallengeError(teoria, report(), 'pergunta 1');
+    const segundo = report({ challengeId: 'dobro-outro', challengeTitle: 'Outro desafio' });
+    const s2 = seedChallengeError(restaurado, segundo, 'E agora?');
+    assert.equal(s2.history.length, teoria.history.length + 2, 'bolhas antigas removidas, novas entram');
+    assert.deepEqual(
+      s2.history.slice(0, teoria.history.length),
+      teoria.history,
+      'teoria intacta e na MESMA posição',
+    );
+    assert.ok(s2.history[teoria.history.length].content.includes('**Outro desafio**'));
+    assert.equal(s2.history[teoria.history.length + 1].content, 'E agora?');
+    assert.equal(s2.challengeError?.challengeId, 'dobro-outro');
+  });
+
+  it('teoria RESTAURADA completa → tutorNextAction segue direto para answer (nada a reapresentar)', () => {
+    const s1 = applyTutorReply(createTrackLessonState(), reply({ sectionId: 's1', done: true }));
+    assert.equal(s1.theoryDone, true);
+    assert.equal(tutorNextAction(s1), 'answer', 'teoria concluída restaurada não reapresenta seções');
+    assert.equal(presentedCount(s1), 1);
+  });
 });

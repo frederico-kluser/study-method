@@ -95,6 +95,10 @@ import {
   drainPendingLessonId,
   drainPendingSubject,
 } from '../../lib/pendingSubject';
+import {
+  createLessonChatHolder,
+  saveLessonChat,
+} from '../../lib/lessonChatCache';
 import type {
   TrackChallengeSummaryDto,
   TrackLessonPayload,
@@ -322,6 +326,40 @@ export function LessonView(props: ViewProps): ReactElement {
   const navReportRef = useRef(nav.challengeErrorReport);
   navReportRef.current = nav.challengeErrorReport;
 
+  // ONDA3 (chat-cache): refs do estado MAIS RECENTE para o SAVE no unmount —
+  // o cleanup do efeito de montagem precisa ler o ÚLTIMO chat/trackLesson sem
+  // re-registrar o efeito (mesmo padrão do tIRef/activeRef já usados na view).
+  const chatRef = useRef(chat);
+  chatRef.current = chat;
+  const trackLessonRef = useRef(trackLesson);
+  trackLessonRef.current = trackLesson;
+
+  // ONDA3 (chat-cache): holder do drain do cache de chat — criado LAZY no
+  // efeito de montagem (a key depende do alvo, conhecido só lá) e RETIDO no
+  // ref entre as passadas do double-invoke do dev (mesmo padrão do
+  // pendingLessonHolderRef): o take do cache é one-shot e, sem o holder, a 2ª
+  // passada veria null e sobrescreveria a restauração da 1ª com chat vazio.
+  const cacheHolderRef = useRef<ReturnType<typeof createLessonChatHolder> | null>(null);
+
+  // ONDA3 (chat-cache): SAVE no UNMOUNT — o shell monta SÓ a view ativa; sair
+  // da aba Aula (Desafio, Trilha etc.) desmonta a LessonView e zera o estado
+  // local. Este cleanup guarda o estado ATUAL do chat no cache de sessão
+  // (chaveado trackSlug:lessonId) para a próxima montagem da MESMA aula
+  // restaurar histórico/presentedSections (ex.: o chat do fluxo de erro da
+  // Onda 2 volta com a teoria em curso, não vazio). Lê por REF o último
+  // estado (sem re-registrar o efeito). Skip: sem aula carregada (trackLesson
+  // null) ou chat nunca iniciado (nada a restaurar — um cache com estado
+  // vazio faria a restauração devolver um chat vazio à toa).
+  useEffect(() => {
+    return () => {
+      const key = trackLessonRef.current;
+      if (!key) return;
+      const c = chatRef.current;
+      if (c.history.length === 0 && c.presentedSections.length === 0) return;
+      saveLessonChat({ trackSlug: key.trackSlug, lessonId: key.lessonId }, c);
+    };
+  }, []);
+
   // Drena a pendência da trilha NA MONTAGEM (one-shot). Pendências legadas
   // (subject/domain/lessonId) são descartadas — rodada 8: não se gera aula.
   useEffect(() => {
@@ -332,34 +370,63 @@ export function LessonView(props: ViewProps): ReactElement {
     // direto aqui veria null na 2ª passada e nenhum load novo seria disparado.
     const pending = pendingLessonHolder.get();
     const report = navReportRef.current;
-    if (report && !challengeErrorSeededRef.current) {
-      // ONDA2 (error-flow): o desafio de AULA falhou e o painel fechou — o
-      // chat da aula reabre com a bolha de erro + a pergunta do tutor. O seed
-      // NÃO depende do lesson carregado (a bolha é UI determinística); o
-      // report traz trackSlug/lessonId do próprio erro. Ordem: setTrackLesson
-      // → loadLesson → seedChallengeError → nav.clearChallengeError().
-      challengeErrorSeededRef.current = true;
-      challengeErrorLessonRef.current = { trackSlug: report.trackSlug, lessonId: report.lessonId };
-      setTrackLesson({ trackSlug: report.trackSlug, lessonId: report.lessonId });
-      publishSession({ subject: report.lessonId, status: 'idle' });
-      setChat((s) =>
-        seedChallengeError(s, report, tIRef.current('lesson.errorQuestion'), {
-          title: tIRef.current('lesson.errorBubbleTitle'),
-          partialCount: tIRef.current('challenge.partialCount', {
-            passed: report.passedCount,
-            total: report.totalCount,
-          }),
-          checksTitle: tIRef.current('challenge.checksTitle'),
-          outputTitle: tIRef.current('challenge.output'),
-        }),
-      );
-      nav.clearChallengeError();
-      return loadLesson(report.trackSlug, report.lessonId);
-    }
-    if (pending) {
-      setTrackLesson(pending);
-      publishSession({ subject: pending.lessonId, status: 'idle' });
-      return loadLesson(pending.trackSlug, pending.lessonId);
+    // ONDA3 (chat-cache, REPLAN 2): o alvo de restauração — o report do erro
+    // DEFINE o alvo; o pending da trilha é o FALLBACK; nunca os dois juntos
+    // (report presente → a aula do erro vence). Sem alvo → comportamento
+    // atual (estado vazio; nada a restaurar).
+    const alvo = report ?? pending ?? null;
+    if (alvo) {
+      // Drain do cache com holder retido em ref (padrão pendingLessonHolder):
+      // o take é one-shot e, sem o holder, a 2ª passada do double-invoke do
+      // dev veria null e sobrescreveria a restauração da 1ª passada.
+      if (cacheHolderRef.current === null) {
+        cacheHolderRef.current = createLessonChatHolder({
+          trackSlug: alvo.trackSlug,
+          lessonId: alvo.lessonId,
+        });
+      }
+      const cached = cacheHolderRef.current.get();
+      if (report) {
+        if (!challengeErrorSeededRef.current) {
+          // ONDA2 (error-flow): o desafio de AULA falhou e o painel fechou — o
+          // chat da aula reabre com a bolha de erro + a pergunta do tutor. O
+          // seed NÃO depende do lesson carregado (a bolha é UI
+          // determinística); o report traz trackSlug/lessonId do próprio erro.
+          // Ordem: setTrackLesson → loadLesson → seedChallengeError →
+          // nav.clearChallengeError().
+          challengeErrorSeededRef.current = true;
+          challengeErrorLessonRef.current = { trackSlug: report.trackSlug, lessonId: report.lessonId };
+          setTrackLesson({ trackSlug: report.trackSlug, lessonId: report.lessonId });
+          publishSession({ subject: report.lessonId, status: 'idle' });
+          // ONDA3 (chat-cache): o seed é APPEND-ONLY sobre o estado
+          // RESTAURADO do cache — a teoria em curso permanece no histórico e
+          // as bolhas do erro entram depois (dedupe por challengeId do seed:
+          // falha repetida do MESMO desafio não re-semeia). Sem cache, cai no
+          // comportamento atual (seed sobre o estado vazio).
+          setChat((s) =>
+            seedChallengeError(cached ?? s, report, tIRef.current('lesson.errorQuestion'), {
+              title: tIRef.current('lesson.errorBubbleTitle'),
+              partialCount: tIRef.current('challenge.partialCount', {
+                passed: report.passedCount,
+                total: report.totalCount,
+              }),
+              checksTitle: tIRef.current('challenge.checksTitle'),
+              outputTitle: tIRef.current('challenge.output'),
+            }),
+          );
+          nav.clearChallengeError();
+          return loadLesson(report.trackSlug, report.lessonId);
+        }
+      } else if (pending) {
+        setTrackLesson(pending);
+        publishSession({ subject: pending.lessonId, status: 'idle' });
+        // ONDA3 (chat-cache): o chat volta EXATAMENTE onde estava — o restore
+        // devolve history/presentedSections completos (theoryDone incluso), e
+        // o 'next' segue da seção seguinte sem código extra. Sem cache →
+        // comportamento atual (chat novo, teoria da seção 1).
+        setChat(cached ?? createTrackLessonState());
+        return loadLesson(pending.trackSlug, pending.lessonId);
+      }
     }
     // StrictMode (dev): a 2ª passada vê o report já drenado — re-dispara o
     // load da aula do erro (o cleanup da 1ª passada cancelou o IPC). Sem
@@ -833,7 +900,16 @@ export function LessonView(props: ViewProps): ReactElement {
                   <InputAdornment position="end">
                     <Tooltip title={t('translation:lesson.askSend')}>
                       <span>
-                        <IconButton onClick={() => void sendAnswer()} disabled={busy || !draft.trim()} size="small">
+                        {/* ONDA3 (2.3, débito de a11y): o Send ganha nome
+                            acessível (o mic já tinha na Onda 2). O Tooltip é
+                            dica visual — o aria-label é o NOME acessível
+                            (nada duplicado na tela). */}
+                        <IconButton
+                          onClick={() => void sendAnswer()}
+                          disabled={busy || !draft.trim()}
+                          size="small"
+                          aria-label={tI('lesson.sendMessage')}
+                        >
                           <SendIcon fontSize="small" />
                         </IconButton>
                       </span>
