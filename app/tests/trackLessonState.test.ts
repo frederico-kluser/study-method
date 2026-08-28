@@ -28,6 +28,19 @@
  * O guard agora é SÓ a discussão ativa; o retry RE-SEMEIA: remove o par
  * antigo daquele challengeId (errorFor) e appenda o par novo no FIM — a
  * discussão antiga permanece, sem duplicação.
+ *
+ * ONDA1-MODELO-CHAT (chat iMessage — o modelo que a Onda 2 consome):
+ *  10. Toda mensagem criada carrega `ts` (Date.now() no momento da CRIAÇÃO;
+ *      `now` injetável nos testes) — push/apply/seed.
+ *  11. Kind UNIFICADO: 'error-bubble' → 'review', 'error-question' →
+ *      'message'; mensagens normais → 'message'; a resposta do tutor após
+ *      mensagem 'user' → 'reply'; seções 'next' NUNCA viram 'reply'.
+ *  12. chatHistory STRIPA ts/kind/errorFor (o main só vê role/content).
+ *  13. formatErrorBubble inclui o CÓDIGO SUBMETIDO (code block por arquivo
+ *      com o path como título) antes das seções de saída/checks.
+ *  14. Helpers de streaming puros: typewriterCut (0ms→0, fim→length,
+ *      monotônico, tps configurável), typewriterDelayPerChar (~2.5ms no
+ *      default) e typewriterIsDone.
  */
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
@@ -42,6 +55,9 @@ import {
   pushUserMessage,
   seedChallengeError,
   tutorNextAction,
+  typewriterCut,
+  typewriterDelayPerChar,
+  typewriterIsDone,
 } from '../src/lib/trackLessonState';
 import type { TrackChallengeErrorReport, TrackSubmitResult, TutorReply } from '../shared/ipc-contract';
 
@@ -178,11 +194,14 @@ describe('trackLessonState — onda2 error-flow', () => {
     assert.equal(r.totalCount, 3);
   });
 
-  it('formatErrorBubble devolve markdown determinístico (título, N de M, checklist ✔/✖, saída)', () => {
+  it('formatErrorBubble devolve markdown determinístico (título, N de M, código, checklist ✔/✖, saída)', () => {
     const md = formatErrorBubble(report());
     assert.ok(md.includes('## Seu código falhou nos testes'), 'título da bolha');
     assert.ok(md.includes('**O dobro do número**'), 'título do desafio');
     assert.ok(md.includes('**1 de 3 testes passaram**'), 'razão parcial N de M');
+    assert.ok(md.includes('Código submetido'), 'rótulo da seção do código submetido');
+    assert.ok(md.includes('**solution.mjs**'), 'path do arquivo como título do code block');
+    assert.ok(md.includes('export function dobroDoNumero(n) { return n; }'), 'código do aluno no markdown');
     assert.ok(md.includes('Resultado por teste'), 'rótulo do checklist');
     assert.ok(md.includes('- ✖ dobro de 2 é 4'), 'check falho com ✖');
     assert.ok(md.includes('- ✔ dobro de 0 é 0'), 'check passado com ✔');
@@ -199,14 +218,21 @@ describe('trackLessonState — onda2 error-flow', () => {
     assert.ok(md.includes('nenhum check rodou'), 'aviso determinístico do fluxo sem checks');
   });
 
+  it('formatErrorBubble sem arquivos não inclui a seção do código', () => {
+    const md = formatErrorBubble(report({ files: [] }));
+    assert.ok(!md.includes('Código submetido'), 'sem arquivos, sem seção de código');
+    assert.ok(md.includes('Resultado por teste'), 'resto do markdown intacto');
+  });
+
   it('seedChallengeError insere bolha de erro + pergunta e grava challengeError', () => {
     const s0 = createTrackLessonState();
     const s1 = seedChallengeError(s0, report(), 'O que você acha que errou?');
     assert.equal(s1.history.length, 2);
-    assert.equal(s1.history[0].kind, 'error-bubble');
+    assert.equal(s1.history[0].kind, 'review');
+    assert.equal(s1.history[0].errorFor, 'dobro-do-numero');
     assert.equal(s1.history[0].role, 'assistant');
     assert.ok(s1.history[0].content.startsWith('## '));
-    assert.equal(s1.history[1].kind, 'error-question');
+    assert.equal(s1.history[1].kind, 'message');
     assert.equal(s1.history[1].content, 'O que você acha que errou?');
     assert.deepEqual(s1.challengeError, report());
   });
@@ -229,7 +255,7 @@ describe('trackLessonState — onda2 error-flow', () => {
     const segundo = report({ challengeId: 'dobro-outro', challengeTitle: 'Outro desafio' });
     const s2 = seedChallengeError(s1, segundo, 'E agora?');
     assert.equal(s2.history.length, 2, 'as bolhas antigas foram REMOVIDAS e as novas entram');
-    assert.equal(s2.history[0].kind, 'error-bubble');
+    assert.equal(s2.history[0].kind, 'review');
     assert.ok(s2.history[0].content.includes('**Outro desafio**'));
     assert.equal(s2.history[1].content, 'E agora?');
     assert.equal(s2.challengeError?.challengeId, 'dobro-outro');
@@ -267,10 +293,10 @@ describe('trackLessonState — onda2 error-flow', () => {
     );
     assert.equal(s3.history[0].content, 'eu acho que errei no retorno', 'resposta do aluno da discussão antiga PERMANECE');
     assert.equal(s3.history[1].content, 'Boa hipótese — o retorno estava errado.', 'análise do tutor antiga PERMANECE');
-    assert.equal(s3.history[2].kind, 'error-bubble', 'par NOVO entra no FIM (cronologia do retry)');
+    assert.equal(s3.history[2].kind, 'review', 'par NOVO entra no FIM (cronologia do retry)');
     assert.equal(s3.history[2].errorFor, 'dobro-do-numero');
     assert.ok(s3.history[2].content.includes('saída da 2ª tentativa'), 'bolha nova carrega o erro da tentativa ATUAL');
-    assert.equal(s3.history[3].kind, 'error-question');
+    assert.equal(s3.history[3].kind, 'message');
     assert.equal(s3.history[3].content, 'pergunta 2');
     assert.deepEqual(s3.challengeError, segunda, 'challengeError é o report NOVO — o answer seguinte carrega o erro da 2ª tentativa');
   });
@@ -282,14 +308,14 @@ describe('trackLessonState — onda2 error-flow', () => {
     const segundo = report({ challengeId: 'dobro-outro', challengeTitle: 'Outro desafio' });
     const s3 = seedChallengeError(s2, segundo, 'E agora?');
     assert.equal(s3.history.length, 2, 'bolhas antigas REMOVIDAS, só as novas ficam');
-    assert.equal(s3.history[0].kind, 'error-bubble');
+    assert.equal(s3.history[0].kind, 'review');
     assert.equal(s3.history[0].errorFor, 'dobro-outro');
     assert.ok(s3.history[0].content.includes('**Outro desafio**'));
     assert.equal(s3.history[1].content, 'E agora?');
     assert.equal(s3.challengeError?.challengeId, 'dobro-outro');
   });
 
-  it('chatHistory STRIPA o kind E o errorFor — o histórico ao main é texto puro', () => {
+  it('chatHistory STRIPA o kind, o errorFor E o ts — o histórico ao main é texto puro', () => {
     const s1 = seedChallengeError(createTrackLessonState(), report(), 'pergunta');
     assert.equal(s1.history[0].errorFor, 'dobro-do-numero', 'no estado, a bolha carrega o errorFor');
     const hist = chatHistory(s1);
@@ -297,6 +323,7 @@ describe('trackLessonState — onda2 error-flow', () => {
     for (const m of hist) {
       assert.ok(!('kind' in m), `kind não pode trafegar ao main (${JSON.stringify(m)})`);
       assert.ok(!('errorFor' in m), `errorFor não pode trafegar ao main (${JSON.stringify(m)})`);
+      assert.ok(!('ts' in m), `ts não pode trafegar ao main (${JSON.stringify(m)})`);
       assert.deepEqual(Object.keys(m).sort(), ['content', 'role']);
     }
     assert.equal(hist[0].content, s1.history[0].content);
@@ -334,8 +361,8 @@ describe('trackLessonState — onda2 error-flow', () => {
       teoria.history,
       'mensagens da teoria intactas e na ordem (sem duplicação)',
     );
-    assert.equal(s1.history[teoria.history.length].kind, 'error-bubble');
-    assert.equal(s1.history[teoria.history.length + 1].kind, 'error-question');
+    assert.equal(s1.history[teoria.history.length].kind, 'review');
+    assert.equal(s1.history[teoria.history.length + 1].kind, 'message');
     assert.deepEqual(s1.challengeError, report());
   });
 
@@ -369,5 +396,99 @@ describe('trackLessonState — onda2 error-flow', () => {
     assert.equal(s1.theoryDone, true);
     assert.equal(tutorNextAction(s1), 'answer', 'teoria concluída restaurada não reapresenta seções');
     assert.equal(presentedCount(s1), 1);
+  });
+});
+
+// ─── ONDA1-MODELO-CHAT: ts, kind unificado, reply rule e streaming ───────────
+
+describe('trackLessonState — onda1 modelo de mensagens (ts + kinds)', () => {
+  it('ts é definido no momento da CRIAÇÃO — now injetado em push/apply/seed', () => {
+    const s1 = applyTutorReply(createTrackLessonState(), reply(), 1000);
+    assert.equal(s1.history[0].ts, 1000, 'applyTutorReply usa o now injetado');
+    const s2 = pushUserMessage(s1, 'dúvida', 2000);
+    assert.equal(s2.history[1].ts, 2000, 'pushUserMessage usa o now injetado');
+    const s3 = seedChallengeError(s2, report(), 'pergunta', {}, 3000);
+    assert.equal(s3.history[2].ts, 3000, 'bolha de review usa o now injetado');
+    assert.equal(s3.history[3].ts, 3000, 'bolha da pergunta usa o now injetado (par semeado no MESMO instante)');
+    // Sem now → Date.now() real (aproximação no intervalo da chamada).
+    const before = Date.now();
+    const s4 = pushUserMessage(createTrackLessonState(), 'msg');
+    const after = Date.now();
+    assert.ok(
+      s4.history[0].ts >= before && s4.history[0].ts <= after,
+      'default = Date.now() no momento da criação',
+    );
+  });
+
+  it('resposta vazia NÃO cria mensagem — ts/kind não existem', () => {
+    const s1 = applyTutorReply(createTrackLessonState(), reply({ message: '', sectionId: null, done: true }), 500);
+    assert.equal(s1.history.length, 0);
+  });
+
+  it('REPLY RULE: resposta após pergunta do aluno é reply; seções next NUNCA viram reply', () => {
+    const s1 = applyTutorReply(createTrackLessonState(), reply(), 1000);
+    assert.equal(s1.history[0].kind, 'message', 'primeira seção (sem user antes) → message');
+    // Aluno pergunta; tutor responde (action answer, sectionId null) → reply.
+    const s2 = pushUserMessage(s1, 'por que isso?', 2000);
+    const s3 = applyTutorReply(s2, reply({ sectionId: null, message: 'Porque...' }), 3000);
+    assert.equal(s3.history[2].kind, 'reply', 'resposta à pergunta do aluno → reply');
+    assert.equal(s3.history[2].ts, 3000);
+    // 'next' apresentado APÓS outra mensagem do assistente → message.
+    const s4 = applyTutorReply(s3, reply({ sectionId: 's2', message: 'Próxima seção.' }), 4000);
+    assert.equal(s4.history[3].kind, 'message', "'next' após assistant → message (nunca reply)");
+    // Defensivo (o main não faz isso, mas o contrato é explícito): 'next'
+    // mesmo APÓS 'user' → message — seção NUNCA vira reply.
+    const s5 = pushUserMessage(s4, 'outra dúvida', 5000);
+    const s6 = applyTutorReply(s5, reply({ sectionId: 's3', message: 'Seção 3.' }), 6000);
+    assert.equal(s6.history[4].role, 'user');
+    assert.equal(s6.history[5].kind, 'message', "'next' após 'user' continua message (nunca reply)");
+  });
+
+  it('applyTutorReply após seed: resposta à pergunta do aluno é reply', () => {
+    const s1 = seedChallengeError(createTrackLessonState(), report(), 'O que você acha que errou?', {}, 1000);
+    assert.equal(s1.history[0].kind, 'review');
+    assert.equal(s1.history[1].kind, 'message', 'a pergunta do tutor é uma MENSAGEM normal');
+    const s2 = applyTutorReply(
+      pushUserMessage(s1, 'acho que errei no retorno', 2000),
+      reply({ sectionId: null, message: 'Boa hipótese!' }),
+      3000,
+    );
+    assert.equal(s2.history[3].kind, 'reply', 'análise do tutor na discussão do erro → reply');
+  });
+});
+
+describe('trackLessonState — onda1 typewriter (streaming puro)', () => {
+  it('typewriterCut: 0ms → 0; fim → text.length; monotônico; tps configurável; clamp', () => {
+    const text = 'x'.repeat(1000);
+    assert.equal(typewriterCut(text, 0), 0, '0ms → 0');
+    assert.equal(typewriterCut(text, 2500), 1000, '100 tps * 4 chars * 2.5s = 1000 chars');
+    assert.equal(typewriterCut(text, 100), 40, '~400 chars/s no default');
+    assert.equal(typewriterCut(text, 1000, 50), 200, 'tps=50 → ~200 chars/s');
+    assert.equal(typewriterCut(text, 1000, 200), 800, 'tps=200 → ~800 chars/s');
+    // Clamp: tempo grande → text.length; tempo negativo → 0; texto vazio → 0.
+    assert.equal(typewriterCut('abc', 10_000), 3);
+    assert.equal(typewriterCut('abc', -5), 0);
+    assert.equal(typewriterCut('', 5000), 0);
+    // Monotônico em elapsedMs.
+    const cuts = [0, 50, 100, 250, 500, 1000, 2500, 10_000].map((ms) => typewriterCut(text, ms));
+    for (let i = 1; i < cuts.length; i++) {
+      assert.ok(cuts[i] >= cuts[i - 1], `monotônico: cut(${i - 1}) <= cut(${i})`);
+    }
+  });
+
+  it('typewriterDelayPerChar: ~2.5ms por char no default; escala com tps', () => {
+    assert.equal(typewriterDelayPerChar(), 2.5);
+    assert.equal(typewriterDelayPerChar(100), 2.5);
+    assert.equal(typewriterDelayPerChar(50), 5);
+    assert.equal(typewriterDelayPerChar(200), 1.25);
+  });
+
+  it('typewriterIsDone: true quando o typewriter alcança o fim do texto', () => {
+    const text = 'x'.repeat(1000);
+    assert.equal(typewriterIsDone(text, 100), false, 'começo: ainda digitando');
+    assert.equal(typewriterIsDone(text, 2500), true, '2.5s no default cobre 1000 chars');
+    assert.equal(typewriterIsDone(text, 5000, 50), true, 'tps=50 → 200 chars/s → 5s cobre');
+    assert.equal(typewriterIsDone(text, 4000, 50), false, 'tps=50 → 4s cobre só 800 chars');
+    assert.equal(typewriterIsDone('', 0), true, 'texto vazio já está "digitado"');
   });
 });

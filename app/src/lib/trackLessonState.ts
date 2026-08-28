@@ -19,14 +19,33 @@
  *
  * ONDA2 (error-flow): quando um desafio de AULA falha, o painel fecha e o chat
  * da aula reabre com DUAS bolhas semeadas por `seedChallengeError`:
- * `kind: 'error-bubble'` (markdown determinístico do erro — ver
- * `formatErrorBubble`) e `kind: 'error-question'` (a pergunta do tutor "o que
- * você acha que errou?"). O `kind` e o `errorFor` são METADADOS DE UI —
- * `chatHistory` os STRIPA antes de enviar ao main (o histórico é texto puro).
+ * `kind: 'review'` (markdown determinístico do erro — ver `formatErrorBubble`)
+ * e `kind: 'message'` (a pergunta do tutor "o que você acha que errou?").
+ *
+ * ONDA1-MODELO-CHAT (chat iMessage): o modelo de mensagem que a Onda 2
+ * consome — toda mensagem carrega `ts` (timestamp de CRIAÇÃO, Date.now();
+ * injetável nos testes via `now?`), e o `kind` unificado
+ * 'message' | 'reply' | 'review':
+ *
+ *   - 'message' — mensagem normal: seções 'next' do tutor, a pergunta do
+ *     tutor no fluxo de erro, mensagens comuns;
+ *   - 'reply' — a resposta do tutor a uma pergunta do aluno (a ÚLTIMA
+ *     mensagem do histórico é 'user' e a ação NÃO é 'next' — seções 'next'
+ *     nunca viram 'reply', o histórico antes de um 'next' termina em
+ *     'assistant');
+ *   - 'review' — a bolha do review do desafio que falhou (checklist/saída +
+ *     código submetido; carrega `errorFor` com o challengeId).
+ *
+ * O `kind`/`errorFor`/`ts` são METADADOS DE UI — `chatHistory` os STRIPA antes
+ * de enviar ao main (o histórico é texto puro role/content).
+ *
+ * Helpers de STREAMING puros para o efeito "digitação" (~100 tokens/s) da
+ * Onda 2: `typewriterCut`/`typewriterDelayPerChar`/`typewriterIsDone`.
  */
 import type {
   TrackChallengeErrorReport,
   TrackSubmitResult,
+  TutorMessage,
   TutorReply,
 } from '../../shared/ipc-contract';
 
@@ -34,21 +53,35 @@ export interface TutorChatMessage {
   role: 'assistant' | 'user';
   content: string;
   /**
-   * ADITIVO (onda2-error-flow): metadados de UI de uma bolha do fluxo de erro
-   * do desafio — 'error-bubble' (a bolha com checklist/saída + botão "Gerar
-   * novo desafio") e 'error-question' (a pergunta do tutor). Ausente nas
-   * mensagens normais. NUNCA trafega no histórico enviado ao main
+   * ONDA1-MODELO-CHAT: timestamp (Date.now()) do momento da CRIAÇÃO da
+   * mensagem — as funções de criação (`pushUserMessage`, `applyTutorReply`,
+   * `seedChallengeError`) recebem `now?: number` opcional (default
+   * Date.now()) para testes determinísticos. A Onda 2 (chat iMessage) usa o
+   * `ts` para exibir o horário da bolha. NUNCA trafega no histórico enviado
+   * ao main (chatHistory stripa).
+   */
+  ts: number;
+  /**
+   * ONDA1-MODELO-CHAT (substitui 'error-bubble'/'error-question'):
+   *   - 'message' — mensagem normal (seção 'next' do tutor, a pergunta do
+   *     tutor no fluxo de erro, mensagens comuns);
+   *   - 'reply' — resposta do tutor a uma pergunta do aluno (última do
+   *     histórico é 'user' e a ação não é 'next');
+   *   - 'review' — a bolha do review do desafio (checklist/saída + código
+   *     submetido; carrega `errorFor` com o challengeId).
+   * Presente nas mensagens 'assistant' criadas pelo módulo; ausente nas
+   * mensagens 'user'. NUNCA trafega no histórico enviado ao main
    * (chatHistory stripa).
    */
-  kind?: 'error-bubble' | 'error-question';
+  kind?: 'message' | 'reply' | 'review';
   /**
-   * ADITIVO (onda3-fix): challengeId da bolha 'error-bubble' — o seed usa o
-   * HISTÓRICO por ele para localizar o par antigo daquele desafio no RETRY
+   * ONDA3-FIX: challengeId da bolha 'review' — o seed usa o HISTÓRICO por ele
+   * para localizar o par antigo daquele desafio no RETRY
    * (`clearChallengeError`/'next' zera o `challengeError` mas as bolhas ficam
    * na conversa; uma 2ª falha do MESMO desafio re-semeia: par antigo sai, par
-   * novo entra no fim). Presente SÓ na mensagem 'error-bubble' (o
-   * 'error-question' não precisa). NUNCA trafega no histórico enviado ao main
-   * (chatHistory stripa).
+   * novo entra no fim). Presente SÓ na mensagem 'review' (a pergunta do par
+   * não precisa). NUNCA trafega no histórico enviado ao main (chatHistory
+   * stripa).
    */
   errorFor?: string;
 }
@@ -79,10 +112,27 @@ export function createTrackLessonState(): TrackLessonUiState {
   };
 }
 
-/** Aplica a resposta do tutor (de 'track:tutor-chat') ao estado. */
-export function applyTutorReply(state: TrackLessonUiState, reply: TutorReply): TrackLessonUiState {
+/**
+ * Aplica a resposta do tutor (de 'track:tutor-chat') ao estado. ONDA1:
+ * `now` injetável (default Date.now()) define o `ts` da mensagem criada, e a
+ * resposta ganha `kind: 'reply'` quando responde à pergunta do aluno (a
+ * última mensagem do histórico é 'user' e NÃO é uma ação 'next' — o 'next'
+ * sempre vem depois de 'assistant'); caso contrário, 'message'.
+ */
+export function applyTutorReply(
+  state: TrackLessonUiState,
+  reply: TutorReply,
+  now: number = Date.now(),
+): TrackLessonUiState {
+  const lastIsUser = state.history[state.history.length - 1]?.role === 'user';
+  // ONDA1-MODELO-CHAT (regra de REPLY): 'reply' só quando o tutor respondeu à
+  // pergunta do aluno ('answer' — a última mensagem é 'user'); seção 'next'
+  // (sectionId presente) NUNCA vira 'reply', mesmo se o histórico terminar em
+  // 'user' (defensivo — o main responde 'next' sem 'user' antes).
+  const kind: TutorChatMessage['kind'] =
+    lastIsUser && !reply.sectionId ? 'reply' : 'message';
   const history = reply.message.trim()
-    ? [...state.history, { role: 'assistant' as const, content: reply.message }]
+    ? [...state.history, { role: 'assistant' as const, content: reply.message, ts: now, kind }]
     : state.history;
   const presentedSections =
     reply.sectionId && !state.presentedSections.includes(reply.sectionId)
@@ -99,25 +149,31 @@ export function applyTutorReply(state: TrackLessonUiState, reply: TutorReply): T
   };
 }
 
-/** Adiciona a pergunta do aluno ao histórico. */
-export function pushUserMessage(state: TrackLessonUiState, text: string): TrackLessonUiState {
+/**
+ * Adiciona a pergunta do aluno ao histórico. ONDA1: `now` injetável (default
+ * Date.now()) define o `ts` da mensagem criada.
+ */
+export function pushUserMessage(
+  state: TrackLessonUiState,
+  text: string,
+  now: number = Date.now(),
+): TrackLessonUiState {
   const content = text.trim();
   if (!content) return state;
   return {
     ...state,
-    history: [...state.history, { role: 'user' as const, content }],
+    history: [...state.history, { role: 'user' as const, content, ts: now }],
     lastError: null,
   };
 }
 
 /**
- * O histórico enviado ao main (mensagens PURAS). ONDA2 (error-flow): o `kind`
- * das bolhas de erro é metadado de UI — STRIPADO aqui (o contrato do main
- * trafega só role/content; as bolhas continuam no histórico como texto).
- * ONDA3-FIX: `errorFor` (challengeId da bolha) é o MESMO tipo de metadado e
- * também é STRIPADO.
+ * O histórico enviado ao main (mensagens PURAS role/content — o contrato
+ * `TutorMessage` do main). ONDA2/ONDA3/ONDA1-MODELO-CHAT: `kind`, `errorFor`
+ * e `ts` são metadados de UI — STRIPADOS aqui (o contrato do main trafega só
+ * role/content; as bolhas continuam no histórico como texto).
  */
-export function chatHistory(state: TrackLessonUiState): TutorChatMessage[] {
+export function chatHistory(state: TrackLessonUiState): TutorMessage[] {
   return state.history.map((m) => ({ role: m.role, content: m.content }));
 }
 
@@ -129,6 +185,33 @@ export function tutorNextAction(state: TrackLessonUiState): 'next' | 'answer' {
 /** Nº de seções apresentadas (para a UI mostrar o progresso da aula). */
 export function presentedCount(state: TrackLessonUiState): number {
   return state.presentedSections.length;
+}
+
+// ─── ONDA1-MODELO-CHAT: streaming puro (efeito "digitação" ~100 tokens/s) ────
+
+/**
+ * Índice de corte do efeito "digitação": quantos caracteres do texto já
+ * foram "digitados" após `elapsedMs` — tokens ≈ 4 chars, então
+ * chars = floor(elapsedMs * tps * 4 / 1000) (default tps=100 → ~400 chars/s),
+ * clampado a [0, text.length]. Monotônico em `elapsedMs`: 0ms → 0; tempo
+ * grande (ou tps alto) → text.length. A UI corta `text.slice(0, cut)`.
+ */
+export function typewriterCut(text: string, elapsedMs: number, tps: number = 100): number {
+  const chars = Math.floor((elapsedMs * tps * 4) / 1000);
+  return Math.max(0, Math.min(text.length, chars));
+}
+
+/**
+ * ms por caractere do efeito "digitação" ≈ 1000 / (tps * 4) — com o default
+ * tps=100 → ~2.5ms/char. A UI usa para agendar o avanço do typewriter.
+ */
+export function typewriterDelayPerChar(tps: number = 100): number {
+  return 1000 / (tps * 4);
+}
+
+/** true quando o typewriter JÁ "digitou" o texto inteiro (cut >= length). */
+export function typewriterIsDone(text: string, elapsedMs: number, tps: number = 100): boolean {
+  return typewriterCut(text, elapsedMs, tps) >= text.length;
 }
 
 // ─── ONDA2 (error-flow): relatório do erro + bolha determinística ────────────
@@ -169,6 +252,7 @@ export function buildErrorReport(args: BuildErrorReportArgs): TrackChallengeErro
  * Rótulos i18n da bolha de erro (a lib é PURA — sem i18n; a LessonView injeta
  * as traduções atuais; sem labels, o default espelha o padrão das chaves
  * pt-BR `challenge.partialCount`/`challenge.checksTitle`/`challenge.output`).
+ * ONDA1-MODELO-CHAT: `filesTitle` rotula a seção do código submetido (novo).
  */
 export interface ErrorBubbleLabels {
   /** Título da bolha (chave `lesson.errorBubbleTitle`). */
@@ -179,6 +263,8 @@ export interface ErrorBubbleLabels {
   checksTitle: string;
   /** Rótulo da saída (chave `challenge.output`). */
   outputTitle: string;
+  /** Rótulo da seção do código submetido (chave `lesson.errorBubbleFilesTitle`). */
+  filesTitle: string;
 }
 
 const DEFAULT_BUBBLE_LABELS: ErrorBubbleLabels = {
@@ -186,14 +272,18 @@ const DEFAULT_BUBBLE_LABELS: ErrorBubbleLabels = {
   partialCount: '{{passed}} de {{total}} testes passaram',
   checksTitle: 'Resultado por teste',
   outputTitle: 'Saída',
+  filesTitle: 'Código submetido',
 };
 
 /**
  * Markdown DETERMINÍSTICO da bolha de erro — UMA mensagem do histórico (o
  * ChatBubble renderiza markdown): título do desafio, razão parcial (N de M,
- * mesmo padrão das chaves i18n `challenge.partialCount`/`checksTitle`),
- * checklist com ✔/✖ e a saída em code block. `labels` permite à UI injetar
- * as traduções correntes (default = padrão pt-BR acima).
+ * mesmo padrão das chaves i18n `challenge.partialCount`/`checksTitle`), o
+ * CÓDIGO SUBMETIDO do aluno (ONDA1-MODELO-CHAT: um code block por arquivo de
+ * `report.files`, com o path como título — ANTES da seção de saída/checks; a
+ * Onda 2 renderiza e o teste asserta a presença do código), checklist com
+ * ✔/✖ e a saída em code block. `labels` permite à UI injetar as traduções
+ * correntes (default = padrão pt-BR acima).
  */
 export function formatErrorBubble(
   report: TrackChallengeErrorReport,
@@ -206,10 +296,17 @@ export function formatErrorBubble(
   const checks = report.checks.length > 0
     ? report.checks.map((c) => `- ${c.passed ? '✔' : '✖'} ${c.name}`).join('\n')
     : '- _(nenhum check rodou — a execução nem chegou aos testes)_';
+  // Código submetido: um code block por arquivo, com o path como título.
+  const files = report.files.length > 0
+    ? report.files
+        .map((f) => `**${f.path}**\n\n\`\`\`\n${f.code}\n\`\`\``)
+        .join('\n\n')
+    : null;
   return [
     `## ${l.title}`,
     `**${report.challengeTitle}**`,
     `**${partial}**`,
+    ...(files !== null ? [`${l.filesTitle}`, files] : []),
     `${l.checksTitle}`,
     checks,
     `${l.outputTitle}:`,
@@ -228,20 +325,21 @@ export function formatErrorBubble(
  *     em tela). Este é o ÚNICO guard;
  *   - RETRY do MESMO desafio após o 'next' (`clearChallengeError` zerou
  *     `challengeError` mas as bolhas ficaram na conversa): RE-SEMEIA —
- *     remove o par antigo daquele challengeId (a 'error-bubble' com
- *     `errorFor === challengeId` e a 'error-question' imediatamente seguinte
- *     — o par é sempre semeado adjacente) e APPENDA o par novo no FIM do
- *     histórico (o retry aconteceu depois das seções de teoria). As
+ *     remove o par antigo daquele challengeId (a 'review' com
+ *     `errorFor === challengeId` e a 'message' da pergunta imediatamente
+ *     seguinte — o par é sempre semeado adjacente) e APPENDA o par novo no
+ *     FIM do histórico (o retry aconteceu depois das seções de teoria). As
  *     mensagens da discussão antiga (resposta do aluno + análise do tutor)
  *     PERMANECEM como conversa legítima. O `challengeError` novo carrega o
  *     erro da tentativa ATUAL — o 'answer' seguinte vai ao main com ele;
- *   - desafio DIFERENTE → REPÕE as bolhas do erro anterior (remove as
- *     mensagens kind 'error-bubble'/'error-question' antigas e insere as
- *     novas no MESMO ponto — inclusive quando `challengeError` já foi zerado
- *     pelo 'next' e o diálogo antigo só vive no histórico);
- *   - insere a bolha de erro (kind 'error-bubble', markdown de
- *     `formatErrorBubble`) + a bolha da pergunta (kind 'error-question') e
- *     grava `challengeError` no estado.
+ *   - desafio DIFERENTE → REPÕE as bolhas do erro anterior (remove os pares
+ *     de review antigos e insere os novos no MESMO ponto — inclusive quando
+ *     `challengeError` já foi zerado pelo 'next' e o diálogo antigo só vive
+ *     no histórico);
+ *   - insere a bolha de review (kind 'review', markdown de
+ *     `formatErrorBubble`) + a bolha da pergunta (kind 'message') e grava
+ *     `challengeError` no estado. ONDA1-MODELO-CHAT: as mensagens novas
+ *     carregam `ts: now` (injetável — default Date.now()).
  *
  * `questionText` vem como parâmetro (a lib é pura, sem i18n) e `labels`
  * opcional injeta as traduções da bolha (padrão pt-BR).
@@ -251,59 +349,94 @@ export function seedChallengeError(
   report: TrackChallengeErrorReport,
   questionText: string,
   labels: Partial<ErrorBubbleLabels> = {},
+  now: number = Date.now(),
 ): TrackLessonUiState {
   // FIX-FINAL: guard ÚNICO = discussão ATIVA do MESMO desafio (challengeError
   // setado) → no-op (anti-StrictMode/remount — o erro já está em tela).
   if (state.challengeError?.challengeId === report.challengeId) return state;
-  const errorBubble: TutorChatMessage = {
+  const reviewBubble: TutorChatMessage = {
     role: 'assistant',
-    kind: 'error-bubble',
+    kind: 'review',
     errorFor: report.challengeId,
+    ts: now,
     content: formatErrorBubble(report, labels),
   };
   const questionBubble: TutorChatMessage = {
     role: 'assistant',
-    kind: 'error-question',
+    kind: 'message',
+    ts: now,
     content: questionText,
   };
   // RETRY do MESMO desafio após o 'next' (challengeError null, par antigo no
-  // histórico): REMOVE o par antigo daquele challengeId (a 'error-bubble' com
-  // errorFor === challengeId + a 'error-question' imediatamente seguinte — o
-  // par é sempre semeado adjacente) e APPENDA o par novo no FIM do histórico
-  // (a cronologia natural: o retry aconteceu depois das seções de teoria). A
-  // discussão antiga (resposta do aluno + análise do tutor) PERMANECE — é
-  // texto de conversa legítimo.
+  // histórico): REMOVE o par antigo daquele challengeId (a 'review' com
+  // errorFor === challengeId + a 'message' da pergunta imediatamente
+  // seguinte — o par é sempre semeado adjacente) e APPENDA o par novo no FIM
+  // do histórico (a cronologia natural: o retry aconteceu depois das seções
+  // de teoria). A discussão antiga (resposta do aluno + análise do tutor)
+  // PERMANECE — é texto de conversa legítimo.
   const oldBubbleIndex = state.history.findIndex(
-    (m) => m.kind === 'error-bubble' && m.errorFor === report.challengeId,
+    (m) => m.kind === 'review' && m.errorFor === report.challengeId,
   );
   if (oldBubbleIndex >= 0) {
-    const hasQuestionAfter = state.history[oldBubbleIndex + 1]?.kind === 'error-question';
+    // Com a taxonomia nova, a pergunta do par é 'message' (kind genérico) —
+    // só a ADJACÊNCIA a distingue de uma mensagem normal do tutor (o par é
+    // sempre semeado atomicamente, nada entra entre a review e a pergunta).
+    const next = state.history[oldBubbleIndex + 1];
+    const hasQuestionAfter = next?.role === 'assistant' && next?.kind === 'message';
     const removeEnd = oldBubbleIndex + (hasQuestionAfter ? 2 : 1);
     const history = [
       ...state.history.slice(0, oldBubbleIndex),
       ...state.history.slice(removeEnd),
-      errorBubble,
+      reviewBubble,
       questionBubble,
     ];
     return { ...state, history, challengeError: report };
   }
-  let history = state.history;
-  if (history.some((m) => m.kind === 'error-bubble' || m.kind === 'error-question')) {
-    // REPÕE: remove as bolhas do erro ANTERIOR no ponto em que estavam e
-    // re-insere as novas no mesmo lugar (o diálogo do erro vira o novo erro).
-    // Aqui é sempre REPOSIÇÃO (desafio DIFERENTE — o retry do MESMO desafio
-    // foi tratado acima), nunca duplicação.
-    const insertAt = history.findIndex((m) => m.kind === 'error-bubble' || m.kind === 'error-question');
-    history = history.filter((m) => m.kind !== 'error-bubble' && m.kind !== 'error-question');
-    if (insertAt >= 0) {
-      history = [...history.slice(0, insertAt), errorBubble, questionBubble, ...history.slice(insertAt)];
-    } else {
-      history = [...history, errorBubble, questionBubble];
-    }
-  } else {
-    history = [...history, errorBubble, questionBubble];
+  const stripped = stripSeededReviewPairs(state.history);
+  if (stripped.insertAt >= 0) {
+    // REPÕE: remove os pares de review do erro ANTERIOR no ponto em que
+    // estavam e re-insere os novos no mesmo lugar (o diálogo do erro vira o
+    // novo erro). Aqui é sempre REPOSIÇÃO (desafio DIFERENTE — o retry do
+    // MESMO desafio foi tratado acima), nunca duplicação.
+    const history = [
+      ...stripped.history.slice(0, stripped.insertAt),
+      reviewBubble,
+      questionBubble,
+      ...stripped.history.slice(stripped.insertAt),
+    ];
+    return { ...state, history, challengeError: report };
   }
+  const history = [...state.history, reviewBubble, questionBubble];
   return { ...state, history, challengeError: report };
+}
+
+/**
+ * Remove do histórico os pares de review SEMEADOS (a bolha 'review' + a
+ * pergunta 'message' imediatamente seguinte). O par é SEMPRE semeado
+ * adjacente (seedChallengeError insere as duas bolhas atomicamente), então a
+ * pergunta é identificada por POSIÇÃO — com a taxonomia nova, 'message' é o
+ * kind genérico das mensagens do tutor e só a adjacência imediata a uma
+ * 'review' distingue a pergunta semeada de uma seção/mensagem normal.
+ * Defensivo: uma 'review' no fim do histórico (sem 'message' seguinte) é
+ * removida sozinha. Devolve o histórico sem os pares e o índice onde o
+ * PRIMEIRO par começava (para re-inserção no mesmo ponto), ou -1 se não
+ * havia pares.
+ */
+function stripSeededReviewPairs(
+  history: TutorChatMessage[],
+): { history: TutorChatMessage[]; insertAt: number } {
+  const removeIdx = new Set<number>();
+  for (let i = 0; i < history.length; i++) {
+    if (history[i].kind !== 'review') continue;
+    removeIdx.add(i);
+    const next = history[i + 1];
+    if (next?.role === 'assistant' && next?.kind === 'message') removeIdx.add(i + 1);
+  }
+  if (removeIdx.size === 0) return { history, insertAt: -1 };
+  return {
+    history: history.filter((_, i) => !removeIdx.has(i)),
+    insertAt: Math.min(...removeIdx),
+  };
 }
 
 /**

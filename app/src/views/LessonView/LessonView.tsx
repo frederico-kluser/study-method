@@ -150,7 +150,7 @@ function ChatBubble({
   content: string;
   /** ONDA2 (error-flow): metadado de UI — a bolha de erro ganha a ação
    *  "Gerar novo desafio" (o painel fechou; a regeneração migrou pra cá). */
-  kind?: 'error-bubble' | 'error-question';
+  kind?: 'message' | 'reply' | 'review';
   onRegenerate?: () => void;
   regenerateDisabled?: boolean;
 }): ReactElement {
@@ -187,7 +187,7 @@ function ChatBubble({
             {/* ONDA2 (error-flow, A4): "Gerar novo desafio" DENTRO da bolha de
                 erro (nunca-repetir preservado — a LLM vê os desafios errados
                 da aula). Desabilitado enquanto um turno está em voo. */}
-            {kind === 'error-bubble' ? (
+            {kind === 'review' ? (
               <Button
                 size="small"
                 variant="outlined"
@@ -779,7 +779,7 @@ export function LessonView(props: ViewProps): ReactElement {
                 role={m.role}
                 content={m.content}
                 kind={m.kind}
-                onRegenerate={m.kind === 'error-bubble' ? handleRegenerateFromBubble : undefined}
+                onRegenerate={m.kind === 'review' ? handleRegenerateFromBubble : undefined}
                 regenerateDisabled={busy}
               />
             ))

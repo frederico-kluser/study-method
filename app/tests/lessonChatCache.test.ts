@@ -109,7 +109,7 @@ describe('lessonChatCache — save/take round-trip', () => {
 
   it('chaves diferentes NÃO colidem — cada aula tem o SEU chat', () => {
     const sA = theoryState();
-    const sB = { ...createTrackLessonState(), history: [{ role: 'user' as const, content: 'outra aula' }] };
+    const sB = { ...createTrackLessonState(), history: [{ role: 'user' as const, content: 'outra aula', ts: 0 }] };
     saveLessonChat({ trackSlug: 'nodejs-do-zero', lessonId: 'aula-1' }, sA);
     saveLessonChat({ trackSlug: 'nodejs-do-zero', lessonId: 'aula-2' }, sB);
     // Mesma TRILHA, aulas diferentes → não restaura a aula errada.
@@ -149,6 +149,30 @@ describe('lessonChatCache — save/take round-trip', () => {
     assert.ok(taken);
     assert.deepEqual(taken.challengeError, report, 'contexto de erro em discussão preservado');
     assert.equal(taken.history.length, s.history.length);
+  });
+
+  it('round-trip preserva ts/kind/errorFor das bolhas (clone raso — metadados intactos)', () => {
+    const report: TrackChallengeErrorReport = {
+      trackSlug: 'nodejs-do-zero',
+      lessonId: 'aula-1',
+      challengeId: 'dobro-do-numero',
+      challengeTitle: 'O dobro do número',
+      files: [{ path: 'solution.mjs', code: 'export function dobroDoNumero(n) { return n; }' }],
+      output: 'saída',
+      checks: [{ name: 'check', passed: false }],
+      passedCount: 0,
+      totalCount: 1,
+    };
+    const s = seedChallengeError(theoryState(), report, 'O que você acha que errou?', {}, 4242);
+    saveLessonChat({ trackSlug: 'nodejs-do-zero', lessonId: 'aula-1' }, s);
+    const taken = takeLessonChat({ trackSlug: 'nodejs-do-zero', lessonId: 'aula-1' });
+    assert.ok(taken, 'restaurou o chat');
+    assert.deepEqual(taken.history, s.history, 'histórico idêntico — ts/kind/errorFor preservados');
+    assert.equal(taken.history[3].kind, 'review', 'kind da bolha de review preservado');
+    assert.equal(taken.history[3].errorFor, 'dobro-do-numero', 'errorFor preservado');
+    assert.equal(taken.history[3].ts, 4242, 'ts da bolha preservado');
+    assert.equal(taken.history[4].kind, 'message', 'kind da pergunta preservado');
+    assert.equal(taken.history[4].ts, 4242, 'ts da pergunta preservado');
   });
 
   it('__reset esvazia TUDO (montagens novas não veem cache de teste anterior)', () => {
