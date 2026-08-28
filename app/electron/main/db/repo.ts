@@ -1030,8 +1030,10 @@ export function createLessonRepo(open: OpenFn): LessonRepo {
         // AVANÇO do aluno (o pedido do dono: "limpar todos os dados de
         // avanço"): tentativas de desafio, lições concluídas de trilha,
         // proficiência, desafios REGENERADOS, contadores do fluxo legado
-        // (progress/lesson_answers/hint_break_events) e o marcador de
-        // conclusão das lessons. O CONTEÚDO (subjects/lessons/challenges/
+        // (progress/lesson_answers/hint_break_events), o marcador de
+        // conclusão das lessons e o marcador de DICAS CONSUMIDAS
+        // (challenge_hints.used_at — dado de avanço; as hints em si são
+        // CONTEÚDO e permanecem). O CONTEÚDO (subjects/lessons/challenges/
         // challenge_hints — o currículo) NUNCA é apagado; configurações e
         // chaves vivem fora deste banco (settingsStore) e ficam intactas.
         db.exec('DELETE FROM challenge_attempts');
@@ -1042,6 +1044,7 @@ export function createLessonRepo(open: OpenFn): LessonRepo {
         db.exec('DELETE FROM lesson_answers');
         db.exec('DELETE FROM hint_break_events');
         db.exec('UPDATE lessons SET completed_at = NULL');
+        db.exec('UPDATE challenge_hints SET used_at = NULL');
       });
     },
   };

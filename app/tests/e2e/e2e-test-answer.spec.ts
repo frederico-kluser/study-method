@@ -65,14 +65,20 @@ test('e2e-test-answer: errada fecha o painel → bolha de erro + pergunta no cha
   await expect(page.getByRole('heading', { name: 'Aula E2E sobre funções' })).toBeVisible({ timeout: 20_000 });
   const log = page.getByRole('log');
   await expect(log.getByText('1 de 3 testes passaram', { exact: false })).toBeVisible({ timeout: 20_000 });
-  await expect(log.getByText('Resultado por teste', { exact: false })).toBeVisible();
+  // Timeout explícito — a review digita a 10 tps (Onda 1): a ~40 chars/s a
+  // bolha alcança "Resultado por teste" em ~5.1s e o checklist em ~5.6s —
+  // contra o timeout default de 5s do Playwright a margem era ~0.3-0.5s
+  // (flake latente em CI/jitter). 15s cobre a review do stub (~250 chars ≈
+  // 6.3s) com folga.
+  await expect(log.getByText('Resultado por teste', { exact: false })).toBeVisible({ timeout: 15_000 });
   // Checklist isolada da saída bruta (a MESMA linha do check existe no code
   // block — o escopo do <ul> da bolha isola os itens; âncora ^$ no li).
   const checklist = log.getByRole('list');
-  await expect(checklist.getByText(/^✔ dobro de 0 é 0$/)).toBeVisible();
-  await expect(checklist.getByText(/^✖ dobro de 2 é 4$/)).toBeVisible();
-  // Bolha da pergunta do tutor ("o que você acha que errou?").
-  await expect(log.getByText('O que você acha que errou?', { exact: false })).toBeVisible();
+  await expect(checklist.getByText(/^✔ dobro de 0 é 0$/)).toBeVisible({ timeout: 15_000 });
+  await expect(checklist.getByText(/^✖ dobro de 2 é 4$/)).toBeVisible({ timeout: 15_000 });
+  // Bolha da pergunta do tutor ("o que você acha que errou?") — última bolha
+  // do par semeado; timeout explícito — a review digita a 10 tps (Onda 1).
+  await expect(log.getByText('O que você acha que errou?', { exact: false })).toBeVisible({ timeout: 15_000 });
 
   // O aluno responde (texto) — o turno 'answer' leva o challengeError no
   // payload (contrato Onda 1; o stub ecoa a última pergunta do aluno). O envio

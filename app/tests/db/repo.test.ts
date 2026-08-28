@@ -528,6 +528,9 @@ describe('createLessonRepo — clearAllProgress (onda1-nav-ui, reset de progress
     assert.ok((await repo.getAnswerForLesson(lessonId)) !== null);
     const rawBefore = db.prepare('SELECT completed_at FROM lessons WHERE id = ?').get(lessonId) as { completed_at: string | null };
     assert.ok(rawBefore.completed_at !== null, 'completed_at marcado antes do reset');
+    // O hint consumido ficou com used_at SETADO (dado de avanço a zerar).
+    const hintBefore = db.prepare('SELECT used_at FROM challenge_hints WHERE challenge_id = ?').get(challengeId) as { used_at: string | null };
+    assert.ok(hintBefore.used_at !== null, 'used_at marcado antes do reset');
 
     // RESET.
     await repo.clearAllProgress();
@@ -541,6 +544,9 @@ describe('createLessonRepo — clearAllProgress (onda1-nav-ui, reset de progress
     assert.deepEqual(await repo.answeredTopicCount('algoritmos'), { answered: 0, hintConsumed: 0, becameChildren: 0 }, 'contadores legados zerados');
     const rawAfter = db.prepare('SELECT completed_at FROM lessons WHERE id = ?').get(lessonId) as { completed_at: string | null };
     assert.equal(rawAfter.completed_at, null, 'completed_at zerado');
+    // Dica consumida → used_at ZERADO; a hint em si (conteúdo) permanece.
+    const hintAfter = db.prepare('SELECT used_at FROM challenge_hints WHERE challenge_id = ?').get(challengeId) as { used_at: string | null };
+    assert.equal(hintAfter.used_at, null, 'used_at zerado pelo clearAllProgress');
 
     // CONTEÚDO intacto (currículo + hints).
     const found = await repo.getLessonById(lessonId);
