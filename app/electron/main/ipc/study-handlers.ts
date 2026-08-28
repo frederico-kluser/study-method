@@ -175,6 +175,10 @@ export interface LessonPersistenceLike {
     name: string,
     domain?: 'programming' | 'math',
   ): Promise<{ subject: { id: string; slug: string; domain: 'programming' | 'math' }; slug: string }>;
+  /** ONDA1-NAV-UI (reset de progresso): apaga TODAS as tabelas de avanço do
+   *  aluno — repassado a study:clear-progress. OPCIONAL: ausente ⇒ o canal
+   *  responde { ok:false } gracioso (mesmo padrão dos demais canais de repo). */
+  clearAllProgress?(): Promise<void>;
 }
 
 export interface StudyHandlerDeps {
@@ -720,6 +724,17 @@ export function buildStudyHandlers(deps: StudyHandlerDeps): Map<string, IpcHandl
   // demanda (a FK subject_id é NOT NULL). lesson_id da tentativa é sintético
   // ('lesson:<slug>') — a tabela não tem FK em lesson_id; a onda 5 pode
   // sobrepor com o lessonId real do generate-lesson quando disponível.
+  map.set(STUDY_CHANNELS.CLEAR_PROGRESS, async (): Promise<{ ok: boolean; error?: string }> => {
+    // ONDA1-NAV-UI (reset de progresso — Settings): apaga o avanço do aluno
+    // via repo.clearAllProgress(). Repo ausente (stub E2E, persistência
+    // desabilitada) → { ok:false } gracioso, como os demais canais de repo.
+    if (!repo || !repo.clearAllProgress) {
+      return { ok: false, error: 'study: persistência indisponível (repo ausente).' };
+    }
+    await repo.clearAllProgress();
+    return { ok: true };
+  });
+
   map.set(STUDY_CHANNELS.MARK_CHALLENGE_ATTEMPT, async (_event, payload: unknown): Promise<MarkChallengeAttemptResult> => {
     if (!repo) return { ok: false, error: 'study: persistência indisponível (repo ausente).' };
     const p = (payload ?? {}) as MarkChallengeAttemptRequest;

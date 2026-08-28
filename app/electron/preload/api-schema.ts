@@ -236,6 +236,11 @@ export interface ApiSchema {
     /** ONDA4 (nunca-repetir): registra UMA tentativa de desafio (resolve
      *  subjectId por subjectSlug/upsert sob demanda). */
     markChallengeAttempt(input: MarkChallengeAttemptRequest): Promise<MarkChallengeAttemptResult>;
+    /** ADITIVO (onda1-nav-ui — reset de progresso): apaga TODAS as tabelas de
+     *  avanço do aluno (attempts/lesson-done/proficiência/gerados/contadores
+     *  legados); o conteúdo e as configurações ficam. → { ok } | { ok:false,
+     *  error } (repo indisponível). */
+    clearProgress(): Promise<unknown>;
     onLessonProgress(cb: (ev: unknown) => void): () => void;
     /** ADITIVO (onda2-research-live): progresso da pesquisa Brave (surf-research
      *  style) durante generate-lesson — união discriminada ResearchProgressEvent. */

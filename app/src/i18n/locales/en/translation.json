@@ -36,7 +36,18 @@
     "motion": {
       "label": "Reduced motion",
       "hint": "Follows the system preference. Information never depends on animation."
-    }
+    },
+    "clearProgress": "Clear all progress data",
+    "clearProgressTitle": "Progress",
+    "clearProgressDescription": "Erases all your progress: completed lessons, challenge attempts, proficiency and generated challenges. Track content, settings and keys are kept.",
+    "clearProgressConfirmTitle": "Clear all progress data?",
+    "clearProgressConfirmDescription": "This permanently erases all your progress in the app (completed lessons, attempts, proficiency and generated challenges). This cannot be undone.",
+    "clearProgressConfirmNote": "Track content, settings and API keys are not affected.",
+    "clearProgressConfirmAction": "Clear",
+    "clearProgressBusy": "Clearing…",
+    "clearProgressDone": "Progress data cleared.",
+    "clearProgressError": "Could not clear progress data.",
+    "clearProgressTimeout": "The app did not respond in time. Try again."
   },
   "keys": {
     "deepseek": {
@@ -618,6 +629,7 @@
     "moduleChallenge": "Module challenge",
     "moduleChallengeDone": "Completed ✓",
     "moduleChallengeTried": "Tried",
-    "listFailed": "Could not load the track list."
+    "listFailed": "Could not load the track list.",
+    "backButton": "Back"
   }
 }

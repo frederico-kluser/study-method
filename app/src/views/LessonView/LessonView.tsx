@@ -30,10 +30,15 @@
  * "Concluir aula" é BLOQUEADO enquanto houver desafio pendente
  * (isLessonFinishBlocked — lê lastVerdict do payload track.lesson).
  *
- * Entrada: `pendingTrackLesson` (Trilha → Aula) drenado na MONTAGEM
- * (src/lib/pendingSubject.ts) OU `nav.challengeErrorReport` (Desafio → Aula,
- * erro). Sem nenhum dos dois, a view mostra o seletor de trilhas (estado
- * vazio) — nunca gera.
+ * Entrada (precedência na MONTAGEM — onda1-nav-ui):
+ *   1. `nav.challengeErrorReport` (Desafio → Aula, erro) — define o alvo;
+ *   2. `pendingTrackLesson` (Trilha → Aula) drenado na MONTAGEM
+ *      (src/lib/pendingSubject.ts);
+ *   3. `peekLastLesson()` (src/lib/lastLesson.ts) — a ÚLTIMA aula aberta na
+ *      sessão (pedido do dono: "quando eu clico em aula eu veja a última aula
+ *      aberta ou nenhum"), com o chat RESTAURADO do cache de sessão;
+ *   4. sem nenhum dos três, a view mostra o seletor de trilhas (estado
+ *      vazio) — nunca gera.
  */
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState, type ReactElement } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -98,6 +103,7 @@ import {
   createLessonChatHolder,
   saveLessonChat,
 } from '../../lib/lessonChatCache';
+import { peekLastLesson, saveLastLesson } from '../../lib/lastLesson';
 import { ChatBubble } from '../../components/chat/ChatBubble';
 import { TypingIndicator } from '../../components/chat/TypingIndicator';
 import type {
@@ -370,6 +376,9 @@ export function LessonView(props: ViewProps): ReactElement {
           challengeErrorSeededRef.current = true;
           challengeErrorLessonRef.current = { trackSlug: report.trackSlug, lessonId: report.lessonId };
           setTrackLesson({ trackSlug: report.trackSlug, lessonId: report.lessonId });
+          // ONDA1-NAV-UI: a aula do erro também vira a "última aula aberta" —
+          // voltar à aba Aula depois (sem report/pendência) a restaura.
+          saveLastLesson(report.trackSlug, report.lessonId);
           publishSession({ subject: report.lessonId, status: 'idle' });
           // ONDA3 (chat-cache): o seed é APPEND-ONLY sobre o estado
           // RESTAURADO do cache — a teoria em curso permanece no histórico e
@@ -414,6 +423,9 @@ export function LessonView(props: ViewProps): ReactElement {
         }
       } else if (pending) {
         setTrackLesson(pending);
+        // ONDA1-NAV-UI: abre uma aula → grava como "última aberta" (a próxima
+        // montagem sem alvo a restaura — pedido do dono).
+        saveLastLesson(pending.trackSlug, pending.lessonId);
         publishSession({ subject: pending.lessonId, status: 'idle' });
         // ONDA3 (chat-cache): o chat volta EXATAMENTE onde estava — o restore
         // devolve history/presentedSections completos (theoryDone incluso), e
@@ -421,6 +433,31 @@ export function LessonView(props: ViewProps): ReactElement {
         // comportamento atual (chat novo, teoria da seção 1).
         setChat(cached ?? createTrackLessonState());
         return loadLesson(pending.trackSlug, pending.lessonId);
+      }
+    } else {
+      // ONDA1-NAV-UI (3ª precedência): sem report e sem pendência → restaura
+      // a ÚLTIMA aula aberta na sessão (peek NÃO é one-shot: no double-invoke
+      // do StrictMode cada passada re-restaura a MESMA aula — setTrackLesson
+      // idempotente + loadLesson re-disparado, exatamente como o galho do
+      // report; o chat vem do cacheHolder retido (padrão anti-StrictMode da
+      // casa — o take one-shot não é repetido na 2ª passada)). Nunca abriu
+      // aula → estado vazio (comportamento atual).
+      const last = peekLastLesson();
+      if (last) {
+        if (cacheHolderRef.current === null) {
+          cacheHolderRef.current = createLessonChatHolder({
+            trackSlug: last.trackSlug,
+            lessonId: last.lessonId,
+          });
+        }
+        const cached = cacheHolderRef.current.get();
+        setTrackLesson({ trackSlug: last.trackSlug, lessonId: last.lessonId });
+        // Re-save idempotente: mantém o store consistente (a restauração É
+        // uma "abertura" — a próxima montagem restaura a mesma aula).
+        saveLastLesson(last.trackSlug, last.lessonId);
+        publishSession({ subject: last.lessonId, status: 'idle' });
+        setChat(cached ?? createTrackLessonState());
+        return loadLesson(last.trackSlug, last.lessonId);
       }
     }
     // StrictMode (dev): a 2ª passada vê o report já drenado — re-dispara o
@@ -617,6 +654,9 @@ export function LessonView(props: ViewProps): ReactElement {
     (slug: string): void => {
       if (!trackLesson) return;
       setTrackLesson({ trackSlug: trackLesson.trackSlug, lessonId: slug });
+      // ONDA1-NAV-UI: abrir uma aula anterior (pré-requisito) também atualiza
+      // a "última aula aberta" — voltar à aba Aula restaura ESTA aula.
+      saveLastLesson(trackLesson.trackSlug, slug);
       setChat(createTrackLessonState);
       setDoneMarked(false);
       setLoadError(null);
@@ -807,7 +847,13 @@ export function LessonView(props: ViewProps): ReactElement {
                       // Só mensagens NOVAS da sessão digitam (cache/seed
                       // antigo → completas e instantâneas).
                       isNew={newMessageIndicesRef.current.has(i)}
-                      streaming={streamingIds.has(i)}
+                      // ONDA1-NAV-UI (tps): a REVIEW do desafio DIGITA a 10
+                      // tokens/s (~40 chars/s — pedido do dono: "velocidade de
+                      // tokens por segundo seja de 10 ao escrever em IA
+                      // online (os desafios que já fizemos)"); as respostas
+                      // do tutor (message/reply — "respostas processadas por
+                      // IA pode ser livre") mantêm o default atual (~100 tps).
+                      tps={m.kind === 'review' ? 10 : undefined}
                       onRegenerate={m.kind === 'review' ? handleRegenerateFromBubble : undefined}
                       regenerateDisabled={busy}
                       onStreamStart={() => handleStreamStart(i)}

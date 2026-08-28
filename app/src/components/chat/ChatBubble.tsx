@@ -45,9 +45,10 @@
  * message/review (fundo claro — medido 8,69:1+, folga gigante).
  *
  * Streaming: mensagens NOVAS da sessão digitam via TypewriterText (o texto
- * COMPLETO fica no histórico; o corte é exibição). A review só habilita o
- * "Gerar novo desafio" após o FIM da digitação (REPLAN) — o botão fica
- * desabilitado enquanto `streaming`.
+ * COMPLETO fica no histórico; o corte é exibição). ONDA1-NAV-UI (ajuste
+ * registrado): o "Gerar novo desafio" da review NÃO espera mais o fim da
+ * digitação (a review a 10 tps levaria ~55s — pedido do dono); o gating é só
+ * o turno em voo (`regenerateDisabled`).
  */
 import ReactMarkdown from 'react-markdown';
 import { useTranslation } from 'react-i18next';
@@ -125,8 +126,10 @@ export interface ChatBubbleProps {
    * antigo) — o texto é DIGITADO no mount; false → completo instantâneo.
    */
   isNew: boolean;
-  /** true ENQUANTO o typewriter desta bolha está em andamento. */
-  streaming: boolean;
+  /** ONDA1-NAV-UI: tokens por segundo do typewriter desta bolha (undefined =
+   *  default do TypewriterText, ~100 tps — respostas do tutor "livres"). A
+   *  LessonView passa 10 para a review do desafio (pedido do dono). */
+  tps?: number;
   /** ONDA2 (error-flow): "Gerar novo desafio" DENTRO da bolha de review. */
   onRegenerate?: () => void;
   regenerateDisabled?: boolean;
@@ -138,7 +141,7 @@ export interface ChatBubbleProps {
 export function ChatBubble({
   message,
   isNew,
-  streaming,
+  tps,
   onRegenerate,
   regenerateDisabled,
   onStreamStart,
@@ -236,6 +239,7 @@ export function ChatBubble({
               <TypewriterText
                 text={message.content}
                 active={isNew}
+                tps={tps}
                 onStart={onStreamStart}
                 onDone={onStreamDone}
                 onTick={onStreamTick}
@@ -247,15 +251,20 @@ export function ChatBubble({
                 )}
               </TypewriterText>
               {/* ONDA2 (error-flow, A4): "Gerar novo desafio" DENTRO da bolha
-                  de erro. REPLAN: SÓ habilitado após o FIM da digitação da
-                  review (streaming=false) — além do turno em voo (busy). */}
+                  de erro. ONDA1-NAV-UI (ajuste REGISTRADO): o gating pelo FIM
+                  da digitação da review caiu — com a review a 10 tps (pedido
+                  do dono) o texto completo leva ~55s e o botão ficaria preso
+                  esse tempo todo. O gating que RESTA é o do turno em voo
+                  (busy/regenerateDisabled): a digitação é SÓ exibição (o
+                  histórico guarda o texto completo) — regenerar no meio
+                  desmonta a view (chat cacheado) sem perda. */}
               {isReview ? (
                 <Button
                   size="small"
                   variant="outlined"
                   color="secondary"
                   onClick={onRegenerate}
-                  disabled={regenerateDisabled || streaming}
+                  disabled={regenerateDisabled}
                   startIcon={<AutoAwesomeIcon />}
                   sx={{ mt: 1 }}
                 >

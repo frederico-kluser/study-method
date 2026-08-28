@@ -1,5 +1,7 @@
 /**
- * src/components/chat/TypewriterText.tsx — efeito "digitação" (~100 tokens/s).
+ * src/components/chat/TypewriterText.tsx — efeito "digitação" (~100 tokens/s
+ * default — "livre" para as respostas do tutor; a LessonView passa 10 tps
+ * para as REVIEWS de desafio, pedido do dono da onda1-nav-ui).
  *
  * ONDA2-imessage: TODA mensagem do assistente que ENTRA durante a sessão
  * (seção 'next', resposta 'answer', review seedada) é DIGITADA
@@ -15,8 +17,9 @@
  *   - cleanup do interval no desmonte (trocar de aba desmonta a view — nenhum
  *     timer vivo; o StrictMode do dev roda setup→cleanup→setup no mesmo
  *     fiber, o que reinicia a digitação na 2ª passada sem vazar o 1º timer);
- *   - `onStart`/`onDone` avisam a LessonView (indicador "digitando",
- *     auto-scroll e o gating do "Gerar novo desafio" da review); `onTick`
+ *   - `onStart`/`onDone` avisam a LessonView (indicador "digitando" e
+ *     auto-scroll — o gating do "Gerar novo desafio" da review passou a ser
+ *     só o turno em voo, ONDA1-NAV-UI); `onTick`
  *     chama a cada step para o auto-scroll acompanhar a digitação;
  *   - `children(partial)` recebe o trecho já digitado (o render — markdown —
  *     fica com o consumidor; a review usa ReactMarkdown sobre o partial).
@@ -42,7 +45,10 @@ export function TypewriterText({
    * componente (o estado interno `cut` congela em text.length ao concluir).
    */
   active: boolean;
-  /** tokens por segundo do efeito (default 100 — o contrato da Onda 1). */
+  /** tokens por segundo do efeito (default 100 — o contrato da Onda 1;
+   *  ONDA1-NAV-UI: a LessonView passa 10 para a review do desafio — "escrever
+   *  em IA online" a 10 tps; mensagens/replies do tutor seguem "livres" com o
+   *  default atual). */
   tps?: number;
   /** Avisa que a digitação COMEÇOU (indicador "digitando" + auto-scroll). */
   onStart?: () => void;

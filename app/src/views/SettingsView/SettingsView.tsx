@@ -13,6 +13,7 @@ import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
 import { KeysPanel } from './KeysPanel';
 import { LocalAiPanel } from './LocalAiPanel';
+import { ProgressPanel } from './ProgressPanel';
 
 export default function SettingsView(): ReactElement {
   const { t } = useTranslation();
@@ -46,6 +47,12 @@ export default function SettingsView(): ReactElement {
               </Typography>
               <LocalAiPanel />
             </section>
+
+            <Divider />
+
+            {/* ONDA1-NAV-UI (reset de progresso): apaga o AVANÇO do aluno com
+                confirmação — o currículo/configurações nunca são tocados. */}
+            <ProgressPanel />
           </Stack>
         </div>
       </Stack>

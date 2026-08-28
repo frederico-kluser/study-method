@@ -1093,6 +1093,35 @@ describe('study:mark-challenge-attempt (onda4-desafio-persistencia — nunca-rep
   });
 });
 
+describe('study:clear-progress (onda1-nav-ui — reset de progresso)', () => {
+  it('com repo → chama clearAllProgress e responde { ok:true }', async () => {
+    let called = 0;
+    const repo = {
+      clearAllProgress: async () => { called += 1; },
+    };
+    const { deps } = makeDeps({ repo: repo as unknown as Partial<LessonPersistenceLike> });
+    const handlers = buildStudyHandlers(deps);
+    const res = (await handlers.get(STUDY_CHANNELS.CLEAR_PROGRESS)!(undefined)) as { ok: boolean; error?: string };
+    assert.equal(res.ok, true);
+    assert.equal(called, 1, 'clearAllProgress do repo foi chamado exatamente 1x');
+  });
+
+  it('sem repo → { ok:false } gracioso (mesmo padrão dos canais de repo)', async () => {
+    const { deps } = makeDeps(); // sem repo
+    const handlers = buildStudyHandlers(deps);
+    const res = (await handlers.get(STUDY_CHANNELS.CLEAR_PROGRESS)!(undefined)) as { ok: boolean; error?: string };
+    assert.equal(res.ok, false);
+    assert.match(res.error ?? '', /repo ausente/);
+  });
+
+  it('repo sem clearAllProgress → { ok:false } gracioso (nunca inventa)', async () => {
+    const { deps } = makeDeps({ repo: {} as unknown as Partial<LessonPersistenceLike> });
+    const handlers = buildStudyHandlers(deps);
+    const res = (await handlers.get(STUDY_CHANNELS.CLEAR_PROGRESS)!(undefined)) as { ok: boolean; error?: string };
+    assert.equal(res.ok, false);
+  });
+});
+
 describe('study:list-challenges — nunca-repetir (onda4-desafio-persistencia)', () => {
   let dirNunca = '';
   before(async () => { dirNunca = await mkTempDir('study-handlers-nunca-'); });

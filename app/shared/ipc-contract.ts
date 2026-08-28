@@ -164,6 +164,10 @@ export const STUDY_CHANNELS = {
   // math 'math:<subjectSlug>:<family>:<seed>'. O handler resolve o subjectId
   // (explícito, ou por subjectSlug, ou upsert sob demanda) e grava a linha.
   MARK_CHALLENGE_ATTEMPT: 'study:mark-challenge-attempt',
+  // ADITIVO (onda1-nav-ui — reset de progresso na Settings): apaga TODAS as
+  // tabelas de AVANÇO do aluno (attempts, track lesson-done, proficiência,
+  // desafios gerados, contadores legados) — o conteúdo/currículo fica.
+  CLEAR_PROGRESS: 'study:clear-progress',
 } as const;
 
 // ─── DTOs de persistência (onda 3 — seleção de aulas) ─────────────────────────

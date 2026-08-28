@@ -47,6 +47,7 @@ import LockIcon from '@mui/icons-material/Lock';
 import PlayCircleIcon from '@mui/icons-material/PlayCircle';
 import WorkspacePremiumIcon from '@mui/icons-material/WorkspacePremium';
 import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 
 import { getApi } from '../../lib/apiBridge';
 import {
@@ -57,6 +58,7 @@ import {
 } from '../../lib/ipcTimeout';
 import { useChallengeNav } from '../../lib/challengeNav';
 import { drainPendingTrackSlug, setPendingTrackLesson } from '../../lib/pendingSubject';
+import { peekLastTrackSlug, setLastTrackSlug } from '../../lib/roadmapNav';
 import type { TrackDetailPayload, TrackLessonEntry, TrackModuleEntry } from '../../../shared/ipc-contract';
 import type { ViewProps } from '../placeholders';
 
@@ -271,12 +273,26 @@ export function RoadmapView(props: ViewProps): ReactElement {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Montagem: drena a trilha pendente (Home → Trilha) ou lista as disponíveis.
+  // Montagem: drena a trilha pendente (Home → Trilha) OU restaura a última
+  // trilha aberta (onda1-nav-ui — o histórico de navegação sobrevive à troca
+  // de aba via src/lib/roadmapNav.ts). Ordem: pendência nova > última aberta.
+  // O `setLastTrackSlug(pending)` no branch da pendência grava a trilha que
+  // ACABOU de ser aberta — a próxima montagem (voltar de Settings/Desafio)
+  // a restaura sem pendência. O peek NÃO é one-shot: no double-invoke do
+  // StrictMode (dev) cada passada re-restaura a MESMA trilha (idempotente —
+  // setSelected com o mesmo valor + loadTrack repetido convergem).
   useEffect(() => {
     const pending = drainPendingTrackSlug();
     if (pending) {
       setSelected(pending);
+      setLastTrackSlug(pending);
       loadTrack(pending);
+    } else {
+      const last = peekLastTrackSlug();
+      if (last) {
+        setSelected(last);
+        loadTrack(last);
+      }
     }
     loadTracks();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -290,6 +306,17 @@ export function RoadmapView(props: ViewProps): ReactElement {
     },
     [track, navigate],
   );
+
+  /** VOLTAR para a LISTA (onda1-nav-ui): zera o detalhe (selected + track),
+   *  o erro do carregamento e o roadmapNav — a próxima montagem volta a
+   *  abrir a lista, não este detalhe. Sem o setTrack(null), a lista E o
+   *  detalhe antigo renderizariam JUNTOS (o `track` persistia no estado). */
+  const goBackToList = useCallback((): void => {
+    setSelected(null);
+    setTrack(null);
+    setLoadError(null);
+    setLastTrackSlug(null);
+  }, []);
 
   /** Teste de proficiência → ChallengeView (fluxo track). */
   const openProficiency = useCallback((): void => {
@@ -331,7 +358,10 @@ export function RoadmapView(props: ViewProps): ReactElement {
  <Stack spacing={1}>
           {tracks.map((tr) => (
             <Card key={tr.slug} variant="outlined" sx={{ cursor: 'pointer' }} onClick={() => {
+              // ONDA1-NAV-UI: abrir uma trilha GRAVA no roadmapNav — a próxima
+              // montagem (voltar de outra aba) restaura o detalhe.
               setSelected(tr.slug);
+              setLastTrackSlug(tr.slug);
               loadTrack(tr.slug);
             }}>
               <CardContent>
@@ -360,21 +390,49 @@ export function RoadmapView(props: ViewProps): ReactElement {
       {loadError !== null ? (
         <Box sx={{ mt: 1 }}>
           <Alert severity="warning">{loadError}</Alert>
-          <Button
-            variant="outlined"
-            size="small"
-            onClick={() => (selected !== null ? loadTrack(selected) : loadTracks())}
-            sx={{ mt: 1 }}
-          >
-            {t('translation:common.tryAgain')}
-          </Button>
+          <Stack direction="row" spacing={1} sx={{ mt: 1 }}>
+            <Button
+              variant="outlined"
+              size="small"
+              onClick={() => (selected !== null ? loadTrack(selected) : loadTracks())}
+            >
+              {t('translation:common.tryAgain')}
+            </Button>
+            {/* ONDA1-NAV-UI: sem este VOLTAR, uma trilha que FALHOU ao carregar
+                (timeout/canal mudo) prenderia o usuário no detalhe quebrado —
+                o roadmapNav ainda aponta para ela e a próxima montagem a
+                restauraria de novo. Voltar zera o store e libera a lista. */}
+            {selected !== null ? (
+              <Button
+                variant="text"
+                size="small"
+                startIcon={<ArrowBackIcon fontSize="small" />}
+                onClick={goBackToList}
+              >
+                {t('translation:roadmap.backButton')}
+              </Button>
+            ) : null}
+          </Stack>
         </Box>
       ) : null}
 
       {track ? (
  <Stack spacing={2}>
-          {/* Cabeçalho da trilha. */}
+          {/* Cabeçalho da trilha: VOLTAR (onda1-nav-ui) + título. O botão fica
+              ACIMA do título, alinhado à esquerda (padrão lista→detalhe):
+              leva de volta à LISTA de trilhas e zera o roadmapNav (a próxima
+              montagem volta a abrir a lista, não este detalhe). */}
           <Box>
+            <Button
+              size="small"
+              variant="text"
+              startIcon={<ArrowBackIcon fontSize="small" />}
+              onClick={goBackToList}
+              aria-label={t('translation:roadmap.backButton')}
+              sx={{ mb: 0.5, px: 0, textTransform: 'none', minHeight: 0 }}
+            >
+              {t('translation:roadmap.backButton')}
+            </Button>
             <Typography variant="h4" component="h1" gutterBottom>
               {track.title}
             </Typography>

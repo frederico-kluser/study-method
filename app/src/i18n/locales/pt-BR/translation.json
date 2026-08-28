@@ -36,7 +36,18 @@
     "motion": {
       "label": "Movimento reduzido",
       "hint": "Segue a preferência do sistema. A informação nunca depende de animação."
-    }
+    },
+    "clearProgress": "Limpar todos os dados de avanço",
+    "clearProgressTitle": "Progresso",
+    "clearProgressDescription": "Apaga todo o seu avanço: aulas concluídas, tentativas de desafio, proficiência e desafios gerados. O conteúdo das trilhas, as configurações e as chaves não são apagados.",
+    "clearProgressConfirmTitle": "Limpar todos os dados de avanço?",
+    "clearProgressConfirmDescription": "Esta ação apaga de forma permanente todo o seu avanço no app (aulas concluídas, tentativas, proficiência e desafios gerados). Não é possível desfazer.",
+    "clearProgressConfirmNote": "O conteúdo das trilhas, as configurações e as chaves de API não são afetados.",
+    "clearProgressConfirmAction": "Limpar",
+    "clearProgressBusy": "Limpando…",
+    "clearProgressDone": "Dados de avanço apagados.",
+    "clearProgressError": "Não foi possível limpar os dados de avanço.",
+    "clearProgressTimeout": "O app não respondeu a tempo. Tente novamente."
   },
   "keys": {
     "deepseek": {
@@ -618,6 +629,7 @@
     "moduleChallenge": "Desafio do módulo",
     "moduleChallengeDone": "Concluído ✓",
     "moduleChallengeTried": "Tentado",
-    "listFailed": "Não foi possível carregar a lista de trilhas."
+    "listFailed": "Não foi possível carregar a lista de trilhas.",
+    "backButton": "Voltar"
   }
 }

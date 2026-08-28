@@ -465,3 +465,100 @@ describe('createLessonRepo — exercise_json (v3, onda4-desafio-persistencia)', 
     close();
   });
 });
+
+describe('createLessonRepo — clearAllProgress (onda1-nav-ui, reset de progresso)', () => {
+  it('apaga TODAS as tabelas de avanço e zera completed_at; conteúdo fica', async () => {
+    const { repo, db, close } = makeRepo();
+    // Conteúdo (currículo — NUNCA é apagado).
+    await repo.upsertSubject('Algoritmos');
+    const lessonId = await repo.createLesson({
+      subjectSlug: 'algoritmos',
+      title: 'Ordenação',
+      body: 'Bubble sort.',
+      challenge: {
+        slug: 'bubble-sort',
+        title: 'Bubble Sort',
+        language: 'python',
+        concept: 'sorting',
+        statement: 'Ordene.',
+        testCasesJson: '[]',
+        solutionJson: '{}',
+        hints: [{ position: 0, hintText: 'Compare pares.' }],
+      },
+    });
+    const subject = (await repo.listSubjects())[0];
+
+    // Avanço do aluno em TODAS as camadas.
+    await repo.markChallengeAttempt({
+      subjectId: subject.id,
+      lessonId,
+      challengeId: 'bubble-sort',
+      verdict: 'passed',
+      stars: 3,
+      durationMs: 1000,
+    });
+    await repo.markTrackLessonDone('nodejs-do-zero', 'aula-1');
+    await repo.setTrackProficiency('nodejs-do-zero', 'passed', 3);
+    await repo.insertGeneratedChallenge({
+      id: 'gen-1',
+      trackSlug: 'nodejs-do-zero',
+      lessonId: 'aula-1',
+      challengeId: 'dobro',
+      statement: 'st',
+      starterCode: 'sc',
+      testsCode: 'tc',
+      solutionCode: 'sol',
+      expectedTestCount: 1,
+      createdAt: '2026-08-28T00:00:00.000Z', // obrigatório no tipo (o INSERT usa now())
+    });
+    await repo.recordAnswer(lessonId, 'resposta do aluno');
+    await repo.markLessonCompleted(lessonId);
+    // O id REAL do desafio fundido (uuid) — consumeHint resolve por id, não por slug.
+    const challengeId = (db.prepare('SELECT id FROM challenges WHERE lesson_id = ?').get(lessonId) as { id: string }).id;
+    await repo.consumeHint(challengeId, 'Compare pares.');
+    await repo.recordHintBreak(lessonId, challengeId, 'lost-manual', 'não entendi');
+
+    // Sanidade: tudo PERSISTIDO antes do reset. A tentativa guarda o
+    // challengeId ENVIADO ('bubble-sort' — o slug; a coluna não é FK), então
+    // a consulta é pelo slug, não pelo uuid do desafio fundido.
+    assert.equal((await repo.getAttemptsForChallenge('bubble-sort')).length, 1);
+    assert.equal((await repo.listTrackLessonProgress('nodejs-do-zero')).length, 1);
+    assert.ok((await repo.getTrackProficiency('nodejs-do-zero')) !== null);
+    assert.equal((await repo.listGeneratedChallenges('nodejs-do-zero', 'aula-1')).length, 1);
+    assert.ok((await repo.getAnswerForLesson(lessonId)) !== null);
+    const rawBefore = db.prepare('SELECT completed_at FROM lessons WHERE id = ?').get(lessonId) as { completed_at: string | null };
+    assert.ok(rawBefore.completed_at !== null, 'completed_at marcado antes do reset');
+
+    // RESET.
+    await repo.clearAllProgress();
+
+    // Avanço zerado em TODAS as camadas.
+    assert.equal((await repo.getAttemptsForChallenge('bubble-sort')).length, 0, 'attempts apagadas');
+    assert.equal((await repo.listTrackLessonProgress('nodejs-do-zero')).length, 0, 'track lesson-done apagado');
+    assert.equal(await repo.getTrackProficiency('nodejs-do-zero'), null, 'proficiência apagada');
+    assert.equal((await repo.listGeneratedChallenges('nodejs-do-zero', 'aula-1')).length, 0, 'desafios gerados apagados');
+    assert.equal(await repo.getAnswerForLesson(lessonId), null, 'respostas apagadas');
+    assert.deepEqual(await repo.answeredTopicCount('algoritmos'), { answered: 0, hintConsumed: 0, becameChildren: 0 }, 'contadores legados zerados');
+    const rawAfter = db.prepare('SELECT completed_at FROM lessons WHERE id = ?').get(lessonId) as { completed_at: string | null };
+    assert.equal(rawAfter.completed_at, null, 'completed_at zerado');
+
+    // CONTEÚDO intacto (currículo + hints).
+    const found = await repo.getLessonById(lessonId);
+    assert.ok(found, 'lesson continua existindo');
+    assert.equal(found.lesson.title, 'Ordenação');
+    assert.equal(found.subjectSlug, 'algoritmos');
+    assert.deepEqual(found.challenge, { slug: 'bubble-sort', title: 'Bubble Sort' }, 'desafio fundido intacto');
+    assert.equal((await repo.getHintsForChallenge(challengeId)).length, 1, 'hints do desafio intactos');
+    assert.equal((await repo.listSubjects()).length, 1, 'subjects intactos');
+
+    // Idempotência: limpar de novo não lança (banco vazio de avanço).
+    await repo.clearAllProgress();
+    close();
+  });
+
+  it('clearAllProgress em banco SEM dados é no-op seguro (nunca lança)', async () => {
+    const { repo, close } = makeRepo();
+    await repo.clearAllProgress();
+    close();
+  });
+});

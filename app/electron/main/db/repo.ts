@@ -288,6 +288,16 @@ export interface LessonRepo {
    * nunca-repetir da regeneração. Único por slug, mais recente primeiro.
    */
   listFailedChallengeSlugs(trackSlug: string, lessonId: string): Promise<string[]>;
+  /**
+   * ONDA1-NAV-UI (reset de progresso): apaga TODAS as tabelas de AVANÇO do
+   * aluno — challenge_attempts, track_progress (lesson-done), track_proficiency,
+   * generated_challenges, progress (contadores do fluxo legado), lesson_answers,
+   * hint_break_events — e zera lessons.completed_at. NÃO apaga o CONTEÚDO
+   * (subjects/lessons/challenges/challenge_hints = currículo) nem
+   * configurações/chaves. Transacional (com withTransaction): ou limpa tudo,
+   * ou nada.
+   */
+  clearAllProgress(): Promise<void>;
 }
 
 /**
@@ -1011,6 +1021,28 @@ export function createLessonRepo(open: OpenFn): LessonRepo {
         )
         .all(subject.id, `lesson:${lessonId}`) as unknown as Array<{ slug: string }>;
       return rows.map((r) => r.slug);
+    },
+
+    // ─── ONDA1-NAV-UI (reset de progresso — Settings) ────────────────────────
+
+    async clearAllProgress() {
+      withTransaction(db, () => {
+        // AVANÇO do aluno (o pedido do dono: "limpar todos os dados de
+        // avanço"): tentativas de desafio, lições concluídas de trilha,
+        // proficiência, desafios REGENERADOS, contadores do fluxo legado
+        // (progress/lesson_answers/hint_break_events) e o marcador de
+        // conclusão das lessons. O CONTEÚDO (subjects/lessons/challenges/
+        // challenge_hints — o currículo) NUNCA é apagado; configurações e
+        // chaves vivem fora deste banco (settingsStore) e ficam intactas.
+        db.exec('DELETE FROM challenge_attempts');
+        db.exec('DELETE FROM track_progress');
+        db.exec('DELETE FROM track_proficiency');
+        db.exec('DELETE FROM generated_challenges');
+        db.exec('DELETE FROM progress');
+        db.exec('DELETE FROM lesson_answers');
+        db.exec('DELETE FROM hint_break_events');
+        db.exec('UPDATE lessons SET completed_at = NULL');
+      });
     },
   };
 }
