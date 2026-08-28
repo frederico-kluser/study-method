@@ -3,457 +3,1437 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>EXPLAINER Run 4 — Chat Nintendo e geração</title>
+<meta name="plannotator-theme" content="host">
+<title>EXPLAINER — O run.sh quebrou: conserto e verificação</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%235537eb'/%3E%3Cpath d='M18 34l10 10 18-20' fill='none' stroke='%23ffffff' stroke-width='6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
+  /* ============ TOKENS DE TEMA (Plannotator) ============ */
   :root {
-    --bg: #0b0e14;
-    --bg-soft: #11151f;
-    --card: #161b27;
-    --card-2: #1b2130;
-    --border: #2a3245;
-    --text: #e6e9f0;
-    --text-dim: #9aa3b5;
-    --accent: #a78bfa;
-    --accent-strong: #8b5cf6;
-    --accent-soft: rgba(139, 92, 246, 0.14);
-    --green: #4ade80;
-    --green-soft: rgba(74, 222, 128, 0.12);
-    --red: #f87171;
-    --yellow: #fbbf24;
-    --blue: #60a5fa;
-    --pixel-font: "Courier New", ui-monospace, SFMono-Regular, Menlo, monospace;
-    --display-font: "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
-    --body-font: "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
-  }
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  html { scroll-behavior: smooth; }
-  body {
-    background: var(--bg);
-    color: var(--text);
-    font-family: var(--body-font);
-    font-size: 17px;
-    line-height: 1.65;
-    padding: 0 0 60px;
-  }
-  .wrap { max-width: 960px; margin: 0 auto; padding: 0 24px; }
+    color-scheme: light dark;
 
-  /* ---------- Header ---------- */
-  header {
-    background: linear-gradient(160deg, #191330 0%, #0d1020 55%, #0b0e14 100%);
-    border-bottom: 2px solid var(--border);
-    padding: 48px 0 40px;
-    margin-bottom: 40px;
+    /* Surfaces */
+    --background: oklch(0.97 0.005 260);
+    --foreground: oklch(0.18 0.02 260);
+    --card: oklch(1 0 0);
+    --card-foreground: oklch(0.18 0.02 260);
+    --muted: oklch(0.92 0.01 260);
+    --muted-foreground: oklch(0.40 0.02 260);
+
+    /* Accents */
+    --primary: oklch(0.50 0.25 280);
+    --primary-foreground: oklch(1 0 0);
+    --secondary: oklch(0.50 0.18 180);
+    --accent: oklch(0.60 0.22 50);
+    --accent-foreground: oklch(0.18 0.02 260);
+
+    /* Semantic */
+    --destructive: oklch(0.50 0.25 25);
+    --success: oklch(0.45 0.20 150);
+    --warning: oklch(0.55 0.18 85);
+
+    /* Structure */
+    --border: oklch(0.88 0.01 260);
+    --code-bg: oklch(0.92 0.01 260);
+    --ring: oklch(0.50 0.25 280);
+    --radius: 0.625rem;
+
+    /* Typography */
+    --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+    --font-mono: 'JetBrains Mono', 'Fira Code', ui-monospace, monospace;
+    --font-display: ui-serif, Georgia, 'Times New Roman', serif;
   }
-  .run-tag {
-    font-family: var(--pixel-font);
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --background: oklch(0.15 0.02 260);
+      --foreground: oklch(0.90 0.01 260);
+      --card: oklch(0.22 0.02 260);
+      --card-foreground: oklch(0.90 0.01 260);
+      --muted: oklch(0.26 0.02 260);
+      --muted-foreground: oklch(0.72 0.02 260);
+      --primary: oklch(0.75 0.18 280);
+      --primary-foreground: oklch(0.15 0.02 260);
+      --accent: oklch(0.70 0.20 60);
+      --border: oklch(0.35 0.02 260);
+      --code-bg: oklch(0.26 0.02 260);
+      --destructive: oklch(0.65 0.20 25);
+      --success: oklch(0.72 0.17 150);
+      --warning: oklch(0.75 0.15 85);
+    }
+  }
+
+  /* ============ RESET + BASE ============ */
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background-color: var(--background);
+    color: var(--foreground);
+    font-family: var(--font-sans);
+    line-height: 1.65;
+    padding: 0 0 64px;
+  }
+
+  .container { max-width: 1000px; margin: 0 auto; padding: 0 28px; }
+
+  code, .mono { font-family: var(--font-mono); }
+
+  p code, li code, td code {
+    font-family: var(--font-mono);
+    font-size: 0.86em;
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 1px 5px;
+    overflow-wrap: break-word;
+  }
+
+  a { color: var(--primary); }
+  a:focus-visible, button:focus-visible, summary:focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+
+  /* ============ ANIMAÇÃO (discreta, respeita reduced-motion) ============ */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .animate { animation: fadeUp 0.35s ease-out both; animation-delay: calc(var(--i, 0) * 0.05s); }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-delay: 0ms !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+
+  /* ============ HEADER ============ */
+  header { padding: 56px 0 28px; }
+
+  .eyebrow {
+    font-family: var(--font-mono);
     font-size: 12px;
+    font-weight: 500;
     letter-spacing: 3px;
     text-transform: uppercase;
-    color: var(--accent);
-    margin-bottom: 12px;
+    color: var(--primary);
+    margin-bottom: 14px;
   }
+
   h1 {
-    font-size: 40px;
-    line-height: 1.15;
-    font-weight: 800;
+    font-family: var(--font-display);
+    font-size: 42px;
+    line-height: 1.12;
+    font-weight: 600;
+    letter-spacing: -0.5px;
+    text-wrap: balance;
     margin-bottom: 10px;
   }
-  h1 .hl { color: var(--accent); }
-  .subtitle { color: var(--text-dim); font-size: 18px; }
-  .meta-row { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 20px; }
+
+  .subtitle {
+    font-family: var(--font-mono);
+    font-size: 13px;
+    color: var(--muted-foreground);
+    margin-bottom: 20px;
+  }
+
+  .meta-row { display: flex; flex-wrap: wrap; gap: 8px; }
   .meta-pill {
     border: 1px solid var(--border);
     background: var(--card);
     border-radius: 999px;
-    padding: 5px 14px;
-    font-size: 13.5px;
-    color: var(--text-dim);
-    font-family: var(--pixel-font);
-    letter-spacing: 0.5px;
+    padding: 4px 12px;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--muted-foreground);
   }
-  .meta-pill strong { color: var(--text); font-weight: 600; }
+  .meta-pill strong { color: var(--foreground); font-weight: 600; }
 
-  /* ---------- Sections ---------- */
-  section { margin-bottom: 44px; }
-  h2 {
-    font-size: 26px;
-    font-weight: 700;
-    margin-bottom: 6px;
-    display: flex;
-    align-items: center;
+  /* ============ RESPOSTA (a primeira coisa visível responde o título) ============ */
+  .answer-card {
+    background: color-mix(in oklab, var(--primary) 5%, var(--card));
+    border: 1.5px solid var(--primary);
+    border-radius: var(--radius);
+    box-shadow: 0 4px 24px color-mix(in oklab, var(--primary) 10%, transparent);
+    padding: 24px 26px;
+    margin: 18px 0 10px;
+  }
+  .answer-card .lead { font-family: var(--font-display); font-size: 19px; line-height: 1.55; color: var(--card-foreground); }
+  .answer-card .lead strong { color: var(--primary); font-weight: 600; }
+
+  .reader-note {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--muted-foreground);
+    margin: 12px 2px 4px;
+  }
+  .reader-note strong { color: var(--foreground); }
+
+  /* ============ KPI CARDS ============ */
+  .kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
     gap: 12px;
+    margin: 18px 0 6px;
   }
-  h2 .num {
-    font-family: var(--pixel-font);
-    font-size: 14px;
-    color: var(--accent);
-    border: 1px solid var(--accent-strong);
-    background: var(--accent-soft);
-    border-radius: 8px;
-    padding: 3px 10px;
-    letter-spacing: 1px;
-    white-space: nowrap;
+  .kpi-card {
+    background: var(--card);
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px 16px;
+    min-width: 0;
   }
-  .lead { color: var(--text-dim); margin-bottom: 18px; font-size: 16px; }
-  h3 { font-size: 19px; font-weight: 700; margin: 26px 0 10px; }
+  .kpi-card .kpi-num {
+    font-family: var(--font-mono);
+    font-size: 24px;
+    font-weight: 600;
+    color: var(--primary);
+    font-variant-numeric: tabular-nums;
+    line-height: 1.2;
+    overflow-wrap: break-word;
+  }
+  .kpi-card .kpi-num .from { color: var(--destructive); text-decoration: line-through; }
+  .kpi-card .kpi-label { font-size: 12.5px; color: var(--muted-foreground); margin-top: 4px; }
 
-  .card {
+  /* ============ LEGENDA DOS DIAGRAMAS ============ */
+  .legend-note {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 18px;
+    font-family: var(--font-mono);
+    font-size: 11.5px;
+    color: var(--muted-foreground);
+    padding: 8px 2px 2px;
+    margin-bottom: 6px;
+  }
+  .legend-item { display: inline-flex; align-items: center; gap: 6px; }
+  .legend-swatch { width: 12px; height: 12px; border-radius: 3px; flex: none; }
+  .legend-swatch--red { background: #dc2626; }
+  .legend-swatch--green { background: #16a34a; }
+  .legend-swatch--purple { background: #5537eb; }
+  .legend-swatch--dash { background: transparent; border: 0; width: 22px; border-top: 2px dashed var(--muted-foreground); }
+
+  /* ============ SEÇÕES ============ */
+  section { margin: 44px 0 0; }
+
+  h2 {
+    font-family: var(--font-display);
+    font-size: 28px;
+    font-weight: 600;
+    letter-spacing: -0.3px;
+    text-wrap: balance;
+    margin-bottom: 14px;
+  }
+  .sec-num {
+    font-family: var(--font-mono);
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--primary);
+    margin-right: 10px;
+    vertical-align: 4px;
+  }
+
+  h3 { font-size: 17px; font-weight: 600; margin: 22px 0 8px; }
+
+  .prose { max-width: 68ch; }
+  .prose p { margin-bottom: 12px; }
+  .prose ul, .prose ol { margin: 0 0 14px 22px; }
+  .prose li { margin-bottom: 6px; }
+  .prose strong { font-weight: 600; }
+
+  .signal {
+    background: color-mix(in oklab, var(--warning) 8%, var(--card));
+    border: 1.5px solid color-mix(in oklab, var(--warning) 55%, transparent);
+    border-left: 4px solid var(--warning);
+    border-radius: var(--radius);
+    padding: 14px 18px;
+    margin: 16px 0;
+    font-size: 14.5px;
+    max-width: 72ch;
+  }
+  .signal strong { color: var(--foreground); }
+
+  .ve-card {
+    background: var(--card);
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius);
+    padding: 18px 20px;
+    margin: 16px 0;
+    max-width: 72ch;
+  }
+  .ve-card--recessed {
+    background: var(--muted);
+    border-color: transparent;
+  }
+
+  /* ============ FIGURAS (diagram-shell canônico) ============ */
+  .fig { margin: 26px 0 8px; }
+
+  .diagram-shell { position: relative; }
+  .diagram-shell__hint {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--muted-foreground);
+    margin-bottom: 8px;
+    opacity: 0.75;
+  }
+
+  .mermaid-wrap {
+    position: relative;
+    background: var(--card);
+    border: 1.5px solid var(--border);
+    border-radius: 12px;
+    padding: 30px 22px;
+    overflow: auto;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 380px;
+    cursor: grab;
+  }
+  .mermaid-wrap.is-panning { cursor: grabbing; user-select: none; }
+
+  .zoom-controls {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    display: flex;
+    gap: 2px;
+    z-index: 10;
     background: var(--card);
     border: 1px solid var(--border);
-    border-radius: 16px;
-    padding: 22px 24px;
-    margin-bottom: 16px;
+    border-radius: 6px;
+    padding: 2px;
   }
-  .card.soft { background: var(--bg-soft); }
-
-  /* ---------- Request list ---------- */
-  ol.reqs { list-style: none; counter-reset: req; }
-  ol.reqs li {
-    counter-increment: req;
-    position: relative;
-    padding: 10px 0 10px 46px;
-    border-bottom: 1px dashed var(--border);
-  }
-  ol.reqs li:last-child { border-bottom: none; }
-  ol.reqs li::before {
-    content: counter(req);
-    position: absolute;
-    left: 0;
-    top: 12px;
-    width: 30px;
-    height: 30px;
+  .zoom-controls button {
+    width: 28px;
+    height: 28px;
+    border: none;
+    background: transparent;
+    color: var(--muted-foreground);
+    font-family: var(--font-mono);
+    font-size: 14px;
+    cursor: pointer;
+    border-radius: 4px;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-family: var(--pixel-font);
-    font-size: 13px;
-    font-weight: 700;
-    color: var(--accent);
-    background: var(--accent-soft);
-    border: 1px solid var(--accent-strong);
-    border-radius: 9px;
+    transition: background 0.15s ease, color 0.15s ease;
   }
-  ol.reqs strong { color: var(--text); }
+  .zoom-controls button:hover { background: var(--muted); color: var(--foreground); }
 
-  /* ---------- Waves ---------- */
-  .wave {
-    background: var(--card);
-    border: 1px solid var(--border);
-    border-radius: 16px;
-    overflow: hidden;
-    margin-bottom: 20px;
-  }
-  .wave-head {
-    padding: 16px 24px;
-    border-bottom: 1px solid var(--border);
-    background: var(--card-2);
-    display: flex;
-    flex-wrap: wrap;
-    align-items: baseline;
-    gap: 10px;
-    cursor: pointer;
-    user-select: none;
-  }
-  .wave-head:hover { background: #202840; }
-  .wave-num {
-    font-family: var(--pixel-font);
-    font-size: 12px;
-    letter-spacing: 2px;
-    text-transform: uppercase;
-    color: var(--accent);
-    background: var(--accent-soft);
-    border: 1px solid var(--accent-strong);
-    border-radius: 8px;
-    padding: 3px 9px;
-  }
-  .wave-name { font-size: 18px; font-weight: 700; }
-  .wave-commit {
-    font-family: var(--pixel-font);
-    font-size: 12.5px;
-    color: var(--text-dim);
-    background: var(--bg);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 3px 10px;
-    margin-left: auto;
-  }
-  .wave-body { padding: 18px 24px 20px; }
-  .wave-body ul { list-style: none; }
-  .wave-body li {
-    padding: 7px 0 7px 26px;
+  .mermaid-viewport {
     position: relative;
-    color: #cdd3e0;
+    overflow: hidden;
+    width: 100%;
+    height: 100%;
+    min-height: 300px;
   }
-  .wave-body li::before {
-    content: "▸";
-    position: absolute;
-    left: 4px;
-    color: var(--accent);
-    font-size: 14px;
-    top: 9px;
-  }
-  .wave-body li b { color: var(--text); }
-  .wave-body .extra { color: var(--text-dim); font-size: 14.5px; margin-top: 10px; padding-left: 26px; }
-  details.wave summary { list-style: none; }
-  details.wave summary::-webkit-details-marker { display: none; }
-  details.wave[open] .wave-head { border-bottom-color: var(--border); }
+  .mermaid-canvas { position: absolute; top: 0; left: 0; }
 
-  /* ---------- Verification ---------- */
-  .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-bottom: 20px; }
-  .stat {
-    background: var(--card);
-    border: 1px solid var(--border);
-    border-radius: 14px;
-    padding: 16px;
-    text-align: center;
-  }
-  .stat .v { font-size: 30px; font-weight: 800; font-family: var(--pixel-font); }
-  .stat .l { font-size: 13px; color: var(--text-dim); margin-top: 4px; letter-spacing: 0.4px; }
-  .stat.green .v { color: var(--green); }
-  .stat.purple .v { color: var(--accent); }
-  .stat.red .v { color: var(--red); }
-
-  table { width: 100%; border-collapse: collapse; font-size: 15px; margin: 12px 0; }
-  th, td { text-align: left; padding: 10px 14px; border: 1px solid var(--border); vertical-align: top; }
-  th { background: var(--card-2); font-size: 13px; letter-spacing: 0.6px; text-transform: uppercase; color: var(--text-dim); }
-  tr:nth-child(even) td { background: rgba(255,255,255,0.015); }
-  .tag { font-size: 12px; font-weight: 700; padding: 2px 9px; border-radius: 999px; letter-spacing: 0.5px; white-space: nowrap; }
-  .tag.alto { color: var(--red); background: rgba(248,113,113,0.12); border: 1px solid rgba(248,113,113,0.4); }
-  .tag.medio { color: var(--yellow); background: rgba(251,191,36,0.12); border: 1px solid rgba(251,191,36,0.4); }
-  .tag.baixo { color: var(--blue); background: rgba(96,165,250,0.12); border: 1px solid rgba(96,165,250,0.4); }
-  .tag.ok { color: var(--green); background: var(--green-soft); border: 1px solid rgba(74,222,128,0.4); }
-
-  /* ---------- Environment note ---------- */
-  .env-note {
-    background: var(--green-soft);
-    border: 1px solid rgba(74,222,128,0.35);
-    border-radius: 14px;
-    padding: 18px 22px;
-    font-size: 15.5px;
-  }
-  .env-note b { color: var(--green); }
-  code {
-    font-family: var(--pixel-font);
-    font-size: 0.88em;
-    background: var(--bg);
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    padding: 1px 7px;
-    color: var(--accent);
+  .zoom-label {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--muted-foreground);
+    padding: 0 6px;
+    white-space: nowrap;
   }
 
-  /* ---------- Footer ---------- */
-  footer {
-    margin-top: 50px;
-    padding-top: 20px;
-    border-top: 1px solid var(--border);
-    color: var(--text-dim);
+  .mermaid .nodeLabel { font-family: var(--font-sans) !important; font-size: 15px !important; }
+  .mermaid .edgeLabel { font-family: var(--font-mono) !important; font-size: 12px !important; }
+  .mermaid .node rect,
+  .mermaid .node circle,
+  .mermaid .node polygon { stroke-width: 1.5px !important; }
+
+  /* O Mermaid deriva color de primaryTextColor (branca no tema claro) e aplica
+     em "#id .label span" — rótulos de aresta ficariam brancos no fundo claro.
+     Este override re-fixa a cor do rótulo de aresta por paleta. */
+  :root { --mermaid-edge-label: #414853; }
+  @media (prefers-color-scheme: dark) { :root { --mermaid-edge-label: #dadee5; } }
+  .diagram-shell .mermaid-canvas g.edgeLabel,
+  .diagram-shell .mermaid-canvas g.edgeLabel div,
+  .diagram-shell .mermaid-canvas g.edgeLabel p,
+  .diagram-shell .mermaid-canvas g.edgeLabel span {
+    color: var(--mermaid-edge-label) !important;
+  }
+  .diagram-shell .mermaid-canvas g.edgeLabel span { fill: var(--mermaid-edge-label) !important; }
+
+  .fig figcaption {
     font-size: 13.5px;
-    text-align: center;
-    font-family: var(--pixel-font);
-    letter-spacing: 0.5px;
+    color: var(--muted-foreground);
+    margin-top: 10px;
+    padding-left: 12px;
+    border-left: 3px solid var(--primary);
+    max-width: 72ch;
+  }
+  .fig figcaption strong { color: var(--foreground); font-weight: 600; }
+
+  /* ============ ANDAIME DOBRADO (<details>) ============ */
+  details { margin: 14px 0; max-width: 72ch; }
+  details > summary {
+    cursor: pointer;
+    font-family: var(--font-mono);
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--primary);
+    list-style-position: outside;
+    margin-left: 2px;
+  }
+  details > summary:hover { text-decoration: underline; }
+  .details-body {
+    margin-top: 12px;
+    padding: 16px 18px;
+    background: var(--muted);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    font-size: 14px;
+  }
+  .details-body p { margin-bottom: 10px; }
+  .details-body ul { margin: 0 0 8px 20px; }
+  .details-body li { margin-bottom: 5px; }
+
+  /* ============ CÓDIGO ============ */
+  .code-block {
+    background: var(--code-bg);
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius);
+    font-family: var(--font-mono);
+    font-size: 12.5px;
+    line-height: 1.6;
+    color: var(--foreground);
+    padding: 14px 16px;
+    overflow-x: auto;
+    margin: 10px 0;
+  }
+  .code-block .kw  { color: var(--primary); }
+  .code-block .fn  { color: var(--accent); }
+  .code-block .str { color: var(--success); }
+  .code-block .cm  { color: var(--muted-foreground); font-style: italic; }
+  .note { font-size: 12px; color: var(--muted-foreground); font-style: italic; }
+
+  /* ============ TIMELINE (como a execução se organizou) ============ */
+  .timeline { position: relative; padding-left: 30px; margin: 20px 0 6px; max-width: 72ch; }
+  .timeline::before {
+    content: '';
+    position: absolute;
+    left: 9px; top: 6px; bottom: 6px;
+    width: 2px;
+    background: var(--border);
+  }
+  .tl-item { position: relative; margin-bottom: 20px; }
+  .tl-item::before {
+    content: '';
+    position: absolute;
+    left: -27px; top: 5px;
+    width: 12px; height: 12px;
+    border-radius: 50%;
+    background: var(--primary);
+    border: 2px solid var(--card);
+  }
+  .tl-item h4 { font-size: 14.5px; font-weight: 600; margin-bottom: 3px; }
+  .tl-item .tl-meta { font-family: var(--font-mono); font-size: 11.5px; color: var(--muted-foreground); margin-bottom: 4px; }
+  .tl-item p { font-size: 13.5px; color: var(--muted-foreground); }
+
+  /* ============ TABELA (glossário) ============ */
+  .table-wrap {
+    overflow-x: auto;
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius);
+    margin: 14px 0;
+  }
+  table { width: 100%; border-collapse: collapse; font-size: 13.5px; min-width: 520px; }
+  th, td { text-align: left; padding: 8px 12px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  tr:last-child th, tr:last-child td { border-bottom: none; }
+  th {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--muted-foreground);
+    background: var(--muted);
+  }
+  td code { background: transparent; border: none; padding: 0; color: var(--primary); }
+
+  /* ============ FOOTER ============ */
+  footer {
+    margin-top: 56px;
+    padding-top: 18px;
+    border-top: 1px solid var(--border);
+    font-size: 12.5px;
+    color: var(--muted-foreground);
+    max-width: 72ch;
   }
 
-  @media (max-width: 640px) {
-    body { font-size: 16px; }
-    h1 { font-size: 30px; }
-    .wave-commit { margin-left: 0; }
-    .stats { grid-template-columns: repeat(2, 1fr); }
+  /* ============ RESPONSIVE ============ */
+  @media (max-width: 768px) {
+    .container { padding: 0 16px; }
+    h1 { font-size: 28px; }
+    h2 { font-size: 22px; }
+    .mermaid-wrap { padding: 24px 12px; }
   }
 </style>
 </head>
 <body>
 
-<header>
-  <div class="wrap">
-    <div class="run-tag">Run 4 &middot; deep-orchestrator</div>
-    <h1>EXPLAINER &mdash; <span class="hl">Run 4: chat estilo Nintendo + UX da geração</span></h1>
-    <p class="subtitle">O que foi pedido, o que foi entregue (3 ondas) e como foi verificado &mdash; em linguagem simples.</p>
+<div class="container">
+
+  <!-- ================= HEADER ================= -->
+  <header class="animate" style="--i:0">
+    <p class="eyebrow">Explainer didático · Execução 2026-08-28 · study-method</p>
+    <h1>O run.sh do study-method quebrou. Aqui está o que quebrou, como foi consertado e como se provou que ficou bom.</h1>
+    <p class="subtitle">branch main · commits 6538714 (ONDA 1) e da220ca (testes) · 8 arquivos · +12/−23 · app Electron + React</p>
     <div class="meta-row">
-      <span class="meta-pill">Data: <strong>2026-08-28</strong></span>
-      <span class="meta-pill">Branch: <strong>main</strong></span>
-      <span class="meta-pill">App: <strong>Electron + React/MUI</strong></span>
-      <span class="meta-pill">Trilha: <strong>nodejs-do-zero &middot; 136 desafios</strong></span>
+      <span class="meta-pill">sintoma 1: <strong>dev server com erro fatal</strong></span>
+      <span class="meta-pill">sintoma 2: <strong>7 avisos no build</strong></span>
+      <span class="meta-pill">conserto: <strong>npm ci + imports estáticos</strong></span>
+      <span class="meta-pill">verificação: <strong>1937 testes · gate verde</strong></span>
+    </div>
+  </header>
+
+  <!-- ================= RESPOSTA EM UMA FRASE ================= -->
+  <section class="answer-card animate" style="--i:1">
+    <p class="lead">
+      O <strong>run.sh</strong> (o script que sobe o app de uma vez: dev server + build) voltou a funcionar.
+      Dois problemas foram consertados: faltavam dependências no <strong>node_modules</strong> (a pasta onde
+      ficam as bibliotecas instaladas) — declaradas no <strong>package.json</strong> (o manifesto que declara
+      as dependências do projeto) desde o commit f5f2c7f, mas nunca instaladas neste checkout — e o
+      <strong>build do main</strong> (a geração dos arquivos finais do app) reclamava de 22
+      <strong>imports dinâmicos</strong> (declarações que trazem um módulo de outro arquivo, carregadas só quando
+      o código as chama). O conserto: <strong>npm ci</strong> (instalar seguindo o lockfile — o registro com as
+      versões exatas de cada dependência) e 22 trocas para <strong>import estático</strong> (declarado no topo,
+      resolvido pelo empacotador no build). Resultado: o <strong>dev server</strong> (o servidor local que
+      recarrega o app enquanto se programa) sobe sem erro fatal; o build do main vai de 7 avisos para 0; e o
+      <strong>gate</strong> (a checagem que bloqueia a integração se qualquer passo falhar) fecha verde com
+      25 testes novos — 1937 no total.
+    </p>
+  </section>
+
+  <div class="kpi-grid animate" style="--i:2">
+    <div class="kpi-card">
+      <div class="kpi-num"><span class="from">7</span> → 0</div>
+      <div class="kpi-label">avisos do build do main (objetivo atingido)</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-num">22 sites · 8 arquivos</div>
+      <div class="kpi-label">de import() dinâmico para import estático · 7 módulos · +12/−23 linhas</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-num">25 testes novos</div>
+      <div class="kpi-label">17 no embeddedLlmService · 8 no e2eStubs</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-num">1937 testes</div>
+      <div class="kpi-label">1935 pass · 2 skipped pré-existentes · gate VERDE</div>
     </div>
   </div>
-</header>
 
-<main class="wrap">
+  <p class="reader-note">
+    Leitor assumido: <strong>misto</strong> — tratado como novato no ferramental (Electron, empacotadores,
+    testes), com caixas &ldquo;Aprofundar&rdquo; (dobradas) para quem já domina pular.
+  </p>
 
-  <!-- ============ 1. O que o dono pediu ============ -->
+  <div class="legend-note">
+    <span class="legend-item"><span class="legend-swatch legend-swatch--red"></span> onde o app quebra</span>
+    <span class="legend-item"><span class="legend-swatch legend-swatch--green"></span> resultado verificado</span>
+    <span class="legend-item"><span class="legend-swatch legend-swatch--purple"></span> a área que foi mexida</span>
+    <span class="legend-item"><span class="legend-swatch legend-swatch--dash"></span> o conserto (o que mudou)</span>
+  </div>
+
+  <!-- ================= SEÇÃO 01 ================= -->
   <section>
-    <h2><span class="num">1</span> O que você pediu</h2>
-    <p class="lead">Dez pedidos, em linguagem simples &mdash; todos foram atendidos nesta execução:</p>
-    <div class="card">
-      <ol class="reqs">
-        <li><strong>Erro instantâneo:</strong> o erro de execução deve aparecer de uma vez só, sem ficar "digitando" na tela.</li>
-        <li><strong>Área de escrita até fullhd:</strong> a coluna do chat ficou maior (antes 760px), com limite de 1920px &mdash; uma tela fullhd de largura; além disso não estica.</li>
-        <li><strong>Modal animado de etapas:</strong> o botão "Gerar novo desafio" abre um modal animado mostrando as etapas do processo.</li>
-        <li><strong>Novo desafio no topo:</strong> o desafio gerado entra acima do primeiro desafio visível, ao terminar.</li>
-        <li><strong>Padding de botões:</strong> botões com ícone + texto pararam de ficar grudados (falta de espaçamento lateral).</li>
-        <li><strong>Geração que não se perde:</strong> o processo de geração continua mesmo se você navegar para outra aba.</li>
-        <li><strong>Tutor sempre à esquerda com ícone:</strong> o balão roxo de resposta estava à direita, fora do padrão dos outros balões.</li>
-        <li><strong>Chat animado estilo Nintendo:</strong> mais divertido e animado &mdash; pesquisar a fundo no projeto irmão leet-code-rpg.</li>
-        <li><strong>Fonte melhor e textos maiores:</strong> a fonte da app não estava boa de ler.</li>
-        <li><strong>Copiar fontes e estilo do leet-code-rpg:</strong> o visual deveria ficar com mais cara de jogo.</li>
-      </ol>
-    </div>
-  </section>
+    <h2><span class="sec-num">01</span>O cenário: um app em três camadas, uma só mexida</h2>
 
-  <!-- ============ 2. O que foi entregue ============ -->
-  <section>
-    <h2><span class="num">2</span> O que foi entregue, por onda</h2>
-    <p class="lead">Três ondas de trabalho, cada uma integrada à main via squash commit com gate (build + teste + lint) verde. Clique no cabeçalho de cada onda para abrir/fechar os detalhes.</p>
-
-    <!-- Onda 2 -->
-    <details class="wave" open>
-      <summary>
-        <div class="wave-head">
-          <span class="wave-num">Onda 2</span>
-          <span class="wave-name">Chat estilo Nintendo</span>
-          <span class="wave-commit">d01b34d</span>
-        </div>
-      </summary>
-      <div class="wave-body">
-        <ul>
-          <li><b>Tutor sempre à esquerda com ícone.</b> A resposta roxa saía da direita, fora do padrão &mdash; agora é um balão do tutor com avatar (ícone AutoStories + nome "Tutor"), mantendo o roxo de identidade, largura máxima de 78% e canto quebrado no lado do avatar.</li>
-          <li><b>Erro de execução INSTANTÂNEO.</b> A mensagem de erro aparece de uma vez só, sem digitação (prop <code>instant</code> no TypewriterText); apenas a review aprovada segue digitando a 10 tps &mdash; bônus: o teste e2e da resposta caiu de 4,3s para 2,7s.</li>
-          <li><b>Coluna do chat até fullhd.</b> Cresceu de 760px para até 1920px (<code>min(1920px, 100%)</code>), com painel de mensagens de 1000px centralizado e lista/input aproveitando a largura maior.</li>
-          <li><b>Animações motion estilo Nintendo.</b> Balões entram suavemente (só mensagens novas, via AnimatePresence); dots de "digitando" pulsando em sequência (PulseDot, igual ao leet-code-rpg); hover levanta o balão e press encolhe (scale 0.98); auto-scroll suave só quando você está no fim; glow de sucesso ao concluir um desafio.</li>
-        </ul>
-        <p class="extra">Também nesta onda: fix de overflow do balão (maxWidth 100%) &mdash; texto longo não vaza mais.</p>
-      </div>
-    </details>
-
-    <!-- Onda 1 -->
-    <details class="wave">
-      <summary>
-        <div class="wave-head">
-          <span class="wave-num">Onda 1</span>
-          <span class="wave-name">Fundações de jogo (fonts &amp; theme)</span>
-          <span class="wave-commit">f5f2c7f</span>
-        </div>
-      </summary>
-      <div class="wave-body">
-        <ul>
-          <li><b>Fontes do leet-code-rpg.</b> Chakra Petch nos títulos (400/600/700) + Press Start 2P como acento pixel &mdash; todas LOCAIS via <code>@fontsource</code>, funcionam offline (CSP <code>font-src 'self'</code>; zero referências a Google Fonts no build). Nunito foi removida.</li>
-          <li><b>Textos maiores.</b> Corpo em 18px com escala 1.28: h1 com 62px, h2 48, h3 38, h4 29, h5 23, h6 18, corpo 18, caption 14, button 18 &mdash; e uma nova variante "pixel" (12px, maiúsculas) para acentos.</li>
-          <li><b>Estilo de jogo no tema.</b> Bordas de 2px, cantos de 16px, sombras coloridas nos 6 botões "contained" (color-mix), cards com border 2px + radius 16, chips de 2px, scrollbar 12px colorida, labels de sessão em fonte pixel e tiles da trilha com borda de 2px.</li>
-          <li><b>Motion base.</b> motion 13.1.1 + <code>animationTokens.ts</code>: springs compartilhados (window/playful/gentle/snappy) e variants (fadeInUp/scaleIn) &mdash; contrato unificado com a onda 2 (conflito add/add resolvido).</li>
-          <li><b>Botões com ícone sem grude.</b> Padding lateral restaurado (small 12 / medium 16 / large 22) + gap do ícone (startIcon marginRight 10) &mdash; Voltar e EvolutionTree ajustados.</li>
-        </ul>
-      </div>
-    </details>
-
-    <!-- Onda 3 -->
-    <details class="wave">
-      <summary>
-        <div class="wave-head">
-          <span class="wave-num">Onda 3</span>
-          <span class="wave-name">Fluxo de geração (modal + anti-corrida)</span>
-          <span class="wave-commit">201f9e7</span>
-        </div>
-      </summary>
-      <div class="wave-body">
-        <ul>
-          <li><b>Modal animado com 5 etapas reais.</b> "Gerar novo desafio" abre um modal com 5 etapas: <i>pensando no desafio &rarr; testes &rarr; coerência com o que você aprendeu &rarr; execução &rarr; adicionando ao topo</i>. O progresso vem de <b>eventos reais</b> do processo principal (canal de progresso no Electron), não de estimativas. A etapa ativa pulsa; a concluída ganha check animado; concluído com glow + botão "Ver desafio"; erro com botão Fechar.</li>
-          <li><b>Novo desafio no TOPO.</b> A lista ordena por <code>created_at DESC</code> + <code>id DESC</code>, com os recém-gerados vindo primeiro &mdash; o desafio novo aparece acima do primeiro desafio visível.</li>
-          <li><b>Geração que não se perde ao trocar de aba.</b> Estado global (store module-level) + modal montado no shell da app + listener sempre ativo: navegar para outra aba não interrompe nada; a lista é re-buscada sozinha quando você volta.</li>
-          <li><b>Anti-corrida entre processos.</b> Cada geração recebe um <code>generationId</code> ecoado em todos os eventos &mdash; um terminal atrasado de uma geração antiga nunca sequestra a geração nova. try/catch cobre qualquer exceção (fs/tmp/spawn) com terminal de erro honesto.</li>
-          <li><b>Cancelar/Esc.</b> Dá para cancelar a geração em andamento (botão Cancelar, tecla Esc ou clique no backdrop).</li>
-          <li><b>Conclusão com navegação real.</b> "Ver desafio" navega pelo target real (<code>lesson</code> | <code>proficiency</code>) &mdash; a navegação automática foi removida de propósito, decisão documentada.</li>
-        </ul>
-        <p class="extra">Interface traduzida (pt/en); regenerador e validador continuam funções puras &mdash; a "sujeira" de eventos ficou no fio de comunicação, não no domínio.</p>
-      </div>
-    </details>
-  </section>
-
-  <!-- ============ 3. Verificação ============ -->
-  <section>
-    <h2><span class="num">3</span> Verificação</h2>
-    <p class="lead">Números finais da execução e como cada onda passou pelo portão de integração.</p>
-
-    <div class="stats">
-      <div class="stat green"><div class="v">1911</div><div class="l">testes passando</div></div>
-      <div class="stat purple"><div class="v">1912</div><div class="l">testes no total</div></div>
-      <div class="stat red"><div class="v">0</div><div class="l">falhas</div></div>
-      <div class="stat"><div class="v">1</div><div class="l">skip pré-existente</div></div>
-      <div class="stat green"><div class="v">28</div><div class="l">e2e passando</div></div>
-      <div class="stat"><div class="v">3</div><div class="l">e2e skips (chaves de API)</div></div>
-    </div>
-
-    <div class="card soft">
-      <h3>Portões e revisões</h3>
-      <ul style="list-style:none; padding-left:0;">
-        <li style="padding:5px 0 5px 26px; position:relative;">▸ <b>Gates por onda:</b> cada integração (snapshots <code>int-ondaN-*</code>) passou por <b>build + teste + lint verdes</b> antes do squash merge em main.</li>
-        <li style="padding:5px 0 5px 26px; position:relative;">▸ <b>Revisão adversarial das ondas 1+2:</b> conflito add/add no <code>animationTokens.ts</code> resolvido com contrato unificado de springs/variants.</li>
-        <li style="padding:5px 0 5px 26px; position:relative;">▸ <b>Revisão adversarial da onda 3:</b> 2 achados ALTO + 2 MÉDIO + 3 BAIXO &mdash; <b>todos corrigidos com testes dedicados</b> (5252c4d &rarr; 201f9e7).</li>
+    <div class="prose">
+      <p>
+        O study-method é um app de estudo desktop feito com Electron + React. Um app Electron é dividido em
+        três camadas que só funcionam juntas:
+      </p>
+      <ul>
+        <li><strong>processo main</strong> (o backend do app: teclado, voz, busca, IA local) — é onde roda o trabalho pesado;</li>
+        <li><strong>preload</strong> (camada fina que entrega dados do main ao renderer com segurança) — a ponte;</li>
+        <li><strong>renderer</strong> (a janela com a UI React) — o que aparece na tela.</li>
       </ul>
+      <p>
+        Esta execução mexeu em <strong>um único lugar</strong>: o processo main. Preload e renderer ficaram
+        intactos.
+      </p>
+    </div>
 
+    <figure class="fig">
+      <div class="diagram-shell" role="img" aria-label="O app tem três camadas — main, preload e renderer — e a ONDA 1 tocou apenas a do processo main.">
+        <p class="diagram-shell__hint">Ctrl/Cmd + rolagem: zoom · arrastar: mover · duplo clique: ajustar · &#x26F6;: abrir em tamanho real</p>
+        <div class="mermaid-wrap">
+          <div class="zoom-controls">
+            <button type="button" data-action="zoom-in" title="Aproximar">+</button>
+            <button type="button" data-action="zoom-out" title="Afastar">&minus;</button>
+            <button type="button" data-action="zoom-fit" title="Ajustar à tela">&#8634;</button>
+            <button type="button" data-action="zoom-one" title="Zoom 1:1">1:1</button>
+            <button type="button" data-action="zoom-expand" title="Abrir em tamanho real">&#x26F6;</button>
+            <span class="zoom-label">Carregando…</span>
+          </div>
+          <div class="mermaid-viewport">
+            <div class="mermaid mermaid-canvas"></div>
+          </div>
+        </div>
+        <script type="text/plain" class="diagram-source">
+          flowchart TD
+            classDef touched fill:#5537eb,stroke:#5537eb,color:#ffffff,stroke-width:2px
+            A["run.sh"] -->|"sobe o dev server<br/>e o build"| B["processo main<br/>backend do app"]
+            B -->|"altera só estes<br/>na ONDA 1"| C["keys-handlers · localTts-handlers<br/>startup-handlers · braveSearchService<br/>piAuthBridge · e2eStubs<br/>EmbeddedLlmService · localAi-handlers"]
+            B -->|"entrega dados via"| D["preload"]
+            D -->|"expõe com segurança<br/>à"| E["renderer<br/>UI React"]
+            class C touched
+        </script>
+      </div>
+      <figcaption><strong>Afirmação:</strong> o app tem três camadas — main, preload e renderer — e a ONDA 1 tocou apenas a do processo main.</figcaption>
+    </figure>
+
+    <details>
+      <summary>Aprofundar: por que um app desktop tem três camadas?</summary>
+      <div class="details-body">
+        <p>Pense num restaurante: a <strong>cozinha</strong> é o processo main (prepara tudo: banco de dados,
+        arquivos, serviços do sistema), o <strong>salão</strong> é o renderer (a UI que a pessoa vê) e o
+        <strong>garçom</strong> é o preload (leva o pedido do salão à cozinha e traz o prato de volta — sem
+        deixar o cliente entrar na cozinha). Essa separação existe por segurança: o renderer é o que recebe
+        conteúdo de fora, e o preload controla o que ele consegue pedir.</p>
+      </div>
+    </details>
+  </section>
+
+  <!-- ================= SEÇÃO 02 ================= -->
+  <section>
+    <h2><span class="sec-num">02</span>Sintoma 1: o dev server morria no primeiro import</h2>
+
+    <div class="prose">
+      <p>
+        O run.sh começa subindo o <strong>dev server</strong> — o <strong>vite</strong> (o dev server e o
+        empacotador do frontend). Ao iniciar, o vite precisa <em>resolver os imports</em> — as declarações que
+        trazem um módulo de outro arquivo para o código — de duas dependências: <code>@fontsource/chakra-petch/400.css</code>
+        e <code>motion/react</code>. O <code>package.json</code> as declara desde o commit f5f2c7f, mas o
+        <code>node_modules</code> deste checkout não as tinha: <strong>ninguém tinha rodado a instalação</strong>.
+      </p>
+      <div class="signal">
+        <strong>O ponto exato da quebra:</strong> o nó vermelho da figura — o <code>node_modules</code>
+        desatualizado. O dev server <em>não instala nada sozinho</em>: ele só procura, não acha e aborta com
+        o erro fatal <code>Failed to resolve import</code>.
+      </div>
+    </div>
+
+    <figure class="fig">
+      <div class="diagram-shell" role="img" aria-label="O dev server abortava antes de abrir o app: as dependências declaradas no package.json nunca foram instaladas neste checkout.">
+        <p class="diagram-shell__hint">Ctrl/Cmd + rolagem: zoom · arrastar: mover · duplo clique: ajustar · &#x26F6;: abrir em tamanho real</p>
+        <div class="mermaid-wrap">
+          <div class="zoom-controls">
+            <button type="button" data-action="zoom-in" title="Aproximar">+</button>
+            <button type="button" data-action="zoom-out" title="Afastar">&minus;</button>
+            <button type="button" data-action="zoom-fit" title="Ajustar à tela">&#8634;</button>
+            <button type="button" data-action="zoom-one" title="Zoom 1:1">1:1</button>
+            <button type="button" data-action="zoom-expand" title="Abrir em tamanho real">&#x26F6;</button>
+            <span class="zoom-label">Carregando…</span>
+          </div>
+          <div class="mermaid-viewport">
+            <div class="mermaid mermaid-canvas"></div>
+          </div>
+        </div>
+        <script type="text/plain" class="diagram-source">
+          flowchart TD
+            classDef critical fill:#dc2626,stroke:#991b1b,color:#ffffff,stroke-width:2px
+            A["run.sh<br/>inicia o app"] -->|"sobe"| B["dev server (vite)<br/>resolve os imports"]
+            B -->|"procura em"| C["node_modules<br/>desatualizado"]
+            D["package.json<br/>declara desde f5f2c7f:<br/>@fontsource/chakra-petch<br/>motion/react"] -.->|"mas ninguém instalou<br/>neste checkout"| C
+            C -->|"não encontra<br/>e aborta"| E["erro fatal:<br/>Failed to resolve import"]
+            E -->|"impede"| F["app não abre"]
+            class C,E critical
+        </script>
+      </div>
+      <figcaption><strong>Afirmação:</strong> o dev server abortava antes de abrir o app — as dependências declaradas no package.json desde f5f2c7f nunca tinham sido instaladas neste checkout.</figcaption>
+    </figure>
+
+    <details>
+      <summary>Aprofundar: o que o npm ci fez de diferente?</summary>
+      <div class="details-body">
+        <p>
+          O <code>npm ci</code> é a instalação <em>determinística</em>: em vez de resolver versões de novo,
+          ele instala exatamente o que o <code>package-lock.json</code> — o lockfile, o registro com as versões
+          exatas — manda. Ele rodou com <code>HUSKY=0</code> (a variável que desliga os hooks de git — os
+          ganchos que rodam sozinhos durante comandos — durante a instalação) e instalou o lockfile completo:
+          <code>motion</code> e <code>@fontsource/chakra-petch</code> agora existem de verdade no node_modules.
+        </p>
+        <p>
+          Bônus de ambiente: esse mesmo <code>npm ci</code> rodado no app conserta o ambiente do usuário —
+          o marcador obsoleto <code>.install-ok</code> some e o run.sh se auto-repara na primeira execução
+          depois do merge.
+        </p>
+      </div>
+    </details>
+  </section>
+
+  <!-- ================= SEÇÃO 03 ================= -->
+  <section>
+    <h2><span class="sec-num">03</span>Sintoma 2: sete avisos no build</h2>
+
+    <div class="prose">
+      <p>
+        O outro problema era mais sutil. O build do main é feito pelo <strong>rollup</strong> (o empacotador
+        que o vite usa no build de produção), e ele passou a emitir 7 avisos: <code>X is dynamically imported by
+        A but also statically imported by B — dynamic import will not move module into another chunk</code>.
+      </p>
+      <p>
+        Aviso não é erro — o build passava — mas sinalizava código com os dois estilos misturados e poluía a
+        saída do build. Para entender: o empacotador corta o código em <strong>chunks</strong> (os arquivos
+        finais que o app carrega), e a regra do jogo é ele saber <em>onde cada módulo fica</em> no momento do
+        build. Um <strong>import dinâmico</strong> (o <code>import()</code> chamado dentro de uma função, que
+        carrega o módulo só quando aquela linha executa) embaralha esse cálculo quando o mesmo módulo também
+        chega por <strong>import estático</strong> (declarado no topo do arquivo) em outro lugar.
+      </p>
+      <p>
+        O conserto da ONDA 1: trocar os 22 sites de <code>import()</code> por import estático no topo, em 8
+        arquivos do main, envolvendo 7 módulos (<code>settingsStore</code>, <code>trackLoader</code>,
+        <code>trackService</code>, <code>tutorChat</code>, <code>challengeExec</code>, <code>modelStore</code> e
+        <code>EmbeddedLlmService</code> — o serviço do modelo de IA que roda dentro do app). No total,
+        +12/−23 linhas.
+      </p>
+      <div class="signal">
+        <strong>O que importa ver nesta figura é a seta tracejada:</strong> ela é o conserto — a troca de
+        <code>import()</code> por import estático no topo. É ela que faz o rollup decidir o chunk no build e
+        zera os avisos.
+      </div>
+    </div>
+
+    <figure class="fig">
+      <div class="diagram-shell" role="img" aria-label="Import estático no topo faz o rollup decidir o chunk no build — os 7 avisos zeraram.">
+        <p class="diagram-shell__hint">Ctrl/Cmd + rolagem: zoom · arrastar: mover · duplo clique: ajustar · &#x26F6;: abrir em tamanho real</p>
+        <div class="mermaid-wrap">
+          <div class="zoom-controls">
+            <button type="button" data-action="zoom-in" title="Aproximar">+</button>
+            <button type="button" data-action="zoom-out" title="Afastar">&minus;</button>
+            <button type="button" data-action="zoom-fit" title="Ajustar à tela">&#8634;</button>
+            <button type="button" data-action="zoom-one" title="Zoom 1:1">1:1</button>
+            <button type="button" data-action="zoom-expand" title="Abrir em tamanho real">&#x26F6;</button>
+            <span class="zoom-label">Carregando…</span>
+          </div>
+          <div class="mermaid-viewport">
+            <div class="mermaid mermaid-canvas"></div>
+          </div>
+        </div>
+        <script type="text/plain" class="diagram-source">
+          flowchart TD
+            classDef ok fill:#15803d,stroke:#166534,color:#ffffff,stroke-width:2px
+            classDef warn fill:#b45309,stroke:#92400e,color:#ffffff
+            A["8 arquivos<br/>do main"] -->|"22 sites usam"| B["import()<br/>dinâmico"]
+            B -->|"carrega o módulo<br/>em runtime"| C["7 módulos compartilhados<br/>settingsStore · trackLoader<br/>trackService · tutorChat<br/>challengeExec · modelStore<br/>EmbeddedLlmService"]
+            C -->|"outros arquivos<br/>também os importam<br/>de forma estática"| D["rollup não decide<br/>o chunk no build"]
+            D -->|"emite"| E["7 avisos:<br/>dynamic import will not<br/>move module into another chunk"]
+            B -.->|"conserto: vira import estático<br/>no topo de cada arquivo"| F["dependência declarada<br/>antes do build"]
+            F -->|"rollup resolve<br/>ao empacotar"| G["0 avisos no build"]
+            class G ok
+            class E warn
+        </script>
+      </div>
+      <figcaption><strong>Afirmação:</strong> import estático no topo faz o rollup decidir o chunk no build — os 7 avisos zeraram.</figcaption>
+    </figure>
+
+    <details>
+      <summary>Aprofundar: import dinâmico vs estático — exemplo resolvido</summary>
+      <div class="details-body">
+        <p>Exemplo de sintaxe (ilustrativo — não é o código real do repositório):</p>
+        <pre class="code-block"><code><span class="cm">// ANTES — import() dinâmico: o módulo só é buscado quando a função roda</span>
+<span class="kw">async function</span> falar(texto) {
+  <span class="kw">const</span> tts = <span class="kw">await</span> <span class="fn">import</span>(<span class="str">'./localTts.js'</span>);
+  tts.<span class="fn">falar</span>(texto);
+}
+
+<span class="cm">// DEPOIS — import estático no topo: o empacotador resolve no build</span>
+<span class="kw">import</span> * <span class="kw">as</span> tts <span class="kw">from</span> <span class="str">'./localTts.js'</span>;
+
+<span class="kw">async function</span> falar(texto) {
+  tts.<span class="fn">falar</span>(texto);
+}</code></pre>
+        <p class="note">Exemplo de sintaxe ilustrativo — não é o código real do repositório.</p>
+        <p>
+          <strong>Por que o aviso importa:</strong> com o import() no meio, o rollup via o módulo chegar por
+          dois caminhos e avisava que não moveria o módulo para outro chunk. Não era erro, mas era
+          imprevisibilidade: o lugar de cada módulo no bundle final (o conjunto de arquivos que o app carrega)
+          só ficava claro de forma ambígua — e o build gritava isso 7 vezes.
+        </p>
+      </div>
+    </details>
+  </section>
+
+  <!-- ================= SEÇÃO 04 ================= -->
+  <section>
+    <h2><span class="sec-num">04</span>A subwave de teste: 25 testes novos</h2>
+
+    <div class="prose">
+      <p>
+        Mudar imports e mexer em serviços não se entrega no grito: veio uma <strong>subwave</strong> (uma onda
+        dedicada só a escrever testes) com 25 testes novos em dois arquivos:
+      </p>
+      <ul>
+        <li>
+          <code>tests/embeddedLlmService.test.ts</code> (17 testes): o roteamento
+          <strong>proxy↔in-process</strong> (proxy = chamada para um servidor externo; in-process = para o
+          processo interno), o <code>activeId</code> (qual modelo está ativo em cada momento), o erro
+          <code>LOCAL_MODEL_NOT_INSTALLED</code> (modelo local não instalado), os <strong>deltas</strong>
+          (pedaços de resposta que chegam aos poucos), o guard de <strong>dispose</strong> (impede usar o
+          modelo depois de liberar seus recursos), as options do chat asseeradas e o <strong>escape
+          hatch</strong> (porta de fuga: uma variável de ambiente que força outro caminho)
+          <code>STUDY_METHOD_LLM_IN_PROCESS</code>.
+        </li>
+        <li>
+          <code>tests/e2eStubs.test.ts</code> (8 testes): o gate de segurança <strong>no-op</strong> (operação
+          que não faz nada) fora de E2E, o registro exato de <strong>66 canais</strong>, 4 cenários de
+          <strong>e2eGatePhase</strong> (a fase do ciclo em que o app é operado de fora, de ponta a ponta), um
+          <strong>smoke</strong> real de trilha (teste que percorre o caminho principal para ver se nada quebrou)
+          e o workspace E2E isolado.
+        </li>
+      </ul>
+      <p>
+        Sobre os termos: <strong>E2E</strong> (end-to-end) é testar o app inteiro operado como um usuário real;
+        os <strong>e2eStubs</strong> (os stubs — peças falsas que imitam uma dependência real para o teste
+        isolar o resto — do modo E2E) são o módulo que registra os canais de teste. O trabalho passou ainda por
+        um <strong>revisor adversarial</strong> (revisão que tenta ativamente achar defeitos no que foi feito):
+        ele apontou WARNING e os 5 achados foram corrigidos antes do gate — que fechou com
+        <strong>npm ci + lint (checagem automática de estilo e erros comuns) + tsc (o verificador de tipos do
+        TypeScript) ×2 + 1937 testes + build</strong>, tudo verde.
+      </p>
+      <div class="signal">
+        <strong>O que importa nesta figura:</strong> os 25 testes novos alimentam o gate — e o gate é o guardião
+        que só libera a entrega com 1935 testes passando, 2 skipped pré-existentes e build sem avisos.
+      </div>
+    </div>
+
+    <figure class="fig">
+      <div class="diagram-shell" role="img" aria-label="Os 25 testes novos cobrem as duas áreas alteradas e o gate fechou verde.">
+        <p class="diagram-shell__hint">Ctrl/Cmd + rolagem: zoom · arrastar: mover · duplo clique: ajustar · &#x26F6;: abrir em tamanho real</p>
+        <div class="mermaid-wrap">
+          <div class="zoom-controls">
+            <button type="button" data-action="zoom-in" title="Aproximar">+</button>
+            <button type="button" data-action="zoom-out" title="Afastar">&minus;</button>
+            <button type="button" data-action="zoom-fit" title="Ajustar à tela">&#8634;</button>
+            <button type="button" data-action="zoom-one" title="Zoom 1:1">1:1</button>
+            <button type="button" data-action="zoom-expand" title="Abrir em tamanho real">&#x26F6;</button>
+            <span class="zoom-label">Carregando…</span>
+          </div>
+          <div class="mermaid-viewport">
+            <div class="mermaid mermaid-canvas"></div>
+          </div>
+        </div>
+        <script type="text/plain" class="diagram-source">
+          flowchart TD
+            classDef ok fill:#15803d,stroke:#166534,color:#ffffff,stroke-width:2px
+            A["tests/embeddedLlmService.test.ts<br/>17 testes"] -->|"roteamento proxy↔in-process<br/>activeId · erro de modelo<br/>deltas · guard de dispose<br/>options do chat · escape hatch"| G["gate de integração"]
+            B["tests/e2eStubs.test.ts<br/>8 testes"] -->|"no-op fora de E2E<br/>registro de 66 canais<br/>4 cenários de e2eGatePhase<br/>smoke de trilha · workspace"| G
+            A -.->|"revisados pelo"| R["revisor adversarial<br/>5 achados corrigidos"]
+            B -.->|"revisados pelo"| R
+            R -->|"correções aplicadas<br/>antes do gate"| G
+            G -->|"npm ci + lint (tsc ×2)<br/>+ 1937 testes + build"| H["VERDE"]
+            H -->|"1935 pass · 2 skipped<br/>pré-existentes · 0 avisos"| I["entrega liberada"]
+            class G,H ok
+        </script>
+      </div>
+      <figcaption><strong>Afirmação:</strong> os 25 testes novos cobrem as duas áreas alteradas e o gate fechou verde.</figcaption>
+    </figure>
+
+    <div class="kpi-grid">
+      <div class="kpi-card">
+        <div class="kpi-num">54% → 78,6%</div>
+        <div class="kpi-label">cobertura de linhas do EmbeddedLlmService.ts (a medida de quanto do código os testes exercitam)</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-num">0% → 73,4%</div>
+        <div class="kpi-label">cobertura de linhas do e2eStubs.ts (medida com --experimental-test-coverage do node; o projeto não tem instrumentação de coverage configurada)</div>
+      </div>
+    </div>
+
+    <details>
+      <summary>Aprofundar: os 5 achados do revisor adversarial</summary>
+      <div class="details-body">
+        <p>O revisor apontou WARNING e os 5 achados foram corrigidos pelo agente de teste:</p>
+        <ul>
+          <li>asserções de options do chat mais completas;</li>
+          <li><code>E2E_KEYS</code> (as variáveis de ambiente de teste) normalizado;</li>
+          <li>registro dos canais com a contagem exata;</li>
+          <li>variável de ambiente para forçar o caminho in-process;</li>
+          <li>tmpRoot próprio (a pasta temporária de cada teste) para o workspace E2E isolado.</li>
+        </ul>
+      </div>
+    </details>
+  </section>
+
+  <!-- ================= SEÇÃO 05 ================= -->
+  <section>
+    <h2><span class="sec-num">05</span>Verificações, decisões e limites</h2>
+
+    <div class="prose">
+      <p>
+        <strong>O gate fechou verde</strong> no snapshot de integração: npm ci + lint (tsc ×2) + 1937 testes
+        (1935 pass, 2 skipped pré-existentes) + build de main/preload/renderer. Os avisos do build do main
+        caíram para 0, e o renderer resolve <code>motion/react</code> e <code>@fontsource/chakra-petch</code> —
+        24 assets (arquivos estáticos, como fontes, que o build copia) de chakra-petch .woff2 no bundle. A
+        validação no estado integrado (val-onda1-gate) passou com zero avisos, e as duas revisões — a
+        adversarial pré-merge e a do diff integrado — deram APPROVE, sem nada a refutar.
+      </p>
+      <p><strong>Decisões autônomas registradas:</strong></p>
+      <ul>
+        <li>Ruído de sistema fora de escopo (não é problema do repositório): o aviso Gtk
+        <code>appmenu-gtk-module</code>, os avisos de fontconfig (<code>48-guessfamily.conf</code>) e o
+        <code>ExperimentalWarning</code> de SQLite do Electron.</li>
+        <li>O npm ci em <code>app/</code> conserta o ambiente do usuário: o marcador <code>.install-ok</code>
+        obsoleto some e o run.sh se auto-repara na primeira execução pós-merge.</li>
+        <li>Premissa de ambiente: o projeto real vive em <code>app/</code> (a raiz do repositório tem só um
+        <code>package-lock.json</code> placeholder de 91 bytes) — todo npm ci/gate roda com cwd em <code>app/</code>.</li>
+      </ul>
+      <p><strong>Limites declarados (fora de escopo):</strong></p>
+      <ul>
+        <li><code>e2eGatePhase</code>: o export de produção sem chamador (dead export — função exportada que
+        nenhum código chama) é pré-existente; foi registrado, não mexido — decisão de produção.</li>
+        <li>E2E Playwright (specs): não rodadas nesta execução (exigem build + app); o novo smoke unitário
+        cobre o grafo de trilha sem precisar de build.</li>
+      </ul>
+    </div>
+
+    <h3>Como a execução se organizou</h3>
+    <div class="timeline">
+      <div class="tl-item">
+        <h4>ONDA 1 — alinhar imports do main</h4>
+        <div class="tl-meta">worktree onda1-alinhar-imports-main</div>
+        <p>22 imports dinâmicos → estáticos em 8 arquivos (7 módulos, +12/−23); comentário obsoleto do
+        braveSearchService atualizado; npm ci (HUSKY=0) instala o lockfile completo — motion e chakra-petch presentes.</p>
+      </div>
+      <div class="tl-item">
+        <h4>Gate no snapshot de integração</h4>
+        <div class="tl-meta">npm ci + lint + testes + build</div>
+        <p>1937 testes (1935 pass, 2 skipped) e build de main/preload/renderer — VERDE; 0 avisos no build do
+        main; 24 assets chakra-petch .woff2 no bundle do renderer.</p>
+      </div>
+      <div class="tl-item">
+        <h4>SUBWAVE de teste</h4>
+        <div class="tl-meta">worktree test-onda1-imports</div>
+        <p>25 testes novos (17 no embeddedLlmService, 8 no e2eStubs); revisor adversarial: WARNING → 5 achados corrigidos.</p>
+      </div>
+      <div class="tl-item">
+        <h4>Validação no estado integrado</h4>
+        <div class="tl-meta">val-onda1-gate</div>
+        <p>Build/lint/typecheck/testes PASS, zero avisos — CONCLUÍDA.</p>
+      </div>
+      <div class="tl-item">
+        <h4>Revisões</h4>
+        <div class="tl-meta">pré-merge e diff integrado</div>
+        <p>Adversarial pré-merge: APPROVE (nada a refutar). Revisor do diff integrado: APPROVE.</p>
+      </div>
+      <div class="tl-item">
+        <h4>Squashes integrados</h4>
+        <div class="tl-meta">commit 6538714 · commit da220ca</div>
+        <p><strong>Squash</strong> (juntar os commits de uma branch em um único) de cada worktree no principal:
+        6538714 (ONDA 1) e da220ca (testes).</p>
+      </div>
+    </div>
+
+    <details>
+      <summary>Aprofundar: o que é um worktree e por que a onda roda isolada?</summary>
+      <div class="details-body">
+        <p>
+          Um <strong>worktree</strong> é uma cópia isolada do repositório: a onda trabalha nela sem sujar o
+          principal. É por isso que o gate roda numa versão integrada antes do merge — cada mudança só entra
+          depois de provar que não quebra o todo. No fim, cada branch é integrada por <strong>squash
+          merge</strong>: todos os commits daquela branch viram um único commit no histórico.
+        </p>
+      </div>
+    </details>
+
+    <details>
+      <summary>Aprofundar: o e2eGatePhase que ficou de fora</summary>
+      <div class="details-body">
+        <p>
+          O <code>e2eGatePhase</code> — a fase do ciclo em que o app é operado de fora — tem um export de
+          produção sem chamador (um <strong>dead export</strong>: função exportada que nenhum código chama).
+          Ele é pré-existente e não tem relação com esta execução: foi registrado como fora de escopo, por
+          decisão de produção. O que a subwave fez foi testá-lo: os 8 testes do e2eStubs cobrem seus 4 cenários.
+        </p>
+      </div>
+    </details>
+  </section>
+
+  <!-- ================= ANEXO: GLOSSÁRIO ================= -->
+  <section>
+    <h2><span class="sec-num">06</span>Anexo: glossário (tabela fechada)</h2>
+    <p class="prose">
+      Todos os termos abaixo são definidos <em>no texto, onde aparecem</em> — esta tabela é só o mapa de
+      consulta rápida.
+    </p>
+    <div class="table-wrap">
       <table>
         <thead>
-          <tr><th>Severidade</th><th>Achado</th><th>Correção</th></tr>
+          <tr><th>Termo</th><th>Definição (onde aparece)</th></tr>
         </thead>
         <tbody>
-          <tr>
-            <td><span class="tag alto">ALTO</span></td>
-            <td>Modal podia ficar preso em "running" sem terminal de erro.</td>
-            <td>Terminal de erro em <b>todo caminho</b> &mdash; qualquer exceção (fs/tmp/spawn) vira estado de erro com botão Fechar.</td>
-          </tr>
-          <tr>
-            <td><span class="tag alto">ALTO</span></td>
-            <td>Corrida entre processos: terminal atrasado de uma geração antiga podia sequestrar a nova.</td>
-            <td><code>generationId</code> no store e ecoado em todos os eventos &mdash; eventos obsoletos são descartados.</td>
-          </tr>
-          <tr>
-            <td><span class="tag medio">MÉDIO</span></td>
-            <td>Sem como cancelar a geração em andamento.</td>
-            <td>Cancelar / Esc / backdrop funcionando no estado running.</td>
-          </tr>
-          <tr>
-            <td><span class="tag medio">MÉDIO</span></td>
-            <td>Lista podia ficar desatualizada ao voltar para a aba.</td>
-            <td>RefetchToken (<code>listVersion</code>) que a LessonView observa &mdash; lista re-buscada ao voltar.</td>
-          </tr>
-          <tr>
-            <td><span class="tag baixo">BAIXO</span></td>
-            <td>Fechamento do modal sem animação de saída.</td>
-            <td>Animação de saída no overlay e no card.</td>
-          </tr>
-          <tr>
-            <td><span class="tag baixo">BAIXO</span></td>
-            <td>Rótulo de etapa podia ser enganoso.</td>
-            <td>Rótulo honesto da etapa (validação só quando há contexto).</td>
-          </tr>
-          <tr>
-            <td><span class="tag baixo">BAIXO</span></td>
-            <td>Navegação de conclusão por target instável.</td>
-            <td>Navegação manual "Ver desafio" com target real <code>lesson</code> | <code>proficiency</code>.</td>
-          </tr>
+          <tr><td><code>run.sh</code></td><td>o script que sobe o app de uma vez: dev server + build (resposta)</td></tr>
+          <tr><td><code>node_modules</code></td><td>a pasta onde ficam as bibliotecas instaladas (resposta)</td></tr>
+          <tr><td><code>package.json</code></td><td>o manifesto que declara as dependências do projeto (resposta)</td></tr>
+          <tr><td><code>lockfile</code></td><td>o registro com as versões exatas de cada dependência (resposta)</td></tr>
+          <tr><td><code>npm ci</code></td><td>instalação que segue o lockfile, sem atualizar versões (resposta)</td></tr>
+          <tr><td><code>import</code></td><td>declaração que traz um módulo de outro arquivo para o código (resposta)</td></tr>
+          <tr><td><code>import dinâmico</code> (<code>import()</code>)</td><td>carrega o módulo só quando o código executa aquela linha (resposta / seção 03)</td></tr>
+          <tr><td><code>import estático</code></td><td>declarado no topo; o empacotador resolve no build (resposta / seção 03)</td></tr>
+          <tr><td><code>dev server</code></td><td>o servidor local que recarrega o app enquanto se programa (resposta)</td></tr>
+          <tr><td><code>build</code></td><td>a geração dos arquivos finais do app (main, preload, renderer) (resposta)</td></tr>
+          <tr><td><code>gate</code></td><td>a checagem que bloqueia a integração se qualquer passo falhar (resposta)</td></tr>
+          <tr><td><code>processo main</code></td><td>o backend do app desktop: teclado, voz, busca, IA local (seção 01)</td></tr>
+          <tr><td><code>preload</code></td><td>camada fina que entrega dados do main ao renderer com segurança (seção 01)</td></tr>
+          <tr><td><code>renderer</code></td><td>a janela com a UI React (seção 01)</td></tr>
+          <tr><td><code>vite</code></td><td>o dev server e o empacotador do frontend (seção 02)</td></tr>
+          <tr><td><code>rollup</code></td><td>o empacotador que o vite usa no build de produção (seção 03)</td></tr>
+          <tr><td><code>chunk</code></td><td>arquivo final que o empacotador fatia do código (seção 03)</td></tr>
+          <tr><td><code>subwave</code></td><td>onda dedicada só a escrever testes (seção 04)</td></tr>
+          <tr><td><code>coverage</code></td><td>medida de quanto do código os testes exercitam (seção 04)</td></tr>
+          <tr><td><code>proxy↔in-process</code></td><td>rotear a chamada para um servidor externo ou para o processo interno (seção 04)</td></tr>
+          <tr><td><code>deltas</code></td><td>pedaços de resposta que chegam aos poucos (seção 04)</td></tr>
+          <tr><td><code>dispose</code></td><td>liberar os recursos do modelo quando não é mais usado (seção 04)</td></tr>
+          <tr><td><code>escape hatch</code></td><td>porta de fuga: variável de ambiente que força outro caminho (seção 04)</td></tr>
+          <tr><td><code>stub</code></td><td>peça falsa que imita uma dependência real para o teste isolar o resto (seção 04)</td></tr>
+          <tr><td><code>E2E</code></td><td>teste de ponta a ponta: o app inteiro operado como um usuário real (seção 04)</td></tr>
+          <tr><td><code>e2eGatePhase</code></td><td>a fase do ciclo em que o app é operado de fora (seção 04 / 05)</td></tr>
+          <tr><td><code>smoke test</code></td><td>teste que percorre o caminho principal para ver se nada quebrou (seção 04)</td></tr>
+          <tr><td><code>revisor adversarial</code></td><td>revisão que tenta ativamente achar defeitos (seção 04)</td></tr>
+          <tr><td><code>no-op</code></td><td>operação que não faz nada (seção 04)</td></tr>
+          <tr><td><code>lint</code></td><td>checagem automática de estilo e erros comuns (seção 04)</td></tr>
+          <tr><td><code>tsc</code></td><td>o verificador de tipos do TypeScript (seção 04)</td></tr>
+          <tr><td><code>worktree</code></td><td>cópia isolada do repositório para trabalhar sem sujar o principal (seção 05)</td></tr>
+          <tr><td><code>squash</code></td><td>juntar os commits de uma branch em um único (seção 05)</td></tr>
+          <tr><td><code>asset</code></td><td>arquivo estático (fonte, imagem) que o build copia (seção 05)</td></tr>
+          <tr><td><code>dead export</code></td><td>função exportada que nenhum código chama (seção 05)</td></tr>
+          <tr><td><code>HUSKY=0</code></td><td>variável que desliga os hooks de git durante a instalação (seção 02, aprofundar)</td></tr>
+          <tr><td><code>hooks de git</code></td><td>ganchos que rodam sozinhos durante comandos (seção 02, aprofundar)</td></tr>
+          <tr><td><code>EmbeddedLlmService</code></td><td>o serviço do modelo de IA que roda dentro do app (seção 03)</td></tr>
         </tbody>
       </table>
-
-      <h3>Incidente de orquestração (transparência)</h3>
-      <p style="color:#cdd3e0; font-size:15px;">O re-merge da onda 1 abortou com working tree sujo de um squash parcial &mdash; os 16 paths foram restaurados sem tocar no <code>.gitignore</code> do usuário, e a onda foi integrada na sequência sem prejuízo.</p>
     </div>
   </section>
 
-  <!-- ============ 4. Nota de ambiente ============ -->
-  <section>
-    <h2><span class="num">4</span> Nota de ambiente</h2>
-    <div class="env-note">
-      A variável <b>DEEPSEEK_API_KEY continua ausente</b> nesta máquina (já registrado no Run 3). Por isso o fluxo de geração foi testado com <b>fakes</b> &mdash; todo o código está pronto e coberto por testes. Quando a chave for configurada (instruções no EXPLAINER anterior e no <code>.env.local.example</code>), a geração real funciona sem mudanças de código.
-    </div>
-  </section>
+  <footer>
+    <p>
+      <strong>Validade:</strong> este documento explica a execução de <strong>2026-08-28</strong>, contra a
+      branch <code>main</code> nos commits <code>6538714</code> (ONDA 1) e <code>da220ca</code> (subwave de
+      teste). Fatos, números e vereditos valem contra esse estado e podem envelhecer com mudanças posteriores
+      no repositório. Fonte: registro da execução do orquestrador.
+    </p>
+  </footer>
 
-</main>
+</div>
 
-<footer>
-  <div class="wrap">
-    EXPLAINER gerado pelo deep-orchestrator-agent-skill &middot; execução 20260828-173418-45704 &middot; main
-  </div>
-</footer>
+<script type="module">
+  import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
+  import elkLayouts from 'https://cdn.jsdelivr.net/npm/@mermaid-js/layout-elk/dist/mermaid-layout-elk.esm.min.mjs';
 
-<!-- Nota de discrepância: git status mostra branch main 3 commits à frente de origin/main (ainda não enviados) e um .gitignore modificado fora do stage. O fatos.md registra que o orquestrador não tocou no .gitignore do usuário durante o incidente da onda 1 — a modificação atual no working tree é anterior/externa à execução. -->
+  const config = {
+    fitPadding: 28,
+    minHeight: 380,
+    maxHeightPx: 960,
+    maxHeightVh: 0.84,
+    maxInitialZoom: 1.8,
+    minZoom: 0.08,
+    maxZoom: 6.5,
+    zoomStep: 0.14,
+    readabilityFloor: 0.58
+  };
+
+  const clamp = (n, lo, hi) => Math.max(lo, Math.min(hi, n));
+
+  let activeDrag = null;
+
+  addEventListener('mousemove', (e) => activeDrag?.onMove(e));
+  addEventListener('mouseup', () => {
+    activeDrag?.onEnd();
+    activeDrag = null;
+  });
+
+  const darkThemeVariables = {
+    darkMode: true,
+    primaryColor: '#1e242e',
+    primaryTextColor: '#dadee5',
+    primaryBorderColor: '#343b45',
+    lineColor: '#9da5b2',
+    secondaryColor: '#1e242e',
+    secondaryTextColor: '#dadee5',
+    tertiaryColor: '#1e242e',
+    tertiaryTextColor: '#dadee5',
+    textColor: '#dadee5',
+    labelTextColor: '#dadee5',
+    edgeLabelBackground: '#1e242e',
+    background: '#070b14'
+  };
+
+  const lightThemeVariables = {
+    primaryColor: '#5537eb',
+    primaryTextColor: '#ffffff',
+    primaryBorderColor: '#d4d8de',
+    lineColor: '#414853',
+    secondaryColor: '#e1e5eb',
+    secondaryTextColor: '#414853',
+    tertiaryColor: '#e1e5eb',
+    tertiaryTextColor: '#414853',
+    textColor: '#414853',
+    labelTextColor: '#414853',
+    edgeLabelBackground: '#f3f5f9',
+    background: '#f3f5f9'
+  };
+
+  const isDarkNow = () => {
+    const scheme = getComputedStyle(document.documentElement).colorScheme;
+    return scheme === 'dark'
+      || (scheme === 'normal' && matchMedia('(prefers-color-scheme: dark)').matches);
+  };
+
+  function applyMermaidTheme(dark) {
+    mermaid.initialize({
+      startOnLoad: false,
+      theme: 'base',
+      look: 'classic',
+      layout: 'elk',
+      themeVariables: {
+        ...(dark ? darkThemeVariables : lightThemeVariables),
+        fontFamily: "'Inter', system-ui, sans-serif",
+        fontSize: '15px'
+      }
+    });
+  }
+
+  mermaid.registerLayoutLoaders(elkLayouts);
+  applyMermaidTheme(isDarkNow());
+
+  const rerenderers = [];
+
+  function initDiagram(shell) {
+    const wrap = shell.querySelector('.mermaid-wrap');
+    const viewport = shell.querySelector('.mermaid-viewport');
+    const canvas = shell.querySelector('.mermaid-canvas');
+    const source = shell.querySelector('.diagram-source');
+    const label = shell.querySelector('.zoom-label');
+
+    if (!wrap || !viewport || !canvas || !source || !label) {
+      console.error('initDiagram: missing required elements in', shell);
+      return;
+    }
+
+    let zoom = 1;
+    let fitMode = 'contain';
+    let panX = 0;
+    let panY = 0;
+    let svgW = 0;
+    let svgH = 0;
+
+    let sx = 0;
+    let sy = 0;
+    let spx = 0;
+    let spy = 0;
+
+    let touchDist = 0;
+    let touchCx = 0;
+    let touchCy = 0;
+
+    function constrainPan() {
+      const vpW = viewport.clientWidth;
+      const vpH = viewport.clientHeight;
+      const rW = svgW * zoom;
+      const rH = svgH * zoom;
+      const pad = config.fitPadding;
+
+      panX = (rW + pad * 2 <= vpW)
+        ? (vpW - rW) / 2
+        : clamp(panX, vpW - rW - pad, pad);
+      panY = (rH + pad * 2 <= vpH)
+        ? (vpH - rH) / 2
+        : clamp(panY, vpH - rH - pad, pad);
+    }
+
+    function applyTransform() {
+      const svg = canvas.querySelector('svg');
+      if (!svg || !svgW) return;
+
+      constrainPan();
+      svg.style.width = (svgW * zoom) + 'px';
+      svg.style.height = (svgH * zoom) + 'px';
+      canvas.style.transform = `translate(${panX}px, ${panY}px)`;
+      label.textContent = Math.round(zoom * 100) + '% — ' + fitMode;
+    }
+
+    function canPan() {
+      const rW = svgW * zoom;
+      const rH = svgH * zoom;
+      return rW + config.fitPadding * 2 > viewport.clientWidth
+          || rH + config.fitPadding * 2 > viewport.clientHeight;
+    }
+
+    function computeSmartFit() {
+      const vpW = viewport.clientWidth;
+      const vpH = viewport.clientHeight;
+      const aW = Math.max(80, vpW - config.fitPadding * 2);
+      const aH = Math.max(80, vpH - config.fitPadding * 2);
+      const contain = Math.min(aW / svgW, aH / svgH);
+
+      let z = contain;
+      let mode = 'contain';
+      if (contain < config.readabilityFloor) {
+        const chartR = svgH / svgW;
+        const vpR = vpH / Math.max(vpW, 1);
+        if (chartR >= vpR) {
+          z = aW / svgW;
+          mode = 'width-priority';
+        } else {
+          z = aH / svgH;
+          mode = 'height-priority';
+        }
+      }
+      return { zoom: clamp(z, config.minZoom, config.maxInitialZoom), mode };
+    }
+
+    function fitDiagram() {
+      if (!svgW) return;
+      const fit = computeSmartFit();
+      zoom = fit.zoom;
+      fitMode = fit.mode;
+      panX = (viewport.clientWidth - svgW * zoom) / 2;
+      panY = (viewport.clientHeight - svgH * zoom) / 2;
+      applyTransform();
+    }
+
+    function setOneToOne() {
+      zoom = clamp(1, config.minZoom, config.maxZoom);
+      fitMode = '1:1';
+      panX = (viewport.clientWidth - svgW * zoom) / 2;
+      panY = (viewport.clientHeight - svgH * zoom) / 2;
+      applyTransform();
+    }
+
+    function zoomAround(factor, cx, cy) {
+      const next = clamp(zoom * factor, config.minZoom, config.maxZoom);
+      const ratio = next / zoom;
+      panX = cx - ratio * (cx - panX);
+      panY = cy - ratio * (cy - panY);
+      zoom = next;
+      fitMode = 'custom';
+      applyTransform();
+    }
+
+    function readSvgNaturalSize(svg) {
+      let w = 0;
+      let h = 0;
+      if (svg.viewBox?.baseVal?.width > 0) {
+        w = svg.viewBox.baseVal.width;
+        h = svg.viewBox.baseVal.height;
+      }
+      if (!w) {
+        w = parseFloat(svg.getAttribute('width')) || 0;
+        h = parseFloat(svg.getAttribute('height')) || 0;
+      }
+      if (!w) {
+        const b = svg.getBBox();
+        w = b.width;
+        h = b.height;
+      }
+      if (!w) {
+        const r = svg.getBoundingClientRect();
+        w = r.width || 1000;
+        h = r.height || 700;
+      }
+      if (!svg.getAttribute('viewBox')) {
+        svg.setAttribute('viewBox', `0 0 ${w} ${h}`);
+      }
+      return { w, h };
+    }
+
+    function setAdaptiveHeight() {
+      if (!svgW) return;
+      const usableW = Math.max(280, wrap.getBoundingClientRect().width - 2);
+      const idealH = (svgH / svgW) * usableW + config.fitPadding * 2;
+      const maxVp = Math.floor(innerHeight * config.maxHeightVh);
+      const hardMax = Math.min(config.maxHeightPx, Math.max(config.minHeight + 40, maxVp));
+      wrap.style.height = Math.round(clamp(idealH, config.minHeight, hardMax)) + 'px';
+    }
+
+    function openInNewTab() {
+      const svg = canvas.querySelector('svg');
+      if (!svg) return;
+
+      const clone = svg.cloneNode(true);
+      clone.style.width = '';
+      clone.style.height = '';
+
+      // Mermaid deriva clusterBkg e tertiaryColor do background da página:
+      // a exportação tem de ler o valor vivo para sentar no mesmo chão do diagrama.
+      const bg = getComputedStyle(document.documentElement)
+        .getPropertyValue('--background').trim() || (isDarkNow() ? '#070b14' : '#f3f5f9');
+
+      const html = `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>Diagrama</title><style>
+      body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;
+      background:${bg};padding:40px;box-sizing:border-box}
+      svg{max-width:100%;max-height:90vh;height:auto}
+      </style></head><body>${clone.outerHTML}</body></html>`;
+
+      open(URL.createObjectURL(new Blob([html], { type: 'text/html' })), '_blank');
+    }
+
+    async function render() {
+      try {
+        const code = source.textContent.trim();
+        if (!code) {
+          label.textContent = 'Erro: fonte vazia';
+          return;
+        }
+
+        const id = 'diagram-' + Date.now() + '-' + Math.random().toString(36).slice(2, 8);
+        const { svg } = await mermaid.render(id, code);
+        const parsed = new DOMParser().parseFromString(svg, 'text/html');
+        const parsedSvg = parsed.body.querySelector('svg');
+        if (!parsedSvg) {
+          label.textContent = 'Erro: sem SVG';
+          return;
+        }
+        canvas.replaceChildren(document.adoptNode(parsedSvg));
+
+        const svgNode = canvas.querySelector('svg');
+        if (!svgNode) {
+          label.textContent = 'Erro: sem SVG';
+          return;
+        }
+
+        const size = readSvgNaturalSize(svgNode);
+        svgW = size.w;
+        svgH = size.h;
+
+        svgNode.removeAttribute('width');
+        svgNode.removeAttribute('height');
+        svgNode.style.maxWidth = 'none';
+        svgNode.style.display = 'block';
+
+        setAdaptiveHeight();
+        fitDiagram();
+      } catch (err) {
+        console.error('Mermaid render failed:', err);
+        label.textContent = 'Erro: ' + (err.message || 'Falha ao renderizar');
+      }
+    }
+
+    const actions = {
+      'zoom-in': () => zoomAround(1 + config.zoomStep, viewport.clientWidth / 2, viewport.clientHeight / 2),
+      'zoom-out': () => zoomAround(1 / (1 + config.zoomStep), viewport.clientWidth / 2, viewport.clientHeight / 2),
+      'zoom-fit': fitDiagram,
+      'zoom-one': setOneToOne,
+      'zoom-expand': openInNewTab
+    };
+
+    Object.entries(actions).forEach(([action, handler]) => {
+      wrap.querySelector(`[data-action="${action}"]`)?.addEventListener('click', handler);
+    });
+
+    viewport.addEventListener('dblclick', fitDiagram);
+
+    viewport.addEventListener('wheel', (e) => {
+      if (e.ctrlKey || e.metaKey) {
+        e.preventDefault();
+        const rect = viewport.getBoundingClientRect();
+        const factor = e.deltaY < 0 ? 1 + config.zoomStep : 1 / (1 + config.zoomStep);
+        zoomAround(factor, e.clientX - rect.left, e.clientY - rect.top);
+        return;
+      }
+      if (canPan()) {
+        e.preventDefault();
+        panX -= e.deltaX;
+        panY -= e.deltaY;
+        applyTransform();
+      }
+    }, { passive: false });
+
+    viewport.addEventListener('mousedown', (e) => {
+      if (e.target.closest('.zoom-controls') || !canPan()) return;
+      wrap.classList.add('is-panning');
+      sx = e.clientX;
+      sy = e.clientY;
+      spx = panX;
+      spy = panY;
+      e.preventDefault();
+
+      activeDrag = {
+        onMove: (ev) => {
+          panX = spx + (ev.clientX - sx);
+          panY = spy + (ev.clientY - sy);
+          applyTransform();
+        },
+        onEnd: () => {
+          wrap.classList.remove('is-panning');
+        }
+      };
+    });
+
+    viewport.addEventListener('touchstart', (e) => {
+      if (e.touches.length === 1) {
+        sx = e.touches[0].clientX;
+        sy = e.touches[0].clientY;
+        spx = panX;
+        spy = panY;
+      } else if (e.touches.length === 2) {
+        const dx = e.touches[0].clientX - e.touches[1].clientX;
+        const dy = e.touches[0].clientY - e.touches[1].clientY;
+        touchDist = Math.sqrt(dx * dx + dy * dy);
+        const r = viewport.getBoundingClientRect();
+        touchCx = (e.touches[0].clientX + e.touches[1].clientX) / 2 - r.left;
+        touchCy = (e.touches[0].clientY + e.touches[1].clientY) / 2 - r.top;
+      }
+    }, { passive: true });
+
+    viewport.addEventListener('touchmove', (e) => {
+      if (e.touches.length === 1 && canPan()) {
+        if (touchDist > 0) {
+          sx = e.touches[0].clientX;
+          sy = e.touches[0].clientY;
+          spx = panX;
+          spy = panY;
+          touchDist = 0;
+        }
+        e.preventDefault();
+        panX = spx + (e.touches[0].clientX - sx);
+        panY = spy + (e.touches[0].clientY - sy);
+        applyTransform();
+      } else if (e.touches.length === 2 && touchDist > 0) {
+        e.preventDefault();
+        const dx = e.touches[0].clientX - e.touches[1].clientX;
+        const dy = e.touches[0].clientY - e.touches[1].clientY;
+        const d = Math.sqrt(dx * dx + dy * dy);
+        zoomAround(d / touchDist, touchCx, touchCy);
+        touchDist = d;
+      }
+    }, { passive: false });
+
+    new ResizeObserver(() => {
+      if (svgW) {
+        setAdaptiveHeight();
+        fitDiagram();
+      }
+    }).observe(wrap);
+
+    rerenderers.push(render);
+    render();
+  }
+
+  document.querySelectorAll('.diagram-shell').forEach(initDiagram);
+
+  // O Mermaid grava as cores no SVG na hora de renderizar: quando o tema
+  // muda em runtime, re-renderiza todos os diagramas para acompanhar.
+  window.rerenderDiagrams = () => Promise.all(rerenderers.map((render) => render()));
+
+  matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
+    applyMermaidTheme(e.matches);
+    window.rerenderDiagrams?.();
+  });
+</script>
+
 </body>
 </html>
