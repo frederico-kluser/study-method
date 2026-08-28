@@ -12,7 +12,7 @@
  * view Desafio com esse desafio pré-selecionado.
  */
 import { createContext, useCallback, useContext, useReducer } from 'react';
-import type { ChallengeInfo } from '../../shared/ipc-contract';
+import type { ChallengeInfo, TrackChallengeErrorReport } from '../../shared/ipc-contract';
 
 /**
  * ADITIVO (rodada 8 — trilhas): seleção de UM desafio de trilha para a
@@ -63,6 +63,24 @@ export interface ChallengeNavValue {
   lastSetupRoot: string | null;
   /** Armazena o setupRoot (e null quando limpo). Callback estável. */
   setLastSetupRoot: (setupRoot: string | null) => void;
+  /**
+   * ADITIVO (onda2-error-flow): relatório do erro de um desafio de AULA que
+   * FALHOU, guardado pelo TrackChallengePanel ANTES de navegar de volta à
+   * LessonView — é ela quem sementeia a bolha de erro no chat da aula (seed
+   * anti-StrictMode com ref) e então limpa via `clearChallengeError`. null
+   * quando não há erro pendente.
+   */
+  challengeErrorReport: TrackChallengeErrorReport | null;
+  /** Guarda o relatório do erro (o painel do desafio chama antes de navegar). */
+  reportChallengeError: (report: TrackChallengeErrorReport) => void;
+  /** Limpa o relatório (a LessonView chama após semear a bolha). */
+  clearChallengeError: () => void;
+  /**
+   * Pede ao shell para navegar para a aba Aula (o painel do desafio chama
+   * após reportar o erro — a discussão acontece no chat da aula). No-op sem
+   * provider.
+   */
+  navigateToLesson: () => void;
 }
 
 /** Reservado para persistência futura em hash. */
@@ -86,6 +104,16 @@ export const DEFAULT_CHALLENGE_NAV: ChallengeNavValue = {
   setLastSetupRoot: () => {
     /* no-op sem provider */
   },
+  challengeErrorReport: null,
+  reportChallengeError: () => {
+    /* no-op sem provider */
+  },
+  clearChallengeError: () => {
+    /* no-op sem provider */
+  },
+  navigateToLesson: () => {
+    /* no-op sem provider */
+  },
 };
 
 export const ChallengeNavCtx = createContext<ChallengeNavValue>(DEFAULT_CHALLENGE_NAV);
@@ -95,12 +123,20 @@ export interface ChallengeNavState {
   selectedChallenge: ChallengeInfo | null;
   /** ADITIVO (rodada 8): desafio de trilha ativo. */
   trackChallenge: TrackChallengeNavSelection | null;
+  /**
+   * ADITIVO (onda2-error-flow): relatório do erro de um desafio de AULA que
+   * falhou — presente no reducer p/ teste e completude do contrato (o PROVIDER
+   * mantém o valor vivo em useState, como o lastSetupRoot — o reducer é a
+   * especificação pura das transições set/clear).
+   */
+  challengeErrorReport: TrackChallengeErrorReport | null;
   version: number;
 }
 
 export const initialChallengeNavState: ChallengeNavState = {
   selectedChallenge: null,
   trackChallenge: null,
+  challengeErrorReport: null,
   version: 0,
 };
 
@@ -108,7 +144,9 @@ export type ChallengeNavAction =
   | { type: 'set'; challenge: ChallengeInfo | null }
   | { type: 'clear' }
   | { type: 'setTrack'; selection: TrackChallengeNavSelection | null }
-  | { type: 'clearTrack' };
+  | { type: 'clearTrack' }
+  | { type: 'setChallengeError'; report: TrackChallengeErrorReport }
+  | { type: 'clearChallengeError' };
 
 /**
  * Reducer PURO da navegação (testável no gate node:test, sem jsdom). Seleciona
@@ -127,6 +165,12 @@ export function challengeNavReducer(
       return { ...state, trackChallenge: action.selection, version: state.version + 1 };
     case 'clearTrack':
       return { ...state, trackChallenge: null, version: state.version + 1 };
+    // ONDA2 (error-flow): o relatório de erro NÃO incrementa `version` — a
+    // versão invalida caches de DESAFIO; o erro não muda o desafio selecionado.
+    case 'setChallengeError':
+      return { ...state, challengeErrorReport: action.report };
+    case 'clearChallengeError':
+      return { ...state, challengeErrorReport: null };
     default:
       return state;
   }

@@ -176,7 +176,13 @@
     "trackLoadTimeout": "A aula não respondeu a tempo. Tente novamente.",
     "nextTimeout": "O tutor não respondeu ao avançar a seção. Tente de novo.",
     "answerTimeout": "O tutor demorou demais para responder. Tente de novo.",
-    "doneTimeout": "Não foi possível concluir a aula — o aplicativo não respondeu. Tente de novo."
+    "doneTimeout": "Não foi possível concluir a aula — o aplicativo não respondeu. Tente de novo.",
+    "errorBubbleTitle": "Seu código falhou nos testes",
+    "errorQuestion": "O que você acha que errou? Escreva aqui ou fale no microfone. Se não souber, diga \"não sei\".",
+    "micStart": "Falar",
+    "micStop": "Parando gravação…",
+    "micRecording": "Transcrevendo…",
+    "regenerateFailed": "Não foi possível gerar um novo desafio."
   },
   "challenge": {
     "openChallenge": "Abrir desafio",

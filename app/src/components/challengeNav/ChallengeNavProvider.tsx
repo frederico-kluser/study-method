@@ -11,18 +11,26 @@ import {
   ChallengeNavCtx,
   useNavChallengeState,
 } from '../../lib/challengeNav';
+import type { TrackChallengeErrorReport } from '../../../shared/ipc-contract';
 
 /** Props do provider. */
 export interface ChallengeNavProviderProps {
   children: ReactNode;
   /** Chamado para o shell navegar para a aba Desafio. */
   onNavigateChallenge?: () => void;
+  /**
+   * ADITIVO (onda2-error-flow): chamado para o shell navegar para a aba Aula
+   * (o painel do desafio que falhou fecha e a discussão do erro acontece no
+   * chat da aula). Default no-op.
+   */
+  onNavigateLesson?: () => void;
 }
 
 /** Provider do contexto ChallengeNav. */
 export function ChallengeNavProvider({
   children,
   onNavigateChallenge,
+  onNavigateLesson,
 }: ChallengeNavProviderProps): ReactElement {
   const value = useNavChallengeState();
   // ADITIVO (fix15-list-challenges): setupRoot do último generateLesson — fora
@@ -31,9 +39,24 @@ export function ChallengeNavProvider({
   const setLastSetupRoot = useCallback((setupRoot: string | null): void => {
     setLastSetupRootState(setupRoot);
   }, []);
+  // ADITIVO (onda2-error-flow): relatório do erro de desafio que FALHOU —
+  // FORA do reducer (mesmo padrão do lastSetupRoot): o reducer define as
+  // transições (testáveis), mas o valor VIVO mora aqui — o TrackChallengePanel
+  // grava antes de navegar para a Aula; a LessonView semeia a bolha e limpa.
+  const [challengeErrorReport, setChallengeErrorReportState] = useState<TrackChallengeErrorReport | null>(null);
+  const reportChallengeError = useCallback((report: TrackChallengeErrorReport): void => {
+    setChallengeErrorReportState(report);
+  }, []);
+  const clearChallengeError = useCallback((): void => {
+    setChallengeErrorReportState(null);
+  }, []);
   const navigate = useMemo(
     () => onNavigateChallenge ?? (() => {}),
     [onNavigateChallenge],
+  );
+  const navigateToLesson = useMemo(
+    () => onNavigateLesson ?? (() => {}),
+    [onNavigateLesson],
   );
   const memo = useMemo(
     () => ({
@@ -46,6 +69,10 @@ export function ChallengeNavProvider({
       navigateToChallenge: navigate,
       lastSetupRoot,
       setLastSetupRoot,
+      challengeErrorReport,
+      reportChallengeError,
+      clearChallengeError,
+      navigateToLesson,
     }),
     [
       value.selectedChallenge,
@@ -56,6 +83,10 @@ export function ChallengeNavProvider({
       navigate,
       lastSetupRoot,
       setLastSetupRoot,
+      challengeErrorReport,
+      reportChallengeError,
+      clearChallengeError,
+      navigateToLesson,
     ],
   );
   return <ChallengeNavCtx.Provider value={memo}>{children}</ChallengeNavCtx.Provider>;

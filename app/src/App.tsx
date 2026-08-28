@@ -110,7 +110,12 @@ export default function App(): ReactElement {
   const isReady = startup.status?.phase === 'ready';
   return (
     <SessionStateProvider>
-      <ChallengeNavProvider onNavigateChallenge={() => setActive('challenge')}>
+      <ChallengeNavProvider
+        onNavigateChallenge={() => setActive('challenge')}
+        // ONDA2 (error-flow): o desafio de aula que FALHOU fecha e o chat da
+        // aula reabre com a bolha de erro — o painel navega de volta à aba Aula.
+        onNavigateLesson={() => setActive('lesson')}
+      >
         <Shell active={active} setActive={setActive} />
         <OnboardingHost isReady={isReady} activeView={active} onNavigateView={setActive} />
       </ChallengeNavProvider>

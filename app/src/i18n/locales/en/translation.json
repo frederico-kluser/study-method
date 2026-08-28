@@ -176,7 +176,13 @@
     "trackLoadTimeout": "The lesson did not respond in time. Try again.",
     "nextTimeout": "The tutor did not respond when advancing the section. Try again.",
     "answerTimeout": "The tutor took too long to reply. Try again.",
-    "doneTimeout": "Could not finish the lesson — the app did not respond. Try again."
+    "doneTimeout": "Could not finish the lesson — the app did not respond. Try again.",
+    "errorBubbleTitle": "Your code failed the tests",
+    "errorQuestion": "What do you think went wrong? Type here or speak into the microphone. If you don't know, just say \"I don't know\".",
+    "micStart": "Speak",
+    "micStop": "Stopping recording…",
+    "micRecording": "Transcribing…",
+    "regenerateFailed": "Could not generate a new challenge."
   },
   "challenge": {
     "openChallenge": "Open challenge",

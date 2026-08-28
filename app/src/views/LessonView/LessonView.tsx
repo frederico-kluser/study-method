@@ -15,9 +15,18 @@
  *     lesson-done) e os DESAFIOS da aula ficam disponíveis (abrem na
  *     ChallengeView com o fluxo track).
  *
+ * ONDA2 (error-flow): quando um desafio de AULA FALHA, o painel fecha e o
+ * chat da aula REABRE em tela cheia com a bolha de erro (checklist + saída)
+ * + a pergunta do tutor ("o que você acha que errou?"). A resposta do aluno
+ * (texto OU voz — mic no input) vai ao tutor com `challengeError` no payload
+ * ('answer'): a IA valida a hipótese ou analisa o erro sozinha ("não sei").
+ * O seed da bolha é feito NA MONTAGEM (guard anti-StrictMode com ref) e o
+ * "Gerar novo desafio" migrou para DENTRO da bolha (nunca-repetir intacto).
+ *
  * Entrada: `pendingTrackLesson` (Trilha → Aula) drenado na MONTAGEM
- * (src/lib/pendingSubject.ts). Sem pendência, a view mostra o seletor de
- * trilhas (estado vazio) — nunca gera.
+ * (src/lib/pendingSubject.ts) OU `nav.challengeErrorReport` (Desafio → Aula,
+ * erro). Sem nenhum dos dois, a view mostra o seletor de trilhas (estado
+ * vazio) — nunca gera.
  */
 import ReactMarkdown from 'react-markdown';
 import {
@@ -56,6 +65,9 @@ import AutoStoriesIcon from '@mui/icons-material/AutoStories';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import LockIcon from '@mui/icons-material/Lock';
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
+import MicIcon from '@mui/icons-material/Mic';
+import MicOffIcon from '@mui/icons-material/MicOff';
+import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 
 import { getApi } from '../../lib/apiBridge';
 import {
@@ -67,10 +79,14 @@ import {
 } from '../../lib/ipcTimeout';
 import { useSessionState } from '../../lib/sessionState';
 import { useChallengeNav } from '../../lib/challengeNav';
+import { useMicSTT } from '../../hooks/useMicSTT';
 import {
   applyTutorReply,
+  chatHistory,
+  clearChallengeError,
   createTrackLessonState,
   pushUserMessage,
+  seedChallengeError,
   type TrackLessonUiState,
 } from '../../lib/trackLessonState';
 import {
@@ -119,7 +135,22 @@ function MarkdownComponents() {
 }
 
 /** Bolha de mensagem do chat (assistente à esquerda, aluno à direita). */
-function ChatBubble({ role, content }: { role: 'assistant' | 'user'; content: string }): ReactElement {
+function ChatBubble({
+  role,
+  content,
+  kind,
+  onRegenerate,
+  regenerateDisabled,
+}: {
+  role: 'assistant' | 'user';
+  content: string;
+  /** ONDA2 (error-flow): metadado de UI — a bolha de erro ganha a ação
+   *  "Gerar novo desafio" (o painel fechou; a regeneração migrou pra cá). */
+  kind?: 'error-bubble' | 'error-question';
+  onRegenerate?: () => void;
+  regenerateDisabled?: boolean;
+}): ReactElement {
+  const { t } = useTranslation();
   const isUser = role === 'user';
   return (
     <Box
@@ -145,9 +176,27 @@ function ChatBubble({ role, content }: { role: 'assistant' | 'user'; content: st
             {content}
           </Typography>
         ) : (
-          <Box sx={{ '& p:first-of-type': { mt: 0 }, '& p:last-of-type': { mb: 0 } }}>
-            <ReactMarkdown components={MarkdownComponents()}>{content}</ReactMarkdown>
-          </Box>
+          <>
+            <Box sx={{ '& p:first-of-type': { mt: 0 }, '& p:last-of-type': { mb: 0 } }}>
+              <ReactMarkdown components={MarkdownComponents()}>{content}</ReactMarkdown>
+            </Box>
+            {/* ONDA2 (error-flow, A4): "Gerar novo desafio" DENTRO da bolha de
+                erro (nunca-repetir preservado — a LLM vê os desafios errados
+                da aula). Desabilitado enquanto um turno está em voo. */}
+            {kind === 'error-bubble' ? (
+              <Button
+                size="small"
+                variant="outlined"
+                color="secondary"
+                onClick={onRegenerate}
+                disabled={regenerateDisabled}
+                startIcon={<AutoAwesomeIcon />}
+                sx={{ mt: 1 }}
+              >
+                {t('translation:challenge.regenerateButton')}
+              </Button>
+            ) : null}
+          </>
         )}
       </Box>
     </Box>
@@ -155,7 +204,7 @@ function ChatBubble({ role, content }: { role: 'assistant' | 'user'; content: st
 }
 
 export function LessonView(props: ViewProps): ReactElement {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const tI = useMemo(
     () => t as unknown as (key: string, options?: Record<string, string | number>) => string,
     [t],
@@ -182,6 +231,25 @@ export function LessonView(props: ViewProps): ReactElement {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [sourcesOpen, setSourcesOpen] = useState(false);
   const [doneMarked, setDoneMarked] = useState(false);
+
+  // ONDA2 (error-flow, A5): mic no input do chat — o aluno pode responder à
+  // pergunta do erro por VOZ (ou tirar qualquer dúvida falando). DECISÃO:
+  // useMicSTT DIRETO (hook NÃO modificado — ele já expõe transcribing/
+  // partial/error/start/stop/cancel), montado num IconButton MUI no start
+  // adornment do TextField (o end já tem o Send). A transcrição FINAL
+  // preenche o draft — NUNCA envia automático. As strings de erro do hook
+  // são as dele (pt-BR fixo — fora de escopo alterá-las).
+  const mic = useMicSTT(i18n.language?.startsWith('en') ? 'en' : 'pt-BR');
+  const handleMicToggle = useCallback(async (): Promise<void> => {
+    if (mic.transcribing) {
+      const text = await mic.stop();
+      if (text.trim()) {
+        setDraft((prev) => (prev.trim() ? `${prev} ${text}` : text));
+      }
+    } else {
+      await mic.start();
+    }
+  }, [mic.transcribing, mic.start, mic.stop]);
 
   /** Carrega uma aula da trilha via IPC — SEMPRE com timeout: se o canal não
    * responder em `IPC_TIMEOUT_MS`, cai no loadError com mensagem própria
@@ -240,6 +308,20 @@ export function LessonView(props: ViewProps): ReactElement {
   }
   const pendingLessonHolder = pendingLessonHolderRef.current;
 
+  // ONDA2 (error-flow): a bolha de erro do desafio que FALHOU é seedada NA
+  // MONTAGEM — UMA única vez (guard anti-StrictMode no ref: as passadas do
+  // double-invoke do dev compartilham o MESMO fiber e refs sobrevivem, então
+  // a 2ª passada NÃO re-semeia). O relatório é lido por REF (não entra nas
+  // deps): a identidade do contexto muda quando o report é setado/limpo, e
+  // depender dela re-executaria o efeito a cada mudança de navegação.
+  const challengeErrorSeededRef = useRef(false);
+  // Aula do erro em seed (StrictMode: a 2ª passada encontra o report já
+  // drenado — este ref RE-DISPARA o load da MESMA aula que o cleanup da 1ª
+  // passada cancelou; o seed NÃO é repetido).
+  const challengeErrorLessonRef = useRef<{ trackSlug: string; lessonId: string } | null>(null);
+  const navReportRef = useRef(nav.challengeErrorReport);
+  navReportRef.current = nav.challengeErrorReport;
+
   // Drena a pendência da trilha NA MONTAGEM (one-shot). Pendências legadas
   // (subject/domain/lessonId) são descartadas — rodada 8: não se gera aula.
   useEffect(() => {
@@ -249,10 +331,44 @@ export function LessonView(props: ViewProps): ReactElement {
     // get() retém a pendência entre as passadas do double-invoke — o drain
     // direto aqui veria null na 2ª passada e nenhum load novo seria disparado.
     const pending = pendingLessonHolder.get();
-    if (!pending) return;
-    setTrackLesson(pending);
-    publishSession({ subject: pending.lessonId, status: 'idle' });
-    return loadLesson(pending.trackSlug, pending.lessonId);
+    const report = navReportRef.current;
+    if (report && !challengeErrorSeededRef.current) {
+      // ONDA2 (error-flow): o desafio de AULA falhou e o painel fechou — o
+      // chat da aula reabre com a bolha de erro + a pergunta do tutor. O seed
+      // NÃO depende do lesson carregado (a bolha é UI determinística); o
+      // report traz trackSlug/lessonId do próprio erro. Ordem: setTrackLesson
+      // → loadLesson → seedChallengeError → nav.clearChallengeError().
+      challengeErrorSeededRef.current = true;
+      challengeErrorLessonRef.current = { trackSlug: report.trackSlug, lessonId: report.lessonId };
+      setTrackLesson({ trackSlug: report.trackSlug, lessonId: report.lessonId });
+      publishSession({ subject: report.lessonId, status: 'idle' });
+      setChat((s) =>
+        seedChallengeError(s, report, tIRef.current('lesson.errorQuestion'), {
+          title: tIRef.current('lesson.errorBubbleTitle'),
+          partialCount: tIRef.current('challenge.partialCount', {
+            passed: report.passedCount,
+            total: report.totalCount,
+          }),
+          checksTitle: tIRef.current('challenge.checksTitle'),
+          outputTitle: tIRef.current('challenge.output'),
+        }),
+      );
+      nav.clearChallengeError();
+      return loadLesson(report.trackSlug, report.lessonId);
+    }
+    if (pending) {
+      setTrackLesson(pending);
+      publishSession({ subject: pending.lessonId, status: 'idle' });
+      return loadLesson(pending.trackSlug, pending.lessonId);
+    }
+    // StrictMode (dev): a 2ª passada vê o report já drenado — re-dispara o
+    // load da aula do erro (o cleanup da 1ª passada cancelou o IPC). Sem
+    // isto, o spinner da aula ficaria eterno (bug da rodada 11, mesma forma).
+    if (challengeErrorLessonRef.current) {
+      const ctx = challengeErrorLessonRef.current;
+      return loadLesson(ctx.trackSlug, ctx.lessonId);
+    }
+    return undefined;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loadLesson, publishSession]);
 
@@ -271,13 +387,16 @@ export function LessonView(props: ViewProps): ReactElement {
           trackSlug: trackLesson.trackSlug,
           lessonId: trackLesson.lessonId,
           presentedSections: chat.presentedSections,
-          history: chat.history,
+          history: chatHistory(chat),
           action: 'next',
         }),
         ACTION_TIMEOUTS.next,
         'track.tutorChat:next',
       );
-      setChat((s) => applyTutorReply(s, res));
+      // ONDA2 (error-flow): 'next' LIMPA o contexto de erro — a teoria
+      // retoma e a discussão do erro encerra (as bolhas continuam na
+      // conversa; só o challengeError deixa de acompanhar os turnos).
+      setChat((s) => clearChallengeError(applyTutorReply(s, res)));
     } catch (err) {
       setChat((s) => ({
         ...s,
@@ -292,6 +411,10 @@ export function LessonView(props: ViewProps): ReactElement {
   const sendAnswer = useCallback(async (): Promise<void> => {
     const text = draft.trim();
     if (!trackLesson || !text || busy) return;
+    // ONDA2 (error-flow, A5): gravação em andamento + envio → CANCELA o mic
+    // (o turno em voo desabilita o botão; sem o cancel, a gravação ficaria
+    // presa sem como parar — a transcrição parcial não vira segundo envio).
+    if (mic.transcribing) void mic.cancel();
     setDraft('');
     setChat((s) => pushUserMessage(s, text));
     setBusy(true);
@@ -302,8 +425,12 @@ export function LessonView(props: ViewProps): ReactElement {
           trackSlug: trackLesson.trackSlug,
           lessonId: trackLesson.lessonId,
           presentedSections: chat.presentedSections,
-          history: [...chat.history, { role: 'user', content: text }],
+          // chatHistory STRIPA o kind das bolhas (texto puro ao main); o
+          // challengeError (se em discussão) acompanha o turno — o main o usa
+          // na análise da hipótese do aluno em 'answer'.
+          history: [...chatHistory(chat), { role: 'user', content: text }],
           action: 'answer',
+          ...(chat.challengeError ? { challengeError: chat.challengeError } : {}),
         }),
         ACTION_TIMEOUTS.answer,
         'track.tutorChat:answer',
@@ -319,7 +446,7 @@ export function LessonView(props: ViewProps): ReactElement {
       setBusy(false);
       setPendingAction(null);
     }
-  }, [trackLesson, draft, busy, chat.presentedSections, chat.history, tI]);
+  }, [trackLesson, draft, busy, chat.presentedSections, chat.history, chat.challengeError, mic.transcribing, mic.cancel, tI]);
 
   /** Conclui a aula (destrava a próxima) e publica a sessão. */
   const finishLesson = useCallback(async (): Promise<void> => {
@@ -367,6 +494,48 @@ export function LessonView(props: ViewProps): ReactElement {
     },
     [trackLesson, nav],
   );
+
+  /** ONDA2 (error-flow, A4): "Gerar novo desafio" NA BOLHA de erro — a LLM vê
+   *  os desafios que o aluno errou nesta aula (nunca-repetir da rodada 8
+   *  preservado). Sucesso → abre o desafio NOVO na ChallengeView; falha/
+   *  timeout → chat.lastError (o Alert fixo abaixo da região — NÃO é movido).
+   *  `busy` da view reusa o estado de turno em voo para desabilitar o botão. */
+  const handleRegenerateFromBubble = useCallback(async (): Promise<void> => {
+    if (!trackLesson || busy) return;
+    setBusy(true);
+    try {
+      const res = await withTimeout(
+        getApi().track.challengeRegenerate({
+          trackSlug: trackLesson.trackSlug,
+          lessonId: trackLesson.lessonId,
+        }),
+        ACTION_TIMEOUTS.challengeRegenerate,
+        'track.challengeRegenerate',
+      );
+      if (res.ok && res.challenge) {
+        nav.selectTrackChallenge({
+          trackSlug: trackLesson.trackSlug,
+          target: 'lesson',
+          lessonId: trackLesson.lessonId,
+          challengeId: res.challenge.slug,
+          title: res.challenge.title,
+        });
+        nav.navigateToChallenge();
+      } else {
+        setChat((s) => ({
+          ...s,
+          lastError: res.error?.message ?? tI('lesson.regenerateFailed'),
+        }));
+      }
+    } catch (err) {
+      setChat((s) => ({
+        ...s,
+        lastError: isTimeoutError(err) ? tI('challenge.regenerateTimeout') : String(err),
+      }));
+    } finally {
+      setBusy(false);
+    }
+  }, [trackLesson, busy, nav, tI]);
 
   /** Revisão de uma aula ANTERIOR da trilha (aluno não entendeu). */
   const openPrerequisite = useCallback(
@@ -537,7 +706,16 @@ export function LessonView(props: ViewProps): ReactElement {
               </Button>
             </Box>
           ) : (
-            chat.history.map((m, i) => <ChatBubble key={i} role={m.role} content={m.content} />)
+            chat.history.map((m, i) => (
+              <ChatBubble
+                key={i}
+                role={m.role}
+                content={m.content}
+                kind={m.kind}
+                onRegenerate={m.kind === 'error-bubble' ? handleRegenerateFromBubble : undefined}
+                regenerateDisabled={busy}
+              />
+            ))
           )}
           {/* ONDA 1 (teoria-pronta): "digitando…" SÓ em 'answer' (LLM). 'next' é
               instantâneo — o markdown da seção já está no arquivo da trilha. */}
@@ -608,7 +786,19 @@ export function LessonView(props: ViewProps): ReactElement {
           </Alert>
         ) : null}
 
-        {/* Entrada: dúvida do aluno + avanço da teoria. */}
+        {/* ONDA2 (error-flow, A5): mic — o indicador de transcrição é
+            acessível (aria-live) e o erro do engine (hook, sem dismiss)
+            aparece como Alert pequeno; o botão permanece reabilitado. */}
+        {mic.transcribing ? (
+          <Typography variant="caption" color="text.secondary" aria-live="polite" sx={{ fontStyle: 'italic' }}>
+            {tI('lesson.micRecording')} — {mic.partial || '…'}
+          </Typography>
+        ) : null}
+        {mic.error ? (
+          <Alert severity="error" sx={{ py: 0.5 }}>{mic.error}</Alert>
+        ) : null}
+
+        {/* Entrada: dúvida do aluno (texto OU voz) + avanço da teoria. */}
  <Stack direction="row" spacing={1}>
           <TextField
             size="small"
@@ -623,6 +813,22 @@ export function LessonView(props: ViewProps): ReactElement {
             disabled={busy}
             slotProps={{
               input: {
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <Tooltip title={mic.transcribing ? t('translation:lesson.micStop') : t('translation:lesson.micStart')}>
+                      <span>
+                        <IconButton
+                          onClick={() => void handleMicToggle()}
+                          disabled={busy}
+                          size="small"
+                          aria-label={mic.transcribing ? tI('lesson.micStop') : tI('lesson.micStart')}
+                        >
+                          {mic.transcribing ? <MicOffIcon fontSize="small" /> : <MicIcon fontSize="small" />}
+                        </IconButton>
+                      </span>
+                    </Tooltip>
+                  </InputAdornment>
+                ),
                 endAdornment: (
                   <InputAdornment position="end">
                     <Tooltip title={t('translation:lesson.askSend')}>

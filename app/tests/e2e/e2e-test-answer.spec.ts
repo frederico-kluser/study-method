@@ -7,9 +7,15 @@
  *  - antes de "Começar" o editor NÃO está ativo (enunciado primeiro);
  *  - após "Começar", o editor CodeMirror aparece e o cronômetro roda;
  *  - resposta CORRETA → "Passou" (confete + estrelas);
- *  - resposta ERRADA → ONDA 1: razão parcial "N de M testes passaram" +
- *    CHECKLIST individual (✓/✗ com o nome de cada teste) + botão "Gerar novo
- *    desafio" (veredito não é tudo-ou-nada).
+ *  - resposta ERRADA → ONDA2 (error-flow): o painel FECHA e a aba Aula reabre
+ *    (em tela cheia) com a BOLHA DE ERRO no role=log (razão parcial "1 de 3
+ *    testes passaram" + checklist individual ✔/✖ + saída) seguida da BOLHA DA
+ *    PERGUNTA do tutor ("O que você acha que errou?"); o "Gerar novo desafio"
+ *    agora vive NA BOLHA → clicar leva à superfície de falha HONESTA do stub
+ *    (regeneração desativada no modo E2E — sem LLM) exibida como chat.lastError
+ *    (Alert fixo, NÃO movido); a segunda metade REENTRA no desafio pelo CARD da
+ *    lista da aula ("Desafios desta aula" — o card continua lá) e passa com a
+ *    resposta certa.
  */
 import { test, expect, type ElectronApplication, type Page } from '@playwright/test';
 import { launchApp, closeApp, makeWorkspaceRoot, openTrackChallenge } from './helpers';
@@ -26,7 +32,7 @@ test.afterEach(async () => {
   if (app) await closeApp(app);
 });
 
-test('e2e-test-answer: Começar → editor → resposta certa passa; errada mostra checklist parcial + gerar novo', async () => {
+test('e2e-test-answer: errada fecha o painel → bolha de erro + pergunta no chat da aula; certa passa', async () => {
   const launched = await launchApp({
     env: { E2E_GATE: 'ready', E2E_WORKSPACE_ROOT: wsRoot! },
   });
@@ -44,26 +50,52 @@ test('e2e-test-answer: Começar → editor → resposta certa passa; errada most
   await expect(page.locator('.cm-content').first()).toBeVisible();
   await expect(page.getByRole('timer')).toBeVisible();
 
-  // Resposta ERRADA → ONDA 1: razão PARCIAL + CHECKLIST dos 3 testes
-  // (return n → dobro(2)=2≠4 ✖, dobro(0)=0 ✓, dobro(-3)=-3≠-6 ✖ → 1 de 3).
-  // O editor trava após o veredito — o caminho de saída é o novo desafio.
+  // Resposta ERRADA (return n → dobro(2)=2≠4 ✖, dobro(0)=0 ✓, dobro(-3)=-3≠-6 ✖
+  // → 1 de 3). ONDA2: o painel FECHA e a aba Aula reabre com a bolha de erro.
   await page.locator('.cm-content').first().click();
   await page.keyboard.press('ControlOrMeta+a');
   await page.keyboard.type('export function dobroDoNumero(n) { return n; }');
   await page.getByRole('button', { name: 'Testar resposta' }).click();
-  await expect(page.getByText('1 de 3 testes passaram', { exact: false })).toBeVisible({ timeout: 20_000 });
-  await expect(page.getByText('Resultado por teste', { exact: false })).toBeVisible();
-  // O nome do teste aparece na checklist (ListItemText) E na saída bruta (pre)
-  // — exact:true isola o item da checklist.
-  await expect(page.getByText('dobro de 0 é 0', { exact: true })).toBeVisible();
+
+  // O painel do desafio fechou (nenhum heading com o título do desafio).
+  await expect(page.getByRole('heading', { name: 'O dobro do número' })).toHaveCount(0, { timeout: 20_000 });
+
+  // A AULA reabriu (em tela cheia) — a bolha de erro está no role=log:
+  // razão parcial (N de M) + checklist com ✔/✖ + a pergunta do tutor.
+  await expect(page.getByRole('heading', { name: 'Aula E2E sobre funções' })).toBeVisible({ timeout: 20_000 });
+  const log = page.getByRole('log');
+  await expect(log.getByText('1 de 3 testes passaram', { exact: false })).toBeVisible({ timeout: 20_000 });
+  await expect(log.getByText('Resultado por teste', { exact: false })).toBeVisible();
+  // Checklist isolada da saída bruta (a MESMA linha do check existe no code
+  // block — o escopo do <ul> da bolha isola os itens; âncora ^$ no li).
+  const checklist = log.getByRole('list');
+  await expect(checklist.getByText(/^✔ dobro de 0 é 0$/)).toBeVisible();
+  await expect(checklist.getByText(/^✖ dobro de 2 é 4$/)).toBeVisible();
+  // Bolha da pergunta do tutor ("o que você acha que errou?").
+  await expect(log.getByText('O que você acha que errou?', { exact: false })).toBeVisible();
+
+  // O aluno responde (texto) — o turno 'answer' leva o challengeError no
+  // payload (contrato Onda 1; o stub ecoa a última pergunta do aluno). O envio
+  // é o Enter no textbox (o IconButton do Send não tem aria-label — gap de
+  // a11y PRÉ-EXISTENTE, fora do escopo desta onda).
+  await page.getByRole('textbox', { name: 'Sua dúvida…' }).fill('eu acho que errei no retorno');
+  await page.getByRole('textbox', { name: 'Sua dúvida…' }).press('Enter');
+  await expect(
+    page.getByText('Tutor E2E responde a dúvida: eu acho que errei no retorno', { exact: false }),
+  ).toBeVisible({ timeout: 20_000 });
+
+  // "Gerar novo desafio" AGORA VIVE NA BOLHA (o painel fechou). Clicar leva à
+  // superfície de falha HONESTA do stub: a regeneração exige LLM — OFF no modo
+  // E2E — e o erro aparece como chat.lastError (Alert fixo da aula).
   await expect(page.getByRole('button', { name: 'Gerar novo desafio' })).toBeVisible();
-  // E2E: a regeneração exige LLM — OFF no stub; o erro é honesto (sem inventar).
   await page.getByRole('button', { name: 'Gerar novo desafio' }).click();
   await expect(page.getByText('regeneração desativada no modo E2E', { exact: false })).toBeVisible();
 
-  // Reload → desafio recomeça do enunciado (estado fresco) → resposta CERTA.
-  await page.reload();
-  await openTrackChallenge(page);
+  // Segunda metade: REENTRA no desafio pelo CARD da lista da aula (o card
+  // continua em "Desafios desta aula" — o texto da bolha NÃO é um botão, o
+  // locator por role button isola o card) e passa com a resposta certa.
+  await page.getByRole('button', { name: /O dobro do número/ }).first().click();
+  await expect(page.getByRole('heading', { name: 'O dobro do número' }).first()).toBeVisible({ timeout: 20_000 });
   await page.getByRole('button', { name: 'Começar' }).click();
   await page.locator('.cm-content').first().click();
   await page.keyboard.press('ControlOrMeta+a');

@@ -14,9 +14,12 @@
  *      → SELETOR DE ARQUIVOS (abas MUI), um editor CodeMirror por arquivo; o
  *      submit envia o código de TODOS os arquivos (files no request).
  *   3. VEREDITO — passou: confete + mark 'passed' (estrelas/duração) via
- *      study:mark-challenge-attempt; errou: o ERRO é apresentado + botão
- *      "Gerar novo desafio" — a LLM vê TODOS os desafios que o aluno errou
- *      naquela aula e não repete nenhum (nunca-repetir da rodada 8).
+ *      study:mark-challenge-attempt; errou (target 'lesson', ONDA2): o painel
+ *      FECHA e o chat da aula reabre com a bolha de erro + pergunta do tutor
+ *      (markAttempt → reportChallengeError → navigateToLesson — o desafio
+ *      NUNCA é repetido: a LLM vê os desafios que o aluno errou naquela aula);
+ *      errou (proficiency/module): o ERRO é apresentado + botão "Gerar novo
+ *      desafio" (proficiency) — comportamento atual preservado.
  *
  * A proficiência usa o MESMO painel (target 'proficiency'); ao passar, o main
  * grava o veredito e destrava a trilha inteira. ADITIVO (rodada 9): o desafio
@@ -61,11 +64,12 @@ import {
 import { fireConfetti } from '../../lib/confetti';
 import { createStarTracker, formatClock, type StarTracker } from '../../lib/challengeStars';
 import { CodeMirrorField } from '../../components/cm/CodeMirrorField';
+import { buildErrorReport } from '../../lib/trackLessonState';
 import type {
   TrackChallengeSpec,
   TrackSubmitResult,
 } from '../../../shared/ipc-contract';
-import type { TrackChallengeNavSelection } from '../../lib/challengeNav';
+import { useChallengeNav, type TrackChallengeNavSelection } from '../../lib/challengeNav';
 
 function MarkdownComponents() {
   return {
@@ -105,6 +109,9 @@ export function TrackChallengePanel({ selection }: { selection: TrackChallengeNa
     () => t as unknown as (key: string, options?: Record<string, string | number>) => string,
     [t],
   );
+  // ONDA2 (error-flow): o painel fecha um desafio de AULA que falhou —
+  // reporta o erro e navega de volta ao chat da aula (bolha de erro).
+  const nav = useChallengeNav();
 
   const [spec, setSpec] = useState<TrackChallengeSpec | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -273,10 +280,16 @@ export function TrackChallengePanel({ selection }: { selection: TrackChallengeNa
     };
   }, [started, concluded]);
 
-  // Troca de desafio sem concluir → abandoned.
+  // Troca de desafio sem concluir → abandoned. ONDA2 (error-flow): o desafio
+  // de AULA que falhou já foi marcado 'failed' ANTES de navegar (ordem:
+  // markAttempt → report → navigate) — o setConcluded não chega a commitar
+  // antes do unmount, então este cleanup veria `concluded` null e marcaria
+  // 'abandoned' POR CIMA do 'failed' (o repo é append — a última linha vira o
+  // lastVerdict). O guard lê o REF (sempre atual): terminal já marcado → o
+  // unmount não sobrescreve.
   useEffect(() => {
     return () => {
-      if (started && !concluded && spec) {
+      if (started && !concluded && spec && markedRef.current !== 'failed') {
         const elapsed = startTsRef.current > 0 ? Date.now() - startTsRef.current : 0;
         markAttempt('abandoned', starsLeft, elapsed);
       }
@@ -319,6 +332,29 @@ export function TrackChallengePanel({ selection }: { selection: TrackChallengeNa
           setConcluded('passed');
           fireConfetti();
           markAttempt('passed', starsLeft, Date.now() - startTsRef.current);
+        } else if (selection.target === 'lesson') {
+          // ONDA2 (error-flow): desafio de AULA que FALHOU → o painel FECHA e o
+          // chat da aula reabre com a bolha de erro + pergunta do tutor. Ordem
+          // (contrato): markAttempt (nunca-repetir) → reportChallengeError →
+          // navigateToLesson. O mark é otimista (fire-and-forget) e o report
+          // é drenado pela LessonView na montagem (seed anti-StrictMode com
+          // ref). proficiency/module e submissionError/timeout NÃO chegam aqui
+          // — o painel permanece (comportamento atual intacto).
+          markAttempt('failed', starsLeft, Date.now() - startTsRef.current);
+          const files = multiFile
+            ? spec.files.map((f) => ({ path: f.path, code: filesCode[f.path] ?? '' }))
+            : [{ path: 'solution.mjs', code }];
+          const errorReport = buildErrorReport({
+            trackSlug: selection.trackSlug,
+            lessonId: selection.lessonId ?? '',
+            challengeId: spec.slug,
+            challengeTitle: spec.title,
+            files,
+            result: res,
+          });
+          nav.reportChallengeError(errorReport);
+          nav.navigateToLesson();
+          return; // o painel fecha antes de renderizar a bolha determinística
         } else {
           setConcluded('failed');
           markAttempt('failed', starsLeft, Date.now() - startTsRef.current);
@@ -331,7 +367,7 @@ export function TrackChallengePanel({ selection }: { selection: TrackChallengeNa
     } finally {
       setRunning(false);
     }
-  }, [spec, started, running, concluded, selection, code, filesCode, activeFile, starsLeft, markAttempt, tI]);
+  }, [spec, started, running, concluded, selection, code, filesCode, activeFile, starsLeft, markAttempt, tI, nav]);
 
   /** Regenera o desafio: a LLM vê os erros do aluno nesta aula e não repete. */
   const handleRegenerate = useCallback(async (): Promise<void> => {
@@ -577,8 +613,12 @@ export function TrackChallengePanel({ selection }: { selection: TrackChallengeNa
             {/* Nunca-repetir: qualquer NÃO-aprovação (falhou OU timeout) →
                 erro + botão de NOVO desafio. Veredito parcial (passou alguns
                 testes) também conta como não-aprovação: só passed=true aprova.
-                ADITIVO (rodada 9): desafios de MÓDULO são autorais — a
-                regeneração é por AULA, então não aparece para target 'module'. */}
+                ONDA2 (error-flow): para target 'lesson' este botão NÃO chega a
+                renderizar — o painel FECHA no submit falho e a regeneração
+                migrou para a bolha de erro no chat da aula. Aqui ele segue
+                para a proficiência. ADITIVO (rodada 9): desafios de MÓDULO são
+                autorais — a regeneração é por AULA, então não aparece para
+                target 'module'. */}
             {selection.target !== 'module' && (concluded === 'failed' || concluded === 'timeout') ? (
               <Button
                 variant="outlined"
