@@ -27,7 +27,7 @@
  * regeneração (conteúdo autoral).
  */
 import ReactMarkdown from 'react-markdown';
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactElement, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore, type ReactElement, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   Alert,
@@ -65,6 +65,16 @@ import { fireConfetti } from '../../lib/confetti';
 import { createStarTracker, formatClock, type StarTracker } from '../../lib/challengeStars';
 import { CodeMirrorField } from '../../components/cm/CodeMirrorField';
 import { buildErrorReport } from '../../lib/trackLessonState';
+// ONDA3 (generate-flow): o processo de "Gerar novo desafio" é GLOBAL (store
+// module-level + modal de etapas no shell) — o painel dispara via store + IPC
+// e atualiza o spec local quando o invoke resolve (o modal mostra o progresso).
+import {
+  failChallengeGenerate,
+  finishChallengeGenerate,
+  peekChallengeGenerate,
+  startChallengeGenerate,
+  subscribeChallengeGenerate,
+} from '../../lib/challengeGenerateStore';
 import type {
   TrackChallengeSpec,
   TrackSubmitResult,
@@ -139,6 +149,11 @@ export function TrackChallengePanel({ selection }: { selection: TrackChallengeNa
 
   // Regeneração (nunca-repetir).
   const [regenerating, setRegenerating] = useState(false);
+  // ONDA3 (generate-flow): processo GLOBAL em voo — gateia o botão mesmo se
+  // este painel montou DEPOIS do disparo (ex.: voltou à aba Desafio no meio
+  // da geração iniciada na bolha da aula).
+  const generateState = useSyncExternalStore(subscribeChallengeGenerate, peekChallengeGenerate);
+  const generateRunning = generateState.status === 'running';
 
   const markedRef = useRef<string | null>(null);
 
@@ -391,9 +406,29 @@ export function TrackChallengePanel({ selection }: { selection: TrackChallengeNa
     }
   }, [spec, started, running, concluded, selection, code, filesCode, activeFile, starsLeft, markAttempt, tI, nav]);
 
-  /** Regenera o desafio: a LLM vê os erros do aluno nesta aula e não repete. */
+  /** Regenera o desafio: a LLM vê os erros do aluno nesta aula e não repete.
+   *
+   *  ONDA3 (generate-flow): o processo é GLOBAL — dispara via
+   *  challengeGenerateStore + o IPC; o modal de etapas (no shell) mostra o
+   *  progresso real (eventos do main). DECISÃO (documentada): o painel MANTÉM
+   *  a atualização local do spec quando o invoke resolve (setSpec — fluxo
+   *  atual intacto); se o painel desmontou durante a geração (troca de aba),
+   *  o modal global mostra o done com "Ver desafio" (navega para o desafio
+   *  novo) — o guard cancelledRef impede setState/navegação pós-await. */
   const handleRegenerate = useCallback(async (): Promise<void> => {
-    if (!spec || regenerating) return;
+    if (!spec || regenerating || generateRunning) return;
+    const generationId = startChallengeGenerate({
+      trackSlug: selection.trackSlug,
+      lessonId: selection.lessonId ?? selection.challengeId,
+      // BAIXO-3: o painel de proficiência navega com target 'proficiency'
+      // (nunca hardcode 'lesson' — o modal usa o target guardado no store).
+      target: selection.target === 'proficiency' ? 'proficiency' : 'lesson',
+    });
+    if (generationId === null) {
+      // Já existe um processo em voo (ex.: disparado pela bolha da aula) — o
+      // modal global é o único processo; nada a fazer aqui.
+      return;
+    }
     setRegenerating(true);
     try {
       // FIX W1 (onda 4): timeout de 150s — o main faz ATÉ 2 tentativas de LLM
@@ -403,11 +438,20 @@ export function TrackChallengePanel({ selection }: { selection: TrackChallengeNa
         getApi().track.challengeRegenerate({
           trackSlug: selection.trackSlug,
           lessonId: selection.lessonId ?? selection.challengeId,
+          // ALTO-2: o main ecoa o id nos eventos de progresso — o modal
+          // descarta eventos de processos anteriores.
+          generationId,
         }),
         ACTION_TIMEOUTS.challengeRegenerate,
         'track.challengeRegenerate',
       );
+      // Guard de montagem: painel desmontado durante a geração → descarta
+      // silenciosamente (o modal global conclui pelos eventos do main).
+      if (cancelledRef.current) return;
       if (res.ok && res.challenge) {
+        // O modal global (sempre montado) já recebeu o 'done' do main — este
+        // finish é idempotente (estado terminal sticky + correlação no store).
+        finishChallengeGenerate({ slug: res.challenge.slug, title: res.challenge.title }, generationId);
         setSpec(res.challenge);
         setCode(res.challenge.starterCode);
         setStarted(false);
@@ -418,14 +462,21 @@ export function TrackChallengePanel({ selection }: { selection: TrackChallengeNa
         setSubmissionError(null);
         markedRef.current = null;
       } else {
-        setSubmissionError(res.error?.message ?? 'não foi possível gerar um novo desafio');
+        const msg = res.error?.message ?? 'não foi possível gerar um novo desafio';
+        failChallengeGenerate(msg, generationId);
+        setSubmissionError(msg);
       }
     } catch (err) {
-      setSubmissionError(isTimeoutError(err) ? tI('challenge.regenerateTimeout') : String(err));
+      // Guard de montagem: idem — desmontado, nem o catch seta estado.
+      if (cancelledRef.current) return;
+      const msg = isTimeoutError(err) ? tI('challenge.regenerateTimeout') : String(err);
+      failChallengeGenerate(msg, generationId);
+      setSubmissionError(msg);
     } finally {
-      setRegenerating(false);
+      // Idem handleSubmit: o finally também só roda montado.
+      if (!cancelledRef.current) setRegenerating(false);
     }
-  }, [spec, regenerating, selection.trackSlug, selection.lessonId, selection.challengeId, tI]);
+  }, [spec, regenerating, generateRunning, selection.target, selection.trackSlug, selection.lessonId, selection.challengeId, tI]);
 
   if (loading) {
     return (
@@ -646,7 +697,10 @@ export function TrackChallengePanel({ selection }: { selection: TrackChallengeNa
                 variant="outlined"
                 color="secondary"
                 onClick={() => void handleRegenerate()}
-                disabled={regenerating}
+                // ONDA3 (generate-flow): o gating também cobre o processo
+                // GLOBAL em voo (o modal pode estar rodando mesmo se este
+                // painel montou depois do disparo).
+                disabled={regenerating || generateRunning}
                 startIcon={regenerating ? <CircularProgress size={16} /> : <AutoAwesomeIcon />}
               >
                 {t('translation:challenge.regenerateButton')}

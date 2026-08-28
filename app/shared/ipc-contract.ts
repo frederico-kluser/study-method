@@ -292,6 +292,11 @@ export const TRACK_CHANNELS = {
   CHALLENGE_SUBMIT: 'track:challenge-submit',
   /** Regenera UM desafio da aula: a LLM vê os desafios que o aluno ERROU e não repete. */
   CHALLENGE_REGENERATE: 'track:challenge-regenerate',
+  /** ADITIVO (onda3-generate-flow): progresso do track:challenge-regenerate em
+   * TEMPO REAL (push main→renderer) — o main emite os marcos que conhece "por
+   * volta" da chamada (o challengeRegenerator fica puro). O modal global de
+   * etapas lê estes eventos e atualiza o challengeGenerateStore. */
+  CHALLENGE_REGENERATE_PROGRESS: 'track:challenge-regenerate-progress',
   /** Teste de proficiência da trilha (cobre tudo — destrava as aulas). */
   PROFICIENCY_GET: 'track:proficiency',
   /** Executa o código do aluno contra o teste de proficiência. */
@@ -570,6 +575,12 @@ export interface TrackSubmitResult {
 export interface TrackRegenerateRequest {
   trackSlug: string;
   lessonId: string;
+  /** ADITIVO (onda3-generate-flow, revisão ALTO-2): id da geração no STORE do
+   *  renderer (incremento global). O main ecoa nos eventos de progresso —
+   *  o renderer correlaciona: eventos de um processo ANTERIOR (o invoke não
+   *  aborta o main; um terminal atrasado de A pode cruzar com o processo B)
+   *  são descartados. Ausente → o handler simplesmente não ecoa. */
+  generationId?: number;
 }
 
 export interface TrackRegenerateResult {
@@ -578,6 +589,46 @@ export interface TrackRegenerateResult {
   challenge?: TrackChallengeSpec;
   /** desafios que o aluno errou nesta aula (contexto do nunca-repetir). */
   failedContext?: { slug: string; title: string }[];
+}
+
+/**
+ * ADITIVO (onda3-generate-flow): evento de PROGRESSO do track:challenge-
+ * regenerate (canal push track:challenge-regenerate-progress). O main emite os
+ * marcos que CONHECE por volta da chamada ao challengeRegenerator (que fica
+ * PURO — não é instrumentado):
+ *
+ *   - 'generating' — ANTES da 1ª chamada LLM (o draft — pensar + escrever os
+ *     testes — é o polo longo da geração; pulsa enquanto a LLM trabalha);
+ *   - 'validating' — reportado logo após a chamada retornar, SÓ quando havia
+ *     contexto pedagógico (revisão BAIXO-2: o RÓTULO da etapa no modal é
+ *     honesto — "conferindo a coerência" — porque o regenerador PODE pular a
+ *     validação semântica quando o validador está indisponível; o marco é o
+ *     mesmo, o texto da UI não afirma validação que pode não ocorrer);
+ *   - 'executing' — idem (verificação de execução do draft);
+ *   - 'inserting' — antes do insert no banco (repo.insertGeneratedChallenge);
+ *   - 'done' (TERMINAL) — persistiu; carrega o challenge novo (o modal global
+ *     navega "Ver desafio" a partir dele — a view que disparou pode já ter
+ *     desmontado: navegação durante a geração);
+ *   - 'error' (TERMINAL) — falhou (LLM, execução, persistência OU exceção
+ *     inesperada — o handler emite em TODOS os caminhos, revisão ALTO-1:
+ *     o modal nunca fica preso em 'running').
+ *
+ * O renderer mapeia os 4 estágios de trabalho para as 5 etapas do modal
+ * (Etapa 2 "Escrevendo os testes" conclui junto da Etapa 1 — o draft da LLM
+ * já contém os testes; ver challengeGenerateStore.ts).
+ */
+export interface TrackRegenerateProgressEvent {
+  stage: 'generating' | 'validating' | 'executing' | 'inserting' | 'done' | 'error';
+  /** rótulo opcional do marco (ex.: nome do desafio sendo gerado). */
+  label?: string;
+  /** presente em 'done' — o desafio NOVO (para o "Ver desafio" navegar). */
+  challenge?: { slug: string; title: string };
+  /** presente em 'error' — mensagem do erro exibida pelo modal. */
+  error?: string;
+  /** ADITIVO (revisão ALTO-2): eco do generationId do request — o renderer
+   *  descarta eventos de processos anteriores (o withTimeout de 150s NÃO
+   *  aborta o main; um terminal atrasado não pode sequestrar a geração nova). */
+  generationId?: number;
 }
 
 export interface StudyFinding {

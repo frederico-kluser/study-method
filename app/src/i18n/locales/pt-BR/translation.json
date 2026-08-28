@@ -631,5 +631,19 @@
     "moduleChallengeTried": "Tentado",
     "listFailed": "Não foi possível carregar a lista de trilhas.",
     "backButton": "Voltar"
+  },
+  "challengeGen": {
+    "title": "Gerando novo desafio",
+    "stageThinking": "Pensando no desafio",
+    "stageTests": "Escrevendo os testes",
+    "stageValidating": "Conferindo a coerência com o que você aprendeu",
+    "stageExecuting": "Verificando a execução",
+    "stageInserting": "Adicionando ao topo dos desafios",
+    "doneTitle": "Novo desafio criado!",
+    "doneHint": "O desafio novo já está no topo da lista.",
+    "viewChallenge": "Ver desafio",
+    "errorGeneric": "Não foi possível gerar um novo desafio.",
+    "close": "Fechar",
+    "cancel": "Cancelar"
   }
 }

@@ -57,6 +57,7 @@ import type {
   TrackLessonDoneResult,
   TrackLessonResult,
   TrackListResult,
+  TrackRegenerateProgressEvent,
   TrackRegenerateRequest,
   TrackRegenerateResult,
   TrackSubmitRequest,
@@ -118,6 +119,8 @@ const EVENT_CHANNELS: ReadonlySet<string> = new Set<string>([
   STT_CHANNELS.STREAM_PARTIAL,
   STT_CHANNELS.ENGINE_STATUS,
   TTS_CHANNELS.DOWNLOAD_PROGRESS,
+  // ADITIVO (onda3-generate-flow): progresso do track:challenge-regenerate.
+  TRACK_CHANNELS.CHALLENGE_REGENERATE_PROGRESS,
 ]);
 
 /** camelCase do último segmento do canal (ex.: 'localAi:download-progress' → 'ownloadProgress'). */
@@ -264,6 +267,9 @@ export interface ApiSchema {
     challenge(input: TrackChallengeGetRequest): Promise<TrackChallengeResult>;
     challengeSubmit(input: TrackSubmitRequest): Promise<TrackSubmitResult>;
     challengeRegenerate(input: TrackRegenerateRequest): Promise<TrackRegenerateResult>;
+    /** ADITIVO (onda3-generate-flow): progresso do track:challenge-regenerate —
+     *  o modal global de etapas escuta por aqui (evento push). */
+    onChallengeRegenerateProgress(cb: (ev: TrackRegenerateProgressEvent) => void): () => void;
     proficiency(input: TrackChallengeGetRequest): Promise<TrackChallengeResult>;
     proficiencySubmit(input: TrackSubmitRequest & { stars?: number }): Promise<TrackSubmitResult>;
   };

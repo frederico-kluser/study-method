@@ -543,6 +543,194 @@ describe('buildTrackHandlers — trilhas', () => {
     assert.ok(result.error);
   });
 
+  // ─── ADITIVO (onda3-generate-flow): eventos de PROGRESSO reais ─────────────
+
+  it('track:challenge-regenerate: emite os marcos de progresso reais no canal push (com contexto → validação incluída)', async () => {
+    const dir = await makeTrackDir();
+    const events: Array<{ stage: string; generationId?: number; challenge?: { slug: string; title: string }; error?: string }> = [];
+    const map = buildTrackHandlers({
+      getTracksDir: () => path.dirname(dir),
+      repo: fakeRepo(),
+      emit: (_channel, ev) => {
+        events.push(ev as { stage: string; generationId?: number; challenge?: { slug: string; title: string }; error?: string });
+      },
+      deepseek: {
+        chatCompletion: async () => ({
+          content: JSON.stringify({
+            title: 'Novo desafio',
+            concept: 'variaveis',
+            difficulty: 2,
+            statement: 'Novo enunciado.',
+            starterCode: 'export function novo(x) { throw new Error("x"); }\n',
+            testsCode: `import { test } from 'node:test';\nimport assert from 'node:assert/strict';\nimport { novo } from './solution.mjs';\ntest('n1', () => { assert.equal(novo(1), 2); });\ntest('n2', () => { assert.equal(novo(2), 3); });\n`,
+            solutionCode: 'export function novo(x) { return x + 1; }\n',
+            expectedTestCount: 2,
+          }),
+          model: 'fake',
+        }),
+      } as never,
+    });
+    const result = await call<TrackRegenerateResult>(map, TRACK_CHANNELS.CHALLENGE_REGENERATE, {
+      trackSlug: 'trilha-teste',
+      lessonId: 'aula-1',
+      generationId: 42, // ALTO-2: ecoado em TODOS os eventos (correlação)
+    });
+    assert.equal(result.ok, true);
+    // Ordem dos marcos: generating ANTES da LLM; validating (contexto existe) →
+    // executing → inserting → done TERMINAL com o challenge novo.
+    assert.deepEqual(
+      events.map((e) => e.stage),
+      ['generating', 'validating', 'executing', 'inserting', 'done'],
+    );
+    assert.ok(
+      events.every((e) => e.generationId === 42),
+      'o generationId do request é ecoado em todos os eventos',
+    );
+    const terminal = events[events.length - 1];
+    assert.equal(terminal.challenge?.slug, result.challenge?.slug);
+    assert.ok(terminal.challenge?.title);
+  });
+
+  it('track:challenge-regenerate: falha da LLM emite o terminal error (nunca done)', async () => {
+    const dir = await makeTrackDir();
+    const events: Array<{ stage: string; generationId?: number; error?: string }> = [];
+    const map = buildTrackHandlers({
+      getTracksDir: () => path.dirname(dir),
+      repo: fakeRepo(),
+      emit: (_channel, ev) => {
+        events.push(ev as { stage: string; generationId?: number; error?: string });
+      },
+      deepseek: {
+        chatCompletion: async () => ({ content: 'resposta sem json', model: 'fake' }),
+      } as never,
+    });
+    const result = await call<TrackRegenerateResult>(map, TRACK_CHANNELS.CHALLENGE_REGENERATE, {
+      trackSlug: 'trilha-teste',
+      lessonId: 'aula-1',
+      generationId: 7,
+    });
+    assert.equal(result.ok, false);
+    assert.deepEqual(
+      events.map((e) => e.stage),
+      ['generating', 'error'],
+    );
+    assert.ok(events[1].error, 'terminal error carrega a mensagem');
+    assert.equal(events[1].generationId, 7, 'o terminal error também ecoa o id');
+  });
+
+  // ─── REVISÃO ALTO-1: terminal 'error' em TODOS os caminhos ────────────────
+
+  it('track:challenge-regenerate: bad request emite o terminal error (o modal nunca fica preso em running)', async () => {
+    const dir = await makeTrackDir();
+    const events: Array<{ stage: string; error?: string }> = [];
+    const map = buildTrackHandlers({
+      getTracksDir: () => path.dirname(dir),
+      repo: fakeRepo(),
+      emit: (_channel, ev) => {
+        events.push(ev as { stage: string; error?: string });
+      },
+      deepseek: {
+        chatCompletion: async () => ({ content: '{}', model: 'fake' }),
+      } as never,
+    });
+    // Payload inválido (sem lessonId) — retorno antecipado COM terminal.
+    const result = await call<TrackRegenerateResult>(map, TRACK_CHANNELS.CHALLENGE_REGENERATE, {
+      trackSlug: 'trilha-teste',
+    });
+    assert.equal(result.ok, false);
+    assert.equal(result.error?.code, 'REGEN_BAD_REQUEST');
+    assert.deepEqual(events.map((e) => e.stage), ['error']);
+    assert.ok(events[0].error);
+
+    // Sem repo — idem.
+    events.length = 0;
+    const mapNoRepo = buildTrackHandlers({
+      getTracksDir: () => path.dirname(dir),
+      deepseek: {
+        chatCompletion: async () => ({ content: '{}', model: 'fake' }),
+      } as never,
+    });
+    const noRepo = await call<TrackRegenerateResult>(mapNoRepo, TRACK_CHANNELS.CHALLENGE_REGENERATE, {
+      trackSlug: 'trilha-teste',
+      lessonId: 'aula-1',
+    });
+    assert.equal(noRepo.ok, false);
+    assert.equal(noRepo.error?.code, 'NO_REPO');
+  });
+
+  it('track:challenge-regenerate: exceção inesperada vira terminal error (try/catch do corpo — ALTO-1)', async () => {
+    const dir = await makeTrackDir();
+    const events: Array<{ stage: string; error?: string }> = [];
+    let threw = false;
+    const map = buildTrackHandlers({
+      getTracksDir: () => path.dirname(dir),
+      repo: fakeRepo(),
+      // O emit lança UMA vez (simula transporte com falha no meio do processo
+      // — ex.: webContents destruída): o try/catch do corpo garante o terminal
+      // 'error' no caminho seguinte (o emit do catch funciona).
+      emit: (_channel, ev) => {
+        if (!threw) {
+          threw = true;
+          throw new Error('boom no transporte');
+        }
+        events.push(ev as { stage: string; error?: string });
+      },
+      deepseek: {
+        chatCompletion: async () => ({
+          content: JSON.stringify({
+            title: 'Novo desafio',
+            concept: 'variaveis',
+            difficulty: 2,
+            statement: 'Novo enunciado.',
+            starterCode: 'export function novo(x) { throw new Error("x"); }\n',
+            testsCode: `import { test } from 'node:test';\nimport assert from 'node:assert/strict';\nimport { novo } from './solution.mjs';\ntest('n1', () => { assert.equal(novo(1), 2); });\n`,
+            solutionCode: 'export function novo(x) { return x + 1; }\n',
+            expectedTestCount: 1,
+          }),
+          model: 'fake',
+        }),
+      } as never,
+    });
+    const result = await call<TrackRegenerateResult>(map, TRACK_CHANNELS.CHALLENGE_REGENERATE, {
+      trackSlug: 'trilha-teste',
+      lessonId: 'aula-1',
+      generationId: 99,
+    });
+    assert.equal(result.ok, false);
+    assert.equal(result.error?.code, 'REGEN_INTERNAL');
+    assert.deepEqual(events.map((e) => e.stage), ['error']);
+    assert.ok(events[0].error?.includes('falha inesperada'));
+  });
+
+  it('track:challenge-regenerate: emit ausente nos deps → no-op (fixtures/testes seguem funcionando)', async () => {
+    const dir = await makeTrackDir();
+    const map = buildTrackHandlers({
+      getTracksDir: () => path.dirname(dir),
+      repo: fakeRepo(),
+      deepseek: {
+        chatCompletion: async () => ({
+          content: JSON.stringify({
+            title: 'Novo desafio',
+            concept: 'variaveis',
+            difficulty: 2,
+            statement: 'Novo enunciado.',
+            starterCode: 'export function novo(x) { throw new Error("x"); }\n',
+            testsCode: `import { test } from 'node:test';\nimport assert from 'node:assert/strict';\nimport { novo } from './solution.mjs';\ntest('n1', () => { assert.equal(novo(1), 2); });\n`,
+            solutionCode: 'export function novo(x) { return x + 1; }\n',
+            expectedTestCount: 1,
+          }),
+          model: 'fake',
+        }),
+      } as never,
+    });
+    const result = await call<TrackRegenerateResult>(map, TRACK_CHANNELS.CHALLENGE_REGENERATE, {
+      trackSlug: 'trilha-teste',
+      lessonId: 'aula-1',
+    });
+    assert.equal(result.ok, true);
+    assert.equal(result.challenge?.source, 'generated');
+  });
+
   // ONDA 2 (autoria): o handler monta o CONTEXTO PEDAGÓGICO (buildChallengeContext
   // com critérios da trilha + aulas anteriores + a aula atual) e o passa ao
   // regenerador — o draft aprovado na execução ainda é validado pela SEMÂNTICA.

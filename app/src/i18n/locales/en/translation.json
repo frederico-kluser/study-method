@@ -631,5 +631,19 @@
     "moduleChallengeTried": "Tried",
     "listFailed": "Could not load the track list.",
     "backButton": "Back"
+  },
+  "challengeGen": {
+    "title": "Generating new challenge",
+    "stageThinking": "Thinking about the challenge",
+    "stageTests": "Writing the tests",
+    "stageValidating": "Checking coherence with what you learned",
+    "stageExecuting": "Verifying execution",
+    "stageInserting": "Adding to the top of the challenges",
+    "doneTitle": "New challenge created!",
+    "doneHint": "The new challenge is at the top of the list.",
+    "viewChallenge": "View challenge",
+    "errorGeneric": "Could not generate a new challenge.",
+    "close": "Close",
+    "cancel": "Cancel"
   }
 }

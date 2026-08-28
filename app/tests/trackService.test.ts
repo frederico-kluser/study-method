@@ -239,6 +239,67 @@ describe('buildTrackDetail / buildTrackLesson — DTOs', () => {
     assert.equal(payload, null);
   });
 
+  // ─── ADITIVO (onda3-generate-flow, pedido C): GERADOS no TOPO ──────────────
+  it('ONDA3: desafios GERADOS vêm PRIMEIRO (mais recente primeiro), autorais depois', async () => {
+    const track = makeTrack([
+      { moduleSlug: 'm1', lesson: lesson('a1'), challenge: challenge('ch-a1') },
+      { moduleSlug: 'm1', lesson: lesson('a2'), challenge: challenge('ch-a2') },
+    ]);
+    // O repo já ordena created_at DESC — o serviço NÃO reordena (fonte é a
+    // ordem devolvida); os autorais entram depois, na ordem declarada.
+    const repo = fakeRepo({
+      listGeneratedChallenges: async (_t, _l) => [
+        {
+          id: 'g2',
+          trackSlug: 'trilha',
+          lessonId: 'a1',
+          challengeId: 'gerado-mais-novo',
+          statement: 'Novo 2.',
+          starterCode: 'export function f() {}\n',
+          testsCode: '// tests\n',
+          solutionCode: 'export function f() {}\n',
+          expectedTestCount: 1,
+          createdAt: '2026-08-28T10:00:00.000Z',
+        },
+        {
+          id: 'g1',
+          trackSlug: 'trilha',
+          lessonId: 'a1',
+          challengeId: 'gerado-antigo',
+          statement: 'Novo 1.',
+          starterCode: 'export function f() {}\n',
+          testsCode: '// tests\n',
+          solutionCode: 'export function f() {}\n',
+          expectedTestCount: 1,
+          createdAt: '2026-08-27T10:00:00.000Z',
+        },
+      ],
+    });
+    const payload = await buildTrackLesson(track, 'm1', 'a1', repo);
+    assert.ok(payload);
+    // 1º: o gerado MAIS NOVO; 2º: o gerado antigo; 3º+: os autorais.
+    assert.deepEqual(
+      payload.challenges.map((c) => c.slug),
+      ['gerado-mais-novo', 'gerado-antigo', 'ch-a1'],
+    );
+    assert.equal(payload.challenges[0].generated, true);
+    assert.equal(payload.challenges[2].generated, false);
+  });
+
+  it('ONDA3: sem desafios gerados, os autorais mantêm a ordem declarada', async () => {
+    const track = makeTrack([
+      { moduleSlug: 'm1', lesson: lesson('a1'), challenge: challenge('ch-b') },
+    ]);
+    // Segundo desafio autoral na MESMA aula (ordem declarada: ch-b, ch-a).
+    (track.modules[0].lessons[0] as { challenges: unknown[] }).challenges.push(challenge('ch-a'));
+    const payload = await buildTrackLesson(track, 'm1', 'a1', fakeRepo());
+    assert.ok(payload);
+    assert.deepEqual(
+      payload.challenges.map((c) => c.slug),
+      ['ch-b', 'ch-a'],
+    );
+  });
+
   // ─── ADITIVO (rodada 9): desafio do MÓDULO ──────────────────────────────────
 
   it('ADITIVO: buildTrackDetail marca challengeAvailable e o estado do aluno', async () => {

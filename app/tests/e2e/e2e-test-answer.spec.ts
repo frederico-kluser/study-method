@@ -90,12 +90,18 @@ test('e2e-test-answer: errada fecha o painel → bolha de erro + pergunta no cha
     page.getByText('Tutor E2E responde a dúvida: eu acho que errei no retorno', { exact: false }),
   ).toBeVisible({ timeout: 20_000 });
 
-  // "Gerar novo desafio" AGORA VIVE NA BOLHA (o painel fechou). Clicar leva à
-  // superfície de falha HONESTA do stub: a regeneração exige LLM — OFF no modo
-  // E2E — e o erro aparece como chat.lastError (Alert fixo da aula).
+  // "Gerar novo desafio" AGORA VIVE NA BOLHA (o painel fechou). ONDA3
+  // (generate-flow): o clique abre o MODAL GLOBAL de etapas — o stub responde
+  // {ok:false} (regeneração exige LLM — OFF no modo E2E) e o modal mostra o
+  // ERRO (o chat.lastError segue por compat). Fechar o modal para seguir.
   await expect(page.getByRole('button', { name: 'Gerar novo desafio' })).toBeVisible();
   await page.getByRole('button', { name: 'Gerar novo desafio' }).click();
-  await expect(page.getByText('regeneração desativada no modo E2E', { exact: false })).toBeVisible();
+  const genModal = page.getByRole('dialog', { name: 'Gerando novo desafio' });
+  await expect(
+    genModal.getByText('regeneração desativada no modo E2E', { exact: false }),
+  ).toBeVisible();
+  await genModal.getByRole('button', { name: 'Fechar' }).click();
+  await expect(genModal).toHaveCount(0);
 
   // Segunda metade: REENTRA no desafio pelo CARD da lista da aula (o card
   // continua em "Desafios desta aula" — o texto da bolha NÃO é um botão, o

@@ -19,6 +19,7 @@ import {
   SETTINGS_CHANNELS,
   STT_CHANNELS,
   STUDY_CHANNELS,
+  TRACK_CHANNELS,
   TTS_CHANNELS,
   type GetLessonByIdResult,
 } from '../shared/ipc-contract';
@@ -37,6 +38,8 @@ const EVENT_CHANNELS: ReadonlySet<string> = new Set([
   STT_CHANNELS.STREAM_PARTIAL,
   STT_CHANNELS.ENGINE_STATUS,
   TTS_CHANNELS.DOWNLOAD_PROGRESS,
+  // ADITIVO (onda3-generate-flow): progresso do track:challenge-regenerate.
+  TRACK_CHANNELS.CHALLENGE_REGENERATE_PROGRESS,
 ]);
 
 /** Fake determinístico do transporte: registra os invoke/on chamados. */
@@ -173,6 +176,8 @@ describe('contrato IPC (shared/ipc-contract.ts)', () => {
       (api as unknown as ApiRef).stt.onStreamPartial(() => {}),
       (api as unknown as ApiRef).stt.onEngineStatus(() => {}),
       (api as unknown as ApiRef).localTts.onDownloadProgress(() => {}),
+      // Onda3-generate-flow: progresso do track:challenge-regenerate.
+      (api as unknown as ApiRef).track.onChallengeRegenerateProgress(() => {}),
     ];
     assert.deepEqual(
       ipc.subscribed.sort(),
@@ -232,6 +237,10 @@ interface ApiRef {
     onModelDownloadProgress: (cb: () => void) => () => void;
     onStreamPartial: (cb: () => void) => () => void;
     onEngineStatus: (cb: () => void) => () => void;
+  };
+  track: {
+    // Onda3-generate-flow: progresso do track:challenge-regenerate.
+    onChallengeRegenerateProgress: (cb: () => void) => () => void;
   };
   localTts: {
     onDownloadProgress: (cb: () => void) => () => void;

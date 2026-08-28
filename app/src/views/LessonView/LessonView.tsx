@@ -50,7 +50,7 @@
  *   4. sem nenhum dos três, a view mostra o seletor de trilhas (estado
  *      vazio) — nunca gera.
  */
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactElement } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore, type ReactElement } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   Alert,
@@ -114,6 +114,15 @@ import {
   saveLessonChat,
 } from '../../lib/lessonChatCache';
 import { peekLastLesson, saveLastLesson } from '../../lib/lastLesson';
+// ONDA3 (generate-flow): o processo de "Gerar novo desafio" é GLOBAL (store
+// module-level + modal no shell) — a view dispara e o modal mostra as etapas.
+import {
+  failChallengeGenerate,
+  finishChallengeGenerate,
+  peekChallengeGenerate,
+  startChallengeGenerate,
+  subscribeChallengeGenerate,
+} from '../../lib/challengeGenerateStore';
 import { AnimatePresence, motion } from 'motion/react';
 import { fadeInUp, springs } from '../../lib/animationTokens';
 import { ChatBubble } from '../../components/chat/ChatBubble';
@@ -138,6 +147,52 @@ export function LessonView(props: ViewProps): ReactElement {
   const navigate = props.onNavigate ?? (() => {});
   const { publishSession } = useSessionState();
   const nav = useChallengeNav();
+
+  // ONDA3 (generate-flow): estado GLOBAL do processo de regeneração — a view
+  // lê para GATEAR o botão da bolha (uma geração em voo desabilita o disparo
+  // mesmo após remontar a view no meio do processo).
+  const generateState = useSyncExternalStore(subscribeChallengeGenerate, peekChallengeGenerate);
+  const generateRunning = generateState.status === 'running';
+  // ONDA3 (revisão MÉDIO-2): token de invalidação da LISTA — incrementa quando
+  // uma geração conclui (done no store); a view re-busca a aula (a lista traz
+  // o novo no TOPO — pedido C) mesmo se o usuário fechar o modal com X sem
+  // navegar. O ref do último token visto evita re-busca no mount (o token
+  // inicial é o baseline); o refetch é BEST-EFFORT: falha mantém a lista atual
+  // (não derruba o chat em andamento — sem spinner, o payload só é trocado
+  // quando chega).
+  const listVersion = generateState.listVersion;
+  const seenListVersionRef = useRef(listVersion);
+  useEffect(() => {
+    if (listVersion === seenListVersionRef.current) return;
+    seenListVersionRef.current = listVersion;
+    const key = trackLessonRef.current;
+    if (!key || mountedRef.current === false) return;
+    withTimeout(
+      getApi().track.lesson({ trackSlug: key.trackSlug, lessonId: key.lessonId }),
+      IPC_TIMEOUT_MS,
+      'track.lesson',
+    )
+      .then((res) => {
+        if (mountedRef.current === false) return;
+        if (res.ok === true && res.lesson) setLesson(res.lesson);
+      })
+      .catch(() => {
+        // refetch silencioso: a lista atual continua válida
+      });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [listVersion]);
+
+  // ONDA3 (generate-flow, D): guard de montagem — o processo pode TERMINAR
+  // depois que a view desmontou (troca de aba durante a geração): nenhum
+  // setState/navegação pós-await com a view desmontada (o desfecho do modal
+  // global vem dos eventos do main — o store é quem conclui).
+  const mountedRef = useRef(true);
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
 
   // Aula de trilha selecionada (Trilha → Aula). null = nenhuma (estado vazio).
   const [trackLesson, setTrackLesson] = useState<{ trackSlug: string; lessonId: string } | null>(null);
@@ -641,45 +696,60 @@ export function LessonView(props: ViewProps): ReactElement {
 
   /** ONDA2 (error-flow, A4): "Gerar novo desafio" NA BOLHA de erro — a LLM vê
    *  os desafios que o aluno errou nesta aula (nunca-repetir da rodada 8
-   *  preservado). Sucesso → abre o desafio NOVO na ChallengeView; falha/
-   *  timeout → chat.lastError (o Alert fixo abaixo da região — NÃO é movido).
-   *  `busy` da view reusa o estado de turno em voo para desabilitar o botão. */
+   *  preservado).
+   *
+   *  ONDA3 (generate-flow): o processo agora é GLOBAL — dispara via
+   *  challengeGenerateStore + o IPC; o modal de etapas (no shell) mostra o
+   *  progresso real (eventos do main) e a CONCLUSÃO navega pelo botão "Ver
+   *  desafio" do próprio modal (decisão documentada: a navegação automática
+   *  da view caiu — o modal cobre os dois fluxos e o caso "navegou durante a
+   *  geração"; o chat.lastError permanece por compat, mas o modal é quem
+   *  mostra o erro). `busy` + `generateRunning` gateiam o botão. */
   const handleRegenerateFromBubble = useCallback(async (): Promise<void> => {
-    if (!trackLesson || busy) return;
+    if (!trackLesson || busy || generateRunning) return;
+    const generationId = startChallengeGenerate({
+      trackSlug: trackLesson.trackSlug,
+      lessonId: trackLesson.lessonId,
+      // BAIXO-3: a bolha da aula navega com target 'lesson'.
+      target: 'lesson',
+    });
+    if (generationId === null) {
+      // Já existe um processo em voo (ex.: disparado por outra view) — o modal
+      // global é o único processo; nada a fazer aqui.
+      return;
+    }
     setBusy(true);
     try {
       const res = await withTimeout(
         getApi().track.challengeRegenerate({
           trackSlug: trackLesson.trackSlug,
           lessonId: trackLesson.lessonId,
+          // ALTO-2: o main ecoa o id nos eventos de progresso — o modal
+          // descarta eventos de processos anteriores.
+          generationId,
         }),
         ACTION_TIMEOUTS.challengeRegenerate,
         'track.challengeRegenerate',
       );
+      if (mountedRef.current === false) return;
       if (res.ok && res.challenge) {
-        nav.selectTrackChallenge({
-          trackSlug: trackLesson.trackSlug,
-          target: 'lesson',
-          lessonId: trackLesson.lessonId,
-          challengeId: res.challenge.slug,
-          title: res.challenge.title,
-        });
-        nav.navigateToChallenge();
+        // O modal global (sempre montado) já recebeu o 'done' do main — este
+        // finish é idempotente (estado terminal sticky + correlação no store).
+        finishChallengeGenerate({ slug: res.challenge.slug, title: res.challenge.title }, generationId);
       } else {
-        setChat((s) => ({
-          ...s,
-          lastError: res.error?.message ?? tI('lesson.regenerateFailed'),
-        }));
+        const msg = res.error?.message ?? tI('lesson.regenerateFailed');
+        failChallengeGenerate(msg, generationId);
+        setChat((s) => ({ ...s, lastError: msg }));
       }
     } catch (err) {
-      setChat((s) => ({
-        ...s,
-        lastError: isTimeoutError(err) ? tI('challenge.regenerateTimeout') : String(err),
-      }));
+      if (mountedRef.current === false) return;
+      const msg = isTimeoutError(err) ? tI('challenge.regenerateTimeout') : String(err);
+      failChallengeGenerate(msg, generationId);
+      setChat((s) => ({ ...s, lastError: msg }));
     } finally {
-      setBusy(false);
+      if (mountedRef.current !== false) setBusy(false);
     }
-  }, [trackLesson, busy, nav, tI]);
+  }, [trackLesson, busy, generateRunning, tI]);
 
   /** Revisão de uma aula ANTERIOR da trilha (aluno não entendeu). */
   const openPrerequisite = useCallback(
@@ -937,7 +1007,10 @@ export function LessonView(props: ViewProps): ReactElement {
                         // continua a 10 tps.
                         tps={m.kind === 'review' ? 10 : undefined}
                         onRegenerate={m.kind === 'review' ? handleRegenerateFromBubble : undefined}
-                        regenerateDisabled={busy}
+                        // ONDA3 (generate-flow): o gating agora também cobre o
+                        // processo GLOBAL em voo (o modal pode estar rodando
+                        // mesmo se esta view montou depois do disparo).
+                        regenerateDisabled={busy || generateRunning}
                         onStreamStart={() => handleStreamStart(i)}
                         onStreamDone={() => handleStreamDone(i)}
                         onStreamTick={handleStreamTick}

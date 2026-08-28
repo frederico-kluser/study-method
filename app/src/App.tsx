@@ -49,6 +49,9 @@ import SessionFrame from './components/shell/SessionFrame';
 import { navPanelId, navTabId, type NavKey } from './lib/shellNav';
 import { OnboardingHost } from './features/onboarding/OnboardingHost';
 import { useStartup } from './gate/AppGate';
+// ONDA3 (generate-flow): modal GLOBAL de etapas do "Gerar novo desafio" —
+// montado no shell (junto ao OnboardingHost) para sobreviver à navegação.
+import { ChallengeGenerateModal } from './components/challenge/ChallengeGenerateModal';
 
 const VIEWS: Record<NavKey, ComponentType<ViewProps>> = {
   home: HomeView,
@@ -118,6 +121,9 @@ export default function App(): ReactElement {
       >
         <Shell active={active} setActive={setActive} />
         <OnboardingHost isReady={isReady} activeView={active} onNavigateView={setActive} />
+        {/* ONDA3 (generate-flow): SEMPRE montado — o processo de geração
+            sobrevive à navegação (store module-level + listener no modal). */}
+        <ChallengeGenerateModal />
       </ChallengeNavProvider>
     </SessionStateProvider>
   );

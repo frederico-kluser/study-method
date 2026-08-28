@@ -95,6 +95,9 @@ export interface TrackHandlerDeps {
   repo?: TrackRepoLike;
   /** OPCIONAL: cliente DeepSeek para o tutor/regeneração. Ausente → erros estruturados. */
   deepseek?: DeepSeekClient;
+  /** OPCIONAL (onda3-generate-flow): emite eventos push ao renderer
+   *  (track:challenge-regenerate-progress). Ausente → no-op (testes/fixtures). */
+  emit?: (channel: string, ev: unknown) => void;
 }
 
 export function buildTrackHandlers(deps: TrackHandlerDeps): Map<string, IpcHandlerFn> {
@@ -102,6 +105,9 @@ export function buildTrackHandlers(deps: TrackHandlerDeps): Map<string, IpcHandl
 
   const tracksDir = (): string => deps.getTracksDir();
   const repo = deps.repo;
+  // ONDA3 (generate-flow): emissor de eventos push (no-op sem deps.emit —
+  // fixtures/testes). O index.ts injeta o emit da janela (emitWindow).
+  const emit = deps.emit ?? (() => {});
 
   async function loadTrackOrError(trackSlug: string): Promise<LoadedTrack | { error: string }> {
     try {
@@ -377,17 +383,61 @@ export function buildTrackHandlers(deps: TrackHandlerDeps): Map<string, IpcHandl
   });
 
   // ─── track:challenge-regenerate (nunca-repetir) ────────────────────────────
+  // ONDA3 (generate-flow): o handler emite o progresso REAL do processo no
+  // canal track:challenge-regenerate-progress, "por volta" da chamada ao
+  // regenerador (que fica PURO — não é instrumentado). REVISÃO ALTO-1: o
+  // terminal 'error' é emitido em TODOS os caminhos de falha — retornos
+  // antecipados (bad request / sem repo / sem deepseek / trilha inválida /
+  // aula não encontrada) e QUALQUER exceção inesperada (try/catch do corpo:
+  // challengeExec faz mkdtemp/spawn e pode lançar) — o modal global nunca
+  // fica preso em 'running'. REVISÃO ALTO-2: o generationId do request é
+  // ecoado em TODOS os eventos — o renderer descarta eventos de processos
+  // anteriores (o withTimeout de 150s não aborta o main).
+  const emitProgress = (
+    generationId: number | undefined,
+    stage: 'generating' | 'validating' | 'executing' | 'inserting' | 'done' | 'error',
+    extra?: { label?: string; challenge?: { slug: string; title: string }; error?: string },
+  ): void => {
+    emit(TRACK_CHANNELS.CHALLENGE_REGENERATE_PROGRESS, {
+      stage,
+      ...extra,
+      ...(generationId !== undefined ? { generationId } : {}),
+    });
+  };
   map.set(TRACK_CHANNELS.CHALLENGE_REGENERATE, async (_event, payload: unknown): Promise<TrackRegenerateResult> => {
     const p = (payload ?? {}) as TrackRegenerateRequest;
-    if (!p.trackSlug || !p.lessonId) {
-      return { ok: false, error: { code: 'REGEN_BAD_REQUEST', message: 'requer trackSlug + lessonId.' } };
-    }
-    if (!repo) return { ok: false, error: { code: 'NO_REPO', message: 'persistência indisponível.' } };
-    if (!deps.deepseek) return { ok: false, error: { code: 'REGEN_UNAVAILABLE', message: 'serviço de IA indisponível.' } };
-    const loaded = await loadTrackOrError(p.trackSlug);
-    if ('error' in loaded) return { ok: false, error: { code: 'TRACK_INVALID', message: loaded.error } };
-    const found = findLessonAnywhere(loaded, p.lessonId);
-    if (!found) return { ok: false, error: { code: 'LESSON_NOT_FOUND', message: 'aula não encontrada na trilha.' } };
+    // Eco do id de geração (ALTO-2): os eventos carregam o id para o renderer
+    // correlacionar; ausente (request legado/teste) → sem eco.
+    const generationId = typeof p.generationId === 'number' ? p.generationId : undefined;
+    const progress = (
+      stage: 'generating' | 'validating' | 'executing' | 'inserting' | 'done' | 'error',
+      extra?: { label?: string; challenge?: { slug: string; title: string }; error?: string },
+    ): void => emitProgress(generationId, stage, extra);
+    // ALTO-1: QUALQUER exceção vira terminal 'error' (o modal nunca fica em
+    // 'running' — ex.: verifyChallengePair pode lançar em mkdtemp/spawn).
+    try {
+      if (!p.trackSlug || !p.lessonId) {
+        progress('error', { error: 'requer trackSlug + lessonId.' });
+        return { ok: false, error: { code: 'REGEN_BAD_REQUEST', message: 'requer trackSlug + lessonId.' } };
+      }
+      if (!repo) {
+        progress('error', { error: 'persistência indisponível.' });
+        return { ok: false, error: { code: 'NO_REPO', message: 'persistência indisponível.' } };
+      }
+      if (!deps.deepseek) {
+        progress('error', { error: 'serviço de IA indisponível.' });
+        return { ok: false, error: { code: 'REGEN_UNAVAILABLE', message: 'serviço de IA indisponível.' } };
+      }
+      const loaded = await loadTrackOrError(p.trackSlug);
+      if ('error' in loaded) {
+        progress('error', { error: loaded.error });
+        return { ok: false, error: { code: 'TRACK_INVALID', message: loaded.error } };
+      }
+      const found = findLessonAnywhere(loaded, p.lessonId);
+      if (!found) {
+        progress('error', { error: 'aula não encontrada na trilha.' });
+        return { ok: false, error: { code: 'LESSON_NOT_FOUND', message: 'aula não encontrada na trilha.' } };
+      }
 
     // Contexto do nunca-repetir: TODOS os desafios que o aluno errou nesta aula.
     let failed: FailedChallengeInfo[] = [];
@@ -420,6 +470,10 @@ export function buildTrackHandlers(deps: TrackHandlerDeps): Map<string, IpcHandl
       context = undefined;
     }
 
+    // ONDA3 (generate-flow): 'generating' ANTES da 1ª chamada LLM — o draft
+    // (pensar o desafio + escrever os testes) é o polo longo da geração e
+    // pulsa na etapa 1 do modal enquanto a LLM trabalha.
+    progress('generating');
     const outcome = await regenerateChallenge({
       trackTitle: loaded.root.title,
       lesson: found.lesson.meta,
@@ -428,9 +482,20 @@ export function buildTrackHandlers(deps: TrackHandlerDeps): Map<string, IpcHandl
       llm: chatFn,
     });
     if (!outcome.ok || !outcome.challenge) {
+      progress('error', {
+        error: outcome.error?.message ?? 'não foi possível gerar um novo desafio.',
+      });
       return { ok: false, error: outcome.error };
     }
     const draft = outcome.challenge;
+    // A validação SEMÂNTICA (quando havia contexto) e a verificação de EXECUÇÃO
+    // rodaram DENTRO do challengeRegenerator — reportadas aqui, em sequência
+    // (a ordem de exibição do modal; o momento exato não é observável de fora
+    // sem instrumentar o regenerador, o que é proibido: ele fica PURO).
+    if (context) progress('validating');
+    progress('executing');
+    // 'inserting' ANTES do insert no banco.
+    progress('inserting');
     try {
       await repo.insertGeneratedChallenge({
         id: `gen-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
@@ -444,8 +509,14 @@ export function buildTrackHandlers(deps: TrackHandlerDeps): Map<string, IpcHandl
         expectedTestCount: draft.expectedTestCount,
       });
     } catch (err) {
+      progress('error', {
+        error: `desafio gerado mas não persistiu: ${String(err)}`,
+      });
       return { ok: false, error: { code: 'REGEN_PERSIST_FAILED', message: `desafio gerado mas não persistiu: ${String(err)}` } };
     }
+    // TERMINAL 'done': persistiu — o modal global mostra o desafio novo com
+    // "Ver desafio" (navegação de conclusão via store, não via view).
+    progress('done', { challenge: { slug: draft.slug, title: draft.title } });
     return {
       ok: true,
       challenge: {
@@ -465,6 +536,16 @@ export function buildTrackHandlers(deps: TrackHandlerDeps): Map<string, IpcHandl
       },
       failedContext: failed.map((f) => ({ slug: f.slug, title: f.title })),
     };
+    } catch (err) {
+      // ALTO-1: exceção inesperada (ex.: challengeExec lançando em mkdtemp/spawn)
+      // → terminal 'error' + erro estruturado (o invoke rejeitado não é o único
+      // caminho — o modal lê o EVENTO; a view montada lê o resultado).
+      progress('error', { error: `falha inesperada na regeneração: ${String(err)}` });
+      return {
+        ok: false,
+        error: { code: 'REGEN_INTERNAL', message: `falha inesperada na regeneração: ${String(err)}` },
+      };
+    }
   });
 
   return map;

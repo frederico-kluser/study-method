@@ -274,7 +274,12 @@ export async function buildTrackLesson(
   };
 }
 
-/** Resumo dos desafios de UMA aula: os da trilha + os regenerados do aluno. */
+/** Resumo dos desafios de UMA aula: os da trilha + os regenerados do aluno.
+ *
+ * ONDA3 (generate-flow, pedido C do dono): os desafios GERADOS vêm PRIMEIRO
+ * (o novo desafio aparece ACIMA do primeiro visível — mais recente primeiro:
+ * o repo listGeneratedChallenges já ordena created_at DESC) e DEPOIS os
+ * autorais (ordem declarada da trilha). */
 export async function buildChallengeSummaries(
   trackSlug: string,
   lesson: LoadedLesson,
@@ -282,20 +287,6 @@ export async function buildChallengeSummaries(
   _track: LoadedTrack,
 ): Promise<TrackLessonPayload['challenges']> {
   const out: TrackLessonPayload['challenges'] = [];
-  for (const ch of lesson.challenges) {
-    const attempts = await repo.getAttemptsForChallenge(ch.slug);
-    const sum = summarizeAttempts(attempts);
-    out.push({
-      slug: ch.slug,
-      title: ch.title,
-      concept: ch.concept,
-      difficulty: ch.difficulty,
-      lastVerdict: sum.lastVerdict,
-      stars: sum.stars,
-      failedCount: sum.failedCount,
-      generated: false,
-    });
-  }
   const generated = await repo.listGeneratedChallenges(trackSlug, lesson.meta.slug);
   for (const g of generated) {
     const attempts = await repo.getAttemptsForChallenge(g.challengeId);
@@ -309,6 +300,20 @@ export async function buildChallengeSummaries(
       stars: sum.stars,
       failedCount: sum.failedCount,
       generated: true,
+    });
+  }
+  for (const ch of lesson.challenges) {
+    const attempts = await repo.getAttemptsForChallenge(ch.slug);
+    const sum = summarizeAttempts(attempts);
+    out.push({
+      slug: ch.slug,
+      title: ch.title,
+      concept: ch.concept,
+      difficulty: ch.difficulty,
+      lastVerdict: sum.lastVerdict,
+      stars: sum.stars,
+      failedCount: sum.failedCount,
+      generated: false,
     });
   }
   return out;

@@ -978,7 +978,7 @@ export function createLessonRepo(open: OpenFn): LessonRepo {
                   tests_code, solution_code, expected_test_count, created_at
            FROM generated_challenges
            WHERE track_slug = ? AND lesson_id = ?
-           ORDER BY created_at ASC, id ASC`,
+           ORDER BY created_at DESC, id DESC`,
         )
         .all(trackSlug, lessonId) as unknown as Array<{
         id: string;

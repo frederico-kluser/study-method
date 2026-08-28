@@ -214,6 +214,9 @@ if (!gotLock) {
           }),
         repo,
         deepseek: plannerDeepseek,
+        // ONDA3 (generate-flow): o progresso do track:challenge-regenerate
+        // chega ao renderer pelo canal push (o modal global escuta).
+        emit: emitWindow,
       });
     } catch (err) {
       console.error('[main] falha ao registrar handlers IPC:', err);

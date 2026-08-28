@@ -466,6 +466,35 @@ describe('createLessonRepo — exercise_json (v3, onda4-desafio-persistencia)', 
   });
 });
 
+describe('createLessonRepo — listGeneratedChallenges (onda3-generate-flow, pedido C)', () => {
+  it('ordena os gerados por created_at DESC (mais recente primeiro — o novo desafio fica no TOPO da lista)', async () => {
+    const { repo, close } = makeRepo();
+    const base = {
+      trackSlug: 'nodejs-do-zero',
+      lessonId: 'aula-1',
+      statement: 'st',
+      starterCode: 'sc',
+      testsCode: 'tc',
+      solutionCode: 'sol',
+      expectedTestCount: 1,
+      createdAt: '2026-08-28T00:00:00.000Z', // obrigatório no tipo (o INSERT usa now())
+    };
+    // Insere 1º → 2º → 3º (o 3º é o mais RECENTE; ids crescentes desempatam
+    // created_at iguais no mesmo ms).
+    await repo.insertGeneratedChallenge({ ...base, id: 'gen-1', challengeId: 'primeiro' });
+    await repo.insertGeneratedChallenge({ ...base, id: 'gen-2', challengeId: 'segundo' });
+    await repo.insertGeneratedChallenge({ ...base, id: 'gen-3', challengeId: 'terceiro' });
+
+    const list = await repo.listGeneratedChallenges('nodejs-do-zero', 'aula-1');
+    assert.deepEqual(
+      list.map((g) => g.challengeId),
+      ['terceiro', 'segundo', 'primeiro'],
+      'mais recente primeiro (DESC)',
+    );
+    close();
+  });
+});
+
 describe('createLessonRepo — clearAllProgress (onda1-nav-ui, reset de progresso)', () => {
   it('apaga TODAS as tabelas de avanço e zera completed_at; conteúdo fica', async () => {
     const { repo, db, close } = makeRepo();
