@@ -3,563 +3,457 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>EXPLAINER Run 3 — Premissa pedagógica</title>
+<title>EXPLAINER Run 4 — Chat Nintendo e geração</title>
 <style>
   :root {
-    --bg: #0d1117; --bg-soft: #161b22; --bg-card: #1c2330; --border: #2d3648;
-    --text: #e6edf3; --text-dim: #9aa7b8; --accent: #58a6ff;
-    --accent-soft: rgba(88,166,255,.12); --green: #3fb950; --green-soft: rgba(63,185,80,.12);
-    --amber: #d29922; --amber-soft: rgba(210,153,34,.14); --red: #f85149; --red-soft: rgba(248,81,73,.12);
-    --purple: #bc8cff; --purple-soft: rgba(188,140,255,.12);
-    --mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
-    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    --bg: #0b0e14;
+    --bg-soft: #11151f;
+    --card: #161b27;
+    --card-2: #1b2130;
+    --border: #2a3245;
+    --text: #e6e9f0;
+    --text-dim: #9aa3b5;
+    --accent: #a78bfa;
+    --accent-strong: #8b5cf6;
+    --accent-soft: rgba(139, 92, 246, 0.14);
+    --green: #4ade80;
+    --green-soft: rgba(74, 222, 128, 0.12);
+    --red: #f87171;
+    --yellow: #fbbf24;
+    --blue: #60a5fa;
+    --pixel-font: "Courier New", ui-monospace, SFMono-Regular, Menlo, monospace;
+    --display-font: "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
+    --body-font: "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   html { scroll-behavior: smooth; }
-  body { background: var(--bg); color: var(--text); font-family: var(--sans); line-height: 1.6; font-size: 16px; }
-  .wrap { max-width: 920px; margin: 0 auto; padding: 32px 20px 64px; }
-  /* Cabeçalho */
-  header.hero { border: 1px solid var(--border); border-radius: 14px; background: linear-gradient(180deg, var(--bg-soft), var(--bg)); padding: 36px 32px 28px; margin-bottom: 28px; }
-  .hero-badge { display: inline-block; font-family: var(--mono); font-size: 12px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--accent); background: var(--accent-soft); border: 1px solid rgba(88,166,255,.3); border-radius: 999px; padding: 4px 12px; margin-bottom: 16px; }
-  header.hero h1 { font-size: 30px; line-height: 1.25; font-weight: 700; margin-bottom: 8px; }
-  .hero-meta { display: flex; flex-wrap: wrap; gap: 8px 24px; font-size: 14px; color: var(--text-dim); margin-top: 6px; }
-  .hero-meta strong { color: var(--text); font-family: var(--mono); font-weight: 600; }
-  .hero-note { margin-top: 18px; font-size: 14.5px; color: var(--text-dim); }
-  /* Seções */
-  section { margin-bottom: 34px; }
-  h2 { font-size: 22px; font-weight: 700; color: var(--text); border-left: 4px solid var(--accent); padding-left: 12px; margin-bottom: 16px; }
-  h3 { font-size: 17px; font-weight: 600; margin: 18px 0 8px; color: var(--text); }
-  p { margin-bottom: 10px; }
-  ul, ol { margin: 0 0 12px 22px; }
-  li { margin-bottom: 6px; }
-  strong { color: #fff; }
-  code, .mono { font-family: var(--mono); font-size: 13px; background: var(--bg-soft); border: 1px solid var(--border); border-radius: 5px; padding: 1px 6px; color: var(--accent); word-break: break-word; }
-  pre.code { background: var(--bg-soft); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; overflow-x: auto; margin: 10px 0 16px; }
-  pre.code code { background: none; border: none; padding: 0; color: var(--text); font-size: 13px; white-space: pre; }
-  /* Cards */
-  .card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; margin: 14px 0; }
-  .card .card-title { font-weight: 700; font-size: 15.5px; margin-bottom: 6px; color: #fff; }
-  .highlight { border-left: 4px solid var(--green); background: var(--green-soft); }
-  .warn { border-left: 4px solid var(--amber); background: var(--amber-soft); }
-  .danger { border-left: 4px solid var(--red); background: var(--red-soft); }
-  .info { border-left: 4px solid var(--purple); background: var(--purple-soft); }
-  /* Tabelas */
-  .table-scroll { overflow-x: auto; margin: 12px 0 16px; border-radius: 10px; border: 1px solid var(--border); }
-  table { width: 100%; border-collapse: collapse; font-size: 14px; min-width: 520px; }
-  th { text-align: left; background: var(--bg-soft); color: var(--accent); font-weight: 600; padding: 10px 12px; font-size: 13px; letter-spacing: .4px; text-transform: uppercase; border-bottom: 1px solid var(--border); }
-  td { padding: 10px 12px; border-bottom: 1px solid var(--border); vertical-align: top; }
-  tr:last-child td { border-bottom: none; }
-  tr:nth-child(even) td { background: rgba(255,255,255,.015); }
-  /* Chips */
-  .chip { display: inline-block; font-family: var(--mono); font-size: 12.5px; border-radius: 999px; padding: 2px 10px; margin: 2px 4px 2px 0; border: 1px solid var(--border); background: var(--bg-soft); color: var(--text-dim); }
-  .chip.green { color: var(--green); border-color: rgba(63,185,80,.35); background: var(--green-soft); }
-  .chip.amber { color: var(--amber); border-color: rgba(210,153,34,.35); background: var(--amber-soft); }
-  .chip.red { color: var(--red); border-color: rgba(248,81,73,.35); background: var(--red-soft); }
-  .chip.purple { color: var(--purple); border-color: rgba(188,140,255,.35); background: var(--purple-soft); }
-  .chip.accent { color: var(--accent); border-color: rgba(88,166,255,.35); background: var(--accent-soft); }
-  /* Stat tiles */
-  .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin: 14px 0 18px; }
-  .stat { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; text-align: center; }
-  .stat .num { font-size: 26px; font-weight: 800; font-family: var(--mono); }
-  .stat .lbl { font-size: 12.5px; color: var(--text-dim); margin-top: 2px; }
-  .stat.green .num { color: var(--green); }
-  .stat.red .num { color: var(--red); }
-  .stat.accent .num { color: var(--accent); }
-  .stat.amber .num { color: var(--amber); }
-  /* Details / accordion */
-  details.req { border: 1px solid var(--border); border-radius: 10px; background: var(--bg-soft); margin-bottom: 8px; overflow: hidden; }
-  details.req summary { cursor: pointer; padding: 12px 16px; font-weight: 600; font-size: 14.5px; list-style: none; display: flex; align-items: baseline; gap: 10px; }
-  details.req summary::-webkit-details-marker { display: none; }
-  details.req summary::before { content: "▸"; color: var(--accent); font-size: 13px; flex-shrink: 0; transition: transform .15s; }
-  details.req[open] summary::before { transform: rotate(90deg); }
-  details.req .req-body { padding: 4px 16px 14px 39px; font-size: 14.5px; color: var(--text-dim); }
-  details.req .req-body strong { color: var(--text); }
-  .req-num { font-family: var(--mono); font-size: 12px; color: var(--accent); background: var(--accent-soft); border-radius: 6px; padding: 1px 8px; flex-shrink: 0; }
-  /* Ondas */
-  .wave { border: 1px solid var(--border); border-radius: 12px; background: var(--bg-soft); padding: 18px 20px; margin-bottom: 16px; }
-  .wave-head { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-bottom: 8px; }
-  .wave-head h3 { margin: 0; font-size: 16.5px; }
-  .wave p { font-size: 14.5px; color: var(--text-dim); margin-bottom: 8px; }
-  .wave ul { font-size: 14.5px; }
-  .wave li { margin-bottom: 4px; }
-  /* Rodapé */
-  footer { border-top: 1px solid var(--border); margin-top: 44px; padding-top: 18px; font-size: 13px; color: var(--text-dim); text-align: center; }
-  footer .mono { font-size: 12.5px; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--body-font);
+    font-size: 17px;
+    line-height: 1.65;
+    padding: 0 0 60px;
+  }
+  .wrap { max-width: 960px; margin: 0 auto; padding: 0 24px; }
+
+  /* ---------- Header ---------- */
+  header {
+    background: linear-gradient(160deg, #191330 0%, #0d1020 55%, #0b0e14 100%);
+    border-bottom: 2px solid var(--border);
+    padding: 48px 0 40px;
+    margin-bottom: 40px;
+  }
+  .run-tag {
+    font-family: var(--pixel-font);
+    font-size: 12px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 12px;
+  }
+  h1 {
+    font-size: 40px;
+    line-height: 1.15;
+    font-weight: 800;
+    margin-bottom: 10px;
+  }
+  h1 .hl { color: var(--accent); }
+  .subtitle { color: var(--text-dim); font-size: 18px; }
+  .meta-row { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 20px; }
+  .meta-pill {
+    border: 1px solid var(--border);
+    background: var(--card);
+    border-radius: 999px;
+    padding: 5px 14px;
+    font-size: 13.5px;
+    color: var(--text-dim);
+    font-family: var(--pixel-font);
+    letter-spacing: 0.5px;
+  }
+  .meta-pill strong { color: var(--text); font-weight: 600; }
+
+  /* ---------- Sections ---------- */
+  section { margin-bottom: 44px; }
+  h2 {
+    font-size: 26px;
+    font-weight: 700;
+    margin-bottom: 6px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  h2 .num {
+    font-family: var(--pixel-font);
+    font-size: 14px;
+    color: var(--accent);
+    border: 1px solid var(--accent-strong);
+    background: var(--accent-soft);
+    border-radius: 8px;
+    padding: 3px 10px;
+    letter-spacing: 1px;
+    white-space: nowrap;
+  }
+  .lead { color: var(--text-dim); margin-bottom: 18px; font-size: 16px; }
+  h3 { font-size: 19px; font-weight: 700; margin: 26px 0 10px; }
+
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 22px 24px;
+    margin-bottom: 16px;
+  }
+  .card.soft { background: var(--bg-soft); }
+
+  /* ---------- Request list ---------- */
+  ol.reqs { list-style: none; counter-reset: req; }
+  ol.reqs li {
+    counter-increment: req;
+    position: relative;
+    padding: 10px 0 10px 46px;
+    border-bottom: 1px dashed var(--border);
+  }
+  ol.reqs li:last-child { border-bottom: none; }
+  ol.reqs li::before {
+    content: counter(req);
+    position: absolute;
+    left: 0;
+    top: 12px;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--pixel-font);
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--accent);
+    background: var(--accent-soft);
+    border: 1px solid var(--accent-strong);
+    border-radius: 9px;
+  }
+  ol.reqs strong { color: var(--text); }
+
+  /* ---------- Waves ---------- */
+  .wave {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    overflow: hidden;
+    margin-bottom: 20px;
+  }
+  .wave-head {
+    padding: 16px 24px;
+    border-bottom: 1px solid var(--border);
+    background: var(--card-2);
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 10px;
+    cursor: pointer;
+    user-select: none;
+  }
+  .wave-head:hover { background: #202840; }
+  .wave-num {
+    font-family: var(--pixel-font);
+    font-size: 12px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--accent);
+    background: var(--accent-soft);
+    border: 1px solid var(--accent-strong);
+    border-radius: 8px;
+    padding: 3px 9px;
+  }
+  .wave-name { font-size: 18px; font-weight: 700; }
+  .wave-commit {
+    font-family: var(--pixel-font);
+    font-size: 12.5px;
+    color: var(--text-dim);
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 3px 10px;
+    margin-left: auto;
+  }
+  .wave-body { padding: 18px 24px 20px; }
+  .wave-body ul { list-style: none; }
+  .wave-body li {
+    padding: 7px 0 7px 26px;
+    position: relative;
+    color: #cdd3e0;
+  }
+  .wave-body li::before {
+    content: "▸";
+    position: absolute;
+    left: 4px;
+    color: var(--accent);
+    font-size: 14px;
+    top: 9px;
+  }
+  .wave-body li b { color: var(--text); }
+  .wave-body .extra { color: var(--text-dim); font-size: 14.5px; margin-top: 10px; padding-left: 26px; }
+  details.wave summary { list-style: none; }
+  details.wave summary::-webkit-details-marker { display: none; }
+  details.wave[open] .wave-head { border-bottom-color: var(--border); }
+
+  /* ---------- Verification ---------- */
+  .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-bottom: 20px; }
+  .stat {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 16px;
+    text-align: center;
+  }
+  .stat .v { font-size: 30px; font-weight: 800; font-family: var(--pixel-font); }
+  .stat .l { font-size: 13px; color: var(--text-dim); margin-top: 4px; letter-spacing: 0.4px; }
+  .stat.green .v { color: var(--green); }
+  .stat.purple .v { color: var(--accent); }
+  .stat.red .v { color: var(--red); }
+
+  table { width: 100%; border-collapse: collapse; font-size: 15px; margin: 12px 0; }
+  th, td { text-align: left; padding: 10px 14px; border: 1px solid var(--border); vertical-align: top; }
+  th { background: var(--card-2); font-size: 13px; letter-spacing: 0.6px; text-transform: uppercase; color: var(--text-dim); }
+  tr:nth-child(even) td { background: rgba(255,255,255,0.015); }
+  .tag { font-size: 12px; font-weight: 700; padding: 2px 9px; border-radius: 999px; letter-spacing: 0.5px; white-space: nowrap; }
+  .tag.alto { color: var(--red); background: rgba(248,113,113,0.12); border: 1px solid rgba(248,113,113,0.4); }
+  .tag.medio { color: var(--yellow); background: rgba(251,191,36,0.12); border: 1px solid rgba(251,191,36,0.4); }
+  .tag.baixo { color: var(--blue); background: rgba(96,165,250,0.12); border: 1px solid rgba(96,165,250,0.4); }
+  .tag.ok { color: var(--green); background: var(--green-soft); border: 1px solid rgba(74,222,128,0.4); }
+
+  /* ---------- Environment note ---------- */
+  .env-note {
+    background: var(--green-soft);
+    border: 1px solid rgba(74,222,128,0.35);
+    border-radius: 14px;
+    padding: 18px 22px;
+    font-size: 15.5px;
+  }
+  .env-note b { color: var(--green); }
+  code {
+    font-family: var(--pixel-font);
+    font-size: 0.88em;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 1px 7px;
+    color: var(--accent);
+  }
+
+  /* ---------- Footer ---------- */
+  footer {
+    margin-top: 50px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border);
+    color: var(--text-dim);
+    font-size: 13.5px;
+    text-align: center;
+    font-family: var(--pixel-font);
+    letter-spacing: 0.5px;
+  }
+
   @media (max-width: 640px) {
-    body { font-size: 15px; }
-    header.hero { padding: 24px 20px; }
-    header.hero h1 { font-size: 24px; }
-    h2 { font-size: 19px; }
-    .wrap { padding: 20px 14px 48px; }
+    body { font-size: 16px; }
+    h1 { font-size: 30px; }
+    .wave-commit { margin-left: 0; }
+    .stats { grid-template-columns: repeat(2, 1fr); }
   }
 </style>
 </head>
 <body>
-<div class="wrap">
 
-  <!-- ================= 1. Cabeçalho ================= -->
-  <header class="hero">
-    <span class="hero-badge">EXPLAINER · pós-execução</span>
-    <h1>Run 3 — Premissa pedagógica</h1>
-    <div class="hero-meta">
-      <span>Data: <strong>2026-08-28</strong></span>
-      <span>Branch: <strong>main</strong></span>
-      <span>Trilha auditada: <strong>nodejs-do-zero</strong> (136 desafios)</span>
+<header>
+  <div class="wrap">
+    <div class="run-tag">Run 4 &middot; deep-orchestrator</div>
+    <h1>EXPLAINER &mdash; <span class="hl">Run 4: chat estilo Nintendo + UX da geração</span></h1>
+    <p class="subtitle">O que foi pedido, o que foi entregue (3 ondas) e como foi verificado &mdash; em linguagem simples.</p>
+    <div class="meta-row">
+      <span class="meta-pill">Data: <strong>2026-08-28</strong></span>
+      <span class="meta-pill">Branch: <strong>main</strong></span>
+      <span class="meta-pill">App: <strong>Electron + React/MUI</strong></span>
+      <span class="meta-pill">Trilha: <strong>nodejs-do-zero &middot; 136 desafios</strong></span>
     </div>
-    <p class="hero-note">
-      Esta página resume a terceira execução do deep-orchestrator no projeto
-      <strong>study-method</strong> (app Electron de estudo de programação — renderer React/MUI v9 +
-      electron-vite): o que você pediu, o que foi entregue em 3 ondas, como a premissa pedagógica foi
-      auditada nos 136 desafios existentes e como o sistema passa a garanti-la daqui pra frente.
-    </p>
-  </header>
+  </div>
+</header>
 
-  <!-- ================= 2. O que o dono pediu ================= -->
-  <section id="pedido">
-    <h2>2 · O que você pediu</h2>
-    <p>
-      O pedido central foi estabelecer uma <strong>premissa pedagógica</strong> para a trilha
-      <code>nodejs-do-zero</code>: <em>nenhum desafio pode cobrar conhecimento que ainda não foi
-      ensinado</em>. Em volta dela, sete pedidos operacionais de navegação, limpeza e performance.
-      Clique em cada item para ver o detalhe.
-    </p>
-    <details class="req" open>
-      <summary><span class="req-num">1</span> Premissa pedagógica clara</summary>
-      <div class="req-body">
-        Os desafios da trilha só podem exigir o que já foi ensinado nas aulas anteriores. Exemplo de
-        violação citado por você: um teste que usa <code>assert.throws</code> para cobrar validação de
-        erro quando o aluno ainda não aprendeu nem <code>typeof</code> nem <code>throw</code>.
-      </div>
-    </details>
-    <details class="req">
-      <summary><span class="req-num">2</span> Critérios de entrada</summary>
-      <div class="req-body">
-        A trilha tem critérios de entrada (uma trilha de <strong>senso iniciante</strong> deve ter
-        <strong>nenhum</strong> pré-requisito). Cada aula tem como critério de entrada o conceito da
-        aula anterior. O prompt de geração de aula deve incluir os critérios + as aulas anteriores, e
-        nunca exigir nada não ensinado.
-      </div>
-    </details>
-    <details class="req">
-      <summary><span class="req-num">3</span> Validação com os textos das aulas anteriores</summary>
-      <div class="req-body">
-        Para validar um desafio, o sistema deve pegar <strong>todos os textos das aulas anteriores</strong>
-        + os critérios da aula e verificar principalmente se os testes são
-        <strong>satisfazíveis com o conhecimento ensinado</strong>.
-      </div>
-    </details>
-    <details class="req">
-      <summary><span class="req-num">4</span> Thinking máximo na criação</summary>
-      <div class="req-body">
-        Criação de testes e de todo o conteúdo com o <strong>raciocínio máximo possível</strong> da
-        LLM (thinking máximo no prompt).
-      </div>
-    </details>
-    <details class="req">
-      <summary><span class="req-num">5</span> Histórico de navegação com voltar</summary>
-      <div class="req-body">
-        Manter histórico de navegação na trilha com botão <strong>Voltar</strong> — hoje o contexto se
-        perde ao ir para Settings e voltar.
-      </div>
-    </details>
-    <details class="req">
-      <summary><span class="req-num">6</span> Botão limpar dados de avanço</summary>
-      <div class="req-body">
-        Um botão para <strong>limpar todos os dados de avanço</strong> do estudo (progresso, desafios
-        resolvidos etc.).
-      </div>
-    </details>
-    <details class="req">
-      <summary><span class="req-num">7</span> Última aula na tab Aula, sem botão voltar</summary>
-      <div class="req-body">
-        Na tab <strong>Aula</strong>: abrir a última aula aberta (ou nenhuma, se não houver), e
-        <strong>não</strong> mostrar botão Voltar nessa tab.
-      </div>
-    </details>
-    <details class="req">
-      <summary><span class="req-num">8</span> Velocidade de 10 tokens/segundo nas reviews</summary>
-      <div class="req-body">
-        As respostas de IA online (reviews de desafios) devem ser escritas a
-        <strong>10 tokens por segundo</strong> — uma digitação lenta e didática. Respostas processadas
-        por IA (não escritas) continuam livres/instantâneas.
-      </div>
-    </details>
+<main class="wrap">
+
+  <!-- ============ 1. O que o dono pediu ============ -->
+  <section>
+    <h2><span class="num">1</span> O que você pediu</h2>
+    <p class="lead">Dez pedidos, em linguagem simples &mdash; todos foram atendidos nesta execução:</p>
+    <div class="card">
+      <ol class="reqs">
+        <li><strong>Erro instantâneo:</strong> o erro de execução deve aparecer de uma vez só, sem ficar "digitando" na tela.</li>
+        <li><strong>Área de escrita até fullhd:</strong> a coluna do chat ficou maior (antes 760px), com limite de 1920px &mdash; uma tela fullhd de largura; além disso não estica.</li>
+        <li><strong>Modal animado de etapas:</strong> o botão "Gerar novo desafio" abre um modal animado mostrando as etapas do processo.</li>
+        <li><strong>Novo desafio no topo:</strong> o desafio gerado entra acima do primeiro desafio visível, ao terminar.</li>
+        <li><strong>Padding de botões:</strong> botões com ícone + texto pararam de ficar grudados (falta de espaçamento lateral).</li>
+        <li><strong>Geração que não se perde:</strong> o processo de geração continua mesmo se você navegar para outra aba.</li>
+        <li><strong>Tutor sempre à esquerda com ícone:</strong> o balão roxo de resposta estava à direita, fora do padrão dos outros balões.</li>
+        <li><strong>Chat animado estilo Nintendo:</strong> mais divertido e animado &mdash; pesquisar a fundo no projeto irmão leet-code-rpg.</li>
+        <li><strong>Fonte melhor e textos maiores:</strong> a fonte da app não estava boa de ler.</li>
+        <li><strong>Copiar fontes e estilo do leet-code-rpg:</strong> o visual deveria ficar com mais cara de jogo.</li>
+      </ol>
+    </div>
   </section>
 
-  <!-- ================= 3. O que foi entregue, por onda ================= -->
-  <section id="ondas">
-    <h2>3 · O que foi entregue, em 3 ondas</h2>
-    <p>
-      A execução rodou em <strong>3 ondas paralelas</strong>, cada uma integrada por squash commit em
-      <code>main</code> com gate de build + teste + lint em snapshot. Os 6 commits finais:
-    </p>
-    <div class="table-scroll">
-      <table>
-        <thead>
-          <tr><th>Onda</th><th>Commit</th><th>Entrega</th></tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td rowspan="4"><span class="chip accent">1 · Contexto</span></td>
-            <td><code>c89dc5e</code></td>
-            <td>Contexto pedagógico: <code>entryCriteria</code> na trilha + validador semântico de testes</td>
-          </tr>
-          <tr><td><code>a342456</code></td><td>UI de navegação: voltar, última aula, limpar dados, reviews a 10 tps</td></tr>
-          <tr><td><code>628a3ff</code></td><td>Fix: Dialog de confirmação fecha em todos os caminhos</td></tr>
-          <tr><td><code>8010cc2</code></td><td>Fix: flake do e2e (timeouts 15s) + reset de <code>challenge_hints.used_at</code></td></tr>
-          <tr>
-            <td><span class="chip purple">2 · Autoria</span></td>
-            <td><code>da7252b</code></td>
-            <td>Autoria com critérios pedagógicos: contexto no prompt, validação semântica pós-execução, CLI <code>track:challenge:context</code>, <code>--criteria</code> no <code>track:new</code></td>
-          </tr>
-          <tr>
-            <td><span class="chip green">3 · Conteúdo existente</span></td>
-            <td><code>0f004f6</code></td>
-            <td>Auditoria dos 136 desafios contra a premissa + reparos (detalhes na seção 4)</td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-
-    <!-- Onda 1 -->
-    <div class="wave">
-      <div class="wave-head">
-        <span class="chip accent">Onda 1</span>
-        <h3>Contexto — base da premissa + UI de navegação</h3>
-      </div>
-      <p>Esta onda construiu o <strong>motor de contexto pedagógico</strong> e a <strong>UI de navegação/limpeza</strong> que você pediu.</p>
-      <ul>
-        <li>
-          <strong>Validador de contexto (<code>c89dc5e</code>)</strong> — campo opcional
-          <code>entryCriteria?: string[]</code> em <code>TrackSource</code> com validação;
-          <code>challengeContextValidator.ts</code> com <code>buildChallengeContext</code> (módulos
-          ordenados por <code>meta.order</code>; a aula atual é excluída das anteriores e entra com
-          teoria completa; anteriores truncadas a 1500 chars) e <code>verifyChallengeAgainstContext</code>
-          (veredito <strong>por teste</strong>, thinking máximo, temperature 0, retry de 1x apenas para
-          parse, erros estruturados <code>CONTEXT_UNAVAILABLE</code> / <code>INVALID_JSON</code>).
-          <em>26 testes.</em>
-        </li>
-        <li>
-          <strong>Navegação e limpeza (<code>a342456</code>)</strong> — <code>roadmapNav.ts</code>
-          (histórico de navegação + botão Voltar no cabeçalho da trilha e no loadError);
-          <code>lastLesson.ts</code> (última aula aberta; peek que não consome estados one-shot);
-          LessonView com precedência <code>report → pending → peekLastLesson → vazio</code> e
-          <strong>sem botão Voltar na tab Aula</strong>; <code>saveLastLesson</code> em todas as
-          aberturas; reviews a 10 tps (<code>TypewriterText</code> com prop <code>tps</code>; chat
-          normal segue a 100 tps); <code>repo.clearAllProgress()</code> transacional (7 tabelas +
-          <code>lessons.completed_at</code> NULL) com canal <code>study:clear-progress</code> e
-          <code>ProgressPanel</code> na Settings com Dialog de confirmação.
-          <em>13 chaves i18n; e2e-nav-history com 2 testes.</em>
-        </li>
-        <li>
-          <strong>Fixes da onda (<code>628a3ff</code>, <code>8010cc2</code>)</strong> — o Dialog de
-          limpeza fecha no <code>finally</code> (3 caminhos, sem Alert atrás do backdrop); asserts da
-          review a 10 tps ganham timeouts explícitos de 15s no e2e (anti-flake) e o
-          <code>clearAllProgress</code> passou a resetar também <code>challenge_hints.used_at</code>.
-        </li>
-      </ul>
-    </div>
+  <!-- ============ 2. O que foi entregue ============ -->
+  <section>
+    <h2><span class="num">2</span> O que foi entregue, por onda</h2>
+    <p class="lead">Três ondas de trabalho, cada uma integrada à main via squash commit com gate (build + teste + lint) verde. Clique no cabeçalho de cada onda para abrir/fechar os detalhes.</p>
 
     <!-- Onda 2 -->
-    <div class="wave">
-      <div class="wave-head">
-        <span class="chip purple">Onda 2</span>
-        <h3>Autoria — prompts pedagógicos + validação semântica pós-execução</h3>
+    <details class="wave" open>
+      <summary>
+        <div class="wave-head">
+          <span class="wave-num">Onda 2</span>
+          <span class="wave-name">Chat estilo Nintendo</span>
+          <span class="wave-commit">d01b34d</span>
+        </div>
+      </summary>
+      <div class="wave-body">
+        <ul>
+          <li><b>Tutor sempre à esquerda com ícone.</b> A resposta roxa saía da direita, fora do padrão &mdash; agora é um balão do tutor com avatar (ícone AutoStories + nome "Tutor"), mantendo o roxo de identidade, largura máxima de 78% e canto quebrado no lado do avatar.</li>
+          <li><b>Erro de execução INSTANTÂNEO.</b> A mensagem de erro aparece de uma vez só, sem digitação (prop <code>instant</code> no TypewriterText); apenas a review aprovada segue digitando a 10 tps &mdash; bônus: o teste e2e da resposta caiu de 4,3s para 2,7s.</li>
+          <li><b>Coluna do chat até fullhd.</b> Cresceu de 760px para até 1920px (<code>min(1920px, 100%)</code>), com painel de mensagens de 1000px centralizado e lista/input aproveitando a largura maior.</li>
+          <li><b>Animações motion estilo Nintendo.</b> Balões entram suavemente (só mensagens novas, via AnimatePresence); dots de "digitando" pulsando em sequência (PulseDot, igual ao leet-code-rpg); hover levanta o balão e press encolhe (scale 0.98); auto-scroll suave só quando você está no fim; glow de sucesso ao concluir um desafio.</li>
+        </ul>
+        <p class="extra">Também nesta onda: fix de overflow do balão (maxWidth 100%) &mdash; texto longo não vaza mais.</p>
       </div>
-      <p>
-        Esta onda fez a <strong>geração de conteúdo</strong> (novos desafios, regeração, correção)
-        respeitar a premissa — e criou a <strong>CLI de auditoria</strong> para você verificar qualquer
-        desafio a qualquer momento.
-      </p>
-      <ul>
-        <li>
-          <strong>Prompt de regeração (<code>buildRegenerationPrompt</code>)</strong> — injeta os
-          <strong>CRITÉRIOS DE ENTRADA</strong> da aula (ou a marca <em>"(nenhum — trilha de senso
-          iniciante)"</em>), o <strong>CONTEÚDO DAS AULAS ANTERIORES</strong>, a regra
-          <strong>"NUNCA cobrar algo não ensinado"</strong> e a instrução de raciocínio
-          <strong>"PENSE PROFUNDAMENTE, PASSO A PASSO"</strong> (thinking máximo).
-        </li>
-        <li>
-          <strong>Formato condicionado a tratamento de erro</strong> — a heurística
-          <code>contextTeasesErrorHandling</code> (padrões <code>throw | typeof | try | catch |
-          assert.throws | exceção | validação</code> no contexto) decide se o formato do desafio pode
-          incluir caso de erro.
-        </li>
-        <li>
-          <strong>Loop semântico pós-execução</strong> — o desafio gerado passa por
-          <code>verifyChallengeAgainstContext</code>: reprovou → retry com o motivo da reprovação
-          (<code>lastReason</code>, limite <code>MAX_SEMANTIC_ATTEMPTS = 2</code>); aprovou → entrega;
-          contexto indisponível (<code>UNAVAILABLE</code>/<code>INVALID_JSON</code>/sem contexto) →
-          entrega por execução; 2 reprovações → <code>INVALID_CODE</code>.
-        </li>
-        <li>
-          <strong>CLI <code>track:challenge:context</code></strong> —
-          <code>&lt;slug&gt; &lt;module&gt; &lt;lesson&gt; &lt;challenge&gt;</code>, usa
-          <code>DEEPSEEK_API_KEY</code>; exit 0 = aprovado, exit 1 = reprovado ou não verificado;
-          multi-arquivo concatena <code>files[].solutionCode</code>; sem chave → erro claro + exit 1.
-          E <code>track:new --criteria "a; b; c"</code> para declarar critérios de entrada ao criar.
-        </li>
-        <li>
-          <strong>Robustez e revisão</strong> — handler monta contexto com try/catch defensivo +
-          <code>console.warn</code>; fixes do revisor: log no fallback e erro limpo no CLI.
-          <em>15 testes novos.</em>
-        </li>
-      </ul>
-    </div>
+    </details>
+
+    <!-- Onda 1 -->
+    <details class="wave">
+      <summary>
+        <div class="wave-head">
+          <span class="wave-num">Onda 1</span>
+          <span class="wave-name">Fundações de jogo (fonts &amp; theme)</span>
+          <span class="wave-commit">f5f2c7f</span>
+        </div>
+      </summary>
+      <div class="wave-body">
+        <ul>
+          <li><b>Fontes do leet-code-rpg.</b> Chakra Petch nos títulos (400/600/700) + Press Start 2P como acento pixel &mdash; todas LOCAIS via <code>@fontsource</code>, funcionam offline (CSP <code>font-src 'self'</code>; zero referências a Google Fonts no build). Nunito foi removida.</li>
+          <li><b>Textos maiores.</b> Corpo em 18px com escala 1.28: h1 com 62px, h2 48, h3 38, h4 29, h5 23, h6 18, corpo 18, caption 14, button 18 &mdash; e uma nova variante "pixel" (12px, maiúsculas) para acentos.</li>
+          <li><b>Estilo de jogo no tema.</b> Bordas de 2px, cantos de 16px, sombras coloridas nos 6 botões "contained" (color-mix), cards com border 2px + radius 16, chips de 2px, scrollbar 12px colorida, labels de sessão em fonte pixel e tiles da trilha com borda de 2px.</li>
+          <li><b>Motion base.</b> motion 13.1.1 + <code>animationTokens.ts</code>: springs compartilhados (window/playful/gentle/snappy) e variants (fadeInUp/scaleIn) &mdash; contrato unificado com a onda 2 (conflito add/add resolvido).</li>
+          <li><b>Botões com ícone sem grude.</b> Padding lateral restaurado (small 12 / medium 16 / large 22) + gap do ícone (startIcon marginRight 10) &mdash; Voltar e EvolutionTree ajustados.</li>
+        </ul>
+      </div>
+    </details>
 
     <!-- Onda 3 -->
-    <div class="wave">
-      <div class="wave-head">
-        <span class="chip green">Onda 3</span>
-        <h3>Conteúdo existente — auditoria dos 136 desafios</h3>
+    <details class="wave">
+      <summary>
+        <div class="wave-head">
+          <span class="wave-num">Onda 3</span>
+          <span class="wave-name">Fluxo de geração (modal + anti-corrida)</span>
+          <span class="wave-commit">201f9e7</span>
+        </div>
+      </summary>
+      <div class="wave-body">
+        <ul>
+          <li><b>Modal animado com 5 etapas reais.</b> "Gerar novo desafio" abre um modal com 5 etapas: <i>pensando no desafio &rarr; testes &rarr; coerência com o que você aprendeu &rarr; execução &rarr; adicionando ao topo</i>. O progresso vem de <b>eventos reais</b> do processo principal (canal de progresso no Electron), não de estimativas. A etapa ativa pulsa; a concluída ganha check animado; concluído com glow + botão "Ver desafio"; erro com botão Fechar.</li>
+          <li><b>Novo desafio no TOPO.</b> A lista ordena por <code>created_at DESC</code> + <code>id DESC</code>, com os recém-gerados vindo primeiro &mdash; o desafio novo aparece acima do primeiro desafio visível.</li>
+          <li><b>Geração que não se perde ao trocar de aba.</b> Estado global (store module-level) + modal montado no shell da app + listener sempre ativo: navegar para outra aba não interrompe nada; a lista é re-buscada sozinha quando você volta.</li>
+          <li><b>Anti-corrida entre processos.</b> Cada geração recebe um <code>generationId</code> ecoado em todos os eventos &mdash; um terminal atrasado de uma geração antiga nunca sequestra a geração nova. try/catch cobre qualquer exceção (fs/tmp/spawn) com terminal de erro honesto.</li>
+          <li><b>Cancelar/Esc.</b> Dá para cancelar a geração em andamento (botão Cancelar, tecla Esc ou clique no backdrop).</li>
+          <li><b>Conclusão com navegação real.</b> "Ver desafio" navega pelo target real (<code>lesson</code> | <code>proficiency</code>) &mdash; a navegação automática foi removida de propósito, decisão documentada.</li>
+        </ul>
+        <p class="extra">Interface traduzida (pt/en); regenerador e validador continuam funções puras &mdash; a "sujeira" de eventos ficou no fio de comunicação, não no domínio.</p>
       </div>
-      <p>
-        A onda 3 aplicou a premissa ao <strong>conteúdo que já existia</strong>: auditoria dos 136
-        desafios da trilha <code>nodejs-do-zero</code> (18 módulos, 118 aulas; trilha sem
-        <code>entryCriteria</code> — confirmando <strong>senso iniciante</strong>). O resultado é o
-        coração da execução e ganhou a seção 4 abaixo.
-      </p>
-      <ul>
-        <li><strong>35 desafios reparados</strong> (1 snippet na teoria; 6 testes abrandados; 28 soluções/enunciados reescritos com testes intactos).</li>
-        <li><strong>Caso "somar" verificado PASS sem reparo</strong> — a aula de programação básica já ensina <code>typeof</code> + <code>throw</code> com exemplo; o cluster de <code>assert.throws</code> (7/7) tem base na teoria.</li>
-        <li>Fixes da revisão adversarial aplicados: função pura em atualizar-item-por-id, regex residual removido, snippet de operacoes-lentas reduzido ao conceito, enunciados alinhados à validação implementada, guardas B1–B4.</li>
-      </ul>
-    </div>
+    </details>
   </section>
 
-  <!-- ================= 4. Auditoria dos 136 desafios ================= -->
-  <section id="auditoria">
-    <h2>4 · A auditoria dos 136 desafios — o coração da premissa</h2>
-    <p>
-      A premissa só vale se valer para o conteúdo que o aluno já encontra hoje. Por isso a execução
-      auditou <strong>todos os 136 desafios</strong> de <code>nodejs-do-zero</code> (18 módulos,
-      118 aulas) contra os textos reais das aulas anteriores, com julgamento de LLM em thinking
-      máximo:
-    </p>
+  <!-- ============ 3. Verificação ============ -->
+  <section>
+    <h2><span class="num">3</span> Verificação</h2>
+    <p class="lead">Números finais da execução e como cada onda passou pelo portão de integração.</p>
+
     <div class="stats">
-      <div class="stat accent"><div class="num">136</div><div class="lbl">desafios auditados</div></div>
-      <div class="stat green"><div class="num">35</div><div class="lbl">reparados</div></div>
-      <div class="stat amber"><div class="num">28</div><div class="lbl">soluções/enunciados</div></div>
-      <div class="stat amber"><div class="num">6</div><div class="lbl">testes abrandados</div></div>
-      <div class="stat amber"><div class="num">1</div><div class="lbl">snippet na teoria</div></div>
-      <div class="stat green"><div class="num">PASS</div><div class="lbl">caso "somar" sem reparo</div></div>
+      <div class="stat green"><div class="v">1911</div><div class="l">testes passando</div></div>
+      <div class="stat purple"><div class="v">1912</div><div class="l">testes no total</div></div>
+      <div class="stat red"><div class="v">0</div><div class="l">falhas</div></div>
+      <div class="stat"><div class="v">1</div><div class="l">skip pré-existente</div></div>
+      <div class="stat green"><div class="v">28</div><div class="l">e2e passando</div></div>
+      <div class="stat"><div class="v">3</div><div class="l">e2e skips (chaves de API)</div></div>
     </div>
-    <div class="table-scroll">
+
+    <div class="card soft">
+      <h3>Portões e revisões</h3>
+      <ul style="list-style:none; padding-left:0;">
+        <li style="padding:5px 0 5px 26px; position:relative;">▸ <b>Gates por onda:</b> cada integração (snapshots <code>int-ondaN-*</code>) passou por <b>build + teste + lint verdes</b> antes do squash merge em main.</li>
+        <li style="padding:5px 0 5px 26px; position:relative;">▸ <b>Revisão adversarial das ondas 1+2:</b> conflito add/add no <code>animationTokens.ts</code> resolvido com contrato unificado de springs/variants.</li>
+        <li style="padding:5px 0 5px 26px; position:relative;">▸ <b>Revisão adversarial da onda 3:</b> 2 achados ALTO + 2 MÉDIO + 3 BAIXO &mdash; <b>todos corrigidos com testes dedicados</b> (5252c4d &rarr; 201f9e7).</li>
+      </ul>
+
       <table>
         <thead>
-          <tr><th>Grupo de reparo</th><th>Quantidade</th><th>O que foi feito</th></tr>
+          <tr><th>Severidade</th><th>Achado</th><th>Correção</th></tr>
         </thead>
         <tbody>
           <tr>
-            <td><strong>Snippet na teoria</strong></td>
-            <td><span class="chip amber">1</span></td>
-            <td>
-              Reparo de <code>operacoes-lentas</code>: o snippet da teoria foi reduzido ao conceito
-              (não ensina o que o desafio não vai pedir de forma consistente).
-            </td>
+            <td><span class="tag alto">ALTO</span></td>
+            <td>Modal podia ficar preso em "running" sem terminal de erro.</td>
+            <td>Terminal de erro em <b>todo caminho</b> &mdash; qualquer exceção (fs/tmp/spawn) vira estado de erro com botão Fechar.</td>
           </tr>
           <tr>
-            <td><strong>Testes abrandados</strong></td>
-            <td><span class="chip amber">6</span></td>
-            <td>
-              Removidos do teste conhecimentos ainda não ensinados: <code>join</code>,
-              <code>shift</code>, <code>toLowerCase</code>, <code>Math.round</code>, <code>regex</code>
-              e <code>padStart</code> — o teste passou a ser satisfazível só com o que a aula ensinou.
-            </td>
+            <td><span class="tag alto">ALTO</span></td>
+            <td>Corrida entre processos: terminal atrasado de uma geração antiga podia sequestrar a nova.</td>
+            <td><code>generationId</code> no store e ecoado em todos os eventos &mdash; eventos obsoletos são descartados.</td>
           </tr>
           <tr>
-            <td><strong>Soluções/enunciados coerentes</strong></td>
-            <td><span class="chip green">28</span></td>
-            <td>
-              Soluções e enunciados reescritos <strong>com os testes intactos</strong>, trocando
-              construções não ensinadas por equivalentes do nível da aula: <code>Object.entries</code>
-              → loops, <code>Set</code> → objeto, <code>Math.ceil</code> → laço, regex →
-              <code>split</code>/<code>includes</code>, spread → campos explícitos.
-            </td>
+            <td><span class="tag medio">MÉDIO</span></td>
+            <td>Sem como cancelar a geração em andamento.</td>
+            <td>Cancelar / Esc / backdrop funcionando no estado running.</td>
           </tr>
           <tr>
-            <td><strong>Caso "somar" — verificado</strong></td>
-            <td><span class="chip green">PASS</span></td>
-            <td>
-              Verificado e <strong>aprovado sem reparo</strong>: a aula de programação básica
-              (<code>o-que-e-programacao</code>) já ensina <code>typeof</code> + <code>throw</code>
-              com exemplo — o cluster <code>assert.throws</code> (7 de 7) tem base na teoria.
-            </td>
+            <td><span class="tag medio">MÉDIO</span></td>
+            <td>Lista podia ficar desatualizada ao voltar para a aba.</td>
+            <td>RefetchToken (<code>listVersion</code>) que a LessonView observa &mdash; lista re-buscada ao voltar.</td>
+          </tr>
+          <tr>
+            <td><span class="tag baixo">BAIXO</span></td>
+            <td>Fechamento do modal sem animação de saída.</td>
+            <td>Animação de saída no overlay e no card.</td>
+          </tr>
+          <tr>
+            <td><span class="tag baixo">BAIXO</span></td>
+            <td>Rótulo de etapa podia ser enganoso.</td>
+            <td>Rótulo honesto da etapa (validação só quando há contexto).</td>
+          </tr>
+          <tr>
+            <td><span class="tag baixo">BAIXO</span></td>
+            <td>Navegação de conclusão por target instável.</td>
+            <td>Navegação manual "Ver desafio" com target real <code>lesson</code> | <code>proficiency</code>.</td>
           </tr>
         </tbody>
       </table>
-    </div>
-    <div class="card highlight">
-      <div class="card-title">Confirmações do revisor da onda 3</div>
-      <ul>
-        <li>Execução real (harness <code>node --test</code>): <strong>136/136</strong> com as soluções novas;</li>
-        <li>JSONs dos desafios válidos;</li>
-        <li>App e testes sem referências a textos alterados;</li>
-        <li>Amostra de <strong>20 desafios não reparados</strong> verificada: nenhuma violação da premissa.</li>
-      </ul>
+
+      <h3>Incidente de orquestração (transparência)</h3>
+      <p style="color:#cdd3e0; font-size:15px;">O re-merge da onda 1 abortou com working tree sujo de um squash parcial &mdash; os 16 paths foram restaurados sem tocar no <code>.gitignore</code> do usuário, e a onda foi integrada na sequência sem prejuízo.</p>
     </div>
   </section>
 
-  <!-- ================= 5. Garantia da premissa daqui pra frente ================= -->
-  <section id="garantia">
-    <h2>5 · Como a premissa é garantida daqui pra frente</h2>
-    <p>
-      Além de consertar o conteúdo existente, o sistema agora <strong>verifica</strong> e
-      <strong>gera</strong> com a premissa embutida — não depende mais do bom humor da LLM:
-    </p>
-    <div class="card info">
-      <div class="card-title">Validação semântica pós-geração, com veredito por teste</div>
-      <p style="margin-bottom:0">
-        Todo desafio gerado/regenerado passa por <code>verifyChallengeAgainstContext</code>, que
-        confronta <strong>cada teste</strong> com os textos das aulas anteriores (aula atual excluída,
-        com teoria completa; anteriores truncadas a 1500 chars). O veredito é por teste: um único
-        teste exigindo algo não ensinado reprova o desafio.
-      </p>
-    </div>
-    <div class="card">
-      <div class="card-title">Retry com feedback (loop semântico)</div>
-      <p style="margin-bottom:0">
-        Reprovação → nova tentativa com o motivo da reprovação (<code>lastReason</code>) no prompt,
-        até <code>MAX_SEMANTIC_ATTEMPTS = 2</code>. Aprovado → entrega. Contexto indisponível
-        (<code>CONTEXT_UNAVAILABLE</code>/<code>INVALID_JSON</code>) → entrega por execução (não
-        bloqueia o fluxo sem motivo). 2 reprovações → <code>INVALID_CODE</code>.
-      </p>
-    </div>
-    <div class="card">
-      <div class="card-title">CLI de auditoria <code>track:challenge:context</code></div>
-      <p>Você pode auditar qualquer desafio existente a qualquer momento, sem mexer no app:</p>
-      <pre class="code"><code>npm run track -- track:challenge:context nodejs-do-zero &lt;module&gt; &lt;lesson&gt; &lt;challenge&gt;</code></pre>
-      <p style="margin-bottom:0">
-        Exit <code>0</code> = aprovado; exit <code>1</code> = reprovado ou não verificado (incluindo
-        chave ausente). Desafios multi-arquivo são auditados com <code>files[].solutionCode</code>
-        concatenado.
-      </p>
-    </div>
-    <div class="card">
-      <div class="card-title">Geração já nasce com a premissa</div>
-      <p style="margin-bottom:0">
-        O prompt de regeração carrega os <strong>critérios de entrada</strong> (ou a marca
-        <em>"(nenhum — trilha de senso iniciante)"</em>), o <strong>conteúdo das aulas anteriores</strong>
-        e as regras <strong>"NUNCA cobrar algo não ensinado"</strong> + <strong>"PENSE PROFUNDAMENTE,
-        PASSO A PASSO"</strong> (thinking máximo). Trilhas novas declaram critérios com
-        <code>track:new --criteria "a; b; c"</code> e o formato do desafio (com/sem caso de erro) é
-        decidido pela heurística <code>contextTeasesErrorHandling</code>.
-      </p>
+  <!-- ============ 4. Nota de ambiente ============ -->
+  <section>
+    <h2><span class="num">4</span> Nota de ambiente</h2>
+    <div class="env-note">
+      A variável <b>DEEPSEEK_API_KEY continua ausente</b> nesta máquina (já registrado no Run 3). Por isso o fluxo de geração foi testado com <b>fakes</b> &mdash; todo o código está pronto e coberto por testes. Quando a chave for configurada (instruções no EXPLAINER anterior e no <code>.env.local.example</code>), a geração real funciona sem mudanças de código.
     </div>
   </section>
 
-  <!-- ================= 6. Verificação ================= -->
-  <section id="verificacao">
-    <h2>6 · Verificação</h2>
-    <div class="stats">
-      <div class="stat green"><div class="num">1888</div><div class="lbl">testes totais</div></div>
-      <div class="stat green"><div class="num">1887</div><div class="lbl">pass</div></div>
-      <div class="stat red"><div class="num">0</div><div class="lbl">fail</div></div>
-      <div class="stat accent"><div class="num">136/136</div><div class="lbl">track:validate</div></div>
-      <div class="stat accent"><div class="num">28</div><div class="lbl">e2e passed</div></div>
-    </div>
-    <div class="card">
-      <div class="card-title">Gates por onda (snapshots int-ondaN-*)</div>
-      <p style="margin-bottom:0">
-        Cada onda foi integrada com gate de <strong>build + test + lint verdes</strong> em snapshot,
-        antes do squash commit em <code>main</code>. Há também <strong>1 skip pré-existente</strong>
-        (não introduzido por esta execução).
-      </p>
-    </div>
-    <div class="card">
-      <div class="card-title">Revisões adversariais por onda — com os fixes aplicados</div>
-      <div class="table-scroll" style="border:none; margin:10px 0 4px;">
-        <table style="min-width:420px;">
-          <thead>
-            <tr><th>Onda</th><th>Revisão</th><th>Resolução</th></tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td><span class="chip accent">1</span></td>
-              <td>1 HIGH encontrado + flake de e2e</td>
-              <td>HIGH corrigido; flake corrigido no fix <code>8010cc2</code> (timeouts 15s)</td>
-            </tr>
-            <tr>
-              <td><span class="chip purple">2</span></td>
-              <td>0 altos, 2 BAIXO</td>
-              <td>2 BAIXO corrigidos (log no fallback, erro limpo no CLI)</td>
-            </tr>
-            <tr>
-              <td><span class="chip green">3</span></td>
-              <td>0 críticos, 1 ALTO + 5 MÉDIO + 4 BAIXO</td>
-              <td>todos corrigidos — <code>b275ecd</code> → <code>0f004f6</code></td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-      <p style="margin-bottom:0">
-        Os commits de revisão são integrados por squash, por isso só os 6 commits finais da seção 3
-        aparecem no histórico de <code>main</code>.
-      </p>
-    </div>
-    <div class="card highlight">
-      <div class="card-title">E a premissa, foi verificada de verdade?</div>
-      <p style="margin-bottom:0">
-        Sim, com duas camadas: a auditoria da onda 3 usou o <strong>julgamento do agente (LLM em
-        thinking máximo) sobre os textos reais</strong> das aulas, e o revisor adversarial da onda 3
-        confirmou com execução real (136/136), JSONs válidos, ausência de referências a textos
-        alterados e amostra de 20 desafios não reparados sem violações. A <strong>re-verificação
-        runtime via CLI</strong> fica pendente apenas da chave de API — seção 7.
-      </p>
-    </div>
-  </section>
+</main>
 
-  <!-- ================= 7. Nota de ambiente ================= -->
-  <section id="ambiente">
-    <h2>7 · Nota de ambiente — falta a DEEPSEEK_API_KEY</h2>
-    <div class="card danger">
-      <div class="card-title">Bloqueio de ambiente registrado</div>
-      <p>
-        A variável <strong><code>DEEPSEEK_API_KEY</code> não existe nesta máquina</strong> — foi
-        procurada no ambiente (env, shells), no keychain e no store do app. Sem a chave:
-      </p>
-      <ul>
-        <li>A CLI <code>track:challenge:context</code> retorna <strong>erro claro + exit 1</strong> (não falha silenciosamente);</li>
-        <li>A <strong>re-verificação runtime dos desafios via CLI fica pendente</strong> — a auditoria da onda 3 foi feita com o julgamento do agente (LLM em thinking máximo) sobre os textos reais, mas a confirmação automatizada pela CLI depende de você configurar a chave.</li>
-      </ul>
-    </div>
-    <div class="card">
-      <div class="card-title">Como configurar (pós-condição documentada)</div>
-      <p>Opção A — copiar o exemplo e preencher:</p>
-      <pre class="code"><code>cp .env.local.example .env.local
-# edite .env.local e preencha: DEEPSEEK_API_KEY=sk-...</code></pre>
-      <p>Opção B — exportar no shell:</p>
-      <pre class="code"><code>export DEEPSEEK_API_KEY=sk-...</code></pre>
-      <p>Depois, re-verificar qualquer desafio com:</p>
-      <pre class="code"><code>npm run track -- track:challenge:context nodejs-do-zero &lt;module&gt; &lt;lesson&gt; &lt;challenge&gt;</code></pre>
-      <p style="margin-bottom:0">
-        Exit <code>0</code> = aprovado contra o contexto pedagógico; exit <code>1</code> = reprovado
-        ou não verificado.
-      </p>
-    </div>
-  </section>
+<footer>
+  <div class="wrap">
+    EXPLAINER gerado pelo deep-orchestrator-agent-skill &middot; execução 20260828-173418-45704 &middot; main
+  </div>
+</footer>
 
-  <!-- ================= 8. Rodapé ================= -->
-  <footer>
-    <p>
-      Gerado pelo <strong>deep-orchestrator-agent-skill</strong> — execução
-      <span class="mono">20260828-141352-57416</span> · Run 3 — premissa pedagógica · branch
-      <span class="mono">main</span> · 2026-08-28
-    </p>
-  </footer>
-
-</div>
+<!-- Nota de discrepância: git status mostra branch main 3 commits à frente de origin/main (ainda não enviados) e um .gitignore modificado fora do stage. O fatos.md registra que o orquestrador não tocou no .gitignore do usuário durante o incidente da onda 1 — a modificação atual no working tree é anterior/externa à execução. -->
 </body>
 </html>
-<!--
-DISCREPÂNCIAS / NOTAS DE ESTADO (checagem em 2026-08-28):
-- git status do repo confere com o fatos.md: os 6 commits de squash (c89dc5e, a342456,
-  628a3ff, 8010cc2, da7252b, 0f004f6) estao no topo de main. NAO ha inconsistencia com o fatos.md.
-- Notas adicionais, fora do escopo do fatos.md (registradas para transparencia):
-  1) main esta "ahead of origin/main by 6 commits" — os commits desta run ainda NAO foram
-     enviados ao remoto (push pendente).
-  2) ha uma modificacao local pre-existente em .gitignore (nao versionada) no working tree;
-     nao tem relacao com esta execucao.
-- b275ecd (citado no fatos.md como commit de revisao da onda 3, integrado por squash em
-  0f004f6) nao aparece no git log de main — esperado: revisoes sao squash-mergeadas.
--->
