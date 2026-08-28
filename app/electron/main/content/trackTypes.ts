@@ -163,6 +163,18 @@ export interface TrackSource {
   domain: 'programming' | 'math';
   /** slugs dos módulos, na ordem da trilha. */
   modules: string[];
+  /**
+   * ADITIVO (onda 1 context-validator): CRITÉRIOS DE ENTRADA da trilha — o que
+   * o aluno precisa JÁ SABER antes de começar a trilha (ex.: 'somar dois
+   * números de cabeça'). O validador pedagógico de desafios (challengeContext
+   * validator) os usa como base do contexto: um desafio só pode cobrar os
+   * critérios de entrada + o que as aulas anteriores e a atual ensinam.
+   * Ausente ou vazio = trilha de senso INICIANTE (sem critérios — parte do
+   * absoluto zero). Não há campo de critério por AULA: o critério de entrada
+   * de cada aula é o CONCEITO da aula anterior, derivado da sequência pelo
+   * próprio validador (nunca declarado no JSON).
+   */
+  entryCriteria?: string[];
 }
 
 /** Erro de validação: mensagem + caminho do arquivo (para o CLI e o loader). */
@@ -339,6 +351,20 @@ export function validateTrackSource(raw: unknown, file: string): TrackValidation
   if (t.domain !== 'programming' && t.domain !== 'math') issues.push({ file, message: `domain inválido: ${JSON.stringify(t.domain)}` });
   if (!Array.isArray(t.modules) || t.modules.length === 0) {
     issues.push({ file, message: 'modules ausente/vazio (a trilha precisa de módulos)' });
+  }
+  // ADITIVO (onda 1 context-validator): entryCriteria OPCIONAL — quando
+  // presente, precisa ser um array de strings NÃO vazias (critério em branco
+  // não ensina nada). Ausente OU vazio é válido: trilha de senso iniciante.
+  if (t.entryCriteria !== undefined) {
+    if (!Array.isArray(t.entryCriteria)) {
+      issues.push({ file, message: 'entryCriteria inválido (esperado array de strings)' });
+    } else {
+      t.entryCriteria.forEach((c, i) => {
+        if (!isNonEmptyString(c)) {
+          issues.push({ file, message: `entryCriteria[${i}] vazio (cada critério deve ser texto não vazio)` });
+        }
+      });
+    }
   }
   return issues;
 }
