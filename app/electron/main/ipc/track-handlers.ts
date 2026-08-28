@@ -53,6 +53,7 @@ import {
   regenerateChallenge,
   type FailedChallengeInfo,
 } from '../services/challengeRegenerator';
+import { buildChallengeContext, type ChallengeContext } from '../services/challengeContextValidator';
 import type { DeepSeekClient } from '../services/deepseekClient';
 
 /** Subconjunto do repo exigido pelos handlers de trilha. */
@@ -402,10 +403,28 @@ export function buildTrackHandlers(deps: TrackHandlerDeps): Map<string, IpcHandl
       failed = [];
     }
 
+    // ONDA 2 (autoria): contexto pedagógico (critérios da trilha + aulas
+    // anteriores + a aula atual) para a validação SEMÂNTICA do desafio
+    // regenerado — o desafio só pode cobrar o que foi ensinado. Defensivo: se
+    // a montagem falhar (aula/módulo inexistente — não deveria, os slugs vêm
+    // do LoadedTrack), regenera SEM contexto (entrega validada por execução).
+    // A falha NUNCA é silenciosa: o warn dá observabilidade ao main/auditoria.
+    let context: ChallengeContext | undefined;
+    try {
+      context = buildChallengeContext(loaded, found.moduleSlug, found.lesson.meta.slug);
+    } catch (e) {
+      console.warn(
+        '[track:challenge-regenerate] buildChallengeContext falhou, regenerando sem contexto:',
+        (e as Error).message,
+      );
+      context = undefined;
+    }
+
     const outcome = await regenerateChallenge({
       trackTitle: loaded.root.title,
       lesson: found.lesson.meta,
       failed,
+      context,
       llm: chatFn,
     });
     if (!outcome.ok || !outcome.challenge) {

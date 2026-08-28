@@ -8,13 +8,14 @@
  *   npm run track -- <comando> [args...]
  *
  * Comandos:
- *   track:new <slug> --title "Node.js do Zero" --description "..." [--domain programming|math]
+ *   track:new <slug> --title "Node.js do Zero" --description "..." [--domain programming|math] [--criteria "a; b; c"]
  *   track:module:new <slug> <moduleSlug> --title "Fundamentos" --order 1
  *   track:lesson:new <slug> <moduleSlug> <lessonSlug> --title "..." --summary "..." [--difficulty N]
  *   track:challenge:new <slug> <moduleSlug> <lessonSlug> <challengeSlug> --title "..." --concept <id> [--difficulty N]
  *   track:module:challenge:new <slug> <moduleSlug> <challengeSlug> --title "..." --concept <id> [--difficulty N] [--files "lib/a.mjs,lib/b.mjs"]
  *   track:proficiency:new <slug> --title "..." --concept <id>   (desafio que cobre TUDO)
  *   track:challenge:verify <slug> <moduleSlug> <lessonSlug> <challengeSlug>   (multi-arquivo OK)
+ *   track:challenge:context <slug> <moduleSlug> <lessonSlug> <challengeSlug> (validação SEMÂNTICA via LLM — exige DEEPSEEK_API_KEY)
  *   track:validate <slug>          — valida a trilha inteira (loader completo)
  *   track:list                     — lista as trilhas disponíveis
  *
@@ -22,6 +23,14 @@
  * validar). Desafios scaffoldados têm código TODO — o autor preenche
  * statement/starter/tests/solution e roda track:challenge:verify para provar
  * que os testes passam na referência e FALHAM no stub.
+ *
+ * ONDA 2 (autoria): track:new aceita --criteria (entryCriteria da trilha — o
+ * que o aluno já sabia ANTES de começar; separados por ';') e
+ * track:challenge:context valida um desafio contra o CONTEXTO ENSINADO
+ * (critérios de entrada + aulas anteriores + a aula atual) com a LLM
+ * (deepseekClient; a chave vem de DEEPSEEK_API_KEY) — o veredito é POR TESTE
+ * (✔/✖ + motivo) e o exit code espelha o veredito (0 aprovado, 1 reprovado ou
+ * não verificado). É a porta de AUDITORIA do fluxo de autoria.
  */
 
 import { promises as fs } from 'node:fs';
@@ -49,7 +58,16 @@ import {
   TrackLoadError,
   listTrackSlugs,
   loadTrack,
+  type LoadedTrack,
 } from '../electron/main/content/trackLoader';
+import {
+  buildChallengeContext,
+  verifyChallengeAgainstContext,
+  type ChallengeContext,
+  type ChallengeToValidate,
+  type ContextValidatorLlm,
+} from '../electron/main/services/challengeContextValidator';
+import { createDeepSeekClient } from '../electron/main/services/deepseekClient';
 
 // ─── raiz do conteúdo ────────────────────────────────────────────────────────
 const CLI_ROOT = path.resolve(__dirname, '..');
@@ -58,13 +76,14 @@ export const TRACKS_DIR = path.join(CLI_ROOT, 'resources', 'tracks');
 const USAGE = `uso: npm run track -- <comando> [args...]
 
 comandos:
-  track:new <slug> --title "..." --description "..." [--domain programming|math]
+  track:new <slug> --title "..." --description "..." [--domain programming|math] [--criteria "a; b; c"]
   track:module:new <slug> <moduleSlug> --title "..." --order N
   track:lesson:new <slug> <moduleSlug> <lessonSlug> --title "..." --summary "..." [--difficulty N]
   track:challenge:new <slug> <moduleSlug> <lessonSlug> <challengeSlug> --title "..." --concept <id> [--difficulty N]
   track:module:challenge:new <slug> <moduleSlug> <challengeSlug> --title "..." --concept <id> [--difficulty N] [--files "lib/a.mjs,lib/b.mjs"]
   track:proficiency:new <slug> --title "..." --concept <id>
   track:challenge:verify <slug> <moduleSlug> <lessonSlug> <challengeSlug>
+  track:challenge:context <slug> <moduleSlug> <lessonSlug> <challengeSlug>   (validação semântica do desafio contra o contexto ensinado — exige DEEPSEEK_API_KEY)
   track:validate <slug>
   track:list`;
 
@@ -139,6 +158,15 @@ async function cmdTrackNew(pos: string[], flags: Record<string, string>): Promis
   if (await fs.stat(dir).then(() => true).catch(() => false)) {
     fail(`trilha '${slug}' já existe em ${dir}`);
   }
+  // ONDA 2 (autoria): --criteria "a; b; c" → entryCriteria no track.json (o
+  // que o aluno já sabia antes de começar). Split por ';', trim, filtra
+  // vazios; sem flag (ou tudo vazio) → CAMPO AUSENTE (trilha de senso
+  // iniciante — o validador pedagógico trata ausência e [] como o mesmo).
+  const criteriaRaw = flags.criteria;
+  const entryCriteria =
+    criteriaRaw !== undefined
+      ? criteriaRaw.split(';').map((s) => s.trim()).filter((s) => s.length > 0)
+      : undefined;
   const track: TrackSource = {
     schemaVersion: TRACK_SCHEMA_VERSION,
     slug,
@@ -146,10 +174,14 @@ async function cmdTrackNew(pos: string[], flags: Record<string, string>): Promis
     description,
     language: 'pt-BR',
     domain,
+    ...(entryCriteria !== undefined && entryCriteria.length > 0 ? { entryCriteria } : {}),
     modules: [],
   };
   await writeJson(path.join(dir, TRACK_FILE), track);
   console.log(`✓ trilha '${slug}' criada em ${dir}`);
+  if (entryCriteria !== undefined && entryCriteria.length > 0) {
+    console.log(`  critérios de entrada: ${entryCriteria.join('; ')}`);
+  }
   console.log(`  próximo: npm run track -- track:module:new ${slug} <moduleSlug> --title "..." --order 1`);
 }
 
@@ -389,6 +421,106 @@ async function cmdChallengeVerify(pos: string[]): Promise<void> {
   console.log(`✓ desafio aprovado pelas provas de execução.`);
 }
 
+// ─── validação SEMÂNTICA de desafio (onda 2 — autoria) ───────────────────────
+// O desafio só pode cobrar conhecimento JÁ ENSINADO (premissa do produto):
+// critérios de entrada da trilha + aulas anteriores + a aula atual. A LLM
+// julga cada test('...') do testsCode contra esse contexto (THINKING MÁXIMO) e
+// devolve o veredito POR TESTE. A chave vem do ambiente (DEEPSEEK_API_KEY) —
+// nunca de settings: este CLI roda FORA do electron.
+
+/** Adapta o deepseekClient one-shot à assinatura de llm do validador. */
+function makeContextLlm(apiKey: string): ContextValidatorLlm {
+  const deepseek = createDeepSeekClient({ apiKey: async () => apiKey });
+  return async (req) => {
+    const res = await deepseek.chatCompletion(req);
+    return { content: res.content };
+  };
+}
+
+async function cmdChallengeContext(pos: string[]): Promise<void> {
+  const [track, moduleSlug, lessonSlug, challengeSlug] = pos;
+  if (!track || !moduleSlug || !lessonSlug || !challengeSlug) {
+    fail('track:challenge:context <slug> <moduleSlug> <lessonSlug> <challengeSlug>');
+  }
+  const apiKey = (process.env.DEEPSEEK_API_KEY ?? '').trim();
+  if (!apiKey) {
+    console.error('erro: DEEPSEEK_API_KEY não definida — defina a variável de ambiente para validar o desafio semanticamente.');
+    process.exit(1);
+  }
+
+  let loaded: LoadedTrack;
+  try {
+    loaded = await loadTrack(trackDir(track));
+  } catch (err) {
+    if (err instanceof TrackLoadError) {
+      console.error(`✗ trilha '${track}' inválida (${err.issues.length} problema(s)):`);
+      for (const issue of err.issues) {
+        console.error(`  - ${issue.file}: ${issue.message}`);
+      }
+      process.exit(1);
+    }
+    throw err;
+  }
+  // Montagem do contexto + leitura/parse do challenge.json: QUALQUER falha
+  // (aula/módulo/desafio inexistente — buildChallengeContext lança Error
+  // plain; arquivo ausente/corrompido — readFile/JSON.parse) vira mensagem
+  // LIMPA e acionável com exit 1, NUNCA stack trace do main().catch.
+  let context: ChallengeContext;
+  let challengeToValidate: ChallengeToValidate;
+  try {
+    context = buildChallengeContext(loaded, moduleSlug, lessonSlug);
+    const challengePath = path.join(lessonDir(track, moduleSlug, lessonSlug), 'challenges', challengeSlug, CHALLENGE_FILE);
+    const challenge = JSON.parse(await fs.readFile(challengePath, 'utf8')) as TrackChallengeSource;
+    // Desafio multi-arquivo: as soluções vivem nos arquivos — concatena para o
+    // validador julgar a implementabilidade com o que foi ensinado.
+    challengeToValidate = {
+      title: challenge.title,
+      statement: challenge.statement,
+      testsCode: challenge.testsCode,
+      solutionCode:
+        challenge.files && challenge.files.length > 0
+          ? challenge.files.map((f) => f.solutionCode).join('\n')
+          : (challenge.solutionCode ?? ''),
+    };
+  } catch (err) {
+    const detail = err instanceof Error ? err.message : String(err);
+    console.error(
+      `✗ não foi possível montar a validação do desafio '${challengeSlug}' (módulo '${moduleSlug}' / aula '${lessonSlug}'): ${detail}`,
+    );
+    console.error(`  confira os slugs com: npm run track -- track:validate ${track}`);
+    process.exit(1);
+  }
+
+  const verdict = await verifyChallengeAgainstContext({
+    context,
+    challenge: challengeToValidate,
+    llm: makeContextLlm(apiKey),
+  });
+  if (!verdict.ok) {
+    console.error(`✗ desafio '${challengeSlug}' NÃO VERIFICADO (${verdict.error.code}): ${verdict.error.message}`);
+    process.exit(1);
+  }
+
+  console.log(`validação semântica do desafio '${challengeSlug}' (${challengeToValidate.title}):`);
+  console.log(`  trilha: ${context.trackTitle}`);
+  console.log(`  critérios de entrada: ${context.entryCriteria.length > 0 ? context.entryCriteria.join('; ') : '(nenhum — trilha de senso iniciante)'}`);
+  console.log(`  aulas anteriores: ${context.previousLessons.length > 0 ? context.previousLessons.map((l) => l.slug).join(', ') : '(nenhuma — primeira aula da trilha)'}`);
+  console.log(`  aula atual: ${context.currentLesson.slug} — ${context.currentLesson.title}`);
+  console.log('');
+  for (const t of verdict.testes) {
+    console.log(`  ${t.aprovado ? '✔' : '✖'} ${t.nome} — ${t.motivo}`);
+  }
+  console.log('');
+  if (verdict.aprovado) {
+    console.log(`✓ desafio APROVADO pela validação semântica (${verdict.testes.length} teste(s) — só cobra o que foi ensinado).`);
+  } else {
+    console.error(
+      `✗ desafio REPROVADO pela validação semântica (${verdict.testes.filter((t) => !t.aprovado).length} teste(s) cobram conhecimento não ensinado).`,
+    );
+    process.exit(1);
+  }
+}
+
 // ─── validação / listagem ────────────────────────────────────────────────────
 
 async function cmdValidate(pos: string[]): Promise<void> {
@@ -496,6 +628,9 @@ async function main(): Promise<void> {
       break;
     case 'track:challenge:verify':
       await cmdChallengeVerify(rest);
+      break;
+    case 'track:challenge:context':
+      await cmdChallengeContext(rest);
       break;
     case 'track:validate':
       await cmdValidate(rest);

@@ -116,9 +116,12 @@ test('multiplica 2*3', () => { assert.equal(multiplica(2, 3), 6); });
   expectedTestCount: 2,
 };
 
-async function makeTrackDir(): Promise<string> {
+async function makeTrackDir(
+  opts: { entryCriteria?: string[]; previousLesson?: { slug: string; title: string; theory: string } } = {},
+): Promise<string> {
   const root = mkdtempSync(path.join(os.tmpdir(), 'track-handlers-'));
   const track = path.join(root, 'trilha-teste');
+  const lessonSlugs = opts.previousLesson ? [opts.previousLesson.slug, 'aula-1'] : ['aula-1'];
   await fs.mkdir(path.join(track, 'modules', 'mod-1', 'lessons', 'aula-1', 'challenges', 'desafio-1'), { recursive: true });
   await fs.writeFile(
     path.join(track, 'track.json'),
@@ -129,6 +132,7 @@ async function makeTrackDir(): Promise<string> {
       description: 'Desc.',
       language: 'pt-BR',
       domain: 'programming',
+      ...(opts.entryCriteria ? { entryCriteria: opts.entryCriteria } : {}),
       modules: ['mod-1'],
     }),
     'utf8',
@@ -140,11 +144,30 @@ async function makeTrackDir(): Promise<string> {
       slug: 'mod-1',
       title: 'Módulo 1',
       order: 1,
-      lessons: ['aula-1'],
+      lessons: lessonSlugs,
       challenge: 'desafio-do-modulo',
     }),
     'utf8',
   );
+  if (opts.previousLesson) {
+    await fs.mkdir(path.join(track, 'modules', 'mod-1', 'lessons', opts.previousLesson.slug), { recursive: true });
+    await fs.writeFile(
+      path.join(track, 'modules', 'mod-1', 'lessons', opts.previousLesson.slug, 'lesson.json'),
+      JSON.stringify({
+        schemaVersion: TRACK_SCHEMA_VERSION,
+        slug: opts.previousLesson.slug,
+        title: opts.previousLesson.title,
+        summary: 'Resumo anterior.',
+        difficulty: 1,
+        concepts: ['programacao'],
+        prerequisites: [],
+        theory: [{ id: 'intro', title: 'Intro', markdown: opts.previousLesson.theory }],
+        sources: [],
+        challenges: [],
+      }),
+      'utf8',
+    );
+  }
   await fs.writeFile(
     path.join(track, 'modules', 'mod-1', 'lessons', 'aula-1', 'lesson.json'),
     JSON.stringify({
@@ -468,7 +491,11 @@ describe('buildTrackHandlers — trilhas', () => {
       }),
       deepseek: {
         chatCompletion: async (req: { messages: Array<{ role: string; content: string }> }) => {
-          promptSaw = req.messages.map((m) => m.content).join('\n');
+          // ONDA 2 (autoria): a 1ª chamada é a GERAÇÃO; as seguintes são do
+          // VALIDADOR SEMÂNTICO (o fake devolve o mesmo JSON de draft — o
+          // validador o rejeita como veredito e o desafio entrega por
+          // execução). Só a 1ª carrega o contexto do nunca-repetir.
+          if (!promptSaw) promptSaw = req.messages.map((m) => m.content).join('\n');
           return {
             content: JSON.stringify({
               title: 'Novo desafio',
@@ -515,6 +542,76 @@ describe('buildTrackHandlers — trilhas', () => {
     assert.equal(result.ok, false);
     assert.ok(result.error);
   });
+
+  // ONDA 2 (autoria): o handler monta o CONTEXTO PEDAGÓGICO (buildChallengeContext
+  // com critérios da trilha + aulas anteriores + a aula atual) e o passa ao
+  // regenerador — o draft aprovado na execução ainda é validado pela SEMÂNTICA.
+  it('track:challenge-regenerate: passa o CONTEXTO pedagógico ao regenerador (critérios + aulas anteriores) e valida semanticamente', async () => {
+    const dir = await makeTrackDir({
+      entryCriteria: ['Aritmética básica'],
+      previousLesson: { slug: 'aula-0', title: 'Aula 0', theory: 'Teoria da aula anterior: typeof e throw.' },
+    });
+    const prompts: string[] = [];
+    const map = buildTrackHandlers({
+      getTracksDir: () => path.dirname(dir),
+      repo: fakeRepo({ listFailedChallengeSlugs: async () => ['desafio-1'] }),
+      deepseek: {
+        chatCompletion: async (req: { messages: Array<{ role: string; content: string }> }) => {
+          prompts.push(req.messages.map((m) => m.content).join('\n'));
+          if (prompts.length === 1) {
+            // 1ª chamada: GERAÇÃO do desafio (draft válido por execução).
+            return {
+              content: JSON.stringify({
+                title: 'Novo desafio',
+                concept: 'variaveis',
+                difficulty: 2,
+                statement: 'Novo enunciado.',
+                starterCode: 'export function novo(x) { throw new Error("x"); }\n',
+                testsCode: `import { test } from 'node:test';\nimport assert from 'node:assert/strict';\nimport { novo } from './solution.mjs';\ntest('n1', () => { assert.equal(novo(1), 2); });\ntest('n2', () => { assert.equal(novo(2), 3); });\n`,
+                solutionCode: 'export function novo(x) { return x + 1; }\n',
+                expectedTestCount: 2,
+              }),
+              model: 'fake',
+            };
+          }
+          // 2ª chamada: VALIDAÇÃO SEMÂNTICA — veredito por teste aprovado.
+          return {
+            content: JSON.stringify({
+              aprovado: true,
+              testes: [
+                { nome: 'n1', aprovado: true, motivo: 'Soma está na aula.' },
+                { nome: 'n2', aprovado: true, motivo: 'Soma está na aula.' },
+              ],
+            }),
+            model: 'fake',
+          };
+        },
+      } as never,
+    });
+    const result = await call<TrackRegenerateResult>(map, TRACK_CHANNELS.CHALLENGE_REGENERATE, {
+      trackSlug: 'trilha-teste',
+      lessonId: 'aula-1',
+    });
+    assert.equal(result.ok, true);
+    assert.equal(result.challenge?.source, 'generated');
+    assert.equal(prompts.length, 2, '1 geração + 1 validação semântica');
+    // O prompt de GERAÇÃO carrega o contexto pedagógico montado pelo handler.
+    assert.ok(prompts[0].includes('Aritmética básica'), 'entryCriteria da trilha chega ao prompt');
+    assert.ok(prompts[0].includes('CONTEÚDO DAS AULAS ANTERIORES'), 'seção de aulas anteriores presente');
+    assert.ok(prompts[0].includes('Teoria da aula anterior: typeof e throw.'), 'teoria da aula anterior chega ao prompt');
+    // A 2ª chamada é o VALIDADOR (prompt com THINKING MÁXIMO da onda 1).
+    assert.ok(prompts[1].includes('VALIDADOR PEDAGÓGICO'), 'validação semântica roda com o contexto');
+    assert.ok(prompts[1].includes('Aritmética básica'), 'o contexto também chega ao validador');
+  });
+
+  // Defensivo (onda 2): se a montagem do contexto falhar (aula/módulo
+  // inexistente — não deveria acontecer com slugs vindos do LoadedTrack), o
+  // handler regenera SEM contexto — e o regenerador entrega validado por
+  // execução (coberto em tests/challengeRegenerator.test.ts: 'SEM contexto →
+  // entrega por execução'). O try/catch do handler é a defesa; o contrato de
+  // queda é aquele teste de unidade — aqui não há estado do loader que faça o
+  // buildChallengeContext lançar com os mesmos slugs que o findLessonAnywhere
+  // acabou de resolver (mock de módulo exigiria flag fora do runner t.sh).
 
   // ─── ADITIVO (rodada 9): desafio do MÓDULO (target 'module') ────────────────
 

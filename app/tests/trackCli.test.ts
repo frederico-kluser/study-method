@@ -27,15 +27,15 @@ const LESSON_SLUG = 'aula-1';
 const LESSON_CHALLENGE = 'desafio-aula';
 const MODULE_CHALLENGE = 'desafio-modulo';
 
-/** Roda `npx tsx tools/track-cli.ts track:validate <slug>` com cwd = app. */
-function runTrackValidate(slug: string, timeoutMs: number): Promise<{ code: number; stdout: string; stderr: string }> {
+/** Roda `npx tsx tools/track-cli.ts <args...>` com cwd = app (subprocesso REAL). */
+function runCli(args: string[], timeoutMs: number, envOver: NodeJS.ProcessEnv = {}): Promise<{ code: number; stdout: string; stderr: string }> {
   return new Promise((resolve, reject) => {
     // NODE_TEST_CONTEXT é setado pelo node:test do processo PAI; herdado pelo
     // filho, faria o node:test DO CLI pular os testes (mesma armadilha que o
     // nodeExec do challengeExec remove). Remover sempre.
-    const env = { ...process.env };
+    const env = { ...process.env, ...envOver };
     delete env.NODE_TEST_CONTEXT;
-    const child = spawn('npx', ['--no-install', 'tsx', 'tools/track-cli.ts', 'track:validate', slug], {
+    const child = spawn('npx', ['--no-install', 'tsx', 'tools/track-cli.ts', ...args], {
       cwd: APP_DIR,
       env,
       stdio: ['ignore', 'pipe', 'pipe'],
@@ -54,6 +54,11 @@ function runTrackValidate(slug: string, timeoutMs: number): Promise<{ code: numb
       reject(err);
     });
   });
+}
+
+/** Roda `npx tsx tools/track-cli.ts track:validate <slug>` com cwd = app. */
+function runTrackValidate(slug: string, timeoutMs: number): Promise<{ code: number; stdout: string; stderr: string }> {
+  return runCli(['track:validate', slug], timeoutMs);
 }
 
 async function writeJson(dir: string, file: string, data: unknown): Promise<void> {
@@ -182,6 +187,69 @@ describe('CLI de autoria — track:validate (smoke de subprocesso, F6)', () => {
         r.stdout.includes(`[${MODULE_SLUG}/module] ${MODULE_CHALLENGE}: verificado ✓`),
         `desafio de módulo multi-arquivo não verificado — stdout:\n${r.stdout}`,
       );
+    } finally {
+      await fs.rm(tmp, { recursive: true, force: true }).catch(() => {});
+      await fs.rm(target, { recursive: true, force: true }).catch(() => {});
+    }
+  });
+});
+
+// ─── ONDA 2 (autoria): track:new --criteria + track:challenge:context ────────
+// O CLI escreve em app/resources/tracks/<slug> (TRACKS_DIR fixo) — o teste
+// cria slugs únicos e limpa no finally (mesmo padrão do smoke de validate).
+
+describe('CLI de autoria — track:new com --criteria (ONDA 2)', () => {
+  async function runTrackNew(
+    slug: string,
+    extra: string[],
+  ): Promise<{ code: number; stdout: string; stderr: string }> {
+    return runCli(['track:new', slug, '--title', 'Trilha Critérios', '--description', 'Desc.', ...extra], 60_000);
+  }
+
+  it('--criteria "a; b; c" grava entryCriteria no track.json (split por ;, trim, filtra vazios)', async () => {
+    const slug = `cli-crit-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`;
+    const target = path.join(TRACKS_DIR, slug);
+    try {
+      const r = await runTrackNew(slug, ['--criteria', 'Aritmética básica;  ; Ler enunciados']);
+      assert.equal(r.code, 0, `exit 0 esperado — stderr:\n${r.stderr}`);
+      const track = JSON.parse(await fs.readFile(path.join(target, 'track.json'), 'utf8')) as Record<string, unknown>;
+      assert.deepEqual(track.entryCriteria, ['Aritmética básica', 'Ler enunciados'], 'split/trim/filtro de vazios');
+    } finally {
+      await fs.rm(target, { recursive: true, force: true }).catch(() => {});
+    }
+  });
+
+  it('sem --criteria → track.json SEM o campo entryCriteria (trilha de senso iniciante)', async () => {
+    const slug = `cli-semcrit-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`;
+    const target = path.join(TRACKS_DIR, slug);
+    try {
+      const r = await runTrackNew(slug, []);
+      assert.equal(r.code, 0, `exit 0 esperado — stderr:\n${r.stderr}`);
+      const track = JSON.parse(await fs.readFile(path.join(target, 'track.json'), 'utf8')) as Record<string, unknown>;
+      assert.equal('entryCriteria' in track, false, 'campo ausente sem a flag');
+    } finally {
+      await fs.rm(target, { recursive: true, force: true }).catch(() => {});
+    }
+  });
+});
+
+describe('CLI de autoria — track:challenge:context (ONDA 2)', () => {
+  it('sem DEEPSEEK_API_KEY → erro claro "DEEPSEEK_API_KEY não definida" e exit 1 (não chega à rede)', async () => {
+    const tmp = await fs.mkdtemp(path.join(os.tmpdir(), 'track-cli-ctx-'));
+    const slug = `cli-ctx-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`;
+    const target = path.join(TRACKS_DIR, slug);
+    try {
+      await writeTrackFixtures(tmp, slug);
+      await fs.cp(tmp, target, { recursive: true });
+      // chave FORA do ambiente do filho — o fluxo real com LLM fica para a
+      // onda 2.2 (evidência: este teste prova o gate + o erro estruturado).
+      const r = await runCli(
+        ['track:challenge:context', slug, MODULE_SLUG, LESSON_SLUG, LESSON_CHALLENGE],
+        30_000,
+        { DEEPSEEK_API_KEY: '' },
+      );
+      assert.equal(r.code, 1, `exit 1 esperado — stdout:\n${r.stdout}\n--- stderr:\n${r.stderr}`);
+      assert.ok(r.stderr.includes('DEEPSEEK_API_KEY não definida'), `erro claro esperado — stderr:\n${r.stderr}`);
     } finally {
       await fs.rm(tmp, { recursive: true, force: true }).catch(() => {});
       await fs.rm(target, { recursive: true, force: true }).catch(() => {});
