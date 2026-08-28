@@ -2,7 +2,8 @@
  * tests/pendingSubject.test.ts — estado compartilhado de assunto pré-selecionado
  * (onda 17A — Home → Aula). Sem jsdom: set/drain/peek/clear são funções puras
  * sobre a variável de módulo. Cobre o round-trip, o consumer one-shot e a
- * limpeza (reset para teste).
+ * limpeza (reset para teste). Também cobre os pendentes de TRILHA (rodada 8:
+ * pendingTrackLesson/pendingTrackSlug) e a retenção anti-StrictMode do holder.
  */
 import { beforeEach, describe, it } from 'node:test';
 import assert from 'node:assert/strict';
@@ -11,19 +12,25 @@ import {
   clearPendingDomain,
   clearPendingLessonId,
   clearPendingSubject,
+  clearPendingTrackLesson,
+  clearPendingTrackSlug,
   consumePendingSubject,
   createTrackLessonPendingHolder,
   drainPendingDomain,
   drainPendingLessonId,
   drainPendingSubject,
+  drainPendingTrackLesson,
+  drainPendingTrackSlug,
   peekPendingDomain,
   peekPendingLessonId,
   peekPendingSubject,
   peekPendingTrackLesson,
+  peekPendingTrackSlug,
   setPendingDomain,
   setPendingLessonId,
   setPendingSubject,
   setPendingTrackLesson,
+  setPendingTrackSlug,
 } from '../src/lib/pendingSubject';
 
 beforeEach(() => {
@@ -188,6 +195,218 @@ describe('pendingLessonId — Trilha → Aula (onda 5)', () => {
     assert.equal(peekPendingSubject(), null);
     assert.equal(peekPendingDomain(), null);
     assert.equal(peekPendingLessonId(), null);
+  });
+});
+
+// ─── pendingTrackLesson / pendingTrackSlug (rodada 8 — Trilha → Aula) ──────
+// O PAR (trackSlug, lessonId) abre a aula de TRILHA em modo chat (sem
+// generate): a LessonView drena na montagem e monta o chat com o tutor. O
+// slug SOZINHO abre o DETALHE da trilha na RoadmapView (Home → Trilha): o
+// clique na Home grava o slug, a RoadmapView drena e monta a lista. São
+// one-shots INDEPENDENTES — o consumo de um nunca pode esvaziar o outro, nem
+// interferir nos pendentes legados (subject/domain/lessonId).
+
+describe('pendingTrackLesson — Trilha → Aula em modo chat (rodada 8)', () => {
+  it('começa vazio (peek/drain = null)', () => {
+    assert.equal(peekPendingTrackLesson(), null);
+    assert.equal(drainPendingTrackLesson(), null);
+  });
+
+  it('set → drain devolve o PAR (trackSlug + lessonId) e consome (one-shot)', () => {
+    setPendingTrackLesson('estruturas-de-dados', 'lesson-7');
+    assert.deepEqual(peekPendingTrackLesson(), {
+      trackSlug: 'estruturas-de-dados',
+      lessonId: 'lesson-7',
+    });
+    assert.deepEqual(drainPendingTrackLesson(), {
+      trackSlug: 'estruturas-de-dados',
+      lessonId: 'lesson-7',
+    });
+    assert.equal(drainPendingTrackLesson(), null, 'dado já foi consumido');
+  });
+
+  it('set aplica trim nos DOIS campos do par', () => {
+    setPendingTrackLesson('  estruturas-de-dados  ', '  lesson-7  ');
+    assert.deepEqual(drainPendingTrackLesson(), {
+      trackSlug: 'estruturas-de-dados',
+      lessonId: 'lesson-7',
+    });
+  });
+
+  it('set com AMBOS os campos brancos → null', () => {
+    setPendingTrackLesson('   ', '   ');
+    assert.equal(peekPendingTrackLesson(), null);
+  });
+
+  it('set com UM campo branco → null (o par exige os dois)', () => {
+    setPendingTrackLesson('estruturas-de-dados', '   ');
+    assert.equal(peekPendingTrackLesson(), null, 'lessonId branco invalida o par');
+    setPendingTrackLesson('   ', 'lesson-7');
+    assert.equal(peekPendingTrackLesson(), null, 'trackSlug branco invalida o par');
+  });
+
+  it('sempre o último set vence', () => {
+    setPendingTrackLesson('trilha-1', 'lesson-1');
+    setPendingTrackLesson('trilha-2', 'lesson-2');
+    assert.deepEqual(drainPendingTrackLesson(), {
+      trackSlug: 'trilha-2',
+      lessonId: 'lesson-2',
+    });
+  });
+
+  it('último set vence mesmo quando é inválido (brancos → null)', () => {
+    setPendingTrackLesson('trilha-1', 'lesson-1');
+    setPendingTrackLesson(' ', ' ');
+    assert.equal(drainPendingTrackLesson(), null, 'set inválido posterior zera o par');
+  });
+
+  it('peek NÃO consome (vê o mesmo par sem esvaziar o store)', () => {
+    setPendingTrackLesson('trilha-1', 'lesson-1');
+    assert.deepEqual(peekPendingTrackLesson(), {
+      trackSlug: 'trilha-1',
+      lessonId: 'lesson-1',
+    });
+    assert.deepEqual(
+      peekPendingTrackLesson(),
+      { trackSlug: 'trilha-1', lessonId: 'lesson-1' },
+      'peek repetido devolve o mesmo par',
+    );
+    assert.deepEqual(
+      drainPendingTrackLesson(),
+      { trackSlug: 'trilha-1', lessonId: 'lesson-1' },
+      'o valor segue lá para o drain',
+    );
+  });
+
+  it('clear zera sem devolver', () => {
+    setPendingTrackLesson('trilha-1', 'lesson-1');
+    clearPendingTrackLesson();
+    assert.equal(peekPendingTrackLesson(), null);
+    assert.equal(drainPendingTrackLesson(), null, 'drain pós-clear também é null');
+  });
+});
+
+describe('pendingTrackSlug — Home → Trilha (rodada 8)', () => {
+  it('começa vazio (peek/drain = null)', () => {
+    assert.equal(peekPendingTrackSlug(), null);
+    assert.equal(drainPendingTrackSlug(), null);
+  });
+
+  it('set → drain devolve o slug e consome (one-shot)', () => {
+    setPendingTrackSlug('estruturas-de-dados');
+    assert.equal(peekPendingTrackSlug(), 'estruturas-de-dados');
+    assert.equal(drainPendingTrackSlug(), 'estruturas-de-dados');
+    assert.equal(drainPendingTrackSlug(), null, 'dado já foi consumido');
+  });
+
+  it('set com brancos só é consumido se houver texto (trim)', () => {
+    setPendingTrackSlug('   ');
+    assert.equal(peekPendingTrackSlug(), null);
+    setPendingTrackSlug('  estruturas-de-dados  ');
+    assert.equal(drainPendingTrackSlug(), 'estruturas-de-dados');
+  });
+
+  it('sempre o último set vence', () => {
+    setPendingTrackSlug('trilha-1');
+    setPendingTrackSlug('trilha-2');
+    assert.equal(drainPendingTrackSlug(), 'trilha-2');
+  });
+
+  it('peek NÃO consome', () => {
+    setPendingTrackSlug('trilha-1');
+    assert.equal(peekPendingTrackSlug(), 'trilha-1');
+    assert.equal(drainPendingTrackSlug(), 'trilha-1', 'o valor segue lá para o drain');
+  });
+
+  it('clear zera sem devolver', () => {
+    setPendingTrackSlug('trilha-1');
+    clearPendingTrackSlug();
+    assert.equal(peekPendingTrackSlug(), null);
+  });
+});
+
+// ─── Independência: trilha vs legadas (subject/domain/lessonId) ────────────
+// A LessonView drena o PAR na montagem e a RoadmapView drena o SLUG — o
+// consumo de um NUNCA pode esvaziar o outro (senão a navegação Home → Trilha
+// perderia o slug por causa de um drain de aula), e nenhum deles pode
+// interferir no fluxo legado subject → generate.
+
+describe('pendências de trilha — independência e reset', () => {
+  it('drenar trackLesson NÃO toca trackSlug (e vice-versa)', () => {
+    setPendingTrackSlug('trilha-1');
+    setPendingTrackLesson('trilha-1', 'lesson-1');
+    assert.deepEqual(drainPendingTrackLesson(), {
+      trackSlug: 'trilha-1',
+      lessonId: 'lesson-1',
+    });
+    assert.equal(peekPendingTrackSlug(), 'trilha-1', 'o slug sobrevive ao drain do par');
+    assert.equal(drainPendingTrackSlug(), 'trilha-1');
+    assert.equal(peekPendingTrackLesson(), null);
+  });
+
+  it('clear de UMA pendência de trilha não afeta a outra', () => {
+    setPendingTrackSlug('trilha-1');
+    setPendingTrackLesson('trilha-1', 'lesson-1');
+    clearPendingTrackLesson();
+    assert.equal(peekPendingTrackLesson(), null);
+    assert.equal(peekPendingTrackSlug(), 'trilha-1', 'clear do par não rouba o slug');
+  });
+
+  it('trackLesson/trackSlug são independentes dos legados subject/domain/lessonId', () => {
+    setPendingSubject('Grafos');
+    setPendingDomain('math');
+    setPendingLessonId('lesson-abc');
+    setPendingTrackLesson('trilha-1', 'lesson-1');
+    setPendingTrackSlug('trilha-1');
+    // A LessonView drena subject/domain/lessonId no fluxo legado — isso não
+    // pode esvaziar as pendências de trilha gravadas pela mesma navegação.
+    assert.equal(drainPendingSubject(), 'Grafos');
+    assert.equal(drainPendingDomain(), 'math');
+    assert.equal(drainPendingLessonId(), 'lesson-abc');
+    assert.deepEqual(peekPendingTrackLesson(), {
+      trackSlug: 'trilha-1',
+      lessonId: 'lesson-1',
+    });
+    assert.equal(peekPendingTrackSlug(), 'trilha-1');
+  });
+
+  it('o holder consome APENAS pendingTrackLesson — não rouba trackSlug', () => {
+    setPendingTrackSlug('trilha-1');
+    setPendingTrackLesson('trilha-1', 'lesson-1');
+    const holder = createTrackLessonPendingHolder();
+    assert.deepEqual(holder.get(), { trackSlug: 'trilha-1', lessonId: 'lesson-1' });
+    assert.equal(peekPendingTrackLesson(), null, 'o holder drenou o par');
+    assert.equal(
+      peekPendingTrackSlug(),
+      'trilha-1',
+      'o holder NÃO toca no slug — ele pertence à RoadmapView',
+    );
+    // Segunda passada do double-invoke: o holder retém o par, mas continua
+    // sem roubar o slug.
+    assert.deepEqual(holder.get(), { trackSlug: 'trilha-1', lessonId: 'lesson-1' });
+    assert.equal(peekPendingTrackSlug(), 'trilha-1');
+    assert.equal(drainPendingTrackSlug(), 'trilha-1', 'o slug segue consumível por quem é dele');
+  });
+
+  it('holder com o par vazio devolve null mesmo com trackSlug gravado', () => {
+    setPendingTrackSlug('trilha-1');
+    const holder = createTrackLessonPendingHolder();
+    assert.equal(holder.get(), null, 'não há par para drenar');
+    assert.equal(peekPendingTrackSlug(), 'trilha-1', 'o slug não foi drenado pelo holder');
+  });
+
+  it('__reset limpa TUDO — subject, domain, lessonId, trackLesson e trackSlug', () => {
+    setPendingSubject('Grafos');
+    setPendingDomain('math');
+    setPendingLessonId('lesson-abc');
+    setPendingTrackLesson('trilha-1', 'lesson-1');
+    setPendingTrackSlug('trilha-1');
+    __resetPendingSubjectForTests();
+    assert.equal(peekPendingSubject(), null);
+    assert.equal(peekPendingDomain(), null);
+    assert.equal(peekPendingLessonId(), null);
+    assert.equal(peekPendingTrackLesson(), null);
+    assert.equal(peekPendingTrackSlug(), null);
   });
 });
 
