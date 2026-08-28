@@ -426,6 +426,29 @@ export interface TutorMessage {
   content: string;
 }
 
+/**
+ * ADITIVO (onda1-error-contract): relatório do erro REAL de um desafio que
+ * falhou — o que o main SABE que aconteceu (código enviado + saída dos testes
+ * + checklist), SEM a solução (nunca trafega testsCode/solutionCode). O
+ * renderer monta a partir do resultado de `track:challenge-submit` (passed
+ * false) + os arquivos que o aluno enviou, e anexa ao turno 'answer' da
+ * discussão do erro no chat da aula.
+ */
+export interface TrackChallengeErrorReport {
+  trackSlug: string;
+  lessonId: string;
+  challengeId: string;
+  challengeTitle: string;
+  /** código(s) enviados pelo aluno no submit (todos os arquivos). */
+  files: { path: string; code: string }[];
+  /** saída dos testes determinísticos (runStudentCode). */
+  output: string;
+  /** checks individuais do relatório node:test. */
+  checks: { name: string; passed: boolean }[];
+  passedCount: number;
+  totalCount: number;
+}
+
 export interface TutorChatRequest {
   trackSlug: string;
   lessonId: string;
@@ -437,6 +460,12 @@ export interface TutorChatRequest {
    * 'answer' — responde à dúvida do aluno (última mensagem do history).
    */
   action: 'next' | 'answer';
+  /**
+   * ADITIVO (onda1-error-contract): contexto de erro de um desafio que falhou
+   * (código enviado + saída + checklist). Presente nos turnos 'answer' da
+   * discussão do erro; ausente no fluxo normal (o main ignora em 'next').
+   */
+  challengeError?: TrackChallengeErrorReport;
 }
 
 export interface TutorReply {

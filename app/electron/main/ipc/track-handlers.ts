@@ -15,6 +15,7 @@
 import * as path from 'node:path';
 
 import type {
+  TrackChallengeErrorReport,
   TrackChallengeGetRequest,
   TrackChallengeResult,
   TrackDetailResult,
@@ -187,6 +188,25 @@ export function buildTrackHandlers(deps: TrackHandlerDeps): Map<string, IpcHandl
     done: false,
     error: { code, message },
   });
+  // ONDA1 (error-contract): validação MÍNIMA do relatório de erro vindo do
+  // renderer (payload IPC não é confiável). Shape inválido → undefined → o
+  // fluxo normal do tutor segue intacto (sem regressão). NUNCA valida
+  // conteúdo (código/saída) — é o que o aluno enviou, o tutor precisa ver.
+  const isValidChallengeError = (v: unknown): v is TrackChallengeErrorReport => {
+    if (!v || typeof v !== 'object') return false;
+    const r = v as TrackChallengeErrorReport;
+    return (
+      typeof r.trackSlug === 'string' &&
+      typeof r.lessonId === 'string' &&
+      typeof r.challengeId === 'string' &&
+      typeof r.challengeTitle === 'string' &&
+      Array.isArray(r.files) &&
+      typeof r.output === 'string' &&
+      Array.isArray(r.checks) &&
+      typeof r.passedCount === 'number' &&
+      typeof r.totalCount === 'number'
+    );
+  };
   map.set(TRACK_CHANNELS.TUTOR_CHAT, async (_event, payload: unknown): Promise<TutorReply> => {
     const p = (payload ?? {}) as TutorChatRequest;
     if (!p.trackSlug || !p.lessonId) {
@@ -209,6 +229,10 @@ export function buildTrackHandlers(deps: TrackHandlerDeps): Map<string, IpcHandl
         presentedSections: Array.isArray(p.presentedSections) ? p.presentedSections : [],
         history: Array.isArray(p.history) ? p.history : [],
         action: p.action === 'answer' ? 'answer' : 'next',
+        // ONDA1 (error-contract): propaga o relatório do desafio que falhou
+        // para o tutor (discussão do erro nos turnos 'answer'); payload
+        // ausente/inválido vira undefined e nada muda.
+        challengeError: isValidChallengeError(p.challengeError) ? p.challengeError : undefined,
       },
       chatFn,
     );

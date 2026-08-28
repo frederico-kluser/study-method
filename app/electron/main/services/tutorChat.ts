@@ -19,10 +19,19 @@
  *     imediato (falha RÁPIDA — nunca spinner infinito, nunca inventa
  *     resposta).
  *
+ * ONDA1 (error-contract): quando um desafio da trilha FALHA, o chat da aula
+ * vira a discussão do erro — o input traz `challengeError` (código enviado +
+ * saída dos testes + checklist) e o system prompt ganha um BLOCO ADICIONAL
+ * "CONTEXTO DE ERRO" + "REGRAS DE ERRO" (validar a hipótese do aluno contra
+ * o erro real; analisar sozinho diante de "não sei"; nunca resolver o
+ * desafio). Sem challengeError o prompt é byte-idêntico ao fluxo normal;
+ * 'next' continua determinístico e ignora o erro.
+ *
  * PURE/DI: `chat` injetável (testes com fake; produção = deepseekClient).
  */
 
 import { TrackLessonSource } from '../content/trackTypes';
+import type { TrackChallengeErrorReport } from '@shared/ipc-contract';
 
 export type TutorRole = 'system' | 'user' | 'assistant';
 
@@ -39,6 +48,13 @@ export interface TutorChatInput {
   presentedSections: string[];
   history: TutorChatMessageLike[];
   action: 'next' | 'answer';
+  /**
+   * ADITIVO (onda1-error-contract): relatório do erro de um desafio que
+   * falhou (código enviado + saída + checks). Presente nos turnos 'answer'
+   * da discussão do erro — o system prompt ganha o bloco CONTEXTO DE ERRO +
+   * REGRAS DE ERRO. Ausente/undefined no fluxo normal (nada muda).
+   */
+  challengeError?: TrackChallengeErrorReport;
 }
 
 export interface TutorChatResult {
@@ -76,13 +92,52 @@ export function trimHistory(history: readonly TutorChatMessageLike[], maxMessage
   return history.slice(-maxMessages);
 }
 
+/**
+ * ONDA1 (error-contract): bloco de contexto do erro de um desafio que FALHOU
+ * (turnos 'answer' da discussão do erro no chat da aula). PURA e testável —
+ * devolve '' quando não há challengeError ou a action não é 'answer' (nada
+ * muda no fluxo normal: o prompt fica byte-idêntico ao anterior).
+ *
+ * O bloco entrega ao tutor os FATOS REAIS (código do aluno, saída dos testes
+ * e checklist do node:test) e as REGRAS DE ERRO: validar a hipótese do aluno
+ * contra o erro real, analisar sozinho quando ele disser "não sei", nunca
+ * resolver o desafio por ele e manter o tom simples em português.
+ */
+export function buildErrorContextSection(input: TutorChatInput): string {
+  const report = input.challengeError;
+  if (!report || input.action !== 'answer') return '';
+
+  const files = report.files.map((f) => `### ${f.path}\n\`\`\`js\n${f.code}\n\`\`\``).join('\n\n');
+  const checks = report.checks.map((c) => `${c.passed ? '✔' : '✖'} ${c.name}`).join('\n');
+
+  return `CONTEXTO DE ERRO (desafio "${report.challengeTitle}" [id=${report.challengeId}] — a aula acabou de fechar porque ele falhou):
+
+CÓDIGO ENVIADO PELO ALUNO (todos os arquivos):
+${files}
+
+SAÍDA DOS TESTES (runStudentCode):
+${report.output}
+
+CHECKLIST DOS TESTES (${report.passedCount} de ${report.totalCount} passaram):
+${checks || '(nenhum check rodou — a execução nem chegou aos testes)'}
+
+REGRAS DE ERRO (obrigatórias — valem para ESTA resposta):
+1. O aluno acabou de falhar o desafio e respondeu O QUE ELE ACHA que errou. Analise a hipótese dele contra o ERRO REAL (saída + checks + código do aluno) e responda: confirme se a hipótese está certa ou corrija, mostrando EXATAMENTE onde está o erro real no código dele (cite o trecho).
+2. Se o aluno disser que NÃO SABE / não faz ideia / "não sei" (ou variações), ANALISE o erro você mesmo e explique exatamente onde ele errou no código dele, com o trecho e o porquê.
+3. NUNCA resolva o desafio por ele: guie até ele achar a correção; não escreva a solução completa.
+4. Linguagem simples, português, frases curtas (mesmo tom das REGRAS existentes).`;
+}
+
 function buildSystemPrompt(input: TutorChatInput): string {
   const { lesson, trackTitle } = input;
   const sections = lesson.theory
     .map((s, i) => `SEÇÃO ${i + 1} [id=${s.id}]: ${s.title}\n${s.markdown}${s.code ? `\n\`\`\`${s.code.language}\n${s.code.code}\n\`\`\`` : ''}`)
     .join('\n\n---\n\n');
   const prereqs = input.prereqTitles.length > 0 ? input.prereqTitles.join('; ') : '(nenhuma)';
-  return `Você é o tutor do curso "${trackTitle}" do study-method. Está ensinando a aula "${lesson.title}" (resumo: ${lesson.summary}).
+  // ONDA1 (error-contract): o contexto de erro é um BLOCO ADICIONAL ao final
+  // do prompt — sem challengeError o texto retorna byte-idêntico ao fluxo
+  // normal (sem regressão); com challengeError + 'answer', o bloco entra.
+  const base = `Você é o tutor do curso "${trackTitle}" do study-method. Está ensinando a aula "${lesson.title}" (resumo: ${lesson.summary}).
 
 REGRAS (obrigatórias):
 1. Fale em PORTUGUÊS, linguagem simples, como um professor de verdade: frases curtas, analogias do dia a dia, zero jargão sem explicar.
@@ -94,6 +149,8 @@ REGRAS (obrigatórias):
 
 MATERIAL DA AULA (todo o conteúdo — o aluno só viu as seções já apresentadas):
 ${sections}`;
+  const errorSection = buildErrorContextSection(input);
+  return errorSection ? `${base}\n\n${errorSection}` : base;
 }
 
 /**
