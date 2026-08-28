@@ -142,6 +142,21 @@ export function TrackChallengePanel({ selection }: { selection: TrackChallengeNa
 
   const markedRef = useRef<string | null>(null);
 
+  // Guard de montagem (MESMO padrão do loadSpec): durante `running` o rail de
+  // abas segue clicável — se o painel desmontar no meio do submit (troca de
+  // aba), o `await withTimeout(challengeSubmit)` ainda resolve depois e NADA
+  // pode rodar: nem markAttempt/setResult/setConcluded, nem
+  // reportChallengeError/navigateToLesson, nem setSubmissionError/setRunning.
+  // O reset na montagem é OBRIGATÓRIO (StrictMode no dev double-invoca o
+  // efeito: cleanup → re-mount; sem o reset o guard bloquearia tudo no dev).
+  const cancelledRef = useRef(false);
+  useEffect(() => {
+    cancelledRef.current = false;
+    return () => {
+      cancelledRef.current = true;
+    };
+  }, []);
+
   const loadSpec = useCallback(
     (sel: TrackChallengeNavSelection): void => {
       setLoading(true);
@@ -326,6 +341,10 @@ export function TrackChallengePanel({ selection }: { selection: TrackChallengeNa
         ACTION_TIMEOUTS.challengeSubmit,
         'track.challengeSubmit',
       );
+      // Guard de montagem: painel desmontado durante o submit → descarta
+      // silenciosamente (nada de markAttempt, setResult, reportChallengeError,
+      // navigateToLesson) — o unmount já marcou 'abandoned' no cleanup.
+      if (cancelledRef.current) return;
       if (res.ok) {
         setResult(res);
         if (res.passed) {
@@ -363,9 +382,12 @@ export function TrackChallengePanel({ selection }: { selection: TrackChallengeNa
         setSubmissionError(res.error?.message ?? 'erro ao testar');
       }
     } catch (err) {
+      // Guard de montagem: idem — desmontado, nem o catch seta estado.
+      if (cancelledRef.current) return;
       setSubmissionError(isTimeoutError(err) ? tI('challenge.submitTimeout') : String(err));
     } finally {
-      setRunning(false);
+      // Idem loadSpec: o finally também só roda montado.
+      if (!cancelledRef.current) setRunning(false);
     }
   }, [spec, started, running, concluded, selection, code, filesCode, activeFile, starsLeft, markAttempt, tI, nav]);
 
