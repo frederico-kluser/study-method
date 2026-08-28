@@ -10,8 +10,15 @@
  * - erro de rede / outro status → parseado e reportado como inválido
  *   (erroMessage com a causa).
  *
- * A base_url e o fetch são injetáveis via `opts` para testes — nunca usa rede
- * real fora do runtime.
+ * RODADA 10 (onda 2b — sem spinner infinito): cada fetch ganha um AbortSignal
+ * de timeout (`timeoutMs`, default 8s; `0` desliga). Rede que ENGOLÉ pacotes
+ * (fetch pendurado indefinidamente) NUNCA segura a validação: o abort dispara
+ * e o resultado é um erro de REDE identificável — "Network error: timed out
+ * after Nms" — que o classificador do startup-handlers (isNetworkError)
+ * reconhece por /^Network error:/i e /timed out/i.
+ *
+ * A base_url, o fetch e o timeout são injetáveis via `opts` para testes —
+ * nunca usa rede real fora do runtime.
  */
 
 import type { ValidationResult } from '@shared/ipc-contract';
@@ -36,6 +43,12 @@ export interface DeepSeekValidateOptions {
   fetchImpl?: typeof fetch;
   /** base_url da API DeepSeek. Default: https://api.deepseek.com */
   baseUrl?: string;
+  /**
+   * Timeout da validação em ms via AbortSignal (default
+   * DEFAULT_VALIDATE_TIMEOUT_MS = 8000). `0` desliga o timeout (fetch pode
+   * pendurar — só para testes de caso extremo).
+   */
+  timeoutMs?: number;
 }
 
 export interface BraveValidateOptions {
@@ -43,7 +56,15 @@ export interface BraveValidateOptions {
   fetchImpl?: typeof fetch;
   /** base_url da Brave Search API. Default: https://api.search.brave.com */
   baseUrl?: string;
+  /** Timeout em ms via AbortSignal (default 8000; `0` desliga). */
+  timeoutMs?: number;
 }
+
+/**
+ * Timeout padrão de cada validação — rede pendurada nunca segura a UI (o único
+ * loader REAL sem timeout do app era este fetch; ver docs/relatorio-rodada10-diag.md).
+ */
+export const DEFAULT_VALIDATE_TIMEOUT_MS = 8000;
 
 /** Model id alvo (DeepSeek V4 Flash, validado em GET /models). */
 const DEEPSEEK_TARGET_MODEL = 'deepseek-v4-flash';
@@ -66,6 +87,48 @@ function extractErrorText(payload: unknown): string | undefined {
 }
 
 /**
+ * Envolve o fetchImpl com um AbortSignal de timeout: a promessa do fetch
+ * resolve/rejeita em no máximo `timeoutMs` (0 desliga). O abort carrega a
+ * mensagem "timed out after Nms" como reason — assim a rejeição do fetch
+ * (qualquer que seja a implementação) é identificável como TIMEOUT no catch
+ * do validador. Um sinal externo (init.signal), se houver, é encadeado:
+ * abortar um aborta o outro; o timer é sempre limpo no settle.
+ */
+function withFetchTimeout(fetchImpl: typeof fetch, timeoutMs: number): typeof fetch {
+  if (!Number.isFinite(timeoutMs) || timeoutMs <= 0) return fetchImpl;
+  return ((input: Parameters<typeof fetch>[0], init?: RequestInit) => {
+    const controller = new AbortController();
+    const onTimeout = (): void => controller.abort(new Error(`timed out after ${timeoutMs}ms`));
+    const timer = setTimeout(onTimeout, timeoutMs);
+    const external = init?.signal;
+    const onExternalAbort = (): void => controller.abort();
+    if (external) {
+      if (external.aborted) controller.abort();
+      else external.addEventListener('abort', onExternalAbort, { once: true });
+    }
+    return fetchImpl(input, { ...init, signal: controller.signal }).finally(() => {
+      clearTimeout(timer);
+      external?.removeEventListener('abort', onExternalAbort);
+    });
+  }) as typeof fetch;
+}
+
+/**
+ * Descreve a rejeição de um fetch. AbortError (ou reason "timed out") só pode
+ * vir do timer DESTE módulo (os validadores não passam sinal externo) → vira
+ * erro de TIMEOUT identificável; qualquer outra rejeição é erro de rede bruto.
+ */
+function describeFetchError(error: unknown, timeoutMs: number): string {
+  if (
+    error instanceof Error &&
+    (error.name === 'AbortError' || /timed out|aborted/i.test(error.message))
+  ) {
+    return `timed out after ${timeoutMs}ms`;
+  }
+  return error instanceof Error ? error.message : 'Network error';
+}
+
+/**
  * Valida uma chave DeepSeek contra GET {baseUrl}/models.
  *
  * 200 → válida; verifica a lista de modelos (campo `data[].id`) contra o model
@@ -77,7 +140,7 @@ export async function validateDeepseekKey(
   opts: DeepSeekValidateOptions = {}
 ): Promise<DeepSeekValidationResult> {
   const baseUrl = (opts.baseUrl ?? DEEPSEEK_DEFAULT_BASE).replace(/\/+$/, '');
-  const fetchImpl = opts.fetchImpl ?? fetch;
+  const fetchImpl = withFetchTimeout(opts.fetchImpl ?? fetch, opts.timeoutMs ?? DEFAULT_VALIDATE_TIMEOUT_MS);
   const checkedAt = new Date().toISOString();
 
   if (!apiKey || apiKey.trim() === '') {
@@ -96,7 +159,7 @@ export async function validateDeepseekKey(
       headers: { Authorization: `Bearer ${apiKey.trim()}` },
     });
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'Network error';
+    const errorMessage = describeFetchError(error, opts.timeoutMs ?? DEFAULT_VALIDATE_TIMEOUT_MS);
     return {
       isValid: false,
       provider: 'deepseek',
@@ -173,7 +236,7 @@ export async function validateBraveKey(
   opts: BraveValidateOptions = {}
 ): Promise<BraveValidationResult> {
   const baseUrl = (opts.baseUrl ?? BRAVE_DEFAULT_BASE).replace(/\/+$/, '');
-  const fetchImpl = opts.fetchImpl ?? fetch;
+  const fetchImpl = withFetchTimeout(opts.fetchImpl ?? fetch, opts.timeoutMs ?? DEFAULT_VALIDATE_TIMEOUT_MS);
   const checkedAt = new Date().toISOString();
 
   if (!apiKey || apiKey.trim() === '') {
@@ -196,7 +259,7 @@ export async function validateBraveKey(
       },
     });
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'Network error';
+    const errorMessage = describeFetchError(error, opts.timeoutMs ?? DEFAULT_VALIDATE_TIMEOUT_MS);
     return {
       isValid: false,
       provider: 'brave',

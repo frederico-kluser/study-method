@@ -60,6 +60,7 @@
     "error401": "Erro 401: chave inválida ou sem permissão.",
     "error429": "Erro 429: limite de requisições excedido. Tente novamente em instantes.",
     "errorNetwork": "Erro de rede: não foi possível contatar o servidor.",
+    "errorTimeout": "Tempo esgotado ao contatar o provedor. Verifique sua conexão e tente novamente.",
     "needKeyBeforeValidate": "Digite a chave antes de validar.",
     "errorNetworkValidate": "Erro de rede ao validar",
     "needKeyBeforeSave": "Digite a chave antes de salvar.",

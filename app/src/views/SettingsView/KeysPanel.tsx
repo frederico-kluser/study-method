@@ -13,6 +13,11 @@
  *    (src/lib/validationAlert.ts → chaves i18n keys.*).
  *  - loading nos botões durante salvar/validar (spinner + disabled).
  *
+ * RODADA 10 (onda 2b — sem spinner infinito): guarda de 10s no renderer além
+ * do timeout do validador no main (apiKeyValidator, ~8s) — se o IPC pendurar,
+ * o spinner para com mensagem de erro clara e o botão volta a ficar
+ * habilitado. Nunca spinner eterno.
+ *
  * Nenhuma view acessa `window` diretamente — só `getApi()` (testável sem jsdom).
  */
 import { useCallback, useEffect, useState, type ReactElement } from 'react';
@@ -75,6 +80,37 @@ function idleState(): ProviderState {
     uiState: 'idle',
     saving: false,
   };
+}
+
+/**
+ * Guarda do renderer contra IPC/validação pendurada (10s — acima do timeout do
+ * main, ~8s; bem abaixo dos 15s do contrato e2e "spinner some"). Corrida com
+ * timeout: a resposta atrasada que chegar DEPOIS do guard é ignorada
+ * (settled), evitando que um retorno tardio sobrescreva a mensagem de erro.
+ */
+const VALIDATE_TIMEOUT_MS = 10_000;
+
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    let settled = false;
+    const finish = (fn: () => void): void => {
+      if (!settled) {
+        settled = true;
+        fn();
+      }
+    };
+    const timer = setTimeout(() => finish(() => reject(new Error('timed out'))), ms);
+    promise.then(
+      (value) => {
+        clearTimeout(timer);
+        finish(() => resolve(value));
+      },
+      (err) => {
+        clearTimeout(timer);
+        finish(() => reject(err));
+      },
+    );
+  });
 }
 
 export function KeysPanel(): ReactElement {
@@ -166,13 +202,19 @@ export function KeysPanel(): ReactElement {
 
     let result: ValidationResult;
     try {
-      result = await validate(typed.length > 0 ? typed : (undefined as unknown as string));
+      result = await withTimeout(
+        validate(typed.length > 0 ? typed : (undefined as unknown as string)),
+        VALIDATE_TIMEOUT_MS,
+      );
     } catch (err) {
+      // Timeout do guard (IPC/validação pendurada) → mensagem de rede clara;
+      // qualquer outra rejeição do canal → erro de rede genérico, com retry.
+      const isTimeout = err instanceof Error && /timed out/i.test(err.message);
       void err;
       patch(provider, (s) => ({
         ...s,
         uiState: 'invalid',
-        message: t('translation:keys.errorNetwork'),
+        message: isTimeout ? t('translation:keys.errorTimeout') : t('translation:keys.errorNetwork'),
       }));
       return;
     }

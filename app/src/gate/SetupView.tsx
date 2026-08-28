@@ -16,6 +16,12 @@
  *
  * O LanguageSwitcher (src/i18n) é montado no slot — o antigo
  * <div id="language-switcher-slot"> é substituído.
+ *
+ * RODADA 10 (onda 2b — sem spinner infinito): além do timeout do validador no
+ * MAIN (apiKeyValidator, ~8s), o renderer tem uma GUARDA própria de 10s —
+ * defesa em profundidade: se o IPC pendurar por qualquer motivo, o spinner
+ * para com mensagem de erro clara e o botão volta a ficar habilitado. Nunca
+ * spinner eterno.
  */
 import { useState, type ReactElement } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -52,6 +58,38 @@ interface ProviderState {
 
 const IDLE: ProviderState = { value: '', visible: false, validating: false, valid: false, invalidMsg: '' };
 
+/**
+ * Guarda do renderer contra IPC/validação pendurada (10s — acima do timeout do
+ * main, ~8s, para o erro vir do validador quando possível; bem abaixo dos 15s
+ * do contrato e2e "spinner some"). Corrida com timeout: a resposta atrasada
+ * que chegar DEPOIS do guard é ignorada (settled), evitando que um retorno
+ * tardio sobrescreva a mensagem de erro.
+ */
+const VALIDATE_TIMEOUT_MS = 10_000;
+
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    let settled = false;
+    const finish = (fn: () => void): void => {
+      if (!settled) {
+        settled = true;
+        fn();
+      }
+    };
+    const timer = setTimeout(() => finish(() => reject(new Error('timed out'))), ms);
+    promise.then(
+      (value) => {
+        clearTimeout(timer);
+        finish(() => resolve(value));
+      },
+      (err) => {
+        clearTimeout(timer);
+        finish(() => reject(err));
+      },
+    );
+  });
+}
+
 export function SetupView({ onDone }: { onDone: () => void }): ReactElement {
   const { t } = useTranslation();
   const [providers, setProviders] = useState<Record<Provider, ProviderState>>({
@@ -81,13 +119,18 @@ export function SetupView({ onDone }: { onDone: () => void }): ReactElement {
     patch(provider, (s) => ({ ...s, validating: true, valid: false, invalidMsg: '' }));
     let result: ValidationResult;
     try {
-      result = await validate(typed);
+      result = await withTimeout(validate(typed), VALIDATE_TIMEOUT_MS);
     } catch (err) {
+      // Timeout do guard (IPC/validação pendurada) → mensagem de rede clara;
+      // qualquer outra rejeição do canal → erro bruto, também com retry.
+      const isTimeout = err instanceof Error && /timed out/i.test(err.message);
       patch(provider, (s) => ({
         ...s,
         validating: false,
         valid: false,
-        invalidMsg: `${t('translation:keys.errorNetworkValidate')}: ${String(err)}`,
+        invalidMsg: isTimeout
+          ? t('translation:keys.errorTimeout')
+          : `${t('translation:keys.errorNetworkValidate')}: ${String(err)}`,
       }));
       return;
     }

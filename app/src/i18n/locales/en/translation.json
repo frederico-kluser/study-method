@@ -60,6 +60,7 @@
     "error401": "Error 401: invalid key or missing permission.",
     "error429": "Error 429: request limit exceeded. Try again shortly.",
     "errorNetwork": "Network error: could not reach the server.",
+    "errorTimeout": "Timed out while contacting the provider. Check your connection and try again.",
     "needKeyBeforeValidate": "Enter the key before validating.",
     "errorNetworkValidate": "Network error while validating",
     "needKeyBeforeSave": "Enter the key before saving.",
