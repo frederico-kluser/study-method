@@ -167,6 +167,23 @@ export function LessonView(props: ViewProps): ReactElement {
       return next;
     });
   }, []);
+  // FIX (HIGH, revisor adversarial): PODA de streamingIds contra o histórico —
+  // um id ÓRFÃO nasce quando uma bolha digitando é DESMONTADA sem onDone:
+  // o cleanup do TypewriterText limpa o timer SEM chamar onDone, e o
+  // openPrerequisite (chip de pré-requisito — sempre habilitado, o busy não
+  // trava) SUBSTITUI o histórico no MEIO da digitação (createTrackLessonState
+  // → chat novo). Sem esta poda, o id morto ficaria no Set e `streamingIds.size
+  // > 0` renderizaria "tutor digitando…" PARA SEMPRE após a 1ª mensagem da
+  // nova aula. Os ids SÃO índices do histórico: histórico trocado/encolhido →
+  // ids fora de alcance → podados aqui. Fluxo normal intacto: o append só
+  // CRESCE o length — ids < length continuam válidos (e o efeito devolve
+  // `prev` sem re-render quando nada mudou).
+  useEffect(() => {
+    setStreamingIds((prev) => {
+      const valid = new Set([...prev].filter((id) => id < chat.history.length));
+      return valid.size === prev.size ? prev : valid;
+    });
+  }, [chat.history.length]);
   // Região com scroll do chat (a Box com overflowY do render).
   const logScrollRef = useRef<HTMLDivElement | null>(null);
   // Auto-scroll DURANTE a digitação: a cada step do typewriter (onStreamTick)
@@ -380,6 +397,9 @@ export function LessonView(props: ViewProps): ReactElement {
                 passed: report.passedCount,
                 total: report.totalCount,
               }),
+              // FIX (REPLAN, débito Onda 1): filesTitle faltava — sem ele o
+              // default pt-BR ('Código submetido') vazava para o locale en.
+              filesTitle: tIRef.current('lesson.errorBubbleFilesTitle'),
               checksTitle: tIRef.current('challenge.checksTitle'),
               outputTitle: tIRef.current('challenge.output'),
             },

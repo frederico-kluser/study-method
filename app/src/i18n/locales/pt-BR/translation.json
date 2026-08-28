@@ -185,6 +185,7 @@
     "answerTimeout": "O tutor demorou demais para responder. Tente de novo.",
     "doneTimeout": "Não foi possível concluir a aula — o aplicativo não respondeu. Tente de novo.",
     "errorBubbleTitle": "Seu código falhou nos testes",
+    "errorBubbleFilesTitle": "Código submetido",
     "errorQuestion": "O que você acha que errou? Escreva aqui ou fale no microfone. Se não souber, diga \"não sei\".",
     "micStart": "Falar",
     "micStop": "Parando gravação…",

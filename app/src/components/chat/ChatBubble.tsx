@@ -3,11 +3,15 @@
  * estilo iMessage (ONDA2-imessage).
  *
  * Cada bolha identifica o AUTOR: nome acima (caption) + avatar circular
- * pequeno ao lado (à esquerda para o Tutor, à direita para "Você"). O tempo
- * (HH:MM — `formatChatTime`, ts do MODELO, preservado pelo cache) vive DENTRO
- * da bolha, alinhado à direita — decisão de layout documentada: assim a
- * bolha 'reply' pode se CONECTAR à bolha do usuário acima sem sobrepor uma
- * legenda de hora solta no meio do caminho.
+ * pequeno ao lado (à esquerda para o Tutor, à direita para "Você"). A bolha
+ * 'reply' (resposta do tutor à pergunta do aluno) NÃO tem avatar — decisão
+ * REPLAN documentada: sem avatar, a caption "Tutor" fica à direita e a bolha
+ * se CONECTA à do usuário acima (raio superior-direito pequeno), como a
+ * segunda bolha de um fio no iMessage. O tempo (HH:MM — `formatChatTime`, ts
+ * do MODELO, preservado pelo cache) vive DENTRO da bolha, alinhado à direita
+ * — decisão de layout documentada: assim a bolha 'reply' pode se CONECTAR à
+ * bolha do usuário acima sem sobrepor uma legenda de hora solta no meio do
+ * caminho.
  *
  * Cores (tokens EXISTENTES do tema — nenhum token novo; contraste ≥4,5:1
  * garantido pelos pares calibrados de src/theme.ts e designTokens.ts):
@@ -19,9 +23,11 @@
  *   - 'reply'    → secondary.main + secondary.contrastText (cor PRÓPRIA da
  *                  resposta a uma pergunta — o acento study, calibrado
  *                  4,54:1 nos DOIS esquemas); bolha MENOR (70% vs 78%),
- *                  alinhada à direita e conectada à bolha do usuário acima
- *                  pelo raio superior-direito pequeno (cauda visual OPCIONAL
- *                  do pedido — não implementada; documentado);
+ *                  alinhada à direita (REPLAN — a implementação anterior
+ *                  caía no flex-start do Tutor) e conectada à bolha do
+ *                  usuário acima pelo raio superior-direito pequeno (cauda
+ *                  visual OPCIONAL do pedido — não implementada; documentado);
+ *                  SEM avatar (decisão REPLAN — a caption "Tutor" à direita);
  *   - 'review'   → tom de ERRO suave: error.main a 10% sobre background.paper
  *                  composto com color-mix (o `alpha()` do MUI v9 LANÇA erro
  *                  com CSS var — MUI error #9; color-mix resolve as
@@ -30,6 +36,13 @@
  *                  dois esquemas (o error.main a 10% desloca a luminância da
  *                  superfície em <5%; o par calibrado do tema é ≥12:1 nos
  *                  níveis 0/1) — DIFERENTE das conversas de propósito.
+ *
+ * A HORA (caption 13px — SC 1.4.3 exige 4,5:1) herda a cor de contraste do
+ * par da bolha com opacidade 1 nas bolhas PREENCHIDAS (user/reply — FIX de
+ * contraste: com 0,8 o composto media 3,38-3,69:1, o par cru passa 4,54/4,55
+ * claro e 4,50/4,55 escuro; os pares claros estão no teto do branco — não há
+ * margem além sem trocar tokens, fora de escopo) e opacidade 0,8 em
+ * message/review (fundo claro — medido 8,69:1+, folga gigante).
  *
  * Streaming: mensagens NOVAS da sessão digitam via TypewriterText (o texto
  * COMPLETO fica no histórico; o corte é exibição). A review só habilita o
@@ -82,7 +95,9 @@ function MarkdownComponents(): Record<string, (props: { children?: ReactNode }) 
 }
 
 /** Avatar circular do autor (ícones MUI — decisão documentada: AutoStories
- *  para o Tutor, Person para o aluno; aria-label i18n com o nome do autor). */
+ *  para o Tutor, Person para o aluno; aria-label i18n com o nome do autor).
+ *  A bolha 'reply' NÃO renderiza avatar (decisão REPLAN — a caption "Tutor"
+ *  fica à direita, coerente com o raio superior-direito da conexão). */
 function AuthorAvatar({ isUser, label }: { isUser: boolean; label: string }): ReactElement {
   return (
     <Avatar
@@ -175,22 +190,30 @@ export function ChatBubble({
       ? '16px 16px 4px 16px'
       : '16px 16px 16px 4px';
 
+  // Alinhamento REPLAN: a reply NÃO cai no flex-start do Tutor — ela se
+  // CONECTA à bolha do usuário acima (a pergunta dele), então user E reply
+  // ancoram à direita; tutor (message) e review (erro do desafio) à esquerda.
+  // O MESMO conjunto (user/reply) é o das bolhas PREENCHIDAS — usado também
+  // no contraste da hora (opacidade 1 nas preenchidas, ver render).
+  const isFilled = isUser || isReply;
+  const alignRight = isFilled;
   return (
     <Box
       sx={{
         display: 'flex',
         gap: 0.75,
         alignItems: 'flex-end',
-        justifyContent: isUser ? 'flex-end' : 'flex-start',
+        justifyContent: alignRight ? 'flex-end' : 'flex-start',
       }}
     >
-      {!isUser ? <AuthorAvatar isUser={false} label={authorName} /> : null}
+      {/* SEM avatar para a reply (decisão REPLAN documentada no cabeçalho). */}
+      {!isUser && !isReply ? <AuthorAvatar isUser={false} label={authorName} /> : null}
       <Box
         sx={{
           maxWidth: isReply ? '70%' : '78%',
           display: 'flex',
           flexDirection: 'column',
-          alignItems: isUser ? 'flex-end' : 'flex-start',
+          alignItems: alignRight ? 'flex-end' : 'flex-start',
         }}
       >
         <Typography variant="caption" color="text.secondary" sx={{ px: 0.5 }}>
@@ -242,10 +265,20 @@ export function ChatBubble({
             </>
           )}
           {/* Hora DENTRO da bolha (decisão documentada no cabeçalho): o ts é o
-              da CRIAÇÃO da mensagem — o cache preserva, horas originais. */}
+              da CRIAÇÃO da mensagem — o cache preserva, horas originais. FIX
+              de contraste (SC 1.4.3, caption 13px): nas bolhas PREENCHIDAS
+              (user/reply) a hora usa a cor de contraste do par a opacidade 1
+              — com 0,8 o composto caía a 3,38-3,69:1 (medido); mensagem e
+              review mantêm 0,8 (medido 8,69:1+ — ver comentário no
+              cabeçalho). */}
           <Typography
             variant="caption"
-            sx={{ display: 'block', textAlign: 'right', mt: 0.25, opacity: 0.8 }}
+            sx={{
+              display: 'block',
+              textAlign: 'right',
+              mt: 0.25,
+              opacity: isFilled ? 1 : 0.8,
+            }}
           >
             {time}
           </Typography>
