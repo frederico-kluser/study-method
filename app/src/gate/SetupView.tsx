@@ -200,7 +200,11 @@ export function SetupView({ onDone }: { onDone: () => void }): ReactElement {
           <Button
             variant="outlined"
             disabled={st.validating || saving}
+            // Onda 1 (botões com ícone): `loadingPosition="start"` mantém o
+            // label visível durante a validação — sem ele o MUI v9 (default
+            // 'center') deixa o texto transparente e mostra só o spinner.
             loading={st.validating}
+            loadingPosition="start"
             onClick={() => void handleValidate(provider)}
           >
             {t('translation:keys.validate')}
@@ -241,7 +245,10 @@ export function SetupView({ onDone }: { onDone: () => void }): ReactElement {
           <Button
             variant="contained"
             disabled={!allValid || saving}
+            // Onda 1 (botões com ícone): idem — spinner em linha, label
+            // "Salvar" sempre visível durante o save.
             loading={saving}
+            loadingPosition="start"
             onClick={() => void handleContinue()}
             sx={{ alignSelf: 'flex-start' }}
           >

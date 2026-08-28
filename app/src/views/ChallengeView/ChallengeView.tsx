@@ -1012,8 +1012,15 @@ export default function ChallengeView(): ReactElement {
                 <Button
                   variant="contained"
                   disabled={!canTest}
+                  // Onda 1 (botões com ícone): `loading` SEM `loadingPosition`
+                  // usa 'center' — o MUI v9 pinta o label de `color: transparent`
+                  // e mostra SÓ o spinner. Com `loadingPosition="start"` o
+                  // spinner entra EM LINHA no lugar do ícone (startIcon vira
+                  // `opacity: 0`) e o label "Testar resposta" fica visível o
+                  // tempo todo.
                   loading={busy}
-                  startIcon={!busy ? <PlayArrowIcon /> : undefined}
+                  loadingPosition="start"
+                  startIcon={<PlayArrowIcon />}
                   onClick={testAnswerClick}
                   data-onboarding-target="challenge-test-answer"
                   data-onboarding-signal={`test-status:${testStatus}`}

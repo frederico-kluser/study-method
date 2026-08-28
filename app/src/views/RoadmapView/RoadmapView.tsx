@@ -390,9 +390,22 @@ export function RoadmapView(props: ViewProps): ReactElement {
           {/* Teste de proficiência: desafio que cobre TUDO. */}
           {track.proficiencyAvailable ? (
             <Card variant="outlined" sx={{ bgcolor: 'action.hover' }}>
-              <CardContent sx={{ display: 'flex', alignItems: 'center', gap: 2, p: 1.5, '&:last-child': { pb: 1.5 } }}>
+              <CardContent
+                sx={{
+                  display: 'flex',
+                  // Onda 1 (botões com ícone): `flexWrap: 'wrap'` — em largura
+                  // apertada o botão "Fazer o teste" (nowrap) PULA para a
+                  // linha própria em vez de esmagar/estourar o card. O texto
+                  // com `minWidth: 0` quebra normalmente.
+                  flexWrap: 'wrap',
+                  alignItems: 'center',
+                  gap: 2,
+                  p: 1.5,
+                  '&:last-child': { pb: 1.5 },
+                }}
+              >
                 <WorkspacePremiumIcon color="primary" sx={{ fontSize: 40 }} />
-                <Box sx={{ flexGrow: 1 }}>
+                <Box sx={{ flexGrow: 1, minWidth: 0 }}>
                   <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
                     {t('translation:roadmap.proficiencyTitle')}
                   </Typography>
@@ -404,7 +417,10 @@ export function RoadmapView(props: ViewProps): ReactElement {
                   variant="contained"
                   onClick={openProficiency}
                   startIcon={<WorkspacePremiumIcon />}
-                  sx={{ whiteSpace: 'nowrap' }}
+                  // Onda 1 (botões com ícone): `flexShrink: 0` + `flexWrap`
+                  // no CardContent — o label inteiro ("Fazer o teste"/
+                  // "Refazer") fica sempre visível, sem corte nem quebra.
+                  sx={{ whiteSpace: 'nowrap', flexShrink: 0 }}
                 >
                   {track.proficient
                     ? t('translation:roadmap.proficiencyRetake')
