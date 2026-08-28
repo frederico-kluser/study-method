@@ -48,11 +48,6 @@ export function ProgressPanel(): ReactElement {
         IPC_TIMEOUT_MS,
         'study:clear-progress',
       )) as { ok: boolean; error?: string };
-      // Fecha o diálogo nos DOIS caminhos (sucesso E falha): o Alert de
-      // feedback fica ABAIXO do botão — com o modal aberto ele ficaria atrás
-      // do backdrop (aria-hidden — invisível para leitores de tela e role
-      // queries). Em erro o usuário vê o Alert e pode tentar de novo.
-      setConfirmOpen(false);
       if (res.ok) {
         setFeedback({ kind: 'done' });
       } else {
@@ -66,6 +61,12 @@ export function ProgressPanel(): ReactElement {
           : String(err),
       });
     } finally {
+      // Fecha o diálogo nos TRÊS caminhos (sucesso, falha de negócio e
+      // rejeição — canal mudo/timeout): o Alert de feedback fica ABAIXO do
+      // botão — com o modal aberto ele ficaria atrás do backdrop
+      // (aria-hidden — invisível para leitores de tela e role queries).
+      // No finally, roda em todos os caminhos, inclusive no catch.
+      setConfirmOpen(false);
       setBusy(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
