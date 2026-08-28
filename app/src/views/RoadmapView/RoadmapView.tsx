@@ -49,7 +49,12 @@ import WorkspacePremiumIcon from '@mui/icons-material/WorkspacePremium';
 import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
 
 import { getApi } from '../../lib/apiBridge';
-import { IPC_TIMEOUT_MS, isTimeoutError, withTimeout } from '../../lib/ipcTimeout';
+import {
+  IPC_TIMEOUT_MS,
+  isTimeoutError,
+  resolveChannelError,
+  withTimeout,
+} from '../../lib/ipcTimeout';
 import { useChallengeNav } from '../../lib/challengeNav';
 import { drainPendingTrackSlug, setPendingTrackLesson } from '../../lib/pendingSubject';
 import type { TrackDetailPayload, TrackLessonEntry, TrackModuleEntry } from '../../../shared/ipc-contract';
@@ -204,7 +209,8 @@ export function RoadmapView(props: ViewProps): ReactElement {
       .then((res) => {
         if (cancelled) return;
         if (res.ok === false) {
-          setLoadError(res.error);
+          // W3 (falsy-proof): '' é erro VÁLIDO — só null significa "sem erro".
+          setLoadError(resolveChannelError(res, t('translation:roadmap.loadFailed')));
           return;
         }
         if (!res.track) {
@@ -229,11 +235,23 @@ export function RoadmapView(props: ViewProps): ReactElement {
 
   /** Lista as trilhas instaladas (seletor) — com timeout (mesmo princípio). */
   const loadTracks = useCallback((): void => {
+    // FIX W2 (onda 4): setLoading(true) NO INÍCIO — o retry da lista mostra o
+    // spinner (feedback imediato) em vez de área em branco até o timeout; o
+    // finally limpa nos DOIS caminhos (ok e erro).
+    setLoading(true);
+    setLoadError(null);
     let cancelled = false;
     withTimeout(getApi().track.list(), IPC_TIMEOUT_MS, 'track.list')
       .then((res) => {
         if (cancelled) return;
-        if (res.ok && res.tracks.length > 0) {
+        if (res.ok === false) {
+          // ok:false = falha REAL (repo indisponível etc.) → erro com o DETALHE
+          // do canal; "Nenhuma trilha instalada" fica só para ok:true com []
+          // (vazio legítimo) — nunca uma mensagem enganosa para falha real.
+          setLoadError(resolveChannelError(res, t('translation:roadmap.listFailed')));
+          return;
+        }
+        if (res.tracks.length > 0) {
           setTracks(res.tracks.map((x) => ({ slug: x.slug, title: x.title, doneCount: x.doneCount, lessonCount: x.lessonCount })));
         } else {
           setLoadError(t('translation:roadmap.noTracks'));
@@ -244,7 +262,7 @@ export function RoadmapView(props: ViewProps): ReactElement {
         setLoadError(
           isTimeoutError(err)
             ? t('translation:roadmap.loadTimeout')
-            : t('translation:roadmap.noTracks'),
+            : t('translation:roadmap.listFailed'),
         );
       })
       .finally(() => {
@@ -336,10 +354,10 @@ export function RoadmapView(props: ViewProps): ReactElement {
       {/* Spinner do DETALHE: só com trilha selecionada e ainda sem conteúdo
           (nem erro). O spinner da LISTA (sem seleção) usa o `loading` — ambos
           têm timeout: canal mudo vira loadError com retry, nunca spinner
-          eterno. */}
-      {selected !== null && !track && !loadError ? <LinearProgress /> : null}
-      {selected === null && loading && !loadError ? <LinearProgress /> : null}
-      {loadError ? (
+          eterno. W3 (falsy-proof): só `null` significa "sem erro". */}
+      {selected !== null && !track && loadError === null ? <LinearProgress /> : null}
+      {selected === null && loading && loadError === null ? <LinearProgress /> : null}
+      {loadError !== null ? (
         <Box sx={{ mt: 1 }}>
           <Alert severity="warning">{loadError}</Alert>
           <Button

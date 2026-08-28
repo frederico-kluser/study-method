@@ -56,7 +56,12 @@ import TerminalIcon from '@mui/icons-material/Terminal';
 import type { KeysStatus, SubjectSummary } from '../../shared/ipc-contract';
 import type { NavKey } from '../lib/shellNav';
 import { getApi } from '../lib/apiBridge';
-import { IPC_TIMEOUT_MS, isTimeoutError, withTimeout } from '../lib/ipcTimeout';
+import {
+  IPC_TIMEOUT_MS,
+  isTimeoutError,
+  resolveChannelError,
+  withTimeout,
+} from '../lib/ipcTimeout';
 import {
   groupSubjectsByDomain,
   homeDomainSections,
@@ -356,7 +361,8 @@ function TracksSection({
         // ok:false = falha REAL (repo indisponível etc.) → erro visível;
         // ok:true com lista vazia = nenhuma trilha instalada (vazio legítimo).
         if (res.ok === false) {
-          setTracksError(res.error ?? t('translation:home.tracksLoadFailed'));
+          // W3 (falsy-proof): '' é erro VÁLIDO — só null significa "sem erro".
+          setTracksError(resolveChannelError(res, t('translation:home.tracksLoadFailed')));
           return;
         }
         setTracks(
@@ -388,7 +394,8 @@ function TracksSection({
   useEffect(() => loadTracks(), [loadTracks]);
 
   // Falha/ausência de resposta → erro VISÍVEL com ação (nunca sumir em silêncio).
-  if (tracksError) {
+  // W3 (falsy-proof): só `null` significa "sem erro" — '' é erro válido.
+  if (tracksError !== null) {
     return (
       <Box>
         <Alert severity="error">{tracksError}</Alert>

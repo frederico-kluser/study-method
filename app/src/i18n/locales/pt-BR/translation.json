@@ -64,7 +64,8 @@
     "needKeyBeforeValidate": "Digite a chave antes de validar.",
     "errorNetworkValidate": "Erro de rede ao validar",
     "needKeyBeforeSave": "Digite a chave antes de salvar.",
-    "saveError": "Falha ao salvar a chave."
+    "saveError": "Falha ao salvar a chave.",
+    "saveTimeout": "Não foi possível salvar a chave — o aplicativo não respondeu. Tente de novo."
   },
   "localAi": {
     "title": "Modelo local",
@@ -172,7 +173,10 @@
     "sourcesTitle": "Fontes desta aula",
     "trackNotFound": "Aula não encontrada na trilha.",
     "trackLoadFailed": "Não foi possível carregar a aula.",
-    "trackLoadTimeout": "A aula não respondeu a tempo. Tente novamente."
+    "trackLoadTimeout": "A aula não respondeu a tempo. Tente novamente.",
+    "nextTimeout": "O tutor não respondeu ao avançar a seção. Tente de novo.",
+    "answerTimeout": "O tutor demorou demais para responder. Tente de novo.",
+    "doneTimeout": "Não foi possível concluir a aula — o aplicativo não respondeu. Tente de novo."
   },
   "challenge": {
     "openChallenge": "Abrir desafio",
@@ -240,7 +244,10 @@
     "partialCount": "{{passed}} de {{total}} testes passaram",
     "proficiencyPassed": "Proficiência aprovada — a trilha inteira está destravada!",
     "filesTitle": "Arquivos do desafio",
-    "fileTabAria": "Arquivo {{file}}"
+    "fileTabAria": "Arquivo {{file}}",
+    "submitTimeout": "O teste do código demorou demais para terminar. Tente de novo.",
+    "regenerateTimeout": "A geração do novo desafio demorou demais. Tente de novo.",
+    "trackLoadFailed": "Não foi possível carregar o desafio."
   },
   "gate": {
     "checking": "Verificando configuração…",
@@ -596,6 +603,7 @@
     "sequentialHint": "As aulas destravam em ordem: conclua uma para liberar a próxima — ou passe no teste de proficiência para liberar tudo.",
     "moduleChallenge": "Desafio do módulo",
     "moduleChallengeDone": "Concluído ✓",
-    "moduleChallengeTried": "Tentado"
+    "moduleChallengeTried": "Tentado",
+    "listFailed": "Não foi possível carregar a lista de trilhas."
   }
 }

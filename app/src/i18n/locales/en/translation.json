@@ -64,7 +64,8 @@
     "needKeyBeforeValidate": "Enter the key before validating.",
     "errorNetworkValidate": "Network error while validating",
     "needKeyBeforeSave": "Enter the key before saving.",
-    "saveError": "Failed to save the key."
+    "saveError": "Failed to save the key.",
+    "saveTimeout": "Could not save the key — the app did not respond. Try again."
   },
   "localAi": {
     "title": "Local model",
@@ -172,7 +173,10 @@
     "sourcesTitle": "Sources for this lesson",
     "trackNotFound": "Lesson not found in the track.",
     "trackLoadFailed": "Could not load the lesson.",
-    "trackLoadTimeout": "The lesson did not respond in time. Try again."
+    "trackLoadTimeout": "The lesson did not respond in time. Try again.",
+    "nextTimeout": "The tutor did not respond when advancing the section. Try again.",
+    "answerTimeout": "The tutor took too long to reply. Try again.",
+    "doneTimeout": "Could not finish the lesson — the app did not respond. Try again."
   },
   "challenge": {
     "openChallenge": "Open challenge",
@@ -240,7 +244,10 @@
     "partialCount": "{{passed}} of {{total}} tests passed",
     "proficiencyPassed": "Proficiency approved — the whole track is unlocked!",
     "filesTitle": "Challenge files",
-    "fileTabAria": "File {{file}}"
+    "fileTabAria": "File {{file}}",
+    "submitTimeout": "Code testing took too long. Try again.",
+    "regenerateTimeout": "Generating a new challenge took too long. Try again.",
+    "trackLoadFailed": "Could not load the challenge."
   },
   "gate": {
     "checking": "Checking setup…",
@@ -596,6 +603,7 @@
     "sequentialHint": "Lessons unlock in order: finish one to release the next — or pass the proficiency test to unlock everything.",
     "moduleChallenge": "Module challenge",
     "moduleChallengeDone": "Completed ✓",
-    "moduleChallengeTried": "Tried"
+    "moduleChallengeTried": "Tried",
+    "listFailed": "Could not load the track list."
   }
 }

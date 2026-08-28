@@ -51,7 +51,13 @@ import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import CancelIcon from '@mui/icons-material/Cancel';
 
 import { getApi } from '../../lib/apiBridge';
-import { IPC_TIMEOUT_MS, isTimeoutError, withTimeout } from '../../lib/ipcTimeout';
+import {
+  ACTION_TIMEOUTS,
+  IPC_TIMEOUT_MS,
+  isTimeoutError,
+  resolveChannelError,
+  withTimeout,
+} from '../../lib/ipcTimeout';
 import { fireConfetti } from '../../lib/confetti';
 import { createStarTracker, formatClock, type StarTracker } from '../../lib/challengeStars';
 import { CodeMirrorField } from '../../components/cm/CodeMirrorField';
@@ -147,7 +153,8 @@ export function TrackChallengePanel({ selection }: { selection: TrackChallengeNa
         .then((res) => {
           if (cancelled) return;
           if (res.ok === false) {
-            setLoadError(res.error);
+            // W3 (falsy-proof): '' é erro VÁLIDO — só null significa "sem erro".
+            setLoadError(resolveChannelError(res, tI('challenge.trackLoadFailed')));
             return;
           }
           if (!res.challenge) {
@@ -298,7 +305,14 @@ export function TrackChallengePanel({ selection }: { selection: TrackChallengeNa
           : {}),
         ...(selection.target === 'proficiency' ? { stars: starsLeft } : {}),
       };
-      const res = await getApi().track.challengeSubmit(payload as never);
+      // FIX W1 (onda 4): timeout de 45s — > 30s do exec do código no main
+      // (challengeExec.ts) + overhead de spawn/load; canal MUDO nunca trava o
+      // botão "Testar resposta" para sempre (finally limpa o `running`).
+      const res = await withTimeout(
+        getApi().track.challengeSubmit(payload as never),
+        ACTION_TIMEOUTS.challengeSubmit,
+        'track.challengeSubmit',
+      );
       if (res.ok) {
         setResult(res);
         if (res.passed) {
@@ -313,21 +327,28 @@ export function TrackChallengePanel({ selection }: { selection: TrackChallengeNa
         setSubmissionError(res.error?.message ?? 'erro ao testar');
       }
     } catch (err) {
-      setSubmissionError(String(err));
+      setSubmissionError(isTimeoutError(err) ? tI('challenge.submitTimeout') : String(err));
     } finally {
       setRunning(false);
     }
-  }, [spec, started, running, concluded, selection, code, filesCode, activeFile, starsLeft, markAttempt]);
+  }, [spec, started, running, concluded, selection, code, filesCode, activeFile, starsLeft, markAttempt, tI]);
 
   /** Regenera o desafio: a LLM vê os erros do aluno nesta aula e não repete. */
   const handleRegenerate = useCallback(async (): Promise<void> => {
     if (!spec || regenerating) return;
     setRegenerating(true);
     try {
-      const res = await getApi().track.challengeRegenerate({
-        trackSlug: selection.trackSlug,
-        lessonId: selection.lessonId ?? selection.challengeId,
-      });
+      // FIX W1 (onda 4): timeout de 150s — o main faz ATÉ 2 tentativas de LLM
+      // com 60s cada (challengeRegenerator.ts) = ~120s legítimos + verificação;
+      // o timeout só desbloqueia o canal MUDO, nunca corta geração legítima.
+      const res = await withTimeout(
+        getApi().track.challengeRegenerate({
+          trackSlug: selection.trackSlug,
+          lessonId: selection.lessonId ?? selection.challengeId,
+        }),
+        ACTION_TIMEOUTS.challengeRegenerate,
+        'track.challengeRegenerate',
+      );
       if (res.ok && res.challenge) {
         setSpec(res.challenge);
         setCode(res.challenge.starterCode);
@@ -342,11 +363,11 @@ export function TrackChallengePanel({ selection }: { selection: TrackChallengeNa
         setSubmissionError(res.error?.message ?? 'não foi possível gerar um novo desafio');
       }
     } catch (err) {
-      setSubmissionError(String(err));
+      setSubmissionError(isTimeoutError(err) ? tI('challenge.regenerateTimeout') : String(err));
     } finally {
       setRegenerating(false);
     }
-  }, [spec, regenerating, selection.trackSlug, selection.lessonId, selection.challengeId]);
+  }, [spec, regenerating, selection.trackSlug, selection.lessonId, selection.challengeId, tI]);
 
   if (loading) {
     return (
@@ -356,7 +377,8 @@ export function TrackChallengePanel({ selection }: { selection: TrackChallengeNa
     );
   }
 
-  if (loadError || !spec) {
+  // W3 (falsy-proof): só `null` significa "sem erro" — '' é erro válido.
+  if (loadError !== null || !spec) {
     return (
       <Box sx={{ p: 2, maxWidth: 720, mx: 'auto', pt: 4 }}>
         <Alert severity="error">{loadError ?? t('translation:challenge.trackNotFound')}</Alert>

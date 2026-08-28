@@ -57,7 +57,13 @@ import LockIcon from '@mui/icons-material/Lock';
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
 
 import { getApi } from '../../lib/apiBridge';
-import { IPC_TIMEOUT_MS, isTimeoutError, withTimeout } from '../../lib/ipcTimeout';
+import {
+  ACTION_TIMEOUTS,
+  IPC_TIMEOUT_MS,
+  isTimeoutError,
+  resolveChannelError,
+  withTimeout,
+} from '../../lib/ipcTimeout';
 import { useSessionState } from '../../lib/sessionState';
 import { useChallengeNav } from '../../lib/challengeNav';
 import {
@@ -183,7 +189,8 @@ export function LessonView(props: ViewProps): ReactElement {
         .then((res) => {
           if (cancelled) return;
           if (res.ok === false) {
-            setLoadError(res.error);
+            // W3 (falsy-proof): '' é erro VÁLIDO — só null significa "sem erro".
+            setLoadError(resolveChannelError(res, tI('lesson.trackLoadFailed')));
             return;
           }
           if (!res.lesson) {
@@ -217,26 +224,38 @@ export function LessonView(props: ViewProps): ReactElement {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loadLesson, publishSession]);
 
+  // FIX W1 (onda 4): canais de AÇÃO com withTimeout — se o IPC ficar MUDO
+  // (main preso, resposta perdida), o `busy`/`pendingAction` SEMPRE limpam no
+  // finally e o usuário vê mensagem clara, em vez de botões desabilitados para
+  // sempre. Timeout por ação documentado em ACTION_TIMEOUTS (lib/ipcTimeout):
+  // 'next' é determinístico (10s); 'answer' > abort de 45s da LLM no main (70s).
   const sendNext = useCallback(async (): Promise<void> => {
     if (!trackLesson || busy) return;
     setBusy(true);
     setPendingAction('next');
     try {
-      const res = await getApi().track.tutorChat({
-        trackSlug: trackLesson.trackSlug,
-        lessonId: trackLesson.lessonId,
-        presentedSections: chat.presentedSections,
-        history: chat.history,
-        action: 'next',
-      });
+      const res = await withTimeout(
+        getApi().track.tutorChat({
+          trackSlug: trackLesson.trackSlug,
+          lessonId: trackLesson.lessonId,
+          presentedSections: chat.presentedSections,
+          history: chat.history,
+          action: 'next',
+        }),
+        ACTION_TIMEOUTS.next,
+        'track.tutorChat:next',
+      );
       setChat((s) => applyTutorReply(s, res));
     } catch (err) {
-      setChat((s) => ({ ...s, lastError: String(err) }));
+      setChat((s) => ({
+        ...s,
+        lastError: isTimeoutError(err) ? tI('lesson.nextTimeout') : String(err),
+      }));
     } finally {
       setBusy(false);
       setPendingAction(null);
     }
-  }, [trackLesson, busy, chat.presentedSections, chat.history]);
+  }, [trackLesson, busy, chat.presentedSections, chat.history, tI]);
 
   const sendAnswer = useCallback(async (): Promise<void> => {
     const text = draft.trim();
@@ -246,31 +265,43 @@ export function LessonView(props: ViewProps): ReactElement {
     setBusy(true);
     setPendingAction('answer');
     try {
-      const res = await getApi().track.tutorChat({
-        trackSlug: trackLesson.trackSlug,
-        lessonId: trackLesson.lessonId,
-        presentedSections: chat.presentedSections,
-        history: [...chat.history, { role: 'user', content: text }],
-        action: 'answer',
-      });
+      const res = await withTimeout(
+        getApi().track.tutorChat({
+          trackSlug: trackLesson.trackSlug,
+          lessonId: trackLesson.lessonId,
+          presentedSections: chat.presentedSections,
+          history: [...chat.history, { role: 'user', content: text }],
+          action: 'answer',
+        }),
+        ACTION_TIMEOUTS.answer,
+        'track.tutorChat:answer',
+      );
       setChat((s) => applyTutorReply(s, res));
     } catch (err) {
-      setChat((s) => ({ ...s, lastError: String(err) }));
+      // Timeout → mensagem clara; o "digitando…" (pendingAction) desliga no finally.
+      setChat((s) => ({
+        ...s,
+        lastError: isTimeoutError(err) ? tI('lesson.answerTimeout') : String(err),
+      }));
     } finally {
       setBusy(false);
       setPendingAction(null);
     }
-  }, [trackLesson, draft, busy, chat.presentedSections, chat.history]);
+  }, [trackLesson, draft, busy, chat.presentedSections, chat.history, tI]);
 
   /** Conclui a aula (destrava a próxima) e publica a sessão. */
   const finishLesson = useCallback(async (): Promise<void> => {
     if (!trackLesson || busy || !chat.theoryDone || doneMarked) return;
     setBusy(true);
     try {
-      await getApi().track.lessonDone({
-        trackSlug: trackLesson.trackSlug,
-        lessonId: trackLesson.lessonId,
-      });
+      await withTimeout(
+        getApi().track.lessonDone({
+          trackSlug: trackLesson.trackSlug,
+          lessonId: trackLesson.lessonId,
+        }),
+        ACTION_TIMEOUTS.lessonDone,
+        'track.lessonDone',
+      );
       setDoneMarked(true);
       publishSession({
         subject: lesson?.title ?? trackLesson.lessonId,
@@ -278,12 +309,16 @@ export function LessonView(props: ViewProps): ReactElement {
         phase: 'concluindo',
         fraction: 1,
       });
-    } catch {
-      // falha de persistência: o botão continua disponível (retry honesto)
+    } catch (err) {
+      // Timeout do canal MUDO → aviso visível; falha de persistência comum
+      // continua silenciosa (o botão permanece disponível — retry honesto).
+      if (isTimeoutError(err)) {
+        setChat((s) => ({ ...s, lastError: tI('lesson.doneTimeout') }));
+      }
     } finally {
       setBusy(false);
     }
-  }, [trackLesson, busy, chat.theoryDone, doneMarked, lesson?.title, publishSession]);
+  }, [trackLesson, busy, chat.theoryDone, doneMarked, lesson?.title, publishSession, tI]);
 
   /** Abre UM desafio da aula na ChallengeView (fluxo track). */
   const openChallenge = useCallback(
@@ -333,7 +368,8 @@ export function LessonView(props: ViewProps): ReactElement {
     );
   }
 
-  if (loadError) {
+  // W3 (falsy-proof): só `null` significa "sem erro" — '' é erro válido.
+  if (loadError !== null) {
     return (
       <Box sx={{ p: 2, maxWidth: 640, mx: 'auto', pt: 4 }}>
         <Alert severity="error">{loadError}</Alert>

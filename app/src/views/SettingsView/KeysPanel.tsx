@@ -13,10 +13,12 @@
  *    (src/lib/validationAlert.ts → chaves i18n keys.*).
  *  - loading nos botões durante salvar/validar (spinner + disabled).
  *
- * RODADA 10 (onda 2b — sem spinner infinito): guarda de 10s no renderer além
- * do timeout do validador no main (apiKeyValidator, ~8s) — se o IPC pendurar,
- * o spinner para com mensagem de erro clara e o botão volta a ficar
- * habilitado. Nunca spinner eterno.
+ * RODADA 10 (onda 2b/onda 4 — sem spinner infinito): guarda de 10s no renderer
+ * além do timeout do validador no main (apiKeyValidator, ~8s) — se o IPC
+ * pendurar, o spinner para com mensagem de erro clara e o botão volta a ficar
+ * habilitado. ONDA 4 (fix W1): salvar e validar usam o withTimeout SHARED
+ * (lib/ipcTimeout, ACTION_TIMEOUTS) — canal mudo nunca trava `saving`/
+ * `validating` para sempre; o finally garante o estado limpo.
  *
  * Nenhuma view acessa `window` diretamente — só `getApi()` (testável sem jsdom).
  */
@@ -38,6 +40,7 @@ import Visibility from '@mui/icons-material/Visibility';
 import VisibilityOff from '@mui/icons-material/VisibilityOff';
 import type { KeysStatus, ValidationResult } from '../../../shared/ipc-contract';
 import { getApi } from '../../lib/apiBridge';
+import { ACTION_TIMEOUTS, isTimeoutError, withTimeout } from '../../lib/ipcTimeout';
 import { isNonEmpty } from '../../lib/validate';
 import { validationAlert } from '../../lib/validationAlert';
 
@@ -84,34 +87,12 @@ function idleState(): ProviderState {
 
 /**
  * Guarda do renderer contra IPC/validação pendurada (10s — acima do timeout do
- * main, ~8s; bem abaixo dos 15s do contrato e2e "spinner some"). Corrida com
- * timeout: a resposta atrasada que chegar DEPOIS do guard é ignorada
- * (settled), evitando que um retorno tardio sobrescreva a mensagem de erro.
+ * main, ~8s; bem abaixo dos 15s do contrato e2e "spinner some"). Usa o
+ * withTimeout SHARED de lib/ipcTimeout (ACTION_TIMEOUTS.keysValidate, com
+ * IpcTimeoutError identificável): a resposta atrasada que chegar DEPOIS do
+ * guard é ignorada pelo race — o retorno tardio nunca sobrescreve a mensagem
+ * de erro já mostrada.
  */
-const VALIDATE_TIMEOUT_MS = 10_000;
-
-function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
-  return new Promise<T>((resolve, reject) => {
-    let settled = false;
-    const finish = (fn: () => void): void => {
-      if (!settled) {
-        settled = true;
-        fn();
-      }
-    };
-    const timer = setTimeout(() => finish(() => reject(new Error('timed out'))), ms);
-    promise.then(
-      (value) => {
-        clearTimeout(timer);
-        finish(() => resolve(value));
-      },
-      (err) => {
-        clearTimeout(timer);
-        finish(() => reject(err));
-      },
-    );
-  });
-}
 
 export function KeysPanel(): ReactElement {
   const { t } = useTranslation();
@@ -169,21 +150,30 @@ export function KeysPanel(): ReactElement {
     }
     patch(provider, (s) => ({ ...s, saving: true }));
     try {
-      await getApi().keys.setKey(provider, value.trim());
+      // FIX W1 (onda 4): timeout no SALVAR também (canal mudo nunca trava o
+      // botão para sempre) — persistência local, 10s é folga enorme.
+      await withTimeout(
+        getApi().keys.setKey(provider, value.trim()),
+        ACTION_TIMEOUTS.keysSet,
+        `keys.setKey:${provider}`,
+      );
       patch(provider, (s) => ({
         ...s,
-        saving: false,
         uiState: 'valid',
         message: t('translation:keys.saved'),
       }));
     } catch (err) {
+      void err;
       patch(provider, (s) => ({
         ...s,
-        saving: false,
         uiState: 'invalid',
-        message: t('translation:keys.saveError'),
+        message: isTimeoutError(err)
+          ? t('translation:keys.saveTimeout')
+          : t('translation:keys.saveError'),
       }));
-      void err;
+    } finally {
+      // SEMPRE limpo — nenhum caminho deixa `saving` preso em true.
+      patch(provider, (s) => ({ ...s, saving: false }));
     }
   };
 
@@ -204,17 +194,19 @@ export function KeysPanel(): ReactElement {
     try {
       result = await withTimeout(
         validate(typed.length > 0 ? typed : (undefined as unknown as string)),
-        VALIDATE_TIMEOUT_MS,
+        ACTION_TIMEOUTS.keysValidate,
+        `keys.validate:${provider}`,
       );
     } catch (err) {
       // Timeout do guard (IPC/validação pendurada) → mensagem de rede clara;
       // qualquer outra rejeição do canal → erro de rede genérico, com retry.
-      const isTimeout = err instanceof Error && /timed out/i.test(err.message);
       void err;
       patch(provider, (s) => ({
         ...s,
         uiState: 'invalid',
-        message: isTimeout ? t('translation:keys.errorTimeout') : t('translation:keys.errorNetwork'),
+        message: isTimeoutError(err)
+          ? t('translation:keys.errorTimeout')
+          : t('translation:keys.errorNetwork'),
       }));
       return;
     }
