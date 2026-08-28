@@ -4,8 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="plannotator-theme" content="host">
-<title>Rodada 9 — do zero ao especialista, sem loading infinito</title>
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%235537eb'/%3E%3Ctext x='32' y='45' font-family='Georgia,serif' font-size='38' font-weight='700' fill='white' text-anchor='middle'%3E9%3C/text%3E%3C/svg%3E">
+<title>Rodada 10 — o clone limpo funciona: trilhas alcançáveis + bootstrap garantido</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%235537eb'/%3E%3Ctext x='32' y='44' font-family='Georgia,serif' font-size='28' font-weight='700' fill='white' text-anchor='middle'%3E10%3C/text%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
@@ -495,87 +495,98 @@
     .stats { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
   }
 </style>
-</head>
+
+  /* ============ LISTA ORDENADA (segmento 8) ============ */
+  ol.verify { margin: 0 0 16px 22px; }
+  ol.verify li { margin-bottom: 12px; line-height: 1.65; max-width: 74ch; }
+  ol.verify code { background: color-mix(in oklab, var(--primary) 10%, transparent); }
 <body>
 
 <nav class="topnav" aria-label="Navegação do documento">
   <div class="topnav__inner">
-    <a href="#pedidos">1 · Pedido</a>
-    <a href="#aula-sem-espera">2 · Aula sem espera</a>
-    <a href="#veredito">3 · Veredito honesto</a>
-    <a href="#desafio-modulo">4 · Desafio de módulo</a>
-    <a href="#seguranca">5 · Segurança</a>
-    <a href="#ondas">6 · As 6 ondas</a>
-    <a href="#validacao">7 · Validação</a>
+    <a href="#pedido">1 · Pedido</a>
+    <a href="#causa-raiz">2 · Causa raiz</a>
+    <a href="#fix-2a">3 · Diretório que existe</a>
+    <a href="#fix-2b">4 · Validação com prazo</a>
+    <a href="#fix-2c">5 · Blindagem anti-loader</a>
+    <a href="#bootstrap">6 · run.sh instala sozinho</a>
+    <a href="#maquina">7 · A máquina da rodada</a>
+    <a href="#verificar">8 · Como verificar</a>
+    <a href="#buzzwords">9 · Buzzwords</a>
   </div>
 </nav>
 
 <div class="container">
 
   <header>
-    <p class="eyebrow animate" style="--i:0">Rodada 9 · Study-Method · 2026-08-27</p>
-    <h1 class="animate" style="--i:1">O que a rodada 9 entregou ao study-method</h1>
+    <p class="eyebrow animate" style="--i:0">Rodada 10 · Study-Method · 2026-08-27</p>
+    <h1 class="animate" style="--i:1">O clone limpo agora funciona: trilhas alcançáveis e run.sh que instala sozinho</h1>
 
     <div class="answer-card animate" style="--i:2">
-      A rodada 9 (ciclo de desenvolvimento do produto; esta é a nona) levou a
-      <strong>trilha</strong> <code>nodejs-do-zero</code> — a sequência de <strong>módulos</strong>
-      (blocos de aulas com um desafio final) que o aluno percorre do básico ao avançado — de 8 para
-      <strong>18 módulos e 118 aulas</strong>, do zero absoluto ao especialista. Cada módulo passou a
-      terminar num <strong>desafio de módulo multi-arquivo</strong> (2–3 arquivos que se importam entre
-      si). No app, abrir a aula deixou de esperar o <strong>LLM</strong> (modelo de linguagem grande: a
-      IA que escreve, responde e gera): a teoria e o primeiro desafio já vêm prontos do arquivo. E o
-      resultado da correção de cada desafio agora mostra, teste por teste, o que passou e o que falhou —
-      aprovação parcial, &ldquo;N de M testes passaram&rdquo;, não tudo-ou-nada. Tudo verificado por
-      execução: <strong>136/136 desafios rodados de verdade</strong> e <strong>1688 testes verdes</strong>.
+      Ao clonar o projeto em outro computador e clicar numa aula, o app ficava num
+      <strong>loader infinito</strong> (tela de espera que nunca termina porque a resposta nunca
+      chega). A rodada 10 <strong>provou a causa raiz</strong>: no modo buildado, o app resolvia o
+      diretório das trilhas para um caminho que só existe na máquina do desenvolvedor. A correção
+      veio em três camadas — uma cadeia de candidatos que só aceita um diretório que
+      <strong>existe de verdade</strong>, <strong>timeout</strong> (limite de tempo: sem resposta até
+      ele, a operação aborta e mostra erro) na validação de chaves e em todo carregamento, com erro
+      visível e &ldquo;Tentar de novo&rdquo; — e o <code>./run.sh</code> passou a
+      <strong>instalar e configurar o projeto sozinho</strong> no clone: checa o node (≥ 22.13), cria
+      o <code>.env.local</code> sem sobrescrever, roda <code>npm ci</code> se faltar o marcador de
+      instalação completa e só então sobe o app. Gate final: <strong>1744 pass / 0 fail</strong>.
     </div>
 
     <div class="stats animate" style="--i:3">
       <div class="stat">
-        <div class="stat__num">18</div>
-        <div class="stat__label">módulos na trilha nodejs-do-zero (eram 8)</div>
+        <div class="stat__num">1744</div>
+        <div class="stat__label">pass / 0 fail no gate final (1745 testes, 1 skip pré-existente) · build ✓ · lint ✓</div>
       </div>
       <div class="stat">
-        <div class="stat__num">118</div>
-        <div class="stat__label">aulas, do zero absoluto ao especialista</div>
+        <div class="stat__num">3/3 · 3/3</div>
+        <div class="stat__label">e2e-clean-clone: modo entry (era 1/2) e modo dev — o repro do bug</div>
       </div>
       <div class="stat">
-        <div class="stat__num">136</div>
-        <div class="stat__label">desafios verificados por execução real · 0 NÃO VERIFICADO</div>
+        <div class="stat__num">~11s</div>
+        <div class="stat__label">validação pendurada vira erro claro (&lt; 15s); chave inválida: 696ms</div>
       </div>
       <div class="stat">
-        <div class="stat__num">1688</div>
-        <div class="stat__label">testes verdes na suíte do app · 0 falhas · E2E (ponta a ponta) 19/19</div>
+        <div class="stat__num">26/3/0</div>
+        <div class="stat__label">suíte E2E completa: pass / skip / fail — nenhum loader eterno</div>
       </div>
     </div>
 
     <div class="prompt-box animate" style="--i:4">
       <span class="prompt-box__label">O que o dono pediu nesta rodada</span>
-      <strong>Trilha <code>nodejs-do-zero</code> do zero ao ESPECIALISTA</strong>, com um
-      <strong>DESAFIO DE MÓDULO</strong> multi-arquivo e elaborado no fim de cada módulo;
-      <strong>MUITO mais que 36 aulas</strong>, conhecimentos bem separados, uma aula por propriedade
-      principal de array/objeto, <strong>POO</strong>; <strong>UX:</strong> ao abrir a aula,
-      <strong>NUNCA loading infinito</strong> — o texto da aula e o primeiro desafio já prontos;
-      <strong>veredito do desafio</strong> com os <strong>CHECKS de aprovação</strong> de cada teste
-      rodado; aprovação não é tudo-ou-nada (ex.: 5/10). &ldquo;Pode usar muitos sub-agentes. Apenas
-      pare quando terminar.&rdquo;
+      <strong>1.</strong> &ldquo;quando clono esse projeto em outro computador e clico em uma aula ele
+      fica num loader infinito que nunca resolve — descubra e arrume definitivamente.&rdquo;
+      <strong>2.</strong> &ldquo;se quando eu executo o .run.sh quero que sempre antes garanta a
+      instalação e configuração do projeto se for o caso.&rdquo;
     </div>
+
+    <p class="lead animate" style="--i:5">
+      <strong>Leitor assumido: misto.</strong> Se você nunca abriu um app Electron, cada termo novo é
+      definido no ponto em que aparece (o resumo está na seção 9); se você é experiente, o que já sabe
+      ficou dobrado em <code>&lt;details&gt;</code> — abra só o que quiser conferir.
+    </p>
   </header>
 
   <main>
 
     <!-- ================= SEGMENTO 1 ================= -->
-    <section id="pedidos">
-      <h2><span class="num">01</span> O pedido: uma trilha enorme que nunca trava</h2>
+    <section id="pedido">
+      <h2><span class="num">01</span> O pedido: duas pontas que parecem simples</h2>
       <p class="lead">
-        Uma <strong>rodada</strong> é executada em <strong>ondas</strong> (levas de agentes trabalhando
-        em paralelo na mesma frente de tarefas). O pedido tinha quatro pontas: conteúdo gigante e bem
-        separado, desafio de módulo multi-arquivo, zero loading infinito e veredito por teste. O quadro
-        abaixo mostra cada ponta e onde ela foi parar.
+        O relato é de quem testa o projeto do jeito que um usuário de verdade faria: baixar o código
+        num <strong>clone limpo</strong> (cópia recém-baixada do repositório: sem configurações, sem
+        dependências instaladas, sem chaves de API) e simplesmente usar. A primeira ponta pede
+        <em>descobrir</em> — a rodada começou pelo diagnóstico com repro real, antes de qualquer
+        correção. A segunda pede que <code>./run.sh</code> <em>sempre</em> garanta instalação e
+        configuração. O quadro mostra onde cada ponta foi parar.
       </p>
 
       <div class="table-wrap">
         <table>
-          <caption>Os 4 pedidos e onde cada um foi parar</caption>
+          <caption>Os 2 pedidos e onde cada um foi parar</caption>
           <thead>
             <tr>
               <th scope="col">#</th>
@@ -586,52 +597,45 @@
           <tbody>
             <tr>
               <td class="num-col">1</td>
-              <td>Trilha do zero ao <strong>especialista</strong>, com <strong>desafio de módulo</strong> multi-arquivo e elaborado no fim de cada módulo</td>
-              <td>Ondas 2–5: a mecânica do desafio de módulo (seção 4) + <strong>18/18 módulos</strong> com desafio multi-arquivo</td>
+              <td>&ldquo;Clico em uma aula no clone e fica num <strong>loader infinito</strong> — descubra e arrume definitivamente&rdquo;</td>
+              <td>Onda 1: causa raiz <strong>provada</strong> (seção 2) → Onda 2: diretório das trilhas (2a), validação de chaves com prazo (2b) e blindagem de todos os carregamentos (2c) (seções 3–5)</td>
             </tr>
             <tr>
               <td class="num-col">2</td>
-              <td>Muito mais que 36 aulas; conhecimentos bem separados; uma aula por propriedade principal de array/objeto; <strong>POO</strong> (programação orientada a objetos)</td>
-              <td>Ondas 3–4: <strong>10 módulos novos</strong>, 82 aulas — incluindo <code>arrays-profundas</code> (14 aulas) e <code>poo</code> (11) (seção 6)</td>
-            </tr>
-            <tr>
-              <td class="num-col">3</td>
-              <td>UX: ao abrir a aula, <strong>nunca loading infinito</strong> — texto e primeiro desafio já prontos</td>
-              <td>Onda 1: o <code>next</code> do tutor ficou <strong>determinístico</strong> — teoria direto do arquivo, sem LLM (seção 2)</td>
-            </tr>
-            <tr>
-              <td class="num-col">4</td>
-              <td>Veredito com os <strong>checks de aprovação</strong> de cada teste; aprovação não é tudo-ou-nada (ex.: 5/10)</td>
-              <td>Onda 1: <code>parseSpecChecks</code> + lista <code>checks[]</code> no veredito, com razão &ldquo;N de M testes passaram&rdquo; (seção 3)</td>
+              <td><code>./run.sh</code> deve <strong>sempre</strong> garantir a instalação e configuração do projeto &ldquo;se for o caso&rdquo;</td>
+              <td>Onda 3: <strong>bootstrap idempotente</strong> — node ≥ 22.13 checado, <code>.env.local</code> criado sem sobrescrever, <code>npm ci</code> garantido por marcador (seção 6)</td>
             </tr>
           </tbody>
         </table>
       </div>
 
       <p class="lead">
-        As seções abaixo percorrem o mecanismo de cada entrega, na ordem em que o aluno encontra:
-        abrir a aula, corrigir um desafio, encarar o desafio de módulo — e, no fim, como tudo foi
-        construído e verificado.
+        As seções seguem a ordem do trabalho: o diagnóstico (2), os três fixes da Onda 2 (3–5), o
+        bootstrap da Onda 3 (6), a máquina da rodada com os números (7) e o teste final do usuário (8).
       </p>
     </section>
 
     <!-- ================= SEGMENTO 2 ================= -->
-    <section id="aula-sem-espera">
-      <h2><span class="num">02</span> A aula que abre sem esperar: teoria pronta no arquivo</h2>
+    <section id="causa-raiz">
+      <h2><span class="num">02</span> A causa raiz: um caminho que só existia na máquina do dev</h2>
       <p class="lead">
-        O pedido de UX tem um nome técnico: <strong>determinístico</strong> — sempre produz o mesmo
-        resultado para a mesma entrada, sem IA e sem sorteio. Antes, o tutor do chat escrevia a teoria
-        na hora; agora o <code>next</code> (o passo que avança a aula) lê o markdown da seção direto do
-        <code>lesson.json</code> — na íntegra, igual para todo mundo. O <strong>LLM</strong> só entra
-        em dois momentos: tirar dúvida (<code>answer</code>) e gerar desafio novo. Os dois dependem de
-        <strong>chave de API</strong> (segredo que autoriza o app a chamar o serviço de IA); sem chave,
-        em vez de <strong>loading infinito</strong> (tela de espera que não termina porque a resposta
-        nunca chega), o app devolve o erro estruturado <code>TUTOR_UNAVAILABLE</code> — falha rápida
-        que diz exatamente o que falta.
+        <strong>Causa raiz</strong> é a falha original que dispara todos os sintomas — corrigi-la
+        resolve o problema inteiro, em vez de emendar cada sintoma separado. Aqui, o suspeito é o
+        <code>getTracksDir</code>, a função que descobre onde ficam as trilhas de aulas. Antes de
+        desenhar o fluxo, os nomes das peças:
+      </p>
+      <p class="lead">
+        <code>getAppPath()</code> é a função do Electron que devolve o caminho do app — e o valor dela
+        <strong>muda conforme o modo de lançamento</strong>. Lançar por <strong>entry de arquivo</strong>
+        é apontar o Electron direto para o arquivo do processo principal (ex.: <code>electron out/main/index.js</code>)
+        — o jeito mais comum de rodar o app já buildado. <strong>ENOENT</strong> é o código de erro do
+        sistema que significa &ldquo;o arquivo ou diretório não existe&rdquo;. E o <strong>harness E2E</strong>
+        é o equipamento de teste que exercita o app inteiro, de ponta a ponta, como o usuário faria —
+        com <strong>stubs</strong> (peças falsas que respondem de forma fixa, sem executar a lógica real).
       </p>
 
       <figure class="figure">
-        <div class="diagram-shell" role="img" aria-label="Fluxo da aula: teoria e primeiro desafio vêm do arquivo lesson.json sem LLM; o LLM só entra em dúvida ou desafio novo, e sem chave de API a falha é rápida com TUTOR_UNAVAILABLE">
+        <div class="diagram-shell" role="img" aria-label="Por que o clone quebrava e o dev não: o mesmo getTracksDir resolve as trilhas para lugares diferentes conforme o modo de lançamento; no modo buildado por entry, app.getAppPath() devolve out/main e o diretório out/main/resources/tracks não existe, então a Home some com a seção Trilhas em silêncio e a aula fica inalcançável">
           <p class="diagram-shell__hint">
             Ctrl/Cmd + roda para zoom. Arraste para pan quando ampliado. Duplo clique para ajustar.
           </p>
@@ -650,70 +654,103 @@
           </div>
           <script type="text/plain" class="diagram-source">
 flowchart TD
-  A["Aluno abre a aula"] --> B{"O que a aula precisa?"}
-  B -->|"teoria ou primeiro desafio"| C["Lê o arquivo lesson.json:<br/>markdown da seção, na íntegra"]:::crit
-  C -->|"sem LLM"| D["Aula renderizada na hora"]:::crit
-  B -->|"dúvida ou desafio novo"| E{"Chave de API presente?"}
-  E -->|"sim"| F["LLM responde ou gera"]
-  E -->|"não"| G["Erro estruturado<br/>TUTOR_UNAVAILABLE"]
-  G -->|"em vez de spinner"| H["Falha rápida:<br/>o aluno sabe o que falta"]:::crit
+  START["App procura as trilhas:<br/>getTracksDir()"] --> MODO{"Como o Electron foi lançado?"}
+  MODO -->|"dev: electron .<br/>getAppPath() = raiz do app"| DEV["raiz/resources/tracks"]:::ok
+  DEV -->|"diretório existe"| DEVOK["aula abre<br/>funciona na máquina do dev"]:::ok
+  MODO -->|"buildado: electron out/main/index.js<br/>getAppPath() = diretório do entry"| ENT["out/main/resources/tracks"]:::crit
+  ENT -->|"diretório NÃO existe<br/>ENOENT em 1–13ms"| QUIET["seção Trilhas da Home some<br/>em silêncio (return null)"]:::crit
+  QUIET -->|"aba Trilha:<br/>'Nenhuma trilha instalada'"| LOST["aula inalcançável<br/>no clone"]:::crit
   classDef crit fill:#fde68a,stroke:#b45309,color:#451a03,stroke-width:2px
+  classDef ok fill:#dcfce7,stroke:#15803d,color:#14532d,stroke-width:2px
           </script>
         </div>
         <figcaption>
-          <strong>Figura 1 · O fluxo da aula sem loading.</strong> Teoria e primeiro desafio já vêm
-          prontos do arquivo: abrir aula não espera o LLM — o LLM só entra na dúvida e no desafio novo.
+          <strong>Figura 1 · Por que o clone quebrava e o dev não.</strong> O mesmo código resolve o
+          diretório das trilhas para dois lugares diferentes conforme o modo de lançamento — e o do
+          modo buildado (<code>out/main/resources/tracks</code>) não existe, então as trilhas somem
+          em silêncio e a aula fica inalcançável.
         </figcaption>
       </figure>
 
       <div class="signal">
-        <strong>O caminho crítico é o caminho feliz (nós em âmbar):</strong> abrir a aula não usa LLM
-        nenhum. O LLM existe, mas fica atrás de um pedido explícito do aluno (dúvida ou desafio novo)
-        <em>e</em> da chave de API — sem ela, a falha é rápida, nunca um spinner.
+        <strong>O caminho crítico é o ramo buildado (nós em âmbar):</strong> em dev
+        (<code>electron .</code>) o <code>getAppPath()</code> devolve a raiz e tudo funciona — por
+        isso o bug nunca aparecia na máquina do desenvolvedor. No clone, o app roda o buildado lançado
+        por entry, o caminho aponta para <code>out/main</code>, e todo <code>track:*</code> responde
+        <strong>ENOENT em 1–13ms</strong> — rápido, silencioso e fatal.
       </div>
 
       <p>
-        Na interface, o indicador &ldquo;tutor digitando…&rdquo; agora só aparece quando o
-        <code>answer</code> está trabalhando — nunca no avanço da aula. E os textos do app ganharam
-        <strong>i18n</strong> (internacionalização: as mesmas mensagens em vários idiomas), incluindo
-        as novas frases do veredito e do desafio de módulo.
+        O <code>getTracksDir</code> usava <code>app.isPackaged ? process.resourcesPath :
+        resolveTracksDir(app.getAppPath())</code>. Com o main lançado por entry de arquivo (app
+        buildado, não empacotado), <code>app.getAppPath()</code> devolve o diretório do entry
+        (<code>&lt;app&gt;/out/main</code>), e as trilhas reais — que vivem em
+        <code>&lt;app&gt;/resources/tracks</code> — ficam fora do radar: a Home sumia com a seção
+        Trilhas em silêncio (<code>return null</code>), a aba Trilha dizia &ldquo;Nenhuma trilha
+        instalada&rdquo;, e a aula ficava inalcançável.
+      </p>
+
+      <p>
+        Havia ainda um mascarador: o <strong>harness E2E</strong>, em <code>STUDY_METHOD_E2E=1</code>,
+        troca os handlers de trilha por <strong>stubs</strong> que nunca chamam
+        <code>getTracksDir</code> — a fiação real, com o caminho quebrado, ficava fora do harness. Por
+        isso o teste de clone limpo, <code>e2e-clean-clone</code>, era <code>test.skip</code>; a rodada
+        o endureceu para <code>requireBuild</code>: sem build fresco, o teste falha com mensagem clara
+        (&ldquo;rode npm run build&rdquo;) — nunca skip silencioso, nunca verde falso.
+      </p>
+
+      <p>
+        E uma honestidade de diagnóstico: <strong>não existe loader infinito literal na abertura de
+        aula no código atual</strong> — as chamadas de trilha são disco + SQLite e resolvem em
+        milissegundos. O relato &ldquo;clico na aula → spinner eterno&rdquo; casa com o fluxo
+        pré-rodada-8 (geração de aula por LLM ao vivo), que as rodadas 8 e 9 já tinham removido da UI.
+        O que o clone sofria de verdade era a aula <strong>inalcançável</strong> — e o único spinner
+        genuinamente sem timeout que sobrava estava na validação de chaves (seção 4).
       </p>
 
       <details class="scaffold">
-        <summary>O que é Electron e o que é o IPC? (pré-treino)</summary>
+        <summary>Como a causa raiz foi provada (método da Onda 1)</summary>
         <div class="scaffold__body">
           <p>
-            O study-method é um app <strong>Electron</strong>: programa de desktop feito com tecnologias
-            web (HTML, CSS e JavaScript). Dentro dele há dois mundos: a <em>interface</em> — o que o
-            aluno vê e clica — e o <em>processo principal</em> — onde o Node roda os testes do código
-            do aluno e fala com o serviço de IA. A ponte entre os dois é o <strong>IPC</strong>
-            (comunicação entre processos): a interface pede, o processo principal responde.
+            Nada de chute: a Onda 1 simulou o clone limpo <strong>de verdade</strong> — userData novo
+            (sem settings), sem chaves, nos <strong>dois modos de lançamento</strong> — e mediu o IPC
+            (as respostas dos handlers, todas ENOENT em 1–13ms) e despejou a UI para ver o que a Home
+            mostrava. O repro falhou no modo entry e passou no dev: causa provada por contraste. A
+            spec de regressão <code>e2e-clean-clone</code> nasceu falsificável — falhava antes do fix
+            e ficou verde depois. O relatório completo está em
+            <code>docs/relatorio-rodada10-diag.md</code>.
           </p>
+        </div>
+      </details>
+
+      <details class="scaffold">
+        <summary>Pré-treino: o que é Electron (e o que é a ponte interna do app)</summary>
+        <div class="scaffold__body">
           <p>
-            Nesta rodada, o contrato dessa ponte (<code>shared/ipc-contract.ts</code>) cresceu de
-            forma <em>aditiva</em>: os campos novos — checks do veredito e o conceito de desafio de
-            módulo — foram somados sem quebrar o que já existia.
+            O study-method é um app <strong>Electron</strong>: programa de desktop feito com
+            tecnologias web (HTML, CSS e JavaScript). Dentro dele há dois mundos: a <em>interface</em>
+            — o que o aluno vê e clica — e o <em>processo principal</em> — onde o Node roda os testes
+            do código do aluno e fala com o serviço de IA. A ponte entre os dois é o
+            <strong>IPC</strong> (comunicação entre processos): a interface pede, o processo principal
+            responde. É por essa ponte que a Home pede as trilhas e o LessonView pede a aula — e é
+            por ela que esta rodada colocou prazos (seções 4 e 5).
           </p>
         </div>
       </details>
     </section>
 
     <!-- ================= SEGMENTO 3 ================= -->
-    <section id="veredito">
-      <h2><span class="num">03</span> O veredito honesto: cada teste conta</h2>
+    <section id="fix-2a">
+      <h2><span class="num">03</span> Fix 2a: uma cadeia de candidatos que só aceita o que existe</h2>
       <p class="lead">
-        Quando o aluno submete o código, um <strong>runner</strong> (processo que executa o código
-        contra os testes) roda a suíte com <strong>node:test</strong> (o executor de testes embutido no
-        Node.js) e gera um relatório. Esse relatório é texto bruto de terminal, cheio de
-        <strong>ANSI</strong> (códigos de cor que o terminal injeta no texto) e de ruído. A função
-        <strong><code>parseSpecChecks</code></strong> limpa tudo e extrai a lista
-        <strong><code>checks[]</code></strong>: o resultado de cada teste, com nome e se passou. O
-        <strong>veredito</strong> (resultado da correção da submissão) passa a mostrar o checklist ✓/✗
-        e a razão &ldquo;<strong>N de M testes passaram</strong>&rdquo;.
+        Em vez de confiar num único caminho — a aposta que quebrava —, o app passou a perguntar a uma
+        <strong>cadeia de candidatos</strong>: para cada um, &ldquo;você tem um diretório
+        <code>resources/</code> de verdade?&rdquo;. O primeiro que responder sim ganha. A checagem de
+        existência é a alma do fix: nenhum candidato é aceito por chute.
       </p>
 
       <figure class="figure">
-        <div class="diagram-shell" role="img" aria-label="Veredito por teste: runner com node:test gera relatório bruto, parseSpecChecks limpa e extrai checks[] por teste, razão N de M decide passed=true com confete ou checklist parcial com novo desafio">
+        <div class="diagram-shell" role="img" aria-label="resolveResourcesDir testa candidatos em cadeia com checagem de existência de resources/: isPackaged usa process.resourcesPath; senão app.getAppPath(), depois o pai, depois o pai-do-pai, e o cwd só como último recurso; os 4 consumidores migrados recebem o caminho que existe">
           <p class="diagram-shell__hint">
             Ctrl/Cmd + roda para zoom. Arraste para pan quando ampliado. Duplo clique para ajustar.
           </p>
@@ -732,86 +769,86 @@ flowchart TD
           </div>
           <script type="text/plain" class="diagram-source">
 flowchart TD
-  A["Aluno submete<br/>o código"] --> B["Runner executa<br/>com node:test"]
-  B -->|"gera"| C["Relatório spec bruto:<br/>cores ANSI e ruído"]
-  C -->|"limpa o texto"| D["parseSpecChecks"]:::crit
-  D -->|"extrai"| E["checks[]: nome + passou<br/>por teste"]
-  E -->|"alimenta"| F["N de M testes<br/>passaram"]:::crit
-  F -->|"decide"| G{"passed=true?"}
-  G -->|"sim"| H["Confete + aprovação"]
-  G -->|"não: parcial,<br/>falhou ou timeout"| I["Checklist ✓/✗ +<br/>gerar novo desafio"]
+  IN["resolveResourcesDir()"] --> Q1{"app.isPackaged?"}
+  Q1 -->|"sim"| C1["process.resourcesPath"]:::ok
+  Q1 -->|"não"| Q2{"app.getAppPath()<br/>tem resources/?"}
+  Q2 -->|"sim"| C2["usa app.getAppPath()"]:::ok
+  Q2 -->|"não"| Q3{"pai do entry dir<br/>tem resources/?"}
+  Q3 -->|"sim"| C3["usa o pai"]:::ok
+  Q3 -->|"não"| Q4{"pai-do-pai (raiz)<br/>tem resources/?"}
+  Q4 -->|"sim"| C4["usa o pai-do-pai"]:::ok
+  Q4 -->|"não"| C5["cwd/resources<br/>último recurso"]:::crit
+  C1 -->|"caminho que existe"| MIG["getTracksDir (trilhas)<br/>STT local · espeak-ng · TTS"]:::crit
+  C2 -->|"caminho que existe"| MIG
+  C3 -->|"caminho que existe"| MIG
+  C4 -->|"caminho que existe"| MIG
+  C5 -->|"nunca âncora"| MIG
   classDef crit fill:#fde68a,stroke:#b45309,color:#451a03,stroke-width:2px
+  classDef ok fill:#dcfce7,stroke:#15803d,color:#14532d,stroke-width:2px
           </script>
         </div>
         <figcaption>
-          <strong>Figura 2 · O veredito honesto.</strong> Aprovação não é tudo-ou-nada: o veredito
-          lista cada teste ✓/✗ e a razão &ldquo;N de M testes passaram&rdquo; antes da próxima
-          tentativa.
+          <strong>Figura 2 · O fix: só aceita um diretório que existe.</strong> Em vez de apostar num
+          caminho único, o app testa candidatos em cadeia — empacotado, appPath, pai, pai-do-pai e,
+          por fim, o cwd como último recurso — e os quatro consumidores de <code>resources/</code>
+          recebem o mesmo caminho validado.
         </figcaption>
       </figure>
 
       <div class="signal">
-        <strong>O caminho crítico é o meio do caminho (nós em âmbar):</strong> 5 de 10 é um veredito
-        útil, não um fracasso. O aluno vê exatamente o que passou e o que falta antes de tentar de
-        novo; o confete só dispara com <code>passed=true</code>, e o botão &ldquo;gerar novo
-        desafio&rdquo; aparece em qualquer não-aprovação total — falhou ou deu timeout, incluindo
-        <strong>parcial</strong> (submissão em que só parte dos testes passou).
+        <strong>O crítico é a checagem de existência (nó final em âmbar):</strong> o cwd (o diretório
+        de onde o processo foi iniciado) é deliberadamente o <strong>último recurso, nunca a
+        âncora</strong> — se ele fosse a aposta, o harness E2E, que roda com cwd na raiz, mascararia o
+        bug de novo. Nenhum candidato existe? Cai na raiz derivada do appPath e o ENOENT é tratado em
+        runtime, nunca como erro de resolução.
       </div>
 
       <p>
-        Os filtros do <code>parseSpecChecks</code> são defensivos de propósito: remove as cores ANSI,
-        descarta durações, ignora linhas do tipo &ldquo;failing tests:&rdquo; e monta nomes limpos
-        para os testes. O resultado alimenta o <code>TrackSubmitResult</code> — o pacote que a
-        interface recebe com <code>checks[]</code>, <code>passedCount</code> e <code>totalCount</code>.
+        O novo <code>electron/main/services/resourcesDir.ts</code> migrou <strong>4 consumidores</strong>
+        que dependiam do mesmo padrão quebrado: <code>getTracksDir</code> (as trilhas), o caminho dos
+        modelos do STT local, os dados do espeak-ng e o resourceRoot do TTS. Dois casos foram
+        explicitamente <strong>não migrados e documentados</strong>: o <code>LlmProxyService</code>
+        resolve por <code>__dirname</code> (o llm-engine.js vive ao lado do bundle em
+        <code>out/main</code> — correto no modo entry, verificado), e o
+        <code>studyMethodRunner.moduleAppRoot</code> continua dormente, resolvendo errado nos dois
+        modos — se um dia uma view chamar <code>study.run</code>, ele precisa do mesmo tratamento.
+      </p>
+
+      <p>
+        A prova do fix: <code>e2e-clean-clone</code> passou de <strong>1/2 para 3/3 no modo entry</strong>
+        (o repro do bug) e manteve <strong>3/3 no modo dev</strong> — trilha visível na Home, aula
+        abrindo, nos dois modos de lançamento.
       </p>
 
       <details class="scaffold">
-        <summary>Exemplo resolvido: o caminho de uma submissão até o veredito 5/10</summary>
-        <div class="scaffold__body">
-          <ol>
-            <li>O aluno submete o código de um desafio com 10 testes.</li>
-            <li>O runner executa com <code>node:test</code> e produz o relatório spec.</li>
-            <li>O relatório é um texto bruto: cores ANSI, durações, cabeçalhos — nada pronto para a tela.</li>
-            <li><code>parseSpecChecks</code> limpa o texto e extrai 10 entradas <code>checks[]</code>: 5 com ✓, 5 com ✗.</li>
-            <li>O veredito mostra a lista e a razão: &ldquo;5 de 10 testes passaram&rdquo;.</li>
-            <li><code>passed=true</code>? Não. Sem confete; o aluno vê o checklist ✓/✗ e o botão &ldquo;gerar novo desafio&rdquo; — e sabe quais 5 testes ainda faltam.</li>
-          </ol>
-        </div>
-      </details>
-
-      <details class="scaffold">
-        <summary>O gate de igualdade do runner: por que três números precisam bater</summary>
+        <summary>Quem são os 4 consumidores de resources/ ? (pré-treino)</summary>
         <div class="scaffold__body">
           <p>
-            A aprovação só sai quando três números coincidem: o processo terminou com saída 0
-            (<code>exit 0</code>), o número de testes executados (<code>testsRun</code>) é o esperado
-            (<code>expectedTestCount</code>) e o declarado no desafio (<code>declared</code>). A
-            igualdade <code>testsRun === expectedTestCount === declared</code> garante que um relatório
-            que rodou pela metade não vire &ldquo;passou&rdquo;.
-          </p>
-          <p>
-            E o runner acha o Node certo do app via <code>nodeBinary()</code>: usa o caminho que o
-            Electron passa (<code>npm_node_execpath</code>) ou cai para <code>node</code>.
+            <strong>Trilhas</strong> — os arquivos das aulas (<code>lesson.json</code> dos módulos). O
+            caso da figura 1. <strong>STT local</strong> — reconhecimento de fala que roda no
+            computador, com modelos embarcados em <code>resources/</code>. <strong>espeak-ng</strong> —
+            sintetizador de voz (texto para fala). <strong>TTS engine</strong> — o motor de voz em
+            geral. Todos os quatro apontavam para <code>resources/</code> pelo mesmo padrão; todos
+            migraram para a cadeia de candidatos.
           </p>
         </div>
       </details>
     </section>
 
     <!-- ================= SEGMENTO 4 ================= -->
-    <section id="desafio-modulo">
-      <h2><span class="num">04</span> O desafio de módulo: amarrar o módulo inteiro</h2>
+    <section id="fix-2b">
+      <h2><span class="num">04</span> Fix 2b: o único spinner sem timeout de verdade</h2>
       <p class="lead">
-        Além dos desafios de aula, cada módulo ganhou um desafio de MÓDULO: elaborado, que mexe em
-        vários arquivos de verdade. O modelo de desafio cresceu para aceitar
-        <strong><code>files[]</code></strong> (a lista de arquivos do desafio — 2–3 arquivos que se
-        importam entre si). O tipo que marca esse desafio é o <strong>target <code>'module'</code></strong>.
-        E como ele é <strong>autoral</strong> (escrito à mão, não gerado), a
-        <strong>regeneração</strong> — pedir ao LLM que crie um desafio novo — fica <strong>oculta</strong>
-        para ele: o botão não aparece, o conteúdo não muda.
+        A varredura da Onda 1 encontrou <strong>um</strong> loader sem fallback genuíno: o botão
+        &ldquo;Validar&rdquo; da tela de chaves — obrigatório no clone limpo, que não tem chave nenhuma.
+        A validação era um fetch puro, <strong>sem AbortSignal</strong> (o mecanismo do JavaScript que
+        permite cancelar um pedido de rede em andamento) e sem <strong>timeout</strong> (limite de
+        tempo: sem resposta até ele, a operação aborta e mostra erro). Numa rede que engole pacotes —
+        VPN ou firewall que simplesmente não responde —, o spinner gira indefinidamente.
       </p>
 
       <figure class="figure">
-        <div class="diagram-shell" role="img" aria-label="Anatomia do desafio de módulo: 18 módulos terminam em module.json.challenge com files[] de 2-3 arquivos que se importam entre si; editor com abas, submit envia todos juntos e regeneração por LLM fica oculta">
+        <div class="diagram-shell" role="img" aria-label="Antes, um fetch sem AbortSignal numa rede que engole pacotes virava spinner infinito; depois, withFetchTimeout embrulha fetch+status+json num race com timer de 8s, o timeout vira erro de rede, a guarda de 10s no renderer com settled-flag decide o estado e o botão reabilita com Tentar de novo">
           <p class="diagram-shell__hint">
             Ctrl/Cmd + roda para zoom. Arraste para pan quando ampliado. Duplo clique para ajustar.
           </p>
@@ -830,63 +867,83 @@ flowchart TD
           </div>
           <script type="text/plain" class="diagram-source">
 flowchart TD
-  M["18 módulos"] -->|"cada um termina em"| DM["Desafio do módulo:<br/>module.json.challenge"]
-  M -->|"ao todo"| L["118 aulas"]
-  DM -->|"declara"| F["files[]: 2–3 arquivos<br/>que se importam entre si"]:::crit
-  E["Editor com abas<br/>por arquivo"] -->|"edita cada um"| F
-  S["Submit envia<br/>todos os arquivos"] -->|"juntos"| R["Runner roda<br/>os testes"]
-  DM -->|"mas é autoral:"| H["Regeneração por LLM<br/>oculta no target module"]
+  ANTES["Antes: fetch puro no apiKeyValidator<br/>sem AbortSignal, sem timer"] -->|"rede que engole pacotes:<br/>nem resposta, nem erro"| SPIN["spinner infinito no 'Validar'<br/>SetupView é obrigatório no clone limpo"]:::crit
+  DEPOIS["Depois: withFetchTimeout<br/>embrulha o trabalho inteiro:<br/>fetch + status + json()"] -->|"resposta dentro de 8s"| OKV["chave validada normalmente"]
+  DEPOIS -->|"8s sem resposta<br/>DEFAULT_VALIDATE_TIMEOUT_MS"| ABORT["fetch abortado<br/>'Network error: timed out after 8000ms'"]:::crit
+  ABORT -->|"classificado como erro de rede<br/>isNetworkError reconhece"| GUARD["guarda de 10s no renderer<br/>settled-flag: resposta tardia<br/>não sobrescreve o decidido"]:::crit
+  GUARD -->|"chave inválida responde rápido<br/>(696ms no teste)"| FAST["erro claro na hora<br/>pt-BR e en"]:::crit
+  GUARD -->|"erro decidido"| RETRY["botão reabilitado<br/>'Tentar de novo'"]:::crit
   classDef crit fill:#fde68a,stroke:#b45309,color:#451a03,stroke-width:2px
           </script>
         </div>
         <figcaption>
-          <strong>Figura 3 · A anatomia do desafio de módulo.</strong> Cada um dos 18 módulos termina
-          num desafio multi-arquivo autoral — 2–3 arquivos que se importam entre si — e o LLM nunca o
-          regenera.
+          <strong>Figura 3 · O único spinner sem timeout: validar chaves numa rede que engole
+          pacotes.</strong> Sem AbortSignal, o fetch esperava para sempre; o timer de 8s aborta o
+          trabalho, o timeout é tratado como erro de rede e a guarda de 10s no renderer decide o estado
+          com <strong>settled-flag</strong> — resposta atrasada não sobrescreve.
         </figcaption>
       </figure>
 
       <div class="signal">
-        <strong>O crítico é o <code>files[]</code> (nós em âmbar):</strong> um desafio de aula roda um
-        arquivo; um desafio de módulo exige vários que se chamam uns aos outros. Por isso o editor
-        ganhou <strong>abas por arquivo</strong>, o submit envia <strong>todos</strong> os arquivos
-        juntos — e a regeneração por LLM fica oculta para o target <code>'module'</code>, porque o
-        desafio é autoral.
+        <strong>O crítico é a guarda com settled-flag (nó em âmbar):</strong>
+        <strong>settled-flag</strong> é a marca de que a resposta já foi decidida — o primeiro erro ou
+        sucesso encerra o &ldquo;validando&rdquo;, e uma resposta tardia do IPC não sobrescreve o
+        estado. É isso que garante o prazo visível ao usuário: o erro aparece em
+        <strong>~11s (&lt; 15s)</strong> no teste, o spinner some e o botão reabilita para
+        <strong>retry</strong> (&ldquo;Tentar de novo&rdquo; — reexecutar a operação que falhou).
       </div>
 
       <p>
-        A autoria ganhou um comando novo no CLI: <code>track:module:challenge:new</code>, que cria o
-        esqueleto do desafio de módulo. Na trilha, cada módulo mostra o card &ldquo;Desafio do
-        módulo&rdquo; (pendente / concluído / tentado). E no contrato da ponte, o target
-        <code>'module'</code> e o <code>files[]</code> entraram como campos aditivos — sem quebrar o
-        que já existia.
+        O <code>withFetchTimeout</code> deixou de ser só um envoltório do fetch e virou um wrapper do
+        <strong>trabalho</strong>: <code>fetch + status + json()</code> todos dentro do mesmo
+        <strong>race</strong> (uma corrida: vence quem terminar primeiro) entre o timer de
+        <code>DEFAULT_VALIDATE_TIMEOUT_MS = 8000</code> e o trabalho; no prazo, o sinal é abortado. A
+        mensagem &ldquo;Network error: timed out after Nms&rdquo; casa com o
+        <code>isNetworkError</code>, que reconhece tanto <code>/^Network error:/i</code> quanto
+        <code>/timed out/i</code>. No SetupView e no KeysPanel, a guarda de 10s com settled-flag
+        protege o renderer, e a string <code>keys.errorTimeout</code> existe em pt-BR e en.
+      </p>
+
+      <p>
+        A revisão adversarial da 2b achou 3 pontos cegos — todos fechados no fix <code>7316424</code>:
+        o <strong>body-stall</strong> (headers chegam, o corpo nunca termina → o timeout precisa
+        disparar no prazo, e passa a disparar), o <strong>sync-throw</strong> (erro síncrono não pode
+        vazar o timer) e a spec que não exercitava o validador real. A spec E2E nova,
+        <code>e2e-setup-timeout</code>, é honesta por construção: pendura o <code>keys:validate-*</code>
+        no ipcMain do app por ~20s e prova a guarda do renderer (erro em ~11s); o validador real é
+        coberto por testes de unidade, incluindo o body-stall no fluxo completo de validação.
       </p>
 
       <details class="scaffold">
-        <summary>Como é um desafio de módulo, por dentro</summary>
+        <summary>Como funciona um race entre trabalho e timer (exemplo resolvido)</summary>
         <div class="scaffold__body">
           <p>
-            São 18 no total, um por módulo. Os 10 módulos novos nasceram com o seu (5 na onda 3, 5 na
-            onda 4); os 8 módulos originais ganharam os seus na onda 5, em 4 lotes de 2 módulos. Cada
-            desafio declara um <code>files[]</code> com 2–3 arquivos que se importam entre si e um
-            <em>statement</em> elaborado — um cenário que amarra o conteúdo do módulo inteiro.
+            Imagine um entregador com prazo de 8 minutos. O <code>withFetchTimeout</code> cria a
+            <em>entrega</em> (o fetch, o status e a leitura do corpo) e o <em>prazo</em> (um timer de
+            8s) e os coloca numa corrida. Se a entrega termina primeiro, o timer é cancelado e o
+            resultado passa. Se o prazo estoura primeiro, a entrega em andamento é <em>abortada</em> —
+            o pedido de rede é cancelado de verdade, não abandonado — e a corrida devolve
+            &ldquo;Network error: timed out after 8000ms&rdquo;. O que nunca acontece é os dois
+            vencerem: o timer sempre é limpo, e a rejeição tardia é consumida sem virar erro
+            não-tratado.
           </p>
         </div>
       </details>
     </section>
 
     <!-- ================= SEGMENTO 5 ================= -->
-    <section id="seguranca">
-      <h2><span class="num">05</span> A brecha que a revisão adversa achou (e fechou)</h2>
+    <section id="fix-2c">
+      <h2><span class="num">05</span> Fix 2c: blindagem anti-loader — nenhum carregamento sem fallback</h2>
       <p class="lead">
-        Toda rodada passa por <strong>revisão adversarial</strong> (revisão que tenta quebrar de
-        propósito, em vez de confirmar o trabalho). Foi ela que achou uma brecha no envio
-        multi-arquivo: <strong>path traversal</strong> — ataque em que o nome de um arquivo &ldquo;sobe
-        de diretório&rdquo; com <code>../</code> para alcançar arquivos fora da área permitida.
+        A 2b resolveu o spinner da validação; a 2c blindou <strong>todos</strong> os carregamentos. O
+        padrão é um só e vale para toda tela: toda chamada de <strong>IPC</strong> (comunicação entre
+        processos — a ponte entre a interface e o processo principal do Electron) passa pelo
+        <code>withTimeout</code> de 10s; se estourar, o que chega à interface é um
+        <code>IpcTimeoutError</code> identificável — nunca um dado faltando em silêncio.
       </p>
 
       <figure class="figure">
-        <div class="diagram-shell" role="img" aria-label="Fix de path traversal: nome de cada arquivo validado no envio pelo SAFE_FILE_PATH_RE e de novo no runner pelo guard; subir com ../ é rejeitado antes de salvar">
+        <div class="diagram-shell" role="img" aria-label="Toda chamada IPC de carga passa por withTimeout de 10s; sem resposta, vira IpcTimeoutError; resolveChannelError com checagem !== null em todo ponto transforma em erro visível com detalhe real e botão Tentar de novo; erro vazio nunca vira loader eterno; o retry reexecuta a chamada">
           <p class="diagram-shell__hint">
             Ctrl/Cmd + roda para zoom. Arraste para pan quando ampliado. Duplo clique para ajustar.
           </p>
@@ -905,309 +962,441 @@ flowchart TD
           </div>
           <script type="text/plain" class="diagram-source">
 flowchart TD
-  A["Aluno envia os<br/>arquivos do desafio"] --> B["Validação 1 no envio:<br/>SAFE_FILE_PATH_RE"]:::crit
-  B -->|"casa com o<br/>padrão permitido"| C["Passa para o runner"]
-  B -->|"tentou subir<br/>com ../"| D["Rejeitado<br/>antes de salvar"]
-  C --> E["Validação 2 no runner:<br/>guard"]:::crit
-  E -->|"confere de novo"| F["Código roda<br/>contra os testes"]
-  E -->|"desconfiou"| D
-  classDef crit fill:#fde68a,stroke:#b45309,color:#451a03,stroke-width:2px
-  classDef rej fill:#fdecea,stroke:#dc2626,color:#7f1d1d,stroke-width:2px
-  class D rej
-          </script>
-        </div>
-        <figcaption>
-          <strong>Figura 4 · A brecha fechada.</strong> O nome de cada arquivo é validado em dois
-          pontos — no envio e na execução — e subir de diretório é rejeitado nos dois.
-        </figcaption>
-      </figure>
-
-      <div class="signal">
-        <strong>O crítico é a dupla validação (nós em âmbar):</strong> no envio, o submitter confere o
-        nome contra o <code>SAFE_FILE_PATH_RE</code> — uma <strong>regex</strong> (padrão de validação
-        de caminho) que só aceita nomes comuns de arquivo; no runner, um <em>guard</em> confere de
-        novo antes de executar. Escapar por um dos dois é impossível.
-      </div>
-
-      <p>
-        O fix entrou na onda 2, e a subwave de testes cobriu os dois lados: path inseguro é
-        rejeitado, subdiretório aninhado (legítimo) é aceito, e o loader multi-arquivo funciona como
-        esperado.
-      </p>
-
-      <details class="scaffold">
-        <summary>Como o ataque funciona</summary>
-        <div class="scaffold__body">
-          <p>
-            Um desafio multi-arquivo guarda os arquivos numa pasta própria. Se o app confiasse no nome
-            que o aluno manda, um nome como <code>../../segredo.txt</code> faria o app alcançar um
-            arquivo fora da pasta do desafio — o <code>../</code> &ldquo;sobe&rdquo; um nível de cada
-            vez. A regex só aceita nomes comuns de arquivo: <code>../</code> não casa com o padrão, e
-            a submissão é rejeitada antes de salvar. No runner, o guard repete a conferência para o
-            código nunca rodar com um caminho suspeito.
-          </p>
-        </div>
-      </details>
-    </section>
-
-    <!-- ================= SEGMENTO 6 ================= -->
-    <section id="ondas">
-      <h2><span class="num">06</span> Como 118 aulas nasceram em 6 ondas</h2>
-      <p class="lead">
-        Cada onda trabalhou numa <strong>worktree</strong> (cópia de trabalho isolada do repositório:
-        a onda mexe na cópia sem encostar no projeto principal). Cada integração só entrava com
-        <strong>gate verde</strong> — a barreira de qualidade: build, lint e testes passando — e as
-        <strong>subwaves</strong> (ondas de teste e validação) rodavam junto da onda seguinte.
-      </p>
-
-      <figure class="figure">
-        <div class="diagram-shell" role="img" aria-label="Máquina da rodada: 6 ondas em sequência, cada integração com gate verde; subwaves de testes rodam junto das ondas seguintes; revisor de plano confere no disco e declara convergência antes do commit final">
-          <p class="diagram-shell__hint">
-            Ctrl/Cmd + roda para zoom. Arraste para pan quando ampliado. Duplo clique para ajustar.
-          </p>
-          <div class="mermaid-wrap">
-            <div class="zoom-controls">
-              <button type="button" data-action="zoom-in" title="Aumentar zoom">+</button>
-              <button type="button" data-action="zoom-out" title="Diminuir zoom">&minus;</button>
-              <button type="button" data-action="zoom-fit" title="Ajustar à tela">&#8634;</button>
-              <button type="button" data-action="zoom-one" title="Zoom 1:1">1:1</button>
-              <button type="button" data-action="zoom-expand" title="Abrir em tamanho real">&#x26F6;</button>
-              <span class="zoom-label">Loading...</span>
-            </div>
-            <div class="mermaid-viewport">
-              <div class="mermaid mermaid-canvas"></div>
-            </div>
-          </div>
-          <script type="text/plain" class="diagram-source">
-flowchart TD
-  O1["Onda 1<br/>UX: teoria pronta"] -->|"gate verde"| O2["Onda 2<br/>Desafio de módulo<br/>+ fix de segurança"]
-  O2 -->|"gate verde"| O3["Onda 3<br/>5 agentes: linguagem"]
-  O3 -->|"gate verde"| O4["Onda 4<br/>5 agentes: backend"]
-  O4 -->|"gate verde"| O5["Onda 5<br/>4 agentes: desafios<br/>dos módulos originais"]
-  O5 -->|"gate verde"| O6["Onda 6<br/>Documentação"]
-  O6 -->|"gate final"| R["REVISOR DE PLANO:<br/>confere no disco"]:::crit
-  R -->|"CONVERGÊNCIA"| FINAL["COMMIT-FINAL"]:::crit
-  T1["Subwave testes<br/>onda 1: +10"] -.->|"roda junto da<br/>onda seguinte"| O2
-  T2["Subwave testes<br/>onda 2: +9"] -.->|"roda junto da<br/>onda seguinte"| O3
+  CALL["Toda chamada IPC de carga<br/>loadLesson · track.list · track.get<br/>submit · save · validate"] -->|"withTimeout<br/>IPC_TIMEOUT_MS = 10s"| RACE{"respondeu<br/>a tempo?"}
+  RACE -->|"sim"| OK4["dados na tela"]
+  RACE -->|"não"| ERR4["IpcTimeoutError<br/>identificável por isTimeoutError"]:::crit
+  ERR4 -->|"resolveChannelError<br/>+ checagem !== null<br/>em todo ponto de erro"| VIS["erro visível com o detalhe real<br/>+ botão 'Tentar de novo'"]:::crit
+  VIS -->|"erro vazio '' nunca<br/>vira loader eterno"| RETRY4["retry reexecuta a chamada"]:::crit
+  RETRY4 -->|"tentar de novo"| CALL
   classDef crit fill:#fde68a,stroke:#b45309,color:#451a03,stroke-width:2px
           </script>
         </div>
         <figcaption>
-          <strong>Figura 5 · A máquina da rodada.</strong> Seis ondas em worktrees isoladas, cada
-          integração só entra com gate verde, e um revisor independente confere os números no disco
-          antes da convergência.
+          <strong>Figura 4 · A blindagem: toda chamada IPC ganhou timeout, erro visível e retry.</strong>
+          Nenhuma tela fica presa no loading: ou chega o dado, ou chega um erro com o detalhe real do
+          canal e um caminho de saída — o erro vazio (<code>''</code>) nunca é tratado como loading.
         </figcaption>
       </figure>
 
       <div class="signal">
-        <strong>O crítico é o fim do funil (nós em âmbar):</strong> cada onda entrou uma a uma, com
-        gate verde — e no fim o <strong>REVISOR DE PLANO</strong>, um agente independente que confere
-        a sanidade no disco, verificou 18 módulos, 118 <code>lesson.json</code>, 136
-        <code>challenge.json</code>, 18 com <code>files[]</code> — e declarou
-        <strong>CONVERGÊNCIA</strong>: o plano e a realidade batem. Só então veio o commit final.
+        <strong>O crítico é a prova contra falsy (nó em âmbar):</strong> o erro vazio
+        (<code>''</code>) é a forma mais traiçoeira de loader eterno — a tela lê &ldquo;sem dado&rdquo;
+        e fica girando. A blindagem exige <code>resolveChannelError</code> + checagem
+        <code>!== null</code> em <strong>todo</strong> ponto de erro: ou há erro de verdade, ou há
+        dado; nunca o limbo.
       </div>
 
       <p>
-        As ondas 3 e 4 produziram o conteúdo novo — 10 módulos, 82 aulas, 10 desafios de módulo,
-        escritos por 10 agentes em paralelo:
+        O novo <code>src/lib/ipcTimeout.ts</code> traz <code>withTimeout(promise, ms, label)</code>,
+        <code>IpcTimeoutError</code> e <code>isTimeoutError()</code>, com
+        <code>IPC_TIMEOUT_MS = 10_000</code>. Os prazos por ação foram calibrados contra o tempo real
+        do processo principal: <code>answer</code> 70s (&gt; 45s do main), <code>submit</code> 45s
+        (&gt; 30s), <code>regenerate</code> 150s (&gt; 2×60s) — as demais, 10s. O quadro abaixo mostra
+        cada tela blindada e o que mudou nela.
       </p>
 
       <div class="table-wrap">
         <table>
-          <caption>Os 10 módulos novos (ondas 3 e 4)</caption>
+          <caption>As telas blindadas (Onda 2c) — e as duas exceções documentadas</caption>
           <thead>
             <tr>
-              <th scope="col">Onda</th>
-              <th scope="col">Módulo</th>
-              <th scope="col">Aulas</th>
-              <th scope="col">Desafio de módulo</th>
+              <th scope="col">Tela</th>
+              <th scope="col">O que ganhou</th>
             </tr>
           </thead>
           <tbody>
-            <tr><td class="num-col">3</td><td><code>arrays-profundas</code></td><td class="num-col">14</td><td><span class="chip chip--ok">sim</span></td></tr>
-            <tr><td class="num-col">3</td><td><code>objetos-profundos</code></td><td class="num-col">8</td><td><span class="chip chip--ok">sim</span></td></tr>
-            <tr><td class="num-col">3</td><td><code>poo</code></td><td class="num-col">11</td><td><span class="chip chip--ok">sim</span></td></tr>
-            <tr><td class="num-col">3</td><td><code>funcoes-avancadas</code></td><td class="num-col">8</td><td><span class="chip chip--ok">sim</span></td></tr>
-            <tr><td class="num-col">3</td><td><code>assincronismo-avancado</code></td><td class="num-col">6</td><td><span class="chip chip--ok">sim</span></td></tr>
-            <tr><td class="num-col">4</td><td><code>nodejs-avancado</code></td><td class="num-col">8</td><td><span class="chip chip--ok">sim</span></td></tr>
-            <tr><td class="num-col">4</td><td><code>http-avancado</code></td><td class="num-col">6</td><td><span class="chip chip--ok">sim</span></td></tr>
-            <tr><td class="num-col">4</td><td><code>banco-de-dados-avancado</code></td><td class="num-col">5</td><td><span class="chip chip--ok">sim</span></td></tr>
-            <tr><td class="num-col">4</td><td><code>arquitetura-e-padroes</code></td><td class="num-col">8</td><td><span class="chip chip--ok">sim</span></td></tr>
-            <tr><td class="num-col">4</td><td><code>especialista</code></td><td class="num-col">8</td><td><span class="chip chip--ok">sim</span></td></tr>
-            <tr><td class="num-col">3+4</td><td><strong>Total</strong></td><td class="num-col"><strong>82</strong></td><td><strong>10</strong></td></tr>
+            <tr>
+              <td><code>LessonView</code> (abrir aula)</td>
+              <td><code>loadLesson</code> com timeout + estado de erro + botão retry — o progresso incondicional deixou de ser o único caminho; <code>sendNext</code>/<code>sendAnswer</code>/<code>finishLesson</code> blindados</td>
+            </tr>
+            <tr>
+              <td>Splash do <code>AppGate</code></td>
+              <td><code>GateError</code> explícito para timeout (<code>keys:startup-status</code> que não resolve) e para rejeição + botão recheck</td>
+            </tr>
+            <tr>
+              <td><code>RoadmapView</code></td>
+              <td><code>track.list</code> e <code>track.get</code> com timeout; retry da lista com feedback; <strong>erro real</strong> no lugar do enganoso &ldquo;Nenhuma trilha instalada&rdquo;</td>
+            </tr>
+            <tr>
+              <td><code>TrackChallengePanel</code></td>
+              <td><code>loadSpec</code>/<code>submit</code>/<code>regenerate</code> com timeout + retry</td>
+            </tr>
+            <tr>
+              <td>Seção Trilhas da Home (<code>placeholders.tsx</code>)</td>
+              <td>falha de <code>track:list</code> mostra <strong>erro visível com o detalhe real do canal</strong> + retry — nunca mais <code>return null</code> silencioso; vazio legítimo continua <code>null</code></td>
+            </tr>
+            <tr>
+              <td><code>KeysPanel</code> (Settings)</td>
+              <td><code>save</code>/<code>validate</code> com timeout (mesma guarda da seção 4)</td>
+            </tr>
+            <tr>
+              <td><code>ResearchChecklist</code> <span class="chip chip--warn">removido</span></td>
+              <td>componente morto — nenhuma view o importava; <code>lesson.research.*</code> saíram do i18n; <code>lesson.phase.research</code> preservada</td>
+            </tr>
+            <tr>
+              <td><code>LocalAiPanel</code> <span class="chip chip--primary">não tocado</span></td>
+              <td>progresso de download de modelo local tem semântica própria (download), fora do escopo do relato — documentado</td>
+            </tr>
           </tbody>
         </table>
       </div>
 
       <p>
-        A onda 5 completou o quadro com os desafios de módulo dos 8 módulos originais (em 4 lotes de 2
-        módulos), e a onda 6 documentou tudo: <code>docs/15-trilha-nodejs.md</code> (a especificação
-        dos 18 módulos), <code>docs/relatorio-rodada9.md</code> e o resumo no
-        <code>app/README.md</code>. No caminho, a onda 2 ainda ganhou um fix de CLI: a
-        <code>challengePairFromSource</code> (função que monta o par desafio/solução a partir do
-        conteúdo) foi extraída para o <code>challengeExec</code>, e um <strong>smoke test</strong>
-        (teste rápido que confere se o caminho principal funciona) roda o CLI
-        <code>track:validate</code> multi-arquivo como subprocesso.
+        A revisão adversarial da 2c apontou 3 pontos — fechados no fix <code>bc5e45f</code>: os
+        <strong>canais de ação</strong> (cada tela precisava do seu erro de verdade, não só a Home),
+        o <strong>retry sem feedback</strong> (a lista do RoadmapView ganhou feedback ao tentar de
+        novo) e o <strong>falsy</strong> (a prova <code>!== null</code> em todo ponto de erro).
+      </p>
+    </section>
+
+    <!-- ================= SEGMENTO 6 ================= -->
+    <section id="bootstrap">
+      <h2><span class="num">06</span> Onda 3: o run.sh que instala sozinho</h2>
+      <p class="lead">
+        Com as aulas alcançáveis, o segundo pedido: <code>./run.sh</code> deve <strong>sempre</strong>
+        garantir instalação e configuração &ldquo;se for o caso&rdquo;. O <strong>bootstrap</strong>
+        (a sequência que instala e configura o projeto antes de ele subir) virou uma escada com três
+        degraus garantidos: checar o node, garantir o <code>.env.local</code>, garantir as
+        dependências — e só então subir o app.
+      </p>
+
+      <figure class="figure">
+        <div class="diagram-shell" role="img" aria-label="run.sh no clone limpo: checa node ≥ 22.13 com erro claro antes de qualquer download; cria .env.local do example sem sobrescrever com aviso para preencher chaves; roda npm ci se não houver o marcador .install-ok; marcador escrito só após exit 0 — ci morto no meio refaz na próxima; exec app/run-dev.sh sobe a janela; segunda execução sai direto">
+          <p class="diagram-shell__hint">
+            Ctrl/Cmd + roda para zoom. Arraste para pan quando ampliado. Duplo clique para ajustar.
+          </p>
+          <div class="mermaid-wrap">
+            <div class="zoom-controls">
+              <button type="button" data-action="zoom-in" title="Aumentar zoom">+</button>
+              <button type="button" data-action="zoom-out" title="Diminuir zoom">&minus;</button>
+              <button type="button" data-action="zoom-fit" title="Ajustar à tela">&#8634;</button>
+              <button type="button" data-action="zoom-one" title="Zoom 1:1">1:1</button>
+              <button type="button" data-action="zoom-expand" title="Abrir em tamanho real">&#x26F6;</button>
+              <span class="zoom-label">Loading...</span>
+            </div>
+            <div class="mermaid-viewport">
+              <div class="mermaid mermaid-canvas"></div>
+            </div>
+          </div>
+          <script type="text/plain" class="diagram-source">
+flowchart TD
+  START5["./run.sh no clone limpo"] --> ENV5{"node ≥ 22.13?<br/>require_node_ge_22_13"}
+  ENV5 -->|"ausente ou velho"| ERR5["erro claro<br/>antes de qualquer download"]:::crit
+  ENV5 -->|"ok"| LOCAL5["ensure_app_env_local:<br/>cria .env.local do example<br/>NUNCA sobrescreve"]:::crit
+  LOCAL5 -->|"aviso para preencher as chaves"| MARK5{"node_modules/.install-ok<br/>existe?"}
+  MARK5 -->|"não — primeira vez"| CI5["npm ci<br/>única parte com download"]
+  CI5 -->|"exit 0"| W5["marcador .install-ok<br/>escrito agora"]:::crit
+  CI5 -->|"ci morreu no meio"| R5["sem marcador:<br/>próxima execução refaz do zero"]:::crit
+  W5 --> RUN5["exec app/run-dev.sh<br/>carrega .env.local<br/>janela visível"]
+  MARK5 -->|"sim — já instalado"| RUN5
+  RUN5 --> DONE5["app sobe<br/>2ª execução sai direto"]:::crit
+  classDef crit fill:#fde68a,stroke:#b45309,color:#451a03,stroke-width:2px
+          </script>
+        </div>
+        <figcaption>
+          <strong>Figura 5 · O run.sh agora garante o bootstrap antes de subir.</strong> Checa o node,
+          cria o <code>.env.local</code> sem sobrescrever, roda <code>npm ci</code> se não houver o
+          marcador de instalação completa e só então abre o app — a segunda execução sai direto.
+        </figcaption>
+      </figure>
+
+      <div class="signal">
+        <strong>O crítico é o marcador (nós em âmbar):</strong> o <strong>marcador</strong> é o
+        arquivo de controle <code>app/node_modules/.install-ok</code>, gravado <strong>só</strong>
+        quando o <code>npm ci</code> terminou com sucesso. A pasta <code>node_modules</code> existir
+        não prova instalação completa — o marcador prova. Um <code>npm ci</code> morto no meio (disco
+        lento, queda de rede) deixa a pasta pela metade <strong>sem marcador</strong>, e a próxima
+        execução refaz do zero.
+      </div>
+
+      <p>
+        A sequência vive em <code>tools/check-env.sh</code> — a fonte única e sourceável de
+        <code>require_node_ge_22_13</code> (node e npm presentes e Node ≥ 22.13, o
+        <code>node:sqlite</code> sem flag; erro claro <strong>antes</strong> de qualquer download) e
+        de <code>ensure_app_env_local</code> (cria <code>app/.env.local</code> a partir do example se
+        faltar; <strong>nunca sobrescreve</strong>; avisa para preencher as chaves). O
+        <code>install.sh</code> ficou <strong>idempotente</strong> (repetir a mesma operação não muda
+        o resultado e não estraga nada): a skill só é recopiada se a origem não está íntegra no
+        destino (comparação conteúdo a conteúdo); <code>npm ci</code> só roda sem marcador; e o
+        marcador só é escrito após <code>npm ci</code> sair com exit 0. Ainda corrigiu um bug latente
+        no macOS: <code>chmod 700 -- dir</code> → <code>chmod 700 dir</code> (o <code>--</code> não é
+        aceito ali e o chmod falhava).
+      </p>
+
+      <p>
+        A prova da Onda 3: <code>app/tests/runsh-bootstrap.test.ts</code>, com <strong>10 casos</strong>
+        rodando os scripts bash reais num diretório temporário com <strong>node/npm falsos no PATH</strong>
+        — sem rede, determinístico; o exit-code do npm falso vem de um arquivo, o que permite simular o
+        retry. E um smoke real: em <strong>3 execuções do run.sh, apenas 1 chamada de npm ci</strong> —
+        as duas seguintes saíram direto para o app.
       </p>
 
       <details class="scaffold">
-        <summary>Nota de ambiente: disco externo lento</summary>
+        <summary>Exemplo resolvido: primeira execução vs segunda no clone</summary>
         <div class="scaffold__body">
           <p>
-            A máquina roda o projeto num disco externo lento. Por isso os
-            <strong><code>npm ci</code></strong> (instalação limpa das dependências) foram
-            serializados — um de cada vez, nunca concorrentes — e, quando locks de worktree
-            expiraram, foram restaurados manualmente.
+            <strong>Primeira vez:</strong> o clone não tem <code>node_modules</code> nem marcador →
+            checa o node (ok) → cria o <code>.env.local</code> do example com o aviso de preencher
+            chaves → <code>npm ci</code> roda (minutos; a única parte com download) → exit 0 →
+            marcador escrito → <code>exec app/run-dev.sh</code> sobe a janela. Se o <code>npm ci</code>
+            morrer no meio, nada de marcador: a próxima execução recomeça a instalação.
+            <strong>Segunda vez:</strong> node ok, <code>.env.local</code> existe (não é sobrescrito),
+            marcador existe → pula o <code>npm ci</code> e vai direto para o app. Idempotência: repetir
+            não estraga nada e não refaz o que já está pronto.
           </p>
         </div>
       </details>
     </section>
 
     <!-- ================= SEGMENTO 7 ================= -->
-    <section id="validacao">
-      <h2><span class="num">07</span> Os números verificados</h2>
+    <section id="maquina">
+      <h2><span class="num">07</span> A máquina da rodada: ondas, revisões e números</h2>
       <p class="lead">
-        Tudo o que a rodada tocou foi verificado por execução — e a verificação também foi conferida,
-        inclusive pelo revisor independente.
+        Uma <strong>onda</strong> é uma leva de agentes trabalhando em paralelo na mesma frente de
+        tarefas; cada onda vive numa <strong>worktree</strong> (cópia isolada de trabalho do
+        repositório, onde o agente constrói sem mexer na principal) e só entra na principal depois de
+        passar o <strong>gate</strong> — a checagem de build, testes e lint que precisa estar verde
+        para uma entrega entrar. Depois da integração, <strong>revisões adversariais</strong> (agentes
+        independentes que caçam defeitos e pontos cegos no trabalho do outro) voltaram a examinar cada
+        fix — e foi delas que saíram os dois fixes finais.
       </p>
+
+      <figure class="figure">
+        <div class="diagram-shell" role="img" aria-label="Máquina da rodada 10: Onda 1 diagnóstico com causa raiz provada e spec falsificável, Onda 2 com os três fixes 2a 2b 2c, Onda 3 bootstrap, Onda 4 docs; as revisões adversariais da 2b e da 2c retornaram para fix (7316424 e bc5e45f); gate final 1744 pass 0 fail com build e lint verdes; COMMIT-FINAL">
+          <p class="diagram-shell__hint">
+            Ctrl/Cmd + roda para zoom. Arraste para pan quando ampliado. Duplo clique para ajustar.
+          </p>
+          <div class="mermaid-wrap">
+            <div class="zoom-controls">
+              <button type="button" data-action="zoom-in" title="Aumentar zoom">+</button>
+              <button type="button" data-action="zoom-out" title="Diminuir zoom">&minus;</button>
+              <button type="button" data-action="zoom-fit" title="Ajustar à tela">&#8634;</button>
+              <button type="button" data-action="zoom-one" title="Zoom 1:1">1:1</button>
+              <button type="button" data-action="zoom-expand" title="Abrir em tamanho real">&#x26F6;</button>
+              <span class="zoom-label">Loading...</span>
+            </div>
+            <div class="mermaid-viewport">
+              <div class="mermaid mermaid-canvas"></div>
+            </div>
+          </div>
+          <script type="text/plain" class="diagram-source">
+flowchart TD
+  O1["Onda 1 · Diagnóstico<br/>19ea305 diag → 28c315d lint+probes<br/>causa raiz provada + spec falsificável"] -->|"gate verde"| O2["Onda 2 · Fixes<br/>2a 2d8946c · 2b 7fe7774 · 2c 6f5b9dc"]
+  O2 -->|"gate verde"| O3["Onda 3 · Bootstrap<br/>23ff31d + limpeza do symlink 6e3c00f"]
+  O3 -->|"gate verde"| O4["Onda 4 · Docs<br/>d84b318"]
+  O4 -->|"fixes das revisões<br/>7316424 · bc5e45f"| GATE6["GATE FINAL<br/>1744 pass / 0 fail<br/>build ✓ · lint ✓"]:::crit
+  GATE6 -->|"convergência"| FINAL6["COMMIT-FINAL<br/>(este EXPLAINER)"]:::crit
+  R2B["Revisão adversarial 2b<br/>3 WARNINGs → fix 7316424"] -.->|"revisa"| O2
+  R2C["Revisão adversarial 2c<br/>3 WARNINGs → fix bc5e45f"] -.->|"revisa"| O2
+  classDef crit fill:#fde68a,stroke:#b45309,color:#451a03,stroke-width:2px
+          </script>
+        </div>
+        <figcaption>
+          <strong>Figura 6 · A máquina da rodada 10.</strong> Quatro ondas com gate verde, revisões
+          adversariais que devolveram a 2b e a 2c para fix, e um gate final de 1744 pass / 0 fail
+          antes do COMMIT-FINAL.
+        </figcaption>
+      </figure>
+
+      <div class="signal">
+        <strong>O crítico é o funil do fim (nós em âmbar):</strong> os fixes 7316424 (body-stall) e
+        bc5e45f (canais de ação) nasceram das revisões adversariais das ondas 2b e 2c — sem revisor
+        independente, os 3+3 pontos cegos teriam ido para a principal. Só depois deles veio o gate
+        final em BASE_DIR: <strong>1744 pass / 0 fail</strong> (1745 testes, 1 skip pré-existente),
+        <code>npm run build</code> ✓, <code>npm run lint</code> ✓.
+      </div>
 
       <div class="table-wrap">
         <table>
-          <caption>Resultado das checagens</caption>
+          <caption>O que cada revisão adversarial encontrou — e como foi fechado</caption>
           <thead>
             <tr>
-              <th scope="col">Checagem</th>
+              <th scope="col">Alvo</th>
               <th scope="col">Resultado</th>
+              <th scope="col">Fechamento</th>
             </tr>
           </thead>
           <tbody>
             <tr>
-              <td>Conteúdo verificado por execução (<code>track:validate</code>, o validador que roda cada desafio de verdade)</td>
-              <td>18 módulos · 118 aulas · 136 desafios — <span class="chip chip--ok">136 verificado ✓</span> · 0 NÃO VERIFICADO · <strong>proficiência</strong> (avaliação final da trilha, além dos desafios) ok</td>
+              <td>2a (diretório das trilhas)</td>
+              <td><span class="chip chip--ok">sem achados materiais</span> · 2 WARNINGs de design</td>
+              <td>registrados como risco: o walk-up pode resolver <code>resources/</code> errado por existência acidental (não dispara hoje); <code>requireBuild</code> checa existência, não frescor</td>
             </tr>
             <tr>
-              <td>Desafios de módulo com <code>files[]</code> multi-arquivo</td>
-              <td><span class="chip chip--ok">18/18</span></td>
+              <td>2b (validação de chaves)</td>
+              <td><span class="chip chip--warn">3 WARNINGs</span> · body-stall · spec sem exercitar o validador · sync-throw</td>
+              <td><span class="chip chip--ok">fechados</span> no fix <code>7316424</code> (seção 4)</td>
             </tr>
             <tr>
-              <td>Suíte de testes do app (gate <code>BASE_DIR</code>)</td>
-              <td><span class="chip chip--ok">1688 pass</span> · 0 fail</td>
+              <td>2c (blindagem anti-loader)</td>
+              <td><span class="chip chip--warn">3 WARNINGs</span> · canais de ação · retry sem feedback · falsy</td>
+              <td><span class="chip chip--ok">fechados</span> no fix <code>bc5e45f</code> (seção 5)</td>
             </tr>
             <tr>
-              <td>Lint (checador de qualidade) e build (empacotamento)</td>
-              <td><span class="chip chip--ok">ok</span></td>
-            </tr>
-            <tr>
-              <td>E2E (ponta a ponta: o app real no caminho do usuário)</td>
-              <td><span class="chip chip--ok">19/19</span> (com mock)</td>
-            </tr>
-            <tr>
-              <td>Subwaves de validação de conteúdo</td>
-              <td>val-onda1 <span class="chip chip--ok">4/4 PASS</span> · val-onda2 <span class="chip chip--ok">4/4 PASS</span> · val-onda3-content <span class="chip chip--ok">PASS</span> · val-onda4-content <span class="chip chip--ok">PASS</span></td>
-            </tr>
-            <tr>
-              <td>Revisor de plano — sanidade no disco</td>
-              <td><span class="chip chip--ok">CONVERGÊNCIA</span>: 18 módulos, 118 <code>lesson.json</code>, 136 <code>challenge.json</code>, 18 com <code>files[]</code></td>
+              <td>Onda 3 (bootstrap)</td>
+              <td><span class="chip chip--ok">sem achados materiais</span> · 4 WARNINGs baixos</td>
+              <td>registrados como riscos futuros</td>
             </tr>
           </tbody>
         </table>
       </div>
-
-      <p>
-        Onde mora o núcleo da entrega:
-      </p>
 
       <div class="table-wrap">
         <table>
-          <caption>Arquivos principais tocados</caption>
+          <caption>Números verificados por onda (testes de unidade + E2E)</caption>
           <thead>
             <tr>
-              <th scope="col">Arquivo</th>
-              <th scope="col">Papel</th>
+              <th scope="col">Onda</th>
+              <th scope="col">Unit da onda</th>
+              <th scope="col">E2E</th>
             </tr>
           </thead>
           <tbody>
             <tr>
-              <td><code>shared/ipc-contract.ts</code></td>
-              <td>contrato da ponte, crescido de forma aditiva: checks, target <code>'module'</code>, <code>files[]</code></td>
+              <td>2a</td>
+              <td class="num-col">18/18 (<code>resourcesDir.test.ts</code>)</td>
+              <td><code>e2e-clean-clone</code> 3/3 modo entry (era 1/2) + 3/3 modo dev</td>
             </tr>
             <tr>
-              <td><code>electron/main/services/tutorChat.ts</code></td>
-              <td>o <code>next</code> determinístico — a teoria pronta no arquivo</td>
+              <td>2b</td>
+              <td class="num-col">8+3 = 11 (<code>apiKeyValidatorTimeout.test.ts</code>)</td>
+              <td><code>e2e-setup-timeout</code> 3/3 — erro em ~11s (&lt; 15s); chave inválida 696ms</td>
             </tr>
             <tr>
-              <td><code>electron/main/services/challengeExec.ts</code></td>
-              <td><code>parseSpecChecks</code>, <code>runStudentCode</code> com guard e <code>challengePairFromSource</code></td>
+              <td>2c</td>
+              <td class="num-col">8 (<code>ipcTimeout.test.ts</code>) + 9 do fix <code>bc5e45f</code></td>
+              <td>—</td>
             </tr>
             <tr>
-              <td><code>electron/main/ipc/track-handlers.ts</code></td>
-              <td>validação <code>SAFE_FILE_PATH_RE</code> no envio; target <code>'module'</code></td>
+              <td>Onda 3</td>
+              <td class="num-col">10/10 (<code>runsh-bootstrap.test.ts</code> — node/npm falsos, sem rede)</td>
+              <td>smoke real: 1 <code>npm ci</code> em 3 execuções</td>
             </tr>
             <tr>
-              <td><code>electron/main/content/trackTypes.ts</code> + <code>trackLoader.ts</code> + <code>services/trackService.ts</code></td>
-              <td>o modelo <code>files[]</code> e o desafio de módulo</td>
-            </tr>
-            <tr>
-              <td><code>tools/track-cli.ts</code></td>
-              <td><code>track:module:challenge:new</code>; verify/validate multi-arquivo</td>
-            </tr>
-            <tr>
-              <td><code>src/views/ChallengeView/TrackChallengePanel.tsx</code></td>
-              <td>checklist por teste, abas por arquivo, &ldquo;gerar novo desafio&rdquo; oculto no módulo</td>
-            </tr>
-            <tr>
-              <td><code>src/views/RoadmapView/RoadmapView.tsx</code></td>
-              <td>o card &ldquo;Desafio do módulo&rdquo; na trilha</td>
-            </tr>
-            <tr>
-              <td><code>src/views/LessonView/LessonView.tsx</code></td>
-              <td>o indicador &ldquo;tutor digitando…&rdquo; só em <code>answer</code></td>
-            </tr>
-            <tr>
-              <td><code>app/resources/tracks/nodejs-do-zero/</code></td>
-              <td>18 módulos, 118 aulas, 136 desafios + proficiência</td>
+              <td><strong>Gate final</strong></td>
+              <td class="num-col"><strong>1744 pass / 0 fail</strong> (1745 testes, 1 skip) · build ✓ · lint ✓</td>
+              <td>suíte E2E completa: 26 pass / 3 skip / 0 fail</td>
             </tr>
           </tbody>
         </table>
       </div>
 
       <p>
-        A execução começou às <strong>18:15</strong> de 2026-08-27 (fases 0–2). As ondas 1–6 foram
-        executadas e integradas com gates verdes, as subwaves de teste e validação foram processadas,
-        e às <strong>23:41</strong> o revisor de plano declarou <strong>CONVERGÊNCIA</strong> — seguido
-        do commit final (gate final + EXPLAINER + commit + evolução).
+        E os incidentes de ambiente, registrados com honestidade: um <code>npm ci</code> acidental
+        numa worktree com symlink para o principal destruiu o <code>node_modules</code> do dev —
+        reconstruído (<code>npm ci</code>, 952 pacotes, 7 minutos) e a reconstrução documentada; o
+        symlink <code>app/node_modules</code> commitado por engano no squash <code>23ff31d</code>
+        (apontava para o node_modules absoluto da máquina do dev — quebraria qualquer clone) foi
+        removido no <code>6e3c00f</code>; locks de worktree expirados foram re-aplicados; um processo
+        zumbi de <code>cp -al</code> de um revisor morto foi limpo.
       </p>
-
-      <div class="callout">
-        <strong>O que ainda depende de chave:</strong> tirar dúvida (<code>answer</code>) e gerar
-        desafio novo de aula continuam sendo LLM — sem chave de API, devolvem erro estruturado, nunca
-        spinner. Os desafios de módulo não passam por isso: são autorais, com regeneração oculta.
-      </div>
 
       <details class="scaffold">
-        <summary>O desvio cosmético documentado</summary>
+        <summary>A ordem dos commits da rodada (o experiente confere aqui)</summary>
         <div class="scaffold__body">
           <p>
-            Na validação do conteúdo (val-onda4-content), foi documentado um desvio puramente
-            cosmético: 14 aulas têm 1 ou 4 <strong>sources</strong> (fontes de referência da aula) em
-            vez das 2–3 esperadas. Sem impacto funcional — registrado para não virar surpresa.
+            <code>19ea305</code> (diag) → <code>28c315d</code> (fix lint + probes) →
+            <code>2d8946c</code> (2a) → <code>7fe7774</code> (2b) → <code>6f5b9dc</code> (2c) →
+            <code>23ff31d</code> (onda 3) → <code>6e3c00f</code> (limpeza do symlink) →
+            <code>d84b318</code> (docs) → <code>7316424</code> (fix body-stall) →
+            <code>bc5e45f</code> (fix canais de ação) → <strong>COMMIT-FINAL</strong> (este EXPLAINER).
           </p>
         </div>
       </details>
+    </section>
+
+    <!-- ================= SEGMENTO 8 ================= -->
+    <section id="verificar">
+      <h2><span class="num">08</span> Como o usuário verifica — o teste final</h2>
+      <p class="lead">
+        A verificação é o próprio relato, agora com final feliz — em três passos que qualquer pessoa
+        consegue repetir:
+      </p>
+      <ol class="verify">
+        <li>
+          <strong>Clonar em outro computador → <code>./run.sh</code>.</strong> O script instala sozinho:
+          checa o node (≥ 22.13), cria o <code>.env.local</code> com aviso, roda <code>npm ci</code>
+          se faltar o marcador — e o app sobe.
+        </li>
+        <li>
+          <strong>Sem chaves → SetupView.</strong> O botão &ldquo;Validar&rdquo; falha em
+          <strong>≤ 10s</strong> com mensagem clara — nunca spinner infinito.
+        </li>
+        <li>
+          <strong>Com chaves → abrir aula.</strong> A teoria vem na hora, de forma
+          <strong>determinística</strong> (sempre o mesmo resultado para a mesma entrada, sem IA no
+          caminho); a trilha aparece na Home também no modo buildado; e qualquer falha de IPC mostra
+          erro com &ldquo;Tentar de novo&rdquo; — <strong>nenhum loader eterno em lugar nenhum</strong>.
+        </li>
+      </ol>
+
+      <div class="callout">
+        <strong>Nada prometido aqui é inventado:</strong> cada número deste documento saiu das
+        execuções da rodada — o gate final de 1744 pass / 0 fail, os 3/3 + 3/3 do
+        <code>e2e-clean-clone</code>, os ~11s do <code>e2e-setup-timeout</code>, o smoke de 1
+        <code>npm ci</code> em 3 execuções.
+      </div>
+    </section>
+
+    <!-- ================= SEGMENTO 9 ================= -->
+    <section id="buzzwords">
+      <h2><span class="num">09</span> Tabela de buzzwords (fechada)</h2>
+      <p class="lead">
+        Toda palavra da tabela foi definida na primeira vez em que apareceu no texto; esta tabela é só
+        o resumo para consultar depois.
+      </p>
+      <div class="table-wrap">
+        <table>
+          <caption>Glossário fechado da rodada 10</caption>
+          <thead>
+            <tr>
+              <th scope="col">Termo</th>
+              <th scope="col">Definição</th>
+              <th scope="col">Onde aparece</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td><code>loader infinito</code></td><td>tela de espera que nunca termina porque a resposta nunca chega</td><td>resposta no topo</td></tr>
+            <tr><td><code>clone limpo</code></td><td>cópia recém-baixada do repositório: sem configurações, sem dependências, sem chaves</td><td>segmento 1</td></tr>
+            <tr><td><code>causa raiz</code></td><td>a falha original que dispara os sintomas; corrigi-la resolve o problema inteiro</td><td>segmento 2</td></tr>
+            <tr><td><code>getAppPath()</code></td><td>função do Electron que devolve o caminho do app; o valor muda conforme o modo de lançamento</td><td>segmento 2</td></tr>
+            <tr><td><code>entry de arquivo</code></td><td>lançar o Electron apontando direto para o arquivo do processo principal, ex.: <code>electron out/main/index.js</code></td><td>segmento 2</td></tr>
+            <tr><td><code>ENOENT</code></td><td>código de erro do sistema que significa &ldquo;o arquivo ou diretório não existe&rdquo;</td><td>segmento 2</td></tr>
+            <tr><td><code>harness E2E</code></td><td>equipamento de teste que exercita o app inteiro, de ponta a ponta, como o usuário faria</td><td>segmento 2</td></tr>
+            <tr><td><code>stub</code></td><td>peça falsa que responde de forma fixa nos testes, sem executar a lógica real</td><td>segmento 2</td></tr>
+            <tr><td><code>timeout</code></td><td>limite de tempo: sem resposta até ele, a operação aborta e mostra erro</td><td>resposta no topo e segmento 4</td></tr>
+            <tr><td><code>AbortSignal</code></td><td>mecanismo do JavaScript que permite cancelar um pedido de rede em andamento</td><td>segmento 4</td></tr>
+            <tr><td><code>settled-flag</code></td><td>marca de que a resposta já foi decidida; resposta atrasada não sobrescreve o estado</td><td>segmento 4</td></tr>
+            <tr><td><code>retry</code></td><td>botão &ldquo;Tentar de novo&rdquo; que reexecuta a operação que falhou</td><td>segmento 4</td></tr>
+            <tr><td><code>IPC</code></td><td>comunicação entre processos: a ponte entre a interface e o processo principal do Electron</td><td>segmento 5 (pré-treino na seção 2)</td></tr>
+            <tr><td><code>idempotente</code></td><td>repetir a mesma operação não muda o resultado e não estraga nada</td><td>segmento 6</td></tr>
+            <tr><td><code>marcador</code></td><td>arquivo de controle (<code>.install-ok</code>) gravado só quando a instalação terminou com sucesso</td><td>segmento 6</td></tr>
+            <tr><td><code>npm ci</code></td><td>instalação limpa e exata das dependências a partir do <code>package-lock</code></td><td>segmento 6</td></tr>
+            <tr><td><code>bootstrap</code></td><td>a sequência que instala e configura o projeto antes de ele subir</td><td>segmento 6</td></tr>
+            <tr><td><code>gate</code></td><td>checagem (build, testes, lint) que precisa passar para uma entrega entrar</td><td>segmento 7</td></tr>
+            <tr><td><code>onda</code></td><td>leva de agentes trabalhando em paralelo na mesma frente de tarefas</td><td>segmento 7</td></tr>
+            <tr><td><code>revisão adversarial</code></td><td>agente independente que caça defeitos e pontos cegos no trabalho do outro</td><td>segmento 7</td></tr>
+            <tr><td><code>worktree</code></td><td>cópia isolada de trabalho do repositório, onde um agente constrói sem mexer na principal</td><td>segmento 7</td></tr>
+            <tr><td><code>determinístico</code></td><td>que sempre produz o mesmo resultado para a mesma entrada, sem sorteio nem IA</td><td>segmento 8</td></tr>
+          </tbody>
+        </table>
+      </div>
     </section>
 
   </main>
 
   <footer>
     <p>
-      <strong>Rodada 9 do study-method</strong> · concluída em 2026-08-27 · este documento vale contra
-      o estado do repositório nessa data. Fontes: <code>docs/relatorio-rodada9.md</code>,
-      <code>docs/15-trilha-nodejs.md</code>, <code>app/README.md</code>.
+      <strong>Rodada 10 do study-method</strong> · gerado em 2026-08-27 · este documento vale contra a
+      execução <code>RUN 20260827-211754-53335</code> e substitui o EXPLAINER da rodada 9. Fonte dos
+      fatos: o registro da execução (<code>.deep-orchestrator/.../explainer/fatos.md</code>); os
+      números de testes, commits e vereditos são os daquela execução, sem acréscimos. Leitor assumido:
+      misto — as definições estão no ponto de uso; o que o experiente já sabe ficou dobrado em
+      <code>&lt;details&gt;</code>.
     </p>
   </footer>
 
 </div>
-
 <script type="module">
   import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
   import elkLayouts from 'https://cdn.jsdelivr.net/npm/@mermaid-js/layout-elk/dist/mermaid-layout-elk.esm.min.mjs';
@@ -1463,7 +1652,7 @@ flowchart TD
 
       const html = `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8">
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>Diagrama — Rodada 9</title><style>
+      <title>Diagrama — Rodada 10</title><style>
       body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;
       background:${bg};padding:40px;box-sizing:border-box}
       svg{max-width:100%;max-height:90vh;height:auto}
