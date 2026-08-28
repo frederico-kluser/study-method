@@ -12,16 +12,22 @@
  *   5. buildErrorReport monta o relatório com TODOS os arquivos submetidos.
  *   6. formatErrorBubble devolve markdown determinístico (razão parcial,
  *      checklist ✔/✖, saída em code block).
- *   7. seedChallengeError deduplica POR challengeId (mesmo desafio → no-op;
- *      desafio diferente → REPÕE as bolhas antigas) e grava challengeError.
+ *   7. seedChallengeError: no-op SÓ com discussão ATIVA (challengeError do
+ *      estado já aponta o MESMO desafio); retry do MESMO desafio pós-'next'
+ *      RE-SEMEIA (par antigo sai, par novo entra no FIM, sem duplicação);
+ *      desafio DIFERENTE → REPÕE as bolhas antigas; grava challengeError.
  *   8. clearChallengeError zera challengeError mantendo o histórico.
  *   9. chatHistory STRIPA o kind (o histórico ao main é texto puro).
  *
- * ONDA3-FIX (regressão do dedupe pós-'next'): o 'next' (clearChallengeError)
- * zera o challengeError mas MANTÉM as bolhas — uma 2ª falha do MESMO desafio
- * não pode re-semeiar (4 bolhas no chat). O seed agora deduplica também pelo
- * HISTÓRICO (bolha 'error-bubble' com `errorFor` = challengeId) e o
- * chatHistory STRIPA o `errorFor` junto com o `kind`.
+ * ONDA3-FIX: o 'next' (clearChallengeError) zera o challengeError mas MANTÉM
+ * as bolhas; o chatHistory STRIPA o `errorFor` junto com o `kind`.
+ *
+ * FIX-FINAL (retry real): o dedupe POR HISTÓRICO era no-op e quebrava o
+ * RETRY do MESMO desafio após o 'next' — 2ª falha sem bolha nova e sem
+ * challengeError, o 'answer' seguinte ia ao tutor SEM o erro da 2ª tentativa.
+ * O guard agora é SÓ a discussão ativa; o retry RE-SEMEIA: remove o par
+ * antigo daquele challengeId (errorFor) e appenda o par novo no FIM — a
+ * discussão antiga permanece, sem duplicação.
  */
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
@@ -237,20 +243,36 @@ describe('trackLessonState — onda2 error-flow', () => {
     assert.equal(clearChallengeError(s2), s2, 'sem contexto, clear é no-op');
   });
 
-  it('ONDA3-FIX: 2ª falha do MESMO desafio APÓS o next (clearChallengeError) NÃO re-semeia — dedupe pelo histórico', () => {
+  it('FIX-FINAL (retry): 2ª falha do MESMO desafio APÓS o next RE-SEMEIA — par antigo sai, par novo entra no fim, SEM duplicação', () => {
     const s1 = seedChallengeError(createTrackLessonState(), report(), 'pergunta 1');
+    // O aluno responde e o tutor analisa — a discussão ANTIGA fica no histórico.
+    const s1b = applyTutorReply(
+      pushUserMessage(s1, 'eu acho que errei no retorno'),
+      reply({ sectionId: null, message: 'Boa hipótese — o retorno estava errado.' }),
+    );
     // Usuário aperta "Próximo": a teoria retoma — contexto zerado, bolhas FICAM.
-    const s2 = clearChallengeError(s1);
+    const s2 = clearChallengeError(s1b);
     assert.equal(s2.challengeError, null);
-    assert.equal(s2.history.length, 2, 'bolhas seguem na conversa');
+    assert.equal(s2.history.length, 4, 'bolhas + discussão seguem na conversa');
     // O desafio falho segue clicável na lista da aula → nova falha do MESMO
-    // desafio com o contexto já zerado. ANTES da onda3-fix isto re-semeiava
-    // (4 bolhas no chat): o guard de dedupe via `challengeError` era cego ao
-    // histórico.
-    const s3 = seedChallengeError(s2, report(), 'pergunta 2 (não pode duplicar)');
-    assert.equal(s3, s2, 'estado NÃO pode ser objeto novo');
-    assert.equal(s3.history.length, 2, 'histórico continua com 2 bolhas (não 4)');
-    assert.equal(s3.history[1].content, 'pergunta 1');
+    // desafio com o contexto já zerado. ANTES do fix-final isto era no-op
+    // (dedupe pelo histórico): sem bolha nova e challengeError null — o
+    // 'answer' seguinte ia ao tutor SEM o erro da 2ª tentativa.
+    const segunda = report({ output: 'saída da 2ª tentativa', passedCount: 0, totalCount: 3 });
+    const s3 = seedChallengeError(s2, segunda, 'pergunta 2');
+    assert.equal(
+      s3.history.length,
+      4,
+      'SEM duplicação: só 2 bolhas no total (par antigo saiu, par novo entrou no fim)',
+    );
+    assert.equal(s3.history[0].content, 'eu acho que errei no retorno', 'resposta do aluno da discussão antiga PERMANECE');
+    assert.equal(s3.history[1].content, 'Boa hipótese — o retorno estava errado.', 'análise do tutor antiga PERMANECE');
+    assert.equal(s3.history[2].kind, 'error-bubble', 'par NOVO entra no FIM (cronologia do retry)');
+    assert.equal(s3.history[2].errorFor, 'dobro-do-numero');
+    assert.ok(s3.history[2].content.includes('saída da 2ª tentativa'), 'bolha nova carrega o erro da tentativa ATUAL');
+    assert.equal(s3.history[3].kind, 'error-question');
+    assert.equal(s3.history[3].content, 'pergunta 2');
+    assert.deepEqual(s3.challengeError, segunda, 'challengeError é o report NOVO — o answer seguinte carrega o erro da 2ª tentativa');
   });
 
   it('ONDA3-FIX: desafio DIFERENTE APÓS o next (clearChallengeError) REPÕE as bolhas antigas', () => {

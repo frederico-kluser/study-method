@@ -42,10 +42,11 @@ export interface TutorChatMessage {
    */
   kind?: 'error-bubble' | 'error-question';
   /**
-   * ADITIVO (onda3-fix): challengeId da bolha 'error-bubble' — o dedupe do
-   * seed escaneia o HISTÓRICO por ele (`clearChallengeError`/'next' zera o
-   * `challengeError` mas as bolhas ficam na conversa; uma 2ª falha do MESMO
-   * desafio não pode re-semeiar). Presente SÓ na mensagem 'error-bubble' (o
+   * ADITIVO (onda3-fix): challengeId da bolha 'error-bubble' — o seed usa o
+   * HISTÓRICO por ele para localizar o par antigo daquele desafio no RETRY
+   * (`clearChallengeError`/'next' zera o `challengeError` mas as bolhas ficam
+   * na conversa; uma 2ª falha do MESMO desafio re-semeia: par antigo sai, par
+   * novo entra no fim). Presente SÓ na mensagem 'error-bubble' (o
    * 'error-question' não precisa). NUNCA trafega no histórico enviado ao main
    * (chatHistory stripa).
    */
@@ -222,14 +223,18 @@ export function formatErrorBubble(
  * Semeia a discussão do erro no chat da aula (chamado pela LessonView na
  * MONTAGEM, quando `nav.challengeErrorReport` está presente). Regras:
  *
- *   - DEDUPE POR challengeId: o MESMO desafio já semeado → no-op (guard
- *     anti-StrictMode/remount — a bolha nasce UMA única vez);
- *   - DEDUPE PELO HISTÓRICO (onda3-fix): o `sendNext` zera `challengeError`
- *     (`clearChallengeError`) mas MANTÉM as bolhas na conversa; uma 2ª falha
- *     do MESMO desafio depois do 'next' já está representada no histórico
- *     (bolha 'error-bubble' com `errorFor === challengeId`) → no-op. O
- *     `errorFor` é o critério (não o markdown da bolha — duas tentativas do
- *     mesmo desafio podem ter output/checks DIFERENTES);
+ *   - NO-OP SÓ COM DISCUSSÃO ATIVA: `challengeError` do estado já aponta o
+ *     MESMO desafio → no-op (guard anti-StrictMode/remount — o erro já está
+ *     em tela). Este é o ÚNICO guard;
+ *   - RETRY do MESMO desafio após o 'next' (`clearChallengeError` zerou
+ *     `challengeError` mas as bolhas ficaram na conversa): RE-SEMEIA —
+ *     remove o par antigo daquele challengeId (a 'error-bubble' com
+ *     `errorFor === challengeId` e a 'error-question' imediatamente seguinte
+ *     — o par é sempre semeado adjacente) e APPENDA o par novo no FIM do
+ *     histórico (o retry aconteceu depois das seções de teoria). As
+ *     mensagens da discussão antiga (resposta do aluno + análise do tutor)
+ *     PERMANECEM como conversa legítima. O `challengeError` novo carrega o
+ *     erro da tentativa ATUAL — o 'answer' seguinte vai ao main com ele;
  *   - desafio DIFERENTE → REPÕE as bolhas do erro anterior (remove as
  *     mensagens kind 'error-bubble'/'error-question' antigas e insere as
  *     novas no MESMO ponto — inclusive quando `challengeError` já foi zerado
@@ -247,12 +252,9 @@ export function seedChallengeError(
   questionText: string,
   labels: Partial<ErrorBubbleLabels> = {},
 ): TrackLessonUiState {
+  // FIX-FINAL: guard ÚNICO = discussão ATIVA do MESMO desafio (challengeError
+  // setado) → no-op (anti-StrictMode/remount — o erro já está em tela).
   if (state.challengeError?.challengeId === report.challengeId) return state;
-  // ONDA3-FIX: o dedupe também escaneia o HISTÓRICO — após o 'next' o
-  // challengeError está null mas a bolha do erro anterior segue na conversa.
-  if (state.history.some((m) => m.kind === 'error-bubble' && m.errorFor === report.challengeId)) {
-    return state;
-  }
   const errorBubble: TutorChatMessage = {
     role: 'assistant',
     kind: 'error-bubble',
@@ -264,12 +266,33 @@ export function seedChallengeError(
     kind: 'error-question',
     content: questionText,
   };
+  // RETRY do MESMO desafio após o 'next' (challengeError null, par antigo no
+  // histórico): REMOVE o par antigo daquele challengeId (a 'error-bubble' com
+  // errorFor === challengeId + a 'error-question' imediatamente seguinte — o
+  // par é sempre semeado adjacente) e APPENDA o par novo no FIM do histórico
+  // (a cronologia natural: o retry aconteceu depois das seções de teoria). A
+  // discussão antiga (resposta do aluno + análise do tutor) PERMANECE — é
+  // texto de conversa legítimo.
+  const oldBubbleIndex = state.history.findIndex(
+    (m) => m.kind === 'error-bubble' && m.errorFor === report.challengeId,
+  );
+  if (oldBubbleIndex >= 0) {
+    const hasQuestionAfter = state.history[oldBubbleIndex + 1]?.kind === 'error-question';
+    const removeEnd = oldBubbleIndex + (hasQuestionAfter ? 2 : 1);
+    const history = [
+      ...state.history.slice(0, oldBubbleIndex),
+      ...state.history.slice(removeEnd),
+      errorBubble,
+      questionBubble,
+    ];
+    return { ...state, history, challengeError: report };
+  }
   let history = state.history;
   if (history.some((m) => m.kind === 'error-bubble' || m.kind === 'error-question')) {
     // REPÕE: remove as bolhas do erro ANTERIOR no ponto em que estavam e
     // re-insere as novas no mesmo lugar (o diálogo do erro vira o novo erro).
-    // O dedupe de cima garante que as bolhas no histórico são de OUTRO
-    // desafio — aqui é sempre REPOSIÇÃO, nunca duplicação.
+    // Aqui é sempre REPOSIÇÃO (desafio DIFERENTE — o retry do MESMO desafio
+    // foi tratado acima), nunca duplicação.
     const insertAt = history.findIndex((m) => m.kind === 'error-bubble' || m.kind === 'error-question');
     history = history.filter((m) => m.kind !== 'error-bubble' && m.kind !== 'error-question');
     if (insertAt >= 0) {
