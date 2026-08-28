@@ -83,17 +83,16 @@ export interface TrackRepoLike extends TrackProgressLike {
 }
 
 export interface TrackHandlerDeps {
-  /** Diretório das trilhas (resources/tracks em dev; resourcesPath empacotado). */
+  /**
+   * Diretório das trilhas (resources/tracks). ONDA 2A: a resolução robusta
+   * (cadeia de candidatos dev/entry/packaged) vive em services/resourcesDir.ts —
+   * o index.ts injeta `resolveTracksDir({...})` daqui de fora.
+   */
   getTracksDir: () => string;
   /** OPCIONAL: repo de progresso. Ausente → handlers respondem gracioso. */
   repo?: TrackRepoLike;
   /** OPCIONAL: cliente DeepSeek para o tutor/regeneração. Ausente → erros estruturados. */
   deepseek?: DeepSeekClient;
-}
-
-/** Resolve o caminho absoluto do diretório de trilhas. */
-export function resolveTracksDir(appPath: string, resourcesPath?: string): string {
-  return resourcesPath ? path.join(resourcesPath, 'tracks') : path.join(appPath, 'resources', 'tracks');
 }
 
 export function buildTrackHandlers(deps: TrackHandlerDeps): Map<string, IpcHandlerFn> {

@@ -25,6 +25,7 @@ import path from 'path';
 import * as fs from 'fs';
 import { app } from 'electron';
 import { getEspeakNgDataDir, isEspeakNgDataAvailable } from './espeakAssets';
+import { resolveResourcesDir } from '../resourcesDir';
 
 export { getEspeakNgDataDir, isEspeakNgDataAvailable };
 
@@ -34,11 +35,19 @@ function platformArchDir(): string {
 }
 
 /** Root of a staged resource tree: `resources/<name>` (dev) or
- *  `<resources>/<name>` (packaged). */
+ *  `<resources>/<name>` (packaged). ONDA 2A: resolução por cadeia de candidatos
+ *  (resourcesDir.ts) — o padrão antigo quebrava no modo built-unpackaged
+ *  (entry por arquivo → getAppPath()=out/main). */
 function resourceRoot(name: string): string {
-  return app.isPackaged
-    ? path.join(process.resourcesPath, name)
-    : path.join(app.getAppPath(), 'resources', name);
+  return path.join(
+    resolveResourcesDir({
+      isPackaged: app.isPackaged,
+      resourcesPath: process.resourcesPath,
+      appPath: app.getAppPath(),
+      cwd: process.cwd(),
+    }),
+    name,
+  );
 }
 
 /**

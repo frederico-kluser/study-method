@@ -14,16 +14,25 @@
 import path from 'path';
 import * as fs from 'fs';
 import { app } from 'electron';
+import { resolveResourcesDir } from '../resourcesDir';
 
 /**
  * Directory holding the espeak-ng phoneme data passed to sherpa-onnx as the
  * vits/kokoro `dataDir`. Shipped in `resources/espeak-ng-data` (dev) or
- * `process.resourcesPath/espeak-ng-data` (packaged).
+ * `process.resourcesPath/espeak-ng-data` (packaged). ONDA 2A: resolução por
+ * cadeia de candidatos (resourcesDir.ts) — o padrão antigo quebrava no modo
+ * built-unpackaged (entry por arquivo → getAppPath()=out/main).
  */
 export function getEspeakNgDataDir(): string {
-  return app.isPackaged
-    ? path.join(process.resourcesPath, 'espeak-ng-data')
-    : path.join(app.getAppPath(), 'resources', 'espeak-ng-data');
+  return path.join(
+    resolveResourcesDir({
+      isPackaged: app.isPackaged,
+      resourcesPath: process.resourcesPath,
+      appPath: app.getAppPath(),
+      cwd: process.cwd(),
+    }),
+    'espeak-ng-data',
+  );
 }
 
 /**

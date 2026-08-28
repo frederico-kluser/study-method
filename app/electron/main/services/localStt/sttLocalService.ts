@@ -16,9 +16,9 @@
  */
 
 import { app } from 'electron';
-import * as path from 'path';
 import { createSttModelStore, type SttModelStore } from './sttModelStore';
 import { asrProxy } from './AsrProxyService';
+import { resolveResourcesDir } from '../resourcesDir';
 
 /** O store singleton — `null` até o primeiro `getLocalSttStore()`. */
 let store: SttModelStore | null = null;
@@ -27,10 +27,17 @@ let store: SttModelStore | null = null;
  * Onde o modelo EMBUTIDO mora no disco, ou `undefined` quando não há onde
  * procurar. Em dev os arquivos ficam no REPOSITÓRIO (`resources/stt-models/`);
  * empacotado, no diretório de resources do app (`process.resourcesPath`).
+ * ONDA 2A: resolução por cadeia de candidatos (resourcesDir.ts) — o padrão
+ * antigo `app.isPackaged ? resourcesPath : join(getAppPath(),'resources')`
+ * quebrava no modo built-unpackaged (entry por arquivo → getAppPath()=out/main).
  */
 function embeddedModelsPath(): string | undefined {
-  if (app.isPackaged) return process.resourcesPath;
-  return path.join(app.getAppPath(), 'resources');
+  return resolveResourcesDir({
+    isPackaged: app.isPackaged,
+    resourcesPath: process.resourcesPath,
+    appPath: app.getAppPath(),
+    cwd: process.cwd(),
+  });
 }
 
 /**

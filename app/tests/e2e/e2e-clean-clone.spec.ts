@@ -22,9 +22,15 @@
  * Rodar no modo 'dot' (electron . — igual ao npm run dev do usuário):
  *   CLEAN_CLONE_LAUNCH_MODE=dot npx playwright test tests/e2e/e2e-clean-clone.spec.ts
  *
- * Os testes 2+3 são FALSIFICÁVEIS: hoje (rodada 9/10) espera-se que o teste 3
- * FALHE com o loader infinito — é o registro do bug. Após o fix da Onda 2, o
- * mesmo teste deve passar sem alteração.
+ * FALSIFICÁVEL (onda 2a): antes do fix, no modo 'entry' os testes 2/3 FALHAVAM
+ * (track:list/get/lesson respondiam ENOENT porque getAppPath()=out/main e o
+ * tracksDir virava out/main/resources/tracks — ver docs/relatorio-rodada10-diag.md,
+ * Bug 1). Após o fix (resourcesDir.ts — cadeia de candidatos), os testes 2/3
+ * passam no modo entry SEM alteração; se o bug regressar, eles falham de novo.
+ *
+ * PRÉ-CONDIÇÃO DETERMINÍSTICA (onda 2a, WARNING 2): sem build, os testes FALHAM
+ * com mensagem clara ("rode npm run build") — nunca skip silencioso (verde
+ * falso). O gate roda `npm run build` imediatamente antes do spec.
  */
 import { test, expect, _electron, type ElectronApplication, type Page } from '@playwright/test';
 import * as path from 'node:path';
@@ -52,6 +58,28 @@ export const APP_ROOT = path.resolve(__dirname, '..', '..');
  */
 export const MAIN_ENTRY = process.env.CLEAN_CLONE_ENTRY ?? path.join(APP_ROOT, 'out', 'main', 'index.js');
 export const LAUNCH_MODE = process.env.CLEAN_CLONE_LAUNCH_MODE ?? 'entry';
+
+/**
+ * PRÉ-CONDIÇÃO do spec: build PRESENTE. Em modo 'entry' o app é lançado por
+ * MAIN_ENTRY (out/main/index.js); em 'dot', por `electron .` — AMBOS exigem o
+ * bundle do renderer (out/renderer/index.html). Sem build → FALHA com mensagem
+ * clara em vez de skip (verde falso) ou erro obscuro; com out/ stale, o gate
+ * roda `npm run build` imediatamente antes do spec (decisão documentada no
+ * handoff da onda 2a — WARNING 2 do revisor).
+ */
+function requireBuild(): void {
+  const missing: string[] = [];
+  if (LAUNCH_MODE !== 'dot' && !fs.existsSync(MAIN_ENTRY)) missing.push(MAIN_ENTRY);
+  if (!fs.existsSync(path.join(APP_ROOT, 'out', 'renderer', 'index.html'))) {
+    missing.push(path.join(APP_ROOT, 'out', 'renderer', 'index.html'));
+  }
+  if (missing.length > 0) {
+    throw new Error(
+      `e2e-clean-clone exige build fresco — faltando: ${missing.join('; ')}. ` +
+        'Rode `npm run build` (o gate roda antes do spec) e repita o spec.',
+    );
+  }
+}
 
 /** Args do Electron conforme o modo (entry vs dot). */
 export function launchArgs(userData: string): string[] {
@@ -208,6 +236,11 @@ async function dumpUi(page: Page, testInfo: import('@playwright/test').TestInfo,
 
 let app: ElectronApplication | undefined;
 
+// Pré-condição determinística: sem build fresco, FALHA (nunca skip).
+test.beforeEach(() => {
+  requireBuild();
+});
+
 test.afterEach(async () => {
   if (app) {
     try {
@@ -220,7 +253,6 @@ test.afterEach(async () => {
 });
 
 test('clean-clone 1: primeiro boot SEM chaves → SetupView (gate blocked rápido, sem splash infinito)', async () => {
-  test.skip(LAUNCH_MODE !== 'dot' && !fs.existsSync(MAIN_ENTRY), `sem build: ${MAIN_ENTRY} — rode npm run build`);
   const userData = freshUserData();
   const launched = await launchRealApp({ userData });
   app = launched.app;
@@ -239,7 +271,6 @@ test('clean-clone 1: primeiro boot SEM chaves → SetupView (gate blocked rápid
 
 test('clean-clone 2: abrir aula com chaves válidas (gate ready) → a aula CARREGA', async () => {
   test.setTimeout(180_000);
-  test.skip(LAUNCH_MODE !== 'dot' && !fs.existsSync(MAIN_ENTRY), `sem build: ${MAIN_ENTRY} — rode npm run build`);
   const userData = freshUserData();
   const launched = await launchRealApp({ userData });
   app = launched.app;
@@ -270,7 +301,6 @@ test('clean-clone 2: abrir aula com chaves válidas (gate ready) → a aula CARR
 
 test('clean-clone 3: abrir aula SEM chaves (gate override ready, sem rede de validação) — diagnóstico do loader', async () => {
   test.setTimeout(180_000);
-  test.skip(LAUNCH_MODE !== 'dot' && !fs.existsSync(MAIN_ENTRY), `sem build: ${MAIN_ENTRY} — rode npm run build`);
   const userData = freshUserData();
   const launched = await launchRealApp({ userData });
   app = launched.app;

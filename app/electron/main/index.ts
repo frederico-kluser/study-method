@@ -22,7 +22,8 @@ import { registerKeysHandlers } from './ipc/keys-handlers';
 import { registerStartupHandlers } from './ipc/startup-handlers';
 import { registerPiHandlers } from './ipc/pi-handlers';
 import { registerStudyHandlers, type RunnerLike, type LessonServiceLike } from './ipc/study-handlers';
-import { registerTrackHandlers, resolveTracksDir } from './ipc/track-handlers';
+import { registerTrackHandlers } from './ipc/track-handlers';
+import { resolveTracksDir } from './services/resourcesDir';
 import { createLessonRepo, type LessonRepo } from './db/repo';
 import { openMigratedSqlite } from './db/connection';
 import { registerLocalAiHandlers } from './ipc/localAi-handlers';
@@ -199,11 +200,18 @@ if (!gotLock) {
       // TRILHAS (rodada 8): o conteúdo das trilhas vive em resources/tracks
       // (criado pelo CLI de autoria tools/track-cli.ts) — o aluno consome, não
       // gera. Registro ADITIVO, fora do buildMainSetup (mesma convenção da voz).
+      // ONDA 2A (fix rodada 10): o diretório resources/ agora resolve por
+      // CADEIA DE CANDIDATOS (resourcesDir.ts) — antes, com entry por arquivo
+      // (electron out/main/index.js), app.getAppPath()=out/main e o tracksDir
+      // virava out/main/resources/tracks (INEXISTENTE) → ENOENT em tudo.
       registerTrackHandlers({
         getTracksDir: () =>
-          app.isPackaged
-            ? resolveTracksDir('', process.resourcesPath)
-            : resolveTracksDir(app.getAppPath()),
+          resolveTracksDir({
+            isPackaged: app.isPackaged,
+            resourcesPath: process.resourcesPath,
+            appPath: app.getAppPath(),
+            cwd: process.cwd(),
+          }),
         repo,
         deepseek: plannerDeepseek,
       });
