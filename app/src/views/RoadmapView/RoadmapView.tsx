@@ -95,13 +95,20 @@ function LessonRow({
         gap: 1,
         width: '100%',
         textAlign: 'left',
-        border: 'none',
+        // ONDA 1 (game-foundations): tile da trilha — borda de jogo 2px.
+        // Transparente em repouso (o hover continua só o fundo), mas o tile da
+        // AULA ATUAL vira um quadro de acento (borda = preenchimento, não
+        // texto — regra 3b do contrato).
+        border: '2px solid transparent',
         background: 'none',
         cursor: lesson.locked ? 'not-allowed' : 'pointer',
         p: 0.75,
         borderRadius: 1,
         opacity: lesson.locked ? 0.55 : 1,
         '&:hover:not(:disabled)': { bgcolor: 'action.hover' },
+        ...(lesson.current
+          ? { borderColor: 'primary.main' }
+          : {}),
         color: 'inherit',
       }}
     >
@@ -429,7 +436,7 @@ export function RoadmapView(props: ViewProps): ReactElement {
               startIcon={<ArrowBackIcon fontSize="small" />}
               onClick={goBackToList}
               aria-label={t('translation:roadmap.backButton')}
-              sx={{ mb: 0.5, px: 0, textTransform: 'none', minHeight: 0 }}
+              sx={{ mb: 0.5, px: 1, textTransform: 'none', minHeight: 0 }}
             >
               {t('translation:roadmap.backButton')}
             </Button>

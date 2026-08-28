@@ -28,6 +28,11 @@
  * transição vai SEMPRE pelo PROP `transition` do componente motion:
  * `<motion.div variants={fadeInUp} initial="hidden" animate="visible"
  * exit="hidden" transition={springs.gentle} />`.
+ *
+ * EXTRA DA ONDA 1 (aditivo do merge com o chat, NÃO usado pelo chat): o bloco
+ * `transitions` abaixo — transições NÃO-mola para loops contínuos (pulse/spin),
+ * onde duração/easing fixos leem mais verdadeiro que uma mola. Quem quiser o
+ * pulso de status ou o giro de loading importa daqui, nunca inventa curva.
  */
 import type { Transition, Variants } from 'motion/react';
 
@@ -37,6 +42,20 @@ export const springs: Record<'window' | 'playful' | 'gentle' | 'snappy', Transit
   playful: { type: 'spring', stiffness: 420, damping: 20 },
   gentle: { type: 'spring', stiffness: 180, damping: 26 },
   snappy: { type: 'spring', stiffness: 540, damping: 36 },
+};
+
+/**
+ * Transições NÃO-mola para loops contínuos, onde duração/easing fixos leem
+ * mais verdadeiro que uma mola (aditivo da ONDA 1 — ver cabeçalho).
+ */
+export const transitions: {
+  /** Loop suave de respiração (pulse) para pontos de status. */
+  readonly pulse: Transition;
+  /** Rotação linear infinita para spinners de loading. */
+  readonly spin: Transition;
+} = {
+  pulse: { repeat: Infinity, ease: 'easeInOut', duration: 1.6 },
+  spin: { repeat: Infinity, ease: 'linear', duration: 1 },
 };
 
 /** Entrada suave de cima (opacity 0, y 10 → visível) — bolhas do chat.

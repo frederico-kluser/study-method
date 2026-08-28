@@ -43,6 +43,7 @@ import assert from 'node:assert/strict';
 import {
   CODE_LIGHT,
   CODE_DARK,
+  CODE_TYPOGRAPHY,
   CODE_SYNTAX_ROLES,
   CODE_STATE_ROLES,
   CODE_ANSI_KEYS,
@@ -653,9 +654,10 @@ describe('tema do CodeMirror — settings + mapa de sintaxe', () => {
       assert.equal(s.gutterBorder, p.chrome.gutterBorder);
     });
 
-    it(`[${scheme}] tipografia de código vem dos tokens congelados`, () => {
+    it(`[${scheme}] tipografia de código vem do CODE_TYPOGRAPHY (15px desde a ONDA 1)`, () => {
       assert.equal(s.fontFamily, FONT_STACK.mono);
-      assert.equal(s.fontSize, `${TYPE.codeSize}px`);
+      assert.equal(s.fontSize, CODE_TYPOGRAPHY.fontSize);
+      assert.equal(s.fontSize, '15px');
     });
 
     it(`[${scheme}] codeMirrorSyntax devolve os 9 papéis da paleta`, () => {

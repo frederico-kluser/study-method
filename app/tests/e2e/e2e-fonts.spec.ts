@@ -60,7 +60,8 @@
  *
  * O segundo teste fecha a fresta: mede o COMPUTED do elemento no app rodando.
  *   - `.cm-editor` e `.xterm`: a família tem que ABRIR em 'JetBrains Mono
- *     Variable' e o tamanho tem que bater com `TYPE.codeSize`;
+ *     Variable' e o tamanho tem que bater com `CODE_TYPOGRAPHY.fontSize`
+ *     (15px desde a ONDA 1; TYPE.codeSize segue 14 no contrato);
  *   - `.cm-gutters`: o TAMANHO, que é onde a regressão de 13->16px apareceu;
  *   - `--mui-font-code` em si: o <font-size> tem que trazer unidade.
  *
@@ -78,7 +79,8 @@
  */
 import { test, expect, type ElectronApplication, type Page } from '@playwright/test';
 import { launchApp, closeApp, makeWorkspaceRoot, openTrackChallenge } from './helpers';
-import { FONT_STACK, TYPE } from '../../src/lib/designTokens';
+import { FONT_STACK } from '../../src/lib/designTokens';
+import { CODE_TYPOGRAPHY } from '../../src/lib/codeTheme';
 
 let app: ElectronApplication | undefined;
 let page: Page;
@@ -103,9 +105,10 @@ function firstFamily(stack: string): string {
 }
 
 const EXPECTED_FAMILIES = [
-  { role: 'display (Nunito — títulos h1..h6)', family: firstFamily(FONT_STACK.display) },
+  { role: 'display (Chakra Petch — títulos h1..h6)', family: firstFamily(FONT_STACK.display) },
   { role: 'body (Inter — corpo e UI)', family: firstFamily(FONT_STACK.body) },
   { role: 'mono (JetBrains Mono — código e terminal)', family: firstFamily(FONT_STACK.mono) },
+  { role: 'accent (Press Start 2P — labels pixel raros)', family: firstFamily(FONT_STACK.accent) },
 ];
 
 /**
@@ -149,7 +152,7 @@ interface ComputedFont {
   lineHeight: string;
 }
 
-test('e2e-fonts: Inter, Nunito e JetBrains Mono carregam de verdade (sem fallback silencioso)', async () => {
+test('e2e-fonts: Inter, Chakra Petch, JetBrains Mono e Press Start 2P carregam de verdade (sem fallback silencioso)', async () => {
   const launched = await launchApp({ env: { E2E_GATE: 'ready' } });
   app = launched.app;
   page = launched.page;
@@ -245,12 +248,12 @@ test('e2e-fonts: Inter, Nunito e JetBrains Mono carregam de verdade (sem fallbac
     ).not.toBe(bogusWidth);
   }
 
-  /* As três também têm que diferir ENTRE SI: duas famílias distintas medindo
-   * igual seriam o mesmo fallback usado duas vezes. */
+  /* As famílias também têm que diferir ENTRE SI: duas distintas medindo igual
+   * seriam o mesmo fallback usado duas vezes. */
   const distinct = new Set(families.map((f) => widths[f]));
   expect(
     distinct.size,
-    `as três famílias mediram ${JSON.stringify(families.map((f) => widths[f]))} — ` +
+    `as famílias mediram ${JSON.stringify(families.map((f) => widths[f]))} — ` +
       'valores repetidos indicam que mais de uma caiu no mesmo fallback',
   ).toBe(families.length);
 });
@@ -316,7 +319,7 @@ test('e2e-fonts: a mono do contrato é APLICADA ao editor, à sarjeta e ao termi
       '(@mui/system/cssVars/prepareTypographyVars.mjs): com um NÚMERO o ' +
       '<font-size> sai sem unidade, `font: var(--mui-font-code)` é inválido no ' +
       'computed-value time e a declaração de src/index.css cai EM SILÊNCIO. ' +
-      'Conserto: `code.fontSize` = `${TYPE.codeSize}px` em src/theme.ts.',
+      'Conserto: `code.fontSize` = STRING COM UNIDADE em src/theme.ts.',
   ).toMatch(/^\d+(?:\.\d+)?(?:px|rem|em|pt|%)\//);
 
   /* ─── Navega até o Desafio e abre o arquivo (o editor só monta aí) ─────── */
@@ -326,7 +329,10 @@ test('e2e-fonts: a mono do contrato é APLICADA ao editor, à sarjeta e ao termi
   await expect(page.locator('.cm-editor').first()).toBeVisible();
 
   const MONO = firstFamily(FONT_STACK.mono);
-  const CODE_SIZE = `${TYPE.codeSize}px`;
+  // ONDA 1 (game-foundations): código 14 → 15. O tamanho EFETIVO é o do
+  // CODE_TYPOGRAPHY (o que editor e terminal renderizam de verdade); o var
+  // `--mui-font-code` do tema bate com ele (ambos 15px).
+  const CODE_SIZE = CODE_TYPOGRAPHY.fontSize;
 
   const editor = await computedFonts(page, ['.cm-editor', '.cm-gutters']);
 
@@ -345,7 +351,7 @@ test('e2e-fonts: a mono do contrato é APLICADA ao editor, à sarjeta e ao termi
   expect(
     cm && cm.size,
     `.cm-editor computa font-size ${cm?.size}, esperado ${CODE_SIZE} ` +
-      `(TYPE.codeSize). 16px é o default do <html> aparecendo porque a ` +
+      `(CODE_TYPOGRAPHY). 16px é o default do <html> aparecendo porque a ` +
       `declaração de fonte caiu; var = "${fontCodeVar}".`,
   ).toBe(CODE_SIZE);
 

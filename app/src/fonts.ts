@@ -33,27 +33,36 @@
  * QUAL ARQUIVO DE CADA PACOTE, E POR QUÊ ESTE E NÃO O `index`:
  *   Os pacotes `@fontsource-variable/*` são fontes VARIÁVEIS: um único .woff2
  *   por subset cobre o eixo `wght` inteiro, em vez de um arquivo por peso. Por
- *   isso não existe (nem faz sentido) importar "400.css"/"700.css" aqui — a
- *   escala inteira que o tema usa já está dentro do mesmo arquivo:
+ *   isso não existe (nem faz sentido) importar "400.css"/"700.css" para eles —
+ *   a escala inteira que o tema usa já está dentro do mesmo arquivo:
  *     - corpo/UI  400/500/600  ⊂  Inter          `font-weight: 100 900`
- *     - display   700/800      ⊂  Nunito         `font-weight: 200 1000`
  *     - código    400/500      ⊂  JetBrains Mono `font-weight: 100 800`
  *   O que dá para apertar é o EIXO e o ESTILO, e é o que fazemos:
  *     - `wght.css` (e não `opsz.css`/`standard.css` do Inter): só o eixo de
  *       peso, que é o único que o tema pilota;
  *     - sem os `*-italic.css`: nenhum token do tema pede itálico real, e o
- *       par itálico dobraria o payload de fonte (~442 KB → ~884 KB). Prosa
- *       com <em> cai no oblique sintético do Chromium, que é aceitável no
- *       Inter/Nunito. Se algum dia o design pedir itálico DESENHADO, a troca
- *       é acrescentar os três `wght-italic.css` aqui — e só aqui.
+ *       par itálico dobraria o payload de fonte. Prosa com <em> cai no
+ *       oblique sintético do Chromium, que é aceitável no Inter. Se algum dia
+ *       o design pedir itálico DESENHADO, a troca é acrescentar os
+ *       `*-italic.css` aqui — e só aqui.
+ *
+ *   O DISPLAY (títulos) é o pacote ESTÁTICO `@fontsource/chakra-petch`, um
+ *   arquivo por peso (400/600/700). ONDA 1 (game-foundations): a família
+ *   display do projeto irmão leet-code-rpg entra no lugar do Nunito. Não
+ *   existe `@fontsource-variable/chakra-petch` no registry (verificado em
+ *   2026-08-28 — npm view devolve 404), então a variante VARIÁVEL nem está em
+ *   jogo. Chakra Petch para em 700 (não tem 800): por isso o tema usa 700 no
+ *   topo da escala em vez dos 800 do Nunito. O `Press Start 2P` — acento
+ *   "pixel" raro (labels de conquista/HUD, uppercase pequenos) — tem UM peso
+ *   só (400) e entra pelo pacote estático `@fontsource/press-start-2p`.
  *
  * NOMES DE FAMÍLIA — casam EXATAMENTE com `FONT_STACK` de src/lib/designTokens.ts
  * (contrato congelado). Os arquivos CSS abaixo registram, literalmente:
- *   'Inter Variable' · 'Nunito Variable' · 'JetBrains Mono Variable'
- * Trocar um pacote pela variante estática (`@fontsource/inter`) mudaria o nome
- * registrado para 'Inter' (sem o sufixo) e faria o primeiro item de cada stack
- * deixar de resolver — silenciosamente, para o segundo item. Não troque sem
- * conferir o `font-family` dentro do .css do pacote.
+ *   'Inter Variable' · 'Chakra Petch' · 'JetBrains Mono Variable' · 'Press Start 2P'
+ * Trocar um pacote por outra variante mudaria o nome registrado e faria o
+ * primeiro item de cada stack deixar de resolver — silenciosamente, para o
+ * segundo item. Não troque sem conferir o `font-family` dentro do .css do
+ * pacote.
  *
  * ARMADILHA MEDIDA (não é hipótese — build de prova, ver handoff da onda 1):
  * o Vite embute em `url(data:font/woff2;base64,...)` todo asset abaixo de
@@ -75,8 +84,18 @@
 /* Corpo e UI — Inter (eixo wght 100–900; tema usa 400/500/600). */
 import '@fontsource-variable/inter/wght.css';
 
-/* Display e títulos — Nunito (eixo wght 200–1000; tema usa 700/800). */
-import '@fontsource-variable/nunito/wght.css';
+/* Display e títulos — Chakra Petch ESTÁTICO (pesos 400/600/700; o tema usa
+   700 no topo da escala — a família não tem 800). Substitui o Nunito na ONDA
+   1 (game-foundations), herdando o display do projeto irmão leet-code-rpg.
+   Não existe versão VARIÁVEL no registry (npm view = 404, 2026-08-28). */
+import '@fontsource/chakra-petch/400.css';
+import '@fontsource/chakra-petch/600.css';
+import '@fontsource/chakra-petch/700.css';
+
+/* Acento "pixel" RARO — Press Start 2P (peso único 400): labels de
+   conquista/HUD em uppercase pequeno, no espírito do leet-code-rpg. Não usar
+   em corpo nem em título: é acento, não voz. */
+import '@fontsource/press-start-2p/400.css';
 
 /* Código, terminal e algarismos de contador — JetBrains Mono (wght 100–800;
    tema usa 400/500). */

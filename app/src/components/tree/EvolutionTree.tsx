@@ -181,7 +181,9 @@ function TreeNode({
           textTransform: 'none',
           minHeight: 36,
           width: '100%',
-          px: 1,
+          // ONDA 1 (game-foundations): px 1 → 1.5 — ícone+texto dos nós da
+          // árvore com respiro lateral (o piso do tamanho small é 12px).
+          px: 1.5,
           ...(node.state === 'done'
             ? {}
             : isCurrent

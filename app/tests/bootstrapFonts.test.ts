@@ -2,9 +2,11 @@
  * tests/bootstrapFonts.test.ts — o FIO das fontes locais, guardado.
  *
  * ─── POR QUE ESTE ARQUIVO EXISTE ───────────────────────────────────────────
- * A onda 1 do redesign criou `src/fonts.ts` (as três @font-face locais do
+ * A onda 1 do redesign criou `src/fonts.ts` (as @font-face locais do
  * @fontsource) e `FONT_STACK` em `src/lib/designTokens.ts`, e o tema passou a
  * pedir 'Inter Variable' / 'Nunito Variable' / 'JetBrains Mono Variable'. Só que
+ * (ONDA 1 game-foundations: Nunito saiu; hoje são Inter, Chakra Petch, JetBrains
+ * Mono e Press Start 2P.)
  * NINGUÉM importava `src/fonts.ts`: `grep -rn "fonts'" src/` devolvia UMA linha,
  * e era o comentário dentro do próprio módulo. Consequência medida no app
  * rodando — largura de canvas da mesma string a 16px:
@@ -15,7 +17,7 @@
  *     "__NoSuchFontZZZ__"        223.98   <- família INEXISTENTE, mesmo valor
  *     system-ui                  245.54
  *
- * As três famílias do contrato mediam igual a uma família inventada: fallback
+ * As famílias do contrato mediam igual a uma família inventada: fallback
  * silencioso. E 877 testes unitários mais 16 specs e2e passaram VERDES por cima
  * disso — nenhum deles olhava para o fio.
  *
@@ -33,18 +35,20 @@
  * ─── O QUE CADA INVARIANTE PROTEGE ─────────────────────────────────────────
  * 1. `import './fonts'` existe em `src/main.tsx`  → o fio está ligado. ESTA é a
  *    invariante que pega o bug real: o import sumido. Sem ele não há @font-face
- *    nenhuma no bundle e as três famílias caem no fallback de sistema.
+ *    nenhuma no bundle e as famílias caem no fallback de sistema.
  * 2. Ele vem ANTES de `./index.css` e de `katex/dist/katex.min.css`. CUIDADO com
  *    a justificativa: NÃO é que "uma @font-face só serve às regras que vêm
  *    depois dela" — `@font-face` tem escopo de DOCUMENTO e vale independentemente
  *    da posição na folha. O que a ordem garante é DETERMINISMO DE CASCATA: entre
  *    faces de MESMA família vale a ÚLTIMA declarada (last-wins) e o Vite
  *    concatena o CSS na ORDEM dos imports; com `./fonts` fixo em primeiro lugar,
- *    o ponto de declaração das três famílias é único e conhecido, e uma
+ *    o ponto de declaração das famílias é único e conhecido, e uma
  *    redeclaração vinda de CSS de terceiro (o KaTeX traz as próprias faces) fica
  *    visivelmente depois em vez de a resolução mudar sozinha a cada refactor.
  *    É uma CONVENÇÃO travada, não a causa do defeito.
- * 3. `src/fonts.ts` importa os três pacotes VARIÁVEIS pelo arquivo `wght.css`
+ * 3. `src/fonts.ts` importa os pacotes nos arquivos que o tema pilota: os
+ *    VARIÁVEIS (Inter, JetBrains Mono) pelo `wght.css`, os ESTÁTICOS
+ *    (Chakra Petch 400/600/700, Press Start 2P 400) pelo arquivo do peso.
  *    → é o eixo que o tema pilota (e não `opsz`/`standard`, nem os itálicos).
  * 4. A família que cada pacote REGISTRA de verdade (lida do .css instalado em
  *    node_modules) é a mesma que abre a stack correspondente de `FONT_STACK`.
@@ -94,9 +98,17 @@ function sideEffectImportIndex(code: string, specifier: string): number {
   return match ? match.index : -1;
 }
 
-/** Famílias que um CSS do @fontsource registra de verdade (`font-family:`). */
-function registeredFamilies(packageDir: string): string[] {
-  const css = readFileSync(join(APP_ROOT, 'node_modules', packageDir, 'wght.css'), 'utf8');
+/**
+ * Famílias que um CSS do @fontsource registra de verdade (`font-family:`).
+ * Lê o ARQUIVO DE ENTRADA do papel (o `entry` da tabela abaixo): os pacotes
+ * VARIÁVEIS têm `wght.css`; os ESTÁTICOS têm um arquivo por peso
+ * (`400.css`, `600.css`, ...). O `entry` é o especificador COMPLETO
+ * (`@scope/pkg/arquivo.css`); o caminho DENTRO do pacote é a parte após o
+ * nome do pacote.
+ */
+function registeredFamilies(packageDir: string, entry: string): string[] {
+  const file = entry.replace(/^@[^/]+\/[^/]+\//, '');
+  const css = readFileSync(join(APP_ROOT, 'node_modules', packageDir, file), 'utf8');
   const families = new Set<string>();
   for (const m of css.matchAll(/font-family:\s*'([^']+)'/g)) {
     families.add(m[1]);
@@ -112,10 +124,20 @@ function firstFamily(stack: string): string {
 
 const FONT_PACKAGES = [
   {
+    // ONDA 1 (game-foundations): display Nunito → Chakra Petch. Pacote
+    // ESTÁTICO (não existe variável no registry): um CSS por peso — o tema
+    // pilota 400/600/700 e a stack abre em 'Chakra Petch'.
     role: 'display',
-    pkg: '@fontsource-variable/nunito',
-    entry: '@fontsource-variable/nunito/wght.css',
+    pkg: '@fontsource/chakra-petch',
+    entry: '@fontsource/chakra-petch/400.css',
     stack: FONT_STACK.display,
+  },
+  {
+    // Acento "pixel" RARO — Press Start 2P, peso único (400).
+    role: 'accent',
+    pkg: '@fontsource/press-start-2p',
+    entry: '@fontsource/press-start-2p/400.css',
+    stack: FONT_STACK.accent,
   },
   {
     role: 'body',
@@ -136,7 +158,7 @@ describe('bootstrap de fontes — src/main.tsx importa src/fonts.ts', () => {
     assert.ok(
       sideEffectImportIndex(MAIN_CODE, './fonts') >= 0,
       "src/main.tsx precisa de `import './fonts';` — sem ele nenhuma @font-face " +
-        'entra no bundle e as três famílias do contrato caem, em silêncio, no ' +
+        'entra no bundle e as famílias do contrato caem, em silêncio, no ' +
         'fallback system-ui de FONT_STACK.',
     );
   });
@@ -170,15 +192,18 @@ describe('bootstrap de fontes — src/main.tsx importa src/fonts.ts', () => {
   });
 });
 
-describe('src/fonts.ts — os três pacotes variáveis, no eixo que o tema pilota', () => {
+describe('src/fonts.ts — os quatro pacotes, nos arquivos que o tema pilota', () => {
   for (const { role, entry } of FONT_PACKAGES) {
     it(`importa ${entry} (papel ${role})`, () => {
       assert.ok(
         sideEffectImportIndex(FONTS_CODE, entry) >= 0,
-        `src/fonts.ts precisa importar '${entry}'. O arquivo \`wght.css\` é o ` +
-          'eixo de PESO, o único que o tema pilota — `opsz.css`/`standard.css` ' +
-          'registram a mesma família por outro eixo e os `*-italic.css` dobram o ' +
-          'payload sem que nenhum token peça itálico desenhado.',
+        `src/fonts.ts precisa importar '${entry}'. Para os pacotes VARIÁVEIS ` +
+          '(Inter/JetBrains Mono) o arquivo `wght.css` é o eixo de PESO, o ' +
+          'único que o tema pilota — `opsz.css`/`standard.css` registram a ' +
+          'mesma família por outro eixo. Para os ESTÁTICOS (Chakra Petch, ' +
+          'Press Start 2P) o import é por PESO (`400.css` etc.). Os ' +
+          '`*-italic.css` dobram o payload sem que nenhum token peça itálico ' +
+          'desenhado.',
       );
     });
   }
@@ -193,9 +218,9 @@ describe('src/fonts.ts — os três pacotes variáveis, no eixo que o tema pilot
 });
 
 describe('FONT_STACK abre com a família que o pacote REALMENTE registra', () => {
-  for (const { role, pkg, stack } of FONT_PACKAGES) {
+  for (const { role, pkg, entry, stack } of FONT_PACKAGES) {
     it(`${role}: ${pkg} registra a primeira família de FONT_STACK.${role}`, () => {
-      const registered = registeredFamilies(pkg);
+      const registered = registeredFamilies(pkg, entry);
       const expected = firstFamily(stack);
       assert.deepEqual(
         registered,

@@ -33,10 +33,11 @@
  * `InitColorSchemeScript`: ele é anti-flicker só no SSR e seria bloqueado pelo
  * CSP `script-src 'self'` (inline script) desta app.
  *
- * TIPOGRAFIA (redesign "Cartucho"): `./fonts` é um módulo de EFEITO COLATERAL
- * (não exporta nada) que registra as três famílias locais do @fontsource —
- * Inter, Nunito e JetBrains Mono. O bug que ele conserta era o import AUSENTE:
- * sem `import './fonts'` nenhuma `@font-face` entrava no bundle e as stacks de
+ * TIPOGRAFIA (redesign "Cartucho" + ONDA 1 game-foundations): `./fonts` é um
+ * módulo de EFEITO COLATERAL (não exporta nada) que registra as famílias
+ * locais do @fontsource — Inter, Chakra Petch, JetBrains Mono e Press Start 2P
+ * (Nunito saiu na onda 1). O bug que ele conserta era o import AUSENTE: sem
+ * `import './fonts'` nenhuma `@font-face` entrava no bundle e as stacks de
  * FONT_STACK caíam, em silêncio, no fallback de sistema.
  *
  * Ele também é o PRIMEIRO import de CSS do bootstrap, mas essa ordem NÃO é o

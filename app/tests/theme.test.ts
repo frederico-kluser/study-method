@@ -31,11 +31,13 @@
  *    que nenhuma propriedade proibida está casada com o easing spatial. É a
  *    diferença entre "tátil" e "texto cintilando".
  *
- * 3. ESCALA TIPOGRÁFICA MONOTÔNICA. `typography.fontSize: 16` re-baseia o rem do
- *    MUI e infla +14,29% toda variante SEM tamanho próprio. Com só h1–h4
- *    pinadas, h5 saía maior que h4 e a hierarquia ficava invertida no app
- *    rodando. O teste assere ORDEM, não só valor: h1 > h2 > h3 > h4 > h5 > h6
- *    estrito, body1 >= body2, e nenhum título abaixo do corpo.
+ * 3. ESCALA TIPOGRÁFICA MONOTÔNICA. `typography.fontSize` re-baseia o rem do
+ *    MUI e infla toda variante SEM tamanho próprio. Com só h1–h4 pinadas, h5
+ *    saía maior que h4 e a hierarquia ficava invertida no app rodando. O teste
+ *    assere ORDEM, não só valor: h1 > h2 > h3 > h4 > h5 > h6 estrito,
+ *    body1 >= body2, e nenhum título abaixo do corpo. (ONDA 1 game-foundations:
+ *    a base subiu de 16 → 18 e a razão de 1,25 → 1,28 — tipografia maior
+ *    pedida pelo dono, estilo leet-code-rpg; o contrato TYPE segue congelado.)
  *
  * 4. MECÂNICA DO MUI v9 que é condição de funcionamento, não estilo:
  *    `colorSchemeSelector: 'class'` (com `'media'` o `setMode()` do toggle não
@@ -671,8 +673,11 @@ describe('theme "Cartucho" — forma e tipografia', () => {
     assert.equal(theme.shape.borderRadius, SHAPE.base);
   });
 
-  it('typography.fontSize vem de TYPE.bodySize', () => {
-    assert.equal(theme.typography.fontSize, TYPE.bodySize);
+  it('typography.fontSize é a base da ONDA 1 (18px — tipografia maior)', () => {
+    // O contrato TYPE.bodySize segue 16; a base do TEMA é 18 desde a onda 1
+    // (game-foundations, pedido do dono). Só quem NÃO tem tamanho próprio
+    // depende desta base — e o teste abaixo garante que ninguém depende.
+    assert.equal(theme.typography.fontSize, 18);
   });
 
   it('typography.fontFamily é a stack de CORPO', () => {
@@ -719,17 +724,18 @@ describe('theme "Cartucho" — forma e tipografia', () => {
     }
   });
 
-  it('os tamanhos saem da escala modular de terça maior (1,25) sobre TYPE.bodySize', () => {
-    // h1..h6 = passos +5..0. Nenhum número solto: a escala inteira é derivada do
-    // único tamanho de corpo que o contrato fixa.
+  it('os tamanhos saem da escala modular (1,28) sobre a base de 18 da ONDA 1', () => {
+    // h1..h6 = passos +5..0, base 18, razão 1,28 (antes: 1,25 sobre 16).
+    // Nenhum número solto: a escala inteira deriva de UMA base e UMA razão.
+    // O contrato TYPE.bodySize (16) fica congelado — a base do TEMA é 18.
     const expected = HEADING_VARIANTS.map((_, index) =>
-      Math.round(TYPE.bodySize * 1.25 ** (HEADING_VARIANTS.length - 1 - index)),
+      Math.round(18 * 1.28 ** (HEADING_VARIANTS.length - 1 - index)),
     );
     for (const [index, heading] of HEADING_VARIANTS.entries()) {
       assert.equal(variantSize(heading), expected[index], `${heading} fora da escala modular`);
     }
-    // caption/overline ocupam o passo −1 da MESMA escala (12,8 -> 13).
-    const step = Math.round(TYPE.bodySize / 1.25);
+    // caption/overline ocupam o passo −1 da MESMA escala (18/1,28 = 14,06 -> 14).
+    const step = Math.round(18 / 1.28);
     assert.equal(variantSize('caption'), step, 'caption fora da escala modular');
     assert.equal(variantSize('overline'), step, 'overline fora da escala modular');
   });
@@ -755,17 +761,18 @@ describe('theme "Cartucho" — forma e tipografia', () => {
     }
   });
 
-  it('a variante `code` usa a stack MONO em 14/1,5, com o tamanho em PX EXPLÍCITO', () => {
+  it('a variante `code` usa a stack MONO em 15/1,5, com o tamanho em PX EXPLÍCITO', () => {
     assert.equal(theme.typography.code.fontFamily, FONT_STACK.mono);
     assert.equal(theme.typography.code.lineHeight, TYPE.codeLineHeight);
     // A UNIDADE é a invariante, não o número. `--mui-font-code` é montado por
     // @mui/system/cssVars/prepareTypographyVars.mjs concatenando `fontSize`
-    // CRU no shorthand `font`; com o número 14 o var saía `14/1.5 '…'`, que é
+    // CRU no shorthand `font`; com um NÚMERO o var sairia `15/1.5 '…'`, que é
     // <font-size> inválido, e `font: var(--mui-font-code)` em src/index.css
     // caía inteiro em silêncio (o editor voltava a Inter/16px/lh normal).
+    // ONDA 1: 14 → 15 (TYPE.codeSize segue 14 no contrato).
     assert.equal(
       theme.typography.code.fontSize,
-      `${TYPE.codeSize}px`,
+      '15px',
       'typography.code.fontSize precisa ser STRING COM UNIDADE: o shorthand ' +
         '`font` de --mui-font-code não aceita <font-size> sem unidade e a ' +
         'declaração `font: var(--mui-font-code)` cai inteira, sem erro nenhum',
@@ -795,9 +802,24 @@ describe('theme "Cartucho" — forma e tipografia', () => {
     );
   });
 
-  it('body1 é a superfície de prosa: 16px na entrelinha de 1,6', () => {
-    assert.equal(theme.typography.body1.fontSize, TYPE.bodySize);
+  it('body1 é a superfície de prosa: 18px na entrelinha de 1,6', () => {
+    // ONDA 1 (game-foundations): subiu de 16 → 18 (pedido do dono; o contrato
+    // TYPE.bodySize segue 16).
+    assert.equal(theme.typography.body1.fontSize, 18);
     assert.equal(theme.typography.body1.lineHeight, TYPE.proseLineHeight);
+  });
+
+  it('body2/subtitle2 usam o degrau de 16 (abaixo de body1)', () => {
+    assert.equal(theme.typography.body2.fontSize, 16);
+    assert.equal(theme.typography.subtitle2.fontSize, 16);
+  });
+
+  it('a variante `pixel` é o acento RARO: stack ACCENT, tamanho pinado', () => {
+    // Press Start 2P — labels de conquista/HUD em uppercase pequeno. É acento,
+    // não voz: por isso o peso é o único (400) e o tamanho é o menor da escala.
+    assert.equal(theme.typography.pixel.fontFamily, FONT_STACK.accent);
+    assert.equal(theme.typography.pixel.fontWeight, 400);
+    assert.equal(typeof (theme.typography.pixel as { fontSize?: unknown }).fontSize, 'number');
   });
 });
 
@@ -805,7 +827,12 @@ describe('theme "Cartucho" — forma e tipografia', () => {
  * VARIANTES DE COMPONENTE — token de tema, não `sx` espalhado
  * ═══════════════════════════════════════════════════════════════════════════ */
 
-/** Lê `components.MuiX.styleOverrides.root.variants` na forma canônica. */
+/**
+ * Lê `components.MuiX.styleOverrides.root.variants` na forma canônica. O
+ * `root` pode ser OBJETO ou CALLBACK `({ theme }) => ({...})` (o MUI aceita os
+ * dois) — o callback é resolvido aqui para que a forma canônica de leitura
+ * seja sempre o objeto final.
+ */
 function rootVariants(component: string): Array<{
   props: Record<string, unknown>;
   style: unknown;
@@ -813,10 +840,21 @@ function rootVariants(component: string): Array<{
   const spec = (
     theme.components as unknown as Record<
       string,
-      { styleOverrides?: { root?: { variants?: Array<{ props: Record<string, unknown>; style: unknown }> } } }
+      {
+        styleOverrides?: {
+          root?:
+            | { variants?: Array<{ props: Record<string, unknown>; style: unknown }> }
+            | ((a: { theme: typeof theme }) => {
+                variants?: Array<{ props: Record<string, unknown>; style: unknown }>;
+              });
+        };
+      }
     >
   )[component];
-  const variants = spec?.styleOverrides?.root?.variants;
+  const rawRoot = spec?.styleOverrides?.root;
+  const root =
+    typeof rawRoot === 'function' ? rawRoot({ theme }) : rawRoot;
+  const variants = root?.variants;
   assert.ok(
     Array.isArray(variants),
     `${component}.styleOverrides.root.variants deve ser um array (forma canônica do MUI v9)`,

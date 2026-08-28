@@ -19,14 +19,16 @@
  * `useColorScheme()` é estado de React de verdade: muda, re-renderiza, e o
  * `useMemo` abaixo reconstrói a extensão de tema.
  *
- * ─── DECISÃO: 14px, e o override de 16px FOI EMBORA ───────────────────────
+ * ─── DECISÃO: 15px (ONDA 1), e o override de 16px FOI EMBORA ──────────────
  * O componente forçava `EditorView.theme({'.cm-content': {fontSize:'16px'}})`
- * enquanto `codeMirrorSettings()` traz 14px de `TYPE.codeSize`. Manter os dois
- * fazia o override do componente ganhar EM SILÊNCIO — o token do contrato
- * congelado ficava decorativo. Vence o token: 14px, o default de editor de
- * código, e o mesmo corpo contra o qual a paleta foi calibrada (a §"O PISO É
- * MEDIDO CONTRA A SELEÇÃO" de `codeTheme.ts` prende TODO token ao piso cheio de
- * 4,5:1 justamente porque 14px não alcança o alívio de "large scale text").
+ * enquanto `codeMirrorSettings()` trazia 14px de `TYPE.codeSize`. Manter os
+ * dois fazia o override do componente ganhar EM SILÊNCIO — o token do contrato
+ * congelado ficava decorativo. Vence o token: hoje 15px, o valor do
+ * `CODE_TYPOGRAPHY` (subiu de 14 na ONDA 1 game-foundations com o resto da
+ * tipografia; `TYPE.codeSize` segue 14 no contrato), e o mesmo corpo contra o
+ * qual a paleta foi calibrada (a §"O PISO É MEDIDO CONTRA A SELEÇÃO" de
+ * `codeTheme.ts` prende TODO token ao piso cheio de 4,5:1 justamente porque
+ * 15px não alcança o alívio de "large scale text").
  * Cuidado de mecânica: o `createTheme` do `@uiw/codemirror-themes` aplica
  * `settings.fontSize` no seletor `&` (a raiz `.cm-editor`), não em
  * `.cm-content` — o conteúdo HERDA. Um override em `.cm-content` teria
@@ -43,7 +45,7 @@
  * fonte: vence o `index.css`, e o editor renderiza 13px. Medido, não deduzido —
  * a asserção de 14px em `tests/e2e/e2e-code-theme.spec.ts` falhava exatamente
  * assim. O `fontSizeGuard` reancora a MESMA `settings.fontSize` (não um número
- * novo: continua havendo um único valor no sistema, `TYPE.codeSize`) num
+ * novo: continua havendo um único valor no sistema, `CODE_TYPOGRAPHY`) num
  * seletor de especificidade 0,0,2,0 — `&.cm-editor` → `.ͼN.cm-editor` — que
  * nenhuma regra global de uma classe alcança. É guarda de CASCATA, não uma
  * segunda opinião sobre o tamanho.

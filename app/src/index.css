@@ -187,14 +187,36 @@ body,
 /* O polegar da barra de rolagem é COMPONENTE DE UI, não divisor decorativo:
    o piso dele é 3:1 (SC 1.4.11), então ele usa a camada não-texto do contrato
    (`nonText.neutral`, 3,03:1 no claro e 3,36:1 no escuro contra o nível 0) e
-   NÃO o `divider`, que fica abaixo de 3:1 de propósito. */
+   NÃO o `divider`, que fica abaixo de 3:1 de propósito.
+   ONDA 1 (game-foundations): o polegar ganha o TINTE do acento via color-mix
+   (estilo leet-code-rpg — scrollbar colorida de jogo). A base continua sendo a
+   camada não-texto (o piso de 3:1 não muda); o acento entra como tonalidade
+   sobre ela. Nenhum hex novo: só vars do tema + color-mix. */
 ::-webkit-scrollbar {
-  width: 10px;
+  width: 12px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--mui-palette-surface-level2);
+  border-radius: 999px;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--mui-palette-nonText-neutral);
+  background: color-mix(
+    in srgb,
+    var(--mui-palette-primary-fill) 40%,
+    var(--mui-palette-nonText-neutral)
+  );
+  border: 2px solid var(--mui-palette-surface-level1);
   border-radius: 999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: color-mix(
+    in srgb,
+    var(--mui-palette-primary-fill) 65%,
+    var(--mui-palette-nonText-neutral)
+  );
 }
 
 /* Seleção = "estado selecionado / hover forte", que é literalmente o papel do

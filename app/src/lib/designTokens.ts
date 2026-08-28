@@ -233,9 +233,16 @@ export const SHAPE = {
  * text" só começa em 24px regular ou 18,67px bold.
  */
 export const FONT_STACK = {
-  display: "'Nunito Variable', 'Nunito', system-ui, -apple-system, 'Segoe UI', sans-serif",
+  // ONDA 1 (game-foundations): display Nunito → Chakra Petch, a família display
+  // do projeto irmão leet-code-rpg (pacote ESTÁTICO @fontsource/chakra-petch —
+  // não existe variável no registry; ver src/fonts.ts). Chakra Petch para em
+  // 700: o tema usa 700 no topo da escala em vez dos 800 do Nunito.
+  display: "'Chakra Petch', system-ui, -apple-system, 'Segoe UI', sans-serif",
   body: "'Inter Variable', 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif",
   mono: "'JetBrains Mono Variable', 'JetBrains Mono', 'SFMono-Regular', Menlo, Consolas, monospace",
+  /** Acento "pixel" RARO (Press Start 2P, peso único 400) — labels de
+   *  conquista/HUD em uppercase pequeno, nunca corpo nem título. */
+  accent: "'Press Start 2P', 'Chakra Petch', system-ui, sans-serif",
 } as const;
 
 export const TYPE = {

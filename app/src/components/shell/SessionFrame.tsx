@@ -84,11 +84,14 @@ function SessionField({
   return (
     <Box sx={{ minWidth: 0, display: 'flex', flexDirection: 'column' }}>
       <Typography
-        variant="overline"
+        variant="pixel"
         component="span"
         sx={(theme) => ({
           color: theme.vars.palette.text.secondary,
-          lineHeight: 1.2,
+          // ONDA 1 (game-foundations): rótulos do quadro de sessão (HUD) em
+          // Press Start 2P — o acento "pixel" RARO do leet-code-rpg. NÃO usar
+          // em corpo: a entrelinha alta (1.8 da variante) é o que evita o
+          // corte de glifos; não voltar a 1.2 aqui.
           letterSpacing: '0.08em',
           // O rótulo segue a mesma regra do valor: quebra, nunca recorta.
           whiteSpace: 'normal',

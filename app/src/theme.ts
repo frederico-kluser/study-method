@@ -61,18 +61,21 @@
  * texto (h1–h6, subtitle1/2, body1/2, button, caption, overline) têm tamanho
  * explícito: nenhuma depende do coeficiente.
  *
- * Os tamanhos saem da MESMA escala modular de terça maior (razão 1,25) sobre
- * `TYPE.bodySize`, do passo +5 ao passo −1:
- *   h1 49 · h2 39 · h3 31 · h4 25 · h5 20 · h6 16 · caption/overline 13
- * `body2`/`subtitle2` usam o outro degrau que o contrato fixa (14, o do código).
+ * Os tamanhos saem da MESMA escala modular (razão 1,28) sobre a base de corpo
+ * da ONDA 1 (18px — pedido do dono por tipografia maior; ver a seção da escala
+ * adiante), do passo +5 ao passo −1:
+ *   h1 62 · h2 48 · h3 38 · h4 29 · h5 23 · h6 18 · caption/overline 14
+ * `body2`/`subtitle2` usam o degrau de 16.
  *
  * FRONTEIRA DISPLAY/CORPO — é SEMÂNTICA, não de tamanho: TÍTULO (h1–h6) é
- * `FONT_STACK.display` (Nunito, 700/800); TEXTO — corpo, subtítulo, rótulo de
+ * `FONT_STACK.display` (Chakra Petch, 700); TEXTO — corpo, subtítulo, rótulo de
  * botão, legenda, overline — é `FONT_STACK.body` (Inter). Traçar a fronteira por
  * tamanho é o que produzia um H1 em Nunito 700 seguido de um H2 em Inter 400:
  * a hierarquia trocava de VOZ no meio do caminho. Como h6 empata com `body1` em
- * 16px, quem separa os dois é a família e o peso, não o corpo — e é de propósito
- * que o menor título nunca fique ABAIXO do texto que ele encabeça.
+ * 18px, quem separa os dois é a família e o peso, não o corpo — e é de propósito
+ * que o menor título nunca fique ABAIXO do texto que ele encabeça. (O acento
+ * PIXEL da variante `pixel` — Press Start 2P — é exceção RARA e deliberada:
+ * rótulo de conquista/HUD, nunca voz de hierarquia.)
  *
  * ─── DECISÃO 3: dois níveis de movimento, separados por PROPRIEDADE ────────
  * `theme.transitions` ganha, por module augmentation, os nomes `spatial` e
@@ -217,12 +220,16 @@ declare module '@mui/material/styles' {
     effectsSlow: number;
   }
 
-  /** Variante tipográfica de código/terminal (mono, 14/1,5). */
+  /** Variante tipográfica de código/terminal (mono, 15/1,5). */
   interface TypographyVariants {
     code: TypographyStyle;
+    /** Acento "pixel" RARO (Press Start 2P) — labels de conquista/HUD em
+     *  uppercase pequeno. Variante, não `sx` espalhado: é token de tema. */
+    pixel: TypographyStyle;
   }
   interface TypographyVariantsOptions {
     code?: TypographyStyle;
+    pixel?: TypographyStyle;
   }
 }
 
@@ -249,6 +256,7 @@ declare module '@mui/material/Paper' {
 declare module '@mui/material/Typography' {
   interface TypographyPropsVariantOverrides {
     code: true;
+    pixel: true;
   }
 }
 
@@ -421,27 +429,44 @@ export function focusRingStyles(theme: FocusRingTheme): {
 /**
  * Escala tipográfica. O contrato de tokens fixa apenas DOIS degraus de tamanho
  * (corpo 16 e código 14) — títulos não estão lá, porque a spec não os calculou.
- * Em vez de inventar números soltos, TODA variante sai de `TYPE.bodySize` por
- * uma escala modular de terça maior (razão 1,25), arredondada ao pixel. É
- * ESCOLHA DE PROJETO declarada, não achado de pesquisa — e é derivada do único
- * tamanho que o contrato fixa, então continua havendo uma fonte de verdade só.
+ * Em vez de inventar números soltos, TODA variante sai do corpo por uma escala
+ * modular (razão 1,28), arredondada ao pixel. É ESCOLHA DE PROJETO declarada,
+ * não achado de pesquisa.
+ *
+ * ── ONDA 1 (game-foundations): TIPOGRAFIA MAIOR ────────────────────────────
+ * Pedido do dono ("a fonte da app não está boa; textos MAIORES e melhores de
+ * ler", no espírito do projeto irmão leet-code-rpg, cuja raiz escala 18/20.8/
+ * 23.2px). O contrato `TYPE` (bodySize 16, codeSize 14) fica CONGELADO — estas
+ * constantes locais são a base da ESCALA do tema, não novos tokens:
+ *
+ *   corpo   16 → 18   (body1; um degrau cheio, o mesmo piso do leet-code-rpg)
+ *   corpo2  14 → 16   (body2/subtitle2)
+ *   código  14 → 15   (code — a variante do tema E o CODE_TYPOGRAPHY, ver
+ *                      src/lib/codeTheme.ts; TYPE.codeSize segue 14 no
+ *                      contrato para o construtor do xterm e a calibração)
+ *   títulos          escala modular razão 1,25 → 1,28 sobre a nova base
  *
  *   passo  +5   +4   +3   +2   +1    0    −1
- *   px      49   39   31   25   20   16    13
+ *   px      62   48   38   29   23   18    14
  *   uso     h1   h2   h3   h4   h5   h6    caption/overline
  *
- * A escala é pinada do topo ao fim JUSTAMENTE porque `typography.fontSize: 16`
- * infla em +14,29% tudo que ficar sem tamanho explícito — foi assim que `h5`
- * (27,43px) passou na frente de `h4` (25px).
+ * A escala é pinada do topo ao fim JUSTAMENTE porque `typography.fontSize`
+ * re-baseia o rem do MUI e infla tudo que ficar sem tamanho explícito — foi
+ * assim que `h5` (27,43px) passou na frente de `h4` (25px).
  */
-const TYPE_SCALE_RATIO = 1.25;
+const TYPE_BODY_SIZE = 18;
+/** body2/subtitle2 — um degrau abaixo do corpo (15,5–16 pedidos; escolhido 16). */
+const TYPE_BODY2_SIZE = 16;
+/** código/terminal (a variante do tema; TYPE.codeSize segue 14 no contrato). */
+const TYPE_CODE_SIZE = 15;
+const TYPE_SCALE_RATIO = 1.28;
 
 /** Entrelinha dos títulos (compacta; a de 1,6 é da PROSA, não do display). */
 const DISPLAY_LINE_HEIGHT = 1.2;
 
 /** Tamanho, em px, do degrau `step` da escala modular sobre o corpo. */
 function scaleSize(step: number): number {
-  return Math.round(TYPE.bodySize * TYPE_SCALE_RATIO ** step);
+  return Math.round(TYPE_BODY_SIZE * TYPE_SCALE_RATIO ** step);
 }
 
 /** Peso dos subtítulos e rótulos — corpo com autoridade, sem virar título. */
@@ -565,27 +590,28 @@ export const theme = createTheme({
 
   typography: {
     fontFamily: FONT_STACK.body,
-    // `fontSize` é a BASE do rem do MUI (default 14). Subir para 16 re-baseia
-    // toda a escala default em +14,29%, que é o que queremos num app de leitura
-    // — MAS só para quem não tem tamanho próprio. Por isso TODAS as treze
-    // variantes de texto abaixo são pinadas em pixel: nenhuma fica à mercê do
-    // coeficiente, e a ordem da escala deixa de ser acidente.
-    fontSize: TYPE.bodySize,
+    // `fontSize` é a BASE do rem do MUI (default 14). ONDA 1 (game-foundations)
+    // subiu a base para 18 junto com o corpo — mas a re-baseia SÓ atinge quem
+    // não tem tamanho próprio, e por isso TODAS as variantes de texto abaixo
+    // são pinadas em pixel: nenhuma fica à mercê do coeficiente, e a ordem da
+    // escala deixa de ser acidente.
+    fontSize: TYPE_BODY_SIZE,
 
     // ── TÍTULOS (h1–h6): stack de DISPLAY, sem exceção ────────────────────
-    // Nunito (terminais arredondados = registro lúdico sem virar fonte de
-    // brinquedo), 800 nos dois primeiros degraus e 700 do terceiro ao sexto.
-    // A fronteira display/corpo é SEMÂNTICA: título é display, texto é corpo.
-    // Nenhum nível de título troca de família no meio da hierarquia.
+    // Chakra Petch (display do projeto irmão leet-code-rpg; terminais
+    // geométricos = registro de jogo sem abrir mão de leitura), 700 do topo ao
+    // sexto — a família para em 700, não tem o 800 do Nunito. A fronteira
+    // display/corpo é SEMÂNTICA: título é display, texto é corpo. Nenhum nível
+    // de título troca de família no meio da hierarquia.
     h1: {
       fontFamily: FONT_STACK.display,
-      fontWeight: 800,
+      fontWeight: 700,
       fontSize: scaleSize(5),
       lineHeight: DISPLAY_LINE_HEIGHT,
     },
     h2: {
       fontFamily: FONT_STACK.display,
-      fontWeight: 800,
+      fontWeight: 700,
       fontSize: scaleSize(4),
       lineHeight: DISPLAY_LINE_HEIGHT,
     },
@@ -607,9 +633,10 @@ export const theme = createTheme({
       fontSize: scaleSize(1),
       lineHeight: DISPLAY_LINE_HEIGHT,
     },
-    // h6 empata com body1 em 16px — é o PISO da escala de título, e de propósito
-    // ele nunca cai abaixo do texto que encabeça. Quem separa os dois é a
-    // família (Nunito x Inter) e o peso (700 x 400), não o corpo.
+    // h6 empata com body1 em 18px — é o PISO da escala de título, e de
+    // propósito ele nunca cai abaixo do texto que encabeça. Quem separa os
+    // dois é a família (Chakra Petch x Inter) e o peso (700 x 400), não o
+    // corpo.
     h6: {
       fontFamily: FONT_STACK.display,
       fontWeight: 700,
@@ -618,35 +645,35 @@ export const theme = createTheme({
     },
 
     // ── TEXTO: stack de CORPO ─────────────────────────────────────────────
-    // subtitle1/2 são RÓTULO, não título: mesma família do corpo, peso 600,
-    // e nos mesmos dois degraus que o contrato fixa (16 e 14).
+    // subtitle1/2 são RÓTULO, não título: mesma família do corpo, peso 600, e
+    // nos mesmos dois degraus da escala do tema (18 e 16).
     subtitle1: {
       fontFamily: FONT_STACK.body,
       fontWeight: LABEL_WEIGHT,
-      fontSize: TYPE.bodySize,
+      fontSize: TYPE_BODY_SIZE,
     },
     subtitle2: {
       fontFamily: FONT_STACK.body,
       fontWeight: LABEL_WEIGHT,
-      fontSize: TYPE.codeSize,
+      fontSize: TYPE_BODY2_SIZE,
     },
 
-    // Corpo: 16px / 1,6 — o intervalo de teste do C21 é "between 1.5 and 2".
+    // Corpo: 18px / 1,6 — o intervalo de teste do C21 é "between 1.5 and 2".
+    // ONDA 1: subiu de 16 (o contrato TYPE.bodySize segue congelado em 16).
     body1: {
       fontFamily: FONT_STACK.body,
-      fontSize: TYPE.bodySize,
+      fontSize: TYPE_BODY_SIZE,
       lineHeight: TYPE.proseLineHeight,
     },
-    // O contrato só define DOIS degraus de tamanho; o segundo (14) é o do
-    // código. body2 usa esse mesmo degrau em vez de herdar o uplift de +14,29%
-    // do rem base — assim body2 continua sendo um degrau ABAIXO de body1.
+    // Um degrau ABAIXO de body1 (16px — pedido 15,5–16; escolhido 16), sem
+    // herdar o uplift do rem base.
     body2: {
       fontFamily: FONT_STACK.body,
-      fontSize: TYPE.codeSize,
+      fontSize: TYPE_BODY2_SIZE,
       lineHeight: TYPE.codeLineHeight,
     },
 
-    // Legenda e overline: o degrau −1 da escala (12,8 -> 13px).
+    // Legenda e overline: o degrau −1 da escala (18/1,28 = 14,06 -> 14px).
     caption: {
       fontFamily: FONT_STACK.body,
       fontSize: scaleSize(-1),
@@ -657,28 +684,42 @@ export const theme = createTheme({
       fontSize: scaleSize(-1),
     },
 
-    // Código e terminal: mono, 14/1,5. Escolha de projeto declarada na spec.
+    // Acento "pixel" RARO — Press Start 2P em labels de conquista/HUD
+    // (uppercase pequeno). 12px de Press Start 2P JÁ é grande visualmente (a
+    // família é monoespaçada ~1em por glifo) — é acento, não voz. Entrelinha
+    // alta de propósito: glifos pixel não podem ser cortados.
+    pixel: {
+      fontFamily: FONT_STACK.accent,
+      fontWeight: 400,
+      fontSize: 12,
+      lineHeight: 1.8,
+      letterSpacing: '0.06em',
+      textTransform: 'uppercase',
+    },
+
+    // Código e terminal: mono, 15/1,5. ONDA 1: subiu de 14 (TYPE.codeSize
+    // segue 14 no contrato; a CONSTANTE do tema é TYPE_CODE_SIZE).
     //
     // O `fontSize` desta variante — e SÓ desta — é STRING COM UNIDADE, não o
-    // número de `TYPE.codeSize`. Motivo medido, não estético: com
-    // `cssVariables`, o MUI publica cada variante como o shorthand `font` em
-    // `--mui-font-<variante>`, e o gerador
-    // (@mui/system/cssVars/prepareTypographyVars.mjs:7) concatena `fontSize`
-    // CRU, sem sufixar 'px'. Com o número 14 o var saía
-    //     --mui-font-code: 14/1.5 'JetBrains Mono Variable', …
-    // e `14` sem unidade NÃO é um <font-size> válido no shorthand `font`
+    // número. Motivo medido, não estético: com `cssVariables`, o MUI publica
+    // cada variante como o shorthand `font` em `--mui-font-<variante>`, e o
+    // gerador (@mui/system/cssVars/prepareTypographyVars.mjs:7) concatena
+    // `fontSize` CRU, sem sufixar 'px'. Com o número 15 o var sairia
+    //     --mui-font-code: 15/1.5 'JetBrains Mono Variable', …
+    // e `15` sem unidade NÃO é um <font-size> válido no shorthand `font`
     // (unitless só vale para 0, e index.html é standards mode). A declaração
     // inteira caía, EM SILÊNCIO: `.cm-editor, .xterm { font: var(--mui-font-code) }`
     // media family="Inter Variable" / 16px / lh normal no Blink. Com a string
-    // o var vira `14px/1.5 '…'`, shorthand válido, e o CSS de bootstrap
+    // o var vira `15px/1.5 '…'`, shorthand válido, e o CSS de bootstrap
     // (src/index.css) volta a ter UMA fonte de verdade para a fonte de código.
     //
-    // `TYPE.codeSize` continua sendo o NÚMERO 14 no contrato: o construtor do
-    // xterm exige número em `fontSize`. Quem precisa de CSS compõe a unidade,
-    // como aqui e em `codeTheme.ts` (`${TYPE.codeSize}px`).
+    // `TYPE.codeSize` continua sendo o NÚMERO 14 no contrato (calibração de
+    // contraste); quem renderiza código de verdade — editor e terminal — usa o
+    // CODE_TYPOGRAPHY de `src/lib/codeTheme.ts`, também subido para 15 nesta
+    // onda, para o CSS var e a tela concordarem.
     code: {
       fontFamily: FONT_STACK.mono,
-      fontSize: `${TYPE.codeSize}px`,
+      fontSize: `${TYPE_CODE_SIZE}px`,
       lineHeight: TYPE.codeLineHeight,
     },
 
@@ -687,7 +728,7 @@ export const theme = createTheme({
       fontFamily: FONT_STACK.body,
       textTransform: 'none',
       fontWeight: LABEL_WEIGHT,
-      fontSize: TYPE.bodySize,
+      fontSize: TYPE_BODY_SIZE,
     },
   },
 
@@ -752,15 +793,50 @@ export const theme = createTheme({
 
     MuiButton: {
       defaultProps: {
-        // sombra é elevação por SOMBRA; aqui a elevação é por COR.
+        // sombra é elevação por SOMBRA; aqui a elevação é por COR. As sombras
+        // COLORIDAS da onda 1 (game-foundations) entram EXPLICITAMENTE por
+        // variante — `disableElevation` só zera a elevação cinza do MUI.
         disableElevation: true,
       },
       styleOverrides: {
-        root: {
+        root: ({ theme: t }: { theme: StyleTheme }) => ({
           borderRadius: SHAPE.md,
+          // ONDA 1 (game-foundations): resposta de botão de JOGO — todo botão
+          // sobe 2% no hover e afunda para 0,96 no press, com o transform em
+          // movimento SPATIAL (pode ultrapassar) e cor/sombra em EFFECTS. A
+          // variante `pop` redefine a própria transição logo abaixo (mais
+          // específica) — a dela é idêntica em espírito.
+          transition: [
+            effectsTransition(t, ['background-color', 'color', 'border-color', 'box-shadow'], 'fast'),
+            spatialTransition(t, ['transform'], 'fast'),
+          ].join(', '),
+          '&:hover': {
+            transform: 'scale(1.02)',
+          },
+          '&:active': {
+            transform: 'scale(0.96)',
+          },
+          '&.Mui-disabled': {
+            transform: 'none',
+          },
+          // Ícone+texto nunca GRUDADOS (pedido do dono): o startIcon abre 10px
+          // do rótulo (o default do MUI é 8/6px e some quando um `px` pequeno
+          // aperta o botão). O margin-left NEGATIVO default do MUI fica — é o
+          // alinhamento óptico e o paddingInline dos tamanhos (abaixo) o
+          // compensa.
+          '& .MuiButton-startIcon': {
+            marginRight: t.spacing(1.25),
+          },
+          // Sem movimento, o botão continua um botão: some o transform,
+          // permanecem as cores e o rótulo.
+          '@media (prefers-reduced-motion: reduce)': {
+            '&:hover': { transform: 'none' },
+            '&:active': { transform: 'none' },
+          },
           variants: [
             // ORDENAÇÃO ÚLTIMA-VENCE. Primeiro a correção de AA nas variantes
-            // nativas, depois a variante `pop`, que é a mais específica.
+            // nativas, depois as sombras coloridas do `contained`, e por fim a
+            // variante `pop`, que é a mais específica.
 
             // `text` e `outlined` pintam o RÓTULO com o acento — e rótulo é
             // TEXTO. O default do MUI usa `main` (o preenchimento), que sobre a
@@ -769,51 +845,74 @@ export const theme = createTheme({
             ...ACCENT_SLOTS.flatMap((slot) => [
               {
                 props: { variant: 'text' as const, color: slot },
-                style: ({ theme: t }: { theme: StyleTheme }) => ({
-                  color: t.vars.palette[slot].accentText,
+                style: ({ theme: t2 }: { theme: StyleTheme }) => ({
+                  color: t2.vars.palette[slot].accentText,
                 }),
               },
               {
                 props: { variant: 'outlined' as const, color: slot },
-                style: ({ theme: t }: { theme: StyleTheme }) => ({
-                  color: t.vars.palette[slot].accentText,
-                  borderColor: t.vars.palette[slot].accentText,
+                style: ({ theme: t2 }: { theme: StyleTheme }) => ({
+                  color: t2.vars.palette[slot].accentText,
+                  borderColor: t2.vars.palette[slot].accentText,
+                }),
+              },
+            ]),
+
+            // ONDA 1 (game-foundations): SOMBRA COLORIDA nos botões de
+            // preenchimento — o glow do leet-code-rpg (shadow-indigo-500/25),
+            // na tinta do próprio acento via color-mix (nenhum hex novo). A
+            // sombra é `effects` (cor), nunca `spatial`. O `contained` default
+            // do MUI fica coberto aqui para TODOS os slots de acento.
+            ...ACCENT_SLOTS.flatMap((slot) => [
+              {
+                props: { variant: 'contained' as const, color: slot },
+                style: ({ theme: t2 }: { theme: StyleTheme }) => ({
+                  boxShadow: `0 4px 14px -4px color-mix(in srgb, ${t2.vars.palette[slot].fill} 40%, transparent)`,
+                  '&:hover': {
+                    boxShadow: `0 6px 18px -4px color-mix(in srgb, ${t2.vars.palette[slot].fill} 55%, transparent)`,
+                  },
+                  '&:active': {
+                    boxShadow: `0 2px 8px -2px color-mix(in srgb, ${t2.vars.palette[slot].fill} 30%, transparent)`,
+                  },
                 }),
               },
             ]),
 
             // `pop` — o botão "kimochi ii". Preenchimento chapado da família
-            // action, raio generoso, e a resposta ao toque como MOVIMENTO
-            // ESPACIAL: sobe 2% no hover, afunda para 0,97 no press. A cor não
-            // participa do overshoot (é `effects`); só o transform é `spatial`.
+            // action, raio generoso, resposta ao toque como MOVIMENTO ESPACIAL
+            // (sobe 2% no hover, afunda para 0,97 no press) e o glow colorido
+            // do acento em cima da sombra cinza que o disableElevation zera.
+            // A cor não participa do overshoot (é `effects`); só o transform é
+            // `spatial`.
             {
               props: { variant: 'pop' as const },
-              style: ({ theme: t }: { theme: StyleTheme }) => ({
-                backgroundColor: t.vars.palette.primary.fill,
-                color: t.vars.palette.primary.onFill,
+              style: ({ theme: t2 }: { theme: StyleTheme }) => ({
+                backgroundColor: t2.vars.palette.primary.fill,
+                color: t2.vars.palette.primary.onFill,
                 borderRadius: SHAPE.lg,
-                paddingInline: t.spacing(2.5),
-                paddingBlock: t.spacing(1),
+                paddingInline: t2.spacing(2.5),
+                paddingBlock: t2.spacing(1),
                 fontWeight: 700,
-                boxShadow: 'none',
+                boxShadow: `0 4px 14px -4px color-mix(in srgb, ${t2.vars.palette.primary.fill} 40%, transparent)`,
                 transition: [
-                  effectsTransition(t, ['background-color', 'color', 'border-color'], 'fast'),
-                  spatialTransition(t, ['transform'], 'fast'),
+                  effectsTransition(t2, ['background-color', 'color', 'border-color', 'box-shadow'], 'fast'),
+                  spatialTransition(t2, ['transform'], 'fast'),
                 ].join(', '),
                 '&:hover': {
-                  // acento CHAPADO: o hover não muda a cor, muda a geometria.
-                  backgroundColor: t.vars.palette.primary.fill,
-                  boxShadow: 'none',
+                  // acento CHAPADO: o hover não muda a cor, muda a geometria
+                  // e a Sombra cresce.
+                  backgroundColor: t2.vars.palette.primary.fill,
+                  boxShadow: `0 6px 18px -4px color-mix(in srgb, ${t2.vars.palette.primary.fill} 55%, transparent)`,
                   transform: 'scale(1.02)',
                 },
                 '&:active': {
+                  boxShadow: `0 2px 8px -2px color-mix(in srgb, ${t2.vars.palette.primary.fill} 30%, transparent)`,
                   transform: 'scale(0.97)',
                 },
                 '&.Mui-disabled': {
+                  boxShadow: 'none',
                   transform: 'none',
                 },
-                // Sem movimento, o botão continua um botão: some o transform,
-                // permanece o preenchimento e o rótulo.
                 '@media (prefers-reduced-motion: reduce)': {
                   '&:hover': { transform: 'none' },
                   '&:active': { transform: 'none' },
@@ -821,11 +920,30 @@ export const theme = createTheme({
               }),
             },
           ],
-        },
+        }),
+        // ONDA 1 (game-foundations): PADDING LATERAL MÍNIMO por tamanho
+        // (ícone+texto grudados é bug reportado pelo dono). O default do MUI
+        // é small 4px 10px / medium 6px 16px / large 8px 22px; aqui o small
+        // sobe para 12px de paddingInline e os demais ficam EXPLÍCITOS (>= o
+        // mínimo pedido: small >= 12, medium >= 16). `paddingBlock` default do
+        // MUI permanece em cada tamanho — só o inline é tocado.
+        sizeSmall: ({ theme: t2 }: { theme: StyleTheme }) => ({
+          paddingInline: t2.spacing(1.5),
+        }),
+        sizeMedium: ({ theme: t2 }: { theme: StyleTheme }) => ({
+          paddingInline: t2.spacing(2),
+        }),
+        sizeLarge: ({ theme: t2 }: { theme: StyleTheme }) => ({
+          paddingInline: t2.spacing(2.75),
+        }),
       },
     },
 
-    /* ── Superfícies: variantes por NÍVEL da rampa tonal ───────────────────── */
+    /* ── Superfícies: variantes por NÍVEL da rampa tonal ─────────────────────
+     * ONDA 1 (game-foundations): borda de destaque subiu de 1px para 2px —
+     * o traço "game" do leet-code-rpg (border 3px lá; aqui 2px para não
+     * engolir a tinta nas superfícies de leitura). O `selected` ganha o glow
+     * COLORIDO do acento (sombra com a cor, não cinza — style leet). */
     MuiPaper: {
       styleOverrides: {
         root: {
@@ -838,7 +956,7 @@ export const theme = createTheme({
               props: { variant: 'sunken' as const },
               style: ({ theme: t }: { theme: StyleTheme }) => ({
                 backgroundColor: t.vars.palette.surface.level2,
-                border: `1px solid ${t.vars.palette.divider}`,
+                border: `2px solid ${t.vars.palette.divider}`,
                 boxShadow: 'none',
               }),
             },
@@ -846,7 +964,7 @@ export const theme = createTheme({
               props: { variant: 'raised' as const },
               style: ({ theme: t }: { theme: StyleTheme }) => ({
                 backgroundColor: t.vars.palette.surface.level3,
-                border: `1px solid ${t.vars.palette.divider}`,
+                border: `2px solid ${t.vars.palette.divider}`,
                 boxShadow: 'none',
               }),
             },
@@ -854,8 +972,8 @@ export const theme = createTheme({
               props: { variant: 'selected' as const },
               style: ({ theme: t }: { theme: StyleTheme }) => ({
                 backgroundColor: t.vars.palette.surface.level4,
-                border: `1px solid ${t.vars.palette.divider}`,
-                boxShadow: 'none',
+                border: `2px solid ${t.vars.palette.divider}`,
+                boxShadow: `0 4px 16px -4px color-mix(in srgb, ${t.vars.palette.primary.fill} 25%, transparent)`,
               }),
             },
           ],
@@ -867,6 +985,36 @@ export const theme = createTheme({
       defaultProps: {
         // borda em vez de sombra — coerente com elevação por cor.
         variant: 'outlined',
+      },
+      styleOverrides: {
+        root: {
+          // ONDA 1 (game-foundations): cards em rounded-2xl (16px — o raio
+          // base do tema é 14, que vira o piso de botões/inputs) e borda de
+          // destaque 2px (o default outlined do MUI é 1px).
+          borderRadius: 16,
+          borderWidth: 2,
+        },
+      },
+    },
+
+    /* ── Modal: rounded-2xl (16px) no papel do diálogo ─────────────────────── */
+    MuiDialog: {
+      styleOverrides: {
+        paper: {
+          borderRadius: 16,
+        },
+      },
+    },
+
+    /* ── Chips: elemento "game" — borda 2-3px (aqui 2px; o outlined default
+     * do MUI é 1px). Cobre os chips de dificuldade, testes e badges. ──────── */
+    MuiChip: {
+      styleOverrides: {
+        root: {
+          '&.MuiChip-outlined': {
+            borderWidth: 2,
+          },
+        },
       },
     },
 
@@ -901,11 +1049,12 @@ export const theme = createTheme({
       },
     },
 
-    /* ── A variante tipográfica `code` precisa de um elemento próprio ──────── */
+    /* ── As variantes `code` e `pixel` precisam de elemento próprio ────────── */
     MuiTypography: {
       defaultProps: {
         variantMapping: {
           code: 'code',
+          pixel: 'span',
         },
       },
     },

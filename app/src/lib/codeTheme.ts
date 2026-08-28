@@ -30,9 +30,11 @@
  * (mesmo método do `ramp2.py`, rodável: `npx tsx ../docs/ux-redesign/coderamp.ts`).
  *
  * ─── O PISO É MEDIDO CONTRA A SELEÇÃO, NÃO CONTRA O FUNDO ─────────────────
- * Bloco de código é texto de 14px (`TYPE.codeSize`): não existe alívio de
- * "large scale text" (só a partir de 24px regular / 18,67px bold), então TODO
- * token fica preso ao piso cheio de 4,5:1 do SC 1.4.3 — comentário incluído.
+ * Bloco de código é texto de 15px na ONDA 1 (game-foundations — subiu de 14
+ * com o resto da tipografia; `TYPE.codeSize` segue 14 no contrato): não existe
+ * alívio de "large scale text" (só a partir de 24px regular / 18,67px bold),
+ * então TODO token fica preso ao piso cheio de 4,5:1 do SC 1.4.3 — comentário
+ * incluído.
  * E o token não é lido só sobre o fundo: quando o usuário seleciona uma linha
  * ele passa a ser lido sobre a FAIXA DE SELEÇÃO. Por isso a varredura mira o
  * nível 4 (a superfície mais hostil em que o token ainda precisa ser lido), o
@@ -73,7 +75,6 @@ import {
   DIVIDER_LIGHT,
   DIVIDER_DARK,
   FONT_STACK,
-  TYPE,
 } from './designTokens';
 
 /* ─── Vocabulário ─────────────────────────────────────────────────────────── */
@@ -426,11 +427,19 @@ export interface CodeTypography {
   readonly fontSize: string;
 }
 
-/** A tipografia do código. Única, compartilhada, sem polaridade. */
+/** A tipografia do código. Única, compartilhada, sem polaridade.
+ *
+ * ONDA 1 (game-foundations): 14 → 15, junto da variante `code` do tema
+ * (src/theme.ts) — editor e terminal são a TELA que o usuário lê, e o pedido
+ * do dono foi tipografia maior. `TYPE.codeSize` (14) permanece o número do
+ * CONTRATO (calibração de contraste e construtor do xterm não mudam de fonte
+ * de verdade); o valor EFETIVO de renderização mora aqui, com a mesma
+ * estrutura do tema (string com unidade para o CodeMirror, número para o
+ * xterm). */
 export const CODE_TYPOGRAPHY: CodeTypography = {
   fontFamily: FONT_STACK.mono,
-  fontSizePx: TYPE.codeSize,
-  fontSize: `${TYPE.codeSize}px`,
+  fontSizePx: 15,
+  fontSize: '15px',
 } as const;
 
 /**
