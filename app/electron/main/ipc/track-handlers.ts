@@ -201,8 +201,12 @@ export function buildTrackHandlers(deps: TrackHandlerDeps): Map<string, IpcHandl
       typeof r.challengeId === 'string' &&
       typeof r.challengeTitle === 'string' &&
       Array.isArray(r.files) &&
+      // ONDA2-FIX: valida os ITENS — files:[null] passa em Array.isArray mas
+      // quebra buildErrorContextSection (f.path de null) fora do try/catch.
+      r.files.every((f) => typeof f?.path === 'string' && typeof f?.code === 'string') &&
       typeof r.output === 'string' &&
       Array.isArray(r.checks) &&
+      r.checks.every((c) => typeof c?.name === 'string' && typeof c?.passed === 'boolean') &&
       typeof r.passedCount === 'number' &&
       typeof r.totalCount === 'number'
     );

@@ -383,6 +383,29 @@ describe('track:tutor-chat (handler) — propagação do challengeError (ONDA1)'
     assert.ok(!prompt.includes('CONTEXTO DE ERRO'), 'shape inválido é descartado (validação mínima)');
   });
 
+  it("challengeError com ITEM inválido em files/checks (files:[null], checks:[null], files:[{path:1,code:null}]) → descartado, fluxo normal (sem TypeError)", async () => {
+    const dir = await makeTrackDir();
+    const invalidVariants: unknown[] = [
+      { ...CHALLENGE_ERROR, files: [null] },
+      { ...CHALLENGE_ERROR, checks: [null] },
+      { ...CHALLENGE_ERROR, files: [{ path: 1, code: null }] },
+    ];
+    for (const challengeError of invalidVariants) {
+      let prompt = '';
+      const map = buildTrackHandlers({ getTracksDir: () => path.dirname(dir), deepseek: fakeDeepseek((p) => void (prompt = p)) });
+      const result = await call<TutorReply>(map, TRACK_CHANNELS.TUTOR_CHAT, {
+        trackSlug: 'trilha-teste',
+        lessonId: 'aula-1',
+        presentedSections: ['intro'],
+        history: [{ role: 'assistant', content: 'Seção 1...' }, { role: 'user', content: 'achei que era o x' }],
+        action: 'answer',
+        challengeError: challengeError as never,
+      });
+      assert.equal(result.ok, true);
+      assert.ok(!prompt.includes('CONTEXTO DE ERRO'), 'item inválido descarta o relatório (validação dos itens)');
+    }
+  });
+
   it("challengeError com null/undefined → passa como undefined (fluxo normal)", async () => {
     const dir = await makeTrackDir();
     let prompt = '';
