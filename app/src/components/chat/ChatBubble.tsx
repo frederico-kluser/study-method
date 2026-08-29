@@ -193,12 +193,15 @@ export function ChatBubble({
   // Cor da bolha por kind (documentado no cabeçalho — tokens existentes).
   // O motion.div recebe um STYLE PLAIN (sem processamento de sx do MUI), então
   // TODOS os tokens são resolvidos via theme.vars ANTES (o mesmo padrão dos
-  // tints abaixo). O tint de review usa color-mix sobre as referências var()
-  // do TEMA — o `alpha()` do MUI v9 LANÇA erro com CSS var (MUI error #9),
-  // então o tint é composto direto em CSS (color-mix resolve por esquema —
-  // sem ternário de cor no JS). A review de APROVAÇÃO usa o MESMO padrão com
-  // success.main (ONDA2-CHAT-NINTENDO — hoje não existe no chat; o contrato
-  // suporta).
+  // tints abaixo) e as chaves usam o vocabulário CSS REAL (`backgroundColor`,
+  // não o açúcar `bgcolor` do sx — num style object do React uma chave
+  // desconhecida é SILENCIOSAMENTE descartada, o que deixava o fundo do balão
+  // transparente; FIX cor-baloes). O tint de review usa color-mix sobre as
+  // referências var() do TEMA — o `alpha()` do MUI v9 LANÇA erro com CSS var
+  // (MUI error #9), então o tint é composto direto em CSS (color-mix resolve
+  // por esquema — sem ternário de cor no JS). A review de APROVAÇÃO usa o
+  // MESMO padrão com success.main (ONDA2-CHAT-NINTENDO — hoje não existe no
+  // chat; o contrato suporta).
   const primaryMain = theme.vars.palette.primary.main;
   const primaryContrast = theme.vars.palette.primary.contrastText;
   const secondaryMain = theme.vars.palette.secondary.main;
@@ -209,23 +212,23 @@ export function ChatBubble({
   const textPrimary = theme.vars.palette.text.primary;
   const divider = theme.vars.palette.divider;
   const bubbleStyle = isUser
-    ? { bgcolor: primaryMain, color: primaryContrast, border: 'none' }
+    ? { backgroundColor: primaryMain, color: primaryContrast, border: 'none' }
     : isReply
-      ? { bgcolor: secondaryMain, color: secondaryContrast, border: 'none' }
+      ? { backgroundColor: secondaryMain, color: secondaryContrast, border: 'none' }
       : isApprovedReview
         ? {
-            bgcolor: `color-mix(in srgb, ${successMain} 10%, ${surfacePaper})`,
+            backgroundColor: `color-mix(in srgb, ${successMain} 10%, ${surfacePaper})`,
             color: textPrimary,
             border: `1px solid color-mix(in srgb, ${successMain} 28%, ${surfacePaper})`,
           }
         : isReview
           ? {
-              bgcolor: `color-mix(in srgb, ${errorMain} 10%, ${surfacePaper})`,
+              backgroundColor: `color-mix(in srgb, ${errorMain} 10%, ${surfacePaper})`,
               color: textPrimary,
               border: `1px solid color-mix(in srgb, ${errorMain} 28%, ${surfacePaper})`,
             }
           : {
-              bgcolor: surfacePaper,
+              backgroundColor: surfacePaper,
               color: textPrimary,
               border: `1px solid ${divider}`,
             };
@@ -265,7 +268,7 @@ export function ChatBubble({
           alignItems: alignRight ? 'flex-end' : 'flex-start',
         }}
       >
-        <Typography variant="caption" color="text.secondary" sx={{ px: 0.5 }}>
+        <Typography variant="caption" color="textSecondary" sx={{ px: 0.5 }}>
           {authorName}
         </Typography>
         <motion.div
