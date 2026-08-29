@@ -4,17 +4,11 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="plannotator-theme" content="host">
-<title>EXPLAINER — O run.sh quebrou: conserto e verificação</title>
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%235537eb'/%3E%3Cpath d='M18 34l10 10 18-20' fill='none' stroke='%23ffffff' stroke-width='6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<title>O chat da aula: a cor que sumiu e os desafios que mudaram de lugar</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%235537eb'/%3E%3Cpath d='M18 22h28a4 4 0 0 1 4 4v16a4 4 0 0 1-4 4H32l-8 8v-8h-6a4 4 0 0 1-4-4V26a4 4 0 0 1 4-4z' fill='%23ffffff'/%3E%3Ccircle cx='26' cy='34' r='2.6' fill='%235537eb'/%3E%3Ccircle cx='32' cy='34' r='2.6' fill='%235537eb'/%3E%3Ccircle cx='38' cy='34' r='2.6' fill='%235537eb'/%3E%3C/svg%3E">
 <style>
-  /* ============ TOKENS DE TEMA (Plannotator) ============ */
+  /* ============ TEMA (tokens do Plannotator) ============ */
   :root {
-    color-scheme: light dark;
-
-    /* Surfaces */
     --background: oklch(0.97 0.005 260);
     --foreground: oklch(0.18 0.02 260);
     --card: oklch(1 0 0);
@@ -22,27 +16,23 @@
     --muted: oklch(0.92 0.01 260);
     --muted-foreground: oklch(0.40 0.02 260);
 
-    /* Accents */
     --primary: oklch(0.50 0.25 280);
     --primary-foreground: oklch(1 0 0);
     --secondary: oklch(0.50 0.18 180);
     --accent: oklch(0.60 0.22 50);
     --accent-foreground: oklch(0.18 0.02 260);
 
-    /* Semantic */
     --destructive: oklch(0.50 0.25 25);
     --success: oklch(0.45 0.20 150);
     --warning: oklch(0.55 0.18 85);
 
-    /* Structure */
     --border: oklch(0.88 0.01 260);
     --code-bg: oklch(0.92 0.01 260);
     --ring: oklch(0.50 0.25 280);
     --radius: 0.625rem;
 
-    /* Typography */
     --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
-    --font-mono: 'JetBrains Mono', 'Fira Code', ui-monospace, monospace;
+    --font-mono: 'JetBrains Mono', 'Fira Code', ui-monospace, 'SF Mono', Consolas, monospace;
     --font-display: ui-serif, Georgia, 'Times New Roman', serif;
   }
 
@@ -65,7 +55,7 @@
     }
   }
 
-  /* ============ RESET + BASE ============ */
+  /* ============ BASE ============ */
   * { margin: 0; padding: 0; box-sizing: border-box; }
 
   body {
@@ -73,36 +63,64 @@
     color: var(--foreground);
     font-family: var(--font-sans);
     line-height: 1.65;
-    padding: 0 0 64px;
+    padding: 48px 24px 64px;
+    min-height: 100vh;
   }
 
-  .container { max-width: 1000px; margin: 0 auto; padding: 0 28px; }
+  .container {
+    max-width: 1080px;
+    margin: 0 auto;
+  }
 
-  code, .mono { font-family: var(--font-mono); }
+  h1, h2, h3 {
+    text-wrap: balance;
+  }
 
-  p code, li code, td code {
+  h1 {
+    font-family: var(--font-display);
+    font-size: clamp(30px, 4.2vw, 46px);
+    font-weight: 600;
+    line-height: 1.15;
+    letter-spacing: -0.01em;
+    margin: 10px 0 6px;
+  }
+
+  h2 {
+    font-family: var(--font-display);
+    font-size: clamp(22px, 2.6vw, 28px);
+    font-weight: 600;
+    margin: 0 0 6px;
+    line-height: 1.25;
+  }
+
+  h3 {
+    font-size: 16px;
+    font-weight: 600;
+    margin: 0 0 6px;
+  }
+
+  p { max-width: 72ch; }
+  p + p { margin-top: 12px; }
+
+  code {
     font-family: var(--font-mono);
     font-size: 0.86em;
     background: var(--code-bg);
     border: 1px solid var(--border);
-    border-radius: 4px;
+    border-radius: 5px;
     padding: 1px 5px;
-    overflow-wrap: break-word;
   }
+
+  strong { font-weight: 650; }
 
   a { color: var(--primary); }
-  a:focus-visible, button:focus-visible, summary:focus-visible {
-    outline: 2px solid var(--ring);
-    outline-offset: 2px;
-    border-radius: 4px;
-  }
 
-  /* ============ ANIMAÇÃO (discreta, respeita reduced-motion) ============ */
+  /* ============ ANIMACAO ============ */
   @keyframes fadeUp {
-    from { opacity: 0; transform: translateY(10px); }
+    from { opacity: 0; transform: translateY(12px); }
     to { opacity: 1; transform: translateY(0); }
   }
-  .animate { animation: fadeUp 0.35s ease-out both; animation-delay: calc(var(--i, 0) * 0.05s); }
+  .animate { animation: fadeUp 0.4s ease-out both; animation-delay: calc(var(--i, 0) * 0.06s); }
   @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after {
       animation-duration: 0.01ms !important;
@@ -112,167 +130,223 @@
   }
 
   /* ============ HEADER ============ */
-  header { padding: 56px 0 28px; }
-
   .eyebrow {
     font-family: var(--font-mono);
     font-size: 12px;
-    font-weight: 500;
-    letter-spacing: 3px;
+    letter-spacing: 0.12em;
     text-transform: uppercase;
-    color: var(--primary);
-    margin-bottom: 14px;
-  }
-
-  h1 {
-    font-family: var(--font-display);
-    font-size: 42px;
-    line-height: 1.12;
-    font-weight: 600;
-    letter-spacing: -0.5px;
-    text-wrap: balance;
-    margin-bottom: 10px;
+    color: var(--muted-foreground);
   }
 
   .subtitle {
     font-family: var(--font-mono);
     font-size: 13px;
     color: var(--muted-foreground);
-    margin-bottom: 20px;
+    margin: 10px 0 28px;
   }
 
-  .meta-row { display: flex; flex-wrap: wrap; gap: 8px; }
-  .meta-pill {
-    border: 1px solid var(--border);
-    background: var(--card);
-    border-radius: 999px;
-    padding: 4px 12px;
-    font-family: var(--font-mono);
-    font-size: 12px;
-    color: var(--muted-foreground);
-  }
-  .meta-pill strong { color: var(--foreground); font-weight: 600; }
-
-  /* ============ RESPOSTA (a primeira coisa visível responde o título) ============ */
-  .answer-card {
-    background: color-mix(in oklab, var(--primary) 5%, var(--card));
-    border: 1.5px solid var(--primary);
-    border-radius: var(--radius);
-    box-shadow: 0 4px 24px color-mix(in oklab, var(--primary) 10%, transparent);
-    padding: 24px 26px;
-    margin: 18px 0 10px;
-  }
-  .answer-card .lead { font-family: var(--font-display); font-size: 19px; line-height: 1.55; color: var(--card-foreground); }
-  .answer-card .lead strong { color: var(--primary); font-weight: 600; }
-
-  .reader-note {
-    font-family: var(--font-mono);
-    font-size: 12px;
-    color: var(--muted-foreground);
-    margin: 12px 2px 4px;
-  }
-  .reader-note strong { color: var(--foreground); }
-
-  /* ============ KPI CARDS ============ */
-  .kpi-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
-    gap: 12px;
-    margin: 18px 0 6px;
-  }
-  .kpi-card {
+  .prompt-box {
     background: var(--card);
     border: 1.5px solid var(--border);
+    border-left: 4px solid var(--accent);
     border-radius: var(--radius);
-    padding: 14px 16px;
-    min-width: 0;
-  }
-  .kpi-card .kpi-num {
-    font-family: var(--font-mono);
-    font-size: 24px;
-    font-weight: 600;
-    color: var(--primary);
-    font-variant-numeric: tabular-nums;
-    line-height: 1.2;
-    overflow-wrap: break-word;
-  }
-  .kpi-card .kpi-num .from { color: var(--destructive); text-decoration: line-through; }
-  .kpi-card .kpi-label { font-size: 12.5px; color: var(--muted-foreground); margin-top: 4px; }
-
-  /* ============ LEGENDA DOS DIAGRAMAS ============ */
-  .legend-note {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 18px;
-    font-family: var(--font-mono);
-    font-size: 11.5px;
+    padding: 18px 22px;
+    margin: 22px 0 8px;
+    font-size: 15px;
     color: var(--muted-foreground);
-    padding: 8px 2px 2px;
+  }
+  .prompt-box .prompt-label {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--accent);
+    display: block;
     margin-bottom: 6px;
   }
-  .legend-item { display: inline-flex; align-items: center; gap: 6px; }
-  .legend-swatch { width: 12px; height: 12px; border-radius: 3px; flex: none; }
-  .legend-swatch--red { background: #dc2626; }
-  .legend-swatch--green { background: #16a34a; }
-  .legend-swatch--purple { background: #5537eb; }
-  .legend-swatch--dash { background: transparent; border: 0; width: 22px; border-top: 2px dashed var(--muted-foreground); }
+  .prompt-box .prompt-text {
+    color: var(--card-foreground);
+    font-style: italic;
+  }
 
-  /* ============ SEÇÕES ============ */
-  section { margin: 44px 0 0; }
+  /* ============ TL;DR ============ */
+  .tldr {
+    background: var(--card);
+    border: 1.5px solid var(--border);
+    border-left: 4px solid var(--primary);
+    border-radius: var(--radius);
+    padding: 22px 26px;
+    margin: 34px 0 10px;
+    font-size: 16.5px;
+    line-height: 1.6;
+  }
+  .tldr .tldr-label {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--primary);
+    display: block;
+    margin-bottom: 8px;
+  }
 
-  h2 {
-    font-family: var(--font-display);
-    font-size: 28px;
-    font-weight: 600;
-    letter-spacing: -0.3px;
-    text-wrap: balance;
+  /* ============ SECOES ============ */
+  .section { margin-top: 56px; }
+
+  .section-head {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
     margin-bottom: 14px;
   }
-  .sec-num {
+  .section-num {
     font-family: var(--font-mono);
-    font-size: 14px;
-    font-weight: 500;
+    font-size: 13px;
     color: var(--primary);
-    margin-right: 10px;
-    vertical-align: 4px;
+    letter-spacing: 0.05em;
+  }
+  .section-lead {
+    color: var(--muted-foreground);
+    font-size: 15.5px;
+    margin-bottom: 18px;
   }
 
-  h3 { font-size: 17px; font-weight: 600; margin: 22px 0 8px; }
-
-  .prose { max-width: 68ch; }
-  .prose p { margin-bottom: 12px; }
-  .prose ul, .prose ol { margin: 0 0 14px 22px; }
-  .prose li { margin-bottom: 6px; }
-  .prose strong { font-weight: 600; }
-
-  .signal {
-    background: color-mix(in oklab, var(--warning) 8%, var(--card));
-    border: 1.5px solid color-mix(in oklab, var(--warning) 55%, transparent);
-    border-left: 4px solid var(--warning);
-    border-radius: var(--radius);
-    padding: 14px 18px;
-    margin: 16px 0;
-    font-size: 14.5px;
-    max-width: 72ch;
-  }
-  .signal strong { color: var(--foreground); }
-
+  /* ============ CARDS ============ */
   .ve-card {
     background: var(--card);
     border: 1.5px solid var(--border);
     border-radius: var(--radius);
-    padding: 18px 20px;
-    margin: 16px 0;
-    max-width: 72ch;
+    padding: 20px 22px;
   }
   .ve-card--recessed {
     background: var(--muted);
     border-color: transparent;
   }
 
-  /* ============ FIGURAS (diagram-shell canônico) ============ */
-  .fig { margin: 26px 0 8px; }
+  .grid-3 {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 16px;
+    margin: 18px 0;
+  }
+  .grid-2 {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 16px;
+    margin: 18px 0;
+  }
 
+  .term-card h3 {
+    font-family: var(--font-mono);
+    font-size: 13.5px;
+    letter-spacing: 0.02em;
+    color: var(--primary);
+  }
+  .term-card p { font-size: 14.5px; color: var(--card-foreground); }
+
+  /* ============ KPI ============ */
+  .kpi-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 14px;
+    margin: 18px 0;
+  }
+  .kpi-card {
+    background: var(--card);
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px 18px;
+  }
+  .kpi-value {
+    font-family: var(--font-display);
+    font-size: 30px;
+    font-weight: 600;
+    line-height: 1.1;
+    color: var(--primary);
+    font-variant-numeric: tabular-nums;
+  }
+  .kpi-label {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--muted-foreground);
+    margin-top: 4px;
+  }
+
+  /* ============ TABELAS ============ */
+  .table-wrap { overflow-x: auto; margin: 18px 0; }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    background: var(--card);
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius);
+    font-size: 14.5px;
+    min-width: 560px;
+  }
+  thead th {
+    font-family: var(--font-mono);
+    font-size: 11.5px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    text-align: left;
+    color: var(--muted-foreground);
+    padding: 12px 16px;
+    border-bottom: 1.5px solid var(--border);
+  }
+  tbody td {
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+    color: var(--card-foreground);
+  }
+  tbody tr:last-child td { border-bottom: none; }
+  tbody tr:hover { background: var(--muted); }
+
+  .verdict-chip {
+    display: inline-block;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    padding: 3px 9px;
+    border-radius: 999px;
+    white-space: nowrap;
+  }
+  .chip-ok { background: color-mix(in oklab, var(--success) 18%, transparent); color: var(--success); }
+  .chip-warn { background: color-mix(in oklab, var(--warning) 18%, transparent); color: var(--warning); }
+  .chip-bad { background: color-mix(in oklab, var(--destructive) 15%, transparent); color: var(--destructive); }
+
+  /* ============ SWATCHES DE COR ============ */
+  .swatch {
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    border-radius: 4px;
+    border: 1px solid var(--border);
+    vertical-align: -2px;
+    margin-right: 6px;
+  }
+
+  /* ============ FIGURAS ============ */
+  figure { margin: 22px 0 8px; }
+  figcaption {
+    font-size: 14.5px;
+    line-height: 1.55;
+    color: var(--card-foreground);
+    background: var(--muted);
+    border-radius: var(--radius);
+    padding: 14px 18px;
+    margin-top: 14px;
+  }
+  figcaption .fig-claim {
+    font-weight: 650;
+    color: var(--foreground);
+  }
+
+  /* ============ SHELL DO MERMAID (padrao canonico) ============ */
   .diagram-shell { position: relative; }
   .diagram-shell__hint {
     font-family: var(--font-mono);
@@ -281,22 +355,21 @@
     margin-bottom: 8px;
     opacity: 0.75;
   }
-
   .mermaid-wrap {
     position: relative;
     background: var(--card);
     border: 1.5px solid var(--border);
     border-radius: 12px;
-    padding: 30px 22px;
+    padding: 32px 24px;
     overflow: auto;
+    margin-bottom: 0;
     display: flex;
     justify-content: center;
     align-items: center;
-    min-height: 380px;
-    cursor: grab;
+    min-height: 400px;
   }
+  .mermaid-wrap { cursor: grab; }
   .mermaid-wrap.is-panning { cursor: grabbing; user-select: none; }
-
   .zoom-controls {
     position: absolute;
     top: 8px;
@@ -324,8 +397,15 @@
     justify-content: center;
     transition: background 0.15s ease, color 0.15s ease;
   }
-  .zoom-controls button:hover { background: var(--muted); color: var(--foreground); }
-
+  .zoom-controls button:hover {
+    background: var(--border);
+    color: var(--foreground);
+  }
+  .zoom-controls button:focus-visible,
+  .zoom-controls button:focus {
+    outline: 2px solid var(--ring);
+    outline-offset: 1px;
+  }
   .mermaid-viewport {
     position: relative;
     overflow: hidden;
@@ -334,147 +414,88 @@
     min-height: 300px;
   }
   .mermaid-canvas { position: absolute; top: 0; left: 0; }
-
   .zoom-label {
     font-family: var(--font-mono);
     font-size: 10px;
     color: var(--muted-foreground);
     padding: 0 6px;
     white-space: nowrap;
+    line-height: 28px;
   }
-
   .mermaid .nodeLabel { font-family: var(--font-sans) !important; font-size: 15px !important; }
   .mermaid .edgeLabel { font-family: var(--font-mono) !important; font-size: 12px !important; }
   .mermaid .node rect,
   .mermaid .node circle,
   .mermaid .node polygon { stroke-width: 1.5px !important; }
+  .mermaid .edge-pattern-solid { stroke-width: 1.5px !important; }
 
-  /* O Mermaid deriva color de primaryTextColor (branca no tema claro) e aplica
-     em "#id .label span" — rótulos de aresta ficariam brancos no fundo claro.
-     Este override re-fixa a cor do rótulo de aresta por paleta. */
-  :root { --mermaid-edge-label: #414853; }
-  @media (prefers-color-scheme: dark) { :root { --mermaid-edge-label: #dadee5; } }
-  .diagram-shell .mermaid-canvas g.edgeLabel,
-  .diagram-shell .mermaid-canvas g.edgeLabel div,
-  .diagram-shell .mermaid-canvas g.edgeLabel p,
-  .diagram-shell .mermaid-canvas g.edgeLabel span {
-    color: var(--mermaid-edge-label) !important;
-  }
-  .diagram-shell .mermaid-canvas g.edgeLabel span { fill: var(--mermaid-edge-label) !important; }
-
-  .fig figcaption {
-    font-size: 13.5px;
-    color: var(--muted-foreground);
-    margin-top: 10px;
-    padding-left: 12px;
-    border-left: 3px solid var(--primary);
-    max-width: 72ch;
-  }
-  .fig figcaption strong { color: var(--foreground); font-weight: 600; }
-
-  /* ============ ANDAIME DOBRADO (<details>) ============ */
-  details { margin: 14px 0; max-width: 72ch; }
-  details > summary {
-    cursor: pointer;
-    font-family: var(--font-mono);
-    font-size: 13px;
-    font-weight: 500;
-    color: var(--primary);
-    list-style-position: outside;
-    margin-left: 2px;
-  }
-  details > summary:hover { text-decoration: underline; }
-  .details-body {
-    margin-top: 12px;
-    padding: 16px 18px;
-    background: var(--muted);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    font-size: 14px;
-  }
-  .details-body p { margin-bottom: 10px; }
-  .details-body ul { margin: 0 0 8px 20px; }
-  .details-body li { margin-bottom: 5px; }
-
-  /* ============ CÓDIGO ============ */
-  .code-block {
-    background: var(--code-bg);
-    border: 1.5px solid var(--border);
-    border-radius: var(--radius);
-    font-family: var(--font-mono);
-    font-size: 12.5px;
-    line-height: 1.6;
-    color: var(--foreground);
-    padding: 14px 16px;
-    overflow-x: auto;
-    margin: 10px 0;
-  }
-  .code-block .kw  { color: var(--primary); }
-  .code-block .fn  { color: var(--accent); }
-  .code-block .str { color: var(--success); }
-  .code-block .cm  { color: var(--muted-foreground); font-style: italic; }
-  .note { font-size: 12px; color: var(--muted-foreground); font-style: italic; }
-
-  /* ============ TIMELINE (como a execução se organizou) ============ */
-  .timeline { position: relative; padding-left: 30px; margin: 20px 0 6px; max-width: 72ch; }
-  .timeline::before {
-    content: '';
-    position: absolute;
-    left: 9px; top: 6px; bottom: 6px;
-    width: 2px;
-    background: var(--border);
-  }
-  .tl-item { position: relative; margin-bottom: 20px; }
-  .tl-item::before {
-    content: '';
-    position: absolute;
-    left: -27px; top: 5px;
-    width: 12px; height: 12px;
-    border-radius: 50%;
-    background: var(--primary);
-    border: 2px solid var(--card);
-  }
-  .tl-item h4 { font-size: 14.5px; font-weight: 600; margin-bottom: 3px; }
-  .tl-item .tl-meta { font-family: var(--font-mono); font-size: 11.5px; color: var(--muted-foreground); margin-bottom: 4px; }
-  .tl-item p { font-size: 13.5px; color: var(--muted-foreground); }
-
-  /* ============ TABELA (glossário) ============ */
-  .table-wrap {
-    overflow-x: auto;
-    border: 1.5px solid var(--border);
-    border-radius: var(--radius);
-    margin: 14px 0;
-  }
-  table { width: 100%; border-collapse: collapse; font-size: 13.5px; min-width: 520px; }
-  th, td { text-align: left; padding: 8px 12px; border-bottom: 1px solid var(--border); vertical-align: top; }
-  tr:last-child th, tr:last-child td { border-bottom: none; }
-  th {
+  /* ============ LEGENDA ============ */
+  .legend { display: flex; gap: 20px; flex-wrap: wrap; margin-top: 12px; }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
     font-family: var(--font-mono);
     font-size: 11px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 1px;
     color: var(--muted-foreground);
-    background: var(--muted);
   }
-  td code { background: transparent; border: none; padding: 0; color: var(--primary); }
+  .legend-swatch { width: 12px; height: 12px; border-radius: 3px; }
+
+  /* ============ CALLOUT / SINALIZACAO ============ */
+  .callout {
+    background: var(--card);
+    border: 1.5px solid var(--border);
+    border-left: 4px solid var(--primary);
+    border-radius: 0 var(--radius) var(--radius) 0;
+    padding: 16px 20px;
+    font-size: 14.5px;
+    line-height: 1.6;
+    color: var(--muted-foreground);
+    margin: 20px 0;
+  }
+  .callout strong { color: var(--foreground); }
+  .callout--warn { border-left-color: var(--warning); }
+  .callout--warn strong { color: var(--warning); }
+  .callout--ok { border-left-color: var(--success); }
+  .callout--ok strong { color: var(--success); }
+
+  /* ============ ANDAIME DOBRADO ============ */
+  details.scaffold {
+    background: var(--card);
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px 20px;
+    margin: 18px 0;
+  }
+  details.scaffold summary {
+    cursor: pointer;
+    font-weight: 650;
+    font-size: 14.5px;
+    color: var(--foreground);
+    list-style-position: outside;
+  }
+  details.scaffold summary::marker { color: var(--primary); }
+  details.scaffold[open] summary { margin-bottom: 12px; }
+  details.scaffold .scaffold-body { font-size: 14.5px; color: var(--muted-foreground); }
+  details.scaffold .scaffold-body p + p { margin-top: 10px; }
+  details.scaffold code { background: var(--code-bg); }
+
+  .verdict-table td { font-family: var(--font-mono); font-size: 13px; }
 
   /* ============ FOOTER ============ */
   footer {
-    margin-top: 56px;
-    padding-top: 18px;
-    border-top: 1px solid var(--border);
-    font-size: 12.5px;
+    margin-top: 64px;
+    padding-top: 24px;
+    border-top: 1.5px solid var(--border);
+    font-size: 13px;
     color: var(--muted-foreground);
-    max-width: 72ch;
+    line-height: 1.7;
   }
 
-  /* ============ RESPONSIVE ============ */
+  /* ============ RESPONSIVO ============ */
   @media (max-width: 768px) {
-    .container { padding: 0 16px; }
-    h1 { font-size: 28px; }
-    h2 { font-size: 22px; }
-    .mermaid-wrap { padding: 24px 12px; }
+    body { padding: 24px 14px 40px; }
+    .mermaid-wrap { padding: 16px 12px; }
   }
 </style>
 </head>
@@ -482,547 +503,420 @@
 
 <div class="container">
 
-  <!-- ================= HEADER ================= -->
+  <!-- ============ HEADER ============ -->
   <header class="animate" style="--i:0">
-    <p class="eyebrow">Explainer didático · Execução 2026-08-28 · study-method</p>
-    <h1>O run.sh do study-method quebrou. Aqui está o que quebrou, como foi consertado e como se provou que ficou bom.</h1>
-    <p class="subtitle">branch main · commits 6538714 (ONDA 1) e da220ca (testes) · 8 arquivos · +12/−23 · app Electron + React</p>
-    <div class="meta-row">
-      <span class="meta-pill">sintoma 1: <strong>dev server com erro fatal</strong></span>
-      <span class="meta-pill">sintoma 2: <strong>7 avisos no build</strong></span>
-      <span class="meta-pill">conserto: <strong>npm ci + imports estáticos</strong></span>
-      <span class="meta-pill">verificação: <strong>1937 testes · gate verde</strong></span>
+    <p class="eyebrow">Execução de 2026-08-28 &middot; UX do chat da aula</p>
+    <h1>Por que os balões do chat perderam a cor &mdash; e para onde foram os desafios</h1>
+    <p class="subtitle">Explicação didática &middot; leitor misto (escrito para novato, com dobradura para experiente pular) &middot; pt-BR</p>
+
+    <div class="prompt-box">
+      <span class="prompt-label">O pedido do dono</span>
+      <span class="prompt-text">&ldquo;os textos dos baloes perderam a cor correta, nao quero aqueles desafios ali e sem em outro local que aciono eles atrapalham ficando entre o texto e o Input &mdash; analise e pense muito sobre UX e arrume isso&rdquo;</span>
+    </div>
+
+    <div class="tldr">
+      <span class="tldr-label">Resposta em uma frase</span>
+      Dois defeitos de UX do chat da aula foram corrigidos. Primeiro: os balões (as bolhas com as mensagens do tutor e do aluno) tinham perdido o fundo &mdash; uma chave de estilo desconhecida pelo React foi <strong>descartada em silêncio</strong> (ignorada sem erro nem aviso) e o balão ficava transparente. Segundo: a lista de desafios saiu de dentro do fluxo chat &rarr; input e virou um botão &ldquo;Desafios&rdquo; no cabeçalho com <strong>popover</strong> (pequena janela flutuante) &mdash; o input de mensagem ficou sempre visível. Tudo verificado: 1938 testes verdes e e2e completo com 28 passed.
     </div>
   </header>
 
-  <!-- ================= RESPOSTA EM UMA FRASE ================= -->
-  <section class="answer-card animate" style="--i:1">
-    <p class="lead">
-      O <strong>run.sh</strong> (o script que sobe o app de uma vez: dev server + build) voltou a funcionar.
-      Dois problemas foram consertados: faltavam dependências no <strong>node_modules</strong> (a pasta onde
-      ficam as bibliotecas instaladas) — declaradas no <strong>package.json</strong> (o manifesto que declara
-      as dependências do projeto) desde o commit f5f2c7f, mas nunca instaladas neste checkout — e o
-      <strong>build do main</strong> (a geração dos arquivos finais do app) reclamava de 22
-      <strong>imports dinâmicos</strong> (declarações que trazem um módulo de outro arquivo, carregadas só quando
-      o código as chama). O conserto: <strong>npm ci</strong> (instalar seguindo o lockfile — o registro com as
-      versões exatas de cada dependência) e 22 trocas para <strong>import estático</strong> (declarado no topo,
-      resolvido pelo empacotador no build). Resultado: o <strong>dev server</strong> (o servidor local que
-      recarrega o app enquanto se programa) sobe sem erro fatal; o build do main vai de 7 avisos para 0; e o
-      <strong>gate</strong> (a checagem que bloqueia a integração se qualquer passo falhar) fecha verde com
-      25 testes novos — 1937 no total.
-    </p>
+  <!-- ============ 01 CENARIO ============ -->
+  <section class="section animate" style="--i:1" aria-labelledby="sec01">
+    <div class="section-head">
+      <span class="section-num">01</span>
+      <h2 id="sec01">O cenário: a tela de aula</h2>
+    </div>
+    <p class="section-lead">Para entender os dois problemas, basta uma imagem da tela onde eles apareciam.</p>
+
+    <p>A tela de aula (a <code>LessonView</code>) tem um chat: o tutor responde em <strong>balões</strong> (as bolhas coloridas das mensagens), o aluno escreve no <strong>input</strong> (o campo onde se digita a mensagem) e, em algum lugar da tela, moram os <strong>Desafios da aula</strong> &mdash; exercícios validados por teste que o aluno resolve durante a aula.</p>
+
+    <p>Há também uma trava pedagógica chamada <strong>gating</strong> (a regra que bloqueia uma ação até uma condição ser cumprida): o botão &ldquo;Concluir aula&rdquo; só libera quando os desafios pendentes estão resolvidos. Essa trava importa para a história &mdash; ela voltará no segmento 03.</p>
   </section>
 
-  <div class="kpi-grid animate" style="--i:2">
-    <div class="kpi-card">
-      <div class="kpi-num"><span class="from">7</span> → 0</div>
-      <div class="kpi-label">avisos do build do main (objetivo atingido)</div>
-    </div>
-    <div class="kpi-card">
-      <div class="kpi-num">22 sites · 8 arquivos</div>
-      <div class="kpi-label">de import() dinâmico para import estático · 7 módulos · +12/−23 linhas</div>
-    </div>
-    <div class="kpi-card">
-      <div class="kpi-num">25 testes novos</div>
-      <div class="kpi-label">17 no embeddedLlmService · 8 no e2eStubs</div>
-    </div>
-    <div class="kpi-card">
-      <div class="kpi-num">1937 testes</div>
-      <div class="kpi-label">1935 pass · 2 skipped pré-existentes · gate VERDE</div>
-    </div>
-  </div>
-
-  <p class="reader-note">
-    Leitor assumido: <strong>misto</strong> — tratado como novato no ferramental (Electron, empacotadores,
-    testes), com caixas &ldquo;Aprofundar&rdquo; (dobradas) para quem já domina pular.
-  </p>
-
-  <div class="legend-note">
-    <span class="legend-item"><span class="legend-swatch legend-swatch--red"></span> onde o app quebra</span>
-    <span class="legend-item"><span class="legend-swatch legend-swatch--green"></span> resultado verificado</span>
-    <span class="legend-item"><span class="legend-swatch legend-swatch--purple"></span> a área que foi mexida</span>
-    <span class="legend-item"><span class="legend-swatch legend-swatch--dash"></span> o conserto (o que mudou)</span>
-  </div>
-
-  <!-- ================= SEÇÃO 01 ================= -->
-  <section>
-    <h2><span class="sec-num">01</span>O cenário: um app em três camadas, uma só mexida</h2>
-
-    <div class="prose">
-      <p>
-        O study-method é um app de estudo desktop feito com Electron + React. Um app Electron é dividido em
-        três camadas que só funcionam juntas:
-      </p>
-      <ul>
-        <li><strong>processo main</strong> (o backend do app: teclado, voz, busca, IA local) — é onde roda o trabalho pesado;</li>
-        <li><strong>preload</strong> (camada fina que entrega dados do main ao renderer com segurança) — a ponte;</li>
-        <li><strong>renderer</strong> (a janela com a UI React) — o que aparece na tela.</li>
-      </ul>
-      <p>
-        Esta execução mexeu em <strong>um único lugar</strong>: o processo main. Preload e renderer ficaram
-        intactos.
-      </p>
+  <!-- ============ 02 PROBLEMA 1 ============ -->
+  <section class="section animate" style="--i:2" aria-labelledby="sec02">
+    <div class="section-head">
+      <span class="section-num">02</span>
+      <h2 id="sec02">Problema 1 &mdash; a cor sumiu, sem ninguém avisar</h2>
     </div>
 
-    <figure class="fig">
-      <div class="diagram-shell" role="img" aria-label="O app tem três camadas — main, preload e renderer — e a ONDA 1 tocou apenas a do processo main.">
-        <p class="diagram-shell__hint">Ctrl/Cmd + rolagem: zoom · arrastar: mover · duplo clique: ajustar · &#x26F6;: abrir em tamanho real</p>
-        <div class="mermaid-wrap">
-          <div class="zoom-controls">
-            <button type="button" data-action="zoom-in" title="Aproximar">+</button>
-            <button type="button" data-action="zoom-out" title="Afastar">&minus;</button>
-            <button type="button" data-action="zoom-fit" title="Ajustar à tela">&#8634;</button>
-            <button type="button" data-action="zoom-one" title="Zoom 1:1">1:1</button>
-            <button type="button" data-action="zoom-expand" title="Abrir em tamanho real">&#x26F6;</button>
-            <span class="zoom-label">Carregando…</span>
-          </div>
-          <div class="mermaid-viewport">
-            <div class="mermaid mermaid-canvas"></div>
-          </div>
-        </div>
-        <script type="text/plain" class="diagram-source">
-          flowchart TD
-            classDef touched fill:#5537eb,stroke:#5537eb,color:#ffffff,stroke-width:2px
-            A["run.sh"] -->|"sobe o dev server<br/>e o build"| B["processo main<br/>backend do app"]
-            B -->|"altera só estes<br/>na ONDA 1"| C["keys-handlers · localTts-handlers<br/>startup-handlers · braveSearchService<br/>piAuthBridge · e2eStubs<br/>EmbeddedLlmService · localAi-handlers"]
-            B -->|"entrega dados via"| D["preload"]
-            D -->|"expõe com segurança<br/>à"| E["renderer<br/>UI React"]
-            class C touched
-        </script>
+    <p class="section-lead">O pedido dizia que os textos dos balões &ldquo;perderam a cor correta&rdquo;. O diagnóstico encontrou a causa raiz: um detalhe de como o React trata estilos.</p>
+
+    <p>A figura 1 depende de três termos &mdash; vale nomeá-los antes:</p>
+
+    <div class="grid-3">
+      <div class="ve-card term-card">
+        <h3>style object (do React)</h3>
+        <p>O objeto de estilos que o React aplica direto no elemento. Ele só reconhece propriedades CSS de verdade (como <code>backgroundColor</code>) &mdash; qualquer outra chave é <strong>descartada em silêncio</strong>: ignorada sem erro nem aviso.</p>
       </div>
-      <figcaption><strong>Afirmação:</strong> o app tem três camadas — main, preload e renderer — e a ONDA 1 tocou apenas a do processo main.</figcaption>
+      <div class="ve-card term-card">
+        <h3>prop <code>sx</code> (do MUI)</h3>
+        <p>Atalho de estilo do Material UI (a biblioteca de componentes do app). Ele aceita &ldquo;açúcar&rdquo; de sintaxe &mdash; por exemplo, <code>bgcolor</code> vira <code>background-color</code> automaticamente.</p>
+      </div>
+      <div class="ve-card term-card">
+        <h3>regressão</h3>
+        <p>Um comportamento que funcionava e quebrou por causa de uma mudança posterior &mdash; neste caso, o commit d01b34d, que migrou o balão de <code>Box</code> com <code>sx</code> para <code>motion.div</code> (o componente da biblioteca framer-motion, usada para animar elementos) com um style object comum.</p>
+      </div>
+    </div>
+
+    <p>O <code>ChatBubble.tsx</code> escrevia a cor de fundo como <code>bgcolor</code> &mdash; açúcar válido na prop <code>sx</code>. Na migração, a chave foi mantida, mas o contexto mudou: num style object do React, <code>bgcolor</code> não é uma propriedade CSS conhecida. O React a descarta em silêncio, e o resultado é que <strong>todos</strong> os balões renderizaram com fundo transparente &mdash; as mensagens do usuário e do tutor ficaram ilegíveis nos dois temas (claro e escuro), com o texto de contraste se misturando ao painel.</p>
+
+    <figure class="diagram-shell" role="img" aria-label="A chave bgcolor é açúcar do sx do MUI; num style object do React ela é desconhecida e some em silêncio — o balão perde o fundo sem nenhum erro.">
+      <p class="diagram-shell__hint">Ctrl/Cmd + roda do mouse para zoom. Scroll para pan. Arrastar para pan quando com zoom. Duplo clique para encaixar.</p>
+      <div class="mermaid-wrap">
+        <div class="zoom-controls">
+          <button type="button" data-action="zoom-in" title="Zoom in">+</button>
+          <button type="button" data-action="zoom-out" title="Zoom out">&minus;</button>
+          <button type="button" data-action="zoom-fit" title="Encaixar">&#8634;</button>
+          <button type="button" data-action="zoom-one" title="1:1">1:1</button>
+          <button type="button" data-action="zoom-expand" title="Abrir em tamanho cheio">&#x26F6;</button>
+          <span class="zoom-label">Carregando&hellip;</span>
+        </div>
+        <div class="mermaid-viewport">
+          <div class="mermaid mermaid-canvas"></div>
+        </div>
+      </div>
+      <script type="text/plain" class="diagram-source">
+flowchart TD
+  %%CRTDEF%%
+  A["Antes: Box com prop sx"] -->|"aceita o açúcar bgcolor"| B["Balão com fundo"]
+  C["Depois: motion.div com style object"] -->|"React lê a chave bgcolor"| D{"bgcolor é uma<br/>propriedade CSS válida?"}
+  D -->|"não — o CSS usa background-color"| E["Chave descartada<br/>em silêncio"]
+  E -->|"renderiza"| F["Balão sem fundo:<br/>texto sobre o painel"]
+  D -->|"sim"| B
+  class E,F crt
+      </script>
+      <figcaption><span class="fig-claim">A chave <code>bgcolor</code> é açúcar do <code>sx</code>; num style object do React ela é desconhecida e some em silêncio</span> &mdash; por isso o balão perdeu o fundo sem nenhum erro.</figcaption>
     </figure>
 
-    <details>
-      <summary>Aprofundar: por que um app desktop tem três camadas?</summary>
-      <div class="details-body">
-        <p>Pense num restaurante: a <strong>cozinha</strong> é o processo main (prepara tudo: banco de dados,
-        arquivos, serviços do sistema), o <strong>salão</strong> é o renderer (a UI que a pessoa vê) e o
-        <strong>garçom</strong> é o preload (leva o pedido do salão à cozinha e traz o prato de volta — sem
-        deixar o cliente entrar na cozinha). Essa separação existe por segurança: o renderer é o que recebe
-        conteúdo de fora, e o preload controla o que ele consegue pedir.</p>
-      </div>
-    </details>
-  </section>
-
-  <!-- ================= SEÇÃO 02 ================= -->
-  <section>
-    <h2><span class="sec-num">02</span>Sintoma 1: o dev server morria no primeiro import</h2>
-
-    <div class="prose">
-      <p>
-        O run.sh começa subindo o <strong>dev server</strong> — o <strong>vite</strong> (o dev server e o
-        empacotador do frontend). Ao iniciar, o vite precisa <em>resolver os imports</em> — as declarações que
-        trazem um módulo de outro arquivo para o código — de duas dependências: <code>@fontsource/chakra-petch/400.css</code>
-        e <code>motion/react</code>. O <code>package.json</code> as declara desde o commit f5f2c7f, mas o
-        <code>node_modules</code> deste checkout não as tinha: <strong>ninguém tinha rodado a instalação</strong>.
-      </p>
-      <div class="signal">
-        <strong>O ponto exato da quebra:</strong> o nó vermelho da figura — o <code>node_modules</code>
-        desatualizado. O dev server <em>não instala nada sozinho</em>: ele só procura, não acha e aborta com
-        o erro fatal <code>Failed to resolve import</code>.
-      </div>
+    <div class="legend">
+      <div class="legend-item"><div class="legend-swatch" style="background:var(--primary)"></div> Caminho do bug</div>
+      <div class="legend-item"><div class="legend-swatch" style="background:var(--warning)"></div> Ponto crítico</div>
+      <div class="legend-item"><div class="legend-swatch" style="background:var(--success)"></div> Caminho que funcionava</div>
     </div>
 
-    <figure class="fig">
-      <div class="diagram-shell" role="img" aria-label="O dev server abortava antes de abrir o app: as dependências declaradas no package.json nunca foram instaladas neste checkout.">
-        <p class="diagram-shell__hint">Ctrl/Cmd + rolagem: zoom · arrastar: mover · duplo clique: ajustar · &#x26F6;: abrir em tamanho real</p>
-        <div class="mermaid-wrap">
-          <div class="zoom-controls">
-            <button type="button" data-action="zoom-in" title="Aproximar">+</button>
-            <button type="button" data-action="zoom-out" title="Afastar">&minus;</button>
-            <button type="button" data-action="zoom-fit" title="Ajustar à tela">&#8634;</button>
-            <button type="button" data-action="zoom-one" title="Zoom 1:1">1:1</button>
-            <button type="button" data-action="zoom-expand" title="Abrir em tamanho real">&#x26F6;</button>
-            <span class="zoom-label">Carregando…</span>
-          </div>
-          <div class="mermaid-viewport">
-            <div class="mermaid mermaid-canvas"></div>
-          </div>
-        </div>
-        <script type="text/plain" class="diagram-source">
-          flowchart TD
-            classDef critical fill:#dc2626,stroke:#991b1b,color:#ffffff,stroke-width:2px
-            A["run.sh<br/>inicia o app"] -->|"sobe"| B["dev server (vite)<br/>resolve os imports"]
-            B -->|"procura em"| C["node_modules<br/>desatualizado"]
-            D["package.json<br/>declara desde f5f2c7f:<br/>@fontsource/chakra-petch<br/>motion/react"] -.->|"mas ninguém instalou<br/>neste checkout"| C
-            C -->|"não encontra<br/>e aborta"| E["erro fatal:<br/>Failed to resolve import"]
-            E -->|"impede"| F["app não abre"]
-            class C,E critical
-        </script>
-      </div>
-      <figcaption><strong>Afirmação:</strong> o dev server abortava antes de abrir o app — as dependências declaradas no package.json desde f5f2c7f nunca tinham sido instaladas neste checkout.</figcaption>
-    </figure>
-
-    <details>
-      <summary>Aprofundar: o que o npm ci fez de diferente?</summary>
-      <div class="details-body">
-        <p>
-          O <code>npm ci</code> é a instalação <em>determinística</em>: em vez de resolver versões de novo,
-          ele instala exatamente o que o <code>package-lock.json</code> — o lockfile, o registro com as versões
-          exatas — manda. Ele rodou com <code>HUSKY=0</code> (a variável que desliga os hooks de git — os
-          ganchos que rodam sozinhos durante comandos — durante a instalação) e instalou o lockfile completo:
-          <code>motion</code> e <code>@fontsource/chakra-petch</code> agora existem de verdade no node_modules.
-        </p>
-        <p>
-          Bônus de ambiente: esse mesmo <code>npm ci</code> rodado no app conserta o ambiente do usuário —
-          o marcador obsoleto <code>.install-ok</code> some e o run.sh se auto-repara na primeira execução
-          depois do merge.
-        </p>
-      </div>
-    </details>
-  </section>
-
-  <!-- ================= SEÇÃO 03 ================= -->
-  <section>
-    <h2><span class="sec-num">03</span>Sintoma 2: sete avisos no build</h2>
-
-    <div class="prose">
-      <p>
-        O outro problema era mais sutil. O build do main é feito pelo <strong>rollup</strong> (o empacotador
-        que o vite usa no build de produção), e ele passou a emitir 7 avisos: <code>X is dynamically imported by
-        A but also statically imported by B — dynamic import will not move module into another chunk</code>.
-      </p>
-      <p>
-        Aviso não é erro — o build passava — mas sinalizava código com os dois estilos misturados e poluía a
-        saída do build. Para entender: o empacotador corta o código em <strong>chunks</strong> (os arquivos
-        finais que o app carrega), e a regra do jogo é ele saber <em>onde cada módulo fica</em> no momento do
-        build. Um <strong>import dinâmico</strong> (o <code>import()</code> chamado dentro de uma função, que
-        carrega o módulo só quando aquela linha executa) embaralha esse cálculo quando o mesmo módulo também
-        chega por <strong>import estático</strong> (declarado no topo do arquivo) em outro lugar.
-      </p>
-      <p>
-        O conserto da ONDA 1: trocar os 22 sites de <code>import()</code> por import estático no topo, em 8
-        arquivos do main, envolvendo 7 módulos (<code>settingsStore</code>, <code>trackLoader</code>,
-        <code>trackService</code>, <code>tutorChat</code>, <code>challengeExec</code>, <code>modelStore</code> e
-        <code>EmbeddedLlmService</code> — o serviço do modelo de IA que roda dentro do app). No total,
-        +12/−23 linhas.
-      </p>
-      <div class="signal">
-        <strong>O que importa ver nesta figura é a seta tracejada:</strong> ela é o conserto — a troca de
-        <code>import()</code> por import estático no topo. É ela que faz o rollup decidir o chunk no build e
-        zera os avisos.
-      </div>
+    <div class="callout">
+      <strong>O traiçoeiro é o silêncio.</strong> Nenhum erro no console, nenhum teste quebrou por causa disso &mdash; só o fundo que não existe. Por isso o diagnóstico precisou de um sub-agente com o app real aberto (com Playwright) para olhar o que a tela mostrava, em vez de confiar em logs.
     </div>
 
-    <figure class="fig">
-      <div class="diagram-shell" role="img" aria-label="Import estático no topo faz o rollup decidir o chunk no build — os 7 avisos zeraram.">
-        <p class="diagram-shell__hint">Ctrl/Cmd + rolagem: zoom · arrastar: mover · duplo clique: ajustar · &#x26F6;: abrir em tamanho real</p>
-        <div class="mermaid-wrap">
-          <div class="zoom-controls">
-            <button type="button" data-action="zoom-in" title="Aproximar">+</button>
-            <button type="button" data-action="zoom-out" title="Afastar">&minus;</button>
-            <button type="button" data-action="zoom-fit" title="Ajustar à tela">&#8634;</button>
-            <button type="button" data-action="zoom-one" title="Zoom 1:1">1:1</button>
-            <button type="button" data-action="zoom-expand" title="Abrir em tamanho real">&#x26F6;</button>
-            <span class="zoom-label">Carregando…</span>
-          </div>
-          <div class="mermaid-viewport">
-            <div class="mermaid mermaid-canvas"></div>
-          </div>
-        </div>
-        <script type="text/plain" class="diagram-source">
-          flowchart TD
-            classDef ok fill:#15803d,stroke:#166534,color:#ffffff,stroke-width:2px
-            classDef warn fill:#b45309,stroke:#92400e,color:#ffffff
-            A["8 arquivos<br/>do main"] -->|"22 sites usam"| B["import()<br/>dinâmico"]
-            B -->|"carrega o módulo<br/>em runtime"| C["7 módulos compartilhados<br/>settingsStore · trackLoader<br/>trackService · tutorChat<br/>challengeExec · modelStore<br/>EmbeddedLlmService"]
-            C -->|"outros arquivos<br/>também os importam<br/>de forma estática"| D["rollup não decide<br/>o chunk no build"]
-            D -->|"emite"| E["7 avisos:<br/>dynamic import will not<br/>move module into another chunk"]
-            B -.->|"conserto: vira import estático<br/>no topo de cada arquivo"| F["dependência declarada<br/>antes do build"]
-            F -->|"rollup resolve<br/>ao empacotar"| G["0 avisos no build"]
-            class G ok
-            class E warn
-        </script>
-      </div>
-      <figcaption><strong>Afirmação:</strong> import estático no topo faz o rollup decidir o chunk no build — os 7 avisos zeraram.</figcaption>
-    </figure>
+    <h3>O conserto e a evidência</h3>
+    <p>O fix trocou as <strong>5 chaves <code>bgcolor</code> por <code>backgroundColor</code></strong> no <code>bubbleStyle</code> (as famílias user, reply, message, review e approved) e ajustou a legenda do autor para <code>color="textSecondary"</code> &mdash; o MUI v9 só gera camelCase (textSecondary, não text-secondary). As cores foram validadas com <strong>getComputedStyle</strong> (a leitura do estilo final calculado pelo navegador) nos dois temas:</p>
 
-    <details>
-      <summary>Aprofundar: import dinâmico vs estático — exemplo resolvido</summary>
-      <div class="details-body">
-        <p>Exemplo de sintaxe (ilustrativo — não é o código real do repositório):</p>
-        <pre class="code-block"><code><span class="cm">// ANTES — import() dinâmico: o módulo só é buscado quando a função roda</span>
-<span class="kw">async function</span> falar(texto) {
-  <span class="kw">const</span> tts = <span class="kw">await</span> <span class="fn">import</span>(<span class="str">'./localTts.js'</span>);
-  tts.<span class="fn">falar</span>(texto);
-}
-
-<span class="cm">// DEPOIS — import estático no topo: o empacotador resolve no build</span>
-<span class="kw">import</span> * <span class="kw">as</span> tts <span class="kw">from</span> <span class="str">'./localTts.js'</span>;
-
-<span class="kw">async function</span> falar(texto) {
-  tts.<span class="fn">falar</span>(texto);
-}</code></pre>
-        <p class="note">Exemplo de sintaxe ilustrativo — não é o código real do repositório.</p>
-        <p>
-          <strong>Por que o aviso importa:</strong> com o import() no meio, o rollup via o módulo chegar por
-          dois caminhos e avisava que não moveria o módulo para outro chunk. Não era erro, mas era
-          imprevisibilidade: o lugar de cada módulo no bundle final (o conjunto de arquivos que o app carrega)
-          só ficava claro de forma ambígua — e o build gritava isso 7 vezes.
-        </p>
-      </div>
-    </details>
-  </section>
-
-  <!-- ================= SEÇÃO 04 ================= -->
-  <section>
-    <h2><span class="sec-num">04</span>A subwave de teste: 25 testes novos</h2>
-
-    <div class="prose">
-      <p>
-        Mudar imports e mexer em serviços não se entrega no grito: veio uma <strong>subwave</strong> (uma onda
-        dedicada só a escrever testes) com 25 testes novos em dois arquivos:
-      </p>
-      <ul>
-        <li>
-          <code>tests/embeddedLlmService.test.ts</code> (17 testes): o roteamento
-          <strong>proxy↔in-process</strong> (proxy = chamada para um servidor externo; in-process = para o
-          processo interno), o <code>activeId</code> (qual modelo está ativo em cada momento), o erro
-          <code>LOCAL_MODEL_NOT_INSTALLED</code> (modelo local não instalado), os <strong>deltas</strong>
-          (pedaços de resposta que chegam aos poucos), o guard de <strong>dispose</strong> (impede usar o
-          modelo depois de liberar seus recursos), as options do chat asseeradas e o <strong>escape
-          hatch</strong> (porta de fuga: uma variável de ambiente que força outro caminho)
-          <code>STUDY_METHOD_LLM_IN_PROCESS</code>.
-        </li>
-        <li>
-          <code>tests/e2eStubs.test.ts</code> (8 testes): o gate de segurança <strong>no-op</strong> (operação
-          que não faz nada) fora de E2E, o registro exato de <strong>66 canais</strong>, 4 cenários de
-          <strong>e2eGatePhase</strong> (a fase do ciclo em que o app é operado de fora, de ponta a ponta), um
-          <strong>smoke</strong> real de trilha (teste que percorre o caminho principal para ver se nada quebrou)
-          e o workspace E2E isolado.
-        </li>
-      </ul>
-      <p>
-        Sobre os termos: <strong>E2E</strong> (end-to-end) é testar o app inteiro operado como um usuário real;
-        os <strong>e2eStubs</strong> (os stubs — peças falsas que imitam uma dependência real para o teste
-        isolar o resto — do modo E2E) são o módulo que registra os canais de teste. O trabalho passou ainda por
-        um <strong>revisor adversarial</strong> (revisão que tenta ativamente achar defeitos no que foi feito):
-        ele apontou WARNING e os 5 achados foram corrigidos antes do gate — que fechou com
-        <strong>npm ci + lint (checagem automática de estilo e erros comuns) + tsc (o verificador de tipos do
-        TypeScript) ×2 + 1937 testes + build</strong>, tudo verde.
-      </p>
-      <div class="signal">
-        <strong>O que importa nesta figura:</strong> os 25 testes novos alimentam o gate — e o gate é o guardião
-        que só libera a entrega com 1935 testes passando, 2 skipped pré-existentes e build sem avisos.
-      </div>
-    </div>
-
-    <figure class="fig">
-      <div class="diagram-shell" role="img" aria-label="Os 25 testes novos cobrem as duas áreas alteradas e o gate fechou verde.">
-        <p class="diagram-shell__hint">Ctrl/Cmd + rolagem: zoom · arrastar: mover · duplo clique: ajustar · &#x26F6;: abrir em tamanho real</p>
-        <div class="mermaid-wrap">
-          <div class="zoom-controls">
-            <button type="button" data-action="zoom-in" title="Aproximar">+</button>
-            <button type="button" data-action="zoom-out" title="Afastar">&minus;</button>
-            <button type="button" data-action="zoom-fit" title="Ajustar à tela">&#8634;</button>
-            <button type="button" data-action="zoom-one" title="Zoom 1:1">1:1</button>
-            <button type="button" data-action="zoom-expand" title="Abrir em tamanho real">&#x26F6;</button>
-            <span class="zoom-label">Carregando…</span>
-          </div>
-          <div class="mermaid-viewport">
-            <div class="mermaid mermaid-canvas"></div>
-          </div>
-        </div>
-        <script type="text/plain" class="diagram-source">
-          flowchart TD
-            classDef ok fill:#15803d,stroke:#166534,color:#ffffff,stroke-width:2px
-            A["tests/embeddedLlmService.test.ts<br/>17 testes"] -->|"roteamento proxy↔in-process<br/>activeId · erro de modelo<br/>deltas · guard de dispose<br/>options do chat · escape hatch"| G["gate de integração"]
-            B["tests/e2eStubs.test.ts<br/>8 testes"] -->|"no-op fora de E2E<br/>registro de 66 canais<br/>4 cenários de e2eGatePhase<br/>smoke de trilha · workspace"| G
-            A -.->|"revisados pelo"| R["revisor adversarial<br/>5 achados corrigidos"]
-            B -.->|"revisados pelo"| R
-            R -->|"correções aplicadas<br/>antes do gate"| G
-            G -->|"npm ci + lint (tsc ×2)<br/>+ 1937 testes + build"| H["VERDE"]
-            H -->|"1935 pass · 2 skipped<br/>pré-existentes · 0 avisos"| I["entrega liberada"]
-            class G,H ok
-        </script>
-      </div>
-      <figcaption><strong>Afirmação:</strong> os 25 testes novos cobrem as duas áreas alteradas e o gate fechou verde.</figcaption>
-    </figure>
-
-    <div class="kpi-grid">
-      <div class="kpi-card">
-        <div class="kpi-num">54% → 78,6%</div>
-        <div class="kpi-label">cobertura de linhas do EmbeddedLlmService.ts (a medida de quanto do código os testes exercitam)</div>
-      </div>
-      <div class="kpi-card">
-        <div class="kpi-num">0% → 73,4%</div>
-        <div class="kpi-label">cobertura de linhas do e2eStubs.ts (medida com --experimental-test-coverage do node; o projeto não tem instrumentação de coverage configurada)</div>
-      </div>
-    </div>
-
-    <details>
-      <summary>Aprofundar: os 5 achados do revisor adversarial</summary>
-      <div class="details-body">
-        <p>O revisor apontou WARNING e os 5 achados foram corrigidos pelo agente de teste:</p>
-        <ul>
-          <li>asserções de options do chat mais completas;</li>
-          <li><code>E2E_KEYS</code> (as variáveis de ambiente de teste) normalizado;</li>
-          <li>registro dos canais com a contagem exata;</li>
-          <li>variável de ambiente para forçar o caminho in-process;</li>
-          <li>tmpRoot próprio (a pasta temporária de cada teste) para o workspace E2E isolado.</li>
-        </ul>
-      </div>
-    </details>
-  </section>
-
-  <!-- ================= SEÇÃO 05 ================= -->
-  <section>
-    <h2><span class="sec-num">05</span>Verificações, decisões e limites</h2>
-
-    <div class="prose">
-      <p>
-        <strong>O gate fechou verde</strong> no snapshot de integração: npm ci + lint (tsc ×2) + 1937 testes
-        (1935 pass, 2 skipped pré-existentes) + build de main/preload/renderer. Os avisos do build do main
-        caíram para 0, e o renderer resolve <code>motion/react</code> e <code>@fontsource/chakra-petch</code> —
-        24 assets (arquivos estáticos, como fontes, que o build copia) de chakra-petch .woff2 no bundle. A
-        validação no estado integrado (val-onda1-gate) passou com zero avisos, e as duas revisões — a
-        adversarial pré-merge e a do diff integrado — deram APPROVE, sem nada a refutar.
-      </p>
-      <p><strong>Decisões autônomas registradas:</strong></p>
-      <ul>
-        <li>Ruído de sistema fora de escopo (não é problema do repositório): o aviso Gtk
-        <code>appmenu-gtk-module</code>, os avisos de fontconfig (<code>48-guessfamily.conf</code>) e o
-        <code>ExperimentalWarning</code> de SQLite do Electron.</li>
-        <li>O npm ci em <code>app/</code> conserta o ambiente do usuário: o marcador <code>.install-ok</code>
-        obsoleto some e o run.sh se auto-repara na primeira execução pós-merge.</li>
-        <li>Premissa de ambiente: o projeto real vive em <code>app/</code> (a raiz do repositório tem só um
-        <code>package-lock.json</code> placeholder de 91 bytes) — todo npm ci/gate roda com cwd em <code>app/</code>.</li>
-      </ul>
-      <p><strong>Limites declarados (fora de escopo):</strong></p>
-      <ul>
-        <li><code>e2eGatePhase</code>: o export de produção sem chamador (dead export — função exportada que
-        nenhum código chama) é pré-existente; foi registrado, não mexido — decisão de produção.</li>
-        <li>E2E Playwright (specs): não rodadas nesta execução (exigem build + app); o novo smoke unitário
-        cobre o grafo de trilha sem precisar de build.</li>
-      </ul>
-    </div>
-
-    <h3>Como a execução se organizou</h3>
-    <div class="timeline">
-      <div class="tl-item">
-        <h4>ONDA 1 — alinhar imports do main</h4>
-        <div class="tl-meta">worktree onda1-alinhar-imports-main</div>
-        <p>22 imports dinâmicos → estáticos em 8 arquivos (7 módulos, +12/−23); comentário obsoleto do
-        braveSearchService atualizado; npm ci (HUSKY=0) instala o lockfile completo — motion e chakra-petch presentes.</p>
-      </div>
-      <div class="tl-item">
-        <h4>Gate no snapshot de integração</h4>
-        <div class="tl-meta">npm ci + lint + testes + build</div>
-        <p>1937 testes (1935 pass, 2 skipped) e build de main/preload/renderer — VERDE; 0 avisos no build do
-        main; 24 assets chakra-petch .woff2 no bundle do renderer.</p>
-      </div>
-      <div class="tl-item">
-        <h4>SUBWAVE de teste</h4>
-        <div class="tl-meta">worktree test-onda1-imports</div>
-        <p>25 testes novos (17 no embeddedLlmService, 8 no e2eStubs); revisor adversarial: WARNING → 5 achados corrigidos.</p>
-      </div>
-      <div class="tl-item">
-        <h4>Validação no estado integrado</h4>
-        <div class="tl-meta">val-onda1-gate</div>
-        <p>Build/lint/typecheck/testes PASS, zero avisos — CONCLUÍDA.</p>
-      </div>
-      <div class="tl-item">
-        <h4>Revisões</h4>
-        <div class="tl-meta">pré-merge e diff integrado</div>
-        <p>Adversarial pré-merge: APPROVE (nada a refutar). Revisor do diff integrado: APPROVE.</p>
-      </div>
-      <div class="tl-item">
-        <h4>Squashes integrados</h4>
-        <div class="tl-meta">commit 6538714 · commit da220ca</div>
-        <p><strong>Squash</strong> (juntar os commits de uma branch em um único) de cada worktree no principal:
-        6538714 (ONDA 1) e da220ca (testes).</p>
-      </div>
-    </div>
-
-    <details>
-      <summary>Aprofundar: o que é um worktree e por que a onda roda isolada?</summary>
-      <div class="details-body">
-        <p>
-          Um <strong>worktree</strong> é uma cópia isolada do repositório: a onda trabalha nela sem sujar o
-          principal. É por isso que o gate roda numa versão integrada antes do merge — cada mudança só entra
-          depois de provar que não quebra o todo. No fim, cada branch é integrada por <strong>squash
-          merge</strong>: todos os commits daquela branch viram um único commit no histórico.
-        </p>
-      </div>
-    </details>
-
-    <details>
-      <summary>Aprofundar: o e2eGatePhase que ficou de fora</summary>
-      <div class="details-body">
-        <p>
-          O <code>e2eGatePhase</code> — a fase do ciclo em que o app é operado de fora — tem um export de
-          produção sem chamador (um <strong>dead export</strong>: função exportada que nenhum código chama).
-          Ele é pré-existente e não tem relação com esta execução: foi registrado como fora de escopo, por
-          decisão de produção. O que a subwave fez foi testá-lo: os 8 testes do e2eStubs cobrem seus 4 cenários.
-        </p>
-      </div>
-    </details>
-  </section>
-
-  <!-- ================= ANEXO: GLOSSÁRIO ================= -->
-  <section>
-    <h2><span class="sec-num">06</span>Anexo: glossário (tabela fechada)</h2>
-    <p class="prose">
-      Todos os termos abaixo são definidos <em>no texto, onde aparecem</em> — esta tabela é só o mapa de
-      consulta rápida.
-    </p>
     <div class="table-wrap">
       <table>
         <thead>
-          <tr><th>Termo</th><th>Definição (onde aparece)</th></tr>
+          <tr><th>Família do balão</th><th>Papel</th><th>Tema claro</th><th>Tema escuro</th></tr>
         </thead>
         <tbody>
-          <tr><td><code>run.sh</code></td><td>o script que sobe o app de uma vez: dev server + build (resposta)</td></tr>
-          <tr><td><code>node_modules</code></td><td>a pasta onde ficam as bibliotecas instaladas (resposta)</td></tr>
-          <tr><td><code>package.json</code></td><td>o manifesto que declara as dependências do projeto (resposta)</td></tr>
-          <tr><td><code>lockfile</code></td><td>o registro com as versões exatas de cada dependência (resposta)</td></tr>
-          <tr><td><code>npm ci</code></td><td>instalação que segue o lockfile, sem atualizar versões (resposta)</td></tr>
-          <tr><td><code>import</code></td><td>declaração que traz um módulo de outro arquivo para o código (resposta)</td></tr>
-          <tr><td><code>import dinâmico</code> (<code>import()</code>)</td><td>carrega o módulo só quando o código executa aquela linha (resposta / seção 03)</td></tr>
-          <tr><td><code>import estático</code></td><td>declarado no topo; o empacotador resolve no build (resposta / seção 03)</td></tr>
-          <tr><td><code>dev server</code></td><td>o servidor local que recarrega o app enquanto se programa (resposta)</td></tr>
-          <tr><td><code>build</code></td><td>a geração dos arquivos finais do app (main, preload, renderer) (resposta)</td></tr>
-          <tr><td><code>gate</code></td><td>a checagem que bloqueia a integração se qualquer passo falhar (resposta)</td></tr>
-          <tr><td><code>processo main</code></td><td>o backend do app desktop: teclado, voz, busca, IA local (seção 01)</td></tr>
-          <tr><td><code>preload</code></td><td>camada fina que entrega dados do main ao renderer com segurança (seção 01)</td></tr>
-          <tr><td><code>renderer</code></td><td>a janela com a UI React (seção 01)</td></tr>
-          <tr><td><code>vite</code></td><td>o dev server e o empacotador do frontend (seção 02)</td></tr>
-          <tr><td><code>rollup</code></td><td>o empacotador que o vite usa no build de produção (seção 03)</td></tr>
-          <tr><td><code>chunk</code></td><td>arquivo final que o empacotador fatia do código (seção 03)</td></tr>
-          <tr><td><code>subwave</code></td><td>onda dedicada só a escrever testes (seção 04)</td></tr>
-          <tr><td><code>coverage</code></td><td>medida de quanto do código os testes exercitam (seção 04)</td></tr>
-          <tr><td><code>proxy↔in-process</code></td><td>rotear a chamada para um servidor externo ou para o processo interno (seção 04)</td></tr>
-          <tr><td><code>deltas</code></td><td>pedaços de resposta que chegam aos poucos (seção 04)</td></tr>
-          <tr><td><code>dispose</code></td><td>liberar os recursos do modelo quando não é mais usado (seção 04)</td></tr>
-          <tr><td><code>escape hatch</code></td><td>porta de fuga: variável de ambiente que força outro caminho (seção 04)</td></tr>
-          <tr><td><code>stub</code></td><td>peça falsa que imita uma dependência real para o teste isolar o resto (seção 04)</td></tr>
-          <tr><td><code>E2E</code></td><td>teste de ponta a ponta: o app inteiro operado como um usuário real (seção 04)</td></tr>
-          <tr><td><code>e2eGatePhase</code></td><td>a fase do ciclo em que o app é operado de fora (seção 04 / 05)</td></tr>
-          <tr><td><code>smoke test</code></td><td>teste que percorre o caminho principal para ver se nada quebrou (seção 04)</td></tr>
-          <tr><td><code>revisor adversarial</code></td><td>revisão que tenta ativamente achar defeitos (seção 04)</td></tr>
-          <tr><td><code>no-op</code></td><td>operação que não faz nada (seção 04)</td></tr>
-          <tr><td><code>lint</code></td><td>checagem automática de estilo e erros comuns (seção 04)</td></tr>
-          <tr><td><code>tsc</code></td><td>o verificador de tipos do TypeScript (seção 04)</td></tr>
-          <tr><td><code>worktree</code></td><td>cópia isolada do repositório para trabalhar sem sujar o principal (seção 05)</td></tr>
-          <tr><td><code>squash</code></td><td>juntar os commits de uma branch em um único (seção 05)</td></tr>
-          <tr><td><code>asset</code></td><td>arquivo estático (fonte, imagem) que o build copia (seção 05)</td></tr>
-          <tr><td><code>dead export</code></td><td>função exportada que nenhum código chama (seção 05)</td></tr>
-          <tr><td><code>HUSKY=0</code></td><td>variável que desliga os hooks de git durante a instalação (seção 02, aprofundar)</td></tr>
-          <tr><td><code>hooks de git</code></td><td>ganchos que rodam sozinhos durante comandos (seção 02, aprofundar)</td></tr>
-          <tr><td><code>EmbeddedLlmService</code></td><td>o serviço do modelo de IA que roda dentro do app (seção 03)</td></tr>
+          <tr><td>user</td><td>Mensagem do aluno</td><td><span class="swatch" style="background:#DE351B"></span><code>#DE351B</code></td><td><span class="swatch" style="background:#E73F25"></span><code>#E73F25</code></td></tr>
+          <tr><td>reply</td><td>Mensagem do tutor</td><td><span class="swatch" style="background:#9A54D7"></span><code>#9A54D7</code></td><td><span class="swatch" style="background:#A45BE4"></span><code>#A45BE4</code></td></tr>
+          <tr><td>message</td><td>Fundo do card de mensagem (paper)</td><td><span class="swatch" style="background:#FFFFFF"></span><code>#FFFFFF</code></td><td><span class="swatch" style="background:#1B1E26"></span><code>#1B1E26</code></td></tr>
+          <tr><td>review</td><td>Tint de erro a 10%</td><td colspan="2">tint do error a 10% (o balão de revisão usa uma lavagem da cor de erro)</td></tr>
+          <tr><td>caption</td><td>Legenda do autor</td><td>text.secondary <code>#544E45</code></td><td>text.secondary <code>#A7ADBD</code></td></tr>
         </tbody>
       </table>
     </div>
   </section>
 
-  <footer>
-    <p>
-      <strong>Validade:</strong> este documento explica a execução de <strong>2026-08-28</strong>, contra a
-      branch <code>main</code> nos commits <code>6538714</code> (ONDA 1) e <code>da220ca</code> (subwave de
-      teste). Fatos, números e vereditos valem contra esse estado e podem envelhecer com mudanças posteriores
-      no repositório. Fonte: registro da execução do orquestrador.
-    </p>
+  <!-- ============ 03 PROBLEMA 2 ============ -->
+  <section class="section animate" style="--i:3" aria-labelledby="sec03">
+    <div class="section-head">
+      <span class="section-num">03</span>
+      <h2 id="sec03">Problema 2 &mdash; os desafios no meio da conversa</h2>
+    </div>
+
+    <p class="section-lead">O pedido também reclamava dos desafios &ldquo;ali&rdquo;, atrapalhando entre o texto e o input. O diagnóstico confirmou: a lista &ldquo;Desafios da aula&rdquo; ficava <strong>dentro da região de scroll do chat</strong> da LessonView, entre as bolhas e o input.</p>
+
+    <p>Com o chat alto, a lista empurrava o fluxo da conversa e ficava <strong>recortada</strong> (cortada pela rolagem). O input em si sempre esteve visível &mdash; ele vive fora da região de scroll &mdash;, mas o trajeto até ele passava por cima da lista de desafios.</p>
+
+    <p>A decisão de UX foi <strong>remover a lista do fluxo chat &rarr; input</strong>. A regra de ouro da decisão: o input de mensagem deve estar <strong>sempre visível</strong> &mdash; desafio é um <strong>destino</strong> (algo a que se vai), não conteúdo de conversa.</p>
+
+    <figure class="diagram-shell" role="img" aria-label="Os desafios saíram de entre o chat e o input; viraram um destino no cabeçalho com popover — o input de mensagem ficou sempre visível.">
+      <p class="diagram-shell__hint">Ctrl/Cmd + roda do mouse para zoom. Scroll para pan. Arrastar para pan quando com zoom. Duplo clique para encaixar.</p>
+      <div class="mermaid-wrap">
+        <div class="zoom-controls">
+          <button type="button" data-action="zoom-in" title="Zoom in">+</button>
+          <button type="button" data-action="zoom-out" title="Zoom out">&minus;</button>
+          <button type="button" data-action="zoom-fit" title="Encaixar">&#8634;</button>
+          <button type="button" data-action="zoom-one" title="1:1">1:1</button>
+          <button type="button" data-action="zoom-expand" title="Abrir em tamanho cheio">&#x26F6;</button>
+          <span class="zoom-label">Carregando&hellip;</span>
+        </div>
+        <div class="mermaid-viewport">
+          <div class="mermaid mermaid-canvas"></div>
+        </div>
+      </div>
+      <script type="text/plain" class="diagram-source">
+flowchart LR
+  %%CRTDEF%%
+  %%OKDEF%%
+  subgraph ANTES["ANTES — lista no meio da conversa"]
+    H1["Cabeçalho"] -->|"abre"| C1["Chat: tutor e balões"]
+    C1 -->|"lista dentro do scroll"| L1["Desafios da aula"]
+    L1 -->|"empurra o fluxo e recorta<br/>com chat alto"| I1["Input"]
+  end
+  subgraph DEPOIS["DEPOIS — desafios são um destino"]
+    H2["Cabeçalho + botão Desafios<br/>(badge de pendentes)"] -->|"clica"| P2["Popover: lista completa"]
+    P2 -->|"clica num desafio"| D2["openChallenge abre o desafio<br/>(track intacto)"]
+    C2["Chat: só a conversa"] -->|"rola livre"| I2["Input sempre visível"]
+  end
+  class I2 ok
+      </script>
+      <figcaption><span class="fig-claim">Os desafios saíram de entre o chat e o input; viraram um destino no cabeçalho com popover</span> &mdash; o input de mensagem ficou sempre visível.</figcaption>
+    </figure>
+
+    <div class="legend">
+      <div class="legend-item"><div class="legend-swatch" style="background:var(--primary)"></div> Fluxo da conversa</div>
+      <div class="legend-item"><div class="legend-swatch" style="background:var(--success)"></div> Resultado da decisão</div>
+      <div class="legend-item"><div class="legend-swatch" style="background:var(--warning)"></div> O que foi removido do caminho</div>
+    </div>
+
+    <h3>O que entrou no lugar</h3>
+    <p>Um botão <strong>&ldquo;Desafios&rdquo;</strong> no cabeçalho (ao lado de &ldquo;Fontes&rdquo;) com um <strong>badge</strong> (indicador pequeno que mostra quantos desafios estão pendentes). O critério de pendência é o <strong>mesmo do gating</strong>: o último veredito do desafio é diferente de <code>passed</code>. O clique abre um <strong>popover</strong> (pequena janela flutuante) com a lista completa &mdash; título, dificuldade, badge de gerado e status. Clicar num desafio chama <code>openChallenge</code> e abre o desafio com o <strong>fluxo de track intacto</strong> (o registro de progresso do aluno na resolução).</p>
+
+    <p>O gating do &ldquo;Concluir aula&rdquo; ficou <strong>intacto</strong>: tooltip + ícone de cadeado continuam sendo a única comunicação de bloqueio &mdash; nada novo entre chat e input. Também entrou cuidado de <strong>a11y</strong> (acessibilidade: atributos que permitem operar o botão por teclado e por leitores de tela, como <code>aria-haspopup</code> e <code>aria-expanded</code>) e <strong>i18n</strong> (internacionalização: os textos ficam em arquivos por idioma e são trocados por chave &mdash; 3 chaves novas em pt-BR e en).</p>
+
+    <details class="scaffold">
+      <summary>Por que o badge usa o mesmo critério do gating? (detalhe)</summary>
+      <div class="scaffold-body">
+        <p>O gating do &ldquo;Concluir aula&rdquo; já decidia o que conta como &ldquo;pendente&rdquo;: o último veredito do desafio ser diferente de <code>passed</code> (no código, <code>ch.lastVerdict !== 'passed'</code>). O badge do botão Desafios reutiliza exatamente esse veredito. O efeito é a consistência: o número que o aluno vê no botão é o mesmo que a trava de conclusão usa &mdash; não existem duas definições de &ldquo;pendente&rdquo; brigando entre si.</p>
+      </div>
+    </details>
+
+    <details class="scaffold">
+      <summary>O que é a11y e i18n, em mais detalhe (detalhe)</summary>
+      <div class="scaffold-body">
+        <p><strong>a11y</strong> é o apelido de acessibilidade (a11y = a + 11 letras + y). Atributos como <code>aria-haspopup</code> (avisa que o botão abre um menu flutuante), <code>aria-expanded</code> (avisa se ele está aberto) e <code>aria-label</code> (nome do controle lido por leitores de tela) fazem o botão Desafios funcionar por teclado e para quem usa leitor de tela.</p>
+        <p><strong>i18n</strong> é o apelido de internacionalização (i18n = i + 18 letras + n). Em vez de textos escritos no meio do código, cada frase vira uma chave em arquivos de idioma &mdash; aqui, pt-BR e en. Foram 3 chaves novas (o botão, o rótulo de acessibilidade e o título da lista), e o rótulo do botão tem interpolação: o trecho dinâmico recebe o contador de pendências. Há um teste unitário que confere essa interpolação nos dois idiomas.</p>
+      </div>
+    </details>
+  </section>
+
+  <!-- ============ 04 ALTERNATIVAS ============ -->
+  <section class="section animate" style="--i:4" aria-labelledby="sec04">
+    <div class="section-head">
+      <span class="section-num">04</span>
+      <h2 id="sec04">As alternativas descartadas (e por quê)</h2>
+    </div>
+    <p class="section-lead">O pedido dizia para &ldquo;pensar muito sobre UX&rdquo; &mdash; e pensar foi também listar o que não se fez, e por quê.</p>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Opção</th><th>Veredito</th><th>Motivo</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Painel lateral fixo</td>
+            <td><span class="verdict-chip chip-bad">Descartada</span></td>
+            <td>Rouba largura da tela e não escala bem em janela pequena.</td>
+          </tr>
+          <tr>
+            <td>Lista após o input</td>
+            <td><span class="verdict-chip chip-bad">Descartada</span></td>
+            <td>Continua dentro do fluxo chat &rarr; input &mdash; o problema original.</td>
+          </tr>
+          <tr>
+            <td>Aba separada</td>
+            <td><span class="verdict-chip chip-bad">Descartada</span></td>
+            <td>Perde o contexto da aula ao trocar de tela.</td>
+          </tr>
+          <tr>
+            <td>Botão no cabeçalho + popover</td>
+            <td><span class="verdict-chip chip-ok">Escolhida</span></td>
+            <td>Acesso dedicado e imediato, sem colocar nada entre o chat e o input.</td>
+          </tr>
+          <tr>
+            <td>RoadmapView / ChallengeView</td>
+            <td><span class="verdict-chip chip-ok">Intactas</span></td>
+            <td>Não têm a geometria reclamada &mdash; a lista que recortava o fluxo vivia só na LessonView.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ============ 05 ACHADO DO REVISOR ============ -->
+  <section class="section animate" style="--i:5" aria-labelledby="sec05">
+    <div class="section-head">
+      <span class="section-num">05</span>
+      <h2 id="sec05">O achado do revisor: popover sem scroll</h2>
+    </div>
+    <p class="section-lead">A história não terminou no popover &mdash; um revisor de diffs (a revisão do conjunto de mudanças, comparando o código antes e depois) achou um problema que o time não tinha visto.</p>
+
+    <p>O <strong>WARNING</strong> (o alerta de severidade do revisor): o popover de desafios <strong>não tinha rolagem</strong> &mdash; e a lista cresce conforme novos desafios são gerados. Sem scroll, os últimos cards ficariam inacessíveis com o tempo.</p>
+
+    <p>O fix-final limitou a altura do popover: <code>maxHeight</code> de <code>min(60vh, 420px)</code> &mdash; ou seja, no máximo 60% da altura da janela ou 420px, o que vier primeiro &mdash; com <code>overflowY: auto</code> (rolagem vertical) no Box interno e <code>overflow: hidden</code> no Paper, preservando o raio de 14px do tema.</p>
+
+    <div class="callout callout--ok">
+      <strong>Evidência do conserto:</strong> rolagem funcionando com 15 cards, último card acessível, validada nos 2 temas e por teclado.
+    </div>
+  </section>
+
+  <!-- ============ 06 VERIFICACAO ============ -->
+  <section class="section animate" style="--i:6" aria-labelledby="sec06">
+    <div class="section-head">
+      <span class="section-num">06</span>
+      <h2 id="sec06">Como a mudança foi verificada</h2>
+    </div>
+    <p class="section-lead">Quatro commits &mdash; 3 squashes de fix + 1 onda de testes &mdash; atravessaram o sistema de verificação da execução. Ele tem três camadas.</p>
+
+    <figure class="diagram-shell" role="img" aria-label="Toda mudança passou por revisão, gate e e2e; o WARNING do revisor do diff virou um fix — e não uma entrega quebrada.">
+      <p class="diagram-shell__hint">Ctrl/Cmd + roda do mouse para zoom. Scroll para pan. Arrastar para pan quando com zoom. Duplo clique para encaixar.</p>
+      <div class="mermaid-wrap">
+        <div class="zoom-controls">
+          <button type="button" data-action="zoom-in" title="Zoom in">+</button>
+          <button type="button" data-action="zoom-out" title="Zoom out">&minus;</button>
+          <button type="button" data-action="zoom-fit" title="Encaixar">&#8634;</button>
+          <button type="button" data-action="zoom-one" title="1:1">1:1</button>
+          <button type="button" data-action="zoom-expand" title="Abrir em tamanho cheio">&#x26F6;</button>
+          <span class="zoom-label">Carregando&hellip;</span>
+        </div>
+        <div class="mermaid-viewport">
+          <div class="mermaid mermaid-canvas"></div>
+        </div>
+      </div>
+      <script type="text/plain" class="diagram-source">
+flowchart TD
+  %%CRTDEF%%
+  A["3 squashes de fix + 1 commit de testes"] -->|"cada um passa pelo"| B["Gate de snapshot:<br/>lint + testes + build"]
+  B -->|"VERDE x3 — 1937 testes, fail 0"| C["Integração com revisão:<br/>pré-merge APPROVE x2"]
+  C -->|"revisor do diff: WARNING"| D["Popover sem scroll<br/>quando a lista cresce"]
+  D -->|"fix-final aplicado (ed15e0c)"| E["Testing subwave:<br/>1938 testes + build fresco"]
+  E -->|"VERDE + e2e dos specs alvo"| F["e2e completo:<br/>28 passed · 0 failed"]
+  F -->|"integra"| G["Entrega no main"]
+  class D crt
+      </script>
+      <figcaption><span class="fig-claim">Toda mudança passou por revisão, gate e e2e</span> &mdash; e o WARNING do revisor do diff virou um fix, não uma entrega quebrada.</figcaption>
+    </figure>
+
+    <div class="callout">
+      <strong>O sistema de revisão funcionou:</strong> o achado do revisor no diff integrado virou o commit de fix-final (ed15e0c) antes da entrega. Um WARNING ambiental também apareceu nos testes &mdash; era a pasta <code>out/</code> obsoleta no checkout principal, resolvido com build fresco; o fluxo correto é <code>npm run build &amp;&amp; npm run test:e2e</code>.
+    </div>
+
+    <h3>Os números da verificação</h3>
+    <div class="kpi-row">
+      <div class="kpi-card"><div class="kpi-value">1938</div><div class="kpi-label">testes (2 skipped pré-existentes)</div></div>
+      <div class="kpi-card"><div class="kpi-value">28</div><div class="kpi-label">e2e passed · 0 failed</div></div>
+      <div class="kpi-card"><div class="kpi-value">x3</div><div class="kpi-label">gates de snapshot VERDES</div></div>
+      <div class="kpi-card"><div class="kpi-value">4</div><div class="kpi-label">commits (3 fixes + 1 de testes)</div></div>
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Camada</th><th>O que rodou</th><th>Resultado</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Gate de snapshot</td>
+            <td>Barreira automatizada (lint + testes + build) em cópia isolada do estado do repositório, para cada mudança</td>
+            <td><span class="verdict-chip chip-ok">VERDE x3</span> &mdash; 1937 testes, fail 0, zero avisos de chunk</td>
+          </tr>
+          <tr>
+            <td>Testing subwave</td>
+            <td>1938 testes + build fresco + e2e dos 2 specs alvo</td>
+            <td><span class="verdict-chip chip-ok">VERDE</span> &mdash; 1936 pass, 2 skipped pré-existentes</td>
+          </tr>
+          <tr>
+            <td>e2e completo</td>
+            <td>O app real, com Playwright, simulando o usuário</td>
+            <td><span class="verdict-chip chip-ok">28 passed / 0 failed</span> &mdash; 3 skipped (os real-* sem chaves)</td>
+          </tr>
+          <tr>
+            <td>Testes novos</td>
+            <td>1 teste unitário (interpolação do contador de pendências na chave i18n <code>challengesButtonAria</code>, em pt-BR e en) + 2 specs e2e reforçados (fundos das 4 famílias de balão não-transparentes + contrato de a11y/badge do botão Desafios) + 4 specs com seletores ajustados</td>
+            <td><span class="verdict-chip chip-ok">Cobertura</span></td>
+          </tr>
+          <tr>
+            <td>Revisões</td>
+            <td>Revisão pré-merge dos pares + revisor do diff integrado</td>
+            <td><span class="verdict-chip chip-ok">APPROVE x2</span> &middot; <span class="verdict-chip chip-warn">WARNING</span> &rarr; fix aplicado</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <details class="scaffold">
+      <summary>O que é um teste e2e? E por que as cores foram validadas assim? (detalhe)</summary>
+      <div class="scaffold-body">
+        <p><strong>e2e</strong> (end-to-end) é o teste que abre o aplicativo de verdade e simula os cliques e a digitação do usuário &mdash; aqui, com Playwright. Ele vê o que o usuário vê, inclusive o estilo final calculado dos elementos.</p>
+        <p>O repositório não tem infraestrutura de render isolada de componentes &mdash; não dá para montar um balão sozinho num teste de unidade. Por isso a cor foi validada por e2e: o teste abre o app nos dois temas, lê o fundo de cada família de balão com <code>getComputedStyle</code> e confere que nenhum é transparente. O teste unitário, por sua vez, cuida do que não precisa de UI: a interpolação da chave i18n nos dois idiomas.</p>
+      </div>
+    </details>
+
+    <details class="scaffold">
+      <summary>Detalhes de implementação, para ler o código (detalhe)</summary>
+      <div class="scaffold-body">
+        <p>Os 4 commits desta execução: <code>86371b3</code> (onda1-ux-desafios: lista fora do fluxo, botão no cabeçalho com badge + popover, a11y, i18n, seletores e2e ajustados), <code>4c8eeb5</code> (onda1-cor-baloes: 5 chaves <code>bgcolor</code> &rarr; <code>backgroundColor</code> + caption <code>textSecondary</code>), <code>ed15e0c</code> (fix-final-popover: <code>maxHeight: min(60vh, 420px)</code>, <code>overflowY: auto</code> no Box interno, <code>overflow: hidden</code> no Paper) e <code>d719712</code> (test-onda1-ux: 1 unitário + 2 specs e2e reforçados).</p>
+        <p>Referências de arquivo citadas nos fatos: <code>ChatBubble.tsx</code> (a cor), <code>LessonView</code> (a geometria do chat), RoadmapView e ChallengeView (intactas).</p>
+      </div>
+    </details>
+  </section>
+
+  <!-- ============ 07 FORA DE ESCOPO ============ -->
+  <section class="section animate" style="--i:7" aria-labelledby="sec07">
+    <div class="section-head">
+      <span class="section-num">07</span>
+      <h2 id="sec07">Fora de escopo</h2>
+    </div>
+    <p class="section-lead">O que esta execução não cobriu &mdash; para você não procurar por algo que não foi feito.</p>
+
+    <div class="grid-2">
+      <div class="ve-card">
+        <h3>A review de aprovação ainda não existe no chat</h3>
+        <p>A mensagem de sucesso quando o desafio é aprovado ainda não é mostrada no chat. O fix de chave a cobre quando ela existir &mdash; a família <code>approved</code> já foi corrigida junto.</p>
+      </div>
+      <div class="ve-card">
+        <h3>Ruído de sistema</h3>
+        <p>Mensagens de ambiente (Gtk, fontconfig, SQLite) apareceram durante a execução e são pré-registradas &mdash; não fazem parte da entrega nem indicam defeito no app.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ GLOSSARIO ============ -->
+  <section class="section animate" style="--i:8" aria-labelledby="glossario">
+    <div class="section-head">
+      <span class="section-num">GL</span>
+      <h2 id="glossario">Glossário de referência</h2>
+    </div>
+    <p class="section-lead">Cada termo abaixo é definido também na primeira vez em que aparece no texto &mdash; esta tabela é só o mapa para reencontrar.</p>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Termo</th><th>Definição</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>balão</td><td>Bolha colorida com a mensagem do tutor ou do aluno no chat.</td></tr>
+          <tr><td>input</td><td>Campo onde o aluno digita a mensagem.</td></tr>
+          <tr><td>gating</td><td>Regra que trava uma ação (concluir a aula) até uma condição (desafios resolvidos).</td></tr>
+          <tr><td>style object (do React)</td><td>Objeto de estilos aplicado direto no elemento; só aceita propriedades CSS de verdade.</td></tr>
+          <tr><td>prop <code>sx</code> (do MUI)</td><td>Atalho de estilo do Material UI que aceita açúcar de sintaxe, como <code>bgcolor</code>.</td></tr>
+          <tr><td>descartada em silêncio</td><td>Ignorada sem erro nem aviso &mdash; só o visual mostra o estrago.</td></tr>
+          <tr><td>regressão</td><td>Comportamento que funcionava e quebrou por uma mudança posterior.</td></tr>
+          <tr><td>motion.div</td><td>Componente da biblioteca framer-motion, usada para animar elementos.</td></tr>
+          <tr><td>popover</td><td>Pequena janela flutuante que abre ao clicar num botão, sem sair da tela.</td></tr>
+          <tr><td>badge</td><td>Indicador pequeno sobre um botão mostrando quantos itens estão pendentes.</td></tr>
+          <tr><td>track</td><td>Registro de progresso do aluno na resolução de um desafio.</td></tr>
+          <tr><td>a11y</td><td>Acessibilidade: atributos que permitem operar por teclado e leitores de tela.</td></tr>
+          <tr><td>i18n</td><td>Internacionalização: textos em arquivos por idioma, trocados por chave.</td></tr>
+          <tr><td>e2e</td><td>Teste que abre o app real e simula os cliques do usuário (Playwright).</td></tr>
+          <tr><td>teste unitário</td><td>Teste de uma função isolada, sem interface.</td></tr>
+          <tr><td>getComputedStyle</td><td>Leitura do estilo final calculado pelo navegador.</td></tr>
+          <tr><td>gate / snapshot</td><td>Barreira automatizada (lint + testes + build) rodada em cópia isolada do repositório.</td></tr>
+          <tr><td>spec</td><td>Arquivo de teste (e2e ou unitário).</td></tr>
+          <tr><td>diff</td><td>A comparação entre o código antes e depois de uma mudança.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ============ FOOTER ============ -->
+  <footer class="animate" style="--i:9">
+    <p><strong>Validade:</strong> este documento explica a execução de 2026-08-28 (tarefa UX do chat) e vale contra o estado do código ao fim dela. Números, cores e vereditos vêm dos fatos registrados da execução &mdash; nada foi inventado nesta explicação.</p>
+    <p><strong>Leitor:</strong> misto &mdash; o texto foi escrito tratando o leitor como novato, com os detalhes para experiente dobrados nos &ldquo;detalhe&rdquo; (expanda se quiser).</p>
+    <p><strong>Diagramas:</strong> Mermaid 11 com o shell padrão (zoom, arrastar, expandir), legível nos temas claro e escuro. A sinalização de pontos críticos usa as classes <em>crt</em> (laranja) e <em>ok</em> (verde).</p>
   </footer>
 
 </div>
@@ -1033,7 +927,7 @@
 
   const config = {
     fitPadding: 28,
-    minHeight: 380,
+    minHeight: 360,
     maxHeightPx: 960,
     maxHeightVh: 0.84,
     maxInitialZoom: 1.8,
@@ -1053,59 +947,54 @@
     activeDrag = null;
   });
 
-  const darkThemeVariables = {
-    darkMode: true,
-    primaryColor: '#1e242e',
-    primaryTextColor: '#dadee5',
-    primaryBorderColor: '#343b45',
-    lineColor: '#9da5b2',
-    secondaryColor: '#1e242e',
-    secondaryTextColor: '#dadee5',
-    tertiaryColor: '#1e242e',
-    tertiaryTextColor: '#dadee5',
-    textColor: '#dadee5',
-    labelTextColor: '#dadee5',
-    edgeLabelBackground: '#1e242e',
-    background: '#070b14'
-  };
+  const isDark = matchMedia('(prefers-color-scheme: dark)').matches;
 
-  const lightThemeVariables = {
-    primaryColor: '#5537eb',
-    primaryTextColor: '#ffffff',
-    primaryBorderColor: '#d4d8de',
-    lineColor: '#414853',
-    secondaryColor: '#e1e5eb',
-    secondaryTextColor: '#414853',
-    tertiaryColor: '#e1e5eb',
-    tertiaryTextColor: '#414853',
-    textColor: '#414853',
-    labelTextColor: '#414853',
-    edgeLabelBackground: '#f3f5f9',
-    background: '#f3f5f9'
-  };
-
-  const isDarkNow = () => {
-    const scheme = getComputedStyle(document.documentElement).colorScheme;
-    return scheme === 'dark'
-      || (scheme === 'normal' && matchMedia('(prefers-color-scheme: dark)').matches);
-  };
-
-  function applyMermaidTheme(dark) {
-    mermaid.initialize({
-      startOnLoad: false,
-      theme: 'base',
-      look: 'classic',
-      layout: 'elk',
-      themeVariables: {
-        ...(dark ? darkThemeVariables : lightThemeVariables),
-        fontFamily: "'Inter', system-ui, sans-serif",
-        fontSize: '15px'
+  // Substituicoes de classDef para sinalizar o critico em cada paleta.
+  const defs = isDark
+    ? {
+        crt: 'classDef crt fill:#431407,stroke:#fbbf24,stroke-width:2px,color:#fde68a',
+        ok:  'classDef ok fill:#052e16,stroke:#4ade80,stroke-width:2px,color:#bbf7d0',
       }
-    });
-  }
+    : {
+        crt: 'classDef crt fill:#fff7ed,stroke:#d97706,stroke-width:2px,color:#9a3412',
+        ok:  'classDef ok fill:#f0fdf4,stroke:#16a34a,stroke-width:2px,color:#166534',
+      };
 
   mermaid.registerLayoutLoaders(elkLayouts);
-  applyMermaidTheme(isDarkNow());
+  mermaid.initialize({
+    startOnLoad: false,
+    theme: 'base',
+    look: 'classic',
+    layout: 'elk',
+    themeVariables: isDark
+      ? {
+          darkMode: true,
+          primaryColor: '#1e242e',
+          primaryTextColor: '#dadee5',
+          primaryBorderColor: '#343b45',
+          lineColor: '#9da5b2',
+          secondaryColor: '#1e242e',
+          secondaryTextColor: '#dadee5',
+          tertiaryColor: '#1e242e',
+          tertiaryTextColor: '#dadee5',
+          background: '#070b14',
+          fontFamily: "'Inter', system-ui, sans-serif",
+          fontSize: '14px',
+        }
+      : {
+          primaryColor: '#5537eb',
+          primaryTextColor: '#ffffff',
+          primaryBorderColor: '#d4d8de',
+          lineColor: '#414853',
+          secondaryColor: '#e1e5eb',
+          secondaryTextColor: '#414853',
+          tertiaryColor: '#e1e5eb',
+          tertiaryTextColor: '#414853',
+          background: '#f3f5f9',
+          fontFamily: "'Inter', system-ui, sans-serif",
+          fontSize: '14px',
+        }
+  });
 
   const rerenderers = [];
 
@@ -1265,10 +1154,8 @@
       clone.style.width = '';
       clone.style.height = '';
 
-      // Mermaid deriva clusterBkg e tertiaryColor do background da página:
-      // a exportação tem de ler o valor vivo para sentar no mesmo chão do diagrama.
       const bg = getComputedStyle(document.documentElement)
-        .getPropertyValue('--background').trim() || (isDarkNow() ? '#070b14' : '#f3f5f9');
+        .getPropertyValue('--background').trim() || (isDark ? '#070b14' : '#f3f5f9');
 
       const html = `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8">
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -1283,11 +1170,15 @@
 
     async function render() {
       try {
-        const code = source.textContent.trim();
+        let code = source.textContent.trim();
         if (!code) {
           label.textContent = 'Erro: fonte vazia';
           return;
         }
+
+        code = code
+          .replace('%%CRTDEF%%', defs.crt)
+          .replace('%%OKDEF%%', defs.ok);
 
         const id = 'diagram-' + Date.now() + '-' + Math.random().toString(36).slice(2, 8);
         const { svg } = await mermaid.render(id, code);
@@ -1318,7 +1209,7 @@
         fitDiagram();
       } catch (err) {
         console.error('Mermaid render failed:', err);
-        label.textContent = 'Erro: ' + (err.message || 'Falha ao renderizar');
+        label.textContent = 'Erro: ' + (err.message || 'Render falhou');
       }
     }
 
@@ -1425,14 +1316,9 @@
 
   document.querySelectorAll('.diagram-shell').forEach(initDiagram);
 
-  // O Mermaid grava as cores no SVG na hora de renderizar: quando o tema
-  // muda em runtime, re-renderiza todos os diagramas para acompanhar.
+  // Mermaid embute as cores no SVG na hora de renderizar; uma troca de paleta
+  // em runtime precisa re-renderizar cada diagrama para acompanhar.
   window.rerenderDiagrams = () => Promise.all(rerenderers.map((render) => render()));
-
-  matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
-    applyMermaidTheme(e.matches);
-    window.rerenderDiagrams?.();
-  });
 </script>
 
 </body>
