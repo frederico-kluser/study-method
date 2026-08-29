@@ -1241,8 +1241,21 @@ export function LessonView(props: ViewProps): ReactElement {
         onClose={() => setChallengesAnchorEl(null)}
         anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
         transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+        slotProps={{
+          paper: {
+            // ONDA3-UX-FIX (revisor): o papel CLIPA no raio do tema (14px) —
+            // sem `overflow: hidden` aqui, o scroll do Box interno pintaria o
+            // conteúdo por cima da curva da borda (o Paper não clipa por
+            // padrão). O scroll em si vive no Box (maxHeight + overflowY).
+            sx: { overflow: 'hidden' },
+          },
+        }}
       >
-        <Box sx={{ p: 1.5, minWidth: 300, maxWidth: 420 }}>
+        {/* maxHeight/overflowY: a lista cresce sem limite (novos desafios
+            no topo) — em janela baixa o conteúdo rolável impede cards
+            inacessíveis fora da viewport. min(60vh, 420px) evita cobrir a
+            tela toda em monitores pequenos. */}
+        <Box sx={{ p: 1.5, minWidth: 300, maxWidth: 420, maxHeight: 'min(60vh, 420px)', overflowY: 'auto' }}>
           <Typography variant="h6" sx={{ mb: 1 }}>
             {t('translation:lesson.challengesTitle')}
           </Typography>
