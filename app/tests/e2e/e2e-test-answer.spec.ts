@@ -14,8 +14,8 @@
  *    agora vive NA BOLHA → clicar leva à superfície de falha HONESTA do stub
  *    (regeneração desativada no modo E2E — sem LLM) exibida como chat.lastError
  *    (Alert fixo, NÃO movido); a segunda metade REENTRA no desafio pelo CARD da
- *    lista da aula ("Desafios desta aula" — o card continua lá) e passa com a
- *    resposta certa.
+ *    lista — no POPOVER do botão "Desafios" do cabeçalho (UX do dono: nada
+ *    entre o chat e o input) — e passa com a resposta certa.
  */
 import { test, expect, type ElectronApplication, type Page } from '@playwright/test';
 import { launchApp, closeApp, makeWorkspaceRoot, openTrackChallenge } from './helpers';
@@ -103,9 +103,11 @@ test('e2e-test-answer: errada fecha o painel → bolha de erro + pergunta no cha
   await genModal.getByRole('button', { name: 'Fechar' }).click();
   await expect(genModal).toHaveCount(0);
 
-  // Segunda metade: REENTRA no desafio pelo CARD da lista da aula (o card
-  // continua em "Desafios desta aula" — o texto da bolha NÃO é um botão, o
-  // locator por role button isola o card) e passa com a resposta certa.
+  // Segunda metade: REENTRA no desafio pelo CARD da lista — agora no POPOVER
+  // do botão "Desafios" do cabeçalho (UX do dono: nada entre o chat e o
+  // input; o texto da bolha NÃO é um botão — o locator por role button isola
+  // o card) e passa com a resposta certa.
+  await page.getByRole('button', { name: 'Desafios' }).click();
   await page.getByRole('button', { name: /O dobro do número/ }).first().click();
   await expect(page.getByRole('heading', { name: 'O dobro do número' }).first()).toBeVisible({ timeout: 20_000 });
   await page.getByRole('button', { name: 'Começar' }).click();

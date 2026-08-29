@@ -54,6 +54,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore
 import { useTranslation } from 'react-i18next';
 import {
   Alert,
+  Badge,
   Box,
   Button,
   Chip,
@@ -68,6 +69,7 @@ import {
   List,
   ListItem,
   ListItemText,
+  Popover,
   Stack,
   TextField,
   Tooltip,
@@ -76,6 +78,7 @@ import {
 import SendIcon from '@mui/icons-material/Send';
 import AutoStoriesIcon from '@mui/icons-material/AutoStories';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
 import LockIcon from '@mui/icons-material/Lock';
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
 import MicIcon from '@mui/icons-material/Mic';
@@ -206,6 +209,12 @@ export function LessonView(props: ViewProps): ReactElement {
   const [draft, setDraft] = useState('');
   const [loadError, setLoadError] = useState<string | null>(null);
   const [sourcesOpen, setSourcesOpen] = useState(false);
+  // ONDA1-UX (pedido do dono — "não quero aqueles desafios ali"): a lista de
+  // desafios saiu do fluxo do chat; o botão "Desafios" do cabeçalho abre um
+  // POPOVER ancorado no próprio botão (`challengesAnchorEl`). Fecha ao clicar
+  // fora/Esc (padrão MUI).
+  const [challengesAnchorEl, setChallengesAnchorEl] = useState<HTMLButtonElement | null>(null);
+  const challengesOpen = Boolean(challengesAnchorEl);
   const [doneMarked, setDoneMarked] = useState(false);
 
   // ─── ONDA2-IMESSAGE: streaming (efeito "digitação" ~100 tokens/s) ─────────
@@ -812,6 +821,12 @@ export function LessonView(props: ViewProps): ReactElement {
 
   const theoryProgress = Math.min(100, Math.round((chat.presentedSections.length / Math.max(1, lesson.theory.length)) * 100));
 
+  // ONDA1-UX (pedido do dono): contagem de desafios PENDENTES para o badge do
+  // botão "Desafios" — MESMO critério do gating (isLessonFinishBlocked):
+  // lastVerdict !== 'passed' (null = nunca tentado, failed/timeout/abandoned
+  // = não passou). 0 pendentes → badge oculto (showZero default false do MUI).
+  const pendingChallengeCount = lesson.challenges.filter((ch) => ch.lastVerdict !== 'passed').length;
+
   // ONDA 1 (layout+a11y): a aula ATIVA ocupa TODA a altura do painel main —
   // cabeçalho fixo no topo, região do chat com scroll INTERNO (flexGrow) e
   // entrada fixa embaixo. `flexGrow: 1, minHeight: 0, height: '100%'` resolvem
@@ -823,8 +838,9 @@ export function LessonView(props: ViewProps): ReactElement {
   // uma tela fullhd de largura e NÃO estica além (monitores maiores mantêm
   // 1920 centrado). O PAINEL de mensagens (role="log") fica CAPADO em 1000px
   // centrado (linhas de leitura confortável — decisão visual documentada);
-  // a lista de desafios e o INPUT ocupam a largura MAIOR da coluna (pedido
-  // do dono: "o input fica na largura da coluna").
+  // o INPUT ocupa a largura MAIOR da coluna (pedido do dono: "o input fica
+  // na largura da coluna"). ONDA1-UX: a lista de desafios NÃO vive mais no
+  // fluxo — botão "Desafios" no cabeçalho com a lista em popover.
   return (
     <Box
       sx={{
@@ -851,9 +867,31 @@ export function LessonView(props: ViewProps): ReactElement {
                 {lesson.summary}
               </Typography>
             </Box>
-            <Button size="small" variant="outlined" onClick={() => setSourcesOpen(true)} startIcon={<AutoStoriesIcon />}>
-              {t('translation:lesson.sourcesButton')}
-            </Button>
+            <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
+              {/* ONDA1-UX (pedido do dono — "não quero aqueles desafios ali"):
+                  os desafios saíram do fluxo (nada entre a última bolha e o
+                  input); o botão "Desafios" abre o POPOVER com a lista e o
+                  BADGE mostra os PENDENTES (mesmo critério do gating:
+                  lastVerdict !== 'passed'). Sem pendentes → badge oculto. */}
+              {lesson.challenges.length > 0 ? (
+                <Badge badgeContent={pendingChallengeCount} color="error">
+                  <Button
+                    size="small"
+                    variant="outlined"
+                    onClick={(e) => setChallengesAnchorEl(e.currentTarget)}
+                    aria-haspopup="true"
+                    aria-expanded={challengesOpen}
+                    aria-label={tI('lesson.challengesButtonAria', { pending: pendingChallengeCount })}
+                    startIcon={<EmojiEventsIcon />}
+                  >
+                    {t('translation:lesson.challengesButton')}
+                  </Button>
+                </Badge>
+              ) : null}
+              <Button size="small" variant="outlined" onClick={() => setSourcesOpen(true)} startIcon={<AutoStoriesIcon />}>
+                {t('translation:lesson.sourcesButton')}
+              </Button>
+            </Stack>
           </Stack>
           {/* Progresso da teoria (seções apresentadas). */}
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 1 }}>
@@ -907,9 +945,9 @@ export function LessonView(props: ViewProps): ReactElement {
           {/* Painel das mensagens (rola junto com a região). ONDA2-CHAT-
               NINTENDO: CAPADO em 1000px e CENTRALIZADO (mx auto) — os balões
               (maxWidth 78% do painel) mantêm linhas de leitura confortável
-              mesmo com a coluna em fullhd; a lista de desafios e o input
-              seguem na largura MAIOR da coluna (decisão documentada no
-              render). */}
+              mesmo com a coluna em fullhd; o input segue na largura MAIOR da
+              coluna (decisão documentada no render). ONDA1-UX: a lista de
+              desafios não vive mais aqui (popover no cabeçalho). */}
           <Box
             sx={{
               flexGrow: 1,
@@ -1030,56 +1068,12 @@ export function LessonView(props: ViewProps): ReactElement {
           )}
           </Box>
 
-          {/* Desafios da aula (gerados na trilha; abertos na ChallengeView).
-              Ficam DENTRO da região com scroll: em janela pequena o usuário
-              alcança a lista rolando o chat — o main do shell nunca rola. */}
-          {lesson.challenges.length > 0 ? (
-            <Box>
-              <Typography variant="h6" sx={{ mt: 1 }}>
-                {t('translation:lesson.challengesTitle')}
-              </Typography>
-              <List dense>
-                {lesson.challenges.map((ch) => (
-                  <ListItem
-                    key={ch.slug}
-                    component="button"
-                    onClick={() => openChallenge(ch)}
-                    sx={{
-                      border: '1px solid',
-                      borderColor: 'divider',
-                      borderRadius: 1,
-                      mb: 0.5,
-                      cursor: 'pointer',
-                      textAlign: 'left',
-                      width: '100%',
-                      '&:hover': { bgcolor: 'action.hover' },
-                    }}
-                  >
-                    <ListItemText
-                      primary={
-                        <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
-                          <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                            {ch.title}
-                          </Typography>
-                          <Chip size="small" variant="outlined" label={tI('lesson.difficulty', { n: ch.difficulty })} />
-                          {ch.generated ? <Chip size="small" color="secondary" label={t('translation:lesson.generatedBadge')} /> : null}
-                        </Stack>
-                      }
-                      secondary={
-                        ch.lastVerdict === 'passed' ? (
-                          tI('lesson.challengePassed', { stars: ch.stars })
-                        ) : ch.failedCount > 0 ? (
-                          tI('lesson.challengeFailedCount', { n: ch.failedCount })
-                        ) : (
-                          t('translation:lesson.challengeUntried')
-                        )
-                      }
-                    />
-                  </ListItem>
-                ))}
-              </List>
-            </Box>
-          ) : null}
+          {/* ONDA1-UX (pedido do dono — "não quero aqueles desafios ali"): a
+              lista de desafios SAIU da região de scroll (ficava entre a
+              última bolha e o input, empurrando o fluxo e ficando recortada
+              com conteúdo alto). Agora vive no POPOVER do botão "Desafios"
+              do cabeçalho; entre o chat e o input NÃO há nenhum elemento de
+              lista de desafios. */}
         </Box>
 
         {chat.lastError ? (
@@ -1236,6 +1230,67 @@ export function LessonView(props: ViewProps): ReactElement {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* ONDA1-UX (pedido do dono): DESAFIOS fora do fluxo — o botão
+          "Desafios" do cabeçalho abre este POPOVER com a lista completa
+          (anchor no botão; fecha ao clicar fora/Esc — padrão MUI). Item
+          clicável → MESMO openChallenge do fluxo track (nav intacta). */}
+      <Popover
+        open={challengesOpen}
+        anchorEl={challengesAnchorEl}
+        onClose={() => setChallengesAnchorEl(null)}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+        transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+      >
+        <Box sx={{ p: 1.5, minWidth: 300, maxWidth: 420 }}>
+          <Typography variant="h6" sx={{ mb: 1 }}>
+            {t('translation:lesson.challengesTitle')}
+          </Typography>
+          <List dense role="list" aria-label={tI('lesson.challengesListAria')}>
+            {lesson.challenges.map((ch) => (
+              <ListItem
+                key={ch.slug}
+                component="button"
+                onClick={() => {
+                  setChallengesAnchorEl(null);
+                  openChallenge(ch);
+                }}
+                sx={{
+                  border: '1px solid',
+                  borderColor: 'divider',
+                  borderRadius: 1,
+                  mb: 0.5,
+                  cursor: 'pointer',
+                  textAlign: 'left',
+                  width: '100%',
+                  '&:hover': { bgcolor: 'action.hover' },
+                }}
+              >
+                <ListItemText
+                  primary={
+                    <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
+                      <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                        {ch.title}
+                      </Typography>
+                      <Chip size="small" variant="outlined" label={tI('lesson.difficulty', { n: ch.difficulty })} />
+                      {ch.generated ? <Chip size="small" color="secondary" label={t('translation:lesson.generatedBadge')} /> : null}
+                    </Stack>
+                  }
+                  secondary={
+                    ch.lastVerdict === 'passed' ? (
+                      tI('lesson.challengePassed', { stars: ch.stars })
+                    ) : ch.failedCount > 0 ? (
+                      tI('lesson.challengeFailedCount', { n: ch.failedCount })
+                    ) : (
+                      t('translation:lesson.challengeUntried')
+                    )
+                  }
+                />
+              </ListItem>
+            ))}
+          </List>
+        </Box>
+      </Popover>
     </Box>
   );
 }

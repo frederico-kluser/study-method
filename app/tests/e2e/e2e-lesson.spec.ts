@@ -10,7 +10,9 @@
  *   - a aula abre como CHAT: "Começar aula" → mensagem do tutor (stub
  *     determinístico) → "Próximo" → segunda seção → "Concluir aula";
  *   - as FONTES ficam atrás do botão "Fontes" (nunca no fluxo);
- *   - os DESAFIOS da aula aparecem abaixo (card clicável → aba Desafio).
+ *   - os DESAFIOS da aula ficam atrás do botão "Desafios" do cabeçalho
+ *     (popover com a lista — card clicável → aba Desafio); nada entre o
+ *     chat e o input.
  * No modo E2E o tutor é stub (sem LLM/rede).
  *
  * ONDA2-IMESSAGE (streaming + gating — ajuste REGISTRADO do REPLAN):
@@ -169,10 +171,13 @@ test('e2e-lesson: trilha → aula em chat (teoria progressiva + fontes + desafio
   }
   await expect(page.getByText('Conclua os desafios desta aula primeiro')).toBeVisible();
 
-  // DESAFIOS da aula: card clicável → aba Desafio (fluxo track) → PASSA o
-  // desafio com a resposta certa (o stub roda node --test de verdade).
+  // DESAFIOS da aula (UX do dono — nada entre o chat e o input): o botão
+  // "Desafios" no CABEÇALHO (com badge de pendentes) abre o POPOVER com a
+  // lista — card clicável → aba Desafio (fluxo track) → PASSA o desafio com
+  // a resposta certa (o stub roda node --test de verdade).
+  await page.getByRole('button', { name: 'Desafios' }).click();
   await expect(page.getByRole('heading', { name: 'Desafios desta aula' })).toBeVisible();
-  await page.getByText('O dobro do número', { exact: false }).first().click();
+  await page.getByRole('button', { name: /O dobro do número/ }).first().click();
   await expect(page.getByRole('heading', { name: 'O dobro do número' }).first()).toBeVisible();
   await page.getByRole('button', { name: 'Começar' }).click();
   await page.locator('.cm-content').first().click();
