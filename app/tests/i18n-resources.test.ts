@@ -160,6 +160,33 @@ describe('interpolação (sem asserção de valores específicos)', () => {
       assert.notEqual(raw, noName, 'nome diferente deve mudar a string final');
     }
   });
+
+  it('lesson.challengesButtonAria interpola {{pending}} nas duas línguas (onda1-ux)', async () => {
+    // ONDA1-UX: o nome acessível do botão "Desafios" do cabeçalho da aula
+    // interpola a contagem de pendentes (lesson.challengesButtonAria:
+    // "Desafios da aula ({{pending}} pendentes)" / "Lesson challenges
+    // ({{pending}} pending)"). Um placeholder DIVERGENTE entre os locais
+    // (ex.: {{count}} só num deles) renderizaria CRU ({{pending}} literal) no
+    // nome acessível do botão — o teste de paridade de chaves NÃO pega isso
+    // (ele só compara o conjunto de chaves e a não-vacuidade dos valores).
+    for (const lng of ['pt-BR', 'en'] as const) {
+      const i18n = await createAppI18n(lng);
+      const raw = i18n.t('lesson.challengesButtonAria', { pending: '3' });
+      const noCount = i18n.t('lesson.challengesButtonAria', { pending: '1' });
+      assert.equal(typeof raw, 'string');
+      assert.ok(raw.length > 0, `${lng}: chave interpolada não deve ser vazia`);
+      assert.ok(raw.includes('3'), `${lng}: contagem deve ser injetada no nome acessível`);
+      assert.ok(
+        !raw.includes('{{pending}}'),
+        `${lng}: placeholder não deve permanecer {{pending}} cru depois da interpolação`,
+      );
+      assert.notEqual(
+        raw,
+        noCount,
+        `${lng}: contagem diferente deve mudar o nome acessível`,
+      );
+    }
+  });
 });
 
 describe('metadados do i18n (Ondokai-compatíveis)', () => {

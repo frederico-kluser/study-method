@@ -140,6 +140,15 @@ test('e2e-lesson: trilha → aula em chat (teoria progressiva + fontes + desafio
   // O chat começa vazio: "Começar aula" apresenta a 1ª seção (stub).
   await page.getByRole('button', { name: 'Começar aula' }).click();
   await expect(page.getByText('Tutor E2E:', { exact: false }).first()).toBeVisible();
+  // ONDA1-COR-BALOES (fix 4c8eeb5): a bolha do tutor (kind 'message') aplica
+  // backgroundColor REAL no style plain do motion.div — o fundo é o
+  // background.paper do tema, NUNCA transparente (o bug que o fix matou: a
+  // chave `bgcolor` — açúcar do sx do MUI — era SILENCIOSAMENTE descartada
+  // num style object, deixando o balão transparente). A bolha é o div com
+  // background-color inline dentro do role=log.
+  const bubbles = page.locator('[role="log"] [style*="background-color"]');
+  await expect(bubbles).toHaveCount(1);
+  await expect(bubbles.first()).not.toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
   // ONDA2-IMESSAGE (REPLAN): 'next' também DIGITA — o indicador aparece
   // durante a digitação e some quando o texto COMPLETO está no DOM.
   await waitFullTypewriter(page);
@@ -175,7 +184,23 @@ test('e2e-lesson: trilha → aula em chat (teoria progressiva + fontes + desafio
   // "Desafios" no CABEÇALHO (com badge de pendentes) abre o POPOVER com a
   // lista — card clicável → aba Desafio (fluxo track) → PASSA o desafio com
   // a resposta certa (o stub roda node --test de verdade).
-  await page.getByRole('button', { name: 'Desafios' }).click();
+  // ONDA1-UX (a11y + badge): o nome acessível interpola a contagem de
+  // pendentes ({{pending}} — mesmo critério do gating, lastVerdict !==
+  // 'passed'; a fixture tem 1 desafio nunca tentado → 1) e o badge visual
+  // mostra o mesmo número; aria-haspopup/expanded acompanham o popover.
+  const desafiosBtn = page.getByRole('button', { name: 'Desafios da aula (1 pendentes)', exact: true });
+  await expect(desafiosBtn).toHaveAttribute('aria-haspopup', 'true');
+  await expect(desafiosBtn).toHaveAttribute('aria-expanded', 'false');
+  await expect(desafiosBtn.locator('xpath=..').locator('.MuiBadge-badge')).toHaveText('1');
+  await desafiosBtn.click();
+  // O Popover MUI é um Modal: ao abrir, o fundo (inclusive o botão disparador)
+  // sai da a11y tree (aria-hidden) — o getByRole não o vê mais. O ATRIBUTO
+  // aria-expanded="true" continua no DOM — o locator CSS (que não filtra pela
+  // a11y tree) lê o estado real.
+  await expect(page.locator('button[aria-label="Desafios da aula (1 pendentes)"]')).toHaveAttribute(
+    'aria-expanded',
+    'true',
+  );
   await expect(page.getByRole('heading', { name: 'Desafios desta aula' })).toBeVisible();
   await page.getByRole('button', { name: /O dobro do número/ }).first().click();
   await expect(page.getByRole('heading', { name: 'O dobro do número' }).first()).toBeVisible();

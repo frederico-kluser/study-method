@@ -90,6 +90,25 @@ test('e2e-test-answer: errada fecha o painel → bolha de erro + pergunta no cha
     page.getByText('Tutor E2E responde a dúvida: eu acho que errei no retorno', { exact: false }),
   ).toBeVisible({ timeout: 20_000 });
 
+  // ONDA1-COR-BALOES (fix 4c8eeb5): as 3 famílias de balão PRESENTES neste
+  // fluxo aplicam backgroundColor REAL no style plain do motion.div — a
+  // review de ERRO (tint error.main 10% via color-mix), a bolha do ALUNO
+  // (primary.main preenchida) e a reply do tutor (secondary.main
+  // preenchida) — todas NUNCA transparentes (o bug do fix: `bgcolor` do sx
+  // descartado em silêncio num style object). A bolha é o div com
+  // background-color INLINE dentro do role=log; o filtro usa o texto EXATO
+  // (a reply contém a frase do aluno só como substring — só a bolha do aluno
+  // casa com exact:true).
+  const bubble = page.locator('[role="log"] [style*="background-color"]');
+  const errorBubble = bubble.filter({ has: page.getByText('1 de 3 testes passaram', { exact: false }) });
+  await expect(errorBubble).not.toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
+  const userBubble = bubble.filter({ has: page.getByText('eu acho que errei no retorno', { exact: true }) });
+  await expect(userBubble).not.toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
+  const replyBubble = bubble.filter({
+    has: page.getByText('Tutor E2E responde a dúvida: eu acho que errei no retorno', { exact: false }),
+  });
+  await expect(replyBubble).not.toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
+
   // "Gerar novo desafio" AGORA VIVE NA BOLHA (o painel fechou). ONDA3
   // (generate-flow): o clique abre o MODAL GLOBAL de etapas — o stub responde
   // {ok:false} (regeneração exige LLM — OFF no modo E2E) e o modal mostra o
