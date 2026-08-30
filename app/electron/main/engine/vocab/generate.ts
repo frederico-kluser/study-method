@@ -324,15 +324,18 @@ function montarAtomos(runtime: VocabRuntime): AtomosJson {
 
 /**
  * Gera `atoms.json` como STRING (o conteúdo exato do arquivo commitado).
- * PURO e determinístico: mesma entrada, mesmos bytes.
+ * PURO e determinístico: mesma entrada, mesmos bytes. A saída canônica
+ * termina com newline final (L-04 do gate-lint: todo arquivo de texto
+ * termina com `\n`).
  */
 export function gerarAtomos(runtime: VocabRuntime): string {
-  return JSON.stringify(montarAtomos(runtime), null, 2);
+  return JSON.stringify(montarAtomos(runtime), null, 2) + '\n';
 }
 
 /**
  * Gera `api-catalog.json` como STRING (o conteúdo exato do arquivo
- * commitado). O catálogo é validado antes: vazio é erro, chave inválida é erro.
+ * commitado). O catálogo é validado antes: vazio é erro, chave inválida é
+ * erro. A saída canônica termina com newline final (L-04 do gate-lint).
  */
 export function gerarCatalogoApi(runtime: VocabRuntime): string {
   const catalogo = montarCatalogo(runtime);
@@ -340,13 +343,13 @@ export function gerarCatalogoApi(runtime: VocabRuntime): string {
     throw new Error('gerador de vocabulário: catálogo de API vazio');
   }
   validarChaves('api-catalog.api_paths', catalogo.api_paths);
-  return JSON.stringify(catalogo, null, 2);
+  return JSON.stringify(catalogo, null, 2) + '\n';
 }
 
 /**
  * Regrava os DOIS artefatos em `dir` e devolve os caminhos escritos. O
  * conteúdo do arquivo é EXATAMENTE o que `gerarAtomos`/`gerarCatalogoApi`
- * devolvem (sem newline final) — é o que permite a prova byte a byte.
+ * devolvem (com newline final) — é o que permite a prova byte a byte.
  */
 export function escreverArtefatos(runtime: VocabRuntime, dir: string): string[] {
   fs.mkdirSync(dir, { recursive: true });
