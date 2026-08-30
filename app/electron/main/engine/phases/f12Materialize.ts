@@ -883,7 +883,11 @@ export async function materializarTrilha(
       }
     } catch (erro) {
       if (erro instanceof MaterializeError) throw erro;
-      // raiz inexistente = sem trilhas ainda — não é colisão.
+      // SÓ raiz AUSENTE (ENOENT) = sem trilhas ainda — não é colisão. Qualquer
+      // OUTRO erro de IO (EACCES/EIO/EMFILE…) é RELANÇADO (fail-closed): uma
+      // falha transitória de leitura não pode desativar em silêncio a
+      // verificação de colisão DESTINO_COLIDE.
+      if ((erro as NodeJS.ErrnoException).code !== 'ENOENT') throw erro;
     }
   }
 

@@ -27,7 +27,11 @@
  *   7. (bônus) G-FINAL reprova quando a QUARTA prova falha (verificador fake
  *      devolvendo inválido → falha nomeando o ref do desafio);
  *   8. (bônus) G-FINAL repassa desafios MULTI-ARQUIVO (files[], rodada 9) às
- *      provas com os arquivos intactos (solutionFiles/starterFiles).
+ *      provas com os arquivos intactos (solutionFiles/starterFiles);
+ *   9. (fail-closed, revisão) `raizDeTrilhas` com erro de IO NÃO-ENOENT de
+ *      listTrackSlugs (EACCES) → PROPAGA e NADA é escrito; raiz AUSENTE
+ *      (ENOENT) → fluxo normal segue (sem trilhas ainda = sem colisão); a
+ *      colisão com trilha EXISTENTE na raiz continua DESTINO_COLIDE.
  *
  * Sem rede, sem LLM, ZERO processos: o verificador das provas é FAKE (a
  * suíte nunca roda `node --test`); o único IO é em diretórios TEMPORÁRIOS
@@ -587,6 +591,58 @@ describe('F12 — materializarTrilha (integrador único)', () => {
       assert.ok(multi !== undefined, 'o verificador recebeu o desafio multi-arquivo');
       assert.deepEqual(multi?.solutionFiles, [{ path: 'lib/total.mjs', code: 'export let total = 1;' }]);
       assert.deepEqual(multi?.starterFiles, [{ path: 'lib/total.mjs', code: 'export let total;' }]);
+    } finally {
+      await rmrf(tmp);
+    }
+  });
+
+  it('9. (fail-closed) raizDeTrilhas com EACCES de listTrackSlugs → PROPAGA e NADA é escrito', async () => {
+    const tmp = await mkTempDir('p21-mat-');
+    try {
+      const destino = path.join(tmp, 'trilha-p21');
+      const raiz = path.join(tmp, 'raiz');
+      await fsp.mkdir(raiz);
+      await fsp.chmod(raiz, 0o000); // readdir → EACCES (falha transitória de leitura)
+
+      try {
+        await assert.rejects(
+          () => materializarTrilha({ raizDeTrilhas: raiz }, dossieCompleto(), destino),
+          (erro: unknown) => {
+            assert.ok(
+              !(erro instanceof MaterializeError),
+              `erro de IO não pode ser engolido nem virado MaterializeError: ${String(erro)}`,
+            );
+            return (erro as NodeJS.ErrnoException).code === 'EACCES';
+          },
+        );
+        // a materialização NÃO aconteceu: o destino nem existe (nenhum arquivo escrito).
+        await assert.rejects(
+          () => fsp.access(path.join(destino, TRACK_FILE)),
+          (e: unknown) => (e as NodeJS.ErrnoException).code === 'ENOENT',
+          'nenhum arquivo da árvore foi escrito no destino',
+        );
+      } finally {
+        await fsp.chmod(raiz, 0o755); // libera a leitura para o rmrf do bloco externo
+      }
+    } finally {
+      await rmrf(tmp);
+    }
+  });
+
+  it('10. raizDeTrilhas AUSENTE (ENOENT) → fluxo normal segue (sem trilhas ainda = sem colisão)', async () => {
+    const tmp = await mkTempDir('p21-mat-');
+    try {
+      const destino = path.join(tmp, 'trilha-p21');
+      const resultado = await materializarTrilha(
+        { raizDeTrilhas: path.join(tmp, 'raiz-inexistente') },
+        dossieCompleto(),
+        destino,
+      );
+      assert.equal(resultado.slug, 'trilha-p21');
+      assert.equal(resultado.arquivos, 9);
+      // a árvore foi escrita normalmente e carrega sem issue.
+      const track = await loadTrack(destino);
+      assert.equal(track.root.slug, 'trilha-p21');
     } finally {
       await rmrf(tmp);
     }
