@@ -4,11 +4,17 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="plannotator-theme" content="host">
-<title>O chat da aula: a cor que sumiu e os desafios que mudaram de lugar</title>
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%235537eb'/%3E%3Cpath d='M18 22h28a4 4 0 0 1 4 4v16a4 4 0 0 1-4 4H32l-8 8v-8h-6a4 4 0 0 1-4-4V26a4 4 0 0 1 4-4z' fill='%23ffffff'/%3E%3Ccircle cx='26' cy='34' r='2.6' fill='%235537eb'/%3E%3Ccircle cx='32' cy='34' r='2.6' fill='%235537eb'/%3E%3Ccircle cx='38' cy='34' r='2.6' fill='%235537eb'/%3E%3C/svg%3E">
+<title>Quatro ondas, uma engine — como esta execução construiu e provou o gerador de trilhas</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%235537eb'/%3E%3Ctext x='32' y='44' font-family='Georgia,serif' font-size='34' font-weight='700' fill='%23ffffff' text-anchor='middle'%3EE%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
 <style>
-  /* ============ TEMA (tokens do Plannotator) ============ */
+  /* ============ TEMA — tokens do Plannotator ============ */
   :root {
+    color-scheme: light dark;
+
+    /* Surfaces */
     --background: oklch(0.97 0.005 260);
     --foreground: oklch(0.18 0.02 260);
     --card: oklch(1 0 0);
@@ -16,24 +22,36 @@
     --muted: oklch(0.92 0.01 260);
     --muted-foreground: oklch(0.40 0.02 260);
 
+    /* Accents */
     --primary: oklch(0.50 0.25 280);
     --primary-foreground: oklch(1 0 0);
     --secondary: oklch(0.50 0.18 180);
     --accent: oklch(0.60 0.22 50);
     --accent-foreground: oklch(0.18 0.02 260);
 
+    /* Semantic */
     --destructive: oklch(0.50 0.25 25);
     --success: oklch(0.45 0.20 150);
     --warning: oklch(0.55 0.18 85);
 
+    /* Structure */
     --border: oklch(0.88 0.01 260);
     --code-bg: oklch(0.92 0.01 260);
     --ring: oklch(0.50 0.25 280);
     --radius: 0.625rem;
 
+    /* Tipografia */
     --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
     --font-mono: 'JetBrains Mono', 'Fira Code', ui-monospace, 'SF Mono', Consolas, monospace;
     --font-display: ui-serif, Georgia, 'Times New Roman', serif;
+
+    /* Cores das classes Mermaid (flipam com o tema) */
+    --fig-crit: #1e6b49;    --fig-crit-brd: #145236;  --fig-crit-txt: #ffffff;
+    --fig-good: #257a54;    --fig-good-brd: #145236;  --fig-good-txt: #ffffff;
+    --fig-bad:  #b02a3a;    --fig-bad-brd: #7c1a26;   --fig-bad-txt:  #ffffff;
+    --fig-warn: #d9a441;    --fig-warn-brd: #a8740c;  --fig-warn-txt: #241a05;
+    --fig-wave: #5537eb;    --fig-wave-brd: #3d24b8;  --fig-wave-txt: #ffffff;
+    --fig-rv:   #e1e5eb;    --fig-rv-brd: #c3c9d4;    --fig-rv-txt:   #414853;
   }
 
   @media (prefers-color-scheme: dark) {
@@ -52,6 +70,13 @@
       --destructive: oklch(0.65 0.20 25);
       --success: oklch(0.72 0.17 150);
       --warning: oklch(0.75 0.15 85);
+
+      --fig-crit: #3fc083;   --fig-crit-brd: #1e6b49;  --fig-crit-txt: #062014;
+      --fig-good: #3fc083;   --fig-good-brd: #1e6b49;  --fig-good-txt: #062014;
+      --fig-bad:  #f06878;   --fig-bad-brd: #7c1a26;   --fig-bad-txt:  #2b070c;
+      --fig-warn: #d9b447;   --fig-warn-brd: #a8740c;  --fig-warn-txt: #241a05;
+      --fig-wave: #a98cf5;   --fig-wave-brd: #5537eb;  --fig-wave-txt: #14102a;
+      --fig-rv:   #262d3a;   --fig-rv-brd: #343b45;    --fig-rv-txt:   #dadee5;
     }
   }
 
@@ -63,18 +88,13 @@
     color: var(--foreground);
     font-family: var(--font-sans);
     line-height: 1.65;
-    padding: 48px 24px 64px;
+    padding: 48px 24px 72px;
     min-height: 100vh;
   }
 
-  .container {
-    max-width: 1080px;
-    margin: 0 auto;
-  }
+  .container { max-width: 1080px; margin: 0 auto; }
 
-  h1, h2, h3 {
-    text-wrap: balance;
-  }
+  h1, h2, h3 { text-wrap: balance; }
 
   h1 {
     font-family: var(--font-display);
@@ -87,20 +107,30 @@
 
   h2 {
     font-family: var(--font-display);
-    font-size: clamp(22px, 2.6vw, 28px);
+    font-size: clamp(22px, 2.6vw, 30px);
     font-weight: 600;
-    margin: 0 0 6px;
-    line-height: 1.25;
+    line-height: 1.2;
+    letter-spacing: -0.005em;
+    margin: 0 0 16px;
   }
 
   h3 {
-    font-size: 16px;
+    font-size: 15px;
     font-weight: 600;
-    margin: 0 0 6px;
+    margin: 0 0 8px;
   }
 
-  p { max-width: 72ch; }
+  p { max-width: 66ch; }
   p + p { margin-top: 12px; }
+
+  a { color: var(--primary); text-decoration: underline; text-underline-offset: 2px; }
+  a:focus-visible,
+  summary:focus-visible,
+  button:focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
 
   code {
     font-family: var(--font-mono);
@@ -111,145 +141,111 @@
     padding: 1px 5px;
   }
 
-  strong { font-weight: 650; }
-
-  a { color: var(--primary); }
-
-  /* ============ ANIMACAO ============ */
-  @keyframes fadeUp {
-    from { opacity: 0; transform: translateY(12px); }
-    to { opacity: 1; transform: translateY(0); }
-  }
-  .animate { animation: fadeUp 0.4s ease-out both; animation-delay: calc(var(--i, 0) * 0.06s); }
-  @media (prefers-reduced-motion: reduce) {
-    *, *::before, *::after {
-      animation-duration: 0.01ms !important;
-      animation-delay: 0ms !important;
-      transition-duration: 0.01ms !important;
-    }
-  }
-
-  /* ============ HEADER ============ */
   .eyebrow {
     font-family: var(--font-mono);
     font-size: 12px;
-    letter-spacing: 0.12em;
+    font-weight: 500;
+    letter-spacing: 0.08em;
     text-transform: uppercase;
     color: var(--muted-foreground);
   }
 
-  .subtitle {
+  .subtitle-mono {
     font-family: var(--font-mono);
     font-size: 13px;
     color: var(--muted-foreground);
-    margin: 10px 0 28px;
+    margin-top: 2px;
   }
 
-  .prompt-box {
+  /* ============ RESPOSTA EM UMA FRASE ============ */
+  .answer-strip {
+    margin-top: 28px;
     background: var(--card);
-    border: 1.5px solid var(--border);
-    border-left: 4px solid var(--accent);
+    border: 1.5px solid var(--primary);
+    border-left: 5px solid var(--primary);
     border-radius: var(--radius);
     padding: 18px 22px;
-    margin: 22px 0 8px;
-    font-size: 15px;
-    color: var(--muted-foreground);
+    font-size: 16px;
+    line-height: 1.55;
   }
-  .prompt-box .prompt-label {
+  .answer-strip .answer-label {
+    display: block;
     font-family: var(--font-mono);
     font-size: 11px;
+    font-weight: 700;
     letter-spacing: 0.1em;
     text-transform: uppercase;
-    color: var(--accent);
-    display: block;
+    color: var(--primary);
     margin-bottom: 6px;
   }
-  .prompt-box .prompt-text {
-    color: var(--card-foreground);
-    font-style: italic;
-  }
+  .answer-strip strong { color: var(--primary); }
 
-  /* ============ TL;DR ============ */
-  .tldr {
-    background: var(--card);
-    border: 1.5px solid var(--border);
-    border-left: 4px solid var(--primary);
-    border-radius: var(--radius);
-    padding: 22px 26px;
-    margin: 34px 0 10px;
-    font-size: 16.5px;
-    line-height: 1.6;
-  }
-  .tldr .tldr-label {
-    font-family: var(--font-mono);
-    font-size: 11px;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    color: var(--primary);
-    display: block;
-    margin-bottom: 8px;
-  }
-
-  /* ============ SECOES ============ */
+  /* ============ SEÇÕES ============ */
   .section { margin-top: 56px; }
 
-  .section-head {
-    display: flex;
-    align-items: baseline;
-    gap: 12px;
-    margin-bottom: 14px;
-  }
-  .section-num {
-    font-family: var(--font-mono);
-    font-size: 13px;
-    color: var(--primary);
-    letter-spacing: 0.05em;
-  }
   .section-lead {
     color: var(--muted-foreground);
-    font-size: 15.5px;
-    margin-bottom: 18px;
+    font-size: 15px;
+    line-height: 1.7;
+    margin-bottom: 20px;
+    max-width: 72ch;
   }
+  .section-lead strong { color: var(--foreground); }
+
+  .section-num {
+    display: inline-block;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--primary);
+    background: color-mix(in oklab, var(--primary) 10%, transparent);
+    border: 1px solid color-mix(in oklab, var(--primary) 30%, transparent);
+    border-radius: 6px;
+    padding: 2px 9px;
+    margin-bottom: 10px;
+  }
+
+  .section h2 { display: inline; }
+  .section-head { margin-bottom: 18px; }
 
   /* ============ CARDS ============ */
   .ve-card {
     background: var(--card);
     border: 1.5px solid var(--border);
     border-radius: var(--radius);
-    padding: 20px 22px;
+    padding: 18px 20px;
+    font-size: 14px;
+    line-height: 1.6;
   }
-  .ve-card--recessed {
-    background: var(--muted);
-    border-color: transparent;
-  }
-
-  .grid-3 {
+  .ve-card--recessed { background: var(--muted); border-color: transparent; }
+  .card-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-    gap: 16px;
-    margin: 18px 0;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 14px;
+    margin-top: 16px;
   }
-  .grid-2 {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-    gap: 16px;
-    margin: 18px 0;
-  }
+  .card-grid .ve-card { margin: 0; }
 
-  .term-card h3 {
-    font-family: var(--font-mono);
-    font-size: 13.5px;
-    letter-spacing: 0.02em;
-    color: var(--primary);
+  .callout {
+    background: var(--card);
+    border: 1.5px solid var(--border);
+    border-left: 4px solid var(--primary);
+    border-radius: var(--radius);
+    padding: 16px 20px;
+    font-size: 14px;
+    line-height: 1.6;
+    margin-top: 18px;
+    max-width: 80ch;
   }
-  .term-card p { font-size: 14.5px; color: var(--card-foreground); }
+  .callout code { background: color-mix(in oklab, var(--primary) 12%, transparent); border-color: transparent; color: var(--primary); }
+  .callout strong { color: var(--primary); }
 
   /* ============ KPI ============ */
   .kpi-row {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
     gap: 14px;
-    margin: 18px 0;
+    margin-top: 22px;
   }
   .kpi-card {
     background: var(--card);
@@ -258,118 +254,90 @@
     padding: 16px 18px;
   }
   .kpi-value {
-    font-family: var(--font-display);
-    font-size: 30px;
-    font-weight: 600;
+    font-family: var(--font-mono);
+    font-size: 26px;
+    font-weight: 700;
     line-height: 1.1;
     color: var(--primary);
     font-variant-numeric: tabular-nums;
   }
   .kpi-label {
-    font-family: var(--font-mono);
-    font-size: 11px;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
+    font-size: 12px;
     color: var(--muted-foreground);
     margin-top: 4px;
+    line-height: 1.45;
   }
 
   /* ============ TABELAS ============ */
-  .table-wrap { overflow-x: auto; margin: 18px 0; }
+  .table-scroll { overflow-x: auto; margin-top: 16px; }
   table {
     width: 100%;
     border-collapse: collapse;
+    font-size: 13.5px;
     background: var(--card);
     border: 1.5px solid var(--border);
     border-radius: var(--radius);
-    font-size: 14.5px;
-    min-width: 560px;
+    overflow: hidden;
+    min-width: 640px;
   }
   thead th {
-    font-family: var(--font-mono);
-    font-size: 11.5px;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
     text-align: left;
-    color: var(--muted-foreground);
-    padding: 12px 16px;
-    border-bottom: 1.5px solid var(--border);
-  }
-  tbody td {
-    padding: 12px 16px;
-    border-bottom: 1px solid var(--border);
-    vertical-align: top;
-    color: var(--card-foreground);
-  }
-  tbody tr:last-child td { border-bottom: none; }
-  tbody tr:hover { background: var(--muted); }
-
-  .verdict-chip {
-    display: inline-block;
     font-family: var(--font-mono);
     font-size: 11px;
-    font-weight: 600;
-    letter-spacing: 0.05em;
+    font-weight: 700;
+    letter-spacing: 0.07em;
     text-transform: uppercase;
-    padding: 3px 9px;
+    color: var(--muted-foreground);
+    padding: 10px 14px;
+    border-bottom: 1.5px solid var(--border);
+    background: var(--muted);
+    white-space: nowrap;
+  }
+  tbody td {
+    padding: 11px 14px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+  }
+  tbody tr:last-child td { border-bottom: none; }
+  td code { white-space: nowrap; }
+
+  .badge {
+    display: inline-block;
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    padding: 2px 8px;
     border-radius: 999px;
     white-space: nowrap;
   }
-  .chip-ok { background: color-mix(in oklab, var(--success) 18%, transparent); color: var(--success); }
-  .chip-warn { background: color-mix(in oklab, var(--warning) 18%, transparent); color: var(--warning); }
-  .chip-bad { background: color-mix(in oklab, var(--destructive) 15%, transparent); color: var(--destructive); }
+  .badge--block { background: color-mix(in oklab, var(--destructive) 15%, transparent); color: var(--destructive); border: 1px solid color-mix(in oklab, var(--destructive) 40%, transparent); }
+  .badge--warn { background: color-mix(in oklab, var(--warning) 15%, transparent); color: var(--warning); border: 1px solid color-mix(in oklab, var(--warning) 40%, transparent); }
+  .badge--ok { background: color-mix(in oklab, var(--success) 15%, transparent); color: var(--success); border: 1px solid color-mix(in oklab, var(--success) 40%, transparent); }
 
-  /* ============ SWATCHES DE COR ============ */
-  .swatch {
-    display: inline-block;
-    width: 14px;
-    height: 14px;
-    border-radius: 4px;
-    border: 1px solid var(--border);
-    vertical-align: -2px;
-    margin-right: 6px;
-  }
+  /* ============ FIGURAS / MERMAID ============ */
+  figure.diagram-shell { margin: 26px 0 10px; position: relative; }
 
-  /* ============ FIGURAS ============ */
-  figure { margin: 22px 0 8px; }
-  figcaption {
-    font-size: 14.5px;
-    line-height: 1.55;
-    color: var(--card-foreground);
-    background: var(--muted);
-    border-radius: var(--radius);
-    padding: 14px 18px;
-    margin-top: 14px;
-  }
-  figcaption .fig-claim {
-    font-weight: 650;
-    color: var(--foreground);
-  }
-
-  /* ============ SHELL DO MERMAID (padrao canonico) ============ */
-  .diagram-shell { position: relative; }
   .diagram-shell__hint {
     font-family: var(--font-mono);
     font-size: 11px;
     color: var(--muted-foreground);
     margin-bottom: 8px;
-    opacity: 0.75;
   }
+
   .mermaid-wrap {
     position: relative;
     background: var(--card);
     border: 1.5px solid var(--border);
-    border-radius: 12px;
+    border-radius: var(--radius);
     padding: 32px 24px;
-    overflow: auto;
-    margin-bottom: 0;
+    overflow: hidden;
     display: flex;
     justify-content: center;
     align-items: center;
-    min-height: 400px;
+    min-height: 320px;
   }
-  .mermaid-wrap { cursor: grab; }
-  .mermaid-wrap.is-panning { cursor: grabbing; user-select: none; }
+
   .zoom-controls {
     position: absolute;
     top: 8px;
@@ -397,21 +365,13 @@
     justify-content: center;
     transition: background 0.15s ease, color 0.15s ease;
   }
-  .zoom-controls button:hover {
-    background: var(--border);
-    color: var(--foreground);
-  }
-  .zoom-controls button:focus-visible,
-  .zoom-controls button:focus {
-    outline: 2px solid var(--ring);
-    outline-offset: 1px;
-  }
+  .zoom-controls button:hover { background: var(--muted); color: var(--foreground); }
+
   .mermaid-viewport {
     position: relative;
     overflow: hidden;
     width: 100%;
-    height: 100%;
-    min-height: 300px;
+    min-height: 260px;
   }
   .mermaid-canvas { position: absolute; top: 0; left: 0; }
   .zoom-label {
@@ -420,82 +380,164 @@
     color: var(--muted-foreground);
     padding: 0 6px;
     white-space: nowrap;
-    line-height: 28px;
+    align-self: center;
   }
-  .mermaid .nodeLabel { font-family: var(--font-sans) !important; font-size: 15px !important; }
-  .mermaid .edgeLabel { font-family: var(--font-mono) !important; font-size: 12px !important; }
-  .mermaid .node rect,
-  .mermaid .node circle,
-  .mermaid .node polygon { stroke-width: 1.5px !important; }
-  .mermaid .edge-pattern-solid { stroke-width: 1.5px !important; }
+  .mermaid-wrap.is-panning { cursor: grabbing; user-select: none; }
+  .mermaid-wrap:not(.is-panning) { cursor: grab; }
 
-  /* ============ LEGENDA ============ */
-  .legend { display: flex; gap: 20px; flex-wrap: wrap; margin-top: 12px; }
-  .legend-item {
+  figcaption {
+    margin-top: 10px;
+    font-size: 13.5px;
+    color: var(--muted-foreground);
+    max-width: 80ch;
+    line-height: 1.55;
+  }
+  figcaption .fig-claim { color: var(--foreground); font-weight: 600; }
+  figcaption code { background: var(--muted); }
+
+  .legend {
     display: flex;
-    align-items: center;
-    gap: 6px;
+    gap: 18px;
+    flex-wrap: wrap;
+    margin-top: 12px;
     font-family: var(--font-mono);
     font-size: 11px;
     color: var(--muted-foreground);
   }
-  .legend-swatch { width: 12px; height: 12px; border-radius: 3px; }
-
-  /* ============ CALLOUT / SINALIZACAO ============ */
-  .callout {
-    background: var(--card);
-    border: 1.5px solid var(--border);
-    border-left: 4px solid var(--primary);
-    border-radius: 0 var(--radius) var(--radius) 0;
-    padding: 16px 20px;
-    font-size: 14.5px;
-    line-height: 1.6;
-    color: var(--muted-foreground);
-    margin: 20px 0;
+  .legend-item { display: flex; align-items: center; gap: 6px; }
+  .legend-swatch {
+    width: 12px;
+    height: 12px;
+    border-radius: 3px;
+    border: 1px solid var(--border);
   }
-  .callout strong { color: var(--foreground); }
-  .callout--warn { border-left-color: var(--warning); }
-  .callout--warn strong { color: var(--warning); }
-  .callout--ok { border-left-color: var(--success); }
-  .callout--ok strong { color: var(--success); }
+
+  /* Overrides Mermaid: rótulos legíveis e classes próprias (crit/good/bad/warn/wave/rv) */
+  .mermaid .nodeLabel {
+    font-family: var(--font-sans) !important;
+    font-size: 14px !important;
+    font-weight: 500;
+  }
+  .mermaid .edgeLabel {
+    font-family: var(--font-mono) !important;
+    font-size: 12px !important;
+  }
+  .mermaid .edgeLabel {
+    background: color-mix(in oklab, var(--card) 88%, transparent);
+    padding: 1px 5px;
+    border-radius: 4px;
+  }
+  .mermaid .clusters .cluster-label { font-size: 12px !important; }
+
+  .mermaid g.crit > rect,  .mermaid g.crit > polygon,  .mermaid g.crit > circle,
+  .mermaid g.good > rect,  .mermaid g.good > polygon,  .mermaid g.good > circle,
+  .mermaid g.bad  > rect,  .mermaid g.bad  > polygon,  .mermaid g.bad  > circle,
+  .mermaid g.warn > rect,  .mermaid g.warn > polygon,  .mermaid g.warn > circle,
+  .mermaid g.wave > rect,  .mermaid g.wave > polygon,  .mermaid g.wave > circle,
+  .mermaid g.rv   > rect,  .mermaid g.rv   > polygon,  .mermaid g.rv   > circle {
+    stroke-width: 1.5px !important;
+  }
+  .mermaid g.crit > rect,  .mermaid g.crit > polygon,  .mermaid g.crit > circle  { fill: var(--fig-crit) !important; stroke: var(--fig-crit-brd) !important; }
+  .mermaid g.good > rect,  .mermaid g.good > polygon,  .mermaid g.good > circle  { fill: var(--fig-good) !important; stroke: var(--fig-good-brd) !important; }
+  .mermaid g.bad  > rect,  .mermaid g.bad  > polygon,  .mermaid g.bad  > circle  { fill: var(--fig-bad) !important;  stroke: var(--fig-bad-brd)  !important; }
+  .mermaid g.warn > rect,  .mermaid g.warn > polygon,  .mermaid g.warn > circle  { fill: var(--fig-warn) !important; stroke: var(--fig-warn-brd) !important; }
+  .mermaid g.wave > rect,  .mermaid g.wave > polygon,  .mermaid g.wave > circle  { fill: var(--fig-wave) !important; stroke: var(--fig-wave-brd) !important; }
+  .mermaid g.rv   > rect,  .mermaid g.rv   > polygon,  .mermaid g.rv   > circle  { fill: var(--fig-rv) !important;   stroke: var(--fig-rv-brd)   !important; }
+
+  .mermaid g.crit .nodeLabel { color: var(--fig-crit-txt) !important; }
+  .mermaid g.good .nodeLabel { color: var(--fig-good-txt) !important; }
+  .mermaid g.bad  .nodeLabel { color: var(--fig-bad-txt)  !important; }
+  .mermaid g.warn .nodeLabel { color: var(--fig-warn-txt) !important; }
+  .mermaid g.wave .nodeLabel { color: var(--fig-wave-txt) !important; }
+  .mermaid g.rv   .nodeLabel { color: var(--fig-rv-txt)   !important; }
 
   /* ============ ANDAIME DOBRADO ============ */
   details.scaffold {
-    background: var(--card);
+    margin-top: 18px;
+    background: var(--muted);
     border: 1.5px solid var(--border);
     border-radius: var(--radius);
-    padding: 14px 20px;
-    margin: 18px 0;
+    padding: 4px 18px;
+    max-width: 86ch;
   }
   details.scaffold summary {
     cursor: pointer;
-    font-weight: 650;
-    font-size: 14.5px;
-    color: var(--foreground);
-    list-style-position: outside;
+    font-family: var(--font-mono);
+    font-size: 12.5px;
+    font-weight: 700;
+    color: var(--primary);
+    padding: 10px 0;
+    user-select: none;
   }
-  details.scaffold summary::marker { color: var(--primary); }
-  details.scaffold[open] summary { margin-bottom: 12px; }
-  details.scaffold .scaffold-body { font-size: 14.5px; color: var(--muted-foreground); }
-  details.scaffold .scaffold-body p + p { margin-top: 10px; }
-  details.scaffold code { background: var(--code-bg); }
+  details.scaffold summary:hover { text-decoration: underline; text-underline-offset: 3px; }
+  details.scaffold .scaffold-body {
+    padding: 4px 0 16px;
+    font-size: 14px;
+    line-height: 1.65;
+    color: var(--muted-foreground);
+  }
+  details.scaffold .scaffold-body p { max-width: 76ch; }
+  details.scaffold .scaffold-body code { background: var(--card); }
+  details.scaffold .scaffold-body ul { padding-left: 22px; margin: 8px 0; }
+  details.scaffold .scaffold-body li { margin: 4px 0; max-width: 76ch; }
 
-  .verdict-table td { font-family: var(--font-mono); font-size: 13px; }
+  /* ============ GLOSSÁRIO ============ */
+  details.scaffold .scaffold-body dl {
+    display: grid;
+    grid-template-columns: minmax(180px, 1fr) 2.2fr;
+    gap: 0;
+    margin-top: 6px;
+  }
+  details.scaffold .scaffold-body dt {
+    font-family: var(--font-mono);
+    font-size: 12.5px;
+    font-weight: 700;
+    padding: 8px 14px 8px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  details.scaffold .scaffold-body dd {
+    font-size: 13.5px;
+    padding: 8px 0 8px 14px;
+    border-bottom: 1px solid var(--border);
+    margin: 0;
+  }
+  @media (max-width: 640px) {
+    details.scaffold .scaffold-body dl { grid-template-columns: 1fr; }
+    details.scaffold .scaffold-body dt { padding: 8px 0 2px; border-bottom: none; }
+    details.scaffold .scaffold-body dd { padding: 2px 0 10px; }
+  }
 
-  /* ============ FOOTER ============ */
-  footer {
+  /* ============ RODAPÉ ============ */
+  .footer {
     margin-top: 64px;
-    padding-top: 24px;
+    padding-top: 18px;
     border-top: 1.5px solid var(--border);
-    font-size: 13px;
+    font-family: var(--font-mono);
+    font-size: 11.5px;
     color: var(--muted-foreground);
     line-height: 1.7;
   }
 
+  /* ============ ANIMAÇÃO DE ENTRADA ============ */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .animate { animation: fadeUp 0.4s ease-out both; animation-delay: calc(var(--i, 0) * 0.05s); }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-delay: 0ms !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+
   /* ============ RESPONSIVO ============ */
   @media (max-width: 768px) {
-    body { padding: 24px 14px 40px; }
-    .mermaid-wrap { padding: 16px 12px; }
+    body { padding: 28px 16px 52px; }
+    h1 { font-size: clamp(24px, 6vw, 32px); }
+    .mermaid-wrap { padding: 28px 12px; }
   }
 </style>
 </head>
@@ -503,72 +545,63 @@
 
 <div class="container">
 
-  <!-- ============ HEADER ============ -->
+  <!-- ================= CABEÇALHO ================= -->
   <header class="animate" style="--i:0">
-    <p class="eyebrow">Execução de 2026-08-28 &middot; UX do chat da aula</p>
-    <h1>Por que os balões do chat perderam a cor &mdash; e para onde foram os desafios</h1>
-    <p class="subtitle">Explicação didática &middot; leitor misto (escrito para novato, com dobradura para experiente pular) &middot; pt-BR</p>
-
-    <div class="prompt-box">
-      <span class="prompt-label">O pedido do dono</span>
-      <span class="prompt-text">&ldquo;os textos dos baloes perderam a cor correta, nao quero aqueles desafios ali e sem em outro local que aciono eles atrapalham ficando entre o texto e o Input &mdash; analise e pense muito sobre UX e arrume isso&rdquo;</span>
-    </div>
-
-    <div class="tldr">
-      <span class="tldr-label">Resposta em uma frase</span>
-      Dois defeitos de UX do chat da aula foram corrigidos. Primeiro: os balões (as bolhas com as mensagens do tutor e do aluno) tinham perdido o fundo &mdash; uma chave de estilo desconhecida pelo React foi <strong>descartada em silêncio</strong> (ignorada sem erro nem aviso) e o balão ficava transparente. Segundo: a lista de desafios saiu de dentro do fluxo chat &rarr; input e virou um botão &ldquo;Desafios&rdquo; no cabeçalho com <strong>popover</strong> (pequena janela flutuante) &mdash; o input de mensagem ficou sempre visível. Tudo verificado: 1938 testes verdes e e2e completo com 28 passed.
-    </div>
+    <p class="eyebrow">Execução autônoma &middot; 2026-08-30 &middot; run 20260830-153557-33160</p>
+    <h1>Quatro ondas, uma engine: como esta execução construiu e provou o gerador de trilhas</h1>
+    <p class="subtitle-mono">plano-execucao v1 (base 2401fea) &rarr; HEAD 66f3a34 &middot; study-method &middot; origin/main</p>
   </header>
 
-  <!-- ============ 01 CENARIO ============ -->
-  <section class="section animate" style="--i:1" aria-labelledby="sec01">
+  <!-- ================= RESPOSTA EM UMA FRASE ================= -->
+  <div class="answer-strip animate" style="--i:1">
+    <span class="answer-label">Resposta em uma frase</span>
+    Uma execução autônoma em <strong>4 ondas</strong> de agentes paralelos construiu a
+    <a href="#glossario"><strong>engine de trilhas</strong></a> do study-method &mdash;
+    <strong>34 pacotes</strong> integrados por <a href="#glossario">squash-merge</a>, cada um com gate verde &mdash; e a
+    provou com <strong>2657 testes passando, 0 falhas</strong>, o placar do audit preservado por
+    <a href="#glossario"><strong>pin mecânico</strong></a> (285 violações &middot; 96/118 desafios &middot; 102 lacunas) e
+    <strong>0 dependências novas</strong>; o resultado está na main como HEAD <code>66f3a34</code>.
+  </div>
+
+  <!-- ================= 1. O QUE ESTA EXECUÇÃO ENTREGOU ================= -->
+  <section class="section animate" style="--i:2" aria-labelledby="sec01">
     <div class="section-head">
-      <span class="section-num">01</span>
-      <h2 id="sec01">O cenário: a tela de aula</h2>
+      <span class="section-num">01</span><h2 id="sec01">O que esta execução entregou</h2>
     </div>
-    <p class="section-lead">Para entender os dois problemas, basta uma imagem da tela onde eles apareciam.</p>
+    <p class="section-lead">
+      O alvo do plano era a <strong>engine de trilhas</strong> &mdash; um programa que gera e valida
+      <strong>trilhas</strong> de estudo (sequências de aulas com desafios validados por teste) por regras
+      determinísticas, sem ninguém escrever o conteúdo à mão: &ldquo;conteúdo é saída da engine&rdquo;. Esta execução não
+      escreveu nenhum conteúdo didático &mdash; ela construiu a máquina que o produz e a prova de que a máquina funciona.
+    </p>
 
-    <p>A tela de aula (a <code>LessonView</code>) tem um chat: o tutor responde em <strong>balões</strong> (as bolhas coloridas das mensagens), o aluno escreve no <strong>input</strong> (o campo onde se digita a mensagem) e, em algum lugar da tela, moram os <strong>Desafios da aula</strong> &mdash; exercícios validados por teste que o aluno resolve durante a aula.</p>
-
-    <p>Há também uma trava pedagógica chamada <strong>gating</strong> (a regra que bloqueia uma ação até uma condição ser cumprida): o botão &ldquo;Concluir aula&rdquo; só libera quando os desafios pendentes estão resolvidos. Essa trava importa para a história &mdash; ela voltará no segmento 03.</p>
-  </section>
-
-  <!-- ============ 02 PROBLEMA 1 ============ -->
-  <section class="section animate" style="--i:2" aria-labelledby="sec02">
-    <div class="section-head">
-      <span class="section-num">02</span>
-      <h2 id="sec02">Problema 1 &mdash; a cor sumiu, sem ninguém avisar</h2>
-    </div>
-
-    <p class="section-lead">O pedido dizia que os textos dos balões &ldquo;perderam a cor correta&rdquo;. O diagnóstico encontrou a causa raiz: um detalhe de como o React trata estilos.</p>
-
-    <p>A figura 1 depende de três termos &mdash; vale nomeá-los antes:</p>
-
-    <div class="grid-3">
-      <div class="ve-card term-card">
-        <h3>style object (do React)</h3>
-        <p>O objeto de estilos que o React aplica direto no elemento. Ele só reconhece propriedades CSS de verdade (como <code>backgroundColor</code>) &mdash; qualquer outra chave é <strong>descartada em silêncio</strong>: ignorada sem erro nem aviso.</p>
-      </div>
-      <div class="ve-card term-card">
-        <h3>prop <code>sx</code> (do MUI)</h3>
-        <p>Atalho de estilo do Material UI (a biblioteca de componentes do app). Ele aceita &ldquo;açúcar&rdquo; de sintaxe &mdash; por exemplo, <code>bgcolor</code> vira <code>background-color</code> automaticamente.</p>
-      </div>
-      <div class="ve-card term-card">
-        <h3>regressão</h3>
-        <p>Um comportamento que funcionava e quebrou por causa de uma mudança posterior &mdash; neste caso, o commit d01b34d, que migrou o balão de <code>Box</code> com <code>sx</code> para <code>motion.div</code> (o componente da biblioteca framer-motion, usada para animar elementos) com um style object comum.</p>
-      </div>
+    <div class="callout">
+      <strong>O objetivo da execução.</strong> Executar o plano-execucao v1 (base <code>2401fea</code>) do
+      projeto study-method &mdash; alvo: engine de trilhas. Ondas 1&ndash;4 (P-01..P-26 + REPLAN P-27..P-36) +
+      COMMIT-FINAL. Zero dependências novas; zero conteúdo didático no repo; placar do audit como pin vivo;
+      gate completo entre cada squash-merge.
     </div>
 
-    <p>O <code>ChatBubble.tsx</code> escrevia a cor de fundo como <code>bgcolor</code> &mdash; açúcar válido na prop <code>sx</code>. Na migração, a chave foi mantida, mas o contexto mudou: num style object do React, <code>bgcolor</code> não é uma propriedade CSS conhecida. O React a descarta em silêncio, e o resultado é que <strong>todos</strong> os balões renderizaram com fundo transparente &mdash; as mensagens do usuário e do tutor ficaram ilegíveis nos dois temas (claro e escuro), com o texto de contraste se misturando ao painel.</p>
+    <p class="section-lead" style="margin-top:22px">
+      Três peças do diagrama merecem definição já aqui. O <strong>generate</strong> é o comando que fia as fases
+      <strong>F0&ndash;F12</strong> da engine (pesquisa, decomposição, arestas, autoria, laço, integrador&hellip;) com
+      retomada e teto de tokens. O <strong>audit</strong> é uma varredura determinística &mdash; não usa LLM nem precisa de
+      chave &mdash; que mede uma trilha existente e conta cada violação de orçamento; o <strong>placar</strong> são os
+      números que ele produz. Um <strong>pin mecânico</strong> é um teste que congela o placar: se o número mudar, o teste
+      falha. E o <strong>repair</strong> é o modo de correção que apenas reordena a trilha (v1
+      &ldquo;só ORDEM&rdquo;): a lacuna vira bloqueio de CRIAR AULA, nunca reescrita. Por fim, o
+      <strong>teto físico de tokens</strong> (8.192 de saída por chamada) é o que obriga a trilha a nascer por fases, nunca
+      de uma vez.
+    </p>
 
-    <figure class="diagram-shell" role="img" aria-label="A chave bgcolor é açúcar do sx do MUI; num style object do React ela é desconhecida e some em silêncio — o balão perde o fundo sem nenhum erro.">
-      <p class="diagram-shell__hint">Ctrl/Cmd + roda do mouse para zoom. Scroll para pan. Arrastar para pan quando com zoom. Duplo clique para encaixar.</p>
+    <figure class="diagram-shell" role="img" aria-label="A engine que a execução entregou gera a trilha por fases (F0–F12), audita sem LLM e nunca reescreve lacuna: a lacuna vira bloqueio de criar aula, e o placar fica congelado num pin mecânico.">
+      <p class="diagram-shell__hint">Ctrl/Cmd + roda para zoom &middot; scroll para pan &middot; arrastar para pan &middot; duplo clique para encaixar.</p>
       <div class="mermaid-wrap">
         <div class="zoom-controls">
-          <button type="button" data-action="zoom-in" title="Zoom in">+</button>
-          <button type="button" data-action="zoom-out" title="Zoom out">&minus;</button>
+          <button type="button" data-action="zoom-in" title="Aproximar">+</button>
+          <button type="button" data-action="zoom-out" title="Afastar">&minus;</button>
           <button type="button" data-action="zoom-fit" title="Encaixar">&#8634;</button>
-          <button type="button" data-action="zoom-one" title="1:1">1:1</button>
+          <button type="button" data-action="zoom-one" title="Zoom 1:1">1:1</button>
           <button type="button" data-action="zoom-expand" title="Abrir em tamanho cheio">&#x26F6;</button>
           <span class="zoom-label">Carregando&hellip;</span>
         </div>
@@ -578,197 +611,63 @@
       </div>
       <script type="text/plain" class="diagram-source">
 flowchart TD
-  %%CRTDEF%%
-  A["Antes: Box com prop sx"] -->|"aceita o açúcar bgcolor"| B["Balão com fundo"]
-  C["Depois: motion.div com style object"] -->|"React lê a chave bgcolor"| D{"bgcolor é uma<br/>propriedade CSS válida?"}
-  D -->|"não — o CSS usa background-color"| E["Chave descartada<br/>em silêncio"]
-  E -->|"renderiza"| F["Balão sem fundo:<br/>texto sobre o painel"]
-  D -->|"sim"| B
-  class E,F crt
+  GEN["generate<br/>fia F0&#8211;F12 · retomada<br/>teto f&#237;sico de tokens"]
+  TRI["trilha de estudo<br/>aulas + desafios"]
+  AUD["audit<br/>determin&#237;stico · sem LLM"]
+  PLA["placar do audit<br/>285 · 96/118 · 102 lacunas"]
+  PIN["pin mec&#226;nico<br/>engineAuditPlacar.test.ts"]:::crit
+  REP["repair v1 s&#243;-ORDEM<br/>nunca reescreve"]:::warn
+  BLO["CRIAR AULA<br/>bloqueado"]:::warn
+  REL["relat&#243;rio<br/>da rodada"]
+  GEN -->|produz| TRI
+  TRI -->|varre e conta| AUD
+  AUD -->|mede| PLA
+  PLA -->|congela em teste| PIN
+  AUD -->|lacunas viram| REP
+  REP -->|bloqueiam| BLO
+  PLA -->|alimenta| REL
       </script>
-      <figcaption><span class="fig-claim">A chave <code>bgcolor</code> é açúcar do <code>sx</code>; num style object do React ela é desconhecida e some em silêncio</span> &mdash; por isso o balão perdeu o fundo sem nenhum erro.</figcaption>
+      <figcaption>
+        <span class="fig-claim">A engine gera a trilha por fases (F0&ndash;F12), audita sem LLM e nunca reescreve lacuna:</span>
+        ela vira bloqueio de criar aula, e o placar fica congelado num pin mecânico.
+      </figcaption>
     </figure>
-
     <div class="legend">
-      <div class="legend-item"><div class="legend-swatch" style="background:var(--primary)"></div> Caminho do bug</div>
-      <div class="legend-item"><div class="legend-swatch" style="background:var(--warning)"></div> Ponto crítico</div>
-      <div class="legend-item"><div class="legend-swatch" style="background:var(--success)"></div> Caminho que funcionava</div>
+      <div class="legend-item"><div class="legend-swatch" style="background:var(--fig-crit)"></div> crítico / garantia</div>
+      <div class="legend-item"><div class="legend-swatch" style="background:var(--fig-warn)"></div> caminho da lacuna</div>
     </div>
 
-    <div class="callout">
-      <strong>O traiçoeiro é o silêncio.</strong> Nenhum erro no console, nenhum teste quebrou por causa disso &mdash; só o fundo que não existe. Por isso o diagnóstico precisou de um sub-agente com o app real aberto (com Playwright) para olhar o que a tela mostrava, em vez de confiar em logs.
-    </div>
-
-    <h3>O conserto e a evidência</h3>
-    <p>O fix trocou as <strong>5 chaves <code>bgcolor</code> por <code>backgroundColor</code></strong> no <code>bubbleStyle</code> (as famílias user, reply, message, review e approved) e ajustou a legenda do autor para <code>color="textSecondary"</code> &mdash; o MUI v9 só gera camelCase (textSecondary, não text-secondary). As cores foram validadas com <strong>getComputedStyle</strong> (a leitura do estilo final calculado pelo navegador) nos dois temas:</p>
-
-    <div class="table-wrap">
-      <table>
-        <thead>
-          <tr><th>Família do balão</th><th>Papel</th><th>Tema claro</th><th>Tema escuro</th></tr>
-        </thead>
-        <tbody>
-          <tr><td>user</td><td>Mensagem do aluno</td><td><span class="swatch" style="background:#DE351B"></span><code>#DE351B</code></td><td><span class="swatch" style="background:#E73F25"></span><code>#E73F25</code></td></tr>
-          <tr><td>reply</td><td>Mensagem do tutor</td><td><span class="swatch" style="background:#9A54D7"></span><code>#9A54D7</code></td><td><span class="swatch" style="background:#A45BE4"></span><code>#A45BE4</code></td></tr>
-          <tr><td>message</td><td>Fundo do card de mensagem (paper)</td><td><span class="swatch" style="background:#FFFFFF"></span><code>#FFFFFF</code></td><td><span class="swatch" style="background:#1B1E26"></span><code>#1B1E26</code></td></tr>
-          <tr><td>review</td><td>Tint de erro a 10%</td><td colspan="2">tint do error a 10% (o balão de revisão usa uma lavagem da cor de erro)</td></tr>
-          <tr><td>caption</td><td>Legenda do autor</td><td>text.secondary <code>#544E45</code></td><td>text.secondary <code>#A7ADBD</code></td></tr>
-        </tbody>
-      </table>
-    </div>
+    <p class="section-lead">
+      <strong>O número que importa &mdash; 285 violações, 96/118 desafios, 102 lacunas &mdash; está preso a um teste.</strong>
+      No meio do caminho o audit saiu do baseline e voltou (P-06 realinhou as formas do harness), e o pin passou a travar os
+      três números em <code>app/tests/engineAuditPlacar.test.ts</code>.
+    </p>
   </section>
 
-  <!-- ============ 03 PROBLEMA 2 ============ -->
-  <section class="section animate" style="--i:3" aria-labelledby="sec03">
+  <!-- ================= 2. COMO A MÁQUINA DE EXECUÇÃO FUNCIONOU ================= -->
+  <section class="section animate" style="--i:3" aria-labelledby="sec02">
     <div class="section-head">
-      <span class="section-num">03</span>
-      <h2 id="sec03">Problema 2 &mdash; os desafios no meio da conversa</h2>
+      <span class="section-num">02</span><h2 id="sec02">Como a máquina de execução funcionou</h2>
     </div>
+    <p class="section-lead">
+      A execução foi organizada em <strong>ondas</strong>: rodadas em que vários agentes trabalham em paralelo, cada um numa
+      <strong>worktree</strong> &mdash; uma cópia isolada do repositório onde não encosta nos outros. Cada agente entrega um
+      <strong>pacote</strong> (<code>P-xx</code>), a menor unidade do plano: uma mudança pequena, com dono e verificação
+      próprios. Antes de integrar, um <strong>revisor adversarial</strong> caça inconsistências e emite veredito &mdash;
+      <strong>BLOCK</strong> (impede integrar até corrigir) ou <strong>WARNING</strong> (sinaliza risco) &mdash;, e um
+      <strong>gate</strong> (lint + testes + build, determinístico) precisa passar. Só então vem o
+      <strong>squash-merge</strong>: todos os commits da worktree viram um commit único na main. Ondas-irmãs de validação e
+      teste &mdash; <strong>subwaves</strong> &mdash; rodam junto da onda seguinte.
+    </p>
 
-    <p class="section-lead">O pedido também reclamava dos desafios &ldquo;ali&rdquo;, atrapalhando entre o texto e o input. O diagnóstico confirmou: a lista &ldquo;Desafios da aula&rdquo; ficava <strong>dentro da região de scroll do chat</strong> da LessonView, entre as bolhas e o input.</p>
-
-    <p>Com o chat alto, a lista empurrava o fluxo da conversa e ficava <strong>recortada</strong> (cortada pela rolagem). O input em si sempre esteve visível &mdash; ele vive fora da região de scroll &mdash;, mas o trajeto até ele passava por cima da lista de desafios.</p>
-
-    <p>A decisão de UX foi <strong>remover a lista do fluxo chat &rarr; input</strong>. A regra de ouro da decisão: o input de mensagem deve estar <strong>sempre visível</strong> &mdash; desafio é um <strong>destino</strong> (algo a que se vai), não conteúdo de conversa.</p>
-
-    <figure class="diagram-shell" role="img" aria-label="Os desafios saíram de entre o chat e o input; viraram um destino no cabeçalho com popover — o input de mensagem ficou sempre visível.">
-      <p class="diagram-shell__hint">Ctrl/Cmd + roda do mouse para zoom. Scroll para pan. Arrastar para pan quando com zoom. Duplo clique para encaixar.</p>
+    <figure class="diagram-shell" role="img" aria-label="Quatro ondas, cada uma terminando em revisão (com BLOCKs corrigidos) e gates verdes antes da próxima; o COMMIT-FINAL 66f3a34 foi verificado no push para a main.">
+      <p class="diagram-shell__hint">Ctrl/Cmd + roda para zoom &middot; scroll para pan &middot; arrastar para pan &middot; duplo clique para encaixar.</p>
       <div class="mermaid-wrap">
         <div class="zoom-controls">
-          <button type="button" data-action="zoom-in" title="Zoom in">+</button>
-          <button type="button" data-action="zoom-out" title="Zoom out">&minus;</button>
+          <button type="button" data-action="zoom-in" title="Aproximar">+</button>
+          <button type="button" data-action="zoom-out" title="Afastar">&minus;</button>
           <button type="button" data-action="zoom-fit" title="Encaixar">&#8634;</button>
-          <button type="button" data-action="zoom-one" title="1:1">1:1</button>
-          <button type="button" data-action="zoom-expand" title="Abrir em tamanho cheio">&#x26F6;</button>
-          <span class="zoom-label">Carregando&hellip;</span>
-        </div>
-        <div class="mermaid-viewport">
-          <div class="mermaid mermaid-canvas"></div>
-        </div>
-      </div>
-      <script type="text/plain" class="diagram-source">
-flowchart LR
-  %%CRTDEF%%
-  %%OKDEF%%
-  subgraph ANTES["ANTES — lista no meio da conversa"]
-    H1["Cabeçalho"] -->|"abre"| C1["Chat: tutor e balões"]
-    C1 -->|"lista dentro do scroll"| L1["Desafios da aula"]
-    L1 -->|"empurra o fluxo e recorta<br/>com chat alto"| I1["Input"]
-  end
-  subgraph DEPOIS["DEPOIS — desafios são um destino"]
-    H2["Cabeçalho + botão Desafios<br/>(badge de pendentes)"] -->|"clica"| P2["Popover: lista completa"]
-    P2 -->|"clica num desafio"| D2["openChallenge abre o desafio<br/>(track intacto)"]
-    C2["Chat: só a conversa"] -->|"rola livre"| I2["Input sempre visível"]
-  end
-  class I2 ok
-      </script>
-      <figcaption><span class="fig-claim">Os desafios saíram de entre o chat e o input; viraram um destino no cabeçalho com popover</span> &mdash; o input de mensagem ficou sempre visível.</figcaption>
-    </figure>
-
-    <div class="legend">
-      <div class="legend-item"><div class="legend-swatch" style="background:var(--primary)"></div> Fluxo da conversa</div>
-      <div class="legend-item"><div class="legend-swatch" style="background:var(--success)"></div> Resultado da decisão</div>
-      <div class="legend-item"><div class="legend-swatch" style="background:var(--warning)"></div> O que foi removido do caminho</div>
-    </div>
-
-    <h3>O que entrou no lugar</h3>
-    <p>Um botão <strong>&ldquo;Desafios&rdquo;</strong> no cabeçalho (ao lado de &ldquo;Fontes&rdquo;) com um <strong>badge</strong> (indicador pequeno que mostra quantos desafios estão pendentes). O critério de pendência é o <strong>mesmo do gating</strong>: o último veredito do desafio é diferente de <code>passed</code>. O clique abre um <strong>popover</strong> (pequena janela flutuante) com a lista completa &mdash; título, dificuldade, badge de gerado e status. Clicar num desafio chama <code>openChallenge</code> e abre o desafio com o <strong>fluxo de track intacto</strong> (o registro de progresso do aluno na resolução).</p>
-
-    <p>O gating do &ldquo;Concluir aula&rdquo; ficou <strong>intacto</strong>: tooltip + ícone de cadeado continuam sendo a única comunicação de bloqueio &mdash; nada novo entre chat e input. Também entrou cuidado de <strong>a11y</strong> (acessibilidade: atributos que permitem operar o botão por teclado e por leitores de tela, como <code>aria-haspopup</code> e <code>aria-expanded</code>) e <strong>i18n</strong> (internacionalização: os textos ficam em arquivos por idioma e são trocados por chave &mdash; 3 chaves novas em pt-BR e en).</p>
-
-    <details class="scaffold">
-      <summary>Por que o badge usa o mesmo critério do gating? (detalhe)</summary>
-      <div class="scaffold-body">
-        <p>O gating do &ldquo;Concluir aula&rdquo; já decidia o que conta como &ldquo;pendente&rdquo;: o último veredito do desafio ser diferente de <code>passed</code> (no código, <code>ch.lastVerdict !== 'passed'</code>). O badge do botão Desafios reutiliza exatamente esse veredito. O efeito é a consistência: o número que o aluno vê no botão é o mesmo que a trava de conclusão usa &mdash; não existem duas definições de &ldquo;pendente&rdquo; brigando entre si.</p>
-      </div>
-    </details>
-
-    <details class="scaffold">
-      <summary>O que é a11y e i18n, em mais detalhe (detalhe)</summary>
-      <div class="scaffold-body">
-        <p><strong>a11y</strong> é o apelido de acessibilidade (a11y = a + 11 letras + y). Atributos como <code>aria-haspopup</code> (avisa que o botão abre um menu flutuante), <code>aria-expanded</code> (avisa se ele está aberto) e <code>aria-label</code> (nome do controle lido por leitores de tela) fazem o botão Desafios funcionar por teclado e para quem usa leitor de tela.</p>
-        <p><strong>i18n</strong> é o apelido de internacionalização (i18n = i + 18 letras + n). Em vez de textos escritos no meio do código, cada frase vira uma chave em arquivos de idioma &mdash; aqui, pt-BR e en. Foram 3 chaves novas (o botão, o rótulo de acessibilidade e o título da lista), e o rótulo do botão tem interpolação: o trecho dinâmico recebe o contador de pendências. Há um teste unitário que confere essa interpolação nos dois idiomas.</p>
-      </div>
-    </details>
-  </section>
-
-  <!-- ============ 04 ALTERNATIVAS ============ -->
-  <section class="section animate" style="--i:4" aria-labelledby="sec04">
-    <div class="section-head">
-      <span class="section-num">04</span>
-      <h2 id="sec04">As alternativas descartadas (e por quê)</h2>
-    </div>
-    <p class="section-lead">O pedido dizia para &ldquo;pensar muito sobre UX&rdquo; &mdash; e pensar foi também listar o que não se fez, e por quê.</p>
-
-    <div class="table-wrap">
-      <table>
-        <thead>
-          <tr><th>Opção</th><th>Veredito</th><th>Motivo</th></tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td>Painel lateral fixo</td>
-            <td><span class="verdict-chip chip-bad">Descartada</span></td>
-            <td>Rouba largura da tela e não escala bem em janela pequena.</td>
-          </tr>
-          <tr>
-            <td>Lista após o input</td>
-            <td><span class="verdict-chip chip-bad">Descartada</span></td>
-            <td>Continua dentro do fluxo chat &rarr; input &mdash; o problema original.</td>
-          </tr>
-          <tr>
-            <td>Aba separada</td>
-            <td><span class="verdict-chip chip-bad">Descartada</span></td>
-            <td>Perde o contexto da aula ao trocar de tela.</td>
-          </tr>
-          <tr>
-            <td>Botão no cabeçalho + popover</td>
-            <td><span class="verdict-chip chip-ok">Escolhida</span></td>
-            <td>Acesso dedicado e imediato, sem colocar nada entre o chat e o input.</td>
-          </tr>
-          <tr>
-            <td>RoadmapView / ChallengeView</td>
-            <td><span class="verdict-chip chip-ok">Intactas</span></td>
-            <td>Não têm a geometria reclamada &mdash; a lista que recortava o fluxo vivia só na LessonView.</td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-  </section>
-
-  <!-- ============ 05 ACHADO DO REVISOR ============ -->
-  <section class="section animate" style="--i:5" aria-labelledby="sec05">
-    <div class="section-head">
-      <span class="section-num">05</span>
-      <h2 id="sec05">O achado do revisor: popover sem scroll</h2>
-    </div>
-    <p class="section-lead">A história não terminou no popover &mdash; um revisor de diffs (a revisão do conjunto de mudanças, comparando o código antes e depois) achou um problema que o time não tinha visto.</p>
-
-    <p>O <strong>WARNING</strong> (o alerta de severidade do revisor): o popover de desafios <strong>não tinha rolagem</strong> &mdash; e a lista cresce conforme novos desafios são gerados. Sem scroll, os últimos cards ficariam inacessíveis com o tempo.</p>
-
-    <p>O fix-final limitou a altura do popover: <code>maxHeight</code> de <code>min(60vh, 420px)</code> &mdash; ou seja, no máximo 60% da altura da janela ou 420px, o que vier primeiro &mdash; com <code>overflowY: auto</code> (rolagem vertical) no Box interno e <code>overflow: hidden</code> no Paper, preservando o raio de 14px do tema.</p>
-
-    <div class="callout callout--ok">
-      <strong>Evidência do conserto:</strong> rolagem funcionando com 15 cards, último card acessível, validada nos 2 temas e por teclado.
-    </div>
-  </section>
-
-  <!-- ============ 06 VERIFICACAO ============ -->
-  <section class="section animate" style="--i:6" aria-labelledby="sec06">
-    <div class="section-head">
-      <span class="section-num">06</span>
-      <h2 id="sec06">Como a mudança foi verificada</h2>
-    </div>
-    <p class="section-lead">Quatro commits &mdash; 3 squashes de fix + 1 onda de testes &mdash; atravessaram o sistema de verificação da execução. Ele tem três camadas.</p>
-
-    <figure class="diagram-shell" role="img" aria-label="Toda mudança passou por revisão, gate e e2e; o WARNING do revisor do diff virou um fix — e não uma entrega quebrada.">
-      <p class="diagram-shell__hint">Ctrl/Cmd + roda do mouse para zoom. Scroll para pan. Arrastar para pan quando com zoom. Duplo clique para encaixar.</p>
-      <div class="mermaid-wrap">
-        <div class="zoom-controls">
-          <button type="button" data-action="zoom-in" title="Zoom in">+</button>
-          <button type="button" data-action="zoom-out" title="Zoom out">&minus;</button>
-          <button type="button" data-action="zoom-fit" title="Encaixar">&#8634;</button>
-          <button type="button" data-action="zoom-one" title="1:1">1:1</button>
+          <button type="button" data-action="zoom-one" title="Zoom 1:1">1:1</button>
           <button type="button" data-action="zoom-expand" title="Abrir em tamanho cheio">&#x26F6;</button>
           <span class="zoom-label">Carregando&hellip;</span>
         </div>
@@ -778,145 +677,376 @@ flowchart LR
       </div>
       <script type="text/plain" class="diagram-source">
 flowchart TD
-  %%CRTDEF%%
-  A["3 squashes de fix + 1 commit de testes"] -->|"cada um passa pelo"| B["Gate de snapshot:<br/>lint + testes + build"]
-  B -->|"VERDE x3 — 1937 testes, fail 0"| C["Integração com revisão:<br/>pré-merge APPROVE x2"]
-  C -->|"revisor do diff: WARNING"| D["Popover sem scroll<br/>quando a lista cresce"]
-  D -->|"fix-final aplicado (ed15e0c)"| E["Testing subwave:<br/>1938 testes + build fresco"]
-  E -->|"VERDE + e2e dos specs alvo"| F["e2e completo:<br/>28 passed · 0 failed"]
-  F -->|"integra"| G["Entrega no main"]
-  class D crt
+  F0["FASE 0<br/>do-context · runs de 28/08 limpos"]:::rv
+  O1["Onda 1<br/>P-01..P-08 · 8 worktrees"]:::wave
+  R1["revis&#227;o<br/>2 BLOCK · 5 WARNING"]:::rv
+  O2["Onda 2<br/>P-09..P-15 · P-27..P-30"]:::wave
+  R2["revis&#227;o<br/>2 BLOCK"]:::rv
+  O3["Onda 3<br/>P-31 · P-16..P-21"]:::wave
+  R3["revis&#227;o<br/>1 BLOCK"]:::rv
+  O4["Onda 4<br/>P-22..P-26 · P-32 · P-35 · P-36"]:::wave
+  R4["fixes<br/>4 de c&#243;digo · 2 operacionais"]:::rv
+  CF["COMMIT-FINAL<br/>HEAD 66f3a34"]:::crit
+  PU["push origin/main<br/>verificado"]
+  F0 -->|abre| O1
+  O1 -->|revisa| R1
+  R1 -->|8 fixes · gates verdes| O2
+  O2 -->|revisa| R2
+  R2 -->|6 fixes · gates verdes| O3
+  O3 -->|revisa| R3
+  R3 -->|6 fixes · gates verdes| O4
+  O4 -->|revisa| R4
+  R4 -->|gate final verde| CF
+  CF -->|verificado no push| PU
       </script>
-      <figcaption><span class="fig-claim">Toda mudança passou por revisão, gate e e2e</span> &mdash; e o WARNING do revisor do diff virou um fix, não uma entrega quebrada.</figcaption>
+      <figcaption>
+        <span class="fig-claim">Quatro ondas, cada uma terminando em revisão (com BLOCKs corrigidos) e gates verdes antes da
+          próxima;</span> o COMMIT-FINAL <code>66f3a34</code> foi verificado no push para a main.
+      </figcaption>
     </figure>
-
-    <div class="callout">
-      <strong>O sistema de revisão funcionou:</strong> o achado do revisor no diff integrado virou o commit de fix-final (ed15e0c) antes da entrega. Um WARNING ambiental também apareceu nos testes &mdash; era a pasta <code>out/</code> obsoleta no checkout principal, resolvido com build fresco; o fluxo correto é <code>npm run build &amp;&amp; npm run test:e2e</code>.
+    <div class="legend">
+      <div class="legend-item"><div class="legend-swatch" style="background:var(--fig-wave)"></div> onda</div>
+      <div class="legend-item"><div class="legend-swatch" style="background:var(--fig-rv)"></div> revisão / preparação</div>
+      <div class="legend-item"><div class="legend-swatch" style="background:var(--fig-crit)"></div> ponto final verificado</div>
     </div>
 
-    <h3>Os números da verificação</h3>
+    <details class="scaffold">
+      <summary>Passo a passo: o que acontece num squash-merge (para quem nunca integrou um pacote)</summary>
+      <div class="scaffold-body">
+        <p>1. O agente termina a mudança na worktree &mdash; um ou vários commits locais, isolados da main.</p>
+        <p>2. A revisão adversarial examina os artefatos; se houver BLOCK, o agente corrige antes de seguir.</p>
+        <p>3. O gate roda lint + testes + build no estado da mudança; qualquer falha impede a integração.</p>
+        <p>4. O squash-merge funde todos os commits da worktree num commit único sobre a main &mdash; o histórico fica
+        linear e auditável: um pacote, um commit.</p>
+        <p>Nesta execução foram <strong>34 squash merges</strong> no total &mdash; um por pacote e por fix &mdash;
+        distribuídos pelas 4 ondas (faixas <code>838d3d3..99b5063</code> até <code>43c3878..66f3a34</code>).</p>
+      </div>
+    </details>
+
+    <details class="scaffold">
+      <summary>Por que worktree isola agentes (o que a cópia paralela impede de quebrar)</summary>
+      <div class="scaffold-body">
+        <p>Oito agentes trabalhando na mesma árvore de arquivos se pisariam: um sobrescreveria o arquivo que o outro
+        editava. A worktree dá a cada um um checkout próprio; a integração é sempre sequencial e pelo mesmo portão
+        (revisão &rarr; gate &rarr; squash-merge), então um pacote só entra na main depois de provar que não quebra o estado
+        atual &mdash; é isso que mantém a main sempre verde.</p>
+      </div>
+    </details>
+  </section>
+
+  <!-- ================= 3. O QUE ACONTECEU EM CADA ONDA ================= -->
+  <section class="section animate" style="--i:4" aria-labelledby="sec03">
+    <div class="section-head">
+      <span class="section-num">03</span><h2 id="sec03">O que aconteceu em cada onda</h2>
+    </div>
+    <p class="section-lead">
+      Cada onda termina com um veredito da revisão; os BLOCKs listados abaixo foram corrigidos antes do gate. Os pacotes
+      vieram do plano original (<code>P-01..P-26</code>) e de dois <strong>REPLANs</strong> no meio da execução &mdash;
+      replanejamentos para reconciliar contrato, fiação e portabilidade (<code>P-27..P-30</code> na onda 2,
+      <code>P-31..P-36</code> nas ondas 3 e 4).
+    </p>
+    <div class="table-scroll">
+      <table>
+        <thead>
+          <tr><th>Onda</th><th>Pacotes</th><th>Revisão</th><th>Fixes</th><th>Notas</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>1</code></td>
+            <td><code>P-01..P-08</code> &middot; 8 worktrees</td>
+            <td><span class="badge badge--block">2 BLOCK</span> <span class="badge badge--warn">5 WARNING (com HIGHs)</span></td>
+            <td>8 fixes</td>
+            <td>Subwave: validação 4/5 (audit = baseline) + 11 testes de integração, com caveat de deadlock do semáforo
+            compartilhado. BLOCKs: P-02 (posse por string literal) e P-06 (formas em superfícies do harness).</td>
+          </tr>
+          <tr>
+            <td><code>2</code></td>
+            <td><code>P-09..P-15</code> (+ batch B <code>P-27..P-30</code>)</td>
+            <td><span class="badge badge--block">2 BLOCK</span> (P-12 com 4 HIGHs)</td>
+            <td>6 fixes + fix do teste instável do confetti (mock timers)</td>
+            <td>Nasce o 4&ordm; replan (<code>P-31..P-36</code>). O flake &mdash; teste que falha sem causa real &mdash; tinha
+            causa raiz na corrida de <code>requestAnimationFrame</code> simulada sob carga; os mock timers a eliminaram.</td>
+          </tr>
+          <tr>
+            <td><code>3</code></td>
+            <td><code>P-31</code> + <code>P-16..P-21</code></td>
+            <td><span class="badge badge--block">1 BLOCK</span> (P-16: arestas podadas com justificativa falsa); P-19
+            <span class="badge badge--ok">APPROVE</span></td>
+            <td>6 fixes</td>
+            <td>Re-julgar arestas podadas; cleanup do guard; faixas &sect;3.3 na autoria + posse global; teto em toda
+            superfície pública do laço + sugestão com quota 3; mutante C com um defeito só; colisão fail-closed.</td>
+          </tr>
+          <tr>
+            <td><code>4</code></td>
+            <td><code>P-22..P-26</code> &middot; <code>P-32</code> &middot; <code>P-35</code> &middot; <code>P-36</code></td>
+            <td>&mdash;</td>
+            <td>2 fixes de assinatura (cascata TS2554 em <code>f6Pilot/geraTrilha</code>; adaptador P-35 real no repair,
+            guard fail-closed) + 2 operacionais (comentários com forma proibida no gate textual; newline final nos
+            artefatos do vocabulário)</td>
+            <td>P-33 dobrou o registro didático (12 &rarr; 14); docs D1&ndash;D9, research/07 e
+            <code>relatorio-rodada11</code>; P-32/P-36 destravaram o bash 3.2 dos gates.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ================= 4. DECISÕES AUTÔNOMAS ================= -->
+  <section class="section animate" style="--i:5" aria-labelledby="sec04">
+    <div class="section-head">
+      <span class="section-num">04</span><h2 id="sec04">Decisões autônomas que mudaram o plano no meio do caminho</h2>
+    </div>
+    <p class="section-lead">
+      A execução não seguiu o plano como receita fixa: quando o contrato não fechava, o orquestrador decidiu e registrou.
+      Estas são as decisões em destaque.
+    </p>
+    <div class="table-scroll">
+      <table>
+        <thead>
+          <tr><th>Decisão</th><th>O que era</th><th>O que virou</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>P-06</code> &middot; onda 1</td>
+            <td>Audit fora do baseline</td>
+            <td>Formas do harness na <code>HARNESS_RECEPTIVE_SEED</code> (leitura receptiva) &mdash; o audit voltou a 285.</td>
+          </tr>
+          <tr>
+            <td>REPLAN <code>P-27..P-30</code> &middot; onda 2b</td>
+            <td>Contrato aberto no meio da onda 2</td>
+            <td>Limitador unificado, adapter <code>ExecFn</code>, módulos built-in do vocabulário, pin mecânico do placar.</td>
+          </tr>
+          <tr>
+            <td>REPLAN <code>P-31..P-36</code> &middot; ondas 3&ndash;4</td>
+            <td>Fiação e portabilidade pendentes</td>
+            <td>Integração F9, bash 3.2 dos gates, ponte audit&rarr;laço (<code>P-35</code>), gate anti-regressão bash (<code>P-36</code>).</td>
+          </tr>
+          <tr>
+            <td><code>P-23</code> &middot; repair</td>
+            <td>Repair reescreveria lacunas</td>
+            <td>Versão 1 &ldquo;<strong>só ORDEM</strong>&rdquo;: lacunas viram bloqueios de CRIAR AULA &mdash; nunca reescrita.</td>
+          </tr>
+          <tr>
+            <td><code>P-18</code> &middot; laço</td>
+            <td>Score sem como medir estagnação</td>
+            <td>Admite score com termos de <code>LAG</code> e proxy Jaccard de estagnação (declarado); difficulty provisório,
+            rampa 1..5.</td>
+          </tr>
+          <tr>
+            <td><code>P-33</code> &middot; registro</td>
+            <td>12 registros didáticos</td>
+            <td>Dobrou para 14.</td>
+          </tr>
+          <tr>
+            <td>Flake do confetti</td>
+            <td>Teste instável sob carga</td>
+            <td>Mock timers eliminaram a corrida de <code>requestAnimationFrame</code> simulada.</td>
+          </tr>
+          <tr>
+            <td>Bash 3.2</td>
+            <td>Gates/scripts usavam sintaxe nova</td>
+            <td><code>namerefs</code> e <code>case-expansion</code> removidos dos gates/scripts + gate anti-regressão.</td>
+          </tr>
+          <tr>
+            <td>Commit final</td>
+            <td>Entrega local</td>
+            <td>Push para <code>origin github.com/frederico-kluser/study-method</code> (main) &mdash; verificado no
+            COMMIT-FINAL.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ================= 5. O QUE OS NÚMEROS GARANTEM ================= -->
+  <section class="section animate" style="--i:6" aria-labelledby="sec05">
+    <div class="section-head">
+      <span class="section-num">05</span><h2 id="sec05">O que os números garantem</h2>
+    </div>
+    <p class="section-lead">
+      O valor de uma entrega assim não está só no que foi construído, mas no que <em>impede</em> de regredir. Estes são os
+      números da execução.
+    </p>
+
     <div class="kpi-row">
-      <div class="kpi-card"><div class="kpi-value">1938</div><div class="kpi-label">testes (2 skipped pré-existentes)</div></div>
-      <div class="kpi-card"><div class="kpi-value">28</div><div class="kpi-label">e2e passed · 0 failed</div></div>
-      <div class="kpi-card"><div class="kpi-value">x3</div><div class="kpi-label">gates de snapshot VERDES</div></div>
-      <div class="kpi-card"><div class="kpi-value">4</div><div class="kpi-label">commits (3 fixes + 1 de testes)</div></div>
+      <div class="kpi-card"><div class="kpi-value">4 ondas</div><div class="kpi-label">8 + 11 + 7 + 8 pacotes &mdash; cada uma com revisão e gate próprios</div></div>
+      <div class="kpi-card"><div class="kpi-value">34</div><div class="kpi-label">squash merges &mdash; um commit por pacote/fix na main</div></div>
+      <div class="kpi-card"><div class="kpi-value">2658</div><div class="kpi-label">testes: 2657 pass &middot; 0 fail &middot; 1 skip pré-existente (baseline: 1970)</div></div>
+      <div class="kpi-card"><div class="kpi-value">285</div><div class="kpi-label">violações do audit &middot; 96/118 desafios &middot; 102 lacunas &mdash; baseline preservado, pin mecânico</div></div>
+      <div class="kpi-card"><div class="kpi-value">0</div><div class="kpi-label">dependências novas &middot; 0 conteúdo didático escrito por agentes</div></div>
+      <div class="kpi-card"><div class="kpi-value">66f3a34</div><div class="kpi-label">HEAD na main &mdash; COMMIT-FINAL verificado no push</div></div>
     </div>
 
-    <div class="table-wrap">
-      <table>
-        <thead>
-          <tr><th>Camada</th><th>O que rodou</th><th>Resultado</th></tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td>Gate de snapshot</td>
-            <td>Barreira automatizada (lint + testes + build) em cópia isolada do estado do repositório, para cada mudança</td>
-            <td><span class="verdict-chip chip-ok">VERDE x3</span> &mdash; 1937 testes, fail 0, zero avisos de chunk</td>
-          </tr>
-          <tr>
-            <td>Testing subwave</td>
-            <td>1938 testes + build fresco + e2e dos 2 specs alvo</td>
-            <td><span class="verdict-chip chip-ok">VERDE</span> &mdash; 1936 pass, 2 skipped pré-existentes</td>
-          </tr>
-          <tr>
-            <td>e2e completo</td>
-            <td>O app real, com Playwright, simulando o usuário</td>
-            <td><span class="verdict-chip chip-ok">28 passed / 0 failed</span> &mdash; 3 skipped (os real-* sem chaves)</td>
-          </tr>
-          <tr>
-            <td>Testes novos</td>
-            <td>1 teste unitário (interpolação do contador de pendências na chave i18n <code>challengesButtonAria</code>, em pt-BR e en) + 2 specs e2e reforçados (fundos das 4 famílias de balão não-transparentes + contrato de a11y/badge do botão Desafios) + 4 specs com seletores ajustados</td>
-            <td><span class="verdict-chip chip-ok">Cobertura</span></td>
-          </tr>
-          <tr>
-            <td>Revisões</td>
-            <td>Revisão pré-merge dos pares + revisor do diff integrado</td>
-            <td><span class="verdict-chip chip-ok">APPROVE x2</span> &middot; <span class="verdict-chip chip-warn">WARNING</span> &rarr; fix aplicado</td>
-          </tr>
-        </tbody>
-      </table>
+    <figure class="diagram-shell" role="img" aria-label="Os números não regridem em silêncio: o placar do audit está preso a um pin mecânico; se 285/96/102 mudar, o teste falha — hoje o baseline da onda 0 está preservado.">
+      <p class="diagram-shell__hint">Ctrl/Cmd + roda para zoom &middot; scroll para pan &middot; arrastar para pan &middot; duplo clique para encaixar.</p>
+      <div class="mermaid-wrap">
+        <div class="zoom-controls">
+          <button type="button" data-action="zoom-in" title="Aproximar">+</button>
+          <button type="button" data-action="zoom-out" title="Afastar">&minus;</button>
+          <button type="button" data-action="zoom-fit" title="Encaixar">&#8634;</button>
+          <button type="button" data-action="zoom-one" title="Zoom 1:1">1:1</button>
+          <button type="button" data-action="zoom-expand" title="Abrir em tamanho cheio">&#x26F6;</button>
+          <span class="zoom-label">Carregando&hellip;</span>
+        </div>
+        <div class="mermaid-viewport">
+          <div class="mermaid mermaid-canvas"></div>
+        </div>
+      </div>
+      <script type="text/plain" class="diagram-source">
+flowchart TD
+  AUD["audit determin&#237;stico<br/>sem LLM · sem chave"]
+  PLA["285 viola&#231;&#245;es<br/>96/118 desafios · 102 lacunas"]
+  PIN["engineAuditPlacar.test.ts"]:::crit
+  Q{"n&#250;meros mudaram?"}
+  FAIL["teste falha<br/>regress&#227;o vis&#237;vel"]:::bad
+  OK["baseline preservado<br/>nada regrediu"]:::good
+  AUD -->|mede sempre| PLA
+  PLA -->|congela em teste| PIN
+  PIN -->|compara| Q
+  Q -->|sim| FAIL
+  Q -->|n&#227;o| OK
+      </script>
+      <figcaption>
+        <span class="fig-claim">Os números não regridem em silêncio:</span> o placar do audit está preso a um pin mecânico
+        &mdash; se 285/96/102 mudar, o teste falha; hoje o baseline da onda 0 está preservado.
+      </figcaption>
+    </figure>
+    <div class="legend">
+      <div class="legend-item"><div class="legend-swatch" style="background:var(--fig-crit)"></div> pin (gatilho)</div>
+      <div class="legend-item"><div class="legend-swatch" style="background:var(--fig-bad)"></div> regressão</div>
+      <div class="legend-item"><div class="legend-swatch" style="background:var(--fig-good)"></div> baseline preservado</div>
+    </div>
+
+    <div class="card-grid">
+      <div class="ve-card">
+        <h3>Gates em todo squash</h3>
+        <p>Lint, testes e build verdes em <strong>todo</strong> squash-merge + gate final. <code>G-SEM-REDE</code> &mdash;
+        gate que confirma que nenhuma chave de API vazou para o repositório (&ldquo;sem chaves&rdquo;) &mdash; ok.</p>
+      </div>
+      <div class="ve-card">
+        <h3>Invariantes de estrutura</h3>
+        <p><strong>INV-01:</strong> nenhum <code>chatCompletion</code> fora de <code>runtime/callLlm.ts</code>.
+        <strong>INV-08:</strong> <code>schemaVersion</code> inalterado. Regras estruturais verificadas por teste.</p>
+      </div>
+      <div class="ve-card">
+        <h3>Gate-lint L-02..L-05</h3>
+        <p>Arquivos novos limpos (P-32/P-36 destravaram o bash 3.2). <code>L-04</code> restante: 8 arquivos
+        pré-existentes alheios à engine &mdash; dívida documentada, não criada por esta execução.</p>
+      </div>
+      <div class="ve-card">
+        <h3>Zero dependências novas</h3>
+        <p>Nenhuma biblioteca entrou no projeto &mdash; e zero conteúdo didático escrito por agentes: o conteúdo é saída da
+        engine, não insumo da execução.</p>
+      </div>
     </div>
 
     <details class="scaffold">
-      <summary>O que é um teste e2e? E por que as cores foram validadas assim? (detalhe)</summary>
+      <summary>Como o pin funciona por dentro (o que o teste compara)</summary>
       <div class="scaffold-body">
-        <p><strong>e2e</strong> (end-to-end) é o teste que abre o aplicativo de verdade e simula os cliques e a digitação do usuário &mdash; aqui, com Playwright. Ele vê o que o usuário vê, inclusive o estilo final calculado dos elementos.</p>
-        <p>O repositório não tem infraestrutura de render isolada de componentes &mdash; não dá para montar um balão sozinho num teste de unidade. Por isso a cor foi validada por e2e: o teste abre o app nos dois temas, lê o fundo de cada família de balão com <code>getComputedStyle</code> e confere que nenhum é transparente. O teste unitário, por sua vez, cuida do que não precisa de UI: a interpolação da chave i18n nos dois idiomas.</p>
+        <p>O teste <code>app/tests/engineAuditPlacar.test.ts</code> roda o audit sobre a trilha atual e compara o resultado
+        com os números esperados &mdash; 285 violações, 96 de 118 desafios com violação, 102 lacunas, 12 aulas sem construção
+        nova. Se a engine, um schema ou um pacote fizer esses números mudarem &mdash; para melhor ou pior &mdash;, o teste
+        falha e o squash não passa: a mudança de qualidade precisa ser uma decisão consciente, não um efeito colateral.</p>
       </div>
     </details>
 
     <details class="scaffold">
-      <summary>Detalhes de implementação, para ler o código (detalhe)</summary>
+      <summary>Bash 3.2: o detalhe de portabilidade que travou dois gates</summary>
       <div class="scaffold-body">
-        <p>Os 4 commits desta execução: <code>86371b3</code> (onda1-ux-desafios: lista fora do fluxo, botão no cabeçalho com badge + popover, a11y, i18n, seletores e2e ajustados), <code>4c8eeb5</code> (onda1-cor-baloes: 5 chaves <code>bgcolor</code> &rarr; <code>backgroundColor</code> + caption <code>textSecondary</code>), <code>ed15e0c</code> (fix-final-popover: <code>maxHeight: min(60vh, 420px)</code>, <code>overflowY: auto</code> no Box interno, <code>overflow: hidden</code> no Paper) e <code>d719712</code> (test-onda1-ux: 1 unitário + 2 specs e2e reforçados).</p>
-        <p>Referências de arquivo citadas nos fatos: <code>ChatBubble.tsx</code> (a cor), <code>LessonView</code> (a geometria do chat), RoadmapView e ChallengeView (intactas).</p>
+        <p>Os scripts de gate rodam num bash 3.2 (macOS), que não tem <code>namerefs</code> nem <code>case-expansion</code>
+        de versões novas. <code>P-32</code> removeu as construções incompatíveis e <code>P-36</code> acrescentou um gate
+        anti-regressão &mdash; um teste que passa a falhar se alguém reintroduzir a sintaxe proibida nos gates/scripts.</p>
+      </div>
+    </details>
+
+    <details class="scaffold">
+      <summary>Os commits, por onda (para conferir o histórico na main)</summary>
+      <div class="scaffold-body">
+        <p>Um squash por pacote/fix, em faixas:<br>
+        Onda 1: <code>838d3d3..99b5063</code> (P-01..P-08) + fixes <code>7300087..c6ff609</code>.<br>
+        Onda 2: <code>62c8fdb..859dc9d</code> (P-09..P-15) + test-onda1 <code>86901b9..c88818d</code> +
+        fixes <code>f73db96..68ad1fc</code> + batch B <code>8ce9d58..027fd92</code> + confetti <code>ebb3360</code>.<br>
+        Onda 3: <code>c26a712..a1baa54</code> (P-31, P-16..P-21) + fixes <code>24b6f86..f7c9273</code>.<br>
+        Onda 4: <code>4e05f30..4f782b0</code> (P-32, P-36, P-35, P-24, P-25, P-26, P-23, P-22) +
+        fixes <code>43c3878..66f3a34</code>.<br>
+        HEAD: <code>66f3a34</code>.</p>
       </div>
     </details>
   </section>
 
-  <!-- ============ 07 FORA DE ESCOPO ============ -->
-  <section class="section animate" style="--i:7" aria-labelledby="sec07">
+  <!-- ================= 6. DÍVIDA CONHECIDA ================= -->
+  <section class="section animate" style="--i:7" aria-labelledby="sec06">
     <div class="section-head">
-      <span class="section-num">07</span>
-      <h2 id="sec07">Fora de escopo</h2>
+      <span class="section-num">06</span><h2 id="sec06">Dívida conhecida e o que ficou de fora</h2>
     </div>
-    <p class="section-lead">O que esta execução não cobriu &mdash; para você não procurar por algo que não foi feito.</p>
-
-    <div class="grid-2">
+    <p class="section-lead">
+      Nada que está aqui foi escondido: a execução registrou o que ficou para trás, por escolha ou por estar fora do alvo.
+    </p>
+    <div class="card-grid">
       <div class="ve-card">
-        <h3>A review de aprovação ainda não existe no chat</h3>
-        <p>A mensagem de sucesso quando o desafio é aprovado ainda não é mostrada no chat. O fix de chave a cobre quando ela existir &mdash; a família <code>approved</code> já foi corrigida junto.</p>
+        <h3>L-04 parcial &mdash; dívida documentada</h3>
+        <p>8 arquivos <strong>pré-existentes</strong> alheios à engine (<code>run-dev.sh</code>, fixtures, helpers) seguem
+        fora do gate-lint. Não foram criados por esta execução.</p>
       </div>
       <div class="ve-card">
-        <h3>Ruído de sistema</h3>
-        <p>Mensagens de ambiente (Gtk, fontconfig, SQLite) apareceram durante a execução e são pré-registradas &mdash; não fazem parte da entrega nem indicam defeito no app.</p>
+        <h3>Caveat dos testes de integração</h3>
+        <p>Os 11 testes de integração da onda 1 trazem caveat declarado: deadlock potencial do semáforo compartilhado.</p>
+      </div>
+      <div class="ve-card">
+        <h3>Evolução pendente descartada na FASE 0</h3>
+        <p>Runs antigos de 28/08 foram limpos: o env de survey antigo não tinha <code>PROJECT_PENDING</code>, então a
+        evolução pendente foi descartada.</p>
+      </div>
+      <div class="ve-card">
+        <h3>Difficulty provisório</h3>
+        <p>A rampa de dificuldade <code>1..5</code> é provisória e declarada como tal &mdash; um número para calibrar, não
+        uma promessa de medição.</p>
       </div>
     </div>
   </section>
 
-  <!-- ============ GLOSSARIO ============ -->
+  <!-- ================= 7. GLOSSÁRIO (DOBRADO) ================= -->
   <section class="section animate" style="--i:8" aria-labelledby="glossario">
     <div class="section-head">
-      <span class="section-num">GL</span>
-      <h2 id="glossario">Glossário de referência</h2>
+      <span class="section-num">07</span><h2 id="glossario">Glossário de referência</h2>
     </div>
-    <p class="section-lead">Cada termo abaixo é definido também na primeira vez em que aparece no texto &mdash; esta tabela é só o mapa para reencontrar.</p>
-
-    <div class="table-wrap">
-      <table>
-        <thead>
-          <tr><th>Termo</th><th>Definição</th></tr>
-        </thead>
-        <tbody>
-          <tr><td>balão</td><td>Bolha colorida com a mensagem do tutor ou do aluno no chat.</td></tr>
-          <tr><td>input</td><td>Campo onde o aluno digita a mensagem.</td></tr>
-          <tr><td>gating</td><td>Regra que trava uma ação (concluir a aula) até uma condição (desafios resolvidos).</td></tr>
-          <tr><td>style object (do React)</td><td>Objeto de estilos aplicado direto no elemento; só aceita propriedades CSS de verdade.</td></tr>
-          <tr><td>prop <code>sx</code> (do MUI)</td><td>Atalho de estilo do Material UI que aceita açúcar de sintaxe, como <code>bgcolor</code>.</td></tr>
-          <tr><td>descartada em silêncio</td><td>Ignorada sem erro nem aviso &mdash; só o visual mostra o estrago.</td></tr>
-          <tr><td>regressão</td><td>Comportamento que funcionava e quebrou por uma mudança posterior.</td></tr>
-          <tr><td>motion.div</td><td>Componente da biblioteca framer-motion, usada para animar elementos.</td></tr>
-          <tr><td>popover</td><td>Pequena janela flutuante que abre ao clicar num botão, sem sair da tela.</td></tr>
-          <tr><td>badge</td><td>Indicador pequeno sobre um botão mostrando quantos itens estão pendentes.</td></tr>
-          <tr><td>track</td><td>Registro de progresso do aluno na resolução de um desafio.</td></tr>
-          <tr><td>a11y</td><td>Acessibilidade: atributos que permitem operar por teclado e leitores de tela.</td></tr>
-          <tr><td>i18n</td><td>Internacionalização: textos em arquivos por idioma, trocados por chave.</td></tr>
-          <tr><td>e2e</td><td>Teste que abre o app real e simula os cliques do usuário (Playwright).</td></tr>
-          <tr><td>teste unitário</td><td>Teste de uma função isolada, sem interface.</td></tr>
-          <tr><td>getComputedStyle</td><td>Leitura do estilo final calculado pelo navegador.</td></tr>
-          <tr><td>gate / snapshot</td><td>Barreira automatizada (lint + testes + build) rodada em cópia isolada do repositório.</td></tr>
-          <tr><td>spec</td><td>Arquivo de teste (e2e ou unitário).</td></tr>
-          <tr><td>diff</td><td>A comparação entre o código antes e depois de uma mudança.</td></tr>
-        </tbody>
-      </table>
-    </div>
+    <p class="section-lead">
+      Todos os termos já foram definidos onde aparecem; esta é a tabela fechada, para consulta rápida.
+    </p>
+    <details class="scaffold">
+      <summary>Abrir o glossário completo (20 termos)</summary>
+      <div class="scaffold-body">
+        <dl>
+          <dt>engine de trilhas</dt><dd>Programa que gera e valida trilhas de estudo por regras determinísticas; o conteúdo é saída da engine, não escrita por humanos.</dd>
+          <dt>trilha</dt><dd>Sequência de aulas com desafios validados por teste; é o que a engine produz.</dd>
+          <dt>audit</dt><dd>Varredura determinística, sem LLM e sem chave, que mede uma trilha existente e conta cada violação de orçamento.</dd>
+          <dt>placar</dt><dd>Números do audit: 285 violações, 96/118 desafios com violação, 102 lacunas, 12 aulas sem construção nova.</dd>
+          <dt>pin mecânico</dt><dd>Teste que congela o placar &mdash; se o número mudar, o teste falha e o squash não passa.</dd>
+          <dt>pacote (P-xx)</dt><dd>Menor unidade de entrega do plano; mudança pequena, com dono e gate próprios.</dd>
+          <dt>onda</dt><dd>Rodada de execução em que vários agentes trabalham em paralelo, cada um numa worktree.</dd>
+          <dt>worktree</dt><dd>Cópia isolada do repositório para um agente mexer sem encostar nos outros.</dd>
+          <dt>subwave</dt><dd>Onda-irmã de validação/teste que roda junto da onda seguinte.</dd>
+          <dt>revisão adversarial</dt><dd>Agente revisor que caça inconsistências e emite veredito antes do gate.</dd>
+          <dt>BLOCK / WARNING</dt><dd>Vereditos da revisão: BLOCK impede integrar até corrigir; WARNING sinaliza risco.</dd>
+          <dt>gate</dt><dd>Bateria determinística (lint + testes + build) que precisa passar antes de integrar.</dd>
+          <dt>squash-merge</dt><dd>Integração que funde todos os commits de uma worktree num commit único na main.</dd>
+          <dt>REPLAN</dt><dd>Replanejamento no meio da execução para reconciliar contrato, fiação e portabilidade.</dd>
+          <dt>v1 só-ORDEM</dt><dd>Versão 1 do repair: apenas reordena; lacuna vira bloqueio de criar aula, nunca reescrita.</dd>
+          <dt>flake</dt><dd>Teste que falha sem causa real; o do confetti foi eliminado com mock timers.</dd>
+          <dt>bash 3.2</dt><dd>Versão do bash dos gates; exigiu remover namerefs e case-expansion (P-32/P-36).</dd>
+          <dt>G-SEM-REDE</dt><dd>Gate que confirma que nenhuma chave de API vazou para o repositório (&ldquo;sem chaves&rdquo;).</dd>
+          <dt>invariante (INV-xx)</dt><dd>Regra estrutural verificada por teste &mdash; ex.: chatCompletion só em runtime/callLlm.ts (INV-01).</dd>
+          <dt>teto físico de tokens</dt><dd>Limite de 8.192 tokens de saída por chamada; obriga a trilha a nascer por fases.</dd>
+        </dl>
+      </div>
+    </details>
   </section>
 
-  <!-- ============ FOOTER ============ -->
-  <footer class="animate" style="--i:9">
-    <p><strong>Validade:</strong> este documento explica a execução de 2026-08-28 (tarefa UX do chat) e vale contra o estado do código ao fim dela. Números, cores e vereditos vêm dos fatos registrados da execução &mdash; nada foi inventado nesta explicação.</p>
-    <p><strong>Leitor:</strong> misto &mdash; o texto foi escrito tratando o leitor como novato, com os detalhes para experiente dobrados nos &ldquo;detalhe&rdquo; (expanda se quiser).</p>
-    <p><strong>Diagramas:</strong> Mermaid 11 com o shell padrão (zoom, arrastar, expandir), legível nos temas claro e escuro. A sinalização de pontos críticos usa as classes <em>crt</em> (laranja) e <em>ok</em> (verde).</p>
+  <!-- ================= RODAPÉ ================= -->
+  <footer class="footer animate" style="--i:9">
+    Válido contra a execução run-20260830-153557-33160 &middot; 2026-08-30 &middot; plano-execucao v1 (base 2401fea) &middot;
+    HEAD 66f3a34 &middot; origin github.com/frederico-kluser/study-method (main) &mdash; push verificado no COMMIT-FINAL.<br>
+    Fonte única de fatos: <code>.deep-orchestrator/run-20260830-153557-33160/explainer/fatos.md</code>.
   </footer>
 
 </div>
@@ -927,7 +1057,7 @@ flowchart TD
 
   const config = {
     fitPadding: 28,
-    minHeight: 360,
+    minHeight: 320,
     maxHeightPx: 960,
     maxHeightVh: 0.84,
     maxInitialZoom: 1.8,
@@ -937,64 +1067,56 @@ flowchart TD
     readabilityFloor: 0.58
   };
 
-  const clamp = (n, lo, hi) => Math.max(lo, Math.min(hi, n));
+  const LIGHT_VARS = {
+    darkMode: false,
+    primaryColor: '#5537eb',  primaryTextColor: '#ffffff',  primaryBorderColor: '#d4d8de',
+    lineColor: '#414853',
+    secondaryColor: '#e1e5eb', secondaryTextColor: '#414853',
+    tertiaryColor: '#e1e5eb',  tertiaryTextColor: '#414853',
+    background: '#f3f5f9'
+  };
 
-  let activeDrag = null;
+  const DARK_VARS = {
+    darkMode: true,
+    primaryColor: '#1e242e',  primaryTextColor: '#dadee5', primaryBorderColor: '#343b45',
+    lineColor: '#9da5b2',
+    secondaryColor: '#1e242e', secondaryTextColor: '#dadee5',
+    tertiaryColor: '#1e242e',  tertiaryTextColor: '#dadee5',
+    background: '#070b14'
+  };
 
-  addEventListener('mousemove', (e) => activeDrag?.onMove(e));
-  addEventListener('mouseup', () => {
-    activeDrag?.onEnd();
-    activeDrag = null;
-  });
+  function computeIsDark() {
+    const html = document.documentElement;
+    if (/\bdark\b/i.test(html.className || '')) return true;
+    const dt = (html.getAttribute('data-theme') || '').toLowerCase();
+    if (dt === 'dark') return true;
+    const cs = getComputedStyle(html).colorScheme || '';
+    if (cs.includes('dark')) return true;
+    if (cs.includes('light') && !cs.includes('dark')) return false;
+    return matchMedia('(prefers-color-scheme: dark)').matches;
+  }
 
-  const isDark = matchMedia('(prefers-color-scheme: dark)').matches;
+  let currentIsDark = computeIsDark();
 
-  // Substituicoes de classDef para sinalizar o critico em cada paleta.
-  const defs = isDark
-    ? {
-        crt: 'classDef crt fill:#431407,stroke:#fbbf24,stroke-width:2px,color:#fde68a',
-        ok:  'classDef ok fill:#052e16,stroke:#4ade80,stroke-width:2px,color:#bbf7d0',
+  function initMermaid() {
+    const vars = (currentIsDark ? DARK_VARS : LIGHT_VARS);
+    mermaid.initialize({
+      startOnLoad: false,
+      theme: 'base',
+      look: 'classic',
+      layout: 'elk',
+      themeVariables: {
+        ...vars,
+        fontFamily: "'Inter', system-ui, sans-serif",
+        fontSize: '14px'
       }
-    : {
-        crt: 'classDef crt fill:#fff7ed,stroke:#d97706,stroke-width:2px,color:#9a3412',
-        ok:  'classDef ok fill:#f0fdf4,stroke:#16a34a,stroke-width:2px,color:#166534',
-      };
+    });
+  }
 
-  mermaid.registerLayoutLoaders(elkLayouts);
-  mermaid.initialize({
-    startOnLoad: false,
-    theme: 'base',
-    look: 'classic',
-    layout: 'elk',
-    themeVariables: isDark
-      ? {
-          darkMode: true,
-          primaryColor: '#1e242e',
-          primaryTextColor: '#dadee5',
-          primaryBorderColor: '#343b45',
-          lineColor: '#9da5b2',
-          secondaryColor: '#1e242e',
-          secondaryTextColor: '#dadee5',
-          tertiaryColor: '#1e242e',
-          tertiaryTextColor: '#dadee5',
-          background: '#070b14',
-          fontFamily: "'Inter', system-ui, sans-serif",
-          fontSize: '14px',
-        }
-      : {
-          primaryColor: '#5537eb',
-          primaryTextColor: '#ffffff',
-          primaryBorderColor: '#d4d8de',
-          lineColor: '#414853',
-          secondaryColor: '#e1e5eb',
-          secondaryTextColor: '#414853',
-          tertiaryColor: '#e1e5eb',
-          tertiaryTextColor: '#414853',
-          background: '#f3f5f9',
-          fontFamily: "'Inter', system-ui, sans-serif",
-          fontSize: '14px',
-        }
-  });
+  const clamp = (n, lo, hi) => Math.max(lo, Math.min(hi, n));
+  let activeDrag = null;
+  addEventListener('mousemove', (e) => activeDrag?.onMove(e));
+  addEventListener('mouseup', () => { activeDrag?.onEnd(); activeDrag = null; });
 
   const rerenderers = [];
 
@@ -1006,78 +1128,50 @@ flowchart TD
     const label = shell.querySelector('.zoom-label');
 
     if (!wrap || !viewport || !canvas || !source || !label) {
-      console.error('initDiagram: missing required elements in', shell);
+      console.error('initDiagram: elementos ausentes em', shell);
       return;
     }
 
     let zoom = 1;
     let fitMode = 'contain';
-    let panX = 0;
-    let panY = 0;
-    let svgW = 0;
-    let svgH = 0;
-
-    let sx = 0;
-    let sy = 0;
-    let spx = 0;
-    let spy = 0;
-
-    let touchDist = 0;
-    let touchCx = 0;
-    let touchCy = 0;
+    let panX = 0, panY = 0, svgW = 0, svgH = 0;
+    let sx = 0, sy = 0, spx = 0, spy = 0;
+    let touchDist = 0, touchCx = 0, touchCy = 0;
 
     function constrainPan() {
-      const vpW = viewport.clientWidth;
-      const vpH = viewport.clientHeight;
-      const rW = svgW * zoom;
-      const rH = svgH * zoom;
+      const vpW = viewport.clientWidth, vpH = viewport.clientHeight;
+      const rW = svgW * zoom, rH = svgH * zoom;
       const pad = config.fitPadding;
-
-      panX = (rW + pad * 2 <= vpW)
-        ? (vpW - rW) / 2
-        : clamp(panX, vpW - rW - pad, pad);
-      panY = (rH + pad * 2 <= vpH)
-        ? (vpH - rH) / 2
-        : clamp(panY, vpH - rH - pad, pad);
+      panX = (rW + pad * 2 <= vpW) ? (vpW - rW) / 2 : clamp(panX, vpW - rW - pad, pad);
+      panY = (rH + pad * 2 <= vpH) ? (vpH - rH) / 2 : clamp(panY, vpH - rH - pad, pad);
     }
 
     function applyTransform() {
       const svg = canvas.querySelector('svg');
       if (!svg || !svgW) return;
-
       constrainPan();
       svg.style.width = (svgW * zoom) + 'px';
       svg.style.height = (svgH * zoom) + 'px';
       canvas.style.transform = `translate(${panX}px, ${panY}px)`;
-      label.textContent = Math.round(zoom * 100) + '% — ' + fitMode;
+      label.textContent = Math.round(zoom * 100) + '% \u2014 ' + fitMode;
     }
 
     function canPan() {
-      const rW = svgW * zoom;
-      const rH = svgH * zoom;
+      const rW = svgW * zoom, rH = svgH * zoom;
       return rW + config.fitPadding * 2 > viewport.clientWidth
           || rH + config.fitPadding * 2 > viewport.clientHeight;
     }
 
     function computeSmartFit() {
-      const vpW = viewport.clientWidth;
-      const vpH = viewport.clientHeight;
+      const vpW = viewport.clientWidth, vpH = viewport.clientHeight;
       const aW = Math.max(80, vpW - config.fitPadding * 2);
       const aH = Math.max(80, vpH - config.fitPadding * 2);
       const contain = Math.min(aW / svgW, aH / svgH);
-
-      let z = contain;
-      let mode = 'contain';
+      let z = contain, mode = 'contain';
       if (contain < config.readabilityFloor) {
-        const chartR = svgH / svgW;
-        const vpR = vpH / Math.max(vpW, 1);
-        if (chartR >= vpR) {
-          z = aW / svgW;
-          mode = 'width-priority';
-        } else {
-          z = aH / svgH;
-          mode = 'height-priority';
-        }
+        const chartR = svgH / svgW, vpR = vpH / Math.max(vpW, 1);
+        if (chartR >= vpR) { z = aW / svgW; mode = 'width-priority'; }
+        else { z = aH / svgH; mode = 'height-priority'; }
       }
       return { zoom: clamp(z, config.minZoom, config.maxInitialZoom), mode };
     }
@@ -1085,16 +1179,14 @@ flowchart TD
     function fitDiagram() {
       if (!svgW) return;
       const fit = computeSmartFit();
-      zoom = fit.zoom;
-      fitMode = fit.mode;
+      zoom = fit.zoom; fitMode = fit.mode;
       panX = (viewport.clientWidth - svgW * zoom) / 2;
       panY = (viewport.clientHeight - svgH * zoom) / 2;
       applyTransform();
     }
 
     function setOneToOne() {
-      zoom = clamp(1, config.minZoom, config.maxZoom);
-      fitMode = '1:1';
+      zoom = clamp(1, config.minZoom, config.maxZoom); fitMode = '1:1';
       panX = (viewport.clientWidth - svgW * zoom) / 2;
       panY = (viewport.clientHeight - svgH * zoom) / 2;
       applyTransform();
@@ -1105,35 +1197,17 @@ flowchart TD
       const ratio = next / zoom;
       panX = cx - ratio * (cx - panX);
       panY = cy - ratio * (cy - panY);
-      zoom = next;
-      fitMode = 'custom';
+      zoom = next; fitMode = 'custom';
       applyTransform();
     }
 
     function readSvgNaturalSize(svg) {
-      let w = 0;
-      let h = 0;
-      if (svg.viewBox?.baseVal?.width > 0) {
-        w = svg.viewBox.baseVal.width;
-        h = svg.viewBox.baseVal.height;
-      }
-      if (!w) {
-        w = parseFloat(svg.getAttribute('width')) || 0;
-        h = parseFloat(svg.getAttribute('height')) || 0;
-      }
-      if (!w) {
-        const b = svg.getBBox();
-        w = b.width;
-        h = b.height;
-      }
-      if (!w) {
-        const r = svg.getBoundingClientRect();
-        w = r.width || 1000;
-        h = r.height || 700;
-      }
-      if (!svg.getAttribute('viewBox')) {
-        svg.setAttribute('viewBox', `0 0 ${w} ${h}`);
-      }
+      let w = 0, h = 0;
+      if (svg.viewBox?.baseVal?.width > 0) { w = svg.viewBox.baseVal.width; h = svg.viewBox.baseVal.height; }
+      if (!w) { w = parseFloat(svg.getAttribute('width')) || 0; h = parseFloat(svg.getAttribute('height')) || 0; }
+      if (!w) { const b = svg.getBBox(); w = b.width; h = b.height; }
+      if (!w) { const r = svg.getBoundingClientRect(); w = r.width || 1000; h = r.height || 700; }
+      if (!svg.getAttribute('viewBox')) svg.setAttribute('viewBox', `0 0 ${w} ${h}`);
       return { w, h };
     }
 
@@ -1149,14 +1223,10 @@ flowchart TD
     function openInNewTab() {
       const svg = canvas.querySelector('svg');
       if (!svg) return;
-
       const clone = svg.cloneNode(true);
-      clone.style.width = '';
-      clone.style.height = '';
-
+      clone.style.width = ''; clone.style.height = '';
       const bg = getComputedStyle(document.documentElement)
-        .getPropertyValue('--background').trim() || (isDark ? '#070b14' : '#f3f5f9');
-
+        .getPropertyValue('--background').trim() || (currentIsDark ? '#070b14' : '#f3f5f9');
       const html = `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8">
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
       <title>Diagrama</title><style>
@@ -1164,52 +1234,38 @@ flowchart TD
       background:${bg};padding:40px;box-sizing:border-box}
       svg{max-width:100%;max-height:90vh;height:auto}
       </style></head><body>${clone.outerHTML}</body></html>`;
-
       open(URL.createObjectURL(new Blob([html], { type: 'text/html' })), '_blank');
     }
 
     async function render() {
       try {
-        let code = source.textContent.trim();
-        if (!code) {
-          label.textContent = 'Erro: fonte vazia';
-          return;
-        }
-
-        code = code
-          .replace('%%CRTDEF%%', defs.crt)
-          .replace('%%OKDEF%%', defs.ok);
-
+        const code = source.textContent.trim();
+        if (!code) { label.textContent = 'Erro: fonte vazia'; return; }
         const id = 'diagram-' + Date.now() + '-' + Math.random().toString(36).slice(2, 8);
         const { svg } = await mermaid.render(id, code);
         const parsed = new DOMParser().parseFromString(svg, 'text/html');
         const parsedSvg = parsed.body.querySelector('svg');
-        if (!parsedSvg) {
-          label.textContent = 'Erro: sem SVG';
-          return;
-        }
+        if (!parsedSvg) { label.textContent = 'Erro: SVG vazio'; return; }
         canvas.replaceChildren(document.adoptNode(parsedSvg));
 
         const svgNode = canvas.querySelector('svg');
-        if (!svgNode) {
-          label.textContent = 'Erro: sem SVG';
+        if (!svgNode) { label.textContent = 'Erro: SVG vazio'; return; }
+        if (svgNode.getAttribute('aria-roledescription') === 'error' || /Syntax error in text/i.test(svg)) {
+          label.textContent = 'Erro de sintaxe no diagrama';
+          console.error('Mermaid syntax error:', code);
           return;
         }
-
         const size = readSvgNaturalSize(svgNode);
-        svgW = size.w;
-        svgH = size.h;
-
+        svgW = size.w; svgH = size.h;
         svgNode.removeAttribute('width');
         svgNode.removeAttribute('height');
         svgNode.style.maxWidth = 'none';
         svgNode.style.display = 'block';
-
         setAdaptiveHeight();
         fitDiagram();
       } catch (err) {
-        console.error('Mermaid render failed:', err);
-        label.textContent = 'Erro: ' + (err.message || 'Render falhou');
+        console.error('Mermaid render falhou:', err);
+        label.textContent = 'Erro: ' + (err.message || 'falha no render');
       }
     }
 
@@ -1220,7 +1276,6 @@ flowchart TD
       'zoom-one': setOneToOne,
       'zoom-expand': openInNewTab
     };
-
     Object.entries(actions).forEach(([action, handler]) => {
       wrap.querySelector(`[data-action="${action}"]`)?.addEventListener('click', handler);
     });
@@ -1237,8 +1292,7 @@ flowchart TD
       }
       if (canPan()) {
         e.preventDefault();
-        panX -= e.deltaX;
-        panY -= e.deltaY;
+        panX -= e.deltaX; panY -= e.deltaY;
         applyTransform();
       }
     }, { passive: false });
@@ -1246,30 +1300,17 @@ flowchart TD
     viewport.addEventListener('mousedown', (e) => {
       if (e.target.closest('.zoom-controls') || !canPan()) return;
       wrap.classList.add('is-panning');
-      sx = e.clientX;
-      sy = e.clientY;
-      spx = panX;
-      spy = panY;
+      sx = e.clientX; sy = e.clientY; spx = panX; spy = panY;
       e.preventDefault();
-
       activeDrag = {
-        onMove: (ev) => {
-          panX = spx + (ev.clientX - sx);
-          panY = spy + (ev.clientY - sy);
-          applyTransform();
-        },
-        onEnd: () => {
-          wrap.classList.remove('is-panning');
-        }
+        onMove: (ev) => { panX = spx + (ev.clientX - sx); panY = spy + (ev.clientY - sy); applyTransform(); },
+        onEnd: () => { wrap.classList.remove('is-panning'); }
       };
     });
 
     viewport.addEventListener('touchstart', (e) => {
       if (e.touches.length === 1) {
-        sx = e.touches[0].clientX;
-        sy = e.touches[0].clientY;
-        spx = panX;
-        spy = panY;
+        sx = e.touches[0].clientX; sy = e.touches[0].clientY; spx = panX; spy = panY;
       } else if (e.touches.length === 2) {
         const dx = e.touches[0].clientX - e.touches[1].clientX;
         const dy = e.touches[0].clientY - e.touches[1].clientY;
@@ -1282,13 +1323,7 @@ flowchart TD
 
     viewport.addEventListener('touchmove', (e) => {
       if (e.touches.length === 1 && canPan()) {
-        if (touchDist > 0) {
-          sx = e.touches[0].clientX;
-          sy = e.touches[0].clientY;
-          spx = panX;
-          spy = panY;
-          touchDist = 0;
-        }
+        if (touchDist > 0) { sx = e.touches[0].clientX; sy = e.touches[0].clientY; spx = panX; spy = panY; touchDist = 0; }
         e.preventDefault();
         panX = spx + (e.touches[0].clientX - sx);
         panY = spy + (e.touches[0].clientY - sy);
@@ -1304,20 +1339,32 @@ flowchart TD
     }, { passive: false });
 
     new ResizeObserver(() => {
-      if (svgW) {
-        setAdaptiveHeight();
-        fitDiagram();
-      }
+      if (svgW) { setAdaptiveHeight(); fitDiagram(); }
     }).observe(wrap);
 
     rerenderers.push(render);
     render();
   }
 
+  mermaid.registerLayoutLoaders(elkLayouts);
+  initMermaid();
   document.querySelectorAll('.diagram-shell').forEach(initDiagram);
 
-  // Mermaid embute as cores no SVG na hora de renderizar; uma troca de paleta
-  // em runtime precisa re-renderizar cada diagrama para acompanhar.
+  // Troca de tema: re-renderiza os diagramas para seguir a paleta (host ou SO).
+  function syncTheme() {
+    const d = computeIsDark();
+    if (d !== currentIsDark) {
+      currentIsDark = d;
+      initMermaid();
+      window.rerenderDiagrams();
+    }
+  }
+  matchMedia('(prefers-color-scheme: dark)').addEventListener('change', syncTheme);
+  new MutationObserver(syncTheme).observe(document.documentElement, {
+    attributes: true,
+    attributeFilter: ['class', 'data-theme', 'theme', 'style']
+  });
+
   window.rerenderDiagrams = () => Promise.all(rerenderers.map((render) => render()));
 </script>
 
