@@ -408,6 +408,7 @@ O modelo de ameaça completo, incluindo o que declaradamente **não** é defendi
 | [`docs/02-pedagogia.md`](docs/02-pedagogia.md) | Por que o tutor conversa do jeito que conversa. |
 | [`docs/03-memoria.md`](docs/03-memoria.md) · [`docs/04-proficiencia.md`](docs/04-proficiencia.md) | O que é lembrado, como é consolidado, como a proficiência é medida. |
 | [`docs/05-challenges-tdd.md`](docs/05-challenges-tdd.md) | O protocolo de validação de desafio, passo a passo. |
+| [`docs/16-engine-de-trilha.md`](docs/16-engine-de-trilha.md) | A engine de trilhas: o gate determinístico que prova, sobre AST, que nenhum desafio cobra construção que nenhuma aula ensinou. |
 | [`docs/06-visualizacao.md`](docs/06-visualizacao.md) | O renderizador e as regras de figura honesta. |
 | [`docs/11-seguranca-privacidade.md`](docs/11-seguranca-privacidade.md) | Modelo de ameaça, privacidade campo a campo, sandbox. |
 | [`CONTRIBUTING.md`](CONTRIBUTING.md) | Como rodar o gate, como acrescentar linguagem ou decisão, o que não é aceito em PR. |

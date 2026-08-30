@@ -35,33 +35,40 @@ roda em milissegundos, não depende de nenhuma chave de API e tem poder de veto.
 
 ## 1. O defeito, medido
 
-Todos os números abaixo são reproduzíveis pelo comando indicado em §9.4. Eles são o **caso de teste
-de aceitação da engine**: se a engine não reprovar o que sabidamente está quebrado, ela não funciona.
+Todos os números abaixo são reproduzíveis por um comando: `cd app && npm run engine -- audit
+nodejs-do-zero --limite 0` (para a tabela) e o mesmo comando com `--json` (para as duas linhas
+derivadas dos campos `metrics[]`). Foram **re-medidos em 2026-08-30** sobre
+`app/resources/tracks/nodejs-do-zero`, sem chave de API (orçamento `inferred` — leitura permissiva:
+o número real de violações é maior, nunca menor). Eles são o **caso de teste de aceitação da
+engine**: se a engine não reprovar o que sabidamente está quebrado, ela não funciona. O pin
+mecânico do placar vive em `app/tests/engineAuditPlacar.test.ts` (285/96/102).
 
 | Medição | Valor |
 |---|---|
-| Desafios que exigem construção nunca ensinada até ali | 43 de 136 (32%), 108 violações |
-| Módulos 1 a 6 | 100% dos desafios violam (8/8, 6/6, 6/6, 6/6, 5/5, 5/5) |
-| Violações só nos módulos 1–3 | 60 |
-| Delas, causadas por 5 construções do harness de teste | 45 |
-| `export` / `import` exigidos desde a aula 1, ensinados na aula | #10 |
-| `new Error` exigido em | 136 de 136 desafios; operador `new` explicado na aula #60 |
-| Concatenação com `+` cobrada desde a aula #1, explicada em | nenhuma das 118 aulas |
-| `solutionCode` com ≥70% de similaridade ao exemplo da própria teoria | 11 desafios; em M1, 5 de 7 entre 76% e 93% |
+| Aulas | 118 |
+| Desafios | 118 |
+| Desafios com ao menos uma violação | 96 (81%) |
+| Violações | 285 |
+| Delas, lacunas de currículo (construção que **nenhuma** aula ensina) | 102 |
+| Aulas que **não introduzem construção nenhuma** | 12 |
+| Construções novas na aula 1 (`o-que-e-programacao`) | 18 — o maior do histograma (mediana: 3) |
+| Aulas acima do teto de 4 construções novas (§3.6/A12) | 45 |
+| Blocos de código teórico sem tag de linguagem | 68 |
+| Blocos marcados `js` que não parseiam | 4 |
 | Aulas que declaram exatamente 1 `concept` | 100 de 118 |
-| Aulas que **não introduzem nenhuma construção nova** | 84 de 118 (71%) |
-| Construções novas na aula 1 (`o-que-e-programacao`) | 10 numa única seção |
-| Termos nomeados novos na aula `condicionais` (que declara 1 conceito) | 17 |
-| Referências de `prerequisites` apontando para slug de **aula** em vez de conceito | 105 de 134 |
-| Conceitos de desafio sem nenhuma aula dona | 18 |
+
+As linhas com "mediana", "45" (acima do teto) e "100 de 118" são derivadas do mesmo relatório em
+`--json` (`metrics[].novas` e `metrics[].conceitosDeclarados`); as demais saem do placar humano.
 
 Três leituras que decidem o desenho:
 
 1. **A trilha foi escrita de trás para frente.** Primeiro o desafio, depois uma seção "Exemplo
    completo" contendo a solução literal. O encaixe nunca foi verificado.
-2. **O problema não é falta de aulas.** São 118 aulas para 82–92 construções — folgado. O defeito é
-   **distribuição**: penhasco na aula 1, platô em 71% do resto. Multiplicar aulas sem teto **por
-   aula** reproduz o mesmo penhasco.
+2. **O problema não é falta de aulas.** São 118 aulas e a mediana de construções novas por aula é 3
+   — folgado. O defeito é **distribuição**: penhasco na aula 1 (18 construções novas, o maior valor
+   do histograma e 6× a mediana), 45 aulas acima do teto de 4 construções novas por aula (§3.6/A12)
+   e 12 aulas que não introduzem nada. Multiplicar aulas sem teto **por aula** reproduz o mesmo
+   penhasco.
 3. **A causa-raiz está no protocolo, não no modelo.**
    `skills/study-method/references/challenge-protocol.md` §1 item 4 exige incondicionalmente "pelo
    menos 1 error (entrada inválida que deve falhar de forma específica)", e
@@ -122,12 +129,18 @@ A chave de átomo é uma string estável, e o conjunto delas é o vocabulário f
 | operadores | `op:<familia>:<op>` | `op:binary:!==`, `op:unary:typeof`, `op:logical:??`, `op:update:++` |
 | globais | `global:<nome>` | `global:Error`, `global:console` |
 | API | `api:<caminho>` | `api:Array.prototype.push`, `api:node:test` |
-| forma de uso | `form:<seletor esquery>` | `form:IfStatement[alternate=null]` |
+| forma de uso | `form:<seletor da DSL própria>` | `form:IfStatement[alternate=null]` |
 | termos da prosa | `term:<termo pt-BR>` | `term:atribuição` |
 
 O eixo `form:` existe porque **o orçamento não é uma lista de construções permitidas, é uma lista de
 pares (construção, restrição de forma de uso)**. Liberar `FunctionDeclaration` não libera função como
 valor de variável; liberar `if` não libera `if` sem `else`.
+
+**O seletor é uma DSL mínima própria, não `esquery`** — implementada em
+`app/electron/main/engine/form/selector.ts` (sintaxe `Passo('>' Passo)*` com
+`[atributo=valor]`/`[atributo!=valor]`, onde `valor` é `null` ou um tipo de nó; o atributo só casa
+se **existe** no nó). É compatível com o exemplo acima (`form:IfStatement[alternate=null]`) e não
+acrescenta dependência nenhuma — `esquery` não existe em `app/node_modules` (§5.3).
 
 `vocab/atoms.json` é **gerado por script, nunca escrito à mão** — de `eslint-visitor-keys` (menos JSX
 e Experimental), das famílias de operador, de `globals.nodeBuiltin` e do catálogo de API built-in.
@@ -144,9 +157,15 @@ allowlist vira ruído.
 Invariante: `productive ⊆ receptive`.
 
 Sem essa distinção o gate tem só duas saídas ruins: proibir o próprio harness `node:test` (inviável)
-ou liberar geral (inútil). A necessidade está medida — 45 das 60 violações dos módulos 1–3 são
-`ArrowFunctionExpression`, `ExportNamedDeclaration`, `ImportDeclaration`, `ImportDefaultSpecifier` e
-`ImportSpecifier`, todas coisas que o aluno lê e nunca escreve.
+ou liberar geral (inútil). A necessidade está medida (reproduzível no `--json` do audit, campo
+`regra`): 167 das 285 violações são **A3** — `testsCode` cobrando construções fora do orçamento de
+**entrada** (o aluno lê o teste antes de aprender a aula). A política `receptive-seed` (§3.2) já
+absorve as formas mais comuns do runner (`import`/`export`, arrow de expressão, `assert.equal`/
+`assert.throws`/`assert.ok`, `test`); restam em A3 12 ocorrências de métodos de asserção fora da
+semente (`assert.notEqual`, `assert.rejects`, `assert.match`) e mais 155 de **conteúdo real** dos
+testes exigindo construções que a trilha ainda não ensinou. Só as duas faixas permitem tratar assim:
+`testsCode` entra no orçamento receptivo da entrada (§3.3), e apenas o que o aluno é obrigado a
+escrever cai na faixa produtiva.
 
 **Decisão de produto (reversível por flag `--harness-policy`).** O default é `receptive-seed`: o
 harness entra no orçamento **receptivo** da aula 1, e a linha `export function …` do `starterCode`
@@ -271,7 +290,7 @@ determinístico.
 | **F7** | autoria de teoria — 1 agente = 1 aula = 1 arquivo | ⇉ ondas de ≤15 | por onda |
 | **F8** | autoria de desafios e testes | ⇉ ondas de ≤15 | por onda |
 | **F9** | verificação determinística (zero LLM) | ⇉ largo, 2 semáforos | G-BUDGET · G-TEST |
-| **F10** | revisão — um revisor por instrumento, read-only | ⇉ por instrumento | — |
+| **F10** | ~~fase própria~~ — **não é um módulo**: a revisão (um revisor por instrumento, read-only) roda **dentro do laço F11** (§6) | — (integrada ao F11) | §6 |
 | **F11** | laço revisor → provador → planejador → corretor | ▮ / ⇉ | §6 |
 | **F12** | materialização e integração | ▮ integrador único | G-FINAL |
 
@@ -603,12 +622,26 @@ Também **não se pede nota de 1 a 5**: avaliadores LLM de material didático ag
 
 `score_erro = 3×violações_orçamento + 3×testes_falhando + 2×pins_falhando + 1×apontamentos_corrigir`
 
+**ajuste declarado na implementação** (`review/loop.ts`): os termos `pins_falhando` e
+`apontamentos_corrigir` são medidos com **LAG** — o estado *anterior* da rodada. Sem o lag, uma
+rodada que apenas **descobre** um bloqueador novo se auto-castigaria com rollback; com ele, o
+rollback reage à piora do estado provável (orçamento/provas) e das regressões prévias. Pins criados
+na própria rodada ficam fora do score.
+
 **A aprovação do revisor nunca é a condição 0.**
 
 **Orçamento default: 1 rodada de refino por artefato.** O ganho é concentrado na primeira; a quarta
 compra cerca de 0,9 de 6,8 pontos. A segunda e a terceira só existem se a primeira deixou bloqueante
-em aberto. E **re-revise apenas o que teve achado**, nunca a trilha inteira: refinar tudo
-uniformemente super-corrige e piora o conjunto.
+em aberto.
+
+**Escopo da re-revisão — implementado (`review/loop.ts`):** o laço roda sobre o **conjunto de
+artefatos da unidade em revisão**, não sobre a trilha inteira. Cada rodada começa re-executando os
+verificadores mecânicos sobre o conjunto da sessão e re-apresenta ao revisor LLM o conjunto
+normalizado **inteiro** (`visaoNormalizada(sessao.artefatos)`); o que fica restrito aos itens
+**tocados** é apenas a re-verificação pós-correção, junto de **todos** os pins (§6.1 passo 6). Ou
+seja: a unidade é re-revista como conjunto, não só o achado — o que a regra do parágrafo anterior
+proíbe é refinar a trilha inteira uniformemente, porque refinar tudo super-corrige e piora o
+conjunto.
 
 **O limiar que governa o laço.** Um revisor que marca falha como passe a uma taxa ≥ `(1−τ)/2` — com
 τ = 0,10, isto é **0,45** — **nunca remove nada**, com qualquer número de rodadas ou amostras. Mais
@@ -665,8 +698,10 @@ Convenções válidas para todos:
 **Papel.** Escreve **uma** aula atômica. Não vê as outras aulas, não decide o que vem antes ou depois.
 Recebe um estado de conhecimento exato e escreve o **menor incremento demonstrável** sobre ele.
 
-**Entrada** — o dossiê congelado, 12 campos; o spawn é **recusado** se faltar qualquer um: objetivo
-(um verbo, um objeto, contexto, critério); `introduces.productive` (no máximo 2 itens);
+**Entrada** — o dossiê congelado, **13 campos** (o texto original dizia 12, mas enumera 13; a
+implementação conta 13 e a lista canônica `CAMPOS_DO_DOSSIE` vive em
+`app/electron/main/engine/prompts/dossier.ts`); o spawn é **recusado** se faltar qualquer um:
+objetivo (um verbo, um objeto, contexto, critério); `introduces.productive` (no máximo 2 itens);
 `budget_produtivo`, `budget_receptivo` e `budget_teste` como **listas literais e completas**, nunca
 resumo nem trecho truncado; `kc_type`; `ei_class`; `subgoals[]`; `terms` já definidos;
 `notional_machine_delta`; `fora_de_escopo[]` com motivo; `misconceptions_a_refutar[]` com âncora na
@@ -790,8 +825,11 @@ cd app && npm run engine -- audit nodejs-do-zero --limite 0
 gate determinístico primeiro de propósito. O manual de uso e os números que o comando reproduz estão
 em `app/tools/track-engine/README.md`.
 
-Quando existirem, os três aceitarão `--from <fase>` para retomada e `--only <slug>` para depurar uma
-unidade.
+**Estado de `--from`/`--only` (atualizado em 2026-08-30):** ainda **não implementados** — dependem
+do modo `generate` (P-22 do plano de execução), que não está em `main` neste momento; quando os três
+modos existirem, todos aceitarão `--from <fase>` para retomada e `--only <slug>` para depurar uma
+unidade. Enquanto isso, o `audit` já expõe os filtros de depuração `--limite`, `--so-lacunas` e
+`--json`.
 
 **A engine nunca escreve aula por conta própria.** Nos modos `generate` e `repair`, quem produz e
 reescreve conteúdo é o autor-LLM, recebendo o orçamento congelado como restrição dura e podendo
@@ -863,9 +901,12 @@ orçamento.
 enquanto o teste espera retorno. De 165 exercícios com solução **e** testes, apenas 51 (30,9%) tinham
 solução que passava nos próprios testes.
 
-`difficulty` continua existindo mas **nenhum gate pode lê-lo**. Hoje ele é constante por módulo e
-ainda assim define o cronômetro do aluno. Passa a ser **derivado** do tempo medido para resolver a
-referência.
+`difficulty` continua existindo mas **nenhum gate pode lê-lo**. Na implementação atual ele é
+**PROVISÓRIO** (`app/electron/main/engine/phases/f12Materialize.ts`, `dificuldadeProvisoria`): rampa
+**linear 1..5 pela posição global da aula** no orçamento F4 — o desafio herda a dificuldade da aula,
+o desafio de módulo a da última aula do módulo e a proficiência fica fixa em 5. O débito de produto
+declarado: derivar `difficulty` do **tempo medido** para resolver a referência substitui a rampa —
+até lá, o campo não é sinal de nada (§11: usar `difficulty` como sinal de gate é proibido).
 
 ---
 
