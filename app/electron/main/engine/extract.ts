@@ -27,6 +27,14 @@
  * escreve a trilha. Ele aceita a linguagem inteira e devolve o que encontrou;
  * quem reprova é `budget.ts`.
  *
+ * Além dos seis eixos de `atomKeys.ts`, este módulo emite o eixo `form:`
+ * previsto em §3.1: FORMAS de uso (pares construção × restrição de forma),
+ * casadas por um seletor mínimo sobre o MESMO AST. A bateria de formas é fixa
+ * e vive em `form/rules.ts` (compilada na carga — seletor malformado é erro de
+ * inicialização, nunca silêncio); este arquivo só aplica as regras compiladas.
+ * É mudança ADITIVA: liberar `FunctionDeclaration` não libera função como valor
+ * de variável, e liberar `if` não libera `if` sem `else` (I9/I11).
+ *
  * LIMITE CONHECIDO E DECLARADO: a resolução de escopo é PLANA — o extrator
  * junta todos os nomes declarados no arquivo e trata como global o identificador
  * que sobrou. Para trecho de aula (dezenas de linhas) isso acerta; um shadowing
@@ -51,6 +59,8 @@ import {
   nodeKey,
   opKey,
 } from './atomKeys';
+import { FORM_RULES } from './form/rules';
+import { selectorMatches } from './form/selector';
 
 /** Tamanho máximo do trecho ofensor citado na violação (uma linha legível). */
 export const SNIPPET_MAX_CHARS = 72;
@@ -400,6 +410,16 @@ export function extractAtoms(code: string, options: ExtractOptions = {}): Extrac
       if (!declared.all.has(name) && RUNTIME_GLOBALS.has(name)) {
         record(globalKey(name), node);
       }
+    }
+
+    // ── eixo `form:` — FORMA de uso (docs §3.1, I9/I11) ────────────────────
+    // A bateria vive em form/rules.ts e é COMPILADA UMA VEZ, na carga do módulo:
+    // seletor malformado lá dentro é erro de inicialização (A-P06-4), nunca
+    // silêncio em verificação — aqui só rodam regras já compiladas. O sujeito da
+    // forma é o nó casado (o passo mais à direita do seletor). Mudança ADITIVA:
+    // nenhum dos eixos existentes (node/decl/op/global/api) é alterado.
+    for (const rule of FORM_RULES) {
+      if (selectorMatches(rule.compiled, node)) record(rule.key, node);
     }
 
     ts.forEachChild(node, visit);
