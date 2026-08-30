@@ -22,7 +22,12 @@
  *       que o enunciado pede (a bijeção enunciado ↔ teste, J4, quebrada);
  *   (c) `imprime_em_vez_de_retornar` — a solução imprime no console em vez
  *       de retornar o valor (o modo de falha nº 1 medido, §10), e o
- *       `outputChannel` vai para `impressao`;
+ *       `outputChannel` vai para `impressao`. UM defeito só: o ORÇAMENTO do
+ *       mutante (c) declara os átomos do canal de impressão
+ *       (`ATOMS_DO_CANAL_DE_IMPRESSAO` = `global:console`, `api:console.log`
+ *       e `node:ExpressionStatement` — somados ao `requires` da base no
+ *       próprio artefato mutado); usar console no mutante (c) NÃO é o defeito
+ *       (a) de orçamento — o canal faz parte do escopo declarado do mutante;
  *   (d) `nao_exercita_a_aula` — a solução NÃO usa nenhuma construção de
  *       `introducesProductive` (A6/C5: o desafio não exercita a construção
  *       nova da aula), sem vazar para fora do orçamento — o defeito é UNO.
@@ -35,11 +40,18 @@
  * O gerador é FAIL-CLOSED por construção: `gerarMutantes` valida a base
  * (schema do desafio) e valida CADA mutante gerado — o artefato mutado tem
  * de (1) continuar passando no `ChallengeDraftSchema`, (2) diferir do válido
- * EXATAMENTE nos campos da sua classe (um defeito por mutante) e (3) carregar
- * a propriedade verificável por parser (`extractAtoms` sobre o código mutado)
- * que o torna detectável em princípio. Um mutante que não satisfaça isso é
- * um ERRO do gerador — nunca um mutante silencioso (um mutante que não
- * muda nada mediria a complacência do revisor contra um alvo que não existe).
+ * EXATAMENTE nos campos da sua classe (um defeito por mutante; para a classe
+ * (c), `solutionCode` + `outputChannel` + `requires` — o `requires` cresce
+ * com os átomos do canal declarados na própria mutação, nunca um segundo
+ * defeito) e (3) carregar a propriedade verificável por parser
+ * (`extractAtoms` sobre o código mutado) que o torna detectável em
+ * princípio — inclusive, para as classes (a)/(c)/(d), que as chaves da
+ * solução mutada fiquem DENTRO do orçamento declarado do mutante. Um
+ * mutante que não satisfaça isso é um ERRO do gerador — nunca um mutante
+ * silencioso (um mutante que não muda nada mediria a complacência do revisor
+ * contra um alvo que não existe) nem um mutante de classe errada/dupla
+ * (um mutante (c) cuja solução vaze do orçamento carregaria o defeito da
+ * classe (a) — a medição por classe deixaria de ser limpa).
  *
  * O QUE ESTE MÓDULO NÃO FAZ: não julga (a medição e a decisão vivem em
  * `judgeCalibration.ts`), não chama LLM, não lê trilha real, não escreve em
@@ -247,13 +259,40 @@ export function mutarTesteDivergenteDoEnunciado(base: DesafioParaMutacao): Desaf
 }
 
 /**
+ * Os ÁTOMOS que o canal de impressão (classe c) introduz na solução mutada:
+ * `global:console` (a raiz global), `api:console.log` (o membro acessado) e
+ * `node:ExpressionStatement` (o `console.log(...)` vira uma expression
+ * statement em vez de um `return`). São o ORÇAMENTO do mutante (c) —
+ * declarados aqui no gerador, SOMADOS ao `requires` da base no artefato
+ * mutado por `mutarImpressaoEmVezDeRetorno` (fail-closed: o validador da
+ * classe (c) exige `chavesDaSolução ⊆ requires do mutante`, então um mutante
+ * (c) cujo canal não esteja no orçamento é REJEITADO — nunca um (c) com o
+ * defeito duplo (a)+(c)). A fixture NÃO usa console em nenhuma solução
+ * (verificado por parser em teste), então estes átomos nunca entram no
+ * `requires` da BASE: o único mutante que os declara é o (c).
+ */
+export const ATOMS_DO_CANAL_DE_IMPRESSAO: readonly string[] = [
+  'global:console',
+  'api:console.log',
+  'node:ExpressionStatement',
+];
+
+/**
  * (c) — a solução PASSA a imprimir no console em vez de retornar (o modo de
- * falha nº 1 medido, §10), e o `outputChannel` declarado vai para
- * `impressao` — os testes esperam o valor de retorno e recebem `undefined`.
+ * falha nº 1 medido, §10), o `outputChannel` declarado vai para `impressao`
+ * — os testes esperam o valor de retorno e recebem `undefined` — e o
+ * ORÇAMENTO do mutante cresce com os átomos do canal
+ * (`ATOMS_DO_CANAL_DE_IMPRESSAO`): o console usado aqui é construção ENSINADA
+ * no escopo do mutante, o defeito UNO da classe é imprimir em vez de retornar
+ * (nunca "usar console sem ter sido ensinado" — isso seria o defeito da
+ * classe (a). O `notRequired` da base fica intocado: `notRequired` é o escopo
+ * declarado, não o orçamento; o orçamento é `requires`, que o mutante (c)
+ * declara com o canal).
  */
 export function mutarImpressaoEmVezDeRetorno(base: DesafioParaMutacao): DesafioParaMutacao {
   const solutionCode = 'export function ehPar(n) {\n  console.log(n % 2 === 0);\n}\n';
-  return somenteDesafio(base, { ...base.desafio, solutionCode, outputChannel: 'impressao' });
+  const requires = [...new Set([...base.desafio.requires, ...ATOMS_DO_CANAL_DE_IMPRESSAO])];
+  return somenteDesafio(base, { ...base.desafio, solutionCode, outputChannel: 'impressao', requires });
 }
 
 /**
@@ -303,9 +342,12 @@ function camposDiferentes(base: Desafio, mutado: Desafio): string[] {
 /**
  * A validação de um mutante gerado: schema válido, diferença EXATAMENTE nos
  * campos da classe e a propriedade da classe verificada por parser
- * (`extractAtoms`). Qualquer desvio é erro do gerador.
+ * (`extractAtoms`). Qualquer desvio é erro do gerador — inclusive um mutante
+ * (c) cuja solução vaze do orçamento declarado (mutante de classe dupla,
+ * rejeitado fail-closed). Exportada para os testes de rejeição provarem que
+ * um mutante (c) artificial e vazado NUNCA passa pela porta do gerador.
  */
-function validarMutante(base: DesafioParaMutacao, mutante: Mutante, mutado: DesafioParaMutacao): void {
+export function validarMutante(base: DesafioParaMutacao, mutante: Mutante, mutado: DesafioParaMutacao): void {
   ChallengeDraftSchema.parse(mutado.desafio);
 
   const camposMutados = camposDiferentes(base.desafio, mutado.desafio);
@@ -331,12 +373,21 @@ function validarMutante(base: DesafioParaMutacao, mutante: Mutante, mutado: Desa
       break;
     }
     case 'imprime_em_vez_de_retornar': {
-      if (JSON.stringify(camposMutados) !== JSON.stringify(['solutionCode', 'outputChannel'])) {
-        erros.push(`mexeu em campos além de solutionCode/outputChannel: [${camposMutados.join(', ')}]`);
+      if (JSON.stringify(camposMutados) !== JSON.stringify(['solutionCode', 'outputChannel', 'requires'])) {
+        erros.push(`mexeu em campos além de solutionCode/outputChannel/requires: [${camposMutados.join(', ')}]`);
       }
       if (mutado.desafio.outputChannel !== 'impressao') erros.push('outputChannel não foi para impressao');
       if (!mutado.desafio.solutionCode.includes('console.log')) erros.push('a solução mutada não imprime');
       if (mutado.desafio.solutionCode.includes('return')) erros.push('a solução mutada ainda retorna');
+      const chavesMutado = chavesDe(mutado.desafio.solutionCode);
+      const foraDoOrcamento = chavesMutado.filter((chave) => !mutado.desafio.requires.includes(chave));
+      if (foraDoOrcamento.length > 0) {
+        erros.push(`a solução mutada vazou do orçamento do mutante: [${foraDoOrcamento.join(', ')}]`);
+      }
+      const canalNaoDeclarado = ATOMS_DO_CANAL_DE_IMPRESSAO.filter((chave) => !mutado.desafio.requires.includes(chave));
+      if (canalNaoDeclarado.length > 0) {
+        erros.push(`os átomos do canal não foram declarados no orçamento do mutante: [${canalNaoDeclarado.join(', ')}]`);
+      }
       break;
     }
     case 'nao_exercita_a_aula': {
@@ -392,7 +443,7 @@ export function gerarMutantes(artefatoValido: DesafioParaMutacao): Mutante[] {
       id: 'M3',
       classe: 'imprime_em_vez_de_retornar',
       defeito:
-        'a solução imprime no console em vez de retornar o valor (modo de falha nº 1, §10); `outputChannel` foi para `impressao` e o teste espera o retorno',
+        'a solução imprime no console em vez de retornar o valor (modo de falha nº 1, §10); `outputChannel` foi para `impressao`, o teste espera o retorno, e o orçamento do mutante declara os átomos do canal (`global:console`, `api:console.log`, `node:ExpressionStatement`) — o defeito é UNO',
       marcador: 'console.log',
       aplicar: mutarImpressaoEmVezDeRetorno,
     },

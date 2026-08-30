@@ -19,11 +19,18 @@
  *      `mutants.ts`). Para um mutante, o defeito foi APONTADO quando existe
  *      apontamento cuja categoria pertence ao conjunto DETECTOR da classe E
  *      abre rodada na tabela fixa do §6.5 (`abreRodada` — sugestão nunca
- *      abre rodada: apontar como estilo/tom/prosa é falso-passe). FALSO-PASSE
- *      da classe = mutantes da classe sem detecção; taxa por classe e geral
- *      saem TIPADAS. FAIL-CLOSED: revisor indisponível durante a calibração
- *      (lançou) → `ErroDeCalibracao` estruturado — a calibração não produz
- *      veredito com o juiz fora do ar (§9.3).
+ *      abre rodada: apontar como estilo/tom/prosa é falso-passe) E — quando
+ *      o mutante carrega `marcador` — o ALVO do apontamento TOCA o marcador:
+ *      interseção por span OU menção do marcador no trecho citado
+ *      (`alvo.token`/`evidencia.prova`). Um apontamento com a categoria
+ *      certa apontando o TRECHO ERRADO do mutante não conta como acerto —
+ *      é falso-passe (direção segura: quem não localiza o defeito não o
+ *      detectou; sem esta régua, apontar o teste ÍMPAR que segue o enunciado
+ *      "detectaria" o mutante (b)). FALSO-PASSE da classe = mutantes da
+ *      classe sem detecção; taxa por classe e geral saem TIPADAS.
+ *      FAIL-CLOSED: revisor indisponível durante a calibração (lançou) →
+ *      `ErroDeCalibracao` estruturado — a calibração não produz veredito com
+ *      o juiz fora do ar (§9.3).
  *
  *   2. `decisaoDeCalibracao` — a decisão do laço. Lê SOMENTE
  *      `medicao.taxaGeral` (a taxa contra os mutantes). `taxaGeral ≥ limiar`
@@ -50,6 +57,7 @@ import { type RevisaoComSeveridade } from '../prompts/reviewer';
 import { abreRodada } from '../review/normalize';
 import {
   type ClasseDeDefeito,
+  type Desafio,
   type DesafioParaMutacao,
   type Mutante,
   rodaMutante,
@@ -91,20 +99,73 @@ export const CATEGORIAS_QUE_DETECTAM: Readonly<Record<ClasseDeDefeito, readonly 
 };
 
 /**
+ * A localização do marcador do mutante no artefato MUTADO — a régua do
+ * confronto. O `span` (quando resolvido) está em caracteres do CAMPO de
+ * código onde o marcador foi encontrado (`solutionCode`/`testsCode`/…); a
+ * RESOLUÇÃO é feita por `medirTaxaDeFalsoPasse` sobre o artefato mutado, e a
+ * detecção aceita OU a interseção por span OU a menção do marcador no trecho
+ * citado do apontamento (a menção é independente de coordenadas — é o
+ * caminho robusto contra revisões reais do P-12, cujos spans referem o texto
+ * renderizado).
+ */
+export interface MarcadorLocalizado {
+  /** o marcador do mutante (`Mutante.marcador`). */
+  texto: string;
+  /** span `[inicio, fim]` em caracteres do campo onde o marcador foi achado. */
+  span: readonly [number, number] | null;
+}
+
+/** Dois spans de `[inicio, fim]` se intersectam quando nenhum está antes do outro. */
+function spansIntersectam(a: readonly [number, number], b: readonly [number, number]): boolean {
+  return a[0] <= b[1] && b[0] <= a[1];
+}
+
+/**
  * Um apontamento detecta o defeito do mutante quando (1) a categoria está no
  * conjunto detector da classe E (2) a categoria ABRE RODADA na tabela fixa do
- * §6.5 — o apontamento conta como acerto só quando mobiliza o laço.
+ * §6.5 — o apontamento conta como acerto só quando mobiliza o laço — E (3),
+ * quando o mutante carrega `marcador` (presente em todas as classes hoje;
+ * `marcador` em branco = classe sem marcador → por categoria), o ALVO do
+ * apontamento TOCA o marcador: o span do apontamento intersecta o span do
+ * marcador, OU o trecho citado do apontamento (`alvo.token` e
+ * `evidencia.prova` — os campos cujo contrato é citar o trecho literal do
+ * defeito, §6.3/R4) menciona o marcador. Sem esta régua, um revisor que
+ * aponta o trecho ERRADO do mutante contaria como acerto (falso-passe
+ * subestimado — direção insegura).
  */
 export function apontamentoDetectaDefeito(
   apontamento: RevisaoComSeveridade['apontamentos'][number],
   mutante: Mutante,
+  marcador?: MarcadorLocalizado,
 ): boolean {
-  return abreRodada(apontamento.categoria) && CATEGORIAS_QUE_DETECTAM[mutante.classe].includes(apontamento.categoria);
+  const porCategoria =
+    abreRodada(apontamento.categoria) && CATEGORIAS_QUE_DETECTAM[mutante.classe].includes(apontamento.categoria);
+  if (!porCategoria) return false;
+
+  const textoDoMarcador = ((marcador?.texto ?? mutante.marcador) ?? '').trim();
+  if (textoDoMarcador === '') return true; // classe sem marcador → por categoria.
+
+  if (
+    marcador?.span !== undefined &&
+    marcador.span !== null &&
+    spansIntersectam(apontamento.alvo.span, marcador.span)
+  ) {
+    return true; // (a) o alvo do apontamento toca o marcador por span.
+  }
+
+  // (b) o trecho citado do apontamento menciona o marcador — coordenadas à
+  // parte, a menção literal do trecho do defeito também detecta.
+  const trechoCitado = [apontamento.alvo.token, apontamento.evidencia.prova].join('\n');
+  return trechoCitado.includes(textoDoMarcador);
 }
 
 /** A revisão inteira detecta o defeito quando algum apontamento detecta. */
-export function revisaoDetectaDefeito(revisao: RevisaoComSeveridade, mutante: Mutante): boolean {
-  return revisao.apontamentos.some((apontamento) => apontamentoDetectaDefeito(apontamento, mutante));
+export function revisaoDetectaDefeito(
+  revisao: RevisaoComSeveridade,
+  mutante: Mutante,
+  marcador?: MarcadorLocalizado,
+): boolean {
+  return revisao.apontamentos.some((apontamento) => apontamentoDetectaDefeito(apontamento, mutante, marcador));
 }
 
 // ---------------------------------------------------------------------------
@@ -141,6 +202,43 @@ export interface MedicaoDeFalsoPasse {
   porClasse: readonly MedicaoPorClasse[];
   /** achados que abrem rodada no artefato VÁLIDO (diagnóstico — NUNCA decisão). */
   achadosNoValido: number;
+}
+
+/** Os campos do desafio onde um marcador de mutação pode viver (por ordem). */
+const CAMPOS_DE_CODIGO: readonly (keyof Desafio)[] = [
+  'solutionCode',
+  'testsCode',
+  'statement',
+  'starterCode',
+];
+
+/**
+ * Localiza o marcador do mutante no artefato MUTADO — a régua do confronto
+ * (MEDIUM-1). Procura o marcador nos campos de código do desafio mutado
+ * (nesta ordem, a mesma em que os mutantes o injetam) e devolve o span em
+ * caracteres DO CAMPO onde foi encontrado; mutante sem marcador → `undefined`
+ * (detecção por categoria); marcador não encontrado em nenhum campo → span
+ * `null` (a detecção cai para a menção no trecho citado). Quem consumir o
+ * span PRECISA estar no mesmo espaço de coordenadas (revisores fake de teste
+ * que apontam o marcador resolvem o span com a MESMA busca, campo a campo).
+ * O parâmetro aceita só `marcador` (tipagem estrutural) — os testes usam
+ * `{ marcador }` sem montar um `Mutante` inteiro.
+ */
+export function localizarMarcadorNoMutado(
+  mutante: Pick<Mutante, 'marcador'>,
+  mutado: DesafioParaMutacao,
+): MarcadorLocalizado | undefined {
+  const textoDoMarcador = (mutante.marcador ?? '').trim();
+  if (textoDoMarcador === '') return undefined;
+  for (const campo of CAMPOS_DE_CODIGO) {
+    const conteudo = mutado.desafio[campo];
+    if (typeof conteudo !== 'string') continue;
+    const indice = conteudo.indexOf(textoDoMarcador);
+    if (indice >= 0) {
+      return { texto: textoDoMarcador, span: [indice, indice + textoDoMarcador.length] };
+    }
+  }
+  return { texto: textoDoMarcador, span: null };
 }
 
 /** O revisor INJETÁVEL: o pipeline P-12 completo (LLM por dentro), por artefato. */
@@ -231,7 +329,8 @@ export async function medirTaxaDeFalsoPasse(
     for (const mutante of daClasse) {
       const mutado = rodaMutante(mutante, artefatos.valido);
       const revisao = await julgarComSeguranca(deps, mutado, `mutante ${mutante.id}`);
-      if (!revisaoDetectaDefeito(revisao, mutante)) falsosPasses += 1;
+      const marcador = localizarMarcadorNoMutado(mutante, mutado);
+      if (!revisaoDetectaDefeito(revisao, mutante, marcador)) falsosPasses += 1;
     }
     const totalMutantes = daClasse.length;
     const detectados = totalMutantes - falsosPasses;
