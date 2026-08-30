@@ -1161,8 +1161,13 @@ export class GeradorDeTrilha {
     const refs = this.refsComFiltroOnly(freeze);
     for (const ref of refs) {
       const { desafio } = await this.lerDraftsDaAula(ref); // lança DRAFTS_INVALIDOS
-      const permitidas = await this.permitidasDaAula(ref);
-      const orcamento = ofensasDeOrcamentoDoDesafio(desafio, permitidas);
+      const { uniao, produtivas } = await this.permitidasDaAula(ref);
+      // Nova assinatura do gate (§3.3): as três FAIXAS recebem a MESMA base
+      // disponível na fiação (a união — a autoria F8 já validou cada superfície
+      // contra a faixa PRÓPRIA do dossiê; aqui a verificação estrutural usa a
+      // base do F2) e o terceiro argumento carrega as produtivas (A6 não entra
+      // no veredito desta fase — quem decide é o prover/provas).
+      const orcamento = ofensasDeOrcamentoDoDesafio(desafio, { receptivo: uniao, produtivo: uniao, teste: uniao }, produtivas);
       if (orcamento.falhaDeParse !== null) {
         throw new ErroGeracao('DRAFTS_INVALIDOS', `desafio ${ref} não parseia (${orcamento.falhaDeParse.campo}): ${orcamento.falhaDeParse.mensagem}`);
       }
@@ -1207,15 +1212,22 @@ export class GeradorDeTrilha {
     return this.comandos.only ? refs.filter((r) => this.matchesOnly(r)) : refs;
   }
 
-  /** A união de permitidos de UMA aula — a MESMA base da autoria (dossiê). */
-  private async permitidasDaAula(ref: string): Promise<ReadonlySet<string>> {
+  /**
+   * A base de construções permitidas de UMA aula — a MESMA base da autoria:
+   * a UNIÃO (harness receptivo + introduces receptive/productive). Também
+   * devolve as PRODUTIVAS introduzidas (para o argumento A6 do gate §3.3 do
+   * desafio — a fiação F9/F11 decide por veredito/provas, não pelo A6).
+   */
+  private async permitidasDaAula(ref: string): Promise<{ uniao: ReadonlySet<string>; produtivas: ReadonlySet<string> }> {
     const nos = await this.lerArtefato<NoAtomico[]>(ARTEFATO_NOS);
     const no = nos.find((n) => `m1/${n.chave_conceito}` === ref);
-    const conjunto = new Set<string>(atomosDeHarnessReceptivo());
+    const uniao = new Set<string>(atomosDeHarnessReceptivo());
+    const produtivas = new Set<string>();
     if (no) {
-      for (const item of [...(no.introduces.receptive ?? []), ...(no.introduces.productive ?? [])]) conjunto.add(item);
+      for (const item of [...(no.introduces.receptive ?? []), ...(no.introduces.productive ?? [])]) uniao.add(item);
+      for (const item of no.introduces.productive ?? []) produtivas.add(item);
     }
-    return conjunto;
+    return { uniao, produtivas };
   }
 
   /** Roda as provas + orçamento sobre os drafts (F9/F11 compartilham). */
@@ -1227,8 +1239,10 @@ export class GeradorDeTrilha {
     for (const ref of refs) {
       const { desafio } = await this.lerDraftsDaAula(ref);
       const veredito = await this.deps.prover(montarInputDasProvas(desafio));
-      const permitidas = await this.permitidasDaAula(ref);
-      const orcamento = ofensasDeOrcamentoDoDesafio(desafio, permitidas);
+      const { uniao, produtivas } = await this.permitidasDaAula(ref);
+      // Nova assinatura do gate (§3.3) — as três faixas com a MESMA base da
+      // fiação (união) e as produtivas no argumento A6 (não entra no veredito).
+      const orcamento = ofensasDeOrcamentoDoDesafio(desafio, { receptivo: uniao, produtivo: uniao, teste: uniao }, produtivas);
       const falhaParse = orcamento.falhaDeParse !== null ? `${orcamento.falhaDeParse.campo}: ${orcamento.falhaDeParse.mensagem}` : null;
       const ofensas = orcamento.ofensas.map((o) => o.construcao);
       const ok =

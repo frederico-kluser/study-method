@@ -47,8 +47,8 @@ import type { Concept, ConceptGraph, ConceptId } from '../electron/main/engine/g
 import { conceptId } from '../electron/main/engine/graph/model';
 import { extractAtoms } from '../electron/main/engine/extract';
 import { deriveBudgetDoGrafo, type BudgetF4 } from '../electron/main/engine/phases/f4Budget';
-import type { DossieDeAula } from '../electron/main/engine/phases/f7Theory';
-import type { ProverDeDesafio } from '../electron/main/engine/phases/f8Challenges';
+import type { DossieDeAula, TeoriaEscrita } from '../electron/main/engine/phases/f7Theory';
+import type { ProverDeDesafio, SaidaDesafio } from '../electron/main/engine/phases/f8Challenges';
 import {
   APROVACAO_F6_FILENAME,
   APROVACAO_F6_FRASE,
@@ -844,6 +844,50 @@ describe('F6 — experimento 10 paralelas × 10 sequenciais (trilha de brinquedo
     ]);
     assert.equal(pares.total, 1);
     assert.equal(pares.pares[0].jaccard, 1);
+  });
+
+  it('auditoria de brinquedo respeita as FAIXAS do desafio (§3.3): construção só-produtiva no testsCode vira violação', () => {
+    // A faixa de TESTE do dossiê está VAZIA: o testsCode usa átomos (imports,
+    // chamadas) que NÃO estão na faixa de teste — a auditoria POR FAIXA flagra
+    // (A2-A3). A auditoria pela UNIÃO (pré-fix-P-17) deixaria passar, porque
+    // esses átomos estão no budget_produtivo. A solução continua exercitando a
+    // construção nova (A6 limpo) e a teoria permanece na faixa receptiva (A4
+    // limpo) — só a superfície errada viola.
+    const dossie = montarDossie(
+      dossieBase({
+        budget_teste: [], // orçamento de ENTRADA vazio — nada é permitido no teste
+      }),
+    );
+    const auditoria = auditarTrilhaDeBrinquedo([
+      {
+        aula: 'm1/a1',
+        dossie,
+        draftAula: draftAula() as unknown as TeoriaEscrita,
+        desafio: draftDesafio() as unknown as SaidaDesafio,
+      },
+    ]);
+    const regras = auditoria.violacoes.map((v) => v.regra);
+    assert.ok(
+      regras.includes('A2-A3'),
+      `testsCode fora da faixa de teste precisa violar (regras: ${regras.join(', ') || '(nenhuma)'})`,
+    );
+    assert.ok(
+      !regras.includes('A6') && !regras.includes('A4'),
+      `só a superfície do teste viola: a solução exercita a construção nova e a teoria fica na faixa receptiva (regras: ${regras.join(', ')})`,
+    );
+
+    // CONTROLE: com a faixa de teste CORRETA (os átomos do próprio testsCode),
+    // a MESMA auditoria fica limpa — cada superfície é julgada pela faixa
+    // PRÓPRIA dela, não pela união.
+    const limpa = auditarTrilhaDeBrinquedo([
+      {
+        aula: 'm1/a1',
+        dossie: dossieDe('m1/a1'),
+        draftAula: draftAula() as unknown as TeoriaEscrita,
+        desafio: draftDesafio() as unknown as SaidaDesafio,
+      },
+    ]);
+    assert.deepEqual(limpa, { aulasAuditadas: 1, violacoes: [] });
   });
 });
 

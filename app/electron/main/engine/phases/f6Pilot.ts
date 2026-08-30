@@ -134,7 +134,7 @@ import {
   type ResultadoOndaDeAutoria,
   type TeoriaEscrita,
 } from './f7Theory';
-import { ofensasDeOrcamentoDoDesafio, type SaidaDesafio } from './f8Challenges';
+import { ofensasDeOrcamentoDoDesafio, type FaixasDeOrcamentoDoDesafio, type SaidaDesafio } from './f8Challenges';
 
 // ---------------------------------------------------------------------------
 // Nomes de artefato e constantes do contrato (declarados — ver cabeçalho)
@@ -989,17 +989,20 @@ export interface AuditoriaDeTrilhaDeBrinquedo {
  * DIREÇÃO PUXADA: o desafio precisa exercitar alguma construção NOVA da aula
  * (`introduces_productive`) — a dimensão que a autoria NÃO valida e que esta
  * auditoria pega de forma independente (mesma regra do `audit.ts` A6).
+ *
+ * ORÇAMENTO POR FAIXAS (§3.3, assinatura pós-fix-P-17): CADA superfície é
+ * auditada contra a faixa PRÓPRIA do dossiê — a teoria contra a RECEPTIVA
+ * (A4: o aluno LÊ a teoria), o `testsCode` contra a de TESTE (A3: o aluno lê
+ * o teste ANTES da aula), o `starterCode` contra a RECEPTIVA (A1) e o
+ * `solutionCode` contra a PRODUTIVA (A2) — nunca a união das três listas (a
+ * união deixaria passar, por exemplo, um teste com construção só-produtiva).
  */
 export function auditarTrilhaDeBrinquedo(drafts: readonly DraftDeBrinquedo[]): AuditoriaDeTrilhaDeBrinquedo {
   const violacoes: ViolacaoDeAuditoria[] = [];
   for (const draft of drafts) {
-    const permitidas = new Set<string>([
-      ...draft.dossie.budget_receptivo,
-      ...draft.dossie.budget_produtivo,
-      ...draft.dossie.budget_teste,
-    ]);
-    // A4 — a teoria também está sujeita ao orçamento de saída.
-    const teoria = ofensasDeOrcamentoDaTeoria(draft.draftAula, permitidas);
+    // A4 — a teoria é LIDA pelo aluno (§3.3): só a faixa RECEPTIVA se aplica
+    // (mesma regra de `validarDraftDeAula` da F7 — A4).
+    const teoria = ofensasDeOrcamentoDaTeoria(draft.draftAula, new Set(draft.dossie.budget_receptivo));
     if (teoria.falhaDeParse !== null) {
       violacoes.push({
         aula: draft.aula,
@@ -1014,8 +1017,21 @@ export function auditarTrilhaDeBrinquedo(drafts: readonly DraftDeBrinquedo[]): A
         mensagem: `a teoria usa construção fora do orçamento: ${ofensa.construcao} — trecho "${ofensa.snippet}"`,
       });
     }
-    // A2/A3 — as superfícies do desafio (solução/starter/testes).
-    const desafio = ofensasDeOrcamentoDoDesafio(draft.desafio, permitidas);
+    // A2/A3 — §3.3: CADA superfície do desafio contra a faixa PRÓPRIA dela
+    // (solutionCode ⊆ produtivo, starterCode ⊆ receptivo, testsCode ⊆ teste) —
+    // nunca a união. O terceiro argumento carrega as `introduces_productive`
+    // (A6 — a direção puxada é auditada ADIANTE por conta própria, com parse
+    // próprio; aqui o gate devolve o veredito, que ignoramos).
+    const faixas: FaixasDeOrcamentoDoDesafio = {
+      receptivo: new Set(draft.dossie.budget_receptivo),
+      produtivo: new Set(draft.dossie.budget_produtivo),
+      teste: new Set(draft.dossie.budget_teste),
+    };
+    const desafio = ofensasDeOrcamentoDoDesafio(
+      draft.desafio,
+      faixas,
+      new Set(draft.dossie.introduces_productive),
+    );
     if (desafio.falhaDeParse !== null) {
       violacoes.push({
         aula: draft.aula,
