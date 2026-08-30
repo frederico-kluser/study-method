@@ -242,7 +242,42 @@ describe('dag — toposort (Kahn com desempate)', () => {
     if (r.ok) return;
     assert.equal(r.falha, 'ciclo');
     if (r.falha !== 'ciclo') return;
+    // convenção fechada: o nó se repete no fim ([a, a]) — 1 aresta real.
     assert.deepEqual(r.ciclo, ['a', 'a']);
+  });
+
+  it('contra-exemplo adversarial: menor id da sobra FORA do ciclo não vira falso ciclo', () => {
+    // c↔d é o ciclo real; d→a→b é cauda alcançada a partir do ciclo. 'a' é o
+    // MENOR id da sobra e NÃO alcança o ciclo — a detecção antiga devolvia o
+    // fallback [inicio] = ['a']: nem fechado, nem com nó do ciclo real.
+    const grafo: ConceptGraph = {
+      conceitos: [
+        conc('a', { desbloqueadoPor: [conceptId('d')] }),
+        conc('b', { desbloqueadoPor: [conceptId('a')] }),
+        conc('c', { desbloqueadoPor: [conceptId('d')] }),
+        conc('d', { desbloqueadoPor: [conceptId('c')] }),
+      ],
+    };
+    const r = toposort(grafo);
+    assert.ok(!r.ok);
+    if (r.ok) return;
+    assert.equal(r.falha, 'ciclo');
+    if (r.falha !== 'ciclo') return;
+    // o relato é um ciclo REAL: fechado (primeiro === último), com ≥3 nós
+    // (n-1 arestas reais) e contém nó do ciclo c↔d — nunca ['a'] solto.
+    assert.ok(r.ciclo.length >= 3, `ciclo com pelo menos 3 nós — veio ${JSON.stringify(r.ciclo)}`);
+    assert.equal(r.ciclo[0], r.ciclo[r.ciclo.length - 1]);
+    assert.ok(
+      r.ciclo.includes(conceptId('c')) || r.ciclo.includes(conceptId('d')),
+      `ciclo contém c ou d — veio ${JSON.stringify(r.ciclo)}`,
+    );
+    // determinístico, como o resto do módulo.
+    const r2 = toposort(grafo);
+    assert.ok(!r2.ok);
+    if (r2.ok) return;
+    assert.equal(r2.falha, 'ciclo');
+    if (r2.falha !== 'ciclo') return;
+    assert.deepEqual(r2.ciclo, r.ciclo);
   });
 
   it('referência a conceito inexistente é FALHA (fail-closed), não silêncio', () => {
@@ -354,6 +389,23 @@ describe('invariantes — checkInvariants', () => {
       const i1 = de('I1', checkInvariants(grafo, { aulas: [] }));
       assert.equal(i1.length, 1);
       assert.deepEqual(i1[0].refs, ['x', 'y', 'z', 'x']);
+    });
+
+    it('I1 relata o caminho REAL do ciclo na mensagem (contra-exemplo adversarial)', () => {
+      const grafo: ConceptGraph = {
+        conceitos: [
+          conc('a', { desbloqueadoPor: [conceptId('d')] }),
+          conc('b', { desbloqueadoPor: [conceptId('a')] }),
+          conc('c', { desbloqueadoPor: [conceptId('d')] }),
+          conc('d', { desbloqueadoPor: [conceptId('c')] }),
+        ],
+      };
+      const i1 = de('I1', checkInvariants(grafo, { aulas: [] }));
+      assert.equal(i1.length, 1);
+      // a mensagem descreve o ciclo REAL c → d → c com 2 arestas fechando —
+      // nunca um falso ['a'] com "0 arestas fechando o ciclo" (o relato mente).
+      assert.match(i1[0].mensagem, /ciclo c → d → c \(2 arestas fechando o ciclo\)/);
+      assert.deepEqual(i1[0].refs, ['c', 'd', 'c']);
     });
 
     it('desbloqueado_por apontando para conceito inexistente é violação', () => {

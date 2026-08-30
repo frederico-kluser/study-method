@@ -63,7 +63,13 @@ export interface ToposortOk {
 export interface ToposortFalhaCiclo {
   ok: false;
   falha: 'ciclo';
-  /** o caminho do ciclo fechado: ordem[0] → ordem[1] → … → ordem[n-1] → ordem[0]. */
+  /**
+   * o caminho do ciclo FECHADO: ordem[0] → ordem[1] → … → ordem[n-1] → ordem[0]
+   * (o primeiro nó se repete no fim — é a aresta que fecha o ciclo; o caminho
+   * tem `ordem.length - 1` arestas, TODAS reais). NUNCA um nó solto: o relato
+   * só sai quando há um ciclo de verdade. Convenção para auto-dependência
+   * (a→a): ['a', 'a'] — o mesmo nó se repetindo fecha a aresta única.
+   */
   ciclo: ConceptId[];
   criterio: CriterioOrdenacao;
 }
@@ -218,31 +224,56 @@ function sobra(ordenados: ConceptId[], indegree: Map<ConceptId, number>): Concep
 }
 
 /**
- * Caminho do ciclo a partir de um nó da sobra. Determinístico: começa pelo
- * menor id e visita vizinhos em ordem lexicográfica, então o caminho é sempre
- * o mesmo para a mesma entrada.
+ * Caminho do ciclo REAL a partir da sobra do Kahn (nós que ele não conseguiu
+ * ordenar — só existem no caso ciclo).
+ *
+ * A sobra SEMPRE contém ≥ 1 ciclo: todo nó dela tem indegree ≥ 1 DENTRO dela
+ * (senão o Kahn o teria processado) e um digrafo finito onde todo nó tem
+ * predecessor contém um ciclo. Então a busca navega o subgrafo da sobra com DFS
+ * (detecção clássica de back-edge: vizinho já na pilha de recursão) e o
+ * primeiro ciclo encontrado é um ciclo VERDADEIRO e fechado — composto só de
+ * nós em ciclo, pois um nó no caminho fechado v→…→v está, por construção, em
+ * ciclo. NUNCA cai em fallback de nó solto como se fosse ciclo.
+ *
+ * Determinístico: raízes e vizinhos visitados em ordem lexicográfica — o
+ * mesmo caminho para a mesma entrada, como no resto do módulo.
  */
 function caminhoDoCiclo(saida: Map<ConceptId, ConceptId[]>, sobra: ConceptId[]): ConceptId[] {
-  const inicio = [...sobra].sort()[0] as ConceptId;
+  const nos = new Set(sobra);
+  const naPilha = new Set<ConceptId>();
+  const concluido = new Set<ConceptId>();
   const pilha: ConceptId[] = [];
-  const visitado = new Set<ConceptId>();
 
   const busca = (no: ConceptId): ConceptId[] | null => {
-    const naPilha = pilha.indexOf(no);
-    if (naPilha >= 0) return [...pilha.slice(naPilha), no];
-    if (visitado.has(no)) return null;
+    // back-edge: `no` já está na pilha de recursão → fechou um ciclo real.
+    if (naPilha.has(no)) {
+      const inicio = pilha.indexOf(no);
+      return [...pilha.slice(inicio), no];
+    }
+    if (concluido.has(no)) return null;
+    naPilha.add(no);
     pilha.push(no);
-    visitado.add(no);
-    const vizinhos = [...(saida.get(no) ?? [])].sort();
+    // só arestas dentro da sobra (por construção já são — defesa visível) e
+    // sem duplicatas, em ordem lexicográfica para determinismo.
+    const vizinhos = [...new Set((saida.get(no) ?? []).filter((v) => nos.has(v)))].sort();
     for (const vizinho of vizinhos) {
       const ciclo = busca(vizinho);
       if (ciclo) return ciclo;
     }
     pilha.pop();
+    naPilha.delete(no);
+    concluido.add(no);
     return null;
   };
 
-  return busca(inicio) ?? [inicio];
+  for (const no of [...sobra].sort()) {
+    const ciclo = busca(no);
+    if (ciclo) return ciclo;
+  }
+
+  // Inalcançável por construção (a sobra não-vazia sempre tem ciclo; ver acima).
+  // Fail-closed: melhor lançar do que devolver um "ciclo" que não é ciclo.
+  throw new Error('impossível: sobra do Kahn sem ciclo');
 }
 
 /**
