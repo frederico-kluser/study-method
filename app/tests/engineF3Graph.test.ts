@@ -23,6 +23,15 @@
  *      VERBATIM; o EdgeVoteSchema passa no lint do P-04 (INV-04: evidência
  *      ANTES do voto; INV-05: todos obrigatórios); o contrato de resposta é
  *      sim/não/não-sei com parse FAIL-CLOSED (eco do par, strict).
+ *   7. (FIX pós-revisão BLOCK) A poda é RECOMPUTADA sobre o GRAFO CONFIRMADO
+ *      APÓS o julgamento (reconciliação d2): podada cujo caminho alternativo
+ *      SOBREVIVEU fica redundante com justificativa (juiz NÃO chamado para
+ *      ela); podada cujo caminho QUEBROU (alguma aresta do caminho rejeitada)
+ *      RETORNA ao julgamento — voto decide, e sem voto `sim` NÃO há aresta
+ *      (nunca aresta dura sem voto, nunca justificativa falsa, §3.4). G-COVER
+ *      (raio ≥ 2): a rede de segurança só age quando o caminho implicante
+ *      QUEBRA — par longo com caminho vivo fica redundante (sem chamada extra)
+ *      e par longo com caminho quebrado ENTRA no juiz.
  *
  * JUZ FAKE E OFFLINE: nenhum teste toca rede/LLM/disco — o `JuizDeAresta` é
  * injetado (o caminho de produção `criarJuizDeArestaLlm` só tipa o callLlm,
@@ -409,5 +418,152 @@ describe('F3 · prompts/edgeJudge — a pergunta canônica e o contrato de saíd
     assert.throws(() => parseRespostaDeJuiz('{"de":"a","para":"b","veredito":"sim"}'), /evidencia/);
     // não-JSON → rejeitado.
     assert.throws(() => parseRespostaDeJuiz('prosa solta'), /JSON/);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// 7 · RECONCILIAÇÃO pós-julgamento — a poda é RECOMPUTADA sobre o grafo
+//     CONFIRMADO (arestas votadas sim), nunca sobre o draft (FIX do §3.4)
+//     + G-COVER (raio ≥ 2): a rede de segurança só age quando o caminho
+//     implicante QUEBRA
+// ---------------------------------------------------------------------------
+
+describe('F3 · reconciliação — podada só fica redundante se o caminho implicante SOBREVIVEU', () => {
+  const tresNos = (): NoAtomico[] => [no('a', 'sintaxe'), no('b', 'sintaxe'), no('c', 'sintaxe')];
+
+  it('7a · contra-exemplo: a→b sim, b→c nao, a→c podada no draft → RE-JULGADA; voto nao → SEM aresta', async () => {
+    const votos = new Map<string, VotoAresta[]>([
+      ['a→b', ['sim']],
+      ['b→c', ['nao']],
+      ['a→c', ['nao']],
+    ]);
+    const { juiz, chamadas } = juizPorPar(votos);
+    const resultado = await rodarF3({
+      nos: tresNos(),
+      candidatos: [par('a', 'b'), par('b', 'c'), par('a', 'c')], // a→c podada no draft (a→b→c)
+      juiz,
+    });
+
+    // A poda do draft evitou 1 pergunta, MAS o caminho a→b→c QUEBROU em b→c.
+    assert.equal(resultado.candidatos.evitadas, 1);
+    assert.equal(resultado.rejulgadas, 1, 'a→c voltou ao julgamento (caminho implicante quebrou)');
+    assert.equal(chamadas.length, 3, 'juiz chamado para a→b, b→c e a→c (a→c entrou na 2ª rodada)');
+    assert.deepEqual(
+      resultado.julgamentos.map((j) => `${j.de}→${j.para}`).sort(),
+      ['a→b', 'a→c', 'b→c'],
+    );
+
+    const b = resultado.grafo.conceitos.find((c) => c.id === conceptId('b')) as NonNullable<typeof resultado.grafo.conceitos[number]>;
+    const c = resultado.grafo.conceitos.find((cc) => cc.id === conceptId('c')) as NonNullable<typeof resultado.grafo.conceitos[number]>;
+    assert.deepEqual(b.desbloqueadoPor, [conceptId('a')], 'a→b confirmada');
+    assert.deepEqual(c.desbloqueadoPor, [], 'voto nao em b→c e em a→c → c sem pré-requisito (SEM aresta dura sem voto)');
+
+    // NENHUMA aresta a→c no grafo armazenado; NENHUMA justificativa falsa
+    // citando o caminho a → b → c (que não existe mais no grafo final).
+    assert.ok(
+      !resultado.justificativas.some((j) => j.de === conceptId('a') && j.para === conceptId('c')),
+      'a→c NÃO está no grafo armazenado',
+    );
+    assert.equal(resultado.justificativas.length, 1, 'só a→b, confirmada pelo juiz');
+  });
+
+  it('7a2 · contra-exemplo com voto sim na re-julgada → aresta DURA VOTADA (justificativa de voto, não de poda)', async () => {
+    const votos = new Map<string, VotoAresta[]>([
+      ['a→b', ['sim']],
+      ['b→c', ['nao']],
+      ['a→c', ['sim']],
+    ]);
+    const { juiz } = juizPorPar(votos);
+    const resultado = await rodarF3({
+      nos: tresNos(),
+      candidatos: [par('a', 'b'), par('b', 'c'), par('a', 'c')],
+      juiz,
+    });
+
+    const c = resultado.grafo.conceitos.find((cc) => cc.id === conceptId('c')) as NonNullable<typeof resultado.grafo.conceitos[number]>;
+    assert.deepEqual(c.desbloqueadoPor, [conceptId('a')], 'a→c confirmada NA RE-JULGADA');
+    const just = resultado.justificativas.find((j) => j.de === conceptId('a') && j.para === conceptId('c'));
+    assert.ok(just, 'a→c tem justificativa');
+    assert.equal(just?.redundantePorFechoTransitivo, false, 're-julgada é VOTADA — nunca classificada como poda');
+    assert.match(just?.justificativa ?? '', /confirmada pelo juiz/);
+  });
+
+  it('7b · caminho SOBREVIVENTE: a→c permanece redundante COM justificativa e o juiz NÃO foi chamado para ela', async () => {
+    const votos = new Map<string, VotoAresta[]>([
+      ['a→b', ['sim']],
+      ['b→c', ['sim']],
+    ]);
+    const { juiz, chamadas } = juizPorPar(votos);
+    const resultado = await rodarF3({
+      nos: tresNos(),
+      candidatos: [par('a', 'b'), par('b', 'c'), par('a', 'c')],
+      juiz,
+    });
+
+    assert.equal(resultado.rejulgadas, 0, 'nada re-julgado: o caminho a→b→c sobreviveu no grafo confirmado');
+    assert.equal(chamadas.length, 2, 'juiz chamado APENAS para a→b e b→c');
+    assert.ok(
+      !chamadas.some((r) => r.de.id === 'a' && r.para.id === 'c'),
+      'o juiz NÃO foi chamado para a→c — o grafo confirmado já a implica',
+    );
+
+    const just = resultado.justificativas.find((j) => j.de === conceptId('a') && j.para === conceptId('c')) as NonNullable<typeof resultado.justificativas[number]>;
+    assert.equal(just.redundantePorFechoTransitivo, true);
+    assert.deepEqual(just.caminhoAlternativo, [conceptId('a'), conceptId('b'), conceptId('c')], 'prova recomputada no grafo confirmado');
+    assert.match(just.justificativa, /visão|renderiza|fecho transitivo/);
+  });
+
+  it('7c · G-COVER raio=2 com elos TODOS sim: par longo fica REDUNDANTE, sem chamadas extras', async () => {
+    const votos = new Map<string, VotoAresta[]>([
+      ['a→b', ['sim']],
+      ['b→c', ['sim']],
+    ]);
+    const { juiz, chamadas } = juizPorPar(votos);
+    const resultado = await rodarF3({
+      nos: tresNos(),
+      candidatos: [par('a', 'b'), par('b', 'c')], // raio 2 EXPANDE a candidatura para a→c
+      raio: 2,
+      juiz,
+    });
+
+    assert.deepEqual(resultado.candidatos.todos, [par('a', 'b'), par('a', 'c'), par('b', 'c')]);
+    assert.equal(resultado.candidatos.evitadas, 1);
+    assert.equal(resultado.rejulgadas, 0, 'nada re-julgado: a rede de segurança NÃO infla o trabalho no caso feliz');
+    assert.equal(chamadas.length, 2, 'a→c (raio ≥ 2) NÃO entra no juiz: o grafo já o implica');
+    assert.deepEqual(
+      resultado.julgamentos.map((j) => `${j.de}→${j.para}`).sort(),
+      ['a→b', 'b→c'],
+    );
+
+    const just = resultado.justificativas.find((j) => j.de === conceptId('a') && j.para === conceptId('c')) as NonNullable<typeof resultado.justificativas[number]>;
+    assert.equal(just.redundantePorFechoTransitivo, true, 'par longo vira redundante (visão de renderização)');
+    assert.deepEqual(just.caminhoAlternativo, [conceptId('a'), conceptId('b'), conceptId('c')]);
+  });
+
+  it('7d · G-COVER raio=2 com elo QUEBRADO: o par longo ENTRA no juiz (a rede de segurança age)', async () => {
+    const votos = new Map<string, VotoAresta[]>([
+      ['a→b', ['sim']],
+      ['b→c', ['nao']],
+      ['a→c', ['sim']],
+    ]);
+    const { juiz, chamadas } = juizPorPar(votos);
+    const resultado = await rodarF3({
+      nos: tresNos(),
+      candidatos: [par('a', 'b'), par('b', 'c')],
+      raio: 2,
+      juiz,
+    });
+
+    assert.equal(resultado.rejulgadas, 1, 'a→c (raio ≥ 2) re-julgada: o caminho a→b→c quebrou em b→c');
+    assert.equal(chamadas.length, 3, 'juiz chamado para a→b, b→c e o par longo a→c');
+    assert.ok(
+      chamadas.some((r) => r.de.id === 'a' && r.para.id === 'c'),
+      'a rede de segurança SÓ age quando o caminho implicante QUEBRA — exatamente quando o juiz poderia votar diferente',
+    );
+
+    const c = resultado.grafo.conceitos.find((cc) => cc.id === conceptId('c')) as NonNullable<typeof resultado.grafo.conceitos[number]>;
+    assert.deepEqual(c.desbloqueadoPor, [conceptId('a')], 'a→c confirmada pelo voto do juiz');
+    const just = resultado.justificativas.find((j) => j.de === conceptId('a') && j.para === conceptId('c'));
+    assert.equal(just?.redundantePorFechoTransitivo, false, 'par longo com caminho quebrado é VOTADO, nunca podado');
   });
 });

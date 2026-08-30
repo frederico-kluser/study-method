@@ -36,9 +36,10 @@
  *      saltos no próprio draft; default 1 = o draft como veio), deduplicados e
  *      validados (G-TYPE: endpoints existem no grafo; auto-aresta rejeitada);
  *      PODA por fecho transitivo (dag.ts::fechoTransitivoRedundante, do P-08)
- *      ANTES do despacho — reporta `evitadas` (quantas perguntas o julgamento
+ *      ANTES do despacho — reporta `evitadas` (quantas perguntas a 1ª rodada
  *      deixou de fazer). A poda é visão de renderização: as arestas podadas
- *      NÃO são julgadas e FICAM no grafo armazenado com justificativa.
+ *      NÃO são julgadas e FICAM no grafo armazenado com justificativa — desde
+ *      que o caminho implicante SOBREVIVA ao julgamento (reconciliação em d2).
  *   c. JULGAMENTO — `julgarArestas`: fan-out com semáforo injetável (SEM_LLM).
  *      Cada pará = UMA chamada ao `JuizDeAresta` injetado (produção:
  *      `criarJuizDeArestaLlm` = callLlm + prompts/edgeJudge.ts; fakes nos
@@ -49,10 +50,23 @@
  *      configurado (`julgamentosPorPar > 1`): maioria ESTRITA com 'não sei'
  *      EXCLUÍDO; EMPATE → NENHUMA aresta; 'não sei' nunca conta como 'sim';
  *      precisão > cobertura.
+ *   d2. RECONCILIAÇÃO — `reconciliarRedundantes`: APÓS o julgamento e ANTES da
+ *      escrita, a poda é RECOMPUTADA sobre o GRAFO CONFIRMADO (arestas votadas
+ *      `sim` — nunca sobre o draft). Podada cujo caminho alternativo SOBREVIVEU
+ *      → fica redundante COM justificativa (caminho RECOMPUTADO no grafo
+ *      confirmado). Podada cujo caminho QUEBROU (alguma aresta do caminho
+ *      rejeitada) → RETORNA ao julgamento (nova rodada, mesmo semáforo;
+ *      precisão > cobertura). NUNCA grava aresta dura sem voto nem com
+ *      justificativa falsa (§3.4). G-COVER (raio ≥ 2): a rede de segurança só
+ *      age quando o caminho implicante QUEBRA — par longo com caminho vivo fica
+ *      redundante (o grafo já o implica) e par longo com caminho quebrado ENTRA
+ *      no juiz (exatamente quando ele poderia votar diferente).
  *   e. ESCRITA — `escreverGrafo`: arestas `desbloqueado_por` confirmadas;
  *      `usa[]` (Q-matrix) por mapeamento simples DOCUMENTADO (ver
  *      `derivarLinhaDaQMatrix`, premissa); arestas redundantes permanecem COM
- *      justificativa (visão de renderização).
+ *      justificativa (visão de renderização) — cada uma REVERIFICADA no limiar
+ *      da escrita contra o grafo confirmado (defesa: sem caminho implicante
+ *      vivo, a aresta é DESCARTADA — nunca gravada sem voto).
  *   f. VALIDAÇÃO — `validarGrafo`: checkInvariants (P-08, I1–I11) sobre o
  *      grafo + a VisaoDeEnsino montada via F4; ENTREGA a lista de violações
  *      (NÃO lança — a F3 reporta e o laço/planejador decide).
@@ -227,7 +241,11 @@ export interface CandidatosF3 {
    * declaradas são redundantes e cada uma tem justificativa própria).
    */
   redundantes: readonly ArestaRedundante[];
-  /** quantas perguntas de julgamento a poda evitou (= redundantes.length). */
+  /**
+   * quantas perguntas a PODA NO DRAFT evitou na 1ª rodada
+   * (= redundantes.length). Podadas cujo caminho implicante QUEBRAR voltam ao
+   * julgamento — o saldo final é `ResultadoF3.rejulgadas` (reconciliação, d2).
+   */
   evitadas: number;
   /** todos os candidatos após a restrição de distância curta (julgar ∪ redundantes). */
   todos: readonly ParCandidato[];
@@ -307,8 +325,11 @@ export function expandirDistanciaCurta(
  * transitivo do P-08 (dag.ts::fechoTransitivoRedundante) ANTES do despacho.
  * O fecho é calculado sobre o DRAFT (grafo temporário com os candidatos como
  * arestas — nada é mutado no grafo da montagem). Reporta `evitadas`: quantas
- * perguntas de julgamento a poda evitou. AS PODADAS continuam no grafo
- * armazenado (visão de renderização) — ver `escreverGrafo`.
+ * perguntas de julgamento a poda evitou NA 1ª RODADA. Esta poda é visão de
+ * renderização (não armazenamento) MAS é provisória: ela vale enquanto o
+ * caminho alternativo existir — a reconciliação (d2) re-julga a podada cujo
+ * caminho QUEBRAR no julgamento e só mantém como redundante a que tiver
+ * caminho vivo no grafo confirmado (ver `reconciliarRedundantes`).
  */
 export function montarCandidatos(
   montagem: MontagemF3,
@@ -465,6 +486,158 @@ export function decidirVoto(votos: readonly VotoAresta[]): 'sim' | 'nao' {
 }
 
 // ---------------------------------------------------------------------------
+// d2 · RECONCILIAÇÃO — a poda RECOMPUTADA sobre o GRAFO CONFIRMADO
+//      (o FIX do §3.4: nunca gravar aresta dura sem voto, nem com
+//      justificativa falsa — a poda no draft é provisória)
+// ---------------------------------------------------------------------------
+
+/**
+ * BFS determinístico no subgrafo CONFIRMADO (SÓ arestas votadas `sim`):
+ * caminho mais curto de `origem` a `destino` usando apenas arestas
+ * confirmadas, ou `null` se não houver. O caminho devolvido tem comprimento
+ * ≥ 2 arestas sempre que `destino` permanece alcançável SEM a aresta direta —
+ * essa é a PROVA da redundância (visão de renderização, §3.4).
+ */
+function caminhoMaisCurtoConfirmado(
+  confirmadas: ReadonlyMap<string, ParCandidato>,
+  montagem: MontagemF3,
+  origem: ConceptId,
+  destino: ConceptId,
+): ConceptId[] | null {
+  const saida = new Map<ConceptId, ConceptId[]>();
+  for (const id of montagem.porId.keys()) saida.set(id, []);
+  for (const par of confirmadas.values()) saida.get(par.de)?.push(par.para);
+  for (const lista of saida.values()) lista.sort(); // determinismo: ordem lexicográfica
+
+  const pai = new Map<ConceptId, ConceptId>();
+  const fila: ConceptId[] = [origem];
+  while (fila.length > 0) {
+    const atual = fila.shift() as ConceptId;
+    for (const vizinho of saida.get(atual) ?? []) {
+      if (vizinho === origem) continue;
+      if (pai.has(vizinho)) continue;
+      pai.set(vizinho, atual);
+      fila.push(vizinho);
+    }
+  }
+  if (!pai.has(destino)) return null;
+
+  const caminho: ConceptId[] = [];
+  let atual: ConceptId | undefined = destino;
+  while (atual !== undefined && atual !== origem) {
+    caminho.push(atual);
+    atual = pai.get(atual);
+  }
+  if (atual !== origem) return null; // inalcançável por reconstrução — não deveria ocorrer
+  caminho.push(origem);
+  caminho.reverse();
+  return caminho;
+}
+
+function compararRedundantes(a: ArestaRedundante, b: ArestaRedundante): number {
+  return compararPares({ de: a.origem, para: a.destino }, { de: b.origem, para: b.destino });
+}
+
+/** O resultado da reconciliação — o que a ESCRITA recebe de verdade. */
+export interface ReconciliacaoRedundantes {
+  /** TODOS os julgamentos (rodada 1 + rodadas de re-julgamento), ordenados por (de, para). */
+  julgamentos: readonly JulgamentoDePar[];
+  /**
+   * PODADAS DO DRAFT que permanecem redundantes NO GRAFO CONFIRMADO — nunca
+   * julgadas; `caminho` é o RECOMPUTADO no grafo confirmado (a prova real, que
+   * pode diferir do caminho do draft se o quebrou e outro sobreviveu).
+   */
+  redundantesFinais: readonly ArestaRedundante[];
+  /** quantas podadas do draft voltaram ao julgamento porque o caminho implicante QUEBROU. */
+  rejulgadas: number;
+}
+
+/**
+ * RECONCILIAÇÃO (d2) — o FIX: a poda calculada sobre o DRAFT (b) é PROVISÓRIA.
+ *
+ * O julgamento vota `sim`/`nao`; o grafo CONFIRMADO (só votos `sim`) pode ter
+ * perdido o caminho alternativo que justificava uma poda. Este passo re-roda a
+ * poda sobre o grafo confirmado em rodadas até o ponto fixo:
+ *
+ *   1. para cada podada do draft ainda não resolvida, pergunta: há caminho
+ *      alternativo SÓ com arestas confirmadas?
+ *        - SIM → fica redundante com justificativa (o caminho recomputado —
+ *          a visão de renderização fica CORRETA, o caminho citado existe);
+ *        - NÃO (caminho quebrou) → RETORNA ao julgamento: é julgada como
+ *          qualquer outro par (precisão > cobertura, §3.4).
+ *   2. os `sim` da rodada enriquecem o grafo confirmado; itera até não sobrar
+ *      podada — uma aresta cujo caminho só se re-compõe via outra re-julgada
+ *      (ex.: a→d via a→b→d, com b→d re-julgada `sim`) deixa de gastar voto.
+ *
+ * Cada podada é julgada NO MÁXIMO uma vez (termina em ≤ |podadas| + 1 rodadas).
+ * NENHUMA aresta sai daqui como "redundante" sem caminho vivo no grafo final —
+ * a escrita (e) ainda re-verifica (defesa no limiar).
+ *
+ * G-COVER (raio ≥ 2, fix de cobertura): a exposição de pares longos SÓ vira
+ * trabalho útil quando o caminho implicante QUEBRA — que é exatamente quando o
+ * juiz poderia votar diferente. Par longo com caminho vivo fica redundante (o
+ * grafo já o implica; não precisa de voto) e par longo com caminho quebrado
+ * ENTRA no juiz. A rede de segurança NÃO infla o trabalho do juiz no caso
+ * feliz (todos os elos vencem) — e age exatamente no caso em que importa.
+ */
+export async function reconciliarRedundantes(
+  montagem: MontagemF3,
+  julgamentos: readonly JulgamentoDePar[],
+  redundantesDoDraft: readonly ArestaRedundante[],
+  deps: DepsJulgamento,
+  orcamentoPorPar: ReadonlyMap<string, FatiaOrcamento> | null,
+): Promise<ReconciliacaoRedundantes> {
+  const confirmadas = new Map<string, ParCandidato>();
+  for (const j of julgamentos) {
+    if (j.decisao === 'sim') confirmadas.set(chaveDePar({ de: j.de, para: j.para }), { de: j.de, para: j.para });
+  }
+
+  const pendentes = new Map<string, ArestaRedundante>();
+  for (const r of redundantesDoDraft) pendentes.set(chaveDePar({ de: r.origem, para: r.destino }), r);
+
+  const redundantesFinais: ArestaRedundante[] = [];
+  const todosJulgamentos: JulgamentoDePar[] = [...julgamentos];
+  let rejulgadas = 0;
+
+  while (pendentes.size > 0) {
+    const comCaminho: ArestaRedundante[] = [];
+    const semCaminho: ArestaRedundante[] = [];
+    for (const r of pendentes.values()) {
+      const caminho = caminhoMaisCurtoConfirmado(confirmadas, montagem, r.origem, r.destino);
+      // comprimento ≥ 3 nós = ≥ 2 arestas = caminho alternativo REAL (a aresta
+      // direta confirmada, se houver, não é prova de redundância).
+      if (caminho !== null && caminho.length >= 3) {
+        comCaminho.push({ origem: r.origem, destino: r.destino, caminho });
+      } else {
+        semCaminho.push(r);
+      }
+    }
+    for (const r of comCaminho) pendentes.delete(chaveDePar({ de: r.origem, para: r.destino }));
+    redundantesFinais.push(...comCaminho);
+    if (semCaminho.length === 0) break;
+
+    const julgamentosRodada = await julgarArestas(
+      semCaminho.map((r) => ({ de: r.origem, para: r.destino })),
+      montagem,
+      orcamentoPorPar,
+      deps,
+    );
+    todosJulgamentos.push(...julgamentosRodada);
+    rejulgadas += julgamentosRodada.length;
+    for (const j of julgamentosRodada) {
+      pendentes.delete(chaveDePar({ de: j.de, para: j.para }));
+      if (j.decisao === 'sim') {
+        confirmadas.set(chaveDePar({ de: j.de, para: j.para }), { de: j.de, para: j.para });
+      }
+    }
+  }
+
+  todosJulgamentos.sort((a, b) => compararPares(a, b));
+  redundantesFinais.sort(compararRedundantes);
+  return { julgamentos: todosJulgamentos, redundantesFinais, rejulgadas };
+}
+
+// ---------------------------------------------------------------------------
 // e · ESCRITA DO GRAFO — serial, com a Q-matrix e a visão de renderização
 // ---------------------------------------------------------------------------
 
@@ -511,11 +684,17 @@ export interface GrafoEscrito {
 
 /**
  * ESCRITA (e): constrói o grafo FINAL — `desbloqueado_por` = confirmadas
- * (voto sim) ∪ redundantes (podadas do julgamento, MANTIDAS — a poda por
- * fecho é visão de renderização, nunca armazenamento, §3.4); `usa[]` pela
- * premissa documentada em `derivarLinhaDaQMatrix`. `justificativas` guarda o
- * porquê de CADA aresta armazenada (caminho alternativo nas redundantes;
- * votos nas confirmadas). PURA — não toca o grafo da montagem.
+ * (voto sim) ∪ redundantes (podadas do julgamento cujo caminho alternativo
+ * SOBREVIVEU no grafo confirmado, MANTIDAS — a poda por fecho é visão de
+ * renderização, nunca armazenamento, §3.4); `usa[]` pela premissa documentada
+ * em `derivarLinhaDaQMatrix`. `justificativas` guarda o porquê de CADA aresta
+ * armazenada (caminho alternativo nas redundantes; votos nas confirmadas).
+ *
+ * DEFESA NO LIMIAR (o FIX do §3.4): cada redundante recebida é VERIFICADA
+ * contra o grafo CONFIRMADO (só votos `sim`) — sem caminho alternativo VIVO,
+ * a aresta é DESCARTADA (nunca gravada sem voto, nunca com justificativa
+ * falsa); o `caminho` gravado é o RECOMPUTADO no grafo confirmado (prova que
+ * existe no grafo final), não o do draft. PURA — não toca o grafo da montagem.
  */
 export function escreverGrafo(
   montagem: MontagemF3,
@@ -524,13 +703,27 @@ export function escreverGrafo(
 ): GrafoEscrito {
   const confirmadas = julgamentos.filter((j) => j.decisao === 'sim');
 
+  const confirmadasPorChave = new Map<string, ParCandidato>();
+  for (const j of confirmadas) {
+    confirmadasPorChave.set(chaveDePar({ de: j.de, para: j.para }), { de: j.de, para: j.para });
+  }
+
+  // DEFESA NO LIMIAR — recomputa a prova de redundância no grafo confirmado:
+  // comprimento ≥ 3 nós = ≥ 2 arestas = caminho alternativo REAL.
+  const redundantesVerificadas: ArestaRedundante[] = [];
+  for (const r of redundantes) {
+    const caminho = caminhoMaisCurtoConfirmado(confirmadasPorChave, montagem, r.origem, r.destino);
+    if (caminho === null || caminho.length < 3) continue;
+    redundantesVerificadas.push({ origem: r.origem, destino: r.destino, caminho });
+  }
+
   const porDestino = new Map<ConceptId, ConceptId[]>();
   for (const j of confirmadas) {
     const lista = porDestino.get(j.para) ?? [];
     lista.push(j.de);
     porDestino.set(j.para, lista);
   }
-  for (const r of redundantes) {
+  for (const r of redundantesVerificadas) {
     const lista = porDestino.get(r.destino) ?? [];
     if (!lista.includes(r.origem)) lista.push(r.origem);
     porDestino.set(r.destino, lista);
@@ -542,7 +735,7 @@ export function escreverGrafo(
   });
 
   const justMap = new Map<string, ArestaComJustificativa>();
-  for (const r of redundantes) {
+  for (const r of redundantesVerificadas) {
     justMap.set(chaveDePar({ de: r.origem, para: r.destino }), {
       de: r.origem,
       para: r.destino,
@@ -793,12 +986,18 @@ export interface EntradaF3 {
 export interface ResultadoF3 {
   montagem: MontagemF3;
   candidatos: CandidatosF3;
-  /** o julgamento de CADA par (votos + decisão) — determinístico. */
+  /** o julgamento de CADA par julgado — rodada 1 + podadas re-julgadas (d2) — determinístico. */
   julgamentos: readonly JulgamentoDePar[];
-  /** pares confirmados (voto sim) — viram `desbloqueado_por`. */
+  /** pares confirmados (voto sim — inclui podadas re-julgadas e aprovadas) — viram `desbloqueado_por`. */
   confirmadas: readonly ParCandidato[];
   /** pares rejeitados (voto nao — inclui empate e 'não sei') — NENHUMA aresta. */
   rejeitadas: readonly ParCandidato[];
+  /**
+   * podadas do draft que voltaram ao julgamento porque o caminho implicante
+   * QUEBROU (reconciliação d2). G-COVER: a rede de segurança (raio ≥ 2) só age
+   * aqui — par longo com caminho vivo fica redundante, sem gastar voto.
+   */
+  rejulgadas: number;
   /** o grafo ESCRITO (desbloqueado_por + usa + redundantes mantidas). */
   grafo: ConceptGraph;
   /** por que cada aresta armazenada está lá (visão de renderização). */
@@ -841,15 +1040,30 @@ export async function rodarF3(entrada: EntradaF3): Promise<ResultadoF3> {
     entryConstructs,
     seedsReceptivos,
   );
-  const julgamentos = await julgarArestas(candidatos.julgar, montagem, orcamentoPorPar, {
+  const depsJulgamento: DepsJulgamento = {
     juiz: entrada.juiz,
     semaforo: entrada.semaforo,
     julgamentosPorPar: entrada.julgamentosPorPar,
-  });
+  };
+  const julgamentos = await julgarArestas(candidatos.julgar, montagem, orcamentoPorPar, depsJulgamento);
 
-  const escrito = escreverGrafo(montagem, julgamentos, candidatos.redundantes);
-  const confirmadas = julgamentos.filter((j) => j.decisao === 'sim').map((j) => ({ de: j.de, para: j.para }));
-  const rejeitadas = julgamentos.filter((j) => j.decisao === 'nao').map((j) => ({ de: j.de, para: j.para }));
+  // d2 · RECONCILIAÇÃO: a poda do draft é RECOMPUTADA sobre o grafo confirmado.
+  // Podada com caminho vivo → redundante (nunca julgada); podada com caminho
+  // quebrado → RE-JULGADA (precisão > cobertura). O que isso evita: o fix do
+  // §3.4 — antes, uma aresta podada no draft cujo caminho alternativo foi
+  // REJEITADO pelo juiz era GRAVADA ASSIM MESMO, com justificativa citando um
+  // caminho que não existe mais no grafo final (aresta dura sem voto).
+  const reconciliacao = await reconciliarRedundantes(
+    montagem,
+    julgamentos,
+    candidatos.redundantes,
+    depsJulgamento,
+    orcamentoPorPar,
+  );
+
+  const escrito = escreverGrafo(montagem, reconciliacao.julgamentos, reconciliacao.redundantesFinais);
+  const confirmadas = reconciliacao.julgamentos.filter((j) => j.decisao === 'sim').map((j) => ({ de: j.de, para: j.para }));
+  const rejeitadas = reconciliacao.julgamentos.filter((j) => j.decisao === 'nao').map((j) => ({ de: j.de, para: j.para }));
   const ordem = toposort(escrito.grafo);
 
   let budget: BudgetF4 | null = null;
@@ -877,9 +1091,10 @@ export async function rodarF3(entrada: EntradaF3): Promise<ResultadoF3> {
   return {
     montagem,
     candidatos,
-    julgamentos,
+    julgamentos: reconciliacao.julgamentos,
     confirmadas,
     rejeitadas,
+    rejulgadas: reconciliacao.rejulgadas,
     grafo: escrito.grafo,
     justificativas: escrito.justificativas,
     roles: montagem.roles,
