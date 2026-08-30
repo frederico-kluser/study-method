@@ -1,5 +1,7 @@
 /**
- * app/electron/main/engine/vocab/generate.ts — o GERADOR do vocabulário fechado
+ * app/electron/main/engine/vocab/generate.ts — o GERADOR do vocabulário de
+ * construções — fechado nos EIXOS DE EMISSÃO, dicionário de ensino no eixo
+ * `api:` (ver "RELAÇÃO PRECISA COM O EXTRATOR" abaixo).
  * (pacote P-05, `docs/16-engine-de-trilha.md` §3.1 e §5.3).
  *
  * PROBLEMA QUE ESTE PACOTE RESOLVE: `vocab/atoms.json` e
@@ -43,6 +45,29 @@
  *      `DECLARATION_KINDS` de `atomKeys.ts`.
  *   Os eixos `term:` (prosa pt-BR, por trilha) e `form:` (seletor esquery,
  *      reservado) NÃO têm fonte de máquina — não são gerados aqui.
+ *
+ * RELAÇÃO PRECISA COM O EXTRATOR (`extract.ts`) — o que este artefato garante
+ * e o que ele NÃO garante:
+ *   - Eixos FECHADOS (`node:`/`op:`/`decl:`/`global:`) — o vocabulário É o
+ *     universo do que o extrator emite: `node:` sai da MESMA tabela canônica
+ *     de SyntaxKind (`extract.kindName`, reusada aqui), `op:`/`decl:`/`global:`
+ *     das mesmas superfícies de token/flag/globalThis. Uma emissão fora do
+ *     vocabulário nesses eixos é BUG DE COBERTURA — o teste
+ *     `tests/engineVocab.test.ts` ("cobertura das emissões sobre a trilha
+ *     real") a caça, admitindo só as exceções DECLARADAS: as chaves SINTÉTICAS
+ *     que o extrator monta à mão (`node:ComputedNonLiteralAccess` para
+ *     `obj[expr]` com chave calculada) não são SyntaxKind, o gerador nunca
+ *     pode produzi-las, e por isso vivem em `FORBIDDEN_ALWAYS` (`atomKeys.ts`)
+ *     — nunca neste JSON.
+ *   - Eixo `api:` — FECHADO NESTE ARTEFATO (o "dicionário de ensino":
+ *     módulos built-in + caminhos do catálogo), mas ABERTO NO VALIDADOR: o
+ *     extrator emite `api:` para QUALQUER cadeia de raiz global ou importada,
+ *     inclusive npm/domínio/runtime (`api:express`, `api:app.put`,
+ *     `api:Buffer.from`, `api:fs.readFile` …). O vocabulário é o PISO de
+ *     consciência do LLM, não o teto do gate — chave emitida fora dele é
+ *     universo aberto por design (membros de módulos built-in além de
+ *     assert/test são a sub-tarefa P-29 da onda 2; o teste documenta a
+ *     relação: nada do universo fechado pode ficar de fora).
  *
  * DETERMINISMO: o mesmo runtime produz os mesmos bytes — todos os arrays são
  * ordenados (sort canônico), as chaves de objeto seguem ordem literal fixa e

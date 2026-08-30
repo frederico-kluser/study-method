@@ -17,8 +17,18 @@
  *   4. A geração é determinística: duas execuções produzem os MESMOS bytes, e
  *      o artefato commitado É a saída byte a byte do gerador no runtime atual
  *      (a prova exigida pelo aceite A-P05-2).
+ *   5. COBERTURA DAS EMISSÕES (onda 1): `extractAtoms` rodado sobre o CORPUS
+ *      REAL (`resources/tracks/nodejs-do-zero` — solutionCode/starterCode/
+ *      testsCode de todo desafio + o código da teoria via `collectLessonCode`)
+ *      emite, nos eixos FECHADOS (node/op/decl/global), apenas chaves do
+ *      vocabulário ou da lista EXPLÍCITA de exceções sintéticas (que vivem em
+ *      `FORBIDDEN_ALWAYS`); no eixo ABERTO `api:` nada do universo fechado
+ *      (módulos built-in ∪ catálogo) fica de fora — o resto é universo aberto
+ *      declarado (npm/domínio/runtime), porque o vocabulário é o piso de
+ *      consciência do LLM, não o teto do gate.
  *
- * Sem rede, sem LLM: só o runtime do Node + os artefatos commitados.
+ * Sem rede, sem LLM: só o runtime do Node + os artefatos commitados + o
+ * conteúdo commitado da trilha (lido pelo MESMO `loadTrack` do runtime).
  */
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
@@ -27,13 +37,18 @@ import * as path from 'node:path';
 
 import {
   ATOM_KEY_RE,
+  AtomKey,
   DECLARATION_KINDS,
   FORBIDDEN_ALWAYS,
   HARNESS_RECEPTIVE_SEED,
   axisOf,
   isAtomKey,
+  isForbiddenAlways,
 } from '../electron/main/engine/atomKeys';
-import { RUNTIME_GLOBALS } from '../electron/main/engine/extract';
+import { RUNTIME_GLOBALS, extractAtoms } from '../electron/main/engine/extract';
+import { collectLessonCode } from '../electron/main/engine/theoryCode';
+import { loadTrack } from '../electron/main/content/trackLoader';
+import type { LoadedTrack } from '../electron/main/content/trackLoader';
 import {
   gerarAtomos,
   gerarCatalogoApi,
@@ -72,29 +87,157 @@ function lerCatalogo(): CatalogoApi {
 }
 
 /**
- * Campos de dados da trilha REAL (`resources/tracks/nodejs-do-zero` — campos
- * lidos das 136 challenges + módulos/aulas). Nenhum deles é API de linguagem;
- * o catálogo precisa provar que o filtro os mantém fora do eixo `api:`.
+ * A trilha REAL usada como corpus de cobertura. Carregada UMA vez (memoizada)
+ * com o MESMO `loadTrack` que o runtime usa — a prova vale contra o conteúdo
+ * que o produto realmente consome, nunca contra uma fixture que a gente
+ * controla.
  */
-const CAMPOS_DE_DOMINIO_DA_TRILHA: readonly string[] = [
-  'statement',
-  'starterCode',
-  'testsCode',
-  'solutionCode',
-  'expectedTestCount',
-  'minFirstStarMs',
-  'schemaVersion',
-  'prerequisites',
-  'summary',
-  'concept',
-  'theory',
-  'slug',
-  'difficulty',
-  'explanation',
-  'markdown',
-  'challenges',
-  'lessons',
-];
+const TRILHA_CORPUS = path.resolve(__dirname, '..', 'resources', 'tracks', 'nodejs-do-zero');
+
+let trilhaMemo: Promise<LoadedTrack> | null = null;
+function carregarTrilhaReal(): Promise<LoadedTrack> {
+  trilhaMemo ??= loadTrack(TRILHA_CORPUS);
+  return trilhaMemo;
+}
+
+/**
+ * Campos de dados do corpus REAL — a união das chaves TOP-LEVEL dos JSONs da
+ * trilha (track.json, module.json, lesson.json e challenge.json — de aula, de
+ * módulo e de proficiência), lidos da trilha JÁ CARREGADA pelo loader. Nenhum
+ * deles é API de linguagem; o catálogo precisa provar que o filtro os mantém
+ * fora do eixo `api:`.
+ *
+ * A lista é DERIVADA, nunca digitada: um campo novo que o autor adicionar à
+ * trilha entra no teste no MESMO commit — não existe lista hardcoded para
+ * dessincronizar do corpus (foi exatamente o que aconteceu com a lista
+ * antiga: 2 campos que não existiam e 10 reais omitidos, e o teste passou).
+ */
+function derivarCamposDeDominio(track: LoadedTrack): string[] {
+  const campos = new Set<string>();
+  const add = (obj: Record<string, unknown>): void => {
+    for (const k of Object.keys(obj)) campos.add(k);
+  };
+  add(track.root as unknown as Record<string, unknown>);
+  for (const mod of track.modules) {
+    add(mod.meta as unknown as Record<string, unknown>);
+    for (const lesson of mod.lessons) {
+      add(lesson.meta as unknown as Record<string, unknown>);
+      for (const ch of lesson.challenges) add(ch as unknown as Record<string, unknown>);
+    }
+    if (mod.challenge) add(mod.challenge as unknown as Record<string, unknown>);
+  }
+  if (track.proficiency) add(track.proficiency as unknown as Record<string, unknown>);
+  return [...campos].sort();
+}
+
+/**
+ * Colisões LEGÍTIMAS entre nome de campo de domínio e membro de API real.
+ * `description` (campo de track.json) coincide com `Symbol.prototype.description`
+ * — getter REAL de linguagem, que o catálogo tem de manter. A exceção é do
+ * lado da LISTA DE CAMPOS na hora de aplicar o filtro (o membro de API nunca
+ * sai do catálogo). Sem esta lista explícita, uma colisão nova faz o teste
+ * falhar de propósito — que é o comportamento certo.
+ */
+const COLISOES_CAMPO_API: ReadonlySet<string> = new Set(['description']); // = Symbol.prototype.description
+
+/**
+ * Exceções DECLARADAS do eixo node: — chaves SINTÉTICAS: o extrator as monta
+ * à mão (não saem do enum `ts.SyntaxKind`), então o gerador de vocabulário
+ * NUNCA pode produzi-las; por design vivem em `FORBIDDEN_ALWAYS`
+ * (`atomKeys.ts`) e nunca no JSON. O teste de cobertura as admite como a
+ * única saída legítima do vocabulário nos eixos fechados.
+ */
+const EXCESSOES_SINTETICAS_NODE: ReadonlySet<AtomKey> = new Set([
+  // emitida por extract.ts para `obj[expr]` com chave NÃO literal — não é
+  // SyntaxKind; FORBIDDEN_ALWAYS por design (quebra a decidibilidade).
+  'node:ComputedNonLiteralAccess',
+  // declarada por paridade com a anterior (FORBIDDEN_ALWAYS por design),
+  // mesmo que o corpus atual não a emita.
+  'node:CommaListExpression',
+]);
+
+/** Resultado da coleta de emissões sobre o corpus real. */
+interface EmissoesCorpus {
+  /** chaves únicas por eixo (`node`, `op`, `decl`, `global`, `api`). */
+  porEixo: Map<string, Set<AtomKey>>;
+}
+
+/**
+ * Roda o EXTRATOR REAL sobre o CORPUS REAL: `extractAtoms` em cada superfície
+ * de código da trilha — solutionCode/starterCode/testsCode de TODO desafio
+ * (aula, módulo e proficiência) + o código da teoria via `collectLessonCode`
+ * (o MESMO caminho que `audit.ts` usa). Se uma chave não aparecer aqui, ela
+ * não existe no produto; se aparecer e não estiver no vocabulário, o teste de
+ * cobertura precisa saber por quê.
+ *
+ * Superfícies que NÃO parseiam são puladas (uma chave de código quebrado é
+ * defeito de CONTEÚDO, caçado pelo `auditTrack` — fora do contrato deste
+ * pacote, que é o vocabulário); os pisos de substância abaixo garantem que a
+ * coleta nunca passe por omissão.
+ */
+function coletarEmissoes(track: LoadedTrack): EmissoesCorpus {
+  const porEixo = new Map<string, Set<AtomKey>>();
+  const add = (key: AtomKey): void => {
+    const eixo = axisOf(key) ?? '?';
+    let set = porEixo.get(eixo);
+    if (!set) {
+      set = new Set<AtomKey>();
+      porEixo.set(eixo, set);
+    }
+    set.add(key);
+  };
+  const surf = (code: string, ref: string): void => {
+    if (code.trim().length === 0) return;
+    const r = extractAtoms(code, { fileName: ref });
+    if (!r.ok) return;
+    for (const k of r.keys) add(k);
+  };
+
+  for (const mod of track.modules) {
+    for (const lesson of mod.lessons) {
+      const refBase = `${mod.meta.slug}/${lesson.meta.slug}`;
+      for (const block of collectLessonCode(lesson.meta.theory ?? []).blocks) {
+        if (block.isJavaScript) surf(block.code, `${refBase}#teoria`);
+      }
+      for (const ch of lesson.challenges) {
+        const cref = `${refBase}/${ch.slug}`;
+        const files = Array.isArray(ch.files) && ch.files.length > 0 ? ch.files : null;
+        if (files !== null) {
+          for (const f of files) {
+            surf(f.starterCode, `${cref}#starter`);
+            surf(f.solutionCode, `${cref}#solution`);
+          }
+        } else {
+          surf(ch.starterCode ?? '', `${cref}#starter`);
+          surf(ch.solutionCode ?? '', `${cref}#solution`);
+        }
+        surf(ch.testsCode, `${cref}#tests`);
+      }
+    }
+    if (mod.challenge) {
+      const ch = mod.challenge;
+      const cref = `modules/${mod.meta.slug}/challenge`;
+      surf(ch.starterCode ?? '', `${cref}#starter`);
+      surf(ch.solutionCode ?? '', `${cref}#solution`);
+      surf(ch.testsCode, `${cref}#tests`);
+    }
+  }
+  if (track.proficiency) {
+    const ch = track.proficiency;
+    surf(ch.starterCode ?? '', 'proficiency#starter');
+    surf(ch.solutionCode ?? '', 'proficiency#solution');
+    surf(ch.testsCode, 'proficiency#tests');
+  }
+
+  return { porEixo };
+}
+
+let emissoesMemo: Promise<EmissoesCorpus> | null = null;
+/** A extração sobre o corpus roda UMA vez por execução do arquivo de teste. */
+function coletarEmissoesDoCorpus(): Promise<EmissoesCorpus> {
+  emissoesMemo ??= carregarTrilhaReal().then(coletarEmissoes);
+  return emissoesMemo;
+}
 
 describe('engineVocab: universo de nós (A-P05-2)', () => {
   const atomos = lerAtomos();
@@ -228,10 +371,13 @@ describe('engineVocab: o catálogo separa API de linguagem de nome de domínio',
     assert.ok(!catalogo.receivers.some((r) => r.name === 'URL'));
   });
 
-  it('campos de dados da trilha real não viram api:', () => {
+  it('campos de dados da trilha real não viram api: (lista DERIVADA do corpus)', async () => {
     const catalogo = lerCatalogo();
+    const campos = derivarCamposDeDominio(await carregarTrilhaReal());
+    assert.ok(campos.length >= 20, `corpus de campos ínfimo (${campos.length}) — trilha vazia?`);
     const nomesReceptores = new Set(catalogo.receivers.map((r) => r.name));
-    for (const campo of CAMPOS_DE_DOMINIO_DA_TRILHA) {
+    for (const campo of campos) {
+      if (COLISOES_CAMPO_API.has(campo)) continue;
       assert.ok(!nomesReceptores.has(campo), `campo de domínio virou receptor: ${campo}`);
       assert.ok(!catalogo.api_paths.includes(`api:${campo}`), `campo de domínio virou api:: ${campo}`);
       assert.ok(
@@ -359,6 +505,126 @@ describe('engineVocab: consistência com o extrator (onda 0)', () => {
     const atomos = lerAtomos();
     for (const chaves of Object.values(atomos.axes)) {
       for (const chave of chaves) assert.ok(isAtomKey(chave));
+    }
+  });
+});
+
+describe('engineVocab: cobertura das emissões sobre a trilha real (onda 1)', () => {
+  // Fix onda 1 (revisão adversarial de P-05): o vocabulário era fechado do
+  // lado do ARTEFATO mas ninguém provava que o EXTRATOR não emitia chave fora
+  // dele. Medido no corpus real: 1 chave sintética fora (`node:ComputedNonLiteralAccess`,
+  // que o gerador nunca pode produzir) e o eixo api: aberto por design
+  // (`api:Buffer.from`, `api:express`, `api:app.put`, … — ver o teste abaixo).
+  // Estes testes atam o vocabulário ao extrator sobre o conteúdo commitado.
+
+  it('todo átomo emitido tem eixo conhecido e o corpus tem substância', async () => {
+    const emissoes = await coletarEmissoesDoCorpus();
+    // Anti-vácuo: a coleta TEM de ter encontrado código de verdade; se a
+    // extração falhar em tudo um dia, o teste precisa falhar, não passar por
+    // omissão. Os pisos são conservadores (o corpus real emite ~86 node:,
+    // ~24 op:, ~27 global: e ~425 api: hoje).
+    assert.ok((emissoes.porEixo.get('node') ?? new Set()).size >= 50, 'corpo ínfimo de node: — coleta vazia?');
+    assert.ok((emissoes.porEixo.get('op') ?? new Set()).size >= 5, 'corpo ínfimo de op: — coleta vazia?');
+    assert.ok((emissoes.porEixo.get('decl') ?? new Set()).size >= 1, 'corpo ínfimo de decl: — coleta vazia?');
+    assert.ok((emissoes.porEixo.get('global') ?? new Set()).size >= 5, 'corpo ínfimo de global: — coleta vazia?');
+    assert.ok((emissoes.porEixo.get('api') ?? new Set()).size >= 100, 'corpo ínfimo de api: — coleta vazia?');
+    for (const eixo of emissoes.porEixo.keys()) {
+      assert.ok(
+        // `form:` é o eixo RESERVADO (P-06): bateria FIXA declarativa em
+        // form/rules.ts — por design NÃO é gerado para atoms.json (ver
+        // cabeçalho do gerador) e tem contrato próprio de cobertura (as
+        // chaves form: são as próprias regras da bateria).
+        ['node', 'op', 'decl', 'global', 'api', 'form'].includes(eixo),
+        `eixo desconhecido emitido pelo extrator: ${eixo}`,
+      );
+    }
+  });
+
+  it('eixos fechados (node/op/decl/global): toda emissão está no vocabulário ou em exceção declarada', async () => {
+    const emissoes = await coletarEmissoesDoCorpus();
+    const atomos = lerAtomos();
+
+    // As exceções declaradas SÃO as sintéticas do extrator — chaves montadas à
+    // mão (não saem do enum), que o gerador nunca pode produzir; por isso
+    // vivem em FORBIDDEN_ALWAYS (atomKeys.ts) e nunca no JSON.
+    for (const chave of EXCESSOES_SINTETICAS_NODE) {
+      assert.ok(isForbiddenAlways(chave), `exceção declarada sem FORBIDDEN_ALWAYS: ${chave}`);
+    }
+
+    const vocabulario = new Set<string>();
+    for (const eixo of ['node', 'op', 'decl', 'global'] as const) {
+      for (const chave of atomos.axes[eixo]) vocabulario.add(chave);
+    }
+
+    for (const [eixo, chaves] of emissoes.porEixo) {
+      if (eixo === 'api') continue; // aberto por design — teste próprio abaixo
+      if (eixo === 'form') continue; // eixo reservado (P-06): bateria fixa em form/rules.ts,
+      // nunca gerada para atoms.json — não é contrato deste pacote
+      for (const chave of chaves) {
+        assert.ok(
+          vocabulario.has(chave) || EXCESSOES_SINTETICAS_NODE.has(chave),
+          `extrator emitiu ${chave} (eixo fechado ${eixo}) fora do vocabulário e das exceções declaradas`,
+        );
+      }
+    }
+  });
+
+  it('api: — nada do universo fechado (módulos ∪ catálogo) ficou de fora; o resto é universo aberto declarado', async () => {
+    const emissoes = await coletarEmissoesDoCorpus();
+    const atomos = lerAtomos();
+    const catalogo = lerCatalogo();
+    const runtime = runtimeDoProcesso();
+
+    const vocabularioApi = new Set(atomos.axes.api);
+    const nomesReceptores = new Set(catalogo.receivers.map((r) => r.name));
+    const nomesBuiltin = new Set(runtime.builtinModules);
+    const modulos = new Set(gerarUniversoModulos(runtime));
+    const caminhosCatalogo = new Set(catalogo.api_paths);
+
+    const emitidas = emissoes.porEixo.get('api') ?? new Set<AtomKey>();
+    const fora = [...emitidas].filter((k) => !vocabularioApi.has(k)).sort();
+
+    // (1) Direção que o GATE precisa: todo átomo do universo FECHADO de api:
+    // está coberto. O universo fechado tem DOIS tipos de chave — nome de
+    // módulo built-in (o specifier de `import` não relativo, gerado de
+    // builtinModules) e caminho do catálogo (raiz = receptor escolhido em
+    // RECEPTORES_LINGUAGEM/RECEPTORES_MODULO).
+    //
+    // Membro de módulo built-in além de assert/test (`api:fs.readFile`,
+    // `api:http.createServer`), raiz global de runtime (`api:Buffer.from`,
+    // `api:process.env`) e raiz npm/domínio (`api:express`, `api:app.put`,
+    // `api:.campo` de receptor local) são o UNIVERSO ABERTO por design: o
+    // vocabulário é o piso de consciência do LLM, não o teto do gate
+    // (enumerar membros de módulos built-in é a sub-tarefa P-29 da onda 2 —
+    // proibida neste fix).
+    for (const chave of fora) {
+      const raiz = chave.slice('api:'.length).split('.')[0];
+      assert.ok(
+        !nomesReceptores.has(raiz),
+        `chave api: emitida fora do vocabulário com raiz de receptor do catálogo — o universo fechado de linguagem tem membro de fora: ${chave}`,
+      );
+    }
+    // Specifier de módulo built-in é FECHADO: o vocabulário tem TODOS os
+    // builtinModules nas duas grafias (`api:fs` e `api:node:fs`) — se um nome
+    // de módulo emitido não estiver lá, é bug de geração.
+    for (const chave of fora) {
+      const caminho = chave.slice('api:'.length);
+      if (caminho.includes('.')) continue; // membro de módulo/objeto → universo aberto
+      if (nomesBuiltin.has(caminho) || nomesBuiltin.has(caminho.replace(/^node:/, ''))) {
+        assert.ok(vocabularioApi.has(chave), `nome de módulo built-in emitido fora do vocabulário: ${chave}`);
+      }
+    }
+
+    // (2) Direção documentada (emissível): toda emitida QUE ESTÁ no vocabulário
+    // tem origem de máquina — módulo built-in ou caminho do catálogo — nunca
+    // chave inventada. (A proveniência do eixo commitado inteiro já é provada
+    // em "o eixo api: de atoms.json = módulos ∪ catálogo" acima.)
+    for (const chave of emitidas) {
+      if (!vocabularioApi.has(chave)) continue;
+      assert.ok(
+        modulos.has(chave) || caminhosCatalogo.has(chave),
+        `chave api: no vocabulário sem origem de máquina (módulo ou catálogo): ${chave}`,
+      );
     }
   });
 });
