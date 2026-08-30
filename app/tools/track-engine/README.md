@@ -19,6 +19,8 @@ em milissegundos, sem rede e sem chave de API.
 
 ```bash
 npm run engine -- audit <slug> [opções]
+npm run engine -- generate <slug> --assunto "..." [--from FASE] [--only slug] [--teto-tokens N]
+npm run engine -- lint-schemas
 ```
 
 | Opção | O que faz |
@@ -32,9 +34,14 @@ npm run engine -- audit <slug> [opções]
 Exit codes, na convenção do repositório: **0** sem violação · **1** violações encontradas · **2** uso
 incorreto.
 
-`generate` e `repair` — os modos que chamam a LLM — ainda não estão implementados. A ordem de
-construção (§14 do documento normativo) põe o gate determinístico primeiro de propósito: ele é o
-teste de aceitação de todo o resto.
+`generate` executa F0 a F12 e produz uma trilha nova em `app/resources/tracks/<slug>`: o run (run.json +
+ledger + telemetria + artefatos + drafts) vive em `app/content-src/<slug>` e é **retomável** — repita o
+comando com `--from <fase pendente>` após interrupção. A F6 (piloto de 3 aulas) **para para revisão
+humana**: escreva `app/content-src/<slug>/aprovacaoF6.json` com `{"aprovado": true}` e retome. Sem chave
+de API, o run é criado mesmo assim e o erro declara a limitação (exit 2). `lint-schemas` roda o preflight
+do build (INV-04/INV-05) sobre o registro real de schemas. `repair` — o modo que chama a LLM para corrigir
+conteúdo existente — ainda não está implementado: a ordem de construção (§14 do documento normativo) põe
+o gate determinístico primeiro de propósito.
 
 ## Os dois modos de orçamento
 

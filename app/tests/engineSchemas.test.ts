@@ -10,8 +10,11 @@
  *   - INV-05: TODO campo de TODO schema da engine é obrigatório — zero
  *     `.optional()`; ausência válida é valor vazio EXPLÍCITO.
  *   - A-P04-2: o lint varre a lista REAL de schemas (`SCHEMA_REGISTRY`),
- *     nunca uma lista curada derivada; o registro é fixado aqui com os 12
+ *     nunca uma lista curada derivada; o registro é fixado aqui com os 14
  *     artefatos — esquecer de registrar um schema novo quebra este teste.
+ *     (P-33, modo generate: + `author-output` e `desafio-author-output`,
+ *     os schemas de SAÍDA do autor — registrados via `z.lazy` para não
+ *     criar ciclo de import; o lint exercita o getter lazy.)
  *   - erro de validação NOMEIA o campo e o motivo (`formatarErroCampos`).
  *
  * Sem rede, sem disco, sem LLM: schemas e lints são funções puras.
@@ -203,15 +206,17 @@ describe('campos opcionais — INV-05 (todo campo obrigatório, docs §6.3)', ()
 });
 
 describe('registro de schemas — A-P04-2 (o lint varre a lista REAL)', () => {
-  it('SCHEMA_REGISTRY contém exatamente os 12 artefatos da engine', () => {
+  it('SCHEMA_REGISTRY contém exatamente os 14 artefatos da engine (P-33: + os dois schemas de saída do autor)', () => {
     assert.deepEqual(
       SCHEMA_REGISTRY.map((s) => s.nome).sort(),
       [
         'actions',
+        'author-output',
         'brief',
         'budget',
         'challenge-draft',
         'concepts',
+        'desafio-author-output',
         'findings',
         'freeze',
         'graph',
@@ -221,6 +226,25 @@ describe('registro de schemas — A-P04-2 (o lint varre a lista REAL)', () => {
         'report',
       ],
     );
+  });
+
+  it('os registros lazy (P-33) resolvem para os schemas REAIS de saída do autor, com raciocinio_de_projeto no índice 0', () => {
+    const autor = SCHEMA_REGISTRY.find((s) => s.nome === 'author-output');
+    const desafio = SCHEMA_REGISTRY.find((s) => s.nome === 'desafio-author-output');
+    assert.ok(autor && desafio, 'os dois registros P-33 existem');
+    // Resolve o ZodLazy do registro (o MESMO caminho que o lint percorre).
+    const formaDe = (registrado: SchemaRegistrado): z.ZodRawShape => {
+      const schema = registrado.schema;
+      if ((schema._def as { typeName?: string }).typeName === 'ZodLazy') {
+        const resolvido = (schema._def as { getter: () => z.ZodTypeAny }).getter();
+        return (resolvido as z.ZodObject<z.ZodRawShape>).shape;
+      }
+      return (schema as z.ZodObject<z.ZodRawShape>).shape;
+    };
+    const formaAutor = formaDe(autor);
+    const formaDesafio = formaDe(desafio);
+    assert.equal(Object.keys(formaAutor)[0], 'raciocinio_de_projeto', 'raciocínio abre o schema do autor de aula');
+    assert.equal(Object.keys(formaDesafio)[0], 'raciocinio_de_projeto', 'raciocínio abre o schema do autor de desafio');
   });
 
   it('o lint REAL, sobre o registro inteiro, passa: ordem correta e zero opcionais', () => {
