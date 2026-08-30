@@ -19,10 +19,12 @@
  *
  * VALIDAÇÃO DOS DRAFTS NA AUTORIA (pré-revisão — §6.1 "os drafts nascem
  * validados", determinística, zero LLM):
- *   - draft de AULA: (a) schema (LessonDraftSchema P-04); (c) orçamento —
- *     `extractAtoms(teoria, blocos cercados) ⊆` orçamento do snapshot,
- *     errando NOMEANDO a construção (§5.3 §5.5: bloco cercado com tag é
- *     código, crase inline é prosa; a violação nomeia a construção e o
+ *   - draft de AULA: (a) schema (LessonDraftSchema P-04); (c) orçamento POR
+ *     FAIXA (§3.3/§5.1 A4) — `extractAtoms(teoria, blocos cercados) ⊆`
+ *     **faixa RECEPTIVA** do orçamento do snapshot (`budget_receptivo` — a
+ *     teoria é LIDA pelo aluno; a união das três listas NÃO se aplica à
+ *     teoria), errando NOMEANDO a construção (§5.3 §5.5: bloco cercado com
+ *     tag é código, crase inline é prosa; a violação nomeia a construção e o
  *     trecho); o `budgetHash` do SNAPSHOT (F5) é CARIMBADO no draft — o autor
  *     nunca escolhe o hash (A-P17-3).
  *   - draft de DESAFIO (F8): schema + as QUATRO PROVAS (§5.4) + orçamento —
@@ -35,18 +37,23 @@
  *
  * ESCALONAMENTO REAL (porta de entrada do pacote): `runOndaDeAutoria` monta
  * UMA tarefa por aula (1 agente = 1 aula; outputs = os DOIS drafts exclusivos
- * da aula — posse validada pelo escalonador ANTES de rodar, PAR-02 §4.1) e
- * roda batches de ≤ `TETO_ONDA_AUTORIA` (15) — ondas >15 DIVIDIDAS, nunca
- * truncadas. O executor das tarefas é `autorizarAula`; `limiters` vêm de
- * pools SEPARADOS do SEM_LLM do transporte (P-27: o executor chama o
- * transporte DENTRO do slot do pool — compartilhar o mesmo objeto semáforo
- * entre os dois é DEADLOCK).
+ * da aula — posse validada GLOBALMENTE sobre a UNIÃO de todos os batches
+ * ANTES de rodar qualquer aula, PAR-02 §4.1: colisão CRUZADA entre ondas
+ * diferentes também rejeita o run inteiro, nada roda) e roda batches de
+ * ≤ `TETO_ONDA_AUTORIA` (15) — ondas >15 DIVIDIDAS, nunca truncadas. O
+ * executor das tarefas é `autorizarAula`; `limiters` vêm de pools SEPARADOS
+ * do SEM_LLM do transporte (P-27: o executor chama o transporte DENTRO do
+ * slot do pool — compartilhar o mesmo objeto semáforo entre os dois é
+ * DEADLOCK). A validação POR ONDA do scheduler (`validateWave`) continua
+ * rodando como defesa em profundidade.
  */
 
 import * as path from 'node:path';
 
 import type { EngineLlm, LlmCallRequest } from '../runtime/callLlm';
 import {
+  SchedulerError,
+  collectOutputCollisions,
   runWave,
   validateWave,
   type Executor,
@@ -273,12 +280,16 @@ export function resumoDaTeoria(draftTeoria: TeoriaEscrita): string {
 // ---------------------------------------------------------------------------
 
 /**
- * GATE DE ORÇAMENTO da TEORIA — função PURA: `extractAtoms(teoria, blocos
- * cercados) ⊆` orçamento do snapshot (a união das três listas do dossiê da
- * aula — a fatia congelada do F5). Devolve as ofensas em ordem estável;
- * bloco de código que não parseia é falha declarada (fail-closed: prosa
- * re-tagueada como código é defeito de build, §5.3). Quem chama decide o
- * erro; este módulo devolve dados, nunca lança.
+ * GATE DE ORÇAMENTO da TEORIA — função PURA (c) da validação da autoria:
+ * `extractAtoms(teoria, blocos cercados) ⊆` **faixa RECEPTIVA** do orçamento
+ * do snapshot (docs §3.3/§5.1, A4): a teoria é LIDA pelo aluno, então só o
+ * `budget_receptivo` se aplica (`atomos(theory, blocos cercados) ⊆
+ * budget_saida.receptive`) — as faixas produtiva e `budget_teste` NÃO valem
+ * para a teoria. Devolve as ofensas em ordem estável; bloco de código que não
+ * parseia é falha declarada (fail-closed: prosa re-tagueada como código é
+ * defeito de build, §5.3). Quem chama decide o erro; este módulo devolve
+ * dados, nunca lança. (O desafio valida as faixas PRÓPRIAS de cada superfície
+ * dele na F8 — `ofensasDeOrcamentoDoDesafio`.)
  */
 export function ofensasDeOrcamentoDaTeoria(
   draft: TeoriaEscrita,
@@ -320,11 +331,14 @@ export function validarDraftDeAula(draft: SaidaAutor, aula_slug: string, dossie:
       { etapa: ETAPA_FECHAMENTO },
     );
   }
-  const permitidas = new Set<string>([
-    ...dossie.budget_receptivo,
-    ...dossie.budget_produtivo,
-    ...dossie.budget_teste,
-  ]);
+  // (c) orçamento POR FAIXA (§3.3/§5.1 A4): a teoria é LIDA pelo aluno — só a
+  //     faixa RECEPTIVA do orçamento do snapshot se aplica (`atomos(theory,
+  //     blocos cercados) ⊆ budget_saida.receptive`); a união das três listas
+  //     NÃO vale aqui (ela deixaria a teoria ensinar construções que o aluno
+  //     ainda não pode ler). O desafio valida as faixas PRÓPRIAS dele na F8.
+  //     NOMEIA a construção (a ofensa de menor chave vira `construcao`; a
+  //     mensagem lista todas).
+  const permitidas = new Set<string>(dossie.budget_receptivo);
   const { ofensas, falhaDeParse } = ofensasDeOrcamentoDaTeoria(draft, permitidas);
   if (falhaDeParse !== null) {
     throw new AutorError(
@@ -651,11 +665,16 @@ function montarExecutor(
 
 /**
  * A PORTA DE ENTRADA do pacote de AUTORIA (F7+F8): roda a autoria de TODAS as
- * aulas dadas com escalonamento REAL (runWave do P-02). Posse validada ANTES
- * de rodar QUALQUER batch (colisão de draft = erro, nada roda); ondas > teto
- * DIVIDIDAS em batches de ≤15 (nunca truncadas); limiters de pools separados
- * (P-27). O `execute` é construído AQUI a partir de `autorizarAula` — os
- * testes de estado interno injetam transportes fakes em vez de scheduler.
+ * aulas dadas com escalonamento REAL (runWave do P-02). A posse é validada
+ * GLOBALMENTE sobre a UNIÃO dos outputs de TODOS os batches ANTES de rodar
+ * QUALQUER aula: colisão de draft entre ondas DIFERENTES também é erro
+ * estruturado (`ownership-collision` nomeando o caminho e as duas aulas) e
+ * nada roda — a validação por onda do scheduler (validateWave) só enxerga UMA
+ * onda por vez e deixaria a 2ª onda SOBRESCREVER o draft da 1ª por escrita;
+ * ela continua rodando como DEFESA EM PROFUNDIDADE. Ondas > teto DIVIDIDAS em
+ * batches de ≤15 (nunca truncadas); limiters de pools separados (P-27). O
+ * `execute` é construído AQUI a partir de `autorizarAula` — os testes de
+ * estado interno injetam transportes fakes em vez de scheduler.
  */
 export async function runOndaDeAutoria(
   deps: DepsDaOndaAutoria,
@@ -670,9 +689,33 @@ export async function runOndaDeAutoria(
   const batches = dividirEmBatches(aulas, teto);
   const configs: WaveConfig[] = batches.map((batch) => ({ tasks: tarefasDaOnda(batch), reducers: {} }));
 
-  // POSSE VALIDADA ANTES DE QUALQUER ONDA (PAR-02, §4.1): cada batch é uma
-  // onda declarada; colisão de output (mesmo caminho de draft = mesma aula)
-  // REJEITA o run inteiro antes de rodar QUALQUER aula.
+  // POSSE GLOBAL — validada sobre a UNIÃO dos outputs de TODOS os batches,
+  // ANTES de rodar qualquer aula (PAR-02, §4.1). O validateWave do scheduler
+  // valida UMA onda por vez: uma colisão entre ondas DIFERENTES (a mesma
+  // aula_slug no batch 1 e no batch 2) passaria por ele e a 2ª onda
+  // SOBRESCREVERIA os drafts da 1ª por escrita — este passe cobre o run
+  // INTEIRO: mesmo caminho em dois batches = erro estruturado nomeando o
+  // caminho e as duas aulas; NADA roda.
+  const tarefasDoRun = configs.flatMap((config) => config.tasks);
+  const slugDaTarefa = new Map<string, string>();
+  for (const batch of batches) {
+    batch.forEach((aula, indice) => slugDaTarefa.set(`f7:${indice}:${aula.aula_slug}`, aula.aula_slug));
+  }
+  const colisoesGlobais = collectOutputCollisions(tarefasDoRun);
+  for (const [caminho, tarefas] of colisoesGlobais) {
+    const [a, b] = tarefas;
+    const slugA = slugDaTarefa.get(a) ?? a;
+    const slugB = slugDaTarefa.get(b) ?? b;
+    throw new SchedulerError(
+      'ownership-collision',
+      `colisão de posse entre batches do run: o caminho "${caminho}" é declarado em outputs pelas aulas "${slugA}" (tarefa ${a}) e "${slugB}" (tarefa ${b}) — o run INTEIRO foi REJEITADO antes de rodar qualquer aula (PAR-02, §4.1: a validação por onda do scheduler não alcança colisões entre ondas diferentes)`,
+      { caminho, tarefas, aulas: [slugA, slugB] },
+    );
+  }
+
+  // DEFESA EM PROFUNDIDADE — a validação POR ONDA do scheduler (tamanho da
+  // onda, ids duplicados, posse intra-onda, dependências, ciclos, reducers)
+  // continua rodando batch a batch antes de qualquer execução.
   for (const config of configs) {
     const validacao = validateWave(config);
     if (validacao.errors.length > 0) throw validacao.errors[0];

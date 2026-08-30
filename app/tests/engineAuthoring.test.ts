@@ -19,9 +19,18 @@
  *   5. ondas > 15 são DIVIDIDAS em batches de 15, nunca truncadas;
  *   6. todo draft nasce com o hash do orçamento que o gerou (budgetHash do
  *      snapshot do freeze no draft — A-P17-3);
- *   7. (bônus) draft com construção FORA do orçamento do snapshot é REJEITADO
+ *   7. (bônus) draft com construção fora do orçamento do snapshot é REJEITADO
  *      NOMEANDO a construção — e as QUATRO PROVAS (§5.4) rodam na validação
- *      (prover fake registrando chamadas).
+ *      (prover fake registrando chamadas);
+ *   8. o orçamento é validado POR FAIXAS (§3.3): testsCode ⊆ budget_teste (o
+ *      aluno lê o teste ANTES da aula — A3), starterCode ⊆ budget_receptivo
+ *      (A1), solutionCode ⊆ budget_produtivo (A2) + A6 (a solução puxa ≥1
+ *      construção do introduces.productive); a teoria ⊆ budget_receptivo (A4)
+ *      — a união das três listas NÃO vale para nenhuma superfície;
+ *   9. a posse é validada GLOBALMENTE sobre a UNIÃO dos batches — duplicata de
+ *      aula_slug entre o batch 1 e o batch 2 rejeita o run INTEIRO antes de
+ *      qualquer escrita (a validação por onda do scheduler não alcança
+ *      colisões cruzadas).
  *
  * HIGIENE: LLM e provador são FAKES injetados (sem rede, sem processo, sem
  * chave); escrita de drafts em memória; sem scheduler real nos testes de
@@ -68,6 +77,31 @@ const CODIGO_TESTES =
   "import assert from 'node:assert/strict';\n" +
   "import { dobra } from './solution.mjs';\n" +
   "test('dobro de 2', () => { assert.equal(dobra(2), 4); });\n";
+
+// Probe do revisor (HIGH): um TESTE que usa `node:ForStatement` — construção
+// que o aluno já leu em aula anterior (está na faixa produtiva, NÃO no
+// budget_teste) — passava como validado sob a validação por UNIÃO; por faixas
+// (§3.3 A3) o teste só pode usar o budget_teste.
+const CODIGO_TESTES_COM_LACO =
+  "import { test } from 'node:test';\n" +
+  "import assert from 'node:assert/strict';\n" +
+  "import { dobra } from './solution.mjs';\n" +
+  "test('dobro de 2', () => { for (let i = 0; i < 3; i++) { assert.equal(dobra(2), 4); } });\n";
+
+// Probe do revisor (HIGH, espelhado no starter): um STARTER usando
+// `node:ForStatement` (construção só-produtiva — fora do budget_receptivo) —
+// por faixas (§3.3 A1) o starter só pode usar o que o aluno pode LER.
+const CODIGO_STARTER_COM_LACO =
+  'function contar(n) {\n' +
+  '  for (let i = 0; i < n; i++) {\n' +
+  '    console.log(i);\n' +
+  '  }\n' +
+  '}\n';
+
+// Probe do revisor (HIGH, A6): uma SOLUÇÃO que não usa NENHUMA construção que
+// a aula introduz produtivamente (não puxa o `node:FunctionDeclaration`) —
+// mesmo dentro do budget_produtivo, o desafio não exige o que a aula ensina.
+const CODIGO_SOLUCAO_SEM_PRODUTIVA_NOVA = 'const x = 2;\n';
 
 function atomosDo(codigo: string): string[] {
   const extraido = extractAtoms(codigo);
@@ -363,6 +397,32 @@ describe('F7/F8 — posse de arquivo validada pelo escalonador (PAR-02, §4.1)',
       ['validado', 'validado'],
     );
   });
+
+  it('duplicata de aula_slug ENTRE o batch 1 e o batch 2 → o run INTEIRO é rejeitado ANTES de qualquer escrita', async () => {
+    // 17 aulas: batch 1 = aulas 1..15, batch 2 = aula 16 + DUPLICATA da aula 1.
+    // A validação por ONDA do scheduler só enxerga uma onda por vez — sem a
+    // posse GLOBAL (PAR-02, §4.1) a 2ª onda SOBRESCREVERIA os drafts da 1ª por
+    // escrita. A posse sobre a UNIÃO dos batches rejeita o run inteiro antes
+    // de rodar QUALQUER aula.
+    const aulas = Array.from({ length: 16 }, (_, i) => dossieDeAula(`m1/a${i + 1}`));
+    aulas.push(dossieDeAula('m1/a1')); // colisão cruzada: mesma aula no batch 2
+    const falso = fakeLlm(respostasDeSucesso());
+    const provador = fakeProver();
+    const fs = fsEmMemoria();
+
+    await assert.rejects(
+      runOndaDeAutoria(depsDaOnda(falso, provador, fs), aulas),
+      (erro: unknown) =>
+        erro instanceof SchedulerError &&
+        erro.code === 'ownership-collision' &&
+        typeof erro.message === 'string' &&
+        erro.message.includes('m1/a1'), // o erro nomeia as aulas colidentes
+    );
+
+    assert.equal(falso.chamadas.length, 0, 'nenhuma chamada de LLM antes da posse GLOBAL');
+    assert.equal(provador.entradas.length, 0, 'nenhuma prova rodou');
+    assert.equal(fs.arquivos.size, 0, 'nada foi escrito — nem o batch 1 (a 2ª onda sobrescreveria)');
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -616,6 +676,114 @@ describe('F7/F8 — gates determinísticos na autoria (§6.1: drafts nascem vali
 
     assert.equal(resultado.estados[0].status, 'falhou');
     assert.match(resultado.estados[0].erro ?? '', /acima do teto/, 'a rejeição nomeia o teto');
+    assert.equal(fs.arquivos.size, 0);
+  });
+
+  // -------------------------------------------------------------------------
+  // 7b. O orçamento é validado POR FAIXAS (§3.3/§5.1) — a união das três
+  //     listas NÃO vale para nenhuma superfície (HIGH da revisão adversarial)
+  // -------------------------------------------------------------------------
+
+  it('testsCode com construção SÓ-PRODUTIVA é REJEITADO (A3 — testsCode ⊆ budget_teste; o aluno lê o teste ANTES da aula)', async () => {
+    // Probe do revisor: `node:ForStatement` foi ensinado em aula anterior (está
+    // no budget_produtivo, NÃO no budget_teste). Sob a validação por UNIÃO o
+    // teste passava; por faixas (§3.3) o teste só pode usar o budget_teste.
+    const dossie = montarDossie({
+      ...dossieBase(),
+      budget_produtivo: [...atomosDo(CODIGO_SOLUCAO), 'node:ForStatement'],
+    });
+    const falso = fakeLlm({
+      'f7-teoria-esqueleto': draftAula(),
+      'f8-desafio': draftDesafio({ testsCode: CODIGO_TESTES_COM_LACO }),
+    });
+    const provador = fakeProver();
+    const fs = fsEmMemoria();
+
+    const resultado = await runOndaDeAutoria(depsDaOnda(falso, provador, fs), [dossieDeAula('m1/a1', { dossie })]);
+
+    assert.equal(resultado.estados[0].status, 'falhou');
+    assert.match(resultado.estados[0].erro ?? '', /fora do orçamento/, 'a violação é de orçamento');
+    assert.match(
+      resultado.estados[0].erro ?? '',
+      /node:ForStatement/,
+      'a violação nomeia a construção só-produtiva que não pode entrar no teste (o aluno ainda não sabe a aula)',
+    );
+    assert.equal(fs.arquivos.size, 0, 'draft rejeitado não vai a disco');
+  });
+
+  it('solução usando SÓ a faixa receptiva é REJEITADA (A2 — solutionCode ⊆ budget_produtivo)', async () => {
+    // A solução só repete o que o aluno JÁ LIA (retorno, multiplicação,
+    // literais — tudo no receptivo) e NADA do que ele deve ESCREVER nesta
+    // aula: o dossiê declara o produtivo como SÓ `node:FunctionDeclaration`.
+    // Sob a validação por UNIÃO isso passava; por faixas (§3.3 A2) viola.
+    const dossie = montarDossie({ ...dossieBase(), budget_produtivo: ['node:FunctionDeclaration'] });
+    const falso = fakeLlm(respostasDeSucesso());
+    const provador = fakeProver();
+    const fs = fsEmMemoria();
+
+    const resultado = await runOndaDeAutoria(depsDaOnda(falso, provador, fs), [dossieDeAula('m1/a1', { dossie })]);
+
+    assert.equal(resultado.estados[0].status, 'falhou');
+    assert.match(resultado.estados[0].erro ?? '', /fora do orçamento/, 'a violação é de orçamento');
+    assert.match(
+      resultado.estados[0].erro ?? '',
+      /node:BinaryExpression/,
+      'a solução fora do produtivo é rejeitada mesmo quando a construção é LÍCITA no receptivo',
+    );
+    assert.equal(fs.arquivos.size, 0);
+  });
+
+  it('solução que NÃO puxa nenhuma construção do introduces.productive é REJEITADA (A6 — a direção puxada)', async () => {
+    // A solução fica DENTRO do budget_produtivo (A2 passa), mas não usa NENHUMA
+    // construção que a aula INTRODUZ produtivamente (`node:FunctionDeclaration`):
+    // o desafio só repete o que o aluno já sabia — A6 (§5.1) exige
+    // atomos(solutionCode) ∩ introduces.productive ≠ ∅.
+    const dossie = montarDossie({
+      ...dossieBase(),
+      budget_produtivo: uniaoDosAtomos(CODIGO_SOLUCAO, CODIGO_SOLUCAO_SEM_PRODUTIVA_NOVA),
+    });
+    const falso = fakeLlm({
+      'f7-teoria-esqueleto': draftAula(),
+      'f8-desafio': draftDesafio({ solutionCode: CODIGO_SOLUCAO_SEM_PRODUTIVA_NOVA }),
+    });
+    const provador = fakeProver();
+    const fs = fsEmMemoria();
+
+    const resultado = await runOndaDeAutoria(depsDaOnda(falso, provador, fs), [dossieDeAula('m1/a1', { dossie })]);
+
+    assert.equal(resultado.estados[0].status, 'falhou');
+    assert.match(
+      resultado.estados[0].erro ?? '',
+      /introduces\.productive/,
+      'A6 nomeia a direção puxada: a solução precisa exigir o que a aula introduz',
+    );
+    assert.equal(fs.arquivos.size, 0);
+  });
+
+  it('starterCode com construção SÓ-PRODUTIVA é REJEITADO (A1 — starterCode ⊆ budget_receptivo; o aluno LÊ o starter)', async () => {
+    // O starter usa `node:ForStatement`, declarado SÓ no budget_produtivo: o
+    // aluno não pode ser obrigado a ler no starter o que ainda não leu na
+    // teoria. Sob a união passava; por faixas (§3.3 A1) viola.
+    const dossie = montarDossie({
+      ...dossieBase(),
+      budget_produtivo: [...atomosDo(CODIGO_SOLUCAO), 'node:ForStatement'],
+    });
+    const falso = fakeLlm({
+      'f7-teoria-esqueleto': draftAula(),
+      'f8-desafio': draftDesafio({ starterCode: CODIGO_STARTER_COM_LACO }),
+    });
+    const provador = fakeProver();
+    const fs = fsEmMemoria();
+
+    const resultado = await runOndaDeAutoria(depsDaOnda(falso, provador, fs), [dossieDeAula('m1/a1', { dossie })]);
+
+    assert.equal(resultado.estados[0].status, 'falhou');
+    assert.match(resultado.estados[0].erro ?? '', /fora do orçamento/, 'a violação é de orçamento');
+    assert.match(
+      resultado.estados[0].erro ?? '',
+      /node:ForStatement/,
+      'a violação nomeia a construção só-produtiva que não pode entrar no starter (o aluno ainda não pode lê-la)',
+    );
     assert.equal(fs.arquivos.size, 0);
   });
 });

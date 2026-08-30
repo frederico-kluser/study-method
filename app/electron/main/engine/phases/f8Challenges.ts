@@ -30,8 +30,12 @@
  *     revisão (§6.1: "os drafts nascem validados"): (a) schema — o ARTEFATO
  *     parseia pelo `DesafioAuthorOutputSchema` (que TEM como base o
  *     ChallengeDraftSchema); (b) as QUATRO PROVAS de execução (§5.4) via
- *     `ProverDeDesafio`; (c) orçamento: `extractAtoms(draft) ⊆` orçamento do
- *     snapshot, errando NOMEANDO a construção.
+ *     `ProverDeDesafio`; (c) orçamento POR FAIXAS (§3.3) — CADA superfície é
+ *     validada contra a FAIXA PRÓPRIA do orçamento do snapshot: `testsCode ⊆
+ *     budget_teste` (A3 — o aluno lê o teste ANTES da aula), `starterCode ⊆
+ *     budget_receptivo` (A1), `solutionCode ⊆ budget_produtivo` (A2) + A6 (a
+ *     solução exige ≥1 construção do `introduces.productive` — a direção
+ *     puxada), sempre errando NOMEANDO a construção.
  *
  * CONTRATO DO PROVADOR (P-31, `phases/f9Verifier.ts` — mergeia ANTES deste
  * pacote): `criarProverDeDesafio({exec?, baseDir?, limiter?})` devolve uma
@@ -90,7 +94,8 @@ export type AutoriaErrorCode =
   | 'SCHEMA_INVALIDO' // parseia, mas viola o schema de saída do autor
   | 'ACIMA_DO_TETO' // estimativa > 2000 tokens — REJEITADO, nunca truncado
   | 'CODIGO_NAO_PARSEIA' // superfície de código do draft não parseia (extractor)
-  | 'CONSTRUCAO_FORA_DO_ORCAMENTO' // extractAtoms(draft) ⊄ orçamento do snapshot
+  | 'CONSTRUCAO_FORA_DO_ORCAMENTO' // extractAtoms(superfície) ⊄ faixa PRÓPRIA dela (§3.3)
+  | 'SOLUCAO_SEM_PRODUCAO' // A6: atomos(solutionCode) ∩ introduces.productive = ∅ — a direção puxada
   | 'PROVA_DO_DESAFIO_FALHOU'; // uma das QUATRO provas de execução (§5.4) falhou
 
 /**
@@ -290,7 +295,13 @@ export type SaidaDesafio = z.infer<typeof DesafioAuthorOutputSchema>;
 // O prompt do autor de desafio (função PURA do dossiê — A-P11-3, na variante)
 // ---------------------------------------------------------------------------
 
-/** A lista de construções PERMITIDAS do desafio: a união dos três orçamentos. */
+/**
+ * A lista de construções PERMITIDAS do desafio, PARA O PROMPT: a união dos
+ * três orçamentos (o autor precisa conhecer o vocabulário inteiro para não
+ * improvisar — a FAIXA de cada superfície é reforçada pela entrada literal
+ * das três listas E pelo GATE determinístico de `ofensasDeOrcamentoDoDesafio`
+ * (§3.3 — o prompt orienta, o gate banca o fail-closed).
+ */
 export function construcoesPermitidasDoDesafio(dossie: DossieDeDesafio): string[] {
   const uniao: string[] = [];
   for (const lista of [dossie.budget_receptivo, dossie.budget_produtivo, dossie.budget_teste]) {
@@ -442,42 +453,111 @@ export interface OfensaDeOrcamento {
   snippet: string;
 }
 
-/** Superfícies de código do desafio: solução, starter e testes (A1/A2/A3). */
-const SUPERFICIES_DO_DESAFIO: readonly { campo: string; extrair: (d: SaidaDesafio) => string }[] = [
-  { campo: 'solutionCode', extrair: (d) => d.solutionCode },
-  { campo: 'starterCode', extrair: (d) => d.starterCode },
-  { campo: 'testsCode', extrair: (d) => d.testsCode },
-];
+/** A FAIXA de orçamento (do dossiê da aula) que valida cada superfície (§3.3). */
+type FaixaDaSuperficie = 'produtivo' | 'receptivo' | 'teste';
 
 /**
- * GATE DE ORÇAMENTO do desafio — função PURA (c) da validação da autoria:
- * `extractAtoms(desafio) ⊆` orçamento do snapshot (a união das três listas do
- * dossiê da aula). Devolve as ofensas em ordem estável; superfície que não
- * parseia é falha (CODIGO_NAO_PARSEIA — fail-closed). Quem chama decide o
- * erro; este módulo devolve dados, nunca lança.
+ * As superfícies de código do desafio e a FAIXA PRÓPRIA de cada uma —
+ * docs §3.3/§5.1: a assimetria das quatro superfícies é a regra mais fácil
+ * de errar, e aplicar o MESMO orçamento (a união) às quatro deixa passar o
+ * desafio que o aluno lê antes de saber a aula:
+ *   - `solutionCode` → produtivo  (A2: o aluno ESCREVE — budget_saida.productive);
+ *   - `starterCode`  → receptivo  (A1: o aluno LÊ — budget_saida.receptive);
+ *   - `testsCode`    → teste      (A3: o aluno lê o teste ANTES da aula —
+ *                                  budget_ENTRADA.receptive, o orçamento de
+ *                                  entrada, NUNCA o da saída).
+ */
+const SUPERFICIES_DO_DESAFIO: readonly {
+  campo: string;
+  faixa: FaixaDaSuperficie;
+  extrair: (d: SaidaDesafio) => string;
+}[] = [
+  {
+    campo: 'solutionCode',
+    faixa: 'produtivo',
+    extrair: (d) => d.solutionCode,
+  },
+  {
+    campo: 'starterCode',
+    faixa: 'receptivo',
+    extrair: (d) => d.starterCode,
+  },
+  {
+    campo: 'testsCode',
+    faixa: 'teste',
+    extrair: (d) => d.testsCode,
+  },
+];
+
+/** As três FAIXAS do orçamento do snapshot, para o gate do desafio (§3.3). */
+export interface FaixasDeOrcamentoDoDesafio {
+  /** `budget_receptivo` — o que o starterCode pode usar (A1). */
+  receptivo: ReadonlySet<string>;
+  /** `budget_produtivo` — o que o solutionCode pode usar (A2). */
+  produtivo: ReadonlySet<string>;
+  /** `budget_teste` — o que o testsCode pode usar (A3 — ENTRADA). */
+  teste: ReadonlySet<string>;
+}
+
+/** O resultado do gate por faixas: ofensas + falha de parse + o veredito de A6. */
+export interface ResultadoDeOfensasDoDesafio {
+  /** construções fora da faixa PRÓPRIA da superfície, em ordem estável. */
+  ofensas: OfensaDeOrcamento[];
+  /** a primeira superfície que não parseia (fail-closed — quem chama decide). */
+  falhaDeParse: { campo: string; mensagem: string } | null;
+  /** A6 (§5.1): a solução NÃO usa nenhuma construção do `introduces.productive`. */
+  solucaoSemProducao: boolean;
+}
+
+/**
+ * GATE DE ORÇAMENTO POR FAIXAS do desafio — função PURA (c) da validação da
+ * autoria (docs §3.3/§5.1): CADA superfície é validada contra a faixa PRÓPRIA
+ * do orçamento do snapshot, NUNCA contra a união das três listas:
+ *
+ *   testsCode      ⊆ budget_teste     (A3 — o aluno lê o teste ANTES da aula;
+ *                                      o orçamento é o de ENTRADA)
+ *   starterCode    ⊆ budget_receptivo (A1 — o aluno lê o starter)
+ *   solutionCode   ⊆ budget_produtivo (A2 — o aluno ESCREVE a solução)
+ *
+ * E o gate POSITIVO A6 (a direção puxada): `atomos(solutionCode) ∩
+ * introduces.productive ≠ ∅` — sem isso o desafio só repete o que o aluno já
+ * sabia e não exige o que a aula introduz.
+ *
+ * Devolve as ofensas em ordem estável; superfície que não parseia é falha
+ * (CODIGO_NAO_PARSEIA — fail-closed). Quem chama decide o erro; este módulo
+ * devolve dados, nunca lança.
  */
 export function ofensasDeOrcamentoDoDesafio(
   draft: SaidaDesafio,
-  permitidas: ReadonlySet<string>,
-): { ofensas: OfensaDeOrcamento[]; falhaDeParse: { campo: string; mensagem: string } | null } {
+  faixas: FaixasDeOrcamentoDoDesafio,
+  introduzidasProdutivas: ReadonlySet<string>,
+): ResultadoDeOfensasDoDesafio {
   const ofensas: OfensaDeOrcamento[] = [];
   let falhaDeParse: { campo: string; mensagem: string } | null = null;
+  let solucaoSemProducao = false;
   for (const superficie of SUPERFICIES_DO_DESAFIO) {
     const extraido = extractAtoms(superficie.extrair(draft), { fileName: 'desafio.mjs' });
     if (!extraido.ok) {
       falhaDeParse = { campo: superficie.campo, mensagem: extraido.error.message };
       break;
     }
+    const permitidas = faixas[superficie.faixa];
     for (const ocorrencia of extraido.occurrences) {
       if (!permitidas.has(ocorrencia.key)) {
         ofensas.push({ construcao: ocorrencia.key, snippet: ocorrencia.snippet });
       }
     }
+    // A6 — direção puxada (§5.1): a SOLUÇÃO precisa exigir ≥1 construção que a
+    // aula INTRODUZ produtivamente; solução que só repete construções velhas
+    // (mesmo dentro do produtivo) não cobra o que a aula ensinou.
+    if (superficie.campo === 'solutionCode') {
+      solucaoSemProducao = !extraido.keys.some((chave) => introduzidasProdutivas.has(chave));
+    }
   }
   if (ofensas.length > 0) {
     ofensas.sort((a, b) => (a.construcao < b.construcao ? -1 : a.construcao > b.construcao ? 1 : 0));
   }
-  return { ofensas, falhaDeParse };
+  return { ofensas, falhaDeParse, solucaoSemProducao };
 }
 
 // ---------------------------------------------------------------------------
@@ -604,15 +684,25 @@ export async function autorizarDesafio(
     });
   }
 
-  // (c) orçamento — extractAtoms(draft) ⊆ orçamento do snapshot (o dossiê da
-  //     aula é a fatia congelada do orçamento). NOMEIA a construção (a ofensa
-  //     de menor chave vira `construcao`; a mensagem lista todas).
-  const permitidas = new Set<string>([
-    ...dossie.budget_receptivo,
-    ...dossie.budget_produtivo,
-    ...dossie.budget_teste,
-  ]);
-  const { ofensas, falhaDeParse } = ofensasDeOrcamentoDoDesafio(draft, permitidas);
+  // (c) orçamento POR FAIXAS (§3.3): CADA superfície contra a faixa PRÓPRIA do
+  //     orçamento do snapshot (o dossiê da aula é a fatia congelada) — testsCode
+  //     ⊆ budget_teste (o aluno lê o teste ANTES da aula, A3), starterCode ⊆
+  //     budget_receptivo (A1), solutionCode ⊆ budget_produtivo (A2), e NUNCA a
+  //     união das três listas (a união deixava passar, por exemplo, um teste com
+  //     construção só-produtiva — o aluno lê o teste antes de saber a aula).
+  //     NOMEIA a construção (a ofensa de menor chave vira `construcao`; a
+  //     mensagem lista todas). A6 (direção puxada) fecha o gate positivo: a
+  //     solução precisa exigir ≥1 construção do `introduces.productive`.
+  const faixas: FaixasDeOrcamentoDoDesafio = {
+    receptivo: new Set(dossie.budget_receptivo),
+    produtivo: new Set(dossie.budget_produtivo),
+    teste: new Set(dossie.budget_teste),
+  };
+  const { ofensas, falhaDeParse, solucaoSemProducao } = ofensasDeOrcamentoDoDesafio(
+    draft,
+    faixas,
+    new Set(dossie.introduces_productive),
+  );
   if (falhaDeParse !== null) {
     throw new AutorError(
       'CODIGO_NAO_PARSEIA',
@@ -631,6 +721,21 @@ export async function autorizarDesafio(
         ` — trecho: "${primeira.snippet}" (docs §5.5: a violação nomeia a construção; fora do orçamento é defeito do grafo, não licença)`,
       aula_slug,
       { etapa: ETAPA_DESAFIO, construcao: primeira.construcao, detalhes: { ofensas } },
+    );
+  }
+  // A6 — a direção puxada (§5.1): `atomos(solutionCode) ∩ introduces.productive
+  // ≠ ∅`. Sem o gate positivo a trilha só repete o que o aluno já sabia (a aula
+  // `funcoes` do repositório falha exatamente aí) — o desafio tem de EXIGIR o
+  // que a aula introduz produtivamente.
+  if (solucaoSemProducao) {
+    throw new AutorError(
+      'SOLUCAO_SEM_PRODUCAO',
+      'a solução do desafio não usa nenhuma construção do introduces.productive (A6 — a direção puxada: atomos(solutionCode) ∩ introduces.productive ≠ ∅; a solução precisa exigir o que a aula introduz, não só repetir o que o aluno já lia)',
+      aula_slug,
+      {
+        etapa: ETAPA_DESAFIO,
+        detalhes: { introduzidasProdutivas: [...dossie.introduces_productive] },
+      },
     );
   }
 
