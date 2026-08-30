@@ -272,25 +272,28 @@ cv_export_env() {  # <LC_ALL> <TZ> <PYTHONHASHSEED>
 
 # Forca `-B` no interpretador Python: a protecao nao pode depender do que o
 # challenge-new.sh escreveu no test_command.
+# Imprime o argv NUL-separado no STDOUT; o chamador monta o array:
+#     while IFS= read -r -d '' item; do argv+=("$item"); done < <(cv_harden_argv ...)
+# (nameref `local -n` e bash 4.3+; no bash 3.2 do macOS o contrato e saida NUL).
 cv_harden_argv() {
-  local -n _sm_out="$1"; shift
   local -a _cmd=("$@")
   case "${_cmd[0]:-}" in
     python3|python|python3.*|*/python3|*/python)
       local _has_b=nao _a
       for _a in "${_cmd[@]}"; do [ "$_a" = "-B" ] && _has_b=sim; done
       if [ "$_has_b" = nao ]; then
-        _sm_out=("${_cmd[0]}" "-B" "${_cmd[@]:1}")
+        printf '%s\0' "${_cmd[0]}" "-B" "${_cmd[@]:1}"
         return 0
       fi
       ;;
   esac
-  _sm_out=("${_cmd[@]}")
+  if [ "$#" -gt 0 ]; then printf '%s\0' "${_cmd[@]}"; fi
 }
 
 cv_run_build() {
   [ "${#CV_BUILD_CMD[@]}" -gt 0 ] || return 0
-  local -a _bargv; cv_harden_argv _bargv "${CV_BUILD_CMD[@]}"
+  local -a _bargv=() _item
+  while IFS= read -r -d '' _item; do _bargv+=("$_item"); done < <(cv_harden_argv "${CV_BUILD_CMD[@]}")
   local rc=0
   sm_sandbox_run "$CV_WORKDIR" -- "${_bargv[@]}" >"$CV_WORK/build.log" 2>&1 || rc=$?
   return "$rc"
@@ -304,7 +307,8 @@ cv_execute() {  # <implementacao> [--names]
   cv_install "$impl"
   cv_purge_bytecode
 
-  local -a _targv; cv_harden_argv _targv "${CV_TEST_CMD[@]}"
+  local -a _targv=() _item
+  while IFS= read -r -d '' _item; do _targv+=("$_item"); done < <(cv_harden_argv "${CV_TEST_CMD[@]}")
   if [ "$want_names" -eq 1 ] && [ "$CV_PROBE" = "python_unittest_ran_line" ]; then
     _targv+=("-v")
   fi

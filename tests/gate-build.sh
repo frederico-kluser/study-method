@@ -44,7 +44,7 @@ LIBDIR="$SK/scripts/lib"
 # ───────────────────────────────────────────────────────────── B-01 sintaxe bash
 gate_section "B-01 · sintaxe de shell (bash -n)"
 declare -a SH_FILES=()
-gate_find_into SH_FILES "$GATE_ROOT" -name '*.sh'
+while IFS= read -r -d '' f; do SH_FILES+=("$f"); done < <(gate_find_into "$GATE_ROOT" -name '*.sh')
 if [ "${#SH_FILES[@]}" -eq 0 ]; then
   gate_pend "B-01" "há pelo menos um .sh no repositório" "nenhum *.sh encontrado sob $GATE_ROOT"
 else
@@ -61,7 +61,7 @@ fi
 # ───────────────────────────────────────────────────────────── B-02 sintaxe python
 gate_section "B-02 · sintaxe de Python (py_compile)"
 declare -a PY_FILES=()
-gate_find_into PY_FILES "$GATE_ROOT" -name '*.py'
+while IFS= read -r -d '' f; do PY_FILES+=("$f"); done < <(gate_find_into "$GATE_ROOT" -name '*.py')
 if [ "${#PY_FILES[@]}" -eq 0 ]; then
   gate_pend "B-02" "SK/scripts/render-plot.py existe e compila" "nenhum *.py encontrado sob $GATE_ROOT"
 else
@@ -79,7 +79,7 @@ fi
 # ───────────────────────────────────────────────────────────── B-03 JSON parseia
 gate_section "B-03 · todo JSON parseia (json.load da stdlib)"
 declare -a JSON_FILES=()
-gate_find_into JSON_FILES "$GATE_ROOT" -name '*.json'
+while IFS= read -r -d '' f; do JSON_FILES+=("$f"); done < <(gate_find_into "$GATE_ROOT" -name '*.json')
 if [ "${#JSON_FILES[@]}" -eq 0 ]; then
   gate_pend "B-03" "há JSON no repositório" "nenhum *.json encontrado"
 else
@@ -99,7 +99,7 @@ if [ ! -d "$LIBDIR" ]; then
   gate_pend "B-04" "LIB-1 sobre SK/scripts/lib/" "diretório inexistente: $(gate_rel "$LIBDIR")"
 else
   declare -a LIB_FILES=()
-  gate_find_into LIB_FILES "$LIBDIR" -name '*.sh'
+  while IFS= read -r -d '' f; do LIB_FILES+=("$f"); done < <(gate_find_into "$LIBDIR" -name '*.sh')
   if [ "${#LIB_FILES[@]}" -eq 0 ]; then
     gate_pend "B-04" "LIB-1 sobre lib/common.sh, lib/json.sh, lib/sandbox.sh" "nenhum .sh em $(gate_rel "$LIBDIR")"
   else
@@ -131,7 +131,7 @@ if [ ! -d "$SK/scripts" ]; then
   gate_pend "B-05" "executáveis de SK/scripts/" "diretório inexistente: $(gate_rel "$SK/scripts")"
 else
   declare -a EXEC_FILES=()
-  gate_find_into EXEC_FILES "$SK/scripts" \( -name '*.sh' -o -name '*.py' \)
+  while IFS= read -r -d '' f; do EXEC_FILES+=("$f"); done < <(gate_find_into "$SK/scripts" \( -name '*.sh' -o -name '*.py' \))
   declare -a REAL_EXEC=()
   for f in "${EXEC_FILES[@]}"; do
     case "$f" in "$LIBDIR"/*) continue ;; esac
@@ -218,7 +218,7 @@ assert_grep_empty "B-09" "nenhum arquivo de texto com CRLF" "todos os arquivos c
 # ───────────────────────────────────────────────────────────── B-10 templates de shell
 gate_section "B-10 · *.sh.tmpl parseia como bash depois de substituir placeholders"
 declare -a TMPL_SH=()
-gate_find_into TMPL_SH "$SK/assets/templates" -name '*.sh.tmpl'
+while IFS= read -r -d '' f; do TMPL_SH+=("$f"); done < <(gate_find_into "$SK/assets/templates" -name '*.sh.tmpl')
 if [ "${#TMPL_SH[@]}" -eq 0 ]; then
   gate_pend "B-10" "challenge/runner.sh.tmpl existe e é bash válido" \
     "nenhum *.sh.tmpl em $(gate_rel "$SK/assets/templates")"

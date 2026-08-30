@@ -258,19 +258,17 @@ gate_trunc() {
 
 # ---------------------------------------------------------------- listagem de arquivos
 
-# gate_find <subdir> <padrão...> — lista NUL-separada, respeitando caminhos com espaço.
+# gate_find_into <subdir> <padrão...> — imprime NUL-separado no STDOUT, respeitando
+# caminhos com espaço. O chamador monta o array:
+#     while IFS= read -r -d '' f; do ARR+=("$f"); done < <(gate_find_into ...)
+# (nameref `local -n` é bash 4.3+; no bash 3.2 do macOS o contrato é saída NUL).
 # Exclui .git, .deep-orchestrator e diretórios temporários do gate.
 gate_find_into() {
-  local -n _arr="$1"; shift
   local dir="$1"; shift
-  _arr=()
   [ -d "$dir" ] || return 0
-  local f
-  while IFS= read -r -d '' f; do _arr+=("$f"); done < <(
-    find "$dir" \
-      \( -name .git -o -name .deep-orchestrator -o -name node_modules -o -name __pycache__ \) -prune -o \
-      -type f "$@" -print0 2>/dev/null | sort -z
-  )
+  find "$dir" \
+    \( -name .git -o -name .deep-orchestrator -o -name node_modules -o -name __pycache__ \) -prune -o \
+    -type f "$@" -print0 2>/dev/null | sort -z
 }
 
 # ---------------------------------------------------------------- verificador mínimo de schema

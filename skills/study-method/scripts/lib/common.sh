@@ -170,10 +170,12 @@ sm_normalize_concept_id() {
     # shellcheck disable=SC2086
     for pair in $SM_ASCII_FOLD; do
         from="${pair%%:*}"; to="${pair#*:}"
-        s="${s//"$from"/"$to"}"
+        # bash 3.2 do macOS: `${s//"$from"/"$to"}` (os DOIS lados entre aspas) corrompe
+        # padrão multibyte — "ó" vira `"o"` literal. Aspas só no PADRÃO; o alvo $to é
+        # sempre ASCII e não contém `&`, então sem aspas é idêntico em bash 4/5.
+        s="${s//"$from"/$to}"
     done
-    s="${s,,}"
-    s="$(printf '%s' "$s" | LC_ALL=C tr -c 'a-z0-9' '_')"
+    s="$(printf '%s' "$s" | LC_ALL=C tr '[:upper:]' '[:lower:]' | tr -c 'a-z0-9' '_')"
     out=""
     oldifs="$IFS"; IFS='_'
     for tok in $s; do
@@ -209,10 +211,12 @@ sm_normalize_slug() {
     # shellcheck disable=SC2086
     for pair in $SM_ASCII_FOLD; do
         from="${pair%%:*}"; to="${pair#*:}"
-        s="${s//"$from"/"$to"}"
+        # bash 3.2 do macOS: `${s//"$from"/"$to"}` (os DOIS lados entre aspas) corrompe
+        # padrão multibyte — "ó" vira `"o"` literal. Aspas só no PADRÃO; o alvo $to é
+        # sempre ASCII e não contém `&`, então sem aspas é idêntico em bash 4/5.
+        s="${s//"$from"/$to}"
     done
-    s="${s,,}"
-    s="$(printf '%s' "$s" | LC_ALL=C tr -c 'a-z0-9' '-')"
+    s="$(printf '%s' "$s" | LC_ALL=C tr '[:upper:]' '[:lower:]' | tr -c 'a-z0-9' '-')"
     while [ "$s" != "${s//--/-}" ]; do s="${s//--/-}"; done
     s="${s#-}"; s="${s%-}"
     s="${s:0:64}"
@@ -520,7 +524,10 @@ sm_chmod_private() {
         sm_log error "sm_chmod_private: caminho inexistente: $p"
         return 1
     fi
-    if ! chmod 700 -- "$p" 2>/dev/null; then
+    # BSD chmod (macOS) nao conhece o separador GNU `--` e trata-o como arquivo —
+    # o caminho nunca comeca com `-` (callers passam caminhos absolutos), entao
+    # sem `--` e portavel para GNU e BSD.
+    if ! chmod 700 "$p" 2>/dev/null; then
         sm_log error "sm_chmod_private: chmod 700 falhou: $p"
         return 1
     fi

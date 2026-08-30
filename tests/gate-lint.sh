@@ -34,7 +34,7 @@ gate_limitation "O frontmatter é lido por \`awk\` (não há PyYAML nesta máqui
 gate_limitation "L-02 resolve só link relativo de arquivo. URL http(s)/mailto e âncora (#secao) não são verificadas."
 
 declare -a MD=()
-gate_find_into MD "$GATE_ROOT" -name '*.md'
+while IFS= read -r -d '' f; do MD+=("$f"); done < <(gate_find_into "$GATE_ROOT" -name '*.md')
 declare -a TXT=()
 while IFS= read -r -d '' f; do TXT+=("$f"); done < <(
   find "$GATE_ROOT" \( -name .git -o -name .deep-orchestrator -o -name __pycache__ \) -prune -o \

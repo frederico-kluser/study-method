@@ -133,12 +133,13 @@ if __name__ == "__main__":
     sys.exit(main(sys.argv))
 PYEOF
 
-# _scope_into <nome-do-array> [glob-relativo...] — copia SCAN_FILES para o array, tirando
-# os caminhos que casam um dos globs. Cada glob usado aqui TEM de ter sido declarado por
-# `gate_scope_excl`: exclusão escondida é pior que exclusão conhecida.
+# _scope_into [glob-relativo...] — imprime SCAN_FILES NUL-separado no STDOUT, tirando
+# os caminhos que casam um dos globs. O chamador monta o array:
+#     while IFS= read -r -d '' f; do ARR+=("$f"); done < <(_scope_into ...)
+# (nameref `local -n` é bash 4.3+; no bash 3.2 do macOS o contrato é saída NUL).
+# Cada glob usado aqui TEM de ter sido declarado por `gate_scope_excl`: exclusão
+# escondida é pior que exclusão conhecida.
 _scope_into() {
-  local -n _out="$1"; shift
-  _out=()
   local f rel g skip
   for f in "${SCAN_FILES[@]}"; do
     rel="${f#"$GATE_ROOT"/}"
@@ -147,7 +148,7 @@ _scope_into() {
       # shellcheck disable=SC2254  # o glob é deliberado
       case "$rel" in $g) skip=1; break ;; esac
     done
-    [ "$skip" -eq 0 ] && _out+=("$f")
+    [ "$skip" -eq 0 ] && printf '%s\0' "$f"
   done
 }
 
@@ -155,7 +156,8 @@ _scope_into() {
 # revogatório e os caminhos excluídos POR ESTE check (não globalmente).
 grep_scope() {
   local pat="$1"; shift
-  local -a _f=(); _scope_into _f "$@"
+  local -a _f=() _item
+  while IFS= read -r -d '' _item; do _f+=("$_item"); done < <(_scope_into "$@")
   [ "${#_f[@]}" -eq 0 ] && return 0
   python3 "$SCANNER" revoke "$pat" "$REVOKE_MARKERS" "$GATE_ROOT" "${_f[@]}"
 }
@@ -163,13 +165,14 @@ grep_scope() {
 # grep_scope_raw <ERE> [glob-excluído...] — igual, sem tolerância de contexto.
 grep_scope_raw() {
   local pat="$1"; shift
-  local -a _f=(); _scope_into _f "$@"
+  local -a _f=() _item
+  while IFS= read -r -d '' _item; do _f+=("$_item"); done < <(_scope_into "$@")
   [ "${#_f[@]}" -eq 0 ] && return 0
   python3 "$SCANNER" raw "$pat" "" "$GATE_ROOT" "${_f[@]}"
 }
 
 declare -a SCHEMAS=()
-gate_find_into SCHEMAS "$SCHEMA_DIR" -name '*.json'
+while IFS= read -r -d '' f; do SCHEMAS+=("$f"); done < <(gate_find_into "$SCHEMA_DIR" -name '*.json')
 
 # ════════════════════════════════════════════════ auditoria estrutural dos schemas (python)
 AUDIT="$GATE_TMPDIR/schema_audit.py"
@@ -1131,7 +1134,7 @@ else
 fi
 
 declare -a REFS=()
-gate_find_into REFS "$SK/references" -name '*.md'
+while IFS= read -r -d '' f; do REFS+=("$f"); done < <(gate_find_into "$SK/references" -name '*.md')
 if [ "${#REFS[@]}" -eq 0 ]; then
   gate_pend "I-34" "grafo de references de 1 nível" "nenhum .md em SK/references/"
   gate_pend "I-35" "reference longa começa com sumário" "nenhum .md em SK/references/"
@@ -1198,7 +1201,7 @@ else
   fi
 
   declare -a TPLS=()
-  gate_find_into TPLS "$TPL_DIR" -name '*.tmpl'
+  while IFS= read -r -d '' f; do TPLS+=("$f"); done < <(gate_find_into "$TPL_DIR" -name '*.tmpl')
   if [ "${#TPLS[@]}" -eq 0 ]; then
     gate_pend "G-08b" "todo placeholder usado está no MANIFEST.tsv" "nenhum *.tmpl em $(gate_rel "$TPL_DIR")"
     gate_pend "G-08c" "nenhum template usa delimitador fora de {{NOME}}" "nenhum *.tmpl"
@@ -1261,7 +1264,7 @@ assert_grep_empty "I-36" "nenhum artefato gerado usa frontmatter YAML" \
 
 # I-37 · nenhum caminho absoluto gravado dentro do setup
 declare -a EXAMPLES=()
-gate_find_into EXAMPLES "$GATE_ROOT/examples" -name '*.json'
+while IFS= read -r -d '' f; do EXAMPLES+=("$f"); done < <(gate_find_into "$GATE_ROOT/examples" -name '*.json')
 if [ "${#EXAMPLES[@]}" -eq 0 ]; then
   gate_pend "I-37" "todo caminho gravado dentro do setup é relativo" "nenhum fixture em examples/"
   gate_pend "I-39" "execution.sandbox.mode e execution.sandbox.timeout_source em todo meta.json com verdict != not_run" "nenhum fixture em examples/"
@@ -1302,7 +1305,8 @@ else
   miss=""
   for s in $SECTIONS; do grep -qF "$s" "$RS" || miss="$miss$s "; done
   extra="$(grep -oE 'study-method:begin [a-z-]+' "$RS" 2>/dev/null | awk '{print $2}' | sort -u | while IFS= read -r s; do
-    case " $SECTIONS " in *" $s "*) ;; *) printf '%s\n' "$s" ;; esac; done || true)"
+    if [[ " $SECTIONS " == *" $s "* ]]; then :; else printf '%s\n' "$s"; fi
+  done || true)"
   assert_grep_empty "I-41" "as 8 seções de marcador do README.md do setup batem com §3.5" \
     "identidade · taxonomia · base-teorica · destilados · desafios · linha-do-tempo · pontes · estado-atual" \
     "$( [ -n "$miss" ] && printf 'faltam: %s\n' "$miss"; printf '%s' "$extra" )"

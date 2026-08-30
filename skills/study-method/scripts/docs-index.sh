@@ -264,7 +264,7 @@ for c in nb.get("cells", []):
 '
 
 # ============================================================ extração de texto
-di_ext_of() { local b; b="$(basename -- "$1")"; b="${b##*.}"; printf '%s' "${b,,}"; }
+di_ext_of() { local b; b="$(basename -- "$1")"; b="${b##*.}"; printf '%s' "$b" | tr '[:upper:]' '[:lower:]'; }
 
 di_kind_of() {   # enum de docs-index.schema.json: markdown|text|pdf|html|binary|unknown
   case "$1" in
