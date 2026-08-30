@@ -15,8 +15,11 @@
  * modelo, não tem (a aula é outra entidade — P-16/P-21). Quem monta a visão
  * (a onda de orçamento) resolve: aula → conceitos introduzidos/exercitados,
  * exigências do desafio, artefatos, formas apresentadas, orçamento vigente.
- * `checkInvariants` apenas CONSUME — nunca deriva (a derivação do orçamento,
- * fecho-para-baixo etc., é P-16).
+ * `checkInvariants` apenas CONSUME — nunca deriva: a derivação do orçamento
+ * (entrada ∪ fecho-para-baixo ∪ introduces) é da F4/P-10
+ * (`phases/f4Budget.ts::deriveBudgetDoGrafo`), e a visão é MONTADA pela
+ * F3/P-16 consumindo o orçamento (NÃO re-deriva; orcamentoVigente =
+ * budget_saida.receptive ∪ budget_saida.productive — ver `phases/f3Graph.ts`).
  *
  * AS ONZE:
  *   I1  o grafo é um DAG e todo referenciado existe (arestas duras E da Q-matrix);
@@ -90,7 +93,9 @@ export interface AulaNaVisao {
   /**
    * orçamento vigente para o desafio desta aula (o que o aluno tem direito de
    * usar) — I10. Dado de entrada (a derivação real — entrada ∪ fecho-para-baixo
-   * ∪ introduces — é P-16). Ausente = não verificável = violação (fail-closed).
+   * ∪ introduces — é da F4/P-10, `deriveBudgetDoGrafo`; a F3/P-16 monta a visão
+   * com orcamentoVigente = budget_saida.receptive ∪ budget_saida.productive).
+   * Ausente = não verificável = violação (fail-closed).
    */
   orcamentoVigente?: ConceptId[];
 }
