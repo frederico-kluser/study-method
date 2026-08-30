@@ -24,6 +24,7 @@ import assert from 'node:assert/strict';
 import * as ts from 'typescript';
 
 import { ATOM_KEY_RE, axisOf, isAtomKey } from '../electron/main/engine/atomKeys';
+import { deriveTrackBudget } from '../electron/main/engine/budget';
 import { extractAtoms } from '../electron/main/engine/extract';
 import {
   FORM_SELECTOR_INVALID,
@@ -168,6 +169,38 @@ describe('form — if sem else', () => {
     ts.forEachChild(withElse, find2);
     assert.ok(elseNode);
     assert.equal(selectorMatches(compiled, elseNode), false);
+  });
+});
+
+describe('form — atributo inexistente (typo) não casa — A-P06-2/WARNING', () => {
+  it('`[elseStatemnt=null]` (nome errado) NÃO casa — antes casava TODO IfStatement como null', () => {
+    const compiled = parseSelector('IfStatement[elseStatemnt=null]');
+    const source = ts.createSourceFile('x.js', 'if (a) { b(); }', ts.ScriptTarget.Latest, true, ts.ScriptKind.JS);
+    let ifNode: ts.IfStatement | undefined;
+    const find = (n: ts.Node): void => {
+      if (ts.isIfStatement(n)) ifNode = n;
+      ts.forEachChild(n, find);
+    };
+    ts.forEachChild(source, find);
+    assert.ok(ifNode, 'o fixture precisa ter um IfStatement sem else');
+    assert.equal(selectorMatches(compiled, ifNode), false);
+  });
+
+  it('`[elseStatemnt!=null]` (nome errado) também NÃO casa — `!=` não casa propriedade ausente', () => {
+    const compiled = parseSelector('IfStatement[elseStatemnt!=null]');
+    const source = ts.createSourceFile('x.js', 'if (a) { b(); } else { c(); }', ts.ScriptTarget.Latest, true, ts.ScriptKind.JS);
+    let ifNode: ts.IfStatement | undefined;
+    const find = (n: ts.Node): void => {
+      if (ts.isIfStatement(n)) ifNode = n;
+      ts.forEachChild(n, find);
+    };
+    ts.forEachChild(source, find);
+    assert.ok(ifNode, 'o fixture precisa ter um IfStatement com else');
+    assert.equal(selectorMatches(compiled, ifNode), false);
+  });
+
+  it('atributo REAL com valor nulo continua casando — `if` sem else permanece detectável', () => {
+    assert.ok(formKeysOf('if (a) { usa(a); }').includes('form:IfStatement[alternate=null]'));
   });
 });
 
@@ -347,5 +380,98 @@ describe('form — fim-a-fim no gate de orçamento (I9/I11)', () => {
     const report = auditTrack(t);
     const formV = report.violations.filter((v) => (v.construcao ?? '').startsWith('form:'));
     assert.deepEqual(formV, [], JSON.stringify(report.violations, null, 2));
+  });
+});
+
+// ---------------------------------------------------------------------------
+// A-P06-2 — o harness/starter entram no orçamento RECEPTIVO por política (seed);
+// o padrão do CORPUS REAL é arrow de EXPRESSÃO, não arrow de bloco.
+// ---------------------------------------------------------------------------
+
+describe('form — harness/starter do corpus real (A-P06-2)', () => {
+  const corpusTestsCode = (fn: string, arg: string): string =>
+    `import { test } from 'node:test';\nimport assert from 'node:assert/strict';\nimport { ${fn} } from './solution.mjs';\n\ntest('recusa um valor que não é texto', () => {\n  assert.throws(() => ${fn}(${arg}));\n});\n`;
+
+  // A teoria da aula 1 ensina função declarada — o que isola o que este teste
+  // quer provar: o default-param e a arrow de expressão chegam pelo RUNNER e
+  // pelo STARTER (seed RECEPTIVA), não por aula.
+  const theoryFuncao = "export function saudar(nome) {\n  console.log(nome);\n}\n";
+
+  it('fixture do corpus: testsCode com `assert.throws(() => f(x))` NÃO viola com a seed', () => {
+    const t = trackOf([
+      moduleOf('m1', 1, [
+        lesson('a1', [theory('s1', 'texto', theoryFuncao)], [
+          challenge('c1', {
+            starterCode: 'export function cumprimentar(nome) {\n}\n',
+            testsCode: corpusTestsCode('cumprimentar', '42'),
+            solutionCode: 'export function cumprimentar(nome) {\n  return "Olá, " + nome;\n}\n',
+          }),
+        ]),
+      ]),
+    ]);
+    // a isenção vem da política receptiva, não de golpe no orçamento: a forma
+    // arrow-de-expressão está na ENTRADA receptiva da aula 1 e fora do produtivo.
+    const budget = deriveTrackBudget(t);
+    assert.ok(budget.lessons[0].entrada.receptive.has('form:ArrowFunction[body!=Block]'));
+    assert.ok(!budget.lessons[0].entrada.productive.has('form:ArrowFunction[body!=Block]'));
+
+    const report = auditTrack(t);
+    // nada do arquivo de teste viola (A3) — o padrão do corpus fica limpo...
+    const testsV = report.violations.filter((v) => v.campo === 'testsCode');
+    assert.deepEqual(testsV, [], JSON.stringify(report.violations, null, 2));
+    // ...e nenhuma forma viola em superfície nenhuma.
+    const formV = report.violations.filter((v) => (v.construcao ?? '').startsWith('form:'));
+    assert.deepEqual(formV, [], JSON.stringify(report.violations, null, 2));
+  });
+
+  it('fixture do corpus: starter com assinatura default congelada NÃO viola (A1)', () => {
+    const t = trackOf([
+      moduleOf('m1', 1, [
+        lesson('a1', [theory('s1', 'texto', theoryFuncao)], [
+          challenge('c1', {
+            starterCode: "export function montarPackageJson(nome, versao = '1.0.0') {\n}\n",
+            testsCode: corpusTestsCode('montarPackageJson', "'', '1.0.0'"),
+            solutionCode:
+              "export function montarPackageJson(nome, versao = '1.0.0') {\n  return { name: nome, version: versao };\n}\n",
+          }),
+        ]),
+      ]),
+    ]);
+    const budget = deriveTrackBudget(t);
+    assert.ok(budget.lessons[0].entrada.receptive.has('form:Parameter[initializer!=null]'));
+    assert.ok(!budget.lessons[0].entrada.productive.has('form:Parameter[initializer!=null]'));
+
+    const report = auditTrack(t);
+    // a assinatura congelada (com default) não viola A1 nem A2: a forma está na seed.
+    const formV = report.violations.filter((v) => (v.construcao ?? '').startsWith('form:'));
+    assert.deepEqual(formV, [], JSON.stringify(report.violations, null, 2));
+  });
+
+  it('a isenção é SÓ receptiva: solutionCode com arrow de expressão continua violando (A2)', () => {
+    // Aula em modo DECLARADO sem introduzir a forma no produtivo: a seed libera
+    // a LEITURA (teoria usa arrow de expressão sem violar A4), mas ESCREVER a
+    // forma no desafio segue exigindo aula que a introduza no produtivo.
+    const t = trackOf([
+      moduleOf('m1', 1, [
+        {
+          ...lesson('a1', [theory('s1', 'texto', 'const dobra = (x) => x + 1;')], [
+            challenge('c1', { solutionCode: 'export const dobro = (x) => x * 2;' }),
+          ]),
+          meta: {
+            ...lesson('a1', [theory('s1', 'texto')], [challenge('c1')]).meta,
+            introduces: {},
+          } as LoadedLesson['meta'],
+        },
+      ]),
+    ]);
+    const report = auditTrack(t);
+    const formV = report.violations.filter((v) => (v.construcao ?? '').startsWith('form:'));
+    assert.equal(formV.length, 1, JSON.stringify(report.violations, null, 2));
+    assert.equal(formV[0].construcao, 'form:ArrowFunction[body!=Block]');
+    assert.equal(formV[0].regra, 'A2');
+    assert.equal(formV[0].campo, 'solutionCode');
+    // Lacuna de currículo: nenhuma aula introduziu a forma no produtivo — a
+    // seed isentou só o receptivo, e escrever a forma segue exigindo aula.
+    assert.equal(formV[0].primeiraAulaQueEnsina, null);
   });
 });

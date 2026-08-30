@@ -222,6 +222,23 @@ export const HARNESS_RECEPTIVE_SEED: readonly AtomKey[] = [
   'api:assert.ok',
   'global:assert',
   'global:test',
+  // FORMAS que o PRÓPRIO harness/starter congela no corpus real (A-P06-2):
+  //   - o runner de teste escreve `assert.throws(() => f(x))` no testsCode →
+  //     `form:ArrowFunction[body!=Block]` — arrow de EXPRESSÃO que o aluno lê
+  //     em todo desafio com cenário de erro (challenge.json:10 de `cumprimentar`);
+  //   - o starter congela a assinatura com default (`export function f(nome,
+  //     versao = '1.0.0')` em `npm-e-package-json`) →
+  //     `form:Parameter[initializer!=null]` — leitura obrigatória que o aluno
+  //     não edita.
+  // São RELEITURA obrigatória sem aula nenhuma, como as demais chaves desta
+  // semente; entram no orçamento RECEPTIVO pela política `receptive-seed`
+  // (`docs/16-engine-de-trilha.md` §3.2/D1; `entryAxiom` em budget.ts as joga
+  // no receptivo de ENTRADA da aula 1 e elas se acumulam daí em diante).
+  // NUNCA no produtivo: uma AULA que ensine arrow de expressão — ou default de
+  // parâmetro — como CONTEÚDO continua exigindo aula própria (A2/A3/A6 mantidos
+  // para a forma como conteúdo ensinado; a isenção é só receptiva do harness).
+  'form:ArrowFunction[body!=Block]',
+  'form:Parameter[initializer!=null]',
 ] as const;
 
 /**

@@ -29,7 +29,10 @@
  *
  *   1. `TipoDeNó`  — casa o tipo do nó pelo NOME CANÔNICO do SyntaxKind
  *      (`extract.ts` — mesma tabela anti-marcador-de-faixa). Ex.: `IfStatement`.
- *   2. `[atm=null]` / `[atm!=null]` — o atributo está nulo/ausente ou não.
+ *   2. `[atm=null]` / `[atm!=null]` — o atributo EXISTE no nó e está nulo
+ *      (ausente de valor: `undefined`/`null`). Um atributo que NÃO existe no
+ *      nó — typo, ex. `[elseStatemnt=null]` — NÃO casa em nenhum dos dois
+ *      operadores (ver A-P06-2 abaixo).
  *   3. `[atm=TipoDeNó]` / `[atm!=TipoDeNó]` — o atributo é um nó daquele tipo.
  *      `ArrowFunction[body=Block]` separa arrow de bloco de arrow de expressão.
  *   4. `A > B` — RELAÇÃO PAI-FILHO DIRETA: `B` tem `A` como pai. O sujeito da
@@ -308,7 +311,18 @@ function stepMatches(node: ts.Node | undefined, step: SelectorStep): boolean {
   if (!node) return false;
   if (kindNameOf(node) !== step.nodeType) return false;
   for (const f of step.filters) {
-    const raw = (node as unknown as Record<string, unknown>)[f.resolvedName];
+    const record = node as unknown as Record<string, unknown>;
+    // A-P06-2: o filtro só casa quando a propriedade EXISTE no nó. Antes,
+    // `raw === undefined` (propriedade AUSENTE) era tratado como valor null e
+    // um atributo com nome errado (`[elseStatemnt=null]`) casava TODO nó do
+    // tipo em silêncio — falsificando o orçamento com uma forma que ninguém
+    // escreveu. `in` é seguro no AST do TypeScript: a nodeFactory atribui TODAS
+    // as propriedades como próprias, inclusive as opcionais (`elseStatement`
+    // existe com valor `undefined` em `if` sem else; `initializer` idem em
+    // parâmetro sem default) — logo o `in` só falha para nome que não existe.
+    // O `!=` segue o mesmo princípio: não casa se a propriedade não existe.
+    if (!(f.resolvedName in record)) return false;
+    const raw = record[f.resolvedName];
     const isNull = raw === undefined || raw === null;
     if (f.value === 'null') {
       if (f.op === 'eq' && !isNull) return false;
