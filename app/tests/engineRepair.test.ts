@@ -25,11 +25,14 @@
  * arquivo da violação de ordem, o laço CONVERGE na ordem e a lacuna permanece
  * intacta no audit final.
  *
- * FIAÇÃO P-35 (`review/audit2Laco.ts`): o adaptador audit→laço é INJETADO
- * aqui como fake (a worktree ainda não tem o P-35; a ORDEM de merge integra o
- * P-35 antes deste pacote). O fake respeita o CONTRATO documentado em
- * `modes/repair.ts` — `caminho` = `<arquivo>#<campo>`, span [-1,-1] (o repair
- * re-resolve), construções relidas por superfície, `'a6'` para A6.
+ * FIAÇÃO P-35 (`review/audit2Laco.ts`): o P-35 ESTÁ EM MAIN (a ORDEM de merge
+ * integrou antes deste pacote) e o repair o importa ESTATICAMENTE, ENROLADO no
+ * contrato `AdaptadorAuditLaco` (chaves de superfície `<arquivo>#<campo>`,
+ * span [-1,-1] — o repair re-resolve no artefato vivo). A maioria dos testes
+ * injeta o FAKE (mesmo contrato, determinístico); o teste "adaptador real"
+ * prova o caminho do MÓDULO REAL (sem injeção), e um teste de guarda injeta um
+ * loader que FALHA para provar `REPAIR_SEM_ADAPTADOR_AUDIT_LACO` mesmo com o
+ * módulo presente (fail-closed testável pelo seam `carregarAdaptadorAuditLaco`).
  *
  * OFFLINE: nenhuma trilha em disco, nenhum LLM real, nenhuma rede — a trilha
  * é fixture em memória; o audit é o `auditTrack` REAL sobre a fixture (as
@@ -446,6 +449,9 @@ function depsDeReparoCom(
     modeloAutor: over.modeloAutor ?? 'autor-de-teste',
     modeloRevisor: over.modeloRevisor ?? 'revisor-de-teste',
     auditLaco: tem('auditLaco') ? over.auditLaco : adaptadorAuditLacoFalso(auditTrack(track)),
+    // o seam da guarda fica testável: undefined → loader default (módulo real);
+    // loader que devolve null → REPAIR_SEM_ADAPTADOR_AUDIT_LACO.
+    carregarAdaptadorAuditLaco: over.carregarAdaptadorAuditLaco,
     rodadasMaximas: over.rodadasMaximas ?? 1,
   };
   return { deps, escrita };
@@ -733,13 +739,78 @@ describe('P-23 · fail-closed', () => {
     );
   });
 
-  it('SEM adaptador P-35 (e sem módulo no disco) → REPAIR_SEM_ADAPTADOR_AUDIT_LACO', async () => {
+  it('adaptador REAL (P-35 integrado em main): sem injeção o repair carrega review/audit2Laco e o USA — a guarda não dispara e o laço corrige', async () => {
     const track = trilhaComOrdemELacuna();
-    const { deps } = depsDeReparoCom(track, { auditLaco: undefined });
+    const arquivo = caminhoDoDesafio('a01', 'c1');
+    const conteudoInicial = track.modules[0].lessons[0].challenges[0].solutionCode as string;
+    const { deps, escrita } = depsDeReparoCom(track, {
+      // NÃO injeta o fake: o repair resolve o MÓDULO REAL `review/audit2Laco`
+      // (P-35 em main — o teste de ontem esperava a guarda porque o módulo não
+      // existia; hoje o módulo EXISTE e a guarda NÃO pode disparar).
+      auditLaco: undefined,
+      llm: {
+        revisar: revisorInerte,
+        planejar: planejador,
+        // Mesmo esquema de A-P23-5: 2 ordens no MESMO trecho — a 1ª corrige, a
+        // 2ª acha o trecho já corrigido e devolve delta vazio (não danosa).
+        corrigir: corretorTerapeutico(
+          new Map([[`${arquivo}#solutionCode`, conteudoInicial]]),
+          [
+            { busca: 'typeof valor;', substituicao: 'valor === 11;' },
+            { busca: 'typeof valor;', substituicao: 'valor === 11;' },
+          ],
+        ),
+      },
+    });
+
+    const resultado = await repararTrilha(deps, { slug: 'trilha-de-teste', modo: 'aplicar' });
+    assert.equal(resultado.modo, 'aplicar');
+    const aplicado = resultado as Extract<ResultadoDeReparo, { modo: 'aplicar' }>;
+
+    // O MÓDULO REAL foi usado de verdade: o resultado DECLARA review/audit2Laco.
+    assert.ok(
+      aplicado.declaracoes.some((d) => d.includes('review/audit2Laco')),
+      'o resultado declara o uso do módulo real review/audit2Laco (não o fake injetado)',
+    );
+    // O seed real SEMEIOU os pins das violações de ORDEM e o laço REAL corrigiu.
+    assert.equal(aplicado.rodadas.length, 1);
+    assert.equal(aplicado.rodadas[0].correcoes.length, 1);
+    assert.deepEqual(aplicado.escritos, [arquivo]);
+    assert.equal(escrita.chamadas, 1);
+    const gravado = JSON.parse(escrita.arquivos.get(arquivo) as string) as { solutionCode: string };
+    assert.ok(!gravado.solutionCode.includes('typeof'), 'a construção de ordem saiu da solução (correção via o P-35 real)');
+    assert.ok(gravado.solutionCode.includes('valor === 11;'));
+    // Re-audit final comparado ao inicial (A-P23-5) — só restaram as lacunas.
+    assert.equal(aplicado.placarFinal.violacoes, 2);
+    assert.equal(aplicado.melhorou, true);
+  });
+
+  it('guarda: adaptador NÃO injetado E módulo INDISPONÍVEL (loader que falha) → REPAIR_SEM_ADAPTADOR_AUDIT_LACO ANTES do audit/plano (só `aplicar`)', async () => {
+    const track = trilhaComOrdemELacuna();
+    let auditou = false;
+    const { deps } = depsDeReparoCom(track, {
+      auditLaco: undefined,
+      // O SEAM pergunta ao loader: devolve null → "o módulo não pôde ser
+      // carregado" — a guarda dispara MESMO com o review/audit2Laco em main
+      // (o repair não acessa o adaptador sem ele existir — fail-closed).
+      carregarAdaptadorAuditLaco: async () => null,
+      auditar: (t) => {
+        auditou = true;
+        return auditTrack(t);
+      },
+    });
     await assert.rejects(
       () => repararTrilha(deps, { slug: 'trilha-de-teste', modo: 'aplicar' }),
       (erro: unknown) => erro instanceof ErroDeReparo && erro.codigo === 'REPAIR_SEM_ADAPTADOR_AUDIT_LACO',
     );
+    assert.equal(auditou, false, 'a guarda dispara ANTES de rodar o audit/plano do caminho que usaria o adaptador');
+
+    // ESCOLHA DOCUMENTADA: a guarda vale SÓ para `aplicar` — o dry-run é puro
+    // (planejarReparo não toca o adaptador) e segue funcionando com o mesmo
+    // loader que falha.
+    const dry = await repararTrilha(deps, { slug: 'trilha-de-teste', modo: 'dry-run' });
+    assert.equal(dry.modo, 'dry-run');
+    assert.ok((dry as Extract<ResultadoDeReparo, { modo: 'dry-run' }>).plano.ordens.length >= 1);
   });
 
   it('SEM proverDesafio → REPAIR_SEM_PROVER; SEM escrita → REPAIR_SEM_ESCRITA', async () => {

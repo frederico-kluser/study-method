@@ -40,13 +40,19 @@
  *      (v2) sobre esta mesma estrutura. A escolha A/B está documentada nos
  *      comentários e o handoff a declara.
  *
- *   B. FIAÇÃO P-35 (review/audit2Laco.ts) — INTERFACE CONTRATADA, import
- *      DEFENSIVO. O pacote P-35 pode não estar em main nesta worktree; a ORDEM
- *      de merge integra o P-35 ANTES deste. Este módulo declara o CONTRATO
- *      (`AdaptadorAuditLaco`) e, quando `deps.auditLaco` não é injetado, tenta
- *      carregar `../review/audit2Laco` em `import()` LAZY (especificador em
- *      VARIÁVEL — o módulo pode não existir em build; fail-closed com erro
- *      `REPAIR_SEM_ADAPTADOR_AUDIT_LACO` quando não existe E não foi injetado).
+ *   B. FIAÇÃO P-35 (review/audit2Laco.ts) — CONTRATO + ADAPTADOR REAL. O P-35
+ *      JÁ ESTÁ EM MAIN (mergeado com a ordem prevista) e este módulo o importa
+ *      ESTATICAMENTE. O repair declara a INTERFACE CONTRATADA
+ *      (`AdaptadorAuditLaco`) — semântica inalterada — e o REAL
+ *      `review/audit2Laco` é ENROLADO nela (ver `adaptadorDoModuloReal`): o
+ *      P-35 mede spans no arquivo JSON INTEIRO e chaveia por `Violation.arquivo`,
+ *      enquanto o repair monta artefatos por SUPERFÍCIE (`<arquivo>#<campo>`);
+ *      o adaptador converte as duas vistas SEM mudar a semântica do contrato.
+ *      FAIL-CLOSED imutável: adaptador ausente E módulo indisponível →
+ *      `ErroDeReparo` `REPAIR_SEM_ADAPTADOR_AUDIT_LACO` ANTES de qualquer
+ *      acesso — a guarda roda no passo de deps do modo `aplicar`, ANTES do
+ *      audit/plano desse caminho. O DRY-RUN NÃO resolve o adaptador (o
+ *      `planejarReparo` é PURO — a escolha está documentada em `repararTrilha`).
  *      Semântica contratada (o P-35 implementa contra este arquivo):
  *        - `auditEmViolacoesMecanicas(report)` — cada violação vira
  *          `ViolacaoMecanica` com `caminho` = `<arquivo>#<campo>` (o MESMO
@@ -123,16 +129,18 @@ import { criarPinParaAchado, type ProverDeDesafio } from '../review/prover';
 export const SLUG_PROIBIDO_DO_REPAIR = 'nodejs-do-zero';
 
 // ---------------------------------------------------------------------------
-// O contrato P-35 (review/audit2Laco.ts) — import defensivo, fiação injetada
+// O contrato P-35 (review/audit2Laco.ts) — import ESTÁTICO + adaptador real
 // ---------------------------------------------------------------------------
 
 /**
- * A INTERFACE CONTRATADA do pacote P-35 (`review/audit2Laco.ts`). A ORDEM de
- * merge integra o P-35 ANTES deste pacote; enquanto ele não existe, o repair
- * exige injeção em `deps.auditLaco` (os testes injetam fakes) e, em produção,
- * carrega o módulo lazy (ver `carregarAdaptadorP35`). As três funções recebem
- * o MESMO `AuditReport` (contrato). Semântica completa na documentação do
- * cabeçalho, bloco B.
+ * A INTERFACE CONTRATADA do pacote P-35 (`review/audit2Laco`). SEMÂNTICA
+ * INALTERADA (os fakes da suíte implementam esta interface): as três funções
+ * recebem o MESMO `AuditReport` (contrato) e o repair as consome com as
+ * CHAVES DE SUPERFÍCIE que `montarArtefatos` produz (`<arquivo>#<campo>`,
+ * span [inicio, fim] pode ficar [-1,-1] — o repair re-resolve no conteúdo do
+ * artefato). O módulo REAL devolve chaves de ARQUIVO e spans no JSON inteiro;
+ * `adaptadorDoModuloReal` re-embrulha o real NESTE contrato (semântica
+ * preservada — ver bloco B do cabeçalho).
  */
 export interface AdaptadorAuditLaco {
   auditEmViolacoesMecanicas(report: AuditReport): ViolacaoMecanica[];
@@ -141,33 +149,133 @@ export interface AdaptadorAuditLaco {
 }
 
 /**
- * Carrega o adaptador P-35 de `../review/audit2Laco` se o módulo existir.
- * Import LAZY com especificador em VARIÁVEL: o TypeScript não resolve (nem
- * deveria) o caminho de um módulo que pode não existir nesta worktree — o
- * erros de build do P-35 ausente são impossíveis por construção, e o erro de
- * RUNTIME (módulo ainda não mergeado) é capturado e vira `null` → o chamador
- * falha fechado com `REPAIR_SEM_ADAPTADOR_AUDIT_LACO` (nunca funciona em
- * silêncio sem o adaptador).
+ * O P-35 JÁ ESTÁ EM MAIN (a ORDEM de merge previu isso): o import LAZY com
+ * especificador em VARIÁVEL (`import()` dinâmico com `@vite-ignore`), que
+ * existia enquanto o módulo podia não estar na worktree, é substituído pelo
+ * import ESTÁTICO abaixo — o contrato de fail-closed (adaptador ausente E
+ * módulo indisponível → `REPAIR_SEM_ADAPTADOR_AUDIT_LACO`) continua valendo
+ * via a guarda de `repararTrilha` (passo 3, modo `aplicar`), que nesta versão
+ * só dispara quando o carregamento é forçado a falhar (o seam
+ * `deps.carregarAdaptadorAuditLaco` permite testar a guarda com um loader que
+ * devolve null — o módulo real, importado estaticamente, não falha em build).
  */
-async function carregarAdaptadorP35(): Promise<AdaptadorAuditLaco | null> {
-  const especificador = '../review/audit2Laco';
-  try {
-    // O especificador é uma VARIÁVEL de propósito: em build o caminho pode não
-    // existir ainda (P-35 integra antes do P-23 na ORDEM de merge). O cast é a
-    // validação de contrato — o runtime valida as três funções abaixo.
-    const mod = (await import(/* @vite-ignore */ especificador)) as Partial<AdaptadorAuditLaco> | undefined;
-    if (
-      mod !== undefined &&
-      typeof mod.auditEmViolacoesMecanicas === 'function' &&
-      typeof mod.criarVerificadorDeOrcamentoDaTrilha === 'function' &&
-      typeof mod.snapshotDeOrcamentoDoAudit === 'function'
-    ) {
-      return mod as AdaptadorAuditLaco;
+import { auditEmViolacoesMecanicas, criarVerificadorDeOrcamentoDaTrilha, snapshotDeOrcamentoDoAudit } from '../review/audit2Laco';
+
+/**
+ * O mapa de conteúdos por ARQUIVO que o P-35 real exige
+ * (`auditEmViolacoesMecanicas(report, arquivosConteudo)` — falha fechado se
+ * um arquivo citado pelo audit faltar). Serializa os MESMOS caminhos que o
+ * `auditTrack` produz (`modules/<m>/module.json`, `<m>/lessons/<a>/lesson.json`,
+ * `<m>/lessons/<a>/challenges/<c>/challenge.json` + module-challenge e
+ * proficiency.json por completude). O texto é a serialização do OBJETO vivo na
+ * trilha carregada — o P-35 usa o texto só para medir spans/detalhes; o repair
+ * re-resolve o span no artefato do laço de qualquer forma (contrato).
+ */
+function conteudosDosArquivosDaTrilha(track: LoadedTrack): Record<string, string> {
+  const saida: Record<string, string> = {};
+  for (const modulo of track.modules) {
+    saida[`modules/${modulo.meta.slug}/module.json`] = JSON.stringify(modulo.meta, null, 2);
+    if (modulo.challenge !== null) {
+      saida[`modules/${modulo.meta.slug}/challenges/${modulo.challenge.slug}/challenge.json`] = JSON.stringify(
+        modulo.challenge,
+        null,
+        2,
+      );
     }
-    return null;
-  } catch {
-    return null;
+    for (const aula of modulo.lessons) {
+      saida[`modules/${modulo.meta.slug}/lessons/${aula.meta.slug}/lesson.json`] = JSON.stringify(aula.meta, null, 2);
+      for (const desafio of aula.challenges) {
+        saida[`modules/${modulo.meta.slug}/lessons/${aula.meta.slug}/challenges/${desafio.slug}/challenge.json`] =
+          JSON.stringify(desafio, null, 2);
+      }
+    }
   }
+  if (track.proficiency !== null) saida['proficiency.json'] = JSON.stringify(track.proficiency, null, 2);
+  return saida;
+}
+
+/**
+ * Projeta os artefatos do repair (chave `<arquivo>#<campo>`, conteúdo do CAMPO
+ * — ou o JSON do arquivo inteiro para `#theory`/`#lesson`/`#module`/`#track`)
+ * na vista por ARQUIVO que o verificador P-35 consome (`arquivo` → JSON com o
+ * valor do campo decodificado). O P-35 real re-decodifica o campo e roda
+ * `extractAtoms` sobre o valor — a projeção reconstitui exatamente essa forma
+ * a partir do que o repair mantém vivo no laço.
+ */
+function projetarArtefatosNaVistaDoP35(artefatos: ReadonlyMap<string, ArtefatoNoLaco>): Map<string, ArtefatoNoLaco> {
+  const porArquivo = new Map<string, Map<string, string>>();
+  for (const [caminho, artefato] of artefatos) {
+    const hash = caminho.lastIndexOf('#');
+    if (hash <= 0) continue; // fora do contrato P-23 (o repair só monta `file#campo`)
+    const arquivo = caminho.slice(0, hash);
+    const campo = caminho.slice(hash + 1);
+    let campos = porArquivo.get(arquivo);
+    if (campos === undefined) {
+      campos = new Map();
+      porArquivo.set(arquivo, campos);
+    }
+    campos.set(campo, artefato.conteudo);
+  }
+  const projecao = new Map<string, ArtefatoNoLaco>();
+  for (const [arquivo, campos] of porArquivo) {
+    let objeto: Record<string, unknown> = {};
+    for (const [campo, conteudo] of campos) {
+      if (campo === 'theory' || campo === 'lesson' || campo === 'module' || campo === 'track') {
+        // O conteúdo do repair JÁ É o JSON do arquivo inteiro — mescla as chaves.
+        try {
+          objeto = { ...objeto, ...(JSON.parse(conteudo) as Record<string, unknown>) };
+        } catch {
+          objeto[campo] = conteudo;
+        }
+      } else {
+        objeto[campo] = conteudo;
+      }
+    }
+    projecao.set(arquivo, {
+      caminho: arquivo,
+      nome: nomeDoArquivo(arquivo),
+      conteudo: JSON.stringify(objeto, null, 2),
+      ultimaEdicao: -1,
+    });
+  }
+  return projecao;
+}
+
+/**
+ * O MÓDULO REAL `review/audit2Laco` (P-35) enrolado no CONTRATO P-23. A ponte
+ * é por CAMINHO: o P-35 chaveia `ViolacaoMecanica.caminho` por
+ * `Violation.arquivo` (e mede o span no JSON inteiro); o repair chaveia
+ * artefatos por SUPERFÍCIE (`<arquivo>#<campo>`) e re-resolve spans no
+ * conteúdo do artefato (a semântica do contrato não muda — bloco B). A
+ * validação de contrato é a do TIPO do import estático (build); o seam
+ * `deps.carregarAdaptadorAuditLaco` preserva o fail-closed testável da guarda.
+ */
+function adaptadorDoModuloReal(conteudos: Record<string, string>): AdaptadorAuditLaco {
+  return {
+    auditEmViolacoesMecanicas(report) {
+      return auditEmViolacoesMecanicas(report, conteudos).map((vm) => ({
+        ...vm,
+        caminho: `${vm.caminho}#${vm.surface}`,
+      }));
+    },
+    criarVerificadorDeOrcamentoDaTrilha(report) {
+      const verificadorReal = criarVerificadorDeOrcamentoDaTrilha(report);
+      return async (artefatos) =>
+        (await verificadorReal(projetarArtefatosNaVistaDoP35(artefatos))).map((vm) => ({
+          ...vm,
+          // contrato P-23: o repair re-resolve o span no artefato VIVO (o span
+          // do P-35 foi medido na projeção por arquivo — não vale no campo).
+          caminho: `${vm.caminho}#${vm.surface}`,
+          inicio: -1,
+          fim: -1,
+          linha: 1,
+          coluna: 1,
+        }));
+    },
+    snapshotDeOrcamentoDoAudit(report) {
+      return snapshotDeOrcamentoDoAudit(report);
+    },
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -474,8 +582,16 @@ export interface DepsDoReparo {
   modeloAutor?: string;
   modeloRevisor?: string;
   familias?: MapaDeFamilias;
-  /** adaptador audit→laço (P-35) INJETADO; ausente → import lazy defensivo. */
+  /** adaptador audit→laço (P-35) INJETADO; ausente → módulo real via `carregarAdaptadorAuditLaco`. */
   auditLaco?: AdaptadorAuditLaco;
+  /**
+   * SEAM do carregamento do adaptador (default: o módulo real `review/audit2Laco`
+   * enrolado no contrato — P-35 já em main). Existe para a GUARDA ser testável:
+   * um loader que devolve `null` força `REPAIR_SEM_ADAPTADOR_AUDIT_LACO` mesmo
+   * com o módulo presente (fail-closed). Recebe o mapa de conteúdos por arquivo
+   * da trilha (o P-35 real o exige para medir spans).
+   */
+  carregarAdaptadorAuditLaco?: (conteudos: Record<string, string>) => Promise<AdaptadorAuditLaco | null>;
   /** executor endurecido para o filtro R5 do laço (opcional). */
   execDeReproducaoR5?: ExecFn;
   /** rodadas do laço (default `RODADAS_DEFAULT` = 1; teto duro 3 é do laço). */
@@ -864,14 +980,19 @@ function planejadorDeduplicado(planejar: PlanejadorLlm): PlanejadorLlm {
  * dry-run: plano puro + delta esperado; NENHUMA escrita (a dep de gravação
  * NÃO é chamada), NENHUM LLM, o laço não roda (A-P23-3).
  *
- * aplicar: converte o audit via P-35 (injetado ou import lazy), SEMEIA a
- * sessão do laço com pins das violações de ORDEM, roda `rodarLacoDeRevisao`
- * com o verificador de orçamento da trilha e a LLM corretora, grava os
- * artefatos finais alterados (deltas mecânicos + o que a LLM corrigiu — o gate
- * `validarDiffNoSpan` já rodou dentro do laço), e FEChA com o audit DE NOVO
- * comparando o placar com o inicial (A-P23-5). Subtítulo v1 (escolha B): as
- * lacunas viram lista de bloqueios no relatório — nunca reescritas, nunca no
- * laço. Fail-closed em cada porta (ver cabeçalho).
+ * aplicar: resolve o adaptador audit→laço (P-35 — injetado em deps.auditLaco
+ * ou o módulo real review/audit2Laco enrolado no contrato) NO PASSO DE DEPS,
+ * ANTES do audit/plano desse caminho: sem adaptador e sem módulo → erro
+ * estruturado `REPAIR_SEM_ADAPTADOR_AUDIT_LACO` (fail-closed, nunca o
+ * TypeError de um contrato mal-assinado). Depois converte o audit via o
+ * adaptador, SEMEIA a sessão do laço com pins das violações de ORDEM, roda
+ * `rodarLacoDeRevisao` com o verificador de orçamento da trilha e a LLM
+ * corretora, grava os artefatos finais alterados (deltas mecânicos + o que a
+ * LLM corrigiu — o gate `validarDiffNoSpan` já rodou dentro do laço), e FEChA
+ * com o audit DE NOVO comparando o placar com o inicial (A-P23-5). Subtítulo
+ * v1 (escolha B): as lacunas viram lista de bloqueios no relatório — nunca
+ * reescritas, nunca no laço. DRY-RUN NÃO resolve o adaptador (planejarReparo
+ * é puro — ver passo 3). Fail-closed em cada porta (ver cabeçalho).
  */
 export async function repararTrilha(deps: DepsDoReparo, entrada: EntradaDoReparo): Promise<ResultadoDeReparo> {
   // ── 1. slug proibido (gate final nunca F12; trecho legado fora do repair) ──
@@ -893,7 +1014,31 @@ export async function repararTrilha(deps: DepsDoReparo, entrada: EntradaDoReparo
     );
   }
 
-  // ── 3. audit inicial + plano puro ──────────────────────────────────────────
+  // ── 3. ADAPTADOR audit→laço (P-35) — SOMENTE `aplicar`, ANTES do audit/plano ─
+  // ESCOLHA DOCUMENTADA: o DRY-RUN NÃO resolve o adaptador — `planejarReparo` é
+  // FUNÇÃO PURA (zero IO, zero LLM, não toca o contrato P-35) e o dry-run só o
+  // usa (A-P23-3 funciona SEM adaptador — o teste dry-run da suíte não injeta
+  // nada). O modo `aplicar` usa o adaptador em TODO o caminho do laço (semear
+  // pins, verificador escopado, snapshot) — por isso a resolução + GUARDA rodam
+  // AQUI, no passo de deps, ANTES do audit/plano desse caminho: sem adaptador
+  // (não injetado) E sem módulo carregável → `REPAIR_SEM_ADAPTADOR_AUDIT_LACO`
+  // estruturado ANTES de qualquer acesso ao adaptador (fail-closed).
+  let adaptador: AdaptadorAuditLaco | undefined;
+  if (entrada.modo === 'aplicar') {
+    const conteudos = deps.auditLaco === undefined ? conteudosDosArquivosDaTrilha(track) : {};
+    const carregar = deps.carregarAdaptadorAuditLaco ?? ((cs: Record<string, string>) => Promise.resolve(adaptadorDoModuloReal(cs)));
+    const resolvido = deps.auditLaco ?? (await carregar(conteudos));
+    if (resolvido === null) {
+      throw erroDeReparo(
+        'REPAIR_SEM_ADAPTADOR_AUDIT_LACO',
+        'dependencias',
+        'o adaptador audit→laço (P-35: auditEmViolacoesMecanicas, criarVerificadorDeOrcamentoDaTrilha, snapshotDeOrcamentoDoAudit) não foi injetado e o módulo review/audit2Laco não pôde ser carregado — fail-closed: o laço não começa sem ele.',
+      );
+    }
+    adaptador = resolvido;
+  }
+
+  // ── 4. audit inicial + plano puro ──────────────────────────────────────────
   const auditar = deps.auditar ?? auditTrack;
   const auditInicial = auditar(track);
   const placarInicial = placarDoAudit(auditInicial);
@@ -908,7 +1053,7 @@ export async function repararTrilha(deps: DepsDoReparo, entrada: EntradaDoReparo
     'viram LISTA DE BLOQUEIOS no relatório e não entram no laço; o spawn do autor P-11/P-17 + re-derivação F4 é o v2 (exige dossiê e ConceptGraph de F3, ausentes para conteúdo legado).',
   ];
 
-  // ── 4. dry-run — NADA escrito, NENHUM LLM (A-P23-3) ────────────────────────
+  // ── 5. dry-run — NADA escrito, NENHUM LLM (A-P23-3) ────────────────────────
   if (entrada.modo === 'dry-run') {
     return {
       slug: entrada.slug,
@@ -929,7 +1074,7 @@ export async function repararTrilha(deps: DepsDoReparo, entrada: EntradaDoReparo
     };
   }
 
-  // ── 5. nada a reparar mecanicamente → termina sem LLM (declarado) ──────────
+  // ── 6. nada a reparar mecanicamente → termina sem LLM (declarado) ──────────
   const ordensExecutaveis = plano.ordens.filter((o) => o.executavelNoLacoV1);
   if (ordensExecutaveis.length === 0) {
     return {
@@ -955,7 +1100,11 @@ export async function repararTrilha(deps: DepsDoReparo, entrada: EntradaDoReparo
     };
   }
 
-  // ── 6. aplicar — dependências OBRIGATÓRIAS (fail-closed, nenhuma omissão) ──
+  // ── 7. aplicar — dependências OBRIGATÓRIAS (fail-closed, nenhuma omissão) ──
+  // O adaptador foi resolvido + guardado no passo 3 (modo `aplicar`): daqui em
+  // diante é NÃO-NULO — só se chega aqui depois dos returns de dry-run e de
+  // "nada a reparar" acima.
+  const adaptadorAplicar = adaptador as AdaptadorAuditLaco;
   if (deps.llm === undefined) {
     throw erroDeReparo(
       'REPAIR_SEM_LLM',
@@ -990,20 +1139,11 @@ export async function repararTrilha(deps: DepsDoReparo, entrada: EntradaDoReparo
       erro,
     );
   }
-  const adaptador = deps.auditLaco ?? (await carregarAdaptadorP35());
-  if (adaptador === null) {
-    throw erroDeReparo(
-      'REPAIR_SEM_ADAPTADOR_AUDIT_LACO',
-      'aplicar',
-      'o adaptador audit→laço (P-35: auditEmViolacoesMecanicas, criarVerificadorDeOrcamentoDaTrilha, snapshotDeOrcamentoDoAudit) não foi injetado e review/audit2Laco ainda não existe nesta worktree (a ORDEM de merge integra o P-35 antes) — fail-closed.',
-    );
-  }
-
-  // ── 7. artefatos do laço (superfícies de ORDEM) + verificador escopado ─────
+  // ── 8. artefatos do laço (superfícies de ORDEM) + verificador escopado ─────
   const artefatos = montarArtefatos(track, ordensExecutaveis);
   const originais = new Map<string, string>(artefatos.map((a) => [a.caminho, a.conteudo]));
-  const verificador = escoparVerificadorAoPlano(adaptador.criarVerificadorDeOrcamentoDaTrilha(auditInicial), plano);
-  const snapshot = adaptador.snapshotDeOrcamentoDoAudit(auditInicial);
+  const verificador = escoparVerificadorAoPlano(adaptadorAplicar.criarVerificadorDeOrcamentoDaTrilha(auditInicial), plano);
+  const snapshot = adaptadorAplicar.snapshotDeOrcamentoDoAudit(auditInicial);
 
   const ctx: ContextoDoLaco = {
     trilha: entrada.slug,
@@ -1020,11 +1160,11 @@ export async function repararTrilha(deps: DepsDoReparo, entrada: EntradaDoReparo
     timeoutDeExecucaoMs: deps.timeoutDeExecucaoMs,
   };
 
-  // ── 8. sessão do laço SEMEADA com pins das violações (cada uma falha hoje) ──
+  // ── 9. sessão do laço SEMEADA com pins das violações (cada uma falha hoje) ──
   const sessao = criarSessaoDeRevisao(ctx);
   let pinsSemeados: number;
   try {
-    pinsSemeados = await semearPinsNaSessao(sessao, adaptador, auditInicial, plano, deps.proverDesafio);
+    pinsSemeados = await semearPinsNaSessao(sessao, adaptadorAplicar, auditInicial, plano, deps.proverDesafio);
   } catch (erro) {
     if (erro instanceof ErroEstruturadoDoLaco) {
       throw erroDeReparo('REPAIR_LACO_FALHOU', 'semear-pins', erro.message, erro);
@@ -1037,7 +1177,7 @@ export async function repararTrilha(deps: DepsDoReparo, entrada: EntradaDoReparo
     );
   }
 
-  // ── 9. o laço revisor → plano → correção (gate validarDiffNoSpan interno) ──
+  // ── 10. o laço revisor → plano → correção (gate validarDiffNoSpan interno) ──
   let resultadoDoLaco;
   try {
     resultadoDoLaco = await rodarLacoDeRevisao(ctx, sessao);
@@ -1048,7 +1188,7 @@ export async function repararTrilha(deps: DepsDoReparo, entrada: EntradaDoReparo
     throw erroDeReparo('REPAIR_LACO_FALHOU', 'laco-de-revisao', erro instanceof Error ? erro.message : String(erro), erro);
   }
 
-  // ── 10. gravar os artefatos finais alterados (deltas mecânicos + LLM) ──────
+  // ── 11. gravar os artefatos finais alterados (deltas mecânicos + LLM) ──────
   const conteudos = conteudosFinaisPorArquivo(track, resultadoDoLaco.artefatosFinais, originais);
   const escritos: string[] = [];
   for (const [arquivo, conteudo] of conteudos) {
@@ -1065,7 +1205,7 @@ export async function repararTrilha(deps: DepsDoReparo, entrada: EntradaDoReparo
     escritos.push(arquivo);
   }
 
-  // ── 11. FINAL: o audit DE NOVO e o placar comparado ao inicial (A-P23-5) ───
+  // ── 12. FINAL: o audit DE NOVO e o placar comparado ao inicial (A-P23-5) ───
   const trilhaAtualizada = trilhaComArtefatosFinais(track, conteudos);
   const auditFinal = auditar(trilhaAtualizada);
   const placarFinal = placarDoAudit(auditFinal);
@@ -1081,7 +1221,7 @@ export async function repararTrilha(deps: DepsDoReparo, entrada: EntradaDoReparo
     bloqueios,
     declaracoes: [
       ...declaracoes,
-      `adaptador audit→laço: ${deps.auditLaco === undefined ? 'review/audit2Laco (import lazy P-35)' : 'injetado em deps.auditLaco'}.`,
+      `adaptador audit→laço: ${deps.auditLaco === undefined ? 'review/audit2Laco (P-35, import estático enrolado no contrato)' : 'injetado em deps.auditLaco'}.`,
       `pins semeados na sessão do laço: ${pinsSemeados} (só violações de ORDEM executáveis — cada uma falha hoje).`,
       ...(melhorou
         ? ['PROTOCOLO P-30: o repair melhorou o placar (' + `${placarInicial.violacoes} → ${placarFinal.violacoes} violações). Se este resultado for commitado contra a trilha real, o PIN_PLACAR é bumpado NO MESMO commit (justificativa obrigatória).`]
