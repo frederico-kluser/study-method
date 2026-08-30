@@ -19,8 +19,16 @@
  *     distinção visível e verificável.
  *   - o gate G-MONO (barreira da F4): orçamento MONOTÔNICO — nada é
  *     reensinado (nenhuma construção volta de `nova` para `x`, e nenhum `x`
- *     regride a `—`); a aula 0 recebe EXATAMENTE o axioma; toda aula introduz
+ *     regride a `—`); a aula 0 recebe EXATAMENTE o axioma (e o axioma precisa
+ *     estar nas DUAS faixas da aula 0 — receptiva inclusa); toda aula introduz
  *     ao menos uma construção (a matriz tem `new` em toda coluna).
+ *   - Reensino é medido na faixa PRODUTIVA (W-1, onda 2): a disponibilidade
+ *     prévia SÓ receptiva (seedsReceptivos) não impede `nova` produtiva — o
+ *     caminho 'lê antes de escrever' da onda 0 (budget.ts); a matriz registra
+ *     disponibilidade produtiva nova.
+ *   - Ordem fornecida pela F3 é critério 'fornecido' GRAVADO (W-3, onda 2) —
+ *     honesto sobre a origem; a topo-sort só é re-derivada para reportar
+ *     órfãos. A ordem derivada aqui grava o critério do dag (P-08).
  *   - o hash de CONTEÚDO CANONICALIZADO do orçamento (`hashDoOrcamento`) —
  *     A-P10-2: reordenar chaves do JSON NÃO muda o hash (o par primitivo
  *     sha256Hex/canonicalizarJson vem do `runtime/ledger.ts`, exportado de
@@ -195,7 +203,9 @@ export interface ParametrosF4 {
   /**
    * A linearização já calculada pela F3 (ordem + critério gravado). Se
    * ausente, este módulo deriva via `toposort`. Quando fornecida, é
-   * REVALIDADA como topo-sort válida (defesa em profundidade, fail-closed).
+   * REVALIDADA como topo-sort válida (defesa em profundidade, fail-closed) e
+   * o critério GRAVADO no resultado é 'fornecido' (W-3 — a ordem não foi
+   * derivada aqui; a topo-sort só é re-derivada para reportar os órfãos).
    */
   ordem?: ConceptId[];
   /** réguas do §3.6 — default TETOS_DEFAULT. */
@@ -204,11 +214,18 @@ export interface ParametrosF4 {
   politicaDeHarness?: HarnessPolicy;
 }
 
+/**
+ * Critério da ordem GRAVADA no resultado. Além dos critérios do dag (P-08),
+ * inclui 'fornecido' (W-3, onda 2): a ordem veio PRONTA da F3 — nenhum
+ * critério a derivou aqui; registrar a origem é honestidade, não capricho.
+ */
+export type CriterioOrdemF4 = CriterioOrdenacao | 'fornecido';
+
 export interface TopoResultado {
   /** a linearização usada como fonte de ordem. */
   ordem: ConceptId[];
-  /** o critério que a produziu (gravado — contrato do dag.ts). */
-  criterio: CriterioOrdenacao;
+  /** o critério que a produziu (gravado — contrato do dag.ts; ou 'fornecido'). */
+  criterio: CriterioOrdemF4;
   /** nós sem nenhuma aresta (reportados pelo dag.ts). */
   orfaos: ConceptId[];
 }
@@ -328,11 +345,35 @@ function topoOuErro(
   throw new F4Error('GRAFO_INVALIDO', `ids duplicados em conceitos: ${resultado.ids.join(', ')}`);
 }
 
-/** valida o plano contra o grafo (conceitos existem, unicidade, aulas não vazias). */
-function validarPlano(grafo: ConceptGraph, aulas: AulaPlano[]): void {
+/**
+ * valida o plano contra o grafo (conceitos existem, unicidade, aulas não
+ * vazias) e o AXIOMA contra o grafo (W-4, onda 2):
+ *   (a) entryConstructs/seedsReceptivos com id fora do grafo → erro NOMEANDO
+ *       o id (fail-closed: axioma fantasma não deriva orçamento);
+ *   (b) conceito do grafo que NENHUMA aula introduz E não pertence ao axioma
+ *       → erro listando os órfãos (fail-closed: nenhuma linha muda — o
+ *       orçamento não sairia "quase certo"). Conceito coberto pelo axioma
+ *       (MOVE_CONCEPT_TO_ENTRY_BUDGET) legitima-se sem aula própria.
+ */
+function validarPlano(
+  grafo: ConceptGraph,
+  aulas: AulaPlano[],
+  entryConstructs: ConceptId[],
+  seedsReceptivos: ConceptId[],
+): void {
   const ids = new Set(grafo.conceitos.map((c) => c.id));
   if (aulas.length === 0) {
     throw new F4Error('PLANO_INVALIDO', 'o plano não tem nenhuma aula — orçamento vazio');
+  }
+  // (a) axioma fora do grafo — nomeia o id ofensor.
+  for (const c of [...new Set([...entryConstructs, ...seedsReceptivos])]) {
+    if (!ids.has(c)) {
+      throw new F4Error(
+        'PLANO_INVALIDO',
+        `conceito do axioma fora do grafo: '${c}' — entryConstructs/seedsReceptivos precisam existir no grafo`,
+        'entryConstructs',
+      );
+    }
   }
   const origem = new Map<ConceptId, string>();
   for (const aula of aulas) {
@@ -353,6 +394,20 @@ function validarPlano(grafo: ConceptGraph, aulas: AulaPlano[]): void {
       }
       origem.set(c, aula.ref);
     }
+  }
+  // (b) órfãos do currículo: conceito do grafo sem aula de origem e fora do
+  // axioma — o orçamento NÃO deriva (fail-closed; não linha muda).
+  const axioma = new Set<ConceptId>([...entryConstructs, ...seedsReceptivos]);
+  const introduzidos = new Set<ConceptId>(origem.keys());
+  const orfaos = grafo.conceitos
+    .map((c) => c.id)
+    .filter((id) => !introduzidos.has(id) && !axioma.has(id))
+    .sort();
+  if (orfaos.length > 0) {
+    throw new F4Error(
+      'PLANO_INVALIDO',
+      `conceitos do grafo sem aula que os introduza: ${orfaos.join(', ')} — todo conceito precisa de aula de origem (I4) ou pertencer ao axioma de entrada`,
+    );
   }
 }
 
@@ -399,18 +454,19 @@ export function deriveBudgetDoGrafo(entrada: ParametrosF4): ResultadoF4 {
   if (entrada.ordem !== undefined) {
     validarOrdem(entrada.grafo, entrada.ordem);
     ordem = entrada.ordem;
-    // O critério GRAVADO é o declarado pela F3 (default lexicográfico); a
-    // re-derivação abaixo serve só para reportar os órfãos do grafo.
+    // W-3: a ordem veio PRONTA (F3) → o critério GRAVADO é 'fornecido'
+    // (honesto: nenhum critério a derivou AQUI). A topo-sort só é re-derivada
+    // para reportar os órfãos do grafo — nunca para reordenar.
     const checagem = toposort(entrada.grafo, { criterio });
-    topo = { ordem: entrada.ordem, criterio, orfaos: checagem.ok ? checagem.orfaos : [] };
+    topo = { ordem: entrada.ordem, criterio: 'fornecido', orfaos: checagem.ok ? checagem.orfaos : [] };
   } else {
     const resultado = topoOuErro(entrada.grafo, criterio);
     ordem = resultado.ordem;
     topo = { ordem: resultado.ordem, criterio: resultado.criterio, orfaos: resultado.orfaos };
   }
 
-  // 2) Plano validado (fail-closed) e reordenado pelo DAG.
-  validarPlano(entrada.grafo, entrada.aulas);
+  // 2) Plano validado (fail-closed — W-4 inclui axioma e órfãos) e reordenado pelo DAG.
+  validarPlano(entrada.grafo, entrada.aulas, entrada.entryConstructs, seeds);
   const aulas = ordenarAulasPeloDag(ordem, entrada.aulas);
 
   // 3) Carry cumulativo (mesmo algoritmo da onda 0, outra fonte de ordem).
@@ -434,12 +490,18 @@ export function deriveBudgetDoGrafo(entrada: ParametrosF4): ResultadoF4 {
       );
     }
 
-    // Reensino é ERRO na derivação (a G-MONO também o reprovaria; fail-closed).
-    const jaDisponiveis = aula.introduz.filter((c) => receptive.has(c));
-    if (jaDisponiveis.length > 0) {
+    // Reensino é ERRO na derivação quando o conceito já é EXIGÍVEL
+    // PRODUTIVAMENTE (W-1): a disponibilidade prévia SÓ receptiva
+    // (seedsReceptivos) NÃO é reensino — é o caminho 'lê antes de escrever'
+    // da onda 0 (budget.ts: conceito semeado receptivamente pode ser
+    // introduzido produtivamente depois). A matriz registra 'nova' na
+    // produtiva; o REENSINO_NA_DERIVACAO só dispara com 'disponivel'/'nova'
+    // já na faixa PRODUTIVA.
+    const jaExigiveis = aula.introduz.filter((c) => productive.has(c));
+    if (jaExigiveis.length > 0) {
       throw new F4Error(
         'REENSINO_NA_DERIVACAO',
-        `aula '${aula.ref}' introduz conceito(s) já disponível(is): ${jaDisponiveis.join(', ')}`,
+        `aula '${aula.ref}' introduz conceito(s) já disponível(is) PRODUTIVAMENTE: ${jaExigiveis.join(', ')}`,
       );
     }
 
@@ -498,13 +560,18 @@ export interface ViolacaoGMonotonicidade {
  * G-MONO — função PURA sobre o ARTEFATO (vale para orçamentos derivados E
  * orçamentos editados à mão — é o gate, a derivação é só uma fonte).
  *
- * Regras (§3.5 + contrato P-10):
+ * Regras (§3.5 + contrato P-10, onda 2):
  *   - toda aula introduz ≥1 construção (`nova` em toda coluna da matriz);
- *   - a aula 0 recebe EXATAMENTE o axioma (entrada produtiva ≡ entryConstructs);
+ *   - a aula 0 recebe EXATAMENTE o axioma: entrada produtiva ≡ entryConstructs
+ *     E o axioma presente TAMBÉM na faixa receptiva (a aula 0 o oferece para
+ *     leitura — HIGH-2); faltante em qualquer faixa = violação;
  *   - nada regride: nenhuma construção volta de `nova`/`disponivel` para
  *     `nao_disponivel` numa aula posterior (PERDA_DE_CONSTRUCAO);
  *   - nada é reensinado: nenhuma construção tem `nova` depois de já
- *     `disponivel`, nem `nova` repetida (REENSINO).
+ *     PRODUTIVAMENTE disponível — incluindo conceito do axioma (entryConstructs)
+ *     marcado 'nova' na coluna 0 (HIGH-2) e 'nova' repetida (REENSINO).
+ *     A disponibilidade prévia SÓ RECEPTIVA NÃO impede 'nova' produtiva (W-1:
+ *     'lê antes de escrever' — a faixa receptiva anterior não é reensino).
  */
 export function checarGMonotonicidade(budget: BudgetF4): ViolacaoGMonotonicidade[] {
   const violacoes: ViolacaoGMonotonicidade[] = [];
@@ -530,10 +597,13 @@ export function checarGMonotonicidade(budget: BudgetF4): ViolacaoGMonotonicidade
     }
   });
 
-  // Aula 0: entrada EXATAMENTE o axioma (produtivo ≡ entryConstructs).
+  // Aula 0: entrada EXATAMENTE o axioma (produtivo ≡ entryConstructs) e o
+  // axioma presente TAMBÉM na faixa receptiva (HIGH-2 — o axioma precisa
+  // estar nas DUAS faixas da aula 0; faltante = violação).
   const aula0 = budget.aulas[0];
   const axioma = new Set(aula0.entryConstructs);
   const entrada0 = new Set(aula0.budget_entrada.productive);
+  const entradaReceptiva0 = new Set(aula0.budget_entrada.receptive);
   const sobra = [...entrada0].filter((c) => !axioma.has(c));
   const falta = [...axioma].filter((c) => !entrada0.has(c));
   if (sobra.length > 0 || falta.length > 0) {
@@ -541,24 +611,39 @@ export function checarGMonotonicidade(budget: BudgetF4): ViolacaoGMonotonicidade
       codigo: 'ENTRADA_DIVERGENTE_DO_AXIOMA',
       aula: aula0.ref,
       mensagem:
-        `aula 0 '${aula0.ref}' não recebe EXATAMENTE o axioma ` +
+        `aula 0 '${aula0.ref}' não recebe EXATAMENTE o axioma na faixa PRODUTIVA ` +
         `(sobra: ${sobra.join(', ') || '—'}; falta: ${falta.join(', ') || '—'})`,
     });
   }
+  const faltaReceptiva = [...axioma].filter((c) => !entradaReceptiva0.has(c));
+  if (faltaReceptiva.length > 0) {
+    violacoes.push({
+      codigo: 'ENTRADA_DIVERGENTE_DO_AXIOMA',
+      aula: aula0.ref,
+      mensagem:
+        `aula 0 '${aula0.ref}' não recebe o axioma na faixa RECEPTIVA — o axioma precisa ` +
+        `estar nas DUAS faixas da aula 0 (falta: ${faltaReceptiva.join(', ')})`,
+    });
+  }
 
-  // Linhas: para cada construção, a sequência de estados nas colunas.
+  // Linhas: para cada construção, a sequência de estados nas colunas. O
+  // REENSINO é julgado pelas faixas DECLARADAS do artefato (o que é exigível
+  // produtivamente na ENTRADA da aula), não só pela matriz — assim uma
+  // disponibilidade prévia SÓ receptiva (seed) não vira reensino falso (W-1).
   const construcoes = new Set<ConceptId>();
   for (const aula of budget.aulas) {
     for (const celula of aula.matrix) construcoes.add(celula.construcao);
   }
   for (const construcao of [...construcoes].sort()) {
-    let ativo = false; // já ficou nova ou disponivel
+    let ativo = false; // já ficou nova ou disponivel na MATRIZ (base do PERDA)
     let jaNova = false;
     budget.aulas.forEach((aula, i) => {
       const celula = aula.matrix.find((c) => c.construcao === construcao);
       const estado: EstadoMatriz = celula?.estado ?? 'nao_disponivel'; // célula ausente = regressão (fail-closed)
 
       if (estado === 'nova') {
+        const axiomaNaColuna0 = i === 0 && aula0.entryConstructs.includes(construcao);
+        const produtivaNaEntrada = aula.budget_entrada.productive.includes(construcao);
         if (jaNova) {
           violacoes.push({
             codigo: 'REENSINO',
@@ -566,12 +651,23 @@ export function checarGMonotonicidade(budget: BudgetF4): ViolacaoGMonotonicidade
             construcao,
             mensagem: `'${construcao}' é marcada 'nova' de novo na aula '${aula.ref}' (coluna ${i}) — unicidade de origem violada`,
           });
-        } else if (ativo) {
+        } else if (axiomaNaColuna0) {
           violacoes.push({
             codigo: 'REENSINO',
             aula: aula.ref,
             construcao,
-            mensagem: `'${construcao}' volta a 'nova' na aula '${aula.ref}' (coluna ${i}) depois de já estar disponível — reensinar o que já estava no orçamento é proibido`,
+            mensagem:
+              `'${construcao}' (conceito do axioma, entryConstructs) é marcada 'nova' na coluna 0 — ` +
+              `reensinar o axioma que o aluno já domina é proibido`,
+          });
+        } else if (produtivaNaEntrada) {
+          violacoes.push({
+            codigo: 'REENSINO',
+            aula: aula.ref,
+            construcao,
+            mensagem:
+              `'${construcao}' volta a 'nova' na aula '${aula.ref}' (coluna ${i}) quando já era EXIGÍVEL ` +
+              `produtivamente na entrada (budget_entrada.productive) — reensinar o que já está no orçamento produtivo é proibido`,
           });
         }
         jaNova = true;

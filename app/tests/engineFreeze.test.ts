@@ -3,7 +3,7 @@
  * do GRAFO) e F5 (FREEZE + snapshots imutáveis por aula) da engine de trilhas
  * (`docs/16-engine-de-trilha.md` §2 P3, §3.5, §4 F4/F5).
  *
- * O que este arquivo PROVA (contrato P-10):
+ * O que este arquivo PROVA (contrato P-10, ondas 1 e 2):
  *   1. alterar o grafo muda o hash do orçamento/grafo e INVALIDA os snapshots
  *      afetados — e só os afetados (snapshotsInvalidados é função pura);
  *   2. escrever no orçamento depois do freeze é ERRO (A-P10-3: a guarda
@@ -17,7 +17,27 @@
  *   7. hash CANÔNICO: dois JSONs com chaves em ordens diferentes produzem o
  *      mesmo hash (A-P10-2 — sha256Hex + canonicalizarJson do ledger);
  *   8. (bônus) a matriz construção × aula tem os TRÊS estados e `nova` só na
- *      aula que introduz.
+ *      aula que introduz;
+ *   -- onda 2 (fixes da revisão) --
+ *   9. HIGH-1: FREEZE.json obedece o FreezeSchema do P-04 (nomes do schema:
+ *      hash_orcamento/hash_grafo/carimbo/dossies/snapshots) e o safeParse
+ *      passa no artefato em memória E no arquivo gravado;
+ *  10. HIGH-2: G-MONO confere o axioma nas DUAS faixas da aula 0 (receptiva
+ *      inclusa) e reprova conceito do axioma marcado 'nova' na coluna 0;
+ *  11. W-1: conceito semeado SÓ receptivamente (seedsReceptivos) pode ser
+ *      introduzido produtivamente depois ('lê antes de escrever') — a
+ *      derivação não lança REENSINO_NA_DERIVACAO e a matriz registra 'nova';
+ *      G-MONO idem (a faixa receptiva prévia não impede 'nova' produtiva);
+ *  12. W-2: lerFreeze REVERIFICA o conteúdo (não só o shape) — hash de
+ *      snapshot ou hash_orcamento adulterados → ARTEFATO_CORROMPIDO;
+ *  13. W-3: ordem fornecida (F3) → critério gravado 'fornecido' (honesto);
+ *      a topo-sort só é re-derivada para reportar órfãos;
+ *  14. W-4: validarPlano fail-closed — entryConstructs fora do grafo (erro
+ *      NOMEANDO o id) e conceito do grafo sem aula de origem (erro com a
+ *      lista de órfãos; não linha muda);
+ *  15. W-5: congelar re-executado NUNCA sobrescreve em silêncio — idempotente
+ *      quando o conteúdo bate; divergente sem flag = FREEZE_EXISTENTE_DIVERGENTE;
+ *      com flag, arquiva FREEZE.previous.json antes de substituir.
  *
  * Sem rede, sem LLM: fixtures de grafo em memória; o único IO é em
  * diretórios TEMPORÁRIOS criados e limpos pelo próprio teste.
@@ -31,7 +51,7 @@ import * as path from 'node:path';
 import { conceptId } from '../electron/main/engine/graph/model';
 import type { Concept, ConceptGraph, ConceptId } from '../electron/main/engine/graph/model';
 import { canonicalizarJson, sha256Hex } from '../electron/main/engine/runtime/ledger';
-import { ACAO_CATALOGO } from '../electron/main/engine/schemas/artifacts';
+import { ACAO_CATALOGO, FreezeSchema } from '../electron/main/engine/schemas/artifacts';
 import {
   BUDGET_FILENAME,
   FREEZE_FILENAME,
@@ -53,6 +73,8 @@ import {
   lerFreeze,
   pedidoDeBloqueio,
   hashDoGrafo,
+  validarFreeze,
+  FREEZE_ANTERIOR_FILENAME,
   FreezeError,
 } from '../electron/main/engine/phases/f5Freeze';
 
@@ -131,6 +153,11 @@ async function dirTemp(): Promise<string> {
   return fsp.mkdtemp(path.join(os.tmpdir(), 'p10-freeze-'));
 }
 
+/** lê o FREEZE.json como objeto (para adulterar nos testes do W-2/W-5). */
+async function lerFreezeCru(dir: string): Promise<Record<string, unknown>> {
+  return JSON.parse(await fsp.readFile(path.join(dir, FREEZE_FILENAME), 'utf8')) as Record<string, unknown>;
+}
+
 // ---------------------------------------------------------------------------
 // 1 · alterar o grafo muda o hash e invalida os snapshots afetados (e só eles)
 // ---------------------------------------------------------------------------
@@ -162,8 +189,8 @@ describe('F5 · mutação do grafo → hash muda e SÓ os snapshots afetados sã
 
     // O grafo mudou → os dois hashes mudaram (A-P10-2, conteúdo canonicalizado).
     assert.notEqual(fixo.budget.hash, fixo2.budget.hash, 'orçamento derivado do grafo novo tem hash diferente');
-    assert.notEqual(freeze1.budget_hash, freeze2.budget_hash, 'budget_hash do freeze acompanha o orçamento');
-    assert.notEqual(freeze1.graph_hash, freeze2.graph_hash, 'graph_hash muda com o grafo');
+    assert.notEqual(freeze1.hash_orcamento, freeze2.hash_orcamento, 'hash_orcamento do freeze acompanha o orçamento');
+    assert.notEqual(freeze1.hash_grafo, freeze2.hash_grafo, 'hash_grafo muda com o grafo');
 
     const inv = snapshotsInvalidados(freeze1, freeze2);
     assert.deepEqual(
@@ -220,7 +247,7 @@ describe('F5 · A-P10-3: depois do freeze, escrever no orçamento é erro', () =
 
       // O freeze (F5) materializa orçamento + FREEZE.json.
       const freeze = await congelar(dir, { orcamento: budget, grafo, timestamp: '2026-01-01T00:00:00.000Z' });
-      assert.equal(freeze.budget_hash, budget.hash, 'budget_hash do freeze === hash do orçamento');
+      assert.equal(freeze.hash_orcamento, budget.hash, 'hash_orcamento do freeze === hash do orçamento');
       await fsp.access(path.join(dir, FREEZE_FILENAME));
       await fsp.access(path.join(dir, BUDGET_FILENAME));
 
@@ -233,7 +260,7 @@ describe('F5 · A-P10-3: depois do freeze, escrever no orçamento é erro', () =
 
       // O freeze continua íntegro e legível (a tentativa de escrita não o corrompeu).
       const relido = await lerFreeze(dir);
-      assert.equal(relido.budget_hash, freeze.budget_hash);
+      assert.equal(relido.hash_orcamento, freeze.hash_orcamento);
     } finally {
       await fsp.rm(dir, { recursive: true, force: true });
     }
@@ -282,7 +309,7 @@ describe('F4 · G-MONO (barreira da F4, função pura sobre o artefato)', () => 
     assert.equal(orcamentoMonotonico(mutado), false);
   });
 
-  it('G-MONO REPROVA aula que REENSINA o que já estava no orçamento', () => {
+  it('G-MONO REPROVA aula que REENSINA o que já estava no orçamento produtivo', () => {
     const { budget, c } = derivarCadeia();
     const mutado = structuredClone(budget) as BudgetF4;
 
@@ -326,6 +353,198 @@ describe('F4 · G-MONO (barreira da F4, função pura sobre o artefato)', () => 
 });
 
 // ---------------------------------------------------------------------------
+// 9 · HIGH-1 — o artefato FREEZE obedece o FreezeSchema do P-04
+// ---------------------------------------------------------------------------
+
+describe('F5 · HIGH-1: FREEZE.json usa o FreezeSchema do P-04 (nomes + safeParse)', () => {
+  it('o artefato em memória usa os NOMES do schema e o safeParse passa', () => {
+    const { budget, grafo } = derivarCadeia();
+    const freeze = criarFreeze({ orcamento: budget, grafo, timestamp: '2026-01-01T00:00:00.000Z' });
+
+    const prova = FreezeSchema.safeParse(freeze);
+    assert.equal(prova.success, true, `o freeze DEVE passar no FreezeSchema (P-04)`);
+    if (!prova.success) return;
+
+    // Os NOMES são os do schema — nada de shape próprio do P-10.
+    assert.deepEqual(
+      Object.keys(freeze).sort(),
+      ['carimbo', 'dossies', 'hash_grafo', 'hash_orcamento', 'snapshots'],
+      'os campos do freeze são exatamente os do FreezeSchema',
+    );
+    assert.equal(freeze.hash_orcamento, budget.hash, 'hash_orcamento = hash do orçamento canonicalizado');
+    assert.equal(prova.data.hash_orcamento, budget.hash, 'o parse do schema preserva o hash_orcamento');
+    assert.equal(freeze.carimbo, '2026-01-01T00:00:00.000Z', 'carimbo = timestamp ISO do freeze');
+    assert.equal(prova.data.carimbo, '2026-01-01T00:00:00.000Z');
+    assert.deepEqual(freeze.dossies, [], 'dossies vazio na F5 (dossiês derivados por aula na autoria F7)');
+    assert.equal(freeze.snapshots.length, budget.aulas.length, 'um snapshot por aula');
+    for (const s of freeze.snapshots) {
+      // trio do SnapshotSchema presente em cada snapshot + campo aditivo P-10.
+      assert.equal(typeof s.aula_slug, 'string');
+      assert.equal(typeof s.caminho, 'string');
+      assert.match(s.hash, /^[0-9a-f]{64}$/);
+      assert.match(s.budgetHash, /^[0-9a-f]{64}$/);
+    }
+  });
+
+  it('o FREEZE.json GRAVADO em disco também passa no schema (parse do arquivo real)', async () => {
+    const dir = await dirTemp();
+    try {
+      const { budget, grafo } = derivarCadeia();
+      await congelar(dir, { orcamento: budget, grafo, timestamp: '2026-01-01T00:00:00.000Z' });
+      const cru = JSON.parse(await fsp.readFile(path.join(dir, FREEZE_FILENAME), 'utf8')) as unknown;
+      assert.equal(FreezeSchema.safeParse(cru).success, true, 'o arquivo em disco passa no FreezeSchema');
+      // e o lerFreeze valida e reverifica o conteúdo (W-2) sem erro.
+      const lido = await lerFreeze(dir);
+      assert.equal(lido.hash_orcamento, budget.hash);
+    } finally {
+      await fsp.rm(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('o shape antigo do P-10 (budget_version/budget_hash/graph_hash/timestamp) é REJEITADO', () => {
+    const { budget, grafo } = derivarCadeia();
+    const freeze = criarFreeze({ orcamento: budget, grafo, timestamp: '2026-01-01T00:00:00.000Z' });
+    const comNomesAntigos = {
+      budget_version: '1',
+      budget_hash: freeze.hash_orcamento,
+      graph_hash: freeze.hash_grafo,
+      timestamp: freeze.carimbo,
+      snapshots: freeze.snapshots,
+    };
+    assert.equal(
+      FreezeSchema.safeParse(comNomesAntigos).success,
+      false,
+      'nome antigo não existe no FreezeSchema (HIGH-1: o contrato quebrado volta a quebrar)',
+    );
+    assert.throws(
+      () => validarFreeze(comNomesAntigos),
+      (erro: unknown) => erro instanceof FreezeError && erro.code === 'FREEZE_INVALIDO',
+    );
+  });
+});
+
+// ---------------------------------------------------------------------------
+// 10 · HIGH-2 — G-MONO: axioma nas duas faixas da aula 0 + 'nova' no axioma
+// ---------------------------------------------------------------------------
+
+describe('F4 · HIGH-2: G-MONO fecha o axioma nas DUAS faixas da aula 0', () => {
+  /** orçamento com axioma [a]: aulas introduzem b..e (a nunca é reensinado). */
+  function derivarComAxioma(): { budget: BudgetF4; a: ConceptId } {
+    const { grafo, a, b, c, d, e } = grafoCadeia();
+    const { budget } = deriveBudgetDoGrafo({
+      grafo,
+      aulas: [
+        { ref: 'm1/a2', introduz: [b] },
+        { ref: 'm1/a3', introduz: [c] },
+        { ref: 'm1/a4', introduz: [d] },
+        { ref: 'm1/a5', introduz: [e] },
+      ],
+      entryConstructs: [a],
+    });
+    return { budget, a };
+  }
+
+  it('G-MONO REPROVA o axioma ausente na faixa RECEPTIVA da aula 0 (HIGH-2a)', () => {
+    const { budget, a } = derivarComAxioma();
+    const mutado = structuredClone(budget) as BudgetF4;
+
+    // 'variaveis' (o axioma) some da entrada receptiva da aula 0 — continua
+    // na produtiva, então o check ANTIGO (só produtiva) deixaria passar.
+    mutado.aulas[0].budget_entrada.receptive = [];
+
+    const violacoes = checarGMonotonicidade(mutado);
+    const receptiva = violacoes.find(
+      (v) => v.codigo === 'ENTRADA_DIVERGENTE_DO_AXIOMA' && /RECEPTIVA/.test(v.mensagem),
+    );
+    assert.ok(receptiva, `axioma ausente na receptiva = violação (recebido: ${JSON.stringify(violacoes)})`);
+    assert.equal(receptiva.aula, mutado.aulas[0].ref);
+    assert.ok(receptiva.mensagem.includes(a), 'a mensagem nomeia o conceito do axioma faltante');
+    assert.equal(orcamentoMonotonico(mutado), false);
+  });
+
+  it('G-MONO REPROVA conceito do axioma (entryConstructs) marcado `nova` na coluna 0 (HIGH-2b)', () => {
+    const { budget, a } = derivarComAxioma();
+    const mutado = structuredClone(budget) as BudgetF4;
+
+    const celula = mutado.aulas[0].matrix.find((x) => x.construcao === a);
+    assert.ok(celula, 'a matriz da coluna 0 tem a linha do axioma');
+    celula.estado = 'nova'; // a aula 0 "ensina" o que o aluno já domina ao entrar
+
+    const violacoes = checarGMonotonicidade(mutado);
+    const reensino = violacoes.find(
+      (v) => v.codigo === 'REENSINO' && v.construcao === a && v.aula === mutado.aulas[0].ref,
+    );
+    assert.ok(reensino, `axioma marcado \'nova\' na coluna 0 = REENSINO (recebido: ${JSON.stringify(violacoes)})`);
+    assert.equal(orcamentoMonotonico(mutado), false);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// 11 · W-1 — 'lê antes de escrever': seed receptiva pode entrar produtivamente
+// ---------------------------------------------------------------------------
+
+describe('F4 · W-1: seed SÓ receptiva não é reensino (lê antes de escrever)', () => {
+  it('seedsReceptivos:[testes] + aula introduz testes → deriva OK, matriz `nova` na produtiva, G-MONO aprova', () => {
+    const a = conceptId('variaveis');
+    const t = conceptId('testes');
+    const grafo: ConceptGraph = {
+      conceitos: [conc('variaveis'), conc('testes', { desbloqueadoPor: [a] })],
+    };
+    const resultado = deriveBudgetDoGrafo({
+      grafo,
+      aulas: [
+        { ref: 'm1/a1', introduz: [a] },
+        { ref: 'm1/a2', introduz: [t] },
+      ],
+      entryConstructs: [],
+      seedsReceptivos: [t],
+    });
+    const budget = resultado.budget;
+
+    const aula1 = budget.aulas.find((x) => x.ref === 'm1/a1');
+    const aula2 = budget.aulas.find((x) => x.ref === 'm1/a2');
+    assert.ok(aula1 && aula2);
+
+    // A faixa receptiva prévia NÃO impede: antes da aula 2, 'testes' é SÓ receptivo.
+    assert.ok(aula1.budget_saida.receptive.includes(t), 'a seed é receptiva desde a aula 1');
+    assert.ok(!aula1.budget_saida.productive.includes(t), 'a seed NÃO é produtiva antes da introdução');
+    assert.ok(aula1.budget_saida.productive.includes(a), 'variaveis é produtiva (introduzida na aula 1)');
+
+    // A derivação NÃO lançou REENSINO_NA_DERIVACAO e a matriz registra a
+    // disponibilidade produtiva NOVA na coluna da introdução.
+    const celula = aula2.matrix.find((x) => x.construcao === t);
+    assert.equal(celula?.estado, 'nova', 'a matriz registra \'nova\' na PRODUTIVA');
+    assert.ok(aula2.budget_saida.productive.includes(t), 'aula 2 torna testes exigível produtivamente');
+    assert.equal(aula2.introduces.productive.includes(t), true, 'introduces.productive lista testes');
+
+    // G-MONO idem: a faixa receptiva prévia ('disponivel' nas colunas 1) não
+    // impede o 'nova' produtivo da coluna 2 — não é reensino.
+    assert.deepEqual(checarGMonotonicidade(budget), [], 'G-MONO aprova o orçamento com seed receptiva');
+    assert.equal(orcamentoMonotonico(budget), true);
+  });
+
+  it('a derivação AINDA reprova quando o conceito já é PRODUTIVO (REENSINO_NA_DERIVACAO na faixa produtiva)', () => {
+    const a = conceptId('variaveis');
+    const t = conceptId('testes');
+    const grafo: ConceptGraph = {
+      conceitos: [conc('variaveis'), conc('testes', { desbloqueadoPor: [a] })],
+    };
+    assert.throws(
+      () =>
+        deriveBudgetDoGrafo({
+          grafo,
+          aulas: [
+            { ref: 'm1/a1', introduz: [a] },
+            { ref: 'm1/a2', introduz: [t] },
+          ],
+          entryConstructs: [t], // testes JÁ é exigível produtivamente no axioma
+        }),
+      (erro: unknown) => erro instanceof F4Error && erro.code === 'REENSINO_NA_DERIVACAO',
+    );
+  });
+});
+
+// ---------------------------------------------------------------------------
 // 5 · snapshot imutável (A-P10-4)
 // ---------------------------------------------------------------------------
 
@@ -353,16 +572,73 @@ describe('F5 · snapshot é imutável: mutar o objeto recebido não altera o arq
         budgetHashOriginal,
         'a mutação do snapshot recebido não vazou — objeto congelado em profundidade',
       );
-      const budgetHashOriginalDoFreeze = freeze.budget_hash;
-      (freeze as { budget_hash: string }).budget_hash = 'f'.repeat(64);
-      assert.equal(freeze.budget_hash, budgetHashOriginalDoFreeze, 'a mutação do freeze recebido não vazou');
+      const hashOrcamentoOriginal = freeze.hash_orcamento;
+      (freeze as { hash_orcamento: string }).hash_orcamento = 'f'.repeat(64);
+      assert.equal(freeze.hash_orcamento, hashOrcamentoOriginal, 'a mutação do freeze recebido não vazou');
 
       // O "arquivo" só muda pelo caminho da autoridade: congelar com o MESMO
-      // conteúdo regenera o mesmo artefato — a mutação tentada não vazou.
+      // conteúdo é NO-OP idempotente (W-5) — a mutação tentada não vazou.
       await congelar(dir, { orcamento: budget, grafo, timestamp: '2026-01-01T00:00:00.000Z' });
       const relido = await lerFreeze(dir);
       assert.equal(relido.snapshots[0].budgetHash, freeze.snapshots[0].budgetHash, 'arquivo idêntico ao snapshot congelado');
-      assert.equal(relido.budget_hash, freeze.budget_hash);
+      assert.equal(relido.hash_orcamento, freeze.hash_orcamento);
+    } finally {
+      await fsp.rm(dir, { recursive: true, force: true });
+    }
+  });
+});
+
+// ---------------------------------------------------------------------------
+// 12 · W-2 — lerFreeze reverifica o CONTEÚDO (não só o shape)
+// ---------------------------------------------------------------------------
+
+describe('F5 · W-2: lerFreeze reverifica o conteúdo — adulteração = ARTEFATO_CORROMPIDO', () => {
+  async function montarFreeze(): Promise<string> {
+    const dir = await dirTemp();
+    const { budget, grafo } = derivarCadeia();
+    await congelar(dir, { orcamento: budget, grafo, timestamp: '2026-01-01T00:00:00.000Z' });
+    return dir;
+  }
+
+  it('adulterar o hash de um snapshot no arquivo → ARTEFATO_CORROMPIDO', async () => {
+    const dir = await montarFreeze();
+    try {
+      const cru = await lerFreezeCru(dir);
+      const snapshots = cru['snapshots'] as Array<{ hash: string }>;
+      snapshots[0].hash = 'f'.repeat(64); // hash de FORMATO válido, conteúdo NÃO recomputado
+      await fsp.writeFile(path.join(dir, FREEZE_FILENAME), `${JSON.stringify(cru, null, 2)}\n`, 'utf8');
+
+      await assert.rejects(
+        () => lerFreeze(dir),
+        (erro: unknown) => erro instanceof FreezeError && erro.code === 'ARTEFATO_CORROMPIDO',
+      );
+    } finally {
+      await fsp.rm(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('adulterar o hash_orcamento no arquivo → ARTEFATO_CORROMPIDO (cross-check com o orçamento em disco)', async () => {
+    const dir = await montarFreeze();
+    try {
+      const cru = await lerFreezeCru(dir);
+      cru['hash_orcamento'] = 'c'.repeat(64); // formato válido de sha256, valor trocado
+      await fsp.writeFile(path.join(dir, FREEZE_FILENAME), `${JSON.stringify(cru, null, 2)}\n`, 'utf8');
+
+      await assert.rejects(
+        () => lerFreeze(dir),
+        (erro: unknown) => erro instanceof FreezeError && erro.code === 'ARTEFATO_CORROMPIDO',
+      );
+    } finally {
+      await fsp.rm(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('um freeze íntegro continua legível (a reverificação não é ruído)', async () => {
+    const dir = await montarFreeze();
+    try {
+      const lido = await lerFreeze(dir);
+      assert.equal(lido.snapshots.length, 5);
+      assert.match(lido.carimbo, /^2026-01-01/);
     } finally {
       await fsp.rm(dir, { recursive: true, force: true });
     }
@@ -510,6 +786,233 @@ describe('F4 · matriz construção × aula (§3.5): três estados, `nova` só n
 });
 
 // ---------------------------------------------------------------------------
+// 13 · W-3 — ordem fornecida (F3) grava critério 'fornecido'
+// ---------------------------------------------------------------------------
+
+describe('F4 · W-3: ordem fornecida → critério GRAVADO é \'fornecido\' (honesto)', () => {
+  it('com ordem pronta, o topo registra criterio \'fornecido\' e os órfãos vêm da re-derivação', () => {
+    const a = conceptId('a');
+    const z = conceptId('z'); // sem arestas — órfão LEGÍTIMO porque está no axioma
+    const grafo: ConceptGraph = { conceitos: [conc('a'), conc('z')] };
+    const resultado = deriveBudgetDoGrafo({
+      grafo,
+      aulas: [{ ref: 'm1/a1', introduz: [a] }],
+      entryConstructs: [z],
+      ordem: [a, z],
+    });
+
+    assert.equal(resultado.topo.criterio, 'fornecido', 'a ordem veio pronta — nenhum critério a derivou aqui');
+    assert.deepEqual(resultado.topo.ordem, [a, z], 'a linearização usada é a fornecida');
+    assert.deepEqual(
+      resultado.topo.orfaos,
+      [a, z],
+      'a topo-sort é re-derivada SÓ para reportar os órfãos do grafo (ambos sem arestas)',
+    );
+    assert.deepEqual(
+      resultado.budget.aulas.map((x) => x.ref),
+      ['m1/a1'],
+      'a derivação do orçamento continua funcionando com a ordem fornecida',
+    );
+  });
+
+  it('ordem INEXISTENTE → segue o critério do dag (default lexicográfico, gravado)', () => {
+    const { grafo, a, b, c, d } = grafoCadeia4();
+    const resultado = deriveBudgetDoGrafo({
+      grafo,
+      aulas: [
+        { ref: 'm1/a1', introduz: [a] },
+        { ref: 'm1/a2', introduz: [b] },
+        { ref: 'm1/a3', introduz: [c] },
+        { ref: 'm1/a4', introduz: [d] },
+      ],
+      entryConstructs: [],
+    });
+    assert.equal(resultado.topo.criterio, 'ordem-lexicografica-por-id');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// 14 · W-4 — validarPlano fail-closed: axioma fantasma e órfãos do currículo
+// ---------------------------------------------------------------------------
+
+describe('F4 · W-4: validarPlano fecha axioma e órfãos (fail-closed; não linha muda)', () => {
+  it('entryConstructs com id fora do grafo → PLANO_INVALIDO NOMEANDO o id', () => {
+    const { grafo, a } = grafoCadeia();
+    assert.throws(
+      () => deriveBudgetDoGrafo({ grafo, aulas: [{ ref: 'm1/a1', introduz: [a] }], entryConstructs: [conceptId('fantasma')] }),
+      (erro: unknown) =>
+        erro instanceof F4Error && erro.code === 'PLANO_INVALIDO' && erro.message.includes('fantasma'),
+    );
+  });
+
+  it('seedsReceptivos com id fora do grafo → PLANO_INVALIDO NOMEANDO o id', () => {
+    const { grafo, a } = grafoCadeia();
+    assert.throws(
+      () =>
+        deriveBudgetDoGrafo({
+          grafo,
+          aulas: [{ ref: 'm1/a1', introduz: [a] }],
+          entryConstructs: [],
+          seedsReceptivos: [conceptId('ectoplasma')],
+        }),
+      (erro: unknown) =>
+        erro instanceof F4Error && erro.code === 'PLANO_INVALIDO' && erro.message.includes('ectoplasma'),
+    );
+  });
+
+  it('conceito do grafo que nenhuma aula introduz (e fora do axioma) → PLANO_INVALIDO com a lista de órfãos', () => {
+    const { grafo, a, c } = grafoCadeia(); // a→b→c→d→e
+    assert.throws(
+      () =>
+        deriveBudgetDoGrafo({
+          grafo,
+          aulas: [
+            { ref: 'm1/a1', introduz: [a] },
+            { ref: 'm1/a2', introduz: [c] },
+          ],
+          entryConstructs: [],
+        }),
+      (erro: unknown) => {
+        if (!(erro instanceof F4Error) || erro.code !== 'PLANO_INVALIDO') return false;
+        // funcoes, lacos e composicao não têm aula de origem e não pertencem ao axioma.
+        return (
+          erro.message.includes('funcoes') && erro.message.includes('lacos') && erro.message.includes('composicao')
+        );
+      },
+    );
+  });
+});
+
+// ---------------------------------------------------------------------------
+// 15 · W-5 — congelar re-executado NUNCA sobrescreve em silêncio
+// ---------------------------------------------------------------------------
+
+describe('F5 · W-5: re-congelamento idempotente/divergente com arquivo do anterior', () => {
+  /** freeze 1 (grafo com condicionais) e freeze 2 (sem condicionais) prontos. */
+  function doisFreezes(): {
+    budget1: BudgetF4;
+    grafo1: ConceptGraph;
+    budget2: BudgetF4;
+    grafo2: ConceptGraph;
+  } {
+    const g1 = grafoCadeia4();
+    const fixo1 = deriveBudgetDoGrafo({
+      grafo: g1.grafo,
+      aulas: [
+        { ref: 'm1/a1', introduz: [g1.a] },
+        { ref: 'm1/a2', introduz: [g1.b] },
+        { ref: 'm1/a3', introduz: [g1.c] },
+        { ref: 'm1/a4', introduz: [g1.d] },
+      ],
+      entryConstructs: [],
+    });
+    const a = conceptId('variaveis');
+    const b = conceptId('funcoes');
+    const d = conceptId('lacos');
+    const grafo2: ConceptGraph = {
+      conceitos: [conc('variaveis'), conc('funcoes', { desbloqueadoPor: [a] }), conc('lacos', { desbloqueadoPor: [b] })],
+    };
+    const fixo2 = deriveBudgetDoGrafo({
+      grafo: grafo2,
+      aulas: [
+        { ref: 'm1/a1', introduz: [a] },
+        { ref: 'm1/a2', introduz: [b] },
+        { ref: 'm1/a4', introduz: [d] },
+      ],
+      entryConstructs: [],
+    });
+    return { budget1: fixo1.budget, grafo1: g1.grafo, budget2: fixo2.budget, grafo2 };
+  }
+
+  it('(a) idempotente: mesmo conteúdo congelado → no-op total (carimbo original preservado)', async () => {
+    const dir = await dirTemp();
+    try {
+      const { budget, grafo } = derivarCadeia();
+      const primeiro = await congelar(dir, { orcamento: budget, grafo, timestamp: '2026-01-01T00:00:00.000Z' });
+      const antes = await fsp.readFile(path.join(dir, FREEZE_FILENAME), 'utf8');
+
+      // re-executa com carimbo DIFERENTE — o CONTEÚDO congelado é o mesmo → no-op.
+      const segundo = await congelar(dir, { orcamento: budget, grafo, timestamp: '2026-09-09T00:00:00.000Z' });
+
+      const depois = await fsp.readFile(path.join(dir, FREEZE_FILENAME), 'utf8');
+      assert.equal(antes, depois, 'arquivo intacto: no-op total (nem o orçamento foi reescrito)');
+      assert.equal(segundo.hash_orcamento, primeiro.hash_orcamento);
+      assert.equal(segundo.carimbo, '2026-01-01T00:00:00.000Z', 'no-op devolve o freeze EXISTENTE, com o carimbo dele');
+      // O orçamento em disco continua o do primeiro freeze.
+      const orc = await lerOrcamento(dir);
+      assert.equal(orc.hash, budget.hash);
+    } finally {
+      await fsp.rm(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('(b) conteúdo DIFERENTE sem a flag → FREEZE_EXISTENTE_DIVERGENTE; nada muda', async () => {
+    const dir = await dirTemp();
+    try {
+      const { budget1, grafo1, budget2, grafo2 } = doisFreezes();
+      await congelar(dir, { orcamento: budget1, grafo: grafo1, timestamp: '2026-01-01T00:00:00.000Z' });
+      const antes = await fsp.readFile(path.join(dir, FREEZE_FILENAME), 'utf8');
+
+      await assert.rejects(
+        () => congelar(dir, { orcamento: budget2, grafo: grafo2, timestamp: '2026-01-02T00:00:00.000Z' }),
+        (erro: unknown) => erro instanceof FreezeError && erro.code === 'FREEZE_EXISTENTE_DIVERGENTE',
+        're-congelar divergente sem flag é erro estruturado',
+      );
+
+      // Nada mudou: nem o FREEZE.json, nem o orçamento, nem arquivo do anterior.
+      const depois = await fsp.readFile(path.join(dir, FREEZE_FILENAME), 'utf8');
+      assert.equal(antes, depois, 'o FREEZE.json continua o original');
+      const orc = await lerOrcamento(dir);
+      assert.equal(orc.hash, budget1.hash, 'o orçamento em disco continua o do primeiro freeze');
+      await assert.rejects(
+        () => fsp.access(path.join(dir, FREEZE_ANTERIOR_FILENAME)),
+        (erro: unknown) => (erro as NodeJS.ErrnoException).code === 'ENOENT',
+        'sem flag não há arquivo do freeze anterior',
+      );
+    } finally {
+      await fsp.rm(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('(c) com a flag permitirRecongelar → arquiva FREEZE.previous.json antes de substituir', async () => {
+    const dir = await dirTemp();
+    try {
+      const { budget1, grafo1, budget2, grafo2 } = doisFreezes();
+      const primeiro = await congelar(dir, { orcamento: budget1, grafo: grafo1, timestamp: '2026-01-01T00:00:00.000Z' });
+
+      const segundo = await congelar(
+        dir,
+        { orcamento: budget2, grafo: grafo2, timestamp: '2026-01-02T00:00:00.000Z' },
+        { permitirRecongelar: true },
+      );
+
+      // O anterior foi arquivado ANTES da substituição (recuperável).
+      const anteriorArquivado = JSON.parse(
+        await fsp.readFile(path.join(dir, FREEZE_ANTERIOR_FILENAME), 'utf8'),
+      ) as Record<string, unknown>;
+      assert.equal(anteriorArquivado['hash_orcamento'], budget1.hash, 'FREEZE.previous.json = o freeze 1');
+      assert.equal(anteriorArquivado['carimbo'], '2026-01-01T00:00:00.000Z');
+      assert.equal(primeiro.hash_orcamento, budget1.hash);
+
+      // FREEZE.json agora é o freeze 2 e o orçamento em disco acompanha.
+      const relido = await lerFreeze(dir);
+      assert.equal(relido.hash_orcamento, budget2.hash, 'FREEZE.json agora é o freeze 2');
+      assert.equal(segundo.hash_orcamento, budget2.hash);
+      const orc = await lerOrcamento(dir);
+      assert.equal(orc.hash, budget2.hash, 'o orçamento em disco é o do freeze 2 (A-P10-1)');
+
+      // Re-congelamento é ciclo novo: m1/a4 (que tinha condicionais na entrada
+      // no freeze 1) volta para a fila — snapshotsInvalidados decide.
+      const inv = snapshotsInvalidados(primeiro, segundo);
+      assert.deepEqual(inv.invalidados, ['m1/a4']);
+      assert.deepEqual(inv.removidos, ['m1/a3']);
+    } finally {
+      await fsp.rm(dir, { recursive: true, force: true });
+    }
+  });
+});
+
+// ---------------------------------------------------------------------------
 // Extras — fail-closed da derivação (a derivação NUNCA gera orçamento inválido)
 // ---------------------------------------------------------------------------
 
@@ -555,21 +1058,42 @@ describe('F4 · derivação fail-closed (grafo/plano inválido = erro estruturad
     );
   });
 
-  it('aula introduz conceito cujo pré-requisito não está no orçamento → PREREQUISITO_AUSENTE', () => {
-    const { grafo, d } = grafoCadeia4();
-    assert.throws(
-      () => deriveBudgetDoGrafo({ grafo, aulas: [{ ref: 'm1/a1', introduz: [d] }], entryConstructs: [] }),
-      (erro: unknown) => erro instanceof F4Error && erro.code === 'PREREQUISITO_AUSENTE',
-    );
-  });
-
-  it('aula reensina o axioma → REENSINO_NA_DERIVACAO', () => {
-    const { grafo, a, b } = grafoCadeia();
+  it('aula introduz conceito cujo pré-requisito não está disponível NA ENTRADA dela → PREREQUISITO_AUSENTE', () => {
+    // a→p→d. A aula a1 introduz a (posição 0) E d (posição 2) — o menor índice
+    // topológico de a1 é 0, então a1 vem ANTES da aula que introduz o
+    // pré-requisito p (posição 1): na entrada de a1, p ainda não existe.
+    const a = conceptId('a');
+    const p = conceptId('p');
+    const d = conceptId('d');
+    const grafo: ConceptGraph = {
+      conceitos: [conc('a'), conc('p'), conc('d', { desbloqueadoPor: [p] })],
+    };
     assert.throws(
       () =>
         deriveBudgetDoGrafo({
           grafo,
-          aulas: [{ ref: 'm1/a1', introduz: [b] }],
+          aulas: [
+            { ref: 'm1/a1', introduz: [a, d] },
+            { ref: 'm1/a2', introduz: [p] },
+          ],
+          entryConstructs: [],
+        }),
+      (erro: unknown) => erro instanceof F4Error && erro.code === 'PREREQUISITO_AUSENTE',
+    );
+  });
+
+  it('aula reensina o axioma (já produtivo) → REENSINO_NA_DERIVACAO', () => {
+    // grafo a→b; 'b' é do axioma (produtivo) e a aula tenta introduzi-lo de novo.
+    const a = conceptId('variaveis');
+    const b = conceptId('funcoes');
+    const grafo: ConceptGraph = {
+      conceitos: [conc('variaveis'), conc('funcoes', { desbloqueadoPor: [a] })],
+    };
+    assert.throws(
+      () =>
+        deriveBudgetDoGrafo({
+          grafo,
+          aulas: [{ ref: 'm1/a2', introduz: [b] }],
           entryConstructs: [a, b],
         }),
       (erro: unknown) => erro instanceof F4Error && erro.code === 'REENSINO_NA_DERIVACAO',
