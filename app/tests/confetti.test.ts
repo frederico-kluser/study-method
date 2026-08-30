@@ -5,7 +5,7 @@
  * exercitar os caminhos; `prefers-reduced-motion: reduce` DESLIGA a animação
  * (SC 2.3.3); ausência de DOM/canvas nunca lança.
  */
-import { afterEach, beforeEach, describe, it } from 'node:test';
+import { afterEach, beforeEach, describe, it, mock } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   announceStatus,
@@ -151,6 +151,13 @@ beforeEach(() => {
 afterEach(() => {
   for (let i = STASH.length - 1; i >= 0; i -= 1) STASH[i]();
   STASH.length = 0;
+  // Rede de segurança: se o teste de animação com mock.timers falhar antes do
+  // próprio finally, os timers reais voltam para os testes seguintes.
+  try {
+    mock.timers.reset();
+  } catch {
+    // timers não habilitados neste teste — no-op.
+  }
 });
 
 describe('prefersReducedMotion', () => {
@@ -192,17 +199,32 @@ describe('fireConfetti — caminhos defensivos', () => {
 });
 
 describe('fireConfetti — animação', () => {
-  it('com canvas fornecido: anima (fillRect/clearRect) e não remove o canvas', async () => {
+  it('com canvas fornecido: anima (fillRect/clearRect) e não remove o canvas', () => {
     installFakeWindow({ innerWidth: 800, innerHeight: 600 });
     installFakeDocument();
     installFakeRaf();
     const { canvas, ops } = installFakeCanvas();
-    const started = fireConfetti({ canvas, particleCount: 20, durationMs: 40 });
-    assert.equal(started, true);
-    await sleep(150);
-    assert.ok(ops.includes('fillRect'), `fillRect deveria ter desenhado (ops: ${ops.join(',')})`);
-    assert.ok(ops.includes('clearRect'));
-    assert.ok(ops.filter((o) => o === 'fillRect').length > 10, 'múltiplos quadros animados');
+    // Fake timers tornam o teste determinístico sob carga: a rajada inteira é
+    // atravessada com tick() — o tempo NUNCA avança sozinho, então o primeiro
+    // frame não pode chegar "atrasado" além da duração. (A corrida original: o
+    // rAF fake é `setTimeout(cb, 1)`; sob carga esse timer pode disparar depois
+    // de durationMs=40 e o 1º frame cai no ramo terminal — só clearRect, NENHUM
+    // fillRect chega a desenhar e a rajada morre antes de começar:
+    // ops=['clearRect']. Esperar mais tempo não ajuda: o burst já acabou.)
+    mock.timers.enable({ apis: ['setTimeout', 'Date'] });
+    try {
+      const started = fireConfetti({ canvas, particleCount: 20, durationMs: 40 });
+      assert.equal(started, true);
+      // 40ms de rajada em passos de 1ms → ~39 quadros de desenho (fillRect) +
+      // quadro terminal (elapsed ≥ duração → clearRect + cancel). Sem sleep:
+      // nenhum tempo real passa entre os frames.
+      mock.timers.tick(60);
+      assert.ok(ops.includes('fillRect'), `fillRect deveria ter desenhado (ops: ${ops.join(',')})`);
+      assert.ok(ops.includes('clearRect'));
+      assert.ok(ops.filter((o) => o === 'fillRect').length > 10, 'múltiplos quadros animados');
+    } finally {
+      mock.timers.reset();
+    }
   });
 
   it('sem canvas: cria overlay no body e o REMOVE ao fim da rajada', async () => {
