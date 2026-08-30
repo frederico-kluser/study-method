@@ -13,8 +13,9 @@
  * trocar o store.
  * ─────────────────────────────────────────────────────────────────────────────
  *
- * Chave = sha256(prompt + schema + params + model_id + stage_version), como
- * exige o plano. A serialização é CANÔNICA (chaves de objeto ordenadas, JSON
+ * Chave = sha256(prompt + system + schema + params + model_id +
+ * stage_version), como exige o plano. A serialização é CANÔNICA (chaves de
+ * objeto ordenadas, JSON
  * compacto) para que a MESMA entrada em ordens diferentes de chave produza a
  * MESMA chave — caso contrário o cache erraria em silêncio por capricho de
  * inserção. `params` é o lugar do chamador para qualquer coisa que afete a
@@ -57,6 +58,8 @@ export interface CacheStore {
 /** Entrada de chave canônica (ver `cacheKeyFor`). */
 export interface LlmCacheKeyInput {
   prompt: string;
+  /** Prompt de sistema — buildMessages o envia ao provedor, logo entra na chave. */
+  system?: string;
   schema?: string;
   params?: Readonly<Record<string, unknown>>;
   modelId?: string;
@@ -77,14 +80,15 @@ function canonicalJson(value: unknown): string {
 }
 
 /**
- * Chave sha256 da entrada. Componentes exatos do plano: prompt + schema +
- * params + model_id + stage_version. NÃO inclui `stage`/etapa de propósito:
- * o artefato é função só dos cinco componentes, e duas etapas distintas com
- * a entrada idêntica compartilham o artefato correto.
+ * Chave sha256 da entrada. Componentes exatos do plano: prompt + system +
+ * schema + params + model_id + stage_version. NÃO inclui `stage`/etapa de
+ * propósito: o artefato é função só dos seis componentes, e duas etapas
+ * distintas com a entrada idêntica compartilham o artefato correto.
  */
 export function cacheKeyFor(input: LlmCacheKeyInput): string {
   const payload = canonicalJson({
     prompt: input.prompt,
+    system: input.system ?? '',
     schema: input.schema ?? '',
     params: input.params ?? {},
     modelId: input.modelId ?? '',

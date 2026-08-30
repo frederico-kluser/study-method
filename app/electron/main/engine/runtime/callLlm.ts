@@ -359,11 +359,14 @@ export function createCallLlm(deps: CallLlmDeps): EngineLlm {
 
     const modelId = req.modelId ?? DEEPSEEK_MODEL.id;
 
-    // Cache: chave = sha256(prompt + schema + params + model_id +
-    // stage_version). Parâmetros de geração (temperatura/maxTokens) entram
-    // via params: mesmo prompt com knobs diferentes NÃO compartilha artefato.
+    // Cache: chave = sha256(prompt + system + schema + params + model_id +
+    // stage_version). O system é enviado ao provedor por buildMessages, logo
+    // entra na chave — duas entradas com system diferente NÃO compartilham
+    // artefato. Parâmetros de geração (temperatura/maxTokens) entram via
+    // params: mesmo prompt com knobs diferentes NÃO compartilha artefato.
     const keyInput = {
       prompt: req.prompt,
+      system: req.system,
       schema: req.schema,
       params: {
         ...(req.params ?? {}),
@@ -547,7 +550,10 @@ export function createCallLlm(deps: CallLlmDeps): EngineLlm {
   return {
     callLlm,
     getStageUsage(etapa: string): Readonly<StageUsage> | undefined {
-      return stageUsage.get(etapa);
+      const usage = stageUsage.get(etapa);
+      // Cópia — o chamador nunca recebe a referência mutável do acumulador
+      // (Readonly<> é só tempo de compilação; a cópia protege a contabilidade).
+      return usage ? { ...usage } : undefined;
     },
     getAllStageUsage(): Readonly<Record<string, StageUsage>> {
       return Object.fromEntries(stageUsage.entries());

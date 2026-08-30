@@ -13,7 +13,7 @@
  *     prompt só queima token).
  *   - 429 NUNCA vira fallback de provedor (A-P01-4): existe UM cliente
  *     injetado e é o único a receber chamadas — não há segundo transporte.
- *   - cache: chave = entrada (prompt+schema+params+model+stage_version);
+ *   - cache: chave = entrada (prompt+system+schema+params+model+stage_version);
  *     duas chamadas idênticas = UMA ida ao provedor; bumpar stageVersion
  *     invalida EXPLICITAMENTE; etapa NÃO entra na chave (o artefato é função
  *     da entrada) e acerto de cache não gasta slot.
@@ -355,6 +355,32 @@ describe('cache — artefato por entrada, invalidação só explícita', () => {
     // não pode compartilhar artefato.
     await transport.callLlm('etapa', baseReq({ prompt: 'p', temperature: 0 }));
     await transport.callLlm('etapa', baseReq({ prompt: 'p', temperature: 0.7 }));
+    assert.equal(trips, 2);
+  });
+
+  it('system faz parte da chave: MESMO prompt com system diferente não compartilha artefato', async () => {
+    const cache = createInMemoryCacheStore();
+    let trips = 0;
+    const { transport } = setup({
+      cache,
+      respond: async () => {
+        trips += 1;
+        return okResponse({ content: `artefato-${trips}` });
+      },
+    });
+    // buildMessages envia o system ao provedor — logo a identidade do
+    // artefato TEM que incluí-lo (cache é função pura da entrada). Panos
+    // quentes: o bug era a segunda etapa receber cached:true em silêncio.
+    const semSystem = await transport.callLlm('etapa', baseReq({ prompt: 'p' }));
+    const comSystem = await transport.callLlm('etapa', baseReq({ prompt: 'p', system: 'seja conciso' }));
+    assert.equal(semSystem.cached, false, 'primeira chamada sempre é miss');
+    assert.equal(comSystem.cached, false, 'system ≠ ⇒ miss ⇒ nova ida ao provedor');
+    assert.equal(trips, 2, 'system diferentes ⇒ DUAS idas à LLM fake');
+
+    // System IGUAL ⇒ o MESMO artefato da segunda chamada: hit, zero idas novas.
+    const repete = await transport.callLlm('etapa', baseReq({ prompt: 'p', system: 'seja conciso' }));
+    assert.equal(repete.cached, true, 'system iguais ⇒ UMA ida só (a segunda é hit)');
+    assert.equal(repete.content, 'artefato-2');
     assert.equal(trips, 2);
   });
 });
