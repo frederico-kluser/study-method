@@ -18,14 +18,20 @@
  *   - toda ação usada é DO CATÁLOGO FECHADO (as 14 são listadas integralmente
  *     com significado; improvisar é proibido);
  *   - toda ação nomeia arquivo, span e resultado esperado (§7.3);
- *   - a REGRA DE DISTINÇÃO do §5.5 aparece literalmente: lacuna → CRIAR AULA
- *     (nunca REWRITE_IN_BUDGET); ordem → reescrita/movimentação (nunca criar
- *     aula);
+ *   - a REGRA DE DISTINÇÃO do §5.5 é renderizada DAS CONSTANTES
+ *     (`ACOES_DE_LACUNA` / `ACOES_DE_ORDEM` + `ACAO_SIGNIFICADOS`), nunca
+ *     digitada à mão: o exemplo de ações de lacuna cita exatamente o par de
+ *     CRIAR AULA e o exemplo de ações de ordem cita exatamente o complemento
+ *     (HIGH-1, onda 2 — antes, o literal citava MOVE_CONCEPT_TO_ENTRY_BUDGET
+ *     como ação de ordem, e o gate a rejeitava com POLARIDADE_VIOLADA:
+ *     não-convergência por construção);
  *   - apontamento que NÃO mapeia para nenhuma ação não vira ação inventada: o
  *     modelo o deixa fora de `acoes`, e o laço materializa o defeito com
  *     `defeitoSemMapeamento` (review/actionCatalog.ts);
  *   - o ledger de rejeições entra verbatim, para o modelo não reabrir
- *     `excecao_intencional` (§6.7).
+ *     `excecao_intencional` (§6.7), e a lista DECLARADA `excluidosComoExcecao`
+ *     distingue — para o laço F11 — "sem mapeamento" de "exceção intencional"
+ *     (WARNING-3, onda 2: detecção por ausência não basta).
  *
  * NENHUM conteúdo didático: este arquivo produz INSTRUÇÕES DE PROCESSO,
  * nunca conteúdo de aula (F-06).
@@ -34,7 +40,10 @@
 import {
   ACAO_CATALOGO,
   ACAO_SIGNIFICADOS,
+  ACOES_DE_LACUNA,
+  ACOES_DE_ORDEM,
   type Apontamento,
+  type ApontamentoId,
 } from '../review/actionCatalog';
 
 /** A entrada do prompt do planejador — tudo o que o papel recebe (§6.2/§7.3). */
@@ -43,6 +52,20 @@ export interface EntradaDoPromptDoPlanejador {
   rodada: number;
   /** apontamentos SOBREVIVENTES (pós-filtro estrutural R1-R8 e pós-provador). */
   apontamentos: readonly Apontamento[];
+  /**
+   * Apontamentos que NÃO devem gerar ação nesta rodada — a lista DECLARADA de
+   * exceções intencionais do ledger (§6.7, estado `excecao_intencional`).
+   *
+   * RESPONSABILIDADE DO CHAMADOR (o laço F11, P-18): passar exatamente os ids
+   * dos apontamentos sobreviventes marcados como exceção intencional no
+   * ledger. Essa declaração é o que permite ao laço DISTINGUIR — WARNING-3 —
+   * um apontamento ausente do plano por FALTA de mapeamento (SEM_MAPEAMENTO,
+   * vira defeito via `defeitoSemMapeamento`) de um ausente por EXCEÇÃO
+   * DECLARADA (não vira defeito; `eExcecaoDeclarada` em
+   * review/actionCatalog.ts). NUNCA inferir por ausência: um id que o ledger
+   * não marque como exceção e que não mapeie é SEM_MAPEAMENTO, não exceção.
+   */
+  excluidosComoExcecao: readonly ApontamentoId[];
   /** o LEDGER DE REJEIÇÕES renderizado (§6.7) — texto verbatim. */
   ledgerDeRejeicoes: string;
 }
@@ -80,12 +103,63 @@ function renderizarCatalogo(): string {
 }
 
 /**
+ * A regra de distinção da LACUNA (§5.5), renderizada DAS CONSTANTES — nunca
+ * literal. O tipo da entrada (`readonly AcaoDeLacuna[]` via `ACOES_DE_LACUNA`)
+ * fecha por construção: é impossível citar aqui uma ação que não seja do par
+ * de CRIAR AULA (HIGH-1, onda 2).
+ */
+function renderizarRegraDeLacuna(): string {
+  const permitidas = ACOES_DE_LACUNA.map((acao) => `${acao} — ${ACAO_SIGNIFICADOS[acao]}`).join('; ');
+  return (
+    '- LACUNA DE CURRÍCULO — introduzido_em === null — a ação é CRIAR AULA. ' +
+    `AÇÕES DE LACUNA PERMITIDAS: ${permitidas}. ` +
+    'NUNCA REWRITE_IN_BUDGET: reescrever o desafio para caber num currículo furado é o laço que nunca termina (§5.5).'
+  );
+}
+
+/**
+ * A regra de distinção da ORDEM (§5.5), renderizada DAS CONSTANTES — nunca
+ * literal. O tipo da entrada (`readonly AcaoDeOrdem[]` via `ACOES_DE_ORDEM`)
+ * fecha por construção: é impossível citar aqui uma ação do par de CRIAR AULA
+ * (HIGH-1, onda 2 — o literal antigo citava MOVE_CONCEPT_TO_ENTRY_BUDGET como
+ * ação de ordem e o gate a rejeitava com POLARIDADE_VIOLADA).
+ */
+function renderizarRegraDeOrdem(): string {
+  const permitidas = ACOES_DE_ORDEM.map((acao) => `${acao} — ${ACAO_SIGNIFICADOS[acao]}`).join('; ');
+  return (
+    '- VIOLAÇÃO DE ORDEM — introduzido_em !== null — a ação é reescrever/movimentar/reordenar. ' +
+    `AÇÕES DE ORDEM PERMITIDAS: ${permitidas}. ` +
+    'NUNCA criar aula: INSERT_INTERMEDIATE e MOVE_CONCEPT_TO_ENTRY_BUDGET são PROIBIDOS para ordem (§5.5).'
+  );
+}
+
+/**
+ * A seção dos apontamentos EXCLUÍDOS COMO EXCEÇÃO INTENCIONAL (WARNING-3,
+ * onda 2): a lista DECLARADA que distingue "exceção intencional" de "sem
+ * mapeamento" para o laço F11. Nenhum id é inferido por ausência — só entra
+ * aqui o que o chamador passou em `excluidosComoExcecao`.
+ */
+function renderizarExcluidosComoExcecao(excluidos: readonly ApontamentoId[]): string {
+  if (excluidos.length === 0) {
+    return 'APONTAMENTOS EXCLUÍDOS COMO EXCEÇÃO INTENCIONAL (nenhum nesta rodada)';
+  }
+  const lista = excluidos.map((id) => `  ${id}`).join('\n');
+  return (
+    'APONTAMENTOS EXCLUÍDOS COMO EXCEÇÃO INTENCIONAL (docs §6.7 — NÃO gerar ação; NÃO contar como "sem mapeamento"):\n' +
+    lista
+  );
+}
+
+/**
  * promptDoPlanejador(entrada) — FUNÇÃO PURA: a mesma entrada devolve o mesmo
  * texto byte a byte. O retorno é o prompt de sistema/usuário canônico do
  * planejador (a saída estruturada é validada pelo `ActionsSchema` do P-04).
  */
 export function promptDoPlanejador(entrada: EntradaDoPromptDoPlanejador): string {
   const catalogo = renderizarCatalogo();
+  const regraDeLacuna = renderizarRegraDeLacuna();
+  const regraDeOrdem = renderizarRegraDeOrdem();
+  const excluidos = renderizarExcluidosComoExcecao(entrada.excluidosComoExcecao);
   const apontamentos = entrada.apontamentos.map(renderizarApontamento).join('\n\n');
   const temApontamentos = entrada.apontamentos.length > 0;
   const temLedger = entrada.ledgerDeRejeicoes.trim().length > 0;
@@ -101,10 +175,10 @@ REGRAS DURAS (docs §7.3 e §6.7)
 3. Raciocínio antes de decisão (INV-04, docs §6.3): em toda ação, escreva o MOTIVO antes de escolher a ação. Nunca escolha a ação sem justificar.
 4. As ações saem ORDENADAS: "posicao" crescente — essa é a ordem de aplicação.
 5. A REGRA DE DISTINÇÃO que faz o laço terminar (docs §5.5):
-   - apontamento com introduzido_em === null (LACUNA DE CURRÍCULO): a ação é CRIAR AULA — INSERT_INTERMEDIATE (aula atômica intermediária que ensina o conceito) ou MOVE_CONCEPT_TO_ENTRY_BUDGET (o conceito pertence aos critérios de entrada). NUNCA REWRITE_IN_BUDGET para lacuna: reescrever o desafio para caber num currículo furado é o laço que nunca termina.
-   - apontamento com introduzido_em !== null (violação de ORDEM): a ação é reescrever/movimentar/reordenar — REWRITE_IN_BUDGET, REMOVE_EDGE, ADD_EDGE, MOVE_CONCEPT_TO_ENTRY_BUDGET etc. NUNCA criar aula.
+   ${regraDeLacuna}
+   ${regraDeOrdem}
 6. APONTAMENTO SEM MAPEAMENTO: se nenhuma ação do catálogo mapeia o apontamento, NÃO invente ação. Deixe-o FORA de "acoes" — ele será devolvido como DEFEITO DO CATÁLOGO (falha de mapeamento estruturada) e volta a você na rodada seguinte. No "motivo" das demais ações, diga explicitamente qual apontamento ficou de fora e por quê.
-7. LEDGER DE REJEIÇÕES (docs §6.7): um apontamento que aparece como excecao_intencional no ledger NÃO é reaberto — não gere ação para ele nesta rodada.
+7. EXCEÇÃO INTENCIONAL (docs §6.7): apontamentos listados em "APONTAMENTOS EXCLUÍDOS COMO EXCEÇÃO INTENCIONAL" (abaixo) NÃO são reabertos — NÃO gere ação para eles, e NÃO os trate como "sem mapeamento": a ausência deles do plano é EXCEÇÃO DECLARADA, não defeito do catálogo. O mesmo vale para apontamentos marcados como excecao_intencional no LEDGER.
 
 O CATÁLOGO FECHADO (as 14 ações, docs §6.7):
 ${catalogo}
@@ -114,6 +188,8 @@ ${apontamentos}
 
 LEDGER DE REJEIÇÕES${temLedger ? '' : ' (vazio nesta rodada)'}
 ${entrada.ledgerDeRejeicoes}
+
+${excluidos}
 
 SAÍDA (JSON) — o único texto da resposta, sem bloco de código:
 { "acoes": [ { "posicao": <int crescente>, "apontamento_id": "<id do apontamento>", "alvo": { "arquivo": "<caminho do arquivo>", "span": [<inicio>, <fim>] }, "motivo": "<por que esta ação e não outra — obrigatório antes da decisão>", "acao": "<uma ação literal do catálogo fechado>", "resultado_esperado": "<o que muda de verificável no artefato>" } ] }

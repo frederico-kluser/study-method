@@ -106,6 +106,64 @@ export const ACOES_DE_ORDEM: readonly AcaoDeOrdem[] = ACAO_CATALOGO.filter(
   (acao): acao is AcaoDeOrdem => !ACOES_DE_LACUNA_SET.has(acao),
 );
 
+/**
+ * WARNING-2 (onda 2) — "ordem NUNCA cria aula", lido com precisão.
+ *
+ * A frase tem um sentido EXATO: a polaridade de ORDEM nunca usa o PAR DE CRIAR
+ * AULA (`INSERT_INTERMEDIATE`, `MOVE_CONCEPT_TO_ENTRY_BUDGET`) — essas são as
+ * únicas duas ações de LACUNA. Ela NÃO diz que a resolução de ordem não mexe em
+ * conteúdo: algumas ações de ORDEM materializam conteúdo, e isso é EXCEÇÃO
+ * DELIBERADA DE CICLO/GRANULARIDADE — nunca lacuna de currículo. A semântica
+ * precisa de cada ação, por partição:
+ *
+ * LACUNA DE CURRÍCULO (§5.5 — conceito NUNCA ensinado, introduzido_em === null):
+ *   - INSERT_INTERMEDIATE: CRIAR a aula atômica intermediária que ensina o
+ *     conceito faltante — o movimento default da lacuna. Conteúdo novo? SIM, e
+ *     é exatamente o ponto: a lacuna cria aula;
+ *   - MOVE_CONCEPT_TO_ENTRY_BUDGET: NÃO cria aula — declara o conceito como
+ *     critério de entrada do currículo em vez de aula própria. Continua sendo
+ *     ação de LACUNA: decide o DESTINO do conceito não ensinado dentro do
+ *     currículo, nunca reescreve um artefato existente para caber no furo.
+ *
+ * VIOLAÇÃO DE ORDEM (§5.5 — conceito ensinado em dependência/ordem errada):
+ *   - REWRITE_IN_BUDGET: reescreve o artefato dentro do orçamento vigente —
+ *     o movimento default. Conteúdo? Reescrita do EXISTENTE, sem criar aula;
+ *   - ADD_EDGE / REMOVE_EDGE: movimentação/reordenação PURA do grafo (arestas
+ *     de pré-requisito ou de uso). Sem conteúdo novo;
+ *   - SPLIT_NODE / MERGE_NODES: recomposição de nós de currículo EXISTENTES
+ *     (granularidade, §3.6/§3.7). Não cria aula: redistribui o que já é
+ *     ensinado;
+ *   - DECLARE_INTEGRATIVE: marca nó existente como integrativo (§3.7) — exige
+ *     explicação própria, sem criar nó novo;
+ *   - DEFER_COMPLEXITY: adia uma complexidade para aula posterior, com
+ *     fora_de_escopo declarado. Não cria aula;
+ *   - MARK_WIP: marca o artefato como trabalho em andamento — nem cria nem
+ *     reescreve conteúdo prometido;
+ *   - ADD_TEST: acrescenta um teste ao desafio existente — sem aula nova;
+ *   - SPLIT_LESSON: divide uma aula EXISTENTE que estourou a unidade atômica
+ *     (§3.6). Materializa uma aula NOVA? Não no sentido de currículo: é
+ *     REORGANIZAÇÃO de conteúdo já ensinado que excedeu o teto — o conceito
+ *     tem dona; a lacuna é de outro tipo (a de §5.5 é "conceito sem aula que o
+ *     ensine"). Exceção deliberada de GRANULARIDADE, não lacuna de currículo;
+ *   - BREAK_CYCLE_WITH_STUB: quebra ciclo de pré-requisito com NÓ-PONTE
+ *     declarado como stub. Cria nó? SIM, um nó ESTRUTURAL de quebra de ciclo
+ *     (problema de GRAFO, §3.4) — o stub declara o conceito como pendente e
+ *     destrava a ordenação; ele NÃO é a aula de currículo que a lacuna
+ *     exigiria, e por isso é exceção deliberada de CICLO, não lacuna;
+ *   - BREAK_CYCLE_WITH_MINIMAL_INTRO: quebra o ciclo ENSINANDO a introdução
+ *     mínima do conceito. Materializa conteúdo? SIM — deliberadamente, como
+ *     exceção de CICLO: o conceito existe no grafo e precisa apenas da
+ *     introdução mínima para destravar a dependência; isso NÃO é a lacuna de
+ *     §5.5 (conceito inteiro sem aula dona), e a ação é de ORDEM.
+ *
+ * A norma (sem mudança de código — a semântica está certa): a proibição que
+ * faz o laço convergir é "lacuna NUNCA reescreve (o par de lacuna é só
+ * CRIAR AULA) e ordem NUNCA usa o par de CRIAR AULA". Conteúdo materializado
+ * por ações de ciclo/granularidade é consequência de resolver um problema de
+ * GRAFO ou de TETO, não de tapar um furo de CURRÍCULO — portanto não muda a
+ * partição.
+ */
+
 // ---------------------------------------------------------------------------
 // Defeito DO CATÁLOGO — falha de mapeamento estruturada (§7.3)
 // ---------------------------------------------------------------------------
@@ -169,12 +227,33 @@ export function defeitoSemMapeamento(apontamento_id: string, detalhe: string): D
   return { tipo: 'FALHA_DE_MAPEAMENTO', apontamento_id, acao_informada: '', motivo: 'SEM_MAPEAMENTO', detalhe };
 }
 
+/**
+ * WARNING-3 (onda 2) — a detecção por AUSÊNCIA não distingue "apontamento sem
+ * mapeamento" de "apontamento no ledger como exceção intencional" (§6.7).
+ * `defeitoSemMapeamento` materializa o primeiro; este guarda de runtime
+ * reconhece o segundo: `excluidosComoExcecao` é a lista DECLARADA (nunca
+ * inferida por ausência) de apontamentos que NÃO devem gerar ação — o laço F11
+ * (ondas 3+, P-18) passa exatamente os ids do ledger com estado
+ * `excecao_intencional` e usa este predicado para NÃO fabricar
+ * SEM_MAPEAMENTO para eles: ausência do plano + id na lista = exceção
+ * declarada, não defeito do catálogo.
+ */
+export function eExcecaoDeclarada(
+  excluidosComoExcecao: readonly ApontamentoId[],
+  apontamento_id: string,
+): boolean {
+  return excluidosComoExcecao.includes(apontamento_id);
+}
+
 // ---------------------------------------------------------------------------
 // A REGRA DE DISTINÇÃO — planoDeAcao (§5.5)
 // ---------------------------------------------------------------------------
 
 /** O apontamento VALIDADO (schema do P-04 — a entrada canônica no laço). */
 export type Apontamento = z.infer<typeof ApontamentoSchema>;
+
+/** O ID de um apontamento, DERIVADO do schema (P-04) — nunca string solta. */
+export type ApontamentoId = Apontamento['id'];
 
 /** Alias de leitura: o que `planoDeAcao` espera é o apontamento já validado. */
 export type ApontamentoParaPlano = Apontamento;
@@ -265,10 +344,10 @@ export function validarAcaoParaApontamento(
   const plano = planoDeAcao(apontamento);
   const permitidas: readonly AcaoCatalogo[] = plano.acoes_permitidas;
   if (!permitidas.includes(noCatalogo.acao)) {
-    const eixo = plano.lacuna ? 'lacuna de currículo' : 'violação de ordem';
-    const proibicao = plano.lacuna
-      ? 'lacuna NUNCA é reescrita — REWRITE_IN_BUDGET proibido; só CRIAR AULA'
-      : 'ordem NUNCA cria aula — INSERT_INTERMEDIATE proibido; só reescrita/movimentação';
+    const eixo = plano.lacuna ? 'LACUNA DE CURRÍCULO' : 'VIOLAÇÃO DE ORDEM';
+    const polaridadeEsperada = plano.lacuna
+      ? 'CRIAR AULA — nunca reescrita: REWRITE_IN_BUDGET reescreveria o desafio para caber num currículo furado, o laço que nunca termina (§5.5)'
+      : 'reescrita/movimentação/reordenação — nunca criar aula: a ordem reescreve o artefato, não o currículo (§5.5)';
     return {
       ok: false,
       defeito: {
@@ -276,7 +355,10 @@ export function validarAcaoParaApontamento(
         apontamento_id: apontamento.id,
         acao_informada: noCatalogo.acao,
         motivo: 'POLARIDADE_VIOLADA',
-        detalhe: `ação do catálogo porém proibida para ${eixo} (§5.5): ${proibicao}. Permitidas: ${permitidas.join(' | ')}.`,
+        detalhe:
+          `POLARIDADE_VIOLADA: a ação "${noCatalogo.acao}" é do catálogo fechado, porém PROIBIDA para este ` +
+          `apontamento de ${eixo} (§5.5). Polaridade esperada: ${polaridadeEsperada}. ` +
+          `Ações permitidas para este apontamento: ${permitidas.join(' | ')}.`,
       },
     };
   }

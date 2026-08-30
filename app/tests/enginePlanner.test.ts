@@ -19,6 +19,19 @@
  *      catálogo integralmente; o prompt do corretor não autoriza edição fora
  *      do span.
  *
+ * Revisão da onda 2 (fixes aplicados AQUI):
+ *   - HIGH-1 (coerência prompt × gate por construção): o prompt do planejador
+ *     renderiza as ações de cada polaridade DAS CONSTANTES `ACOES_DE_LACUNA` /
+ *     `ACOES_DE_ORDEM` (nunca literal) e o teste prova que toda ação citada
+ *     para ordem pertence a ACOES_DE_ORDEM e para lacuna pertence a
+ *     ACOES_DE_LACUNA — e que o gate ACEITA cada uma delas;
+ *   - o detalhe de POLARIDADE_VIOLADA nomeia a ação REAL tentada e a
+ *     polaridade esperada (melhor mensagem para o laço F11);
+ *   - WARNING-3: `entrada.excluidosComoExcecao` declara a lista de exceções
+ *     intencionais (nunca inferida por ausência), o prompt renderiza a lista e
+ *     `eExcecaoDeclarada` dá ao laço F11 o predicado que distingue "exceção
+ *     declarada" de "SEM_MAPEAMENTO".
+ *
  * Sem rede, sem disco, sem LLM: funções puras e fixtures em memória.
  */
 import { describe, it } from 'node:test';
@@ -30,6 +43,7 @@ import {
   ACOES_DE_LACUNA,
   ACOES_DE_ORDEM,
   defeitoSemMapeamento,
+  eExcecaoDeclarada,
   isAcaoDoCatalogo,
   planoDeAcao,
   validarAcaoNoCatalogo,
@@ -38,6 +52,7 @@ import {
   type AcaoDeLacuna,
   type AcaoDeOrdem,
   type Apontamento,
+  type ApontamentoId,
   type SpanDeArquivo,
 } from '../electron/main/engine/review/actionCatalog';
 import { promptDoPlanejador, type EntradaDoPromptDoPlanejador } from '../electron/main/engine/prompts/planner';
@@ -227,6 +242,13 @@ describe('P-13 · planoDeAcao — a distinção que faz o laço terminar (§5.5)
       assert.equal(gate.defeito.tipo, 'FALHA_DE_MAPEAMENTO');
       assert.equal(gate.defeito.motivo, 'POLARIDADE_VIOLADA');
       assert.equal(gate.defeito.apontamento_id, 'APT-0001');
+      // HIGH-1 (onda 2): o detalhe nomeia a ação REAL tentada e a polaridade
+      // esperada — o laço F11 devolve esta mensagem ao planejador na rodada
+      // seguinte, e ela precisa dizer O QUE foi tentado e O QUE era esperado.
+      assert.equal(gate.defeito.acao_informada, 'REWRITE_IN_BUDGET');
+      assert.ok(gate.defeito.detalhe.includes('REWRITE_IN_BUDGET'), 'detalhe cita a ação tentada');
+      assert.ok(gate.defeito.detalhe.includes('LACUNA DE CURRÍCULO'), 'detalhe cita o eixo');
+      assert.ok(gate.defeito.detalhe.includes('CRIAR AULA'), 'detalhe cita a polaridade esperada');
     }
 
     // A boa ação de lacuna passa no gate.
@@ -257,10 +279,158 @@ describe('P-13 · planoDeAcao — a distinção que faz o laço terminar (§5.5)
     if (!gate.ok) {
       assert.equal(gate.defeito.motivo, 'POLARIDADE_VIOLADA');
       assert.equal(gate.defeito.apontamento_id, 'APT-0002');
+      // HIGH-1 (onda 2): ação REAL tentada + polaridade esperada no detalhe.
+      assert.equal(gate.defeito.acao_informada, 'INSERT_INTERMEDIATE');
+      assert.ok(gate.defeito.detalhe.includes('INSERT_INTERMEDIATE'), 'detalhe cita a ação tentada');
+      assert.ok(gate.defeito.detalhe.includes('VIOLAÇÃO DE ORDEM'), 'detalhe cita o eixo');
+      assert.ok(gate.defeito.detalhe.includes('nunca criar aula'), 'detalhe cita a polaridade esperada');
+    }
+
+    // MOVE_CONCEPT_TO_ENTRY_BUDGET É ação de LACUNA (ACOES_DE_LACUNA) — usar
+    // em violação de ordem também é POLARIDADE_VIOLADA (a regressão do HIGH-1:
+    // o prompt literal antigo a citava como ação de ordem).
+    const gateMovendo = validarAcaoParaApontamento(ordem, 'MOVE_CONCEPT_TO_ENTRY_BUDGET');
+    assert.equal(gateMovendo.ok, false);
+    if (!gateMovendo.ok) {
+      assert.equal(gateMovendo.defeito.motivo, 'POLARIDADE_VIOLADA');
+      assert.equal(gateMovendo.defeito.acao_informada, 'MOVE_CONCEPT_TO_ENTRY_BUDGET');
+      assert.ok(gateMovendo.defeito.detalhe.includes('MOVE_CONCEPT_TO_ENTRY_BUDGET'));
     }
 
     // Reescrita dentro do orçamento passa.
     assert.equal(validarAcaoParaApontamento(ordem, 'REWRITE_IN_BUDGET').ok, true);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// HIGH-1 (onda 2) — coerência do prompt com o gate POR CONSTRUÇÃO
+// ---------------------------------------------------------------------------
+
+describe('P-13 · HIGH-1 — coerência prompt × gate por construção (onda 2)', () => {
+  /** Tokens de ação no trecho (só nomes do catálogo: os significados são prosa minúscula). */
+  const extrairAcoesCitadas = (trecho: string): string[] => trecho.match(/[A-Z][A-Z_]{2,}/g) ?? [];
+
+  it('toda ação citada no prompt para cada polaridade está NA partição certa — e todas estão', () => {
+    const lacuna = ap({ id: 'APT-0001', evidencia: { introduzido_em: null } });
+    const ordem = ap({ id: 'APT-0002', evidencia: { introduzido_em: 'm02/a05' } });
+    const prompt = promptDoPlanejador({
+      trilha: 'nodejs-do-zero',
+      rodada: 2,
+      apontamentos: [lacuna, ordem],
+      excluidosComoExcecao: [],
+      ledgerDeRejeicoes: '',
+    });
+
+    // ORDEM — entre o marcador e o primeiro "NUNCA" só cabem as ações permitidas.
+    const marcadorOrdem = 'AÇÕES DE ORDEM PERMITIDAS:';
+    const inicioOrdem = prompt.indexOf(marcadorOrdem);
+    assert.ok(inicioOrdem >= 0, 'o prompt cita o bloco de ações de ordem');
+    const trechoOrdem = prompt.slice(inicioOrdem + marcadorOrdem.length, prompt.indexOf('NUNCA', inicioOrdem));
+    const citadasNaOrdem = extrairAcoesCitadas(trechoOrdem);
+    // o exemplo de ações de ordem do §5.5 no prompt é EXATAMENTE ACOES_DE_ORDEM
+    assert.deepEqual(extrairAcoesCitadas(trechoOrdem), [...ACOES_DE_ORDEM]);
+    for (const acao of citadasNaOrdem) {
+      assert.ok(
+        (ACOES_DE_ORDEM as readonly string[]).includes(acao),
+        `ação citada para ordem "${acao}" pertence a ACOES_DE_ORDEM`,
+      );
+    }
+    // REGRESSÃO do HIGH-1: MOVE_CONCEPT_TO_ENTRY_BUDGET (ação de LACUNA) não
+    // pode aparecer como ação permitida de ordem.
+    assert.ok(!trechoOrdem.includes('MOVE_CONCEPT_TO_ENTRY_BUDGET'));
+
+    // LACUNA — idem.
+    const marcadorLacuna = 'AÇÕES DE LACUNA PERMITIDAS:';
+    const inicioLacuna = prompt.indexOf(marcadorLacuna);
+    assert.ok(inicioLacuna >= 0, 'o prompt cita o bloco de ações de lacuna');
+    const trechoLacuna = prompt.slice(inicioLacuna + marcadorLacuna.length, prompt.indexOf('NUNCA', inicioLacuna));
+    const citadasNaLacuna = extrairAcoesCitadas(trechoLacuna);
+    assert.deepEqual(citadasNaLacuna, [...ACOES_DE_LACUNA]);
+    for (const acao of citadasNaLacuna) {
+      assert.ok(
+        (ACOES_DE_LACUNA as readonly string[]).includes(acao),
+        `ação citada para lacuna "${acao}" pertence a ACOES_DE_LACUNA`,
+      );
+    }
+    assert.ok(!trechoLacuna.includes('ADD_EDGE')); // ação de ordem não vaza para a lacuna
+  });
+
+  it('o gate ACEITA cada ação citada no prompt para o apontamento daquela polaridade', () => {
+    const lacuna = ap({ id: 'APT-0001', evidencia: { introduzido_em: null } });
+    const ordem = ap({ id: 'APT-0002', evidencia: { introduzido_em: 'm02/a05' } });
+
+    // o plano "segue o prompt" quando escolhe UMA ação permitida da polaridade:
+    // o gate precisa aceitar TODAS elas (par lacuna × todo o complemento ordem).
+    for (const acao of ACOES_DE_LACUNA) {
+      const r = validarAcaoParaApontamento(lacuna, acao);
+      assert.equal(r.ok, true, `a lacuna aceita ${acao} (citada no prompt)`);
+    }
+    for (const acao of ACOES_DE_ORDEM) {
+      const r = validarAcaoParaApontamento(ordem, acao);
+      assert.equal(r.ok, true, `a ordem aceita ${acao} (citada no prompt)`);
+    }
+
+    // complemento fechado (cross-product): NENHUMA ação da outra polaridade passa —
+    // a partição §5.5 é exatamente a fronteira que o gate aplica.
+    for (const acao of ACOES_DE_ORDEM) {
+      const r = validarAcaoParaApontamento(lacuna, acao);
+      assert.equal(r.ok, false, `a lacuna REJEITA ${acao} (ação de ordem em lacuna)`);
+      if (!r.ok) assert.equal(r.defeito.motivo, 'POLARIDADE_VIOLADA');
+    }
+    for (const acao of ACOES_DE_LACUNA) {
+      const r = validarAcaoParaApontamento(ordem, acao);
+      assert.equal(r.ok, false, `a ordem REJEITA ${acao} (ação de lacuna em ordem)`);
+      if (!r.ok) assert.equal(r.defeito.motivo, 'POLARIDADE_VIOLADA');
+    }
+  });
+});
+
+// ---------------------------------------------------------------------------
+// WARNING-3 (onda 2) — exceção intencional DECLARADA vs SEM_MAPEAMENTO
+// ---------------------------------------------------------------------------
+
+describe('P-13 · WARNING-3 — exceção intencional declarada, nunca inferida por ausência (§6.7)', () => {
+  it('o prompt renderiza a lista declarada excluidosComoExcecao — e a vazia avisa "(nenhum nesta rodada)"', () => {
+    const lacuna = ap({ id: 'APT-0001', evidencia: { introduzido_em: null } });
+    const excecao = ap({ id: 'APT-0042', evidencia: { introduzido_em: null } });
+    const entrada: EntradaDoPromptDoPlanejador = {
+      trilha: 'nodejs-do-zero',
+      rodada: 3,
+      apontamentos: [lacuna, excecao],
+      excluidosComoExcecao: ['APT-0042'],
+      ledgerDeRejeicoes:
+        'regra C1 | desafios/cumprimentar/challenge.json | op:unary:typeof — excecao_intencional (decisão de projeto, justificativa registrada)',
+    };
+    const prompt = promptDoPlanejador(entrada);
+    const promptSemExclusao = promptDoPlanejador({ ...entrada, excluidosComoExcecao: [] });
+
+    // a lista DECLARADA entra literalmente na seção de exceções
+    assert.ok(prompt.includes('APONTAMENTOS EXCLUÍDOS COMO EXCEÇÃO INTENCIONAL'));
+    assert.ok(prompt.includes('  APT-0042'), 'o id excluído aparece na lista de exceções');
+    // o modelo não pode reabrir a exceção nem tratá-la como "sem mapeamento"
+    assert.ok(prompt.includes('NÃO gerar ação'));
+    assert.ok(prompt.includes('EXCEÇÃO DECLARADA'));
+    // com lista vazia: aviso explícito e NENHUM id — o id continua só como
+    // apontamento sobrevivente (`  id: APT-0042`), nunca como exceção inferida.
+    assert.ok(promptSemExclusao.includes('(nenhum nesta rodada)'));
+    assert.ok(!promptSemExclusao.includes('  APT-0042'));
+  });
+
+  it('eExcecaoDeclarada dá ao laço F11 o predicado exceção-declarada × sem-mapeamento', () => {
+    const excluidos: readonly ApontamentoId[] = ['APT-0042'];
+
+    // na lista → exceção DECLARADA: ausência do plano não vira SEM_MAPEAMENTO
+    assert.equal(eExcecaoDeclarada(excluidos, 'APT-0042'), true);
+    // fora da lista → ausência do plano É SEM_MAPEAMENTO (detecção por ausência
+    // só vale quando NÃO há declaração)
+    assert.equal(eExcecaoDeclarada(excluidos, 'APT-0001'), false);
+    // lista vazia → nunca exceção
+    assert.equal(eExcecaoDeclarada([], 'APT-0042'), false);
+
+    // o laço materializa o defeito apenas para o apontamento NÃO declarado
+    const naoDeclarado = defeitoSemMapeamento('APT-0001', 'nenhuma ação do catálogo cobre este apontamento');
+    assert.equal(naoDeclarado.motivo, 'SEM_MAPEAMENTO');
+    assert.equal(naoDeclarado.apontamento_id, 'APT-0001');
   });
 });
 
@@ -382,6 +552,7 @@ describe('P-13 · bônus — prompts puros e autocontidos (§7)', () => {
       trilha: 'nodejs-do-zero',
       rodada: 2,
       apontamentos: [lacuna, ordem],
+      excluidosComoExcecao: [], // WARNING-3 (onda 2): a lista declarada é campo obrigatório
       ledgerDeRejeicoes:
         'regra C1 | desafios/cumprimentar/challenge.json | op:unary:typeof — excecao_intencional (decisão de projeto, justificativa registrada)',
     };
