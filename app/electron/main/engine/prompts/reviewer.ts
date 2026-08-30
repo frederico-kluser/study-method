@@ -10,10 +10,20 @@
  * O REVISOR não escreve, não pontua e não aprova (§7.2):
  *
  *   - A proibição de código é ESTRUTURAL, não exortativa (A-P12-1): o schema
- *     de SAÍDA do revisor é `RevisaoSchema`, que estende o `FindingsSchema`/
- *     `ApontamentoSchema` do P-04 (nenhum tem campo de código, patch ou
- *     correção) e acrescenta o bloco de cinco predicados do §7.2 — também
- *     sem campo de código.
+ *     de SAÍDA do revisor é `RevisaoSchema` (findings do P-04 + bloco de
+ *     cinco predicados, nenhum com campo de código) com STRICT em TODOS os
+ *     níveis (onda 2 — H-1): `alvo`/`evidencia` são reconstruídos como
+ *     `z.object(...).strict()` — o `.strict()` de topo sozinho deixaria o
+ *     strip-mode aninhado descartar `codigo`/`patch`/`correcao` em silêncio
+ *     (success=true). Além do zod strict, `validarRevisaoSemCodigo` percorre
+ *     o DRAFT CRU antes do parse (fail-closed: a PRESENÇA da chave
+ *     `code`/`codigo`/`patch`/`correcao`/`correcao_sugerida`/`fix` em qualquer
+ *     profundidade invalida a resposta, mesmo que o zod a removesse).
+ *   - O modelo NÃO emite `severity` (onda 2 — H-4): `RevisaoSchema` omite o
+ *     campo (o exemplo de saída do prompt o remove e instrui explicitamente a
+ *     não emiti-lo); a severidade é anexada PELA TABELA FIXA do §6.5 depois
+ *     do parse, por `anexarSeveridadePorTabela` — saída do modelo COM
+ *     `severity` é REJEITADA (campo extra em schema strict).
  *   - O revisor NUNCA recebe o raciocínio, o plano ou o rascunho do AUTOR
  *     (§6.2; A-P12-6): `construirPromptRevisor` é uma função PURA cuja
  *     entrada tem EXATAMENTE três campos — artefato NORMALIZADO (saída de
@@ -35,7 +45,8 @@
 
 import { z } from 'zod';
 
-import { FindingsSchema } from '../schemas/artifacts';
+import { ApontamentoSchema, FindingsSchema, SeveritySchema } from '../schemas/artifacts';
+import { severidadeDeCategoria } from '../review/normalize';
 
 // ---------------------------------------------------------------------------
 // Catálogo de regras (entrada do prompt)
@@ -127,17 +138,144 @@ export const PredicadosSchema = z
   })
   .strict();
 
+// ---------------------------------------------------------------------------
+// Rejeição estrutural de código em QUALQUER profundidade (A-P12-1; H-1)
+// ---------------------------------------------------------------------------
+
 /**
- * A SAÍDA do revisor por rodada: o `FindingsSchema` do P-04 (apontamentos
- * com evidência antes de veredito, sem campo de código/patch — estrutural)
- * + o bloco dos cinco predicados. Usada pelo laço F11 (onda 3) para validar
- * a resposta estruturada do modelo. Passa no `lintOrdemCampos` (INV-04) e na
+ * Nomes de chave PROIBIDOS na resposta do revisor, em QUALQUER nível (H-1):
+ * `code`, `codigo`, `patch`, `correcao`, `correcao_sugerida`, `fix`. A
+ * PRESENÇA da chave invalida a resposta — mesmo que o zod a removesse em
+ * modo strip — por isso a varredura roda sobre o DRAFT CRU, antes do parse.
+ */
+export const NOMES_PROIBIDOS_DE_CODIGO: readonly string[] = [
+  'code',
+  'codigo',
+  'patch',
+  'correcao',
+  'correcao_sugerida',
+  'fix',
+];
+
+/** Normaliza uma chave para comparação: minúsculas, sem separadores. */
+function chaveNormalizadaDeCodigo(chave: string): string {
+  return chave.toLowerCase().replace(/[_\- ]/g, '');
+}
+
+/**
+ * Percorre um valor JSON (o DRAFT cru da resposta do modelo) em qualquer
+ * profundidade — objetos, arrays e valores — e devolve os CAMINHOS (notação
+ * por pontos) de toda chave cujo nome normalizado é um dos
+ * `NOMES_PROIBIDOS_DE_CODIGO`. FAIL-CLOSED (H-1): a PRESENÇA da chave já
+ * invalida, mesmo que o zod a removesse no strip-mode do P-04. Casamento por
+ * igualdade normalizada, nunca por substring: `fixacao`/`codigoFonte` não
+ * são falso-positivo.
+ */
+export function encontrarChavesDeCodigoNoDraft(draft: unknown, prefixo = '$'): string[] {
+  const encontradas: string[] = [];
+  const visitados = new WeakSet<object>();
+  const normalizadosProibidos = new Set(NOMES_PROIBIDOS_DE_CODIGO.map(chaveNormalizadaDeCodigo));
+
+  const percorrer = (valor: unknown, caminho: string): void => {
+    if (valor === null || typeof valor !== 'object') return;
+    if (visitados.has(valor)) return;
+    visitados.add(valor);
+    if (Array.isArray(valor)) {
+      valor.forEach((item, indice) => percorrer(item, `${caminho}[${indice}]`));
+      return;
+    }
+    for (const [chave, filho] of Object.entries(valor)) {
+      if (normalizadosProibidos.has(chaveNormalizadaDeCodigo(chave))) {
+        encontradas.push(`${caminho}.${chave}`);
+      }
+      percorrer(filho, `${caminho}.${chave}`);
+    }
+  };
+
+  percorrer(draft, prefixo);
+  return encontradas;
+}
+
+/**
+ * FAIL-CLOSED para o laço F11 (H-1): valida que a resposta CRUA do modelo não
+ * traz chave de código em nenhuma profundidade e LANÇA se trouxer (com os
+ * caminhos). Roda sobre o DRAFT CRU, ANTES do parse — um zod em strip-mode
+ * removeria as chaves e o parse passaria com success=true.
+ */
+export function validarRevisaoSemCodigo(draft: unknown): void {
+  const ocorrencias = encontrarChavesDeCodigoNoDraft(draft);
+  if (ocorrencias.length > 0) {
+    throw new Error(
+      `resposta do revisor inválida: chave(s) de código em ${ocorrencias.join('; ')} — a proibição é estrutural (A-P12-1)`,
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// O schema de SAÍDA do revisor (sem `severity` — H-4; strict em todo nível)
+// ---------------------------------------------------------------------------
+
+/**
+ * O apontamento NA SAÍDA DO MODELO (H-4): o `ApontamentoSchema` do P-04 SEM o
+ * campo `severity` — a severidade é derivada por TABELA FIXA fora da
+ * resposta (`anexarSeveridadePorTabela`, abaixo). Strict em TODOS os níveis
+ * (H-1): `alvo`/`evidencia` são reconstruídos como `z.object(...).strict()`
+ * para que QUALQUER chave extra em QUALQUER profundidade — inclusive
+ * `severity` e chaves de código — seja REJEITADA, e não silenciosamente
+ * strippada como no strip-mode do P-04 (artifacts.ts usa `z.object` puro).
+ */
+const ApontamentoDoRevisorSchema = z
+  .object({
+    ...ApontamentoSchema.omit({ severity: true }).shape,
+    alvo: z.object(ApontamentoSchema.shape.alvo.shape).strict(),
+    evidencia: z.object(ApontamentoSchema.shape.evidencia.shape).strict(),
+  })
+  .strict();
+
+/**
+ * A SAÍDA do revisor por rodada (H-4): o `FindingsSchema` do P-04 (apontamentos
+ * com evidência antes de veredito, sem campo de código/patch e SEM `severity`)
+ * + o bloco dos cinco predicados. Usada pelo laço F11 (onda 3) para validar a
+ * resposta estruturada do modelo; `anexarSeveridadePorTabela` regenera a
+ * severidade DEPOIS do parse. Passa no `lintOrdemCampos` (INV-04) e na
  * varredura de campos opcionais (INV-05) — verificado em
  * `tests/engineReviewer.test.ts`.
  */
-export const RevisaoSchema = FindingsSchema.extend({
-  predicados: z.array(PredicadoSchema).length(5),
-}).strict();
+export const RevisaoSchema = z
+  .object({
+    ...FindingsSchema.shape,
+    apontamentos: z.array(ApontamentoDoRevisorSchema).max(12),
+    predicados: z.array(PredicadoSchema).length(5),
+  })
+  .strict();
+
+/** A revisão como o MODELO a produz (sem `severity` em nenhum apontamento). */
+export type RevisaoDoRevisor = z.infer<typeof RevisaoSchema>;
+
+type Severidade = z.infer<typeof SeveritySchema>;
+
+/** A revisão DEPOIS do pipeline: cada apontamento ganhou `severity` da tabela. */
+export type RevisaoComSeveridade = Omit<RevisaoDoRevisor, 'apontamentos'> & {
+  apontamentos: Array<RevisaoDoRevisor['apontamentos'][number] & { severity: Severidade }>;
+};
+
+/**
+ * O PIPELINE após o parse (H-4): anexa a severidade de CADA apontamento pela
+ * TABELA FIXA do §6.5 (`severidadeDeCategoria`), nunca por opinião do modelo.
+ * Categoria desconhecida LANÇA (`ErroDeCategoriaDesconhecida`, FAIL-CLOSED) —
+ * catálogo fora de sincronia para o laço F11. O resultado tem o mesmo formato
+ * do `FindingsSchema` do P-04 (com `severity`), inclusive validando nos
+ * schemas originais.
+ */
+export function anexarSeveridadePorTabela(revisao: RevisaoDoRevisor): RevisaoComSeveridade {
+  return {
+    ...revisao,
+    apontamentos: revisao.apontamentos.map((apontamento) => ({
+      ...apontamento,
+      severity: severidadeDeCategoria(apontamento.categoria),
+    })),
+  };
+}
 
 // ---------------------------------------------------------------------------
 // O prompt — função PURA
@@ -190,6 +328,9 @@ export function construirPromptRevisor(entrada: EntradaPromptRevisor): string {
     '  achado por julgar "pouco grave" e não se instrua a ser conservador — você reporta, não calibra.',
     '- Não use nota de 1 a 5 e não atribua severidade por opinião: escolha apenas a `categoria` do',
     '  catálogo abaixo; a severidade é derivada por TABELA FIXA fora da sua resposta (nunca por você).',
+    '- NÃO inclua o campo "severity" em NENHUM apontamento: o schema de saída o REJEITA (é campo',
+    '  extra, a proibição é estrutural). Sua resposta termina em `categoria`; a severidade é anexada',
+    '  pelo pipeline, por tabela fixa, depois do seu JSON.',
     `- Categorias válidas de apontamento (escolha EXATAMENTE uma por apontamento): ${CATEGORIAS_VALIDAS}.`,
     '- NÃO escreva código em lugar nenhum da sua resposta. A saída é APENAS o JSON do formato abaixo.',
     '- Você não aprova nem reprova o artefato: não existe campo de aprovação na sua saída.',
@@ -222,7 +363,6 @@ export function construirPromptRevisor(entrada: EntradaPromptRevisor): string {
     '      "defeito": "O desafio usa `throw` na linha 7.",',
     '      "regra_violada": "C1",',
     '      "categoria": "construcao_nao_ensinada",',
-    '      "severity": "bloqueante",',
     '      "acao_sugerida": "…",',
     '      "confianca": 0.95',
     '    }',

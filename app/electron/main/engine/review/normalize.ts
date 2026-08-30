@@ -11,8 +11,9 @@
  *
  * Três blocos, todos FUNÇÕES PURAS (zero LLM, zero disco, zero rede):
  *
- *   1. `normalizarArtefato` — remove comentários, autoria, nome de modelo,
- *      changelog e auto-avaliação; neutraliza tom. É IDEMPOTENTE (A-P12-3):
+ *   1. `normalizarArtefato` — remove comentários, autoria, assinatura de
+ *      modelo (inclusive com travessão), nome de modelo, changelog e
+ *      auto-avaliação; neutraliza tom. É IDEMPOTENTE (A-P12-3):
  *      aplicar 2× = aplicar 1×, o que garante que o laço F11 pode rodar o
  *      normalizador sem medo de corromper um artefato já normalizado.
  *      Sem ele o AUTOR compra o veredito — auto-declaração de corretude
@@ -57,14 +58,14 @@ export function removerComentarios(texto: string): string {
 /**
  * Linhas de autoria/metadados de modelo, ancoradas no INÍCIO da linha
  * (caso-insensitive): `Autor:`, `Autoria:`, `Assinatura:`, `Escrito por`,
- * `Produzido por`, `Gerado por`, `Criado por`, `Modelo:`, `Modelo utilizado:`,
- * `Modelo LLM:`. O separador `:` pode ser ASCII ou `：`. Linhas que apenas
- * COMEÇAM com `por` (ex.: "Por exemplo, …") não são tocadas: o casamento
- * exige o verbo composto.
+ * `Produzido por`, `Gerado por`, `Criado por`, `Feito por` (e `Feito pelo`),
+ * `Modelo:`, `Modelo utilizado:`, `Modelo LLM:`. O separador `:` pode ser
+ * ASCII ou `：`. Linhas que apenas COMEÇAM com `por` (ex.: "Por exemplo, …")
+ * não são tocadas: o casamento exige o verbo composto.
  */
 export function removerLinhasDeAutoria(texto: string): string {
   const padrao =
-    /^\s*(?:autor|autor\(a\)|autoria|assinatura|escrito por|produzido por|gerado por|criado por|modelo|modelo utilizado|modelo llm)\s*[:：]?.*$/im;
+    /^\s*(?:autor|autor\(a\)|autoria|assinatura|escrito por|produzido por|gerado por|criado por|feito por|feito pelo|modelo|modelo utilizado|modelo llm)\s*[:：]?.*$/im;
   return texto
     .split('\n')
     .filter((linha) => !padrao.test(linha))
@@ -115,14 +116,56 @@ export function removerSecoesDeMeta(texto: string): string {
  * Padrões de AUTO-ELOGIO/auto-avaliação em linha própria. São heurísticas
  * DETERMINÍSTICAS e conservadoras: qualquer linha que case é removida
  * inteira — o custo de deixar passar é menor que o de apagar conteúdo.
- * Cobre três famílias: (a) "este/meu rascunho/aula ficou excelente/ótimo…";
+ * Cobre cinco famílias: (a) "este/meu rascunho/aula ficou excelente/ótimo…";
  * (b) "estou/fiquei muito satisfeito/orgulhoso…"; (c) "acho/acredito que
- * este rascunho ficou…".
+ * este rascunho ficou…"; (d) avaliação positiva POSPOSTA em frase declarativa
+ * de autoria ("Este é um trabalho muito bom.", "A aula ficou muito boa." —
+ * o sujeito é a própria obra e a avaliação fecha a frase); (e) voz possessiva
+ * de autoria ("Minha/Meu <obra>" + verbo de estado) com avaliação ou orgulho
+ * na mesma frase ("Minha aula ficou muito boa, estou orgulhoso dela.").
+ *
+ * As famílias (d)/(e) (onda 2, H-3) exigem a avaliação perto do FIM da linha
+ * (máx. 12 caracteres de cauda) e nunca casam linha que começa com código,
+ * heading ou conteúdo técnico: o objetivo é neutralizar a VOZ DE AUTOR para
+ * o juiz — a linha é removida inteira, o corpo da aula nunca é cortado.
  */
+const AVALIACAO_POSITIVA_POSPOSTA =
+  'muito\\s+bom|muito\\s+boa|muito\\s+bem|excelente|[óo]timo|[óo]tima|perfeito|perfeita|' +
+  'fant[áa]stico|maravilhoso|orgulhoso|orgulhosa';
+
+/** (d) frase declarativa de autoria: sujeito da obra + avaliação posposta. */
+const PADRAO_AVALIACAO_POSPOSTA = new RegExp(
+  '^\\s*(?:' +
+    // sujeito: demonstrativo + verbo de estado ("Este é um trabalho muito bom.")
+    // — fronteira Unicode, NUNCA `\b` (ASCII não enxerga limite após `é`/`á`)
+    '(?:este|esta|isso|isto|esse|essa)\\s+(?:é|e|eh|está|esta|ficou|foi|saiu|parece|virou)(?![\\p{L}\\p{N}_])' +
+    '|' +
+    // sujeito: possessivo/demonstrativo/artigo + nome da obra ("Minha aula …", "O trabalho …")
+    '(?:meu|minha|este|esta|esse|essa|a|o)\\s+(?:aula|trabalho|material|texto|rascunho|draft|conte[úu]do|vers[ãa]o|entrega|resultado|explica[çc][ãa]o|exerc[íi]cio|tarefa|c[óo]digo)(?![\\p{L}\\p{N}_])' +
+    ')' +
+    '(?:(?![.!?\\n]).){0,100}' + // corpo da frase, sem pontuação terminal
+    `(?:${AVALIACAO_POSITIVA_POSPOSTA})` + // a avaliação é a ORAÇÃO da frase
+    '(?:(?![.!?\\n]).){0,12}[.!?]?\\s*$', // no máximo 12 caracteres de cauda
+  'iu',
+);
+
+/** (e) voz possessiva de autoria + verbo de estado + avaliação/orgulho. */
+const PADRAO_VOZ_POSSESSIVA = new RegExp(
+  '^\\s*(?:meu|minha)\\s+(?:aula|trabalho|material|texto|rascunho|draft|conte[úu]do|vers[ãa]o|entrega|resultado|explica[çc][ãa]o|exerc[íi]cio|tarefa|c[óo]digo)(?![\\p{L}\\p{N}_])' +
+    '(?:(?![.!?\\n]).){0,80}' +
+    '(?:está|esta|é|e|eh|ficou|foi|saiu)(?![\\p{L}\\p{N}_])' +
+    '(?:(?![.!?\\n]).){0,40}' +
+    `(?:${AVALIACAO_POSITIVA_POSPOSTA}|satisfeito|satisfeita|feliz)` +
+    '[^.!?\\n]{0,12}[.!?]?\\s*$',
+  'iu',
+);
+
 const PADROES_DE_LINHA_DE_AUTO_ELOGIO: readonly RegExp[] = [
   /(?:^|[.!?]\s+)(?:este|meu|minha|essa|esta)\s+(?:rascunho|draft|aula|conte[úu]do|material|texto|vers[ãa]o|entrega)\b[^.!?\n]{0,80}(?:excelente|perfeito|perfeita|impec[áa]vel|maravilhoso|fant[áa]stico|incr[íi]vel|[óo]timo|[óo]tima|espetacular|brilhante|magn[íi]fico|sensacional|muito bom|muito bem)\b/i,
   /^(?:eu\s+)?(?:estou|fiquei|me sinto)\s+(?:muito\s+|bastante\s+|extremamente\s+)?(?:satisfeito|satisfeita|orgulhoso|orgulhosa|feliz|contente|impressionado|impressionada)\b/i,
   /^(?:acho|acredito|considero|penso)\s+que\s+(?:este|meu|minha|essa|esta)\s+(?:rascunho|draft|aula|material|conte[úu]do|texto)\s+(?:ficou|est[áa]|estava|ficou bom|ficou [óo]timo)\b/i,
+  PADRAO_AVALIACAO_POSPOSTA,
+  PADRAO_VOZ_POSSESSIVA,
 ];
 
 /** Remove linhas inteiras de auto-elogio/auto-avaliação. */
@@ -131,6 +174,46 @@ export function removerLinhasDeAutoElogio(texto: string): string {
     .split('\n')
     .filter((linha) => !PADROES_DE_LINHA_DE_AUTO_ELOGIO.some((padrao) => padrao.test(linha)))
     .join('\n');
+}
+
+/**
+ * Nomes/modelos de IA reconhecidos em LINHA DE ASSINATURA/autoria (família d,
+ * onda 2 — H-3): GPT, GPT-4, Claude, DeepSeek, Gemini, Llama, ChatGPT. São
+ * tokens DISTINTIVOS, de baixíssimo falso-positivo em conteúdo de aula.
+ */
+const NOMES_DE_MODELO = 'GPT(?:-?\\d+)?|Claude|DeepSeek|Gemini|Llama|ChatGPT';
+
+/**
+ * Remove ASSINATURAS de modelo/autoria (H-3, famílias c/d):
+ *
+ *   1. assinatura no FIM da linha — `"Este conteúdo é ok — GPT-4"` vira
+ *      `"Este conteúdo é ok"` (sai SÓ a assinatura, com o travessão: o corpo
+ *      da aula nunca é cortado; casamento por travessão `—`/`–` seguido de
+ *      nome de modelo);
+ *   2. linha que é SÓ assinatura — `"— GPT"`, `"GPT-4."`, `"— Ana Beatriz"`
+ *      — sai inteira (travessão + nome de pessoa, ou nome de modelo solto).
+ *
+ * Idempotente: a primeira passada remove a assinatura e a segunda não tem o
+ * que casar. A linha que começa com heading (`# Aula 5 — Laços`) não casa:
+ * o travessão de título fica.
+ */
+export function removerAssinaturasDeModelo(texto: string): string {
+  // (1) assinatura no fim da linha: "<conteúdo> — GPT-4" → só a assinatura sai.
+  let t = texto.replace(new RegExp(`[—–]\\s*(?:${NOMES_DE_MODELO})\\s*[.!?]?[ \\t]*$`, 'gim'), '');
+  // (2) linha que é SÓ assinatura sai inteira.
+  const soModelo = new RegExp(`^(?:[—–]\\s*)?(?:${NOMES_DE_MODELO})\\s*[.!?]?$`, 'i');
+  const soAssinaturaNome = new RegExp(
+    "^[—–]\\s*[A-ZÀ-Ý][\\p{L}À-ý'’.-]{1,24}(?:\\s+[A-ZÀ-Ý][\\p{L}À-ý'’.-]{1,24})?\\s*[.!?]?$",
+    'u',
+  );
+  t = t
+    .split('\n')
+    .filter((linha) => {
+      const limpa = linha.trim();
+      return limpa.length < 2 || (!soModelo.test(limpa) && !soAssinaturaNome.test(limpa));
+    })
+    .join('\n');
+  return t;
 }
 
 /**
@@ -177,16 +260,17 @@ export function neutralizarTom(texto: string): string {
 }
 
 /**
- * O normalizador COMPLETO, na ordem: comentários → autoria → seções de meta
- * → linhas de auto-elogio → tom → colapso de linhas em branco. Função pura e
- * IDEMPOTENTE (A-P12-3): `normalizarArtefato(normalizarArtefato(x)) ===
- * normalizarArtefato(x)` — cada camada remove conteúdo que, uma vez
- * removido, não volta a casar.
+ * O normalizador COMPLETO, na ordem: comentários → autoria → assinaturas de
+ * modelo → seções de meta → linhas de auto-elogio → tom → colapso de linhas
+ * em branco. Função pura e IDEMPOTENTE (A-P12-3):
+ * `normalizarArtefato(normalizarArtefato(x)) === normalizarArtefato(x)` —
+ * cada camada remove conteúdo que, uma vez removido, não volta a casar.
  */
 export function normalizarArtefato(texto: string): string {
   let t = texto;
   t = removerComentarios(t);
   t = removerLinhasDeAutoria(t);
+  t = removerAssinaturasDeModelo(t);
   t = removerSecoesDeMeta(t);
   t = removerLinhasDeAutoElogio(t);
   t = neutralizarTom(t);
@@ -232,14 +316,17 @@ export class ErroDeCategoriaDesconhecida extends Error {
 
 /**
  * A severidade vem da TABELA FIXA, nunca da opinião (§6.5). Categoria
- * desconhecida é ERRO (A-P12-4, FAIL-CLOSED): não existe default.
+ * desconhecida é ERRO (A-P12-4, FAIL-CLOSED): não existe default. A leitura
+ * usa `Object.hasOwn` (onda 2 — H-2): um índice direto herdaria chaves de
+ * `Object.prototype` ('toString', 'constructor', 'hasOwnProperty') e a
+ * severidade viraria uma FUNÇÃO — categoria sem propriedade PRÓPRIA na
+ * tabela lança, sempre.
  */
 export function severidadeDeCategoria(categoria: string): Severidade {
-  const severidade = SEVERIDADE_POR_CATEGORIA[categoria as Categoria];
-  if (severidade === undefined) {
+  if (!Object.hasOwn(SEVERIDADE_POR_CATEGORIA, categoria)) {
     throw new ErroDeCategoriaDesconhecida(categoria);
   }
-  return severidade;
+  return SEVERIDADE_POR_CATEGORIA[categoria as Categoria];
 }
 
 /**

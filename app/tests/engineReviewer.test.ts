@@ -9,19 +9,35 @@
  *     patch: o teste PERCORRE o zod shape (todos os níveis) e assere a
  *     ausência estrutural de `code`/`patch`/`correcao`/…, e o parse
  *     (com `.strict()`) REJEITA resposta que traga campo extra de código.
+ *     (onda 2 — H-1) Rejeição em QUALQUER profundidade: `alvo`/`evidencia`
+ *     são strict no `RevisaoSchema` (o `.strict()` de topo não cobria o
+ *     strip-mode aninhado do P-04) e `validarRevisaoSemCodigo` percorre o
+ *     DRAFT CRU antes do parse — a PRESENÇA de `code`/`codigo`/`patch`/
+ *     `correcao`/`correcao_sugerida`/`fix` na raiz, em alvo[], em evidencia[]
+ *     ou em predicados[] invalida a resposta (fail-closed).
  *   - A-P12-2 — assert de roteamento em código: `model(AUTOR) !==
  *     model(REVISOR)` e `family(REVISOR) ∉ families(produtores)` (§6.2),
  *     com mapas modelo→família injetados e FAIL-CLOSED quando a família
  *     não é verificável.
  *   - A-P12-3 — o normalizador é IDEMPOTENTE (aplicar 2× = aplicar 1×).
  *   - A-P12-4 — severidade vem da TABELA FIXA do §6.5; categoria
- *     desconhecida é ERRO, nunca default opinado.
+ *     desconhecida é ERRO, nunca default opinado. (onda 2 — H-2) A leitura
+ *     usa `Object.hasOwn`: `toString`/`constructor`/`hasOwnProperty` são
+ *     propriedades de Object.prototype, NÃO linhas da tabela — lançam.
  *   - A-P12-5 — categoria `estilo` (e `tom`/`prosa` — sugestão) NUNCA abre
  *     rodada.
  *   - A-P12-6 — o prompt do revisor não tem campo nem conteúdo de
  *     rascunho/raciocínio/plano do AUTOR: a entrada é EXATAMENTE {artefato
  *     normalizado, regras, verificadores}, e o prompt construído não contém
  *     os marcadores de um rascunho de exemplo.
+ *   - (onda 2 — H-3) O normalizador neutraliza a VOZ DE AUTOR em variações
+ *     reais: avaliação positiva posposta ("Este é um trabalho muito bom.",
+ *     "A aula ficou muito boa."), voz possessiva ("Minha aula ficou muito
+ *     boa, estou orgulhoso dela."), verbos de autoria ("Feito por GPT-4.")
+ *     e assinaturas com travessão ("— GPT") — sem cortar conteúdo técnico.
+ *   - (onda 2 — H-4) O modelo NÃO emite `severity`: a saída com o campo é
+ *     REJEITADA (strict) e o pipeline anexa a severidade POR TABELA depois
+ *     do parse, via `anexarSeveridadePorTabela`.
  *   - INV-04/INV-05 — `RevisaoSchema`/`PredicadoSchema` passam no lint do
  *     P-04 (`lintOrdemCampos`/`encontrarCamposOpcionais`): justificativa
  *     antes do veredito, todo campo obrigatório.
@@ -34,11 +50,15 @@ import assert from 'node:assert/strict';
 import { z } from 'zod';
 
 import {
+  anexarSeveridadePorTabela,
+  construirPromptRevisor,
+  encontrarChavesDeCodigoNoDraft,
+  NOMES_PROIBIDOS_DE_CODIGO,
   PREDICADOS_DA_AULA,
   PredicadoSchema,
   PredicadosSchema,
   RevisaoSchema,
-  construirPromptRevisor,
+  validarRevisaoSemCodigo,
   type EntradaPromptRevisor,
   type RegraDoCatalogo,
 } from '../electron/main/engine/prompts/reviewer';
@@ -50,6 +70,7 @@ import {
   abreRodada,
   neutralizarTom,
   normalizarArtefato,
+  removerAssinaturasDeModelo,
   removerComentarios,
   removerLinhasDeAutoria,
   removerSecoesDeMeta,
@@ -135,6 +156,16 @@ function apontamentoValido(): z.infer<typeof ApontamentoSchema> {
     acao_sugerida: 'trocar por uma construção do orçamento',
     confianca: 0.95,
   };
+}
+
+/**
+ * O mesmíssimo apontamento SEM `severity` — como o MODELO o produz (H-4):
+ * o schema de saída do revisor não tem o campo; a severidade é anexada pelo
+ * pipeline, por tabela fixa, depois do parse.
+ */
+function apontamentoDoModelo(): Omit<z.infer<typeof ApontamentoSchema>, 'severity'> {
+  const { severity: _severity, ...apontamento } = apontamentoValido();
+  return apontamento;
 }
 
 function cincoPredicadosValidos(): z.infer<typeof PredicadosSchema>['predicados'] {
@@ -226,7 +257,7 @@ describe('A-P12-1 — o schema de saída do revisor não tem campo de código ne
       artefato: 'm01/a03',
       hash_artefato: 'abc123',
       rodada: 1,
-      apontamentos: [apontamentoValido()],
+      apontamentos: [apontamentoDoModelo()],
       resumo: 'dois achados',
       predicados: cincoPredicadosValidos(),
       codigo: 'console.log("eu escrevo código mesmo assim")',
@@ -240,11 +271,81 @@ describe('A-P12-1 — o schema de saída do revisor não tem campo de código ne
       artefato: 'm01/a03',
       hash_artefato: 'abc123',
       rodada: 1,
-      apontamentos: [apontamentoValido()],
+      apontamentos: [apontamentoDoModelo()],
       resumo: 'um achado',
       predicados: cincoPredicadosValidos(),
     });
     assert.equal(r.success, true);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// H-1 (onda 2) — rejeição estrutural em QUALQUER profundidade
+// ---------------------------------------------------------------------------
+
+describe('H-1 — chave de código em QUALQUER profundidade invalida a resposta (raiz, alvo, evidencia, predicados)', () => {
+  function baseCom(apontamento: unknown, predicados: unknown = undefined): Record<string, unknown> {
+    const resposta: Record<string, unknown> = {
+      artefato: 'm01/a03',
+      hash_artefato: 'abc123',
+      rodada: 1,
+      apontamentos: [apontamento],
+      resumo: 'um achado',
+    };
+    resposta.predicados = predicados === undefined ? cincoPredicadosValidos() : predicados;
+    return resposta;
+  }
+
+  it('o walker acha a chave proibida na RAIZ e os caminhos apontam o nível exato', () => {
+    const comRaiz = { ...baseCom(apontamentoDoModelo()), codigo: 'x' };
+    assert.deepEqual(encontrarChavesDeCodigoNoDraft(comRaiz), ['$.codigo']);
+  });
+
+  it('o walker acha a chave proibida DENTRO de alvo[]', () => {
+    const comPatchNoAlvo = baseCom({ ...apontamentoDoModelo(), alvo: { ...apontamentoDoModelo().alvo, patch: 'o patch que não pode existir' } });
+    assert.deepEqual(encontrarChavesDeCodigoNoDraft(comPatchNoAlvo), ['$.apontamentos[0].alvo.patch']);
+  });
+
+  it('o walker acha a chave proibida DENTRO de evidencia[]', () => {
+    const comCorrecaoNaEvidencia = baseCom({
+      ...apontamentoDoModelo(),
+      evidencia: { ...apontamentoDoModelo().evidencia, correcao: 'trocar por outra construção' },
+    });
+    assert.deepEqual(encontrarChavesDeCodigoNoDraft(comCorrecaoNaEvidencia), ['$.apontamentos[0].evidencia.correcao']);
+  });
+
+  it('o walker acha a chave proibida DENTRO de predicados[]', () => {
+    const comFixNoPredicado = baseCom(
+      apontamentoDoModelo(),
+      [{ ...cincoPredicadosValidos()[0], fix: 'escrever o código aqui' }, ...cincoPredicadosValidos().slice(1)],
+    );
+    assert.deepEqual(encontrarChavesDeCodigoNoDraft(comFixNoPredicado), ['$.predicados[0].fix']);
+  });
+
+  it('o casamento é por igualdade NORMALIZADA (case/camel/snake) e NUNCA por substring', () => {
+    assert.deepEqual(encontrarChavesDeCodigoNoDraft({ correcaoSugerida: 'x' }), ['$.correcaoSugerida']);
+    assert.deepEqual(encontrarChavesDeCodigoNoDraft({ 'Correcao-Sugerida': 'x' }), ['$.Correcao-Sugerida']);
+    assert.deepEqual(encontrarChavesDeCodigoNoDraft({ CODE: 'x' }), ['$.CODE']);
+    assert.deepEqual(encontrarChavesDeCodigoNoDraft({ fixacao: 'x', codigos: ['y'], codigoFonte: 'z' }), []);
+    assert.deepEqual(NOMES_PROIBIDOS_DE_CODIGO, ['code', 'codigo', 'patch', 'correcao', 'correcao_sugerida', 'fix']);
+  });
+
+  it('validarRevisaoSemCodigo LANÇA (fail-closed) quando há chave em qualquer nível; passa sem', () => {
+    assert.throws(() => validarRevisaoSemCodigo({ codigo: 'x' }), /A-P12-1/);
+    assert.throws(() => validarRevisaoSemCodigo({ apontamentos: [{ alvo: { code: 1 } }] }), /alvo/);
+    assert.throws(() => validarRevisaoSemCodigo(baseCom(apontamentoDoModelo(), [{ ...cincoPredicadosValidos()[0], patch: 'x' }])), /predicados/);
+    assert.doesNotThrow(() => validarRevisaoSemCodigo(baseCom(apontamentoDoModelo())));
+  });
+
+  it('o zod é strict em TODOS os níveis: chave desconhecida dentro de alvo/evidencia/apontamento também é rejeitada (não strippada)', () => {
+    const comExtraNoAlvo = baseCom({ ...apontamentoDoModelo(), alvo: { ...apontamentoDoModelo().alvo, extra: 1 } });
+    assert.equal(RevisaoSchema.safeParse(comExtraNoAlvo).success, false, 'alvo strict: campo extra rejeitado');
+
+    const comExtraNaEvidencia = baseCom({ ...apontamentoDoModelo(), evidencia: { ...apontamentoDoModelo().evidencia, extra: 1 } });
+    assert.equal(RevisaoSchema.safeParse(comExtraNaEvidencia).success, false, 'evidencia strict: campo extra rejeitado');
+
+    const comPatchNoAlvo = baseCom({ ...apontamentoDoModelo(), alvo: { ...apontamentoDoModelo().alvo, patch: 'x' } });
+    assert.equal(RevisaoSchema.safeParse(comPatchNoAlvo).success, false, 'patch aninhado rejeitado pelo zod strict (não só pelo walker)');
   });
 });
 
@@ -378,6 +479,92 @@ describe('normalizador — remove autoria, auto-avaliação e neutraliza tom (§
 });
 
 // ---------------------------------------------------------------------------
+// H-3 (onda 2) — o normalizador neutraliza a VOZ DE AUTOR em variações reais
+// ---------------------------------------------------------------------------
+
+describe('H-3 — voz de autor em variações reais é neutralizada sem cortar conteúdo técnico', () => {
+  it('família (a): avaliação positiva posposta em frase declarativa de autoria some', () => {
+    assert.ok(!normalizarArtefato('Este é um trabalho muito bom.').includes('muito bom'));
+    assert.ok(!normalizarArtefato('A aula ficou muito boa.').includes('muito boa'));
+    assert.ok(!normalizarArtefato('Este trabalho está excelente.').includes('excelente'));
+    assert.ok(!normalizarArtefato('A aula ficou perfeita.').includes('perfeita'));
+  });
+
+  it('família (b): voz possessiva de autoria + verbo de estado/orgulho some', () => {
+    assert.ok(!normalizarArtefato('Minha aula ficou muito boa, estou orgulhoso dela.').includes('orgulhoso'));
+    assert.ok(!normalizarArtefato('Meu material ficou ótimo.').includes('ótimo'));
+  });
+
+  it('família (c): verbos de autoria ("feito por") e assinatura com travessão no fim some', () => {
+    assert.ok(!normalizarArtefato('Feito por GPT-4.').includes('GPT'));
+    assert.ok(!normalizarArtefato('Escrito por Ana.').includes('Ana'));
+    assert.ok(!normalizarArtefato('— GPT').includes('GPT'));
+    assert.ok(!normalizarArtefato('— Ana Beatriz').includes('Ana Beatriz'));
+  });
+
+  it('família (d): linha que é SÓ nome de modelo sai inteira', () => {
+    for (const linha of ['GPT-4.', 'Claude', 'DeepSeek', 'Gemini', 'Llama', 'ChatGPT']) {
+      const limpo = normalizarArtefato(linha);
+      assert.ok(linha.length > 0 && limpo.length === 0, `linha de modelo "${linha}" deve sair inteira`);
+    }
+  });
+
+  it('assinatura com travessão no FIM da linha sai SEM cortar o corpo da aula', () => {
+    const cenario = ['## Teoria', 'A definição segue abaixo — GPT-4.', '## Desafio', 'Escreva um laço.'].join('\n');
+    const limpo = normalizarArtefato(cenario);
+    assert.ok(!limpo.includes('GPT-4'), 'assinatura de modelo removida');
+    assert.ok(limpo.includes('A definição segue abaixo'), 'corpo da teoria preservado');
+    assert.ok(limpo.includes('Escreva um laço.'), 'corpo do desafio preservado');
+    assert.ok(limpo.includes('## Desafio'));
+  });
+
+  it('é conservador: instruções e conteúdo técnico com "muito bom"/"muito bem" NÃO saem', () => {
+    const conteudo = [
+      '## Desafio',
+      'Explique muito bem o conceito de laço.',
+      'Um exemplo muito bom de recursão é o fatorial.',
+      'A função recebe um número e devolve o fatorial.',
+    ].join('\n');
+    const limpo = normalizarArtefato(conteudo);
+    assert.ok(limpo.includes('Explique muito bem o conceito de laço.'), 'instrução com "muito bem" preservada');
+    assert.ok(limpo.includes('Um exemplo muito bom de recursão é o fatorial.'), 'conteúdo sem sujeito de autoria preservado');
+    assert.ok(limpo.includes('A função recebe um número'));
+  });
+
+  it('o título com travessão ("# Aula 5 — Laços") não é assinatura', () => {
+    assert.ok(normalizarArtefato('# Aula 5 — Laços').includes('Laços'));
+  });
+
+  it('removerAssinaturasDeModelo é IDEMPOTENTE (2× = 1×)', () => {
+    const texto = 'linha um — GPT-4\n— GPT\nlinha dois\n— Ana Beatriz';
+    const umaVez = removerAssinaturasDeModelo(texto);
+    assert.equal(removerAssinaturasDeModelo(umaVez), umaVez);
+    assert.ok(!umaVez.includes('GPT'));
+    assert.ok(!umaVez.includes('Ana Beatriz'));
+    assert.ok(umaVez.includes('linha um'));
+    assert.ok(umaVez.includes('linha dois'));
+  });
+
+  it('normalizarArtefato é IDEMPOTENTE nas variações de voz de autor (A-P12-3)', () => {
+    const sujo = [
+      'Este é um trabalho muito bom.',
+      'A aula ficou muito boa.',
+      'Minha aula ficou muito boa, estou orgulhoso dela.',
+      'Feito por GPT-4.',
+      '— GPT',
+      '## Teoria',
+      'A definição segue abaixo — GPT-4.',
+    ].join('\n');
+    const umaVez = normalizarArtefato(sujo);
+    const duasVezes = normalizarArtefato(umaVez);
+    assert.equal(duasVezes, umaVez, 'a segunda aplicação não muda nada');
+    for (const marcador of ['muito bom', 'muito boa', 'orgulhoso', 'GPT']) {
+      assert.ok(!duasVezes.includes(marcador), `"${marcador}" não pode sobreviver a duas passadas`);
+    }
+  });
+});
+
+// ---------------------------------------------------------------------------
 // A-P12-4 — severidade por TABELA FIXA (§6.5)
 // ---------------------------------------------------------------------------
 
@@ -415,6 +602,17 @@ describe('A-P12-4 — severidade vem da tabela fixa do §6.5, nunca opinada', ()
     assert.throws(() => severidadeDeCategoria('categoria_inventada'), ErroDeCategoriaDesconhecida);
     assert.throws(() => severidadeDeCategoria('ESTILO'), ErroDeCategoriaDesconhecida, 'não há normalização de entrada: o enum é exato');
     assert.throws(() => severidadeDeCategoria(''), ErroDeCategoriaDesconhecida);
+  });
+
+  it('chaves herdadas de Object.prototype NÃO são linhas da tabela (H-2: leitura via Object.hasOwn)', () => {
+    for (const categoria of ['toString', 'constructor', 'hasOwnProperty', 'valueOf', 'isPrototypeOf', '__proto__']) {
+      assert.throws(
+        () => severidadeDeCategoria(categoria),
+        ErroDeCategoriaDesconhecida,
+        `"${categoria}" é herança de Object.prototype, não linha da tabela fixa (§6.5)`,
+      );
+      assert.throws(() => abreRodada(categoria), ErroDeCategoriaDesconhecida, `"${categoria}" não pode abrir rodada`);
+    }
   });
 });
 
@@ -533,6 +731,79 @@ describe('A-P12-6 — o prompt do REVISOR não contém o raciocínio nem o rascu
       verificadores: '0 violações',
     };
     assert.equal(construirPromptRevisor(entrada), construirPromptRevisor({ ...entrada, verificadores: '0 violações' }));
+  });
+});
+
+// ---------------------------------------------------------------------------
+// H-4 (onda 2) — o MODELO não emite `severity`; o pipeline anexa pela Tabela
+// ---------------------------------------------------------------------------
+
+describe('H-4 — saída do modelo sem severity; severidade anexada por TABELA FIXA depois do parse', () => {
+  function respostaDoModelo(): z.infer<typeof RevisaoSchema> {
+    return {
+      artefato: 'm01/a03',
+      hash_artefato: 'abc123',
+      rodada: 1,
+      apontamentos: [apontamentoDoModelo()],
+      resumo: 'um achado',
+      predicados: cincoPredicadosValidos(),
+    };
+  }
+
+  it('saída do modelo SEM severity é aceita pelo RevisaoSchema', () => {
+    const r = RevisaoSchema.safeParse(respostaDoModelo());
+    assert.equal(r.success, true, 'o schema de saída do revisor não tem campo severity');
+    if (r.success) {
+      assert.ok(!('severity' in r.data.apontamentos[0]), 'nenhum apontamento validado carrega severity');
+    }
+  });
+
+  it('saída do modelo COM severity é REJEITADA (campo extra em schema strict)', () => {
+    const comSeveridade = respostaDoModelo();
+    // `apontamentoValido()` é o P-04 INTEIRO (com severity): só o campo extra
+    // já tem de derrubar o parse — strict, não strip.
+    comSeveridade.apontamentos = [apontamentoValido()];
+    const r = RevisaoSchema.safeParse(comSeveridade);
+    assert.equal(r.success, false, 'severity é campo extra — nunca vem do modelo (H-4)');
+  });
+
+  it('anexarSeveridadePorTabela anexa a severidade da TABELA FIXA em cada apontamento', () => {
+    const revisao = RevisaoSchema.parse(respostaDoModelo());
+    const anexada = anexarSeveridadePorTabela(revisao);
+    assert.equal(anexada.apontamentos[0].severity, 'bloqueante', 'construcao_nao_ensinada → bloqueante (§6.5)');
+    assert.equal(anexada.predicados.length, 5, 'predicados passam intactos');
+    // O resultado volta ao FORMATO do P-04: valida nos schemas originais (com severity).
+    const ap = ApontamentoSchema.safeParse(anexada.apontamentos[0]);
+    assert.equal(ap.success, true, 'apontamento anexado continua válido no ApontamentoSchema do P-04');
+    if (ap.success) {
+      assert.equal(ap.data.severity, 'bloqueante');
+    }
+  });
+
+  it('anexarSeveridadePorTabela mapeia CADA categoria → linha da tabela', () => {
+    const revisao = RevisaoSchema.parse({
+      ...respostaDoModelo(),
+      apontamentos: [
+        apontamentoDoModelo(),
+        { ...apontamentoDoModelo(), id: 'APT-0043', categoria: 'estilo' },
+        { ...apontamentoDoModelo(), id: 'APT-0044', categoria: 'granularidade' },
+      ],
+    });
+    const anexada = anexarSeveridadePorTabela(revisao);
+    assert.equal(anexada.apontamentos[0].severity, 'bloqueante');
+    assert.equal(anexada.apontamentos[1].severity, 'sugestao', 'estilo → sugestão');
+    assert.equal(anexada.apontamentos[2].severity, 'corrigir', 'granularidade → corrigir (fase de estrutura)');
+  });
+
+  it('o prompt instrui explicitamente a NÃO emitir severity e o JSON de exemplo não o traz', () => {
+    const prompt = construirPromptRevisor({
+      artefatoNormalizado: '## Teoria',
+      regras: REGRAS_DO_CATALOGO,
+      verificadores: 'ok',
+    });
+    assert.ok(prompt.includes('NÃO inclua o campo "severity"'), 'instrução explícita de não emitir severity');
+    assert.ok(!prompt.includes('"severity":'), 'o JSON de exemplo não contém o campo severity');
+    assert.ok(prompt.includes('tabela fixa') || prompt.includes('TABELA FIXA'), 'severidade continua sendo tabela fixa, fora da resposta');
   });
 });
 
