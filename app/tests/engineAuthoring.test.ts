@@ -1,0 +1,621 @@
+/**
+ * tests/engineAuthoring.test.ts — o pacote P-17: F7 (autoria de teoria) e F8
+ * (autoria de desafios) — a ORDEM INTERNA DE UMA AULA do
+ * `docs/16-engine-de-trilha.md` §4.3.
+ *
+ * O que morde aqui (critérios A-P17):
+ *
+ *   1. cada agente escreve SOMENTE os drafts únicos da sua aula e a posse é
+ *      validada ANTES da onda — colisão de arquivo = erro estruturado do
+ *      escalonador (ownership-collision), nada roda;
+ *   2. o desafio é gerado ANTES do fechamento da teoria — a ordem das
+ *      chamadas LLM é verificada por etapa (esqueleto → desafio → fechamento),
+ *      e a ordem é IMPOSTA PELO CÓDIGO (etapas sequenciais, jamais paralelas —
+ *      §4.1);
+ *   3. resposta `blocked` do autor NÃO produz aula parcial: nenhum arquivo de
+ *      draft, estado `blocked` registrado (em qualquer etapa da §4.3);
+ *   4. o resumo da teoria efetivamente escrita chega ao autor de desafio (o
+ *      prompt da 2ª chamada contém `resumoDaTeoria`) junto da anti-repetição;
+ *   5. ondas > 15 são DIVIDIDAS em batches de 15, nunca truncadas;
+ *   6. todo draft nasce com o hash do orçamento que o gerou (budgetHash do
+ *      snapshot do freeze no draft — A-P17-3);
+ *   7. (bônus) draft com construção FORA do orçamento do snapshot é REJEITADO
+ *      NOMEANDO a construção — e as QUATRO PROVAS (§5.4) rodam na validação
+ *      (prover fake registrando chamadas).
+ *
+ * HIGIENE: LLM e provador são FAKES injetados (sem rede, sem processo, sem
+ * chave); escrita de drafts em memória; sem scheduler real nos testes de
+ * estado interno (o `execute` injetável é o que os testes usam — quem roda o
+ * scheduler de verdade é o runOndaDeAutoria testado via limiters fake).
+ */
+import { describe, it } from 'node:test';
+import assert from 'node:assert/strict';
+
+import type { EngineLlm, LlmCallRequest, LlmCallResult } from '../electron/main/engine/runtime/callLlm';
+import { SchedulerError, type RateLimiter, type RateLimiters } from '../electron/main/engine/runtime/scheduler';
+import type { EscreverArquivoFn } from '../electron/main/engine/runtime/runState';
+import type { ChallengeProofsInput, ChallengeProofsVerdict } from '../electron/main/engine/exec/proofs';
+import { extractAtoms } from '../electron/main/engine/extract';
+import { LessonDraftSchema } from '../electron/main/engine/schemas/artifacts';
+import { montarDossie } from '../electron/main/engine/prompts/dossier';
+import { MAX_TOKENS_SAIDA_AUTOR } from '../electron/main/engine/prompts/author';
+import type { SnapshotAula } from '../electron/main/engine/phases/f5Freeze';
+import {
+  TETO_ONDA_AUTORIA,
+  autorizarAula,
+  caminhoDraftAula,
+  caminhoDraftDesafio,
+  dividirEmBatches,
+  resumoDaTeoria,
+  runOndaDeAutoria,
+  type DepsDaOndaAutoria,
+  type DossieDeAula,
+  type EtapaAutoria,
+} from '../electron/main/engine/phases/f7Theory';
+import type { ProverDeDesafio } from '../electron/main/engine/phases/f8Challenges';
+
+// ---------------------------------------------------------------------------
+// Fixtures de CÓDIGO (as superfícies dos drafts) — os orçamentos do dossiê
+// são DERIVADOS DELAS via `extractAtoms` (o mesmo parser do gate): a fixture
+// nunca dessincroniza do orçamento que a valida.
+// ---------------------------------------------------------------------------
+
+const CODIGO_TEORIA = 'function dobra(n) {\n  return n * 2;\n}\n';
+const CODIGO_STARTER = 'function dobra(n) {\n}\n';
+const CODIGO_SOLUCAO = 'function dobra(n) {\n  return n * 2;\n}\n';
+const CODIGO_TESTES =
+  "import { test } from 'node:test';\n" +
+  "import assert from 'node:assert/strict';\n" +
+  "import { dobra } from './solution.mjs';\n" +
+  "test('dobro de 2', () => { assert.equal(dobra(2), 4); });\n";
+
+function atomosDo(codigo: string): string[] {
+  const extraido = extractAtoms(codigo);
+  assert.equal(extraido.ok, true, `código da fixture não parseia:\n${codigo}`);
+  return extraido.ok ? extraido.keys : [];
+}
+
+function uniaoDosAtomos(...codigos: string[]): string[] {
+  const set = new Set<string>();
+  for (const codigo of codigos) {
+    for (const chave of atomosDo(codigo)) set.add(chave);
+  }
+  return [...set].sort();
+}
+
+/** O HASH do orçamento do snapshot (sha256 em hex, 64) — o default dos testes. */
+const HASH_SISTEMA = 'b'.repeat(64);
+
+function snapshotDeAula(ref: string, budgetHash = HASH_SISTEMA): SnapshotAula {
+  return { aula_slug: ref, caminho: `snapshots/${ref.replace(/\//g, '__')}.json`, budgetHash, hash: 'a'.repeat(64) };
+}
+
+// ---------------------------------------------------------------------------
+// Fixtures de DOSSIE (P-11) — orçamentos derivados do código acima
+// ---------------------------------------------------------------------------
+
+function dossieBase(sobre: Record<string, unknown> = {}): Record<string, unknown> {
+  return {
+    objetivo: {
+      verbo: 'dobrar',
+      objeto: 'um número com uma função',
+      contexto: 'num programa de console',
+      criterio: 'a função retorna o dobro',
+    },
+    introduces_productive: ['node:FunctionDeclaration'],
+    budget_produtivo: atomosDo(CODIGO_SOLUCAO),
+    budget_receptivo: uniaoDosAtomos(CODIGO_TEORIA, CODIGO_STARTER),
+    budget_teste: atomosDo(CODIGO_TESTES),
+    kc_type: 'function',
+    ei_class: 'regra',
+    subgoals: ['declarar função'],
+    terms: ['função'],
+    notional_machine_delta: 'a função é um mapa de entrada para saída',
+    fora_de_escopo: [{ item: 'arrow function', motivo: 'é construção de aula posterior no grafo' }],
+    misconceptions_a_refutar: [{ concepcao: 'função sempre precisa de return', ancora_na_spec: 'ECMA-262 §14.1' }],
+    desafios_ja_escritos: [],
+    ...sobre,
+  };
+}
+
+function dossieDeAula(ref: string, sobre: Partial<DossieDeAula> = {}): DossieDeAula {
+  return {
+    aula_slug: ref,
+    snapshot: snapshotDeAula(ref),
+    dossie: montarDossie(dossieBase()),
+    desafios_anteriores: [],
+    ...sobre,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Fixtures de DRAFTS (a saída do autor de teoria e do autor de desafio)
+// ---------------------------------------------------------------------------
+
+function draftAula(sobre: Record<string, unknown> = {}): Record<string, unknown> {
+  return {
+    raciocinio_de_projeto: 'a aula ensina a função como menor incremento demonstrável sobre o estado atual',
+    slug: 'm1/a1',
+    title: 'Função que dobra',
+    objective: {
+      verbo: 'dobrar',
+      enunciado: 'dobra um número',
+      contexto: 'num programa de console',
+      criterio: 'retorna o dobro',
+    },
+    introduces: { receptive: ['node:FunctionDeclaration'], productive: ['node:FunctionDeclaration'] },
+    introducesTerms: ['função'],
+    foraDeEscopo: ['arrow function'],
+    eiClass: 'regra',
+    targetAtom: 'node:FunctionDeclaration',
+    notionalMachineDelta: 'a função é um mapa de entrada para saída',
+    budgetHash: 'hash-que-o-autor-escreveu',
+    budgetVersion: 'v1',
+    research: ['ecma-262'],
+    theory: [{ id: 't1', secao: 'teoria', markdown: CODIGO_TEORIA, tag: 'js' }],
+    justificativa: 'menor incremento demonstrável sobre o estado de conhecimento',
+    role: 'regular',
+    status: 'rascunho',
+    aprovado: false,
+    ...sobre,
+  };
+}
+
+function draftDesafio(sobre: Record<string, unknown> = {}): Record<string, unknown> {
+  return {
+    raciocinio_de_projeto: 'exercita a construção nova no desafio da própria aula (I6/A6)',
+    slug: 'm1/a1/desafio-dobro',
+    conceito: 'node:FunctionDeclaration',
+    statement: 'Escreva a função dobra que retorna o dobro de um número.',
+    starterCode: CODIGO_STARTER,
+    solutionCode: CODIGO_SOLUCAO,
+    testsCode: CODIGO_TESTES,
+    expectedTestCount: 1,
+    outputChannel: 'retorno',
+    requires: ['node:FunctionDeclaration'],
+    notRequired: ['arrow function'],
+    subgoals: ['declarar função'],
+    scenarios: [{ tipo: 'exemplo', derivado_de: 'node:FunctionDeclaration', descricao: 'dobro de 2 é 4' }],
+    taskSkill: 'escrever sintaxe',
+    supportLevel: 'sem_andaime',
+    surfaceDomain: 'funções',
+    solutionAlternates: [],
+    wrongSolutions: ['function dobra(n) { return n; }'],
+    requirements: [{ id: 'REQ-1', descricao: 'retorna o dobro', teste: 'dobra(2) === 4' }],
+    justificativa: 'a construção nova é exigida no desafio da própria aula',
+    aprovado: false,
+    ...sobre,
+  };
+}
+
+/** As respostas default de sucesso: um draft por etapa da §4.3. */
+function respostasDeSucesso(): Partial<Record<EtapaAutoria, unknown>> {
+  return {
+    'f7-teoria-esqueleto': draftAula(),
+    'f8-desafio': draftDesafio(),
+    'f7-teoria-fechamento': draftAula(),
+  };
+}
+
+/** Um `blocked` bem formado (contrato do §7.1 R3). */
+const BLOQUEIO = { blocked: true, missing: ['op:unary:typeof'], motivo: 'o orçamento vigente não permite typeof' };
+
+// ---------------------------------------------------------------------------
+// Fakes injetados — LLM por etapa, provador por chamada, escrita em memória
+// ---------------------------------------------------------------------------
+
+interface FalsoLlm {
+  llm: EngineLlm;
+  /** as etapas chamadas, NA ORDEM (teste 2). */
+  chamadas: string[];
+  /** as requisições por etapa (teste 4 lê o prompt da 2ª chamada). */
+  requisicoes: Map<string, LlmCallRequest[]>;
+}
+
+function fakeLlm(respostas: Partial<Record<EtapaAutoria, unknown>>): FalsoLlm {
+  const chamadas: string[] = [];
+  const requisicoes = new Map<string, LlmCallRequest[]>();
+  const llm: EngineLlm = {
+    async callLlm(etapa: string, req: LlmCallRequest): Promise<LlmCallResult> {
+      chamadas.push(etapa);
+      const lista = requisicoes.get(etapa) ?? [];
+      lista.push(req);
+      requisicoes.set(etapa, lista);
+      const resposta = respostas[etapa as EtapaAutoria];
+      assert.ok(resposta !== undefined, `fakeLlm: nenhuma resposta registrada para a etapa "${etapa}"`);
+      return {
+        content: JSON.stringify(resposta),
+        model: 'fake-llm',
+        cached: false,
+        usage: { promptTokens: 10, completionTokens: 5 },
+        stageUsage: { promptTokens: 10, completionTokens: 5, llmCalls: 1, cachedHits: 0, retries: 0 },
+        attempts: 1,
+        elapsedMs: 0,
+      };
+    },
+    getStageUsage: () => undefined,
+    getAllStageUsage: () => ({}),
+  };
+  return { llm, chamadas, requisicoes };
+}
+
+interface FalsoProver {
+  prover: ProverDeDesafio;
+  /** as entradas das provas, NA ORDEM (teste 7: as QUATRO PROVAS rodaram). */
+  entradas: ChallengeProofsInput[];
+}
+
+function fakeProver(veredito?: Partial<ChallengeProofsVerdict>): FalsoProver {
+  const entradas: ChallengeProofsInput[] = [];
+  return {
+    entradas,
+    prover: async (input: ChallengeProofsInput): Promise<ChallengeProofsVerdict> => {
+      entradas.push(input);
+      return {
+        valid: true,
+        failures: [],
+        declared: input.expectedTestCount,
+        executed: input.expectedTestCount,
+        ...veredito,
+      };
+    },
+  };
+}
+
+function fsEmMemoria(): { arquivos: Map<string, string>; escreverArquivo: EscreverArquivoFn } {
+  const arquivos = new Map<string, string>();
+  return {
+    arquivos,
+    escreverArquivo: async (caminho: string, conteudo: string) => {
+      arquivos.set(caminho, conteudo);
+    },
+  };
+}
+
+/** Pools de concorrência que só MEDEM o pico (sem teto — o teto é do scheduler). */
+function poolsComPico(): {
+  limiters: RateLimiters;
+  picoLlm: () => number;
+  picoExec: () => number;
+} {
+  const fazer = (): { pico: () => number; limiter: RateLimiter } => {
+    let ativos = 0;
+    let pico = 0;
+    return {
+      pico: () => pico,
+      limiter: {
+        acquire: async () => {
+          ativos += 1;
+          if (ativos > pico) pico = ativos;
+          return () => {
+            ativos -= 1;
+          };
+        },
+      },
+    };
+  };
+  const llm = fazer();
+  const exec = fazer();
+  const cpu = fazer();
+  return { limiters: { llm: llm.limiter, exec: exec.limiter, cpu: cpu.limiter }, picoLlm: llm.pico, picoExec: exec.pico };
+}
+
+/** As dependências da onda com os fakes e a escrita em memória. */
+function depsDaOnda(falso: FalsoLlm, provador: FalsoProver, fs: ReturnType<typeof fsEmMemoria>): DepsDaOndaAutoria {
+  return {
+    llm: falso.llm,
+    prover: provador.prover,
+    limiters: poolsComPico().limiters,
+    escreverArquivo: fs.escreverArquivo,
+    baseDir: '',
+  };
+}
+
+// ---------------------------------------------------------------------------
+// 1. Posse validada ANTES da onda — e só arquivos de draft únicos
+// ---------------------------------------------------------------------------
+
+describe('F7/F8 — posse de arquivo validada pelo escalonador (PAR-02, §4.1)', () => {
+  it('duas aulas declarando o MESMO arquivo de draft → ownership-collision ANTES de rodar; nada roda', async () => {
+    const falso = fakeLlm(respostasDeSucesso());
+    const provador = fakeProver();
+    const fs = fsEmMemoria();
+    // MESMA aula_slug → mesmos outputs declarados → a onda é REJEITADA antes de rodar.
+    const aulas = [dossieDeAula('m1/a1'), dossieDeAula('m1/a1')];
+
+    await assert.rejects(
+      runOndaDeAutoria(depsDaOnda(falso, provador, fs), aulas),
+      (erro: unknown) => erro instanceof SchedulerError && erro.code === 'ownership-collision',
+    );
+
+    assert.equal(falso.chamadas.length, 0, 'nenhuma chamada de LLM antes da validação de posse');
+    assert.equal(provador.entradas.length, 0, 'nenhuma prova rodou');
+    assert.equal(fs.arquivos.size, 0, 'nenhum draft gravado');
+  });
+
+  it('cada agente grava SOMENTE os drafts da sua aula — 2 arquivos únicos por aula, nenhum índice', async () => {
+    const falso = fakeLlm(respostasDeSucesso());
+    const provador = fakeProver();
+    const fs = fsEmMemoria();
+
+    const resultado = await runOndaDeAutoria(depsDaOnda(falso, provador, fs), [
+      dossieDeAula('m1/a1'),
+      dossieDeAula('m1/a2'),
+    ]);
+
+    const caminhos = [...fs.arquivos.keys()].sort();
+    assert.deepEqual(
+      caminhos,
+      [
+        caminhoDraftAula('m1/a1'),
+        caminhoDraftDesafio('m1/a1'),
+        caminhoDraftAula('m1/a2'),
+        caminhoDraftDesafio('m1/a2'),
+      ].sort(),
+      'os únicos arquivos produzidos são os drafts exclusivos de cada aula',
+    );
+    assert.equal(caminhos.length, 4);
+    for (const caminho of caminhos) {
+      assert.ok(!/index|indice|trilha\.json/i.test(caminho), `nenhum índice/shared file: ${caminho}`);
+    }
+    assert.deepEqual(
+      resultado.estados.map((e) => e.status),
+      ['validado', 'validado'],
+    );
+  });
+});
+
+// ---------------------------------------------------------------------------
+// 2. A ORDEM INTERNA da §4.3 — esqueleto → DESAFIO → fechamento, sequencial
+// ---------------------------------------------------------------------------
+
+describe('F7/F8 — a ordem interna de uma aula é SEQUENCIAL (§4.3, §4.1)', () => {
+  it('as chamadas LLM seguem esqueleto → desafio → fechamento, nessa ordem', async () => {
+    const falso = fakeLlm(respostasDeSucesso());
+    const provador = fakeProver();
+    const fs = fsEmMemoria();
+
+    await runOndaDeAutoria(depsDaOnda(falso, provador, fs), [dossieDeAula('m1/a1')]);
+
+    // O CÓDIGO impõe a ordem: o desafio (F8) é gerado ANTES do fechamento da
+    // teoria — itens de avaliação antes dos materiais (backward design).
+    assert.deepEqual(falso.chamadas, ['f7-teoria-esqueleto', 'f8-desafio', 'f7-teoria-fechamento']);
+    // Toda chamada LLM com maxTokens E timeoutMs EXPLÍCITOS (teto §7, item 5).
+    for (const etapa of falso.chamadas) {
+      const req = falso.requisicoes.get(etapa)?.[0];
+      assert.ok(req !== undefined);
+      assert.equal(req.maxTokens, 2000, `${etapa}: maxTokens explícito (teto de 2.000 tokens)`);
+      assert.ok(Number.isInteger(req.timeoutMs) && (req.timeoutMs as number) > 0, `${etapa}: timeoutMs explícito`);
+    }
+    // O desafio recebeu o resumo da teoria no PROMPT (2ª chamada) — ver teste 4.
+    assert.ok(falso.requisicoes.get('f8-desafio')?.length === 1);
+    // O fechamento recebe o desafio VALIDADO no system — a teoria fecha sabendo o que habilitar.
+    const fechamento = falso.requisicoes.get('f7-teoria-fechamento')?.[0];
+    assert.ok(fechamento !== undefined);
+    assert.match(fechamento.system ?? '', /DESAFIO FINAL DA AULA/);
+  });
+
+  it('blocked na 1ª etapa ENCERRA a aula: nenhuma chamada seguinte', async () => {
+    const falso = fakeLlm({ 'f7-teoria-esqueleto': BLOQUEIO });
+    const provador = fakeProver();
+    const fs = fsEmMemoria();
+
+    await runOndaDeAutoria(depsDaOnda(falso, provador, fs), [dossieDeAula('m1/a1')]);
+
+    assert.deepEqual(falso.chamadas, ['f7-teoria-esqueleto'], 'nada roda depois do blocked');
+    assert.equal(provador.entradas.length, 0);
+    assert.equal(fs.arquivos.size, 0);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// 3. `blocked` NÃO produz aula parcial — estado blocked registrado, nada gravado
+// ---------------------------------------------------------------------------
+
+describe('F7/F8 — blocked é resultado VÁLIDO, nunca aula parcial (§7.1 R3)', () => {
+  it('blocked no esqueleto de teoria: zero arquivos de draft e o estado blocked registrado', async () => {
+    const falso = fakeLlm({ 'f7-teoria-esqueleto': BLOQUEIO });
+    const provador = fakeProver();
+    const fs = fsEmMemoria();
+
+    const resultado = await runOndaDeAutoria(depsDaOnda(falso, provador, fs), [dossieDeAula('m1/a1')]);
+
+    assert.equal(fs.arquivos.size, 0, 'a aula inteira fica bloqueada — nenhum arquivo de draft');
+    assert.equal(resultado.estados.length, 1);
+    const estado = resultado.estados[0];
+    assert.equal(estado.status, 'blocked');
+    assert.equal(estado.etapa, 'f7-teoria-esqueleto');
+    assert.deepEqual(estado.faltantes, ['op:unary:typeof']);
+    assert.ok(estado.motivo !== undefined && estado.motivo.length > 0);
+    assert.equal(resultado.executadas.length, 1, 'a tarefa CONCLUIU (blocked é resultado válido, não falha)');
+  });
+
+  it('blocked na etapa do DESAFIO: o esqueleto já existia mas a AULA não vira parcial', async () => {
+    const falso = fakeLlm({
+      'f7-teoria-esqueleto': draftAula(),
+      'f8-desafio': BLOQUEIO,
+    });
+    const provador = fakeProver();
+    const fs = fsEmMemoria();
+
+    const resultado = await runOndaDeAutoria(depsDaOnda(falso, provador, fs), [dossieDeAula('m1/a1')]);
+
+    assert.equal(fs.arquivos.size, 0, 'nem o esqueleto nem o desafio viram arquivo — sem aula parcial');
+    assert.equal(resultado.estados[0].status, 'blocked');
+    assert.equal(resultado.estados[0].etapa, 'f8-desafio');
+    assert.deepEqual(falso.chamadas, ['f7-teoria-esqueleto', 'f8-desafio'], 'o fechamento não roda após blocked');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// 4. O RESUMO da teoria escrita chega ao autor de desafio (§4.3)
+// ---------------------------------------------------------------------------
+
+describe('F7/F8 — o autor de desafio recebe o resumo da teoria + anti-repetição (§4.3)', () => {
+  it('o prompt da 2ª chamada (f8-desafio) contém o resumo gerado da teoria efetivamente escrita', async () => {
+    const falso = fakeLlm(respostasDeSucesso());
+    const provador = fakeProver();
+    const fs = fsEmMemoria();
+
+    const aula = dossieDeAula('m1/a2', {
+      desafios_anteriores: [
+        { slug: 'm1/a1/desafio-dobro', titulo: 'desafio do dobro', requisitos: ['retorna o dobro'] },
+      ],
+    });
+    await runOndaDeAutoria(depsDaOnda(falso, provador, fs), [aula]);
+
+    const promptDoDesafio = falso.requisicoes.get('f8-desafio')?.[0]?.prompt;
+    assert.ok(promptDoDesafio !== undefined, 'a 2ª chamada é a do desafio');
+    // O bloco do resumo da teoria, na forma INDENTADA com que o dossiê o embute.
+    assert.ok(
+      promptDoDesafio.includes('  === RESUMO DA TEORIA ESCRITA (esqueleto da aula) ==='),
+      'o prompt do desafio embute o resumo da teoria',
+    );
+    // A lista de construções apresentadas no código da teoria (mesmo parser do gate).
+    assert.ok(
+      promptDoDesafio.includes('    - node:FunctionDeclaration'),
+      'o resumo lista as construções apresentadas no código da teoria',
+    );
+    // ANTI-REPETIÇÃO: títulos e requisitos dos desafios anteriores da MESMA trilha.
+    assert.ok(promptDoDesafio.includes('titulo: desafio do dobro'), 'a anti-repetição entra no prompt do desafio');
+    assert.ok(promptDoDesafio.includes('requisitos: [retorna o dobro]'), 'os requisitos anteriores entram no prompt');
+  });
+
+  it('resumoDaTeoria é função PURA: mesma teoria → mesmo resumo byte a byte', () => {
+    const a = resumoDaTeoria(draftAula() as never);
+    const b = resumoDaTeoria(draftAula() as never);
+    assert.equal(a, b);
+    assert.ok(a.startsWith('=== RESUMO DA TEORIA ESCRITA'));
+  });
+});
+
+// ---------------------------------------------------------------------------
+// 5. Ondas > 15 são DIVIDIDAS em batches de ≤15 — nunca truncadas (§4.1)
+// ---------------------------------------------------------------------------
+
+describe('F7/F8 — escalonamento real: batches de ≤15, sem truncar (§4.1)', () => {
+  it('16 aulas → 2 ondas (15 + 1); o pico de concorrência nunca passa de 15 e nenhuma aula fica de fora', async () => {
+    const total = 16;
+    const aulas = Array.from({ length: total }, (_, i) => dossieDeAula(`m1/a${i + 1}`));
+    const falso = fakeLlm(respostasDeSucesso());
+    const provador = fakeProver();
+    const fs = fsEmMemoria();
+    const pool = poolsComPico();
+
+    const resultado = await runOndaDeAutoria(
+      { ...depsDaOnda(falso, provador, fs), limiters: pool.limiters },
+      aulas,
+    );
+
+    assert.deepEqual(
+      dividirEmBatches(aulas, TETO_ONDA_AUTORIA).map((lote) => lote.length),
+      [15, 1],
+      'o divisor parte em batches de ≤15, não trunca',
+    );
+    assert.equal(TETO_ONDA_AUTORIA, 15);
+    assert.equal(resultado.ondas, 2, 'duas ondas: 15 + 1');
+    assert.equal(resultado.executadas.length, total, 'nenhuma aula truncada');
+    assert.deepEqual(resultado.estados.map((e) => e.status), Array(total).fill('validado'));
+    assert.equal(pool.picoLlm(), 15, 'o pico do pool llm nunca passou de 15 — a onda foi dividida em batches');
+    assert.equal(pool.picoExec(), 15, 'o pool exec (provador) também respeitou o batch');
+    assert.equal(fs.arquivos.size, total * 2, 'todos os drafts gravados (2 por aula)');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// 6. Drafts nascem com o hash do orçamento que os gerou (A-P17-3)
+// ---------------------------------------------------------------------------
+
+describe('F7/F8 — todo draft nasce com o budgetHash do snapshot (A-P17-3)', () => {
+  it('o budgetHash do SNAPSHOT (F5) é carimbado no draft de aula e no envelope do desafio — nunca o do autor', async () => {
+    const hash = 'c'.repeat(64);
+    const falso = fakeLlm(respostasDeSucesso());
+    const provador = fakeProver();
+    const fs = fsEmMemoria();
+    const aula = dossieDeAula('m1/a1', { snapshot: snapshotDeAula('m1/a1', hash) });
+
+    const resultado = await runOndaDeAutoria(depsDaOnda(falso, provador, fs), [aula]);
+    assert.equal(resultado.estados[0].budgetHash, hash);
+
+    const conteudoAula = JSON.parse(fs.arquivos.get(caminhoDraftAula('m1/a1')) ?? '') as Record<string, unknown>;
+    assert.equal(
+      conteudoAula['budgetHash'],
+      hash,
+      'o draft de aula carrega o hash do orçamento que o gerou, não o placeholder que o autor escreveu',
+    );
+    // O draft parseia no schema do artefato P-04 com o hash legitimado.
+    assert.doesNotThrow(() => LessonDraftSchema.parse(conteudoAula));
+
+    // Direto na autorização: o envelope do DESAFIO também nasce com o hash
+    // (o ChallengeDraftSchema NÃO tem o campo — o hash vive no envelope da F8).
+    const direto = await autorizarAula({ llm: falso.llm, prover: provador.prover }, aula);
+    assert.equal(direto.status, 'validado');
+    if (direto.status === 'validado') {
+      assert.equal(direto.budgetHash, hash);
+      assert.equal(direto.draftAula.budgetHash, hash);
+    }
+  });
+});
+
+// ---------------------------------------------------------------------------
+// 7. (bônus) Fora do orçamento → REJEITADO nomeando a construção; as QUATRO
+//    PROVAS rodam na validação do draft (prover fake registrando chamadas)
+// ---------------------------------------------------------------------------
+
+describe('F7/F8 — gates determinísticos na autoria (§6.1: drafts nascem validados)', () => {
+  it('desafio com construção fora do orçamento do snapshot é REJEITADO NOMEANDO a construção; as QUATRO PROVAS rodaram antes', async () => {
+    // A solução usa `lista.forEach(...)` — `api:.forEach` (e a função de seta)
+    // NÃO estão no orçamento derivado das superfícies do fixture.
+    const solucaoComFora =
+      'function somarLista(lista) {\n  let total = 0;\n  lista.forEach((n) => { total = total + n; });\n  return total;\n}\n';
+    const falso = fakeLlm({
+      'f7-teoria-esqueleto': draftAula(),
+      'f8-desafio': draftDesafio({ solutionCode: solucaoComFora }),
+    });
+    const provador = fakeProver();
+    const fs = fsEmMemoria();
+
+    const resultado = await runOndaDeAutoria(depsDaOnda(falso, provador, fs), [dossieDeAula('m1/a1')]);
+
+    assert.equal(resultado.estados[0].status, 'falhou');
+    assert.match(resultado.estados[0].erro ?? '', /api:\.forEach/, 'a violação NOMEIA a construção ofensora (§5.5)');
+    assert.equal(provador.entradas.length, 1, 'as QUATRO PROVAS rodaram na validação do draft (prover fake registrando)');
+    assert.equal(provador.entradas[0].solutionCode, solucaoComFora, 'o provador recebeu o draft do desafio');
+    assert.equal(fs.arquivos.size, 0, 'draft rejeitado não vai a disco');
+    assert.deepEqual(falso.chamadas, ['f7-teoria-esqueleto', 'f8-desafio'], 'o fechamento não roda com o desafio rejeitado');
+  });
+
+  it('a TEORIA (fechamento) com construção fora do orçamento é REJEITADA nomeando a construção', async () => {
+    // A teoria final importa node:fs e usa readFileSync — fora do orçamento.
+    const teoriaComFora = 'import fs from "node:fs";\nconst texto = fs.readFileSync("x", "utf8");\nconsole.log(texto);\n';
+    const falso = fakeLlm({
+      'f7-teoria-esqueleto': draftAula(),
+      'f8-desafio': draftDesafio(),
+      'f7-teoria-fechamento': draftAula({
+        theory: [{ id: 't1', secao: 'teoria', markdown: teoriaComFora, tag: 'js' }],
+      }),
+    });
+    const provador = fakeProver();
+    const fs = fsEmMemoria();
+
+    const resultado = await runOndaDeAutoria(depsDaOnda(falso, provador, fs), [dossieDeAula('m1/a1')]);
+
+    assert.equal(resultado.estados[0].status, 'falhou');
+    assert.match(resultado.estados[0].erro ?? '', /api:node:fs/, 'a violação da teoria nomeia a construção fora do orçamento');
+    assert.equal(fs.arquivos.size, 0);
+  });
+
+  it('saída do autor ACIMA do teto é REJEITADA (nunca truncada) — a aula falha estruturado', async () => {
+    // 2001 tokens × 4 caracteres — acima do teto de 2.000 tokens (§7).
+    const estourada = `{"raciocinio_de_projeto":"${'x'.repeat(MAX_TOKENS_SAIDA_AUTOR * 4 + 1)}"}`;
+    const falso = fakeLlm({ 'f7-teoria-esqueleto': estourada });
+    const provador = fakeProver();
+    const fs = fsEmMemoria();
+
+    const resultado = await runOndaDeAutoria(depsDaOnda(falso, provador, fs), [dossieDeAula('m1/a1')]);
+
+    assert.equal(resultado.estados[0].status, 'falhou');
+    assert.match(resultado.estados[0].erro ?? '', /acima do teto/, 'a rejeição nomeia o teto');
+    assert.equal(fs.arquivos.size, 0);
+  });
+});
