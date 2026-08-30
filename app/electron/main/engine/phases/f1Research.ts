@@ -653,7 +653,14 @@ function planoDeSubtopicos(shape: ResearchPlanShape, raw: unknown): PlanoDeSubto
   };
 }
 
-/** Falha de planejador que NUNCA degrada (aborta a fase — A-P14-1 e transporte). */
+/**
+ * Falha de planejador que NUNCA degrada (aborta a fase — A-P14-1 e transporte).
+ * Reconhece DOIS shapes do MESMO contrato de códigos: (a) o `LlmStageError` do
+ * transporte da onda 1; (b) o erro CRU com o mesmo `code` — um EngineLlm
+ * injetado pode lançar o erro do cliente DeepSeek/Brave sem embrulhar no
+ * transporte. Inclui BAD_REQUEST (bug de prompt, simétrico ao classificador de
+ * fase): a heurística NUNCA substitui um prompt quebrado — aborta.
+ */
 function falhaInaveitavelDoPlanejador(err: unknown): boolean {
   if (err instanceof F1Error) return true;
   if (err instanceof LlmStageError) {
@@ -668,7 +675,8 @@ function falhaInaveitavelDoPlanejador(err: unknown): boolean {
     code === 'BRAVE_KEY_MISSING' ||
     code === 'BRAVE_KEY_INVALID' ||
     code === 'DEEPSEEK_KEY_MISSING' ||
-    code === 'DEEPSEEK_KEY_INVALID'
+    code === 'DEEPSEEK_KEY_INVALID' ||
+    code === DEEPSEEK_ERROR_CODES.BAD_REQUEST
   );
 }
 
@@ -679,7 +687,9 @@ function falhaInaveitavelDoPlanejador(err: unknown): boolean {
  *     (buildPlanPrompt/parseLlmJson/normalizePlanShape/heuristicPlanFor — nada
  *     é reescrito). LLM indisponível (não-chave) ⇒ heurística determinística
  *     ("resposta degradada > erro", política do planner); KEY_MISSING/
- *     KEY_INVALID/BAD_REQUEST sobem para a fase ABORTAR.
+ *     KEY_INVALID/BAD_REQUEST sobem para a fase ABORTAR — no shape do
+ *     `LlmStageError` do transporte OU como erro CRU com o mesmo `code`
+ *     (BAD_REQUEST nunca degrada, nem cru nem tipado).
  *   - `buscarAchados(query)`: UMA query no executor de multi-busca passando
  *     SEMPRE `delayMsOnRateLimit: opt.atrasoSobRateLimitMs` (A-P14-3 — o retry
  *     de 429 da busca é código vivo só quando passado) e o atraso entre lotes.

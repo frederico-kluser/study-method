@@ -22,8 +22,9 @@
  *   - `criarBuscaPlanejada`: o atraso sob rate limit (`delayMsOnRateLimit`)
  *     é repassado à multiSearch em TODA chamada (retry de 429 = código vivo);
  *     KEY_MISSING nunca degrada para a heurística; BAD_REQUEST vira erro
- *     estruturado nomeando a etapa; falha não-chave degrada com honestidade
- *     (heurística > erro, política do researchPlanner).
+ *     estruturado nomeando a etapa — no shape do `LlmStageError` do transporte
+ *     OU como erro cru com o mesmo `code`; falha não-chave degrada com
+ *     honestidade (heurística > erro, política do researchPlanner).
  */
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
@@ -734,6 +735,24 @@ describe('F1 · criarBuscaPlanejada (produção)', () => {
         err.etapa === 'f1:plano:assunto' &&
         /bug de prompt da etapa/.test(err.message),
     );
+  });
+
+  it('erro CRU {code:\'DEEPSEEK_BAD_REQUEST\'} do EngineLlm → NUNCA degrada: a fase ABORTA (F1_LLM_PROMPT_INVALIDO)', async () => {
+    // Um EngineLlm injetado pode lançar o erro do cliente DeepSeek CRU (sem o
+    // shape LlmStageError do transporte). BAD_REQUEST é bug de prompt — a
+    // heurística NUNCA o substitui nem cru nem tipado (A-P14-1).
+    const registrosMulti: Array<{ queries: string[]; opts: { concurrency: number; delayMs: number; delayMsOnRateLimit: number } }> = [];
+    const llm = fakeLlm({}, { 'f1:plano:assunto': erroComCodigo(DEEPSEEK_ERROR_CODES.BAD_REQUEST, 'bug de prompt da etapa f1:plano:assunto') });
+    const busca = criarBuscaPlanejada({ llm, multi: fakeMulti(registrosMulti), stageVersion: 'v1', timeoutMs: 5000 });
+    const fase = criarF1Research({ busca, config: config() });
+    await assert.rejects(
+      fase.executar(entrada(['assunto'])),
+      (err) =>
+        err instanceof F1Error &&
+        err.code === 'F1_LLM_PROMPT_INVALIDO' &&
+        /bug de prompt da etapa F1/.test(err.message),
+    );
+    assert.equal(registrosMulti.length, 0, 'nunca chega à busca: BAD_REQUEST cru não degrada para a heurística');
   });
 
   it('falha NÃO-chave do planejador LLM → resposta degradada (heurística determinística) > erro', async () => {
