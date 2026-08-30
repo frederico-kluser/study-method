@@ -136,7 +136,7 @@ PYEOF
 # _scope_into [glob-relativo...] — imprime SCAN_FILES NUL-separado no STDOUT, tirando
 # os caminhos que casam um dos globs. O chamador monta o array:
 #     while IFS= read -r -d '' f; do ARR+=("$f"); done < <(_scope_into ...)
-# (nameref `local -n` é bash 4.3+; no bash 3.2 do macOS o contrato é saída NUL).
+# (nameref — a forma 'local' com sufixo '-n' — é bash 4.3+; no bash 3.2 do macOS o contrato é saída NUL).
 # Cada glob usado aqui TEM de ter sido declarado por `gate_scope_excl`: exclusão
 # escondida é pior que exclusão conhecida.
 _scope_into() {

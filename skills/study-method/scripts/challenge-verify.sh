@@ -274,7 +274,7 @@ cv_export_env() {  # <LC_ALL> <TZ> <PYTHONHASHSEED>
 # challenge-new.sh escreveu no test_command.
 # Imprime o argv NUL-separado no STDOUT; o chamador monta o array:
 #     while IFS= read -r -d '' item; do argv+=("$item"); done < <(cv_harden_argv ...)
-# (nameref `local -n` e bash 4.3+; no bash 3.2 do macOS o contrato e saida NUL).
+# (nameref — a forma 'local' com sufixo '-n' — e bash 4.3+; no bash 3.2 do macOS o contrato e saida NUL).
 cv_harden_argv() {
   local -a _cmd=("$@")
   case "${_cmd[0]:-}" in

@@ -261,7 +261,7 @@ gate_trunc() {
 # gate_find_into <subdir> <padrão...> — imprime NUL-separado no STDOUT, respeitando
 # caminhos com espaço. O chamador monta o array:
 #     while IFS= read -r -d '' f; do ARR+=("$f"); done < <(gate_find_into ...)
-# (nameref `local -n` é bash 4.3+; no bash 3.2 do macOS o contrato é saída NUL).
+# (nameref — a forma 'local' com sufixo '-n' — é bash 4.3+; no bash 3.2 do macOS o contrato é saída NUL).
 # Exclui .git, .deep-orchestrator e diretórios temporários do gate.
 gate_find_into() {
   local dir="$1"; shift
