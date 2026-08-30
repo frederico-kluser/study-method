@@ -24,8 +24,16 @@
  *     (o slot `wrapperCommand` de `NETWORK_HARDENING` é onde o executor real
  *     pluga, ex.: sandbox-exec/nsjail). A provas dos percevejos:
  *     `NODE_TEST_CONTEXT` removido SEMPRE do filho (herdado do runner pai, o
- *     node:test do filho pularia tudo e sairia 0); ANSI tolerado no parser
- *     (`parseSpecCounts` em proofs.ts) e `FORCE_COLOR` também removido aqui.
+ *     node:test do filho pularia tudo e sairia 0) — e o endurecimento é
+ *     INVARIANTE: mesmo com `envBuilder` custom, o env final SEMPRE passa pelo
+ *     passo base (`createHardenedExec` encadeia, nunca substitui); ANSI
+ *     tolerado no parser (`parseSpecCounts` em proofs.ts) e `FORCE_COLOR`
+ *     também removido aqui.
+ *   - EXIT GUARD: o código sob teste não pode matar o runner com
+ *     `process.exit(0)`/`process.abort()` antes do relatório (forjando
+ *     `ℹ tests N`). `escreverExitGuard` escreve um `.cjs` no diretório isolado
+ *     que sobrescreve exit/abort para LANÇAR; o executor real (integração
+ *     F9/adaptador P-28) o passa via `--require` no spawn do `node --test`.
  */
 
 import * as fs from 'node:fs';
@@ -81,6 +89,50 @@ export async function prepareIsolatedDir(baseDir: string, side: IsolatedSide): P
 /** Remove um diretório de execução isolado. Nunca lança (best-effort). */
 export async function cleanupDir(dir: string): Promise<void> {
   await fs.promises.rm(dir, { recursive: true, force: true }).catch(() => {});
+}
+
+// ---------------------------------------------------------------------------
+// EXIT GUARD — o código sob teste não mata o runner (bridge de endurecimento)
+// ---------------------------------------------------------------------------
+
+/**
+ * Fonte EXATA do exit-guard (o teste de strings garante o conteúdo do arquivo
+ * escrito por `escreverExitGuard`). Sobrescreve `process.exit` e
+ * `process.abort` para LANÇAR: um `process.exit(0)` no topo do módulo sob
+ * teste (a forja de `ℹ tests N` do CRITICAL 1) deixa de matar o runner — vira
+ * exceção no próprio módulo, o arquivo de teste FALHA e o relatório real do
+ * node:test é impresso por último. Fail-closed: em vez de exit 0 mentiroso, o
+ * processo termina com teste falho.
+ */
+export const EXIT_GUARD_SOURCE = `'use strict';
+// exit-guard do harness de provas (exec/harness.ts — escreverExitGuard).
+// O codigo sob teste nao pode encerrar o processo antes do relatorio do
+// node:test: um process.exit(0) no topo do modulo imprime um resumo spec
+// forjado ('ℹ tests N') e mata o runner — as provas leriam um relatorio que
+// nunca veio do runner real. Sobrescrever exit/abort para LANCAR faz o teste
+// falhar (fail-closed) em vez de o processo morrer com exit 0.
+// O executor real (integracao F9/adaptador P-28) deve passar este arquivo
+// via --require no spawn do node --test.
+const block = (api) => new Error(
+  'exit-guard: process.' + api + ' bloqueado — codigo sob teste nao pode encerrar o processo das provas'
+);
+process.exit = function exitGuardExit(_code) { throw block('exit'); };
+process.abort = function exitGuardAbort() { throw block('abort'); };
+`;
+
+/**
+ * Escreve o exit-guard (`exit-guard.cjs`) no diretório isolado e devolve o
+ * caminho do arquivo. Função PURA e testável: só escreve no `dir` injetado
+ * (não o cria, não toca em mais nada). Este helper NÃO muda as provas — o
+ * `ExecFn` continua injetado (A-P07-2); é a ponte de endurecimento para o
+ * executor real: a integração F9/adaptador P-28 deve passá-lo via `--require`
+ * no spawn, ex.: `['--require', path.join(dir, 'exit-guard.cjs'), '--test',
+ * '--test-reporter=spec', 'test.mjs']`.
+ */
+export async function escreverExitGuard(dir: string): Promise<string> {
+  const file = path.join(dir, 'exit-guard.cjs');
+  await fs.promises.writeFile(file, EXIT_GUARD_SOURCE, 'utf8');
+  return file;
 }
 
 // ---------------------------------------------------------------------------
@@ -211,20 +263,33 @@ export interface HardenedExecOptions {
   limiter?: Semaphore;
   /** teto usado quando `limiter` não é injetado. */
   maxConcurrency?: number;
-  /** montador de env do filho (default: buildChildEnv — remove NODE_TEST_CONTEXT + rede). */
+  /**
+   * ADITIVO (ENCADEADO, nunca substituto): enriquece o env JÁ endurecido por
+   * `buildChildEnv` — recebe um env SEM `NODE_TEST_CONTEXT`/proxies/
+   * `NODE_OPTIONS`/`FORCE_COLOR` e com `NO_PROXY=*`. O endurecimento base é
+   * aplicado de novo na SAÍDA: mesmo um envBuilder hostil não reintroduz as
+   * variáveis removidas.
+   */
   envBuilder?: (base?: NodeJS.ProcessEnv | undefined) => NodeJS.ProcessEnv;
 }
 
 /**
  * Envolve QUALQUER ExecFn com o endurecimento do harness: adquire vaga no
  * SEM_EXEC antes de executar (libera SEMPRE, via finally) e injeta o env do
- * filho montado por `buildChildEnv` (NODE_TEST_CONTEXT removido, rede anulada).
+ * filho com o endurecimento base garantido por ENCADEAMENTO:
+ *  1. `buildChildEnv(base)` endurece a base (seja ela `process.env` ou o env
+ *     de execOpts): SEM `NODE_TEST_CONTEXT`, SEM proxies/NODE_OPTIONS/
+ *     FORCE_COLOR, com `NO_PROXY=*`;
+ *  2. `envBuilder` custom (se houver) ENRIQUECE a partir desse env JÁ
+ *     endurecido — ele nunca vê as variáveis removidas;
+ *  3. `buildChildEnv` de novo sobre o resultado: o env que chega ao executor
+ *     injetado SEMPRE passou pelo passo base — o endurecimento é invariante,
+ *     não uma promessa que o custom pode derrubar (WARNING 3).
  * O executor real pluga o próprio spawn aqui dentro e ganha as duas camadas
  * de graça.
  */
 export function createHardenedExec(opts: HardenedExecOptions): ExecFn {
   const limiter = opts.limiter ?? createSemaphore(opts.maxConcurrency ?? defaultMaxConcurrency());
-  const envBuilder = opts.envBuilder ?? buildChildEnv;
   return async (
     dir: string,
     args: string[],
@@ -232,7 +297,10 @@ export function createHardenedExec(opts: HardenedExecOptions): ExecFn {
   ): Promise<ExecResult> => {
     const release = await limiter.acquire();
     try {
-      return await opts.exec(dir, args, { ...execOpts, env: envBuilder(execOpts?.env) });
+      const hardenedBase = buildChildEnv(execOpts?.env);
+      const enriched = opts.envBuilder ? opts.envBuilder(hardenedBase) : hardenedBase;
+      const finalEnv = buildChildEnv(enriched);
+      return await opts.exec(dir, args, { ...execOpts, env: finalEnv });
     } finally {
       release();
     }

@@ -30,6 +30,15 @@
  *   - ANSI no relatório quebra o regex de contagem: `parseSpecCounts` sanitiza
  *     códigos de escape ANTES do match (o node:test pinta quando o ambiente
  *     pede cor — FORCE_COLOR herdado do runner).
+ *   - RELATÓRIO FORJADO (CRITICAL): o código sob teste pode imprimir um resumo
+ *     spec FALSO no próprio stdout (ex.: `console.log('ℹ tests 2\nℹ pass 2\nℹ
+ *     fail 0')`) — até com `process.exit(0)` para matar o runner antes dos
+ *     testes. `parseSpecCounts` lê o ÚLTIMO bloco de resumo: o do runner real
+ *     vem SEMPRE depois de qualquer stdout do código sob teste. E a prova 1
+ *     exige consistência interna ESTRITA (fail 0 E skipped 0 E pass ===
+ *     testsRun) — um teste skipado NÃO é "passou em todos os testes". O vetor
+ *     `process.exit/process.abort` é fechado no HARNESS (`escreverExitGuard`,
+ *     passado via `--require` pelo executor real).
  *   - timeout devolve 137, que também é OOM: `exitCodeMeaning(137)` é
  *     literalmente "timeout-ou-OOM" — nunca afirmamos qual dos dois.
  *   - NODE_TEST_CONTEXT herdado faz o filho pular tudo e sair 0: a remoção é
@@ -77,22 +86,66 @@ export interface SpecCounts {
   testsRun: number;
   pass: number;
   fail: number;
+  /** linhas `ℹ skipped N` do resumo — a prova 1 exige 0 (passagem integral). */
+  skipped: number;
 }
 
 /**
- * Extrai as contagens do relatório spec do node:test (linhas `ℹ tests N`).
- * O relatório pode chegar COM códigos ANSI (`\x1b[34mℹ tests 3\x1b[39m` — o
- * node:test pinta quando o ambiente pede cor): os escapes são removidos ANTES
- * do match — senão a linha "não começa com ℹ" e a contagem vira 0, derrubando
- * o gate de igualdade de um resultado que passou. Linha ausente ⇒ 0 (fail-closed:
- * sem relatório não há como provar que algo rodou).
+ * Extrai as contagens do ÚLTIMO bloco de resumo spec do node:test (linhas
+ * `ℹ tests N` …).
+ *
+ * POR QUE O ÚLTIMO: o código sob teste pode imprimir um resumo spec FORJADO no
+ * próprio stdout (CRITICAL 1 — `console.log('ℹ tests 2\nℹ pass 2\nℹ fail 0')`
+ * no topo do módulo, de olho no parser que confiava na PRIMEIRA ocorrência).
+ * O resumo do runner REAL é emitido por último, depois de todo stdout do
+ * código sob teste (testes rodam, depois o runner imprime o fechamento) — o
+ * último bloco é, por construção, o do runner. Bloco = da última linha
+ * `ℹ tests N` até o fim (as seções posteriores — `✖ failing tests:` — não têm
+ * linhas `ℹ` de resumo).
+ *
+ * Formato tolerado nas DUAS variantes que o node:test emite: bloco COMPLETO
+ * (`tests/suites/pass/fail/cancelled/skipped/todo/duration_ms`) e bloco MÍNIMO
+ * (`tests/pass/fail`, como nos fixtures), com ou sem códigos ANSI — os escapes
+ * são removidos ANTES do bloco (`\x1b[34mℹ tests 3\x1b[39m` — o node:test pinta
+ * quando o ambiente pede cor; senão a linha "não começa com ℹ" e a contagem
+ * viraria 0, derrubando o gate de um resultado que passou). Linha ausente em
+ * qualquer posição ⇒ 0 (fail-closed: sem relatório não há como provar que algo
+ * rodou).
  */
 export function parseSpecCounts(output: string): SpecCounts {
   const plain = output.replace(/\x1b\[[0-9;]*m/g, '');
-  const testsRun = Number(/^ℹ tests (\d+)/m.exec(plain)?.[1] ?? 0);
-  const pass = Number(/^ℹ pass (\d+)/m.exec(plain)?.[1] ?? 0);
-  const fail = Number(/^ℹ fail (\d+)/m.exec(plain)?.[1] ?? 0);
-  return { testsRun, pass, fail };
+  const lines = plain.split('\n');
+
+  // varre TODAS as linhas e guarda o índice + match da ÚLTIMA `ℹ tests N`.
+  let summaryIdx = -1;
+  let summaryMatch: RegExpExecArray | null = null;
+  for (let i = 0; i < lines.length; i += 1) {
+    const m = /^ℹ tests\s+(\d+)/.exec(lines[i]);
+    if (m) {
+      summaryIdx = i;
+      summaryMatch = m;
+    }
+  }
+
+  if (summaryIdx === -1 || summaryMatch === null) {
+    return { testsRun: 0, pass: 0, fail: 0, skipped: 0 };
+  }
+
+  const testsRun = Number(summaryMatch[1]);
+  // pass/fail/skipped são lidos DENTRO do último bloco (primeira ocorrência a
+  // partir da linha do resumo) — nunca de blocos anteriores/não-relacionados.
+  const blockLines = lines.slice(summaryIdx);
+  const valueInBlock = (re: RegExp): number => {
+    for (const line of blockLines) {
+      const m = re.exec(line);
+      if (m) return Number(m[1]);
+    }
+    return 0;
+  };
+  const pass = valueInBlock(/^ℹ pass\s+(\d+)/);
+  const fail = valueInBlock(/^ℹ fail\s+(\d+)/);
+  const skipped = valueInBlock(/^ℹ skipped\s+(\d+)/);
+  return { testsRun, pass, fail, skipped };
 }
 
 /**
@@ -126,13 +179,20 @@ export interface ProofJudgement {
 export const EMPTY_STUB_CODE = 'export {};\n';
 
 /**
- * PROVA 1 — a solução de referência PASSA em todos os testes.
+ * PROVA 1 — a solução de referência PASSA EM TODOS os testes (passagem
+ * INTEGRAL — um teste skipado/cancelado que não rodou não é "passou").
  *
  * Armadilha medida: exit code sozinho não distingue "passou" de "nada rodou"
  * (arquivo de teste vazio sai 0; glob vazio no `node --test` sai 0). Por isso
- * a prova exige, além de exit 0: pelo menos UM teste executado, NENHUMA falha
- * no relatório e a igualdade com o esperado (defesa em profundidade — se o
- * relatório mente, a igualdade segura).
+ * a prova exige, além de exit 0:
+ *   - ao menos UM teste executado (exit 0 sem relatório é FALHA);
+ *   - consistência interna ESTRITA do relatório: fail === 0 E skipped === 0 E
+ *     pass === testsRun (defesa contra relatório forjado/parcial — HIGH 2: um
+ *     `test.skip` produz `tests 2/pass 1/fail 0/skipped 1`, que NÃO é
+ *     passagem integral);
+ *   - igualdade com o esperado (defesa em profundidade — se o relatório
+ *     mente, a igualdade segura; a dona oficial da contagem é a prova 3,
+ *     `judgeCountMatches`).
  */
 export function judgeSolutionPasses(res: ExecResult, expectedTestCount: number): ProofJudgement {
   const counts = parseSpecCounts(execOutput(res));
@@ -159,6 +219,22 @@ export function judgeSolutionPasses(res: ExecResult, expectedTestCount: number):
       passed: false,
       reason: `solução de referência tem testes falhando (fail ${counts.fail})`,
       detail: { exitCode: res.exitCode, fail: counts.fail, testsRun: counts.testsRun },
+    };
+  }
+  if (counts.skipped > 0) {
+    return {
+      proof: 'solutionPasses',
+      passed: false,
+      reason: `solução de referência tem testes SKIPADOS (skipped ${counts.skipped}) — a prova 1 é passagem INTEGRAL: todo teste tem de ter passado`,
+      detail: { exitCode: res.exitCode, skipped: counts.skipped, testsRun: counts.testsRun, pass: counts.pass },
+    };
+  }
+  if (counts.pass !== counts.testsRun) {
+    return {
+      proof: 'solutionPasses',
+      passed: false,
+      reason: `relatório internamente inconsistente: pass ${counts.pass} ≠ testsRun ${counts.testsRun} — há teste que não passou`,
+      detail: { exitCode: res.exitCode, pass: counts.pass, testsRun: counts.testsRun, fail: counts.fail, skipped: counts.skipped },
     };
   }
   if (counts.testsRun !== expectedTestCount) {
@@ -195,11 +271,15 @@ export function judgeStarterFails(res: ExecResult): ProofJudgement {
 /**
  * PROVA 3 — a contagem de testes executados BATE com `expectedTestCount`.
  *
- * Três contagens têm de concordar:
+ * A prova de contagem é DUPLA (fix adversarial): o AST DECLARA e o relatório
+ * EXECUTA — são os DOIS lados que esta prova confronta com o esperado:
  *   - `declared` — `countTestDeclarations` de `../extract`, a contagem ÚNICA
- *     por AST do repositório (§5.3): `// test(` comentado não é nó;
- *   - `executed` — saída do relatório spec da rodada da SOLUÇÃO (a rodada que
- *     comprovadamente executa os testes de verdade);
+ *     por AST do repositório (§5.3): `// test(` comentado não é nó; esse é o
+ *     lado DECLARADO (estático, sobre `testsCode`);
+ *   - `executed` — saída do relatório spec da rodada da SOLUÇÃO (o ÚLTIMO
+ *     bloco de resumo — o do runner real), lida por `parseSpecCounts`; esse é
+ *     o lado EXECUTADO (dinâmico, medido na rodada que comprovadamente roda
+ *     os testes de verdade);
  *   - `expectedTestCount` — o declarado no desafio.
  *
  * expectedTestCount === 0 é inválido por construção: sem teste não há prova.
@@ -307,7 +387,14 @@ export interface ChallengeProofsVerdict {
   failures: ProofJudgement[];
   /** resultados brutos das três rodadas (presentes quando a infra não falhou). */
   executions?: { solution: ExecResult; starter: ExecResult; emptyStub: ExecResult };
-  /** testes declarados (AST) — a contagem única de `../extract`. */
+  /**
+   * A prova de contagem é DUPLA (fix adversarial): o AST DECLARA (`declared`,
+   * via `countTestDeclarations` de `../extract`) e o relatório EXECUTA
+   * (`executed`, via `parseSpecCounts` — o ÚLTIMO bloco de resumo, o do runner
+   * real). `judgeCountMatches` confronta os dois lados com
+   * `expectedTestCount`; um veredito válido exige declared === executed ===
+   * expectedTestCount.
+   */
   declared: number;
   /** testes executados, medidos na rodada da solução. */
   executed: number;

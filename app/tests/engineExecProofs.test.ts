@@ -24,11 +24,14 @@ import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import { promises as fsPromises } from 'node:fs';
 import * as os from 'node:os';
+import * as path from 'node:path';
+import vm from 'node:vm';
 
 import { countTestDeclarations } from '../electron/main/engine/extract';
 import {
   EMPTY_STUB_CODE,
   SPEC_TEST_ARGS,
+  execOutput,
   exitCodeMeaning,
   judgeCountMatches,
   judgeEmptyStubFails,
@@ -42,12 +45,14 @@ import {
   type ProofEnv,
 } from '../electron/main/engine/exec/proofs';
 import {
+  EXIT_GUARD_SOURCE,
   NETWORK_HARDENING,
   buildChildEnv,
   cleanupDir,
   createHardenedExec,
   createSemaphore,
   defaultMaxConcurrency,
+  escreverExitGuard,
   prepareIsolatedDir,
 } from '../electron/main/engine/exec/harness';
 
@@ -258,6 +263,144 @@ describe('exit 0 com ZERO testes executados (arquivo vazio / glob vazio)', () =>
 });
 
 // ---------------------------------------------------------------------------
+// 3.5. Relatório FORJADO (CRITICAL 1) — o parser lê o ÚLTIMO bloco do runner
+// ---------------------------------------------------------------------------
+
+describe('relatório FORJADO pelo código sob teste (CRITICAL 1 — primeiro bloco não vale)', () => {
+  it('parseSpecCounts lê o ÚLTIMO bloco: a forja (primeiro) não mascara o runner (último)', () => {
+    const forgedThenReal = [
+      // forjado: o código sob teste imprime um resumo spec falso no próprio stdout
+      'ℹ tests 2',
+      'ℹ pass 2',
+      'ℹ fail 0',
+      '✔ caso real (0.5ms)',
+      // resumo REAL do runner — emitido por ÚLTIMO, depois de todo stdout do código sob teste
+      'ℹ tests 1',
+      'ℹ suites 0',
+      'ℹ pass 1',
+      'ℹ fail 0',
+      'ℹ cancelled 0',
+      'ℹ skipped 0',
+      'ℹ todo 0',
+      'ℹ duration_ms 5',
+    ].join('\n');
+    assert.deepEqual(
+      parseSpecCounts(execOutput({ exitCode: 0, stdout: forgedThenReal, stderr: '' })),
+      { testsRun: 1, pass: 1, fail: 0, skipped: 0 },
+      'executado vem do ÚLTIMO bloco (o do runner real), não da forja',
+    );
+  });
+
+  it('a forja ANSI também não mascara: sanitização antes do bloco, último bloco vence', () => {
+    const forgedAnsiThenReal = [
+      '\x1b[32mℹ tests 2\x1b[39m',
+      '\x1b[32mℹ pass 2\x1b[39m',
+      '\x1b[31mℹ fail 0\x1b[39m',
+      '\x1b[34mℹ tests 1\x1b[39m',
+      '\x1b[32mℹ pass 1\x1b[39m',
+      '\x1b[31mℹ fail 0\x1b[39m',
+    ].join('\n');
+    const counts = parseSpecCounts(forgedAnsiThenReal);
+    assert.deepEqual(counts, { testsRun: 1, pass: 1, fail: 0, skipped: 0 });
+  });
+
+  it('veredito INVÁLIDO: forja "tests 2/pass 2/fail 0" + resumo real "tests 1" + exit 0', async () => {
+    // A prova empírica com executor real: o código sob teste imprime o resumo
+    // falso e o runner ainda emite o dele por último (o arquivo vira um teste
+    // que "passou"). Com o ÚLTIMO bloco lido, executado real = 1 ≠ expected 2
+    // → a prova 1 e/ou a 3 falham.
+    const forgedThenReal: ExecResult = {
+      exitCode: 0,
+      stdout: [
+        'ℹ tests 2',
+        'ℹ pass 2',
+        'ℹ fail 0',
+        '✔ caso de verdade (0.5ms)',
+        'ℹ tests 1',
+        'ℹ suites 0',
+        'ℹ pass 1',
+        'ℹ fail 0',
+        'ℹ cancelled 0',
+        'ℹ skipped 0',
+        'ℹ todo 0',
+        'ℹ duration_ms 5',
+      ].join('\n'),
+      stderr: '',
+    };
+    const { env } = makeFakeProofEnv(forgedThenReal, failRun(), failRun());
+    const v = await verifyChallengeProofs(BASE_INPUT, env);
+    assert.equal(v.valid, false, 'forja + exit 0 não pode produzir veredito válido');
+    assert.ok(
+      v.failures.some((f) => f.proof === 'solutionPasses') || v.failures.some((f) => f.proof === 'countMatches'),
+      'a prova 1 e/ou a 3 falham — a forja deixa de satisfazer as provas',
+    );
+    assert.equal(v.executed, 1, 'executado medido no ÚLTIMO bloco (o do runner), nunca na forja');
+    assert.ok(v.failures.some((f) => f.proof === 'countMatches'), 'prova 3: executado real (1) ≠ expected (2)');
+  });
+
+  it('bloco de resumo REAL vindo por último com contagem consistente segue passando', () => {
+    // Caso legítimo: stdout do código sob teste SEM linhas de resumo + resumo
+    // real por último — nada muda, continua passando.
+    const legit = [
+      'resultado intermediário do aluno (stdout normal)',
+      '✔ caso 1 (0.5ms)',
+      '✔ caso 2 (0.3ms)',
+      'ℹ tests 2',
+      'ℹ suites 0',
+      'ℹ pass 2',
+      'ℹ fail 0',
+      'ℹ cancelled 0',
+      'ℹ skipped 0',
+      'ℹ todo 0',
+      'ℹ duration_ms 5',
+    ].join('\n');
+    const j = judgeSolutionPasses({ exitCode: 0, stdout: legit, stderr: '' }, 2);
+    assert.equal(j.passed, true);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// 3.6. Passagem INTEGRAL (HIGH 2) — skipped > 0 / pass < testsRun reprova a prova 1
+// ---------------------------------------------------------------------------
+
+describe('prova 1 é passagem INTEGRAL: relatório internamente inconsistente reprova', () => {
+  /** `test('x', { skip: true })` → tests 2 / pass 1 / fail 0 / skipped 1. */
+  const skippedReport = (): string =>
+    ['✔ caso 1 (0.5ms)', '﹣ caso 2 (0.1ms) # SKIP', 'ℹ tests 2', 'ℹ pass 1', 'ℹ fail 0', 'ℹ cancelled 0', 'ℹ skipped 1', 'ℹ todo 0'].join('\n');
+
+  it('judgeSolutionPasses reprova relatório com skipped > 0', () => {
+    const j = judgeSolutionPasses({ exitCode: 0, stdout: skippedReport(), stderr: '' }, 2);
+    assert.equal(j.passed, false);
+    assert.equal(j.proof, 'solutionPasses');
+    assert.match(j.reason ?? '', /SKIPADOS/);
+  });
+
+  it('judgeSolutionPasses reprova pass < testsRun mesmo com fail 0 e skipped 0', () => {
+    // sem skip nem falha declarada, mas um teste não passou (ex.: cancelado).
+    const partial = [
+      '✔ caso 1 (0.5ms)',
+      'ℹ tests 2',
+      'ℹ pass 1',
+      'ℹ fail 0',
+      'ℹ cancelled 0',
+      'ℹ skipped 0',
+      'ℹ todo 0',
+    ].join('\n');
+    const j = judgeSolutionPasses({ exitCode: 0, stdout: partial, stderr: '' }, 2);
+    assert.equal(j.passed, false);
+    assert.match(j.reason ?? '', /inconsistente/);
+    assert.match(j.reason ?? '', /pass 1 ≠ testsRun 2/);
+  });
+
+  it('veredito: relatório com skipped 1 derruba o desafio inteiro', async () => {
+    const { env } = makeFakeProofEnv({ exitCode: 0, stdout: skippedReport(), stderr: '' }, failRun(), failRun());
+    const v = await verifyChallengeProofs(BASE_INPUT, env);
+    assert.equal(v.valid, false);
+    assert.ok(v.failures.some((f) => f.proof === 'solutionPasses'), 'prova 1 falha: skipado não é passagem integral');
+  });
+});
+
+// ---------------------------------------------------------------------------
 // 4. NODE_TEST_CONTEXT não vaza para o processo filho
 // ---------------------------------------------------------------------------
 
@@ -291,6 +434,53 @@ describe('NODE_TEST_CONTEXT não vaza (harness monta o env do filho)', () => {
     assert.ok(captured, 'o env deve chegar ao executor injetado');
     assert.equal(captured?.NODE_TEST_CONTEXT, undefined);
   });
+
+  it('envBuilder custom ENRIQUECE o env já endurecido — nunca o substitui (WARNING 3)', async () => {
+    let seenByBuilder: NodeJS.ProcessEnv | undefined;
+    let captured: NodeJS.ProcessEnv | undefined;
+    const inner: ExecFn = async (_dir, _args, opts) => {
+      captured = opts?.env;
+      return okRun(2);
+    };
+    const hard = createHardenedExec({
+      exec: inner,
+      envBuilder: (env) => {
+        seenByBuilder = env;
+        // aditivo: o custom PARTE do env endurecido e soma o que precisar.
+        return { ...env, PATH: '/custom', SM_FLAG: '1' };
+      },
+    });
+    await hard('dir', [...SPEC_TEST_ARGS]);
+    assert.ok(seenByBuilder, 'envBuilder custom recebe o env');
+    assert.equal(seenByBuilder?.NODE_TEST_CONTEXT, undefined, 'o custom recebe env SEM NODE_TEST_CONTEXT');
+    assert.equal(seenByBuilder?.HTTP_PROXY, undefined, 'o custom recebe env sem proxies herdados');
+    assert.equal(seenByBuilder?.NO_PROXY, '*', 'o custom parte de um env já com NO_PROXY=*');
+    assert.equal(captured?.NODE_TEST_CONTEXT, undefined, 'o env entregue ao exec nunca tem NODE_TEST_CONTEXT');
+    assert.equal(captured?.SM_FLAG, '1', 'o enriquecimento do custom é preservado (aditivo)');
+    assert.equal(captured?.PATH, '/custom');
+  });
+
+  it('envBuilder hostil que TENTA reintroduzir NODE_TEST_CONTEXT não consegue', async () => {
+    let captured: NodeJS.ProcessEnv | undefined;
+    const inner: ExecFn = async (_dir, _args, opts) => {
+      captured = opts?.env;
+      return okRun(2);
+    };
+    const hard = createHardenedExec({
+      exec: inner,
+      envBuilder: (env) => ({
+        ...env,
+        NODE_TEST_CONTEXT: 'reintrodução-hostil',
+        HTTP_PROXY: 'http://proxy-ruim',
+        FORCE_COLOR: '1',
+      }),
+    });
+    await hard('dir', [...SPEC_TEST_ARGS]);
+    assert.equal(captured?.NODE_TEST_CONTEXT, undefined, 'a reintrodução é revertida pelo endurecimento de saída');
+    assert.equal(captured?.HTTP_PROXY, undefined);
+    assert.equal(captured?.FORCE_COLOR, undefined);
+    assert.equal(captured?.NO_PROXY, '*', 'NO_PROXY=* é invariante na saída, com ou sem custom');
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -300,7 +490,7 @@ describe('NODE_TEST_CONTEXT não vaza (harness monta o env do filho)', () => {
 describe('ANSI no relatório do node:test (cores herdadas do ambiente)', () => {
   it('parseSpecCounts sanitiza escapes antes do match', () => {
     const counts = parseSpecCounts(ansiSpecOut(2, 2, 0));
-    assert.deepEqual(counts, { testsRun: 2, pass: 2, fail: 0 });
+    assert.deepEqual(counts, { testsRun: 2, pass: 2, fail: 0, skipped: 0 });
   });
 
   it('solutionPasses aprova solução cujo relatório vem com ANSI', () => {
@@ -499,5 +689,54 @@ describe('prepareIsolatedDir (workdir isolado injetável)', () => {
         files: [{ path: '../escape.mjs', code: 'x' }],
       }),
     );
+  });
+});
+
+// ---------------------------------------------------------------------------
+// escreverExitGuard — bridge de endurecimento (exit 0 forjado não mata o runner)
+// ---------------------------------------------------------------------------
+
+describe('escreverExitGuard (bridge de endurecimento — code under test não mata o runner)', () => {
+  it('escreve exit-guard.cjs com o conteúdo EXATO e lança em process.exit/process.abort', async () => {
+    const base = await fsPromises.mkdtemp(path.join(os.tmpdir(), 'exit-guard-test-'));
+    try {
+      const file = await escreverExitGuard(base);
+      assert.equal(file, path.join(base, 'exit-guard.cjs'));
+      const source = await fsPromises.readFile(file, 'utf8');
+      assert.equal(source, EXIT_GUARD_SOURCE, 'conteúdo exato do guard (teste de strings)');
+      assert.match(source, /process\.exit/);
+      assert.match(source, /process\.abort/);
+      assert.match(source, /bloqueado/, 'a mensagem de bloqueio está no conteúdo');
+
+      // carrega num vm context — o processo do teste NÃO é tocado (sem spawn).
+      const sandboxProcess = {
+        exit: () => {
+          throw new Error('exit real não pode rodar no teste');
+        },
+        abort: () => {
+          throw new Error('abort real não pode rodar no teste');
+        },
+      };
+      const ctx = vm.createContext({ process: sandboxProcess });
+      vm.runInContext(source, ctx);
+      assert.throws(() => vm.runInContext('process.exit(0)', ctx), /bloqueado/);
+      assert.throws(() => vm.runInContext('process.abort()', ctx), /bloqueado/);
+    } finally {
+      await fsPromises.rm(base, { recursive: true, force: true }).catch(() => {});
+    }
+  });
+
+  it('é função pura: só escreve o arquivo no dir injetado e não cria diretórios', async () => {
+    const base = await fsPromises.mkdtemp(path.join(os.tmpdir(), 'exit-guard-test-'));
+    try {
+      const file = await escreverExitGuard(base);
+      assert.ok(file.startsWith(base), 'escreve DENTRO do dir injetado');
+      const entries = await fsPromises.readdir(base);
+      assert.deepEqual(entries, ['exit-guard.cjs'], 'nada além do guard no diretório');
+      // não cria diretório: dir inexistente → rejeita (fail-closed, não inventa um).
+      await assert.rejects(() => escreverExitGuard(path.join(base, 'subdir-inexistente')));
+    } finally {
+      await fsPromises.rm(base, { recursive: true, force: true }).catch(() => {});
+    }
   });
 });
