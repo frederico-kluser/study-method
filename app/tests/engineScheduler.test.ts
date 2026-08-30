@@ -98,6 +98,10 @@ function fakeExecutor(impl?: (t: Task) => TaskRunResult | Promise<TaskRunResult>
  * `per` mede o pico POR recurso; `global` mede o pico somando os recursos.
  * Se recursos diferentes compartilhassem o semáforo, `global.peak` colaria em
  * `per.peak`; independentes, `global.peak` é a soma dos ativos simultâneos.
+ *
+ * PROTOCOLO UNIFICADO (P-27): o release VEM do acquire (`acquire` resolve com
+ * a função de liberação) e é IDEMPOTENTE — liberar a mesma vaga duas vezes é
+ * no-op (não corrompe a contagem; espelha a garantia do P-01).
  */
 function slotLimiters(capacity: number): {
   limiters: RateLimiters;
@@ -123,32 +127,38 @@ function slotLimiters(capacity: number): {
     global.peak = Math.max(global.peak, global.active);
   };
 
+  const makeRelease = (r: TaskResource): (() => void) => {
+    let released = false;
+    return () => {
+      if (released) return; // idempotente — liberar duas vezes corromperia a contagem
+      released = true;
+      const slot = slots[r];
+      slot.active -= 1;
+      per[r].active -= 1;
+      global.active -= 1;
+      if (per[r].active < 0) per[r].active = 0; // underflow = bug do env
+      const next = slot.waiters.shift();
+      if (next) next();
+    };
+  };
+
   const limiters = {} as RateLimiters;
   for (const r of ['llm', 'exec', 'cpu'] as const) {
     limiters[r] = {
-      acquire(): Promise<void> {
+      acquire(): Promise<() => void> {
         const slot = slots[r];
         if (slot.active < capacity) {
           slot.active += 1;
           bump(r);
-          return Promise.resolve();
+          return Promise.resolve(makeRelease(r));
         }
-        return new Promise<void>((resolve) => {
+        return new Promise<() => void>((resolve) => {
           slot.waiters.push(() => {
             slot.active += 1;
             bump(r);
-            resolve();
+            resolve(makeRelease(r));
           });
         });
-      },
-      release(): void {
-        const slot = slots[r];
-        slot.active -= 1;
-        per[r].active -= 1;
-        global.active -= 1;
-        if (per[r].active < 0) per[r].active = 0; // underflow = bug do env
-        const next = slot.waiters.shift();
-        if (next) next();
       },
     };
   }
@@ -158,8 +168,7 @@ function slotLimiters(capacity: number): {
 /** Limitadores "infinitos" — nunca bloqueiam; só rastreiam o pico global. */
 function freeLimiters(): RateLimiters {
   const one: RateLimiter = {
-    acquire: async () => {},
-    release: () => {},
+    acquire: async () => () => {},
   };
   return { llm: one, exec: one, cpu: one };
 }
@@ -366,6 +375,71 @@ describe('escalonador — semáforos independentes por recurso (§4.1)', () => {
     assert.equal(global.peak, 2, 'nunca mais que llm1+exec1 ao mesmo tempo');
     assert.equal(per.llm.peak, 1);
     assert.equal(per.exec.peak, 1);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// 3.5. Contrato UNIFICADO do limitador (P-27): release vem do acquire
+// ---------------------------------------------------------------------------
+
+describe('escalonador — contrato do limitador unificado com o P-01 (P-27)', () => {
+  it('o scheduler libera o slot devolvido pelo acquire, uma vez por tarefa executada', async () => {
+    const releases: string[] = [];
+    const limiter = (nome: TaskResource): RateLimiter => ({
+      acquire: async () => () => {
+        releases.push(nome);
+      },
+    });
+    const fake = fakeExecutor();
+
+    const result = await runWave(
+      wave([task({ id: 'a', recurso: 'llm' }), task({ id: 'b', recurso: 'exec' }), task({ id: 'c', recurso: 'cpu' })]),
+      {
+        limiters: { llm: limiter('llm'), exec: limiter('exec'), cpu: limiter('cpu') },
+        execute: fake.execute,
+      },
+    );
+
+    assert.equal(result.executed.length, 3);
+    assert.deepEqual([...releases].sort(), ['cpu', 'exec', 'llm'], 'cada tarefa executada liberou o próprio slot uma vez');
+  });
+
+  it('release devolvida pelo acquire é IDEMPOTENTE no scheduler: liberação dupla é no-op', async () => {
+    // A garantia é do P-01 (runtime/semaphore); aqui provamos que o scheduler
+    // NÃO chama release() próprio nem depende de release dupla — só da fn do
+    // acquire — e que um limiter cuja release é idempotente não corrompe nada.
+    let active = 0;
+    let releases = 0;
+    const limiters: RateLimiters = {
+      llm: {
+        async acquire() {
+          active += 1;
+          return () => {
+            releases += 1;
+            active -= 1;
+            // simulando idempotência: a contagem real do release duplo não cai abaixo de 0
+            if (active < 0) active = 0;
+          };
+        },
+      },
+      exec: { acquire: async () => () => {} },
+      cpu: { acquire: async () => () => {} },
+    };
+    const fake = fakeExecutor();
+    const result = await runWave(wave([task({ id: 'a', recurso: 'llm' })]), {
+      limiters,
+      execute: fake.execute,
+    });
+    assert.equal(result.executed.length, 1);
+    assert.equal(releases, 1, 'uma liberação por acquire — nunca dupla pelo scheduler');
+    assert.equal(active, 0);
+  });
+
+  it('compile-proof (P-27): o protocolo antigo (acquire→Promise<void> + release próprio) NÃO é assignable', () => {
+    const antigo = { acquire: async () => {}, release: () => {} };
+    // @ts-expect-error P-27: protocolo antigo não é assignable ao RateLimiter unificado (release vem do acquire)
+    const limitador: RateLimiter = antigo;
+    assert.ok(limitador, 'a atribuição é REJEITADA em compile-time — a mudança é de contrato, não de convenção');
   });
 });
 

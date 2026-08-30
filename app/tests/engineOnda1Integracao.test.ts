@@ -96,7 +96,6 @@ import {
   EXIT_GUARD_SOURCE,
   cleanupDir,
   createHardenedExec,
-  createSemaphore as harnessCreateSemaphore,
   escreverExitGuard,
   prepareIsolatedDir,
 } from '../electron/main/engine/exec/harness';
@@ -169,22 +168,16 @@ async function until(cond: () => boolean, oQue: string): Promise<void> {
 }
 
 /**
- * A PONTE do seam testado: Semaphore (P-01, acquire→release-fn) → RateLimiter
- * (P-02, acquire/release). Cada acquire guarda a fn de liberação do slot e o
- * release consome uma (1:1 com os acquires — a contagem do semáforo é
- * conservada; slots são fungíveis para fins de teto de concorrência).
+ * A PONTE do seam testado — P-27: depois da unificação do contrato, o
+ * `RateLimiter` do scheduler É o protocolo do P-01 (release vem do acquire),
+ * então a adaptação virou IDENTIDADE: um `Semaphore` do P-01 já é um
+ * `RateLimiter` válido. O release devolvido por `s.acquire()` é aplicado pelo
+ * scheduler no `finally` de cada tarefa — mesmo caminho do P-01 (contagem do
+ * semáforo conservada 1:1 com os acquires; slots são fungíveis para fins de
+ * teto de concorrência).
  */
 function rateLimiterDoSemaphore(s: Semaphore): RateLimiter {
-  const slots: Array<() => void> = [];
-  return {
-    async acquire(): Promise<void> {
-      slots.push(await s.acquire());
-    },
-    release(): void {
-      const liberar = slots.shift();
-      if (liberar) liberar();
-    },
-  };
+  return { acquire: () => s.acquire() };
 }
 
 function task(over: Partial<Task> & { id: string }): Task {
@@ -752,7 +745,7 @@ function montarEnvProvador(
       return d;
     },
     cleanup: cleanupDir,
-    exec: createHardenedExec({ limiter: harnessCreateSemaphore(2), exec: execFake }),
+    exec: createHardenedExec({ limiter: createSemaphore(2), exec: execFake }),
   };
   return env;
 }

@@ -13,7 +13,32 @@
  *   - o executor é INJETADO (`SchedulerEnv.execute`); em produção será um
  *     agente/script, nos testes um fake — testável sem rede e sem processo;
  *   - os limitadores são INJETADOS (`SchedulerEnv.limiters`), um por recurso
- *     (`llm`/`exec`/`cpu`, §4.1), e aqui só se chama `acquire`/`release`.
+ *     (`llm`/`exec`/`cpu`, §4.1), e aqui só se chama `acquire` — que resolve
+ *     com a função de liberação (P-27: protocolo unificado com o P-01).
+ *
+ * CONTRATO DO LIMITADOR (P-27 — unificado com `runtime/semaphore.ts` do P-01):
+ *   - protocolo ÚNICO em toda a engine: `{ acquire(): Promise<() => void> }`
+ *     — o `acquire` espera a vaga e resolve com a FUNÇÃO DE LIBERAÇÃO; não
+ *     existe `release()` como método próprio (o P-01 define `Semaphore`/
+ *     `createSemaphore` e `RateLimiter` aqui é ALIAS do mesmo protocolo);
+ *   - a liberação é IDEMPOTENTE (liberar a mesma vaga duas vezes é no-op —
+ *     garantia do P-01); o scheduler libera EXATAMENTE uma vez, no `finally`
+ *     de cada tarefa;
+ *   - a espera é FIFO (P-01) — quem chega primeiro, sai primeiro.
+ *
+ *   CAVEAT DE DEADLOCK (P-27, medido pela testing subwave da onda 1):
+ *   compartilhar UM MESMO objeto semáforo entre os limiters do `runWave` E o
+ *   transporte de LLM (SEM_LLM do `callLlm`) é SEGURO apenas quando o executor
+ *   da tarefa NÃO chama o transporte DENTRO do slot: cada tarefa em voo segura
+ *   o slot do limiter do pool e, se o executor pedir uma chamada de LLM que
+ *   precisa de OUTRO slot do MESMO pool, ninguém libera — DEADLOCK (a tarefa
+ *   espera o slot que o transporte ocuparia, e o transporte espera o slot que
+ *   a própria tarefa já ocupa; cada tarefa precisaria de 2 slots).
+ *   REGRA DE PRODUÇÃO: pools SEPARADOS — um semáforo para os limiters do
+ *   scheduler e OUTRO para o SEM_LLM do transporte — sempre que o executor de
+ *   tarefa chamar o transporte dentro do slot; NUNCA o mesmo objeto semáforo
+ *   para ambos com chamadas aninhadas (o teste de integração onda 1 demonstra
+ *   o caso SEGURO: executor que não chama o transporte no slot).
  *
  * FAIL-CLOSED: todo erro de configuração é um `SchedulerError` ESTRUTURADO
  * (`code` + `details` + mensagem), lançado ANTES de a onda rodar — nunca log
@@ -28,13 +53,23 @@ import type { Task, TaskId, TaskResource } from './task';
 // Contratos injetados
 // ---------------------------------------------------------------------------
 
-/** Limitador de concorrência de UM recurso (interface mínima acquire/release). */
-export interface RateLimiter {
-  /** Espera até haver vaga e a ocupa. */
-  acquire(): Promise<void>;
-  /** Libera a vaga ocupada por `acquire`. */
-  release(): void;
-}
+/**
+ * Limitador de concorrência de UM recurso — protocolo UNIFICADO com o P-01
+ * (`runtime/semaphore.ts`): `acquire` resolve com a função de liberação
+ * (release vem do acquire, NUNCA um método próprio) e a liberação é
+ * IDEMPOTENTE (liberar duas vezes é no-op — garantia do P-01).
+ *
+ * DECISÃO P-27 (menos quebra): o NOME `RateLimiter` é mantido como ALIAS do
+ * protocolo — `RateLimiters`/`SchedulerEnv` e quem importa o tipo por nome
+ * não mudam; só a FORMA seguiu o P-01. Quem implementa um limiter injetado
+ * passa a devolver o release no acquire: o protocolo antigo
+ * `{ acquire(): Promise<void>; release(): void }` NÃO é assignable — a
+ * mudança é compile-time (há compile-proof com `@ts-expect-error` na suíte).
+ */
+export type RateLimiter = {
+  /** Espera até haver vaga e a ocupa. Resolve com a função de liberação. */
+  acquire(): Promise<() => void>;
+};
 
 /** Um limitador por recurso — tarefas de recursos diferentes não competem. */
 export type RateLimiters = Record<TaskResource, RateLimiter>;
@@ -524,7 +559,10 @@ export async function runWave(config: WaveConfig, env: SchedulerEnv): Promise<Wa
 
   async function executeTask(t: Task): Promise<void> {
     const limiter = limiters[t.recurso];
-    await limiter.acquire();
+    // P-27: o release VEM do acquire (protocolo do P-01) — não há release()
+    // próprio; a liberação é idempotente, e o finally garante que roda mesmo
+    // quando o executor lança ou o fail-closed de writes dispara.
+    const release = await limiter.acquire();
     try {
       let result: TaskRunResult;
       try {
@@ -557,7 +595,7 @@ export async function runWave(config: WaveConfig, env: SchedulerEnv): Promise<Wa
       executed.push(t.id);
       completions.push({ task: t, result });
     } finally {
-      limiter.release();
+      release(); // idempotente (P-01) — liberar a mesma vaga de novo é no-op
     }
   }
 }

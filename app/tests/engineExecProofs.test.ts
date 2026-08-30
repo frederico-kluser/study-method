@@ -14,8 +14,9 @@
  *      harness remove a var — e nunca muta o env base);
  *   5. ANSI no relatório não zera a contagem (parser sanitiza escapes);
  *   6. 137 é reportado como "timeout-ou-OOM", SEM afirmar qual dos dois;
- *   7. SEM_EXEC: limitador próprio limita concorrência (acquire/release
- *      injetáveis) e createHardenedExec serializa/paraleliza conforme o teto.
+ *   7. SEM_EXEC: o semáforo do P-01 (runtime/semaphore — P-27) limita
+ *      concorrência (acquire→release-fn, release idempotente) e
+ *      createHardenedExec serializa/paraleliza conforme o teto.
  *
  * A contagem DECLARADA vem de `countTestDeclarations` de `engine/extract` (a
  * única por AST — `// test(` comentado NÃO conta) via `verifyChallengeProofs`.
@@ -50,11 +51,14 @@ import {
   buildChildEnv,
   cleanupDir,
   createHardenedExec,
-  createSemaphore,
-  defaultMaxConcurrency,
   escreverExitGuard,
   prepareIsolatedDir,
 } from '../electron/main/engine/exec/harness';
+import {
+  createSemaphore,
+  defaultExecConcurrency,
+  type Semaphore,
+} from '../electron/main/engine/runtime/semaphore';
 
 // ---------------------------------------------------------------------------
 // Fixtures — código mínimo de exemplo (regra 3: nenhum conteúdo didático)
@@ -586,15 +590,15 @@ describe('verifyChallengeProofs — orquestração (executor FAKE, zero processo
 });
 
 // ---------------------------------------------------------------------------
-// SEM_EXEC — limitador próprio, acquire/release injetáveis
+// SEM_EXEC — teto de concorrência (semáforo do P-01 — fonte única, P-27)
 // ---------------------------------------------------------------------------
 
-describe('SEM_EXEC — teto de concorrência do harness', () => {
-  it('createSemaphore limita e libera em FIFO', async () => {
+describe('SEM_EXEC — teto de concorrência do harness (semáforo do P-01, P-27)', () => {
+  it('createSemaphore (P-01) limita e libera em FIFO', async () => {
     const sem = createSemaphore(2);
     const r1 = await sem.acquire();
     const r2 = await sem.acquire();
-    assert.equal(sem.activeCount(), 2);
+    assert.equal(sem.active, 2, 'dois slots ocupados');
 
     let thirdResolved = false;
     const third = sem.acquire().then((release) => {
@@ -607,17 +611,45 @@ describe('SEM_EXEC — teto de concorrência do harness', () => {
     r2(); // libera uma vaga
     const releaseThird = await third;
     assert.equal(thirdResolved, true, 'FIFO: o terceiro entra na ordem');
-    assert.equal(sem.activeCount(), 2);
+    assert.equal(sem.active, 2);
 
     releaseThird();
     r1();
-    assert.equal(sem.activeCount(), 0);
+    assert.equal(sem.active, 0);
   });
 
-  it('teto padrão SEM_EXEC: availableParallelism()-1, nunca 0', () => {
-    const max = defaultMaxConcurrency();
+  it('release é IDEMPOTENTE: liberar a MESMA vaga duas vezes é no-op (P-27)', async () => {
+    // A garantia é do contrato unificado (P-01): o release vem do acquire e
+    // a segunda chamada não corrompe a contagem — prova direta no SEM_EXEC.
+    const sem = createSemaphore(1);
+    const release = await sem.acquire();
+    assert.equal(sem.active, 1);
+    release();
+    assert.equal(sem.active, 0, 'primeira liberação devolve o slot');
+    release(); // segunda chamada: no-op — contagem NÃO corrompe
+    assert.equal(sem.active, 0, '-1 slot é impossível: a dupla liberação é no-op');
+    // e a vaga continua utilizável depois da dupla liberação.
+    const release2 = await sem.acquire();
+    assert.equal(sem.active, 1, 'a vaga volta a servir após o release duplo');
+    release2();
+    assert.equal(sem.active, 0);
+  });
+
+  it('teto padrão SEM_EXEC: defaultExecConcurrency() é inteiro em [1, availableParallelism()]', () => {
+    const max = defaultExecConcurrency();
     const p = typeof os.availableParallelism === 'function' ? os.availableParallelism() : 1;
-    assert.equal(max, Math.max(1, p - 1));
+    assert.ok(Number.isInteger(max), `teto do SEM_EXEC deve ser inteiro (recebido ${max})`);
+    assert.ok(max >= 1, 'nunca 0: um spawn mínimo sempre cabe');
+    assert.ok(max <= p, 'nunca mais que o número de núcleos');
+  });
+
+  it('maxConcurrency inválido (< 1) é fail-fast do P-01, nunca deadlock silencioso', () => {
+    // O createSemaphore PRÓPRIO do harness antigo achatava teto ≤ 0 em 1; o
+    // P-01 prefere falhar cedo (semáforo que nunca libera slot é pior que
+    // erro de configuração — P-27 documenta a mudança no harness).
+    assert.throws(() => createSemaphore(0), RangeError);
+    assert.throws(() => createSemaphore(-1), RangeError);
+    assert.throws(() => createSemaphore(1.5), RangeError, 'teto fracionário também é rejeitado (inteiro ≥ 1)');
   });
 
   it('createHardenedExec usa o limitador injetado (serializa com teto 1)', async () => {
@@ -640,11 +672,13 @@ describe('SEM_EXEC — teto de concorrência do harness', () => {
     const inner: ExecFn = async () => {
       throw new Error('boom');
     };
-    const limiter: ReturnType<typeof createSemaphore> = {
-      activeCount: () => 0,
-      acquire: () => Promise.resolve(() => {
-        releases += 1;
-      }),
+    const limiter: Semaphore = {
+      limit: 1,
+      active: 0,
+      acquire: () =>
+        Promise.resolve(() => {
+          releases += 1;
+        }),
     };
     const hard = createHardenedExec({ exec: inner, limiter });
     await assert.rejects(() => hard('d', ['--test']));

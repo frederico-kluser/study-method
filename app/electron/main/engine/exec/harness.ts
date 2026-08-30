@@ -11,10 +11,13 @@
  *     (`createHardenedExec`), e o executor real (outro pacote — hoje
  *     `services/challengeExec.ts`) é quem pluga o próprio spawn.
  *   - SEM_EXEC (`§4.1`): teto de `spawn node --test` = `availableParallelism()-1`.
- *     Usamos um limitador PRÓPRIO e mínimo (`createSemaphore`, acquire/release
- *     injetáveis). O `semaphore.ts` do P-01 (`engine/runtime/semaphore`) é o
- *     futuro dono do SEM_EXEC — um follow-up deve trocar `createSemaphore`
- *     pelo de lá, mantendo a MESMA interface `{ acquire(): Promise<() => void> }`.
+ *     O limitador É o semáforo do P-01 (`runtime/semaphore.ts`) — fonte única
+ *     do protocolo `{ acquire(): Promise<() => void> }` (release vem do
+ *     acquire, idempotente). P-27: o `createSemaphore`/`Semaphore`/
+ *     `defaultMaxConcurrency` PRÓPRIOS deste arquivo foram removidos; o default
+ *     é `createExecSemaphore()` (teto `defaultExecConcurrency()`) e
+ *     `maxConcurrency` custom vira `createSemaphore(n)` do P-01 (fail-fast em
+ *     `n < 1` — RangeError, nunca deadlock silencioso).
  *   - SEM REDE: o código executado foi escrito por LLM. A isolação é aplicada
  *     NO LUGAR CERTO — na construção do ambiente do processo filho
  *     (`buildChildEnv`): remove variáveis de rede herdadas do pai e injeta
@@ -37,11 +40,16 @@
  */
 
 import * as fs from 'node:fs';
-import * as os from 'node:os';
 import * as path from 'node:path';
 
 import { SAFE_FILE_PATH_RE } from '../../content/trackTypes';
 import type { ExecFn, ExecResult } from './proofs';
+import {
+  createExecSemaphore,
+  createSemaphore,
+  defaultExecConcurrency,
+  type Semaphore,
+} from '../runtime/semaphore';
 
 // ---------------------------------------------------------------------------
 // Diretório de execução ISOLADO (raiz injetável)
@@ -204,64 +212,31 @@ export function buildChildEnv(base?: NodeJS.ProcessEnv | undefined): NodeJS.Proc
 }
 
 // ---------------------------------------------------------------------------
-// SEM_EXEC — teto de concorrência (limitador PRÓPRIO e mínimo)
+// SEM_EXEC — teto de concorrência (semáforo do P-01, fonte única — P-27)
 // ---------------------------------------------------------------------------
 
-export interface Semaphore {
-  /**
-   * Espera por uma vaga e devolve a função `release()`. Injetável — o
-   * follow-up troca a implementação pelo `semaphore.ts` do P-01 (runtime)
-   * mantendo esta interface.
-   */
-  acquire(): Promise<() => void>;
-  /** vagas em uso agora (diagnóstico). */
-  activeCount(): number;
-}
-
 /**
- * Limitador mínimo FIFO. `max <= 0` é preso em 1 (fail-closed: nunca um
- * deadlock silencioso por teto zero; quem quiser desligar a execução injeta
- * o próprio limitador).
+ * O SEM_EXEC É o semáforo do P-01 (`engine/runtime/semaphore.ts`) — mesma
+ * implementação e MESMO protocolo do resto da engine: `acquire()` resolve com
+ * a função de liberação (release idempotente — liberar duas vezes é no-op).
+ * Default: `createExecSemaphore()` (teto = `defaultExecConcurrency()` =
+ * `availableParallelism()-1`, nunca abaixo de 1 — §4.1). `maxConcurrency`
+ * custom vira `createSemaphore(n)` do P-01, que REJEITA `n < 1` com
+ * RangeError — fail-fast: um semáforo que nunca libera slot é pior que um
+ * erro de configuração; quem quiser desligar a execução injeta o próprio
+ * limitador via `HardenedExecOptions.limiter`.
  */
-export function createSemaphore(max: number): Semaphore {
-  const limit = Math.max(1, Math.floor(max));
-  let active = 0;
-  const waiters: Array<() => void> = [];
-  const release = (): void => {
-    active -= 1;
-    const next = waiters.shift();
-    if (next) {
-      active += 1;
-      next();
-    }
-  };
-  return {
-    acquire(): Promise<() => void> {
-      return new Promise((resolve) => {
-        if (active < limit) {
-          active += 1;
-          resolve(release);
-          return;
-        }
-        waiters.push(() => resolve(release));
-      });
-    },
-    activeCount: () => active,
-  };
-}
-
-/** Default do SEM_EXEC (`§4.1`): `availableParallelism()-1`, nunca 0. */
-export function defaultMaxConcurrency(): number {
-  const p = typeof os.availableParallelism === 'function' ? os.availableParallelism() : 1;
-  return Math.max(1, p - 1);
-}
 
 export interface HardenedExecOptions {
   /** a execução a endurecer (no executor real: um spawn de `node --test`). */
   exec: ExecFn;
-  /** limitador SEM_EXEC injetável (default: createSemaphore(defaultMaxConcurrency())). */
+  /** limitador SEM_EXEC injetável (default: createExecSemaphore()). */
   limiter?: Semaphore;
-  /** teto usado quando `limiter` não é injetado. */
+  /**
+   * Teto usado quando `limiter` não é injetado: cria `createSemaphore(teto)`
+   * do P-01. `teto < 1` é RangeError do P-01 (fail-fast); default:
+   * `defaultExecConcurrency()` via `createExecSemaphore()`.
+   */
   maxConcurrency?: number;
   /**
    * ADITIVO (ENCADEADO, nunca substituto): enriquece o env JÁ endurecido por
@@ -289,7 +264,11 @@ export interface HardenedExecOptions {
  * de graça.
  */
 export function createHardenedExec(opts: HardenedExecOptions): ExecFn {
-  const limiter = opts.limiter ?? createSemaphore(opts.maxConcurrency ?? defaultMaxConcurrency());
+  // P-27: semáforo do P-01 — default pronto (createExecSemaphore) ou custom
+  // por teto (createSemaphore(n), fail-fast em n < 1); limiter injetado vence.
+  const limiter =
+    opts.limiter ??
+    (opts.maxConcurrency !== undefined ? createSemaphore(opts.maxConcurrency) : createExecSemaphore());
   return async (
     dir: string,
     args: string[],
