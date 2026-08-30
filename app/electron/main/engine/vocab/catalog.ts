@@ -24,25 +24,53 @@
  *   1. O catálogo cobre a BIBLIOTECA DE LINGUAGEM (ECMAScript) + `console`,
  *      porque o próprio cabeçalho de `atomKeys.ts` cita `api:console.log` como
  *      forma canônica e o extrator emite essa chave para código real.
- *   2. NÃO entram objetos de runtime do Node (URL, fetch, timers,
- *      WebAssembly, structuredClone, …): eles são cobertos pelo eixo
- *      `global:` (são propriedades de `globalThis`) e pelo universo de
- *      MÓDULOS (`api:node:*`); o catálogo é a camada de LINGUAGEM. A prova de
- *      que o filtro existe: `fetch` existe em `globalThis` mas NÃO é receptor.
- *   3. Receptores de módulo são `assert` e `test` — os que o HARNESS da trilha
- *      usa (`HARNESS_RECEPTIVE_SEED`: `api:assert.equal`, `api:node:test` …) e
- *      que o extrator resolve como raiz importada. Os demais módulos built-in
- *      ficam no eixo `api:node:*` de `atoms.json`, sem membros.
+ *   2. NÃO entram objetos de runtime do Node (URL, fetch, WebAssembly,
+ *      structuredClone, …) como receptores de LINGUAGEM: são cobertos pelo
+ *      eixo `global:` (são propriedades de `globalThis`). A prova de que o
+ *      filtro existe: `fetch` existe em `globalThis` mas NÃO é receptor.
+ *      NOTA P-29 (onda 2): objetos de runtime que TAMBÉM são módulos built-in
+ *      entram pela porta de MÓDULO (regra 3) — `process` é módulo
+ *      (`require('process')`) e o código real emite `api:process.env`; isso é
+ *      dicionário de módulo, não receptor de linguagem. `Buffer`/`URL`/`fetch`
+ *      continuam fora (globais sem raiz importada no código que as usa).
+ *   3. Receptores de MÓDULO (`RECEPTORES_MODULO` abaixo): built-ins que (a) a
+ *      trilha `nodejs-do-zero` importa com acesso a membro, ou (b) um
+ *      currículo Node básico ensina. Exclusões e a forma das chaves estão
+ *      documentadas no próprio array.
  *   4. `Object.getOwnPropertyNames` lê só membros com chave de STRING (propriedades
  *      com chave Symbol — `Symbol.iterator`, `Symbol.toStringTag` — ficam fora) e
  *      só os PRÓPRIOS do objeto. Consequência medida: os protótipos de
  *      TypedArray em V8 têm como próprios apenas `constructor` e
  *      `BYTES_PER_ELEMENT` (os métodos vivem no `%TypedArrayPrototype%`
  *      compartilhado, que não tem nome de receptor) — o catálogo reporta o que
- *      o runtime realmente expõe como próprio.
+ *      o runtime realmente expõe como próprio. Membros NÃO-enumeráveis entram
+ *      (getOwnPropertyNames inclui), ex.: `process.domain`/`process.title`.
+ *      Módulos cujo export é uma INSTÂNCIA com protótipo de superfície real
+ *      (`cluster`/`process` são EventEmitters) somam os membros PRÓPIOS da
+ *      CADEIA de protótipos até `Object.prototype`/`Function.prototype` —
+ *      `cluster.on`, `process.on`: o código os endereça sem segmento
+ *      `.prototype.`, e sem isso uma aula legítima de `cluster.on` nasceria
+ *      com lacuna falsa (a motivação do P-29). Export que é CLASSE/FUNÇÃO
+ *      (`assert`, `test`, `events`, `stream`, `module`) NÃO caminha: o
+ *      protótipo de uma classe é superfície de instância (`new stream()`),
+ *      não membro de módulo — `api:stream.pipe` seria chave falsa.
  *   5. Receptor ausente no runtime de geração é pulado (ex.: SharedArrayBuffer
  *      em um runtime antigo) — o carimbo de versão diz com que runtime o
  *      artefato foi produzido.
+ *   6. O eixo `api:` de `atoms.json` é a UNIÃO módulos ∪ catálogo
+ *      (`gerarEixoApi` em `generate.ts`): fechar o dicionário AUMENTA o eixo
+ *      api: de atoms.json no MESMO commit — os dois artefatos andam juntos
+ *      por construção, e o teste byte-a-byte exige re-gerar os dois.
+ *   7. DETERMINISMO: os membros são um snapshot de `getOwnPropertyNames` no
+ *      momento da geração, e a ordem do array é a ordem do require. O módulo
+ *      legado `domain` (carregado por `node:repl`) anexa a propriedade própria
+ *      NÃO-enumerável `domain` (valor null) a EventEmitters criados DEPOIS de
+ *      carregado — por isso `cluster` (um EventEmitter) é capturado ANTES de
+ *      `repl` na ordem do array: `cluster.domain` fica fora do catálogo de
+ *      forma estável nos DOIS processos (gerador CLI e runner de teste seguem
+ *      a MESMA ordem de `RECEPTORES_MODULO`). A superfície de
+ *      `EventEmitter.prototype` (ou a de qualquer protótipo real de módulo) é
+ *      estável — não depende do módulo `domain`.
  *
  * Este módulo NÃO importa `typescript` e NÃO escreve arquivo: ele monta dados
  * puros a partir de um `VocabRuntime` injetável (ver `generate.ts`, que
@@ -73,6 +101,9 @@ export interface VocabRuntime {
   globalObject: unknown;
   /** `Object.getOwnPropertyNames` (só chaves de string). */
   ownPropertyNames: (obj: unknown) => string[];
+  /** `Object.getPrototypeOf` — superfície de protótipo de módulos que são
+   *  instâncias (ex.: `cluster`/`process` são EventEmitters). */
+  getPrototypeOf: (obj: unknown) => unknown;
   /** `require` — para os receptores de módulo (`assert`, `node:test`). */
   requireModule: (specifier: string) => unknown;
 }
@@ -156,15 +187,83 @@ export const RECEPTORES_LINGUAGEM: readonly { name: string; kind: CatalogoRecept
 ] as const;
 
 /**
- * Receptores de MÓDULO built-in (premissa 3): `assert` e `test` são os que o
- * harness da trilha usa (`HARNESS_RECEPTIVE_SEED` cita `api:assert.equal` …
- * e `api:node:test`), e o extrator resolve raiz importada como caminho
- * completo (`assert.throws`, não `.throws`). O membro é lido de `require()`
- * real; o nome do receptor é o texto da raiz que o código escreve.
+ * Receptores de MÓDULO built-in (P-29 fecha a enumeração — ver cabeçalho,
+ * premissas 2–3 e 6–7).
+ *
+ * CONJUNTO ESCOLHIDO e critério (onda 2 batch B):
+ *   - OBRIGATÓRIOS pelo CORPUS real: módulos que a trilha `nodejs-do-zero`
+ *     importa com acesso a membro (`fs.readFile`, `http.createServer`,
+ *     `crypto.randomUUID`, `cluster.fork`, `process.env` …) — sem eles uma
+ *     aula legítima nasce com lacuna falsa no dicionário do LLM (o bug que
+ *     esta sub-tarefa fecha).
+ *   - CURRÍCULO: módulos que um curso introdutório de Node ensina (a seção
+ *     "Built-in modules" da documentação oficial + o percurso de um curso
+ *     básico de Node): path/os/url/util/events/stream/zlib/https/net/dns/
+ *     readline/tty/timers/querystring/string_decoder/v8/vm/module/
+ *     perf_hooks/repl/worker_threads/child_process/buffer.
+ *   - EXCLUÍDOS (o motivo decide — nada sai por preguiça):
+ *       - `punycode`     deprecated desde o Node 7 (DEP0040): o pacote
+ *                        userland é o caminho mantido; não é superfície que
+ *                        um currículo ensine.
+ *       - `console`      já é receptor de LINGUAGEM (objeto singleton lido de
+ *                        `globalThis`); `require('node:console')` é o MESMO
+ *                        objeto — duplicar o receptor só criaria ambiguidade.
+ *       - `inspector`    protocolo interno de depuração do V8, não é
+ *                        superfície de ensino.
+ *       - subpaths (`fs/promises`, `assert/strict`, `dns/promises`, …) e
+ *                        módulos `_*` internos / experimentais (`node:sqlite`,
+ *                        `node:sea`, `node:test/reporters`): a raiz que o
+ *                        código escreve é a do módulo canônico (`import fs
+ *                        from 'node:fs/promises'` emite `api:fs.readFile`,
+ *                        coberto pelo receptor `fs`).
+ *
+ * FORMA DAS CHAVES (espelha o padrão assert/test, verificado no catálogo
+ * commitado: `assert.throws` → `api:assert.throws`, NUNCA
+ * `api:node:assert.throws`): o `name` é a RAIZ que o código escreve e os
+ * membros entram como `api:<name>.<membro>`. A grafia `node:` do eixo api:
+ * (`api:node:assert`) é o universo de NOMES de módulo de `atoms.json`
+ * (`gerarUniversoModulos`), não de membros. O `moduleId` é o specifier do
+ * require() real na geração — os novos entram na grafia canônica `node:`.
+ *
+ * ORDEM: `assert`/`test` primeiro (padrão histórico do harness); os demais em
+ * ordem ALFABÉTICA — o que coloca `cluster` antes de `repl` (premissa 7:
+ * `repl` carrega o módulo legado `domain`, que anexaria `domain` próprio em
+ * `cluster` se o EventEmitter fosse criado depois). O membro é lido de
+ * `require()` real; nenhum membro é digitado à mão.
  */
 export const RECEPTORES_MODULO: readonly { name: string; moduleId: string }[] = [
+  // harness da trilha (padrão histórico do pacote P-05)
   { name: 'assert', moduleId: 'assert' },
   { name: 'test', moduleId: 'node:test' },
+  // corpus + currículo — ordem alfabética (cluster antes de repl, premissa 7)
+  { name: 'buffer', moduleId: 'node:buffer' },
+  { name: 'child_process', moduleId: 'node:child_process' },
+  { name: 'cluster', moduleId: 'node:cluster' },
+  { name: 'crypto', moduleId: 'node:crypto' },
+  { name: 'dns', moduleId: 'node:dns' },
+  { name: 'events', moduleId: 'node:events' },
+  { name: 'fs', moduleId: 'node:fs' },
+  { name: 'http', moduleId: 'node:http' },
+  { name: 'https', moduleId: 'node:https' },
+  { name: 'module', moduleId: 'node:module' },
+  { name: 'net', moduleId: 'node:net' },
+  { name: 'os', moduleId: 'node:os' },
+  { name: 'path', moduleId: 'node:path' },
+  { name: 'perf_hooks', moduleId: 'node:perf_hooks' },
+  { name: 'process', moduleId: 'node:process' },
+  { name: 'querystring', moduleId: 'node:querystring' },
+  { name: 'readline', moduleId: 'node:readline' },
+  { name: 'repl', moduleId: 'node:repl' },
+  { name: 'stream', moduleId: 'node:stream' },
+  { name: 'string_decoder', moduleId: 'node:string_decoder' },
+  { name: 'timers', moduleId: 'node:timers' },
+  { name: 'tty', moduleId: 'node:tty' },
+  { name: 'url', moduleId: 'node:url' },
+  { name: 'util', moduleId: 'node:util' },
+  { name: 'v8', moduleId: 'node:v8' },
+  { name: 'vm', moduleId: 'node:vm' },
+  { name: 'worker_threads', moduleId: 'node:worker_threads' },
+  { name: 'zlib', moduleId: 'node:zlib' },
 ] as const;
 
 function sortUnico(lista: readonly string[]): string[] {
@@ -206,10 +305,39 @@ export function montarCatalogo(runtime: VocabRuntime): CatalogoApi {
     } catch {
       continue; // módulo ausente no runtime — omitido, versão documenta
     }
+    const membros = new Set<string>(runtime.ownPropertyNames(modulo).map((m) => `${name}.${m}`));
+    // Superfície de PROTÓTIPO de módulos cujo export é uma INSTÂNCIA (objeto)
+    // com protótipo de superfície real (premissa 4/7): `cluster` e `process`
+    // são EventEmitters — o código escreve `cluster.on`/`process.on`, membros
+    // herdados de `EventEmitter.prototype`, que NÃO são próprios do objeto do
+    // módulo. A mesma regra dos receptores class (membros do protótipo
+    // entram), sem o segmento `.prototype.` no caminho porque é assim que o
+    // código endereça. A cadeia é percorrida até
+    // `Object.prototype`/`Function.prototype` (linguagem, não módulo). Export
+    // que é CLASSE/FUNÇÃO (`assert`, `test`, `events` = EventEmitter,
+    // `stream` = Stream, `module` = Module) NÃO caminha: o protótipo de uma
+    // classe é superfície de INSTÂNCIA (`new events()`), não membro do módulo
+    // — `api:stream.pipe` seria uma chave falsa.
+    const prototipoDeObjeto = runtime.getPrototypeOf({});
+    const prototipoDeFuncao = runtime.getPrototypeOf(() => undefined);
+    if (typeof modulo === 'object' && modulo !== null) {
+      let proto = runtime.getPrototypeOf(modulo);
+      while (
+        proto !== null &&
+        proto !== undefined &&
+        proto !== prototipoDeObjeto &&
+        proto !== prototipoDeFuncao
+      ) {
+        for (const m of runtime.ownPropertyNames(proto)) {
+          membros.add(`${name}.${m}`);
+        }
+        proto = runtime.getPrototypeOf(proto);
+      }
+    }
     receivers.push({
       name,
       kind: 'module',
-      members: sortUnico(runtime.ownPropertyNames(modulo).map((m) => `${name}.${m}`)),
+      members: sortUnico([...membros]),
       prototypeMembers: [],
     });
   }

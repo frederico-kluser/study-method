@@ -133,12 +133,19 @@ function derivarCamposDeDominio(track: LoadedTrack): string[] {
 /**
  * Colisões LEGÍTIMAS entre nome de campo de domínio e membro de API real.
  * `description` (campo de track.json) coincide com `Symbol.prototype.description`
- * — getter REAL de linguagem, que o catálogo tem de manter. A exceção é do
- * lado da LISTA DE CAMPOS na hora de aplicar o filtro (o membro de API nunca
- * sai do catálogo). Sem esta lista explícita, uma colisão nova faz o teste
- * falhar de propósito — que é o comportamento certo.
+ * — getter REAL de linguagem, que o catálogo tem de manter; `domain` e `title`
+ * (campos de meta de trilha) coincidem com membros próprios REAIS de `process`
+ * (`process.domain` — propriedade legada não-enumerável com valor null — e
+ * `process.title`), enumerados por `getOwnPropertyNames` como qualquer outro
+ * membro. A exceção é do lado da LISTA DE CAMPOS na hora de aplicar o filtro
+ * (o membro de API nunca sai do catálogo). Sem esta lista explícita, uma
+ * colisão nova faz o teste falhar de propósito — que é o comportamento certo.
  */
-const COLISOES_CAMPO_API: ReadonlySet<string> = new Set(['description']); // = Symbol.prototype.description
+const COLISOES_CAMPO_API: ReadonlySet<string> = new Set([
+  'description', // = Symbol.prototype.description
+  'domain', // = process.domain (membro próprio real do módulo process)
+  'title', // = process.title (membro próprio real do módulo process)
+]);
 
 /**
  * Exceções DECLARADAS do eixo node: — chaves SINTÉTICAS: o extrator as monta
@@ -423,6 +430,116 @@ describe('engineVocab: o catálogo separa API de linguagem de nome de domínio',
   });
 });
 
+describe('engineVocab: fidelidade dos módulos built-in (P-29 — onda 2)', () => {
+  // P-29 fecha o DICIONÁRIO (piso de consciência do LLM), não o gate: o eixo
+  // api: continua aberto no validador. O que este bloco prova:
+  //   1. cada membro do JSON É o que `Object.getOwnPropertyNames` do MESMO
+  //      runtime vê no `require()` real — mesmos filtros do gerador (só
+  //      chaves de string, só propriedades próprias), nada digitado à mão e
+  //      nada filtrado de forma escondida;
+  //   2. o corpus REAL (trilha nodejs-do-zero) só emite `api:<mod>.<membro>`
+  //      que está no catálogo — direto (`fs.readFile`) ou como prefixo de uma
+  //      cadeia profunda membro-de-membro (`process.env.PORT` → `process.env`).
+  // O runtime do teste e o da geração são o MESMO (byte-a-byte, provado no
+  // bloco 'determinismo e proveniência') — é isso que torna o require real do
+  // teste um oráculo válido para o artefato commitado.
+
+  it('membros de cada módulo do RECEPTORES_MODULO conferem com o require() real (mesmos filtros do gerador)', () => {
+    const runtime = runtimeDoProcesso(); // o mesmo runtime que produziu o artefato
+    const catalogo = lerCatalogo();
+    const porNome = new Map(catalogo.receivers.map((r) => [r.name, r]));
+    assert.equal(porNome.size, catalogo.receivers.length, 'nomes de receptor duplicados no catálogo');
+    for (const { name, moduleId } of RECEPTORES_MODULO) {
+      const receptor = porNome.get(name);
+      assert.ok(receptor, `receptor de módulo ausente no catálogo: ${name}`);
+      assert.equal(receptor.kind, 'module', `${name} deveria ser kind module`);
+      const modulo = runtime.requireModule(moduleId); // require REAL, como na geração
+      const esperados = new Set<string>(
+        runtime.ownPropertyNames(modulo).map((m) => {
+          assert.equal(typeof m, 'string', `chave não-string em ${moduleId}: ${String(m)}`);
+          return `${name}.${m}`;
+        }),
+      );
+      // MESMA regra do gerador (catalog.ts): export que é INSTÂNCIA (objeto) com
+      // protótipo de superfície real (≠ Object/Function.prototype — `cluster`/
+      // `process` são EventEmitters) soma os próprios da CADEIA de protótipos
+      // como membros (`cluster.on`, `process.on` — sem segmento `.prototype.`).
+      // Export que é CLASSE/FUNÇÃO não caminha (protótipo de classe é
+      // superfície de instância, não membro de módulo).
+      const prototipoDeObjeto = runtime.getPrototypeOf({});
+      const prototipoDeFuncao = runtime.getPrototypeOf(() => undefined);
+      if (typeof modulo === 'object' && modulo !== null) {
+        let proto = runtime.getPrototypeOf(modulo);
+        while (
+          proto !== null &&
+          proto !== undefined &&
+          proto !== prototipoDeObjeto &&
+          proto !== prototipoDeFuncao
+        ) {
+          for (const m of runtime.ownPropertyNames(proto)) esperados.add(`${name}.${m}`);
+          proto = runtime.getPrototypeOf(proto);
+        }
+      }
+      assert.deepEqual(
+        receptor.members,
+        [...esperados].sort(),
+        `members de ${name} (require('${moduleId}')) divergem do catálogo — re-gera o vocabulário`,
+      );
+      assert.equal(receptor.prototypeMembers.length, 0, `módulo ${name} não pode ter protótipo`);
+    }
+  });
+
+  it('o corpus real só emite api:<mod>.<membro> que está no catálogo (fs.readFile etc.)', async () => {
+    const emissoes = await coletarEmissoesDoCorpus();
+    const catalogo = lerCatalogo();
+    const nomesModulos = new Set(RECEPTORES_MODULO.map((r) => r.name));
+    const caminhos = new Set(catalogo.api_paths);
+
+    const emitidas = emissoes.porEixo.get('api') ?? new Set<AtomKey>();
+    const diretasFora: string[] = [];
+    const profundasSemPrefixo: string[] = [];
+    for (const chave of emitidas) {
+      const caminho = chave.slice('api:'.length);
+      if (!caminho.includes('.')) continue; // specifier de import — universo de módulos
+      const partes = caminho.split('.');
+      if (!nomesModulos.has(partes[0])) continue; // raiz npm/domínio/global — aberto por design
+      if (partes.length === 2) {
+        if (!caminhos.has(chave)) diretasFora.push(chave);
+      } else {
+        const prefixo = `api:${partes[0]}.${partes[1]}`;
+        if (!caminhos.has(prefixo)) profundasSemPrefixo.push(chave);
+      }
+    }
+    assert.deepEqual(
+      diretasFora,
+      [],
+      'emissões api:<mod>.<membro> do corpus fora do catálogo (falsa lacuna no dicionário do LLM)',
+    );
+    assert.deepEqual(
+      profundasSemPrefixo,
+      [],
+      'cadeias api: com raiz de módulo sem o membro de 1º nível no catálogo',
+    );
+
+    // Anti-vácuo + prova contra as emissões reais que motivaram P-29: as
+    // chaves do corpus citadas na proposta têm de estar no dicionário.
+    for (const chave of [
+      'api:fs.readFile',
+      'api:fs.readFileSync',
+      'api:http.createServer',
+      'api:crypto.randomUUID',
+      'api:cluster.fork',
+      'api:cluster.on',
+      'api:cluster.isPrimary',
+      'api:process.env',
+      'api:process.argv',
+      'api:process.version',
+    ]) {
+      assert.ok(caminhos.has(chave), `emissão do corpus sem entrada no catálogo: ${chave}`);
+    }
+  });
+});
+
 describe('engineVocab: determinismo e proveniência', () => {
   it('duas execuções produzem bytes idênticos', () => {
     const runtime = runtimeDoProcesso();
@@ -590,19 +707,35 @@ describe('engineVocab: cobertura das emissões sobre a trilha real (onda 1)', ()
     // builtinModules) e caminho do catálogo (raiz = receptor escolhido em
     // RECEPTORES_LINGUAGEM/RECEPTORES_MODULO).
     //
-    // Membro de módulo built-in além de assert/test (`api:fs.readFile`,
-    // `api:http.createServer`), raiz global de runtime (`api:Buffer.from`,
-    // `api:process.env`) e raiz npm/domínio (`api:express`, `api:app.put`,
-    // `api:.campo` de receptor local) são o UNIVERSO ABERTO por design: o
-    // vocabulário é o piso de consciência do LLM, não o teto do gate
-    // (enumerar membros de módulos built-in é a sub-tarefa P-29 da onda 2 —
-    // proibida neste fix).
+    // O que é UNIVERSO ABERTO por design (desde a sub-tarefa P-29 da onda 2,
+    // que fechou os MEMBROS dos módulos built-in escolhidos):
+    //   - raiz npm/domínio (`api:express`, `api:app.put`);
+    //   - raiz global de runtime sem módulo (`api:Buffer.from`);
+    //   - CADEIA PROFUNDA membro-de-membro (`api:process.env.PORT`,
+    //     `api:process.argv.slice`) — o PREFIXO de 1º nível (`process.env`,
+    //     `process.argv`) é membro do módulo, logo FECHADO; o resto é aberto,
+    //     como `api:express.get` (o extrator emite a cadeia inteira).
+    // FECHADO de verdade:
+    //   - `api:<mod>.<membro>` com raiz de módulo built-in escolhido
+    //     (`api:fs.readFile`, `api:http.createServer`) — tem de estar no
+    //     vocabulário; membro de fora com raiz de receptor é bug de cobertura.
     for (const chave of fora) {
-      const raiz = chave.slice('api:'.length).split('.')[0];
-      assert.ok(
-        !nomesReceptores.has(raiz),
-        `chave api: emitida fora do vocabulário com raiz de receptor do catálogo — o universo fechado de linguagem tem membro de fora: ${chave}`,
-      );
+      const caminho = chave.slice('api:'.length);
+      const partes = caminho.split('.');
+      const raiz = partes[0];
+      if (!nomesReceptores.has(raiz)) continue; // navega no aberto (npm/domínio/global)
+      if (partes.length === 2) {
+        assert.ok(
+          vocabularioApi.has(chave),
+          `membro direto de receptor do catálogo fora do vocabulário — o universo fechado tem membro de fora: ${chave}`,
+        );
+      } else {
+        const prefixo = `api:${partes[0]}.${partes[1]}`;
+        assert.ok(
+          vocabularioApi.has(prefixo),
+          `cadeia api: com raiz de receptor sem o membro de 1º nível no vocabulário: ${chave} (prefixo esperado: ${prefixo})`,
+        );
+      }
     }
     // Specifier de módulo built-in é FECHADO: o vocabulário tem TODOS os
     // builtinModules nas duas grafias (`api:fs` e `api:node:fs`) — se um nome

@@ -63,11 +63,16 @@
  *     módulos built-in + caminhos do catálogo), mas ABERTO NO VALIDADOR: o
  *     extrator emite `api:` para QUALQUER cadeia de raiz global ou importada,
  *     inclusive npm/domínio/runtime (`api:express`, `api:app.put`,
- *     `api:Buffer.from`, `api:fs.readFile` …). O vocabulário é o PISO de
- *     consciência do LLM, não o teto do gate — chave emitida fora dele é
- *     universo aberto por design (membros de módulos built-in além de
- *     assert/test são a sub-tarefa P-29 da onda 2; o teste documenta a
- *     relação: nada do universo fechado pode ficar de fora).
+ *     `api:Buffer.from`). O vocabulário é o PISO de consciência do LLM, não o
+ *     teto do gate — chave emitida fora dele é universo aberto por design:
+ *     raiz npm/domínio (`express`, `app`), raiz global de runtime (`Buffer`,
+ *     `URL`) e CADEIA PROFUNDA membro-de-membro (`api:process.env.PORT`,
+ *     `api:process.argv.slice` — o prefixo `process.env`/`process.argv` É do
+ *     catálogo; o resto é aberto, como em `api:express.get`). Desde a onda 2
+ *     (P-29) os MEMBROS dos módulos built-in escolhidos em `RECEPTORES_MODULO`
+ *     (`api:fs.readFile`, `api:http.createServer` …) são enumerados por
+ *     `Object.getOwnPropertyNames` — universo fechado neles; o teste
+ *     documenta a relação: nada do universo fechado pode ficar de fora.
  *
  * DETERMINISMO: o mesmo runtime produz os mesmos bytes — todos os arrays são
  * ordenados (sort canônico), as chaves de objeto seguem ordem literal fixa e
@@ -160,6 +165,7 @@ export function runtimeDoProcesso(): VocabRuntime {
     tokenToStringOf: (kind: number) => ts.tokenToString(kind),
     globalObject: globalThis,
     ownPropertyNames: (obj: unknown) => Object.getOwnPropertyNames(obj as object),
+    getPrototypeOf: (obj: unknown) => Object.getPrototypeOf(obj as object),
     requireModule: (specifier: string) => require(specifier),
   };
 }
