@@ -18,7 +18,11 @@
  *   prepareIsolatedDir(baseDir) → escreverExitGuard(dir) → exec endurecido →
  *   `['--require', path.join(dir, 'exit-guard.cjs'), ...argsDeTeste(input)]`
  *   → cleanupDir SEMPRE (finally — as provas == a única autoridade de
- *   isolamento; diretório que vaza é defeito).
+ *   isolamento; diretório que vaza é defeito). A ESCRITA DO GUARD vive DENTRO
+ *   do escopo de limpeza do prepare: se ela rejeitar, o diretório do mkdtemp
+ *   é removido AQUI (o `verifyChallengeProofs` só registra o dir PARA limpeza
+ *   depois que o prepare resolve — `dirs.push` em exec/proofs.ts — então um
+ *   dir já criado com guard falho nunca entraria na lista e vazaria no tmp).
  *
  * O executor DEFAULT é o OFICIAL do produto: `createHardenedExec({ exec:
  * fromChallengeExec(nodeExec), limiter })` — o MESMO runner que o aluno vê
@@ -98,6 +102,15 @@ export interface CriarProverDeDesafioOptions {
    * de quem plugou o executor.
    */
   limiter?: Semaphore;
+  /**
+   * SEAM DE INJEÇÃO do exit-guard (testabilidade da falha do guard — revisão
+   * adversarial). Recebe o dir isolado JÁ criado pelo mkdtemp e deve escrever
+   * `exit-guard.cjs` nele; o retorno é ignorado. Default: `escreverExitGuard`
+   * (o oficial do harness). O teste injeta uma função que LANÇA para provar a
+   * janela de vazamento fechada: dir criado ⇒ ou devolvido (limpo no finally
+   * do verify) ou limpo AQUI no catch do prepare — nunca órfão no tmp.
+   */
+  escreverGuard?: (dir: string) => Promise<unknown>;
 }
 
 /**
@@ -118,9 +131,10 @@ export function argsDeTeste(_input: ChallengeProofsInput): string[] {
  *
  *   1. `prepareIsolatedDir(baseDir, side)` — diretório NOVO e isolado por
  *      lado (solução/starter/stub nunca compartilham diretório);
- *   2. `escreverExitGuard(dir)` — exit-guard.cjs no diretório isolado (o
- *      código sob teste não mata o runner com `process.exit(0)` forjando
- *      `ℹ tests N`);
+ *   2. `escreverGuard(dir)` — exit-guard.cjs no diretório isolado (seam de
+ *      injeção; default `escreverExitGuard`). Código sob teste não mata o
+ *      runner com `process.exit(0)` forjando `ℹ tests N`. A escrita fica NO
+ *      escopo de limpeza do prepare: rejeitou ⇒ limpa AQUI, nunca vaza;
  *   3. exec (hardened + limitado) com `['--require', exit-guard, ...]` + os
  *      args de teste do produto;
  *   4. `cleanupDir` SEMPRE (finally), mesmo em falha de infra;
@@ -131,6 +145,7 @@ export function argsDeTeste(_input: ChallengeProofsInput): string[] {
 export function criarProverDeDesafio(opts: CriarProverDeDesafioOptions = {}): ProverDeDesafio {
   const baseDir = opts.baseDir ?? os.tmpdir();
   const limiter = opts.limiter ?? createExecSemaphore();
+  const escreverGuard = opts.escreverGuard ?? escreverExitGuard;
   // Executor default = OFICIAL do produto endurecido; exec injetado vira o
   // SUBJACENTE do mesmo endurecimento (limiter SEMPRE vale — o teto SEM_EXEC
   // é global, não depende de quem plugou o executor).
@@ -147,8 +162,22 @@ export function criarProverDeDesafio(opts: CriarProverDeDesafioOptions = {}): Pr
       },
       prepare: async (side) => {
         const dir = await prepareIsolatedDir(baseDir, side);
-        await escreverExitGuard(dir);
-        return dir;
+        try {
+          await escreverGuard(dir);
+          return dir;
+        } catch (err) {
+          // SEM JANELA DE VAZAMENTO (revisão adversarial — HIGH): o dir JÁ
+          // EXISTE (mkdtemp resolveu) e o verifyChallengeProofs só registra
+          // para limpeza DEPOIS do prepare resolver (`dirs.push` em
+          // exec/proofs.ts) — se a escrita do guard rejeitar AQUI, o dir nunca
+          // entraria na lista e o finally do verify não o limparia (vazaria
+          // órfão no tmp). Limpa AGORA (cleanupDir é best-effort e nunca
+          // lança; o catch extra é a garantia de que uma falha de limpeza não
+          // mascara o erro original) e relança: prepare rejeitou ⇒ o verify
+          // não registra ⇒ o veredito vira execError (fail-closed).
+          await cleanupDir(dir).catch(() => {});
+          throw err;
+        }
       },
       cleanup: cleanupDir,
     };

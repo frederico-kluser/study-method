@@ -23,6 +23,10 @@
  *      replan fechado);
  *   4. falha de infra (prepare E exec) → veredito INVÁLIDO com `execError`,
  *      NUNCA exceção ao chamador (fail-closed), e o isolamento continua limpo;
+ *   4b. falha do EXIT-GUARD (seam `opts.escreverGuard` injetado — sem
+ *      rede/FS hacky): o mkdtemp JÁ criou o dir, o guard rejeita ⇒ veredito
+ *      inválido com execError (fail-closed) E o dir do mkdtemp é LIMPO AQUI
+ *      (janela de vazamento fechada — nenhum proof-exec-* órfão na base);
  *   5. o adaptador repassa env: `fromChallengeExec` sobre fake do produto
  *      verifica o env encaminhado (e a ausência que não cria a chave);
  *   6. o limitador do provador (SEM_EXEC, semáforo do P-01) respeita teto 1
@@ -241,6 +245,43 @@ describe('criarProverDeDesafio — fail-closed em falha de infra', () => {
       assert.equal(v.executed, 0, 'nem chegou a rodar');
       const restantes = await fsPromises.readdir(base);
       assert.deepEqual(restantes, [], 'prepare falhou ANTES de criar diretório — nada vazou');
+    } finally {
+      await fsPromises.rm(base, { recursive: true, force: true }).catch(() => {});
+    }
+  });
+
+  it('falha do EXIT-GUARD (seam injetado) → dir do mkdtemp LIMPO (sem vazamento), veredito inválido com execError', async () => {
+    const base = await novaBase();
+    try {
+      const dirsVistos: string[] = [];
+      const { exec, calls } = fakeProdutoExec([OK, FAIL, FAIL]);
+      const prover = criarProverDeDesafio({
+        exec: fromChallengeExec(exec),
+        baseDir: base,
+        // Seam de injeção (testabilidade SEM rede/FS hacky): a escrita do
+        // guard é a única parte "não fakeável" do prepare — aqui ela LANÇA
+        // DEPOIS do mkdtemp, exatamente a janela do defeito (dir já criado,
+        // guard falhou, dir ainda não registrado no verify).
+        escreverGuard: async (dir) => {
+          dirsVistos.push(dir);
+          throw new Error('boom do exit-guard (fake injetado)');
+        },
+      });
+      // (b) fail-closed: resolve — NUNCA rejeita; veredito INVÁLIDO com
+      // execError (o erro ORIGINAL do guard, não o da limpeza).
+      const v = await prover(BASE_INPUT);
+      assert.equal(v.valid, false);
+      assert.equal(v.failures[0].proof, 'execError');
+      assert.match(v.failures[0].reason ?? '', /boom do exit-guard/);
+      assert.match(v.execError ?? '', /boom do exit-guard/);
+      assert.equal(v.executed, 0, 'nem chegou a rodar');
+      assert.equal(calls.length, 0, 'o exec nunca rodou — a falha foi no prepare do 1º lado');
+      assert.equal(dirsVistos.length, 1, 'o guard falhou na PRIMEIRA preparação (solução); nada mais preparou');
+      // (a) o dir do mkdtemp NÃO existe após a falha — a limpeza rodou AQUI
+      // (o verify não o registrou: prepare rejeitou antes do dirs.push).
+      await assert.rejects(fsPromises.stat(dirsVistos[0]), { code: 'ENOENT' });
+      const restantes = await fsPromises.readdir(base);
+      assert.deepEqual(restantes, [], 'base injetada VAZIA — o mkdtemp órfão foi limpo, nenhum proof-exec-* vazou');
     } finally {
       await fsPromises.rm(base, { recursive: true, force: true }).catch(() => {});
     }
