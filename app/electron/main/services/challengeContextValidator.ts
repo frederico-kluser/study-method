@@ -73,11 +73,21 @@ export interface ChallengeToValidate {
   solutionCode: string;
 }
 
-/** Veredito de UM teste do testsCode. */
+/**
+ * Veredito de UM teste do testsCode.
+ *
+ * ORDEM DOS CAMPOS É CONTRATO (docs/16-engine-de-trilha.md §6.3): neste
+ * componente — cuja função é REPROVAR desafio que cobra o não-ensinado —
+ * decisão antes do raciocínio era o bug. A ordem correta é
+ * `nome → construcoes_encontradas → motivo → aprovado` (evidência/raciocínio
+ * ANTES do veredito; INV-04). Todos os campos são obrigatórios.
+ */
 export interface TestVerdict {
   nome: string;
-  aprovado: boolean;
+  /** construções que o teste exige (ex.: `typeof`, `assert.throws`, loop). */
+  construcoes_encontradas: string[];
   motivo: string;
+  aprovado: boolean;
 }
 
 /**
@@ -256,6 +266,7 @@ ${challenge.solutionCode}
 
 ANÁLISE OBRIGATÓRIA (para CADA test('...') do testsCode, um a um):
 - o que o teste exige (asserts, conceitos, APIs, validações — ex.: assert.throws, typeof, tratamento de erro, loops, objetos);
+- as CONSTRUÇÕES que o teste exige (liste em "construcoes_encontradas" do item: ex.: ["typeof", "assert.throws", "throw"]);
 - se isso está ENSINADO nos critérios de entrada, nas aulas anteriores ou na aula atual (cite a aula/seção/trecho que ensina);
 - se a solução de referência é implementável com o conhecimento ensinado.
 
@@ -263,8 +274,9 @@ REGRAS:
 1. NUNCA aprovar um teste que cobra algo AUSENTE do contexto — ex.: validar tipos/recusar texto (typeof/assert.throws/tratamento de erro) se nenhuma aula ensinou validação de entrada.
 2. A solução de referência deve ser implementável com o conhecimento ensinado.
 3. Responda SOMENTE um JSON válido, sem markdown, SEM texto fora do JSON:
-{ "aprovado": boolean, "testes": [ { "nome": string, "aprovado": boolean, "motivo": string } ] }
+{ "aprovado": boolean, "testes": [ { "nome": string, "construcoes_encontradas": [string], "motivo": string, "aprovado": boolean } ] }
 - UM item por test('...') do testsCode, na MESMA ordem, com o nome EXATO do teste;
+- em cada item, "construcoes_encontradas" lista as construções que o teste exige, "motivo" traz o raciocínio e "aprovado" a decisão — SEMPRE nessa ordem;
 - "aprovado" do topo é true só se TODOS os testes forem aprovados.`;
 }
 
@@ -293,8 +305,14 @@ export function countTests(testsCode: string): number {
  * Valida a ESTRUTURA do JSON da LLM e devolve o veredito normalizado — ou um
  * `reason` PRECISO quando a estrutura não fecha (o motivo alimenta o feedback
  * do retry): exige `aprovado` boolean, `testes` array com UM item por
- * test('...') do testsCode, cada item com nome string, aprovado boolean e
- * motivo string.
+ * test('...') do testsCode, cada item com `nome` string, `motivo` string,
+ * `aprovado` boolean e — quando presente — `construcoes_encontradas` array de
+ * strings (docs §6.3: nome → construcoes_encontradas → motivo → aprovado).
+ *
+ * Entrada da LLM é NÃO-CONFIÁVEL: `construcoes_encontradas` AUSENTE é
+ * normalizado para `[]` explícito (a interface TestVerdict continua exigindo
+ * o campo em TODO veredito que o serviço devolve). O que nunca se tolera é
+ * veredito falso — por isso tipo errado reprova com motivo específico.
  */
 function parseVerdict(raw: unknown, testsCode: string): { verdict: TestVerdict[] } | { reason: string } {
   const expected = countTests(testsCode);
@@ -320,14 +338,31 @@ function parseVerdict(raw: unknown, testsCode: string): { verdict: TestVerdict[]
       return { reason: `"testes[${i}]" não é um objeto.` };
     }
     const t = item as Record<string, unknown>;
-    if (typeof t.nome !== 'string' || typeof t.aprovado !== 'boolean' || typeof t.motivo !== 'string') {
-      return { reason: `"testes[${i}]" malformado (esperado { nome: string, aprovado: boolean, motivo: string }).` };
+    if (typeof t.nome !== 'string' || typeof t.motivo !== 'string' || typeof t.aprovado !== 'boolean') {
+      return { reason: `"testes[${i}]" malformado (esperado { nome: string, construcoes_encontradas: string[], motivo: string, aprovado: boolean }).` };
+    }
+    if (t.construcoes_encontradas !== undefined) {
+      if (
+        !Array.isArray(t.construcoes_encontradas) ||
+        !(t.construcoes_encontradas as unknown[]).every((c) => typeof c === 'string')
+      ) {
+        return { reason: `"testes[${i}].construcoes_encontradas" deve ser um array de strings.` };
+      }
     }
   }
   return {
     verdict: r.testes.map((t) => {
       const item = t as Record<string, unknown>;
-      return { nome: item.nome as string, aprovado: item.aprovado as boolean, motivo: item.motivo as string };
+      const construcoes = Array.isArray(item.construcoes_encontradas)
+        ? (item.construcoes_encontradas as unknown[]).filter((c): c is string => typeof c === 'string')
+        : [];
+      // INV-04 (docs §6.3): raciocínio ANTES da decisão, na ordem do contrato.
+      return {
+        nome: item.nome as string,
+        construcoes_encontradas: construcoes,
+        motivo: item.motivo as string,
+        aprovado: item.aprovado as boolean,
+      };
     }),
   };
 }

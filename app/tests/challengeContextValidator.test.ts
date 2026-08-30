@@ -278,7 +278,9 @@ describe('buildValidationPrompt', () => {
     const prompt = buildValidationPrompt(ctx, { title: 'Somar', statement: 'S', testsCode: SOMAR_TESTS, solutionCode: SOMAR_SOLUTION });
     assert.match(prompt, /UM item por test\('\.\.\.'\)/);
     assert.match(prompt, /"aprovado": boolean/);
-    assert.match(prompt, /"testes": \[\s*\{ "nome": string, "aprovado": boolean, "motivo": string \} \]/);
+    // Contrato do TestVerdict (docs §6.3): raciocínio ANTES da decisão —
+    // nome → construcoes_encontradas → motivo → aprovado, no JSON exigido da LLM.
+    assert.match(prompt, /"testes": \[\s*\{ "nome": string, "construcoes_encontradas": \[string\], "motivo": string, "aprovado": boolean \} \]/);
     assert.match(prompt, /assert\.throws/);
     assert.match(prompt, /typeof/);
   });
