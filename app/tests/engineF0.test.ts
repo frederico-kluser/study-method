@@ -43,6 +43,8 @@ import {
   CAMINHO_ATOMOS_DEFAULT,
   ETAPA_BRIEF,
   FaseF0Error,
+  POLITICA_HARNESS_DECIDIDA,
+  POLITICAS_HARNESS_REJEITADAS,
   carregarAtomos,
   chavesDoVocabulario,
   gerarBrief,
@@ -193,6 +195,64 @@ describe('F0-brief — axioma de entrada validado contra o vocabulário gerado',
     assert.equal(llm.cached, false);
     assert.equal(llm.stageUsage.llmCalls, 1, 'uma ida ao provedor fake');
   });
+
+  it('eixo ABERTO api: é validado por FORMATO — chave fora do vocabulário mas bem-formada é ACEITA', async () => {
+    // WARNING-3/DECISÃO de universo: `api:` é universo aberto no extrator
+    // (P-05) — o vocabulário é o PISO do LLM, não o teto do gate. Uma chave
+    // legítima do universo aberto (ex.: api:fs.readFile) NÃO pode ser rejeitada
+    // na carga por não constar no atoms.json.
+    const draft = briefValido({ criterios_de_entrada: ['api:fs.readFile', 'decl:let'] });
+    const { brief } = await gerarBrief({
+      callLlm: transporteFake(jsonDe(draft)).callLlm,
+      assunto: 'x',
+      atomos: atomosFake(),
+    });
+    assert.deepEqual(brief.criterios_de_entrada, ['api:fs.readFile', 'decl:let']);
+  });
+
+  it('eixos não-vocabulário form:/term: também passam por FORMATO (seletor parseável / chave bem-formada)', async () => {
+    const draft = briefValido({
+      criterios_de_entrada: ['form:ArrowFunction[body!=Block]', 'term:atribuicao'],
+    });
+    const { brief } = await gerarBrief({
+      callLlm: transporteFake(jsonDe(draft)).callLlm,
+      assunto: 'x',
+      atomos: atomosFake(),
+    });
+    assert.deepEqual(brief.criterios_de_entrada, ['form:ArrowFunction[body!=Block]', 'term:atribuicao']);
+  });
+
+  it('chave de eixo ABERTO MALFORMADA é rejeitada por formato (nomeando a chave)', async () => {
+    // "api:" exige chave bem-formada (ATOM_KEY_RE) mesmo no universo aberto.
+    const draft = briefValido({ criterios_de_entrada: ['api:fs .readFile'] });
+    await assert.rejects(
+      gerarBrief({ callLlm: transporteFake(jsonDe(draft)).callLlm, assunto: 'x', atomos: atomosFake() }),
+      (erro: unknown) => {
+        const e = erro as FaseF0Error;
+        assert.equal(e.code, 'AXIOMA_CONSTRUCAO_INEXISTENTE');
+        assert.match(e.message, /"api:fs \.readFile"/, 'a chave ofensora é nomeada');
+        assert.match(e.message, /FORMATO/, 'a validacão é por formato');
+        assert.equal(e.detalhes?.motivo, 'formato');
+        return true;
+      },
+    );
+  });
+
+  it('eixo FECHADO desconhecido (node:Inventado) é rejeitado NA CARGA nomeando a chave', async () => {
+    // Eixos fechados (node/op/decl/global) = pertença estrita ao vocabulário.
+    const draft = briefValido({ criterios_de_entrada: ['node:Inventado'] });
+    await assert.rejects(
+      gerarBrief({ callLlm: transporteFake(jsonDe(draft)).callLlm, assunto: 'x', atomos: atomosFake() }),
+      (erro: unknown) => {
+        const e = erro as FaseF0Error;
+        assert.equal(e.code, 'AXIOMA_CONSTRUCAO_INEXISTENTE');
+        assert.equal(e.campo, 'criterios_de_entrada');
+        assert.match(e.message, /"node:Inventado"/, 'a mensagem NOMEIA a chave inválida');
+        assert.deepEqual(e.detalhes?.sugestoes, ['node:Block', 'node:CallExpression'], 'sugestões por prefixo no eixo fechado');
+        return true;
+      },
+    );
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -250,10 +310,11 @@ describe('F0-brief — política de harness (A-P09-2, D1 §3.2)', () => {
     }
   });
 
-  it('valor fora do enum do schema (ex.: "none") cai no BriefSchema — erro NOMEIA campo+motivo', async () => {
-    // "none" é valor da política no ORÇAMENTO (budget.ts), não do brief: o
-    // BriefSchema (P-04) limita o draft aos valores do §3.2; o erro tem de
-    // nomear o campo e o motivo do enum.
+  it('"none" é política CONHECIDA e REJEITADA — POLITICA_HARNESS_REJEITADA (não cai mais no schema)', async () => {
+    // "none" é valor LEGÍTIMO do ORÇAMENTO (budget.ts/BudgetSchema — "sem
+    // política"), mas NÃO é política de produto: o brief só carrega a decisão
+    // D1 (§3.2). Por isso POLITICAS_HARNESS_REJEITADAS o inclui e o gate o
+    // rejeita com código dedicado — nunca como erro genérico de enum.
     await assert.rejects(
       gerarBrief({
         callLlm: transporteFake(jsonDe(briefValido({ politica_de_harness: 'none' }))).callLlm,
@@ -262,9 +323,11 @@ describe('F0-brief — política de harness (A-P09-2, D1 §3.2)', () => {
       }),
       (erro: unknown) => {
         const e = erro as FaseF0Error;
-        assert.equal(e.code, 'BRIEF_SCHEMA_INVALIDO');
-        assert.match(e.message, /"politica_de_harness"/, 'campo nomeado');
-        assert.match(e.message, /Invalid enum value/i, 'motivo nomeado');
+        assert.equal(e.code, 'POLITICA_HARNESS_REJEITADA');
+        assert.equal(e.campo, 'politica_de_harness');
+        assert.match(e.message, /"none"/, 'a política ofensora é nomeada');
+        assert.match(e.message, /rejeitad/i, 'rejeição explícita');
+        assert.match(e.message, /orçamento/, 'a mensagem explica a origem do valor no orçamento');
         return true;
       },
     );
@@ -347,9 +410,41 @@ describe('F0-máquina nocional — os nove aspectos mínimos na ordem canônica'
     for (let i = 2; i < NINE_MINIMUM_ASPECTS.length; i += 1) {
       componentes.push({ nome: NINE_MINIMUM_ASPECTS[i], funcao: String(i) });
     }
-    const { faltantes, foraDeOrdem } = verificarAspectosMinimos(componentes);
+    const { faltantes, foraDeOrdem, repetidos } = verificarAspectosMinimos(componentes);
     assert.deepEqual(faltantes, [], 'os nove continuam presentes');
     assert.deepEqual(foraDeOrdem, [], 'a ordem relativa canônica é respeitada');
+    assert.deepEqual(repetidos, [], 'nenhum aspecto canônico é declarado duas vezes');
+  });
+
+  it('aspecto canônico DUPLICADO é REJEITADO nomeando o repetido (subsequência estrita)', async () => {
+    // HIGH-1: "primeira aparição vence" aceitava 9 em ordem + closures duplicado.
+    const comDuplicata = maquinaValida();
+    const componentes = comDuplicata.componentes as ComponenteDaMaquina[];
+    comDuplicata.componentes = [...componentes, { nome: 'closures', funcao: 'duplicata silenciosa' }];
+    await assert.rejects(
+      gerarNotionalMachine({ callLlm: transporteFake(jsonDe(comDuplicata)).callLlm }),
+      (erro: unknown) => {
+        const e = erro as FaseF0Error;
+        assert.equal(e.code, 'NOTIONAL_ASPECTOS_REPETIDOS');
+        assert.equal(e.campo, 'componentes');
+        assert.match(e.message, /"closures"/, 'o erro NOMEIA o aspecto repetido');
+        // A duplicata fica na posição 10 (9 canônicos + heap) e é um erro,
+        // NÃO um caso de "fora de ordem" (a ordem dos nove está íntegra).
+        assert.deepEqual(e.detalhes?.repetidos, [{ aspecto: 'closures', posicao: 10 }]);
+        return true;
+      },
+    );
+  });
+
+  it('duplicata detectada também pelo verificador puro, com a ordem intacta', () => {
+    const componentes: ComponenteDaMaquina[] = [
+      ...NINE_MINIMUM_ASPECTS.map((aspecto) => ({ nome: aspecto, funcao: 'x' })),
+      { nome: 'closures', funcao: 'segunda aparição' },
+    ];
+    const { faltantes, foraDeOrdem, repetidos } = verificarAspectosMinimos(componentes);
+    assert.deepEqual(faltantes, [], 'os nove estão presentes');
+    assert.deepEqual(foraDeOrdem, [], 'nenhuma inversão (a ordem canônica está íntegra)');
+    assert.deepEqual(repetidos, [{ aspecto: 'closures', posicao: 9 }], 'a duplicata é reportada com o índice');
   });
 });
 
@@ -400,6 +495,39 @@ describe('F0 — G-SCHEMA e schema da LLM fechado', () => {
         const e = erro as FaseF0Error;
         assert.equal(e.code, 'NOTIONAL_CAMPO_DESCONHECIDO');
         assert.equal(e.campo, 'teto_de_aulas');
+        return true;
+      },
+    );
+  });
+
+  it('campo extra ANINHADO (dentro de componente/estado) é REJEITADO nomeando o CAMINHO completo', () => {
+    // WARNING-1: o zod strip em silêncio VALIA para objetos aninhados (o
+    // teto de aulas D2 entrava dentro de componentes e sumia). O cheque é
+    // recursivo: o erro nomeia o caminho, não só a chave folha.
+    const comAninhado = maquinaValida();
+    const componentes = comAninhado.componentes as ComponenteDaMaquina[];
+    comAninhado.componentes = componentes.map((c, i) => (i === 0 ? { ...c, teto_de_aulas: 12 } : c));
+    assert.throws(
+      () => validarNotionalMachine(comAninhado),
+      (erro: unknown) => {
+        const e = erro as FaseF0Error;
+        assert.equal(e.code, 'NOTIONAL_CAMPO_DESCONHECIDO');
+        assert.equal(e.campo, 'componentes[0].teto_de_aulas', 'o erro nomeia o CAMINHO completo');
+        assert.match(e.message, /componentes\[0\]\.teto_de_aulas/);
+        assert.match(e.message, /SAÍDA da geração/, 'a nota D2 vale também para o campo aninhado');
+        return true;
+      },
+    );
+
+    // E também dentro de `estados` (segunda superfície aninhada do artefato).
+    const comAninhadoEmEstado = maquinaValida();
+    comAninhadoEmEstado.estados = [{ nome: 'em execução', descricao: 'x', teto_de_aulas: 12 }];
+    assert.throws(
+      () => validarNotionalMachine(comAninhadoEmEstado),
+      (erro: unknown) => {
+        const e = erro as FaseF0Error;
+        assert.equal(e.code, 'NOTIONAL_CAMPO_DESCONHECIDO');
+        assert.equal(e.campo, 'estados[0].teto_de_aulas');
         return true;
       },
     );
@@ -473,6 +601,12 @@ describe('F0 — integração com o vocabulário real do P-05 (leitura de disco)
     assert.match(prompt, /receptive-seed/);
     assert.match(prompt, /teto/, 'a proibição de teto de aulas está explícita');
     assert.match(prompt, /atoms\.json/);
+    // WARNING-4: o prompt NÃO embute literais — ele RENDERIZA as constantes
+    // (POLITICA_HARNESS_DECIDIDA / POLITICAS_HARNESS_REJEITADAS via template).
+    assert.match(prompt, new RegExp(`SEMPRE "${POLITICA_HARNESS_DECIDIDA}"`), 'a decisão vem da constante');
+    for (const politica of POLITICAS_HARNESS_REJEITADAS) {
+      assert.match(prompt, new RegExp(`"${politica}"`), `a rejeitada "${politica}" é renderizada da lista`);
+    }
     const schema = schemaBriefParaLlm();
     assert.match(schema, /additionalProperties":false/);
     assert.match(schema, /politica_de_harness/);

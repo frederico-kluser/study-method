@@ -17,20 +17,30 @@
  *     RECEPTIVO da aula 1 por esta política; sem a decisão o orçamento não
  *     sabe semear e o gate A3/A4 acusa o harness em TODO desafio). As
  *     alternativas `aula-zero` e `wrapper-gerado` foram consideradas e
- *     REJEITADAS no documento (§3.2) — um draft que as escolha é REJEITADO
- *     com erro nomeado, nunca normalizado em silêncio.
+ *     REJEITADAS no documento (§3.2), e `none` (valor LEGÍTIMO do ORÇAMENTO —
+ *     BudgetSchema/P-08 — mas não política de produto) entra na MESMA negação:
+ *     um draft que escolha qualquer uma é REJEITADO com erro nomeado, nunca
+ *     normalizado em silêncio.
  *   - AXIOMA DE ENTRADA (`criterios_de_entrada`): lista de CHAVES do
  *     vocabulário de construções que o aluno já domina ao entrar — validada
  *     contra o vocabulário GERADO do P-05 (`vocab/atoms.json`, carregado de
- *     disco ou injetado). Critério que cita construção inexistente = erro NA
- *     CARGA (nomeia a chave inválida e sugere as mais próximas por prefixo,
- *     se houver). Axioma perto demais da máquina = o orçamento de entrada
- *     fabrica violação falsa; longe demais = miragem de gate.
+ *     disco ou injetado). DECISÃO DE UNIVERSO (onda 2): os eixos FECHADOS do
+ *     extrator (`node:`/`op:`/`decl:`/`global:`) são validados por PERTENÇA
+ *     estrita ao vocabulário — chave fora dele = erro NA CARGA nomeando a
+ *     chave e sugerindo as mais próximas por prefixo. Os eixos ABERTOS
+ *     (`api:` — o extrator emite para QUALQUER raiz global/importada, ver
+ *     `vocab/generate.ts`) e os não-vocabulário (`form:`/`term:`) são
+ *     validados por FORMATO (`ATOM_KEY_RE` para api/term; `parseFormKey` para
+ *     form): o vocabulário é o piso de consciência do LLM, não o teto do
+ *     gate. Axioma perto demais da máquina = o orçamento de entrada fabrica
+ *     violação falsa; longe demais = miragem de gate.
  *   - NADA DE TETO DE AULAS (§12 D2): a contagem é SAÍDA da geração — não
  *     existe campo de teto no brief; um draft da LLM com campo extra é
  *     REJEITADO, nunca silenciosamente descartado (o schema zod por padrão
  *     STRIPA campos desconhecidos — por isso o cheque de campos extras vem
- *     ANTES do parse).
+ *     ANTES do parse). O cheque é RECURSIVO: campo extra ANINHADO (dentro de
+ *     `componentes`/`estados`/`transicoes` da máquina nocional) também é
+ *     rejeitado, nomeando o CAMINHO completo (ex.: `componentes[0].teto`).
  *   - INV-03 (fail-closed): falha da LLM/disponibilidade propaga o
  *     `LlmStageError` estruturado do transporte; erro de conteúdo vira
  *     `FaseF0Error` estruturado — nunca veredito falso nem artefato parcial.
@@ -52,6 +62,8 @@ import { fileURLToPath } from 'node:url';
 
 import { z } from 'zod';
 
+import { axisOf, isAtomKey } from '../atomKeys';
+import { FormSelectorError, parseFormKey } from '../form/selector';
 import { BriefSchema } from '../schemas/artifacts';
 import { formatarErroCampos } from '../schemas/fieldOrder';
 import type { EngineLlm, LlmCallRequest, LlmCallResult } from '../runtime/callLlm';
@@ -79,8 +91,15 @@ export const POLITICAS_HARNESS_DO_SCHEMA = ['receptive-seed', 'aula-zero', 'wrap
  */
 export const POLITICA_HARNESS_DECIDIDA = 'receptive-seed' as const;
 
-/** Alternativas consideradas e REJEITADAS no documento (§3.2) — draft que as escolha é erro. */
-export const POLITICAS_HARNESS_REJEITADAS = ['aula-zero', 'wrapper-gerado'] as const;
+/**
+ * Políticas conhecidas e REJEITADAS no brief — draft que escolha uma delas é
+ * ERRO estruturado (`POLITICA_HARNESS_REJEITADA`), nunca normalização:
+ * `aula-zero` e `wrapper-gerado` são as alternativas consideradas e rejeitadas
+ * no documento (§3.2/D1); `none` é valor LEGÍTIMO do ORÇAMENTO (BudgetSchema
+ * P-08: "sem política"), mas NÃO é política de produto — o brief só carrega a
+ * decisão de produto D1 (`POLITICA_HARNESS_DECIDIDA`).
+ */
+export const POLITICAS_HARNESS_REJEITADAS = ['aula-zero', 'wrapper-gerado', 'none'] as const;
 
 // ─── vocabulário (atoms.json do P-05) ───────────────────────────────────────
 
@@ -101,6 +120,16 @@ export interface AtomosJson {
 const MODULE_DIR = path.dirname(fileURLToPath(import.meta.url));
 export const CAMINHO_ATOMOS_DEFAULT = path.join(MODULE_DIR, '..', 'vocab', 'atoms.json');
 
+/**
+ * Os eixos FECHADOS do vocabulário — o universo que o atoms.json ESGOTA e,
+ * portanto, o que o axioma de entrada valida por PERTENÇA estrita. O eixo
+ * `api:` fica de fora DE PROPÓSITO: o extrator (P-05) o trata como universo
+ * ABERTO (emite `api:` para qualquer raiz global/importada — `api:Buffer.from`,
+ * `api:fs.readFile`…), e `form:`/`term:` nem são gerados pelo P-05 — por isso
+ * esses eixos são validados por FORMATO (ver `validarBrief`, passo 5).
+ */
+export const EIXOS_FECHADOS_ATOMOS = ['node', 'op', 'decl', 'global'] as const;
+
 // ─── erro estruturado da fase F0 (INV-03, fail-closed) ─────────────────────
 
 export type FaseF0ErrorCode =
@@ -115,6 +144,7 @@ export type FaseF0ErrorCode =
   | 'NOTIONAL_CAMPO_DESCONHECIDO'
   | 'NOTIONAL_ASPECTOS_INCOMPLETOS'
   | 'NOTIONAL_ASPECTOS_FORA_DE_ORDEM'
+  | 'NOTIONAL_ASPECTOS_REPETIDOS'
   | 'VOCAB_ATOMOS_INVALIDO'
   | 'SCHEMA_LLM_NAO_SUPORTADO';
 
@@ -171,24 +201,68 @@ export function parsearDraftLlm(content: string, etapa: string, code: FaseF0Erro
  * de teto de aulas entraria no draft e sumiria em silêncio. O schema da LLM é
  * FECHADO (INV-05): campo fora do contrato = erro nomeando a chave, com a
  * nota D2 quando o nome cheira a teto/contagem de aulas.
+ *
+ * O cheque é RECURSIVO (param `caminho`): desce no DRAFT espelhando o shape
+ * esperado — arrays de objetos (`componentes`/`estados`/`transicoes` da
+ * máquina nocional) e objetos aninhados também são schema fechado, e o zod
+ * STRIPA campos extras neles em silêncio do mesmo jeito. O `campo` do erro
+ * é o CAMINHO completo (ex.: `componentes[0].teto_de_aulas`), não só a
+ * chave folha. Nada além deste subconjunto zod é suportado (mesmas famílias
+ * do serializador `noZodParaLlm` abaixo); tipos desconhecidos são ignorados
+ * aqui — quem valida semântica é o `safeParse` que vem em seguida.
  */
 export function rejeitarCamposExtras(
   objeto: Record<string, unknown>,
   shape: z.ZodRawShape,
   code: FaseF0ErrorCode,
   rotulo: string,
+  caminho = '',
 ): void {
-  const permitidos = new Set(Object.keys(shape));
   for (const chave of Object.keys(objeto)) {
-    if (permitidos.has(chave)) continue;
-    const notaD2 = /aula|lesson|teto|cap|max|count|quantidade/i.test(chave)
-      ? ' — a contagem/teto de aulas é SAÍDA da geração, nunca campo do artefato (docs §12 D2)'
-      : '';
-    throw new FaseF0Error({
-      code,
-      campo: chave,
-      message: `campo desconhecido em ${rotulo}: "${chave}".${notaD2}`,
-    });
+    const caminhoCompleto = caminho ? `${caminho}.${chave}` : chave;
+    if (!(chave in shape)) {
+      const notaD2 = /aula|lesson|teto|cap|max|count|quantidade/i.test(chave)
+        ? ' — a contagem/teto de aulas é SAÍDA da geração, nunca campo do artefato (docs §12 D2)'
+        : '';
+      throw new FaseF0Error({
+        code,
+        campo: caminhoCompleto,
+        message: `campo desconhecido em ${rotulo}: "${caminhoCompleto}".${notaD2}`,
+      });
+    }
+    rejeitarCamposExtrasNoValor(objeto[chave], shape[chave], code, rotulo, caminhoCompleto);
+  }
+}
+
+/** Desce no VALOR de um campo conhecido, espelhando o nó zod do shape. */
+function rejeitarCamposExtrasNoValor(
+  valor: unknown,
+  schema: z.ZodTypeAny,
+  code: FaseF0ErrorCode,
+  rotulo: string,
+  caminho: string,
+): void {
+  const def = schema._def as { typeName?: string };
+  switch (def.typeName) {
+    case 'ZodArray': {
+      const itemSchema = (def as z.ZodArrayDef).type;
+      if (Array.isArray(valor)) {
+        valor.forEach((item, indice) => {
+          rejeitarCamposExtrasNoValor(item, itemSchema, code, rotulo, `${caminho}[${indice}]`);
+        });
+      }
+      break;
+    }
+    case 'ZodObject': {
+      if (typeof valor !== 'object' || valor === null || Array.isArray(valor)) break;
+      // Objeto aninhado: mesmo contrato fechado — o `campo` carrega o caminho
+      // completo (ex.: "componentes[0].teto_de_aulas").
+      rejeitarCamposExtras(valor as Record<string, unknown>, (schema as z.ZodObject<z.ZodRawShape>).shape, code, rotulo, caminho);
+      break;
+    }
+    default:
+      // Folhas (string/number/boolean/enum/literal): nenhum objeto aninhado.
+      break;
   }
 }
 
@@ -386,11 +460,15 @@ export type Brief = z.infer<typeof BriefSchema>;
  * Ordem dos cheques (cada um produz o erro MAIS específico):
  *   1. não-objeto → schema inválido;
  *   2. política de harness: AUSENTE = erro dedicado (nunca default silencioso);
- *      alternativa rejeitada do §3.2 = erro dedicado;
- *   3. campos extras (fecha o schema da LLM — o zod striparia em silêncio);
+ *      política CONHECIDA e REJEITADA (`POLITICAS_HARNESS_REJEITADAS`, inclui
+ *      `none` — valor do orçamento, não de produto) = erro dedicado;
+ *   3. campos extras RECURSIVO (fecha o schema da LLM — o zod striparia em
+ *      silêncio, inclusive em objetos aninhados);
  *   4. `BriefSchema` — todos os campos obrigatórios, erro NOMEIA campo+motivo;
- *   5. axioma de entrada vs vocabulário — construções inexistentes nomeadas
- *      com sugestões por prefixo.
+ *   5. axioma de entrada vs vocabulário: eixos FECHADOS (node/op/decl/global)
+ *      por pertença estrita (construções inexistentes nomeadas com sugestões
+ *      por prefixo); eixos ABERTOS (api:) e não-vocabulário (form:/term:) por
+ *      FORMATO (`ATOM_KEY_RE`/`parseFormKey`).
  */
 export function validarBrief(draft: unknown, atomos: AtomosJson): Brief {
   if (typeof draft !== 'object' || draft === null || Array.isArray(draft)) {
@@ -414,16 +492,21 @@ export function validarBrief(draft: unknown, atomos: AtomosJson): Brief {
     });
   }
   if (POLITICAS_HARNESS_REJEITADAS.includes(politica as (typeof POLITICAS_HARNESS_REJEITADAS)[number])) {
+    const notaOrigem =
+      politica === 'none'
+        ? '"none" é valor LEGÍTIMO do orçamento (BudgetSchema, P-08: sem política), mas NÃO é política de produto do brief'
+        : 'alternativa considerada e REJEITADA no documento (docs §3.2/D1)';
     throw new FaseF0Error({
       code: 'POLITICA_HARNESS_REJEITADA',
       campo: 'politica_de_harness',
       message:
-        `política de harness "${String(politica)}" é alternativa considerada e REJEITADA (docs §3.2/D1) — ` +
+        `política de harness "${String(politica)}" é REJEITADA — ${notaOrigem}: ` +
         `o brief só carrega a decisão de produto atual: "${POLITICA_HARNESS_DECIDIDA}".`,
       detalhes: { politica: String(politica), decidida: POLITICA_HARNESS_DECIDIDA },
     });
   }
-  // Um valor fora do enum do schema (ex.: "none") cai aqui — o `BriefSchema`
+  // Qualquer valor fora do enum do schema (`POLITICAS_HARNESS_DO_SCHEMA`) que
+  // não seja política conhecida-rejeitada cai no `BriefSchema` abaixo, que
   // rejeita com o motivo exato (campo + enum esperado).
 
   // 3. campos extras ANTES do parse (o zod striparia em silêncio).
@@ -439,18 +522,59 @@ export function validarBrief(draft: unknown, atomos: AtomosJson): Brief {
   }
   const brief = resultado.data;
 
-  // 5. axioma de entrada vs vocabulário GERADO do P-05.
-  const chaves = chavesDoVocabulario(atomos);
+  // 5. axioma de entrada vs vocabulário GERADO do P-05 — DECISÃO DE UNIVERSO
+  //    (onda 2; v. cabeçalho e `EIXOS_FECHADOS_ATOMOS`): os eixos FECHADOS do
+  //    extrator são validados por PERTENÇA estrita ao vocabulário; os eixos
+  //    ABERTOS (`api:`) e os não-vocabulário (`form:`/`term:`) por FORMATO —
+  //    o vocabulário é o piso de consciência do LLM, não o teto do universo.
+  const chavesFechadas = new Set<string>();
+  for (const eixo of EIXOS_FECHADOS_ATOMOS) {
+    for (const chave of atomos.axes[eixo]) chavesFechadas.add(chave);
+  }
   for (const criterio of brief.criterios_de_entrada) {
-    if (chaves.has(criterio)) continue;
-    const sugestoes = sugestoesPorPrefixo(criterio, chaves);
+    if (chavesFechadas.has(criterio)) continue;
+    const eixo = axisOf(criterio);
+
+    // Eixo aberto/não-vocabulário: unicamente por formato — `api:`/`term:`
+    // precisam ser chave bem-formada; `form:` precisa ser seletor parseável.
+    if (eixo === 'api' || eixo === 'term') {
+      if (isAtomKey(criterio)) continue;
+      throw new FaseF0Error({
+        code: 'AXIOMA_CONSTRUCAO_INEXISTENTE',
+        campo: 'criterios_de_entrada',
+        message:
+          `chave do eixo ABERTO ${eixo} malformada em criterios_de_entrada: "${criterio}" ` +
+          '(universo aberto validado por FORMATO — ATOM_KEY_RE).',
+        detalhes: { construcao: criterio, eixo, motivo: 'formato' },
+      });
+    }
+    if (eixo === 'form') {
+      try {
+        parseFormKey(criterio);
+        continue;
+      } catch (causa) {
+        const detalheForm = causa instanceof FormSelectorError ? causa.message : String(causa);
+        throw new FaseF0Error({
+          code: 'AXIOMA_CONSTRUCAO_INEXISTENTE',
+          campo: 'criterios_de_entrada',
+          message:
+            `seletor do eixo form: malformado em criterios_de_entrada: "${criterio}" ` +
+            '(universo aberto validado por FORMATO — parseFormKey).',
+          detalhes: { construcao: criterio, eixo: 'form', motivo: 'formato', detalhe: detalheForm },
+        });
+      }
+    }
+
+    // Eixo fechado (node/op/decl/global) desconhecido — ou chave sem eixo
+    // reconhecível: erro NA CARGA nomeando a chave, com sugestões por prefixo.
+    const sugestoes = sugestoesPorPrefixo(criterio, chavesFechadas);
     throw new FaseF0Error({
       code: 'AXIOMA_CONSTRUCAO_INEXISTENTE',
       campo: 'criterios_de_entrada',
       message:
         `construção inexistente no vocabulário citada em criterios_de_entrada: "${criterio}".` +
         (sugestoes.length > 0 ? ` Sugestões por prefixo: ${sugestoes.join(', ')}.` : ' Nenhuma sugestão encontrada por prefixo.'),
-      detalhes: { construcao: criterio, sugestoes },
+      detalhes: { construcao: criterio, ...(eixo !== null ? { eixo } : {}), sugestoes },
     });
   }
 
@@ -493,7 +617,7 @@ export function promptF0Brief(ctx: F0BriefPromptContext): string {
     '- publico_alvo: quem é o aluno desta trilha (pt-BR).',
     '- criterios_de_entrada: lista de CHAVES EXATAS do vocabulário de construções que o aluno JÁ domina ao entrar; vazio = trilha de senso iniciante. Só chaves que existem no vocabulário (atoms.json — anexo ao contexto; eixos: node:<Nó>, op:<família>:<op>, decl:<let|const|var>, global:<nome>, api:<caminho>). Exemplos: "decl:let", "op:binary:===", "api:Array.prototype.push".',
     '- construcoes_alvo: inventário de construções e APIs candidatas que a trilha deve ensinar (chaves no mesmo formato; pode ser amplo).',
-    '- politica_de_harness: a DECISÃO de produto D1 (docs §3.2): SEMPRE "receptive-seed" — o harness de teste entra no orçamento receptivo da aula 1 como região congelada do starter. As alternativas "aula-zero" e "wrapper-gerado" foram consideradas e REJEITADAS — não as escolha.',
+    `- politica_de_harness: a DECISÃO de produto D1 (docs §3.2): SEMPRE "${POLITICA_HARNESS_DECIDIDA}" — o harness de teste entra no orçamento receptivo da aula 1 como região congelada do starter. Estes valores são REJEITADOS: ${POLITICAS_HARNESS_REJEITADAS.map((p) => `"${p}"`).join(', ')} (alternativas do docs §3.2 ou valores de outros artefatos) — não os escolha.`,
     '- restricoes: restrições de conteúdo/escopo da trilha (pt-BR; vazio = sem restrições adicionais).',
     '- justificativa: por que esta trilha, para este público, agora (pt-BR).',
     '- aprovado: false — o brief sai como rascunho; a aprovação é portão humano posterior.',

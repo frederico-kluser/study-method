@@ -31,8 +31,9 @@
  * `componentes` (`{nome, funcao}`), com os nomes EXATOS da lista canônica;
  * componentes adicionais (heap, ambientes léxicos, …) vêm DEPOIS. A checagem
  * `validarNotionalMachine` exige presença dos nove E ordem canônica
- * (subsequência estrita): componente extra no meio não viola a ordem dos
- * nove, mas um aspecto fora da posição canônica é erro NOMEADO.
+ * (subsequência ESTRITA): componente extra no meio não viola a ordem dos
+ * nove, mas um aspecto fora da posição canônica — ou REPETIDO (segunda
+ * aparição de um nome canônico) — é erro NOMEADO.
  *
  * Âncoras (D3): JS/Node NÃO tem máquina nocional descrita pedagogicamente em
  * fonte pública — cerca de 15 aulas exigirão concepções autoradas do zero,
@@ -108,7 +109,9 @@ export interface VerificacaoAspectos {
   faltantes: string[];
   /** Aspectos cuja posição viola a ordem canônica (primeiro par ofensor por aspecto). */
   foraDeOrdem: Array<{ aspecto: string; posicao: number; antecessor: string }>;
-  /** Índices (em `componentes`) de cada aspecto canônico declarado. */
+  /** Aparições EXTRA de um aspecto canônico — uma entrada por aparição além da primeira, com o índice. */
+  repetidos: Array<{ aspecto: string; posicao: number }>;
+  /** Índices (em `componentes`) da PRIMEIRA aparição de cada aspecto canônico. */
   posicoes: Record<string, number>;
 }
 
@@ -117,10 +120,12 @@ export interface VerificacaoAspectos {
  * de componentes (após o schema já ter garantido `{nome, funcao}`). A ordem
  * é exigida como SUBSEQUÊNCIA ESTRITA: um aspecto na posição i deve ter
  * índice MAIOR que o do aspecto anterior da lista canônica — componente
- * extra intercalado é permitido, aspecto repetido ou invertido é violação.
+ * extra intercalado é permitido, aspecto REPETIDO ou invertido é violação
+ * (o repetido sai em `repetidos`, o invertido em `foraDeOrdem`).
  */
 export function verificarAspectosMinimos(componentes: unknown): VerificacaoAspectos {
   const posicoes: Record<string, number> = {};
+  const repetidos: VerificacaoAspectos['repetidos'] = [];
   if (Array.isArray(componentes)) {
     componentes.forEach((componente, index) => {
       if (typeof componente !== 'object' || componente === null) return;
@@ -128,8 +133,19 @@ export function verificarAspectosMinimos(componentes: unknown): VerificacaoAspec
       if (typeof nome !== 'string') return;
       const normalizado = normalizarNomeAspecto(nome);
       const canal = NINE_MINIMUM_ASPECTS.findIndex((aspecto) => normalizarNomeAspecto(aspecto) === normalizado);
-      if (canal !== -1 && !(NINE_MINIMUM_ASPECTS[canal] in posicoes)) {
-        posicoes[NINE_MINIMUM_ASPECTS[canal]] = index; // primeira aparição vence
+      if (canal !== -1) {
+        const canonico = NINE_MINIMUM_ASPECTS[canal];
+        if (canonico in posicoes) {
+          // Segunda aparição (ou posterior) de um aspecto canônico: viola a
+          // subsequência ESTRITA ("aspecto repetido ou invertido é violação")
+          // — a aparição extra é REPORTADA, nunca varrida para debaixo do
+          // tapete ("primeira aparição vence" era o silêncio do HIGH-1).
+          repetidos.push({ aspecto: canonico, posicao: index });
+        } else {
+          // A posição base da ordem canônica é a PRIMEIRA aparição — a mesma
+          // semântica do cheque de subsequência que sempre valeu.
+          posicoes[canonico] = index;
+        }
       }
     });
   }
@@ -150,7 +166,7 @@ export function verificarAspectosMinimos(componentes: unknown): VerificacaoAspec
     antecessor = aspecto;
   }
 
-  return { faltantes, foraDeOrdem, posicoes };
+  return { faltantes, foraDeOrdem, repetidos, posicoes };
 }
 
 // ─── o GATE da máquina nocional (PURO — mesmo para o caminho de carga) ──────
@@ -183,7 +199,7 @@ export function validarNotionalMachine(draft: unknown): NotionalMachine {
   }
   const maquina = resultado.data;
 
-  const { faltantes, foraDeOrdem } = verificarAspectosMinimos(maquina.componentes);
+  const { faltantes, foraDeOrdem, repetidos } = verificarAspectosMinimos(maquina.componentes);
   if (faltantes.length > 0) {
     throw new FaseF0Error({
       code: 'NOTIONAL_ASPECTOS_INCOMPLETOS',
@@ -192,6 +208,18 @@ export function validarNotionalMachine(draft: unknown): NotionalMachine {
         `máquina nocional não cobre os ${NINE_MINIMUM_ASPECTS.length} aspectos mínimos do runtime ` +
         `(NINE_MINIMUM_ASPECTS) — faltam: ${faltantes.join(', ')}.`,
       detalhes: { faltantes },
+    });
+  }
+  if (repetidos.length > 0) {
+    throw new FaseF0Error({
+      code: 'NOTIONAL_ASPECTOS_REPETIDOS',
+      campo: 'componentes',
+      message:
+        `aspectos mínimos REPETIDOS (NINE_MINIMUM_ASPECTS exige subsequência ESTRITA — ` +
+        `"aspecto repetido ou invertido é violação"): ` +
+        repetidos.map((r) => `"${r.aspecto}" reaparece na posição ${r.posicao}`).join('; ') +
+        '.',
+      detalhes: { repetidos },
     });
   }
   if (foraDeOrdem.length > 0) {
