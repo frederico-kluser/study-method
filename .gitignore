@@ -40,3 +40,4 @@ Thumbs.db
 # app/ — GUI Electron (out/ e dist/ de build)
 app/out/
 app/dist/
+.deep-orchestrator-preferences/
