@@ -41,6 +41,19 @@ export const DECISION_FIELD_NAMES: readonly string[] = [
   'approve',
   'escolha',
   'result',
+  // 'atomico' — o teste de atomicidade do §3.6: o modelo decide se o conceito
+  // É átomo (booleano) DEPOIS de escrever `raciocinio_de_projeto`. Esquecer
+  // este nome aqui reabre o falso-verde da revisão adversarial: inversão futura
+  // no par raciocinio_de_projeto/atomico passaria sem o lint acusar.
+  'atomico',
+  // 'role' — classificação-decisão da aula (`regular`/`integration`, §3.7):
+  // marcar um nó de composição é decisão de modelagem, que exige justificativa
+  // ANTES. Aparece em `graph.aulas[]` e em `lesson-draft`.
+  'role',
+  // 'status' — estado de ciclo de vida do draft de aula (`rascunho`/
+  // `pronto_para_revisao`/`bloqueado`/`aprovado`): o autor decide o andamento,
+  // e o estado só faz sentido DEPOIS da justificativa do draft.
+  'status',
 ];
 
 /**

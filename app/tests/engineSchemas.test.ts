@@ -23,6 +23,8 @@ import { z } from 'zod';
 import {
   BriefSchema,
   ChallengeDraftSchema,
+  ConceitoAtomicoSchema,
+  LessonDraftSchema,
   SCHEMA_REGISTRY,
   type SchemaRegistrado,
 } from '../electron/main/engine/schemas/artifacts';
@@ -49,6 +51,40 @@ describe('lint de ordem — INV-04 (justificativa ANTES de decisão, docs §6.3)
     assert.equal(problemas[0].campo_decisao, 'aprovado');
     assert.equal(problemas[0].campo_justificativa, 'motivo');
     assert.ok(problemas[0].indice_decisao < problemas[0].indice_justificativa);
+  });
+
+  it('REPROVA um schema com `atomico` antes de `raciocinio_de_projeto` (falso-verde da revisão adversarial)', () => {
+    const invertido: SchemaRegistrado = {
+      nome: 'invertido-atomico',
+      schema: z.object({ atomico: z.boolean(), raciocinio_de_projeto: z.string() }),
+    };
+    const problemas = lintOrdemCampos([invertido]);
+    assert.equal(problemas.length, 1, 'a decisão de atomicidade exige raciocínio ANTES');
+    assert.equal(problemas[0].campo_decisao, 'atomico');
+    assert.equal(problemas[0].campo_justificativa, 'raciocinio_de_projeto');
+    assert.ok(problemas[0].indice_decisao < problemas[0].indice_justificativa);
+  });
+
+  it('REPROVA um schema com `status` antes de `justificativa` (decisão de ciclo de vida)', () => {
+    const invertido: SchemaRegistrado = {
+      nome: 'invertido-status',
+      schema: z.object({ status: z.enum(['rascunho', 'aprovado']), justificativa: z.string() }),
+    };
+    const problemas = lintOrdemCampos([invertido]);
+    assert.equal(problemas.length, 1, 'o estado do draft só vem depois do motivo');
+    assert.equal(problemas[0].campo_decisao, 'status');
+    assert.equal(problemas[0].campo_justificativa, 'justificativa');
+  });
+
+  it('REPROVA um schema com `role` antes de `justificativa` (classificação-decisão §3.7)', () => {
+    const invertido: SchemaRegistrado = {
+      nome: 'invertido-role',
+      schema: z.object({ role: z.enum(['regular', 'integration']), justificativa: z.string() }),
+    };
+    const problemas = lintOrdemCampos([invertido]);
+    assert.equal(problemas.length, 1, 'marcar `integration` é decisão que exige motivo antes');
+    assert.equal(problemas[0].campo_decisao, 'role');
+    assert.equal(problemas[0].campo_justificativa, 'justificativa');
   });
 
   it('APROVA o schema corrigido — TestVerdict `nome → construcoes_encontradas → motivo → aprovado` (§6.3)', () => {
@@ -88,7 +124,21 @@ describe('lint de ordem — INV-04 (justificativa ANTES de decisão, docs §6.3)
   });
 
   it('as listas de nomes de campo são explícitas e versionadas (constantes exportadas)', () => {
-    for (const decisao of ['aprovado', 'decision', 'acao', 'veredito', 'approve', 'escolha', 'result']) {
+    for (const decisao of [
+      'aprovado',
+      'decision',
+      'acao',
+      'veredito',
+      'approve',
+      'escolha',
+      'result',
+      // Revisão adversarial (onda 1): 'atomico', 'role' e 'status' também são
+      // classificações-decisão — sem elas o lint daria falso-verde no par
+      // raciocinio_de_projeto/atomico e em status/justificativa.
+      'atomico',
+      'role',
+      'status',
+    ]) {
       assert.ok(DECISION_FIELD_NAMES.includes(decisao), `faltou decisão "${decisao}"`);
     }
     for (const justificativa of [
@@ -176,6 +226,20 @@ describe('registro de schemas — A-P04-2 (o lint varre a lista REAL)', () => {
   it('o lint REAL, sobre o registro inteiro, passa: ordem correta e zero opcionais', () => {
     assert.deepEqual(lintOrdemCampos(SCHEMA_REGISTRY), [], 'toda justificativa antes da decisão');
     assert.deepEqual(encontrarCamposOpcionais(SCHEMA_REGISTRY), [], 'todo campo obrigatório');
+  });
+
+  it('nos schemas REAIS, os pares da revisão adversarial estão na ordem certa (raciocinio_de_projeto/atomico e justificativa/status|role)', () => {
+    // ConceitoAtômico: raciocínio declarado ANTES da decisão `atomico`.
+    const chavesConceito = Object.keys(ConceitoAtomicoSchema.shape);
+    assert.ok(
+      chavesConceito.indexOf('raciocinio_de_projeto') < chavesConceito.indexOf('atomico'),
+      'raciocinio_de_projeto deve preceder atomico no ConceitoAtomicoSchema',
+    );
+    // LessonDraft: a justificativa antes de `role`, `status` e `aprovado`.
+    const chaves = Object.keys(LessonDraftSchema.shape);
+    assert.ok(chaves.indexOf('justificativa') < chaves.indexOf('role'), 'justificativa antes de role');
+    assert.ok(chaves.indexOf('justificativa') < chaves.indexOf('status'), 'justificativa antes de status');
+    assert.ok(chaves.indexOf('justificativa') < chaves.indexOf('aprovado'), 'justificativa antes de aprovado');
   });
 });
 

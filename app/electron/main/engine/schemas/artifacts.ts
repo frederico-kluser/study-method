@@ -191,9 +191,11 @@ export const GraphSchema = z.object({
       slug: z.string().min(1),
       /** concept.ids que esta aula introduz (origem de construção, I4). */
       introduz: z.array(z.string()),
+      // INV-04: justificativa ANTES da decisão — `role` é classificação-decisão
+      // (§3.7) e só vem depois do motivo.
+      justificativa: z.string().min(1),
       /** §3.7: toda composição é um nó próprio, marcado `integration`. */
       role: z.enum(['regular', 'integration']),
-      justificativa: z.string().min(1),
       aprovado: z.boolean(),
     }),
   ),
@@ -326,13 +328,11 @@ export const LessonDraftSchema = z.object({
   introducesTerms: z.array(z.string()),
   foraDeEscopo: z.array(z.string()).min(1),
   eiClass: z.enum(['fato', 'categoria', 'regra', 'principio', 'integrativo']),
-  role: z.enum(['regular', 'integration']),
   targetAtom: z.string().min(1),
   notionalMachineDelta: z.string().min(1),
   budgetHash: z.string().min(1),
   budgetVersion: z.string().min(1),
   research: z.array(z.string()),
-  status: z.enum(['rascunho', 'pronto_para_revisao', 'bloqueado', 'aprovado']),
   theory: z.array(
     z.object({
       id: z.string().min(1),
@@ -341,8 +341,12 @@ export const LessonDraftSchema = z.object({
       tag: z.string(),
     }),
   ),
-  // INV-04: justificativa ANTES da decisão.
+  // INV-04: justificativa ANTES da decisão. `role` (classificação da aula,
+  // §3.7) e `status` (estado de ciclo de vida, inclui `bloqueado` devolutivo
+  // — §7.1 regra 3) são decisões que vêm DEPOIS do motivo.
   justificativa: z.string().min(1),
+  role: z.enum(['regular', 'integration']),
+  status: z.enum(['rascunho', 'pronto_para_revisao', 'bloqueado', 'aprovado']),
   aprovado: z.boolean(),
 });
 
