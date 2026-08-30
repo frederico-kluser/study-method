@@ -3,8 +3,11 @@
  * trilhas (pacote P-02, `docs/16-engine-de-trilha.md` §4.1 e §3.4).
  *
  * Os contratos que mordem aqui:
- *   - PAR-02: onda com DOIS outputs iguais é REJEITADA antes de qualquer
- *     execução, com mensagem nomeando o caminho e as duas tarefas;
+ *   - PAR-02: onda com DOIS outputs que designam o MESMO arquivo é REJEITADA
+ *     antes de qualquer execução, com mensagem nomeando o caminho e as duas
+ *     tarefas — a igualdade é comparada pela CHAVE CANÔNICA (normalize +
+ *     trailing slash + case), então 'a/./b' vs 'a/b', 'x.md/' vs 'x.md' e
+ *     'Aula.md' vs 'aula.md' colidem; paths genuinamente distintos passam;
  *   - A-P02-3: nenhum caminho de código deixa uma onda com colisão rodar;
  *   - dependência não satisfeita BLOQUEIA a tarefa — ela roda quando a dep
  *     conclui;
@@ -208,6 +211,61 @@ describe('escalonador — colisão de posse (PAR-02, A-P02-3)', () => {
     const pendingTask = task({ id: 'p', outputs: ['compartilhado.json'] });
     const validation = validateWave(wave([doneTask, pendingTask]));
     assert.ok(validation.errors.some((e) => e.code === 'ownership-collision'));
+  });
+
+  it('aliases canônicos colidem: "a/./b" vs "a/b" (path.posix.normalize)', async () => {
+    const a = task({ id: 'a', outputs: ['a/./b'] });
+    const b = task({ id: 'b', outputs: ['a/b'] });
+    const fake = fakeExecutor();
+
+    const collisions = collectOutputCollisions([a, b]);
+    assert.deepEqual([...collisions.keys()], ['a/b'], 'a/./b e a/b denotam o MESMO arquivo físico');
+
+    const validation = validateWave(wave([a, b]));
+    assert.equal(validation.errors.length, 1);
+    assert.equal(validation.errors[0].code, 'ownership-collision');
+
+    await assert.rejects(
+      () => runWave(wave([a, b]), { limiters: freeLimiters(), execute: fake.execute }),
+      (err: unknown) => err instanceof SchedulerError && err.code === 'ownership-collision',
+    );
+    assert.deepEqual(fake.calls, [], 'nenhuma execução pode ter ocorrido (A-P02-3)');
+  });
+
+  it('aliases canônicos colidem: "x.md/" vs "x.md" (trailing slash)', () => {
+    const a = task({ id: 'a', outputs: ['x.md/'] });
+    const b = task({ id: 'b', outputs: ['x.md'] });
+
+    assert.deepEqual([...collectOutputCollisions([a, b]).keys()], ['x.md']);
+    const validation = validateWave(wave([a, b]));
+    assert.equal(validation.errors.length, 1);
+    assert.equal(validation.errors[0].code, 'ownership-collision');
+  });
+
+  it('aliases canônicos colidem: "Trilha/Aula.md" vs "trilha/aula.md" (case, DELIBERADO)', () => {
+    // A comparação case-insensitive é DELIBERADA: em APFS (default do macOS)
+    // os dois são o MESMO arquivo; em FS case-sensitive é um falso-positivo
+    // conservador declarado — rejeitar nunca deixa colisão real escapar.
+    const a = task({ id: 'a', outputs: ['Trilha/Aula.md'] });
+    const b = task({ id: 'b', outputs: ['trilha/aula.md'] });
+
+    assert.deepEqual([...collectOutputCollisions([a, b]).keys()], ['trilha/aula.md']);
+    const validation = validateWave(wave([a, b]));
+    assert.equal(validation.errors.length, 1);
+    assert.equal(validation.errors[0].code, 'ownership-collision');
+  });
+
+  it('paths genuinamente distintos NÃO colidem — a onda roda as duas', async () => {
+    const a = task({ id: 'a', outputs: ['a/b.md'] });
+    const b = task({ id: 'b', outputs: ['a/c.md'] });
+    const fake = fakeExecutor();
+
+    assert.deepEqual([...collectOutputCollisions([a, b]).keys()], [], 'sem colisão entre arquivos distintos');
+    assert.equal(validateWave(wave([a, b])).errors.length, 0);
+
+    const result = await runWave(wave([a, b]), { limiters: freeLimiters(), execute: fake.execute });
+    assert.deepEqual([...fake.calls].sort(), ['a', 'b'], 'as DUAS tarefas executam');
+    assert.equal(result.executed.length, 2);
   });
 });
 

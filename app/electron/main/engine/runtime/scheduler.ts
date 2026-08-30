@@ -20,6 +20,8 @@
  * silencioso (regra dura 1 do plano).
  */
 
+import * as path from 'node:path';
+
 import type { Task, TaskId, TaskResource } from './task';
 
 // ---------------------------------------------------------------------------
@@ -152,7 +154,10 @@ export interface WaveValidation {
 /**
  * Validação pura de uma onda. `errors.length === 0` ⇒ onda pronta para rodar.
  * Nenhum caminho de código permite a onda rodar com colisão de posse
- * (A-P02-3): `runWave` chama isto primeiro e lança.
+ * (A-P02-3): `runWave` chama isto primeiro e lança. A comparação de posse é
+ * feita sobre a CHAVE CANÔNICA de cada output (normalize + trailing slash +
+ * case — ver `canonicalOwnershipKey`), então aliases do mesmo arquivo físico
+ * ('a/./b' vs 'a/b', 'x.md/' vs 'x.md', 'Aula.md' vs 'aula.md') colidem.
  */
 export function validateWave(config: WaveConfig): WaveValidation {
   const errors: SchedulerError[] = [];
@@ -198,13 +203,13 @@ export function validateWave(config: WaveConfig): WaveValidation {
   }
 
   // --- colisão de posse de arquivo (PAR-02) --------------------------------
-  for (const [path, taskIds] of collectOutputCollisions(tasks)) {
+  for (const [key, taskIds] of collectOutputCollisions(tasks)) {
     const [a, b] = taskIds;
     errors.push(
       new SchedulerError(
         'ownership-collision',
-        `colisão de posse: o caminho "${path}" é declarado em outputs por mais de uma tarefa da onda (${a}, ${b}) — a onda foi REJEITADA antes de rodar (PAR-02, §4.1)`,
-        { caminho: path, tarefas: taskIds },
+        `colisão de posse: o caminho "${key}" é declarado em outputs por mais de uma tarefa da onda (${a}, ${b}) — a onda foi REJEITADA antes de rodar (PAR-02, §4.1)`,
+        { caminho: key, tarefas: taskIds },
       ),
     );
   }
@@ -261,23 +266,59 @@ export function validateWave(config: WaveConfig): WaveValidation {
 }
 
 /**
- * Colisões de posse: mapeia caminho → tarefas que o declaram em `outputs`,
- * só para caminhos com ≥2 tarefas. PURO — a base da rejeição PAR-02.
+ * Colisões de posse: mapeia a CHAVE CANÔNICA do caminho → tarefas que o
+ * declaram em `outputs`, só para caminhos com ≥2 tarefas. PURO — a base da
+ * rejeição PAR-02.
+ *
+ * A posse é comparada SEMPRE pela chave canônica (`canonicalOwnershipKey`):
+ * dois outputs que nomeiam o MESMO arquivo físico por notação diferente
+ * ('out/x.md' vs 'out/./x.md', 'x.md/' vs 'x.md', 'Trilha/Aula.md' vs
+ * 'trilha/aula.md') colidem — a onda é rejeitada ANTES de rodar. Os `outputs`
+ * ORIGINAIS de cada tarefa ficam INALTERADOS: a canonicalização é exclusiva
+ * da comparação de posse, nunca reescreve o que a tarefa declara gravar.
  */
 export function collectOutputCollisions(tasks: Task[]): Map<string, TaskId[]> {
   const byPath = new Map<string, TaskId[]>();
   for (const t of tasks) {
-    for (const path of t.outputs) {
-      const list = byPath.get(path) ?? [];
+    for (const rawPath of t.outputs) {
+      const key = canonicalOwnershipKey(rawPath);
+      const list = byPath.get(key) ?? [];
       list.push(t.id);
-      byPath.set(path, list);
+      byPath.set(key, list);
     }
   }
   const collisions = new Map<string, TaskId[]>();
-  for (const [path, taskIds] of byPath) {
-    if (taskIds.length > 1) collisions.set(path, taskIds);
+  for (const [key, taskIds] of byPath) {
+    if (taskIds.length > 1) collisions.set(key, taskIds);
   }
   return collisions;
+}
+
+/**
+ * Chave canônica de posse de UM caminho de output — usada SÓ na comparação de
+ * posse entre tarefas (nunca para reescrever os `outputs` da tarefa).
+ *
+ * Três normalizações deliberadas:
+ *   1. `path.posix.normalize` — resolve segmentos redundantes (`a/./b` →
+ *      `a/b`, `a//b` → `a/b`, `a/../b` → `b`): o mesmo arquivo físico não
+ *      pode ganhar dois donos por causa de notação;
+ *   2. remoção de trailing slash (`x.md/` → `x.md`, com exceção da raiz '/')
+ *      — barra final designa o mesmo arquivo e não pode criar dono duplo
+ *      (`normalize` já colapsa a maioria; a remoção explícita é defensiva);
+ *   3. comparação CEGADA a case (`toLowerCase`) — DELIBERADA: em APFS
+ *      (default do macOS) 'Trilha/Aula.md' e 'trilha/aula.md' são o MESMO
+ *      arquivo, e 'aula.md' escrito por duas tarefas com case diferente
+ *      sobrescreveria uma à outra sem este gate. Em filesystem case-sensitive,
+ *      o par NÃO é o mesmo arquivo, mas rejeitar a onda é um falso-positivo
+ *      CONSERVADOR e declarado: nunca deixa uma colisão real escapar por case,
+ *      e rejeitar paths que só diferem em case não causa perda de dados — a
+ *      onda é reconfigurada (renomeia um output) e roda de novo.
+ */
+function canonicalOwnershipKey(raw: string): string {
+  const normalized = path.posix.normalize(raw);
+  const noTrailingSlash =
+    normalized.length > 1 && normalized.endsWith('/') ? normalized.slice(0, -1) : normalized;
+  return noTrailingSlash.toLowerCase();
 }
 
 /** Escritores por chave lógica: `writes` de cada tarefa. PURO. */
