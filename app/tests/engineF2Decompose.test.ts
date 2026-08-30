@@ -24,7 +24,11 @@
  *   7. Candidato reprovado na atomicidade é DIVIDIDO por nova rodada de duas
  *      chamadas, com recuo limitado (sem laço aberto).
  *
- * Sem rede, sem LLM real, sem disco real (só tmpdir via _helpers/fs).
+ * Sem rede, sem LLM real, sem disco real (só tmpdir via _helpers/fs) — com
+ * UMA exceção deliberada: o teste do caminho DEFAULT do vocabulário lê o
+ * atoms.json VERSIONADO no repo (engine/vocab/atoms.json), porque o objeto do
+ * teste É o arquivo real que o default deve apontar (regressão do ".." duplo
+ * corrigida no fix da onda 2 — o default nunca era exercitado pelos testes).
  */
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
@@ -33,6 +37,7 @@ import * as path from 'node:path';
 
 import {
   CRITERIOS_ATOMICIDADE,
+  REGUA_ATOMICIDADE_DEFAULT,
   testarAtomicidade,
   type CandidatoAtomicidade,
 } from '../electron/main/engine/phases/atomicity';
@@ -49,6 +54,7 @@ import {
   NO_ATOMICO_JSON_SCHEMA,
   assegurarPosseValida,
   candidatoDeNo,
+  carregarVocabulario,
   decomporAssunto,
   escreverCandidatos,
   lerCandidatos,
@@ -59,6 +65,7 @@ import {
   type NoAtomico,
   type TarefaDeDecomposicao,
 } from '../electron/main/engine/phases/f2Decompose';
+import { CAMINHO_ATOMOS_DEFAULT } from '../electron/main/engine/phases/f0Brief';
 import type { EngineLlm, LlmCallRequest, LlmCallResult } from '../electron/main/engine/runtime/callLlm';
 import { mkTempDir, rmrf } from './_helpers/fs';
 
@@ -179,6 +186,12 @@ describe('engine/f2/atomicity (A-P15-2b — código puro, zero LLM)', () => {
       assert.ok(falha.observado > falha.teto, 'toda falha reporta observado acima do teto');
       assert.ok(['construções', 'elementos', 'segundos'].includes(falha.unidade));
     }
+    const falhaOrcamentavel = resultado.falhas.find((f) => f.criterio === 'orcamentavel');
+    assert.ok(falhaOrcamentavel, 'orçamentável está entre as quatro falhas');
+    assert.ok(
+      falhaOrcamentavel!.motivo.includes('acumula'),
+      'a falha de orçamento usa o acúmulo nó + régua mínima (predicado próprio, não duplicata de exercitável)',
+    );
     assert.ok(resultado.justificativa.includes('NÃO atômico'), 'a justificativa nomeia a reprovação');
     assert.ok(resultado.justificativa.includes('demonstrável'), 'a justificativa cita as réguas');
   });
@@ -202,8 +215,9 @@ describe('engine/f2/atomicity (A-P15-2b — código puro, zero LLM)', () => {
       elementos_nao_interativos: 0,
       elementos_interagem: true,
     };
+    // parte do DEFAULT e estreita só o teto de tempo — sem reinventar a régua.
     const resultado = testarAtomicidade(atomo, {
-      ...{ teto_construcoes_produtivas: 2, teto_elementos_interagindo: 4, teto_elementos_nao_interativos: 7, teto_tempo_resolucao_s: 120 },
+      ...REGUA_ATOMICIDADE_DEFAULT,
       teto_tempo_resolucao_s: 30,
     });
     assert.equal(resultado.passou, false);
@@ -211,6 +225,84 @@ describe('engine/f2/atomicity (A-P15-2b — código puro, zero LLM)', () => {
       resultado.falhas.some((f) => f.criterio === 'cronometravel'),
       'o teto de 30s reprova a estimativa de 60s do átomo',
     );
+    assert.ok(
+      resultado.falhas.every((f) => f.criterio === 'cronometravel'),
+      'só o cronômetro estreitado falha — os outros três critérios continuam passando no default',
+    );
+  });
+
+  it('orçamentável é DISCRIMINATIVO: candidatos que falham SÓ nele (os outros três passam)', () => {
+    // (a) 3 receptivas em palco interativo: sozinhas cabem (3 ≤ teto 4 —
+    // demonstrável passa, span 3 ≤ 4 — exercitável passa, 45s — cronômetro
+    // passa); SOMADAS à régua mínima (1 produtiva + 1 receptiva = 2) acumulam
+    // 5 > teto 4 → só orçamentável falha (o exemplo da revisão, §3.6).
+    const soCarga: CandidatoAtomicidade = {
+      construcoes_produtivas: [],
+      construcoes_receptivas: ['node:Block', 'op:assign:-=', 'global:Array'],
+      elementos_nao_interativos: 0,
+      elementos_interagem: true,
+    };
+    const resCarga = testarAtomicidade(soCarga);
+    assert.equal(resCarga.passou, false);
+    assert.deepEqual(
+      resCarga.falhas.map((f) => f.criterio),
+      ['orcamentavel'],
+      'a ÚNICA falha é orçamentável (acúmulo de elementos) — os outros três critérios passam',
+    );
+    assert.ok(resCarga.falhas[0].motivo.includes('acumula'), 'o motivo nomeia o acúmulo com a régua mínima');
+
+    // (b) 2 produtivas sozinhas: passam no palco (2 ≤ 4), no span (2 ≤ 4),
+    // no teto do próprio nó (2 ≤ 2) e no cronômetro (90s); acumuladas com a
+    // 1 produtiva já prevista somam 3 > teto 2 → só orçamentável falha
+    // (acúmulo de produtivas).
+    const soCargaProdutiva: CandidatoAtomicidade = {
+      construcoes_produtivas: ['decl:let', 'decl:const'],
+      construcoes_receptivas: [],
+      elementos_nao_interativos: 0,
+      elementos_interagem: true,
+    };
+    const resProdutiva = testarAtomicidade(soCargaProdutiva);
+    assert.equal(resProdutiva.passou, false);
+    assert.deepEqual(
+      resProdutiva.falhas.map((f) => f.criterio),
+      ['orcamentavel'],
+      'a ÚNICA falha é orçamentável (acúmulo de produtivas) — os outros três critérios passam',
+    );
+    assert.ok(resProdutiva.falhas[0].unidade === 'construções');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// 1.5. O caminho DEFAULT do vocabulário (regressão do ".." duplo)
+// ---------------------------------------------------------------------------
+
+describe('engine/f2/vocabulário: caminho default (regressão do ".." duplo)', () => {
+  it('CAMINHO_ATOMOS_DEFAULT (f0Brief) é a fonte única e aponta para engine/vocab/atoms.json REAL', () => {
+    // UM '..' a partir de engine/phases → engine/vocab; o bug antigo usava
+    // '..','..' → app/electron/main/vocab (inexistente no repo).
+    const segmentos = CAMINHO_ATOMOS_DEFAULT.split(path.sep);
+    assert.ok(
+      segmentos.slice(-3).join(path.sep) === path.join('engine', 'vocab', 'atoms.json'),
+      `default deveria ser engine/vocab/atoms.json, recebido: ${CAMINHO_ATOMOS_DEFAULT}`,
+    );
+    assert.ok(
+      !CAMINHO_ATOMOS_DEFAULT.includes(path.join('electron', 'main', 'vocab')),
+      'o caminho errado (app/electron/main/vocab) não pode ser o default',
+    );
+    assert.ok(
+      fs.existsSync(CAMINHO_ATOMOS_DEFAULT),
+      'o default resolve para um arquivo REAL versionado no repo',
+    );
+  });
+
+  it('carregarVocabulario() SEM argumento carrega o vocab real do repo — o default é exercitado', () => {
+    // Regressão: o default de carregarVocabulario NUNCA era exercitado (todos
+    // os testes injetavam vocab). Esta é a exceção declarada a "sem disco
+    // real": o atoms.json versionado é o próprio objeto do teste.
+    const vocab = carregarVocabulario();
+    assert.ok(vocab.size > 0, 'vocab real não pode ser vazio');
+    assert.ok(vocab.has('decl:let'), '"decl:let" está no atoms.json real do P-05');
+    assert.ok(vocab.has('op:assign:='), '"op:assign:=" está no atoms.json real do P-05');
   });
 });
 
@@ -592,6 +684,55 @@ describe('engine/f2/decomposição (A-P15-2 — DUAS chamadas)', () => {
     assert.ok(calls[2].req.prompt.includes('demonstravel'));
     // os nós finais são os pedaços atômicos, ordenados por chave
     assert.deepEqual(resultado.nos.map((n) => n.chave_conceito), ['let_e_atribuicao', 'reatribuicao']);
+  });
+
+  it('filho da divisão que colide com chave já aceita do pai encerra a fase com erro nomeado (fail-closed)', async () => {
+    // Rodada 1: um nó ACEITO ('let_e_atribuicao' — passa na atomicidade) e um
+    // gordo (reprovado → DIVISÃO). Rodada 2: o filho da divisão REUTILIZA a
+    // chave do nó já aceito — colisão de nomenclatura pai×filho é defeito de
+    // prompt e fecha a fase nomeando a duplicata (nenhum dedupe silencioso).
+    const aceito = baseNo();
+    const gordo = baseNo({
+      chave_conceito: 'variaveis_grosso',
+      nome: 'variaveis_grosso',
+      introduces: {
+        receptive: ['node:Identifier', 'node:Block', 'op:assign:-=', 'api:Array.prototype.push'],
+        productive: ['decl:let', 'op:assign:='],
+      },
+    });
+    const filhoColidindo = baseNo({ chave_conceito: 'let_e_atribuicao', nome: 'let e atribuição (redividido)' });
+
+    let rondasDeDivisao = 0;
+    const { llm } = fakeLlm(async (req) => {
+      if (req.prompt.includes('CONTEXTO DE DIVISÃO')) {
+        rondasDeDivisao += 1;
+        return 'receita da divisão: um nó menor.';
+      }
+      if (req.prompt.includes('FORMATO DA RESPOSTA — TEXTO LIVRE')) {
+        return 'receita: um nó aceito e um gordo.';
+      }
+      return rondasDeDivisao > 0 ? JSON.stringify([filhoColidindo]) : JSON.stringify([aceito, gordo]);
+    });
+
+    await assert.rejects(
+      () => decomporAssunto({ llm, vocab: VOCAB }, 'sintaxe', 'variáveis'),
+      (erro: unknown) => {
+        assert.ok(erro instanceof F2ValidationError);
+        assert.ok(
+          erro.message.includes('let_e_atribuicao'),
+          `a mensagem nomeia a duplicata — recebido: ${erro.message}`,
+        );
+        assert.ok(
+          erro.message.includes('duplicadas'),
+          `a mensagem sinaliza a colisão pós-união — recebido: ${erro.message}`,
+        );
+        assert.ok(
+          erro.rejeicoes.some((r) => r.chave === 'let_e_atribuicao'),
+          'a rejeição estruturada carrega a chave colidida',
+        );
+        return true;
+      },
+    );
   });
 
   it('recuo de divisão limitado: assunto que não converge lança F2DivisaoLimitError (sem laço aberto)', async () => {

@@ -23,12 +23,19 @@
  *      contíguo apagado. (A co-localização FÍSICA do par num único span é
  *      conferida mais tarde em F8/J6, que vê o código real; aqui a régua é de
  *      contagem, premissa declarada.)
- *   3. ORÇAMENTÁVEL   — o `element_count` somado ao que já entra na aula cabe
- *      no teto. Em F2, antes do grafo (F3) e do orçamento cumulativo (F4), a
- *      parte derivável é o teto de construções produtivas novas por aula
- *      (≤ 2, nunca 3 — Exercism: 21 exercícios ensinam 1, 8 ensinam 2, zero
- *      ensinam 3+). A parte "o que já entra na aula" depende do grafo
- *      congelado e é revalidada em F4 com dados reais — premissa declarada.
+ *   3. ORÇAMENTÁVEL   — o `element_count` somado ao que JÁ ENTRA na aula cabe
+ *      no teto (§3.6). Sem o grafo congelado (F3) nem o orçamento cumulativo
+ *      (F4), "o que já entra na aula" não existe em F2 — usamos a CARGA MÍNIMA
+ *      DA RÉGUA como proxy de aula cheia (constante de régua
+ *      `carga_minima_da_aula`; default: 1 produtiva + 1 receptiva): a carga do
+ *      nó somada à carga mínima precisa caber nos tetos do palco E o acumulado
+ *      de produtivas precisa caber no teto produtivo (≤ 2, nunca 3 — Exercism:
+ *      21 exercícios ensinam 1, 8 ensinam 2, zero ensinam 3+). Critério
+ *      DISCRIMINATIVO: um nó que cabe sozinho no palco (demonstrável) pode
+ *      estourar a aula já mínima (orçamentável) — ex.: 3 receptivas passam em
+ *      demonstrável (3 ≤ 4) mas, somadas ao mínimo da régua (2), acumulam
+ *      5 > teto 4. O orçamento REAL é revalidado em F4 com os dados do grafo
+ *      (a régua mínima é o proxy derivável em F2; premissa declarada).
  *   4. CRONOMETRÁVEL  — o desafio correspondente cabe em `teto_tempo_resolucao_s`
  *      para quem tem o orçamento. Modelo puro: estimativa de tempo de
  *      resolução = soma de pesos por elemento novo (produtiva ~45 s —
@@ -65,6 +72,11 @@ export type CriterioAtomicidade = (typeof CRITERIOS_ATOMICIDADE)[number];
  * "≤ 2 enquanto o orçamento está quase vazio" é um estreitamento de
  * `teto_elementos_interagindo` que só F4 conhece, porque depende do
  * orçamento — premissa: o DEFAULT da engine é a tabela aberta).
+ *
+ * `carga_minima_da_aula` não é uma régua do §3.6: é a CARGA MÍNIMA JÁ
+ * PREVISTA usada pelo critério 3 (orçamentável) como proxy de "o que já
+ * entra na aula" antes de F4 existir — constante de régua declarada aqui
+ * para que o critério seja determinístico e parametrizável como as demais.
  */
 export interface ReguaAtomicidade {
   /** Construções produtivas novas por aula — ≤ 2, nunca 3. */
@@ -75,13 +87,34 @@ export interface ReguaAtomicidade {
   teto_elementos_nao_interativos: number;
   /** Tempo de resolução do desafio para quem tem o orçamento (segundos). */
   teto_tempo_resolucao_s: number;
+  /** Carga mínima de aula já prevista para o critério orçamentável (proxy de F4). */
+  carga_minima_da_aula: CargaMinimaDeAula;
 }
+
+/**
+ * A carga mínima de aula que JÁ ENTRA antes deste nó (proxy do orçamento
+ * cumulativo de F4 — revalidado lá com o grafo real). Default: a menor aula
+ * que faz sentido — 1 construção produtiva + 1 receptiva (ex.: `let` +
+ * `op:assign:=`) e nenhum elemento não-interativo.
+ */
+export interface CargaMinimaDeAula {
+  construcoes_produtivas: number;
+  construcoes_receptivas: number;
+  elementos_nao_interativos: number;
+}
+
+export const CARGA_MINIMA_DE_AULA_DEFAULT: CargaMinimaDeAula = {
+  construcoes_produtivas: 1,
+  construcoes_receptivas: 1,
+  elementos_nao_interativos: 0,
+};
 
 export const REGUA_ATOMICIDADE_DEFAULT: ReguaAtomicidade = {
   teto_construcoes_produtivas: 2,
   teto_elementos_interagindo: 4,
   teto_elementos_nao_interativos: 7,
   teto_tempo_resolucao_s: 120,
+  carga_minima_da_aula: CARGA_MINIMA_DE_AULA_DEFAULT,
 };
 
 // ─── entrada: o candidato (declarações, não opiniões) ────────────────────────
@@ -256,12 +289,38 @@ export function testarAtomicidade(
     });
   }
 
-  // 3. ORÇAMENTÁVEL — cabe no orçamento produtivo da aula (parte derivável em F2).
-  if (candidato.construcoes_produtivas.length > regua.teto_construcoes_produtivas) {
+  // 3. ORÇAMENTÁVEL — com este nó, a aula (que já carrega a carga MÍNIMA da
+  // régua como proxy de "o que já entra") ainda cabe nos tetos. Dois
+  // acumulados, ambos precisam caber: (a) elementos do nó + carga mínima
+  // prevista ≤ teto do palco; (b) produtivas do nó + produtivas já previstas
+  // ≤ teto produtivo. Predicado DISTINTO de demonstrável/exercitável: a carga
+  // do nó sozinha pode caber no palco (demonstrável passa) e o ACÚMULO com a
+  // aula mínima ainda estourar — é o que dá a F4 a pergunta "a aula fica
+  // cheia?": a régua mínima é o proxy; revalidado em F4 com o orçamento real.
+  const cargaMinima = regua.carga_minima_da_aula;
+  const elementosJaPrevistos =
+    cargaMinima.construcoes_produtivas +
+    cargaMinima.construcoes_receptivas +
+    cargaMinima.elementos_nao_interativos;
+  const acumuladoElementos = demonstracao + elementosJaPrevistos;
+  if (acumuladoElementos > tetoElementos) {
     falhas.push({
       criterio: 'orcamentavel',
-      motivo: `${candidato.construcoes_produtivas.length} construções produtivas novas estouram o orçamento produtivo da aula (≤ ${regua.teto_construcoes_produtivas}, nunca 3 — §3.6)`,
-      observado: candidato.construcoes_produtivas.length,
+      motivo:
+        `com este nó a aula acumula ${acumuladoElementos} elementos (${demonstracao} do nó + ${elementosJaPrevistos} já previstos da régua mínima) — estoura o teto de ${tetoElementos} do palco ${palco} (§3.6: o element_count somado ao que já entra na aula cabe no teto)`,
+      observado: acumuladoElementos,
+      teto: tetoElementos,
+      unidade: 'elementos',
+    });
+  }
+  const acumuladoProdutivas =
+    candidato.construcoes_produtivas.length + cargaMinima.construcoes_produtivas;
+  if (acumuladoProdutivas > regua.teto_construcoes_produtivas) {
+    falhas.push({
+      criterio: 'orcamentavel',
+      motivo:
+        `com este nó a aula acumula ${acumuladoProdutivas} construções produtivas novas (${candidato.construcoes_produtivas.length} do nó + ${cargaMinima.construcoes_produtivas} já previstas da régua mínima) — estoura o teto de ${regua.teto_construcoes_produtivas} (§3.6: ≤ 2, nunca 3)`,
+      observado: acumuladoProdutivas,
       teto: regua.teto_construcoes_produtivas,
       unidade: 'construções',
     });
@@ -281,7 +340,7 @@ export function testarAtomicidade(
 
   const passou = falhas.length === 0;
   const justificativa = passou
-    ? `cabe nas quatro réguas: ${candidato.construcoes_produtivas.length} produtivas ≤ ${regua.teto_construcoes_produtivas}, ${contagemDoWorkedExample(candidato)} elementos no palco ${palco} ≤ ${tetoElementos}, resolução estimada ${tempo}s ≤ ${regua.teto_tempo_resolucao_s}s`
+    ? `cabe nas quatro réguas: ${candidato.construcoes_produtivas.length} produtivas ≤ ${regua.teto_construcoes_produtivas}, ${contagemDoWorkedExample(candidato)} elementos no palco ${palco} ≤ ${tetoElementos}, aula acumulada (nó + régua mínima) ${acumuladoElementos} elementos ≤ ${tetoElementos} e ${acumuladoProdutivas} produtivas ≤ ${regua.teto_construcoes_produtivas}, resolução estimada ${tempo}s ≤ ${regua.teto_tempo_resolucao_s}s`
     : `candidato NÃO atômico — falha em: ${falhas
         .map((f) => `${ROTULO_CRITERIO[f.criterio]} (${f.observado} > teto ${f.teto} ${f.unidade})`)
         .join('; ')}`;

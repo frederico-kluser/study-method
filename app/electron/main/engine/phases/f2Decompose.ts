@@ -46,7 +46,10 @@
  *    PAR-02 §4.1: normalize + trailing slash + case-blind). O merge
  *    deduplica: mesma `chave_conceito` de dois workers → UM nó com
  *    justificativa de merge. Duplicata DENTRO do mesmo worker é erro
- *    (fail-closed — é defeito de LLM, não dado legítimo).
+ *    (fail-closed — é defeito de LLM, não dado legítimo). E a UNIÃO entre nó
+ *    aceito do pai e filhos da divisão é validada ANTES do retorno: filho que
+ *    colide com chave já aceita é erro estruturado nomeando a duplicata
+ *    (colisão de nomenclatura entre pai e filho é defeito do prompt).
  *
  * FAIL-CLOSED em todo o fluxo: saída de LLM que não normaliza, nó que viola
  * o schema/vocabulário, arquivo de candidatos ilegível — tudo vira ERRO
@@ -61,7 +64,6 @@
 
 import * as fs from 'node:fs';
 import * as path from 'node:path';
-import { fileURLToPath } from 'node:url';
 
 import type { EngineLlm } from '../runtime/callLlm';
 import {
@@ -73,6 +75,12 @@ import {
   type PesosCronometragem,
   type ReguaAtomicidade,
 } from './atomicity';
+// FONTE ÚNICA do caminho do vocabulário: a constante exportada pelo f0Brief
+// (engine/vocab/atoms.json, UM '..' a partir de phases/). Centralizar aqui
+// impede um segundo default divergente (regressão do '..' duplo da revisão
+// da onda 2 — o caminho errado resolvia para app/electron/main/vocab, que
+// não existe).
+import { CAMINHO_ATOMOS_DEFAULT } from './f0Brief';
 
 // ─── domínio da fase ─────────────────────────────────────────────────────────
 
@@ -170,14 +178,16 @@ export interface NoAtomico {
 
 /**
  * Carrega o vocabulário fechado do P-05 (`vocab/atoms.json`, gerado por
- * máquina — chaves dos eixos node/op/decl/global/api). FAIL-CLOSED: arquivo
+ * máquina — chaves dos eixos node/op/decl/global/api). O caminho DEFAULT é a
+ * FONTE ÚNICA compartilhada com o F0: `CAMINHO_ATOMOS_DEFAULT` (f0Brief.ts —
+ * engine/vocab/atoms.json, UM '..' a partir de phases/). FAIL-CLOSED: arquivo
  * ilegível ou shape inesperado é ERRO — um vocabulário ausente nunca vira
  * allowlist vazia. `term:` e `form:` não fazem parte deste artefato e são
  * tratados como chave fora do vocabulário (premissa declarada: o piso de
  * consciência do LLM é fechado; termos da prosa não são construções).
  */
 export function carregarVocabulario(arquivo?: string): ReadonlySet<string> {
-  const caminho = arquivo ?? path.resolve(MODULE_DIR, '..', '..', 'vocab', 'atoms.json');
+  const caminho = arquivo ?? CAMINHO_ATOMOS_DEFAULT;
   let bruto: string;
   try {
     bruto = fs.readFileSync(caminho, 'utf8');
@@ -1002,6 +1012,33 @@ export async function decomporAssunto(
     aceitos.push(...filhos.nos);
   }
 
+  // Unicidade das chaves de conceito APÓS a união (item 7 — WARNING da
+  // revisão): a duplicata intra-rodada já é checada acima, mas um FILHO da
+  // divisão pode colidir com um nó já aceito do pai. Colisão de nomenclatura
+  // entre pai e filho é defeito de prompt — fail-closed com erro estruturado
+  // nomeando a duplicata (nenhum dedupe silencioso).
+  const chavesAceitas = new Set<string>();
+  const chavesColididas = new Set<string>();
+  for (const no of aceitos) {
+    if (chavesAceitas.has(no.chave_conceito)) {
+      chavesColididas.add(no.chave_conceito);
+    }
+    chavesAceitas.add(no.chave_conceito);
+  }
+  if (chavesColididas.size > 0) {
+    const duplicatas = [...chavesColididas].sort();
+    throw new F2ValidationError(
+      `a união entre nós aceitos do pai e filhos da divisão devolveu chaves de conceito duplicadas (${duplicatas.join(', ')}) — nomenclatura de pai e filho colidindo é defeito do prompt`,
+      duplicatas.map((chave) => ({
+        // indice não se aplica à união pós-divisão (não é um índice da saída
+        // da normalização da rodada atual): -1 marca "pós-união".
+        indice: -1,
+        chave,
+        erros: ['chave de conceito duplicada após união com filhos da divisão'],
+      })),
+    );
+  }
+
   // Determinismo: ordenação estável por chave de conceito (item 7, A-P15-2).
   aceitos.sort((a, b) => a.chave_conceito.localeCompare(b.chave_conceito));
   divisoes.sort((a, b) => a.profundidade - b.profundidade || a.assunto.localeCompare(b.assunto));
@@ -1181,7 +1218,3 @@ export function mergeCandidatos(
   }
   return mergeados;
 }
-
-// ─── âncora do módulo para o caminho do vocabulário ──────────────────────────
-
-const MODULE_DIR = path.dirname(fileURLToPath(import.meta.url));
