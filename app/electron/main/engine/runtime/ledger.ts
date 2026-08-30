@@ -4,11 +4,56 @@
  *
  * O ledger é a memória de auditoria do run: cada evento de progresso vira UMA
  * linha em `ledger.jsonl` com `prev_hash` e `hash` — `hash = sha256(prev_hash +
- * "\n" + corpoCanônicoDaLinha)`. Uma linha adulterada (conteúdo, hash ou
- * retarget de cadeia) QUEBRA a cadeia; `verificarCadeia()` reporta o ÍNDICE da
- * primeira linha quebrada, e o `Ledger` RECUSA anexar sobre cadeia quebrada
- * (fail-closed, `docs/16-engine-de-trilha.md` §9.3): adulteração nunca é
- * silenciosamente absorvida.
+ * "\n" + corpoCanônicoDaLinha)` — e com `runId` (ver D-ÂNCORA-RUNID).
+ *
+ * O QUE A CADEIA GARANTE (escopo PRECISO; ver também `verificarCadeia()`):
+ *   - adulteração INGÊNUA: editar conteúdo/hash/prev_hash de uma linha SEM
+ *     recalcular os hashes seguintes QUEBRA a cadeia exatamente na linha
+ *     tocada (HASH_DIVERGENTE / PREV_HASH_DIVERGENTE / RAIZ_INVALIDA);
+ *   - quebra de SEQUÊNCIA: remover, duplicar ou reordenar linhas QUEBRA a
+ *     cadeia (SEQ_INCORRETA / RAIZ_INVALIDA — a primeira linha é a raiz,
+ *     prev_hash null);
+ *   - injeção de linhas de OUTRO run: toda linha carrega `runId` e todas as
+ *     linhas do arquivo precisam ter o MESMO runId — uma linha de outro run
+ *     QUEBRA a cadeia (RUN_ID_DIVERGENTE) MESMO com recálculo completo dos
+ *     hashes (D-ÂNCORA-RUNID).
+ * `verificarCadeia()` reporta o ÍNDICE da primeira linha quebrada, e o `Ledger`
+ * RECUSA anexar sobre cadeia quebrada (fail-closed, `docs/16-engine-de-trilha.md`
+ * §9.3): adulteração nunca é silenciosamente absorvida.
+ *
+ * O QUE A CADEIA NÃO GARANTE (limite EXPLÍCITO — sem overclaim):
+ *   - recálculo completo dos hashes: um atacante que reescreve o arquivo
+ *     INTEIRO (conteúdo + seq + prev_hash + hash) produz uma cadeia
+ *     internamente consistente que esta verificação não distingue de uma
+ *     autêntica — a cadeia é AUTORREFERENTE (só prev_hash do próprio arquivo),
+ *     não há âncora externa do hash final;
+ *   - truncamento da cauda: remover a(s) ÚLTIMA(s) linha(s) deixa um PREFIXO
+ *     da cadeia que continua íntegro — também não detectável pela cadeia
+ *     sozinha.
+ * MITIGAÇÃO IMPLEMENTADA: o `runId` em TODA linha ancora o ledger ao run.json,
+ * que é reescrito ATOMICAMENTE a cada persistência (D-ÂNCORA-RUNID). Fechar
+ * o buraco de vez (hash final ancorado FORA do próprio arquivo — ex. carimbo
+ * de confiança persistido por quem tem a chave — e cobertura cross-process)
+ * fica declarado como limite restante para as ondas 2-4.
+ *
+ * DECISÃO D-ÂNCORA-RUNID: `runId` é OBRIGATÓRIO em toda linha (validado em
+ * `validarPayload` para TODOS os tipos, não só em `run_criado`) e faz parte do
+ * corpo coberto pelo hash. `verificarCadeia` exige o MESMO runId em todas as
+ * linhas. Isso ancora a cadeia ao `run.json` (sua escrita é atômica via
+ * `salvarRun` + D-ESCRITOR-UNICO): a comparação ledger↔run.json é a âncora
+ * EXTERNA disponível sem dependência nova — truncamento de cauda vira
+ * divergência observável de eventos vs. estado, e injeção de linha de outro
+ * run quebra mesmo com hashes recalculados.
+ *
+ * DECISÃO D-ESCRITOR-UNICO (mutex in-process — compartilhada com `salvarRun`):
+ * a escrita é READ-MODIFY-WRITE do arquivo inteiro (`anexar` relê a cauda, monta
+ * a linha nova e `escreverAtomico` reescreve tudo) — dois anexos CONCORRENTES
+ * lendo a mesma cauda N gravariam ambos N+1 e o último rename venceria, PERDENDO
+ * uma linha em silêncio (proibido, `docs/16-engine-de-trilha.md` §11). O mutex
+ * `comMutex` (runState.ts, cadeia de promessas por caminho, zero dependência
+ * nova) serializa `anexar` do ledger E da telemetria no MESMO processo.
+ * PRÉ-CONDIÇÃO DECLARADA: escritor único POR PROCESSO e por diretório de run —
+ * a engine roda UM gerador por run; escrita CROSS-PROCESS NÃO é coberta.
  *
  * DECISÃO D-LEDGER (append "append-only"): a escrita é REWRITE-ATÔMICO via a
  * primitiva `escreverAtomico` de `runState.ts` (tmp + fsync + rename) — a
@@ -32,7 +77,7 @@
  * derivam os hashes com a MESMA primitiva.
  *
  * DEPENDÊNCIA: `ledger.ts` importa de `runState.ts` (tipos, FASES_ORDEM,
- * escreverAtomico); `runState.ts` NÃO importa daqui — sem ciclos.
+ * escreverAtomico, comMutex); `runState.ts` NÃO importa daqui — sem ciclos.
  */
 
 import { createHash } from 'node:crypto';
@@ -42,6 +87,7 @@ import {
   FASES_ORDEM,
   LEDGER_FILENAME,
   TELEMETRY_FILENAME,
+  comMutex,
   escreverArquivoPadrao,
   escreverAtomico,
   isFaseId,
@@ -130,26 +176,34 @@ const TIPOS_EVENTO = ['run_criado', 'fase_iniciada', 'fase_concluida', 'checkpoi
 /**
  * Evento NOVO (sem envelope): o chamador entrega um destes a `Ledger.anexar`.
  * Todo campo de todo tipo é obrigatório — validado em `validarEventoNovo`.
+ * `runId` é obrigatório em TODOS os tipos (D-ÂNCORA-RUNID): o chamador passa a
+ * identidade do run dono em toda linha, não só em `run_criado`.
  */
 export type EventoNovo =
   | { tipo: 'run_criado'; runId: string; slug: string }
-  | { tipo: 'fase_iniciada'; fase: FaseId }
-  | { tipo: 'fase_concluida'; fase: FaseId }
-  | { tipo: 'checkpoint'; descricao: string };
+  | { tipo: 'fase_iniciada'; runId: string; fase: FaseId }
+  | { tipo: 'fase_concluida'; runId: string; fase: FaseId }
+  | { tipo: 'checkpoint'; runId: string; descricao: string };
 
-/** Uma linha JÁ materializada do ledger (com envelope prev_hash/hash). */
+/** Uma linha JÁ materializada do ledger (com envelope prev_hash/hash e runId). */
 export type LedgerLinha =
-  | (LedgerLinhaBase & { tipo: 'run_criado'; runId: string; slug: string })
+  | (LedgerLinhaBase & { tipo: 'run_criado'; slug: string })
   | (LedgerLinhaBase & { tipo: 'fase_iniciada'; fase: FaseId })
   | (LedgerLinhaBase & { tipo: 'fase_concluida'; fase: FaseId })
   | (LedgerLinhaBase & { tipo: 'checkpoint'; descricao: string });
 
-/** Envelope comum a toda linha: versão, sequência, tempo e a cadeia. */
+/** Envelope comum a toda linha: versão, sequência, run, tempo e a cadeia. */
 export interface LedgerLinhaBase {
   /** Versão do formato de linha — 1, por igualdade estrita. */
   v: 1;
   /** Sequência monotônica estrita (1-based) — adulterar/duplicar/remover quebra aqui. */
   seq: number;
+  /**
+   * Identidade do run dono da linha (D-ÂNCORA-RUNID). TODAS as linhas do
+   * arquivo compartilham o MESMO runId — `verificarCadeia` exige a igualdade,
+   * e o hash cobre o runId (ele faz parte do corpo).
+   */
+  runId: string;
   /** Momento do evento, ISO-8601. */
   quando: string;
   /** Hash da linha ANTERIOR (null só na primeira linha). */
@@ -173,7 +227,7 @@ export interface VerificacaoCadeiaQuebrada {
   linhas: number;
   /** Índice 0-based da primeira linha quebrada (aí está o erro). */
   primeiraQuebrada: number;
-  /** Motivo da quebra: JSON_INVALIDO | LINHA_INVALIDA | SEQ_INCORRETA | RAIZ_INVALIDA | PREV_HASH_DIVERGENTE | HASH_DIVERGENTE | LINHA_VAZIA. */
+  /** Motivo da quebra: JSON_INVALIDO | LINHA_INVALIDA | SEQ_INCORRETA | RAIZ_INVALIDA | PREV_HASH_DIVERGENTE | RUN_ID_DIVERGENTE | HASH_DIVERGENTE | LINHA_VAZIA. */
   motivo: string;
 }
 
@@ -198,17 +252,20 @@ function validarTipoEvento(valor: unknown, erro: LedgerErrorCode): TipoEvento {
  * Valida o payload específico do tipo. Compartilhado entre `validarEventoNovo`
  * (evento para anexar) e `validarLinha` (linha do arquivo) — o erro usa o
  * código do contexto.
+ * `runId` é obrigatório em TODOS os tipos (D-ÂNCORA-RUNID): a âncora externa
+ * (run.json) só fecha o laço se TODA linha carregar a identidade do run — não
+ * só a primeira.
  */
 function validarPayload(tipo: TipoEvento, o: Record<string, unknown>, erro: LedgerErrorCode): Record<string, unknown> {
+  if (typeof o['runId'] !== 'string' || o['runId'].trim() === '') {
+    throw new LedgerError(erro, `${tipo} exige runId não vazia (D-ÂNCORA-RUNID)`, 'runId');
+  }
   switch (tipo) {
     case 'run_criado': {
-      if (typeof o['runId'] !== 'string' || o['runId'].trim() === '') {
-        throw new LedgerError(erro, 'run_criado exige runId não vazia', 'runId');
-      }
       if (!isSlugValido(o['slug'])) {
         throw new LedgerError(erro, `run_criado exige slug válido; recebido ${JSON.stringify(o['slug'])}`, 'slug');
       }
-      return { runId: o['runId'], slug: o['slug'] as string };
+      return { slug: o['slug'] as string };
     }
     case 'fase_iniciada':
     case 'fase_concluida': {
@@ -258,10 +315,11 @@ function validarLinha(raw: unknown): LedgerLinha {
     throw new LedgerError('LINHA_INVALIDA', `hash inválido: ${JSON.stringify(o['hash'])}`, 'hash');
   }
   const tipo = validarTipoEvento(o['tipo'], 'LINHA_INVALIDA');
-  const payload = validarPayload(tipo, o, 'LINHA_INVALIDA');
+  const payload = validarPayload(tipo, o, 'LINHA_INVALIDA'); // valida (e exige) o runId aqui
   const base: LedgerLinhaBase = {
     v: 1,
     seq: o['seq'] as number,
+    runId: o['runId'] as string,
     quando: o['quando'] as string,
     prev_hash: o['prev_hash'] as string | null,
     hash: o['hash'] as string,
@@ -319,17 +377,25 @@ export function montarCadeia(eventos: EventoNovo[], quando?: string): string {
 
 /**
  * VERIFICA a cadeia de um conteúdo de ledger (puro, sem IO). Reporta o índice
- * 0-based da PRIMEIRA linha quebrada. Integra cinco checagens por linha:
- *   JSON_INVALIDA → linha não parseia;
+ * 0-based da PRIMEIRA linha quebrada. Checagens por linha:
+ *   JSON_INVALIDO → linha não parseia;
  *   LINHA_INVALIDA → parseia mas viola o schema (tipo, v, seq, tempos, hashes);
  *   SEQ_INCORRETA → seq não é i+1 (linha removida/duplicada/reordenada);
  *   RAIZ_INVALIDA / PREV_HASH_DIVERGENTE → a corrente está retargetada;
- *   HASH_DIVERGENTE → o hash gravado não bate com prev_hash+corpo (a adulteração).
- * Uma única linha adulterada no MEIO quebra a cadeia exatamente aí.
+ *   RUN_ID_DIVERGENTE → linha com runId de OUTRO run (D-ÂNCORA-RUNID — quebra
+ *     MESMO que os hashes tenham sido recalculados);
+ *   HASH_DIVERGENTE → o hash gravado não bate com prev_hash+corpo (adulteração
+ *     INGÊNUA: edição sem recálculo dos hashes seguintes).
+ * UMA ÚNICA linha adulterada NO MEIO quebra a cadeia exatamente aí.
+ * NÃO DETECTA (declarado, sem overclaim — ver cabeçalho do módulo): recálculo
+ * COMPLETO dos hashes de todas as linhas e truncamento da CAUDA — a verificação
+ * é autorreferente (só prev_hash do próprio arquivo); truncamento/injeção
+ * total só fecham com a âncora externa (run.json, via runId — D-ÂNCORA-RUNID).
  */
 export function verificarCadeia(conteudo: string): VerificacaoCadeia {
   const brutas = fatiarLinhas(conteudo);
   const hashes: string[] = [];
+  let runIdEsperado: string | null = null;
   for (let i = 0; i < brutas.length; i += 1) {
     const bruta = brutas[i];
     if (bruta === '') return quebrada(i, brutas.length, 'LINHA_VAZIA');
@@ -352,6 +418,11 @@ export function verificarCadeia(conteudo: string): VerificacaoCadeia {
     } else if (linha.prev_hash !== hashes[i - 1]) {
       return quebrada(i, brutas.length, 'PREV_HASH_DIVERGENTE');
     }
+    // D-ÂNCORA-RUNID: a PRIMEIRA linha define o run dono; qualquer linha de
+    // outro run quebra AQUI (injeção entre runs é detectável mesmo com os
+    // hashes recalculados — o runId faz parte do corpo coberto pelo hash).
+    if (runIdEsperado === null) runIdEsperado = linha.runId;
+    else if (linha.runId !== runIdEsperado) return quebrada(i, brutas.length, 'RUN_ID_DIVERGENTE');
     const corpoStr = canonicalizarJson(corpoSemEnvelope(linha as unknown as Record<string, unknown>));
     const esperado = sha256Hex(`${linha.prev_hash ?? ''}\n${corpoStr}`);
     if (esperado !== linha.hash) return quebrada(i, brutas.length, 'HASH_DIVERGENTE');
@@ -382,6 +453,9 @@ export interface OpcoesLedger {
  * `anexar` lê o arquivo, VALIDA a cadeia existente e só então concatena a linha
  * nova e grava atomicamente (D-LEDGER). Sobre cadeia quebrada RECUSA com
  * LedgerError — uma adulteração nunca é absorvida por um anexo subsequente.
+ * A seção crítica inteira (leitura → montagem → escrita) roda sob o mutex
+ * in-process `comMutex` (D-ESCRITOR-UNICO): dois anexos concorrentes no MESMO
+ * processo não leem a mesma cauda — nenhuma linha é perdida em silêncio (§11).
  */
 export class Ledger {
   readonly dir: string;
@@ -428,31 +502,39 @@ export class Ledger {
   /**
    * Anexa um evento ao fim da cadeia. Recusa (CADEIA_QUEBRADA) se o arquivo
    * existente já estiver adulterado; recusa (EVENTO_INVALIDO) se o evento
-   * violar o schema. A linha retornada é a materializada (com prev_hash/hash).
+   * violar o schema (incluindo runId ausente — D-ÂNCORA-RUNID). A linha
+   * retornada é a materializada (com prev_hash/hash).
+   * Serializada por `comMutex` no caminho do arquivo (D-ESCRITOR-UNICO).
    */
   async anexar(evento: EventoNovo): Promise<LedgerLinha> {
-    validarEventoNovo(evento);
-    const conteudo = await lerArquivoOuVazio(this.caminho());
-    const anteriores = fatiarLinhas(conteudo);
-    if (anteriores.length > 0) {
-      const verificacao = verificarCadeia(conteudo);
-      if (!verificacao.ok) {
-        throw new LedgerError(
-          'CADEIA_QUEBRADA',
-          `recusa anexar: cadeia existente quebrada na linha ${verificacao.primeiraQuebrada} (${verificacao.motivo})`,
-        );
+    // Mutex in-process POR CAMINHO: sem ele, dois anexos concorrentes leem a
+    // mesma cauda N e gravam N+1 — o último rename vence e UMA LINHA SE PERDE
+    // em silêncio (§11). O mutex é por processo; escritor único por processo e
+    // por diretório de run é pré-condição declarada (ver cabeçalho do módulo).
+    return comMutex(this.caminho(), async () => {
+      validarEventoNovo(evento);
+      const conteudo = await lerArquivoOuVazio(this.caminho());
+      const anteriores = fatiarLinhas(conteudo);
+      if (anteriores.length > 0) {
+        const verificacao = verificarCadeia(conteudo);
+        if (!verificacao.ok) {
+          throw new LedgerError(
+            'CADEIA_QUEBRADA',
+            `recusa anexar: cadeia existente quebrada na linha ${verificacao.primeiraQuebrada} (${verificacao.motivo})`,
+          );
+        }
       }
-    }
-    const linha = montarLinha(anteriores.length + 1, new Date().toISOString(), evento, ultimoHash(conteudo));
-    const disco = canonicalizarJson(linha as unknown as Record<string, unknown>);
-    const novo = conteudo === '' ? disco : `${conteudo}\n${disco}`;
-    try {
-      await escreverAtomico(this.caminho(), novo, this.opcoes.escreverArquivo ?? escreverArquivoPadrao);
-    } catch (erro) {
-      if (erro instanceof LedgerError) throw erro;
-      throw new LedgerError('IO_ERRO', `falha ao anexar ao ledger ${this.caminho()}: ${mensagemDe(erro)}`);
-    }
-    return linha;
+      const linha = montarLinha(anteriores.length + 1, new Date().toISOString(), evento, ultimoHash(conteudo));
+      const disco = canonicalizarJson(linha as unknown as Record<string, unknown>);
+      const novo = conteudo === '' ? disco : `${conteudo}\n${disco}`;
+      try {
+        await escreverAtomico(this.caminho(), novo, this.opcoes.escreverArquivo ?? escreverArquivoPadrao);
+      } catch (erro) {
+        if (erro instanceof LedgerError) throw erro;
+        throw new LedgerError('IO_ERRO', `falha ao anexar ao ledger ${this.caminho()}: ${mensagemDe(erro)}`);
+      }
+      return linha;
+    });
   }
 }
 
@@ -538,18 +620,24 @@ export class TelemetriaFile {
     return path.join(this.dir, this.nomeArquivo);
   }
 
-  /** Anexa uma linha de telemetria (recusa shape/número inválido). */
+  /**
+   * Anexa uma linha de telemetria (recusa shape/número inválido). Mesma seção
+   * crítica read-modify-write do ledger, então passa pelo MESMO mutex
+   * in-process (D-ESCRITOR-UNICO): anexos concorrentes não se perdem (§11).
+   */
   async anexar(telemetria: Telemetria): Promise<void> {
-    validarTelemetria(telemetria);
-    const conteudo = await lerArquivoOuVazio(this.caminho());
-    const disco = canonicalizarJson(telemetria as unknown as Record<string, unknown>);
-    const novo = conteudo === '' ? disco : `${conteudo}\n${disco}`;
-    try {
-      await escreverAtomico(this.caminho(), novo, this.opcoes.escreverArquivo ?? escreverArquivoPadrao);
-    } catch (erro) {
-      if (erro instanceof LedgerError) throw erro;
-      throw new LedgerError('IO_ERRO', `falha ao anexar telemetria em ${this.caminho()}: ${mensagemDe(erro)}`);
-    }
+    return comMutex(this.caminho(), async () => {
+      validarTelemetria(telemetria);
+      const conteudo = await lerArquivoOuVazio(this.caminho());
+      const disco = canonicalizarJson(telemetria as unknown as Record<string, unknown>);
+      const novo = conteudo === '' ? disco : `${conteudo}\n${disco}`;
+      try {
+        await escreverAtomico(this.caminho(), novo, this.opcoes.escreverArquivo ?? escreverArquivoPadrao);
+      } catch (erro) {
+        if (erro instanceof LedgerError) throw erro;
+        throw new LedgerError('IO_ERRO', `falha ao anexar telemetria em ${this.caminho()}: ${mensagemDe(erro)}`);
+      }
+    });
   }
 
   /** Lê todas as linhas de telemetria; linha inválida = ERRO estruturado. */

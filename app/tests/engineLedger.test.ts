@@ -14,6 +14,16 @@
  *            inválido RECUSA; escrita que falha no meio NUNCA deixa o arquivo
  *            pela metade (a gravação parcial morre no tmp, o alvo fica intacto).
  *
+ * FIX-ONDA1 (garantias do ledger — revisão adversarial):
+ *   - 20 anexos em PARALELO (Promise.all) no mesmo processo → 20 linhas, cadeia
+ *     íntegra, NENHUMA perdida (mutex in-process `comMutex`, D-ESCRITOR-UNICO,
+ *     cobre a corrida read-modify-write do §11);
+ *   - linha com runId de OUTRO run → RUN_ID_DIVERGENTE MESMO com os hashes
+ *     recalculados (D-ÂNCORA-RUNID);
+ *   - truncamento de cauda → cadeia ok (LIMITE DECLARADO: o ledger sozinho não
+ *     detecta; só a âncora externa detecta — o run.json é a âncora, e o runId
+ *     de TODA linha do ledger casa com o runId dele).
+ *
  * Sem rede, sem LLM, sem chave: toda raiz de disco é temporária e injetada.
  */
 import { afterEach, describe, it } from 'node:test';
@@ -52,6 +62,7 @@ import {
   montarCadeia,
   verificarCadeia,
   type EventoNovo,
+  type LedgerLinha,
   type Telemetria,
 } from '../electron/main/engine/runtime/ledger';
 
@@ -113,9 +124,9 @@ describe('ledger — cadeia de hash', () => {
     const dir = await novoDir('cadeia');
     const ledger = new Ledger(dir);
     await ledger.anexar({ tipo: 'run_criado', runId: 'r-1', slug: 'demo' });
-    await ledger.anexar({ tipo: 'fase_iniciada', fase: 'F0' });
-    await ledger.anexar({ tipo: 'fase_concluida', fase: 'F0' });
-    await ledger.anexar({ tipo: 'fase_iniciada', fase: 'F1' });
+    await ledger.anexar({ tipo: 'fase_iniciada', runId: 'r-1', fase: 'F0' });
+    await ledger.anexar({ tipo: 'fase_concluida', runId: 'r-1', fase: 'F0' });
+    await ledger.anexar({ tipo: 'fase_iniciada', runId: 'r-1', fase: 'F1' });
 
     const antes = await ledger.verificarCadeiaEmDisco();
     assert.equal(antes.ok, true);
@@ -139,7 +150,7 @@ describe('ledger — cadeia de hash', () => {
     const dir = await novoDir('cadeia-recusa');
     const ledger = new Ledger(dir);
     await ledger.anexar({ tipo: 'run_criado', runId: 'r-1', slug: 'demo' });
-    await ledger.anexar({ tipo: 'fase_iniciada', fase: 'F0' });
+    await ledger.anexar({ tipo: 'fase_iniciada', runId: 'r-1', fase: 'F0' });
     const caminho = path.join(dir, LEDGER_FILENAME);
     const linhas = (await fsp.readFile(caminho, 'utf8')).split('\n');
     // Adultera a fase da 2ª linha.
@@ -147,7 +158,7 @@ describe('ledger — cadeia de hash', () => {
     await fsp.writeFile(caminho, [linhas[0], adulterada].join('\n'), 'utf8');
 
     await assert.rejects(
-      () => ledger.anexar({ tipo: 'fase_concluida', fase: 'F0' }),
+      () => ledger.anexar({ tipo: 'fase_concluida', runId: 'r-1', fase: 'F0' }),
       ehLedgerErrorCom('CADEIA_QUEBRADA'),
     );
 
@@ -159,8 +170,8 @@ describe('ledger — cadeia de hash', () => {
   it('montarCadeia puro: íntegra ok; remover a primeira linha quebra na nova raiz', () => {
     const eventos: EventoNovo[] = [
       { tipo: 'run_criado', runId: 'r', slug: 'demo' },
-      { tipo: 'fase_iniciada', fase: 'F0' },
-      { tipo: 'fase_concluida', fase: 'F0' },
+      { tipo: 'fase_iniciada', runId: 'r', fase: 'F0' },
+      { tipo: 'fase_concluida', runId: 'r', fase: 'F0' },
     ];
     const integra = montarCadeia(eventos, '2026-08-30T00:00:00.000Z');
     const v = verificarCadeia(integra);
@@ -172,6 +183,102 @@ describe('ledger — cadeia de hash', () => {
     const q = verificarCadeia(semPrimeira);
     assert.equal(q.ok, false);
     if (!q.ok) assert.equal(q.primeiraQuebrada, 0);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// 1b) Garantias do fix da onda 1 (revisão adversarial — HIGH-1/HIGH-2)
+// ---------------------------------------------------------------------------
+
+describe('ledger — garantias do fix onda 1 (HIGH-1/HIGH-2)', () => {
+  it('20 anexar em PARALELO (Promise.all) → 20 linhas, cadeia íntegra, nenhuma perdida', async () => {
+    const dir = await novoDir('paralelo');
+    const ledger = new Ledger(dir);
+    const eventos: EventoNovo[] = [
+      { tipo: 'run_criado', runId: 'r-par', slug: 'demo' },
+      ...Array.from({ length: 19 }, (_, i) => ({
+        tipo: 'checkpoint' as const,
+        runId: 'r-par',
+        descricao: `cp-${i + 1}`,
+      })),
+    ];
+    // Promise.all dispara os 20 anexos "ao mesmo tempo": SEM o mutex, todos
+    // leriam a mesma cauda vazia e só a última gravação sobreviveria — 19
+    // linhas PERDIDAS em silêncio (§11). O mutex in-process `comMutex` (por
+    // caminho) serializa a seção crítica leitura→montagem→escrita: nada se
+    // perde e a cadeia sai íntegra.
+    await Promise.all(eventos.map((e) => ledger.anexar(e)));
+    const linhas = await ledger.ler();
+    assert.equal(linhas.length, 20); // NENHUMA perdida
+    assert.deepEqual(
+      linhas.map((l) => l.seq),
+      Array.from({ length: 20 }, (_, i) => i + 1),
+    );
+    assert.deepEqual(
+      linhas.map((l) => l.runId),
+      Array.from({ length: 20 }, () => 'r-par'),
+    );
+    const v = await ledger.verificarCadeiaEmDisco();
+    assert.equal(v.ok, true);
+    if (v.ok) assert.equal(v.linhas, 20);
+    // As 19 descrições distintas continuam presentes — nada foi engolido.
+    const descricoes = new Set(
+      linhas
+        .filter((l): l is Extract<LedgerLinha, { tipo: 'checkpoint' }> => l.tipo === 'checkpoint')
+        .map((l) => l.descricao),
+    );
+    assert.equal(descricoes.size, 19);
+  });
+
+  it('linha com runId de OUTRO run no meio → RUN_ID_DIVERGENTE, MESMO com hashes recalculados', () => {
+    // Cenário do HIGH-1: um atacante recalcula os hashes (a cadeia de hash
+    // fica internamente consistente) e injeta material de OUTRO run no meio.
+    // `montarCadeia` com runId divergente no meio simula EXATAMENTE esse
+    // ataque: cada hash cobre o seu corpo (incluindo o runId), a corrente
+    // prev_hash fecha — mas a âncora D-ÂNCORA-RUNID quebra AQUI.
+    const eventosMisturados: EventoNovo[] = [
+      { tipo: 'run_criado', runId: 'r-1', slug: 'demo' },
+      { tipo: 'fase_iniciada', runId: 'r-2', fase: 'F0' }, // linha de OUTRO run
+      { tipo: 'fase_concluida', runId: 'r-1', fase: 'F0' },
+    ];
+    const misturada = montarCadeia(eventosMisturados, '2026-08-30T00:00:00.000Z');
+    const q = verificarCadeia(misturada);
+    assert.equal(q.ok, false);
+    if (!q.ok) {
+      assert.equal(q.primeiraQuebrada, 1); // exatamente A linha do outro run
+      assert.equal(q.motivo, 'RUN_ID_DIVERGENTE');
+      assert.equal(q.linhas, 3);
+    }
+  });
+
+  it('truncamento de cauda → verificarCadeia ok (LIMITE: só a âncora externa detecta; run.json é a âncora)', async () => {
+    const dir = await novoDir('truncamento');
+    const ledger = new Ledger(dir);
+    const r = criarRun(runBase());
+    await salvarRun(dir, r);
+    await ledger.anexar({ tipo: 'run_criado', runId: r.runId, slug: r.slug });
+    await ledger.anexar({ tipo: 'fase_iniciada', runId: r.runId, fase: 'F0' });
+    await ledger.anexar({ tipo: 'fase_concluida', runId: r.runId, fase: 'F0' });
+
+    const caminho = path.join(dir, LEDGER_FILENAME);
+    const conteudo = await fsp.readFile(caminho, 'utf8');
+    const brutas = conteudo.split('\n');
+    assert.equal(brutas.length, 3);
+    // Remove a ÚLTIMA linha (trunca a cauda) e grava de volta. O PREFIXO
+    // restante continua uma cadeia VÁLIDA: hashes consistentes, seq contígua.
+    const truncado = brutas.slice(0, -1).join('\n');
+    await fsp.writeFile(caminho, truncado, 'utf8');
+    assert.equal(verificarCadeia(truncado).ok, true);
+    // LIMITE DECLARADO (documentação do teste): a cadeia SOZINHA não detecta
+    // truncamento — ela é autorreferente (só prev_hash do próprio arquivo).
+    // Só a ÂNCORA EXTERNA detecta: o run.json (que é reescrito atomicamente)
+    // é a âncora — o runId de TODA linha do ledger casa com o runId dele.
+    // (O evento truncado vira divergência observável ao comparar o conteúdo do
+    // ledger com o estado/fases persistidos — fora do escopo desta unidade.)
+    const runEmDisco = await lerRun(dir);
+    const linhas = await ledger.ler();
+    assert.equal(linhas.length, 2); // a cauda truncada saiu do arquivo
+    for (const l of linhas) assert.equal(l.runId, runEmDisco.runId);
   });
 });
 
@@ -191,23 +298,23 @@ describe('retomada a partir de uma fase', () => {
     // F0 concluída.
     r = iniciarFase(r, 'F0');
     await salvarRun(dir, r);
-    await ledger.anexar({ tipo: 'fase_iniciada', fase: 'F0' });
+    await ledger.anexar({ tipo: 'fase_iniciada', runId: r.runId, fase: 'F0' });
     r = concluirFase(r, 'F0');
     await salvarRun(dir, r);
-    await ledger.anexar({ tipo: 'fase_concluida', fase: 'F0' });
+    await ledger.anexar({ tipo: 'fase_concluida', runId: r.runId, fase: 'F0' });
 
     // F1 concluída.
     r = iniciarFase(r, 'F1');
     await salvarRun(dir, r);
-    await ledger.anexar({ tipo: 'fase_iniciada', fase: 'F1' });
+    await ledger.anexar({ tipo: 'fase_iniciada', runId: r.runId, fase: 'F1' });
     r = concluirFase(r, 'F1');
     await salvarRun(dir, r);
-    await ledger.anexar({ tipo: 'fase_concluida', fase: 'F1' });
+    await ledger.anexar({ tipo: 'fase_concluida', runId: r.runId, fase: 'F1' });
 
     // F2 iniciada e INTERROMPIDA no meio (em_andamento no disco).
     r = iniciarFase(r, 'F2');
     await salvarRun(dir, r);
-    await ledger.anexar({ tipo: 'fase_iniciada', fase: 'F2' });
+    await ledger.anexar({ tipo: 'fase_iniciada', runId: r.runId, fase: 'F2' });
 
     // ---- "novo processo": tudo volta do disco ----
     const retomado = await lerRun(dir);
@@ -220,12 +327,12 @@ describe('retomada a partir de uma fase', () => {
     // Retomada: fase atual já em_andamento → executa SEM re-chamar iniciarFase.
     let r2 = concluirFase(retomado, 'F2');
     await salvarRun(dir, r2);
-    await ledger.anexar({ tipo: 'fase_concluida', fase: 'F2' });
+    await ledger.anexar({ tipo: 'fase_concluida', runId: r2.runId, fase: 'F2' });
 
     // E segue para a próxima da ordem fixa, que estava pendente.
     r2 = iniciarFase(r2, 'F3');
     await salvarRun(dir, r2);
-    await ledger.anexar({ tipo: 'fase_iniciada', fase: 'F3' });
+    await ledger.anexar({ tipo: 'fase_iniciada', runId: r2.runId, fase: 'F3' });
 
     const linhas = await ledger.ler();
     assert.equal(linhas.length, 8); // run_criado + F0..F2 (in/out) + F2 out + F3 in
@@ -376,7 +483,7 @@ describe('escrita atômica (D-WRITE)', () => {
     const dir = await novoDir('atomico');
     const ledger = new Ledger(dir);
     await ledger.anexar({ tipo: 'run_criado', runId: 'r-1', slug: 'demo' });
-    await ledger.anexar({ tipo: 'fase_iniciada', fase: 'F0' });
+    await ledger.anexar({ tipo: 'fase_iniciada', runId: 'r-1', fase: 'F0' });
     const caminho = path.join(dir, LEDGER_FILENAME);
     const antes = await fsp.readFile(caminho, 'utf8');
     assert.equal(verificarCadeia(antes).ok, true);
@@ -389,7 +496,7 @@ describe('escrita atômica (D-WRITE)', () => {
     };
     const ledgerInstavel = new Ledger(dir, { escreverArquivo: escreverQueFalha });
     await assert.rejects(
-      () => ledgerInstavel.anexar({ tipo: 'fase_concluida', fase: 'F0' }),
+      () => ledgerInstavel.anexar({ tipo: 'fase_concluida', runId: 'r-1', fase: 'F0' }),
       ehLedgerErrorCom('IO_ERRO'),
     );
 
@@ -401,7 +508,7 @@ describe('escrita atômica (D-WRITE)', () => {
 
     // Estado segue utilizável: o próximo anexo (escrita boa) funciona.
     const ledgerBom = new Ledger(dir);
-    await ledgerBom.anexar({ tipo: 'fase_concluida', fase: 'F0' });
+    await ledgerBom.anexar({ tipo: 'fase_concluida', runId: 'r-1', fase: 'F0' });
     const v = await ledgerBom.verificarCadeiaEmDisco();
     assert.equal(v.ok, true);
     if (v.ok) assert.equal(v.linhas, 3);

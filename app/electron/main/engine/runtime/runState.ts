@@ -32,6 +32,20 @@
  *   nunca um arquivo pela metade. O custo O(n) por gravação é aceitável para
  *   as ordens de grandeza da engine (dezenas de milhares de linhas por run).
  *
+ * DECISÃO D-ESCRITOR-UNICO (mutex in-process — compartilhada com o ledger):
+ *   a escrita é READ-MODIFY-WRITE do arquivo inteiro (`salvarRun` reescreve
+ *   run.json; `Ledger.anexar` relê a cauda e reescreve ledger.jsonl) — dois
+ *   escritores CONCORRENTES no mesmo arquivo leem o mesmo estado N, ambos
+ *   gravam N+1 e o último rename vence: a gravação anterior é PERDIDA EM
+ *   SILÊNCIO (proibido, `docs/16-engine-de-trilha.md` §11). `escreverAtomico`
+ *   sozinho não resolve isso — ele só garante que CADA gravação individual
+ *   seja atômica, não que as gravações sejam serializadas. O mutex
+ *   `comMutex(chave, fn)` (cadeia de promessas por caminho, zero dependência
+ *   nova) serializa as seções críticas DENTRO do mesmo processo. PRÉ-CONDIÇÃO
+ *   DECLARADA: escritor único POR PROCESSO e por diretório de run — a engine
+ *   roda UM gerador por run. Escrita CROSS-PROCESS (dois processos gravando o
+ *   mesmo diretório de run) NÃO é coberta e é proibida pela arquitetura.
+ *
  * DECISÃO D-ETAPA (`modelosPorEtapa`): nesta onda, ETAPA = FASE (mapa
  * fase→modelo). As ondas 2-4 podem refinar `EtapaId` (ex.: por aula) — a
  * validação passa a aceitar o superconjunto; a decisão é consciente e registrada.
@@ -561,6 +575,54 @@ export async function escreverAtomico(
   }
 }
 
+// ---------------------------------------------------------------------------
+// Mutex in-process — serializa as seções críticas read-modify-write (D-ESCRITOR-UNICO)
+// ---------------------------------------------------------------------------
+
+/**
+ * Cadeia de promessas por CHAVE (normalmente o caminho do arquivo). Só entra
+ * aqui quem passa por `comMutex`; entradas órfãs (crítico que terminou sem
+ * ninguém na fila) são removidas no `finally` — o mapa não acumula lixo.
+ */
+const cadeiasPorChave = new Map<string, Promise<void>>();
+
+/**
+ * Serializa execução assíncrona por chave (D-ESCRITOR-UNICO): chamadas
+ * concorrentes a `comMutex(chave, fn)` rodam em fila FIFO — cada uma espera a
+ * anterior terminar ANTES de começar. É o mutex IN-PROCESS do run: `salvarRun`
+ * e `Ledger.anexar` (que relê a cauda e reescreve o arquivo inteiro) só são
+ * seguros se forem serializados por caminho — sem isso, dois anexos concorrentes
+ * leem a mesma cauda e o último rename vence, PERDENDO uma linha em silêncio
+ * (proibido, `docs/16-engine-de-trilha.md` §11).
+ *
+ * ESCOPO DECLARADO: mutex vale POR PROCESSO. Escritor único por PROCESSO e por
+ * diretório de run é pré-condição (a engine roda um gerador por run); escrita
+ * CROSS-PROCESS não é coberta. Rejeições: `comMutex` nunca rejeita por si — o
+ * erro de `fn` é propagado SÓ ao chamador daquela execução e não trava a fila.
+ */
+export async function comMutex<T>(chave: string, fn: () => Promise<T>): Promise<T> {
+  const anterior = cadeiasPorChave.get(chave) ?? Promise.resolve();
+  let liberar!: () => void;
+  const porta = new Promise<void>((resolve) => {
+    liberar = resolve;
+  });
+  // A promessa guardada NUNCA rejeita (anterior.catch + porta que só resolve):
+  // o erro de um crítico é entregue ao dono daquela execução, não à fila.
+  const fila = anterior.then(
+    () => porta,
+    () => porta,
+  );
+  cadeiasPorChave.set(chave, fila);
+  await anterior.catch(() => {});
+  try {
+    return await fn();
+  } finally {
+    liberar();
+    // Se ninguém enfileirou depois de nós, esta entrada já cumpriu seu papel.
+    if (cadeiasPorChave.get(chave) === fila) cadeiasPorChave.delete(chave);
+  }
+}
+
 /**
  * fsync de diretório — garante que o rename sobreviva a uma queda de energia.
  * Plataformas/filesystems sem suporte (EINVAL/ENOTSUP/EBADF/EISDIR) são
@@ -642,9 +704,10 @@ export interface OpcoesEscrita {
 }
 
 /**
- * Persiste o run.json (escrita atômica, D-WRITE). GRAVA O MESMO VALIDADOR QUE
- * A LEITURA: estado inválido NUNCA chega ao disco. `atualizadoEm` é estampado
- * no momento da persistência (a cópia em disco; o objeto em memória não muda).
+ * Persiste o run.json (escrita atômica, D-WRITE, serializada por comMutex —
+ * D-ESCRITOR-UNICO). GRAVA O MESMO VALIDADOR QUE A LEITURA: estado inválido
+ * NUNCA chega ao disco. `atualizadoEm` é estampado no momento da persistência
+ * (a cópia em disco; o objeto em memória não muda).
  */
 export async function salvarRun(dir: string, run: RunState, opcoes: OpcoesEscrita = {}): Promise<void> {
   const valido = validarRun(run); // lança RunStateError se inválido — nunca grava lixo
@@ -652,7 +715,11 @@ export async function salvarRun(dir: string, run: RunState, opcoes: OpcoesEscrit
   const conteudo = `${JSON.stringify({ ...valido, atualizadoEm: agora }, null, 2)}\n`;
   const caminho = path.join(dir, RUN_FILENAME);
   try {
-    await escreverAtomico(caminho, conteudo, opcoes.escreverArquivo);
+    // Mutex in-process por caminho: dois `salvarRun` concorrentes no mesmo
+    // diretório não se atropelam (o último rename não engole o anterior).
+    await comMutex(caminho, async () => {
+      await escreverAtomico(caminho, conteudo, opcoes.escreverArquivo);
+    });
   } catch (erro) {
     throw new RunStateError('IO_ERRO', `falha ao gravar ${caminho}: ${mensagemDe(erro)}`);
   }
