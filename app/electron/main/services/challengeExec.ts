@@ -8,6 +8,9 @@
  * ESM) + package.json {type:'module'} num diretório temporário; roda
  * `node --test`. ADITIVO (rodada 9): desafio MULTI-ARQUIVO — N arquivos
  * (paths relativos, mkdir dos subdirs) + test.mjs; o aluno edita todos.
+ * ADITIVO (P-31/A-P04-3): o ExecFn aceita `opts.env` como base do ambiente do
+ * filho (default: `process.env` — comportamento do produto INALTERADO; quem
+ * injeta é o provador F9, com o env endurecido do harness).
  * Verdict por EXECUÇÃO com gate de IGUALDADE:
  *   passed = exit 0 && testsRun === expectedTestCount
  * (exit code sozinho mente — arquivo de teste vazio sai 0; mesma armadilha
@@ -27,7 +30,18 @@ export interface ExecResult {
   stderr: string;
 }
 
-export type ExecFn = (dir: string, args: string[], opts?: { timeoutMs?: number }) => Promise<ExecResult>;
+/**
+ * ADITIVO (P-31/A-P04-3): `opts.env` é a BASE do ambiente do processo filho
+ * quando presente (`nodeExec` usa `opts.env ?? process.env` — default
+ * INALTERADO: o caminho do produto segue usando `process.env`; o caminho F9
+ * injeta o env ENDURECIDO do harness). Tipo do executor — o aditivo é só
+ * isso: um slot opcional no opts.
+ */
+export type ExecFn = (
+  dir: string,
+  args: string[],
+  opts?: { timeoutMs?: number; env?: NodeJS.ProcessEnv },
+) => Promise<ExecResult>;
 
 /**
  * Binário do NODE a usar nos processos filhos. DENTRO DO ELECTRON,
@@ -50,7 +64,11 @@ export const nodeExec: ExecFn = (dir, args, opts) =>
     // do filho acreditar que já está dentro de um runner e PULAR os arquivos
     // (exit 0 sem testar nada — o furo de "exit code sozinho mente" de
     // languages.md). Remove sempre do ambiente do filho.
-    const env = { ...process.env };
+    // ADITIVO (P-31/A-P04-3): o env do filho parte de `opts.env` quando o
+    // chamador injeta (o provador F9 passa o env endurecido do harness — sem
+    // NODE_TEST_CONTEXT/proxies/NODE_OPTIONS/FORCE_COLOR, com NO_PROXY=*);
+    // SEM opts.env o comportamento é o de sempre: process.env.
+    const env = { ...(opts?.env ?? process.env) };
     delete env.NODE_TEST_CONTEXT;
     const child = spawn(nodeBinary(), args, {
       cwd: dir,

@@ -19,9 +19,10 @@
  *
  *   1. code → exitCode: 0 é sucesso; 1 e 137 (timeout-ou-OOM) preservados;
  *   2. stdout/stderr intactos em BYTES (ANSI, unicode, brancos de fim);
- *   3. dir/args repassados intactos e timeoutMs encaminhado; `env` NÃO é
- *      repassado — o ExecFn do challengeExec não tem esse slot (adaptação de
- *      assinatura, defaults seguros: chamada sem opts = sem opts no produto);
+ *   3. dir/args repassados intactos, timeoutMs encaminhado e — P-31/A-P04-3 —
+ *      `env` REPASSADO quando presente (o env endurecido do harness atravessa
+ *      o adaptador até o nodeExec); chamada sem opts = sem opts no produto, e
+ *      env ausente não cria a chave (defaults seguros);
  *   4. resultado sem `code` (shape inesperado — incl. null/undefined e
  *      `code` não-numérico) → `ExecShapeError` estruturado, fail-closed;
  *   5. a assinatura COMPILA com o ExecFn real do produto:
@@ -46,7 +47,7 @@ import { nodeExec, type ExecFn as ChallengeExecFn } from '../electron/main/servi
 interface RecordedCall {
   dir: string;
   args: string[];
-  opts?: { timeoutMs?: number };
+  opts?: { timeoutMs?: number; env?: NodeJS.ProcessEnv };
 }
 
 /** Executor fake com shape do challengeExec: devolve os resultados em ordem. */
@@ -98,17 +99,32 @@ describe('fromChallengeExec — mapeia code → exitCode', () => {
 // ---------------------------------------------------------------------------
 
 describe('fromChallengeExec — repasse de dir/args/opts', () => {
-  it('dir e args repassados intactos; timeoutMs encaminhado; env NÃO é repassado', async () => {
+  it('dir e args repassados intactos; timeoutMs encaminhado; env REPASSADO quando presente (P-31)', async () => {
     const args = ['--test', '--test-reporter=spec', 'test.mjs'];
     const { exec, calls } = recordingExec([{ code: 0, stdout: '', stderr: '' }]);
     const adapted = fromChallengeExec(exec);
-    // opts no shape da ENGINE (timeoutMs + env): a adaptação de assinatura
-    // entrega só o que o ExecFn do produto aceita.
-    await adapted('/tmp/trilha-prova', args, { timeoutMs: 42_000, env: { PATH: '/usr/bin', NO_PROXY: '*' } });
+    // opts no shape da ENGINE (timeoutMs + env): o aditivo P-31/A-P04-3 faz o
+    // env atravessar o adaptador — o env endurecido do harness chega ao
+    // nodeExec (`opts.env ?? process.env`).
+    const env: NodeJS.ProcessEnv = { PATH: '/usr/bin', NO_PROXY: '*' };
+    await adapted('/tmp/trilha-prova', args, { timeoutMs: 42_000, env });
     assert.equal(calls.length, 1, 'uma chamada ao executor subjacente por chamada do adaptado');
     assert.equal(calls[0].dir, '/tmp/trilha-prova');
     assert.deepEqual(calls[0].args, args, 'args repassados intactos');
-    assert.deepEqual(calls[0].opts, { timeoutMs: 42_000 }, 'timeoutMs encaminhado; env sai — o produto não tem esse slot');
+    assert.deepEqual(calls[0].opts, { timeoutMs: 42_000, env }, 'timeoutMs E env encaminhados — o furo do replan fechado');
+  });
+
+  it('env ausente não cria a chave (defaults seguros — histórico com só timeoutMs intacto)', async () => {
+    const { exec, calls } = recordingExec([{ code: 0, stdout: '', stderr: '' }]);
+    await fromChallengeExec(exec)('d', ['--test'], { timeoutMs: 9_000 });
+    assert.deepEqual(calls[0].opts, { timeoutMs: 9_000 }, 'sem env no chamador ⇒ sem env no produto');
+  });
+
+  it('env sozinho (sem timeoutMs) também é repassado', async () => {
+    const { exec, calls } = recordingExec([{ code: 0, stdout: '', stderr: '' }]);
+    const env: NodeJS.ProcessEnv = { SM_F9: '1' };
+    await fromChallengeExec(exec)('d', ['--test'], { env });
+    assert.deepEqual(calls[0].opts, { env });
   });
 
   it('chamada sem opts → executor subjacente chamado sem opts (defaults seguros)', async () => {

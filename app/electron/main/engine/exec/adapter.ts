@@ -8,9 +8,11 @@
  *   - ENGINE (`exec/proofs.ts`, A-P07-2): `ExecResult { exitCode, stdout,
  *     stderr }` e `ExecFn = (dir, args, opts?) => Promise<ExecResult>` — o
  *     contrato dos julgadores puros das provas e do harness;
- *   - PRODUTO (`services/challengeExec.ts` — INTOCADO): `ExecResult { code,
- *     stdout, stderr }` e `ExecFn = (dir, args, opts?: { timeoutMs? })` — o
- *     executor REAL que a UI usa (nodeExec: spawn de `node --test`).
+ *   - PRODUTO (`services/challengeExec.ts`): `ExecResult { code, stdout,
+ *     stderr }` e `ExecFn = (dir, args, opts?: { timeoutMs?; env? })` — o
+ *     executor REAL que a UI usa (nodeExec: spawn de `node --test`). ADITIVO
+ *     (P-31/A-P04-3): `opts.env` é a base do env do filho (`nodeExec` usa
+ *     `opts.env ?? process.env`); antes o slot não existia.
  *
  * O executor real da UI é o challengeExec; a engine precisa dirigir a
  * execução OFICIAL do produto — rodar os testes OFICIAIS nos lugares em que o
@@ -40,22 +42,20 @@
  * ressalvas de composição (documentadas aqui, seguindo o que o próprio
  * harness.ts declara nos docstrings de NETWORK_HARDENING/EXIT_GUARD_SOURCE):
  *
- *   1. ENV: o ExecFn do challengeExec NÃO aceita `env` no opts — o adaptador
- *      repassa só `timeoutMs`. O `nodeExec` monta o env do filho internamente
- *      e JÁ remove NODE_TEST_CONTEXT no spawn (a armadilha crítica está
- *      fechada no produto). O enriquecimento de rede do harness
- *      (`buildChildEnv`/`NETWORK_HARDENING`) só alcança o processo filho
- *      quando o challengeExec passar a construir o env do filho com
- *      `buildChildEnv` — o follow-up que o harness.ts aponta ("hoje
- *      `challengeExec.nodeExec` monta o env à mão").
- *   2. EXIT GUARD (`--require`): `escreverExitGuard(dir)` grava o
- *      exit-guard.cjs no diretório isolado; quem recebe `(dir, args)` do
- *      `verifyChallengeProofs` é o ExecFn injetado — a integração F9 que
- *      monta o ProofEnv deve inserir
- *      `['--require', path.join(dir, 'exit-guard.cjs'), ...args]` ANTES de
- *      chamar o adaptador endurecido. O adaptador NÃO injeta o flag: é puro
- *      por contrato (A-P07-2), e a composição fica visível no ponto único que
- *      constrói os args.
+ *   1. ENV (FURO FECHADO no P-31): o ExecFn do produto AGORA aceita
+ *      `opts.env` e o adaptador REPASSA o env do chamador. O env endurecido
+ *      do harness (`createHardenedExec` → `buildChildEnv` — sem
+ *      NODE_TEST_CONTEXT/proxies/NODE_OPTIONS/FORCE_COLOR, com NO_PROXY=*)
+ *      atravessa o adaptador e vira a BASE do env do filho no `nodeExec`
+ *      (`opts.env ?? process.env` — default do produto INALTERADO). Antes o
+ *      env era descartado aqui e só o `timeoutMs` passava — o furo medido
+ *      pelo replan da onda 2.
+ *   2. EXIT GUARD (`--require`): a integração F9 (`phases/f9Verifier.ts`,
+ *      P-31) escreve `escreverExitGuard(dir)` no diretório isolado e insere
+ *      `['--require', path.join(dir, 'exit-guard.cjs'), ...argsDeTeste(input)]`
+ *      ANTES de chamar o adaptador endurecido. O adaptador NÃO injeta o flag:
+ *      é puro por contrato (A-P07-2), e a composição fica visível no ponto
+ *      único que constrói os args.
  *
  * FAIL-CLOSED (regra 1 do plano): resultado do executor que NÃO tem `code` é
  * shape inesperado — um executor que não seguiu o contrato do produto não
@@ -107,15 +107,29 @@ function inspectShape(value: unknown): string {
 
 /**
  * Adapta um ExecFn do challengeExec (produto) para o ExecFn da ENGINE
- * (proofs.ts). Mapeia `code` → `exitCode`; repassa `dir`/`args` intactos e
- * `opts.timeoutMs` quando o chamador o fornece — o ExecFn do produto NÃO tem
- * slot de `env` (ver composição no cabeçalho; o nodeExec monta o env do filho
- * por conta própria). Qualquer resultado sem `code` (shape inesperado) lança
- * `ExecShapeError` — fail-closed.
+ * (proofs.ts). Mapeia `code` → `exitCode`; repassa `dir`/`args` intactos,
+ * `opts.timeoutMs` e (P-31/A-P04-3) `opts.env` quando o chamador os fornece —
+ * o env endurecido do harness atravessa o adaptador e vira a base do env do
+ * filho no `nodeExec` (`opts.env ?? process.env`). Chamada sem opts continua
+ * indo sem opts (defaults seguros); env ausente não cria a chave. Qualquer
+ * resultado sem `code` (shape inesperado) lança `ExecShapeError` — fail-closed.
  */
 export function fromChallengeExec(exec: ChallengeExecFn): ExecFn {
   return async (dir, args, opts): Promise<ExecResult> => {
-    const result = await exec(dir, args, opts === undefined ? undefined : { timeoutMs: opts.timeoutMs });
+    // P-31: o env do chamador é REPASSADO (antigamente descartado — furo do
+    // replan). Chaves ausentes não entram: chamadas históricas (só timeoutMs)
+    // chegam ao produto com o MESMO shape de antes, e só-env não cria
+    // `timeoutMs: undefined`.
+    const result = await exec(
+      dir,
+      args,
+      opts === undefined
+        ? undefined
+        : {
+            ...(opts.timeoutMs !== undefined ? { timeoutMs: opts.timeoutMs } : {}),
+            ...(opts.env !== undefined ? { env: opts.env } : {}),
+          },
+    );
     if (result === null || result === undefined || typeof result.code !== 'number') {
       throw new ExecShapeError(result);
     }
