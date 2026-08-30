@@ -76,6 +76,7 @@ import {
 import { VersionBuffer, hashDeConteudo } from '../electron/main/engine/review/versionBuffer';
 import {
   ErroEstruturadoDoLaco,
+  QUOTA_DE_SUGESTOES_POR_ARTEFATO,
   avaliarParadaMecanica,
   criarSessaoDeRevisao,
   distanciaDeArtefatos,
@@ -290,6 +291,21 @@ function pinAstManual(apontamento: Apontamento, trecho: string, criadoNaRodada: 
 
 /** Executor FAKE do R5: exit 0 e saída sem o token → NÃO reproduz. */
 const execLimpo: ExecFn = async () => ({ exitCode: 0, stdout: '', stderr: '' });
+
+/**
+ * Uma SUGESTÃO §6.5 honesta (categoria `estilo` → severity `sugestao` pela
+ * tabela fixa). Passa o filtro R1–R8 (span real, evidência no span, sem
+ * correção aberta no `acao_sugerida`) e NÃO abre rodada (§6.5).
+ */
+function sugestaoSobre(conteudo: string, token: string, over: Over = {}, id = 'APT-SUG'): Apontamento {
+  return aptSobre(conteudo, token, {
+    id,
+    categoria: 'estilo',
+    severity: 'sugestao' as const,
+    acao_sugerida: 'rever a redação desta seção em outra rodada.',
+    ...over,
+  });
+}
 
 // ---------------------------------------------------------------------------
 // 0. Fundamentos — constituição, pins, ledger, buffer (unidades puras)
@@ -530,6 +546,63 @@ describe('P-18 · filtro R1–R8 — um teste por regra, cada um pelo MOTIVO CER
     assert.equal(sobreviventes.length, 0);
     assert.equal(descartados[0].motivo, 'R5');
     assert.match(descartados[0].detalhe, /não pôde ser executado/);
+  });
+
+  it('R5 — exit 127 (comando INEXISTENTE) NÃO reproduz: descarta por fail-closed', async () => {
+    const finding = aptSobre(conteudo, 'typeof', {
+      evidencia: { reproduzivel_por: 'npm run engine -- audit m01/a03' },
+    });
+    const execExit127: ExecFn = async () => ({
+      exitCode: 127,
+      stdout: '',
+      stderr: 'sh: npm: command not found',
+    });
+    const { sobreviventes, descartados } = await filtrarApontamentos([finding], {
+      obterConteudo: (c) => (c === CAMINHO ? conteudo : null),
+      orcamento: [],
+      exec: execExit127,
+      timeoutMs: 100,
+    });
+    assert.equal(sobreviventes.length, 0, '127 = o comando NÃO RODOU — sem evidência de reprodução');
+    assert.equal(descartados[0].motivo, 'R5');
+    assert.match(descartados[0].detalhe, /exit 127/);
+    assert.match(descartados[0].detalhe, /não pôde ser executado/);
+  });
+
+  it('R5 — exit 126 (comando NÃO EXECUTÁVEL) também descarta por fail-closed', async () => {
+    const finding = aptSobre(conteudo, 'typeof', {
+      evidencia: { reproduzivel_por: 'npm run engine -- audit m01/a03' },
+    });
+    const execExit126: ExecFn = async () => ({
+      exitCode: 126,
+      stdout: '',
+      stderr: 'sh: permission denied',
+    });
+    const { sobreviventes, descartados } = await filtrarApontamentos([finding], {
+      obterConteudo: (c) => (c === CAMINHO ? conteudo : null),
+      orcamento: [],
+      exec: execExit126,
+      timeoutMs: 100,
+    });
+    assert.equal(sobreviventes.length, 0);
+    assert.equal(descartados[0].motivo, 'R5');
+    assert.match(descartados[0].detalhe, /exit 126/);
+  });
+
+  it('R5 — OUTRO exit ≠ 0 (ex.: 1) REPRODUZ: sobrevive ao filtro', async () => {
+    const finding = aptSobre(conteudo, 'typeof', {
+      evidencia: { reproduzivel_por: 'npm run engine -- audit m01/a03' },
+    });
+    const execExit1: ExecFn = async () => ({ exitCode: 1, stdout: 'falha na prova 3', stderr: '' });
+    const { sobreviventes, descartados } = await filtrarApontamentos([finding], {
+      obterConteudo: (c) => (c === CAMINHO ? conteudo : null),
+      orcamento: [],
+      exec: execExit1,
+      timeoutMs: 100,
+    });
+    assert.equal(descartados.length, 0, 'exit 1 = o comando reportou o defeito (reprodução)');
+    assert.equal(sobreviventes.length, 1);
+    assert.equal(sobreviventes[0].id, finding.id);
   });
 
   it('R6 — regra_violada fora de C1–C8 descarta pelo motivo R6 (bônus 12b)', async () => {
@@ -965,5 +1038,141 @@ describe('P-18 · rotas de sucesso e roteamento (P-12)', () => {
     assert.equal(scoreErro(0, 0, 1, 0), 2);
     assert.equal(scoreErro(0, 0, 0, 1), 1);
     assert.equal(scoreErro(1, 1, 2, 3), 3 + 3 + 4 + 3);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// 8. O TETO vale para TODA a superfície pública (§6.6) — rodarRodadaDeRevisao
+//    incluída (o repair P-23 também tem teto)
+// ---------------------------------------------------------------------------
+
+describe('P-18 · o teto vale para toda a superfície pública (§6.6)', () => {
+  it('rodarRodadaDeRevisao 2× com maxRodadas 1 → a 2ª LANÇA RODADAS_ESGOTADAS (erro estruturado)', async () => {
+    const ctx = contextoBase({ rodadasMaximas: 1 });
+    const sessao = criarSessaoDeRevisao(ctx);
+    const primeira = await rodarRodadaDeRevisao(ctx, sessao);
+    assert.equal(primeira.rodada, 1, 'a 1ª rodada roda DENTRO do teto');
+    await assert.rejects(
+      () => rodarRodadaDeRevisao(ctx, sessao),
+      (erro: unknown) => {
+        assert.ok(erro instanceof ErroEstruturadoDoLaco, 'erro ESTRUTURADO do laço — nunca rodada extra em silêncio');
+        assert.equal(erro.codigo, 'RODADAS_ESGOTADAS');
+        assert.equal(erro.etapa, 'laco');
+        return true;
+      },
+    );
+  });
+
+  it('rodarLacoDeRevisao com sessão semeada JÁ esgotada também LANÇA RODADAS_ESGOTADAS', async () => {
+    const ctx = contextoBase({ rodadasMaximas: 3 });
+    const sessao = criarSessaoDeRevisao(ctx);
+    await rodarRodadaDeRevisao(ctx, sessao);
+    await rodarRodadaDeRevisao(ctx, sessao);
+    await rodarRodadaDeRevisao(ctx, sessao); // 3 de 3 rodadas já rodadas
+    await assert.rejects(
+      () => rodarLacoDeRevisao(ctx, sessao),
+      (erro: unknown) => {
+        assert.ok(erro instanceof ErroEstruturadoDoLaco);
+        assert.equal(erro.codigo, 'RODADAS_ESGOTADAS');
+        return true;
+      },
+    );
+  });
+});
+
+// ---------------------------------------------------------------------------
+// 9. Sugestão (§6.5) — NUNCA abre rodada: fora do provador/planejador/
+//    corretor, com QUOTA DE 3 POR ARTEFATO e descarte CONTADO
+// ---------------------------------------------------------------------------
+
+describe('P-18 · sugestão NUNCA abre rodada — quota de 3 por aula (§6.5)', () => {
+  it('(a) sugestão NÃO chama o planejador nem o corretor (o provador a ignora)', async () => {
+    let chamadasDoPlanejador = 0;
+    let chamadasDoCorretor = 0;
+    const ctx = contextoBase({
+      rodadasMaximas: 1,
+      llm: {
+        ...contextoBase({}).llm,
+        revisar: async () => revisaoCom([sugestaoSobre(CONTEUDO, 'typeof')]),
+        planejar: async (entrada) => {
+          chamadasDoPlanejador += 1;
+          void entrada;
+          return { acoes: [] };
+        },
+        corrigir: async (entrada) => {
+          chamadasDoCorretor += 1;
+          void entrada;
+          return corretorRejeitador();
+        },
+      },
+    });
+    const sessao = criarSessaoDeRevisao(ctx);
+    const rodada = await rodarRodadaDeRevisao(ctx, sessao);
+    assert.equal(chamadasDoPlanejador, 0, 'sugestão nunca abre rodada — o planejador nem é chamado');
+    assert.equal(chamadasDoCorretor, 0, 'sugestão nunca chega ao corretor');
+    assert.equal(rodada.pinsCriados.length, 0, 'o provador ignora sugestões — nenhum pin nasce');
+    assert.equal(rodada.sugestoes.length, 1, 'a sugestão sobrevivente ao filtro é registrada na rodada');
+    assert.equal(sessao.sugestoesPorArtefato.get(CAMINHO)?.length, 1, 'a sugestão foi guardada na sessão');
+    assert.equal(rodada.parada, 'mecanico', 'sem bloqueador em aberto, a parada 0 fecha');
+  });
+
+  it('(b) sugestões PENDENTES não impedem a parada 0', async () => {
+    const ctx = contextoBase({
+      rodadasMaximas: 1,
+      llm: {
+        ...contextoBase({}).llm,
+        revisar: async () =>
+          revisaoCom([
+            sugestaoSobre(CONTEUDO, 'typeof', { id: 'APT-SUG1' }),
+            sugestaoSobre(CONTEUDO, 'dobra', { id: 'APT-SUG2' }),
+          ]),
+      },
+    });
+    const resultado = await rodarLacoDeRevisao(ctx);
+    assert.equal(resultado.paradaFinal, 'mecanico', 'sugestões pendentes NÃO derrubam a parada 0');
+    assert.equal(resultado.acessado, true, 'a única porta de aceite fecha com sugestões pendentes');
+    assert.equal(resultado.rodadas[0].pinsFalhando, 0, 'nenhum pin de sugestão entra em pinsFalhando');
+    assert.equal(
+      resultado.rodadas[0].sobreviventesAoProvador.length,
+      0,
+      'sugestão não é "sobrevivente AO PROVADOR" (não passa por ele)',
+    );
+    assert.equal(resultado.rodadas[0].sugestoes.length, 2, 'as sugestões seguem registradas na rodada');
+  });
+
+  it('(c) quota de 3 por artefato: a 4ª do MESMO artefato é DESCARTADA COM CONTAGEM; re-reporte do guardado não consome', async () => {
+    const g1 = sugestaoSobre(CONTEUDO, 'typeof', { id: 'APT-SG1' });
+    const g2 = sugestaoSobre(CONTEUDO, 'dobra', { id: 'APT-SG2' });
+    const g3 = sugestaoSobre(CONTEUDO, 'laço', { id: 'APT-SG3' });
+    const g4 = sugestaoSobre(CONTEUDO, 'linha', { id: 'APT-SG4' });
+    let giro = 1;
+    const ctx = contextoBase({
+      rodadasMaximas: 2,
+      llm: {
+        ...contextoBase({}).llm,
+        revisar: async () => {
+          // Rodada 1: 4 sugestões novas no MESMO artefato (a 4ª estoura a
+          // quota). Rodada 2: re-reporta SÓ as 3 guardadas (dedupe por id).
+          const sugestoes = giro === 1 ? [g1, g2, g3, g4] : [g1, g2, g3];
+          giro += 1;
+          return revisaoCom(sugestoes);
+        },
+      },
+    });
+    const sessao = criarSessaoDeRevisao(ctx);
+    const rodada = await rodarRodadaDeRevisao(ctx, sessao);
+    assert.equal(rodada.sugestoes.length, 4, 'as 4 sobrevivem ao FILTRO — a triagem não é a quota');
+    assert.equal(
+      sessao.sugestoesPorArtefato.get(CAMINHO)?.length,
+      QUOTA_DE_SUGESTOES_POR_ARTEFATO,
+      'exatamente 3 são guardadas por artefato',
+    );
+    assert.equal(rodada.sugestoesDescartadasPorQuota, 1, 'a 4ª do MESMO artefato é descartada na rodada');
+    assert.equal(sessao.sugestoesDescartadasPorQuota, 1, 'a contagem fica registrada na sessão');
+
+    const rodada2 = await rodarRodadaDeRevisao(ctx, sessao);
+    assert.equal(rodada2.sugestoesDescartadasPorQuota, 0, 'mesmo id já guardado não é descartado de novo');
+    assert.equal(sessao.sugestoesDescartadasPorQuota, 1, 'a contagem NÃO cresce com re-reportes');
+    assert.equal(sessao.sugestoesPorArtefato.get(CAMINHO)?.length, QUOTA_DE_SUGESTOES_POR_ARTEFATO);
   });
 });

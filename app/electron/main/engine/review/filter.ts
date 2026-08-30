@@ -39,15 +39,17 @@
  *   R5 — `reproduzivel_por` roda e NÃO reproduz: o comando do revisor é
  *        EXECUTADO sob endurecimento (o chamador injeta o `ExecFn` já
  *        endurecido por `createHardenedExec`) com teto de timeout DECLARADO.
- *        Proxy de "reproduz": exit code ≠ 0 OU a saída menciona o token
- *        acusador do apontamento. Comando que roda limpo (exit 0 sem o
- *        token) → NÃO reproduziu → descarta. Comando que não roda (timeout,
- *        erro de infra, sem executor configurado) → FAIL-CLOSED: descarta com
- *        detalhe distinguível (acusação não reproduzível não chega ao
- *        planejador — nunca aprovação por omissão). Apontamentos MECÂNICOS do
- *        laço (origem no verificador determinístico, marcados pelo prefixo
- *        `REPRODUZIVEL_MECANICO_PREFIX`) pulam R5: a reprodução É o veredito
- *        do verificador que os produziu.
+ *        Proxy de "reproduz": exit code ≠ 0 (exceto 126/127 — ver abaixo) OU
+ *        a saída menciona o token acusador do apontamento. Comando que roda
+ *        limpo (exit 0 sem o token) → NÃO reproduziu → descarta. Comando que
+ *        NÃO RODOU de verdade (exit 126/127 — comando não encontrado/não
+ *        executável; timeout; erro de infra; sem executor configurado) →
+ *        FAIL-CLOSED: descarta com detalhe distinguível (acusação não
+ *        reproduzível não chega ao planejador — nunca aprovação por omissão
+ *        e NUNCA "reproduz" por um exit que não é evidência do defeito).
+ *        Apontamentos MECÂNICOS do laço (origem no verificador
+ *        determinístico, marcados pelo prefixo `REPRODUZIVEL_MECANICO_PREFIX`)
+ *        pulam R5: a reprodução É o veredito do verificador que os produziu.
  *   R6 — `regra_violada` não existe no catálogo (a constituição C1–C8 de
  *        review/constituicao.ts): descarta antes de chegar ao planejador.
  *   R7 — categoria `estilo` com correção aberta: estilo é SUGESTÃO (nunca
@@ -260,6 +262,11 @@ export const R5_SHELL = 'sh';
  * saída combinada menciona o token acusador (`alvo.token`). Exit 0 sem o
  * token → o comando rodou limpo → NÃO reproduziu.
  *
+ * EXCEÇÃO (fail-closed): exit 126/127 — comando NÃO ENCONTRADO (127) ou NÃO
+ * EXECUTÁVEL (126) — é DESCARTADO igual ao comando que não rodou: sem
+ * execução não existe evidência de reprodução, e um exit de ambiente NUNCA é
+ * o comando "reportando o defeito". Outros exit ≠ 0 seguem como reprodução.
+ *
  * Execução com timeout e endurecimento: o `exec` INJETADO é o ExecFn que o
  * chamador compõe com `createHardenedExec` (exec/harness.ts — SEM_EXEC,
  * proxies removidos, `NO_PROXY=*`, `NODE_OPTIONS` removido). SEM executor
@@ -290,6 +297,16 @@ export async function r5ExigeReproducao(
   try {
     const resultado = await exec(process.cwd(), [R5_SHELL, '-c', comando], { timeoutMs });
     const saida = `${resultado.stdout}\n${resultado.stderr}`;
+    if (resultado.exitCode === 126 || resultado.exitCode === 127) {
+      // O comando NÃO RODOU (não encontrado / não executável): sem execução,
+      // sem evidência de reprodução — o exit denuncia o AMBIENTE, não o
+      // defeito. Fail-closed: descarta a acusação, nunca a "reproduz".
+      return {
+        reproduz: false,
+        razao: 'falhou_ao_rodar',
+        erro: `comando não encontrado ou não executável (exit ${resultado.exitCode}) — sem evidência de reprodução (fail-closed)`,
+      };
+    }
     if (resultado.exitCode !== 0) return { reproduz: true };
     if (saida.includes(apontamento.alvo.token)) return { reproduz: true };
     return { reproduz: false, razao: 'nao_reproduziu' };

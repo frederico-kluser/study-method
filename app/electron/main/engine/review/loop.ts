@@ -26,7 +26,12 @@
  *   3. FILTRO ESTRUTURAL R1–R8 (review/filter.ts) — o revisor reporta tudo;
  *      a triagem é aqui; descarta antes do planejador.
  *   4. PROVADOR (review/prover.ts) — cada candidato vira PIN executável que
- *      falha HOJE; candidato sem pin MORRE EM SILÊNCIO.
+ *      falha HOJE; candidato sem pin MORRE EM SILÊNCIO. SUGESTÃO (severity
+ *      'sugestao', §6.5) NÃO é candidato: o provador a ignora por construção —
+ *      sem pin, sem planejador, sem corretor; ela vai para a QUOTA POR
+ *      ARTEFATO da sessão (3 por aula — `guardarSugestao`); além da quota é
+ *      descartada COM CONTAGEM registrada. A parada 0 e `pinsFalhandoFinal`
+ *      contam APENAS bloqueante/corrigir.
  *   5. PLANEJADOR (P-13: plano de ações + catálogo FECHADO; a lista DECLARADA
  *      `excluidosComoExcecao` alimenta o prompt; ação fora do catálogo ou de
  *      polaridade errada vira DEFEITO DO CATÁLOGO) → CORRETOR (verify-first,
@@ -64,6 +69,13 @@
  * (revisor.temApontamento())`: a iteração é um `for` com limite numérico, e
  * cada rodada tem barreira própria. Recomendações que sobrevivem à rodada
  * final viram o placar de escalada.
+ *
+ * O TETO VALE PARA TODA A SUPERFÍCIE PÚBLICA: `rodarRodadaDeRevisao` (chamada
+ * avulsa por rodada — o repair P-23 tem, no máx., as rodadas do mesmo teto)
+ * NÃO roda além: sessão que já atingiu `rodadasMaximas` responde com
+ * `ErroEstruturadoDoLaco` (código `RODADAS_ESGOTADAS`), nunca rodada extra
+ * em silêncio. A mesma guarda protege `rodarLacoDeRevisao` com sessão semeada
+ * já esgotada.
  *
  * FAIL-CLOSED: revisor/planejador/corretor indisponíveis (erro do transporte
  * — LLM_STAGE_TIMEOUT/KEY_MISSING…) produzem `ErroEstruturadoDoLaco`, NUNCA
@@ -116,6 +128,16 @@ export const LIMIAR_DEFAULT_DE_ESTAGNACAO = 0.06;
 
 /** Timeout default das execuções do laço (R5 e pins de execução), em ms. */
 export const TIMEOUT_DEFAULT_DE_EXECUCAO_MS = 30_000;
+
+/**
+ * A quota de sugestões por artefato (§6.5 — "estilo/tom/prosa: sugestão —
+ * NUNCA abre rodada; quota de 3 por aula"). Apontamentos `sugestao`
+ * sobreviventes ao filtro são guardados na sessão FORA do pipeline
+ * (provador/planejador/corretor); a 4ª sugestão do MESMO artefato é
+ * descartada COM contagem registrada (fail-closed declarado — nunca abre
+ * rodada, nunca derruba a parada 0).
+ */
+export const QUOTA_DE_SUGESTOES_POR_ARTEFATO = 3;
 
 // ---------------------------------------------------------------------------
 // Tipos do laço
@@ -295,6 +317,13 @@ export interface ResultadoDeRodada {
   apontamentosMecanicos: readonly Apontamento[];
   /** sobreviventes ao provador (com pin) — os que chegam ao planejador. */
   sobreviventesAoProvador: readonly Apontamento[];
+  /**
+   * sugestões (§6.5) sobreviventes ao filtro NA RODADA — fora do
+   * provador/planejador/corretor; guardadas sob a quota por artefato.
+   */
+  sugestoes: readonly Apontamento[];
+  /** quantas sugestões foram descartadas NESTA rodada por exceder a quota. */
+  sugestoesDescartadasPorQuota: number;
   excluidosComoExcecao: readonly string[];
   pinsCriados: readonly PinDeRegressao[];
   defeitosDoCatalogo: readonly DefeitoDoCatalogo[];
@@ -360,6 +389,23 @@ export interface SessaoDoLaco {
   /** bloqueantes+corrigir sobreviventes ao fim de cada rodada. */
   bloqueantesPorRodada: number[];
   apontamentosCorrigirAnterior: number;
+  /**
+   * Sugestões (§6.5) guardadas por artefato (chave = `alvo.caminho`) — a
+   * quota de `QUOTA_DE_SUGESTOES_POR_ARTEFATO` por artefato. Sugestão NUNCA:
+   * abre rodada, cria pin, chega ao planejador/corretor nem derruba a
+   * parada 0 — só fica aQUI, registrada para quem consumir depois.
+   */
+  sugestoesPorArtefato: Map<string, Apontamento[]>;
+  /** quantas sugestões foram DESCARTADAS por exceder a quota (contagem registrada). */
+  sugestoesDescartadasPorQuota: number;
+  /**
+   * Guarda UMA sugestão sob a quota por artefato (§6.5). Devolve `true`
+   * quando o apontamento fica registrado (ou já estava registrado — a MESMA
+   * sugestão, mesmo id, não consome quota duas vezes na mesma execução);
+   * `false` quando a quota do artefato (3) já foi atingida — a sugestão é
+   * DESCARTADA e `sugestoesDescartadasPorQuota` é incrementada.
+   */
+  guardarSugestao: (artefato: string, apontamento: Apontamento) => boolean;
 }
 
 // ---------------------------------------------------------------------------
@@ -573,6 +619,21 @@ export function criarSessaoDeRevisao(ctx: ContextoDoLaco): SessaoDoLaco {
     distancias: [],
     bloqueantesPorRodada: [],
     apontamentosCorrigirAnterior: 0,
+    sugestoesPorArtefato: new Map<string, Apontamento[]>(),
+    sugestoesDescartadasPorQuota: 0,
+    guardarSugestao: (artefato, apontamento) => {
+      // A mesma sugestão (mesmo id) já registrada não consome quota de novo —
+      // re-reportes do revisor entre rodadas não estouram a quota da aula.
+      const atuais = sessao.sugestoesPorArtefato.get(artefato) ?? [];
+      if (atuais.some((a) => a.id === apontamento.id)) return true;
+      if (atuais.length >= QUOTA_DE_SUGESTOES_POR_ARTEFATO) {
+        sessao.sugestoesDescartadasPorQuota += 1;
+        return false;
+      }
+      atuais.push(apontamento);
+      sessao.sugestoesPorArtefato.set(artefato, atuais);
+      return true;
+    },
   };
   return sessao;
 }
@@ -747,7 +808,32 @@ async function chamarSeguro<T>(etapa: string, fn: () => Promise<T>, ctx: Context
 // A RODADA — uma barreira completa (§6.1, itens 1–6)
 // ---------------------------------------------------------------------------
 
+/**
+ * O teto de rodadas CLAMPED do §6.6 (default 1, teto duro 3) — UMA única
+ * conta para TODA a superfície pública do laço. A garantia normativa é:
+ * NENHUM caminho roda além de `rodadasMaximas` — nem o laço, nem a chamada
+ * avulsa `rodarRodadaDeRevisao`.
+ */
+export function calcularRodadasMaximas(ctx: ContextoDoLaco): number {
+  return Math.min(Math.max(1, Math.floor(ctx.rodadasMaximas ?? RODADAS_DEFAULT)), TETO_DE_RODADAS);
+}
+
 async function rodarRodadaInterna(ctx: ContextoDoLaco, sessao: SessaoDoLaco): Promise<ResultadoDeRodada> {
+  // ── TETO — a guarda ÚNICA de todas as superfícies públicas (§6.6) ─────────
+  // A sessão já rodou `rodadasMaximas` rodadas → a PRÓXIMA rodada estaria
+  // além do teto: erro ESTRUTURADO (fail-closed, nunca rodada extra em
+  // silêncio). Vale para `rodarLacoDeRevisao` (sessão semeada esgotada) e
+  // para `rodarRodadaDeRevisao` (a 2ª chamada com rodadasMaximas 1 LANÇA).
+  const teto = calcularRodadasMaximas(ctx);
+  if (sessao.rodadaAtual >= teto) {
+    throw new ErroEstruturadoDoLaco({
+      codigo: 'RODADAS_ESGOTADAS',
+      etapa: 'laco',
+      mensagem:
+        `a sessão já rodou ${sessao.rodadaAtual} rodada(s) do teto ${teto} (teto duro ${TETO_DE_RODADAS}) — ` +
+        'NENHUMA superfície pública roda além de rodadasMaximas (§6.6): falha estruturada, nunca rodada extra.',
+    });
+  }
   const rodada = sessao.rodadaAtual + 1;
   sessao.rodadaAtual = rodada;
 
@@ -775,7 +861,12 @@ async function rodarRodadaInterna(ctx: ContextoDoLaco, sessao: SessaoDoLaco): Pr
   const violacoesDeOrcamento = await verificadorDeOrcamento(sessao.artefatos);
   const falhasDeProvas = await verificadorDeProvas(sessao.artefatos);
   const vereditosDePins = await sessao.pins.todosRodam();
-  const pinsVermelhos = vereditosDePins.filter((v) => !v.verde);
+  // Pin de SUGESTÃO não existe por construção (§6.5 — o provador ignora
+  // sugestões); um pin SEMEADO com severity 'sugestao' é irrelevante para a
+  // mecânica: não derruba a parada 0, não regenera apontamento (que reabriria
+  // o canal de correção) e não segura o revisor fora.
+  const pinsDaMecanica = vereditosDePins.filter((v) => v.pin.apontamento.severity !== 'sugestao');
+  const pinsVermelhos = pinsDaMecanica.filter((v) => !v.verde);
   const temViolacaoMecanica = violacoesDeOrcamento.length > 0 || falhasDeProvas.length > 0 || pinsVermelhos.length > 0;
 
   // Guarda o estado pré-rodada (y_{t-1} para rollback, §6.6) com o score dela.
@@ -784,7 +875,7 @@ async function rodarRodadaInterna(ctx: ContextoDoLaco, sessao: SessaoDoLaco): Pr
   // DESCOBRE um bloqueador novo não se auto-castiga com rollback; o rollback
   // reage à piora do estado PROVÁVEL (orçamento/provas) e das regressões
   // prévias. Pins criados NESTA rodada ficam fora do score.
-  const pinsAnterioresVermelhos = vereditosDePins.filter((v) => !v.verde && v.pin.criado_na_rodada < rodada).length;
+  const pinsAnterioresVermelhos = pinsDaMecanica.filter((v) => !v.verde && v.pin.criado_na_rodada < rodada).length;
   const scoreAntes = scoreErro(
     violacoesDeOrcamento.length,
     falhasDeProvas.length,
@@ -858,7 +949,12 @@ async function rodarRodadaInterna(ctx: ContextoDoLaco, sessao: SessaoDoLaco): Pr
   const apontamentosSobreviventesDoFiltro = apontamentosDoRevisor.filter(
     (a) => !descartados.some((d) => d.apontamento.id === a.id),
   );
-  const candidatos = [...apontamentosMecanicos, ...apontamentosSobreviventesDoFiltro];
+  // §6.5 — SUGESTÃO NUNCA ABRE RODADA: `sugestao` sobrevivente ao filtro NÃO
+  // passa pelo provador (SEM pin, por construção — "o provador ignora
+  // sugestões"); vai para a QUOTA POR ARTEFATO da sessão. Tudo o resto
+  // (bloqueante/corrigir, mecânicos inclusos) segue o pipeline.
+  const sugestoesDoRevisor = apontamentosSobreviventesDoFiltro.filter((a) => a.severity === 'sugestao');
+  const candidatos = [...apontamentosMecanicos, ...apontamentosSobreviventesDoFiltro.filter((a) => a.severity !== 'sugestao')];
   const provados: { apontamento: Apontamento; pin: PinDeRegressao | null }[] = [];
   for (const candidato of candidatos) {
     const pin = await chamarSeguro(
@@ -876,6 +972,17 @@ async function rodarRodadaInterna(ctx: ContextoDoLaco, sessao: SessaoDoLaco): Pr
     .filter((p): p is { apontamento: Apontamento; pin: PinDeRegressao } => p.pin !== null)
     .map((p) => ({ apontamento: p.apontamento, pin: p.pin }));
   for (const c of comPin) sessao.pins.adicionarPin(c.pin);
+
+  // ── QUOTA DE SUGESTÕES (§6.5 — 3 por artefato/aula) ───────────────────────
+  // Guardadas FORA do pipeline; além da quota → descartada COM CONTAGEM
+  // registrada na sessão (fail-closed declarado: porta de saída observável,
+  // nunca abertura de rodada).
+  let sugestoesDescartadasPorQuota = 0;
+  for (const sugestao of sugestoesDoRevisor) {
+    if (!sessao.guardarSugestao(sugestao.alvo.caminho, sugestao)) {
+      sugestoesDescartadasPorQuota += 1;
+    }
+  }
 
   // ── EXCEÇÃO INTENCIONAL (6.7): apontamento nesse estado NÃO reabre rodada ──
   // O pin dele é DESARMADO (a decisão de projeto contradiz a regressão; o
@@ -904,7 +1011,7 @@ async function rodarRodadaInterna(ctx: ContextoDoLaco, sessao: SessaoDoLaco): Pr
   const rejeicoesDoCorretor: RejeicaoDoCorretor[] = [];
   const correcoesInvalidas: { apontamento_id: string; motivo: string }[] = [];
   const rejeicoesPorPinQuebrado: { apontamento_id: string; pin_id: string }[] = [];
-  const verdesAntes = new Set(vereditosDePins.filter((v) => v.verde).map((v) => v.pin.id));
+  const verdesAntes = new Set(pinsDaMecanica.filter((v) => v.verde).map((v) => v.pin.id));
 
   if (agir.length > 0) {
     const planoDoModelo = await chamarSeguro(
@@ -1034,7 +1141,10 @@ async function rodarRodadaInterna(ctx: ContextoDoLaco, sessao: SessaoDoLaco): Pr
     verificadorDeProvas(mapaDaReVerificacao),
   ]);
   const vereditosFinais = await sessao.pins.todosRodam();
-  const pinsFalhandoFinal = vereditosFinais.filter((v) => !v.verde).length;
+  // A parada 0 e o score contam APENAS pins de bloqueante/corrigir (§6.5):
+  // pin de sugestão — semeado ou não — nunca derruba a parada 0.
+  const pinsDaMecanicaFinais = vereditosFinais.filter((v) => v.pin.apontamento.severity !== 'sugestao');
+  const pinsFalhandoFinal = pinsDaMecanicaFinais.filter((v) => !v.verde).length;
 
   // Os sobreviventes AO PROVADOR que importam para a parada 0 e para o score:
   // excluídos não reabrem rodada e não contam; sugestão nunca abre (§6.5); e
@@ -1042,7 +1152,7 @@ async function rodarRodadaInterna(ctx: ContextoDoLaco, sessao: SessaoDoLaco): Pr
   // bloqueador em aberto (uma rodada que conserta tudo precisa PARAR, §6.6).
   const sobreviventesAoProvador = comPin.map((c) => c.apontamento);
   const semExcecao = sobreviventesAoProvador.filter((a) => !excluidos.includes(a.id));
-  const redIds = new Set(vereditosFinais.filter((v) => !v.verde).map((v) => v.pin.id));
+  const redIds = new Set(pinsDaMecanicaFinais.filter((v) => !v.verde).map((v) => v.pin.id));
   const bloqueantesOuCorrigir = semExcecao.filter((a) => a.severity !== 'sugestao' && redIds.has(`pin-${a.id}`));
   const somenteCorrigir = semExcecao.filter((a) => a.severity === 'corrigir' && redIds.has(`pin-${a.id}`)).length;
 
@@ -1126,8 +1236,11 @@ async function rodarRodadaInterna(ctx: ContextoDoLaco, sessao: SessaoDoLaco): Pr
   ) {
     parada = 'estagnou';
   }
-  // 4 — FAILSAFE: rodada final sem convergir → ESCALA, nunca aceita.
-  else if (rodada >= (ctx.rodadasMaximas ?? RODADAS_DEFAULT)) {
+  // 4 — FAILSAFE: rodada final sem convergir → ESCALA, nunca aceita. O teto
+  // é o CLAMPED (a mesma conta da guarda): mesmo com `rodadasMaximas` bruto
+  // acima do teto duro na chamada avulsa, a rodada final DENTRO do teto já
+  // emite o placar (a próxima chamada lançaria RODADAS_ESGOTADAS).
+  else if (rodada >= teto) {
     parada = 'failsafe';
     escalada = {
       quality_warning: true,
@@ -1135,7 +1248,7 @@ async function rodarRodadaInterna(ctx: ContextoDoLaco, sessao: SessaoDoLaco): Pr
       score_erro: scoreDepois,
       apontamentos: semExcecao,
       motivo:
-        `rodada ${rodada} de ${ctx.rodadasMaximas ?? RODADAS_DEFAULT} sem que a parada 0 MECÂNICA fosse atendida — ` +
+        `rodada ${rodada} de ${teto} sem que a parada 0 MECÂNICA fosse atendida — ` +
         'ESCALA com placar (quality_warning): nunca aceitar por cansaço (§6.6 failsafe).',
     };
   }
@@ -1148,6 +1261,8 @@ async function rodarRodadaInterna(ctx: ContextoDoLaco, sessao: SessaoDoLaco): Pr
     descartados,
     apontamentosMecanicos,
     sobreviventesAoProvador,
+    sugestoes: sugestoesDoRevisor,
+    sugestoesDescartadasPorQuota,
     excluidosComoExcecao: excluidos,
     pinsCriados: comPin.map((c) => c.pin),
     defeitosDoCatalogo,
@@ -1174,6 +1289,12 @@ async function rodarRodadaInterna(ctx: ContextoDoLaco, sessao: SessaoDoLaco): Pr
  * UMA rodada de revisão (barreira própria, §6.1). Com `sessao` ausente, cria
  * uma sessão nova (rodada 1 do zero). Com `sessao`, roda a PRÓXIMA rodada da
  * mesma execução (compartilhando pins, ledger e version buffer).
+ *
+ * TETO (§6.6) — VALE AQUI TAMBÉM: `rodarRodadaDeRevisao` NUNCA roda além de
+ * `rodadasMaximas` (default 1, teto duro 3). Se a sessão já rodou o teto
+ * (ex.: 2ª chamada com `rodadasMaximas: 1`), a chamada LANÇA
+ * `ErroEstruturadoDoLaco` com código `RODADAS_ESGOTADAS` — a garantia
+ * "nenhum caminho roda mais que maxRodadas" cobre TODA a superfície pública.
  */
 export async function rodarRodadaDeRevisao(ctx: ContextoDoLaco, sessao?: SessaoDoLaco): Promise<ResultadoDeRodada> {
   const sessaoViva = sessao ?? criarSessaoDeRevisao(ctx);
@@ -1190,12 +1311,21 @@ export async function rodarRodadaDeRevisao(ctx: ContextoDoLaco, sessao?: SessaoD
  * semeou pins/exceções), o laço roda SOBRE ela em vez de criar uma nova.
  */
 export async function rodarLacoDeRevisao(ctx: ContextoDoLaco, sessao?: SessaoDoLaco): Promise<ResultadoDoLaco> {
-  const rodadasMaximas = Math.min(
-    Math.max(1, Math.floor(ctx.rodadasMaximas ?? RODADAS_DEFAULT)),
-    TETO_DE_RODADAS,
-  );
+  const rodadasMaximas = calcularRodadasMaximas(ctx);
   const contexto: ContextoDoLaco = { ...ctx, rodadasMaximas };
   const sessaoViva = sessao ?? criarSessaoDeRevisao(contexto);
+  if (sessaoViva.rodadaAtual >= rodadasMaximas) {
+    // Sessão semeada JÁ esgotada desde antes do laço — nem uma rodada a mais:
+    // fail-closed (a guarda de `rodarRodadaInterna` faria o mesmo na 1ª
+    // chamada; aqui o erro é ESTRUTURADO e imediato, sem rodar nada).
+    throw new ErroEstruturadoDoLaco({
+      codigo: 'RODADAS_ESGOTADAS',
+      etapa: 'laco',
+      mensagem:
+        `a sessão já rodou ${sessaoViva.rodadaAtual} rodada(s) do teto ${rodadasMaximas} (teto duro ${TETO_DE_RODADAS}) — ` +
+        'o laço não tem rodada alguma a rodar (§6.6): falha estruturada, nunca rodada extra em silêncio.',
+    });
+  }
   const rodadas: ResultadoDeRodada[] = [];
 
   let paradaFinal: TipoDeParada | null = null;
