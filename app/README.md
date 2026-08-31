@@ -44,8 +44,8 @@ npm run test:e2e:real  # Playwright `_electron` REAL — exige DEEPSEEK_API_KEY/
 
 A **quarta rodada** fechou os dois bugs da rodada 3, refez o onboarding fiel ao ondokai,
 refinou o tema escuro + Home, adicionou matemática KaTeX e entregou uma suíte E2E **real**. As
-sessões abaixo detalham cada parte; o relatório orquestrado (ondas, commits, gates, revisões)
-está em [`docs/relatorio-rodada4.md`](../docs/relatorio-rodada4.md):
+sessões abaixo detalham cada parte; detalhes em
+[`docs/rodada4.md`](../docs/rodada4.md):
 
 - **Bugs corrigidos:**
   - **B1** — `list-challenges "requer setupRoot"`: o `setupRoot` agora **flui do
@@ -74,7 +74,7 @@ está em [`docs/relatorio-rodada4.md`](../docs/relatorio-rodada4.md):
 
 A **quinta rodada** corrigiu dois bugs de UX do usuário e fechou um terceiro achado da revisão
 adversarial. O relatório orquestrado (ondas, commits, gates, revisões) está em
-[`docs/relatorio-rodada5.md`](../docs/relatorio-rodada5.md):
+[`docs/rodada5.md`](../docs/rodada5.md):
 
 - **Bug A — tutorial/modal centralizado (`onda20a`)** — o painel do onboarding **sem spotlight**
   (steps informativos/conclusão) caía no **canto inferior-direito**; agora é um **card central**
@@ -100,7 +100,7 @@ A **nona rodada** expandiu a trilha **Node.js do Zero** de 8 para **18 módulos*
 (direto do arquivo, seção por seção, sem loading), o LLM fica **só** para
 dúvidas (`answer`) e para gerar novo desafio, e sem chave a falha é rápida
 (erro estruturado `TUTOR_UNAVAILABLE`, nunca spinner infinito). Relatório
-completo em [`docs/relatorio-rodada9.md`](../docs/relatorio-rodada9.md):
+completo em [`docs/15-trilha-nodejs.md`](../docs/15-trilha-nodejs.md):
 
 - **UX: teoria pronta + checks por teste (R9-1)** — aula em chat apresenta o
   markdown do `lesson.json` sem LLM; o veredito do desafio mostra a **lista de
@@ -137,7 +137,7 @@ trilha, e **"Gerar novo desafio"** ao errar (a LLM vê os desafios que o aluno
 errou naquela aula e não repete — validado por execução antes de chegar).
 Trilha completa **Node.js do Zero** incluída: 8 módulos, 36 aulas, 36 desafios
 + proficiência, todos verificados por execução. Relatório completo em
-[`docs/relatorio-rodada8.md`](../docs/relatorio-rodada8.md).
+[`docs/app-gui.md`](../docs/app-gui.md) (seções 2.13 Canais TRACK_CHANNELS e 2.14 CLI de autoria e runner).
 
 ## Rodada 7 (ondas R7-1..R7-5) — resumo
 
@@ -146,7 +146,7 @@ digitada** (matemática por execução, interpretação por LLM), **nunca repeti
 desafios tentados** e mostrar **progresso por matéria** (Home por domínio +
 Trilha), com **persistência** de matérias/lições/tentativas no SQLite (schema
 v3). O relatório orquestrado está em
-[`docs/relatorio-rodada7.md`](../docs/relatorio-rodada7.md); o contrato das
+[`docs/app-gui.md`](../docs/app-gui.md); o contrato das
 features em [`docs/14-respostas-nunca-repetir.md`](../docs/14-respostas-nunca-repetir.md):
 
 - **Estrelas + cronômetro no desafio (R7-1)** — 3 estrelas iniciais; perda por

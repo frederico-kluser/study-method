@@ -10,7 +10,7 @@
 > documento e um gate determinístico divergirem, **o gate vence** — e o documento está errado.
 >
 > **Linguagens.** A trava descrita aqui é implementável em mais de uma linguagem. O critério e o
-> estado de cada uma estão em [linguagens/README.md](linguagens/README.md).
+> estado de cada uma estão em [research/08-multilingua-trava-deterministica.md](research/08-multilingua-trava-deterministica.md).
 
 ---
 
@@ -388,7 +388,17 @@ usado-sem-demonstração (A13), avanço micro (A14), progressividade (A15) e pri
 Especificação formal, H13/AVISO13/S13 e mensagens pt-BR em
 `app/content-src/analise-verificadores.md` §3–§6; implementação pura em
 `app/electron/main/engine/quality/progressao.ts` (mesclada no `auditTrack` — pin da trilha real
-841 violações / 112 desafios / 249 lacunas / 96 avisos, modo inferred).
+717 violações / 112 desafios / 249 lacunas / 92 avisos, modo inferred).
+
+**Bump do pin (rodada 12).** O pin mecânico vive em `app/tests/engineAuditPlacar.test.ts` e documenta
+cada bump. Com a bateria A13–A16 ativa no audit, o pin da trilha real passou de
+**841 violações / 112 desafios / 249 lacunas / 96 avisos** para
+**717 violações / 112 desafios / 249 lacunas / 92 avisos** (modo inferred): o fix do A13c
+(mesma-aula) removeu **124 falsos positivos** (841 → 717) e 4 avisos D4 a menos (96 → 92); desafios
+com violação (112) e lacunas (249) permaneceram os mesmos. **Protocolo do bump:** o pin é
+re-verificado a cada rodada; toda mudança de bateria de verificadores re-bumpa e re-verifica — cada
+bump acompanha o commit que o causou, com comentário no próprio teste de pin explicando o porquê, e o
+gate `bash tools/t.sh tests/engineAuditPlacar.test.ts` passa com os novos valores.
 
 ### 5.2 Invariantes de estrutura
 
@@ -447,7 +457,7 @@ dependência direta. Custa zero dependência nova. E o AST do TypeScript modela 
 ESTree esconde em atributo — `typeof` é `TypeOfExpression`, `!==` é `ExclamationEqualsEqualsToken` —
 o que aproxima o extrator do vocabulário de seis eixos em vez de afastá-lo. A versão fica presa em
 5.8.3, longe da armadilha do `typescript@7`, que moveu a API de AST de lugar (ver
-[linguagens/README.md](linguagens/README.md)).
+[research/08-multilingua-trava-deterministica.md](research/08-multilingua-trava-deterministica.md)).
 
 Configuração fixa num **único módulo** — se dois estágios parseiam com opções diferentes, o gate vira
 loteria:

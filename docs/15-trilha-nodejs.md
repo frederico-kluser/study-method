@@ -332,3 +332,18 @@ carência da 1ª estrela 120s. Quem passa destrava a trilha inteira.
 - desafios de MÓDULO seguem as regras próprias da seção
   ["Desafios de módulo (rodada 9)"](#desafios-de-módulo-rodada-9) — multi-arquivo
   (`files[]`) e elaborados.
+
+## Trilha micro `programacao-do-zero`
+
+Resposta direta ao feedback do usuário: a primeira trilha projetada com **zero pressupostos** — 14
+aulas micro, **≤1 avanço produtivo (≤2 receptivos) por aula**, e nada é cobrado sem ter sido
+demonstrado antes (o "pecado nº 1" do feedback: cobrar `function`, parâmetro e `return` sem nenhuma
+aula que os tivesse ensinado). A progressão produtiva da trilha tem 9 átomos:
+
+`NumericLiteral → CallExpression → ExportKeyword → Parameter → ReturnStatement → decl:let →
+StringLiteral → decl:const → FunctionDeclaration`
+
+O contrato de CONTEÚDO detalhado dessa trilha (o `curriculo.md` — 14 aulas com avanço × atividade ×
+desafio × provas — e o `relatorio-validacao.md`) **vive fora de docs/**, em
+`app/content-src/programacao-do-zero/`; este documento registra apenas a existência da trilha e sua
+assinatura pedagógica.

@@ -200,5 +200,4 @@ palavras-chave no assunto (default `'programming'`). O resultado ganha
 4. **Desafio**: 3 estrelas + cronômetro (ver `docs/app-gui.md` §1.4); eventos
    terminais marcam a tentativa (§3) e o desafio some da lista.
 
-Detalhes de implementação e números de teste: [`docs/app-gui.md`](app-gui.md) e
-[`docs/relatorio-rodada7.md`](relatorio-rodada7.md).
+Detalhes de implementação e números de teste: [`docs/app-gui.md`](app-gui.md).

@@ -6,7 +6,7 @@
  * reproduz e que toda afirmação pedagógica tenha origem em `docs/research/`;
  * o `docs/16-engine-de-trilha.md` é o contrato normativo da engine. Este
  * arquivo torna mecânico o que se cobra nos DOCUMENTOS produzidos pelo
- * pacote P-26 (docs/16, relatorio-rodada11, research/07, README):
+ * pacote P-26 (docs/16, research/07, README):
  *
  *   1. GATES — cada gate citado em docs/16 (G-SCHEMA..G-FINAL, G-LINT,
  *      G-TEST, G-BUILD, G-AUDIT e os 5 scripts de gate do repo) existe como
@@ -17,12 +17,7 @@
  *   2. CAMINHOS — todo caminho de arquivo citado no documento normativo
  *      (link markdown relativo OU token de caminho com prefixo conhecido)
  *      existe no disco.
- *   3. NÚMEROS — no relatorio-rodada11, toda seção com número de MEDIÇÃO
- *      (heurística conservadora: número seguido de substantivo de métrica,
- *      percentual, decimal ou razão "N de M") contém o bloco de comando que
- *      o reproduz — linhas de tabela, backticks e IDs (P-26, I-11, A3…) não
- *      disparam.
- *   4. L-02..L-05 (porta mínima) — links relativos quebrados (L-02), `{{`
+ *   3. L-02..L-05 (porta mínima) — links relativos quebrados (L-02), `{{`
  *      órfão (L-03), newline final (L-04) e tabela markdown malformada
  *      (L-05) conferidos nos arquivos DO PACOTE. O gate-lint completo não
  *      roda no bash 3.2 do macOS (`local -n` em tests/lib/assert.sh —
@@ -43,12 +38,11 @@ const ROOT = path.resolve(__dirname, '..', '..');
 const APP = path.join(ROOT, 'app');
 
 const DOC16 = path.join(ROOT, 'docs', '16-engine-de-trilha.md');
-const REL11 = path.join(ROOT, 'docs', 'relatorio-rodada11.md');
 const RESEARCH07 = path.join(ROOT, 'docs', 'research', '07-engine-de-trilha.md');
 const README = path.join(ROOT, 'README.md');
 
 /** Os arquivos que este pacote produz/alterou — escopo das checagens L-02..L-05. */
-const ARQUIVOS_DO_PACOTE = [DOC16, REL11, RESEARCH07, README];
+const ARQUIVOS_DO_PACOTE = [DOC16, RESEARCH07, README];
 
 const PKG = JSON.parse(fs.readFileSync(path.join(APP, 'package.json'), 'utf8')) as {
   scripts: Record<string, string>;
@@ -155,7 +149,6 @@ const PREFIXOS_DE_CAMINHO = [
   'CONTRIBUTING.md',
   'README.md',
   'LICENSE',
-  'EXPLAINER.html',
   'package.json',
   'package-lock.json',
   'install.sh',
@@ -238,8 +231,8 @@ describe('engineDocsCoerencia · 2 — caminhos citados existem no disco', () =>
     }
   });
 
-  it('todo token de caminho citado no relatorio-rodada11 e no research/07 existe', () => {
-    for (const arquivo of [REL11, RESEARCH07]) {
+  it('todo token de caminho citado no research/07 existe', () => {
+    for (const arquivo of [RESEARCH07]) {
       if (!fs.existsSync(arquivo)) continue;
       for (const alvo of tokensDeCaminho(conteudo(arquivo))) {
         assert.ok(
@@ -251,84 +244,9 @@ describe('engineDocsCoerencia · 2 — caminhos citados existem no disco', () =>
   });
 });
 
-// ───────────────────────────────────────────────────────────── 3. NÚMEROS
-/**
- * Número de MEDIÇÃO: dígitos seguidos de substantivo de métrica, percentual,
- * decimal com vírgula, ou razão "N de M". IDs (P-26, I-11, A3, ebb3360),
- * tabelas, backticks e blocos de código não disparam.
- */
-const NUMERO_DE_MEDICAO =
-  /\b\d{2,3}(?:[.,]\d+)?\s+(?:viola\w*|aula\w*|desafio\w*|lacuna\w*|testes?|blocos?|constru\w+|pontos?|pass|falhou|mediana|teto|su[ií]tes?|arquivos?|estrelas?|vezes)\b|\b\d{2,3}%|\b\d+(?:[.,]\d+)\s+de\s+\d+\b|\b\d+[.,]\d+%/i;
-
-function secoesDe(md: string): Array<{ titulo: string; corpo: string }> {
-  const linhas = md.split('\n');
-  const secoes: Array<{ titulo: string; corpo: string }> = [];
-  let atual: { titulo: string; corpo: string[] } | null = null;
-  for (const linha of linhas) {
-    if (/^## .+/.test(linha)) {
-      if (atual !== null) secoes.push({ titulo: atual.titulo, corpo: atual.corpo.join('\n') });
-      atual = { titulo: linha.replace(/^##\s+/, ''), corpo: [] };
-    } else if (atual !== null) {
-      atual.corpo.push(linha);
-    }
-  }
-  if (atual !== null) secoes.push({ titulo: atual.titulo, corpo: atual.corpo.join('\n') });
-  return secoes;
-}
-
-function linhasForaDeBlocosEBackticks(corpo: string): string[] {
-  const linhas: string[] = [];
-  let emBloco = false;
-  for (const linhaBruta of corpo.split('\n')) {
-    const linha = linhaBruta.replace(/`[^`]*`/g, '');
-    const abre = /^\s*(```|~~~)/.test(linhaBruta);
-    if (abre) {
-      emBloco = !emBloco;
-      continue;
-    }
-    if (emBloco) continue;
-    if (/^\s*\|/.test(linhaBruta)) continue; // linha de tabela
-    if (/^\s*#+ /.test(linhaBruta)) continue; // heading
-    linhas.push(linha);
-  }
-  return linhas;
-}
-
-describe('engineDocsCoerencia · 3 — números do relatório-rodada11 com comando reprodutor', () => {
-  it('toda seção com número de medição contém ao menos um bloco de comando', () => {
-    const md = conteudo(REL11);
-    const secoes = secoesDe(md);
-    assert.ok(secoes.length >= 6, `relatorio-rodada11 com poucas seções (${secoes.length}) — parse errado?`);
-
-    for (const secao of secoes) {
-      const temComando = /^\s*```(?:bash|sh)\s*$/m.test(secao.corpo);
-      const linhas = linhasForaDeBlocosEBackticks(secao.corpo);
-      const temMedicao = linhas.some((l) => NUMERO_DE_MEDICAO.test(l));
-      assert.ok(
-        !temMedicao || temComando,
-        `seção "${secao.titulo}" tem número de medição sem bloco de comando que o reproduza — ` +
-          `ex.: "${linhas.find((l) => NUMERO_DE_MEDICAO.test(l))?.slice(0, 90)}…"`,
-      );
-    }
-  });
-
-  it('os comandos reprodutores citados nas seções de dados existem como comandos', () => {
-    const md = conteudo(REL11);
-    const comandos = new Set<string>();
-    for (const m of md.matchAll(/npm run ([A-Za-z0-9@/._-]+)/g)) comandos.add(m[1]);
-    for (const script of comandos) {
-      assert.ok(
-        typeof PKG.scripts[script] === 'string',
-        `relatorio-rodada11 pede \`npm run ${script}\` inexistente em app/package.json`,
-      );
-    }
-    assert.ok(comandos.has('engine'), 'relatorio-rodada11 deve citar `npm run engine` (o reprodutor do placar)');
-  });
-});
-
-// ───────────────────────────────────────────────────────────── 4. L-02..L-05
+// ───────────────────────────────────────────────────────────── 3. L-02..L-05
 /** Porta mínima dos checks L-02..L-05 do gate-lint sobre os arquivos do pacote. */
-describe('engineDocsCoerencia · 4 — L-02..L-05 nos arquivos do pacote (porta mínima)', () => {
+describe('engineDocsCoerencia · 3 — L-02..L-05 nos arquivos do pacote (porta mínima)', () => {
   it('L-03 — nenhum `{{` órfão nos arquivos do pacote', () => {
     for (const arquivo of ARQUIVOS_DO_PACOTE) {
       assert.ok(!conteudo(arquivo).includes('{{'), `L-03: ${path.relative(ROOT, arquivo)} tem '{{'`);

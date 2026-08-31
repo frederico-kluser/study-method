@@ -69,7 +69,7 @@ export interface BraveValidateOptions {
 
 /**
  * Timeout padrão de cada validação — rede pendurada nunca segura a UI (o único
- * loader REAL sem timeout do app era este fetch; ver docs/relatorio-rodada10-diag.md).
+ * loader REAL sem timeout do app era este fetch; ver docs/app-gui.md §2.18 "IPC com timeout").
  */
 export const DEFAULT_VALIDATE_TIMEOUT_MS = 8000;
 
