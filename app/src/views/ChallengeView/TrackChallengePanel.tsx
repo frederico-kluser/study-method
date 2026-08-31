@@ -48,6 +48,7 @@ import {
 import StarIcon from '@mui/icons-material/Star';
 import StarBorderIcon from '@mui/icons-material/StarBorder';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
+import PlayCircleIcon from '@mui/icons-material/PlayCircle';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
@@ -65,6 +66,8 @@ import { fireConfetti } from '../../lib/confetti';
 import { createStarTracker, formatClock, type StarTracker } from '../../lib/challengeStars';
 import { CodeMirrorField } from '../../components/cm/CodeMirrorField';
 import { buildErrorReport } from '../../lib/trackLessonState';
+import { setPendingTrackLesson } from '../../lib/pendingSubject';
+import type { NavKey } from '../../lib/shellNav';
 // ONDA3 (generate-flow): o processo de "Gerar novo desafio" é GLOBAL (store
 // module-level + modal de etapas no shell) — o painel dispara via store + IPC
 // e atualiza o spec local quando o invoke resolve (o modal mostra o progresso).
@@ -113,7 +116,19 @@ function MarkdownComponents() {
   };
 }
 
-export function TrackChallengePanel({ selection }: { selection: TrackChallengeNavSelection }): ReactElement {
+export function TrackChallengePanel({
+  selection,
+  onNavigate,
+}: {
+  selection: TrackChallengeNavSelection;
+  /**
+   * ONDA 4 (next-glow): navegação genérica do shell (NavKey) para o FALLBACK
+   * "sem próxima aula" → trilha. No-op quando ausente (testes/uso sem shell).
+   * A navegação para a próxima AULA usa o fluxo track (setPendingTrackLesson +
+   * nav.navigateToLesson) — o mesmo padrão do RoadmapView.openLesson.
+   */
+  onNavigate?: (key: NavKey) => void;
+}): ReactElement {
   const { t } = useTranslation();
   const tI = useMemo(
     () => t as unknown as (key: string, options?: Record<string, string | number>) => string,
@@ -478,6 +493,56 @@ export function TrackChallengePanel({ selection }: { selection: TrackChallengeNa
     }
   }, [spec, regenerating, generateRunning, selection.target, selection.trackSlug, selection.lessonId, selection.challengeId, tI]);
 
+  /**
+   * ONDA 4 (next-glow): "Avançar para a próxima aula" pós-sucesso — navega para
+   * a PRÓXIMA aula destravada e NÃO concluída da MESMA trilha (a aula do desafio
+   * excluída), via setPendingTrackLesson + nav.navigateToLesson (padrão do
+   * RoadmapView.openLesson). O spec do desafio não carrega a próxima aula
+   * (quem carrega é o payload de track:lesson, `nextLesson`); aqui o painel
+   * resolve pelo DETALHE da trilha (track.get): aulas na ordem dos módulos,
+   * primeira com locked=false e done=false DEPOIS da aula deste desafio (a
+   * mesma aula que o campo `current` do detalhe apontaria quando ela já está
+   * concluída — e mais correta quando ainda não está). Fallback: erro do IPC,
+   * trilha sem próxima (última aula / tudo concluído) ou lessonId ausente →
+   * navega para a TRILHA (roadmap), onde o usuário vê o estado real.
+   */
+  const handleAdvanceToNextLesson = useCallback(async (): Promise<void> => {
+    if (!spec || selection.target !== 'lesson' || !selection.lessonId) {
+      onNavigate?.('roadmap');
+      return;
+    }
+    let next: { slug: string; title: string } | null = null;
+    try {
+      const res = await withTimeout(
+        getApi().track.get({ trackSlug: selection.trackSlug }),
+        IPC_TIMEOUT_MS,
+        'track.get',
+      );
+      if (res.ok && res.track) {
+        const flat = res.track.modules.flatMap((m) => m.lessons);
+        const idx = flat.findIndex((l) => l.slug === selection.lessonId);
+        // Defensivo: aula deste desafio sumiu do detalhe → sem próxima (vai
+        // para o fallback da trilha); NUNCA começa a varredura do índice 0
+        // (idx=-1 → i=0 reapontaria para a PRÓPRIA aula).
+        for (let i = idx >= 0 ? idx + 1 : flat.length; i < flat.length; i++) {
+          const l = flat[i];
+          if (!l.locked && !l.done) {
+            next = { slug: l.slug, title: l.title };
+            break;
+          }
+        }
+      }
+    } catch {
+      next = null;
+    }
+    if (next) {
+      setPendingTrackLesson(selection.trackSlug, next.slug);
+      nav.navigateToLesson();
+    } else {
+      onNavigate?.('roadmap');
+    }
+  }, [spec, selection.trackSlug, selection.target, selection.lessonId, nav, onNavigate]);
+
   if (loading) {
     return (
       <Box sx={{ p: 4, display: 'flex', justifyContent: 'center' }}>
@@ -633,7 +698,35 @@ export function TrackChallengePanel({ selection }: { selection: TrackChallengeNa
 
             {/* Ato 3: veredito. */}
             {concluded === 'passed' ? (
-              <Alert severity="success">{tI('challenge.passedAnnounce', { stars: starsLeft })}</Alert>
+              <Stack spacing={1}>
+                <Alert severity="success">{tI('challenge.passedAnnounce', { stars: starsLeft })}</Alert>
+                {/* ONDA 4 (next-glow): pós-sucesso de um desafio de AULA → o
+                    aluno avança para a PRÓXIMA aula ou gera OUTRO desafio.
+                    NÃO aparece para target 'module' (desafio autoral — não
+                    regenera) nem 'proficiency' (fluxo próprio de
+                    destravamento da trilha inteira). */}
+                {selection.target === 'lesson' ? (
+                  <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap' }}>
+                    <Button
+                      variant="contained"
+                      color="success"
+                      onClick={() => void handleAdvanceToNextLesson()}
+                      startIcon={<PlayCircleIcon />}
+                    >
+                      {t('translation:challenge.nextLessonButton')}
+                    </Button>
+                    <Button
+                      variant="outlined"
+                      color="secondary"
+                      onClick={() => void handleRegenerate()}
+                      disabled={regenerating || generateRunning}
+                      startIcon={regenerating ? <CircularProgress size={16} /> : <AutoAwesomeIcon />}
+                    >
+                      {t('translation:challenge.generateNewAfterPass')}
+                    </Button>
+                  </Stack>
+                ) : null}
+              </Stack>
             ) : null}
 
             {concluded === 'timeout' ? (

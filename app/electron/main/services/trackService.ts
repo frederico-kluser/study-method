@@ -149,6 +149,45 @@ export async function loadTrackState(
   };
 }
 
+/**
+ * PRÓXIMA aula da MESMA trilha (onda 4 next-glow) — alimenta o botão
+ * "Avançar para a próxima aula" pós-conclusão (payload `nextLesson`).
+ *
+ * Regras (contrato do dono, documentadas aqui):
+ *  (a) a própria aula NÃO conta — a busca começa DEPOIS dela na ordem dos
+ *      módulos (módulos por `order`, aulas na ordem declarada);
+ *  (b) devolve a primeira aula DESTRAVADA e NÃO concluída depois dela;
+ *  (c) null quando a aula é a última OU não há próxima destravada e não feita;
+ *  (d) DECISÃO (dono): o estado é calculado COMO SE esta aula já estivesse
+ *      concluída (done simulada) — mesmo quando o payload é pedido antes da
+ *      conclusão, `nextLesson` aponta para a aula que ficará destravada
+ *      DEPOIS desta. Proficiência passada destrava tudo (mesma regra de
+ *      computeUnlockStates), então com proficient=true a próxima não-feita
+ *      nunca é pulada por travamento.
+ */
+export function computeNextLesson(
+  track: LoadedTrack,
+  currentSlug: string,
+  doneSet: ReadonlySet<string>,
+  proficient: boolean,
+): { slug: string; title: string } | null {
+  const flat = flattenTrackLessons(track);
+  const currentIndex = flat.findIndex(({ lesson }) => lesson.meta.slug === currentSlug);
+  if (currentIndex === -1) return null;
+  // (d): simula esta aula concluída — ela destrava a seguinte.
+  const simulatedDone = new Set(doneSet);
+  simulatedDone.add(currentSlug);
+  const states = computeUnlockStates(track, simulatedDone, proficient);
+  for (let i = currentIndex + 1; i < flat.length; i++) {
+    const { lesson } = flat[i];
+    const st = states.get(lesson.meta.slug);
+    if (st && !st.locked && !st.done) {
+      return { slug: lesson.meta.slug, title: lesson.meta.title };
+    }
+  }
+  return null;
+}
+
 export async function buildTrackList(tracks: LoadedTrack[], repo: TrackProgressLike): Promise<TrackListEntry[]> {
   const out: TrackListEntry[] = [];
   for (const track of tracks) {
@@ -281,6 +320,10 @@ export async function buildTrackLesson(
     challenges: challengeSummaries,
     locked: st.locked,
     done: st.done,
+    // ONDA 4 (next-glow): próxima aula destravada e não concluída da MESMA
+    // trilha (estado como se esta já estivesse concluída — regra (d) de
+    // computeNextLesson). null = última aula ou sem próxima.
+    nextLesson: computeNextLesson(track, lessonSlug, doneSet, proficient),
   };
 }
 

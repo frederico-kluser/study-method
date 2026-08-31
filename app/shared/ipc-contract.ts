@@ -450,6 +450,14 @@ export interface TrackLessonPayload {
   challenges: TrackChallengeSummaryDto[];
   locked: boolean;
   done: boolean;
+  /**
+   * ADITIVO (onda 4 next-glow): próxima aula destravada e NÃO concluída da
+   * MESMA trilha, na ordem dos módulos (cálculo no main: estado COMO SE esta
+   * aula já estivesse concluída — a própria aula nunca conta). Alimenta o
+   * botão "Avançar para a próxima aula" pós-conclusão (LessonView e
+   * TrackChallengePanel). null = esta é a última ou não há próxima.
+   */
+  nextLesson?: { slug: string; title: string } | null;
 }
 
 export type TrackLessonResult =

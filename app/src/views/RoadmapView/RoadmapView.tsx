@@ -26,6 +26,8 @@ import {
   type ReactElement,
 } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useTheme } from '@mui/material/styles';
+import { motion } from 'motion/react';
 import {
   Alert,
   Box,
@@ -50,6 +52,8 @@ import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 
 import { getApi } from '../../lib/apiBridge';
+import { springs, transitions } from '../../lib/animationTokens';
+import { prefersReducedMotion } from '../../lib/confetti';
 import {
   IPC_TIMEOUT_MS,
   isTimeoutError,
@@ -83,12 +87,43 @@ function LessonRow({
   onOpen: (lesson: TrackLessonEntry) => void;
   tI: (key: string, options?: Record<string, string | number>) => string;
 }): ReactElement {
+  const theme = useTheme();
   const meta = lessonStateMeta(lesson);
-  return (
+  // ONDA 4 (next-glow): cor do glow = success do tema (= ACCENT_*.success.fill
+  // do designTokens — o mapping do theme.ts faz success.main === pair.fill; o
+  // CheckCircleIcon de done já usa success.main). Família success NUNCA
+  // dispara red flash (R/(R+G+B) ≈ 0,125 — teto 0,8 do contrato).
+  const glowColor = theme.vars.palette.success.main;
+  // prefers-reduced-motion: reduce → SEM animação, só a borda estática de
+  // sucesso (mesma leitura do confetti.ts — SC 2.3.3).
+  const reduced = prefersReducedMotion();
+  // Keyframes do pulso: MESMA estrutura de sombras nos dois extremos (o motion
+  // interpola sombra a sombra). Memoizados — referência nova a cada render
+  // reiniciaria o loop. Animação de EFEITO (boxShadow): easing effects via
+  // transitions.pulse, nunca o easing spatial (SPATIAL_FORBIDDEN_PROPERTIES).
+  const glowKeyframes = useMemo(
+    () => [
+      `0 0 0 1px ${glowColor}40, 0 0 8px 1px ${glowColor}4D`,
+      `0 0 0 1px ${glowColor}, 0 0 14px 3px ${glowColor}99`,
+      `0 0 0 1px ${glowColor}40, 0 0 8px 1px ${glowColor}4D`,
+    ],
+    [glowColor],
+  );
+  // Entrada com a mola playful (escala — spatial) + loop do pulso (boxShadow —
+  // effects): cada propriedade com a transição certa, no mesmo objeto.
+  const glowTransition = useMemo(
+    () => ({ scale: springs.playful, boxShadow: transitions.pulse }),
+    [],
+  );
+
+  const tile = (
     <Box
       component="button"
       onClick={() => onOpen(lesson)}
       disabled={lesson.locked}
+      aria-label={
+        lesson.done ? tI('roadmap.lessonDoneGlowAria', { title: lesson.title }) : undefined
+      }
       sx={{
         display: 'flex',
         alignItems: 'flex-start',
@@ -109,6 +144,9 @@ function LessonRow({
         ...(lesson.current
           ? { borderColor: 'primary.main' }
           : {}),
+        // ONDA 4 (next-glow): reduce → glow ESTÁTICO (borda de sucesso, sem
+        // animação) — o pulso fica só para quem não pediu menos movimento.
+        ...(lesson.done && reduced ? { borderColor: glowColor } : {}),
         color: 'inherit',
       }}
     >
@@ -123,6 +161,23 @@ function LessonRow({
       </Box>
       <Chip size="small" variant="outlined" label={tI('roadmap.difficulty', { n: lesson.difficulty })} sx={{ ml: 1 }} />
     </Box>
+  );
+
+  // Aula concluída + movimento permitido → GLOW pulsante de sucesso em volta
+  // do tile (boxShadow com a cor de sucesso; NUNCA vermelho — regra de red
+  // flash do designTokens). Com reduce (ou aula não concluída) o tile é o
+  // próprio botão, sem wrapper de animação.
+  if (!lesson.done || reduced) return tile;
+
+  return (
+    <motion.div
+      initial={{ scale: 0.97 }}
+      animate={{ scale: 1, boxShadow: glowKeyframes }}
+      transition={glowTransition}
+      style={{ borderRadius: theme.shape.borderRadius }}
+    >
+      {tile}
+    </motion.div>
   );
 }
 

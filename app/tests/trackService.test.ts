@@ -32,6 +32,7 @@ import {
   buildChallengeSummaries,
   buildTrackDetail,
   buildTrackLesson,
+  computeNextLesson,
   computeUnlockStates,
   findLessonInTrack,
   resolveChallengeSpec,
@@ -184,6 +185,77 @@ describe('computeUnlockStates — destravamento sequencial', () => {
     assert.equal(states.get('a1')!.locked, false);
     assert.equal(states.get('a2')!.locked, true);
     assert.equal(states.get('b1')!.locked, true);
+  });
+});
+
+describe('computeNextLesson — próxima aula (onda 4 next-glow)', () => {
+  it('meio da trilha → a próxima destravada e não feita', () => {
+    const track = makeTrack([
+      { moduleSlug: 'm1', lesson: lesson('a1') },
+      { moduleSlug: 'm1', lesson: lesson('a2') },
+      { moduleSlug: 'm1', lesson: lesson('a3') },
+    ]);
+    // a1 concluída → a2 é a próxima destravada e não feita.
+    assert.deepEqual(computeNextLesson(track, 'a1', new Set(['a1']), false), { slug: 'a2', title: 'a2' });
+  });
+
+  it('última aula → null (não há próxima)', () => {
+    const track = makeTrack([
+      { moduleSlug: 'm1', lesson: lesson('a1') },
+      { moduleSlug: 'm1', lesson: lesson('a2') },
+    ]);
+    assert.equal(computeNextLesson(track, 'a2', new Set(['a1', 'a2']), false), null);
+  });
+
+  it('aula não encontrada na trilha → null (defensivo)', () => {
+    const track = makeTrack([{ moduleSlug: 'm1', lesson: lesson('a1') }]);
+    assert.equal(computeNextLesson(track, 'fantasma', new Set(), false), null);
+  });
+
+  it('pula aulas JÁ concluídas depois da atual', () => {
+    const track = makeTrack([
+      { moduleSlug: 'm1', lesson: lesson('a1') },
+      { moduleSlug: 'm1', lesson: lesson('a2') },
+      { moduleSlug: 'm1', lesson: lesson('a3') },
+    ]);
+    // a2 já feita → a3 (destravada porque a2 está feita).
+    assert.deepEqual(computeNextLesson(track, 'a1', new Set(['a1', 'a2']), false), { slug: 'a3', title: 'a3' });
+  });
+
+  it('DECISÃO (d): simula esta aula concluída — sem done real, a próxima é a que destravaria', () => {
+    const track = makeTrack([
+      { moduleSlug: 'm1', lesson: lesson('a1') },
+      { moduleSlug: 'm1', lesson: lesson('a2') },
+      { moduleSlug: 'm1', lesson: lesson('a3') },
+    ]);
+    // a1 AINDA não feita: sem a simulação, a2 ficaria locked; com a simulação
+    // (done=true em a1) → a2 é a próxima destravada e não feita.
+    assert.deepEqual(computeNextLesson(track, 'a1', new Set(), false), { slug: 'a2', title: 'a2' });
+  });
+
+  it('proficiente destrava tudo → próxima = primeira não feita depois da atual', () => {
+    const track = makeTrack([
+      { moduleSlug: 'm1', lesson: lesson('a1') },
+      { moduleSlug: 'm1', lesson: lesson('a2') },
+      { moduleSlug: 'm1', lesson: lesson('a3') },
+    ]);
+    assert.deepEqual(computeNextLesson(track, 'a1', new Set(), true), { slug: 'a2', title: 'a2' });
+  });
+
+  it('tudo concluído depois da atual → null', () => {
+    const track = makeTrack([
+      { moduleSlug: 'm1', lesson: lesson('a1') },
+      { moduleSlug: 'm1', lesson: lesson('a2') },
+    ]);
+    assert.equal(computeNextLesson(track, 'a1', new Set(['a1', 'a2']), false), null);
+  });
+
+  it('a próxima pode estar no MÓDULO seguinte (ordem por module.order)', () => {
+    const track = makeTrack([
+      { moduleSlug: 'm1', lesson: lesson('a1') },
+      { moduleSlug: 'm2', lesson: lesson('b1') },
+    ]);
+    assert.deepEqual(computeNextLesson(track, 'a1', new Set(['a1']), false), { slug: 'b1', title: 'b1' });
   });
 });
 
@@ -360,6 +432,25 @@ describe('buildTrackDetail / buildTrackLesson — DTOs', () => {
     assert.equal(detail.modules[0].challenge, null);
     assert.equal(detail.modules[0].challengeLastVerdict, null);
     assert.equal(detail.modules[0].challengeStars, 0);
+  });
+
+  it('ONDA4: buildTrackLesson propaga nextLesson no payload (próxima destravada)', async () => {
+    const track = makeTrack([
+      { moduleSlug: 'm1', lesson: lesson('a1') },
+      { moduleSlug: 'm1', lesson: lesson('a2') },
+    ]);
+    const repo = fakeRepo({
+      listTrackLessonProgress: async () => [{ trackSlug: 'trilha', lessonId: 'a1', completedAt: 'x' }],
+    });
+    const payload = await buildTrackLesson(track, 'm1', 'a1', repo);
+    assert.ok(payload);
+    assert.deepEqual(payload.nextLesson, { slug: 'a2', title: 'a2' });
+
+    // ÚLTIMA aula → nextLesson null (o campo SEMPRE vem no payload, null ou
+    // objeto — o renderer não precisa de fallback para undefined).
+    const last = await buildTrackLesson(track, 'm1', 'a2', repo);
+    assert.ok(last);
+    assert.equal(last.nextLesson, null);
   });
 });
 

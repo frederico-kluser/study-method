@@ -204,7 +204,9 @@
     "micStart": "Falar",
     "micStop": "Parando gravação…",
     "micRecording": "Transcrevendo…",
-    "regenerateFailed": "Não foi possível gerar um novo desafio."
+    "regenerateFailed": "Não foi possível gerar um novo desafio.",
+    "nextLessonButton": "Avançar para a próxima aula",
+    "lessonCompleted": "Aula concluída!"
   },
   "challenge": {
     "openChallenge": "Abrir desafio",
@@ -275,7 +277,9 @@
     "fileTabAria": "Arquivo {{file}}",
     "submitTimeout": "O teste do código demorou demais para terminar. Tente de novo.",
     "regenerateTimeout": "A geração do novo desafio demorou demais. Tente de novo.",
-    "trackLoadFailed": "Não foi possível carregar o desafio."
+    "trackLoadFailed": "Não foi possível carregar o desafio.",
+    "nextLessonButton": "Avançar para a próxima aula",
+    "generateNewAfterPass": "Gerar outro desafio da aula"
   },
   "gate": {
     "checking": "Verificando configuração…",
@@ -633,7 +637,8 @@
     "moduleChallengeDone": "Concluído ✓",
     "moduleChallengeTried": "Tentado",
     "listFailed": "Não foi possível carregar a lista de trilhas.",
-    "backButton": "Voltar"
+    "backButton": "Voltar",
+    "lessonDoneGlowAria": "Aula concluída: {{title}}"
   },
   "challengeGen": {
     "title": "Gerando novo desafio",

@@ -75,6 +75,7 @@ import { feedbackProviderChipKey } from '../../lib/feedbackProviderUi';
 import { mapTestAnswerPhase } from '../../lib/testAnswerEvents';
 import { useChallengeNav } from '../../lib/challengeNav';
 import { TrackChallengePanel } from './TrackChallengePanel';
+import type { ViewProps } from '../placeholders';
 import {
   createStarTracker,
   formatClock,
@@ -145,7 +146,7 @@ function MarkdownComponents() {
   };
 }
 
-export default function ChallengeView(): ReactElement {
+export default function ChallengeView(props: ViewProps): ReactElement {
   const { t } = useTranslation();
   const nav = useChallengeNav();
 
@@ -155,7 +156,9 @@ export default function ChallengeView(): ReactElement {
   // "Gerar novo desafio" com nunca-repetir). O fluxo legado (workspace da
   // geração) continua intacto abaixo para compatibilidade.
   if (nav.trackChallenge) {
-    return <TrackChallengePanel selection={nav.trackChallenge} />;
+    // ONDA 4 (next-glow): repassa a navegação do shell — o botão "Avançar
+    // para a próxima aula" usa o fallback → trilha quando não há próxima.
+    return <TrackChallengePanel selection={nav.trackChallenge} onNavigate={props.onNavigate} />;
   }
 
   // t() com interpolação: o t() strict-typed desta base (src/i18n/i18next.d.ts)

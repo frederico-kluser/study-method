@@ -16,6 +16,11 @@ venv/
 
 # Node
 node_modules/
+# CORREÇÃO DE RAIZ (onda 4): o symlink app/node_modules (worktrees apontam para
+# o node_modules do repo principal) NÃO é casado pela entrada `node_modules/`
+# (o padrão com slash não casa symlink) — esta entrada SEM barra impede que o
+# symlink seja rastreado em merges de worktrees (defeito recorrente).
+app/node_modules
 
 # Rust / Go (aparecem quando um desafio é gerado dentro da árvore por engano)
 target/

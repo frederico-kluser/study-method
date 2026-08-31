@@ -204,7 +204,9 @@
     "micStart": "Speak",
     "micStop": "Stopping recording…",
     "micRecording": "Transcribing…",
-    "regenerateFailed": "Could not generate a new challenge."
+    "regenerateFailed": "Could not generate a new challenge.",
+    "nextLessonButton": "Go to next lesson",
+    "lessonCompleted": "Lesson completed!"
   },
   "challenge": {
     "openChallenge": "Open challenge",
@@ -275,7 +277,9 @@
     "fileTabAria": "File {{file}}",
     "submitTimeout": "Code testing took too long. Try again.",
     "regenerateTimeout": "Generating a new challenge took too long. Try again.",
-    "trackLoadFailed": "Could not load the challenge."
+    "trackLoadFailed": "Could not load the challenge.",
+    "nextLessonButton": "Go to next lesson",
+    "generateNewAfterPass": "Generate another challenge for this lesson"
   },
   "gate": {
     "checking": "Checking setup…",
@@ -633,7 +637,8 @@
     "moduleChallengeDone": "Completed ✓",
     "moduleChallengeTried": "Tried",
     "listFailed": "Could not load the track list.",
-    "backButton": "Back"
+    "backButton": "Back",
+    "lessonDoneGlowAria": "Completed lesson: {{title}}"
   },
   "challengeGen": {
     "title": "Generating new challenge",

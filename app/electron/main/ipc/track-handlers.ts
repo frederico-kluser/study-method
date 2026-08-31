@@ -167,6 +167,9 @@ export function buildTrackHandlers(deps: TrackHandlerDeps): Map<string, IpcHandl
     const found = findLessonAnywhere(loaded, p.lessonId);
     if (!found) return { ok: true, lesson: null };
     try {
+      // ONDA 4 (next-glow): `nextLesson` (próxima aula destravada e não feita)
+      // é montado DENTRO do buildTrackLesson e propaga no payload inteiro —
+      // nada a copiar aqui (o `lesson` volta completo no TrackLessonResult).
       const lesson = await buildTrackLesson(loaded, found.moduleSlug, p.lessonId, repo);
       return { ok: true, lesson };
     } catch (err) {
