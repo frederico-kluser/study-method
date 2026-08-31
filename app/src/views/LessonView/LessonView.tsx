@@ -103,7 +103,10 @@ import {
   createTrackLessonState,
   isLessonFinishBlocked,
   pushUserMessage,
+  quizForSection,
+  quizzesByMessageIndex,
   seedChallengeError,
+  submitQuizAnswer,
   type TrackLessonUiState,
 } from '../../lib/trackLessonState';
 import {
@@ -111,6 +114,7 @@ import {
   drainPendingDomain,
   drainPendingLessonId,
   drainPendingSubject,
+  setPendingTrackLesson,
 } from '../../lib/pendingSubject';
 import {
   createLessonChatHolder,
@@ -130,11 +134,26 @@ import { AnimatePresence, motion } from 'motion/react';
 import { fadeInUp, springs } from '../../lib/animationTokens';
 import { ChatBubble } from '../../components/chat/ChatBubble';
 import { TypingIndicator } from '../../components/chat/TypingIndicator';
+// ONDA4 (quiz): confete + anúncio acessível ao CONCLUIR a aula (brilho/celebração).
+import { announceStatus, fireConfetti } from '../../lib/confetti';
+import { LessonQuizCard } from './LessonQuiz';
 import type {
   TrackChallengeSummaryDto,
   TrackLessonPayload,
 } from '../../../shared/ipc-contract';
 import type { ViewProps } from '../placeholders';
+
+/**
+ * ONDA4 (quiz, contrato com a sub-tarefa irmã onda4-next-glow): a irmã
+ * entrega `nextLesson` (próxima aula da trilha) no TrackLessonPayload — o
+ * merge dela vem ANTES desta onda no main. ENQUANTO o campo não existir no
+ * contrato (ipc-contract.ts é da irmã — NÃO edito), este tipo local +
+ * cast defensivo mantém o app compilando; após o merge, o campo passa a
+ * existir no payload e o cast vira redundância inofensiva.
+ */
+type LessonPayloadWithNext = TrackLessonPayload & {
+  nextLesson?: { slug: string; title: string } | null;
+};
 
 export function LessonView(props: ViewProps): ReactElement {
   const { t, i18n } = useTranslation();
@@ -670,6 +689,12 @@ export function LessonView(props: ViewProps): ReactElement {
         'track.lessonDone',
       );
       setDoneMarked(true);
+      // ONDA4 (brilho ao concluir — pedido do dono): rajada de confete +
+      // anúncio acessível role="status" (a LessonView reusa confetti.ts; o
+      // anúncio acontece MESMO com prefers-reduced-motion — o movimento é
+      // que é suprimido, nunca a informação).
+      fireConfetti();
+      announceStatus(tI('lesson.lessonCompleted'));
       publishSession({
         subject: lesson?.title ?? trackLesson.lessonId,
         status: 'done',
@@ -776,6 +801,41 @@ export function LessonView(props: ViewProps): ReactElement {
     },
     [trackLesson, loadLesson, publishSession],
   );
+
+  // ─── ONDA4 (quiz): múltipla escolha por afirmação DURANTE a aula ──────────
+  // Quizzes por índice da bolha do histórico (REPLAN A1): assertion com
+  // sectionId → bolha da seção que a demonstra ('next'); assertion SEM
+  // sectionId (trilhas antigas) → bolha da ÚLTIMA seção apresentada (fallback
+  // determinístico). A chave do estado do quiz (quizBySection) é
+  // `sectionId ?? assertion.id` — a id é única por assertion, então duas
+  // assertions sem sectionId têm quizzes INDEPENDENTES (mesma âncora).
+  const quizzesByIndex = useMemo(
+    () => quizzesByMessageIndex(chat, lesson?.assertions ?? []),
+    [chat, lesson],
+  );
+
+  const handleQuizSelect = useCallback((quizKey: string, answerIndex: number, correctIndex: number): void => {
+    setChat((s) => submitQuizAnswer(s, quizKey, answerIndex, correctIndex));
+  }, []);
+
+  // ─── ONDA4 (pós-conclusão): próxima aula da trilha ────────────────────────
+  // `nextLesson` é entrega da sub-tarefa irmã (onda4-next-glow) — merge dela
+  // vem ANTES no main (ver LessonPayloadWithNext no topo: cast defensivo
+  // enquanto o campo não existe no contrato). Sem nextLesson → o botão cai no
+  // roadmap (a trilha reflete a aula recém-concluída).
+  const nextLesson = useMemo(
+    () => (lesson as LessonPayloadWithNext | null)?.nextLesson ?? null,
+    [lesson],
+  );
+  const handleGoToNextLesson = useCallback((): void => {
+    if (!trackLesson) return;
+    if (nextLesson?.slug) {
+      setPendingTrackLesson(trackLesson.trackSlug, nextLesson.slug);
+      navigate('lesson');
+    } else {
+      navigate('roadmap');
+    }
+  }, [trackLesson, nextLesson, navigate]);
 
   // ─── estado vazio: nenhuma aula de trilha selecionada ─────────────────────
   if (!trackLesson) {
@@ -1053,6 +1113,28 @@ export function LessonView(props: ViewProps): ReactElement {
                         onStreamDone={() => handleStreamDone(i)}
                         onStreamTick={handleStreamTick}
                       />
+                      {/* ONDA4 (quiz): o card do quiz da(s) assertion(s) que
+                          esta bolha APRESENTOU (sectionId == seção da bolha) —
+                          aparece DEPOIS da bolha e só quando a digitação
+                          terminou (a bolha "apresentada" = texto completo).
+                          Respondido → o card FICA preenchido (feedback
+                          verde/vermelho, opções travadas — reforço, não
+                          gate). A chave do estado é sectionId ?? assertion.id
+                          (id única — assertions sem sectionId têm quizzes
+                          independentes na MESMA âncora). */}
+                      {streamingIds.has(i)
+                        ? null
+                        : (quizzesByIndex.get(i) ?? []).map((assertion) => {
+                            const quizKey = assertion.sectionId ?? assertion.id;
+                            return (
+                              <LessonQuizCard
+                                key={assertion.id}
+                                assertion={assertion}
+                                quiz={quizForSection(chat, quizKey)}
+                                onSelect={(answerIndex) => handleQuizSelect(quizKey, answerIndex, assertion.answerIndex)}
+                              />
+                            );
+                          })}
                     </motion.div>
                   );
                 })}
@@ -1166,15 +1248,47 @@ export function LessonView(props: ViewProps): ReactElement {
                 {t('translation:lesson.nextButton')}
               </Button>
             </motion.span>
+          ) : doneMarked ? (
+            /* ONDA4 (pós-conclusão — pedido do dono: "ao terminar o usuário
+               pode avançar para a próxima aula ou gerar um novo desafio"):
+               no lugar do "Concluída ✓" desabilitado, DOIS botões — avançar
+               (nextLesson do payload; sem nextLesson → roadmap, a trilha
+               reflete a conclusão) e gerar novo desafio (fluxo GLOBAL
+               challengeGenerateStore + IPC — o MESMO da bolha de erro,
+               handleRegenerateFromBubble; o modal global mostra as etapas). */
+            <>
+              <motion.span
+                whileTap={{ scale: 0.98 }}
+                transition={springs.snappy}
+                style={{ display: 'inline-block' }}
+              >
+                <Button
+                  variant="contained"
+                  onClick={() => void handleGoToNextLesson()}
+                  startIcon={<ArrowForwardIcon />}
+                  sx={{ whiteSpace: 'nowrap' }}
+                >
+                  {t('translation:lesson.nextLessonButton')}
+                </Button>
+              </motion.span>
+              <motion.span
+                whileTap={{ scale: 0.98 }}
+                transition={springs.snappy}
+                style={{ display: 'inline-block' }}
+              >
+                <Button
+                  variant="outlined"
+                  onClick={() => void handleRegenerateFromBubble()}
+                  disabled={busy || generateRunning}
+                  sx={{ whiteSpace: 'nowrap' }}
+                >
+                  {t('translation:lesson.generateNewChallenge')}
+                </Button>
+              </motion.span>
+            </>
           ) : (
             <Tooltip
-              title={
-                doneMarked
-                  ? t('translation:lesson.doneMarked')
-                  : challengesPending
-                    ? t('translation:lesson.finishBlockedTooltip')
-                    : ''
-              }
+              title={challengesPending ? t('translation:lesson.finishBlockedTooltip') : ''}
             >
               <span>
                 {/* ONDA2-CHAT-NINTENDO: mesmo press feedback no "Concluir

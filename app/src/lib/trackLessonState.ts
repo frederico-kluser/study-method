@@ -12,6 +12,12 @@
  *   - `challengeError`: relatório do erro do desafio de aula que falhou
  *     (onda2-error-flow) — anexado aos turnos 'answer' da discussão do erro.
  *
+ * ONDA4 (quiz): `quizBySection` guarda o estado do QUIZ de múltipla escolha
+ * por afirmação (chaveado por sectionId — REPLAN A1). Os helpers do quiz são
+ * PURA e o quiz NÃO bloqueia o "Próximo" (reforço): a UI renderiza o card
+ * APÓS a bolha da seção que o demonstra e o mantém preenchido com o feedback
+ * após responder (idempotente).
+ *
  * Fluxo: o usuário clica "Próximo" → action 'next' (com presentedSections) →
  * a resposta do tutor vira uma mensagem assistant e sectionId entra em
  * presentedSections. O usuário digita → action 'answer' → a resposta do tutor
@@ -43,6 +49,7 @@
  * Onda 2: `typewriterCut`/`typewriterDelayPerChar`/`typewriterIsDone`.
  */
 import type {
+  TrackAssertionDto,
   TrackChallengeErrorReport,
   TrackSubmitResult,
   TrackVerdict,
@@ -101,6 +108,28 @@ export interface TrackLessonUiState {
    * Zera no 'next' (a teoria retoma) e em `clearChallengeError`.
    */
   challengeError: TrackChallengeErrorReport | null;
+  /**
+   * ADITIVO (onda4-quiz): estado do QUIZ de múltipla escolha por afirmação,
+   * chaveado por sectionId (a seção de teoria que demonstra a assertion — ver
+   * REPLAN A1). Uma assertion SEM sectionId (trilhas antigas) é ancorada na
+   * ÚLTIMA seção apresentada via `FALLBACK_QUIZ_SECTION` (ver
+   * `assertionsBySection`). O quiz é REFORÇO (não gate): respostas persistem
+   * no estado (e, por extensão, no lessonChatCache) — na retomada da aula o
+   * quiz já respondido aparece preenchido.
+   */
+  quizBySection: Record<string, QuizState>;
+}
+
+/**
+ * ONDA4 (quiz): estado de UMA resposta do quiz — `answered` marca a resposta
+ * dada, `selected` o índice da opção escolhida e `correct` o veredito
+ * (answerIndex === selected). Estado IMUTÁVEL por contrato (mesmo padrão do
+ * TrackLessonUiState): os helpers devolvem um objeto novo a cada update.
+ */
+export interface QuizState {
+  answered: boolean;
+  selected: number | null;
+  correct: boolean | null;
 }
 
 export function createTrackLessonState(): TrackLessonUiState {
@@ -110,6 +139,7 @@ export function createTrackLessonState(): TrackLessonUiState {
     theoryDone: false,
     lastError: null,
     challengeError: null,
+    quizBySection: {},
   };
 }
 
@@ -147,6 +177,10 @@ export function applyTutorReply(
     // ONDA2 (error-flow): a resposta do tutor PRESERVA o contexto de erro em
     // discussão — só 'next' (sendNext) e clearChallengeError o zeram.
     challengeError: state.challengeError,
+    // ONDA4 (quiz): campo ADITIVO — o quiz respondido sobrevive aos turnos
+    // (applyTutorReply monta o objeto EXPLICITAMENTE, sem spread; sem esta
+    // linha o quizBySection se perderia no primeiro 'next'/'answer').
+    quizBySection: state.quizBySection,
   };
 }
 
@@ -560,4 +594,147 @@ function stripSeededReviewPairs(
 export function clearChallengeError(state: TrackLessonUiState): TrackLessonUiState {
   if (!state.challengeError) return state;
   return { ...state, challengeError: null };
+}
+
+// ─── ONDA4 (quiz): múltipla escolha por afirmação DURANTE a aula ────────────
+//
+// Contrato (REPLAN A1): cada assertion do payload TrackLessonPayload carrega
+// `sectionId` (a seção de teoria que a demonstra). O quiz de uma assertion
+// renderiza APÓS a bolha da seção cujo id == sectionId ser apresentada
+// ('next') e é VISÍVEL só quando `presentedSections` contém o sectionId. O
+// quiz é REFORÇO — NUNCA bloqueia o "Próximo". Assertion sem sectionId
+// (trilhas antigas, defensivo) cai na chave sintética `FALLBACK_QUIZ_SECTION`
+// e aparece APÓS a ÚLTIMA seção de teoria apresentada (fallback
+// determinístico). Os helpers abaixo são PURA (node:test, sem React/DOM).
+
+/** Chave sintética das assertions SEM sectionId (nunca colide com um id real
+ *  de seção — slugs de arquivo). O quiz delas ancora na última seção
+ *  apresentada. */
+export const FALLBACK_QUIZ_SECTION = '__quiz_fallback__';
+
+/**
+ * Marca a resposta do quiz da seção: answered=true, selected=answerIndex,
+ * correct=(answerIndex===correctIndex). IDEMPOTENTE: seção já respondida →
+ * no-op (a primeira resposta vence — o quiz é "preenchido" e travado). PURA.
+ */
+export function submitQuizAnswer(
+  state: TrackLessonUiState,
+  sectionId: string,
+  answerIndex: number,
+  correctIndex: number,
+): TrackLessonUiState {
+  if (state.quizBySection[sectionId]?.answered === true) return state;
+  return {
+    ...state,
+    quizBySection: {
+      ...state.quizBySection,
+      [sectionId]: {
+        answered: true,
+        selected: answerIndex,
+        correct: answerIndex === correctIndex,
+      },
+    },
+  };
+}
+
+/** Estado do quiz da seção (undefined = ainda não respondido). PURA. */
+export function quizForSection(state: TrackLessonUiState, sectionId: string): QuizState | undefined {
+  return state.quizBySection[sectionId];
+}
+
+/** true quando a seção JÁ foi respondida no quiz. PURA. */
+export function isQuizAnswered(state: TrackLessonUiState, sectionId: string): boolean {
+  return state.quizBySection[sectionId]?.answered === true;
+}
+
+/**
+ * Zera a resposta do quiz da seção (a seção volta a oferecer as opções).
+ * No-op quando não há resposta gravada. PURA.
+ */
+export function resetQuiz(state: TrackLessonUiState, sectionId: string): TrackLessonUiState {
+  if (state.quizBySection[sectionId] === undefined) return state;
+  const quizBySection = { ...state.quizBySection };
+  delete quizBySection[sectionId];
+  return { ...state, quizBySection };
+}
+
+/**
+ * Agrupa as assertions da aula por sectionId — uma seção pode demonstrar >1
+ * assertion (ex.: 3 assertions × 2 seções → 2 na seção 1, 1 na seção 2). As
+ * assertions SEM sectionId caem na chave sintética `FALLBACK_QUIZ_SECTION`
+ * (o quiz delas aparece após a última seção apresentada — REPLAN A1). PURA.
+ */
+export function assertionsBySection(
+  assertions: readonly TrackAssertionDto[],
+): Record<string, TrackAssertionDto[]> {
+  const out: Record<string, TrackAssertionDto[]> = {};
+  for (const a of assertions) {
+    const key = a.sectionId ?? FALLBACK_QUIZ_SECTION;
+    (out[key] ??= []).push(a);
+  }
+  return out;
+}
+
+/**
+ * Mapa sectionId → índice da bolha do histórico que APRESENTOU a seção — a
+ * âncora do quiz "APÓS a bolha da seção". Identificação determinística: uma
+ * apresentação é uma mensagem assistant `kind: 'message'` que NÃO é
+ * imediatamente precedida por uma bolha 'review' (a pergunta semeada do erro
+ * também é 'message' mas segue SEMPRE uma 'review' — o `seedChallengeError`
+ * insere o par adjacente). O contador caminha em PARALELO com
+ * `presentedSections` (a ordem das apresentações no histórico é a ordem das
+ * seções — a teoria avança em sequência). Fallback determinístico: se a
+ * contagem não bater com presentedSections (ex.: 'next' com mensagem vazia —
+ * a seção entra no estado SEM bolha), as seções restantes ancoram no FIM do
+ * histórico (índice history.length - 1; -1 quando o histórico está vazio).
+ * PURA.
+ */
+export function sectionPresentationIndexes(state: TrackLessonUiState): Map<string, number> {
+  const out = new Map<string, number>();
+  let k = 0;
+  for (let i = 0; i < state.history.length; i++) {
+    const m = state.history[i];
+    if (m.role !== 'assistant' || m.kind !== 'message') continue;
+    if (state.history[i - 1]?.kind === 'review') continue;
+    if (k >= state.presentedSections.length) break;
+    out.set(state.presentedSections[k], i);
+    k += 1;
+  }
+  const anchor = state.history.length > 0 ? state.history.length - 1 : -1;
+  for (let j = k; j < state.presentedSections.length; j++) {
+    out.set(state.presentedSections[j], anchor);
+  }
+  return out;
+}
+
+/**
+ * Quizzes a renderizar POR índice da bolha do histórico: assertion com
+ * sectionId → índice da bolha que apresentou a seção; assertion SEM sectionId
+ * → índice da bolha da ÚLTIMA seção apresentada (fallback determinístico do
+ * REPLAN A1; sem seção apresentada ainda, o quiz não aparece — nada no mapa).
+ * Devolve TODAS (respondidas ou não) — a UI decide o estado visual de cada
+ * card via `quizForSection` (respondido = preenchido com feedback, travado).
+ * PURA.
+ */
+export function quizzesByMessageIndex(
+  state: TrackLessonUiState,
+  assertions: readonly TrackAssertionDto[],
+): Map<number, TrackAssertionDto[]> {
+  const bySection = assertionsBySection(assertions);
+  const presentation = sectionPresentationIndexes(state);
+  const out = new Map<number, TrackAssertionDto[]>();
+  const push = (idx: number, a: TrackAssertionDto): void => {
+    const list = out.get(idx);
+    if (list) list.push(a);
+    else out.set(idx, [a]);
+  };
+  for (const [sectionId, idx] of presentation) {
+    for (const a of bySection[sectionId] ?? []) push(idx, a);
+  }
+  const lastSection = state.presentedSections[state.presentedSections.length - 1];
+  const fallbackIdx = lastSection !== undefined ? presentation.get(lastSection) : undefined;
+  if (fallbackIdx !== undefined) {
+    for (const a of bySection[FALLBACK_QUIZ_SECTION] ?? []) push(fallbackIdx, a);
+  }
+  return out;
 }
