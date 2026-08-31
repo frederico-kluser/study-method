@@ -10,14 +10,19 @@
  *   1. A13c reprova a aula que manda o aluno LER chamada de função nunca
  *      demonstrada (o pecado nº 1 do usuário — spec §3.2).
  *   2. A13c aprova quando a chamada foi demonstrada em aula anterior.
- *   3. A13d reprova `introduces` declarado sem demonstração (modo declared).
- *   4. A14a reprova aula com 5 construções verdadeiramente novas e aprova com 2.
- *   5. A14b reprova linha da solução que combina 2 construções novas.
- *   6. A15a reprova o degrau sem reuso (e com 2 novos não demonstrados).
- *   7. A15b reprova a aula que não reutiliza nada anterior e aprova a que
+ *   3. A13c aprova quando a chamada foi demonstrada na teoria DA MESMA aula
+ *      (spec §3.2: "demonstrado em teoria (desta/anteriores)" — caso real da
+ *      L1 de programacao-do-zero, que demonstra `resposta()` na seção 1 e cujo
+ *      próprio teste a chama; era o defeito A13c reportado pelo autor de L1).
+ *   4. A13d reprova `introduces` declarado sem demonstração (modo declared).
+ *   5. A14a reprova aula com 5 construções verdadeiramente novas e aprova com 2.
+ *   6. A14b reprova linha da solução que combina 2 construções novas.
+ *   7. A15a reprova o degrau sem reuso (e com 2 novos não demonstrados) e
+ *      aprova o 2º desafio que reusa o 1º (off-by-one do k=1 corrigido).
+ *   8. A15b reprova a aula que não reutiliza nada anterior e aprova a que
  *      reutiliza (recuperação espaçada, §7.1.12).
- *   8. A16 reprova 1º desafio que exige construção da 2ª seção.
- *   9. CASO FELIZ: L1–L3 do micro-currículo `programacao-do-zero`
+ *   9. A16 reprova 1º desafio que exige construção da 2ª seção.
+ *  10. CASO FELIZ: L1–L3 do micro-currículo `programacao-do-zero`
  *      (curriculo.json) passam na bateria INTEIRA — fixtures mínimas
  *      inspiradas nas três primeiras aulas (zero erros E zero avisos: cada
  *      aula introduz 1–3 átomos novos não-H13 e demonstra o que o 1º desafio
@@ -163,6 +168,32 @@ describe('A13 — ensino-efetivo', () => {
     const report = auditTrack(t);
     const v = porRegra(report.violations, 'A13').filter((x) => x.campo === 'testsCode' && x.construcao === 'node:CallExpression');
     assert.deepEqual(v, [], JSON.stringify(report.violations, null, 2));
+  });
+
+  it('A13c aprova quando a chamada foi demonstrada na teoria DA MESMA aula (spec §3.2 — caso real da L1)', () => {
+    // Aula índice 0 (nenhum acumulado anterior), teoria desta PRÓPRIA aula com
+    // a chamada demonstrada (`assert.equal(resposta(), 7)` é a linha autoral do
+    // teste da L1 real — a espinha `assert.equal(` sai pelo span S13, a chamada
+    // `resposta()` é o 1º argumento, autoral). A fórmula da spec §3.2
+    // ("demonstrado em teoria (desta/anteriores)") inclui Demo(i) para o teste:
+    // antes da correção esta aula violava A13c (defeito reportado pelo autor
+    // da L1 de programacao-do-zero no feed integral).
+    const t = trackOf([
+      moduleOf('m1', 1, [
+        lesson('a1', [theory('s1', 'a máquina que confere', 'assert.equal(resposta(), 7);')], [
+          challenge('c1', {
+            solutionCode: 'export function resposta() {\n  return 7;\n}\n',
+            testsCode:
+              "import { test } from 'node:test';\nimport assert from 'node:assert/strict';\nimport { resposta } from './solution.mjs';\ntest('escolha o número 7', () => {\n  assert.equal(resposta(), 7);\n});\n",
+          }),
+        ]),
+      ]),
+    ]);
+    const report = auditTrack(t);
+    const v = porRegra(report.violations, 'A13').filter((x) => x.campo === 'testsCode' && x.construcao === 'node:CallExpression');
+    assert.deepEqual(v, [], `a teoria DESTA aula demonstra a chamada: ${JSON.stringify(report.violations, null, 2)}`);
+    // O pecado nº 1 (chamada sem NENHUMA demonstração) continua sendo pego —
+    // o teste nº 1 acima prova que a aula SEM teoria viola.
   });
 });
 
@@ -322,6 +353,32 @@ describe('A15a — progressividade intra-aula', () => {
       v.some((x) => x.mensagem.includes('não usa NENHUM átomo do desafio anterior')),
       `esperada a violação de reuso (i): ${v.map((x) => x.mensagem).join(' | ')}`,
     );
+  });
+
+  it('aprova o 2º desafio que REUSA o 1º — off-by-one do k=1 corrigido (probe verif/probe-a15a-off-by-one.mts)', () => {
+    // Antes da correção o acumulado começava VAZIO e só ganhava `solucoes[k-1]`
+    // no FIM da iteração: em k=1 o 2º desafio violava "sem reuso" SEMPRE, mesmo
+    // com solução IDÊNTICA à do 1º. Com o init na solução do 1º desafio, um
+    // degrau que reusa algo do anterior passa (e sem novos não demonstrados).
+    const t = trackOf([
+      moduleOf('m1', 1, [
+        lesson('a1', [theory('s1', 'exemplo', 'function f(x) {\n  return x;\n}\n')], [
+          challenge('c1', {
+            slug: 'c1',
+            starterCode: 'export function f(x) {\n  // lacuna\n}\n',
+            solutionCode: 'export function f(x) {\n  return x;\n}\n',
+          }),
+          challenge('c2', {
+            slug: 'c2',
+            starterCode: 'export function f(x) {\n  return x;\n}\n',
+            solutionCode: 'export function f(x) {\n  return x;\n}\n',
+          }),
+        ]),
+      ]),
+    ]);
+    const report = auditTrack(t);
+    const v = porRegra(report.violations, 'A15a');
+    assert.deepEqual(v, [], JSON.stringify(report.violations, null, 2));
   });
 });
 

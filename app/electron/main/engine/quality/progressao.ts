@@ -7,7 +7,8 @@
  * módulo fecha (spec: `app/content-src/analise-verificadores.md` §3–§6):
  *
  *   A13  ENSINO-EFETIVO — o que a atividade usa/expõe precisa ter sido
- *        DEMONSTRADO num bloco de código (teoria desta aula ou de anteriores),
+ *        DEMONSTRADO num bloco de código (teoria desta aula ou de anteriores —
+ *        spec §3.2, para starter/solution E para o teste),
  *        não só liberado pelo orçamento. A semente receptiva do harness
  *        (`HARNESS_RECEPTIVE_SEED`) perdoa em silêncio o pecado nº 1 do
  *        usuário: chamada de função na atividade 1 sem NENHUMA demonstração.
@@ -47,7 +48,10 @@
  *
  *   A13a  Escrito(i) ⊆ Demo(i) ∪ Cum(i) ∪ AX ∪ H13            (erro/aviso-D4)
  *   A13b  Lido(i)    ⊆ Demo(i) ∪ Cum(i) ∪ AX ∪ H13            (erro/aviso-D4)
- *   A13c  (LidoAntes(i) \ S13) \ H13 ⊆ Cum(i) ∪ AX            (erro/aviso-D4)
+ *   A13c  (LidoAntes(i) \ S13) \ H13 ⊆ Demo(i) ∪ Cum(i) ∪ AX  (erro/aviso-D4;
+ *         spec §3.2: a teoria DA MESMA aula também demonstra para o teste — ver
+ *         o bloco A13c abaixo; o pecado nº 1 sem demonstração em lugar nenhum
+ *         continua sendo erro)
  *   A13d  InitDecl(i) ⊆ Demo(i) ∪ Cum(i)   [só declared]      (erro)
  *   A14a  |Novo(i)| > 4 → erro; == 0 → aviso; [declared] |introduces.productive| > 2 → erro
  *   A14b  >1 ocorrência de chave ∈ Novo(i) na mesma linha da solução → erro
@@ -598,7 +602,20 @@ export function auditarProgressao(aulas: ProgressaoLessonInput[], options: Progr
         }
       }
 
-      // ── A13c — o teste é lido ANTES da aula: só o que veio antes vale ────
+      // ── A13c — o teste é lido ANTES da aula (spec §3.2) ───────────────────
+      // Fórmula da spec (linha "A13 ENSINO-EFETIVO" do §1): átomo usado em
+      // atividade (starter/tests/solution) ⊆ demonstrado em teoria (DESTA aula
+      // ∪ anteriores) ∪ intro declarado ∪ axioma ∪ S13. Ou seja: para o teste
+      // vale também a teoria DA MESMA aula (Demo(i)) — a L1 real demonstra
+      // `resposta()` na seção 1 e o teste do próprio desafio a chama; exigir
+      // só Cum(i) acusava falsamente a L1 exatamente nesse ponto (documentado
+      // como "pecado nº 1 esperado" no verif/check03 Feed B — era o defeito).
+      // O pecado nº 1 REAL (chamada sem NENHUMA demonstração em lugar nenhum)
+      // continua sendo erro: com Demo(i) ∪ Cum(i) vazios a ocorrência viola
+      // (engineProgressao.test.ts caso 1). O termo "∪ intro declarado" da
+      // fórmula de prosa não vira conjunto próprio aqui: em declared o A13d
+      // obriga InitDecl(i) ⊆ Demo(i) ∪ Cum(i) (declarar não é demonstrar) e em
+      // inferred Init(i) = Demo(i) \ Cum(i) já está dentro de Demo(i).
       {
         const rTests = extractAllOccurrences(desafio.tests);
         if (rTests.ok) {
@@ -607,7 +624,7 @@ export function auditarProgressao(aulas: ProgressaoLessonInput[], options: Progr
             if (H13_SET.has(occ.key)) continue;
             const mecanico = spans.some((s) => estaDentro(s, occ.start));
             if (mecanico) continue;
-            if (cum.has(occ.key)) continue; // AX ⊆ H13 — os estruturais já saíram acima
+            if (demo.has(occ.key) || cum.has(occ.key)) continue; // spec §3.2: teoria DESTA aula ∪ anteriores; AX ⊆ H13 já saiu acima
             const aviso = AVISO13.has(occ.key);
             violations.push({
               regra: 'A13',
@@ -624,7 +641,7 @@ export function auditarProgressao(aulas: ProgressaoLessonInput[], options: Progr
               severidade: aviso ? 'aviso' : 'erro',
               mensagem: aviso
                 ? `${humanLabel(occ.key)} (um valor/termo) aparece sem demonstração em código — se a prosa já o explica, rebaixe à vontade; caso contrário demonstre num bloco js`
-                : `${humanLabel(occ.key)} aparece no teste de \`${aula.ref}\`, que o aluno lê ANTES da aula, e nenhuma aula anterior o demonstrou num exemplo de código — o aluno leu uma construção que nunca viu. Demonstre ${humanLabel(occ.key)} numa aula anterior (ou remova a ocorrência do teste)`,
+                : `${humanLabel(occ.key)} aparece no teste de \`${aula.ref}\`, que o aluno lê ANTES da aula, e nem a teoria desta aula nem a de nenhuma aula anterior o demonstrou num exemplo de código — o aluno leu uma construção que nunca viu. Demonstre ${humanLabel(occ.key)} na teoria desta aula ou de uma aula anterior (ou remova a ocorrência do teste)`,
               desafioFile,
             });
           }
@@ -683,7 +700,12 @@ export function auditarProgressao(aulas: ProgressaoLessonInput[], options: Progr
         }
         return keys;
       });
-      const anteriorAcumulado = new Set<AtomKey>();
+      // A15a (off-by-one corrigido — ver verif/probe-a15a-off-by-one.mts):
+      // `anteriorAcumulado` começa com a solução do 1º desafio, ANTES do loop.
+      // Antes, ele só recebia `solucoes[k-1]` no FIM da iteração: em k=1 o
+      // conjunto estava VAZIO e o 2º desafio violava "sem reuso" SEMPRE, mesmo
+      // com solução IDÊNTICA à do 1º (spec §5.5 — o degrau reusa o anterior).
+      const anteriorAcumulado = new Set<AtomKey>(solucoes[0]);
       for (let k = 1; k < aula.challenges.length; k += 1) {
         const solK = solucoes[k];
         // reuso: o degrau usa algo do degrau anterior. Boilerplate ESTRUTURAL/H13

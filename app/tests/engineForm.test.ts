@@ -398,8 +398,12 @@ describe('form — harness/starter do corpus real (A-P06-2)', () => {
 
   // A teoria da aula 1 ensina função declarada — o que isola o que este teste
   // quer provar: o default-param e a arrow de expressão chegam pelo RUNNER e
-  // pelo STARTER (seed RECEPTIVA), não por aula.
-  const theoryFuncao = "export function saudar(nome) {\n  console.log(nome);\n}\n";
+  // pelo STARTER (seed RECEPTIVA), não por aula. Sem NENHUMA chamada na teoria
+  // (antes havia um `console.log(nome)`): com o A13c alinhado à spec §3.2 a
+  // teoria DA MESMA aula conta como demonstração — um console.log demonstraria
+  // CallExpression e a chamada do teste deixaria de ser o "pecado nº 1" (ver
+  // engineProgressao.test.ts, caso "demonstrada na teoria DA MESMA aula").
+  const theoryFuncao = 'export function saudar(nome) {\n}\n';
 
   it('fixture do corpus: testsCode com `assert.throws(() => f(x))` NÃO viola com a seed', () => {
     const t = trackOf([
@@ -427,9 +431,12 @@ describe('form — harness/starter do corpus real (A-P06-2)', () => {
     );
     assert.deepEqual(testsOrcamento, [], JSON.stringify(report.violations, null, 2));
     // A bateria A13 (rodada 12) é MAIS estrita que o orçamento: o teste é lido
-    // ANTES da aula 1 e a chamada `cumprimentar(42)` nunca foi DEMONSTRADA em
+    // ANTES da aula 1 e a chamada `cumprimentar(42)` nunca foi DEMONSTRADA —
+    // nem nesta aula (a teoria ensina só função declarada, sem chamada) nem em
     // aula anterior → A13c flagia (é o "pecado nº 1" da spec §3.2 — a aula 1
-    // que lê chamada sem demonstração). As arrows, porém, ficam DENTRO do span
+    // que lê chamada sem NENHUMA demonstração em lugar nenhum; se a MESMA aula
+    // demonstrasse uma chamada, a fórmula §3.2 a contaria e o A13c passaria,
+    // cf. engineProgressao.test.ts). As arrows, porém, ficam DENTRO do span
     // mecânico S13 (assinatura de `assert.throws(() =>`) — nenhuma FORMA viola.
     const testsA13c = report.violations.filter((v) => v.regra === 'A13' && v.campo === 'testsCode');
     assert.ok(

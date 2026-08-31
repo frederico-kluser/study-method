@@ -36,6 +36,22 @@
  *   (granularidade didática: BinaryExpression colapsa no op; a maquinaria
  *   Variable* colapsa no decl) — a régua dos exemplos medidos da própria spec.
  *
+ * BUMP e2-fix-bateria (declarado): A13c alinhada à fórmula da spec §3.2.
+ * A regra A13c exigia o teste dentro de `Cum(i) ∪ AX` ("só o que veio antes
+ * vale") — a fórmula da spec §3.2 inclui a teoria DA MESMA aula no conjunto
+ * demonstrado (`Demo(i) ∪ Cum(i)` para starter/tests/solution): a L1 real de
+ * programacao-do-zero demonstra `resposta()` na seção 1 e o teste do próprio
+ * desafio a chama — a implementação acusava falsamente exatamente esse caso
+ * (documentado como "pecado nº 1 esperado" no verif/check03 Feed B; era o
+ * defeito A13c). Corrigido em progressao.ts (o pecado nº 1 REAL — chamada sem
+ * NENHUMA demonstração em lugar nenhum — continua sendo erro). A15a ganhou o
+ * init do acumulado com a solução do 1º desafio (off-by-one do k=1; nenhum
+ * efeito aqui — a trilha real não tem aula com 2+ desafios, medido).
+ * PLACAR REAL: a trilha nodejs-do-zero TEM aulas cujos testes usam átomos
+ * demonstrados na PRÓPRIA teoria — 124 erros A13c (e 4 avisos D4) deixaram de
+ * ser falsos positivos:
+ *   violações 841 → 717 · desafios 112 · lacunas 249 · avisos 96 → 92.
+ *
  * COMO RODA O AUDIT: `auditTrack(track)` SEM opções — o modo automático do
  * budget resolve para `inferred` (nenhuma aula da trilha declara `introduces`).
  * É o MESMO caminho do G-AUDIT do orquestrador (CLI `audit` sem `--modo`),
@@ -67,10 +83,12 @@ import { auditTrack } from '../electron/main/engine/audit';
  * regressão — e passa a ser declarada.
  */
 export const PIN_PLACAR = {
-  violacoes: 841,
+  // BUMP e2-fix-bateria: 841→717 (124 erros A13c falsos positivos a menos —
+  // A13c agora inclui a teoria DA MESMA aula, spec §3.2) e avisos 96→92.
+  violacoes: 717,
   desafiosComViolacao: 112,
   lacunas: 249,
-  avisos: 96,
+  avisos: 92,
 } as const;
 
 /** Mesmo padrão de caminho do CLI (`app/tools/track-engine/cli.ts`): a trilha REAL. */

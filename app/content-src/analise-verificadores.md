@@ -154,7 +154,7 @@ LidoAntes(i)  = A(testsCode_i)                                        // o aluno
 |---|---|---|
 | **A13a** | `Escrito(i) ⊆ Demo(i) ∪ Cum(i) ∪ AX ∪ H13` | `Escrito(i) \ (Demo ∪ Cum ∪ AX ∪ H13)` |
 | **A13b** | `Lido(i) ⊆ Demo(i) ∪ Cum(i) ∪ AX ∪ H13` | `Lido(i) \ (...)` |
-| **A13c** | `(LidoAntes(i) \ S13) \ H13 ⊆ Cum(i) ∪ AX` | ocorrências fora do span mecânico que nunca foram demonstradas **antes** de i |
+| **A13c** | `(LidoAntes(i) \ S13) \ H13 ⊆ Demo(i) ∪ Cum(i) ∪ AX` | ocorrências fora do span mecânico nunca demonstradas — a teoria DA MESMA aula também demonstra para o teste (fórmula do §3.2: "demonstrado em teoria (desta/anteriores)"; a L1 real demonstra `resposta()` na seção 1 e o teste do próprio desafio a chama) |
 | **A13d** (só `declared`) | `InitDecl(i) ⊆ Demo(i) ∪ Cum(i)` — **declarar não é demonstrar** | chave declarada em `introduces` que não aparece em nenhum bloco de código (desta ou de aulas anteriores) |
 
 **H13 (lista estreita — versão 1, versionada; a semente inteira NÃO entra aqui):**
@@ -179,7 +179,9 @@ por AST da superfície, spans `[início, fim)` que isentam ocorrências:
    (o corpo é autoral).
 
 O que sobra **fora** de `S13 ∪ H13` é conteúdo autoral: chamadas de função, arrows, parâmetros,
-qualquer construção — e aí a exigência é `⊆ Cum(i) ∪ AX` (testes) / `∪ Demo(i)` (starter/solução).
+qualquer construção — e aí a exigência é `⊆ Demo(i) ∪ Cum(i) ∪ AX` (testes e starter/solução —
+a fórmula do §3.2 vale para as TRÊS superfícies; o teste da L1 real chama `resposta()` e a seção 1
+da própria L1 demonstra a chamada).
 
 **Severidade (D4 — `docs` §12, calibrar antes de bloquear):** é **erro** para eixos
 `node/decl/op/api/form` e `global:` de estrutura; é **aviso** para valores/termos provavelmente
@@ -216,7 +218,7 @@ global:String/Number/Boolean/BigInt/Symbol`.
 
 ### 3.4 Mensagens pt-BR
 
-- A13c (testes): `` `${label}` aparece no teste de `` `ref` ``, que o aluno lê ANTES da aula, e nenhuma aula anterior o demonstrou num exemplo de código — o aluno leu uma construção que nunca viu. Demonstre `` `${label}` `` numa aula anterior (ou remova a ocorrência do teste) ``
+- A13c (testes): `` `${label}` aparece no teste de `` `ref` ``, que o aluno lê ANTES da aula, e nem a teoria desta aula nem a de nenhuma aula anterior o demonstrou num exemplo de código — o aluno leu uma construção que nunca viu. Demonstre `` `${label}` `` na teoria desta aula ou de uma aula anterior (ou remova a ocorrência do teste) ``
 - A13a/A13b: `` `${label}` é exigido/exposto no desafio de `` `ref` ``, mas a teoria desta aula e de TODAS as anteriores nunca mostrou `` `${label}` `` num bloco de código — sem demonstração não há ensino (A13). Reescreva dentro do que já foi demonstrado ou mova a demonstração para cá ``
 - A13d: `` `${label}` está declarado em introduces de `` `ref` ``, mas não aparece em NENHUM bloco de código da teoria — declarar não é demonstrar (A5/A13d). Escreva o exemplo ou remova da declaração ``
 - Aviso D4: `` `${label}` (um valor/termo) aparece sem demonstração em código — se a prosa já o explica, rebaixe à vontade; caso contrário demonstre num bloco js ``
