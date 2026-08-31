@@ -1,0 +1,925 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="plannotator-theme" content="host">
+<title>Limpa de relatorios — o que ficou e o que saiu (worktree relatory)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  --background: oklch(0.97 0.005 260);
+  --foreground: oklch(0.18 0.02 260);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.18 0.02 260);
+  --primary: oklch(0.50 0.25 280);
+  --primary-foreground: oklch(1 0 0);
+  --secondary: oklch(0.50 0.18 180);
+  --secondary-foreground: oklch(1 0 0);
+  --muted: oklch(0.92 0.01 260);
+  --muted-foreground: oklch(0.40 0.02 260);
+  --accent: oklch(0.60 0.22 50);
+  --accent-foreground: oklch(0.18 0.02 260);
+  --destructive: oklch(0.50 0.25 25);
+  --destructive-foreground: oklch(1 0 0);
+  --success: oklch(0.45 0.20 150);
+  --success-foreground: oklch(1 0 0);
+  --warning: oklch(0.55 0.18 85);
+  --warning-foreground: oklch(0.18 0.02 260);
+  --border: oklch(0.88 0.01 260);
+  --input: oklch(0.92 0.01 260);
+  --ring: oklch(0.50 0.25 280);
+  --code-bg: oklch(0.92 0.01 260);
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', ui-monospace, monospace;
+  --font-display: ui-serif, Georgia, 'Times New Roman', serif;
+  --radius: 0.625rem;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: oklch(0.15 0.02 260);
+    --foreground: oklch(0.90 0.01 260);
+    --card: oklch(0.22 0.02 260);
+    --card-foreground: oklch(0.90 0.01 260);
+    --muted: oklch(0.26 0.02 260);
+    --muted-foreground: oklch(0.72 0.02 260);
+    --primary: oklch(0.75 0.18 280);
+    --primary-foreground: oklch(0.15 0.02 260);
+    --accent: oklch(0.70 0.20 60);
+    --border: oklch(0.35 0.02 260);
+    --code-bg: oklch(0.26 0.02 260);
+    --destructive: oklch(0.65 0.20 25);
+    --success: oklch(0.72 0.17 150);
+    --warning: oklch(0.75 0.15 85);
+  }
+}
+
+body {
+  font-family: var(--font-sans);
+  background: var(--background);
+  color: var(--foreground);
+  line-height: 1.65;
+  font-size: 15px;
+  -webkit-font-smoothing: antialiased;
+}
+
+.container { max-width: 1080px; margin: 0 auto; padding: 64px 24px 96px; }
+
+/* ---------- Header ---------- */
+.eyebrow {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted-foreground);
+}
+header h1 {
+  font-family: var(--font-display);
+  font-size: 2rem;
+  font-weight: 500;
+  margin: 8px 0 24px;
+  line-height: 1.2;
+}
+.prompt-box {
+  background: var(--muted);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px 24px;
+}
+.prompt-label {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted-foreground);
+  display: block;
+  margin-bottom: 4px;
+}
+.prompt-box p { font-size: 0.92rem; color: var(--muted-foreground); line-height: 1.55; }
+
+/* ---------- TL;DR ---------- */
+.tl-dr {
+  border-left: 3px solid var(--primary);
+  padding: 20px 24px;
+  margin: 40px 0 0;
+  background: var(--card);
+  border-radius: 0 var(--radius) var(--radius) 0;
+  border-top: 1.5px solid var(--border);
+  border-right: 1.5px solid var(--border);
+  border-bottom: 1.5px solid var(--border);
+}
+.tl-dr .label {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--primary);
+  display: block;
+  margin-bottom: 6px;
+}
+.tl-dr p { font-size: 1rem; line-height: 1.65; }
+
+/* ---------- Reader strip ---------- */
+.reader-strip {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin: 24px 0 0;
+}
+.reader-strip .card {
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px 20px;
+  background: var(--card);
+}
+.reader-strip .card .k {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted-foreground);
+  display: block;
+  margin-bottom: 4px;
+}
+.reader-strip .card p { font-size: 0.88rem; color: var(--muted-foreground); }
+@media (max-width: 720px) { .reader-strip { grid-template-columns: 1fr; } }
+
+/* ---------- Sections ---------- */
+section { margin-top: 64px; }
+.section-header {
+  display: flex;
+  align-items: baseline;
+  gap: 16px;
+  margin-bottom: 24px;
+  padding-bottom: 8px;
+  border-bottom: 1.5px solid var(--border);
+}
+.section-number {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--primary);
+}
+.section-header h2 {
+  font-family: var(--font-display);
+  font-size: 1.4rem;
+  font-weight: 500;
+}
+p.lead { max-width: 65ch; margin-bottom: 12px; }
+ul.plain { margin: 8px 0 12px 22px; }
+ul.plain li { margin-bottom: 6px; max-width: 65ch; }
+strong.t { color: var(--foreground); }
+code {
+  font-family: var(--font-mono);
+  font-size: 0.85em;
+  background: var(--code-bg);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 1px 5px;
+}
+.mono { font-family: var(--font-mono); }
+
+/* ---------- Figures ---------- */
+.figure {
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius);
+  padding: 24px;
+  margin: 24px 0;
+  background: var(--card);
+}
+.figure .mermaid { display: flex; justify-content: center; overflow-x: auto; }
+.diagram-caption {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: var(--muted-foreground);
+  display: block;
+  margin-top: 12px;
+  text-align: center;
+}
+.fig-note {
+  margin-top: 12px;
+  padding: 10px 14px;
+  border-radius: var(--radius);
+  background: color-mix(in oklab, var(--warning) 14%, transparent);
+  border: 1px solid color-mix(in oklab, var(--warning) 35%, transparent);
+  font-size: 0.86rem;
+  color: var(--foreground);
+}
+.fig-note .flag {
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--warning);
+  margin-right: 8px;
+}
+
+/* ---------- Stat strip ---------- */
+.summary-strip {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 16px;
+  margin: 32px 0;
+}
+.stat-card {
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px 20px;
+  text-align: center;
+  background: var(--card);
+}
+.stat-value {
+  font-family: var(--font-display);
+  font-size: 1.7rem;
+  font-weight: 500;
+  display: block;
+  color: var(--foreground);
+}
+.stat-label {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted-foreground);
+  margin-top: 4px;
+  display: block;
+}
+
+/* ---------- Badges ---------- */
+.badge {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: calc(var(--radius) - 4px);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+.badge.green  { background: color-mix(in oklab, var(--success) 15%, transparent); color: var(--success); }
+.badge.red    { background: color-mix(in oklab, var(--destructive) 15%, transparent); color: var(--destructive); }
+.badge.amber  { background: color-mix(in oklab, var(--warning) 15%, transparent); color: var(--warning); }
+.badge.gray   { background: var(--muted); color: var(--muted-foreground); }
+.badge.purple { background: color-mix(in oklab, var(--primary) 12%, transparent); color: var(--primary); }
+
+/* ---------- Gate rows ---------- */
+.gate-grid { border: 1.5px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+.gate-row {
+  display: grid;
+  grid-template-columns: 150px 110px 1fr;
+  gap: 20px;
+  padding: 14px 20px;
+  align-items: center;
+  border-bottom: 1px solid var(--border);
+  background: var(--card);
+}
+.gate-row:last-child { border-bottom: none; }
+.gate-row .gname { font-family: var(--font-mono); font-size: 0.82rem; font-weight: 600; }
+.gate-row .gdetail { font-size: 0.88rem; color: var(--muted-foreground); }
+@media (max-width: 720px) { .gate-row { grid-template-columns: 1fr; gap: 6px; } }
+
+/* ---------- Verdict cards ---------- */
+.verdicts { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; margin: 20px 0; }
+.verdict {
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius);
+  padding: 18px 20px;
+  background: var(--card);
+}
+.verdict h3 { font-family: var(--font-display); font-size: 1.05rem; font-weight: 500; margin-bottom: 6px; }
+.verdict p { font-size: 0.88rem; color: var(--muted-foreground); }
+.verdict.keep { border-top: 3px solid var(--success); }
+.verdict.rem  { border-top: 3px solid var(--destructive); }
+.verdict.warn { border-top: 3px solid var(--warning); }
+
+/* ---------- Commit list ---------- */
+.commit-list { margin: 16px 0; }
+.commit-item {
+  display: grid;
+  grid-template-columns: 150px 1fr;
+  gap: 18px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border);
+}
+.commit-item:last-child { border-bottom: none; }
+.commit-item .hash { font-family: var(--font-mono); font-size: 0.82rem; font-weight: 600; color: var(--primary); }
+.commit-item .msg { font-size: 0.9rem; }
+.commit-item .msg .what { font-weight: 600; }
+
+/* ---------- Callout ---------- */
+.callout {
+  border-left: 3px solid var(--primary);
+  padding: 16px 24px;
+  margin: 20px 0;
+  background: var(--card);
+  border-radius: 0 var(--radius) var(--radius) 0;
+  border-top: 1.5px solid var(--border);
+  border-right: 1.5px solid var(--border);
+  border-bottom: 1.5px solid var(--border);
+}
+.callout h3 { font-family: var(--font-display); font-size: 1.05rem; font-weight: 500; margin-bottom: 4px; }
+.callout p { font-size: 0.9rem; color: var(--muted-foreground); line-height: 1.55; }
+
+/* ---------- Details (andaime) ---------- */
+details {
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius);
+  margin: 16px 0;
+  background: var(--card);
+}
+summary {
+  font-weight: 500;
+  padding: 14px 20px;
+  cursor: pointer;
+  list-style: none;
+}
+summary::before {
+  content: '▸';
+  display: inline-block;
+  margin-right: 8px;
+  transition: transform 0.2s;
+}
+details[open] summary::before { transform: rotate(90deg); }
+.details-body { padding: 0 24px 20px; }
+.details-body p { font-size: 0.9rem; color: var(--muted-foreground); margin-bottom: 10px; max-width: 68ch; }
+.details-body ul { margin: 8px 0 10px 22px; }
+.details-body li { font-size: 0.9rem; color: var(--muted-foreground); margin-bottom: 5px; max-width: 66ch; }
+.details-body .step { font-family: var(--font-mono); font-size: 0.72rem; color: var(--muted-foreground); margin-bottom: 12px; }
+
+/* ---------- Glossary ---------- */
+.glossary-wrap { overflow-x: auto; border: 1.5px solid var(--border); border-radius: var(--radius); }
+table.glossary { width: 100%; border-collapse: collapse; background: var(--card); min-width: 640px; }
+table.glossary th {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted-foreground);
+  text-align: left;
+  padding: 12px 16px;
+  border-bottom: 1.5px solid var(--border);
+  background: var(--muted);
+}
+table.glossary td { padding: 10px 16px; border-bottom: 1px solid var(--border); font-size: 0.88rem; vertical-align: top; }
+table.glossary tr:last-child td { border-bottom: none; }
+table.glossary td.term { font-family: var(--font-mono); font-size: 0.82rem; font-weight: 600; color: var(--primary); white-space: nowrap; }
+
+/* ---------- Footer ---------- */
+footer {
+  margin-top: 80px;
+  padding-top: 24px;
+  border-top: 1.5px solid var(--border);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: var(--muted-foreground);
+  line-height: 1.7;
+}
+
+@media (max-width: 720px) {
+  .commit-item { grid-template-columns: 1fr; gap: 4px; }
+  .container { padding: 40px 16px 72px; }
+  header h1 { font-size: 1.6rem; }
+}
+</style>
+</head>
+<body>
+<div class="container">
+
+  <header>
+    <span class="eyebrow">Relato didático · Execução run-20260831-092840-39173 · branch do/wt/relatory</span>
+    <h1>Limpa de relatorios — o que ficou e o que saiu (worktree relatory)</h1>
+    <div class="prompt-box">
+      <span class="prompt-label">A tarefa original</span>
+      <p>"fazendo uma LIMPA em markdowns e documentos que temos de relatório, só quero o que for relevante ao final, não faça merge na branch principal, delete as sub-worktrees e fique apenas com a worktree relatory"</p>
+    </div>
+  </header>
+
+  <div class="tl-dr">
+    <span class="label">Resposta em uma frase</span>
+    <p>A execução classificou os <strong>72 arquivos de docs/</strong> em três vereditos — relato de processo (remover), documentação viva (manter) e conteúdo durável (consolidar antes de remover) —, migrou o durável para os docs vivos e removeu <strong>11 arquivos (~2.300 linhas)</strong>: 10 relatórios de rodada + um EXPLAINER.html. Resultado: <strong>5 squash commits</strong> no branch do/wt/relatory, <strong>26 arquivos tocados</strong>, saldo <strong>+198 / −2435 linhas</strong>, gates <strong>validate 77/77</strong> e <strong>spec-conformance 11/11</strong> verdes, com a branch principal intocada e a worktree relatory persistindo.</p>
+  </div>
+
+  <div class="reader-strip">
+    <div class="card">
+      <span class="k">Leitor declarado</span>
+      <p><strong>Misto / desconhecido</strong> — este documento trata você como <strong>novato</strong>: todo termo técnico é definido na primeira vez que aparece, e o aprofundamento fica em dobras (<code>&lt;details&gt;</code>) que o experiente pode pular.</p>
+    </div>
+    <div class="card">
+      <span class="k">Portão de complexidade</span>
+      <p><strong>Alta interatividade</strong> — muitas peças só fazem sentido juntas (ondas, vereditos, commits, gates). Por isso: figuras com legenda-afirmação, arestas rotuladas e sinalização do caminho crítico.</p>
+    </div>
+  </div>
+
+  <!-- ============ 01 ============ -->
+  <section>
+    <div class="section-header">
+      <span class="section-number">01</span>
+      <h2>O ponto de partida: 72 arquivos em docs/</h2>
+    </div>
+    <p class="lead">Antes da limpa, o repositório acumulava <strong>72 arquivos</strong> em <code>docs/</code> (o diretório de documentação do projeto). Três naturezas de documento se misturavam ali:</p>
+    <ul class="plain">
+      <li><strong class="t">Relatórios de rodada</strong> — documentos que registram o processo de uma rodada de execução (ondas, commits, gates). São relato de <em>processo</em>: úteis na hora, sem valor depois.</li>
+      <li><strong class="t">Documentação viva</strong> — documentos que continuam servindo como fonte de verdade do projeto: specs implementadas, guias, a fonte da logo.</li>
+      <li><strong class="t">Conteúdo durável</strong> — conhecimento técnico que vale além da execução que o produziu, mas estava preso dentro de relatórios que deveriam sair.</li>
+    </ul>
+    <p class="lead">A tarefa pedia: manter só o que fosse relevante, <strong>sem merge na branch principal</strong> (a branch <code>main</code> — a linha de desenvolvimento "oficial" do repositório), deletar as sub-worktrees e ficar apenas com a worktree relatory (cópia de trabalho do repositório num diretório próprio, presa à branch <code>do/wt/relatory</code>; é ela que permite mexer no projeto sem tocar em <code>main</code>).</p>
+
+    <div class="figure">
+      <pre class="mermaid">
+flowchart TD
+    T["Tarefa: limpa em docs/"]
+    O1["Onda 1 · ANÁLISE<br/>3 analistas · 72 arquivos"]
+    V["Veredito<br/>3 categorias"]
+    O2["Onda 2 · CONSOLIDAÇÃO<br/>3 squash commits"]
+    O3["Onda 3 · REMOÇÃO<br/>2 squash commits"]
+    G["Gates<br/>validate 77/77 · spec 11/11"]
+    F["Fim<br/>relatory persiste · main intocada"]
+    T -->|"classifica os 72 arquivos"| O1
+    O1 -->|"emite 3 vereditos"| V
+    V -->|"durável: migrar antes de remover"| O2
+    V -->|"processo: remover"| O3
+    O2 -->|"conteúdo consolidado"| O3
+    O3 -->|"verifica a integridade"| G
+    G -->|"77/77 verdes"| F
+    classDef warn fill:#fef3c7,stroke:#b45309,color:#7c2d12
+    classDef keep fill:#e6f6ec,stroke:#15803d,color:#14532d
+    class V warn
+    class F keep
+    linkStyle 2 stroke:#b45309,stroke-width:3px,color:#7c2d12
+    linkStyle 4 stroke:#b45309,stroke-width:3px,color:#7c2d12
+      </pre>
+      <span class="diagram-caption">Figura 1 — O fluxo da execução: três ondas, cinco commits e a prova final dos gates verdes.</span>
+      <div class="fig-note"><span class="flag">Caminho crítico</span>O trecho em âmbar é o coração da limpa: <strong>consolidar (onda 2) ANTES de remover (onda 3)</strong>. Nada de valor se perde — o conteúdo durável migra primeiro, e só depois os arquivos saem.</div>
+    </div>
+  </section>
+
+  <!-- ============ 02 ============ -->
+  <section>
+    <div class="section-header">
+      <span class="section-number">02</span>
+      <h2>Onda 1 · Análise: a triagem em três vereditos</h2>
+    </div>
+    <p class="lead"><strong>3 analistas</strong> classificaram os 72 arquivos de <code>docs/</code>. O veredito dividiu a árvore em três destinos:</p>
+    <div class="verdicts">
+      <div class="verdict rem">
+        <h3>REMOVER</h3>
+        <p>Relatórios de rodada = relato de <strong>processo</strong> (ondas, commits, gates). Não é documentação durável.</p>
+      </div>
+      <div class="verdict keep">
+        <h3>MANTER</h3>
+        <p><code>rodada4/5</code>, <code>ux-redesign</code>, <code>nano-banana</code>, <code>13-researchs</code> = documentação <strong>viva</strong>.</p>
+      </div>
+      <div class="verdict warn">
+        <h3>CONSOLIDAR antes de remover</h3>
+        <p>Conteúdo <strong>durável</strong> de R8/R10/R10-diag/R12: vale a pena, mas estava em relatórios que devem sair.</p>
+      </div>
+    </div>
+    <p class="lead">O veredito 3 é o crítico: ele obriga a executar a <strong>onda 2 antes da onda 3</strong> — o conteúdo durável é migrado para os docs vivos e só então os relatórios são removidos.</p>
+
+    <div class="figure">
+      <pre class="mermaid">
+flowchart TD
+    A["72 arquivos em docs/"]
+    AN["3 analistas"]
+    R["REMOVER<br/>relatórios de rodada = relato de processo"]
+    M["MANTER<br/>rodada4/5 · ux-redesign<br/>nano-banana · 13-researchs"]
+    C["CONSOLIDAR ANTES DE REMOVER<br/>durável de R8/R10/R10-diag/R12"]
+    A -->|"analisam"| AN
+    AN -->|"veredito 1: processo"| R
+    AN -->|"veredito 2: viva"| M
+    AN -->|"veredito 3: durável"| C
+    classDef rem fill:#fde8e8,stroke:#b91c1c,color:#7f1d1d
+    classDef keep fill:#e6f6ec,stroke:#15803d,color:#14532d
+    classDef warn fill:#fef3c7,stroke:#b45309,color:#7c2d12
+    class R rem
+    class M keep
+    class C warn
+      </pre>
+      <span class="diagram-caption">Figura 2 — A triagem dos 72 arquivos: três vereditos, três destinos.</span>
+      <div class="fig-note"><span class="flag">Sinalização</span>Cada destino tem cor própria: <strong>vermelho</strong> sai, <strong>verde</strong> fica, <strong>âmbar</strong> exige o passo intermediário (consolidar) antes de poder sair.</div>
+    </div>
+  </section>
+
+  <!-- ============ 03 ============ -->
+  <section>
+    <div class="section-header">
+      <span class="section-number">03</span>
+      <h2>Onda 2 · Consolidação: salvar o durável antes de remover</h2>
+    </div>
+    <p class="lead">A onda 2 (3 squash commits — cada onda comprimiu seus commits intermediários em um único commit, com uma mensagem só) migrou o conteúdo durável para os docs vivos:</p>
+    <ul class="plain">
+      <li><code>app-gui.md</code> ganhou <strong>6 seções novas</strong>: §2.13 Canais TRACK_CHANNELS · §2.14 CLI de autoria e runner · §2.15 Resolução de resources/ · §2.16 Causa raiz Bug 1 clone-limpo · §2.17 Bootstrap e instalação · §2.18 IPC com timeout.</li>
+      <li><code>16-engine-de-trilha.md</code>: <strong>pin da engine</strong> atualizado (registro que fixa o estado da engine de trilha) — os números passaram de <code>841/96</code> para <code>717/112/249/92</code> (bateria A13–A16), com protocolo de bump documentado em §5.1.</li>
+      <li><code>15-trilha-nodejs.md</code>: a trilha micro <code>programacao-do-zero</code> foi documentada.</li>
+      <li>O <strong>dossiê de linguagens</strong> (compilação detalhada sobre 45 linguagens × trava determinística) foi movido para <code>docs/research/08-multilingua-trava-deterministica.md</code>.</li>
+      <li><strong>6 comentários de código</strong> foram re-apontados para os novos destinos.</li>
+    </ul>
+    <details>
+      <summary>O que é um "pin" e por que ele é atualizado (novato)</summary>
+      <div class="details-body">
+        <p>Alguns documentos registram o <em>estado exato</em> de uma parte do sistema — no caso, a engine de trilha. Esse registro (o pin) usa números de bateria: <code>841/96</code> antes, <code>717/112/249/92</code> com bateria A13–A16 depois. Atualizar o pin é dizer "o documento agora descreve o estado atual da engine", e o protocolo de bump (§5.1) é o procedimento registrado para fazer isso de forma padronizada.</p>
+        <p class="step">Fonte dos fatos: "pin da engine atualizado em 16-engine-de-trilha.md (841/96 → 717/112/249/92 com bateria A13–A16)" + "protocolo de bump em 16-engine-de-trilha.md §5.1".</p>
+      </div>
+    </details>
+    <details>
+      <summary>Por que consolidar ANTES de remover (exemplo com R8/R10)</summary>
+      <div class="details-body">
+        <p>Os relatórios <code>relatorio-rodada8</code>, <code>relatorio-rodada10</code>, <code>relatorio-rodada10-diag</code> e <code>relatorio-rodada12</code> (R8/R10/R10-diag/R12) carregavam conteúdo <strong>durável</strong> — conhecimento que vale além daquela rodada. Se fossem simplesmente apagados, esse conhecimento sumiria junto. A ordem certa é: <strong>1)</strong> extrair o durável e salvá-lo num doc vivo; <strong>2)</strong> só então remover o relatório. É isso que as ondas 2 e 3 fazem, nessa ordem.</p>
+      </div>
+    </details>
+  </section>
+
+  <!-- ============ 04 ============ -->
+  <section>
+    <div class="section-header">
+      <span class="section-number">04</span>
+      <h2>Onda 3 · Remoção: tirar 11 arquivos sem quebrar nada</h2>
+    </div>
+    <p class="lead">A onda 3 (2 squash commits) executou a remoção e, em seguida, <strong>reparou tudo que apontava para os arquivos removidos</strong>:</p>
+    <ul class="plain">
+      <li><code>git rm</code> de <strong>11 arquivos</strong> (~2.300 linhas): 10 relatórios de rodada (<code>relatorio-rodada4..12</code> + <code>relatorio-rodada10-diag</code>) + um <code>EXPLAINER.html</code>.</li>
+      <li>Todos os <strong>links inbound</strong> corrigidos — links que apontam PARA um arquivo a partir de outro, e que quebram quando o alvo sai ou muda de nome: <code>app/README.md</code> (5 links), <code>docs/rodada4.md</code>, <code>docs/rodada5.md</code>, <code>14-respostas</code> e <code>content-src</code>.</li>
+      <li>Teste <code>engineDocsCoerencia.test.ts</code> ajustado: <code>REL11</code> saiu do pacote de docs de rodada (diff <code>7+/89−</code>).</li>
+    </ul>
+    <p class="lead">Remover era a parte fácil; o trabalho estava em deixar a árvore íntegra: com os links corrigidos, a checagem de links <strong>L-02</strong> fechou verde, e o gate <strong>G-10</strong> simplesmente deixou de existir (ver seção 06).</p>
+
+    <div class="figure">
+      <pre class="mermaid">
+flowchart TD
+    ANTES["Antes<br/>10 relatórios + EXPLAINER.html<br/>≈ 2.300 linhas"]
+    RM["git rm<br/>11 arquivos"]
+    LINKS["Links inbound corrigidos<br/>app/README.md (5) · rodada4 · rodada5<br/>14-respostas · content-src"]
+    TESTE["engineDocsCoerencia.test.ts<br/>sem REL11 (7+/89−)"]
+    DEPOIS["Depois<br/>L-02 VERDE · G-10 sumiu"]
+    ANTES -->|"remove"| RM
+    RM -->|"apontavam para os removidos"| LINKS
+    RM -->|"pacote de docs mudou"| TESTE
+    LINKS -->|"confere"| DEPOIS
+    TESTE -->|"confere"| DEPOIS
+    classDef rem fill:#fde8e8,stroke:#b91c1c,color:#7f1d1d
+    classDef keep fill:#e6f6ec,stroke:#15803d,color:#14532d
+    classDef act fill:#eef0fe,stroke:#4f46e5,color:#312e81
+    class RM rem
+    class LINKS,TESTE act
+    class DEPOIS keep
+      </pre>
+      <span class="diagram-caption">Figura 3 — Onda 3: remover 11 arquivos e reparar tudo que apontava para eles.</span>
+      <div class="fig-note"><span class="flag">Sinalização</span>O nó vermelho (<code>git rm</code>) é o único destrutivo; os nós azuis (links + teste) são o <strong>reparo</strong> — é o que garante o nó verde no fim.</div>
+    </div>
+
+    <details>
+      <summary>Espera: o EXPLAINER.html foi removido e agora tem outro?</summary>
+      <div class="details-body">
+        <p>Sim — e de propósito. Um <code>EXPLAINER.html</code> estava entre os 11 arquivos removidos na onda 3 (relatos de processo saem da árvore junto com os relatórios de rodada). Este documento aqui é o <strong>relato didático desta mesma execução</strong>: nasce na raiz da worktree relatory, depois da limpa, e não faz parte dos 26 arquivos tocados.</p>
+      </div>
+    </details>
+    <details>
+      <summary>Como ler um diff: "7+/89−" e "11+/2337−" (novato)</summary>
+      <div class="details-body">
+        <p>Um diff resume as linhas que mudaram em um commit: <code>N+</code> são linhas <strong>adicionadas</strong>, <code>N−</code> são linhas <strong>removidas</strong>.</p>
+        <ul>
+          <li><code>7+/89−</code> (commit 2fe8e38): 7 linhas adicionadas, 89 removidas — o teste ficou mais curto.</li>
+          <li><code>11+/2337−</code> (commit 43e8936, 16 arquivos): 11 linhas adicionadas, 2337 removidas — a limpa em si.</li>
+          <li>No total da execução: <code>+198 / −2435</code> linhas em 26 arquivos tocados.</li>
+        </ul>
+        <p class="step">Os números vêm dos fatos: "26 arquivos tocados no total: +198 / −2435 linhas"; "2fe8e38 ... (7+/89-)"; "43e8936 ... (16 arquivos, 11+/2337-)".</p>
+      </div>
+    </details>
+  </section>
+
+  <!-- ============ 05 ============ -->
+  <section>
+    <div class="section-header">
+      <span class="section-number">05</span>
+      <h2>Os 5 squash commits, um por um</h2>
+    </div>
+    <p class="lead">Tudo entrou no branch <code>do/wt/relatory</code> da worktree relatory em <strong>5 squash commits</strong> (3 da consolidação + 2 da remoção), nesta ordem:</p>
+    <div class="commit-list">
+      <div class="commit-item"><span class="hash">2a98edd</span><div class="msg"><span class="what">onda2-move-linguagens</span> — <code>docs/linguagens/README.md</code> → <code>docs/research/08-multilingua-trava-deterministica.md</code> (rename 100%: o git detectou movimento puro, conteúdo idêntico) + 2 links inbound corrigidos em <code>16-engine-de-trilha.md</code>.</div></div>
+      <div class="commit-item"><span class="hash">684cb96</span><div class="msg"><span class="what">onda2-engine-pin</span> — pin da engine <code>717/112/249/92</code> + protocolo de bump em <code>16-engine-de-trilha.md</code> §5.1; trilha micro <code>programacao-do-zero</code> documentada em <code>15-trilha-nodejs.md</code>.</div></div>
+      <div class="commit-item"><span class="hash">cc925c1</span><div class="msg"><span class="what">onda2-appgui-consolida</span> — 6 seções novas em <code>app-gui.md</code> (§2.13–§2.18) + 6 comentários de código re-apontados.</div></div>
+      <div class="commit-item"><span class="hash">2fe8e38</span><div class="msg"><span class="what">onda3-ajuste-teste</span> — <code>engineDocsCoerencia.test.ts</code> sem REL11 (<code>7+/89−</code>).</div></div>
+      <div class="commit-item"><span class="hash">43e8936</span><div class="msg"><span class="what">onda3-remocao-links</span> — <code>git rm</code> de 10 relatórios + EXPLAINER.html + links corrigidos (16 arquivos, <code>11+/2337−</code>).</div></div>
+    </div>
+
+    <div class="figure">
+      <pre class="mermaid">
+flowchart LR
+    C1["2a98edd<br/>onda2-move-linguagens"]
+    C2["684cb96<br/>onda2-engine-pin"]
+    C3["cc925c1<br/>onda2-appgui-consolida"]
+    C4["2fe8e38<br/>onda3-ajuste-teste"]
+    C5["43e8936<br/>onda3-remocao-links"]
+    F["Estado final<br/>docs limpos · gates verdes"]
+    C1 -->|"dossiê p/ research (rename 100%)"| C2
+    C2 -->|"pin 717/112/249/92 + trilha micro"| C3
+    C3 -->|"6 seções novas em app-gui.md"| C4
+    C4 -->|"REL11 fora do pacote"| C5
+    C5 -->|"11 arquivos removidos + links corrigidos"| F
+    classDef keep fill:#e6f6ec,stroke:#15803d,color:#14532d
+    class F keep
+    linkStyle 4 stroke:#b45309,stroke-width:3px,color:#7c2d12
+      </pre>
+      <span class="diagram-caption">Figura 4 — Os 5 squash commits, na ordem em que entraram no branch do/wt/relatory.</span>
+      <div class="fig-note"><span class="flag">Sinalização</span>O commit <code>43e8936</code> (último, em âmbar) é o que fecha a limpa: é ele que remove os 11 arquivos e corrige os links.</div>
+    </div>
+
+    <details>
+      <summary>O que é "rename 100%"? (novato)</summary>
+      <div class="details-body">
+        <p>Quando o git compara dois commits e encontra um arquivo que saiu de um caminho e entrou em outro <strong>sem nenhuma mudança de conteúdo</strong>, ele reporta um rename com similaridade <code>100%</code>. No commit <code>2a98edd</code>, o dossiê de linguagens só mudou de endereço: <code>docs/linguagens/README.md</code> → <code>docs/research/08-multilingua-trava-deterministica.md</code>. Histórico preservado, conteúdo intocado.</p>
+      </div>
+    </details>
+  </section>
+
+  <!-- ============ 06 ============ -->
+  <section>
+    <div class="section-header">
+      <span class="section-number">06</span>
+      <h2>Gates: a prova de que nada quebrou</h2>
+    </div>
+    <p class="lead">Depois da limpa, a execução rodou os <strong>gates</strong> — checagens automáticas que confirmam a integridade do repositório após mudanças. Todos os que importavam fecharam verdes:</p>
+    <div class="gate-grid">
+      <div class="gate-row"><span class="gname">validate</span><span><span class="badge green">77/77 verde</span></span><span class="gdetail">Suíte de validação completa verde; o gate G-10 sumiu com a remoção do <code>relatorio-rodada12</code>.</span></div>
+      <div class="gate-row"><span class="gname">spec-conformance</span><span><span class="badge green">11/11 verde</span></span><span class="gdetail">Checagem de conformidade com a spec, 100% verde.</span></div>
+      <div class="gate-row"><span class="gname">L-02 · links</span><span><span class="badge green">verde</span></span><span class="gdetail">Checagem de links — todos os inbound corrigidos na onda 3.</span></div>
+      <div class="gate-row"><span class="gname">L-04</span><span><span class="badge amber">47 → 44</span></span><span class="gdetail">Caiu de 47 para 44 — os relatórios removidos não tinham newline final.</span></div>
+      <div class="gate-row"><span class="gname">Restantes</span><span><span class="badge gray">pré-existentes</span></span><span class="gdetail">Falhas que sobraram são 100% pré-existentes: L-04/L-05 em <code>app/content-src</code>, B-03 (<code>tsconfig.node.json</code>), B-04 (stat GNU no macOS).</span></div>
+    </div>
+
+    <details>
+      <summary>O que significa "G-10 sumiu"? (novato)</summary>
+      <div class="details-body">
+        <p>Um gate (ou checagem) pode existir porque um arquivo o provoca. O gate <strong>G-10</strong> era disparado pelo <code>relatorio-rodada12</code>. Quando a limpa removeu esse arquivo, o problema que G-10 detectava deixou de existir — e o próprio gate deixou de aparecer na contagem. Por isso o validate fechou 77/77: com G-10 fora, todas as 77 checagens restantes passaram.</p>
+        <p class="step">Fonte dos fatos: "validate 77/77 VERDE (G-10 sumiu com a remoção do relatorio-rodada12)".</p>
+      </div>
+    </details>
+    <details>
+      <summary>O que são L-04, L-05, B-03, B-04, SC-01? (referência)</summary>
+      <div class="details-body">
+        <ul>
+          <li><strong>L-04 / L-05</strong> — checagens com falhas pré-existentes em <code>app/content-src</code> (a limpa não as criou nem as piorou; L-04 ainda caiu de 47 para 44).</li>
+          <li><strong>B-03</strong> — falha pré-existente em <code>tsconfig.node.json</code>.</li>
+          <li><strong>B-04</strong> — falha pré-existente do <code>stat</code> GNU no macOS (diferença de ambiente, não da limpa).</li>
+          <li><strong>SC-01</strong> — item de spec-conformance que o <code>BUILD_SPEC.md</code> arriscaria se fosse tocado; por isso o arquivo não foi modificado (seu conteúdo migrou para <code>app-gui.md</code>).</li>
+        </ul>
+        <p class="step">Tudo acima vem dos fatos: "falhas restantes 100% pré-existentes (L-04/L-05 em app/content-src, B-03 tsconfig.node.json, B-04 stat GNU no macOS)" e "BUILD_SPEC.md NÃO tocado (risco de SC-01; conteúdo migrou para app-gui.md)".</p>
+      </div>
+    </details>
+  </section>
+
+  <!-- ============ 07 ============ -->
+  <section>
+    <div class="section-header">
+      <span class="section-number">07</span>
+      <h2>Decisões autônomas: o que a execução decidiu sozinha</h2>
+    </div>
+    <p class="lead">Sem pedir confirmação, a execução aplicou estes vereditos — todos registrados nos fatos:</p>
+    <ul class="plain">
+      <li><strong class="t">Relatórios de rodada = relato de processo</strong> → remover, depois de consolidar o conteúdo durável.</li>
+      <li><strong class="t">rodada4.md / rodada5.md</strong> = documentação técnica durável → <span class="badge green">manter</span>.</li>
+      <li><strong class="t">ux-redesign.md + scripts</strong> = spec VIVA implementada (17+ arquivos do app citam) → <span class="badge green">manter</span>.</li>
+      <li><strong class="t">nano-banana-2-logo-prompt.md</strong> = fonte viva da logo → <span class="badge green">manter</span>.</li>
+      <li><strong class="t">13-researchs.md</strong> = spec viva da série 00-16 → <span class="badge green">manter</span>.</li>
+      <li><strong class="t">BUILD_SPEC.md</strong> → <span class="badge amber">NÃO tocado</span> (risco de SC-01; conteúdo migrou para <code>app-gui.md</code>).</li>
+    </ul>
+    <div class="callout">
+      <h3>E o checkout principal?</h3>
+      <p>O checkout principal (<code>main</code>) ficou <strong>intocado pela execução</strong>. Quatro arquivos (<code>trackLoader</code>, <code>trackTypes</code>, <code>artifacts</code>, <code>trackService</code>) foram modificados às 10:11 — mas por <strong>OUTRA sessão</strong>, não por esta execução. Os fatos registram explicitamente: "não é violação desta execução".</p>
+    </div>
+  </section>
+
+  <!-- ============ 08 ============ -->
+  <section>
+    <div class="section-header">
+      <span class="section-number">08</span>
+      <h2>Contenção: onde o trabalho aconteceu (e onde não)</h2>
+    </div>
+    <p class="lead">A execução rodou em <strong>MODE=contido</strong> — modo de contenção em que todo o trabalho fica restrito a uma branch/worktree isolada, sem tocar <code>main</code>:</p>
+    <ul class="plain">
+      <li>Trabalho <strong>100% na branch <code>do/wt/relatory</code></strong> da worktree relatory.</li>
+      <li><strong>8 worktrees-filhas</strong> (worktrees temporárias) foram criadas e removidas ao longo das ondas — todas efêmeras.</li>
+      <li>O <strong>checkout principal nunca foi tocado</strong> pelos commits da execução.</li>
+      <li>A <strong>worktree relatory permanece</strong> — persistente, como pedido pelo usuário.</li>
+    </ul>
+
+    <div class="figure">
+      <pre class="mermaid">
+flowchart TD
+    M["main · checkout principal"]
+    W["worktree relatory<br/>branch do/wt/relatory"]
+    C["8 worktrees-filhas<br/>efêmeras"]
+    OK["Estado final<br/>main intocada · relatory persiste"]
+    M -->|"nunca recebe merge (MODE=contido)"| OK
+    W -->|"5 squash commits da limpa"| OK
+    W -->|"cria nas ondas"| C
+    C -->|"removidas ao fim"| W
+    classDef keep fill:#e6f6ec,stroke:#15803d,color:#14532d
+    classDef act fill:#eef0fe,stroke:#4f46e5,color:#312e81
+    classDef neu fill:#f3f4f6,stroke:#9ca3af,color:#374151
+    class M keep
+    class W act
+    class C neu
+    class OK keep
+      </pre>
+      <span class="diagram-caption">Figura 5 — Contenção: onde o trabalho aconteceu (e onde não).</span>
+      <div class="fig-note"><span class="flag">Sinalização</span><code>main</code> (verde) só se relaciona com o estado final pela <strong>ausência</strong> de merges; todo o trabalho (azul) aconteceu na worktree relatory, com filhas (cinza) que nascem e somem.</div>
+    </div>
+
+    <details>
+      <summary>O que é uma git worktree, passo a passo (novato)</summary>
+      <div class="details-body">
+        <p>Normalmente você tem uma pasta do repositório com uma branch de cada vez. Uma <strong>git worktree</strong> cria uma <strong>segunda pasta</strong> para o mesmo repositório, presa a uma branch diferente — sem conflitar com a primeira.</p>
+        <ol style="margin:8px 0 10px 22px; font-size:0.9rem; color:var(--muted-foreground);">
+          <li>O usuário pede uma limpa, mas proíbe tocar na branch principal e pede para manter só a worktree relatory.</li>
+          <li>A execução trabalha 100% na branch <code>do/wt/relatory</code>, dentro da worktree relatory.</li>
+          <li>Para cada onda de trabalho paralelo, a execução cria worktrees-filhas temporárias — e as remove ao fim de cada onda (foram 8 no total).</li>
+          <li>Os 5 squash commits ficam só em <code>do/wt/relatory</code>; <code>main</code> nunca recebe merge.</li>
+          <li>No fim, a worktree relatory permanece, como pedido.</li>
+        </ol>
+        <p class="step">Fonte dos fatos: "MODE=contido · trabalho 100% em do/wt/relatory · 8 worktrees-filhas criadas e removidas · checkout principal nunca tocado" e "Worktree relatory permanece (persistente, como pedido pelo usuário)".</p>
+      </div>
+    </details>
+  </section>
+
+  <!-- ============ 09 ============ -->
+  <section>
+    <div class="section-header">
+      <span class="section-number">09</span>
+      <h2>Balanço: o que ficou e o que saiu</h2>
+    </div>
+    <div class="summary-strip">
+      <div class="stat-card"><span class="stat-value">26</span><span class="stat-label">Arquivos tocados</span></div>
+      <div class="stat-card"><span class="stat-value">+198/−2435</span><span class="stat-label">Linhas (saldo)</span></div>
+      <div class="stat-card"><span class="stat-value">11</span><span class="stat-label">Arquivos removidos</span></div>
+      <div class="stat-card"><span class="stat-value">17</span><span class="stat-label">Docs mantidos (00–16)</span></div>
+      <div class="stat-card"><span class="stat-value">77/77</span><span class="stat-label">Validate verde</span></div>
+    </div>
+
+    <div class="figure">
+      <pre class="mermaid">
+flowchart LR
+    SAIU["SAIU<br/>11 arquivos<br/>10 relatórios + EXPLAINER.html<br/>≈ 2.300 linhas"]
+    FICOU["FICOU<br/>docs/00–16 (17) · build-spec · research (08 novo)<br/>rodada4 · rodada5 · ux-redesign · nano-banana<br/>13-researchs · README · BUILD_SPEC · CONTRIBUTING"]
+    TOT["Total<br/>26 arquivos tocados<br/>+198 / −2435 linhas"]
+    SAIU -->|"−2435 linhas"| TOT
+    FICOU -->|"+198 linhas"| TOT
+    classDef rem fill:#fde8e8,stroke:#b91c1c,color:#7f1d1d
+    classDef keep fill:#e6f6ec,stroke:#15803d,color:#14532d
+    classDef act fill:#eef0fe,stroke:#4f46e5,color:#312e81
+    class SAIU rem
+    class FICOU keep
+    class TOT act
+      </pre>
+      <span class="diagram-caption">Figura 6 — Balanço final: o que saiu, o que ficou e o saldo de linhas.</span>
+      <div class="fig-note"><span class="flag">Sinalização</span>Do lado vermelho, 11 arquivos (~2.300 linhas) saíram; do lado verde, a documentação viva permaneceu inteira — e o saldo <code>+198 / −2435</code> mostra uma árvore muito menor, sem perder o durável.</div>
+    </div>
+
+    <p class="lead">Mantidos, na íntegra: <code>docs/00-16</code> (17 arquivos) + <code>build-spec/</code> + <code>research/</code> (com o 08 novo) + <code>rodada4.md</code> + <code>rodada5.md</code> + <code>ux-redesign.md</code> + <code>ux-redesign/</code> + <code>nano-banana-2-logo-prompt.md</code> + <code>13-researchs.md</code> + <code>README</code> + <code>BUILD_SPEC</code> + <code>CONTRIBUTING</code>.</p>
+  </section>
+
+  <!-- ============ Glossário ============ -->
+  <section>
+    <div class="section-header">
+      <span class="section-number">10</span>
+      <h2>Glossário fechado (buzzwords)</h2>
+    </div>
+    <p class="lead">Tabela <strong>fechada</strong>: todos os termos abaixo aparecem no documento e estão definidos aqui — nada aparece sem definição, e nada é definido fora dela.</p>
+    <div class="glossary-wrap">
+      <table class="glossary">
+        <thead>
+          <tr><th>Termo</th><th>Definição</th></tr>
+        </thead>
+        <tbody>
+          <tr><td class="term">docs/</td><td>Diretório de documentação do projeto (00–16, app-gui, research, …).</td></tr>
+          <tr><td class="term">relatório de rodada</td><td>Documento que registra o processo de uma rodada (ondas, commits, gates) — relato de processo, não documentação durável.</td></tr>
+          <tr><td class="term">documentação viva</td><td>Documento que continua servindo como fonte de verdade (spec implementada, guia, fonte da logo).</td></tr>
+          <tr><td class="term">conteúdo durável</td><td>Conhecimento técnico que vale além da execução que o produziu; foi consolidado antes da remoção.</td></tr>
+          <tr><td class="term">worktree</td><td>Cópia de trabalho do repositório num diretório próprio, presa a uma branch; permite mexer sem tocar a branch principal.</td></tr>
+          <tr><td class="term">branch</td><td>Linha de desenvolvimento com histórico próprio dentro do git.</td></tr>
+          <tr><td class="term">main / checkout principal</td><td>Branch principal do repositório — o código "oficial"; esta execução não podia tocá-la.</td></tr>
+          <tr><td class="term">squash commit</td><td>Vários commits intermediários comprimidos num único commit, com uma mensagem só.</td></tr>
+          <tr><td class="term">onda</td><td>Etapa de trabalho da execução; aqui foram três: análise, consolidação e remoção.</td></tr>
+          <tr><td class="term">gate</td><td>Checagem automática que confirma a integridade do repositório após mudanças.</td></tr>
+          <tr><td class="term">validate</td><td>Suíte de validação do repositório — ficou 77/77 verde.</td></tr>
+          <tr><td class="term">spec-conformance</td><td>Checagem de conformidade com a spec — ficou 11/11 verde.</td></tr>
+          <tr><td class="term">link inbound</td><td>Link que aponta PARA um arquivo a partir de outro; quebra quando o alvo sai ou muda de nome.</td></tr>
+          <tr><td class="term">rename 100%</td><td>O git detectou movimento puro: conteúdo idêntico, só o caminho mudou.</td></tr>
+          <tr><td class="term">engine pin</td><td>Registro que fixa o estado da engine de trilha num documento (números de bateria).</td></tr>
+          <tr><td class="term">dossiê de linguagens</td><td>Compilação detalhada sobre as 45 linguagens e a trava determinística.</td></tr>
+          <tr><td class="term">MODE=contido</td><td>Modo de contenção: trabalho 100% restrito a uma branch/worktree isolada, sem tocar main.</td></tr>
+          <tr><td class="term">worktree-filha</td><td>Worktree temporária criada para trabalho de onda e removida ao fim (8 criadas e removidas).</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <footer>
+    <p>Validade: este documento descreve a execução <strong>run-20260831-092840-39173</strong> (31 de agosto de 2026), na branch <strong>do/wt/relatory</strong> da worktree relatory do repositório study-method.</p>
+    <p>Fonte primária: <code>.deep-orchestrator/run-20260831-092840-39173/explainer/fatos.md</code> — nenhum número, commit, seção ou veredito foi inventado; tudo aqui deriva dos fatos.</p>
+    <p>Tema: Plannotator (oklch claro) · Diagramas: Mermaid 11 via CDN · Fontes: Inter + JetBrains Mono.</p>
+  </footer>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+<script>
+(function () {
+  var isDark = false;
+  try {
+    var cs = getComputedStyle(document.documentElement).colorScheme;
+    if (cs === 'dark') { isDark = true; }
+    else if (cs !== 'light') {
+      isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    }
+  } catch (e) { /* fallback: light */ }
+
+  var themeVars = isDark
+    ? {
+        darkMode: true,
+        primaryColor: '#1e242e',
+        primaryTextColor: '#dadee5',
+        primaryBorderColor: '#343b45',
+        lineColor: '#9da5b2',
+        secondaryColor: '#1e242e',
+        secondaryTextColor: '#dadee5',
+        tertiaryColor: '#1e242e',
+        tertiaryTextColor: '#dadee5',
+        background: '#070b14'
+      }
+    : {
+        primaryColor: '#5537eb',
+        primaryTextColor: '#ffffff',
+        primaryBorderColor: '#d4d8de',
+        lineColor: '#414853',
+        secondaryColor: '#e1e5eb',
+        secondaryTextColor: '#414853',
+        tertiaryColor: '#e1e5eb',
+        tertiaryTextColor: '#414853',
+        background: '#f3f5f9'
+      };
+
+  function render() {
+    window.mermaid.initialize({
+      startOnLoad: false,
+      theme: 'base',
+      themeVariables: Object.assign({}, themeVars, {
+        fontFamily: "'Inter', system-ui, sans-serif",
+        fontSize: '14px'
+      }),
+      flowchart: { curve: 'basis', htmlLabels: true }
+    });
+    document.querySelectorAll('.mermaid').forEach(function (el) {
+      el.removeAttribute('data-processed');
+    });
+    window.mermaid.run({ querySelector: '.mermaid' });
+  }
+
+  if (window.mermaid) { render(); }
+
+  if (window.matchMedia) {
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function (ev) {
+      isDark = ev.matches;
+      themeVars = isDark
+        ? {
+            darkMode: true,
+            primaryColor: '#1e242e',
+            primaryTextColor: '#dadee5',
+            primaryBorderColor: '#343b45',
+            lineColor: '#9da5b2',
+            secondaryColor: '#1e242e',
+            secondaryTextColor: '#dadee5',
+            tertiaryColor: '#1e242e',
+            tertiaryTextColor: '#dadee5',
+            background: '#070b14'
+          }
+        : {
+            primaryColor: '#5537eb',
+            primaryTextColor: '#ffffff',
+            primaryBorderColor: '#d4d8de',
+            lineColor: '#414853',
+            secondaryColor: '#e1e5eb',
+            secondaryTextColor: '#414853',
+            tertiaryColor: '#e1e5eb',
+            tertiaryTextColor: '#414853',
+            background: '#f3f5f9'
+          };
+      render();
+    });
+  }
+})();
+</script>
+</body>
+</html>
