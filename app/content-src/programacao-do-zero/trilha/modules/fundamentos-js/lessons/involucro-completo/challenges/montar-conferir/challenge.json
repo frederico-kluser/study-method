@@ -1,0 +1,68 @@
+{
+  "schemaVersion": 1,
+  "slug": "montar-conferir",
+  "title": "Montar conferir",
+  "concept": "involucro_completo",
+  "difficulty": 5,
+  "language": "nodejs",
+  "statement": "# Escreva a caixa inteira\n\nO programa desta aula está **vazio**: só há um comentário no lugar do código. Sua tarefa é escrever a **função completa** — a caixa nomeada de instruções, do início ao fim — para o conferidor a importar, chamar e conferir.\n\nO conferidor vai procurar a função chamada `conferir`, vai chamá-la e vai conferir se ela devolve `5`.\n\nEscreva, na ordem:\n\n1. `export` — a etiqueta de entrega: deixa a caixa visível para o conferidor;\n2. `function conferir() {` — a moldura: a palavra `function`, o nome `conferir` (o mesmo nome que o teste usa) e a chave que abre o corpo;\n3. `let total = 5;` — a variável que guarda o número 5 dentro da caixa;\n4. `return total;` — a linha que devolve o valor guardado;\n5. `}` — a chave que fecha o corpo.\n\nAntes de escrever, preveja: quando o teste chamar `conferir()`, que valor a função devolve? E se a linha `return total;` não existisse, o que o teste receberia?\n\nO nome `conferir` é obrigatório (é como o conferidor encontra a caixa). O resto da montagem é livre — o que importa é o valor devolvido ser 5.",
+  "starterCode": "// LACUNA: escreva aqui a funcao completa, do export ao return\n// (nada esta pronto alem do teste)\n",
+  "testsCode": "import { test } from 'node:test';\nimport assert from 'node:assert/strict';\nimport { conferir } from './solution.mjs';\n\ntest('monta a caixa inteira e devolve o total', () => {\n  assert.equal(conferir(), 5);\n});\n",
+  "solutionCode": "export function conferir() {\n  let total = 5;\n  return total;\n}\n",
+  "expectedTestCount": 1,
+  "outputChannel": "retorno",
+  "requires": [
+    "involucro-completo (node:FunctionDeclaration)"
+  ],
+  "requirements": [
+    {
+      "id": "REQ-1",
+      "descricao": "O módulo exporta a função conferir() e ela devolve 5 — o teste importa { conferir }, chama e espera o valor 5.",
+      "teste": "monta a caixa inteira e devolve o total"
+    }
+  ],
+  "notRequired": [
+    "escolher o nome da função — o teste chama conferir; outro nome quebra a importação",
+    "o interior da caixa — o teste só confere que conferir() devolve 5; guardar em let, const ou devolver direto são formas válidas",
+    "escrever a linha de atribuição ou operar o valor — não há operador binário no orçamento desta aula",
+    "impressão no terminal — o canal de saída é o retorno da função"
+  ],
+  "subgoals": [
+    "montar a moldura (export + function + chaves)",
+    "guardar o valor (let)",
+    "devolver o valor (return)"
+  ],
+  "scenarios": [
+    {
+      "tipo": "exemplo",
+      "derivado_de": "node:FunctionDeclaration",
+      "descricao": "escrever a declaração completa da função exportada, com variável let e return — a solução de referência"
+    },
+    {
+      "tipo": "valido",
+      "derivado_de": "node:FunctionDeclaration",
+      "descricao": "o teste importa conferir do módulo, chama e recebe 5 — passagem integral (exit 0, pass = testsRun)"
+    },
+    {
+      "tipo": "limite",
+      "derivado_de": "node:FunctionDeclaration",
+      "descricao": "o interior da caixa é livre: return 5 direto, const no lugar de let, espacamento diferente — o teste só confere o valor devolvido; o nome conferir permanece obrigatório"
+    },
+    {
+      "tipo": "invalido",
+      "derivado_de": "node:FunctionDeclaration",
+      "descricao": "starter vazio (comentário só): módulo sem export falha a importação — o teste nem chega a rodar a caixa; função sem export idem; valor errado → assert falha"
+    }
+  ],
+  "taskSkill": "escrever a declaração completa de uma função (export + function + chaves + let + return) de modo que o módulo exporte o nome que o teste importa e devolva o valor esperado",
+  "supportLevel": "sem_andaime",
+  "surfaceDomain": "declaração completa de função (invólucro) com variável e return",
+  "solutionAlternates": [
+    "export function conferir() {\n  const total = 5;\n  return total;\n}\n",
+    "export function conferir() {\n  return 5;\n}\n"
+  ],
+  "wrongSolutions": [
+    "function conferir() {\n  let total = 5;\n  return total;\n}\n",
+    "export function conferir() {\n  let total = 3;\n  return total;\n}\n"
+  ]
+}

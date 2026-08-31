@@ -1,0 +1,68 @@
+{
+  "schemaVersion": 1,
+  "slug": "qual-e-o-ultimo-valor",
+  "title": "Qual e o ultimo valor",
+  "concept": "estado_ler_depois_de_escrever",
+  "difficulty": 4,
+  "language": "nodejs",
+  "statement": "# Ler depois de escrever: qual é o último valor?\n\nA função `lerDepois()` já vem quase pronta. Ela quer guardar um número numa variável, passar por três trocas de valor e devolver o que restar. Falta **declarar** a variável `contador` com `let` no lugar marcado, com um valor inicial.\n\nO restante já está pronto — não mexa:\n\n- `contador = 1;` — **troca** o valor guardado para 1;\n- `contador = 2;` — **troca** o valor guardado para 2;\n- `contador = 3;` — **troca** o valor guardado para 3;\n- `return contador;` — devolve o que está guardado agora.\n\nAntes de escrever, preveja: quando o teste chamar `lerDepois()`, que valor a função devolve? Depois das três trocas, o que está guardado em `contador`? O valor inicial da declaração importa para essa resposta?\n\nEscreva **somente a declaração** na lacuna, com `let` e um valor inicial. O valor inicial é livre — qualquer número vale, porque quem decide o valor devolvido é a **última** troca (`contador = 3;`), não o valor inicial. As demais linhas já estão certas.",
+  "starterCode": "export function lerDepois() {\n  // LACUNA: declare a variável `contador` com `let`, com um valor inicial\n  contador = 1;\n  contador = 2;\n  contador = 3;\n  return contador;\n}\n",
+  "testsCode": "import { test } from 'node:test';\nimport assert from 'node:assert/strict';\nimport { lerDepois } from './solution.mjs';\n\ntest('a última atribuição decide o valor final', () => {\n  assert.equal(lerDepois(), 3);\n});\n",
+  "solutionCode": "export function lerDepois() {\n  let contador = 0;\n  contador = 1;\n  contador = 2;\n  contador = 3;\n  return contador;\n}\n",
+  "expectedTestCount": 1,
+  "outputChannel": "retorno",
+  "requires": [
+    "let-e-atribuicao (decl:let + leitura de op:assign:=)",
+    "estado-ler-depois-de-escrever (leitura de sequência de atribuições: última escrita vence)"
+  ],
+  "requirements": [
+    {
+      "id": "REQ-1",
+      "descricao": "A função lerDepois() devolve o valor da ÚLTIMA atribuição — 3 — não o valor inicial da declaração, seja ele qual for.",
+      "teste": "a última atribuição decide o valor final"
+    }
+  ],
+  "notRequired": [
+    "escolher o valor inicial da declaração — qualquer literal numérico vale; o teste só verifica o valor final (3)",
+    "escrever as linhas de atribuição (contador = 1; ... contador = 3;) — elas já vêm congeladas no starter",
+    "declarar com const ou var — fora do orçamento até a aula 10"
+  ],
+  "subgoals": [
+    "declarar",
+    "ler a sequência de atribuições",
+    "prever o valor final"
+  ],
+  "scenarios": [
+    {
+      "tipo": "exemplo",
+      "derivado_de": "decl:let",
+      "descricao": "declarar uma variável mutável com let e um valor inicial numérico (a solução usa 0; qualquer número valeria); as atribuições seguintes substituem o valor guardado"
+    },
+    {
+      "tipo": "valido",
+      "derivado_de": "op:assign:=",
+      "descricao": "o valor devolvido é o da ÚLTIMA atribuição (3), ainda que a declaração inicial carregue outro literal — o estado final segue a última escrita"
+    },
+    {
+      "tipo": "limite",
+      "derivado_de": "decl:let",
+      "descricao": "o valor inicial da declaração é livre (qualquer literal numérico) — o resultado verificado pelo teste não depende dele"
+    },
+    {
+      "tipo": "invalido",
+      "derivado_de": "decl:let",
+      "descricao": "sem a declaração (lacuna vazia), a primeira atribuição referencia um nome não declarado e o módulo ESM lança ReferenceError — o teste falha (e o aluno já viu essa mensagem antes de a aula 11 nomeá-la)"
+    }
+  ],
+  "taskSkill": "declarar uma variável com let e valor inicial no span de uma lacuna única e ler a sequência de atribuições para prever o valor final",
+  "supportLevel": "com_andaime",
+  "surfaceDomain": "declaração de variável (let) + leitura de estado (sequência de atribuições =)",
+  "solutionAlternates": [
+    "export function lerDepois() {\n  let contador = 100;\n  contador = 1;\n  contador = 2;\n  contador = 3;\n  return contador;\n}",
+    "export function lerDepois() {\n  let contador = 99;\n  contador = 1;\n  contador = 2;\n  contador = 3;\n  return contador;\n}"
+  ],
+  "wrongSolutions": [
+    "const contador = 0;",
+    "let total = 0;"
+  ]
+}

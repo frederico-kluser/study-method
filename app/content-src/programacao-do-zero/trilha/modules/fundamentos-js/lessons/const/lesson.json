@@ -1,0 +1,101 @@
+{
+  "schemaVersion": 1,
+  "slug": "const",
+  "title": "const: o valor que não muda",
+  "summary": "que const declara um valor que NÃO muda depois de criado — o contraste com let, que é para o que pode receber outra escrita",
+  "difficulty": 4,
+  "concepts": [
+    "const"
+  ],
+  "prerequisites": [
+    "como-o-site-confere-seu-codigo",
+    "parametro-e-argumento",
+    "let-e-atribuicao"
+  ],
+  "theory": [
+    {
+      "id": "modelo-mental",
+      "title": "Modelo mental",
+      "markdown": "Você já sabe declarar uma variável que pode mudar: `let`. Hoje ele ganha um irmão: **const** — declara um valor que NÃO muda depois de criado. Quando qualquer linha lê a constante, ela devolve sempre o mesmo valor; escrita de novo, não há. `const` é para o que você quer **fixar**; `let` é para o que você quer poder **trocar**.\n\n```js\nexport function exemplo() {\n  let mudavel = 1;   // pode receber outra escrita depois\n  const fixa = 2;    // não muda nunca\n  return fixa;\n}\n```\n\nA constante `fixa` nasce com o valor 2 e continua 2 até o fim do programa. A variável `mudavel` poderia receber outra escrita depois — se o programa tivesse `mudavel = 9;`, o estado dela mudaria —, mas `fixa` não: a palavra `const` lacra a caixa no momento da declaração.\n\n**Qual é o estado agora?** Se, antes do `return`, o programa rodasse uma linha trocando o valor de `mudavel` para 9, o que `exemplo()` devolve? Resposta: continua **2** — a linha que mudaria o estado é a da `let`; a constante não foi tocada, e é ela que sai pelo `return`."
+    },
+    {
+      "id": "worked-example",
+      "title": "Um **worked example**: a mesma função em incrementos, mostrando const convivendo com let.",
+      "markdown": "Um **worked example**: a mesma função em incrementos, mostrando const convivendo com let.\n\nIncremento 1 — só a constante:\n\n```js\nexport function placa() {\n  const total = 5;\n  return total;\n}\n```\n\nRoda. O teste `assert.equal(placa(), 5)` passa: a constante nasce com 5 e devolve 5.\n\nIncremento 2 — a let ao lado, sem tocar a constante:\n\n```js\nexport function placa() {\n  let total = 1;\n  const fixo = 5;\n  return fixo;\n}\n```\n\nRoda. O teste `assert.equal(placa(), 5)` passa. Repare no que NÃO mudou: a `let total` poderia ser trocada depois, mas quem sai pelo `return` é a constante `fixo`, e constante não é reescrita.\n\nIncremento 3 — a mesma leitura com uma let devolvida:\n\n```js\nexport function placa() {\n  let total = 1;\n  total = 8;\n  const fixo = 5;\n  return total;\n}\n```\n\nRoda. O teste `assert.equal(placa(), 8)` passa: `total` recebeu outra escrita e devolve 8; `fixo` continua 5 no mesmo programa — os DOIS convivem, cada um com a sua regra de escrita.\n\n**Qual é o estado agora?** No incremento 3, qual é o valor de `total` na linha do `return`? E de `fixo`?\n\nResposta: `total` guarda **8** (a let recebeu uma segunda escrita) e `fixo` guarda **5** (a const nasceu com 5 e não foi tocada)."
+    },
+    {
+      "id": "refutacoes",
+      "title": "Refutacoes",
+      "markdown": "Três leituras enganosas aparecem quando se aprende const. A regra de ouro: **a diferença entre let e const é a escrita** — não é o número, não é o nome, não é o tamanho do programa.\n\n**1. \"const é um let mais forte, mas eu ainda posso trocar o valor depois.\"** Não. Depois da declaração com valor inicial, a constante NÃO aceita outra escrita. O par errado:\n\n```js\nconst fixa = 5;\nfixa = 9;\n```\n\nEsse código parseia direito — a máquina ENTENDE a frase —, mas, ao rodar em modo estrito, a segunda linha dispara um erro de execução: a mensagem é \"Assignment to constant variable\" (TypeError). É um erro de EXECUÇÃO, diferente do erro de valor e do erro de sintaxe — a aula 11 classifica esses tipos; aqui basta saber: **não se escreve atribuição sobre uma const**.\n\n**2. \"Posso declarar const sem valor e atribuir depois, como let.\"** Não. A const exige o valor inicial NA declaração. O par errado:\n\n```text\nconst saldo;\n```\n\nIsso é erro de SÍNTAXE — a máquina nem chega a rodar; a mensagem aponta a lacuna do valor inicial (\"Missing initializer in const declaration\"). A const nasce preenchida, ou não nasce.\n\n**3. \"Toda variável deveria ser const.\"** Não. O que PRECISA receber escrita depois tem de ser `let`. Se você lacrar com const algo que o programa ainda vai trocar, o programa para com um erro na hora de rodar (caso 1). A escolha é feita pela NECESSIDADE de reescrita: vai trocar? `let`. Não vai? `const`."
+    },
+    {
+      "id": "referencia",
+      "title": "Referência just-in-time — a sintaxe, colada ao desafio desta aula.",
+      "markdown": "Referência just-in-time — a sintaxe, colada ao desafio desta aula.\n\n| O que você quer | Como escrever |\n| --- | --- |\n| valor que não muda depois de criado | `const fixa = 2;` |\n| valor que pode receber outra escrita | `let mudavel = 1;` |\n| trocar o valor de uma let | `mudavel = 9;` |\n| trocar o valor de uma const | não se escreve — é erro na execução |\n\n```js\n// valor fixo — a const nasce preenchida e lacrada\nconst fixa = 2;\n// valor mutável — a let pode receber outra escrita\nlet mudavel = 1;\n```\n\nNo desafio desta aula as lacunas são as DUAS declarações: você escreve a linha `let mudavel = ...;` (valor inicial livre) e a linha `const fixa = 2;` (o valor da constante é exatamente o que o teste confere). O `return fixa;` já vem pronto — em relação a ele, a sua tarefa é saber que uma constante devolve sempre o valor com que nasceu. Ficam para outras aulas: `var`, escopo de bloco, vários declaradores na mesma linha e os operadores compostos como `+=`.\n\nTermos desta aula: **const**, **constante**, **imutável**, **contraste let/const**."
+    },
+    {
+      "id": "drill",
+      "title": "Drill",
+      "markdown": "Um item curto de treino (opcional). Leia o código e responda **qual é o estado agora** — o que a função devolve, sem rodar:\n\n```js\nexport function teste() {\n  const base = 3;\n  let extra = 1;\n  extra = 4;\n  return base;\n}\n```\n\nResposta: devolve **3**. A const `base` nasce com 3 e não é reescrita; `extra` mudou de 1 para 4, mas não é ela que sai pelo `return`. Se a última linha fosse `return extra;`, o valor seria 4 — a regra de escrita é de cada declaração, e a regra de leitura é sempre a mesma: devolve o estado atual.\n\n**Checksum de cauda.** Nesta aula você aprendeu a **usar**: `const` (declarar uma constante — valor que não muda, nasce com valor inicial). Você **reusou**: `let` (declarar variável mutável, aulas 7 e 9). Os termos da aula: **const**, **constante**, **imutável**, **contraste let/const**. A única construção nova em todos os exemplos de código foi `const` — a lista fecha com o orçamento da aula."
+    }
+  ],
+  "sources": [
+    {
+      "title": "Ecma262",
+      "url": "https://tc39.es/ecma262/#sec-let-and-const-declarations",
+      "description": "let e const compartilham o mecanismo de declaração léxica; a diferença é a proibição de reatribuição (SetMutableBinding em modo estrito lança TypeError quando immutable)"
+    },
+    {
+      "title": "Const",
+      "url": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/const",
+      "description": "MDN sobre const: a const requer inicializador e não pode ser reatribuída"
+    },
+    {
+      "title": "Ecma262",
+      "url": "https://tc39.es/ecma262/#sec-runtime-semantics-evaluation",
+      "description": "a atribuição a uma binding immutable em strict mode lança TypeError (Assignment to constant variable)"
+    }
+  ],
+  "challenges": [
+    "const-fixa-e-let-mutavel"
+  ],
+  "objective": {
+    "verbo": "declarar",
+    "enunciado": "que const declara um valor que NÃO muda depois de criado — o contraste com let, que é para o que pode receber outra escrita",
+    "contexto": "aula 10 da trilha: o aluno já declara com let (aulas 7 e 9) e já leu atribuições trocando o estado; const entra como a construção-irmã que PROÍBE a troca",
+    "criterio": "o aluno declara as duas construções no span de duas lacunas — uma let (valor inicial livre) e uma const com o valor exato que o teste confere — e o teste valida que a constante devolve o valor com que nasceu"
+  },
+  "introduces": {
+    "receptive": [],
+    "productive": [
+      "decl:const",
+      "decl:let"
+    ]
+  },
+  "introducesTerms": [
+    "const",
+    "constante",
+    "imutável",
+    "contraste let/const"
+  ],
+  "foraDeEscopo": [
+    "reescrever o valor de uma const — é erro na execução (TypeError 'Assignment to constant variable'): o aluno LÊ a mensagem na teoria (citação em prosa) e NÃO escreve o cenário — a taxonomia de erros é a aula 11.",
+    "const sem valor inicial (`const x;`) — erro de sintaxe: exibido na teoria como leitura de mensagem, nunca como código a escrever.",
+    "var (decl:var) — escopo de função e hoisting; semântica histórica — fora do currículo.",
+    "escopo de bloco e zona morta temporal — onde a variável vive é outro aspecto da máquina nocional — aula própria.",
+    "múltiplos declaradores na mesma linha (let a = 1, b = 2;) — forma composta do VariableDeclarationList — estoura o span de uma lacuna única.",
+    "operadores compostos de atribuição (+=) e incremento/decremento (++) — combinam leitura+operação+escrita — aula própria."
+  ],
+  "eiClass": "regra",
+  "role": "regular",
+  "targetAtom": "decl:const",
+  "notionalMachineDelta": "A máquina nocional de variável ganha uma segunda ESPÉCIE de espaço: `let` cria um espaço reescrevível; `const` cria um espaço de escrita única — nasce com um valor inicial e nenhuma atribuição posterior pode trocá-lo (em modo estrito, a tentativa dispara TypeError na execução). A DISTINÇÃO não está no valor (um número é um número) nem na leitura (ler uma const devolve o valor como qualquer nome) — está na ESCRITA: algumas caixas são lacradas depois de preenchidas; a lacração é decidida na declaração pela palavra (let vs const), não pelo conteúdo.",
+  "budgetHash": "d1-micro-curriculo",
+  "budgetVersion": "v1",
+  "status": "rascunho",
+  "research": [
+    "https://tc39.es/ecma262/#sec-let-and-const-declarations — let e const compartilham o mecanismo de declaração léxica; a diferença é a proibição de reatribuição (SetMutableBinding em modo estrito lança TypeError quando immutable)",
+    "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/const — MDN sobre const: a const requer inicializador e não pode ser reatribuída",
+    "https://tc39.es/ecma262/#sec-runtime-semantics-evaluation — a atribuição a uma binding immutable em strict mode lança TypeError (Assignment to constant variable)"
+  ]
+}

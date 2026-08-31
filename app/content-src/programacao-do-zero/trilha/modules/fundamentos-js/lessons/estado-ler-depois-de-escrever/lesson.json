@@ -1,0 +1,108 @@
+{
+  "schemaVersion": 1,
+  "slug": "estado-ler-depois-de-escrever",
+  "title": "Estado: ler depois de escrever",
+  "summary": "que o estado de uma variável é o ÚLTIMO valor escrito e que ler o código é acompanhar a sequência de atribuições de cima para baixo",
+  "difficulty": 4,
+  "concepts": [
+    "estado_ler_depois_de_escrever"
+  ],
+  "prerequisites": [
+    "como-o-site-confere-seu-codigo",
+    "parametro-e-argumento",
+    "let-e-atribuicao"
+  ],
+  "theory": [
+    {
+      "id": "ler-o-estado",
+      "title": "Ler o estado",
+      "markdown": "A lição de hoje é de LEITURA. Você não vai escrever construção nova nenhuma: vai ler uma sequência de linhas e dizer, sem rodar, o que a máquina devolve. A variável guarda **um valor por vez**; cada atribuição **troca** o valor guardado; e quando uma linha lê a variável, ela devolve o **último valor escrito até ali**.\n\nLeia este programa de cima para baixo, uma linha de cada vez:\n\n```js\nexport function placar() {\n  let pontos = 0;\n  pontos = 10;\n  pontos = 3;\n  return pontos;\n}\n```\n\nAntes de rodar, preveja: o que `placar()` devolve?\n\nResposta: **3**. A linha 1 cria a variável guardando 0. A linha 2 troca o guardado para 10. A linha 3 troca para 3. A linha 4 devolve o que está guardado agora: 3. O 0 e o 10 não ficaram guardados em lugar nenhum — foram **substituídos**. Ler o código é acompanhar as trocas, de cima para baixo: a **última escrita** é a que vale."
+    },
+    {
+      "id": "modelo-mental",
+      "title": "Modelo mental",
+      "markdown": "O termo novo desta aula é **estado**: o valor que a variável guarda **agora**. O estado muda a cada atribuição, e só a última conta na hora de ler.\n\nRetome a analogia da etiqueta (aula 7): declarar com `let` cria a etiqueta presa num valor; **atribuir** é desprender a etiqueta e prender em outro objeto — o objeto anterior não fica guardado ao lado; ele deixa de ser o atual. Ler o nome da variável devolve em qual objeto a etiqueta está presa **neste momento**.\n\nAplicada ao código, linha a linha:\n\n```js\nexport function contagem() {\n  let contador = 0;   // estado: 0\n  contador = 5;       // estado: 5 — o 0 foi substituído\n  contador = 2;       // estado: 2 — o 5 foi substituído\n  return contador;    // devolve o estado atual: 2\n}\n```\n\nOs comentários mostram o **estado** depois de cada linha. Repare: nenhuma linha lê a variável entre as escritas, então os valores 0 e 5 só existiram como estado transitório — ninguém os viu sair. Se o programa tivesse um `return` logo depois da linha 2, o valor devolvido seria 5; depois da linha 3, é 2. A MESMA variável tem valores diferentes em momentos diferentes — e é a **ordem das linhas** que decide qual momento é qual.\n\nOnde a analogia quebra: uma etiqueta física presa num objeto continua no mesmo lugar até você mexer nela; no código, a variável não \"segura\" o passe de valores — cada escrita apaga o anterior de vez, e só a última escrita permanece para quem lê depois."
+    },
+    {
+      "id": "exemplo-leitura",
+      "title": "Exemplo leitura",
+      "markdown": "Um **worked example** de leitura: um programa sendo \"lido\" em incrementos, com o estado conferido a cada passo.\n\nIncremento 1 — declarar e ler:\n\n```js\nexport function passos() {\n  let passos = 0;\n  return passos;\n}\n```\n\nRoda. O teste `assert.equal(passos(), 0)` passa: nenhuma escrita depois da declaração, então o estado é o valor inicial, 0.\n\nIncremento 2 — uma escrita a mais:\n\n```js\nexport function passos() {\n  let passos = 0;\n  passos = 2;\n  return passos;\n}\n```\n\nRoda. O teste `assert.equal(passos(), 2)` passa: a atribuição trocou o estado de 0 para 2 antes do `return`.\n\nIncremento 3 — várias escritas, e a última é o que resta:\n\n```js\nexport function passos() {\n  let passos = 0;\n  passos = 2;\n  passos = 7;\n  return passos;\n}\n```\n\nRoda. O teste `assert.equal(passos(), 7)` passa. Se a variável guardasse cada valor como num histórico, o `return` não saberia qual devolver; não é o caso: o estado é **7**, só a última escrita permanece.\n\n**Qual é o estado agora?** No incremento 3, depois da linha `let passos = 0;`, o que está guardado em `passos`? E depois de `passos = 2;`? E depois de `passos = 7;`?\n\nResposta: **0**, depois **2**, depois **7** — acompanhe a sequência, uma escrita por vez, e o estado de cada momento é o valor da última escrita até ali."
+    },
+    {
+      "id": "refutacoes",
+      "title": "Refutacoes",
+      "markdown": "Três leituras enganosas aparecem com frequência na hora de ler estado. Cada uma tem o par errado/certo ancorado na especificação da linguagem.\n\n**1. \"A variável guarda todos os valores que já recebeu.\"** Não. A atribuição avalia o lado direito e **sobrescreve** o valor antigo — é o passo PutValue da especificação (ECMA-262, 13.15.4; MDN, seção Assignment). Só existe UM valor guardado, e ele é o da última escrita.\n\n```js\nlet total = 10;\ntotal = 3;\ntotal = 8;\n```\n\nLeitura errada: \"total guarda 10, 3 e 8\". Leitura certa: total guarda **8** — os outros dois foram substituídos e não existem mais na variável.\n\n**2. \"O valor inicial da declaração decide o resultado final.\"** Não, quando há atribuições depois. O valor inicial é o estado no PRIMEIRO momento; cada atribuição seguinte o substitui, então quem decide o valor final é a **última** atribuição:\n\n```js\nlet total = 100;\ntotal = 3;\n```\n\nLeitura errada: \"total devolve 100\". Leitura certa: total devolve **3** — o 100 foi o estado inicial, e a linha de atribuição mudou o estado antes de qualquer leitura.\n\n**3. \"A ordem das linhas de atribuição não importa.\"** Importa — e muito. Trocar duas atribuições de valores diferentes troca o estado final:\n\n```js\nlet x = 1;\nx = 3;\nx = 2;\n```\n\nem comparação com:\n\n```js\nlet x = 1;\nx = 2;\nx = 3;\n```\n\nO primeiro bloco termina com x guardando **2**; o segundo, **3**. A sequência É a máquina nocional de estado: você lê o código na ordem em que as linhas rodam."
+    },
+    {
+      "id": "referencia",
+      "title": "Referência just-in-time — a sintaxe, colada ao desafio desta aula.",
+      "markdown": "Referência just-in-time — a sintaxe, colada ao desafio desta aula.\n\n| O que você quer | Como escrever |\n| --- | --- |\n| declarar (criar) a variável já com um valor inicial | `let contador = 0;` |\n| trocar o valor guardado (atribuir) | `contador = 5;` |\n| usar o valor atual (ler) | usar o nome no lugar em que um valor é esperado |\n\n```js\n// declarar — criar a variável com o valor inicial\nlet pontos = 0;\n// atribuir — trocar o valor guardado (o antigo é substituído)\npontos = 5;\n// ler — devolver o estado atual\nreturn pontos;\n```\n\nNo desafio desta aula a lacuna é a **declaração**: você escreve a linha `let ... = ...;` com um valor inicial qualquer. As linhas de atribuição já vêm prontas e congeladas — em relação a elas, a sua tarefa é **ler** a sequência e saber que o valor devolvido é o da **última** escrita. Ficam para outras aulas: `const` (aula 10), escopo de bloco, operadores compostos como `+=`, incremento `++` e várias declarações na mesma linha.\n\nTermos desta aula: **estado**, **último valor**, **sequência**, **ler o código**."
+    },
+    {
+      "id": "drill",
+      "title": "Drill",
+      "markdown": "Um item curto de treino (opcional). Leia o código e responda **qual é o estado agora** — o que está guardado em `valor` depois de cada linha, sem rodar:\n\n```js\nlet valor = 7;\nvalor = 2;\nvalor = 4;\n```\n\nResposta: depois da linha 1, `valor` guarda **7**; depois da linha 2, **2**; depois da linha 3, **4**. Se um `return valor;` viesse logo depois, devolveria 4 — a última escrita vence, e as anteriores foram substituídas (ECMA-262, 13.15.4).\n\n**Checksum de cauda.** Nesta aula você **reusou**: `let` (declarar uma variável com valor inicial). Você **leu**: `=` (atribuição — substituir o valor guardado). A lição foi de leitura de **estado**: a variável guarda o **último valor** escrito; ler o código é seguir a **sequência** de escritas de cima para baixo. Termos da aula: **estado**, **último valor**, **sequência**, **ler o código**. Nenhuma construção nova apareceu em nenhum exemplo de código — a lista fecha com o reuso prometido pelo currículo."
+    }
+  ],
+  "sources": [
+    {
+      "title": "Ecma262",
+      "url": "https://tc39.es/ecma262/#sec-assignment-operators",
+      "description": "a atribuição avalia o lado direito e chama PutValue sobre a referência, que SOBRESCREVE o valor da binding (a base do 'último valor escrito vence')"
+    },
+    {
+      "title": "Assignment",
+      "url": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Assignment",
+      "description": "MDN sobre atribuição: o valor anterior deixa de existir na variável"
+    },
+    {
+      "title": "Ecma262",
+      "url": "https://tc39.es/ecma262/#sec-let-and-const-declarations",
+      "description": "redeclaração de let no mesmo escopo é SyntaxError (usado como leitura, não exercitado)"
+    }
+  ],
+  "challenges": [
+    "qual-e-o-ultimo-valor"
+  ],
+  "objective": {
+    "verbo": "ler",
+    "enunciado": "que o estado de uma variável é o ÚLTIMO valor escrito e que ler o código é acompanhar a sequência de atribuições de cima para baixo",
+    "contexto": "aula 9 da trilha: o aluno já declarou com let (aula 7) e já viu a atribuição trocar o valor guardado; nada de novo é exigido — a habilidade nova é prever o valor final lendo uma sequência de escritas",
+    "criterio": "o aluno declara a variável com let e valor inicial no span de uma lacuna única (reuso puro de decl:let) e lê as atribuições congeladas do starter para prever o valor devolvido — o teste valida que o valor final é o da ÚLTIMA atribuição (3), não o da declaração"
+  },
+  "introduces": {
+    "receptive": [
+      "op:assign:=",
+      "node:BinaryExpression"
+    ],
+    "productive": [
+      "decl:let"
+    ]
+  },
+  "introducesTerms": [
+    "estado",
+    "último valor",
+    "sequência",
+    "ler o código"
+  ],
+  "foraDeEscopo": [
+    "const (decl:const) — a construção-irmã que PROÍBE reatribuição; contraste com let só na aula 10 (aula própria).",
+    "redeclaração de let no mesmo escopo (SyntaxError) — já tratada como leitura na aula 7; não se escreve erro aqui.",
+    "escopo de bloco e temporária zona morta — onde a variável vive é outro aspecto da máquina nocional — aula própria.",
+    "operadores de atribuição compostos (+=, ++) — combinam leitura+operação+escrita num só operador — aula própria.",
+    "ler o valor ANTES de qualquer escrita (variável declarada sem valor) — `let x;` sem atribuição devolve undefined, e undefined é um valor que não entrou no orçamento desta trilha.",
+    "cenário de erro (throw / assert.throws) — o orçamento não contém op:throw nem api:assert.throws; os tipos de erro são vocabulário da aula 11."
+  ],
+  "eiClass": "regra",
+  "role": "regular",
+  "targetAtom": "decl:let",
+  "notionalMachineDelta": "A máquina nocional de variável (aula 7) ganha a dimensão TEMPORAL: ler o nome da variável devolve o valor que a ÚLTIMA escrita deixou — nada de histórico, nada de média, nada de acúmulo. O estado é um só valor por vez, e a sequência de linhas define a ordem das trocas: cada atribuição substitui o valor anterior e apaga o registro. Prever o valor final é seguir a 'entrada de estado' linha a linha, de cima para baixo; a ordem das escritas importa — trocar duas atribuições de valores diferentes troca o estado final.",
+  "budgetHash": "d1-micro-curriculo",
+  "budgetVersion": "v1",
+  "status": "rascunho",
+  "research": [
+    "https://tc39.es/ecma262/#sec-assignment-operators — a atribuição avalia o lado direito e chama PutValue sobre a referência, que SOBRESCREVE o valor da binding (a base do 'último valor escrito vence')",
+    "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Assignment — MDN sobre atribuição: o valor anterior deixa de existir na variável",
+    "https://tc39.es/ecma262/#sec-let-and-const-declarations — redeclaração de let no mesmo escopo é SyntaxError (usado como leitura, não exercitado)"
+  ]
+}
