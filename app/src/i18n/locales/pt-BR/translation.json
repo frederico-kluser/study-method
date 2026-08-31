@@ -212,9 +212,7 @@
     "micStart": "Falar",
     "micStop": "Parando gravação…",
     "micRecording": "Transcrevendo…",
-    "regenerateFailed": "Não foi possível gerar um novo desafio.",
-    "nextLessonButton": "Avançar para a próxima aula",
-    "lessonCompleted": "Aula concluída!"
+    "regenerateFailed": "Não foi possível gerar um novo desafio."
   },
   "challenge": {
     "openChallenge": "Abrir desafio",

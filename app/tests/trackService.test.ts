@@ -333,6 +333,67 @@ describe('buildTrackDetail / buildTrackLesson — DTOs', () => {
     assert.deepEqual(payload.assertions?.[0].options, ['Um valor', 'Um programa', 'Uma pasta', 'Uma tecla']);
   });
 
+  // ADITIVO (onda 1 replan sectionId, REPLAN A1): a assertion da trilha declara
+  // `sectionId` (id da seção de teoria que a demonstra) e o DTO o declara —
+  // o MAPPING do serviço precisa PROPAGAR o campo, senão toda assertion cai no
+  // FALLBACK_QUIZ_SECTION do renderer (quiz ancorado na última seção, não na
+  // que demonstra a afirmação). Regressão do caminho REAL buildTrackLesson →
+  // TrackLessonPayload.
+  it('ADITIVO: buildTrackLesson PROPAGA sectionId da assertion no payload (REPLAN A1)', async () => {
+    const track = makeTrack([
+      {
+        moduleSlug: 'm1',
+        lesson: lesson('a1', {
+          theory: [
+            { id: 'intro', title: 'Intro', markdown: 'Teoria.' },
+            { id: 'variaveis', title: 'Variáveis', markdown: 'Teoria das variáveis.' },
+          ],
+          assertions: [
+            {
+              id: 'variavel-guarda-valor',
+              statement: 'Uma variável guarda um valor em memória.',
+              question: 'O que uma variável guarda?',
+              options: ['Um valor', 'Um programa', 'Uma pasta', 'Uma tecla'],
+              answerIndex: 0,
+              feedback: 'Certo!',
+              sectionId: 'variaveis',
+            },
+          ],
+        }),
+        challenge: challenge('ch-a1'),
+      },
+    ]);
+    const payload = await buildTrackLesson(track, 'm1', 'a1', fakeRepo());
+    assert.ok(payload);
+    assert.equal(payload.assertions?.length, 1);
+    assert.equal(payload.assertions?.[0].sectionId, 'variaveis');
+  });
+
+  it('ADITIVO: assertion SEM sectionId chega ao payload sem o campo (fallback do renderer)', async () => {
+    const track = makeTrack([
+      {
+        moduleSlug: 'm1',
+        lesson: lesson('a1', {
+          assertions: [
+            {
+              id: 'sem-ancora',
+              statement: 'Afirmação sem âncora.',
+              question: 'Pergunta?',
+              options: ['A', 'B', 'C', 'D'],
+              answerIndex: 0,
+              feedback: 'Feedback.',
+            },
+          ],
+        }),
+        challenge: challenge('ch-a1'),
+      },
+    ]);
+    const payload = await buildTrackLesson(track, 'm1', 'a1', fakeRepo());
+    assert.ok(payload);
+    assert.equal(payload.assertions?.length, 1);
+    assert.equal(payload.assertions?.[0].sectionId, undefined);
+  });
+
   it('ADITIVO: aula SEM assertions → payload sem o campo (aditivo opcional)', async () => {
     const track = makeTrack([{ moduleSlug: 'm1', lesson: lesson('a1'), challenge: challenge('ch-a1') }]);
     const payload = await buildTrackLesson(track, 'm1', 'a1', fakeRepo());

@@ -315,6 +315,10 @@ export async function buildTrackLesson(
       options: a.options,
       answerIndex: a.answerIndex,
       feedback: a.feedback,
+      // ADITIVO (onda 1 replan sectionId, REPLAN A1): a âncora que liga o quiz
+      // à seção de teoria que demonstra a assertion. OPCIONAL: ausente =
+      // afirmação sem âncora (o renderer cai no FALLBACK_QUIZ_SECTION).
+      sectionId: a.sectionId,
     })),
     sources: lesson.meta.sources.map((s) => ({ title: s.title, url: s.url, description: s.description })),
     challenges: challengeSummaries,
