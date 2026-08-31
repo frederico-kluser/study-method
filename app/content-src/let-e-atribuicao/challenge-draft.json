@@ -1,0 +1,66 @@
+{
+  "raciocinio_de_projeto": "O desafio é o ITEM DE AVALIAÇÃO do átomo canônico decl:let (produtiva) + op:assign:= (receptiva). O enunciado pede UMA lacuna, e só há UMA construção que o aluno pode escrever nela que faz a função rodar e passar no teste: a declaração `let contador = 0;`. A linha de atribuição `contador = 5;` fica CONGELADA no starter e na solução (byte a byte igual) porque op:assign:= é receptiva: o aluno a leu nos worked examples da teoria e NÃO a escreve neste átomo (proibicoes_absolutas, contrato). O teste verifica o valor FINAL (pergunta de estado R10): 5, o valor da última atribuição — por isso o valor inicial da declaração é livre e qualquer solução alternativa com outro literal continua passando. expectedTestCount = 1 por J4 (bijecao requisito-testes): com o orçamento desta aula, que veda parâmetros em TODAS as superfícies (`node:Parameter` não está em nenhuma das três listas do contrato — verificado no extrator), toda chamada de `iniciar()` é idêntica; um segundo teste seria tautológico e redundante. A falha do starter é a prova 2: com a lacuna vazia, `contador = 5;` referencia uma variável não declarada e o módulo ESM (strict mode) lança ReferenceError na chamada — o teste falha e o aluno tem o que corrigir. A6 bate: a solução usa decl:let (introduces.productive) e nada fora de budget_produtivo; o starter usa só budget_receptivo; o teste usa só a seed do harness (budget_teste), sem NENHUMA declaração de variável (A3) e sem assert.throws (A11). As duas wrongSolutions catalogadas (J5) reproduzem as misconceptions do contrato (atribuir sem declarar → ReferenceError; usar const → TypeError na linha congelada) e cada uma falha no teste, verificado por execução real.",
+  "slug": "contador-com-let",
+  "conceito": "let-e-atribuicao",
+  "statement": "# Declarar com `let` e deixar a atribuição decidir\n\nA função `iniciar()` já está quase pronta. Ela quer guardar um número numa **variável** e devolver esse número. Falta **declarar** a variável `contador` com `let` no lugar marcado, começando com o valor `0`.\n\nO restante já está pronto — não mexa:\n\n- `contador = 5;` — **atribui** o valor `5` à variável, substituindo o valor anterior;\n- `return contador;` — devolve o que está guardado na variável.\n\nAntes de escrever, preveja: quando o teste chamar `iniciar()`, que valor a função devolve? Depois de `contador = 5;`, o que está guardado em `contador` é o valor inicial `0` ou o valor atribuído `5`?\n\nEscreva **somente a declaração** na lacuna, com `let`, começando em `0`. As demais linhas já estão certas.",
+  "starterCode": "export function iniciar() {\n  // LACUNA: declare a variável `contador` com `let`, começando em 0\n  contador = 5;\n  return contador;\n}\n",
+  "solutionCode": "export function iniciar() {\n  let contador = 0;\n  contador = 5;\n  return contador;\n}\n",
+  "testsCode": "import { test } from 'node:test';\nimport assert from 'node:assert/strict';\nimport { iniciar } from './solution.mjs';\n\ntest('declara com let; a atribuição decide o valor final', () => {\n  assert.equal(iniciar(), 5);\n});\n",
+  "expectedTestCount": 1,
+  "outputChannel": "retorno",
+  "requires": [
+    "let-e-atribuicao (decl:let)"
+  ],
+  "notRequired": [
+    "escolher o valor inicial da declaração — qualquer literal numérico vale; o teste só verifica o valor final",
+    "escrever a linha de atribuição (contador = 5;) — ela já vem pronta no starter",
+    "declarar com const ou var — fora do orçamento desta aula"
+  ],
+  "subgoals": [
+    "declarar",
+    "atribuir",
+    "ler-valor"
+  ],
+  "scenarios": [
+    {
+      "tipo": "exemplo",
+      "derivado_de": "decl:let",
+      "descricao": "declarar uma variável mutável com let e valor inicial (contador = 0); a atribuição seguinte substitui o valor guardado"
+    },
+    {
+      "tipo": "valido",
+      "derivado_de": "op:assign:=",
+      "descricao": "o valor final devolvido é o da ÚLTIMA atribuição (5), mesmo quando o valor inicial da declaração é outro literal"
+    },
+    {
+      "tipo": "limite",
+      "derivado_de": "decl:let",
+      "descricao": "o valor inicial da declaração é livre (qualquer literal numérico) — o resultado verificado pelo teste não depende dele"
+    },
+    {
+      "tipo": "invalido",
+      "derivado_de": "decl:let",
+      "descricao": "atribuir sem antes declarar (lacuna vazia) lança ReferenceError em modo estrito — o teste falha"
+    }
+  ],
+  "taskSkill": "declarar uma variável mutável com let e valor inicial no span de uma lacuna única",
+  "supportLevel": "com_andaime",
+  "surfaceDomain": "declaração de variável (let) e atribuição (=)",
+  "solutionAlternates": [
+    "let contador = 100;",
+    "let contador = 5;"
+  ],
+  "wrongSolutions": [
+    "const contador = 0;",
+    "contador = 0;"
+  ],
+  "requirements": [
+    {
+      "id": "REQ-1",
+      "descricao": "A função iniciar() devolve o valor final de contador — 5, o valor da última atribuição (não o valor inicial 0 da declaração).",
+      "teste": "declara com let; a atribuição decide o valor final"
+    }
+  ],
+  "justificativa": "Uma lacuna única cujo span contém a declaração let (átomo-alvo produtivo); a linha de atribuição fica congelada byte a byte no starter e na solução (op:assign:= receptiva, demonstrada na teoria); o teste usa apenas a seed do harness e verifica o valor FINAL (estado, R10); expectedTestCount=1 por J4 — o orçamento veda parâmetros, então duas chamadas de iniciar() seriam idênticas e um segundo teste seria tautológico. As quatro provas de execução (§5.4) passam; as duas wrongSolutions catalogadas falham no teste por execução real.",
+  "aprovado": false
+}
