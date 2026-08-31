@@ -79,7 +79,8 @@
  *                                de produto (object, introduces,
  *                                introducesTerms, foraDeEscopo, eiClass, role,
  *                                targetAtom, notionalMachineDelta, budgetHash,
- *                                budgetVersion, status, research na aula;
+ *                                budgetVersion, status, research, assertions
+ *                                — onda 1 schema-quiz — na aula;
  *                                outputChannel, requires, requirements,
  *                                notRequired, subgoals, scenarios, taskSkill,
  *                                supportLevel, surfaceDomain,
@@ -434,6 +435,13 @@ function montarAulaDeProduto(
     budgetVersion: aula.draft.budgetVersion,
     status: aula.draft.status,
     research: aula.draft.research,
+    // ADITIVO (onda 1 schema-quiz): AFIRMAÇÕES da aula, VERBATIM do draft.
+    // O LessonDraftSchema materializa a AUSÊNCIA como [] explícito
+    // (z.preprocess undefined→[], INV-05) — a fiação da F12 entrega
+    // `aula.draft` já PARSEADO (geraTrilha.faseF12 usa `aulaOk.data`), então
+    // o campo nunca é undefined aqui: draft sem quiz → lesson.json com
+    // `assertions: []` (aula sem quiz é válida no produto, docs §10).
+    assertions: aula.draft.assertions,
   };
 }
 

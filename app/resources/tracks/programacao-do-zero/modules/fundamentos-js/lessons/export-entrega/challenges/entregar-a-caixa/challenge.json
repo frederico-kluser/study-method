@@ -1,0 +1,66 @@
+{
+  "schemaVersion": 1,
+  "slug": "entregar-a-caixa",
+  "title": "Entregar a caixa",
+  "concept": "export_entrega",
+  "difficulty": 2,
+  "language": "nodejs",
+  "statement": "# Entregar a caixa ao conferidor\n\nA caixa `resposta` já está pronta — ela devolve o número 5. Mas o site (o **conferidor**) só consegue chamar as caixas que você **entregou** para ele. Entregar uma caixa é escrever a palavra **export** na frente dela.\n\nLeia o que já está pronto (não mexa):\n\n- `function resposta() { return 5; }` — a **caixa**: um bloco nomeado que devolve o valor **5**;\n- `import { resposta } from './solution.mjs'` — a **coleta**: o site procura o nome `resposta` nas entregas do arquivo.\n\nSem a palavra **export**, o nome `resposta` não existe para o site: a coleta falha e o teste nem chega a chamar a caixa.\n\nAntes de escrever, preveja: sem a palavra, o site consegue chamar `resposta()`? O que o teste diria?\n\nEscreva **somente a palavra** na lacuna, na frente da caixa — antes de `function`. O resto já está certo.",
+  "starterCode": "/* LACUNA: escreva a palavra que entrega a caixa ao conferidor */\nfunction resposta() {\n  return 5;\n}\n",
+  "testsCode": "import { test } from 'node:test';\nimport assert from 'node:assert/strict';\nimport { resposta } from './solution.mjs';\n\ntest('a caixa entregue devolve 5', () => {\n  assert.equal(resposta(), 5);\n});\n",
+  "solutionCode": "/* LACUNA: escreva a palavra que entrega a caixa ao conferidor */\nexport function resposta() {\n  return 5;\n}\n",
+  "expectedTestCount": 1,
+  "outputChannel": "retorno",
+  "requires": [
+    "funcao-e-chamada (node:CallExpression)",
+    "valor-e-instrucao (node:ReturnStatement)"
+  ],
+  "requirements": [
+    {
+      "id": "REQ-1",
+      "descricao": "A caixa resposta está entregue: o site importa `resposta` do arquivo, a chama e ela devolve 5.",
+      "teste": "a caixa entregue devolve 5"
+    }
+  ],
+  "notRequired": [
+    "escrever a caixa inteira (function resposta() { return 5; }) — ela vem pronta e congelada",
+    "escrever a chamada resposta() — o teste chama por você (a chamada foi a aula passada)",
+    "escrever import — a coleta é sempre do site (harness)",
+    "entregar outras caixas além da resposta — quem quiser esticar pode entregar também uma caixa `ajuda` com `return 7`, repetindo a mesma palavra (reuso puro de export)"
+  ],
+  "subgoals": [
+    "reconhecer a diferença entre entrega e coleta (export e import)",
+    "escrever a palavra export na frente da caixa",
+    "confirmar que o site encontra a caixa entregue pelo nome"
+  ],
+  "scenarios": [
+    {
+      "tipo": "exemplo",
+      "derivado_de": "node:ExportKeyword",
+      "descricao": "entregar a caixa ao conferidor: a palavra export na frente da declaração — é a construção que o aluno escreve na lacuna"
+    },
+    {
+      "tipo": "valido",
+      "derivado_de": "node:ExportKeyword",
+      "descricao": "com export, o site importa a caixa pelo nome e a chama: `resposta()` devolve 5 — o teste bate"
+    },
+    {
+      "tipo": "limite",
+      "derivado_de": "node:ExportKeyword",
+      "descricao": "entregar não muda o que a caixa faz nem o valor que ela devolve — muda só quem enxerga a caixa (5 continua 5)"
+    },
+    {
+      "tipo": "invalido",
+      "derivado_de": "node:ExportKeyword",
+      "descricao": "sem a palavra (lacuna vazia), a importação não encontra o nome e o carregamento falha; palavra errada (Export maiúsculo ou outra palavra) também quebra a entrega"
+    }
+  ],
+  "taskSkill": "escrever a palavra export na frente da declaração de função no span de uma lacuna única de palavra",
+  "supportLevel": "com_andaime",
+  "surfaceDomain": "entrega de módulo (export)",
+  "solutionAlternates": [],
+  "wrongSolutions": [
+    "Export",
+    "entregar"
+  ]
+}

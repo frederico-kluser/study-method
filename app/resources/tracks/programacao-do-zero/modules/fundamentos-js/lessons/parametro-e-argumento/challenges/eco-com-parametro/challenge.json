@@ -1,0 +1,69 @@
+{
+  "schemaVersion": 1,
+  "slug": "eco-com-parametro",
+  "title": "Eco com parametro",
+  "concept": "parametro_e_argumento",
+  "difficulty": 2,
+  "language": "nodejs",
+  "statement": "# A janelinha da caixa\n\nA função `eco` é uma caixa com uma **janelinha de entrada**: o valor que entra por ela é devolvido igual pela saída. Falta **dar nome** à janelinha — escrever o **parâmetro** no lugar marcado, entre os parênteses da assinatura.\n\nO que é cada coisa (o resto da caixa já está pronto — não mexa):\n\n- **parâmetro** — o nome que a caixa usa, lá dentro, para falar do valor que entrou pela janelinha;\n- **argumento** — o valor que você entrega na janelinha quando chama a caixa. No teste, o argumento é o `7` de `eco(7)`.\n\nLá dentro, a linha `return x;` **devolve** o valor que entrou. Para isso funcionar, o nome que você escreve na janelinha precisa ser o mesmo que essa linha usa: `x`.\n\nAntes de escrever, preveja: com a janelinha chamada `x`, o que `eco(7)` devolve? E se o teste chamasse `eco(3)`?\n\nEscreva **somente o nome do parâmetro** na lacuna — um nome só, sem parênteses, sem aspas, sem ponto e vírgula. As demais linhas já estão certas.",
+  "starterCode": "export function eco(/* LACUNA: escreva o nome do parâmetro */) {\n  return x;\n}\n",
+  "testsCode": "import { test } from 'node:test';\nimport assert from 'node:assert/strict';\nimport { eco } from './solution.mjs';\n\ntest('eco devolve de volta o valor recebido', () => {\n  assert.equal(eco(7), 7);\n});\n",
+  "solutionCode": "export function eco(x) {\n  return x;\n}\n",
+  "expectedTestCount": 1,
+  "outputChannel": "retorno",
+  "requires": [
+    "parametro-e-argumento (node:Parameter)"
+  ],
+  "requirements": [
+    {
+      "id": "REQ-1",
+      "descricao": "A função eco() devolve de volta o valor que recebeu como argumento — eco(7) devolve 7. Para isso o nome do parâmetro declarado na assinatura precisa ser o mesmo que o return congelado usa (x).",
+      "teste": "eco devolve de volta o valor recebido"
+    }
+  ],
+  "notRequired": [
+    "escrever a chamada com o argumento — ela vem pronta no teste (eco(7)); o argumento 7 é leitura",
+    "escolher o nome do parâmetro — qualquer identificador vale, desde que o return congelado use o mesmo nome (a referência usa x)",
+    "escrever o corpo (return x;) — vem congelado no starter",
+    "escrever argumentos múltiplos nem expressões como argumento — fora do orçamento desta aula",
+    "mexer no invólucro export/function nem no teste"
+  ],
+  "subgoals": [
+    "escrever o parâmetro na assinatura",
+    "ler o argumento na chamada do teste",
+    "devolver o valor recebido (leitura do return congelado)"
+  ],
+  "scenarios": [
+    {
+      "tipo": "exemplo",
+      "derivado_de": "node:Parameter",
+      "descricao": "declarar o parâmetro escrevendo só o nome na lacuna da assinatura; o corpo congelado (return x;) devolve o valor recebido"
+    },
+    {
+      "tipo": "valido",
+      "derivado_de": "node:Parameter",
+      "descricao": "com o parâmetro nomeado x, eco(7) devolve 7 — o argumento entra pela janelinha e é devolvido igual"
+    },
+    {
+      "tipo": "limite",
+      "derivado_de": "node:Parameter",
+      "descricao": "o nome do parâmetro é livre (x, n, valor…) — o resultado verificado pelo teste não depende do nome, só da coerência com o corpo"
+    },
+    {
+      "tipo": "invalido",
+      "derivado_de": "node:Parameter",
+      "descricao": "nome que não bate com o corpo (parâmetro y com return x;) → a caixa não conhece o nome x → ReferenceError na chamada; lacuna vazia → zero parâmetros → mesma falha"
+    }
+  ],
+  "taskSkill": "escrever o nome do parâmetro na assinatura de uma função no span de uma lacuna única",
+  "supportLevel": "com_andaime",
+  "surfaceDomain": "assinatura de função: parâmetro (nome da janelinha) e argumento (valor entregue na chamada)",
+  "solutionAlternates": [
+    "export function eco(n) {\n  return n;\n}\n",
+    "export function eco(valor) {\n  return valor;\n}\n"
+  ],
+  "wrongSolutions": [
+    "export function eco(y) {\n  return x;\n}\n",
+    "export function eco() {\n  return x;\n}\n"
+  ]
+}

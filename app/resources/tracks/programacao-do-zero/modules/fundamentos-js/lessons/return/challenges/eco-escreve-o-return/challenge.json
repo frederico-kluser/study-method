@@ -1,0 +1,69 @@
+{
+  "schemaVersion": 1,
+  "slug": "eco-escreve-o-return",
+  "title": "Eco escreve o return",
+  "concept": "return",
+  "difficulty": 3,
+  "language": "nodejs",
+  "statement": "# A linha que entrega e encerra\n\nA função `eco` está quase pronta: tem a **janelinha** (o parâmetro `x`, da aula passada) e o teste já está montado. Falta a **linha de devolução** — a **saída** da caixa — no lugar marcado, dentro do corpo.\n\nO que é cada coisa (o resto já está pronto — não mexa):\n\n- **return** — a palavra que **devolve** o valor pela saída da caixa e **encerra** a caixa naquela linha: depois dela, nada mais roda;\n- a caixa desta aula devolve o valor que entrou pela janelinha — por isso a linha de devolução usa o nome do parâmetro: `x`.\n\nO teste chama a caixa DUAS vezes, com argumentos diferentes — `assert.equal(eco(7), 7)` e `assert.equal(eco(5), 5)`: em cada chamada, a caixa tem de devolver o valor QUE ENTROU naquela chamada. Devolver sempre o mesmo número não passa nos dois.\n\nAntes de escrever, preveja: o que `eco(7)` devolve se a lacuna for `return x;`? E o que devolve `eco(5)`? E se a lacuna estiver vazia — o que o teste diria?\n\nEscreva **somente a linha de devolução** na lacuna: a palavra `return`, um espaço, o nome `x`, e ponto e vírgula. As demais linhas já estão certas — inclusive o teste.",
+  "starterCode": "export function eco(x) {\n  // LACUNA: devolva o valor do parâmetro\n}\n",
+  "testsCode": "import { test } from 'node:test';\nimport assert from 'node:assert/strict';\nimport { eco } from './solution.mjs';\n\ntest('eco devolve o valor do parâmetro', () => {\n  assert.equal(eco(7), 7);\n  assert.equal(eco(5), 5);\n});\n",
+  "solutionCode": "export function eco(x) {\n  return x;\n}\n",
+  "expectedTestCount": 1,
+  "outputChannel": "retorno",
+  "requires": [
+    "return (node:ReturnStatement)",
+    "parametro-e-argumento (node:Parameter)"
+  ],
+  "requirements": [
+    {
+      "id": "REQ-1",
+      "descricao": "A função eco() devolve o valor do parâmetro — eco(7) devolve 7 E eco(5) devolve 5 (a linha de devolução usa o parâmetro x; devolver sempre o mesmo número falha).",
+      "teste": "eco devolve o valor do parâmetro"
+    }
+  ],
+  "notRequired": [
+    "escrever a caixa nem a janelinha — export function eco(x) vem congelado (reuso da L5)",
+    "escrever o teste — assert.equal(eco(7), 7) vem pronto",
+    "escrever a chamada com o argumento — eco(7) é do teste",
+    "devolver expressões com operadores (return 1 + 2;) — operadores binários fora desta aula",
+    "return sem valor (return;) nem mais de um return — fora de escopo"
+  ],
+  "subgoals": [
+    "escrever a linha return",
+    "devolver o valor do parâmetro",
+    "confiar no teste que usa o valor devolvido"
+  ],
+  "scenarios": [
+    {
+      "tipo": "exemplo",
+      "derivado_de": "node:ReturnStatement",
+      "descricao": "escrever a linha de devolução `return x;` no corpo da caixa com janelinha — a primeira linha de entrega escrita pelo aluno"
+    },
+    {
+      "tipo": "valido",
+      "derivado_de": "node:ReturnStatement",
+      "descricao": "eco(7) devolve 7 — o return entrega o valor do parâmetro e o teste usa o valor devolvido"
+    },
+    {
+      "tipo": "limite",
+      "derivado_de": "node:ReturnStatement",
+      "descricao": "o return encerra a caixa: a primeira entrega vence (leitura da teoria — o que vier depois nunca roda)"
+    },
+    {
+      "tipo": "invalido",
+      "derivado_de": "node:ReturnStatement",
+      "descricao": "lacuna vazia — a caixa abre e fecha sem entregar nada (undefined) e o teste esperava 7; devolver o valor errado também falha"
+    }
+  ],
+  "taskSkill": "escrever a linha de devolução (return + valor) no span de uma lacuna única no corpo de uma função",
+  "supportLevel": "com_andaime",
+  "surfaceDomain": "linha de devolução (return) dentro do corpo de uma função com parâmetro",
+  "solutionAlternates": [
+    "export function eco(x) {\n  return x; // devolve o valor recebido\n}\n"
+  ],
+  "wrongSolutions": [
+    "export function eco(x) {\n  x;\n}\n",
+    "export function eco(x) {\n  return 3;\n}\n"
+  ]
+}

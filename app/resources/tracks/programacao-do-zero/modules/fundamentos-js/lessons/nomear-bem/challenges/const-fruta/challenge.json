@@ -1,0 +1,69 @@
+{
+  "schemaVersion": 1,
+  "slug": "const-fruta",
+  "title": "Const fruta",
+  "concept": "nomear_bem",
+  "difficulty": 5,
+  "language": "nodejs",
+  "statement": "# Nomeie a constante e guarde o texto\n\nA função `descobrir()` está quase pronta. Ela quer devolver o texto **\"abacaxi\"** guardado numa constante. O invólucro já está pronto — a moldura `export function descobrir() { ... }` e a linha `return fruta;` — e **não mexa** nelas. Falta só **declarar** a constante `fruta` no lugar marcado.\n\nEscreva **somente a declaração** na lacuna:\n\n- `const` — o valor que não muda (aula 10);\n- o nome `fruta` — é o nome que a linha `return fruta;` procura (minúsculo e exato — maiúscula seria outra etiqueta);\n- `=` e o texto `\"abacaxi\"` entre aspas (aula 8) — é o valor que o teste confere.\n\nAntes de escrever, preveja: quando o teste chamar `descobrir()`, que texto a função devolve? Por que o nome tem de ser `fruta` e não qualquer outro?\n\nAs aspas podem ser simples ou duplas — o texto é o mesmo. O que não pode mudar é o nome `fruta` (a linha congelada devolve exatamente esse nome) e o valor `\"abacaxi\"` (é o que o teste espera).",
+  "starterCode": "export function descobrir() {\n  // LACUNA: declare a constante `fruta` com const, guardando o texto \"abacaxi\"\n  return fruta;\n}\n",
+  "testsCode": "import { test } from 'node:test';\nimport assert from 'node:assert/strict';\nimport { descobrir } from './solution.mjs';\n\ntest('guarda o texto em const e devolve pela etiqueta fruta', () => {\n  assert.equal(descobrir(), \"abacaxi\");\n});\n",
+  "solutionCode": "export function descobrir() {\n  const fruta = \"abacaxi\";\n  return fruta;\n}\n",
+  "expectedTestCount": 1,
+  "outputChannel": "retorno",
+  "requires": [
+    "nomear-bem (decl:const, node:StringLiteral)"
+  ],
+  "requirements": [
+    {
+      "id": "REQ-1",
+      "descricao": "A constante fruta (declarada com const, na lacuna) guarda o texto \"abacaxi\", e descobrir() devolve esse texto — o teste importa { descobrir }, chama e espera \"abacaxi\".",
+      "teste": "guarda o texto em const e devolve pela etiqueta fruta"
+    }
+  ],
+  "notRequired": [
+    "escolher o nome da constante — o return congelado devolve fruta; outro nome quebra o programa (ReferenceError)",
+    "escolher o texto — o teste confere exatamente \"abacaxi\"",
+    "escrever o invólucro (export, function, chaves, return) — vem pronto e congelado",
+    "escolher o estilo de aspas — simples ou duplas, o texto é o mesmo",
+    "impressão no terminal — o canal de saída é o retorno"
+  ],
+  "subgoals": [
+    "declarar const",
+    "guardar o texto",
+    "devolver pela etiqueta"
+  ],
+  "scenarios": [
+    {
+      "tipo": "exemplo",
+      "derivado_de": "decl:const",
+      "descricao": "declarar a constante com o nome exigido pelo return congelado, guardando um texto — a solução de referência"
+    },
+    {
+      "tipo": "valido",
+      "derivado_de": "node:StringLiteral",
+      "descricao": "o teste chama descobrir() e recebe exatamente o texto \"abacaxi\" — passagem integral"
+    },
+    {
+      "tipo": "limite",
+      "derivado_de": "decl:const",
+      "descricao": "o estilo de aspas é livre (simples ou duplas) e o espaçamento é livre — o valor devolvido é o mesmo; o nome fruta permanece obrigatório (return congelado)"
+    },
+    {
+      "tipo": "invalido",
+      "derivado_de": "decl:const",
+      "descricao": "lacuna vazia: `return fruta` referencia etiqueta inexistente → ReferenceError; nome divergente do return (const texto = ...) → ReferenceError; valor divergente do esperado → assert falha"
+    }
+  ],
+  "taskSkill": "declarar uma constante com o nome exigido pelo return congelado, guardando o texto que o teste confere",
+  "supportLevel": "com_andaime",
+  "surfaceDomain": "declaração de constante (const) com string, com o invólucro congelado",
+  "solutionAlternates": [
+    "export function descobrir() {\n  const fruta = 'abacaxi';\n  return fruta;\n}\n"
+  ],
+  "wrongSolutions": [
+    "export function descobrir() {\n  const texto = \"abacaxi\";\n  return fruta;\n}\n",
+    "export function descobrir() {\n  const fruta = \"uva\";\n  return fruta;\n}\n",
+    "export function descobrir() {\n  const fruta = abacaxi;\n  return fruta;\n}\n"
+  ]
+}

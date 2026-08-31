@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "slug": "programacao-do-zero",
+  "title": "Programação do Zero",
+  "description": "Do absoluto zero (nenhuma experiência de programação) até montar um programa inteiro seu — export, function, return, variáveis, const e string — em 14 aulas micro, cada uma com um único avanço e uma única lacuna a preencher, com a máquina que confere explicada como leitura desde a primeira aula.",
+  "language": "pt-BR",
+  "domain": "programming",
+  "modules": [
+    "fundamentos-js"
+  ]
+}

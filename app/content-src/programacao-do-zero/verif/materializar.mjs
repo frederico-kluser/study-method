@@ -21,11 +21,23 @@
  *                                ANTERIORES que introduziram construções do
  *                                orçamento de ENTRADA (carry cumulativo)
  *   campos §10                ← cópia VERBATIM do draft como EXTRAS
+ *                                (objective, introduces, introducesTerms,
+ *                                foraDeEscopo, eiClass, role, targetAtom,
+ *                                notionalMachineDelta, budgetHash,
+ *                                budgetVersion, status, research, assertions
+ *                                — onda 1 schema-quiz: o mesmo preprocess
+ *                                undefined→[] do LessonDraftSchema vale para
+ *                                o materializador; um draft SEM o campo
+ *                                materializa `assertions: []` no produto)
  *
  * Formato canônico: JSON com 2 espaços, LF, newline final — o mesmo dos
  * arquivos atuais de resources/tracks.
  *
  * Rodar (cwd app/):  node content-src/programacao-do-zero/verif/materializar.mjs
+ *   --produto   também grava a MESMA árvore (byte a byte — o mesmo conteúdo
+ *               serializado) em app/resources/tracks/programacao-do-zero/, o
+ *               caminho de PRODUTO que a GUI lê (app.getAppPath()/resources/
+ *               tracks). `resources/tracks/nodejs-do-zero` nunca é tocado.
  * Zero dependências; determinístico; nada além de drafts + curriculo entra.
  */
 import * as fs from 'node:fs';
@@ -36,6 +48,8 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 const raiz = path.resolve(here, '..'); // content-src/programacao-do-zero
 const draftsDir = path.join(raiz, 'drafts');
 const trilhaDir = path.join(raiz, 'trilha');
+// caminho de PRODUTO: <app>/resources/tracks/programacao-do-zero
+const produtoDir = path.resolve(raiz, '..', '..', 'resources', 'tracks', 'programacao-do-zero');
 const curriculo = JSON.parse(fs.readFileSync(path.join(raiz, 'curriculo.json'), 'utf8'));
 
 // ── derivações ──────────────────────────────────────────────────────────────
@@ -121,10 +135,19 @@ for (const a of aulas) {
 }
 
 // ── montagem ────────────────────────────────────────────────────────────────
+// Alvos: SEMPRE a trilha de autoria (content-src/.../trilha); com `--produto`,
+// o MESMO conteúdo serializado também vai para resources/tracks/<slug> (o
+// caminho de produto que a GUI lê) — byte a byte idêntico por construção.
+const destinos = [trilhaDir];
+if (process.argv.includes('--produto')) destinos.push(produtoDir);
+
 const pushJson = (relativo, objeto) => {
-  const alvo = path.join(trilhaDir, relativo);
-  fs.mkdirSync(path.dirname(alvo), { recursive: true });
-  fs.writeFileSync(alvo, `${JSON.stringify(objeto, null, 2)}\n`);
+  const conteudo = `${JSON.stringify(objeto, null, 2)}\n`;
+  for (const base of destinos) {
+    const alvo = path.join(base, relativo);
+    fs.mkdirSync(path.dirname(alvo), { recursive: true });
+    fs.writeFileSync(alvo, conteudo);
+  }
 };
 
 pushJson('track.json', {
@@ -190,6 +213,7 @@ for (const a of aulas) {
     budgetVersion: a.lesson.budgetVersion,
     status: a.lesson.status,
     research: a.lesson.research,
+    assertions: a.lesson.assertions ?? [], // §10 verbatim; ausência → [] (preprocess do LessonDraftSchema)
   });
 
   pushJson(path.join(lessonRel, 'challenges', a.challenge.slug, 'challenge.json'), {
@@ -218,9 +242,9 @@ for (const a of aulas) {
   });
 }
 
-console.log(`Materializadas ${aulas.length} aulas em ${trilhaDir}`);
+console.log(`Materializadas ${aulas.length} aulas em ${destinos.join(' e ')}`);
 for (const a of aulas) {
   console.log(
-    `${String(a.pos + 1).padStart(2)} ${a.slug.padEnd(32)} diff=${dificuldadeProvisoria(a.pos, total)} desafio=${a.challenge.slug}`,
+    `${String(a.pos + 1).padStart(2)} ${a.slug.padEnd(32)} diff=${dificuldadeProvisoria(a.pos, total)} desafio=${a.challenge.slug} assertions=${(a.lesson.assertions ?? []).length}`,
   );
 }
