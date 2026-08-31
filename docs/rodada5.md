@@ -12,8 +12,7 @@ de UX reportados pelo usuário e fechou um terceiro que a própria revisão adve
   **negativo** quando o painel é mais alto que o viewport; proteção `Math.max(margin, …)` no max
   do clamp.
 
-O relatório da execução orquestrada (ondas `20a`/`20b` + `fix20c`, commits, gates, revisões)
-vive em [`docs/relatorio-rodada5.md`](relatorio-rodada5.md). Este documento descreve **o que** a
+Este documento descreve **o que** a
 rodada entregou e **como** cada parte funciona.
 
 ---

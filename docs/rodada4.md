@@ -7,8 +7,7 @@ escuro e a Home, adicionou render de fórmulas matemáticas (KaTeX) e entregou u
 **real** com as chaves do usuário. É a rodada que **prova B1 didaticamente** e valida a
 didática certa/errada de ponta a ponta.
 
-O relatório da execução orquestrada (ondas, commits, gates, revisões) vive em
-[`docs/relatorio-rodada4.md`](relatorio-rodada4.md). Este documento descreve **o que** a
+Este documento descreve **o que** a
 rodada entregou e **como** cada parte funciona.
 
 ---

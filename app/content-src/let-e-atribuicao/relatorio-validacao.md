@@ -50,7 +50,7 @@ documentado no contrato — não é defeito do conteúdo)**.
 | 3 | `auditTrack(trilha, mode:'declared')` | idem (seção check 3) | **PASSOU (com o desvio esperado)** | `budgetSource=declared`; **violações = 3, todas A2** (`node:VariableStatement`, `node:VariableDeclaration`, `node:VariableDeclarationList` na `solutionCode`, desafio `contador-com-let`) — limite de engine documentado no contrato; A1/A3/A4/A6/A11/DEC = **0**; `hygiene` = 0; `parseErrors` = 0; `aulasSemConstrucaoNova` = 0; `lacunasDeCurriculo` = 3 (as mesmas 3 A2) |
 | 4 | 4 provas de execução (§5.4) | `node --import tsx content-src/let-e-atribuicao/verif/check04-provas.mts` | **PASSOU** | `criarProverDeDesafio()` sobre o `challenge.json` materializado → **`valid=true`, `declared=1`, `executed=1`, failures=[]** (P1 solução passa · P2 starter falha · P3 contagem == expectedTestCount=1 · P4 stub vazio falha) |
 | 5 | Invariantes I12–I17 + I13 | `node --import tsx content-src/let-e-atribuicao/verif/check05-invariantes.mts` | **PASSOU (ressalva I13-track)** | I12 OK (aula única) · I13 OK nos 3 níveis internos (module/lesson/challenge `slug==basename`), nível track com desvio de STAGING (ver Limites) · I14 OK (`order=1`) · I15 OK (7 `theory[].id` únicos) · I16 OK (`challenge.concept=let_e_atribuicao ∈ lesson.concepts`) · I17 OK (sem `files[]` — vacuamente atendida) |
-| 6 | gate-lint L-02/L-03/L-05 | `bash tests/gate-lint.sh` (raiz da worktree) | **PASSOU (escopo do experimento); L-04 global vermelho pré-existente** | L-02/L-03/L-05 verdes. L-04: **content-src limpo** (5 arquivos do experimento corrigidos nesta validação); restam 19 arquivos pré-existentes fora do escopo (engine/ferramentas/docs). L-06: aviso pré-existente (`docs/relatorio-rodada10.md`) |
+| 6 | gate-lint L-02/L-03/L-05 | `bash tests/gate-lint.sh` (raiz da worktree) | **PASSOU (escopo do experimento); L-04 global vermelho pré-existente** | L-02/L-03/L-05 verdes. L-04: **content-src limpo** (5 arquivos do experimento corrigidos nesta validação); restam 19 arquivos pré-existentes fora do escopo (engine/ferramentas/docs). |
 | 7 | Newline final (L-04 content-src) | `node --import tsx content-src/let-e-atribuicao/verif/check06-newlines.mts` | **PASSOU** | 10 arquivos varridos (`.md`/`.json`/`.sh`/`.py`/`.tsv`/`.tmpl`); 0 sem newline final (após correção dos 5) |
 | 8 | PIN da engine (285/96/102) | `bash tools/t.sh tests/engineAuditPlacar.test.ts` | **PASSOU** | `✔ engineAuditPlacar — 1 teste, 1 pass, 0 fail` (exit 0) — o placar real da trilha `nodejs-do-zero` bate com o pin (285 violações / 96 desafios com violação / 102 lacunas) |
 | 9 | R1–R18 + I5/I6/I9 (prosa, pós-fix) | `node --import tsx content-src/let-e-atribuicao/verif/check07-r8-o2.mts` + leitura dos drafts | **PASSOU** | R8 confirmada no estado final (forma sem inicializador na `referencia`); O2 alinhado (valor inicial livre no enunciado); 18/18 regras (ver próxima seção) |
@@ -137,8 +137,7 @@ cronometrável) — conforme revisão fase 2, confirmado pelas provas re-executa
    `app/run-dev.sh`, `app/tools/*.sh`, `app/tsconfig*.json`, `app/tests/_fixtures/**`,
    `app/tests/_helpers/README.md`, `app/tests/e2e/README.md`, `docs/*.md`, `tests/gate-bash32.sh`) —
    fora do escopo do experimento; **os 5 arquivos do experimento que estavam sem newline foram
-   corrigidos nesta validação** (correção byte-mínima). L-06: aviso pré-existente em
-   `docs/relatorio-rodada10.md`.
+   corrigidos nesta validação** (correção byte-mínima).
 6. **Observações da revisão fase 2 não-bloqueantes, mantidas:** O1 (identificadores em pt-BR
    `contador/pontos/nome/x/valor` — decisão única do integrador: manter, registrar exceção); O2
    (**CORRIGIDO** no fix: enunciado alinhado à liberdade do valor inicial — "com um valor inicial",
