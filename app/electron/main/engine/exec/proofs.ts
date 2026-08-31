@@ -421,6 +421,14 @@ function emptyStubSide(input: ChallengeProofsInput): ChallengeProofSide {
  * `valid = failures.length === 0`. Qualquer exceção de infraestrutura vira
  * veredito inválido com `execError` (fail-closed). Cleanup roda SEMPRE,
  * mesmo em falha.
+ *
+ * PARALELISMO (onda 5 — confirmado e documentado): as TRÊS rodadas de
+ * execução (solução, starter, stub vazio) rodam em `Promise.all` — as quatro
+ * provas de UM desafio são paralelas por construção. O limite de spawns em
+ * voo NÃO vive aqui: o executor endurecido (`createHardenedExec` em
+ * `harness.ts`, usado pelo provador oficial de `f9Verifier.ts`) adquire o
+ * SEM_EXEC por execução; o paralelismo ENTRE desafios é responsabilidade do
+ * chamador (a F9/F11 da fiação e o G-FINAL fazem map paralelo com SEM_EXEC).
  */
 export async function verifyChallengeProofs(
   input: ChallengeProofsInput,

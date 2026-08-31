@@ -48,6 +48,7 @@ import type { AtomKey } from '../atomKeys';
 import { RUNTIME_GLOBALS, extractAtoms } from '../extract';
 import type { ProverDeDesafio } from '../phases/f9Verifier';
 import type { ChallengeProofsVerdict } from '../exec/proofs';
+import { createSemaphore, defaultExecConcurrency, type Semaphore } from '../runtime/semaphore';
 
 // ---------------------------------------------------------------------------
 // Contrato público
@@ -726,6 +727,73 @@ export async function sintetizarCodigoMinimo(prover: ProverDeDesafio, ctx: Minim
 export function contarLinhas(codigo: string): number {
   if (codigo === '') return 0;
   return codigo.split('\n').length;
+}
+
+// ---------------------------------------------------------------------------
+// Síntese EM LOTE — map-reduce por desafio com semáforo (onda 5 — paralelização
+// máxima). O mesmo padrão do coverage do CLI (app/tools/track-engine/cli.ts):
+// Promise.all com limite de concorrência; consumido pelo `revise` da onda 5
+// irmã e reutilizável por qualquer chamador.
+// ---------------------------------------------------------------------------
+
+/** Opções do lote de síntese mínima. */
+export interface OpcoesDeLote {
+  /**
+   * Teto de sínteses SIMULTÂNEAS (default: `defaultExecConcurrency()` =
+   * `availableParallelism()-1` — o mesmo teto do SEM_EXEC, §4.1). Cada
+   * síntese roda candidatos pelo prover (spawns `node --test` na produção).
+   */
+  concorrencia?: number;
+  /** Semáforo injetável (a suíte observa o pico de concorrência por aqui) — VENCE `concorrencia`. */
+  semaforo?: Semaphore;
+}
+
+function mensagemDe(erro: unknown): string {
+  return erro instanceof Error ? erro.message : String(erro);
+}
+
+/**
+ * Sintetiza o código mínimo de N desafios em MAP PARALELO com semáforo.
+ *
+ * - Resultados na MESMA ordem dos `ctxs` (índice estável — nunca a ordem de
+ *   conclusão);
+ * - concorrência LIMITADA por `OpcoesDeLote` (default SEM_EXEC);
+ * - FAIL-CLOSED POR ITEM: uma falha inesperada de UM desafio vira o veredito
+ *   `{ok:false, reason:'PROVER_FALHOU'}` DAQUELE item — o lote inteiro nunca
+ *   derruba por causa de um (o `sintetizarCodigoMinimo` já é fail-closed por
+ *   construção; o try/catch aqui é a última linha contra o imprevisto).
+ *
+ * Cada item chama `sintetizarCodigoMinimo(prover, ctx)` — o prover é
+ * compartilhado (na produção ele já limita os spawns pelo SEM_EXEC interno de
+ * `criarProverDeDesafio`; o semáforo deste lote limita as SÍNTESES em voo,
+ * que por sua vez podem rodar vários candidatos cada).
+ */
+export async function sintetizarEmLote(
+  prover: ProverDeDesafio,
+  ctxs: readonly MinimalCtx[],
+  opcoes: OpcoesDeLote = {},
+): Promise<MinimalVerdict[]> {
+  const semaforo = opcoes.semaforo ?? createSemaphore(opcoes.concorrencia ?? defaultExecConcurrency());
+  const resultados = new Array<MinimalVerdict>(ctxs.length);
+  await Promise.all(
+    ctxs.map(async (ctx, indice) => {
+      const release = await semaforo.acquire();
+      try {
+        try {
+          resultados[indice] = await sintetizarCodigoMinimo(prover, ctx);
+        } catch (erro) {
+          resultados[indice] = {
+            ok: false,
+            reason: 'PROVER_FALHOU',
+            detail: `falha inesperada na síntese do lote: ${mensagemDe(erro)}`,
+          };
+        }
+      } finally {
+        release();
+      }
+    }),
+  );
+  return resultados;
 }
 
 /** Re-export útil para os consumidores (CLI/requisitos) — assinatura conferida. */

@@ -289,9 +289,9 @@ determinístico.
 | **F6** | piloto de 3 aulas (a raiz, a mais armadilhada, uma tardia) | ⇉ 3 | **portão humano** |
 | **F7** | autoria de teoria — 1 agente = 1 aula = 1 arquivo | ⇉ ondas de ≤15 | por onda |
 | **F8** | autoria de desafios e testes | ⇉ ondas de ≤15 | por onda |
-| **F9** | verificação determinística (zero LLM) | ⇉ largo, 2 semáforos | G-BUDGET · G-TEST |
-| **F10** | ~~fase própria~~ — **não é um módulo**: a revisão (um revisor por instrumento, read-only) roda **dentro do laço F11** (§6) | — (integrada ao F11) | §6 |
-| **F11** | laço revisor → provador → planejador → corretor | ▮ / ⇉ | §6 |
+| **F9** | verificação determinística (zero LLM) | ⇉ MAP PARALELO por ref com SEM_EXEC, ordem estável | G-BUDGET · G-TEST |
+| **F10** | ~~fase própria~~ — **não é um módulo**: a revisão (um revisor por instrumento, read-only) roda **dentro do laço F11** (§6). **Fiado (onda 5):** com `deps.revisao` presente, o laço REAL `rodarLacoDeRevisao` roda sobre os drafts recém-autorados (bridge `criarRevisaoDaFiacao`); ausente → limitação declarada | — (integrada ao F11) | §6 |
+| **F11** | laço revisor → provador → planejador → corretor; re-verificação = MESMO map paralelo da F9 | ▮ / ⇉ (SEM_EXEC) | §6 |
 | **F12** | materialização e integração | ▮ integrador único | G-FINAL |
 
 ### 4.1 Regras de paralelismo
@@ -313,6 +313,27 @@ determinístico.
 - **Dois semáforos independentes**, porque os gargalos são de natureza diferente: `SEM_LLM` (rede,
   default 8, subir medindo 429) e `SEM_EXEC` (`spawn node --test`, default `availableParallelism()-1`).
   Um limitador global serializaria a verificação por causa da rede.
+- **A verificação F9/F11 é MAP PARALELO por ref com `SEM_EXEC` (onda 5).** Cada ref (aula) é
+  verificado independentemente — `prover` (quatro provas) + orçamento por AST — num
+  `Promise.all` limitado pelo semáforo (`verificarRefsEmParalelo` em `fiacao/geraTrilha.ts`). O
+  relatório sai na **ordem estável dos refs** (índice após o `Promise.all`, nunca a ordem de
+  conclusão) — resultado byte-idêntico ao serial. A verificação é **read-only sobre os drafts**
+  (o laço de revisão escreve nos próprios artefatos em memória; os drafts em disco só são lidos) —
+  sem corrida de escrita.
+- **O laço F10/F11 é fiado quando `deps.revisao` está presente (onda 5).** O bridge
+  `criarRevisaoDaFiacao` monta o `ContextoDoLaco` com as deps padrão da fiação — artefatos = os
+  drafts recém-autorados da onda, snapshot de orçamento por ref a partir do F2 + harness (a MESMA
+  base da F8/F9), verificadores JSON-aware dos drafts, provas via o `prover` da fiação — e roda o
+  laço REAL `rodarLacoDeRevisao`. SEM o dep, a limitação é **declarada na saída** (§9.2 — nunca
+  omitida) e a máquina segue: o fluxo atual permanece byte-idêntico (regressão protegida por
+  teste).
+- **Coverage/revise (`quality/minimal.ts`, onda 5):** `sintetizarEmLote(prover, ctxs, {concorrencia})`
+  é o map-reduce por desafio com semáforo (mesmo padrão do coverage do CLI): resultados na MESMA
+  ordem dos `ctxs`, concorrência limitada (default `availableParallelism()-1`) e **fail-closed por
+  item** — uma falha de um desafio vira o veredito daquele item, o lote nunca derruba.
+- **G-FINAL (F12, onda 5):** as quatro provas de TODO desafio materializado rodam em map paralelo
+  com `SEM_EXEC` (as quatro provas de um desafio já rodam em `Promise.all` dentro de
+  `verifyChallengeProofs`); o relatório de falhas sai na ordem estável dos desafios.
 
 ### 4.2 O que a fase F1 tem de produzir além de prosa
 

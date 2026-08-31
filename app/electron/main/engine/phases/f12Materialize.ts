@@ -30,7 +30,10 @@
  *     proficiência) passa nas QUATRO provas de execução (§5.4 — via o
  *     verificador injetável `verificarDesafio`, default = provas reais de
  *     `engine/exec/proofs.ts` + harness; os TESTES injetam fake — zero
- *     processos na suíte); (c) o audit (`auditTrack`) da trilha NOVA sai LIMPO
+ *     processos na suíte) em MAP PARALELO com SEM_EXEC (`createExecSemaphore`
+ *     — onda 5: cada desafio verifica independentemente; o relatório de
+ *     falhas sai na ORDEM ESTÁVEL dos desafios); (c) o audit (`auditTrack`)
+ *     da trilha NOVA sai LIMPO
  *     (zero violações — a trilha gerada respeita o orçamento e I12–I17). Os
  *     gates de lint/teste/build do APP não são re-rodados aqui — são do
  *     orquestrador (A-P21).
@@ -152,6 +155,7 @@ import type { ExecFn } from '../exec/proofs';
 import { verifyChallengeProofs } from '../exec/proofs';
 import type { ProofEnv } from '../exec/proofs';
 import { canonicalizarJson, sha256Hex } from '../runtime/ledger';
+import { createExecSemaphore } from '../runtime/semaphore';
 import { type EscreverArquivoFn, escreverArquivoPadrao, escreverAtomico } from '../runtime/runState';
 import { ChallengeDraftSchema, LessonDraftSchema } from '../schemas/artifacts';
 
@@ -1071,14 +1075,29 @@ export async function gFinal(deps: DepsMaterializar, destino: string): Promise<R
     desafios.push(comoDesafioAProvar(track.proficiency, 'proficiencia', 'proficiencia'));
   }
 
-  // (b) as QUATRO PROVAS de todo desafio.
+  // (b) as QUATRO PROVAS de todo desafio — MAP PARALELO com SEM_EXEC (onda 5 —
+  // paralelização máxima). Cada desafio roda as quatro provas independentemente
+  // (`verifyChallengeProofs` já roda os três lados da MESMA prova em Promise.all
+  // — exec/proofs.ts); o semáforo limita os spawns de `node --test` em voo e o
+  // relatório de falhas sai na ORDEM ESTÁVEL dos desafios (índice, nunca a
+  // ordem de conclusão) — byte-idêntico ao serial.
+  const semExecProvas = createExecSemaphore();
+  const vereditos = await Promise.all(
+    desafios.map(async (desafio) => {
+      const release = await semExecProvas.acquire();
+      try {
+        return await verificarDesafio(desafio);
+      } finally {
+        release();
+      }
+    }),
+  );
   const falhasProvas: string[] = [];
-  for (const desafio of desafios) {
-    const veredito = await verificarDesafio(desafio);
+  vereditos.forEach((veredito, indice) => {
     if (!veredito.valid) {
-      falhasProvas.push(`desafio ${desafio.ref}: ${veredito.falhas.join('; ')}`);
+      falhasProvas.push(`desafio ${desafios[indice].ref}: ${veredito.falhas.join('; ')}`);
     }
-  }
+  });
 
   // (c) o audit — zero violações de ERRO + teoria parseável (fail-closed).
   // A bateria A13–A16 (rodada 12) roda aqui como no G-AUDIT; avisos (D4,

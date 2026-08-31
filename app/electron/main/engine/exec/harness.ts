@@ -18,6 +18,11 @@
  *     é `createExecSemaphore()` (teto `defaultExecConcurrency()`) e
  *     `maxConcurrency` custom vira `createSemaphore(n)` do P-01 (fail-fast em
  *     `n < 1` — RangeError, nunca deadlock silencioso).
+ *     ONDA 5: o SEM_EXEC limita cada SPAWN individual; o paralelismo ENTRE
+ *     desafios vive nos chamadores — a F9/F11 da fiação (`verificarRefsEmParalelo`)
+ *     e o G-FINAL (`gFinal` em f12Materialize) fazem map paralelo com
+ *     `createExecSemaphore()` sobre os desafios, e as quatro provas de UM
+ *     desafio já rodam em `Promise.all` dentro de `verifyChallengeProofs`.
  *   - SEM REDE: o código executado foi escrito por LLM. A isolação é aplicada
  *     NO LUGAR CERTO — na construção do ambiente do processo filho
  *     (`buildChildEnv`): remove variáveis de rede herdadas do pai e injeta

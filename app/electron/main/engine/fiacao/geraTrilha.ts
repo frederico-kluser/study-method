@@ -49,10 +49,25 @@
  *    revalidado na entrada). Se o marker já estiver aprovado na entrada da
  *    F6, o piloto NÃO é re-autorado (retomada da própria F6).
  *
- * 7. F10/F11 (laço de revisão) é INJETADO (`deps.revisao`): o pacote P-35
- *    (review/audit2Laco) ainda não está no main — a fiação expõe o seam e,
- *    SEM o dep, a rodada de revisão é DECLARADA como limitação na saída
- *    (nunca omitida — §9.2) e a máquina segue (F11 re-verifica os drafts).
+ * 7. F10/F11 (laço de revisão) é INJETADO (`deps.revisao`): SEM o dep, a
+ *    rodada de revisão é DECLARADA como limitação na saída (nunca omitida —
+ *    §9.2) e a máquina segue (F11 re-verifica os drafts). COM o dep, a
+ *    fiação oferece `criarRevisaoDaFiacao(...)` (onda 5 — paralelização): o
+ *    bridge pronto que roda o laço REAL `rodarLacoDeRevisao`
+ *    (`review/loop.ts`) sobre os DRAFTS recém-autorados da onda — o chamador
+ *    só provê o transporte LLM dos papéis (revisar/planejar/corrigir), os
+ *    modelos e o provador; o restante do `ContextoDoLaco` (artefatos no laço,
+ *    snapshot de orçamento por ref a partir do F2 + harness, verificadores
+ *    JSON-aware dos drafts) é montado AQUI com as deps padrão da fiação.
+ *
+ * 8. PARALELISMO DA VERIFICAÇÃO (onda 5): a F9 e a re-verificação da F11
+ *    verificam os refs em MAP PARALELO com `createExecSemaphore()` (SEM_EXEC
+ *    — `availableParallelism()-1`), via `verificarRefsEmParalelo`. Cada ref é
+ *    verificado INDEPENDENTEMENTE (prover + orçamento) e o relatório é
+ *    reordenado pela ordem estável dos refs após o `Promise.all` — resultado
+ *    byte-idêntico ao serial. A verificação é READ-ONLY sobre os drafts (o
+ *    laço de revisão escreve nos próprios artefatos em memória; os drafts em
+ *    disco só são lidos) — sem corrida de escrita.
  *
  * 8. HASHLESS placeholders: `criarRun` nasce com `budgetHash`/`graphHash` =
  *    `sha256Hex('')` (o runState exige sha256 válido); a F5, com o freeze
@@ -83,9 +98,29 @@ import {
 } from '../runtime/runState';
 import { Ledger, TelemetriaFile, sha256Hex, type EventoNovo, type Telemetria } from '../runtime/ledger';
 import type { EngineLlm, LlmStageError, StageUsage } from '../runtime/callLlm';
-import { createSemaphore, type Semaphore } from '../runtime/semaphore';
+import { createExecSemaphore, createSemaphore, type Semaphore } from '../runtime/semaphore';
 import type { RateLimiters } from '../runtime/scheduler';
 import { DEEPSEEK_ERROR_CODES } from '../../services/deepseekClient';
+
+// ─── laço de revisão (P-18) + ponte audit→laço (P-35) — o bridge da F10 ────
+
+import {
+  rodarLacoDeRevisao,
+  type ArtefatoNoLaco,
+  type ContextoDoLaco,
+  type CorretorLlm,
+  type PlanejadorLlm,
+  type RevisorLlm,
+  type SnapshotDeOrcamento,
+  type SurfaceDeOrcamento,
+  type VerificadorDeOrcamento,
+  type VerificadorDeProvas,
+  type ViolacaoMecanica,
+} from '../review/loop';
+import { localizarSpanNoArquivo, localizarValoresDeStringNoJson } from '../review/audit2Laco';
+import type { MapaDeFamilias } from '../review/normalize';
+import type { ExecFn } from '../exec/proofs';
+import { extractAtoms } from '../extract';
 
 // ─── fases (leitura OK — SEM modificações; fiação aqui) ─────────────────────
 
@@ -320,6 +355,14 @@ export interface DepsGeracao {
   /** Semáforo do fan-out de julgamento de arestas (F3). */
   semaforoJulgamento?: Semaphore;
   /**
+   * SEM_EXEC da VERIFICAÇÃO F9/F11 (map paralelo por ref — onda 5). Default:
+   * `createExecSemaphore()` (teto = `availableParallelism()-1`, §4.1). A
+   * verificação é READ-ONLY sobre os drafts (cada ref roda prover + orçamento
+   * independentemente) — o semáforo limita os spawns das provas em voo; o
+   * relatório sai na ordem ESTÁVEL dos refs (nunca na ordem de conclusão).
+   */
+  semaforoVerificacao?: Semaphore;
+  /**
    * O AXIOMA de entrada da trilha (F0 → F3/F4): construções que o aluno JÁ
    * domina ao entrar (produtivas). Default: [] (trilha de senso iniciante).
    * NOTA DE TIPAGEM: entryConstructs/seedsReceptivos são ids de CONCEITO do
@@ -489,7 +532,8 @@ export function criarLimitersDefault(semaforo?: Semaphore): RateLimiters {
 // A máquina (dirige a máquina de fases do runState; eventos no ledger)
 // ---------------------------------------------------------------------------
 
-interface FaseF9Ref {
+/** O veredito de UMA ref na verificação F9/F11 (provas + orçamento). */
+export interface FaseF9Ref {
   ref: string;
   provas: { valid: boolean; falhas: string[] };
   ofensasOrcamento: string[];
@@ -501,11 +545,18 @@ export class GeradorDeTrilha {
   private readonly limitacoes: string[] = [];
   private readonly artefatosGravados: { nome: string; caminho: string }[] = [];
   private runId = '';
+  /**
+   * SEM_EXEC da verificação F9/F11 — criado UMA vez por run (F9 e F11
+   * compartilham o MESMO pool; injetável via `deps.semaforoVerificacao`).
+   */
+  private readonly semaforoVerificacao: Semaphore;
 
   constructor(
     private readonly deps: DepsGeracao,
     private readonly comandos: ComandosGeracao,
-  ) {}
+  ) {
+    this.semaforoVerificacao = deps.semaforoVerificacao ?? createExecSemaphore();
+  }
 
   // ── infra ─────────────────────────────────────────────────────────────────
 
@@ -1234,36 +1285,54 @@ export class GeradorDeTrilha {
   private async verificarDesafiosF9(): Promise<{ ok: boolean; desafios: number; refs: FaseF9Ref[]; falhas: string[] }> {
     const freeze = await this.lerArtefato<Freeze>(ARTEFATO_F5);
     const refs = this.refsComFiltroOnly(freeze);
-    const resultados: FaseF9Ref[] = [];
-    const falhas: string[] = [];
-    for (const ref of refs) {
-      const { desafio } = await this.lerDraftsDaAula(ref);
-      const veredito = await this.deps.prover(montarInputDasProvas(desafio));
-      const { uniao, produtivas } = await this.permitidasDaAula(ref);
-      // Nova assinatura do gate (§3.3) — as três faixas com a MESMA base da
-      // fiação (união) e as produtivas no argumento A6 (não entra no veredito).
-      const orcamento = ofensasDeOrcamentoDoDesafio(desafio, { receptivo: uniao, produtivo: uniao, teste: uniao }, produtivas);
-      const falhaParse = orcamento.falhaDeParse !== null ? `${orcamento.falhaDeParse.campo}: ${orcamento.falhaDeParse.mensagem}` : null;
-      const ofensas = orcamento.ofensas.map((o) => o.construcao);
-      const ok =
-        veredito.valid &&
-        falhaParse === null &&
-        ofensas.length === 0;
-      if (!ok) {
-        const provasFalhas = veredito.failures.map((f) => `${f.proof}${f.reason !== undefined ? `: ${f.reason}` : ''}`);
-        falhas.push(`${ref}: provas [${provasFalhas.join('; ')}] orçamento [${ofensas.join(', ')}] parse [${falhaParse ?? '-'}]`);
-      }
-      resultados.push({ ref, provas: { valid: veredito.valid, falhas: veredito.failures.map((f) => `${f.proof}${f.reason !== undefined ? `: ${f.reason}` : ''}`) }, ofensasOrcamento: ofensas, falhaDeParse: falhaParse, ok });
-    }
-    return { ok: falhas.length === 0, desafios: refs.length, refs: resultados, falhas };
+    return verificarRefsEmParalelo({
+      refs,
+      semaforo: this.semaforoVerificacao,
+      verificarUma: async (ref) => {
+        const { desafio } = await this.lerDraftsDaAula(ref);
+        const veredito = await this.deps.prover(montarInputDasProvas(desafio));
+        const { uniao, produtivas } = await this.permitidasDaAula(ref);
+        // Nova assinatura do gate (§3.3) — as três faixas com a MESMA base da
+        // fiação (união) e as produtivas no argumento A6 (não entra no veredito).
+        const orcamento = ofensasDeOrcamentoDoDesafio(desafio, { receptivo: uniao, produtivo: uniao, teste: uniao }, produtivas);
+        const falhaParse = orcamento.falhaDeParse !== null ? `${orcamento.falhaDeParse.campo}: ${orcamento.falhaDeParse.mensagem}` : null;
+        const ofensas = orcamento.ofensas.map((o) => o.construcao);
+        const ok =
+          veredito.valid &&
+          falhaParse === null &&
+          ofensas.length === 0;
+        return {
+          ref,
+          provas: {
+            valid: veredito.valid,
+            falhas: veredito.failures.map((f) => `${f.proof}${f.reason !== undefined ? `: ${f.reason}` : ''}`),
+          },
+          ofensasOrcamento: ofensas,
+          falhaDeParse: falhaParse,
+          ok,
+        };
+      },
+    });
   }
 
-  /** F10 — laço de revisão (INJETADO; ausente → limitação DECLARADA). */
+  /**
+   * F10 — laço de revisão (INJETADO; ausente → limitação DECLARADA).
+   *
+   * ONDA 5 (fiação): quando `deps.revisao` está presente, o laço roda sobre
+   * os DRAFTS recém-autorados da onda (`ArtefatosDaRevisao.aulas`). O
+   * chamador pode injetar o próprio `RevisaoInjetada` OU usar o bridge
+   * `criarRevisaoDaFiacao(...)` (abaixo) — que monta o `ContextoDoLaco` do
+   * laço REAL `rodarLacoDeRevisao` com as deps padrão da fiação (prover,
+   * snapshot de orçamento por ref a partir do F2 + harness, verificadores
+   * JSON-aware dos drafts). SEM `revisao`, o fluxo atual permanece
+   * byte-idêntico: limitação DECLARADA na saída (§9.2 — nunca omitida).
+   */
   private async faseF10(_run: RunState): Promise<void> {
     if (!this.deps.revisao) {
       this.limitacoes.push(
-        'F10: laço de revisão NÃO operado — deps.revisao ausente (fiação pós-merge do P-35 ' +
-          '(review/audit2Laco) injeta o rodarLacoDeRevisao real; default seria 1 rodada).',
+        'F10: laço de revisão NÃO operado — deps.revisao ausente (a fiação oferece o bridge ' +
+          'criarRevisaoDaFiacao (fiacao/geraTrilha.ts) que roda o rodarLacoDeRevisao REAL de ' +
+          'review/loop.ts sobre os drafts da onda; sem o dep, a limitação é declarada e a máquina segue).',
       );
       await this.anexarEvento({
         tipo: 'checkpoint',
@@ -1354,6 +1423,306 @@ function humanizarId(id: string): string {
   const palavra = id.replace(/[-_]+/g, ' ').replace(/\s+/g, ' ').trim();
   if (palavra === '') return id;
   return palavra.charAt(0).toUpperCase() + palavra.slice(1);
+}
+
+/**
+ * O NÚCLEO PARALELO da verificação F9/F11 (onda 5 — paralelização máxima):
+ * verifica N refs em MAP PARALELO com o semáforo SEM_EXEC (`verificarUma`
+ * roda `prover` + orçamento por ref, INDEPENDENTE — a verificação é
+ * READ-ONLY sobre os drafts, sem corrida de escrita). O RELATÓRIO sai na
+ * ORDEM ESTÁVEL dos refs — reordenado pelo índice após o `Promise.all`
+ * (nunca pela ordem de conclusão), byte-idêntico ao serial. Exportado para
+ * a suíte (e reutilizável por qualquer chamador que queira o mesmo padrão).
+ *
+ * Fail-closed: se `verificarUma(ref)` LANÇA (ex.: draft ausente/inválido —
+ * DRAFTS_INVALIDOS), a promise do ref rejeita e o `Promise.all` propaga —
+ * a fase aborta com checkpoint, como no fluxo serial. Veredito INVÁLIDO
+ * (provas/orçamento reprovados) NÃO lança: entra no relatório como falha.
+ */
+export async function verificarRefsEmParalelo(opts: {
+  refs: readonly string[];
+  semaforo: Semaphore;
+  verificarUma: (ref: string) => Promise<FaseF9Ref>;
+}): Promise<{ ok: boolean; desafios: number; refs: FaseF9Ref[]; falhas: string[] }> {
+  const porRef = new Map<string, FaseF9Ref>();
+  await Promise.all(
+    opts.refs.map(async (ref) => {
+      const release = await opts.semaforo.acquire();
+      try {
+        porRef.set(ref, await opts.verificarUma(ref));
+      } finally {
+        release();
+      }
+    }),
+  );
+  // ORDEM ESTÁVEL: o relatório segue a ordem dos refs de entrada, nunca a
+  // ordem de conclusão das promises — resultado idêntico ao serial.
+  const resultados = opts.refs.map((ref) => {
+    const resultado = porRef.get(ref);
+    if (resultado === undefined) {
+      throw new ErroGeracao(
+        'VERIFICACAO_FALHOU',
+        `ref ${ref} sem resultado na verificação paralela (verificarUma não resolveu)`,
+      );
+    }
+    return resultado;
+  });
+  const falhas = resultados
+    .filter((r) => !r.ok)
+    .map(
+      (r) =>
+        `${r.ref}: provas [${r.provas.falhas.join('; ')}] orçamento [${r.ofensasOrcamento.join(', ')}] parse [${r.falhaDeParse ?? '-'}]`,
+    );
+  return { ok: falhas.length === 0, desafios: opts.refs.length, refs: resultados, falhas };
+}
+
+// ---------------------------------------------------------------------------
+// O bridge da F10 (onda 5 — paralelização máxima): o laço REAL sobre os drafts
+// ---------------------------------------------------------------------------
+
+/** Default de rodadas do bridge (o laço clampa em [1, TETO_DE_RODADAS]). */
+const RODADAS_DA_REVISAO_DEFAULT = 1;
+
+/** Opções do bridge `criarRevisaoDaFiacao` — o que só o chamador sabe. */
+export interface OpcoesDeRevisaoDaFiacao {
+  /** transporte LLM dos papéis do laço (REVISOR/PLANEJADOR/CORRETOR) — o chamador cabeia no transporte. */
+  llm: { revisar: RevisorLlm; planejar: PlanejadorLlm; corrigir: CorretorLlm };
+  modeloAutor: string;
+  modeloRevisor: string;
+  /** roteamento §6.2 (opcional — sem ele, só a restrição model(AUTOR) ≠ model(REVISOR) é verificada). */
+  familias?: MapaDeFamilias;
+  /** o provador de desafio — a MESMA assinatura da fiação (`deps.prover`). */
+  prover: ProverDeDesafio;
+  /** executor endurecido do R5 do filtro (opcional — default: sem execução de reprodução). */
+  execDeReproducaoR5?: ExecFn;
+  /** rodadas do laço (default 1, teto duro 3 — calculado pelo próprio laço). */
+  rodadasMaximas?: number;
+  /** SEAM de teste: o laço real por padrão; a suíte injeta spy. */
+  rodarLaco?: typeof rodarLacoDeRevisao;
+}
+
+/**
+ * O bridge PRONTO da F10: devolve um `RevisaoInjetada` que roda o laço REAL
+ * `rodarLacoDeRevisao` (`review/loop.ts`) sobre os DRAFTS recém-autorados da
+ * onda (`ArtefatosDaRevisao.aulas`). O chamador só provê o que é dele
+ * (transporte LLM dos papéis, modelos, prover); a fiação monta o resto do
+ * `ContextoDoLaco` com as deps PADRÃO:
+ *
+ *   - `artefatos` — os drafts (aula + desafio por ref) viram `ArtefatoNoLaco`
+ *     (caminho = o caminho relativo do draft no run, conteúdo = o JSON);
+ *   - `snapshotDeOrcamento` + `verificadorDeOrcamento` — a MESMA base da
+ *     F8/F9 (união harness + introduces do F2 por ref), com um verificador
+ *     JSON-aware que decodifica os campos de código do draft ANTES do
+ *     `extractAtoms` (o verificador default do laço rodaria `extractAtoms`
+ *     sobre o JSON INTEIRO — quebrado; a P-35 resolve isto para o audit, o
+ *     bridge resolve para os drafts);
+ *   - `verificadorDeProvas` + `proverDesafio` — as quatro provas via o prover
+ *     da fiação, decodificando o draft de desafio;
+ *   - `trilha` — o slug do run (lido do run.json).
+ *
+ * SEM `deps.revisao` a fiação NÃO cria isto: a limitação é declarada na saída
+ * e a máquina segue (F11 re-verifica) — o fluxo atual permanece byte-idêntico
+ * (regressão protegida pelo teste `engineParalelismo.test.ts`).
+ */
+export function criarRevisaoDaFiacao(opcoes: OpcoesDeRevisaoDaFiacao): RevisaoInjetada {
+  const rodarLaco = opcoes.rodarLaco ?? rodarLacoDeRevisao;
+  return {
+    rodadasMaximas: opcoes.rodadasMaximas,
+    async rodar(artefatos, opcoesDoLaço): Promise<{ rodadas: number }> {
+      const rodadasMaximas = opcoesDoLaço?.rodadasMaximas ?? opcoes.rodadasMaximas ?? RODADAS_DA_REVISAO_DEFAULT;
+      const run = await lerRun(artefatos.dir);
+      const nos = await lerNosDoRun(artefatos.dir);
+      const snapshot = snapshotDeOrcamentoDosDrafts(artefatos, nos, run.slug);
+      const contexto: ContextoDoLaco = {
+        trilha: run.slug,
+        artefatos: draftsEmArtefatosDoLaco(artefatos),
+        snapshotDeOrcamento: snapshot,
+        verificadorDeOrcamento: criarVerificadorDeOrcamentoDosDrafts(snapshot),
+        verificadorDeProvas: criarVerificadorDeProvasDosDrafts(opcoes.prover),
+        proverDesafio: opcoes.prover,
+        llm: opcoes.llm,
+        modeloAutor: opcoes.modeloAutor,
+        modeloRevisor: opcoes.modeloRevisor,
+        familias: opcoes.familias,
+        execDeReproducaoR5: opcoes.execDeReproducaoR5,
+        rodadasMaximas,
+      };
+      const resultado = await rodarLaco(contexto);
+      return { rodadas: resultado.rodadas.length };
+    },
+  };
+}
+
+/** Lê o artefato F2 (`artefatos/nos.json`) do run — a base atômica da F8/F9. */
+async function lerNosDoRun(dir: string): Promise<NoAtomico[]> {
+  const caminho = path.join(dir, DIR_ARTEFATOS, ARTEFATO_NOS);
+  let texto: string;
+  try {
+    texto = await fsp.readFile(caminho, 'utf8');
+  } catch (erro) {
+    throw new ErroGeracao(
+      'ARTEFATO_AUSENTE',
+      `bridge da revisão (criarRevisaoDaFiacao): artefato F2 ausente em ${caminho} — ${mensagemDe(erro)}`,
+    );
+  }
+  try {
+    return JSON.parse(texto) as NoAtomico[];
+  } catch (erro) {
+    throw new ErroGeracao('ARTEFATO_AUSENTE', `bridge da revisão: artefato F2 corrompido: ${mensagemDe(erro)}`);
+  }
+}
+
+/** Os drafts da onda viram `ArtefatoNoLaco` (aula + desafio por ref). */
+function draftsEmArtefatosDoLaco(artefatos: ArtefatosDaRevisao): ArtefatoNoLaco[] {
+  const saida: ArtefatoNoLaco[] = [];
+  for (const aula of artefatos.aulas) {
+    saida.push({
+      caminho: caminhoDraftAula(aula.ref),
+      nome: 'aula',
+      conteudo: JSON.stringify(aula.aula, null, 2),
+      ultimaEdicao: -1,
+    });
+    saida.push({
+      caminho: caminhoDraftDesafio(aula.ref),
+      nome: 'desafio',
+      conteudo: JSON.stringify(aula.desafio, null, 2),
+      ultimaEdicao: -1,
+    });
+  }
+  return saida;
+}
+
+/** A união (harness + introduces do F2) por ref — a MESMA base da F8/F9. */
+function permitidosDaRefPorNos(nos: readonly NoAtomico[], ref: string): { uniao: Set<string>; produtivas: Set<string> } {
+  const uniao = new Set<string>(atomosDeHarnessReceptivo());
+  const produtivas = new Set<string>();
+  const no = nos.find((n) => `m1/${n.chave_conceito}` === ref);
+  if (no) {
+    for (const item of [...(no.introduces.receptive ?? []), ...(no.introduces.productive ?? [])]) uniao.add(item);
+    for (const item of no.introduces.productive ?? []) produtivas.add(item);
+  }
+  return { uniao, produtivas };
+}
+
+/**
+ * O snapshot de orçamento do laço sobre os drafts: as três superfícies de
+ * código do desafio (solutionCode/starterCode/testsCode) por ref, com a
+ * UNIÃO da aula como permitidos (a MESMA base da F9 — a fiação aplica a
+ * união às três faixas) e o índice REVERSO construção → aula que a ensina
+ * (do F2 — a distinção §5.5 lacuna × ordem). LIMITE DECLARADO: a teoria
+ * (markdown) fica fora — é prosa/objeto, não código exigível; a cobertura
+ * da teoria é do audit no G-FINAL.
+ */
+function snapshotDeOrcamentoDosDrafts(artefatos: ArtefatosDaRevisao, nos: readonly NoAtomico[], slug: string): SnapshotDeOrcamento {
+  const primeiroEnsina: Record<string, string> = {};
+  const surfaces: SurfaceDeOrcamento[] = [];
+  for (const aula of artefatos.aulas) {
+    const { uniao } = permitidosDaRefPorNos(nos, aula.ref);
+    const permitidos = [...uniao];
+    const caminho = caminhoDraftDesafio(aula.ref);
+    surfaces.push(
+      { superficie: 'solutionCode', caminho, faixa: 'productive', permitidos },
+      { superficie: 'starterCode', caminho, faixa: 'receptive', permitidos },
+      { superficie: 'testsCode', caminho, faixa: 'receptive', permitidos },
+    );
+    // índice §5.5: a PRIMEIRA aula (ordem da onda/freeze) que introduz cada construção.
+    const no = nos.find((n) => `m1/${n.chave_conceito}` === aula.ref);
+    if (no) {
+      for (const item of [...(no.introduces.receptive ?? []), ...(no.introduces.productive ?? [])]) {
+        if (!(item in primeiroEnsina)) primeiroEnsina[item] = aula.ref;
+      }
+    }
+  }
+  return { ref: slug, surfaces, primeiroEnsina };
+}
+
+/**
+ * O verificador de ORÇAMENTO JSON-aware dos drafts (o default do laço é para
+ * conteúdo JS puro — sobre o JSON do draft ele quebraria). Decodifica os
+ * campos de código do desafio e roda `extractAtoms` sobre o valor; spans no
+ * arquivo JSON INTEIRO via a ponte P-35 (`localizarSpanNoArquivo`).
+ */
+function criarVerificadorDeOrcamentoDosDrafts(snapshot: SnapshotDeOrcamento): VerificadorDeOrcamento {
+  // As superfícies de código do desafio — os campos STRING do JSON do draft.
+  const CAMPOS_DE_CODIGO: ReadonlySet<string> = new Set(['solutionCode', 'starterCode', 'testsCode']);
+  return (artefatos: ReadonlyMap<string, ArtefatoNoLaco>): ViolacaoMecanica[] => {
+    const violacoes: ViolacaoMecanica[] = [];
+    for (const surface of snapshot.surfaces) {
+      if (!CAMPOS_DE_CODIGO.has(surface.superficie)) continue;
+      const artefato = artefatos.get(surface.caminho);
+      if (artefato === undefined) continue; // superfície ausente — não acusa (gate de presença é da F8; declarado)
+      const valores = localizarValoresDeStringNoJson(artefato.conteudo);
+      const permitidos = new Set<string>(surface.permitidos);
+      for (const valor of valores) {
+        if (valor.campo !== surface.superficie) continue;
+        const resultado = extractAtoms(valor.decodificado, { fileName: `${surface.caminho}#${surface.superficie}` });
+        if (!resultado.ok) continue; // JS quebrado é erro de build (§5.3), não violação — declarado
+        for (const ocorrencia of resultado.occurrences) {
+          if (permitidos.has(ocorrencia.key)) continue;
+          const span = localizarSpanNoArquivo(artefato.conteudo, valores, {
+            campo: surface.superficie,
+            linha: ocorrencia.line,
+            coluna: ocorrencia.column,
+            trecho: ocorrencia.snippet,
+          });
+          violacoes.push({
+            caminho: surface.caminho,
+            surface: surface.superficie,
+            construcao: ocorrencia.key,
+            tipo: 'orcamento',
+            inicio: span.inicio,
+            fim: span.fim,
+            linha: ocorrencia.line,
+            coluna: ocorrencia.column,
+            trechoOfensor: ocorrencia.snippet,
+            primeiraAulaQueEnsina: snapshot.primeiroEnsina[ocorrencia.key] ?? null,
+            mensagem: `construção ${ocorrencia.key} fora do orçamento ${surface.faixa} da superfície ${surface.superficie} (ref ${snapshot.ref})`,
+          });
+        }
+      }
+    }
+    return violacoes;
+  };
+}
+
+/**
+ * O verificador de PROVAS JSON-aware: decodifica o draft de desafio
+ * (`SaidaDesafio` → `montarInputDasProvas`) e roda o prover da fiação. A
+ * superfície da teoria não é executável — só o desafio (limite declarado,
+ * o mesmo do laço).
+ */
+function criarVerificadorDeProvasDosDrafts(prover: ProverDeDesafio): VerificadorDeProvas {
+  return async (artefatos: ReadonlyMap<string, ArtefatoNoLaco>): Promise<ViolacaoMecanica[]> => {
+    const violacoes: ViolacaoMecanica[] = [];
+    for (const artefato of artefatos.values()) {
+      if (!artefato.caminho.endsWith('.challenge-draft.json')) continue; // só desafio é executável (declarado)
+      let draft: SaidaDesafio;
+      try {
+        draft = JSON.parse(artefato.conteudo) as SaidaDesafio;
+      } catch {
+        continue; // JSON quebrado não é violação de provas (o parse é gate da F8 — fail-closed lá)
+      }
+      const veredito = await prover(montarInputDasProvas(draft));
+      if (veredito.valid) continue;
+      for (const falha of veredito.failures) {
+        const fim = Math.min(artefato.conteudo.length, Math.max(falha.proof.length + 2, 2));
+        violacoes.push({
+          caminho: artefato.caminho,
+          surface: 'execucao',
+          construcao: `prova:${falha.proof}`,
+          tipo: 'execucao',
+          inicio: 0,
+          fim,
+          linha: 1,
+          coluna: 1,
+          trechoOfensor: `prova:${falha.proof}`,
+          primeiraAulaQueEnsina: null,
+          mensagem: `desafio "${artefato.caminho}": ${falha.reason ?? falha.proof}`,
+        });
+      }
+    }
+    return violacoes;
+  };
 }
 
 // ---------------------------------------------------------------------------
