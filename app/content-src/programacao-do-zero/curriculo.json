@@ -1,0 +1,997 @@
+[
+  {
+    "slug": "como-o-site-confere-seu-codigo",
+    "titulo": "Como o site confere seu código",
+    "avancos": {
+      "produtivo": ["node:NumericLiteral"],
+      "receptivo": ["node:FunctionDeclaration", "node:ReturnStatement"]
+    },
+    "demonstrado_na_teoria": [
+      "node:ExportKeyword",
+      "node:FunctionDeclaration",
+      "node:Identifier",
+      "node:Block",
+      "node:ReturnStatement",
+      "node:NumericLiteral",
+      "node:ExpressionStatement",
+      "node:CallExpression",
+      "node:PropertyAccessExpression",
+      "node:StringLiteral",
+      "global:assert",
+      "global:test",
+      "api:test",
+      "api:assert.equal"
+    ],
+    "primeira_secao_demonstra": [
+      "node:ExportKeyword",
+      "node:FunctionDeclaration",
+      "node:Identifier",
+      "node:Block",
+      "node:ReturnStatement",
+      "node:NumericLiteral",
+      "node:ExpressionStatement",
+      "node:CallExpression"
+    ],
+    "atividade": {
+      "fixar": {
+        "o_aluno_escreve": "7",
+        "estrutura": "O invólucro inteiro — export, function, chaves e return — está CONGELADO no starter; só a lacuna dentro do return é sua. Você digita UM número. O invólucro é ensinado COMO LEITURA na primeira seção ('como ler o desafio'), declarado em avancos.receptivo.",
+        "atoms_usados": [
+          "node:ExportKeyword",
+          "node:FunctionDeclaration",
+          "node:Identifier",
+          "node:Block",
+          "node:ReturnStatement",
+          "node:NumericLiteral",
+          "node:ExpressionStatement",
+          "node:SourceFile",
+          "node:SyntaxList",
+          "node:EndOfFileToken"
+        ]
+      }
+    },
+    "congelado": [
+      "node:ExportKeyword",
+      "node:FunctionDeclaration",
+      "node:Identifier",
+      "node:Block",
+      "node:ReturnStatement"
+    ],
+    "enunciado_naive": "O programa já está pronto; falta só digitar o número que a máquina deve conferir.",
+    "termos_novos": ["invólucro", "lacuna", "máquina que confere", "teste", "assert"],
+    "verif": { "A13_ok": true, "A16_ok": true }
+  },
+  {
+    "slug": "valor-e-instrucao",
+    "titulo": "O que é um valor e uma instrução",
+    "avancos": {
+      "produtivo": ["node:NumericLiteral"],
+      "receptivo": ["node:ReturnStatement"]
+    },
+    "demonstrado_na_teoria": [
+      "node:ExportKeyword",
+      "node:FunctionDeclaration",
+      "node:Identifier",
+      "node:Block",
+      "node:ReturnStatement",
+      "node:NumericLiteral",
+      "node:ExpressionStatement",
+      "node:CallExpression",
+      "node:PropertyAccessExpression",
+      "node:StringLiteral",
+      "global:assert",
+      "api:assert.equal"
+    ],
+    "primeira_secao_demonstra": [
+      "node:ReturnStatement",
+      "node:NumericLiteral",
+      "node:ExpressionStatement"
+    ],
+    "atividade": {
+      "fixar": {
+        "o_aluno_escreve": "42",
+        "estrutura": "Mesmo invólucro da aula 1, congelado; a lacuna é sua — um número. A lição é o CONCEITO: número é um VALOR, e a linha (congelada) é a INSTRUÇÃO que entrega o valor à máquina.",
+        "atoms_usados": [
+          "node:ExportKeyword",
+          "node:FunctionDeclaration",
+          "node:Identifier",
+          "node:Block",
+          "node:ReturnStatement",
+          "node:NumericLiteral",
+          "node:ExpressionStatement",
+          "node:SourceFile",
+          "node:SyntaxList",
+          "node:EndOfFileToken"
+        ]
+      },
+      "esticar": {
+        "o_aluno_escreve": "nada — só prever",
+        "estrutura": "Leia o teste em voz alta e preveja o que a máquina diria se a lacuna tivesse 43 em vez de 42. (Atividade de LEITURA: zero átomos novos.)",
+        "atoms_usados": []
+      }
+    },
+    "congelado": [
+      "node:ExportKeyword",
+      "node:FunctionDeclaration",
+      "node:Identifier",
+      "node:Block",
+      "node:ReturnStatement"
+    ],
+    "enunciado_naive": "Valor é o que o programa entrega; instrução é a linha que roda.",
+    "termos_novos": ["valor", "instrução", "linha que roda"],
+    "verif": { "A13_ok": true, "A16_ok": true }
+  },
+  {
+    "slug": "funcao-e-chamada",
+    "titulo": "Função e chamada",
+    "avancos": {
+      "produtivo": ["node:CallExpression"],
+      "receptivo": ["node:FunctionDeclaration"]
+    },
+    "demonstrado_na_teoria": [
+      "node:ExportKeyword",
+      "node:FunctionDeclaration",
+      "node:Identifier",
+      "node:Block",
+      "node:ReturnStatement",
+      "node:NumericLiteral",
+      "node:CallExpression",
+      "node:ExpressionStatement"
+    ],
+    "primeira_secao_demonstra": [
+      "node:FunctionDeclaration",
+      "node:CallExpression",
+      "node:ReturnStatement",
+      "node:NumericLiteral"
+    ],
+    "atividade": {
+      "fixar": {
+        "o_aluno_escreve": "resposta()",
+        "estrutura": "CONGELADO: `function resposta() { return 5; }` e o invólucro `export function conferidor() { return ???; }`. A lacuna é a CHAMADA — o nome da caixa com parênteses, que roda a caixa. A declaração de função permanece congelada/receptiva (releitura da aula 1); o primeiro ato produtivo de função do aluno é a CHAMADA.",
+        "atoms_usados": [
+          "node:ExportKeyword",
+          "node:FunctionDeclaration",
+          "node:Identifier",
+          "node:Block",
+          "node:ReturnStatement",
+          "node:NumericLiteral",
+          "node:CallExpression",
+          "node:ExpressionStatement",
+          "node:SourceFile",
+          "node:SyntaxList",
+          "node:EndOfFileToken"
+        ]
+      },
+      "esticar": {
+        "o_aluno_escreve": "nada — só prever",
+        "estrutura": "Preveja: o que conferidor() devolve? E se a lacuna fosse resposta SEM os parênteses — o que a máquina responderia? (Atividade de LEITURA.)",
+        "atoms_usados": []
+      }
+    },
+    "congelado": [
+      "node:FunctionDeclaration",
+      "node:ReturnStatement",
+      "node:NumericLiteral",
+      "node:Block",
+      "node:Identifier",
+      "node:ExportKeyword"
+    ],
+    "enunciado_naive": "Uma caixa nomeada de instruções; chamar a caixa é escrever o nome com parênteses.",
+    "termos_novos": ["função", "chamada", "definir", "rodar", "parênteses"],
+    "verif": { "A13_ok": true, "A16_ok": true }
+  },
+  {
+    "slug": "export-entrega",
+    "titulo": "export: a entrega ao conferidor",
+    "avancos": {
+      "produtivo": ["node:ExportKeyword"],
+      "receptivo": []
+    },
+    "demonstrado_na_teoria": [
+      "node:ExportKeyword",
+      "node:FunctionDeclaration",
+      "node:Identifier",
+      "node:Block",
+      "node:ReturnStatement",
+      "node:NumericLiteral",
+      "node:CallExpression",
+      "node:ExpressionStatement"
+    ],
+    "primeira_secao_demonstra": [
+      "node:ExportKeyword",
+      "node:FunctionDeclaration",
+      "node:ReturnStatement",
+      "node:NumericLiteral"
+    ],
+    "atividade": {
+      "fixar": {
+        "o_aluno_escreve": "export",
+        "estrutura": "O invólucro `??? function resposta() { return 5; }` está congelado exceto a PALAVRA export. A palavra mágica que ENTREGA a caixa ao conferidor é sua — é só ela.",
+        "atoms_usados": [
+          "node:ExportKeyword",
+          "node:FunctionDeclaration",
+          "node:Identifier",
+          "node:Block",
+          "node:ReturnStatement",
+          "node:NumericLiteral",
+          "node:ExpressionStatement",
+          "node:SourceFile",
+          "node:SyntaxList",
+          "node:EndOfFileToken"
+        ]
+      },
+      "esticar": {
+        "o_aluno_escreve": "export",
+        "estrutura": "Há uma segunda caixa congelada `function ajuda() { return 7; }` sem export. Entregue-a também — agora o teste pode chamar ajuda().",
+        "atoms_usados": [
+          "node:ExportKeyword",
+          "node:FunctionDeclaration",
+          "node:Identifier",
+          "node:Block",
+          "node:ReturnStatement",
+          "node:NumericLiteral"
+        ]
+      }
+    },
+    "congelado": [
+      "node:FunctionDeclaration",
+      "node:Identifier",
+      "node:Block",
+      "node:ReturnStatement",
+      "node:NumericLiteral"
+    ],
+    "enunciado_naive": "Uma palavra deixa a sua caixa visível para o conferidor.",
+    "termos_novos": ["export", "entregar", "conferidor"],
+    "verif": { "A13_ok": true, "A16_ok": true }
+  },
+  {
+    "slug": "parametro-e-argumento",
+    "titulo": "Parâmetro e argumento",
+    "avancos": {
+      "produtivo": ["node:Parameter"],
+      "receptivo": []
+    },
+    "demonstrado_na_teoria": [
+      "node:ExportKeyword",
+      "node:FunctionDeclaration",
+      "node:Identifier",
+      "node:Block",
+      "node:ReturnStatement",
+      "node:Parameter",
+      "node:CallExpression",
+      "node:NumericLiteral",
+      "node:ExpressionStatement"
+    ],
+    "primeira_secao_demonstra": [
+      "node:Parameter",
+      "node:CallExpression",
+      "node:NumericLiteral",
+      "node:ReturnStatement"
+    ],
+    "atividade": {
+      "fixar": {
+        "o_aluno_escreve": "x",
+        "estrutura": "CONGELADO: `export function eco(???) { return x; }` e o teste `assert.equal(eco(7), 7)`. A janelinha da assinatura — o PARÂMETRO — é sua; o ARGUMENTO 7 você lê na chamada do teste. (Nunca antes daqui: parâmetro é o primeiro átomo novo desta aula.)",
+        "atoms_usados": [
+          "node:ExportKeyword",
+          "node:FunctionDeclaration",
+          "node:Parameter",
+          "node:Identifier",
+          "node:Block",
+          "node:ReturnStatement",
+          "node:ExpressionStatement",
+          "node:SourceFile",
+          "node:SyntaxList",
+          "node:EndOfFileToken"
+        ]
+      },
+      "esticar": {
+        "o_aluno_escreve": "a, b",
+        "estrutura": "Uma caixa com DUAS janelinhas: `export function dupla(???, ???) { return a; }` congelada no resto; o teste chama dupla(3, 4). Escreva os dois nomes — só reuso de node:Parameter.",
+        "atoms_usados": [
+          "node:Parameter",
+          "node:Identifier",
+          "node:ExportKeyword",
+          "node:FunctionDeclaration",
+          "node:Block",
+          "node:ReturnStatement"
+        ]
+      }
+    },
+    "congelado": [
+      "node:FunctionDeclaration",
+      "node:Identifier",
+      "node:Block",
+      "node:ReturnStatement",
+      "node:ExportKeyword"
+    ],
+    "enunciado_naive": "Parâmetro é a janelinha da caixa; argumento é o valor que entra nela.",
+    "termos_novos": ["parâmetro", "argumento", "assinatura", "janelinha"],
+    "verif": { "A13_ok": true, "A16_ok": true }
+  },
+  {
+    "slug": "return",
+    "titulo": "return: a linha que entrega e encerra",
+    "avancos": {
+      "produtivo": ["node:ReturnStatement"],
+      "receptivo": []
+    },
+    "demonstrado_na_teoria": [
+      "node:ExportKeyword",
+      "node:FunctionDeclaration",
+      "node:Identifier",
+      "node:Block",
+      "node:ReturnStatement",
+      "node:Parameter",
+      "node:NumericLiteral",
+      "node:ExpressionStatement",
+      "node:CallExpression"
+    ],
+    "primeira_secao_demonstra": [
+      "node:ReturnStatement",
+      "node:Parameter",
+      "node:NumericLiteral"
+    ],
+    "atividade": {
+      "fixar": {
+        "o_aluno_escreve": "return x;",
+        "estrutura": "CONGELADO: `export function eco(x) { ??? }`. Pela primeira vez a linha de devolução é SUA: return + o valor que sai. A caixa com janelinha da aula 5 é reusada — o que você escreve é a ENTREGA.",
+        "atoms_usados": [
+          "node:ExportKeyword",
+          "node:FunctionDeclaration",
+          "node:Parameter",
+          "node:Identifier",
+          "node:Block",
+          "node:ReturnStatement",
+          "node:ExpressionStatement",
+          "node:SourceFile",
+          "node:SyntaxList",
+          "node:EndOfFileToken"
+        ]
+      },
+      "esticar": {
+        "o_aluno_escreve": "return 3;",
+        "estrutura": "Agora sem janelinha: caixa `export function tres() { ??? }` congelada — devolva o número 3. (Único átomo novo em relação ao fixar: node:NumericLiteral, já demonstrado.)",
+        "atoms_usados": [
+          "node:ExportKeyword",
+          "node:FunctionDeclaration",
+          "node:Identifier",
+          "node:Block",
+          "node:ReturnStatement",
+          "node:NumericLiteral",
+          "node:ExpressionStatement"
+        ]
+      }
+    },
+    "congelado": [
+      "node:ExportKeyword",
+      "node:FunctionDeclaration",
+      "node:Parameter",
+      "node:Identifier",
+      "node:Block"
+    ],
+    "enunciado_naive": "return entrega o valor e encerra a caixa naquela linha.",
+    "termos_novos": ["return", "devolver", "encerrar"],
+    "verif": { "A13_ok": true, "A16_ok": true }
+  },
+  {
+    "slug": "let-e-atribuicao",
+    "titulo": "let e atribuição: a caixa que guarda",
+    "avancos": {
+      "produtivo": ["decl:let"],
+      "receptivo": ["op:assign:=", "node:BinaryExpression"]
+    },
+    "demonstrado_na_teoria": [
+      "decl:let",
+      "op:assign:=",
+      "node:BinaryExpression",
+      "node:VariableStatement",
+      "node:VariableDeclarationList",
+      "node:VariableDeclaration",
+      "node:ExportKeyword",
+      "node:FunctionDeclaration",
+      "node:Identifier",
+      "node:Block",
+      "node:ReturnStatement",
+      "node:NumericLiteral",
+      "node:ExpressionStatement"
+    ],
+    "primeira_secao_demonstra": [
+      "decl:let",
+      "node:VariableStatement",
+      "node:VariableDeclaration",
+      "node:VariableDeclarationList",
+      "op:assign:=",
+      "node:BinaryExpression",
+      "node:NumericLiteral"
+    ],
+    "atividade": {
+      "fixar": {
+        "o_aluno_escreve": "let contador = 0;",
+        "estrutura": "CONGELADO: `contador = 5;` e `return contador;`. A declaração da variável com let e um valor inicial é sua; a atribuição (linha congelada, lida como leitura) decide o valor final: 5.",
+        "atoms_usados": [
+          "decl:let",
+          "node:VariableStatement",
+          "node:VariableDeclarationList",
+          "node:VariableDeclaration",
+          "node:ExportKeyword",
+          "node:FunctionDeclaration",
+          "node:Identifier",
+          "node:Block",
+          "node:ReturnStatement",
+          "node:NumericLiteral",
+          "op:assign:=",
+          "node:BinaryExpression",
+          "node:ExpressionStatement",
+          "node:SourceFile",
+          "node:SyntaxList",
+          "node:EndOfFileToken"
+        ]
+      },
+      "esticar": {
+        "o_aluno_escreve": "let contador = 7;",
+        "estrutura": "Mesmo starter; troque o valor inicial para 7 e preveja: o return ainda devolve 5, porque a atribuição congelada sobrescreve. Só reuso de decl:let + node:NumericLiteral.",
+        "atoms_usados": [
+          "decl:let",
+          "node:VariableStatement",
+          "node:VariableDeclarationList",
+          "node:VariableDeclaration",
+          "node:NumericLiteral",
+          "node:Identifier",
+          "op:assign:=",
+          "node:BinaryExpression",
+          "node:ReturnStatement",
+          "node:ExportKeyword",
+          "node:FunctionDeclaration",
+          "node:Block",
+          "node:ExpressionStatement"
+        ]
+      }
+    },
+    "congelado": [
+      "op:assign:=",
+      "node:BinaryExpression",
+      "node:ReturnStatement",
+      "node:NumericLiteral",
+      "node:Identifier",
+      "node:FunctionDeclaration",
+      "node:Block",
+      "node:ExportKeyword"
+    ],
+    "enunciado_naive": "let declara uma caixa que guarda valor; atribuir é trocar o que está dentro.",
+    "termos_novos": ["variável", "declarar", "atribuir", "sobrescrever", "valor inicial"],
+    "verif": { "A13_ok": true, "A16_ok": true }
+  },
+  {
+    "slug": "string-como-valor",
+    "titulo": "Texto também é valor: a string",
+    "avancos": {
+      "produtivo": ["node:StringLiteral", "decl:let"],
+      "receptivo": []
+    },
+    "demonstrado_na_teoria": [
+      "node:StringLiteral",
+      "decl:let",
+      "node:VariableStatement",
+      "node:VariableDeclaration",
+      "node:VariableDeclarationList",
+      "node:ExportKeyword",
+      "node:FunctionDeclaration",
+      "node:Identifier",
+      "node:Block",
+      "node:ReturnStatement",
+      "node:ExpressionStatement"
+    ],
+    "primeira_secao_demonstra": [
+      "node:StringLiteral",
+      "decl:let",
+      "node:VariableStatement",
+      "node:VariableDeclaration"
+    ],
+    "atividade": {
+      "fixar": {
+        "o_aluno_escreve": "let mensagem = \"oi\";",
+        "estrutura": "CONGELADO: `export function saudacao() { ???; return mensagem; }`. Guarde um TEXTO entre aspas — uma string, um valor como o número — numa variável let. Reusa decl:let (aula 7); o átomo novo é node:StringLiteral.",
+        "atoms_usados": [
+          "node:StringLiteral",
+          "decl:let",
+          "node:VariableStatement",
+          "node:VariableDeclarationList",
+          "node:VariableDeclaration",
+          "node:ExportKeyword",
+          "node:FunctionDeclaration",
+          "node:Identifier",
+          "node:Block",
+          "node:ReturnStatement",
+          "node:ExpressionStatement",
+          "node:SourceFile",
+          "node:SyntaxList",
+          "node:EndOfFileToken"
+        ]
+      },
+      "esticar": {
+        "o_aluno_escreve": "let texto = \"olá\";",
+        "estrutura": "Troque o nome da variável e o texto; tudo o mais igual. Só reuso de node:StringLiteral + decl:let.",
+        "atoms_usados": [
+          "node:StringLiteral",
+          "decl:let",
+          "node:VariableStatement",
+          "node:VariableDeclarationList",
+          "node:VariableDeclaration",
+          "node:Identifier",
+          "node:ReturnStatement",
+          "node:ExportKeyword",
+          "node:FunctionDeclaration",
+          "node:Block",
+          "node:ExpressionStatement"
+        ]
+      }
+    },
+    "congelado": [
+      "node:ExportKeyword",
+      "node:FunctionDeclaration",
+      "node:Identifier",
+      "node:Block",
+      "node:ReturnStatement"
+    ],
+    "enunciado_naive": "Uma string é um texto entre aspas — e é um valor como o número.",
+    "termos_novos": ["string", "aspas", "texto"],
+    "verif": { "A13_ok": true, "A16_ok": true }
+  },
+  {
+    "slug": "estado-ler-depois-de-escrever",
+    "titulo": "Estado: ler depois de escrever",
+    "avancos": {
+      "produtivo": ["decl:let"],
+      "receptivo": ["op:assign:=", "node:BinaryExpression"]
+    },
+    "demonstrado_na_teoria": [
+      "decl:let",
+      "op:assign:=",
+      "node:BinaryExpression",
+      "node:VariableStatement",
+      "node:VariableDeclaration",
+      "node:ExportKeyword",
+      "node:FunctionDeclaration",
+      "node:Identifier",
+      "node:Block",
+      "node:ReturnStatement",
+      "node:NumericLiteral",
+      "node:ExpressionStatement"
+    ],
+    "primeira_secao_demonstra": [
+      "decl:let",
+      "op:assign:=",
+      "node:BinaryExpression",
+      "node:NumericLiteral",
+      "node:ReturnStatement"
+    ],
+    "atividade": {
+      "fixar": {
+        "o_aluno_escreve": "let contador = 0;",
+        "estrutura": "CONGELADO: `contador = 1; contador = 2; contador = 3; return contador;`. Você declara a variável (reuso de decl:let) e então LÊ a sequência de atribuições, respondendo em voz alta: qual é o ÚLTIMO valor? A lição é de LEITURA de estado.",
+        "atoms_usados": [
+          "decl:let",
+          "node:VariableStatement",
+          "node:VariableDeclarationList",
+          "node:VariableDeclaration",
+          "op:assign:=",
+          "node:BinaryExpression",
+          "node:ExportKeyword",
+          "node:FunctionDeclaration",
+          "node:Identifier",
+          "node:Block",
+          "node:ReturnStatement",
+          "node:NumericLiteral",
+          "node:ExpressionStatement",
+          "node:SourceFile",
+          "node:SyntaxList",
+          "node:EndOfFileToken"
+        ]
+      },
+      "esticar": {
+        "o_aluno_escreve": "let contador = 99;",
+        "estrutura": "Valor inicial diferente; as atribuições congeladas continuam mandando — preveja o return antes de rodar. Só reuso de decl:let + node:NumericLiteral.",
+        "atoms_usados": [
+          "decl:let",
+          "node:VariableStatement",
+          "node:VariableDeclarationList",
+          "node:VariableDeclaration",
+          "node:NumericLiteral",
+          "op:assign:=",
+          "node:BinaryExpression",
+          "node:Identifier",
+          "node:ReturnStatement",
+          "node:ExportKeyword",
+          "node:FunctionDeclaration",
+          "node:Block",
+          "node:ExpressionStatement"
+        ]
+      }
+    },
+    "congelado": [
+      "op:assign:=",
+      "node:BinaryExpression",
+      "node:NumericLiteral",
+      "node:Identifier",
+      "node:FunctionDeclaration",
+      "node:Block",
+      "node:ReturnStatement",
+      "node:ExportKeyword"
+    ],
+    "enunciado_naive": "A variável guarda o ÚLTIMO valor escrito; ler depois de escrever.",
+    "termos_novos": ["estado", "último valor", "sequência", "ler o código"],
+    "verif": { "A13_ok": true, "A16_ok": true }
+  },
+  {
+    "slug": "const",
+    "titulo": "const: o valor que não muda",
+    "avancos": {
+      "produtivo": ["decl:const", "decl:let"],
+      "receptivo": []
+    },
+    "demonstrado_na_teoria": [
+      "decl:const",
+      "decl:let",
+      "node:VariableStatement",
+      "node:VariableDeclaration",
+      "node:ExportKeyword",
+      "node:FunctionDeclaration",
+      "node:Identifier",
+      "node:Block",
+      "node:ReturnStatement",
+      "node:NumericLiteral",
+      "node:ExpressionStatement"
+    ],
+    "primeira_secao_demonstra": [
+      "decl:const",
+      "decl:let",
+      "node:VariableStatement",
+      "node:VariableDeclaration",
+      "node:NumericLiteral"
+    ],
+    "atividade": {
+      "fixar": {
+        "o_aluno_escreve": "let mudavel = 1; const fixa = 2;",
+        "estrutura": "CONGELADO: `export function exemplo() { ???; ???; return fixa; }`. Declare uma let (que muda) e uma const (que não muda), com esses nomes. O átomo novo é decl:const; decl:let é reuso da aula 9.",
+        "atoms_usados": [
+          "decl:const",
+          "decl:let",
+          "node:VariableStatement",
+          "node:VariableDeclarationList",
+          "node:VariableDeclaration",
+          "node:ExportKeyword",
+          "node:FunctionDeclaration",
+          "node:Identifier",
+          "node:Block",
+          "node:ReturnStatement",
+          "node:NumericLiteral",
+          "node:ExpressionStatement",
+          "node:SourceFile",
+          "node:SyntaxList",
+          "node:EndOfFileToken"
+        ]
+      },
+      "esticar": {
+        "o_aluno_escreve": "const fixa = 3;",
+        "estrutura": "Troque só o valor da constante; o return continua devolvendo 3. Só reuso de decl:const + node:NumericLiteral.",
+        "atoms_usados": [
+          "decl:const",
+          "node:VariableStatement",
+          "node:VariableDeclarationList",
+          "node:VariableDeclaration",
+          "node:NumericLiteral",
+          "node:Identifier",
+          "node:ReturnStatement",
+          "node:ExportKeyword",
+          "node:FunctionDeclaration",
+          "node:Block",
+          "node:ExpressionStatement"
+        ]
+      }
+    },
+    "congelado": [
+      "node:ExportKeyword",
+      "node:FunctionDeclaration",
+      "node:Identifier",
+      "node:Block",
+      "node:ReturnStatement"
+    ],
+    "enunciado_naive": "const declara um valor que nunca muda; let é para o que muda.",
+    "termos_novos": ["const", "constante", "imutável", "contraste let/const"],
+    "verif": { "A13_ok": true, "A16_ok": true }
+  },
+  {
+    "slug": "erro-sintaxe-vs-erro-valor",
+    "titulo": "Erro de sintaxe vs. erro de valor",
+    "avancos": {
+      "produtivo": ["node:NumericLiteral"],
+      "receptivo": ["node:ReturnStatement", "decl:let"]
+    },
+    "demonstrado_na_teoria": [
+      "node:NumericLiteral",
+      "decl:let",
+      "node:VariableStatement",
+      "node:ReturnStatement",
+      "node:ExportKeyword",
+      "node:FunctionDeclaration",
+      "node:Identifier",
+      "node:Block",
+      "node:ExpressionStatement"
+    ],
+    "primeira_secao_demonstra": [
+      "node:ReturnStatement",
+      "node:NumericLiteral",
+      "decl:let"
+    ],
+    "atividade": {
+      "fixar": {
+        "o_aluno_escreve": "6",
+        "estrutura": "CONGELADO: `export function resposta() { let x = ???; return x; }`. Digite 6 no lugar que era 5 (a lacuna é só o número). O teste espera 5: a máquina ENTENDE o código, mas o VALOR está errado — leia a mensagem 'esperava 5, recebeu 6'. Lição de leitura de mensagem de erro de VALOR; o erro de SINTAXE é mostrado na teoria como exemplo de leitura.",
+        "atoms_usados": [
+          "decl:let",
+          "node:VariableStatement",
+          "node:VariableDeclarationList",
+          "node:VariableDeclaration",
+          "node:ExportKeyword",
+          "node:FunctionDeclaration",
+          "node:Identifier",
+          "node:Block",
+          "node:ReturnStatement",
+          "node:NumericLiteral",
+          "node:ExpressionStatement",
+          "node:SourceFile",
+          "node:SyntaxList",
+          "node:EndOfFileToken"
+        ]
+      },
+      "esticar": {
+        "o_aluno_escreve": "2",
+        "estrutura": "O teste continua esperando 5 e você entrega 2 — preveja a mensagem exata antes de rodar. Só reuso de node:NumericLiteral.",
+        "atoms_usados": [
+          "decl:let",
+          "node:VariableStatement",
+          "node:VariableDeclarationList",
+          "node:VariableDeclaration",
+          "node:NumericLiteral",
+          "node:Identifier",
+          "node:ReturnStatement",
+          "node:ExportKeyword",
+          "node:FunctionDeclaration",
+          "node:Block",
+          "node:ExpressionStatement"
+        ]
+      }
+    },
+    "congelado": [
+      "decl:let",
+      "node:VariableStatement",
+      "node:VariableDeclaration",
+      "node:ReturnStatement",
+      "node:Identifier",
+      "node:FunctionDeclaration",
+      "node:Block",
+      "node:ExportKeyword"
+    ],
+    "enunciado_naive": "Erro de sintaxe: a máquina não entendeu. Erro de valor: ela entendeu, mas o resultado não bate.",
+    "termos_novos": ["sintaxe", "erro de valor", "mensagem do conferidor", "esperava X, recebeu Y"],
+    "verif": { "A13_ok": true, "A16_ok": true }
+  },
+  {
+    "slug": "involucro-completo",
+    "titulo": "Montar o invólucro inteiro",
+    "avancos": {
+      "produtivo": ["node:FunctionDeclaration"],
+      "receptivo": []
+    },
+    "demonstrado_na_teoria": [
+      "node:FunctionDeclaration",
+      "node:ExportKeyword",
+      "decl:let",
+      "node:VariableStatement",
+      "node:VariableDeclaration",
+      "node:ReturnStatement",
+      "node:NumericLiteral",
+      "node:Identifier",
+      "node:Block",
+      "node:ExpressionStatement",
+      "decl:const"
+    ],
+    "primeira_secao_demonstra": [
+      "node:FunctionDeclaration",
+      "node:ExportKeyword",
+      "node:Block",
+      "decl:let",
+      "node:VariableStatement",
+      "node:ReturnStatement",
+      "node:NumericLiteral"
+    ],
+    "atividade": {
+      "fixar": {
+        "o_aluno_escreve": "export function conferir() {\n  let total = 5;\n  return total;\n}",
+        "estrutura": "Nada congelado além do teste: o invólucro inteiro — export, function, chaves, let, return — é seu. Único átomo novo: node:FunctionDeclaration (a declaração de função, lida desde a aula 1, agora ESCRITA).",
+        "atoms_usados": [
+          "node:ExportKeyword",
+          "node:FunctionDeclaration",
+          "decl:let",
+          "node:VariableStatement",
+          "node:VariableDeclarationList",
+          "node:VariableDeclaration",
+          "node:ReturnStatement",
+          "node:NumericLiteral",
+          "node:Identifier",
+          "node:Block",
+          "node:ExpressionStatement",
+          "node:SourceFile",
+          "node:SyntaxList",
+          "node:EndOfFileToken"
+        ]
+      },
+      "esticar": {
+        "o_aluno_escreve": "const total = 5;",
+        "estrutura": "A mesma solução trocando let por const — justifique por que continua correta. Único átomo novo em relação ao fixar: decl:const, já demonstrado nesta aula.",
+        "atoms_usados": [
+          "decl:const",
+          "node:VariableStatement",
+          "node:VariableDeclarationList",
+          "node:VariableDeclaration",
+          "node:NumericLiteral",
+          "node:Identifier",
+          "node:ExportKeyword",
+          "node:FunctionDeclaration",
+          "node:ReturnStatement",
+          "node:Block",
+          "node:ExpressionStatement"
+        ]
+      }
+    },
+    "congelado": [],
+    "enunciado_naive": "Junta tudo que você já sabe: a caixa inteira, do export ao return.",
+    "termos_novos": ["solução completa", "montar", "função declarada"],
+    "verif": { "A13_ok": true, "A16_ok": true }
+  },
+  {
+    "slug": "nomear-bem",
+    "titulo": "Dar nome às coisas",
+    "avancos": {
+      "produtivo": ["decl:const", "node:StringLiteral"],
+      "receptivo": []
+    },
+    "demonstrado_na_teoria": [
+      "decl:const",
+      "node:StringLiteral",
+      "node:VariableStatement",
+      "node:VariableDeclaration",
+      "node:ExportKeyword",
+      "node:FunctionDeclaration",
+      "node:Identifier",
+      "node:Block",
+      "node:ReturnStatement",
+      "node:NumericLiteral",
+      "node:ExpressionStatement"
+    ],
+    "primeira_secao_demonstra": [
+      "decl:const",
+      "node:StringLiteral",
+      "node:VariableStatement",
+      "node:VariableDeclaration",
+      "node:ReturnStatement"
+    ],
+    "atividade": {
+      "fixar": {
+        "o_aluno_escreve": "const fruta = \"abacaxi\";",
+        "estrutura": "CONGELADO: `export function descobrir() { ???; return fruta; }`. A constante que guarda o texto é sua; o return congelado devolve fruta. Reuso puro: decl:const (aula 10) + node:StringLiteral (aula 8).",
+        "atoms_usados": [
+          "decl:const",
+          "node:StringLiteral",
+          "node:VariableStatement",
+          "node:VariableDeclarationList",
+          "node:VariableDeclaration",
+          "node:ExportKeyword",
+          "node:FunctionDeclaration",
+          "node:Identifier",
+          "node:Block",
+          "node:ReturnStatement",
+          "node:ExpressionStatement",
+          "node:SourceFile",
+          "node:SyntaxList",
+          "node:EndOfFileToken"
+        ]
+      },
+      "esticar": {
+        "o_aluno_escreve": "const fruta = 3;",
+        "estrutura": "Tire as aspas e guarde um NÚMERO: o nome não amarra o tipo — continua funcionando. Único átomo novo em relação ao fixar: node:NumericLiteral, já demonstrado.",
+        "atoms_usados": [
+          "decl:const",
+          "node:VariableStatement",
+          "node:VariableDeclarationList",
+          "node:VariableDeclaration",
+          "node:NumericLiteral",
+          "node:Identifier",
+          "node:ExportKeyword",
+          "node:FunctionDeclaration",
+          "node:ReturnStatement",
+          "node:Block",
+          "node:ExpressionStatement"
+        ]
+      }
+    },
+    "congelado": [
+      "node:ExportKeyword",
+      "node:FunctionDeclaration",
+      "node:Identifier",
+      "node:Block",
+      "node:ReturnStatement"
+    ],
+    "enunciado_naive": "Um nome bom diz o que o valor é.",
+    "termos_novos": ["nomear", "identificador", "legibilidade"],
+    "verif": { "A13_ok": true, "A16_ok": true }
+  },
+  {
+    "slug": "todas-as-pecas-juntas",
+    "titulo": "Todas as peças juntas",
+    "avancos": {
+      "produtivo": ["node:FunctionDeclaration", "decl:const", "node:StringLiteral", "node:ExportKeyword"],
+      "receptivo": []
+    },
+    "demonstrado_na_teoria": [
+      "node:ExportKeyword",
+      "node:FunctionDeclaration",
+      "decl:const",
+      "node:StringLiteral",
+      "node:VariableStatement",
+      "node:VariableDeclaration",
+      "node:ReturnStatement",
+      "node:Identifier",
+      "node:Block",
+      "node:ExpressionStatement",
+      "node:Parameter"
+    ],
+    "primeira_secao_demonstra": [
+      "node:FunctionDeclaration",
+      "node:ExportKeyword",
+      "decl:const",
+      "node:StringLiteral",
+      "node:ReturnStatement"
+    ],
+    "atividade": {
+      "fixar": {
+        "o_aluno_escreve": "export function frase() {\n  const saudacao = \"oi\";\n  return saudacao;\n}",
+        "estrutura": "Mais um invólucro inteiro, agora com string e const: tudo que as aulas 1–13 juntaram. Nenhum átomo novo — consolidação final da trilha.",
+        "atoms_usados": [
+          "node:ExportKeyword",
+          "node:FunctionDeclaration",
+          "decl:const",
+          "node:StringLiteral",
+          "node:VariableStatement",
+          "node:VariableDeclarationList",
+          "node:VariableDeclaration",
+          "node:ReturnStatement",
+          "node:Identifier",
+          "node:Block",
+          "node:ExpressionStatement",
+          "node:SourceFile",
+          "node:SyntaxList",
+          "node:EndOfFileToken"
+        ]
+      },
+      "esticar": {
+        "o_aluno_escreve": "export function repete(nome) {\n  return nome;\n}",
+        "estrutura": "A caixa com janelinha, completa: o parâmetro entra e sai pelo return. O teste chama repete('oi'). Único átomo novo em relação ao fixar: node:Parameter, já demonstrado nesta aula.",
+        "atoms_usados": [
+          "node:ExportKeyword",
+          "node:FunctionDeclaration",
+          "node:Parameter",
+          "node:Identifier",
+          "node:Block",
+          "node:ReturnStatement",
+          "node:ExpressionStatement"
+        ]
+      }
+    },
+    "congelado": [],
+    "enunciado_naive": "A caixa, a janelinha, o texto e a entrega: um programa inteiro seu.",
+    "termos_novos": ["revisão", "peças", "programa completo"],
+    "verif": { "A13_ok": true, "A16_ok": true }
+  }
+]
