@@ -231,6 +231,20 @@
   }
   .diagram-caption strong { color: var(--foreground); }
 
+  /* Contraste dos rótulos de aresta do Mermaid (o tema base os deixa brancos sobre cinza no claro) */
+  .diagram-panel pre.mermaid .edgeLabel p,
+  .diagram-panel pre.mermaid .edgeLabel span {
+    color: #414853 !important;
+    fill: #414853 !important;
+  }
+  @media (prefers-color-scheme: dark) {
+    .diagram-panel pre.mermaid .edgeLabel p,
+    .diagram-panel pre.mermaid .edgeLabel span {
+      color: #dadee5 !important;
+      fill: #dadee5 !important;
+    }
+  }
+
   /* ---------- Tabelas ---------- */
   .tbl-wrap { overflow-x: auto; border: 1.5px solid var(--border); border-radius: var(--radius); margin: 20px 0; background: var(--card); }
   table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
@@ -387,7 +401,7 @@ flowchart TD
     Trilha["Mini-trilha"]
     Validacao["Validação final"]
     Gate["Gate final · rc=0"]
-    Dossie -->|"orçamentos + lacunas"| Teoria
+    Dossie -->|"orçamentos validados"| Teoria
     Teoria -->|"solução decl:let"| Desafio
     Desafio -->|"4 provas valid=true"| Trilha
     Trilha -->|"loadTrack 0 issues"| Validacao
@@ -398,7 +412,7 @@ flowchart TD
       <span class="diagram-caption"><strong>Afirmação:</strong> as cinco fases avançam em cadeia — a saída de cada uma vira a entrada validada da seguinte, do dossiê congelado ao gate final, sem nenhuma chamada a LLM; a fase destacada (validação) é onde as regras são efetivamente conferidas.</span>
     </div>
 
-    <p class="lede">Duas definições antes de seguir: <span class="term">orçamento</span> <span class="term-def">(o limite do que a aula pode usar em linguagem — validado contra atoms.json + seed antes de qualquer texto ser escrito)</span> e <span class="term">lacuna</span> <span class="term-def">(o que o aluno ainda não sabe e que a aula existe para preencher — o dossiê registra as lacunas antes de a teoria começar)</span>.</p>
+    <p class="lede">Duas definições antes de seguir: <span class="term">orçamento</span> <span class="term-def">(o limite do que a aula pode usar em linguagem — validado contra atoms.json + seed antes de qualquer texto ser escrito)</span> e <span class="term">lacuna</span> <span class="term-def">(o espaço entre o que o aluno já sabe e o que a aula quer ensinar — toda aula existe para fechar uma lacuna)</span>.</p>
 
     <div class="subsection">O que cada fase entregou</div>
     <div class="tbl-wrap">
@@ -479,7 +493,7 @@ flowchart TD
           <tr><td>Checagens determinísticas (protocolo a05)</td><td>9/9 OK</td><td><span class="badge ok">OK</span></td></tr>
           <tr><td>Regras do contrato (R1–R18) <span class="dim">— conteúdo</span></td><td>18/18 · 16 atendidas · R11/R18 N/A</td><td><span class="badge ok">OK</span></td></tr>
           <tr><td>Audit de violações da trilha nova</td><td>exatamente 3× A2 <span class="dim">(somente — F7/F8 com 0 ofensas)</span></td><td><span class="badge warn">Limite de engine</span></td></tr>
-          <tr><td>Pin do placar <span class="dim">(trilha existente nodejs-do-zero)</span></td><td>285/96/102 intacto</td><td><span class="badge ok">OK</span></td></tr>
+          <tr><td>Pin do placar <span class="dim">(trilha existente)</span></td><td>285/96/102 intacto</td><td><span class="badge ok">OK</span></td></tr>
           <tr><td>Gate-lint · <code>content-src</code></td><td>100% limpo <span class="dim">(após correção L-04)</span></td><td><span class="badge ok">OK</span></td></tr>
           <tr><td>Integridade da trilha (I12–I17)</td><td>OK</td><td><span class="badge ok">OK</span></td></tr>
           <tr><td>Gate final · suíte de testes</td><td>2658 testes · 2657 pass · 0 fail · rc=0</td><td><span class="badge ok">OK</span></td></tr>
@@ -558,13 +572,13 @@ flowchart TD
           <dt>A2</dt>
           <dd>Classe de violação que o audit reporta. Neste run houve exatamente 3× A2, todos em nós-envelope — decididos como <span class="dim">limite de engine, não erro do conteúdo</span>.</dd>
           <dt>Lacuna</dt>
-          <dd>O que o aluno ainda não sabe e que a aula existe para preencher. O dossiê registra as lacunas antes de a teoria começar; o desafio mede se foram fechadas.</dd>
+          <dd>O espaço entre o que o aluno já sabe e o que a aula quer ensinar. É o termo didático que nomeia o objetivo de qualquer aula: ela existe para fechar uma lacuna.</dd>
           <dt>Atomicidade</dt>
           <dd>Princípio do contrato (§3.6): a aula é uma unidade única e autocontida, que existe e é testável sozinha. O teste de atomicidade passou nas 4 provas.</dd>
           <dt>Pin</dt>
           <dd>Número esperado que não pode mudar — o placar da trilha existente (<code>285/96/102</code>). Se o experimento alterasse a trilha antiga, o pin quebraria e o gate avisaria.</dd>
           <dt>Worktree</dt>
-          <dd>Cópia de trabalho separada do mesmo repositório git. Cada subagente da onda 1 trabalhou na sua, em paralelo, sem pisar na main.</dd>
+          <dd>Cópia de trabalho separada do mesmo repositório git. Permite que várias frentes mexam em paralelo sem pisar na main — e uma delas foi limpa cedo demais neste run, o que gerou a reentrega.</dd>
           <dt>Squash</dt>
           <dd>Merge que junta vários commits em um só. Foi o mecanismo que carregou o symlink acidental do <code>node_modules</code> para a main.</dd>
           <dt>Gate</dt>
@@ -576,7 +590,7 @@ flowchart TD
 
   <footer>
     <div class="provenance">
-      <strong>Rastro do run:</strong> 20260830-213938-909 · base <code>main 2ce4062</code> → final <code>main 8d2feaa</code> · onda de 6 subagentes + fixes · gate final rc=0 ·
+      <strong>Rastro do run:</strong> 20260830-213938-909 · base <code>main 2ce4062</code> → final <code>main 8d2feaa</code> · onda 1 com 6 subagentes (a01–a06) + fixes · gate final rc=0 ·
       <strong>0 chamadas de API de LLM em todo o experimento.</strong>
     </div>
     <div>Fonte primária: <code>.deep-orchestrator/run-20260830-213938-909/explainer/fatos.md</code>. Este documento vale contra o estado desse run — se o projeto avançar, ele envelhece.</div>
