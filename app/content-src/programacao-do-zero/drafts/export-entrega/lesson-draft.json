@@ -56,6 +56,47 @@
       "tag": ""
     }
   ],
+  "assertions": [
+    {
+      "id": "export-entrega-ao-conferidor",
+      "statement": "A palavra export entrega a caixa ao conferidor; sem ela, o site não enxerga a caixa.",
+      "question": "O que precisa estar no arquivo para o site conseguir chamar a caixa `resposta`?",
+      "options": [
+        "a palavra `import` na frente da caixa",
+        "um `console.log` dentro da caixa",
+        "nada — o site enxerga tudo o que está no arquivo",
+        "a palavra `export` na frente da caixa"
+      ],
+      "answerIndex": 3,
+      "feedback": "Entregar é escrever `export` na frente da declaração; sem ela, a caixa existe no arquivo mas é invisível para o conferidor."
+    },
+    {
+      "id": "export-nao-muda-o-valor",
+      "statement": "Entregar não muda o que a caixa faz nem o valor que ela devolve — muda quem enxerga a caixa.",
+      "question": "Você acrescenta `export` a uma caixa que devolve 5. O que muda?",
+      "options": [
+        "quem consegue enxergar a caixa; o valor continua 5",
+        "o valor devolvido passa a ser outro",
+        "a caixa passa a rodar sozinha, sem ser chamada",
+        "o número 5 sai do arquivo"
+      ],
+      "answerIndex": 0,
+      "feedback": "A palavra não mexe no comportamento da caixa — ela continua devolvendo 5; só passa a ser visível para o site."
+    },
+    {
+      "id": "sem-export-import-falha",
+      "statement": "Sem a palavra export, a importação falha e o teste nem chega a chamar a caixa.",
+      "question": "O arquivo tem `function resposta() { return 5; }` sem `export`. O que o site consegue fazer?",
+      "options": [
+        "chama `resposta()` normalmente e recebe 5",
+        "importa a caixa, mas ela devolve `undefined`",
+        "nada: não acha `resposta` na lista de entregas e a importação falha",
+        "corrige o arquivo sozinho e entrega a caixa"
+      ],
+      "answerIndex": 2,
+      "feedback": "Sem a entrega, o nome `resposta` não existe para o site: a coleta falha antes de qualquer chamada ou comparação."
+    }
+  ],
   "justificativa": "O átomo canônico da L4 é node:ExportKeyword (produtivo, único) — a palavra que entrega a caixa ao conferidor. O starter congela a caixa inteira com a lacuna na PALAVRA: o escrito medido (A(solution) \\ A(starter)) é exatamente {ExportKeyword} — a lacuna única de palavra do currículo (L4). A teoria é a dose mínima de ESM: a metáfora de entrega/coleta, com import sempre do lado do site (harness), nunca do aluno. Seção 1 demonstra export + a moldura (A16/primeira_secao_demonstra). A15b: a solução reutiliza FunctionDeclaration/ReturnStatement/NumericLiteral demonstrados nas aulas 1-3, e o teste importa e chama a caixa — o CallExpression do teste já é cumulativo. O esticar (entregar uma segunda caixa) é reuso puro do mesmo átomo e fica como extensão declarada no enunciado; sem parametrização — parâmetro segue fora de todas as superfícies (L5). Sem console; outputChannel retorno; expectedTestCount=1 (J4).",
   "role": "regular",
   "status": "rascunho",

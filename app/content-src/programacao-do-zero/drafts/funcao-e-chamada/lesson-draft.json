@@ -62,6 +62,47 @@
       "tag": ""
     }
   ],
+  "assertions": [
+    {
+      "id": "chamar-com-parenteses",
+      "statement": "Uma função é uma caixa nomeada de instruções que devolve um valor; chamar é escrever o nome da caixa com parênteses.",
+      "question": "Para pedir o valor da caixa `resposta`, o que você escreve?",
+      "options": [
+        "`resposta` — só o nome",
+        "`function resposta` — a palavra function antes do nome",
+        "`resposta()` — o nome com parênteses",
+        "`return resposta` — a palavra return antes do nome"
+      ],
+      "answerIndex": 2,
+      "feedback": "Os parênteses são o botão: `resposta()` roda a caixa e o valor dela aparece no lugar da chamada."
+    },
+    {
+      "id": "valor-aparece-na-chamada",
+      "statement": "A chamada roda a caixa e o valor devolvido aparece no lugar da chamada.",
+      "question": "Com `function resposta() { return 5; }`, o que devolve `conferidor()`, que tem `return resposta();`?",
+      "options": [
+        "a caixa inteira `resposta`",
+        "o texto `resposta()`",
+        "nada, porque `resposta()` não devolve valor",
+        "5, o valor que a caixa `resposta` devolve"
+      ],
+      "answerIndex": 3,
+      "feedback": "A chamada `resposta()` roda a caixa e o 5 aparece no lugar dela; `conferidor()` devolve esse 5."
+    },
+    {
+      "id": "sem-parenteses-caixa-parada",
+      "statement": "Sem os parênteses, o nome sozinho é a caixa parada — não o valor — e o teste não bate.",
+      "question": "Se a lacuna tivesse `resposta` sem os parênteses, o que `conferidor()` devolveria?",
+      "options": [
+        "o número 5, do mesmo jeito",
+        "a caixa inteira (a função parada), não o número 5",
+        "um erro de sintaxe",
+        "o número 0"
+      ],
+      "answerIndex": 1,
+      "feedback": "Sem os parênteses você aponta para a máquina em vez de apertar o botão; o teste compararia a função parada com o 5 — não bate."
+    }
+  ],
   "justificativa": "O átomo canônico da L3 no currículo é node:CallExpression (produtivo) + node:FunctionDeclaration (receptivo). A decisão central do feedback do usuário: a DECLARAÇÃO de função não é o avanço — o aluno escreve a CHAMADA. A moldura (caixa `resposta` + invólucro `conferidor`) fica congelada no starter, então o que a bateria mede como escrito (A(solution) \\ A(starter)) é exatamente {CallExpression} — uma construção nova, no span de uma lacuna única (A14). A seção 1 demonstra a chamada e relembra a moldura em 1 bloco (A16: o escrito do 1º desafio ⊆ primeira seção), sem re-ensinar a declaração como conteúdo novo. A15b: a solução reutiliza ReturnStatement e NumericLiteral demonstrados na L1/L2 (e o próprio CallExpression aparece lido desde a L1 na moldura do teste). Parâmetro/argumento ficam fora de todas as superfícies (L5); sem console; outputChannel retorno.",
   "role": "regular",
   "status": "rascunho",

@@ -78,6 +78,47 @@
       "tag": ""
     }
   ],
+  "assertions": [
+    {
+      "id": "valor-vs-instrucao",
+      "statement": "O valor é o que o programa entrega; a instrução é a linha que roda.",
+      "question": "No código `return 42;`, o que é o `42` e o que é a linha inteira?",
+      "options": [
+        "o `42` é o valor; a linha `return 42;` é a instrução que roda",
+        "o `42` é a instrução; a linha `return 42;` é o valor",
+        "os dois são valores entregues à máquina",
+        "os dois são instruções que rodam uma atrás da outra"
+      ],
+      "answerIndex": 0,
+      "feedback": "O número é a carga — o valor entregue; a linha é o veículo — a instrução que roda e entrega a carga à máquina."
+    },
+    {
+      "id": "trocar-valor-nao-troca-instrucao",
+      "statement": "Trocar o valor não troca a instrução: a linha continua `return ...;`, mas entrega outro valor.",
+      "question": "A caixa devolve `43` e o teste espera `42`. O que a máquina responde?",
+      "options": [
+        "algo como 'esperava 42, recebeu 43'",
+        "algo como 'esperava 43, recebeu 42'",
+        "que a instrução está errada",
+        "nada — ela não compara valores"
+      ],
+      "answerIndex": 0,
+      "feedback": "A instrução rodou direitinho; o que não bateu foi o valor entregue — 43 em vez do esperado 42."
+    },
+    {
+      "id": "maquina-compara-valor-entregue",
+      "statement": "A máquina que confere roda a instrução e compara o valor entregue com o esperado — não o texto do arquivo.",
+      "question": "Quando o site confere uma resposta, com o que ele compara?",
+      "options": [
+        "com o texto digitado no arquivo",
+        "com o valor que a instrução entrega",
+        "com a quantidade de linhas do programa",
+        "com o nome da função"
+      ],
+      "answerIndex": 1,
+      "feedback": "O site roda a caixa e compara o valor devolvido — as palavras do arquivo não entram na comparação."
+    }
+  ],
   "justificativa": "Aula 2 de REUSO (aula de prática): o curriculo manda não introduzir produtivo novo — o número (node:NumericLiteral) já era produtivo na aula 1, e o invólucro/teste são leitura acumulada. O conteúdo novo é o CONCEITO valor × instrução em prosa ancorada em código já demonstrado; o desafio pede outro número (42) — reuso do mesmo átomo em contexto de instrução. A14a marca o aviso esperado de 'aula sem incremento' (novo(L2)=∅); A13/A15b/A16 passam porque tudo que o desafio lê/escreve está demonstrado na L1 (acumulado) ou em H13. eiClass='categoria': a aula classifica duas categorias de coisas que existem num programa, não ensina uma regra de operação.",
   "role": "regular",
   "status": "rascunho",
