@@ -5,8 +5,8 @@
   "concept": "let_e_atribuicao",
   "difficulty": 1,
   "language": "nodejs",
-  "statement": "# Declarar com `let` e deixar a atribuição decidir\n\nA função `iniciar()` já está quase pronta. Ela quer guardar um número numa **variável** e devolver esse número. Falta **declarar** a variável `contador` com `let` no lugar marcado, começando com o valor `0`.\n\nO restante já está pronto — não mexa:\n\n- `contador = 5;` — **atribui** o valor `5` à variável, substituindo o valor anterior;\n- `return contador;` — devolve o que está guardado na variável.\n\nAntes de escrever, preveja: quando o teste chamar `iniciar()`, que valor a função devolve? Depois de `contador = 5;`, o que está guardado em `contador` é o valor inicial `0` ou o valor atribuído `5`?\n\nEscreva **somente a declaração** na lacuna, com `let`, começando em `0`. As demais linhas já estão certas.",
-  "starterCode": "export function iniciar() {\n  // LACUNA: declare a variável `contador` com `let`, começando em 0\n  contador = 5;\n  return contador;\n}\n",
+  "statement": "# Declarar com `let` e deixar a atribuição decidir\n\nA função `iniciar()` já está quase pronta. Ela quer guardar um número numa **variável** e devolver esse número. Falta **declarar** a variável `contador` com `let` no lugar marcado, com um valor inicial.\n\nO restante já está pronto — não mexa:\n\n- `contador = 5;` — **atribui** o valor `5` à variável, substituindo o valor anterior;\n- `return contador;` — devolve o que está guardado na variável.\n\nAntes de escrever, preveja: quando o teste chamar `iniciar()`, que valor a função devolve? Depois de `contador = 5;`, o que está guardado em `contador` é o valor inicial da declaração ou o valor atribuído `5`?\n\nEscreva **somente a declaração** na lacuna, com `let` e um valor inicial. O valor inicial é livre — qualquer número vale, porque quem decide o valor devolvido pela função é a atribuição `contador = 5;`, não o valor inicial. As demais linhas já estão certas.",
+  "starterCode": "export function iniciar() {\n  // LACUNA: declare a variável `contador` com `let`, com um valor inicial\n  contador = 5;\n  return contador;\n}\n",
   "testsCode": "import { test } from 'node:test';\nimport assert from 'node:assert/strict';\nimport { iniciar } from './solution.mjs';\n\ntest('declara com let; a atribuição decide o valor final', () => {\n  assert.equal(iniciar(), 5);\n});\n",
   "solutionCode": "export function iniciar() {\n  let contador = 0;\n  contador = 5;\n  return contador;\n}\n",
   "expectedTestCount": 1,
@@ -17,7 +17,7 @@
   "requirements": [
     {
       "id": "REQ-1",
-      "descricao": "A função iniciar() devolve o valor final de contador — 5, o valor da última atribuição (não o valor inicial 0 da declaração).",
+      "descricao": "A função iniciar() devolve o valor final de contador — 5, o valor da última atribuição (não o valor inicial da declaração, seja ele qual for).",
       "teste": "declara com let; a atribuição decide o valor final"
     }
   ],
@@ -35,7 +35,7 @@
     {
       "tipo": "exemplo",
       "derivado_de": "decl:let",
-      "descricao": "declarar uma variável mutável com let e valor inicial (contador = 0); a atribuição seguinte substitui o valor guardado"
+      "descricao": "declarar uma variável mutável com let e um valor inicial numérico (a solução de referência usa contador = 0; qualquer número valeria); a atribuição seguinte substitui o valor guardado"
     },
     {
       "tipo": "valido",
