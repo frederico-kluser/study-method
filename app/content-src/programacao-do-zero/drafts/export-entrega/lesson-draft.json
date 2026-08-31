@@ -1,0 +1,63 @@
+{
+  "raciocinio_de_projeto": "L4 entrega a palavra **export** (node:ExportKeyword, o único átomo produtivo da aula): 'entregar a caixa ao conferidor' é o termo-núcleo. O starter repete a moldura da L3 (caixa `resposta` com `return 5`) com a lacuna na PALAVRA: `/* ENTREGUE A FUNÇÃO */ function resposta() { ... }` — o aluno escreve `export` na frente de `function`. A solução é o starter + a palavra (`export function resposta() { return 5; }`), então A(solution) \\ A(starter) = {ExportKeyword}: lacuna única de palavra. A analogia do usuário vira metáfora de entrega: o site (conferidor) só enxerga o que a caixa ENTREGA; sem a palavra, a caixa existe dentro do arquivo e nada mais. A teoria é ESM na dose mínima: import/export como 'entrega/coleta' — o site importa POR VOCÊ (o aluno nunca escreve import). Seção 1 (A16/primeira_secao_demonstra) demonstra ExportKeyword + FunctionDeclaration + ReturnStatement + NumericLiteral num bloco só. O esticar do currículo (entregar também `function ajuda() { return 7; }`) vira item do drill e do notRequired/enunciado (reuso puro do mesmo átomo, sem desafio materializado — o item de avaliação é a palavra em uma caixa). Sem console; outputChannel='retorno'; expectedTestCount=1 (J4: sem parâmetros, a chamada do teste é uma só e idêntica).",
+  "slug": "export-entrega",
+  "title": "export: a entrega ao conferidor",
+  "objective": {
+    "verbo": "demonstrar",
+    "enunciado": "que a palavra export entrega a caixa ao conferidor do site, que só consegue enxergar e chamar o que foi entregue",
+    "contexto": "as aulas 1-3 sempre entregaram a caixa com export no invólucro congelado; o aluno lê export desde a L1, mas nunca o escreveu — e ainda não sabe POR QUE a palavra existe",
+    "criterio": "o aluno escreve a palavra export antes da declaração congelada, no span de uma lacuna única de palavra; o teste importa a função entregue e valida que ela devolve 5"
+  },
+  "introduces": {
+    "receptive": [],
+    "productive": ["node:ExportKeyword"]
+  },
+  "introducesTerms": ["export", "entregar", "conferidor"],
+  "foraDeEscopo": [
+    "import — o site importa por você; o aluno nunca escreve import (fica com o harness, receptivo)",
+    "módulos ESM além da palavra — o que mais um módulo pode exportar (constantes, classes, export default) fica para aulas bem mais à frente",
+    "escrever a caixa inteira — a declaração de função escrita é a aula do invólucro completo",
+    "escrever a chamada — a chamada foi a aula passada; aqui o teste chama por você e você só entrega a caixa",
+    "variáveis e strings — o arquivo ainda só carrega a caixa de número"
+  ],
+  "eiClass": "fato",
+  "targetAtom": "node:ExportKeyword",
+  "notionalMachineDelta": "O arquivo da solução e o site são mundos separados: o site roda um teste que importa nomes do SEU arquivo, e importar só funciona para o que o arquivo ENTREGOU. Entregar é escrever a palavra export na frente da declaração — `export function resposta() { ... }`. A palavra não muda o que a caixa faz nem o valor que ela devolve: muda QUEM enxerga a caixa. Sem a palavra, a caixa existe dentro do arquivo e é invisível para o site: ele nem consegue importá-la, e o teste falha antes de qualquer comparação de valor.",
+  "budgetHash": "programacao-do-zero-v1",
+  "budgetVersion": "v1",
+  "research": [
+    "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/export — sintaxe e semântica da palavra export",
+    "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Modules — módulos ES: o que é exportado é o que os outros módulos podem importar",
+    "https://tc39.es/ecma262/#sec-module-semantics — semântica de módulo: a lista de exportações é o que a importação resolve"
+  ],
+  "theory": [
+    {
+      "id": "a-entrega",
+      "secao": "teoria",
+      "markdown": "O site confere o seu código chamando as caixas do seu arquivo — mas ele só consegue chamar as caixas que **você entregou** para ele. **Entregar** uma caixa é escrever a palavra **export** na frente dela. Sem a palavra, a caixa existe dentro do arquivo… e nada mais: o site não a enxerga.\n\n```js\n// A caixa entregue — o site consegue importá-la e chamá-la:\nexport function resposta() {\n  return 5;\n}\n```\n\nA palavra é **export**: tudo junto, minúsculo, antes de `function`. Compare com as aulas passadas: o invólucro sempre começou com essa palavra — `export function …` — e você a leu desde a aula 1. Hoje ela é a sua parte: a palavra que **entrega** a caixa ao conferidor.",
+      "tag": ""
+    },
+    {
+      "id": "o-que-muda-com-a-palavra",
+      "secao": "teoria",
+      "markdown": "Entregar não muda o que a caixa faz — muda **quem enxerga** a caixa. Esta caixa entrega o valor 5 e o site a encontra pelo nome no teste:\n\n```js\nimport { test } from 'node:test';\nimport assert from 'node:assert/strict';\nimport { resposta } from './solution.mjs';\n\ntest('a caixa entregue devolve 5', () => {\n  assert.equal(resposta(), 5);\n});\n```\n\nO site **importa** a caixa pelo nome (`import { resposta } …`) e a **chama** (`resposta()`). A palavra `import` é a coleta — e ela é sempre **do site**, escrita pelo harness: você nunca escreve import. A sua parte é só o lado da entrega: **export**.\n\nO que acontece se a caixa não for entregue? O nome `resposta` não existe para o site: a importação falha e o teste não chega nem a chamar a caixa. A caixa continua no arquivo, com o valor 5 dentro — mas para o conferidor ela é invisível.",
+      "tag": ""
+    },
+    {
+      "id": "referencia",
+      "secao": "referencia",
+      "markdown": "Referência just-in-time — o que você precisa para o desafio desta aula.\n\n| O que você quer | Como escrever |\n| --- | --- |\n| entregar a caixa `resposta` ao site | `export function resposta() { return 5; }` |\n\n```js\n// entregar: a palavra export na frente da caixa — antes de function\n// sem ela, o site não enxerga a caixa\n```\n\nA palavra fica **antes** de `function`, na primeira linha da caixa. O resto já está pronto: a caixa devolve 5 e o site importa por você. Ficam para outras aulas: escrever a caixa inteira, escrever a chamada, escrever import e entregar outros tipos de valor (texto, variáveis). Termos desta aula: **export**, **entregar**, **conferidor**.",
+      "tag": ""
+    },
+    {
+      "id": "drill",
+      "secao": "drill",
+      "markdown": "Um item curto de treino (opcional) — leia este arquivo e preveja:\n\n```js\nfunction resposta() {\n  return 5;\n}\n```\n\nPreveja: o site consegue chamar `resposta()`? O que o teste diria?\n\nResposta: **não** — a caixa não foi entregue. O site procura o nome `resposta` na lista de entregas do arquivo, não acha, e a importação falha. Para o conferidor, a caixa é invisível: escreva `export` na frente dela.\n\n**Checksum de cauda.** Nesta aula você aprendeu a **usar**: a palavra **export** — a **entrega** da caixa ao **conferidor** do site. Você **leu**: a caixa (que devolve 5) e o teste do site (que importa e chama a caixa entregue). Os termos da aula: **export**, **entregar**, **conferidor**. Nenhuma outra construção apareceu em nenhum exemplo de código — a lista fecha com o orçamento da aula.",
+      "tag": ""
+    }
+  ],
+  "justificativa": "O átomo canônico da L4 é node:ExportKeyword (produtivo, único) — a palavra que entrega a caixa ao conferidor. O starter congela a caixa inteira com a lacuna na PALAVRA: o escrito medido (A(solution) \\ A(starter)) é exatamente {ExportKeyword} — a lacuna única de palavra do currículo (L4). A teoria é a dose mínima de ESM: a metáfora de entrega/coleta, com import sempre do lado do site (harness), nunca do aluno. Seção 1 demonstra export + a moldura (A16/primeira_secao_demonstra). A15b: a solução reutiliza FunctionDeclaration/ReturnStatement/NumericLiteral demonstrados nas aulas 1-3, e o teste importa e chama a caixa — o CallExpression do teste já é cumulativo. O esticar (entregar uma segunda caixa) é reuso puro do mesmo átomo e fica como extensão declarada no enunciado; sem parametrização — parâmetro segue fora de todas as superfícies (L5). Sem console; outputChannel retorno; expectedTestCount=1 (J4).",
+  "role": "regular",
+  "status": "rascunho",
+  "aprovado": false
+}

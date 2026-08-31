@@ -1,0 +1,67 @@
+{
+  "raciocinio_de_projeto": "O desafio é o ITEM DE AVALIAÇÃO do átomo canônico node:CallExpression (produtiva) + node:FunctionDeclaration (receptiva) da L3. O enunciado pede UMA lacuna, e a construção que o aluno escreve nela é a CHAMADA `resposta()` — o nome da caixa congelada com parênteses (a solução de referência). A caixa `resposta` (com `return 5`) e o invólucro `export function conferidor()` ficam CONGELADOS byte a byte no starter e na solução: funcionam como leitura (a declaração é receptiva desde a L1 — avancos.receptivo da L3 a declara explicitamente). O teste verifica o valor devolvido: `assert.equal(conferidor(), 5)` — a chamada de `conferidor()` devolve o resultado da chamada `resposta()`, que é 5. expectedTestCount = 1 por J4: com o orçamento desta aula (sem parâmetros em NENHUMA superfície — node:Parameter ausente das três listas do orçamento, verificado no extrator), toda chamada de `conferidor()` é idêntica; um segundo teste seria tautológico. A falha do starter é a prova 2: com a lacuna vazia, `conferidor()` devolve `undefined` (return sem valor) e o assert.equal falha — o aluno tem o que corrigir. As duas wrongSolutions catalogadas (J5) reproduzem os dois erros da teoria: `resposta` sem parênteses devolve a CAIXA parada (função ≠ 5, comparação falha) e `Resposta()` com nome errado lança ReferenceError — ambas verificadas por execução real. A6 bate: a solução usa CallExpression (introduces.productive) e nada fora de budget_produtivo; o starter usa só budget_receptivo; o teste usa só a seed do harness.",
+  "slug": "chamar-a-caixa",
+  "conceito": "funcao-e-chamada",
+  "statement": "# Chamar a caixa que devolve 5\n\nO site já tem uma caixa pronta — e ela devolve um número. Falta só **chamar** a caixa no lugar marcado.\n\nLeia o que já está pronto (não mexa):\n\n- `function resposta() { return 5; }` — a **caixa** `resposta`: um bloco nomeado que devolve o valor **5**;\n- `export function conferidor() { return ...; }` — o **conferidor**: ele devolve o que estiver no lugar marcado, para o site comparar.\n\n**Chamar** uma caixa é escrever o **nome dela com parênteses**: `resposta()`. Os parênteses são o botão que faz a caixa rodar — sem eles, o nome sozinho é só a caixa parada.\n\nAntes de escrever, preveja: quando o teste chamar `conferidor()`, que valor a função devolve?\n\nEscreva **somente a chamada** na lacuna, com o nome da caixa e os parênteses. A caixa `resposta` já está pronta — é só chamá-la. As demais linhas já estão certas.",
+  "starterCode": "// A caixa resposta está pronta — leia e não mexa:\nfunction resposta() {\n  return 5;\n}\n\nexport function conferidor() {\n  return /* LACUNA: chame a caixa resposta */;\n}\n",
+  "solutionCode": "// A caixa resposta está pronta — leia e não mexa:\nfunction resposta() {\n  return 5;\n}\n\nexport function conferidor() {\n  return resposta();\n}\n",
+  "testsCode": "import { test } from 'node:test';\nimport assert from 'node:assert/strict';\nimport { conferidor } from './solution.mjs';\n\ntest('a caixa chamada devolve 5', () => {\n  assert.equal(conferidor(), 5);\n});\n",
+  "expectedTestCount": 1,
+  "outputChannel": "retorno",
+  "requires": [
+    "como-o-site-confere-seu-codigo (node:NumericLiteral)",
+    "valor-e-instrucao (node:ReturnStatement)"
+  ],
+  "notRequired": [
+    "escrever a caixa resposta (function resposta() { return 5; }) — ela vem pronta e congelada",
+    "escrever a linha return — ela vem pronta e congelada no invólucro",
+    "escrever algo dentro dos parênteses — a caixa não recebe nada ainda (parâmetros são aula futura)",
+    "escrever a palavra export — ela já vem no invólucro congelado"
+  ],
+  "subgoals": [
+    "ler a caixa congelada e saber o valor que ela devolve",
+    "chamar a caixa pelo nome com parênteses",
+    "devolver o resultado da chamada"
+  ],
+  "scenarios": [
+    {
+      "tipo": "exemplo",
+      "derivado_de": "node:CallExpression",
+      "descricao": "chamar a caixa congelada pelo nome com parênteses — `resposta()` é a construção que o aluno escreve na lacuna"
+    },
+    {
+      "tipo": "valido",
+      "derivado_de": "node:CallExpression",
+      "descricao": "a chamada devolve o valor da caixa: `conferidor()` devolve o resultado de `resposta()`, que é 5 — o teste bate"
+    },
+    {
+      "tipo": "limite",
+      "derivado_de": "node:CallExpression",
+      "descricao": "a caixa não recebe nada ainda — toda chamada de `resposta()` devolve o mesmo valor, então qualquer número de chamadas seria idêntico para o teste (J4)"
+    },
+    {
+      "tipo": "invalido",
+      "derivado_de": "node:CallExpression",
+      "descricao": "escrever o nome SEM os parênteses devolve a caixa parada, não o valor (função ≠ 5 — o assert falha); escrever o nome com letra diferente (Resposta) lança ReferenceError na execução"
+    }
+  ],
+  "taskSkill": "escrever a chamada de uma função sem argumentos no span de uma lacuna única",
+  "supportLevel": "com_andaime",
+  "surfaceDomain": "chamada de função (nome + parênteses)",
+  "solutionAlternates": [
+    "resposta( )"
+  ],
+  "wrongSolutions": [
+    "resposta",
+    "Resposta()"
+  ],
+  "requirements": [
+    {
+      "id": "REQ-1",
+      "descricao": "A função conferidor() devolve o valor que a caixa resposta() devolve — 5, o número que a caixa congelada entrega.",
+      "teste": "a caixa chamada devolve 5"
+    }
+  ],
+  "justificativa": "Uma lacuna única cujo span contém a chamada `resposta()` (átomo-alvo produtivo node:CallExpression); a caixa e o invólucro ficam congelados byte a byte no starter e na solução (node:FunctionDeclaration e node:ReturnStatement receptivos, leitura desde a L1); o teste usa apenas a seed do harness e verifica o valor devolvido pela chamada; expectedTestCount=1 por J4 — sem parâmetros no orçamento, duas chamadas de conferidor() seriam idênticas e um segundo teste seria tautológico. As quatro provas de execução passam; as duas wrongSolutions catalogadas falham no teste por execução real.",
+  "aprovado": false
+}
