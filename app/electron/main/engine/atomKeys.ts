@@ -257,4 +257,7 @@ export const STRUCTURAL_ALWAYS_ALLOWED: readonly AtomKey[] = [
   'node:ExpressionStatement',
   'node:EndOfFileToken',
   'node:SyntaxList',
+  'node:VariableStatement',
+  'node:VariableDeclarationList',
+  'node:VariableDeclaration',
 ] as const;

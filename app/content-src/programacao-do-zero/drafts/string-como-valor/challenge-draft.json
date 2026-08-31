@@ -1,0 +1,69 @@
+{
+  "raciocinio_de_projeto": "O desafio é o ITEM DE AVALIAÇÃO do átomo produtivo node:StringLiteral (texto entre aspas como valor), REUSANDO decl:let da aula 7 (avancos do curriculo L8: produtivo=[node:StringLiteral, decl:let]; receptivo=[]). Uma lacuna única; a construção que o aluno escreve nela é a declaração `let mensagem = \"oi\";` (uma construção por linha — A14b: a linha tem decl:let, que é CUMULATIVO da aula 7, e node:StringLiteral, o átomo novo desta aula; o colapso didático de construcoesDaLinha mantém 1 construção nova por linha). O invólucro `export function saudacao() { ???; return mensagem; }` e o teste ficam CONGELADOS (node:StringLiteral é o único novo produtivo; decl:let é reuso da L7 — A6/A15b: reuso inter-aula garantido). O teste `assert.equal(saudacao(), 'oi')` valida o texto guardado. expectedTestCount = 1 por J4 (bijeção requisito-testes): o orçamento veda parâmetros até L8, então toda chamada de `saudacao()` é idêntica; um segundo teste seria tautológico. A falha do starter é a prova 2: com a lacuna vazia, `return mensagem;` referencia uma variável não declarada e o módulo ESM (strict mode) lança ReferenceError na execução — o teste falha e o aluno tem o que corrigir. As duas wrongSolutions catalogadas (J5) reproduzem as misconceptions do contrato (string sem aspas → ReferenceError; variável diferente do return → o texto errado sai) e cada uma falha no teste, verificado por execução real. outputChannel='retorno': nenhuma impressão (sem console). A predição pedida no enunciado é LÍCITA: o aluno já leu strings em todas as superfícies desde a L1 (o harness usa aspas no título do test) — é retrieval real.",
+  "slug": "saudacao-com-string",
+  "conceito": "string-como-valor",
+  "statement": "# Guardar um texto numa variável\n\nA função `saudacao()` já está quase pronta. Ela quer guardar um **texto** numa **variável** — a caixinha etiquetada da aula passada — e devolver esse texto. Falta **declarar** a variável `mensagem` com `let` no lugar marcado, com um **texto entre aspas** — uma **string**.\n\nO restante já está pronto — não mexa:\n\n- `return mensagem;` — devolve o que está guardado na variável.\n\nAntes de escrever, **preveja** — com a lacuna preenchida com `let mensagem = \"oi\";`, o que `saudacao()` devolve? O texto `oi`, com ou sem aspas ao devolver?\n\nEscreva **somente a declaração** na lacuna: a palavra `let`, um espaço, o nome `mensagem`, `=`, o texto `oi` entre aspas e ponto e vírgula. O teste confere exatamente esse texto — `assert.equal(saudacao(), 'oi')` —, então o texto tem de ser `oi` (as aspas podem ser duplas ou simples). As demais linhas já estão certas.",
+  "starterCode": "export function saudacao() {\n  // LACUNA: declare a variável `mensagem` com `let`, guardando um texto entre aspas\n  return mensagem;\n}\n",
+  "solutionCode": "export function saudacao() {\n  let mensagem = \"oi\";\n  return mensagem;\n}\n",
+  "testsCode": "import { test } from 'node:test';\nimport assert from 'node:assert/strict';\nimport { saudacao } from './solution.mjs';\n\ntest('texto também é valor: a string', () => {\n  assert.equal(saudacao(), 'oi');\n});\n",
+  "expectedTestCount": 1,
+  "outputChannel": "retorno",
+  "requires": [
+    "string-como-valor (node:StringLiteral)",
+    "let-e-atribuicao (decl:let)",
+    "return (node:ReturnStatement)"
+  ],
+  "notRequired": [
+    "escrever o texto livre — o teste confere o texto 'oi' (as aspas duplas ou simples valem; o texto não é livre nesta atividade)",
+    "escrever o invólucro nem o return — export function saudacao() e return mensagem; vêm congelados (reuso da L1/L6)",
+    "escrever a atribuição (mensagem = ...;) — declarar com let já guarda o valor inicial; não há atribuição solta nesta aula",
+    "usar const, concatenar com +, template literals ou métodos de string — fora do orçamento desta aula"
+  ],
+  "subgoals": [
+    "declarar",
+    "guardar o texto",
+    "ler-valor"
+  ],
+  "scenarios": [
+    {
+      "tipo": "exemplo",
+      "derivado_de": "node:StringLiteral",
+      "descricao": "guardar o texto 'oi' entre aspas numa variável let (declaração) e devolvê-lo pelo return"
+    },
+    {
+      "tipo": "valido",
+      "derivado_de": "node:StringLiteral",
+      "descricao": "saudacao() devolve exatamente o texto guardado na declaração — texto é um valor como o número"
+    },
+    {
+      "tipo": "limite",
+      "derivado_de": "node:StringLiteral",
+      "descricao": "as aspas podem ser duplas ou simples ('oi' ou \"oi\") — as duas são string e o teste confere o MESMO texto"
+    },
+    {
+      "tipo": "invalido",
+      "derivado_de": "node:StringLiteral",
+      "descricao": "esquecer as aspas (mensagem = oi;) referencia o nome oi não declarado → ReferenceError em modo estrito; ou guardar outro texto ('tchau') → o teste esperava 'oi' e falha"
+    }
+  ],
+  "taskSkill": "guardar um texto entre aspas (string) numa variável let com valor inicial, no span de uma lacuna única",
+  "supportLevel": "com_andaime",
+  "surfaceDomain": "declaração de variável (let) com string (texto entre aspas)",
+  "solutionAlternates": [
+    "export function saudacao() {\n  let mensagem = 'oi';\n  return mensagem;\n}\n",
+    "export function saudacao() {\n  let mensagem = \"oi\" ;\n  return mensagem;\n}\n"
+  ],
+  "wrongSolutions": [
+    "export function saudacao() {\n  let mensagem = oi;\n  return mensagem;\n}\n",
+    "export function saudacao() {\n  let mensagem = \"tchau\";\n  return mensagem;\n}\n"
+  ],
+  "requirements": [
+    {
+      "id": "REQ-1",
+      "descricao": "A função saudacao() devolve o texto 'oi' guardado na variável mensagem — a string declarada com let entre aspas (duplas ou simples).",
+      "teste": "texto também é valor: a string"
+    }
+  ],
+  "justificativa": "Uma lacuna única cujo span contém a declaração let com uma string (átomo-alvo produtivo node:StringLiteral, reusando decl:let da aula 7); o invólucro e o return ficam congelados byte a byte no starter e na solução; o teste usa apenas a seed do harness e valida que texto é um valor devolvido — o texto 'oi' é FIXO no teste (a lacuna declara a variável, não escolhe o texto), e as aspas duplas/simples são o limite sintático da atividade; expectedTestCount=1 por J4 — orçamento sem parâmetros, segunda chamada seria tautológica. As quatro provas de execução (§5.4) passam: P1 solução passa, P2 starter falha (ReferenceError pela lacuna da declaração), P3 contagem bate (1), P4 stub vazio falha; as duas wrongSolutions catalogadas (string sem aspas → ReferenceError; texto 'tchau' → falha no assert) falham por execução real.",
+  "aprovado": false
+}
