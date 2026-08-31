@@ -232,6 +232,9 @@ por todos os grupos específicos. O contrato de canais/tipos é **único e conge
 Os testes `tests/study-wiring.test.ts` provam esse casamento de assinatura (payload exato da
 UI → handler), incluindo os retornos planos (`string`, `WorkspaceFile[]`, `ChallengeInfo[]`).
 
+As trilhas pré-definidas (rodada 8) têm grupo de canais **próprio e aditivo** —
+`TRACK_CHANNELS` (→ `window.api.track.*`) — ver §2.13.
+
 ### 2.4 O lesson-orchestrator (cadeia de geração)
 
 `lessonOrchestrator.ts` (no main) orquestra:
@@ -413,6 +416,149 @@ A fixture `tests/e2e/helpers.ts` injeta `STUDY_METHOD_WINDOW_VISIBLE='0'` por
 padrão — as duas formas rodam as **mesmas specs**, sem sobrepor o seu desktop.
 Não usamos `--headless` (modo não confirmado para `_electron`). Detalhes em
 `tests/e2e/README.md`.
+
+### 2.13 Canais TRACK_CHANNELS (IPC aditivo — trilhas)
+
+Desde a **rodada 8** o aluno não gera mais aula: as trilhas (cursos inteiros) são
+criadas pelos **autores da ferramenta via CLI** (§2.14) e chegam prontas — o aluno
+abre a trilha, escolhe a aula e estuda num chat direto com a IA. Esse fluxo usa um
+grupo de canais **próprio e aditivo** ao contrato congelado de `study:*` (§2.3):
+`TRACK_CHANNELS` (→ `window.api.track.*`). O contrato de tipos/canais vive em
+`shared/ipc-contract.ts`; aqui fica a leitura de produto.
+
+| Canal (`track:*`) | Observação (leitura de produto) |
+|---|---|
+| `track:list` | lista as trilhas instaladas (Home / aba Trilha) |
+| `track:get` | detalhe da trilha: módulos/aulas com estados `done`/`current`/`pending` e **travamento sequencial** |
+| `track:lesson` | abre a aula da trilha (teoria em modo chat) |
+| `track:lesson-done` | marca a lição concluída (`track_progress`) |
+| `track:tutor-chat` | chat com o tutor: base teórica uma SEÇÃO por vez, dúvidas ancoradas no material, recomenda pré-requisitos da trilha; fallback verbatim quando a LLM falha (conteúdo nunca trava) |
+| `track:challenge` | desafio do fluxo track (cronômetro/estrelas); o teste de proficiência **só começa depois de ler o enunciado e clicar em "Começar"** — o cronômetro NÃO roda antes |
+| `track:challenge-submit` | envia a solução do desafio do fluxo track |
+| `track:challenge-regenerate` | "Gerar novo desafio": a LLM recebe TODOS os desafios que o aluno errou naquela aula e não repete; o novo desafio é validado por execução ANTES de chegar (2 tentativas, nunca desafio ruim) |
+| `track:proficiency` | teste de proficiência cobrindo TODOS os módulos (`proficiency.json`); passar destrava a trilha inteira |
+| `track:proficiency-submit` | envia o veredito da proficiência |
+
+**Aditivo ao congelado:** `study:mark-challenge-attempt` ganhou **`lessonId`
+opcional** (nunca-repetir por aula). O schema do SQLite foi para **v4**:
+`track_progress` (lições concluídas), `track_proficiency` (veredito),
+`generated_challenges` (regenerados) — migração crash-safe.
+
+### 2.14 CLI de autoria e runner de desafios (ondas R8)
+
+**CLI de autoria (admin) — `app/tools/track-cli.ts`, exposta como
+`npm run track -- ...`:** `track:new`, `module:new`, `lesson:new`,
+`challenge:new`, `proficiency:new`, `challenge:verify`, `validate`, `list`. O
+scaffold nasce válido e `track:validate` verifica TODOS os desafios **por
+execução** (a solução passa + o starter falha + igualdade de contagem).
+
+**Runner único de desafios nodejs — `electron/main/services/challengeExec.ts`:**
+`node --test` em diretório temporário, **gate de IGUALDADE** (exit 0 sozinho
+mente), parse de contagens **imune a ANSI** e binário do `node` **correto dentro
+do Electron**.
+
+### 2.15 Resolução de resources/ (cadeia resolveResourcesDir)
+
+`electron/main/services/resourcesDir.ts` centraliza a resolução do diretório
+`resources/` do app por **cadeia de candidatos com checagem de existência**:
+
+1. **empacotado** → `process.resourcesPath` (ramo preservado);
+2. `app.getAppPath()/resources` (dev);
+3. **pai** do dir do entry;
+4. **pai-do-pai** (a raiz — caso `out/main`);
+5. `cwd/resources` como **último recurso** (nunca âncora: o harness roda com
+   `cwd=APP_ROOT` e mascararia).
+
+Nenhum candidato existe → fallback pela raiz derivada de `appPath` (ENOENT
+tratado em runtime pelos consumidores — nunca erro de resolução). As partes puras
+`normalizeEntryDir`/`resolveAppRoot` (walk-up por package.json) são testáveis por
+node:test (`app/tests/resourcesDir.test.ts`, 18 testes).
+
+**Consumidores migrados (4):** `getTracksDir` (`track-handlers`),
+`sttLocalService.embeddedModelsPath`, `espeakAssets.getEspeakNgDataDir` e
+`ttsEnginePaths.resourceRoot`.
+
+**NÃO migrado (documentado):** `LlmProxyService.resolveEngineEntryPath` resolve
+por `__dirname` (o `llm-engine.js` vive AO LADO do bundle em `out/main`) —
+correto no modo entry, não usa o padrão quebrado. E
+`studyMethodRunner.moduleAppRoot` **resolve errado nos dois modos** mas está
+**dormente** (nenhuma view chama `study.run`) — se um dia chamar, precisa do
+mesmo tratamento do `resourcesDir`.
+
+### 2.16 Causa raiz do Bug 1 (clone limpo)
+
+Com o main lançado por **entry de arquivo** (`electron out/main/index.js` — o
+modo do harness E2E e o jeito mais comum de rodar o buildado), o Electron define
+`app.getAppPath()` = **diretório do entry** (`<app>/out/main`), não a raiz do
+app → `tracksDir` virava `<app>/out/main/resources/tracks` (**inexistente**; as
+trilhas reais vivem em `resources/tracks`) → todo `track:*` respondia
+`{ ok:false, ENOENT }` em 1-13ms → a seção Trilhas sumia da Home em silêncio e a
+aula ficava inalcançável (o relato do "loader infinito"). Em dev (`electron .`)
+`getAppPath()` = raiz → "funciona na minha máquina"; o harness E2E **mascarava**
+o bug (em `STUDY_METHOD_E2E=1` os handlers de trilha são stubs de `e2eStubs.ts`
+que nunca chamam `getTracksDir`). Fix em §2.15; spec de regressão falsificável
+`app/tests/e2e/e2e-clean-clone.spec.ts` com `requireBuild()` (sem build, FALHA
+com mensagem clara — nunca skip silencioso).
+
+### 2.17 Bootstrap e instalação (clone idempotente)
+
+- **`tools/check-env.sh` (novo)** — fonte única e sourceável (bash 3.2/macOS e
+  Linux) com:
+  - `require_node_ge_22_13` — node/npm presentes e Node ≥ **22.13**
+    (`node:sqlite` unflagged), com erro claro ANTES de qualquer download;
+  - `ensure_app_env_local` — cria `app/.env.local` a partir do example se faltar;
+    **nunca sobrescreve**; aviso para preencher `DEEPSEEK_API_KEY`/`BRAVE_API_KEY`;
+  - `app_node_modules_ok` — prova de instalação COMPLETA = marcador
+    `node_modules/.install-ok` (não basta a pasta existir).
+- **`run.sh`** — sequência garantida: checa node → garante `.env.local` → sem o
+  marcador, roda `install.sh` (única parte com download; a primeira vez pode
+  levar minutos) → `exec app/run-dev.sh` (carrega `.env.local` e sobe
+  electron-vite, janela visível). **O usuário nunca precisa rodar `./install.sh`
+  antes.**
+- **`install.sh`** — idempotente: skill só recopia se a origem não está íntegra
+  no destino (`src_installed_in`, comparação conteúdo a conteúdo; extras no
+  destino não forçam recópia); `npm ci` só sem marcador; **marcador escrito só
+  após `npm ci` exit 0** — ci morto no meio (disco lento, queda de rede) deixa a
+  pasta pela metade SEM marcador e a próxima execução refaz; fix de bug latente
+  `chmod 700 -- dir` → `chmod 700 dir` (no macOS `--` não é aceito e o chmod
+  falhava).
+- **Testes** `app/tests/runsh-bootstrap.test.ts` (10 casos) — rodam os scripts
+  bash REAIS num tmp com **node/npm falsos no PATH** (sem rede, determinístico):
+  clone sem node_modules instala tudo e sobe; segunda execução é no-op rápido;
+  node velho/ausente → erro claro antes de qualquer npm; npm ci falho → sem
+  marcador → refaz e completa; skill com diferença na origem recopia. Smoke real:
+  **1 `npm ci` em 3 execuções** (as duas seguintes no-op).
+
+### 2.18 IPC com timeout (anti-spinner — nunca mais loader sem fallback)
+
+- **`src/lib/ipcTimeout.ts` (novo)** — `withTimeout(promise, ms, label)` com
+  `IPC_TIMEOUT_MS = 10_000` e `IpcTimeoutError` identificável via
+  `isTimeoutError()`; o timer é SEMPRE limpo e a rejeição tardia da chamada
+  original é consumida pelo race (sem unhandled rejection).
+- **Validação de chaves** — `withFetchTimeout` (AbortController + timer,
+  `DEFAULT_VALIDATE_TIMEOUT_MS = 8000`, injetável por opção; `0` desliga) no
+  `apiKeyValidator`; o timeout aborta o fetch com reason `timed out after Nms` e
+  é classificado como **erro de rede** (`isNetworkError` reconhece
+  `/^Network error:/i` e `/timed out/i`) — mensagem "Network error: timed out
+  after 8000ms". No renderer (SetupView + KeysPanel), **guarda de 10s com
+  settled-flag**: a primeira resposta (erro ou sucesso) encerra o `validating`;
+  resposta tardia do IPC NÃO sobrescreve o estado já decidido. String
+  `keys.errorTimeout` em pt-BR/en ("Tempo esgotado ao contatar o provedor…").
+- **Blindagem dos carregamentos** — LessonView (`loadLesson` extraída com
+  timeout + estado de erro + botão **retry**; o `<LinearProgress/>`
+  incondicional deixou de ser o único caminho), splash do AppGate (`GateError`
+  explícito para timeout de `keys:startup-status` e para rejeição + recheck),
+  RoadmapView (`track.get`/`track.list` com timeout, spinner do detalhe sem
+  janela branca, retry), TrackChallengePanel (`track:challenge` com timeout +
+  retry) e TracksSection da Home (**erro visível com o detalhe real do canal** +
+  retry — nunca mais `return null` silencioso; vazio legítimo continua `null`).
+- **ResearchChecklist removido** — componente morto (nenhuma view o importava);
+  `lesson.research.*` removidas do i18n; `lesson.phase.research` **preservada**.
+  `LocalAiPanel` documentado **não-tocado** (progresso de download de modelo
+  local tem semântica própria).
+- Spec E2E `app/tests/e2e/e2e-setup-timeout.spec.ts` (3 testes): pendura o
+  handler do `ipcMain` por ~20s e prova a guarda de 10s do renderer — erro claro
+  em ~11s (< 15s), spinner some, botão reabilitado (retry).
 
 ---
 

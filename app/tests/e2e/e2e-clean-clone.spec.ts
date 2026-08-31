@@ -10,7 +10,7 @@
  * STUDY_METHOD_E2E=1 (stubs). Lançam o app REAL (out/main/index.js) com
  * `--user-data-dir` NOVO — o main roda a fiação real (gate real, settingsStore
  * real, SQLite real, track-handlers reais). Assim o repro cobre exatamente o
- * que o modo E2E stub MASKCARA (ver docs/relatorio-rodada10-diag.md).
+ * que o modo E2E stub MASKCARA (ver docs/app-gui.md §2.16).
  *
  * Rodar (a partir do repo principal, com out/ buildado):
  *   npm run build && npx playwright test tests/e2e/e2e-clean-clone.spec.ts
@@ -24,7 +24,7 @@
  *
  * FALSIFICÁVEL (onda 2a): antes do fix, no modo 'entry' os testes 2/3 FALHAVAM
  * (track:list/get/lesson respondiam ENOENT porque getAppPath()=out/main e o
- * tracksDir virava out/main/resources/tracks — ver docs/relatorio-rodada10-diag.md,
+ * tracksDir virava out/main/resources/tracks — ver docs/app-gui.md §2.16,
  * Bug 1). Após o fix (resourcesDir.ts — cadeia de candidatos), os testes 2/3
  * passam no modo entry SEM alteração; se o bug regressar, eles falham de novo.
  *

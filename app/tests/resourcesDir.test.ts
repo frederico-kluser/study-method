@@ -1,7 +1,7 @@
 /**
  * tests/resourcesDir.test.ts — resolução de `resources/` por CADEIA DE
  * CANDIDATOS (onda 2a, rodada 10 — fix do "loader infinito ao abrir aula em
- * clone limpo"; ver docs/relatorio-rodada10-diag.md, Bug 1).
+ * clone limpo"; ver docs/app-gui.md §2.16, Bug 1).
  *
  * Cobre os 3 modos de execução + cwd-aleatório:
  *   - dev / `electron .`: app.getAppPath() já é a raiz → <raiz>/resources;

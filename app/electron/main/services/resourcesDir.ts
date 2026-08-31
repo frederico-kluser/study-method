@@ -3,7 +3,7 @@
  * `resources/` do app (rodada 10, onda 2a — fix do "loader infinito ao abrir
  * aula em clone limpo").
  *
- * CAUSA RAIZ (docs/relatorio-rodada10-diag.md, Bug 1): com o main lançado por
+ * CAUSA RAIZ (docs/app-gui.md §2.16 "Causa raiz do Bug 1 (clone limpo)"): com o main lançado por
  * ENTRY DE ARQUIVO (`electron out/main/index.js` — o modo do harness E2E e o
  * jeito mais comum de rodar o buildado), o Electron define `app.getAppPath()`
  * como o DIRETÓRIO DO ENTRY (`<app>/out/main`), não a raiz do app. O padrão

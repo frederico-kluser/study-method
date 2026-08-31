@@ -2,7 +2,7 @@
  * e2e-setup-timeout.spec.ts — RODADA 10 (onda 2b): SEM SPINNER INFINITO na
  * validação de chaves (SetupView do gate + KeysPanel das Settings).
  *
- * Causa raiz (docs/relatorio-rodada10-diag.md): o fetch dos validadores no
+ * Causa raiz (docs/app-gui.md §2.18 "IPC com timeout"): o fetch dos validadores no
  * main (apiKeyValidator) não tinha AbortSignal — rede que engole pacotes
  * deixava `keys:validate-*` pendurado INDEFINIDAMENTE e o spinner eterno.
  * Fix: timeout no validador (main, ~8s, cobrindo fetch + leitura do corpo) +
