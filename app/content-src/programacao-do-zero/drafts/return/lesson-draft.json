@@ -1,0 +1,70 @@
+{
+  "raciocinio_de_projeto": "L6 ENSINA return como produção (avanço produtivo node:ReturnStatement — a primeira vez que o aluno ESCREVE a linha de devolução; antes dela, return era só leitura, receptivo desde a L1). A lacuna do fixar É a palavra return: o starter congela `export function eco(x) { <lacuna> }` (o comentário-marcador de lacuna ocupa a linha do corpo, convenção da rodada 11) e o teste `assert.equal(eco(7), 7)` — a MESMA caixa com janelinha da L5 é reusada (A15b: Parameter + CallExpression reusados), e o que o aluno escreve pela primeira vez é a ENTREGA (`return x;`). Seção 1 da teoria (a que a A16 exige com código) demonstra return no código exato da atividade — `export function eco(x) { return x; }` — junto com o número (NumericLiteral na primeira seção, conforme curriculo: primeira_secao_demonstra = ReturnStatement, Parameter, NumericLiteral) no exemplo `tres()`. Analogia: a máquina com ENTRADA da L5 ganha agora a SAÍDA — return é a linha que entrega o valor pela saída e ENCERRA a caixa naquela linha (termos: devolver, encerrar). A chamada agora USA o valor devolvido (o teste compara eco(7) com 7 — CallExpression demonstrado também na teoria, como manda demonstrado_na_teoria da L6). Nenhuma superfície usa `+` nem BinaryExpression (só entram no receptivo na L7 — verificável no curriculo); nada de console (outputChannel = 'retorno'). O esticar (reuso A15a) é `export function tres() { <lacuna> }` → `return 3;` (único átomo não reusado em relação ao fixar: NumericLiteral, já demonstrado na mesma aula — ≤1 novo por degrau); vive como seção 'drill' da teoria, autocontido para a fase de materialização. Escrito(L6 fixar) = {ReturnStatement} ⊆ Cum(L6) (demonstrado desde a L1) e ⊆ DemoSec1 também (seção 1 demonstra); A14a marca aviso de 'aula sem incremento' (prática) — leitura calibrada da spec, idêntica à das L2/L3/L4 de prática, nunca erro. Átomos de todas as superfícies ⊆ conjunto cumulativo do curriculo até a L6 (validado por extração).",
+  "slug": "return",
+  "title": "return: a linha que entrega e encerra",
+  "objective": {
+    "verbo": "escrever",
+    "enunciado": "a linha de devolução (return + o valor que sai) — a entrega do valor pela saída da caixa",
+    "contexto": "sexta aula da trilha: o aluno escreveu o parâmetro da caixa na L5 e leu return desde a L1 em todas as superfícies; nunca o ESCREVEU — pela primeira vez a linha de devolução é produzida por ele",
+    "criterio": "o aluno escreve a linha return x; no corpo da função eco(x) e o teste assert.equal(eco(7), 7) valida que a caixa devolve o valor do parâmetro"
+  },
+  "introduces": {
+    "receptive": [],
+    "productive": ["node:ReturnStatement"]
+  },
+  "introducesTerms": ["return", "devolver", "encerrar"],
+  "foraDeEscopo": [
+    "return sem valor (return;) — devolve 'nada' (undefined) — semântica de ausência — aula própria",
+    "mais de um return e return condicional (if) — desvio de fluxo é conteúdo futuro; nesta aula a leitura é 'a linha seguinte ao return não roda'",
+    "return fora de função — erro de sintaxe; é leitura de mensagem de erro, não construção nova",
+    "arrow functions (return implícito) — outra forma de devolver — fora desta trilha",
+    "devolver expressões com operadores (return 1 + 2;) — operadores binários só entram no receptivo da L7",
+    "return dentro de laços (for/while) — laços não existem ainda na trilha"
+  ],
+  "eiClass": "regra",
+  "targetAtom": "node:ReturnStatement",
+  "notionalMachineDelta": "A caixa da L5 ganha a SAÍDA: return é a linha que entrega o valor pela saída da máquina e ENCERRA a caixa naquela linha — nada depois dela roda. Chamar a caixa vira o valor devolvido: eco(7) 'vira' 7, e o teste compara esse valor. Devolver é diferente de imprimir: o valor volta pelo programa (o teste o recebe), não para a tela.",
+  "budgetHash": "programacao-do-zero-v1",
+  "budgetVersion": "v1",
+  "research": [
+    "https://tc39.es/ecma262/#sec-return-statement — return avalia a expressão e devolve o valor ao chamador, encerrando a execução da função",
+    "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/return — MDN: return termina a execução da função e especifica o valor a ser devolvido",
+    "https://tc39.es/ecma262/#sec-function-calls — o valor da chamada de função É o valor devolvido pelo return"
+  ],
+  "theory": [
+    {
+      "id": "a-saida-da-maquina",
+      "secao": "teoria",
+      "markdown": "Na aula passada a máquina ganhou a **janelinha de entrada**: você entrega um valor e a caixa o guarda no nome do parâmetro. O que falta é a **saída** — o valor que sai da máquina e volta para quem chamou.\n\nA **saída** é a linha **return**. `return` entrega o valor pela saída e **encerra** a caixa naquela linha: depois dela, nada mais roda. É a latinha saindo da máquina de refrigerante — a máquina abre, entrega e fecha.\n\nA caixa da aula passada, agora completa:\n\n```js\nexport function eco(x) {\n  return x;\n}\n```\n\nO `return x;` pega o valor preso no nome `x` (o que entrou pela janelinha) e o entrega pela saída. A chamada `eco(7)` vira o valor **7** — o teste compara esse valor devolvido.\n\nUma caixa sem janelinha também devolve — o valor sai pela saída do mesmo jeito:\n\n```js\nexport function tres() {\n  return 3;\n}\n```\n\nA chamada `tres()` vira o valor **3**. Número entra na caixa (parâmetro) ou nasce dentro dela; o que importa para a saída é o valor que o **return** entrega.",
+      "tag": ""
+    },
+    {
+      "id": "return-entrega-e-encerra",
+      "secao": "teoria",
+      "markdown": "Duas palavras resumem o return desta aula: **devolver** e **encerrar**.\n\n**Devolver** — o valor do lado direito deixa a caixa e vira o resultado da chamada. Se você escrever `return 7;`, a caixa devolve `7`.\n\n**Encerrar** — a caixa para na linha do return. O que vier depois dela nunca roda:\n\n```js\nexport function eco(x) {\n  return x;  // a caixa devolve aqui e encerra\n  return 7;  // esta linha nunca roda — a caixa já fechou\n}\n```\n\nA segunda linha é código morto: a caixa já entregou `x` e fechou na primeira linha. Isso mostra que a ORDEM importa — a primeira entrega vence.\n\nE se faltar a linha de devolução? A caixa abre e fecha sem entregar nada. Quem chama recebe **nada**, e o teste que esperava um valor falha. A linha de devolução é o que faz a caixa responder.",
+      "tag": ""
+    },
+    {
+      "id": "a-chamada-usa-o-valor",
+      "secao": "teoria",
+      "markdown": "Agora a chamada deixa de ser só leitura: você vê o valor devolvido sendo USADO.\n\nA chamada de uma caixa com return **vira o valor devolvido** no lugar onde ela está escrita:\n\n```js\neco(7);\n```\n\nEssa linha não mostra nada na tela — ela apenas chama a caixa, que devolve `7`, e o `7` fica como resultado da chamada. Quem usa o resultado é o **conferidor**: o teste compara o valor devolvido com o esperado.\n\nÉ por isso que o teste desta aula chama a caixa DUAS vezes, com argumentos diferentes: `assert.equal(eco(7), 7)` e `assert.equal(eco(5), 5)`. Cada chamada entrega um argumento e o conferidor confere se o valor DEVOLVIDO é o mesmo que entrou. Devolver sempre o mesmo número não passa nos dois — a caixa tem de devolver o valor do parâmetro de cada chamada. A caixa, a janelinha e a entrega — o ciclo inteiro da máquina, fechado.",
+      "tag": ""
+    },
+    {
+      "id": "referencia",
+      "secao": "referencia",
+      "markdown": "Referência just-in-time — a sintaxe, colada ao desafio desta aula.\n\n| O que você quer | Como escrever |\n| --- | --- |\n| entregar um valor pela saída e encerrar a caixa | `return <valor>;` — ex.: `return x;` |\n| devolver o valor que entrou pela janelinha | `return x;` — o nome do parâmetro |\n| devolver um número qualquer | `return 3;` |\n\nO desafio completo, com comentários:\n\n```js\nexport function eco(x) {\n  // devolver: entregar o valor de x pela saída e encerrar a caixa\n  return x;\n}\n```\n\nNo desafio desta aula a lacuna é a **linha de devolução**: você escreve `return` + o valor que sai (`x`). A caixa com janelinha da aula passada (`eco(x)`) vem congelada — assim como o teste, que chama a caixa com dois argumentos diferentes (`eco(7)` e `eco(5)`) para conferir que o valor devolvido é o que entrou. O que é seu é a entrega. Ficam para outras aulas: `return;` sem valor (devolve nada), return condicional com `if`, return fora de função, arrow functions com return implícito e devolver expressões com operadores (como `return 1 + 2;`).\n\nTermos desta aula: **return**, **devolver**, **encerrar**.",
+      "tag": ""
+    },
+    {
+      "id": "esticar-tres",
+      "secao": "drill",
+      "markdown": "Um passo além (opcional, mesmo padrão da atividade). Agora a caixa não tem janelinha — só saída:\n\n```js\nexport function tres() {\n  /* LACUNA: devolva o número 3 */\n}\n```\n\nA lacuna é a linha de devolução: escreva a palavra **return** seguida do número **3**, com ponto e vírgula. O teste que confere é `assert.equal(tres(), 3)` — a chamada de `tres()` tem de virar o valor `3`.\n\nResposta: `return 3;`. A caixa sem janelinha nasce, entrega `3` pela saída e encerra — mesmo return da atividade, agora devolvendo um número direto em vez do valor de um parâmetro.",
+      "tag": ""
+    }
+  ],
+  "justificativa": "L6 torna PRODUTIVO o return (node:ReturnStatement), que era receptivo desde a L1: a lacuna do desafio É a linha de devolução (o_aluno_escreve = \"return x;\" no curriculo), com a caixa da L5 reusada byte a byte (A15b: Parameter + CallExpression reutilizados; o teste é o mesmo assert.equal(eco(7), 7)). A seção 1 da teoria demonstra return no código da atividade (A16: Escrito = {ReturnStatement} ⊆ DemoSec1 ∪ Cum). Sem operadores em nenhuma superfície (BinaryExpression só entra no receptivo da L7). Aula regular: exercita o nó que fecha o ciclo máquina-entrada-saída antes de let/atribuição (L7).",
+  "role": "regular",
+  "status": "rascunho",
+  "aprovado": false
+}

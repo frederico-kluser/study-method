@@ -1,0 +1,71 @@
+{
+  "raciocinio_de_projeto": "L5 é ONDE o parâmetro É ENSINADO (o feedback que originou esta trilha acusava 'pressupõe parâmetro' — aqui ele é apresentado de verdade, pela primeira vez, em teoria E atividade). Avanço produtivo único: node:Parameter. A lacuna do fixar É a declaração do parâmetro (curriculo atividade.fixar.o_aluno_escreve = \"x\"): o starter congela `export function eco(<lacuna>) { return x; }` e o teste `assert.equal(eco(7), 7)`; o ARGUMENTO 7 é LIDO na chamada do teste (CallExpression e NumericLiteral são reuso cumulativo da L3 e da seed — o aluno não escreve nem chamada nem número). Decisão de starter: a lacuna viva dentro dos parênteses é marcada por um comentário `/* LACUNA: ... */` (convenção da rodada 11, mesma do materializado let-e-atribuicao) — o starter parseia, então A13b roda de verdade; substituído o comentário pelo nome `x`, a solução é `export function eco(x) { return x; }`. Seção 1 da teoria é a seção com código que a A16 exige (parâmetro demonstrado na PRIMEIRA seção): a analogia máquina-com-entrada aplicada no código EXATO da atividade. Nenhuma superfície usa `+` nem BinaryExpression (op:binary:+ e node:BinaryExpression só entram no RECEPTIVO da L7 — verificado no curriculo; a analogia do 'dobro' seria com multiplicação, e `*` também NÃO está no curriculo — por isso a função modelo é eco, que devolve o valor recebido SEM nenhum operador). Reuso A15b: export/function/return das L1-L4 + CallExpression da L3 (no teste); A13/A14: Escrito(L5) = {node:Parameter} ⊆ Demo(L5); novo(L5) = 1 (teto ok); A14b: o parâmetro é a única construção nova na linha da assinatura (linha do corpo é idêntica ao starter). O esticar (reuso A15a da mesma aula) exercita a LEITURA de dois argumentos: `dupla(3, 4)` com os dois nomes `a, b` escritos; vive como seção 'drill' da teoria (a entrega materializada de desafios por aula é um arquivo por aula nesta fase; o material do esticar fica autocontido aqui para a fase de materialização). Nenhuma superfície emite átomo fora do conjunto cumulativo do curriculo até a L6 (validado por extração).",
+  "slug": "parametro-e-argumento",
+  "title": "Parâmetro e argumento",
+  "objective": {
+    "verbo": "escrever",
+    "enunciado": "o nome do parâmetro na assinatura de uma função — a janelinha por onde o valor entra na caixa",
+    "contexto": "quinta aula da trilha: o aluno já leu o invólucro inteiro (L1), digitou um número (L2), escreveu uma chamada (L3) e a palavra export (L4). Parâmetro nunca apareceu antes em nenhuma superfície — é o primeiro átomo novo desta aula",
+    "criterio": "o aluno escreve o parâmetro na lacuna da assinatura (um nome só) e o teste assert.equal(eco(7), 7) valida que a caixa devolve de volta o argumento recebido"
+  },
+  "introduces": {
+    "receptive": [],
+    "productive": ["node:Parameter"]
+  },
+  "introducesTerms": ["parâmetro", "argumento", "assinatura", "janelinha"],
+  "foraDeEscopo": [
+    "valor padrão de parâmetro (function eco(x = 1)) — a forma com inicializador exige a semântica de fallback (form:Parameter[initializer!=null]) — aula própria",
+    "parâmetros rest e spread (...) — empacotar e desempacotar listas — aula própria",
+    "desestruturação na assinatura (function f({ a }) { ... }) — objetos ainda não existem na trilha",
+    "expressões como argumento (eco(1 + 2) ou eco(eco(7))) — operadores binários só entram no receptivo da L7 e chamada aninhada é fluência futura",
+    "arrow functions e funções como valor — outra forma de declarar função — fora desta trilha",
+    "escopo do parâmetro (o nome vive só dentro da caixa; sombrear uma variável de mesmo nome) — nuance de escopo — aula própria",
+    "escrever a chamada com o argumento — na L5 o aluno escreve só o parâmetro; chamada e argumento são leitura (o teste as congela)"
+  ],
+  "eiClass": "regra",
+  "targetAtom": "node:Parameter",
+  "notionalMachineDelta": "A função é uma máquina com ENTRADA e SAÍDA. O parâmetro é a janelinha da máquina: um NOME declarado entre os parênteses da assinatura que, na hora da chamada, segura o argumento entregue — dentro da caixa, ler o nome devolve exatamente o argumento. O argumento é o VALOR que você entrega na janelinha na chamada. Nesta aula o aluno escreve o NOME da janelinha; o valor que entra (o 7 do teste) é leitura.",
+  "budgetHash": "programacao-do-zero-v1",
+  "budgetVersion": "v1",
+  "research": [
+    "https://tc39.es/ecma262/#sec-function-definitions — FormalParameters: a lista de parâmetros da assinatura é feita de nomes (identificadores)",
+    "https://tc39.es/ecma262/#sec-functiondeclarationinstantiation — na chamada, cada argumento é ligado ao nome do parâmetro correspondente antes de o corpo rodar",
+    "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Functions#parameters — MDN: parâmetros como a entrada local da função"
+  ],
+  "theory": [
+    {
+      "id": "entrada-da-maquina",
+      "secao": "teoria",
+      "markdown": "Lembre da caixa de instruções das aulas anteriores: você chama a caixa e ela devolve um valor. Agora a caixa ganha uma **entrada**: um jeito de você entregar um valor para ela processar e devolver.\n\nPense numa **máquina de refrigerante**: você coloca uma moeda na entrada (a fresta), a máquina engole a moeda e, no fim, devolve uma latinha pela saída. A **função** é a máquina. A **entrada** dela é o espaço entre os parênteses da assinatura — a **janelinha**. O **parâmetro** é o NOME que a máquina usa, lá dentro, para se referir àquilo que entrou pela janelinha. O **argumento** é o VALOR que você de fato entrega quando chama.\n\nVeja a máquina que esta aula usa:\n\n```js\nexport function eco(x) {\n  return x;\n}\n```\n\nA assinatura `function eco(x)` declara a janelinha e dá a ela o nome `x`. Dentro da caixa, `x` é o valor que entrou. E a linha `return x;` devolve exatamente esse valor pela saída.\n\nAgora a chamada — entregar o valor na janelinha:\n\n```js\neco(7);\n```\n\n`eco(7)` entrega o **argumento** `7` na janelinha. Lá dentro, `x` vira `7`; o `return x;` devolve `7`. Entrega-se, devolve-se o mesmo.\n\nRepare no desenho completo: **assinatura** abre a janelinha com um nome, **chamada** entrega um valor pelo mesmo lugar, **return** devolve o valor que entrou. É exatamente a mesma caixa da atividade desta aula.",
+      "tag": ""
+    },
+    {
+      "id": "parametro-e-argumento",
+      "secao": "teoria",
+      "markdown": "Os dois termos novos desta aula, lado a lado:\n\n- **parâmetro** — o nome entre os parênteses da assinatura. É a janelinha da caixa. Você escreve esse nome uma vez, na assinatura, e a partir daí usa o nome dentro da caixa para falar do valor que entrou. No código abaixo, o parâmetro é `x`:\n\n```js\nexport function eco(x) {\n  return x;\n}\n```\n\n- **argumento** — o valor que você ENTREGA na janelinha no momento da chamada. Na linha `eco(7);`, o argumento é o `7`. O mesmo parâmetro `x` vale `7` nesta chamada; se a chamada fosse `eco(3);`, o argumento seria o `3` e `x` valeria `3`.\n\nO passo a passo da chamada `eco(7);`:\n\n1. a máquina abre; o nome da janelinha é `x`;\n2. o argumento `7` entra pela janelinha e fica preso no nome `x`;\n3. o corpo roda: `return x;` devolve o valor preso no nome — `7`;\n4. a chamada `eco(7)` vira o valor `7`.\n\nOnde a analogia quebra: uma fresta de máquina física é um buraco fixo e mudo — aqui a janelinha tem NOME, e o nome é você quem escolhe (na próxima seção). E a máquina física transforma a moeda em latinha; a nossa caixa desta aula NÃO transforma nada: devolve o valor exatamente como entrou.",
+      "tag": ""
+    },
+    {
+      "id": "o-nome-e-seu",
+      "secao": "teoria",
+      "markdown": "O nome da janelinha é uma escolha sua — como dar nome a qualquer coisa no programa. O que importa é a REGRA: **o corpo da caixa usa o MESMO nome que a assinatura declarou**. Se a janelinha se chama `x`, o return devolve `x`; se se chama `n`, o return devolve `n`:\n\n```js\nexport function eco(n) {\n  return n;\n}\n```\n\nO teste que confere essa caixa chama `eco(7)` e espera `7` — independe do nome escolhido. O nome é só a etiqueta da janelinha; o valor que entra é que decide o resultado.\n\nSe o corpo usar um nome que a assinatura NÃO declarou, a máquina não conhece esse nome: ela tenta devolver algo que nunca entrou. É como a máquina de refrigerante devolver uma latinha que ninguém pediu — não dá.\n\nPreveja (sem rodar): com a caixa `export function eco(x) { return x; }`, o que a chamada `eco(5)` devolve? E `eco(9)`?",
+      "tag": ""
+    },
+    {
+      "id": "referencia",
+      "secao": "referencia",
+      "markdown": "Referência just-in-time — a sintaxe, colada ao desafio desta aula.\n\n| O que você quer | Como escrever |\n| --- | --- |\n| abrir a janelinha da caixa com um nome (parâmetro) | um nome dentro dos parênteses da assinatura: `function eco(x)` |\n| entregar um valor na janelinha (argumento) | o valor dentro dos parênteses da chamada: `eco(7)` |\n| devolver o valor que entrou | `return x;` — usando o MESMO nome da assinatura |\n\nO desafio completo, com comentários:\n\n```js\nexport function eco(x) {\n  // dentro da caixa, x vale o argumento entregue na chamada\n  return x;\n}\n```\n\nNo desafio desta aula a lacuna é o **parâmetro**: você escreve apenas o nome entre os parênteses, na assinatura. O `return x;` já vem pronto e congelado — sua tarefa em relação a ele é ler e confiar que ele devolve o valor que entrou. O **argumento** (`7` no teste) você também só LÊ, na chamada do teste. Escrever a chamada com o argumento fica para as próximas aulas; ficam para outras aulas também: valor padrão de parâmetro, rest/spread, desestruturação na assinatura, expressões como argumento e arrow functions.\n\nTermos desta aula: **parâmetro**, **argumento**, **assinatura**, **janelinha**.",
+      "tag": ""
+    },
+    {
+      "id": "esticar-dupla",
+      "secao": "drill",
+      "markdown": "Um passo além (opcional, mesmo padrão da atividade). Uma caixa pode ter MAIS DE UMA janelinha — você escreve os nomes separados por vírgula, na mesma lacuna da assinatura:\n\n```js\nexport function dupla(/* LACUNA: escreva os dois nomes, separados por vírgula */) {\n  return a;\n}\n```\n\nNeste caso, o teste chama `dupla(3, 4)` e espera o valor que entrou pela PRIMEIRA janelinha:\n\n```js\nexport function dupla(a, b) {\n  return a;\n}\n```\n\nA assinatura declara duas janelinhas: `a` e `b`. Na chamada `dupla(3, 4)`, o `3` entra pela primeira (vira `a`) e o `4` pela segunda (vira `b`). O `return a;` devolve o `3`.\n\nPreveja antes de conferir: na chamada `dupla(3, 4)`, o que `a` vale? E o que `b` vale? O que a caixa devolve?\n\nResposta: `a` vale **3**, `b` vale **4**, e a caixa devolve **3** — o valor que entrou pela primeira janelinha. Mesmo parâmetro da aula, só que com duas janelinhas: cada argumento entra na janelinha da sua posição.",
+      "tag": ""
+    }
+  ],
+  "justificativa": "L5 é a aula em que o parâmetro deixa de ser pressuposto e passa a ser CONTEÚDO: o avanço produtivo node:Parameter é o único novo (o curriculo determina o_aluno_escreve = \"x\" — a lacuna É a declaração do parâmetro — e congela `eco(???) { return x; }` + teste `assert.equal(eco(7), 7)`, com o argumento como leitura). A seção 1 da teoria demonstra o parâmetro no código exato da atividade (A16/A13); o starter usa comentário-marcador de lacuna para permanecer parseável (A13b efetiva); nenhuma superfície introduz operador (op:+ e BinaryExpression só entram no receptivo da L7 — por isso a caixa modelo é eco, sem nenhuma conta). Aula regular: não integra aulas anteriores — é o nó que destrava L6 (return produtivo) e L7 (let).",
+  "role": "regular",
+  "status": "rascunho",
+  "aprovado": false
+}
