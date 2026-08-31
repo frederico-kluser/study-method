@@ -239,6 +239,35 @@ describe('buildTrackDetail / buildTrackLesson — DTOs', () => {
     assert.equal(payload, null);
   });
 
+  it('ADITIVO: buildTrackLesson propaga assertions da aula no payload', async () => {
+    const assertions = [
+      {
+        id: 'variavel-guarda-valor',
+        statement: 'Uma variável guarda um valor em memória.',
+        question: 'O que uma variável guarda?',
+        options: ['Um valor', 'Um programa', 'Uma pasta', 'Uma tecla'],
+        answerIndex: 0,
+        feedback: 'Certo! A variável é uma caixa com um valor.',
+      },
+    ];
+    const track = makeTrack([
+      { moduleSlug: 'm1', lesson: lesson('a1', { assertions }), challenge: challenge('ch-a1') },
+    ]);
+    const payload = await buildTrackLesson(track, 'm1', 'a1', fakeRepo());
+    assert.ok(payload);
+    assert.equal(payload.assertions?.length, 1);
+    assert.equal(payload.assertions?.[0].id, 'variavel-guarda-valor');
+    assert.equal(payload.assertions?.[0].answerIndex, 0);
+    assert.deepEqual(payload.assertions?.[0].options, ['Um valor', 'Um programa', 'Uma pasta', 'Uma tecla']);
+  });
+
+  it('ADITIVO: aula SEM assertions → payload sem o campo (aditivo opcional)', async () => {
+    const track = makeTrack([{ moduleSlug: 'm1', lesson: lesson('a1'), challenge: challenge('ch-a1') }]);
+    const payload = await buildTrackLesson(track, 'm1', 'a1', fakeRepo());
+    assert.ok(payload);
+    assert.equal(payload.assertions, undefined);
+  });
+
   // ─── ADITIVO (onda3-generate-flow, pedido C): GERADOS no TOPO ──────────────
   it('ONDA3: desafios GERADOS vêm PRIMEIRO (mais recente primeiro), autorais depois', async () => {
     const track = makeTrack([

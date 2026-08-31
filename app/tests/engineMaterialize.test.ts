@@ -133,6 +133,9 @@ function lessonDraft(over: Partial<LessonDraft>): LessonDraft {
         tag: '',
       },
     ],
+    // ADITIVO (onda 1 schema-quiz): o LessonDraftSchema SEMPRE materializa
+    // assertions (ausência → [] explícito, INV-05) — o literal cobre o campo.
+    assertions: [],
     justificativa: 'aula mínima que introduz a declaração com atribuição',
     role: 'regular',
     status: 'aprovado',

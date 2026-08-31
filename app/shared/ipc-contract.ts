@@ -383,6 +383,21 @@ export interface TrackTheorySectionDto {
   code?: { language: string; code: string; explanation?: string };
 }
 
+/**
+ * ADITIVO (onda 1 schema-quiz): AFIRMAÇÃO da aula — frase que a aula ensina
+ * com um quiz de múltipla escolha (4 opções, índice da correta e feedback)
+ * que o aluno responde DURANTE a aula (máx. 3 por aula). Espelha
+ * TrackAssertion (electron/main/content/trackTypes.ts).
+ */
+export interface TrackAssertionDto {
+  id: string;
+  statement: string;
+  question: string;
+  options: string[];
+  answerIndex: number;
+  feedback: string;
+}
+
 /** Fonte do conteúdo — exibida SOMENTE pelo botão "Fontes", nunca no fluxo. */
 export interface TrackSourceLinkDto {
   title: string;
@@ -417,6 +432,12 @@ export interface TrackLessonPayload {
   /** aulas ANTERIORES da trilha — revisão quando o aluno não entender. */
   prerequisites: { slug: string; title: string }[];
   theory: TrackTheorySectionDto[];
+  /**
+   * ADITIVO (onda 1 schema-quiz): afirmações da AULA (até 3) com quiz de
+   * múltipla escolha — a unidade é a AULA, não a seção. Ausente = aula sem
+   * quiz (trilhas antigas chegam sem o campo).
+   */
+  assertions?: TrackAssertionDto[];
   sources: TrackSourceLinkDto[];
   challenges: TrackChallengeSummaryDto[];
   locked: boolean;

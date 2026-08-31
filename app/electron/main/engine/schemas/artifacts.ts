@@ -307,11 +307,27 @@ export const FreezeSchema = z.object({
  * devolutivo: "se você acha que precisa de algo fora do orçamento, isso é
  * defeito do grafo, não licença", §7.1 regra 3) e `research`.
  *
+ * `assertions` (ADITIVO, onda 1 schema-quiz) é a EXCEÇÃO à regra acima: o
+ * produto aceita aula SEM quiz (ausência válida no lesson.json), então o
+ * draft TAMBÉM aceita ausência — nunca `.optional()` (INV-05): `z.preprocess`
+ * materializa a ausência como valor vazio EXPLÍCITO (`[]`), e quando o campo
+ * vem presente o shape é validado estritamente (malformado ou > 3 REPROVA o
+ * draft).
+ *
  * `theory[]` segue o §7.1 regra 12 (três slots: teoria/referência/drill) e o
  * §5.3 (bloco cercado com tag é código; crase inline é prosa; a `tag` vazia
  * é o valor explícito para prosa — a exigência de tag real que parseia é do
  * gate G-SCHEMA/A4, não do schema).
  */
+export const AssertionDraftSchema = z.object({
+  id: z.string().min(1),
+  statement: z.string().min(1),
+  question: z.string().min(1),
+  options: z.array(z.string().min(1)).length(4),
+  answerIndex: z.number().int().nonnegative(),
+  feedback: z.string().min(1),
+});
+
 export const LessonDraftSchema = z.object({
   slug: z.string().min(1),
   title: z.string().min(1),
@@ -340,6 +356,18 @@ export const LessonDraftSchema = z.object({
       markdown: z.string().min(1),
       tag: z.string(),
     }),
+  ),
+  // ADITIVO (onda 1 schema-quiz, §10 do docs/16-engine-de-trilha.md):
+  // AFIRMAÇÕES da aula — frases que a aula ensina, cada uma com quiz de
+  // múltipla escolha (máx. 3; shape = AssertionDraftSchema, espelha
+  // TrackAssertion do produto). INV-05: nada opcional — ausência vira valor
+  // vazio EXPLÍCITO (`z.preprocess` mapeia undefined → `[]`); presente,
+  // shape inválido ou > 3 REPROVA o draft. Invariantes cruzadas (opções
+  // ÚNICAS, `answerIndex` na faixa das opções) são do validador de produto
+  // `validateAssertions` no load (aqui: constraints por campo).
+  assertions: z.preprocess(
+    (v) => (v === undefined ? [] : v),
+    z.array(AssertionDraftSchema).max(3),
   ),
   // INV-04: justificativa ANTES da decisão. `role` (classificação da aula,
   // §3.7) e `status` (estado de ciclo de vida, inclui `bloqueado` devolutivo

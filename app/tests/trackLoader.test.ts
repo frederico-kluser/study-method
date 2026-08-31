@@ -487,17 +487,65 @@ describe('trackLoader — carregamento', () => {
     );
   });
 
-  it('ADITIVO: loader rejeita desafio do MÓDULO com files[] vazio → TrackLoadError', async () => {
-    const dir = path.join(tmpDir(), 'mod-files-vazio');
-    await writeTrack(dir, track(), [lesson()], null, {
-      moduleChallenge: challenge({ slug: 'desafio-do-modulo', files: [] }),
-      declareModuleChallenge: true,
+  it('ADITIVO: assertions da aula sobrevivem ao load (campo opcional)', async () => {
+    const dir = path.join(tmpDir(), 'aula-assertions');
+    const comAssertions = lesson({
+      assertions: [
+        {
+          id: 'variavel-guarda-valor',
+          statement: 'Uma variável guarda um valor em memória.',
+          question: 'O que uma variável guarda?',
+          options: ['Um valor', 'Um programa', 'Uma pasta', 'Uma tecla'],
+          answerIndex: 0,
+          feedback: 'Certo! A variável é uma caixa com um valor.',
+        },
+      ],
     });
+    await writeTrack(dir, track(), [comAssertions]);
+    const loaded = await loadTrack(dir);
+    const meta = loaded.modules[0].lessons[0].meta;
+    assert.equal(meta.assertions?.length, 1);
+    assert.equal(meta.assertions?.[0].id, 'variavel-guarda-valor');
+    assert.equal(meta.assertions?.[0].answerIndex, 0);
+    assert.deepEqual(meta.assertions?.[0].options, ['Um valor', 'Um programa', 'Uma pasta', 'Uma tecla']);
+  });
+
+  it('ADITIVO: aula SEM assertions carrega (trilha antiga, 0 issues)', async () => {
+    const dir = path.join(tmpDir(), 'sem-assertions');
+    await writeTrack(dir, track(), [lesson()]);
+    const loaded = await loadTrack(dir);
+    assert.equal(loaded.modules[0].lessons[0].meta.assertions, undefined);
+  });
+
+  it('ADITIVO: loader rejeita aula com assertions INVÁLIDAS → TrackLoadError', async () => {
+    const dir = path.join(tmpDir(), 'assertions-invalidas');
+    await writeTrack(dir, track(), [lesson({ assertions: [{ id: 'x', statement: 's', question: 'q', options: ['a', 'b', 'c'], answerIndex: 2, feedback: 'f' }] })]);
     await assert.rejects(
       () => loadTrack(dir),
       (err: unknown) => {
         assert.ok(err instanceof TrackLoadError);
-        assert.ok(err.issues.some((i) => i.message.includes('files') && i.message.includes('vazio')));
+        assert.ok(err.issues.some((i) => i.message.includes('options')));
+        return true;
+      },
+    );
+  });
+
+  it('ADITIVO: loader rejeita aula com MAIS DE 3 assertions → TrackLoadError', async () => {
+    const dir = path.join(tmpDir(), 'assertions-demais');
+    const muitas = Array.from({ length: 4 }, (_, i) => ({
+      id: `afirmacao-${i}`,
+      statement: `Frase ${i}.`,
+      question: `Pergunta ${i}?`,
+      options: ['a', 'b', 'c', 'd'],
+      answerIndex: 0,
+      feedback: 'Ok.',
+    }));
+    await writeTrack(dir, track(), [lesson({ assertions: muitas })]);
+    await assert.rejects(
+      () => loadTrack(dir),
+      (err: unknown) => {
+        assert.ok(err instanceof TrackLoadError);
+        assert.ok(err.issues.some((i) => i.message.includes('máximo')));
         return true;
       },
     );

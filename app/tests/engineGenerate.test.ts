@@ -599,6 +599,9 @@ describe('P-22 generate — fiação completa offline (fases reais + fakes)', ()
               tag: 'js',
             },
           ],
+          // ADITIVO (onda 1 schema-quiz): o LessonDraftSchema SEMPRE
+          // materializa assertions (ausência → [] explícito, INV-05).
+          assertions: [],
           justificativa: 'aula mínima que introduz a declaração com atribuição',
           role: 'regular',
           status: 'aprovado',

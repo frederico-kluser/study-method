@@ -319,3 +319,80 @@ describe('validação de artefato — erro que NOMEIA o campo e o motivo', () =>
     );
   });
 });
+
+describe('LessonDraftSchema — assertions (ADITIVO, onda 1 schema-quiz)', () => {
+  const assertion = (over: Record<string, unknown> = {}) => ({
+    id: 'variavel-guarda-valor',
+    statement: 'Uma variável guarda um valor em memória.',
+    question: 'O que uma variável guarda?',
+    options: ['Um valor', 'Um programa', 'Uma pasta', 'Uma tecla'],
+    answerIndex: 0,
+    feedback: 'Certo! A variável é uma caixa com um valor.',
+    ...over,
+  });
+  const baseDraft = () => ({
+    slug: 'm1/a1',
+    title: 'Variáveis',
+    objective: { verbo: 'declarar', enunciado: 'e1', contexto: 'c1', criterio: 'cr1' },
+    introduces: { receptive: [], productive: [] },
+    introducesTerms: [],
+    foraDeEscopo: ['const'],
+    eiClass: 'regra',
+    targetAtom: 'decl:let',
+    notionalMachineDelta: 'a máquina ganha uma caixa',
+    budgetHash: 'h',
+    budgetVersion: '1',
+    research: [],
+    theory: [{ id: 't1', secao: 'teoria', markdown: 'md', tag: '' }],
+    justificativa: 'j',
+    role: 'regular',
+    status: 'rascunho',
+    aprovado: false,
+  });
+
+  it('draft SEM assertions passa (campo ausente é válido — INV-05: ausência vira [])', () => {
+    const r = LessonDraftSchema.safeParse(baseDraft());
+    assert.equal(r.success, true);
+    if (!r.success) return;
+    assert.deepEqual(r.data.assertions, []);
+  });
+
+  it('draft com 1..3 assertions VÁLIDAS passa e preserva o shape', () => {
+    const r = LessonDraftSchema.safeParse({ ...baseDraft(), assertions: [assertion()] });
+    assert.equal(r.success, true);
+    if (!r.success) return;
+    assert.equal(r.data.assertions.length, 1);
+    assert.equal(r.data.assertions[0].id, 'variavel-guarda-valor');
+    assert.equal(r.data.assertions[0].answerIndex, 0);
+  });
+
+  it('draft com MAIS DE 3 assertions REPROVA (máx. 3 por aula)', () => {
+    const r = LessonDraftSchema.safeParse({
+      ...baseDraft(),
+      assertions: [assertion({ id: 'a' }), assertion({ id: 'b' }), assertion({ id: 'c' }), assertion({ id: 'd' })],
+    });
+    assert.equal(r.success, false);
+    if (r.success) return;
+    assert.match(formatarErroCampos(r.error), /"assertions"/);
+  });
+
+  it('draft com assertion MALFORMADA REPROVA nomeando o campo (options < 4, answerIndex negativo)', () => {
+    const opcoes = LessonDraftSchema.safeParse({
+      ...baseDraft(),
+      assertions: [assertion({ options: ['a', 'b', 'c'] })],
+    });
+    assert.equal(opcoes.success, false);
+    if (opcoes.success) return;
+    assert.match(formatarErroCampos(opcoes.error), /assertions\.0\.options/);
+
+    const idx = LessonDraftSchema.safeParse({
+      ...baseDraft(),
+      assertions: [assertion({ answerIndex: -1 })],
+    });
+    assert.equal(idx.success, false);
+  });
+
+  it('o lint INV-05 continua limpo com o campo (z.preprocess, não .optional())', () => {
+    assert.deepEqual(encontrarCamposOpcionais(SCHEMA_REGISTRY), []);
+  });
+});

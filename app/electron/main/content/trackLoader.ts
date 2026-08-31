@@ -58,6 +58,12 @@ export interface LoadedModule {
 }
 
 export interface LoadedLesson {
+  /**
+   * fonte CARREGADA e VALIDADA da aula — o loader faz CAST, não pick (§10 do
+   * docs/16-engine-de-trilha.md): campos ADITIVOS como `assertions` (onda 1
+   * schema-quiz) chegam aqui AUTOMATICAMENTE via meta, sem derrubar trilhas
+   * antigas que não os declaram (ausência = aula sem quiz, válida).
+   */
   meta: TrackLessonSource;
   /** desafios da aula, na ordem declarada (slugs validados contra o disco). */
   challenges: TrackChallengeSource[];

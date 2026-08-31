@@ -24,6 +24,15 @@
  *   - minFirstStarMs: tempo mínimo (ms) antes de a 1ª estrela poder sumir por
  *     DEMORA (decaimento de velocidade); ausente usa o default do produto
  *     (DEFAULT_MIN_FIRST_STAR_MS em trackTypes — 60s; proficiência 120s).
+ *
+ * Campos ADITIVOS (§10 do docs/16-engine-de-trilha.md): o schema é ABERTO —
+ * nenhum validador rejeita chave extra, o loader faz cast (não pick) e
+ * `schemaVersion` NUNCA é bumpado (comparado por igualdade estrita em 4
+ * lugares). Campo novo entra marcado como ADITIVO e OPCIONAL:
+ *   - assertions (onda 1 schema-quiz): até 3 AFIRMAÇÕES por aula, cada uma
+ *     com quiz de múltipla escolha (4 opções + resposta + feedback) que o
+ *     aluno responde DURANTE a aula. AUSÊNCIA é válida — aula sem quiz
+ *     continua passando (trilhas antigas carregam sem o campo).
  */
 
 /** Slug canônico de trilha/módulo/aula/desafio. */
@@ -114,6 +123,27 @@ export interface TrackTheorySection {
   code?: { language: string; code: string; explanation?: string };
 }
 
+/**
+ * ADITIVO (onda 1 schema-quiz, §10 do docs/16-engine-de-trilha.md): UMA
+ * AFIRMAÇÃO da aula — frase que a aula ensina, com um quiz de múltipla
+ * escolha (4 opções, índice da correta e feedback) que o aluno responde
+ * DURANTE a aula (máx. 3 por aula — requisito do dono do produto).
+ */
+export interface TrackAssertion {
+  /** id kebab-case (SLUG_RE) — ÚNICO entre as afirmações da aula. */
+  id: string;
+  /** a frase que a aula ensina (exibida como afirmação). */
+  statement: string;
+  /** pergunta de múltipla escolha sobre a afirmação. */
+  question: string;
+  /** EXATAMENTE 4 opções, não vazias e ÚNICAS. */
+  options: string[];
+  /** índice da opção correta (inteiro 0..options.length-1). */
+  answerIndex: number;
+  /** feedback exibido ao aluno depois de responder. */
+  feedback: string;
+}
+
 export interface TrackSourceLink {
   title: string;
   url: string;
@@ -133,6 +163,14 @@ export interface TrackLessonSource {
   prerequisites: string[];
   /** base teórica apresentada em modo chat, seção a seção. */
   theory: TrackTheorySection[];
+  /**
+   * ADITIVO (onda 1 schema-quiz, §10 do docs/16-engine-de-trilha.md): até 3
+   * AFIRMAÇÕES da aula — frases que a aula ensina, cada uma com quiz de
+   * múltipla escolha (4 opções + resposta + feedback) que o aluno responde
+   * durante a aula. A afirmação é da AULA (não por seção). Ausente ou [] =
+   * aula SEM quiz (válido — trilhas antigas carregam sem o campo).
+   */
+  assertions?: TrackAssertion[];
   /** fontes do conteúdo — NUNCA exibidas no fluxo; botão "Fontes" na UI. */
   sources: TrackSourceLink[];
   /** slugs dos desafios da aula (challenges/<slug>/challenge.json). */
@@ -283,6 +321,68 @@ export function validateTheorySection(raw: unknown, file: string): TrackValidati
   return issues;
 }
 
+/** Nº MÁXIMO de afirmações por aula (requisito do dono do produto). */
+export const MAX_ASSERTIONS_PER_LESSON = 3;
+
+/**
+ * ADITIVO (onda 1 schema-quiz): valida as AFIRMAÇÕES de uma aula (máx. 3 —
+ * quiz de múltipla escolha). Retorna a lista de problemas (vazia = ok) —
+ * nunca lança. Só é chamada quando `assertions` está PRESENTE; ausência é
+ * válida (aula sem quiz).
+ */
+export function validateAssertions(raw: unknown, file: string): TrackValidationIssue[] {
+  const issues: TrackValidationIssue[] = [];
+  if (!Array.isArray(raw)) {
+    return [{ file, message: `assertions inválido: ${JSON.stringify(raw)} (esperado array, máx. ${MAX_ASSERTIONS_PER_LESSON})` }];
+  }
+  if (raw.length > MAX_ASSERTIONS_PER_LESSON) {
+    issues.push({ file, message: `assertions com ${raw.length} itens (máximo ${MAX_ASSERTIONS_PER_LESSON} por aula)` });
+  }
+  const seenIds = new Set<string>();
+  raw.forEach((rawA, i) => {
+    const prefix = `assertions[${i}]`;
+    if (typeof rawA !== 'object' || rawA === null) {
+      issues.push({ file, message: `${prefix} não é objeto` });
+      return;
+    }
+    const a = rawA as Partial<TrackAssertion>;
+    if (!isNonEmptyString(a.id)) {
+      issues.push({ file, message: `${prefix}.id ausente/vazio` });
+    } else if (!SLUG_RE.test(a.id)) {
+      issues.push({ file, message: `${prefix}.id inválido: ${JSON.stringify(a.id)} (esperado kebab-case ASCII, ex.: 'variavel-guarda-valor')` });
+    } else if (seenIds.has(a.id)) {
+      issues.push({ file, message: `${prefix}.id duplicado: ${JSON.stringify(a.id)} (ids devem ser únicos)` });
+    } else {
+      seenIds.add(a.id);
+    }
+    if (!isNonEmptyString(a.statement)) issues.push({ file, message: `${prefix}.statement vazio` });
+    if (!isNonEmptyString(a.question)) issues.push({ file, message: `${prefix}.question vazio` });
+    if (!Array.isArray(a.options) || a.options.length !== 4) {
+      issues.push({ file, message: `${prefix}.options inválido (esperado array com EXATAMENTE 4 opções)` });
+    } else {
+      const seenOpts = new Set<string>();
+      a.options.forEach((o, j) => {
+        if (!isNonEmptyString(o)) {
+          issues.push({ file, message: `${prefix}.options[${j}] vazio` });
+        } else if (seenOpts.has(o)) {
+          issues.push({ file, message: `${prefix}.options[${j}] duplicada: ${JSON.stringify(o)} (opções devem ser únicas)` });
+        } else {
+          seenOpts.add(o);
+        }
+      });
+    }
+    // answerIndex: inteiro DENTRO da faixa das opções reais (0..len-1).
+    const optLen = Array.isArray(a.options) ? a.options.length : 0;
+    if (a.answerIndex === undefined) {
+      issues.push({ file, message: `${prefix}.answerIndex ausente` });
+    } else if (!Number.isInteger(a.answerIndex) || a.answerIndex < 0 || a.answerIndex >= optLen) {
+      issues.push({ file, message: `${prefix}.answerIndex inválido: ${JSON.stringify(a.answerIndex)} (esperado inteiro 0..${Math.max(0, optLen - 1)})` });
+    }
+    if (!isNonEmptyString(a.feedback)) issues.push({ file, message: `${prefix}.feedback vazio` });
+  });
+  return issues;
+}
+
 /** Valida UMA aula. `lessonDir` = dir da aula (resolução de challenges/). */
 export function validateLessonSource(raw: unknown, file: string): TrackValidationIssue[] {
   if (typeof raw !== 'object' || raw === null) return [{ file, message: 'não é um objeto JSON' }];
@@ -310,6 +410,12 @@ export function validateLessonSource(raw: unknown, file: string): TrackValidatio
         issues.push({ file, message: `sources[${i}] malformada (title e url obrigatórios)` });
       }
     });
+  }
+  // ADITIVO (onda 1 schema-quiz): assertions OPCIONAL — presente, valida o
+  // shape (array, máx. 3, ids únicos, quiz bem formado); AUSENTE = aula sem
+  // quiz (válido, trilhas antigas continuam passando com 0 issues).
+  if (l.assertions !== undefined) {
+    issues.push(...validateAssertions(l.assertions, file));
   }
   return issues;
 }

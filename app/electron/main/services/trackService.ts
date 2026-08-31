@@ -267,6 +267,16 @@ export async function buildTrackLesson(
       markdown: s.markdown,
       code: s.code,
     })),
+    // ADITIVO (onda 1 schema-quiz): afirmações da aula — ausente → payload sem
+    // o campo (aula sem quiz, trilhas antigas inalteradas).
+    assertions: lesson.meta.assertions?.map((a) => ({
+      id: a.id,
+      statement: a.statement,
+      question: a.question,
+      options: a.options,
+      answerIndex: a.answerIndex,
+      feedback: a.feedback,
+    })),
     sources: lesson.meta.sources.map((s) => ({ title: s.title, url: s.url, description: s.description })),
     challenges: challengeSummaries,
     locked: st.locked,
