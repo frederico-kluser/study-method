@@ -367,7 +367,17 @@ usado-sem-demonstração (A13), avanço micro (A14), progressividade (A15) e pri
 Especificação formal, H13/AVISO13/S13 e mensagens pt-BR em
 `app/content-src/analise-verificadores.md` §3–§6; implementação pura em
 `app/electron/main/engine/quality/progressao.ts` (mesclada no `auditTrack` — pin da trilha real
-841 violações / 112 desafios / 249 lacunas / 96 avisos, modo inferred).
+717 violações / 112 desafios / 249 lacunas / 92 avisos, modo inferred).
+
+**Bump do pin (rodada 12).** O pin mecânico vive em `app/tests/engineAuditPlacar.test.ts` e documenta
+cada bump. Com a bateria A13–A16 ativa no audit, o pin da trilha real passou de
+**841 violações / 112 desafios / 249 lacunas / 96 avisos** para
+**717 violações / 112 desafios / 249 lacunas / 92 avisos** (modo inferred): o fix do A13c
+(mesma-aula) removeu **124 falsos positivos** (841 → 717) e 4 avisos D4 a menos (96 → 92); desafios
+com violação (112) e lacunas (249) permaneceram os mesmos. **Protocolo do bump:** o pin é
+re-verificado a cada rodada; toda mudança de bateria de verificadores re-bumpa e re-verifica — cada
+bump acompanha o commit que o causou, com comentário no próprio teste de pin explicando o porquê, e o
+gate `bash tools/t.sh tests/engineAuditPlacar.test.ts` passa com os novos valores.
 
 ### 5.2 Invariantes de estrutura
 
