@@ -81,6 +81,7 @@
   "assertions": [
     {
       "id": "valor-vs-instrucao",
+      "sectionId": "valor-e-instrucao",
       "statement": "O valor é o que o programa entrega; a instrução é a linha que roda.",
       "question": "No código `return 42;`, o que é o `42` e o que é a linha inteira?",
       "options": [
@@ -94,6 +95,7 @@
     },
     {
       "id": "trocar-valor-nao-troca-instrucao",
+      "sectionId": "linha-que-roda",
       "statement": "Trocar o valor não troca a instrução: a linha continua `return ...;`, mas entrega outro valor.",
       "question": "A caixa devolve `43` e o teste espera `42`. O que a máquina responde?",
       "options": [
@@ -107,6 +109,7 @@
     },
     {
       "id": "maquina-compara-valor-entregue",
+      "sectionId": "linha-que-roda",
       "statement": "A máquina que confere roda a instrução e compara o valor entregue com o esperado — não o texto do arquivo.",
       "question": "Quando o site confere uma resposta, com o que ele compara?",
       "options": [

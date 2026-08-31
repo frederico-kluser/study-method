@@ -14,6 +14,10 @@
  *   5. ids únicos e kebab-case (SLUG_RE).
  *   6. validateLessonSource integra validateAssertions (e aula SEM assertions
  *      continua válida — aditivo opcional).
+ *   7. REPLAN A1 (sectionId): quando presente, DEVE ser kebab-case (SLUG_RE);
+ *      com theoryIds conhecidos, DEVE existir em lesson.theory[].id; sem
+ *      theoryIds, só o formato é validado; validateLessonSource repassa os
+ *      ids reais da teoria da aula.
  */
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
@@ -124,5 +128,39 @@ describe('trackTypes — validateAssertions (ADITIVO)', () => {
     );
     assert.ok(ruim.some((i) => i.message.includes('answerIndex')));
     assert.ok(ruim.some((i) => i.message.includes('id duplicado')));
+  });
+
+  it('REPLAN A1: sectionId presente e existente na teoria passa; desconhecido reporta (com theoryIds)', () => {
+    const teoria = ['a-maquina-que-confere', 'como-ler-o-desafio', 'as-palavras-da-caixa'];
+    const ok = validateAssertions([assertion({ sectionId: 'a-maquina-que-confere' })], 'lesson.json', teoria);
+    assert.deepEqual(ok, []);
+    const desconhecido = validateAssertions([assertion({ sectionId: 'secao-que-nao-existe' })], 'lesson.json', teoria);
+    assert.ok(desconhecido.some((i) => i.message.includes('sectionId desconhecido')));
+    assert.ok(desconhecido.some((i) => i.message.includes('secao-que-nao-existe')));
+  });
+
+  it('REPLAN A1: sectionId fora do kebab-case reporta SEMPRE (com ou sem theoryIds)', () => {
+    const invalido = validateAssertions([assertion({ sectionId: 'Nao E Kebab' })], 'lesson.json', ['a-maquina-que-confere']);
+    assert.ok(invalido.some((i) => i.message.includes('sectionId inválido')));
+    const semIds = validateAssertions([assertion({ sectionId: 'Nao E Kebab' })], 'lesson.json');
+    assert.ok(semIds.some((i) => i.message.includes('sectionId inválido')));
+  });
+
+  it('REPLAN A1: sem theoryIds, só o formato kebab-case é validado (id desconhecido não é acusado)', () => {
+    const semIds = validateAssertions([assertion({ sectionId: 'qualquer-secao-ok' })], 'lesson.json');
+    assert.deepEqual(semIds, []);
+  });
+
+  it('REPLAN A1: validateLessonSource repassa os ids reais da teoria — sectionId fora da teoria reporta', () => {
+    const ok = validateLessonSource(
+      lesson({ theory: [{ id: 'introducao', title: 'Introdução', markdown: 'Texto.' }], assertions: [assertion({ sectionId: 'introducao' })] }),
+      'lesson.json',
+    );
+    assert.deepEqual(ok, []);
+    const ruim = validateLessonSource(
+      lesson({ theory: [{ id: 'introducao', title: 'Introdução', markdown: 'Texto.' }], assertions: [assertion({ sectionId: 'outra-secao' })] }),
+      'lesson.json',
+    );
+    assert.ok(ruim.some((i) => i.message.includes('sectionId desconhecido')));
   });
 });

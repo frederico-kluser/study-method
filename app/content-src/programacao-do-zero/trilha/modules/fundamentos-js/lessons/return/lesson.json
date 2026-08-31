@@ -97,6 +97,7 @@
   "assertions": [
     {
       "id": "return-entrega-e-encerra",
+      "sectionId": "return-entrega-e-encerra",
       "statement": "return entrega o valor pela saída da caixa e ENCERRA a caixa naquela linha — o que vier depois dela nunca roda.",
       "question": "Com a caixa abaixo, o que `eco(5)` devolve?\n\n```js\nexport function eco(x) {\n  return x;\n  return 7;\n}\n```",
       "options": [
@@ -110,6 +111,7 @@
     },
     {
       "id": "chamada-vira-o-valor-devolvido",
+      "sectionId": "a-chamada-usa-o-valor",
       "statement": "Chamar uma caixa com return vira o valor devolvido no lugar da chamada — o teste usa esse valor; devolver sempre o mesmo número não passa quando o teste chama com argumentos diferentes.",
       "question": "O teste chama `eco(7)` e `eco(5)`. Qual destas caixas passa nos DOIS?",
       "options": [
@@ -123,6 +125,7 @@
     },
     {
       "id": "sem-return-a-caixa-nao-responde",
+      "sectionId": "return-entrega-e-encerra",
       "statement": "Se faltar a linha de devolução, a caixa abre e fecha sem entregar nada — quem chama recebe nada (undefined) e o teste que esperava um valor falha.",
       "question": "A lacuna do corpo da caixa fica vazia: `export function eco(x) { }`. O que `eco(7)` devolve?",
       "options": [

@@ -16,6 +16,7 @@
   "assertions": [
     {
       "id": "programa-completo-quatro-pecas",
+      "sectionId": "modelo-mental",
       "statement": "Um programa completo junta as peças da trilha inteira: export (entrega), moldura da função, constante com texto e return (devolução) — todas no mesmo programa.",
       "question": "O teste chama frase() e espera \"oi\". Qual destes programas devolve \"oi\"?",
       "options": [
@@ -29,6 +30,7 @@
     },
     {
       "id": "sem-return-recebe-nada",
+      "sectionId": "exemplo",
       "statement": "Sem a linha return, a caixa roda mas entrega 'nada' — o teste lê undefined em vez do valor esperado.",
       "question": "Você escreve export function frase() { const saudacao = \"oi\"; } — falta a linha return. O que o teste recebe?",
       "options": [
@@ -42,6 +44,7 @@
     },
     {
       "id": "janelinha-recebe-e-devolve",
+      "sectionId": "modelo-mental",
       "statement": "A caixa com janelinha (parâmetro) recebe um valor de fora pela assinatura e o devolve pelo return, sem guardar nada dentro.",
       "question": "O programa export function repete(nome) { return nome; } está pronto. O teste chama repete(\"oi\"). O que a função devolve?",
       "options": [

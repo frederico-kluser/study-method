@@ -65,6 +65,10 @@ function tresAssertions(): AssertionDraft[] {
   return [
     {
       id: 'afirmacao-variavel',
+      // REPLAN A1: a assertion de DRAFT carrega a âncora (sectionId) — o
+      // AssertionDraftSchema exige não-vazio; 'o-que-e-variavel' é o id da
+      // teoria do fixture. O teste 1 prova que o sectionId PROPAGA verbatim.
+      sectionId: 'o-que-e-variavel',
       statement: 'Uma variável guarda um valor em memória.',
       question: 'O que uma variável guarda?',
       options: ['Um valor em memória', 'Uma conta no terminal', 'Um arquivo', 'Uma palavra-chave'],
@@ -73,6 +77,7 @@ function tresAssertions(): AssertionDraft[] {
     },
     {
       id: 'afirmacao-atribuicao',
+      sectionId: 'o-que-e-variavel',
       statement: 'Atribuir é escolher o valor que a variável guarda.',
       question: 'O que faz o `=` em `let total = 1`?',
       options: ['Compara dois valores', 'Atribui o 1 à variável total', 'Declara uma função', 'Imprime na tela'],
@@ -81,6 +86,7 @@ function tresAssertions(): AssertionDraft[] {
     },
     {
       id: 'afirmacao-declaracao',
+      sectionId: 'o-que-e-variavel',
       statement: 'Declarar é escolher o nome da caixa antes de usá-la.',
       question: 'Em `let total = 1`, o que é o `let total`?',
       options: ['A declaração da variável', 'A chamada da função', 'O teste', 'A saída'],

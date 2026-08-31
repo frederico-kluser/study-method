@@ -65,6 +65,7 @@
   "assertions": [
     {
       "id": "chamar-com-parenteses",
+      "sectionId": "a-caixa-e-o-botao",
       "statement": "Uma função é uma caixa nomeada de instruções que devolve um valor; chamar é escrever o nome da caixa com parênteses.",
       "question": "Para pedir o valor da caixa `resposta`, o que você escreve?",
       "options": [
@@ -78,6 +79,7 @@
     },
     {
       "id": "valor-aparece-na-chamada",
+      "sectionId": "a-caixa-e-o-botao",
       "statement": "A chamada roda a caixa e o valor devolvido aparece no lugar da chamada.",
       "question": "Com `function resposta() { return 5; }`, o que devolve `conferidor()`, que tem `return resposta();`?",
       "options": [
@@ -91,6 +93,7 @@
     },
     {
       "id": "sem-parenteses-caixa-parada",
+      "sectionId": "o-que-acontece-na-tela",
       "statement": "Sem os parênteses, o nome sozinho é a caixa parada — não o valor — e o teste não bate.",
       "question": "Se a lacuna tivesse `resposta` sem os parênteses, o que `conferidor()` devolveria?",
       "options": [

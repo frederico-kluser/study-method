@@ -67,6 +67,7 @@
   "assertions": [
     {
       "id": "parametro-segura-o-argumento",
+      "sectionId": "entrada-da-maquina",
       "statement": "O parâmetro é o nome declarado entre os parênteses da assinatura — a janelinha por onde o valor entra na caixa; dentro da caixa, ler esse nome devolve o argumento entregue na chamada.",
       "question": "Na caixa `export function eco(x) { return x; }`, o teste chama `eco(7)`. O que a linha `return x;` devolve?",
       "options": [
@@ -80,6 +81,7 @@
     },
     {
       "id": "argumento-muda-por-chamada",
+      "sectionId": "parametro-e-argumento",
       "statement": "O argumento é o valor entregue na janelinha no momento da chamada — cada chamada entrega o seu próprio valor, e o parâmetro guarda o valor DAQUELA chamada.",
       "question": "A mesma caixa `eco(x)` é chamada como `eco(7)` e depois como `eco(5)`. O que `x` vale em cada chamada?",
       "options": [
@@ -93,6 +95,7 @@
     },
     {
       "id": "corpo-usa-o-mesmo-nome-da-assinatura",
+      "sectionId": "o-nome-e-seu",
       "statement": "O nome da janelinha é uma escolha sua — o que importa é o corpo usar o MESMO nome declarado na assinatura; senão a caixa tenta devolver algo que nunca entrou.",
       "question": "Qual destas caixas passa no teste `assert.equal(eco(7), 7)`?",
       "options": [

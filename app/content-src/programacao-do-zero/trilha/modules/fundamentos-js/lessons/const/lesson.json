@@ -100,6 +100,7 @@
   "assertions": [
     {
       "id": "const-nao-muda",
+      "sectionId": "modelo-mental",
       "statement": "const declara um valor que NÃO muda depois de criado; let é para o que pode receber outra escrita — a diferença está na escrita, não no valor.",
       "question": "A função abaixo roda e o teste confere o que ela devolve. O que `exemplo()` devolve?\n\n```js\nexport function exemplo() {\n  let mudavel = 1;\n  mudavel = 9;\n  const fixa = 2;\n  return fixa;\n}\n```",
       "options": [
@@ -113,6 +114,7 @@
     },
     {
       "id": "reescrita-de-const-e-erro-de-execucao",
+      "sectionId": "refutacoes",
       "statement": "Reescrever uma const é erro de EXECUÇÃO: a máquina ENTENDE o código, mas, ao rodar em modo estrito, a atribuição dispara TypeError (\"Assignment to constant variable\").",
       "question": "O programa abaixo roda em modo estrito. O que acontece na linha 2?\n\n```js\nconst fixa = 5;\nfixa = 9;\n```",
       "options": [
@@ -126,6 +128,7 @@
     },
     {
       "id": "const-exige-valor-inicial",
+      "sectionId": "refutacoes",
       "statement": "const exige o valor inicial NA declaração: a const nasce preenchida, ou não nasce — `const x;` sem valor é erro de SÍNTAXE.",
       "question": "Qual destas linhas a máquina NÃO entende (erro de sintaxe)?",
       "options": [

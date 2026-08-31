@@ -111,6 +111,7 @@
   "assertions": [
     {
       "id": "etiqueta-igualdade-exata",
+      "sectionId": "modelo-mental",
       "statement": "O nome de uma variável é uma etiqueta que o programador escolhe, e o programa a procura pela igualdade exata — o nome declarado e o nome usado têm de ser o mesmo.",
       "question": "O return congelado devolve fruta. Você declara const texto = \"abacaxi\";. O que acontece quando o teste roda?",
       "options": [
@@ -124,6 +125,7 @@
     },
     {
       "id": "maiuscula-e-minuscula-diferem",
+      "sectionId": "modelo-mental",
       "statement": "Maiúscula e minúscula são letras diferentes para o programa: Fruta e fruta são duas etiquetas distintas.",
       "question": "Você declara const Fruta = \"abacaxi\"; e o return congelado devolve fruta (minúscula). O que acontece?",
       "options": [
@@ -137,6 +139,7 @@
     },
     {
       "id": "nome-nao-amarra-tipo",
+      "sectionId": "exemplo",
       "statement": "O nome não amarra o tipo: a etiqueta pode guardar um texto OU um número — quem decide o que a função devolve é o valor guardado, não o nome.",
       "question": "Você escreve const fruta = 3; e o teste espera o texto \"abacaxi\". O que o conferidor responde?",
       "options": [

@@ -119,6 +119,7 @@
   "assertions": [
     {
       "id": "variavel-guarda-um-valor-por-vez",
+      "sectionId": "caixa-que-guarda",
       "statement": "A variável é uma caixinha etiquetada que guarda UM valor por vez: declarar com let cria a caixa já com um valor inicial; ler o nome devolve o valor guardado agora.",
       "question": "Depois destas linhas, o que `marcar()` devolve?\n\n```js\nexport function marcar() {\n  let contador = 0;\n  contador = 5;\n  return contador;\n}\n```",
       "options": [
@@ -132,6 +133,7 @@
     },
     {
       "id": "atribuicao-sobrescreve-nao-soma",
+      "sectionId": "o-que-significa-atribuir",
       "statement": "Atribuir (=) TROCA o valor guardado — a variável não acumula nem soma; a última escrita antes da leitura é a que vale.",
       "question": "Com `let pontos = 3;` seguido de `pontos = 10;`, o que `pontos` guarda depois da segunda linha?",
       "options": [
@@ -145,6 +147,7 @@
     },
     {
       "id": "trocar-e-atribuir-nao-redeclarar",
+      "sectionId": "refutacoes",
       "statement": "Para trocar o valor de uma variável você ATRIBUI de novo — declarar uma vez com let e atribuir em seguida; redeclarar o mesmo nome com let é erro de sintaxe.",
       "question": "Qual destes trechos é o jeito CERTO de criar `x` com 1 e depois trocar para 2?",
       "options": [

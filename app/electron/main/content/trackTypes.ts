@@ -142,6 +142,15 @@ export interface TrackAssertion {
   answerIndex: number;
   /** feedback exibido ao aluno depois de responder. */
   feedback: string;
+  /**
+   * ADITIVO (onda 1 replan sectionId, REPLAN A1): id da seção de teoria
+   * (`theory[].id`) que DEMONSTRA esta afirmação — a âncora que liga o quiz à
+   * base teórica da aula (a ordem das assertions NÃO é a ordem das seções).
+   * OPCIONAL: ausente = afirmação sem âncora declarada (trilhas antigas
+   * carregam sem o campo); presente, DEVE ser kebab-case (SLUG_RE) e, quando o
+   * loader conhece a aula, DEVE existir em `lesson.theory[].id`.
+   */
+  sectionId?: string;
 }
 
 export interface TrackSourceLink {
@@ -329,8 +338,13 @@ export const MAX_ASSERTIONS_PER_LESSON = 3;
  * quiz de múltipla escolha). Retorna a lista de problemas (vazia = ok) —
  * nunca lança. Só é chamada quando `assertions` está PRESENTE; ausência é
  * válida (aula sem quiz).
+ *
+ * REPLAN A1: `theoryIds` OPCIONAL — a lista de `lesson.theory[].id` da aula.
+ * Quando fornecida (o loader/validador de aula conhece a teoria), o
+ * `sectionId` de cada afirmação DEVE existir nela (âncora da afirmação à
+ * seção que a demonstra). Sem `theoryIds`, valida-se só o formato kebab-case.
  */
-export function validateAssertions(raw: unknown, file: string): TrackValidationIssue[] {
+export function validateAssertions(raw: unknown, file: string, theoryIds?: string[]): TrackValidationIssue[] {
   const issues: TrackValidationIssue[] = [];
   if (!Array.isArray(raw)) {
     return [{ file, message: `assertions inválido: ${JSON.stringify(raw)} (esperado array, máx. ${MAX_ASSERTIONS_PER_LESSON})` }];
@@ -379,6 +393,16 @@ export function validateAssertions(raw: unknown, file: string): TrackValidationI
       issues.push({ file, message: `${prefix}.answerIndex inválido: ${JSON.stringify(a.answerIndex)} (esperado inteiro 0..${Math.max(0, optLen - 1)})` });
     }
     if (!isNonEmptyString(a.feedback)) issues.push({ file, message: `${prefix}.feedback vazio` });
+    // ADITIVO (REPLAN A1): sectionId OPCIONAL — presente, DEVE ser kebab-case
+    // (SLUG_RE) e, com theoryIds conhecidos, DEVE existir em lesson.theory[].id
+    // (a seção que DEMONSTRA a afirmação). Ausente = sem âncora declarada.
+    if (a.sectionId !== undefined) {
+      if (!isNonEmptyString(a.sectionId) || !SLUG_RE.test(a.sectionId)) {
+        issues.push({ file, message: `${prefix}.sectionId inválido: ${JSON.stringify(a.sectionId)} (esperado kebab-case ASCII, ex.: 'a-maquina-que-confere')` });
+      } else if (theoryIds !== undefined && !theoryIds.includes(a.sectionId)) {
+        issues.push({ file, message: `${prefix}.sectionId desconhecido: ${JSON.stringify(a.sectionId)} (não existe em lesson.theory[].id — a afirmação precisa ancorar numa seção de teoria da aula)` });
+      }
+    }
   });
   return issues;
 }
@@ -414,8 +438,11 @@ export function validateLessonSource(raw: unknown, file: string): TrackValidatio
   // ADITIVO (onda 1 schema-quiz): assertions OPCIONAL — presente, valida o
   // shape (array, máx. 3, ids únicos, quiz bem formado); AUSENTE = aula sem
   // quiz (válido, trilhas antigas continuam passando com 0 issues).
+  // REPLAN A1: passa os ids das seções de teoria da aula — o sectionId de cada
+  // afirmação DEVE existir em theory[].id (a seção que DEMONSTRA a afirmação).
   if (l.assertions !== undefined) {
-    issues.push(...validateAssertions(l.assertions, file));
+    const theoryIds = Array.isArray(l.theory) ? l.theory.map((s) => s.id) : undefined;
+    issues.push(...validateAssertions(l.assertions, file, theoryIds));
   }
   return issues;
 }

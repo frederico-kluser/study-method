@@ -107,6 +107,7 @@
   "assertions": [
     {
       "id": "ultima-escrita-vence",
+      "sectionId": "modelo-mental",
       "statement": "O estado de uma variável é o ÚLTIMO valor escrito: cada atribuição substitui o anterior, e ler o nome devolve o valor da última escrita.",
       "question": "O que `placar()` devolve?\n\n```js\nexport function placar() {\n  let pontos = 0;\n  pontos = 10;\n  pontos = 3;\n  return pontos;\n}\n```",
       "options": [
@@ -120,6 +121,7 @@
     },
     {
       "id": "valor-inicial-nao-decide",
+      "sectionId": "refutacoes",
       "statement": "O valor inicial da declaração não decide o valor final: quando há atribuições depois, quem decide é a ÚLTIMA escrita, não a primeira.",
       "question": "O que `f()` devolve?\n\n```js\nexport function f() {\n  let total = 100;\n  total = 3;\n  return total;\n}\n```",
       "options": [
@@ -133,6 +135,7 @@
     },
     {
       "id": "ordem-das-atribuicoes-importa",
+      "sectionId": "refutacoes",
       "statement": "A ordem das atribuições importa: trocar duas escritas de valores diferentes troca o estado final do programa.",
       "question": "Qual destas sequências termina com `x` guardando o valor 2?",
       "options": [

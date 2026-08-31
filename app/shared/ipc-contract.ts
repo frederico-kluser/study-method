@@ -396,6 +396,14 @@ export interface TrackAssertionDto {
   options: string[];
   answerIndex: number;
   feedback: string;
+  /**
+   * ADITIVO (onda 1 replan sectionId, REPLAN A1): id da seção de teoria
+   * (`theory[].id`) que DEMONSTRA esta afirmação — a âncora do quiz na base
+   * teórica da aula (a ordem das assertions NÃO é a ordem das seções).
+   * OPCIONAL: ausente = afirmação sem âncora declarada (trilhas antigas
+   * chegam sem o campo).
+   */
+  sectionId?: string;
 }
 
 /** Fonte do conteúdo — exibida SOMENTE pelo botão "Fontes", nunca no fluxo. */

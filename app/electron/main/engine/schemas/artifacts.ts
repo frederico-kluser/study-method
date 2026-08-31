@@ -324,8 +324,17 @@ export const AssertionDraftSchema = z.object({
   statement: z.string().min(1),
   question: z.string().min(1),
   options: z.array(z.string().min(1)).length(4),
-  answerIndex: z.number().int().nonnegative(),
+  // REPLAN A2: fail-fast no DRAFT — answerIndex fora de 0..3 (as 4 opções)
+  // REPROVA o draft aqui, antes do validador de produto no load.
+  answerIndex: z.number().int().nonnegative().max(3),
   feedback: z.string().min(1),
+  // REPLAN A1: âncora da afirmação à seção de teoria que a demonstra
+  // (`theory[].id`). INV-05: nada opcional — ausência vira valor vazio
+  // EXPLÍCITO (`''`), mesmo idioma do campo `assertions` no LessonDraftSchema
+  // (z.preprocess → typeName ZodEffects, não flagrado pelo lint); presente,
+  // precisa ser string não vazia. A EXISTÊNCIA do id em theory[] é conferida
+  // pelo validador de produto no load (validateAssertions com theoryIds).
+  sectionId: z.preprocess((v) => (v === undefined ? '' : v), z.string().min(1)),
 });
 
 export const LessonDraftSchema = z.object({

@@ -82,6 +82,7 @@
   "assertions": [
     {
       "id": "especies-de-resposta",
+      "sectionId": "os-dois-erros",
       "statement": "A resposta do conferidor tem espécies diferentes: erro de VALOR (a máquina entendeu, rodou e o valor não bateu) e erro de SÍNTAXE (ela não entendeu e nada rodou).",
       "question": "O conferidor respondeu \"esperava 6, recebeu 5\". Que espécie de resposta é essa?",
       "options": ["erro de sintaxe", "erro de valor", "erro de execução", "nenhuma — o teste passou"],
@@ -90,6 +91,7 @@
     },
     {
       "id": "molde-esperava-recebeu",
+      "sectionId": "como-ler-a-mensagem",
       "statement": "No molde \"esperava X, recebeu Y\", X é o valor que o TESTE queria e Y é o valor que o SEU código entregou — corrigir é comparar os dois lados.",
       "question": "O teste espera 6 e a sua função devolveu 5. Qual é a mensagem do conferidor?",
       "options": ["esperava 5, recebeu 6", "esperava 6, recebeu 5", "SyntaxError: Unexpected token '6'", "esperava 5, recebeu 5"],
@@ -98,6 +100,7 @@
     },
     {
       "id": "sintaxe-nao-rodou",
+      "sectionId": "os-dois-erros",
       "statement": "No erro de SÍNTAXE a máquina não entendeu a frase do programa e ele nem chega a rodar — a mensagem começa com SyntaxError e não fala de valores.",
       "question": "Qual destas mensagens é de SÍNTAXE?",
       "options": ["esperava 6, recebeu 5", "SyntaxError: Unexpected token ';'", "esperava 3, recebeu 3", "ReferenceError: contador is not defined"],

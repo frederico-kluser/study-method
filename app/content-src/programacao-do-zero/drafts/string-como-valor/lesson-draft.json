@@ -66,6 +66,7 @@
   "assertions": [
     {
       "id": "string-e-valor",
+      "sectionId": "string-como-valor",
       "statement": "String é um valor, como o número: um texto entre aspas pode ser guardado numa variável let, lido e devolvido — o valor guardado é o conteúdo de dentro, sem as aspas.",
       "question": "A função abaixo roda e o teste confere o que ela devolve. O que `saudacao()` devolve?\n\n```js\nexport function saudacao() {\n  let mensagem = \"oi\";\n  return mensagem;\n}\n```",
       "options": ["oi", "\"oi\" (com as aspas)", "um erro, porque texto não é número", "a etiqueta mensagem"],
@@ -74,6 +75,7 @@
     },
     {
       "id": "aspas-delimitam-o-texto",
+      "sectionId": "texto-tambem-e-valor",
       "statement": "Sem as aspas, um texto deixa de ser texto: oi vira um NOME, e um nome que não foi declarado não existe para a máquina.",
       "question": "Qual linha guarda o texto oi numa variável let, do jeito que a máquina entende?",
       "options": ["let mensagem = oi;", "let mensagem = \"oi\";", "let mensagem = 'oi;", "let mensagem = oi\";"],
@@ -82,6 +84,7 @@
     },
     {
       "id": "aspas-precisam-casar",
+      "sectionId": "refutacoes",
       "statement": "As aspas marcam onde o texto começa e termina, e precisam casar: a aspa que abre é a mesma que fecha.",
       "question": "Qual destas linhas a máquina ENTENDE como uma string?",
       "options": ["let mensagem = \"oi\";", "let mensagem = \"oi';", "let mensagem = 'oi\";", "let mensagem = oi;"],

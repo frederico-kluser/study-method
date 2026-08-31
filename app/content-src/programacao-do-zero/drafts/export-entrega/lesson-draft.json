@@ -59,6 +59,7 @@
   "assertions": [
     {
       "id": "export-entrega-ao-conferidor",
+      "sectionId": "a-entrega",
       "statement": "A palavra export entrega a caixa ao conferidor; sem ela, o site não enxerga a caixa.",
       "question": "O que precisa estar no arquivo para o site conseguir chamar a caixa `resposta`?",
       "options": [
@@ -72,6 +73,7 @@
     },
     {
       "id": "export-nao-muda-o-valor",
+      "sectionId": "o-que-muda-com-a-palavra",
       "statement": "Entregar não muda o que a caixa faz nem o valor que ela devolve — muda quem enxerga a caixa.",
       "question": "Você acrescenta `export` a uma caixa que devolve 5. O que muda?",
       "options": [
@@ -85,6 +87,7 @@
     },
     {
       "id": "sem-export-import-falha",
+      "sectionId": "o-que-muda-com-a-palavra",
       "statement": "Sem a palavra export, a importação falha e o teste nem chega a chamar a caixa.",
       "question": "O arquivo tem `function resposta() { return 5; }` sem `export`. O que o site consegue fazer?",
       "options": [

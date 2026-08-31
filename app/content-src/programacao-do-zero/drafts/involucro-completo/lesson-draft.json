@@ -16,6 +16,7 @@
   "assertions": [
     {
       "id": "sem-export-caixa-fica-dentro",
+      "sectionId": "refutacoes",
       "statement": "Sem a palavra export, a caixa existe dentro do arquivo, mas o conferidor não a enxerga de fora — o teste para antes de rodar a função.",
       "question": "O teste chama conferir() e espera 5. Você escreve a função SEM o export. O que acontece na hora do teste?",
       "options": [
@@ -29,6 +30,7 @@
     },
     {
       "id": "sem-return-entrega-nada",
+      "sectionId": "refutacoes",
       "statement": "Sem a linha return, a caixa roda mas entrega 'nada' — o teste lê o retorno como undefined.",
       "question": "Você escreve a caixa com o export e a variável let total = 5;, mas esquece a linha return total;. O que o teste recebe?",
       "options": [
@@ -42,6 +44,7 @@
     },
     {
       "id": "nome-da-caixa-igual-ao-teste",
+      "sectionId": "modelo-mental",
       "statement": "O nome da função é o mesmo nome que o teste usa — é assim que o conferidor encontra a caixa.",
       "question": "O teste chama conferir(). Você declara export function outra() { let total = 5; return total; }. O que acontece?",
       "options": [

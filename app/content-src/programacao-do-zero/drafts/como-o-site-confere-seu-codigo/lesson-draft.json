@@ -103,6 +103,7 @@
   "assertions": [
     {
       "id": "afirmacao-maquina-confere",
+      "sectionId": "a-maquina-que-confere",
       "statement": "A máquina que confere chama a sua caixa e compara o valor devolvido com o esperado do teste.",
       "question": "Quando você clica em conferir, o que a máquina faz com a sua caixa?",
       "options": [
@@ -116,6 +117,7 @@
     },
     {
       "id": "afirmacao-lacuna",
+      "sectionId": "como-ler-o-desafio",
       "statement": "No invólucro congelado, a lacuna é o único lugar seu nesta atividade.",
       "question": "Onde você escreve nesta atividade?",
       "options": [
@@ -129,6 +131,7 @@
     },
     {
       "id": "afirmacao-parametro",
+      "sectionId": "as-palavras-da-caixa",
       "statement": "Parâmetro é a janelinha por onde um valor entra na caixa; variável é uma caixa nomeada que guarda um valor.",
       "question": "Na leitura `export function eco(texto) { return texto; }`, o que é o `(texto)`?",
       "options": [

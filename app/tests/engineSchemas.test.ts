@@ -323,6 +323,10 @@ describe('validação de artefato — erro que NOMEIA o campo e o motivo', () =>
 describe('LessonDraftSchema — assertions (ADITIVO, onda 1 schema-quiz)', () => {
   const assertion = (over: Record<string, unknown> = {}) => ({
     id: 'variavel-guarda-valor',
+    // REPLAN A1: a assertion VÁLIDA de draft CARREGA a âncora — sectionId é
+    // obrigatório-não-vazio no draft (z.preprocess + min(1); ausência REPROVA,
+    // fail-fast — REPLAN A2). 't1' é o id de theory[] do baseDraft().
+    sectionId: 't1',
     statement: 'Uma variável guarda um valor em memória.',
     question: 'O que uma variável guarda?',
     options: ['Um valor', 'Um programa', 'Uma pasta', 'Uma tecla'],
@@ -394,5 +398,47 @@ describe('LessonDraftSchema — assertions (ADITIVO, onda 1 schema-quiz)', () =>
 
   it('o lint INV-05 continua limpo com o campo (z.preprocess, não .optional())', () => {
     assert.deepEqual(encontrarCamposOpcionais(SCHEMA_REGISTRY), []);
+  });
+
+  it('REPLAN A1: sectionId presente e não vazio passa e é preservado; ausente REPROVA (fail-fast no draft)', () => {
+    const com = LessonDraftSchema.safeParse({
+      ...baseDraft(),
+      assertions: [assertion({ sectionId: 'a-maquina-que-confere' })],
+    });
+    assert.equal(com.success, true);
+    if (!com.success) return;
+    assert.equal(com.data.assertions[0].sectionId, 'a-maquina-que-confere');
+
+    // z.preprocess mapeia a ausência para '' (idioma INV-05 do campo
+    // assertions), mas o min(1) do schema REJEITA — sectionId é
+    // obrigatório-não-vazio na assertion de draft (fail-fast, REPLAN A2).
+    const sem = LessonDraftSchema.safeParse({ ...baseDraft(), assertions: [assertion({ sectionId: undefined })] });
+    assert.equal(sem.success, false, 'assertion de draft sem sectionId REPROVA o draft');
+    if (sem.success) return;
+    assert.match(formatarErroCampos(sem.error), /assertions\.0\.sectionId/);
+  });
+
+  it('REPLAN A1: sectionId vazio REPROVA o draft (presente, precisa ser string não vazia)', () => {
+    const r = LessonDraftSchema.safeParse({
+      ...baseDraft(),
+      assertions: [assertion({ sectionId: '' })],
+    });
+    assert.equal(r.success, false);
+  });
+
+  it('REPLAN A2: answerIndex fora de 0..3 REPROVA o draft (fail-fast); 3 (a última opção) passa', () => {
+    const fora = LessonDraftSchema.safeParse({
+      ...baseDraft(),
+      assertions: [assertion({ answerIndex: 4 })],
+    });
+    assert.equal(fora.success, false);
+    if (fora.success) return;
+    assert.match(formatarErroCampos(fora.error), /assertions\.0\.answerIndex/);
+
+    const ultima = LessonDraftSchema.safeParse({
+      ...baseDraft(),
+      assertions: [assertion({ answerIndex: 3 })],
+    });
+    assert.equal(ultima.success, true);
   });
 });
