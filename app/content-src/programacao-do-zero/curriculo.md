@@ -6,18 +6,29 @@ starter é congelado e declarado em `congelado`.
 
 ## Por que esta ordem (cada pré-suposto do feedback é eliminado em algum lugar)
 
-- **Aula 1 não presume função, chamada nem parâmetro.** O aluno digita **um
-  número**; todo o invólucro (`export function resposta() { return …; }`) está
+- **Aula 1 não presume função, chamada, parâmetro nem variável.** O aluno digita
+  **um número**; todo o invólucro (`export function resposta() { return …; }`) está
   congelado e é ensinado **como leitura** numa seção "como ler o desafio" —
   exatamente a condição que torna o boilerplate S13 lícito: as chaves do
   invólucro entram em `avancos.receptivo` da L1 (`node:FunctionDeclaration`,
-  `node:ReturnStatement`), nunca no produtivo.
+  `node:ReturnStatement`), nunca no produtivo. Uma seção de vocabulário ("as
+  palavras da caixa") **nomeia como leitura** os quatro conceitos: função (a
+  caixa), return (a entrega), **parâmetro** (a janelinha por onde um valor entra
+  — `node:Parameter` entra no RECEPTIVO da L1) e **variável** (uma caixa
+  nomeada que guarda um valor — conceito nomeado como leitura; escrever
+  `let`/`const` continua produtivo nas L7/L10). Nada disso é cobrado
+  produtivamente: o produtivo da L1 continua só `node:NumericLiteral`.
 - **Função** deixa de ser só leitura na **L3**, mas o primeiro ato produtivo de
   função é a **chamada** (`resposta()`), não a declaração: escrever a declaração
   obrigaria a escrever `return` (que é a L6). A declaração inteira só é escrita
   pelo aluno na **L12** (`node:FunctionDeclaration` produtivo).
-- **Parâmetro/argumento**: NUNCA antes da **L5**. O aluno digita o nome do
-  parâmetro; o argumento é lido no teste congelado e exercitado no esticar.
+- **Parâmetro/argumento**: escrever o parâmetro NUNCA antes da **L5** (o aluno
+  digita o nome do parâmetro; o argumento é lido no teste congelado e
+  exercitado no esticar). O CONCEITO, porém, é **nomeado como leitura já na L1**
+  (decisão do dono: a 1ª aula fala de function, return, parâmetro e variável) —
+  `node:Parameter` entra no `avancos.receptivo` da L1 (padrão L1-lê/L5-escreve:
+  a L5 o torna produtivo) e a variável, nomeada na L1, é escrita (`decl:let`) na
+  L7.
 - **Return** (L6) é produtivo quando o aluno escreve a linha de devolução pela
   primeira vez; antes disso ele só o lê (receptivo desde L1).
 - **Export** (L4): o aluno digita a palavra mágica que entrega a caixa ao
@@ -50,6 +61,12 @@ Progressão produtiva da trilha (9 átomos): `NumericLiteral → CallExpression 
 ExportKeyword → Parameter → ReturnStatement → decl:let → StringLiteral →
 decl:const → FunctionDeclaration`.
 
+Receptivo (leitura) da L1: o invólucro (`node:FunctionDeclaration`,
+`node:ReturnStatement`) + o parâmetro (`node:Parameter`) + o conceito de
+variável nomeado em prosa — tudo sem cobertura produtiva (o produtivo da L1 é
+só o `7`; escrever parâmetro continua L5 e escrever `let`/`const` continua
+L7/L10).
+
 ## Reuso e desafio progressivo (A15)
 
 - **Inter-aula (A15b):** toda aula usa ≥1 átomo do avanço da anterior — L3
@@ -68,8 +85,9 @@ O harness congela `export function …() { return …; }` e o teste
 "como ler o desafio"** que ensina o invólucro COMO LEITURA e o declara em
 `avancos.receptivo`. Como o contrato A2 ignora átomos já presentes no starter,
 o congelado nunca exige cobertura produtiva — só receptiva (seed do harness +
-receptivo de L1). Literais e chamada são seed receptivo e viram produtivo nas
-aulas certas.
+receptivo de L1). A seção "as palavras da caixa" estende essa leitura a
+parâmetro e variável, sempre sem cobertura produtiva. Literais e chamada são
+seed receptivo e viram produtivo nas aulas certas.
 
 ## Observações de desenho para a fase de escrita
 - `let x = 0;` emite `decl:*` + `node:VariableStatement/DeclarationList/

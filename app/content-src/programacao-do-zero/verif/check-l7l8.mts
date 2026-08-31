@@ -148,6 +148,7 @@ async function main(): Promise<void> {
     'como-o-site-confere-seu-codigo': [
       'export function resposta() {\n  return 7;\n}',
       'assert.equal(resposta(), 7);',
+      'export function eco(texto) {\n  return texto;\n}',
     ],
     'valor-e-instrucao': [
       'export function resposta() {\n  return 42;\n}',

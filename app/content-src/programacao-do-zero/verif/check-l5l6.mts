@@ -262,7 +262,8 @@ const l4: ProgressaoLessonInput = {
   ],
 };
 
-// Fixtures L1–L3 — byte a byte os do teste validado tests/engineProgressao.test.ts
+// Fixtures L1–L3 — contexto derivado do curriculo (L1 nova: invólucro +
+// assert + vocabulário da caixa — parâmetro como leitura receptiva)
 const l1: ProgressaoLessonInput = {
   ref: 'programacao-do-zero/como-o-site-confere-seu-codigo',
   baseDir: 'content-src/programacao-do-zero',
@@ -276,6 +277,11 @@ const l1: ProgressaoLessonInput = {
       id: 'a-maquina-que-confere',
       title: 'A máquina que confere',
       markdown: 'O site importa a caixa e confere o que ela devolve.\n\n```js\nassert.equal(conferidor(), 7);\n```',
+    },
+    {
+      id: 'as-palavras-da-caixa',
+      title: 'As palavras da caixa',
+      markdown: 'Parâmetro é a janelinha por onde um valor entra na caixa.\n\n```js\nexport function eco(texto) {\n  return texto;\n}\n```',
     },
   ],
   challenges: [],

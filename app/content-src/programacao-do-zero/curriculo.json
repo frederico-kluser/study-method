@@ -4,7 +4,7 @@
     "titulo": "Como o site confere seu código",
     "avancos": {
       "produtivo": ["node:NumericLiteral"],
-      "receptivo": ["node:FunctionDeclaration", "node:ReturnStatement"]
+      "receptivo": ["node:FunctionDeclaration", "node:ReturnStatement", "node:Parameter"]
     },
     "demonstrado_na_teoria": [
       "node:ExportKeyword",
@@ -20,7 +20,8 @@
       "global:assert",
       "global:test",
       "api:test",
-      "api:assert.equal"
+      "api:assert.equal",
+      "node:Parameter"
     ],
     "primeira_secao_demonstra": [
       "node:ExportKeyword",
@@ -58,7 +59,7 @@
       "node:ReturnStatement"
     ],
     "enunciado_naive": "O programa já está pronto; falta só digitar o número que a máquina deve conferir.",
-    "termos_novos": ["invólucro", "lacuna", "máquina que confere", "teste", "assert"],
+    "termos_novos": ["invólucro", "lacuna", "máquina que confere", "teste", "assert", "parâmetro", "variável"],
     "verif": { "A13_ok": true, "A16_ok": true }
   },
   {
