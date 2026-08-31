@@ -10,7 +10,7 @@
 > documento e um gate determinístico divergirem, **o gate vence** — e o documento está errado.
 >
 > **Linguagens.** A trava descrita aqui é implementável em mais de uma linguagem. O critério e o
-> estado de cada uma estão em [linguagens/README.md](linguagens/README.md).
+> estado de cada uma estão em [research/08-multilingua-trava-deterministica.md](research/08-multilingua-trava-deterministica.md).
 
 ---
 
@@ -426,7 +426,7 @@ dependência direta. Custa zero dependência nova. E o AST do TypeScript modela 
 ESTree esconde em atributo — `typeof` é `TypeOfExpression`, `!==` é `ExclamationEqualsEqualsToken` —
 o que aproxima o extrator do vocabulário de seis eixos em vez de afastá-lo. A versão fica presa em
 5.8.3, longe da armadilha do `typescript@7`, que moveu a API de AST de lugar (ver
-[linguagens/README.md](linguagens/README.md)).
+[research/08-multilingua-trava-deterministica.md](research/08-multilingua-trava-deterministica.md)).
 
 Configuração fixa num **único módulo** — se dois estágios parseiam com opções diferentes, o gate vira
 loteria:
