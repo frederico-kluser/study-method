@@ -554,7 +554,16 @@ describe('F12 — materializarTrilha (integrador único)', () => {
       const veredito = await gFinal({ verificarDesafio: verificadorQueFalhaUmaProva }, destino);
 
       assert.equal(veredito.ok, false);
-      assert.equal(veredito.audit.ok, true, 'o audit está limpo — quem reprova são as PROVAS');
+      // A fixture do dossiê (teoria SÓ prosa, introduces declarado sem
+      // demonstração) fura a bateria A13–A16 — rodada 12: o G-FINAL agora
+      // exige que a trilha GERADA demonstre em bloco js o que declara
+      // (A13d "declarar não é demonstrar" + A14a teto). Quem nos interessa
+      // AQUI é o isolamento das PROVAS: elas reprovam nomeando o desafio.
+      assert.equal(veredito.audit.ok, false, 'o audit flagia o dossiê sem demo (A13d/A14a)');
+      assert.ok(
+        veredito.audit.violacoes.some((v) => v.includes('A13d')),
+        `a reprovação do audit precisa incluir A13d (declarar sem demonstrar): ${veredito.audit.violacoes.join(' | ')}`,
+      );
       assert.equal(veredito.provas.ok, false);
       assert.ok(
         veredito.provas.falhas.some((f) => f.includes('modulo-2/constantes')),

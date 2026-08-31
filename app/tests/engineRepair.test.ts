@@ -221,6 +221,42 @@ function caminhoDoDesafio(lessonSlug: string, desafioSlug: string): string {
   return `modules/m01/lessons/${lessonSlug}/challenges/${desafioSlug}/challenge.json`;
 }
 
+/**
+ * As regras da bateria A13–A16 (rodada 12) — para o ESCOPO desta suíte.
+ */
+const REGRAS_DA_BATERIA_A13_A16 = new Set<string>(['A13', 'A13d', 'A14a', 'A14b', 'A15a', 'A15b', 'A16']);
+
+/**
+ * Audit com o CONTRATO ORIGINAL (A1–A6/DEC/I*). A suíte P-23 testa a MECÂNICA
+ * do laço de reparo (pins, rodadas, rejeição por pin quebrado, gravação) —
+ * não os NÚMEROS da bateria nova: a A13–A16 entra na MESMA máquina P-13
+ * (mesmas classes lacuna/ordem por `primeiraAulaQueEnsina`) e os números dela
+ * têm suíte própria (engineAuditPlacar = o pin; engineProgressao; F12). Um
+ * delta exato de rodadas/pins precisa de um conjunto de violações
+ * DETERMINÍSTICO — sem o escopo, cada bump de bateria reescreveria esta suíte
+ * de mecânica. O repair em PRODUÇÃO segue rodando o auditTrack CHEIO (default
+ * em `modes/repair.ts` sem `deps.auditar`).
+ */
+function auditarContratoOriginal(trilha: LoadedTrack): AuditReport {
+  const relatorio = auditTrack(trilha);
+  const violations = relatorio.violations.filter((v) => !REGRAS_DA_BATERIA_A13_A16.has(v.regra));
+  // Re-deriva o placar sobre o conjunto filtrado (o placar nunca pode contar o
+  // que a suíte decidiu não auditar).
+  const erros = violations.filter((v) => (v.severidade ?? 'erro') !== 'aviso');
+  return {
+    ...relatorio,
+    violations,
+    totals: {
+      ...relatorio.totals,
+      violacoes: erros.length,
+      avisos: violations.length - erros.length,
+      lacunasDeCurriculo: erros.filter((v) => v.construcao !== null && v.primeiraAulaQueEnsina === null).length,
+      desafiosComViolacao: new Set(erros.filter((v) => v.arquivo.includes('/challenges/')).map((v) => v.arquivo)).size,
+      aulasSemConstrucaoNova: relatorio.totals.aulasSemConstrucaoNova,
+    },
+  };
+}
+
 // ---------------------------------------------------------------------------
 // Fakes — adaptador P-35, LLM, provas, escrita em memória
 // ---------------------------------------------------------------------------
@@ -444,11 +480,14 @@ function depsDeReparoCom(
   const deps: DepsDoReparo = {
     track,
     gravarArquivo: tem('gravarArquivo') ? over.gravarArquivo : escrita.gravarArquivo,
+    // contrato ORIGINAL por padrão (ver auditarContratoOriginal) — a suíte de
+    // mecânica não re-audita a A13–A16; o default de PRODUÇÃO segue cheio.
+    auditar: tem('auditar') ? over.auditar : auditarContratoOriginal,
     llm: tem('llm') ? over.llm : llmDefault,
     proverDesafio: tem('proverDesafio') ? over.proverDesafio : provasValidas,
     modeloAutor: over.modeloAutor ?? 'autor-de-teste',
     modeloRevisor: over.modeloRevisor ?? 'revisor-de-teste',
-    auditLaco: tem('auditLaco') ? over.auditLaco : adaptadorAuditLacoFalso(auditTrack(track)),
+    auditLaco: tem('auditLaco') ? over.auditLaco : adaptadorAuditLacoFalso(auditarContratoOriginal(track)),
     // o seam da guarda fica testável: undefined → loader default (módulo real);
     // loader que devolve null → REPAIR_SEM_ADAPTADOR_AUDIT_LACO.
     carregarAdaptadorAuditLaco: over.carregarAdaptadorAuditLaco,
@@ -462,7 +501,7 @@ function depsDeReparoCom(
 // ---------------------------------------------------------------------------
 
 describe('P-23 · planejarReparo — a distinção §5.5 via P-13', () => {
-  const reportOrdenLacuna = auditTrack(trilhaComOrdemELacuna());
+  const reportOrdenLacuna = auditarContratoOriginal(trilhaComOrdemELacuna());
 
   it('o fixture 1 audita como esperado (2 ordens + 2 lacunas, só na solução de c1)', () => {
     assert.equal(reportOrdenLacuna.trackSlug, 'trilha-de-teste');
@@ -581,7 +620,11 @@ describe('P-23 · repararTrilha dry-run', () => {
     const track = trilhaComOrdemELacuna();
     let llmLigado = false;
     const resultado = await repararTrilha(
-      { track, gravarArquivo: async () => { throw new Error('dry-run NÃO pode gravar'); } },
+      {
+        track,
+        gravarArquivo: async () => { throw new Error('dry-run NÃO pode gravar'); },
+        auditar: auditarContratoOriginal,
+      },
       { slug: 'trilha-de-teste', modo: 'dry-run' },
     );
     // Cast para o braço dry-run (o discriminador garante em tipo; aqui só a leitura).
@@ -873,7 +916,7 @@ describe('P-23 · fail-closed', () => {
 describe('P-23 · a sessão semeada com pins que falham hoje', () => {
   it('cada violação de ORDEM vira pin VERMELHO no início (e o revisor LLM NÃO é chamado enquanto houver violação mecânica)', async () => {
     const track = trilhaComOrdemELacuna();
-    const report = auditTrack(track);
+    const report = auditarContratoOriginal(track);
     const adaptador = adaptadorAuditLacoFalso(report);
     const arquivo = caminhoDoDesafio('a01', 'c1');
     const plano = planejarReparo(report);

@@ -390,7 +390,12 @@ describe('engineReport', () => {
       }),
     });
     assert.equal(relatorio.placar.falhou, PIN_PLACAR.desafiosComViolacao);
-    assert.equal(formatarPlacar(relatorio.placar), '22 passou · 96 falhou · 0 pendente');
+    // O resumo é DERIVADO do pin (118 desafios reais) — nunca redigitar o
+    // número à mão, senão o bump da rodada 12 quebraria este espelho.
+    assert.equal(
+      formatarPlacar(relatorio.placar),
+      `${118 - PIN_PLACAR.desafiosComViolacao} passou · ${PIN_PLACAR.desafiosComViolacao} falhou · 0 pendente`,
+    );
     assert.match(relatorio.justificativa, /INT-02/, 'justificativa cita o protocolo');
     assert.ok(
       relatorio.justificativa.includes('engineAuditPlacar.test.ts'),

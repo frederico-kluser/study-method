@@ -73,6 +73,15 @@ export interface AtomOccurrence {
   /** 1-based. */
   column: number;
   snippet: string;
+  /**
+   * posição absoluta (offset 0-based) do INÍCIO da ocorrência no código —
+   * ADITIVO (rodada 12): é o que a bateria A13–A16 usa para classificar a
+   * ocorrência dentro/fora dos spans mecânicos S13 e para a contagem por
+   * linha do A14b.
+   */
+  start: number;
+  /** posição absoluta do fim (exclusivo) — ADITIVO. */
+  end: number;
 }
 
 export interface ExtractOk {
@@ -83,12 +92,25 @@ export interface ExtractOk {
   occurrences: AtomOccurrence[];
 }
 
+export interface ExtractAllOk {
+  ok: true;
+  /**
+   * TODAS as ocorrências, na ordem de visita do AST (≈ ordem do código) —
+   * o `extractAtoms` deduplica para a primeira por chave; esta variante
+   * expõe cada ocorrência individual. ADITIVA (rodada 12).
+   */
+  occurrences: AtomOccurrence[];
+  /** chaves únicas, em ordem alfabética — igual ao `extractAtoms`. */
+  keys: AtomKey[];
+}
+
 export interface ExtractError {
   ok: false;
   error: { code: 'PARSE_ERROR'; message: string; line: number; column: number };
 }
 
 export type ExtractResult = ExtractOk | ExtractError;
+export type ExtractAllResult = ExtractAllOk | ExtractError;
 
 /**
  * Globais do runtime, LIDOS DA MÁQUINA e nunca digitados à mão. Uma lista
@@ -304,11 +326,16 @@ export interface ExtractOptions {
 }
 
 /**
- * Extrai o conjunto de construções exigidas por um trecho de código.
+ * Caminhada comum do extrator: EXPOE TODA ocorrência de cada construção, na
+ * ordem de visita do AST. O `extractAtoms` deduplica a partir daqui; o
+ * `extractAllOccurrences` devolve a caminhada crua — é o que A13c (spans
+ * mecânicos S13) e A14b (combo de novas por linha) exigem, e a POSIÇÃO
+ * ABSOLUTA de cada ocorrência é o que permite decidir dentro/fora de um span
+ * sem conversão de linha:coluna.
  *
  * PURO: mesma entrada, mesma saída. Sem IO, sem rede, sem estado.
  */
-export function extractAtoms(code: string, options: ExtractOptions = {}): ExtractResult {
+function coletarOcorrencias(code: string, options: ExtractOptions): ExtractAllResult {
   const fileName = options.fileName ?? 'trecho.mjs';
   const scriptKind = options.dialect === 'ts' ? ts.ScriptKind.TS : ts.ScriptKind.JS;
 
@@ -330,18 +357,20 @@ export function extractAtoms(code: string, options: ExtractOptions = {}): Extrac
   }
 
   const declared = collectDeclaredNames(source);
-  const firstSeen = new Map<AtomKey, AtomOccurrence>();
+  const todas: AtomOccurrence[] = [];
 
   const record = (key: AtomKey, node: ts.Node): void => {
-    if (firstSeen.has(key)) return;
     const start = node.getStart(source);
+    const end = node.getEnd();
     const pos = source.getLineAndCharacterOfPosition(start);
     const raw = code.slice(start, Math.min(start + SNIPPET_MAX_CHARS, code.length));
-    firstSeen.set(key, {
+    todas.push({
       key,
       line: pos.line + 1,
       column: pos.character + 1,
       snippet: raw.split('\n')[0].trim(),
+      start,
+      end,
     });
   };
 
@@ -351,12 +380,10 @@ export function extractAtoms(code: string, options: ExtractOptions = {}): Extrac
       record(nodeKey(kindName(node.kind)), node);
     }
 
-    // ── eixo `decl:` — o que separa a aula de `let` da aula de `const` ────
     if (ts.isVariableDeclarationList(node)) {
       record(declKey(declarationKindOf(node)), node);
     }
 
-    // ── eixo `op:` — operadores, por família ──────────────────────────────
     if (ts.isBinaryExpression(node)) {
       const kind = node.operatorToken.kind;
       record(opKey(familyOfBinary(kind), operatorText(kind)), node.operatorToken);
@@ -374,20 +401,14 @@ export function extractAtoms(code: string, options: ExtractOptions = {}): Extrac
       record(opKey('unary', 'void'), node);
     }
 
-    // ── decidibilidade: `obj[expr]` com chave calculada ───────────────────
     if (ts.isElementAccessExpression(node)) {
       const arg = node.argumentExpression;
       const literal = ts.isStringLiteral(arg) || ts.isNumericLiteral(arg);
       if (!literal) record(nodeKey('ComputedNonLiteralAccess'), node);
     }
 
-    // ── eixo `api:` — membros e módulos ───────────────────────────────────
     if (ts.isPropertyAccessExpression(node)) {
       const chain = identifierChain(node);
-      // Cadeia cuja raiz é global (`console.log`) ou importada (`assert.equal`)
-      // vira caminho completo. Raiz que é variável local vira `.prop`, porque
-      // sem tipo não dá para afirmar o receptor — e afirmar o que não se sabe
-      // é justamente o que faz um gate mentir.
       const root = chain ? chain.split('.')[0] : '';
       const rootIsApi = chain !== null && (!declared.all.has(root) || declared.imported.has(root));
       if (chain && rootIsApi) {
@@ -404,7 +425,6 @@ export function extractAtoms(code: string, options: ExtractOptions = {}): Extrac
       }
     }
 
-    // ── eixo `global:` — identificador que não foi declarado no arquivo ───
     if (ts.isIdentifier(node) && isValueReference(node)) {
       const name = node.text;
       if (!declared.all.has(name) && RUNTIME_GLOBALS.has(name)) {
@@ -412,12 +432,6 @@ export function extractAtoms(code: string, options: ExtractOptions = {}): Extrac
       }
     }
 
-    // ── eixo `form:` — FORMA de uso (docs §3.1, I9/I11) ────────────────────
-    // A bateria vive em form/rules.ts e é COMPILADA UMA VEZ, na carga do módulo:
-    // seletor malformado lá dentro é erro de inicialização (A-P06-4), nunca
-    // silêncio em verificação — aqui só rodam regras já compiladas. O sujeito da
-    // forma é o nó casado (o passo mais à direita do seletor). Mudança ADITIVA:
-    // nenhum dos eixos existentes (node/decl/op/global/api) é alterado.
     for (const rule of FORM_RULES) {
       if (selectorMatches(rule.compiled, node)) record(rule.key, node);
     }
@@ -426,6 +440,40 @@ export function extractAtoms(code: string, options: ExtractOptions = {}): Extrac
   };
 
   ts.forEachChild(source, visit);
+
+  return { ok: true, occurrences: todas, keys: [...new Set(todas.map((o) => o.key))].sort() };
+}
+
+/**
+ * Extrai TODAS as ocorrências de cada construção, com posição absoluta.
+ *
+ * ADITIVA (rodada 12): a bateria A13–A16 (`engine/quality/progressao.ts`)
+ * precisa classificar CADA ocorrência dentro/fora dos spans mecânicos S13
+ * (testes) e por linha (A14b) — o `extractAtoms`, que deduplica para a
+ * primeira ocorrência por chave, não entrega isso. A API canônica não muda.
+ *
+ * PURO: mesma entrada, mesma saída. Sem IO, sem rede, sem estado.
+ */
+export function extractAllOccurrences(code: string, options: ExtractOptions = {}): ExtractAllResult {
+  return coletarOcorrencias(code, options);
+}
+
+/**
+ * Extrai o conjunto de construções exigidas por um trecho de código.
+ *
+ * PURO: mesma entrada, mesma saída. Sem IO, sem rede, sem estado.
+ */
+export function extractAtoms(code: string, options: ExtractOptions = {}): ExtractResult {
+  const todas = coletarOcorrencias(code, options);
+  if (!todas.ok) return todas;
+
+  // deduplicação para a PRIMEIRA ocorrência por chave — o contrato histórico
+  // do extrator ("a violação cita a primeira ocorrência"), preservado byte a
+  // byte: a caminhada é a MESMA, só a projeção muda.
+  const firstSeen = new Map<AtomKey, AtomOccurrence>();
+  for (const occ of todas.occurrences) {
+    if (!firstSeen.has(occ.key)) firstSeen.set(occ.key, occ);
+  }
 
   const occurrences = [...firstSeen.values()].sort((a, b) =>
     a.key < b.key ? -1 : a.key > b.key ? 1 : 0,

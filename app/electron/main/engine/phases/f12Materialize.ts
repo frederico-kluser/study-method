@@ -1072,11 +1072,16 @@ export async function gFinal(deps: DepsMaterializar, destino: string): Promise<R
     }
   }
 
-  // (c) o audit — zero violações + teoria parseável (fail-closed).
+  // (c) o audit — zero violações de ERRO + teoria parseável (fail-closed).
+  // A bateria A13–A16 (rodada 12) roda aqui como no G-AUDIT; avisos (D4,
+  // valores explicados em prosa; aula de revisão sem incremento no A14a) NÃO
+  // reprovam a materialização — erro reprova.
   const report = auditTrack(track);
-  const violacoes = report.violations.map(
-    (v) => `${v.regra} ${v.arquivo}${v.campo !== 'lesson' && v.campo !== 'module' && v.campo !== 'track' ? `#${v.campo}` : ''}: ${v.mensagem}`,
-  );
+  const violacoes = report.violations
+    .filter((v) => (v.severidade ?? 'erro') !== 'aviso')
+    .map(
+      (v) => `${v.regra} ${v.arquivo}${v.campo !== 'lesson' && v.campo !== 'module' && v.campo !== 'track' ? `#${v.campo}` : ''}: ${v.mensagem}`,
+    );
   for (const parse of report.parseErrors) {
     violacoes.push(`PARSE teoria ${parse.ref} linha ${parse.line}: ${parse.message}`);
   }

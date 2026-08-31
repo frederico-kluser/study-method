@@ -405,7 +405,10 @@ describe('audit — o gate', () => {
       ]),
     ]);
     const report = auditTrack(t);
-    const returnViolation = report.violations.find((v) => v.construcao === 'node:ReturnStatement');
+    // Rodada 12: a bateria A13 também flagia `return` (A13a — usado sem
+    // demonstração anterior) — o CONTRATO do orçamento é a violação A2; é ela
+    // que distingue §5.5 (ordem/lacuna) e que o laço de reparo consome.
+    const returnViolation = report.violations.find((v) => v.regra === 'A2' && v.construcao === 'node:ReturnStatement');
     assert.ok(returnViolation, 'o gate precisa pegar `return` cobrado antes de ser ensinado');
     // `return` É ensinado — só que depois. Logo é ORDEM, não lacuna.
     assert.equal(returnViolation.primeiraAulaQueEnsina, 'm1/a2');
@@ -413,21 +416,32 @@ describe('audit — o gate', () => {
   });
 
   it('APROVA uma trilha coerente — o gate não é ruído', () => {
+    // Sequência coerente sob a bateria INTEIRA (A1–A6 + A13–A16, rodada 12):
+    //   L1 é aula de LEITURA (sem desafio): demonstra o invólucro na seção 1
+    //   (function/return/parâmetro = 3 novas) e a CHAMADA na seção 2 (1 nova —
+    //   a chamada entra no cumulativo ANTES de qualquer teste lê-la);
+    //   L2 é o desafio: a 1ª seção demonstra o `if` (a construção nova da aula)
+    //   e o 1º desafio escreve só o que a 1ª seção + o anterior demonstram. Os
+    //   testes da L2 podem chamar `f(1)` porque a chamada já foi demonstrada na
+    //   L1 (A13c: lido-antes ⊆ demonstrado-anterior).
     const coerente = trackOf([
       moduleOf('m1', 1, [
+        lesson('a1-leitura', [theory('s1', 'O invólucro.', 'export function exemplo(x) {\n  return x;\n}'), theory('s2', 'A chamada.', 'exemplo(1);')], [
+          // sem desafio: aula de leitura — nada de teste, nada de escrita
+        ]),
         lesson(
-          'a1',
+          'a2',
           [
             theory(
               's',
-              'Uma função devolve um valor.',
-              "export function exemplo(x) {\n  return x;\n}\nconsole.log(exemplo(1));",
+              'Uma condição decide o caminho.',
+              'export function f(n) {\n  if (n) {\n    return 1;\n  } else {\n    return 0;\n  }\n}\n',
             ),
           ],
           [
             challenge('c1', {
               starterCode: 'export function f(n) {\n}\n',
-              solutionCode: 'export function f(n) {\n  return n;\n}\n',
+              solutionCode: 'export function f(n) {\n  if (n) {\n    return 1;\n  } else {\n    return 0;\n  }\n}\n',
               testsCode:
                 "import { test } from 'node:test';\nimport assert from 'node:assert/strict';\nimport { f } from './solution.mjs';\ntest('devolve o que recebe', () => { assert.equal(f(1), 1); });\n",
             }),

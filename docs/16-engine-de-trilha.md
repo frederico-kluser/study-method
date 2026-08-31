@@ -351,12 +351,23 @@ lista de construções diz o que é *permitido*, o resumo diz *como aquilo foi a
 | A10 | cada construção introduzida reaparece em ≥3 artefatos posteriores | aviso |
 | A11 | cenário de tipo `error` só é exigível se `op:throw` e `api:assert.throws` estiverem no orçamento | erro |
 | A12 | `1 ≤ elementos_novos ≤ 4`, e `≤ 2` enquanto o orçamento ainda é pequeno | erro |
+| A13 | **ENSINO-EFETIVO** — o que a atividade usa/expõe (escrito, lido no starter, lido no teste) precisa estar **demonstrado** em bloco js (teoria desta aula ou anterior) ∪ A13d (declared): declarar `introduces` não é demonstrar | erro (+ aviso D4) |
+| A14 | **MICRO-AVANÇO** — A14a: ≤4 construções **verdadeiramente novas** por aula (0 → aviso; declared: ≤2 produtivas); A14b: ≤1 construção nova por linha do solutionCode (a lacuna única) | erro (+ aviso A14a-0) |
+| A15 | **PROGRESSIVIDADE** — A15a (2+ desafios): o degrau reusa algo do anterior e adiciona ≤1 não demonstrado; A15b: a aula N reutiliza ≥1 átomo demonstrado antes | erro |
+| A16 | **PRIMEIRA-ATIVIDADE** — o 1º desafio é resolvível com a 1ª seção da teoria + material anterior (DemoSec1 ∪ Cum ∪ AX ∪ H13) | erro (+ aviso D4) |
 
 **A6 é o gate positivo e não pode ser esquecido.** Sem ele o checker aceita trilhas que só repetem o
 que o aluno já sabia — e a aula `funcoes` do repositório atual falha exatamente aí.
 
 **A11 mata a causa-raiz.** É a substituição da cobertura fixa `example + boundary + error` por
 cenários **derivados do orçamento**.
+
+**A13–A16 (rodada 12) fecham os quatro furos do orçamento** que o feedback do usuário apontou:
+usado-sem-demonstração (A13), avanço micro (A14), progressividade (A15) e primeira interação (A16).
+Especificação formal, H13/AVISO13/S13 e mensagens pt-BR em
+`app/content-src/analise-verificadores.md` §3–§6; implementação pura em
+`app/electron/main/engine/quality/progressao.ts` (mesclada no `auditTrack` — pin da trilha real
+841 violações / 112 desafios / 249 lacunas / 96 avisos, modo inferred).
 
 ### 5.2 Invariantes de estrutura
 
@@ -386,6 +397,24 @@ I12 a I17 são buracos **do loader atual**, todos com consequência silenciosa. 
 entre módulos carrega sem erro e **compartilha o registro de conclusão do aluno**; `theory[].id`
 duplicado faz a segunda seção nunca ser exibida e a aula "terminar" cedo; um `files[].path` chamado
 `test.mjs` é sobrescrito pelo `testsCode` sem aviso.
+
+A bateria A13–A16 (rodada 12) roda no MESMO gate (o audit passou a exigir **demonstração**, não só
+orçamento):
+
+- **A13 (ensino-efetivo)** — `usado ⊆ demonstrado ∪ boilerplate-estreito (H13)`: a semente receptiva
+  do harness perdoa no orçamento, não na demonstração — o 1º desafio da trilha real viola exatamente
+  com `node:CallExpression` (o "pecado nº 1" do feedback).
+- **A13d (declarar não é demonstrar)** — `introduces` declarado sem bloco js que o mostre é erro
+  (só modo `declared` — a rede de arrasto da geração).
+- **A14a (micro-avanço)** — teto de 4 construções verdadeiramente novas por aula (0 → aviso);
+  `introduces.productive > 2` → erro no modo declared.
+- **A14b (combo por linha)** — a lacuna única do completion problem contém no máximo 1 construção
+  nova; `throw new Error(…)` numa linha = 3, `let x = 1;` = 1 (a régua dos exemplos medidos).
+- **A15a (degrau intra-aula)** — com 2+ desafios, o degrau reusa algo do anterior e adiciona ≤1
+  átomo não demonstrado; **A15b (arco inter-aula)** — a aula N reutiliza ≥1 átomo demonstrado antes
+  (recuperação espaçada, I7 em versão de conteúdo).
+- **A16 (primeira-atividade)** — o 1º desafio é resolvível com a 1ª seção da teoria (mesmo sem
+  código nela) + cumulativo + boilerplate; "demonstrado só na 3ª seção" viola.
 
 ### 5.3 O extrator
 

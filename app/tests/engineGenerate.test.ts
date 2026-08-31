@@ -584,8 +584,20 @@ describe('P-22 generate — fiação completa offline (fases reais + fakes)', ()
           budgetHash: snapshot.budgetHash,
           budgetVersion: '1',
           research: [],
+          // Teoria COM bloco de demonstração (rodada 12): a bateria A13–A16
+          // exige que a trilha gerada DEMONSTRE em js o que declara em
+          // introduces (A13d) e que a aula não introduza mais de 4 construções
+          // verdadeiramente novas (A14a — `export let total = 1;` = decl:let +
+          // a maquinaria Variable* = 4; ExportKeyword/NumericLiteral são H13).
+          // No draft, seção com `tag` não-vazia vira `theory[].code`
+          // (o markdown É o código — ver materializarTrilha §f12).
           theory: [
-            { id: 'o-que-e-variavel', secao: 'teoria', markdown: 'Uma variável guarda um valor.\n\n', tag: '' },
+            {
+              id: 'o-que-e-variavel',
+              secao: 'teoria',
+              markdown: 'export let total = 1;\n',
+              tag: 'js',
+            },
           ],
           justificativa: 'aula mínima que introduz a declaração com atribuição',
           role: 'regular',
@@ -644,12 +656,15 @@ describe('P-22 generate — fiação completa offline (fases reais + fakes)', ()
       assert.notEqual(run.budgetHash, sha256Hex(''), 'budgetHash real no run.json');
       assert.notEqual(run.graphHash, sha256Hex(''), 'graphHash real no run.json');
 
-      // A trilha materializou e o G-FINAL aprovou.
+      // A trilha materializou e o G-FINAL aprovou — sob a bateria A13–A16 do
+      // rodada 12, o mock F7 proveu a demonstração que a trilha merece
+      // (bloco js cobrindo o introduces declarado), então o gate agressivo
+      // passa: é o contrato que a F7 real terá de cumprir.
       const relatorio = JSON.parse(await fsp.readFile(path.join(dir, 'artefatos', 'report.json'), 'utf8')) as {
         materializacao: { arquivos: number };
         gFinal: { ok: boolean };
       };
-      assert.equal(relatorio.gFinal.ok, true, 'G-FINAL aprovado');
+      assert.equal(relatorio.gFinal.ok, true, 'G-FINAL aprovado (bateria A13–A16 inclusa)');
       assert.ok(relatorio.materializacao.arquivos > 0, 'árvore materializada');
 
       const produto = JSON.parse(await fsp.readFile(path.join(dirProduto, 'track.json'), 'utf8')) as { slug: string };

@@ -37,6 +37,12 @@ import { AtomKey, axisOf, humanLabel, isForbiddenAlways } from './atomKeys';
 import { LessonBudget, TrackBudget, deriveTrackBudget, DeriveOptions } from './budget';
 import { extractAtoms } from './extract';
 import { collectLessonCode } from './theoryCode';
+import {
+  auditarProgressao,
+  type ProgressaoLessonInput,
+  type ProgressaoRule,
+  type Severidade,
+} from './quality/progressao';
 
 /** As regras da bateria de orçamento (`docs/16-engine-de-trilha.md` §5.1). */
 export type BudgetRule =
@@ -51,7 +57,8 @@ export type BudgetRule =
 /** Invariantes de estrutura (`docs/16-engine-de-trilha.md` §5.2). */
 export type StructureRule = 'I12' | 'I14' | 'I15' | 'I16' | 'I17';
 
-export type AuditRule = BudgetRule | StructureRule;
+/** Bateria A13–A16 (ensino-efetivo, micro-avanço, progressividade, primeira-atividade). */
+export type AuditRule = BudgetRule | StructureRule | ProgressaoRule;
 
 /** Superfície do artefato em que a violação foi encontrada. */
 export type Surface = 'starterCode' | 'solutionCode' | 'testsCode' | 'statement' | 'theory';
@@ -78,6 +85,13 @@ export interface Violation {
    */
   primeiraAulaQueEnsina: string | null;
   mensagem: string;
+  /**
+   * ADITIVO (rodada 12): `'aviso'` para a bateria A13–A16 nas regras que a
+   * spec calibra como aviso até D4 (valores/termos possivelmente explicados em
+   * prosa — `AVISO13` — e aula com zero construções novas no A14a). Ausente =
+   * erro, o contrato histórico do placar (o placar só conta erros).
+   */
+  severidade?: Severidade;
 }
 
 export interface LessonMetrics {
@@ -85,6 +99,8 @@ export interface LessonMetrics {
   index: number;
   /** construções que esta aula acrescenta ao orçamento. */
   novas: number;
+  /** ADITIVO (rodada 12): `Novo(i)` da bateria A14a — demo/introduzido ∖ cumulativo ∖ boilerplate. */
+  novosVerdadeiros?: number;
   /** conceitos declarados no `lesson.json`. */
   conceitosDeclarados: number;
   desafios: number;
@@ -102,6 +118,8 @@ export interface AuditReport {
     desafios: number;
     desafiosComViolacao: number;
     violacoes: number;
+    /** ADITIVO (rodada 12): avisos da bateria A13–A16 (D4, A14a-zero) — fora do placar de erros. */
+    avisos?: number;
     lacunasDeCurriculo: number;
     aulasSemConstrucaoNova: number;
   };
@@ -160,11 +178,49 @@ function messageFor(key: AtomKey, taughtIn: string | null, ref: string, surface:
 }
 
 /**
+ * Achata a trilha carregada na entrada da bateria A13–A16. Desafios
+ * MULTI-ARQUIVO viram N entradas `files` (com os próprios starter/solution);
+ * o arquivo único vira uma entrada `solution.mjs`.
+ */
+function entradaDeProgressao(track: LoadedTrack): ProgressaoLessonInput[] {
+  const out: ProgressaoLessonInput[] = [];
+  for (const mod of track.modules) {
+    for (const lesson of mod.lessons) {
+      const baseDir = `modules/${mod.meta.slug}/lessons/${lesson.meta.slug}`;
+      const ref = `${mod.meta.slug}/${lesson.meta.slug}`;
+      out.push({
+        ref,
+        baseDir,
+        theory: lesson.meta.theory ?? [],
+        declared: (lesson.meta as { introduces?: unknown }).introduces as ProgressaoLessonInput['declared'],
+        challenges: lesson.challenges.map((challenge) => {
+          const desafioFile = `${baseDir}/challenges/${challenge.slug}/challenge.json`;
+          const files =
+            Array.isArray(challenge.files) && challenge.files.length > 0
+              ? challenge.files.map((f) => ({ path: f.path, starter: f.starterCode ?? '', solution: f.solutionCode ?? '' }))
+              : [{ path: 'solution.mjs', starter: challenge.starterCode ?? '', solution: challenge.solutionCode ?? '' }];
+          return { slug: challenge.slug, desafioFile, files, tests: challenge.testsCode ?? '' };
+        }),
+      });
+    }
+  }
+  return out;
+}
+
+function severidadeDe(v: Violation): 'erro' | 'aviso' {
+  return v.severidade ?? 'erro';
+}
+
+/**
  * Audita uma trilha inteira contra o orçamento cumulativo.
  *
  * Determinístico e offline. Roda em qualquer máquina, sem chave, e é o teste de
  * aceitação da engine: se ele não reprovar o conteúdo que sabidamente está
  * quebrado, a engine não está funcionando.
+ *
+ * A bateria A13–A16 roda junto (rodada 12): ensino-efetivo, micro-avanço,
+ * progressividade e primeira-atividade — no MESMO modo/orçamento do resto do
+ * gate (`budget.source`), com as mensagens e contadores por aula da spec.
  */
 export function auditTrack(track: LoadedTrack, options: DeriveOptions = {}): AuditReport {
   const budget = deriveTrackBudget(track, options);
@@ -173,6 +229,22 @@ export function auditTrack(track: LoadedTrack, options: DeriveOptions = {}): Aud
 
   let desafios = 0;
   const desafiosComViolacao = new Set<string>();
+
+  // ── bateria A13–A16 ──────────────────────────────────────────────────────
+  // PURO, roda em memória; as violações são mescladas no loop por aula abaixo
+  // (mesmo padrão dos estruturais), e as de desafio alimentam o
+  // `desafiosComViolacao` com o MESMO critério dos erros (aviso não reprova).
+  const progressao = auditarProgressao(entradaDeProgressao(track), { mode: budget.source });
+  const progressaoPorRef = new Map<string, ReturnType<typeof auditarProgressao>['violations']>();
+  for (const pv of progressao.violations) {
+    const lista = progressaoPorRef.get(pv.ref) ?? [];
+    lista.push(pv);
+    progressaoPorRef.set(pv.ref, lista);
+  }
+  const desafiosProgressao = new Set<string>();
+  for (const pv of progressao.violations) {
+    if (pv.desafioFile && pv.severidade === 'erro') desafiosProgressao.add(pv.desafioFile);
+  }
 
   // ── invariantes de estrutura que o loader não cobre ───────────────────────
   const slugSeen = new Map<string, string>();
@@ -253,8 +325,28 @@ export function auditTrack(track: LoadedTrack, options: DeriveOptions = {}): Aud
 
     const push = (v: Violation): void => {
       violations.push(v);
-      violacoesDaAula += 1;
+      if (severidadeDe(v) === 'erro') violacoesDaAula += 1;
     };
+
+    // A13–A16 desta aula — mescladas aqui (mesmo padrão dos estruturais), para
+    // o `metrics.violacoes` e o placar contarem a bateria nova como as demais.
+    for (const pv of progressaoPorRef.get(lessonBudget.ref) ?? []) {
+      push({
+        regra: pv.regra,
+        arquivo: pv.arquivo,
+        ref: pv.ref,
+        campo: pv.campo,
+        linha: pv.linha,
+        coluna: pv.coluna,
+        construcao: pv.construcao,
+        eixo: pv.eixo,
+        faixa: pv.faixa,
+        trechoOfensor: pv.trechoOfensor,
+        primeiraAulaQueEnsina: pv.primeiraAulaQueEnsina,
+        mensagem: pv.mensagem,
+        severidade: pv.severidade,
+      });
+    }
 
     // A4 — a teoria também está sujeita ao orçamento de saída.
     const theory = collectLessonCode(lesson.meta.theory ?? []);
@@ -436,12 +528,16 @@ export function auditTrack(track: LoadedTrack, options: DeriveOptions = {}): Aud
       }
 
       if (violations.length > before) desafiosComViolacao.add(challengeFile);
+      // bateria A13–A16 (A13/A14b/A15a/A16): o desafio também reprova por ela —
+      // aviso não derruba (o placar conta erros; ver severidadeDe).
+      if (desafiosProgressao.has(challengeFile)) desafiosComViolacao.add(challengeFile);
     }
 
     metrics.push({
       ref: lessonBudget.ref,
       index: lessonBudget.index,
       novas: lessonBudget.introduces.productive.length,
+      novosVerdadeiros: progressao.novosPorAula.get(lessonBudget.ref) ?? lessonBudget.introduces.productive.length,
       conceitosDeclarados: lesson.meta.concepts.length,
       desafios: lesson.challenges.length,
       violacoes: violacoesDaAula,
@@ -457,8 +553,11 @@ export function auditTrack(track: LoadedTrack, options: DeriveOptions = {}): Aud
       aulas: budget.lessons.length,
       desafios,
       desafiosComViolacao: desafiosComViolacao.size,
-      violacoes: violations.length,
-      lacunasDeCurriculo: violations.filter((v) => v.construcao !== null && v.primeiraAulaQueEnsina === null).length,
+      violacoes: violations.filter((v) => severidadeDe(v) !== 'aviso').length,
+      avisos: violations.filter((v) => severidadeDe(v) === 'aviso').length,
+      lacunasDeCurriculo: violations.filter(
+        (v) => severidadeDe(v) !== 'aviso' && v.construcao !== null && v.primeiraAulaQueEnsina === null,
+      ).length,
       aulasSemConstrucaoNova: metrics.filter((m) => m.novas === 0).length,
     },
     hygiene: budget.hygiene,

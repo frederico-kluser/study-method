@@ -154,7 +154,8 @@ function printHuman(report: AuditReport, limit: number, onlyGaps: boolean): void
         v.primeiraAulaQueEnsina === null
           ? 'LACUNA DE CURRICULO'
           : `ordem (ensinado em ${v.primeiraAulaQueEnsina})`;
-      console.log(`    [${v.regra}] ${v.campo}:${v.linha}:${v.coluna}  ${v.construcao ?? '-'}  — ${origem}`);
+      const gravidade = v.severidade === 'aviso' ? ' [AVISO]' : '';
+      console.log(`    [${v.regra}]${gravidade} ${v.campo}:${v.linha}:${v.coluna}  ${v.construcao ?? '-'}  — ${origem}`);
       console.log(`         ${v.mensagem}`);
       if (v.trechoOfensor) console.log(`         > ${v.trechoOfensor}`);
       printed += 1;
@@ -167,11 +168,14 @@ function printHuman(report: AuditReport, limit: number, onlyGaps: boolean): void
   }
 
   console.log('DISTRIBUICAO DE CONSTRUCOES NOVAS POR AULA (o histograma que denuncia penhasco e plato)');
+  console.log('  coluna 1 = introduces do orcamento · coluna 2 = verdadeiramente novas (A14a, demo ∖ cumulativo ∖ boiler)');
   const maxNovas = report.metrics.reduce((m, x) => Math.max(m, x.novas), 0);
+  const maxVerdadeiras = report.metrics.reduce((m, x) => Math.max(m, x.novosVerdadeiros ?? 0), 0);
   for (const m of report.metrics) {
     const flag = m.novas === 0 ? '  <- nao introduz nada' : '';
     console.log(
-      `  ${String(m.index).padStart(3)} ${m.ref.padEnd(52).slice(0, 52)} ${String(m.novas).padStart(3)} ${bar(m.novas, maxNovas)}${flag}`,
+      `  ${String(m.index).padStart(3)} ${m.ref.padEnd(52).slice(0, 52)} ${String(m.novas).padStart(3)} ${bar(m.novas, maxNovas)}  ` +
+        `${String(m.novosVerdadeiros ?? 0).padStart(3)} ${bar(m.novosVerdadeiros ?? 0, maxVerdadeiras)}${flag}`,
     );
   }
   console.log('');
@@ -200,6 +204,7 @@ function printHuman(report: AuditReport, limit: number, onlyGaps: boolean): void
   console.log(`  desafios ............................. ${totals.desafios}`);
   console.log(`  desafios com violacao ................ ${totals.desafiosComViolacao} (${pct}%)`);
   console.log(`  violacoes ............................ ${totals.violacoes}`);
+  console.log(`  avisos (bateria A13-A16, D4/A14a-0) .. ${totals.avisos ?? 0}`);
   console.log(`  delas, lacunas de curriculo .......... ${totals.lacunasDeCurriculo}`);
   console.log('');
   const passou = totals.desafios - totals.desafiosComViolacao;

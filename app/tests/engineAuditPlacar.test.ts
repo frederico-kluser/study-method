@@ -15,6 +15,27 @@
  * NO MESMO commit que declara o motivo. Mudança não declarada = falha do
  * teste = falha do gate.
  *
+ * BUMP RODADA 12 (declarado): bateria A13-A16 adicionada.
+ * O audit passou a rodar a bateria de ensino-efetivo/micro-avanço/
+ * progressividade/primeira-atividade (`engine/quality/progressao.ts`,
+ * declaração completa em `app/content-src/analise-verificadores.md`: A13a/b/c,
+ * A13d, A14a, A14b, A15a, A15b, A16) — MEDIDA REAL sobre a trilha real, modo
+ * inferred + harness receptive-seed, o MESMO caminho do G-AUDIT:
+ *   violações 285 → 841  (erros; avisos D4/A14a-zero ficam em `avisos`, fora
+ *   do placar de erros — 96 medidos). A trilha é estruturalmente culpada nas
+ *   quatro dimensões do feedback do usuário: usado-sem-demonstração A13 362
+ *   (testes 281 + solução 78 + starter 3); penhasco de novidade A14a 44 +
+ *   combos por linha A14b 32; primeira atividade A16 118 (o sinal do A16 é
+ *   "demonstrado tarde demais" — construção nunca demonstrada fica com o A13);
+ *   A15b 0 (a rede já reutiliza — a spec previu). Lacunas 102 → 249
+ *   (construções que NENHUMA aula demonstra em bloco js — ex.: `api:.split`,
+ *   `api:.reduce`); desafios 96 → 112 (quase tudo já violava; a saturação é o
+ *   retrato do placar). Diferença vs a projeção da spec (~540): a projeção
+ *   somava ~1 violação por aula/ocorrência deduplicada; o gate conta POR
+ *   OCORRÊNCIA (A13) e POR CHAVE (A16); o A14b conta CONSTRUÇÕES por linha
+ *   (granularidade didática: BinaryExpression colapsa no op; a maquinaria
+ *   Variable* colapsa no decl) — a régua dos exemplos medidos da própria spec.
+ *
  * COMO RODA O AUDIT: `auditTrack(track)` SEM opções — o modo automático do
  * budget resolve para `inferred` (nenhuma aula da trilha declara `introduces`).
  * É o MESMO caminho do G-AUDIT do orquestrador (CLI `audit` sem `--modo`),
@@ -41,12 +62,15 @@ import { auditTrack } from '../electron/main/engine/audit';
  *
  * Exportado como constante para reuso: P-23 (repair) e P-24 (relatório)
  * citam o protocolo no relatório — importam o MESMO pin em vez de redigitar
- * os números.
+ * os números. `avisos` entrou no pin na rodada 12 (bateria A13–A16): aviso
+ * não derruba o gate, mas regressão silenciosa da calibração D4 também é
+ * regressão — e passa a ser declarada.
  */
 export const PIN_PLACAR = {
-  violacoes: 285,
-  desafiosComViolacao: 96,
-  lacunas: 102,
+  violacoes: 841,
+  desafiosComViolacao: 112,
+  lacunas: 249,
+  avisos: 96,
 } as const;
 
 /** Mesmo padrão de caminho do CLI (`app/tools/track-engine/cli.ts`): a trilha REAL. */
@@ -101,6 +125,9 @@ describe('engineAuditPlacar', () => {
       PIN_PLACAR.lacunas,
       pinError('lacunas', report.totals.lacunasDeCurriculo),
     );
+    // Avísos (rodada 12): não derrubam o gate, mas a calibração D4/A14a-zero
+    // também é pinada — regressão silenciosa aqui é regressão.
+    assert.equal(report.totals.avisos ?? 0, PIN_PLACAR.avisos, pinError('avisos', report.totals.avisos ?? 0));
 
     // Contexto (não entra no pin — ver cabeçalho): o total de desafios da trilha.
     assert.ok(report.totals.desafios > 0, 'a trilha real carregou sem desafios?');

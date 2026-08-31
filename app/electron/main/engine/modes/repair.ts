@@ -400,8 +400,29 @@ export interface PlanoDeReparo {
   deltasEsperados: readonly DeltaEsperadoDeReparo[];
 }
 
-/** Regras ESTRUTURAIS do audit: `construcao === null` e não são orçamento. */
-const REGRAS_ESTRUTURAIS: ReadonlySet<string> = new Set<string>(['I12', 'I14', 'I15', 'I16', 'I17']);
+/**
+ * Regras ESTRUTURAIS do audit: `construcao === null` e não são orçamento.
+ *
+ * Rodada 12: A14a/A14b/A15a/A15b (a bateria A13–A16 de DESIGN de aula — teto
+ * de novos, combo por linha, degrau, reuso) são defeitos de DESENHO da aula,
+ * não lacunas de currículo: `construcao === null` e o P-13 as classificaria
+ * como "CRIAR AULA" (INSERT_INTERMEDIATE), o que é sem sentido. Como o laço
+ * v1 não tem ação de design, viram BLOQUEIOS (não-executáveis), como os I*.
+ * A13/A13d/A16 carregam `construcao` e caem na máquina P-13 normal: ordem
+ * (reescrever) — A13d aponta para a própria aula (reescreva o exemplo ou a
+ * declaração); A16 sempre aponta para alguma demonstração (adiante-a).
+ */
+const REGRAS_ESTRUTURAIS: ReadonlySet<string> = new Set<string>([
+  'I12',
+  'I14',
+  'I15',
+  'I16',
+  'I17',
+  'A14a',
+  'A14b',
+  'A15a',
+  'A15b',
+]);
 
 /**
  * O pseudo-apontamento do P-13: `planoDeAcao` do P-13 só lê

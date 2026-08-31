@@ -1003,9 +1003,23 @@ describe('onda 1: audit (onda 0) × introduces declarado com formas da seed', ()
     assert.ok(!bAula?.introduces.productive.includes('form:ArrowFunction[body!=Block]'));
 
     const report = auditTrack(t);
-    assert.deepEqual(report.violations, []);
-    assert.equal(report.totals.violacoes, 0);
-    assert.equal(report.totals.desafiosComViolacao, 0);
+    // CONTRATO ORIGINAL (onda 0): a seed com as formas NÃO gera violações
+    // ESPÚRIAS no orçamento + estruturais (A1–A6/DEC/I*) — a seed é política
+    // receptiva, não contento.
+    const foraDaBateriaNova = report.violations.filter(
+      (v) => !['A13', 'A13d', 'A14a', 'A14b', 'A15a', 'A15b', 'A16'].includes(v.regra),
+    );
+    assert.deepEqual(foraDaBateriaNova, []);
+    // BATERIA A13–A16 (rodada 12): esta fixture DEIXA de ser "zero violações"
+    // por dois sinais HONESTOS — (a) A13d: a aula DECLARA `node:ReturnStatement`
+    // em introduces.productive mas a teoria (só `const dobra = (n) => n * 2;`)
+    // nunca o demonstra em bloco js → "declarar não é demonstrar"; (b) A14a: a
+    // teoria demonstra 13 construções verdadeiramente novas (acima do teto 4).
+    assert.ok(
+      report.violations.some((v) => v.regra === 'A13d' && v.construcao === 'node:ReturnStatement'),
+      'a aula declara ReturnStatement sem demonstrar → A13d precisa flagar',
+    );
+    assert.ok(report.violations.some((v) => v.regra === 'A14a' && v.severidade === 'erro'));
     assert.deepEqual(report.parseErrors, []);
   });
 });

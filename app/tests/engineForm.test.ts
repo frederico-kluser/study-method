@@ -362,11 +362,15 @@ describe('form — fim-a-fim no gate de orçamento (I9/I11)', () => {
     ]);
     const report = auditTrack(t);
     const formV = report.violations.filter((v) => (v.construcao ?? '').startsWith('form:'));
-    assert.equal(formV.length, 1, JSON.stringify(report.violations, null, 2));
-    assert.equal(formV[0].construcao, 'form:IfStatement[alternate=null]');
-    assert.equal(formV[0].regra, 'A2');
-    assert.equal(formV[0].campo, 'solutionCode');
-    assert.equal(formV[0].primeiraAulaQueEnsina, null); // if/else foi ensinado; if sem else NÃO.
+    // Rodada 12: a bateria A13–A16 entrou no gate — a MESMA forma (if sem else,
+    // nunca demonstrada) fala no orçamento (A2) E no ensino-efetivo (A13a).
+    assert.equal(formV.length, 2, JSON.stringify(report.violations, null, 2));
+    assert.ok(formV.every((v) => v.construcao === 'form:IfStatement[alternate=null]'));
+    assert.ok(formV.some((v) => v.regra === 'A2' && v.campo === 'solutionCode'));
+    assert.ok(formV.some((v) => v.regra === 'A13' && v.campo === 'solutionCode'));
+    // if/else foi ENSINADO (demonstrado); if sem else NÃO — nos dois gates a
+    // primeiraAulaQueEnsina é null (lacuna: falta a aula da forma).
+    assert.ok(formV.every((v) => v.primeiraAulaQueEnsina === null));
   });
 
   it('ensinar if SEM else na teoria libera o desafio — a forma entra no orçamento', () => {
@@ -416,12 +420,28 @@ describe('form — harness/starter do corpus real (A-P06-2)', () => {
     assert.ok(!budget.lessons[0].entrada.productive.has('form:ArrowFunction[body!=Block]'));
 
     const report = auditTrack(t);
-    // nada do arquivo de teste viola (A3) — o padrão do corpus fica limpo...
-    const testsV = report.violations.filter((v) => v.campo === 'testsCode');
-    assert.deepEqual(testsV, [], JSON.stringify(report.violations, null, 2));
-    // ...e nenhuma forma viola em superfície nenhuma.
+    // O contrato ORIGINAL do A-P06-2 segue valendo: A1/A3 (o orçamento) deixam
+    // o testsCode do corpus limpo — a seed isenta o RUNNER, não o conteúdo.
+    const testsOrcamento = report.violations.filter(
+      (v) => v.campo === 'testsCode' && (v.regra === 'A1' || v.regra === 'A3'),
+    );
+    assert.deepEqual(testsOrcamento, [], JSON.stringify(report.violations, null, 2));
+    // A bateria A13 (rodada 12) é MAIS estrita que o orçamento: o teste é lido
+    // ANTES da aula 1 e a chamada `cumprimentar(42)` nunca foi DEMONSTRADA em
+    // aula anterior → A13c flagia (é o "pecado nº 1" da spec §3.2 — a aula 1
+    // que lê chamada sem demonstração). As arrows, porém, ficam DENTRO do span
+    // mecânico S13 (assinatura de `assert.throws(() =>`) — nenhuma FORMA viola.
+    const testsA13c = report.violations.filter((v) => v.regra === 'A13' && v.campo === 'testsCode');
+    assert.ok(
+      testsA13c.some((v) => v.construcao === 'node:CallExpression'),
+      JSON.stringify(report.violations, null, 2),
+    );
     const formV = report.violations.filter((v) => (v.construcao ?? '').startsWith('form:'));
-    assert.deepEqual(formV, [], JSON.stringify(report.violations, null, 2));
+    assert.deepEqual(
+      formV.filter((v) => v.regra === 'A1' || v.regra === 'A2' || v.regra === 'A3'),
+      [],
+      JSON.stringify(report.violations, null, 2),
+    );
   });
 
   it('fixture do corpus: starter com assinatura default congelada NÃO viola (A1)', () => {
@@ -442,9 +462,19 @@ describe('form — harness/starter do corpus real (A-P06-2)', () => {
     assert.ok(!budget.lessons[0].entrada.productive.has('form:Parameter[initializer!=null]'));
 
     const report = auditTrack(t);
-    // a assinatura congelada (com default) não viola A1 nem A2: a forma está na seed.
-    const formV = report.violations.filter((v) => (v.construcao ?? '').startsWith('form:'));
-    assert.deepEqual(formV, [], JSON.stringify(report.violations, null, 2));
+    // O contrato ORIGINAL: a assinatura congelada (com default) não viola A1
+    // nem A2 — a forma está na seed receptiva.
+    const formAbrigo = report.violations.filter(
+      (v) => (v.construcao ?? '').startsWith('form:') && (v.regra === 'A1' || v.regra === 'A2'),
+    );
+    assert.deepEqual(formAbrigo, [], JSON.stringify(report.violations, null, 2));
+    // A bateria A13 (rodada 12): o starter expõe o default SEM demonstração —
+    // é o caso real MEDIDO na spec (§3.2: "starter 3 em 2 aulas",
+    // npm-e-package-json). A seed isenta o ORÇAMENTO; o ensino-efetivo não.
+    const a13bDefault = report.violations.filter(
+      (v) => v.regra === 'A13' && v.campo === 'starterCode' && v.construcao === 'form:Parameter[initializer!=null]',
+    );
+    assert.equal(a13bDefault.length, 1, JSON.stringify(report.violations, null, 2));
   });
 
   it('a isenção é SÓ receptiva: solutionCode com arrow de expressão continua violando (A2)', () => {
@@ -465,7 +495,9 @@ describe('form — harness/starter do corpus real (A-P06-2)', () => {
       ]),
     ]);
     const report = auditTrack(t);
-    const formV = report.violations.filter((v) => (v.construcao ?? '').startsWith('form:'));
+    const formV = report.violations.filter(
+      (v) => (v.construcao ?? '').startsWith('form:') && v.regra === 'A2',
+    );
     assert.equal(formV.length, 1, JSON.stringify(report.violations, null, 2));
     assert.equal(formV[0].construcao, 'form:ArrowFunction[body!=Block]');
     assert.equal(formV[0].regra, 'A2');
