@@ -71,6 +71,47 @@
       "tag": ""
     }
   ],
+  "assertions": [
+    {
+      "id": "variavel-guarda-um-valor-por-vez",
+      "statement": "A variável é uma caixinha etiquetada que guarda UM valor por vez: declarar com let cria a caixa já com um valor inicial; ler o nome devolve o valor guardado agora.",
+      "question": "Depois destas linhas, o que `marcar()` devolve?\n\n```js\nexport function marcar() {\n  let contador = 0;\n  contador = 5;\n  return contador;\n}\n```",
+      "options": [
+        "5 — a atribuição trocou o 0 pelo 5 antes da leitura",
+        "0 — o valor inicial nunca muda",
+        "0 e 5 — a caixa guarda os dois",
+        "5 e 0 — a caixa devolve na ordem em que recebeu"
+      ],
+      "answerIndex": 0,
+      "feedback": "A linha 1 declara contador com o valor inicial 0; a linha 2 atribui 5 — o 0 é substituído, não fica guardado ao lado; a linha 3 lê o valor atual: 5. A caixa guarda um valor por vez, o mais recente."
+    },
+    {
+      "id": "atribuicao-sobrescreve-nao-soma",
+      "statement": "Atribuir (=) TROCA o valor guardado — a variável não acumula nem soma; a última escrita antes da leitura é a que vale.",
+      "question": "Com `let pontos = 3;` seguido de `pontos = 10;`, o que `pontos` guarda depois da segunda linha?",
+      "options": [
+        "10 — a atribuição sobrescreveu o 3",
+        "13 — a atribuição somou 3 + 10",
+        "3 — a primeira escrita vale para sempre",
+        "10 e 3 — a caixa guarda os dois valores"
+      ],
+      "answerIndex": 0,
+      "feedback": "Atribuir é trocar, não somar: o 3 foi o valor inicial e a linha `pontos = 10;` o sobrescreveu — a variável guarda 10. Se atribuir somasse, guardaria 13 (3 + 10); não é o caso: a última escrita antes da leitura vence."
+    },
+    {
+      "id": "trocar-e-atribuir-nao-redeclarar",
+      "statement": "Para trocar o valor de uma variável você ATRIBUI de novo — declarar uma vez com let e atribuir em seguida; redeclarar o mesmo nome com let é erro de sintaxe.",
+      "question": "Qual destes trechos é o jeito CERTO de criar `x` com 1 e depois trocar para 2?",
+      "options": [
+        "`let x = 1; x = 2;`",
+        "`let x = 1; let x = 2;`",
+        "`x = 1; x = 2;`",
+        "`let x = 1;` — e nada mais, não dá para trocar"
+      ],
+      "answerIndex": 0,
+      "feedback": "Declare uma vez com let e ATRIBUA para trocar: `let x = 1; x = 2;`. Redeclarar o mesmo nome com let é erro de sintaxe (SyntaxError); atribuir sem declarar lança ReferenceError em modo estrito — e este curso roda como módulo, sempre em modo estrito."
+    }
+  ],
   "justificativa": "Aula 7 da trilha: decl:let vira produtivo (a caixa que guarda) e op:assign:= + node:BinaryExpression entram no receptivo, exatamente como o curriculo L7 declara; a atribuição permanece congelada no starter e é demonstrada na teoria (o que significa mudar o guardado + estado), preparando a leitura da linha congelada do desafio e a aula 9 (leitura de estado). Nenhuma função/chamada/return/export é pre-suposta — são aulas L1-L6 reusadas (A15b); a predição é licita (retrieval real com ancestrais). Regular, com esticar de reuso puro (decl:let + NumericLiteral) previsto no curriculo (atividade.esticar).",
   "role": "regular",
   "status": "rascunho",

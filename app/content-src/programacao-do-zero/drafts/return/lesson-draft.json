@@ -63,6 +63,47 @@
       "tag": ""
     }
   ],
+  "assertions": [
+    {
+      "id": "return-entrega-e-encerra",
+      "statement": "return entrega o valor pela saída da caixa e ENCERRA a caixa naquela linha — o que vier depois dela nunca roda.",
+      "question": "Com a caixa abaixo, o que `eco(5)` devolve?\n\n```js\nexport function eco(x) {\n  return x;\n  return 7;\n}\n```",
+      "options": [
+        "5 — `return x;` entrega e encerra; a segunda linha nunca roda",
+        "7 — a última entrega vence",
+        "12 — as duas entregas se somam",
+        "nada — duas entregas confundem a caixa"
+      ],
+      "answerIndex": 0,
+      "feedback": "O primeiro `return x;` entrega o valor de x (5) e encerra a caixa naquela linha — a segunda linha é código morto, nunca roda. A ordem importa: a primeira entrega vence."
+    },
+    {
+      "id": "chamada-vira-o-valor-devolvido",
+      "statement": "Chamar uma caixa com return vira o valor devolvido no lugar da chamada — o teste usa esse valor; devolver sempre o mesmo número não passa quando o teste chama com argumentos diferentes.",
+      "question": "O teste chama `eco(7)` e `eco(5)`. Qual destas caixas passa nos DOIS?",
+      "options": [
+        "`export function eco(x) { return x; }`",
+        "`export function eco(x) { return 7; }`",
+        "`export function eco(x) { return 5; }`",
+        "`export function eco(x) { return 12; }`"
+      ],
+      "answerIndex": 0,
+      "feedback": "Só `return x;` devolve o valor do parâmetro de CADA chamada: 7 na primeira e 5 na segunda. Devolver sempre o mesmo número falha em pelo menos uma chamada — a caixa tem de devolver o valor que entrou naquela chamada."
+    },
+    {
+      "id": "sem-return-a-caixa-nao-responde",
+      "statement": "Se faltar a linha de devolução, a caixa abre e fecha sem entregar nada — quem chama recebe nada (undefined) e o teste que esperava um valor falha.",
+      "question": "A lacuna do corpo da caixa fica vazia: `export function eco(x) { }`. O que `eco(7)` devolve?",
+      "options": [
+        "nada (undefined) — a caixa abriu e fechou sem entregar",
+        "7 — o valor que entrou pela janelinha",
+        "x — o nome do parâmetro",
+        "0 — a caixa começa zerada"
+      ],
+      "answerIndex": 0,
+      "feedback": "Sem a linha return, a caixa abre e fecha sem entregar nada — quem chama recebe 'nada' (undefined), e o teste que esperava 7 falha. A linha de devolução é o que faz a caixa responder."
+    }
+  ],
   "justificativa": "L6 torna PRODUTIVO o return (node:ReturnStatement), que era receptivo desde a L1: a lacuna do desafio É a linha de devolução (o_aluno_escreve = \"return x;\" no curriculo), com a caixa da L5 reusada byte a byte (A15b: Parameter + CallExpression reutilizados; o teste é o mesmo assert.equal(eco(7), 7)). A seção 1 da teoria demonstra return no código da atividade (A16: Escrito = {ReturnStatement} ⊆ DemoSec1 ∪ Cum). Sem operadores em nenhuma superfície (BinaryExpression só entra no receptivo da L7). Aula regular: exercita o nó que fecha o ciclo máquina-entrada-saída antes de let/atribuição (L7).",
   "role": "regular",
   "status": "rascunho",

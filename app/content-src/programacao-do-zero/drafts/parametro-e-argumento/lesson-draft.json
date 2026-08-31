@@ -64,6 +64,47 @@
       "tag": ""
     }
   ],
+  "assertions": [
+    {
+      "id": "parametro-segura-o-argumento",
+      "statement": "O parâmetro é o nome declarado entre os parênteses da assinatura — a janelinha por onde o valor entra na caixa; dentro da caixa, ler esse nome devolve o argumento entregue na chamada.",
+      "question": "Na caixa `export function eco(x) { return x; }`, o teste chama `eco(7)`. O que a linha `return x;` devolve?",
+      "options": [
+        "7 — o valor que entrou pela janelinha e ficou preso no nome x",
+        "x — a letra do nome do parâmetro",
+        "eco — o nome da função",
+        "nada — esta caixa não devolve valor"
+      ],
+      "answerIndex": 0,
+      "feedback": "Na chamada eco(7), o argumento 7 entra pela janelinha e fica preso no nome x; `return x;` devolve exatamente esse valor — a caixa desta aula devolve o valor como entrou."
+    },
+    {
+      "id": "argumento-muda-por-chamada",
+      "statement": "O argumento é o valor entregue na janelinha no momento da chamada — cada chamada entrega o seu próprio valor, e o parâmetro guarda o valor DAQUELA chamada.",
+      "question": "A mesma caixa `eco(x)` é chamada como `eco(7)` e depois como `eco(5)`. O que `x` vale em cada chamada?",
+      "options": [
+        "7 na primeira e 5 na segunda",
+        "7 nas duas — x nunca muda",
+        "5 nas duas — a última chamada vale para sempre",
+        "12 nas duas — as entregas se somam na janelinha"
+      ],
+      "answerIndex": 0,
+      "feedback": "Cada chamada entrega seu próprio argumento: na primeira x vale 7, na segunda x vale 5 — o parâmetro guarda o valor que entrou naquela chamada (se a chamada fosse eco(3), x valeria 3)."
+    },
+    {
+      "id": "corpo-usa-o-mesmo-nome-da-assinatura",
+      "statement": "O nome da janelinha é uma escolha sua — o que importa é o corpo usar o MESMO nome declarado na assinatura; senão a caixa tenta devolver algo que nunca entrou.",
+      "question": "Qual destas caixas passa no teste `assert.equal(eco(7), 7)`?",
+      "options": [
+        "`export function eco(n) { return n; }`",
+        "`export function eco(x) { return n; }`",
+        "`export function eco() { return x; }`",
+        "`export function eco(n) { return x; }`"
+      ],
+      "answerIndex": 0,
+      "feedback": "Só a primeira declara a janelinha `n` e devolve `n` — o corpo usa o mesmo nome da assinatura, então eco(7) devolve 7. As outras usam um nome que a assinatura não declarou (a máquina não conhece esse nome) ou nem declaram janelinha — a caixa tenta devolver algo que nunca entrou."
+    }
+  ],
   "justificativa": "L5 é a aula em que o parâmetro deixa de ser pressuposto e passa a ser CONTEÚDO: o avanço produtivo node:Parameter é o único novo (o curriculo determina o_aluno_escreve = \"x\" — a lacuna É a declaração do parâmetro — e congela `eco(???) { return x; }` + teste `assert.equal(eco(7), 7)`, com o argumento como leitura). A seção 1 da teoria demonstra o parâmetro no código exato da atividade (A16/A13); o starter usa comentário-marcador de lacuna para permanecer parseável (A13b efetiva); nenhuma superfície introduz operador (op:+ e BinaryExpression só entram no receptivo da L7 — por isso a caixa modelo é eco, sem nenhuma conta). Aula regular: não integra aulas anteriores — é o nó que destrava L6 (return produtivo) e L7 (let).",
   "role": "regular",
   "status": "rascunho",
