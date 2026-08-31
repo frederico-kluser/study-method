@@ -63,6 +63,32 @@
       "tag": ""
     }
   ],
+  "assertions": [
+    {
+      "id": "string-e-valor",
+      "statement": "String é um valor, como o número: um texto entre aspas pode ser guardado numa variável let, lido e devolvido — o valor guardado é o conteúdo de dentro, sem as aspas.",
+      "question": "A função abaixo roda e o teste confere o que ela devolve. O que `saudacao()` devolve?\n\n```js\nexport function saudacao() {\n  let mensagem = \"oi\";\n  return mensagem;\n}\n```",
+      "options": ["oi", "\"oi\" (com as aspas)", "um erro, porque texto não é número", "a etiqueta mensagem"],
+      "answerIndex": 0,
+      "feedback": "As aspas delimitam o texto, mas o valor guardado é o conteúdo de dentro: oi. É esse texto que o return devolve — sem aspas — como qualquer valor."
+    },
+    {
+      "id": "aspas-delimitam-o-texto",
+      "statement": "Sem as aspas, um texto deixa de ser texto: oi vira um NOME, e um nome que não foi declarado não existe para a máquina.",
+      "question": "Qual linha guarda o texto oi numa variável let, do jeito que a máquina entende?",
+      "options": ["let mensagem = oi;", "let mensagem = \"oi\";", "let mensagem = 'oi;", "let mensagem = oi\";"],
+      "answerIndex": 1,
+      "feedback": "Com aspas duplas, \"oi\" é uma string. Sem aspas, oi é um nome — e um nome que não foi declarado não existe para a máquina (a execução falha)."
+    },
+    {
+      "id": "aspas-precisam-casar",
+      "statement": "As aspas marcam onde o texto começa e termina, e precisam casar: a aspa que abre é a mesma que fecha.",
+      "question": "Qual destas linhas a máquina ENTENDE como uma string?",
+      "options": ["let mensagem = \"oi\";", "let mensagem = \"oi';", "let mensagem = 'oi\";", "let mensagem = oi;"],
+      "answerIndex": 0,
+      "feedback": "\"oi\" abre e fecha com a mesma aspa — a máquina entende. \"oi' e 'oi\" misturam as aspas e não fecham; oi sem aspas é um nome, não texto."
+    }
+  ],
   "justificativa": "Aula 8 da trilha: node:StringLiteral vira produtivo reusando decl:let (aula 7) — o curriculo L8 registra produtivo=[node:StringLiteral, decl:let] e receptivo=[]; a primeira seção demonstra a declaração let com texto (A16: escrito ⊆ DemoSec1 ∪ Cum ∪ H13, com o trio Variable* estrutural); a teoria ensina string = texto entre aspas como valor como o número, com refutações ancoradas na spec. O desafio congela o invólucro e o return, deixando só a declaração como lacuna única; teste só com a seed do harness. A14a: Novo(8)=0 (StringLiteral ∈ H13, decl:let em Cum) → aviso de 'aula de prática' calibrado, idêntico às L2-L4 de leitura/prática — nunca erro. Nada fora do universo L1-L8.",
   "role": "regular",
   "status": "rascunho",

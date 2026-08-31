@@ -69,6 +69,32 @@
       "tag": ""
     }
   ],
+  "assertions": [
+    {
+      "id": "ultima-escrita-vence",
+      "statement": "O estado de uma variável é o ÚLTIMO valor escrito: cada atribuição substitui o anterior, e ler o nome devolve o valor da última escrita.",
+      "question": "O que `placar()` devolve?\n\n```js\nexport function placar() {\n  let pontos = 0;\n  pontos = 10;\n  pontos = 3;\n  return pontos;\n}\n```",
+      "options": ["0", "3", "10", "13 (a soma das escritas)"],
+      "answerIndex": 1,
+      "feedback": "A última escrita vence: a linha `pontos = 3;` trocou o estado para 3, e é esse o valor devolvido. O 0 e o 10 foram substituídos — a variável guarda um valor por vez."
+    },
+    {
+      "id": "valor-inicial-nao-decide",
+      "statement": "O valor inicial da declaração não decide o valor final: quando há atribuições depois, quem decide é a ÚLTIMA escrita, não a primeira.",
+      "question": "O que `f()` devolve?\n\n```js\nexport function f() {\n  let total = 100;\n  total = 3;\n  return total;\n}\n```",
+      "options": ["100", "3", "103", "um erro, porque total mudou de valor"],
+      "answerIndex": 1,
+      "feedback": "100 foi o estado inicial, mas a linha `total = 3;` substituiu o estado para 3 antes do return. O valor final é o da última atribuição."
+    },
+    {
+      "id": "ordem-das-atribuicoes-importa",
+      "statement": "A ordem das atribuições importa: trocar duas escritas de valores diferentes troca o estado final do programa.",
+      "question": "Qual destas sequências termina com `x` guardando o valor 2?",
+      "options": ["let x = 1; x = 2; x = 3;", "let x = 1; x = 3; x = 2;", "let x = 3; x = 2; x = 1;", "let x = 1; x = 1; x = 1;"],
+      "answerIndex": 1,
+      "feedback": "Na segunda sequência a última escrita é `x = 2;`, então o estado final é 2. Nas demais, a última escrita é 3, 1 e 1 — a ordem das linhas decide o estado."
+    }
+  ],
   "justificativa": "Aula de LEITURA pura, conforme o curriculo (avanço '(re)'): a habilidade nova é prever o valor final lendo uma sequência de atribuições — decl:let é REUSO da aula 7 e op:assign:=/node:BinaryExpression são leitura desde a aula 7. A atividade repete o desenho validado da aula 7 (lacuna única = declaração; atribuições congeladas) e acrescenta o quadro de leitura de estado; o teste valida a última atribuição vencendo. A ausência de átomo produtivo novo dispara o aviso A14a 'aula sem incremento' — esperado e registrado no curriculo (leitura de estado é um degrau conceitual, não sintático). Nada fora do universo L1–L9 é demonstrado em teoria nem exigido no desafio.",
   "role": "regular",
   "status": "rascunho",

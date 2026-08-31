@@ -63,6 +63,32 @@
       "tag": ""
     }
   ],
+  "assertions": [
+    {
+      "id": "const-nao-muda",
+      "statement": "const declara um valor que NÃO muda depois de criado; let é para o que pode receber outra escrita — a diferença está na escrita, não no valor.",
+      "question": "A função abaixo roda e o teste confere o que ela devolve. O que `exemplo()` devolve?\n\n```js\nexport function exemplo() {\n  let mudavel = 1;\n  mudavel = 9;\n  const fixa = 2;\n  return fixa;\n}\n```",
+      "options": ["9", "1", "2", "um erro, porque mudavel foi reescrita"],
+      "answerIndex": 2,
+      "feedback": "fixa é const: nasceu com 2 e não foi tocada — é ela que sai pelo return. mudavel foi reescrita para 9, mas a regra de escrita de cada declaração é independente."
+    },
+    {
+      "id": "reescrita-de-const-e-erro-de-execucao",
+      "statement": "Reescrever uma const é erro de EXECUÇÃO: a máquina ENTENDE o código, mas, ao rodar em modo estrito, a atribuição dispara TypeError (\"Assignment to constant variable\").",
+      "question": "O programa abaixo roda em modo estrito. O que acontece na linha 2?\n\n```js\nconst fixa = 5;\nfixa = 9;\n```",
+      "options": ["a linha 2 troca o valor de fixa para 9", "a linha 2 dispara um erro de execução (TypeError)", "a linha 2 é ignorada pela máquina", "o programa nem chega a rodar (erro de sintaxe)"],
+      "answerIndex": 1,
+      "feedback": "O código parseia — a máquina entende a frase —, mas em modo estrito atribuir sobre uma const lança TypeError na execução: \"Assignment to constant variable\". É erro de execução, não de sintaxe."
+    },
+    {
+      "id": "const-exige-valor-inicial",
+      "statement": "const exige o valor inicial NA declaração: a const nasce preenchida, ou não nasce — `const x;` sem valor é erro de SÍNTAXE.",
+      "question": "Qual destas linhas a máquina NÃO entende (erro de sintaxe)?",
+      "options": ["const saldo = 0;", "const saldo;", "let saldo = 0;", "const fixa = 2;"],
+      "answerIndex": 1,
+      "feedback": "const sem valor inicial é SyntaxError (\"Missing initializer in const declaration\") — a máquina nem chega a rodar. As outras linhas são declarações válidas."
+    }
+  ],
   "justificativa": "Aula produtiva de decl:const — o único átomo verdadeiramente novo (Novo(10) = {decl:const}, medido por extração: todos os demais átomos dos blocos de teoria e do desafio já estão demonstrados nas aulas 1–9 ou são harness/estruturais). O contraste let/const é o coração didático (termos_novos: contraste let/const), por isso introduces.productive traz os dois — dentro do teto de 2 (A7/I2). A primeira seção da teoria demonstra `const` num bloco js (A16/A13d): o primeiro desafio é resolvível com a seção inicial + material anterior. Os erros associados a const (reescrita → TypeError; sem valor inicial → SyntaxError) são tratados como LEITURA: códigos exibidos + mensagens citadas em prosa, nunca como código a escrever, e a taxonomia completa de erros fica para a aula 11.",
   "role": "regular",
   "status": "rascunho",
