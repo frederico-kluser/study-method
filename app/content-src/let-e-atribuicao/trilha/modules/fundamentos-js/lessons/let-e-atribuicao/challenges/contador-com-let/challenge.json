@@ -1,0 +1,67 @@
+{
+  "schemaVersion": 1,
+  "slug": "contador-com-let",
+  "title": "Contador com let",
+  "concept": "let_e_atribuicao",
+  "difficulty": 1,
+  "language": "nodejs",
+  "statement": "# Declarar com `let` e deixar a atribuição decidir\n\nA função `iniciar()` já está quase pronta. Ela quer guardar um número numa **variável** e devolver esse número. Falta **declarar** a variável `contador` com `let` no lugar marcado, começando com o valor `0`.\n\nO restante já está pronto — não mexa:\n\n- `contador = 5;` — **atribui** o valor `5` à variável, substituindo o valor anterior;\n- `return contador;` — devolve o que está guardado na variável.\n\nAntes de escrever, preveja: quando o teste chamar `iniciar()`, que valor a função devolve? Depois de `contador = 5;`, o que está guardado em `contador` é o valor inicial `0` ou o valor atribuído `5`?\n\nEscreva **somente a declaração** na lacuna, com `let`, começando em `0`. As demais linhas já estão certas.",
+  "starterCode": "export function iniciar() {\n  // LACUNA: declare a variável `contador` com `let`, começando em 0\n  contador = 5;\n  return contador;\n}\n",
+  "testsCode": "import { test } from 'node:test';\nimport assert from 'node:assert/strict';\nimport { iniciar } from './solution.mjs';\n\ntest('declara com let; a atribuição decide o valor final', () => {\n  assert.equal(iniciar(), 5);\n});\n",
+  "solutionCode": "export function iniciar() {\n  let contador = 0;\n  contador = 5;\n  return contador;\n}\n",
+  "expectedTestCount": 1,
+  "outputChannel": "retorno",
+  "requires": [
+    "let-e-atribuicao (decl:let)"
+  ],
+  "requirements": [
+    {
+      "id": "REQ-1",
+      "descricao": "A função iniciar() devolve o valor final de contador — 5, o valor da última atribuição (não o valor inicial 0 da declaração).",
+      "teste": "declara com let; a atribuição decide o valor final"
+    }
+  ],
+  "notRequired": [
+    "escolher o valor inicial da declaração — qualquer literal numérico vale; o teste só verifica o valor final",
+    "escrever a linha de atribuição (contador = 5;) — ela já vem pronta no starter",
+    "declarar com const ou var — fora do orçamento desta aula"
+  ],
+  "subgoals": [
+    "declarar",
+    "atribuir",
+    "ler-valor"
+  ],
+  "scenarios": [
+    {
+      "tipo": "exemplo",
+      "derivado_de": "decl:let",
+      "descricao": "declarar uma variável mutável com let e valor inicial (contador = 0); a atribuição seguinte substitui o valor guardado"
+    },
+    {
+      "tipo": "valido",
+      "derivado_de": "op:assign:=",
+      "descricao": "o valor final devolvido é o da ÚLTIMA atribuição (5), mesmo quando o valor inicial da declaração é outro literal"
+    },
+    {
+      "tipo": "limite",
+      "derivado_de": "decl:let",
+      "descricao": "o valor inicial da declaração é livre (qualquer literal numérico) — o resultado verificado pelo teste não depende dele"
+    },
+    {
+      "tipo": "invalido",
+      "derivado_de": "decl:let",
+      "descricao": "atribuir sem antes declarar (lacuna vazia) lança ReferenceError em modo estrito — o teste falha"
+    }
+  ],
+  "taskSkill": "declarar uma variável mutável com let e valor inicial no span de uma lacuna única",
+  "supportLevel": "com_andaime",
+  "surfaceDomain": "declaração de variável (let) e atribuição (=)",
+  "solutionAlternates": [
+    "let contador = 100;",
+    "let contador = 5;"
+  ],
+  "wrongSolutions": [
+    "const contador = 0;",
+    "contador = 0;"
+  ]
+}

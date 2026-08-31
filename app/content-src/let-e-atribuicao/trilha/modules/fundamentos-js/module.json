@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 1,
+  "slug": "fundamentos-js",
+  "title": "Fundamentos de JavaScript",
+  "order": 1,
+  "lessons": [
+    "let-e-atribuicao"
+  ]
+}

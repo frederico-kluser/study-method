@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "slug": "let-e-atribuicao",
+  "title": "Let e atribuição",
+  "description": "Primeira aula da trilha de JavaScript, partindo do absoluto zero: declarar uma variável com let e entender que a atribuição (=) substitui o valor guardado. O harness (export function e node:test) é apresentado como leitura obrigatória.",
+  "language": "pt-BR",
+  "domain": "programming",
+  "modules": [
+    "fundamentos-js"
+  ]
+}
