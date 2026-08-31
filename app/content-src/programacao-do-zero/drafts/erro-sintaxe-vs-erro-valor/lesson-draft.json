@@ -1,0 +1,86 @@
+{
+  "raciocinio_de_projeto": "AULA 11 da trilha micro programacao-do-zero — aula de LEITURA de mensagens do conferidor (curriculo.md: avanço '(re, leitura)'; fixar `6`). NENHUM átomo produtivo novo: Novo(11) = 0 por construção — o que dispara o aviso de A14a 'aula sem incremento' — ESPERADO e declarado no curriculo (a habilidade nova é a TAXONOMIA de mensagens, não um átomo). O desafio NÃO pede para escrever código com erro: ele EXIBE (na teoria) os dois exemplos de leitura — erro de VALOR (a máquina entende, roda e devolve um valor que não bate: molde \"esperava X, recebeu Y\") e erro de SÍNTAXE (a máquina não entende; mensagem \"SyntaxError ...\"; bloco `let x = ;` que não parseia — demonstra NADA, e os termos das mensagens são só prosa, NUNCA átomos de código). A atividade EXECUTÁVEL é o molde da aula 2 levado ao erro de valor: o starter `let x = 5;` roda e o teste responde \"esperava 6, recebeu 5\" — o aluno LÊ a mensagem antes de acertar; a lacuna é o NÚMERO (único átomo escrito: node:NumericLiteral, H13) e a solução troca 5 por 6 para o teste — que espera exatamente 6 — passar. expectedTestCount = 1 por J4 (sem parâmetros, chamadas idênticas). A13a/A13b/A13c: escrito = NumericLiteral (H13); starter = invólucro + decl:let + Variable* (Cum, aulas 7/9) + ReturnStatement (Cum, aula 1); teste = seed do harness + chamada (Cum). A16: escrito ⊆ H13 — o 1º desafio passa com a primeira seção + Cum; a primeira seção demonstra ReturnStatement/NumericLiteral/decl:let conforme primeira_secao_demonstra do curriculo. A15b: a solução reutiliza decl:let (Cum). As duas wrongSolutions (deixar 5; trocar para 7) falham por execução real. Nenhuma construção fora do universo do curriculo L1–L11 aparece em bloco de código (conferido por extração); ReferenceError (já encontrado de verdade na aula 9, quando faltava a declaração) entra como UMA linha de prosa na teoria — mensagem, não átomo.",
+  "slug": "erro-sintaxe-vs-erro-valor",
+  "title": "Erro de sintaxe vs. erro de valor",
+  "objective": {
+    "verbo": "ler",
+    "enunciado": "que a resposta do conferidor tem espécies diferentes — erro de sintaxe (a máquina não entendeu) e erro de valor (ela entendeu, rodou, e o valor não bateu) — e que o molde \"esperava X, recebeu Y\" se lê comparando o esperado com o recebido",
+    "contexto": "aula 11 da trilha: o aluno já viu mensagens de erro na prática sem nomeá-las (a aula 9, com a declaração faltando, dispara ReferenceError); aqui ele ganha o vocabulário para classificar o que o conferidor responde",
+    "criterio": "o aluno lê o molde \"esperava X, recebeu Y\" na mensagem de valor, distingue dela a mensagem de sintaxe (SyntaxError) e ajusta o número da lacuna — o teste valida que a função passa a devolver exatamente o esperado"
+  },
+  "introduces": {
+    "receptive": [
+      "node:ReturnStatement",
+      "decl:let"
+    ],
+    "productive": [
+      "node:NumericLiteral"
+    ]
+  },
+  "introducesTerms": [
+    "sintaxe",
+    "erro de valor",
+    "mensagem do conferidor",
+    "esperava X, recebeu Y"
+  ],
+  "foraDeEscopo": [
+    "escrever código com erro de propósito — a atividade NÃO pede para quebrar o programa; os erros aparecem como EXEMPLOS DE LEITURA na teoria e como falha esperada do starter no desafio.",
+    "assert.throws / op:throw — o orçamento não contém api:assert.throws nem op:throw; tratar erros dentro do código é aula própria.",
+    "pilha de chamadas e linhas do traceback — leitura avançada de mensagens, fora do orçamento desta trilha.",
+    "TypeError em detalhe (ex.: reescrita de const) — citado como leitura na aula 10; a taxonomia completa de tipos de erro fica além da dupla sintaxe × valor.",
+    "ReferenceError além de uma menção — o aluno JÁ o encontrou rodando (aula 9); aqui entra só como prosa de reconhecimento, não como categoria a dominar.",
+    "debugging sistemático (printf, leitura de logs longos) — técnica, aula própria."
+  ],
+  "eiClass": "categoria",
+  "targetAtom": "node:NumericLiteral",
+  "notionalMachineDelta": "O conferidor ganha duas MÁQUINAS de resposta, e o aluno aprende a ler qual delas falou: (1) se o código não parseia, a resposta é de SÍNTAXE (SyntaxError + ponto da leitura) — a máquina nem começou a rodar; (2) se o código parseia e roda, a resposta compara o valor devolvido com o esperado — o molde \"esperava X, recebeu Y\" (X = o que o teste queria, Y = o que o código entregou) — erro de VALOR. A distinção muda a PERGUNTA que o aluno faz ao próprio código: em erro de sintaxe, \"onde a frase quebrou?\"; em erro de valor, \"quem devolveu Y e qual era o X?\". (Uma terceira resposta — nome que não existe: ReferenceError — já foi vista na prática na aula 9 e fica como reconhecimento de prosa, fora da dupla principal.)",
+  "budgetHash": "d1-micro-curriculo",
+  "budgetVersion": "v1",
+  "research": [
+    "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/SyntaxError — erro de sintaxe: o código viola a gramática da linguagem e não pode ser executado",
+    "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Errors — catálogo de mensagens de erro do JavaScript (formato das mensagens do V8)",
+    "https://tc39.es/ecma262/#sec-native-error-types-used-in-this-standard — os tipos de erro nativos: SyntaxError ocorre na análise inicial (early errors), ReferenceError/TypeError em runtime"
+  ],
+  "theory": [
+    {
+      "id": "os-dois-erros",
+      "secao": "teoria",
+      "markdown": "O conferidor responde a todo programa — e a resposta tem espécies diferentes. Hoje você aprende a reconhecer DUAS delas, lendo a mensagem.\n\n**Erro de valor.** A máquina ENTENDEU o seu código e RODOU. O problema é que o valor devolvido não bate com o esperado. A mensagem diz os dois: o que o teste esperava e o que o código entregou.\n\n```js\nexport function resposta() {\n  let x = 6;\n  return x;\n}\n```\n\nSe o teste esperasse 5, o conferidor responderia: \"esperava 5, recebeu 6\". O código não quebrou — rodou e devolveu 6; só que 6 não é o que o teste pediu. O molde da mensagem de valor é \"esperava X, recebeu Y\".\n\n**Erro de sintaxe.** A máquina NÃO ENTENDEU o código — ele nem chega a rodar. A mensagem começa com `SyntaxError` e aponta onde a leitura travou. Exemplo de um código que a máquina não entende:\n\n```text\nlet x = ;\n```\n\nSe você rodasse isso, o conferidor responderia com uma mensagem na forma \"SyntaxError: Unexpected token ';'\". Repare: não há \"esperava X, recebeu Y\" aqui, porque a máquina nunca chegou a executar — a frase é outra, e o problema é OUTRO: a frase do programa está mal formada.\n\nOs dois exemplos são de LEITURA: nesta aula você não escreve erro nenhum — você reconhece, na mensagem, qual das duas máquinas respondeu.",
+      "tag": ""
+    },
+    {
+      "id": "como-ler-a-mensagem",
+      "secao": "teoria",
+      "markdown": "O molde \"esperava X, recebeu Y\" tem DUAS casas, e cada uma tem um dono:\n\n- **X** é o valor que o **teste** queria — está congelado no teste que você recebe;\n- **Y** é o valor que o **seu código** entregou — é o que a função devolveu quando rodou.\n\nPara acertar, você compara os dois: se X e Y são iguais, o teste passa; se são diferentes, o teste falha e o conferidor mostra a diferença. Nada disso é um julgamento sobre o código — é uma COMPARAÇÃO de valores. A máquina entendeu tudo; ela só está dizendo que o valor não bate.\n\nO erro de sintaxe não tem molde de comparação: a mensagem aponta o ponto exato em que a leitura travou (\"Unexpected token ...\" significa \"encontrei um símbolo que não esperava aqui\"). Como o código não rodou, não existe valor recebido — por isso a mensagem não fala de valores.\n\nVocê também já viu, na prática, uma TERCEIRA resposta — na aula 9, quando o starter tentava usar `contador` sem ter declarado, o conferidor respondia \"ReferenceError: contador is not defined\". A máquina entendeu a frase, mas o programa usou um nome que não existe e o valor não pôde ser encontrado. Hoje o essencial é a dupla: **entendeu e rodou, mas o valor não bate** (erro de valor) contra **não entendeu, nem rodou** (erro de sintaxe).",
+      "tag": ""
+    },
+    {
+      "id": "exemplo-leitura",
+      "secao": "teoria",
+      "markdown": "Um **worked example** de leitura: a conversa completa com o conferidor, do código à mensagem.\n\nO aluno recebe este starter:\n\n```js\nexport function resposta() {\n  let x = 5;\n  return x;\n}\n```\n\nE o teste (congelado, como sempre) espera 6. O aluno roda SEM MEXER em nada. O conferidor responde:\n\n- \"esperava 6, recebeu 5\".\n\nLeitura da mensagem: X é **6** (o teste queria 6), Y é **5** (o código devolveu 5). O programa RODOU — não há SyntaxError, não há linha apontada como quebrada. É **erro de valor**: a máquina entendeu e executou; o valor é que não bate.\n\nSegundo exemplo — agora um código que a máquina NÃO entende. Retome o exemplo da primeira seção:\n\n```text\nlet x = ;\n```\n\nA frase está incompleta: depois do `=`, a máquina esperava um valor e encontrou um símbolo que não esperava ali. A mensagem é de **sintaxe** — na forma \"SyntaxError: Unexpected token ';'\" — ela aponta onde a leitura travou e não fala de valores, porque nada rodou. Outros erros de sintaxe têm outros textos (por exemplo, declarar duas vezes o mesmo nome com `let` no mesmo escopo responde \"SyntaxError: Identifier 'x' has already been declared\"), mas a ESPÉCIE é a mesma: a máquina parou antes de executar.\n\nComparando as duas mensagens lado a lado: uma fala de VALORES (\"esperava 6, recebeu 5\") e a outra fala da FRASE do programa (\"Unexpected token\" / \"Identifier ... has already been declared\"). É por aí que você reconhece a espécie: **valores comparados** = erro de valor; **a frase quebrada** = erro de sintaxe.\n\n**Preveja antes de rodar:** se o código devolvesse 4 e o teste esperasse 6, qual seria a mensagem? Resposta: \"esperava 6, recebeu 4\" — mesmo molde, valores trocados; continua sendo erro de valor.",
+      "tag": ""
+    },
+    {
+      "id": "refutacoes",
+      "secao": "teoria",
+      "markdown": "Três leituras enganosas aparecem quando se começa a ler mensagens de erro.\n\n**1. \"Todo erro quer dizer que meu código está quebrado do mesmo jeito.\"** Não. As mensagens são de espécies diferentes, com causas e correções diferentes: erro de sintaxe = a frase está mal formada (corrija a frase); erro de valor = a frase está bem formada, mas o resultado não é o esperado (corrija o valor). Ler a mensagem é decidir QUAL das duas você tem na mão.\n\n**2. \"Erro de valor quer dizer que a máquina quebrou.\"** Não — é o contrário: o programa RODOU e devolveu um valor; a mensagem apenas compara esse valor com o esperado. A máquina não \"quebrou\": ela executou e reportou a comparação. (No erro de sintaxe, sim, a máquina para antes de rodar.)\n\n**3. \"Erro de sintaxe é coisa de quem está começando; quem sabe programar não tem.\"** Acontece com todo mundo, o tempo todo. A diferença é que a mensagem de sintaxe diz ONDE a leitura travou e o que ela encontrou no lugar — ela é um mapa, não um veredito. Ler o mapa é a habilidade.\n\n**4. \"Esperava X, recebeu Y quer dizer que X é o meu código e Y é o teste.\"** Ao contrário: X (esperado) vem do TESTE; Y (recebido) vem do SEU código. Confundir os donos é trocar a correção de lugar — você corrigiria o teste congelado em vez de olhar o valor que a sua função devolve.",
+      "tag": ""
+    },
+    {
+      "id": "referencia",
+      "secao": "referencia",
+      "markdown": "Referência just-in-time — as mensagens do conferidor, coladas ao desafio desta aula.\n\n| mensagem que você lê | o que significa | espécie |\n| --- | --- | --- |\n| `esperava X, recebeu Y` | a máquina entendeu, rodou e comparou valores: X é o esperado (teste), Y é o recebido (seu código) | erro de valor |\n| `SyntaxError: ...` | a máquina não entendeu a frase do programa; ele não rodou | erro de sintaxe |\n| `ReferenceError: X is not defined` | o programa usou um nome que não existe — visto na prática na aula 9 | (menção) |\n\n```js\nexport function resposta() {\n  let x = 6;\n  return x;\n}\n```\n\nSe o teste espera 6, esse programa passa: o valor devolvido é exatamente o esperado — os dois lados do molde são iguais. Se o código devolvesse outro valor, a mensagem seria \"esperava 6, recebeu <o valor>\".\n\nNo desafio desta aula a lacuna é o NÚMERO da declaração: você troca o 5 por 6. Antes de acertar, rode o starter como está e LEIA a mensagem — ela é de valor, e o X e o Y dela são a sua pista. Termos desta aula: **sintaxe**, **erro de valor**, **mensagem do conferidor**, **esperava X, recebeu Y**.",
+      "tag": ""
+    },
+    {
+      "id": "drill",
+      "secao": "drill",
+      "markdown": "Um item curto de treino (opcional). Leia a mensagem e classifique a espécie, sem rodar:\n\n- \"esperava 3, recebeu 4\" → **erro de valor**: a máquina entendeu, rodou e o número não bateu;\n- \"SyntaxError: Unexpected token ';'\" → **erro de sintaxe**: a frase do programa está mal formada e nada rodou;\n- \"esperava 8, recebeu 8\" → não é erro nenhum: os dois lados são iguais, o teste passa.\n\n**Checksum de cauda.** Nesta aula você aprendeu a **ler** as mensagens do conferidor: **erro de valor** (\"esperava X, recebeu Y\" — entendeu, rodou, o valor não bate) e **erro de sintaxe** (\"SyntaxError\" — não entendeu, não rodou). Você **reusou**: números, `let` e `return` — tudo leitura. Os termos da aula: **sintaxe**, **erro de valor**, **mensagem do conferidor**, **esperava X, recebeu Y**. Nenhuma construção nova apareceu em nenhum exemplo de código — a lista fecha com o reuso prometido pelo currículo.",
+      "tag": ""
+    }
+  ],
+  "justificativa": "Aula de LEITURA de mensagens, conforme o curriculo (avanço '(re, leitura)'): a habilidade nova é a taxonomia de erros do conferidor (sintaxe × valor), ensinada com exemplos exibidos e mensagens citadas em PROSA — os termos das mensagens nunca viram átomos de código. A ausência de átomo produtivo novo dispara o aviso A14a 'aula sem incremento' — esperado e registrado no curriculo (a aula de leitura de erro é um degrau conceitual). O desafio executa o lado de VALOR da lição (numa atividade, o aluno nunca escreve código com erro de sintaxe): o starter roda e a mensagem \"esperava 6, recebeu 5\" é lida antes da correção; a lacuna é só o número (node:NumericLiteral, H13). Nada fora do universo L1–L11 é demonstrado em teoria nem exigido no desafio; ReferenceError entra como uma linha de reconhecimento (o aluno já o encontrou na aula 9).",
+  "role": "regular",
+  "status": "rascunho",
+  "aprovado": false
+}

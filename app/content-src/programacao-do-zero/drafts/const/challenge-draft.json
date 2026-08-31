@@ -1,0 +1,67 @@
+{
+  "raciocinio_de_projeto": "O desafio da aula 10 avalia o contraste decl:const (NOVO, produtivo) × decl:let (reuso): DUAS lacunas cujos spans são as declarações — `let mudavel = 1;` (valor inicial livre, a let é cenário de contraste, não de teste) e `const fixa = 2;` (o valor exato que o teste confere) — com `return fixa;` congelado (Node:Identifier/ReturnStatement já lidos desde a aula 1). expectedTestCount = 1 por J4: sem parâmetros em nenhuma superfície, toda chamada de exemplo() é idêntica; um segundo teste seria tautológico. A falha do starter é a prova 2: com as duas lacunas vazias, `return fixa;` referencia nome não declarado → ReferenceError em modo estrito. A6/A13: a solução escreve decl:const (Demo da primeira seção da própria aula) + decl:let (Cum) + a maquinaria Variable* (Cum, aula 7) + NumericLiteral (H13); o starter só expõe o invólucro e o return (Cum/H13/AX); o teste usa a seed do harness, sem declaração de variável (A3) e sem assert.throws (A11). A14b é a régua do micro-avanço: a linha `const fixa = 2;` concentra UMA construção nova (decl:const, após o colapso da maquinaria Variable* no decl:); a linha `let mudavel = 1;` tem zero novas. A15b: a solução reutiliza decl:let das aulas 7/9. A16: decl:const é demonstrado na primeira seção da teoria (índice 0), então o 1º desafio é resolvível com a seção inicial + Cum. As duas wrongSolutions catalogadas (J5) reproduzem as misconceptions do contrato — a const com o VALOR errado para o teste (falha de valor) e a REDECLARAÇÃO da const no mesmo escopo (SyntaxError na leitura) — cada uma falha por execução real; as solutionAlternates (ordem invertida das declarações e valor livre da let) passam por execução real.",
+  "slug": "const-fixa-e-let-mutavel",
+  "conceito": "const",
+  "statement": "# A constante que não muda\n\nA função `exemplo()` quer guardar dois valores e devolver um deles: a constante `fixa`. Faltam **duas declarações** no lugar marcado:\n\n- declare a variável **`mudavel`** com `let`, com um valor inicial qualquer;\n- declare a constante **`fixa`** com `const`, com o valor inicial **2**.\n\nO restante já está pronto — `return fixa;` devolve o que a constante guarda. Antes de escrever, preveja: quando o teste chamar `exemplo()`, que valor a função devolve? Uma constante pode receber outra escrita depois da declaração?\n\nEscreva **somente as duas declarações**, na ordem das lacunas: primeiro `let mudavel = ...;`, depois `const fixa = 2;`. O valor inicial da `mudavel` é livre — qualquer número vale, porque o teste confere a constante, não a variável. Os nomes e o valor da constante têm de ser exatamente esses. As demais linhas já estão certas.",
+  "starterCode": "export function exemplo() {\n  // LACUNA 1: declare a variável `mudavel` com `let`, com um valor inicial\n  // LACUNA 2: declare a constante `fixa` com `const`, com o valor inicial 2\n  return fixa;\n}\n",
+  "solutionCode": "export function exemplo() {\n  let mudavel = 1;\n  const fixa = 2;\n  return fixa;\n}\n",
+  "testsCode": "import { test } from 'node:test';\nimport assert from 'node:assert/strict';\nimport { exemplo } from './solution.mjs';\n\ntest('a constante devolve o valor com que nasceu', () => {\n  assert.equal(exemplo(), 2);\n});\n",
+  "expectedTestCount": 1,
+  "outputChannel": "retorno",
+  "requires": [
+    "estado-ler-depois-de-escrever (decl:let reusado — a let ao lado da const)",
+    "const (decl:const — a constante que o teste confere)"
+  ],
+  "notRequired": [
+    "escolher o valor inicial da let mudavel — qualquer literal numérico vale; o teste só confere a constante fixa (2)",
+    "escrever o return fixa; — ele já vem congelado no starter",
+    "escrever atribuição sobre a const nem redeclará-la — são erros lidos na teoria, nunca código a escrever"
+  ],
+  "subgoals": [
+    "declarar",
+    "fixar",
+    "ler-valor"
+  ],
+  "scenarios": [
+    {
+      "tipo": "exemplo",
+      "derivado_de": "decl:const",
+      "descricao": "declarar duas construções no mesmo corpo: let mudavel = 1 (que pode receber outra escrita) e const fixa = 2 (que não muda); o return devolve a constante"
+    },
+    {
+      "tipo": "valido",
+      "derivado_de": "decl:const",
+      "descricao": "a constante devolve exatamente o valor com que nasceu (2) — ler uma const devolve o mesmo valor em qualquer momento do programa"
+    },
+    {
+      "tipo": "limite",
+      "derivado_de": "decl:let",
+      "descricao": "o valor inicial da let é livre (qualquer literal numérico) — o resultado verificado pelo teste não depende dele, só da constante"
+    },
+    {
+      "tipo": "invalido",
+      "derivado_de": "decl:const",
+      "descricao": "declarar a const com outro valor (ex.: 3) faz o teste falhar por VALOR; sem as declarações o starter lança ReferenceError (fixa não declarada) e a redeclaração da const no mesmo escopo é SyntaxError"
+    }
+  ],
+  "taskSkill": "declarar o par contraste let/const no span de duas lacunas — a let com valor inicial livre e a const com o valor exato que o teste confere",
+  "supportLevel": "com_andaime",
+  "surfaceDomain": "declaração de variável mutável (let) e de constante (const) em corpo de função",
+  "solutionAlternates": [
+    "export function exemplo() {\n  const fixa = 2;\n  let mudavel = 1;\n  return fixa;\n}",
+    "export function exemplo() {\n  let mudavel = 100;\n  const fixa = 2;\n  return fixa;\n}"
+  ],
+  "wrongSolutions": [
+    "export function exemplo() {\n  let mudavel = 1;\n  const fixa = 3;\n  return fixa;\n}",
+    "export function exemplo() {\n  let mudavel = 1;\n  const fixa = 2;\n  const fixa = 2;\n  return fixa;\n}"
+  ],
+  "requirements": [
+    {
+      "id": "REQ-1",
+      "descricao": "A função exemplo() devolve o valor da constante fixa — 2, o valor com que ela nasceu; o valor inicial da let mudavel é irrelevante para o teste.",
+      "teste": "a constante devolve o valor com que nasceu"
+    }
+  ],
+  "justificativa": "Duas lacunas cujos spans são as duas declarações do contraste (let mutável + const fixa); o return fica congelado byte a byte no starter e na solução; o teste usa a seed do harness e confere o valor da constante (a parte NÃO livre da atividade); expectedTestCount=1 por J4 — sem parâmetros, duas chamadas de exemplo() seriam idênticas e um segundo teste seria tautológico. A14b garante no máximo 1 construção nova por linha da solução (a linha da const). As quatro provas de execução passam; as duas wrongSolutions catalogadas (valor errado da const; redeclaração) falham por execução real.",
+  "aprovado": false
+}

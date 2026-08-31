@@ -1,0 +1,67 @@
+{
+  "raciocinio_de_projeto": "O desafio da aula 9 reusa o molde da aula 7 (decl:let com valor inicial numa lacuna única, atribuição congelada) e o vira exercício de LEITURA DE ESTADO: as três atribuições congeladas (1, 2, 3) são a sequência que o aluno LÊ para prever o valor final antes de rodar, e o teste valida exatamente a última-escrita-vence (pergunta de estado R10): expectativa 3, independente do valor inicial da declaração. expectedTestCount = 1 por J4 (bijeção requisito-testes): com o orçamento desta trilha — que veda parâmetros em todas as superfícies até aqui — toda chamada de lerDepois() é idêntica; um segundo teste seria tautológico. A falha do starter é a prova 2 e o gancho pedagógico duplo: com a lacuna vazia, `contador = 1;` referencia nome não declarado e o módulo ESM (strict mode) lança ReferenceError — a MESMA experiência que a aula 11 vai nomear como mensagem de erro (o aluno já viu o tipo de mensagem antes de aprender o termo). A6 bate em A13a/A13b: a solução escreve só decl:let + a maquinaria Variable* (todas demonstradas na aula 7); o starter expõe só o que está em Cum/H13/AX; o teste usa a seed do harness. A15b: a solução reutiliza op:assign:=/node:BinaryExpression/decl:let das aulas anteriores. A16: o 1º desafio é resolvível com o reuso (Cum) — a primeira seção da teoria demonstra mesmo assim decl:let/op:assign:=/node:BinaryExpression/node:NumericLiteral/node:ReturnStatement (curriculo primeira_secao_demonstra). As duas wrongSolutions catalogadas (J5) reproduzem misconceptions do contrato — declarar com const (TypeError na atribuição congelada, em modo estrito) e declarar outro nome (ReferenceError) — cada uma falha no teste, verificado por execução real.",
+  "slug": "qual-e-o-ultimo-valor",
+  "conceito": "estado-ler-depois-de-escrever",
+  "statement": "# Ler depois de escrever: qual é o último valor?\n\nA função `lerDepois()` já vem quase pronta. Ela quer guardar um número numa variável, passar por três trocas de valor e devolver o que restar. Falta **declarar** a variável `contador` com `let` no lugar marcado, com um valor inicial.\n\nO restante já está pronto — não mexa:\n\n- `contador = 1;` — **troca** o valor guardado para 1;\n- `contador = 2;` — **troca** o valor guardado para 2;\n- `contador = 3;` — **troca** o valor guardado para 3;\n- `return contador;` — devolve o que está guardado agora.\n\nAntes de escrever, preveja: quando o teste chamar `lerDepois()`, que valor a função devolve? Depois das três trocas, o que está guardado em `contador`? O valor inicial da declaração importa para essa resposta?\n\nEscreva **somente a declaração** na lacuna, com `let` e um valor inicial. O valor inicial é livre — qualquer número vale, porque quem decide o valor devolvido é a **última** troca (`contador = 3;`), não o valor inicial. As demais linhas já estão certas.",
+  "starterCode": "export function lerDepois() {\n  // LACUNA: declare a variável `contador` com `let`, com um valor inicial\n  contador = 1;\n  contador = 2;\n  contador = 3;\n  return contador;\n}\n",
+  "solutionCode": "export function lerDepois() {\n  let contador = 0;\n  contador = 1;\n  contador = 2;\n  contador = 3;\n  return contador;\n}\n",
+  "testsCode": "import { test } from 'node:test';\nimport assert from 'node:assert/strict';\nimport { lerDepois } from './solution.mjs';\n\ntest('a última atribuição decide o valor final', () => {\n  assert.equal(lerDepois(), 3);\n});\n",
+  "expectedTestCount": 1,
+  "outputChannel": "retorno",
+  "requires": [
+    "let-e-atribuicao (decl:let + leitura de op:assign:=)",
+    "estado-ler-depois-de-escrever (leitura de sequência de atribuições: última escrita vence)"
+  ],
+  "notRequired": [
+    "escolher o valor inicial da declaração — qualquer literal numérico vale; o teste só verifica o valor final (3)",
+    "escrever as linhas de atribuição (contador = 1; ... contador = 3;) — elas já vêm congeladas no starter",
+    "declarar com const ou var — fora do orçamento até a aula 10"
+  ],
+  "subgoals": [
+    "declarar",
+    "ler a sequência de atribuições",
+    "prever o valor final"
+  ],
+  "scenarios": [
+    {
+      "tipo": "exemplo",
+      "derivado_de": "decl:let",
+      "descricao": "declarar uma variável mutável com let e um valor inicial numérico (a solução usa 0; qualquer número valeria); as atribuições seguintes substituem o valor guardado"
+    },
+    {
+      "tipo": "valido",
+      "derivado_de": "op:assign:=",
+      "descricao": "o valor devolvido é o da ÚLTIMA atribuição (3), ainda que a declaração inicial carregue outro literal — o estado final segue a última escrita"
+    },
+    {
+      "tipo": "limite",
+      "derivado_de": "decl:let",
+      "descricao": "o valor inicial da declaração é livre (qualquer literal numérico) — o resultado verificado pelo teste não depende dele"
+    },
+    {
+      "tipo": "invalido",
+      "derivado_de": "decl:let",
+      "descricao": "sem a declaração (lacuna vazia), a primeira atribuição referencia um nome não declarado e o módulo ESM lança ReferenceError — o teste falha (e o aluno já viu essa mensagem antes de a aula 11 nomeá-la)"
+    }
+  ],
+  "taskSkill": "declarar uma variável com let e valor inicial no span de uma lacuna única e ler a sequência de atribuições para prever o valor final",
+  "supportLevel": "com_andaime",
+  "surfaceDomain": "declaração de variável (let) + leitura de estado (sequência de atribuições =)",
+  "solutionAlternates": [
+    "export function lerDepois() {\n  let contador = 100;\n  contador = 1;\n  contador = 2;\n  contador = 3;\n  return contador;\n}",
+    "export function lerDepois() {\n  let contador = 99;\n  contador = 1;\n  contador = 2;\n  contador = 3;\n  return contador;\n}"
+  ],
+  "wrongSolutions": [
+    "const contador = 0;",
+    "let total = 0;"
+  ],
+  "requirements": [
+    {
+      "id": "REQ-1",
+      "descricao": "A função lerDepois() devolve o valor da ÚLTIMA atribuição — 3 — não o valor inicial da declaração, seja ele qual for.",
+      "teste": "a última atribuição decide o valor final"
+    }
+  ],
+  "justificativa": "Uma lacuna única cujo span contém a declaração let (átomo produtivo REUSADO da aula 7 — o avanço desta aula é o quadro de leitura, não um átomo novo); as linhas de atribuição ficam congeladas byte a byte no starter e na solução (op:assign:=/node:BinaryExpression receptivas desde a aula 7); o teste usa a seed do harness e verifica o valor FINAL (estado, R10); expectedTestCount=1 por J4 — o orçamento veda parâmetros, então duas chamadas de lerDepois() seriam idênticas e um segundo teste seria tautológico. As quatro provas de execução passam; as duas wrongSolutions catalogadas falham no teste por execução real.",
+  "aprovado": false
+}
