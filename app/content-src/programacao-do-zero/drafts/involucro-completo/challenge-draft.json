@@ -1,0 +1,67 @@
+{
+  "raciocinio_de_projeto": "Item de avaliação do átomo produtivo node:FunctionDeclaration (aula 12). O curriculo manda congelado: [] — 'nada congelado além do teste' — então o starter é um COMENTÁRIO somente: módulo ESM sem nenhum export falha a importação no carregamento ('does not provide an export named conferir') e o teste sai exit 1 — prova 2 verificada por execução real, sem export dummy (que ensinaria a moldura de novo). A solução de referência é byte a byte a do curriculo (o_aluno_escreve: export function conferir() { let total = 5; return total; }). expectedTestCount = 1 por J4: o orçamento desta aula não libera parâmetro novo no desafio (node:Parameter é reuso da aula 5, mas o span é a moldura inteira), toda chamada de conferir() é idêntica e um segundo teste seria tautológico. A6 bate: a solução usa FunctionDeclaration + decl:let + ReturnStatement + NumericLiteral, todos em budget_produtivo/cumulativo; o starter (comentário) não expõe nenhum átomo além dos estruturais; o teste usa só a seed do harness (imports + test + assert.equal), sem variável (A3) e sem assert.throws (A11). wrongSolutions (J5): sem export → falha na importação; valor errado → assert falha; as duas verificadas por execução real. O esticar (let→const) fica no drill da teoria, como na aula de referência.",
+  "slug": "montar-conferir",
+  "conceito": "involucro-completo",
+  "statement": "# Escreva a caixa inteira\n\nO programa desta aula está **vazio**: só há um comentário no lugar do código. Sua tarefa é escrever a **função completa** — a caixa nomeada de instruções, do início ao fim — para o conferidor a importar, chamar e conferir.\n\nO conferidor vai procurar a função chamada `conferir`, vai chamá-la e vai conferir se ela devolve `5`.\n\nEscreva, na ordem:\n\n1. `export` — a etiqueta de entrega: deixa a caixa visível para o conferidor;\n2. `function conferir() {` — a moldura: a palavra `function`, o nome `conferir` (o mesmo nome que o teste usa) e a chave que abre o corpo;\n3. `let total = 5;` — a variável que guarda o número 5 dentro da caixa;\n4. `return total;` — a linha que devolve o valor guardado;\n5. `}` — a chave que fecha o corpo.\n\nAntes de escrever, preveja: quando o teste chamar `conferir()`, que valor a função devolve? E se a linha `return total;` não existisse, o que o teste receberia?\n\nO nome `conferir` é obrigatório (é como o conferidor encontra a caixa). O resto da montagem é livre — o que importa é o valor devolvido ser 5.",
+  "starterCode": "// LACUNA: escreva aqui a funcao completa, do export ao return\n// (nada esta pronto alem do teste)\n",
+  "solutionCode": "export function conferir() {\n  let total = 5;\n  return total;\n}\n",
+  "testsCode": "import { test } from 'node:test';\nimport assert from 'node:assert/strict';\nimport { conferir } from './solution.mjs';\n\ntest('monta a caixa inteira e devolve o total', () => {\n  assert.equal(conferir(), 5);\n});\n",
+  "expectedTestCount": 1,
+  "outputChannel": "retorno",
+  "requires": [
+    "involucro-completo (node:FunctionDeclaration)"
+  ],
+  "notRequired": [
+    "escolher o nome da função — o teste chama conferir; outro nome quebra a importação",
+    "o interior da caixa — o teste só confere que conferir() devolve 5; guardar em let, const ou devolver direto são formas válidas",
+    "escrever a linha de atribuição ou operar o valor — não há operador binário no orçamento desta aula",
+    "impressão no terminal — o canal de saída é o retorno da função"
+  ],
+  "subgoals": [
+    "montar a moldura (export + function + chaves)",
+    "guardar o valor (let)",
+    "devolver o valor (return)"
+  ],
+  "scenarios": [
+    {
+      "tipo": "exemplo",
+      "derivado_de": "node:FunctionDeclaration",
+      "descricao": "escrever a declaração completa da função exportada, com variável let e return — a solução de referência"
+    },
+    {
+      "tipo": "valido",
+      "derivado_de": "node:FunctionDeclaration",
+      "descricao": "o teste importa conferir do módulo, chama e recebe 5 — passagem integral (exit 0, pass = testsRun)"
+    },
+    {
+      "tipo": "limite",
+      "derivado_de": "node:FunctionDeclaration",
+      "descricao": "o interior da caixa é livre: return 5 direto, const no lugar de let, espacamento diferente — o teste só confere o valor devolvido; o nome conferir permanece obrigatório"
+    },
+    {
+      "tipo": "invalido",
+      "derivado_de": "node:FunctionDeclaration",
+      "descricao": "starter vazio (comentário só): módulo sem export falha a importação — o teste nem chega a rodar a caixa; função sem export idem; valor errado → assert falha"
+    }
+  ],
+  "taskSkill": "escrever a declaração completa de uma função (export + function + chaves + let + return) de modo que o módulo exporte o nome que o teste importa e devolva o valor esperado",
+  "supportLevel": "sem_andaime",
+  "surfaceDomain": "declaração completa de função (invólucro) com variável e return",
+  "solutionAlternates": [
+    "export function conferir() {\n  const total = 5;\n  return total;\n}\n",
+    "export function conferir() {\n  return 5;\n}\n"
+  ],
+  "wrongSolutions": [
+    "function conferir() {\n  let total = 5;\n  return total;\n}\n",
+    "export function conferir() {\n  let total = 3;\n  return total;\n}\n"
+  ],
+  "requirements": [
+    {
+      "id": "REQ-1",
+      "descricao": "O módulo exporta a função conferir() e ela devolve 5 — o teste importa { conferir }, chama e espera o valor 5.",
+      "teste": "monta a caixa inteira e devolve o total"
+    }
+  ],
+  "justificativa": "Span = a moldura inteira (curriculo: congelado []); starter-comentário mantém a prova 2 real (import falha em módulo sem export — verificado por execução); solução = a do curriculo byte a byte; teste usa apenas a seed do harness; expectedTestCount=1 por J4 (chamadas idênticas sem parâmetro novo); as duas wrongSolutions falham por mecanismos distintos (importação e valor), verificadas por execução real.",
+  "aprovado": false
+}
