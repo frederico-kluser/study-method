@@ -13,6 +13,47 @@
     "productive": ["node:FunctionDeclaration"]
   },
   "introducesTerms": ["solução completa", "montar", "função declarada"],
+  "assertions": [
+    {
+      "id": "sem-export-caixa-fica-dentro",
+      "statement": "Sem a palavra export, a caixa existe dentro do arquivo, mas o conferidor não a enxerga de fora — o teste para antes de rodar a função.",
+      "question": "O teste chama conferir() e espera 5. Você escreve a função SEM o export. O que acontece na hora do teste?",
+      "options": [
+        "O programa para na importação: o módulo não entrega nada chamado conferir",
+        "O teste roda e passa: a caixa devolve 5 mesmo sem export",
+        "O teste roda e falha: recebe undefined",
+        "O programa dá erro de sintaxe na declaração da função"
+      ],
+      "answerIndex": 0,
+      "feedback": "Sem o export, a caixa fica dentro do arquivo: o conferidor procura conferir e não acha — o programa para antes de rodar. O export é a etiqueta de entrega (aula 4)."
+    },
+    {
+      "id": "sem-return-entrega-nada",
+      "statement": "Sem a linha return, a caixa roda mas entrega 'nada' — o teste lê o retorno como undefined.",
+      "question": "Você escreve a caixa com o export e a variável let total = 5;, mas esquece a linha return total;. O que o teste recebe?",
+      "options": [
+        "5, porque a variável total já guarda o valor",
+        "Um erro de sintaxe na variável",
+        "'nada' (undefined) — o teste responde 'esperava 5, recebeu undefined'",
+        "O teste para na importação, porque falta o export"
+      ],
+      "answerIndex": 2,
+      "feedback": "A caixa roda, mas sem a linha de devolução entrega 'nada' (undefined). O return é a linha que entrega o valor guardado e encerra a caixa naquele ponto (aula 6)."
+    },
+    {
+      "id": "nome-da-caixa-igual-ao-teste",
+      "statement": "O nome da função é o mesmo nome que o teste usa — é assim que o conferidor encontra a caixa.",
+      "question": "O teste chama conferir(). Você declara export function outra() { let total = 5; return total; }. O que acontece?",
+      "options": [
+        "O teste roda e passa, porque o valor devolvido é 5",
+        "O arquivo carrega, mas o programa para: o módulo não entrega nenhuma caixa chamada conferir",
+        "O teste roda e falha: recebe undefined",
+        "O programa dá erro de sintaxe na declaração"
+      ],
+      "answerIndex": 1,
+      "feedback": "O conferidor procura a caixa pelo nome do teste: conferir. Sem ela, o programa para com o aviso de que o módulo não entrega nada com esse nome — o valor certo não adianta se a caixa tem outro nome."
+    }
+  ],
   "foraDeEscopo": [
     "arrow function (form:ArrowFunction) — outra forma de declarar função; exige aula própria",
     "parâmetros (node:Parameter) — janelinha já ensinada na aula 5; fica fora do desafio para o span continuar sendo a moldura inteira",

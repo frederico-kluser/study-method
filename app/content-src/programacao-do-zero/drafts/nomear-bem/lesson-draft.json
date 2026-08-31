@@ -13,6 +13,47 @@
     "productive": ["decl:const", "node:StringLiteral"]
   },
   "introducesTerms": ["nomear", "identificador", "legibilidade"],
+  "assertions": [
+    {
+      "id": "etiqueta-igualdade-exata",
+      "statement": "O nome de uma variável é uma etiqueta que o programador escolhe, e o programa a procura pela igualdade exata — o nome declarado e o nome usado têm de ser o mesmo.",
+      "question": "O return congelado devolve fruta. Você declara const texto = \"abacaxi\";. O que acontece quando o teste roda?",
+      "options": [
+        "O programa para: procura a etiqueta fruta, que nunca foi criada",
+        "O programa devolve \"abacaxi\" mesmo assim, porque o valor é o que importa",
+        "O programa devolve o texto 'texto'",
+        "O programa troca o nome sozinho para fruta"
+      ],
+      "answerIndex": 0,
+      "feedback": "O return procura a etiqueta pelo nome EXATO: fruta. Como só a etiqueta texto foi criada, a etiqueta fruta não existe — o programa para com o aviso de que fruta não está declarada."
+    },
+    {
+      "id": "maiuscula-e-minuscula-diferem",
+      "statement": "Maiúscula e minúscula são letras diferentes para o programa: Fruta e fruta são duas etiquetas distintas.",
+      "question": "Você declara const Fruta = \"abacaxi\"; e o return congelado devolve fruta (minúscula). O que acontece?",
+      "options": [
+        "O programa considera Fruta e fruta a mesma etiqueta e devolve \"abacaxi\"",
+        "O programa procura fruta (minúscula), não acha e para",
+        "O programa devolve \"Fruta\" com maiúscula",
+        "O programa corrige a grafia automaticamente"
+      ],
+      "answerIndex": 1,
+      "feedback": "A igualdade é exata, letra por letra: a etiqueta criada foi Fruta (maiúscula), mas o return procura fruta (minúscula) — são etiquetas diferentes, então o programa para."
+    },
+    {
+      "id": "nome-nao-amarra-tipo",
+      "statement": "O nome não amarra o tipo: a etiqueta pode guardar um texto OU um número — quem decide o que a função devolve é o valor guardado, não o nome.",
+      "question": "Você escreve const fruta = 3; e o teste espera o texto \"abacaxi\". O que o conferidor responde?",
+      "options": [
+        "Passa, porque o nome fruta diz que é uma fruta",
+        "Falha com 'esperava \"abacaxi\", recebeu 3'",
+        "Falha com erro de sintaxe, porque número não cabe em fruta",
+        "Passa, porque o nome não importa para o teste"
+      ],
+      "answerIndex": 1,
+      "feedback": "A etiqueta fruta está presa no número 3 — o nome não prende o valor num tipo. O conferidor compara o VALOR devolvido com o esperado: esperava \"abacaxi\", recebeu 3 (erro de valor, não de sintaxe — aula 11)."
+    }
+  ],
   "foraDeEscopo": [
     "regras completas de identificador (unicode, $, _) — basta a regra prática: letras minúsculas, sem espaço, sem acento",
     "palavras reservadas (if, return, const…) como nome — erro de sintaxe; a regra prática cobre o desafio",

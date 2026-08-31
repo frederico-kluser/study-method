@@ -13,6 +13,47 @@
     "productive": ["node:FunctionDeclaration", "decl:const"]
   },
   "introducesTerms": ["revisão", "peças", "programa completo"],
+  "assertions": [
+    {
+      "id": "programa-completo-quatro-pecas",
+      "statement": "Um programa completo junta as peças da trilha inteira: export (entrega), moldura da função, constante com texto e return (devolução) — todas no mesmo programa.",
+      "question": "O teste chama frase() e espera \"oi\". Qual destes programas devolve \"oi\"?",
+      "options": [
+        "export function frase() { const saudacao = \"oi\"; return saudacao; }",
+        "function frase() { const saudacao = \"oi\"; return saudacao; }",
+        "export function frase() { const saudacao = \"oi\"; }",
+        "export function frase() { const msg = \"oi\"; return saudacao; }"
+      ],
+      "answerIndex": 0,
+      "feedback": "Só a primeira opção tem as quatro peças juntas: o export (o conferidor enxerga a caixa), a moldura, a constante com o texto e o return. Sem export o teste para na importação; sem return ele recebe 'nada'; nome diferente do return quebra no programa."
+    },
+    {
+      "id": "sem-return-recebe-nada",
+      "statement": "Sem a linha return, a caixa roda mas entrega 'nada' — o teste lê undefined em vez do valor esperado.",
+      "question": "Você escreve export function frase() { const saudacao = \"oi\"; } — falta a linha return. O que o teste recebe?",
+      "options": [
+        "'nada' (undefined) — o conferidor responde 'esperava \"oi\", recebeu undefined'",
+        "\"oi\", porque a constante já guarda o texto",
+        "um erro de sintaxe na constante",
+        "o programa para na importação, porque falta o export"
+      ],
+      "answerIndex": 0,
+      "feedback": "A constante guarda o texto, mas sem o return ninguém o entrega: a caixa roda até o fim e devolve 'nada' (undefined). O return é a peça que entrega o valor guardado (aula 6)."
+    },
+    {
+      "id": "janelinha-recebe-e-devolve",
+      "statement": "A caixa com janelinha (parâmetro) recebe um valor de fora pela assinatura e o devolve pelo return, sem guardar nada dentro.",
+      "question": "O programa export function repete(nome) { return nome; } está pronto. O teste chama repete(\"oi\"). O que a função devolve?",
+      "options": [
+        "\"oi\" — a janelinha nome recebe o valor e o return o devolve",
+        "o texto 'nome', porque é o que está escrito no return",
+        "undefined — a caixa não tem variável guardando o valor",
+        "um erro, porque repete não declara nenhuma variável"
+      ],
+      "answerIndex": 0,
+      "feedback": "O valor \"oi\" entra pela janelinha nome na chamada e sai na hora pelo return — receber-e-devolver, sem guardar nada. É o mesmo desenho de receber e devolver que você já viu na aula 5."
+    }
+  ],
   "foraDeEscopo": [
     "arrow function — forma alternativa de função; não aparece no programa desta aula",
     "parâmetros novos (node:Parameter) — a janelinha é reuso da aula 5 e aparece SÓ na leitura do drill, não no desafio de fixar",
