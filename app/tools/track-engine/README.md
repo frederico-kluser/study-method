@@ -21,6 +21,7 @@ em milissegundos, sem rede e sem chave de API.
 npm run engine -- audit <slug> [opções]
 npm run engine -- coverage <slug> [--modo declared|inferred] [--limite N] [--json] [--dir DIR]
 npm run engine -- requirements <slug> [--limite N] [--json] [--dir DIR]
+npm run engine -- revise <slug> [--limite N] [--json] [--dir DIR]
 npm run engine -- generate <slug> --assunto "..." [--from FASE] [--only slug] [--teto-tokens N]
 npm run engine -- lint-schemas
 ```
@@ -29,7 +30,7 @@ npm run engine -- lint-schemas
 |---|---|
 | `--modo declared\|inferred` | de onde vem o orçamento. Sem a flag: `declared` se alguma aula declara `introduces`, senão `inferred` |
 | `--harness receptive-seed\|none` | se o harness de teste (`import`, `export`, `assert.*`) entra no orçamento receptivo da aula 1. Default `receptive-seed` |
-| `--limite N` | no `audit`: quantas violações imprimir (`0` = nenhuma, só o placar). No `coverage`/`requirements`: quantos desafios **processar e imprimir** (`0` = nenhum) — amostra rápida, já que o coverage spawna `node --test` por candidato |
+| `--limite N` | no `audit`: quantas violações imprimir (`0` = nenhuma, só o placar). No `coverage`/`requirements`/`revise`: quantos desafios/aulas **processar e imprimir** (`0` = nenhum) — amostra rápida, já que o coverage e o revise spawnam `node --test` por candidato |
 | `--so-lacunas` | mostra apenas as lacunas de currículo — construção que **nenhuma** aula ensina |
 | `--json` | relatório completo em JSON, para outra ferramenta consumir |
 | `--dir DIR` | (`coverage`/`requirements`) carrega a trilha de outro diretório, ex.: `--dir content-src/programacao-do-zero/trilha` para auditar uma trilha ainda não publicada em `resources/tracks` |
@@ -95,6 +96,52 @@ Exit **1** quando algum desafio tem gap. O legado `nodejs-do-zero` (sem campo
 `requirements`) reporta 137 desafios com gap — 577 testes sem requirement
 declarado.
 
+## `revise` — a REVISÃO PROGRESSIVA (o núcleo do pedido do dono)
+
+O `coverage` responde "o que o teste cobra × o que a aula oferece" desafio a
+desafio. O `revise` sobe um nível: **percorre o curso da 1ª à última aula**,
+acumulando o feedback de cada aula como **memória** para a seguinte, decide
+aula a aula se ela **precisa ser mais quebrada** e repete a varredura até o
+relatório **convergir** (hash estável — máximo 3 iterações, válvula anti-loop).
+
+Para cada desafio de cada aula (na ordem pedagógica), o `revise`:
+
+1. **Sintetiza o código mínimo** que passa no teste (`quality/minimal.ts`,
+   zero LLM — a etapa de validação que confirma que o teste tem solução);
+2. **Compara `atoms(minimal)` com o orçamento DECLARADO da aula**
+   (`deriveTrackBudget(track, { mode: 'declared' })` — `introduces` do
+   `lesson.json`, a mesma fonte do audit em modo declared):
+   - **LACUNA** — átomo do mínimo fora de `productive ∪ receptive`: o teste
+     cobra construção que a aula não oferece ⇒ **`precisaQuebrar = true`**
+     (candidato a SPLIT);
+   - **EXCESSO** — `introduces.productive` não usado pelo mínimo: a aula
+     ensina mais que o teste cobra ⇒ candidato a remover do `introduces` ou
+     cobrir com desafio (**ajuste**, nunca violação — excesso receptivo é
+     by-design);
+3. **Fail-closed** — veredito não-ok (`SEM_SOLUCAO_ACESSIVEL` /
+   `PARSE_FALHOU` / `PROVER_FALHOU`) ⇒ aula **NÃO-REVISÁVEL**, documentada,
+   nunca loopa;
+4. **SPLIT** — quando `precisaQuebrar`, **nada se perde**: o `minimalCode` +
+   `atoms` são gravados como artefato (`splits/<aula>--<desafio>.minimal.mjs`
+   + `.seed.json`) e registrados como **pendência** no relatório — a aula nova
+   sai de sub-agente LLM com o minimalCode como **semente** (sem LLM na
+   execução, a pendência fica registrada com o código pronto);
+5. **Memória** — o feedback da aula N vira contexto da N+1 (`memoriaDeRevisao`
+   com `aulaAnterior`, `lacunasVistas` e `decisoes`); o relatório final
+   registra o que foi aprendido e reavaliado (progressividade);
+6. **Sinal secundário** — `validarRequirements` (bijeção requirements ×
+   test('…')) é registado por desafio como feedback de **ajuste**, nunca como
+   motivo de split.
+
+O relatório é gravado em `content-src/<slug>/revisao-progressiva/`
+(`relatorio-revisao.json` + `relatorio-revisao.md` em pt-BR + seeds de split).
+Exit **1** quando há lacuna ou aula não-revisável; **0** quando converge sem
+lacunas.
+
+```bash
+cd app && npm run engine -- revise programacao-do-zero --dir content-src/programacao-do-zero/trilha
+```
+
 `generate` executa F0 a F12 e produz uma trilha nova em `app/resources/tracks/<slug>`: o run (run.json +
 ledger + telemetria + artefatos + drafts) vive em `app/content-src/<slug>` e é **retomável** — repita o
 comando com `--from <fase pendente>` após interrupção. A F6 (piloto de 3 aulas) **para para revisão
@@ -150,6 +197,7 @@ trilha atual, e que nenhum contador de aulas mostra.
 ```bash
 cd app && bash tools/t.sh tests/engineBudgetGate.test.ts
 cd app && bash tools/t.sh tests/engineMinimal.test.ts tests/engineRequirements.test.ts
+cd app && bash tools/t.sh tests/engineRevision.test.ts
 ```
 
 32 testes do gate de orçamento, sem rede e sem disco: fixtures de trilha em
@@ -164,6 +212,13 @@ spawna `node --test`) e `engineRequirements` (derivação + bijeção requiremen
 testes). Os unit tests do sintetizador usam um prover FAKE que importa o
 candidato via data URL e avalia os asserts com lógica real.
 
+6 testes da revisão progressiva (`engineRevision`, prover FAKE + trilha em
+memória): lacuna fora do orçamento ⇒ `precisaQuebrar=true` com motivo; aula
+coberta ⇒ false; teste impossível ⇒ não-revisável (fail-closed, sem loop);
+convergência em 2 iterações estáveis; memória da aula 1 no contexto da aula 2;
+SPLIT com minimalCode persistido como artefato (pendência registrada mesmo sem
+LLM).
+
 ## Onde o código vive
 
 | Arquivo | Responsabilidade |
@@ -175,7 +230,8 @@ candidato via data URL e avalia os asserts com lógica real.
 | `app/electron/main/engine/audit.ts` | a bateria de gates e o relatório de violações |
 | `app/electron/main/engine/quality/minimal.ts` | o sintetizador determinístico do código mínimo que passa no teste (zero LLM) |
 | `app/electron/main/engine/quality/requirements.ts` | derivação de requirements do teste + validação da bijeção requirements × test('…') |
-| `app/tools/track-engine/cli.ts` | a entrada de linha de comando (audit, coverage, requirements, generate, lint-schemas) |
+| `app/electron/main/engine/revision/progressiva.ts` | a REVISÃO PROGRESSIVA: varredura 1ª → última aula com memória acumulada, decisão de SPLIT (fail-closed) e convergência por hash — zero LLM |
+| `app/tools/track-engine/cli.ts` | a entrada de linha de comando (audit, coverage, requirements, revise, generate, lint-schemas) |
 
 Nenhum deles chama LLM. A engine não escreve aula: quem escreve conteúdo é o autor-LLM, nos modos
 `generate` e `repair`, recebendo o orçamento congelado como restrição dura. O código aqui produz o

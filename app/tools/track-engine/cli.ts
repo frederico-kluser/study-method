@@ -47,6 +47,12 @@ import {
   type RequirementsDerivados,
   type ValidacaoRequirements,
 } from '../../electron/main/engine/quality/requirements';
+import {
+  gravarRelatorio,
+  revisarCurso,
+  rodarRevisaoAteConvergir,
+  type RelatorioDeRevisao,
+} from '../../electron/main/engine/revision/progressiva';
 import { createDeepSeekClient } from '../../electron/main/services/deepseekClient';
 import { createCallLlm, type EngineLlm } from '../../electron/main/engine/runtime/callLlm';
 import { createExecSemaphore, createLlmSemaphore, createSemaphore } from '../../electron/main/engine/runtime/semaphore';
@@ -98,6 +104,23 @@ comandos:
       com os requirements declarados no challenge.json (campo "requirements"):
       requirement declarado sem teste e teste sem requirement sao gaps.
       Exit 1 quando algum desafio tem gap.
+
+  revise <slug> [--limite N] [--json] [--dir DIR]
+      a REVISAO PROGRESSIVA (onda 5 — o nucleo do pedido do dono): percorre
+      as aulas da 1a a ultima, sintetiza para cada desafio o codigo MINIMO
+      que passa no teste (zero LLM) e compara com o orcamento DECLARADO da
+      aula (introduces do lesson.json):
+        LACUNA  = o teste cobra construcao que a aula nao oferece ->
+                  candidato a SPLIT (minimalCode+atoms preservados como
+                  artefato e registrados como pendencias — nada se perde)
+        NAO-REVISAVEL = veredito nao-ok (sem-solucao/parse-falhou/
+                  prover-falhou) — fail-closed, documentada, nunca loopa
+        EXCESSO = a aula ensina mais que o teste cobra (ajuste, nao violacao)
+      A memoria do feedback de cada aula vira contexto da seguinte
+      (progressividade); o loop de convergencia repete a varredura ate o hash
+      do relatorio estabilizar (max 3 iteracoes). Grava o relatorio em
+      content-src/<slug>/revisao-progressiva/. Exit 1 quando ha lacuna ou
+      aula nao-revisavel; 0 quando converge sem lacunas.
 
   generate <slug> --assunto "..." [--from FASE] [--only slug]
                   [--teto-tokens N] [--familia sintaxe|algoritmo|api-runtime|...]
@@ -609,6 +632,83 @@ async function cmdRequirements(pos: string[], flags: Record<string, string>, boo
 }
 
 // ---------------------------------------------------------------------------
+// revise — a REVISÃO PROGRESSIVA (onda 5): varredura 1ª → última aula com
+// memória acumulada + convergência por hash. Zero LLM no núcleo.
+// ---------------------------------------------------------------------------
+
+/** Etiqueta humana da decisão de uma aula. */
+function rotuloDecisao(aula: RelatorioDeRevisao['aulas'][number]): string {
+  if (aula.naoRevisavel) return 'NAO-REVISAVEL (fail-closed)';
+  if (aula.precisaQuebrar) return 'PRECISA QUEBRAR (SPLIT)';
+  return 'COBERTA';
+}
+
+async function cmdRevise(pos: string[], flags: Record<string, string>, bools: Set<string>): Promise<void> {
+  const slug = pos[0];
+  if (!slug) fail('informe o slug da trilha (ex.: npm run engine -- revise programacao-do-zero)');
+
+  const limite = flags.limite !== undefined ? Number.parseInt(flags.limite, 10) : Number.MAX_SAFE_INTEGER;
+  if (!Number.isInteger(limite) || limite < 0) fail(`--limite invalido: ${flags.limite}`);
+
+  const track = await carregarTrilhaOuFalhar(slug, flags.dir);
+  const prover = criarProverDeDesafio();
+  // A MESMA fonte do audit em modo declared: introduces do lesson.json.
+  const budget = deriveTrackBudget(track, { mode: 'declared' });
+
+  const relatorio = await rodarRevisaoAteConvergir({
+    revisarCurso: () =>
+      revisarCurso({
+        track,
+        prover,
+        limite,
+        orcamentoPorAula: (lessonRef) => {
+          const o = orcamentoParaComparacao(budget, lessonRef);
+          return {
+            productive: o.productive,
+            receptive: o.receptive,
+            introducesProductive: o.introducesProductive,
+            ref: o.orcamentoRef,
+          };
+        },
+        orcamentoFonte: budget.source,
+      }),
+    maxIteracoes: 3,
+  });
+
+  const dirSaida = path.join(CONTENT_SRC_DIR, slug, 'revisao-progressiva');
+  const gravado = await gravarRelatorio(relatorio, dirSaida);
+
+  if (bools.has('json')) {
+    console.log(JSON.stringify(relatorio, null, 2));
+  } else {
+    const p = relatorio.placar;
+    console.log('');
+    console.log(`TRILHA ${slug} — REVISAO PROGRESSIVA (1a aula -> ultima, memoria acumulada)`);
+    console.log(`orcamento: ${relatorio.orcamentoFonte} (introduces do lesson.json)`);
+    console.log(`convergencia: ${relatorio.convergencia ? 'SIM' : 'NAO'} em ${relatorio.iteracoes} iteracao(oes)`);
+    for (const a of relatorio.aulas) {
+      const lacunas = a.desafios.flatMap((d) => d.foraDoOrcamento);
+      const excessos = a.desafios.flatMap((d) => d.excesso);
+      console.log(`  [${String(a.indice).padStart(2)}] ${a.aula.padEnd(44).slice(0, 44)} ${rotuloDecisao(a)}` +
+        (lacunas.length > 0 ? `  lacunas: ${lacunas.join(', ')}` : '') +
+        (excessos.length > 0 ? `  excesso: ${excessos.join(', ')}` : ''));
+    }
+    console.log('');
+    console.log('PLACAR (revisao progressiva)');
+    console.log(`  aulas ..................... ${p.aulas}`);
+    console.log(`  cobertas .................. ${p.cobertas}`);
+    console.log(`  com-lacuna (split) ........ ${p.comLacuna}`);
+    console.log(`  nao-revisaveis ............ ${p.naoRevisaveis}`);
+    console.log(`  com-excesso (ajuste) ...... ${p.comExcesso}`);
+    console.log(`  splits pendentes .......... ${p.splitsPendentes}`);
+    console.log(`  relatorio gravado em ...... ${gravado.dir}`);
+    console.log('');
+  }
+
+  process.exit(relatorio.placar.comLacuna > 0 || relatorio.placar.naoRevisaveis > 0 ? 1 : 0);
+}
+
+// ---------------------------------------------------------------------------
 // generate — P-22: CLI FINO, fiação INJETÁVEL fora do entry (geraTrilha.ts)
 // ---------------------------------------------------------------------------
 
@@ -779,6 +879,9 @@ async function main(): Promise<void> {
       break;
     case 'requirements':
       await cmdRequirements(pos, flags, bools);
+      break;
+    case 'revise':
+      await cmdRevise(pos, flags, bools);
       break;
     case 'generate':
       await cmdGenerate(pos, flags);
