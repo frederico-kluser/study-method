@@ -1,0 +1,85 @@
+{
+  "raciocinio_de_projeto": "AULA 2 da trilha programacao-do-zero (sujeito: 'valor-e-instrucao'). É uma aula de REUSO: o curriculo manda que a L2 NÃO introduza produtivo novo (avancos.produtivo = [node:NumericLiteral], idêntico ao da L1 — já demonstrado e já produtivo). O invólucro NÃO é reexplicado (aula 1 o fez): a teoria só relembra em 1 linha que a máquina que confere chama a caixa e compara o valor devolvido. O conteúdo novo é o CONCEITO em prosa — **valor** (o que o programa entrega) × **instrução** (a linha que roda) — ancorado em código de REUSO: a mesma função preenchida de outra aula 1 (`return 42;`), a linha assert do mesmo teste e um segundo exemplo só de leitura (`return 43;` + a previsão do que a máquina responderia, o 'esticar' do curriculo dobrado na seção drill). A primeira seção demonstra ReturnStatement, NumericLiteral e ExpressionStatement (primeira_secao_demonstra do curriculo) com código JÁ demonstrado na aula 1 — zero átomo novo. DECISÕES: (1) introduces.productivo = [node:NumericLiteral] espelhando o avancos do curriculo, mas sem NOVIDADE: o átomo já é cumulativo desde a L1 (novo(L2)=∅ → o aviso A14a de 'aula de prática' é ESPERADO e ok); (2) introduces.receptive = demonstrado_na_teoria da L2 (12 átomos) MENOS global:assert — chave que o extrator nunca emite (assert é importado, não global) e quebraria A13d; os 11 restantes estão todos no acumulado da L1 (verificado por probe) → A13d passa com 0 erros; (3) eiClass = 'categoria': o conteúdo é a CLASSIFICAÇÃO de duas categorias de coisas que existem num programa — valor (o que é entregue) e instrução (a linha que roda) — não uma regra de operação; (4) o desafio pede OUTRO número (42) — reuso do mesmo NumericLiteral em contexto de 'instrução'; o teste espera 42 (consistente com o enunciado naive literal do curriculo: 'Valor é o que o programa entrega; instrução é a linha que roda.' + 'a máquina espera o 42'); (5) A15b: a solução da L2 reutiliza ReturnStatement/FunctionDeclaration demonstrados na L1 → arco inter-aula passa; (6) A13c: a chamada resposta() no teste da L2 está no acumulado (aula 1, seção 2) → passa.",
+  "slug": "valor-e-instrucao",
+  "title": "O que é um valor e uma instrução",
+  "objective": {
+    "verbo": "demonstrar",
+    "enunciado": "que o número digitado é um VALOR (a coisa que o programa entrega) e que a linha return ...; é uma INSTRUÇÃO (a linha que roda e entrega o valor à máquina)",
+    "contexto": "segunda aula da trilha: o invólucro e a máquina que confere já são leitura conhecida da aula 1 — nada disso é reexplicado, só relembrado em uma linha; a aula é de REUSO do mesmo atomo (node:NumericLiteral) em um novo contexto semântico",
+    "criterio": "o aluno digita outro número (42) na lacuna única do mesmo invólucro congelado e o teste assert.equal(resposta(), 42) passa; na teoria, o aluno lê a diferença entre valor e instrução em exemplos já demonstrados"
+  },
+  "introduces": {
+    "receptive": [
+      "node:ExportKeyword",
+      "node:FunctionDeclaration",
+      "node:Identifier",
+      "node:Block",
+      "node:ReturnStatement",
+      "node:NumericLiteral",
+      "node:ExpressionStatement",
+      "node:CallExpression",
+      "node:PropertyAccessExpression",
+      "node:StringLiteral",
+      "api:assert.equal"
+    ],
+    "productive": [
+      "node:NumericLiteral"
+    ]
+  },
+  "introducesTerms": [
+    "valor",
+    "instrução",
+    "linha que roda"
+  ],
+  "foraDeEscopo": [
+    "qualquer construção nova de escrita — esta aula é de REUSO: o único átomo produtivo continua sendo o número (node:NumericLiteral), já demonstrado na aula 1",
+    "reexplicar o invólucro (export, function, chaves, return) — leitura da aula 1; aqui só se relembra a máquina em 1 linha",
+    "a semântica completa do return (encerrar a caixa, devolver o valor da expressão) — a linha return é congelada; return produtivo é aula própria",
+    "outros tipos de valor (string, booleano, undefined) — citados como existentes, jamais escritos; aulas próprias",
+    "fluxo de execução além da sequência de linhas (desvios, repetição) — o programa como sequência é suficiente nesta aula",
+    "console.log / impressão — global:console fora do orçamento; o canal de conferência é o retorno"
+  ],
+  "eiClass": "categoria",
+  "targetAtom": "node:NumericLiteral",
+  "notionalMachineDelta": "O programa é uma sequência de linhas; cada linha que roda é uma INSTRUÇÃO. A instrução `return ...;` entrega um VALOR para a máquina que confere, que o compara com o esperado. O valor não roda — ele é a carga entregue; a instrução roda — ela é o veículo que entrega. Trocar o valor (42 por 43) não troca a instrução: a linha continua sendo `return ...;` e a máquina responde 'esperava 42, recebeu 43'.",
+  "budgetHash": "programacao-do-zero-v1",
+  "budgetVersion": "v1",
+  "research": [
+    "https://tc39.es/ecma262/#sec-return-statement — a instrução return: entrega o valor para o chamador e encerra a execução da função",
+    "https://tc39.es/ecma262/#sec-literals-numeric-literals — o literal numérico 42 é uma expressão que avalia para o valor 42",
+    "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/return — MDN sobre a instrução return",
+    "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements — MDN: declarações/instruções da linguagem (statements)",
+    "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures — valores: os tipos de valor que a linguagem manipula (número entre eles)",
+    "https://tc39.es/ecma262/#sec-ecmascript-language-expressions — expressões: o que produz um valor (o número é o caso mais simples)"
+  ],
+  "theory": [
+    {
+      "id": "valor-e-instrucao",
+      "secao": "teoria",
+      "markdown": "Na aula 1 você digitou um número na lacuna e a máquina conferiu. Vamos dar nome a essas duas coisas — **valor** e **instrução** — porque são as duas palavras que o resto da trilha usa o tempo todo. (Só uma lembrança em uma linha: a máquina que confere chama a caixa, recebe o valor devolvido e compara com o esperado — o invólucro continua congelado, como na aula 1.)\n\nO **número** que você digita é um **valor**: a coisa que o programa entrega. Um valor pode ser um número, mas não só — há outros tipos de valor, que vêm em aulas futuras.\n\nJá a **linha** que entrega o valor é uma **instrução**: cada linha de código que roda dentro da caixa. O programa é, literalmente, uma sequência de instruções; a máquina roda uma linha, depois a próxima, e assim por diante. Uma linha que roda é uma **linha que roda** — é essa a definição: instrução é a linha que roda.\n\nVeja o desafio de hoje preenchido:\n\n```js\nexport function resposta() {\n  return 42;\n}\n```\n\n- `return 42;` é uma **instrução** — uma linha que **roda**.\n- O `42` é o **valor** — o que a instrução entrega.\n\nA instrução `return ...;` entrega o valor para fora da caixa — é por isso que a máquina que confere consegue compará-lo com o esperado. Nesta aula nada disso é novo para escrever: o invólucro é o mesmo da aula 1, e a sua parte continua sendo apenas o número.\n\nE a máquina confere do mesmo jeito:\n\n```js\nassert.equal(resposta(), 42);\n```\n\nEla chama a caixa, recebe o valor da instrução `return` e compara com o esperado — aqui, o `42`.",
+      "tag": ""
+    },
+    {
+      "id": "linha-que-roda",
+      "secao": "teoria",
+      "markdown": "Um jeito de **ler** a diferença: pense no valor como a **carga** e na instrução como o **veículo**. A linha `return 42;` é o veículo que **roda** e entrega a carga — o número `42` — à máquina. A carga não roda; ela é entregue. O veículo não é a carga; ele a transporta.\n\nLendo outro exemplo — o mesmo veículo, outra carga:\n\n```js\nexport function resposta() {\n  return 43;\n}\n```\n\nAqui a carga é `43`; a linha continua sendo a instrução que roda. Se a máquina conferisse essa caixa com um teste esperando `42`, ela responderia algo como *esperava 42, recebeu 43*: a instrução rodou direitinho, mas o valor entregue não era o esperado.\n\nDuas leituras enganosas comuns:\n\n1. **\"Valor e instrução são a mesma coisa.\"** Não. O valor é o que é entregue; a instrução é a linha que roda e entrega. Trocar o valor (`42` por `43`) não troca a instrução — a linha continua sendo `return ...;`.\n2. **\"A instrução é o texto escrito; o site compara o texto.\"** Não. A máquina roda a instrução e compara o **valor entregue**, não as palavras do arquivo — a mesma ideia da aula 1.",
+      "tag": ""
+    },
+    {
+      "id": "referencia",
+      "secao": "referencia",
+      "markdown": "Referência just-in-time — o essencial colado ao desafio desta aula.\n\n- **Valor** — o que o programa entrega. Hoje: um número.\n- **Instrução** — a linha que roda. Hoje: a linha `return ...;`, que roda e entrega o valor à máquina.\n- A máquina que confere (aula 1, relembrada em 1 linha) chama a caixa, recebe o valor e compara com o esperado.\n\nA moldura do desafio — a mesma da aula 1, congelada:\n\n```js\nexport function resposta() {\n  return /* DIGITE OUTRO NÚMERO AQUI */;\n}\n```\n\nApague `/* DIGITE OUTRO NÚMERO AQUI */` e escreva **42** — só o número, sem aspas, sem nada além. O valor é `42`; a instrução que o entrega já está pronta.\n\nPronto fica assim:\n\n```js\nexport function resposta() {\n  return 42;\n}\n```\n\nFicam para outras aulas: outros tipos de valor (texto, verdadeiro/falso), montar a instrução return do zero e escrever o invólucro. Hoje é reuso: o número muda, a máquina é a mesma.\n\nTermos desta aula: **valor**, **instrução**, **linha que roda**.",
+      "tag": ""
+    },
+    {
+      "id": "drill",
+      "secao": "drill",
+      "markdown": "Um item curto de treino (opcional) — só leitura, sem rodar nada:\n\n```js\nexport function resposta() {\n  return 43;\n}\n```\n\nO teste desta aula espera `42`. Preveja antes de rodar: o que a máquina responderia?\n\nResposta: ela roda a instrução, recebe o valor `43` e compara com o esperado `42` → a mensagem é algo como *esperava 42, recebeu 43*. Para esta atividade, o único valor que passa é o `42`.\n\n**Checksum de cauda.** Nesta aula você aprendeu os conceitos de **valor** (o que o programa entrega) e **instrução** (a linha que roda), e escreveu um número — o `42` — na mesma lacuna da aula 1. Nenhuma construção nova apareceu: tudo já era leitura conhecida — a lista fecha com o orçamento da aula.",
+      "tag": ""
+    }
+  ],
+  "justificativa": "Aula 2 de REUSO (aula de prática): o curriculo manda não introduzir produtivo novo — o número (node:NumericLiteral) já era produtivo na aula 1, e o invólucro/teste são leitura acumulada. O conteúdo novo é o CONCEITO valor × instrução em prosa ancorada em código já demonstrado; o desafio pede outro número (42) — reuso do mesmo átomo em contexto de instrução. A14a marca o aviso esperado de 'aula sem incremento' (novo(L2)=∅); A13/A15b/A16 passam porque tudo que o desafio lê/escreve está demonstrado na L1 (acumulado) ou em H13. eiClass='categoria': a aula classifica duas categorias de coisas que existem num programa, não ensina uma regra de operação.",
+  "role": "regular",
+  "status": "rascunho",
+  "aprovado": false
+}

@@ -1,0 +1,94 @@
+{
+  "raciocinio_de_projeto": "AULA 1 da trilha programacao-do-zero (sujeito: 'como-o-site-confere-seu-codigo'). A trilha foi desenhada para NÃO pressupor nada (feedback do usuário: '1ª atividade não pode presumir função/parâmetro; avanço micro'). Projeto da aula: a primeira seção é a LEITURA do invólucro com código explicado — a moldura `export function resposta() { return /* lacuna */; }` é mostrada e lida peça por peça (export entrega, function nomeia a caixa, chaves guardam, return devolve, a lacuna é o único lugar do aluno) e NUNCA é interrogada como conhecimento prévio. Os átomos do invólucro (node:ExportKeyword, node:FunctionDeclaration, node:Identifier, node:Block, node:ReturnStatement) são declarados nessa primeira seção e passam a ser 'demonstrados' (A13). A primeira seção demonstra exatamente o conjunto primeira_secao_demonstra do curriculo (invólucro + node:NumericLiteral via o exemplo preenchido com 7 + node:ExpressionStatement/node:CallExpression via a linha `assert.equal(resposta(), 7);`). A segunda seção mostra o ARQUIVO DE TESTE completo (import node:test/assert + test(...) com arrow + assert.equal) — é a leitura da 'máquina que confere' que o título da aula promete; é ali que os átomos restantes do demonstrado_na_teoria (PropertyAccessExpression, StringLiteral, ArrowFunction, ImportDeclaration/ImportSpecifier/ImportClause/NamedImports, api:node:test, api:node:assert/strict, api:assert.equal) entram em DEMONSTRAÇÃO, entrando no acumulado que a L2 reusará. DECISÕES DE ORÇAMENTO: (1) introduces.receptive espelha demonstrado_na_teoria ∪ avancos do curriculo MAIS o invólucro de import/test/assert/arrow (semente receptiva do harness) — porém SEM as chaves global:test, global:assert e api:test, porque o extrator real NUNCA as emite para `test`/`assert` importados (verificado por probe: a importação os marca como declarados e o eixo global só dispara para nome não declarado em RUNTIME_GLOBALS); declará-las quebraria A13d ('declarar não é demonstrar'). Elas permanecem no UNIVERSO da validação 2 (curriculo) — só não podem ser 'introduzidas' sem demonstração. (2) introduces.productive = [node:NumericLiteral], o único avanço produtivo do curriculo. (3) eiClass = 'regra': o conteúdo é a REGRA de operação da máquina conferidora (roda a caixa → chama → compara o valor devolvido com o esperado → passa/falha), não uma taxonomia. (4) A14a com modo declared mede 4 construções verdadeiramente novas (FunctionDeclaration, ReturnStatement, CallExpression, ArrowFunction) — exatamente no teto 4, sem erro; é o avanço receptivo declarado + a leitura do teste que o próprio curriculo manda demonstrar (demonstrado_na_teoria inclui CallExpression/PropertyAccessExpression/StringLiteral/globais/api). (5) NOTA DE ENGENHARIA (reportada ao integrador): a bateria A13c da engine (progressao.ts) trata o arquivo de teste como lido ANTES da aula — a chamada `resposta()` dentro do corpo do teste do DESAFIO da L1 (aula índice 0, sem acumulado anterior) gera EXATAMENTE 1 erro A13 de CallExpression no feed INTEGRAL (ambas as aulas com desafio). O caso-feliz da própria engine para ESTE curriculo (engineProgressao.test.ts, caso 9) alimenta a L1 SEM desafio (aula de leitura) — nesse feed canônico a bateria dá 0 erros e só o aviso A14a da L2. O present draft MANTÉM o desafio da L1 (o curriculo manda: atividade fixar 'escolha o número 7') e as 4 provas de execução do desafio passam; o verificador check03 roda os DOIS feeds e reporta os números reais.",
+  "slug": "como-o-site-confere-seu-codigo",
+  "title": "Como o site confere seu código",
+  "objective": {
+    "verbo": "demonstrar",
+    "enunciado": "que o site confere o código por meio de uma máquina que importa a caixa exportada, a chama e compara o valor devolvido com o esperado (assert.equal), e que o invólucro (export, function, chaves, return) é leitura congelada",
+    "contexto": "primeira aula da trilha: o aluno ainda não conhece nenhuma construção de JavaScript; o invólucro e o teste aparecem como LEITURA explicada, nunca interrogados como conhecimento prévio (feedback do usuário: a 1ª atividade não pode presumir função/parâmetro)",
+    "criterio": "o aluno digita um número (7) na lacuna única do invólucro congelado `export function resposta() { return /* lacuna */; }` e o teste `assert.equal(resposta(), 7)` passa — o invólucro permanece byte a byte congelado entre starter e solução"
+  },
+  "introduces": {
+    "receptive": [
+      "node:ExportKeyword",
+      "node:FunctionDeclaration",
+      "node:Identifier",
+      "node:Block",
+      "node:ReturnStatement",
+      "node:NumericLiteral",
+      "node:ExpressionStatement",
+      "node:CallExpression",
+      "node:PropertyAccessExpression",
+      "node:StringLiteral",
+      "api:assert.equal",
+      "api:node:test",
+      "api:node:assert/strict",
+      "node:ImportDeclaration",
+      "node:ImportSpecifier",
+      "node:ImportClause",
+      "node:NamedImports",
+      "node:ArrowFunction"
+    ],
+    "productive": [
+      "node:NumericLiteral"
+    ]
+  },
+  "introducesTerms": [
+    "invólucro",
+    "lacuna",
+    "máquina que confere",
+    "teste",
+    "assert"
+  ],
+  "foraDeEscopo": [
+    "escrever qualquer parte do invólucro (export, function, chaves, return) — o curriculo o congela; escrevê-lo produtivamente é aula própria (involucro-completo, mais adiante na trilha)",
+    "escrever a CHAMADA resposta() — aparece só como leitura (na linha do assert e no teste); a chamada produtiva é aula própria (funcao-e-chamada)",
+    "parâmetro e argumento — entram na assinatura da caixa; aula própria (parametro-e-argumento)",
+    "erro de sintaxe (a máquina não entendeu) e mensagens de exceção — fora do orçamento; aula própria (erro-sintaxe-vs-erro-valor)",
+    "outros tipos de valor (texto, verdadeiro/falso) — o único valor desta aula é o número; aula própria (string-como-valor e seguintes)",
+    "console.log / impressão na tela — global:console fora do orçamento; o canal de conferência desta trilha é o retorno da função"
+  ],
+  "eiClass": "regra",
+  "targetAtom": "node:NumericLiteral",
+  "notionalMachineDelta": "A máquina que confere roda o arquivo do aluno como módulo, importa a função exportada, CHAMA a caixa (resposta()) e compara o valor devolvido com o valor esperado do teste (assert.equal — igualdade estrita). Se iguais, o teste passa; se diferentes, a mensagem mostra o esperado e o recebido ('esperava 7, recebeu ...'). O invólucro (export, function, chaves, return) é congelado no starter: a única parte que o aluno muda é o valor dentro do return. O número digitado é um VALOR; a linha return é a instrução que o entrega (tema da aula 2).",
+  "budgetHash": "programacao-do-zero-v1",
+  "budgetVersion": "v1",
+  "research": [
+    "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/export — export: a palavra que entrega a caixa ao importador (o conferidor)",
+    "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/return — return devolve o valor para quem chamou a caixa",
+    "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Functions — declaração de função como caixa nomeada de instruções",
+    "https://nodejs.org/api/test.html — node:test: a função test() anuncia a pergunta que a máquina roda",
+    "https://nodejs.org/api/assert.html — assert.equal: a comparação entre o valor devolvido e o esperado",
+    "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Strict_equality — a igualdade estrita usada na conferência (7 === 7)"
+  ],
+  "theory": [
+    {
+      "id": "como-ler-o-desafio",
+      "secao": "teoria",
+      "markdown": "Esta é a primeira coisa que você vai ver em quase todas as atividades desta trilha: um **invólucro** — a moldura de código que já vem pronta, esperando só uma parte sua. Antes de escrever qualquer coisa, vamos aprender a **ler** esse invólucro. Ele não é uma pergunta: é leitura, e será explicado aqui.\n\nEsta é a moldura do desafio de hoje:\n\n```js\nexport function resposta() {\n  return /* ESCREVA UM NÚMERO AQUI */;\n}\n```\n\nLendo peça por peça (é só leitura — você não escreve nada disto):\n\n- `export` — a palavra que **entrega** a caixa ao conferidor; sem ela, o site não enxerga a caixa.\n- `function resposta()` — a **caixa** de instruções, com o nome `resposta`.\n- `{ ... }` — as **chaves** que guardam as instruções da caixa.\n- `return` — a palavra que **devolve** um valor para fora da caixa.\n- `/* ESCREVA UM NÚMERO AQUI */` — a **lacuna**: o único lugar que é seu nesta atividade. O texto entre `/*` e `*/` é um comentário — um aviso que a máquina ignora; você vai apagá-lo e escrever um **número** no lugar.\n\nAgora veja a mesma moldura preenchida:\n\n```js\nexport function resposta() {\n  return 7;\n}\n```\n\nQuando a lacuna tem o número `7`, a caixa `resposta` devolve o `7`. O número `7` é um **valor**: a coisa que a caixa entrega.\n\nE como o site confere esse número? Ele roda uma **máquina que confere**: um **teste**. O teste é a pergunta da máquina — \"o que `resposta()` devolve? deve ser igual ao esperado\". A comparação é feita pelo **assert**: a ferramenta que **afirma** que o valor devolvido é o esperado — e, se não for, mostra a diferença.\n\n```js\nassert.equal(resposta(), 7);\n```\n\nLendo essa linha: `resposta()` **chama** a caixa (roda as instruções dela) e `assert.equal(...)` compara o valor devolvido com o `7` do lado direito. Iguais? O teste passa. Diferentes? A máquina responde algo como *esperava 7, recebeu ...*.\n\nConfira você mesmo, só lendo: na moldura preenchida acima, que número a caixa devolve quando é chamada? Resposta: o `7` — o valor que está na lacuna.",
+      "tag": ""
+    },
+    {
+      "id": "a-maquina-que-confere",
+      "secao": "teoria",
+      "markdown": "Por trás do site, a máquina que confere faz três passos, nesta ordem: **importa** a sua caixa, **chama** a caixa e **compara** o valor devolvido com o esperado. Este é o arquivo de teste completo — é ele que roda quando você clica em conferir:\n\n```js\nimport { test } from 'node:test';\nimport assert from 'node:assert/strict';\nimport { resposta } from './solution.mjs';\n\ntest('escolha o número 7', () => {\n  assert.equal(resposta(), 7);\n});\n```\n\nLendo (só leitura — este arquivo não é seu):\n\n- As três primeiras linhas **importam** (buscam) as peças: o `test` (a ferramenta que anuncia a pergunta), o `assert` (a ferramenta que compara) e a sua caixa `resposta`, que vive no arquivo da solução.\n- `test('escolha o número 7', () => { ... })` — declara a pergunta: a caixa `resposta` deve devolver **7**. O texto entre aspas é só o nome da pergunta.\n- Dentro, `assert.equal(resposta(), 7)` — a comparação em si: chama a caixa e compara o valor devolvido com o `7`.\n\nE se a lacuna tiver outro número — digamos `5`?\n\n```js\nexport function resposta() {\n  return 5;\n}\n```\n\nO teste continua esperando `7`. A caixa devolve `5`; a máquina compara `5` com `7` — não são iguais — e responde algo como *esperava 7, recebeu 5*. **Nenhum número é aceito: nesta atividade, o único valor que passa é o 7** — exatamente o esperado do teste.\n\nTrês leituras enganosas comuns:\n\n1. **\"Basta escrever qualquer número.\"** Não. A comparação é com o valor esperado do teste. Com `5` na lacuna, a caixa devolve `5`, e `5` não é `7`.\n2. **\"A máquina lê o meu arquivo como texto.\"** Não. A máquina **roda** o código: ela chama `resposta()` e compara o **valor devolvido**, não as palavras do arquivo.\n3. **\"Eu preciso mexer no invólucro também.\"** Não. O invólucro está **congelado**: `export`, `function`, as chaves e o `return` já estão prontos, e você não os escreve nesta atividade. A lacuna é o único lugar seu — e é onde mora a parte da conferência.",
+      "tag": ""
+    },
+    {
+      "id": "referencia",
+      "secao": "referencia",
+      "markdown": "Referência just-in-time — o essencial colado ao desafio desta aula.\n\n| O que você vê | O que é | Você faz? |\n| --- | --- | --- |\n| `export` | entrega a caixa ao conferidor | não — congelado |\n| `function resposta()` | a caixa de instruções (nome `resposta`) | não — congelado |\n| `{ ... }` | as instruções da caixa | não — congelado |\n| `return` | devolve o valor para fora | não — congelado |\n| a lacuna `/* ... */` | o único lugar seu | **sim — escreva um número** |\n\nA moldura do desafio:\n\n```js\nexport function resposta() {\n  return /* ESCREVA UM NÚMERO AQUI */;\n}\n```\n\nApague `/* ESCREVA UM NÚMERO AQUI */` e escreva **um número** no lugar — o número que a máquina deve conferir. Nesta atividade a máquina espera o **7**: o teste compara o que `resposta()` devolve com o `7`.\n\nPronto fica assim:\n\n```js\nexport function resposta() {\n  return 7;\n}\n```\n\nFicam para outras aulas: escrever o invólucro (export, function, chaves, return), escrever a chamada, escrever o próprio teste, textos e outros tipos de valor. Hoje o seu único ato é digitar o número `7`.\n\nTermos desta aula: **invólucro**, **lacuna**, **máquina que confere**, **teste**, **assert**.",
+      "tag": ""
+    },
+    {
+      "id": "drill",
+      "secao": "drill",
+      "markdown": "Um item curto de treino (opcional) — só leitura, sem rodar nada:\n\n```js\nexport function resposta() {\n  return 3;\n}\n```\n\nO teste desta aula espera `7`. Se a máquina rodar essa caixa, ela devolve `3`; `3` é diferente de `7`. O teste passa ou falha?\n\nResposta: **falha** — a mensagem da máquina é algo como *esperava 7, recebeu 3*. Só o número `7` passa neste teste.\n\n**Checksum de cauda.** Nesta aula você **leu** o invólucro (export, function, chaves, return) e a máquina que confere (teste e assert), e **escreveu** um número — um valor — na lacuna. Nenhuma outra construção apareceu em nenhum exemplo de código: a lista fecha com o orçamento da aula.",
+      "tag": ""
+    }
+  ],
+  "justificativa": "Aula 1 da trilha: átomo canônico do curriculo (productive=[node:NumericLiteral], receptive=[node:FunctionDeclaration, node:ReturnStatement] + invólucro de harness demonstrado). A primeira seção demonstra o invólucro como LEITURA (pecado nº 1 do usuário evitado: nenhuma função/parâmetro é presumido — tudo é explicado como leitura), e o único ato produtivo do desafio é digitar o número 7 na lacuna única. O conteúdo é 'regra' (a regra de operação da máquina conferidora: roda → chama → compara), não taxonomia. A14a fica exatamente no teto (4 verdadeiramente novos: FunctionDeclaration, ReturnStatement, CallExpression, ArrowFunction — todos do avanço receptivo declarado + a leitura do teste que o próprio curriculo manda demonstrar).",
+  "role": "regular",
+  "status": "rascunho",
+  "aprovado": false
+}
