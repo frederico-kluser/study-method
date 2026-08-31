@@ -1,0 +1,140 @@
+{
+  "objetivo": {
+    "verbo": "demonstrar",
+    "objeto": "que let declara uma variável mutável (com valor inicial) e que a atribuição (=) substitui o valor guardado",
+    "contexto": "primeira aula da trilha: o aluno ainda não conhece nenhuma construção de JavaScript além das que o harness (export function e node:test) já lhe apresenta como leitura obrigatória",
+    "criterio": "o aluno declara uma variável com let e valor inicial no span de uma lacuna única; a atribuição (=) é apresentada nos worked examples e congelada no starter como leitura (receptiva), e o teste valida que o valor final produzido é o da última atribuição"
+  },
+  "introduces_productive": [
+    "decl:let"
+  ],
+  "budget_produtivo": [
+    "decl:let",
+    "node:BinaryExpression",
+    "node:Block",
+    "node:EndOfFileToken",
+    "node:ExportKeyword",
+    "node:ExpressionStatement",
+    "node:FunctionDeclaration",
+    "node:Identifier",
+    "node:NumericLiteral",
+    "node:ReturnStatement",
+    "node:StringLiteral",
+    "node:VariableDeclaration",
+    "node:VariableDeclarationList",
+    "node:VariableStatement",
+    "op:assign:="
+  ],
+  "budget_receptivo": [
+    "api:assert.deepEqual",
+    "api:assert.deepStrictEqual",
+    "api:assert.equal",
+    "api:assert.ok",
+    "api:assert.strictEqual",
+    "api:node:assert",
+    "api:node:assert/strict",
+    "api:node:test",
+    "api:test",
+    "decl:let",
+    "form:ArrowFunction[body!=Block]",
+    "form:Parameter[initializer!=null]",
+    "global:assert",
+    "global:test",
+    "node:ArrowFunction",
+    "node:BinaryExpression",
+    "node:Block",
+    "node:CallExpression",
+    "node:EndOfFileToken",
+    "node:ExportKeyword",
+    "node:ExpressionStatement",
+    "node:FunctionDeclaration",
+    "node:Identifier",
+    "node:ImportClause",
+    "node:ImportDeclaration",
+    "node:ImportSpecifier",
+    "node:NamedImports",
+    "node:NumericLiteral",
+    "node:PropertyAccessExpression",
+    "node:ReturnStatement",
+    "node:StringLiteral",
+    "node:VariableDeclaration",
+    "node:VariableDeclarationList",
+    "node:VariableStatement",
+    "op:assign:="
+  ],
+  "budget_teste": [
+    "api:assert.equal",
+    "api:assert.ok",
+    "api:assert.strictEqual",
+    "api:node:assert",
+    "api:node:assert/strict",
+    "api:node:test",
+    "api:test",
+    "form:ArrowFunction[body!=Block]",
+    "global:assert",
+    "global:test",
+    "node:ArrowFunction",
+    "node:Block",
+    "node:CallExpression",
+    "node:EndOfFileToken",
+    "node:ExpressionStatement",
+    "node:Identifier",
+    "node:ImportClause",
+    "node:ImportDeclaration",
+    "node:ImportSpecifier",
+    "node:NamedImports",
+    "node:NumericLiteral",
+    "node:PropertyAccessExpression",
+    "node:StringLiteral"
+  ],
+  "kc_type": "regra",
+  "ei_class": "regra",
+  "subgoals": [
+    "declarar",
+    "atribuir",
+    "ler-valor"
+  ],
+  "terms": [],
+  "notional_machine_delta": "Uma variável guarda UM valor por vez, e a atribuição TROCA o valor guardado: o lado direito da atribuição é avaliado primeiro (vira um valor) e só então esse valor SUBSTITUI o antigo no espaço da variável — nada é somado, acumulado nem guardado em paralelo. Declarar com let cria o espaço já com o primeiro valor; a partir daí, ler o nome da variável devolve o valor mais recente.",
+  "fora_de_escopo": [
+    {
+      "item": "const (decl:const)",
+      "motivo": "é a construção-irmã que proíbe reatribuição e lança SyntaxError quando o valor é trocado; o aluno precisa consolidar primeiro o par declarar+atribuir antes de entender a restrição — aula própria depois desta."
+    },
+    {
+      "item": "var (decl:var)",
+      "motivo": "tem escopo de função e hoisting, uma semântica histórica que a engine não ensina no início do currículo; exige aula própria (ou fica de fora)."
+    },
+    {
+      "item": "escopo de bloco e zona morta temporal",
+      "motivo": "onde a variável vive e onde ela pode ser lida é outro aspecto da máquina nocional (aspecto mínimo 4, 'escopo e zona morta temporal') — aula própria, desbloqueada depois que declarar/atribuir/ler estão consolidados."
+    },
+    {
+      "item": "operadores compostos de atribuição (op:assign:+=, -=) e incremento/decremento (op:update:++)",
+      "motivo": "combinam leitura + operação + escrita num só operador; só fazem sentido depois da tríade declarar/atribuir/ler-valor estar automática — aula própria."
+    },
+    {
+      "item": "múltiplos declaradores na mesma linha (let a = 1, b = 2;)",
+      "motivo": "é uma forma composta do VariableDeclarationList com vários nomes por vez; estoura o span de uma lacuna única do desafio e não é o incremento mínimo deste átomo."
+    },
+    {
+      "item": "cenário de erro (throw / assert.throws)",
+      "motivo": "A11: o orçamento não contém op:throw nem api:assert.throws; o primeiro átomo da trilha não trabalha com erros — nenhum cenário do tipo 'erro' é exigível nesta aula."
+    }
+  ],
+  "misconceptions_a_refutar": [
+    {
+      "concepcao": "variável é uma caixa que vai guardando valores: cada atribuição soma ao que já estava lá",
+      "ancora_na_spec": "A atribuição não acumula — o passo de avaliação do AssignmentExpression (ECMA-262 13.15.4) avalia o lado direito e então chama PutValue sobre a referência, que SOBRESCREVE o valor guardado na binding: https://tc39.es/ecma262/#sec-assignment-operators ; MDN (Assignment): https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Assignment"
+    },
+    {
+      "concepcao": "para trocar o valor de uma variável let eu posso redeclarar: let x = 1; let x = 2;",
+      "ancora_na_spec": "Redeclarar o mesmo nome no mesmo escopo é SyntaxError: as LexicalBinding de um mesmo escopo não podem ter BoundNames duplicados (ECMA-262 14.3.2 e 10.2.1.2.2): https://tc39.es/ecma262/#sec-let-and-const-declarations ; MDN (let — Redeclarations): https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/let#redeclarations"
+    },
+    {
+      "concepcao": "posso atribuir a uma variável sem declará-la antes (x = 1; funciona)",
+      "ancora_na_spec": "Em módulo ESM (.mjs — código em strict mode), atribuir a uma referência não resolvida LANÇA ReferenceError; a criação implícita de global é proibida no strict mode (ECMA-262 13.15.4 passo 'if IsUnresolvableReference e strict → ReferenceError'; https://tc39.es/ecma262/#sec-assignment-operators) e a MDN documenta o caso em Strict mode: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Strict_mode#assigning_to_undeclared_variables"
+    }
+  ],
+  "desafios_ja_escritos": []
+}
