@@ -83,8 +83,7 @@
   "introduces": {
     "receptive": [],
     "productive": [
-      "node:FunctionDeclaration",
-      "decl:const"
+      "node:FunctionDeclaration"
     ]
   },
   "introducesTerms": [

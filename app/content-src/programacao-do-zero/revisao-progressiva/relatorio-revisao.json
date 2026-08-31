@@ -504,15 +504,22 @@
           "ref": "fundamentos-js/let-e-atribuicao/contador-com-let",
           "veredito": {
             "ok": true,
-            "minimalCode": "export function iniciar() {\n  return 5;\n}\n",
+            "minimalCode": "export let contador = 0;\n\nexport function iniciar() {\n  contador = 5;\n  return contador;\n}\n",
             "atoms": [
+              "decl:let",
+              "node:BinaryExpression",
               "node:Block",
               "node:EndOfFileToken",
               "node:ExportKeyword",
+              "node:ExpressionStatement",
               "node:FunctionDeclaration",
               "node:Identifier",
               "node:NumericLiteral",
-              "node:ReturnStatement"
+              "node:ReturnStatement",
+              "node:VariableDeclaration",
+              "node:VariableDeclarationList",
+              "node:VariableStatement",
+              "op:assign:="
             ],
             "atomsDoTeste": [
               "node:CallExpression",
@@ -520,23 +527,28 @@
               "node:ExpressionStatement",
               "node:Identifier"
             ],
-            "lines": 4,
+            "lines": 7,
             "proofsValid": true
           },
-          "minimalCode": "export function iniciar() {\n  return 5;\n}\n",
+          "minimalCode": "export let contador = 0;\n\nexport function iniciar() {\n  contador = 5;\n  return contador;\n}\n",
           "atomsCobrados": [
+            "decl:let",
+            "node:BinaryExpression",
             "node:Block",
             "node:EndOfFileToken",
             "node:ExportKeyword",
+            "node:ExpressionStatement",
             "node:FunctionDeclaration",
             "node:Identifier",
             "node:NumericLiteral",
-            "node:ReturnStatement"
+            "node:ReturnStatement",
+            "node:VariableDeclaration",
+            "node:VariableDeclarationList",
+            "node:VariableStatement",
+            "op:assign:="
           ],
           "foraDoOrcamento": [],
-          "excesso": [
-            "decl:let"
-          ],
+          "excesso": [],
           "requirements": {
             "ok": true,
             "semTeste": [],
@@ -544,14 +556,14 @@
             "correspondencias": [
               {
                 "requirementId": "REQ-1",
-                "testName": "declara com let; a atribuição decide o valor final"
+                "testName": "declara com let no escopo do módulo; a atribuição decide o valor guardado"
               }
             ]
           }
         }
       ],
       "precisaQuebrar": false,
-      "motivo": "aula coberta pelo teste. EXCESSO (1 átomo(s) de introduces.productive não usados pelo mínimo): candidato a REMOVER do introduces OU COBRIR com desafio — decisão de ajuste, não violação (excesso receptivo é by-design)."
+      "motivo": "aula coberta: todo o mínimo que o teste cobra está no orçamento da aula."
     },
     {
       "aula": "fundamentos-js/string-como-valor",
@@ -594,7 +606,7 @@
           {
             "aula": "fundamentos-js/let-e-atribuicao",
             "decisao": "ok",
-            "motivo": "aula coberta pelo teste. EXCESSO (1 átomo(s) de introduces.productive não usados pelo mínimo): candidato a REMOVER do introduces OU COBRIR com desafio — decisão de ajuste, não violação (excesso receptivo é by-design)."
+            "motivo": "aula coberta: todo o mínimo que o teste cobra está no orçamento da aula."
           }
         ]
       },
@@ -634,9 +646,7 @@
             "node:StringLiteral"
           ],
           "foraDoOrcamento": [],
-          "excesso": [
-            "decl:let"
-          ],
+          "excesso": [],
           "requirements": {
             "ok": true,
             "semTeste": [],
@@ -651,7 +661,7 @@
         }
       ],
       "precisaQuebrar": false,
-      "motivo": "aula coberta pelo teste. EXCESSO (1 átomo(s) de introduces.productive não usados pelo mínimo): candidato a REMOVER do introduces OU COBRIR com desafio — decisão de ajuste, não violação (excesso receptivo é by-design)."
+      "motivo": "aula coberta: todo o mínimo que o teste cobra está no orçamento da aula."
     },
     {
       "aula": "fundamentos-js/estado-ler-depois-de-escrever",
@@ -694,12 +704,12 @@
           {
             "aula": "fundamentos-js/let-e-atribuicao",
             "decisao": "ok",
-            "motivo": "aula coberta pelo teste. EXCESSO (1 átomo(s) de introduces.productive não usados pelo mínimo): candidato a REMOVER do introduces OU COBRIR com desafio — decisão de ajuste, não violação (excesso receptivo é by-design)."
+            "motivo": "aula coberta: todo o mínimo que o teste cobra está no orçamento da aula."
           },
           {
             "aula": "fundamentos-js/string-como-valor",
             "decisao": "ok",
-            "motivo": "aula coberta pelo teste. EXCESSO (1 átomo(s) de introduces.productive não usados pelo mínimo): candidato a REMOVER do introduces OU COBRIR com desafio — decisão de ajuste, não violação (excesso receptivo é by-design)."
+            "motivo": "aula coberta: todo o mínimo que o teste cobra está no orçamento da aula."
           }
         ]
       },
@@ -739,9 +749,7 @@
             "node:ReturnStatement"
           ],
           "foraDoOrcamento": [],
-          "excesso": [
-            "decl:let"
-          ],
+          "excesso": [],
           "requirements": {
             "ok": true,
             "semTeste": [],
@@ -756,7 +764,7 @@
         }
       ],
       "precisaQuebrar": false,
-      "motivo": "aula coberta pelo teste. EXCESSO (1 átomo(s) de introduces.productive não usados pelo mínimo): candidato a REMOVER do introduces OU COBRIR com desafio — decisão de ajuste, não violação (excesso receptivo é by-design)."
+      "motivo": "aula coberta: todo o mínimo que o teste cobra está no orçamento da aula."
     },
     {
       "aula": "fundamentos-js/const",
@@ -799,17 +807,17 @@
           {
             "aula": "fundamentos-js/let-e-atribuicao",
             "decisao": "ok",
-            "motivo": "aula coberta pelo teste. EXCESSO (1 átomo(s) de introduces.productive não usados pelo mínimo): candidato a REMOVER do introduces OU COBRIR com desafio — decisão de ajuste, não violação (excesso receptivo é by-design)."
+            "motivo": "aula coberta: todo o mínimo que o teste cobra está no orçamento da aula."
           },
           {
             "aula": "fundamentos-js/string-como-valor",
             "decisao": "ok",
-            "motivo": "aula coberta pelo teste. EXCESSO (1 átomo(s) de introduces.productive não usados pelo mínimo): candidato a REMOVER do introduces OU COBRIR com desafio — decisão de ajuste, não violação (excesso receptivo é by-design)."
+            "motivo": "aula coberta: todo o mínimo que o teste cobra está no orçamento da aula."
           },
           {
             "aula": "fundamentos-js/estado-ler-depois-de-escrever",
             "decisao": "ok",
-            "motivo": "aula coberta pelo teste. EXCESSO (1 átomo(s) de introduces.productive não usados pelo mínimo): candidato a REMOVER do introduces OU COBRIR com desafio — decisão de ajuste, não violação (excesso receptivo é by-design)."
+            "motivo": "aula coberta: todo o mínimo que o teste cobra está no orçamento da aula."
           }
         ]
       },
@@ -850,8 +858,7 @@
           ],
           "foraDoOrcamento": [],
           "excesso": [
-            "decl:const",
-            "decl:let"
+            "decl:const"
           ],
           "requirements": {
             "ok": true,
@@ -867,7 +874,7 @@
         }
       ],
       "precisaQuebrar": false,
-      "motivo": "aula coberta pelo teste. EXCESSO (2 átomo(s) de introduces.productive não usados pelo mínimo): candidato a REMOVER do introduces OU COBRIR com desafio — decisão de ajuste, não violação (excesso receptivo é by-design)."
+      "motivo": "aula coberta pelo teste. EXCESSO (1 átomo(s) de introduces.productive não usados pelo mínimo): candidato a REMOVER do introduces OU COBRIR com desafio — decisão de ajuste, não violação (excesso receptivo é by-design)."
     },
     {
       "aula": "fundamentos-js/erro-sintaxe-vs-erro-valor",
@@ -910,22 +917,22 @@
           {
             "aula": "fundamentos-js/let-e-atribuicao",
             "decisao": "ok",
-            "motivo": "aula coberta pelo teste. EXCESSO (1 átomo(s) de introduces.productive não usados pelo mínimo): candidato a REMOVER do introduces OU COBRIR com desafio — decisão de ajuste, não violação (excesso receptivo é by-design)."
+            "motivo": "aula coberta: todo o mínimo que o teste cobra está no orçamento da aula."
           },
           {
             "aula": "fundamentos-js/string-como-valor",
             "decisao": "ok",
-            "motivo": "aula coberta pelo teste. EXCESSO (1 átomo(s) de introduces.productive não usados pelo mínimo): candidato a REMOVER do introduces OU COBRIR com desafio — decisão de ajuste, não violação (excesso receptivo é by-design)."
+            "motivo": "aula coberta: todo o mínimo que o teste cobra está no orçamento da aula."
           },
           {
             "aula": "fundamentos-js/estado-ler-depois-de-escrever",
             "decisao": "ok",
-            "motivo": "aula coberta pelo teste. EXCESSO (1 átomo(s) de introduces.productive não usados pelo mínimo): candidato a REMOVER do introduces OU COBRIR com desafio — decisão de ajuste, não violação (excesso receptivo é by-design)."
+            "motivo": "aula coberta: todo o mínimo que o teste cobra está no orçamento da aula."
           },
           {
             "aula": "fundamentos-js/const",
             "decisao": "ok",
-            "motivo": "aula coberta pelo teste. EXCESSO (2 átomo(s) de introduces.productive não usados pelo mínimo): candidato a REMOVER do introduces OU COBRIR com desafio — decisão de ajuste, não violação (excesso receptivo é by-design)."
+            "motivo": "aula coberta pelo teste. EXCESSO (1 átomo(s) de introduces.productive não usados pelo mínimo): candidato a REMOVER do introduces OU COBRIR com desafio — decisão de ajuste, não violação (excesso receptivo é by-design)."
           }
         ]
       },
@@ -1023,22 +1030,22 @@
           {
             "aula": "fundamentos-js/let-e-atribuicao",
             "decisao": "ok",
-            "motivo": "aula coberta pelo teste. EXCESSO (1 átomo(s) de introduces.productive não usados pelo mínimo): candidato a REMOVER do introduces OU COBRIR com desafio — decisão de ajuste, não violação (excesso receptivo é by-design)."
+            "motivo": "aula coberta: todo o mínimo que o teste cobra está no orçamento da aula."
           },
           {
             "aula": "fundamentos-js/string-como-valor",
             "decisao": "ok",
-            "motivo": "aula coberta pelo teste. EXCESSO (1 átomo(s) de introduces.productive não usados pelo mínimo): candidato a REMOVER do introduces OU COBRIR com desafio — decisão de ajuste, não violação (excesso receptivo é by-design)."
+            "motivo": "aula coberta: todo o mínimo que o teste cobra está no orçamento da aula."
           },
           {
             "aula": "fundamentos-js/estado-ler-depois-de-escrever",
             "decisao": "ok",
-            "motivo": "aula coberta pelo teste. EXCESSO (1 átomo(s) de introduces.productive não usados pelo mínimo): candidato a REMOVER do introduces OU COBRIR com desafio — decisão de ajuste, não violação (excesso receptivo é by-design)."
+            "motivo": "aula coberta: todo o mínimo que o teste cobra está no orçamento da aula."
           },
           {
             "aula": "fundamentos-js/const",
             "decisao": "ok",
-            "motivo": "aula coberta pelo teste. EXCESSO (2 átomo(s) de introduces.productive não usados pelo mínimo): candidato a REMOVER do introduces OU COBRIR com desafio — decisão de ajuste, não violação (excesso receptivo é by-design)."
+            "motivo": "aula coberta pelo teste. EXCESSO (1 átomo(s) de introduces.productive não usados pelo mínimo): candidato a REMOVER do introduces OU COBRIR com desafio — decisão de ajuste, não violação (excesso receptivo é by-design)."
           },
           {
             "aula": "fundamentos-js/erro-sintaxe-vs-erro-valor",
@@ -1141,22 +1148,22 @@
           {
             "aula": "fundamentos-js/let-e-atribuicao",
             "decisao": "ok",
-            "motivo": "aula coberta pelo teste. EXCESSO (1 átomo(s) de introduces.productive não usados pelo mínimo): candidato a REMOVER do introduces OU COBRIR com desafio — decisão de ajuste, não violação (excesso receptivo é by-design)."
+            "motivo": "aula coberta: todo o mínimo que o teste cobra está no orçamento da aula."
           },
           {
             "aula": "fundamentos-js/string-como-valor",
             "decisao": "ok",
-            "motivo": "aula coberta pelo teste. EXCESSO (1 átomo(s) de introduces.productive não usados pelo mínimo): candidato a REMOVER do introduces OU COBRIR com desafio — decisão de ajuste, não violação (excesso receptivo é by-design)."
+            "motivo": "aula coberta: todo o mínimo que o teste cobra está no orçamento da aula."
           },
           {
             "aula": "fundamentos-js/estado-ler-depois-de-escrever",
             "decisao": "ok",
-            "motivo": "aula coberta pelo teste. EXCESSO (1 átomo(s) de introduces.productive não usados pelo mínimo): candidato a REMOVER do introduces OU COBRIR com desafio — decisão de ajuste, não violação (excesso receptivo é by-design)."
+            "motivo": "aula coberta: todo o mínimo que o teste cobra está no orçamento da aula."
           },
           {
             "aula": "fundamentos-js/const",
             "decisao": "ok",
-            "motivo": "aula coberta pelo teste. EXCESSO (2 átomo(s) de introduces.productive não usados pelo mínimo): candidato a REMOVER do introduces OU COBRIR com desafio — decisão de ajuste, não violação (excesso receptivo é by-design)."
+            "motivo": "aula coberta pelo teste. EXCESSO (1 átomo(s) de introduces.productive não usados pelo mínimo): candidato a REMOVER do introduces OU COBRIR com desafio — decisão de ajuste, não violação (excesso receptivo é by-design)."
           },
           {
             "aula": "fundamentos-js/erro-sintaxe-vs-erro-valor",
@@ -1206,9 +1213,7 @@
             "node:StringLiteral"
           ],
           "foraDoOrcamento": [],
-          "excesso": [
-            "decl:const"
-          ],
+          "excesso": [],
           "requirements": {
             "ok": true,
             "semTeste": [],
@@ -1223,7 +1228,7 @@
         }
       ],
       "precisaQuebrar": false,
-      "motivo": "aula coberta pelo teste. EXCESSO (1 átomo(s) de introduces.productive não usados pelo mínimo): candidato a REMOVER do introduces OU COBRIR com desafio — decisão de ajuste, não violação (excesso receptivo é by-design)."
+      "motivo": "aula coberta: todo o mínimo que o teste cobra está no orçamento da aula."
     },
     {
       "aula": "fundamentos-js/todas-as-pecas-juntas",
@@ -1266,22 +1271,22 @@
           {
             "aula": "fundamentos-js/let-e-atribuicao",
             "decisao": "ok",
-            "motivo": "aula coberta pelo teste. EXCESSO (1 átomo(s) de introduces.productive não usados pelo mínimo): candidato a REMOVER do introduces OU COBRIR com desafio — decisão de ajuste, não violação (excesso receptivo é by-design)."
+            "motivo": "aula coberta: todo o mínimo que o teste cobra está no orçamento da aula."
           },
           {
             "aula": "fundamentos-js/string-como-valor",
             "decisao": "ok",
-            "motivo": "aula coberta pelo teste. EXCESSO (1 átomo(s) de introduces.productive não usados pelo mínimo): candidato a REMOVER do introduces OU COBRIR com desafio — decisão de ajuste, não violação (excesso receptivo é by-design)."
+            "motivo": "aula coberta: todo o mínimo que o teste cobra está no orçamento da aula."
           },
           {
             "aula": "fundamentos-js/estado-ler-depois-de-escrever",
             "decisao": "ok",
-            "motivo": "aula coberta pelo teste. EXCESSO (1 átomo(s) de introduces.productive não usados pelo mínimo): candidato a REMOVER do introduces OU COBRIR com desafio — decisão de ajuste, não violação (excesso receptivo é by-design)."
+            "motivo": "aula coberta: todo o mínimo que o teste cobra está no orçamento da aula."
           },
           {
             "aula": "fundamentos-js/const",
             "decisao": "ok",
-            "motivo": "aula coberta pelo teste. EXCESSO (2 átomo(s) de introduces.productive não usados pelo mínimo): candidato a REMOVER do introduces OU COBRIR com desafio — decisão de ajuste, não violação (excesso receptivo é by-design)."
+            "motivo": "aula coberta pelo teste. EXCESSO (1 átomo(s) de introduces.productive não usados pelo mínimo): candidato a REMOVER do introduces OU COBRIR com desafio — decisão de ajuste, não violação (excesso receptivo é by-design)."
           },
           {
             "aula": "fundamentos-js/erro-sintaxe-vs-erro-valor",
@@ -1296,7 +1301,7 @@
           {
             "aula": "fundamentos-js/nomear-bem",
             "decisao": "ok",
-            "motivo": "aula coberta pelo teste. EXCESSO (1 átomo(s) de introduces.productive não usados pelo mínimo): candidato a REMOVER do introduces OU COBRIR com desafio — decisão de ajuste, não violação (excesso receptivo é by-design)."
+            "motivo": "aula coberta: todo o mínimo que o teste cobra está no orçamento da aula."
           }
         ]
       },
@@ -1336,9 +1341,7 @@
             "node:StringLiteral"
           ],
           "foraDoOrcamento": [],
-          "excesso": [
-            "decl:const"
-          ],
+          "excesso": [],
           "requirements": {
             "ok": true,
             "semTeste": [],
@@ -1353,7 +1356,7 @@
         }
       ],
       "precisaQuebrar": false,
-      "motivo": "aula coberta pelo teste. EXCESSO (1 átomo(s) de introduces.productive não usados pelo mínimo): candidato a REMOVER do introduces OU COBRIR com desafio — decisão de ajuste, não violação (excesso receptivo é by-design)."
+      "motivo": "aula coberta: todo o mínimo que o teste cobra está no orçamento da aula."
     }
   ],
   "convergencia": true,
@@ -1363,7 +1366,7 @@
     "cobertas": 14,
     "comLacuna": 0,
     "naoRevisaveis": 0,
-    "comExcesso": 7,
+    "comExcesso": 2,
     "splitsPendentes": 0
   },
   "memoriaFinal": {
@@ -1403,22 +1406,22 @@
       {
         "aula": "fundamentos-js/let-e-atribuicao",
         "decisao": "ok",
-        "motivo": "aula coberta pelo teste. EXCESSO (1 átomo(s) de introduces.productive não usados pelo mínimo): candidato a REMOVER do introduces OU COBRIR com desafio — decisão de ajuste, não violação (excesso receptivo é by-design)."
+        "motivo": "aula coberta: todo o mínimo que o teste cobra está no orçamento da aula."
       },
       {
         "aula": "fundamentos-js/string-como-valor",
         "decisao": "ok",
-        "motivo": "aula coberta pelo teste. EXCESSO (1 átomo(s) de introduces.productive não usados pelo mínimo): candidato a REMOVER do introduces OU COBRIR com desafio — decisão de ajuste, não violação (excesso receptivo é by-design)."
+        "motivo": "aula coberta: todo o mínimo que o teste cobra está no orçamento da aula."
       },
       {
         "aula": "fundamentos-js/estado-ler-depois-de-escrever",
         "decisao": "ok",
-        "motivo": "aula coberta pelo teste. EXCESSO (1 átomo(s) de introduces.productive não usados pelo mínimo): candidato a REMOVER do introduces OU COBRIR com desafio — decisão de ajuste, não violação (excesso receptivo é by-design)."
+        "motivo": "aula coberta: todo o mínimo que o teste cobra está no orçamento da aula."
       },
       {
         "aula": "fundamentos-js/const",
         "decisao": "ok",
-        "motivo": "aula coberta pelo teste. EXCESSO (2 átomo(s) de introduces.productive não usados pelo mínimo): candidato a REMOVER do introduces OU COBRIR com desafio — decisão de ajuste, não violação (excesso receptivo é by-design)."
+        "motivo": "aula coberta pelo teste. EXCESSO (1 átomo(s) de introduces.productive não usados pelo mínimo): candidato a REMOVER do introduces OU COBRIR com desafio — decisão de ajuste, não violação (excesso receptivo é by-design)."
       },
       {
         "aula": "fundamentos-js/erro-sintaxe-vs-erro-valor",
@@ -1433,12 +1436,12 @@
       {
         "aula": "fundamentos-js/nomear-bem",
         "decisao": "ok",
-        "motivo": "aula coberta pelo teste. EXCESSO (1 átomo(s) de introduces.productive não usados pelo mínimo): candidato a REMOVER do introduces OU COBRIR com desafio — decisão de ajuste, não violação (excesso receptivo é by-design)."
+        "motivo": "aula coberta: todo o mínimo que o teste cobra está no orçamento da aula."
       },
       {
         "aula": "fundamentos-js/todas-as-pecas-juntas",
         "decisao": "ok",
-        "motivo": "aula coberta pelo teste. EXCESSO (1 átomo(s) de introduces.productive não usados pelo mínimo): candidato a REMOVER do introduces OU COBRIR com desafio — decisão de ajuste, não violação (excesso receptivo é by-design)."
+        "motivo": "aula coberta: todo o mínimo que o teste cobra está no orçamento da aula."
       }
     ]
   },

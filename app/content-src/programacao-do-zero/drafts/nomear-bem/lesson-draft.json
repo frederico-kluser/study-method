@@ -1,5 +1,5 @@
 {
-  "raciocinio_de_projeto": "AULA 13 da trilha. Aula de REUSO consolidado: avancos.produtivo = [decl:const, node:StringLiteral] (aula 10 e aula 8) — o desafio junta os dois num único span de lacuna, com o invólucro CONGELADO (curriculo: congelado = moldura). A novidade não é sintaxe, é o PRINCÍPIO de nomear: o nome é escolha do programador, diz o que o valor é (legibilidade) e precisa ser o mesmo em todos os lugares que o usam — no desafio, o return congelado devolve fruta, então o nome é fixo por contrato do starter. O esticar do curriculo ('const fruta = 3;' — o nome não amarra o tipo) vira o drill de previsão de leitura; ele demonstra node:NumericLiteral, já em cum. Introduces reflete o curriculo (decl:const + StringLiteral, fértil da atividade), ambos já demonstrados — A13d tranquilo porque InitDecl ⊆ demo∪cum; A14a declarada em 2 (teto). A primeira seção demonstra o par const+string num bloco que roda (primeira_secao_demonstra: decl:const, StringLiteral, VariableStatement, VariableDeclaration, ReturnStatement).",
+  "raciocinio_de_projeto": "AULA 13 da trilha. Aula de REUSO consolidado: avancos.produtivo = [decl:const, node:StringLiteral] (aula 10 e aula 8) — o desafio junta os dois num único span de lacuna, com o invólucro CONGELADO (curriculo: congelado = moldura). A novidade não é sintaxe, é o PRINCÍPIO de nomear: o nome é escolha do programador, diz o que o valor é (legibilidade) e precisa ser o mesmo em todos os lugares que o usam — no desafio, o return congelado devolve fruta, então o nome é fixo por contrato do starter. O esticar do curriculo ('const fruta = 3;' — o nome não amarra o tipo) vira o drill de previsão de leitura; ele demonstra node:NumericLiteral, já em cum. Introduces reflete o curriculo, com a ONDA 6 (REPLAN A2 — REMOVER do excesso decl:const): introduces.productive passou a declarar SÓ node:StringLiteral — decl:const é CUMULATIVO (produtivo da L10, no saída produtiva da L13 via carry); remover é A2-safe: a atividade continua exercitando a declaração const na lacuna (`const fruta = \"abacaxi\";`) e o átomo permanece no orçamento via herança cumulativa. A13d tranquilo porque InitDecl ⊆ demo∪cum; A14a declarada em 1 (abaixo do teto). A primeira seção demonstra o par const+string num bloco que roda (primeira_secao_demonstra: decl:const, StringLiteral, VariableStatement, VariableDeclaration, ReturnStatement).",
   "slug": "nomear-bem",
   "title": "Dar nome às coisas",
   "objective": {
@@ -10,7 +10,7 @@
   },
   "introduces": {
     "receptive": [],
-    "productive": ["decl:const", "node:StringLiteral"]
+    "productive": ["node:StringLiteral"]
   },
   "introducesTerms": ["nomear", "identificador", "legibilidade"],
   "assertions": [
@@ -114,7 +114,7 @@
       "tag": ""
     }
   ],
-  "justificativa": "Aula compacta de reuso: decl:const + node:StringLiteral num span único, invólucro congelado (curriculo). A novidade pedagógica é o princípio de nomear (identificador, legibilidade, igualdade exata), que não tem átomo próprio — eiClass 'principio'. A primeira seção demonstra o par const+string num bloco que roda; o esticar (nome não amarra tipo) vira drill com previsão e demonstra NumericLiteral. A13/A16 satisfeitos: todo átomo de solução e starter está em demo∪cum∪H13.",
+  "justificativa": "Aula compacta de reuso: decl:const + node:StringLiteral num span único, invólucro congelado (curriculo). A novidade pedagógica é o princípio de nomear (identificador, legibilidade, igualdade exata), que não tem átomo próprio — eiClass 'principio'. A primeira seção demonstra o par const+string num bloco que roda; o esticar (nome não amarra tipo) vira drill com previsão e demonstra NumericLiteral. ONDA 6 (REPLAN A2 — REMOVER do excesso decl:const): introduces.productive reduzido a [node:StringLiteral] — decl:const é cumulativo da L10 (permanece no saída produtiva da L13 via carry; remover da declaração é A2-safe e não afeta a atividade). A13/A16 satisfeitos: todo átomo de solução e starter está em demo∪cum∪H13.",
   "role": "regular",
   "status": "rascunho",
   "aprovado": false

@@ -229,9 +229,9 @@ async function main(): Promise<void> {
   const formasEsticar: Array<{ nome: string; starter: string; solution: string; tests: string; expected: number }> = [
     {
       nome: 'L7 esticar (mesmo starter, outro valor inicial)',
-      starter: 'export function iniciar() {\n  // LACUNA: declare a variável `contador` com `let`, com um valor inicial\n  contador = 5;\n  return contador;\n}\n',
-      solution: 'export function iniciar() {\n  let contador = 7;\n  contador = 5;\n  return contador;\n}\n',
-      tests: "import { test } from 'node:test';\nimport assert from 'node:assert/strict';\nimport { iniciar } from './solution.mjs';\n\ntest('declara com let; a atribuição decide o valor final', () => {\n  assert.equal(iniciar(), 5);\n});\n",
+      starter: '// LACUNA: declare e EXPORTE a variável `contador` com `let`, com um valor inicial, no escopo do MÓDULO (fora da função)\nexport function iniciar() {\n  contador = 5;\n  return contador;\n}\n',
+      solution: 'export let contador = 7;\n\nexport function iniciar() {\n  contador = 5;\n  return contador;\n}\n',
+      tests: "import { test } from 'node:test';\nimport assert from 'node:assert/strict';\nimport { iniciar, contador } from './solution.mjs';\n\ntest('declara com let no escopo do módulo; a atribuição decide o valor guardado', () => {\n  assert.equal(iniciar(), contador);\n  assert.equal(iniciar(), contador);\n  assert.equal(contador, 5);\n});\n",
       expected: 1,
     },
     {

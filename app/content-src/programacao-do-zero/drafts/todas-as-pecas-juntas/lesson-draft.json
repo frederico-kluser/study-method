@@ -1,5 +1,5 @@
 {
-  "raciocinio_de_projeto": "AULA 14 — CAPSTONE da trilha (role integration). Consolida a trilha inteira: o desafio de fixar é MUITO o curriculo manda — 'mais um invólucro inteiro, agora com string e const: tudo que as aulas 1–13 juntaram. Nenhum átomo novo'. Avanço produtivo declarado = [node:FunctionDeclaration, decl:const] (o par central da moldura); node:StringLiteral e node:ExportKeyword também fazem parte da atividade (avancos do curriculo), mas já introdutos nas aulas 8 e 4 — ficam FORA de introduces.productive para respeitar o teto A7 (máx. 2) e porque são reuso, não avanço; isso está declarado aqui para o revisor. O esticar do curriculo (a caixa com JANELINHA: export function repete(nome) { return nome; } — parâmetro entra e sai pelo return) vira o drill de leitura; ele demonstra node:Parameter, que o curriculo exige em demonstrado_na_teoria desta aula e que já foi ensinado na aula 5. Como L12, congelado: [] → starter-comentário (módulo sem export falha a importação — prova 2 verificada por execução real). A somatória produtiva da trilha (NumericLiteral, CallExpression, ExportKeyword, Parameter, ReturnStatement, decl:let, StringLiteral, decl:const, FunctionDeclaration) é exercitada em CAPSULA ao longo de L12–L14: L12 reescreve a moldura com let+NumericLiteral, L13 escreve const+StringLiteral, L14 junta tudo e o drill revisita Parameter; CallExpression é a mecânica do próprio harness (seed) desde a aula 1.",
+  "raciocinio_de_projeto": "AULA 14 — CAPSTONE da trilha (role integration). Consolida a trilha inteira: o desafio de fixar é MUITO o curriculo manda — 'mais um invólucro inteiro, agora com string e const: tudo que as aulas 1–13 juntaram. Nenhum átomo novo'. Avanço produtivo declarado = [node:FunctionDeclaration] (o par central da moldura; na ONDA 6 o decl:const saiu da declaração — REPLAN A2, REMOVER do excesso: decl:const é CUMULATIVO, produtivo da L10, e permanece no saída produtiva da L14 via carry — A2-safe, a atividade continua exercitando a constante no programa completo); node:StringLiteral, node:ExportKeyword e decl:const também fazem parte da atividade (avancos do curriculo), mas já introduzidos nas aulas 8, 4 e 10 — ficam FORA de introduces.productive e porque são reuso, não avanço; isso está declarado aqui para o revisor. O esticar do curriculo (a caixa com JANELINHA: export function repete(nome) { return nome; } — parâmetro entra e sai pelo return) vira o drill de leitura; ele demonstra node:Parameter, que o curriculo exige em demonstrado_na_teoria desta aula e que já foi ensinado na aula 5. Como L12, congelado: [] → starter-comentário (módulo sem export falha a importação — prova 2 verificada por execução real). A somatória produtiva da trilha (NumericLiteral, CallExpression, ExportKeyword, Parameter, ReturnStatement, decl:let, StringLiteral, decl:const, FunctionDeclaration) é exercitada em CAPSULA ao longo de L12–L14: L12 reescreve a moldura com let+NumericLiteral, L13 escreve const+StringLiteral, L14 junta tudo e o drill revisita Parameter; CallExpression é a mecânica do próprio harness (seed) desde a aula 1.",
   "slug": "todas-as-pecas-juntas",
   "title": "Todas as peças juntas",
   "objective": {
@@ -10,7 +10,7 @@
   },
   "introduces": {
     "receptive": [],
-    "productive": ["node:FunctionDeclaration", "decl:const"]
+    "productive": ["node:FunctionDeclaration"]
   },
   "introducesTerms": ["revisão", "peças", "programa completo"],
   "assertions": [
@@ -115,7 +115,7 @@
       "tag": ""
     }
   ],
-  "justificativa": "Aula-integrativa final (eiClass integrativo, role integration): junta num único programa a moldura (L12), a constante (L10), o texto (L8) e o return (L6), com congelado [] — o aluno escreve o módulo inteiro. introduces.productive limitado a [FunctionDeclaration, decl:const] pelo teto A7; StringLiteral/ExportKeyword participam da atividade (curriculo) mas são reuso e ficam fora da declaração. A teoria demonstra inclusive node:Parameter (drill — exigência do curriculo). A13/A16: todos os átomos estão no cumulativo das aulas 1–13; extração e provas verificadas por execução.",
+  "justificativa": "Aula-integrativa final (eiClass integrativo, role integration): junta num único programa a moldura (L12), a constante (L10), o texto (L8) e o return (L6), com congelado [] — o aluno escreve o módulo inteiro. introduces.productive limitado a [FunctionDeclaration] (ONDA 6 — decl:const removido por ser cumulativo da L10; StringLiteral/ExportKeyword participam da atividade — curriculo — mas são reuso e ficam fora da declaração). A teoria demonstra inclusive node:Parameter (drill — exigência do curriculo). A13/A16: todos os átomos estão no cumulativo das aulas 1–13; extração e provas verificadas por execução.",
   "role": "integration",
   "status": "rascunho",
   "aprovado": false

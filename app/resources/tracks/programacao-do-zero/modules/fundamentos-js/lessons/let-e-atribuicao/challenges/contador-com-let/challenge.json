@@ -5,32 +5,34 @@
   "concept": "let_e_atribuicao",
   "difficulty": 3,
   "language": "nodejs",
-  "statement": "# Declarar com `let` e deixar a atribuição decidir\n\nA função `iniciar()` já está quase pronta. Ela quer guardar um número numa **variável** — uma caixinha etiquetada que guarda **um valor por vez** — e devolver esse número. Falta **declarar** a variável `contador` com `let` no lugar marcado, com um **valor inicial**.\n\nO restante já está pronto — não mexa:\n\n- `contador = 5;` — **atribui** o valor `5` à variável, **substituindo** o valor anterior;\n- `return contador;` — devolve o que está guardado na variável.\n\nAntes de escrever, **preveja** — você já sabe ler esse formato das aulas anteriores: quando o teste chamar `iniciar()`, que valor a função devolve? Depois de `contador = 5;`, o que está guardado em `contador`: o valor inicial da declaração ou o valor atribuído `5`?\n\nEscreva **somente a declaração** na lacuna, com `let` e um valor inicial. O valor inicial é livre — qualquer número vale, porque quem decide o valor devolvido pela função é a atribuição `contador = 5;`, não o valor inicial. As demais linhas já estão certas.",
-  "starterCode": "export function iniciar() {\n  // LACUNA: declare a variável `contador` com `let`, com um valor inicial\n  contador = 5;\n  return contador;\n}\n",
-  "testsCode": "import { test } from 'node:test';\nimport assert from 'node:assert/strict';\nimport { iniciar } from './solution.mjs';\n\ntest('declara com let; a atribuição decide o valor final', () => {\n  assert.equal(iniciar(), 5);\n});\n",
-  "solutionCode": "export function iniciar() {\n  let contador = 0;\n  contador = 5;\n  return contador;\n}\n",
+  "statement": "# Declarar com `let` no escopo do módulo e deixar a atribuição decidir\n\nA função `iniciar()` já está quase pronta. Ela quer devolver o número guardado numa **variável** — uma caixinha etiquetada que guarda **um valor por vez**. Falta **declarar** a variável `contador` com `let` e um **valor inicial**, no **escopo do módulo** — FORA da função — e **exportá-la**, para o conferidor enxergar a caixinha.\n\nO restante já está pronto — não mexa:\n\n- `contador = 5;` — **atribui** o valor `5` à variável, **substituindo** o valor anterior;\n- `return contador;` — devolve o que está guardado na variável.\n\nO teste importa a variável `contador` junto com a função. Antes de escrever, **preveja** — você já sabe ler esse formato das aulas anteriores: quando o teste chamar `iniciar()`, que valor a função devolve? Depois da linha `contador = 5;`, o que está guardado em `contador`: o valor inicial da declaração ou o valor atribuído `5`?\n\nEscreva **somente a declaração** na lacuna: `export` + `let` + um nome + `=` + um valor inicial + ponto e vírgula. O valor inicial é livre — qualquer número vale, porque quem decide o valor devolvido pela função é a atribuição `contador = 5;`, não o valor inicial. As demais linhas já estão certas.",
+  "starterCode": "// LACUNA: declare e EXPORTE a variável `contador` com `let`, com um valor inicial, no escopo do MÓDULO (fora da função)\nexport function iniciar() {\n  contador = 5;\n  return contador;\n}\n",
+  "testsCode": "import { test } from 'node:test';\nimport assert from 'node:assert/strict';\nimport { iniciar, contador } from './solution.mjs';\n\ntest('declara com let no escopo do módulo; a atribuição decide o valor guardado', () => {\n  assert.equal(iniciar(), contador);\n  assert.equal(iniciar(), contador);\n  assert.equal(contador, 5);\n});\n",
+  "solutionCode": "export let contador = 0;\n\nexport function iniciar() {\n  contador = 5;\n  return contador;\n}\n",
   "expectedTestCount": 1,
   "outputChannel": "retorno",
   "requires": [
     "let-e-atribuicao (decl:let)",
     "funcao-e-chamada (node:CallExpression)",
-    "return (node:ReturnStatement)"
+    "return (node:ReturnStatement)",
+    "export-entrega (node:ExportKeyword)"
   ],
   "requirements": [
     {
       "id": "REQ-1",
-      "descricao": "A função iniciar() devolve o valor final de contador — 5, o valor da última atribuição (não o valor inicial da declaração, seja ele qual for).",
-      "teste": "declara com let; a atribuição decide o valor final"
+      "descricao": "A variável contador é declarada com let, com um valor inicial, no escopo do módulo e exportada; a função iniciar() devolve o valor guardado — o da última atribuição (5), não o valor inicial, seja ele qual for.",
+      "teste": "declara com let no escopo do módulo; a atribuição decide o valor guardado"
     }
   ],
   "notRequired": [
     "escolher o valor inicial da declaração — qualquer literal numérico vale; o teste só verifica o valor final",
     "escrever a linha de atribuição (contador = 5;) — ela já vem pronta no starter (receptiva)",
     "escrever o invólucro nem o return — export function iniciar() e return contador; vêm congelados (reuso da L1/L6)",
-    "declarar com const ou var — fora do orçamento desta aula"
+    "declarar com const ou var — fora do orçamento desta aula (com const, a atribuição congelada dispararia TypeError)"
   ],
   "subgoals": [
     "declarar",
+    "exportar",
     "atribuir",
     "ler-valor"
   ],
@@ -38,7 +40,7 @@
     {
       "tipo": "exemplo",
       "derivado_de": "decl:let",
-      "descricao": "declarar uma variável mutável com let e um valor inicial numérico (a solução de referência usa contador = 0; qualquer número valeria); a atribuição seguinte substitui o valor guardado"
+      "descricao": "declarar uma variável mutável com let e um valor inicial numérico no escopo do módulo, exportada (a solução de referência usa contador = 0; qualquer número valeria); a atribuição seguinte substitui o valor guardado"
     },
     {
       "tipo": "valido",
@@ -53,18 +55,18 @@
     {
       "tipo": "invalido",
       "derivado_de": "decl:let",
-      "descricao": "atribuir sem antes declarar (lacuna vazia) lança ReferenceError em modo estrito — o teste falha"
+      "descricao": "não exportar a variável (a importação falha) ou declarar com const (TypeError na linha congelada) — o teste falha por execução real"
     }
   ],
-  "taskSkill": "declarar uma variável mutável com let e valor inicial no span de uma lacuna única",
+  "taskSkill": "declarar e exportar uma variável mutável com let e valor inicial no escopo do módulo, no span de uma lacuna única",
   "supportLevel": "com_andaime",
-  "surfaceDomain": "declaração de variável (let) e atribuição (=)",
+  "surfaceDomain": "declaração de variável (let) no escopo do módulo, export e atribuição (=)",
   "solutionAlternates": [
-    "export function iniciar() {\n  let contador = 100;\n  contador = 5;\n  return contador;\n}\n",
-    "export function iniciar() {\n  let contador = 5;\n  contador = 5;\n  return contador;\n}\n"
+    "export let contador = 100;\n\nexport function iniciar() {\n  contador = 5;\n  return contador;\n}\n",
+    "export let contador = 5;\n\nexport function iniciar() {\n  contador = 5;\n  return contador;\n}\n"
   ],
   "wrongSolutions": [
-    "export function iniciar() {\n  const contador = 0;\n  contador = 5;\n  return contador;\n}\n",
-    "export function iniciar() {\n  contador = 0;\n  contador = 5;\n  return contador;\n}\n"
+    "export const contador = 0;\n\nexport function iniciar() {\n  contador = 5;\n  return contador;\n}\n",
+    "let contador = 0;\n\nexport function iniciar() {\n  contador = 5;\n  return contador;\n}\n"
   ]
 }

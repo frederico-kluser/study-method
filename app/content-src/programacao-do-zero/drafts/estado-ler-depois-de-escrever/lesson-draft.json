@@ -1,5 +1,5 @@
 {
-  "raciocinio_de_projeto": "AULA 9 da trilha micro programacao-do-zero — aula de LEITURA pura (curriculo.md: avanço '(re)'; fixar `let contador = 0;`). NENHUM átomo novo em teoria nem em desafio: Novo(9) = 0 por construção, o que dispara o aviso de A14a 'aula sem incremento' — ESPERADO e declarado no curriculo (leitura de estado, só reuso de decl:let da aula 7 + leitura de op:assign:=/node:BinaryExpression, receptivas desde a aula 7). O desafio reusa EXATAMENTE o desenho da aula 7 (let-e-atribuicao): uma lacuna única cuja solução é a declaração `let contador = 0;`, com as atribuições congeladas; a diferença é o QUADRO — a aula 9 se lê a sequência congelada (1, 2, 3) e preveja o valor final (a última atribuição vence), que é a lição de ESTADO (termos_novos: estado, último valor, sequência, ler o código). O teste verifica o valor final 3, e o valor inicial da declaração é livre (qualquer literal passa — limite declarado). expectedTestCount = 1 por J4 (bijeção requisito-testes): o orçamento veda parâmetros em todas as superfícies, então duas chamadas de lerDepois() são idênticas e um segundo teste seria tautológico. As provas de execução: com a lacuna vazia o starter referencia `contador` sem declaração → ReferenceError em modo estrito (a mesma experiência que a aula 11 vai nomear); a solução passa; o stub vazio falha. A teoria demonstra a leitura de estado em blocos js com SÓ átomos já demonstrados (decl:let + op:assign:= + node:BinaryExpression da aula 7; o invólucro da aula 1); a primeira seção demonstra decl:let/op:assign:=/node:BinaryExpression/node:NumericLiteral/node:ReturnStatement conforme primeira_secao_demonstra do curriculo (o A16 do 1º desafio só exige decl:let e a maquinaria Variable*, que já estão em Cum via aula 7 — a seção inicial cobre mesmo assim). Nenhuma construção fora do universo do curriculo L1–L9 aparece em nenhum bloco de código (conferido por extração).",
+  "raciocinio_de_projeto": "AULA 9 da trilha micro programacao-do-zero — aula de LEITURA pura (curriculo.md: avanço '(re)'; fixar `let contador = 0;`). NENHUM átomo novo em teoria nem em desafio: Novo(9) = 0 por construção. ONDA 6 (REPLAN A2 — REMOVER do excesso): introduces.productive passa a declarar NENHUM átomo — decl:let é CUMULATIVO (produtivo da L7, no saída produtiva da L9 via carry) e a aula é de LEITURA pura, então declarar decl:let como produtivo desta aula era o excesso sinalizado; remover é A2-safe (a atividade continua exercitando decl:let na lacuna — o aluno escreve let contador = 0; — e o átomo permanece no orçamento via herança cumulativa), o que dispara o aviso de A14a 'aula sem incremento' — ESPERADO e declarado no curriculo (leitura de estado, só reuso de decl:let da aula 7 + leitura de op:assign:=/node:BinaryExpression, receptivas desde a aula 7). O desafio reusa EXATAMENTE o desenho da aula 7 (let-e-atribuicao): uma lacuna única cuja solução é a declaração `let contador = 0;`, com as atribuições congeladas; a diferença é o QUADRO — a aula 9 se lê a sequência congelada (1, 2, 3) e preveja o valor final (a última atribuição vence), que é a lição de ESTADO (termos_novos: estado, último valor, sequência, ler o código). O teste verifica o valor final 3, e o valor inicial da declaração é livre (qualquer literal passa — limite declarado). expectedTestCount = 1 por J4 (bijeção requisito-testes): o orçamento veda parâmetros em todas as superfícies, então duas chamadas de lerDepois() são idênticas e um segundo teste seria tautológico. As provas de execução: com a lacuna vazia o starter referencia `contador` sem declaração → ReferenceError em modo estrito (a mesma experiência que a aula 11 vai nomear); a solução passa; o stub vazio falha. A teoria demonstra a leitura de estado em blocos js com SÓ átomos já demonstrados (decl:let + op:assign:= + node:BinaryExpression da aula 7; o invólucro da aula 1); a primeira seção demonstra decl:let/op:assign:=/node:BinaryExpression/node:NumericLiteral/node:ReturnStatement conforme primeira_secao_demonstra do curriculo (o A16 do 1º desafio só exige decl:let e a maquinaria Variable*, que já estão em Cum via aula 7 — a seção inicial cobre mesmo assim). Nenhuma construção fora do universo do curriculo L1–L9 aparece em nenhum bloco de código (conferido por extração).",
   "slug": "estado-ler-depois-de-escrever",
   "title": "Estado: ler depois de escrever",
   "objective": {
@@ -9,10 +9,18 @@
     "criterio": "o aluno declara a variável com let e valor inicial no span de uma lacuna única (reuso puro de decl:let) e lê as atribuições congeladas do starter para prever o valor devolvido — o teste valida que o valor final é o da ÚLTIMA atribuição (3), não o da declaração"
   },
   "introduces": {
-    "receptive": ["op:assign:=", "node:BinaryExpression"],
-    "productive": ["decl:let"]
+    "receptive": [
+      "op:assign:=",
+      "node:BinaryExpression"
+    ],
+    "productive": []
   },
-  "introducesTerms": ["estado", "último valor", "sequência", "ler o código"],
+  "introducesTerms": [
+    "estado",
+    "último valor",
+    "sequência",
+    "ler o código"
+  ],
   "foraDeEscopo": [
     "const (decl:const) — a construção-irmã que PROÍBE reatribuição; contraste com let só na aula 10 (aula própria).",
     "redeclaração de let no mesmo escopo (SyntaxError) — já tratada como leitura na aula 7; não se escreve erro aqui.",
@@ -75,7 +83,12 @@
       "sectionId": "modelo-mental",
       "statement": "O estado de uma variável é o ÚLTIMO valor escrito: cada atribuição substitui o anterior, e ler o nome devolve o valor da última escrita.",
       "question": "O que `placar()` devolve?\n\n```js\nexport function placar() {\n  let pontos = 0;\n  pontos = 10;\n  pontos = 3;\n  return pontos;\n}\n```",
-      "options": ["0", "3", "10", "13 (a soma das escritas)"],
+      "options": [
+        "0",
+        "3",
+        "10",
+        "13 (a soma das escritas)"
+      ],
       "answerIndex": 1,
       "feedback": "A última escrita vence: a linha `pontos = 3;` trocou o estado para 3, e é esse o valor devolvido. O 0 e o 10 foram substituídos — a variável guarda um valor por vez."
     },
@@ -84,7 +97,12 @@
       "sectionId": "refutacoes",
       "statement": "O valor inicial da declaração não decide o valor final: quando há atribuições depois, quem decide é a ÚLTIMA escrita, não a primeira.",
       "question": "O que `f()` devolve?\n\n```js\nexport function f() {\n  let total = 100;\n  total = 3;\n  return total;\n}\n```",
-      "options": ["100", "3", "103", "um erro, porque total mudou de valor"],
+      "options": [
+        "100",
+        "3",
+        "103",
+        "um erro, porque total mudou de valor"
+      ],
       "answerIndex": 1,
       "feedback": "100 foi o estado inicial, mas a linha `total = 3;` substituiu o estado para 3 antes do return. O valor final é o da última atribuição."
     },
@@ -93,12 +111,17 @@
       "sectionId": "refutacoes",
       "statement": "A ordem das atribuições importa: trocar duas escritas de valores diferentes troca o estado final do programa.",
       "question": "Qual destas sequências termina com `x` guardando o valor 2?",
-      "options": ["let x = 1; x = 2; x = 3;", "let x = 1; x = 3; x = 2;", "let x = 3; x = 2; x = 1;", "let x = 1; x = 1; x = 1;"],
+      "options": [
+        "let x = 1; x = 2; x = 3;",
+        "let x = 1; x = 3; x = 2;",
+        "let x = 3; x = 2; x = 1;",
+        "let x = 1; x = 1; x = 1;"
+      ],
       "answerIndex": 1,
       "feedback": "Na segunda sequência a última escrita é `x = 2;`, então o estado final é 2. Nas demais, a última escrita é 3, 1 e 1 — a ordem das linhas decide o estado."
     }
   ],
-  "justificativa": "Aula de LEITURA pura, conforme o curriculo (avanço '(re)'): a habilidade nova é prever o valor final lendo uma sequência de atribuições — decl:let é REUSO da aula 7 e op:assign:=/node:BinaryExpression são leitura desde a aula 7. A atividade repete o desenho validado da aula 7 (lacuna única = declaração; atribuições congeladas) e acrescenta o quadro de leitura de estado; o teste valida a última atribuição vencendo. A ausência de átomo produtivo novo dispara o aviso A14a 'aula sem incremento' — esperado e registrado no curriculo (leitura de estado é um degrau conceitual, não sintático). Nada fora do universo L1–L9 é demonstrado em teoria nem exigido no desafio.",
+  "justificativa": "Aula de LEITURA pura, conforme o curriculo (avanço '(re)'): a habilidade nova é prever o valor final lendo uma sequência de atribuições — decl:let é REUSO da aula 7 (ONDA 6 — REMOVER do excesso: introduces.productive ficou vazio; o átomo permanece no orçamento via carry cumulativo da L7 — A2-safe) e op:assign:=/node:BinaryExpression são leitura desde a aula 7. A atividade repete o desenho validado da aula 7 (lacuna única = declaração; atribuições congeladas) e acrescenta o quadro de leitura de estado; o teste valida a última atribuição vencendo. A ausência de átomo produtivo novo dispara o aviso A14a 'aula sem incremento' — esperado e registrado no curriculo (leitura de estado é um degrau conceitual, não sintático). Nada fora do universo L1–L9 é demonstrado em teoria nem exigido no desafio.",
   "role": "regular",
   "status": "rascunho",
   "aprovado": false

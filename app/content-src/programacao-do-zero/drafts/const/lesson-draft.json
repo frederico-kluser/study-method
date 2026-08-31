@@ -1,5 +1,5 @@
 {
-  "raciocinio_de_projeto": "AULA 10 da trilha micro programacao-do-zero — o átomo produtivo NOVO é decl:const (contraste com let, curriculo: fixar `let mudavel = 1; const fixa = 2;`). Novo(10) = {decl:const}; decl:let é reuso explícito da aula 9 (introduces.productive = ['decl:const', 'decl:let'] — teto A7/I2 de 2 respeitado; o curriculo declara os dois porque a aula NÃO é sobre const sozinha: é sobre o CONTRASTE let/const, e a teoria e o desafio exercitam os dois lados do contraste). O desafio é multi-lacuna (a mecânica prevista no curriculo.md, §80): duas lacunas cujos spans são as duas declarações — `let mudavel = 1;` e `const fixa = 2;` — com o return congelado; o teste confere o valor da constante (2), e o valor inicial da let é livre. A14b é o guarda de honra: a linha `const fixa = 2;` tem EXATAMENTE uma construção nova (decl:const — a maquinaria Variable* colapsa no decl: e NumericLiteral é H13); a linha `let mudavel = 1;` tem zero novas. A13a: o escrito é decl:let (Cum, aula 7/9) + decl:const (Demo da própria aula: a primeira seção demonstra `const` numa linha de código) + a maquinaria Variable* (Cum, aula 7) + NumericLiteral (H13). A16: o escrito contém decl:const → a primeira seção da teoria (índice 0) demonstra const — conforme primeira_secao_demonstra do curriculo = [decl:const, decl:let, VariableStatement, VariableDeclaration, NumericLiteral]. A teoria trata o erro de REESCRITA de const como LEITURA (código que parseia + mensagem citada em prosa: 'Assignment to constant variable' / TypeError) e o erro de const-sem-valor-inicial como leitura de mensagem de SÍNTAXE num bloco que não parseia (demonstra NADA — os termos das mensagens são prosa, não átomos; a taxonomia de erros é a aula 11). expectedTestCount = 1 por J4 — sem parâmetros, duas chamadas de exemplo() são idênticas. Starter falha por ReferenceError (fixa não declarada); stub vazio falha; solução passa. Nenhuma construção fora do universo do curriculo L1–L10 em bloco de código (conferido por extração).",
+  "raciocinio_de_projeto": "AULA 10 da trilha micro programacao-do-zero — o átomo produtivo NOVO é decl:const (contraste com let, curriculo: fixar `let mudavel = 1; const fixa = 2;`). Novo(10) = {decl:const}; decl:let é reuso explícito das aulas 7/9. ONDA 6 (REPLAN A2 — REMOVER do excesso decl:let): introduces.productive passou a declarar SÓ decl:const — decl:let é CUMULATIVO (produtivo desde a L7, no saída produtiva da L10 via carry); remover é A2-safe: a atividade continua exercitando a declaração let na lacuna  e o átomo permanece no orçamento via herança cumulativa. O contraste let/const permanece o coração didático (a teoria e o desafio exercitam os dois lados). O desafio é multi-lacuna (a mecânica prevista no curriculo.md, §80): duas lacunas cujos spans são as duas declarações — `let mudavel = 1;` e `const fixa = 2;` — com o return congelado; o teste confere o valor da constante (2), e o valor inicial da let é livre. A14b é o guarda de honra: a linha `const fixa = 2;` tem EXATAMENTE uma construção nova (decl:const — a maquinaria Variable* colapsa no decl: e NumericLiteral é H13); a linha `let mudavel = 1;` tem zero novas. A13a: o escrito é decl:let (Cum, aula 7/9) + decl:const (Demo da própria aula: a primeira seção demonstra `const` numa linha de código) + a maquinaria Variable* (Cum, aula 7) + NumericLiteral (H13). A16: o escrito contém decl:const → a primeira seção da teoria (índice 0) demonstra const — conforme primeira_secao_demonstra do curriculo = [decl:const, decl:let, VariableStatement, VariableDeclaration, NumericLiteral]. A teoria trata o erro de REESCRITA de const como LEITURA (código que parseia + mensagem citada em prosa: 'Assignment to constant variable' / TypeError) e o erro de const-sem-valor-inicial como leitura de mensagem de SÍNTAXE num bloco que não parseia (demonstra NADA — os termos das mensagens são prosa, não átomos; a taxonomia de erros é a aula 11). expectedTestCount = 1 por J4 — sem parâmetros, duas chamadas de exemplo() são idênticas. decl:const é MANTER + tolerância (A4e, 3º braço — inobservabilidade): const é INOBSERVÁVEL por comportamento no runner do produto (import ESM é read-only; o erro de reassign não é testável) — o MÍNIMO que passa no teste não contém decl:const, e o excesso é documentado como tolerado no relatório da ONDA 6. Starter falha por ReferenceError (fixa não declarada); stub vazio falha; solução passa. Nenhuma construção fora do universo do curriculo L1–L10 em bloco de código (conferido por extração).",
   "slug": "const",
   "title": "const: o valor que não muda",
   "objective": {
@@ -10,9 +10,16 @@
   },
   "introduces": {
     "receptive": [],
-    "productive": ["decl:const", "decl:let"]
+    "productive": [
+      "decl:const"
+    ]
   },
-  "introducesTerms": ["const", "constante", "imutável", "contraste let/const"],
+  "introducesTerms": [
+    "const",
+    "constante",
+    "imutável",
+    "contraste let/const"
+  ],
   "foraDeEscopo": [
     "reescrever o valor de uma const — é erro na execução (TypeError 'Assignment to constant variable'): o aluno LÊ a mensagem na teoria (citação em prosa) e NÃO escreve o cenário — a taxonomia de erros é a aula 11.",
     "const sem valor inicial (`const x;`) — erro de sintaxe: exibido na teoria como leitura de mensagem, nunca como código a escrever.",
@@ -69,7 +76,12 @@
       "sectionId": "modelo-mental",
       "statement": "const declara um valor que NÃO muda depois de criado; let é para o que pode receber outra escrita — a diferença está na escrita, não no valor.",
       "question": "A função abaixo roda e o teste confere o que ela devolve. O que `exemplo()` devolve?\n\n```js\nexport function exemplo() {\n  let mudavel = 1;\n  mudavel = 9;\n  const fixa = 2;\n  return fixa;\n}\n```",
-      "options": ["9", "1", "2", "um erro, porque mudavel foi reescrita"],
+      "options": [
+        "9",
+        "1",
+        "2",
+        "um erro, porque mudavel foi reescrita"
+      ],
       "answerIndex": 2,
       "feedback": "fixa é const: nasceu com 2 e não foi tocada — é ela que sai pelo return. mudavel foi reescrita para 9, mas a regra de escrita de cada declaração é independente."
     },
@@ -78,7 +90,12 @@
       "sectionId": "refutacoes",
       "statement": "Reescrever uma const é erro de EXECUÇÃO: a máquina ENTENDE o código, mas, ao rodar em modo estrito, a atribuição dispara TypeError (\"Assignment to constant variable\").",
       "question": "O programa abaixo roda em modo estrito. O que acontece na linha 2?\n\n```js\nconst fixa = 5;\nfixa = 9;\n```",
-      "options": ["a linha 2 troca o valor de fixa para 9", "a linha 2 dispara um erro de execução (TypeError)", "a linha 2 é ignorada pela máquina", "o programa nem chega a rodar (erro de sintaxe)"],
+      "options": [
+        "a linha 2 troca o valor de fixa para 9",
+        "a linha 2 dispara um erro de execução (TypeError)",
+        "a linha 2 é ignorada pela máquina",
+        "o programa nem chega a rodar (erro de sintaxe)"
+      ],
       "answerIndex": 1,
       "feedback": "O código parseia — a máquina entende a frase —, mas em modo estrito atribuir sobre uma const lança TypeError na execução: \"Assignment to constant variable\". É erro de execução, não de sintaxe."
     },
@@ -87,12 +104,17 @@
       "sectionId": "refutacoes",
       "statement": "const exige o valor inicial NA declaração: a const nasce preenchida, ou não nasce — `const x;` sem valor é erro de SÍNTAXE.",
       "question": "Qual destas linhas a máquina NÃO entende (erro de sintaxe)?",
-      "options": ["const saldo = 0;", "const saldo;", "let saldo = 0;", "const fixa = 2;"],
+      "options": [
+        "const saldo = 0;",
+        "const saldo;",
+        "let saldo = 0;",
+        "const fixa = 2;"
+      ],
       "answerIndex": 1,
       "feedback": "const sem valor inicial é SyntaxError (\"Missing initializer in const declaration\") — a máquina nem chega a rodar. As outras linhas são declarações válidas."
     }
   ],
-  "justificativa": "Aula produtiva de decl:const — o único átomo verdadeiramente novo (Novo(10) = {decl:const}, medido por extração: todos os demais átomos dos blocos de teoria e do desafio já estão demonstrados nas aulas 1–9 ou são harness/estruturais). O contraste let/const é o coração didático (termos_novos: contraste let/const), por isso introduces.productive traz os dois — dentro do teto de 2 (A7/I2). A primeira seção da teoria demonstra `const` num bloco js (A16/A13d): o primeiro desafio é resolvível com a seção inicial + material anterior. Os erros associados a const (reescrita → TypeError; sem valor inicial → SyntaxError) são tratados como LEITURA: códigos exibidos + mensagens citadas em prosa, nunca como código a escrever, e a taxonomia completa de erros fica para a aula 11.",
+  "justificativa": "Aula produtiva de decl:const — o único átomo verdadeiramente novo (Novo(10) = {decl:const}, medido por extração: todos os demais átomos dos blocos de teoria e do desafio já estão demonstrados nas aulas 1–9 ou são harness/estruturais). O contraste let/const é o coração didático (termos_novos: contraste let/const), por isso a atividade exercita os dois — mas introduces.productive declara SÓ decl:const desde a ONDA 6 (decl:let é cumulativo da L7; remover é A2-safe) e o excesso residual de decl:const é TOLERADO (A4e — inobservável por comportamento no runner). A primeira seção da teoria demonstra `const` num bloco js (A16/A13d): o primeiro desafio é resolvível com a seção inicial + material anterior. Os erros associados a const (reescrita → TypeError; sem valor inicial → SyntaxError) são tratados como LEITURA: códigos exibidos + mensagens citadas em prosa, nunca como código a escrever, e a taxonomia completa de erros fica para a aula 11.",
   "role": "regular",
   "status": "rascunho",
   "aprovado": false

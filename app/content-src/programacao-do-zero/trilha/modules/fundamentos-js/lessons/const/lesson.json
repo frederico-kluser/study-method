@@ -67,8 +67,7 @@
   "introduces": {
     "receptive": [],
     "productive": [
-      "decl:const",
-      "decl:let"
+      "decl:const"
     ]
   },
   "introducesTerms": [

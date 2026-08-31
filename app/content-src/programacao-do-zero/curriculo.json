@@ -408,8 +408,8 @@
     ],
     "atividade": {
       "fixar": {
-        "o_aluno_escreve": "let contador = 0;",
-        "estrutura": "CONGELADO: `contador = 5;` e `return contador;`. A declaração da variável com let e um valor inicial é sua; a atribuição (linha congelada, lida como leitura) decide o valor final: 5.",
+        "o_aluno_escreve": "export let contador = 0;",
+        "estrutura": "CONGELADO: `export function iniciar() { contador = 5; return contador; }` — a atribuição e o return dentro da função. A declaração da variável com let, um valor inicial e a palavra export, no escopo do MÓDULO (fora da função), é sua — o teste importa a variável junto com a função; a atribuição (linha congelada, lida como leitura) decide o valor final: 5.",
         "atoms_usados": [
           "decl:let",
           "node:VariableStatement",
@@ -430,8 +430,8 @@
         ]
       },
       "esticar": {
-        "o_aluno_escreve": "let contador = 7;",
-        "estrutura": "Mesmo starter; troque o valor inicial para 7 e preveja: o return ainda devolve 5, porque a atribuição congelada sobrescreve. Só reuso de decl:let + node:NumericLiteral.",
+        "o_aluno_escreve": "export let contador = 7;",
+        "estrutura": "Mesmo starter; troque o valor inicial para 7 e preveja: o return ainda devolve 5, porque a atribuição congelada sobrescreve. Só reuso de decl:let + node:NumericLiteral + node:ExportKeyword.",
         "atoms_usados": [
           "decl:let",
           "node:VariableStatement",

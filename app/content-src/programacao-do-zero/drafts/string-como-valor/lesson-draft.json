@@ -1,5 +1,5 @@
 {
-  "raciocinio_de_projeto": "L8 da trilha micro programacao-do-zero — texto também é valor: a STRING. Avanço produtivo: node:StringLiteral (o texto entre aspas) REUSANDO decl:let da aula 7 (avancos do curriculo L8: produtivo=[node:StringLiteral, decl:let]; receptivo=[]). A atividade combina let + string numa única lacuna: `let mensagem = \"oi\";` — uma construção por linha (A14b: a linha da solução tem decl:let + node:StringLiteral, e decl:let é reuso da aula 7, portanto não é construção NOVA nesta aula; o colapso didático de `construcoesDaLinha` mantém 1 construção por linha). Teoria: string = texto entre aspas — um valor como o número, guardado na variável let da aula anterior; o invólucro (export/function/return) é REUSO L1-L6, nunca pre-suposto como novo. Seção 1 demonstra StringLiteral + decl:let + VariableStatement + VariableDeclaration (primeira_secao_demonstra do curriculo L8); as refutações ancoram na spec (aspas delimitam o literal — ECMA-262 12.9.3; string é sequência de código — MDN String). A predição é licita (aula com ancestrais: o aluno já leu textos entre aspas no harness desde a L1 — `assert.equal(f(), 1)` já leva códigos; retrieval real). O desafio congela `export function saudacao() { ???; return mensagem; }`: a lacuna é a declaração let com texto; retorno connormal; espera-se que o aluno escreva só a linha da declaração; o teste `assert.equal(saudacao(), 'oi')` valida o texto guardado. expectedTestCount=1 por J4 — orçamento sem parâmetros até L8, segunda chamada seria tautológica. Starter falha (prova 2) porque `return mensagem;` referencia variável não declarada → ReferenceError em strict mode. A16: escrito(1º desafio) = {StringLiteral, decl:let, VariableStatement, VariableDeclarationList, VariableDeclaration} ⊆ DemoSec1(8) ∪ Cum ∪ H13 — a primeira seção demonstra a declaração com let e o texto; o trio Variable* é estrutural (sempre-liberado) após a promoção recomendada no curriculo.md. Nada de const (L10), template literals (fora da trilha), concatenação (+) nem console (outputChannel='retorno'); termos novos: string, aspas, texto.",
+  "raciocinio_de_projeto": "L8 da trilha micro programacao-do-zero — texto também é valor: a STRING. Avanço produtivo: node:StringLiteral (o texto entre aspas) REUSANDO decl:let da aula 7 (avancos do curriculo L8: produtivo=[node:StringLiteral, decl:let]; receptivo=[]). ONDA 6 (REPLAN A2 — REMOVER do excesso): introduces.productive passa a declarar SÓ node:StringLiteral — decl:let é CUMULATIVO (produtivo da L7, presente no orçamento da entrada da L8 via carry); remover da declaração é A2-safe: a atividade continua exercitando decl:let na lacuna (o aluno escreve let mensagem = \"oi\";) e o átomo permanece no saída produtiva da aula via herança cumulativa. A atividade combina let + string numa única lacuna: `let mensagem = \"oi\";` — uma construção por linha (A14b: a linha da solução tem decl:let + node:StringLiteral, e decl:let é reuso da aula 7, portanto não é construção NOVA nesta aula; o colapso didático de `construcoesDaLinha` mantém 1 construção por linha). Teoria: string = texto entre aspas — um valor como o número, guardado na variável let da aula anterior; o invólucro (export/function/return) é REUSO L1-L6, nunca pre-suposto como novo. Seção 1 demonstra StringLiteral + decl:let + VariableStatement + VariableDeclaration (primeira_secao_demonstra do curriculo L8); as refutações ancoram na spec (aspas delimitam o literal — ECMA-262 12.9.3; string é sequência de código — MDN String). A predição é licita (aula com ancestrais: o aluno já leu textos entre aspas no harness desde a L1 — `assert.equal(f(), 1)` já leva códigos; retrieval real). O desafio congela `export function saudacao() { ???; return mensagem; }`: a lacuna é a declaração let com texto; retorno connormal; espera-se que o aluno escreva só a linha da declaração; o teste `assert.equal(saudacao(), 'oi')` valida o texto guardado. expectedTestCount=1 por J4 — orçamento sem parâmetros até L8, segunda chamada seria tautológica. Starter falha (prova 2) porque `return mensagem;` referencia variável não declarada → ReferenceError em strict mode. A16: escrito(1º desafio) = {StringLiteral, decl:let, VariableStatement, VariableDeclarationList, VariableDeclaration} ⊆ DemoSec1(8) ∪ Cum ∪ H13 — a primeira seção demonstra a declaração com let e o texto; o trio Variable* é estrutural (sempre-liberado) após a promoção recomendada no curriculo.md. Nada de const (L10), template literals (fora da trilha), concatenação (+) nem console (outputChannel='retorno'); termos novos: string, aspas, texto.",
   "slug": "string-como-valor",
   "title": "Texto também é valor: a string",
   "objective": {
@@ -10,9 +10,15 @@
   },
   "introduces": {
     "receptive": [],
-    "productive": ["node:StringLiteral", "decl:let"]
+    "productive": [
+      "node:StringLiteral"
+    ]
   },
-  "introducesTerms": ["string", "aspas", "texto"],
+  "introducesTerms": [
+    "string",
+    "aspas",
+    "texto"
+  ],
   "foraDeEscopo": [
     "concatenar textos (operador +) — op:binary:+ não está no orçamento da trilha; juntar strings é aula própria.",
     "template literals (crase, ${}) — outra forma de escrever texto — fora do orçamento da trilha.",
@@ -69,7 +75,12 @@
       "sectionId": "string-como-valor",
       "statement": "String é um valor, como o número: um texto entre aspas pode ser guardado numa variável let, lido e devolvido — o valor guardado é o conteúdo de dentro, sem as aspas.",
       "question": "A função abaixo roda e o teste confere o que ela devolve. O que `saudacao()` devolve?\n\n```js\nexport function saudacao() {\n  let mensagem = \"oi\";\n  return mensagem;\n}\n```",
-      "options": ["oi", "\"oi\" (com as aspas)", "um erro, porque texto não é número", "a etiqueta mensagem"],
+      "options": [
+        "oi",
+        "\"oi\" (com as aspas)",
+        "um erro, porque texto não é número",
+        "a etiqueta mensagem"
+      ],
       "answerIndex": 0,
       "feedback": "As aspas delimitam o texto, mas o valor guardado é o conteúdo de dentro: oi. É esse texto que o return devolve — sem aspas — como qualquer valor."
     },
@@ -78,7 +89,12 @@
       "sectionId": "texto-tambem-e-valor",
       "statement": "Sem as aspas, um texto deixa de ser texto: oi vira um NOME, e um nome que não foi declarado não existe para a máquina.",
       "question": "Qual linha guarda o texto oi numa variável let, do jeito que a máquina entende?",
-      "options": ["let mensagem = oi;", "let mensagem = \"oi\";", "let mensagem = 'oi;", "let mensagem = oi\";"],
+      "options": [
+        "let mensagem = oi;",
+        "let mensagem = \"oi\";",
+        "let mensagem = 'oi;",
+        "let mensagem = oi\";"
+      ],
       "answerIndex": 1,
       "feedback": "Com aspas duplas, \"oi\" é uma string. Sem aspas, oi é um nome — e um nome que não foi declarado não existe para a máquina (a execução falha)."
     },
@@ -87,12 +103,17 @@
       "sectionId": "refutacoes",
       "statement": "As aspas marcam onde o texto começa e termina, e precisam casar: a aspa que abre é a mesma que fecha.",
       "question": "Qual destas linhas a máquina ENTENDE como uma string?",
-      "options": ["let mensagem = \"oi\";", "let mensagem = \"oi';", "let mensagem = 'oi\";", "let mensagem = oi;"],
+      "options": [
+        "let mensagem = \"oi\";",
+        "let mensagem = \"oi';",
+        "let mensagem = 'oi\";",
+        "let mensagem = oi;"
+      ],
       "answerIndex": 0,
       "feedback": "\"oi\" abre e fecha com a mesma aspa — a máquina entende. \"oi' e 'oi\" misturam as aspas e não fecham; oi sem aspas é um nome, não texto."
     }
   ],
-  "justificativa": "Aula 8 da trilha: node:StringLiteral vira produtivo reusando decl:let (aula 7) — o curriculo L8 registra produtivo=[node:StringLiteral, decl:let] e receptivo=[]; a primeira seção demonstra a declaração let com texto (A16: escrito ⊆ DemoSec1 ∪ Cum ∪ H13, com o trio Variable* estrutural); a teoria ensina string = texto entre aspas como valor como o número, com refutações ancoradas na spec. O desafio congela o invólucro e o return, deixando só a declaração como lacuna única; teste só com a seed do harness. A14a: Novo(8)=0 (StringLiteral ∈ H13, decl:let em Cum) → aviso de 'aula de prática' calibrado, idêntico às L2-L4 de leitura/prática — nunca erro. Nada fora do universo L1-L8.",
+  "justificativa": "Aula 8 da trilha: node:StringLiteral vira produtivo reusando decl:let (aula 7) — o curriculo L8 registra produtivo=[node:StringLiteral, decl:let] e receptivo=[]; a primeira seção demonstra a declaração let com texto (A16: escrito ⊆ DemoSec1 ∪ Cum ∪ H13, com o trio Variable* estrutural); a teoria ensina string = texto entre aspas como valor como o número, com refutações ancoradas na spec. O desafio congela o invólucro e o return, deixando só a declaração como lacuna única; teste só com a seed do harness. ONDA 6 (REPLAN A2 — REMOVER do excesso): introduces.productive foi reduzido a [node:StringLiteral] — decl:let é cumulativo da L7 (permanece no saída produtiva da L8 via carry; remover da declaração é A2-safe e não afeta a atividade, que continua exercitando a declaração let na lacuna). A14a: Novo(8)=0 (StringLiteral ∈ H13, decl:let em Cum) → aviso de 'aula de prática' calibrado, idêntico às L2-L4 de leitura/prática — nunca erro. Nada fora do universo L1-L8.",
   "role": "regular",
   "status": "rascunho",
   "aprovado": false

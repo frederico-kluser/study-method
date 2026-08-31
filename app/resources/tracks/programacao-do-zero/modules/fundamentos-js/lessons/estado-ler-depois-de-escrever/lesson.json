@@ -74,9 +74,7 @@
       "op:assign:=",
       "node:BinaryExpression"
     ],
-    "productive": [
-      "decl:let"
-    ]
+    "productive": []
   },
   "introducesTerms": [
     "estado",
