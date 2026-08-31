@@ -26,16 +26,34 @@
  */
 
 import * as path from 'node:path';
-import { listTrackSlugs, loadTrack, TrackLoadError } from '../../electron/main/content/trackLoader';
+import { listTrackSlugs, loadTrack, TrackLoadError, type LoadedTrack } from '../../electron/main/content/trackLoader';
 import { auditTrack, type AuditReport, type Violation } from '../../electron/main/engine/audit';
-import type { BudgetSource, HarnessPolicy } from '../../electron/main/engine/budget';
+import {
+  deriveTrackBudget,
+  type BudgetSource,
+  type HarnessPolicy,
+  type TrackBudget,
+} from '../../electron/main/engine/budget';
+import type { TrackChallengeSource } from '../../electron/main/content/trackTypes';
+import type { AtomKey } from '../../electron/main/engine/atomKeys';
+import {
+  sintetizarCodigoMinimo,
+  type MinimalVerdict,
+} from '../../electron/main/engine/quality/minimal';
+import {
+  derivarRequirements,
+  validarRequirements,
+  type RequirementDeclarado,
+  type RequirementsDerivados,
+  type ValidacaoRequirements,
+} from '../../electron/main/engine/quality/requirements';
 import { createDeepSeekClient } from '../../electron/main/services/deepseekClient';
 import { createCallLlm, type EngineLlm } from '../../electron/main/engine/runtime/callLlm';
-import { createLlmSemaphore, createSemaphore } from '../../electron/main/engine/runtime/semaphore';
+import { createExecSemaphore, createLlmSemaphore, createSemaphore } from '../../electron/main/engine/runtime/semaphore';
 import { createBraveSearchService } from '../../electron/main/services/braveSearchService';
 import type { ExecutorDeMultiBusca } from '../../electron/main/engine/phases/f1Research';
 import { criarBuscaPlanejada } from '../../electron/main/engine/phases/f1Research';
-import { criarProverDeDesafio } from '../../electron/main/engine/phases/f9Verifier';
+import { criarProverDeDesafio, type ProverDeDesafio } from '../../electron/main/engine/phases/f9Verifier';
 import { criarJuizDeArestaLlm } from '../../electron/main/engine/phases/f3Graph';
 import type { FamiliaAssunto } from '../../electron/main/engine/phases/f2Decompose';
 import { FASES_ORDEM } from '../../electron/main/engine/runtime/runState';
@@ -63,6 +81,23 @@ comandos:
                 [--limite N] [--json] [--so-lacunas]
       audita uma trilha contra o orcamento cumulativo de conhecimento.
       Nao usa LLM e nao precisa de chave de API.
+
+  coverage <slug> [--modo declared|inferred] [--limite N] [--json] [--dir DIR]
+      o ALGORITMO DO DONO (peça central): sintetiza, para cada desafio, o
+      codigo MINIMO que passa no teste (zero LLM, literal/echo determinístico)
+      e compara os atoms desse minimo com o orcamento da aula:
+        LACUNA  = o teste cobra construcao que a aula nao oferece
+        EXCESSO = a aula ensina construcao que o teste nao cobra
+      Cada desafio roda o prover REAL (spawn node --test) sob o semaforo
+      SEM_EXEC. Exit 1 quando ha LACUNA ou desafio sem solucao acessivel.
+      --limite N processa e imprime no maximo N desafios (amostra rapida).
+      --dir DIR carrega a trilha de outro diretorio (ex.: content-src).
+
+  requirements <slug> [--limite N] [--json] [--dir DIR]
+      deriva requirements dos test('...') de cada desafio e valida a BIJECAO
+      com os requirements declarados no challenge.json (campo "requirements"):
+      requirement declarado sem teste e teste sem requirement sao gaps.
+      Exit 1 quando algum desafio tem gap.
 
   generate <slug> --assunto "..." [--from FASE] [--only slug]
                   [--teto-tokens N] [--familia sintaxe|algoritmo|api-runtime|...]
@@ -257,6 +292,323 @@ async function cmdAudit(pos: string[], flags: Record<string, string>, bools: Set
 }
 
 // ---------------------------------------------------------------------------
+// coverage — o ALGORITMO DO DONO: código mínimo que passa no teste × orçamento
+// ---------------------------------------------------------------------------
+
+/** Um desafio da trilha com a referência da aula (null p/ desafios de módulo/proficiência). */
+interface DesafioDaTrilha {
+  ref: string;
+  lessonRef: string | null;
+  challenge: TrackChallengeSource;
+}
+
+/** Todos os desafios da trilha: aulas + desafio do módulo + proficiência. */
+function coletarDesafios(track: LoadedTrack): DesafioDaTrilha[] {
+  const out: DesafioDaTrilha[] = [];
+  for (const mod of track.modules) {
+    for (const lesson of mod.lessons) {
+      for (const ch of lesson.challenges) {
+        out.push({ ref: `${mod.meta.slug}/${lesson.meta.slug}/${ch.slug}`, lessonRef: `${mod.meta.slug}/${lesson.meta.slug}`, challenge: ch });
+      }
+    }
+    if (mod.challenge) {
+      out.push({ ref: `${mod.meta.slug}/challenges/${mod.challenge.slug}`, lessonRef: null, challenge: mod.challenge });
+    }
+  }
+  if (track.proficiency) {
+    out.push({ ref: `proficiency/${track.proficiency.slug}`, lessonRef: null, challenge: track.proficiency });
+  }
+  return out;
+}
+
+/** Carrega a trilha (--dir sobrescreve resources/tracks) com o padrão do cmdAudit. */
+async function carregarTrilhaOuFalhar(slug: string, dirOverride: string | undefined): Promise<LoadedTrack> {
+  const dir = dirOverride !== undefined ? path.resolve(dirOverride) : path.join(TRACKS_DIR, slug);
+  try {
+    return await loadTrack(dir);
+  } catch (err) {
+    if (err instanceof TrackLoadError) {
+      console.error(`erro: trilha '${slug}' invalida (${err.issues.length} problema(s) de schema/integridade):`);
+      for (const issue of err.issues.slice(0, 20)) console.error(`  ${issue.file}: ${issue.message}`);
+      process.exit(1);
+    }
+    const slugs = await listTrackSlugs(TRACKS_DIR).catch(() => [] as string[]);
+    console.error(`erro: falha ao carregar a trilha '${slug}': ${err instanceof Error ? err.message : String(err)}`);
+    console.error(`trilhas disponiveis: ${slugs.join(', ') || '(nenhuma)'}`);
+    process.exit(2);
+  }
+}
+
+/** Orçamento de comparação: aula específica ou (sem aula) o fim da trilha. */
+function orcamentoParaComparacao(budget: TrackBudget, lessonRef: string | null): {
+  productive: ReadonlySet<AtomKey>;
+  receptive: ReadonlySet<AtomKey>;
+  introducesProductive: AtomKey[];
+  orcamentoRef: string | null;
+} {
+  if (lessonRef !== null) {
+    const lb = budget.byRef.get(lessonRef);
+    if (lb) {
+      return {
+        productive: lb.saida.productive,
+        receptive: lb.saida.receptive,
+        introducesProductive: lb.introduces.productive,
+        orcamentoRef: lb.ref,
+      };
+    }
+  }
+  const ultima = budget.lessons[budget.lessons.length - 1];
+  if (ultima) {
+    return {
+      productive: ultima.saida.productive,
+      receptive: ultima.saida.receptive,
+      introducesProductive: [],
+      orcamentoRef: null,
+    };
+  }
+  return { productive: new Set(), receptive: new Set(), introducesProductive: [], orcamentoRef: null };
+}
+
+type StatusCoverage =
+  | 'ok'
+  | 'sem-solucao'
+  | 'parse-falhou'
+  | 'prover-falhou'
+  | 'ignorado';
+
+interface ResultadoCoverage {
+  ref: string;
+  status: StatusCoverage;
+  minimalCode?: string;
+  atoms?: AtomKey[];
+  atomsDoTeste?: AtomKey[];
+  linhas?: number;
+  lacuna: AtomKey[];
+  excesso: AtomKey[];
+  orcamentoRef: string | null;
+  detail?: string;
+}
+
+/** Audita UM desafio: sintetiza o mínimo (prover real, semáforo SEM_EXEC) e compara. */
+async function auditarDesafioCoverage(
+  desafio: DesafioDaTrilha,
+  budget: TrackBudget,
+  prover: ProverDeDesafio,
+  release: () => void,
+): Promise<ResultadoCoverage> {
+  const ch = desafio.challenge;
+  const orc = orcamentoParaComparacao(budget, desafio.lessonRef);
+  try {
+    if (ch.files && ch.files.length > 0 && (ch.starterCode === undefined || ch.solutionCode === undefined)) {
+      return { ref: desafio.ref, status: 'ignorado', lacuna: [], excesso: [], orcamentoRef: orc.orcamentoRef, detail: 'desafio multi-arquivo (files) — fora do escopo desta onda' };
+    }
+    const veredito = await sintetizarCodigoMinimo(prover, {
+      starterCode: ch.starterCode ?? '',
+      solutionCode: ch.solutionCode ?? '',
+      testsCode: ch.testsCode,
+      expectedTestCount: ch.expectedTestCount,
+    });
+    if (!veredito.ok) {
+      return { ref: desafio.ref, status: veredito.reason === 'PARSE_FALHOU' ? 'parse-falhou' : veredito.reason === 'PROVER_FALHOU' ? 'prover-falhou' : 'sem-solucao', lacuna: [], excesso: [], orcamentoRef: orc.orcamentoRef, detail: veredito.detail };
+    }
+    const fora = veredito.atoms.filter((a) => !orc.productive.has(a) && !orc.receptive.has(a));
+    const excesso = orc.introducesProductive.filter((a) => !veredito.atoms.includes(a));
+    return {
+      ref: desafio.ref,
+      status: 'ok',
+      minimalCode: veredito.minimalCode,
+      atoms: veredito.atoms,
+      atomsDoTeste: veredito.atomsDoTeste,
+      linhas: veredito.lines,
+      lacuna: fora,
+      excesso,
+      orcamentoRef: orc.orcamentoRef,
+    };
+  } finally {
+    release();
+  }
+}
+
+async function cmdCoverage(pos: string[], flags: Record<string, string>, bools: Set<string>): Promise<void> {
+  const slug = pos[0];
+  if (!slug) fail('informe o slug da trilha (ex.: npm run engine -- coverage programacao-do-zero)');
+
+  const modo = flags.modo as BudgetSource | undefined;
+  if (modo !== undefined && modo !== 'declared' && modo !== 'inferred') {
+    fail(`--modo invalido: ${modo} (esperado declared ou inferred)`);
+  }
+  const limite = flags.limite !== undefined ? Number.parseInt(flags.limite, 10) : Number.MAX_SAFE_INTEGER;
+  if (!Number.isInteger(limite) || limite < 0) fail(`--limite invalido: ${flags.limite}`);
+
+  const track = await carregarTrilhaOuFalhar(slug, flags.dir);
+  const budget = deriveTrackBudget(track, { mode: modo });
+  const desafios = coletarDesafios(track).slice(0, limite);
+
+  const prover = criarProverDeDesafio();
+  const sem = createExecSemaphore();
+  const resultados: ResultadoCoverage[] = await Promise.all(
+    desafios.map(async (d) => {
+      const release = await sem.acquire();
+      return auditarDesafioCoverage(d, budget, prover, release);
+    }),
+  );
+
+  const placar = {
+    desafios: resultados.length,
+    passou: resultados.filter((r) => r.status === 'ok').length,
+    semSolucao: resultados.filter((r) => r.status === 'sem-solucao').length,
+    parseFalhou: resultados.filter((r) => r.status === 'parse-falhou').length,
+    proverFalhou: resultados.filter((r) => r.status === 'prover-falhou').length,
+    ignorados: resultados.filter((r) => r.status === 'ignorado').length,
+    lacunas: resultados.reduce((acc, r) => acc + r.lacuna.length, 0),
+    excessos: resultados.reduce((acc, r) => acc + r.excesso.length, 0),
+  };
+
+  if (bools.has('json')) {
+    console.log(
+      JSON.stringify(
+        {
+          trilha: slug,
+          orcamento: budget.source,
+          desafios: resultados,
+          placar,
+        },
+        null,
+        2,
+      ),
+    );
+  } else {
+    console.log('');
+    console.log(`TRILHA ${slug} — COBERTURA DO TESTE (código mínimo que passa, zero LLM)`);
+    console.log(`orcamento: ${budget.source}`);
+    for (const r of resultados) {
+      console.log('');
+      console.log(`  ${r.ref}`);
+      if (r.status === 'ok') {
+        console.log(`    MINIMO (${r.linhas} linhas, provas validas):`);
+        const indentado = (r.minimalCode ?? '').split('\n').map((l) => `      ${l}`).join('\n');
+        console.log(indentado);
+        console.log(`    ATOMS COBRADOS (${r.atoms?.length ?? 0}): ${(r.atoms ?? []).join(', ')}`);
+        console.log(`    LACUNA — o teste cobra algo que a aula nao oferece (${r.lacuna.length}): ${r.lacuna.length > 0 ? r.lacuna.join(', ') : '(nenhuma)'}`);
+        console.log(`    EXCESSO — a aula ensina mas o teste nao cobra (${r.excesso.length}): ${r.excesso.length > 0 ? r.excesso.join(', ') : '(nenhum)'}`);
+        if (r.orcamentoRef) console.log(`    orcamento de referencia: ${r.orcamentoRef}`);
+      } else if (r.status === 'ignorado') {
+        console.log(`    IGNORADO: ${r.detail ?? ''}`);
+      } else {
+        console.log(`    ${r.status.toUpperCase()}: ${r.detail ?? ''}`);
+      }
+    }
+    console.log('');
+    console.log('PLACAR (coverage)');
+    console.log(`  desafios ..................... ${placar.desafios}`);
+    console.log(`  passou (solucao minima) ...... ${placar.passou}`);
+    console.log(`  sem-solucao .................. ${placar.semSolucao}`);
+    console.log(`  parse-falhou ................. ${placar.parseFalhou}`);
+    console.log(`  prover-falhou ................ ${placar.proverFalhou}`);
+    console.log(`  ignorados (multi-arquivo) .... ${placar.ignorados}`);
+    console.log(`  lacunas (fora do orcamento) .. ${placar.lacunas}`);
+    console.log(`  excessos (aula ensina, teste nao cobra) .. ${placar.excessos}`);
+    console.log('');
+  }
+
+  const violou = placar.lacunas > 0 || placar.semSolucao > 0 || placar.proverFalhou > 0;
+  process.exit(violou ? 1 : 0);
+}
+
+// ---------------------------------------------------------------------------
+// requirements — DERIVAÇÃO + BIJEÇÃO requirements declarados × test('…')
+// ---------------------------------------------------------------------------
+
+/** Campo aditivo `requirements` do challenge.json (não tipado em trackTypes — leitura defensiva). */
+function lerRequirementsDeclarados(challenge: TrackChallengeSource): RequirementDeclarado[] {
+  const raw = (challenge as unknown as { requirements?: unknown }).requirements;
+  if (!Array.isArray(raw)) return [];
+  const out: RequirementDeclarado[] = [];
+  for (const item of raw) {
+    if (typeof item !== 'object' || item === null) continue;
+    const r = item as Record<string, unknown>;
+    if (typeof r.id === 'string' && typeof r.teste === 'string') {
+      out.push({ id: r.id, descricao: typeof r.descricao === 'string' ? r.descricao : undefined, teste: r.teste });
+    }
+  }
+  return out;
+}
+
+interface ResultadoRequirements {
+  ref: string;
+  derivados: RequirementsDerivados;
+  declarados: RequirementDeclarado[];
+  validacao: ValidacaoRequirements;
+}
+
+async function cmdRequirements(pos: string[], flags: Record<string, string>, bools: Set<string>): Promise<void> {
+  const slug = pos[0];
+  if (!slug) fail('informe o slug da trilha (ex.: npm run engine -- requirements programacao-do-zero)');
+
+  const limite = flags.limite !== undefined ? Number.parseInt(flags.limite, 10) : Number.MAX_SAFE_INTEGER;
+  if (!Number.isInteger(limite) || limite < 0) fail(`--limite invalido: ${flags.limite}`);
+
+  const track = await carregarTrilhaOuFalhar(slug, flags.dir);
+  const desafios = coletarDesafios(track).slice(0, limite);
+
+  const resultados: ResultadoRequirements[] = [];
+  for (const d of desafios) {
+    const declarados = lerRequirementsDeclarados(d.challenge);
+    let derivados: RequirementsDerivados;
+    let validacao: ValidacaoRequirements;
+    try {
+      derivados = derivarRequirements(d.challenge.testsCode, d.challenge.solutionCode ?? '', d.challenge.starterCode ?? '');
+      validacao = validarRequirements(d.challenge.testsCode, declarados);
+    } catch (err) {
+      // fail-closed: teste que não parseia vira gap (nunca silêncio).
+      derivados = { requirements: [], cobertura: [] };
+      validacao = { ok: false, semTeste: declarados.map((r) => r.id), testesSemRequirement: [], correspondencias: [] };
+      console.error(`  [parse-falhou] ${d.ref}: ${err instanceof Error ? err.message : String(err)}`);
+    }
+    resultados.push({ ref: d.ref, derivados, declarados, validacao });
+  }
+
+  const placar = {
+    desafios: resultados.length,
+    comBijecaoCompleta: resultados.filter((r) => r.validacao.ok).length,
+    comGaps: resultados.filter((r) => !r.validacao.ok).length,
+    semTeste: resultados.reduce((acc, r) => acc + r.validacao.semTeste.length, 0),
+    testesSemRequirement: resultados.reduce((acc, r) => acc + r.validacao.testesSemRequirement.length, 0),
+  };
+
+  if (bools.has('json')) {
+    console.log(JSON.stringify({ trilha: slug, desafios: resultados, placar }, null, 2));
+  } else {
+    console.log('');
+    console.log(`TRILHA ${slug} — REQUIREMENTS (derivados do teste × declarados no desafio)`);
+    for (const r of resultados) {
+      console.log('');
+      console.log(`  ${r.ref}`);
+      console.log(`    derivados: ${r.derivados.requirements.length} · declarados: ${r.declarados.length} · bijecao: ${r.validacao.ok ? 'OK' : 'GAP'}`);
+      for (const req of r.derivados.requirements) {
+        console.log(`      [derivado] ${req.id} ${req.teste}: ${req.descricao}`);
+      }
+      if (r.validacao.semTeste.length > 0) {
+        console.log(`      GAP — requirements declarados SEM teste: ${r.validacao.semTeste.join(', ')}`);
+      }
+      if (r.validacao.testesSemRequirement.length > 0) {
+        console.log(`      GAP — test() SEM requirement declarado: ${r.validacao.testesSemRequirement.join(', ')}`);
+      }
+    }
+    console.log('');
+    console.log('PLACAR (requirements)');
+    console.log(`  desafios ..................... ${placar.desafios}`);
+    console.log(`  bijecao completa ............ ${placar.comBijecaoCompleta}`);
+    console.log(`  com gaps .................... ${placar.comGaps}`);
+    console.log(`  requirements sem teste ...... ${placar.semTeste}`);
+    console.log(`  testes sem requirement ...... ${placar.testesSemRequirement}`);
+    console.log('');
+  }
+
+  process.exit(placar.comGaps > 0 ? 1 : 0);
+}
+
+// ---------------------------------------------------------------------------
 // generate — P-22: CLI FINO, fiação INJETÁVEL fora do entry (geraTrilha.ts)
 // ---------------------------------------------------------------------------
 
@@ -421,6 +773,12 @@ async function main(): Promise<void> {
   switch (command) {
     case 'audit':
       await cmdAudit(pos, flags, bools);
+      break;
+    case 'coverage':
+      await cmdCoverage(pos, flags, bools);
+      break;
+    case 'requirements':
+      await cmdRequirements(pos, flags, bools);
       break;
     case 'generate':
       await cmdGenerate(pos, flags);
