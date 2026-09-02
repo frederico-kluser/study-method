@@ -389,6 +389,9 @@ O modelo de ameaça completo, incluindo o que declaradamente **não** é defendi
 | `skills/study-method/references/` | Nível 2, lido sob demanda — 12 arquivos: bootstrap, pedagogia, protocolo de desafio, linguagens, visualização, segurança, analogias, troubleshooting, decisões, ingestão de docs, researchs, scripts. |
 | `skills/study-method/scripts/` | O que roda de verdade. `lib/` é apenas `source`, nunca executado. |
 | `skills/study-method/assets/` | Schemas JSON, templates de setup/sessão/desafio, catálogo de decisões. |
+| [`app/`](app/) | A GUI Electron. Não é a skill: é um app que **embrulha** a skill — `studyMethodRunner.ts` dá `spawn` nos mesmos scripts bash — e acrescenta geração de aula ao vivo, editor, TTS/STT local e LLM embarcado. Instalada por `./install.sh`, rodada por `./run.sh`. |
+| [`app/electron/main/engine/`](app/electron/main/engine/) | A engine de trilhas: 13 fases (`F0`..`F12`) que produzem um currículo inteiro offline, mais o gate determinístico que prova sobre AST que nenhum desafio cobra o que nenhuma aula ensinou. Rodada pelo CLI (`npm run engine -- audit <slug>`), **nunca** dentro do processo principal do Electron. |
+| [`app/resources/tracks/`](app/resources/tracks/) | As trilhas que o app oferece ao aluno. Duas hoje, em estados opostos — ver "Estado do projeto". |
 | [`docs/`](docs/) | O `docs/` do repositório: documentos normativos por domínio. `00-contratos.md` é a autoridade — não confundir com o `docs/` do setup, que é a teoria do aluno. |
 | [`docs/research/`](docs/research/) | A pesquisa auditada que sustenta as decisões, com as fontes. |
 | [`docs/build-spec/`](docs/build-spec/) | Os fragmentos de contrato de cada artefato implementado. |
@@ -411,6 +414,8 @@ O modelo de ameaça completo, incluindo o que declaradamente **não** é defendi
 | [`docs/16-engine-de-trilha.md`](docs/16-engine-de-trilha.md) | A engine de trilhas: o gate determinístico que prova, sobre AST, que nenhum desafio cobra construção que nenhuma aula ensinou. |
 | [`docs/06-visualizacao.md`](docs/06-visualizacao.md) | O renderizador e as regras de figura honesta. |
 | [`docs/11-seguranca-privacidade.md`](docs/11-seguranca-privacidade.md) | Modelo de ameaça, privacidade campo a campo, sandbox. |
+| [`docs/app-gui.md`](docs/app-gui.md) | A GUI Electron: contratos de IPC, telas, o que cada painel faz. |
+| [`EXPLAINER.md`](EXPLAINER.md) | Análise do sistema inteiro medida em 2026-09-01: as três máquinas de produzir aula, o que a engine cobre, o que ela não cobre, e onze anotações de melhoria com o comando que reproduz cada número. |
 | [`CONTRIBUTING.md`](CONTRIBUTING.md) | Como rodar o gate, como acrescentar linguagem ou decisão, o que não é aceito em PR. |
 
 ---
@@ -420,10 +425,11 @@ O modelo de ameaça completo, incluindo o que declaradamente **não** é defendi
 **Versão inicial.** O repositório é novo e ainda não teve uso real por outra pessoa além do autor.
 Isso muda o que as afirmações acima valem, então vale separar:
 
-**Verificado por execução** (numa máquina Linux de desenvolvimento, em 2026-08-23):
+**A skill — verificada por execução** (numa máquina Linux de desenvolvimento, em 2026-08-23):
 
 - os 5 gates rodam e fecham **verdes**: `gate-build`, `gate-lint`, `validate`, `smoke` e
-  `spec-conformance`;
+  `spec-conformance`. ⚠ **Isso não vale mais desde que o `app/` entrou no repositório** — dois
+  deles reprovam hoje; ver o bloco "A GUI e a engine de trilhas", abaixo;
 - o `smoke` percorre o fluxo inteiro num `HOME` temporário: cria um setup, abre e fecha 3 sessões
   com o ciclo REQUEST/APPLY, gera e valida um desafio Python pelo protocolo completo, renderiza um
   gráfico com as 4 saídas, prova a idempotência do `readme-sync.sh` byte a byte e valida todo JSON
@@ -433,7 +439,7 @@ Isso muda o que as afirmações acima valem, então vale separar:
 - o comportamento do sandbox — inclusive a descoberta de que `unshare` sozinho não confina escrita
   e de que a sonda de `bwrap` precisa dos quatro `--symlink` — foi medido, não deduzido.
 
-**Ainda não verificado / pendente:**
+**A skill — ainda não verificado / pendente:**
 
 - **nenhum eval com modelo no loop foi rodado.** As regras de conversa (`AS-*`, `C-*`, `ERR-*`)
   têm ID estável e a suíte existe — 15 casos com rubrica e baseline em `evals/` —, mas
@@ -444,6 +450,36 @@ Isso muda o que as afirmações acima valem, então vale separar:
 - `shellcheck` não está instalado na máquina de desenvolvimento, então a análise estática de shell
   se limita a `bash -n`. O `gate-build` declara isso em vez de esconder;
 - nenhuma medição de efeito pedagógico foi feita, e nenhuma é afirmada.
+
+**A GUI e a engine de trilhas** (medido em 2026-09-01; o detalhe, com o comando de cada número,
+está em [`EXPLAINER.md`](EXPLAINER.md)). A engine é a parte mais verificável do repositório e a que
+tem o estado mais desigual:
+
+- o **gate determinístico roda**, e o que ele mede é público: `programacao-do-zero` fecha com
+  **0 violações** em 14 aulas, e `nodejs-do-zero` com **717 violações** em 118 aulas — 112 dos 118
+  desafios cobram alguma construção que a trilha não ensinou. Reproduza com
+  `cd app && npx tsx tools/track-engine/cli.ts audit <slug> --limite 0`. As duas trilhas **não são
+  auditadas no mesmo regime**: o modo é escolhido pelo dado, e comparar os dois números
+  diretamente é comparar réguas diferentes;
+- **as duas aparecem lado a lado** para o aluno: `track:list` lista o que está instalado, e o
+  portão de qualidade da engine roda na autoria, não na entrega;
+- o modo `generate` (F0–F12) **nunca rodou fora de teste**: não existe um `run.json` nos 84.499
+  arquivos do repositório, e nunca existiu em 554 commits. A trilha entregue foi materializada por
+  um script ad-hoc, por fora dos portões fail-closed da F12;
+- o caminho que **gera aula ao vivo** roda gate de execução, mas nenhum gate de orçamento por AST —
+  `grep -rn "auditTrack\|deriveTrackBudget\|extractAtoms" app/electron/main/{services,ipc,domain}`
+  volta vazio;
+- **nenhum código do app roda na CI.** O `gate.yml` roda os 5 gates bash e o `install.sh`, e os 5
+  gates têm zero ocorrências de `app/`. Consequência medida: a suíte do app tem 2761 testes e
+  **1 vermelho** hoje (`npm test`, em `app/`);
+- **e os 5 gates bash já não fecham verdes.** Medido em 2026-09-01, rodando os cinco na raiz:
+  `validate` (77), `smoke` (78) e `spec-conformance` (11) passam; **`gate-build` (9 passou · 2
+  falhou) e `gate-lint` (2 passou · 3 falhou) reprovam.** A causa é a mesma dos dois lados: os
+  gates foram escritos quando o repositório era só a skill e hoje varrem `app/` inteiro — incluindo
+  `app/node_modules` (CRLF em B-09, chave dupla sem fechamento em L-03), o `app/tsconfig.node.json`,
+  que é JSONC e não JSON estrito (B-03), e arquivos de `app/content-src/` sem newline final (L-04).
+  O bloco de 2026-08-23 acima continua verdadeiro para o que ele mediu — a skill —, e é por isso
+  que ele agora diz "a skill".
 
 ---
 
