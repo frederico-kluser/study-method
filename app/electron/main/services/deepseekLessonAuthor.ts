@@ -16,8 +16,15 @@
  *   silêncio: autoria é obrigatória para a aula; diferente do juiz que degrada).
  *
  * NÃO importa electron; o cliente é injetável (testes isolam o autor do
- * transporte). O modelo default é o do cliente (DEEPSEEK_MODEL.id), sobrescrito
- * por `deps.model`.
+ * transporte). O modelo default é o do cliente (`OPENROUTER_MODEL.id` do
+ * contrato congelado `shared/llm/constants.ts`), sobrescrito por `deps.model`.
+ *
+ * RACIOCÍNIO: o autor NÃO pede raciocínio no texto do prompt e NÃO rebaixa o
+ * esforço por chamada — vale o default do cliente,
+ * `reasoning: { enabled: true, effort: 'max' }` (`OPENROUTER_REASONING` /
+ * `OPENROUTER_MAX_EFFORT` em `shared/llm/constants.ts`, onde 'max' é o topo
+ * que o modelo aceita). Profundidade é parâmetro, não imperativo textual
+ * (docs/16-engine-de-trilha.md §7).
  */
 
 import { DEEPSEEK_ERROR_CODES, DeepSeekError, createDeepSeekClient, type DeepSeekClient } from './deepseekClient';
@@ -34,9 +41,9 @@ import type { AuthorMemory } from './lessonTypes';
 export interface DeepSeekLessonAuthorDeps {
   /** Cliente injetável (testes). Default: novo cliente com getApiKey. */
   client?: DeepSeekClient;
-  /** Resolve a chave DeepSeek sob demanda. Default: '' (⇒ chave ausente). */
+  /** Resolve a chave do provedor de LLM sob demanda. Default: '' (⇒ chave ausente). */
   getApiKey?: () => Promise<string>;
-  /** Sobrescreve o model (default: DEEPSEEK_MODEL.id no cliente). */
+  /** Sobrescreve o model (default: OPENROUTER_MODEL.id, aplicado no cliente). */
   model?: string;
 }
 
@@ -327,7 +334,7 @@ export function validateLessonDraft(
   opts?: { allowEmptyChallenges?: boolean }
 ): LessonDraft | null {
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
-    throw new Error('Autor DeepSeek: o modelo não devolveu um LessonDraft (objeto JSON).');
+    throw new Error('Autor (LLM): o modelo não devolveu um LessonDraft (objeto JSON).');
   }
   const o = raw as Record<string, unknown>;
   const missing: string[] = [];
@@ -338,18 +345,18 @@ export function validateLessonDraft(
     missing.push('challenges (>= 1 desafio; para matemática use challenges: [] e o exercício da mathLib)');
   }
   if (missing.length) {
-    throw new Error(`Autor DeepSeek: LessonDraft inválido — faltou: ${missing.join(', ')}.`);
+    throw new Error(`Autor (LLM): LessonDraft inválido — faltou: ${missing.join(', ')}.`);
   }
 
   if (!Array.isArray(o.challenges)) {
-    throw new Error('Autor DeepSeek: LessonDraft.challenges não é um array.');
+    throw new Error('Autor (LLM): LessonDraft.challenges não é um array.');
   }
   if (o.challenges.length > 2) {
-    throw new Error('Autor DeepSeek: LessonDraft tem mais de 2 desafios (o layout permite no máximo 2).');
+    throw new Error('Autor (LLM): LessonDraft tem mais de 2 desafios (o layout permite no máximo 2).');
   }
   for (let i = 0; i < o.challenges.length; i++) {
     const err = validateChallenge(o.challenges[i], i);
-    if (err !== null) throw new Error(`Autor DeepSeek: ${err}`);
+    if (err !== null) throw new Error(`Autor (LLM): ${err}`);
   }
 
   const lessonTitle = String(o.lessonTitle).trim();
@@ -410,13 +417,13 @@ export function createDeepSeekLessonAuthor(deps: DeepSeekLessonAuthorDeps = {}):
       if (!key) {
         throw new DeepSeekError(
           DEEPSEEK_ERROR_CODES.KEY_MISSING,
-          'Autor DeepSeek: chave de API não configurada. Configure a chave DeepSeek nas configurações.'
+          'Autor (LLM): chave de API não configurada. Configure a chave do provedor de LLM nas configurações.'
         );
       }
     } else if (!deps.client) {
       throw new DeepSeekError(
         DEEPSEEK_ERROR_CODES.KEY_MISSING,
-        'Autor DeepSeek: sem getApiKey e sem cliente injetado.'
+        'Autor (LLM): sem getApiKey e sem cliente injetado.'
       );
     }
 
@@ -442,7 +449,7 @@ export function createDeepSeekLessonAuthor(deps: DeepSeekLessonAuthorDeps = {}):
         if (error instanceof DeepSeekError) throw error;
         throw new DeepSeekError(
           DEEPSEEK_ERROR_CODES.NETWORK,
-          `Autor DeepSeek falhou: ${error instanceof Error ? error.message : String(error)}`,
+          `Autor (LLM) falhou: ${error instanceof Error ? error.message : String(error)}`,
           error
         );
       }
@@ -451,7 +458,7 @@ export function createDeepSeekLessonAuthor(deps: DeepSeekLessonAuthorDeps = {}):
     if (!raw || !raw.content || raw.content.trim().length === 0) {
       throw new DeepSeekError(
         DEEPSEEK_ERROR_CODES.NETWORK,
-        'Autor DeepSeek: o modelo devolveu resposta vazia.'
+        'Autor (LLM): o modelo devolveu resposta vazia.'
       );
     }
 

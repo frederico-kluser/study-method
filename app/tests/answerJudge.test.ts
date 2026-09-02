@@ -18,6 +18,7 @@ import {
   type JudgeAnswerInput,
 } from '../electron/main/services/answerJudge';
 import type { DeepSeekClient } from '../electron/main/services/deepseekClient';
+import { OPENROUTER_MODEL } from '@shared/llm/constants';
 
 const INPUT: JudgeAnswerInput = {
   answerText: 'Uma closure é uma função que lembra do escopo onde nasceu.',
@@ -34,7 +35,7 @@ function fakeDeepseek(behavior: { content?: string; throwError?: Error }): DeepS
     async chatCompletion(req) {
       calls.push({ messages: req.messages, temperature: req.temperature ?? 0 });
       if (behavior.throwError) throw behavior.throwError;
-      return { content: behavior.content ?? VALID_JSON, model: 'deepseek-v4-flash' };
+      return { content: behavior.content ?? VALID_JSON, model: OPENROUTER_MODEL.id };
     },
   };
 }

@@ -110,7 +110,7 @@ function verdictJson(aprovado: boolean, motivo1: string, motivo2: string): strin
 // ---------------------------------------------------------------------------
 
 describe('buildRegenerationPrompt — ONDA 2 (autoria)', () => {
-  it('inclui critérios de entrada + aulas anteriores + regra de não-cobrar-não-ensinado + thinking máximo', () => {
+  it('inclui critérios de entrada + aulas anteriores + regra de não-cobrar-não-ensinado, SEM imperativo de raciocínio', () => {
     const prompt = buildRegenerationPrompt({
       trackTitle: 'Node.js do Zero',
       lesson: lesson(),
@@ -118,8 +118,13 @@ describe('buildRegenerationPrompt — ONDA 2 (autoria)', () => {
       entryCriteria: ['Aritmética básica', 'Ler enunciados'],
       previousLessons: [{ title: 'O que é programação', concepts: ['programacao'], theoryExcerpt: 'typeof 42 é "number".' }],
     });
-    // Thinking máximo explícito (mesmo idioma do validador da onda 1).
-    assert.match(prompt, /PENSE PROFUNDAMENTE, PASSO A PASSO/);
+    // ANOTAÇÃO #8 do EXPLAINER: o imperativo "pense profundamente, passo a
+    // passo" é anti-padrão banido por docs/16-engine-de-trilha.md §7 em modelo com
+    // raciocínio nativo — a profundidade é PARÂMETRO do protocolo
+    // (`reasoning: { enabled: true, effort: 'max' }`, default do cliente vindo
+    // de shared/llm/constants.ts), nunca texto de prompt.
+    assert.doesNotMatch(prompt, /PENSE\s+PROFUNDAMENTE/i);
+    assert.doesNotMatch(prompt, /passo a passo/i);
     // Critérios de entrada da trilha.
     assert.match(prompt, /CRITÉRIOS DE ENTRADA DA TRILHA/);
     assert.match(prompt, /- Aritmética básica/);

@@ -12,6 +12,14 @@ import assert from 'node:assert/strict';
 import { createDeepSeekLessonAuthor, slugifyToFunctionName, validateLessonDraft } from '../electron/main/services/deepseekLessonAuthor';
 import { DEEPSEEK_ERROR_CODES, DeepSeekError } from '../electron/main/services/deepseekClient';
 import type { StudyFinding } from '../shared/ipc-contract';
+import { OPENROUTER_MODEL } from '@shared/llm/constants';
+
+/**
+ * Sentinela do OVERRIDE de model: um id que NÃO é o do contrato, para provar
+ * que `deps.model` é repassado ao cliente (o default, quando nada é passado, é
+ * OPENROUTER_MODEL.id — contrato congelado `shared/llm/constants.ts`).
+ */
+const MODEL_OVERRIDE = 'modelo-de-teste';
 
 /** Cliente fake que grava o pedido e devolve content programável. */
 function fakeClient(respond: (req: { messages: { role: string; content: string }[]; temperature?: number; model?: string }) => { content: string }) {
@@ -20,7 +28,7 @@ function fakeClient(respond: (req: { messages: { role: string; content: string }
     chatCompletion: async (req: any) => {
       calls.push(req);
       const r = respond(req);
-      return { content: r.content, model: 'deepseek-v4-flash' };
+      return { content: r.content, model: OPENROUTER_MODEL.id };
     },
   };
   return { client, calls };
@@ -256,9 +264,9 @@ test('author: sem chave (getApiKey vazio/sem client) → DeepSeekError KEY_MISSI
 
 test('author: model injetado repassa ao cliente', async () => {
   const { client, calls } = fakeClient(() => ({ content: validDraftJson() }));
-  const author = createDeepSeekLessonAuthor({ client, model: 'deepseek-v4-flash' });
+  const author = createDeepSeekLessonAuthor({ client, model: MODEL_OVERRIDE });
   await author({ subject: 'X', findings: [] });
-  assert.equal(calls[0].model, 'deepseek-v4-flash');
+  assert.equal(calls[0].model, MODEL_OVERRIDE);
 });
 
 test('validateLessonDraft: chama direto com draft válido → devolve normalizado', () => {
@@ -374,7 +382,7 @@ test('author: content vazio na 1ª chamada → re-tenta e resolve na 2ª (2 cham
     chatCompletion: async () => {
       attempts++;
       if (attempts === 1) throw EMPTY_CONTENT_ERROR;
-      return { content: validDraftJson(), model: 'deepseek-v4-flash' };
+      return { content: validDraftJson(), model: OPENROUTER_MODEL.id };
     },
   };
   const author = createDeepSeekLessonAuthor({ client });
@@ -445,7 +453,7 @@ test('author: draft inválido (resposta parseável mas fora do schema) → SEM r
   const client = {
     chatCompletion: async () => {
       attempts++;
-      return { content: 'isto não é JSON algum', model: 'deepseek-v4-flash' };
+      return { content: 'isto não é JSON algum', model: OPENROUTER_MODEL.id };
     },
   };
   const author = createDeepSeekLessonAuthor({ client });

@@ -120,8 +120,12 @@ export function buildTrackHandlers(deps: TrackHandlerDeps): Map<string, IpcHandl
     }
   }
 
+  // Ponte tutor/regenerador → cliente de chat. NÃO passa esforço de raciocínio:
+  // o default do cliente já é o MÁXIMO do contrato congelado
+  // (`reasoning: { enabled: true, effort: 'max' }` — shared/llm/constants.ts),
+  // e a profundidade é parâmetro do protocolo, nunca texto de prompt (docs/16 §7).
   const chatFn: ChatFn = async (req) => {
-    if (!deps.deepseek) throw new Error('deepseek indisponível');
+    if (!deps.deepseek) throw new Error('cliente de LLM indisponível');
     const res = await deps.deepseek.chatCompletion({
       messages: req.messages as Parameters<DeepSeekClient['chatCompletion']>[0]['messages'],
       temperature: req.temperature,

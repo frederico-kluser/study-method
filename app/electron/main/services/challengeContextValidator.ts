@@ -18,12 +18,25 @@
  *      array `lessons`) + a aula atual (teoria COMPLETA — o aluno acabou de
  *      estudar). NÃO existe campo de critério por aula: o critério de entrada
  *      de cada aula é o conceito da aula anterior, DERIVADO da sequência.
- *   2. verifyChallengeAgainstContext — envia contexto + desafio à LLM com
- *      THINKING MÁXIMO explícito no prompt (o deepseekClient lê
- *      reasoning_content; NÃO há parâmetro de API para effort — a exigência
- *      de raciocínio profundo vive no texto do prompt) e devolve um veredito
- *      POR TESTE (um item por `test('...')` do testsCode), com retry 1x em
- *      JSON inválido e erro estruturado — NUNCA um veredito falso.
+ *   2. verifyChallengeAgainstContext — envia contexto + desafio à LLM e
+ *      devolve um veredito POR TESTE (um item por `test('...')` do testsCode),
+ *      com retry 1x em JSON inválido e erro estruturado — NUNCA um veredito
+ *      falso.
+ *
+ * RACIOCÍNIO É PARÂMETRO, NÃO TEXTO (fecha a anotação #8 do EXPLAINER).
+ * Este arquivo carregava no prompt o imperativo "pense profundamente, passo a
+ * passo" e comentários afirmando que "NÃO há parâmetro de API para effort —
+ * a exigência de raciocínio profundo vive no texto do prompt". Isso DEIXOU DE
+ * SER VERDADE: o provedor é o OpenRouter, e o pedido de raciocínio viaja no
+ * PARÂMETRO `reasoning: { enabled: true, effort: 'max' }` do protocolo,
+ * aplicado por PADRÃO em toda chamada de chat pelo cliente a partir do
+ * contrato congelado `shared/llm/constants.ts` (`OPENROUTER_REASONING` /
+ * `OPENROUTER_MAX_EFFORT`, onde 'max' é o TOPO dos efforts que o modelo
+ * aceita). O imperativo textual foi REMOVIDO por ser anti-padrão declarado em
+ * `docs/16-engine-de-trilha.md` §7: "nada de 'pense profundamente, passo a
+ * passo' em modelo com raciocínio nativo — o controle de profundidade é
+ * parâmetro, não texto". O que o prompt ainda exige é o FORMATO da saída:
+ * raciocínio ANTES da decisão DENTRO do JSON (INV-04, §6.3).
  *
  * PURE/DI: `llm` injetável (testes sem rede), mesmo padrão do
  * challengeRegenerator. O resultado alimenta o CLI de autoria (onda 2) e o
@@ -205,10 +218,15 @@ export interface VerifyContextInput {
 }
 
 /**
- * Constrói o prompt de validação — THINKING MÁXIMO explícito (o deepseekClient
- * lê reasoning_content; não há parâmetro de API para effort — a exigência de
- * raciocínio profundo vive AQUI, no texto), contexto completo do aluno e
- * veredito POR TESTE em JSON parseável (um item por test('...')).
+ * Constrói o prompt de validação: contexto completo do aluno + veredito POR
+ * TESTE em JSON parseável (um item por test('...')).
+ *
+ * O prompt NÃO pede raciocínio. A profundidade de raciocínio é PARÂMETRO do
+ * protocolo — `reasoning: { enabled: true, effort: 'max' }`, o default que o
+ * cliente aplica em toda chamada a partir de `shared/llm/constants.ts`
+ * (`OPENROUTER_REASONING`) — e nunca imperativo textual (docs/16 §7). O texto
+ * governa só o FORMATO: raciocínio ANTES da decisão DENTRO do JSON
+ * (nome → construcoes_encontradas → motivo → aprovado; INV-04, docs §6.3).
  */
 export function buildValidationPrompt(context: ChallengeContext, challenge: ChallengeToValidate): string {
   const entryCriteria =
@@ -230,8 +248,6 @@ export function buildValidationPrompt(context: ChallengeContext, challenge: Chal
   const current = context.currentLesson;
 
   return `Você é o VALIDADOR PEDAGÓGICO de um desafio de código do curso "${context.trackTitle}" do study-method.
-
-PENSE PROFUNDAMENTE, PASSO A PASSO, antes de responder. Use o máximo de raciocínio possível (reasoning_content) para analisar o desafio contra o contexto abaixo — o raciocínio NÃO é a resposta; a resposta final é SOMENTE o JSON, no campo content.
 
 O aluno só conhece o conteúdo das aulas anteriores e desta aula (contexto abaixo). NADA além disso pode ser cobrado — um desafio que exige conhecimento não ensinado está pedagogicamente quebrado.
 
@@ -369,7 +385,8 @@ function parseVerdict(raw: unknown, testsCode: string): { verdict: TestVerdict[]
 
 /**
  * Valida um desafio contra o contexto ensinado. Fluxo:
- *   1. monta o prompt (thinking máximo) e chama a LLM;
+ *   1. monta o prompt e chama a LLM (o raciocínio no máximo NÃO é pedido aqui:
+ *      é o default do parâmetro `reasoning` do cliente — ver o cabeçalho);
  *   2. LLM indisponível/retorno vazio → erro estruturado CONTEXT_UNAVAILABLE
  *      (sem retry — o serviço está fora do ar, retentar não ajuda);
  *   3. JSON inválido/estrutura errada → 1 retry com feedback do motivo;

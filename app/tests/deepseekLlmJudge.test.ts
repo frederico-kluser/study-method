@@ -13,6 +13,14 @@ import {
 } from '../electron/main/services/deepseekLlmJudge';
 import { DEEPSEEK_ERROR_CODES, DeepSeekError } from '../electron/main/services/deepseekClient';
 import type { StudyRequestEnvelope } from '../electron/main/services/studyMethodRunner';
+import { OPENROUTER_MODEL } from '@shared/llm/constants';
+
+/**
+ * Sentinela do OVERRIDE de model: um id que NÃO é o do contrato, para provar
+ * que `deps.model` é repassado ao cliente (o default, quando nada é passado, é
+ * OPENROUTER_MODEL.id — contrato congelado `shared/llm/constants.ts`).
+ */
+const MODEL_OVERRIDE = 'modelo-de-teste';
 
 /** Implementação do contrato que o runner espera (StudyRequestEnvelope). */
 function makeEnvelope(overrides: Partial<StudyRequestEnvelope> = {}): StudyRequestEnvelope {
@@ -38,7 +46,7 @@ function fakeClient(respond: (req: { messages: { role: string; content: string }
     chatCompletion: async (req: any) => {
       calls.push(req);
       const r = respond(req);
-      return { content: r.content, model: 'deepseek-v4-flash' };
+      return { content: r.content, model: OPENROUTER_MODEL.id };
     },
   };
   return { client, calls };
@@ -186,9 +194,9 @@ test('judge: content com array de topo → degrada com null (items[0] precisa de
 
 test('judge: model injetado repassa ao cliente', async () => {
   const { client, calls } = fakeClient(() => ({ content: '{"a":1}' }));
-  const judge = createDeepSeekLlmJudge({ client, model: 'deepseek-v4-flash' });
+  const judge = createDeepSeekLlmJudge({ client, model: MODEL_OVERRIDE });
   await judge(makeEnvelope());
-  assert.equal(calls[0].model, 'deepseek-v4-flash');
+  assert.equal(calls[0].model, MODEL_OVERRIDE);
 });
 
 test('judge: deps.client + getApiKey presente em branco → degrada antes de usar o cliente', async () => {

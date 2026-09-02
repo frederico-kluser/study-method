@@ -12,6 +12,12 @@
  * UMA chamada inline one-shot, temperature 0 (determinístico), contrato compatível
  * com o response_schema do pedido. NÃO usa PiAgentService (streamado) nem
  * apiKeyValidator (que só valida) — este é o transporte de julgamento.
+ *
+ * RACIOCÍNIO: o juiz não pede raciocínio no texto nem rebaixa o esforço por
+ * chamada — vale o default do cliente, `reasoning: { enabled: true,
+ * effort: 'max' }` do contrato congelado `shared/llm/constants.ts`
+ * (`OPENROUTER_REASONING`; 'max' é o topo que o modelo aceita). O prompt exige
+ * SÓ o JSON do schema no `content` — o raciocínio do modelo viaja fora dele.
  */
 
 import {
@@ -23,11 +29,11 @@ import {
 import type { StudyRequestEnvelope } from './studyMethodRunner';
 
 export interface DeepSeekLlmJudgeDeps {
-  /** Resolve a chave DeepSeek sob demanda. Default: '' (⇒ degrada sem rede). */
+  /** Resolve a chave do provedor de LLM sob demanda. Default: '' (⇒ degrada sem rede). */
   getApiKey?: () => Promise<string>;
   /** Cliente injetável (testes isolam o judge do transporte). Default: novo cliente. */
   client?: DeepSeekClient;
-  /** Sobrescreve o model (default: DEEPSEEK_MODEL.id no cliente). */
+  /** Sobrescreve o model (default: OPENROUTER_MODEL.id, aplicado no cliente). */
   model?: string;
 }
 

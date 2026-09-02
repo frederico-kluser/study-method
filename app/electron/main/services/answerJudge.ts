@@ -24,6 +24,11 @@
  * { ok: true, … } | { ok: false, error }) — o handler IPC valida o shape e
  * lança erros de payload à parte, no padrão dos demais handlers study:*.
  * NÃO importa electron; clientes injetáveis (testes isolam o transporte).
+ *
+ * RACIOCÍNIO: o provedor remoto é chamado SEM override de esforço — vale o
+ * default do cliente, `reasoning: { enabled: true, effort: 'max' }` do
+ * contrato congelado `shared/llm/constants.ts`. O prompt não traz imperativo
+ * de raciocínio (anti-padrão em modelo com raciocínio nativo — docs/16 §7).
  */
 
 import type { DeepSeekClient } from './deepseekClient';
@@ -63,11 +68,11 @@ export interface EmbeddedLlmLike {
 export interface AnswerJudgeDeps {
   /** Cliente DeepSeek one-shot (provedor primário). */
   deepseek: DeepSeekClient;
-  /** Resolve a chave DeepSeek sob demanda; vazia ⇒ degrada ao fallback. */
+  /** Resolve a chave do provedor de LLM sob demanda; vazia ⇒ degrada ao fallback. */
   getApiKey?: () => Promise<string>;
   /** LLM local (fallback). Ausente ⇒ só o deepseek. */
   embedded?: EmbeddedLlmLike;
-  /** Sobrescreve o model do deepseek (default: DEEPSEEK_MODEL.id no cliente). */
+  /** Sobrescreve o model do provedor remoto (default: OPENROUTER_MODEL.id, aplicado no cliente). */
   model?: string;
 }
 

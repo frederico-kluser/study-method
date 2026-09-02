@@ -373,8 +373,12 @@ export function parseLlmJson(content: string): unknown {
 }
 
 /**
- * PLANEJADOR LLM sobre o deepseekClient (temperatura baixa 0.3, JSON estrito).
+ * PLANEJADOR LLM sobre o cliente de chat (temperatura baixa 0.3, JSON estrito).
  * Lança em qualquer falha — o planner cai para a heurística determinística.
+ *
+ * Sem override de esforço: o raciocínio vem do parâmetro `reasoning` que o
+ * cliente aplica por default (`OPENROUTER_REASONING` em
+ * `shared/llm/constants.ts`), nunca de imperativo textual no prompt.
  */
 export async function planWithLlm(client: DeepSeekClientLike, subject: string): Promise<ResearchPlanShape> {
   const { system, user } = buildPlanPrompt(subject);
@@ -393,9 +397,10 @@ export async function planWithLlm(client: DeepSeekClientLike, subject: string): 
 }
 
 /**
- * ANALISTA LLM sobre o deepseekClient (temperatura baixa 0.2). Devolve os
+ * ANALISTA LLM sobre o cliente de chat (temperatura baixa 0.2). Devolve os
  * follow-ups já normalizados; lança em falha de parse/JSON — o planner então
- * NÃO roda rodada extra (degradação honesta).
+ * NÃO roda rodada extra (degradação honesta). Esforço de raciocínio: default
+ * do cliente (o máximo do contrato) — sem override e sem imperativo textual.
  */
 export async function followUpsWithLlm(client: DeepSeekClientLike, ctx: FollowUpContext): Promise<ResearchQuerySpec[]> {
   const { system, user } = buildFollowUpPrompt(ctx);

@@ -7,8 +7,12 @@
  *   - buildChallengeContext: ordem sequencial (módulos por `order`, aulas na
  *     ordem do array), aula atual EXCLUÍDA das anteriores + incluída como
  *     currentLesson, entryCriteria, truncamento da teoria das anteriores.
- *   - buildValidationPrompt: thinking máximo explícito + veredito POR TESTE
- *     (JSON parseável, um item por test('...')).
+ *   - buildValidationPrompt: veredito POR TESTE (JSON parseável, um item por
+ *     test('...')) e AUSÊNCIA de imperativo textual de raciocínio — a
+ *     profundidade é PARÂMETRO do protocolo (`reasoning.effort = 'max'`,
+ *     default do cliente, contrato `shared/llm/constants.ts`), nunca texto
+ *     (docs/16-engine-de-trilha.md §7 bane "pense profundamente, passo a
+ *     passo" em modelo com raciocínio nativo).
  *   - verifyChallengeAgainstContext: veredito por teste com llm fake; JSON
  *     inválido → retry 1x com feedback → sucesso ou erro estruturado; llm
  *     indisponível → erro estruturado (NUNCA veredito falso).
@@ -29,6 +33,11 @@ import {
   type ContextValidatorLlm,
 } from '../electron/main/services/challengeContextValidator';
 import { validateTrackSource } from '../electron/main/content/trackTypes';
+import {
+  OPENROUTER_EFFORTS,
+  OPENROUTER_MAX_EFFORT,
+  OPENROUTER_REASONING,
+} from '@shared/llm/constants';
 import type { LoadedLesson, LoadedModule, LoadedTrack } from '../electron/main/content/trackLoader';
 
 // ---------------------------------------------------------------------------
@@ -259,7 +268,7 @@ describe('buildChallengeContext', () => {
 });
 
 // ---------------------------------------------------------------------------
-// buildValidationPrompt — thinking máximo + veredito por teste
+// buildValidationPrompt — veredito por teste, SEM imperativo de raciocínio
 // ---------------------------------------------------------------------------
 
 describe('buildValidationPrompt', () => {
@@ -267,11 +276,35 @@ describe('buildValidationPrompt', () => {
   const track = makeTrack({ modules: [m1] });
   const ctx = buildChallengeContext(track, 'm1', 'm1-l2');
 
-  it('exige thinking máximo EXPLÍCITO (deepseek lê reasoning_content; não há effort por API)', () => {
+  // ANOTAÇÃO #8 do EXPLAINER — este teste PINAVA a frase banida
+  // ("pense profundamente, passo a passo", docs/16 §7) e a menção a
+  // reasoning_content no texto do prompt. A migração para o OpenRouter tornou falsa a premissa que
+  // as justificava ("não há parâmetro de API para effort"): agora o pedido de
+  // raciocínio é o PARÂMETRO `reasoning` do protocolo. O teste prova o
+  // OPOSTO do que pinava: nenhum imperativo de raciocínio no prompt.
+  it('NÃO contém imperativo textual de raciocínio (anti-padrão banido por docs/16 §7)', () => {
     const prompt = buildValidationPrompt(ctx, { title: 'Somar', statement: 'S', testsCode: SOMAR_TESTS, solutionCode: SOMAR_SOLUTION });
-    assert.match(prompt, /PENSE PROFUNDAMENTE, PASSO A PASSO/);
-    assert.match(prompt, /reasoning_content/);
+    assert.doesNotMatch(prompt, /PENSE\s+PROFUNDAMENTE/i, 'a frase banida saiu do prompt');
+    assert.doesNotMatch(prompt, /passo a passo/i, 'nenhuma variação de "passo a passo"');
+    assert.doesNotMatch(prompt, /pense\b/i, 'o prompt não manda a LLM "pensar"');
+    assert.doesNotMatch(prompt, /reasoning_content/i, 'o canal de raciocínio não é assunto do prompt');
+    assert.doesNotMatch(prompt, /m[aá]ximo de racioc[ií]nio/i, 'nada de pedir esforço por texto');
+    // O papel e o FORMATO continuam no texto — só a profundidade saiu dele.
     assert.match(prompt, /validador PEDAGÓGICO/i);
+    // INV-04 (docs §6.3): raciocínio ANTES da decisão DENTRO do JSON — isto é
+    // formato de saída, não imperativo de pensamento, e permanece.
+    assert.match(prompt, /"motivo" traz o raciocínio/);
+  });
+
+  it('o pedido de raciocínio vive no PARÂMETRO do protocolo, no máximo do contrato', () => {
+    // Contrato congelado (shared/llm/constants.ts), lido da API real do
+    // OpenRouter: o modelo aceita apenas max|high|low e 'max' é o TOPO.
+    assert.equal(OPENROUTER_REASONING.enabled, true, 'raciocínio ligado por default');
+    assert.equal(OPENROUTER_REASONING.effort, OPENROUTER_MAX_EFFORT);
+    assert.equal(OPENROUTER_MAX_EFFORT, OPENROUTER_EFFORTS[0], "'max' é o topo dos efforts aceitos");
+    // …e nada disso vaza para o texto do prompt.
+    const prompt = buildValidationPrompt(ctx, { title: 'Somar', statement: 'S', testsCode: SOMAR_TESTS, solutionCode: SOMAR_SOLUTION });
+    assert.ok(!prompt.includes(OPENROUTER_REASONING.effort), 'o effort não é escrito no prompt');
   });
 
   it('pede veredito POR TESTE em JSON parseável — um item por test(\'...\')', () => {
@@ -330,6 +363,30 @@ function somarContext(over: Partial<ChallengeContext> = {}): ChallengeContext {
 const SOMAR_CHALLENGE = { title: 'Somar dois números', statement: 'Escreva somar(a, b).', testsCode: SOMAR_TESTS, solutionCode: SOMAR_SOLUTION };
 
 describe('verifyChallengeAgainstContext', () => {
+  // ANOTAÇÃO #8 (call site): o validador NÃO rebaixa o esforço de raciocínio —
+  // não manda campo nenhum de effort na requisição, então vale o default do
+  // cliente, que é o MÁXIMO do contrato congelado (OPENROUTER_REASONING). E a
+  // mensagem enviada não carrega imperativo de raciocínio.
+  it('não rebaixa o esforço por chamada (vale o default máximo) e não pede raciocínio no texto', async () => {
+    const { llm, calls } = fakeLlm(() => ({ content: somarVerdictJson(true, 'A aula anterior ensinou typeof.') }));
+    const verdict = await verifyChallengeAgainstContext({ context: somarContext(), challenge: SOMAR_CHALLENGE, llm });
+    assert.equal(verdict.ok, true);
+    assert.equal(calls.length, 1);
+
+    const req = calls[0] as unknown as Record<string, unknown>;
+    assert.equal(
+      req.reasoningEffort,
+      undefined,
+      'sem override de effort ⇒ o cliente aplica reasoning.effort = OPENROUTER_MAX_EFFORT',
+    );
+    assert.equal(OPENROUTER_REASONING.effort, OPENROUTER_MAX_EFFORT, 'e o default do contrato é o topo');
+
+    const enviado = calls[0].messages.map((m) => m.content).join('\n');
+    assert.doesNotMatch(enviado, /PENSE\s+PROFUNDAMENTE/i);
+    assert.doesNotMatch(enviado, /passo a passo/i);
+    assert.doesNotMatch(enviado, /reasoning_content/i);
+  });
+
   it('llm devolve JSON válido → veredito ok com um item POR teste, na ordem', async () => {
     const { llm, calls } = fakeLlm(() => ({ content: somarVerdictJson(false, 'Nenhuma aula ensinou typeof/validação.') }));
     const verdict = await verifyChallengeAgainstContext({ context: somarContext(), challenge: SOMAR_CHALLENGE, llm });

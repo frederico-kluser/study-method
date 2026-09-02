@@ -136,7 +136,15 @@ export interface RegenerationPromptInput {
   previousLessons?: Array<{ title: string; concepts: string[]; theoryExcerpt: string }>;
 }
 
-/** Gera o prompt de regeneração (nunca-repetir é o coração). */
+/**
+ * Gera o prompt de regeneração (nunca-repetir é o coração).
+ *
+ * SEM imperativo de raciocínio no texto: a profundidade é PARÂMETRO do
+ * protocolo (`reasoning: { enabled: true, effort: 'max' }`, default do cliente
+ * vindo de `shared/llm/constants.ts`), e "pense profundamente, passo a passo"
+ * é anti-padrão declarado em `docs/16-engine-de-trilha.md` §7 para modelo com
+ * raciocínio nativo.
+ */
 export function buildRegenerationPrompt(input: RegenerationPromptInput): string {
   const { lesson } = input;
   const theoryExcerpt = lesson.theory
@@ -176,8 +184,6 @@ export function buildRegenerationPrompt(input: RegenerationPromptInput): string 
     : '2 a 4 testes cobrindo caso normal e caso limite (NÃO crie caso de erro — o contexto não ensinou validação/tratamento de erro)';
 
   return `Você é o autor de desafios do curso "${input.trackTitle}" do study-method. Gere UM desafio de código NOVO para a aula "${lesson.title}" (conceitos: ${lesson.concepts.join(', ')}).
-
-PENSE PROFUNDAMENTE, PASSO A PASSO, antes de produzir o JSON — analise cada teste contra o conteúdo ensinado (critérios de entrada, aulas anteriores e esta aula). O raciocínio não é a resposta; a resposta é SOMENTE o objeto JSON.
 
 CONTEÚDO DA AULA (resumo):
 ${theoryExcerpt}
