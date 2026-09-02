@@ -19,7 +19,7 @@ export interface ValidationUi {
  */
 export function humanizeValidationError(
   raw: string | undefined,
-  provider: 'deepseek' | 'brave',
+  provider: 'deepseek' | 'openrouter' | 'brave',
 ): string {
   const msg = (raw ?? '').trim();
   const lower = msg.toLowerCase();

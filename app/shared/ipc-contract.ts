@@ -29,7 +29,23 @@ export const PI_CHANNELS = {
   GET_STATUS: 'pi:get-status',
 } as const;
 
-export type PiThinkingLevel = 'off' | 'minimal' | 'low' | 'medium' | 'high' | 'xhigh';
+/**
+ * Níveis de raciocínio do Pi agent.
+ *
+ * `'max'` foi ADICIONADO na migração para OpenRouter: o enum de `reasoning.effort`
+ * do OpenRouter é `max | xhigh | high | medium | low | minimal | none`, e o topo
+ * é `'max'` — não `'xhigh'`. O modelo alvo (`z-ai/glm-5.3-flash`) aceita
+ * exatamente `max | high | low`, então `'max'` é o único valor que significa
+ * "pensar o máximo possível" nele. Ver `shared/llm/constants.ts`.
+ */
+export type PiThinkingLevel =
+  | 'off'
+  | 'minimal'
+  | 'low'
+  | 'medium'
+  | 'high'
+  | 'xhigh'
+  | 'max';
 
 export interface PiModelConfig {
   provider: string;
@@ -901,14 +917,27 @@ export type JudgeAnswerOutcome =
       ok: true;
       verdict: 'correct' | 'partial' | 'incorrect';
       feedback: string;
-      provider: 'deepseek' | 'embedded';
+      provider: 'deepseek' | 'openrouter' | 'embedded';
     }
   | { ok: false; error: { code: string; message: string } };
+
+/**
+ * MIGRAÇÃO DE PROVEDOR — FASE "EXPAND" (adicione antes de remover).
+ *
+ * O app está migrando de DeepSeek para OpenRouter (`z-ai/glm-5.3-flash`, ver
+ * `shared/llm/constants.ts`). As unions de `provider` abaixo aceitam
+ * TEMPORARIAMENTE os DOIS valores para que a troca de transporte e a troca de
+ * nomenclatura possam acontecer em commits separados sem um instante em que o
+ * contrato esteja inconsistente. A fase "contract" (remover `'deepseek'` e
+ * renomear o canal `keys:validate-deepseek`) é uma etapa POSTERIOR e explícita.
+ *
+ * Enquanto as duas convivem, `'openrouter'` é o valor CORRETO para código novo.
+ */
 
 // ─── Canais: validação de chaves ──────────────────────────────────────────────
 export interface ValidationResult {
   isValid: boolean;
-  provider: 'deepseek' | 'brave';
+  provider: 'deepseek' | 'openrouter' | 'brave';
   errorMessage?: string;
   checkedAt: string;
 }
@@ -958,7 +987,7 @@ export const SETTINGS_CHANNELS = {
 export interface AppSettings {
   setupsDir?: string;
   lastSubject?: string;
-  defaultModelProvider?: 'deepseek' | 'local';
+  defaultModelProvider?: 'deepseek' | 'openrouter' | 'local';
   defaultModelId?: string;
   /** ADITIVO (onda 6): idioma ativo, persistido pelo LanguageSwitcher do i18n. */
   language?: string;

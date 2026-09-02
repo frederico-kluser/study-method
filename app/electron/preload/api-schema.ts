@@ -177,7 +177,7 @@ export interface ApiSchema {
   };
   keys: {
     getStatus(): Promise<KeysStatus>;
-    setKey(provider: 'deepseek' | 'brave', key: string): Promise<void>;
+    setKey(provider: 'deepseek' | 'openrouter' | 'brave', key: string): Promise<void>;
     validateDeepseek(key: string): Promise<ValidationResult>;
     validateBrave(key: string): Promise<ValidationResult>;
   };
