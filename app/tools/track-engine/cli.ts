@@ -10,12 +10,19 @@
  *   generate  produz uma trilha nova (F0..F12).
  *   repair    aplica o laço revisor → plano → correção sobre conteúdo existente.
  *
- * Este arquivo implementa `audit` (o gate determinístico, sem LLM) e o
- * `generate` (o MODO GERADOR — P-22): este CLI é FINO, só resolve os deps de
- * PRODUÇÃO (cliente, transporte, semáforos, busca Brave, provador) e delega o
- * pipeline à fiação injetável `engine/fiacao/geraTrilha.ts` — testável offline
- * com FAKES. O `lint-schemas` roda o preflight do build (INV-04/INV-05) sobre o
- * registro real (P-33 incluso).
+ * Este arquivo implementa os TRÊS modos. O CLI é FINO: só resolve os deps de
+ * PRODUÇÃO (cliente, transporte, semáforos, busca Brave, provador, papéis LLM
+ * do laço, escrita em disco) e delega o pipeline às fiações injetáveis —
+ * `engine/fiacao/geraTrilha.ts` (generate) e `engine/modes/repair.ts` (repair),
+ * ambas testáveis offline com FAKES. O `lint-schemas` roda o preflight do build
+ * (INV-04/INV-05) sobre o registro real (P-33 incluso).
+ *
+ * ROTEAMENTO DO LAÇO (§6.2) — vale para `generate --modelo-revisor` (F10) e
+ * para `repair --aplicar`: `model(AUTOR) !== model(REVISOR)` é verificado em
+ * código (`review/normalize.validarRoteamento`, que LANÇA) e o contrato
+ * congelado do provedor (`@shared/llm/constants`) tem UM modelo — logo o
+ * segundo é NOMEADO pela flag. Sem ela: o `generate` DECLARA a limitação e
+ * segue (§9.2), o `repair --aplicar` recusa como uso incorreto (exit 2).
  *
  * Exit codes, na convenção do repositório (`app/tools/track-cli.ts`):
  *   0  sem violação / conclusão limpa
@@ -25,6 +32,7 @@
  * Referência: `docs/16-engine-de-trilha.md`.
  */
 
+import * as fsp from 'node:fs/promises';
 import * as path from 'node:path';
 import { listTrackSlugs, loadTrack, TrackLoadError, type LoadedTrack } from '../../electron/main/content/trackLoader';
 import { auditTrack, type AuditReport, type Violation } from '../../electron/main/engine/audit';
@@ -58,6 +66,7 @@ import {
   LEGACY_LLM_ENV_KEY,
   LEGACY_LLM_PROVIDER_KEY,
   OPENROUTER_ENV_KEY,
+  OPENROUTER_MODEL,
   OPENROUTER_PROVIDER_KEY,
 } from '../../shared/llm/constants';
 import { createCallLlm, type EngineLlm } from '../../electron/main/engine/runtime/callLlm';
@@ -68,14 +77,24 @@ import { criarBuscaPlanejada } from '../../electron/main/engine/phases/f1Researc
 import { criarProverDeDesafio, type ProverDeDesafio } from '../../electron/main/engine/phases/f9Verifier';
 import { criarJuizDeArestaLlm } from '../../electron/main/engine/phases/f3Graph';
 import type { FamiliaAssunto } from '../../electron/main/engine/phases/f2Decompose';
-import { FASES_ORDEM } from '../../electron/main/engine/runtime/runState';
+import { FASES_ORDEM, escreverAtomico } from '../../electron/main/engine/runtime/runState';
 import {
   gerarTrilha,
+  criarPapeisDoLacoLlm,
+  criarRevisaoDaFiacao,
   ErroGeracao,
   f1ConfigDefault,
   type DepsGeracao,
   type FaseId,
 } from '../../electron/main/engine/fiacao/geraTrilha';
+import {
+  repararTrilha,
+  ErroDeReparo,
+  SLUG_PROIBIDO_DO_REPAIR,
+  type DepsDoReparo,
+  type ModoDeReparo,
+  type ResultadoDeReparo,
+} from '../../electron/main/engine/modes/repair';
 import {
   SCHEMA_REGISTRY,
 } from '../../electron/main/engine/schemas/artifacts';
@@ -130,18 +149,44 @@ comandos:
 
   generate <slug> --assunto "..." [--from FASE] [--only slug]
                   [--teto-tokens N] [--familia sintaxe|algoritmo|api-runtime|...]
+                  [--modelo-revisor ID] [--modelo-autor ID] [--rodadas N]
       executa F0 a F12 e produz uma trilha nova em resources/tracks/<slug>.
       O run (run.json + ledger + artefatos + drafts) vive em content-src/<slug>
       e e RETOMAVEL: repita o comando com --from <fase pendente>.
       A F6 (piloto de 3 aulas) PARA para revisao humana: escreva
       content-src/<slug>/aprovacaoF6.json com {"aprovado": true} e retome.
       Sem chave de API: o run e criado e o erro declara a limitacao (exit 2).
+      --teto-tokens N poe TETO DURO de tokens por execucao (soma da telemetria
+      do run, checada na ENTRADA de cada fase; estourou -> TOKENS_ESGOTADOS
+      com checkpoint retomavel).
+      --modelo-revisor ID LIGA a F10 (o laco revisor -> plano -> correcao
+      sobre os drafts da onda). SEM ela a F10 nao roda e a limitacao e
+      DECLARADA na saida (§9.2): o roteamento do §6.2 exige
+      model(AUTOR) != model(REVISOR) e o contrato do provedor tem UM modelo —
+      quem roda o laco NOMEIA o segundo. --modelo-autor ID sobrescreve o
+      modelo produtor (default: o do contrato congelado).
+      --rodadas N e o teto de rodadas do laco (default 1; teto DURO 3).
+
+  repair <slug> [--dir DIR] [--aplicar] [--json] [--rodadas N]
+                [--modelo-revisor ID] [--modelo-autor ID]
+      o laco revisor -> plano -> correcao sobre uma trilha EXISTENTE (§8),
+      respeitando os pins. DEFAULT = DRY-RUN: audita, classifica cada violacao
+      (ORDEM x LACUNA DE CURRICULO x ESTRUTURAL, §5.5), imprime o plano de
+      acoes do catalogo FECHADO e o delta esperado — ZERO escrita, ZERO LLM,
+      funciona SEM chave de API.
+      --aplicar roda o laco de verdade: semeia os pins das violacoes de ORDEM,
+      corrige DENTRO do span prescrito, grava os artefatos alterados e roda o
+      audit DE NOVO comparando o placar. EXIGE --modelo-revisor (§6.2) e a
+      chave de API; sem elas aborta DECLARANDO (exit 2), nunca em silencio.
+      LIMITE v1 DECLARADO: lacuna de curriculo (nenhuma aula ensina a
+      construcao) NUNCA e consertada reescrevendo desafio — vira BLOQUEIO no
+      relatorio (criar aula e o sub-fluxo v2).
+      'nodejs-do-zero' e SLUG PROIBIDO do repair (exit 2, fail-closed).
+      --dir DIR audita/repara uma trilha fora de resources/tracks.
 
   lint-schemas
       preflight do build sobre o SCHEMA_REGISTRY real (INV-04 ordem /
       INV-05 opcionais, P-33 incluso). Exit 2 em qualquer violacao.
-
-  repair <slug>                        (nao implementado nesta onda)
 
 exit codes: 0 sem violacao · 1 violacoes encontradas · 2 uso incorreto`;
 
@@ -208,7 +253,15 @@ function printHuman(report: AuditReport, limit: number, onlyGaps: boolean): void
     else byFile.set(v.arquivo, [v]);
   }
 
+  // A linha de truncamento CONTA ERRO E AVISO SEPARADAMENTE. `shown` mistura
+  // as duas severidades (o placar abaixo as separa em `violacoes` × `avisos`):
+  // chamar o total de "violacao(oes)" mentiria — e mente justamente com
+  // `--limite 0`, o modo que a documentacao (§8/§9.4) manda usar. A contagem e
+  // feita sobre o que REALMENTE foi impresso (a impressao percorre os achados
+  // AGRUPADOS por arquivo, entao `shown.slice(0, printed)` nao vale).
   let printed = 0;
+  let errosExibidos = 0;
+  let avisosExibidos = 0;
   for (const [file, list] of byFile) {
     if (printed >= limit) break;
     console.log(`  ${file}`);
@@ -222,12 +275,19 @@ function printHuman(report: AuditReport, limit: number, onlyGaps: boolean): void
       console.log(`    [${v.regra}]${gravidade} ${v.campo}:${v.linha}:${v.coluna}  ${v.construcao ?? '-'}  — ${origem}`);
       console.log(`         ${v.mensagem}`);
       if (v.trechoOfensor) console.log(`         > ${v.trechoOfensor}`);
+      if (v.severidade === 'aviso') avisosExibidos += 1;
+      else errosExibidos += 1;
       printed += 1;
     }
     console.log('');
   }
   if (shown.length > printed) {
-    console.log(`  ... e mais ${shown.length - printed} violacao(oes) nao exibida(s) (use --limite N ou --json)`);
+    const errosOcultos = shown.filter((v) => v.severidade !== 'aviso').length - errosExibidos;
+    const avisosOcultos = shown.filter((v) => v.severidade === 'aviso').length - avisosExibidos;
+    console.log(
+      `  ... e mais ${shown.length - printed} achado(s) nao exibido(s): ` +
+        `${errosOcultos} violacao(oes) + ${avisosOcultos} aviso(s) (use --limite N ou --json)`,
+    );
     console.log('');
   }
 
@@ -773,19 +833,71 @@ function criarMultiBuscaBrave(): ExecutorDeMultiBusca {
   };
 }
 
-/** A FIAÇÃO DE PRODUÇÃO do modo generate (deps injetáveis resolvidos aqui). */
-function fiarDepsDeProducao(dir: string, dirProduto: string): DepsGeracao {
-  const llm: EngineLlm = createCallLlm({
+/** O transporte ÚNICO de LLM em PRODUÇÃO (P-01: semáforo, backoff, timeout). */
+function criarLlmDeProducao(): EngineLlm {
+  return createCallLlm({
     client: createLlmClient({ apiKey: () => resolverChaveOpenRouter() }),
     apiKey: () => resolverChaveOpenRouter(),
     semaphore: createLlmSemaphore(),
   });
+}
+
+/**
+ * O ROTEAMENTO do laço (§6.2), resolvido a partir das flags.
+ *
+ * `model(AUTOR) !== model(REVISOR)` é restrição VERIFICADA EM CÓDIGO
+ * (`review/normalize.validarRoteamento`, que LANÇA). O contrato congelado do
+ * provedor (`@shared/llm/constants`) tem UM modelo — logo NÃO existe default
+ * legítimo para o revisor: quem roda o laço NOMEIA o segundo modelo em
+ * `--modelo-revisor`. Sem ele o laço simplesmente não é fiado (a limitação é
+ * DECLARADA, §9.2), em vez de ser fiado para estourar `ErroDeRoteamento` na
+ * primeira revisão.
+ */
+interface RoteamentoDoLaco {
+  modeloAutor: string;
+  modeloRevisor: string;
+}
+
+function resolverRoteamentoOuNulo(flags: Record<string, string>): RoteamentoDoLaco | null {
+  const modeloRevisor = flags['modelo-revisor'];
+  if (modeloRevisor === undefined || modeloRevisor.trim() === '') return null;
+  const modeloAutor = flags['modelo-autor']?.trim() || OPENROUTER_MODEL.id;
+  if (modeloAutor === modeloRevisor.trim()) {
+    fail(
+      `--modelo-revisor "${modeloRevisor}" e igual ao --modelo-autor: o §6.2 exige model(AUTOR) != model(REVISOR) ` +
+        '(a autopreferencia sobrevive a rubrica objetiva e se estende a familia do modelo).',
+    );
+  }
+  return { modeloAutor, modeloRevisor: modeloRevisor.trim() };
+}
+
+/** `--rodadas N` — teto de rodadas do laço (o laço clampa em [1, 3]). */
+function resolverRodadas(flags: Record<string, string>): number | undefined {
+  if (flags.rodadas === undefined) return undefined;
+  const n = Number.parseInt(flags.rodadas, 10);
+  if (!Number.isInteger(n) || n < 1) fail(`--rodadas invalido: ${flags.rodadas} (esperado inteiro ≥ 1; teto duro 3)`);
+  return n;
+}
+
+/** Opções de produção que o CLI resolve das flags (fora da fiação). */
+interface OpcoesDaFiacaoDeProducao {
+  /** teto DURO de tokens por execução (soma da telemetria do run). */
+  tetoTokens?: number;
+  /** roteamento do laço — ausente = F10 não fiada (limitação declarada). */
+  roteamento?: RoteamentoDoLaco | null;
+  rodadasDaRevisao?: number;
+}
+
+/** A FIAÇÃO DE PRODUÇÃO do modo generate (deps injetáveis resolvidos aqui). */
+function fiarDepsDeProducao(dir: string, dirProduto: string, opcoes: OpcoesDaFiacaoDeProducao = {}): DepsGeracao {
+  const llm: EngineLlm = criarLlmDeProducao();
 
   // P-27: pools SEPARADOS — o SEM_LLM do transporte NUNCA é o pool do
   // escalonador (o executor chama o transporte dentro do slot → deadlock).
   const multi = criarMultiBuscaBrave();
+  const prover = criarProverDeDesafio();
 
-  return {
+  const deps: DepsGeracao = {
     dir,
     dirProduto,
     llm,
@@ -796,14 +908,32 @@ function fiarDepsDeProducao(dir: string, dirProduto: string): DepsGeracao {
       stageVersion: f1ConfigDefault().stageVersion,
       timeoutMs: f1ConfigDefault().timeoutMs,
     }),
-    prover: criarProverDeDesafio(),
+    prover,
     juizArestas: criarJuizDeArestaLlm(llm),
     semaforoOnda: createSemaphore(8),
     semaforoJulgamento: createSemaphore(8),
-    // F10/F11: seam pós-merge do P-35 (review/audit2Laco) — até lá a rodada
-    // de revisão é declarada como limitação na saída (nunca omitida, §9.2).
-    tetoTokensPorExecucao: undefined,
   };
+
+  // O TETO DE TOKENS por execução (§4.1): a máquina prefere o teto do comando
+  // (`--teto-tokens`) e cai neste dep quando o comando não o traz. Um teto que
+  // não limita nada é pior que nenhum — promete controle de custo inexistente.
+  if (opcoes.tetoTokens !== undefined) deps.tetoTokensPorExecucao = opcoes.tetoTokens;
+
+  // F10/F11 — o LAÇO DE REVISÃO, agora FIADO (o bridge `criarRevisaoDaFiacao`
+  // roda o `rodarLacoDeRevisao` REAL sobre os drafts da onda). Sem roteamento
+  // (§6.2) não há laço legítimo: o dep fica ausente e a F10 declara a
+  // limitação na saída (§9.2 — nunca omitida).
+  if (opcoes.roteamento) {
+    deps.revisao = criarRevisaoDaFiacao({
+      llm: criarPapeisDoLacoLlm(llm, opcoes.roteamento),
+      modeloAutor: opcoes.roteamento.modeloAutor,
+      modeloRevisor: opcoes.roteamento.modeloRevisor,
+      prover,
+      ...(opcoes.rodadasDaRevisao !== undefined ? { rodadasMaximas: opcoes.rodadasDaRevisao } : {}),
+    });
+  }
+
+  return deps;
 }
 
 function validarFaseOuFalhar(from: string | undefined): FaseId | undefined {
@@ -832,11 +962,26 @@ async function cmdGenerate(pos: string[], flags: Record<string, string>): Promis
     fail(`--familia invalido: ${familia} (esperado uma de ${familiasValidas.join(', ')})`);
   }
 
+  const roteamento = resolverRoteamentoOuNulo(flags);
+  const rodadas = resolverRodadas(flags);
+
   const dir = path.join(CONTENT_SRC_DIR, slug);
   const dirProduto = path.join(TRACKS_DIR, slug);
 
-  const deps = fiarDepsDeProducao(dir, dirProduto);
+  const deps = fiarDepsDeProducao(dir, dirProduto, {
+    ...(tetoTokens !== undefined ? { tetoTokens } : {}),
+    roteamento,
+    ...(rodadas !== undefined ? { rodadasDaRevisao: rodadas } : {}),
+  });
   deps.onEvento = (linha) => console.log(linha);
+  if (roteamento === null) {
+    console.log(
+      'F10: laco de revisao NAO fiado — passe --modelo-revisor <id> para liga-lo ' +
+        '(o §6.2 exige model(AUTOR) != model(REVISOR)). A limitacao sai declarada no fim.',
+    );
+  } else {
+    console.log(`F10: laco de revisao FIADO — autor=${roteamento.modeloAutor} revisor=${roteamento.modeloRevisor}`);
+  }
 
   try {
     const resultado = await gerarTrilha(deps, {
@@ -874,6 +1019,187 @@ async function cmdGenerate(pos: string[], flags: Record<string, string>): Promis
     console.error(`erro inesperado: ${erro instanceof Error ? erro.stack ?? erro.message : String(erro)}`);
     process.exit(2);
   }
+}
+
+// ---------------------------------------------------------------------------
+// repair — o LAÇO revisor → plano → correção sobre trilha EXISTENTE (§8)
+// ---------------------------------------------------------------------------
+
+/** Imprime o PLANO puro (o que o dry-run entrega e o aplicar também mostra). */
+function printPlanoDeReparo(resultado: ResultadoDeReparo): void {
+  const { plano } = resultado;
+  const p = resultado.placarInicial;
+
+  console.log('');
+  console.log(`TRILHA ${resultado.slug} — REPAIR (modo ${resultado.modo})`);
+  console.log(
+    `audit inicial: ${p.violacoes} violacao(oes) · ${p.desafiosComViolacao} desafio(s) com violacao · ` +
+      `${p.lacunas} lacuna(s) de curriculo  (aulas ${p.aulas}, desafios ${p.desafios})`,
+  );
+  console.log('');
+
+  const executaveis = plano.ordens.filter((o) => o.executavelNoLacoV1);
+  console.log(`PLANO DE ACOES (catalogo FECHADO, §6.7) — ${executaveis.length} acao(oes) de ORDEM executavel(is)`);
+  for (const delta of plano.deltasEsperados.slice(0, 40)) {
+    console.log(
+      `  ${delta.arquivo}#${delta.campo}  ${delta.construcao ?? '-'}  -> ${delta.acao}`,
+    );
+    console.log(`      antes:  ${delta.antes}`);
+    console.log(`      depois: ${delta.depois}`);
+  }
+  if (plano.deltasEsperados.length > 40) {
+    console.log(`  ... e mais ${plano.deltasEsperados.length - 40} acao(oes) nao exibida(s) (use --json)`);
+  }
+  console.log('');
+
+  console.log(`LACUNAS DE CURRICULO — BLOQUEIO v1 (${resultado.lacunasNaoResolvidas.length}) — nunca reescritas (§5.5)`);
+  for (const lacuna of resultado.lacunasNaoResolvidas.slice(0, 20)) {
+    console.log(`  ${lacuna.ref}  acao: ${lacuna.acao}  faltam: ${lacuna.construcoesFaltantes.join(', ')}`);
+  }
+  if (resultado.lacunasNaoResolvidas.length > 20) {
+    console.log(`  ... e mais ${resultado.lacunasNaoResolvidas.length - 20} (use --json)`);
+  }
+  console.log('');
+
+  console.log(`BLOQUEIOS v1 (estruturais + construcao proibida SEMPRE): ${resultado.bloqueios.length}`);
+  for (const b of resultado.bloqueios.slice(0, 20)) {
+    console.log(`  [${b.violacao.regra}] ${b.violacao.arquivo}#${b.violacao.campo}  ${b.violacao.construcao ?? '-'}  — ${b.motivo}`);
+  }
+  if (resultado.bloqueios.length > 20) console.log(`  ... e mais ${resultado.bloqueios.length - 20} (use --json)`);
+  console.log('');
+}
+
+/** O placar do repair, no formato do repositório (§9.2). */
+function printPlacarDeReparo(resultado: ResultadoDeReparo, escritos: readonly string[]): void {
+  const executaveis = resultado.plano.ordens.filter((o) => o.executavelNoLacoV1).length;
+
+  if (resultado.modo === 'aplicar') {
+    console.log('AUDIT FINAL (o mesmo gate, DE NOVO — A-P23-5)');
+    console.log(`  violacoes ............ ${resultado.placarFinal.violacoes} (era ${resultado.placarInicial.violacoes})`);
+    console.log(`  desafios com violacao  ${resultado.placarFinal.desafiosComViolacao} (era ${resultado.placarInicial.desafiosComViolacao})`);
+    console.log(`  lacunas .............. ${resultado.placarFinal.lacunas} (era ${resultado.placarInicial.lacunas})`);
+    console.log(`  melhorou ............. ${resultado.melhorou ? 'SIM' : 'NAO'}`);
+    console.log(`  parada final ......... ${resultado.paradaFinal}`);
+    console.log(`  rodadas do laco ...... ${resultado.rodadas.length}`);
+    console.log('');
+    console.log(`ARQUIVOS GRAVADOS: ${escritos.length}`);
+    for (const arquivo of escritos.slice(0, 40)) console.log(`  ${arquivo}`);
+    if (escritos.length > 40) console.log(`  ... e mais ${escritos.length - 40}`);
+    console.log('');
+  }
+
+  console.log('LIMITACOES DECLARADAS (§9.2 — nunca omitidas)');
+  for (const d of resultado.declaracoes) console.log(`  - ${d}`);
+  console.log('');
+
+  // Formato do repositório (§9.2): "N passou · N falhou · N pendente".
+  //   passou   = violações que o laço REALMENTE removeu (dry-run não aplica
+  //              nada, então é sempre 0 — prometer o contrário seria mentir);
+  //   falhou   = violações que sobraram no audit final;
+  //   pendente = lacunas + bloqueios, que o v1 declara e nunca executa.
+  const pendente = resultado.lacunasNaoResolvidas.length + resultado.bloqueios.length;
+  const falhou = resultado.modo === 'aplicar' ? resultado.placarFinal.violacoes : resultado.placarInicial.violacoes;
+  const passou =
+    resultado.modo === 'aplicar' ? Math.max(0, resultado.placarInicial.violacoes - resultado.placarFinal.violacoes) : 0;
+  console.log('PLACAR (repair)');
+  console.log(`  ${passou} passou · ${falhou} falhou · ${pendente} pendente`);
+  console.log(`  acoes de ORDEM executaveis no plano: ${executaveis}`);
+  console.log('');
+}
+
+/**
+ * A FIAÇÃO DE PRODUÇÃO do modo repair — o espelho de `fiarDepsDeProducao`:
+ * o CLI resolve o que cruza o mundo (carga da trilha do disco, gravação
+ * atômica-por-arquivo, transporte de LLM cabeado nos três papéis do laço,
+ * provador real) e `repararTrilha` faz o resto sem saber onde nada mora.
+ *
+ * DRY-RUN não usa NADA disto além da carga: o plano é função pura (a dep de
+ * gravação nunca é chamada e nenhum papel de LLM é resolvido).
+ */
+function fiarDepsDoReparo(
+  dirTrilha: string,
+  opcoes: { roteamento: RoteamentoDoLaco | null; rodadas?: number },
+): DepsDoReparo {
+  const deps: DepsDoReparo = {
+    carregarTrilha: (slug) => carregarTrilhaOuFalhar(slug, dirTrilha),
+    // A escrita é POR ARQUIVO da trilha (`modules/…/challenge.json`), ATÔMICA
+    // (tmp + fsync + rename — `runtime/runState.escreverAtomico`) e com o
+    // newline final da convenção do repositório. Conteúdo versionado não pode
+    // ficar meio-escrito: o repair só chama isto depois de `JSON.parse`
+    // validar o texto (fail-closed antes de tocar o disco), e o rename garante
+    // que uma queda no meio deixe o arquivo ANTIGO intacto, nunca um truncado.
+    gravarArquivo: async (arquivo, conteudo) => {
+      const destino = path.join(dirTrilha, arquivo);
+      await fsp.mkdir(path.dirname(destino), { recursive: true });
+      await escreverAtomico(destino, conteudo.endsWith('\n') ? conteudo : `${conteudo}\n`);
+    },
+    proverDesafio: criarProverDeDesafio(),
+  };
+  if (opcoes.rodadas !== undefined) deps.rodadasMaximas = opcoes.rodadas;
+  if (opcoes.roteamento) {
+    deps.llm = criarPapeisDoLacoLlm(criarLlmDeProducao(), opcoes.roteamento);
+    deps.modeloAutor = opcoes.roteamento.modeloAutor;
+    deps.modeloRevisor = opcoes.roteamento.modeloRevisor;
+  }
+  return deps;
+}
+
+async function cmdRepair(pos: string[], flags: Record<string, string>, bools: Set<string>): Promise<void> {
+  const slug = pos[0];
+  if (!slug) fail('informe o slug da trilha (ex.: npm run engine -- repair programacao-do-zero)');
+
+  const modo: ModoDeReparo = bools.has('aplicar') ? 'aplicar' : 'dry-run';
+  const roteamento = resolverRoteamentoOuNulo(flags);
+  const rodadas = resolverRodadas(flags);
+
+  // O portão de USO (exit 2): `--aplicar` sem roteamento é uso incorreto, não
+  // barreira de execução — o §6.2 exige model(AUTOR) != model(REVISOR) e o
+  // contrato do provedor tem UM modelo, então o segundo é NOMEADO aqui.
+  if (modo === 'aplicar' && roteamento === null) {
+    fail(
+      "'repair --aplicar' exige --modelo-revisor <id> (roteamento do §6.2: model(AUTOR) != model(REVISOR); " +
+        `o --modelo-autor default e "${OPENROUTER_MODEL.id}"). O dry-run — sem --aplicar — roda sem chave e sem modelo.`,
+    );
+  }
+  // Fail-closed ANTES de carregar a trilha: o slug proibido nunca chega ao laço.
+  if (slug === SLUG_PROIBIDO_DO_REPAIR) {
+    console.error(
+      `erro: '${slug}' e SLUG PROIBIDO do modo repair — o gate final do repair e audit + pins e o conteudo legado ` +
+        "fica fora (docs/16-engine-de-trilha.md §8, fail-closed). Use 'audit' para ver o estado real desse conteudo.",
+    );
+    process.exit(2);
+  }
+
+  const dirTrilha = flags.dir !== undefined ? path.resolve(flags.dir) : path.join(TRACKS_DIR, slug);
+  const deps = fiarDepsDoReparo(dirTrilha, { roteamento, ...(rodadas !== undefined ? { rodadas } : {}) });
+
+  let resultado: ResultadoDeReparo;
+  try {
+    resultado = await repararTrilha(deps, { slug, modo });
+  } catch (erro) {
+    console.error('');
+    if (erro instanceof ErroDeReparo) {
+      console.error(`erro estruturado [${erro.codigo}] na etapa ${erro.etapa}: ${erro.message}`);
+      // Barreira ESTRUTURAL (sem chave, sem adaptador, roteamento, escrita):
+      // exit 2 — nada de conteúdo foi julgado (§9.3 fail-closed).
+      process.exit(2);
+    }
+    console.error(`erro inesperado: ${erro instanceof Error ? (erro.stack ?? erro.message) : String(erro)}`);
+    process.exit(2);
+  }
+
+  if (bools.has('json')) {
+    console.log(JSON.stringify(resultado, null, 2));
+  } else {
+    printPlanoDeReparo(resultado);
+    printPlacarDeReparo(resultado, resultado.escritos);
+  }
+
+  // Exit code na convenção do CLI: 0 = trilha limpa (nada a reparar sobrou);
+  // 1 = ainda ha achados (dry-run com plano, ou aplicar que nao zerou).
+  const violacoesFinais =
+    resultado.modo === 'aplicar' ? resultado.placarFinal.violacoes : resultado.placarInicial.violacoes;
+  process.exit(violacoesFinais > 0 ? 1 : 0);
 }
 
 async function cmdLintSchemas(): Promise<void> {
@@ -918,15 +1244,11 @@ async function main(): Promise<void> {
     case 'generate':
       await cmdGenerate(pos, flags);
       break;
+    case 'repair':
+      await cmdRepair(pos, flags, bools);
+      break;
     case 'lint-schemas':
       await cmdLintSchemas();
-      break;
-    case 'repair':
-      console.error(
-        `erro: '${command}' ainda nao esta implementado. A ordem de construcao (docs/16-engine-de-trilha.md §14)\n` +
-          "poe o gate deterministico primeiro: rode 'audit' para ver o estado real do conteudo.",
-      );
-      process.exit(2);
       break;
     default:
       fail(`comando desconhecido: ${command}`);

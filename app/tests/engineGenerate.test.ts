@@ -396,6 +396,68 @@ describe('P-22 generate — teto de tokens por execução', () => {
   });
 });
 
+/**
+ * O teto pelo DEP (`deps.tetoTokensPorExecucao`), sem `comandos.tetoTokens`.
+ *
+ * POR QUE ESTE TESTE EXISTE: o CLI de produção resolvia `--teto-tokens` e
+ * deixava `tetoTokensPorExecucao: undefined` na fiação; só o caminho do
+ * comando estava provado. Um teto que não limita nada é PIOR que nenhum —
+ * promete controle de custo que não existe. Agora a fiação de produção
+ * preenche o dep, e este teste prende o comportamento: sem `tetoTokens` no
+ * comando, o dep sozinho aborta com `TOKENS_ESGOTADOS` na ENTRADA da fase.
+ */
+describe('P-22 generate — teto de tokens pelo DEP (fiação de produção)', () => {
+  it('3b. deps.tetoTokensPorExecucao sozinho (sem comandos.tetoTokens) aborta com TOKENS_ESGOTADOS', async () => {
+    const dir = await dirTemp('t3b');
+    const dirProduto = await dirTemp('t3b-out');
+    const llm = new FakeLlm();
+    try {
+      // Cada fase consome 15 tokens do transporte fake (10 entrada + 5 saída).
+      const fases: Partial<Record<FaseId, (ctx: ContextoDeFase) => Promise<void>>> = {};
+      for (const fase of FASES_ORDEM) fases[fase] = consumoDaLlm(llm);
+      const { deps } = depsBase(dir, dirProduto, llm, fases);
+      deps.tetoTokensPorExecucao = 30;
+
+      await assert.rejects(
+        // NOTA: `tetoTokens` AUSENTE do comando — só o dep governa.
+        gerarTrilha(deps, { slug: 'trilha-t3b', assunto: 'assunto t3b' }),
+        (erro: unknown) => {
+          assert.ok(erro instanceof ErroGeracao);
+          assert.equal(erro.code, 'TOKENS_ESGOTADOS');
+          return true;
+        },
+        'F2 não inicia: 2 fases × 15 = 30 já consumidos',
+      );
+
+      const run = await lerRun(dir);
+      assert.equal(run.fases.F1, 'done');
+      assert.equal(run.fases.F2, 'pendente', 'a fase do aborto nem começou — retomável sem reexecutar nada');
+    } finally {
+      await limpar(dir);
+      await limpar(dirProduto);
+    }
+  });
+
+  it('3c. o teto do COMANDO tem precedência sobre o do dep (o operador manda na execução)', async () => {
+    const dir = await dirTemp('t3c');
+    const dirProduto = await dirTemp('t3c-out');
+    const llm = new FakeLlm();
+    try {
+      const fases: Partial<Record<FaseId, (ctx: ContextoDeFase) => Promise<void>>> = {};
+      for (const fase of FASES_ORDEM) fases[fase] = consumoDaLlm(llm);
+      const { deps } = depsBase(dir, dirProduto, llm, fases);
+      // Dep apertado, comando folgado: quem vale é o comando.
+      deps.tetoTokensPorExecucao = 30;
+
+      const resultado = await gerarTrilha(deps, { slug: 'trilha-t3c', assunto: 'assunto t3c', tetoTokens: 9999 });
+      assert.equal(resultado.concluido, true, 'o teto do comando (9999) governa — o dep (30) não aborta');
+    } finally {
+      await limpar(dir);
+      await limpar(dirProduto);
+    }
+  });
+});
+
 // ---------------------------------------------------------------------------
 // 4. Sem chave: erro estruturado DECLARANDO a limitação, run criado e retomável
 // ---------------------------------------------------------------------------

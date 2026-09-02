@@ -109,6 +109,9 @@ import {
   type ArtefatoNoLaco,
   type ContextoDoLaco,
   type CorretorLlm,
+  type EntradaDeRevisao,
+  type EntradaDoCorretor,
+  type EntradaDoPlanejador,
   type PlanejadorLlm,
   type RevisorLlm,
   type SnapshotDeOrcamento,
@@ -175,11 +178,26 @@ import {
   type ResultadoMaterializacao,
 } from '../phases/f12Materialize';
 import { montarDossie, type Dossier } from '../prompts/dossier';
+import {
+  construirPromptRevisor,
+  validarRevisaoSemCodigo,
+  RevisaoSchema,
+  type RevisaoDoRevisor,
+} from '../prompts/reviewer';
+import { promptDoPlanejador } from '../prompts/planner';
+import {
+  promptDoCorretor,
+  isRejeicaoDoCorretor,
+  justificativaDeRejeicaoValida,
+  type RejeicaoDoCorretor,
+  type TrechoDeDiff,
+} from '../prompts/fixer';
 
 // ─── schemas / lint (G-SCHEMA preflight — P-04/P-33) ────────────────────────
 
 import {
   SCHEMA_REGISTRY,
+  ActionsSchema,
   LessonDraftSchema,
   ChallengeDraftSchema,
 } from '../schemas/artifacts';
@@ -1474,6 +1492,183 @@ export async function verificarRefsEmParalelo(opts: {
         `${r.ref}: provas [${r.provas.falhas.join('; ')}] orçamento [${r.ofensasOrcamento.join(', ')}] parse [${r.falhaDeParse ?? '-'}]`,
     );
   return { ok: falhas.length === 0, desafios: opts.refs.length, refs: resultados, falhas };
+}
+
+// ---------------------------------------------------------------------------
+// Os três PAPÉIS LLM do laço, cabeados no transporte único (P-01/P-12/P-13)
+// ---------------------------------------------------------------------------
+
+/**
+ * Etapas de telemetria dos papéis do laço. Cada papel tem etapa PRÓPRIA: o
+ * `getAllStageUsage()` do transporte separa o custo do revisor do custo do
+ * corretor (o §9.2 pede tokens POR fase, e o teto de tokens por execução soma
+ * a telemetria — misturar as etapas apagaria a conta).
+ */
+export const ETAPA_LACO_REVISOR = 'laco-revisor';
+export const ETAPA_LACO_PLANEJADOR = 'laco-planejador';
+export const ETAPA_LACO_CORRETOR = 'laco-corretor';
+
+/** Versão de etapa dos papéis (entra na chave de cache do transporte). */
+const LACO_STAGE_VERSION = 'laco-v1';
+/** Timeout por chamada de papel (o transporte EXIGE timeout por etapa). */
+const LACO_TIMEOUT_MS = 120_000;
+/** Teto de saída dos papéis: §7 — "toda saída de agente cabe em 2.000 tokens". */
+const LACO_MAX_TOKENS = 2_000;
+
+/** Opções do cabeamento dos papéis — o roteamento (§6.2) é do CHAMADOR. */
+export interface OpcoesDePapeisDoLaco {
+  /**
+   * `model(AUTOR)` — a família PRODUTORA. Roteia PLANEJADOR e CORRETOR: o
+   * corretor ESCREVE (é papel de autor) e o planejador ordena o que ele
+   * escreve. O REVISOR fica FORA desta família por construção (§6.2).
+   */
+  modeloAutor: string;
+  /**
+   * `model(REVISOR)` — obrigatoriamente ≠ `modeloAutor` (§6.2 restrição 1;
+   * `validarRoteamento` LANÇA antes de qualquer revisão). Não há default
+   * possível: o contrato congelado do provedor tem UM modelo, então quem
+   * roda o laço NOMEIA o segundo — sem ele o laço não existe (fail-closed).
+   */
+  modeloRevisor: string;
+  stageVersion?: string;
+  timeoutMs?: number;
+  maxTokens?: number;
+}
+
+/** Erro estruturado de um papel do laço (o `chamarSeguro` do laço o embrulha). */
+class ErroDePapelDoLaco extends Error {
+  readonly code = 'LACO_PAPEL_INVALIDO';
+  constructor(papel: string, motivo: string) {
+    super(`papel ${papel} do laço devolveu resposta inválida: ${motivo}`);
+    this.name = 'ErroDePapelDoLaco';
+  }
+}
+
+/** JSON da resposta de um papel — saída não-JSON é erro estruturado (§9.3). */
+function jsonDoPapel(papel: string, content: string): unknown {
+  try {
+    return JSON.parse(content) as unknown;
+  } catch (erro) {
+    throw new ErroDePapelDoLaco(papel, `a saída não é JSON (${mensagemDe(erro)})`);
+  }
+}
+
+/**
+ * `criarPapeisDoLacoLlm(llm, { modeloAutor, modeloRevisor })` — o cabeamento de
+ * PRODUÇÃO dos três papéis LLM que o laço (`review/loop.ts`) dirige, sobre o
+ * transporte ÚNICO da engine (P-01: semáforo SEM_LLM, backoff — **429 é
+ * backoff, NUNCA fallback de provedor** (§11) — timeout por etapa, cache e
+ * telemetria por etapa). Nenhuma prosa didática mora aqui: cada papel é
+ * `prompt canônico (P-12/P-13) → callLlm → parse do schema fechado`.
+ *
+ *   REVISOR   `prompts/reviewer.construirPromptRevisor` → `RevisaoSchema`,
+ *             com `validarRevisaoSemCodigo` ANTES do parse (H-1: o zod em
+ *             strip-mode APAGARIA a chave de código e o campo de patch
+ *             proibido passaria em silêncio — §11 "dar ao revisor um campo de
+ *             patch"). Roteado em `modeloRevisor`.
+ *   PLANEJADOR `prompts/planner.promptDoPlanejador` → `ActionsSchema` (o
+ *             catálogo FECHADO — ação fora do catálogo é rejeitada aqui, não
+ *             improvisada). Roteado em `modeloAutor`.
+ *   CORRETOR  `prompts/fixer.promptDoCorretor` → rejeição TIPADA (com
+ *             justificativa de ≥40 caracteres validada) ou delta de trechos.
+ *             O gate `validarDiffNoSpan` roda DENTRO do laço. Roteado em
+ *             `modeloAutor`.
+ *
+ * FAIL-CLOSED: saída não-JSON, schema inválido ou justificativa curta viram
+ * `ErroDePapelDoLaco` (código `LACO_PAPEL_INVALIDO`), que o `chamarSeguro` do
+ * laço embrulha em `ErroEstruturadoDoLaco` — nunca veredito por omissão.
+ */
+export function criarPapeisDoLacoLlm(
+  llm: EngineLlm,
+  opcoes: OpcoesDePapeisDoLaco,
+): { revisar: RevisorLlm; planejar: PlanejadorLlm; corrigir: CorretorLlm } {
+  const stageVersion = opcoes.stageVersion ?? LACO_STAGE_VERSION;
+  const timeoutMs = opcoes.timeoutMs ?? LACO_TIMEOUT_MS;
+  const maxTokens = opcoes.maxTokens ?? LACO_MAX_TOKENS;
+
+  const revisar: RevisorLlm = async (entrada: EntradaDeRevisao): Promise<RevisaoDoRevisor> => {
+    // O cabeçalho que o prompt do revisor instrui a ecoar quando presente
+    // (`EntradaPromptRevisor.artefatoNormalizado`): rodada e hash do conjunto.
+    const artefatoNormalizado = `Rodada: ${entrada.rodada}\nHash: ${entrada.hashCode}\n\n${entrada.artefatoNormalizado}`;
+    const resposta = await llm.callLlm(`${ETAPA_LACO_REVISOR}:${entrada.instrumento}`, {
+      prompt: construirPromptRevisor({
+        artefatoNormalizado,
+        regras: entrada.regras,
+        verificadores: entrada.verificadores,
+      }),
+      modelId: opcoes.modeloRevisor,
+      stageVersion,
+      timeoutMs,
+      maxTokens,
+    });
+    const cru = jsonDoPapel('revisor', resposta.content);
+    // H-1 ANTES do parse: o strip-mode do zod removeria a chave de código.
+    validarRevisaoSemCodigo(cru);
+    const parseado = RevisaoSchema.safeParse(cru);
+    if (!parseado.success) {
+      throw new ErroDePapelDoLaco('revisor', `viola o RevisaoSchema (${parseado.error.issues.map((i) => `${i.path.join('.')}: ${i.message}`).join('; ')})`);
+    }
+    return parseado.data;
+  };
+
+  const planejar: PlanejadorLlm = async (entrada: EntradaDoPlanejador) => {
+    const resposta = await llm.callLlm(ETAPA_LACO_PLANEJADOR, {
+      prompt: promptDoPlanejador({
+        trilha: entrada.trilha,
+        rodada: entrada.rodada,
+        apontamentos: entrada.apontamentos,
+        excluidosComoExcecao: entrada.excluidosComoExcecao,
+        ledgerDeRejeicoes: entrada.ledgerDeRejeicoes,
+      }),
+      modelId: opcoes.modeloAutor,
+      stageVersion,
+      timeoutMs,
+      maxTokens,
+    });
+    const parseado = ActionsSchema.safeParse(jsonDoPapel('planejador', resposta.content));
+    if (!parseado.success) {
+      throw new ErroDePapelDoLaco('planejador', `viola o ActionsSchema — catálogo FECHADO (${parseado.error.issues.map((i) => `${i.path.join('.')}: ${i.message}`).join('; ')})`);
+    }
+    return { acoes: parseado.data.acoes };
+  };
+
+  const corrigir: CorretorLlm = async (entrada: EntradaDoCorretor) => {
+    const resposta = await llm.callLlm(ETAPA_LACO_CORRETOR, {
+      prompt: promptDoCorretor({
+        trilha: entrada.trilha,
+        rodada: entrada.rodada,
+        decisao: entrada.decisao,
+        pins: entrada.pins,
+      }),
+      modelId: opcoes.modeloAutor,
+      stageVersion,
+      timeoutMs,
+      maxTokens,
+    });
+    const cru = jsonDoPapel('corretor', resposta.content);
+    if (isRejeicaoDoCorretor(cru)) {
+      const rejeicao: RejeicaoDoCorretor = cru;
+      if (!justificativaDeRejeicaoValida(rejeicao.justificativa)) {
+        throw new ErroDePapelDoLaco('corretor', 'rejeição com justificativa curta demais (§7.4 exige o mínimo declarado)');
+      }
+      return rejeicao;
+    }
+    const delta = (cru as { delta?: unknown }).delta;
+    if (!Array.isArray(delta)) {
+      throw new ErroDePapelDoLaco('corretor', 'aceitação sem o campo "delta" (array de trechos)');
+    }
+    const trechos: TrechoDeDiff[] = [];
+    for (const item of delta) {
+      const t = item as Partial<TrechoDeDiff>;
+      if (typeof t.inicio !== 'number' || typeof t.fim !== 'number' || typeof t.substituicao !== 'string') {
+        throw new ErroDePapelDoLaco('corretor', 'trecho do delta sem {inicio:int, fim:int, substituicao:string}');
+      }
+      trechos.push({ inicio: t.inicio, fim: t.fim, substituicao: t.substituicao });
+    }
+    return { rejeitado: false, delta: trechos };
+  };
+
+  return { revisar, planejar, corrigir };
 }
 
 // ---------------------------------------------------------------------------
