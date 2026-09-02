@@ -1,6 +1,16 @@
 /**
  * electron/main/services/deepseekClient.ts — cliente LEVE one-shot OpenAI-compatible
- * para o DeepSeek (POST {baseUrl}/chat/completions).
+ * para o OpenRouter (POST {baseUrl}/chat/completions).
+ *
+ * ONDA 1 (transporte): este arquivo deixou de falar com a API do DeepSeek e passou
+ * a falar com o OpenRouter (`@shared/llm/constants`). O que mudou é PARA ONDE as
+ * chamadas vão e o QUE vai no body — NÃO a nomenclatura: os símbolos exportados
+ * (`DeepSeekError`, `DEEPSEEK_ERROR_CODES`, `createDeepSeekClient`, …) e sobretudo
+ * os VALORES do enum de erro (`'DEEPSEEK_KEY_MISSING'`, `'DEEPSEEK_KEY_INVALID'`,
+ * `'DEEPSEEK_BAD_REQUEST'`, …) continuam idênticos, porque são comparados como
+ * STRING CRUA fora do enum em `engine/phases/f1Research.ts` e
+ * `engine/fiacao/geraTrilha.ts`. Renomear é assunto da onda 2, junto com essas
+ * comparações.
  *
  * É o transporte do juiz LLM do protocolo REQUEST/APPLY (docs/00-contratos.md §6):
  * one-shot, sem streaming — o contrato do juiz é uma ÚNICA chamada que devolve o
@@ -9,9 +19,23 @@
  *
  * O fetch e a baseUrl são injetáveis para testes (nunca usa rede real fora do
  * runtime). NUNCA expõe a API key em mensagens de erro.
+ *
+ * RACIOCÍNIO NO MÁXIMO: toda chamada envia `reasoning: { enabled, effort }` com
+ * effort `'max'` por padrão (o topo aceito por `z-ai/glm-5.3-flash`) e
+ * `provider: { require_parameters: true }` — SEM esse `require_parameters` o
+ * OpenRouter pode rotear para um provider que IGNORA `reasoning` e devolver 200
+ * sem raciocínio nenhum, em silêncio.
  */
 
-import { DEEPSEEK_MODEL } from '@shared/piAgent/constants';
+import {
+  LLM_KEY_MASK_PATTERN,
+  OPENROUTER_ATTRIBUTION_HEADERS,
+  OPENROUTER_MAX_EFFORT,
+  OPENROUTER_MODEL,
+  OPENROUTER_PROVIDER_POLICY,
+  OPENROUTER_REASONING,
+  type OpenRouterEffort,
+} from '@shared/llm/constants';
 
 /** Códigos de erro tipados do cliente DeepSeek (surface mínima e estável). */
 export const DEEPSEEK_ERROR_CODES = {
@@ -33,16 +57,29 @@ export const DEEPSEEK_ERROR_CODES = {
 
 export type DeepSeekErrorCode = (typeof DEEPSEEK_ERROR_CODES)[keyof typeof DEEPSEEK_ERROR_CODES];
 
-/** Erro tipado do cliente. `code` é a superfície estável consumida pelo juiz. */
+/**
+ * Erro tipado do cliente. `code` é a superfície estável consumida pelo juiz.
+ *
+ * `retryAfterMs` (onda 1) carrega o header `Retry-After` da resposta quando o
+ * servidor o mandou (429 e 5xx). Antes o cliente lia o corpo e DESCARTAVA a
+ * Response, então `runtime/backoff.ts` só conseguia fazer backoff cego — agora o
+ * atraso sugerido pelo servidor chega a jusante. Nenhum SDK honra `Retry-After`
+ * sozinho; por isso o cliente lê o header à mão.
+ */
 export class DeepSeekError extends Error {
   readonly code: DeepSeekErrorCode;
   readonly cause?: unknown;
+  /** Atraso sugerido pelo servidor em MILISSEGUNDOS (header `Retry-After`). */
+  readonly retryAfterMs?: number;
 
-  constructor(code: DeepSeekErrorCode, message: string, cause?: unknown) {
+  constructor(code: DeepSeekErrorCode, message: string, cause?: unknown, retryAfterMs?: number) {
     super(message);
     this.name = 'DeepSeekError';
     this.code = code;
     this.cause = cause;
+    if (typeof retryAfterMs === 'number' && Number.isFinite(retryAfterMs) && retryAfterMs >= 0) {
+      this.retryAfterMs = retryAfterMs;
+    }
   }
 }
 
@@ -60,18 +97,35 @@ export interface DeepSeekChatRequest {
   model?: string;
   /** timeoutMs injetável — default 60_000. */
   timeoutMs?: number;
+  /**
+   * Nível de raciocínio desta chamada. Default `OPENROUTER_MAX_EFFORT` ('max').
+   * É o botão para pedir MENOS raciocínio numa chamada barata — ninguém pede
+   * mais que 'max' porque 'max' já é o topo aceito por este modelo.
+   */
+  reasoningEffort?: OpenRouterEffort;
 }
 
 export interface DeepSeekChatResponse {
   content: string;
   model: string;
-  usage?: { promptTokens: number; completionTokens: number };
+  usage?: {
+    promptTokens: number;
+    completionTokens: number;
+    /**
+     * Tokens de raciocínio — vêm de `usage.completion_tokens_details.reasoning_tokens`
+     * (ANINHADO; não existe `reasoning_tokens` no topo de `usage`). São cobrados
+     * como token de saída.
+     */
+    reasoningTokens?: number;
+    /** Custo da requisição em USD (`usage.cost`), quando o gateway o devolve. */
+    costUsd?: number;
+  };
 }
 
 export interface DeepSeekClientDeps {
   /** fetch injetável (testes). Default: fetch global. */
   fetchImpl?: typeof fetch;
-  /** base da API. Default: https://api.deepseek.com (constantes da onda). */
+  /** base da API. Default: OPENROUTER_MODEL.baseUrl (contrato congelado). */
   baseUrl?: string;
   /** Resolve a API key sob demanda. Ausente ⇒ erro KEY_MISSING quando chamado. */
   apiKey?: () => Promise<string>;
@@ -85,8 +139,8 @@ export interface DeepSeekClient {
  * Resultado do parse do `choices[0].message` de uma resposta 2xx.
  * `content` é a string não-vazia utilizável. Quando faltam content/choices,
  * `reasoningContent` indica se o modelo devolveu APENAS raciocínio (content
- * vazio + reasoning_content presente) — informação que o chamador usa para dar
- * um erro claro em vez de engolir em silêncio.
+ * vazio + raciocínio presente) — informação que o chamador usa para dar um erro
+ * claro em vez de engolir em silêncio.
  */
 export interface ChoiceParseResult {
   content?: string;
@@ -94,12 +148,39 @@ export interface ChoiceParseResult {
 }
 
 /**
+ * Extrai texto legível de `message.reasoning_details` (formato OpenRouter):
+ * lista de blocos `reasoning.text` / `reasoning.summary` / `reasoning.encrypted`.
+ * Blocos encriptados não têm texto útil e são simplesmente ignorados.
+ */
+function extractReasoningDetailsText(details: unknown): string | undefined {
+  if (!Array.isArray(details)) return undefined;
+  const parts: string[] = [];
+  for (const entry of details) {
+    if (!entry || typeof entry !== 'object') continue;
+    const record = entry as Record<string, unknown>;
+    for (const key of ['text', 'summary', 'data'] as const) {
+      const value = record[key];
+      if (typeof value === 'string' && value.trim().length > 0) {
+        parts.push(value.trim());
+        break;
+      }
+    }
+  }
+  const joined = parts.join('\n').trim();
+  return joined.length > 0 ? joined : undefined;
+}
+
+/**
  * Função PURA de extração de `choices[0].message.content` (testada sem rede).
  * - content não-vazio ⇒ devolve { content }.
- * - content vazio/ausente mas `reasoning_content` presente ⇒ devolve
- *   { reasoningContent } (sem fabricar um content falso — o reasoning é o
- *   raciocínio interno do modelo, NÃO conteúdo de aula).
+ * - content vazio/ausente mas raciocínio presente ⇒ devolve { reasoningContent }
+ *   (sem fabricar um content falso — o reasoning é o raciocínio interno do
+ *   modelo, NÃO conteúdo de aula).
  * - content e reasoning ausentes/choices vazio ⇒ devolve {}.
+ *
+ * TRÊS formas de raciocínio são aceitas: `reasoning` (string) e
+ * `reasoning_details` (lista) do OpenRouter, e `reasoning_content` (o campo que
+ * o DeepSeek usava) — o legado continua reconhecido de graça.
  */
 export function parseChoiceResult(body: unknown): ChoiceParseResult {
   if (!body || typeof body !== 'object' || Array.isArray(body)) return {};
@@ -115,15 +196,31 @@ export function parseChoiceResult(body: unknown): ChoiceParseResult {
     return { content: content.trim() };
   }
 
+  const reasoning = (message as { reasoning?: unknown }).reasoning;
+  if (typeof reasoning === 'string' && reasoning.trim().length > 0) {
+    return { reasoningContent: reasoning };
+  }
+
   const reasoningContent = (message as { reasoning_content?: unknown }).reasoning_content;
   if (typeof reasoningContent === 'string' && reasoningContent.trim().length > 0) {
     return { reasoningContent };
   }
 
+  const detailsText = extractReasoningDetailsText(
+    (message as { reasoning_details?: unknown }).reasoning_details
+  );
+  if (detailsText) return { reasoningContent: detailsText };
+
   return {};
 }
 
-const DEEPSEEK_DEFAULT_BASE = 'https://api.deepseek.com';
+/**
+ * Base default do transporte — vem do CONTRATO (`OPENROUTER_MODEL.baseUrl`),
+ * nunca de um literal local. O nome da constante é herança do DeepSeek e é
+ * privado ao módulo; a renomeação é da onda 2 (regra de ouro: esta onda troca
+ * comportamento, não nomenclatura).
+ */
+const DEEPSEEK_DEFAULT_BASE: string = OPENROUTER_MODEL.baseUrl;
 /** Default de timeout por chamada (ms). */
 const DEFAULT_TIMEOUT_MS = 60_000;
 
@@ -139,9 +236,76 @@ function extractErrorText(payload: unknown): string | undefined {
   return undefined;
 }
 
+/**
+ * Lê um header da Response tolerando fakes de teste sem `headers` (e qualquer
+ * implementação que exploda ao ler). Nunca lança.
+ */
+function readHeader(response: Response, name: string): string | undefined {
+  const headers = (response as { headers?: { get?: (n: string) => string | null } }).headers;
+  if (!headers || typeof headers.get !== 'function') return undefined;
+  try {
+    const value = headers.get(name);
+    return typeof value === 'string' ? value : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * Converte o header `Retry-After` em MILISSEGUNDOS. Aceita as DUAS formas do
+ * RFC 7231: delta em segundos (`"12"`) e data HTTP (`"Wed, 21 Oct 2026 07:28:00 GMT"`).
+ * Valor inválido/ausente ⇒ `undefined` (o backoff cai no exponencial dele).
+ * Data no passado ⇒ 0 (pode tentar já), nunca negativo.
+ */
+export function parseRetryAfterMs(
+  value: string | null | undefined,
+  nowMs: number = Date.now()
+): number | undefined {
+  if (typeof value !== 'string') return undefined;
+  const raw = value.trim();
+  if (!raw) return undefined;
+
+  // Forma 1 — delta-seconds (o RFC manda inteiro; decimal é tolerado).
+  if (/^\d+(?:\.\d+)?$/.test(raw)) {
+    const seconds = Number(raw);
+    if (!Number.isFinite(seconds) || seconds < 0) return undefined;
+    return Math.round(seconds * 1000);
+  }
+
+  // Forma 2 — HTTP-date.
+  const at = Date.parse(raw);
+  if (Number.isNaN(at)) return undefined;
+  const delta = at - nowMs;
+  return delta > 0 ? Math.round(delta) : 0;
+}
+
 /** Escapa meta-caracteres de regex (para compor RegExp a partir da apiKey). */
 function escapeRegExp(s: string): string {
   return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+/**
+ * Mascara segredos em QUALQUER texto que vá para uma mensagem de erro/log:
+ * a chave exata (substituição literal), o par `Bearer <chave>` e, sobretudo,
+ * qualquer padrão `sk-...` via `LLM_KEY_MASK_PATTERN` do contrato — a classe
+ * inclui `-`/`_`, então uma chave `sk-or-v1-<...>` do OpenRouter é mascarada
+ * POR INTEIRO (a regex antiga parava no primeiro hífen e vazava o resto).
+ *
+ * É usada TAMBÉM na mensagem crua do gateway: um 400 pode ecoar o header
+ * `Authorization` no `error.message`, e antes esse texto ia para a mensagem do
+ * erro sem passar por máscara nenhuma.
+ *
+ * `String.replace` com regex global zera o `lastIndex`, então compartilhar o
+ * padrão do contrato entre chamadas não guarda estado.
+ */
+function maskSecrets(text: string, apiKey: string): string {
+  let out = text;
+  if (apiKey) {
+    out = out.split(apiKey).join('***');
+    // `Bearer <chave>` (ex.: header Authorization refletido no corpo) → `Bearer ***`.
+    out = out.replace(new RegExp(`(Bearer\\s+)${escapeRegExp(apiKey)}`, 'gi'), 'Bearer ***');
+  }
+  return out.replace(LLM_KEY_MASK_PATTERN, '***');
 }
 
 /**
@@ -154,8 +318,12 @@ function escapeRegExp(s: string): string {
  * ORDEM corrigida (fix15c-review): MÁSCARA PRIMEIRO, TRUNCAMENTO DEPOIS — antes
  * a chave era truncada a 160 chars e podia ser cortada ao meio, vazando metade
  * dela. Além da substituição literal (split exato), também mascara padrões de
- * chave parcial/tipo `sk-[A-Za-z0-9]{6,}` (base64, URL-encoded, truncada) via
- * regex e o par `Bearer <chave>`.
+ * chave parcial/truncada via `LLM_KEY_MASK_PATTERN` e o par `Bearer <chave>`.
+ *
+ * SEGURANÇA (onda 1): o padrão VEIO PARA O CONTRATO e passou a incluir `-`/`_`.
+ * A versão antiga era `/(sk-[A-Za-z0-9]{6,})/gi`, que NÃO cobre uma chave do
+ * OpenRouter: `sk-or-v1-<...>` tem HÍFENS, a classe parava no primeiro deles e
+ * só `sk-or` virava `***` — o resto da chave vazava para o log.
  */
 export function renderSanitizedBodyFragment(payload: unknown, apiKey: string, field?: string): string {
   let target: unknown = payload;
@@ -185,21 +353,14 @@ export function renderSanitizedBodyFragment(payload: unknown, apiKey: string, fi
   if (!text || text.length === 0) text = String(target);
 
   // 1) MÁSCARA: a chave exata e padrões de chave parcial somem ANTES de cortar.
-  if (apiKey) {
-    text = text.split(apiKey).join('***');
-    // `Bearer <chave>` (ex.: header Authorization refletido no corpo) → `Bearer ***`.
-    text = text.replace(new RegExp(`(Bearer\\s+)${escapeRegExp(apiKey)}`, 'gi'), 'Bearer ***');
-  }
-  // Padrão de chave tipo `sk-...` (parcial/base64/URL-encoded) mesmo sem a chave
-  // exata conhecida — defensivo para não vazar metade de uma chave.
-  text = text.replace(/(sk-[A-Za-z0-9]{6,})/gi, '***');
+  text = maskSecrets(text, apiKey);
 
   // 2) TRUNCA por último — nunca pode cortar uma chave ao meio.
   if (text.length > 160) text = text.slice(0, 160) + '…';
   return text;
 }
 
-/** Cria o cliente DeepSeek one-shot com transporte injetável. */
+/** Cria o cliente one-shot (OpenRouter) com transporte injetável. */
 export function createDeepSeekClient(deps: DeepSeekClientDeps = {}): DeepSeekClient {
   const baseUrl = (deps.baseUrl ?? DEEPSEEK_DEFAULT_BASE).replace(/\/+$/, '');
   const fetchImpl = deps.fetchImpl ?? fetch;
@@ -222,8 +383,11 @@ export function createDeepSeekClient(deps: DeepSeekClientDeps = {}): DeepSeekCli
       );
     }
 
-    const model = req.model ?? DEEPSEEK_MODEL.id; // SEMPRE o literal 'deepseek-v4-flash'.
+    const model = req.model ?? OPENROUTER_MODEL.id; // SEMPRE o literal 'z-ai/glm-5.3-flash'.
     const timeoutMs = req.timeoutMs ?? DEFAULT_TIMEOUT_MS;
+    // 'max' é o topo aceito por este modelo ('xhigh' seria rejeitado, 'high' é um
+    // degrau abaixo). O campo só existe para pedir MENOS numa chamada barata.
+    const reasoningEffort: OpenRouterEffort = req.reasoningEffort ?? OPENROUTER_MAX_EFFORT;
 
     const controller = new AbortController();
     let timer: ReturnType<typeof setTimeout> | undefined;
@@ -238,12 +402,22 @@ export function createDeepSeekClient(deps: DeepSeekClientDeps = {}): DeepSeekCli
         headers: {
           Authorization: `Bearer ${apiKey}`,
           'Content-Type': 'application/json',
+          // Attribution do OpenRouter: `HTTP-Referer` + `X-Title`
+          // (`X-OpenRouter-App` NÃO existe).
+          ...OPENROUTER_ATTRIBUTION_HEADERS,
         },
         body: JSON.stringify({
           model,
           messages: req.messages,
           temperature: req.temperature ?? 0,
           ...(req.maxTokens !== undefined ? { max_tokens: req.maxTokens } : {}),
+          // Raciocínio SEMPRE ligado, no máximo por padrão.
+          reasoning: { ...OPENROUTER_REASONING, effort: reasoningEffort },
+          // LOAD-BEARING: `require_parameters: true` impede o roteamento para um
+          // provider que ignoraria `reasoning` e responderia 200 sem pensar.
+          provider: OPENROUTER_PROVIDER_POLICY,
+          // Pede os contadores de custo/raciocínio no `usage` da resposta.
+          usage: { include: true },
         }),
         signal: controller.signal,
       });
@@ -269,9 +443,16 @@ export function createDeepSeekClient(deps: DeepSeekClientDeps = {}): DeepSeekCli
       );
     }
     if (response.status === 429) {
+      // `Retry-After` só existe aqui: a Response morre no fim desta função, então
+      // o valor sobe no ERRO para o `runtime/backoff.ts` poder honrá-lo.
+      const retryAfterMs = parseRetryAfterMs(readHeader(response, 'Retry-After'));
+      let message = 'DeepSeek: rate limit / quota excedida (HTTP 429).';
+      if (retryAfterMs !== undefined) message += ` Retry-After: ${retryAfterMs}ms.`;
       throw new DeepSeekError(
         DEEPSEEK_ERROR_CODES.RATE_LIMIT,
-        'DeepSeek: rate limit / quota excedida (HTTP 429).'
+        message,
+        { status: response.status },
+        retryAfterMs
       );
     }
     // Demais 4xx (400 invalid_request_error, 404, 422, …). Antigamente cairiam
@@ -286,7 +467,9 @@ export function createDeepSeekClient(deps: DeepSeekClientDeps = {}): DeepSeekCli
         const parsed: unknown = await response.json();
         const apiMessage = extractErrorText(parsed);
         if (apiMessage) {
-          message = `DeepSeek: ${apiMessage} (HTTP ${response.status}).`;
+          // A mensagem do gateway é texto de TERCEIRO: pode ecoar o header
+          // Authorization. Mascara ANTES de entrar na mensagem do erro.
+          message = `DeepSeek: ${maskSecrets(apiMessage, apiKey)} (HTTP ${response.status}).`;
           fragment = apiMessage;
         } else {
           message = `DeepSeek: requisição rejeitada (HTTP ${response.status}) com corpo não-parseável.`;
@@ -303,14 +486,21 @@ export function createDeepSeekClient(deps: DeepSeekClientDeps = {}): DeepSeekCli
       throw new DeepSeekError(DEEPSEEK_ERROR_CODES.BAD_REQUEST, message, { status: response.status });
     }
     if (response.status >= 500) {
+      // 503 ("no available provider") também pode trazer `Retry-After`.
+      const retryAfterMs = parseRetryAfterMs(readHeader(response, 'Retry-After'));
       let message = `DeepSeek: erro de servidor (HTTP ${response.status}).`;
       try {
         const parsed = extractErrorText(await response.json());
-        if (parsed) message = `DeepSeek: ${parsed}`;
+        if (parsed) message = `DeepSeek: ${maskSecrets(parsed, apiKey)}`;
       } catch {
         // corpo ilegível — mantém a mensagem padrão.
       }
-      throw new DeepSeekError(DEEPSEEK_ERROR_CODES.SERVER_ERROR, message);
+      throw new DeepSeekError(
+        DEEPSEEK_ERROR_CODES.SERVER_ERROR,
+        message,
+        { status: response.status },
+        retryAfterMs
+      );
     }
 
     // Sucesso: 200 (ou 2xx). Falha de leitura/parse é tratada como NETWORK.
@@ -327,12 +517,13 @@ export function createDeepSeekClient(deps: DeepSeekClientDeps = {}): DeepSeekCli
     const parsedChoice = parseChoiceResult(body);
     if (!parsedChoice.content) {
       // content não-vazio é a única via de entrega utilizável. Se o modelo
-      // devolveu apenas reasoning_content, o problema é do prompt/serviço (o
-      // reasoning não é conteúdo de aula) — erro EXPLÍCITO, nunca silencioso.
+      // devolveu apenas raciocínio, o problema é do prompt/serviço (o reasoning
+      // não é conteúdo de aula) — erro EXPLÍCITO, nunca silencioso.
       if (parsedChoice.reasoningContent) {
         throw new DeepSeekError(
           DEEPSEEK_ERROR_CODES.EMPTY_CONTENT,
-          'DeepSeek: resposta com content vazio (o modelo devolveu apenas reasoning_content, sem conteúdo de aula).'
+          'DeepSeek: resposta com content vazio (o modelo devolveu apenas raciocínio — ' +
+            'reasoning/reasoning_details/reasoning_content —, sem conteúdo de aula).'
         );
       }
       throw new DeepSeekError(
@@ -343,17 +534,37 @@ export function createDeepSeekClient(deps: DeepSeekClientDeps = {}): DeepSeekCli
     }
     const content = parsedChoice.content;
 
-    const rawUsage = (body as { usage?: { prompt_tokens?: unknown; completion_tokens?: unknown } })
-      ?.usage;
-    const usage =
+    const rawUsage = (
+      body as {
+        usage?: {
+          prompt_tokens?: unknown;
+          completion_tokens?: unknown;
+          completion_tokens_details?: { reasoning_tokens?: unknown };
+          cost?: unknown;
+        };
+      }
+    )?.usage;
+    let usage: DeepSeekChatResponse['usage'];
+    if (
       rawUsage &&
       typeof rawUsage.prompt_tokens === 'number' &&
       typeof rawUsage.completion_tokens === 'number'
-        ? {
-            promptTokens: rawUsage.prompt_tokens,
-            completionTokens: rawUsage.completion_tokens,
-          }
-        : undefined;
+    ) {
+      // `reasoning_tokens` é ANINHADO em `completion_tokens_details` — não existe
+      // no topo de `usage`.
+      const details = rawUsage.completion_tokens_details;
+      const reasoningTokens =
+        details && typeof details === 'object' && typeof details.reasoning_tokens === 'number'
+          ? details.reasoning_tokens
+          : undefined;
+      const costUsd = typeof rawUsage.cost === 'number' ? rawUsage.cost : undefined;
+      usage = {
+        promptTokens: rawUsage.prompt_tokens,
+        completionTokens: rawUsage.completion_tokens,
+        ...(reasoningTokens !== undefined ? { reasoningTokens } : {}),
+        ...(costUsd !== undefined ? { costUsd } : {}),
+      };
+    }
 
     const responseModel = (body as { model?: unknown })?.model;
 
