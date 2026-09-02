@@ -56,15 +56,39 @@
  *   - os GLOBAIS DE RUNTIME → `adapter.globals()`
  *                           (era a lista literal de `RUNTIME_GLOBALS`).
  *
- * O QUE **NÃO** VEIO, e por quê: a CAMINHADA (`visit`) continua sobre o
- * `ts.Node` nativo. Ela ainda depende de `ts.isPropertyAccessExpression`,
- * `ts.isElementAccessExpression`, do eixo `form:` (que casa seletores contra o
- * AST do TypeScript) e das posições absolutas de cada nó — nada disso existe
- * no `LangNode` normalizado do registro. Por isso este módulo é JAVASCRIPT-ONLY
- * e o diz alto: `coletarOcorrencias` REPROVA (erro estruturado
- * `EngineLinguagemError`) qualquer `options.language` que não seja o adaptador
- * default, em vez de auditar Python com o parser de JavaScript e aprovar
- * qualquer coisa. Porta um extrator novo quem porta a caminhada inteira.
+ * ─── ONDA 7: DUAS CAMINHADAS, E POR QUE NÃO DÁ PARA SER UMA SÓ ────────────
+ *
+ * Até a onda 6 este módulo era JAVASCRIPT-ONLY por guarda explícita, e o
+ * comentário que ficava aqui dizia o motivo certo: a caminhada depende de
+ * `ts.isPropertyAccessExpression`, `ts.isElementAccessExpression`, do eixo
+ * `form:` (seletores casados contra o AST do TypeScript) e das posições
+ * absolutas de cada nó — nada disso existe no `LangNode` normalizado. A
+ * conclusão de lá ("porta um extrator novo quem porta a caminhada inteira") é
+ * exatamente o que esta onda fez: o módulo passou a ter DUAS caminhadas.
+ *
+ *   - `caminharTsNode`   — a NATIVA, sobre `ts.Node`. Vale para `javascript` e
+ *     para `typescript`, que compartilham o parser inteiro (o adaptador de TS é
+ *     `jsParse` com `ScriptKind.TS`). Emite os seis eixos, `form:` incluso.
+ *   - `caminharLangNode` — a GENÉRICA, sobre o `LangNode` do §6. Vale para
+ *     `python`, cuja árvore vem de um SUBPROCESSO (`python3` + `ast` +
+ *     `symtable`) e NÃO é um `ts.Node`: sem `kind`, sem `parent`, sem `ts.isX`.
+ *     Escrita só contra a interface `LanguageAdapter`.
+ *
+ * A guarda continua FAIL-CLOSED — `exigirAdaptadorComCaminhada` REPROVA com
+ * `EngineLinguagemError` toda linguagem sem caminhada, em vez de auditar Ruby
+ * com o parser de JavaScript e aprovar qualquer coisa. O que mudou é que
+ * `typescript` e `python` deixaram de cair nela.
+ *
+ * As DUAS caminhadas consomem `adapter.constructKey` (o membro 2 dos 15 do §6),
+ * que até a onda 6 não tinha consumidor nenhum. Cada nó rende DUAS chaves — a
+ * genérica (`node:<tipo>`) e a específica do adaptador —, como este arquivo já
+ * fazia com `node:ComputedNonLiteralAccess`. É isso que leva ao gate as chaves
+ * SINTÉTICAS que os adaptadores criaram: `node:IntLiteral`/`node:StrLiteral`/
+ * `node:Elif`/`node:MethodDef` (Python) e `node:KeyOfType`/
+ * `node:ReadonlyArrayType`/`node:TypeOnlyImport`/`node:DoubleAssertionViaUnknown`
+ * (TypeScript). Sem elas, uma aula de Python que ensina TEXTO introduziria ZERO
+ * construção nova — `7` e `"oi"` são o MESMO `ast.Constant` — e o gate A6 a
+ * reprovaria.
  *
  * O que este arquivo NÃO faz: não sabe o que é permitido (é `budget.ts`), não
  * lê trilha (é `audit.ts`) e não chama LLM nenhuma — nunca.
@@ -86,11 +110,15 @@ import {
 import { FORM_RULES } from './form/rules';
 import { selectorMatches } from './form/selector';
 import { kindName } from './kindNames';
+import { jsViewNode } from './lang/javascript';
+import { tsScanSuppressionDirectives } from './lang/typescript';
 import {
   DEFAULT_ADAPTER_ID,
   getAdapter,
+  type LangNode,
   type LanguageAdapter,
   type LanguageId,
+  type ParseOk,
 } from './lang/registry';
 
 // A tabela canônica de nomes de SyntaxKind mudou de casa para o módulo folha
@@ -281,14 +309,15 @@ export function isValueReference(node: ts.Identifier): boolean {
 }
 
 // ---------------------------------------------------------------------------
-// A guarda de linguagem (fail-closed) — o extrator é JAVASCRIPT-ONLY
+// As guardas de linguagem (fail-closed) — uma para o extrator, uma para as
+// baterias de qualidade que continuam sendo javascript-only
 // ---------------------------------------------------------------------------
 
 /** Código do erro estruturado de linguagem sem extrator determinístico. */
 export const LINGUAGEM_SEM_EXTRATOR = 'LINGUAGEM_SEM_EXTRATOR' as const;
 
 /**
- * Erro ESTRUTURADO de "esta peça da engine só existe para JavaScript".
+ * Erro ESTRUTURADO de "esta peça da engine não existe para esta linguagem".
  *
  * Existe porque a alternativa é pior de um jeito específico: sem a guarda, um
  * `challenge.language: 'python'` seria parseado pelo compilador TypeScript, e
@@ -300,22 +329,49 @@ export const LINGUAGEM_SEM_EXTRATOR = 'LINGUAGEM_SEM_EXTRATOR' as const;
 export class EngineLinguagemError extends Error {
   readonly code: typeof LINGUAGEM_SEM_EXTRATOR = LINGUAGEM_SEM_EXTRATOR;
   constructor(
-    readonly detalhes: { modulo: string; pedido: string; suportado: LanguageId; motivo: string },
+    readonly detalhes: {
+      modulo: string;
+      pedido: string;
+      /**
+       * O que ESTE chamador suporta. Era sempre `DEFAULT_ADAPTER_ID`, porque só
+       * havia um caso; na onda 7 o extrator passou a suportar TRÊS linguagens e
+       * o campo virou uma LISTA — dizer "(só javascript)" a quem pediu Python
+       * num módulo que já sabe Python seria mentir na mensagem de erro.
+       */
+      suportado: LanguageId | readonly LanguageId[];
+      motivo: string;
+    },
   ) {
+    const suportadas = Array.isArray(detalhes.suportado)
+      ? detalhes.suportado.join(', ')
+      : String(detalhes.suportado);
     super(
       `${detalhes.modulo}: sem implementação para a linguagem ${JSON.stringify(detalhes.pedido)} ` +
-        `(só ${detalhes.suportado}) — ${detalhes.motivo}`,
+        `(só ${suportadas}) — ${detalhes.motivo}`,
     );
     this.name = 'EngineLinguagemError';
   }
 }
 
 /**
- * Resolve o adaptador e REPROVA o que este módulo não sabe fazer.
+ * Resolve o adaptador e REPROVA o que o MÓDULO CHAMADOR não sabe fazer.
  *
  * `getAdapter` já é fail-closed para id desconhecido; esta guarda cobre o caso
  * seguinte — id CONHECIDO (Python registrado, por exemplo) cuja implementação
- * aqui não existe. As duas falhas são estruturadas e dizem o que falta.
+ * no chamador não existe. As duas falhas são estruturadas e dizem o que falta.
+ *
+ * ONDA 7 — QUEM AINDA A USA, E POR QUÊ ELA NÃO FOI AFROUXADA. O extrator
+ * DEIXOU de chamá-la (ele agora tem duas caminhadas; ver
+ * `exigirAdaptadorComCaminhada` logo abaixo). Quem continua chamando são as
+ * cinco baterias de qualidade — `quality/{minimal,mutants,solvable,
+ * requirements,progressao}.ts` —, e para elas o javascript-only continua sendo
+ * a resposta CERTA: as tabelas delas (`H13`, `AX`, a lista de mutantes, os
+ * globais de runtime) são chaves do `ts.SyntaxKind` e do runner `node:test`, e
+ * os spans mecânicos S13 saem de `ts.createSourceFile`. Rodá-las numa trilha de
+ * Python não daria erro: daria um veredito ERRADO E SILENCIOSO — tudo "não
+ * demonstrado", todo desafio reprovado. Alargar ESTA função para destravar o
+ * extrator teria arrastado as cinco junto; por isso o extrator ganhou guarda
+ * própria em vez de esta perder a dela.
  */
 export function exigirAdaptadorJavascript(
   modulo: string,
@@ -334,55 +390,143 @@ export function exigirAdaptadorJavascript(
   return adapter;
 }
 
+// ---------------------------------------------------------------------------
+// AS DUAS CAMINHADAS — e a guarda que continua fail-closed (onda 7)
+// ---------------------------------------------------------------------------
+
+/**
+ * Como o extrator caminha a árvore de cada linguagem.
+ *
+ *   - `ts-node`     → a caminhada NATIVA sobre `ts.Node`. É a de sempre: ela
+ *                     depende de `ts.isPropertyAccessExpression`, do eixo
+ *                     `form:` (seletores casados contra o AST do TypeScript) e
+ *                     das posições absolutas de cada nó.
+ *   - `lang-node`   → a caminhada GENÉRICA sobre o `LangNode` normalizado do
+ *                     §6, escrita SÓ contra a interface `LanguageAdapter`
+ *                     (`parse` + `constructKey` + `resolveScopes`).
+ *
+ * POR QUE SÃO DUAS, E NÃO UMA. Não é preguiça de unificar: são árvores
+ * diferentes por CONSTRUÇÃO. O `LangNode` do adaptador Python vem de um
+ * SUBPROCESSO (`python3 -I -S vocab/py/extract_ast.py`, JSON pelo stdout) e
+ * NÃO é um `ts.Node` — não tem `kind`, não tem `parent`, não responde a
+ * `ts.isElementAccessExpression`. Forçar Python pelo caminho nativo exigiria
+ * fabricar um `ts.Node` falso a partir de um `dict` do `ast` do CPython, que é
+ * exatamente o trabalho que o `LangNode` existe para evitar. E o contrário —
+ * mandar JavaScript pela genérica — custaria os dois eixos que só a nativa
+ * entrega hoje (`form:`, e o `api:` de cadeia de acesso com escopo) e moveria
+ * a POSIÇÃO reportada de toda ocorrência de operador.
+ */
+export const CAMINHADA_POR_LINGUAGEM: Readonly<Record<string, 'ts-node' | 'lang-node'>> = {
+  javascript: 'ts-node',
+  typescript: 'ts-node',
+  python: 'lang-node',
+};
+
+/** As linguagens que ESTE módulo sabe caminhar, em ordem estável. */
+export const LINGUAGENS_COM_CAMINHADA: readonly LanguageId[] = Object.keys(
+  CAMINHADA_POR_LINGUAGEM,
+).sort() as LanguageId[];
+
+/**
+ * Resolve o adaptador do extrator e REPROVA a linguagem sem caminhada.
+ *
+ * A guarda continua FAIL-CLOSED, e continua pelo mesmo motivo de sempre: sem
+ * ela, um `challenge.language` sem implementação seria parseado com o parser da
+ * linguagem errada, e um gate que analisa Ruby com o parser de JavaScript não
+ * reprova nada — ele APROVA em silêncio. O que mudou na onda 7 é QUEM cai nela:
+ * `typescript` e `python` deixaram de cair, porque agora existe caminhada para
+ * os dois. Porta uma linguagem nova quem acrescenta a linha em
+ * `CAMINHADA_POR_LINGUAGEM` — e quem escolhe 'lang-node' está declarando que o
+ * adaptador entrega tudo pela interface do §6.
+ */
+export function exigirAdaptadorComCaminhada(language: string = DEFAULT_ADAPTER_ID): LanguageAdapter {
+  const adapter = getAdapter(language);
+  if (CAMINHADA_POR_LINGUAGEM[adapter.id] === undefined) {
+    throw new EngineLinguagemError({
+      modulo: 'engine/extract.ts',
+      pedido: language,
+      suportado: LINGUAGENS_COM_CAMINHADA,
+      motivo:
+        'acrescente a linguagem a CAMINHADA_POR_LINGUAGEM depois de conferir que o adaptador dela ' +
+        'entrega parse/constructKey/resolveScopes pela interface do §6',
+    });
+  }
+  return adapter;
+}
+
 export interface ExtractOptions {
   /** Nome usado nas mensagens (não abre arquivo — o conteúdo vem em `code`). */
   fileName?: string;
   /** `js` (default) ou `ts`. O extrator é o mesmo; muda só o ScriptKind. */
   dialect?: 'js' | 'ts';
   /**
-   * ADITIVO (onda 5): qual ADAPTADOR parseia e resolve escopo. Default: o
-   * adaptador default (`javascript`). Qualquer outro id LANÇA
-   * `EngineLinguagemError` — ver a guarda acima e o cabeçalho deste arquivo.
+   * Qual ADAPTADOR parseia, resolve escopo e mapeia nó→chave. Default: o
+   * adaptador default (`javascript`).
+   *
+   * ONDA 7: `typescript` e `python` passaram a valer. Um id sem caminhada neste
+   * módulo continua LANÇANDO `EngineLinguagemError` — ver
+   * `exigirAdaptadorComCaminhada` e o cabeçalho deste arquivo.
    */
   language?: LanguageId;
 }
 
 /**
- * Caminhada comum do extrator: EXPOE TODA ocorrência de cada construção, na
- * ordem de visita do AST. O `extractAtoms` deduplica a partir daqui; o
- * `extractAllOccurrences` devolve a caminhada crua — é o que A13c (spans
- * mecânicos S13) e A14b (combo de novas por linha) exigem, e a POSIÇÃO
- * ABSOLUTA de cada ocorrência é o que permite decidir dentro/fora de um span
- * sem conversão de linha:coluna.
+ * VARREDURAS DE TRIVIA — o que a caminhada do AST NÃO PODE ver.
  *
- * PURO: mesma entrada, mesma saída. Sem IO, sem rede, sem estado.
+ * `@ts-ignore` e `@ts-expect-error` são COMENTÁRIOS, e este arquivo depende
+ * explicitamente de "comentário não é nó" (é o que faz um `// test(` comentado
+ * não contar em `countTestDeclarations`). As duas estão em
+ * `TS_FORBIDDEN_INVARIANTS` desde a onda 6 e, até a onda 7, eram proibição SEM
+ * EMISSOR: a lista existia no papel e o gate passava em silêncio. O emissor é
+ * `tsScanSuppressionDirectives`, que varre a trivia POR TOKEN (`forEachChild`
+ * pula a pontuação, e um comentário colado num `}` é trivia de um token que a
+ * caminhada nunca visita) e não acha falso positivo dentro de string nem de
+ * template — literal é NÓ, e nó não é trivia.
+ *
+ * A tabela é por LINGUAGEM porque a pergunta é por linguagem: em JavaScript
+ * não existe diretiva de supressão de tipo para procurar.
  */
-function coletarOcorrencias(code: string, options: ExtractOptions): ExtractAllResult {
-  const adapter = exigirAdaptadorJavascript(
-    'engine/extract.ts',
-    'a caminhada do extrator (eixos api:/form:/node: e as posições absolutas) é escrita contra o AST do TypeScript; portar o extrator é portar a caminhada inteira, não trocar o parser',
-    options.language ?? DEFAULT_ADAPTER_ID,
-  );
+const VARREDURAS_DE_TRIVIA: Readonly<
+  Record<
+    string,
+    (parsed: ParseOk) => readonly {
+      key: string;
+      line: number;
+      column: number;
+      start: number;
+      end: number;
+      snippet: string;
+    }[]
+  >
+> = {
+  typescript: tsScanSuppressionDirectives,
+};
 
-  // (1) A ÁRVORE vem do adaptador — mesmo `createSourceFile` (com
-  // `setParentNodes`, que `isValueReference` exige), mesmo `ScriptTarget`,
-  // mesmo `ScriptKind` por dialeto e MESMO erro estruturado com linha/coluna
-  // 1-based do primeiro diagnóstico de sintaxe. O cast interno de
-  // `parseDiagnostics` mora lá agora (`lang/javascript.ts:398`), num lugar só.
-  const parsed = adapter.parse(code, {
-    fileName: options.fileName ?? 'trecho.mjs',
-    dialect: options.dialect,
-  });
-  if (!parsed.ok) return { ok: false, error: parsed.error };
-
+/**
+ * A CAMINHADA NATIVA (`ts.Node`) — JavaScript e TypeScript.
+ *
+ * É a caminhada de sempre, byte a byte: ela emite os eixos `node:`, `decl:`,
+ * `op:`, `api:`, `global:` e `form:` sobre o AST do compilador TypeScript.
+ * O que a onda 7 acrescentou está em DOIS pontos, os dois marcados abaixo:
+ * a chave ESPECÍFICA do adaptador (`constructKey`) ao lado da genérica, e o
+ * fato de que o adaptador agora pode ser o de TypeScript.
+ */
+function caminharTsNode(
+  code: string,
+  adapter: LanguageAdapter,
+  parsed: ParseOk,
+  todas: AtomOccurrence[],
+): void {
   const source = parsed.native as ts.SourceFile;
 
   // (5) A RESOLUÇÃO DE ESCOPO vem do adaptador. `scopes.declared` é o antigo
   // `collectDeclaredNames(...).all`, `scopes.imported` o `.imported`, e
   // `scopes.globals` é exatamente `¬declared ∧ RUNTIME_GLOBALS` — o cruzamento
-  // que ficava inline no eixo `global:` logo abaixo.
+  // que ficava inline no eixo `global:` logo abaixo. Com o adaptador de
+  // TypeScript esse cruzamento é contra `tsGlobals()`, e é por isso que
+  // `Partial<T>` em posição de TIPO passa a sair como `global:Partial`: o passe
+  // que EMITE `global:` é este, e ele deixou de ser javascript-only.
   const scopes = adapter.resolveScopes(parsed);
-  const todas: AtomOccurrence[] = [];
 
   const record = (key: AtomKey, node: ts.Node): void => {
     const start = node.getStart(source);
@@ -402,7 +546,32 @@ function coletarOcorrencias(code: string, options: ExtractOptions): ExtractAllRe
   const visit = (node: ts.Node): void => {
     // ── eixo `node:` — a estrutura (pontuação fica fora; ver isPunctuationKind)
     if (!isPunctuationKind(node.kind)) {
-      record(nodeKey(kindName(node.kind)), node);
+      const generica = nodeKey(kindName(node.kind));
+      record(generica, node);
+
+      // ── AS DUAS CHAVES (onda 7) — a genérica acima e a ESPECÍFICA do
+      // adaptador (membro 2 dos 15 do §6). É o mesmo padrão que este arquivo já
+      // usa com `node:ComputedNonLiteralAccess` ao lado de
+      // `node:ElementAccessExpression`: o orçamento escrito contra a genérica
+      // continua casando, e quem quiser a distinção ganha uma chave própria.
+      //
+      // Sem isto, TODA chave sintética do adaptador de TypeScript
+      // (`node:KeyOfType`, `node:ReadonlyArrayType`, `node:TypeOnlyImport`,
+      // `node:TypeOnlyExport`, `node:DoubleAssertionViaUnknown`) existiria,
+      // seria testada e NUNCA chegaria ao gate — `keyof T` e `readonly T[]`
+      // produzem o MESMO `node:TypeOperator`, e `as unknown as` é proibição
+      // global sem emissor.
+      //
+      // SÓ O EIXO `node:` É PEDIDO AO ADAPTADOR AQUI, e não é arbitrário: os
+      // outros eixos desta caminhada são emitidos com uma POSIÇÃO que o
+      // `LangNode` do §6 não sabe expressar — `op:` aponta para o TOKEN do
+      // operador, `api:` para o NOME da propriedade ou para o especificador do
+      // import, e `global:` para a ocorrência do identificador. Aceitar a chave
+      // do adaptador nesses eixos moveria a linha:coluna que a violação cita.
+      const especifica = adapter.constructKey(jsViewNode(node, source));
+      if (especifica !== null && especifica !== generica && especifica.startsWith('node:')) {
+        record(especifica, node);
+      }
     }
 
     if (ts.isVariableDeclarationList(node)) {
@@ -467,6 +636,127 @@ function coletarOcorrencias(code: string, options: ExtractOptions): ExtractAllRe
   };
 
   ts.forEachChild(source, visit);
+}
+
+/**
+ * A CAMINHADA GENÉRICA (`LangNode`) — o caminho de Python, e de toda linguagem
+ * cujo adaptador entrega a árvore pela interface do §6.
+ *
+ * ELA NÃO É A NATIVA COM OUTRO NOME. A árvore aqui vem de um SUBPROCESSO: o
+ * adaptador de Python roda `python3 -I -S vocab/py/extract_ast.py` com o fonte
+ * no stdin e lê JSON do stdout. Cada nó já chega com `type`, `line`, `column`,
+ * `start`, `end`, `text` e `attributes` — e sem `kind`, sem `parent` e sem
+ * nenhum dos predicados `ts.isX` de que a caminhada nativa vive. Por isso aqui
+ * NÃO existe eixo `form:` (`form/selector.ts` é tipado sobre `ts.Node`;
+ * `PY_FORM_AXIS_SUPPORTED` é `false` e está declarado) e não existe passe
+ * separado de `api:`/`global:`: quem produz esses dois é o próprio
+ * `constructKey` do adaptador, a partir dos nós PORTADORES que o subprocesso
+ * emite (`ApiRef`, `GlobalRef`) — cada um com linha e coluna próprias, que é o
+ * que o relatório `arquivo:linha:coluna` exige. `resolveScopes` já foi
+ * consumido lá dentro (o `symtable` do CPython resolve POR ESCOPO, e não de
+ * forma plana como o lado JavaScript).
+ *
+ * AS DUAS CHAVES, e a exceção. Como na nativa, cada nó rende a ESPECÍFICA
+ * (`constructKey`) e a GENÉRICA (`node:<type>`) — `x + 1` sai como
+ * `node:BinOp` E `op:binary:+`, igual a `node:BinaryExpression` E `op:binary:+`
+ * do lado JavaScript. A exceção é o nó PORTADOR (`LangNode.synthetic`): ele não
+ * existe na árvore do `ast`, o adaptador o criou para carregar uma distinção
+ * que o parser colapsa, e a genérica dele seria lixo — `node:Binding` não está
+ * em `inventory()` e nenhum orçamento poderia declará-lo. Um portador rende SÓ
+ * a chave de `constructKey` (`decl:unpack`, `global:len`, `api:math.sqrt`,
+ * `op:compare:<` — ou `node:Elif`/`node:MethodDef`/`node:IntLiteral`, que são
+ * portadores cuja chave JÁ é do eixo `node:`).
+ *
+ * A RAIZ NÃO ENTRA, pela mesma razão que `node:SourceFile` não entra na nativa:
+ * `ts.forEachChild(source, visit)` começa nos FILHOS. Aqui também.
+ */
+function caminharLangNode(
+  code: string,
+  adapter: LanguageAdapter,
+  parsed: ParseOk,
+  todas: AtomOccurrence[],
+): void {
+  const record = (key: AtomKey, node: LangNode): void => {
+    const raw = code.slice(node.start, Math.min(node.start + SNIPPET_MAX_CHARS, code.length));
+    todas.push({
+      key,
+      line: node.line,
+      column: node.column,
+      snippet: raw.split('\n')[0].trim(),
+      start: node.start,
+      end: node.end,
+    });
+  };
+
+  const visit = (node: LangNode): void => {
+    const especifica = adapter.constructKey(node);
+    if (especifica !== null) record(especifica, node);
+    if (node.synthetic !== true) {
+      const generica = nodeKey(node.type);
+      if (generica !== especifica) record(generica, node);
+    }
+    for (const filho of node.children) visit(filho);
+  };
+
+  for (const filho of parsed.root.children) visit(filho);
+}
+
+/**
+ * Caminhada comum do extrator: EXPOE TODA ocorrência de cada construção, na
+ * ordem de visita do AST. O `extractAtoms` deduplica a partir daqui; o
+ * `extractAllOccurrences` devolve a caminhada crua — é o que A13c (spans
+ * mecânicos S13) e A14b (combo de novas por linha) exigem, e a POSIÇÃO
+ * ABSOLUTA de cada ocorrência é o que permite decidir dentro/fora de um span
+ * sem conversão de linha:coluna.
+ *
+ * PURO: mesma entrada, mesma saída. Sem IO, sem rede, sem estado. (O adaptador
+ * de Python roda um subprocesso, e ele é determinístico e memoizado por fonte:
+ * mesma entrada, mesma árvore.)
+ */
+function coletarOcorrencias(code: string, options: ExtractOptions): ExtractAllResult {
+  const language = options.language ?? DEFAULT_ADAPTER_ID;
+  const adapter = exigirAdaptadorComCaminhada(language);
+  const caminhada = CAMINHADA_POR_LINGUAGEM[adapter.id];
+
+  // (1) A ÁRVORE vem do adaptador. No caminho nativo é o mesmo
+  // `createSourceFile` de sempre (com `setParentNodes`, que `isValueReference`
+  // exige), mesmo `ScriptTarget`, mesmo `ScriptKind` por dialeto e MESMO erro
+  // estruturado com linha/coluna 1-based do primeiro diagnóstico de sintaxe. No
+  // caminho genérico é o subprocesso — que devolve exatamente o mesmo
+  // `PARSE_ERROR` estruturado, por contrato de `ParseResult`.
+  //
+  // O `fileName` default só existe para o caminho nativo: em Python o nome vai
+  // para o módulo analisado e aparece na mensagem de erro, e chamar um trecho
+  // de Python de `trecho.mjs` seria mentir no relatório.
+  const parsed = adapter.parse(code, {
+    fileName: options.fileName ?? (caminhada === 'ts-node' ? 'trecho.mjs' : undefined),
+    dialect: options.dialect,
+  });
+  if (!parsed.ok) return { ok: false, error: parsed.error };
+
+  const todas: AtomOccurrence[] = [];
+  if (caminhada === 'ts-node') caminharTsNode(code, adapter, parsed, todas);
+  else caminharLangNode(code, adapter, parsed, todas);
+
+  // A VARREDURA DE TRIVIA vem DEPOIS da caminhada e no FIM da lista, de
+  // propósito: uma diretiva de comentário não tem lugar numa ordem de visita de
+  // árvore — ela não é nó. O contrato de `extractAtoms` (dedup para a PRIMEIRA
+  // ocorrência por chave) não se altera, porque as chaves da varredura
+  // (`node:TsIgnoreDirective`, `node:TsExpectErrorDirective`) não são emitidas
+  // por nó nenhum.
+  const varredura = VARREDURAS_DE_TRIVIA[adapter.id];
+  if (varredura !== undefined) {
+    for (const achado of varredura(parsed)) {
+      todas.push({
+        key: achado.key,
+        line: achado.line,
+        column: achado.column,
+        snippet: achado.snippet.slice(0, SNIPPET_MAX_CHARS),
+        start: achado.start,
+        end: achado.end,
+      });
+    }
+  }
 
   return { ok: true, occurrences: todas, keys: [...new Set(todas.map((o) => o.key))].sort() };
 }

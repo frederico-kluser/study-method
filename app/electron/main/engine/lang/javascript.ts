@@ -448,6 +448,84 @@ function atributosDoNo(node: unknown, T: TypeScriptModule): Record<string, strin
 }
 
 /**
+ * Um `ts.Node` visto como `LangNode` SOB DEMANDA — a ponte que faltava entre a
+ * caminhada NATIVA do extrator e `constructKey` (ONDA 7).
+ *
+ * O PROBLEMA QUE ELA RESOLVE. `engine/extract.ts` caminha o `ts.Node` (ela
+ * depende de `ts.isPropertyAccessExpression`, do eixo `form:` e das posições
+ * absolutas — nada disso existe no `LangNode`), mas o membro 2 dos 15 do §6 é
+ * `constructKey(node: LangNode)`. Sem uma vista, as chaves SINTÉTICAS do
+ * adaptador de TypeScript (`node:KeyOfType`, `node:ReadonlyArrayType`,
+ * `node:TypeOnlyImport`, `node:DoubleAssertionViaUnknown`) existiriam, seriam
+ * testadas e nunca chegariam ao gate.
+ *
+ * POR QUE PREGUIÇOSA, E NÃO `normalizarNo`. `normalizarNo` é RECURSIVA E
+ * EAGER: ela materializa a árvore inteira e refatia o texto do fonte uma vez
+ * por NÍVEL. Chamá-la por nó, dentro de uma caminhada que já visita todo nó,
+ * seria quadrático — e a onda 6 tornou `ParseOk.root` preguiçoso exatamente
+ * para não pagar essa conta no `audit`, que roda em laço. Aqui cada campo é um
+ * getter memoizado: `constructKey` toca `type` e `attributes` (baratos), toca
+ * `text` só num `TypeOperator` e `children` só num `AsExpression`.
+ *
+ * O objeto devolvido é a MESMA forma de `normalizarNo` — `synthetic` fica
+ * `undefined` porque em JavaScript/TypeScript todo nó da vista vem da árvore
+ * real; quem cria nó PORTADOR é o adaptador de subprocesso (Python).
+ */
+export function jsViewNode(node: unknown, source: unknown): LangNode {
+  return vistaDoNo(node, source, ts(), tabelaDeNomesDeKind());
+}
+
+function vistaDoNo(
+  node: unknown,
+  source: unknown,
+  T: TypeScriptModule,
+  nomeDoKind: ReadonlyMap<number, string>,
+): LangNode {
+  const n = node as import('typescript').Node;
+  const sf = source as import('typescript').SourceFile;
+  let inicioMemo: number | null = null;
+  const inicio = (): number => (inicioMemo ??= n.getStart(sf));
+  let posMemo: { line: number; character: number } | null = null;
+  const pos = (): { line: number; character: number } =>
+    (posMemo ??= sf.getLineAndCharacterOfPosition(inicio()));
+  let textoMemo: string | null = null;
+  let attrsMemo: Record<string, string> | null = null;
+  let filhosMemo: LangNode[] | null = null;
+  return {
+    type: nomeDoKind.get(n.kind) ?? String(n.kind),
+    get line(): number {
+      return pos().line + 1;
+    },
+    get column(): number {
+      return pos().character + 1;
+    },
+    get start(): number {
+      return inicio();
+    },
+    get end(): number {
+      return n.getEnd();
+    },
+    get text(): string {
+      return (textoMemo ??= sf.text.slice(inicio(), n.getEnd()));
+    },
+    get attributes(): Readonly<Record<string, string>> {
+      return (attrsMemo ??= atributosDoNo(n, T));
+    },
+    get children(): readonly LangNode[] {
+      if (filhosMemo === null) {
+        const out: LangNode[] = [];
+        T.forEachChild(n, (filho) => {
+          out.push(vistaDoNo(filho, sf, T, nomeDoKind));
+        });
+        filhosMemo = out;
+      }
+      return filhosMemo;
+    },
+    native: n,
+  };
+}
+
+/**
  * Um `ts.Node` vira um `LangNode` da interface do §6.
  *
  * `nomeDoKind` entra por PARÂMETRO (e não por `jsKindName`) porque esta função
@@ -568,10 +646,17 @@ export function jsParse(source: string, options: ParseOptions = {}): ParseResult
  *
  * LIMITE DECLARADO: este membro cobre os três eixos que saem SÓ do nó
  * (`node:`, `decl:`, `op:`). Os eixos `global:` e `api:` dependem de escopo e
- * de cadeia de acesso e continuam sendo produzidos por
- * `engine/extract.ts:400-440` — a onda 5 (sub-tarefa do extrator) move esse
- * mapeamento para cá inteiro. Nada consome `constructKey` nesta onda; ele é
- * publicado para que o adaptador de Python tenha o alvo.
+ * de cadeia de acesso, e continuam sendo produzidos pela caminhada nativa de
+ * `engine/extract.ts` — que os grava com uma POSIÇÃO que o `LangNode` não sabe
+ * expressar (o NOME da propriedade, o especificador do import, a ocorrência do
+ * identificador). Não é dívida: é onde a informação está.
+ *
+ * ONDA 7 — ELE GANHOU CONSUMIDOR. `engine/extract.ts` chama `constructKey` por
+ * nó, nas duas caminhadas, e aceita dele o eixo `node:` ao lado da chave
+ * genérica. Para ESTE adaptador isso é, por construção, um NO-OP: `node:<type>`
+ * é idêntico à genérica, e `op:`/`decl:` não são do eixo aceito. É por isso que
+ * o placar de `nodejs-do-zero` (717 · 112 · 249) não se moveu — a mudança só
+ * tem efeito onde há chave SINTÉTICA, isto é, em `typescript` e em `python`.
  */
 export function jsConstructKey(node: LangNode): string | null {
   const familia = node.attributes.operatorFamily;

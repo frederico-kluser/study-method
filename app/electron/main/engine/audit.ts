@@ -36,10 +36,12 @@ import type { TrackChallengeSource } from '../content/trackTypes';
 import { AtomKey, axisOf, humanLabel, isForbiddenAlways } from './atomKeys';
 import { LessonBudget, TrackBudget, deriveTrackBudget, DeriveOptions } from './budget';
 import { extractAtoms } from './extract';
+import { DEFAULT_ADAPTER_ID, type LanguageId } from './lang/registry';
 import { collectLessonCode } from './theoryCode';
 import {
   auditarProgressao,
   type ProgressaoLessonInput,
+  type ProgressaoResult,
   type ProgressaoRule,
   type Severidade,
 } from './quality/progressao';
@@ -207,6 +209,19 @@ function entradaDeProgressao(track: LoadedTrack): ProgressaoLessonInput[] {
   return out;
 }
 
+/**
+ * A bateria A13–A16 vale para esta linguagem?
+ *
+ * É a MESMA pergunta que `quality/progressao.ts` responde com uma exceção
+ * (`exigirAdaptadorJavascript`) — feita aqui ANTES de chamar, para que a
+ * auditoria de uma trilha de outra linguagem perca a bateria em vez de perder
+ * a auditoria inteira. Não afrouxa nada: a bateria continua javascript-only, e
+ * chamá-la com outra linguagem continua LANÇANDO.
+ */
+function bateriaDeProgressaoValePara(adapterId: LanguageId): boolean {
+  return adapterId === DEFAULT_ADAPTER_ID;
+}
+
 function severidadeDe(v: Violation): 'erro' | 'aviso' {
   return v.severidade ?? 'erro';
 }
@@ -239,10 +254,31 @@ export function auditTrack(track: LoadedTrack, options: DeriveOptions = {}): Aud
   // PURO, roda em memória; as violações são mescladas no loop por aula abaixo
   // (mesmo padrão dos estruturais), e as de desafio alimentam o
   // `desafiosComViolacao` com o MESMO critério dos erros (aviso não reprova).
-  const progressao = auditarProgressao(entradaDeProgressao(track), {
-    mode: budget.source,
-    adapterId: budget.adapterId,
-  });
+  //
+  // ONDA 7 — ELA NÃO VALE PARA TODA LINGUAGEM, E POR ISSO É CONDICIONAL.
+  // `quality/progressao.ts:432` LANÇA `EngineLinguagemError` para qualquer
+  // adaptador que não seja o default, e a razão está escrita lá: `H13`/`AX` são
+  // tabelas de chaves do `ts.SyntaxKind` e do runner `node:test`, e os spans
+  // mecânicos S13 saem de `ts.createSourceFile`. Rodar essa bateria numa trilha
+  // de Python não daria erro — daria um veredito ERRADO E SILENCIOSO (tudo
+  // "não demonstrado", todo desafio reprovado).
+  //
+  // Até a onda 6 esta chamada era incondicional, e a consequência era pior que
+  // o veredito errado: `auditTrack` de uma trilha de Python ou de TypeScript
+  // MORRIA com a exceção, e nenhuma das outras 20 regras (A1–A6, DEC, I12–I17)
+  // chegava a rodar — regras que são agnósticas de linguagem por construção. O
+  // gate de ORÇAMENTO não depende da bateria; a bateria é aditiva. Quando ela
+  // não vale para a linguagem da trilha, ela é PULADA e o resto audita.
+  //
+  // A guarda é o mesmo id que a própria bateria aceita — uma linguagem entra
+  // aqui no dia em que `quality/progressao.ts` deixar de reprová-la, sem tocar
+  // neste arquivo.
+  const progressao: ProgressaoResult = bateriaDeProgressaoValePara(budget.adapterId)
+    ? auditarProgressao(entradaDeProgressao(track), {
+        mode: budget.source,
+        adapterId: budget.adapterId,
+      })
+    : { violations: [], novosPorAula: new Map<string, number>() };
   const progressaoPorRef = new Map<string, ReturnType<typeof auditarProgressao>['violations']>();
   for (const pv of progressao.violations) {
     const lista = progressaoPorRef.get(pv.ref) ?? [];

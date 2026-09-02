@@ -262,6 +262,25 @@ export interface LangNode {
   children: readonly LangNode[];
   /** o nó da árvore nativa do adaptador (opaco para consumidores). */
   native?: unknown;
+  /**
+   * NÓ PORTADOR: ele NÃO existe na árvore nativa — o adaptador o criou para
+   * carregar uma distinção que o parser da linguagem colapsa (ONDA 7, aditivo).
+   *
+   * Por que a caminhada genérica precisa saber disso. Ela emite DUAS chaves por
+   * nó — a específica (`constructKey`) e a genérica (`node:<type>`) —, como o
+   * repositório já faz com `node:ComputedNonLiteralAccess` ao lado de
+   * `node:ElementAccessExpression`. Para um nó portador a genérica seria LIXO:
+   * o `Binding` que o adaptador Python cria para distinguir `a, b = 1, 2` de
+   * `x = 1` viraria `node:Binding`, que não existe em `inventory()` e que
+   * nenhum orçamento poderia declarar. Marcado como `synthetic`, o nó rende
+   * SÓ a chave de `constructKey` (`decl:unpack`), que é a que tem valor.
+   *
+   * ATENÇÃO — `synthetic` não quer dizer "fora do inventário": `Elif`,
+   * `MethodDef` e `IntLiteral` também são portadores e ESTÃO no inventário,
+   * porque para eles `constructKey` já devolve `node:<type>`. O campo diz de
+   * onde o nó veio, não em que eixo ele cai.
+   */
+  synthetic?: boolean;
 }
 
 export interface ParseOk {

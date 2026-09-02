@@ -74,6 +74,8 @@ import {
 } from '../electron/main/engine/lang/registry';
 import {
   HARNESS_RECEPTIVE_SEED,
+  PYTHON_HARNESS_RECEPTIVE_SEED,
+  PYTHON_STRUCTURAL_ALWAYS_ALLOWED,
   STRUCTURAL_ALWAYS_ALLOWED,
   TYPESCRIPT_HARNESS_RECEPTIVE_SEED,
   TYPESCRIPT_TYPE_HARNESS_SEED,
@@ -571,16 +573,46 @@ describe('typescript — proibições globais (as duas camadas)', () => {
 });
 
 describe('typescript — a varredura de TRIVIA (@ts-ignore / @ts-expect-error)', () => {
-  it('as duas diretivas são COMENTÁRIO, e a caminhada do AST não as emite', () => {
+  it('as duas diretivas são COMENTÁRIO, e a caminhada do AST não as emite — mas o EXTRATOR sim', () => {
     // `extract.ts` depende explicitamente de "comentário não é nó" (é o que faz
-    // um `// test(` comentado não contar). Este teste FIXA essa consequência:
-    // sem a varredura de trivia, as duas proibições seriam letra morta.
+    // um `// test(` comentado não contar). A primeira metade deste teste FIXA
+    // essa consequência: o AST, sozinho, é cego para a diretiva.
     const fonte = '// @ts-ignore\nconst a: number = 1;\n';
     const chaves = chavesDe(fonte);
     assert.ok(!chaves.has('node:TsIgnoreDirective'), 'o AST não vê comentário — por isso a varredura existe');
-    const r = extractAtoms(fonte, { dialect: 'ts' });
+
+    // A segunda metade é a que a ONDA 7 INVERTEU. Ela dizia `assert.ok(!r.keys.
+    // includes('node:TsIgnoreDirective'), 'nem o extrator')` e fixava a
+    // proibição SEM EMISSOR: `node:TsIgnoreDirective` estava em
+    // `TS_FORBIDDEN_INVARIANTS` desde a onda 6 e o gate passava em silêncio.
+    // Agora `engine/extract.ts` CHAMA `tsScanSuppressionDirectives` quando o
+    // adaptador é o de TypeScript, e a chave chega ao gate com linha e coluna.
+    const r = extractAtoms(fonte, { language: 'typescript' });
+    assert.ok(r.ok, r.ok ? '' : r.error.message);
+    assert.ok(r.keys.includes('node:TsIgnoreDirective'), 'a proibição precisa de emissor');
+    const occ = r.occurrences.find((o) => o.key === 'node:TsIgnoreDirective');
+    assert.ok(occ);
+    assert.equal(occ.line, 1);
+    assert.equal(occ.column, 4);
+    assert.equal(fonte.slice(occ.start, occ.end), '@ts-ignore');
+    assert.ok(isForbiddenAlways(occ.key, 'typescript'), 'e ela é proibição global');
+
+    // `@ts-expect-error` pelo mesmo caminho.
+    const r2 = extractAtoms('/* @ts-expect-error */\nconst b = 1;\n', { language: 'typescript' });
+    assert.ok(r2.ok);
+    assert.ok(r2.keys.includes('node:TsExpectErrorDirective'));
+
+    // E o extrator do adaptador de JAVASCRIPT continua cego a ela — a varredura
+    // é por linguagem, e em JavaScript não existe diretiva de tipo para achar.
+    const rjs = extractAtoms(fonte.replace(': number', ''), { language: 'javascript' });
+    assert.ok(rjs.ok);
+    assert.ok(!rjs.keys.includes('node:TsIgnoreDirective'));
+  });
+
+  it('a diretiva dentro de STRING não vira chave nem pelo extrator (literal é nó, não trivia)', () => {
+    const r = extractAtoms("const s = '@ts-ignore';\n", { language: 'typescript' });
     assert.ok(r.ok);
-    assert.ok(!r.keys.includes('node:TsIgnoreDirective'), 'nem o extrator');
+    assert.ok(!r.keys.includes('node:TsIgnoreDirective'), 'falso positivo em literal seria pior que não cobrir');
   });
 
   it('a varredura acha as SETE diretivas da fixture, em todas as posições de comentário', () => {
@@ -738,9 +770,41 @@ describe('typescript — a semente receptiva do harness', () => {
     }
   });
 
-  it('a porta continua FECHADA para quem não tem tabela (Python)', () => {
-    assert.throws(() => harnessReceptiveSeed('python'), (e: unknown) => e instanceof Error);
-    assert.throws(() => structuralAlwaysAllowed('python'), (e: unknown) => e instanceof Error);
+  it('ONDA 7 — Python passou a ter tabela PRÓPRIA, e ela não empresta nada daqui', () => {
+    // Este teste era `assert.throws(...)` e fixava a porta FECHADA para Python.
+    // A onda 7 a abriu, e a abriu do jeito certo: com duas listas novas, tiradas
+    // de `docs/17-trilha-python.md` §"A semente receptiva do harness Python" —
+    // e não com uma tradução das de JavaScript. Sem elas `deriveTrackBudget` de
+    // uma trilha de Python nem começava (`entryAxiom` pede a estrutural na
+    // primeira linha).
+    const semente = harnessReceptiveSeed('python');
+    const estruturais = structuralAlwaysAllowed('python');
+    assert.deepEqual([...semente], [...PYTHON_HARNESS_RECEPTIVE_SEED]);
+    assert.deepEqual([...estruturais], [...PYTHON_STRUCTURAL_ALWAYS_ALLOWED]);
+
+    // NENHUMA chave do harness de JavaScript/TypeScript pode aparecer no de
+    // Python: `api:node:test` num orçamento de Python seria exatamente o erro
+    // que a porta por linguagem existe para impedir.
+    for (const chave of [...HARNESS_RECEPTIVE_SEED, ...TYPESCRIPT_TYPE_HARNESS_SEED]) {
+      assert.ok(!semente.includes(chave), `${chave} vazou do harness de JS/TS para o de Python`);
+    }
+    assert.ok(semente.includes('node:ClassDef'), 'o harness de Python é uma CLASSE unittest');
+    assert.ok(semente.includes('api:.assertEqual'));
+    assert.ok(!semente.includes('api:test'), 'node:test não existe em Python');
+
+    // E as de JavaScript/TypeScript continuam onde estavam — a porta é por
+    // linguagem, não uma lista que cresce.
+    assert.deepEqual([...harnessReceptiveSeed('javascript')], [...HARNESS_RECEPTIVE_SEED]);
+    assert.deepEqual([...structuralAlwaysAllowed('typescript')], [...STRUCTURAL_ALWAYS_ALLOWED]);
+    for (const chave of estruturais) {
+      assert.ok(chave.startsWith('node:'), chave);
+      assert.ok(!STRUCTURAL_ALWAYS_ALLOWED.includes(chave), `${chave} é nome de ts.SyntaxKind`);
+    }
+  });
+
+  it('a porta continua FECHADA para quem NÃO tem tabela (uma linguagem qualquer)', () => {
+    assert.throws(() => harnessReceptiveSeed('ruby' as never), (e: unknown) => e instanceof Error);
+    assert.throws(() => structuralAlwaysAllowed('ruby' as never), (e: unknown) => e instanceof Error);
   });
 });
 

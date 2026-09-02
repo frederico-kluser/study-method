@@ -384,6 +384,13 @@ function normalizarNo(bruto: NoBruto): LangNode {
     attributes: bruto.attributes,
     children: bruto.children.map(normalizarNo),
     native: bruto,
+    // ONDA 7 — o campo que o extrator passou a consumir. `synthetic` já vinha
+    // do subprocesso (`extract_ast.py:_marcador`) e morria aqui; agora ele
+    // atravessa para o `LangNode`, porque é ele que diz à caminhada genérica
+    // que este nó é PORTADOR (`Binding`, `GlobalRef`, `ApiRef`, `Op`) e que a
+    // chave genérica `node:<type>` dele seria lixo fora do inventário. Ver
+    // `LangNode.synthetic` em `registry.ts`.
+    synthetic: bruto.synthetic,
   };
 }
 

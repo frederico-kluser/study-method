@@ -45,7 +45,7 @@ import {
   type LanguageAdapter,
 } from '../electron/main/engine/lang/registry';
 import { javascriptAdapter, jsKindName } from '../electron/main/engine/lang/javascript';
-import { pythonAdapter } from '../electron/main/engine/lang/python';
+import { pyAtomsPath, pyExtractorPath, pythonAdapter } from '../electron/main/engine/lang/python';
 import { typescriptAdapter } from '../electron/main/engine/lang/typescript';
 
 // as FONTES que o adaptador duplica hoje (a paridade é medida contra elas)
@@ -57,7 +57,7 @@ import { RUNTIME_GLOBALS, countTestDeclarations } from '../electron/main/engine/
 import { nodeBinary, parseSpecChecks } from '../electron/main/services/challengeExec';
 import { JS_FENCE_TAGS, collectLessonCode, extractFencedBlocks } from '../electron/main/engine/theoryCode';
 import { kindName } from '../electron/main/engine/kindNames';
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 import * as path from 'node:path';
 import * as ts from 'typescript';
 
@@ -512,31 +512,94 @@ describe('theoryCode — adapterId por bloco (o campo que a onda 5 consome)', ()
 // nada. O teste abaixo não roda o bundle: ele proíbe a CAUSA no fonte.
 // ───────────────────────────────────────────────────────────────────────────
 
-describe('bundle-safety — o adaptador JavaScript é um módulo FOLHA', () => {
-  const ADAPTADOR = path.join(__dirname, '..', 'electron', 'main', 'engine', 'lang', 'javascript.ts');
-  // COMENTÁRIOS FORA. O cabeçalho do adaptador CITA os `require` relativos que
-  // foram apagados (é a documentação do defeito); sem tirar os comentários, o
-  // teste acusaria a própria explicação e nunca ficaria verde.
-  const fonte = readFileSync(ADAPTADOR, 'utf8')
-    .replace(/\/\*[\s\S]*?\*\//g, '')
-    .replace(/^[^\n]*?\/\/.*$/gm, '');
+describe('bundle-safety — TODO adaptador de engine/lang é um módulo FOLHA', () => {
+  // ONDA 7 — A GUARDA DEIXOU DE SER SÓ DO `javascript.ts`.
+  //
+  // Ela cobria UM arquivo, e o defeito que ela fecha já estava ARMADO num
+  // segundo: `lang/python.ts` tem o MESMO helper `carregar(modulo)`, com nove
+  // chamadas. Hoje é inofensivo — todos os argumentos são builtins (`node:path`,
+  // `node:fs`, `node:url`, `node:child_process`), que resolvem a partir de
+  // QUALQUER diretório, do fonte ou do bundle. Mas é a mesma armadilha, sem
+  // guarda: bastava uma chamada com caminho relativo para reproduzir o
+  // MODULE_NOT_FOUND do app empacotado, e a suíte (que roda do fonte, onde o
+  // relativo resolve) não veria nada. Agora a guarda vale para todo `lang/*.ts`,
+  // e vale para arquivo que ainda nem existe: a lista sai do `readdirSync`.
+  const DIR_LANG = path.join(__dirname, '..', 'electron', 'main', 'engine', 'lang');
+  const ARQUIVOS = readdirSync(DIR_LANG)
+    .filter((nome) => nome.endsWith('.ts'))
+    .sort();
 
-  it('nenhum `require(...)` de caminho RELATIVO — nem literal, nem por variável', () => {
-    // qualquer require cujo argumento comece com '.' ou "/" — o que não
-    // sobrevive ao rebase de diretório que o bundle faz.
-    const relativos = [...fonte.matchAll(/\brequire\(\s*['"`](\.[^'"`]*)['"`]\s*\)/g)].map((m) => m[1]);
-    assert.deepEqual(relativos, [], `require relativo proibido: ${relativos.join(', ')}`);
+  // COMENTÁRIOS FORA. Os cabeçalhos CITAM os `require` relativos que foram
+  // apagados (é a documentação do defeito); sem tirar os comentários, o teste
+  // acusaria a própria explicação e nunca ficaria verde.
+  function fonteDe(nome: string): string {
+    return readFileSync(path.join(DIR_LANG, nome), 'utf8')
+      .replace(/\/\*[\s\S]*?\*\//g, '')
+      .replace(/^[^\n]*?\/\/.*$/gm, '');
+  }
+
+  /**
+   * Todo especificador de módulo em posição de CARGA: o `require('x')` direto e
+   * o `carregar<T>('x')` postergado. Os dois viram a mesma coisa em runtime, e
+   * um teste que olhasse só para `require(` deixaria as nove chamadas de
+   * `python.ts` sem cobertura nenhuma.
+   */
+  function especificadores(fonte: string): string[] {
+    const re = /\b(?:require|carregar)\s*(?:<[^<>]*>)?\(\s*['"`]([^'"`]+)['"`]\s*\)/g;
+    return [...fonte.matchAll(re)].map((m) => m[1]);
+  }
+
+  it('a guarda cobre TODOS os arquivos de engine/lang (a lista sai do disco)', () => {
+    assert.deepEqual(ARQUIVOS, ['javascript.ts', 'python.ts', 'registry.ts', 'typescript.ts']);
   });
 
-  it('nenhum `require(variável)` — Rollup não enxerga, e a string vaza literal para o bundle', () => {
-    const porVariavel = [...fonte.matchAll(/\brequire\(\s*(?!['"`])[A-Za-z_$]/g)];
-    assert.equal(porVariavel.length, 0, 'require com especificador dinâmico é invisível ao bundler');
-  });
+  for (const nome of ARQUIVOS) {
+    describe(`lang/${nome}`, () => {
+      const fonte = fonteDe(nome);
 
-  it('o ÚNICO require é o especificador BARE `typescript` (externalizado pelo electron-vite)', () => {
-    const todos = [...fonte.matchAll(/\brequire\(\s*['"`]([^'"`]+)['"`]\s*\)/g)].map((m) => m[1]);
-    assert.deepEqual(todos, ['typescript']);
-  });
+      it('nenhum especificador de caminho — nem relativo (`./`, `../`) nem absoluto (`/`)', () => {
+        // O que não sobrevive ao rebase de diretório que o bundle faz: a árvore
+        // de `out/main/` não é a de `electron/main/`.
+        const caminhos = especificadores(fonte).filter((e) => e.startsWith('.') || e.startsWith('/'));
+        assert.deepEqual(caminhos, [], `especificador de caminho proibido: ${caminhos.join(', ')}`);
+      });
+
+      it('todo especificador é BARE: um builtin `node:*` ou o pacote `typescript`', () => {
+        // BUILTIN `node:*` e PACOTE são as duas formas que resolvem de qualquer
+        // diretório. `typescript` é `dependency` de runtime (teste abaixo) e o
+        // `externalizeDepsPlugin()` a mantém fora do bundle; um builtin não
+        // passa nem perto do bundler.
+        for (const spec of especificadores(fonte)) {
+          assert.ok(
+            spec === 'typescript' || spec.startsWith('node:'),
+            `${nome}: especificador não-bare/não-builtin: ${spec}`,
+          );
+        }
+      });
+
+      it('`require(variável)` só existe dentro do helper de carga, e o helper é uma linha', () => {
+        // Rollup não enxerga `require(variável)`: a string sobrevive LITERAL ao
+        // bundle. O padrão é tolerado num único lugar — o helper `carregar`,
+        // cujo corpo é `return require(modulo) as T` e cujos ARGUMENTOS o teste
+        // acima já provou serem literais bare. Qualquer outro `require(x)` é
+        // uma string que ninguém conferiu.
+        const dinamicos = [...fonte.matchAll(/\brequire\(\s*(?!['"`])([A-Za-z_$][\w$]*)\s*\)/g)].map(
+          (m) => m[0],
+        );
+        if (dinamicos.length === 0) return;
+        assert.deepEqual(
+          dinamicos,
+          ['require(modulo)'],
+          `${nome}: require dinâmico fora do helper de carga`,
+        );
+        assert.match(
+          fonte,
+          /function carregar<T>\(modulo: string\): T \{\s*return require\(modulo\) as T;\s*\}/,
+          `${nome}: o helper de carga não é o de uma linha auditável`,
+        );
+      });
+    });
+  }
 
   it('`typescript` é DEPENDENCY de runtime, não devDependency', () => {
     // Como devDependency o electron-builder não a empacota, e o
@@ -552,9 +615,26 @@ describe('bundle-safety — o adaptador JavaScript é um módulo FOLHA', () => {
     assert.equal(pkg.devDependencies.typescript, undefined, 'e não pode ficar duplicada em devDependencies');
   });
 
-  it('nenhum import ESTÁTICO de valor (só `import type`) — o ciclo com o registro continua fechado', () => {
+  it('`javascript.ts` não tem import ESTÁTICO de valor — o ciclo com o registro continua fechado', () => {
+    // Só ele: `registry.ts` importa os três adaptadores como VALOR (é o
+    // registro), e `typescript.ts` importa `javascriptAdapter` (é composição
+    // sobre ele). O `javascript.ts` é a FOLHA da árvore e não pode importar
+    // ninguém — é dele que o ciclo partiria.
+    const fonte = fonteDe('javascript.ts');
     const imports = [...fonte.matchAll(/^import\s+(?!type\b)[^;]*?from\s*['"][^'"]+['"];/gm)].map((m) => m[0]);
     assert.deepEqual(imports, [], `import de valor proibido: ${imports.join(' | ')}`);
+  });
+
+  it('`python.ts` também é folha: nada de import de valor, e os artefatos vêm por resolução', () => {
+    const fonte = fonteDe('python.ts');
+    const imports = [...fonte.matchAll(/^import\s+(?!type\b)[^;]*?from\s*['"][^'"]+['"];/gm)].map((m) => m[0]);
+    assert.deepEqual(imports, [], `import de valor proibido: ${imports.join(' | ')}`);
+    // O `.py` e o `.json` NÃO entram por `require`/`import` — eles são
+    // RESOLVIDOS em disco entre candidatos (fonte, bundle achatado, raiz do
+    // repo) com uma variável de ambiente na frente. É por isso que o adaptador
+    // sobrevive ao bundle sem que o bundler precise enxergar o artefato.
+    assert.ok(pyExtractorPath() !== null, 'vocab/py/extract_ast.py tem de resolver');
+    assert.ok(pyAtomsPath() !== null, 'vocab/atoms.python.json tem de resolver');
   });
 });
 

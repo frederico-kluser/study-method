@@ -291,14 +291,21 @@ function ehDuplaAssercaoViaUnknown(node: LangNode): boolean {
  * Um nó vira ITEM DE ORÇAMENTO. Delega ao JavaScript (os eixos `node:`,
  * `decl:` e `op:` são os mesmos) e antepõe as chaves sintéticas de TIPO.
  *
- * LIMITE DECLARADO, e ele é o mesmo do adaptador JavaScript: NADA consome
- * `constructKey` hoje — o mapeamento nó→chave que o gate usa continua sendo o
- * `record`/`visit` de `engine/extract.ts:402-467`, que é JAVASCRIPT-ONLY por
- * guarda explícita (`exigirAdaptadorJavascript`). Quando o extrator passar a
- * consumir o adaptador, ele deve RECORDAR AS DUAS chaves (a sintética e a
- * genérica), como já faz com `node:ComputedNonLiteralAccess` ao lado de
- * `node:ElementAccessExpression`; a interface do §6 devolve UMA chave por nó e
- * este membro devolve a MAIS ESPECÍFICA.
+ * ONDA 7 — O LIMITE DECLARADO AQUI FOI FECHADO. Este comentário dizia "NADA
+ * consome `constructKey` hoje" e prescrevia o conserto: "quando o extrator
+ * passar a consumir o adaptador, ele deve RECORDAR AS DUAS chaves (a sintética
+ * e a genérica), como já faz com `node:ComputedNonLiteralAccess` ao lado de
+ * `node:ElementAccessExpression`". É exatamente o que
+ * `engine/extract.ts:caminharTsNode` faz agora: por nó ele grava a genérica
+ * (`node:TypeOperator`) e, quando este membro devolve algo do eixo `node:` que
+ * seja DIFERENTE dela, grava também a específica (`node:KeyOfType`). A interface
+ * do §6 devolve UMA chave por nó e este membro devolve a MAIS ESPECÍFICA; quem
+ * decide emitir as duas é o extrator.
+ *
+ * O extrator aceita deste membro SÓ o eixo `node:`, e o motivo está lá: os
+ * outros eixos daquela caminhada são gravados com uma POSIÇÃO que o `LangNode`
+ * não expressa (o TOKEN do operador, o NOME da propriedade, o especificador do
+ * import).
  */
 export function tsConstructKey(node: LangNode): string | null {
   return tsChaveSintetica(node) ?? javascriptAdapter.constructKey(node);
@@ -517,21 +524,22 @@ export const TS_SUPPRESSION_DIRECTIVES: readonly { readonly directive: string; r
  * TypeScript com `any` liberado é uma trilha de JavaScript com anotação
  * decorativa.
  *
- * ⚠ COBERTURA DESIGUAL, DECLARADA — leia antes de confiar nesta lista:
+ * COBERTURA — os quatro caminhos por que cada proibição chega ao gate:
  *
  *   - `node:AnyKeyword` e `node:AsExpression` SÃO nós, e o passe `node:` do
  *     extrator (`extract.ts:403-406`) já os emite hoje para fonte TypeScript.
  *     Estas duas o gate pega.
- *   - `node:DoubleAssertionViaUnknown` é SINTÉTICA e sai de `tsConstructKey` —
- *     que ninguém consome ainda (ver o limite declarado lá). Enquanto o
- *     extrator não a emitir, ela é proibição SEM EMISSOR.
+ *   - `node:DoubleAssertionViaUnknown` é SINTÉTICA e sai de `tsConstructKey`.
+ *     Até a onda 6 era proibição SEM EMISSOR; na onda 7 o extrator passou a
+ *     consumir `constructKey` e ela chega ao gate.
  *   - `node:TsIgnoreDirective` e `node:TsExpectErrorDirective` são
- *     COMENTÁRIOS, e `extract.ts:520-529` depende explicitamente de
- *     "comentário não é nó" (é o que faz um `// test(` comentado não contar).
- *     A caminhada do AST NÃO pode emiti-las, por construção. O emissor é
- *     `tsScanSuppressionDirectives` abaixo — implementado, testado e ainda SEM
- *     CHAMADOR, porque quem teria de chamá-lo é `engine/extract.ts`, de outra
- *     sub-tarefa desta onda.
+ *     COMENTÁRIOS, e `engine/extract.ts` depende explicitamente de "comentário
+ *     não é nó" (é o que faz um `// test(` comentado não contar). A caminhada
+ *     do AST NÃO pode emiti-las, por construção — e é por isso que o emissor
+ *     delas é a VARREDURA DE TRIVIA (`tsScanSuppressionDirectives` abaixo), que
+ *     o extrator chama depois da caminhada quando o adaptador é este
+ *     (`VARREDURAS_DE_TRIVIA` em `engine/extract.ts`). Onda 7: as quatro têm
+ *     emissor; a cobertura deixou de ser desigual.
  */
 export const TS_FORBIDDEN_INVARIANTS: readonly string[] = [
   ...javascriptAdapter.forbiddenInvariants,
@@ -600,6 +608,11 @@ function blocosDeTrivia(sf: TsSourceFile): { start: number; text: string }[] {
  * é sobre COMENTÁRIOS, e a caminhada do AST não os enxerga. Fingir que o eixo
  * `node:` cobriria seria pior que não cobrir: a proibição existiria no papel e
  * o gate passaria em silêncio.
+ *
+ * CHAMADOR (onda 7): `engine/extract.ts` — a tabela `VARREDURAS_DE_TRIVIA`, que
+ * roda esta função depois da caminhada quando o adaptador da extração é o de
+ * TypeScript. As ocorrências entram no fim da lista, de propósito: uma diretiva
+ * de comentário não tem lugar numa ordem de visita de árvore.
  *
  * PURA: mesma entrada, mesma saída. Sem IO, sem estado.
  */

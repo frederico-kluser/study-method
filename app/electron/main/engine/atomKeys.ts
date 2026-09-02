@@ -354,6 +354,87 @@ export const TYPESCRIPT_HARNESS_RECEPTIVE_SEED: readonly AtomKey[] = [
 ];
 
 /**
+ * A SEMENTE RECEPTIVA DO HARNESS DE PYTHON (ONDA 7).
+ *
+ * Fonte NORMATIVA, copiada nome a nome: `docs/17-trilha-python.md`
+ * §"A semente receptiva do harness Python". O harness de Python NÃO é o de
+ * JavaScript com outros nomes — é outro runner (`unittest`, por descoberta) e
+ * outro invólucro:
+ *
+ *     import unittest
+ *     from solucao import dobro
+ *
+ *     class TestDobro(unittest.TestCase):
+ *         def test_dobro_de_2(self):
+ *             self.assertEqual(dobro(2), 4)
+ *
+ *     if __name__ == "__main__":
+ *         unittest.main()
+ *
+ * O aluno LÊ isso em todo desafio e não escreve nada disso em nenhum: a classe,
+ * o método `test_*`, o `self.assertEqual`, o `import unittest`. Por isso a
+ * semente traz `node:ClassDef` e `node:MethodDef` — que na trilha de JavaScript
+ * não teriam a menor razão de existir — e NÃO traz uma linha sequer do
+ * `node:test`/`assert` do Node.
+ *
+ * `node:IntLiteral` e `node:StrLiteral` entram pelo mesmo motivo que
+ * `node:NumericLiteral`/`node:StringLiteral` entram na de JavaScript: não
+ * existe caso de teste sem um número e um texto. A diferença é que em Python
+ * essas duas chaves são SINTÉTICAS (`7` e `"oi"` são o MESMO `ast.Constant`;
+ * ver `vocab/py/extract_ast.py`) — e é justamente por elas chegarem ao gate que
+ * uma aula de TEXTO passa a introduzir construção nova em vez de ZERO.
+ */
+export const PYTHON_HARNESS_RECEPTIVE_SEED: readonly AtomKey[] = [
+  'node:Module',
+  'node:FunctionDef',
+  'node:arguments',
+  'node:arg',
+  'node:Return',
+  'node:Name',
+  'node:Expr',
+  'node:Call',
+  'node:Attribute',
+  'node:Import',
+  'node:ImportFrom',
+  'node:alias',
+  'node:ClassDef',
+  'node:MethodDef',
+  'node:IntLiteral',
+  'node:StrLiteral',
+  'global:unittest',
+  'api:unittest.TestCase',
+  'api:unittest.main',
+  'api:.assertEqual',
+  'api:.assertTrue',
+  'api:.assertIsNone',
+  'api:.assertRaises',
+] as const;
+
+/**
+ * As ESTRUTURAIS de Python — o análogo de `STRUCTURAL_ALWAYS_ALLOWED`, também
+ * copiado de `docs/17-trilha-python.md` §"A semente receptiva do harness
+ * Python": "São contexto de expressão e container — não carregam didática
+ * nenhuma e listá-los em toda aula só aumentaria a chance de esquecer um."
+ *
+ * `node:Load`/`node:Store`/`node:Del` são o `expr_context` do `ast`: eles dizem
+ * se um nome está sendo LIDO, ESCRITO ou APAGADO e aparecem em toda expressão —
+ * são o caso mais puro de "nó que todo programa tem e que não ensina nada". A
+ * lista NÃO é a de JavaScript: `node:SourceFile` e `node:VariableDeclarationList`
+ * são nomes de `ts.SyntaxKind` e não existem no `ast` do Python.
+ */
+export const PYTHON_STRUCTURAL_ALWAYS_ALLOWED: readonly AtomKey[] = [
+  'node:Module',
+  'node:Name',
+  'node:Load',
+  'node:Store',
+  'node:Del',
+  'node:arguments',
+  'node:Expr',
+  'node:alias',
+  'node:keyword',
+] as const;
+
+/**
  * Construções ESTRUTURAIS que todo programa tem e que não ensinam nada: exigir
  * que a trilha "introduza" `SourceFile` ou `ExpressionStatement` transformaria
  * o gate em ruído. Ficam sempre liberadas nas DUAS faixas.
@@ -393,11 +474,25 @@ export const STRUCTURAL_ALWAYS_ALLOWED: readonly AtomKey[] = [
 // 24). O que muda é o ACRÉSCIMO: a semente ganha as sete chaves de tipo de
 // `TYPESCRIPT_TYPE_HARNESS_SEED`; as estruturais não mudam nem uma linha,
 // porque `SourceFile`/`Block`/`Identifier` são os mesmos nós nos dois
-// dialetos. Python continua fora — lá o `ast` é outro, e semear um orçamento
-// de Python com `api:node:test` seria exatamente o erro que esta porta impede.
+// dialetos.
+//
+// ONDA 7 — `python` entra, e entra pelo caminho OPOSTO ao de TypeScript: com
+// DUAS TABELAS PRÓPRIAS, nenhuma linha compartilhada. Era isto que a versão
+// anterior deste comentário dizia ("semear um orçamento de Python com
+// `api:node:test` seria exatamente o erro que esta porta impede") e continua
+// valendo palavra por palavra — o que mudou é que agora existem as tabelas
+// CERTAS para copiar, e elas vêm de `docs/17-trilha-python.md`
+// §"A semente receptiva do harness Python", não de uma tradução das de
+// JavaScript. Sem elas `deriveTrackBudget` de uma trilha de Python nem começa:
+// `entryAxiom` (`budget.ts:201`) pede `structuralAlwaysAllowed(language)` na
+// primeira linha e a porta LANÇAVA. A porta continua fechada para o resto.
 
 /** As linguagens cujas tabelas ESTE arquivo declara. */
-export const LINGUAGENS_COM_TABELA: readonly LanguageId[] = ['javascript', 'typescript'];
+export const LINGUAGENS_COM_TABELA: readonly LanguageId[] = [
+  'javascript',
+  'typescript',
+  'python',
+];
 
 /** Erro estruturado: a linguagem não tem tabela declarada neste alfabeto. */
 export class TabelaDeLinguagemAusenteError extends Error {
@@ -440,17 +535,25 @@ function exigirTabela(tabela: string, language: LanguageId): void {
  */
 export function harnessReceptiveSeed(language: LanguageId = DEFAULT_ADAPTER_ID): readonly AtomKey[] {
   exigirTabela('HARNESS_RECEPTIVE_SEED', language);
-  return language === 'typescript' ? TYPESCRIPT_HARNESS_RECEPTIVE_SEED : HARNESS_RECEPTIVE_SEED;
+  if (language === 'typescript') return TYPESCRIPT_HARNESS_RECEPTIVE_SEED;
+  if (language === 'python') return PYTHON_HARNESS_RECEPTIVE_SEED;
+  return HARNESS_RECEPTIVE_SEED;
 }
 
 /**
- * As estruturais sempre liberadas DESTA linguagem (as duas faixas). É a MESMA
- * lista nas duas: os nós que todo programa tem (`SourceFile`, `Block`,
- * `Identifier`, `VariableDeclaration`…) são do mesmo `ts.SyntaxKind` em
- * JavaScript e em TypeScript. Nenhuma construção de TIPO entra aqui — anotar
- * não é estrutural, é conteúdo de aula.
+ * As estruturais sempre liberadas DESTA linguagem (as duas faixas).
+ *
+ * JavaScript e TypeScript compartilham a MESMA lista: os nós que todo programa
+ * tem (`SourceFile`, `Block`, `Identifier`, `VariableDeclaration`…) são do
+ * mesmo `ts.SyntaxKind` nos dois dialetos. Nenhuma construção de TIPO entra
+ * aqui — anotar não é estrutural, é conteúdo de aula.
+ *
+ * Python tem lista PRÓPRIA (`PYTHON_STRUCTURAL_ALWAYS_ALLOWED`), e não podia
+ * ser de outro jeito: `node:SourceFile` e `node:VariableDeclarationList` são
+ * nomes de `ts.SyntaxKind` e não existem no `ast`; o que ocupa esse papel lá é
+ * `node:Module` e o `expr_context` (`Load`/`Store`/`Del`).
  */
 export function structuralAlwaysAllowed(language: LanguageId = DEFAULT_ADAPTER_ID): readonly AtomKey[] {
   exigirTabela('STRUCTURAL_ALWAYS_ALLOWED', language);
-  return STRUCTURAL_ALWAYS_ALLOWED;
+  return language === 'python' ? PYTHON_STRUCTURAL_ALWAYS_ALLOWED : STRUCTURAL_ALWAYS_ALLOWED;
 }
