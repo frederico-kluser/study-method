@@ -519,36 +519,26 @@ export function extractAtoms(code: string, options: ExtractOptions = {}): Extrac
  * faz o validador semântico entrar em retry e devolver erro de JSON inválido
  * para sempre. Contagem por AST não tem esse problema: comentário não é nó.
  *
- * MULTILÍNGUA (onda 5): o membro do §6 é `adapter.countDeclared` — e para
- * JavaScript ele DELEGA para esta função (`jsCountDeclared`,
- * `engine/lang/javascript.ts:583`). Por isso o despacho aqui é POR EXCLUSÃO:
- * `language` diferente do default vai ao adaptador daquela linguagem; o corpo
- * abaixo é a implementação de JavaScript, e chamar o adaptador para ela seria
- * recursão infinita, não indireção. Uma implementação, um lugar — o que muda é
- * quem pergunta.
+ * MULTILÍNGUA (onda 5): o membro do §6 é `adapter.countDeclared`.
+ *
+ * ONDA 6 — O CORPO MUDOU DE CASA e esta função virou o DESPACHANTE PURO. Até a
+ * onda 5 a implementação de JavaScript morava aqui e `lang/javascript.ts`
+ * (`jsCountDeclared`) a alcançava por `require('../extract')`: um caminho
+ * RELATIVO, invisível ao Rollup, que sobrevivia literal ao bundle do main e
+ * apontava para `out/extract` — inexistente. Efeito medido: no app EMPACOTADO,
+ * `runStudentCode` (a submissão do aluno) e `verifyChallengePair` lançavam
+ * MODULE_NOT_FOUND ao pedir a contagem declarada. Além disso o `require`
+ * arrastava o EXTRATOR INTEIRO (com as regras de forma e o seletor) para dentro
+ * de uma contagem de `test(`.
+ *
+ * Agora a seta aponta para o adaptador em TODA linguagem, inclusive a default —
+ * sem o `if` por exclusão, porque não há mais corpo local para o qual desviar e
+ * `jsCountDeclared` é auto-contido (usa o `ts()` postergado do adaptador).
+ * Uma implementação, um lugar — o que muda é quem pergunta.
  */
 export function countTestDeclarations(
   testsCode: string,
   language: LanguageId = DEFAULT_ADAPTER_ID,
 ): number {
-  if (language !== DEFAULT_ADAPTER_ID) return getAdapter(language).countDeclared(testsCode);
-  const source = ts.createSourceFile('tests.mjs', testsCode, ts.ScriptTarget.Latest, true, ts.ScriptKind.JS);
-  let count = 0;
-  const visit = (node: ts.Node): void => {
-    if (ts.isCallExpression(node)) {
-      const callee = node.expression;
-      if (ts.isIdentifier(callee) && callee.text === 'test') count += 1;
-      else if (
-        ts.isPropertyAccessExpression(callee) &&
-        ts.isIdentifier(callee.expression) &&
-        callee.expression.text === 'test'
-      ) {
-        // `test.skip(...)` / `test.only(...)` também declaram um teste.
-        count += 1;
-      }
-    }
-    ts.forEachChild(node, visit);
-  };
-  ts.forEachChild(source, visit);
-  return count;
+  return getAdapter(language).countDeclared(testsCode);
 }

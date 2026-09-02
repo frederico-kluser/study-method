@@ -7,40 +7,63 @@
  * obrigação: é a linguagem da trilha que já existe e tem 32% de desafios
  * violando a trava. Nenhuma peça nova."
  *
- * ─── O CONTRATO DESTE ARQUIVO NESTA ONDA: ZERO MUDANÇA DE COMPORTAMENTO ───
+ * ─── ONDA 6: A SETA INVERTEU, E POR QUE ELA TINHA DE INVERTER ─────────────
  *
- * Este adaptador REÚNE valores que hoje vivem espalhados. Cada um deles está
- * marcado com `FONTE DA VERDADE a partir da onda 5 — ver <arquivo:linha>`: na
- * onda 5 o arquivo citado passa a IMPORTAR daqui e a sua cópia é apagada.
- * Enquanto isso, o valor existe nos dois lugares DE PROPÓSITO — duplicar o
- * valor é o que permite publicar a interface sem tocar em `extract.ts`,
- * `atomKeys.ts`, `exec/**` e `services/challengeExec.ts`, que pertencem às
- * outras sub-tarefas.
+ * Até a onda 5 este adaptador DELEGAVA comportamento por `require` POSTERGADO
+ * com caminho RELATIVO, dentro de um helper `carregar(modulo)`:
  *
- * Duas técnicas convivem aqui, e a escolha entre elas tem regra:
+ *     carregar<ProofsModule>('../exec/proofs').parseSpecCounts(saida)
+ *     carregar<ExtractModule>('../extract').countTestDeclarations(codigo)
+ *     carregar<ChallengeExecModule>('../../services/challengeExec').parseSpecChecks(s)
  *
- *   - VALOR (regex, lista de args, lista de proibições, exit codes, layout de
- *     arquivos): COPIADO literalmente. Um valor copiado não pode divergir em
- *     comportamento — ou é igual, ou o teste de paridade
- *     (`tests/engineLangRegistry.test.ts`) acusa.
- *   - COMPORTAMENTO (parse, contagens, checks): DELEGADO por `require`
- *     POSTERGADO à implementação que já existe. Delegar é a única forma de
- *     garantir que `countRun` desta onda é byte a byte o `parseSpecCounts` de
- *     hoje, com todas as armadilhas já resolvidas lá dentro (ANSI, relatório
- *     forjado, último bloco de resumo). A onda 5 inverte a seta: a
- *     implementação muda de casa para cá e `proofs.ts`/`extract.ts` passam a
- *     consumir o adaptador.
+ * Isso QUEBRAVA O APP EMPACOTADO, e de forma invisível para o gate. Rollup não
+ * enxerga `require(variável)` — a string literal sobrevive ao bundle e, quando
+ * resolvida a partir de `out/main/index.js`, aponta para `out/exec/proofs` e
+ * `out/services/challengeExec`, que não existem. Reprodução medida:
  *
- * POR QUE `require` POSTERGADO E NÃO `import` ESTÁTICO:
- *   1. CICLO. `content/trackTypes.ts` importa `lang/registry.ts`, que importa
- *      ESTE arquivo. `services/challengeExec.ts` e `engine/exec/harness.ts`
- *      importam `content/trackTypes.ts`. Um import estático daqui para lá
- *      fecharia o ciclo na CARGA do módulo — o `require` postergado só toca
- *      esses módulos quando a função é chamada, com o registro já pronto.
- *   2. PESO. `extract.ts` puxa o compilador TypeScript inteiro. O loader de
- *      conteúdo (que só quer abrir uma aula) não pode pagar por isso.
- *   O precedente do repositório é `engine/schemas/artifacts.ts:681`
- *   (`carregarSchemaLazy`), que resolve o mesmo ciclo do mesmo jeito.
+ *     npm run build && cd out/main && node -e "require('../exec/proofs')"
+ *     → Error: Cannot find module '../exec/proofs'   (MODULE_NOT_FOUND)
+ *
+ * Raio de explosão: `runStudentCode` (a submissão de código DO ALUNO, via IPC)
+ * e `verifyChallengePair` (regeneração de desafio), as duas em
+ * `services/challengeExec.ts` — as únicas chamadas destes membros que entram no
+ * bundle do main. Rodando DO FONTE (suíte, `npm run engine`, `npm run track`,
+ * provas/F9/F12 sob `tsx`) tudo funcionava; no app instalado o aluno apertava
+ * "verificar" e o processo main lançava MODULE_NOT_FOUND.
+ *
+ * O CONSERTO NÃO FOI TROCAR POR `import` ESTÁTICO — seria trocar um defeito por
+ * outro. `../extract` puxa o compilador TypeScript inteiro (medido:
+ * `require('typescript')` custa ~42 ms e ~45 MB de RSS), e este módulo é
+ * avaliado na CARGA do main (registry ← trackTypes ← challengeExec). Um import
+ * estático faria todo start do app pagar o compilador só para abrir uma aula.
+ * O conserto foi BUNDLER-AWARE, e tem três partes:
+ *
+ *   1. OS MEMBROS PUROS MUDARAM DE CASA PARA CÁ. `parseSpecCounts`,
+ *      `exitCodeMeaning` (eram de `exec/proofs.ts`) e `parseSpecChecks` (era de
+ *      `services/challengeExec.ts`) são funções de STRING — zero peso, zero
+ *      dependência. Elas vivem aqui agora e os arquivos de origem REEXPORTAM
+ *      daqui. Uma implementação, um lugar: é a inversão que o cabeçalho da onda
+ *      5 já prometia ("a implementação muda de casa para cá").
+ *   2. `countTestDeclarations` IDEM: o corpo JavaScript veio para cá
+ *      (`jsCountDeclared`) e `engine/extract.ts` virou o DESPACHANTE puro
+ *      (`getAdapter(language).countDeclared(...)`). Ele precisa do compilador,
+ *      mas agora o alcança pelo mesmo `ts()` POSTERGADO deste arquivo.
+ *   3. O ÚNICO `require` que sobrou é `require('typescript')` — especificador
+ *      BARE e LITERAL. Bare porque o Node resolve por `node_modules` de
+ *      qualquer diretório (o bundle inclusive); literal porque assim o Rollup o
+ *      ENXERGA, e `externalizeDepsPlugin()` o mantém externo em vez de inlinar
+ *      o compilador no `out/main/index.js`. Para isso `typescript` deixou de ser
+ *      devDependency e virou DEPENDENCY (`app/package.json`): como devDep, o
+ *      electron-builder não o empacotava e o app instalado morreria no
+ *      `require('typescript')` de qualquer jeito.
+ *
+ * REGRA QUE FICA (guardada por teste em `tests/engineLangRegistry.test.ts`):
+ * NENHUM `require`/`import()` de caminho RELATIVO neste arquivo. Se um membro
+ * precisar de algo de fora, ou o algo vem para cá, ou entra por `import type`.
+ *
+ * A técnica de VALOR continua: regex, lista de args, lista de proibições, exit
+ * codes e layout de arquivos são COPIADOS literalmente, e o teste de paridade
+ * (`tests/engineLangRegistry.test.ts`) acusa qualquer divergência.
  */
 
 import type {
@@ -67,21 +90,33 @@ import type {
 // Import de tipo é apagado na compilação — não existe em runtime.
 
 // ---------------------------------------------------------------------------
-// Módulos carregados sob demanda (ver "POR QUE `require` POSTERGADO")
+// O COMPILADOR, sob demanda (o único `require` do arquivo — ver o cabeçalho)
 // ---------------------------------------------------------------------------
 
 type TypeScriptModule = typeof import('typescript');
-type ExtractModule = typeof import('../extract');
-type ProofsModule = typeof import('../exec/proofs');
-type ChallengeExecModule = typeof import('../../services/challengeExec');
 
-function carregar<T>(modulo: string): T {
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  return require(modulo) as T;
-}
+let tsMemo: TypeScriptModule | null = null;
 
+/**
+ * O compilador TypeScript, carregado na PRIMEIRA chamada e memoizado.
+ *
+ * `require('typescript')` — LITERAL e BARE, e as duas coisas importam:
+ *   - LITERAL: `require(variável)` é invisível ao Rollup; com o literal ele vê
+ *     a dependência, e `externalizeDepsPlugin()` (que externaliza tudo o que
+ *     está em `dependencies`) a deixa FORA do bundle. Sem isso o compilador
+ *     inteiro entraria em `out/main/index.js`.
+ *   - BARE: um caminho relativo não sobrevive ao bundle (a árvore de `out/`
+ *     não é a de `electron/`). Um especificador de pacote resolve por
+ *     `node_modules` a partir de qualquer diretório — do fonte e do bundle.
+ *   - POSTERGADO: este módulo é avaliado na carga do main; o compilador custa
+ *     ~42 ms e ~45 MB, e só é preciso quando alguém parseia código de verdade.
+ */
 function ts(): TypeScriptModule {
-  return carregar<TypeScriptModule>('typescript');
+  if (tsMemo === null) {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    tsMemo = require('typescript') as TypeScriptModule;
+  }
+  return tsMemo;
 }
 
 // ---------------------------------------------------------------------------
@@ -198,17 +233,29 @@ export const JS_ENV_SCRUB: EnvScrubPolicy = {
 // ---------------------------------------------------------------------------
 
 /**
+ * Classificação HONESTA de um exit code para as mensagens das provas.
+ * 137 (SIGKILL) não distingue timeout de OOM — devolve exatamente
+ * "timeout-ou-OOM", e o chamador nunca afirma qual dos dois.
+ *
+ * ONDA 6 — MUDOU DE CASA. Esta é a implementação de `FailurePolicy.meaning`, e
+ * ela vive AQUI: `engine/exec/proofs.ts` REEXPORTA daqui. Antes era o
+ * contrário, alcançada por `require('../exec/proofs')` — o caminho relativo que
+ * não sobrevive ao bundle do main (ver o cabeçalho).
+ */
+export function exitCodeMeaning(exitCode: number): string {
+  if (exitCode === 137) return 'timeout-ou-OOM';
+  return `exit ${exitCode}`;
+}
+
+/**
  * §6 obs. 3: "`passed = code === 0 && …` não é universal". Em Node o exit 0
  * mente de duas formas (arquivo de teste vazio e glob vazio saem 0), por isso
  * `successRequiresCountMatch` é invariante — a dupla-igualdade continua
  * obrigatória em toda linguagem.
- * FONTE DA VERDADE a partir da onda 5 — ver `engine/exec/proofs.ts:156`
- * (`exitCodeMeaning`) e o `exitCode !== 0` dos julgadores de `proofs.ts`.
  */
 export const JS_FAILURE_POLICY: FailurePolicy = {
   isFailure: (exitCode: number): boolean => exitCode !== 0,
-  meaning: (exitCode: number): string =>
-    carregar<ProofsModule>('../exec/proofs').exitCodeMeaning(exitCode),
+  meaning: exitCodeMeaning,
   successRequiresCountMatch: true,
 };
 
@@ -324,6 +371,56 @@ function familiaDoOperador(texto: string): string {
   return 'binary';
 }
 
+// ---------------------------------------------------------------------------
+// A tabela canônica de nomes de `SyntaxKind` — construída do compilador LAZY
+// ---------------------------------------------------------------------------
+
+let kindNamesMemo: ReadonlyMap<number, string> | null = null;
+
+/**
+ * `SyntaxKind` → nome CANÔNICO, construída na PRIMEIRA necessidade e memoizada.
+ *
+ * A ARMADILHA QUE ELA RESOLVE (a mesma de `engine/kindNames.ts`): o enum
+ * `ts.SyntaxKind` tem marcadores de FAIXA (`FirstLiteralToken`,
+ * `FirstStatement`, `FirstBinaryOperator`, …) que compartilham o valor numérico
+ * de um kind real, e a busca reversa de um enum do TypeScript devolve o ÚLTIMO
+ * nome atribuído ao valor — `ts.SyntaxKind[ts.SyntaxKind.NumericLiteral]` é
+ * `"FirstLiteralToken"`. Um orçamento escrito contra `node:NumericLiteral`
+ * nunca casaria. A tabela prefere sempre o nome que NÃO é marcador de faixa.
+ *
+ * POR QUE ELA NÃO É IMPORTADA DE `engine/kindNames.ts`: aquele módulo importa
+ * `typescript` ESTATICAMENTE, e um import estático daqui faria todo start do
+ * main pagar o compilador (~42 ms, ~45 MB) só para abrir uma aula — a razão de
+ * PESO do cabeçalho. O algoritmo é curto e a divergência é impossível de
+ * passar: `tests/engineLangRegistry.test.ts` compara `jsKindName` com o
+ * `kindName` de `engine/kindNames.ts` para TODO valor do enum, um a um.
+ */
+function tabelaDeNomesDeKind(): ReadonlyMap<number, string> {
+  if (kindNamesMemo === null) {
+    const enumeracao = ts().SyntaxKind as unknown as Record<string, number>;
+    const map = new Map<number, string>();
+    for (const nome of Object.keys(enumeracao)) {
+      if (!Number.isNaN(Number(nome))) continue; // chave numérica (busca reversa)
+      const valor = enumeracao[nome];
+      const ehMarcadorDeFaixa = nome.startsWith('First') || nome.startsWith('Last');
+      const atual = map.get(valor);
+      if (
+        atual === undefined ||
+        (ehMarcadorDeFaixa === false && (atual.startsWith('First') || atual.startsWith('Last')))
+      ) {
+        map.set(valor, nome);
+      }
+    }
+    kindNamesMemo = map;
+  }
+  return kindNamesMemo;
+}
+
+/** Nome canônico de um `SyntaxKind` (`ts.SyntaxKind.NumericLiteral` → `NumericLiteral`). */
+export function jsKindName(kind: number): string {
+  return tabelaDeNomesDeKind().get(kind) ?? String(kind);
+}
+
 /**
  * Os atributos que participam da CHAVE (§6: "tipo + atributo, não só tipo").
  * Só o que a chave usa entra — um mapa de atributos exaustivo seria um
@@ -350,7 +447,20 @@ function atributosDoNo(node: unknown, T: TypeScriptModule): Record<string, strin
   return attrs;
 }
 
-function normalizarNo(node: unknown, source: unknown, T: TypeScriptModule): LangNode {
+/**
+ * Um `ts.Node` vira um `LangNode` da interface do §6.
+ *
+ * `nomeDoKind` entra por PARÂMETRO (e não por `jsKindName`) porque esta função
+ * é chamada UMA VEZ POR NÓ: resolver a tabela canônica aqui dentro custaria uma
+ * chamada + um teste de memo por nó da árvore inteira. O chamador resolve uma
+ * vez e passa a referência.
+ */
+function normalizarNo(
+  node: unknown,
+  source: unknown,
+  T: TypeScriptModule,
+  nomeDoKind: ReadonlyMap<number, string>,
+): LangNode {
   const n = node as import('typescript').Node;
   const sf = source as import('typescript').SourceFile;
   const start = n.getStart(sf);
@@ -358,10 +468,10 @@ function normalizarNo(node: unknown, source: unknown, T: TypeScriptModule): Lang
   const pos = sf.getLineAndCharacterOfPosition(start);
   const filhos: LangNode[] = [];
   T.forEachChild(n, (filho) => {
-    filhos.push(normalizarNo(filho, sf, T));
+    filhos.push(normalizarNo(filho, sf, T, nomeDoKind));
   });
   return {
-    type: carregar<ExtractModule>('../extract').kindName(n.kind),
+    type: nomeDoKind.get(n.kind) ?? String(n.kind),
     line: pos.line + 1,
     column: pos.character + 1,
     start,
@@ -386,6 +496,27 @@ function normalizarNo(node: unknown, source: unknown, T: TypeScriptModule): Lang
  *
  * "PARSEIE TUDO, REPROVE NO ORÇAMENTO": o adaptador nunca restringe a
  * gramática — quem reprova é `budget.ts`.
+ *
+ * ─── `root` É PREGUIÇOSO (onda 6, regressão de performance medida) ─────────
+ *
+ * `root` é um GETTER MEMOIZADO: a árvore normalizada só é materializada quando
+ * alguém a acessa. O contrato de `ParseOk` não muda — `r.root` continua sendo
+ * um `LangNode` e o consumidor não vê diferença nenhuma.
+ *
+ * O QUE ESTAVA QUEBRADO. `normalizarNo` constrói um objeto NOVO por nó do AST,
+ * com `text` fatiado do fonte (O(tamanho do fonte) por NÍVEL da árvore, porque
+ * cada ancestral refatia o texto dos descendentes), um `attributes` e uma lista
+ * de filhos. Isso era pago em TODA chamada de `parse` — e o único consumidor de
+ * `parse` no repositório, `engine/extract.ts:coletarOcorrencias`, NÃO usa
+ * `root`: a caminhada do extrator é sobre `parsed.native` (o `ts.SourceFile`),
+ * porque ela depende de `ts.isPropertyAccessExpression`, do eixo `form:` e das
+ * posições absolutas — nada disso existe no `LangNode` normalizado. O extrator
+ * pagava a árvore inteira para jogá-la fora.
+ *
+ * Por que isso importava: `audit` é o comando que roda EM LAÇO no ciclo
+ * "gerar → auditar → consertar → regerar", e cada aula/desafio auditado é um
+ * `parse`. Medido em `nodejs-do-zero --limite 0`, e reportado no handoff da
+ * onda 6.
  */
 export function jsParse(source: string, options: ParseOptions = {}): ParseResult {
   const T = ts();
@@ -413,7 +544,16 @@ export function jsParse(source: string, options: ParseOptions = {}): ParseResult
     };
   }
 
-  return { ok: true, root: normalizarNo(sf, sf, T), source, native: sf };
+  let rootMemo: LangNode | null = null;
+  return {
+    ok: true,
+    get root(): LangNode {
+      if (rootMemo === null) rootMemo = normalizarNo(sf, sf, T, tabelaDeNomesDeKind());
+      return rootMemo;
+    },
+    source,
+    native: sf,
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -465,13 +605,13 @@ let inventarioMemo: readonly string[] | null = null;
 export function jsInventory(): readonly string[] {
   if (inventarioMemo === null) {
     const T = ts();
-    const kindName = carregar<ExtractModule>('../extract').kindName;
+    const nomeDoKind = tabelaDeNomesDeKind();
     const enumeracao = T.SyntaxKind as unknown as Record<string, number>;
     const canonicos: string[] = [];
     for (const [nome, valor] of Object.entries(enumeracao)) {
       if (/^\d+$/.test(nome)) continue; // chaves numéricas (busca reversa do enum)
       if (nome.startsWith('First') || nome.startsWith('Last')) continue; // marcador de faixa
-      if (kindName(valor) !== nome) continue; // alias sombreado — não canônico
+      if (nomeDoKind.get(valor) !== nome) continue; // alias sombreado — não canônico
       canonicos.push(nome);
     }
     canonicos.sort();
@@ -571,38 +711,162 @@ export function jsResolveScopes(parsed: ParseOk): ScopeResolution {
 }
 
 // ---------------------------------------------------------------------------
-// (10)(11)(12) a dupla-igualdade e os checks — DELEGADOS
+// (10)(11)(12) a dupla-igualdade e os checks — A IMPLEMENTAÇÃO MORA AQUI
 // ---------------------------------------------------------------------------
 
 /**
- * Contagem DECLARADA de testes, por AST. Existe UMA função para isso na
- * engine, e é esta — comentário não é nó, e um `// test(` comentado não conta.
- * FONTE DA VERDADE a partir da onda 5 — ver `engine/extract.ts:494`
- * (`countTestDeclarations`).
+ * Contagem DECLARADA de testes, por AST. Existe UMA função para isso na engine,
+ * e é esta — comentário não é nó, e um `// test(` comentado não conta.
+ *
+ * POR QUE POR AST E NÃO POR REGEX: a segunda implementação do repositório era
+ * uma regex, e ela contava `// test('x', …)` comentado. O efeito medido: o
+ * validador semântico entrava em retry e devolvia erro de JSON inválido para
+ * sempre (`docs/16-engine-de-trilha.md` §5.3). Comentário não é nó.
+ *
+ * `test.skip(...)` / `test.only(...)` também DECLARAM um teste e contam.
+ *
+ * ONDA 6 — MUDOU DE CASA. O corpo era de `engine/extract.ts`
+ * (`countTestDeclarations`), alcançado daqui por `require('../extract')` — o
+ * caminho relativo que quebrava o bundle do main (ver o cabeçalho), e que ainda
+ * arrastava o extrator inteiro para dentro de uma contagem de testes.
+ * `countTestDeclarations` continua existindo e continua sendo a API pública:
+ * virou o DESPACHANTE por linguagem, que chama este membro.
  */
 export function jsCountDeclared(testsCode: string): number {
-  return carregar<ExtractModule>('../extract').countTestDeclarations(testsCode);
+  const T = ts();
+  const source = T.createSourceFile('tests.mjs', testsCode, T.ScriptTarget.Latest, true, T.ScriptKind.JS);
+  let count = 0;
+  const visit = (node: import('typescript').Node): void => {
+    if (T.isCallExpression(node)) {
+      const callee = node.expression;
+      if (T.isIdentifier(callee) && callee.text === 'test') count += 1;
+      else if (
+        T.isPropertyAccessExpression(callee) &&
+        T.isIdentifier(callee.expression) &&
+        callee.expression.text === 'test'
+      ) {
+        // `test.skip(...)` / `test.only(...)` também declaram um teste.
+        count += 1;
+      }
+    }
+    T.forEachChild(node, visit);
+  };
+  T.forEachChild(source, visit);
+  return count;
 }
 
 /**
- * Contagem EXECUTADA, do ÚLTIMO bloco de resumo spec (o código sob teste pode
- * imprimir um resumo FORJADO no próprio stdout; o do runner real vem sempre
- * por último). Tolerante a ANSI.
- * FONTE DA VERDADE a partir da onda 5 — ver `engine/exec/proofs.ts:115`
- * (`parseSpecCounts`).
+ * Contagem EXECUTADA: as contagens do ÚLTIMO bloco de resumo spec do node:test
+ * (linhas `ℹ tests N` …).
+ *
+ * POR QUE O ÚLTIMO: o código sob teste pode imprimir um resumo spec FORJADO no
+ * próprio stdout (CRITICAL 1 — `console.log('ℹ tests 2\nℹ pass 2\nℹ fail 0')`
+ * no topo do módulo, de olho no parser que confiava na PRIMEIRA ocorrência).
+ * O resumo do runner REAL é emitido por último, depois de todo stdout do código
+ * sob teste (testes rodam, depois o runner imprime o fechamento) — o último
+ * bloco é, por construção, o do runner. Bloco = da última linha `ℹ tests N` até
+ * o fim (as seções posteriores — `✖ failing tests:` — não têm linhas `ℹ` de
+ * resumo).
+ *
+ * Formato tolerado nas DUAS variantes que o node:test emite: bloco COMPLETO
+ * (`tests/suites/pass/fail/cancelled/skipped/todo/duration_ms`) e bloco MÍNIMO
+ * (`tests/pass/fail`, como nos fixtures), com ou sem códigos ANSI — os escapes
+ * são removidos ANTES do bloco (`\x1b[34mℹ tests 3\x1b[39m`: o node:test pinta
+ * quando o ambiente pede cor; senão a linha "não começa com ℹ" e a contagem
+ * viraria 0, derrubando o gate de um resultado que passou). Linha ausente em
+ * qualquer posição ⇒ 0 (fail-closed: sem relatório não há como provar que algo
+ * rodou).
+ *
+ * ONDA 6 — MUDOU DE CASA. O corpo era de `engine/exec/proofs.ts`
+ * (`parseSpecCounts`), que agora REEXPORTA daqui. E o caminho do ALUNO
+ * (`services/challengeExec.ts`) tinha uma SEGUNDA implementação, mais fraca —
+ * lia a PRIMEIRA linha `ℹ tests N` e ignorava `skipped`, ou seja, engolia o
+ * relatório forjado que o caminho das provas rejeitava. Ela foi APAGADA: agora
+ * as duas pontas chamam `adapter.countRun`, que é esta função.
  */
 export function jsCountRun(output: string): RunCounts {
-  return carregar<ProofsModule>('../exec/proofs').parseSpecCounts(output);
+  const plain = output.replace(/\x1b\[[0-9;]*m/g, '');
+  const lines = plain.split('\n');
+
+  // varre TODAS as linhas e guarda o índice + match da ÚLTIMA `ℹ tests N`.
+  let summaryIdx = -1;
+  let summaryMatch: RegExpExecArray | null = null;
+  for (let i = 0; i < lines.length; i += 1) {
+    const m = /^ℹ tests\s+(\d+)/.exec(lines[i]);
+    if (m) {
+      summaryIdx = i;
+      summaryMatch = m;
+    }
+  }
+
+  if (summaryIdx === -1 || summaryMatch === null) {
+    return { testsRun: 0, pass: 0, fail: 0, skipped: 0 };
+  }
+
+  const testsRun = Number(summaryMatch[1]);
+  // pass/fail/skipped são lidos DENTRO do último bloco (primeira ocorrência a
+  // partir da linha do resumo) — nunca de blocos anteriores/não-relacionados.
+  const blockLines = lines.slice(summaryIdx);
+  const valueInBlock = (re: RegExp): number => {
+    for (const line of blockLines) {
+      const m = re.exec(line);
+      if (m) return Number(m[1]);
+    }
+    return 0;
+  };
+  const pass = valueInBlock(/^ℹ pass\s+(\d+)/);
+  const fail = valueInBlock(/^ℹ fail\s+(\d+)/);
+  const skipped = valueInBlock(/^ℹ skipped\s+(\d+)/);
+  return { testsRun, pass, fail, skipped };
 }
 
 /**
- * Checks individuais para a UI do aluno (`✔`/`✖`), sem a duração e sem os
- * nomes sintéticos de falha de load.
- * FONTE DA VERDADE a partir da onda 5 — ver `services/challengeExec.ts:158`
- * (`parseSpecChecks`).
+ * Checks INDIVIDUAIS do relatório spec do node:test (linhas `✔ nome` / `✖ nome`
+ * — os `N de M` da UI do aluno), sem a duração e sem os nomes sintéticos de
+ * falha de load.
+ *
+ * Apenas as linhas ANTES do resumo (`ℹ tests N`) contam: o relatório REPRIME
+ * cada teste falho numa seção "failing tests:" no fim — sem truncar, cada falha
+ * entraria DUAS vezes. O nome sai sem a duração traiçoeira (` (0.42175ms)`) e
+ * sem os códigos ANSI (mesma limpeza de `jsCountRun`). Linhas ancoradas no
+ * INÍCIO da linha: subtests indentados (`  ✔ filho`) nunca entram; o cabeçalho
+ * `✖ failing tests:` é filtrado explicitamente (sem o resumo `ℹ tests N` —
+ * output truncado — ele NÃO é cortado pelo truncamento e viraria um check
+ * sintético falso).
+ *
+ * ONDA 6 — MUDOU DE CASA. O corpo era de `services/challengeExec.ts`
+ * (`parseSpecChecks`), que agora REEXPORTA daqui: alcançá-lo por
+ * `require('../../services/challengeExec')` quebrava o bundle do main (ver o
+ * cabeçalho) e ainda fechava um ciclo `challengeExec → registry → javascript →
+ * challengeExec` que só não explodia por ser postergado.
  */
 export function jsParseChecks(output: string): RunCheck[] {
-  return carregar<ChallengeExecModule>('../../services/challengeExec').parseSpecChecks(output);
+  const plain = output.replace(/\x1b\[[0-9;]*m/g, '');
+  const lines = plain.split('\n');
+  const summaryIdx = lines.findIndex((l) => /^ℹ tests /m.test(l));
+  const head = (summaryIdx >= 0 ? lines.slice(0, summaryIdx) : lines).join('\n');
+  const checks: RunCheck[] = [];
+  const re = /^[✔✖] (.+)$/gm;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(head)) !== null) {
+    const raw = m[1].trim();
+    if (!raw) continue;
+    // tira a duração do fim ("caso 1 (0.42175ms)" → "caso 1").
+    const name = raw.replace(/\s*\(\d+(?:\.\d+)?\s*m?s\)\s*$/, '');
+    // DEFENSIVO (revisão adversarial): teste SEM nome (`test('')`) deixa só a
+    // duração — sem fallback para a duração (não é um check de verdade).
+    if (!name) continue;
+    // Nomes SINTÉTICOS de falha de LOAD: quando o arquivo não carrega (sintaxe
+    // no solution.mjs), o node:test trata O ARQUIVO como um teste e emite
+    // `✖ test.mjs` (v24) / `✖ test failed` (v20) — não é um check de verdade;
+    // a saída já traz o SyntaxError para o aluno ver. DEFENSIVO (revisão
+    // adversarial): `✖ failing tests:` — sem a linha de resumo `ℹ tests N`
+    // (output truncado), o cabeçalho vira um check sintético falso que
+    // inflaria totalCount.
+    if (/^test\.mjs$/.test(name) || /^tests? failed$/.test(name) || /^failing tests?:/.test(name)) continue;
+    checks.push({ name, passed: m[0].charAt(0) === '✔' });
+  }
+  return checks;
 }
 
 // ---------------------------------------------------------------------------

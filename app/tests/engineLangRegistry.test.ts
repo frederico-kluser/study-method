@@ -44,7 +44,7 @@ import {
   registerAdapter,
   type LanguageAdapter,
 } from '../electron/main/engine/lang/registry';
-import { javascriptAdapter } from '../electron/main/engine/lang/javascript';
+import { javascriptAdapter, jsKindName } from '../electron/main/engine/lang/javascript';
 import { pythonAdapter } from '../electron/main/engine/lang/python';
 
 // as FONTES que o adaptador duplica hoje (a paridade é medida contra elas)
@@ -55,6 +55,10 @@ import { FORBIDDEN_ALWAYS } from '../electron/main/engine/atomKeys';
 import { RUNTIME_GLOBALS, countTestDeclarations } from '../electron/main/engine/extract';
 import { nodeBinary, parseSpecChecks } from '../electron/main/services/challengeExec';
 import { JS_FENCE_TAGS, collectLessonCode, extractFencedBlocks } from '../electron/main/engine/theoryCode';
+import { kindName } from '../electron/main/engine/kindNames';
+import { readFileSync } from 'node:fs';
+import * as path from 'node:path';
+import * as ts from 'typescript';
 
 const js = javascriptAdapter;
 const py = pythonAdapter;
@@ -479,5 +483,153 @@ describe('theoryCode — adapterId por bloco (o campo que a onda 5 consome)', ()
     const { blocks } = collectLessonCode([{ id: 's', code: { language: 'json', code: '{"a":1}' } }]);
     assert.equal(blocks[0].adapterId, null);
     assert.equal(blocks[0].isJavaScript, false);
+  });
+});
+
+// ───────────────────────────────────────────────────────────────────────────
+// ONDA 6 — O ADAPTADOR TEM DE SOBREVIVER AO BUNDLE DO MAIN
+//
+// O defeito que estes testes fecham: `lang/javascript.ts` alcançava metade dos
+// seus membros por `require` POSTERGADO com caminho RELATIVO
+// (`carregar('../extract')`, `carregar('../exec/proofs')`,
+// `carregar('../../services/challengeExec')`). Rollup não enxerga
+// `require(variável)` — a string sobrevivia LITERAL ao bundle e, resolvida a
+// partir de `out/main/index.js`, apontava para módulos que não existem lá.
+// Reprodução medida antes do conserto:
+//
+//     npm run build && cd out/main && node -e "require('../exec/proofs')"
+//     → Error: Cannot find module '../exec/proofs'
+//
+// Efeito no produto: no app EMPACOTADO, `runStudentCode` (submissão do aluno)
+// e `verifyChallengePair` (regeneração) lançavam MODULE_NOT_FOUND. A suíte
+// roda DO FONTE, onde o caminho relativo resolve — por isso o gate não via
+// nada. O teste abaixo não roda o bundle: ele proíbe a CAUSA no fonte.
+// ───────────────────────────────────────────────────────────────────────────
+
+describe('bundle-safety — o adaptador JavaScript é um módulo FOLHA', () => {
+  const ADAPTADOR = path.join(__dirname, '..', 'electron', 'main', 'engine', 'lang', 'javascript.ts');
+  // COMENTÁRIOS FORA. O cabeçalho do adaptador CITA os `require` relativos que
+  // foram apagados (é a documentação do defeito); sem tirar os comentários, o
+  // teste acusaria a própria explicação e nunca ficaria verde.
+  const fonte = readFileSync(ADAPTADOR, 'utf8')
+    .replace(/\/\*[\s\S]*?\*\//g, '')
+    .replace(/^[^\n]*?\/\/.*$/gm, '');
+
+  it('nenhum `require(...)` de caminho RELATIVO — nem literal, nem por variável', () => {
+    // qualquer require cujo argumento comece com '.' ou "/" — o que não
+    // sobrevive ao rebase de diretório que o bundle faz.
+    const relativos = [...fonte.matchAll(/\brequire\(\s*['"`](\.[^'"`]*)['"`]\s*\)/g)].map((m) => m[1]);
+    assert.deepEqual(relativos, [], `require relativo proibido: ${relativos.join(', ')}`);
+  });
+
+  it('nenhum `require(variável)` — Rollup não enxerga, e a string vaza literal para o bundle', () => {
+    const porVariavel = [...fonte.matchAll(/\brequire\(\s*(?!['"`])[A-Za-z_$]/g)];
+    assert.equal(porVariavel.length, 0, 'require com especificador dinâmico é invisível ao bundler');
+  });
+
+  it('o ÚNICO require é o especificador BARE `typescript` (externalizado pelo electron-vite)', () => {
+    const todos = [...fonte.matchAll(/\brequire\(\s*['"`]([^'"`]+)['"`]\s*\)/g)].map((m) => m[1]);
+    assert.deepEqual(todos, ['typescript']);
+  });
+
+  it('`typescript` é DEPENDENCY de runtime, não devDependency', () => {
+    // Como devDependency o electron-builder não a empacota, e o
+    // `require('typescript')` do adaptador morreria no app instalado — a
+    // contagem DECLARADA (`countDeclared`) precisa do compilador em runtime.
+    // Como dependency, `externalizeDepsPlugin()` também a mantém FORA do
+    // bundle, em vez de inlinar o compilador em out/main/index.js.
+    const pkg = JSON.parse(readFileSync(path.join(__dirname, '..', 'package.json'), 'utf8')) as {
+      dependencies: Record<string, string>;
+      devDependencies: Record<string, string>;
+    };
+    assert.ok(pkg.dependencies.typescript, 'typescript tem de estar em dependencies');
+    assert.equal(pkg.devDependencies.typescript, undefined, 'e não pode ficar duplicada em devDependencies');
+  });
+
+  it('nenhum import ESTÁTICO de valor (só `import type`) — o ciclo com o registro continua fechado', () => {
+    const imports = [...fonte.matchAll(/^import\s+(?!type\b)[^;]*?from\s*['"][^'"]+['"];/gm)].map((m) => m[0]);
+    assert.deepEqual(imports, [], `import de valor proibido: ${imports.join(' | ')}`);
+  });
+});
+
+describe('paridade da TABELA CANÔNICA de SyntaxKind (jsKindName × engine/kindNames)', () => {
+  // O adaptador constrói a sua própria tabela a partir do compilador LAZY, em
+  // vez de importar `engine/kindNames.ts` — aquele módulo importa `typescript`
+  // ESTATICAMENTE e um import daqui faria todo start do main pagar o
+  // compilador (~42 ms, ~45 MB) só para abrir uma aula. O preço dessa escolha é
+  // uma segunda cópia do algoritmo; este teste é o que impede a divergência,
+  // comparando as duas para TODO valor do enum, um a um.
+  it('mesmo nome para TODO valor de ts.SyntaxKind (incluindo os marcadores de faixa)', () => {
+    const enumeracao = ts.SyntaxKind as unknown as Record<string, number>;
+    const valores = new Set<number>();
+    for (const nome of Object.keys(enumeracao)) {
+      if (!Number.isNaN(Number(nome))) continue;
+      valores.add(enumeracao[nome]);
+    }
+    assert.ok(valores.size > 300, `esperado > 300 kinds distintos, veio ${valores.size}`);
+    for (const valor of valores) {
+      assert.equal(jsKindName(valor), kindName(valor), `divergência no kind ${valor}`);
+    }
+  });
+
+  it('a armadilha do marcador de faixa: NumericLiteral não vira FirstLiteralToken', () => {
+    // `ts.SyntaxKind[ts.SyntaxKind.NumericLiteral]` devolve "FirstLiteralToken"
+    // (busca reversa do enum: o ÚLTIMO nome atribuído ao valor vence).
+    assert.equal(ts.SyntaxKind[ts.SyntaxKind.NumericLiteral], 'FirstLiteralToken');
+    assert.equal(jsKindName(ts.SyntaxKind.NumericLiteral), 'NumericLiteral');
+  });
+
+  it('kind desconhecido degrada para o número, como a tabela original', () => {
+    assert.equal(jsKindName(999999), '999999');
+    assert.equal(jsKindName(999999), kindName(999999 as ts.SyntaxKind));
+  });
+});
+
+describe('parse — `root` é PREGUIÇOSO (regressão de performance da onda 6)', () => {
+  const FONTE = 'const a = 1;\nfunction f(x) { return x + a; }\n';
+
+  it('`root` é getter, não propriedade de dado — a árvore não é construída no parse', () => {
+    const r = js.parse(FONTE);
+    assert.ok(r.ok);
+    if (!r.ok) return;
+    const desc = Object.getOwnPropertyDescriptor(r, 'root');
+    assert.ok(desc, 'root existe');
+    assert.equal(typeof desc?.get, 'function', 'root é um getter');
+    assert.equal(desc?.value, undefined, 'root NÃO é um valor pré-computado');
+  });
+
+  it('materializa UMA vez e memoiza — duas leituras devolvem a MESMA referência', () => {
+    const r = js.parse(FONTE);
+    assert.ok(r.ok);
+    if (!r.ok) return;
+    assert.equal(r.root, r.root, 'a árvore é construída uma vez só');
+    assert.equal(r.root.children[0], r.root.children[0], 'e os filhos junto com ela');
+  });
+
+  it('o CONTRATO de ParseOk não mudou: ok/source/native/root seguem observáveis', () => {
+    const r = js.parse(FONTE);
+    assert.ok(r.ok);
+    if (!r.ok) return;
+    assert.equal(r.source, FONTE);
+    assert.ok(r.native, 'a árvore NATIVA continua exposta (é o que o extrator usa)');
+    assert.equal(r.root.type, 'SourceFile');
+    assert.equal(r.root.start, 0);
+    assert.equal(FONTE.slice(r.root.start, r.root.end), r.root.text);
+    assert.deepEqual(Object.keys(r).sort(), ['native', 'ok', 'root', 'source']);
+  });
+
+  it('o consumidor real (extract) NÃO toca root — a prova de que a preguiça vale', () => {
+    // se algum dia o extrator passar a usar `root`, este teste continua verde
+    // (nada quebra); ele existe para documentar de onde vem o ganho medido.
+    const r = js.parse(FONTE);
+    assert.ok(r.ok);
+    if (!r.ok) return;
+    const escopos = js.resolveScopes(r);
+    assert.ok(escopos.declared.has('f'), 'resolveScopes trabalha sobre `native`');
+    assert.equal(
+      Object.getOwnPropertyDescriptor(r, 'root')?.value,
+      undefined,
+      'resolveScopes não materializou a árvore normalizada',
+    );
   });
 });

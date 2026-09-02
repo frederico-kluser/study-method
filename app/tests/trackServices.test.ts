@@ -695,10 +695,94 @@ test('dobro 0', () => { assert.equal(dobro(0), 0); });
 });
 
 describe('challengeExec — parse com ANSI (cores herdadas do ambiente)', () => {
-  it('parseSpecCounts ignora códigos ANSI no relatório', () => {
-    const { parseSpecCounts } = require('../electron/main/services/challengeExec') as typeof import('../electron/main/services/challengeExec');
+  it('a contagem EXECUTADA (adapter.countRun) ignora códigos ANSI no relatório', () => {
     const colored = '\x1b[32m✔ caso 1\x1b[39m\n\x1b[34mℹ tests 3\x1b[39m\n\x1b[34mℹ pass 3\x1b[39m\n\x1b[34mℹ fail 0\x1b[39m\n';
-    assert.deepEqual(parseSpecCounts(colored), { testsRun: 3, pass: 3, fail: 0 });
+    assert.deepEqual(defaultAdapter().countRun(colored), { testsRun: 3, pass: 3, fail: 0, skipped: 0 });
+  });
+
+  it('challengeExec NÃO exporta mais uma contagem executada própria (a cópia FRACA foi apagada)', () => {
+    const mod = require('../electron/main/services/challengeExec') as Record<string, unknown>;
+    assert.equal(
+      mod.parseSpecCounts,
+      undefined,
+      'a segunda implementação de countRun (primeira linha `ℹ tests N`, sem skipped) foi apagada',
+    );
+  });
+});
+
+// ─── ONDA 6: o caminho do ALUNO ganhou a defesa contra RELATÓRIO FORJADO ────
+//
+// O código do aluno roda no MESMO processo que imprime o relatório spec, então
+// ele pode escrever um resumo falso no stdout antes do runner imprimir o real:
+//
+//     console.log('ℹ tests 5\nℹ pass 5\nℹ fail 0');   // topo do solution.mjs
+//
+// A `parseSpecCounts` que vivia em challengeExec lia a PRIMEIRA linha
+// `ℹ tests N` e entregava a FORJA; `adapter.countRun` lê o ÚLTIMO bloco e
+// entrega o RUNNER. Até a onda 5 o caminho das PROVAS tinha essa defesa e o
+// caminho que o ALUNO vê, não.
+describe('challengeExec — relatório FORJADO no caminho do aluno (ONDA 6)', () => {
+  const FORJADO = [
+    'ℹ tests 5', // ← a mentira, impressa pelo código sob teste
+    'ℹ pass 5',
+    'ℹ fail 0',
+    '✔ caso 1 (1.2ms)',
+    '✖ caso 2 (0.8ms)',
+    'ℹ tests 2', // ← o resumo REAL do runner, sempre por último
+    'ℹ pass 1',
+    'ℹ fail 1',
+    'ℹ skipped 0',
+  ].join('\n');
+
+  it('a contagem que vence é a do ÚLTIMO bloco (o runner), não a do primeiro (a forja)', () => {
+    assert.deepEqual(defaultAdapter().countRun(FORJADO), {
+      testsRun: 2,
+      pass: 1,
+      fail: 1,
+      skipped: 0,
+    });
+  });
+
+  // 5 testes DECLARADOS — o número que a forja finge ter executado. É o que
+  // torna o teste DISCRIMINANTE: com a leitura fraca as três pernas do gate
+  // fecham (exit 0, testsRun 5 === expected 5, declared 5 === expected 5) e o
+  // aluno vê "passou" sem nenhum teste ter rodado de verdade.
+  const CINCO_TESTES = [
+    "import { test } from 'node:test';",
+    "test('c1', () => {});",
+    "test('c2', () => {});",
+    "test('c3', () => {});",
+    "test('c4', () => {});",
+    "test('c5', () => {});",
+  ].join('\n');
+
+  it('runStudentCode REPROVA a forja: exit 0 + `ℹ tests 5` mentiroso não vira passed', async () => {
+    assert.equal(defaultAdapter().countDeclared(CINCO_TESTES), 5, 'o fixture declara 5 testes');
+    // exec FAKE: exit 0 + o relatório forjado. Leitura FRACA → testsRun 5 ===
+    // expectedTestCount 5 === declarados 5 ⇒ passed TRUE (o furo). Leitura do
+    // ÚLTIMO bloco → testsRun 2 ⇒ o gate de igualdade derruba.
+    const exec = async () => ({ code: 0, stdout: FORJADO, stderr: '' });
+    const res = await runStudentCode(
+      { studentCode: 'export const f = () => 1;', testsCode: CINCO_TESTES, expectedTestCount: 5 },
+      exec,
+    );
+    assert.equal(res.testsRun, 2, 'a contagem executada é a do runner real, não a da forja');
+    assert.equal(res.fail, 1, 'e o `fail` também vem do bloco real');
+    assert.equal(res.passed, false, 'o relatório forjado NÃO aprova a submissão');
+  });
+
+  it('verifyChallengePair idem: a forja não faz a solução "passar"', async () => {
+    const exec = async () => ({ code: 0, stdout: FORJADO, stderr: '' });
+    const v = await verifyChallengePair(
+      {
+        solutionCode: 'export const f = () => 1;',
+        starterCode: 'export const f = () => 0;',
+        testsCode: CINCO_TESTES,
+        expectedTestCount: 5,
+      },
+      exec,
+    );
+    assert.equal(v.solutionPasses, false, 'a forja não aprova a solução de referência');
   });
 });
 

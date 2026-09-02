@@ -28,32 +28,30 @@
  * sempre (`docs/16-engine-de-trilha.md` §5.3: "Uma única função de contagem de
  * testes, por AST"). Sobrou UMA, por AST, alcançada por `adapter.countDeclared`.
  *
- * ⚠ DEFEITO CONHECIDO DA COSTURA, FORA DESTE ARQUIVO (medido, não suposto).
- * `engine/lang/javascript.ts` alcança as implementações de `countDeclared`,
- * `countRun`, `parseChecks` e `failureExitCodes.meaning` por `require`
- * POSTERGADO com caminho RELATIVO (`carregar('../extract')`,
- * `carregar('../../services/challengeExec')`, `carregar('../exec/proofs')`).
- * Rollup não enxerga `require(variável)`, então o bundle do main mantém a
- * string literal — e, resolvida a partir de `out/main/index.js`, ela aponta
- * para `out/extract` / `services/challengeExec`, que NÃO existem. Medido:
+ * ONDA 6 — DOIS DEFEITOS FECHADOS AQUI, e vale registrar quais eram.
  *
- *   npm run build && cd app/out/main \
- *     && node -e "require('../exec/proofs')"   # MODULE_NOT_FOUND
+ * 1. O MAIN EMPACOTADO QUEBRAVA NA SUBMISSÃO DO ALUNO. `engine/lang/javascript.ts`
+ *    alcançava `countDeclared`/`countRun`/`parseChecks`/`failureExitCodes.meaning`
+ *    por `require` POSTERGADO com caminho RELATIVO (`carregar('../extract')`,
+ *    `carregar('../../services/challengeExec')`, `carregar('../exec/proofs')`).
+ *    Rollup não enxerga `require(variável)`: a string sobrevivia literal ao
+ *    bundle e, resolvida a partir de `out/main/index.js`, apontava para
+ *    `out/extract` e `out/services/challengeExec`, que não existem. Rodando DO
+ *    FONTE (suíte, `npm run engine`, `npm run track`) tudo funcionava; no app
+ *    empacotado, `runStudentCode` e `verifyChallengePair` — as duas chamadas
+ *    deste arquivo, e as únicas do produto — lançavam MODULE_NOT_FOUND. O
+ *    conserto foi inverter a seta: as implementações mudaram de casa para o
+ *    adaptador (um módulo FOLHA), este arquivo e `exec/proofs.ts` REEXPORTAM de
+ *    lá, e `typescript` virou `dependency` para o Rollup poder externalizá-lo
+ *    (e para o electron-builder empacotá-lo). Ver o cabeçalho de
+ *    `engine/lang/javascript.ts`.
  *
- * Consequência: rodando DO FONTE (suíte, `npm run engine`, `npm run track`) a
- * delegação funciona; no main EMPACOTADO (`npm run dev`, app instalado) esses
- * membros LANÇAM. As DUAS chamadas afetadas no produto são as deste arquivo
- * (`runStudentCode` e `verifyChallengePair`) — `verifyChallengeProofs` e a F9
- * não entram no bundle do main (são caminho de CLI, rodam sob tsx).
- *
- * E o conserto NÃO é "trocar por import estático", porque o `require`
- * postergado é LOAD-BEARING de peso: `../extract` puxa o compilador TypeScript
- * inteiro, e medido no bundle de hoje nem `extract` nem `typescript` estão em
- * `out/main/index.js` (414 KB). O conserto precisa ser BUNDLER-AWARE — por
- * exemplo, promover `typescript` a dependência de runtime externalizada e
- * deixar o Rollup enxergar o `require` (literal no ponto de chamada, não por
- * variável). É decisão de quem é dono de `lang/javascript.ts`; está registrada
- * no handoff da onda como bloqueio, com o comando que a reproduz.
+ * 2. O CAMINHO DO ALUNO NÃO TINHA A DEFESA CONTRA RELATÓRIO FORJADO. A
+ *    `parseSpecCounts` deste arquivo lia a PRIMEIRA linha `ℹ tests N`; a das
+ *    provas lê o ÚLTIMO bloco. Código do aluno que imprime um resumo falso
+ *    antes do real enganava a primeira e não a segunda. Foi apagada; as duas
+ *    pontas agora usam `adapter.countRun`. Detalhe na nota acima de
+ *    `parseSpecChecks`.
  */
 
 import { promises as fs } from 'node:fs';
@@ -162,81 +160,37 @@ export async function prepareChallengeDir(
 }
 
 /**
- * Extrai as contagens do relatório spec do node:test (linhas `ℹ tests N`).
- * O relatório pode chegar COM códigos ANSI (`\x1b[34mℹ tests 3\x1b[39m` —
- * o node:test pinta quando o ambiente pede cor, ex.: FORCE_COLOR herdado do
- * runner do Playwright): os escapes são removidos ANTES do match — senão a
- * linha "não começa com ℹ" e a contagem vira 0 (gate de igualdade derruba
- * um resultado que passou).
+ * Contagem EXECUTADA (`ℹ tests/pass/fail/skipped`) e checks INDIVIDUAIS
+ * (`✔`/`✖`) do relatório spec do node:test.
  *
- * DUPLICAÇÃO CONHECIDA E DECLARADA (onda 5 — NÃO resolvida aqui de propósito).
- * Esta função é a SEGUNDA implementação de `LanguageAdapter.countRun` (§6,
- * membro 11) que sobra no repositório; a primeira é `parseSpecCounts` de
- * `engine/exec/proofs.ts`, para onde `adapter.countRun` delega. As duas NÃO
- * são equivalentes: a de `proofs.ts` lê o ÚLTIMO bloco de resumo (defesa
- * contra RELATÓRIO FORJADO — o código sob teste pode imprimir
- * `console.log('ℹ tests 2\nℹ pass 2\nℹ fail 0')` no próprio stdout) e conta
- * `skipped`; esta lê a PRIMEIRA ocorrência e ignora `skipped`. Ou seja: o
- * caminho do ALUNO (`runStudentCode`) não tem a defesa que o caminho das
- * PROVAS tem. Trocar esta função por `adapter.countRun` muda o veredito
- * mostrado ao aluno e por isso ficou FORA do escopo desta sub-tarefa — está
- * escrito aqui para não virar dívida invisível.
- */
-export function parseSpecCounts(output: string): { testsRun: number; pass: number; fail: number } {
-  const plain = output.replace(/\x1b\[[0-9;]*m/g, '');
-  const testsRun = Number(/^ℹ tests (\d+)/m.exec(plain)?.[1] ?? 0);
-  const pass = Number(/^ℹ pass (\d+)/m.exec(plain)?.[1] ?? 0);
-  const fail = Number(/^ℹ fail (\d+)/m.exec(plain)?.[1] ?? 0);
-  return { testsRun, pass, fail };
-}
-
-/**
- * Extrai os checks INDIVIDUAIS do relatório spec do node:test (linhas
- * `✔ nome` / `✖ nome` — ONDA 1, checks por teste no veredito). Apenas as
- * linhas ANTES do resumo (`ℹ tests N`) contam: o relatório REPRIME cada teste
- * falho numa seção "failing tests:" no fim — sem truncar, cada falha entraria
- * DUAS vezes. O nome sai sem a duração traiçoeira (` (0.42175ms)`) e sem os
- * códigos ANSI (mesma limpeza do parseSpecCounts — o node:test pinta quando o
- * ambiente pede cor). Linhas ancoradas no INÍCIO da linha: subtests indentados
- * (`  ✔ filho`) nunca entram; o cabeçalho `✖ failing tests:` é filtrado
- * explicitamente (sem o resumo `ℹ tests N` — output truncado — ele NÃO é
- * cortado pelo truncamento e viraria um check sintético falso).
+ * ONDA 6 — AS DUAS IMPLEMENTAÇÕES SAÍRAM DAQUI, e por motivos diferentes.
  *
- * ONDA 5 — QUEM CHAMA MUDOU. Esta é a implementação JAVASCRIPT de
- * `LanguageAdapter.parseChecks` (§6, membro 12): `lang/javascript.ts`
- * (`jsParseChecks`) delega a ela, e `runStudentCode` passou a chamar
- * `adapter.parseChecks`. Continua exportada porque é o corpo do membro do
- * adaptador; um adaptador de outra linguagem traz o seu (o formato `✔`/`✖`
- * é do relatório spec do node:test, não é universal).
+ * `parseSpecCounts` foi APAGADA, não movida. Ela era a SEGUNDA implementação de
+ * `LanguageAdapter.countRun` no repositório e era MAIS FRACA que a primeira: lia
+ * a PRIMEIRA linha `ℹ tests N` do output e ignorava `skipped`. A consequência
+ * não era estética — era uma diferença de DEFESA. O código do aluno roda no
+ * mesmo processo que imprime o relatório, então ele pode forjar um resumo:
+ *
+ *     console.log('ℹ tests 5\nℹ pass 5\nℹ fail 0');   // no topo do solution.mjs
+ *
+ * O resumo do runner REAL sai depois de todo stdout do código sob teste, ou
+ * seja, por ÚLTIMO. Lendo a PRIMEIRA ocorrência, esta função entregava a forja;
+ * lendo o ÚLTIMO bloco (o que `adapter.countRun` faz), entrega o runner. O
+ * caminho das PROVAS já tinha a defesa; o caminho que o ALUNO vê, não. Agora
+ * `runStudentCode` e `verifyChallengePair` chamam `adapter.countRun` — a mesma
+ * função das provas, o mesmo veredito.
+ *
+ * `parseSpecChecks` MUDOU DE CASA para `engine/lang/javascript.ts`
+ * (`jsParseChecks`, o membro 12 do §6) e é REEXPORTADA daqui — a assinatura e o
+ * comportamento não mudam. O motivo é o bundle: o adaptador a alcançava por
+ * `require('../../services/challengeExec')`, um caminho RELATIVO que o Rollup
+ * não enxerga; resolvido a partir de `out/main/index.js` ele apontava para
+ * `out/services/challengeExec`, inexistente, e o main EMPACOTADO lançava
+ * MODULE_NOT_FOUND exatamente quando o aluno apertava "verificar". O caminho
+ * relativo ainda fechava o ciclo `challengeExec → registry → javascript →
+ * challengeExec`, que só não explodia por ser postergado.
  */
-export function parseSpecChecks(output: string): { name: string; passed: boolean }[] {
-  const plain = output.replace(/\x1b\[[0-9;]*m/g, '');
-  const lines = plain.split('\n');
-  const summaryIdx = lines.findIndex((l) => /^ℹ tests /m.test(l));
-  const head = (summaryIdx >= 0 ? lines.slice(0, summaryIdx) : lines).join('\n');
-  const checks: { name: string; passed: boolean }[] = [];
-  const re = /^[✔✖] (.+)$/gm;
-  let m: RegExpExecArray | null;
-  while ((m = re.exec(head)) !== null) {
-    const raw = m[1].trim();
-    if (!raw) continue;
-    // tira a duração do fim ("caso 1 (0.42175ms)" → "caso 1").
-    const name = raw.replace(/\s*\(\d+(?:\.\d+)?\s*m?s\)\s*$/, '');
-    // DEFENSIVO (revisão adversarial): teste SEM nome (`test('')`) deixa só a
-    // duração — sem fallback para a duração (não é um check de verdade).
-    if (!name) continue;
-    // Nomes SINTÉTICOS de falha de LOAD: quando o arquivo não carrega (sintaxe
-    // no solution.mjs), o node:test trata O ARQUIVO como um teste e emite
-    // `✖ test.mjs` (v24) / `✖ test failed` (v20) — não é um check de verdade;
-    // a saída já traz o SyntaxError para o aluno ver. DEFENSIVO (revisão
-    // adversarial): `✖ failing tests:` — sem a linha de resumo `ℹ tests N`
-    // (output truncado), o cabeçalho vira um check sintético falso que
-    // inflaria totalCount.
-    if (/^test\.mjs$/.test(name) || /^tests? failed$/.test(name) || /^failing tests?:/.test(name)) continue;
-    checks.push({ name, passed: m[0].charAt(0) === '✔' });
-  }
-  return checks;
-}
+export { jsParseChecks as parseSpecChecks } from '../engine/lang/javascript';
 
 export interface RunStudentCodeInput {
   /** código enviado pelo aluno (substitui o starter). */
@@ -307,7 +261,10 @@ export async function runStudentCode(
       timeoutMs: input.timeoutMs ?? 30_000,
     });
     const output = `${res.stdout}\n${res.stderr}`.trim();
-    const counts = parseSpecCounts(output);
+    // A contagem EXECUTADA vem do adaptador (§6, membro 11) — a MESMA função
+    // das provas, que lê o ÚLTIMO bloco de resumo. A cópia fraca que vivia
+    // neste arquivo (primeira linha `ℹ tests N`) aceitava relatório forjado.
+    const counts = adapter.countRun(output);
     // A contagem DECLARADA é a ÚNICA do repositório (por AST, via o adaptador):
     // a regex que vivia neste arquivo foi apagada na onda 5.
     const declared = adapter.countDeclared(input.testsCode);
@@ -417,7 +374,7 @@ export async function verifyChallengePair(
 
     await prepareChallengeDir(work, { solutionCode: pair.solutionCode, testsCode: pair.testsCode, files: solutionFiles }, adapter);
     const sol = await exec(work, testArgs, { timeoutMs: 30_000 });
-    const solCounts = parseSpecCounts(`${sol.stdout}\n${sol.stderr}`);
+    const solCounts = adapter.countRun(`${sol.stdout}\n${sol.stderr}`);
     const declared = adapter.countDeclared(pair.testsCode);
     const solutionPasses = sol.code === 0 && solCounts.testsRun === pair.expectedTestCount && declared === pair.expectedTestCount;
 

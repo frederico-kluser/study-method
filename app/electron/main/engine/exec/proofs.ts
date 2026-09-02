@@ -76,6 +76,7 @@ import {
   adapterIdForChallengeLanguage,
   type ChallengeLanguageToken,
   type LanguageAdapter,
+  type RunCounts,
 } from '../lang/registry';
 import {
   TYPES_CHECK_NAO_APLICAVEL,
@@ -140,92 +141,37 @@ export function execOutput(res: ExecResult): string {
 // Parser do relatório spec (executado) — tolerante a ANSI
 // ---------------------------------------------------------------------------
 
-export interface SpecCounts {
-  testsRun: number;
-  pass: number;
-  fail: number;
-  /** linhas `ℹ skipped N` do resumo — a prova 1 exige 0 (passagem integral). */
-  skipped: number;
-}
+/**
+ * As contagens do relatório executado (`tests`/`pass`/`fail`/`skipped` — a
+ * prova 1 exige `skipped === 0`, porque teste skipado não é teste que passou).
+ *
+ * ONDA 6: é um ALIAS de `RunCounts` (§6, membro 11), não uma segunda definição
+ * da mesma forma. O nome fica porque este arquivo e os seus testes falam em
+ * "SpecCounts"; a forma passa a ter um dono só, junto do membro do adaptador.
+ */
+export type SpecCounts = RunCounts;
 
 /**
- * Extrai as contagens do ÚLTIMO bloco de resumo spec do node:test (linhas
- * `ℹ tests N` …).
+ * Contagem EXECUTADA do relatório spec — o ÚLTIMO bloco de resumo, tolerante a
+ * ANSI, com `skipped`.
  *
- * POR QUE O ÚLTIMO: o código sob teste pode imprimir um resumo spec FORJADO no
- * próprio stdout (CRITICAL 1 — `console.log('ℹ tests 2\nℹ pass 2\nℹ fail 0')`
- * no topo do módulo, de olho no parser que confiava na PRIMEIRA ocorrência).
- * O resumo do runner REAL é emitido por último, depois de todo stdout do
- * código sob teste (testes rodam, depois o runner imprime o fechamento) — o
- * último bloco é, por construção, o do runner. Bloco = da última linha
- * `ℹ tests N` até o fim (as seções posteriores — `✖ failing tests:` — não têm
- * linhas `ℹ` de resumo).
+ * ONDA 6 — A IMPLEMENTAÇÃO MUDOU DE CASA para `engine/lang/javascript.ts`
+ * (`jsCountRun`, o membro 11 do §6), e este arquivo REEXPORTA daqui em diante.
+ * A inversão não é estética: até a onda 5 a seta apontava para cá e
+ * `lang/javascript.ts` alcançava esta função por `require('../exec/proofs')` —
+ * um caminho RELATIVO, invisível ao Rollup, que sobrevivia literal ao bundle e
+ * apontava para `out/exec/proofs`, inexistente. Efeito medido: no app
+ * EMPACOTADO, `runStudentCode` (a submissão do aluno) lançava MODULE_NOT_FOUND.
+ * Com a implementação no adaptador — um módulo FOLHA, sem import de valor —
+ * ninguém mais precisa de caminho relativo postergado. O corpo é byte a byte o
+ * mesmo (a defesa contra RELATÓRIO FORJADO documentada no cabeçalho deste
+ * arquivo continua sendo esta função), e o teste de paridade de
+ * `tests/engineLangRegistry.test.ts` compara as duas pontas.
  *
- * Formato tolerado nas DUAS variantes que o node:test emite: bloco COMPLETO
- * (`tests/suites/pass/fail/cancelled/skipped/todo/duration_ms`) e bloco MÍNIMO
- * (`tests/pass/fail`, como nos fixtures), com ou sem códigos ANSI — os escapes
- * são removidos ANTES do bloco (`\x1b[34mℹ tests 3\x1b[39m` — o node:test pinta
- * quando o ambiente pede cor; senão a linha "não começa com ℹ" e a contagem
- * viraria 0, derrubando o gate de um resultado que passou). Linha ausente em
- * qualquer posição ⇒ 0 (fail-closed: sem relatório não há como provar que algo
- * rodou).
- *
- * ONDA 5 — QUEM CHAMA MUDOU. Esta função é a IMPLEMENTAÇÃO JAVASCRIPT de
- * `LanguageAdapter.countRun`: `lang/javascript.ts` (`jsCountRun`) delega a ela,
- * e os julgadores deste arquivo passaram a chamar `adapter.countRun`, nunca
- * mais esta função direto. Continua exportada porque é o corpo do membro do
- * adaptador; um adaptador de outra linguagem traz o seu.
+ * O símbolo continua exportado porque `phases/f9Verifier.ts` e os testes o
+ * importam daqui; quem tem um adaptador na mão usa `adapter.countRun`.
  */
-export function parseSpecCounts(output: string): SpecCounts {
-  const plain = output.replace(/\x1b\[[0-9;]*m/g, '');
-  const lines = plain.split('\n');
-
-  // varre TODAS as linhas e guarda o índice + match da ÚLTIMA `ℹ tests N`.
-  let summaryIdx = -1;
-  let summaryMatch: RegExpExecArray | null = null;
-  for (let i = 0; i < lines.length; i += 1) {
-    const m = /^ℹ tests\s+(\d+)/.exec(lines[i]);
-    if (m) {
-      summaryIdx = i;
-      summaryMatch = m;
-    }
-  }
-
-  if (summaryIdx === -1 || summaryMatch === null) {
-    return { testsRun: 0, pass: 0, fail: 0, skipped: 0 };
-  }
-
-  const testsRun = Number(summaryMatch[1]);
-  // pass/fail/skipped são lidos DENTRO do último bloco (primeira ocorrência a
-  // partir da linha do resumo) — nunca de blocos anteriores/não-relacionados.
-  const blockLines = lines.slice(summaryIdx);
-  const valueInBlock = (re: RegExp): number => {
-    for (const line of blockLines) {
-      const m = re.exec(line);
-      if (m) return Number(m[1]);
-    }
-    return 0;
-  };
-  const pass = valueInBlock(/^ℹ pass\s+(\d+)/);
-  const fail = valueInBlock(/^ℹ fail\s+(\d+)/);
-  const skipped = valueInBlock(/^ℹ skipped\s+(\d+)/);
-  return { testsRun, pass, fail, skipped };
-}
-
-/**
- * Classificação HONESTA de um exit code para as mensagens das provas.
- * 137 (SIGKILL) não distingue timeout de OOM — devolve exatamente
- * "timeout-ou-OOM" e o chamador nunca afirma qual dos dois.
- *
- * ONDA 5 — QUEM CHAMA MUDOU. Esta é a implementação JAVASCRIPT de
- * `FailurePolicy.meaning` (`lang/javascript.ts` delega a ela); os julgadores
- * deste arquivo passaram a usar `adapter.failureExitCodes.meaning`, porque o
- * significado de um exit code é por LINGUAGEM (§6 obs. 3).
- */
-export function exitCodeMeaning(exitCode: number): string {
-  if (exitCode === 137) return 'timeout-ou-OOM';
-  return `exit ${exitCode}`;
-}
+export { jsCountRun as parseSpecCounts, exitCodeMeaning } from '../lang/javascript';
 
 // ---------------------------------------------------------------------------
 // As quatro provas — julgadores puros

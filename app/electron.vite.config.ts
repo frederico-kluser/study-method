@@ -59,6 +59,24 @@ function neverInlineFonts(filePath: string): boolean | undefined {
 // (electron-builder faz asarUnpack). `renderer` é o React SPA com base: './' para
 // carregar sobre file://. O target `main` ganha a entrada do utility process de
 // LLM (llm-engine), forçado pelo LlmProxyService a partir de out/main/.
+/**
+ * ONDA 6 — POR QUE `typescript` PRECISA SER `dependencies` (e não devDep).
+ *
+ * `externalizeDepsPlugin()` externaliza o que está em `dependencies` do
+ * package.json, e SÓ isso. O processo main precisa do compilador em RUNTIME: a
+ * contagem DECLARADA de testes (`adapter.countDeclared`, o gate de igualdade da
+ * submissão do aluno) é por AST, e o adaptador o alcança com um
+ * `require('typescript')` LITERAL (`engine/lang/javascript.ts`). Com
+ * `typescript` em devDependencies duas coisas quebravam:
+ *   - o Rollup, vendo o require literal de um pacote NÃO externalizado, tentaria
+ *     inlinar o compilador inteiro dentro de out/main/index.js;
+ *   - e o electron-builder, que não empacota devDependencies, deixaria o app
+ *     instalado sem o módulo — `require('typescript')` morreria no primeiro
+ *     "verificar" do aluno.
+ * Guardado por `tests/engineLangRegistry.test.ts` ("typescript é DEPENDENCY de
+ * runtime"). Medido: com a promoção, out/main/index.js foi de 434,8 kB para
+ * 437,2 kB — o compilador continua FORA do bundle.
+ */
 export default defineConfig({
   main: {
     plugins: [externalizeDepsPlugin()],
