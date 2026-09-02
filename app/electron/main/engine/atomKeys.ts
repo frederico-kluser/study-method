@@ -22,16 +22,32 @@
  *   api:<caminho>          API/membro     api:console.log, api:Array.prototype.push
  *   term:<termo>           prosa pt-BR    term:atribuicao
  *
- * O eixo `form:` previsto em `docs/16-engine-de-trilha.md` §3.1 (restrição de
- * FORMA de uso, ex.: `if` sem `else`) NÃO é emitido por este módulo: ele exige
- * seletor sobre a árvore e entra junto com o gate de forma. As chaves aqui são
- * as que o extrator determinístico (`extract.ts`) sabe produzir hoje.
+ * E existe um SÉTIMO eixo, que este módulo NÃO CONSTRÓI mas RECONHECE:
+ *
+ *   form:<seletor>        forma de uso  form:IfStatement[alternate=null]
+ *
+ * Ele não tem construtor aqui porque a chave é a serialização de um SELETOR
+ * compilado — quem a monta é `formKey` (`engine/form/selector.ts:360`), sobre
+ * um seletor já parseado, e inventar um `formKey(string)` neste arquivo daria
+ * uma segunda forma de escrever a mesma chave sem passar pela validação de
+ * carga (A-P06-4). Mas ele É EMITIDO pelo extrator (`engine/extract.ts:435-437`
+ * aplica a bateria de `form/rules.ts` sobre o mesmo AST), CASA o `ATOM_KEY_RE`
+ * abaixo e É RECONHECIDO por `axisOf` — e a `HARNESS_RECEPTIVE_SEED` deste
+ * arquivo já traz duas chaves `form:`.
+ *
+ * (Este parágrafo corrige um comentário que afirmava o contrário — "o eixo
+ * `form:` NÃO é emitido por este módulo: ele entra junto com o gate de forma" —
+ * escrito antes da rodada que ligou o eixo. Comentário que mente é pior que
+ * comentário ausente: quem lesse o antigo concluiria que uma violação `form:`
+ * é impossível, e é justamente uma das que o gate mais emite.)
  *
  * O que este arquivo NÃO faz: não parseia (é `extract.ts`), não decide o que é
  * permitido (é `budget.ts`) e não conhece trilha nenhuma. É só o alfabeto.
  *
  * Referência: `docs/16-engine-de-trilha.md` §3.1 e §5.3.
  */
+
+import { DEFAULT_ADAPTER_ID, getAdapter, type LanguageId } from './lang/registry';
 
 /** Os seis eixos de uma chave de átomo. `form` é reservado (ver cabeçalho). */
 export type AtomAxis = 'node' | 'decl' | 'op' | 'global' | 'api' | 'term';
@@ -158,29 +174,56 @@ export function humanLabel(key: AtomKey): string {
  * proibição vale em QUALQUER nível da trilha, e a única saída é exceção
  * declarada na própria aula.
  *
+ * FONTE (onda 5): `adapter.forbiddenInvariants` — o membro 6 dos 15 do §6 de
+ * `docs/research/08-multilingua-trava-deterministica.md`. A lista literal que
+ * vivia aqui foi apagada: cada linguagem tem o SEU veneno de decidibilidade
+ * (`eval`/`new Function` em JavaScript; `eval`/`exec`/`getattr` dinâmico em
+ * Python), e uma lista de JavaScript hospedada no alfabeto comum reprovaria
+ * Python pelas construções erradas. Este símbolo é o do adaptador DEFAULT e
+ * continua exportado porque `tests/engineLangRegistry.test.ts:172` e o
+ * relatório o citam; quem tem uma linguagem na mão usa `isForbiddenAlways(key,
+ * language)` ou pergunta ao registro.
+ *
  * Referência: `docs/16-engine-de-trilha.md` §5.3.
  */
-export const FORBIDDEN_ALWAYS: readonly AtomKey[] = [
-  'global:eval',
-  'global:Function',
-  'node:WithStatement',
-  'node:DebuggerStatement',
-  'node:LabeledStatement',
-  'node:CommaListExpression',
-  'global:arguments',
-  'node:ComputedNonLiteralAccess',
-] as const;
+export const FORBIDDEN_ALWAYS: readonly AtomKey[] = getAdapter(DEFAULT_ADAPTER_ID)
+  .forbiddenInvariants;
 
-const FORBIDDEN_SET = new Set<string>(FORBIDDEN_ALWAYS);
+/** Memo por adaptador — a lista é imutável, o Set pode ser construído uma vez. */
+const FORBIDDEN_SET_POR_ADAPTADOR = new Map<LanguageId, ReadonlySet<string>>();
 
-export function isForbiddenAlways(key: AtomKey): boolean {
-  return FORBIDDEN_SET.has(key);
+function forbiddenSet(language: LanguageId): ReadonlySet<string> {
+  const memo = FORBIDDEN_SET_POR_ADAPTADOR.get(language);
+  if (memo !== undefined) return memo;
+  const set = new Set<string>(getAdapter(language).forbiddenInvariants);
+  FORBIDDEN_SET_POR_ADAPTADOR.set(language, set);
+  return set;
+}
+
+/**
+ * A chave quebra a decidibilidade NESTA linguagem? Default: o adaptador
+ * default — os chamadores de JavaScript não mudam.
+ */
+export function isForbiddenAlways(key: AtomKey, language: LanguageId = DEFAULT_ADAPTER_ID): boolean {
+  return forbiddenSet(language).has(key);
 }
 
 /**
  * HARNESS DE TESTE — as construções que o aluno LÊ em todo desafio e nunca
  * escreve: `export function …` no starter e `import … from './solution.mjs'`
  * mais `test('x', () => …)` no arquivo de teste.
+ *
+ * ATENÇÃO, MULTILÍNGUA: esta lista é de JAVASCRIPT — `node:ImportDeclaration`,
+ * `api:node:test`, `api:assert.deepStrictEqual` e as duas chaves `form:` são
+ * nomes de nó do AST do TypeScript e do runner `node:test`. Em Python o mesmo
+ * papel seria `import unittest`/`def test_…`/`assertEqual`, chaves que não
+ * existem aqui. Ela NÃO pôde virar membro do adaptador nesta onda porque a
+ * interface dos 15 membros (`engine/lang/registry.ts:508`) não tem slot para
+ * "semente receptiva do harness" nem para "estruturais sempre liberadas" — a
+ * lacuna está registrada no handoff da onda. Enquanto o slot não existe, o
+ * acesso correto é por `harnessReceptiveSeed(language)` (abaixo), que é
+ * FAIL-CLOSED: pedir a semente de uma linguagem que não a tem LANÇA, em vez de
+ * semear um orçamento de Python com o harness do Node.
  *
  * Medição que justifica esta lista existir: 45 das 60 violações dos módulos
  * 1–3 da trilha atual são exatamente estas construções. Sem separá-las, o gate
@@ -261,3 +304,57 @@ export const STRUCTURAL_ALWAYS_ALLOWED: readonly AtomKey[] = [
   'node:VariableDeclarationList',
   'node:VariableDeclaration',
 ] as const;
+
+// ---------------------------------------------------------------------------
+// As duas listas acima, ATRÁS DE UMA PORTA POR LINGUAGEM (fail-closed)
+// ---------------------------------------------------------------------------
+//
+// Elas são de JavaScript (`node:SourceFile`, `node:SyntaxList` e
+// `node:VariableDeclarationList` são nomes do enum `ts.SyntaxKind`; a semente é
+// o harness do `node:test`), e a interface de 15 membros do §6 não tem slot
+// para nenhuma das duas. Enquanto o slot não existir, estas funções são a
+// fronteira: elas nomeiam a dependência de linguagem, e REPROVAM em vez de
+// devolver a tabela errada. Quem chama sem argumento (todo chamador de hoje)
+// recebe exatamente a lista de antes.
+
+/** Erro estruturado: a linguagem não tem tabela declarada neste alfabeto. */
+export class TabelaDeLinguagemAusenteError extends Error {
+  readonly code = 'TABELA_DE_LINGUAGEM_AUSENTE' as const;
+  constructor(
+    readonly detalhes: { tabela: string; pedido: string; disponivel: LanguageId },
+  ) {
+    super(
+      `engine/atomKeys.ts: a tabela "${detalhes.tabela}" só existe para ${detalhes.disponivel} ` +
+        `(pedido: ${JSON.stringify(detalhes.pedido)}). Ela é conteúdo de LINGUAGEM (nomes de nó e ` +
+        `API do runner de teste) e a interface LanguageAdapter ainda não tem membro para ela — ` +
+        `ver o handoff da onda 5. Semear o orçamento com a tabela de outra linguagem faria o gate ` +
+        `perdoar as construções erradas em silêncio.`,
+    );
+    this.name = 'TabelaDeLinguagemAusenteError';
+  }
+}
+
+function exigirTabela(tabela: string, language: LanguageId): void {
+  // `getAdapter` é fail-closed para id desconhecido; aqui a falha é o id
+  // CONHECIDO cuja tabela não foi escrita.
+  const adapter = getAdapter(language);
+  if (adapter.id !== DEFAULT_ADAPTER_ID) {
+    throw new TabelaDeLinguagemAusenteError({
+      tabela,
+      pedido: language,
+      disponivel: DEFAULT_ADAPTER_ID,
+    });
+  }
+}
+
+/** A semente receptiva do harness DESTA linguagem (política `receptive-seed`). */
+export function harnessReceptiveSeed(language: LanguageId = DEFAULT_ADAPTER_ID): readonly AtomKey[] {
+  exigirTabela('HARNESS_RECEPTIVE_SEED', language);
+  return HARNESS_RECEPTIVE_SEED;
+}
+
+/** As estruturais sempre liberadas DESTA linguagem (as duas faixas). */
+export function structuralAlwaysAllowed(language: LanguageId = DEFAULT_ADAPTER_ID): readonly AtomKey[] {
+  exigirTabela('STRUCTURAL_ALWAYS_ALLOWED', language);
+  return STRUCTURAL_ALWAYS_ALLOWED;
+}

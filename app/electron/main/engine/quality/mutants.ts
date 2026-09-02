@@ -56,12 +56,29 @@
  * O QUE ESTE MÓDULO NÃO FAZ: não julga (a medição e a decisão vivem em
  * `judgeCalibration.ts`), não chama LLM, não lê trilha real, não escreve em
  * disco. Tudo aqui é função pura.
+ *
+ * ─── JAVASCRIPT-ONLY, E ISSO É DECISÃO (onda 5) ───────────────────────────
+ *
+ * A fixture e as quatro mutações são TEXTO DE JAVASCRIPT LITERAL: `export
+ * function ehPar(n) { return n % 2 === 0; }`, `console.log(...)` como canal de
+ * impressão, `import { test } from 'node:test'` no arquivo de teste. O defeito
+ * injetado por cada mutante é PROVADO por parser (`chavesDe` → `extractAtoms`,
+ * que é do AST do TypeScript). Um gerador de mutantes de Python não é este
+ * arquivo parametrizado — é outra fixture e outras quatro mutações.
+ *
+ * Rodá-lo sobre um desafio de outra linguagem falharia no lugar errado (o
+ * `extractAtoms` do texto mutado) e com a mensagem errada ("código com sintaxe
+ * inválida"), sugerindo defeito no CONTEÚDO quando o defeito é de FERRAMENTA.
+ * Por isso as três entradas públicas guardam a linguagem DO DESAFIO
+ * (`desafio.language`, o campo que o `ChallengeDraftSchema` passou a carregar)
+ * e LANÇAM `EngineLinguagemError` estruturado.
  */
 
 import { z } from 'zod';
 
 import { ChallengeDraftSchema } from '../schemas/artifacts';
-import { extractAtoms } from '../extract';
+import { exigirAdaptadorJavascript, extractAtoms } from '../extract';
+import { adapterIdForChallengeLanguage } from '../lang/registry';
 
 // ---------------------------------------------------------------------------
 // Tipos públicos
@@ -124,6 +141,21 @@ function chavesDe(code: string): string[] {
     );
   }
   return resultado.keys;
+}
+
+/**
+ * GUARDA DE LINGUAGEM das entradas públicas. `desafio.language` é um TOKEN
+ * (`'nodejs'` é o runtime do adaptador `javascript` — §6), então ele passa
+ * primeiro pelo resolvedor do registro; token que não resolve para adaptador
+ * nenhum cai na falha fail-closed de `getAdapter`, com a lista do que é válido.
+ */
+function exigirJsDoDesafio(base: DesafioParaMutacao, fn: string): void {
+  const token = String(base.desafio.language);
+  exigirAdaptadorJavascript(
+    `engine/quality/mutants.ts (${fn})`,
+    'a fixture e as quatro mutações são texto de JavaScript literal, e o defeito injetado é provado pelo extrator do AST do TypeScript',
+    adapterIdForChallengeLanguage(token) ?? token,
+  );
 }
 
 /** Devolve uma cópia da base trocando SÓ o desafio (a aula intata). */
@@ -353,6 +385,7 @@ function camposDiferentes(base: Desafio, mutado: Desafio): string[] {
  * um mutante (c) artificial e vazado NUNCA passa pela porta do gerador.
  */
 export function validarMutante(base: DesafioParaMutacao, mutante: Mutante, mutado: DesafioParaMutacao): void {
+  exigirJsDoDesafio(base, 'validarMutante');
   ChallengeDraftSchema.parse(mutado.desafio);
 
   const camposMutados = camposDiferentes(base.desafio, mutado.desafio);
@@ -425,6 +458,7 @@ export function validarMutante(base: DesafioParaMutacao, mutante: Mutante, mutad
  * mutante que não mude nada nem um que quebre o desafio.
  */
 export function gerarMutantes(artefatoValido: DesafioParaMutacao): Mutante[] {
+  exigirJsDoDesafio(artefatoValido, 'gerarMutantes');
   ChallengeDraftSchema.parse(artefatoValido.desafio);
 
   const mutantes: Mutante[] = [
@@ -475,5 +509,6 @@ export function gerarMutantes(artefatoValido: DesafioParaMutacao): Mutante[] {
  * (`medirTaxaDeFalsoPasse` em `judgeCalibration.ts`).
  */
 export function rodaMutante(mutante: Mutante, artefato: DesafioParaMutacao): DesafioParaMutacao {
+  exigirJsDoDesafio(artefato, 'rodaMutante');
   return mutante.aplicar(artefato);
 }

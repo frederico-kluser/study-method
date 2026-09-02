@@ -40,12 +40,31 @@
  *   - `atoms` é o que o aluno PRECISA escrever (o código mínimo); `atomsDoTeste`
  *     é o enriquecimento com os átomos do trecho do teste que chama a função —
  *     separados de propósito: a comparação com o orçamento da aula usa `atoms`.
+ *
+ * ─── JAVASCRIPT-ONLY, E ISSO É DECISÃO, NÃO OMISSÃO (onda 5) ──────────────
+ *
+ * Este módulo NÃO foi parametrizado por linguagem, e não deve ser: ele GERA
+ * TEXTO DE JAVASCRIPT LITERAL (`export function ${nome}(${params}) {\n  return
+ * ${literal};\n}`), lê o teste com `ts.createSourceFile` e serializa literais
+ * com a sintaxe de objeto/array do JavaScript. Um sintetizador de código
+ * mínimo de Python não é este arquivo com um parâmetro a mais — é outro
+ * arquivo, com `def`, indentação significativa e outra tabela de literais.
+ * Trocar só o parser produziria candidatos que não compilam na linguagem alvo
+ * e um veredito `SEM_SOLUCAO_ACESSIVEL` FALSO — o pior resultado possível,
+ * porque ele se parece com um sinal legítimo ("o teste exige mais que
+ * literais") quando na verdade é a ferramenta errada.
+ *
+ * Por isso as quatro entradas públicas têm GUARDA EXPLÍCITA
+ * (`exigirAdaptadorJavascript`): pedir a síntese mínima de outra linguagem
+ * LANÇA `EngineLinguagemError` — erro estruturado que diz o que falta — em vez
+ * de devolver um veredito silenciosamente errado.
  */
 
 import * as ts from 'typescript';
 
 import type { AtomKey } from '../atomKeys';
-import { RUNTIME_GLOBALS, extractAtoms } from '../extract';
+import { RUNTIME_GLOBALS, exigirAdaptadorJavascript, extractAtoms } from '../extract';
+import { DEFAULT_ADAPTER_ID, type LanguageId } from '../lang/registry';
 import type { ProverDeDesafio } from '../phases/f9Verifier';
 import type { ChallengeProofsVerdict } from '../exec/proofs';
 import { createSemaphore, defaultExecConcurrency, type Semaphore } from '../runtime/semaphore';
@@ -59,6 +78,20 @@ export interface MinimalCtx {
   solutionCode: string;
   testsCode: string;
   expectedTestCount: number;
+  /**
+   * ADITIVO (onda 5): a linguagem do desafio. Default: o adaptador default.
+   * Qualquer outra LANÇA — ver "JAVASCRIPT-ONLY" no cabeçalho.
+   */
+  language?: LanguageId;
+}
+
+/** O motivo, escrito uma vez, que as quatro guardas deste módulo citam. */
+const MOTIVO_JS_ONLY =
+  'este módulo GERA texto de JavaScript literal (export function/return) e lê o teste com ts.createSourceFile; ' +
+  'a síntese mínima de outra linguagem é outro arquivo, não este com um parâmetro a mais';
+
+function exigirJs(fn: string, language: LanguageId = DEFAULT_ADAPTER_ID): void {
+  exigirAdaptadorJavascript(`engine/quality/minimal.ts (${fn})`, MOTIVO_JS_ONLY, language);
 }
 
 export type MinimalVerdict =
@@ -187,7 +220,11 @@ function funcaoChamadaNoArg(assertCall: ts.CallExpression): string | null {
  * Extrai os literais dos asserts de um arquivo de teste. Deterministtico:
  * mesma entrada, mesma saída. Parse falhou → `{ ok: false, error }`.
  */
-export function extrairLiteraisDoTeste(testsCode: string): ExtrairLiteraisResult {
+export function extrairLiteraisDoTeste(
+  testsCode: string,
+  language: LanguageId = DEFAULT_ADAPTER_ID,
+): ExtrairLiteraisResult {
+  exigirJs('extrairLiteraisDoTeste', language);
   const source = parseSource(testsCode, 'tests.mjs');
   if (!source) {
     return { ok: false, error: 'testsCode não parseia como JavaScript' };
@@ -558,7 +595,13 @@ function podarSolucao(solution: string, funcoesAlvo: string[]): string | null {
  *   6. PODA          — SÓ quando nada acima gerou candidato: solução de
  *                      referência podada às funções-alvo (último recurso)
  */
-export function gerarCandidatos(starter: string, solution: string, dados: LiteraisDoTeste): string[] {
+export function gerarCandidatos(
+  starter: string,
+  solution: string,
+  dados: LiteraisDoTeste,
+  language: LanguageId = DEFAULT_ADAPTER_ID,
+): string[] {
+  exigirJs('gerarCandidatos', language);
   const localizado = localizarFuncoesNoStarter(starter, dados.funcoesAlvo);
   const candidatos: string[] = [];
   const adicionar = (c: string | null): void => {
@@ -655,12 +698,14 @@ function trechoDoTesteParaAtomos(testsCode: string, funcoesAlvo: string[]): stri
  * testes) e devolve o PRIMEIRO que passa nas quatro provas. Fail-closed.
  */
 export async function sintetizarCodigoMinimo(prover: ProverDeDesafio, ctx: MinimalCtx): Promise<MinimalVerdict> {
-  const extraido = extrairLiteraisDoTeste(ctx.testsCode);
+  const language = ctx.language ?? DEFAULT_ADAPTER_ID;
+  exigirJs('sintetizarCodigoMinimo', language);
+  const extraido = extrairLiteraisDoTeste(ctx.testsCode, language);
   if (!extraido.ok) {
     return { ok: false, reason: 'PARSE_FALHOU', detail: extraido.error };
   }
   const dados = extraido.dados;
-  const candidatos = gerarCandidatos(ctx.starterCode, ctx.solutionCode, dados);
+  const candidatos = gerarCandidatos(ctx.starterCode, ctx.solutionCode, dados, language);
   if (candidatos.length === 0) {
     return {
       ok: false,
@@ -773,6 +818,10 @@ export async function sintetizarEmLote(
   ctxs: readonly MinimalCtx[],
   opcoes: OpcoesDeLote = {},
 ): Promise<MinimalVerdict[]> {
+  // A guarda roda ANTES do lote: uma linguagem sem sintetizador tem de derrubar
+  // a chamada, não virar N vereditos `PROVER_FALHOU` (o try/catch por item
+  // existe para o imprevisto do prover, não para esconder erro de contrato).
+  for (const ctx of ctxs) exigirJs('sintetizarEmLote', ctx.language ?? DEFAULT_ADAPTER_ID);
   const semaforo = opcoes.semaforo ?? createSemaphore(opcoes.concorrencia ?? defaultExecConcurrency());
   const resultados = new Array<MinimalVerdict>(ctxs.length);
   await Promise.all(

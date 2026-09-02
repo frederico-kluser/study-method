@@ -41,6 +41,7 @@ import { readFileSync } from 'node:fs';
 
 import { ChallengeDraftSchema } from '../electron/main/engine/schemas/artifacts';
 import { extractAtoms } from '../electron/main/engine/extract';
+import { LanguageRegistryError } from '../electron/main/engine/lang/registry';
 import { PREDICADOS_DA_AULA, type RevisaoComSeveridade } from '../electron/main/engine/prompts/reviewer';
 import { severidadeDeCategoria } from '../electron/main/engine/review/normalize';
 import {
@@ -683,5 +684,24 @@ describe('engine/quality — o pacote não decide por veredito agregado', () => 
         `"nota"/"score" aparecem em ${fonte.pathname} — o pacote não pode decidir por veredito agregado (§6.6)`,
       );
     }
+  });
+});
+
+// A GUARDA JAVASCRIPT-ONLY (onda 5): a fixture e as quatro mutações são texto
+// de JavaScript literal, e o defeito injetado é PROVADO por `extractAtoms`.
+// Num desafio de outra linguagem a falha apareceria no lugar errado ("código
+// com sintaxe inválida"), acusando o CONTEÚDO por um defeito de FERRAMENTA.
+describe('mutants — guarda de linguagem (fail-closed)', () => {
+  it('gerarMutantes reprova a linguagem ANTES do schema do desafio', () => {
+    const base = desafioValidoExemplo();
+    assert.ok(gerarMutantes(base).length > 0, 'o caminho de JavaScript continua intacto');
+    const outraLinguagem = {
+      ...base,
+      desafio: { ...base.desafio, language: 'ruby' as never },
+    };
+    assert.throws(
+      () => gerarMutantes(outraLinguagem),
+      (erro: unknown) => erro instanceof LanguageRegistryError,
+    );
   });
 });

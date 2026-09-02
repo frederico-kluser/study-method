@@ -17,6 +17,8 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 
+import { LanguageRegistryError } from '../electron/main/engine/lang/registry';
+
 import {
   derivarRequirements,
   validarRequirements,
@@ -150,6 +152,26 @@ describe('requirements — validarRequirements (bijeção)', () => {
     assert.throws(
       () => validarRequirements('import { test } from \'node:test\';\ntest(\'x\', () => { assert.equal(; });\n', []),
       /não parseia/,
+    );
+  });
+});
+
+// A GUARDA JAVASCRIPT-ONLY (onda 5): a derivação reconhece `test('nome', …)` +
+// `assert.*` do node:test. Em outra linguagem o resultado seria ZERO testes
+// reconhecidos — e `validarRequirements` acusaria "todo requirement sem teste",
+// uma violação de CONTEÚDO inventada por defeito de FERRAMENTA.
+describe('requirements — guarda de linguagem (fail-closed)', () => {
+  const tests = "import test from 'node:test';\nimport assert from 'node:assert/strict';\ntest('soma dois numeros', () => { assert.equal(1 + 1, 2); });\n";
+
+  it('derivarRequirements e validarRequirements reprovam linguagem sem derivação', () => {
+    assert.equal(derivarRequirements(tests, 'export function f() {}\n', '').requirements.length, 1);
+    assert.throws(
+      () => derivarRequirements(tests, 'export function f() {}\n', '', 'ruby' as never),
+      (erro: unknown) => erro instanceof LanguageRegistryError,
+    );
+    assert.throws(
+      () => validarRequirements(tests, [], 'ruby' as never),
+      (erro: unknown) => erro instanceof LanguageRegistryError,
     );
   });
 });

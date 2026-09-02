@@ -102,9 +102,23 @@
  * prompt do aluno. A medição não interpreta faixas (receptivo/produtivo) — o
  * chamador passa a lista que define o vocabulário de escrita do aluno
  * (convenção: o orçamento PRODUTIVO da aula).
+ *
+ * ─── JAVASCRIPT-ONLY, E ISSO É DECISÃO (onda 5) ───────────────────────────
+ *
+ * O prompt do aluno pede um MÓDULO ESM (`solution.mjs` completo, com `export`),
+ * a resposta é lida como JavaScript e as construções da tentativa são medidas
+ * com `extractAtoms` (AST do TypeScript) para acusar o que saiu do orçamento.
+ * Nada disso vale para outra linguagem: o aluno de Python devolveria um arquivo
+ * `.py` que o extrator ou rejeita ("não parseia") ou — pior — parseia como
+ * JavaScript por acaso e mede as construções erradas, e a medição pass^k viraria
+ * 0% com o rótulo TAREFA QUEBRADA sobre um desafio perfeitamente bom.
+ *
+ * `medirSolubilidade`/`simularAluno` guardam `ctx.language` e LANÇAM
+ * `EngineLinguagemError` estruturado em vez de medir errado.
  */
 
-import { extractAtoms } from '../extract';
+import { exigirAdaptadorJavascript, extractAtoms } from '../extract';
+import { DEFAULT_ADAPTER_ID, type LanguageId } from '../lang/registry';
 import type { AtomKey } from '../atomKeys';
 import type { ChallengeProofsInput, ChallengeProofsVerdict } from '../exec/proofs';
 import type { EngineLlm } from '../runtime/callLlm';
@@ -196,6 +210,20 @@ export interface SolubilidadeCtx {
    * recebe o código do ALUNO no lugar dele.
    */
   prova: ChallengeProofsInput;
+  /**
+   * ADITIVO (onda 5): a linguagem do desafio. Default: o adaptador default.
+   * Qualquer outra LANÇA — ver "JAVASCRIPT-ONLY" no cabeçalho.
+   */
+  language?: LanguageId;
+}
+
+/** GUARDA de linguagem das duas entradas públicas da medição. */
+function exigirJs(fn: string, language: LanguageId = DEFAULT_ADAPTER_ID): void {
+  exigirAdaptadorJavascript(
+    `engine/quality/solvable.ts (${fn})`,
+    'o prompt do aluno pede um módulo ESM (solution.mjs com export) e a tentativa é medida por extractAtoms, que é do AST do TypeScript',
+    language,
+  );
 }
 
 /**
@@ -361,6 +389,7 @@ function parseRespostaDoAluno(content: string): RespostaDoAluno {
  * um veredito falso.
  */
 export async function simularAluno(deps: SolubilidadeDeps, ctx: SolubilidadeCtx): Promise<ResultadoTentativa> {
+  exigirJs('simularAluno', ctx.language ?? DEFAULT_ADAPTER_ID);
   const prompt = montarPromptDoAluno({
     enunciado: ctx.enunciado,
     starter: ctx.prova.starterCode,
@@ -504,6 +533,7 @@ export async function medirSolubilidade(
   ctx: SolubilidadeCtx,
   tentativas: number = DEFAULT_K,
 ): Promise<MedicaoSolubilidade> {
+  exigirJs('medirSolubilidade', ctx.language ?? DEFAULT_ADAPTER_ID);
   if (!Number.isInteger(tentativas) || tentativas < 1) {
     throw new SolubilidadeError({
       code: SOLUBILIDADE_CODES.ARGUMENTO,

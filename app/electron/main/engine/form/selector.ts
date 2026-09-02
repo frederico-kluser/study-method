@@ -61,15 +61,21 @@
  * `parseFormKey` estende o mesmo erro à validação de chaves `form:` declaradas
  * no orçamento pelas ondas seguintes.
  *
- * Este módulo é AUTOCONTIDO (importa só `typescript`): guarda a própria tabela
- * canônica de nomes de SyntaxKind, a mesma de `extract.ts`, para não criar
- * ciclo de import (extract → rules → selector → extract) — tabela derivada do
- * MESMO enum, logo não consegue divergir da de `extract.ts`.
+ * A TABELA CANÔNICA de nomes de SyntaxKind NÃO vive mais aqui (onda 5, dedup):
+ * ela era uma CÓPIA da de `extract.ts:183`, justificada pelo ciclo de import
+ * (extract → rules → selector → extract). O ciclo continua real; a cópia
+ * deixou de ser necessária quando a tabela mudou para o módulo FOLHA
+ * `engine/kindNames.ts`, que importa só `typescript` e não fecha ciclo nenhum.
+ * Uma tabela, um lugar: `extract.ts` a reexporta como `kindName`, este módulo
+ * consome `kindNameOf`.
  *
  * Referência: `docs/16-engine-de-trilha.md` §3.1, I9/I11 e §5.3.
  */
 
 import * as ts from 'typescript';
+import { CANONICAL_KIND_NAME, kindNameOf } from '../kindNames';
+
+export { kindNameOf };
 
 /** Código do erro estruturado de seletor malformado (A-P06-4). */
 export const FORM_SELECTOR_INVALID = 'FORM_SELECTOR_INVALID' as const;
@@ -121,32 +127,12 @@ const ESTREE_ALIASES: Readonly<Record<string, string>> = {
   consequent: 'thenStatement', // IfStatement — o par de alternate.
 };
 
-/** Nome canônico de um SyntaxKind — a MESMA tabela de `extract.ts`, local aqui. */
-const CANONICAL_KIND_NAME: ReadonlyMap<ts.SyntaxKind, string> = (() => {
-  const map = new Map<ts.SyntaxKind, string>();
-  for (const name of Object.keys(ts.SyntaxKind)) {
-    if (!Number.isNaN(Number(name))) continue;
-    const value = (ts.SyntaxKind as unknown as Record<string, number>)[name];
-    const isRangeMarker = name.startsWith('First') || name.startsWith('Last');
-    const current = map.get(value);
-    if (current === undefined || (isRangeMarker === false && (current.startsWith('First') || current.startsWith('Last')))) {
-      map.set(value, name);
-    }
-  }
-  return map;
-})();
-
 /** Conjunto de nomes canônicos válidos — valida TipoDeNó e Valor na CARGA. */
 const VALID_KIND_NAMES: ReadonlySet<string> = (() => {
   const set = new Set<string>();
   for (const name of CANONICAL_KIND_NAME.values()) set.add(name);
   return set;
 })();
-
-/** Nome canônico do tipo de um nó (`IfStatement`, `Block`, …). */
-export function kindNameOf(node: ts.Node): string {
-  return CANONICAL_KIND_NAME.get(node.kind) ?? String(node.kind);
-}
 
 /** identifica `A-z_$` inicial seguido de `A-z0-9_$` — tipos, atributos e valores. */
 const IDENT_RE = /^[A-Za-z_$][A-Za-z0-9_$]*$/;

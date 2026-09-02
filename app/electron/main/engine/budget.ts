@@ -44,13 +44,20 @@
  */
 
 import type { LoadedTrack } from '../content/trackLoader';
+import { trackProgrammingLanguage } from '../content/trackTypes';
 import {
   AtomKey,
-  HARNESS_RECEPTIVE_SEED,
-  STRUCTURAL_ALWAYS_ALLOWED,
+  harnessReceptiveSeed,
   isAtomKey,
+  structuralAlwaysAllowed,
 } from './atomKeys';
 import { extractAtoms } from './extract';
+import {
+  DEFAULT_ADAPTER_ID,
+  LanguageRegistryError,
+  adapterIdForChallengeLanguage,
+  type LanguageId,
+} from './lang/registry';
 import { collectLessonCode, TheoryHygieneIssue } from './theoryCode';
 
 /** Como o orçamento de uma aula foi obtido. */
@@ -101,6 +108,13 @@ export interface TrackBudget {
   /** blocos com tag `js` que não parseiam — erro, nunca silêncio. */
   parseErrors: Array<{ ref: string; line: number; message: string }>;
   source: BudgetSource;
+  /**
+   * ADITIVO (onda 5): o ADAPTADOR desta trilha (`trackAdapterId`). Fica no
+   * orçamento porque quem consome o orçamento (o `audit.ts`, a bateria
+   * A13–A16) precisa da MESMA resposta — recomputá-la em cada consumidor é
+   * como duas cópias de uma constante começam a divergir.
+   */
+  adapterId: LanguageId;
 }
 
 export interface DeriveOptions {
@@ -149,12 +163,46 @@ export function pedagogicalOrder(
   return out;
 }
 
-/** O axioma de entrada: o que o aluno pode encontrar já na aula 1. */
-export function entryAxiom(policy: HarnessPolicy): { receptive: Set<AtomKey>; productive: Set<AtomKey> } {
-  const productive = new Set<AtomKey>(STRUCTURAL_ALWAYS_ALLOWED);
-  const receptive = new Set<AtomKey>(STRUCTURAL_ALWAYS_ALLOWED);
+/**
+ * O ADAPTADOR DA TRILHA — a linguagem que ela ensina (§6 linhas 918-940).
+ *
+ * FAIL-CLOSED de propósito. O default vive em `trackProgrammingLanguage`
+ * (trilha sem o campo = a linguagem default), então chegar aqui com `null`
+ * significa que a trilha DECLARA um token que nenhum adaptador registrado
+ * aceita — auditar isso com o adaptador default seria medir Python com a régua
+ * de JavaScript e aprovar qualquer coisa.
+ */
+export function trackAdapterId(track: LoadedTrack): LanguageId {
+  const token = trackProgrammingLanguage(track.root);
+  const id = adapterIdForChallengeLanguage(token);
+  if (id === null) {
+    throw new LanguageRegistryError(
+      'ADAPTADOR_DESCONHECIDO',
+      `trilha ${JSON.stringify(track.root.slug)}: programmingLanguage ${JSON.stringify(token)} não ` +
+        `resolve para nenhum adaptador registrado — o orçamento não sabe qual parser aplicar`,
+      { pedido: String(token), conhecidos: [DEFAULT_ADAPTER_ID] },
+    );
+  }
+  return id;
+}
+
+/**
+ * O axioma de entrada: o que o aluno pode encontrar já na aula 1.
+ *
+ * As duas tabelas vêm de `atomKeys.ts` por FUNÇÃO (e não mais por constante):
+ * elas são conteúdo de LINGUAGEM (nomes de nó e a API do runner de teste) e as
+ * funções são fail-closed — pedir a semente de uma linguagem que não a declara
+ * LANÇA, em vez de semear o orçamento com o harness do Node.
+ */
+export function entryAxiom(
+  policy: HarnessPolicy,
+  language: LanguageId = DEFAULT_ADAPTER_ID,
+): { receptive: Set<AtomKey>; productive: Set<AtomKey> } {
+  const estruturais = structuralAlwaysAllowed(language);
+  const productive = new Set<AtomKey>(estruturais);
+  const receptive = new Set<AtomKey>(estruturais);
   if (policy === 'receptive-seed') {
-    for (const key of HARNESS_RECEPTIVE_SEED) receptive.add(key);
+    for (const key of harnessReceptiveSeed(language)) receptive.add(key);
   }
   return { receptive, productive };
 }
@@ -167,12 +215,13 @@ export function entryAxiom(policy: HarnessPolicy): { receptive: Set<AtomKey>; pr
  */
 export function deriveTrackBudget(track: LoadedTrack, options: DeriveOptions = {}): TrackBudget {
   const policy = options.harnessPolicy ?? 'receptive-seed';
+  const adapterId = trackAdapterId(track);
   const ordered = pedagogicalOrder(track);
 
   const anyDeclared = ordered.some(({ lesson }) => readDeclared(lesson.meta) !== null);
   const mode: BudgetSource = options.mode ?? (anyDeclared ? 'declared' : 'inferred');
 
-  const axiom = entryAxiom(policy);
+  const axiom = entryAxiom(policy, adapterId);
   let carryReceptive = new Set<AtomKey>(axiom.receptive);
   let carryProductive = new Set<AtomKey>(axiom.productive);
 
@@ -207,8 +256,11 @@ export function deriveTrackBudget(track: LoadedTrack, options: DeriveOptions = {
 
       const found = new Set<AtomKey>();
       for (const block of collected.blocks) {
-        if (!block.isJavaScript) continue;
-        const result = extractAtoms(block.code, { fileName: `${ref}#teoria` });
+        // O bloco só entra no orçamento quando é da LINGUAGEM QUE A TRILHA
+        // ENSINA. Era `if (!block.isJavaScript) continue;` — que numa trilha de
+        // Python teria descartado todos os blocos certos e medido os errados.
+        if (block.adapterId !== adapterId) continue;
+        const result = extractAtoms(block.code, { fileName: `${ref}#teoria`, language: adapterId });
         if (!result.ok) {
           parseErrors.push({ ref, line: block.line, message: result.error.message });
           continue;
@@ -256,5 +308,5 @@ export function deriveTrackBudget(track: LoadedTrack, options: DeriveOptions = {
     carryProductive = saidaProductive;
   });
 
-  return { lessons, byRef, firstTaughtIn, hygiene, parseErrors, source: mode };
+  return { lessons, byRef, firstTaughtIn, hygiene, parseErrors, source: mode, adapterId };
 }

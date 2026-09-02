@@ -62,7 +62,12 @@ import { fileURLToPath } from 'node:url';
 
 import { z } from 'zod';
 
-import { axisOf, isAtomKey } from '../atomKeys';
+import { AXIS_PREFIX, DECLARATION_KINDS, axisOf, isAtomKey } from '../atomKeys';
+import {
+  DEFAULT_ADAPTER_ID,
+  getAdapter,
+  type LanguageId,
+} from '../lang/registry';
 import { FormSelectorError, parseFormKey } from '../form/selector';
 import { BriefSchema } from '../schemas/artifacts';
 import { formatarErroCampos } from '../schemas/fieldOrder';
@@ -116,9 +121,49 @@ export interface AtomosJson {
   total: number;
 }
 
-/** Caminho default do atoms.json (relativo a este módulo): engine/vocab/atoms.json. */
 const MODULE_DIR = path.dirname(fileURLToPath(import.meta.url));
-export const CAMINHO_ATOMOS_DEFAULT = path.join(MODULE_DIR, '..', 'vocab', 'atoms.json');
+
+/** A pasta dos artefatos de vocabulário gerados (`engine/vocab/`). */
+const DIR_VOCAB = path.join(MODULE_DIR, '..', 'vocab');
+
+/**
+ * O ARTEFATO DE VOCABULÁRIO DE UMA LINGUAGEM.
+ *
+ * O `atoms.json` nunca teve dimensão de linguagem: ele é o universo de
+ * `node:`/`op:`/`decl:`/`global:` do adaptador que o GEROU (o próprio JSON
+ * carrega `node_version` e `typescript_version` — carimbo de origem que só faz
+ * sentido para JavaScript). Com mais de um adaptador registrado, um caminho
+ * único e fixo faria o brief de uma trilha de Python ser validado contra o
+ * vocabulário do Node e aprovar chaves que não existem naquela linguagem.
+ *
+ * A CONVENÇÃO, e por que ela é uma convenção e não um membro do adaptador: a
+ * interface dos 15 membros do §6 (`engine/lang/registry.ts:508`) não tem slot
+ * para "onde mora o meu vocabulário gerado" — a lacuna está registrada no
+ * handoff da onda 5. Até lá o nome é derivado do ID do adaptador, que é o
+ * mesmo id que nomeia o gerador daquela linguagem:
+ *
+ *   javascript (o adaptador DEFAULT) → `vocab/atoms.json`      (o arquivo que
+ *                                       já está commitado; renomeá-lo seria
+ *                                       mudança de comportamento sem ganho)
+ *   qualquer outro id `<x>`          → `vocab/atoms.<x>.json`
+ *
+ * FAIL-CLOSED: `getAdapter` LANÇA para id sem adaptador registrado — pedir o
+ * vocabulário de uma linguagem que a engine não conhece é erro, nunca o
+ * `atoms.json` do JavaScript por descuido.
+ */
+export function caminhoAtomos(language: LanguageId = DEFAULT_ADAPTER_ID): string {
+  const id = getAdapter(language).id;
+  const arquivo = id === DEFAULT_ADAPTER_ID ? 'atoms.json' : `atoms.${id}.json`;
+  return path.join(DIR_VOCAB, arquivo);
+}
+
+/**
+ * Caminho default do atoms.json: `engine/vocab/atoms.json` — o artefato do
+ * adaptador DEFAULT. Continua exportado com o mesmo valor porque
+ * `engine/phases/f2Decompose.ts:83` o importa como FONTE ÚNICA e dois testes o
+ * afirmam; quem tem uma linguagem na mão usa `caminhoAtomos(id)`.
+ */
+export const CAMINHO_ATOMOS_DEFAULT = caminhoAtomos(DEFAULT_ADAPTER_ID);
 
 /**
  * Os eixos FECHADOS do vocabulário — o universo que o atoms.json ESGOTA e,
@@ -377,9 +422,15 @@ export function validarEstruturaAtomos(candidato: unknown, origem: string): Atom
   return candidato as AtomosJson;
 }
 
-/** Carrega o atoms.json do disco (default: `engine/vocab/atoms.json`). */
-export function carregarAtomos(caminho?: string): AtomosJson {
-  const alvo = caminho ?? CAMINHO_ATOMOS_DEFAULT;
+/**
+ * Carrega o atoms.json do disco.
+ *
+ * Sem argumento: o artefato do adaptador DEFAULT (`engine/vocab/atoms.json`).
+ * Com `language`: o artefato DAQUELE adaptador (`caminhoAtomos`). O `caminho`
+ * explícito continua vencendo os dois — é o gancho de teste que já existia.
+ */
+export function carregarAtomos(caminho?: string, language: LanguageId = DEFAULT_ADAPTER_ID): AtomosJson {
+  const alvo = caminho ?? caminhoAtomos(language);
   let conteudo: string;
   try {
     conteudo = fs.readFileSync(alvo, 'utf8');
@@ -589,6 +640,37 @@ export interface F0BriefPromptContext {
   linguagem?: string;
   plataforma?: string;
   publicoAlvo?: string;
+  /**
+   * ADITIVO (onda 5): o ADAPTADOR que dita os defaults do prompt — o nome da
+   * linguagem, a plataforma (o `runtime` do par (toolchain, runner) do §6) e o
+   * arquivo de vocabulário anexado ao contexto. Default: o adaptador default.
+   */
+  language?: LanguageId;
+}
+
+/**
+ * Os eixos que o prompt do brief ensina à LLM, e a FORMA de cada um.
+ *
+ * Eram cinco literais cravados na string do prompt. Agora vêm das mesmas
+ * constantes que o resto da engine usa (`EIXOS_FECHADOS_ATOMOS` +
+ * `AXIS_PREFIX` do alfabeto, e `DECLARATION_KINDS` para os kinds de
+ * declaração) — um eixo novo no alfabeto aparece no prompt sem que ninguém
+ * precise lembrar de editar uma frase. `api:` entra à parte dos fechados
+ * porque ele é universo ABERTO no validador (ver o cabeçalho de
+ * `vocab/generate.ts`), mas o brief cita as duas coisas.
+ */
+const EIXOS_DO_PROMPT = [...EIXOS_FECHADOS_ATOMOS, 'api'] as const;
+
+const FORMA_DO_EIXO: Readonly<Record<(typeof EIXOS_DO_PROMPT)[number], string>> = {
+  node: '<Nó>',
+  op: '<família>:<op>',
+  decl: `<${DECLARATION_KINDS.join('|')}>`,
+  global: '<nome>',
+  api: '<caminho>',
+};
+
+function eixosDoPrompt(): string {
+  return EIXOS_DO_PROMPT.map((eixo) => `${AXIS_PREFIX[eixo]}:${FORMA_DO_EIXO[eixo]}`).join(', ');
 }
 
 export const SYSTEM_PROMPT_F0 =
@@ -602,8 +684,13 @@ export const SYSTEM_PROMPT_F0 =
  * qualquer forma (D2); a política de harness é decidida (D1).
  */
 export function promptF0Brief(ctx: F0BriefPromptContext): string {
-  const linguagem = ctx.linguagem ?? 'javascript';
-  const plataforma = ctx.plataforma ?? 'node';
+  // Os defaults vêm do ADAPTADOR, não de dois literais: `id` é a LINGUAGEM e
+  // `defaultRuntime` é a PLATAFORMA — o §6 abre o par (`'nodejs'` não é uma
+  // linguagem, é um runtime), e o prompt passa a dizer o par certo.
+  const adapter = getAdapter(ctx.language ?? DEFAULT_ADAPTER_ID);
+  const linguagem = ctx.linguagem ?? adapter.id;
+  const plataforma = ctx.plataforma ?? adapter.defaultRuntime;
+  const vocabulario = path.basename(caminhoAtomos(adapter.id));
   return [
     'Você é o escritor único da fase F0 de uma trilha de aprendizado (engine de trilhas, docs §4 F0).',
     '',
@@ -615,7 +702,7 @@ export function promptF0Brief(ctx: F0BriefPromptContext): string {
     '- tema: título curto da trilha (pt-BR).',
     '- objetivo_geral: o que o aluno será capaz de fazer ao final (pt-BR).',
     '- publico_alvo: quem é o aluno desta trilha (pt-BR).',
-    '- criterios_de_entrada: lista de CHAVES EXATAS do vocabulário de construções que o aluno JÁ domina ao entrar; vazio = trilha de senso iniciante. Só chaves que existem no vocabulário (atoms.json — anexo ao contexto; eixos: node:<Nó>, op:<família>:<op>, decl:<let|const|var>, global:<nome>, api:<caminho>). Exemplos: "decl:let", "op:binary:===", "api:Array.prototype.push".',
+    `- criterios_de_entrada: lista de CHAVES EXATAS do vocabulário de construções que o aluno JÁ domina ao entrar; vazio = trilha de senso iniciante. Só chaves que existem no vocabulário (${vocabulario} — anexo ao contexto; eixos: ${eixosDoPrompt()}). Exemplos: "decl:${DECLARATION_KINDS[0]}", "op:binary:===", "api:Array.prototype.push".`,
     '- construcoes_alvo: inventário de construções e APIs candidatas que a trilha deve ensinar (chaves no mesmo formato; pode ser amplo).',
     `- politica_de_harness: a DECISÃO de produto D1 (docs §3.2): SEMPRE "${POLITICA_HARNESS_DECIDIDA}" — o harness de teste entra no orçamento receptivo da aula 1 como região congelada do starter. Estes valores são REJEITADOS: ${POLITICAS_HARNESS_REJEITADAS.map((p) => `"${p}"`).join(', ')} (alternativas do docs §3.2 ou valores de outros artefatos) — não os escolha.`,
     '- restricoes: restrições de conteúdo/escopo da trilha (pt-BR; vazio = sem restrições adicionais).',

@@ -93,8 +93,18 @@ export interface VocabRuntime {
   builtinModules: readonly string[];
   /** `ts.SyntaxKind` como record nome→valor (para derivar universos do enum). */
   syntaxKindEnum: Readonly<Record<string, number>>;
-  /** `kindName` do extrator (tabela CANÔNICA de nomes de SyntaxKind). */
-  kindNameOf: (kind: number) => string;
+  /**
+   * O INVENTÁRIO da linguagem: os nomes CANÔNICOS de tipo de nó, ordenados.
+   *
+   * FONTE (onda 5): `adapter.inventory()` — o membro 3 dos 15 do §6 de
+   * `docs/research/08-multilingua-trava-deterministica.md`, que o documento
+   * define como "o universo enumerável de tipos de nó, gerado do `inventory()`
+   * do adaptador, nunca digitado". Ele SUBSTITUI o par
+   * `kindNameOf` + varredura local que existia aqui: o gerador fazia a mesma
+   * varredura do enum que o adaptador já fazia, e duas varreduras da mesma
+   * fonte são duas chances de discordar sobre o que é um nome canônico.
+   */
+  inventario: () => readonly string[];
   /** `ts.tokenToString` — texto canônico de um token de operador. */
   tokenToStringOf: (kind: number) => string | undefined;
   /** O objeto global do runtime (para ler construtores, protótipos e objetos). */

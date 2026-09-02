@@ -224,6 +224,11 @@ function severidadeDe(v: Violation): 'erro' | 'aviso' {
  */
 export function auditTrack(track: LoadedTrack, options: DeriveOptions = {}): AuditReport {
   const budget = deriveTrackBudget(track, options);
+  // O ADAPTADOR DA TRILHA, resolvido uma vez pelo orçamento (§6 linhas
+  // 918-940). É ele que decide qual bloco de teoria entra no gate, com que
+  // parser cada superfície é lida e quais construções quebram a decidibilidade
+  // NESTA linguagem.
+  const adapterId = budget.adapterId;
   const violations: Violation[] = [];
   const metrics: LessonMetrics[] = [];
 
@@ -234,7 +239,10 @@ export function auditTrack(track: LoadedTrack, options: DeriveOptions = {}): Aud
   // PURO, roda em memória; as violações são mescladas no loop por aula abaixo
   // (mesmo padrão dos estruturais), e as de desafio alimentam o
   // `desafiosComViolacao` com o MESMO critério dos erros (aviso não reprova).
-  const progressao = auditarProgressao(entradaDeProgressao(track), { mode: budget.source });
+  const progressao = auditarProgressao(entradaDeProgressao(track), {
+    mode: budget.source,
+    adapterId: budget.adapterId,
+  });
   const progressaoPorRef = new Map<string, ReturnType<typeof auditarProgressao>['violations']>();
   for (const pv of progressao.violations) {
     const lista = progressaoPorRef.get(pv.ref) ?? [];
@@ -352,8 +360,14 @@ export function auditTrack(track: LoadedTrack, options: DeriveOptions = {}): Aud
     const theory = collectLessonCode(lesson.meta.theory ?? []);
     if (budget.source === 'declared') {
       for (const block of theory.blocks) {
-        if (!block.isJavaScript) continue;
-        const result = extractAtoms(block.code, { fileName: `${lessonDir}/lesson.json#theory` });
+        // Só a teoria NA LINGUAGEM QUE A TRILHA ENSINA entra no gate de A4.
+        // Era `if (!block.isJavaScript) continue;` — a pergunta certa é sobre o
+        // adaptador DA TRILHA, não sobre uma linguagem cravada no código.
+        if (block.adapterId !== adapterId) continue;
+        const result = extractAtoms(block.code, {
+          fileName: `${lessonDir}/lesson.json#theory`,
+          language: adapterId,
+        });
         if (!result.ok) continue;
         for (const occ of result.occurrences) {
           if (lessonBudget.saida.receptive.has(occ.key)) continue;
@@ -435,13 +449,13 @@ export function auditTrack(track: LoadedTrack, options: DeriveOptions = {}): Aud
       const starterKeys = new Set<AtomKey>();
       for (const s of surfaces) {
         if (s.surface !== 'starterCode' || s.code.trim().length === 0) continue;
-        const r = extractAtoms(s.code, { fileName: `${challengeFile}#${s.label}` });
+        const r = extractAtoms(s.code, { fileName: `${challengeFile}#${s.label}`, language: adapterId });
         if (r.ok) for (const key of r.keys) starterKeys.add(key);
       }
 
       for (const { surface, code, label } of surfaces) {
         if (code.trim().length === 0) continue;
-        const result = extractAtoms(code, { fileName: `${challengeFile}#${label}` });
+        const result = extractAtoms(code, { fileName: `${challengeFile}#${label}`, language: adapterId });
         if (!result.ok) {
           push({
             regra: 'A2',
@@ -466,7 +480,7 @@ export function auditTrack(track: LoadedTrack, options: DeriveOptions = {}): Aud
 
         const { set, faixa, rule } = allowedFor(surface, lessonBudget);
         for (const occ of result.occurrences) {
-          if (isForbiddenAlways(occ.key)) {
+          if (isForbiddenAlways(occ.key, adapterId)) {
             push({
               regra: 'DEC',
               arquivo: challengeFile,

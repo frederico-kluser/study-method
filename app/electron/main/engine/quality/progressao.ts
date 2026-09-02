@@ -74,9 +74,14 @@
 
 import * as ts from 'typescript';
 import type { TrackTheorySection } from '../../content/trackTypes';
-import { AtomKey, STRUCTURAL_ALWAYS_ALLOWED, axisOf, humanLabel } from '../atomKeys';
-import { extractAllOccurrences, type AtomOccurrence } from '../extract';
-import { JS_FENCE_TAGS, extractFencedBlocks } from '../theoryCode';
+import { AtomKey, axisOf, humanLabel, structuralAlwaysAllowed } from '../atomKeys';
+import { exigirAdaptadorJavascript, extractAllOccurrences, type AtomOccurrence } from '../extract';
+import {
+  DEFAULT_ADAPTER_ID,
+  classifyTheoryTag,
+  type LanguageId,
+} from '../lang/registry';
+import { extractFencedBlocks } from '../theoryCode';
 import type { BudgetSource } from '../budget';
 
 // ---------------------------------------------------------------------------
@@ -92,7 +97,7 @@ import type { BudgetSource } from '../budget';
  * span mecânico S13 as isenta no arquivo de teste).
  */
 export const H13: readonly AtomKey[] = [
-  ...STRUCTURAL_ALWAYS_ALLOWED,
+  ...structuralAlwaysAllowed(),
   'node:ExportKeyword',
   'node:ImportDeclaration',
   'node:ImportSpecifier',
@@ -197,6 +202,12 @@ export interface ProgressaoOptions {
   predecessorImediato?: boolean;
   /** Modo do orçamento — espelha o do audit (affeta A13d/A14a-declared). */
   mode?: BudgetSource;
+  /**
+   * ADITIVO (onda 5): o ADAPTADOR DA TRILHA (`TrackBudget.adapterId`). É ele
+   * que decide qual bloco de teoria conta como DEMONSTRAÇÃO e com que parser
+   * cada superfície é lida. Default: o adaptador default.
+   */
+  adapterId?: LanguageId;
 }
 
 export interface ProgressaoViolation {
@@ -293,17 +304,34 @@ export function spansMecanicosDeTeste(codigo: string): SpanMecanico[] {
 // Demo por aula — precisa ser por SEÇÃO (DemoSec1 exige a 1ª seção com código)
 // ---------------------------------------------------------------------------
 
-/** Blocos js de UMA seção de teoria (fences com tag js + o campo `code`). */
-function blocosJsDaSecao(secao: TrackTheorySection): string[] {
+/**
+ * Blocos de UMA seção de teoria QUE SÃO DA LINGUAGEM DA TRILHA (fences com tag
+ * do adaptador + o campo `code`).
+ *
+ * Era `blocosJsDaSecao`, com `b.isJavaScript` e `JS_FENCE_TAGS.has(lang)`
+ * cravados. Quem decide agora é o REGISTRO: `block.adapterId` (posto por
+ * `theoryCode.ts` via `adapterIdForTheoryTag`) e `classifyTheoryTag` — a mesma
+ * função que o §6 (linha 954) descreve como "quem diz ao extrator qual parser
+ * aplicar a cada bloco cercado da teoria".
+ *
+ * A ASSIMETRIA DO BLOCO SEM TAG é preservada byte a byte, e não é descuido:
+ * campo `code` da seção SEM `language` → adaptador DEFAULT (o schema garante
+ * que é código); cerca ``` sem tag → parser NENHUM (pode ser saída de terminal
+ * e envenenaria o orçamento). É a mesma regra de `collectLessonCode`
+ * (`engine/theoryCode.ts:216-238`), agora escrita uma vez em cada lado com a
+ * MESMA fonte.
+ */
+function blocosDaSecao(secao: TrackTheorySection, adapterId: LanguageId): string[] {
   const out: string[] = [];
   if (typeof secao.markdown === 'string' && secao.markdown.length > 0) {
     const fenced = extractFencedBlocks(secao.markdown);
-    for (const b of fenced.blocks) if (b.isJavaScript) out.push(b.code);
+    for (const b of fenced.blocks) if (b.adapterId === adapterId) out.push(b.code);
   }
   const code = secao.code;
   if (code && typeof code.code === 'string' && code.code.trim().length > 0) {
     const lang = (code.language ?? '').toLowerCase();
-    if (lang === '' || JS_FENCE_TAGS.has(lang)) out.push(code.code);
+    const alvo = lang === '' ? DEFAULT_ADAPTER_ID : classifyTheoryTag(lang).adapterId;
+    if (alvo === adapterId) out.push(code.code);
   }
   return out;
 }
@@ -317,15 +345,15 @@ interface DemoDaAula {
   secaoDe: Map<AtomKey, { index: number; titulo: string }>;
 }
 
-function demoDaAula(secoes: readonly TrackTheorySection[]): DemoDaAula {
+function demoDaAula(secoes: readonly TrackTheorySection[], adapterId: LanguageId): DemoDaAula {
   const chaves = new Set<AtomKey>();
   const primeiraSecao: Set<AtomKey> = new Set();
   const secaoDe = new Map<AtomKey, { index: number; titulo: string }>();
 
   secoes.forEach((secao, index) => {
     const chavesDaSecao = new Set<AtomKey>();
-    for (const codigo of blocosJsDaSecao(secao)) {
-      const r = extractAllOccurrences(codigo);
+    for (const codigo of blocosDaSecao(secao, adapterId)) {
+      const r = extractAllOccurrences(codigo, { language: adapterId });
       if (!r.ok) continue; // bloco que não parseia não demonstra nada (mesma régua do budget)
       for (const occ of r.occurrences) chavesDaSecao.add(occ.key);
     }
@@ -395,12 +423,23 @@ export function auditarProgressao(aulas: ProgressaoLessonInput[], options: Progr
   const minimoReuso = options.minimoReuso ?? 1;
   const predecessorImediato = options.predecessorImediato ?? false;
   const mode: BudgetSource = options.mode ?? (aulas.some((a) => a.declared) ? 'declared' : 'inferred');
+  // GUARDA EXPLÍCITA (onda 5): esta bateria é JAVASCRIPT-ONLY por DUAS razões
+  // que não se resolvem trocando o parser — `H13`/`AX` são tabelas de chaves do
+  // AST do TypeScript e do runner `node:test`, e os spans mecânicos S13
+  // (`spansMecanicos`) são calculados com `ts.createSourceFile`. Rodá-la numa
+  // trilha de outra linguagem não daria erro: daria um veredito ERRADO E
+  // SILENCIOSO (tudo "não demonstrado", todo desafio reprovado). Falha alto.
+  const adapterId = exigirAdaptadorJavascript(
+    'engine/quality/progressao.ts (bateria A13–A16)',
+    'H13/AX são chaves do AST do TypeScript e do runner node:test, e os spans mecânicos S13 são calculados com ts.createSourceFile',
+    options.adapterId ?? DEFAULT_ADAPTER_ID,
+  ).id;
 
   const violations: ProgressaoViolation[] = [];
   const novosPorAula = new Map<string, number>();
 
   // ── pré-computação: Demo(i), Cum(i), primeira demonstração da trilha ─────
-  const demos = aulas.map((a) => demoDaAula(a.theory));
+  const demos = aulas.map((a) => demoDaAula(a.theory, adapterId));
   const cumulativo: Set<AtomKey>[] = aulas.map(() => new Set<AtomKey>());
   {
     const acumulado = new Set<AtomKey>();
@@ -524,11 +563,11 @@ export function auditarProgressao(aulas: ProgressaoLessonInput[], options: Progr
 
       for (const arquivo of desafio.files) {
         const sKeys = new Set<AtomKey>();
-        const rStarter = extractAllOccurrences(arquivo.starter);
+        const rStarter = extractAllOccurrences(arquivo.starter, { language: adapterId });
         if (rStarter.ok) for (const occ of rStarter.occurrences) sKeys.add(occ.key);
         starterKeysPorArquivo.push(sKeys);
 
-        const rSol = extractAllOccurrences(arquivo.solution);
+        const rSol = extractAllOccurrences(arquivo.solution, { language: adapterId });
         if (rSol.ok) {
           solutionOcorrenciasPorArquivo.push(rSol.occurrences);
           solutionKeysPorArquivo.push(new Set(rSol.keys));
@@ -572,7 +611,7 @@ export function auditarProgressao(aulas: ProgressaoLessonInput[], options: Progr
         }
 
         // ── A13b — o que o aluno LÊ no starter precisa estar demonstrado ───
-        const rStarterDeNovo = extractAllOccurrences(arquivo.starter);
+        const rStarterDeNovo = extractAllOccurrences(arquivo.starter, { language: adapterId });
         if (rStarterDeNovo.ok) {
           for (const occ of rStarterDeNovo.occurrences) {
             if (demoMaisCumMaisH13(occ.key)) continue;
@@ -617,7 +656,7 @@ export function auditarProgressao(aulas: ProgressaoLessonInput[], options: Progr
       // obriga InitDecl(i) ⊆ Demo(i) ∪ Cum(i) (declarar não é demonstrar) e em
       // inferred Init(i) = Demo(i) \ Cum(i) já está dentro de Demo(i).
       {
-        const rTests = extractAllOccurrences(desafio.tests);
+        const rTests = extractAllOccurrences(desafio.tests, { language: adapterId });
         if (rTests.ok) {
           const spans = spansMecanicosDeTeste(desafio.tests);
           for (const occ of rTests.occurrences) {
@@ -695,7 +734,7 @@ export function auditarProgressao(aulas: ProgressaoLessonInput[], options: Progr
       const solucoes = aula.challenges.map((desafio) => {
         const keys = new Set<AtomKey>();
         for (const arquivo of desafio.files) {
-          const r = extractAllOccurrences(arquivo.solution);
+          const r = extractAllOccurrences(arquivo.solution, { language: adapterId });
           if (r.ok) for (const occ of r.occurrences) keys.add(occ.key);
         }
         return keys;
@@ -771,7 +810,7 @@ export function auditarProgressao(aulas: ProgressaoLessonInput[], options: Progr
       const solucoes = new Set<AtomKey>();
       for (const desafio of aula.challenges) {
         for (const arquivo of desafio.files) {
-          const r = extractAllOccurrences(arquivo.solution);
+          const r = extractAllOccurrences(arquivo.solution, { language: adapterId });
           if (r.ok) for (const occ of r.occurrences) solucoes.add(occ.key);
         }
       }
@@ -804,9 +843,9 @@ export function auditarProgressao(aulas: ProgressaoLessonInput[], options: Progr
     if (primeiro) {
       const escrito = new Set<AtomKey>();
       for (const arquivo of primeiro.files) {
-        const rSol = extractAllOccurrences(arquivo.solution);
+        const rSol = extractAllOccurrences(arquivo.solution, { language: adapterId });
         if (!rSol.ok) continue; // solução que não parseia: o teach group já reporta
-        const rStarter = extractAllOccurrences(arquivo.starter);
+        const rStarter = extractAllOccurrences(arquivo.starter, { language: adapterId });
         const starterKeys = rStarter.ok ? new Set(rStarter.keys) : new Set<AtomKey>();
         for (const occ of rSol.occurrences) {
           if (!starterKeys.has(occ.key)) escrito.add(occ.key);

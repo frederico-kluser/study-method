@@ -23,12 +23,36 @@
  * precisa ESCREVER para satisfazê-lo). Se a solução não parseia ou a função
  * não é encontrada, cai para os átomos do trecho do assert (o que o teste
  * EXERCE) — determinístico nos dois casos.
+ *
+ * ─── JAVASCRIPT-ONLY, E ISSO É DECISÃO (onda 5) ───────────────────────────
+ *
+ * A derivação lê o teste com `ts.createSourceFile` e reconhece a forma
+ * `test('nome', …)` + `assert.*(…)` do `node:test`; a descrição em pt-BR é
+ * montada a partir do TEXTO dos nós do AST do TypeScript. Em `unittest` o
+ * mesmo papel é um método `def test_…(self)` dentro de uma classe, com
+ * `self.assertEqual` — outra estrutura, não outro parâmetro.
+ *
+ * O modo de falha que a guarda evita é o SILENCIOSO: um arquivo de teste de
+ * outra linguagem que por acaso parseie produziria ZERO testes reconhecidos, e
+ * `validarRequirements` reportaria "todo requirement declarado está sem teste"
+ * — uma violação de CONTEÚDO inventada por defeito de FERRAMENTA. Por isso as
+ * duas entradas públicas LANÇAM `EngineLinguagemError` estruturado.
  */
 
 import * as ts from 'typescript';
 
 import type { AtomKey } from '../atomKeys';
-import { extractAllOccurrences } from '../extract';
+import { exigirAdaptadorJavascript, extractAllOccurrences } from '../extract';
+import { DEFAULT_ADAPTER_ID, type LanguageId } from '../lang/registry';
+
+/** GUARDA de linguagem das duas entradas públicas (ver o cabeçalho). */
+function exigirJs(fn: string, language: LanguageId): void {
+  exigirAdaptadorJavascript(
+    `engine/quality/requirements.ts (${fn})`,
+    "a derivação reconhece a forma test('nome', …) + assert.* do node:test sobre o AST do TypeScript; outra linguagem tem outra estrutura de teste, não outro parâmetro",
+    language,
+  );
+}
 
 // ---------------------------------------------------------------------------
 // Contrato público
@@ -287,7 +311,13 @@ function atomsDoTrechoDoAssert(trecho: string): AtomKey[] {
  * funções da solução chamadas. Lança `RequirementsParseError` se o teste não
  * parseia (fail-closed — nunca um conjunto vazio silencioso).
  */
-export function derivarRequirements(testsCode: string, solutionCode: string, _starterCode: string): RequirementsDerivados {
+export function derivarRequirements(
+  testsCode: string,
+  solutionCode: string,
+  _starterCode: string,
+  language: LanguageId = DEFAULT_ADAPTER_ID,
+): RequirementsDerivados {
+  exigirJs('derivarRequirements', language);
   const source = parseSource(testsCode, 'tests.mjs');
   const testes = coletarTestes(source);
 
@@ -334,7 +364,12 @@ function normalizarNome(nome: string): string {
  * normalizado) e todo teste precisa de um requirement declarado. Determinístico,
  * zero LLM. Lança `RequirementsParseError` se o teste não parseia.
  */
-export function validarRequirements(testsCode: string, requirementsDeclarados: RequirementDeclarado[]): ValidacaoRequirements {
+export function validarRequirements(
+  testsCode: string,
+  requirementsDeclarados: RequirementDeclarado[],
+  language: LanguageId = DEFAULT_ADAPTER_ID,
+): ValidacaoRequirements {
+  exigirJs('validarRequirements', language);
   const source = parseSource(testsCode, 'tests.mjs');
   const nomesDeTestes = coletarTestes(source).map((t) => t.nome);
 

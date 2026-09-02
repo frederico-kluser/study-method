@@ -31,6 +31,7 @@ import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 
 import { extractAtoms } from '../electron/main/engine/extract';
+import { LanguageRegistryError } from '../electron/main/engine/lang/registry';
 import type { ChallengeProofsInput, ChallengeProofsVerdict } from '../electron/main/engine/exec/proofs';
 import type { EngineLlm, LlmCallRequest, LlmCallResult } from '../electron/main/engine/runtime/callLlm';
 import {
@@ -369,5 +370,21 @@ describe('engine/quality/solvable (J3 — aluno simulado, método pass^k)', () =
       medirSolubilidade({ llm, prover: proverFake(ctx.orcamento) }, ctx, 0),
       (erro: unknown) => erro instanceof SolubilidadeError && erro.code === 'SOLUBILIDADE_ARGUMENTO_INVALIDO',
     );
+  });
+});
+
+// A GUARDA JAVASCRIPT-ONLY (onda 5): o prompt pede um módulo ESM completo
+// (`solution.mjs` com `export`) e a tentativa é medida por `extractAtoms`. Em
+// outra linguagem a medição pass^k daria 0% e o rótulo TAREFA QUEBRADA sobre um
+// desafio perfeitamente bom — erro silencioso e caro. Falha alto, antes da LLM.
+describe('solubilidade — guarda de linguagem (fail-closed)', () => {
+  it('medirSolubilidade reprova ANTES de chamar a LLM ou o prover', async () => {
+    const ctx = { ...ctxBase(), language: 'ruby' as never };
+    const { llm, chamadas } = llmFake(() => JSON.stringify({ codigo: codigoDentro() }));
+    await assert.rejects(
+      () => medirSolubilidade({ llm, prover: proverFake(ctx.orcamento) }, ctx, 1),
+      (erro: unknown) => erro instanceof LanguageRegistryError,
+    );
+    assert.equal(chamadas.length, 0, 'nenhuma chamada de LLM foi gasta com a linguagem errada');
   });
 });

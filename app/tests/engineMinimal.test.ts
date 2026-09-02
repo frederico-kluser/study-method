@@ -15,6 +15,7 @@ import { isDeepStrictEqual } from 'node:util';
 import * as ts from 'typescript';
 
 import { countTestDeclarations } from '../electron/main/engine/extract';
+import { LanguageRegistryError } from '../electron/main/engine/lang/registry';
 import {
   contarLinhas,
   extrairLiteraisDoTeste,
@@ -428,5 +429,39 @@ describe('minimal — contarLinhas', () => {
     assert.equal(contarLinhas(''), 0);
     assert.equal(contarLinhas('a\nb\nc'), 3);
     assert.equal(contarLinhas('export function f() {\n  return 1;\n}\n'), 4);
+  });
+});
+
+// A GUARDA JAVASCRIPT-ONLY (onda 5). O sintetizador GERA texto de JavaScript
+// literal — pedi-lo em outra linguagem tem de LANÇAR erro estruturado, nunca
+// devolver `SEM_SOLUCAO_ACESSIVEL`, que é um sinal legítimo e seria FALSO aqui.
+describe('minimal — guarda de linguagem (fail-closed)', () => {
+  it('extrairLiteraisDoTeste e gerarCandidatos reprovam linguagem sem sintetizador', () => {
+    const tests = "import test from 'node:test';\ntest('a', () => {});\n";
+    assert.ok(extrairLiteraisDoTeste(tests).ok, 'JavaScript continua funcionando sem argumento');
+    assert.throws(
+      () => extrairLiteraisDoTeste(tests, 'ruby' as never),
+      (erro: unknown) => erro instanceof LanguageRegistryError,
+    );
+  });
+
+  it('sintetizarCodigoMinimo reprova ANTES de chamar o prover', async () => {
+    let chamouProver = false;
+    const prover = async (): Promise<ChallengeProofsVerdict> => {
+      chamouProver = true;
+      throw new Error('o prover não pode ser chamado');
+    };
+    await assert.rejects(
+      () =>
+        sintetizarCodigoMinimo(prover as never, {
+          starterCode: 'export function f() {}\n',
+          solutionCode: 'export function f() { return 1; }\n',
+          testsCode: "test('a', () => {});\n",
+          expectedTestCount: 1,
+          language: 'ruby' as never,
+        }),
+      (erro: unknown) => erro instanceof LanguageRegistryError,
+    );
+    assert.equal(chamouProver, false, 'a guarda roda antes de qualquer execução');
   });
 });

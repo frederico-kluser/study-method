@@ -26,8 +26,30 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { HARNESS_RECEPTIVE_SEED, humanLabel, isForbiddenAlways } from '../electron/main/engine/atomKeys';
-import { countTestDeclarations, extractAtoms, kindName } from '../electron/main/engine/extract';
+import * as path from 'node:path';
+
+import {
+  FORBIDDEN_ALWAYS,
+  HARNESS_RECEPTIVE_SEED,
+  STRUCTURAL_ALWAYS_ALLOWED,
+  harnessReceptiveSeed,
+  humanLabel,
+  isForbiddenAlways,
+  structuralAlwaysAllowed,
+} from '../electron/main/engine/atomKeys';
+import {
+  RUNTIME_GLOBALS,
+  countTestDeclarations,
+  extractAtoms,
+  kindName,
+} from '../electron/main/engine/extract';
+import { kindNameOf } from '../electron/main/engine/form/selector';
+import {
+  DEFAULT_ADAPTER_ID,
+  LanguageRegistryError,
+  getAdapter,
+} from '../electron/main/engine/lang/registry';
+import { CAMINHO_ATOMOS_DEFAULT, caminhoAtomos } from '../electron/main/engine/phases/f0Brief';
 import { collectLessonCode, extractFencedBlocks } from '../electron/main/engine/theoryCode';
 import { deriveTrackBudget, entryAxiom, pedagogicalOrder } from '../electron/main/engine/budget';
 import { auditTrack } from '../electron/main/engine/audit';
@@ -536,5 +558,94 @@ describe('audit — o gate', () => {
     assert.equal(humanLabel('op:unary:typeof'), '`typeof`');
     assert.equal(humanLabel('decl:const'), '`const`');
     assert.equal(humanLabel('api:assert.throws'), '`assert.throws`');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// A COSTURA MULTILÍNGUA (onda 5): o gate consome o ADAPTADOR, não literais
+// ---------------------------------------------------------------------------
+//
+// O que estes testes protegem não é uma função nova — é a ausência de CÓPIA.
+// Cada `assert.equal(x, y)` aqui é "estes dois lugares que antes tinham a mesma
+// lista escrita duas vezes agora leem a MESMA fonte". Um `deepEqual` passaria
+// com duas cópias iguais; a igualdade de IDENTIDADE (`===`) não passa.
+
+describe('engineBudgetGate: extrator e alfabeto consomem o adaptador de linguagem', () => {
+  it('RUNTIME_GLOBALS É o globals() do adaptador (mesmo objeto, não uma cópia igual)', () => {
+    assert.equal(RUNTIME_GLOBALS, getAdapter(DEFAULT_ADAPTER_ID).globals());
+  });
+
+  it('FORBIDDEN_ALWAYS É o forbiddenInvariants do adaptador (mesmo array)', () => {
+    assert.equal(FORBIDDEN_ALWAYS, getAdapter(DEFAULT_ADAPTER_ID).forbiddenInvariants);
+    assert.ok(isForbiddenAlways('global:eval', DEFAULT_ADAPTER_ID));
+    assert.ok(!isForbiddenAlways('decl:let', DEFAULT_ADAPTER_ID));
+  });
+
+  it('kindName do extrator É a tabela canônica única (kindNames.ts), a mesma do seletor de forma', () => {
+    // O nome canônico continua vencendo o marcador de faixa do enum...
+    assert.equal(kindName(ts.SyntaxKind.NumericLiteral), 'NumericLiteral');
+    // ...e o seletor de forma (que tinha a tabela COPIADA) devolve o mesmo nome
+    // para o mesmo nó, porque agora existe uma tabela só.
+    const sf = ts.createSourceFile('t.mjs', 'if (1) { }', ts.ScriptTarget.Latest, true, ts.ScriptKind.JS);
+    const primeiro = sf.statements[0];
+    assert.equal(kindNameOf(primeiro), kindName(primeiro.kind));
+    assert.equal(kindNameOf(primeiro), 'IfStatement');
+  });
+
+  it('o extrator aceita language explícito e REPROVA linguagem sem adaptador (fail-closed)', () => {
+    const code = "export function f(n) { return n + 1; }\n";
+    const comDefault = extractAtoms(code);
+    const explicito = extractAtoms(code, { language: DEFAULT_ADAPTER_ID });
+    assert.ok(comDefault.ok && explicito.ok);
+    assert.deepEqual(explicito.keys, comDefault.keys);
+
+    // Linguagem que nenhum adaptador registrado atende: erro ESTRUTURADO com a
+    // lista do que é válido — nunca o parser de JavaScript por descuido.
+    assert.throws(
+      () => extractAtoms(code, { language: 'ruby' as never }),
+      (erro: unknown) => erro instanceof LanguageRegistryError && erro.code === 'ADAPTADOR_DESCONHECIDO',
+    );
+  });
+
+  it('countTestDeclarations despacha por linguagem sem recursão (o corpo é o de JavaScript)', () => {
+    const tests = "import test from 'node:test';\ntest('a', () => {});\ntest.skip('b', () => {});\n";
+    assert.equal(countTestDeclarations(tests), 2);
+    assert.equal(countTestDeclarations(tests, DEFAULT_ADAPTER_ID), 2);
+    // É a MESMA contagem que o membro countDeclared do adaptador devolve —
+    // o adaptador delega para esta função, e a delegação não pode virar laço.
+    assert.equal(getAdapter(DEFAULT_ADAPTER_ID).countDeclared(tests), 2);
+  });
+
+  it('as tabelas de linguagem do alfabeto são fail-closed fora do adaptador default', () => {
+    assert.equal(harnessReceptiveSeed(), HARNESS_RECEPTIVE_SEED);
+    assert.equal(structuralAlwaysAllowed(), STRUCTURAL_ALWAYS_ALLOWED);
+    for (const pedir of [() => harnessReceptiveSeed('ruby' as never), () => structuralAlwaysAllowed('ruby' as never)]) {
+      assert.throws(pedir, (erro: unknown) => erro instanceof LanguageRegistryError);
+    }
+  });
+
+  it('o orçamento resolve o adaptador DA TRILHA e filtra a teoria por ele', () => {
+    const t = trackOf([
+      moduleOf('m1', 1, [
+        lesson('a', [theory('s', 'x', 'const a = 1;')], [challenge('c', {})]),
+      ]),
+    ]);
+    const budget = deriveTrackBudget(t);
+    assert.equal(budget.adapterId, DEFAULT_ADAPTER_ID);
+
+    // `programmingLanguage` aceita o TOKEN de runtime das 112 trilhas do disco
+    // ('nodejs') e ele resolve para a LINGUAGEM ('javascript') — §6.
+    const comRuntime: LoadedTrack = { ...t, root: { ...t.root, programmingLanguage: 'nodejs' } };
+    assert.equal(deriveTrackBudget(comRuntime).adapterId, 'javascript');
+    assert.deepEqual(
+      [...deriveTrackBudget(comRuntime).lessons[0].saida.productive].sort(),
+      [...budget.lessons[0].saida.productive].sort(),
+    );
+  });
+
+  it('o artefato de vocabulário é resolvido pelo adaptador (atoms.json é o do default)', () => {
+    assert.equal(caminhoAtomos(), CAMINHO_ATOMOS_DEFAULT);
+    assert.ok(CAMINHO_ATOMOS_DEFAULT.endsWith(path.join('vocab', 'atoms.json')));
+    assert.throws(() => caminhoAtomos('ruby' as never), (erro: unknown) => erro instanceof LanguageRegistryError);
   });
 });

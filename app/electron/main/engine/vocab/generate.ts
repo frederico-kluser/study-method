@@ -13,12 +13,13 @@
  * carrega `node_version` e `typescript_version`.
  *
  * UNIVERSOS (todos derivados, nenhum digitado no JSON):
- *   a. NÓS (`node:<Nome>`) — de `ts.SyntaxKind`, usando a tabela CANÔNICA de
- *      nomes do extrator (`extract.ts` exporta `kindName`, REUSADA aqui, nunca
- *      duplicada). A tabela contorna os marcadores de faixa do enum
- *      (`FirstLiteralToken`, `LastToken`, …) que sequestram a busca reversa —
- *      `ts.SyntaxKind[ts.SyntaxKind.NumericLiteral]` devolve
- *      `"FirstLiteralToken"`. Excluídos: marcadores de faixa, JSX e
+ *   a. NÓS (`node:<Nome>`) — do INVENTÁRIO do adaptador de linguagem
+ *      (`adapter.inventory()`, membro 3 dos 15 do §6 de
+ *      `docs/research/08-multilingua-trava-deterministica.md`: "gerado do
+ *      `inventory()` do adaptador, nunca digitado"). O inventário contorna os
+ *      marcadores de faixa do enum (`FirstLiteralToken`, `LastToken`, …) que
+ *      sequestram a busca reversa — `ts.SyntaxKind[ts.SyntaxKind.NumericLiteral]`
+ *      devolve `"FirstLiteralToken"`. Excluídos: marcadores de faixa, JSX e
  *      Experimental (o contrato de §3.1: "de eslint-visitor-keys (menos JSX e
  *      Experimental)"), trivia de comentário (não são nós do AST visitado),
  *      pontuação (vira eixo `op:`, nunca `node:` — §5.3) e os nomes de
@@ -49,9 +50,10 @@
  * RELAÇÃO PRECISA COM O EXTRATOR (`extract.ts`) — o que este artefato garante
  * e o que ele NÃO garante:
  *   - Eixos FECHADOS (`node:`/`op:`/`decl:`/`global:`) — o vocabulário É o
- *     universo do que o extrator emite: `node:` sai da MESMA tabela canônica
- *     de SyntaxKind (`extract.kindName`, reusada aqui), `op:`/`decl:`/`global:`
- *     das mesmas superfícies de token/flag/globalThis. Uma emissão fora do
+ *     universo do que o extrator emite: `node:` sai do MESMO inventário que o
+ *     extrator usa para nomear nó (`adapter.inventory()`, que é a varredura do
+ *     enum com a tabela canônica de `engine/kindNames.ts`),
+ *     `op:`/`decl:`/`global:` das mesmas superfícies de token/flag/globalThis. Uma emissão fora do
  *     vocabulário nesses eixos é BUG DE COBERTURA — o teste
  *     `tests/engineVocab.test.ts` ("cobertura das emissões sobre a trilha
  *     real") a caça, admitindo só as exceções DECLARADAS: as chaves SINTÉTICAS
@@ -92,7 +94,7 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
-import { kindName } from '../extract';
+import { DEFAULT_ADAPTER_ID, getAdapter } from '../lang/registry';
 import {
   ATOM_KEY_RE,
   DECLARATION_KINDS,
@@ -161,7 +163,8 @@ export function runtimeDoProcesso(): VocabRuntime {
     builtinModules: require('node:module').builtinModules,
     // ts.SyntaxKind é enum → objeto com chaves numéricas e nominais.
     syntaxKindEnum: ts.SyntaxKind as unknown as Record<string, number>,
-    kindNameOf: (kind: number) => kindName(kind),
+    // O inventário vem do ADAPTADOR, não de uma varredura local (§6, membro 3).
+    inventario: () => getAdapter(DEFAULT_ADAPTER_ID).inventory(),
     tokenToStringOf: (kind: number) => ts.tokenToString(kind),
     globalObject: globalThis,
     ownPropertyNames: (obj: unknown) => Object.getOwnPropertyNames(obj as object),
@@ -171,22 +174,24 @@ export function runtimeDoProcesso(): VocabRuntime {
 }
 
 /**
- * Nomes CANÔNICOS do enum de SyntaxKind — os nomes que a tabela canônica do
- * extrator reconhece como oficiais (REUSE de `extract.kindName`): um nome é
- * canônico se, e somente se, `kindName(valor) === nome`. Isso elimina os
- * marcadores de faixa (`First*`/`Last*`) e os aliases sombreados, sem duplicar
- * a tabela. Ordenado (sort canônico) e livre de ordem de iteração.
+ * Nomes CANÔNICOS de tipo de nó — o INVENTÁRIO da linguagem.
+ *
+ * FONTE (onda 5): `adapter.inventory()`, via `runtime.inventario` (§6, membro
+ * 3: "o `enum` de `lesson.introduces.nodeTypes` é gerado do `inventory()` do
+ * adaptador, nunca digitado"). A varredura que vivia AQUI — "um nome é
+ * canônico se, e somente se, `kindName(valor) === nome`, o que elimina os
+ * marcadores de faixa (`First*`/`Last*`) e os aliases sombreados" — é
+ * exatamente a que `jsInventory()` faz, e manter as duas era manter duas
+ * definições de "canônico" que ninguém garantia iguais.
+ *
+ * A função continua existindo (e exportada) porque ela é o VOCABULÁRIO DESTE
+ * MÓDULO: `gerarUniversoNos` e `gerarUniversoOps` iteram sobre ela, e
+ * `tests/engineVocab.test.ts:289` a usa como a régua do que o extrator pode
+ * emitir. A cópia devolvida é mutável de propósito (o `sort` do inventário já
+ * veio pronto; ninguém deve reordenar o array do adaptador).
  */
 export function nomesCanonicosSyntaxKind(runtime: VocabRuntime): string[] {
-  const canonicos: string[] = [];
-  for (const [name, value] of Object.entries(runtime.syntaxKindEnum)) {
-    if (/^\d+$/.test(name)) continue; // chaves numéricas do enum (busca reversa)
-    if (name.startsWith('First') || name.startsWith('Last')) continue; // marcador de faixa
-    if (runtime.kindNameOf(value) !== name) continue; // alias sombreado — não canônico
-    canonicos.push(name);
-  }
-  canonicos.sort();
-  return canonicos;
+  return [...runtime.inventario()];
 }
 
 /**

@@ -44,10 +44,17 @@ import {
  * aqui. O símbolo continua exportado porque `engine/quality/progressao.ts:79`
  * o importa.
  *
- * ONDA 5: quem quiser saber "qual parser este bloco recebe" NÃO deve usar este
- * conjunto — deve usar `block.adapterId` (abaixo) ou
+ * DEPRECADO desde a onda 5, e sem consumidor de produção: quem quer saber
+ * "qual parser este bloco recebe" usa `block.adapterId` (abaixo) ou
  * `adapterIdForTheoryTag(tag)` do registro. Este `Set` é a resposta de UMA
- * linguagem a uma pergunta que passou a ter N respostas.
+ * linguagem a uma pergunta que passou a ter N respostas —
+ * `engine/quality/progressao.ts` era o último a consumi-lo e migrou.
+ *
+ * POR QUE ELE NÃO FOI APAGADO: `tests/engineLangRegistry.test.ts:183` afirma a
+ * paridade `theoryFenceTags === JS_FENCE_TAGS`, e esse arquivo de teste é da
+ * costura (onda 4) — apagá-lo daqui derrubaria um teste que esta sub-tarefa
+ * não possui, e a onda tem irmãos escrevendo no mesmo diretório. A remoção é
+ * uma linha, está registrada no handoff.
  */
 export const JS_FENCE_TAGS: ReadonlySet<string> = new Set(getAdapter('javascript').theoryFenceTags);
 
@@ -73,13 +80,17 @@ export interface TheoryCodeBlock {
   /**
    * true quando a tag indica JavaScript e o bloco deve ser analisado.
    *
-   * CAMPO DERIVADO, MANTIDO DE PROPÓSITO: `engine/budget.ts:210`,
-   * `engine/audit.ts:355` e `engine/quality/progressao.ts:301` fazem
-   * `if (!block.isJavaScript) continue;` — e três testes o afirmam
-   * (`tests/engineBudgetGate.test.ts:245-269`). Removê-lo nesta onda seria
-   * mudança de comportamento em arquivos de outra sub-tarefa. É EXATAMENTE
-   * `adapterId === 'javascript'`; a onda 5 troca os três `continue` por
-   * `block.adapterId !== <o adaptador da trilha>` e o campo sai.
+   * CAMPO DERIVADO E DEPRECADO (onda 5). Os três `if (!block.isJavaScript)
+   * continue;` que existiam em `engine/budget.ts`, `engine/audit.ts` e
+   * `engine/quality/progressao.ts` viraram `block.adapterId !== <o adaptador
+   * DA TRILHA>` — que é a pergunta certa: uma trilha de Python não quer os
+   * blocos de JavaScript, e a versão antiga não sabia perguntar isso.
+   *
+   * O campo sobrevive porque quatro testes o afirmam
+   * (`tests/engineBudgetGate.test.ts:245-269`,
+   * `tests/engineLangRegistry.test.ts:404-434` e `tests/engineRepair.test.ts:384`)
+   * e dois deles são de outras sub-tarefas desta onda. É EXATAMENTE
+   * `adapterId === 'javascript'`; a remoção está registrada no handoff.
    */
   isJavaScript: boolean;
 }

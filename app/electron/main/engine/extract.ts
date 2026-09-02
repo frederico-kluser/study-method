@@ -42,6 +42,30 @@
  * reportar `global:console`. Está documentado aqui porque um gate com limite
  * escondido é pior que gate nenhum.
  *
+ * ─── O QUE VEM DO ADAPTADOR DE LINGUAGEM (onda 5) ─────────────────────────
+ *
+ * Três responsabilidades deste arquivo passaram a ser PEDIDAS ao adaptador
+ * (`engine/lang/registry.ts`, os 15 membros do §6 de
+ * `docs/research/08-multilingua-trava-deterministica.md`) em vez de
+ * implementadas aqui:
+ *
+ *   - a ÁRVORE            → `adapter.parse(code, {fileName, dialect})`
+ *                           (era `ts.createSourceFile` + `syntaxDiagnostics`);
+ *   - a RESOLUÇÃO DE ESCOPO → `adapter.resolveScopes(parsed)`
+ *                           (era `collectDeclaredNames`, apagada);
+ *   - os GLOBAIS DE RUNTIME → `adapter.globals()`
+ *                           (era a lista literal de `RUNTIME_GLOBALS`).
+ *
+ * O QUE **NÃO** VEIO, e por quê: a CAMINHADA (`visit`) continua sobre o
+ * `ts.Node` nativo. Ela ainda depende de `ts.isPropertyAccessExpression`,
+ * `ts.isElementAccessExpression`, do eixo `form:` (que casa seletores contra o
+ * AST do TypeScript) e das posições absolutas de cada nó — nada disso existe
+ * no `LangNode` normalizado do registro. Por isso este módulo é JAVASCRIPT-ONLY
+ * e o diz alto: `coletarOcorrencias` REPROVA (erro estruturado
+ * `EngineLinguagemError`) qualquer `options.language` que não seja o adaptador
+ * default, em vez de auditar Python com o parser de JavaScript e aprovar
+ * qualquer coisa. Porta um extrator novo quem porta a caminhada inteira.
+ *
  * O que este arquivo NÃO faz: não sabe o que é permitido (é `budget.ts`), não
  * lê trilha (é `audit.ts`) e não chama LLM nenhuma — nunca.
  *
@@ -61,6 +85,19 @@ import {
 } from './atomKeys';
 import { FORM_RULES } from './form/rules';
 import { selectorMatches } from './form/selector';
+import { kindName } from './kindNames';
+import {
+  DEFAULT_ADAPTER_ID,
+  getAdapter,
+  type LanguageAdapter,
+  type LanguageId,
+} from './lang/registry';
+
+// A tabela canônica de nomes de SyntaxKind mudou de casa para o módulo folha
+// `engine/kindNames.ts` (ela era COPIADA em `form/selector.ts`; ver o cabeçalho
+// de lá). A API pública deste módulo não muda: quem fazia
+// `import { kindName } from '../extract'` continua fazendo.
+export { kindName };
 
 /** Tamanho máximo do trecho ofensor citado na violação (uma linha legível). */
 export const SNIPPET_MAX_CHARS = 72;
@@ -113,21 +150,23 @@ export type ExtractResult = ExtractOk | ExtractError;
 export type ExtractAllResult = ExtractAllOk | ExtractError;
 
 /**
- * Globais do runtime, LIDOS DA MÁQUINA e nunca digitados à mão. Uma lista
- * escrita à mão erra nos dois sentidos: esquecer um nome faz o gate deixar
- * passar, e inventar um nome (19,7% dos pacotes citados por LLM não existem)
- * faz o gate reprovar código correto. `globalThis` é a fonte que não mente.
+ * Globais do runtime — o eixo `global:` do vocabulário.
+ *
+ * FONTE: `adapter.globals()` (`engine/lang/javascript.ts`, membro 4 dos 15 do
+ * §6). A lista literal que vivia AQUI foi apagada na onda 5: ela era a cópia
+ * de origem do `jsGlobals()` do adaptador, e duas cópias da mesma expressão
+ * são duas oportunidades de divergir. O adaptador continua LENDO DA MÁQUINA e
+ * nunca digitando à mão — uma lista escrita à mão erra nos dois sentidos:
+ * esquecer um nome faz o gate deixar passar, e inventar um nome (19,7% dos
+ * pacotes citados por LLM não existem) faz o gate reprovar código correto.
+ * `globalThis` é a fonte que não mente.
+ *
+ * O símbolo continua exportado com o mesmo nome porque
+ * `engine/quality/minimal.ts:391` e `tests/engineVocab.test.ts:48` o importam.
+ * É o conjunto do adaptador DEFAULT; quem tem uma linguagem na mão deve pedir
+ * `getAdapter(id).globals()` ao registro.
  */
-export const RUNTIME_GLOBALS: ReadonlySet<string> = new Set<string>([
-  ...Object.getOwnPropertyNames(globalThis),
-  // Valores que são palavra da linguagem e não propriedade de globalThis em
-  // todos os runtimes — incluídos para que o gate os enxergue sempre.
-  'undefined',
-  'NaN',
-  'Infinity',
-  'arguments',
-  'eval',
-]);
+export const RUNTIME_GLOBALS: ReadonlySet<string> = getAdapter(DEFAULT_ADAPTER_ID).globals();
 
 /** Operadores de atribuição — família própria porque `=` e `+=` são aulas distintas. */
 const ASSIGNMENT_TOKENS: ReadonlySet<ts.SyntaxKind> = new Set<ts.SyntaxKind>([
@@ -165,37 +204,6 @@ function familyOfBinary(kind: ts.SyntaxKind): OperatorFamily {
 /** Nome legível de um token de operador (`!==`, `+=`, `??`). */
 function operatorText(kind: ts.SyntaxKind): string {
   return ts.tokenToString(kind) ?? ts.SyntaxKind[kind];
-}
-
-/**
- * Nome CANÔNICO de um SyntaxKind.
- *
- * Armadilha medida, e ela envenenaria o orçamento em silêncio: o enum
- * `ts.SyntaxKind` tem marcadores de faixa (`FirstLiteralToken`,
- * `FirstStatement`, `FirstBinaryOperator`, …) que compartilham o valor numérico
- * de um kind real. Como a busca reversa de um enum do TypeScript devolve o
- * ÚLTIMO nome atribuído ao valor, `ts.SyntaxKind[ts.SyntaxKind.NumericLiteral]`
- * devolve `"FirstLiteralToken"`. Um orçamento escrito contra `node:NumericLiteral`
- * nunca casaria com o que o extrator emite.
- *
- * A tabela é construída UMA vez, preferindo o nome que não é marcador de faixa.
- */
-const CANONICAL_KIND_NAME: ReadonlyMap<ts.SyntaxKind, string> = (() => {
-  const map = new Map<ts.SyntaxKind, string>();
-  for (const name of Object.keys(ts.SyntaxKind)) {
-    if (!Number.isNaN(Number(name))) continue;
-    const value = (ts.SyntaxKind as unknown as Record<string, number>)[name];
-    const isRangeMarker = name.startsWith('First') || name.startsWith('Last');
-    const current = map.get(value);
-    if (current === undefined || (isRangeMarker === false && (current.startsWith('First') || current.startsWith('Last')))) {
-      map.set(value, name);
-    }
-  }
-  return map;
-})();
-
-export function kindName(kind: ts.SyntaxKind): string {
-  return CANONICAL_KIND_NAME.get(kind) ?? String(kind);
 }
 
 /**
@@ -238,61 +246,25 @@ function identifierChain(node: ts.PropertyAccessExpression): string | null {
   return null;
 }
 
-/** Nomes declarados no arquivo, separando os que vieram de `import`. */
-interface DeclaredNames {
-  /** todo nome declarado — base da detecção de global. */
-  all: Set<string>;
-  /**
-   * só os ligados por `import`. Eles são declarados (logo não são globais),
-   * mas continuam sendo RAIZ DE API: `assert.equal` tem de virar
-   * `api:assert.equal`, e não `api:.equal`, senão o orçamento não distingue
-   * `assert.throws` — que exige tratamento de erro — de um `.throws` qualquer.
-   */
-  imported: Set<string>;
-}
-
-/** Coleta PLANA de todo nome declarado no arquivo (ver limite no cabeçalho). */
-function collectDeclaredNames(source: ts.SourceFile): DeclaredNames {
-  const names = new Set<string>();
-  const imported = new Set<string>();
-
-  const addBinding = (name: ts.BindingName): void => {
-    if (ts.isIdentifier(name)) {
-      names.add(name.text);
-      return;
-    }
-    for (const el of name.elements) {
-      if (ts.isBindingElement(el)) addBinding(el.name);
-    }
-  };
-
-  const walk = (node: ts.Node): void => {
-    if (ts.isVariableDeclaration(node)) addBinding(node.name);
-    else if (ts.isParameter(node)) addBinding(node.name);
-    else if (ts.isFunctionDeclaration(node) && node.name) names.add(node.name.text);
-    else if (ts.isClassDeclaration(node) && node.name) names.add(node.name.text);
-    else if (ts.isFunctionExpression(node) && node.name) names.add(node.name.text);
-    else if (ts.isImportSpecifier(node)) {
-      names.add(node.name.text);
-      imported.add(node.name.text);
-    } else if (ts.isImportClause(node) && node.name) {
-      names.add(node.name.text);
-      imported.add(node.name.text);
-    } else if (ts.isNamespaceImport(node)) {
-      names.add(node.name.text);
-      imported.add(node.name.text);
-    } else if (ts.isCatchClause(node) && node.variableDeclaration) {
-      addBinding(node.variableDeclaration.name);
-    }
-    ts.forEachChild(node, walk);
-  };
-
-  ts.forEachChild(source, walk);
-  return { all: names, imported };
-}
-
-/** true quando o identificador está em posição de VALOR (e não de nome/rótulo). */
-function isValueReference(node: ts.Identifier): boolean {
+/**
+ * true quando o identificador está em posição de VALOR (e não de nome/rótulo).
+ *
+ * POR QUE ELA É EXPORTADA (onda 5): esta é a ÚNICA peça de resolução de escopo
+ * que sobrou neste arquivo, e ela sobrou por um motivo de contrato, não por
+ * esquecimento. `ScopeResolution` (`engine/lang/registry.ts:281`) devolve
+ * CONJUNTOS DE NOMES (`declared`/`imported`/`free`/`globals`) — e o extrator
+ * precisa de POSIÇÃO: ele emite uma `AtomOccurrence` por OCORRÊNCIA de
+ * `global:<nome>`, com linha, coluna e offsets. Saber que `Error` é global no
+ * arquivo não diz QUAL dos três `Error` do texto é a referência de valor.
+ *
+ * A cópia gêmea desta função é a closure `ehReferenciaDeValor`, privada dentro
+ * de `jsResolveScopes` (`engine/lang/javascript.ts:542`). Ela some no momento
+ * em que a interface expuser a posição das ocorrências livres (ver o handoff
+ * desta onda: `ScopeResolution.freeOccurrences`, ou um membro
+ * `isValueReference(node)` no adaptador) — e esta função exportada é o alvo da
+ * delegação. Enquanto isso, esta é a que o extrator usa.
+ */
+export function isValueReference(node: ts.Identifier): boolean {
   const parent = node.parent;
   if (!parent) return false;
   if (ts.isPropertyAccessExpression(parent) && parent.name === node) return false;
@@ -308,14 +280,58 @@ function isValueReference(node: ts.Identifier): boolean {
   return true;
 }
 
+// ---------------------------------------------------------------------------
+// A guarda de linguagem (fail-closed) — o extrator é JAVASCRIPT-ONLY
+// ---------------------------------------------------------------------------
+
+/** Código do erro estruturado de linguagem sem extrator determinístico. */
+export const LINGUAGEM_SEM_EXTRATOR = 'LINGUAGEM_SEM_EXTRATOR' as const;
+
 /**
- * Diagnósticos de sintaxe. `parseDiagnostics` não está na superfície pública do
- * TypeScript; o acesso é feito por cast explícito e isolado AQUI, para que a
- * dependência de um detalhe interno fique num lugar só e visível.
+ * Erro ESTRUTURADO de "esta peça da engine só existe para JavaScript".
+ *
+ * Existe porque a alternativa é pior de um jeito específico: sem a guarda, um
+ * `challenge.language: 'python'` seria parseado pelo compilador TypeScript, e
+ * um gate que analisa Python com o parser de JavaScript não reprova nada — ele
+ * APROVA em silêncio. A mesma decisão do registro (`getAdapter` LANÇA em vez de
+ * cair no default, `engine/lang/registry.ts:39-45`): um resultado errado e
+ * silencioso é o modo de falha que esta engine existe para eliminar.
  */
-function syntaxDiagnostics(source: ts.SourceFile): ts.Diagnostic[] {
-  const holder = source as ts.SourceFile & { parseDiagnostics?: ts.Diagnostic[] };
-  return holder.parseDiagnostics ?? [];
+export class EngineLinguagemError extends Error {
+  readonly code: typeof LINGUAGEM_SEM_EXTRATOR = LINGUAGEM_SEM_EXTRATOR;
+  constructor(
+    readonly detalhes: { modulo: string; pedido: string; suportado: LanguageId; motivo: string },
+  ) {
+    super(
+      `${detalhes.modulo}: sem implementação para a linguagem ${JSON.stringify(detalhes.pedido)} ` +
+        `(só ${detalhes.suportado}) — ${detalhes.motivo}`,
+    );
+    this.name = 'EngineLinguagemError';
+  }
+}
+
+/**
+ * Resolve o adaptador e REPROVA o que este módulo não sabe fazer.
+ *
+ * `getAdapter` já é fail-closed para id desconhecido; esta guarda cobre o caso
+ * seguinte — id CONHECIDO (Python registrado, por exemplo) cuja implementação
+ * aqui não existe. As duas falhas são estruturadas e dizem o que falta.
+ */
+export function exigirAdaptadorJavascript(
+  modulo: string,
+  motivo: string,
+  language: string = DEFAULT_ADAPTER_ID,
+): LanguageAdapter {
+  const adapter = getAdapter(language);
+  if (adapter.id !== DEFAULT_ADAPTER_ID) {
+    throw new EngineLinguagemError({
+      modulo,
+      pedido: language,
+      suportado: DEFAULT_ADAPTER_ID,
+      motivo,
+    });
+  }
+  return adapter;
 }
 
 export interface ExtractOptions {
@@ -323,6 +339,12 @@ export interface ExtractOptions {
   fileName?: string;
   /** `js` (default) ou `ts`. O extrator é o mesmo; muda só o ScriptKind. */
   dialect?: 'js' | 'ts';
+  /**
+   * ADITIVO (onda 5): qual ADAPTADOR parseia e resolve escopo. Default: o
+   * adaptador default (`javascript`). Qualquer outro id LANÇA
+   * `EngineLinguagemError` — ver a guarda acima e o cabeçalho deste arquivo.
+   */
+  language?: LanguageId;
 }
 
 /**
@@ -336,27 +358,30 @@ export interface ExtractOptions {
  * PURO: mesma entrada, mesma saída. Sem IO, sem rede, sem estado.
  */
 function coletarOcorrencias(code: string, options: ExtractOptions): ExtractAllResult {
-  const fileName = options.fileName ?? 'trecho.mjs';
-  const scriptKind = options.dialect === 'ts' ? ts.ScriptKind.TS : ts.ScriptKind.JS;
+  const adapter = exigirAdaptadorJavascript(
+    'engine/extract.ts',
+    'a caminhada do extrator (eixos api:/form:/node: e as posições absolutas) é escrita contra o AST do TypeScript; portar o extrator é portar a caminhada inteira, não trocar o parser',
+    options.language ?? DEFAULT_ADAPTER_ID,
+  );
 
-  const source = ts.createSourceFile(fileName, code, ts.ScriptTarget.Latest, true, scriptKind);
+  // (1) A ÁRVORE vem do adaptador — mesmo `createSourceFile` (com
+  // `setParentNodes`, que `isValueReference` exige), mesmo `ScriptTarget`,
+  // mesmo `ScriptKind` por dialeto e MESMO erro estruturado com linha/coluna
+  // 1-based do primeiro diagnóstico de sintaxe. O cast interno de
+  // `parseDiagnostics` mora lá agora (`lang/javascript.ts:398`), num lugar só.
+  const parsed = adapter.parse(code, {
+    fileName: options.fileName ?? 'trecho.mjs',
+    dialect: options.dialect,
+  });
+  if (!parsed.ok) return { ok: false, error: parsed.error };
 
-  const diagnostics = syntaxDiagnostics(source);
-  if (diagnostics.length > 0) {
-    const first = diagnostics[0];
-    const pos = source.getLineAndCharacterOfPosition(first.start ?? 0);
-    return {
-      ok: false,
-      error: {
-        code: 'PARSE_ERROR',
-        message: ts.flattenDiagnosticMessageText(first.messageText, ' '),
-        line: pos.line + 1,
-        column: pos.character + 1,
-      },
-    };
-  }
+  const source = parsed.native as ts.SourceFile;
 
-  const declared = collectDeclaredNames(source);
+  // (5) A RESOLUÇÃO DE ESCOPO vem do adaptador. `scopes.declared` é o antigo
+  // `collectDeclaredNames(...).all`, `scopes.imported` o `.imported`, e
+  // `scopes.globals` é exatamente `¬declared ∧ RUNTIME_GLOBALS` — o cruzamento
+  // que ficava inline no eixo `global:` logo abaixo.
+  const scopes = adapter.resolveScopes(parsed);
   const todas: AtomOccurrence[] = [];
 
   const record = (key: AtomKey, node: ts.Node): void => {
@@ -410,7 +435,7 @@ function coletarOcorrencias(code: string, options: ExtractOptions): ExtractAllRe
     if (ts.isPropertyAccessExpression(node)) {
       const chain = identifierChain(node);
       const root = chain ? chain.split('.')[0] : '';
-      const rootIsApi = chain !== null && (!declared.all.has(root) || declared.imported.has(root));
+      const rootIsApi = chain !== null && (!scopes.declared.has(root) || scopes.imported.has(root));
       if (chain && rootIsApi) {
         record(apiKey(chain), node);
       } else {
@@ -425,11 +450,13 @@ function coletarOcorrencias(code: string, options: ExtractOptions): ExtractAllRe
       }
     }
 
-    if (ts.isIdentifier(node) && isValueReference(node)) {
-      const name = node.text;
-      if (!declared.all.has(name) && RUNTIME_GLOBALS.has(name)) {
-        record(globalKey(name), node);
-      }
+    // Eixo `global:`. `scopes.globals` já É `free ∩ adapter.globals()`, ou
+    // seja `¬declarado ∧ global-de-runtime` — a mesma conjunção de antes, agora
+    // calculada pelo adaptador. `isValueReference` continua aqui porque a
+    // decisão é POR OCORRÊNCIA e `ScopeResolution` só carrega nomes (ver o
+    // comentário da função).
+    if (ts.isIdentifier(node) && isValueReference(node) && scopes.globals.has(node.text)) {
+      record(globalKey(node.text), node);
     }
 
     for (const rule of FORM_RULES) {
@@ -483,15 +510,28 @@ export function extractAtoms(code: string, options: ExtractOptions = {}): Extrac
 }
 
 /**
- * Conta declarações de teste (`test('…', …)`) por AST.
+ * Conta declarações de teste (`test('…', …)`) por AST — o lado DECLARADO da
+ * dupla-igualdade (`declarado == executado == expectedTestCount`).
  *
  * Existe UMA função para isso na engine, e é esta. O repositório tem hoje TRÊS
  * implementações com DUAS semânticas — uma tira comentários antes de contar,
  * as outras não — e a consequência medida é concreta: um `// test(` comentado
  * faz o validador semântico entrar em retry e devolver erro de JSON inválido
  * para sempre. Contagem por AST não tem esse problema: comentário não é nó.
+ *
+ * MULTILÍNGUA (onda 5): o membro do §6 é `adapter.countDeclared` — e para
+ * JavaScript ele DELEGA para esta função (`jsCountDeclared`,
+ * `engine/lang/javascript.ts:583`). Por isso o despacho aqui é POR EXCLUSÃO:
+ * `language` diferente do default vai ao adaptador daquela linguagem; o corpo
+ * abaixo é a implementação de JavaScript, e chamar o adaptador para ela seria
+ * recursão infinita, não indireção. Uma implementação, um lugar — o que muda é
+ * quem pergunta.
  */
-export function countTestDeclarations(testsCode: string): number {
+export function countTestDeclarations(
+  testsCode: string,
+  language: LanguageId = DEFAULT_ADAPTER_ID,
+): number {
+  if (language !== DEFAULT_ADAPTER_ID) return getAdapter(language).countDeclared(testsCode);
   const source = ts.createSourceFile('tests.mjs', testsCode, ts.ScriptTarget.Latest, true, ts.ScriptKind.JS);
   let count = 0;
   const visit = (node: ts.Node): void => {
