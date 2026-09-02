@@ -14,7 +14,7 @@
  * `/api/v1/key` → 401 `{"error":{"message":"User not found.","code":401}}`.
  * A FONTE DE VERDADE da validade é, e continua sendo, `GET /key`.
  *
- * Semântica de status do validador do LLM (preservada da versão DeepSeek):
+ * Semântica de status do validador do LLM:
  * - 200      → chave VÁLIDA;
  * - 401/403  → chave INVÁLIDA ("Invalid API key");
  * - 402/429  → chave VÁLIDA (402 no OpenRouter é EXATAMENTE crédito
@@ -29,12 +29,11 @@
  * ilegível, orçamento de tempo esgotado), `modelAvailable` fica `undefined` e a
  * validação da chave segue de pé.
  *
- * NOMES LEGADOS (de propósito): `validateDeepseekKey`,
- * `DeepSeekValidationResult` e `DeepSeekValidateOptions` mantêm o nome antigo
- * porque o canal IPC (`keys:validate-deepseek`) e os campos do `KeysStatus`
- * ainda são os antigos — renomear tudo é a ONDA 2, que muda contrato + preload
- * + renderer juntos. Aqui só o COMPORTAMENTO migrou. O campo `provider` do
- * resultado, esse sim, já reporta `'openrouter'` (a union do contrato aceita).
+ * NOMENCLATURA: `validateLlmKey` / `LlmValidationResult` /
+ * `LlmValidateOptions` são NEUTROS de propósito — este módulo é o validador da
+ * chave do LLM, e o provedor concreto (hoje OpenRouter) vem de
+ * `@shared/llm/constants`, nunca de um literal aqui. O campo `provider` do
+ * resultado reporta `'openrouter'`.
  *
  * RODADA 10 (onda 2b — sem spinner infinito): cada validação roda sob um
  * AbortSignal de timeout (`timeoutMs`, default 8s; `0` desliga). O timeout
@@ -60,10 +59,8 @@ import { OPENROUTER_ATTRIBUTION_HEADERS, OPENROUTER_MODEL } from '@shared/llm/co
  * `modelAvailable` — este campo é propriedade EXCLUSIVA deste validador (não
  * faz parte do contrato congelado), adicionado por uma interface local.
  *
- * O NOME do tipo é legado (ver cabeçalho): a renomeação para
- * `OpenRouterValidationResult` é a ONDA 2.
  */
-export interface DeepSeekValidationResult extends ValidationResult {
+export interface LlmValidationResult extends ValidationResult {
   provider: 'openrouter';
   /**
    * true quando o catálogo do OpenRouter listou o id EXATO de
@@ -78,7 +75,7 @@ export interface BraveValidationResult extends ValidationResult {
   provider: 'brave';
 }
 
-export interface DeepSeekValidateOptions {
+export interface LlmValidateOptions {
   /** fetch injetável (testes). Default: fetch global. */
   fetchImpl?: typeof fetch;
   /** base_url da API do OpenRouter. Default: OPENROUTER_MODEL.baseUrl. */
@@ -113,8 +110,8 @@ export interface BraveValidateOptions {
 export const DEFAULT_VALIDATE_TIMEOUT_MS = 8000;
 
 /**
- * Provider reportado no campo `provider` do resultado do LLM. A union do
- * contrato já aceita `'openrouter'` ao lado do legado `'deepseek'`.
+ * Provider reportado no campo `provider` do resultado do LLM (union do
+ * contrato: `'openrouter' | 'brave'`).
  */
 const LLM_PROVIDER = 'openrouter' as const;
 
@@ -289,14 +286,11 @@ async function probeModelAvailable(
  * ATENÇÃO: NÃO troque este endpoint por `/models` — `/models` é público e
  * responde 200 para chave morta (ver cabeçalho do arquivo). Só `/key` é
  * autenticado e por isso é a única fonte de verdade da validade.
- *
- * Nome legado preservado de propósito (o canal IPC ainda é
- * `keys:validate-deepseek`; a renomeação é a ONDA 2).
  */
-export async function validateDeepseekKey(
+export async function validateLlmKey(
   apiKey: string,
-  opts: DeepSeekValidateOptions = {}
-): Promise<DeepSeekValidationResult> {
+  opts: LlmValidateOptions = {}
+): Promise<LlmValidationResult> {
   const baseUrl = (opts.baseUrl ?? OPENROUTER_MODEL.baseUrl).replace(/\/+$/, '');
   const timeoutMs = opts.timeoutMs ?? DEFAULT_VALIDATE_TIMEOUT_MS;
   const fetchImpl = opts.fetchImpl ?? fetch;
@@ -321,9 +315,9 @@ export async function validateDeepseekKey(
    * chamada no catálogo (402/429 já dizem "válida, indisponível agora").
    */
   let keyStatus = 0;
-  let keyResult: DeepSeekValidationResult;
+  let keyResult: LlmValidationResult;
   try {
-    keyResult = await withFetchTimeout(async (signal): Promise<DeepSeekValidationResult> => {
+    keyResult = await withFetchTimeout(async (signal): Promise<LlmValidationResult> => {
       const response = await fetchImpl(`${baseUrl}${OPENROUTER_KEY_PATH}`, {
         method: 'GET',
         headers: openRouterHeaders(key),

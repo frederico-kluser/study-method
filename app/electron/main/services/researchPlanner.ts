@@ -28,7 +28,7 @@
  *    erro (query-done {ok:false,error}) — a rodada segue com as queries ok.
  *
  * A geração de dúvidas→queries é INJETÁVEL (`generatePlan`/`generateQueries`):
- * a fiação (electron/main/index.ts) pluga a geração por LLM via deepseekClient
+ * a fiação (electron/main/index.ts) pluga a geração por LLM via llmClient
  * (helpers `planWithLlm`/`followUpsWithLlm` exportados aqui — prompts pt-BR no
  * estilo deep-orchestrator). Tudo é função pura / DI — nada toca rede fora do
  * `search` e do `generatePlan`/`generateFollowUps` injetados: 100% testável.
@@ -82,8 +82,8 @@ const RESEARCH_CATEGORIES: ReadonlySet<string> = new Set<ResearchQueryCategory>(
   'exercises',
 ]);
 
-/** Cliente LLM mínimo (deepseekClient é estruturalmente compatível). */
-export interface DeepSeekClientLike {
+/** Cliente LLM mínimo (llmClient é estruturalmente compatível). */
+export interface LlmClientLike {
   chatCompletion(req: {
     messages: Array<{ role: 'system' | 'user'; content: string }>;
     temperature?: number;
@@ -380,7 +380,7 @@ export function parseLlmJson(content: string): unknown {
  * cliente aplica por default (`OPENROUTER_REASONING` em
  * `shared/llm/constants.ts`), nunca de imperativo textual no prompt.
  */
-export async function planWithLlm(client: DeepSeekClientLike, subject: string): Promise<ResearchPlanShape> {
+export async function planWithLlm(client: LlmClientLike, subject: string): Promise<ResearchPlanShape> {
   const { system, user } = buildPlanPrompt(subject);
   const res = await client.chatCompletion({
     messages: [
@@ -402,7 +402,7 @@ export async function planWithLlm(client: DeepSeekClientLike, subject: string): 
  * NÃO roda rodada extra (degradação honesta). Esforço de raciocínio: default
  * do cliente (o máximo do contrato) — sem override e sem imperativo textual.
  */
-export async function followUpsWithLlm(client: DeepSeekClientLike, ctx: FollowUpContext): Promise<ResearchQuerySpec[]> {
+export async function followUpsWithLlm(client: LlmClientLike, ctx: FollowUpContext): Promise<ResearchQuerySpec[]> {
   const { system, user } = buildFollowUpPrompt(ctx);
   const res = await client.chatCompletion({
     messages: [

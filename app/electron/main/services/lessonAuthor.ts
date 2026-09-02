@@ -1,18 +1,18 @@
 /**
- * electron/main/services/deepseekLessonAuthor.ts — AUTOR (AuthorFn) da cadeia
- * LESSON-ORCHESTRATOR sobre o cliente DeepSeek one-shot.
+ * electron/main/services/lessonAuthor.ts — AUTOR (AuthorFn) da cadeia
+ * LESSON-ORCHESTRATOR sobre o cliente de LLM remoto one-shot.
  *
  * Recebe { subject, findings, memory? } e devolve um LessonDraft (aula markdown +
  * desafios), validado. É a fiação da autoria por LLM — a UI chama
- * `study:generate-lesson` que passa aqui por `createDeepSeekLessonAuthor`.
+ * `study:generate-lesson` que passa aqui por `createLessonAuthor`.
  *
  * - Sistema pt-BR com a PEDAGOGIA do tutor study-method (struct da aula).
  * - Temperature 0.2 (criativo mas aderente ao layout).
- * - Parse JSON robusto reutilizando `extractFirstJsonObject` do deepseekLlmJudge.
+ * - Parse JSON robusto reutilizando `extractFirstJsonObject` do llmJudge.
  * - Valida o LessonDraft (campos obrigatórios, arrays >= 1, textos não vazios,
  *   scenarios com example+boundary+error mínimos) — draft inválido lança erro
  *   claro identificando a parte que faltou.
- * - Sem chave configurada → DeepSeekError KEY_MISSING (a fiação não degrada em
+ * - Sem chave configurada → LlmError KEY_MISSING (a fiação não degrada em
  *   silêncio: autoria é obrigatória para a aula; diferente do juiz que degrada).
  *
  * NÃO importa electron; o cliente é injetável (testes isolam o autor do
@@ -27,8 +27,8 @@
  * (docs/16-engine-de-trilha.md §7).
  */
 
-import { DEEPSEEK_ERROR_CODES, DeepSeekError, createDeepSeekClient, type DeepSeekClient } from './deepseekClient';
-import { extractFirstJsonObject } from './deepseekLlmJudge';
+import { LLM_ERROR_CODES, LlmError, createLlmClient, type LlmClient } from './llmClient';
+import { extractFirstJsonObject } from './llmJudge';
 import type {
   AuthorFn,
   ChallengeDraft,
@@ -38,9 +38,9 @@ import type {
 } from './lessonTypes';
 import type { AuthorMemory } from './lessonTypes';
 
-export interface DeepSeekLessonAuthorDeps {
+export interface LessonAuthorDeps {
   /** Cliente injetável (testes). Default: novo cliente com getApiKey. */
-  client?: DeepSeekClient;
+  client?: LlmClient;
   /** Resolve a chave do provedor de LLM sob demanda. Default: '' (⇒ chave ausente). */
   getApiKey?: () => Promise<string>;
   /** Sobrescreve o model (default: OPENROUTER_MODEL.id, aplicado no cliente). */
@@ -403,26 +403,26 @@ export function validateLessonDraft(
 }
 
 /**
- * Fabrica o autor DeepSeek. `getApiKey` resolve a chave sob demanda; sem chave
- * configurada lança DeepSeekError KEY_MISSING (autoria é indispensável — não
+ * Fabrica o autor de aulas. `getApiKey` resolve a chave sob demanda; sem chave
+ * configurada lança LlmError KEY_MISSING (autoria é indispensável — não
  * degrada silenciosamente como o juiz).
  */
-export function createDeepSeekLessonAuthor(deps: DeepSeekLessonAuthorDeps = {}): AuthorFn {
-  const client = deps.client ?? createDeepSeekClient({ apiKey: deps.getApiKey });
+export function createLessonAuthor(deps: LessonAuthorDeps = {}): AuthorFn {
+  const client = deps.client ?? createLlmClient({ apiKey: deps.getApiKey });
   const model = deps.model;
 
   return async function author(ctx): Promise<LessonDraft> {
     if (deps.getApiKey) {
       const key = (await deps.getApiKey()).trim();
       if (!key) {
-        throw new DeepSeekError(
-          DEEPSEEK_ERROR_CODES.KEY_MISSING,
+        throw new LlmError(
+          LLM_ERROR_CODES.KEY_MISSING,
           'Autor (LLM): chave de API não configurada. Configure a chave do provedor de LLM nas configurações.'
         );
       }
     } else if (!deps.client) {
-      throw new DeepSeekError(
-        DEEPSEEK_ERROR_CODES.KEY_MISSING,
+      throw new LlmError(
+        LLM_ERROR_CODES.KEY_MISSING,
         'Autor (LLM): sem getApiKey e sem cliente injetado.'
       );
     }
@@ -433,7 +433,7 @@ export function createDeepSeekLessonAuthor(deps: DeepSeekLessonAuthorDeps = {}):
     ];
 
     // Retry de NO MÁXIMO 2 tentativas (1 re-tentativa) APENAS para a classe "content
-    // vazio" (DeepSeekError EMPTY_CONTENT — o modelo devolveu só reasoning_content,
+    // vazio" (LlmError EMPTY_CONTENT — o modelo devolveu só reasoning_content,
     // sem conteúdo de aula; transitório do modelo, a re-chamada é barata e evita
     // abortar a aula inteira). Na 2ª falha, propaga o erro original. Outros erros
     // (schema inválido do draft, rede, chave) NÃO ganham retry.
@@ -444,11 +444,11 @@ export function createDeepSeekLessonAuthor(deps: DeepSeekLessonAuthorDeps = {}):
         break;
       } catch (error) {
         const isEmptyContent =
-          error instanceof DeepSeekError && error.code === DEEPSEEK_ERROR_CODES.EMPTY_CONTENT;
+          error instanceof LlmError && error.code === LLM_ERROR_CODES.EMPTY_CONTENT;
         if (isEmptyContent && attempt === 1) continue;
-        if (error instanceof DeepSeekError) throw error;
-        throw new DeepSeekError(
-          DEEPSEEK_ERROR_CODES.NETWORK,
+        if (error instanceof LlmError) throw error;
+        throw new LlmError(
+          LLM_ERROR_CODES.NETWORK,
           `Autor (LLM) falhou: ${error instanceof Error ? error.message : String(error)}`,
           error
         );
@@ -456,8 +456,8 @@ export function createDeepSeekLessonAuthor(deps: DeepSeekLessonAuthorDeps = {}):
     }
 
     if (!raw || !raw.content || raw.content.trim().length === 0) {
-      throw new DeepSeekError(
-        DEEPSEEK_ERROR_CODES.NETWORK,
+      throw new LlmError(
+        LLM_ERROR_CODES.NETWORK,
         'Autor (LLM): o modelo devolveu resposta vazia.'
       );
     }

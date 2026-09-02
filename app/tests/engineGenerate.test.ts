@@ -61,7 +61,7 @@ import {
 } from '../electron/main/engine/runtime/runState';
 import { Ledger, TelemetriaFile, sha256Hex } from '../electron/main/engine/runtime/ledger';
 import { LlmStageError, type EngineLlm, type LlmCallRequest, type LlmCallResult, type StageUsage } from '../electron/main/engine/runtime/callLlm';
-import { DEEPSEEK_ERROR_CODES } from '../electron/main/services/deepseekClient';
+import { LLM_ERROR_CODES } from '../electron/main/services/llmClient';
 import type { ProverDeDesafio } from '../electron/main/engine/phases/f8Challenges';
 import type { ChallengeProofsInput, ChallengeProofsVerdict } from '../electron/main/engine/exec/proofs';
 import { caminhoDraftAula, caminhoDraftDesafio } from '../electron/main/engine/phases/f7Theory';
@@ -405,7 +405,7 @@ describe('P-22 generate — sem chave de API', () => {
     const dir = await dirTemp('t4');
     const dirProduto = await dirTemp('t4-out');
     const llm = new FakeLlm();
-    llm.falha = { code: DEEPSEEK_ERROR_CODES.KEY_MISSING, message: 'chave não configurada' };
+    llm.falha = { code: LLM_ERROR_CODES.KEY_MISSING, message: 'chave não configurada' };
     try {
       const { deps } = depsBase(dir, dirProduto, llm);
       await assert.rejects(

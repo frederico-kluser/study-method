@@ -7,13 +7,12 @@
  * runtime real do Electron. O store é fake (DI via `getStore`).
  *
  * Canais cobertos (contrato KEYS_CHANNELS):
- *   keys:validate-deepseek, keys:validate-brave, keys:get-status, keys:set-key
+ *   keys:validate-llm, keys:validate-brave, keys:get-status, keys:set-key
  *
- * MIGRAÇÃO OPENROUTER: os NOMES (canal, campos do KeysStatus) continuam os
- * antigos, mas o comportamento mudou — a validade vem de
- * `GET https://openrouter.ai/api/v1/key`, a leitura da chave do LLM é do slot
- * 'openrouter' com FALLBACK para o legado 'deepseek', e a gravação vai SEMPRE
- * para 'openrouter' (apagando o legado no mesmo passo).
+ * PROVEDOR: a validade vem de `GET https://openrouter.ai/api/v1/key`; a leitura
+ * da chave do LLM é do slot 'openrouter' com FALLBACK para o slot LEGADO
+ * (`LEGACY_LLM_PROVIDER_KEY`, nunca escrito como literal aqui), e a gravação
+ * vai SEMPRE para 'openrouter', apagando o legado no mesmo passo.
  */
 import { Module } from 'node:module';
 import { afterEach, mock, test } from 'node:test';
@@ -21,6 +20,7 @@ import assert from 'node:assert/strict';
 
 import { KEYS_CHANNELS } from '../shared/ipc-contract';
 import type { SettingsStore } from '../electron/main/services/settingsStore';
+import { LEGACY_LLM_PROVIDER_KEY } from '../electron/main/ipc/keys-handlers';
 
 /** Response fake mínimo do fetch global. */
 function fakeResponse(status: number, body: unknown = {}): Response {
@@ -179,14 +179,14 @@ test('registerKeysHandlers registra os 4 canais keys:* que ELE possui (aditivo d
   );
 });
 
-test('keys:validate-deepseek → valida a chave do store e grava deepseekValidated/modelAvailable', async () => {
+test('keys:validate-llm → valida a chave do store e grava llmValidated/modelAvailable', async () => {
   mockGlobalFetch();
   const store = makeFakeStore({
     apiKeys: { openrouter: 'sk-or-v1-store' },
   });
   const ipc = beforeEachRegister(store);
 
-  const handler = ipc.handlers.get(KEYS_CHANNELS.VALIDATE_DEEPSEEK)!;
+  const handler = ipc.handlers.get(KEYS_CHANNELS.VALIDATE_LLM)!;
   const result = (await handler()) as {
     isValid: boolean;
     provider: string;
@@ -199,25 +199,25 @@ test('keys:validate-deepseek → valida a chave do store e grava deepseekValidat
   assert.equal(result.modelAvailable, true);
   // A URL de VALIDADE é a autenticada — nunca o catálogo público.
   assert.equal(fetchHeaders[0].url, 'https://openrouter.ai/api/v1/key');
-  // Modelo encontra o id alvo na lista fake da API => deepseekValidated true.
-  const setDeep = store.setValueCalls.find(([k]) => k === 'deepseekValidated');
-  assert.deepEqual(setDeep, ['deepseekValidated', true]);
+  // Modelo encontra o id alvo na lista fake da API => llmValidated true.
+  const setDeep = store.setValueCalls.find(([k]) => k === 'llmValidated');
+  assert.deepEqual(setDeep, ['llmValidated', true]);
   const setModel = store.setValueCalls.find(([k]) => k === 'modelAvailable');
   assert.deepEqual(setModel, ['modelAvailable', true]);
 });
 
-test('keys:validate-deepseek com chave ausente → grava deepseekValidated false e modelo false', async () => {
+test('keys:validate-llm com chave ausente → grava llmValidated false e modelo false', async () => {
   mockGlobalFetch();
   const store = makeFakeStore({});
   const ipc = beforeEachRegister(store);
 
-  const handler = ipc.handlers.get(KEYS_CHANNELS.VALIDATE_DEEPSEEK)!;
+  const handler = ipc.handlers.get(KEYS_CHANNELS.VALIDATE_LLM)!;
   const result = (await handler()) as { isValid: boolean; errorMessage?: string };
 
   assert.equal(result.isValid, false);
   assert.equal(result.errorMessage, 'API key is empty');
-  assert.deepEqual(store.setValueCalls.find(([k]) => k === 'deepseekValidated'), [
-    'deepseekValidated',
+  assert.deepEqual(store.setValueCalls.find(([k]) => k === 'llmValidated'), [
+    'llmValidated',
     false,
   ]);
 });
@@ -255,13 +255,13 @@ test('keys:validate-brave com chave ausente → braveValidated false', async () 
 
 // ─── keys:validate-* aceitam uma chave digitada no invoke (onda3-ui-wiring) ───
 
-test('keys:validate-deepseek com chave digitada → valida ESSA chave sem salvar a chave', async () => {
+test('keys:validate-llm com chave digitada → valida ESSA chave sem salvar a chave', async () => {
   mockGlobalFetch();
-  // Store SEM chave deepseek: nada a cair de fallback — a digitada é a única fonte.
+  // Store SEM chave do LLM: nada a cair de fallback — a digitada é a única fonte.
   const store = makeFakeStore({});
   const ipc = beforeEachRegister(store);
 
-  const handler = ipc.handlers.get(KEYS_CHANNELS.VALIDATE_DEEPSEEK)!;
+  const handler = ipc.handlers.get(KEYS_CHANNELS.VALIDATE_LLM)!;
   const result = (await handler(undefined as never, 'sk-digitada')) as {
     isValid: boolean;
     modelAvailable?: boolean;
@@ -273,37 +273,37 @@ test('keys:validate-deepseek com chave digitada → valida ESSA chave sem salvar
   const auth = fetchHeaders.find((h) => h.url.endsWith('/key'))?.authorization;
   assert.equal(auth, 'Bearer sk-digitada');
   // O flag de validação é gravado; a CHAVE em si NÃO (sem setApiKey).
-  assert.deepEqual(store.setValueCalls.find(([k]) => k === 'deepseekValidated'), [
-    'deepseekValidated',
+  assert.deepEqual(store.setValueCalls.find(([k]) => k === 'llmValidated'), [
+    'llmValidated',
     true,
   ]);
   assert.equal(store.setApiKeyCalls.length, 0, 'chave digitada NÃO deve ser salva');
 });
 
-test('keys:validate-deepseek sem chave digitada → não ENVIA Authorization (sem store)', async () => {
+test('keys:validate-llm sem chave digitada → não ENVIA Authorization (sem store)', async () => {
   mockGlobalFetch();
   const store = makeFakeStore({});
   const ipc = beforeEachRegister(store);
 
-  const handler = ipc.handlers.get(KEYS_CHANNELS.VALIDATE_DEEPSEEK)!;
+  const handler = ipc.handlers.get(KEYS_CHANNELS.VALIDATE_LLM)!;
   const result = (await handler(undefined as never, '')) as { isValid: boolean; errorMessage?: string };
 
   assert.equal(result.isValid, false);
   assert.equal(result.errorMessage, 'API key is empty');
   assert.equal(fetchHeaders.length, 0, 'chave vazia não dispara rede');
-  assert.deepEqual(store.setValueCalls.find(([k]) => k === 'deepseekValidated'), [
-    'deepseekValidated',
+  assert.deepEqual(store.setValueCalls.find(([k]) => k === 'llmValidated'), [
+    'llmValidated',
     false,
   ]);
   assert.equal(store.setApiKeyCalls.length, 0);
 });
 
-test('keys:validate-deepseek sem chave digitada → fallback para a chave do store (slot openrouter)', async () => {
+test('keys:validate-llm sem chave digitada → fallback para a chave do store (slot openrouter)', async () => {
   mockGlobalFetch();
   const store = makeFakeStore({ apiKeys: { openrouter: 'sk-or-v1-store' } });
   const ipc = beforeEachRegister(store);
 
-  const handler = ipc.handlers.get(KEYS_CHANNELS.VALIDATE_DEEPSEEK)!;
+  const handler = ipc.handlers.get(KEYS_CHANNELS.VALIDATE_LLM)!;
   const result = (await handler(undefined as never, undefined)) as { isValid: boolean };
 
   assert.equal(result.isValid, true);
@@ -312,15 +312,15 @@ test('keys:validate-deepseek sem chave digitada → fallback para a chave do sto
   assert.equal(auth, 'Bearer sk-or-v1-store');
 });
 
-// ─── Migração do slot da chave do LLM (deepseek → openrouter) ────────────────
+// ─── Slot da chave do LLM: canônico + fallback de leitura do legado ──────────
 
-test('keys:validate-deepseek → LÊ o slot LEGADO deepseek quando o novo está vazio (não desloga ninguém)', async () => {
+test('keys:validate-llm → LÊ o slot LEGADO quando o novo está vazio (não desloga ninguém)', async () => {
   mockGlobalFetch();
   // Perfil de quem já usava o app ANTES da migração: só o slot antigo no disco.
-  const store = makeFakeStore({ apiKeys: { deepseek: 'sk-legado' } });
+  const store = makeFakeStore({ apiKeys: { [LEGACY_LLM_PROVIDER_KEY]: 'sk-legado' } });
   const ipc = beforeEachRegister(store);
 
-  const handler = ipc.handlers.get(KEYS_CHANNELS.VALIDATE_DEEPSEEK)!;
+  const handler = ipc.handlers.get(KEYS_CHANNELS.VALIDATE_LLM)!;
   const result = (await handler(undefined as never, undefined)) as { isValid: boolean };
 
   assert.equal(result.isValid, true);
@@ -328,12 +328,14 @@ test('keys:validate-deepseek → LÊ o slot LEGADO deepseek quando o novo está 
   assert.equal(auth, 'Bearer sk-legado', 'a chave antiga continua valendo pelo fallback');
 });
 
-test('keys:validate-deepseek → o slot NOVO tem PRECEDÊNCIA sobre o legado', async () => {
+test('keys:validate-llm → o slot NOVO tem PRECEDÊNCIA sobre o legado', async () => {
   mockGlobalFetch();
-  const store = makeFakeStore({ apiKeys: { openrouter: 'sk-or-v1-nova', deepseek: 'sk-legado' } });
+  const store = makeFakeStore({
+    apiKeys: { openrouter: 'sk-or-v1-nova', [LEGACY_LLM_PROVIDER_KEY]: 'sk-legado' },
+  });
   const ipc = beforeEachRegister(store);
 
-  const handler = ipc.handlers.get(KEYS_CHANNELS.VALIDATE_DEEPSEEK)!;
+  const handler = ipc.handlers.get(KEYS_CHANNELS.VALIDATE_LLM)!;
   await handler(undefined as never, undefined);
 
   const auth = fetchHeaders.find((h) => h.url.endsWith('/key'))?.authorization;
@@ -341,11 +343,11 @@ test('keys:validate-deepseek → o slot NOVO tem PRECEDÊNCIA sobre o legado', a
 });
 
 test('keys:get-status → chave só no slot LEGADO ainda conta como configurada', async () => {
-  const store = makeFakeStore({ apiKeys: { deepseek: 'sk-legado', brave: 'bk' } });
+  const store = makeFakeStore({ apiKeys: { [LEGACY_LLM_PROVIDER_KEY]: 'sk-legado', brave: 'bk' } });
   const ipc = beforeEachRegister(store);
 
   const status = (await ipc.handlers.get(KEYS_CHANNELS.GET_STATUS)!()) as Record<string, boolean>;
-  assert.equal(status.deepseekConfigured, true);
+  assert.equal(status.llmConfigured, true);
   assert.equal(status.braveConfigured, true);
 });
 
@@ -382,23 +384,23 @@ test('keys:validate-brave com chave em branco → valida a do store (fallback)',
 
 test('keys:get-status → monta KeysStatus a partir do store', async () => {
   const store = makeFakeStore({
-    apiKeys: { deepseek: 'sk-d', brave: 'bk' },
-    values: { deepseekValidated: true, braveValidated: false },
+    apiKeys: { openrouter: 'sk-d', brave: 'bk' },
+    values: { llmValidated: true, braveValidated: false },
   });
   const ipc = beforeEachRegister(store);
 
   const handler = ipc.handlers.get(KEYS_CHANNELS.GET_STATUS)!;
   const status = (await handler()) as {
-    deepseekConfigured: boolean;
+    llmConfigured: boolean;
     braveConfigured: boolean;
-    deepseekValidated: boolean;
+    llmValidated: boolean;
     braveValidated: boolean;
   };
 
   assert.deepEqual(status, {
-    deepseekConfigured: true,
+    llmConfigured: true,
     braveConfigured: true,
-    deepseekValidated: true,
+    llmValidated: true,
     braveValidated: false,
   });
 });
@@ -411,55 +413,44 @@ test('keys:get-status com nada configurado → tudo false', async () => {
   const status = (await handler()) as Record<string, boolean>;
 
   assert.deepEqual(status, {
-    deepseekConfigured: false,
+    llmConfigured: false,
     braveConfigured: false,
-    deepseekValidated: false,
+    llmValidated: false,
     braveValidated: false,
   });
 });
 
-test('keys:set-key com o nome LEGADO deepseek → grava no slot openrouter e APAGA o legado', async () => {
-  // O renderer de hoje ainda manda 'deepseek' (a renomeação é a ONDA 2): o
-  // apelido é aceito, mas a gravação migra o slot sozinha.
-  const store = makeFakeStore({ apiKeys: { deepseek: 'antiga' } });
+test('keys:set-key com o nome NOVO openrouter → grava no slot canônico e APAGA o legado', async () => {
+  const store = makeFakeStore({ apiKeys: { [LEGACY_LLM_PROVIDER_KEY]: 'antiga' } });
   const ipc = beforeEachRegister(store);
 
   const handler = ipc.handlers.get(KEYS_CHANNELS.SET_KEY)!;
-  const result = (await handler(undefined as never, 'deepseek', 'nova-chave')) as { ok: boolean };
+  const result = (await handler(undefined as never, 'openrouter', 'sk-or-v1-nova')) as {
+    ok: boolean;
+  };
 
   assert.deepEqual(result, { ok: true });
   assert.deepEqual(store.setApiKeyCalls, [
-    ['openrouter', 'nova-chave'],
-    ['deepseek', ''],
-  ]);
-});
-
-test('keys:set-key com o nome NOVO openrouter → mesmo slot, legado apagado', async () => {
-  const store = makeFakeStore({ apiKeys: { deepseek: 'antiga' } });
-  const ipc = beforeEachRegister(store);
-
-  const handler = ipc.handlers.get(KEYS_CHANNELS.SET_KEY)!;
-  await handler(undefined as never, 'openrouter', 'sk-or-v1-nova');
-
-  assert.deepEqual(store.setApiKeyCalls, [
     ['openrouter', 'sk-or-v1-nova'],
-    ['deepseek', ''],
+    [LEGACY_LLM_PROVIDER_KEY, ''],
   ]);
 });
 
 test('keys:set-key da chave do LLM com valor vazio → limpa os DOIS slots (apagar apaga mesmo)', async () => {
   // Sem apagar o legado, o fallback de leitura ressuscitaria a chave antiga.
-  const store = makeFakeStore({ apiKeys: { openrouter: 'nova', deepseek: 'antiga' } });
+  const store = makeFakeStore({
+    apiKeys: { openrouter: 'nova', [LEGACY_LLM_PROVIDER_KEY]: 'antiga' },
+  });
   const ipc = beforeEachRegister(store);
 
-  await ipc.handlers.get(KEYS_CHANNELS.SET_KEY)!(undefined as never, 'deepseek', '');
+  await ipc.handlers.get(KEYS_CHANNELS.SET_KEY)!(undefined as never, 'openrouter', '');
   assert.deepEqual(store.setApiKeyCalls, [
     ['openrouter', ''],
-    ['deepseek', ''],
+    [LEGACY_LLM_PROVIDER_KEY, ''],
   ]);
 
   const status = (await ipc.handlers.get(KEYS_CHANNELS.GET_STATUS)!()) as Record<string, boolean>;
-  assert.equal(status.deepseekConfigured, false, 'nenhum slot pode sobreviver ao apagar');
+  assert.equal(status.llmConfigured, false, 'nenhum slot pode sobreviver ao apagar');
 });
 
 test('keys:set-key com apiKey undefined → grava vazio (apaga)', async () => {

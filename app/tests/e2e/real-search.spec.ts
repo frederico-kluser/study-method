@@ -11,7 +11,7 @@
  *     contra api.search.brave.com com a key do usuário);
  *   - após a validação, `keys:get-status` reflete `braveValidated:true` (a chave
  *     real foi gravada no settingsStore isolado e reaprovada);
- *   - complementarmente valida a chave DeepSeek real (round-trip) — sem gerar aula.
+ *   - complementarmente valida a chave do LLM real (round-trip) — sem gerar aula.
  *
  * SKIP automático SEM chaves reais. Barato (sem geração de aula) — roda em
  * segundos, dependente só da latência da rede.
@@ -43,12 +43,12 @@ test('real-search: chave Brave REAL validada contra a API (round-trip); status r
   )) as { isValid: boolean; errorMessage?: string };
   expect(braveResult.isValid, `Brave real rejeitada: ${braveResult.errorMessage ?? ''}`).toBe(true);
 
-  // Idem DeepSeek (complementar; sem gerar aula).
+  // Idem OpenRouter (complementar; sem gerar aula).
   const dsResult = (await page.evaluate(
-    (k) => (globalThis as any).api.keys.validateDeepseek(k),
-    real.deepseekApiKey,
+    (k) => (globalThis as any).api.keys.validateLlm(k),
+    real.openrouterApiKey,
   )) as { isValid: boolean; errorMessage?: string };
-  expect(dsResult.isValid, `DeepSeek real rejeitada: ${dsResult.errorMessage ?? ''}`).toBe(true);
+  expect(dsResult.isValid, `OpenRouter real rejeitada: ${dsResult.errorMessage ?? ''}`).toBe(true);
 
   // A validação real grava/reaprova no settingsStore isolado → get-status reflete.
   await page.evaluate(
@@ -58,10 +58,10 @@ test('real-search: chave Brave REAL validada contra a API (round-trip); status r
   const status = (await page.evaluate(() => (globalThis as any).api.keys.getStatus())) as {
     braveConfigured: boolean;
     braveValidated: boolean;
-    deepseekConfigured: boolean;
+    llmConfigured: boolean;
   };
   expect(status.braveConfigured).toBe(true);
-  expect(status.deepseekConfigured).toBe(true);
+  expect(status.llmConfigured).toBe(true);
   // A validação real (`validate-brave`) também gravou `braveValidated:true` no
   // settingsStore isolado — não basta configured: a chave foi reaprovada de fato.
   expect(status.braveValidated).toBe(true);

@@ -1,5 +1,5 @@
 /**
- * tests/deepseekLlmJudge.test.ts — juiz LLM do protocolo REQUEST/APPLY.
+ * tests/llmJudge.test.ts — juiz LLM do protocolo REQUEST/APPLY.
  * A assinatura é a EXATA de LlmJudge do StudyMethodRunner. O objeto devolvido é
  * o corpo de `items[0]` — o runner monta o envelope da RESPOSTA (buildApplyFile)
  * repetindo protocol/protocol_version/request_id/kind do pedido; o juiz NÃO monta
@@ -8,10 +8,10 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  createDeepSeekLlmJudge,
+  createLlmJudge,
   extractFirstJsonObject,
-} from '../electron/main/services/deepseekLlmJudge';
-import { DEEPSEEK_ERROR_CODES, DeepSeekError } from '../electron/main/services/deepseekClient';
+} from '../electron/main/services/llmJudge';
+import { LLM_ERROR_CODES, LlmError } from '../electron/main/services/llmClient';
 import type { StudyRequestEnvelope } from '../electron/main/services/studyMethodRunner';
 import { OPENROUTER_MODEL } from '@shared/llm/constants';
 
@@ -75,7 +75,7 @@ test('judge: monta system/user com instructions + response_schema + payload, tem
     content: '{"schema_version":"1.0","request_kind":"memory_compact","semantic_facts":[],"procedural_facts":[]}',
   }));
 
-  const judge = createDeepSeekLlmJudge({ client });
+  const judge = createLlmJudge({ client });
   const out = await judge(envelope);
 
   assert.equal(calls.length, 1);
@@ -107,7 +107,7 @@ test('judge: request_id/kind do pedido são preservados (o runner monta o envelo
   const { client } = fakeClient(() => ({
     content: 'gerado\n```json\n{"schema_version":"1.0","request_kind":"memory_compact"}\n```\nextra',
   }));
-  const judge = createDeepSeekLlmJudge({ client });
+  const judge = createLlmJudge({ client });
   const out = await judge(envelope) as Record<string, unknown>;
 
   // O objeto devolvido NÃO carrega envelope: quem repete request_id/kind/campos
@@ -119,13 +119,13 @@ test('judge: request_id/kind do pedido são preservados (o runner monta o envelo
 
 test('judge: sem chave (getApiKey vazio) → degrada com null, sem lançar', async () => {
   // Sem cliente: se não houver getApiKey, degrada sem disparar rede nem erro.
-  const judge = createDeepSeekLlmJudge({ getApiKey: async () => '' });
+  const judge = createLlmJudge({ getApiKey: async () => '' });
   const out = await judge(makeEnvelope());
   assert.equal(out, null);
 });
 
 test('judge: sem getApiKey e sem cliente → degrada com null', async () => {
-  const judge = createDeepSeekLlmJudge({});
+  const judge = createLlmJudge({});
   const out = await judge(makeEnvelope());
   assert.equal(out, null);
 });
@@ -133,10 +133,10 @@ test('judge: sem getApiKey e sem cliente → degrada com null', async () => {
 test('judge: cliente rejeita com KEY_MISSING → degrada com null (não estoura)', async () => {
   const client = {
     chatCompletion: async () => {
-      throw new DeepSeekError(DEEPSEEK_ERROR_CODES.KEY_MISSING, 'DeepSeek: chave não configurada.');
+      throw new LlmError(LLM_ERROR_CODES.KEY_MISSING, 'OpenRouter: chave não configurada.');
     },
   };
-  const judge = createDeepSeekLlmJudge({ client });
+  const judge = createLlmJudge({ client });
   const out = await judge(makeEnvelope());
   assert.equal(out, null);
 });
@@ -147,54 +147,54 @@ test('judge: fix15c B2 — cliente lança EMPTY_CONTENT (2xx só com reasoning_c
   // degradar como retorno não-objeto → buildApplyFile vira applyExhausted.
   const client = {
     chatCompletion: async () => {
-      throw new DeepSeekError(
-        DEEPSEEK_ERROR_CODES.EMPTY_CONTENT,
-        'DeepSeek: resposta com content vazio (o modelo devolveu apenas reasoning_content).'
+      throw new LlmError(
+        LLM_ERROR_CODES.EMPTY_CONTENT,
+        'OpenRouter: resposta com content vazio (o modelo devolveu apenas reasoning_content).'
       );
     },
   };
-  const judge = createDeepSeekLlmJudge({ client });
+  const judge = createLlmJudge({ client });
   assert.equal(await judge(makeEnvelope()), null);
 });
 
 test('judge: cliente lança NETWORK → degrada com null (sem conteúdo utilizável)', async () => {
   const client = {
     chatCompletion: async () => {
-      throw new DeepSeekError(DEEPSEEK_ERROR_CODES.NETWORK, 'DeepSeek: falha de rede.');
+      throw new LlmError(LLM_ERROR_CODES.NETWORK, 'OpenRouter: falha de rede.');
     },
   };
-  const judge = createDeepSeekLlmJudge({ client });
+  const judge = createLlmJudge({ client });
   assert.equal(await judge(makeEnvelope()), null);
 });
 
-test('judge: erro não-degradante do cliente → propaga como DeepSeekError', async () => {
+test('judge: erro não-degradante do cliente → propaga como LlmError', async () => {
   const client = {
     chatCompletion: async () => {
-      throw new DeepSeekError(DEEPSEEK_ERROR_CODES.RATE_LIMIT, 'DeepSeek: rate limit');
+      throw new LlmError(LLM_ERROR_CODES.RATE_LIMIT, 'OpenRouter: rate limit');
     },
   };
-  const judge = createDeepSeekLlmJudge({ client });
+  const judge = createLlmJudge({ client });
   await assert.rejects(
     judge(makeEnvelope()),
-    (e: unknown) => e instanceof DeepSeekError && e.code === DEEPSEEK_ERROR_CODES.RATE_LIMIT
+    (e: unknown) => e instanceof LlmError && e.code === LLM_ERROR_CODES.RATE_LIMIT
   );
 });
 
 test('judge: modelo devolve JSON inválido → degrada com null', async () => {
   const { client } = fakeClient(() => ({ content: 'isto não é JSON de jeito nenhum' }));
-  const judge = createDeepSeekLlmJudge({ client });
+  const judge = createLlmJudge({ client });
   assert.equal(await judge(makeEnvelope()), null);
 });
 
 test('judge: content com array de topo → degrada com null (items[0] precisa de objeto)', async () => {
   const { client } = fakeClient(() => ({ content: '[1,2,3]' }));
-  const judge = createDeepSeekLlmJudge({ client });
+  const judge = createLlmJudge({ client });
   assert.equal(await judge(makeEnvelope()), null);
 });
 
 test('judge: model injetado repassa ao cliente', async () => {
   const { client, calls } = fakeClient(() => ({ content: '{"a":1}' }));
-  const judge = createDeepSeekLlmJudge({ client, model: MODEL_OVERRIDE });
+  const judge = createLlmJudge({ client, model: MODEL_OVERRIDE });
   await judge(makeEnvelope());
   assert.equal(calls[0].model, MODEL_OVERRIDE);
 });
@@ -207,7 +207,7 @@ test('judge: deps.client + getApiKey presente em branco → degrada antes de usa
       return { content: '{"a":1}', model: 'm' };
     },
   };
-  const judge = createDeepSeekLlmJudge({ client, getApiKey: async () => '   ' });
+  const judge = createLlmJudge({ client, getApiKey: async () => '   ' });
   assert.equal(await judge(makeEnvelope()), null);
   assert.equal(called, 0);
 });

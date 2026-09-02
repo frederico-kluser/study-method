@@ -18,10 +18,9 @@
  *        - UMA válida + outra rede-falhou → NÃO é offline (a regra exige AMBAS
  *          por rede) → phase 'blocked' com a que falhou listada (erro de rede).
  *
- * MIGRAÇÃO OPENROUTER: a chave do LLM é lida por `readLlmApiKey` (slot
- * 'openrouter' com fallback para o legado 'deepseek') e o validador bate em
- * `GET /api/v1/key` do OpenRouter. Os NOMES do StartupStatus (`deepseek`)
- * continuam os do contrato congelado — a renomeação é a ONDA 2.
+ * A chave do LLM é lida por `readLlmApiKey` (slot canônico 'openrouter' com
+ * fallback para o slot legado — ver keys-handlers.ts) e o validador bate em
+ * `GET /api/v1/key` do OpenRouter.
  *
  * `electron` (ipcMain) é importado LAZY dentro do register para os testes não
  * tocarem o runtime do Electron (mesmo padrão de keys-handlers.ts).
@@ -32,8 +31,8 @@ import type { SettingsStore } from '../services/settingsStore';
 import { getSettingsStore } from '../services/settingsStore';
 import {
   validateBraveKey as defaultValidateBrave,
-  validateDeepseekKey as defaultValidateDeepseek,
-  type DeepSeekValidationResult,
+  validateLlmKey as defaultValidateLlm,
+  type LlmValidationResult,
 } from '../services/apiKeyValidator';
 import { safeHandleMap, type IpcMainHandleLike, type IpcHandlerFn } from './safeHandle';
 import { readLlmApiKey } from './keys-handlers';
@@ -44,8 +43,8 @@ export const DEFAULT_STARTUP_VALIDATION_TIMEOUT_MS = 8000;
 export interface RegisterStartupHandlersDeps {
   /** Getter do SettingsStore (lazy/DI). Default: getSettingsStore(). */
   getStore?: () => Promise<SettingsStore>;
-  /** Validador DeepSeek injetável. Default: validateDeepseekKey real. */
-  validateDeepseek?: typeof defaultValidateDeepseek;
+  /** Validador da chave do LLM, injetável. Default: validateLlmKey real. */
+  validateLlm?: typeof defaultValidateLlm;
   /** Validador Brave injetável. Default: validateBraveKey real. */
   validateBrave?: typeof defaultValidateBrave;
   /** Timeout da validação em ms (default 8000). 0 desliga o timeout. */
@@ -69,19 +68,19 @@ export function isNetworkError(result: ValidationResult | undefined): boolean {
 
 /** Função PURA que decide o StartupStatus a partir da configuração + resultados. */
 export function classifyStartup(opts: {
-  deepseekConfigured: boolean;
+  llmConfigured: boolean;
   braveConfigured: boolean;
-  deepseekResult?: DeepSeekValidationResult;
+  llmResult?: LlmValidationResult;
   braveResult?: ValidationResult;
   checkedAt: string;
 }): StartupStatus {
-  const { deepseekConfigured, braveConfigured, checkedAt } = opts;
+  const { llmConfigured, braveConfigured, checkedAt } = opts;
 
   // (b) Alguma chave sem configurar → blocked, configured:false, SEM rede.
-  if (!deepseekConfigured || !braveConfigured) {
+  if (!llmConfigured || !braveConfigured) {
     return {
       phase: 'blocked',
-      deepseek: { configured: deepseekConfigured, valid: false },
+      llm: { configured: llmConfigured, valid: false },
       brave: { configured: braveConfigured, valid: false },
       offline: false,
       checkedAt,
@@ -89,31 +88,31 @@ export function classifyStartup(opts: {
   }
 
   // (c) Ambas configuradas: os resultados existem (validados com timeout).
-  const deepseekResult = opts.deepseekResult!;
+  const llmResult = opts.llmResult!;
   const braveResult = opts.braveResult!;
 
-  const netD = isNetworkError(deepseekResult);
-  const netB = isNetworkError(braveResult);
+  const netLlm = isNetworkError(llmResult);
+  const netBrave = isNetworkError(braveResult);
 
   // AMBAS por rede → OFFLINE (inicia com aviso; online gateado, local ok).
-  if (netD && netB) {
+  if (netLlm && netBrave) {
     return {
       phase: 'offline',
-      deepseek: { configured: true, valid: false, error: deepseekResult.errorMessage },
+      llm: { configured: true, valid: false, error: llmResult.errorMessage },
       brave: { configured: true, valid: false, error: braveResult.errorMessage },
       offline: true,
       checkedAt,
     };
   }
 
-  const validD = deepseekResult.isValid === true;
-  const validB = braveResult.isValid === true;
+  const validLlm = llmResult.isValid === true;
+  const validBrave = braveResult.isValid === true;
 
   // Ambas válidas → READY.
-  if (validD && validB) {
+  if (validLlm && validBrave) {
     return {
       phase: 'ready',
-      deepseek: { configured: true, valid: true },
+      llm: { configured: true, valid: true },
       brave: { configured: true, valid: true },
       offline: false,
       checkedAt,
@@ -124,15 +123,15 @@ export function classifyStartup(opts: {
   // falhou listada (a regra offline exige AMBAS por rede).
   return {
     phase: 'blocked',
-    deepseek: {
+    llm: {
       configured: true,
-      valid: validD,
-      error: validD ? undefined : deepseekResult.errorMessage,
+      valid: validLlm,
+      error: validLlm ? undefined : llmResult.errorMessage,
     },
     brave: {
       configured: true,
-      valid: validB,
-      error: validB ? undefined : braveResult.errorMessage,
+      valid: validBrave,
+      error: validBrave ? undefined : braveResult.errorMessage,
     },
     offline: false,
     checkedAt,
@@ -143,8 +142,6 @@ export function classifyStartup(opts: {
 async function validateWithTimeout<T extends ValidationResult>(
   p: Promise<T>,
   ms: number,
-  // 'openrouter' é o provider REAL da chave do LLM desde a migração; o nome
-  // legado sobrevive só nos campos do StartupStatus (renomeados na ONDA 2).
   provider: 'openrouter' | 'brave',
   checkedAt: string,
 ): Promise<T> {
@@ -178,7 +175,7 @@ export function buildStartupHandlers(
   deps: RegisterStartupHandlersDeps = {},
 ): Map<string, IpcHandlerFn> {
   const getStore = deps.getStore ?? defaultGetStore;
-  const validateDeepseek = deps.validateDeepseek ?? defaultValidateDeepseek;
+  const validateLlm = deps.validateLlm ?? defaultValidateLlm;
   const validateBrave = deps.validateBrave ?? defaultValidateBrave;
   const timeoutMs = deps.timeoutMs ?? DEFAULT_STARTUP_VALIDATION_TIMEOUT_MS;
 
@@ -187,30 +184,30 @@ export function buildStartupHandlers(
     const store = await getStore();
     const checkedAt = new Date().toISOString();
 
-    // Chave do LLM: slot 'openrouter' com FALLBACK para o legado 'deepseek'
-    // (ver keys-handlers.ts) — quem já tinha chave salva não perde o acesso.
-    const [deepseekKey, braveKey] = await Promise.all([
+    // Chave do LLM: slot canônico 'openrouter' com FALLBACK para o slot
+    // legado (ver keys-handlers.ts) — quem já tinha chave salva não perde acesso.
+    const [llmKey, braveKey] = await Promise.all([
       readLlmApiKey(store),
       store.getApiKey('brave'),
     ]);
-    const deepseekConfigured = !!deepseekKey;
+    const llmConfigured = !!llmKey;
     const braveConfigured = !!braveKey;
 
     // (b) Alguma não configurada → blocked SEM rede.
-    if (!deepseekConfigured || !braveConfigured) {
-      return classifyStartup({ deepseekConfigured, braveConfigured, checkedAt });
+    if (!llmConfigured || !braveConfigured) {
+      return classifyStartup({ llmConfigured, braveConfigured, checkedAt });
     }
 
     // (c) Ambas configuradas → valida AMBAS (com timeout curto).
-    const [deepseekResult, braveResult] = await Promise.all([
-      validateWithTimeout(validateDeepseek(deepseekKey), timeoutMs, 'openrouter', checkedAt),
+    const [llmResult, braveResult] = await Promise.all([
+      validateWithTimeout(validateLlm(llmKey), timeoutMs, 'openrouter', checkedAt),
       validateWithTimeout(validateBrave(braveKey), timeoutMs, 'brave', checkedAt),
     ]);
 
     return classifyStartup({
-      deepseekConfigured,
+      llmConfigured,
       braveConfigured,
-      deepseekResult,
+      llmResult,
       braveResult,
       checkedAt,
     });

@@ -11,12 +11,12 @@
 
 import type { SettingsStore } from './settingsStore';
 import { getSettingsStore } from './settingsStore';
-import { OPENROUTER_ENV_KEY } from '@shared/llm/constants';
 import {
-  LEGACY_DEEPSEEK_ENV_KEY,
-  LEGACY_DEEPSEEK_PROVIDER_KEY,
-  OPENROUTER_PI_PROVIDER,
-} from '@shared/piAgent/constants';
+  LEGACY_LLM_ENV_KEY,
+  LEGACY_LLM_PROVIDER_KEY,
+  OPENROUTER_ENV_KEY,
+} from '@shared/llm/constants';
+import { OPENROUTER_PI_PROVIDER } from '@shared/piAgent/constants';
 
 export interface PiAuthBridgeDeps {
   /** Getter do SettingsStore (lazy). O singleton de runtime usa getSettingsStore. */
@@ -44,20 +44,16 @@ const PROVIDER_ENV: Record<string, string> = {
 };
 
 /**
- * FALLBACK TRANSITÓRIO. Antes da migração a chave morava no slot 'deepseek' do
- * settingsStore e na env DEEPSEEK_API_KEY. Quem já usava o app tem a chave lá e
- * ficaria sem feedback de código até reconfigurar; por isso ainda LEMOS esses
- * dois lugares para o provider 'openrouter'.
- *
- * É transitório de propósito: a ONDA 2, que remove os símbolos DEEPSEEK_*,
- * remove estas listas junto. A chave GRAVADA e a env INJETADA já são só as
- * novas — nada aqui reintroduz o nome antigo no fluxo de escrita.
+ * Onde o fallback de LEITURA legado se aplica: só ao provider 'openrouter' (é
+ * ele que herdou a chave do provedor antigo). Os literais moram no contrato
+ * (`@shared/llm/constants`), junto com a explicação de por que sobrevivem;
+ * aqui eles só são LIDOS — a chave gravada e a env injetada são só as novas.
  */
 const LEGACY_STORE_SLOTS: Record<string, readonly string[]> = {
-  [OPENROUTER_PI_PROVIDER]: [LEGACY_DEEPSEEK_PROVIDER_KEY],
+  [OPENROUTER_PI_PROVIDER]: [LEGACY_LLM_PROVIDER_KEY],
 };
 const LEGACY_ENV_VARS: Record<string, readonly string[]> = {
-  [OPENROUTER_PI_PROVIDER]: [LEGACY_DEEPSEEK_ENV_KEY],
+  [OPENROUTER_PI_PROVIDER]: [LEGACY_LLM_ENV_KEY],
 };
 
 /** Slots do settingsStore a consultar, na ordem: o do provider e os legados. */

@@ -144,7 +144,7 @@ function SetupStatusCard({ status }: { status: KeysStatus | null }): ReactElemen
 
   const ready = aggregate === 'ready';
   const rows: Array<{ label: string; configured: boolean }> = [
-    { label: t('translation:home.setup.deepseek'), configured: status.deepseekConfigured },
+    { label: t('translation:home.setup.openrouter'), configured: status.llmConfigured },
     { label: t('translation:home.setup.brave'), configured: status.braveConfigured },
   ];
 
@@ -476,9 +476,9 @@ export function HomeView(props: ViewProps): ReactElement {
       .catch(() => {
         if (!cancelled) {
           setKeyStatus({
-            deepseekConfigured: false,
+            llmConfigured: false,
             braveConfigured: false,
-            deepseekValidated: false,
+            llmValidated: false,
             braveValidated: false,
           });
         }

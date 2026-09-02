@@ -166,7 +166,7 @@ export async function forceGateReady(app: ElectronApplication, page: Page): Prom
   await app.evaluate(({ ipcMain }) => {
     const fake = (): unknown => ({
       phase: 'ready',
-      deepseek: { configured: true, valid: true },
+      llm: { configured: true, valid: true },
       brave: { configured: true, valid: true },
       offline: false,
       checkedAt: new Date().toISOString(),

@@ -213,7 +213,7 @@ export function buildChallengeContext(
 export interface VerifyContextInput {
   context: ChallengeContext;
   challenge: ChallengeToValidate;
-  /** injetável — testes usam fake; runtime usa o deepseekClient. */
+  /** injetável — testes usam fake; runtime usa o llmClient. */
   llm: ContextValidatorLlm;
 }
 

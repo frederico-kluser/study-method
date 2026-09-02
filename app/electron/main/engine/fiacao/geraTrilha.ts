@@ -100,7 +100,7 @@ import { Ledger, TelemetriaFile, sha256Hex, type EventoNovo, type Telemetria } f
 import type { EngineLlm, LlmStageError, StageUsage } from '../runtime/callLlm';
 import { createExecSemaphore, createSemaphore, type Semaphore } from '../runtime/semaphore';
 import type { RateLimiters } from '../runtime/scheduler';
-import { DEEPSEEK_ERROR_CODES } from '../../services/deepseekClient';
+import { LLM_ERROR_CODES } from '../../services/llmClient';
 
 // ─── laço de revisão (P-18) + ponte audit→laço (P-35) — o bridge da F10 ────
 
@@ -869,11 +869,11 @@ export class GeradorDeTrilha {
       return { erro, mensagem: erro.message };
     }
     const codigo = (erro as { code?: unknown } | null)?.code;
-    if (codigo === DEEPSEEK_ERROR_CODES.KEY_MISSING || codigo === 'F1_LLM_SEM_CHAVE' || codigo === 'F1_BUSCA_SEM_CHAVE' || codigo === 'BRAVE_KEY_MISSING') {
+    if (codigo === LLM_ERROR_CODES.KEY_MISSING || codigo === 'F1_LLM_SEM_CHAVE' || codigo === 'F1_BUSCA_SEM_CHAVE' || codigo === 'BRAVE_KEY_MISSING') {
       const erroEstruturado = new ErroGeracao(
         'SEM_CHAVE',
         `LIMITAÇÃO DECLARADA: a execução parou na fase ${fase} SEM chave de API configurada. ` +
-          'O run foi criado e é RETOMÁVEL: configure a chave (DEEPSEEK_API_KEY / Brave) e rode generate com --from para continuar.',
+          'O run foi criado e é RETOMÁVEL: configure a chave (OPENROUTER_API_KEY / Brave) e rode generate com --from para continuar.',
         fase,
         erro,
       );

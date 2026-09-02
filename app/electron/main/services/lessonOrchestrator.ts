@@ -12,7 +12,7 @@
  *     → done
  *
  * O LLM é INJETADO (AuthorFn + LlmJudge). Este arquivo NÃO importa nenhum client:
- * a fiação (onda3-ui-wiring) monta o autor (deepseek) e o runner JÁ configurado com
+ * a fiação (onda3-ui-wiring) monta o autor (LLM remoto) e o runner JÁ configurado com
  * o juiz (llmJudge). Se o runner vier SEM juiz e a verify devolver `not_run`, o
  * desafio é registrado como rejeitado (nunca descartado em silêncio — DES-2).
  *

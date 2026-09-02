@@ -6,18 +6,16 @@
  * feedback pedagógico:
  *
  *   - 'local'    → o modelo local é usado como avaliador do desafio.
- *   - 'deepseek' → o coding agent `pi` (LLM remoto, servido pelo OpenRouter)
- *                  avalia como antes. O VALOR 'deepseek' é histórico: a
- *                  renomeação para 'openrouter' é a onda 2, junto com todos
- *                  os call sites de uma vez.
+ *   - 'openrouter' → o coding agent `pi` (LLM remoto, servido pelo OpenRouter)
+ *                  avalia o desafio.
  *
  * Regra de decisão (o modelo local SÓ avalia quando BOTH):
  *   1. o usuário selecionou `defaultModelProvider === 'local'` nas Configurações; E
  *   2. existe um modelo local ativo (`activeLocalModelId` não vazio).
  *
  * Em qualquer outro caso — provedor `'local'` sem modelo ativo, provedor
- * `'deepseek'` explícito, ou `defaultModelProvider` ausente (nunca salvo;
- * default é o comportamento histórico da nuvem) — cai para `'deepseek'`.
+ * `'openrouter'` explícito, ou `defaultModelProvider` ausente (nunca salvo;
+ * o default é a nuvem) — cai para `'openrouter'`.
  *
  * A UI NÃO tenta fallback automático após um erro de chat local: se o chat
  * local falhar no runtime, ela mostra o erro e sugere voltar à nuvem (ver
@@ -25,7 +23,7 @@
  * chamada, não lida com falhas.
  */
 
-export type FeedbackProvider = 'local' | 'deepseek';
+export type FeedbackProvider = 'local' | 'openrouter';
 
 export interface FeedbackProviderInput {
   /** Valor salvo de `settings.defaultModelProvider` (pode nunca ter sido definido). */
@@ -38,5 +36,5 @@ export function resolveFeedbackProvider(input: FeedbackProviderInput): FeedbackP
   const selectedLocal = input.defaultModelProvider === 'local';
   const hasActive = Boolean(input.activeLocalModelId && input.activeLocalModelId.trim());
   if (selectedLocal && hasActive) return 'local';
-  return 'deepseek';
+  return 'openrouter';
 }

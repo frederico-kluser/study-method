@@ -10,10 +10,8 @@
  *  - uma válida + outra rede-falhou → blocked (não offline);
  *  - registerStartupHandlers registra o canal via safeHandle (ipc fake).
  *
- * MIGRAÇÃO OPENROUTER: os CAMPOS do StartupStatus (`deepseek`) são contrato
- * congelado (renomeados na ONDA 2), mas o `provider` do ValidationResult já é
- * 'openrouter' e a chave do LLM é lida do slot 'openrouter' com FALLBACK para o
- * slot legado 'deepseek' — o teste do fallback está no fim do arquivo.
+ * A chave do LLM é lida do slot 'openrouter' com FALLBACK para o slot LEGADO
+ * (`LEGACY_LLM_PROVIDER_KEY`) — o teste do fallback está no fim do arquivo.
  */
 import { Module } from 'node:module';
 import { afterEach, test } from 'node:test';
@@ -21,7 +19,7 @@ import assert from 'node:assert/strict';
 
 import { KEYS_CHANNELS, type StartupStatus } from '../shared/ipc-contract';
 import type {
-  DeepSeekValidationResult,
+  LlmValidationResult,
   BraveValidationResult,
 } from '../electron/main/services/apiKeyValidator';
 import type { SettingsStore } from '../electron/main/services/settingsStore';
@@ -32,9 +30,10 @@ import {
   registerStartupHandlers,
   type RegisterStartupHandlersDeps,
 } from '../electron/main/ipc/startup-handlers';
+import { LEGACY_LLM_PROVIDER_KEY } from '../electron/main/ipc/keys-handlers';
 
 function makeStartupStore(
-  initial: { openrouter?: string; deepseek?: string; brave?: string } = {},
+  initial: Record<string, string> = {},
 ): SettingsStore {
   const keys: Record<string, string> = { ...initial };
   return {
@@ -43,19 +42,19 @@ function makeStartupStore(
 }
 
 /** Resultado de validação sintético controlado pelo teste (tipo completo p/ DI). */
-function validResult<D extends 'openrouter' | 'brave'>(provider: D): D extends 'openrouter' ? DeepSeekValidationResult : BraveValidationResult {
-  return { isValid: true, provider, checkedAt: '2026-08-23T00:00:00.000Z' } as D extends 'openrouter' ? DeepSeekValidationResult : BraveValidationResult;
+function validResult<D extends 'openrouter' | 'brave'>(provider: D): D extends 'openrouter' ? LlmValidationResult : BraveValidationResult {
+  return { isValid: true, provider, checkedAt: '2026-08-23T00:00:00.000Z' } as D extends 'openrouter' ? LlmValidationResult : BraveValidationResult;
 }
 function invalidResult<D extends 'openrouter' | 'brave'>(
   provider: D,
   errorMessage: string,
-): D extends 'openrouter' ? DeepSeekValidationResult : BraveValidationResult {
+): D extends 'openrouter' ? LlmValidationResult : BraveValidationResult {
   return {
     isValid: false,
     provider,
     errorMessage,
     checkedAt: '2026-08-23T00:00:00.000Z',
-  } as D extends 'openrouter' ? DeepSeekValidationResult : BraveValidationResult;
+  } as D extends 'openrouter' ? LlmValidationResult : BraveValidationResult;
 }
 
 const NETWORK_ERR = 'Network error: fetch failed';
@@ -66,74 +65,74 @@ afterEach(() => {
 
 test('classifyStartup: alguma chave não configurada → blocked SEM rede (valid:false)', () => {
   const s = classifyStartup({
-    deepseekConfigured: true,
+    llmConfigured: true,
     braveConfigured: false,
     checkedAt: 'now',
   });
   assert.equal(s.phase, 'blocked');
   assert.equal(s.offline, false);
-  assert.equal(s.deepseek.configured, true);
-  assert.equal(s.deepseek.valid, false, 'não valida sem as duas');
+  assert.equal(s.llm.configured, true);
+  assert.equal(s.llm.valid, false, 'não valida sem as duas');
   assert.equal(s.brave.configured, false);
   assert.equal(s.brave.valid, false);
 });
 
 test('classifyStartup: ambas válidas → ready', () => {
   const s = classifyStartup({
-    deepseekConfigured: true,
+    llmConfigured: true,
     braveConfigured: true,
-    deepseekResult: validResult('openrouter'),
+    llmResult: validResult('openrouter'),
     braveResult: validResult('brave'),
     checkedAt: 'now',
   });
   assert.equal(s.phase, 'ready');
   assert.equal(s.offline, false);
-  assert.equal(s.deepseek.valid, true);
+  assert.equal(s.llm.valid, true);
   assert.equal(s.brave.valid, true);
 });
 
-test('classifyStartup: DeepSeek inválida (401/403) → blocked com erro', () => {
+test('classifyStartup: chave do LLM inválida (401/403) → blocked com erro', () => {
   const s = classifyStartup({
-    deepseekConfigured: true,
+    llmConfigured: true,
     braveConfigured: true,
-    deepseekResult: invalidResult('openrouter', 'Invalid API key'),
+    llmResult: invalidResult('openrouter', 'Invalid API key'),
     braveResult: validResult('brave'),
     checkedAt: 'now',
   });
   assert.equal(s.phase, 'blocked');
   assert.equal(s.offline, false);
-  assert.equal(s.deepseek.valid, false);
-  assert.equal(s.deepseek.error, 'Invalid API key');
+  assert.equal(s.llm.valid, false);
+  assert.equal(s.llm.error, 'Invalid API key');
   assert.equal(s.brave.valid, true);
 });
 
 test('classifyStartup: AMBAS falham por rede → offline (online false, valid:false)', () => {
   const s = classifyStartup({
-    deepseekConfigured: true,
+    llmConfigured: true,
     braveConfigured: true,
-    deepseekResult: invalidResult('openrouter', NETWORK_ERR),
+    llmResult: invalidResult('openrouter', NETWORK_ERR),
     braveResult: invalidResult('brave', NETWORK_ERR),
     checkedAt: 'now',
   });
   assert.equal(s.phase, 'offline');
   assert.equal(s.offline, true);
-  assert.equal(s.deepseek.valid, false);
+  assert.equal(s.llm.valid, false);
   assert.equal(s.brave.valid, false);
-  assert.match(s.deepseek.error ?? '', /Network error/);
+  assert.match(s.llm.error ?? '', /Network error/);
   assert.match(s.brave.error ?? '', /Network error/);
 });
 
 test('classifyStartup: UMA rede-falhou + outra válida → blocked (NÃO offline)', () => {
   const s = classifyStartup({
-    deepseekConfigured: true,
+    llmConfigured: true,
     braveConfigured: true,
-    deepseekResult: invalidResult('openrouter', NETWORK_ERR),
+    llmResult: invalidResult('openrouter', NETWORK_ERR),
     braveResult: validResult('brave'),
     checkedAt: 'now',
   });
   assert.equal(s.phase, 'blocked', 'offline exige AMBAS por rede');
   assert.equal(s.offline, false);
-  assert.equal(s.deepseek.valid, false);
+  assert.equal(s.llm.valid, false);
   assert.equal(s.brave.valid, true);
 });
 
@@ -147,12 +146,12 @@ test('isNetworkError reconhece o prefixo Network error: dos validadores', () => 
 // ─── buildStartupHandlers com store fake + validadores injetados ─────────────
 
 test('startup-status: sem chave configurada → phase blocked SEM chamar validadores', async () => {
-  let deepseekCalls = 0;
+  let llmCalls = 0;
   let braveCalls = 0;
   const handlers = buildStartupHandlers({
     getStore: async () => makeStartupStore({ openrouter: 'sk-or-v1-d' }), // brave ausente
-    validateDeepseek: async () => {
-      deepseekCalls += 1;
+    validateLlm: async () => {
+      llmCalls += 1;
       return validResult('openrouter');
     },
     validateBrave: async () => {
@@ -163,38 +162,38 @@ test('startup-status: sem chave configurada → phase blocked SEM chamar validad
   const status = (await handlers.get(KEYS_CHANNELS.STARTUP_STATUS)!(undefined)) as StartupStatus;
   assert.equal(status.phase, 'blocked');
   assert.equal(status.brave.configured, false);
-  assert.equal(deepseekCalls, 0, 'não valida quando falta configurar');
+  assert.equal(llmCalls, 0, 'não valida quando falta configurar');
   assert.equal(braveCalls, 0, 'não valida quando falta configurar');
 });
 
 test('startup-status: ambas configuradas e válidas → ready', async () => {
   const handlers = buildStartupHandlers({
     getStore: async () => makeStartupStore({ openrouter: 'sk-or-v1-d', brave: 'bk' }),
-    validateDeepseek: async (key) => (key === 'sk-or-v1-d' ? validResult('openrouter') : invalidResult('openrouter', 'x')),
+    validateLlm: async (key) => (key === 'sk-or-v1-d' ? validResult('openrouter') : invalidResult('openrouter', 'x')),
     validateBrave: async (key) => (key === 'bk' ? validResult('brave') : invalidResult('brave', 'x')),
   });
   const status = (await handlers.get(KEYS_CHANNELS.STARTUP_STATUS)!(undefined)) as StartupStatus;
   assert.equal(status.phase, 'ready');
   assert.equal(status.offline, false);
-  assert.equal(status.deepseek.valid, true);
+  assert.equal(status.llm.valid, true);
   assert.equal(status.brave.valid, true);
 });
 
 test('startup-status: chave inválida → blocked com erro', async () => {
   const handlers = buildStartupHandlers({
     getStore: async () => makeStartupStore({ openrouter: 'sk-or-v1-d', brave: 'bk' }),
-    validateDeepseek: async () => invalidResult('openrouter', 'Invalid API key'),
+    validateLlm: async () => invalidResult('openrouter', 'Invalid API key'),
     validateBrave: async () => validResult('brave'),
   });
   const status = (await handlers.get(KEYS_CHANNELS.STARTUP_STATUS)!(undefined)) as StartupStatus;
   assert.equal(status.phase, 'blocked');
-  assert.equal(status.deepseek.error, 'Invalid API key');
+  assert.equal(status.llm.error, 'Invalid API key');
 });
 
 test('startup-status: AMBAS por rede → offline', async () => {
   const handlers = buildStartupHandlers({
     getStore: async () => makeStartupStore({ openrouter: 'sk-or-v1-d', brave: 'bk' }),
-    validateDeepseek: async () => invalidResult('openrouter', NETWORK_ERR),
+    validateLlm: async () => invalidResult('openrouter', NETWORK_ERR),
     validateBrave: async () => invalidResult('brave', NETWORK_ERR),
   });
   const status = (await handlers.get(KEYS_CHANNELS.STARTUP_STATUS)!(undefined)) as StartupStatus;
@@ -205,7 +204,7 @@ test('startup-status: AMBAS por rede → offline', async () => {
 test('startup-status: rede parcial (uma valid, outra rede) → blocked', async () => {
   const handlers = buildStartupHandlers({
     getStore: async () => makeStartupStore({ openrouter: 'sk-or-v1-d', brave: 'bk' }),
-    validateDeepseek: async () => validResult('openrouter'),
+    validateLlm: async () => validResult('openrouter'),
     validateBrave: async () => invalidResult('brave', NETWORK_ERR),
   });
   const status = (await handlers.get(KEYS_CHANNELS.STARTUP_STATUS)!(undefined)) as StartupStatus;
@@ -216,7 +215,7 @@ test('startup-status: rede parcial (uma valid, outra rede) → blocked', async (
 test('buildStartupHandlers expõe EXATAMENTE o canal keys:startup-status', () => {
   const handlers = buildStartupHandlers({
     getStore: async () => makeStartupStore({}),
-    validateDeepseek: async () => validResult('openrouter'),
+    validateLlm: async () => validResult('openrouter'),
     validateBrave: async () => validResult('brave'),
     timeoutMs: 0,
   });
@@ -250,7 +249,7 @@ test('registerStartupHandlers registra keys:startup-status no ipcMain (safeHandl
     const ipc = installFakeElectron();
     registerStartupHandlers({
       getStore: async () => makeStartupStore({ openrouter: 'sk-or-v1-d', brave: 'bk' }),
-      validateDeepseek: async () => validResult('openrouter'),
+      validateLlm: async () => validResult('openrouter'),
       validateBrave: async () => validResult('brave'),
       timeoutMs: 0,
     });
@@ -261,7 +260,7 @@ test('registerStartupHandlers registra keys:startup-status no ipcMain (safeHandl
     // safeHandle idempotente: re-registrar não lança.
     registerStartupHandlers({
       getStore: async () => makeStartupStore({}),
-      validateDeepseek: async () => validResult('openrouter'),
+      validateLlm: async () => validResult('openrouter'),
       validateBrave: async () => validResult('brave'),
       timeoutMs: 0,
     });
@@ -271,15 +270,15 @@ test('registerStartupHandlers registra keys:startup-status no ipcMain (safeHandl
   }
 });
 
-// ─── migração do slot da chave do LLM no GATE ────────────────────────────────
+// ─── slot da chave do LLM no GATE: canônico + fallback de leitura ────────────
 
-test('startup-status: chave só no slot LEGADO deepseek → configurada e validada (fallback)', async () => {
+test('startup-status: chave só no slot LEGADO → configurada e validada (fallback)', async () => {
   // Perfil de quem instalou o app antes da migração: nada em 'openrouter'.
   // O gate NÃO pode bloquear essa pessoa.
   const seen: string[] = [];
   const handlers = buildStartupHandlers({
-    getStore: async () => makeStartupStore({ deepseek: 'sk-legado', brave: 'bk' }),
-    validateDeepseek: async (key) => {
+    getStore: async () => makeStartupStore({ [LEGACY_LLM_PROVIDER_KEY]: 'sk-legado', brave: 'bk' }),
+    validateLlm: async (key) => {
       seen.push(key);
       return validResult('openrouter');
     },
@@ -289,7 +288,7 @@ test('startup-status: chave só no slot LEGADO deepseek → configurada e valida
   const status = (await handlers.get(KEYS_CHANNELS.STARTUP_STATUS)!(undefined)) as StartupStatus;
 
   assert.equal(status.phase, 'ready');
-  assert.equal(status.deepseek.configured, true);
+  assert.equal(status.llm.configured, true);
   assert.deepEqual(seen, ['sk-legado'], 'a chave antiga é a que foi validada');
 });
 
@@ -297,8 +296,12 @@ test('startup-status: slot NOVO tem precedência sobre o legado', async () => {
   const seen: string[] = [];
   const handlers = buildStartupHandlers({
     getStore: async () =>
-      makeStartupStore({ openrouter: 'sk-or-v1-nova', deepseek: 'sk-legado', brave: 'bk' }),
-    validateDeepseek: async (key) => {
+      makeStartupStore({
+        openrouter: 'sk-or-v1-nova',
+        [LEGACY_LLM_PROVIDER_KEY]: 'sk-legado',
+        brave: 'bk',
+      }),
+    validateLlm: async (key) => {
       seen.push(key);
       return validResult('openrouter');
     },
@@ -312,7 +315,7 @@ test('startup-status: slot NOVO tem precedência sobre o legado', async () => {
 // ─── tipos de deps compilam como esperado (âncora do contrato) ───────────────
 const _typeAnchor: RegisterStartupHandlersDeps = {
   getStore: async () => makeStartupStore({}),
-  validateDeepseek: async () => validResult('openrouter'),
+  validateLlm: async () => validResult('openrouter'),
   validateBrave: async () => validResult('brave'),
   timeoutMs: 8000,
 };

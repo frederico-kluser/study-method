@@ -11,7 +11,7 @@
  *     estado persiste (offered + skipped);
  *   - após reload, o modal NÃO reaparece (persistência one-shot).
  *
- * No E2E com gate 'ready' as chaves DeepSeek+Brave vêm válidas do stub, então o
+ * No E2E com gate 'ready' as chaves OpenRouter+Brave vêm válidas do stub, então o
  * Tutorial Completo (gateado por hasKeys) fica HABILITADO.
  */
 import { test, expect, type ElectronApplication, type Page } from '@playwright/test';

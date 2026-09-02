@@ -1,6 +1,6 @@
 /**
- * electron/main/services/deepseekLlmJudge.ts — juiz LLM do protocolo REQUEST/APPLY
- * (docs/00-contratos.md §6) sobre o cliente DeepSeek one-shot.
+ * electron/main/services/llmJudge.ts — juiz LLM do protocolo REQUEST/APPLY
+ * (docs/00-contratos.md §6) sobre o cliente de LLM remoto one-shot.
  *
  * Assinatura EXATA de LlmJudge do StudyMethodRunner:
  *   `type LlmJudge = (pedido: StudyRequestEnvelope) => Promise<unknown>`
@@ -21,24 +21,24 @@
  */
 
 import {
-  DEEPSEEK_ERROR_CODES,
-  DeepSeekError,
-  createDeepSeekClient,
-  type DeepSeekClient,
-} from './deepseekClient';
+  LLM_ERROR_CODES,
+  LlmError,
+  createLlmClient,
+  type LlmClient,
+} from './llmClient';
 import type { StudyRequestEnvelope } from './studyMethodRunner';
 
-export interface DeepSeekLlmJudgeDeps {
+export interface LlmJudgeDeps {
   /** Resolve a chave do provedor de LLM sob demanda. Default: '' (⇒ degrada sem rede). */
   getApiKey?: () => Promise<string>;
   /** Cliente injetável (testes isolam o judge do transporte). Default: novo cliente. */
-  client?: DeepSeekClient;
+  client?: LlmClient;
   /** Sobrescreve o model (default: OPENROUTER_MODEL.id, aplicado no cliente). */
   model?: string;
 }
 
 /** Juiz LLM injetável de um pedido REQUEST/APPLY. Devolve o objeto de items[0]. */
-export type DeepSeekLlmJudge = (pedido: StudyRequestEnvelope) => Promise<unknown>;
+export type LlmJudgeFn = (pedido: StudyRequestEnvelope) => Promise<unknown>;
 
 const SYSTEM_PROMPT_PT_BR =
   'Você é o juiz automatizado do tutor study-method. Você recebe um PEDIDO de ' +
@@ -126,22 +126,22 @@ export function extractFirstJsonObject(text: string): unknown {
 }
 
 /**
- * Fabrica o juiz LLM DeepSeek.
+ * Fabrica o juiz LLM remoto.
  *
  * Degradação (sem chave / sem conteúdo / rede): NÃO lança exceção crua.
  * `handleExit10` do runner NÃO captura throw do juiz, e `buildApplyFile`
  * converte um retorno não-objeto (ex.: `null`) no caminho degradado
  * `applyExhausted: true` sem fabricar dado nenhum — retornamos `null` nesses
- * casos. Com o B2, um 2xx com content vazio agora LANÇA DeepSeekError(
+ * casos. Com o B2, um 2xx com content vazio agora LANÇA LlmError(
  * EMPTY_CONTENT) no cliente (não devolve mais `{ content: '' }`), então esse
  * caminho é tratado no catch como degradação (o `if (!raw || !raw.content)`
  * viraria código morto). NETWORK também degrada (exceção de transporte sem
  * conteúdo utilizável). Demais erros do cliente (chave inválida, rate limit,
- * servidor) são re-lançados como DeepSeekError documentado para o chamador
+ * servidor) são re-lançados como LlmError documentado para o chamador
  * decidir, NUNCA expondo a chave.
  */
-export function createDeepSeekLlmJudge(deps: DeepSeekLlmJudgeDeps = {}): DeepSeekLlmJudge {
-  const client = deps.client ?? createDeepSeekClient({ apiKey: deps.getApiKey });
+export function createLlmJudge(deps: LlmJudgeDeps = {}): LlmJudgeFn {
+  const client = deps.client ?? createLlmClient({ apiKey: deps.getApiKey });
   const model = deps.model;
 
   return async function judge(pedido: StudyRequestEnvelope): Promise<unknown> {
@@ -173,10 +173,10 @@ export function createDeepSeekLlmJudge(deps: DeepSeekLlmJudgeDeps = {}): DeepSee
       // Demais erros sobem como estão (runtime real: chave inválida, rate limit,
       // servidor).
       if (
-        error instanceof DeepSeekError &&
-        (error.code === DEEPSEEK_ERROR_CODES.KEY_MISSING ||
-          error.code === DEEPSEEK_ERROR_CODES.EMPTY_CONTENT ||
-          error.code === DEEPSEEK_ERROR_CODES.NETWORK)
+        error instanceof LlmError &&
+        (error.code === LLM_ERROR_CODES.KEY_MISSING ||
+          error.code === LLM_ERROR_CODES.EMPTY_CONTENT ||
+          error.code === LLM_ERROR_CODES.NETWORK)
       ) {
         return null;
       }

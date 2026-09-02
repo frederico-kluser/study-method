@@ -411,30 +411,6 @@ test("thinkingLevel 'off' (e ausente) NÃO seta o campo na sessão", async () =>
   }
 });
 
-test('provider LEGADO "deepseek" na request roda no Model do OpenRouter', async () => {
-  const recorded: RecordedSession = {
-    setRuntimeKey: ['', ''],
-    sessionConfig: {},
-    disposeCalls: 0,
-    abortCalls: 0,
-    streamEvents: [],
-  };
-  const fakeSession = makeSession(recorded);
-  const service = makeService(fakeSession, recorded);
-
-  const run = service.execute(
-    makeRequest({ modelConfig: { provider: 'deepseek', model: 'deepseek-v4-flash' } }),
-  );
-  setImmediate(() => fakeSession.__resolvePrompt?.());
-  const res = await run;
-
-  assert.equal(res.success, true);
-  assert.deepEqual(recorded.setRuntimeKey, ['openrouter', 'sk-or-v1-key']);
-  const model = recorded.sessionConfig.model as Record<string, unknown>;
-  assert.equal(model.id, OPENROUTER_MODEL.id);
-  assert.equal(model.baseUrl, OPENROUTER_MODEL.baseUrl);
-});
-
 test('skillSystemPrompt e additionalContext são prefixados ao prompt final', async () => {
   const recorded: RecordedSession = {
     setRuntimeKey: ['', ''],

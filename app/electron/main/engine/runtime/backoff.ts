@@ -2,7 +2,7 @@
  * app/electron/main/engine/runtime/backoff.ts — política de retry/backoff do
  * transporte único de LLM (`docs/16-engine-de-trilha.md` §11: "429 é backoff,
  * nunca fallback"; §5.3: "parseie tudo e reprove"; convenção de erro do
- * `services/deepseekClient.ts`).
+ * `services/llmClient.ts`).
  *
  * A política é POR CÓDIGO de erro, não uniforme — retentar erro de bug só
  * queima token:
@@ -19,7 +19,7 @@
  * `Retry-After` É HONRADO — e isto MUDOU. A versão anterior deste cabeçalho
  * declarava backoff cego ("o cliente lê o corpo da Response e a descarta;
  * `Retry-After` não está acessível a jusante"). Não é mais verdade: o cliente
- * do OpenRouter preenche `retryAfterMs` no `DeepSeekError` a partir do header
+ * do OpenRouter preenche `retryAfterMs` no `LlmError` a partir do header
  * `Retry-After` de um 429 (o header vem em SEGUNDOS; a conversão para ms é do
  * cliente, este módulo recebe ms). Regra deste módulo:
  *
@@ -39,9 +39,9 @@
  */
 
 import {
-  DEEPSEEK_ERROR_CODES,
-  type DeepSeekErrorCode,
-} from '../../services/deepseekClient';
+  LLM_ERROR_CODES,
+  type LlmErrorCode,
+} from '../../services/llmClient';
 
 /** Quantas tentativas (além da primeira) cada código de erro tolera. */
 export interface RetryPolicy {
@@ -58,14 +58,14 @@ export interface RetryPolicy {
  * backoff nunca chega a ser consultado para eles, mas o registro fica
  * completo para a tabela ser legível e os testes fixarem o contrato.
  */
-export const DEFAULT_BACKOFF_POLICIES: Readonly<Record<DeepSeekErrorCode, RetryPolicy>> = {
-  [DEEPSEEK_ERROR_CODES.KEY_MISSING]: { maxRetries: 0, baseDelayMs: 0, maxDelayMs: 0 },
-  [DEEPSEEK_ERROR_CODES.KEY_INVALID]: { maxRetries: 0, baseDelayMs: 0, maxDelayMs: 0 },
-  [DEEPSEEK_ERROR_CODES.BAD_REQUEST]: { maxRetries: 0, baseDelayMs: 0, maxDelayMs: 0 },
-  [DEEPSEEK_ERROR_CODES.EMPTY_CONTENT]: { maxRetries: 1, baseDelayMs: 250, maxDelayMs: 2_000 },
-  [DEEPSEEK_ERROR_CODES.RATE_LIMIT]: { maxRetries: 4, baseDelayMs: 1_000, maxDelayMs: 30_000 },
-  [DEEPSEEK_ERROR_CODES.SERVER_ERROR]: { maxRetries: 3, baseDelayMs: 500, maxDelayMs: 15_000 },
-  [DEEPSEEK_ERROR_CODES.NETWORK]: { maxRetries: 3, baseDelayMs: 500, maxDelayMs: 15_000 },
+export const DEFAULT_BACKOFF_POLICIES: Readonly<Record<LlmErrorCode, RetryPolicy>> = {
+  [LLM_ERROR_CODES.KEY_MISSING]: { maxRetries: 0, baseDelayMs: 0, maxDelayMs: 0 },
+  [LLM_ERROR_CODES.KEY_INVALID]: { maxRetries: 0, baseDelayMs: 0, maxDelayMs: 0 },
+  [LLM_ERROR_CODES.BAD_REQUEST]: { maxRetries: 0, baseDelayMs: 0, maxDelayMs: 0 },
+  [LLM_ERROR_CODES.EMPTY_CONTENT]: { maxRetries: 1, baseDelayMs: 250, maxDelayMs: 2_000 },
+  [LLM_ERROR_CODES.RATE_LIMIT]: { maxRetries: 4, baseDelayMs: 1_000, maxDelayMs: 30_000 },
+  [LLM_ERROR_CODES.SERVER_ERROR]: { maxRetries: 3, baseDelayMs: 500, maxDelayMs: 15_000 },
+  [LLM_ERROR_CODES.NETWORK]: { maxRetries: 3, baseDelayMs: 500, maxDelayMs: 15_000 },
 };
 
 /** Configuração de backoff injetável (testes usam atrasos minúsculos). */
@@ -74,7 +74,7 @@ export interface BackoffConfig {
    * Overrides parciais por código — a política resultante é a default com os
    * campos aqui fornecidos substituídos (merge por campo, não por código).
    */
-  policies?: Partial<Record<DeepSeekErrorCode, Partial<RetryPolicy>>>;
+  policies?: Partial<Record<LlmErrorCode, Partial<RetryPolicy>>>;
   /** Amplitude do jitter 0..1. 0 = determinístico (caminho dos testes). */
   jitterRatio?: number;
   /** Fonte de aleatoriedade injetável (testes). Default: Math.random. */
@@ -101,7 +101,7 @@ export function retryAfterMsFrom(error: unknown): number | undefined {
 }
 
 /** Política final de um código: defaults mesclados com os overrides. */
-export function policyFor(code: DeepSeekErrorCode, config: BackoffConfig = {}): RetryPolicy {
+export function policyFor(code: LlmErrorCode, config: BackoffConfig = {}): RetryPolicy {
   const base = DEFAULT_BACKOFF_POLICIES[code];
   const override = config.policies?.[code];
   if (!override) return base;
@@ -113,7 +113,7 @@ export function policyFor(code: DeepSeekErrorCode, config: BackoffConfig = {}): 
 }
 
 /** Quantas retentativas o código tolera sob a config dada. */
-export function maxRetriesFor(code: DeepSeekErrorCode, config: BackoffConfig = {}): number {
+export function maxRetriesFor(code: LlmErrorCode, config: BackoffConfig = {}): number {
   return policyFor(code, config).maxRetries;
 }
 
@@ -169,7 +169,7 @@ export interface RetryDecision {
  * não-retentável que venha com `Retry-After` continua não retentando.
  */
 export function retryDecision(
-  code: DeepSeekErrorCode,
+  code: LlmErrorCode,
   attempt: number,
   config: BackoffConfig = {},
   retryAfterMs?: number,

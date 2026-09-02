@@ -219,8 +219,8 @@ export default function ChallengeView(props: ViewProps): ReactElement {
   const [blocks, setBlocks] = useState<StreamingBlock[]>([]);
   const [piFinal, setPiFinal] = useState<string>('');
   const [piError, setPiError] = useState('');
-  // Provedor que executou a última fase de feedback ('local' | 'deepseek').
-  const [feedbackProvider, setFeedbackProvider] = useState<'local' | 'deepseek' | null>(null);
+  // Provedor que executou a última fase de feedback ('local' | 'openrouter').
+  const [feedbackProvider, setFeedbackProvider] = useState<'local' | 'openrouter' | null>(null);
 
   // Path do arquivo de código "principal" do workspace (para o pi ver o stub).
   const primaryCodePath = useMemo(() => {
@@ -651,7 +651,7 @@ export default function ChallengeView(props: ViewProps): ReactElement {
     }
   }, [t]);
 
-  /** Fase de feedback — decide o provedor e executa (pi DeepSeek OU modelo local). */
+  /** Fase de feedback — decide o provedor e executa (pi no LLM remoto OU modelo local). */
   const runPi = useCallback(async (): Promise<void> => {
     if (!active) return;
     setPiStatus('running');
@@ -686,10 +686,10 @@ export default function ChallengeView(props: ViewProps): ReactElement {
 
     // DECISÃO DE PROVEDOR (função pura, testada): o modelo local só avalia quando
     // o usuário selecionou 'local' nas Configurações E há um modelo local ativo.
-    let provider: 'local' | 'deepseek' = 'deepseek';
+    let provider: 'local' | 'openrouter' = 'openrouter';
     try {
       const [settings, activeModel] = await Promise.all([
-        api.settings.get().catch(() => ({}) as { defaultModelProvider?: 'deepseek' | 'local' }),
+        api.settings.get().catch(() => ({}) as { defaultModelProvider?: 'openrouter' | 'local' }),
         (api.localAi.getActive as () => Promise<string | null>)().catch(() => null),
       ]);
       provider = resolveFeedbackProvider({
@@ -697,7 +697,7 @@ export default function ChallengeView(props: ViewProps): ReactElement {
         activeLocalModelId: activeModel ?? null,
       });
     } catch {
-      provider = 'deepseek'; // defensivo: nunca impede o feedback por falha de leitura.
+      provider = 'openrouter'; // defensivo: nunca impede o feedback por falha de leitura.
     }
     setFeedbackProvider(provider);
 

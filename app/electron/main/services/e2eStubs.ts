@@ -85,10 +85,7 @@ async function sleep(ms: number): Promise<void> {
 /**
  * Estado em memória das chaves (o stub NÃO toca o settingsStore real).
  *
- * MIGRAÇÃO OPENROUTER: o slot do LLM é `openrouter` — o E2E não afirma mais
- * `deepseek` em lugar nenhum. O nome legado sobrevive apenas como APELIDO de
- * ENTRADA do `keys:set-key` (o renderer de hoje ainda manda 'deepseek') e nos
- * campos do StartupStatus/KeysStatus, que são contrato congelado até a ONDA 2.
+ * O slot do LLM é `openrouter` — o único nome de provedor que o stub conhece.
  */
 interface KeyState {
   openrouter: string;
@@ -132,7 +129,7 @@ function buildStartupStatus(): StartupStatus {
   if (!bothConfigured()) {
     return {
       phase: 'blocked',
-      deepseek: { configured: false, valid: false },
+      llm: { configured: false, valid: false },
       brave: { configured: false, valid: false },
       offline: false,
       checkedAt,
@@ -141,7 +138,7 @@ function buildStartupStatus(): StartupStatus {
   if (process.env.E2E_NETWORK === 'offline') {
     return {
       phase: 'offline',
-      deepseek: { configured: true, valid: false, error: 'Network error: offline (E2E stub)' },
+      llm: { configured: true, valid: false, error: 'Network error: offline (E2E stub)' },
       brave: { configured: true, valid: false, error: 'Network error: offline (E2E stub)' },
       offline: true,
       checkedAt,
@@ -152,7 +149,7 @@ function buildStartupStatus(): StartupStatus {
   if (invalidD || invalidB) {
     return {
       phase: 'blocked',
-      deepseek: {
+      llm: {
         configured: true,
         valid: !invalidD,
         error: invalidD ? 'Invalid API key' : undefined,
@@ -164,7 +161,7 @@ function buildStartupStatus(): StartupStatus {
   }
   return {
     phase: 'ready',
-    deepseek: { configured: true, valid: true },
+    llm: { configured: true, valid: true },
     brave: { configured: true, valid: true },
     offline: false,
     checkedAt,
@@ -228,7 +225,7 @@ function buildLesson(subject: string, challenge: ChallengeInfo): StudyLesson {
   return {
     title: `Aula E2E sobre ${subject.trim()}`,
     subject: subject.trim(),
-    markdown: `# Aula E2E: ${subject.trim()}\n\n> Conteúdo mockado do harness E2E — sem LLM/DeepSeek.\n\n## Analogia\n\nImagine uma fila ordenada.\n\n## Fórmula (KaTeX)\n\nPitágoras: $a^2 + b^2 = c^2$.\n\n\`\`\`python\nprint("olá")\n\`\`\`\n`,
+    markdown: `# Aula E2E: ${subject.trim()}\n\n> Conteúdo mockado do harness E2E — sem LLM remoto.\n\n## Analogia\n\nImagine uma fila ordenada.\n\n## Fórmula (KaTeX)\n\nPitágoras: $a^2 + b^2 = c^2$.\n\n\`\`\`python\nprint("olá")\n\`\`\`\n`,
     findings: lessonFindings(subject.trim()),
     challenges: [challenge],
     createdAt: new Date().toISOString(),
@@ -429,7 +426,7 @@ async function writeFixtureTrack(): Promise<void> {
     concepts: ['funcoes'],
     prerequisites: [],
     theory: [
-      { id: 'introducao', title: 'Introdução', markdown: 'Conteúdo mockado do harness E2E — sem LLM/DeepSeek.\n\n## Analogia\nImagine uma fila ordenada.' },
+      { id: 'introducao', title: 'Introdução', markdown: 'Conteúdo mockado do harness E2E — sem LLM remoto.\n\n## Analogia\nImagine uma fila ordenada.' },
       { id: 'funcoes', title: 'Funções', markdown: 'Função recebe um número e devolve o dobro.', code: { language: 'js', code: 'const dobro = (n) => n * 2;', explanation: 'n * 2 é o dobro.' } },
     ],
     sources: [{ title: 'MDN', url: 'https://example.org', description: 'Fonte fixture E2E.' }],
@@ -580,8 +577,8 @@ function buildE2ETrackRepo(): TrackRepoLike {
   };
 }
 
-/** DeepSeek fake: o tutor responde texto determinístico (sem rede). */
-const e2eDeepseek = {
+/** Cliente de LLM fake: o tutor responde texto determinístico (sem rede). */
+const e2eLlm = {
   chatCompletion: async (req: unknown) => ({
     content: 'Seção apresentada pelo tutor E2E (stub determinístico, sem rede).\n\nO que você quer saber?',
     model: 'e2e-stub',
@@ -764,31 +761,26 @@ function buildVoiceStubHandlers(): Map<string, IpcHandlerFn> {
 // ─── Registration fechada (input) ─────────────────────────────────────────────
 
 /**
- * Handlers STUB dos canais keys:* — exportado para o teste unitário aferir a
- * migração do slot da chave (openrouter canônico, 'deepseek' como apelido de
- * entrada) sem subir o Electron.
+ * Handlers STUB dos canais keys:* — exportado para o teste unitário aferir o
+ * slot da chave do LLM (`openrouter`) sem subir o Electron.
  */
 export function buildKeysStubHandlers(): Map<string, IpcHandlerFn> {
   const map = new Map<string, IpcHandlerFn>();
   map.set(KEYS_CHANNELS.STARTUP_STATUS, async (): Promise<StartupStatus> => buildStartupStatus());
   map.set(KEYS_CHANNELS.GET_STATUS, async (): Promise<KeysStatusLike> => ({
-    // Campos legados do KeysStatus (contrato até a ONDA 2) alimentados pelo
-    // slot 'openrouter'.
-    deepseekConfigured: keys.openrouter !== '',
+    llmConfigured: keys.openrouter !== '',
     braveConfigured: keys.brave !== '',
-    deepseekValidated: !keyIsInvalid(keys.openrouter) && keys.openrouter !== '',
+    llmValidated: !keyIsInvalid(keys.openrouter) && keys.openrouter !== '',
     braveValidated: !keyIsInvalid(keys.brave) && keys.brave !== '',
   }));
   map.set(KEYS_CHANNELS.SET_KEY, async (_e, provider: unknown, apiKey: unknown) => {
     const p = String(provider ?? '');
     const k = typeof apiKey === 'string' ? apiKey.trim() : '';
-    // 'openrouter' é o nome canônico; 'deepseek' é aceito como APELIDO porque o
-    // renderer só passa a mandar o nome novo na ONDA 2.
-    if (p === OPENROUTER_PROVIDER_KEY || p === 'deepseek') keys.openrouter = k;
+    if (p === OPENROUTER_PROVIDER_KEY) keys.openrouter = k;
     else if (p === 'brave') keys.brave = k;
     return { ok: true };
   });
-  map.set(KEYS_CHANNELS.VALIDATE_DEEPSEEK, async (_e, key?: unknown) =>
+  map.set(KEYS_CHANNELS.VALIDATE_LLM, async (_e, key?: unknown) =>
     validResult(OPENROUTER_PROVIDER_KEY, typeof key === 'string' ? key : keys.openrouter),
   );
   map.set(KEYS_CHANNELS.VALIDATE_BRAVE, async (_e, key?: unknown) =>
@@ -798,9 +790,9 @@ export function buildKeysStubHandlers(): Map<string, IpcHandlerFn> {
 }
 
 interface KeysStatusLike {
-  deepseekConfigured: boolean;
+  llmConfigured: boolean;
   braveConfigured: boolean;
-  deepseekValidated: boolean;
+  llmValidated: boolean;
   braveValidated: boolean;
 }
 

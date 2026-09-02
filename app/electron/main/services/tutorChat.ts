@@ -27,7 +27,7 @@
  * desafio). Sem challengeError o prompt é byte-idêntico ao fluxo normal;
  * 'next' continua determinístico e ignora o erro.
  *
- * PURE/DI: `chat` injetável (testes com fake; produção = deepseekClient).
+ * PURE/DI: `chat` injetável (testes com fake; produção = llmClient).
  */
 
 import { TrackLessonSource } from '../content/trackTypes';

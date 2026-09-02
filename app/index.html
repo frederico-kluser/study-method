@@ -14,7 +14,7 @@
 
       NÃO usamos 'unsafe-eval': o CodeMirror é compilado e não usa eval / new
       Function (a extensão de autocomplete está desligada nesta onda). Todo o
-      tráfego de rede (DeepSeek, Pi, Brave, download de modelo local) roda no
+      tráfego de rede (OpenRouter, Pi, Brave, download de modelo local) roda no
       PROCESSO MAIN (electron/main/services/*), não no renderer — por isso a
       connect-src do renderer fica restrita a 'self' (dev server / file). Os
       assets de build (out/renderer/assets/*) saem do próprio app.

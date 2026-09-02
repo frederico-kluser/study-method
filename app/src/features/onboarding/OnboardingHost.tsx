@@ -64,7 +64,7 @@ export function OnboardingHost({ isReady, activeView = 'home', onNavigateView }:
   const refreshKeys = useCallback(() => {
     getApi()
       .keys.getStatus()
-      .then((s) => setHasKeys(Boolean(s.deepseekConfigured && s.braveConfigured)))
+      .then((s) => setHasKeys(Boolean(s.llmConfigured && s.braveConfigured)))
       .catch(() => setHasKeys(true));
   }, []);
 

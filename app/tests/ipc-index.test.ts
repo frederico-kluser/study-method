@@ -55,8 +55,8 @@ test('readAppSettings: lê apenas as chaves definidas no store', async () => {
   const store = makeStore({
     setupsDir: '/setups',
     lastSubject: 'listas',
-    defaultModelProvider: 'deepseek',
-    defaultModelId: 'deepseek-v4-flash',
+    defaultModelProvider: 'openrouter',
+    defaultModelId: 'z-ai/glm-5.3-flash',
     // chaves fora do subconjunto AppSettings são ignoradas
     someOtherValue: 'x',
   });
@@ -64,14 +64,13 @@ test('readAppSettings: lê apenas as chaves definidas no store', async () => {
   assert.deepEqual(settings, {
     setupsDir: '/setups',
     lastSubject: 'listas',
-    defaultModelProvider: 'deepseek',
-    defaultModelId: 'deepseek-v4-flash',
+    defaultModelProvider: 'openrouter',
+    defaultModelId: 'z-ai/glm-5.3-flash',
   });
 });
 
 test('readAppSettings: defaultModelProvider openrouter atravessa (migração do LLM)', async () => {
   // A union de leitura acompanha AppSettings do contrato: 'openrouter' entrou
-  // ao lado do legado 'deepseek', que ainda pode estar gravado no disco.
   const store = makeStore({
     defaultModelProvider: 'openrouter',
     defaultModelId: 'z-ai/glm-5.3-flash',
@@ -120,13 +119,13 @@ test('writeAppSettings: escreve todas as 4 chaves quando definidas', async () =>
   await writeAppSettings(store, {
     setupsDir: '1',
     lastSubject: '2',
-    defaultModelProvider: 'deepseek',
+    defaultModelProvider: 'openrouter',
     defaultModelId: '3',
   });
   assert.deepEqual(store.writes, [
     ['setupsDir', '1'],
     ['lastSubject', '2'],
-    ['defaultModelProvider', 'deepseek'],
+    ['defaultModelProvider', 'openrouter'],
     ['defaultModelId', '3'],
   ]);
 });

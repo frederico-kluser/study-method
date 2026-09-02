@@ -1,6 +1,6 @@
 /**
  * real-lesson.spec.ts — E2E REAL: geração de uma aula de verdade (pesquisa Brave
- * + autoria DeepSeek + runner materializando/validando os desafios).
+ * + autoria pelo LLM remoto + runner materializando/validando os desafios).
  *
  * MODO REAL (onda 18): o app é lançado SEM `STUDY_METHOD_E2E` — a fiação real
  * da onda 3 flui de ponta a ponta com as CHAVES REAIS injetadas por env (ver
@@ -57,7 +57,7 @@ test('real-lesson: aula real gerada (pesquisa+autoria+validação); desafios LIS
   // App destravado (gate ready com chaves reais).
   await expect(page.getByRole('banner').getByText('Study Method — Tutor', { exact: false })).toBeVisible();
 
-  // Gera a aula REAL (com repetição transiente do DeepSeek). O sinal
+  // Gera a aula REAL (com repetição transiente do LLM remoto). O sinal
   // lesson-status:done (data attr da LessonView) só é setado quando a geração
   // terminou (não confundir com o rótulo do Stepper).
   const gen = await generateRealLesson(page, 'Inverter uma árvore binária', {

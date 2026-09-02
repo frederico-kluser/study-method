@@ -1,6 +1,6 @@
 /**
  * real-didactics.spec.ts — E2E REAL da DIDÁTICA CERTA/ERRADA (pedido explícito):
- * a resposta do aluno é avaliada PELO JUIZ/avaliador DeepSeek de verdade e o
+ * a resposta do aluno é avaliada PELO JUIZ/avaliador remoto de verdade e o
  * feedback didático chega à UI.
  *
  * Fluxo (1 aula real + 2 avaliações no MESMO desafio — o mínimo aceito pelo
@@ -8,13 +8,13 @@
  *   1. gera UMA aula real ("Inverter uma árvore binária") e abre um desafio;
  *   2. RESPONDIDA CORRETAMENTE: escreve a solução de referência no stub real,
  *      clica "Testar resposta" → veredito determinístico "PASSOU" (runner real
- *      rodando os testes reais) + feedback didático do DeepSeek na UI;
+ *      rodando os testes reais) + feedback didático do LLM remoto na UI;
  *   3. RESPONDIDA ERRADA/parcial: restaura o stub vazio/incompleto, clica
  *      "Testar resposta" → veredito "NÃO PASSOU" + feedback didático com dicas.
  *
  * O stub é escrito pelo canal REAL `study:write-workspace-file` (o mesmo save
  * da UI); o veredito vem do runner real (`runner.sh` + testes reais); o
- * feedback vem do pi DeepSeek streamado no painel de Feedback da ChallengeView.
+ * feedback vem do pi (LLM remoto) streamado no painel de Feedback da ChallengeView.
  *
  * SKIP automático SEM chaves reais. Timeout generoso (geração real + 2 evals).
  */
@@ -26,7 +26,7 @@ import { launchRealApp, closeRealApp, skipIfNoRealKeys, generateRealLesson, type
 
 // CÁLCULO DO TIMEOUT (pior caso real):
 //   geração: até 2 tentativas × perAttemptMs 420s = 840s (14min);
-//   + 2 avaliações didáticas DeepSeek (feedback certa + errada) ≈ até ~5min;
+//   + 2 avaliações didáticas remotas (feedback certa + errada) ≈ até ~5min;
 //   + vereditos/asserts do runner e latência de rede/LLM.
 //   840s + ~2×150s avaliações + folga ≈ 25min. O teto de 30min (1.8×10⁶ ms)
 //   absorve a cauda lenta e o retry 1x sem matar progresso real.
@@ -48,12 +48,12 @@ test.afterEach(async () => {
   }
 });
 
-test('real-didactics: resposta CORRETA → PASSOU + feedback DeepSeek; resposta ERRADA → NÃO PASSOU + feedback/dicas', async () => {
+test('real-didactics: resposta CORRETA → PASSOU + feedback do LLM; resposta ERRADA → NÃO PASSOU + feedback/dicas', async () => {
   const setupsDir = fs.mkdtempSync(path.join(os.tmpdir(), 'sm-real-setups-'));
   real = await launchRealApp({ setupsDir });
   page = real.page;
 
-  // Gera a aula real (com repetição transiente do DeepSeek) e aguarda o `done`.
+  // Gera a aula real (com repetição transiente do LLM remoto) e aguarda o `done`.
   await expect(page.getByRole('banner').getByText('Study Method — Tutor', { exact: false })).toBeVisible();
   const gen = await generateRealLesson(page, 'Inverter uma árvore binária', {
     attempts: 2,
@@ -111,7 +111,7 @@ test('real-didactics: resposta CORRETA → PASSOU + feedback DeepSeek; resposta 
   await expect(page.getByText('PASSOU', { exact: false }).first()).toBeVisible({ timeout: 90_000 });
   await expect(page.getByText(/TESTS_RUN=\d+/).first()).toBeVisible({ timeout: 60_000 });
 
-  // Feedback didático do DeepSeek chega à UI (painel de feedback — `pre` do
+  // Feedback didático do LLM remoto chega à UI (painel de feedback — `pre` do
   // piFinal, renderizado por último após o enunciado/raciocínio). Não vazio.
   await expect(page.getByText('Feedback', { exact: false }).first()).toBeVisible({ timeout: 20_000 });
   await expect(page.locator('main pre').last()).not.toBeEmpty({ timeout: 120_000 });
@@ -128,7 +128,7 @@ test('real-didactics: resposta CORRETA → PASSOU + feedback DeepSeek; resposta 
   await expect(page.getByText('NÃO PASSOU', { exact: false }).first()).toBeVisible({ timeout: 90_000 });
 
   // Feedback didático (dicas/pistas sobre o erro) chega à UI — novo conteúdo do
-  // DeepSeek após a resposta errada.
+  // LLM remoto após a resposta errada.
   await expect(page.getByText('Feedback', { exact: false }).first()).toBeVisible({ timeout: 20_000 });
   await expect(page.locator('main pre').last()).not.toBeEmpty({ timeout: 120_000 });
 

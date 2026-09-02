@@ -302,7 +302,7 @@ describe('buildTrackHandlers — trilhas', () => {
     const map = buildTrackHandlers({
       getTracksDir: () => path.dirname(dir),
       repo: fakeRepo(),
-      deepseek: {
+      llm: {
         chatCompletion: async () => {
           llmCalls += 1;
           return { content: 'Bem-vindo à aula!', model: 'fake' };
@@ -323,7 +323,7 @@ describe('buildTrackHandlers — trilhas', () => {
     assert.equal(llmCalls, 0, "'next' nunca chama a LLM");
   });
 
-  it("track:tutor-chat 'next' sem deepseek → markdown verbatim (ok ainda true)", async () => {
+  it("track:tutor-chat 'next' sem llm → markdown verbatim (ok ainda true)", async () => {
     const dir = await makeTrackDir();
     const map = buildTrackHandlers({ getTracksDir: () => path.dirname(dir), repo: fakeRepo() });
     const result = await call<TutorReply>(map, TRACK_CHANNELS.TUTOR_CHAT, {
@@ -337,7 +337,7 @@ describe('buildTrackHandlers — trilhas', () => {
     assert.ok(result.message.includes('Teoria simples'));
   });
 
-  it("track:tutor-chat 'answer' sem deepseek (sem cliente) → TUTOR_UNAVAILABLE imediato (ONDA 1)", async () => {
+  it("track:tutor-chat 'answer' sem llm (sem cliente) → TUTOR_UNAVAILABLE imediato (ONDA 1)", async () => {
     // F2: falha RÁPIDA — sem cliente o handler nunca deixa o renderer em
     // spinner infinito; o erro estruturado chega na hora.
     const dir = await makeTrackDir();
@@ -355,13 +355,13 @@ describe('buildTrackHandlers — trilhas', () => {
     assert.equal(result.done, false);
   });
 
-  it("track:tutor-chat 'answer' com deepseek que LANÇA → TUTOR_UNAVAILABLE imediato", async () => {
+  it("track:tutor-chat 'answer' com llm que LANÇA → TUTOR_UNAVAILABLE imediato", async () => {
     // F2: erro de rede/LLM também é falha rápida — nunca resposta inventada.
     const dir = await makeTrackDir();
     const map = buildTrackHandlers({
       getTracksDir: () => path.dirname(dir),
       repo: fakeRepo(),
-      deepseek: {
+      llm: {
         chatCompletion: async () => {
           throw new Error('network down');
         },
@@ -378,13 +378,13 @@ describe('buildTrackHandlers — trilhas', () => {
     assert.equal(result.error?.code, 'TUTOR_UNAVAILABLE');
   });
 
-  it("track:tutor-chat 'answer' com deepseek ok → responde com o texto do chat", async () => {
+  it("track:tutor-chat 'answer' com llm ok → responde com o texto do chat", async () => {
     const dir = await makeTrackDir();
     let sawMessages = 0;
     const map = buildTrackHandlers({
       getTracksDir: () => path.dirname(dir),
       repo: fakeRepo(),
-      deepseek: {
+      llm: {
         chatCompletion: async (req: { messages: Array<{ role: string; content: string }> }) => {
           sawMessages = req.messages.length;
           return { content: 'Resposta do tutor para sua dúvida.', model: 'fake' };
@@ -489,7 +489,7 @@ describe('buildTrackHandlers — trilhas', () => {
         listFailedChallengeSlugs: async () => ['desafio-1'],
         insertGeneratedChallenge: async (input) => void (persisted = input),
       }),
-      deepseek: {
+      llm: {
         chatCompletion: async (req: { messages: Array<{ role: string; content: string }> }) => {
           // ONDA 2 (autoria): a 1ª chamada é a GERAÇÃO; as seguintes são do
           // VALIDADOR SEMÂNTICO (o fake devolve o mesmo JSON de draft — o
@@ -528,7 +528,7 @@ describe('buildTrackHandlers — trilhas', () => {
     const map = buildTrackHandlers({
       getTracksDir: () => path.dirname(dir),
       repo: fakeRepo(),
-      deepseek: {
+      llm: {
         chatCompletion: async () => ({
           content: 'resposta sem json',
           model: 'fake',
@@ -554,7 +554,7 @@ describe('buildTrackHandlers — trilhas', () => {
       emit: (_channel, ev) => {
         events.push(ev as { stage: string; generationId?: number; challenge?: { slug: string; title: string }; error?: string });
       },
-      deepseek: {
+      llm: {
         chatCompletion: async () => ({
           content: JSON.stringify({
             title: 'Novo desafio',
@@ -600,7 +600,7 @@ describe('buildTrackHandlers — trilhas', () => {
       emit: (_channel, ev) => {
         events.push(ev as { stage: string; generationId?: number; error?: string });
       },
-      deepseek: {
+      llm: {
         chatCompletion: async () => ({ content: 'resposta sem json', model: 'fake' }),
       } as never,
     });
@@ -629,7 +629,7 @@ describe('buildTrackHandlers — trilhas', () => {
       emit: (_channel, ev) => {
         events.push(ev as { stage: string; error?: string });
       },
-      deepseek: {
+      llm: {
         chatCompletion: async () => ({ content: '{}', model: 'fake' }),
       } as never,
     });
@@ -646,7 +646,7 @@ describe('buildTrackHandlers — trilhas', () => {
     events.length = 0;
     const mapNoRepo = buildTrackHandlers({
       getTracksDir: () => path.dirname(dir),
-      deepseek: {
+      llm: {
         chatCompletion: async () => ({ content: '{}', model: 'fake' }),
       } as never,
     });
@@ -675,7 +675,7 @@ describe('buildTrackHandlers — trilhas', () => {
         }
         events.push(ev as { stage: string; error?: string });
       },
-      deepseek: {
+      llm: {
         chatCompletion: async () => ({
           content: JSON.stringify({
             title: 'Novo desafio',
@@ -707,7 +707,7 @@ describe('buildTrackHandlers — trilhas', () => {
     const map = buildTrackHandlers({
       getTracksDir: () => path.dirname(dir),
       repo: fakeRepo(),
-      deepseek: {
+      llm: {
         chatCompletion: async () => ({
           content: JSON.stringify({
             title: 'Novo desafio',
@@ -743,7 +743,7 @@ describe('buildTrackHandlers — trilhas', () => {
     const map = buildTrackHandlers({
       getTracksDir: () => path.dirname(dir),
       repo: fakeRepo({ listFailedChallengeSlugs: async () => ['desafio-1'] }),
-      deepseek: {
+      llm: {
         chatCompletion: async (req: { messages: Array<{ role: string; content: string }> }) => {
           prompts.push(req.messages.map((m) => m.content).join('\n'));
           if (prompts.length === 1) {

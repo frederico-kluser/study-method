@@ -15,16 +15,16 @@ test.afterEach(async () => {
   if (app) await closeApp(app);
 });
 
-test('e2e-settings: preencher DeepSeek+Brave no Setup destrava o app', async () => {
+test('e2e-settings: preencher OpenRouter+Brave no Setup destrava o app', async () => {
   const launched = await launchApp({}); // sem chaves → SetupView
   app = launched.app;
   page = launched.page;
 
   await expect(page.getByRole('heading', { name: 'Antes de começar' })).toBeVisible();
 
-  // Preenche e valida a chave DeepSeek.
-  const ds = page.getByLabel('Chave DeepSeek');
-  await ds.fill('sk-test-e2e-deepseek');
+  // Preenche e valida a chave do OpenRouter.
+  const ds = page.getByLabel('Chave OpenRouter');
+  await ds.fill('sk-or-v1-test-e2e');
   await page.getByRole('button', { name: 'Validar' }).nth(0).click();
   await expect(page.getByText('Válida', { exact: true })).toBeVisible();
 

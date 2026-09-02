@@ -2,7 +2,7 @@
   "name": "study-method-gui",
   "private": true,
   "version": "0.1.0",
-  "description": "GUI Electron para o tutor study-method — LLM local (node-llama-cpp), editor de código sem autocomplete, pesquisa Brave e pi coding agent (DeepSeek v4 flash 0731).",
+  "description": "GUI Electron para o tutor study-method — LLM local (node-llama-cpp), editor de código sem autocomplete, pesquisa Brave e pi coding agent (GLM 5.3 Flash via OpenRouter).",
   "author": "study-method",
   "main": "./out/main/index.js",
   "engines": {

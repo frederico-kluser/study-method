@@ -107,19 +107,19 @@ import { deriveTrackBudget } from '../electron/main/engine/budget';
 import type { LoadedLesson, LoadedModule, LoadedTrack } from '../electron/main/content/trackLoader';
 import type { TrackChallengeSource, TrackTheorySection } from '../electron/main/content/trackTypes';
 import type {
-  DeepSeekChatRequest,
-  DeepSeekChatResponse,
-  DeepSeekClient,
-} from '../electron/main/services/deepseekClient';
+  LlmChatRequest,
+  LlmChatResponse,
+  LlmClient,
+} from '../electron/main/services/llmClient';
 
 // ---------------------------------------------------------------------------
 // Fakes e helpers compartilhados (PURAS — sem IO, sem rede, sem processo)
 // ---------------------------------------------------------------------------
 
-function okResponse(promptTokens = 10, completionTokens = 5): DeepSeekChatResponse {
+function okResponse(promptTokens = 10, completionTokens = 5): LlmChatResponse {
   return {
     content: '{"ok":true}',
-    model: 'deepseek-v4-flash',
+    model: 'z-ai/glm-5.3-flash',
     usage: { promptTokens, completionTokens },
   };
 }
@@ -136,21 +136,21 @@ function baseReq(over: Partial<LlmCallRequest> = {}): LlmCallRequest {
 
 /** Cliente fake que conta chamadas e mede o pico de chamadas em voo. */
 function makeFakeClient(
-  respond: (req: DeepSeekChatRequest, callIndex: number) => Promise<unknown> | unknown,
-): { client: DeepSeekClient; calls: DeepSeekChatRequest[]; peak: () => number } {
-  const calls: DeepSeekChatRequest[] = [];
+  respond: (req: LlmChatRequest, callIndex: number) => Promise<unknown> | unknown,
+): { client: LlmClient; calls: LlmChatRequest[]; peak: () => number } {
+  const calls: LlmChatRequest[] = [];
   let inflight = 0;
   let peakSeen = 0;
   return {
     calls,
     peak: () => peakSeen,
     client: {
-      async chatCompletion(req: DeepSeekChatRequest): Promise<DeepSeekChatResponse> {
+      async chatCompletion(req: LlmChatRequest): Promise<LlmChatResponse> {
         calls.push(req);
         inflight += 1;
         if (inflight > peakSeen) peakSeen = inflight;
         try {
-          return (await respond(req, calls.length - 1)) as DeepSeekChatResponse;
+          return (await respond(req, calls.length - 1)) as LlmChatResponse;
         } finally {
           inflight -= 1;
         }
@@ -285,9 +285,9 @@ describe('onda 1: callLlm × scheduler — semáforo único', () => {
     // cada liberação avança o relógio em +100 — o elapsedMs observado é o
     // avanço exato, sem timers reais).
     const pendentes: Array<() => void> = [];
-    const client: DeepSeekClient = {
-      chatCompletion(_req: DeepSeekChatRequest): Promise<DeepSeekChatResponse> {
-        return new Promise<DeepSeekChatResponse>((resolve) => {
+    const client: LlmClient = {
+      chatCompletion(_req: LlmChatRequest): Promise<LlmChatResponse> {
+        return new Promise<LlmChatResponse>((resolve) => {
           pendentes.push(() => {
             clock.agora += 100;
             resolve(okResponse());

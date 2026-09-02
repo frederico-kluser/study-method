@@ -5,7 +5,7 @@ verdade** — the app boots in **stub mode** (`STUDY_METHOD_E2E=1`):
 
 - **Sem rede real** — `keys:*`, o gate, `study:*`, `pi:*`, `localAi:*` e a voz
   respondem com fixtures determinísticas (ver
-  `electron/main/services/e2eStubs.ts`). Nunca se chama DeepSeek/Brave/Pi/GGUF/STT/TTS.
+  `electron/main/services/e2eStubs.ts`). Nunca se chama OpenRouter/Brave/Pi/GGUF/STT/TTS.
 - **O mesmo renderer de produção** — só o processo main muda (registra stubs);
   o bundle `out/renderer` é exatamente o que o usuário vê.
 
@@ -62,7 +62,7 @@ que a fixture injeta por padrão e que não devem ser desligadas em massa:
 ## Specs
 
 - `e2e-gate.spec.ts` — SetupView bloqueada (sem chaves) e alerta de inválido.
-- `e2e-settings.spec.ts` — preencher DeepSeek+Brave → destrava o app.
+- `e2e-settings.spec.ts` — preencher OpenRouter+Brave → destrava o app.
 - `e2e-theme.spec.ts` — toggle na AppBar → classe `.light`/`.dark` no `<html>` + `localStorage['theme-mode']`; ciclo volta a `system`.
 - `e2e-lesson.spec.ts` — assunto → aula (Stepper + fases + markdown + desafios).
 - `e2e-onboarding.spec.ts` — modal de tutorial na 1ª execução pós-gate, overlay com spotlight no alvo, concluir/skip → não reaparece.
@@ -92,7 +92,7 @@ que a fixture injeta por padrão e que não devem ser desligadas em massa:
 
 A onda 18 acrescenta um subconjunto **REAL**: o app é lançado **SEM**
 `STUDY_METHOD_E2E` (a fiação real da onda 3 flui: pesquisa Brave + autoria
-DeepSeek + runner/juiz de verdade) e as chaves reais entram por envars. São os
+pelo LLM remoto + runner/juiz de verdade) e as chaves reais entram por envars. São os
 specs que validam a **didática de fato**:
 
 - `real-search.spec.ts` — round-trip real com o Brave (`keys:validate-brave` com
@@ -104,7 +104,7 @@ specs que validam a **didática de fato**:
   (regressão B1: list-challenges não falha com "requer setupRoot") e abrem.
 - `real-didactics.spec.ts` — didática CERTA/ERRADA: no MESMO desafio real, uma
   resposta CORRETA (solução de referência escrita no stub) → veredito `PASSOU` +
-  feedback didático do DeepSeek na UI; e uma resposta ERRADA/parcial (stub vazio)
+  feedback didático do LLM remoto na UI; e uma resposta ERRADA/parcial (stub vazio)
   → veredito `NÃO PASSOU` + feedback didático com dicas.
 
 ### Como rodar a suíte real
@@ -114,7 +114,7 @@ specs que validam a **didática de fato**:
 npm run build
 
 # 2. Exporte as chaves reais NO SHELL (NUNCA em arquivo versionado):
-export DEEPSEEK_API_KEY=sk-...
+export OPENROUTER_API_KEY=sk-or-v1-...
 export BRAVE_API_KEY=BSAq...
 
 # 3. Rode só os specs reais (falha com mensagem se faltar alguma env):
@@ -122,7 +122,7 @@ npm run test:e2e:real
 ```
 
 - O script `tools/run-e2e-real.sh` **falha com mensagem clara** quando
-  `DEEPSEEK_API_KEY`/`BRAVE_API_KEY` não estão exportadas — nunca grava as chaves.
+  `OPENROUTER_API_KEY`/`BRAVE_API_KEY` não estão exportadas — nunca grava as chaves.
 - As specs reais fazem `test.skip` (reason claro) quando as chaves faltam, então a
   suíte mock `npm run test:e2e` **segue verde** sem chaves (`real-*` aparecem como skipped).
 - **Segurança:** o `userData` do app é redirecionado a um TMP (`--user-data-dir`) e

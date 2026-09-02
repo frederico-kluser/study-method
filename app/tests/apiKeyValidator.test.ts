@@ -10,7 +10,7 @@
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { validateBraveKey, validateDeepseekKey, modelSearchQuery } from '../electron/main/services/apiKeyValidator';
+import { validateBraveKey, validateLlmKey, modelSearchQuery } from '../electron/main/services/apiKeyValidator';
 
 /** Endpoint AUTENTICADO — a única fonte de verdade da validade da chave. */
 const KEY_URL = 'https://openrouter.ai/api/v1/key';
@@ -62,11 +62,11 @@ function catalogWithTarget(): Response {
   });
 }
 
-// ─── OpenRouter (nome legado validateDeepseekKey — canal keys:validate-deepseek) ──
+// ─── OpenRouter (validateLlmKey — canal keys:validate-llm) ──
 
-test('validateDeepseekKey: valida em GET /api/v1/key (NÃO em /models) com Bearer', async () => {
+test('validateLlmKey: valida em GET /api/v1/key (NÃO em /models) com Bearer', async () => {
   const seen: SeenCall[] = [];
-  const result = await validateDeepseekKey('sk-or-v1-123', {
+  const result = await validateLlmKey('sk-or-v1-123', {
     fetchImpl: routerFetch({ key: () => fakeResponse(200, { data: { label: 'k' } }), models: catalogWithTarget, seen }),
   });
 
@@ -82,7 +82,7 @@ test('SEGURANÇA: chave inválida é REPROVADA mesmo com /models respondendo 200
   // catálogo inteiro com 200 mesmo para uma chave revogada. Se a validação
   // olhasse /models, QUALQUER string passaria.
   const seen: SeenCall[] = [];
-  const result = await validateDeepseekKey('sk-or-v1-revogada', {
+  const result = await validateLlmKey('sk-or-v1-revogada', {
     fetchImpl: routerFetch({
       key: () => fakeResponse(401, { error: { message: 'User not found.', code: 401 } }),
       models: catalogWithTarget, // 200 com o catálogo COMPLETO — e ainda assim inválida
@@ -97,9 +97,9 @@ test('SEGURANÇA: chave inválida é REPROVADA mesmo com /models respondendo 200
   assert.deepEqual(seen.map((c) => c.url), [KEY_URL]);
 });
 
-test('validateDeepseekKey: 200 + catálogo com o id EXATO → modelAvailable true', async () => {
+test('validateLlmKey: 200 + catálogo com o id EXATO → modelAvailable true', async () => {
   const seen: SeenCall[] = [];
-  const result = await validateDeepseekKey('sk-or-v1-123', {
+  const result = await validateLlmKey('sk-or-v1-123', {
     fetchImpl: routerFetch({ key: () => fakeResponse(200), models: catalogWithTarget, seen }),
   });
 
@@ -113,8 +113,8 @@ test('validateDeepseekKey: 200 + catálogo com o id EXATO → modelAvailable tru
   assert.equal(modelsCall!.headers['Authorization'], 'Bearer sk-or-v1-123');
 });
 
-test('validateDeepseekKey: catálogo SEM o id exato → válida, modelAvailable false + nota', async () => {
-  const result = await validateDeepseekKey('sk-or-v1-123', {
+test('validateLlmKey: catálogo SEM o id exato → válida, modelAvailable false + nota', async () => {
+  const result = await validateLlmKey('sk-or-v1-123', {
     fetchImpl: routerFetch({
       key: () => fakeResponse(200),
       // Ids parecidos, mas nenhum é o alvo: o match é pelo id EXATO.
@@ -126,8 +126,8 @@ test('validateDeepseekKey: catálogo SEM o id exato → válida, modelAvailable 
   assert.ok(result.errorMessage && result.errorMessage.includes(TARGET_MODEL));
 });
 
-test('validateDeepseekKey: probe do catálogo falhou (500) → válida, modelAvailable indefinido', async () => {
-  const result = await validateDeepseekKey('sk-or-v1-123', {
+test('validateLlmKey: probe do catálogo falhou (500) → válida, modelAvailable indefinido', async () => {
+  const result = await validateLlmKey('sk-or-v1-123', {
     fetchImpl: routerFetch({
       key: () => fakeResponse(200),
       models: () => fakeResponse(500, { error: { message: 'catalog down' } }),
@@ -138,8 +138,8 @@ test('validateDeepseekKey: probe do catálogo falhou (500) → válida, modelAva
   assert.equal(result.errorMessage, undefined, 'sem nota assustadora quando não se sabe');
 });
 
-test('validateDeepseekKey: probe do catálogo com rede caída → válida, modelAvailable indefinido', async () => {
-  const result = await validateDeepseekKey('sk-or-v1-123', {
+test('validateLlmKey: probe do catálogo com rede caída → válida, modelAvailable indefinido', async () => {
+  const result = await validateLlmKey('sk-or-v1-123', {
     fetchImpl: routerFetch({
       key: () => fakeResponse(200),
       models: () => {
@@ -151,31 +151,31 @@ test('validateDeepseekKey: probe do catálogo com rede caída → válida, model
   assert.equal(result.modelAvailable, undefined);
 });
 
-test('validateDeepseekKey: catálogo 200 sem `data` array → modelAvailable indefinido (shape desconhecido)', async () => {
-  const result = await validateDeepseekKey('sk-or-v1-123', {
+test('validateLlmKey: catálogo 200 sem `data` array → modelAvailable indefinido (shape desconhecido)', async () => {
+  const result = await validateLlmKey('sk-or-v1-123', {
     fetchImpl: routerFetch({ key: () => fakeResponse(200), models: () => fakeResponse(200, {}) }),
   });
   assert.equal(result.isValid, true);
   assert.equal(result.modelAvailable, undefined);
 });
 
-test('validateDeepseekKey: 401 → inválida "Invalid API key"', async () => {
+test('validateLlmKey: 401 → inválida "Invalid API key"', async () => {
   const fetchImpl = (async () => fakeResponse(401)) as unknown as typeof fetch;
-  const result = await validateDeepseekKey('sk-or-v1-bad', { fetchImpl });
+  const result = await validateLlmKey('sk-or-v1-bad', { fetchImpl });
   assert.equal(result.isValid, false);
   assert.equal(result.errorMessage, 'Invalid API key');
 });
 
-test('validateDeepseekKey: 403 → inválida "Invalid API key"', async () => {
+test('validateLlmKey: 403 → inválida "Invalid API key"', async () => {
   const fetchImpl = (async () => fakeResponse(403)) as unknown as typeof fetch;
-  const result = await validateDeepseekKey('sk-or-v1-bad', { fetchImpl });
+  const result = await validateLlmKey('sk-or-v1-bad', { fetchImpl });
   assert.equal(result.isValid, false);
   assert.equal(result.errorMessage, 'Invalid API key');
 });
 
-test('validateDeepseekKey: 402 (crédito insuficiente no OpenRouter) → VÁLIDA, sem consultar o catálogo', async () => {
+test('validateLlmKey: 402 (crédito insuficiente no OpenRouter) → VÁLIDA, sem consultar o catálogo', async () => {
   const seen: SeenCall[] = [];
-  const result = await validateDeepseekKey('sk-or-v1-123', {
+  const result = await validateLlmKey('sk-or-v1-123', {
     fetchImpl: routerFetch({ key: () => fakeResponse(402), seen }),
   });
   assert.equal(result.isValid, true, '402 é falta de crédito, não chave inválida');
@@ -183,27 +183,27 @@ test('validateDeepseekKey: 402 (crédito insuficiente no OpenRouter) → VÁLIDA
   assert.deepEqual(seen.map((c) => c.url), [KEY_URL]);
 });
 
-test('validateDeepseekKey: 429 (rate limit) → VÁLIDA, sem consultar o catálogo', async () => {
+test('validateLlmKey: 429 (rate limit) → VÁLIDA, sem consultar o catálogo', async () => {
   const seen: SeenCall[] = [];
-  const result = await validateDeepseekKey('sk-or-v1-123', {
+  const result = await validateLlmKey('sk-or-v1-123', {
     fetchImpl: routerFetch({ key: () => fakeResponse(429), seen }),
   });
   assert.equal(result.isValid, true);
   assert.deepEqual(seen.map((c) => c.url), [KEY_URL]);
 });
 
-test('validateDeepseekKey: rede falhou → inválida com erro de rede', async () => {
+test('validateLlmKey: rede falhou → inválida com erro de rede', async () => {
   const fetchImpl = (async () => {
     throw new Error('ECONNREFUSED');
   }) as unknown as typeof fetch;
-  const result = await validateDeepseekKey('sk-or-v1-123', { fetchImpl });
+  const result = await validateLlmKey('sk-or-v1-123', { fetchImpl });
   assert.equal(result.isValid, false);
   assert.ok(result.errorMessage && result.errorMessage.includes('ECONNREFUSED'));
   assert.match(result.errorMessage ?? '', /^Network error:/);
 });
 
-test('validateDeepseekKey: chave vazia → inválida', async () => {
-  const result = await validateDeepseekKey('', {
+test('validateLlmKey: chave vazia → inválida', async () => {
+  const result = await validateLlmKey('', {
     fetchImpl: (async () => fakeResponse(200, {})) as unknown as typeof fetch,
   });
   assert.equal(result.isValid, false);
@@ -211,49 +211,49 @@ test('validateDeepseekKey: chave vazia → inválida', async () => {
   assert.equal(result.provider, 'openrouter');
 });
 
-test('validateDeepseekKey: baseUrl custom usada (com barras finais removidas)', async () => {
+test('validateLlmKey: baseUrl custom usada (com barras finais removidas)', async () => {
   const seen: string[] = [];
   const fetchImpl = (async (url: any) => {
     seen.push(String(url));
     return String(url).includes('/models') ? catalogWithTarget() : fakeResponse(200);
   }) as unknown as typeof fetch;
-  await validateDeepseekKey('sk-or-v1-123', { fetchImpl, baseUrl: 'https://proxy.test/v1/' });
+  await validateLlmKey('sk-or-v1-123', { fetchImpl, baseUrl: 'https://proxy.test/v1/' });
   assert.equal(seen[0], 'https://proxy.test/v1/key');
   assert.equal(seen[1], 'https://proxy.test/v1/models?q=glm');
 });
 
-test('validateDeepseekKey: 500 com corpo { error: { message } } → mensagem extraída', async () => {
+test('validateLlmKey: 500 com corpo { error: { message } } → mensagem extraída', async () => {
   const fetchImpl = (async () =>
     fakeResponse(500, { error: { message: 'openrouter down' } })) as unknown as typeof fetch;
-  const result = await validateDeepseekKey('sk-or-v1-123', { fetchImpl });
+  const result = await validateLlmKey('sk-or-v1-123', { fetchImpl });
   assert.equal(result.isValid, false);
   assert.equal(result.errorMessage, 'openrouter down');
 });
 
-test('validateDeepseekKey: 500 com corpo { message } (sem { error }) → mensagem extraída', async () => {
+test('validateLlmKey: 500 com corpo { message } (sem { error }) → mensagem extraída', async () => {
   const fetchImpl = (async () =>
     fakeResponse(500, { message: 'plain message' })) as unknown as typeof fetch;
-  const result = await validateDeepseekKey('sk-or-v1-123', { fetchImpl });
+  const result = await validateLlmKey('sk-or-v1-123', { fetchImpl });
   assert.equal(result.isValid, false);
   assert.equal(result.errorMessage, 'plain message');
 });
 
-test('validateDeepseekKey: 500 com corpo não-parseável → fallback HTTP status', async () => {
+test('validateLlmKey: 500 com corpo não-parseável → fallback HTTP status', async () => {
   const fetchImpl = (async () =>
     fakeResponse(500, 'not json', 'Internal Server Error')) as unknown as typeof fetch;
-  const result = await validateDeepseekKey('sk-or-v1-123', { fetchImpl });
+  const result = await validateLlmKey('sk-or-v1-123', { fetchImpl });
   assert.equal(result.isValid, false);
   assert.equal(result.errorMessage, 'HTTP 500: Internal Server Error');
 });
 
-test('validateDeepseekKey: 500 com corpo parseável mas sem mensagem → fallback HTTP status', async () => {
+test('validateLlmKey: 500 com corpo parseável mas sem mensagem → fallback HTTP status', async () => {
   const fetchImpl = (async () => fakeResponse(500, { code: 'XYZ' })) as unknown as typeof fetch;
-  const result = await validateDeepseekKey('sk-or-v1-123', { fetchImpl });
+  const result = await validateLlmKey('sk-or-v1-123', { fetchImpl });
   assert.equal(result.isValid, false);
   assert.ok(result.errorMessage && result.errorMessage.includes('HTTP 500'));
 });
 
-test('validateDeepseekKey: 200 com corpo ilegível em /key → segue VÁLIDA (corpo é irrelevante)', async () => {
+test('validateLlmKey: 200 com corpo ilegível em /key → segue VÁLIDA (corpo é irrelevante)', async () => {
   const fetchImpl = (async (url: any) => {
     if (String(url).includes('/models')) return catalogWithTarget();
     const r = fakeResponse(200);
@@ -262,7 +262,7 @@ test('validateDeepseekKey: 200 com corpo ilegível em /key → segue VÁLIDA (co
     };
     return r;
   }) as unknown as typeof fetch;
-  const result = await validateDeepseekKey('sk-or-v1-123', { fetchImpl });
+  const result = await validateLlmKey('sk-or-v1-123', { fetchImpl });
   assert.equal(result.isValid, true);
   assert.equal(result.modelAvailable, true);
 });

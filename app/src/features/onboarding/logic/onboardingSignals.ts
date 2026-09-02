@@ -88,7 +88,7 @@ export function buildRuntimeContext(activeView: string): {
 } {
   const lessonStatus = readSignalValue('lesson-status');
   const testStatus = readSignalValue('test-status');
-  const deepseekKey = readKeysPanelValue(0);
+  const llmKey = readKeysPanelValue(0);
   const braveKey = readKeysPanelValue(1);
   // ACHADO-5: se as chaves ALREADY estão configuradas (vindas do status/gate do
   // KeysPanel), o passo `settings-keys-filled` fica satisfeito mesmo com os
@@ -103,7 +103,7 @@ export function buildRuntimeContext(activeView: string): {
     studioCodeNonEmpty: readEditorText('challenge-editor').length > 0,
     testAnswerTriggered:
       testStatus === 'running' || testStatus === 'done' || testStatus === 'error',
-    keysFilled: (deepseekKey.length > 0 && braveKey.length > 0) || keysConfigured,
+    keysFilled: (llmKey.length > 0 && braveKey.length > 0) || keysConfigured,
   };
 }
 

@@ -166,7 +166,7 @@ export function buildLocalAiHandlers(deps: LocalAiHandlerDeps = {}): LocalAiHand
    * Em SUCESSO devolve O valor nu `LocalAiChatResult { text }` (mesmo shape de
    * ipc-contract e da ApiSchema `api.localAi.chat → {text}`). Em ERRO LANÇA
    * Error (o ipcMain.handle converte em rejeição) — o ChallengeView captura com
-   * try/catch e mostra o erro com a dica de voltar ao provedor DeepSeek.
+   * try/catch e mostra o erro com a dica de voltar ao provedor remoto.
    */
   map.set(LOCAL_AI_CHANNELS.CHAT, async (_event, rawReq) => {
     const req = (rawReq ?? {}) as Partial<LocalAiChatRequest>;
@@ -183,7 +183,7 @@ export function buildLocalAiHandlers(deps: LocalAiHandlerDeps = {}): LocalAiHand
     if (!modelId) {
       throw new Error(
         'Nenhum modelo local ativo. Baixe um modelo e ative-o em Configurações → LLM local,' +
-          ' ou troque o provedor de feedback para DeepSeek para voltar ao avaliador remoto.',
+          ' ou troque o provedor de feedback para OpenRouter para voltar ao avaliador remoto.',
       );
     }
     const engine = await getEngine();
@@ -193,7 +193,7 @@ export function buildLocalAiHandlers(deps: LocalAiHandlerDeps = {}): LocalAiHand
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       const hint = msg.startsWith('LOCAL_MODEL_NOT_INSTALLED')
-        ? `${msg}. Baixe e ative o modelo local em Configurações, ou troque o provedor para DeepSeek.`
+        ? `${msg}. Baixe e ative o modelo local em Configurações, ou troque o provedor para OpenRouter.`
         : msg;
       throw new Error(hint);
     }

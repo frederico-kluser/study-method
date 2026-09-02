@@ -53,8 +53,13 @@ import {
   rodarRevisaoAteConvergir,
   type RelatorioDeRevisao,
 } from '../../electron/main/engine/revision/progressiva';
-import { createDeepSeekClient } from '../../electron/main/services/deepseekClient';
-import { OPENROUTER_ENV_KEY, OPENROUTER_PROVIDER_KEY } from '../../shared/llm/constants';
+import { createLlmClient } from '../../electron/main/services/llmClient';
+import {
+  LEGACY_LLM_ENV_KEY,
+  LEGACY_LLM_PROVIDER_KEY,
+  OPENROUTER_ENV_KEY,
+  OPENROUTER_PROVIDER_KEY,
+} from '../../shared/llm/constants';
 import { createCallLlm, type EngineLlm } from '../../electron/main/engine/runtime/callLlm';
 import { createExecSemaphore, createLlmSemaphore, createSemaphore } from '../../electron/main/engine/runtime/semaphore';
 import { createBraveSearchService } from '../../electron/main/services/braveSearchService';
@@ -718,12 +723,13 @@ async function cmdRevise(pos: string[], flags: Record<string, string>, bools: Se
  *
  *   1. `process.env.OPENROUTER_API_KEY`      (o env do contrato congelado);
  *   2. `settingsStore.getApiKey('openrouter')` (o que o app GUI gravou);
- *   3. LEGADO: `process.env.DEEPSEEK_API_KEY` / `getApiKey('deepseek')`.
+ *   3. LEGADO: a env e o slot do provedor ANTERIOR (`LEGACY_LLM_ENV_KEY` /
+ *      `LEGACY_LLM_PROVIDER_KEY` de `@shared/llm/constants`).
  *
- * O passo 3 é TRANSITÓRIO: existe só para não quebrar quem já tinha o ambiente
- * montado com a chave antiga na migração DeepSeek → OpenRouter. Remova-o assim
- * que os ambientes (dev, CI e o settingsStore dos usuários) estiverem migrados
- * — a partir daí a chave do provedor tem UM nome só.
+ * O passo 3 SOBREVIVE DE PROPÓSITO: é o único jeito de não quebrar um ambiente
+ * (dev, CI ou settingsStore de usuário) que já estava montado com a chave sob o
+ * nome antigo. É LEITURA e só leitura — nada aqui grava nesses nomes. Removê-lo
+ * exigiria migrar explicitamente esses ambientes, que é outra tarefa.
  */
 async function resolverChaveOpenRouter(): Promise<string> {
   const env = process.env[OPENROUTER_ENV_KEY];
@@ -732,10 +738,10 @@ async function resolverChaveOpenRouter(): Promise<string> {
   const doStore = await lerChaveDoStore(OPENROUTER_PROVIDER_KEY);
   if (doStore) return doStore;
 
-  // ── fallback LEGADO (transitório — ver o comentário acima) ────────────────
-  const legadoEnv = process.env.DEEPSEEK_API_KEY;
+  // ── fallback LEGADO de LEITURA (ver o comentário acima) ───────────────────
+  const legadoEnv = process.env[LEGACY_LLM_ENV_KEY];
   if (legadoEnv && legadoEnv.trim() !== '') return legadoEnv.trim();
-  const legadoStore = await lerChaveDoStore('deepseek');
+  const legadoStore = await lerChaveDoStore(LEGACY_LLM_PROVIDER_KEY);
   if (legadoStore) return legadoStore;
 
   return '';
@@ -770,7 +776,7 @@ function criarMultiBuscaBrave(): ExecutorDeMultiBusca {
 /** A FIAÇÃO DE PRODUÇÃO do modo generate (deps injetáveis resolvidos aqui). */
 function fiarDepsDeProducao(dir: string, dirProduto: string): DepsGeracao {
   const llm: EngineLlm = createCallLlm({
-    client: createDeepSeekClient({ apiKey: () => resolverChaveOpenRouter() }),
+    client: createLlmClient({ apiKey: () => resolverChaveOpenRouter() }),
     apiKey: () => resolverChaveOpenRouter(),
     semaphore: createLlmSemaphore(),
   });

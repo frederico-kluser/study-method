@@ -50,7 +50,7 @@
     "clearProgressTimeout": "The app did not respond in time. Try again."
   },
   "keys": {
-    "deepseek": {
+    "openrouter": {
       "label": "OpenRouter key",
       "placeholder": "Paste your OpenRouter key"
     },
@@ -95,7 +95,7 @@
     "inUse": "In use",
     "delete": "Delete",
     "feedbackProvider": "Feedback provider",
-    "feedbackProviderDeepseek": "OpenRouter (cloud)",
+    "feedbackProviderOpenrouter": "OpenRouter (cloud)",
     "feedbackProviderLocal": "Local model",
     "hintActive": "This model is active and will be the default grader.",
     "errorSaveFeedback": "Failed to save the feedback provider:",
@@ -224,7 +224,7 @@
     "noChallengesYet": "No challenges available yet.",
     "keyHint": "See the key hint in the statement.",
     "providerLocal": "Local model",
-    "providerDeepseek": "OpenRouter",
+    "providerOpenrouter": "OpenRouter",
     "confirmDelete": "Delete {{name}}?",
     "noChallengesEmpty": "No challenges available. Generate a lesson first in the \"Lesson\" tab.",
     "listError": "Could not list the challenges",
@@ -363,7 +363,7 @@
       "missing": "AI keys pending",
       "readyDescription": "Your OpenRouter and Brave Search keys are configured. Pick a subject and start.",
       "missingDescription": "Configure the OpenRouter and Brave Search keys so the app can generate lessons and search sources.",
-      "deepseek": "OpenRouter",
+      "openrouter": "OpenRouter",
       "brave": "Brave Search",
       "configured": "configured",
       "pending": "pending"

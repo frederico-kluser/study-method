@@ -71,11 +71,6 @@ export interface RealApp {
   page: Page;
   userDataDir: string;
   openrouterApiKey: string;
-  /**
-   * Alias TRANSITÓRIO de `openrouterApiKey`, mantido enquanto as specs reais
-   * ainda o nomeiam (mesmo valor). Remova junto com os últimos usos.
-   */
-  deepseekApiKey: string;
   braveApiKey: string;
 }
 
@@ -157,7 +152,6 @@ export async function launchRealApp(opts: LaunchRealOpts = {}): Promise<RealApp>
       page,
       userDataDir,
       openrouterApiKey: keys.openrouter,
-      deepseekApiKey: keys.openrouter, // alias transitório — ver RealApp
       braveApiKey: keys.brave,
     };
   } catch (err) {

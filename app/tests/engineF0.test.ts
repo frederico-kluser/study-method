@@ -20,7 +20,7 @@
  *      estruturado — nunca veredito falso, nunca artefato parcial.
  *
  * Sem rede, sem chave, sem conteúdo didático: LLM fake INJETADA via
- * `createCallLlm` + `DeepSeekClient` fake; vocabulário fake em memória (um
+ * `createCallLlm` + `LlmClient` fake; vocabulário fake em memória (um
  * teste usa o atoms.json REAL commitado, leitura de disco apenas).
  */
 import { describe, it } from 'node:test';
@@ -34,11 +34,11 @@ import {
   type LlmCallRequest,
 } from '../electron/main/engine/runtime/callLlm';
 import {
-  DEEPSEEK_ERROR_CODES,
-  type DeepSeekChatRequest,
-  type DeepSeekChatResponse,
-  type DeepSeekClient,
-} from '../electron/main/services/deepseekClient';
+  LLM_ERROR_CODES,
+  type LlmChatRequest,
+  type LlmChatResponse,
+  type LlmClient,
+} from '../electron/main/services/llmClient';
 import {
   CAMINHO_ATOMOS_DEFAULT,
   ETAPA_BRIEF,
@@ -123,8 +123,8 @@ function maquinaValida(over: Record<string, unknown> = {}): Record<string, unkno
  * Exercita o contrato do transporte no caminho feliz (usage, cache off).
  */
 function transporteFake(conteudo: string): EngineLlm {
-  const client: DeepSeekClient = {
-    async chatCompletion(_req: DeepSeekChatRequest): Promise<DeepSeekChatResponse> {
+  const client: LlmClient = {
+    async chatCompletion(_req: LlmChatRequest): Promise<LlmChatResponse> {
       return { content: conteudo, model: 'fake', usage: { promptTokens: 12, completionTokens: 6 } };
     },
   };
@@ -558,7 +558,7 @@ describe('F0 — G-SCHEMA e schema da LLM fechado', () => {
   it('falha do transporte (LLM indisponível) PROPAGA LlmStageError estruturado — fail-closed (INV-03)', async () => {
     const callLlmQueFalha: EngineLlm['callLlm'] = async () => {
       throw new LlmStageError({
-        code: DEEPSEEK_ERROR_CODES.KEY_MISSING,
+        code: LLM_ERROR_CODES.KEY_MISSING,
         etapa: ETAPA_BRIEF,
         message: 'chave de API não configurada.',
         attempts: 1,
@@ -567,11 +567,11 @@ describe('F0 — G-SCHEMA e schema da LLM fechado', () => {
     };
     await assert.rejects(
       gerarBrief({ callLlm: callLlmQueFalha, assunto: 'x', atomos: atomosFake() }),
-      (erro: unknown) => erro instanceof LlmStageError && erro.code === DEEPSEEK_ERROR_CODES.KEY_MISSING,
+      (erro: unknown) => erro instanceof LlmStageError && erro.code === LLM_ERROR_CODES.KEY_MISSING,
     );
     await assert.rejects(
       gerarNotionalMachine({ callLlm: callLlmQueFalha }),
-      (erro: unknown) => erro instanceof LlmStageError && erro.code === DEEPSEEK_ERROR_CODES.KEY_MISSING,
+      (erro: unknown) => erro instanceof LlmStageError && erro.code === LLM_ERROR_CODES.KEY_MISSING,
     );
   });
 });
@@ -616,8 +616,8 @@ describe('F0 — integração com o vocabulário real do P-05 (leitura de disco)
     // Captura NA FRONTEIRA da fase (o que a fase passa ao transporte), não no
     // cliente — o transporte transforma a requisição antes de chegar à rede.
     const requisicoes: LlmCallRequest[] = [];
-    const client: DeepSeekClient = {
-      async chatCompletion(_req: DeepSeekChatRequest): Promise<DeepSeekChatResponse> {
+    const client: LlmClient = {
+      async chatCompletion(_req: LlmChatRequest): Promise<LlmChatResponse> {
         return { content: jsonDe(briefValido()), model: 'fake' };
       },
     };

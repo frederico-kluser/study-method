@@ -50,7 +50,7 @@
     "clearProgressTimeout": "O app não respondeu a tempo. Tente novamente."
   },
   "keys": {
-    "deepseek": {
+    "openrouter": {
       "label": "Chave OpenRouter",
       "placeholder": "Cole sua chave OpenRouter"
     },
@@ -95,7 +95,7 @@
     "inUse": "Em uso",
     "delete": "Excluir",
     "feedbackProvider": "Provedor de feedback",
-    "feedbackProviderDeepseek": "OpenRouter (nuvem)",
+    "feedbackProviderOpenrouter": "OpenRouter (nuvem)",
     "feedbackProviderLocal": "Modelo local",
     "hintActive": "Este modelo está ativo e será o avaliador padrão.",
     "errorSaveFeedback": "Falha ao salvar o provedor de feedback:",
@@ -224,7 +224,7 @@
     "noChallengesYet": "Nenhum desafio disponível ainda.",
     "keyHint": "Veja a dica da chave no enunciado.",
     "providerLocal": "Modelo local",
-    "providerDeepseek": "OpenRouter",
+    "providerOpenrouter": "OpenRouter",
     "confirmDelete": "Apagar {{name}}?",
     "noChallengesEmpty": "Nenhum desafio disponível. Gere uma aula primeiro na aba \"Aula\".",
     "listError": "Não consegui listar os desafios",
@@ -363,7 +363,7 @@
       "missing": "Chaves de IA pendentes",
       "readyDescription": "Suas chaves OpenRouter e Brave Search estão configuradas. Escolha um assunto e comece.",
       "missingDescription": "Configure as chaves OpenRouter e Brave Search para o app gerar aulas e pesquisar fontes.",
-      "deepseek": "OpenRouter",
+      "openrouter": "OpenRouter",
       "brave": "Brave Search",
       "configured": "configurada",
       "pending": "pendente"

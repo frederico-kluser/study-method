@@ -240,7 +240,7 @@ describe('localAi:chat (inferência do modelo local como avaliador)', () => {
     assert.equal(called, false);
   });
 
-  it('modelo baixado ausente → REJEITA com hint de volta ao DeepSeek', async () => {
+  it('modelo baixado ausente → REJEITA com hint de volta ao OpenRouter', async () => {
     const { store } = await makeFakeStore();
     const engine = {
       ...fakeEngine(null),
@@ -258,7 +258,7 @@ describe('localAi:chat (inferência do modelo local como avaliador)', () => {
     });
     await assert.rejects(p, (err: unknown) => {
       const msg = String((err as Error)?.message);
-      return msg.includes('DeepSeek') && msg.includes('LOCAL_MODEL_NOT_INSTALLED');
+      return msg.includes('OpenRouter') && msg.includes('LOCAL_MODEL_NOT_INSTALLED');
     });
   });
 });

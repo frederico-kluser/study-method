@@ -26,7 +26,7 @@
  * `mandatory: true` neste modelo: não existe caminho sem pensar.
  */
 
-/** Identidade do modelo. Substitui o antigo DEEPSEEK_MODEL. */
+/** Identidade do modelo em uso. */
 export const OPENROUTER_MODEL = {
   id: 'z-ai/glm-5.3-flash',
   name: 'GLM 5.3 Flash',
@@ -73,9 +73,33 @@ export const OPENROUTER_ENV_KEY = 'OPENROUTER_API_KEY' as const;
 
 /**
  * Chave de armazenamento no settingsStore e membro das unions de provider.
- * É o valor que substitui o literal `'deepseek'` em `getApiKey(...)`.
+ * É o nome CANÔNICO do provedor em todo o app.
  */
 export const OPENROUTER_PROVIDER_KEY = 'openrouter' as const;
+
+/* ─── NOMES LEGADOS DO PROVEDOR ANTERIOR — SOBREVIVEM DE PROPÓSITO ────────────
+ * Estes dois literais são as ÚNICAS ocorrências do nome do provedor anterior no
+ * código do app, e estão aqui — no contrato, num lugar só — porque três leitores
+ * precisam do MESMO valor: `ipc/keys-handlers.ts` (fallback de leitura do slot),
+ * `services/piAuthBridge.ts` (slot + env do caminho pi) e
+ * `tools/track-engine/cli.ts` (env + slot na CLI).
+ *
+ * POR QUE NÃO SUMIRAM: quem instalou o app antes da troca de provedor tem a
+ * chave gravada NO DISCO sob o nome antigo (e possivelmente exportada na env
+ * antiga, em ambientes de dev/CI já montados). Apagar estes nomes DESLOGARIA
+ * essas pessoas; removê-los de verdade exige uma MIGRAÇÃO EXPLÍCITA do arquivo
+ * de settings do usuário, que é uma tarefa separada.
+ *
+ * REGRA: são de LEITURA e SÓ de leitura. Nada no app GRAVA neste slot (a
+ * gravação vai sempre para OPENROUTER_PROVIDER_KEY e APAGA o legado no mesmo
+ * passo) nem INJETA esta env (a injetada é sempre OPENROUTER_ENV_KEY).
+ * ──────────────────────────────────────────────────────────────────────────── */
+
+/** Slot LEGADO do settingsStore, lido como último recurso. Nunca escrito. */
+export const LEGACY_LLM_PROVIDER_KEY = 'deepseek' as const;
+
+/** Env var LEGADA da chave, lida como último recurso. Nunca injetada. */
+export const LEGACY_LLM_ENV_KEY = 'DEEPSEEK_API_KEY' as const;
 
 /**
  * Headers de attribution do OpenRouter. `HTTP-Referer` e `X-Title` são os

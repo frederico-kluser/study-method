@@ -31,7 +31,7 @@ export interface StartupFlags {
 export interface StartupFlagsSource {
   offline: boolean;
   phase: StartupStatus['phase'];
-  deepseek: StartupStatus['deepseek'];
+  llm: StartupStatus['llm'];
   brave: StartupStatus['brave'];
 }
 

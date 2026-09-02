@@ -92,7 +92,7 @@ describe('buildIpcRegistry (registro puro de handlers)', () => {
     const keysChannels = [
       'keys:get-status',
       'keys:set-key',
-      'keys:validate-deepseek',
+      'keys:validate-llm',
       'keys:validate-brave',
     ];
     for (const channel of keysChannels) {

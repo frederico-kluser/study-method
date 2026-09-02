@@ -142,7 +142,7 @@ function fakeLlm(
       const content = await responder(req, calls.length - 1);
       return {
         content,
-        model: 'fake-deepseek',
+        model: 'fake-llm',
         cached: false,
         stageUsage: { promptTokens: 0, completionTokens: 0, llmCalls: 1, cachedHits: 0, retries: 0 },
         attempts: 1,

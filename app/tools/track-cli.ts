@@ -67,7 +67,7 @@ import {
   type ChallengeToValidate,
   type ContextValidatorLlm,
 } from '../electron/main/services/challengeContextValidator';
-import { createDeepSeekClient } from '../electron/main/services/deepseekClient';
+import { createLlmClient } from '../electron/main/services/llmClient';
 import { OPENROUTER_ENV_KEY } from '../shared/llm/constants';
 
 // ─── raiz do conteúdo ────────────────────────────────────────────────────────
@@ -431,7 +431,7 @@ async function cmdChallengeVerify(pos: string[]): Promise<void> {
 
 /** Adapta o cliente de LLM one-shot à assinatura de llm do validador. */
 function makeContextLlm(apiKey: string): ContextValidatorLlm {
-  const llm = createDeepSeekClient({ apiKey: async () => apiKey });
+  const llm = createLlmClient({ apiKey: async () => apiKey });
   return async (req) => {
     const res = await llm.chatCompletion(req);
     return { content: res.content };

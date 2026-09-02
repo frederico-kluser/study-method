@@ -1,16 +1,12 @@
 /**
- * electron/main/services/deepseekClient.ts — cliente LEVE one-shot OpenAI-compatible
+ * electron/main/services/llmClient.ts — cliente LEVE one-shot OpenAI-compatible
  * para o OpenRouter (POST {baseUrl}/chat/completions).
  *
- * ONDA 1 (transporte): este arquivo deixou de falar com a API do DeepSeek e passou
- * a falar com o OpenRouter (`@shared/llm/constants`). O que mudou é PARA ONDE as
- * chamadas vão e o QUE vai no body — NÃO a nomenclatura: os símbolos exportados
- * (`DeepSeekError`, `DEEPSEEK_ERROR_CODES`, `createDeepSeekClient`, …) e sobretudo
- * os VALORES do enum de erro (`'DEEPSEEK_KEY_MISSING'`, `'DEEPSEEK_KEY_INVALID'`,
- * `'DEEPSEEK_BAD_REQUEST'`, …) continuam idênticos, porque são comparados como
- * STRING CRUA fora do enum em `engine/phases/f1Research.ts` e
- * `engine/fiacao/geraTrilha.ts`. Renomear é assunto da onda 2, junto com essas
- * comparações.
+ * ATENÇÃO AO ENUM DE ERRO: os VALORES de `LLM_ERROR_CODES`
+ * (`'LLM_KEY_MISSING'`, `'LLM_KEY_INVALID'`, `'LLM_BAD_REQUEST'`, …) são
+ * comparados como STRING CRUA fora do enum em `engine/phases/f1Research.ts` e
+ * `engine/fiacao/geraTrilha.ts`. Mudar um valor aqui sem mudar lá compila e
+ * quebra em SILÊNCIO.
  *
  * É o transporte do juiz LLM do protocolo REQUEST/APPLY (docs/00-contratos.md §6):
  * one-shot, sem streaming — o contrato do juiz é uma ÚNICA chamada que devolve o
@@ -37,25 +33,25 @@ import {
   type OpenRouterEffort,
 } from '@shared/llm/constants';
 
-/** Códigos de erro tipados do cliente DeepSeek (surface mínima e estável). */
-export const DEEPSEEK_ERROR_CODES = {
+/** Códigos de erro tipados do cliente de LLM (surface mínima e estável). */
+export const LLM_ERROR_CODES = {
   /** Nenhuma chave configurada (sem valor a enviar). */
-  KEY_MISSING: 'DEEPSEEK_KEY_MISSING',
+  KEY_MISSING: 'LLM_KEY_MISSING',
   /** 401/403 — chave inválida ou sem permissão. */
-  KEY_INVALID: 'DEEPSEEK_KEY_INVALID',
+  KEY_INVALID: 'LLM_KEY_INVALID',
   /** 429 — rate limit / quota. */
-  RATE_LIMIT: 'DEEPSEEK_RATE_LIMIT',
+  RATE_LIMIT: 'LLM_RATE_LIMIT',
   /** Qualquer outro 4xx (ex.: 400 invalid_request_error — modelo/param inválido). */
-  BAD_REQUEST: 'DEEPSEEK_BAD_REQUEST',
+  BAD_REQUEST: 'LLM_BAD_REQUEST',
   /** 5xx com corpo parseável (mensagem de error.message). */
-  SERVER_ERROR: 'DEEPSEEK_SERVER_ERROR',
+  SERVER_ERROR: 'LLM_SERVER_ERROR',
   /** fetch falhou / timeout / corpo ilegível. */
-  NETWORK: 'DEEPSEEK_NETWORK',
+  NETWORK: 'LLM_NETWORK',
   /** 2xx mas choices[0].message.content vazio (resposta sem conteúdo utilizável). */
-  EMPTY_CONTENT: 'DEEPSEEK_EMPTY_CONTENT',
+  EMPTY_CONTENT: 'LLM_EMPTY_CONTENT',
 } as const;
 
-export type DeepSeekErrorCode = (typeof DEEPSEEK_ERROR_CODES)[keyof typeof DEEPSEEK_ERROR_CODES];
+export type LlmErrorCode = (typeof LLM_ERROR_CODES)[keyof typeof LLM_ERROR_CODES];
 
 /**
  * Erro tipado do cliente. `code` é a superfície estável consumida pelo juiz.
@@ -66,15 +62,15 @@ export type DeepSeekErrorCode = (typeof DEEPSEEK_ERROR_CODES)[keyof typeof DEEPS
  * atraso sugerido pelo servidor chega a jusante. Nenhum SDK honra `Retry-After`
  * sozinho; por isso o cliente lê o header à mão.
  */
-export class DeepSeekError extends Error {
-  readonly code: DeepSeekErrorCode;
+export class LlmError extends Error {
+  readonly code: LlmErrorCode;
   readonly cause?: unknown;
   /** Atraso sugerido pelo servidor em MILISSEGUNDOS (header `Retry-After`). */
   readonly retryAfterMs?: number;
 
-  constructor(code: DeepSeekErrorCode, message: string, cause?: unknown, retryAfterMs?: number) {
+  constructor(code: LlmErrorCode, message: string, cause?: unknown, retryAfterMs?: number) {
     super(message);
-    this.name = 'DeepSeekError';
+    this.name = 'LlmError';
     this.code = code;
     this.cause = cause;
     if (typeof retryAfterMs === 'number' && Number.isFinite(retryAfterMs) && retryAfterMs >= 0) {
@@ -83,13 +79,13 @@ export class DeepSeekError extends Error {
   }
 }
 
-export interface DeepSeekChatMessage {
+export interface LlmChatMessage {
   role: 'system' | 'user' | 'assistant';
   content: string;
 }
 
-export interface DeepSeekChatRequest {
-  messages: DeepSeekChatMessage[];
+export interface LlmChatRequest {
+  messages: LlmChatMessage[];
   /** coincidência criativa — o juiz usa 0 (determinístico). */
   temperature?: number;
   maxTokens?: number;
@@ -105,7 +101,7 @@ export interface DeepSeekChatRequest {
   reasoningEffort?: OpenRouterEffort;
 }
 
-export interface DeepSeekChatResponse {
+export interface LlmChatResponse {
   content: string;
   model: string;
   usage?: {
@@ -122,7 +118,7 @@ export interface DeepSeekChatResponse {
   };
 }
 
-export interface DeepSeekClientDeps {
+export interface LlmClientDeps {
   /** fetch injetável (testes). Default: fetch global. */
   fetchImpl?: typeof fetch;
   /** base da API. Default: OPENROUTER_MODEL.baseUrl (contrato congelado). */
@@ -131,8 +127,8 @@ export interface DeepSeekClientDeps {
   apiKey?: () => Promise<string>;
 }
 
-export interface DeepSeekClient {
-  chatCompletion(req: DeepSeekChatRequest): Promise<DeepSeekChatResponse>;
+export interface LlmClient {
+  chatCompletion(req: LlmChatRequest): Promise<LlmChatResponse>;
 }
 
 /**
@@ -179,8 +175,8 @@ function extractReasoningDetailsText(details: unknown): string | undefined {
  * - content e reasoning ausentes/choices vazio ⇒ devolve {}.
  *
  * TRÊS formas de raciocínio são aceitas: `reasoning` (string) e
- * `reasoning_details` (lista) do OpenRouter, e `reasoning_content` (o campo que
- * o DeepSeek usava) — o legado continua reconhecido de graça.
+ * `reasoning_details` (lista) do OpenRouter, e `reasoning_content` (o campo do
+ * provedor anterior) — o legado continua reconhecido de graça.
  */
 export function parseChoiceResult(body: unknown): ChoiceParseResult {
   if (!body || typeof body !== 'object' || Array.isArray(body)) return {};
@@ -216,11 +212,9 @@ export function parseChoiceResult(body: unknown): ChoiceParseResult {
 
 /**
  * Base default do transporte — vem do CONTRATO (`OPENROUTER_MODEL.baseUrl`),
- * nunca de um literal local. O nome da constante é herança do DeepSeek e é
- * privado ao módulo; a renomeação é da onda 2 (regra de ouro: esta onda troca
- * comportamento, não nomenclatura).
+ * nunca de um literal local.
  */
-const DEEPSEEK_DEFAULT_BASE: string = OPENROUTER_MODEL.baseUrl;
+const LLM_DEFAULT_BASE: string = OPENROUTER_MODEL.baseUrl;
 /** Default de timeout por chamada (ms). */
 const DEFAULT_TIMEOUT_MS = 60_000;
 
@@ -361,13 +355,13 @@ export function renderSanitizedBodyFragment(payload: unknown, apiKey: string, fi
 }
 
 /** Cria o cliente one-shot (OpenRouter) com transporte injetável. */
-export function createDeepSeekClient(deps: DeepSeekClientDeps = {}): DeepSeekClient {
-  const baseUrl = (deps.baseUrl ?? DEEPSEEK_DEFAULT_BASE).replace(/\/+$/, '');
+export function createLlmClient(deps: LlmClientDeps = {}): LlmClient {
+  const baseUrl = (deps.baseUrl ?? LLM_DEFAULT_BASE).replace(/\/+$/, '');
   const fetchImpl = deps.fetchImpl ?? fetch;
 
-  async function chatCompletion(req: DeepSeekChatRequest): Promise<DeepSeekChatResponse> {
+  async function chatCompletion(req: LlmChatRequest): Promise<LlmChatResponse> {
     if (!req.messages || req.messages.length === 0) {
-      throw new DeepSeekError(DEEPSEEK_ERROR_CODES.NETWORK, 'DeepSeek: sem mensagens na chamada.');
+      throw new LlmError(LLM_ERROR_CODES.NETWORK, 'OpenRouter: sem mensagens na chamada.');
     }
 
     // Resolve a chave sob demanda; sem chave configurada ⇒ erro explícito sem
@@ -377,9 +371,9 @@ export function createDeepSeekClient(deps: DeepSeekClientDeps = {}): DeepSeekCli
       apiKey = (await deps.apiKey()).trim();
     }
     if (!apiKey) {
-      throw new DeepSeekError(
-        DEEPSEEK_ERROR_CODES.KEY_MISSING,
-        'DeepSeek: chave de API não configurada.'
+      throw new LlmError(
+        LLM_ERROR_CODES.KEY_MISSING,
+        'OpenRouter: chave de API não configurada.'
       );
     }
 
@@ -425,11 +419,11 @@ export function createDeepSeekClient(deps: DeepSeekClientDeps = {}): DeepSeekCli
       if (timer) clearTimeout(timer);
       // AbortController abort ⇒ timeout; qualquer outro erro de fetch ⇒ rede.
       const isAbort = error instanceof Error && error.name === 'AbortError';
-      throw new DeepSeekError(
-        DEEPSEEK_ERROR_CODES.NETWORK,
+      throw new LlmError(
+        LLM_ERROR_CODES.NETWORK,
         isAbort
-          ? `DeepSeek: timeout após ${timeoutMs}ms.`
-          : `DeepSeek: falha de rede (${error instanceof Error ? error.message : 'desconhecida'}).`,
+          ? `OpenRouter: timeout após ${timeoutMs}ms.`
+          : `OpenRouter: falha de rede (${error instanceof Error ? error.message : 'desconhecida'}).`,
         error
       );
     } finally {
@@ -437,19 +431,19 @@ export function createDeepSeekClient(deps: DeepSeekClientDeps = {}): DeepSeekCli
     }
 
     if (response.status === 401 || response.status === 403) {
-      throw new DeepSeekError(
-        DEEPSEEK_ERROR_CODES.KEY_INVALID,
-        'DeepSeek: chave de API inválida ou sem permissão (HTTP ' + response.status + ').'
+      throw new LlmError(
+        LLM_ERROR_CODES.KEY_INVALID,
+        'OpenRouter: chave de API inválida ou sem permissão (HTTP ' + response.status + ').'
       );
     }
     if (response.status === 429) {
       // `Retry-After` só existe aqui: a Response morre no fim desta função, então
       // o valor sobe no ERRO para o `runtime/backoff.ts` poder honrá-lo.
       const retryAfterMs = parseRetryAfterMs(readHeader(response, 'Retry-After'));
-      let message = 'DeepSeek: rate limit / quota excedida (HTTP 429).';
+      let message = 'OpenRouter: rate limit / quota excedida (HTTP 429).';
       if (retryAfterMs !== undefined) message += ` Retry-After: ${retryAfterMs}ms.`;
-      throw new DeepSeekError(
-        DEEPSEEK_ERROR_CODES.RATE_LIMIT,
+      throw new LlmError(
+        LLM_ERROR_CODES.RATE_LIMIT,
         message,
         { status: response.status },
         retryAfterMs
@@ -461,7 +455,7 @@ export function createDeepSeekClient(deps: DeepSeekClientDeps = {}): DeepSeekCli
     // error.message citando os ids suportados. Trata AGORA, com mensagem clara
     // e fragmento sanitizado do corpo (nunca a chave).
     if (response.status >= 400 && response.status < 500) {
-      let message = `DeepSeek: erro de requisição (HTTP ${response.status}).`;
+      let message = `OpenRouter: erro de requisição (HTTP ${response.status}).`;
       let fragment: string | undefined;
       try {
         const parsed: unknown = await response.json();
@@ -469,10 +463,10 @@ export function createDeepSeekClient(deps: DeepSeekClientDeps = {}): DeepSeekCli
         if (apiMessage) {
           // A mensagem do gateway é texto de TERCEIRO: pode ecoar o header
           // Authorization. Mascara ANTES de entrar na mensagem do erro.
-          message = `DeepSeek: ${maskSecrets(apiMessage, apiKey)} (HTTP ${response.status}).`;
+          message = `OpenRouter: ${maskSecrets(apiMessage, apiKey)} (HTTP ${response.status}).`;
           fragment = apiMessage;
         } else {
-          message = `DeepSeek: requisição rejeitada (HTTP ${response.status}) com corpo não-parseável.`;
+          message = `OpenRouter: requisição rejeitada (HTTP ${response.status}) com corpo não-parseável.`;
         }
       } catch {
         // corpo ilegível — mantém a mensagem padrão.
@@ -483,20 +477,20 @@ export function createDeepSeekClient(deps: DeepSeekClientDeps = {}): DeepSeekCli
           apiKey
         )}.`;
       }
-      throw new DeepSeekError(DEEPSEEK_ERROR_CODES.BAD_REQUEST, message, { status: response.status });
+      throw new LlmError(LLM_ERROR_CODES.BAD_REQUEST, message, { status: response.status });
     }
     if (response.status >= 500) {
       // 503 ("no available provider") também pode trazer `Retry-After`.
       const retryAfterMs = parseRetryAfterMs(readHeader(response, 'Retry-After'));
-      let message = `DeepSeek: erro de servidor (HTTP ${response.status}).`;
+      let message = `OpenRouter: erro de servidor (HTTP ${response.status}).`;
       try {
         const parsed = extractErrorText(await response.json());
-        if (parsed) message = `DeepSeek: ${maskSecrets(parsed, apiKey)}`;
+        if (parsed) message = `OpenRouter: ${maskSecrets(parsed, apiKey)}`;
       } catch {
         // corpo ilegível — mantém a mensagem padrão.
       }
-      throw new DeepSeekError(
-        DEEPSEEK_ERROR_CODES.SERVER_ERROR,
+      throw new LlmError(
+        LLM_ERROR_CODES.SERVER_ERROR,
         message,
         { status: response.status },
         retryAfterMs
@@ -508,9 +502,9 @@ export function createDeepSeekClient(deps: DeepSeekClientDeps = {}): DeepSeekCli
     try {
       body = await response.json();
     } catch (error) {
-      throw new DeepSeekError(
-        DEEPSEEK_ERROR_CODES.NETWORK,
-        'DeepSeek: resposta não-JSON do servidor.',
+      throw new LlmError(
+        LLM_ERROR_CODES.NETWORK,
+        'OpenRouter: resposta não-JSON do servidor.',
         error
       );
     }
@@ -520,15 +514,15 @@ export function createDeepSeekClient(deps: DeepSeekClientDeps = {}): DeepSeekCli
       // devolveu apenas raciocínio, o problema é do prompt/serviço (o reasoning
       // não é conteúdo de aula) — erro EXPLÍCITO, nunca silencioso.
       if (parsedChoice.reasoningContent) {
-        throw new DeepSeekError(
-          DEEPSEEK_ERROR_CODES.EMPTY_CONTENT,
-          'DeepSeek: resposta com content vazio (o modelo devolveu apenas raciocínio — ' +
+        throw new LlmError(
+          LLM_ERROR_CODES.EMPTY_CONTENT,
+          'OpenRouter: resposta com content vazio (o modelo devolveu apenas raciocínio — ' +
             'reasoning/reasoning_details/reasoning_content —, sem conteúdo de aula).'
         );
       }
-      throw new DeepSeekError(
-        DEEPSEEK_ERROR_CODES.EMPTY_CONTENT,
-        'DeepSeek: resposta sem choices[0].message.content não-vazio. ' +
+      throw new LlmError(
+        LLM_ERROR_CODES.EMPTY_CONTENT,
+        'OpenRouter: resposta sem choices[0].message.content não-vazio. ' +
           `Corpo (sanitizado): ${renderSanitizedBodyFragment(body, apiKey, 'choices')}.`
       );
     }
@@ -544,7 +538,7 @@ export function createDeepSeekClient(deps: DeepSeekClientDeps = {}): DeepSeekCli
         };
       }
     )?.usage;
-    let usage: DeepSeekChatResponse['usage'];
+    let usage: LlmChatResponse['usage'];
     if (
       rawUsage &&
       typeof rawUsage.prompt_tokens === 'number' &&

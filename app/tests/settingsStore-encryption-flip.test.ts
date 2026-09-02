@@ -49,19 +49,19 @@ describe('createSettingsStore — flip de disponibilidade do safeStorage', () =>
 
   it('(a) roundtrip cifrado normal (disponível=true)', async () => {
     const store = createSettingsStore({ safeStorage: makeSafeStorage(true), userDataPath: dir });
-    await store.setApiKey('deepseek', 'sk-flip-123');
-    assert.equal(await store.getApiKey('deepseek'), 'sk-flip-123');
+    await store.setApiKey('openrouter', 'sk-flip-123');
+    assert.equal(await store.getApiKey('openrouter'), 'sk-flip-123');
 
     const parsed = JSON.parse(await readFile(`${dir}/settings.json`));
     assert.equal(parsed.encryption, true);
-    assert.ok(parsed.apiKeys.deepseek && parsed.apiKeys.deepseek !== 'sk-flip-123');
+    assert.ok(parsed.apiKeys.openrouter && parsed.apiKeys.openrouter !== 'sk-flip-123');
   });
 
   it('(b) escreve cifrado com disponível=true, lê decifrado mesmo com disponível=false', async () => {
     await createSettingsStore({
       safeStorage: makeSafeStorage(true), // disponível AO GRAVAR
       userDataPath: dir,
-    }).setApiKey('deepseek', 'sk-flip-secret');
+    }).setApiKey('openrouter', 'sk-flip-secret');
 
     // Segunda instância, MESMA userDataPath, mas safeStorage agora INDISPONÍVEL.
     // Na ramificação, precisa ser capaz de decifrar o que a instância anterior gravou.
@@ -69,7 +69,7 @@ describe('createSettingsStore — flip de disponibilidade do safeStorage', () =>
       safeStorage: makeSafeStorage(false), // disponibilidade caiu entre write e read
       userDataPath: dir,
     });
-    assert.equal(await unavailable.getApiKey('deepseek'), 'sk-flip-secret');
+    assert.equal(await unavailable.getApiKey('openrouter'), 'sk-flip-secret');
   });
 
   it('(c) texto puro com encryption:false continua funcionando (sem cifra)', async () => {

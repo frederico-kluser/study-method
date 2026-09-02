@@ -57,7 +57,7 @@
  * de qualquer trabalho; nenhum parâmetro obrigatório tem default sorrateiro.
  */
 
-import { DEEPSEEK_ERROR_CODES } from '../../services/deepseekClient';
+import { LLM_ERROR_CODES } from '../../services/llmClient';
 import {
   buildPlanPrompt,
   heuristicPlanFor,
@@ -657,7 +657,7 @@ function planoDeSubtopicos(shape: ResearchPlanShape, raw: unknown): PlanoDeSubto
  * Falha de planejador que NUNCA degrada (aborta a fase — A-P14-1 e transporte).
  * Reconhece DOIS shapes do MESMO contrato de códigos: (a) o `LlmStageError` do
  * transporte da onda 1; (b) o erro CRU com o mesmo `code` — um EngineLlm
- * injetado pode lançar o erro do cliente DeepSeek/Brave sem embrulhar no
+ * injetado pode lançar o erro do cliente de LLM/Brave sem embrulhar no
  * transporte. Inclui BAD_REQUEST (bug de prompt, simétrico ao classificador de
  * fase): a heurística NUNCA substitui um prompt quebrado — aborta.
  */
@@ -665,18 +665,18 @@ function falhaInaveitavelDoPlanejador(err: unknown): boolean {
   if (err instanceof F1Error) return true;
   if (err instanceof LlmStageError) {
     return (
-      err.code === DEEPSEEK_ERROR_CODES.KEY_MISSING ||
-      err.code === DEEPSEEK_ERROR_CODES.KEY_INVALID ||
-      err.code === DEEPSEEK_ERROR_CODES.BAD_REQUEST
+      err.code === LLM_ERROR_CODES.KEY_MISSING ||
+      err.code === LLM_ERROR_CODES.KEY_INVALID ||
+      err.code === LLM_ERROR_CODES.BAD_REQUEST
     );
   }
   const code = (err as { code?: unknown } | null)?.code;
   return (
     code === 'BRAVE_KEY_MISSING' ||
     code === 'BRAVE_KEY_INVALID' ||
-    code === 'DEEPSEEK_KEY_MISSING' ||
-    code === 'DEEPSEEK_KEY_INVALID' ||
-    code === DEEPSEEK_ERROR_CODES.BAD_REQUEST
+    code === 'LLM_KEY_MISSING' ||
+    code === 'LLM_KEY_INVALID' ||
+    code === LLM_ERROR_CODES.BAD_REQUEST
   );
 }
 
@@ -791,7 +791,7 @@ export function criarF1Research(deps: F1Deps): F1Phase {
     if (err instanceof F1Error) return { abortar: true, erro: err };
     if (err instanceof LlmStageError) {
       switch (err.code) {
-        case DEEPSEEK_ERROR_CODES.KEY_MISSING:
+        case LLM_ERROR_CODES.KEY_MISSING:
           return {
             abortar: true,
             erro: new F1Error({
@@ -801,7 +801,7 @@ export function criarF1Research(deps: F1Deps): F1Phase {
               cause: err,
             }),
           };
-        case DEEPSEEK_ERROR_CODES.KEY_INVALID:
+        case LLM_ERROR_CODES.KEY_INVALID:
           return {
             abortar: true,
             erro: new F1Error({
@@ -811,7 +811,7 @@ export function criarF1Research(deps: F1Deps): F1Phase {
               cause: err,
             }),
           };
-        case DEEPSEEK_ERROR_CODES.BAD_REQUEST:
+        case LLM_ERROR_CODES.BAD_REQUEST:
           return {
             abortar: true,
             erro: new F1Error({
@@ -821,7 +821,7 @@ export function criarF1Research(deps: F1Deps): F1Phase {
               cause: err,
             }),
           };
-        case DEEPSEEK_ERROR_CODES.RATE_LIMIT:
+        case LLM_ERROR_CODES.RATE_LIMIT:
           return {
             abortar: false,
             falha: {
@@ -834,7 +834,7 @@ export function criarF1Research(deps: F1Deps): F1Phase {
       }
     }
     const codigo = (err as { code?: unknown } | null)?.code;
-    if (codigo === 'BRAVE_KEY_MISSING' || codigo === 'DEEPSEEK_KEY_MISSING') {
+    if (codigo === 'BRAVE_KEY_MISSING' || codigo === 'LLM_KEY_MISSING') {
       return {
         abortar: true,
         erro: new F1Error({
@@ -845,7 +845,7 @@ export function criarF1Research(deps: F1Deps): F1Phase {
         }),
       };
     }
-    if (codigo === 'BRAVE_KEY_INVALID' || codigo === 'DEEPSEEK_KEY_INVALID') {
+    if (codigo === 'BRAVE_KEY_INVALID' || codigo === 'LLM_KEY_INVALID') {
       return {
         abortar: true,
         erro: new F1Error({
@@ -855,7 +855,7 @@ export function criarF1Research(deps: F1Deps): F1Phase {
         }),
       };
     }
-    if (codigo === 'DEEPSEEK_BAD_REQUEST') {
+    if (codigo === 'LLM_BAD_REQUEST') {
       return {
         abortar: true,
         erro: new F1Error({

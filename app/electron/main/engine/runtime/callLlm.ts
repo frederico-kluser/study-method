@@ -24,7 +24,7 @@
  *   5. USAGE agregado POR ETAPA: prompt/completion tokens acumulados por
  *      etapa e expostos no retorno de cada chamada e via getStageUsage.
  *   6. LOG sempre sanitizado por `renderSanitizedBodyFragment` (importado do
- *      deepseekClient) — a chave de API NUNCA aparece em log nem em erro.
+ *      llmClient) — a chave de API NUNCA aparece em log nem em erro.
  *
  * MODELO E RACIOCÍNIO: o default de modelo é `OPENROUTER_MODEL.id`
  * (`@shared/llm/constants` — contrato congelado do provedor). O esforço de
@@ -53,15 +53,15 @@ import {
   type OpenRouterEffort,
 } from '@shared/llm/constants';
 import {
-  DEEPSEEK_ERROR_CODES,
-  DeepSeekError,
-  type DeepSeekChatMessage,
-  type DeepSeekChatRequest,
-  type DeepSeekChatResponse,
-  type DeepSeekClient,
-  type DeepSeekErrorCode,
+  LLM_ERROR_CODES,
+  LlmError,
+  type LlmChatMessage,
+  type LlmChatRequest,
+  type LlmChatResponse,
+  type LlmClient,
+  type LlmErrorCode,
   renderSanitizedBodyFragment,
-} from '../../services/deepseekClient';
+} from '../../services/llmClient';
 import { retryAfterMsFrom, retryDecision, type BackoffConfig } from './backoff';
 import { cacheKeyFor, type CacheStore, type LlmCacheEntry } from './llmCache';
 import { createSemaphore, DEFAULT_LLM_CONCURRENCY, type Semaphore } from './semaphore';
@@ -69,7 +69,7 @@ import { createSemaphore, DEFAULT_LLM_CONCURRENCY, type Semaphore } from './sema
 // ─── códigos e erro estruturado do transporte ───────────────────────────────
 
 /**
- * Códigos próprios do transporte (além dos códigos do deepseekClient que
+ * Códigos próprios do transporte (além dos códigos do llmClient que
  * propagam intactos). Fail-closed: indisponibilidade/atraso produzem erro
  * estruturado, nunca veredito falso nem silêncio.
  */
@@ -83,7 +83,7 @@ export const LLM_TRANSPORT_CODES = {
 export type LlmTransportCode = (typeof LLM_TRANSPORT_CODES)[keyof typeof LLM_TRANSPORT_CODES];
 
 /** Todo erro que sai deste transporte: código estável + contexto da etapa. */
-export type LlmStageErrorCode = DeepSeekErrorCode | LlmTransportCode;
+export type LlmStageErrorCode = LlmErrorCode | LlmTransportCode;
 
 export interface LlmStageErrorOptions {
   code: LlmStageErrorCode;
@@ -187,7 +187,7 @@ export interface EngineLlm {
 
 export interface CallLlmDeps {
   /** Transporte injetado — fake nos testes; A-P01-3 (sem rede, sem chave). */
-  client: DeepSeekClient;
+  client: LlmClient;
   /** Resolve a chave UMA vez (memoizada internamente). */
   apiKey: () => Promise<string>;
   /** SEM_LLM — quem cria o run passa o MESMO semáforo para todas as etapas. */
@@ -208,13 +208,13 @@ const defaultSleep = (ms: number) => new Promise<void>((resolve) => setTimeout(r
 
 /**
  * A requisição que este transporte entrega ao cliente. `reasoningEffort` é o
- * campo que `services/deepseekClient.ts` (reescrito para o OpenRouter na
- * mesma onda) passa a aceitar em `DeepSeekChatRequest`. Declarar aqui a
+ * campo que `services/llmClient.ts` (reescrito para o OpenRouter na
+ * mesma onda) passa a aceitar em `LlmChatRequest`. Declarar aqui a
  * extensão é DELIBERADO: o transporte compila contra a versão do cliente que
  * ainda não tem o campo E contra a que já tem (a redeclaração é idêntica, e
  * um cliente antigo simplesmente ignora a propriedade extra).
  */
-interface EngineChatRequest extends DeepSeekChatRequest {
+interface EngineChatRequest extends LlmChatRequest {
   reasoningEffort?: OpenRouterEffort;
 }
 
@@ -295,9 +295,9 @@ export function createCallLlm(deps: CallLlmDeps): EngineLlm {
   }
 
   /** Timeout disparado pelo próprio cliente (AbortError ⇒ NETWORK): etapa travada. */
-  function isClientTimeout(raw: DeepSeekError): boolean {
+  function isClientTimeout(raw: LlmError): boolean {
     return (
-      raw.code === DEEPSEEK_ERROR_CODES.NETWORK &&
+      raw.code === LLM_ERROR_CODES.NETWORK &&
       raw.cause instanceof Error &&
       raw.cause.name === 'AbortError'
     );
@@ -317,7 +317,7 @@ export function createCallLlm(deps: CallLlmDeps): EngineLlm {
   }
 
   type AttemptOutcome =
-    | { kind: 'done'; value: DeepSeekChatResponse }
+    | { kind: 'done'; value: LlmChatResponse }
     | { kind: 'error'; error: unknown }
     | { kind: 'timeout' };
 
@@ -327,7 +327,7 @@ export function createCallLlm(deps: CallLlmDeps): EngineLlm {
    * real aborta o fetch no MESMO deadline via o timeoutMs que este módulo
    * repassa a ele).
    */
-  function attemptWithDeadline(promise: Promise<DeepSeekChatResponse>, ms: number): Promise<AttemptOutcome> {
+  function attemptWithDeadline(promise: Promise<LlmChatResponse>, ms: number): Promise<AttemptOutcome> {
     return new Promise<AttemptOutcome>((resolve) => {
       let settled = false;
       const timer = setTimeout(() => {
@@ -352,8 +352,8 @@ export function createCallLlm(deps: CallLlmDeps): EngineLlm {
     });
   }
 
-  function buildMessages(req: LlmCallRequest): DeepSeekChatMessage[] {
-    const messages: DeepSeekChatMessage[] = [];
+  function buildMessages(req: LlmCallRequest): LlmChatMessage[] {
+    const messages: LlmChatMessage[] = [];
     if (req.system && req.system.trim().length > 0) {
       messages.push({ role: 'system', content: req.system });
     }
@@ -367,7 +367,7 @@ export function createCallLlm(deps: CallLlmDeps): EngineLlm {
     const validation = validateRequest(req);
     if (validation) {
       // Bug da etapa chamadora — BAD_REQUEST nunca retenta (política backoff).
-      throw stageError(etapa, DEEPSEEK_ERROR_CODES.BAD_REQUEST, validation, 0, 0);
+      throw stageError(etapa, LLM_ERROR_CODES.BAD_REQUEST, validation, 0, 0);
     }
 
     // Chave: resolvida uma vez, memoizada. Sem chave ⇒ KEY_MISSING (aborta o
@@ -378,7 +378,7 @@ export function createCallLlm(deps: CallLlmDeps): EngineLlm {
     } catch (error) {
       throw stageError(
         etapa,
-        DEEPSEEK_ERROR_CODES.KEY_MISSING,
+        LLM_ERROR_CODES.KEY_MISSING,
         'falha ao resolver a chave de API.',
         0,
         0,
@@ -386,7 +386,7 @@ export function createCallLlm(deps: CallLlmDeps): EngineLlm {
       );
     }
     if (!key) {
-      throw stageError(etapa, DEEPSEEK_ERROR_CODES.KEY_MISSING, 'chave de API não configurada.', 0, 0);
+      throw stageError(etapa, LLM_ERROR_CODES.KEY_MISSING, 'chave de API não configurada.', 0, 0);
     }
     resolvedKey = key;
 
@@ -489,7 +489,7 @@ export function createCallLlm(deps: CallLlmDeps): EngineLlm {
 
         if (outcome.kind === 'error') {
           const raw: unknown = outcome.error;
-          if (raw instanceof DeepSeekError) {
+          if (raw instanceof LlmError) {
             // Timeout do própriO cliente (AbortError mapeado para NETWORK)
             // também é etapa travada — mesma regra: rejeita, não retenta.
             if (isClientTimeout(raw)) {

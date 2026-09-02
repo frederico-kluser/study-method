@@ -11,7 +11,7 @@
 export const KEYS_CHANNELS = {
   GET_STATUS: 'keys:get-status',
   SET_KEY: 'keys:set-key',
-  VALIDATE_DEEPSEEK: 'keys:validate-deepseek',
+  VALIDATE_LLM: 'keys:validate-llm',
   VALIDATE_BRAVE: 'keys:validate-brave',
   // ADITIVO (onda 6 — startup gate): o GATE DE INÍCIO consulta esse canal no
   // montage do AppGate. Registrado por `registerStartupHandlers` (um
@@ -172,7 +172,7 @@ export const STUDY_CHANNELS = {
   // a partir de (family, seed) via mathLib — nunca confia no renderer.
   CHECK_MATH_ANSWER: 'study:check-math-answer',
   // ADITIVO (onda3-respostas): avaliação da RESPOSTA DIGITADA (interpretação)
-  // com LLM — deepseek primeiro, fallback embeddedLlm local; falha total
+  // com LLM — OpenRouter primeiro, fallback embeddedLlm local; falha total
   // devolve erro estruturado com `code` (nunca inventa veredito).
   JUDGE_ANSWER: 'study:judge-answer',
   // ADITIVO (onda4-desafio-persistencia): registra UMA tentativa de desafio
@@ -864,7 +864,7 @@ export interface WorkspaceFile {
 // `study:check-math-answer` é a verificação POR EXECUÇÃO do exercício de
 // matemática (SEM LLM): o main RECOMPUTA o esperado de (family, seed) via
 // mathLib e compara com a resposta digitada — a UI nunca envia o esperado.
-// `study:judge-answer` avalia a INTERPRETAÇÃO digitada com LLM (deepseek →
+// `study:judge-answer` avalia a INTERPRETAÇÃO digitada com LLM (OpenRouter →
 // fallback embeddedLlm); em falha total devolve erro estruturado com `code`
 // (nunca inventa veredito).
 
@@ -917,41 +917,28 @@ export type JudgeAnswerOutcome =
       ok: true;
       verdict: 'correct' | 'partial' | 'incorrect';
       feedback: string;
-      provider: 'deepseek' | 'openrouter' | 'embedded';
+      provider: 'openrouter' | 'embedded';
     }
   | { ok: false; error: { code: string; message: string } };
-
-/**
- * MIGRAÇÃO DE PROVEDOR — FASE "EXPAND" (adicione antes de remover).
- *
- * O app está migrando de DeepSeek para OpenRouter (`z-ai/glm-5.3-flash`, ver
- * `shared/llm/constants.ts`). As unions de `provider` abaixo aceitam
- * TEMPORARIAMENTE os DOIS valores para que a troca de transporte e a troca de
- * nomenclatura possam acontecer em commits separados sem um instante em que o
- * contrato esteja inconsistente. A fase "contract" (remover `'deepseek'` e
- * renomear o canal `keys:validate-deepseek`) é uma etapa POSTERIOR e explícita.
- *
- * Enquanto as duas convivem, `'openrouter'` é o valor CORRETO para código novo.
- */
 
 // ─── Canais: validação de chaves ──────────────────────────────────────────────
 export interface ValidationResult {
   isValid: boolean;
-  provider: 'deepseek' | 'openrouter' | 'brave';
+  provider: 'openrouter' | 'brave';
   errorMessage?: string;
   checkedAt: string;
 }
 
 export interface KeysStatus {
-  deepseekConfigured: boolean;
+  llmConfigured: boolean;
   braveConfigured: boolean;
-  deepseekValidated: boolean;
+  llmValidated: boolean;
   braveValidated: boolean;
 }
 
 /**
  * Status do GATE DE INÍCIO (onda 6 — startup gate). Resultado de
- * `keys:startup-status`: a validação real das DUAS chaves (DeepSeek + Brave)
+ * `keys:startup-status`: a validação real das DUAS chaves (OpenRouter + Brave)
  * acontecida no main no primeiro acesso do renderer.
  *
  * `phase` interpreta o estado agregado:
@@ -969,7 +956,7 @@ export interface KeysStatus {
  */
 export interface StartupStatus {
   phase: 'checking' | 'ready' | 'blocked' | 'offline';
-  deepseek: { configured: boolean; valid: boolean; error?: string };
+  llm: { configured: boolean; valid: boolean; error?: string };
   brave: { configured: boolean; valid: boolean; error?: string };
   /** true APENAS quando ambas as chaves configuradas falharam por erro de rede. */
   offline: boolean;
@@ -987,7 +974,7 @@ export const SETTINGS_CHANNELS = {
 export interface AppSettings {
   setupsDir?: string;
   lastSubject?: string;
-  defaultModelProvider?: 'deepseek' | 'openrouter' | 'local';
+  defaultModelProvider?: 'openrouter' | 'local';
   defaultModelId?: string;
   /** ADITIVO (onda 6): idioma ativo, persistido pelo LanguageSwitcher do i18n. */
   language?: string;

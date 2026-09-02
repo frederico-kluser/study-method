@@ -39,14 +39,14 @@ describe('createSettingsStore', () => {
   it('roundtrip cifrado quando isEncryptionAvailable() = true', async () => {
     const safe = makeSafeStorage(true);
     const store = createSettingsStore({ safeStorage: safe, userDataPath: dir });
-    await store.setApiKey('deepseek', 'sk-test-123');
-    assert.equal(await store.getApiKey('deepseek'), 'sk-test-123');
+    await store.setApiKey('openrouter', 'sk-test-123');
+    assert.equal(await store.getApiKey('openrouter'), 'sk-test-123');
     // No disco a chave deve estar CIFRADA (nunca o valor em claro).
     const parsed = JSON.parse(await readFile(`${dir}/settings.json`));
     assert.equal(parsed.encryption, true);
-    assert.ok(parsed.apiKeys.deepseek && parsed.apiKeys.deepseek !== 'sk-test-123');
+    assert.ok(parsed.apiKeys.openrouter && parsed.apiKeys.openrouter !== 'sk-test-123');
     assert.equal(
-      safe.decryptString(Buffer.from(parsed.apiKeys.deepseek, 'base64')),
+      safe.decryptString(Buffer.from(parsed.apiKeys.openrouter, 'base64')),
       'sk-test-123',
       'base64 no arquivo deveria decifrar de volta para a chave',
     );
@@ -66,13 +66,13 @@ describe('createSettingsStore', () => {
     await createSettingsStore({
       safeStorage: makeSafeStorage(true),
       userDataPath: dir,
-    }).setApiKey('deepseek', 'sk-persist');
+    }).setApiKey('openrouter', 'sk-persist');
 
     const reloaded = createSettingsStore({
       safeStorage: makeSafeStorage(true),
       userDataPath: dir,
     });
-    assert.equal(await reloaded.getApiKey('deepseek'), 'sk-persist');
+    assert.equal(await reloaded.getApiKey('openrouter'), 'sk-persist');
   });
 
   it('deleteApiKey remove a chave do provider', async () => {
@@ -86,9 +86,9 @@ describe('createSettingsStore', () => {
 
   it('getConfiguredProviders lista só providers com chave', async () => {
     const store = createSettingsStore({ safeStorage: makeSafeStorage(false), userDataPath: dir });
-    await store.setApiKey('deepseek', 'a');
+    await store.setApiKey('openrouter', 'a');
     await store.setApiKey('brave', 'b');
-    await store.deleteApiKey('deepseek');
+    await store.deleteApiKey('openrouter');
     const providers = await store.getConfiguredProviders();
     assert.deepEqual(providers, ['brave']);
   });
@@ -98,7 +98,7 @@ describe('createSettingsStore', () => {
       safeStorage: makeSafeStorage(true),
       userDataPath: `${dir}/vazio-inexistente`,
     });
-    assert.equal(await store.getApiKey('deepseek'), '');
+    assert.equal(await store.getApiKey('openrouter'), '');
     assert.deepEqual(await store.getConfiguredProviders(), []);
     assert.equal(await fileExists(`${dir}/vazio-inexistente/settings.json`), false);
   });
@@ -108,17 +108,17 @@ describe('createSettingsStore', () => {
       safeStorage: makeSafeStorage(false),
       userDataPath: dir,
       fileName: 'empty-del.json',
-    }).setApiKey('deepseek', 'sk-to-delete');
+    }).setApiKey('openrouter', 'sk-to-delete');
     const store = createSettingsStore({
       safeStorage: makeSafeStorage(false),
       userDataPath: dir,
       fileName: 'empty-del.json',
     });
-    await store.setApiKey('deepseek', '');
-    assert.equal(await store.getApiKey('deepseek'), '');
+    await store.setApiKey('openrouter', '');
+    assert.equal(await store.getApiKey('openrouter'), '');
     assert.deepEqual(await store.getConfiguredProviders(), []);
     const parsed = JSON.parse(await readFile(`${dir}/empty-del.json`));
-    assert.equal(parsed.apiKeys.deepseek, undefined);
+    assert.equal(parsed.apiKeys.openrouter, undefined);
   });
 
   it('setValue/getValue: roundtrip e persistência entre instâncias', async () => {
@@ -166,8 +166,8 @@ describe('createSettingsStore', () => {
       userDataPath: dir,
       fileName: 'broken.json',
     });
-    await store.setApiKey('deepseek', 'sk-teste');
-    assert.equal(await store.getApiKey('deepseek'), '');
+    await store.setApiKey('openrouter', 'sk-teste');
+    assert.equal(await store.getApiKey('openrouter'), '');
   });
 
   it('getConfiguredProviders ignora chaves vazias do json', async () => {
@@ -178,14 +178,14 @@ describe('createSettingsStore', () => {
     }).setApiKey('brave', 'real-key');
     await writeFile(
       `${dir}/mixed.json`,
-      JSON.stringify({ apiKeys: { brave: '', deepseek: 'ok-key' }, values: {}, encryption: false }),
+      JSON.stringify({ apiKeys: { brave: '', openrouter: 'ok-key' }, values: {}, encryption: false }),
     );
     const store = createSettingsStore({
       safeStorage: makeSafeStorage(false),
       userDataPath: dir,
       fileName: 'mixed.json',
     });
-    assert.deepEqual(await store.getConfiguredProviders(), ['deepseek']);
+    assert.deepEqual(await store.getConfiguredProviders(), ['openrouter']);
   });
 
   it('fileName custom é usado no caminho do arquivo', async () => {
@@ -195,7 +195,7 @@ describe('createSettingsStore', () => {
       fileName: 'custom-config.json',
     });
     assert.ok(store.filePath.endsWith('custom-config.json'));
-    await store.setApiKey('deepseek', 'sk-custom');
+    await store.setApiKey('openrouter', 'sk-custom');
     assert.equal(await fileExists(`${dir}/custom-config.json`), true);
   });
 });

@@ -7,15 +7,13 @@
  * (process.env['ELECTRON_RENDERER_URL']); em prod carrega o bundle do
  * renderer (out/renderer/index.html).
  *
- * MIGRAÇÃO OPENROUTER (chaves): toda leitura da chave do LLM passa por
- * `readLlmApiKey` — slot novo 'openrouter' com FALLBACK para o slot legado
- * 'deepseek' (ver electron/main/ipc/keys-handlers.ts). Os SERVIÇOS que
- * consomem essa chave (deepseekClient/juiz/autor) ainda apontam para a API da
- * DeepSeek: trocá-los é outra sub-tarefa da migração.
+ * CHAVE DO LLM: toda leitura passa por `readLlmApiKey` — slot canônico
+ * 'openrouter' com FALLBACK para o slot legado gravado por versões anteriores
+ * (ver electron/main/ipc/keys-handlers.ts).
  *
  * Fiação da onda 3 (ui-wiring): no whenReady constrói os serviços REAIS
- * (settingsStore, PiAgentService, runner/lesson/orchestrator com autor+juiz
- * DeepSeek, brave + research) e entrega registerPi/registerStudy/registerLocalAi
+ * (settingsStore, PiAgentService, runner/lesson/orchestrator com autor+juiz de
+ * LLM remoto, brave + research) e entrega registerPi/registerStudy/registerLocalAi
  * ao buildMainSetup, que então registra na ordem (ipc→keys→localAi→pi→study) com
  * safeHandle (placeholders → reais). Motor LLM local e shim local do Pi ficam
  * para ondas futuras (ver handoff).
@@ -41,11 +39,11 @@ import { registerE2EStubs } from './services/e2eStubs';
 import { getSettingsStore } from './services/settingsStore';
 import { createPiAgentService } from './services/PiAgentService';
 import { createStudyMethodRunner } from './services/studyMethodRunner';
-import { createDeepSeekLlmJudge } from './services/deepseekLlmJudge';
-import { createDeepSeekLessonAuthor } from './services/deepseekLessonAuthor';
+import { createLlmJudge } from './services/llmJudge';
+import { createLessonAuthor } from './services/lessonAuthor';
 import { createLessonOrchestrator } from './services/lessonOrchestrator';
 import { createBraveSearchService } from './services/braveSearchService';
-import { createDeepSeekClient } from './services/deepseekClient';
+import { createLlmClient } from './services/llmClient';
 import { createResearchPlanner, followUpsWithLlm, planWithLlm } from './services/researchPlanner';
 import { createAnswerJudge } from './services/answerJudge';
 import { embeddedLlm } from './services/embeddedLlm/EmbeddedLlmService';
@@ -61,7 +59,7 @@ const windowVisible = process.env.STUDY_METHOD_WINDOW_VISIBLE !== '0';
 
 // MODO E2E (harness Playwright): ativado por STUDY_METHOD_E2E=1. O main registra
 // handlers STUB (services/e2eStubs) no lugar da fiação real de rede/LLM/voz —
-// nada de deepseek/brave/Pi/GGUF/STT/TTS. As chaves ficam em memória (sem tocar
+// nada de LLM remoto/brave/Pi/GGUF/STT/TTS. As chaves ficam em memória (sem tocar
 // o settingsStore real) e o userData é redirecionado a um tmp isolado para não
 // vazar/prejudicar o perfil do usuário durante os testes.
 const e2eMode = process.env.STUDY_METHOD_E2E === '1';
@@ -98,7 +96,7 @@ if (!gotLock) {
     try {
       const settingsStore = await getSettingsStore();
 
-      const judge = createDeepSeekLlmJudge({
+      const judge = createLlmJudge({
         getApiKey: () => readLlmApiKey(settingsStore),
       });
 
@@ -107,7 +105,7 @@ if (!gotLock) {
         llmJudge: judge,
       }) as unknown as RunnerLike;
 
-      const author = createDeepSeekLessonAuthor({
+      const author = createLessonAuthor({
         getApiKey: () => readLlmApiKey(settingsStore),
       });
 
@@ -130,24 +128,24 @@ if (!gotLock) {
       }
 
       // PLANEJADOR/ANALISTA LLM da pesquisa (onda2-research-live): o mesmo
-      // deepseekClient do juiz/autor, usado pelos helpers do researchPlanner
+      // llmClient do juiz/autor, usado pelos helpers do researchPlanner
       // (JSON estrito, temperature baixa). Falhas degradam para a heurística.
-      const plannerDeepseek = createDeepSeekClient({
+      const plannerLlm = createLlmClient({
         apiKey: () => readLlmApiKey(settingsStore),
       });
       const research = createResearchPlanner({
         search: brave,
         resolveApiKey: () => settingsStore.getApiKey('brave'),
-        generatePlan: async (subject) => planWithLlm(plannerDeepseek, subject),
-        generateFollowUps: async (ctx) => followUpsWithLlm(plannerDeepseek, ctx),
+        generatePlan: async (subject) => planWithLlm(plannerLlm, subject),
+        generateFollowUps: async (ctx) => followUpsWithLlm(plannerLlm, ctx),
       });
 
       // ONDA4 (gap da onda 3): o avaliador da RESPOSTA DIGITADA (judge-answer)
-      // fiado de verdade — deepseek primeiro (reusa o createDeepSeekClient já
+      // fiado de verdade — LLM remoto primeiro (reusa o createLlmClient já
       // criado para o planner), fallback embeddedLlm (singleton existente). Sem
       // isto, study:judge-answer respondia ANSWER_JUDGE_UNAVAILABLE em produção.
       const answerJudge = createAnswerJudge({
-        deepseek: plannerDeepseek,
+        llm: plannerLlm,
         getApiKey: () => readLlmApiKey(settingsStore),
         embedded: embeddedLlm,
       });
@@ -219,7 +217,7 @@ if (!gotLock) {
             cwd: process.cwd(),
           }),
         repo,
-        deepseek: plannerDeepseek,
+        llm: plannerLlm,
         // ONDA3 (generate-flow): o progresso do track:challenge-regenerate
         // chega ao renderer pelo canal push (o modal global escuta).
         emit: emitWindow,

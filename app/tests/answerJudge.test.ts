@@ -1,11 +1,11 @@
 /**
  * tests/answerJudge.test.ts — cobertura do avaliador da RESPOSTA DIGITADA
- * (onda3-respostas): veredito parseado do deepseek (JSON), FALLBACK para o
- * embeddedLlm quando o deepseek falha/indisponível, e erro ESTRUTURADO com
+ * (onda3-respostas): veredito parseado do llm (JSON), FALLBACK para o
+ * embeddedLlm quando o llm falha/indisponível, e erro ESTRUTURADO com
  * `code` em falha total — nunca inventa veredito (AS-1/AS-2: feedback
  * específico; veredito só vem do LLM).
  *
- * NUNCA toca rede: clientes 100% mockados (DeepSeekClient-like + EmbeddedLlmLike).
+ * NUNCA toca rede: clientes 100% mockados (LlmClient-like + EmbeddedLlmLike).
  */
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
@@ -17,7 +17,7 @@ import {
   type EmbeddedLlmLike,
   type JudgeAnswerInput,
 } from '../electron/main/services/answerJudge';
-import type { DeepSeekClient } from '../electron/main/services/deepseekClient';
+import type { LlmClient } from '../electron/main/services/llmClient';
 import { OPENROUTER_MODEL } from '@shared/llm/constants';
 
 const INPUT: JudgeAnswerInput = {
@@ -27,8 +27,8 @@ const INPUT: JudgeAnswerInput = {
 
 const VALID_JSON = JSON.stringify({ verdict: 'correct', feedback: 'Você descreveu a captura do escopo.' });
 
-/** DeepSeekClient fake configurável (resposta ou throw). */
-function fakeDeepseek(behavior: { content?: string; throwError?: Error }): DeepSeekClient & { calls: Array<{ messages: unknown[]; temperature: number }> } {
+/** LlmClient fake configurável (resposta ou throw). */
+function fakeLlmClient(behavior: { content?: string; throwError?: Error }): LlmClient & { calls: Array<{ messages: unknown[]; temperature: number }> } {
   const calls: Array<{ messages: unknown[]; temperature: number }> = [];
   return {
     calls,
@@ -55,51 +55,51 @@ function fakeEmbedded(behavior: { text?: string; throwError?: Error; noActive?: 
 }
 
 function makeJudge(overrides: Partial<AnswerJudgeDeps> = {}) {
-  const deepseek = fakeDeepseek({});
+  const llm = fakeLlmClient({});
   const embedded = fakeEmbedded({});
-  const judge = createAnswerJudge({ deepseek, embedded, ...overrides });
-  return { judge, deepseek, embedded };
+  const judge = createAnswerJudge({ llm, embedded, ...overrides });
+  return { judge, llm, embedded };
 }
 
-describe('answerJudge: deepseek primário', () => {
-  it('veredito parseado do JSON do deepseek → { ok: true, provider: deepseek }', async () => {
-    const { judge, deepseek, embedded } = makeJudge();
+describe('answerJudge: llm primário', () => {
+  it('veredito parseado do JSON do llm → { ok: true, provider: openrouter }', async () => {
+    const { judge, llm, embedded } = makeJudge();
     const out = await judge.judgeAnswer(INPUT);
 
     assert.deepEqual(out, {
       ok: true,
       verdict: 'correct',
       feedback: 'Você descreveu a captura do escopo.',
-      provider: 'deepseek',
+      provider: 'openrouter',
     });
-    assert.equal(deepseek.calls.length, 1, 'deepseek chamado primeiro');
-    assert.equal(embedded.calls.length, 0, 'fallback NÃO chamado quando o deepseek responde');
+    assert.equal(llm.calls.length, 1, 'llm chamado primeiro');
+    assert.equal(embedded.calls.length, 0, 'fallback NÃO chamado quando o llm responde');
     // O prompt vai em pt-BR com o contexto e a resposta digitada.
-    const user = deepseek.calls[0].messages[1] as { content: string };
+    const user = llm.calls[0].messages[1] as { content: string };
     assert.match(user.content, /Closures em JavaScript/);
     assert.match(user.content, /RESPOSTA DIGITADA DO ALUNO/);
     assert.match(user.content, /Uma closure é uma função/);
-    assert.equal(deepseek.calls[0].temperature, 0, 'temperatura 0 (determinístico)');
+    assert.equal(llm.calls[0].temperature, 0, 'temperatura 0 (determinístico)');
   });
 
   it('verdict partial e incorrect também parseiam', async () => {
     for (const verdict of ['partial', 'incorrect'] as const) {
-      const deepseek = fakeDeepseek({
+      const llm = fakeLlmClient({
         content: JSON.stringify({ verdict, feedback: `Feedback de ${verdict}.` }),
       });
-      const judge = createAnswerJudge({ deepseek, embedded: fakeEmbedded({}) });
+      const judge = createAnswerJudge({ llm, embedded: fakeEmbedded({}) });
       const out = await judge.judgeAnswer(INPUT);
       assert.ok(out.ok);
       if (out.ok) {
         assert.equal(out.verdict, verdict);
-        assert.equal(out.provider, 'deepseek');
+        assert.equal(out.provider, 'openrouter');
       }
     }
   });
 
   it('JSON com crases/texto ao redor é tolerado (extractFirstJsonObject)', async () => {
-    const deepseek = fakeDeepseek({ content: '```json\n{"verdict": "partial", "feedback": "Quase — falta o estado."}\n```' });
-    const judge = createAnswerJudge({ deepseek, embedded: fakeEmbedded({}) });
+    const llm = fakeLlmClient({ content: '```json\n{"verdict": "partial", "feedback": "Quase — falta o estado."}\n```' });
+    const judge = createAnswerJudge({ llm, embedded: fakeEmbedded({}) });
     const out = await judge.judgeAnswer(INPUT);
     assert.ok(out.ok);
     if (out.ok) assert.equal(out.verdict, 'partial');
@@ -107,11 +107,11 @@ describe('answerJudge: deepseek primário', () => {
 });
 
 describe('answerJudge: fallback para o embeddedLlm', () => {
-  it('deepseek indisponível (sem chave) → embedded julga; provider embedded', async () => {
-    const deepseek = fakeDeepseek({ content: 'ignorado' });
+  it('llm indisponível (sem chave) → embedded julga; provider embedded', async () => {
+    const llm = fakeLlmClient({ content: 'ignorado' });
     const embedded = fakeEmbedded({});
     const judge = createAnswerJudge({
-      deepseek,
+      llm,
       embedded,
       getApiKey: async () => '', // sem chave ⇒ degrada ANTES da rede
     });
@@ -121,26 +121,26 @@ describe('answerJudge: fallback para o embeddedLlm', () => {
       assert.equal(out.provider, 'embedded');
       assert.equal(out.verdict, 'correct');
     }
-    assert.equal(deepseek.calls.length, 0, 'sem chave não há chamada à rede');
+    assert.equal(llm.calls.length, 0, 'sem chave não há chamada à rede');
     assert.equal(embedded.calls.length, 1);
     // O fallback entrega o MESMO contexto no prompt único.
     assert.match(embedded.calls[0].prompt, /RESPOSTA DIGITADA DO ALUNO/);
   });
 
-  it('deepseek com erro de rede → fallback embedded', async () => {
-    const deepseek = fakeDeepseek({ throwError: new Error('ECONNRESET') });
+  it('llm com erro de rede → fallback embedded', async () => {
+    const llm = fakeLlmClient({ throwError: new Error('ECONNRESET') });
     const embedded = fakeEmbedded({});
-    const judge = createAnswerJudge({ deepseek, embedded });
+    const judge = createAnswerJudge({ llm, embedded });
     const out = await judge.judgeAnswer(INPUT);
     assert.ok(out.ok);
     if (out.ok) assert.equal(out.provider, 'embedded');
     assert.equal(embedded.calls.length, 1, 'fallback chamado após falha de rede');
   });
 
-  it('deepseek respondeu sem JSON utilizável → fallback embedded', async () => {
-    const deepseek = fakeDeepseek({ content: 'Desculpe, não entendi.' });
+  it('llm respondeu sem JSON utilizável → fallback embedded', async () => {
+    const llm = fakeLlmClient({ content: 'Desculpe, não entendi.' });
     const embedded = fakeEmbedded({ text: JSON.stringify({ verdict: 'incorrect', feedback: 'Não é isso.' }) });
-    const judge = createAnswerJudge({ deepseek, embedded });
+    const judge = createAnswerJudge({ llm, embedded });
     const out = await judge.judgeAnswer(INPUT);
     assert.ok(out.ok);
     if (out.ok) {
@@ -150,9 +150,9 @@ describe('answerJudge: fallback para o embeddedLlm', () => {
   });
 
   it('embedded sem modelo ativo → falha estruturada UNAVAILABLE', async () => {
-    const deepseek = fakeDeepseek({ throwError: new Error('timeout') });
+    const llm = fakeLlmClient({ throwError: new Error('timeout') });
     const embedded = fakeEmbedded({ noActive: true });
-    const judge = createAnswerJudge({ deepseek, embedded });
+    const judge = createAnswerJudge({ llm, embedded });
     const out = await judge.judgeAnswer(INPUT);
     assert.ok(!out.ok);
     if (!out.ok) assert.equal(out.error.code, ANSWER_JUDGE_ERROR_CODES.UNAVAILABLE);
@@ -161,9 +161,9 @@ describe('answerJudge: fallback para o embeddedLlm', () => {
 
 describe('answerJudge: falha total — erro estruturado com code, nunca veredito inventado', () => {
   it('ambos os provedores indisponíveis → { ok:false, code: UNAVAILABLE }', async () => {
-    const deepseek = fakeDeepseek({ throwError: new Error('network') });
+    const llm = fakeLlmClient({ throwError: new Error('network') });
     const embedded = fakeEmbedded({ throwError: new Error('segfault no filho') });
-    const judge = createAnswerJudge({ deepseek, embedded });
+    const judge = createAnswerJudge({ llm, embedded });
     const out = await judge.judgeAnswer(INPUT);
     assert.ok(!out.ok);
     if (!out.ok) {
@@ -174,35 +174,35 @@ describe('answerJudge: falha total — erro estruturado com code, nunca veredito
   });
 
   it('ambos responderam sem JSON parseável → code UNPARSEABLE', async () => {
-    const deepseek = fakeDeepseek({ content: 'texto sem json' });
+    const llm = fakeLlmClient({ content: 'texto sem json' });
     const embedded = fakeEmbedded({ text: 'também sem json' });
-    const judge = createAnswerJudge({ deepseek, embedded });
+    const judge = createAnswerJudge({ llm, embedded });
     const out = await judge.judgeAnswer(INPUT);
     assert.ok(!out.ok);
     if (!out.ok) assert.equal(out.error.code, ANSWER_JUDGE_ERROR_CODES.UNPARSEABLE);
   });
 
   it('verdict fora do vocabulário (ex.: "maybe") → tratado como não-parseável', async () => {
-    const deepseek = fakeDeepseek({ content: JSON.stringify({ verdict: 'maybe', feedback: 'x' }) });
+    const llm = fakeLlmClient({ content: JSON.stringify({ verdict: 'maybe', feedback: 'x' }) });
     const embedded = fakeEmbedded({ text: 'nada' });
-    const judge = createAnswerJudge({ deepseek, embedded });
+    const judge = createAnswerJudge({ llm, embedded });
     const out = await judge.judgeAnswer(INPUT);
     assert.ok(!out.ok);
     if (!out.ok) assert.equal(out.error.code, ANSWER_JUDGE_ERROR_CODES.UNPARSEABLE);
   });
 
   it('feedback vazio → não-parseável (feedback em pt-BR é obrigatório)', async () => {
-    const deepseek = fakeDeepseek({ content: JSON.stringify({ verdict: 'correct', feedback: '  ' }) });
+    const llm = fakeLlmClient({ content: JSON.stringify({ verdict: 'correct', feedback: '  ' }) });
     const embedded = fakeEmbedded({});
-    const judge = createAnswerJudge({ deepseek, embedded });
+    const judge = createAnswerJudge({ llm, embedded });
     const out = await judge.judgeAnswer(INPUT);
-    assert.ok(out.ok, 'fallback embedded julga quando o deepseek vem sem feedback');
+    assert.ok(out.ok, 'fallback embedded julga quando o llm vem sem feedback');
     if (out.ok) assert.equal(out.provider, 'embedded');
   });
 
-  it('sem embedded injetado e deepseek falhando → UNAVAILABLE', async () => {
-    const deepseek = fakeDeepseek({ throwError: new Error('network') });
-    const judge = createAnswerJudge({ deepseek }); // sem embedded
+  it('sem embedded injetado e llm falhando → UNAVAILABLE', async () => {
+    const llm = fakeLlmClient({ throwError: new Error('network') });
+    const judge = createAnswerJudge({ llm }); // sem embedded
     const out = await judge.judgeAnswer(INPUT);
     assert.ok(!out.ok);
     if (!out.ok) assert.equal(out.error.code, ANSWER_JUDGE_ERROR_CODES.UNAVAILABLE);
@@ -211,7 +211,7 @@ describe('answerJudge: falha total — erro estruturado com code, nunca veredito
 
 describe('answerJudge: validação de entrada (INVALID_INPUT)', () => {
   it('answerText vazio / contexto incompleto → { ok:false, code: INVALID_INPUT }', async () => {
-    const { judge, deepseek, embedded } = makeJudge();
+    const { judge, llm, embedded } = makeJudge();
     for (const bad of [
       { ...INPUT, answerText: '' },
       { ...INPUT, answerText: '   ' },
@@ -223,7 +223,7 @@ describe('answerJudge: validação de entrada (INVALID_INPUT)', () => {
       assert.ok(!out.ok);
       if (!out.ok) assert.equal(out.error.code, ANSWER_JUDGE_ERROR_CODES.INVALID_INPUT);
     }
-    assert.equal(deepseek.calls.length, 0, 'entrada inválida nem chama o LLM');
+    assert.equal(llm.calls.length, 0, 'entrada inválida nem chama o LLM');
     assert.equal(embedded.calls.length, 0);
   });
 

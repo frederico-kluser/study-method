@@ -1,5 +1,5 @@
 /**
- * tests/deepseekClient.test.ts — cliente one-shot (OpenRouter) com fetch fake injetado.
+ * tests/llmClient.test.ts — cliente one-shot (OpenRouter) com fetch fake injetado.
  * NUNCA usa rede real. Cobre: 200 parse, 401/403 ⇒ KEY_INVALID, 429 ⇒ RATE_LIMIT,
  * 400/404 ⇒ BAD_REQUEST, 5xx com corpo, falha de rede, sem chave (KEY_MISSING),
  * timeout via AbortController, headers corretos (incl. attribution), model default
@@ -17,13 +17,13 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  createDeepSeekClient,
-  DEEPSEEK_ERROR_CODES,
-  DeepSeekError,
+  createLlmClient,
+  LLM_ERROR_CODES,
+  LlmError,
   parseChoiceResult,
   parseRetryAfterMs,
   renderSanitizedBodyFragment,
-} from '../electron/main/services/deepseekClient';
+} from '../electron/main/services/llmClient';
 
 /** Chave real-shaped do OpenRouter: `sk-or-v1-` + hex. TEM HÍFENS (é o ponto). */
 const OPENROUTER_SHAPED_KEY =
@@ -76,7 +76,7 @@ test('chatCompletion: 200 → parsea content/model/usage e envia headers + model
       usage: { prompt_tokens: 10, completion_tokens: 5 },
     })
   );
-  const client = createDeepSeekClient({ fetchImpl, apiKey: async () => 'sk-test' });
+  const client = createLlmClient({ fetchImpl, apiKey: async () => 'sk-test' });
 
   const res = await client.chatCompletion({
     messages: [{ role: 'user', content: 'hi' }],
@@ -103,7 +103,7 @@ test('chatCompletion: envia os headers de ATTRIBUTION do OpenRouter (HTTP-Refere
   const { fetchImpl, calls } = makeFetch(() =>
     fakeResponse(200, { choices: [{ message: { content: '{}' } }] })
   );
-  await createDeepSeekClient({ fetchImpl, apiKey: async () => 'k' }).chatCompletion({
+  await createLlmClient({ fetchImpl, apiKey: async () => 'k' }).chatCompletion({
     messages: [{ role: 'user', content: 'x' }],
   });
   const headers = calls[0].init!.headers as Record<string, string>;
@@ -117,7 +117,7 @@ test('chatCompletion: body SEMPRE traz reasoning max + provider.require_paramete
   const { fetchImpl, calls } = makeFetch(() =>
     fakeResponse(200, { choices: [{ message: { content: '{}' } }] })
   );
-  await createDeepSeekClient({ fetchImpl, apiKey: async () => 'k' }).chatCompletion({
+  await createLlmClient({ fetchImpl, apiKey: async () => 'k' }).chatCompletion({
     messages: [{ role: 'user', content: 'x' }],
   });
   const body = JSON.parse(calls[0].init!.body as string);
@@ -131,14 +131,14 @@ test('chatCompletion: body SEMPRE traz reasoning max + provider.require_paramete
 
 test('chatCompletion: reasoningEffort injetável pede MENOS raciocínio (default continua max)', async () => {
   const low = makeFetch(() => fakeResponse(200, { choices: [{ message: { content: '{}' } }] }));
-  await createDeepSeekClient({ fetchImpl: low.fetchImpl, apiKey: async () => 'k' }).chatCompletion({
+  await createLlmClient({ fetchImpl: low.fetchImpl, apiKey: async () => 'k' }).chatCompletion({
     messages: [{ role: 'user', content: 'x' }],
     reasoningEffort: 'low',
   });
   assert.equal(JSON.parse(low.calls[0].init!.body as string).reasoning.effort, 'low');
 
   const dflt = makeFetch(() => fakeResponse(200, { choices: [{ message: { content: '{}' } }] }));
-  await createDeepSeekClient({ fetchImpl: dflt.fetchImpl, apiKey: async () => 'k' }).chatCompletion({
+  await createLlmClient({ fetchImpl: dflt.fetchImpl, apiKey: async () => 'k' }).chatCompletion({
     messages: [{ role: 'user', content: 'x' }],
   });
   assert.equal(JSON.parse(dflt.calls[0].init!.body as string).reasoning.effort, 'max');
@@ -156,7 +156,7 @@ test('chatCompletion: usage → reasoningTokens vem ANINHADO em completion_token
       },
     })
   );
-  const res = await createDeepSeekClient({ fetchImpl, apiKey: async () => 'k' }).chatCompletion({
+  const res = await createLlmClient({ fetchImpl, apiKey: async () => 'k' }).chatCompletion({
     messages: [{ role: 'user', content: 'x' }],
   });
   assert.deepEqual(res.usage, {
@@ -175,7 +175,7 @@ test('chatCompletion: reasoning_tokens no TOPO de usage é ignorado (o campo rea
       usage: { prompt_tokens: 1, completion_tokens: 2, reasoning_tokens: 999 },
     })
   );
-  const res = await createDeepSeekClient({ fetchImpl, apiKey: async () => 'k' }).chatCompletion({
+  const res = await createLlmClient({ fetchImpl, apiKey: async () => 'k' }).chatCompletion({
     messages: [{ role: 'user', content: 'x' }],
   });
   assert.deepEqual(res.usage, { promptTokens: 1, completionTokens: 2 });
@@ -183,37 +183,37 @@ test('chatCompletion: reasoning_tokens no TOPO de usage é ignorado (o campo rea
 
 test('chatCompletion: sem maxTokens não envia max_tokens; com maxTokens envia', async () => {
   const without = makeFetch(() => fakeResponse(200, { choices: [{ message: { content: '{}' } }] }));
-  await createDeepSeekClient({ fetchImpl: without.fetchImpl, apiKey: async () => 'k' })
+  await createLlmClient({ fetchImpl: without.fetchImpl, apiKey: async () => 'k' })
     .chatCompletion({ messages: [{ role: 'user', content: 'x' }] });
   assert.equal('max_tokens' in JSON.parse(without.calls[0].init!.body as string), false);
 
   const withTx = makeFetch(() => fakeResponse(200, { choices: [{ message: { content: '{}' } }] }));
-  await createDeepSeekClient({ fetchImpl: withTx.fetchImpl, apiKey: async () => 'k' })
+  await createLlmClient({ fetchImpl: withTx.fetchImpl, apiKey: async () => 'k' })
     .chatCompletion({ messages: [{ role: 'user', content: 'x' }], maxTokens: 2048 });
   assert.equal(JSON.parse(withTx.calls[0].init!.body as string).max_tokens, 2048);
 });
 
-test('chatCompletion: 401 → DEEPSEEK_KEY_INVALID', async () => {
+test('chatCompletion: 401 → LLM_KEY_INVALID', async () => {
   const { fetchImpl } = makeFetch(() => fakeResponse(401, { error: { message: 'Invalid API key' } }));
   await assert.rejects(
-    createDeepSeekClient({ fetchImpl, apiKey: async () => 'bad' }).chatCompletion({ messages: [{ role: 'user', content: 'x' }] }),
-    (e: unknown) => e instanceof DeepSeekError && e.code === DEEPSEEK_ERROR_CODES.KEY_INVALID
+    createLlmClient({ fetchImpl, apiKey: async () => 'bad' }).chatCompletion({ messages: [{ role: 'user', content: 'x' }] }),
+    (e: unknown) => e instanceof LlmError && e.code === LLM_ERROR_CODES.KEY_INVALID
   );
 });
 
-test('chatCompletion: 403 → DEEPSEEK_KEY_INVALID', async () => {
+test('chatCompletion: 403 → LLM_KEY_INVALID', async () => {
   const { fetchImpl } = makeFetch(() => fakeResponse(403, { error: { message: 'Forbidden' } }));
   await assert.rejects(
-    createDeepSeekClient({ fetchImpl, apiKey: async () => 'bad' }).chatCompletion({ messages: [{ role: 'user', content: 'x' }] }),
-    (e: unknown) => e instanceof DeepSeekError && e.code === DEEPSEEK_ERROR_CODES.KEY_INVALID
+    createLlmClient({ fetchImpl, apiKey: async () => 'bad' }).chatCompletion({ messages: [{ role: 'user', content: 'x' }] }),
+    (e: unknown) => e instanceof LlmError && e.code === LLM_ERROR_CODES.KEY_INVALID
   );
 });
 
-test('chatCompletion: 429 → DEEPSEEK_RATE_LIMIT', async () => {
+test('chatCompletion: 429 → LLM_RATE_LIMIT', async () => {
   const { fetchImpl } = makeFetch(() => fakeResponse(429, { error: { message: 'Rate limit' } }));
   await assert.rejects(
-    createDeepSeekClient({ fetchImpl, apiKey: async () => 'k' }).chatCompletion({ messages: [{ role: 'user', content: 'x' }] }),
-    (e: unknown) => e instanceof DeepSeekError && e.code === DEEPSEEK_ERROR_CODES.RATE_LIMIT
+    createLlmClient({ fetchImpl, apiKey: async () => 'k' }).chatCompletion({ messages: [{ role: 'user', content: 'x' }] }),
+    (e: unknown) => e instanceof LlmError && e.code === LLM_ERROR_CODES.RATE_LIMIT
   );
 });
 
@@ -222,10 +222,10 @@ test('chatCompletion: 429 com Retry-After em SEGUNDOS → erro carrega retryAfte
     fakeResponse(429, { error: { message: 'Rate limit' } }, '', { 'Retry-After': '12' })
   );
   await assert.rejects(
-    createDeepSeekClient({ fetchImpl, apiKey: async () => 'k' }).chatCompletion({ messages: [{ role: 'user', content: 'x' }] }),
+    createLlmClient({ fetchImpl, apiKey: async () => 'k' }).chatCompletion({ messages: [{ role: 'user', content: 'x' }] }),
     (e: unknown) =>
-      e instanceof DeepSeekError &&
-      e.code === DEEPSEEK_ERROR_CODES.RATE_LIMIT &&
+      e instanceof LlmError &&
+      e.code === LLM_ERROR_CODES.RATE_LIMIT &&
       e.retryAfterMs === 12_000
   );
 });
@@ -236,9 +236,9 @@ test('chatCompletion: 429 com Retry-After em DATA HTTP → retryAfterMs em milis
     fakeResponse(429, { error: { message: 'Rate limit' } }, '', { 'retry-after': when })
   );
   await assert.rejects(
-    createDeepSeekClient({ fetchImpl, apiKey: async () => 'k' }).chatCompletion({ messages: [{ role: 'user', content: 'x' }] }),
+    createLlmClient({ fetchImpl, apiKey: async () => 'k' }).chatCompletion({ messages: [{ role: 'user', content: 'x' }] }),
     (e: unknown) =>
-      e instanceof DeepSeekError &&
+      e instanceof LlmError &&
       typeof e.retryAfterMs === 'number' &&
       e.retryAfterMs > 25_000 &&
       e.retryAfterMs <= 31_000
@@ -248,16 +248,16 @@ test('chatCompletion: 429 com Retry-After em DATA HTTP → retryAfterMs em milis
 test('chatCompletion: 429 SEM Retry-After (ou com lixo) → retryAfterMs undefined', async () => {
   const semHeader = makeFetch(() => fakeResponse(429, { error: { message: 'Rate limit' } }));
   await assert.rejects(
-    createDeepSeekClient({ fetchImpl: semHeader.fetchImpl, apiKey: async () => 'k' }).chatCompletion({ messages: [{ role: 'user', content: 'x' }] }),
-    (e: unknown) => e instanceof DeepSeekError && e.retryAfterMs === undefined
+    createLlmClient({ fetchImpl: semHeader.fetchImpl, apiKey: async () => 'k' }).chatCompletion({ messages: [{ role: 'user', content: 'x' }] }),
+    (e: unknown) => e instanceof LlmError && e.retryAfterMs === undefined
   );
 
   const lixo = makeFetch(() =>
     fakeResponse(429, { error: { message: 'Rate limit' } }, '', { 'Retry-After': 'logo ali' })
   );
   await assert.rejects(
-    createDeepSeekClient({ fetchImpl: lixo.fetchImpl, apiKey: async () => 'k' }).chatCompletion({ messages: [{ role: 'user', content: 'x' }] }),
-    (e: unknown) => e instanceof DeepSeekError && e.retryAfterMs === undefined
+    createLlmClient({ fetchImpl: lixo.fetchImpl, apiKey: async () => 'k' }).chatCompletion({ messages: [{ role: 'user', content: 'x' }] }),
+    (e: unknown) => e instanceof LlmError && e.retryAfterMs === undefined
   );
 });
 
@@ -266,41 +266,41 @@ test('chatCompletion: 503 com Retry-After também expõe retryAfterMs', async ()
     fakeResponse(503, { error: { message: 'no available provider' } }, '', { 'Retry-After': '2' })
   );
   await assert.rejects(
-    createDeepSeekClient({ fetchImpl, apiKey: async () => 'k' }).chatCompletion({ messages: [{ role: 'user', content: 'x' }] }),
+    createLlmClient({ fetchImpl, apiKey: async () => 'k' }).chatCompletion({ messages: [{ role: 'user', content: 'x' }] }),
     (e: unknown) =>
-      e instanceof DeepSeekError &&
-      e.code === DEEPSEEK_ERROR_CODES.SERVER_ERROR &&
+      e instanceof LlmError &&
+      e.code === LLM_ERROR_CODES.SERVER_ERROR &&
       e.retryAfterMs === 2000
   );
 });
 
-test('chatCompletion: 5xx → DEEPSEEK_SERVER_ERROR com mensagem de error.message', async () => {
+test('chatCompletion: 5xx → LLM_SERVER_ERROR com mensagem de error.message', async () => {
   const { fetchImpl } = makeFetch(() =>
     fakeResponse(503, { error: { message: 'model overloaded' } })
   );
   await assert.rejects(
-    createDeepSeekClient({ fetchImpl, apiKey: async () => 'k' }).chatCompletion({ messages: [{ role: 'user', content: 'x' }] }),
-    (e: unknown) => e instanceof DeepSeekError && e.code === DEEPSEEK_ERROR_CODES.SERVER_ERROR && /model overloaded/.test(e.message)
+    createLlmClient({ fetchImpl, apiKey: async () => 'k' }).chatCompletion({ messages: [{ role: 'user', content: 'x' }] }),
+    (e: unknown) => e instanceof LlmError && e.code === LLM_ERROR_CODES.SERVER_ERROR && /model overloaded/.test(e.message)
   );
 });
 
 test('chatCompletion: 5xx sem corpo parseável → SERVER_ERROR com mensagem padrão', async () => {
   const { fetchImpl } = makeFetch(() => fakeResponse(500, 'nope'));
   await assert.rejects(
-    createDeepSeekClient({ fetchImpl, apiKey: async () => 'k' }).chatCompletion({ messages: [{ role: 'user', content: 'x' }] }),
-    (e: unknown) => e instanceof DeepSeekError && e.code === DEEPSEEK_ERROR_CODES.SERVER_ERROR && /HTTP 500/.test(e.message)
+    createLlmClient({ fetchImpl, apiKey: async () => 'k' }).chatCompletion({ messages: [{ role: 'user', content: 'x' }] }),
+    (e: unknown) => e instanceof LlmError && e.code === LLM_ERROR_CODES.SERVER_ERROR && /HTTP 500/.test(e.message)
   );
 });
 
-test('chatCompletion: fetch lança → DEEPSEEK_NETWORK (mensagem não expõe a chave)', async () => {
+test('chatCompletion: fetch lança → LLM_NETWORK (mensagem não expõe a chave)', async () => {
   const fetchImpl = (async () => {
     throw new Error('ECONNREFUSED boom');
   }) as unknown as typeof fetch;
   await assert.rejects(
-    createDeepSeekClient({ fetchImpl, apiKey: async () => 'sk-secret-123' }).chatCompletion({ messages: [{ role: 'user', content: 'x' }] }),
+    createLlmClient({ fetchImpl, apiKey: async () => 'sk-secret-123' }).chatCompletion({ messages: [{ role: 'user', content: 'x' }] }),
     (e: unknown) =>
-      e instanceof DeepSeekError &&
-      e.code === DEEPSEEK_ERROR_CODES.NETWORK &&
+      e instanceof LlmError &&
+      e.code === LLM_ERROR_CODES.NETWORK &&
       String(e.message).includes('sk-secret-123') === false
   );
 });
@@ -312,16 +312,16 @@ test('chatCompletion: sem chave (apiKey vazia) → KEY_MISSING sem tocar a rede'
     return fakeResponse(200, { choices: [{ message: { content: '{}' } }] });
   }) as unknown as typeof fetch;
   await assert.rejects(
-    createDeepSeekClient({ fetchImpl, apiKey: async () => '' }).chatCompletion({ messages: [{ role: 'user', content: 'x' }] }),
-    (e: unknown) => e instanceof DeepSeekError && e.code === DEEPSEEK_ERROR_CODES.KEY_MISSING
+    createLlmClient({ fetchImpl, apiKey: async () => '' }).chatCompletion({ messages: [{ role: 'user', content: 'x' }] }),
+    (e: unknown) => e instanceof LlmError && e.code === LLM_ERROR_CODES.KEY_MISSING
   );
   assert.equal(networkCalls, 0);
 });
 
 test('chatCompletion: sem dep.apiKey → KEY_MISSING', async () => {
   await assert.rejects(
-    createDeepSeekClient({}).chatCompletion({ messages: [{ role: 'user', content: 'x' }] }),
-    (e: unknown) => e instanceof DeepSeekError && e.code === DEEPSEEK_ERROR_CODES.KEY_MISSING
+    createLlmClient({}).chatCompletion({ messages: [{ role: 'user', content: 'x' }] }),
+    (e: unknown) => e instanceof LlmError && e.code === LLM_ERROR_CODES.KEY_MISSING
   );
 });
 
@@ -339,11 +339,11 @@ test('chatCompletion: timeout aborta o AbortController e lança NETWORK', async 
   }) as unknown as typeof fetch;
 
   await assert.rejects(
-    createDeepSeekClient({ fetchImpl, apiKey: async () => 'k' }).chatCompletion({
+    createLlmClient({ fetchImpl, apiKey: async () => 'k' }).chatCompletion({
       messages: [{ role: 'user', content: 'x' }],
       timeoutMs: 5,
     }),
-    (e: unknown) => e instanceof DeepSeekError && e.code === DEEPSEEK_ERROR_CODES.NETWORK && /timeout/i.test(e.message)
+    (e: unknown) => e instanceof LlmError && e.code === LLM_ERROR_CODES.NETWORK && /timeout/i.test(e.message)
   );
   assert.equal(aborted.length, 1, 'o AbortController deve ter abortado antes de ceder');
 });
@@ -362,11 +362,11 @@ test('chatCompletion: default timeout 60s — aborta se nunca responder', async 
   }) as unknown as typeof fetch;
 
   await assert.rejects(
-    createDeepSeekClient({ fetchImpl, apiKey: async () => 'k' }).chatCompletion({
+    createLlmClient({ fetchImpl, apiKey: async () => 'k' }).chatCompletion({
       messages: [{ role: 'user', content: 'x' }],
       timeoutMs: 3,
     }),
-    (e: unknown) => e instanceof DeepSeekError && e.code === DEEPSEEK_ERROR_CODES.NETWORK
+    (e: unknown) => e instanceof LlmError && e.code === LLM_ERROR_CODES.NETWORK
   );
   assert.equal(aborted.length, 1);
 });
@@ -374,8 +374,8 @@ test('chatCompletion: default timeout 60s — aborta se nunca responder', async 
 test('chatCompletion: uma ÚNICA tentativa — o retry é do backoff, não do cliente', async () => {
   const { fetchImpl, calls } = makeFetch(() => fakeResponse(429, { error: { message: 'slow down' } }));
   await assert.rejects(
-    createDeepSeekClient({ fetchImpl, apiKey: async () => 'k' }).chatCompletion({ messages: [{ role: 'user', content: 'x' }] }),
-    (e: unknown) => e instanceof DeepSeekError
+    createLlmClient({ fetchImpl, apiKey: async () => 'k' }).chatCompletion({ messages: [{ role: 'user', content: 'x' }] }),
+    (e: unknown) => e instanceof LlmError
   );
   assert.equal(calls.length, 1);
 });
@@ -383,8 +383,8 @@ test('chatCompletion: uma ÚNICA tentativa — o retry é do backoff, não do cl
 test('chatCompletion: resposta sem choices content → EMPTY_CONTENT', async () => {
   const { fetchImpl } = makeFetch(() => fakeResponse(200, { choices: [] }));
   await assert.rejects(
-    createDeepSeekClient({ fetchImpl, apiKey: async () => 'k' }).chatCompletion({ messages: [{ role: 'user', content: 'x' }] }),
-    (e: unknown) => e instanceof DeepSeekError && e.code === DEEPSEEK_ERROR_CODES.EMPTY_CONTENT
+    createLlmClient({ fetchImpl, apiKey: async () => 'k' }).chatCompletion({ messages: [{ role: 'user', content: 'x' }] }),
+    (e: unknown) => e instanceof LlmError && e.code === LLM_ERROR_CODES.EMPTY_CONTENT
   );
 });
 
@@ -395,10 +395,10 @@ test('chatCompletion: content vazio mas reasoning_content presente → EMPTY_CON
     })
   );
   await assert.rejects(
-    createDeepSeekClient({ fetchImpl, apiKey: async () => 'k' }).chatCompletion({ messages: [{ role: 'user', content: 'x' }] }),
+    createLlmClient({ fetchImpl, apiKey: async () => 'k' }).chatCompletion({ messages: [{ role: 'user', content: 'x' }] }),
     (e: unknown) =>
-      e instanceof DeepSeekError &&
-      e.code === DEEPSEEK_ERROR_CODES.EMPTY_CONTENT &&
+      e instanceof LlmError &&
+      e.code === LLM_ERROR_CODES.EMPTY_CONTENT &&
       /reasoning_content/.test(e.message)
   );
 });
@@ -410,10 +410,10 @@ test('chatCompletion: content vazio com `reasoning` (OpenRouter) → EMPTY_CONTE
     })
   );
   await assert.rejects(
-    createDeepSeekClient({ fetchImpl, apiKey: async () => 'k' }).chatCompletion({ messages: [{ role: 'user', content: 'x' }] }),
+    createLlmClient({ fetchImpl, apiKey: async () => 'k' }).chatCompletion({ messages: [{ role: 'user', content: 'x' }] }),
     (e: unknown) =>
-      e instanceof DeepSeekError &&
-      e.code === DEEPSEEK_ERROR_CODES.EMPTY_CONTENT &&
+      e instanceof LlmError &&
+      e.code === LLM_ERROR_CODES.EMPTY_CONTENT &&
       /raciocínio/.test(e.message)
   );
 });
@@ -433,9 +433,9 @@ test('chatCompletion: content vazio com `reasoning_details` → EMPTY_CONTENT cl
     })
   );
   await assert.rejects(
-    createDeepSeekClient({ fetchImpl, apiKey: async () => 'k' }).chatCompletion({ messages: [{ role: 'user', content: 'x' }] }),
+    createLlmClient({ fetchImpl, apiKey: async () => 'k' }).chatCompletion({ messages: [{ role: 'user', content: 'x' }] }),
     (e: unknown) =>
-      e instanceof DeepSeekError && e.code === DEEPSEEK_ERROR_CODES.EMPTY_CONTENT
+      e instanceof LlmError && e.code === LLM_ERROR_CODES.EMPTY_CONTENT
   );
 });
 
@@ -449,12 +449,12 @@ test('chatCompletion: 400 invalid_request_error → BAD_REQUEST com mensagem do 
     })
   );
   await assert.rejects(
-    createDeepSeekClient({ fetchImpl, apiKey: async () => 'sk-secret-123' }).chatCompletion({
+    createLlmClient({ fetchImpl, apiKey: async () => 'sk-secret-123' }).chatCompletion({
       messages: [{ role: 'user', content: 'x' }],
     }),
     (e: unknown) =>
-      e instanceof DeepSeekError &&
-      e.code === DEEPSEEK_ERROR_CODES.BAD_REQUEST &&
+      e instanceof LlmError &&
+      e.code === LLM_ERROR_CODES.BAD_REQUEST &&
       /not a valid model ID/.test(e.message) &&
       e.message.includes('sk-secret-123') === false
   );
@@ -463,8 +463,8 @@ test('chatCompletion: 400 invalid_request_error → BAD_REQUEST com mensagem do 
 test('chatCompletion: 404 → BAD_REQUEST', async () => {
   const { fetchImpl } = makeFetch(() => fakeResponse(404, { error: { message: 'not found' } }));
   await assert.rejects(
-    createDeepSeekClient({ fetchImpl, apiKey: async () => 'k' }).chatCompletion({ messages: [{ role: 'user', content: 'x' }] }),
-    (e: unknown) => e instanceof DeepSeekError && e.code === DEEPSEEK_ERROR_CODES.BAD_REQUEST
+    createLlmClient({ fetchImpl, apiKey: async () => 'k' }).chatCompletion({ messages: [{ role: 'user', content: 'x' }] }),
+    (e: unknown) => e instanceof LlmError && e.code === LLM_ERROR_CODES.BAD_REQUEST
   );
 });
 
@@ -478,12 +478,12 @@ test('chatCompletion: 400 refletindo uma chave sk-or-v1-… → mensagem SEM nen
     })
   );
   await assert.rejects(
-    createDeepSeekClient({ fetchImpl, apiKey: async () => 'sk-outra-chave-qualquer' }).chatCompletion({
+    createLlmClient({ fetchImpl, apiKey: async () => 'sk-outra-chave-qualquer' }).chatCompletion({
       messages: [{ role: 'user', content: 'x' }],
     }),
     (e: unknown) =>
-      e instanceof DeepSeekError &&
-      e.code === DEEPSEEK_ERROR_CODES.BAD_REQUEST &&
+      e instanceof LlmError &&
+      e.code === LLM_ERROR_CODES.BAD_REQUEST &&
       e.message.includes(OPENROUTER_SHAPED_KEY) === false &&
       e.message.includes('sk-or') === false &&
       e.message.includes('0a1b2c3d4e5f') === false
@@ -497,10 +497,10 @@ test('chatCompletion: corpo não-JSON em 200 vazando a chave → erro sanitizado
     })
   );
   await assert.rejects(
-    createDeepSeekClient({ fetchImpl, apiKey: async () => 'sk-secret-123' }).chatCompletion({
+    createLlmClient({ fetchImpl, apiKey: async () => 'sk-secret-123' }).chatCompletion({
       messages: [{ role: 'user', content: 'x' }],
     }),
-    (e: unknown) => e instanceof DeepSeekError && e.message.includes('sk-secret-123') === false
+    (e: unknown) => e instanceof LlmError && e.message.includes('sk-secret-123') === false
   );
 });
 
@@ -642,7 +642,7 @@ test('chatCompletion: temperatura injetada sobrescreve o default 0', async () =>
   const { fetchImpl, calls } = makeFetch(() =>
     fakeResponse(200, { choices: [{ message: { content: '{}' } }] })
   );
-  await createDeepSeekClient({ fetchImpl, apiKey: async () => 'k' })
+  await createLlmClient({ fetchImpl, apiKey: async () => 'k' })
     .chatCompletion({ messages: [{ role: 'user', content: 'x' }], temperature: 1.2 });
   assert.equal(JSON.parse(calls[0].init!.body as string).temperature, 1.2);
 });
@@ -651,7 +651,7 @@ test('chatCompletion: baseUrl injetável sem barra final', async () => {
   const { fetchImpl, calls } = makeFetch(() =>
     fakeResponse(200, { choices: [{ message: { content: '{}' } }] })
   );
-  const client = createDeepSeekClient({ fetchImpl, baseUrl: 'https://example.test/', apiKey: async () => 'k' });
+  const client = createLlmClient({ fetchImpl, baseUrl: 'https://example.test/', apiKey: async () => 'k' });
   await client.chatCompletion({ messages: [{ role: 'user', content: 'x' }] });
   assert.equal(calls[0].url, 'https://example.test/chat/completions');
 });

@@ -69,7 +69,7 @@ export function withTimeout<T>(promise: Promise<T>, ms: number, label: string): 
  *     MAX_REGEN_ATTEMPTS=2) → teto legítimo de ~120s + verificação; 150s não
  *     corta nada legítimo e ainda desbloqueia o canal mudo.
  *   keysSet (keys:set-key) — persistência local → 10s.
- *   keysValidate (keys:validate-deepseek/brave) — validador do main aborta em
+ *   keysValidate (keys:validate-llm/brave) — validador do main aborta em
  *     ~8s (apiKeyValidator.ts) → 10s (mesmo valor do guard da onda 2b).
  */
 export const ACTION_TIMEOUTS = {

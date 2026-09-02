@@ -17,13 +17,7 @@ import {
   OPENROUTER_PROVIDER_POLICY,
   type OpenRouterEffort,
 } from '@shared/llm/constants';
-import {
-  DEEPSEEK_ENV_KEY,
-  DEEPSEEK_MODEL,
-  DEEPSEEK_PI_PROVIDER,
-  LEGACY_DEEPSEEK_PROVIDER_KEY,
-  OPENROUTER_PI_PROVIDER,
-} from '@shared/piAgent/constants';
+import { OPENROUTER_PI_PROVIDER } from '@shared/piAgent/constants';
 
 /**
  * Os níveis de raciocínio que o **Pi SDK** conhece
@@ -162,15 +156,13 @@ export interface PiModelObject {
 /**
  * provider da workflow → provider nativo do Pi SDK.
  *
- * `'openrouter'` passa direto (é um KnownProvider do pi-ai). O legado
- * `'deepseek'` é REDIRECIONADO para 'openrouter': o endpoint antigo não é mais
- * o caminho do app, e uma request persistida com o provider velho deve rodar no
- * modelo novo em vez de apontar para um provider sem chave.
+ * `'openrouter'` passa direto (é um KnownProvider do pi-ai) e qualquer outro
+ * nome também: a função é a costura onde uma tradução futura entra sem tocar
+ * nos call sites.
  */
 export function mapWorkflowProviderToPi(provider: string): string {
   const mapping: Record<string, string> = {
     [OPENROUTER_PI_PROVIDER]: OPENROUTER_PI_PROVIDER,
-    [LEGACY_DEEPSEEK_PROVIDER_KEY]: OPENROUTER_PI_PROVIDER,
   };
   return mapping[provider] ?? provider;
 }
@@ -264,9 +256,7 @@ export function buildOpenRouterModelObject(apiKey: string): PiModelObject {
 }
 
 /**
- * Reexports LEGADOS. `DEEPSEEK_*` estão CONGELADOS e não descrevem o modelo em
- * uso pelo caminho pi (ver shared/piAgent/constants.ts); ficam aqui só para não
- * quebrar a superfície do módulo antes da ONDA 2. Não existe mais um
- * `buildDeepSeekModelObject`: o único Model do caminho pi é o do OpenRouter.
+ * Reexport de conveniência: o único provider/Model do caminho pi é o do
+ * OpenRouter (ver shared/piAgent/constants.ts).
  */
-export { DEEPSEEK_ENV_KEY, DEEPSEEK_MODEL, DEEPSEEK_PI_PROVIDER, OPENROUTER_PI_PROVIDER };
+export { OPENROUTER_PI_PROVIDER };

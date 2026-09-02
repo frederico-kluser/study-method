@@ -37,12 +37,6 @@ test('mapWorkflowProviderToPi: openrouter → openrouter; outros passam direto',
   assert.equal(mapWorkflowProviderToPi('weird-provider'), 'weird-provider');
 });
 
-test('mapWorkflowProviderToPi: o legado "deepseek" é REDIRECIONADO para openrouter', () => {
-  // Uma request persistida com o provider velho não pode apontar para um
-  // endpoint que o app não usa mais (e para o qual não há chave).
-  assert.equal(mapWorkflowProviderToPi('deepseek'), 'openrouter');
-});
-
 test('mapWorkflowModelToPi: passthrough', () => {
   assert.equal(mapWorkflowModelToPi('openrouter', OPENROUTER_MODEL.id), OPENROUTER_MODEL.id);
   assert.equal(mapWorkflowModelToPi('openai', 'gpt-x'), 'gpt-x');

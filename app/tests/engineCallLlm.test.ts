@@ -52,12 +52,12 @@ import { DEFAULT_LLM_CONCURRENCY, createSemaphore, defaultExecConcurrency, type 
 import { createInMemoryCacheStore, type CacheStore } from '../electron/main/engine/runtime/llmCache';
 import type { BackoffConfig } from '../electron/main/engine/runtime/backoff';
 import {
-  DEEPSEEK_ERROR_CODES,
-  DeepSeekError,
-  type DeepSeekChatRequest,
-  type DeepSeekChatResponse,
-  type DeepSeekClient,
-} from '../electron/main/services/deepseekClient';
+  LLM_ERROR_CODES,
+  LlmError,
+  type LlmChatRequest,
+  type LlmChatResponse,
+  type LlmClient,
+} from '../electron/main/services/llmClient';
 
 // ---------------------------------------------------------------------------
 // Contrato congelado do provedor — LITERAIS, não imports
@@ -73,11 +73,11 @@ const MODELO_CONTRATO = 'z-ai/glm-5.3-flash';
 
 /**
  * Lê `reasoningEffort` da requisição entregue ao cliente sem depender do
- * TIPO: o campo é adicionado a `DeepSeekChatRequest` pelo agente irmão
+ * TIPO: o campo é adicionado a `LlmChatRequest` pelo agente irmão
  * (`onda1-transport`) na mesma onda, e este arquivo precisa compilar antes e
  * depois do merge.
  */
-function effortDe(req: DeepSeekChatRequest): string | undefined {
+function effortDe(req: LlmChatRequest): string | undefined {
   const valor = (req as unknown as { reasoningEffort?: unknown }).reasoningEffort;
   return typeof valor === 'string' ? valor : undefined;
 }
@@ -85,11 +85,11 @@ function effortDe(req: DeepSeekChatRequest): string | undefined {
 /**
  * 429 com (ou sem) `Retry-After`. `retryAfterMs` é o campo que o cliente do
  * OpenRouter preenche a partir do header; aqui ele é anexado à mão porque o
- * TIPO `DeepSeekError` ainda pode não tê-lo — e o transporte o lê de forma
+ * TIPO `LlmError` ainda pode não tê-lo — e o transporte o lê de forma
  * defensiva justamente por isso.
  */
-function erro429(retryAfterMs?: number): DeepSeekError {
-  const err = new DeepSeekError(DEEPSEEK_ERROR_CODES.RATE_LIMIT, 'quota excedida (HTTP 429)');
+function erro429(retryAfterMs?: number): LlmError {
+  const err = new LlmError(LLM_ERROR_CODES.RATE_LIMIT, 'quota excedida (HTTP 429)');
   return retryAfterMs === undefined ? err : Object.assign(err, { retryAfterMs });
 }
 
@@ -99,7 +99,7 @@ function erro429(retryAfterMs?: number): DeepSeekError {
 
 const SECRET = 'sk-1234567890abcdef0123456789abcdef';
 
-function okResponse(over: Partial<DeepSeekChatResponse> = {}): DeepSeekChatResponse {
+function okResponse(over: Partial<LlmChatResponse> = {}): LlmChatResponse {
   return {
     content: '{"ok":true}',
     model: MODELO_CONTRATO,
@@ -123,21 +123,21 @@ function baseReq(over: Partial<LlmCallRequest> = {}): LlmCallRequest {
  * esse pico que o teste 1 prova o teto do semáforo.
  */
 function makeFakeClient(
-  respond: (req: DeepSeekChatRequest, callIndex: number) => Promise<unknown> | unknown,
-): { client: DeepSeekClient; calls: DeepSeekChatRequest[]; peak: () => number } {
-  const calls: DeepSeekChatRequest[] = [];
+  respond: (req: LlmChatRequest, callIndex: number) => Promise<unknown> | unknown,
+): { client: LlmClient; calls: LlmChatRequest[]; peak: () => number } {
+  const calls: LlmChatRequest[] = [];
   let inflight = 0;
   let peakSeen = 0;
   return {
     calls,
     peak: () => peakSeen,
     client: {
-      async chatCompletion(req: DeepSeekChatRequest): Promise<DeepSeekChatResponse> {
+      async chatCompletion(req: LlmChatRequest): Promise<LlmChatResponse> {
         calls.push(req);
         inflight += 1;
         if (inflight > peakSeen) peakSeen = inflight;
         try {
-          return (await respond(req, calls.length - 1)) as DeepSeekChatResponse;
+          return (await respond(req, calls.length - 1)) as LlmChatResponse;
         } finally {
           inflight -= 1;
         }
@@ -147,7 +147,7 @@ function makeFakeClient(
 }
 
 interface SetupOverrides {
-  respond?: (req: DeepSeekChatRequest, callIndex: number) => Promise<unknown> | unknown;
+  respond?: (req: LlmChatRequest, callIndex: number) => Promise<unknown> | unknown;
   apiKey?: () => Promise<string>;
   semaphore?: Semaphore;
   cache?: CacheStore;
@@ -209,7 +209,7 @@ describe('semáforo — SEM_LLM respeita o teto', () => {
     const { transport } = setup({
       semaphore,
       respond: async () => {
-        throw new DeepSeekError(DEEPSEEK_ERROR_CODES.BAD_REQUEST, 'erro de pipeline');
+        throw new LlmError(LLM_ERROR_CODES.BAD_REQUEST, 'erro de pipeline');
       },
     });
     await assert.rejects(transport.callLlm('etapa', baseReq()), () => true);
@@ -239,11 +239,11 @@ describe('backoff — política POR código de erro', () => {
     const { transport, fake } = setup({
       backoff: {
         jitterRatio: 0, // determinístico — sem flakiness
-        policies: { [DEEPSEEK_ERROR_CODES.RATE_LIMIT]: { baseDelayMs: 10, maxDelayMs: 1_000 } },
+        policies: { [LLM_ERROR_CODES.RATE_LIMIT]: { baseDelayMs: 10, maxDelayMs: 1_000 } },
       },
       sleep: async (ms) => { delays.push(ms); },
       respond: async (_req, callIndex) => {
-        if (callIndex < 3) throw new DeepSeekError(DEEPSEEK_ERROR_CODES.RATE_LIMIT, 'quota excedida');
+        if (callIndex < 3) throw new LlmError(LLM_ERROR_CODES.RATE_LIMIT, 'quota excedida');
         return okResponse();
       },
     });
@@ -266,7 +266,7 @@ describe('backoff — política POR código de erro', () => {
     const { transport, fake } = setup({
       backoff: {
         jitterRatio: 0, // determinístico — o exponencial seria 10, 20, 40…
-        policies: { [DEEPSEEK_ERROR_CODES.RATE_LIMIT]: { baseDelayMs: 10, maxDelayMs: 1_000 } },
+        policies: { [LLM_ERROR_CODES.RATE_LIMIT]: { baseDelayMs: 10, maxDelayMs: 1_000 } },
       },
       sleep: async (ms) => { delays.push(ms); },
       respond: async (_req, callIndex) => {
@@ -298,14 +298,14 @@ describe('backoff — política POR código de erro', () => {
   it('KEY_INVALID aborta sem retentar — uma chamada só, erro estruturado', async () => {
     const { transport, fake } = setup({
       respond: async () => {
-        throw new DeepSeekError(DEEPSEEK_ERROR_CODES.KEY_INVALID, 'chave sem permissão (HTTP 401)');
+        throw new LlmError(LLM_ERROR_CODES.KEY_INVALID, 'chave sem permissão (HTTP 401)');
       },
     });
     await assert.rejects(
       transport.callLlm('etapa', baseReq()),
       (e: unknown) =>
         e instanceof LlmStageError &&
-        e.code === DEEPSEEK_ERROR_CODES.KEY_INVALID &&
+        e.code === LLM_ERROR_CODES.KEY_INVALID &&
         e.etapa === 'etapa' &&
         e.attempts === 1,
     );
@@ -316,7 +316,7 @@ describe('backoff — política POR código de erro', () => {
     const { transport, fake } = setup({ apiKey: async () => '' });
     await assert.rejects(
       transport.callLlm('etapa', baseReq()),
-      (e: unknown) => e instanceof LlmStageError && e.code === DEEPSEEK_ERROR_CODES.KEY_MISSING,
+      (e: unknown) => e instanceof LlmStageError && e.code === LLM_ERROR_CODES.KEY_MISSING,
     );
     assert.equal(fake.calls.length, 0);
   });
@@ -330,14 +330,14 @@ describe('backoff — BAD_REQUEST', () => {
   it('não retenta: bug de prompt não melhora repetindo a mesma chamada', async () => {
     const { transport, fake } = setup({
       respond: async () => {
-        throw new DeepSeekError(DEEPSEEK_ERROR_CODES.BAD_REQUEST, 'invalid_request_error: modelo inválido');
+        throw new LlmError(LLM_ERROR_CODES.BAD_REQUEST, 'invalid_request_error: modelo inválido');
       },
     });
     await assert.rejects(
       transport.callLlm('etapa', baseReq()),
       (e: unknown) =>
         e instanceof LlmStageError &&
-        e.code === DEEPSEEK_ERROR_CODES.BAD_REQUEST &&
+        e.code === LLM_ERROR_CODES.BAD_REQUEST &&
         e.retried === 0,
     );
     assert.equal(fake.calls.length, 1);
@@ -347,11 +347,11 @@ describe('backoff — BAD_REQUEST', () => {
     const { transport, fake } = setup();
     await assert.rejects(
       transport.callLlm('etapa', baseReq({ prompt: '   ' })),
-      (e: unknown) => e instanceof LlmStageError && e.code === DEEPSEEK_ERROR_CODES.BAD_REQUEST,
+      (e: unknown) => e instanceof LlmStageError && e.code === LLM_ERROR_CODES.BAD_REQUEST,
     );
     await assert.rejects(
       transport.callLlm('etapa', baseReq({ timeoutMs: 0 })),
-      (e: unknown) => e instanceof LlmStageError && e.code === DEEPSEEK_ERROR_CODES.BAD_REQUEST,
+      (e: unknown) => e instanceof LlmStageError && e.code === LLM_ERROR_CODES.BAD_REQUEST,
     );
     assert.equal(fake.calls.length, 0);
   });
@@ -558,11 +558,11 @@ describe('usage — agregado por etapa', () => {
       cache,
       backoff: {
         jitterRatio: 0,
-        policies: { [DEEPSEEK_ERROR_CODES.NETWORK]: { baseDelayMs: 1, maxDelayMs: 10 } },
+        policies: { [LLM_ERROR_CODES.NETWORK]: { baseDelayMs: 1, maxDelayMs: 10 } },
       },
       sleep: async () => {},
       respond: async (_req, callIndex) => {
-        if (callIndex === 0) throw new DeepSeekError(DEEPSEEK_ERROR_CODES.NETWORK, 'timeout de rede');
+        if (callIndex === 0) throw new LlmError(LLM_ERROR_CODES.NETWORK, 'timeout de rede');
         return okResponse();
       },
     });
@@ -590,8 +590,8 @@ describe('sanitização — a chave de API não vaza', () => {
       respond: async () => {
         // Transporte MALICIOSO/defeituoso: ecoa o Authorization no corpo do
         // erro. O transporte único precisa mascarar antes de propagar/logar.
-        throw new DeepSeekError(
-          DEEPSEEK_ERROR_CODES.KEY_INVALID,
+        throw new LlmError(
+          LLM_ERROR_CODES.KEY_INVALID,
           `Authorization inválida: Bearer ${SECRET} (HTTP 401)`,
         );
       },
@@ -600,7 +600,7 @@ describe('sanitização — a chave de API não vaza', () => {
     await assert.rejects(transport.callLlm('etapa', baseReq()), (e: unknown) => {
       assert.ok(e instanceof LlmStageError);
       if (e instanceof LlmStageError) {
-        assert.equal(e.code, DEEPSEEK_ERROR_CODES.KEY_INVALID);
+        assert.equal(e.code, LLM_ERROR_CODES.KEY_INVALID);
         assert.ok(!e.message.includes(SECRET), `erro vazou a chave: ${e.message}`);
       }
       return true;
@@ -628,7 +628,7 @@ describe('timeout de etapa — não trava a onda', () => {
       respond: async (req) => {
         const text = req.messages.map((m) => m.content).join(' ');
         if (text.includes('travada')) {
-          return new Promise<DeepSeekChatResponse>(() => {}); // nunca resolve
+          return new Promise<LlmChatResponse>(() => {}); // nunca resolve
         }
         return okResponse({ content: 'sana' });
       },

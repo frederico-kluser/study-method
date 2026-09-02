@@ -3,7 +3,7 @@
  *
  * O modelo local SÓ avalia o feedback quando o usuário selecionou 'local' nas
  * Configurações E há um modelo local ativo; qualquer outro caso cai para o
- * DeepSeek (comportamento histórico / default seguro).
+ * OpenRouter (a nuvem — default seguro).
  */
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
@@ -18,28 +18,28 @@ describe('resolveFeedbackProvider', () => {
     );
   });
 
-  it('defaultModelProvider=local mas SEM modelo ativo → deepseek', () => {
+  it('defaultModelProvider=local mas SEM modelo ativo → openrouter', () => {
     assert.equal(
       resolveFeedbackProvider({ defaultModelProvider: 'local', activeLocalModelId: null }),
-      'deepseek',
+      'openrouter',
     );
     assert.equal(
       resolveFeedbackProvider({ defaultModelProvider: 'local', activeLocalModelId: '   ' }),
-      'deepseek',
+      'openrouter',
     );
   });
 
-  it('defaultModelProvider ausente (nunca salvo) → deepseek mesmo com modelo ativo', () => {
+  it('defaultModelProvider ausente (nunca salvo) → openrouter mesmo com modelo ativo', () => {
     assert.equal(
       resolveFeedbackProvider({ defaultModelProvider: undefined, activeLocalModelId: 'LiquidAI/LFM2.5-8B-A1B-GGUF:Q4_K_M' }),
-      'deepseek',
+      'openrouter',
     );
   });
 
-  it('defaultModelProvider=deepseek explícito → deepseek (mesmo com modelo ativo)', () => {
+  it('defaultModelProvider=openrouter explícito → openrouter (mesmo com modelo ativo)', () => {
     assert.equal(
-      resolveFeedbackProvider({ defaultModelProvider: 'deepseek', activeLocalModelId: 'LiquidAI/LFM2.5-8B-A1B-GGUF:Q4_K_M' }),
-      'deepseek',
+      resolveFeedbackProvider({ defaultModelProvider: 'openrouter', activeLocalModelId: 'LiquidAI/LFM2.5-8B-A1B-GGUF:Q4_K_M' }),
+      'openrouter',
     );
   });
 });

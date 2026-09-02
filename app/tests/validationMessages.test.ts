@@ -12,7 +12,7 @@ describe('validationUiFromResult', () => {
   it('isValid true -> estado valid', () => {
     const ui = validationUiFromResult({
       isValid: true,
-      provider: 'deepseek',
+      provider: 'openrouter',
       checkedAt: new Date().toISOString(),
     });
     assert.equal(ui.state, 'valid');
@@ -31,21 +31,21 @@ describe('validationUiFromResult', () => {
   it('sem errorMessage -> mensagem genérica', () => {
     const ui = validationUiFromResult({
       isValid: false,
-      provider: 'deepseek',
+      provider: 'openrouter',
       checkedAt: new Date().toISOString(),
     });
     assert.equal(ui.state, 'invalid');
-    assert.match(ui.message, /deepseek/);
+    assert.match(ui.message, /openrouter/);
   });
 });
 
 describe('humanizeValidationError', () => {
   it('401 / unauthorized -> chave inválida', () => {
-    assert.match(humanizeValidationError('401 Unauthorized', 'deepseek'), /Chave inválida/);
-    assert.match(humanizeValidationError('invalid api key', 'deepseek'), /Chave inválida/);
+    assert.match(humanizeValidationError('401 Unauthorized', 'openrouter'), /Chave inválida/);
+    assert.match(humanizeValidationError('invalid api key', 'openrouter'), /Chave inválida/);
   });
   it('429 / rate limit -> limite de requisições', () => {
-    assert.match(humanizeValidationError('429 Too Many Requests', 'deepseek'), /Limite/);
+    assert.match(humanizeValidationError('429 Too Many Requests', 'openrouter'), /Limite/);
   });
 
   it('402 / sem crédito -> créditos insuficientes (NÃO "chave inválida")', () => {
@@ -67,12 +67,12 @@ describe('humanizeValidationError', () => {
   });
   it('erro genérico mantém a mensagem bruta', () => {
     assert.match(
-      humanizeValidationError('weird error xyz', 'deepseek'),
+      humanizeValidationError('weird error xyz', 'openrouter'),
       /weird error xyz/,
     );
   });
   it('empty string -> genérico com provider', () => {
     assert.match(humanizeValidationError('', 'brave'), /brave/);
-    assert.match(humanizeValidationError(undefined, 'deepseek'), /deepseek/);
+    assert.match(humanizeValidationError(undefined, 'openrouter'), /openrouter/);
   });
 });

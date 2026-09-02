@@ -1,6 +1,6 @@
 /**
  * src/lib/validationMessages.ts — mapeamento puro de um `ValidationResult`
- * (retorno de keys.validateDeepseek / keys.validateBrave — nomes de canal
+ * (retorno de keys.validateLlm / keys.validateBrave — nomes de canal
  * históricos; o provedor de LLM por trás é o OpenRouter, ver
  * shared/llm/constants.ts) para o texto pt-BR e o estado visual da UI de
  * Settings.
@@ -25,7 +25,7 @@ export interface ValidationUi {
  */
 export function humanizeValidationError(
   raw: string | undefined,
-  provider: 'deepseek' | 'openrouter' | 'brave',
+  provider: 'openrouter' | 'brave',
 ): string {
   const msg = (raw ?? '').trim();
   const lower = msg.toLowerCase();

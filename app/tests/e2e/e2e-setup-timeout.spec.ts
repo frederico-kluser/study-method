@@ -39,7 +39,7 @@ test.afterEach(async () => {
 });
 
 /**
- * Intercepta `keys:validate-deepseek` e `keys:validate-brave` no ipcMain do
+ * Intercepta `keys:validate-llm` e `keys:validate-brave` no ipcMain do
  * app: remove o handler do stub E2E e registra um que PENDURA ~20s antes de
  * responder (simula, no nível do canal, uma resposta de validação que nunca
  * chega — o análogo IPC da rede que engole pacotes do diagnóstico). Roda no
@@ -53,13 +53,13 @@ test.afterEach(async () => {
 async function hangValidateChannels(app: ElectronApplication, hangMs: number): Promise<void> {
   await app.evaluate(({ ipcMain }, ms: number) => {
     const hang = (timeout: number) => new Promise<void>((r) => setTimeout(r, timeout));
-    for (const channel of ['keys:validate-deepseek', 'keys:validate-brave']) {
+    for (const channel of ['keys:validate-llm', 'keys:validate-brave']) {
       ipcMain.removeHandler(channel);
       ipcMain.handle(channel, async (): Promise<Record<string, unknown>> => {
         await hang(ms);
         return {
           isValid: false,
-          provider: channel === 'keys:validate-deepseek' ? 'deepseek' : 'brave',
+          provider: channel === 'keys:validate-llm' ? 'openrouter' : 'brave',
           errorMessage: 'Network error: timed out after 20000ms (E2E intercept)',
           checkedAt: new Date().toISOString(),
         };
@@ -80,7 +80,7 @@ test('e2e-setup-timeout: validação pendurada no SetupView → erro claro e spi
   // main com o novo timeout NÃO roda aqui (handler substituído — ver cabeçalho).
   await hangValidateChannels(app, 20_000);
 
-  await page.getByLabel('Chave DeepSeek').fill('sk-pendurada-e2e');
+  await page.getByLabel('Chave OpenRouter').fill('sk-pendurada-e2e');
   await page.getByRole('button', { name: 'Validar' }).first().click();
 
   // Spinner LIGOU (CircularProgress do botão — role progressbar).
@@ -113,7 +113,7 @@ test('e2e-setup-timeout: resposta rápida de chave INVÁLIDA → mensagem clara 
 
   // Stub E2E padrão: chave com prefixo reservado 'invalid-' → resposta RÁPIDA
   // de erro ('Invalid API key') — sem interceptação.
-  await page.getByLabel('Chave DeepSeek').fill('invalid-e2e-key');
+  await page.getByLabel('Chave OpenRouter').fill('invalid-e2e-key');
   await page.getByRole('button', { name: 'Validar' }).first().click();
 
   // Mensagem clara de chave inválida (humanizeValidationError), spinner some,

@@ -180,6 +180,13 @@ export function removerLinhasDeAutoElogio(texto: string): string {
  * Nomes/modelos de IA reconhecidos em LINHA DE ASSINATURA/autoria (família d,
  * onda 2 — H-3): GPT, GPT-4, Claude, DeepSeek, Gemini, Llama, ChatGPT. São
  * tokens DISTINTIVOS, de baixíssimo falso-positivo em conteúdo de aula.
+ *
+ * ATENÇÃO: esta é uma DENYLIST DE MARCAS DE TERCEIROS que podem aparecer numa
+ * assinatura dentro do texto GERADO — não tem relação com o provedor que o app
+ * usa. 'DeepSeek' segue na lista pelo mesmo motivo que 'Claude' e 'Gemini'
+ * seguem: qualquer um desses nomes pode vazar para o conteúdo de uma aula e
+ * precisa ser removido. Tirar um item daqui é uma REGRESSÃO de qualidade, não
+ * uma limpeza de nomenclatura (o caso está coberto por engineReviewer.test.ts).
  */
 const NOMES_DE_MODELO = 'GPT(?:-?\\d+)?|Claude|DeepSeek|Gemini|Llama|ChatGPT';
 
@@ -356,7 +363,7 @@ export class ErroDeRoteamento extends Error {
  * INJETADOS pelo laço F11 (onda 3), nunca hardcoded aqui.
  */
 export interface MapaDeFamilias {
-  /** ex.: `{ 'deepseek-v4-flash-0731': 'deepseek', 'claude-sonnet-4': 'anthropic' }`. */
+  /** ex.: `{ 'z-ai/glm-5.3-flash': 'openrouter', 'claude-sonnet-4': 'anthropic' }`. */
   familiaPorModelo: Readonly<Record<string, string>>;
   /** famílias dos modelos que PRODUZEM (AUTOR e demais); o revisor fica fora. */
   familiasProdutoras: readonly string[];

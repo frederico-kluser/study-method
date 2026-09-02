@@ -8,9 +8,8 @@
  *
  * Fluxo por provedor (mesmo padrão do SettingsView/KeysPanel, mas próprio aqui):
  *   - TextField password com toggle de visibilidade (Visibility/VisibilityOff);
- *   - "Validar" → keys.validateDeepseek(typed) / keys.validateBrave(typed),
- *     validando a chave DIGITADA SEM salvar (o canal IPC mantém o nome
- *     histórico; o provedor por trás dele é o OpenRouter — shared/llm/constants);
+ *   - "Validar" → keys.validateLlm(typed) / keys.validateBrave(typed),
+ *     validando a chave DIGITADA SEM salvar;
  *   - "Salvar" → keys.setKey(provider, key) para as DUAS, e revalida (via
  *     onDone → AppGate re-executa o gate no main); só habilitado quando AMBAS
  *     validaram.
@@ -43,24 +42,22 @@ import { getApi } from '../lib/apiBridge';
 import { humanizeValidationError } from '../lib/validationMessages';
 import LanguageSwitcher from '../i18n/LanguageSwitcher';
 
-type Provider = 'deepseek' | 'brave';
+type Provider = 'openrouter' | 'brave';
 
-// A CHAVE do mapa segue 'deepseek' (renomear chave + call sites é a ONDA 2);
-// a IDENTIDADE VISÍVEL já é a real: o rótulo/placeholder vêm do i18n (que agora
-// diz "OpenRouter") e o FORMATO da chave vem do contrato congelado
-// (`shared/llm/constants.ts`), nunca de um literal escrito à mão aqui.
+// O rótulo/placeholder vêm do i18n e o FORMATO da chave vem do contrato
+// congelado (`shared/llm/constants.ts`), nunca de um literal escrito à mão aqui.
 const PROVIDER_META: Record<
   Provider,
   {
-    labelKey: 'keys.deepseek.label' | 'keys.brave.label';
-    placeholderKey: 'keys.deepseek.placeholder' | 'keys.brave.placeholder';
+    labelKey: 'keys.openrouter.label' | 'keys.brave.label';
+    placeholderKey: 'keys.openrouter.placeholder' | 'keys.brave.placeholder';
     /** Formato real da chave, mostrado como helper text sob o campo. */
     keyFormat?: string;
   }
 > = {
-  deepseek: {
-    labelKey: 'keys.deepseek.label',
-    placeholderKey: 'keys.deepseek.placeholder',
+  openrouter: {
+    labelKey: 'keys.openrouter.label',
+    placeholderKey: 'keys.openrouter.placeholder',
     keyFormat: `${OPENROUTER_KEY_PREFIX}…`,
   },
   brave: { labelKey: 'keys.brave.label', placeholderKey: 'keys.brave.placeholder' },
@@ -111,7 +108,7 @@ function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
 export function SetupView({ onDone }: { onDone: () => void }): ReactElement {
   const { t } = useTranslation();
   const [providers, setProviders] = useState<Record<Provider, ProviderState>>({
-    deepseek: { ...IDLE },
+    openrouter: { ...IDLE },
     brave: { ...IDLE },
   });
   const [saving, setSaving] = useState(false);
@@ -123,7 +120,7 @@ export function SetupView({ onDone }: { onDone: () => void }): ReactElement {
   const handleValidate = async (provider: Provider): Promise<void> => {
     const typed = providers[provider].value.trim();
     const validate =
-      provider === 'deepseek' ? getApi().keys.validateDeepseek : getApi().keys.validateBrave;
+      provider === 'openrouter' ? getApi().keys.validateLlm : getApi().keys.validateBrave;
 
     if (!typed) {
       patch(provider, (s) => ({
@@ -165,13 +162,13 @@ export function SetupView({ onDone }: { onDone: () => void }): ReactElement {
   };
 
   const allValid =
-    providers.deepseek.valid && providers.brave.valid && !providers.deepseek.validating && !providers.brave.validating;
+    providers.openrouter.valid && providers.brave.valid && !providers.openrouter.validating && !providers.brave.validating;
 
   const handleContinue = async (): Promise<void> => {
     if (!allValid) return;
     setSaving(true);
     try {
-      await getApi().keys.setKey('deepseek', providers.deepseek.value.trim());
+      await getApi().keys.setKey('openrouter', providers.openrouter.value.trim());
       await getApi().keys.setKey('brave', providers.brave.value.trim());
       // onDone re-executa o gate no main (revalida as chaves guardadas).
       onDone();
@@ -258,7 +255,7 @@ export function SetupView({ onDone }: { onDone: () => void }): ReactElement {
           </Typography>
           <Alert severity="info">{t('translation:gate.missingKeys')}</Alert>
 
-          {renderProvider('deepseek')}
+          {renderProvider('openrouter')}
           {renderProvider('brave')}
 
           <Button

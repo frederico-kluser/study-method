@@ -1,6 +1,6 @@
 /**
  * src/lib/validationAlert.ts — lógica PURA (sem React/DOM) que decide o ALERT
- * MUI de uma validação de chave de API (keys.validateDeepseek/validateBrave —
+ * MUI de uma validação de chave de API (keys.validateLlm/validateBrave —
  * nomes de canal históricos; o provedor de LLM por trás é o OpenRouter, ver
  * shared/llm/constants.ts).
  *

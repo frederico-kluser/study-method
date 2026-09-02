@@ -177,8 +177,8 @@ export interface ApiSchema {
   };
   keys: {
     getStatus(): Promise<KeysStatus>;
-    setKey(provider: 'deepseek' | 'openrouter' | 'brave', key: string): Promise<void>;
-    validateDeepseek(key: string): Promise<ValidationResult>;
+    setKey(provider: 'openrouter' | 'brave', key: string): Promise<void>;
+    validateLlm(key: string): Promise<ValidationResult>;
     validateBrave(key: string): Promise<ValidationResult>;
   };
   pi: {
@@ -254,7 +254,7 @@ export interface ApiSchema {
      *  (family, seed) via mathLib. `family`/`seed` vêm do `exercise` da lição. */
     checkMathAnswer(input: MathAnswerCheckRequest): Promise<MathAnswerCheckResult>;
     /** ADITIVO (onda3-respostas): avalia a INTERPRETAÇÃO digitada com LLM
-     *  (deepseek → fallback embeddedLlm). Falha total ⇒ { ok:false, error }. */
+     *  (OpenRouter → fallback embeddedLlm). Falha total ⇒ { ok:false, error }. */
     judgeAnswer(input: JudgeAnswerRequest): Promise<JudgeAnswerOutcome>;
   };
   /** ADITIVO (rodada 8 — trilhas): o aluno consome conteúdo pronto (CLI), não gera. */

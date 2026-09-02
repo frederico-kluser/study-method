@@ -22,7 +22,7 @@ export type HomeSetupStatus = 'ready' | 'missing';
 
 /** Campos de chave que a Home precisa (subconjunto de KeysStatus). */
 export interface HomeSetupInput {
-  deepseekConfigured: boolean;
+  llmConfigured: boolean;
   braveConfigured: boolean;
 }
 
@@ -62,7 +62,7 @@ export const HOME_SUGGESTIONS: ReadonlyArray<HomeSuggestion> = [
  */
 export function homeSetupStatus(status: HomeSetupInput | null | undefined): HomeSetupStatus {
   if (!status) return 'missing';
-  return status.deepseekConfigured && status.braveConfigured ? 'ready' : 'missing';
+  return status.llmConfigured && status.braveConfigured ? 'ready' : 'missing';
 }
 
 /** Devolve as sugestões de assunto (programação + matemática) em ordem canônica. */

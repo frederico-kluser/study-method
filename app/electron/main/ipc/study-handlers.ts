@@ -820,7 +820,7 @@ export function buildStudyHandlers(deps: StudyHandlerDeps): Map<string, IpcHandl
     },
   );
 
-  // study:judge-answer: avalia a INTERPRETAÇÃO digitada com LLM (deepseek →
+  // study:judge-answer: avalia a INTERPRETAÇÃO digitada com LLM (OpenRouter →
   // fallback embeddedLlm). Falha total ⇒ { ok:false, error:{ code } } — nunca
   // inventa veredito. Sem `answerJudge` injetado, responde estruturado
   // (ANSWER_JUDGE_UNAVAILABLE), igual aos demais canais opcionais.

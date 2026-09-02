@@ -1,16 +1,16 @@
 /**
- * tests/deepseekLessonAuthor.test.ts — autor (AuthorFn) DeepSeek da cadeia
+ * tests/lessonAuthor.test.ts — autor (AuthorFn) do LLM remoto na cadeia
  * lesson-orchestrator. Cliente fake injetado isola o autor do transporte:
  *   - o prompt system/user contém o assunto + findings (com fontes);
  *   - parse JSON válido → LessonDraft normalizado e validado;
  *   - parse inválido / shape inválido → erro claro com a parte que faltou;
- *   - chave ausente → DeepSeekError KEY_MISSING.
+ *   - chave ausente → LlmError KEY_MISSING.
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { createDeepSeekLessonAuthor, slugifyToFunctionName, validateLessonDraft } from '../electron/main/services/deepseekLessonAuthor';
-import { DEEPSEEK_ERROR_CODES, DeepSeekError } from '../electron/main/services/deepseekClient';
+import { createLessonAuthor, slugifyToFunctionName, validateLessonDraft } from '../electron/main/services/lessonAuthor';
+import { LLM_ERROR_CODES, LlmError } from '../electron/main/services/llmClient';
 import type { StudyFinding } from '../shared/ipc-contract';
 import { OPENROUTER_MODEL } from '@shared/llm/constants';
 
@@ -73,7 +73,7 @@ function validDraftJson(): string {
 
 test('author: monta system pt-BR e user com subject + findings (fontes) + temperature 0.2', async () => {
   const { client, calls } = fakeClient(() => ({ content: validDraftJson() }));
-  const author = createDeepSeekLessonAuthor({ client });
+  const author = createLessonAuthor({ client });
   const draft = await author({ subject: 'Closures em JS', findings: FINDINGS });
 
   assert.equal(calls.length, 1);
@@ -95,7 +95,7 @@ test('author: monta system pt-BR e user com subject + findings (fontes) + temper
 
 test('author: system prompt instrui o nome da função derivado do slug (regra do challenge-new.sh)', async () => {
   const { client, calls } = fakeClient(() => ({ content: validDraftJson() }));
-  const author = createDeepSeekLessonAuthor({ client });
+  const author = createLessonAuthor({ client });
   await author({ subject: 'Closures', findings: [] });
   const sys = calls[0].messages[0].content;
   // A instrução de naming deve citar a regra rígida e o exemplo kebab→snake.
@@ -110,7 +110,7 @@ test('author: system prompt instrui o nome da função derivado do slug (regra d
 
 test('author: system prompt instrui os identificadores FIXOS por linguagem no testCode (crate/pacote/módulo/header/stub)', async () => {
   const { client, calls } = fakeClient(() => ({ content: validDraftJson() }));
-  const author = createDeepSeekLessonAuthor({ client });
+  const author = createLessonAuthor({ client });
   await author({ subject: 'Closures', findings: [] });
   const sys = calls[0].messages[0].content;
   // Rust: o crate é SEMPRE "desafio" (challenge-new.sh ch_set CRATE) — `use desafio::<fn>;`,
@@ -136,7 +136,7 @@ test('author: system prompt instrui os identificadores FIXOS por linguagem no te
 
 test('author: system prompt impõe ASSINATURA IDÊNTICA em stub/test/reference/alternates (regra do harness)', async () => {
   const { client, calls } = fakeClient(() => ({ content: validDraftJson() }));
-  const author = createDeepSeekLessonAuthor({ client });
+  const author = createLessonAuthor({ client });
   await author({ subject: 'Closures', findings: [] });
   const sys = calls[0].messages[0].content;
   // O layout do desafio pede referenceAlternates e a regra rígida cita o exemplo Rust
@@ -185,7 +185,7 @@ test('slugifyToFunctionName: saneia slug não-kebab e múltiplos hífens (só h�
 
 test('author: memória do aluno vai ao prompt quando presente', async () => {
   const { client, calls } = fakeClient(() => ({ content: validDraftJson() }));
-  const author = createDeepSeekLessonAuthor({ client });
+  const author = createLessonAuthor({ client });
   await author({
     subject: 'Closures',
     findings: [],
@@ -198,7 +198,7 @@ test('author: memória do aluno vai ao prompt quando presente', async () => {
 
 test('author: parse válido → LessonDraft normalizado', async () => {
   const { client } = fakeClient(() => ({ content: 'Texto antes\n```json\n' + validDraftJson() + '\n```\nfim' }));
-  const author = createDeepSeekLessonAuthor({ client });
+  const author = createLessonAuthor({ client });
   const draft = await author({ subject: 'Closures', findings: [] });
   assert.equal(draft.challenges[0].slug, 'closure-contador');
   assert.equal(draft.challenges[0].scenarios[0].type, 'example');
@@ -206,21 +206,21 @@ test('author: parse válido → LessonDraft normalizado', async () => {
 
 test('author: JSON inválido (não-objeto) → erro claro', async () => {
   const { client } = fakeClient(() => ({ content: 'isto não é JSON algum' }));
-  const author = createDeepSeekLessonAuthor({ client });
+  const author = createLessonAuthor({ client });
   await assert.rejects(author({ subject: 'X', findings: [] }), /LessonDraft inválido|não devolveu um LessonDraft/);
 });
 
-test('author: resposta vazia → DeepSeekError (NETWORK)', async () => {
+test('author: resposta vazia → LlmError (NETWORK)', async () => {
   const { client } = fakeClient(() => ({ content: '' }));
-  const author = createDeepSeekLessonAuthor({ client });
-  await assert.rejects(author({ subject: 'X', findings: [] }), (e) => e instanceof DeepSeekError);
+  const author = createLessonAuthor({ client });
+  await assert.rejects(author({ subject: 'X', findings: [] }), (e) => e instanceof LlmError);
 });
 
 test('author: draft sem lessonMarkdown → erro claro apontando o campo', async () => {
   const body = JSON.parse(validDraftJson());
   delete body.lessonMarkdown;
   const { client } = fakeClient(() => ({ content: JSON.stringify(body) }));
-  const author = createDeepSeekLessonAuthor({ client });
+  const author = createLessonAuthor({ client });
   await assert.rejects(author({ subject: 'X', findings: [] }), /lessonMarkdown/);
 });
 
@@ -228,7 +228,7 @@ test('author: desafio sem scenarios → erro claro', async () => {
   const body = JSON.parse(validDraftJson());
   body.challenges[0].scenarios = [];
   const { client } = fakeClient(() => ({ content: JSON.stringify(body) }));
-  const author = createDeepSeekLessonAuthor({ client });
+  const author = createLessonAuthor({ client });
   await assert.rejects(author({ subject: 'X', findings: [] }), /scenarios/);
 });
 
@@ -238,7 +238,7 @@ test('author: cenários sem cobertura example+boundary+error → erro claro', as
     { id: 'a', name: 'A', type: 'example', input: 'x', description: 'apenas example' },
   ];
   const { client } = fakeClient(() => ({ content: JSON.stringify(body) }));
-  const author = createDeepSeekLessonAuthor({ client });
+  const author = createLessonAuthor({ client });
   await assert.rejects(author({ subject: 'X', findings: [] }), /boundary, error/);
 });
 
@@ -247,24 +247,24 @@ test('author: mais de 2 desafios → erro claro', async () => {
   body.challenges.push(JSON.parse(validDraftJson()).challenges[0]);
   body.challenges.push(JSON.parse(validDraftJson()).challenges[0]);
   const { client } = fakeClient(() => ({ content: JSON.stringify(body) }));
-  const author = createDeepSeekLessonAuthor({ client });
+  const author = createLessonAuthor({ client });
   await assert.rejects(author({ subject: 'X', findings: [] }), /no máximo 2/);
 });
 
-test('author: sem chave (getApiKey vazio/sem client) → DeepSeekError KEY_MISSING', async () => {
-  const authorNoKey = createDeepSeekLessonAuthor({ getApiKey: async () => '' });
+test('author: sem chave (getApiKey vazio/sem client) → LlmError KEY_MISSING', async () => {
+  const authorNoKey = createLessonAuthor({ getApiKey: async () => '' });
   await assert.rejects(
     authorNoKey({ subject: 'X', findings: [] }),
-    (e) => e instanceof DeepSeekError && e.code === DEEPSEEK_ERROR_CODES.KEY_MISSING
+    (e) => e instanceof LlmError && e.code === LLM_ERROR_CODES.KEY_MISSING
   );
   // Sem getApiKey E sem client: também KEY_MISSING.
-  const authorBare = createDeepSeekLessonAuthor({});
-  await assert.rejects(authorBare({ subject: 'X', findings: [] }), (e) => e instanceof DeepSeekError);
+  const authorBare = createLessonAuthor({});
+  await assert.rejects(authorBare({ subject: 'X', findings: [] }), (e) => e instanceof LlmError);
 });
 
 test('author: model injetado repassa ao cliente', async () => {
   const { client, calls } = fakeClient(() => ({ content: validDraftJson() }));
-  const author = createDeepSeekLessonAuthor({ client, model: MODEL_OVERRIDE });
+  const author = createLessonAuthor({ client, model: MODEL_OVERRIDE });
   await author({ subject: 'X', findings: [] });
   assert.equal(calls[0].model, MODEL_OVERRIDE);
 });
@@ -336,44 +336,44 @@ test('validateLessonDraft: cenário com type property é aceito na cobertura mí
   for (const s of draft!.challenges[0].scenarios) assert.match(s.type, /example|boundary|error|property/);
 });
 
-test('author: cliente lança erro GENÉRICO → envolve em DeepSeekError NETWORK', async () => {
+test('author: cliente lança erro GENÉRICO → envolve em LlmError NETWORK', async () => {
   const boom = new Error('falha de rede 500');
   const client = {
     chatCompletion: async () => {
       throw boom;
     },
   };
-  const author = createDeepSeekLessonAuthor({ client });
+  const author = createLessonAuthor({ client });
   await assert.rejects(
     author({ subject: 'X', findings: [] }),
     (e) =>
-      e instanceof DeepSeekError &&
-      e.code === DEEPSEEK_ERROR_CODES.NETWORK &&
+      e instanceof LlmError &&
+      e.code === LLM_ERROR_CODES.NETWORK &&
       (e.message as string).includes('falha de rede 500'),
   );
 });
 
-test('author: cliente lança DeepSeekError → NÃO é re-embrulhado (propaga o código)', async () => {
-  const original = new DeepSeekError(DEEPSEEK_ERROR_CODES.RATE_LIMIT, 'rate limit da chave');
+test('author: cliente lança LlmError → NÃO é re-embrulhado (propaga o código)', async () => {
+  const original = new LlmError(LLM_ERROR_CODES.RATE_LIMIT, 'rate limit da chave');
   const client = {
     chatCompletion: async () => {
       throw original;
     },
   };
-  const author = createDeepSeekLessonAuthor({ client });
+  const author = createLessonAuthor({ client });
   const err = await author({ subject: 'X', findings: [] }).then(
     () => null,
     (e) => e,
   );
-  assert.equal(err, original, 'deve propagar o DeepSeekError original, sem novo wrap');
+  assert.equal(err, original, 'deve propagar o LlmError original, sem novo wrap');
 });
 
 // fix-generation-robustness: retry de 1 re-tentativa (máximo 2 tentativas) APENAS
-// para a classe "content vazio" (EMPTY_CONTENT — DeepSeek devolveu só
+// para a classe "content vazio" (EMPTY_CONTENT — o provedor devolveu só
 // reasoning_content, transitório do modelo). Evita abortar a aula inteira.
-const EMPTY_CONTENT_ERROR = new DeepSeekError(
-  DEEPSEEK_ERROR_CODES.EMPTY_CONTENT,
-  'DeepSeek: resposta com content vazio (o modelo devolveu apenas reasoning_content, sem conteúdo de aula).'
+const EMPTY_CONTENT_ERROR = new LlmError(
+  LLM_ERROR_CODES.EMPTY_CONTENT,
+  'OpenRouter: resposta com content vazio (o modelo devolveu apenas reasoning_content, sem conteúdo de aula).'
 );
 
 test('author: content vazio na 1ª chamada → re-tenta e resolve na 2ª (2 chamadas ao client)', async () => {
@@ -385,7 +385,7 @@ test('author: content vazio na 1ª chamada → re-tenta e resolve na 2ª (2 cham
       return { content: validDraftJson(), model: OPENROUTER_MODEL.id };
     },
   };
-  const author = createDeepSeekLessonAuthor({ client });
+  const author = createLessonAuthor({ client });
   const draft = await author({ subject: 'Closures', findings: [] });
   assert.equal(attempts, 2, 'deve tentar 2x (1 re-tentativa)');
   assert.equal(draft.lessonTitle, 'Closures em JavaScript');
@@ -399,7 +399,7 @@ test('author: content vazio 2× → rejeita com o erro original (sem retry infin
       throw EMPTY_CONTENT_ERROR;
     },
   };
-  const author = createDeepSeekLessonAuthor({ client });
+  const author = createLessonAuthor({ client });
   const err = await author({ subject: 'X', findings: [] }).then(
     () => null,
     (e) => e,
@@ -420,14 +420,14 @@ test('author: EMPTY_CONTENT na 1ª e erro GENÉRICO na 2ª → propaga o GENÉRI
       throw new Error('falha de rede 500');
     },
   };
-  const author = createDeepSeekLessonAuthor({ client });
+  const author = createLessonAuthor({ client });
   const err = await author({ subject: 'X', findings: [] }).then(
     () => null,
     (e) => e,
   );
   assert.equal(attempts, 2, 'a 1ª falha EMPTY_CONTENT consome a re-tentativa');
-  assert.ok(err instanceof DeepSeekError, 'propagado como DeepSeekError (taxonomia)');
-  assert.equal(err.code, DEEPSEEK_ERROR_CODES.NETWORK, 'erro GENÉRICO vira NETWORK, não EMPTY_CONTENT');
+  assert.ok(err instanceof LlmError, 'propagado como LlmError (taxonomia)');
+  assert.equal(err.code, LLM_ERROR_CODES.NETWORK, 'erro GENÉRICO vira NETWORK, não EMPTY_CONTENT');
   assert.match(err.message, /falha de rede 500/, 'mensagem do erro da 2ª tentativa preservada');
   assert.notEqual(err, EMPTY_CONTENT_ERROR, 'NÃO propaga o EMPTY_CONTENT stale da 1ª tentativa');
 });
@@ -440,10 +440,10 @@ test('author: cliente lança erro GENÉRICO → SEM retry (1 chamada)', async ()
       throw new Error('falha de rede 500');
     },
   };
-  const author = createDeepSeekLessonAuthor({ client });
+  const author = createLessonAuthor({ client });
   await assert.rejects(
     author({ subject: 'X', findings: [] }),
-    (e) => e instanceof DeepSeekError && e.code === DEEPSEEK_ERROR_CODES.NETWORK,
+    (e) => e instanceof LlmError && e.code === LLM_ERROR_CODES.NETWORK,
   );
   assert.equal(attempts, 1, 'erros fora da classe content vazio não ganham retry');
 });
@@ -456,7 +456,7 @@ test('author: draft inválido (resposta parseável mas fora do schema) → SEM r
       return { content: 'isto não é JSON algum', model: OPENROUTER_MODEL.id };
     },
   };
-  const author = createDeepSeekLessonAuthor({ client });
+  const author = createLessonAuthor({ client });
   await assert.rejects(author({ subject: 'X', findings: [] }), /LessonDraft inválido|não devolveu um LessonDraft/);
   assert.equal(attempts, 1, 'erro de schema do draft não ganha retry');
 });

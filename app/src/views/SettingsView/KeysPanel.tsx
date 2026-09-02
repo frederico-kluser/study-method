@@ -7,9 +7,7 @@
  *    mostrar/ocultar via InputAdornment + IconButton (Visibility/VisibilityOff).
  *  - Estado configurada/validada vindo de `keys.getStatus` na MONTAGEM (Chips).
  *  - Botão "Salvar" → `keys.setKey(provider, key)`; botão "Validar" →
- *    `keys.validateDeepseek(provider==='deepseek')` / `keys.validateBrave(...)`
- *    (o nome do canal IPC ainda é o histórico; o provedor por trás dele é o
- *    OpenRouter — ver shared/llm/constants.ts),
+ *    `keys.validateLlm(provider==='openrouter')` / `keys.validateBrave(...)`,
  *    passando a chave DIGITADA (ou a salva no store quando nada foi digitado).
  *    O feedback é renderizado em `<Alert>` via lógica pura `validationAlert`
  *    (src/lib/validationAlert.ts → chaves i18n keys.*).
@@ -47,7 +45,7 @@ import { ACTION_TIMEOUTS, isTimeoutError, withTimeout } from '../../lib/ipcTimeo
 import { isNonEmpty } from '../../lib/validate';
 import { validationAlert } from '../../lib/validationAlert';
 
-type Provider = 'deepseek' | 'brave';
+type Provider = 'openrouter' | 'brave';
 
 const PROVIDER_META: Record<
   Provider,
@@ -55,18 +53,16 @@ const PROVIDER_META: Record<
     name: string;
     /** Modelo servido pelo provedor (só quem serve um LLM tem um). */
     modelName?: string;
-    inputLabelKey: 'translation:keys.deepseek.label' | 'translation:keys.brave.label';
+    inputLabelKey: 'translation:keys.openrouter.label' | 'translation:keys.brave.label';
     placeholder: string;
   }
 > = {
-  // A CHAVE do mapa segue 'deepseek' (renomear a chave é a ONDA 2, junto com
-  // TODOS os call sites de uma vez); o que muda aqui é a IDENTIDADE VISÍVEL.
   // Nome, modelo e formato da chave vêm do contrato congelado — nada de
   // literal solto: `shared/llm/constants.ts` é a única fonte.
-  deepseek: {
+  openrouter: {
     name: 'OpenRouter',
     modelName: OPENROUTER_MODEL.name,
-    inputLabelKey: 'translation:keys.deepseek.label',
+    inputLabelKey: 'translation:keys.openrouter.label',
     placeholder: `${OPENROUTER_KEY_PREFIX}…`,
   },
   brave: {
@@ -107,7 +103,7 @@ function idleState(): ProviderState {
 export function KeysPanel(): ReactElement {
   const { t } = useTranslation();
   const [providers, setProviders] = useState<Record<Provider, ProviderState>>({
-    deepseek: idleState(),
+    openrouter: idleState(),
     brave: idleState(),
   });
   const [initialStatus, setInitialStatus] = useState<KeysStatus | null>(null);
@@ -116,7 +112,7 @@ export function KeysPanel(): ReactElement {
   // exposto como sinal DOM p/ o onboarding considerar o passo `settings-keys-filled`
   // satisfeito sem obrigar a redigitar. Lê apenas os booleans (não o valor).
   const keysConfigured =
-    (initialStatus?.deepseekConfigured ?? false) &&
+    (initialStatus?.llmConfigured ?? false) &&
     (initialStatus?.braveConfigured ?? false);
 
   useEffect(() => {
@@ -129,9 +125,9 @@ export function KeysPanel(): ReactElement {
       .catch(() => {
         if (!cancelled) {
           setInitialStatus({
-            deepseekConfigured: false,
+            llmConfigured: false,
             braveConfigured: false,
-            deepseekValidated: false,
+            llmValidated: false,
             braveValidated: false,
           });
         }
@@ -190,8 +186,8 @@ export function KeysPanel(): ReactElement {
   const handleValidate = async (provider: Provider): Promise<void> => {
     const typed = providers[provider].value.trim();
     const validate =
-      provider === 'deepseek'
-        ? getApi().keys.validateDeepseek
+      provider === 'openrouter'
+        ? getApi().keys.validateLlm
         : getApi().keys.validateBrave;
 
     patch(provider, (s) => ({
@@ -234,9 +230,9 @@ export function KeysPanel(): ReactElement {
     const meta = PROVIDER_META[provider];
     const st = providers[provider];
     const configured =
-      initialStatus?.[provider === 'deepseek' ? 'deepseekConfigured' : 'braveConfigured'];
+      initialStatus?.[provider === 'openrouter' ? 'llmConfigured' : 'braveConfigured'];
     const validated =
-      initialStatus?.[provider === 'deepseek' ? 'deepseekValidated' : 'braveValidated'];
+      initialStatus?.[provider === 'openrouter' ? 'llmValidated' : 'braveValidated'];
     const validating = st.uiState === 'validating';
 
     return (
@@ -337,7 +333,7 @@ export function KeysPanel(): ReactElement {
       useFlexGap
       data-onboarding-signal={`keys-configured:${keysConfigured}`}
     >
-      {renderProvider('deepseek')}
+      {renderProvider('openrouter')}
       {renderProvider('brave')}
     </Stack>
   );

@@ -12,8 +12,8 @@ describe('feedbackProviderChipKey', () => {
     assert.equal(feedbackProviderChipKey('local'), 'challenge.providerLocal');
   });
 
-  it('deepseek → chave do provedor deepseek', () => {
-    assert.equal(feedbackProviderChipKey('deepseek'), 'challenge.providerDeepseek');
+  it('openrouter → chave do provedor OpenRouter', () => {
+    assert.equal(feedbackProviderChipKey('openrouter'), 'challenge.providerOpenrouter');
   });
 
   it('null (nenhum provedor decidido) → sem chip', () => {

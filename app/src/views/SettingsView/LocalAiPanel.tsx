@@ -42,7 +42,7 @@ import { formatBytes, formatModelLabel, formatPercent, formatSpeedBps } from '..
 type DownloadTick = Pick<DownloadProgress, 'modelId' | 'percent' | 'speedBps' | 'done' | 'error'>;
 
 /** Campo do provedor de feedback (defaultModelProvider). */
-type FeedbackProvider = 'deepseek' | 'local';
+type FeedbackProvider = 'openrouter' | 'local';
 
 function HardwareView({ info }: { info: HardwareInfo }): ReactElement {
   const { t } = useTranslation();
@@ -91,7 +91,7 @@ export function LocalAiPanel(): ReactElement {
   const [downloading, setDownloading] = useState<string | null>(null);
   const [downloadTicks, setDownloadTicks] = useState<Record<string, DownloadTick>>({});
   const [busy, setBusy] = useState<Record<string, boolean>>({});
-  const [feedbackProvider, setFeedbackProvider] = useState<FeedbackProvider>('deepseek');
+  const [feedbackProvider, setFeedbackProvider] = useState<FeedbackProvider>('openrouter');
 
   // Lê o provedor salvo na montagem (settings:get).
   useEffect(() => {
@@ -102,13 +102,13 @@ export function LocalAiPanel(): ReactElement {
         if (cancelled) return;
         if (
           settings?.defaultModelProvider === 'local' ||
-          settings?.defaultModelProvider === 'deepseek'
+          settings?.defaultModelProvider === 'openrouter'
         ) {
           setFeedbackProvider(settings.defaultModelProvider);
         }
       })
       .catch(() => {
-        /* settings indisponível — mantém o default deepseek */
+        /* settings indisponível — mantém o default openrouter */
       });
     return () => {
       cancelled = true;
@@ -246,10 +246,8 @@ export function LocalAiPanel(): ReactElement {
           size="small"
           sx={{ maxWidth: 320 }}
         >
-          {/* O VALOR 'deepseek' é o que o settingsStore persiste (histórico —
-              renomear para 'openrouter' é a onda 2); o RÓTULO já mostra o
-              provedor real (OpenRouter). */}
-          <MenuItem value="deepseek">{t('translation:localAi.feedbackProviderDeepseek')}</MenuItem>
+          {/* 'openrouter' é o valor persistido em settings.defaultModelProvider. */}
+          <MenuItem value="openrouter">{t('translation:localAi.feedbackProviderOpenrouter')}</MenuItem>
           <MenuItem value="local">{t('translation:localAi.feedbackProviderLocal')}</MenuItem>
         </Select>
       </Stack>

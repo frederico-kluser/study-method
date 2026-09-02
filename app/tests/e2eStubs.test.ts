@@ -249,23 +249,22 @@ describe('e2eStubs: chaves no slot openrouter (migração)', () => {
 
     const map = mod.buildKeysStubHandlers();
     const status = (await map.get(KEYS_CHANNELS.GET_STATUS)!()) as {
-      deepseekConfigured: boolean;
-      deepseekValidated: boolean;
+      llmConfigured: boolean;
+      llmValidated: boolean;
     };
-    // Campo com NOME legado (contrato até a ONDA 2), alimentado pelo slot novo.
-    assert.equal(status.deepseekConfigured, true);
-    assert.equal(status.deepseekValidated, true);
+    assert.equal(status.llmConfigured, true);
+    assert.equal(status.llmValidated, true);
 
-    // A validação do stub reporta o provider REAL da migração.
-    const result = (await map.get(KEYS_CHANNELS.VALIDATE_DEEPSEEK)!(undefined)) as {
+    // A validação do stub reporta o provider REAL.
+    const result = (await map.get(KEYS_CHANNELS.VALIDATE_LLM)!(undefined)) as {
       isValid: boolean;
       provider: string;
     };
     assert.equal(result.isValid, true);
-    assert.equal(result.provider, 'openrouter', 'o E2E não afirma mais deepseek');
+    assert.equal(result.provider, 'openrouter');
   });
 
-  it('keys:set-key aceita "openrouter" e o apelido legado "deepseek" no MESMO slot', async () => {
+  it('keys:set-key grava a chave do LLM no slot "openrouter"', async () => {
     process.env.STUDY_METHOD_E2E = '1';
     delete process.env.E2E_GATE;
     delete process.env.E2E_NETWORK;
@@ -275,15 +274,14 @@ describe('e2eStubs: chaves no slot openrouter (migração)', () => {
     const setKey = map.get(KEYS_CHANNELS.SET_KEY)!;
     const getStatus = map.get(KEYS_CHANNELS.GET_STATUS)!;
 
-    // O renderer de hoje ainda manda 'deepseek' (a renomeação é a ONDA 2).
-    await setKey(undefined, 'deepseek', 'sk-or-v1-pelo-apelido');
-    let status = (await getStatus()) as { deepseekConfigured: boolean };
-    assert.equal(status.deepseekConfigured, true);
+    await setKey(undefined, 'openrouter', 'sk-or-v1-nova');
+    let status = (await getStatus()) as { llmConfigured: boolean };
+    assert.equal(status.llmConfigured, true);
 
-    // E o nome novo cai no mesmo lugar (apagar pelo nome canônico limpa).
+    // Apagar pelo mesmo nome limpa o slot.
     await setKey(undefined, 'openrouter', '');
-    status = (await getStatus()) as { deepseekConfigured: boolean };
-    assert.equal(status.deepseekConfigured, false);
+    status = (await getStatus()) as { llmConfigured: boolean };
+    assert.equal(status.llmConfigured, false);
   });
 });
 

@@ -29,21 +29,21 @@ describe('homeSetupStatus — status agregado das chaves', () => {
   });
 
   it('ambas as chaves configuradas → ready', () => {
-    const ok: HomeSetupInput = { deepseekConfigured: true, braveConfigured: true };
+    const ok: HomeSetupInput = { llmConfigured: true, braveConfigured: true };
     assert.equal(homeSetupStatus(ok), 'ready');
   });
 
   it('qualquer chave faltando → missing', () => {
     assert.equal(
-      homeSetupStatus({ deepseekConfigured: true, braveConfigured: false }),
+      homeSetupStatus({ llmConfigured: true, braveConfigured: false }),
       'missing',
     );
     assert.equal(
-      homeSetupStatus({ deepseekConfigured: false, braveConfigured: true }),
+      homeSetupStatus({ llmConfigured: false, braveConfigured: true }),
       'missing',
     );
     assert.equal(
-      homeSetupStatus({ deepseekConfigured: false, braveConfigured: false }),
+      homeSetupStatus({ llmConfigured: false, braveConfigured: false }),
       'missing',
     );
   });

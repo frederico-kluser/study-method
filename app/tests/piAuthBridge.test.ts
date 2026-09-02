@@ -2,12 +2,20 @@
  * tests/piAuthBridge.test.ts — DI do PiAuthBridge: settingsStore fake + fallback env.
  *
  * Provider atual: 'openrouter' (slot 'openrouter' / OPENROUTER_API_KEY). O slot
- * 'deepseek' e a env DEEPSEEK_API_KEY são fallbacks TRANSITÓRIOS de leitura,
- * para quem já tinha a chave configurada antes da migração; a ONDA 2 os remove.
+ * e a env LEGADOS (`LEGACY_LLM_PROVIDER_KEY` / `LEGACY_LLM_ENV_KEY`, nunca escritos como
+ * literal aqui) são fallbacks de LEITURA mantidos de propósito, para não
+ * deslogar quem já tinha a chave configurada antes da migração.
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { createPiAuthBridge, __resetPiAuthBridgeSingleton } from '../electron/main/services/piAuthBridge';
+import {
+  createPiAuthBridge,
+  __resetPiAuthBridgeSingleton,
+} from '../electron/main/services/piAuthBridge';
+import {
+  LEGACY_LLM_ENV_KEY as LEGACY_ENV_VAR,
+  LEGACY_LLM_PROVIDER_KEY as LEGACY_STORE_SLOT,
+} from '@shared/llm/constants';
 import type { SettingsStore } from '../electron/main/services/settingsStore';
 
 /** Stores fake: só o que o bridge usa (getApiKey). */
@@ -26,10 +34,10 @@ function make(keys: Record<string, string>) {
  * `null` = ausente. Restaura sempre, mesmo em falha.
  */
 async function withEnv(
-  vars: { OPENROUTER_API_KEY?: string | null; DEEPSEEK_API_KEY?: string | null },
+  vars: Partial<Record<string, string | null>>,
   fn: () => Promise<void>,
 ): Promise<void> {
-  const names = ['OPENROUTER_API_KEY', 'DEEPSEEK_API_KEY'] as const;
+  const names = ['OPENROUTER_API_KEY', LEGACY_ENV_VAR] as const;
   const previous = names.map((n) => [n, process.env[n]] as const);
   try {
     for (const name of names) {
@@ -67,43 +75,43 @@ test('getApiKey: store tem prioridade sobre env', async () => {
   });
 });
 
-test('getApiKey: FALLBACK LEGADO — slot "deepseek" do store atende o provider openrouter', async () => {
+test('getApiKey: FALLBACK LEGADO — o slot legado do store atende o provider openrouter', async () => {
   await withEnv({}, async () => {
-    const bridge = make({ deepseek: 'sk-legacy-store' });
+    const bridge = make({ [LEGACY_STORE_SLOT]: 'sk-legacy-store' });
     assert.equal(await bridge.getApiKey('openrouter'), 'sk-legacy-store');
   });
 });
 
-test('getApiKey: o slot "openrouter" vence o slot legado "deepseek"', async () => {
+test('getApiKey: o slot "openrouter" vence o slot legado', async () => {
   await withEnv({}, async () => {
-    const bridge = make({ openrouter: 'sk-novo', deepseek: 'sk-legacy' });
+    const bridge = make({ openrouter: 'sk-novo', [LEGACY_STORE_SLOT]: 'sk-legacy' });
     assert.equal(await bridge.getApiKey('openrouter'), 'sk-novo');
   });
 });
 
-test('getApiKey: FALLBACK LEGADO — DEEPSEEK_API_KEY atende o provider openrouter', async () => {
-  await withEnv({ DEEPSEEK_API_KEY: 'sk-legacy-env' }, async () => {
+test('getApiKey: FALLBACK LEGADO — a env legada atende o provider openrouter', async () => {
+  await withEnv({ [LEGACY_ENV_VAR]: 'sk-legacy-env' }, async () => {
     const bridge = make({});
     assert.equal(await bridge.getApiKey('openrouter'), 'sk-legacy-env');
   });
 });
 
-test('getApiKey: OPENROUTER_API_KEY vence a env legada DEEPSEEK_API_KEY', async () => {
-  await withEnv({ OPENROUTER_API_KEY: 'sk-or-env', DEEPSEEK_API_KEY: 'sk-legacy-env' }, async () => {
+test('getApiKey: OPENROUTER_API_KEY vence a env legada', async () => {
+  await withEnv({ OPENROUTER_API_KEY: 'sk-or-env', [LEGACY_ENV_VAR]: 'sk-legacy-env' }, async () => {
     const bridge = make({});
     assert.equal(await bridge.getApiKey('openrouter'), 'sk-or-env');
   });
 });
 
 test('getApiKey: qualquer slot do store vence qualquer env', async () => {
-  await withEnv({ OPENROUTER_API_KEY: 'sk-or-env', DEEPSEEK_API_KEY: 'sk-legacy-env' }, async () => {
-    const bridge = make({ deepseek: 'sk-legacy-store' });
+  await withEnv({ OPENROUTER_API_KEY: 'sk-or-env', [LEGACY_ENV_VAR]: 'sk-legacy-env' }, async () => {
+    const bridge = make({ [LEGACY_STORE_SLOT]: 'sk-legacy-store' });
     assert.equal(await bridge.getApiKey('openrouter'), 'sk-legacy-store');
   });
 });
 
 test('getApiKey: provider sem env retorna ""', async () => {
-  await withEnv({ OPENROUTER_API_KEY: 'sk-or-env', DEEPSEEK_API_KEY: 'sk-legacy-env' }, async () => {
+  await withEnv({ OPENROUTER_API_KEY: 'sk-or-env', [LEGACY_ENV_VAR]: 'sk-legacy-env' }, async () => {
     const bridge = make({});
     assert.equal(await bridge.getApiKey('anthropic'), '');
   });
@@ -118,11 +126,11 @@ test('getEnvVars: OpenRouter com chave → { OPENROUTER_API_KEY: key }', async (
 
 test('getEnvVars: injeta SEMPRE o nome novo, mesmo com a chave vinda do lugar legado', async () => {
   // O SDK só conhece OPENROUTER_API_KEY: o nome antigo não pode voltar ao fluxo.
-  await withEnv({ DEEPSEEK_API_KEY: 'sk-legacy-env' }, async () => {
-    const bridge = make({ deepseek: 'sk-legacy-store' });
+  await withEnv({ [LEGACY_ENV_VAR]: 'sk-legacy-env' }, async () => {
+    const bridge = make({ [LEGACY_STORE_SLOT]: 'sk-legacy-store' });
     assert.deepEqual(await bridge.getEnvVars('openrouter'), { OPENROUTER_API_KEY: 'sk-legacy-store' });
   });
-  await withEnv({ DEEPSEEK_API_KEY: 'sk-legacy-env' }, async () => {
+  await withEnv({ [LEGACY_ENV_VAR]: 'sk-legacy-env' }, async () => {
     const bridge = make({});
     assert.deepEqual(await bridge.getEnvVars('openrouter'), { OPENROUTER_API_KEY: 'sk-legacy-env' });
   });
@@ -139,7 +147,7 @@ test('getEnvVars: provider sem envvar → {}', async () => {
   await withEnv({ OPENROUTER_API_KEY: 'sk-x' }, async () => {
     const bridge = make({});
     assert.deepEqual(await bridge.getEnvVars('mistral'), {});
-    assert.deepEqual(await bridge.getEnvVars('deepseek'), {});
+    assert.deepEqual(await bridge.getEnvVars(LEGACY_STORE_SLOT), {});
   });
 });
 
@@ -165,7 +173,7 @@ test('getConfiguredProviders: descobre provider configurado via env', async () =
 });
 
 test('getConfiguredProviders: a chave legada ainda configura o provider openrouter', async () => {
-  await withEnv({ DEEPSEEK_API_KEY: 'sk-legacy-env' }, async () => {
+  await withEnv({ [LEGACY_ENV_VAR]: 'sk-legacy-env' }, async () => {
     const bridge = make({});
     assert.deepEqual(await bridge.getConfiguredProviders(), ['openrouter']);
   });

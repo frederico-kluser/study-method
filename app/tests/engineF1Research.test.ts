@@ -55,7 +55,7 @@ import type {
   PlanoDeSubtopicos,
   RelatorioSubPesquisa,
 } from '../electron/main/engine/phases/f1Research';
-import { DEEPSEEK_ERROR_CODES } from '../electron/main/services/deepseekClient';
+import { LLM_ERROR_CODES } from '../electron/main/services/llmClient';
 
 // ---------------------------------------------------------------------------
 // Fakes (PURAS, em memória — A-P14-2: a suíte roda offline)
@@ -281,9 +281,9 @@ describe('F1 · A-P14-1 — sem chave de busca, a fase ABORTA (não degrada em s
     );
   });
 
-  it('DEEPSEEK_KEY_MISSING (LlmStageError do transporte) → F1Error F1_LLM_SEM_CHAVE', async () => {
+  it('LLM_KEY_MISSING (LlmStageError do transporte) → F1Error F1_LLM_SEM_CHAVE', async () => {
     const { busca } = criarBuscaFake({
-      falhaPlanos: () => llmStageError(DEEPSEEK_ERROR_CODES.KEY_MISSING, 'f1:plano:arrays e métodos'),
+      falhaPlanos: () => llmStageError(LLM_ERROR_CODES.KEY_MISSING, 'f1:plano:arrays e métodos'),
     });
     const fase = criarF1Research({ busca, config: config() });
     await assert.rejects(
@@ -348,17 +348,17 @@ describe('F1 · A-P14-3 — 429 numa sub-pesquisa é isolada (falha registrada, 
     assert.deepEqual(artefato.cobertura.find((c) => c.subTopicoId === 'st2'), { subTopicoId: 'st2', comFonte: false });
   });
 
-  it('DEEPSEEK_RATE_LIMIT (LlmStageError) também é isolado por sub-pesquisa', async () => {
+  it('LLM_RATE_LIMIT (LlmStageError) também é isolado por sub-pesquisa', async () => {
     const { busca } = criarBuscaFake({
       planos: (sub) => planoPara([`q-${sub}-1`]),
       falhaAchados: (query) =>
-        query.startsWith('q-llm-') ? llmStageError(DEEPSEEK_ERROR_CODES.RATE_LIMIT, 'f1:plano:llm') : null,
+        query.startsWith('q-llm-') ? llmStageError(LLM_ERROR_CODES.RATE_LIMIT, 'f1:plano:llm') : null,
     });
     const fase = criarF1Research({ busca, config: config() });
     const artefato = await fase.executar(entrada(['ok1', 'llm', 'ok2']));
     assert.equal(artefato.relatorios[0].status, 'ok');
     assert.equal(artefato.relatorios[1].status, 'falhou');
-    assert.equal(artefato.relatorios[1].falha?.codigo, DEEPSEEK_ERROR_CODES.RATE_LIMIT);
+    assert.equal(artefato.relatorios[1].falha?.codigo, LLM_ERROR_CODES.RATE_LIMIT);
     assert.equal(artefato.relatorios[2].status, 'ok');
   });
 
@@ -715,16 +715,16 @@ describe('F1 · criarBuscaPlanejada (produção)', () => {
   });
 
   it('KEY_MISSING NUNCA degrada para a heurística — sobe para a fase ABORTAR (A-P14-1)', async () => {
-    const llm = fakeLlm({}, { 'f1:plano:assunto': llmStageError(DEEPSEEK_ERROR_CODES.KEY_MISSING) });
+    const llm = fakeLlm({}, { 'f1:plano:assunto': llmStageError(LLM_ERROR_CODES.KEY_MISSING) });
     const busca = criarBuscaPlanejada({ llm, multi: fakeMulti([]), stageVersion: 'v1', timeoutMs: 5000 });
     await assert.rejects(
       busca.buscarPlano('assunto', OPTS),
-      (err) => err instanceof LlmStageError && err.code === DEEPSEEK_ERROR_CODES.KEY_MISSING,
+      (err) => err instanceof LlmStageError && err.code === LLM_ERROR_CODES.KEY_MISSING,
     );
   });
 
   it('BAD_REQUEST = bug de prompt da etapa → F1Error F1_LLM_PROMPT_INVALIDO NOMEANDO a etapa', async () => {
-    const llm = fakeLlm({}, { 'f1:plano:assunto': llmStageError(DEEPSEEK_ERROR_CODES.BAD_REQUEST, 'f1:plano:assunto') });
+    const llm = fakeLlm({}, { 'f1:plano:assunto': llmStageError(LLM_ERROR_CODES.BAD_REQUEST, 'f1:plano:assunto') });
     const busca = criarBuscaPlanejada({ llm, multi: fakeMulti([]), stageVersion: 'v1', timeoutMs: 5000 });
     const fase = criarF1Research({ busca, config: config() });
     await assert.rejects(
@@ -737,12 +737,12 @@ describe('F1 · criarBuscaPlanejada (produção)', () => {
     );
   });
 
-  it('erro CRU {code:\'DEEPSEEK_BAD_REQUEST\'} do EngineLlm → NUNCA degrada: a fase ABORTA (F1_LLM_PROMPT_INVALIDO)', async () => {
-    // Um EngineLlm injetado pode lançar o erro do cliente DeepSeek CRU (sem o
+  it('erro CRU {code:\'LLM_BAD_REQUEST\'} do EngineLlm → NUNCA degrada: a fase ABORTA (F1_LLM_PROMPT_INVALIDO)', async () => {
+    // Um EngineLlm injetado pode lançar o erro do cliente de LLM CRU (sem o
     // shape LlmStageError do transporte). BAD_REQUEST é bug de prompt — a
     // heurística NUNCA o substitui nem cru nem tipado (A-P14-1).
     const registrosMulti: Array<{ queries: string[]; opts: { concurrency: number; delayMs: number; delayMsOnRateLimit: number } }> = [];
-    const llm = fakeLlm({}, { 'f1:plano:assunto': erroComCodigo(DEEPSEEK_ERROR_CODES.BAD_REQUEST, 'bug de prompt da etapa f1:plano:assunto') });
+    const llm = fakeLlm({}, { 'f1:plano:assunto': erroComCodigo(LLM_ERROR_CODES.BAD_REQUEST, 'bug de prompt da etapa f1:plano:assunto') });
     const busca = criarBuscaPlanejada({ llm, multi: fakeMulti(registrosMulti), stageVersion: 'v1', timeoutMs: 5000 });
     const fase = criarF1Research({ busca, config: config() });
     await assert.rejects(
@@ -756,7 +756,7 @@ describe('F1 · criarBuscaPlanejada (produção)', () => {
   });
 
   it('falha NÃO-chave do planejador LLM → resposta degradada (heurística determinística) > erro', async () => {
-    const llm = fakeLlm({}, { 'f1:plano:assunto': llmStageError(DEEPSEEK_ERROR_CODES.NETWORK) });
+    const llm = fakeLlm({}, { 'f1:plano:assunto': llmStageError(LLM_ERROR_CODES.NETWORK) });
     const busca = criarBuscaPlanejada({ llm, multi: fakeMulti([]), stageVersion: 'v1', timeoutMs: 5000 });
     const plano = await busca.buscarPlano('assunto', OPTS);
     assert.ok(plano.queries.length >= 1, 'a heurística cobre o assunto sem LLM');
@@ -764,7 +764,7 @@ describe('F1 · criarBuscaPlanejada (produção)', () => {
   });
 
   it('sem fallback declarado (usarHeuristica:false), falha do planejador é fail-closed', async () => {
-    const llm = fakeLlm({}, { 'f1:plano:assunto': llmStageError(DEEPSEEK_ERROR_CODES.NETWORK) });
+    const llm = fakeLlm({}, { 'f1:plano:assunto': llmStageError(LLM_ERROR_CODES.NETWORK) });
     const busca = criarBuscaPlanejada({
       llm,
       multi: fakeMulti([]),

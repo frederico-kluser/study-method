@@ -186,7 +186,7 @@ const AMOSTRA_SUJA = [
   'Fiquei muito satisfeito com o resultado.',
   '',
   'Autor: Ana Beatriz',
-  'Modelo: deepseek-v4-flash-0731',
+  'Modelo: glm-5.3-flash',
   '',
   'Changelog:',
   '- v2: corrigi um typo na teoria',
@@ -401,7 +401,7 @@ describe('normalizador — remove autoria, auto-avaliação e neutraliza tom (§
     const cenario = [
       'Autor: Ana Beatriz',
       'Autoria: equipe de trilhas',
-      'Modelo: deepseek-v4-flash-0731',
+      'Modelo: glm-5.3-flash',
       'Modelo utilizado：claude-sonnet-4',
       'Escrito por Fulano',
       'Prosa normal: por exemplo, isso aqui fica.',
@@ -410,7 +410,7 @@ describe('normalizador — remove autoria, auto-avaliação e neutraliza tom (§
     const limpo = removerLinhasDeAutoria(cenario);
     assert.ok(!limpo.includes('Ana Beatriz'));
     assert.ok(!limpo.includes('equipe de trilhas'));
-    assert.ok(!limpo.includes('deepseek'));
+    assert.ok(!limpo.includes('glm-5.3-flash'));
     assert.ok(!limpo.includes('claude-sonnet-4'));
     assert.ok(!limpo.includes('Fulano'));
     assert.ok(limpo.includes('Prosa normal: por exemplo, isso aqui fica.'), 'linha que começa com "por exemplo" NÃO é autoria');
@@ -441,7 +441,7 @@ describe('normalizador — remove autoria, auto-avaliação e neutraliza tom (§
     assert.ok(!limpo.includes('excelente'), 'auto-elogio removido');
     assert.ok(!limpo.includes('satisfeito'), 'auto-avaliação removida');
     assert.ok(!limpo.includes('Ana Beatriz'), 'assinatura de autoria removida');
-    assert.ok(!limpo.includes('deepseek'), 'nome de modelo removido');
+    assert.ok(!limpo.includes('glm-5.3-flash'), 'nome de modelo removido');
     assert.ok(!limpo.includes('Changelog'), 'changelog removido');
     assert.ok(!limpo.includes('corrigi um typo'), 'corpo do changelog removido');
     assert.ok(!limpo.includes('Auto-avaliação'), 'seção de auto-avaliação removida');
@@ -472,7 +472,7 @@ describe('normalizador — remove autoria, auto-avaliação e neutraliza tom (§
   it('o texto normalizado não tem voz de autor: elogio sumiu e a assinatura não reaparece com duas passadas', () => {
     const umaVez = normalizarArtefato(AMOSTRA_SUJA);
     const duasVezes = normalizarArtefato(umaVez);
-    for (const marcador of ['excelente', 'satisfeito', 'Ana Beatriz', 'deepseek', 'Changelog', 'Auto-avaliação']) {
+    for (const marcador of ['excelente', 'satisfeito', 'Ana Beatriz', 'glm-5.3-flash', 'Changelog', 'Auto-avaliação']) {
       assert.ok(!duasVezes.includes(marcador), `"${marcador}" não pode sobreviver a duas passadas`);
     }
   });
@@ -503,6 +503,9 @@ describe('H-3 — voz de autor em variações reais é neutralizada sem cortar c
   });
 
   it('família (d): linha que é SÓ nome de modelo sai inteira', () => {
+    // A lista é a DENYLIST DE MARCAS DE TERCEIROS de normalize.ts
+    // (NOMES_DE_MODELO) — nomes que podem vazar para o texto GERADO. Não tem
+    // relação com o provedor que o app usa; ver o comentário lá.
     for (const linha of ['GPT-4.', 'Claude', 'DeepSeek', 'Gemini', 'Llama', 'ChatGPT']) {
       const limpo = normalizarArtefato(linha);
       assert.ok(linha.length > 0 && limpo.length === 0, `linha de modelo "${linha}" deve sair inteira`);
@@ -814,30 +817,30 @@ describe('H-4 — saída do modelo sem severity; severidade anexada por TABELA F
 describe('A-P12-2 — validarRoteamento rejeita autor==revisor e família do revisor nas famílias produtoras', () => {
   const familias: MapaDeFamilias = {
     familiaPorModelo: {
-      'deepseek-v4-flash-0731': 'deepseek',
-      'deepseek-flash-copy': 'deepseek',
+      'glm-5.3-flash': 'zai',
+      'glm-flash-copy': 'zai',
       'claude-sonnet-4': 'anthropic',
     },
-    familiasProdutoras: ['deepseek'],
+    familiasProdutoras: ['zai'],
   };
 
   it('model(AUTOR) === model(REVISOR) é erro, com ou sem mapas', () => {
-    assert.throws(() => validarRoteamento('deepseek-v4-flash-0731', 'deepseek-v4-flash-0731'), ErroDeRoteamento);
+    assert.throws(() => validarRoteamento('glm-5.3-flash', 'glm-5.3-flash'), ErroDeRoteamento);
     assert.throws(() => validarRoteamento('mesmo-modelo', 'mesmo-modelo'), ErroDeRoteamento);
   });
 
   it('família do REVISOR dentro das famílias PRODUTORAS é erro (a autopreferência se estende à família)', () => {
-    assert.throws(() => validarRoteamento('deepseek-v4-flash-0731', 'deepseek-flash-copy', familias), ErroDeRoteamento);
-    assert.throws(() => validarRoteamento('deepseek-v4-flash-0731', 'deepseek-flash-copy', familias), /fam[íi]lia/i);
+    assert.throws(() => validarRoteamento('glm-5.3-flash', 'glm-flash-copy', familias), ErroDeRoteamento);
+    assert.throws(() => validarRoteamento('glm-5.3-flash', 'glm-flash-copy', familias), /fam[íi]lia/i);
   });
 
   it('família não verificável no mapa é erro (FAIL-CLOSED: sem família não se prova a restrição 2)', () => {
-    assert.throws(() => validarRoteamento('deepseek-v4-flash-0731', 'modelo-desconhecido', familias), ErroDeRoteamento);
+    assert.throws(() => validarRoteamento('glm-5.3-flash', 'modelo-desconhecido', familias), ErroDeRoteamento);
     assert.throws(() => validarRoteamento('modelo-desconhecido', 'claude-sonnet-4', familias), ErroDeRoteamento);
   });
 
   it('roteamento VÁLIDO passa: modelos e famílias distintos', () => {
-    assert.doesNotThrow(() => validarRoteamento('deepseek-v4-flash-0731', 'claude-sonnet-4', familias));
+    assert.doesNotThrow(() => validarRoteamento('glm-5.3-flash', 'claude-sonnet-4', familias));
     assert.doesNotThrow(() => validarRoteamento('autor-a', 'revisor-b'), 'sem mapas injetados, só a restrição 1 é exigida');
   });
 
@@ -845,7 +848,7 @@ describe('A-P12-2 — validarRoteamento rejeita autor==revisor e família do rev
     // A armadilha que o assert mata: dois modelos DIFERENTES da MESMA família produtora.
     const msg = (() => {
       try {
-        validarRoteamento('deepseek-v4-flash-0731', 'deepseek-flash-copy', familias);
+        validarRoteamento('glm-5.3-flash', 'glm-flash-copy', familias);
         return '';
       } catch (e) {
         return e instanceof Error ? e.message : String(e);

@@ -54,7 +54,7 @@ import {
   type FailedChallengeInfo,
 } from '../services/challengeRegenerator';
 import { buildChallengeContext, type ChallengeContext } from '../services/challengeContextValidator';
-import type { DeepSeekClient } from '../services/deepseekClient';
+import type { LlmClient } from '../services/llmClient';
 
 /** Subconjunto do repo exigido pelos handlers de trilha. */
 export interface TrackRepoLike extends TrackProgressLike {
@@ -93,8 +93,8 @@ export interface TrackHandlerDeps {
   getTracksDir: () => string;
   /** OPCIONAL: repo de progresso. Ausente → handlers respondem gracioso. */
   repo?: TrackRepoLike;
-  /** OPCIONAL: cliente DeepSeek para o tutor/regeneração. Ausente → erros estruturados. */
-  deepseek?: DeepSeekClient;
+  /** OPCIONAL: cliente de LLM remoto para o tutor/regeneração. Ausente → erros estruturados. */
+  llm?: LlmClient;
   /** OPCIONAL (onda3-generate-flow): emite eventos push ao renderer
    *  (track:challenge-regenerate-progress). Ausente → no-op (testes/fixtures). */
   emit?: (channel: string, ev: unknown) => void;
@@ -125,9 +125,9 @@ export function buildTrackHandlers(deps: TrackHandlerDeps): Map<string, IpcHandl
   // (`reasoning: { enabled: true, effort: 'max' }` — shared/llm/constants.ts),
   // e a profundidade é parâmetro do protocolo, nunca texto de prompt (docs/16 §7).
   const chatFn: ChatFn = async (req) => {
-    if (!deps.deepseek) throw new Error('cliente de LLM indisponível');
-    const res = await deps.deepseek.chatCompletion({
-      messages: req.messages as Parameters<DeepSeekClient['chatCompletion']>[0]['messages'],
+    if (!deps.llm) throw new Error('cliente de LLM indisponível');
+    const res = await deps.llm.chatCompletion({
+      messages: req.messages as Parameters<LlmClient['chatCompletion']>[0]['messages'],
       temperature: req.temperature,
       timeoutMs: req.timeoutMs,
     });
@@ -394,7 +394,7 @@ export function buildTrackHandlers(deps: TrackHandlerDeps): Map<string, IpcHandl
   // canal track:challenge-regenerate-progress, "por volta" da chamada ao
   // regenerador (que fica PURO — não é instrumentado). REVISÃO ALTO-1: o
   // terminal 'error' é emitido em TODOS os caminhos de falha — retornos
-  // antecipados (bad request / sem repo / sem deepseek / trilha inválida /
+  // antecipados (bad request / sem repo / sem cliente de LLM / trilha inválida /
   // aula não encontrada) e QUALQUER exceção inesperada (try/catch do corpo:
   // challengeExec faz mkdtemp/spawn e pode lançar) — o modal global nunca
   // fica preso em 'running'. REVISÃO ALTO-2: o generationId do request é
@@ -431,7 +431,7 @@ export function buildTrackHandlers(deps: TrackHandlerDeps): Map<string, IpcHandl
         progress('error', { error: 'persistência indisponível.' });
         return { ok: false, error: { code: 'NO_REPO', message: 'persistência indisponível.' } };
       }
-      if (!deps.deepseek) {
+      if (!deps.llm) {
         progress('error', { error: 'serviço de IA indisponível.' });
         return { ok: false, error: { code: 'REGEN_UNAVAILABLE', message: 'serviço de IA indisponível.' } };
       }

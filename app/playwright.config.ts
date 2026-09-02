@@ -7,7 +7,7 @@ import { defineConfig, devices } from '@playwright/test';
  * renderer de produção exatamente como um usuário. Em modo E2E o main responde
  * com stubs determinísticos (STUDY_METHOD_E2E=1 — ver
  * electron/main/services/e2eStubs.ts): sem GPU relevante para inferência, sem
- * rede real (deepseek/brave), sem LLM/GGUF, sem STT/TTS.
+ * rede real (OpenRouter/Brave), sem LLM/GGUF, sem STT/TTS.
  *
  * Execução (ver tests/e2e/README.md):
  *   npm run build && npm run test:e2e

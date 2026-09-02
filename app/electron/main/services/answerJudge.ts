@@ -9,9 +9,9 @@
  * nunca elogio vazio, nunca inventa acerto).
  *
  * Cadeia de provedores (a ordem importa):
- *   1. deepseekClient (LLM remoto) — primeira tentativa;
+ *   1. llmClient (LLM remoto) — primeira tentativa;
  *   2. embeddedLlm (LLM local, serviço existente) — FALLBACK quando o
- *      deepseek falha/indisponível (sem chave, rede, content vazio, resposta
+ *      LLM remoto falha/indisponível (sem chave, rede, content vazio, resposta
  *      não-parseável, rate limit, servidor…);
  *   3. falha TOTAL → erro estruturado com `code` — NUNCA inventa veredito.
  *
@@ -31,8 +31,8 @@
  * de raciocínio (anti-padrão em modelo com raciocínio nativo — docs/16 §7).
  */
 
-import type { DeepSeekClient } from './deepseekClient';
-import { extractFirstJsonObject } from './deepseekLlmJudge';
+import type { LlmClient } from './llmClient';
+import { extractFirstJsonObject } from './llmJudge';
 
 export const ANSWER_JUDGE_ERROR_CODES = {
   /** Payload sem answerText/context utilizável. */
@@ -66,11 +66,11 @@ export interface EmbeddedLlmLike {
 }
 
 export interface AnswerJudgeDeps {
-  /** Cliente DeepSeek one-shot (provedor primário). */
-  deepseek: DeepSeekClient;
+  /** Cliente de LLM remoto one-shot (provedor primário). */
+  llm: LlmClient;
   /** Resolve a chave do provedor de LLM sob demanda; vazia ⇒ degrada ao fallback. */
   getApiKey?: () => Promise<string>;
-  /** LLM local (fallback). Ausente ⇒ só o deepseek. */
+  /** LLM local (fallback). Ausente ⇒ só o LLM remoto. */
   embedded?: EmbeddedLlmLike;
   /** Sobrescreve o model do provedor remoto (default: OPENROUTER_MODEL.id, aplicado no cliente). */
   model?: string;
@@ -90,7 +90,7 @@ export interface JudgeAnswerInput {
 }
 
 export type JudgeAnswerOutcome =
-  | { ok: true; verdict: AnswerVerdict; feedback: string; provider: 'deepseek' | 'embedded' }
+  | { ok: true; verdict: AnswerVerdict; feedback: string; provider: 'openrouter' | 'embedded' }
   | { ok: false; error: { code: string; message: string } };
 
 const SYSTEM_PROMPT_PT_BR =
@@ -139,15 +139,15 @@ type AttemptResult = { outcome: JudgeAnswerOutcome } | { failed: 'transport' | '
 export function createAnswerJudge(deps: AnswerJudgeDeps) {
   const model = deps.model;
 
-  async function attemptDeepseek(input: JudgeAnswerInput): Promise<AttemptResult> {
+  async function attemptLlm(input: JudgeAnswerInput): Promise<AttemptResult> {
     try {
       if (deps.getApiKey) {
         const key = (await deps.getApiKey()).trim();
         if (!key) return { failed: 'transport' }; // sem chave ⇒ degrada ao fallback
-      } else if (!deps.deepseek) {
+      } else if (!deps.llm) {
         return { failed: 'transport' };
       }
-      const raw = await deps.deepseek.chatCompletion({
+      const raw = await deps.llm.chatCompletion({
         messages: [
           { role: 'system', content: SYSTEM_PROMPT_PT_BR },
           { role: 'user', content: buildUserPrompt(input) },
@@ -165,11 +165,11 @@ export function createAnswerJudge(deps: AnswerJudgeDeps) {
           ok: true,
           verdict: verdict.verdict,
           feedback: verdict.feedback,
-          provider: 'deepseek',
+          provider: 'openrouter',
         },
       };
     } catch {
-      // Qualquer falha do transporte DeepSeek (sem chave, rede, key inválida,
+      // Qualquer falha do transporte remoto (sem chave, rede, key inválida,
       // rate limit, servidor, content vazio) degrada ao fallback local — nunca
       // inventa veredito. O erro estruturado só vem na falha TOTAL.
       return { failed: 'transport' };
@@ -225,15 +225,15 @@ export function createAnswerJudge(deps: AnswerJudgeDeps) {
       context: { subject, lessonExcerpt },
     };
 
-    const deepseek = await attemptDeepseek(normalized);
-    if ('outcome' in deepseek) return deepseek.outcome;
+    const remoto = await attemptLlm(normalized);
+    if ('outcome' in remoto) return remoto.outcome;
 
     const embedded = await attemptEmbedded(normalized);
     if ('outcome' in embedded) return embedded.outcome;
 
     // Falha TOTAL: erro estruturado — nunca um veredito inventado.
     const anyUnparseable =
-      ('failed' in deepseek && deepseek.failed === 'unparseable') ||
+      ('failed' in remoto && remoto.failed === 'unparseable') ||
       ('failed' in embedded && embedded.failed === 'unparseable');
     return {
       ok: false,
@@ -241,7 +241,7 @@ export function createAnswerJudge(deps: AnswerJudgeDeps) {
         code: anyUnparseable ? ANSWER_JUDGE_ERROR_CODES.UNPARSEABLE : ANSWER_JUDGE_ERROR_CODES.UNAVAILABLE,
         message: anyUnparseable
           ? 'answerJudge: os provedores responderam sem um veredito parseável — não foi possível avaliar a resposta.'
-          : 'answerJudge: deepseek e LLM local indisponíveis — não foi possível avaliar a resposta.',
+          : 'answerJudge: LLM remoto e LLM local indisponíveis — não foi possível avaliar a resposta.',
       },
     };
   }

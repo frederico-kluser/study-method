@@ -908,13 +908,13 @@ describe('study:judge-answer (onda3-respostas — interpretação com LLM)', () 
     const answerJudge: AnswerJudgeLike = {
       async judgeAnswer(input) {
         calls.push(input);
-        return { ok: true, verdict: 'correct', feedback: 'Ótima descrição.', provider: 'deepseek' };
+        return { ok: true, verdict: 'correct', feedback: 'Ótima descrição.', provider: 'openrouter' };
       },
     };
     const { deps } = makeDeps({ answerJudge });
     const handlers = buildStudyHandlers(deps);
     const res = (await handlers.get(STUDY_CHANNELS.JUDGE_ANSWER)!(undefined, { ...VALID_INPUT, lessonId: 'L42' })) as JudgeAnswerOutcome;
-    assert.deepEqual(res, { ok: true, verdict: 'correct', feedback: 'Ótima descrição.', provider: 'deepseek' });
+    assert.deepEqual(res, { ok: true, verdict: 'correct', feedback: 'Ótima descrição.', provider: 'openrouter' });
     assert.equal(calls.length, 1);
     const input = calls[0] as { lessonId: string; answerText: string; context: { subject: string; lessonExcerpt: string } };
     assert.equal(input.lessonId, 'L42');

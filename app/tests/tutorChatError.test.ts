@@ -324,7 +324,7 @@ describe('track:tutor-chat (handler) — propagação do challengeError (ONDA1)'
     return track;
   }
 
-  const fakeDeepseek = (capture: (prompt: string) => void) =>
+  const fakeLlmClient = (capture: (prompt: string) => void) =>
     ({
       chatCompletion: async (req: { messages: Array<{ role: string; content: string }> }) => {
         capture(req.messages[0].content);
@@ -335,7 +335,7 @@ describe('track:tutor-chat (handler) — propagação do challengeError (ONDA1)'
   it("answer com challengeError no payload: o relatório chega à LLM (código + saída + checks no prompt)", async () => {
     const dir = await makeTrackDir();
     let prompt = '';
-    const map = buildTrackHandlers({ getTracksDir: () => path.dirname(dir), deepseek: fakeDeepseek((p) => void (prompt = p)) });
+    const map = buildTrackHandlers({ getTracksDir: () => path.dirname(dir), llm: fakeLlmClient((p) => void (prompt = p)) });
     const result = await call<TutorReply>(map, TRACK_CHANNELS.TUTOR_CHAT, {
       trackSlug: 'trilha-teste',
       lessonId: 'aula-1',
@@ -354,7 +354,7 @@ describe('track:tutor-chat (handler) — propagação do challengeError (ONDA1)'
   it("answer SEM challengeError no payload: fluxo normal intacto (sem bloco de erro)", async () => {
     const dir = await makeTrackDir();
     let prompt = '';
-    const map = buildTrackHandlers({ getTracksDir: () => path.dirname(dir), deepseek: fakeDeepseek((p) => void (prompt = p)) });
+    const map = buildTrackHandlers({ getTracksDir: () => path.dirname(dir), llm: fakeLlmClient((p) => void (prompt = p)) });
     const result = await call<TutorReply>(map, TRACK_CHANNELS.TUTOR_CHAT, {
       trackSlug: 'trilha-teste',
       lessonId: 'aula-1',
@@ -370,7 +370,7 @@ describe('track:tutor-chat (handler) — propagação do challengeError (ONDA1)'
   it("challengeError com shape INVÁLIDO (files ausente) → vira undefined e o fluxo normal segue", async () => {
     const dir = await makeTrackDir();
     let prompt = '';
-    const map = buildTrackHandlers({ getTracksDir: () => path.dirname(dir), deepseek: fakeDeepseek((p) => void (prompt = p)) });
+    const map = buildTrackHandlers({ getTracksDir: () => path.dirname(dir), llm: fakeLlmClient((p) => void (prompt = p)) });
     const result = await call<TutorReply>(map, TRACK_CHANNELS.TUTOR_CHAT, {
       trackSlug: 'trilha-teste',
       lessonId: 'aula-1',
@@ -392,7 +392,7 @@ describe('track:tutor-chat (handler) — propagação do challengeError (ONDA1)'
     ];
     for (const challengeError of invalidVariants) {
       let prompt = '';
-      const map = buildTrackHandlers({ getTracksDir: () => path.dirname(dir), deepseek: fakeDeepseek((p) => void (prompt = p)) });
+      const map = buildTrackHandlers({ getTracksDir: () => path.dirname(dir), llm: fakeLlmClient((p) => void (prompt = p)) });
       const result = await call<TutorReply>(map, TRACK_CHANNELS.TUTOR_CHAT, {
         trackSlug: 'trilha-teste',
         lessonId: 'aula-1',
@@ -409,7 +409,7 @@ describe('track:tutor-chat (handler) — propagação do challengeError (ONDA1)'
   it("challengeError com null/undefined → passa como undefined (fluxo normal)", async () => {
     const dir = await makeTrackDir();
     let prompt = '';
-    const map = buildTrackHandlers({ getTracksDir: () => path.dirname(dir), deepseek: fakeDeepseek((p) => void (prompt = p)) });
+    const map = buildTrackHandlers({ getTracksDir: () => path.dirname(dir), llm: fakeLlmClient((p) => void (prompt = p)) });
     const result = await call<TutorReply>(map, TRACK_CHANNELS.TUTOR_CHAT, {
       trackSlug: 'trilha-teste',
       lessonId: 'aula-1',

@@ -2,7 +2,7 @@
  * tests/apiKeyValidatorTimeout.test.ts — RODADA 10 (onda 2b): timeout dos
  * validadores de chave (sem spinner infinito).
  *
- * Cobre o AbortSignal de timeout adicionado a validateDeepseekKey/
+ * Cobre o AbortSignal de timeout adicionado a validateLlmKey/
  * validateBraveKey: fetch que PENDURA (rede que engole pacotes) nunca segura a
  * validação — o timeout dispara e o resultado é um erro de REDE identificável
  * ("Network error: timed out after Nms"), que o classificador do startup
@@ -24,7 +24,7 @@ import assert from 'node:assert/strict';
 import {
   DEFAULT_VALIDATE_TIMEOUT_MS,
   validateBraveKey,
-  validateDeepseekKey,
+  validateLlmKey,
 } from '../electron/main/services/apiKeyValidator';
 import { isNetworkError } from '../electron/main/ipc/startup-handlers';
 
@@ -62,9 +62,9 @@ function hangingFetch(): typeof fetch {
     })) as unknown as typeof fetch;
 }
 
-test('validateDeepseekKey: fetch pendurada além do timeout → erro de rede "timed out" rápido', async () => {
+test('validateLlmKey: fetch pendurada além do timeout → erro de rede "timed out" rápido', async () => {
   const t0 = Date.now();
-  const result = await validateDeepseekKey('sk-or-v1-123', {
+  const result = await validateLlmKey('sk-or-v1-123', {
     fetchImpl: hangingFetch(),
     timeoutMs: 50,
   });
@@ -96,24 +96,24 @@ test('validateBraveKey: fetch pendurada além do timeout → erro de rede "timed
   assert.equal(isNetworkError(result), true);
 });
 
-test('validateDeepseekKey: timeout configurável — 0 desliga (fetch lenta ainda valida)', async () => {
+test('validateLlmKey: timeout configurável — 0 desliga (fetch lenta ainda valida)', async () => {
   const slowOk = (async () => {
     await new Promise((r) => setTimeout(r, 80));
     return fakeResponse(200, { data: [{ id: TARGET_MODEL }] });
   }) as unknown as typeof fetch;
 
-  const result = await validateDeepseekKey('sk-or-v1-123', { fetchImpl: slowOk, timeoutMs: 0 });
+  const result = await validateLlmKey('sk-or-v1-123', { fetchImpl: slowOk, timeoutMs: 0 });
 
   assert.equal(result.isValid, true);
   assert.equal(result.modelAvailable, true);
 });
 
-test('validateDeepseekKey: rejeição TypeError (rede) → erro de rede identificável', async () => {
+test('validateLlmKey: rejeição TypeError (rede) → erro de rede identificável', async () => {
   const fetchImpl = (async () => {
     throw new TypeError('fetch failed');
   }) as unknown as typeof fetch;
 
-  const result = await validateDeepseekKey('sk-or-v1-123', { fetchImpl, timeoutMs: 5000 });
+  const result = await validateLlmKey('sk-or-v1-123', { fetchImpl, timeoutMs: 5000 });
 
   assert.equal(result.isValid, false);
   assert.match(result.errorMessage ?? '', /^Network error:/i);
@@ -137,23 +137,23 @@ test('DEFAULT_VALIDATE_TIMEOUT_MS: default ~8s (alinhado ao startup handler)', (
   assert.equal(DEFAULT_VALIDATE_TIMEOUT_MS, 8000);
 });
 
-test('validateDeepseekKey: timeout alto NÃO dispara quando a fetch responde rápido', async () => {
+test('validateLlmKey: timeout alto NÃO dispara quando a fetch responde rápido', async () => {
   const fastOk = (async () =>
     fakeResponse(200, { data: [{ id: TARGET_MODEL }] })) as unknown as typeof fetch;
 
-  const result = await validateDeepseekKey('sk-or-v1-123', { fetchImpl: fastOk, timeoutMs: 5000 });
+  const result = await validateLlmKey('sk-or-v1-123', { fetchImpl: fastOk, timeoutMs: 5000 });
 
   assert.equal(result.isValid, true);
   assert.equal(result.errorMessage, undefined);
 });
 
-test('validateDeepseekKey: chave vazia NÃO espera o timeout (valida antes do fetch)', async () => {
-  const result = await validateDeepseekKey('   ', { fetchImpl: hangingFetch(), timeoutMs: 50 });
+test('validateLlmKey: chave vazia NÃO espera o timeout (valida antes do fetch)', async () => {
+  const result = await validateLlmKey('   ', { fetchImpl: hangingFetch(), timeoutMs: 50 });
   assert.equal(result.isValid, false);
   assert.equal(result.errorMessage, 'API key is empty');
 });
 
-test('validateDeepseekKey: BODY-STALL — headers chegam, corpo nunca chega → "timed out" no prazo', async () => {
+test('validateLlmKey: BODY-STALL — headers chegam, corpo nunca chega → "timed out" no prazo', async () => {
   // W1: rede que engole pacotes DEPOIS dos headers no endpoint de VALIDADE
   // (/key). O fetch resolve rápido com status 200, mas response.json() NUNCA
   // resolve (corpo nunca termina) — e o corpo é drenado ali mesmo. O
@@ -171,7 +171,7 @@ test('validateDeepseekKey: BODY-STALL — headers chegam, corpo nunca chega → 
   }) as unknown as typeof fetch;
 
   const t0 = Date.now();
-  const result = await validateDeepseekKey('sk-or-v1-123', {
+  const result = await validateLlmKey('sk-or-v1-123', {
     fetchImpl: bodyStallFetch,
     timeoutMs: 60,
   });
@@ -216,7 +216,7 @@ test('validateBraveKey: BODY-STALL em status de erro — corpo nunca chega → "
   assert.equal(isNetworkError(result), true);
 });
 
-test('validateDeepseekKey: probe de /models PENDURADO não derruba a chave (válida, modelAvailable indefinido)', async () => {
+test('validateLlmKey: probe de /models PENDURADO não derruba a chave (válida, modelAvailable indefinido)', async () => {
   // O catálogo é COMPLEMENTAR: /key já aprovou a chave. Se o probe pendurar, o
   // que sobrou do orçamento é gasto nele, o abort é ENGOLIDO e a validação
   // resolve VÁLIDA — só sem saber `modelAvailable`. O prazo TOTAL (as duas
@@ -228,7 +228,7 @@ test('validateDeepseekKey: probe de /models PENDURADO não derruba a chave (vál
   }) as unknown as typeof fetch;
 
   const t0 = Date.now();
-  const result = await validateDeepseekKey('sk-or-v1-123', { fetchImpl, timeoutMs: 80 });
+  const result = await validateLlmKey('sk-or-v1-123', { fetchImpl, timeoutMs: 80 });
   const elapsed = Date.now() - t0;
 
   assert.equal(result.isValid, true, 'o complemento NUNCA decide validade');
@@ -238,7 +238,7 @@ test('validateDeepseekKey: probe de /models PENDURADO não derruba a chave (vál
   assert.ok(elapsed < 2000, `deveria resolver perto do orçamento, levou ${elapsed}ms`);
 });
 
-test('validateDeepseekKey: fetchImpl que lança SINCRONAMENTE → erro de rede imediato, sem timer vazado', async () => {
+test('validateLlmKey: fetchImpl que lança SINCRONAMENTE → erro de rede imediato, sem timer vazado', async () => {
   // W3: throw síncrono do fetchImpl (mock) não pode vazar o timer nem segurar
   // a validação — rejeita imediatamente, ANTES do prazo do timeout (se o timer
   // vazasse segurando o evento, o teste só terminaria depois do timeout).
@@ -247,7 +247,7 @@ test('validateDeepseekKey: fetchImpl que lança SINCRONAMENTE → erro de rede i
   }) as unknown as typeof fetch;
 
   const t0 = Date.now();
-  const result = await validateDeepseekKey('sk-or-v1-123', {
+  const result = await validateLlmKey('sk-or-v1-123', {
     fetchImpl: syncThrowFetch,
     timeoutMs: 60,
   });

@@ -14,7 +14,7 @@ import { KEYS_CHANNELS, type StartupStatus } from '../shared/ipc-contract';
 import { createExposedApi } from '../electron/preload/api-schema';
 import { buildStartupHandlers } from '../electron/main/ipc/startup-handlers';
 import type {
-  DeepSeekValidationResult,
+  LlmValidationResult,
   BraveValidationResult,
 } from '../electron/main/services/apiKeyValidator';
 import type { IpcBridgeLike } from '../electron/preload/api-schema';
@@ -27,11 +27,9 @@ function fakeStore(initial: Partial<ApiKeys> = {}): SettingsStore {
 }
 
 const CHK = '2026-08-23T00:00:00.000Z';
-function vd(isValid: true): DeepSeekValidationResult;
-function vd(isValid: false, errorMessage: string): DeepSeekValidationResult;
-function vd(isValid: boolean, errorMessage?: string): DeepSeekValidationResult {
-  // `provider` do resultado já é o do OpenRouter; o CAMPO `deepseek` do
-  // StartupStatus é que continua com o nome legado (contrato até a ONDA 2).
+function vd(isValid: true): LlmValidationResult;
+function vd(isValid: false, errorMessage: string): LlmValidationResult;
+function vd(isValid: boolean, errorMessage?: string): LlmValidationResult {
   return { isValid, provider: 'openrouter', checkedAt: CHK, ...(errorMessage ? { errorMessage } : {}) };
 }
 function vb(isValid: true): BraveValidationResult;
@@ -53,7 +51,7 @@ describe('contrato keys:startup-status', () => {
         invoked.push(channel);
         return {
           phase: 'ready',
-          deepseek: { configured: true, valid: true },
+          llm: { configured: true, valid: true },
           brave: { configured: true, valid: true },
           offline: false,
           checkedAt: '2026-08-23T00:00:00.000Z',
@@ -68,13 +66,13 @@ describe('contrato keys:startup-status', () => {
     const res = await startupStatus();
     assert.equal(channelReached({ invoked }), true, 'keys:startup-status deve chegar ao transporte');
     assert.equal(res.phase, 'ready');
-    assert.equal(res.deepseek.valid, true);
+    assert.equal(res.llm.valid, true);
   });
 
   it('buildStartupHandlers devolve a forma StartupStatus EXATA (shape)', async () => {
     const handlers = buildStartupHandlers({
       getStore: async () => fakeStore({ openrouter: 'sk-or-v1-d', brave: 'bk' }),
-      validateDeepseek: async () => vd(true),
+      validateLlm: async () => vd(true),
       validateBrave: async () => vb(false, 'Invalid API key'),
       timeoutMs: 0,
     });
@@ -89,9 +87,9 @@ describe('contrato keys:startup-status', () => {
     assert.equal(typeof s.offline, 'boolean');
     assert.equal(typeof s.checkedAt, 'string');
     // shape por provedor
-    assert.equal(typeof s.deepseek.configured, 'boolean');
-    assert.equal(typeof s.deepseek.valid, 'boolean');
-    assert.equal(s.deepseek.valid, true);
+    assert.equal(typeof s.llm.configured, 'boolean');
+    assert.equal(typeof s.llm.valid, 'boolean');
+    assert.equal(s.llm.valid, true);
     assert.equal(s.brave.configured, true);
     assert.equal(s.brave.valid, false);
     assert.equal(s.brave.error, 'Invalid API key');

@@ -111,7 +111,7 @@ describe('(b) pi:execute via buildPiHandlers', () => {
     const execute = handlers.get(PI_CHANNELS.EXECUTE)!;
     const result = await execute(undefined, {
       prompt: 'escreva um teste',
-      modelConfig: { provider: 'deepseek', model: 'deepseek-v4-flash' },
+      modelConfig: { provider: 'openrouter', model: 'z-ai/glm-5.3-flash' },
     });
 
     assert.equal(calls.length, 1);
@@ -378,7 +378,7 @@ describe('(f) keys-handlers: chave digitada', () => {
     return { ok: status >= 200 && status < 300, status, json: async () => body } as Response;
   }
 
-  it('keys:validate-deepseek com chave digitada → Authorization da digitada', async () => {
+  it('keys:validate-llm com chave digitada → Authorization da digitada', async () => {
     ipcFake = makeFakeIpc();
     ipcFakeErr = null;
     origLoad = (Module as any)._load as (...a: unknown[]) => unknown;
@@ -406,7 +406,7 @@ describe('(f) keys-handlers: chave digitada', () => {
         ({ getApiKey: async () => '', setValue: async () => {}, getValue: async () => undefined } as unknown as SettingsStore),
     });
 
-    const handler = ipcFake.handlers.get(KEYS_CHANNELS.VALIDATE_DEEPSEEK)!;
+    const handler = ipcFake.handlers.get(KEYS_CHANNELS.VALIDATE_LLM)!;
     const result = (await handler(undefined, 'sk-digitada')) as { isValid: boolean };
     assert.equal(result.isValid, true);
     assert.deepEqual(
@@ -477,7 +477,7 @@ describe('(g) contrato de shape dos retornos IPC', () => {
 
     const piRes = await ipcPi.handlers.get(PI_CHANNELS.EXECUTE)!(undefined, {
       prompt: 'x',
-      modelConfig: { provider: 'deepseek', model: 'm' },
+      modelConfig: { provider: 'openrouter', model: 'm' },
     });
     assert.equal((piRes as PiExecuteResult).success, true);
     assert.equal((piRes as PiExecuteResult).executionTimeMs, 5);
