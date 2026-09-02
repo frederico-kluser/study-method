@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "slug": "imprima-o-doze",
+  "title": "Imprima o doze",
+  "concept": "numero_inteiro",
+  "difficulty": 1,
+  "language": "python",
+  "outputChannel": "impressao",
+  "statement": "# Imprima o doze\n\nMostre o número doze na tela:\n\n```text\n12\n```\n\nEscreva o **número**, sem aspas. Escrever `\"12\"` faria a tela ficar igual, mas guardaria um texto onde o exercício pede um número — e daqui a duas aulas isso passa a fazer diferença.",
+  "starterCode": "# imprima o número doze, sem aspas\n",
+  "testsCode": "import contextlib\nimport io\nimport runpy\nimport unittest\n\n\ndef rodar():\n    \"\"\"Roda solucao.py do zero e devolve tudo o que ele imprimiu.\"\"\"\n    saida = io.StringIO()\n    with contextlib.redirect_stdout(saida):\n        runpy.run_path(\"solucao.py\")\n    return saida.getvalue()\n\n\nclass TestNumeroNaoTemAspas(unittest.TestCase):\n    def test_imprime_doze(self):\n        \"\"\"o programa imprime 12\"\"\"\n        self.assertEqual(rodar(), \"12\\n\")\n",
+  "solutionCode": "print(12)\n",
+  "expectedTestCount": 1
+}

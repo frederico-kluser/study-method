@@ -1,0 +1,80 @@
+{
+  "schemaVersion": 1,
+  "slug": "somar",
+  "title": "Somar",
+  "summary": "O Python faz a conta antes de mostrar, e o que aparece é o resultado.",
+  "difficulty": 1,
+  "role": "regular",
+  "targetAtom": "op:binary:+",
+  "concepts": [
+    "soma"
+  ],
+  "prerequisites": [
+    "numero-nao-tem-aspas"
+  ],
+  "introduces": {
+    "productive": [
+      "op:binary:+",
+      "node:BinOp"
+    ],
+    "receptive": []
+  },
+  "introducesTerms": [],
+  "theory": [
+    {
+      "id": "o-sinal-de-mais",
+      "title": "O sinal de mais",
+      "markdown": "Número serve para fazer conta. O sinal `+` soma dois números, e o `print` mostra o que a conta deu:\n\n```python\nprint(2 + 3)\n```\n\n```text\n5\n```\n\nOs espaços em volta do `+` são só para ler melhor. `2+3` funciona igual — mas o costume em Python é deixar um espaço de cada lado."
+    },
+    {
+      "id": "a-conta-acontece-antes",
+      "title": "A conta acontece antes",
+      "markdown": "Na tela apareceu `5`, e não `2 + 3`. A ordem dos acontecimentos é esta:\n\n1. o Python resolve a conta que está dentro dos parênteses;\n2. o resultado toma o lugar da conta;\n3. só então o `print` mostra esse resultado.\n\nQuer dizer: o `print` nunca vê a conta, ele só vê o número que sobrou dela."
+    },
+    {
+      "id": "somar-numeros-grandes",
+      "title": "Somar números grandes",
+      "markdown": "O tamanho do número não muda nada — quem faz a conta é o computador:\n\n```python\nprint(1200 + 45)\n```\n\n```text\n1245\n```\n\nÉ por isso que vale a pena escrever a conta em vez de escrever o resultado: você para de errar e para de conferir."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "o-que-sai-e-o-resultado",
+      "statement": "O que aparece na tela é o resultado da conta, não a conta.",
+      "question": "O que `print(2 + 3)` mostra na tela?",
+      "options": [
+        "5",
+        "2 + 3",
+        "23",
+        "print(2 + 3)"
+      ],
+      "answerIndex": 0,
+      "feedback": "A conta é resolvida primeiro; o `print` só recebe o número que sobrou.",
+      "sectionId": "o-sinal-de-mais"
+    },
+    {
+      "id": "conta-antes-de-mostrar",
+      "statement": "A conta é resolvida antes de o `print` mostrar qualquer coisa.",
+      "question": "Em `print(1200 + 45)`, o que acontece primeiro?",
+      "options": [
+        "O Python soma 1200 com 45 e depois mostra 1245.",
+        "O Python mostra 1200, depois mostra 45.",
+        "O Python mostra a conta escrita e some com ela.",
+        "Nada: falta dizer o resultado ao Python."
+      ],
+      "answerIndex": 0,
+      "feedback": "Primeiro a conta, depois a tela. Sempre nessa ordem.",
+      "sectionId": "a-conta-acontece-antes"
+    }
+  ],
+  "sources": [
+    {
+      "title": "Expressões — as contas da linguagem",
+      "url": "https://docs.python.org/3/reference/expressions.html",
+      "description": "A referência oficial dos operadores de conta do Python."
+    }
+  ],
+  "challenges": [
+    "some-dois-numeros"
+  ]
+}

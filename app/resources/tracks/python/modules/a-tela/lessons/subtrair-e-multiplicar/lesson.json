@@ -1,0 +1,80 @@
+{
+  "schemaVersion": 1,
+  "slug": "subtrair-e-multiplicar",
+  "title": "Subtrair e multiplicar",
+  "summary": "Depois do mais vêm o menos e o vezes — e o vezes é um asterisco.",
+  "difficulty": 1,
+  "role": "regular",
+  "targetAtom": "op:binary:-",
+  "concepts": [
+    "subtracao_e_multiplicacao"
+  ],
+  "prerequisites": [
+    "somar"
+  ],
+  "introduces": {
+    "productive": [
+      "op:binary:-",
+      "op:binary:*"
+    ],
+    "receptive": []
+  },
+  "introducesTerms": [],
+  "theory": [
+    {
+      "id": "o-sinal-de-menos",
+      "title": "O sinal de menos",
+      "markdown": "Subtrair funciona igual a somar; só muda o sinal:\n\n```python\nprint(10 - 4)\n```\n\n```text\n6\n```\n\nA ordem importa aqui: `10 - 4` dá 6, e `4 - 10` dá outra coisa."
+    },
+    {
+      "id": "vezes-e-asterisco",
+      "title": "Vezes é asterisco",
+      "markdown": "Multiplicar **não** se escreve com a letra `x` nem com o ponto do caderno. Em Python o sinal de vezes é o asterisco `*`:\n\n```python\nprint(6 * 7)\n```\n\n```text\n42\n```\n\nSe você escrever `6 x 7`, o Python entende `x` como o nome de alguma coisa que não existe e reclama."
+    },
+    {
+      "id": "as-duas-na-mesma-tela",
+      "title": "As duas na mesma tela",
+      "markdown": "Nada impede juntar as duas contas no mesmo programa, uma por linha:\n\n```python\nprint(100 - 58)\nprint(21 * 2)\n```\n\n```text\n42\n42\n```\n\nDuas contas diferentes podem, claro, dar o mesmo resultado."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "vezes-e-o-asterisco",
+      "statement": "O sinal de multiplicação em Python é o asterisco `*`.",
+      "question": "Como se escreve seis vezes sete em Python?",
+      "options": [
+        "6 * 7",
+        "6 x 7",
+        "6 . 7",
+        "6 vezes 7"
+      ],
+      "answerIndex": 0,
+      "feedback": "O asterisco é o sinal de vezes. O `x` é uma letra, e o Python o trataria como nome de alguma coisa.",
+      "sectionId": "vezes-e-asterisco"
+    },
+    {
+      "id": "ordem-do-menos",
+      "statement": "Na subtração, a ordem dos números muda o resultado.",
+      "question": "O que `print(10 - 4)` mostra?",
+      "options": [
+        "6",
+        "-6",
+        "14",
+        "4 - 10"
+      ],
+      "answerIndex": 0,
+      "feedback": "O primeiro número perde o segundo: 10 menos 4 são 6.",
+      "sectionId": "o-sinal-de-menos"
+    }
+  ],
+  "sources": [
+    {
+      "title": "Expressões — as contas da linguagem",
+      "url": "https://docs.python.org/3/reference/expressions.html",
+      "description": "A referência oficial dos operadores de conta do Python."
+    }
+  ],
+  "challenges": [
+    "menos-e-vezes"
+  ]
+}

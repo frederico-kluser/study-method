@@ -1,0 +1,82 @@
+{
+  "schemaVersion": 1,
+  "slug": "o-sinal-do-numero",
+  "title": "O sinal do número",
+  "summary": "O mesmo traço que subtrai também marca um número como negativo.",
+  "difficulty": 2,
+  "role": "regular",
+  "targetAtom": "op:unary:-",
+  "concepts": [
+    "sinal_do_numero"
+  ],
+  "prerequisites": [
+    "somar",
+    "subtrair-e-multiplicar"
+  ],
+  "introduces": {
+    "productive": [
+      "op:unary:-",
+      "op:unary:+",
+      "node:UnaryOp"
+    ],
+    "receptive": []
+  },
+  "introducesTerms": [],
+  "theory": [
+    {
+      "id": "o-menos-que-nao-subtrai",
+      "title": "O menos que não subtrai",
+      "markdown": "Até agora o `-` ficava **entre** dois números e subtraía um do outro. Ele também pode ficar **antes** de um número só. Aí ele não subtrai: ele diz que o número é negativo.\n\n```python\nprint(-3 + 10)\n```\n\n```text\n7\n```\n\nO `-` da frente pertence ao `3`, e não à conta. É menos três somado a dez."
+    },
+    {
+      "id": "o-mais-da-frente",
+      "title": "O mais da frente",
+      "markdown": "Existe o mesmo truque com o `+` na frente. Ele marca o número como positivo — e, como número já é positivo por padrão, ele não muda nada:\n\n```python\nprint(+7)\n```\n\n```text\n7\n```\n\nEle existe para você poder escrever `+7` e `-7` lado a lado quando quiser deixar o sinal explícito."
+    },
+    {
+      "id": "resultado-negativo",
+      "title": "Resultado negativo",
+      "markdown": "O resultado de uma conta também pode ser negativo, e o Python mostra o traço na tela:\n\n```python\nprint(+250 - 1000)\n```\n\n```text\n-750\n```\n\nAqui há dois sinais diferentes na mesma linha: o `+` da frente marca o 250 como positivo, e o `-` do meio subtrai."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "menos-na-frente-e-sinal",
+      "statement": "Um `-` antes de um número marca o número como negativo.",
+      "question": "O que `print(-3 + 10)` mostra?",
+      "options": [
+        "7",
+        "-13",
+        "13",
+        "-7"
+      ],
+      "answerIndex": 0,
+      "feedback": "É menos três somado a dez, o que dá sete.",
+      "sectionId": "o-menos-que-nao-subtrai"
+    },
+    {
+      "id": "dois-sinais-na-mesma-linha",
+      "statement": "O sinal da frente e o sinal do meio convivem na mesma linha.",
+      "question": "O que `print(+250 - 1000)` mostra?",
+      "options": [
+        "-750",
+        "750",
+        "1250",
+        "-1250"
+      ],
+      "answerIndex": 0,
+      "feedback": "O `+` só marca o 250 como positivo; a conta que vale é 250 menos 1000.",
+      "sectionId": "resultado-negativo"
+    }
+  ],
+  "sources": [
+    {
+      "title": "Expressões — as contas da linguagem",
+      "url": "https://docs.python.org/3/reference/expressions.html",
+      "description": "A referência oficial dos operadores de conta do Python."
+    }
+  ],
+  "challenges": [
+    "numeros-com-sinal"
+  ]
+}

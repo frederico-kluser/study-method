@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "slug": "verdadeiro-e-o-zero",
+  "title": "Verdadeiro e o zero",
+  "concept": "verdadeiro_e_falso",
+  "difficulty": 2,
+  "language": "python",
+  "outputChannel": "impressao",
+  "statement": "# Verdadeiro e o zero\n\nEscreva um programa de **duas linhas**.\n\n1. A primeira mostra o valor verdadeiro.\n2. A segunda pergunta ao `bool` se o número **0** é verdadeiro, e mostra a resposta.\n\nA tela deve ficar assim:\n\n```text\nTrue\nFalse\n```\n\nNa segunda linha use o `bool`; não escreva `False` direto.",
+  "starterCode": "# primeira linha: imprima o valor verdadeiro\n# segunda linha: pergunte ao bool se 0 é verdadeiro e imprima a resposta\n",
+  "testsCode": "import contextlib\nimport io\nimport runpy\nimport unittest\n\n\ndef rodar():\n    \"\"\"Roda solucao.py do zero e devolve tudo o que ele imprimiu.\"\"\"\n    saida = io.StringIO()\n    with contextlib.redirect_stdout(saida):\n        runpy.run_path(\"solucao.py\")\n    return saida.getvalue()\n\n\nclass TestVerdadeiroEFalso(unittest.TestCase):\n    def test_imprime_true_e_depois_false(self):\n        \"\"\"o programa imprime True e depois False\"\"\"\n        self.assertEqual(rodar(), \"True\\nFalse\\n\")\n",
+  "solutionCode": "print(True)\nprint(bool(0))\n",
+  "expectedTestCount": 1
+}

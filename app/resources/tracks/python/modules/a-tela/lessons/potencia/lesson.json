@@ -1,0 +1,74 @@
+{
+  "schemaVersion": 1,
+  "slug": "potencia",
+  "title": "Potência",
+  "summary": "Dois asteriscos elevam um número a outro.",
+  "difficulty": 2,
+  "role": "regular",
+  "targetAtom": "op:binary:**",
+  "concepts": [
+    "potencia"
+  ],
+  "prerequisites": [
+    "divisao-inteira-e-resto"
+  ],
+  "introduces": {
+    "productive": [
+      "op:binary:**"
+    ],
+    "receptive": []
+  },
+  "introducesTerms": [],
+  "theory": [
+    {
+      "id": "dois-asteriscos",
+      "title": "Dois asteriscos",
+      "markdown": "Um asterisco multiplica. **Dois** asteriscos elevam:\n\n```python\nprint(2 ** 3)\n```\n\n```text\n8\n```\n\n`2 ** 3` é dois multiplicado por ele mesmo três vezes: 2, 4, 8."
+    },
+    {
+      "id": "o-numero-cresce-rapido",
+      "title": "O número cresce rápido",
+      "markdown": "Elevar faz o número crescer muito mais depressa do que multiplicar:\n\n```python\nprint(2 * 10)\nprint(2 ** 10)\n```\n\n```text\n20\n1024\n```\n\nUm asterisco a mais e o resultado saiu de 20 para 1024. Cuidado ao digitar: `*` e `**` são contas completamente diferentes."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "dois-asteriscos-elevam",
+      "statement": "`**` eleva um número a outro; `*` apenas multiplica.",
+      "question": "O que `print(2 ** 3)` mostra?",
+      "options": [
+        "8",
+        "6",
+        "5",
+        "23"
+      ],
+      "answerIndex": 0,
+      "feedback": "Dois elevado a três é dois vezes dois vezes dois: 8.",
+      "sectionId": "dois-asteriscos"
+    },
+    {
+      "id": "asterisco-simples-e-duplo",
+      "statement": "Trocar `*` por `**` muda completamente o resultado.",
+      "question": "Qual par de resultados corresponde a `2 * 10` e `2 ** 10`?",
+      "options": [
+        "20 e 1024",
+        "1024 e 20",
+        "20 e 20",
+        "12 e 210"
+      ],
+      "answerIndex": 0,
+      "feedback": "Um asterisco multiplica (20); dois asteriscos elevam (1024).",
+      "sectionId": "o-numero-cresce-rapido"
+    }
+  ],
+  "sources": [
+    {
+      "title": "Expressões — as contas da linguagem",
+      "url": "https://docs.python.org/3/reference/expressions.html",
+      "description": "A referência oficial dos operadores de conta do Python."
+    }
+  ],
+  "challenges": [
+    "dois-elevado-a-vinte"
+  ]
+}

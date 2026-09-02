@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "slug": "dois-elevado-a-vinte",
+  "title": "Dois elevado a vinte",
+  "concept": "potencia",
+  "difficulty": 2,
+  "language": "python",
+  "outputChannel": "impressao",
+  "statement": "# Dois elevado a vinte\n\nEscreva uma linha que mostre na tela **dois elevado a vinte**.\n\nEscreva a conta com `**`; o resultado é grande demais para fazer de cabeça.",
+  "starterCode": "# imprima dois elevado a vinte\n",
+  "testsCode": "import contextlib\nimport io\nimport runpy\nimport unittest\n\n\ndef rodar():\n    \"\"\"Roda solucao.py do zero e devolve tudo o que ele imprimiu.\"\"\"\n    saida = io.StringIO()\n    with contextlib.redirect_stdout(saida):\n        runpy.run_path(\"solucao.py\")\n    return saida.getvalue()\n\n\nclass TestPotencia(unittest.TestCase):\n    def test_imprime_dois_elevado_a_vinte(self):\n        \"\"\"o programa imprime dois elevado a vinte\"\"\"\n        self.assertEqual(rodar(), \"1048576\\n\")\n",
+  "solutionCode": "print(2 ** 20)\n",
+  "expectedTestCount": 1
+}

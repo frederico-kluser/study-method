@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "slug": "escreva-oi",
+  "title": "Escreva oi",
+  "concept": "imprimir",
+  "difficulty": 1,
+  "language": "python",
+  "outputChannel": "impressao",
+  "statement": "# Escreva oi\n\nEscreva **uma linha** que mostre na tela exatamente:\n\n```text\noi\n```\n\nUse `print`, os parênteses e as aspas, como na aula. A linha começa colada na margem esquerda.",
+  "starterCode": "# escreva a sua primeira linha aqui\n",
+  "testsCode": "import contextlib\nimport io\nimport runpy\nimport unittest\n\n\ndef rodar():\n    \"\"\"Roda solucao.py do zero e devolve tudo o que ele imprimiu.\"\"\"\n    saida = io.StringIO()\n    with contextlib.redirect_stdout(saida):\n        runpy.run_path(\"solucao.py\")\n    return saida.getvalue()\n\n\nclass TestAPrimeiraLinha(unittest.TestCase):\n    def test_imprime_oi(self):\n        \"\"\"o programa imprime oi\"\"\"\n        self.assertEqual(rodar(), \"oi\\n\")\n",
+  "solutionCode": "print(\"oi\")\n",
+  "expectedTestCount": 1
+}

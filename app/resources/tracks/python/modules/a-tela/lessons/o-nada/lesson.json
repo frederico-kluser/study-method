@@ -1,0 +1,79 @@
+{
+  "schemaVersion": 1,
+  "slug": "o-nada",
+  "title": "O nada",
+  "summary": "`None` é o valor que representa a ausência de valor — e ele não é zero nem texto vazio.",
+  "difficulty": 2,
+  "role": "regular",
+  "targetAtom": "node:NoneLiteral",
+  "concepts": [
+    "o_nada"
+  ],
+  "prerequisites": [
+    "verdadeiro-e-falso"
+  ],
+  "introduces": {
+    "productive": [
+      "node:NoneLiteral"
+    ],
+    "receptive": []
+  },
+  "introducesTerms": [],
+  "theory": [
+    {
+      "id": "um-valor-para-o-vazio",
+      "title": "Um valor para o vazio",
+      "markdown": "Às vezes o programa precisa dizer *ainda não tem valor nenhum aqui*. Para isso existe o `None`, escrito em inglês e com N maiúsculo:\n\n```python\nprint(None)\n```\n\n```text\nNone\n```\n\nEle não é zero, não é texto vazio e não é `False`. É um valor à parte, cujo trabalho é justamente representar a ausência."
+    },
+    {
+      "id": "none-e-falso",
+      "title": "None é falso",
+      "markdown": "Pelo mesmo critério da aula passada (o vazio é falso), o `bool` responde `False` para o `None`:\n\n```python\nprint(bool(None))\n```\n\n```text\nFalse\n```\n\nÉ falso, mas continua sendo `None` — e não `False`. Os dois são valores diferentes que por acaso concordam nessa pergunta."
+    },
+    {
+      "id": "para-que-serve",
+      "title": "Para que serve",
+      "markdown": "`None` costuma aparecer como um lugar reservado, à espera do valor de verdade:\n\n```python\nresposta = None\nprint(resposta)\n```\n\n```text\nNone\n```\n\nÉ a forma de dizer *este nome existe, mas ainda não tem conteúdo*. Sem ele, o nome simplesmente não existiria — e usá-lo daria erro."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "none-representa-ausencia",
+      "statement": "`None` representa a ausência de valor, e não o número zero.",
+      "question": "O que `print(None)` mostra?",
+      "options": [
+        "None",
+        "0",
+        "nada, a tela fica vazia",
+        "False"
+      ],
+      "answerIndex": 0,
+      "feedback": "Sai a palavra `None`. Ele é um valor de verdade — o valor que significa *nenhum valor*.",
+      "sectionId": "um-valor-para-o-vazio"
+    },
+    {
+      "id": "bool-de-none",
+      "statement": "`bool(None)` é `False`.",
+      "question": "O que `print(bool(None))` mostra?",
+      "options": [
+        "False",
+        "True",
+        "None",
+        "um erro"
+      ],
+      "answerIndex": 0,
+      "feedback": "`None` conta como vazio, e vazio é falso. Mesmo assim, `None` e `False` continuam sendo valores diferentes.",
+      "sectionId": "none-e-falso"
+    }
+  ],
+  "sources": [
+    {
+      "title": "None — a constante do nada",
+      "url": "https://docs.python.org/3/library/constants.html#None",
+      "description": "A página oficial do valor que representa a ausência de valor."
+    }
+  ],
+  "challenges": [
+    "o-nada-e-falso"
+  ]
+}

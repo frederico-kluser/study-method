@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "slug": "menos-e-vezes",
+  "title": "Menos e vezes",
+  "concept": "subtracao_e_multiplicacao",
+  "difficulty": 1,
+  "language": "python",
+  "outputChannel": "impressao",
+  "statement": "# Menos e vezes\n\nEscreva um programa de **duas linhas**.\n\n1. A primeira mostra o resultado de **5000 menos 1234**.\n2. A segunda mostra o resultado de **123 vezes 45**.\n\nEscreva as contas; deixe o Python calcular.",
+  "starterCode": "# primeira linha: imprima 5000 menos 1234\n# segunda linha: imprima 123 vezes 45\n",
+  "testsCode": "import contextlib\nimport io\nimport runpy\nimport unittest\n\n\ndef rodar():\n    \"\"\"Roda solucao.py do zero e devolve tudo o que ele imprimiu.\"\"\"\n    saida = io.StringIO()\n    with contextlib.redirect_stdout(saida):\n        runpy.run_path(\"solucao.py\")\n    return saida.getvalue()\n\n\nclass TestSubtrairEMultiplicar(unittest.TestCase):\n    def test_imprime_a_diferenca_e_o_produto(self):\n        \"\"\"o programa imprime a subtracao e depois a multiplicacao\"\"\"\n        self.assertEqual(rodar(), \"3766\\n5535\\n\")\n",
+  "solutionCode": "print(5000 - 1234)\nprint(123 * 45)\n",
+  "expectedTestCount": 1
+}

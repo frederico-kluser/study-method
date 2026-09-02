@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "slug": "numeros-com-sinal",
+  "title": "Números com sinal",
+  "concept": "sinal_do_numero",
+  "difficulty": 2,
+  "language": "python",
+  "outputChannel": "impressao",
+  "statement": "# Números com sinal\n\nEscreva um programa de **duas linhas**.\n\n1. A primeira mostra o resultado de **menos 1234 mais 1000**.\n2. A segunda mostra o resultado de **mais 250 menos 1000**.\n\nEscreva os sinais da frente (`-1234` e `+250`) como eles aparecem no enunciado.",
+  "starterCode": "# primeira linha: imprima -1234 mais 1000\n# segunda linha: imprima +250 menos 1000\n",
+  "testsCode": "import contextlib\nimport io\nimport runpy\nimport unittest\n\n\ndef rodar():\n    \"\"\"Roda solucao.py do zero e devolve tudo o que ele imprimiu.\"\"\"\n    saida = io.StringIO()\n    with contextlib.redirect_stdout(saida):\n        runpy.run_path(\"solucao.py\")\n    return saida.getvalue()\n\n\nclass TestOSinalDoNumero(unittest.TestCase):\n    def test_imprime_as_duas_contas_com_sinal(self):\n        \"\"\"o programa imprime as duas contas com sinal na frente\"\"\"\n        self.assertEqual(rodar(), \"-234\\n-750\\n\")\n",
+  "solutionCode": "print(-1234 + 1000)\nprint(+250 - 1000)\n",
+  "expectedTestCount": 1
+}

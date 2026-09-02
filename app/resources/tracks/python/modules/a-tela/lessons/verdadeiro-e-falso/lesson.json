@@ -1,0 +1,81 @@
+{
+  "schemaVersion": 1,
+  "slug": "verdadeiro-e-falso",
+  "title": "Verdadeiro e falso",
+  "summary": "Há um tipo de valor com só duas opções: `True` e `False`.",
+  "difficulty": 2,
+  "role": "regular",
+  "targetAtom": "node:BoolLiteral",
+  "concepts": [
+    "verdadeiro_e_falso"
+  ],
+  "prerequisites": [
+    "a-primeira-linha",
+    "numero-nao-tem-aspas"
+  ],
+  "introduces": {
+    "productive": [
+      "node:BoolLiteral",
+      "global:bool"
+    ],
+    "receptive": []
+  },
+  "introducesTerms": [],
+  "theory": [
+    {
+      "id": "dois-valores-so",
+      "title": "Dois valores, só",
+      "markdown": "Existe um tipo de valor que só tem duas opções: verdadeiro e falso. Em Python eles se escrevem `True` e `False`, em inglês e **com a primeira letra maiúscula**.\n\n```python\nprint(True)\nprint(False)\n```\n\n```text\nTrue\nFalse\n```\n\nSem aspas: `True` é um valor, e `\"True\"` seria só um texto. Escrever `true` com minúscula dá erro."
+    },
+    {
+      "id": "bool-responde-sim-ou-nao",
+      "title": "bool responde sim ou não",
+      "markdown": "A ordem `bool` pega qualquer valor e responde `True` ou `False`. A regra é: **o vazio e o zero são falsos; o resto é verdadeiro**.\n\n```python\nprint(bool(0))\nprint(bool(7))\n```\n\n```text\nFalse\nTrue\n```\n\nO zero é o único número falso. Qualquer outro, positivo ou negativo, é verdadeiro."
+    },
+    {
+      "id": "texto-vazio-tambem-e-falso",
+      "title": "Texto vazio também é falso",
+      "markdown": "A mesma regra vale para texto: o texto vazio (aspas coladas, sem nada dentro) é falso; qualquer texto com alguma coisa é verdadeiro.\n\n```python\nprint(bool(\"\"))\nprint(bool(\"oi\"))\n```\n\n```text\nFalse\nTrue\n```\n\nIsso vai ser o coração do próximo módulo, quando o programa começar a tomar decisões."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "true-com-maiuscula",
+      "statement": "`True` e `False` se escrevem com a primeira letra maiúscula e sem aspas.",
+      "question": "Como se escreve o valor verdadeiro em Python?",
+      "options": [
+        "True",
+        "true",
+        "\"True\"",
+        "verdadeiro"
+      ],
+      "answerIndex": 0,
+      "feedback": "Com T maiúsculo e sem aspas. Com aspas seria um texto; com minúscula, um erro.",
+      "sectionId": "dois-valores-so"
+    },
+    {
+      "id": "zero-e-falso",
+      "statement": "Para o `bool`, o zero e o vazio são falsos; o resto é verdadeiro.",
+      "question": "O que `print(bool(0))` mostra?",
+      "options": [
+        "False",
+        "True",
+        "0",
+        "um erro"
+      ],
+      "answerIndex": 0,
+      "feedback": "Zero é o único número que o `bool` considera falso.",
+      "sectionId": "bool-responde-sim-ou-nao"
+    }
+  ],
+  "sources": [
+    {
+      "title": "bool() — a documentação oficial",
+      "url": "https://docs.python.org/3/library/functions.html#bool",
+      "description": "A página oficial do verdadeiro e do falso."
+    }
+  ],
+  "challenges": [
+    "verdadeiro-e-o-zero"
+  ]
+}

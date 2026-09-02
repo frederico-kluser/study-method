@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "slug": "quantas-vezes-e-quanto-sobra",
+  "title": "Quantas vezes e quanto sobra",
+  "concept": "divisao_inteira_e_resto",
+  "difficulty": 2,
+  "language": "python",
+  "outputChannel": "impressao",
+  "statement": "# Quantas vezes e quanto sobra\n\nEscreva um programa de **duas linhas** sobre a divisão de **4321 por 4**.\n\n1. A primeira mostra quantas vezes 4 cabe em 4321.\n2. A segunda mostra quanto sobra dessa divisão.\n\nUse a barra dupla na primeira e o `%` na segunda.",
+  "starterCode": "# primeira linha: quantas vezes 4 cabe em 4321\n# segunda linha: quanto sobra de 4321 dividido por 4\n",
+  "testsCode": "import contextlib\nimport io\nimport runpy\nimport unittest\n\n\ndef rodar():\n    \"\"\"Roda solucao.py do zero e devolve tudo o que ele imprimiu.\"\"\"\n    saida = io.StringIO()\n    with contextlib.redirect_stdout(saida):\n        runpy.run_path(\"solucao.py\")\n    return saida.getvalue()\n\n\nclass TestDivisaoInteiraEResto(unittest.TestCase):\n    def test_imprime_quantas_vezes_cabe_e_o_resto(self):\n        \"\"\"o programa imprime a divisao inteira e depois o resto\"\"\"\n        self.assertEqual(rodar(), \"1080\\n1\\n\")\n",
+  "solutionCode": "print(4321 // 4)\nprint(4321 % 4)\n",
+  "expectedTestCount": 1
+}

@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "slug": "guarde-o-preco",
+  "title": "Guarde o preço",
+  "concept": "dar_nome_a_um_valor",
+  "difficulty": 2,
+  "language": "python",
+  "outputChannel": "impressao",
+  "statement": "# Guarde o preço\n\nEscreva um programa de **duas linhas**.\n\n1. A primeira guarda o número **1200** no nome `preco`.\n2. A segunda mostra o valor guardado em `preco`.\n\nA tela deve ficar assim:\n\n```text\n1200\n```\n\nPasse pelo nome: é ele o assunto da aula.",
+  "starterCode": "# primeira linha: guarde 1200 no nome preco\n# segunda linha: imprima o valor guardado em preco\n",
+  "testsCode": "import contextlib\nimport io\nimport runpy\nimport unittest\n\n\ndef rodar():\n    \"\"\"Roda solucao.py do zero e devolve tudo o que ele imprimiu.\"\"\"\n    saida = io.StringIO()\n    with contextlib.redirect_stdout(saida):\n        runpy.run_path(\"solucao.py\")\n    return saida.getvalue()\n\n\nclass TestDarNomeAUmValor(unittest.TestCase):\n    def test_imprime_o_valor_guardado_no_nome(self):\n        \"\"\"o programa imprime o valor guardado no nome preco\"\"\"\n        self.assertEqual(rodar(), \"1200\\n\")\n",
+  "solutionCode": "preco = 1200\nprint(preco)\n",
+  "expectedTestCount": 1
+}

@@ -1,0 +1,80 @@
+{
+  "schemaVersion": 1,
+  "slug": "religar-o-mesmo-nome",
+  "title": "Religar o mesmo nome",
+  "summary": "Um nome pode receber outro valor, inclusive um que depende do valor antigo.",
+  "difficulty": 2,
+  "role": "consolidation",
+  "targetAtom": "decl:assign",
+  "concepts": [
+    "religar_o_nome"
+  ],
+  "prerequisites": [
+    "dar-nome-a-um-valor",
+    "somar"
+  ],
+  "introduces": {
+    "productive": [
+      "decl:assign"
+    ],
+    "receptive": []
+  },
+  "introducesTerms": [],
+  "theory": [
+    {
+      "id": "o-nome-pode-mudar",
+      "title": "O nome pode mudar",
+      "markdown": "Um nome não fica preso ao primeiro valor. Basta usar o `=` de novo:\n\n```python\npreco = 1200\npreco = 1500\nprint(preco)\n```\n\n```text\n1500\n```\n\nO valor antigo foi embora. Vale sempre o último `=` que rodou antes do `print`."
+    },
+    {
+      "id": "o-nome-dos-dois-lados",
+      "title": "O nome dos dois lados",
+      "markdown": "Agora o pulo do gato: o nome pode aparecer **dos dois lados** do `=`.\n\n```python\npreco = 1200\npreco = preco + 45\nprint(preco)\n```\n\n```text\n1245\n```\n\nIsso seria absurdo na matemática, mas aqui o `=` não afirma igualdade: ele manda guardar. A linha do meio se lê em duas etapas:\n\n1. resolva `preco + 45` usando o valor que `preco` tem AGORA (1200 + 45 = 1245);\n2. guarde esse resultado em `preco`.\n\nO lado direito é lido antes; o lado esquerdo só recebe depois."
+    },
+    {
+      "id": "a-ordem-manda",
+      "title": "A ordem manda",
+      "markdown": "Como o valor muda ao longo do arquivo, o momento do `print` importa:\n\n```python\ntotal = 10\nprint(total)\ntotal = total * 3\nprint(total)\n```\n\n```text\n10\n30\n```\n\nO mesmo `print(total)` mostraria coisas diferentes em posições diferentes do arquivo."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "vale-o-ultimo",
+      "statement": "Quando o mesmo nome recebe dois valores, vale o último.",
+      "question": "Depois de `preco = 1200` e `preco = 1500`, o que `print(preco)` mostra?",
+      "options": [
+        "1500",
+        "1200",
+        "2700",
+        "os dois, um em cada linha"
+      ],
+      "answerIndex": 0,
+      "feedback": "O segundo `=` substituiu o valor guardado. O antigo se perdeu.",
+      "sectionId": "o-nome-pode-mudar"
+    },
+    {
+      "id": "direita-antes-da-esquerda",
+      "statement": "Em `preco = preco + 45`, o lado direito é resolvido antes de guardar.",
+      "question": "`preco` vale 1200. O que `preco = preco + 45` deixa guardado?",
+      "options": [
+        "1245",
+        "45",
+        "1200",
+        "um erro, porque o nome está dos dois lados"
+      ],
+      "answerIndex": 0,
+      "feedback": "Primeiro o Python soma usando o valor atual (1200 + 45); depois guarda o resultado no mesmo nome.",
+      "sectionId": "o-nome-dos-dois-lados"
+    }
+  ],
+  "sources": [
+    {
+      "title": "Uma introdução informal ao Python",
+      "url": "https://docs.python.org/3/tutorial/introduction.html",
+      "description": "O primeiro capítulo do tutorial oficial: números, textos e a tela."
+    }
+  ],
+  "challenges": [
+    "some-quarenta-e-cinco-ao-preco"
+  ]
+}

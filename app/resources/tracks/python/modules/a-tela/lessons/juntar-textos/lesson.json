@@ -1,0 +1,80 @@
+{
+  "schemaVersion": 1,
+  "slug": "juntar-textos",
+  "title": "Juntar textos",
+  "summary": "O mesmo `+` que soma números cola textos um no outro.",
+  "difficulty": 2,
+  "role": "consolidation",
+  "targetAtom": "op:binary:+",
+  "concepts": [
+    "juntar_textos"
+  ],
+  "prerequisites": [
+    "somar",
+    "dar-nome-a-um-valor"
+  ],
+  "introduces": {
+    "productive": [
+      "op:binary:+"
+    ],
+    "receptive": []
+  },
+  "introducesTerms": [],
+  "theory": [
+    {
+      "id": "mais-entre-textos",
+      "title": "Mais entre textos",
+      "markdown": "O `+` que você usou para somar também funciona entre textos. Só que entre textos ele não soma: ele **cola**.\n\n```python\nprint(\"bom\" + \" dia\")\n```\n\n```text\nbom dia\n```\n\nNada é acrescentado por conta própria — nem espaço. O espaço que apareceu na tela é o que estava escrito dentro das aspas de `\" dia\"`."
+    },
+    {
+      "id": "colar-nao-e-somar",
+      "title": "Colar não é somar",
+      "markdown": "Compare os dois usos do mesmo sinal:\n\n```python\nprint(2 + 3)\nprint(\"2\" + \"3\")\n```\n\n```text\n5\n23\n```\n\nEm cima, dois números: o `+` soma e dá 5. Embaixo, dois textos: o `+` cola e dá `23`. O sinal é o mesmo; quem decide o que ele faz é o tipo do que está dos lados."
+    },
+    {
+      "id": "colar-com-um-nome",
+      "title": "Colar com um nome",
+      "markdown": "Um dos lados pode ser um nome que guarda texto:\n\n```python\nnome = \"Ana\"\nprint(\"oi, \" + nome)\n```\n\n```text\noi, Ana\n```\n\nTroque o valor guardado em `nome` e a saudação muda junto, sem você mexer na linha do `print`."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "mais-entre-textos-cola",
+      "statement": "Entre textos, o `+` cola em vez de somar.",
+      "question": "O que `print(\"2\" + \"3\")` mostra?",
+      "options": [
+        "23",
+        "5",
+        "\"2\" + \"3\"",
+        "um erro"
+      ],
+      "answerIndex": 0,
+      "feedback": "São dois textos, então o `+` cola um no outro: `23`. Com números, `2 + 3` daria 5.",
+      "sectionId": "colar-nao-e-somar"
+    },
+    {
+      "id": "espaco-nao-vem-de-graca",
+      "statement": "Colar textos não acrescenta espaço nenhum por conta própria.",
+      "question": "O que `print(\"bom\" + \"dia\")` mostra?",
+      "options": [
+        "bomdia",
+        "bom dia",
+        "bom+dia",
+        "um erro"
+      ],
+      "answerIndex": 0,
+      "feedback": "Sai tudo grudado. Para ter espaço, ele precisa estar escrito dentro de alguma das aspas.",
+      "sectionId": "mais-entre-textos"
+    }
+  ],
+  "sources": [
+    {
+      "title": "Uma introdução informal ao Python",
+      "url": "https://docs.python.org/3/tutorial/introduction.html",
+      "description": "O primeiro capítulo do tutorial oficial: números, textos e a tela."
+    }
+  ],
+  "challenges": [
+    "monte-a-saudacao"
+  ]
+}

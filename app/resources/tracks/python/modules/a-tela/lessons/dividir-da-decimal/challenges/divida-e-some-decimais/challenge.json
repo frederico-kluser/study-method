@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "slug": "divida-e-some-decimais",
+  "title": "Divida e some decimais",
+  "concept": "divisao_decimal",
+  "difficulty": 2,
+  "language": "python",
+  "outputChannel": "impressao",
+  "statement": "# Divida e some decimais\n\nEscreva um programa de **duas linhas**.\n\n1. A primeira mostra o resultado de **4321 dividido por 4**.\n2. A segunda mostra o resultado de **1.5 mais 2.25**.\n\nLembre: a casa decimal se escreve com ponto.",
+  "starterCode": "# primeira linha: imprima 4321 dividido por 4\n# segunda linha: imprima 1.5 mais 2.25\n",
+  "testsCode": "import contextlib\nimport io\nimport runpy\nimport unittest\n\n\ndef rodar():\n    \"\"\"Roda solucao.py do zero e devolve tudo o que ele imprimiu.\"\"\"\n    saida = io.StringIO()\n    with contextlib.redirect_stdout(saida):\n        runpy.run_path(\"solucao.py\")\n    return saida.getvalue()\n\n\nclass TestDividirDaDecimal(unittest.TestCase):\n    def test_imprime_a_divisao_e_a_soma_decimal(self):\n        \"\"\"o programa imprime a divisao e depois a soma com decimais\"\"\"\n        self.assertEqual(rodar(), \"1080.25\\n3.75\\n\")\n",
+  "solutionCode": "print(4321 / 4)\nprint(1.5 + 2.25)\n",
+  "expectedTestCount": 1
+}

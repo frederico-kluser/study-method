@@ -1,0 +1,97 @@
+{
+  "schemaVersion": 1,
+  "slug": "dar-nome-a-um-valor",
+  "title": "Dar nome a um valor",
+  "summary": "Um sinal de igual guarda um valor num nome, e o nome passa a valer o valor.",
+  "difficulty": 2,
+  "role": "regular",
+  "targetAtom": "decl:assign",
+  "concepts": [
+    "dar_nome_a_um_valor"
+  ],
+  "prerequisites": [
+    "a-primeira-linha",
+    "numero-nao-tem-aspas"
+  ],
+  "introduces": {
+    "productive": [
+      "decl:assign",
+      "node:Assign"
+    ],
+    "receptive": []
+  },
+  "introducesTerms": [
+    "term:variável"
+  ],
+  "theory": [
+    {
+      "id": "guardar-num-nome",
+      "title": "Guardar num nome",
+      "markdown": "Repetir o mesmo número em várias linhas dá trabalho e dá erro. Você pode guardá-lo num nome:\n\n```python\npreco = 1200\nprint(preco)\n```\n\n```text\n1200\n```\n\nA primeira linha guarda; a segunda usa. Repare que `preco` no `print` vai **sem aspas**: com aspas seria o texto `preco`, não o valor guardado."
+    },
+    {
+      "id": "o-igual-nao-e-o-da-matematica",
+      "title": "O igual não é o da matemática",
+      "markdown": "O `=` aqui não afirma que os dois lados são iguais. Ele **manda guardar**, e a leitura é da direita para a esquerda: *o valor da direita passa a morar no nome da esquerda*.\n\n```python\ntotal = 40 + 2\nprint(total)\n```\n\n```text\n42\n```\n\nA conta da direita é resolvida primeiro; o que fica guardado é o resultado, 42 — a conta em si não é guardada."
+    },
+    {
+      "id": "que-nome-pode",
+      "title": "Que nome pode",
+      "markdown": "O nome é escolha sua, com três regras:\n\n- só letras, números e o traço de baixo `_`;\n- não pode começar por número;\n- letra maiúscula é diferente de minúscula: `preco` e `Preco` são dois nomes distintos.\n\n```python\npreco_final = 1245\nprint(preco_final)\n```\n\n```text\n1245\n```\n\nEscolha nomes que digam o que está guardado. Muita gente chama isso de **variável** — é a mesma coisa que estamos chamando de nome."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "o-igual-guarda",
+      "statement": "O `=` guarda no nome da esquerda o valor da direita.",
+      "question": "Depois de `preco = 1200`, o que `print(preco)` mostra?",
+      "options": [
+        "1200",
+        "preco",
+        "preco = 1200",
+        "nada"
+      ],
+      "answerIndex": 0,
+      "feedback": "O nome passou a valer 1200, e é 1200 que aparece na tela.",
+      "sectionId": "guardar-num-nome"
+    },
+    {
+      "id": "guarda-o-resultado",
+      "statement": "Quando a direita é uma conta, o que fica guardado é o resultado.",
+      "question": "Depois de `total = 40 + 2`, o que está guardado em `total`?",
+      "options": [
+        "42",
+        "40 + 2",
+        "40",
+        "o texto 40 + 2"
+      ],
+      "answerIndex": 0,
+      "feedback": "A conta é resolvida antes de guardar; o nome recebe o resultado.",
+      "sectionId": "o-igual-nao-e-o-da-matematica"
+    },
+    {
+      "id": "nome-sem-aspas",
+      "statement": "O nome vai sem aspas dentro do `print`.",
+      "question": "Qual linha mostra o VALOR guardado no nome `preco`?",
+      "options": [
+        "print(preco)",
+        "print(\"preco\")",
+        "print(=preco)",
+        "print(preco = 1200)"
+      ],
+      "answerIndex": 0,
+      "feedback": "Com aspas você pede o texto `preco`; sem aspas você pede o valor que o nome guarda.",
+      "sectionId": "guardar-num-nome"
+    }
+  ],
+  "sources": [
+    {
+      "title": "Uma introdução informal ao Python",
+      "url": "https://docs.python.org/3/tutorial/introduction.html",
+      "description": "O primeiro capítulo do tutorial oficial: números, textos e a tela."
+    }
+  ],
+  "challenges": [
+    "guarde-o-preco"
+  ]
+}

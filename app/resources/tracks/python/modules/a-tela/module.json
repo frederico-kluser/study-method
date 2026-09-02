@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "slug": "a-tela",
+  "title": "A tela",
+  "order": 1,
+  "lessons": [
+    "a-primeira-linha",
+    "mais-de-uma-linha",
+    "numero-nao-tem-aspas",
+    "somar",
+    "subtrair-e-multiplicar",
+    "dividir-da-decimal",
+    "divisao-inteira-e-resto",
+    "potencia",
+    "o-sinal-do-numero",
+    "dar-nome-a-um-valor",
+    "religar-o-mesmo-nome",
+    "juntar-textos",
+    "texto-com-buraco",
+    "de-texto-para-numero",
+    "arredondar",
+    "verdadeiro-e-falso",
+    "o-nada",
+    "o-tipo-de-cada-valor",
+    "a-linha-que-o-python-ignora",
+    "quando-da-errado"
+  ],
+  "challenge": "rachando-a-conta"
+}

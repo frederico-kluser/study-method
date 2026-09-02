@@ -1,0 +1,81 @@
+{
+  "schemaVersion": 1,
+  "slug": "a-linha-que-o-python-ignora",
+  "title": "A linha que o Python ignora",
+  "summary": "Tudo depois de `#` é recado para gente, não ordem para o computador.",
+  "difficulty": 1,
+  "role": "consolidation",
+  "targetAtom": "global:print",
+  "concepts": [
+    "comentario"
+  ],
+  "prerequisites": [
+    "a-primeira-linha"
+  ],
+  "introduces": {
+    "productive": [
+      "global:print"
+    ],
+    "receptive": []
+  },
+  "introducesTerms": [
+    "term:comentário"
+  ],
+  "theory": [
+    {
+      "id": "a-cerquilha",
+      "title": "A cerquilha",
+      "markdown": "O sinal `#` marca um **comentário**: dali até o fim da linha, o Python não lê nada.\n\n```python\n# isto o Python nem lê\nprint(\"rodou\")\n```\n\n```text\nrodou\n```\n\nA primeira linha não produziu nada na tela porque, para o Python, ela simplesmente não existe. Ela está lá para quem lê o código."
+    },
+    {
+      "id": "desligar-uma-linha",
+      "title": "Desligar uma linha",
+      "markdown": "O uso mais comum do `#` no dia a dia não é escrever recado: é **desligar uma linha** sem apagá-la.\n\n```python\n# print(\"rascunho\")\nprint(\"rodou\")\n```\n\n```text\nrodou\n```\n\nO `print` de cima continua escrito, mas não roda. Basta tirar o `#` para ele voltar a funcionar. É a forma mais barata de testar uma mudança sem perder o que já estava lá."
+    },
+    {
+      "id": "comentario-no-fim-da-linha",
+      "title": "Comentário no fim da linha",
+      "markdown": "O `#` também pode vir depois de uma ordem, na mesma linha. Vale o mesmo: dali para a frente o Python ignora.\n\n```python\nprint(\"rodou\")  # esta parte é só recado\n```\n\n```text\nrodou\n```\n\nO `print` rodou normalmente; o recado ficou de fora."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "cerquilha-desliga-a-linha",
+      "statement": "Tudo que vem depois de `#` é ignorado pelo Python.",
+      "question": "O que `print(\"rascunho\")` faz quando tem um `#` na frente?",
+      "options": [
+        "Nada: o Python ignora a linha inteira.",
+        "Mostra rascunho na tela.",
+        "Mostra # rascunho na tela.",
+        "Dá erro."
+      ],
+      "answerIndex": 0,
+      "feedback": "Com o `#` na frente, a linha vira comentário: continua escrita, mas não roda.",
+      "sectionId": "desligar-uma-linha"
+    },
+    {
+      "id": "comentario-no-fim",
+      "statement": "Um `#` no fim da linha não atrapalha a ordem que veio antes dele.",
+      "question": "O que `print(\"rodou\")  # recado` mostra?",
+      "options": [
+        "rodou",
+        "rodou  # recado",
+        "recado",
+        "nada"
+      ],
+      "answerIndex": 0,
+      "feedback": "A ordem antes do `#` roda normalmente; só o que vem depois é ignorado.",
+      "sectionId": "comentario-no-fim-da-linha"
+    }
+  ],
+  "sources": [
+    {
+      "title": "Uma introdução informal ao Python",
+      "url": "https://docs.python.org/3/tutorial/introduction.html",
+      "description": "O primeiro capítulo do tutorial oficial: números, textos e a tela."
+    }
+  ],
+  "challenges": [
+    "desligue-o-rascunho"
+  ]
+}

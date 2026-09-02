@@ -1,0 +1,83 @@
+{
+  "schemaVersion": 1,
+  "slug": "o-tipo-de-cada-valor",
+  "title": "O tipo de cada valor",
+  "summary": "`type` mostra a que família cada valor pertence — e finalmente separa o 7 do \"7\" na tela.",
+  "difficulty": 3,
+  "role": "regular",
+  "targetAtom": "global:type",
+  "concepts": [
+    "tipo_do_valor"
+  ],
+  "prerequisites": [
+    "numero-nao-tem-aspas",
+    "verdadeiro-e-falso",
+    "o-nada"
+  ],
+  "introduces": {
+    "productive": [
+      "global:type"
+    ],
+    "receptive": []
+  },
+  "introducesTerms": [
+    "term:tipo"
+  ],
+  "theory": [
+    {
+      "id": "perguntar-o-tipo",
+      "title": "Perguntar o tipo",
+      "markdown": "Cada valor do Python pertence a uma família, e essa família se chama **tipo**. A ordem `type` responde qual é:\n\n```python\nprint(type(7))\n```\n\n```text\n<class 'int'>\n```\n\nA resposta vem nesse formato meio esquisito, com `<class` e as aspas. O que interessa é a palavra do meio: `int`, de número inteiro."
+    },
+    {
+      "id": "a-diferenca-que-faltava-ver",
+      "title": "A diferença que faltava ver",
+      "markdown": "Na aula 3 você aprendeu que `7` e `\"7\"` são coisas diferentes, mas na tela as duas saíam iguais. Agora dá para ver a diferença:\n\n```python\nprint(type(7))\nprint(type(\"7\"))\n```\n\n```text\n<class 'int'>\n<class 'str'>\n```\n\n`int` é número inteiro; `str` é texto. São exatamente os nomes das duas ordens de conversão da aula 14 — não é coincidência: `int(\"7\")` devolve um valor do tipo `int`."
+    },
+    {
+      "id": "os-tipos-que-voce-ja-viu",
+      "title": "Os tipos que você já viu",
+      "markdown": "Todos os valores deste módulo têm nome de tipo:\n\n```python\nprint(type(1.5))\nprint(type(True))\nprint(type(None))\n```\n\n```text\n<class 'float'>\n<class 'bool'>\n<class 'NoneType'>\n```\n\n`float` é o decimal, `bool` é o verdadeiro/falso e `NoneType` é a família do `None` — que tem um membro só."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "type-de-inteiro",
+      "statement": "`type(7)` responde que 7 é do tipo `int`.",
+      "question": "O que `print(type(7))` mostra?",
+      "options": [
+        "<class 'int'>",
+        "int",
+        "7",
+        "<class 'str'>"
+      ],
+      "answerIndex": 0,
+      "feedback": "A resposta vem no formato `<class '...'>`, com o nome do tipo no meio.",
+      "sectionId": "perguntar-o-tipo"
+    },
+    {
+      "id": "sete-e-sete-entre-aspas",
+      "statement": "`7` é do tipo `int` e `\"7\"` é do tipo `str`.",
+      "question": "O que `print(type(\"7\"))` mostra?",
+      "options": [
+        "<class 'str'>",
+        "<class 'int'>",
+        "7",
+        "str"
+      ],
+      "answerIndex": 0,
+      "feedback": "Com aspas é texto, e o nome do tipo texto é `str`. Era esta a diferença que a aula 3 anunciou e a tela não mostrava.",
+      "sectionId": "a-diferenca-que-faltava-ver"
+    }
+  ],
+  "sources": [
+    {
+      "title": "type() — a documentação oficial",
+      "url": "https://docs.python.org/3/library/functions.html#type",
+      "description": "A página oficial da ordem que responde de que tipo é um valor."
+    }
+  ],
+  "challenges": [
+    "de-que-tipo-e-cada-um"
+  ]
+}

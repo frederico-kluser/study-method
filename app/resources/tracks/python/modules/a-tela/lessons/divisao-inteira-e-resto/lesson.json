@@ -1,0 +1,80 @@
+{
+  "schemaVersion": 1,
+  "slug": "divisao-inteira-e-resto",
+  "title": "Divisão inteira e resto",
+  "summary": "A divisão da escola primária: quantas vezes cabe, e o que sobra.",
+  "difficulty": 2,
+  "role": "regular",
+  "targetAtom": "op:binary://",
+  "concepts": [
+    "divisao_inteira_e_resto"
+  ],
+  "prerequisites": [
+    "dividir-da-decimal"
+  ],
+  "introduces": {
+    "productive": [
+      "op:binary://",
+      "op:binary:%"
+    ],
+    "receptive": []
+  },
+  "introducesTerms": [],
+  "theory": [
+    {
+      "id": "quantas-vezes-cabe",
+      "title": "Quantas vezes cabe",
+      "markdown": "Às vezes você não quer a casa decimal — quer saber quantas vezes um número cabe no outro. Para isso existe a **barra dupla** `//`:\n\n```python\nprint(7 // 2)\n```\n\n```text\n3\n```\n\nDois cabe três vezes dentro de sete. A parte decimal é jogada fora — não é arredondada, é cortada."
+    },
+    {
+      "id": "o-que-sobra",
+      "title": "O que sobra",
+      "markdown": "E o que sobrou? É o **resto**, e o sinal dele é o `%`:\n\n```python\nprint(7 % 2)\n```\n\n```text\n1\n```\n\nSete dividido por dois dá três, e sobra um. O `%` responde exatamente a essa pergunta: *quanto sobrou*."
+    },
+    {
+      "id": "as-tres-divisoes-lado-a-lado",
+      "title": "As três divisões lado a lado",
+      "markdown": "Compare os três sinais com os mesmos números:\n\n```python\nprint(7 / 2)\nprint(7 // 2)\nprint(7 % 2)\n```\n\n```text\n3.5\n3\n1\n```\n\nA barra dá a conta completa, a barra dupla dá quantas vezes coube, e o `%` dá o que sobrou."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "barra-dupla-corta",
+      "statement": "A barra dupla `//` corta a parte decimal em vez de arredondar.",
+      "question": "O que `print(7 // 2)` mostra?",
+      "options": [
+        "3",
+        "3.5",
+        "4",
+        "1"
+      ],
+      "answerIndex": 0,
+      "feedback": "Dois cabe três vezes em sete. O que passaria de três é descartado, não arredondado.",
+      "sectionId": "quantas-vezes-cabe"
+    },
+    {
+      "id": "porcento-e-o-resto",
+      "statement": "O sinal `%` devolve o resto da divisão.",
+      "question": "O que `print(7 % 2)` mostra?",
+      "options": [
+        "1",
+        "3",
+        "3.5",
+        "0"
+      ],
+      "answerIndex": 0,
+      "feedback": "Sete dividido por dois dá três e sobra um — e é esse um que o `%` devolve.",
+      "sectionId": "o-que-sobra"
+    }
+  ],
+  "sources": [
+    {
+      "title": "Expressões — as contas da linguagem",
+      "url": "https://docs.python.org/3/reference/expressions.html",
+      "description": "A referência oficial dos operadores de conta do Python."
+    }
+  ],
+  "challenges": [
+    "quantas-vezes-e-quanto-sobra"
+  ]
+}

@@ -1,0 +1,95 @@
+{
+  "schemaVersion": 1,
+  "slug": "de-texto-para-numero",
+  "title": "De texto para número",
+  "summary": "`int` transforma texto em número e `str` transforma número em texto.",
+  "difficulty": 3,
+  "role": "regular",
+  "targetAtom": "global:int",
+  "concepts": [
+    "converter_texto_e_numero"
+  ],
+  "prerequisites": [
+    "numero-nao-tem-aspas",
+    "juntar-textos"
+  ],
+  "introduces": {
+    "productive": [
+      "global:int",
+      "global:str"
+    ],
+    "receptive": []
+  },
+  "introducesTerms": [],
+  "theory": [
+    {
+      "id": "misturar-da-erro",
+      "title": "Misturar dá erro",
+      "markdown": "O `+` sabe somar dois números e sabe colar dois textos. O que ele **não** sabe é misturar os dois. Um programa com `print(\"7\" + 1)` para com esta mensagem:\n\n```traceback\nTypeError: can only concatenate str (not \"int\") to str\n```\n\nEm português: *só dá para colar texto com texto*. O Python não adivinha se você queria somar 8 ou colar `71` — ele para e pergunta."
+    },
+    {
+      "id": "int-transforma-em-numero",
+      "title": "int transforma em número",
+      "markdown": "Quem resolve é você, dizendo o que quer. A ordem `int` pega um texto de algarismos e devolve o número correspondente:\n\n```python\nprint(int(\"7\") + 1)\n```\n\n```text\n8\n```\n\n`int(\"7\")` virou o número 7, e aí o `+` somou normalmente. O nome vem de *integer*, que é como se chama número inteiro em inglês."
+    },
+    {
+      "id": "str-transforma-em-texto",
+      "title": "str transforma em texto",
+      "markdown": "A ordem `str` faz o caminho contrário: pega um número e devolve o texto dele, pronto para ser colado.\n\n```python\nprint(\"total: \" + str(8))\n```\n\n```text\ntotal: 8\n```\n\nO nome vem de *string*, que é como se chama texto em inglês. As duas ordens não mudam o valor original: elas devolvem um valor novo, do outro tipo."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "int-converte-texto",
+      "statement": "`int` transforma um texto de algarismos no número correspondente.",
+      "question": "O que `print(int(\"7\") + 1)` mostra?",
+      "options": [
+        "8",
+        "71",
+        "\"7\"1",
+        "um erro"
+      ],
+      "answerIndex": 0,
+      "feedback": "`int(\"7\")` virou o número 7; somado a 1, dá 8.",
+      "sectionId": "int-transforma-em-numero"
+    },
+    {
+      "id": "colar-texto-com-numero-da-erro",
+      "statement": "O `+` não mistura texto com número: ele para com um erro.",
+      "question": "O que acontece com `print(\"7\" + 1)`?",
+      "options": [
+        "O programa para com um erro de tipo.",
+        "Mostra 8.",
+        "Mostra 71.",
+        "Mostra 7 e depois 1."
+      ],
+      "answerIndex": 0,
+      "feedback": "O Python não escolhe por você entre somar e colar: ele exige que os dois lados sejam do mesmo tipo.",
+      "sectionId": "misturar-da-erro"
+    },
+    {
+      "id": "str-converte-numero",
+      "statement": "`str` transforma um número no texto dele.",
+      "question": "O que `print(\"total: \" + str(8))` mostra?",
+      "options": [
+        "total: 8",
+        "total: str(8)",
+        "um erro",
+        "8"
+      ],
+      "answerIndex": 0,
+      "feedback": "`str(8)` virou o texto `8`, e aí o `+` pôde colar.",
+      "sectionId": "str-transforma-em-texto"
+    }
+  ],
+  "sources": [
+    {
+      "title": "Funções embutidas",
+      "url": "https://docs.python.org/3/library/functions.html",
+      "description": "A lista das ordens que já vêm prontas no Python."
+    }
+  ],
+  "challenges": [
+    "converta-nos-dois-sentidos"
+  ]
+}

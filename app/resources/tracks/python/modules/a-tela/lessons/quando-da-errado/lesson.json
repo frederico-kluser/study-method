@@ -1,0 +1,104 @@
+{
+  "schemaVersion": 1,
+  "slug": "quando-da-errado",
+  "title": "Quando dá errado",
+  "summary": "O erro tem nome, tem número de linha e diz o que fazer — basta aprender a ler.",
+  "difficulty": 3,
+  "role": "consolidation",
+  "targetAtom": "decl:assign",
+  "concepts": [
+    "ler_o_erro"
+  ],
+  "prerequisites": [
+    "dar-nome-a-um-valor",
+    "texto-com-buraco"
+  ],
+  "introduces": {
+    "productive": [
+      "decl:assign",
+      "node:JoinedStr"
+    ],
+    "receptive": []
+  },
+  "introducesTerms": [
+    "term:traceback",
+    "term:SyntaxError",
+    "term:NameError"
+  ],
+  "theory": [
+    {
+      "id": "o-relatorio-do-erro",
+      "title": "O relatório do erro",
+      "markdown": "Quando um programa não dá certo, o Python não fica calado: ele imprime um relatório chamado **traceback**. Ele parece assustador e é o contrário disso — é a explicação.\n\nLeia sempre **de baixo para cima**. A última linha é a mais importante: ela traz o **nome do erro** e a explicação.\n\nLogo acima dela vem o **número da linha** do seu arquivo onde o problema apareceu. Com essas duas informações, quase todo erro se resolve em segundos."
+    },
+    {
+      "id": "syntaxerror-a-frase-quebrada",
+      "title": "SyntaxError: a frase quebrada",
+      "markdown": "O primeiro tipo de erro acontece **antes** de o programa rodar. O Python leu o arquivo, não entendeu a frase, e parou. É o `SyntaxError`.\n\nEle aparece, por exemplo, quando você esquece de fechar as aspas:\n\n```traceback\n  File \"solucao.py\", line 1\n    print(\"oi)\n          ^\nSyntaxError: unterminated string literal (detected at line 1)\n```\n\nTraduzindo a última linha: *texto começado e não terminado*. O `^` aponta o lugar exato. Quando o erro é de sintaxe, **nada do programa roda** — nem as linhas que estavam certas."
+    },
+    {
+      "id": "nameerror-o-nome-que-nao-existe",
+      "title": "NameError: o nome que não existe",
+      "markdown": "O segundo tipo acontece **durante** a execução. A frase estava certa, mas você pediu um nome que nunca foi guardado. É o `NameError`.\n\nEle costuma vir de um erro de digitação:\n\n```python\nnome = \"Ana\"\nprint(f\"oi, {nomee}\")\n```\n\n```traceback\nTraceback (most recent call last):\n  File \"solucao.py\", line 2, in <module>\n    print(f\"oi, {nomee}\")\n                 ^^^^^\nNameError: name 'nomee' is not defined. Did you mean: 'nome'?\n```\n\nA última linha diz o nome errado (`nomee`), diz que ele não existe e até sugere o certo. O conserto é trocar `nomee` por `nome`."
+    },
+    {
+      "id": "errar-faz-parte",
+      "title": "Errar faz parte",
+      "markdown": "Estes dois erros vão acontecer com você muitas vezes, e isso não é sinal de nada. A diferença entre quem programa há um dia e quem programa há dez anos não é errar menos: é **ler o erro em vez de olhar para o código torcendo**.\n\nO roteiro é sempre o mesmo:\n\n1. leia a última linha e pegue o nome do erro;\n2. suba uma linha e pegue o número da linha do seu arquivo;\n3. vá até essa linha e conserte o que a mensagem apontou."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "ler-de-baixo-para-cima",
+      "statement": "O traceback se lê de baixo para cima: a última linha traz o nome do erro.",
+      "question": "Qual linha do traceback você lê primeiro?",
+      "options": [
+        "A última, que traz o nome do erro e a explicação.",
+        "A primeira, que traz a palavra Traceback.",
+        "A do meio, com o nome do arquivo.",
+        "Nenhuma: o traceback não serve para nada."
+      ],
+      "answerIndex": 0,
+      "feedback": "A última linha é o resumo do que deu errado. Logo acima dela está a linha do seu arquivo onde consertar.",
+      "sectionId": "o-relatorio-do-erro"
+    },
+    {
+      "id": "nameerror-e-nome-errado",
+      "statement": "`NameError` quer dizer que você pediu um nome que não foi guardado.",
+      "question": "O traceback termina com `NameError: name 'nomee' is not defined`. O que consertar?",
+      "options": [
+        "O nome digitado errado: trocar `nomee` pelo nome que existe.",
+        "As aspas do texto.",
+        "O `print`, que deveria ser outra coisa.",
+        "Nada: esse erro não tem conserto."
+      ],
+      "answerIndex": 0,
+      "feedback": "O Python só sabe usar nomes que já foram guardados. `nomee` nunca foi — e a própria mensagem sugere o certo.",
+      "sectionId": "nameerror-o-nome-que-nao-existe"
+    },
+    {
+      "id": "syntaxerror-nao-roda-nada",
+      "statement": "Com `SyntaxError`, nenhuma linha do programa chega a rodar.",
+      "question": "O que acontece com as linhas certas de um arquivo que tem um `SyntaxError`?",
+      "options": [
+        "Nenhuma roda: o Python para antes de começar.",
+        "As linhas antes do erro rodam normalmente.",
+        "Todas rodam, e o erro é só um aviso.",
+        "Só a linha do erro é pulada."
+      ],
+      "answerIndex": 0,
+      "feedback": "O `SyntaxError` aparece na leitura do arquivo, antes da execução. Sem entender o arquivo inteiro, o Python não roda nada.",
+      "sectionId": "syntaxerror-a-frase-quebrada"
+    }
+  ],
+  "sources": [
+    {
+      "title": "Erros e exceções",
+      "url": "https://docs.python.org/3/tutorial/errors.html",
+      "description": "O capítulo do tutorial oficial sobre erro de sintaxe e erro de execução."
+    }
+  ],
+  "challenges": [
+    "conserte-o-nome-errado"
+  ]
+}

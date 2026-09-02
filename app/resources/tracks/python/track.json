@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "slug": "python",
+  "title": "Python, do primeiro print ao sênior",
+  "description": "O curso de Python desta plataforma. Começa em zero absoluto — a primeira aula é uma linha que aparece na tela — e vai até o que se cobra de uma pessoa sênior. Cada aula ensina no máximo duas construções novas, mostra cada uma delas funcionando e termina num desafio conferido por teste automático. Só o interpretador e a biblioteca padrão: nada para instalar.",
+  "language": "pt-BR",
+  "domain": "programming",
+  "programmingLanguage": "python",
+  "runtime": "cpython-3.14",
+  "harnessLanguage": "python",
+  "entryCriteria": [],
+  "modules": [
+    "a-tela"
+  ]
+}

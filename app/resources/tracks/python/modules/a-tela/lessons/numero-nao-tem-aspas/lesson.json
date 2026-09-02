@@ -1,0 +1,79 @@
+{
+  "schemaVersion": 1,
+  "slug": "numero-nao-tem-aspas",
+  "title": "Número não tem aspas",
+  "summary": "Doze com aspas é texto; doze sem aspas é número — e são coisas diferentes.",
+  "difficulty": 1,
+  "role": "regular",
+  "targetAtom": "node:IntLiteral",
+  "concepts": [
+    "numero_inteiro"
+  ],
+  "prerequisites": [
+    "a-primeira-linha"
+  ],
+  "introduces": {
+    "productive": [
+      "node:IntLiteral"
+    ],
+    "receptive": []
+  },
+  "introducesTerms": [],
+  "theory": [
+    {
+      "id": "com-aspas-e-sem-aspas",
+      "title": "Com aspas e sem aspas",
+      "markdown": "Até agora tudo que você mostrou estava entre aspas. Número dispensa as aspas:\n\n```python\nprint(12)\n```\n\n```text\n12\n```\n\nRepare que dentro dos parênteses não há aspas nenhuma. `12` é um número."
+    },
+    {
+      "id": "iguais-na-tela-diferentes-por-dentro",
+      "title": "Iguais na tela, diferentes por dentro",
+      "markdown": "Agora as duas formas lado a lado:\n\n```python\nprint(\"12\")\nprint(12)\n```\n\n```text\n12\n12\n```\n\nNa tela elas ficaram iguais. Para o Python **não são a mesma coisa**: a de cima é um texto que por acaso tem dois algarismos, e a de baixo é um número de verdade.\n\nA diferença ainda não aparece na tela porque você só sabe mostrar coisas. Ela aparece assim que você mandar fazer conta — que é a próxima aula."
+    },
+    {
+      "id": "como-se-escreve-um-numero",
+      "title": "Como se escreve um número",
+      "markdown": "Número se escreve com algarismos e mais nada: sem aspas, sem ponto, sem espaço e sem separador de milhar.\n\n```python\nprint(0)\nprint(2026)\n```\n\n```text\n0\n2026\n```\n\nGuarde a regra em uma frase: **com aspas é texto, sem aspas é número**."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "aspas-fazem-texto",
+      "statement": "`12` é um número; `\"12\"` é um texto.",
+      "question": "Qual das linhas abaixo mostra um NÚMERO na tela?",
+      "options": [
+        "print(12)",
+        "print(\"12\")",
+        "print(\"doze\")",
+        "print(doze)"
+      ],
+      "answerIndex": 0,
+      "feedback": "Sem aspas, é número. Com aspas, é texto — mesmo que por dentro das aspas só haja algarismos.",
+      "sectionId": "com-aspas-e-sem-aspas"
+    },
+    {
+      "id": "tela-nao-mostra-a-diferenca",
+      "statement": "Na tela, o número 12 e o texto \"12\" saem iguais.",
+      "question": "O que aparece na tela com `print(\"12\")` e depois `print(12)`?",
+      "options": [
+        "12 na primeira linha e 12 na segunda.",
+        "\"12\" na primeira linha e 12 na segunda.",
+        "12 só uma vez.",
+        "Um erro, porque não se pode misturar os dois."
+      ],
+      "answerIndex": 0,
+      "feedback": "A tela mostra as duas iguais. A diferença entre texto e número existe por dentro do programa, e vai aparecer quando você fizer conta.",
+      "sectionId": "iguais-na-tela-diferentes-por-dentro"
+    }
+  ],
+  "sources": [
+    {
+      "title": "Uma introdução informal ao Python",
+      "url": "https://docs.python.org/3/tutorial/introduction.html",
+      "description": "O primeiro capítulo do tutorial oficial: números, textos e a tela."
+    }
+  ],
+  "challenges": [
+    "imprima-o-doze"
+  ]
+}

@@ -1,0 +1,93 @@
+{
+  "schemaVersion": 1,
+  "slug": "a-primeira-linha",
+  "title": "A primeira linha",
+  "summary": "Você escreve uma linha, manda rodar, e ela aparece na tela.",
+  "difficulty": 1,
+  "role": "regular",
+  "targetAtom": "global:print",
+  "concepts": [
+    "imprimir"
+  ],
+  "prerequisites": [],
+  "introduces": {
+    "productive": [
+      "global:print",
+      "node:Call",
+      "node:StrLiteral"
+    ],
+    "receptive": []
+  },
+  "introducesTerms": [],
+  "theory": [
+    {
+      "id": "uma-linha-e-so",
+      "title": "Uma linha, e só",
+      "markdown": "Programar é escrever ordens que o computador segue, uma por linha, de cima para baixo.\n\nA sua primeira ordem mostra um texto na tela. Ela se escreve assim:\n\n```python\nprint(\"bom dia\")\n```\n\nQuando você manda rodar, aparece isto na tela:\n\n```text\nbom dia\n```\n\nÉ isso. Não há nada escondido nessa linha, e ela sozinha já é um programa que funciona."
+    },
+    {
+      "id": "as-tres-partes-da-linha",
+      "title": "As três partes da linha",
+      "markdown": "Olhe a linha de perto. Ela tem três pedaços, e cada um faz uma coisa:\n\n- `print` é o nome da ordem. Em inglês quer dizer *imprima*; aqui ele quer dizer **mostre na tela**.\n- Os parênteses `(` e `)` seguram o que vai ser mostrado. Eles vêm sempre em par: um abre, o outro fecha.\n- As aspas `\"` marcam onde o texto começa e onde ele acaba.\n\nTroque o que está entre as aspas e a tela muda junto:\n\n```python\nprint(\"boa noite\")\n```\n\n```text\nboa noite\n```\n\nO que está entre aspas sai exatamente como você escreveu — com acento, com espaço, com vírgula, do jeito que for."
+    },
+    {
+      "id": "a-linha-comeca-na-margem",
+      "title": "A linha começa na margem",
+      "markdown": "A sua linha começa colada na margem esquerda, sem nenhum espaço na frente:\n\n```python\nprint(\"oi\")\n```\n\nIsso não é capricho de arrumação. Em Python o espaço no começo da linha tem significado, e mais para a frente você vai usá-lo de propósito. Por enquanto a regra é simples: **comece sempre na margem**."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "print-mostra-na-tela",
+      "statement": "O `print` mostra na tela o que está entre as aspas.",
+      "question": "O programa é `print(\"boa noite\")`. O que aparece na tela?",
+      "options": [
+        "boa noite",
+        "print(\"boa noite\")",
+        "\"boa noite\"",
+        "nada, porque falta mandar mostrar"
+      ],
+      "answerIndex": 0,
+      "feedback": "Sai só o texto: as aspas e a palavra `print` são instruções para o computador, não fazem parte da mensagem.",
+      "sectionId": "as-tres-partes-da-linha"
+    },
+    {
+      "id": "aspas-marcam-o-texto",
+      "statement": "As aspas marcam onde o texto começa e onde ele acaba.",
+      "question": "Para que servem as aspas na linha do `print`?",
+      "options": [
+        "Marcam o começo e o fim do texto que vai ser mostrado.",
+        "Deixam a letra maiúscula.",
+        "Servem para o computador entender português.",
+        "São enfeite: pode tirar que funciona igual."
+      ],
+      "answerIndex": 0,
+      "feedback": "Sem as aspas o Python não sabe onde a mensagem começa nem onde ela termina — e reclama antes de rodar.",
+      "sectionId": "as-tres-partes-da-linha"
+    },
+    {
+      "id": "linha-na-margem",
+      "statement": "A linha começa colada na margem esquerda.",
+      "question": "Onde a sua linha de `print` deve começar?",
+      "options": [
+        "Colada na margem esquerda, sem espaço na frente.",
+        "Com quatro espaços na frente, para ficar bonito.",
+        "No meio da linha.",
+        "Tanto faz: espaço no começo não muda nada."
+      ],
+      "answerIndex": 0,
+      "feedback": "Em Python o espaço no começo da linha tem significado. Por enquanto, nenhuma linha sua leva espaço na frente.",
+      "sectionId": "a-linha-comeca-na-margem"
+    }
+  ],
+  "sources": [
+    {
+      "title": "print() — a documentação oficial",
+      "url": "https://docs.python.org/3/library/functions.html#print",
+      "description": "A página oficial da instrução que mostra coisas na tela."
+    }
+  ],
+  "challenges": [
+    "escreva-oi"
+  ]
+}

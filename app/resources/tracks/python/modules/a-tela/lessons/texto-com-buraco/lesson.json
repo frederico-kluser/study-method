@@ -1,0 +1,81 @@
+{
+  "schemaVersion": 1,
+  "slug": "texto-com-buraco",
+  "title": "Texto com buraco",
+  "summary": "Um `f` antes das aspas deixa você abrir um buraco no texto e encaixar um valor.",
+  "difficulty": 2,
+  "role": "regular",
+  "targetAtom": "node:JoinedStr",
+  "concepts": [
+    "texto_com_buraco"
+  ],
+  "prerequisites": [
+    "dar-nome-a-um-valor",
+    "juntar-textos"
+  ],
+  "introduces": {
+    "productive": [
+      "node:JoinedStr",
+      "node:FormattedValue"
+    ],
+    "receptive": []
+  },
+  "introducesTerms": [],
+  "theory": [
+    {
+      "id": "a-letra-f-antes-das-aspas",
+      "title": "A letra f antes das aspas",
+      "markdown": "Colar com `+` funciona, mas fica cansativo quando a frase tem vários pedaços. Existe um jeito mais direto: escreva a letra `f` colada antes das aspas e abra um buraco com `{` e `}`.\n\n```python\npreco = 1200\nprint(f\"custa {preco} reais\")\n```\n\n```text\ncusta 1200 reais\n```\n\nDentro das chaves vai o nome; na tela sai o valor que ele guarda. O resto do texto sai como está escrito."
+    },
+    {
+      "id": "sem-o-f-nao-funciona",
+      "title": "Sem o f não funciona",
+      "markdown": "O `f` não é enfeite. Sem ele, as chaves viram texto comum:\n\n```python\npreco = 1200\nprint(\"custa {preco} reais\")\n```\n\n```text\ncusta {preco} reais\n```\n\nAs chaves e o nome saíram na tela do jeito que estavam. É o `f` que faz o Python olhar para dentro das chaves."
+    },
+    {
+      "id": "mais-de-um-buraco",
+      "title": "Mais de um buraco",
+      "markdown": "Um mesmo texto pode ter quantos buracos você quiser:\n\n```python\nnome = \"Ana\"\npreco = 1200\nprint(f\"{nome} pagou {preco}\")\n```\n\n```text\nAna pagou 1200\n```\n\nRepare que o número não precisou virar texto: dentro das chaves o Python encaixa qualquer valor, sem você pedir."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "chaves-mostram-o-valor",
+      "statement": "Dentro de um texto com `f`, o que está entre chaves vira o valor guardado.",
+      "question": "Com `preco = 1200`, o que `print(f\"custa {preco} reais\")` mostra?",
+      "options": [
+        "custa 1200 reais",
+        "custa {preco} reais",
+        "custa preco reais",
+        "1200"
+      ],
+      "answerIndex": 0,
+      "feedback": "O buraco é preenchido com o valor guardado no nome.",
+      "sectionId": "a-letra-f-antes-das-aspas"
+    },
+    {
+      "id": "sem-f-as-chaves-sao-texto",
+      "statement": "Sem o `f`, as chaves aparecem na tela como texto comum.",
+      "question": "O que `print(\"custa {preco} reais\")` mostra?",
+      "options": [
+        "custa {preco} reais",
+        "custa 1200 reais",
+        "um erro",
+        "custa reais"
+      ],
+      "answerIndex": 0,
+      "feedback": "Sem o `f` o Python não olha para dentro das chaves; tudo é texto.",
+      "sectionId": "sem-o-f-nao-funciona"
+    }
+  ],
+  "sources": [
+    {
+      "title": "Textos com buraco (f-strings)",
+      "url": "https://docs.python.org/3/reference/lexical_analysis.html#f-strings",
+      "description": "A referência oficial do texto que tem um valor encaixado dentro."
+    }
+  ],
+  "challenges": [
+    "custa-quanto"
+  ]
+}

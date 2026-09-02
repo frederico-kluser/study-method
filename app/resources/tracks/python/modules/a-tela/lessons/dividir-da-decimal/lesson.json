@@ -1,0 +1,80 @@
+{
+  "schemaVersion": 1,
+  "slug": "dividir-da-decimal",
+  "title": "Dividir dá decimal",
+  "summary": "A barra divide e o resultado vem sempre com casa decimal, mesmo quando a divisão é exata.",
+  "difficulty": 2,
+  "role": "regular",
+  "targetAtom": "op:binary:/",
+  "concepts": [
+    "divisao_decimal"
+  ],
+  "prerequisites": [
+    "subtrair-e-multiplicar"
+  ],
+  "introduces": {
+    "productive": [
+      "op:binary:/",
+      "node:FloatLiteral"
+    ],
+    "receptive": []
+  },
+  "introducesTerms": [],
+  "theory": [
+    {
+      "id": "a-barra-divide",
+      "title": "A barra divide",
+      "markdown": "O sinal de divisão é a barra `/`:\n\n```python\nprint(9 / 2)\n```\n\n```text\n4.5\n```\n\nRepare no **ponto**: em Python a casa decimal é separada por ponto, nunca por vírgula. `4.5` é quatro e meio."
+    },
+    {
+      "id": "sempre-com-casa-decimal",
+      "title": "Sempre com casa decimal",
+      "markdown": "Esta é a surpresa da aula. Mesmo quando a divisão é exata, a barra devolve um número com casa decimal:\n\n```python\nprint(10 / 2)\n```\n\n```text\n5.0\n```\n\nSaiu `5.0`, e não `5`. A barra sempre entrega um número decimal, e o `.0` no fim é o Python avisando: *este aqui é decimal*."
+    },
+    {
+      "id": "escrever-um-decimal",
+      "title": "Escrever um decimal",
+      "markdown": "Você também pode escrever um decimal direto, sem dividir nada. Basta usar o ponto:\n\n```python\nprint(1.5 + 2.25)\n```\n\n```text\n3.75\n```\n\nAs contas que você já conhece funcionam igual com decimais: mais, menos e vezes não mudam de sinal nem de regra."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "divisao-exata-tambem-da-decimal",
+      "statement": "A barra `/` devolve decimal mesmo quando a divisão é exata.",
+      "question": "O que `print(10 / 2)` mostra na tela?",
+      "options": [
+        "5.0",
+        "5",
+        "5,0",
+        "2.0"
+      ],
+      "answerIndex": 0,
+      "feedback": "A barra sempre entrega decimal. Por isso sai `5.0`, com o ponto zero no fim.",
+      "sectionId": "sempre-com-casa-decimal"
+    },
+    {
+      "id": "ponto-e-nao-virgula",
+      "statement": "A casa decimal é separada por ponto, não por vírgula.",
+      "question": "Como se escreve quatro e meio em Python?",
+      "options": [
+        "4.5",
+        "4,5",
+        "\"4,5\"",
+        "4 e meio"
+      ],
+      "answerIndex": 0,
+      "feedback": "Ponto, sempre. A vírgula tem outro uso em Python, e você vai encontrá-la mais para a frente.",
+      "sectionId": "a-barra-divide"
+    }
+  ],
+  "sources": [
+    {
+      "title": "Expressões — as contas da linguagem",
+      "url": "https://docs.python.org/3/reference/expressions.html",
+      "description": "A referência oficial dos operadores de conta do Python."
+    }
+  ],
+  "challenges": [
+    "divida-e-some-decimais"
+  ]
+}

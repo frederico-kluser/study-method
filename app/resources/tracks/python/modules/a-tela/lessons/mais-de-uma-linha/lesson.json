@@ -1,0 +1,79 @@
+{
+  "schemaVersion": 1,
+  "slug": "mais-de-uma-linha",
+  "title": "Mais de uma linha",
+  "summary": "O Python lê o seu arquivo de cima para baixo, uma ordem por linha.",
+  "difficulty": 1,
+  "role": "consolidation",
+  "targetAtom": "global:print",
+  "concepts": [
+    "imprimir_varias_linhas"
+  ],
+  "prerequisites": [
+    "a-primeira-linha"
+  ],
+  "introduces": {
+    "productive": [
+      "global:print"
+    ],
+    "receptive": []
+  },
+  "introducesTerms": [],
+  "theory": [
+    {
+      "id": "duas-linhas",
+      "title": "Duas linhas",
+      "markdown": "Um programa pode ter quantas linhas você quiser. Escreva duas:\n\n```python\nprint(\"bom dia\")\nprint(\"boa noite\")\n```\n\n```text\nbom dia\nboa noite\n```\n\nCada `print` mostra a sua mensagem e passa para a linha de baixo da tela. Duas ordens, duas linhas na tela."
+    },
+    {
+      "id": "de-cima-para-baixo",
+      "title": "De cima para baixo",
+      "markdown": "A ordem em que você escreve é a ordem em que acontece. Troque as duas linhas de lugar e a tela troca junto:\n\n```python\nprint(\"boa noite\")\nprint(\"bom dia\")\n```\n\n```text\nboa noite\nbom dia\n```\n\nO Python nunca decide a ordem sozinho. Ele começa na primeira linha do arquivo, faz o que ela manda, desce uma linha e repete até acabar o arquivo."
+    },
+    {
+      "id": "uma-ordem-por-linha",
+      "title": "Uma ordem por linha",
+      "markdown": "Cada ordem ocupa uma linha inteira só dela. Não se junta duas ordens na mesma linha, e não se parte uma ordem em duas linhas.\n\n```python\nprint(\"um\")\nprint(\"dois\")\nprint(\"tres\")\n```\n\n```text\num\ndois\ntres\n```\n\nTrês linhas escritas, três linhas na tela, na mesma ordem."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "ordem-das-linhas",
+      "statement": "O Python executa as linhas de cima para baixo, na ordem em que estão.",
+      "question": "O programa tem `print(\"boa noite\")` na primeira linha e `print(\"bom dia\")` na segunda. O que aparece primeiro na tela?",
+      "options": [
+        "boa noite",
+        "bom dia",
+        "os dois ao mesmo tempo",
+        "o Python escolhe sozinho"
+      ],
+      "answerIndex": 0,
+      "feedback": "Aparece primeiro o que está escrito primeiro. A ordem do arquivo é a ordem do que acontece.",
+      "sectionId": "de-cima-para-baixo"
+    },
+    {
+      "id": "um-print-uma-linha",
+      "statement": "Cada `print` ocupa uma linha do arquivo e produz uma linha na tela.",
+      "question": "Um programa com três linhas de `print` mostra quantas linhas na tela?",
+      "options": [
+        "Três.",
+        "Uma só, tudo junto.",
+        "Nenhuma.",
+        "Depende do tamanho do texto."
+      ],
+      "answerIndex": 0,
+      "feedback": "Um `print`, uma linha na tela. Três `print`, três linhas.",
+      "sectionId": "uma-ordem-por-linha"
+    }
+  ],
+  "sources": [
+    {
+      "title": "Uma introdução informal ao Python",
+      "url": "https://docs.python.org/3/tutorial/introduction.html",
+      "description": "O primeiro capítulo do tutorial oficial: números, textos e a tela."
+    }
+  ],
+  "challenges": [
+    "duas-saudacoes"
+  ]
+}

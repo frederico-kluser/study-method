@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "slug": "some-dois-numeros",
+  "title": "Some dois números",
+  "concept": "soma",
+  "difficulty": 1,
+  "language": "python",
+  "outputChannel": "impressao",
+  "statement": "# Some dois números\n\nEscreva uma linha que mostre na tela o resultado de **1234 mais 5678**.\n\nEscreva a conta, e não o resultado: quem tem de somar é o Python.",
+  "starterCode": "# imprima o resultado de 1234 mais 5678\n",
+  "testsCode": "import contextlib\nimport io\nimport runpy\nimport unittest\n\n\ndef rodar():\n    \"\"\"Roda solucao.py do zero e devolve tudo o que ele imprimiu.\"\"\"\n    saida = io.StringIO()\n    with contextlib.redirect_stdout(saida):\n        runpy.run_path(\"solucao.py\")\n    return saida.getvalue()\n\n\nclass TestSomar(unittest.TestCase):\n    def test_imprime_a_soma(self):\n        \"\"\"o programa imprime a soma de 1234 com 5678\"\"\"\n        self.assertEqual(rodar(), \"6912\\n\")\n",
+  "solutionCode": "print(1234 + 5678)\n",
+  "expectedTestCount": 1
+}

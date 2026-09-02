@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "slug": "duas-casas-e-um-decimal",
+  "title": "Duas casas e um decimal",
+  "concept": "arredondar",
+  "difficulty": 3,
+  "language": "python",
+  "outputChannel": "impressao",
+  "statement": "# Duas casas e um decimal\n\nEscreva um programa de **duas linhas**.\n\n1. A primeira mostra **4321 dividido por 7**, arredondado para **duas casas**.\n2. A segunda transforma o texto `\"2\"` em número decimal e o mostra.\n\nA tela deve ficar assim:\n\n```text\n617.29\n2.0\n```\n\nDeixe a divisão dentro do `round`; não escreva o resultado à mão.",
+  "starterCode": "# primeira linha: imprima 4321 dividido por 7 com duas casas\n# segunda linha: transforme o texto \"2\" em decimal e imprima\n",
+  "testsCode": "import contextlib\nimport io\nimport runpy\nimport unittest\n\n\ndef rodar():\n    \"\"\"Roda solucao.py do zero e devolve tudo o que ele imprimiu.\"\"\"\n    saida = io.StringIO()\n    with contextlib.redirect_stdout(saida):\n        runpy.run_path(\"solucao.py\")\n    return saida.getvalue()\n\n\nclass TestArredondar(unittest.TestCase):\n    def test_imprime_o_arredondamento_e_o_decimal(self):\n        \"\"\"o programa imprime 617.29 e depois 2.0\"\"\"\n        self.assertEqual(rodar(), \"617.29\\n2.0\\n\")\n",
+  "solutionCode": "print(round(4321 / 7, 2))\nprint(float(\"2\"))\n",
+  "expectedTestCount": 1
+}

@@ -1,0 +1,81 @@
+{
+  "schemaVersion": 1,
+  "slug": "arredondar",
+  "title": "Arredondar",
+  "summary": "`round` corta o número na casa que você pedir, e `float` transforma texto em decimal.",
+  "difficulty": 3,
+  "role": "regular",
+  "targetAtom": "global:round",
+  "concepts": [
+    "arredondar"
+  ],
+  "prerequisites": [
+    "dividir-da-decimal",
+    "de-texto-para-numero"
+  ],
+  "introduces": {
+    "productive": [
+      "global:round",
+      "global:float"
+    ],
+    "receptive": []
+  },
+  "introducesTerms": [],
+  "theory": [
+    {
+      "id": "o-decimal-comprido",
+      "title": "O decimal comprido",
+      "markdown": "Divisão costuma dar um número comprido demais para mostrar:\n\n```python\nprint(4321 / 7)\n```\n\n```text\n617.2857142857143\n```\n\nNinguém quer ver quinze casas decimais num preço."
+    },
+    {
+      "id": "round-com-duas-casas",
+      "title": "round com duas casas",
+      "markdown": "A ordem `round` arredonda. Dentro dos parênteses vão duas coisas, separadas por vírgula: o número e quantas casas você quer.\n\n```python\nprint(round(4321 / 7, 2))\n```\n\n```text\n617.29\n```\n\nEsta é a primeira vez que uma ordem recebe **duas** coisas de uma vez. A vírgula é o que separa uma da outra."
+    },
+    {
+      "id": "float-transforma-em-decimal",
+      "title": "float transforma em decimal",
+      "markdown": "Na aula passada, `int` transformava texto em número inteiro. Quando o número tem casa decimal, quem faz isso é o `float`:\n\n```python\nprint(float(\"2\"))\n```\n\n```text\n2.0\n```\n\nSaiu `2.0`, com a casa decimal, porque `float` sempre entrega decimal — a mesma regra da barra `/`. O nome é o mesmo que o Python usa para chamar número decimal."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "round-recebe-duas-coisas",
+      "statement": "`round` recebe o número e a quantidade de casas, separados por vírgula.",
+      "question": "O que `print(round(4321 / 7, 2))` mostra?",
+      "options": [
+        "617.29",
+        "617.2857142857143",
+        "617",
+        "617.28"
+      ],
+      "answerIndex": 0,
+      "feedback": "O `2` pede duas casas decimais, e o arredondamento sobe o `.2857…` para `.29`.",
+      "sectionId": "round-com-duas-casas"
+    },
+    {
+      "id": "float-sempre-decimal",
+      "statement": "`float` sempre entrega um número com casa decimal.",
+      "question": "O que `print(float(\"2\"))` mostra?",
+      "options": [
+        "2.0",
+        "2",
+        "\"2\"",
+        "um erro"
+      ],
+      "answerIndex": 0,
+      "feedback": "Sai `2.0`: o `.0` é o Python avisando que o número é decimal.",
+      "sectionId": "float-transforma-em-decimal"
+    }
+  ],
+  "sources": [
+    {
+      "title": "round() — a documentação oficial",
+      "url": "https://docs.python.org/3/library/functions.html#round",
+      "description": "A página oficial do arredondamento."
+    }
+  ],
+  "challenges": [
+    "duas-casas-e-um-decimal"
+  ]
+}
