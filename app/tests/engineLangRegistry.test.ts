@@ -63,7 +63,7 @@ import * as ts from 'typescript';
 
 const js = javascriptAdapter;
 const py = pythonAdapter;
-const ts = typescriptAdapter;
+const tsAdapter = typescriptAdapter;
 
 describe('registro — enum de ids e resolução', () => {
   it('todo id DECLARADO tem adaptador registrado, e todo adaptador tem id declarado', () => {
@@ -173,7 +173,7 @@ describe('registro — tag de bloco de teoria (qual parser recebe cada bloco)', 
   it('listTheoryCodeTags é a união das tags dos adaptadores', () => {
     assert.deepEqual(
       listTheoryCodeTags(),
-      [...js.theoryFenceTags, ...py.theoryFenceTags, ...ts.theoryFenceTags].sort(),
+      [...js.theoryFenceTags, ...py.theoryFenceTags, ...tsAdapter.theoryFenceTags].sort(),
     );
   });
 });
