@@ -48,6 +48,15 @@ E o `fix15c-review` (`838c307`) reforçou: **reset do `lastSetupRoot`** em novo 
 
 ### B2 — "resposta sem `choices[0].message.content`" (causa-raiz REAL) (`fix15-deepseek-parse`, `3a087a7`)
 
+> **Nota de leitura (posterior a esta rodada).** Tudo abaixo é o registro do que aconteceu
+> quando o app falava DIRETO com a API da DeepSeek. Depois disso o provedor migrou para o
+> **OpenRouter** (`z-ai/glm-5.3-flash`, chave `OPENROUTER_API_KEY` no formato `sk-or-v1-…`),
+> e os três serviços foram renomeados: `deepseekClient.ts` → `llmClient.ts`,
+> `deepseekLessonAuthor.ts` → `lessonAuthor.ts`, `deepseekLlmJudge.ts` → `llmJudge.ts`. O
+> contrato congelado do provedor vive hoje em `app/shared/llm/constants.ts`. Os nomes de
+> ARQUIVO citados aqui já estão atualizados (senão não resolveriam no disco); os nomes de
+> MODELO e a narrativa continuam os da época, porque é isso que este documento registra.
+
 **Sintoma (rodada 3):** o feedback didático falhava de forma enganosa com "resposta sem
 `choices[0].message.content`".
 
@@ -62,11 +71,14 @@ deepseek-v4-flash-0731` — e esse 400 **caía no caminho de sucesso** do client
 **Correção (validada na API real):**
 
 - **Modelo corrigido** para `deepseek-v4-flash` — literal único em
-  `app/shared/piAgent/constants.ts` (`DEEPSEEK_MODEL.id`), validado com um `GET /models` real
+  `app/shared/piAgent/constants.ts` (`DEEPSEEK_MODEL.id` — símbolo daquela época; o contrato
+  congelado do provedor vive hoje em `app/shared/llm/constants.ts`), validado com um
+  `GET /models` real
   (lista exata) e com um `POST /chat/completions` real devolvendo 200 + content não-vazio. O
   comentário do código documenta todo o handoff (por que `-0731` não existe e o que o erro
   real responde).
-- **Erros claros e endereçados** no `deepseekClient.ts`: a resposta agora classifica o status —
+- **Erros claros e endereçados** no `llmClient.ts` (então `deepseekClient.ts`): a resposta
+  agora classifica o status —
   `KEY_INVALID` (401/403), `RATE_LIMIT` (429), `BAD_REQUEST` (qualquer 4xx, ex.: 400 de modelo
   inválido), `SERVER_ERROR` (5xx com corpo parseável), `NETWORK` (fetch/timeout/corpo ilegível) e
   `EMPTY_CONTENT` (2xx com content vazio). Cada 4xx/5xx entra no caminho de **erro**, não no de
@@ -78,12 +90,12 @@ deepseek-v4-flash-0731` — e esse 400 **caía no caminho de sucesso** do client
 - **Sanitização reordenada** (`fix15c-review`): o corpo do erro é sanitizado **antes** de
   renderizar (nunca expõe a chave de API em fragmento de erro).
 
-Cobertura ampla em `tests/deepseekClient.test.ts` (+113 linhas: 400→BAD_REQUEST, content vazio,
-só-reasoning, corpo sanitizado), mais testes em `deepseekLessonAuthor.test.ts`,
-`deepseekLlmJudge.test.ts`, `PiAgentService.test.ts` e `piProviderMapper.test.ts`.
+Cobertura ampla em `app/tests/llmClient.test.ts` (+113 linhas: 400→BAD_REQUEST, content vazio,
+só-reasoning, corpo sanitizado), mais testes em `app/tests/lessonAuthor.test.ts`,
+`app/tests/llmJudge.test.ts`, `PiAgentService.test.ts` e `piProviderMapper.test.ts`.
 
 O `fix15c-review` (838c307) também fez o **juiz degradar com graça** `EMPTY_CONTENT`/`NETWORK`:
-o `deepseekLlmJudge` mapeia erro de conteúdo vazio e de rede para estados de juiz que a UI
+o `llmJudge` mapeia erro de conteúdo vazio e de rede para estados de juiz que a UI
 consegue tratar em vez de quebrar.
 
 ---
@@ -134,7 +146,7 @@ estado é orquestrado pelo `useOnboarding`.
 ### Modal de seleção com gate de chaves
 
 `TutorialSelectionModal` deixa o usuário escolher **Quick Start** ou **Tutorial Completo**.
-Se as chaves (DeepSeek **e** Brave) não estão configuradas, o modal mostra um **gate de chaves**
+Se as chaves (OpenRouter **e** Brave) não estão configuradas, o modal mostra um **gate de chaves**
 com um **CTA "Configurar chaves"** que leva à aba Settings (o `fix16d-review` tirou o CTA de
 dentro de um `Button disabled`, para o botão continuar acionável quando as chaves faltam); o
 tutorial **Completo exige chaves** (seus steps de aula/geração dependem delas) — sem as duas
@@ -268,13 +280,13 @@ specs mock, 15 testes** (`e2e-gate`=2, `e2e-onboarding`=2, `more-flows`=3; demai
 ### Real: 3 specs (`real-lesson`, `real-didactics`, `real-search`)
 
 Rodam **sem** o stub (`STUDY_METHOD_E2E` ausente) — a fiação real flui (pesquisa Brave +
-autoria DeepSeek + runner/juiz de verdade). As **chaves reais entram por envars do shell**
-(`DEEPSEEK_API_KEY`/`BRAVE_API_KEY`) e o `userData` é isolado num TMP, apagado ao fim (nunca
+autoria por LLM da nuvem + runner/juiz de verdade). As **chaves reais entram por envars do shell**
+(`OPENROUTER_API_KEY`/`BRAVE_API_KEY`) e o `userData` é isolado num TMP, apagado ao fim (nunca
 toca as settings reais do dev; o TMP, que pode conter as chaves em claro sem keyring, é limpo —
 também em falha de launch, `fix18a-review`).
 
 ```bash
-export DEEPSEEK_API_KEY=sk-…
+export OPENROUTER_API_KEY=sk-or-v1-…
 export BRAVE_API_KEY=BSAq…
 npm run test:e2e:real   # falha com msg clara se faltar alguma env
 ```
@@ -285,7 +297,7 @@ O que cada um valida:
   (título + seções + código) e, crucialmente, **os desafios LISTAM e abrem** — a **regressão
   B1** (`list-challenges` não falha com "requer `setupRoot`") fica **provada na API real**;
 - `real-didactics` — **didática certa/errada** no mesmo desafio real: resposta CORRETA
-  (solução de referência) → veredito `PASSOU` + feedback didático do DeepSeek na UI; resposta
+  (solução de referência) → veredito `PASSOU` + feedback didático da LLM na UI; resposta
   ERRADA/parcial (stub vazio) → `NÃO PASSOU` + feedback com dicas;
 - `real-search` — **round-trip real com o Brave** (`keys:validate-brave` com a chave real →
   `isValid:true`, `get-status` refletindo `braveValidated`). As **fontes** da pesquisa real são
@@ -326,5 +338,5 @@ npm ci
 npm run build && npm run lint
 npm test                          # bash tools/t.sh tests → 721 testes, verde
 npm run build && npm run test:e2e # 15 testes mock, verde
-npm run test:e2e:real             # 3 specs reais — exporte DEEPSEEK_API_KEY/BRAVE_API_KEY no shell
+npm run test:e2e:real             # 3 specs reais — exporte OPENROUTER_API_KEY/BRAVE_API_KEY no shell
 ```

@@ -96,9 +96,9 @@ study-method/
 │   ├── scripts/                           # os 19 scripts do §8
 │   │   └── lib/{common,json,sandbox}.sh    # apenas `source`, nunca executados
 │   └── assets/{schemas,templates,decisions.json}
-├── tests/                                 # os 5 gates + lib/assert.sh (biblioteca)
+├── tests/                                 # os 6 gates + lib/assert.sh (biblioteca)
 │   ├── validate.sh                        # o gate de contrato — insumo direto do §11
-│   └── gate-build.sh · gate-lint.sh · smoke.sh · spec-conformance.sh
+│   └── gate-build.sh · gate-lint.sh · gate-bash32.sh · smoke.sh · spec-conformance.sh
 └── examples/
 ```
 

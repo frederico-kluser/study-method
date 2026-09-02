@@ -20,7 +20,7 @@ processos, fiação IPC, segurança, contratos e o mapa de ondas. Tudo abaixo se
 O tutor study-method ensina **através de código executável**: você digita um **assunto**, o
 app gera uma **aula** (com pesquisa e fonte), e dentro dela materializa **desafios
 validados por teste**. Você resolve o desafio no **editor**, roda os **testes
-determinísticos**, e recebe um **feedback** do **pi coding agent** (DeepSeek) sobre a sua
+determinísticos**, e recebe um **feedback** do **pi coding agent** (OpenRouter) sobre a sua
 solução.
 
 ### 1.2 Primeiros passos
@@ -28,12 +28,13 @@ solução.
 1. **Rode** (`cwd = app/`): `npm ci && npm run dev` — ou, da raiz do repositório,
    `./install.sh` (instala tudo) e `./run.sh` (sobe a janela).
 2. **Configurações** (ícone de engrenagem):
-   - Aba **Chaves**: cole `DEEPSEEK_API_KEY` e `BRAVE_API_KEY`. O app valida a chave digitada
+   - Aba **Chaves**: cole `OPENROUTER_API_KEY` (formato `sk-or-v1-…`) e `BRAVE_API_KEY`. O app
+     valida a chave digitada
      antes de salvar (ícone de status verde/vermelho).
    - Aba **LLM local** (opcional): `Detectar hardware` → a lista recomenda um quant → baixe e
      **ative**; depois selecione **Modelo local** em "Provedor de feedback do desafio". Com o
      modelo ativo, o app usa o modelo local como **avaliador do feedback** do Desafio (sem
-     depender do DeepSeek); sem modelo ativo, o feedback usa o DeepSeek.
+     depender da nuvem); sem modelo ativo, o feedback usa o OpenRouter.
 3. **Primeiro uso:** pós-startup-gate (app liberado) o **quick tour** pode oferecer o tutorial
    (overlay com spotlight + modal). Você pode Concluir/Skip — não reaparece (persistido). Se
    pular, reabra pelo botão de ajuda se houver (ver §2.11).
@@ -69,7 +70,7 @@ decidido pela aula atual:
   **esperado só após a 1ª tentativa errada**; malformado (não é número
   reconhecível) → mensagem de formato. Cada resposta registra uma tentativa.
 - **Interpretação** (sem exercício) — juiz com LLM (`study:judge-answer`):
-  DeepSeek primeiro, fallback para o modelo local; devolve veredito
+  nuvem (OpenRouter) primeiro, fallback para o modelo local; devolve veredito
   `correct`/`partial`/`incorrect` + feedback pt-BR específico (nunca elogio
   vazio). `ok:false` é erro de serviço — **nunca** um veredito inventado.
 
@@ -101,16 +102,19 @@ Botão **Testar resposta** — duas fases:
 2. **Feedback (provedor decidido)**: o app monta um prompt com o seu código + a saída
    determinística e o envia ao provedor selecionado em Configurações → LLM local → "Provedor
    de feedback":
-   - **DeepSeek (nuvem)** (default): o coding agent `pi` avalia, streamando em tempo real
+   - **OpenRouter (nuvem)** (default): o coding agent `pi` avalia, streamando em tempo real
      (texto / raciocínio / ferramentas) num painel colapsável (`Raciocínio…`). Mostra o
      veredito ao final.
    - **Modelo local**: a inferência roda localmente em **um bloco único (sem streaming)** e o
      painel de feedback mostra o texto do modelo. Se o chat local falhar, o app mostra o erro
-     com a dica de ativar o modelo em Configurações ou trocar o provedor para DeepSeek (não
+     com a dica de ativar o modelo em Configurações ou trocar o provedor para OpenRouter (não
      re-dispara o pi automaticamente).
 
 O painel de feedback informa qual provedor executou a última avaliação (badge "modelo local" /
-"DeepSeek").
+"OpenRouter" — a string vem do i18n `challenge.providerLocal` / `challenge.providerOpenrouter`,
+mapeadas em `src/lib/feedbackProviderUi.ts`; o seletor do Settings usa
+`localAi.feedbackProviderLocal` / `localAi.feedbackProviderOpenrouter`. A onda 2 de renomeação
+tirou o nome do provedor antigo também das CHAVES — não sobrou nenhuma com nome legado).
 
 Botão **Abortar** interrompe a execução do pi (guarda o `sessionId` no `pi:abort`); não se
 aplica ao bloco único do modelo local.
@@ -167,7 +171,7 @@ juiz ausente, apply esgotado).
 │  Electron main  (processo principal)                          │
 │   ├─ janela única 1280×800 (min 900×600), claro/escuro (SO)   │
 │   ├─ registerIpcHandlers / Register*Handlers (IPC)           │
-│   ├─ services: settingsStore, PiAgent, deepseek*, runner,     │
+│   ├─ services: settingsStore, PiAgent, llmClient, lessonAuthor,│
 │   │   lesson, brave, research, embeddedLlm                   │
 │   └─ utility processes: llm-engine (node-llama-cpp),         │
 │       asr-engine (sherpa-onnx STT OOVP)                      │
@@ -187,7 +191,7 @@ juiz ausente, apply esgotado).
 └───────────────────────────────────────────────────────────────┘
 ```
 
-**Todo tráfego de rede roda no main** (DeepSeek, Pi, Brave, download de modelo local). O
+**Todo tráfego de rede roda no main** (OpenRouter, Pi, Brave, download de modelo local). O
 renderer só fala com o main via IPC — o que permite a CSP estrita (abaixo).
 
 ### 2.2 Fiação IPC e ordem de registro
@@ -216,7 +220,7 @@ por todos os grupos específicos. O contrato de canais/tipos é **único e conge
 | `getLessonById({lessonId})` | `study:get-lesson-by-id` | `GetLessonByIdResult` | `{ lesson, exercise, domain, subjectSlug, challenge }` — reabre lição persistida (Trilha → Aula) |
 | `markChallengeAttempt({subjectId?,subjectSlug?,challengeId,verdict,stars?,durationMs?})` | `study:mark-challenge-attempt` | `MarkChallengeAttemptResult` | uma tentativa por evento terminal; `verdict` `passed\|failed\|timeout\|abandoned`; subject resolvido ou upsert sob demanda |
 | `checkMathAnswer({family,seed,answerText})` | `study:check-math-answer` | `MathAnswerCheckResult` | **sem LLM**: main re-computa o esperado da mathLib e compara |
-| `judgeAnswer({lessonId?,answerText,context})` | `study:judge-answer` | `JudgeAnswerOutcome` | LLM (deepseek → modelo local); `ok:false` = erro de serviço |
+| `judgeAnswer({lessonId?,answerText,context})` | `study:judge-answer` | `JudgeAnswerOutcome` | LLM (nuvem OpenRouter → modelo local); `ok:false` = erro de serviço |
 | `onResearchProgress(cb)` | push `study:research-progress` | `ResearchProgressEvent` | eventos `research:*` (plan/query-start/query-done/round-*/done); `errorKind` `brave-missing`/`brave-key-invalid` aborta a geração |
 | `testAnswer({challengeDir})` | `study:test-answer` | `TestAnswerResult` | + evento `test-answer-event` com `phase: started\|done` |
 | `listWorkspaceFiles({workspaceDir})` | `study:list-workspace-files` | `WorkspaceFile[]` (plano) | restrito ao `workspaceDir` (contenção de path) |
@@ -246,7 +250,7 @@ ASSUNTO → research.plan (Brave) → author ({subject,findings,memory}) → Les
 → verifyChallenge (só approved entra em lesson.challenges; not_run tem motivo honesto)
 ```
 
-O autor (`deepseekLessonAuthor.ts`) valida o `LessonDraft` (estrutura + cenários
+O autor (`lessonAuthor.ts`) valida o `LessonDraft` (estrutura + cenários
 example/boundary/error) e agora **instrui o modelo a nomear a função principal pelo slug**
 (ver `slugifyToFunctionName` e §1.5). A materialização respeita o layout EXATO da linguagem
 (usando os paths que o `challenge-new.sh` gravou em `meta.json.artifacts.*`).
@@ -264,9 +268,9 @@ example/boundary/error) e agora **instrui o modelo a nomear a função principal
 executa `engine.chat({modelId, prompt})` — modelo `modelId` explícito ou o **ativo**
 (`set-active`) como fallback — e devolve `{text}` em um bloco. O `ChallengeView` usa
 `src/lib/feedbackProvider.ts` (`resolveFeedbackProvider`) para decidir entre modelo local e
-pi/DeepSeek, e o painel "Provedor de feedback" do Settings (`LocalAiPanel`) persiste
+pi/OpenRouter, e o painel "Provedor de feedback" do Settings (`LocalAiPanel`) persiste
 `defaultModelProvider` em `settings:set`. Sem modelo ativo/baixado, o handler devolve
-`{success:false, error}` estruturado e o app sugere voltar ao DeepSeek (sem fallback
+`{success:false, error}` estruturado e o app sugere voltar ao OpenRouter (sem fallback
 automático de re-inferência).
 
 ### 2.6 Voz local — painel de voz (STT/TTS) e contrato
@@ -318,8 +322,9 @@ resultado num `<audio src="data:audio/wav;base64,...">`. O modelId usa a prefer�
 ### 2.7 Startup-gate
 
 `startup-handlers.ts` registra o canal aditivo `keys:startup-status` (não substitui o
-`keys:*` original). A decisão é a função pura `classifyStartup` (testada): sem `DeepSeek` ou
-`Brave` no store → `phase:'blocked'` (sem rede); com ambas → valida as duas com timeout ~8 s
+`keys:*` original). A decisão é a função pura `classifyStartup` (testada): sem a chave do **LLM**
+(`StartupStatus.llm`, canal `keys:validate-llm` — o provedor é o OpenRouter) ou sem a do `Brave`
+no store → `phase:'blocked'` (sem rede); com ambas → valida as duas com timeout ~8 s
 (`401/403` → `blocked`; **ambas** por rede → `offline` com aviso e features online gateadas;
 uma por rede → `blocked` apontando a que falhou). O renderer reage em `src/gate/AppGate.tsx`
 (SetupView quando bloqueado; banner quando offline).
@@ -507,7 +512,7 @@ com mensagem clara — nunca skip silencioso).
   - `require_node_ge_22_13` — node/npm presentes e Node ≥ **22.13**
     (`node:sqlite` unflagged), com erro claro ANTES de qualquer download;
   - `ensure_app_env_local` — cria `app/.env.local` a partir do example se faltar;
-    **nunca sobrescreve**; aviso para preencher `DEEPSEEK_API_KEY`/`BRAVE_API_KEY`;
+    **nunca sobrescreve**; aviso para preencher `OPENROUTER_API_KEY`/`BRAVE_API_KEY`;
   - `app_node_modules_ok` — prova de instalação COMPLETA = marcador
     `node_modules/.install-ok` (não basta a pasta existir).
 - **`run.sh`** — sequência garantida: checa node → garante `.env.local` → sem o
@@ -572,7 +577,7 @@ com mensagem clara — nunca skip silencioso).
     terminal perdem cor/posicionamento.
   - **Sem `unsafe-eval`**: o CodeMirror é compilado e não usa eval/new Function (a extensão
     de autocomplete está desligada nesta onda).
-  - **`connect-src 'self'`** basta porque todo o tráfego de rede (DeepSeek, Pi, Brave,
+  - **`connect-src 'self'`** basta porque todo o tráfego de rede (OpenRouter, Pi, Brave,
     download de modelo) roda no **main**, não no renderer.
 - **Sandbox**: `sandbox: true` nas `webPreferences` do `BrowserWindow` (`main/index.ts`); o
   preload é um bundle CJS que só `require('electron')` — compatível com o sandbox de preload.
@@ -591,9 +596,9 @@ com mensagem clara — nunca skip silencioso).
 | Onda 1 | janela, ciclo de vida, instance-lock, skeleton, theme | `electron/main/index.ts` |
 | Onda 1-pi | `pi:*` + `keys:*` (PiAgentService, apiKeyValidator, settings chaves) | `pi-handlers.ts`, `keys-handlers.ts` |
 | Onda 2 | runner (createSetup/newSession/createChallenge/verify/testStudentAnswer) | `studyMethodRunner.ts` |
-| Onda 3 | lesson-orchestrator, autor DeepSeek, juiz, pesquisa Brave, pesquisa | `lessonOrchestrator.ts`, `deepseekLessonAuthor.ts`, `researchPlanner.ts` |
+| Onda 3 | lesson-orchestrator, autor de aulas por LLM, juiz, pesquisa Brave | `lessonOrchestrator.ts`, `lessonAuthor.ts`, `researchPlanner.ts` |
 | Onda 3-ui | Settings, Aula, Desafio/editor + fiação IPC completa (`buildMainSetup`) | `main-setup.ts`, `api-schema.ts` |
-| Onda 4 | Segurança (CSP/sandbox), alinhamento do autor ao naming por slug, verificação fim-a-fim de assinaturas IPC, docs | `app/index.html` (CSP), `main/index.ts` (sandbox), `deepseekLessonAuthor.ts` |
+| Onda 4 | Segurança (CSP/sandbox), alinhamento do autor ao naming por slug, verificação fim-a-fim de assinaturas IPC, docs | `app/index.html` (CSP), `main/index.ts` (sandbox), `lessonAuthor.ts` |
 | Onda 6 | **startup-gate** (`keys:startup-status`, setup bloqueado / offline) + **i18n pt-BR/en** + persistência | `startup-handlers.ts`, `src/i18n/index.ts` |
 | Onda 7 | **Shell MUI v9 dark** — AppBar+Tabs, Settings/Aula/Desafio migrados de CSS custom para MUI `sx` | `src/theme.ts`, `src/App.tsx`, `src/views/*` |
 | Onda 8 | **Voz local** — STT Nemotron (`stt:*`) + TTS Piper (`localTts:*`), pref persistida no settingsStore | `stt-handlers.ts`, `localTts-handlers.ts`, `src/components/voice/*` |
@@ -603,7 +608,7 @@ com mensagem clara — nunca skip silencioso).
 | Onda 13 | **Janela oculta/não-focável no E2E** (`STUDY_METHOD_WINDOW_VISIBLE='0'`) + monta `OnboardingHost` (isReady+activeView) + +3 specs E2E (tema/onboarding/dracula) | `electron/main/index.ts`, `src/App.tsx`, `tests/e2e/*` |
 | Onda R7-1 | **3 estrelas + cronômetro no desafio** (perda por blur/timeout/erro/decaimento por velocidade; `T = 90s + difficulty×60s`, fallback 300s) + **confete em PASS** (reduced-motion, `role="status"`, sem "Parabéns!") + **schema v2** (`subjects.domain`, `challenge_attempts`) com migração crash-safe | `src/lib/challengeStars.ts`, `src/lib/confetti.ts`, `electron/main/db/schema.ts` |
 | Onda R7-2 | **Pesquisa Brave ao vivo por query** (`study:research-progress`: plan/query-*/round-*/done; planner LLM com fallback heurístico; cap 2 rodadas; chave ausente/inválida aborta) + **aba Trilha** (Iniciante 1–2 / Intermediário 3 / Avançado 4–5, done/current/pending, abre lição por id) | `researchPlanner.ts`, `src/views/RoadmapView/`, `src/lib/roadmap.ts`, `src/lib/levels.ts` |
-| Onda R7-3 | **Resposta digitada**: ramo math (`study:check-math-answer` SEM LLM — main re-computa da mathLib; esperado só após 1ª tentativa errada; 4 famílias, seed determinístico por tentativa) + ramo interpretação (`study:judge-answer` LLM deepseek→local; correct/partial/incorrect; `ok:false` = erro de serviço) + **checklist de pesquisa na UI** | `mathLib.ts`, `answerJudge.ts`, `src/lib/answerFlow.ts`, `src/lib/researchProgress.ts`, `ResearchChecklist.tsx` |
+| Onda R7-3 | **Resposta digitada**: ramo math (`study:check-math-answer` SEM LLM — main re-computa da mathLib; esperado só após 1ª tentativa errada; 4 famílias, seed determinístico por tentativa) + ramo interpretação (`study:judge-answer` LLM nuvem→local; correct/partial/incorrect; `ok:false` = erro de serviço) + **checklist de pesquisa na UI** | `mathLib.ts`, `answerJudge.ts`, `src/lib/answerFlow.ts`, `src/lib/researchProgress.ts`, `ResearchChecklist.tsx` |
 | Onda R7-4 | **Persistência + nunca-repetir**: matérias/lições/tentativas no SQLite (schema **v3** `exercise_json`); `study:mark-challenge-attempt` (verdict/stars/duração; slug ou `math:<subjectSlug>:<family>:<seed>`); `list-challenges` filtra tentados; **Home por domínio** (seções Programação/Matemática + diálogo de troca com aula em andamento) | `electron/main/db/repo.ts`, `study-handlers.ts`, `lessonOrchestrator.ts`, `src/lib/homeSetup.ts`, `src/lib/pendingSubject.ts` |
 | Onda R7-5 | **Aula por id + sessão global**: `study:get-lesson-by-id` com `subjectSlug`/`challenge` (reabertura da Trilha); `publishSession` da LessonView no shell/Home; guarda de identidade de geração (token por processo) | `study-handlers.ts`, `src/lib/sessionState.ts`, `src/lib/lessonGenerationGuard.ts`, `LessonView` |
 
@@ -630,10 +635,10 @@ com mensagem clara — nunca skip silencioso).
    restart.
 5. **Primeiro-run do LLM local** baixa modelo/binários automaticamente (§1.2/§2.5).
 6. **Chat local sem streaming**: a inferência do modelo local no feedback dos desafios é um
-   **bloco único** (sem deltas, diferente do pi/DeepSeek); modelos grandes podem demorar mais
+   **bloco único** (sem deltas, diferente do pi/OpenRouter); modelos grandes podem demorar mais
    e o primeiro uso pode baixar os binários do node-llama-cpp. **Erro de chat local NÃO**
    re-dispara o pi: o app mostra o erro no painel com a dica de ativar o modelo em
-   Configurações ou trocar o provedor para DeepSeek.
+   Configurações ou trocar o provedor para OpenRouter.
 7. **Verificação de desafio é rígida** (DES-1/DES-4): somente `approved` entra na aula;
    `not_run` tem motivo honesto (JSON do REQUEST malformado, setup não encontrado (exit 3),
    recurso travado (exit 4), apply esgotado, ou juiz ausente).

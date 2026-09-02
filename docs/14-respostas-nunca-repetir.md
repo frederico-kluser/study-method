@@ -55,14 +55,14 @@ A `LessonView` roteia a resposta pelo ramo da aula atual:
 | Ramo | Quando | Canal | Verificação | Veredito |
 |---|---|---|---|---|
 | **Matemática** | lição com `exercise.kind === 'math'` | `study:check-math-answer` | **por execução, SEM LLM** (mathLib re-computa no main) | `correct` (avança) / `wrong` (revela o esperado) / `malformed` (mensagem de formato) / `error` (serviço) |
-| **Interpretação** | lição sem exercício (aula de conceito) | `study:judge-answer` | **LLM**: deepseek primeiro, fallback para o modelo local (`embeddedLlm`); temperatura 0; JSON estrito `{"verdict","feedback"}` | `correct` / `partial` / `incorrect` + feedback pt-BR |
+| **Interpretação** | lição sem exercício (aula de conceito) | `study:judge-answer` | **LLM**: nuvem primeiro (OpenRouter, `z-ai/glm-5.3-flash`), fallback para o modelo local (`embeddedLlm`); temperatura 0; JSON estrito `{"verdict","feedback"}` | `correct` / `partial` / `incorrect` + feedback pt-BR |
 
 ### 2.1 `judge-answer` — cadeia de provedores e erros
 
 | Situação | Resultado |
 |---|---|
-| deepseek responde JSON válido | `{ ok: true, verdict, feedback, provider: 'deepseek' }` |
-| deepseek falha (sem chave, rede, content vazio, rate limit) | tenta o **modelo local** ativo |
+| a nuvem (OpenRouter) responde JSON válido | `{ ok: true, verdict, feedback, provider }` — `provider` nomeia o motor da nuvem (o tipo exato vive em `answerJudge.ts`) |
+| a nuvem falha (sem chave, rede, content vazio, rate limit) | tenta o **modelo local** ativo |
 | modelo local responde JSON válido | `{ ok: true, verdict, feedback, provider: 'embedded' }` |
 | **falha total** (nenhum provedor ou JSON inutilizável) | `{ ok: false, error: { code } }` — **nunca inventa veredito** |
 

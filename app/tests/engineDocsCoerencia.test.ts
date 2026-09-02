@@ -9,7 +9,7 @@
  * pacote P-26 (docs/16, research/07, README):
  *
  *   1. GATES — cada gate citado em docs/16 (G-SCHEMA..G-FINAL, G-LINT,
- *      G-TEST, G-BUILD, G-AUDIT e os 5 scripts de gate do repo) existe como
+ *      G-TEST, G-BUILD, G-AUDIT e os 6 scripts de gate do repo) existe como
  *      comando EXECUTÁVEL no repositório: scripts de `app/package.json` ou
  *      arquivos de `tests/`; os gates de fase da engine (G-*) têm um teste
  *      dedicado que os menciona (mapa declarado abaixo — estender quando a
@@ -19,12 +19,12 @@
  *      existe no disco.
  *   3. L-02..L-05 (porta mínima) — links relativos quebrados (L-02), `{{`
  *      órfão (L-03), newline final (L-04) e tabela markdown malformada
- *      (L-05) conferidos nos arquivos DO PACOTE. O gate-lint completo não
- *      roda no bash 3.2 do macOS (`local -n` em tests/lib/assert.sh —
- *      P-32/P-36 pendentes, worktrees `p32-bash32`/`p36-anti-regressao` não
- *      integradas): LIMITAÇÃO DECLARADA. Quando o bash for ≥ 4.3, este teste
- *      tenta rodar `tests/gate-lint.sh` e exige que nenhum arquivo deste
- *      pacote apareça nas falhas.
+ *      (L-05) conferidos nos arquivos DO PACOTE, sem depender de bash. Em
+ *      bash ≥ 4.3 este teste ainda roda `tests/gate-lint.sh` de verdade e
+ *      exige que nenhum arquivo deste pacote apareça nas falhas; no bash 3.2
+ *      do macOS a porta mínima é a cobertura, e a limitação é DECLARADA.
+ *      (P-32/P-36 integrados: `tests/lib/assert.sh` não usa mais `local -n` e
+ *      `tests/gate-bash32.sh` é a rede anti-regressão disso.)
  *
  * Os arquivos sob verificação são os que o P-26 produz ou altera.
  */
@@ -52,6 +52,26 @@ function conteudo(caminho: string): string {
   return fs.readFileSync(caminho, 'utf8');
 }
 
+/**
+ * `linha` cita EXATAMENTE o caminho `rel` (e não um caminho que apenas TERMINA
+ * com ele)?
+ *
+ * O `linha.includes(rel)` ingênuo casava `README.md` dentro de
+ * `app/node_modules/@emotion/react/README.md` e de `app/tests/e2e/README.md`:
+ * qualquer arquivo de terceiro ou de outra pasta com o mesmo basename derrubava
+ * este teste como se o README do pacote estivesse quebrado. O caminho tem de
+ * começar numa fronteira (início da linha, espaço, aspa, parêntese…), nunca
+ * depois de uma barra ou de um caractere de nome de arquivo.
+ *
+ * A borda direita fecha em `[\w-]`, não em `[\w.-]`: um `README.md.bak` ainda
+ * casaria. É de propósito — o erro sobra para o lado do VERMELHO (aponta uma
+ * falha a mais), nunca para o lado de esconder uma falha do pacote.
+ */
+function citaCaminho(linha: string, rel: string): boolean {
+  const escapado = rel.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return new RegExp(`(?<![\\w./\\\\-])${escapado}(?![\\w-])`).test(linha);
+}
+
 // ─────────────────────────────────────────────────────────────── 1. GATES
 /**
  * Gates do ORQUESTRADOR/contrato + scripts de gate do repo: cada um precisa
@@ -64,6 +84,8 @@ const GATES_COMANDO: Record<string, { tipo: 'npm' | 'arquivo'; alvo: string; not
   'G-AUDIT': { tipo: 'npm', alvo: 'engine', nota: 'tsx tools/track-engine/cli.ts audit' },
   'gate-build': { tipo: 'arquivo', alvo: 'tests/gate-build.sh', nota: 'sintaxe e forma' },
   'gate-lint': { tipo: 'arquivo', alvo: 'tests/gate-lint.sh', nota: 'qualidade de texto (L-01..L-06)' },
+  // O SEXTO gate: existe no disco desde o P-36 e não estava neste inventário nem no CI.
+  'gate-bash32': { tipo: 'arquivo', alvo: 'tests/gate-bash32.sh', nota: 'anti-regressão bash 3.2 (P-36)' },
   'validate': { tipo: 'arquivo', alvo: 'tests/validate.sh', nota: 'contrato I-01..I-43' },
   'smoke': { tipo: 'arquivo', alvo: 'tests/smoke.sh', nota: 'integração ponta a ponta' },
   'spec-conformance': { tipo: 'arquivo', alvo: 'tests/spec-conformance.sh', nota: 'BUILD_SPEC ainda descreve o repo' },
@@ -90,7 +112,7 @@ const GATES_DE_FASE: Record<string, { arquivos: string[]; termos: string[] }> = 
 describe('engineDocsCoerencia · 1 — gates citados em docs/16 existem como comando', () => {
   const doc = conteudo(DOC16);
 
-  it('G-LINT/G-TEST/G-BUILD/G-AUDIT + os 5 scripts de gate existem como comandos executáveis', () => {
+  it('G-LINT/G-TEST/G-BUILD/G-AUDIT + os 6 scripts de gate existem como comandos executáveis', () => {
     for (const [nome, gate] of Object.entries(GATES_COMANDO)) {
       if (gate.tipo === 'npm') {
         assert.ok(
@@ -346,7 +368,19 @@ describe('engineDocsCoerencia · 3 — L-02..L-05 nos arquivos do pacote (porta 
   });
 
   it('gate-lint completo: LIMITAÇÃO DECLARADA no bash 3.2; nos demais, nenhuma falha nos arquivos do pacote', () => {
-    const bash = execFileSync('bash', ['--version'], { encoding: 'utf8' });
+    // `bash --version` é TRADUZIDO: numa máquina pt-BR sai "GNU bash, versão
+    // 5.3.15(1)-release". Casar /version/ tornava este teste dependente do locale —
+    // vermelho PERMANENTE em qualquer estação pt-BR, mascarando o que ele deveria
+    // proteger. Forçamos o locale C só nesta chamada.
+    //   LC_ALL=C    é o que troca a mensagem para o inglês;
+    //   LANGUAGE='' vai junto porque o LANGUAGE do gettext se sobrepõe ao LC_MESSAGES
+    //               sempre que o locale NÃO é C/POSIX — passá-lo vazio (e não `delete`,
+    //               que herdaria o do processo pai) mantém a neutralização se um dia
+    //               esta chamada trocar LC_ALL=C por outro valor.
+    const bash = execFileSync('bash', ['--version'], {
+      encoding: 'utf8',
+      env: { ...process.env, LC_ALL: 'C', LANGUAGE: '' },
+    });
     assert.ok(/version \d+\.\d+/.test(bash), `bash --version inesperado: ${bash}`);
 
     const versao = /version (\d+)\.(\d+)/.exec(bash);
@@ -355,10 +389,10 @@ describe('engineDocsCoerencia · 3 — L-02..L-05 nos arquivos do pacote (porta 
     const suportaNameref = maior > 4 || (maior === 4 && menor >= 3);
 
     if (!suportaNameref) {
-      // `local -n` (nameref) só existe a partir do bash 4.3; tests/lib/assert.sh e
-      // tests/validate.sh usam — o gate inteiro não roda no bash 3.2 do macOS.
-      // P-32 (remover local -n) e P-36 (anti-regressão) estão em worktrees não
-      // integradas; a cobertura L-02..L-05 do pacote fica na porta mínima acima.
+      // A porta mínima acima já cobriu L-02..L-05 nos arquivos do pacote sem
+      // depender de bash. Rodar o gate-lint INTEIRO exige bash ≥ 4.3 (é o piso
+      // histórico do `local -n`); no bash 3.2 do macOS a cobertura é a porta
+      // mínima, e a limitação é declarada em voz alta em vez de fingida.
       console.log(
         '[engineDocsCoerencia] LIMITAÇÃO DECLARADA: gate-lint completo não roda no bash 3.2 ' +
           '(local -n em tests/lib/assert.sh/tests/validate.sh — P-32/P-36 pendentes). ' +
@@ -375,6 +409,7 @@ describe('engineDocsCoerencia · 3 — L-02..L-05 nos arquivos do pacote (porta 
         encoding: 'utf8',
         cwd: ROOT,
         timeout: 120_000,
+        env: { ...process.env, NO_COLOR: '1' },
       });
     } catch (erro) {
       saida = String((erro as { stdout?: unknown; stderr?: unknown }).stdout ?? erro);
@@ -383,7 +418,7 @@ describe('engineDocsCoerencia · 3 — L-02..L-05 nos arquivos do pacote (porta 
     for (const linha of saida.split('\n')) {
       for (const rel of relativos) {
         assert.ok(
-          !linha.includes(rel) || /passou|OK/.test(linha),
+          !citaCaminho(linha, rel) || /passou|OK/.test(linha),
           `gate-lint apontou falha no arquivo do pacote: ${linha.trim()}`,
         );
       }

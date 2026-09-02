@@ -43,7 +43,7 @@ if [ "$#" -gt 0 ]; then
   hits="$(grep -nHE -- "$PATTERN" "$@" 2>/dev/null || true)"
 else
   hits="$(find "$GATE_ROOT/tests" "$GATE_ROOT/skills/study-method/scripts" \
-      \( -name .git -o -name node_modules -o -name __pycache__ \) -prune -o \
+      "${GATE_PRUNE[@]}" \
       -type f ! -name 'gate-bash32.sh' \
       -exec grep -nHE -- "$PATTERN" {} + 2>/dev/null || true)"
 fi

@@ -1,8 +1,11 @@
-# Os 5 gates do study-method, na ordem em que fazem sentido.
+# Os 6 gates bash do study-method, na ordem em que fazem sentido, mais o `install.sh`
+# e o código do `app/`.
 #
-# REGRA DESTE WORKFLOW: não instalamos nada. O projeto se declara sem dependência além de bash,
+# REGRA DO JOB `gate`: não instalamos nada. A skill se declara sem dependência além de bash,
 # python3, jq e coreutils — se a CI precisasse de `apt-get install` para passar, a declaração
-# seria falsa. Tudo aqui usa só o que a imagem `ubuntu-latest` já traz.
+# seria falsa. Tudo ali usa só o que a imagem `ubuntu-latest` já traz. Os jobs `install` e
+# `app` são outro contrato: o `install.sh` baixa dependências de propósito (é o que ele faz),
+# e o `app/` é um projeto Node — os dois usam `actions/setup-node`, e dizem por quê.
 #
 # CONSEQUÊNCIA — o que fica SEM cobertura na CI, e é dito em voz alta no passo "ferramentas":
 #   · `bubblewrap` (bwrap) não está na imagem: o confinamento de escrita do sandbox NÃO é
@@ -11,6 +14,9 @@
 #   · `shellcheck` pode ou não estar na imagem: quando falta, `gate-build.sh` reduz a análise
 #     estática de shell a `bash -n` (sintaxe, não uso) e diz isso no resumo.
 #   · Sem PyYAML, o frontmatter é lido por `awk`: a checagem cobre a FORMA, não a semântica YAML.
+#   · `npm run build` (electron-vite) e `npm run test:e2e` (Playwright) NÃO rodam aqui: o
+#     primeiro baixa binários de Electron por plataforma e o segundo precisa de display; o job
+#     `app` cobre tipos (`lint`) e a bateria `node:test` (`test`). Gap declarado, não escondido.
 #
 # `tests/validate.sh` pode reprovar por PENDÊNCIA (artefato que ainda não existe) e não só por
 # violação de contrato. Isso é de propósito: o placar do gate é o estado real do repositório, e
@@ -33,7 +39,7 @@ concurrency:
 
 jobs:
   gate:
-    name: 5 gates (ubuntu-latest)
+    name: 6 gates (ubuntu-latest)
     runs-on: ubuntu-latest
     timeout-minutes: 30
 
@@ -72,6 +78,12 @@ jobs:
         if: ${{ !cancelled() }}
         run: tests/gate-lint.sh
 
+      # O SEXTO gate. Existe no disco desde o P-36 e não era executado por ninguém:
+      # rede anti-regressão do contrato bash 3.2 (nameref e expansão de caixa).
+      - name: gate-bash32 (anti-regressão bash 3.2)
+        if: ${{ !cancelled() }}
+        run: tests/gate-bash32.sh
+
       # Sem STUDY_METHOD_TODAY: cada gate já tem a sua data fixa de default, e sobrescrevê-la
       # aqui trocaria o determinismo deles pelo palpite deste arquivo.
       - name: validate (contrato — docs/00-contratos.md)
@@ -82,8 +94,8 @@ jobs:
         if: ${{ !cancelled() }}
         run: tests/smoke.sh
 
-      # O quinto gate: o BUILD_SPEC.md montado ainda descreve o repositório?
-      # Só bash + python3 + jq, como os outros — nada a instalar (docs/12-conformidade.md).
+      # O sexto gate por ordem, o quinto por idade: o BUILD_SPEC.md montado ainda descreve
+      # o repositório? Só bash + python3 + jq, como os outros (docs/12-conformidade.md).
       - name: spec-conformance (BUILD_SPEC.md × repositório)
         if: ${{ !cancelled() }}
         run: tests/spec-conformance.sh
@@ -91,51 +103,123 @@ jobs:
   install:
     name: install.sh num HOME temporário
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 20
+    env:
+      # MEDIDO: `npm ci` em app/ FALHA (EUSAGE, "lock file's ajv@8.20.0 does not satisfy
+      # ajv@6.15.0") em qualquer máquina que não tenha `legacy-peer-deps=true` — o
+      # `app/package-lock.json` foi gerado com essa resolução de peer deps, e um runner
+      # limpo não tem. Reproduzível: `HOME=$(mktemp -d) npm ci --dry-run` em app/.
+      # Declarar aqui é o que faz o job existir; o conserto DURADOURO é a mesma linha em
+      # `app/.npmrc`, onde o ajuste vira contrato do projeto em vez de ambiente da CI.
+      NPM_CONFIG_LEGACY_PEER_DEPS: 'true'
 
     steps:
       - name: checkout
         uses: actions/checkout@v4
 
+      # O `install.sh` roda `npm ci` em app/ e exige Node ≥ 22.13 (tools/check-env.sh:
+      # node:sqlite unflagged). Sem isto o job morre em `require_node_ge_22_13` — que é o
+      # comportamento certo do script, e não o que este job quer medir.
+      - name: node (o install.sh exige ≥ 22.13)
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+
       - name: sintaxe
         run: bash -n install.sh
 
-      - name: instalar, provar idempotência e desinstalar
+      # ATENÇÃO ao escrever este job: o `install.sh` NÃO tem flags. O cabeçalho dele diz
+      # "instala o projeto study-method INTEIRO, sempre, com um comando. Sem flags." e o
+      # script não faz parsing de argumento nenhum. Um teste de `--force`/`--uninstall`/
+      # `--symlink` "passa" por acidente (o argumento é ignorado) e não prova nada — pior,
+      # deixa o teste ditar o produto. Este job testa a interface REAL, e só ela.
+      - name: instalar, provar idempotência e provar a recuperação de destino divergente
         run: |
           set -euo pipefail
           export HOME="$RUNNER_TEMP/fakehome"
           mkdir -p "$HOME"
+          DEST="$HOME/.claude/skills/study-method"
 
           echo "── 1. instalação limpa ──"
-          ./install.sh </dev/null
-
-          echo "── 2. diff origem × destino (tem que ser vazio) ──"
-          diff -r -q skills/study-method "$HOME/.claude/skills/study-method"
-
-          echo "── 3. idempotência: a 2ª execução não faz nada ──"
           out="$(./install.sh </dev/null)"
           printf '%s\n' "$out"
-          printf '%s' "$out" | grep -q 'Nada a fazer'
+          printf '%s' "$out" | grep -qF 'Skill: instalada por cópia em'
 
-          echo "── 4. não sobrescreve sem confirmação (sem TTY, sem --force) ──"
-          touch "$HOME/.claude/skills/study-method/DIVERGENTE.txt"
+          echo "── 2. diff origem × destino (tem que ser vazio) ──"
+          diff -r -q skills/study-method "$DEST"
+
+          echo "── 3. app: .env.local criado a partir do example, dependências instaladas ──"
+          test -f app/.env.local
+          test -f app/node_modules/.install-ok
+
+          echo "── 4. idempotência: a 2ª execução não copia nem baixa nada ──"
+          # As DUAS frases de no-op do script, literais (install.sh:73 e :95).
+          out="$(./install.sh </dev/null)"
+          printf '%s\n' "$out"
+          printf '%s' "$out" | grep -qF 'Skill: já instalada em'
+          printf '%s' "$out" | grep -qF '(origem íntegra no destino — nada a copiar).'
+          printf '%s' "$out" | grep -qF 'App: dependências já instaladas em'
+          printf '%s' "$out" | grep -qF '(nada a baixar).'
+
+          echo "── 5. arquivo EXTRA no destino não força recópia, e sobrevive ──"
+          # Documentado em install.sh: "extras no destino NÃO forçam recópia — senão
+          # qualquer arquivo solto no destino faria recopiar por recopiar".
+          touch "$DEST/EXTRA-DO-USUARIO.txt"
+          out="$(./install.sh </dev/null)"
+          printf '%s' "$out" | grep -qF 'Skill: já instalada em'
+          test -f "$DEST/EXTRA-DO-USUARIO.txt"
+
+          echo "── 6. destino DIVERGENTE é recuperado sem perguntar (rm -rf + cp -R) ──"
+          # Não há confirmação nem flag: divergiu, recopia. É o contrato do script.
+          printf '\n# alteração local\n' >> "$DEST/SKILL.md"
+          out="$(./install.sh </dev/null)"
+          printf '%s' "$out" | grep -qF 'Skill: instalada por cópia em'
+          diff -r -q skills/study-method "$DEST"
+          test ! -e "$DEST/EXTRA-DO-USUARIO.txt"   # o rm -rf levou o extra junto
+
+          echo "── 7. destino que NÃO é esta skill: recusa e não apaga nada ──"
+          rm -rf "$DEST"
+          mkdir -p "$DEST"
+          echo "arquivo de outra pessoa" > "$DEST/SKILL.md"
           if ./install.sh </dev/null; then
-            echo "FALHA: sobrescreveu sem perguntar"; exit 1
+            echo "FALHA: apagou um destino que não era a skill"; exit 1
           fi
-          test -f "$HOME/.claude/skills/study-method/DIVERGENTE.txt"
+          grep -qF 'arquivo de outra pessoa' "$DEST/SKILL.md"
 
-          echo "── 5. --force substitui ──"
-          ./install.sh --force </dev/null
-          test ! -f "$HOME/.claude/skills/study-method/DIVERGENTE.txt"
+          echo "OK: install.sh sem flags, idempotente, convergente e com guarda de destino."
 
-          echo "── 6. --uninstall remove e é idempotente ──"
-          ./install.sh --uninstall --force </dev/null
-          test ! -e "$HOME/.claude/skills/study-method"
-          ./install.sh --uninstall </dev/null
+  app:
+    name: app (lint + node:test)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      # Mesmo motivo do job `install` — ver o comentário lá.
+      NPM_CONFIG_LEGACY_PEER_DEPS: 'true'
 
-          echo "── 7. --symlink ──"
-          ./install.sh --symlink </dev/null
-          test -L "$HOME/.claude/skills/study-method"
-          ./install.sh --uninstall --force </dev/null
+    steps:
+      - name: checkout
+        uses: actions/checkout@v4
 
-          echo "OK: install.sh idempotente, não destrutivo, reversível."
+      - name: node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+
+      # `npm ci` e não `npm install`: o lockfile é o contrato. O app/.npmrc libera os
+      # postinstall de esbuild e electron, que o build exige (npm 11 os bloqueia por padrão).
+      - name: npm ci
+        working-directory: app
+        run: npm ci
+
+      - name: lint (tsc --noEmit nos dois tsconfigs)
+        working-directory: app
+        run: npm run lint
+
+      - name: test (node:test via tsx, com a EMPTY-GLOB GUARD do tools/t.sh)
+        if: ${{ !cancelled() }}
+        working-directory: app
+        run: npm test

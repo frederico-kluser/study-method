@@ -178,5 +178,5 @@ npm ci
 npm run build && npm run lint
 npm test                          # bash tools/t.sh tests → 729 testes, verde
 npm run build && npm run test:e2e # 15 testes mock, verde
-npm run test:e2e:real             # 3 specs reais — exporte DEEPSEEK_API_KEY/BRAVE_API_KEY no shell
+npm run test:e2e:real             # 3 specs reais — exporte OPENROUTER_API_KEY/BRAVE_API_KEY no shell
 ```

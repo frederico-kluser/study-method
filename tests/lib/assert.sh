@@ -258,17 +258,55 @@ gate_trunc() {
 
 # ---------------------------------------------------------------- listagem de arquivos
 
+# GATE_PRUNE_DIRS — os diretórios que NENHUM gate varre, casados POR NOME em qualquer
+# profundidade. É a MESMA fronteira que o `.gitignore` do repositório já declara: nada
+# aqui é versionado, nada aqui é código do pacote.
+#
+#   por que existe: `app/node_modules` traz 576 pacotes de terceiro. Varrê-los faz o gate
+#   reprovar o repositório por CRLF do `bignumber.js` e por `{{ }}` do README de um
+#   `@emotion/react` — defeitos de quem não somos nós, que ninguém aqui pode consertar e
+#   que treinam todo mundo a ignorar o vermelho. Saída de build (`out/`, `dist/`,
+#   `test-results/`, `playwright-report/`, `coverage/`) é derivada: consertá-la é
+#   consertar o gerador, não o arquivo.
+#
+#   o que NÃO é: um afrouxamento. Todo arquivo VERSIONADO continua no escopo — inclusive
+#   `app/content-src/**`, `app/tsconfig*.json` e os fixtures de teste. Tirar um arquivo do
+#   pacote deste escopo continua sendo um afrouxamento proibido (CONTRIBUTING.md).
+GATE_PRUNE_DIRS=(
+  .git .deep-orchestrator .deep-orchestrator-preferences
+  node_modules
+  __pycache__ .pytest_cache .venv venv
+  target out dist test-results playwright-report coverage
+  .idea .vscode
+)
+
+# GATE_PRUNE — os argumentos de poda do find, montados UMA vez a partir de GATE_PRUNE_DIRS.
+# Uso:  find "$dir" "${GATE_PRUNE[@]}" -type f ... -print0
+# (o array já termina em `-prune -o`; array em vez de string porque `set -f` não está
+# ligado e word splitting de nome de diretório é como se perde um caminho com espaço).
+GATE_PRUNE=( '(' )
+for _gate_prune_d in "${GATE_PRUNE_DIRS[@]}"; do
+  [ "${#GATE_PRUNE[@]}" -eq 1 ] || GATE_PRUNE+=( -o )
+  GATE_PRUNE+=( -name "$_gate_prune_d" )
+done
+GATE_PRUNE+=( ')' -prune -o )
+unset _gate_prune_d
+
+# gate_prune_note — a frase única que descreve a poda, para o `gate_scope_excl` de cada
+# gate (a exclusão é DECLARADA no resumo, nunca silenciosa).
+gate_prune_note() {
+  printf '%s\n' "diretório de dependência de terceiro ou de saída de build (${GATE_PRUNE_DIRS[*]}), casado por NOME em qualquer profundidade — a mesma fronteira do .gitignore. Todo arquivo VERSIONADO continua no escopo do check."
+}
+
 # gate_find_into <subdir> <padrão...> — imprime NUL-separado no STDOUT, respeitando
 # caminhos com espaço. O chamador monta o array:
 #     while IFS= read -r -d '' f; do ARR+=("$f"); done < <(gate_find_into ...)
 # (nameref — a forma 'local' com sufixo '-n' — é bash 4.3+; no bash 3.2 do macOS o contrato é saída NUL).
-# Exclui .git, .deep-orchestrator e diretórios temporários do gate.
+# Exclui GATE_PRUNE_DIRS (ver acima).
 gate_find_into() {
   local dir="$1"; shift
   [ -d "$dir" ] || return 0
-  find "$dir" \
-    \( -name .git -o -name .deep-orchestrator -o -name node_modules -o -name __pycache__ \) -prune -o \
-    -type f "$@" -print0 2>/dev/null | sort -z
+  find "$dir" "${GATE_PRUNE[@]}" -type f "$@" -print0 2>/dev/null | sort -z
 }
 
 # ---------------------------------------------------------------- verificador mínimo de schema

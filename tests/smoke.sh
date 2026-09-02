@@ -531,7 +531,7 @@ if command -v cargo >/dev/null 2>&1; then
       "exit $? — $(gate_trunc "$(cat "$GATE_TMPDIR/err.txt")")" "$SCRIPTS/challenge-new.sh"
   fi
   if [ -n "$ROK_DIR" ] && [ -d "$ROK_DIR" ]; then
-    # O crate fixo `desafio` é o que o prompt do autor ensina (deepseekLessonAuthor.ts):
+    # O crate fixo `desafio` é o que o prompt do autor ensina (lessonAuthor.ts):
     # o teste do desafio substitui o arquivo inteiro de tests/test_stub.rs e importa
     # `use desafio::<fn>;` — um import de crate errado (ex.: `invert_tree`) NÃO compila.
     assert_match "S-03m" "o Cargo.toml declara o crate fixo \`desafio\`" \

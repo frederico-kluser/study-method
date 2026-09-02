@@ -7,12 +7,12 @@
 # Verifica (docs/00-contratos.md §7 LIB-1, §5, §8):
 #   B-01  `bash -n` em todo *.sh do repositório
 #   B-02  `python3 -m py_compile` em todo *.py
-#   B-03  todo *.json parseia com json.load da stdlib
+#   B-03  todo *.json parseia — JSON estrito, salvo tsconfig*/jsconfig* (dialeto JSONC oficial)
 #   B-04  LIB-1: SK/scripts/lib/*.sh tem modo 0644 e NENHUM bit de execução
 #   B-05  todo executável de SK/scripts/ tem modo 0755
 #   B-06  todo executável tem shebang na 1ª linha
 #   B-07  todo executável .sh tem `set -euo pipefail` (ou set -e/-u/-o pipefail separados)
-#   B-08  os scripts de tests/ obedecem às mesmas regras; tests/lib/ é 0644 como lib
+#   B-08  os 6 scripts de tests/ obedecem às mesmas regras; tests/lib/ é 0644 como lib
 #   B-09  nenhum arquivo com CRLF
 #   B-10  todo *.sh.tmpl parseia como bash depois de substituir os placeholders
 #   B-11  shellcheck, se existir nesta máquina (bônus opcional — não é dependência)
@@ -35,6 +35,7 @@ trap gate_cleanup_tmp EXIT
 
 gate_init "gate-build — sintaxe e forma"
 gate_limitation "gate-build NÃO verifica semântica: contratos, vocabulários e invariantes são de tests/validate.sh."
+gate_scope_excl "B-ALL" "dependência de terceiro e saída de build" "$(gate_prune_note)"
 command -v shellcheck >/dev/null 2>&1 || \
   gate_limitation "shellcheck ausente nesta máquina — a análise estática de shell fica limitada a \`bash -n\` (só sintaxe, não uso)."
 
@@ -77,20 +78,144 @@ else
 fi
 
 # ───────────────────────────────────────────────────────────── B-03 JSON parseia
-gate_section "B-03 · todo JSON parseia (json.load da stdlib)"
+gate_section "B-03 · todo JSON parseia (JSON estrito; tsconfig/jsconfig no dialeto JSONC)"
+gate_scope_excl "B-03" "tsconfig*.json e jsconfig*.json são lidos como JSONC, não como JSON estrito" \
+  "o formato de um tsconfig É JSONC por especificação do TypeScript: comentário \`//\` e \`/* */\` são LEGAIS lá, e \`app/tsconfig.node.json\` usa isso para dizer, linha a linha, por que cada módulo entra no projeto composite. Apagar essa documentação para caber num \`json.load\` seria deixar o gate ditar o produto. Eles continuam VERIFICADOS — pelo parser do dialeto certo (comentário e vírgula final removidos, depois \`json.loads\`): um tsconfig de verdade quebrado continua sendo FAIL. Todo OUTRO *.json continua em JSON ESTRITO."
 declare -a JSON_FILES=()
 while IFS= read -r -d '' f; do JSON_FILES+=("$f"); done < <(gate_find_into "$GATE_ROOT" -name '*.json')
 if [ "${#JSON_FILES[@]}" -eq 0 ]; then
   gate_pend "B-03" "há JSON no repositório" "nenhum *.json encontrado"
 else
+  mkdir -p "$GATE_TMPDIR"
+  cat > "$GATE_TMPDIR/jsonparse.py" <<'PYEOF'
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""Parser dos *.json do repositório, no DIALETO de cada um.
+
+  JSON estrito  (json.loads sem nada antes)  — todo *.json
+  JSONC         (comentário e vírgula final removidos, depois json.loads)
+                — tsconfig*.json e jsconfig*.json, cujo formato oficial do
+                  TypeScript admite comentário.
+
+Imprime UMA linha por arquivo que NÃO parseia: `<rel>\t<dialeto>\t<erro>`.
+Silêncio = tudo parseia. A última linha do stdout é sempre o placar
+`#\t<n_estrito>\t<n_jsonc>` (contagem por dialeto, para a mensagem de PASS).
+"""
+import json
+import os
+import sys
+
+
+def eh_jsonc(caminho):
+    b = os.path.basename(caminho)
+    return b.startswith("tsconfig") or b.startswith("jsconfig")
+
+
+def sem_comentario(txt):
+    """Remove // e /* */ FORA de string, e a vírgula final antes de } ou ]."""
+    out = []
+    i, n = 0, len(txt)
+    em_str = False
+    esc = False
+    while i < n:
+        c = txt[i]
+        if em_str:
+            out.append(c)
+            if esc:
+                esc = False
+            elif c == "\\":
+                esc = True
+            elif c == '"':
+                em_str = False
+            i += 1
+            continue
+        if c == '"':
+            em_str = True
+            out.append(c)
+            i += 1
+            continue
+        if c == "/" and i + 1 < n and txt[i + 1] == "/":
+            while i < n and txt[i] != "\n":
+                i += 1
+            continue
+        if c == "/" and i + 1 < n and txt[i + 1] == "*":
+            i += 2
+            while i + 1 < n and not (txt[i] == "*" and txt[i + 1] == "/"):
+                i += 1
+            i += 2
+            continue
+        out.append(c)
+        i += 1
+    s = "".join(out)
+    # vírgula final: `, }` / `, ]` fora de string (o que sobrou já não tem comentário)
+    limpo = []
+    i, n = 0, len(s)
+    em_str = False
+    esc = False
+    while i < n:
+        c = s[i]
+        if em_str:
+            limpo.append(c)
+            if esc:
+                esc = False
+            elif c == "\\":
+                esc = True
+            elif c == '"':
+                em_str = False
+            i += 1
+            continue
+        if c == '"':
+            em_str = True
+            limpo.append(c)
+            i += 1
+            continue
+        if c == ",":
+            j = i + 1
+            while j < n and s[j] in " \t\r\n":
+                j += 1
+            if j < n and s[j] in "}]":
+                i += 1  # vírgula final: descarta
+                continue
+        limpo.append(c)
+        i += 1
+    return "".join(limpo)
+
+
+root = sys.argv[1]
+n_estrito = n_jsonc = 0
+for caminho in sys.argv[2:]:
+    rel = os.path.relpath(caminho, root)
+    jsonc = eh_jsonc(caminho)
+    dialeto = "JSONC" if jsonc else "JSON estrito"
+    try:
+        with open(caminho, encoding="utf-8") as fh:
+            texto = fh.read()
+    except OSError as e:
+        sys.stdout.write("%s\t%s\t%s\n" % (rel, dialeto, e))
+        continue
+    try:
+        json.loads(sem_comentario(texto) if jsonc else texto)
+    except Exception as e:  # ValueError e o que mais o parser levantar
+        sys.stdout.write("%s\t%s\t%s\n" % (rel, dialeto, e))
+        continue
+    if jsonc:
+        n_jsonc += 1
+    else:
+        n_estrito += 1
+sys.stdout.write("#\t%d\t%d\n" % (n_estrito, n_jsonc))
+PYEOF
+  json_report="$(python3 "$GATE_TMPDIR/jsonparse.py" "$GATE_ROOT" "${JSON_FILES[@]}")"
   n_bad=0
-  for f in "${JSON_FILES[@]}"; do
-    if ! err="$(python3 -c 'import json,sys; json.load(open(sys.argv[1], encoding="utf-8"))' "$f" 2>&1)"; then
-      n_bad=$((n_bad + 1))
-      gate_fail "B-03" "JSON não parseia" "json.load sem exceção" "$(gate_trunc "$err")" "$(gate_rel "$f")"
+  while IFS=$'\t' read -r rel dialeto erro; do
+    [ -n "$rel" ] || continue
+    if [ "$rel" = '#' ]; then
+      json_estrito="$dialeto"; json_jsonc="$erro"; continue
     fi
-  done
-  [ "$n_bad" -eq 0 ] && gate_pass "B-03" "${#JSON_FILES[@]} arquivo(s) .json parseiam"
+    n_bad=$((n_bad + 1))
+    gate_fail "B-03" "JSON não parseia" "parse sem exceção no dialeto $dialeto" "$(gate_trunc "$erro")" "$rel"
+  done <<< "$json_report"
+  [ "$n_bad" -eq 0 ] && gate_pass "B-03" \
+    "${#JSON_FILES[@]} arquivo(s) .json parseiam (${json_estrito:-0} em JSON estrito · ${json_jsonc:-0} em JSONC)"
 fi
 
 # ───────────────────────────────────────────────────── B-04 LIB-1: lib/ sem execução
@@ -184,7 +309,7 @@ fi
 # ───────────────────────────────────────────────────────────── B-08 os próprios tests/
 gate_section "B-08 · os scripts do gate obedecem às mesmas regras"
 n8=0
-for name in gate-build.sh validate.sh gate-lint.sh smoke.sh spec-conformance.sh; do
+for name in gate-build.sh validate.sh gate-lint.sh gate-bash32.sh smoke.sh spec-conformance.sh; do
   f="$GATE_ROOT/tests/$name"
   if [ ! -f "$f" ]; then
     n8=$((n8 + 1)); gate_pend "B-08" "tests/$name existe" "arquivo inexistente: tests/$name"; continue
@@ -202,7 +327,7 @@ if [ -f "$f" ]; then
 else
   n8=$((n8 + 1)); gate_pend "B-08" "tests/lib/assert.sh existe" "arquivo inexistente"
 fi
-[ "$n8" -eq 0 ] && gate_pass "B-08" "os 5 scripts do gate + tests/lib/assert.sh estão na forma"
+[ "$n8" -eq 0 ] && gate_pass "B-08" "os 6 scripts do gate + tests/lib/assert.sh estão na forma"
 
 # ───────────────────────────────────────────────────────────── B-09 CRLF
 gate_section "B-09 · nenhum arquivo com fim de linha CRLF"
@@ -211,8 +336,8 @@ while IFS= read -r -d '' f; do
   if head -c 65536 "$f" | grep -qU $'\r' 2>/dev/null; then
     crlf="$crlf$(gate_rel "$f")"$'\n'
   fi
-done < <(find "$GATE_ROOT" \( -name .git -o -name .deep-orchestrator \) -prune -o \
-           -type f \( -name '*.sh' -o -name '*.py' -o -name '*.json' -o -name '*.md' -o -name '*.tsv' -o -name '*.tmpl' \) -print0 2>/dev/null | sort -z)
+done < <(gate_find_into "$GATE_ROOT" \
+           \( -name '*.sh' -o -name '*.py' -o -name '*.json' -o -name '*.md' -o -name '*.tsv' -o -name '*.tmpl' \))
 assert_grep_empty "B-09" "nenhum arquivo de texto com CRLF" "todos os arquivos com LF puro" "${crlf%$'\n'}"
 
 # ───────────────────────────────────────────────────────────── B-10 templates de shell

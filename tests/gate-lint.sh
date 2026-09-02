@@ -32,13 +32,13 @@ mkdir -p "$GATE_TMPDIR"
 gate_init "gate-lint — qualidade de texto e de arquivo"
 gate_limitation "O frontmatter é lido por \`awk\` (não há PyYAML nesta máquina): a checagem cobre a FORMA (chave: valor, sem tabulação, sem chave repetida, delimitador fechado), não a semântica YAML completa."
 gate_limitation "L-02 resolve só link relativo de arquivo. URL http(s)/mailto e âncora (#secao) não são verificadas."
+gate_scope_excl "L-ALL" "dependência de terceiro e saída de build" "$(gate_prune_note)"
 
 declare -a MD=()
 while IFS= read -r -d '' f; do MD+=("$f"); done < <(gate_find_into "$GATE_ROOT" -name '*.md')
 declare -a TXT=()
-while IFS= read -r -d '' f; do TXT+=("$f"); done < <(
-  find "$GATE_ROOT" \( -name .git -o -name .deep-orchestrator -o -name __pycache__ \) -prune -o \
-    -type f \( -name '*.md' -o -name '*.sh' -o -name '*.py' -o -name '*.json' -o -name '*.tsv' -o -name '*.tmpl' \) -print0 2>/dev/null | sort -z)
+while IFS= read -r -d '' f; do TXT+=("$f"); done < <(gate_find_into "$GATE_ROOT" \
+  \( -name '*.md' -o -name '*.sh' -o -name '*.py' -o -name '*.json' -o -name '*.tsv' -o -name '*.tmpl' \))
 
 # ─────────────────────────────────────────────────────────── L-01 frontmatter por awk
 gate_section "L-01 · frontmatter YAML pela leitura de awk (sem PyYAML)"

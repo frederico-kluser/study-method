@@ -36,20 +36,22 @@ roda em milissegundos, não depende de nenhuma chave de API e tem poder de veto.
 ## 1. O defeito, medido
 
 Todos os números abaixo são reproduzíveis por um comando: `cd app && npm run engine -- audit
-nodejs-do-zero --limite 0` (para a tabela) e o mesmo comando com `--json` (para as duas linhas
-derivadas dos campos `metrics[]`). Foram **re-medidos em 2026-08-30** sobre
+nodejs-do-zero --limite 0` (para a tabela) e o mesmo comando com `--json` (para as três linhas
+derivadas dos campos `metrics[]`). Foram **re-medidos em 2026-09-02** sobre
 `app/resources/tracks/nodejs-do-zero`, sem chave de API (orçamento `inferred` — leitura permissiva:
 o número real de violações é maior, nunca menor). Eles são o **caso de teste de aceitação da
 engine**: se a engine não reprovar o que sabidamente está quebrado, ela não funciona. O pin
-mecânico do placar vive em `app/tests/engineAuditPlacar.test.ts` (285/96/102).
+mecânico do placar vive em `app/tests/engineAuditPlacar.test.ts` (717/112/249, mais 92 avisos) —
+e, pela regra de autoridade acima, **onde esta tabela e aquele pin divergirem, o pin vence**.
 
 | Medição | Valor |
 |---|---|
 | Aulas | 118 |
 | Desafios | 118 |
-| Desafios com ao menos uma violação | 96 (81%) |
-| Violações | 285 |
-| Delas, lacunas de currículo (construção que **nenhuma** aula ensina) | 102 |
+| Desafios com ao menos uma violação | 112 (95%) |
+| Violações (erros) | 717 |
+| Avisos (bateria A13–A16: D4 e A14a-zero — não entram no placar de erros) | 92 |
+| Delas, lacunas de currículo (construção que **nenhuma** aula ensina) | 249 |
 | Aulas que **não introduzem construção nenhuma** | 12 |
 | Construções novas na aula 1 (`o-que-e-programacao`) | 18 — o maior do histograma (mediana: 3) |
 | Aulas acima do teto de 4 construções novas (§3.6/A12) | 45 |
@@ -59,6 +61,25 @@ mecânico do placar vive em `app/tests/engineAuditPlacar.test.ts` (285/96/102).
 
 As linhas com "mediana", "45" (acima do teto) e "100 de 118" são derivadas do mesmo relatório em
 `--json` (`metrics[].novas` e `metrics[].conceitosDeclarados`); as demais saem do placar humano.
+
+**Rastreabilidade do placar: 285 → 841 → 717.** Este documento anunciou por muito tempo
+**285 violações / 96 desafios / 102 lacunas**. Aquele número não era falso — era o placar da
+bateria ANTERIOR (A1/A2/A3/A6/DEC/I16), antes de A13–A16 existirem. A ligação entre os dois é
+mecânica e reproduzível: no `--json` de hoje, as violações das regras antigas (as que saem sem o
+campo `severidade`) ainda somam **exatamente 285**:
+
+```bash
+cd app
+# redirecione para ARQUIVO: o audit sai com exit 1 quando reprova, e um pipe direto
+# pode truncar o JSON antes do fim.
+npm run engine --silent -- audit nodejs-do-zero --limite 0 --json > /tmp/audit.json
+python3 -c "import json; v=json.load(open('/tmp/audit.json'))['violations']; \
+  print(sum(1 for x in v if 'severidade' not in x), 'de', len(v))"   # -> 285 de 809
+```
+
+A bateria A13–A16 levou o placar a **841**, e o fix do A13c (a teoria da PRÓPRIA aula conta como
+demonstração, §3.2) removeu 124 falsos positivos, fechando em **717** (§5.1, "Bump do pin"). O
+que mudou foi a régua, não a trilha.
 
 Três leituras que decidem o desenho:
 
@@ -72,7 +93,7 @@ Três leituras que decidem o desenho:
 3. **A causa-raiz está no protocolo, não no modelo.**
    `skills/study-method/references/challenge-protocol.md` §1 item 4 exige incondicionalmente "pelo
    menos 1 error (entrada inválida que deve falhar de forma específica)", e
-   `app/electron/main/services/deepseekLessonAuthor.ts` valida essa exigência
+   `app/electron/main/services/lessonAuthor.ts` valida essa exigência
    (`required = ['example','boundary','error']`). Para uma aula 1 de iniciante absoluto em
    JavaScript isso tem uma única implementação possível: `typeof` + `throw new Error`. **O modelo
    obedeceu a regra.** A correção é de uma linha e vale mais que qualquer revisor: os cenários
@@ -158,7 +179,7 @@ Invariante: `productive ⊆ receptive`.
 
 Sem essa distinção o gate tem só duas saídas ruins: proibir o próprio harness `node:test` (inviável)
 ou liberar geral (inútil). A necessidade está medida (reproduzível no `--json` do audit, campo
-`regra`): 167 das 285 violações são **A3** — `testsCode` cobrando construções fora do orçamento de
+`regra`): 167 das 717 violações são **A3** — `testsCode` cobrando construções fora do orçamento de
 **entrada** (o aluno lê o teste antes de aprender a aula). A política `receptive-seed` (§3.2) já
 absorve as formas mais comuns do runner (`import`/`export`, arrow de expressão, `assert.equal`/
 `assert.throws`/`assert.ok`, `test`); restam em A3 12 ocorrências de métodos de asserção fora da

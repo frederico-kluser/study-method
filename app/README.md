@@ -31,14 +31,14 @@ npm run build   # main + preload + renderer em out/
 npm run lint    # tsc --noEmit (tsconfig.json + tsconfig.node.json)
 npm test        # bash tools/t.sh tests — node:test + tsx (suite completa)
 npm run test:e2e  # Playwright `_electron` sobre o build (veja § E2E)
-npm run test:e2e:real  # Playwright `_electron` REAL — exige DEEPSEEK_API_KEY/BRAVE_API_KEY no shell (veja § E2E)
+npm run test:e2e:real  # Playwright `_electron` REAL — exige OPENROUTER_API_KEY/BRAVE_API_KEY no shell (veja § E2E)
 ```
 
 > Os gates desta app (verdes antes de considerar concluído) são: `bash tools/t.sh tests`
 > (**1563 testes unitários: 1562 pass / 0 fail** / 1 skipped) · `npm run lint` · `npm run build`
 > · `npm run test:e2e` (13 specs mock, **19 testes verdes**; as 3 specs reais `real-*` —
 > real-lesson, real-didactics, real-search — ficam `skipped` sem as chaves e rodam via
-> `npm run test:e2e:real` com `DEEPSEEK_API_KEY`/`BRAVE_API_KEY`).
+> `npm run test:e2e:real` com `OPENROUTER_API_KEY`/`BRAVE_API_KEY`).
 
 ## Rodada 4 (ondas 15–18) — resumo
 
@@ -55,7 +55,9 @@ sessões abaixo detalham cada parte; detalhes em
   - **B2** — "resposta sem `choices[0].message.content`": causa-raiz era o **id de modelo
     `deepseek-v4-flash-0731` inexistente** (HTTP 400 caía no caminho de sucesso). Corrigido
     para **`deepseek-v4-flash`** (validado na API) + erros claros `BAD_REQUEST`/`EMPTY_CONTENT`
-    e `parseChoiceResult` puro.
+    e `parseChoiceResult` puro. *(Histórico da rodada 4, quando o app falava direto com o
+    DeepSeek. O provedor mudou depois para **OpenRouter** / **`z-ai/glm-5.3-flash`** — o
+    contrato congelado vive em `shared/llm/constants.ts`.)*
 - **Tutorial refeito fiel ao ondokai**: overlay `z-14000` (máscara 4 segmentos + spotlight +
   bloqueio de clique), auto-avanço por `expectedAction`, **Tutorial Completo** (14 steps) +
   **Quick Start** (6), modal com gate de chaves, first-run latch síncrono, hint pós-tutorial 1x,
@@ -164,7 +166,7 @@ features em [`docs/14-respostas-nunca-repetir.md`](../docs/14-respostas-nunca-re
 - **Resposta digitada (R7-3)** — ramo matemática (`check-math-answer`, **sem
   LLM**: o main re-computa o esperado da `mathLib`; esperado exibido só após a
   1ª tentativa errada; 4 famílias, seed determinístico — errou, o próximo
-  problema é outro) e ramo interpretação (`judge-answer` LLM deepseek→local com
+  problema é outro) e ramo interpretação (`judge-answer` LLM OpenRouter→local com
   veredito `correct`/`partial`/`incorrect`; `ok:false` = erro de serviço, nunca
   veredito inventado). Avanço por **veredito terminal** + botão primário
   ("Avançar mesmo assim" para parcial/incorreto).
@@ -194,7 +196,7 @@ features em [`docs/14-respostas-nunca-repetir.md`](../docs/14-respostas-nunca-re
    modelo **LLM local**.
 3. **Aula** (aba Aula): digite um **assunto** → o app pesquisa (Brave, com
    **checklist de pesquisa ao vivo** por query/rodada — chave ausente/inválida
-   aborta a geração), autora a aula (DeepSeek), materializa um `setup` e
+   aborta a geração), autora a aula (OpenRouter), materializa um `setup` e
    **valida os desafios** antes de mostrá-los (domínio math: gera um exercício de
    matemática conferido pela `mathLib`, sem desafio de código TDD).
 4. **Resposta digitada**: cada aula termina num input de resposta com **veredito**:
@@ -202,7 +204,7 @@ features em [`docs/14-respostas-nunca-repetir.md`](../docs/14-respostas-nunca-re
      o main re-computa o esperado da `mathLib` e compara; o esperado só aparece
      após a 1ª tentativa errada; errou, o próximo problema é outro (seed
      determinístico por tentativa).
-   - **Interpretação** — juiz LLM (`judge-answer`, DeepSeek → modelo local):
+   - **Interpretação** — juiz LLM (`judge-answer`, OpenRouter → modelo local):
      veredito `correct`/`partial`/`incorrect` + feedback pt-BR. `correct` conclui
      a aula; `partial`/`incorrect` deixam veredito visível com "Avançar mesmo
      assim". O avanço é sempre do botão primário.
@@ -210,7 +212,7 @@ features em [`docs/14-respostas-nunca-repetir.md`](../docs/14-respostas-nunca-re
    e clique **Testar resposta**.
    - Fase **determinística**: rodam os testes do desafio no workspace (resultado PASS/FAIL,
      contagem de testes, saída no terminal).
-   - Fase **pi coding agent** (DeepSeek): o app monta um prompt com o código + saída dos
+   - Fase **pi coding agent** (OpenRouter): o app monta um prompt com o código + saída dos
      testes e envia ao `pi` para um **feedback** revisto por LLM, com streaming
      (texto/raciocínio/ferramentas) em painel colapsável.
    - **3 estrelas + cronômetro** por desafio (limite `90s + difficulty×60s`;
@@ -227,7 +229,10 @@ features em [`docs/14-respostas-nunca-repetir.md`](../docs/14-respostas-nunca-re
 As chaves são cadastradas na aba **Settings** e persistidas localmente (settingsStore, no
 processo main). Não vão para o código nem para o git. Também podem vir do ambiente:
 
-- `DEEPSEEK_API_KEY` — autoria de aulas, juiz do desafio e o coding agent `pi`.
+- `OPENROUTER_API_KEY` — autoria de aulas, juiz do desafio e o coding agent `pi`. Provedor
+  **OpenRouter** (`https://openrouter.ai/api/v1`, OpenAI-compatible), modelo
+  **`z-ai/glm-5.3-flash`** com `reasoning.effort: 'max'`; a chave sai no formato
+  `sk-or-v1-…`. Identidade do modelo e política de raciocínio: `shared/llm/constants.ts`.
 - `BRAVE_API_KEY` — pesquisa de fontes para a aula.
 
 Variáveis de caminho/execução:
@@ -332,7 +337,7 @@ clique** fora deles, **auto-avanço** por `expectedAction` (~220ms), dois tours
   **4 segmentos** ao redor do spotlight, **bloqueio de clique** fora dele, `alternateTargetSelector`
   e **posicionamento via RAF** (`OnboardingOverlay.tsx`).
 - **Modal de seleção com gate de chaves:** `TutorialSelectionModal` oferece Quick Start ou
-  Tutorial Completo; **sem as chaves** (DeepSeek + Brave) mostra um **CTA "Configurar chaves"**
+  Tutorial Completo; **sem as chaves** (OpenRouter + Brave) mostra um **CTA "Configurar chaves"**
   que leva à aba Settings — o Tutorial Completo **exige chaves** (steps de aula/geração
   dependem delas), o Quick Start pode seguir.
 - **First-run latch síncrono (StrictMode-safe):** a oferta da 1ª execução é marcada **antes**
@@ -367,7 +372,7 @@ variantes (ícone / com wordmark / mono) e "como usar" (parâmetros na fal, o qu
 ajustar e pós-processamento de fundo transparente). Não geramos a imagem — só o
 prompt + guia.
 
-## Startup-gate (chaves DeepSeek + Brave)
+## Startup-gate (chaves OpenRouter + Brave)
 
 Ao abrir, o app valida as chaves **antes de liberar a UI** (canal `keys:startup-status`):
 
@@ -435,17 +440,17 @@ demais specs, já que o OnboardingHost está montado). Detalhes em `tests/e2e/RE
 
 Onda 18: `real-search`, `real-lesson` e `real-didactics` lançam o app **sem** o stub
 (`STUDY_METHOD_E2E` ausente) para validar a didática de fato — pesquisa Brave, aula
-real e a avaliação certa/errada do aluno por DeepSeek. As chaves reais entram por
+real e a avaliação certa/errada do aluno por OpenRouter. As chaves reais entram por
 envars do shell e o `userData` é isolado em tmp (apagado no fim).
 
 ```bash
-export DEEPSEEK_API_KEY=sk-…
+export OPENROUTER_API_KEY=sk-or-v1-…
 export BRAVE_API_KEY=BSAq…
 npm run test:e2e:real        # falha com msg clara se faltar alguma env
 ```
 
 A geração de uma aula real (pesquisa + autoria + validação com juiz LLM) costuma
-levar 3-6min e pode falhar transitoriamente no DeepSeek — `real-lesson`/`real-didactics`
+levar 3-6min e pode falhar transitoriamente no OpenRouter — `real-lesson`/`real-didactics`
 repetem a geração 1× nesse caso. Sem chaves, essas specs fazem `test.skip`.
 
 ## LLM local
@@ -454,11 +459,11 @@ Na aba Settings → LLM local o app detecta o hardware, recomenda um quant, **ba
 automaticamente os binários** (node-llama-cpp + pesos) e ativa um modelo. Escolha no painel o
 **provedor de feedback do desafio**:
 
-- **DeepSeek (nuvem)** (default) — o coding agent `pi` avalia a resposta, com streaming.
+- **OpenRouter (nuvem)** (default) — o coding agent `pi` avalia a resposta, com streaming.
 - **Modelo local** — o modelo local vira o **avaliador/juiz do feedback**: quando selecionado
   E há um modelo local ativo, a fase de feedback do Desafio roda a inferência localmente (sem
-  depender do DeepSeek), com o mesmo prompt pedagógico pt-BR. Sem modelo ativo, o feedback
-  volta automaticamente ao DeepSeek.
+  depender do OpenRouter), com o mesmo prompt pedagógico pt-BR. Sem modelo ativo, o feedback
+  volta automaticamente ao OpenRouter.
 
 > **Primeiro-run local:** o download baixa o modelo (e o backend nativo do node-llama-cpp)
 > automaticamente na primeira ativação; pode demorar e consumir banda/GPU conforme o tamanho.
@@ -475,9 +480,9 @@ app/
 │  ├─ main/ipc/                handlers por grupo: settings/keys/localAi/pi/study (+safeHandle)
 │  ├─ main/services/           stores e serviços do main
 │  │  ├─ PiAgentService.ts     coding agent `pi` (SDK @mariozechner/pi-*)
-│  │  ├─ deepseekClient.ts     cliente DeepSeek one-shot
-│  │  ├─ deepseekLessonAuthor.ts  autor de aulas (prompt pt-BR + validação de draft)
-│  │  ├─ deepseekLlmJudge.ts   juiz LLM do protocolo REQUEST/APPLY
+│  │  ├─ llmClient.ts          cliente OpenRouter one-shot (shared/llm/constants.ts)
+│  │  ├─ lessonAuthor.ts       autor de aulas (prompt pt-BR + validação de draft)
+│  │  ├─ llmJudge.ts           juiz LLM do protocolo REQUEST/APPLY
 │  │  ├─ lessonOrchestrator.ts cadeia assunto→pesquisa→autoria→materialização→validação
 │  │  ├─ studyMethodRunner.ts  runner dos scripts da skill (createSetup/createChallenge/verify)
 │  │  ├─ braveSearchService.ts + researchPlanner.ts   pesquisa de fontes
@@ -505,7 +510,7 @@ Três alvos de build (electron-vite): `main` (inclui os processos `llm-engine` e
 
 - **main** — janela (1280×800, min 900×600, tema segue o SO com toggle claro/escuro),
   ciclo de vida, instance-lock,
-  handlers IPC, e **todo o tráfego de rede** (DeepSeek/Pi/Brave/download de modelo). O
+  handlers IPC, e **todo o tráfego de rede** (OpenRouter/Pi/Brave/download de modelo). O
   renderer não fala com a internet; só com o main via IPC.
 - **preload** — `contextBridge.exposeInMainWorld('api', …)`, `contextIsolation: true`,
   `sandbox: true`, `nodeIntegration: false`.
@@ -574,11 +579,11 @@ handler) está coberta por testes de wiring em `tests/study-wiring.test.ts`.
 
 - **Primeiro-run do LLM local** baixa o modelo/binários automaticamente (ver acima).
 - **Chat local é um bloco único (sem streaming)** — a inferência do modelo local no feedback
-  do desafio não streama deltas (diferente do pi/DeepSeek); o primeiro uso pode baixar os
+  do desafio não streama deltas (diferente do pi/OpenRouter); o primeiro uso pode baixar os
   binários do node-llama-cpp automaticamente, e modelos grandes têm tempo de resposta maior.
 - **Erro de chat local não vira fallback automático** — se a inferência local falhar no
   runtime, o app mostra o erro no painel com a dica de ativar o modelo local em Configurações
-  ou trocar o provedor para DeepSeek; não re-dispara o pi sozinho.
+  ou trocar o provedor para OpenRouter; não re-dispara o pi sozinho.
 - **Verificação de desafio é rígida** (regras DES-1/DES-4): o desafio só entra na aula se a
   referência/alternativas passarem e o juiz aprovar; `not_run` ≠ sucesso e tem diagnóstico
   honesto de porquê.
@@ -588,7 +593,7 @@ handler) está coberta por testes de wiring em `tests/study-wiring.test.ts`.
   a validação rejeita.
 - **Persistência de seleção em Desafio** não é restaurada entre sessões (ver `docs/app-gui.md`).
 - **Geração real de aula é cauda pesada/flaky** — a geração de uma aula real (pesquisa +
-  autoria + validação com juiz LLM) leva 3-6min e pode falhar transitoriamente no DeepSeek
+  autoria + validação com juiz LLM) leva 3-6min e pode falhar transitoriamente no OpenRouter
   ("content vazio"/só `reasoning_content`); a geração é repetida 1× nos specs reais, mas o
   corredor com chaves pode exigir re-run. **KaTeX/TTS dependem de o modelo gerar markdown
   bem-formado** (delimitadores `$`/`$$` e texto de voz corretos); LaTeX mal formado degrada o
