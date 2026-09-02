@@ -51,6 +51,27 @@
  * direto e não por `getAdapter('javascript')`: quando este arquivo é avaliado,
  * `registry.ts` ainda está no meio da própria avaliação e `registerAdapter`
  * ainda não rodou — `getAdapter` LANÇARIA. O objeto é o mesmo; a ordem, não.
+ *
+ * ─── A SPEC DE TRILHA QUE ESTE ADAPTADOR SERVIA FOI APAGADA (2026-09-02) ───
+ *
+ * As ondas 6 e 7 escreveram este arquivo contra um documento de trilha de
+ * TypeScript que não existe mais: o dono do produto pediu UMA trilha, de
+ * Python, e a segunda spec saiu junto com as trilhas geradas — `docs/17` é hoje
+ * a única. A CAPACIDADE continua inteira: o adaptador está registrado, medido
+ * e coberto por `app/tests/engineLangTypescript.test.ts`. O que morreu foi o
+ * LUGAR onde as decisões estavam escritas, não as decisões.
+ *
+ * Por isso os comentários deste arquivo (e os de `form/rules.ts`,
+ * `form/selector.ts` e `exec/typesCheck.ts`) carregam o motivo INTEIRO em vez
+ * de citar um § que ninguém pode mais abrir. As duas fontes vivas:
+ *
+ *   - o que é de ADAPTADOR (parser, tier, runner, invariantes globais) está em
+ *     `docs/research/08-multilingua-trava-deterministica.md` §5 (ficha
+ *     TypeScript, Tier A) e §6 (os 15 membros) — esse documento não foi
+ *     apagado e continua sendo a fonte normativa;
+ *   - o que é de POLÍTICA DE TRILHA (o que um desafio de aula pode escrever)
+ *     sobrevive como TESTE: cada regra abaixo nomeia o `it(...)` que a trava.
+ *     Uma trilha de TypeScript futura reescreve a spec a partir daqui.
  */
 
 import { javascriptAdapter } from './javascript';
@@ -82,9 +103,9 @@ type TsSourceFile = import('typescript').SourceFile;
 
 /**
  * Tokens de `challenge.language` / `track.programmingLanguage` que resolvem
- * para este adaptador. `'typescript'` é a LINGUAGEM (e é o id);
- * `docs/18-trilha-typescript.md` §"Regras para os desafios de aula" crava
- * `language: 'typescript'`. `'ts'` acompanha pelo mesmo motivo que `'nodejs'`
+ * para este adaptador. `'typescript'` é a LINGUAGEM (e é o id), e é o token
+ * que uma trilha crava em `challenge.language`. `'ts'` acompanha pelo motivo
+ * que `'nodejs'`
  * acompanha `'javascript'`: é a grafia que o autor de trilha vai escrever (é a
  * extensão do arquivo e a tag da cerca), e reprovar uma trilha por escrever a
  * MESMA coisa com dois nomes é ruído, não trava.
@@ -95,8 +116,9 @@ export const TS_CHALLENGE_LANGUAGES: readonly ChallengeLanguageToken[] = ['types
  * Tags de bloco cercado que a engine manda para ESTE parser.
  *
  * `tsx` NÃO entra, e isso é decisão, não esquecimento, por dois motivos que se
- * somam: (1) `docs/18-trilha-typescript.md` declara "JSX/TSX" FORA do escopo
- * do produto (§"O que fica fora de escopo"); (2) `ScriptKind.TS` não parseia
+ * somam: (1) JSX/TSX está FORA do escopo do produto — nenhuma trilha o ensina,
+ * e a decisão sobreviveu à spec que a escreveu (ver o cabeçalho); (2)
+ * `ScriptKind.TS` não parseia
  * JSX — `<div/>` num `.ts` é asserção de tipo, não elemento —, então reivindicar
  * a tag faria um bloco TSX CORRETO virar `PARSE_ERROR`. Sem a tag, ele cai em
  * `desconhecida` e não vai a parser nenhum, que é o comportamento fail-closed
@@ -118,7 +140,7 @@ export const TS_THEORY_FENCE_TAGS: readonly string[] = ['ts', 'typescript'];
  * vive em `POLITICAS_DE_TIPOS` (`engine/exec/typesCheck.ts`), que é fail-closed
  * quando o compilador falta.
  *
- * A versão PINADA (`docs/18`: `runtime: 'node-24 + typescript-5.8.3'`) é campo
+ * A versão PINADA (a forma `runtime: 'node-24 + typescript-5.8.3'`) é campo
  * da TRILHA, escrito por trilha; o default do ADAPTADOR é a toolchain, como
  * `'cpython'` é o do Python (`python.ts`) e `'nodejs'` o do JavaScript.
  */
@@ -148,9 +170,11 @@ export const TS_ENTRY_PATH = 'solution.ts';
 export const TS_TEST_PATH = 'test.ts';
 
 /**
- * Args canônicos do runner. `docs/18` §"Regras para os desafios de aula":
- * "roda com `node --test --test-reporter=spec test.ts`, SEM FLAG NENHUMA no
- * Node 24 (medido)". O único byte diferente do JavaScript é a extensão.
+ * Args canônicos do runner, e eles são MEDIDOS, não escolhidos:
+ * `docs/research/08-multilingua-trava-deterministica.md` §5 (ficha TypeScript,
+ * "Runner") crava `node --test --test-reporter=spec test.ts` — SEM FLAG
+ * NENHUMA no Node 24, porque o type stripping é o default. O único byte
+ * diferente do JavaScript é a extensão.
  */
 export const TS_TEST_COMMAND: readonly string[] = ['--test', '--test-reporter=spec', 'test.ts'];
 
@@ -216,8 +240,10 @@ export function tsParse(source: string, options: ParseOptions = {}): ParseResult
 // ---------------------------------------------------------------------------
 
 /**
- * `keyof T` e `readonly T[]` produzem O MESMO `node:TypeOperator` (medido, e
- * registrado em `docs/18` §"As três chaves sintéticas que faltam"). O
+ * `keyof T` e `readonly T[]` produzem O MESMO `node:TypeOperator` — medido. É
+ * a primeira das TRÊS chaves sintéticas que a camada de tipos precisa e que o
+ * `ts.SyntaxKind` não dá (as outras duas: `node:TypeOnlyImport`/`Export`, e os
+ * globais de TIPO em `TS_TYPE_GLOBALS`). O
  * discriminante (`TypeOperatorNode.operator`) é um `SyntaxKind` guardado como
  * NÚMERO — e comparar contra o número cru travaria este arquivo numa versão
  * do compilador. O `text` do nó normalizado começa EXATAMENTE no operador
@@ -261,8 +287,8 @@ function tsChaveSintetica(node: LangNode): string | null {
     return TS_TYPE_OPERATOR_KEYS[primeiraPalavra(node.text)] ?? null;
   }
   // `isTypeOnly` é propriedade PRÓPRIA e booleana do nó nativo — nada de
-  // número de enum, nada de olhar texto (`docs/18`: "a diferença é
-  // `ImportClause.isTypeOnly`, um booleano").
+  // número de enum, nada de olhar texto: a diferença entre `import type` e
+  // `import` é `ImportClause.isTypeOnly`, e é um booleano.
   if (node.type === 'ImportClause' && ehTypeOnly(node)) return 'node:TypeOnlyImport';
   if (node.type === 'ExportDeclaration' && ehTypeOnly(node)) return 'node:TypeOnlyExport';
   if (node.type === 'AsExpression' && ehDuplaAssercaoViaUnknown(node)) {
@@ -278,8 +304,8 @@ function ehTypeOnly(node: LangNode): boolean {
 /**
  * `x as unknown as T` — `AsExpression(AsExpression(x, unknown), T)`. A dupla
  * asserção é a forma idiomática de DESLIGAR a camada semântica sem escrever
- * `any`, e por isso `docs/18` §"Regras para os desafios de aula" a proíbe em
- * qualquer nível junto com `any`.
+ * `any`, e por isso ela é PROIBIÇÃO GLOBAL em qualquer nível junto com `any`
+ * (ver `TS_FORBIDDEN_INVARIANTS` abaixo).
  */
 function ehDuplaAssercaoViaUnknown(node: LangNode): boolean {
   const interno = node.children[0];
@@ -344,9 +370,10 @@ export function tsInventory(): readonly string[] {
 /**
  * Os globais que existem SÓ NO MUNDO DOS TIPOS — `Partial`, `Pick`, `Omit`,
  * `Record` e companhia são declarados por `lib.es5.d.ts` e NÃO são
- * propriedades de `globalThis`. `docs/18` §"As três chaves sintéticas que
- * faltam" é explícito: eles "entram no eixo `global:` (`global:Partial`,
- * `global:Pick`…), exatamente como `Array` e `Math` são globais de valor".
+ * propriedades de `globalThis`. Eles entram no eixo `global:`
+ * (`global:Partial`, `global:Pick`…) exatamente como `Array` e `Math` são
+ * globais de VALOR — é a terceira chave sintética da camada de tipos, e sem ela
+ * uma aula que ensine `Partial<T>` não introduziria construção nenhuma.
  *
  * LIMITE DECLARADO, e é honesto dizê-lo alto: esta lista é DIGITADA, ao
  * contrário de `jsGlobals()`, que é lida da máquina (`Object.
@@ -356,8 +383,9 @@ export function tsInventory(): readonly string[] {
  * `ts.createProgram` inteiro na carga do adaptador: caro demais para o membro
  * que `content/trackTypes.ts` arrasta ao abrir uma aula. O conteúdo abaixo é o
  * conjunto FECHADO de tipos utilitários e de tipos ambientes de `lib.es5.d.ts`
- * / `lib.es2015.iterable.d.ts` / `lib.es2018.asynciterable.d.ts`, mais os que
- * `docs/18` nomeia por escrito.
+ * / `lib.es2015.iterable.d.ts` / `lib.es2018.asynciterable.d.ts`. O conjunto é
+ * FECHADO e está travado em `tests/engineLangTypescript.test.ts`
+ * §"(4) globals" — acrescentar um nome aqui é evento de currículo.
  */
 export const TS_TYPE_GLOBALS: readonly string[] = [
   // tipos utilitários de `lib.es5.d.ts`
@@ -462,8 +490,9 @@ function nomeDeclarado(node: LangNode): string | null {
  *      `type`, `enum`, `namespace`, parâmetro de tipo) e os TIRA de `free`.
  *   2. RECALCULA `globals` contra `tsGlobals()` — `free ∩ globals()`, como
  *      manda o contrato de `ScopeResolution` —, que é o que faz `Partial` e
- *      `Pick` aparecerem no eixo `global:` (`docs/18`, exigência 6 da lista
- *      acionável).
+ *      `Pick` aparecerem no eixo `global:` (ver `TS_TYPE_GLOBALS` acima; o
+ *      teste que trava é `tests/engineLangTypescript.test.ts` §"(5)
+ *      resolveScopes").
  *
  * LIMITE HERDADO E DECLARADO: a resolução do JavaScript é PLANA
  * (`extract.ts:38-43`) — junta todo nome declarado no arquivo e trata como
@@ -514,8 +543,8 @@ export const TS_SUPPRESSION_DIRECTIVES: readonly { readonly directive: string; r
  * PROIBIÇÕES GLOBAIS. Herda as do JavaScript INTEIRAS (as que quebram a
  * decidibilidade da análise estática: `eval`, `new Function`, `with`,
  * `arguments`, acesso computado não-literal) e acrescenta as da camada
- * SEMÂNTICA, que `docs/research/08` §5 (ficha TypeScript) e `docs/18`
- * §"Regras para os desafios de aula" listam nominalmente: `any`,
+ * SEMÂNTICA, que `docs/research/08-multilingua-trava-deterministica.md` §5
+ * (ficha TypeScript, "Invariantes globais") lista nominalmente: `any`,
  * `as unknown as`, `@ts-ignore` e `@ts-expect-error`.
  *
  * A diferença entre os dois grupos é a razão de existir do segundo. As
@@ -603,9 +632,9 @@ function blocosDeTrivia(sf: TsSourceFile): { start: number; text: string }[] {
  * Encontra `@ts-ignore` e `@ts-expect-error` no fonte JÁ PARSEADO, com
  * arquivo:linha:coluna — o formato que o relatório de violação usa.
  *
- * Existe porque a proibição do §"Regras para os desafios de aula" de `docs/18`
- * ("proibições sempre, em qualquer aula, starter, teste, teoria ou solução")
- * é sobre COMENTÁRIOS, e a caminhada do AST não os enxerga. Fingir que o eixo
+ * Existe porque esta proibição vale SEMPRE — em qualquer aula, starter, teste,
+ * teoria ou solução — e é sobre COMENTÁRIOS, que a caminhada do AST não
+ * enxerga. Fingir que o eixo
  * `node:` cobriria seria pior que não cobrir: a proibição existiria no papel e
  * o gate passaria em silêncio.
  *
@@ -766,10 +795,12 @@ export const typescriptAdapter: LanguageAdapter = {
  * comentário, para que o consumidor possa PERGUNTAR em vez de descobrir por
  * ausência.
  *
- * O que ainda NÃO existe é a BATERIA: `engine/form/rules.ts` compila cinco
- * formas, todas de JavaScript, e `docs/18` §"As formas novas que a bateria
- * precisa registrar" exige CATORZE (verificadas atributo por atributo contra a
- * DSL do seletor). Escrevê-las é trabalho em `form/rules.ts`, que não pertence
- * a este arquivo — está registrado no handoff desta sub-tarefa.
+ * A BATERIA existe desde a onda 7 e está em `engine/form/rules.ts`: CINCO
+ * formas de JavaScript (onda 1) mais CATORZE de TypeScript, cada uma
+ * verificada atributo por atributo contra a DSL do seletor e com par mínimo em
+ * `tests/engineForm.test.ts`. Cada regra declara o DIALETO em que pode ser
+ * avaliada — três das catorze casam JavaScript puro, e sem esse gate elas
+ * moveriam o placar de uma trilha de JavaScript (ver `form/selector.ts`
+ * §"O GATE DE DIALETO").
  */
 export const TS_FORM_AXIS_SUPPORTED = true;

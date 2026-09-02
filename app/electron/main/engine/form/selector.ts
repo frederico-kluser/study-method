@@ -69,10 +69,11 @@
  * Uma tabela, um lugar: `extract.ts` a reexporta como `kindName`, este módulo
  * consome `kindNameOf`.
  *
- * ── O GATE DE DIALETO (onda 7, `docs/18-trilha-typescript.md`) ────────────────
+ * ── O GATE DE DIALETO (onda 7) ───────────────────────────────────────────────
  *
- * `docs/18` §"As formas novas que a bateria precisa registrar" acrescenta
- * CATORZE formas de TypeScript à bateria. TRÊS delas casam JavaScript puro
+ * A onda 7 acrescentou CATORZE formas de TypeScript à bateria (a lista fechada
+ * é `TYPESCRIPT_FORM_DEFINITIONS`, em `form/rules.ts`). TRÊS delas casam
+ * JavaScript puro
  * (`Parameter[dotDotDotToken!=null]` é `f(...xs)`;
  * `IfStatement[expression=BinaryExpression]` é `if (a === 1)`;
  * `IfStatement[expression=TypeOfExpression]` é `if (typeof x)`) — avaliá-las
@@ -89,10 +90,13 @@
  * ninguém lembrar de filtrar. O dialeto do nó sai do `ScriptKind` da
  * `SourceFile` que o contém, e a chave emitida NÃO muda: o canônico continua
  * sendo só os passos, então `form:Parameter[type!=null]` é a mesma chave que
- * `docs/18` e a `TYPESCRIPT_TYPE_HARNESS_SEED` escrevem.
+ * `TYPESCRIPT_FORM_DEFINITIONS` e a `TYPESCRIPT_TYPE_HARNESS_SEED` escrevem.
  *
- * Referência: `docs/16-engine-de-trilha.md` §3.1, I9/I11 e §5.3;
- * `docs/18-trilha-typescript.md` §"As formas novas que a bateria precisa registrar".
+ * Referência: `docs/16-engine-de-trilha.md` §3.1, I9/I11 e §5.3. A spec de
+ * trilha de TypeScript que pediu as catorze formas foi apagada em 2026-09-02
+ * (uma trilha só, de Python — ver o cabeçalho de `lang/typescript.ts`); a
+ * lista fechada e o par mínimo de cada forma sobrevivem em `form/rules.ts` e
+ * em `tests/engineForm.test.ts`, que é o que trava o gate hoje.
  */
 
 import * as ts from 'typescript';
@@ -117,9 +121,8 @@ export class FormSelectorError extends Error {
  * valores de `ExtractOptions.dialect`, que é o que decide o `ScriptKind` do
  * `createSourceFile` no adaptador (`lang/javascript.ts:524`).
  *
- * `js` é o dialeto das trilhas de JavaScript; `ts` é o da trilha de `docs/18`.
- * A distinção é
- * PEDAGÓGICA antes de ser técnica: `f(...xs)` é axioma de JavaScript e forma
+ * `js` é o dialeto das trilhas de JavaScript; `ts`, o das de TypeScript.
+ * A distinção é PEDAGÓGICA antes de ser técnica: `f(...xs)` é axioma de JavaScript e forma
  * ENSINADA em TypeScript (aula `rest-tipado`), e a mesma construção não pode
  * gastar orçamento nas duas.
  */

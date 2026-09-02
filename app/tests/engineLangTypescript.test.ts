@@ -2,12 +2,18 @@
  * tests/engineLangTypescript.test.ts — O ADAPTADOR TYPESCRIPT, o terceiro do
  * registro e a prova da SEGUNDA CAMADA DE TRAVA.
  *
- * Contrato normativo: `docs/research/08-multilingua-trava-deterministica.md`
+ * Contrato normativo VIVO: `docs/research/08-multilingua-trava-deterministica.md`
  * §5 (ficha TypeScript — Tier A, "a trava passa a ter duas camadas
- * decidíveis") e §6 (os 15 membros); `docs/18-trilha-typescript.md` inteiro,
- * em especial §"A segunda decisão: o erro de tipo não é observável rodando o
- * teste", §"A semente receptiva do harness TypeScript" e §"O que esta trilha
- * exige da engine".
+ * decidíveis") e §6 (os 15 membros).
+ *
+ * A spec de TRILHA de TypeScript que as ondas 6 e 7 seguiram foi apagada em
+ * 2026-09-02, quando o produto passou a ter UMA trilha e ela é de Python
+ * (`docs/17-trilha-python.md`). A CAPACIDADE TypeScript continua na engine e
+ * continua funcionando — este arquivo é a prova disso, e passou a ser também o
+ * lugar onde as decisões daquela spec estão escritas: o erro de tipo não ser
+ * observável rodando o teste (§9 abaixo), a semente receptiva do harness (§8) e
+ * o que a trilha exige da engine (§§2-7). Ver o cabeçalho de
+ * `engine/lang/typescript.ts`.
  *
  * Este arquivo prova CINCO coisas, e a ordem é a da confiança:
  *
@@ -31,8 +37,8 @@
  *      RUNTIME-ONLY.
  *
  * O item 5 é o único que gera processo. Ele existe porque a afirmação
- * normativa de `docs/18` — "o Node APAGA os tipos, ele não os confere" — não é
- * verificável com executor fake: um fake que devolvesse o que se espera
+ * normativa — "o Node APAGA os tipos, ele não os confere", medida em
+ * `docs/research/08` §5 — não é verificável com executor fake: um fake que devolvesse o que se espera
  * provaria apenas que o fake foi escrito de acordo.
  */
 import { describe, it } from 'node:test';
@@ -178,7 +184,7 @@ describe('typescript — identidade e registro', () => {
     assert.deepEqual([...ts.theoryFenceTags], [...TS_THEORY_FENCE_TAGS]);
     assert.equal(adapterIdForTheoryTag('ts'), 'typescript');
     assert.equal(adapterIdForTheoryTag('typescript'), 'typescript');
-    // `docs/18` põe JSX/TSX fora do escopo do produto, e `ScriptKind.TS` não
+    // JSX/TSX está fora do escopo do produto, e `ScriptKind.TS` não
     // parseia JSX — reivindicar a tag faria um bloco TSX correto virar
     // PARSE_ERROR. Sem a tag, ele fica fora de parser nenhum (fail-closed).
     assert.equal(classifyTheoryTag('tsx').kind, 'desconhecida');
@@ -446,7 +452,7 @@ describe('typescript — resolveScopes enxerga a camada de tipos', () => {
 
   it('`Partial` cai no eixo `global:` mesmo aparecendo SÓ em posição de tipo', () => {
     const s = ts.resolveScopes(parsear(fonte));
-    assert.ok(s.globals.has('Partial'), 'docs/18, exigência 6 da lista acionável');
+    assert.ok(s.globals.has('Partial'), 'os globais de TIPO entram no eixo global: (TS_TYPE_GLOBALS)');
     assert.ok(!js.resolveScopes(parsear(fonte)).globals.has('Partial'), 'globalThis não tem `Partial`');
   });
 
@@ -552,7 +558,7 @@ describe('typescript — proibições globais (as duas camadas)', () => {
     assert.ok(isForbiddenAlways('node:ComputedNonLiteralAccess', 'typescript'));
   });
 
-  it('acrescenta as QUATRO da camada semântica (docs/18 §Regras para os desafios)', () => {
+  it('acrescenta as QUATRO da camada semântica (docs/research/08 §5, "Invariantes globais")', () => {
     for (const chave of [
       'node:AnyKeyword',
       'node:DoubleAssertionViaUnknown',
@@ -701,7 +707,7 @@ describe('typescript — a semente receptiva do harness', () => {
         'node:TypeReference',
         'node:ArrayType',
       ],
-      'a lista de docs/18 §"A semente receptiva do harness TypeScript"',
+      'a semente receptiva do harness TypeScript — a lista é FECHADA e mora em atomKeys.ts',
     );
   });
 
@@ -739,9 +745,9 @@ describe('typescript — a semente receptiva do harness', () => {
     // ERA um limite declarado: `engine/form/rules.ts` compilava CINCO formas,
     // todas de JavaScript, e `form:Parameter[type!=null]` estava na semente sem
     // que ninguém a emitisse — uma semente sem emissor perdoa o que nunca
-    // aparece. `docs/18` §"As formas novas que a bateria precisa registrar"
-    // exige CATORZE, e a bateria agora as tem (ver `engineForm.test.ts`, o par
-    // mínimo de cada uma). O harness mínimo desta trilha emite as duas: a
+    // aparece. A onda 7 acrescentou as CATORZE formas de TypeScript, e a
+    // bateria agora as tem (ver `engineForm.test.ts`, o par mínimo de cada
+    // uma). O harness mínimo desta trilha emite as duas: a
     // semente passa a perdoar algo que de fato acontece.
     const r = extractAtoms(HARNESS, { fileName: 'harness.ts', dialect: 'ts' });
     assert.ok(r.ok);
@@ -812,7 +818,7 @@ describe('typescript — a semente receptiva do harness', () => {
 // 9. A QUINTA PROVA, COM `tsc` E `node` REAIS
 // ---------------------------------------------------------------------------
 
-/** Uma solução que RODA certo e MENTE no tipo — o caso central de `docs/18`. */
+/** Uma solução que RODA certo e MENTE no tipo — o caso central da camada semântica. */
 const SOLUCAO_TIPO_QUEBRADO = [
   'export function dobro(x: number): number {',
   '  const rotulo: number = "isto e uma string";',
@@ -871,7 +877,7 @@ describe('typescript — a QUINTA prova, com tsc e node REAIS', { skip: TEM_TSC 
     assert.ok(args.includes('--noEmit'));
     assert.ok(args.includes('--strict'));
     assert.deepEqual(args.slice(args.indexOf('--module'), args.indexOf('--module') + 2), ['--module', 'nodenext']);
-    assert.ok(args.includes('--allowImportingTsExtensions'), 'docs/18 exige `from ./solution.ts`');
+    assert.ok(args.includes('--allowImportingTsExtensions'), 'o teste importa `from ./solution.ts` — extensão explícita, como o ESM do Node pede');
     assert.ok(!args.includes('bundler'), 'bundler aprovaria import sem extensão, que o runner derruba');
     assert.equal(politicaDeTipos('typescript').compilador, 'typescript/bin/tsc');
     assert.deepEqual([...politicaDeTipos('typescript').args], args);

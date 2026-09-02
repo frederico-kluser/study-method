@@ -1,9 +1,11 @@
 // tests/fixtures/typescript/camada-de-tipos.ts
 //
 // FONTE TypeScript de referência da suíte do adaptador. Não é executada: ela é
-// PARSEADA. Cada linha existe para provar um ponto do §"Vocabulário de átomos
-// desta trilha" de `docs/18-trilha-typescript.md` — a construção de tipo que
-// ela introduz está nomeada ao lado.
+// PARSEADA. Cada linha existe para provar um ponto do vocabulário de átomos da
+// camada de tipos — a construção que ela introduz está nomeada ao lado. (A spec
+// de trilha que enumerou esse vocabulário foi apagada em 2026-09-02; o
+// vocabulário em si continua em `engine/vocab/atoms.json` e nas chaves
+// sintéticas de `engine/lang/typescript.ts`.)
 //
 // Este arquivo é lido como TEXTO pelo teste (fs.readFileSync) e nunca
 // importado. Ele é, de propósito, TypeScript que o `tsc` reprovaria em

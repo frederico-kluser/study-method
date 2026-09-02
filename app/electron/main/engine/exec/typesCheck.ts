@@ -153,12 +153,14 @@ export const TYPE_ROOTS_DO_REPO: string | null = (() => {
  *
  * Uma prova de tipo que aprova o que o runtime derruba não é uma prova a mais:
  * é uma segunda opinião errada. `nodenext` é o único modo que modela o que o
- * Node de fato faz, e é o que `docs/18-trilha-typescript.md` mediu.
+ * Node de fato faz — e a medição é a tabela logo acima, refeita nesta máquina.
  *
- * `--allowImportingTsExtensions` porque `docs/18` §"Regras para os desafios de
- * aula" exige `from './solution.ts'` (extensão EXPLÍCITA, que é o que o ESM do
- * Node pede) e sem a flag isso é `TS5097` — erro de configuração do provador,
- * não do desafio. Ela exige `--noEmit`, que já está aqui.
+ * `--allowImportingTsExtensions` porque o teste de um desafio importa
+ * `from './solution.ts'` com a extensão EXPLÍCITA (é o que o ESM do Node pede,
+ * e é o que `lang/typescript.ts` escreve em `TS_ENTRY_PATH`); sem a flag isso é
+ * `TS5097` — erro de configuração do provador, não do desafio. Ela exige
+ * `--noEmit`, que já está aqui. Travado em `tests/engineLangTypescript.test.ts`
+ * §"os args do tsc são os medidos".
  *
  * `--typeRoots <@types> --types node` porque o diretório da prova não tem
  * `node_modules` (ver `TYPE_ROOTS_DO_REPO`). `--types node` restringe a

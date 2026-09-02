@@ -242,11 +242,12 @@ describe('form — método declarado em objeto literal', () => {
 // ---------------------------------------------------------------------------
 // AS CATORZE FORMAS DE TYPESCRIPT (onda 7)
 //
-// Fonte NORMATIVA: `docs/18-trilha-typescript.md` §"As formas novas que a
-// bateria precisa registrar" — a tabela de lá é a lista FECHADA, e cada linha
-// vira aqui um PAR MÍNIMO: um trecho que CASA e um que NÃO casa. Um seletor que
-// casa tudo é pior que seletor nenhum: enche o orçamento de ruído e o aluno
-// nunca sabe qual aula devia ter ensinado a forma.
+// A lista é FECHADA, e é ESTE arquivo que a fecha. Ela veio da spec de trilha
+// de TypeScript da onda 7, apagada em 2026-09-02 (o produto passou a ter uma
+// trilha só, de Python — ver o cabeçalho de `engine/lang/typescript.ts`); cada
+// linha dela virou aqui um PAR MÍNIMO: um trecho que CASA e um que NÃO casa. Um
+// seletor que casa tudo é pior que seletor nenhum: enche o orçamento de ruído e
+// o aluno nunca sabe qual aula devia ter ensinado a forma.
 // ---------------------------------------------------------------------------
 
 /** [chave sem o prefixo `form:`, trecho que CASA, trecho que NÃO casa, o que o par separa] */
@@ -337,8 +338,8 @@ const PARES_TYPESCRIPT: ReadonlyArray<readonly [string, string, string, string]>
   ],
 ];
 
-describe('form — as catorze formas de TypeScript (docs/18)', () => {
-  it('a bateria registra EXATAMENTE as catorze chaves da tabela de docs/18', () => {
+describe('form — as catorze formas de TypeScript (onda 7)', () => {
+  it('a bateria registra EXATAMENTE as catorze chaves, na ordem, e nada mais', () => {
     // A lista é FECHADA: nem uma a mais (ruído no orçamento), nem uma a menos
     // (aula da trilha sem forma que a distinga).
     assert.deepEqual(
@@ -376,7 +377,7 @@ describe('form — as catorze formas de TypeScript (docs/18)', () => {
   });
 
   it('DIVERGÊNCIA MEDIDA: `if (typeof x === "…")` NÃO casa a forma do typeof — casa a da igualdade', () => {
-    // `docs/18` dá `if (typeof x === 'string')` como par mínimo de
+    // A spec dava `if (typeof x === 'string')` como par mínimo de
     // `form:IfStatement[expression=TypeOfExpression]`. No AST, a condição desse
     // trecho é o BinaryExpression do `===`, e o TypeOfExpression é o operando
     // ESQUERDO dele — dois níveis abaixo do atributo `expression`. A DSL compara

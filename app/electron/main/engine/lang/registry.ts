@@ -111,9 +111,9 @@ export const DEFAULT_ADAPTER_ID: LanguageId = 'javascript';
  * motivo `'python3'` e `'cpython'` acompanham `'python'`: o primeiro é o nome
  * do BINÁRIO e o segundo o da IMPLEMENTAÇÃO — nenhum dos dois é a linguagem.
  * E `'ts'` acompanha `'typescript'` como grafia curta (é a extensão do arquivo
- * e a tag da cerca); `docs/18-trilha-typescript.md` crava `'typescript'` no
- * `challenge.json`, e aceitar as duas evita reprovar uma trilha por escrever a
- * mesma coisa com dois nomes.
+ * e a tag da cerca): a LINGUAGEM — e o que uma trilha crava no `challenge.json`
+ * — é `'typescript'`, e aceitar as duas grafias evita reprovar uma trilha por
+ * escrever a mesma coisa com dois nomes.
  */
 export const KNOWN_CHALLENGE_LANGUAGES = [
   'javascript',

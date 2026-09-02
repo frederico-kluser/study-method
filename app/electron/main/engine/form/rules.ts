@@ -24,8 +24,7 @@
  * reutilizar ao carregar `form:` declarado no orçamento das aulas.
  *
  * ── CADA REGRA DECLARA SEU DIALETO (onda 7) ──────────────────────────────────
- * `docs/18-trilha-typescript.md` §"As formas novas que a bateria precisa
- * registrar" acrescentou CATORZE formas de TypeScript à bateria. Três delas
+ * A onda 7 acrescentou CATORZE formas de TypeScript à bateria. Três delas
  * casam JAVASCRIPT PURO — `Parameter[dotDotDotToken!=null]` é `f(...xs)`,
  * `IfStatement[expression=BinaryExpression]` é `if (a === 1)`,
  * `IfStatement[expression=TypeOfExpression]` é `if (typeof x)` — e avaliá-las
@@ -34,14 +33,19 @@
  * carrega `dialects`, e o gate é do SELETOR (ver `form/selector.ts`
  * §"O GATE DE DIALETO"), não do chamador: `extract.ts` continua com um laço só.
  *
- *   - as CINCO formas de JavaScript da onda 1: `['js', 'ts']` — a trilha de
- *     TypeScript PRESSUPÕE o axioma de JavaScript (`docs/18` §"A decisão"), e
- *     a semente receptiva de TypeScript já herda `form:ArrowFunction[body!=Block]`
+ *   - as CINCO formas de JavaScript da onda 1: `['js', 'ts']` — uma trilha de
+ *     TypeScript PRESSUPÕE o axioma de JavaScript, e a semente receptiva de
+ *     TypeScript já herda `form:ArrowFunction[body!=Block]`
  *     e `form:Parameter[initializer!=null]` de `HARNESS_RECEPTIVE_SEED`;
  *   - as CATORZE formas de TypeScript: `['ts']` — nenhuma é avaliada em `.mjs`.
  *
- * Referência: `docs/16-engine-de-trilha.md` §3.1, §3.5, I9/I11, §5.3;
- * `docs/18-trilha-typescript.md` §"As formas novas que a bateria precisa registrar".
+ * Referência: `docs/16-engine-de-trilha.md` §3.1, §3.5, I9/I11, §5.3. A spec
+ * de trilha de TypeScript que enumerou as catorze formas foi apagada em
+ * 2026-09-02 (o produto passou a ter UMA trilha, de Python — ver o cabeçalho de
+ * `lang/typescript.ts`). A lista continua FECHADA e continua sendo esta: a
+ * fonte é `TYPESCRIPT_FORM_DEFINITIONS` abaixo, e o par mínimo de cada linha
+ * está em `app/tests/engineForm.test.ts`, que reprova se um seletor a mais ou
+ * a menos entrar.
  */
 
 import { AtomKey, ATOM_KEY_RE } from '../atomKeys';
@@ -157,31 +161,32 @@ const TS: readonly FormDialect[] = ['ts'];
 /**
  * AS CATORZE FORMAS DE TYPESCRIPT (onda 7).
  *
- * Fonte NORMATIVA, seletor por seletor: `docs/18-trilha-typescript.md`
- * §"As formas novas que a bateria precisa registrar". A tabela de lá é a lista
- * FECHADA — nada foi acrescentado, nada foi reescrito, e o par mínimo de cada
- * linha virou um caso de teste (um trecho que CASA, um que NÃO casa) em
- * `app/tests/engineForm.test.ts`.
+ * Esta lista É a fonte, seletor por seletor. Ela foi transcrita da spec de
+ * trilha de TypeScript da onda 7 — apagada em 2026-09-02 (ver o cabeçalho de
+ * `lang/typescript.ts`) — sem acrescentar nem reescrever nada, e o par mínimo
+ * de cada linha virou um caso de teste (um trecho que CASA, um que NÃO casa)
+ * em `app/tests/engineForm.test.ts`. É esse teste que a mantém FECHADA hoje:
+ * ele afirma o comprimento e a ordem, então uma forma a mais (ruído no
+ * orçamento) ou a menos (aula sem forma que a distinga) reprova.
  *
- * O problema que elas resolvem, na própria palavra do documento: **a anotação
- * não é um nó, é um atributo**. `function f(x: string): number` emite
+ * O problema que elas resolvem: **a anotação não é um nó, é um atributo**. `function f(x: string): number` emite
  * `node:Parameter`, `node:FunctionDeclaration`, `node:StringKeyword` e
  * `node:NumberKeyword` — mas "anotar o parâmetro" e "anotar o retorno" são
  * DUAS aulas (`anotar-o-parametro` e `anotar-o-retorno`, módulo 1), e no eixo
  * `node:` elas são indistinguíveis. No eixo `form:` são triviais.
  *
  * DIVERGÊNCIA MEDIDA, e registrada aqui porque o silêncio custaria caro:
- * `IfStatement[expression=TypeOfExpression]` é escrita EXATAMENTE como o
- * documento a escreve, e por isso casa `if (typeof x) { … }` — mas NÃO casa o
- * par mínimo que a própria tabela dá para ela, `if (typeof x === 'string')`.
+ * `IfStatement[expression=TypeOfExpression]` é a chave EXATA que a spec pedia,
+ * e por isso casa `if (typeof x) { … }` — mas NÃO casa o par mínimo que a
+ * própria spec dava para ela, `if (typeof x === 'string')`.
  * Medido: nesse trecho `IfStatement.expression` é o `BinaryExpression` do
  * `===`, e o `TypeOfExpression` é o operando ESQUERDO dele, dois níveis abaixo.
  * A DSL compara o atributo com o TIPO DO NÓ NAQUELA POSIÇÃO (`form/selector.ts`
  * §"SINTAXE MÍNIMA", item 3) — não tem caminho (`expression.left`) nem
  * descendente. Cobrir o exemplo do documento exigiria estender a DSL E MUDAR A
  * CHAVE (`form:IfStatement[expression.left=TypeOfExpression]`), e a chave é o
- * que o módulo 3 declara — então a forma entra literal, e a decisão de estender
- * fica com quem escrever a trilha. Ver o teste homônimo em `engineForm.test.ts`.
+ * que a aula declara — então a forma entra literal, e a decisão de estender a
+ * DSL fica com quem escrever a trilha de TypeScript. Ver o teste homônimo em `engineForm.test.ts`.
  */
 export const TYPESCRIPT_FORM_DEFINITIONS: readonly FormRuleDefinition[] = [
   {

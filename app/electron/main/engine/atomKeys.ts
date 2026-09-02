@@ -296,12 +296,14 @@ export const HARNESS_RECEPTIVE_SEED: readonly AtomKey[] = [
  * O QUE O HARNESS DE TYPESCRIPT ACRESCENTA — as chaves de TIPO que todo
  * desafio da trilha carrega POR CONSTRUÇÃO, e que o aluno lê sem escrever.
  *
- * Fonte NORMATIVA: `docs/18-trilha-typescript.md` §"A semente receptiva do
- * harness TypeScript", que lista exatamente estas sete e diz o porquê: "o
- * `test.ts` de qualquer desafio importa uma função TIPADA e a chama; sem essas
- * chaves na faixa receptiva, todo desafio da trilha nasceria violando A3 por
- * causa do próprio harness — que é exatamente o defeito que a política
- * `receptive-seed` existe para evitar."
+ * Estas sete vieram da spec de trilha de TypeScript da onda 6, apagada em
+ * 2026-09-02 (o produto passou a ter UMA trilha, de Python — ver o cabeçalho de
+ * `engine/lang/typescript.ts`). O motivo continua sendo o dela, e continua
+ * valendo: o `test.ts` de qualquer desafio importa uma função TIPADA e a chama;
+ * sem essas chaves na faixa receptiva, todo desafio de uma trilha de TypeScript
+ * nasceria violando A3 por causa do próprio harness — que é exatamente o
+ * defeito que a política `receptive-seed` existe para evitar. A lista é FECHADA
+ * e o teste que a fecha é `tests/engineLangTypescript.test.ts` §8.
  *
  * O mecanismo, concretamente. Um `test.ts` mínimo é
  *
@@ -319,8 +321,7 @@ export const HARNESS_RECEPTIVE_SEED: readonly AtomKey[] = [
  * `node:ArrayType` porque a função que recebe ou devolve lista é o caso mais
  * comum de desafio do produto. NENHUMA delas entra na faixa PRODUTIVA:
  * escrever a anotação continua sendo o conteúdo das aulas 1 a 4 do módulo 1 da
- * trilha (`docs/18` §"Módulo 1"), e uma aula que ENSINE a anotação continua
- * exigindo aula própria.
+ * trilha, e uma aula que ENSINE a anotação continua exigindo aula própria.
  *
  * As duas chaves `form:` são exceção justificada pelo mesmo motivo das duas de
  * JavaScript acima: o eixo `form:` não existe em `vocab/atoms.json` (ele é a
@@ -359,28 +360,53 @@ export const TYPESCRIPT_HARNESS_RECEPTIVE_SEED: readonly AtomKey[] = [
 ];
 
 /**
- * A SEMENTE RECEPTIVA DO HARNESS DE PYTHON (ONDA 7).
+ * A SEMENTE RECEPTIVA DO HARNESS DE PYTHON (ONDA 7; MEDIDA E CORRIGIDA NA 9).
  *
- * Fonte NORMATIVA, copiada nome a nome: `docs/17-trilha-python.md`
- * §"A semente receptiva do harness Python". O harness de Python NÃO é o de
- * JavaScript com outros nomes — é outro runner (`unittest`, por descoberta) e
- * outro invólucro:
+ * Fonte NORMATIVA: `docs/17-trilha-python.md` §"A semente receptiva do harness
+ * Python", §"O formato exato do arquivo de teste — FASE SAÍDA" e §"A progressão
+ * de canal". O harness de Python NÃO é o de JavaScript com outros nomes — é
+ * outro runner (`unittest`, por descoberta) e outro invólucro. E ele tem DUAS
+ * formas, porque a trilha tem duas fases de canal de saída.
+ *
+ * FASE VALOR (M4 em diante, `outputChannel: 'retorno'`) — o teste importa a
+ * função do aluno e assevera o VALOR que ela devolve:
  *
  *     import unittest
+ *
  *     from solucao import dobro
  *
  *     class TestDobro(unittest.TestCase):
  *         def test_dobro_de_2(self):
+ *             """o dobro de 2 e 4"""
  *             self.assertEqual(dobro(2), 4)
  *
- *     if __name__ == "__main__":
- *         unittest.main()
+ * FASE SAÍDA (M1 a M3, `outputChannel: 'impressao'`) — a aula 1 é
+ * `print("oi")`, e nessa altura o aluno ainda não tem função nem `return`. O
+ * teste roda o ARQUIVO e assevera o que ele IMPRIMIU:
+ *
+ *     import contextlib
+ *     import io
+ *     import runpy
+ *     import unittest
+ *
+ *     def rodar():
+ *         """Roda solucao.py do zero e devolve tudo o que ele imprimiu."""
+ *         saida = io.StringIO()
+ *         with contextlib.redirect_stdout(saida):
+ *             runpy.run_path("solucao.py")
+ *         return saida.getvalue()
+ *
+ *     class TestAPrimeiraLinha(unittest.TestCase):
+ *         def test_imprime_oi(self):
+ *             """o programa imprime oi"""
+ *             self.assertEqual(rodar(), "oi\n")
  *
  * O aluno LÊ isso em todo desafio e não escreve nada disso em nenhum: a classe,
- * o método `test_*`, o `self.assertEqual`, o `import unittest`. Por isso a
- * semente traz `node:ClassDef` e `node:MethodDef` — que na trilha de JavaScript
- * não teriam a menor razão de existir — e NÃO traz uma linha sequer do
- * `node:test`/`assert` do Node.
+ * o método `test_*`, o `self.assertEqual`, o `import unittest`, e — na fase
+ * SAÍDA — o `with` da captura de `stdout`. Por isso a semente traz
+ * `node:ClassDef` e `node:MethodDef` — que na trilha de JavaScript não teriam a
+ * menor razão de existir — e NÃO traz uma linha sequer do `node:test`/`assert`
+ * do Node.
  *
  * `node:IntLiteral` e `node:StrLiteral` entram pelo mesmo motivo que
  * `node:NumericLiteral`/`node:StringLiteral` entram na de JavaScript: não
@@ -388,6 +414,47 @@ export const TYPESCRIPT_HARNESS_RECEPTIVE_SEED: readonly AtomKey[] = [
  * essas duas chaves são SINTÉTICAS (`7` e `"oi"` são o MESMO `ast.Constant`;
  * ver `vocab/py/extract_ast.py`) — e é justamente por elas chegarem ao gate que
  * uma aula de TEXTO passa a introduzir construção nova em vez de ZERO.
+ *
+ * ── AS DOZE CHAVES DA FASE SAÍDA (onda 9) ────────────────────────────────────
+ *
+ * A lista da onda 7 tinha sido escrita contra a fase VALOR só, e um desafio da
+ * fase SAÍDA reprovava em A3 (`testsCode ⊆ budget_ENTRADA.receptive`) por doze
+ * chaves que a spec AUTORIZA — falso vermelho no harness, que é exatamente o
+ * defeito que a política `receptive-seed` existe para evitar. As doze, medidas
+ * (não copiadas) rodando o adaptador Python sobre o arquivo acima:
+ *
+ *   - `node:With` + `node:withitem` + `api:contextlib.redirect_stdout` — a
+ *     captura de `stdout`. O `with` é conteúdo de M11; aqui ele é RELEITURA.
+ *   - `node:Assign` + `decl:assign` — o `saida = io.StringIO()`. O par é
+ *     obrigatório (§"A regra do par": `decl:assign` pressupõe `node:Assign`).
+ *   - `api:io.StringIO` + `api:.getvalue` — o buffer e a leitura dele.
+ *   - `api:runpy.run_path` — rodar o arquivo do aluno DO ZERO a cada chamada.
+ *     Não é `importlib.import_module`: esse está em `PY_FORBIDDEN_INVARIANTS`
+ *     (proibição GLOBAL) e além disso só executaria o arquivo na 1ª chamada, o
+ *     que faria o 2º teste da mesma classe ler saída vazia.
+ *   - `api:io`, `api:contextlib`, `api:runpy` e `api:unittest` — as chaves de
+ *     MÓDULO. O extrator emite uma `ApiRef` por `alias` de cada `import`
+ *     (`extract_ast.py`, ramo `ast.Import`), então `import io` sozinho já
+ *     produz `api:io` — separado e além de `api:io.StringIO`, que vem do
+ *     `ast.Attribute`. Estas quatro não estavam no delta declarado pela spec;
+ *     saíram da MEDIÇÃO, e sem elas a fase SAÍDA continuaria vermelha.
+ *
+ * ── AS DUAS QUE SAÍRAM ───────────────────────────────────────────────────────
+ *
+ *   - `global:unittest` era impossível: o eixo `global:` só recebe BUILTIN livre
+ *     no escopo (`extract_ast.py`, ramo `ast.Name`/`Load`), e `unittest` é
+ *     IMPORTADO — `atoms.python.json` não o tem em `builtins`. Depois do
+ *     `import` o nome está declarado, e o que o extrator emite é `api:unittest`.
+ *   - `api:unittest.main` só apareceria dentro de `if __name__ == "__main__":`,
+ *     que a trilha REMOVE de propósito: o runner é `unittest discover`, que
+ *     nunca roda esse bloco. Medido, o bloco custaria seis chaves receptivas na
+ *     aula 1 (`api:unittest.main`, `global:__name__`, `node:If`,
+ *     `node:Compare`, `node:StrLiteral`, `op:compare:==`) por zero efeito.
+ *
+ * Semente é PERDÃO: cada chave aqui perdoa, para sempre, algo que o aluno não
+ * aprendeu. Só entra o que o harness REALMENTE emite — e `engineLangPython`
+ * §"o harness da fase SAÍDA cabe na semente" mede isso a cada `npm test`, para
+ * que a defasagem não volte em silêncio.
  */
 export const PYTHON_HARNESS_RECEPTIVE_SEED: readonly AtomKey[] = [
   'node:Module',
@@ -406,9 +473,22 @@ export const PYTHON_HARNESS_RECEPTIVE_SEED: readonly AtomKey[] = [
   'node:MethodDef',
   'node:IntLiteral',
   'node:StrLiteral',
-  'global:unittest',
+  // fase SAÍDA — a captura de `stdout` (`with contextlib.redirect_stdout(...)`)
+  'node:With',
+  'node:withitem',
+  'node:Assign',
+  'decl:assign',
+  // os MÓDULOS que o `import` do harness declara, um por `alias`
+  'api:unittest',
+  'api:io',
+  'api:contextlib',
+  'api:runpy',
+  // os MEMBROS que o harness chama
   'api:unittest.TestCase',
-  'api:unittest.main',
+  'api:io.StringIO',
+  'api:contextlib.redirect_stdout',
+  'api:runpy.run_path',
+  'api:.getvalue',
   'api:.assertEqual',
   'api:.assertTrue',
   'api:.assertIsNone',
@@ -532,11 +612,13 @@ function exigirTabela(tabela: string, language: LanguageId): void {
 /**
  * A semente receptiva do harness DESTA linguagem (política `receptive-seed`).
  *
- * TypeScript recebe a de JavaScript MAIS as sete chaves de tipo — sem elas,
- * TODO desafio da trilha de TypeScript nasceria violando A3 por causa do
- * próprio harness (`docs/18-trilha-typescript.md` §"A semente receptiva do
- * harness TypeScript"), que é o modo de falha que esta política existe para
- * evitar.
+ * TypeScript recebe a de JavaScript MAIS as sete chaves de tipo
+ * (`TYPESCRIPT_TYPE_HARNESS_SEED`); Python tem lista PRÓPRIA, medida contra o
+ * arquivo de teste que a trilha de fato escreve
+ * (`PYTHON_HARNESS_RECEPTIVE_SEED`, e `tests/engineLangPython.test.ts` §"a
+ * semente receptiva cobre o harness REAL"). Sem elas, TODO desafio nasceria
+ * violando A3 por causa do próprio harness — o modo de falha que esta política
+ * existe para evitar.
  */
 export function harnessReceptiveSeed(language: LanguageId = DEFAULT_ADAPTER_ID): readonly AtomKey[] {
   exigirTabela('HARNESS_RECEPTIVE_SEED', language);

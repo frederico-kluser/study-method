@@ -60,6 +60,10 @@ import {
   type LangNode,
   type ParseOk,
 } from '../electron/main/engine/lang/registry';
+import {
+  PYTHON_HARNESS_RECEPTIVE_SEED,
+  PYTHON_STRUCTURAL_ALWAYS_ALLOWED,
+} from '../electron/main/engine/atomKeys';
 
 const py = pythonAdapter;
 const FIXTURES = path.join(path.dirname(fileURLToPath(import.meta.url)), 'fixtures', 'python');
@@ -739,6 +743,128 @@ describe('python — o eixo `form:` está DESABILITADO na v1, e isso é declarad
   it('nenhuma chave `form:` é emitida — as distinções foram para node:/decl:', { skip: !TEM_PYTHON }, () => {
     const fonte = fs.readFileSync(path.join(FIXTURES, 'distincoes.py'), 'utf8');
     assert.deepEqual(chavesDe(fonte).filter((k) => k.startsWith('form:')), []);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// A SEMENTE RECEPTIVA × O HARNESS REAL (onda 9)
+// ---------------------------------------------------------------------------
+//
+// A semente da onda 7 tinha sido escrita contra a fase VALOR (`from solucao
+// import dobro`) e ficou defasada da fase SAÍDA (`runpy.run_path` +
+// `contextlib.redirect_stdout`), que é justamente a fase da AULA 1. Um desafio
+// de M1 reprovava em A3 (`testsCode ⊆ budget_ENTRADA.receptive`) por doze
+// chaves que `docs/17-trilha-python.md` AUTORIZA — falso vermelho no harness,
+// que é o defeito que a política `receptive-seed` existe para evitar, e que
+// faria o autor da trilha "consertar" conteúdo correto.
+//
+// Estes testes fecham o laço nos DOIS sentidos, medindo em vez de supor:
+//   - nada FALTA: toda chave do harness está na semente ∪ estrutural;
+//   - nada SOBRA: toda chave da semente é emitida por um harness real.
+// A segunda direção é a que importa mais. Semente é PERDÃO: cada chave a mais
+// perdoa, para sempre, uma construção que o aluno não aprendeu.
+describe('python — a semente receptiva cobre o harness REAL, e nada além dele', () => {
+  /** Os harnesses que a trilha de fato escreve, por fase (`docs/17` §"A progressão de canal"). */
+  const HARNESSES = ['harness-fase-saida.py', 'harness-fase-valor.py', 'harness-assertivas.py'] as const;
+
+  const PERDOADO = new Set<string>([
+    ...PYTHON_HARNESS_RECEPTIVE_SEED,
+    ...PYTHON_STRUCTURAL_ALWAYS_ALLOWED,
+  ]);
+
+  function chavesDoHarness(nome: string): Set<string> {
+    return new Set(chavesDe(fs.readFileSync(path.join(FIXTURES, nome), 'utf8')));
+  }
+
+  it('FASE SAÍDA: toda chave do harness da AULA 1 está na semente ∪ estrutural', { skip: !TEM_PYTHON }, () => {
+    const chaves = [...chavesDoHarness('harness-fase-saida.py')].sort();
+    // guarda de sanidade: se o fixture parasse de ser o harness de captura de
+    // stdout, o teste passaria vazio e não provaria nada.
+    for (const marca of ['api:runpy.run_path', 'api:contextlib.redirect_stdout', 'node:With']) {
+      assert.ok(chaves.includes(marca), `o fixture deixou de ser o harness da fase SAÍDA (sem ${marca})`);
+    }
+    const fora = chaves.filter((k) => !PERDOADO.has(k));
+    assert.deepEqual(fora, [], `o harness da fase SAÍDA emite chave que a semente não perdoa: ${fora.join(' ')}`);
+  });
+
+  it('as DOZE chaves que a onda 7 não tinha estão lá, uma a uma', { skip: !TEM_PYTHON }, () => {
+    // Medidas rodando o adaptador sobre o fixture — oito vieram do delta
+    // declarado em `docs/17` §"A semente receptiva do harness Python" e quatro
+    // (as de MÓDULO) só apareceram na medição: o extrator emite uma `ApiRef`
+    // por `alias` de cada `import`, então `import io` produz `api:io` além do
+    // `api:io.StringIO` que vem do `ast.Attribute`.
+    const doDelta = ['node:With', 'node:withitem', 'node:Assign', 'decl:assign',
+      'api:runpy.run_path', 'api:io.StringIO', 'api:contextlib.redirect_stdout', 'api:.getvalue'];
+    const daMedicao = ['api:unittest', 'api:io', 'api:contextlib', 'api:runpy'];
+    const emitidas = chavesDoHarness('harness-fase-saida.py');
+    for (const k of [...doDelta, ...daMedicao]) {
+      assert.ok(emitidas.has(k), `o harness da fase SAÍDA não emite ${k} — a lista está errada`);
+      assert.ok(PYTHON_HARNESS_RECEPTIVE_SEED.includes(k), `${k} sumiu da semente`);
+    }
+  });
+
+  it('o par `decl:assign`/`node:Assign` entra INTEIRO — meia semente reprova igual', { skip: !TEM_PYTHON }, () => {
+    // `docs/17` §"A regra do par": `decl:assign` pressupõe `node:Assign`, e o
+    // `saida = io.StringIO()` do harness emite os dois.
+    const emitidas = chavesDoHarness('harness-fase-saida.py');
+    assert.ok(emitidas.has('decl:assign') && emitidas.has('node:Assign'));
+    assert.ok(PYTHON_HARNESS_RECEPTIVE_SEED.includes('decl:assign'));
+    assert.ok(PYTHON_HARNESS_RECEPTIVE_SEED.includes('node:Assign'));
+  });
+
+  it('NADA SOBRA: toda chave da semente é emitida por algum harness real', { skip: !TEM_PYTHON }, () => {
+    const emitidas = new Set<string>();
+    for (const nome of HARNESSES) for (const k of chavesDoHarness(nome)) emitidas.add(k);
+    const gordura = PYTHON_HARNESS_RECEPTIVE_SEED.filter((k) => !emitidas.has(k));
+    assert.deepEqual(
+      [...gordura],
+      [],
+      `semente é PERDÃO: estas chaves perdoam construções que nenhum harness lê — ${gordura.join(' ')}`,
+    );
+  });
+
+  it('`global:unittest` é IMPOSSÍVEL — `unittest` é importado, não builtin', { skip: !TEM_PYTHON }, () => {
+    // O eixo `global:` só recebe BUILTIN livre no escopo; `unittest` chega por
+    // `import` e o extrator o emite como `api:unittest`. A chave estava na
+    // semente da onda 7 e nunca ocorreu em harness nenhum.
+    for (const nome of HARNESSES) {
+      const chaves = chavesDoHarness(nome);
+      assert.ok(!chaves.has('global:unittest'), `${nome} emitiu global:unittest`);
+      assert.ok(chaves.has('api:unittest'), `${nome} devia emitir api:unittest`);
+    }
+    assert.ok(!PYTHON_HARNESS_RECEPTIVE_SEED.includes('global:unittest'));
+    const bruto = pyInventarioBruto();
+    assert.ok(bruto !== null, 'atoms.python.json ausente');
+    assert.ok(!bruto.builtins.includes('unittest'), 'unittest não é builtin — o eixo global: nunca o vê');
+  });
+
+  it('`api:unittest.main` custa SEIS chaves e não roda — por isso saiu da semente', { skip: !TEM_PYTHON }, () => {
+    // O runner é `unittest discover`, que NUNCA executa `if __name__ ==
+    // "__main__"`. Este teste mede o preço do bloco em vez de supô-lo: sem ele
+    // a aula 1 não paga nada; com ele, seis chaves receptivas de graça.
+    const semBloco = fs.readFileSync(path.join(FIXTURES, 'harness-fase-valor.py'), 'utf8');
+    const comBloco = `${semBloco}\n\nif __name__ == "__main__":\n    unittest.main()\n`;
+    const antes = chavesDoHarness('harness-fase-valor.py');
+    const custo = [...new Set(chavesDe(comBloco))].filter((k) => !antes.has(k)).sort();
+    assert.deepEqual(custo, [
+      'api:unittest.main',
+      'global:__name__',
+      'node:Compare',
+      'node:If',
+      'op:compare:==',
+    ]);
+    assert.ok(!PYTHON_HARNESS_RECEPTIVE_SEED.includes('api:unittest.main'));
+    // e nenhuma delas foi contrabandeada para a semente pela porta de trás
+    for (const k of custo) assert.ok(!PYTHON_HARNESS_RECEPTIVE_SEED.includes(k), k);
+  });
+
+  it('a semente NÃO empresta nada do harness de JavaScript/TypeScript', { skip: !TEM_PYTHON }, () => {
+    // Redundante com engineLangTypescript por escolha: é a invariante que a
+    // tentação de "crescer a lista para o gate passar" quebra primeiro.
+    for (const k of PYTHON_HARNESS_RECEPTIVE_SEED) {
+      assert.ok(!k.startsWith('form:'), `o eixo form: está desabilitado em Python (${k})`);
+      assert.ok(!k.includes('node:test'), k);
+    }
   });
 });
 
