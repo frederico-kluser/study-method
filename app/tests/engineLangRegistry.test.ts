@@ -46,6 +46,7 @@ import {
 } from '../electron/main/engine/lang/registry';
 import { javascriptAdapter, jsKindName } from '../electron/main/engine/lang/javascript';
 import { pythonAdapter } from '../electron/main/engine/lang/python';
+import { typescriptAdapter } from '../electron/main/engine/lang/typescript';
 
 // as FONTES que o adaptador duplica hoje (a paridade é medida contra elas)
 import { SAFE_FILE_PATH_RE } from '../electron/main/content/trackTypes';
@@ -62,6 +63,7 @@ import * as ts from 'typescript';
 
 const js = javascriptAdapter;
 const py = pythonAdapter;
+const ts = typescriptAdapter;
 
 describe('registro — enum de ids e resolução', () => {
   it('todo id DECLARADO tem adaptador registrado, e todo adaptador tem id declarado', () => {
@@ -75,16 +77,17 @@ describe('registro — enum de ids e resolução', () => {
   });
 
   it('getAdapter de id desconhecido LANÇA erro estruturado — nunca cai no default', () => {
-    // ONDA 5: 'python' passou a EXISTIR (segundo adaptador). O id de teste é
-    // 'ruby', que o §7 lista como PRÓXIMO da fila e ainda não tem adaptador —
-    // trocar o id aqui é o sinal esperado de que a linguagem entrou.
+    // ONDA 5: 'python' passou a EXISTIR (segundo adaptador). ONDA 6:
+    // 'typescript' (terceiro). O id de teste é 'ruby', que o §7 lista como
+    // PRÓXIMO da fila (depois de Go) e ainda não tem adaptador — trocar o id
+    // aqui é o sinal esperado de que a linguagem entrou.
     assert.throws(
       () => getAdapter('ruby'),
       (err: unknown) => {
         assert.ok(err instanceof LanguageRegistryError);
         assert.equal(err.code, 'ADAPTADOR_DESCONHECIDO');
         assert.equal(err.detalhes.pedido, 'ruby');
-        assert.deepEqual(err.detalhes.conhecidos, ['javascript', 'python']);
+        assert.deepEqual(err.detalhes.conhecidos, ['javascript', 'python', 'typescript']);
         assert.ok(err.message.includes('javascript'), err.message);
         return true;
       },
@@ -168,7 +171,10 @@ describe('registro — tag de bloco de teoria (qual parser recebe cada bloco)', 
   });
 
   it('listTheoryCodeTags é a união das tags dos adaptadores', () => {
-    assert.deepEqual(listTheoryCodeTags(), [...js.theoryFenceTags, ...py.theoryFenceTags].sort());
+    assert.deepEqual(
+      listTheoryCodeTags(),
+      [...js.theoryFenceTags, ...py.theoryFenceTags, ...ts.theoryFenceTags].sort(),
+    );
   });
 });
 

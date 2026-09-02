@@ -63,6 +63,7 @@
 
 import { javascriptAdapter } from './javascript';
 import { pythonAdapter } from './python';
+import { typescriptAdapter } from './typescript';
 
 // ---------------------------------------------------------------------------
 // Vocabulário FECHADO de ids (o enum de linguagens que a engine conhece)
@@ -81,10 +82,15 @@ import { pythonAdapter } from './python';
  * javascript → typescript → python → go → ruby → …
  * O teste `tests/engineLangRegistry.test.ts` cobra que esta lista e os
  * adaptadores REGISTRADOS não divirjam (lista sem adaptador = id fantasma).
+ *
+ * ONDA 6: `typescript` fecha a fila do §7 até Go. Ele é a prova da SEGUNDA
+ * CAMADA DE TRAVA (a semântica de tipos): mesmo runner, mesmo `SyntaxKind`,
+ * mesmo vocabulário — e uma prova a mais, a QUINTA (`exec/typesCheck.ts`),
+ * porque Node APAGA os tipos em vez de conferi-los.
  */
-export const KNOWN_LANGUAGE_IDS = ['javascript', 'python'] as const;
+export const KNOWN_LANGUAGE_IDS = ['javascript', 'python', 'typescript'] as const;
 
-/** Um id de linguagem conhecido (`'javascript'`, `'python'`). */
+/** Um id de linguagem conhecido (`'javascript'`, `'python'`, `'typescript'`). */
 export type LanguageId = (typeof KNOWN_LANGUAGE_IDS)[number];
 
 /**
@@ -104,6 +110,10 @@ export const DEFAULT_ADAPTER_ID: LanguageId = 'javascript';
  * o resolve para `'javascript'` em `adapterIdForChallengeLanguage`. Pelo mesmo
  * motivo `'python3'` e `'cpython'` acompanham `'python'`: o primeiro é o nome
  * do BINÁRIO e o segundo o da IMPLEMENTAÇÃO — nenhum dos dois é a linguagem.
+ * E `'ts'` acompanha `'typescript'` como grafia curta (é a extensão do arquivo
+ * e a tag da cerca); `docs/18-trilha-typescript.md` crava `'typescript'` no
+ * `challenge.json`, e aceitar as duas evita reprovar uma trilha por escrever a
+ * mesma coisa com dois nomes.
  */
 export const KNOWN_CHALLENGE_LANGUAGES = [
   'javascript',
@@ -111,6 +121,8 @@ export const KNOWN_CHALLENGE_LANGUAGES = [
   'python',
   'python3',
   'cpython',
+  'typescript',
+  'ts',
 ] as const;
 
 /** Valor válido de `challenge.language` / `track.programmingLanguage`. */
@@ -897,7 +909,12 @@ export function listTheoryCodeTags(): string[] {
 // A ordem importa só para o erro: `idsConhecidos()` ordena antes de mostrar.
 // `javascript` roda o compilador TypeScript DENTRO do processo; `python`
 // roda `python3` por `spawnSync` — as duas formas cabem na MESMA interface, e
-// é isso que o §7 item 3 pede que fique provado.
+// é isso que o §7 item 3 pede que fique provado. `typescript` é a TERCEIRA
+// forma: um adaptador que é quase todo COMPOSIÇÃO sobre outro (`lang/
+// typescript.ts` delega onze dos quinze membros ao `javascriptAdapter`), o que
+// prova que a interface aguenta uma linguagem que difere da vizinha por
+// camada, e não por toolchain.
 
 registerAdapter(javascriptAdapter);
 registerAdapter(pythonAdapter);
+registerAdapter(typescriptAdapter);

@@ -71,6 +71,11 @@
  *     `require.resolve` acha o binário sem instalar nada.
  */
 
+// `node:path` é builtin: import ESTÁTICO, sem peso e sem `require` em
+// variável (o padrão que o bundler não enxerga e que quebra no app
+// EMPACOTADO). Este arquivo continua sem NENHUM outro import de valor.
+import * as path from 'node:path';
+
 import type { ChallengeProofSide, ExecFn, ExecResult } from './proofs';
 import type { LanguageAdapter } from '../lang/registry';
 
@@ -95,6 +100,35 @@ export interface PoliticaDeTipos {
 }
 
 /**
+ * Onde moram os `@types` do repositório — resolvido UMA vez, na carga.
+ *
+ * POR QUE ISSO É NECESSÁRIO, e foi medido: o diretório de execução da prova é
+ * um `mkdtemp` sob `os.tmpdir()` (`exec/harness.ts:110` com o `baseDir` de
+ * `phases/f9Verifier.ts:192`), e a resolução de módulo do TypeScript sobe a
+ * partir do arquivo — de `/tmp/proof-exec-XXXX/` ela nunca chega a um
+ * `node_modules`. Sem esta flag, o `test.ts` de TODO desafio de TypeScript
+ * reprova com dois `TS2307` ("Cannot find module 'node:test'" e
+ * "'node:assert/strict'"), e a quinta prova viraria um "não" constante que não
+ * fala sobre o desafio nenhum. Medido, nesta máquina:
+ *
+ *     tsc --noEmit --strict … solution.ts test.ts
+ *     # test.ts(1,18): error TS2307: Cannot find module 'node:test' …
+ *     # test.ts(3,23): error TS5097: An import path can only end with a '.ts' …
+ *     # EXIT=2
+ *
+ * O caminho sai do binário do compilador que a própria política já resolve
+ * (`<node_modules>/typescript/bin/tsc` → `<node_modules>/@types`), e não de um
+ * `require.resolve` novo: um só ponto de resolução, uma só forma de falhar.
+ * `null` quando o compilador não está na máquina — e aí a prova já é
+ * fail-closed por outro caminho (`criarTypesCheck` devolve `degradacao`).
+ */
+export const TYPE_ROOTS_DO_REPO: string | null = (() => {
+  const tsc = resolverCompiladorNpm('typescript/bin/tsc');
+  if (tsc === null) return null;
+  return path.resolve(path.dirname(tsc), '..', '..', '@types');
+})();
+
+/**
  * Flags de `tsc` para conferir tipos SEM tsconfig e SEM emitir nada.
  *
  * `--noEmit` é o ponto inteiro (a prova é de TIPO, não de build). `--strict`
@@ -104,6 +138,34 @@ export interface PoliticaDeTipos {
  * e um erro lá viraria falha do DESAFIO. `--pretty false` porque a saída de
  * diagnóstico entra numa `reason` de `ProofJudgement`, e código ANSI ali só
  * suja o relatório (a mesma armadilha que o parser de contagem já trata).
+ *
+ * ─── AS TRÊS FLAGS QUE MUDARAM NA ONDA 6, CADA UMA POR MEDIÇÃO ────────────
+ *
+ * `--module nodenext --moduleResolution nodenext` (era `ESNext`/`bundler`).
+ * O runner é o `node --test` — e `bundler` aprova um programa que o runner
+ * REJEITA. Medido, sobre o MESMO par de arquivos com `import { f } from
+ * './solution'` (sem extensão):
+ *
+ *     moduleResolution bundler  → EXIT=0     (o tsc aprova)
+ *     moduleResolution nodenext → EXIT=2     TS2835: "Relative import paths
+ *                                            need explicit file extensions…"
+ *     node --test test.ts       → EXIT=1     (ERR_MODULE_NOT_FOUND)
+ *
+ * Uma prova de tipo que aprova o que o runtime derruba não é uma prova a mais:
+ * é uma segunda opinião errada. `nodenext` é o único modo que modela o que o
+ * Node de fato faz, e é o que `docs/18-trilha-typescript.md` mediu.
+ *
+ * `--allowImportingTsExtensions` porque `docs/18` §"Regras para os desafios de
+ * aula" exige `from './solution.ts'` (extensão EXPLÍCITA, que é o que o ESM do
+ * Node pede) e sem a flag isso é `TS5097` — erro de configuração do provador,
+ * não do desafio. Ela exige `--noEmit`, que já está aqui.
+ *
+ * `--typeRoots <@types> --types node` porque o diretório da prova não tem
+ * `node_modules` (ver `TYPE_ROOTS_DO_REPO`). `--types node` restringe a
+ * inclusão automática ao pacote que o harness usa, e isso não é higiene: sem
+ * ele o compilador carrega TODO `@types` do repositório (react, katex, babel…)
+ * em cada prova. Medido: 373/388/405 ms com `--types node` contra 531/538 ms
+ * sem — e o `tsc` já é ~6× a rodada de teste.
  */
 export const TSC_NOEMIT_ARGS: readonly string[] = [
   '--noEmit',
@@ -114,20 +176,29 @@ export const TSC_NOEMIT_ARGS: readonly string[] = [
   '--target',
   'ES2022',
   '--module',
-  'ESNext',
+  'nodenext',
   '--moduleResolution',
-  'bundler',
+  'nodenext',
+  '--allowImportingTsExtensions',
+  ...(TYPE_ROOTS_DO_REPO === null ? [] : ['--typeRoots', TYPE_ROOTS_DO_REPO, '--types', 'node']),
 ];
 
 /**
  * A tabela de política, por id de adaptador.
  *
  * `javascript` está aqui EXPLÍCITO com `required: false` — não por omissão. A
- * entrada `typescript` já está escrita porque ela é o alvo declarado do §7,
- * item 2 do documento de multilíngua ("TypeScript … é aqui que se descobre se
- * a arquitetura de adaptadores aguenta uma segunda camada de trava (a
- * semântica de tipos)"); no dia em que `lang/typescript.ts` existir, a quinta
- * prova já estará ligada para ele sem tocar em `exec/proofs.ts`.
+ * entrada `typescript` foi escrita antes do adaptador existir, porque ela é o
+ * alvo declarado do §7, item 2 do documento de multilíngua ("TypeScript … é
+ * aqui que se descobre se a arquitetura de adaptadores aguenta uma segunda
+ * camada de trava (a semântica de tipos)").
+ *
+ * ONDA 6: `lang/typescript.ts` existe, e a promessa se cumpriu — a quinta
+ * prova ligou para ele SEM UMA LINHA em `exec/proofs.ts`. O que a chegada do
+ * adaptador real mudou aqui foi só o CONTEÚDO de `TSC_NOEMIT_ARGS` (as três
+ * flags documentadas acima), porque só com um `layout()` de verdade — o
+ * `test.ts` importando `./solution.ts` com extensão explícita, num diretório
+ * `mkdtemp` sem `node_modules` — dava para MEDIR o que o compilador precisa
+ * para julgar o desafio em vez de reprovar a própria montagem.
  */
 export const POLITICAS_DE_TIPOS: Readonly<Record<string, PoliticaDeTipos>> = Object.freeze({
   javascript: { required: false, args: [], compilador: null },

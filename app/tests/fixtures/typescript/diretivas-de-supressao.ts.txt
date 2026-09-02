@@ -1,0 +1,45 @@
+FIXTURE: as diretivas de supressão do conferidor de tipos, em sete posições.
+
+POR QUE A EXTENSÃO NÃO É `.ts`: `tsconfig.node.json` inclui `tests/**`, e o
+`npm run lint` compilaria este arquivo. Ele existe justamente para carregar as
+duas diretivas que `docs/18-trilha-typescript.md` §"Regras para os desafios de
+aula" proíbe em qualquer nível — e uma delas, posta acima de uma linha sem
+erro, é ela própria um erro de compilação. Fixture é DADO, não código do
+projeto: este arquivo é lido como TEXTO e entregue ao `adapter.parse`.
+
+POR QUE ESTE CABEÇALHO NÃO É COMENTÁRIO DE CÓDIGO: o teste conta OCORRÊNCIAS,
+e uma diretiva citada em prosa aqui em cima entraria na conta. O bloco de
+prosa fica fora do fonte — o teste corta o arquivo no marcador de corte da
+linha seguinte e entrega ao parser só o que vem dele em diante.
+
+Sete diretivas, uma por posição, mais duas armadilhas em literal. Total
+esperado pela varredura: 7 (quatro de uma, três da outra).
+
+// ---8<---
+// @ts-ignore
+const a: number = 1;
+
+/* @ts-expect-error */
+const b: string = 'ok';
+
+/** @ts-ignore */
+export function f(): number {
+  return a; // @ts-expect-error
+}
+
+export function g(): string {
+  return b;
+  // @ts-ignore
+}
+
+export interface I {
+  // @ts-expect-error
+  campo: string;
+}
+
+// A ARMADILHA: estas duas NÃO são diretivas — são conteúdo de literal, e
+// literal é NÓ, não trivia. Achá-las seria falso positivo.
+export const naoEhDiretiva = '@ts-ignore';
+export const nemEsta = `texto com @ts-expect-error dentro`;
+
+// @ts-ignore

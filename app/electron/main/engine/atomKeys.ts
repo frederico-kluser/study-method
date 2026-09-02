@@ -225,6 +225,11 @@ export function isForbiddenAlways(key: AtomKey, language: LanguageId = DEFAULT_A
  * FAIL-CLOSED: pedir a semente de uma linguagem que não a tem LANÇA, em vez de
  * semear um orçamento de Python com o harness do Node.
  *
+ * ONDA 6: TypeScript usa esta lista INTEIRA e acrescenta sete chaves de tipo —
+ * ver `TYPESCRIPT_TYPE_HARNESS_SEED` e `TYPESCRIPT_HARNESS_RECEPTIVE_SEED`
+ * logo abaixo. O acréscimo mora numa lista SEPARADA de propósito: crescer ESTA
+ * lista liberaria as sete construções também em `nodejs-do-zero`.
+ *
  * Medição que justifica esta lista existir: 45 das 60 violações dos módulos
  * 1–3 da trilha atual são exatamente estas construções. Sem separá-las, o gate
  * só tem duas saídas ruins — proibir o próprio runner de teste (inviável) ou
@@ -285,6 +290,70 @@ export const HARNESS_RECEPTIVE_SEED: readonly AtomKey[] = [
 ] as const;
 
 /**
+ * O QUE O HARNESS DE TYPESCRIPT ACRESCENTA — as chaves de TIPO que todo
+ * desafio da trilha carrega POR CONSTRUÇÃO, e que o aluno lê sem escrever.
+ *
+ * Fonte NORMATIVA: `docs/18-trilha-typescript.md` §"A semente receptiva do
+ * harness TypeScript", que lista exatamente estas sete e diz o porquê: "o
+ * `test.ts` de qualquer desafio importa uma função TIPADA e a chama; sem essas
+ * chaves na faixa receptiva, todo desafio da trilha nasceria violando A3 por
+ * causa do próprio harness — que é exatamente o defeito que a política
+ * `receptive-seed` existe para evitar."
+ *
+ * O mecanismo, concretamente. Um `test.ts` mínimo é
+ *
+ *     import { dobro } from './solution.ts';
+ *     test('dobro de 2', () => { assert.equal(dobro(2), 4); });
+ *
+ * e o `solution.ts` que ele importa é, por contrato da trilha,
+ * `export function dobro(x: number): number`. Só aí já entram
+ * `form:Parameter[type!=null]` (anotar o parâmetro),
+ * `form:FunctionDeclaration[type!=null]` (anotar o retorno) e
+ * `node:NumberKeyword`. `node:StringKeyword` e `node:BooleanKeyword`
+ * acompanham porque são as outras duas keyword-types que a assinatura de um
+ * desafio qualquer usa; `node:TypeReference` porque toda assinatura que
+ * devolve um tipo BATIZADO (`Pessoa`, `Resultado`) passa por ele; e
+ * `node:ArrayType` porque a função que recebe ou devolve lista é o caso mais
+ * comum de desafio do produto. NENHUMA delas entra na faixa PRODUTIVA:
+ * escrever a anotação continua sendo o conteúdo das aulas 1 a 4 do módulo 1 da
+ * trilha (`docs/18` §"Módulo 1"), e uma aula que ENSINE a anotação continua
+ * exigindo aula própria.
+ *
+ * As duas chaves `form:` são exceção justificada pelo mesmo motivo das duas de
+ * JavaScript acima: o eixo `form:` não existe em `vocab/atoms.json` (ele é a
+ * serialização de um seletor compilado, não um item do vocabulário), e a
+ * semente é o único lugar em que uma forma entra sem aula.
+ */
+export const TYPESCRIPT_TYPE_HARNESS_SEED: readonly AtomKey[] = [
+  'form:Parameter[type!=null]',
+  'form:FunctionDeclaration[type!=null]',
+  'node:StringKeyword',
+  'node:NumberKeyword',
+  'node:BooleanKeyword',
+  'node:TypeReference',
+  'node:ArrayType',
+] as const;
+
+/**
+ * A semente receptiva do harness de TYPESCRIPT: a de JavaScript INTEIRA (o
+ * runner é o mesmo — `node:test` + `node:assert/strict`, mesmos nomes de nó do
+ * mesmo `ts.SyntaxKind`) mais as sete chaves de tipo acima.
+ *
+ * Ela é uma lista SEPARADA, e não um acréscimo à de JavaScript, por uma razão
+ * que se mede: `HARNESS_RECEPTIVE_SEED` semeia o orçamento RECEPTIVO da aula 1
+ * de toda trilha da linguagem dela. Empurrar `node:TypeReference` para dentro
+ * da lista de JavaScript liberaria, em silêncio, sete construções na trilha
+ * `nodejs-do-zero` — o mesmo afrouxamento que este arquivo chama de "a tentação
+ * de crescer a lista para fazer o gate passar". Conferido: o placar da
+ * auditoria de `nodejs-do-zero` (717 violações · 112 desafios · 249 lacunas)
+ * não se move com esta mudança.
+ */
+export const TYPESCRIPT_HARNESS_RECEPTIVE_SEED: readonly AtomKey[] = [
+  ...HARNESS_RECEPTIVE_SEED,
+  ...TYPESCRIPT_TYPE_HARNESS_SEED,
+];
+
+/**
  * Construções ESTRUTURAIS que todo programa tem e que não ensinam nada: exigir
  * que a trilha "introduza" `SourceFile` ou `ExpressionStatement` transformaria
  * o gate em ruído. Ficam sempre liberadas nas DUAS faixas.
@@ -309,22 +378,35 @@ export const STRUCTURAL_ALWAYS_ALLOWED: readonly AtomKey[] = [
 // As duas listas acima, ATRÁS DE UMA PORTA POR LINGUAGEM (fail-closed)
 // ---------------------------------------------------------------------------
 //
-// Elas são de JavaScript (`node:SourceFile`, `node:SyntaxList` e
-// `node:VariableDeclarationList` são nomes do enum `ts.SyntaxKind`; a semente é
-// o harness do `node:test`), e a interface de 15 membros do §6 não tem slot
-// para nenhuma das duas. Enquanto o slot não existir, estas funções são a
-// fronteira: elas nomeiam a dependência de linguagem, e REPROVAM em vez de
-// devolver a tabela errada. Quem chama sem argumento (todo chamador de hoje)
-// recebe exatamente a lista de antes.
+// Elas são nomes do enum `ts.SyntaxKind` (`node:SourceFile`, `node:SyntaxList`,
+// `node:VariableDeclarationList`) mais o harness do `node:test`, e a interface
+// de 15 membros do §6 não tem slot para nenhuma das duas. Enquanto o slot não
+// existir, estas funções são a fronteira: elas nomeiam a dependência de
+// linguagem, e REPROVAM em vez de devolver a tabela errada. Quem chama sem
+// argumento (todo chamador de hoje) recebe exatamente a lista de antes.
+//
+// ONDA 6 — `typescript` entra na porta, e ela continua fechada para o resto.
+// As duas tabelas valem para ele por um motivo VERIFICÁVEL, não por parecença:
+// é o MESMO compilador e o MESMO enum `ts.SyntaxKind` (o adaptador de
+// TypeScript é composição sobre o de JavaScript — `lang/typescript.ts`), e é o
+// MESMO runner (`node --test --test-reporter=spec test.ts`, sem flag no Node
+// 24). O que muda é o ACRÉSCIMO: a semente ganha as sete chaves de tipo de
+// `TYPESCRIPT_TYPE_HARNESS_SEED`; as estruturais não mudam nem uma linha,
+// porque `SourceFile`/`Block`/`Identifier` são os mesmos nós nos dois
+// dialetos. Python continua fora — lá o `ast` é outro, e semear um orçamento
+// de Python com `api:node:test` seria exatamente o erro que esta porta impede.
+
+/** As linguagens cujas tabelas ESTE arquivo declara. */
+export const LINGUAGENS_COM_TABELA: readonly LanguageId[] = ['javascript', 'typescript'];
 
 /** Erro estruturado: a linguagem não tem tabela declarada neste alfabeto. */
 export class TabelaDeLinguagemAusenteError extends Error {
   readonly code = 'TABELA_DE_LINGUAGEM_AUSENTE' as const;
   constructor(
-    readonly detalhes: { tabela: string; pedido: string; disponivel: LanguageId },
+    readonly detalhes: { tabela: string; pedido: string; disponivel: readonly LanguageId[] },
   ) {
     super(
-      `engine/atomKeys.ts: a tabela "${detalhes.tabela}" só existe para ${detalhes.disponivel} ` +
+      `engine/atomKeys.ts: a tabela "${detalhes.tabela}" só existe para ${detalhes.disponivel.join(', ')} ` +
         `(pedido: ${JSON.stringify(detalhes.pedido)}). Ela é conteúdo de LINGUAGEM (nomes de nó e ` +
         `API do runner de teste) e a interface LanguageAdapter ainda não tem membro para ela — ` +
         `ver o handoff da onda 5. Semear o orçamento com a tabela de outra linguagem faria o gate ` +
@@ -338,22 +420,36 @@ function exigirTabela(tabela: string, language: LanguageId): void {
   // `getAdapter` é fail-closed para id desconhecido; aqui a falha é o id
   // CONHECIDO cuja tabela não foi escrita.
   const adapter = getAdapter(language);
-  if (adapter.id !== DEFAULT_ADAPTER_ID) {
+  if (!LINGUAGENS_COM_TABELA.includes(adapter.id)) {
     throw new TabelaDeLinguagemAusenteError({
       tabela,
       pedido: language,
-      disponivel: DEFAULT_ADAPTER_ID,
+      disponivel: LINGUAGENS_COM_TABELA,
     });
   }
 }
 
-/** A semente receptiva do harness DESTA linguagem (política `receptive-seed`). */
+/**
+ * A semente receptiva do harness DESTA linguagem (política `receptive-seed`).
+ *
+ * TypeScript recebe a de JavaScript MAIS as sete chaves de tipo — sem elas,
+ * TODO desafio da trilha de TypeScript nasceria violando A3 por causa do
+ * próprio harness (`docs/18-trilha-typescript.md` §"A semente receptiva do
+ * harness TypeScript"), que é o modo de falha que esta política existe para
+ * evitar.
+ */
 export function harnessReceptiveSeed(language: LanguageId = DEFAULT_ADAPTER_ID): readonly AtomKey[] {
   exigirTabela('HARNESS_RECEPTIVE_SEED', language);
-  return HARNESS_RECEPTIVE_SEED;
+  return language === 'typescript' ? TYPESCRIPT_HARNESS_RECEPTIVE_SEED : HARNESS_RECEPTIVE_SEED;
 }
 
-/** As estruturais sempre liberadas DESTA linguagem (as duas faixas). */
+/**
+ * As estruturais sempre liberadas DESTA linguagem (as duas faixas). É a MESMA
+ * lista nas duas: os nós que todo programa tem (`SourceFile`, `Block`,
+ * `Identifier`, `VariableDeclaration`…) são do mesmo `ts.SyntaxKind` em
+ * JavaScript e em TypeScript. Nenhuma construção de TIPO entra aqui — anotar
+ * não é estrutural, é conteúdo de aula.
+ */
 export function structuralAlwaysAllowed(language: LanguageId = DEFAULT_ADAPTER_ID): readonly AtomKey[] {
   exigirTabela('STRUCTURAL_ALWAYS_ALLOWED', language);
   return STRUCTURAL_ALWAYS_ALLOWED;

@@ -901,9 +901,15 @@ describe('escreverExitGuard (bridge de endurecimento — code under test não ma
 
 /**
  * Um adaptador FAKE de linguagem TIPADA: o adaptador `javascript` com outro
- * `id`, que é a chave da tabela `POLITICAS_DE_TIPOS`. Existe porque
- * `lang/typescript.ts` ainda não foi escrito (§7, item 2 do documento de
- * multilíngua) e a quinta prova precisa ser exercitável hoje.
+ * `id`, que é a chave da tabela `POLITICAS_DE_TIPOS`.
+ *
+ * ONDA 6: `lang/typescript.ts` PASSOU A EXISTIR, e o fake CONTINUA aqui de
+ * propósito. Este arquivo cobre a MECÂNICA da quinta prova (o julgamento, o
+ * seam, o fail-closed) com executor fake e sem tocar em processo nenhum; usar
+ * o adaptador real amarraria esta suíte ao layout `.ts` e ao `tsc` da máquina.
+ * A prova com `tsc` e `node` REAIS — o "Node apaga os tipos" medido, e as
+ * provas 2 e 4 seguindo runtime-only com o adaptador de verdade — vive em
+ * `tests/engineLangTypescript.test.ts`.
  */
 const tipadoAdapter = { ...javascriptAdapter, id: 'typescript', label: 'TypeScript' } as unknown as LanguageAdapter;
 
