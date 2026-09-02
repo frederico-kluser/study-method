@@ -8,9 +8,9 @@
  * 1. Devolve uma INSTÂNCIA via `createPiAgentService(deps?)` — os loaders do
  *    SDK (`loadPiAi`/`loadPiCodingAgent`) e o auth bridge são INJETÁVEIS para
  *    teste. O default usa os imports dinâmicos reais e o singleton do bridge.
- * 2. Para provider 'deepseek' SEMPRE resolve o Model explícito
- *    (buildDeepSeekModelObject) — o SDK NUNCA escolhe um default.
- * 3. setRuntimeApiKey('deepseek', key) ANTES de createAgentSession.
+ * 2. Para provider 'openrouter' SEMPRE resolve o Model explícito
+ *    (buildOpenRouterModelObject) — o SDK NUNCA escolhe um default.
+ * 3. setRuntimeApiKey('openrouter', key) ANTES de createAgentSession.
  * 4. Temperatura 0 forçada via wrap do `agentSession.agent.streamFn`
  *    (critério piModelSupportsTemperature).
  * 5. Streaming via subscribe (message_update/text_delta|thinking_delta,
@@ -29,9 +29,10 @@ import type {
   PiExecuteResult,
   PiStreamEvent,
 } from '@shared/ipc-contract';
-import { PI_DEFAULTS } from '@shared/piAgent/constants';
+import { OPENROUTER_PI_PROVIDER, PI_DEFAULTS } from '@shared/piAgent/constants';
 import {
-  buildDeepSeekModelObject,
+  buildOpenRouterModelObject,
+  mapThinkingLevelToPiSdk,
   mapWorkflowProviderToPi,
   piModelSupportsTemperature,
   type PiModelObject,
@@ -158,8 +159,8 @@ export function createPiAgentService(deps: PiAgentServiceDeps = {}): PiAgentServ
     const workflowProvider = request.modelConfig.provider;
     const piProvider = mapWorkflowProviderToPi(workflowProvider);
 
-    // Auth: apenas 'deepseek' é provider remoto com chave. Desnecessário para
-    // providers sem chave (não há local/ollama nesta app hoje).
+    // Auth: apenas 'openrouter' é provider remoto com chave. Desnecessário
+    // para providers sem chave (não há local/ollama nesta app hoje).
     const authBridge = await getAuthBridge();
     const apiKey = await authBridge.getApiKey(piProvider);
     if (!apiKey) {
@@ -191,12 +192,14 @@ export function createPiAgentService(deps: PiAgentServiceDeps = {}): PiAgentServ
         process.env[key] = value;
       }
 
-      // Model EXPLÍCITO. Para 'deepseek' SEMPRE o objeto da app (buildDeepSeekModelObject)
-      // — nunca deixamos o SDK escolher um default, senão o modelo errado roda.
+      // Model EXPLÍCITO. Para 'openrouter' SEMPRE o objeto da app
+      // (buildOpenRouterModelObject) — nunca deixamos o SDK escolher um
+      // default, senão o modelo errado roda. Ele também carrega o
+      // `reasoningEffortMap` que garante um `reasoning.effort` aceito.
       let model: PiModelObject | unknown;
       const modelRegistry = ModelRegistry.inMemory(authStorage);
-      if (piProvider === 'deepseek') {
-        model = buildDeepSeekModelObject(apiKey);
+      if (piProvider === OPENROUTER_PI_PROVIDER) {
+        model = buildOpenRouterModelObject(apiKey);
       } else {
         model = getModel(piProvider, request.modelConfig.model)
           || modelRegistry.find(piProvider, request.modelConfig.model);
@@ -218,8 +221,14 @@ export function createPiAgentService(deps: PiAgentServiceDeps = {}): PiAgentServ
         modelRegistry,
       };
 
-      if (request.modelConfig.thinkingLevel && request.modelConfig.thinkingLevel !== 'off') {
-        sessionConfig.thinkingLevel = request.modelConfig.thinkingLevel;
+      // thinkingLevel: TRADUZIDO para o enum do SDK antes de entrar na sessão.
+      // Mandar o nosso `'max'` cru seria um desastre silencioso — o SDK não o
+      // conhece e `_clampThinkingLevel` derruba um nível desconhecido para
+      // `'off'`, desligando o raciocínio sem erro nenhum. `undefined` (nível
+      // `'off'`) significa NÃO setar o campo.
+      const sdkThinkingLevel = mapThinkingLevelToPiSdk(request.modelConfig.thinkingLevel);
+      if (sdkThinkingLevel) {
+        sessionConfig.thinkingLevel = sdkThinkingLevel;
       }
 
       // createAgentSession retorna { session } — desestruturar.

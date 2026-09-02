@@ -8,6 +8,7 @@ import { createPiAgentService } from '../electron/main/services/PiAgentService';
 import type { PiAgentServiceDeps } from '../electron/main/services/PiAgentService';
 import type { PiAuthBridge } from '../electron/main/services/piAuthBridge';
 import type { PiExecuteRequest, PiStreamEvent } from '@shared/ipc-contract';
+import { OPENROUTER_MODEL } from '@shared/llm/constants';
 
 interface RecordedSession {
   setRuntimeKey: [string, string];
@@ -83,10 +84,10 @@ function makeService(
   });
   const loadPiAi = async () => ({ getModel: () => undefined });
   const authBridge: PiAuthBridge = {
-    getApiKey: async (provider: string) => (provider === 'deepseek' ? 'sk-deepseek-key' : ''),
+    getApiKey: async (provider: string) => (provider === 'openrouter' ? 'sk-or-v1-key' : ''),
     getEnvVars: async (provider: string): Promise<Record<string, string>> =>
-      provider === 'deepseek' ? { DEEPSEEK_API_KEY: 'sk-deepseek-key' } : {},
-    getConfiguredProviders: async () => ['deepseek'],
+      provider === 'openrouter' ? { OPENROUTER_API_KEY: 'sk-or-v1-key' } : {},
+    getConfiguredProviders: async () => ['openrouter'],
   };
 
   return createPiAgentService({
@@ -100,12 +101,12 @@ function makeService(
 function makeRequest(overrides?: Partial<PiExecuteRequest>): PiExecuteRequest {
   return {
     prompt: 'Faz X',
-    modelConfig: { provider: 'deepseek', model: 'deepseek-v4-flash' },
+    modelConfig: { provider: 'openrouter', model: OPENROUTER_MODEL.id },
     ...overrides,
   };
 }
 
-test('deepseek: setRuntimeApiKey antes do createAgentSession; modelo explícito usado', async () => {
+test('openrouter: setRuntimeApiKey antes do createAgentSession; modelo explícito usado', async () => {
   const recorded: RecordedSession = {
     setRuntimeKey: ['', ''],
     sessionConfig: {},
@@ -123,12 +124,18 @@ test('deepseek: setRuntimeApiKey antes do createAgentSession; modelo explícito 
   const result = await run;
 
   assert.equal(result.success, true);
-  assert.deepEqual(recorded.setRuntimeKey, ['deepseek', 'sk-deepseek-key']);
+  assert.deepEqual(recorded.setRuntimeKey, ['openrouter', 'sk-or-v1-key']);
   const model = recorded.sessionConfig.model as Record<string, unknown>;
-  assert.equal(model.id, 'deepseek-v4-flash');
-  assert.equal(model.provider, 'deepseek');
-  assert.equal(model.baseUrl, 'https://api.deepseek.com');
-  assert.equal((model.headers as Record<string, string>).Authorization, 'Bearer sk-deepseek-key');
+  assert.equal(model.id, OPENROUTER_MODEL.id);
+  assert.equal(model.provider, 'openrouter');
+  assert.equal(model.baseUrl, OPENROUTER_MODEL.baseUrl);
+  assert.equal((model.headers as Record<string, string>).Authorization, 'Bearer sk-or-v1-key');
+  // O Model explícito carrega o mapa de effort — sem ele um thinkingLevel do
+  // meio do enum iria cru na API e voltaria 400.
+  const compat = model.compat as Record<string, unknown>;
+  assert.deepEqual(compat.reasoningEffortMap, {
+    minimal: 'low', low: 'low', medium: 'high', high: 'high', xhigh: 'max',
+  });
   assert.equal(recorded.sessionConfig.cwd !== undefined, true);
   // Dispose no finally.
   assert.equal(recorded.disposeCalls, 1);
@@ -319,7 +326,7 @@ test('SDK não carrega (loader lança) → execute retorna "Pi SDK not available
     getAuthBridge: async () => ({
       getApiKey: async () => 'sk-x',
       getEnvVars: async () => ({}),
-      getConfiguredProviders: async () => ['deepseek'],
+      getConfiguredProviders: async () => ['openrouter'],
     }),
   });
 
@@ -328,7 +335,7 @@ test('SDK não carrega (loader lança) → execute retorna "Pi SDK not available
   assert.ok(result.error && result.error.includes('Pi SDK not available'));
 });
 
-test('thinkingLevel != off é propagado para a config da sessão', async () => {
+test('thinkingLevel != off é TRADUZIDO para o nível do SDK na config da sessão', async () => {
   const recorded: RecordedSession = {
     setRuntimeKey: ['', ''],
     sessionConfig: {},
@@ -339,12 +346,93 @@ test('thinkingLevel != off é propagado para a config da sessão', async () => {
   const fakeSession = makeSession(recorded);
   const service = makeService(fakeSession, recorded);
 
-  const run = service.execute(makeRequest({ modelConfig: { provider: 'deepseek', model: 'x', thinkingLevel: 'medium' } }));
+  const run = service.execute(
+    makeRequest({ modelConfig: { provider: 'openrouter', model: 'x', thinkingLevel: 'medium' } }),
+  );
   setImmediate(() => fakeSession.__resolvePrompt?.());
   const res = await run;
 
   assert.equal(res.success, true);
   assert.equal(recorded.sessionConfig.thinkingLevel, 'medium');
+});
+
+test("thinkingLevel 'max' vira 'xhigh' na sessão — NUNCA 'max' cru", async () => {
+  // 'max' não existe no ThinkingLevel do pi-ai; o _clampThinkingLevel derruba
+  // um nível desconhecido para 'off' e o raciocínio sumiria em silêncio.
+  const recorded: RecordedSession = {
+    setRuntimeKey: ['', ''],
+    sessionConfig: {},
+    disposeCalls: 0,
+    abortCalls: 0,
+    streamEvents: [],
+  };
+  const fakeSession = makeSession(recorded);
+  const service = makeService(fakeSession, recorded);
+
+  const run = service.execute(
+    makeRequest({
+      modelConfig: { provider: 'openrouter', model: OPENROUTER_MODEL.id, thinkingLevel: 'max' },
+    }),
+  );
+  setImmediate(() => fakeSession.__resolvePrompt?.());
+  const res = await run;
+
+  assert.equal(res.success, true);
+  assert.equal(recorded.sessionConfig.thinkingLevel, 'xhigh');
+  assert.notEqual(recorded.sessionConfig.thinkingLevel, 'max');
+  // E 'xhigh' + o reasoningEffortMap do Model = effort 'max' no fio.
+  const compat = (recorded.sessionConfig.model as Record<string, unknown>).compat as Record<string, unknown>;
+  const effortMap = compat.reasoningEffortMap as Record<string, string>;
+  assert.equal(effortMap[recorded.sessionConfig.thinkingLevel as string], 'max');
+});
+
+test("thinkingLevel 'off' (e ausente) NÃO seta o campo na sessão", async () => {
+  for (const thinkingLevel of ['off', undefined] as const) {
+    const recorded: RecordedSession = {
+      setRuntimeKey: ['', ''],
+      sessionConfig: {},
+      disposeCalls: 0,
+      abortCalls: 0,
+      streamEvents: [],
+    };
+    const fakeSession = makeSession(recorded);
+    const service = makeService(fakeSession, recorded);
+
+    const run = service.execute(
+      makeRequest({
+        modelConfig: { provider: 'openrouter', model: OPENROUTER_MODEL.id, thinkingLevel },
+      }),
+    );
+    setImmediate(() => fakeSession.__resolvePrompt?.());
+    const res = await run;
+
+    assert.equal(res.success, true);
+    assert.equal('thinkingLevel' in recorded.sessionConfig, false);
+  }
+});
+
+test('provider LEGADO "deepseek" na request roda no Model do OpenRouter', async () => {
+  const recorded: RecordedSession = {
+    setRuntimeKey: ['', ''],
+    sessionConfig: {},
+    disposeCalls: 0,
+    abortCalls: 0,
+    streamEvents: [],
+  };
+  const fakeSession = makeSession(recorded);
+  const service = makeService(fakeSession, recorded);
+
+  const run = service.execute(
+    makeRequest({ modelConfig: { provider: 'deepseek', model: 'deepseek-v4-flash' } }),
+  );
+  setImmediate(() => fakeSession.__resolvePrompt?.());
+  const res = await run;
+
+  assert.equal(res.success, true);
+  assert.deepEqual(recorded.setRuntimeKey, ['openrouter', 'sk-or-v1-key']);
+  const model = recorded.sessionConfig.model as Record<string, unknown>;
+  assert.equal(model.id, OPENROUTER_MODEL.id);
+  assert.equal(model.baseUrl, OPENROUTER_MODEL.baseUrl);
 });
 
 test('skillSystemPrompt e additionalContext são prefixados ao prompt final', async () => {
@@ -374,7 +462,7 @@ test('skillSystemPrompt e additionalContext são prefixados ao prompt final', as
   assert.ok(recorded.promptText!.startsWith('CONTEXTO-EXTRA'));
 });
 
-test('temperatura 0 forçada no streamFn para deepseek; mantida p/ OpenAI-native reasoning', async () => {
+test('temperatura 0 forçada no streamFn para openrouter; omitida p/ OpenAI-native reasoning', async () => {
   const recorded: RecordedSession = {
     setRuntimeKey: ['', ''],
     sessionConfig: {},
@@ -396,17 +484,17 @@ test('temperatura 0 forçada no streamFn para deepseek; mantida p/ OpenAI-native
     ctx: unknown,
     opts?: Record<string, unknown>,
   ) => Record<string, unknown>;
-  // deepseek (openai-completions) → força temperature:0.
-  const deepOpts = wrapped({ provider: 'deepseek', reasoning: true }, {}, { maxTokens: 5 });
-  assert.equal(deepOpts.temperature, 0);
-  assert.equal(deepOpts.maxTokens, 5);
+  // openrouter (openai-completions) → força temperature:0.
+  const orOpts = wrapped({ provider: 'openrouter', reasoning: true }, {}, { maxTokens: 5 });
+  assert.equal(orOpts.temperature, 0);
+  assert.equal(orOpts.maxTokens, 5);
   // OpenAI-native reasoning → NÃO injeta temperature (mantém opções).
   const openAiOpts = wrapped({ provider: 'openai', reasoning: true }, {}, { maxTokens: 5 });
   assert.equal('temperature' in openAiOpts, false);
   assert.equal(openAiOpts.maxTokens, 5);
 });
 
-test('provider não-deepseek com chave: resolve model via getModel/modelRegistry', async () => {
+test('provider não-openrouter com chave: resolve model via getModel/modelRegistry', async () => {
   const recorded: RecordedSession = {
     setRuntimeKey: ['', ''],
     sessionConfig: {},
@@ -456,9 +544,9 @@ test('provider não-deepseek com chave: resolve model via getModel/modelRegistry
 function makeMultiSession() {
   const sessions: any[] = [];
   const authBridge: PiAuthBridge = {
-    getApiKey: async () => 'sk-deepseek-key',
-    getEnvVars: async () => ({ DEEPSEEK_API_KEY: 'sk-deepseek-key' }),
-    getConfiguredProviders: async () => ['deepseek'],
+    getApiKey: async () => 'sk-or-v1-key',
+    getEnvVars: async () => ({ OPENROUTER_API_KEY: 'sk-or-v1-key' }),
+    getConfiguredProviders: async () => ['openrouter'],
   };
   const service = createPiAgentService({
     loadPiAi: async () => ({ getModel: () => undefined }),

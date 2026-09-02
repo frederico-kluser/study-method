@@ -65,6 +65,7 @@ import type {
   TestAnswerResult,
   WorkspaceFile,
 } from '../../../shared/ipc-contract';
+import { OPENROUTER_MODEL, OPENROUTER_PROVIDER_KEY } from '../../../shared/llm/constants';
 import { getApi } from '../../lib/apiBridge';
 import {
   buildPiFeedbackPrompt,
@@ -725,7 +726,7 @@ export default function ChallengeView(props: ViewProps): ReactElement {
       return;
     }
 
-    // Provedor DEEPSEEK — pi coding agent com streaming/abort (fluxo histórico).
+    // Provedor REMOTO — pi coding agent com streaming/abort (fluxo histórico).
     try {
       // Assina o stream ANTES de executar.
       streamStopRef.current?.();
@@ -734,7 +735,19 @@ export default function ChallengeView(props: ViewProps): ReactElement {
       const result = (await api.pi.execute({
         prompt,
         workingDirectory: active.workspaceDir,
-        modelConfig: { provider: 'deepseek', model: 'deepseek-v4-flash' },
+        // provider/model VÊM DO CONTRATO (shared/llm/constants) — nunca
+        // literais escritos à mão aqui: um id de modelo errado volta HTTP 400 e
+        // este repositório já viu um 400 se disfarçar de resposta vazia.
+        //
+        // thinkingLevel 'max' é OBRIGATÓRIO neste call site. Sem o campo o
+        // default é 'off' — era esse o estado anterior, ou seja, o feedback de
+        // código do aluno rodava SEM raciocínio nenhum. 'max' é o topo real do
+        // modelo alvo (ele aceita só max|high|low).
+        modelConfig: {
+          provider: OPENROUTER_PROVIDER_KEY,
+          model: OPENROUTER_MODEL.id,
+          thinkingLevel: 'max',
+        },
         skillSystemPrompt: digestStudyMethodRules(),
         additionalContext:
           (primaryCodePath ? `\n[arquivo ${primaryCodePath}]\n\`\`\`\n${studentCode}\n\`\`\`\n` : '') +

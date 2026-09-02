@@ -38,6 +38,9 @@ describe('validatePiExecuteRequest', () => {
     assert.match(validatePiExecuteRequest({ prompt: 'x', modelConfig: { provider: 'p' } }) ?? '', /model/);
     assert.match(validatePiExecuteRequest({ prompt: 'x', modelConfig: { provider: 'p', model: '' } }) ?? '', /model/);
     // válido → null.
+    assert.equal(validatePiExecuteRequest({ prompt: 'x', modelConfig: { provider: 'openrouter', model: 'z-ai/glm-5.3-flash' } }), null);
+    // O provider LEGADO continua passando na validação de shape (o
+    // redirecionamento para 'openrouter' é do piProviderMapper, não daqui).
     assert.equal(validatePiExecuteRequest({ prompt: 'x', modelConfig: { provider: 'deepseek', model: 'm' } }), null);
   });
 });
