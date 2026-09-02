@@ -15,7 +15,7 @@
  *   track:module:challenge:new <slug> <moduleSlug> <challengeSlug> --title "..." --concept <id> [--difficulty N] [--files "lib/a.mjs,lib/b.mjs"]
  *   track:proficiency:new <slug> --title "..." --concept <id>   (desafio que cobre TUDO)
  *   track:challenge:verify <slug> <moduleSlug> <lessonSlug> <challengeSlug>   (multi-arquivo OK)
- *   track:challenge:context <slug> <moduleSlug> <lessonSlug> <challengeSlug> (validação SEMÂNTICA via LLM — exige DEEPSEEK_API_KEY)
+ *   track:challenge:context <slug> <moduleSlug> <lessonSlug> <challengeSlug> (validação SEMÂNTICA via LLM — exige OPENROUTER_API_KEY)
  *   track:validate <slug>          — valida a trilha inteira (loader completo)
  *   track:list                     — lista as trilhas disponíveis
  *
@@ -28,7 +28,7 @@
  * que o aluno já sabia ANTES de começar; separados por ';') e
  * track:challenge:context valida um desafio contra o CONTEXTO ENSINADO
  * (critérios de entrada + aulas anteriores + a aula atual) com a LLM
- * (deepseekClient; a chave vem de DEEPSEEK_API_KEY) — o veredito é POR TESTE
+ * (cliente de LLM; a chave vem de OPENROUTER_API_KEY) — o veredito é POR TESTE
  * (✔/✖ + motivo) e o exit code espelha o veredito (0 aprovado, 1 reprovado ou
  * não verificado). É a porta de AUDITORIA do fluxo de autoria.
  */
@@ -68,6 +68,7 @@ import {
   type ContextValidatorLlm,
 } from '../electron/main/services/challengeContextValidator';
 import { createDeepSeekClient } from '../electron/main/services/deepseekClient';
+import { OPENROUTER_ENV_KEY } from '../shared/llm/constants';
 
 // ─── raiz do conteúdo ────────────────────────────────────────────────────────
 const CLI_ROOT = path.resolve(__dirname, '..');
@@ -83,7 +84,7 @@ comandos:
   track:module:challenge:new <slug> <moduleSlug> <challengeSlug> --title "..." --concept <id> [--difficulty N] [--files "lib/a.mjs,lib/b.mjs"]
   track:proficiency:new <slug> --title "..." --concept <id>
   track:challenge:verify <slug> <moduleSlug> <lessonSlug> <challengeSlug>
-  track:challenge:context <slug> <moduleSlug> <lessonSlug> <challengeSlug>   (validação semântica do desafio contra o contexto ensinado — exige DEEPSEEK_API_KEY)
+  track:challenge:context <slug> <moduleSlug> <lessonSlug> <challengeSlug>   (validação semântica do desafio contra o contexto ensinado — exige OPENROUTER_API_KEY)
   track:validate <slug>
   track:list`;
 
@@ -425,14 +426,14 @@ async function cmdChallengeVerify(pos: string[]): Promise<void> {
 // O desafio só pode cobrar conhecimento JÁ ENSINADO (premissa do produto):
 // critérios de entrada da trilha + aulas anteriores + a aula atual. A LLM
 // julga cada test('...') do testsCode contra esse contexto (THINKING MÁXIMO) e
-// devolve o veredito POR TESTE. A chave vem do ambiente (DEEPSEEK_API_KEY) —
+// devolve o veredito POR TESTE. A chave vem do ambiente (OPENROUTER_API_KEY) —
 // nunca de settings: este CLI roda FORA do electron.
 
-/** Adapta o deepseekClient one-shot à assinatura de llm do validador. */
+/** Adapta o cliente de LLM one-shot à assinatura de llm do validador. */
 function makeContextLlm(apiKey: string): ContextValidatorLlm {
-  const deepseek = createDeepSeekClient({ apiKey: async () => apiKey });
+  const llm = createDeepSeekClient({ apiKey: async () => apiKey });
   return async (req) => {
-    const res = await deepseek.chatCompletion(req);
+    const res = await llm.chatCompletion(req);
     return { content: res.content };
   };
 }
@@ -442,9 +443,9 @@ async function cmdChallengeContext(pos: string[]): Promise<void> {
   if (!track || !moduleSlug || !lessonSlug || !challengeSlug) {
     fail('track:challenge:context <slug> <moduleSlug> <lessonSlug> <challengeSlug>');
   }
-  const apiKey = (process.env.DEEPSEEK_API_KEY ?? '').trim();
+  const apiKey = (process.env[OPENROUTER_ENV_KEY] ?? '').trim();
   if (!apiKey) {
-    console.error('erro: DEEPSEEK_API_KEY não definida — defina a variável de ambiente para validar o desafio semanticamente.');
+    console.error('erro: OPENROUTER_API_KEY não definida — defina a variável de ambiente para validar o desafio semanticamente.');
     process.exit(1);
   }
 

@@ -47,7 +47,7 @@ ensure_app_env_local() {
   local app_dir="$1"
   if [ -f "$app_dir/.env.local.example" ] && [ ! -e "$app_dir/.env.local" ]; then
     cp -- "$app_dir/.env.local.example" "$app_dir/.env.local"
-    echo "aviso: criei $app_dir/.env.local a partir do example — preencha as chaves (DEEPSEEK_API_KEY e BRAVE_API_KEY)."
+    echo "aviso: criei $app_dir/.env.local a partir do example — preencha as chaves (OPENROUTER_API_KEY e BRAVE_API_KEY)."
   fi
 }
 

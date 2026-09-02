@@ -3,8 +3,8 @@
  *
  * Diferente do `helpers.ts` (modo stub `STUDY_METHOD_E2E=1`), aqui o app é
  * lançado SEM o modo E2E: a fiação REAL da onda 3 (pesquisa Brave + autoria
- * DeepSeek + runner de verdade) flui de ponta a ponta. As CHAVES REAIS entram
- * por envars do processo de teste (`DEEPSEEK_API_KEY`/`BRAVE_API_KEY`) — NUNCA
+ * via OpenRouter + runner de verdade) flui de ponta a ponta. As CHAVES REAIS
+ * entram por envars do teste (`OPENROUTER_API_KEY`/`BRAVE_API_KEY`) — NUNCA
  * por arquivo versionado — e são injetadas no app via o próprio IPC de chaves
  * (`keys:set-key`), gravadas no settingsStore do perfil ISOLADO.
  *
@@ -25,9 +25,9 @@ import * as path from 'node:path';
 import { APP_ROOT, MAIN_ENTRY } from './helpers';
 
 /** Chaves reais resolvidas de envars de teste (nunca de arquivo). */
-export function realEnvKeys(): { deepseek: string; brave: string } {
+export function realEnvKeys(): { openrouter: string; brave: string } {
   return {
-    deepseek: (process.env.DEEPSEEK_API_KEY ?? '').trim(),
+    openrouter: (process.env.OPENROUTER_API_KEY ?? '').trim(),
     brave: (process.env.BRAVE_API_KEY ?? '').trim(),
   };
 }
@@ -35,12 +35,12 @@ export function realEnvKeys(): { deepseek: string; brave: string } {
 /** True quando BOTH chaves reais estão disponíveis no ambiente. */
 export function hasRealKeys(): boolean {
   const k = realEnvKeys();
-  return k.deepseek !== '' && k.brave !== '';
+  return k.openrouter !== '' && k.brave !== '';
 }
 
 /** Reason usado no `test.skip` das specs reais quando faltam as envs. */
 export const REAL_KEYS_SKIP_REASON =
-  'DEEPSEEK_API_KEY/BRAVE_API_KEY não definidas no ambiente do teste. ' +
+  'OPENROUTER_API_KEY/BRAVE_API_KEY não definidas no ambiente do teste. ' +
   'Rode com `npm run test:e2e:real` (exporte as chaves no shell) para exercitar a didática real.';
 
 /** Chama `test.skip` da spec real quando faltam as envs reais. */
@@ -70,6 +70,11 @@ export interface RealApp {
   app: ElectronApplication;
   page: Page;
   userDataDir: string;
+  openrouterApiKey: string;
+  /**
+   * Alias TRANSITÓRIO de `openrouterApiKey`, mantido enquanto as specs reais
+   * ainda o nomeiam (mesmo valor). Remova junto com os últimos usos.
+   */
   deepseekApiKey: string;
   braveApiKey: string;
 }
@@ -78,16 +83,16 @@ export interface RealApp {
  * Lança o app em MODO REAL (sem `STUDY_METHOD_E2E`), com perfil isolado em tmp,
  * e injeta as chaves reais SEQUENCIALMENTE via `keys:set-key`. Depois recarrega
  * a janela para o AppGate reler as chaves configuradas e VALIDAR de verdade
- * (rede real DeepSeek+Brave) até `phase: 'ready'` (shell do app visível).
+ * (rede real OpenRouter+Brave) até `phase: 'ready'` (shell do app visível).
  *
  * REQUER `hasRealKeys()` — chame `skipIfNoRealKeys()` antes (ou neste helper
  * é um erro se chamado sem chaves).
  */
 export async function launchRealApp(opts: LaunchRealOpts = {}): Promise<RealApp> {
   const keys = realEnvKeys();
-  if (!keys.deepseek || !keys.brave) {
+  if (!keys.openrouter || !keys.brave) {
     throw new Error(
-      'launchRealApp sem DEEPSEEK_API_KEY/BRAVE_API_KEY. Exporte-as no shell do teste.',
+      'launchRealApp sem OPENROUTER_API_KEY/BRAVE_API_KEY. Exporte-as no shell do teste.',
     );
   }
 
@@ -135,7 +140,7 @@ export async function launchRealApp(opts: LaunchRealOpts = {}): Promise<RealApp>
     // SetupView (sem chaves) — injeta as chaves reais SEQUENCIALMENTE (o setKey
     // concorrente perde uma das chaves por race de leitura/escrita do store).
     await expect(page.getByRole('heading', { name: 'Antes de começar' })).toBeVisible();
-    await page.evaluate((d) => (globalThis as any).api.keys.setKey('deepseek', d), keys.deepseek);
+    await page.evaluate((d) => (globalThis as any).api.keys.setKey('openrouter', d), keys.openrouter);
     await page.evaluate((b) => (globalThis as any).api.keys.setKey('brave', b), keys.brave);
 
     // Reload → AppGate relê o store e valida AMBAS de verdade (rede real).
@@ -147,7 +152,14 @@ export async function launchRealApp(opts: LaunchRealOpts = {}): Promise<RealApp>
     await expect(shell).toBeVisible({ timeout: 90_000 });
     await expect(page.getByRole('tab', { name: 'Aula' })).toBeVisible({ timeout: 30_000 });
 
-    return { app, page, userDataDir, deepseekApiKey: keys.deepseek, braveApiKey: keys.brave };
+    return {
+      app,
+      page,
+      userDataDir,
+      openrouterApiKey: keys.openrouter,
+      deepseekApiKey: keys.openrouter, // alias transitório — ver RealApp
+      braveApiKey: keys.brave,
+    };
   } catch (err) {
     // Lanço falhou → limpa o perfil isolado (nada de chaves em claro no disco).
     try {
@@ -189,7 +201,7 @@ export async function closeRealApp(real: RealApp | undefined): Promise<void> {
  * Dispara a geração real de uma aula e aguarda por um estado TERMINAL
  * (`done` OU `error`), retornando o sinal de status observado.
  *
- * A geração real usa DeepSeek + Brave + runner: pode demorar minutos E as vezes
+ * A geração real usa OpenRouter + Brave + runner: pode demorar minutos E as vezes
  * falhar transitoriamente (ex.: o modelo devolveu `reasoning_content` sem
  * `content`, rate limit, rede). Em vez de NÃO observar o erro (esperar só pelo
  * `done` e travar até o timeout), esta função espera o botão "Gerar nova aula"

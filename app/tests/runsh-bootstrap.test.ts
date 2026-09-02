@@ -52,7 +52,7 @@ interface FakeProject {
 }
 
 const SKILL_SRC = '---\nname: study-method\n---\n# study-method — tutor (mínimo p/ teste).\n';
-const EXAMPLE_ENV = '# example\nDEEPSEEK_API_KEY=\nBRAVE_API_KEY=\n';
+const EXAMPLE_ENV = '# example\nOPENROUTER_API_KEY=\nBRAVE_API_KEY=\n';
 
 async function writeFakeNode(binDir: string, version: string, nodeOk: string): Promise<void> {
   const script = `#!/usr/bin/env bash
@@ -216,7 +216,7 @@ describe('run.sh — bootstrap automático', () => {
     assert.equal(await fileExists(path.join(p.app, 'node_modules', '.install-ok')), true);
     // .env.local criado do example
     assert.equal(await fileExists(path.join(p.app, '.env.local')), true);
-    assert.match(await readFile(path.join(p.app, '.env.local')), /DEEPSEEK_API_KEY=/);
+    assert.match(await readFile(path.join(p.app, '.env.local')), /OPENROUTER_API_KEY=/);
     // skill instalada no destino
     assert.equal(await fileExists(path.join(p.skillsDest, 'study-method', 'SKILL.md')), true);
     // app foi delegado para run-dev.sh
@@ -234,7 +234,7 @@ describe('run.sh — bootstrap automático', () => {
     });
     // sentinelas: provam que nada é re-copiado/sobrescrito
     await writeFile(path.join(p.skillsDest, 'study-method', '.sentinel'), 'x');
-    await writeFile(path.join(p.app, '.env.local'), '# sentinela do usuário\nDEEPSEEK_API_KEY=valor\n');
+    await writeFile(path.join(p.app, '.env.local'), '# sentinela do usuário\nOPENROUTER_API_KEY=valor\n');
     const r = p.run('run.sh');
     assert.equal(r.status, 0, `stderr: ${r.stderr}`);
     const out = r.stdout + r.stderr;

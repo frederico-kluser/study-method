@@ -7,7 +7,7 @@
 #   bash <worktree>/app/run-dev.sh
 #
 # O que faz:
-#   1. Carrega app/.env.local (gitignored) p/ o ambiente — DEEPSEEK_API_KEY e
+#   1. Carrega app/.env.local (gitignored) p/ o ambiente — OPENROUTER_API_KEY e
 #      BRAVE_API_KEY disponíveis (o app usa fallback por env se o store vazio);
 #   2. roda `npm run dev` (electron-vite, janela VISÍVEL).
 # Se .env.local não existir, roda mesmo assim (as chaves podem já estar no

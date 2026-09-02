@@ -54,6 +54,7 @@ import {
   type RelatorioDeRevisao,
 } from '../../electron/main/engine/revision/progressiva';
 import { createDeepSeekClient } from '../../electron/main/services/deepseekClient';
+import { OPENROUTER_ENV_KEY, OPENROUTER_PROVIDER_KEY } from '../../shared/llm/constants';
 import { createCallLlm, type EngineLlm } from '../../electron/main/engine/runtime/callLlm';
 import { createExecSemaphore, createLlmSemaphore, createSemaphore } from '../../electron/main/engine/runtime/semaphore';
 import { createBraveSearchService } from '../../electron/main/services/braveSearchService';
@@ -712,19 +713,44 @@ async function cmdRevise(pos: string[], flags: Record<string, string>, bools: Se
 // generate — P-22: CLI FINO, fiação INJETÁVEL fora do entry (geraTrilha.ts)
 // ---------------------------------------------------------------------------
 
-/** Resolve a chave do DeepSeek: env primeiro, depois o settingsStore. */
-async function resolverChaveDeepSeek(): Promise<string> {
-  const env = process.env.DEEPSEEK_API_KEY;
+/**
+ * Resolve a chave do provedor de LLM (OpenRouter), NESTA ordem:
+ *
+ *   1. `process.env.OPENROUTER_API_KEY`      (o env do contrato congelado);
+ *   2. `settingsStore.getApiKey('openrouter')` (o que o app GUI gravou);
+ *   3. LEGADO: `process.env.DEEPSEEK_API_KEY` / `getApiKey('deepseek')`.
+ *
+ * O passo 3 é TRANSITÓRIO: existe só para não quebrar quem já tinha o ambiente
+ * montado com a chave antiga na migração DeepSeek → OpenRouter. Remova-o assim
+ * que os ambientes (dev, CI e o settingsStore dos usuários) estiverem migrados
+ * — a partir daí a chave do provedor tem UM nome só.
+ */
+async function resolverChaveOpenRouter(): Promise<string> {
+  const env = process.env[OPENROUTER_ENV_KEY];
   if (env && env.trim() !== '') return env.trim();
+
+  const doStore = await lerChaveDoStore(OPENROUTER_PROVIDER_KEY);
+  if (doStore) return doStore;
+
+  // ── fallback LEGADO (transitório — ver o comentário acima) ────────────────
+  const legadoEnv = process.env.DEEPSEEK_API_KEY;
+  if (legadoEnv && legadoEnv.trim() !== '') return legadoEnv.trim();
+  const legadoStore = await lerChaveDoStore('deepseek');
+  if (legadoStore) return legadoStore;
+
+  return '';
+}
+
+/** Lê um slot do settingsStore; '' quando o store está indisponível/vazio. */
+async function lerChaveDoStore(provider: string): Promise<string> {
   try {
     // settingsStore é só node:fs/node:path — roda fora do Electron.
     const { getSettingsStore } = await import('../../electron/main/services/settingsStore');
-    const guardada = await (await getSettingsStore()).getApiKey('deepseek');
-    if (guardada) return guardada;
+    return (await (await getSettingsStore()).getApiKey(provider)) || '';
   } catch {
-    // settingsStore indisponível — segue para o env (já foi) → ''.
+    // settingsStore indisponível — quem chamou segue para o próximo passo.
+    return '';
   }
-  return '';
 }
 
 /** Executor de multi-busca em PRODUÇÃO: o Brave real (A-P14-2/A-P14-3). */
@@ -744,8 +770,8 @@ function criarMultiBuscaBrave(): ExecutorDeMultiBusca {
 /** A FIAÇÃO DE PRODUÇÃO do modo generate (deps injetáveis resolvidos aqui). */
 function fiarDepsDeProducao(dir: string, dirProduto: string): DepsGeracao {
   const llm: EngineLlm = createCallLlm({
-    client: createDeepSeekClient({ apiKey: () => resolverChaveDeepSeek() }),
-    apiKey: () => resolverChaveDeepSeek(),
+    client: createDeepSeekClient({ apiKey: () => resolverChaveOpenRouter() }),
+    apiKey: () => resolverChaveOpenRouter(),
     semaphore: createLlmSemaphore(),
   });
 

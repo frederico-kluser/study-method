@@ -234,7 +234,7 @@ describe('CLI de autoria — track:new com --criteria (ONDA 2)', () => {
 });
 
 describe('CLI de autoria — track:challenge:context (ONDA 2)', () => {
-  it('sem DEEPSEEK_API_KEY → erro claro "DEEPSEEK_API_KEY não definida" e exit 1 (não chega à rede)', async () => {
+  it('sem OPENROUTER_API_KEY → erro claro "OPENROUTER_API_KEY não definida" e exit 1 (não chega à rede)', async () => {
     const tmp = await fs.mkdtemp(path.join(os.tmpdir(), 'track-cli-ctx-'));
     const slug = `cli-ctx-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`;
     const target = path.join(TRACKS_DIR, slug);
@@ -246,10 +246,10 @@ describe('CLI de autoria — track:challenge:context (ONDA 2)', () => {
       const r = await runCli(
         ['track:challenge:context', slug, MODULE_SLUG, LESSON_SLUG, LESSON_CHALLENGE],
         30_000,
-        { DEEPSEEK_API_KEY: '' },
+        { OPENROUTER_API_KEY: '' },
       );
       assert.equal(r.code, 1, `exit 1 esperado — stdout:\n${r.stdout}\n--- stderr:\n${r.stderr}`);
-      assert.ok(r.stderr.includes('DEEPSEEK_API_KEY não definida'), `erro claro esperado — stderr:\n${r.stderr}`);
+      assert.ok(r.stderr.includes('OPENROUTER_API_KEY não definida'), `erro claro esperado — stderr:\n${r.stderr}`);
     } finally {
       await fs.rm(tmp, { recursive: true, force: true }).catch(() => {});
       await fs.rm(target, { recursive: true, force: true }).catch(() => {});
