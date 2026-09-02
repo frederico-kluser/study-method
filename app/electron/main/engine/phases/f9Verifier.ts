@@ -32,6 +32,20 @@
  * muda: os julgadores e o veredito continuam os de `verifyChallengeProofs`
  * (puros — `exec/proofs.ts`).
  *
+ * ONDA 5 — DUAS ADIÇÕES NESTE ARQUIVO:
+ *
+ *   - MULTILÍNGUA: o ADAPTADOR do desafio (`input.language` → registro) passa a
+ *     ser resolvido AQUI e injetado em `prepareIsolatedDir` (layout + regex de
+ *     caminho) e nos `argsDeTeste` (`testCommand`). Nada mais neste arquivo
+ *     conhece `.mjs` ou `--test-reporter=spec`.
+ *   - A QUINTA PROVA (`typesCheck`): verificação de TIPO do lado da SOLUÇÃO,
+ *     montada com `criarTypesCheck` sobre o MESMO `exec` endurecido — SPAWN
+ *     SEPARADO (o `node --test` não confere tipo: Node os APAGA) e MESMO
+ *     SEM_EXEC (o compilador custa ordem de 1–2 s contra ~290 ms de uma rodada
+ *     de teste; fora do semáforo dominaria a F9 inteira). É OPCIONAL POR
+ *     LINGUAGEM: o adaptador `javascript` não a exige. As provas 2 e 4
+ *     continuam RUNTIME-ONLY — ver `exec/typesCheck.ts` para o porquê.
+ *
  * Fail-closed (regra 1 do plano): qualquer falha de INFRA (prepare/exec/
  * cleanup) vira veredito INVÁLIDO com `execError` — o provador NUNCA lança
  * para o chamador (o `verifyChallengeProofs` já converte a falha de execução;
@@ -62,7 +76,7 @@ import {
   prepareIsolatedDir,
 } from '../exec/harness';
 import {
-  SPEC_TEST_ARGS,
+  adapterDoDesafio,
   verifyChallengeProofs,
   type ChallengeProofsInput,
   type ChallengeProofsVerdict,
@@ -70,6 +84,8 @@ import {
   type ExecResult,
   type ProofEnv,
 } from '../exec/proofs';
+import { criarTypesCheck } from '../exec/typesCheck';
+import type { LanguageAdapter } from '../lang/registry';
 import { createExecSemaphore, type Semaphore } from '../runtime/semaphore';
 
 // Re-export dos tipos centrais do contrato — consumidores podem importar TUDO
@@ -77,7 +93,7 @@ import { createExecSemaphore, type Semaphore } from '../runtime/semaphore';
 // os tipos de lá — a fonte única das provas).
 export type { ChallengeProofsInput, ChallengeProofsVerdict } from '../exec/proofs';
 
-/** O provador de desafio: input → veredito das quatro provas (nunca lança). */
+/** O provador de desafio: input → veredito das provas (nunca lança). */
 export type ProverDeDesafio = (input: ChallengeProofsInput) => Promise<ChallengeProofsVerdict>;
 
 export interface CriarProverDeDesafioOptions {
@@ -111,18 +127,48 @@ export interface CriarProverDeDesafioOptions {
    * do verify) ou limpo AQUI no catch do prepare — nunca órfão no tmp.
    */
   escreverGuard?: (dir: string) => Promise<unknown>;
+  /**
+   * SEAM DE INJEÇÃO do resolvedor do compilador da QUINTA PROVA (tipos).
+   * Recebe o nome do módulo npm cujo `bin` é o compilador (ex.:
+   * `'typescript/bin/tsc'`) e devolve o caminho absoluto, ou `null` quando não
+   * está na máquina. Default: `require.resolve` (`resolverCompiladorNpm`).
+   * O teste injeta o seu para exercitar a prova SEM spawn real (A-P07-2).
+   */
+  resolverCompilador?: (modulo: string) => string | null;
+  /**
+   * OVERRIDE do adaptador de linguagem. Default: resolvido de `input.language`
+   * pelo registro (`adapterDoDesafio`). Existe para quem JÁ resolveu o
+   * adaptador (evita resolver duas vezes) e para a suíte exercitar uma
+   * linguagem TIPADA antes de `lang/typescript.ts` existir — sem ele, a quinta
+   * prova só seria testável pelo caminho de baixo (`criarTypesCheck`), e a
+   * fiação do provador ficaria sem cobertura.
+   */
+  adapter?: LanguageAdapter;
+  /**
+   * Teto de tempo da QUINTA PROVA. Separado do `timeoutMs` das rodadas de
+   * teste porque o compilador é MUITO mais lento que o runner (ordem de 1–2 s
+   * contra ~290 ms) — usar o mesmo teto mataria a checagem em máquina fria.
+   * Default: 60 s.
+   */
+  typesTimeoutMs?: number;
 }
+
+/** Teto de tempo default do compilador da quinta prova (ver `typesTimeoutMs`). */
+export const TYPES_CHECK_TIMEOUT_MS = 60_000;
 
 /**
  * Args de teste do PRODUTO (espelho do `challengeExec` — `runStudentCode`/
- * `verifyChallengePair`): `node --test --test-reporter=spec test.mjs`, sempre
- * com o arquivo único. O MODO não muda com o input (desafio multi-arquivo é
+ * `verifyChallengePair`). O MODO não muda com o input (desafio multi-arquivo é
  * resolvido pelo CONTEÚDO do diretório isolado — `prepareIsolatedDir` — nunca
  * por args); a função existe para espelhar LITERALMENTE o caminho do produto
  * num ponto único e dar às integrações (P-17/P-18/P-19/P-23) o mesmo canônico.
+ *
+ * ONDA 5: os args são o `testCommand` do ADAPTADOR da linguagem do desafio
+ * (§6, membro 9) — em JavaScript, `node --test --test-reporter=spec test.mjs`,
+ * exatamente o de antes. `input.language` ausente ⇒ adaptador default.
  */
-export function argsDeTeste(_input: ChallengeProofsInput): string[] {
-  return [...SPEC_TEST_ARGS];
+export function argsDeTeste(input: ChallengeProofsInput): string[] {
+  return [...adapterDoDesafio(input.language).testCommand];
 }
 
 /**
@@ -152,42 +198,74 @@ export function criarProverDeDesafio(opts: CriarProverDeDesafioOptions = {}): Pr
   const exec = createHardenedExec({ exec: opts.exec ?? fromChallengeExec(nodeExec), limiter });
 
   return async (input): Promise<ChallengeProofsVerdict> => {
-    const env: ProofEnv = {
-      exec: async (dir, _args, execOpts): Promise<ExecResult> => {
-        // `--require` do exit-guard ANTES dos args de teste do produto — o
-        // fluxo do verifyChallengeProofs passa SPEC_TEST_ARGS; aqui o modo é
-        // re-derivado do input (argsDeTeste) para espelhar o challengeExec.
-        const args = ['--require', path.join(dir, 'exit-guard.cjs'), ...argsDeTeste(input)];
-        return exec(dir, args, execOpts);
-      },
-      prepare: async (side) => {
-        const dir = await prepareIsolatedDir(baseDir, side);
-        try {
-          await escreverGuard(dir);
-          return dir;
-        } catch (err) {
-          // SEM JANELA DE VAZAMENTO (revisão adversarial — HIGH): o dir JÁ
-          // EXISTE (mkdtemp resolveu) e o verifyChallengeProofs só registra
-          // para limpeza DEPOIS do prepare resolver (`dirs.push` em
-          // exec/proofs.ts) — se a escrita do guard rejeitar AQUI, o dir nunca
-          // entraria na lista e o finally do verify não o limparia (vazaria
-          // órfão no tmp). Limpa AGORA (cleanupDir é best-effort e nunca
-          // lança; o catch extra é a garantia de que uma falha de limpeza não
-          // mascara o erro original) e relança: prepare rejeitou ⇒ o verify
-          // não registra ⇒ o veredito vira execError (fail-closed).
-          await cleanupDir(dir).catch(() => {});
-          throw err;
-        }
-      },
-      cleanup: cleanupDir,
-    };
-
     try {
+      // O ADAPTADOR do desafio (§6): decide layout, regex de path, comando de
+      // teste, as duas contagens, o significado do exit code — e se a QUINTA
+      // PROVA (tipos) se aplica. A resolução fica DENTRO do try porque
+      // `language` desconhecido LANÇA (fail-closed no registro — nunca o parser
+      // errado) e o provador NUNCA lança para o chamador.
+      const adapter = opts.adapter ?? adapterDoDesafio(input.language);
+      const env: ProofEnv = {
+        exec: async (dir, _args, execOpts): Promise<ExecResult> => {
+          // `--require` do exit-guard ANTES dos args de teste do produto — o
+          // fluxo do verifyChallengeProofs passa o `testCommand` do adaptador;
+          // aqui o modo é re-derivado do input (argsDeTeste) para espelhar o
+          // challengeExec.
+          const args = ['--require', path.join(dir, 'exit-guard.cjs'), ...argsDeTeste(input)];
+          return exec(dir, args, execOpts);
+        },
+        /**
+         * A QUINTA PROVA (`docs/16` §5.4 + `exec/typesCheck.ts`): verificação de
+         * TIPO do lado da SOLUÇÃO. Três decisões visíveis aqui:
+         *
+         *   1. SPAWN SEPARADO, montado sobre o MESMO `exec` endurecido das
+         *      rodadas de teste — nunca uma flag do `node --test` (o runner não
+         *      confere tipo; Node os APAGA). Como passa pelo mesmo ExecFn, ela
+         *      adquire o MESMO SEM_EXEC: `tsc` custa ordem de 1–2 s contra ~290
+         *      ms de uma rodada de teste e, fora do semáforo, dominaria a F9.
+         *   2. SÓ A SOLUÇÃO. `prepare` não sabe qual lado preparou (os três
+         *      passam por ele), então quem dispara é o `verifyChallengeProofs`,
+         *      que conhece o `solDir`. As provas 2 (starter falha) e 4 (stub
+         *      vazio falha) NÃO recebem type check — o porquê está nos
+         *      docstrings delas: falha de compilação as tornaria trivialmente
+         *      satisfeitas.
+         *   3. SEM exit-guard e SEM `--require`: o compilador não roda o código
+         *      do desafio, então não há `process.exit` a bloquear.
+         */
+        typesCheck: criarTypesCheck({
+          exec,
+          adapter,
+          ...(opts.resolverCompilador !== undefined ? { resolverCompilador: opts.resolverCompilador } : {}),
+          timeoutMs: opts.typesTimeoutMs ?? TYPES_CHECK_TIMEOUT_MS,
+        }),
+        prepare: async (side) => {
+          const dir = await prepareIsolatedDir(baseDir, side, adapter);
+          try {
+            await escreverGuard(dir);
+            return dir;
+          } catch (err) {
+            // SEM JANELA DE VAZAMENTO (revisão adversarial — HIGH): o dir JÁ
+            // EXISTE (mkdtemp resolveu) e o verifyChallengeProofs só registra
+            // para limpeza DEPOIS do prepare resolver (`dirs.push` em
+            // exec/proofs.ts) — se a escrita do guard rejeitar AQUI, o dir nunca
+            // entraria na lista e o finally do verify não o limparia (vazaria
+            // órfão no tmp). Limpa AGORA (cleanupDir é best-effort e nunca
+            // lança; o catch extra é a garantia de que uma falha de limpeza não
+            // mascara o erro original) e relança: prepare rejeitou ⇒ o verify
+            // não registra ⇒ o veredito vira execError (fail-closed).
+            await cleanupDir(dir).catch(() => {});
+            throw err;
+          }
+        },
+        cleanup: cleanupDir,
+      };
+
       return await verifyChallengeProofs(input, env);
     } catch (err) {
       // Fail-closed (regra 1): o que o verifyChallengeProofs não converteu
-      // (input inválido no countTestDeclarations, erro inesperado) vira
-      // veredito inválido com execError — o provador nunca lança.
+      // (linguagem sem adaptador, input inválido na contagem declarada, erro
+      // inesperado) vira veredito inválido com execError — o provador nunca
+      // lança.
       const message = err instanceof Error ? err.message : String(err);
       return {
         valid: false,

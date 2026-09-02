@@ -1,5 +1,5 @@
 /**
- * app/electron/main/engine/exec/proofs.ts — as QUATRO PROVAS de execução de um
+ * app/electron/main/engine/exec/proofs.ts — as PROVAS de execução de um
  * desafio (`docs/16-engine-de-trilha.md` §5.4). Um desafio só é válido por
  * EXECUÇÃO, e por quatro provas, não duas:
  *
@@ -7,6 +7,24 @@
  *   2. o `starterCode` FALHA;
  *   3. o número de testes executados BATE com `expectedTestCount`;
  *   4. um stub vazio FALHA (protege contra teste tautológico).
+ *
+ * A QUINTA PROVA (`typesCheck`) — verificação de TIPO do lado da SOLUÇÃO — é
+ * OPCIONAL POR LINGUAGEM e vive em `exec/typesCheck.ts`, que documenta por que
+ * ela precisou ser uma prova NOVA em vez de uma dobra das provas 2 e 4 (as
+ * duas seriam trivialmente satisfeitas por falha de compilação e parariam de
+ * provar qualquer coisa). As provas 2 e 4 continuam RUNTIME-ONLY: os
+ * julgadores `judgeStarterFails` e `judgeEmptyStubFails` deste arquivo leem
+ * SOMENTE o `exitCode` da rodada de `node --test`, e nada de `typesCheck.ts`
+ * entra neles.
+ *
+ * TUDO O QUE É POR LINGUAGEM vem do ADAPTADOR (`engine/lang/registry.ts`, os
+ * 15 membros do §6 de `docs/research/08-multilingua-trava-deterministica.md`):
+ * o comando de teste (`testCommand`), a contagem declarada (`countDeclared`),
+ * a contagem executada (`countRun`) e o reconhecimento de falha
+ * (`failureExitCodes` — `isFailure`/`meaning`). Nenhum julgador deste arquivo
+ * compara `exitCode` com 0 na mão: `passed = code === 0` NÃO é universal (§6
+ * obs. 3 — R sai 0 com teste quebrado, Go sai 0 quando não achou arquivo de
+ * teste, Node sai 0 com arquivo de teste vazio).
  *
  * TODO o design deste arquivo obedece a duas leis do plano de execução:
  *
@@ -44,13 +62,27 @@
  *   - NODE_TEST_CONTEXT herdado faz o filho pular tudo e sair 0: a remoção é
  *     do HARNESS (`buildChildEnv` em harness.ts) — a prova fica lá.
  *
- * A contagem DECLARADA usa `countTestDeclarations` de `../extract` — a ÚNICA
- * função do repositório, por AST (`§5.3`): comentário não é nó, e um
- * `// test(` comentado não conta (as outras duas implementações do repo quebram
- * exatamente aí, com retry para sempre no validador semântico).
+ * A contagem DECLARADA usa `adapter.countDeclared`, que no adaptador
+ * JavaScript é `countTestDeclarations` de `../extract` — a ÚNICA função do
+ * repositório, por AST (`§5.3`): comentário não é nó, e um `// test(`
+ * comentado não conta. A onda 5 APAGOU a segunda implementação (a regex de
+ * `services/challengeExec.ts`), que quebrava exatamente aí e fazia o validador
+ * semântico entrar em retry para sempre.
  */
 
-import { countTestDeclarations } from '../extract';
+import {
+  defaultAdapter,
+  getAdapter,
+  adapterIdForChallengeLanguage,
+  type ChallengeLanguageToken,
+  type LanguageAdapter,
+} from '../lang/registry';
+import {
+  TYPES_CHECK_NAO_APLICAVEL,
+  politicaDeTipos,
+  type TypesCheckFn,
+  type TypesCheckResult,
+} from './typesCheck';
 
 // ---------------------------------------------------------------------------
 // Contrato de execução (A-P07-2 — injetável, a suíte nunca gera processo)
@@ -70,8 +102,34 @@ export type ExecFn = (
   opts?: { timeoutMs?: number; env?: NodeJS.ProcessEnv },
 ) => Promise<ExecResult>;
 
-/** Args canônicos do runner: `node --test` com relatório spec, arquivo único. */
-export const SPEC_TEST_ARGS: readonly string[] = ['--test', '--test-reporter=spec', 'test.mjs'];
+/**
+ * Args canônicos do runner do adaptador DEFAULT (`node --test` com relatório
+ * spec, arquivo único).
+ *
+ * ONDA 5: o VALOR vem do adaptador (`javascriptAdapter.testCommand` —
+ * `lang/javascript.ts`), não é mais uma cópia literal aqui. O símbolo continua
+ * exportado porque `phases/f9Verifier.ts` e três testes o importam; quem
+ * precisa da linguagem CERTA (e não da default) usa `adapter.testCommand`, que
+ * é o que `verifyChallengeProofs` e `argsDeTeste` fazem.
+ */
+export const SPEC_TEST_ARGS: readonly string[] = defaultAdapter().testCommand;
+
+/**
+ * Resolve o ADAPTADOR de um token de `challenge.language` (`'nodejs'`,
+ * `'javascript'`, …). FAIL-CLOSED: token declarado e desconhecido LANÇA
+ * `LanguageRegistryError` — cair no default silencioso é exatamente como um
+ * gate multilíngua passa a mentir (um desafio `language: 'python'` seria
+ * provado com o runner de JavaScript). Token AUSENTE cai no adaptador default,
+ * que é o que as 112 trilhas do disco significam.
+ */
+export function adapterDoDesafio(language?: string | null): LanguageAdapter {
+  if (language === undefined || language === null || language === '') return defaultAdapter();
+  const id = adapterIdForChallengeLanguage(language);
+  // `getAdapter` LANÇA com a lista de ids conhecidos quando não há adaptador —
+  // a mensagem é para quem escreve a trilha, então ela precisa dizer o que É
+  // válido, e não só que o valor recebido não é.
+  return getAdapter(id ?? language);
+}
 
 /** Saída combinada (stdout + stderr) — é o que um relatório spec real deixa. */
 export function execOutput(res: ExecResult): string {
@@ -111,6 +169,12 @@ export interface SpecCounts {
  * viraria 0, derrubando o gate de um resultado que passou). Linha ausente em
  * qualquer posição ⇒ 0 (fail-closed: sem relatório não há como provar que algo
  * rodou).
+ *
+ * ONDA 5 — QUEM CHAMA MUDOU. Esta função é a IMPLEMENTAÇÃO JAVASCRIPT de
+ * `LanguageAdapter.countRun`: `lang/javascript.ts` (`jsCountRun`) delega a ela,
+ * e os julgadores deste arquivo passaram a chamar `adapter.countRun`, nunca
+ * mais esta função direto. Continua exportada porque é o corpo do membro do
+ * adaptador; um adaptador de outra linguagem traz o seu.
  */
 export function parseSpecCounts(output: string): SpecCounts {
   const plain = output.replace(/\x1b\[[0-9;]*m/g, '');
@@ -152,6 +216,11 @@ export function parseSpecCounts(output: string): SpecCounts {
  * Classificação HONESTA de um exit code para as mensagens das provas.
  * 137 (SIGKILL) não distingue timeout de OOM — devolve exatamente
  * "timeout-ou-OOM" e o chamador nunca afirma qual dos dois.
+ *
+ * ONDA 5 — QUEM CHAMA MUDOU. Esta é a implementação JAVASCRIPT de
+ * `FailurePolicy.meaning` (`lang/javascript.ts` delega a ela); os julgadores
+ * deste arquivo passaram a usar `adapter.failureExitCodes.meaning`, porque o
+ * significado de um exit code é por LINGUAGEM (§6 obs. 3).
  */
 export function exitCodeMeaning(exitCode: number): string {
   if (exitCode === 137) return 'timeout-ou-OOM';
@@ -162,7 +231,18 @@ export function exitCodeMeaning(exitCode: number): string {
 // As quatro provas — julgadores puros
 // ---------------------------------------------------------------------------
 
-export type ProofId = 'solutionPasses' | 'starterFails' | 'countMatches' | 'emptyStubFails' | 'execError';
+/**
+ * As provas julgáveis. `typesCheck` é a QUINTA (ver `exec/typesCheck.ts`):
+ * OPCIONAL POR LINGUAGEM e aplicada SÓ ao lado da SOLUÇÃO — nunca ao starter
+ * (prova 2) nem ao stub vazio (prova 4), que continuam runtime-only.
+ */
+export type ProofId =
+  | 'solutionPasses'
+  | 'starterFails'
+  | 'countMatches'
+  | 'emptyStubFails'
+  | 'typesCheck'
+  | 'execError';
 
 export interface ProofJudgement {
   /** qual prova foi julgada. */
@@ -194,13 +274,17 @@ export const EMPTY_STUB_CODE = 'export {};\n';
  *     mente, a igualdade segura; a dona oficial da contagem é a prova 3,
  *     `judgeCountMatches`).
  */
-export function judgeSolutionPasses(res: ExecResult, expectedTestCount: number): ProofJudgement {
-  const counts = parseSpecCounts(execOutput(res));
-  if (res.exitCode !== 0) {
+export function judgeSolutionPasses(
+  res: ExecResult,
+  expectedTestCount: number,
+  adapter: LanguageAdapter = defaultAdapter(),
+): ProofJudgement {
+  const counts = adapter.countRun(execOutput(res));
+  if (adapter.failureExitCodes.isFailure(res.exitCode)) {
     return {
       proof: 'solutionPasses',
       passed: false,
-      reason: `solução de referência não passou: ${exitCodeMeaning(res.exitCode)}`,
+      reason: `solução de referência não passou: ${adapter.failureExitCodes.meaning(res.exitCode)}`,
       detail: { exitCode: res.exitCode, testsRun: counts.testsRun, expectedTestCount },
     };
   }
@@ -210,7 +294,7 @@ export function judgeSolutionPasses(res: ExecResult, expectedTestCount: number):
       passed: false,
       reason:
         'exit 0 com ZERO testes executados — nada rodou. Exit code sozinho não prova sucesso (arquivo de teste vazio / glob vazio também saem 0).',
-      detail: { exitCode: 0, testsRun: 0, expectedTestCount },
+      detail: { exitCode: res.exitCode, testsRun: 0, expectedTestCount },
     };
   }
   if (counts.fail > 0) {
@@ -255,14 +339,26 @@ export function judgeSolutionPasses(res: ExecResult, expectedTestCount: number):
  * que "nada tenha rodado", um starter que sai 0 não dá ao aluno nenhuma
  * correção a fazer. Exit não-zero é falha legítima (execução real falhou);
  * a qualidade da falha é coberta pelas outras provas.
+ *
+ * RUNTIME-ONLY, E ISSO É DELIBERADO (ver `exec/typesCheck.ts`): esta prova lê
+ * SOMENTE o exit code da rodada de `node --test`. Um starter de linguagem
+ * tipada quase sempre tem erro de TIPO por construção (o corpo é um `TODO`,
+ * logo o retorno declarado não é satisfeito) — se falha de compilador contasse
+ * como "o starter falhou", a prova seria TRIVIALMENTE satisfeita por todo
+ * starter, inclusive um starter que já resolve o exercício, e pararia de
+ * provar que o aluno tem o que fazer. A prova de tipo é a QUINTA, e só olha a
+ * SOLUÇÃO.
  */
-export function judgeStarterFails(res: ExecResult): ProofJudgement {
-  if (res.exitCode === 0) {
+export function judgeStarterFails(
+  res: ExecResult,
+  adapter: LanguageAdapter = defaultAdapter(),
+): ProofJudgement {
+  if (!adapter.failureExitCodes.isFailure(res.exitCode)) {
     return {
       proof: 'starterFails',
       passed: false,
       reason: 'starterCode passou (exit 0) — o aluno não teria nada para corrigir',
-      detail: { exitCode: 0 },
+      detail: { exitCode: res.exitCode },
     };
   }
   return { proof: 'starterFails', passed: true };
@@ -271,20 +367,29 @@ export function judgeStarterFails(res: ExecResult): ProofJudgement {
 /**
  * PROVA 3 — a contagem de testes executados BATE com `expectedTestCount`.
  *
- * A prova de contagem é DUPLA (fix adversarial): o AST DECLARA e o relatório
+ * A prova de contagem é DUPLA (fix adversarial): o fonte DECLARA e o relatório
  * EXECUTA — são os DOIS lados que esta prova confronta com o esperado:
- *   - `declared` — `countTestDeclarations` de `../extract`, a contagem ÚNICA
- *     por AST do repositório (§5.3): `// test(` comentado não é nó; esse é o
- *     lado DECLARADO (estático, sobre `testsCode`);
- *   - `executed` — saída do relatório spec da rodada da SOLUÇÃO (o ÚLTIMO
- *     bloco de resumo — o do runner real), lida por `parseSpecCounts`; esse é
- *     o lado EXECUTADO (dinâmico, medido na rodada que comprovadamente roda
- *     os testes de verdade);
+ *   - `declared` — `adapter.countDeclared` (em JavaScript,
+ *     `countTestDeclarations` de `../extract`, a contagem ÚNICA por AST do
+ *     repositório — §5.3: `// test(` comentado não é nó); esse é o lado
+ *     DECLARADO (estático, sobre `testsCode`);
+ *   - `executed` — saída do relatório da rodada da SOLUÇÃO, lida por
+ *     `adapter.countRun` (em JavaScript, o ÚLTIMO bloco de resumo spec — o do
+ *     runner real); esse é o lado EXECUTADO (dinâmico, medido na rodada que
+ *     comprovadamente roda os testes de verdade);
  *   - `expectedTestCount` — o declarado no desafio.
  *
  * expectedTestCount === 0 é inválido por construção: sem teste não há prova.
+ * A dupla-igualdade é INVARIANTE DE TODA LINGUAGEM (§6 obs. 3): nenhum
+ * adaptador pode declarar `failureExitCodes.successRequiresCountMatch: false`
+ * — o tipo do registro só aceita o literal `true`.
  */
-export function judgeCountMatches(declared: number, expectedTestCount: number, solutionRun: ExecResult): ProofJudgement {
+export function judgeCountMatches(
+  declared: number,
+  expectedTestCount: number,
+  solutionRun: ExecResult,
+  adapter: LanguageAdapter = defaultAdapter(),
+): ProofJudgement {
   if (expectedTestCount < 1) {
     return {
       proof: 'countMatches',
@@ -301,7 +406,7 @@ export function judgeCountMatches(declared: number, expectedTestCount: number, s
       detail: { declared, expectedTestCount },
     };
   }
-  const executed = parseSpecCounts(execOutput(solutionRun)).testsRun;
+  const executed = adapter.countRun(execOutput(solutionRun)).testsRun;
   if (executed === 0) {
     return {
       proof: 'countMatches',
@@ -328,17 +433,87 @@ export function judgeCountMatches(declared: number, expectedTestCount: number, s
  * faz o stub vazio sair 0 — a prova reprova o desafio: ou os testes são
  * tautológicos, ou não exercitam o código do aluno. Exit não-zero aqui significa
  * que o arquivo de testes REFERENCIA o módulo (import quebrado) ou falha sem ele.
+ *
+ * RUNTIME-ONLY, E ISSO É DELIBERADO (ver `exec/typesCheck.ts`): o stub vazio é
+ * `export {};`, e numa linguagem tipada o `import { f } from './solution'` do
+ * teste vira erro de COMPILAÇÃO ("has no exported member"), não erro de
+ * execução. Se falha de compilador contasse aqui, a prova passaria SEMPRE — e
+ * ela existe justamente para pegar o teste TAUTOLÓGICO, que continua rodando
+ * VERDE contra o stub vazio. Só a EXECUÇÃO o detecta.
  */
-export function judgeEmptyStubFails(res: ExecResult): ProofJudgement {
-  if (res.exitCode === 0) {
+export function judgeEmptyStubFails(
+  res: ExecResult,
+  adapter: LanguageAdapter = defaultAdapter(),
+): ProofJudgement {
+  if (!adapter.failureExitCodes.isFailure(res.exitCode)) {
     return {
       proof: 'emptyStubFails',
       passed: false,
       reason: 'stub vazio passou (exit 0) — testes são tautológicos ou não exercitam o código do aluno',
-      detail: { exitCode: 0 },
+      detail: { exitCode: res.exitCode },
     };
   }
   return { proof: 'emptyStubFails', passed: true };
+}
+
+/**
+ * PROVA 5 (opcional por linguagem) — os TIPOS do lado da SOLUÇÃO conferem.
+ *
+ * Node APAGA os tipos, não os confere: `node --test` sobre um `.ts`
+ * transpilado nunca reprova `const n: number = 'texto'`. Numa trilha de
+ * linguagem tipada, sem esta prova a trava seria a trava de uma trilha sem
+ * tipos com anotações decorativas.
+ *
+ * O QUE ELA JULGA — a primeira pergunta é "a checagem RODOU?", não "a
+ * linguagem exige?", e a ordem importa:
+ *   - NÃO RODOU (`applicable: false`) e a linguagem não exige (o caso do
+ *     adaptador `javascript`, cuja política é `required: false`) ⇒ PASSA. O
+ *     veredito carrega `types.applicable === false`: a prova não se aplica, e
+ *     isso fica dito, nunca um "pulei" mudo;
+ *   - NÃO RODOU e a linguagem EXIGE (compilador ausente, ou o provador não
+ *     ligou o seam `ProofEnv.typesCheck`) ⇒ REPROVA com a mensagem de
+ *     degradação. FAIL-CLOSED: um desafio de linguagem tipada não é aprovado
+ *     por falta de ferramenta;
+ *   - RODOU e reprovou ⇒ REPROVA com os diagnósticos, INDEPENDENTE da
+ *     política. Uma checagem que rodou e falhou é informação, não ruído:
+ *     silenciá-la porque "esta linguagem não exigia" seria descartar um
+ *     defeito já provado.
+ *
+ * SÓ A SOLUÇÃO. As provas 2 e 4 continuam runtime-only — o porquê está nos
+ * docstrings delas e no cabeçalho de `exec/typesCheck.ts`.
+ */
+export function judgeTypesCheck(
+  result: TypesCheckResult,
+  adapter: LanguageAdapter = defaultAdapter(),
+): ProofJudgement {
+  if (!result.applicable) {
+    if (!politicaDeTipos(adapter.id).required) return { proof: 'typesCheck', passed: true };
+    return {
+      proof: 'typesCheck',
+      passed: false,
+      reason:
+        `${adapter.label} exige verificação de TIPO da solução e ela não rodou` +
+        `${result.degradacao !== null ? `: ${result.degradacao}` : ' — o provador não ligou ProofEnv.typesCheck'}`,
+      detail: { applicable: false, exitCode: result.exitCode },
+    };
+  }
+  if (result.degradacao !== null) {
+    return {
+      proof: 'typesCheck',
+      passed: false,
+      reason: `verificação de TIPO indisponível: ${result.degradacao}`,
+      detail: { applicable: true, exitCode: result.exitCode },
+    };
+  }
+  if (!result.ok) {
+    return {
+      proof: 'typesCheck',
+      passed: false,
+      reason: `a solução de referência NÃO passa na verificação de tipos (${adapter.failureExitCodes.meaning(result.exitCode)}): ${result.output}`,
+      detail: { applicable: true, exitCode: result.exitCode },
+    };
+  }
+  return { proof: 'typesCheck', passed: true };
 }
 
 // ---------------------------------------------------------------------------
@@ -358,6 +533,13 @@ export interface ChallengeProofsInput {
   starterCode: string;
   testsCode: string;
   expectedTestCount: number;
+  /**
+   * O token de `challenge.language` (`'nodejs'`, `'javascript'`, …) — resolve
+   * QUAL adaptador prova este desafio. Ausente ⇒ adaptador default, que é o
+   * que as 112 trilhas do disco significam; token desconhecido ⇒ veredito
+   * inválido com `execError` (fail-closed, nunca o parser errado).
+   */
+  language?: ChallengeLanguageToken | string;
   /** multi-arquivo: arquivos da solução (ausente ⇒ solution.mjs único). */
   solutionFiles?: { path: string; code: string }[];
   /** multi-arquivo: arquivos do starter (ausente ⇒ solution.mjs único). */
@@ -378,26 +560,47 @@ export interface ProofEnv {
   exec: ExecFn;
   prepare: (side: ChallengeProofSide & { testsCode: string }) => Promise<string>;
   cleanup: (dir: string) => Promise<void>;
+  /**
+   * A QUINTA PROVA (opcional por linguagem): verificação de TIPO do lado da
+   * SOLUÇÃO, num SPAWN SEPARADO — nunca uma flag do runner de teste. Ausente
+   * ⇒ a prova é julgada como não-aplicável, e isso REPROVA quando a linguagem
+   * a exige (`judgeTypesCheck`, fail-closed).
+   *
+   * O provador oficial (`phases/f9Verifier.ts`) a monta com `criarTypesCheck`
+   * sobre o MESMO ExecFn endurecido das rodadas de teste — é assim que ela
+   * herda o teto SEM_EXEC. `tsc` custa da ordem de 1–2 s contra ~290 ms de uma
+   * rodada de teste: fora do semáforo, ele dominaria a F9 inteira.
+   */
+  typesCheck?: TypesCheckFn;
 }
 
 export interface ChallengeProofsVerdict {
-  /** fail-closed: true somente quando as QUATRO provas passaram. */
+  /**
+   * fail-closed: true somente quando TODAS as provas passaram — as quatro de
+   * execução e, quando a linguagem a exige, a quinta (tipos da solução).
+   */
   valid: boolean;
   /** provas que falharam (vazio quando válido) — qual prova e por quê. */
   failures: ProofJudgement[];
   /** resultados brutos das três rodadas (presentes quando a infra não falhou). */
   executions?: { solution: ExecResult; starter: ExecResult; emptyStub: ExecResult };
   /**
-   * A prova de contagem é DUPLA (fix adversarial): o AST DECLARA (`declared`,
-   * via `countTestDeclarations` de `../extract`) e o relatório EXECUTA
-   * (`executed`, via `parseSpecCounts` — o ÚLTIMO bloco de resumo, o do runner
-   * real). `judgeCountMatches` confronta os dois lados com
-   * `expectedTestCount`; um veredito válido exige declared === executed ===
-   * expectedTestCount.
+   * A prova de contagem é DUPLA (fix adversarial): o fonte DECLARA
+   * (`declared`, via `adapter.countDeclared` — por AST no adaptador
+   * JavaScript) e o relatório EXECUTA (`executed`, via `adapter.countRun` — o
+   * ÚLTIMO bloco de resumo, o do runner real). `judgeCountMatches` confronta
+   * os dois lados com `expectedTestCount`; um veredito válido exige declared
+   * === executed === expectedTestCount.
+   *
+   * A dupla-igualdade é INVARIANTE DA ENGINE, não política por linguagem:
+   * `FailurePolicy.successRequiresCountMatch` é `true` LITERAL no tipo do
+   * registro, e nenhum adaptador pode declará-lo `false` (§6 obs. 3).
    */
   declared: number;
   /** testes executados, medidos na rodada da solução. */
   executed: number;
+  /** o resultado da QUINTA prova (tipos) — não-aplicável quando a linguagem não a exige. */
+  types?: TypesCheckResult;
   /** falha de infraestrutura (prepare/exec/cleanup lançou) — veredito inválido. */
   execError?: string;
 }
@@ -415,30 +618,45 @@ function emptyStubSide(input: ChallengeProofsInput): ChallengeProofSide {
 }
 
 /**
- * Roda as QUATRO PROVAS de um desafio. Cada lado roda num diretório ISOLADO
+ * Roda as provas de um desafio: as QUATRO de execução, mais a QUINTA (tipos da
+ * solução) quando a linguagem a exige. Cada lado roda num diretório ISOLADO
  * próprio (nunca compartilham diretório — contaminação zero entre rodadas).
  * As provas são os julgadores puros acima; aqui só se decide o veredito:
  * `valid = failures.length === 0`. Qualquer exceção de infraestrutura vira
  * veredito inválido com `execError` (fail-closed). Cleanup roda SEMPRE,
  * mesmo em falha.
  *
+ * MULTILÍNGUA (onda 5): o adaptador sai de `input.language` pelo registro —
+ * é ele que dá o comando de teste, as duas contagens e o reconhecimento de
+ * falha. `language` desconhecido NÃO cai no default: vira `execError`.
+ *
  * PARALELISMO (onda 5 — confirmado e documentado): as TRÊS rodadas de
- * execução (solução, starter, stub vazio) rodam em `Promise.all` — as quatro
- * provas de UM desafio são paralelas por construção. O limite de spawns em
- * voo NÃO vive aqui: o executor endurecido (`createHardenedExec` em
- * `harness.ts`, usado pelo provador oficial de `f9Verifier.ts`) adquire o
- * SEM_EXEC por execução; o paralelismo ENTRE desafios é responsabilidade do
- * chamador (a F9/F11 da fiação e o G-FINAL fazem map paralelo com SEM_EXEC).
+ * execução (solução, starter, stub vazio) MAIS a checagem de tipos rodam em
+ * `Promise.all` — as provas de UM desafio são paralelas por construção. O
+ * limite de spawns em voo NÃO vive aqui: o executor endurecido
+ * (`createHardenedExec` em `harness.ts`, usado pelo provador oficial de
+ * `f9Verifier.ts`) adquire o SEM_EXEC por execução, e a checagem de tipos
+ * passa pelo MESMO executor justamente para concorrer pelas mesmas vagas; o
+ * paralelismo ENTRE desafios é responsabilidade do chamador (a F9/F11 da
+ * fiação e o G-FINAL fazem map paralelo com SEM_EXEC).
  */
 export async function verifyChallengeProofs(
   input: ChallengeProofsInput,
   env: ProofEnv,
 ): Promise<ChallengeProofsVerdict> {
-  const declared = countTestDeclarations(input.testsCode);
   const timeoutMs = input.timeoutMs;
   const dirs: string[] = [];
+  // `declared` fica FORA do try porque o catch o reporta; a resolução do
+  // adaptador e a contagem ficam DENTRO para que um `language` desconhecido
+  // (fail-closed no registro) vire veredito inválido em vez de exceção solta.
+  let declared = 0;
   try {
-    const solDir = await env.prepare({ code: input.solutionCode, files: input.solutionFiles, testsCode: input.testsCode });
+    const adapter = adapterDoDesafio(input.language);
+    declared = adapter.countDeclared(input.testsCode);
+    const testArgs = [...adapter.testCommand];
+
+    const solSide = { code: input.solutionCode, files: input.solutionFiles, testsCode: input.testsCode };
+    const solDir = await env.prepare(solSide);
     dirs.push(solDir);
     const starterDir = await env.prepare({ code: input.starterCode, files: input.starterFiles, testsCode: input.testsCode });
     dirs.push(starterDir);
@@ -446,17 +664,23 @@ export async function verifyChallengeProofs(
     dirs.push(emptyDir);
 
     const execOpts = timeoutMs !== undefined ? { timeoutMs } : {};
-    const [solution, starter, emptyStub] = await Promise.all([
-      env.exec(solDir, [...SPEC_TEST_ARGS], execOpts),
-      env.exec(starterDir, [...SPEC_TEST_ARGS], execOpts),
-      env.exec(emptyDir, [...SPEC_TEST_ARGS], execOpts),
+    const [solution, starter, emptyStub, types] = await Promise.all([
+      env.exec(solDir, [...testArgs], execOpts),
+      env.exec(starterDir, [...testArgs], execOpts),
+      env.exec(emptyDir, [...testArgs], execOpts),
+      // QUINTA PROVA — SÓ o diretório da SOLUÇÃO. `prepare` não sabe qual lado
+      // preparou (os três passam por ele), então a checagem é disparada AQUI,
+      // onde o lado é conhecido; o spawn é separado e vive no MESMO ExecFn
+      // endurecido, logo no mesmo SEM_EXEC.
+      env.typesCheck ? env.typesCheck(solDir, solSide) : Promise.resolve(TYPES_CHECK_NAO_APLICAVEL),
     ]);
 
     const failures: ProofJudgement[] = [
-      judgeSolutionPasses(solution, input.expectedTestCount),
-      judgeStarterFails(starter),
-      judgeCountMatches(declared, input.expectedTestCount, solution),
-      judgeEmptyStubFails(emptyStub),
+      judgeSolutionPasses(solution, input.expectedTestCount, adapter),
+      judgeStarterFails(starter, adapter),
+      judgeCountMatches(declared, input.expectedTestCount, solution, adapter),
+      judgeEmptyStubFails(emptyStub, adapter),
+      judgeTypesCheck(types, adapter),
     ].filter((j) => !j.passed);
 
     return {
@@ -464,7 +688,8 @@ export async function verifyChallengeProofs(
       failures,
       executions: { solution, starter, emptyStub },
       declared,
-      executed: parseSpecCounts(execOutput(solution)).testsRun,
+      executed: adapter.countRun(execOutput(solution)).testsRun,
+      types,
     };
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);

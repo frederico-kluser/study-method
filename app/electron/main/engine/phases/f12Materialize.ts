@@ -150,9 +150,14 @@ import {
   validateTrackSource,
 } from '../../content/trackTypes';
 import { auditTrack } from '../audit';
+import {
+  NON_CODE_THEORY_TAGS,
+  classifyTheoryTag,
+  listTheoryCodeTags,
+} from '../lang/registry';
 import { cleanupDir, prepareIsolatedDir } from '../exec/harness';
 import type { ExecFn } from '../exec/proofs';
-import { verifyChallengeProofs } from '../exec/proofs';
+import { adapterDoDesafio, verifyChallengeProofs } from '../exec/proofs';
 import type { ProofEnv } from '../exec/proofs';
 import { canonicalizarJson, sha256Hex } from '../runtime/ledger';
 import { createExecSemaphore } from '../runtime/semaphore';
@@ -264,6 +269,7 @@ export type MaterializeErrorCode =
   | 'REF_INVALIDA' // ref de desafio não casa com módulo nem aula conhecidos
   | 'DUPLICADO' // slug de aula repetido, ordem de módulo repetida, desafio de módulo duplicado, slug de desafio repetido na aula
   | 'RESEARCH_NAO_URL' // research[] com item que não é URL absoluta http(s)
+  | 'TAG_DE_TEORIA_DESCONHECIDA' // theory[].tag que não é adaptador NEM tag declarada de não-código
   | 'ARVORE_INVALIDA' // a árvore montada viola os validadores do produto (issues anexadas)
   | 'GFINAL_DESTINO_AUSENTE' // gFinal contra um diretório que não é trilha
   | 'IO_ERRO'; // falha de disco
@@ -412,8 +418,32 @@ function montarAulaDeProduto(
   const draftsSecoes = aula.draft.theory.map((s) => ({ ...s }));
   const theory: TrackLessonSource['theory'] = draftsSecoes.map((secao) => {
     const base = { id: secao.id, title: tituloDaSecao(secao), markdown: secao.markdown };
-    if (secao.tag === '') return base;
-    return { ...base, code: { language: secao.tag, code: secao.markdown } };
+    // A TAG É VALIDADA PELO REGISTRO (onda 5), não escrita crua.
+    //
+    // Antes, esta linha copiava `secao.tag` — a tag da cerca que o AUTOR (LLM)
+    // emitiu — direto para `code.language` do produto. Uma tag inventada
+    // (`javascrpt`, `py` antes de existir adaptador de Python) produzia um
+    // bloco que NENHUM parser recebe e que NENHUMA lista de não-código cobre:
+    // o extrator o ignora em silêncio e o orçamento passa a valer sobre menos
+    // código do que a aula realmente mostra. É o modo exato de um gate mentir.
+    //
+    // `classifyTheoryTag` é TOTAL — toda tag cai em um de quatro baldes:
+    //   ausente     → prosa: nenhum campo `code` (comportamento de sempre);
+    //   codigo      → resolve para um adaptador: o bloco vai ao parser dele;
+    //   nao-codigo  → `json`/`http`/`bash`/… declarados: escrevem `code`, e
+    //                 declaradamente não vão a parser nenhum;
+    //   desconhecida→ FAIL-CLOSED: MaterializeError ANTES de qualquer escrita.
+    const classificacao = classifyTheoryTag(secao.tag);
+    if (classificacao.kind === 'ausente') return base;
+    if (classificacao.kind === 'desconhecida') {
+      throw new MaterializeError(
+        'TAG_DE_TEORIA_DESCONHECIDA',
+        `aula '${aula.draft.slug}', seção '${secao.id}': tag de bloco desconhecida ${JSON.stringify(secao.tag)} — ` +
+          `não é linguagem com adaptador (${listTheoryCodeTags().join(', ')}) nem tag declarada de não-código (${NON_CODE_THEORY_TAGS.join(', ')}). ` +
+          'Uma tag fora dessas duas listas produz um bloco que nenhum parser recebe e que o orçamento ignora em silêncio.',
+      );
+    }
+    return { ...base, code: { language: classificacao.tag, code: secao.markdown } };
   });
   return {
     schemaVersion: TRACK_SCHEMA_VERSION,
@@ -460,7 +490,21 @@ function montarDesafioDeProduto(
     title: tituloDeDesafio(draft.conceito, ctx.kind),
     concept: draft.conceito,
     difficulty: ctx.dificuldade,
-    language: 'nodejs',
+    // A LINGUAGEM VEM DO DRAFT (onda 5), não é mais o literal `'nodejs'`.
+    // O `ChallengeDraftSchema` tem o campo `language` e materializa a ausência
+    // como `DEFAULT_CHALLENGE_LANGUAGE` (`'nodejs'`) via `z.preprocess`
+    // (INV-05) — ou seja: draft antigo/sem o campo continua escrevendo
+    // exatamente o mesmo valor de antes, e um draft de outra linguagem deixa
+    // de ser materializado como se fosse Node.
+    //
+    // O CAST é seguro por DOIS gates independentes, os dois ANTES de qualquer
+    // escrita: (1) `ChallengeDraftSchema` valida `language` contra
+    // `KNOWN_CHALLENGE_LANGUAGES` na entrada do dossiê (o `z.enum` perde o tipo
+    // literal por causa do cast de tupla no schema, não a validação); (2)
+    // `validateChallengeSource` (content/trackTypes) reprova a árvore montada
+    // com `language inválido` quando o token não resolve para adaptador nenhum
+    // — e isso vira `MaterializeError('ARVORE_INVALIDA')`.
+    language: draft.language as TrackChallengeSource['language'],
     statement: draft.statement,
     starterCode: draft.starterCode,
     testsCode: draft.testsCode,
@@ -925,6 +969,13 @@ export interface DesafioAProvar {
   /** ADITIVO multi-arquivo (rodada 9): arquivos da solução e do starter; quando presentes, os codes de topo são ignorados pelas provas. */
   solutionFiles?: { path: string; code: string }[];
   starterFiles?: { path: string; code: string }[];
+  /**
+   * ADITIVO (onda 5 — multilíngua): o `challenge.language` do desafio. Diz ao
+   * provador QUAL adaptador executa (layout dos arquivos, comando de teste,
+   * contagens, exit codes) e se a QUINTA PROVA (tipos) se aplica. Ausente ⇒
+   * adaptador default, que é o que as trilhas do disco significam.
+   */
+  language?: string;
 }
 
 export interface VereditoProva {
@@ -967,9 +1018,13 @@ function criarExecNodeTest(): ExecFn {
  */
 export async function verificarDesafioReal(desafio: DesafioAProvar): Promise<VereditoProva> {
   const baseDir = path.join(os.tmpdir(), 'trilha-gfinal');
+  // ONDA 5: o ADAPTADOR do desafio decide o layout dos arquivos em disco e o
+  // regex de caminho seguro (§6, membros 7 e 8). `language` desconhecido LANÇA
+  // no registro (fail-closed) e o G-FINAL o reporta como falha do desafio.
+  const adapter = adapterDoDesafio(desafio.language);
   const env: ProofEnv = {
     exec: criarExecNodeTest(),
-    prepare: (side) => prepareIsolatedDir(baseDir, side),
+    prepare: (side) => prepareIsolatedDir(baseDir, side, adapter),
     cleanup: cleanupDir,
   };
   const veredito = await verifyChallengeProofs(
@@ -980,6 +1035,7 @@ export async function verificarDesafioReal(desafio: DesafioAProvar): Promise<Ver
       expectedTestCount: desafio.expectedTestCount,
       solutionFiles: desafio.solutionFiles,
       starterFiles: desafio.starterFiles,
+      ...(desafio.language !== undefined ? { language: desafio.language } : {}),
       timeoutMs: 30_000,
     },
     env,
@@ -1060,6 +1116,9 @@ export async function gFinal(deps: DepsMaterializar, destino: string): Promise<R
     expectedTestCount: ch.expectedTestCount,
     solutionFiles: arquivosDe(ch, 'solutionCode'),
     starterFiles: arquivosDe(ch, 'starterCode'),
+    // ONDA 5: a linguagem do desafio viaja até o provador (o G-FINAL não pode
+    // provar um desafio de outra linguagem com o runner de Node).
+    language: ch.language,
   });
   for (const mod of track.modules) {
     if (mod.challenge !== null) {

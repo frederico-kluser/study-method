@@ -38,6 +38,7 @@ import {
   judgeEmptyStubFails,
   judgeSolutionPasses,
   judgeStarterFails,
+  judgeTypesCheck,
   parseSpecCounts,
   verifyChallengeProofs,
   type ChallengeProofsInput,
@@ -45,6 +46,15 @@ import {
   type ExecResult,
   type ProofEnv,
 } from '../electron/main/engine/exec/proofs';
+import {
+  TYPES_CHECK_NAO_APLICAVEL,
+  alvosDaChecagem,
+  criarTypesCheck,
+  politicaDeTipos,
+  resolverCompiladorNpm,
+} from '../electron/main/engine/exec/typesCheck';
+import { listAdapters, type LanguageAdapter } from '../electron/main/engine/lang/registry';
+import { javascriptAdapter } from '../electron/main/engine/lang/javascript';
 import {
   EXIT_GUARD_SOURCE,
   NETWORK_HARDENING,
@@ -423,7 +433,7 @@ describe('NODE_TEST_CONTEXT não vaza (harness monta o env do filho)', () => {
     assert.equal(env.HTTP_PROXY, undefined);
     assert.equal(env.NODE_TLS_REJECT_UNAUTHORIZED, undefined);
     assert.equal(env.NO_PROXY, '*');
-    assert.equal(env.PATH, '/usr/bin', 'o resto do ambiente é preservado');
+    assert.equal(env.PATH, '/usr/bin', 'PATH está na allowlist — sem ele o spawn nem acha o binário');
     assert.equal(base.NODE_TEST_CONTEXT, 'runner-pai', 'buildChildEnv não pode mutar o base');
   });
 
@@ -484,6 +494,106 @@ describe('NODE_TEST_CONTEXT não vaza (harness monta o env do filho)', () => {
     assert.equal(captured?.HTTP_PROXY, undefined);
     assert.equal(captured?.FORCE_COLOR, undefined);
     assert.equal(captured?.NO_PROXY, '*', 'NO_PROXY=* é invariante na saída, com ou sem custom');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// 4b. A MIGRAÇÃO DENYLIST → ALLOWLIST DO ENV (onda 5)
+//
+// A ÚNICA mudança de comportamento deliberada desta sub-tarefa, e por isso ela
+// tem teste próprio. §6 obs. 2 de
+// `docs/research/08-multilingua-trava-deterministica.md`: "Cada linguagem tem
+// o seu veneno (GOFLAGS, GOCACHE, RUSTFLAGS, CARGO_TARGET_DIR, PYTHONPATH,
+// CLASSPATH, DOTNET_*), e a lista nunca vai estar completa. O correto é montar
+// o ambiente do filho a partir de uma allowlist explícita mais
+// `LC_ALL=C.UTF-8 TZ=UTC`."
+//
+// ANTES: `buildChildEnv` copiava `process.env` INTEIRO e apagava 9 nomes.
+// AGORA: constrói o env do NADA — só o que a allowlist permite herdar.
+// ---------------------------------------------------------------------------
+
+describe('env do filho — ALLOWLIST (§6 obs. 2), a mudança deliberada da onda 5', () => {
+  it('o que NÃO está na allowlist não chega ao filho — nem o veneno de outra linguagem', () => {
+    const env = buildChildEnv({
+      PATH: '/usr/bin',
+      HOME: '/home/x',
+      // veneno que a DENYLIST de antes não conhecia (e nunca conheceria toda):
+      PYTHONPATH: '/veneno',
+      GOFLAGS: '-mod=mod',
+      RUSTFLAGS: '-C target-cpu=native',
+      CLASSPATH: '/injecao.jar',
+      DOTNET_ROOT: '/dotnet',
+      // e ambiente arbitrário do desenvolvedor, que vazava inteiro:
+      MINHA_VAR: 'vazava antes',
+      AWS_SECRET_ACCESS_KEY: 'segredo que não tem o que fazer no filho',
+    });
+    for (const nome of ['PYTHONPATH', 'GOFLAGS', 'RUSTFLAGS', 'CLASSPATH', 'DOTNET_ROOT', 'MINHA_VAR', 'AWS_SECRET_ACCESS_KEY']) {
+      assert.equal(env[nome], undefined, `${nome} não pode chegar ao filho`);
+    }
+    assert.equal(env.PATH, '/usr/bin', 'PATH herda — sem ele o spawn nem acha o binário');
+    assert.equal(env.HOME, '/home/x');
+  });
+
+  it('o DETERMINISMO passa a ser imposto: LC_ALL=C.UTF-8 e TZ=UTC (nunca eram fixados)', () => {
+    const env = buildChildEnv({ PATH: '/usr/bin', LC_ALL: 'pt_BR.UTF-8', TZ: 'America/Sao_Paulo' });
+    assert.equal(env.LC_ALL, 'C.UTF-8', 'ordenação de string deixa de depender da máquina');
+    assert.equal(env.TZ, 'UTC', 'formatação de data deixa de depender do fuso da máquina');
+  });
+
+  it('npm_node_execpath continua herdando — é por ele que o filho acha o node sob Electron', () => {
+    // `detect().binary` devolve `npm_node_execpath` quando o app roda sob npm
+    // dentro do Electron. Sem ela na allowlist, a allowlist quebraria o spawn
+    // no ambiente exato em que o produto roda.
+    const env = buildChildEnv({ PATH: '/usr/bin', npm_node_execpath: '/usr/bin/node' });
+    assert.equal(env.npm_node_execpath, '/usr/bin/node');
+  });
+
+  it('o endurecimento antigo NÃO regrediu: veneno de Node continua fora, NO_PROXY continua dentro', () => {
+    const env = buildChildEnv({
+      PATH: '/usr/bin',
+      NODE_TEST_CONTEXT: 'runner-pai',
+      HTTP_PROXY: 'http://proxy',
+      https_proxy: 'http://proxy',
+      NODE_TLS_REJECT_UNAUTHORIZED: '0',
+      FORCE_COLOR: '1',
+      NODE_OPTIONS: '--require evil',
+    });
+    for (const nome of ['NODE_TEST_CONTEXT', 'HTTP_PROXY', 'https_proxy', 'NODE_TLS_REJECT_UNAUTHORIZED', 'FORCE_COLOR', 'NODE_OPTIONS']) {
+      assert.equal(env[nome], undefined, `${nome} continua fora do filho`);
+    }
+    assert.equal(env.NO_PROXY, '*');
+    assert.equal(env.no_proxy, '*');
+  });
+
+  it('PURA: não muta o base (nem o `process.env` quando o base é omitido)', () => {
+    const base: NodeJS.ProcessEnv = { PATH: '/usr/bin', MINHA_VAR: 'intacta', NODE_TEST_CONTEXT: 'x' };
+    buildChildEnv(base);
+    assert.equal(base.MINHA_VAR, 'intacta');
+    assert.equal(base.NODE_TEST_CONTEXT, 'x');
+    const semBase = buildChildEnv();
+    assert.equal(semBase.NODE_TEST_CONTEXT, undefined, 'o default é process.env, e ele também é filtrado');
+    assert.equal(semBase.LC_ALL, 'C.UTF-8');
+  });
+
+  it('o passo de SAÍDA é denylist de propósito: o enriquecimento do envBuilder sobrevive, o veneno não', async () => {
+    // A allowlist decide o que é HERDADO do pai; um `envBuilder` custom INJETA
+    // valores explícitos. Se o passo 3 fosse a allowlist de novo, ele apagaria
+    // justamente o que o chamador pediu e o slot `envBuilder` seria inútil —
+    // por isso ele é `reforcarInvariantesDeEnv` (strip + fixed).
+    let captured: NodeJS.ProcessEnv | undefined;
+    const hard = createHardenedExec({
+      exec: async (_dir, _args, opts) => {
+        captured = opts?.env;
+        return okRun(2);
+      },
+      envBuilder: (env) => ({ ...env, SM_FLAG: '1', NODE_OPTIONS: '--require evil' }),
+    });
+    await hard('dir', [...SPEC_TEST_ARGS], { env: { PATH: '/usr/bin', MINHA_VAR: 'vazava antes' } });
+    assert.equal(captured?.SM_FLAG, '1', 'o enriquecimento explícito do custom sobrevive');
+    assert.equal(captured?.NODE_OPTIONS, undefined, 'o veneno reintroduzido pelo custom é reapagado');
+    assert.equal(captured?.MINHA_VAR, undefined, 'o que veio por HERANÇA continua barrado pela allowlist do passo 1');
+    assert.equal(captured?.LC_ALL, 'C.UTF-8');
+    assert.equal(captured?.NO_PROXY, '*');
   });
 });
 
@@ -771,6 +881,281 @@ describe('escreverExitGuard (bridge de endurecimento — code under test não ma
       await assert.rejects(() => escreverExitGuard(path.join(base, 'subdir-inexistente')));
     } finally {
       await fsPromises.rm(base, { recursive: true, force: true }).catch(() => {});
+    }
+  });
+});
+// ---------------------------------------------------------------------------
+// 8. A QUINTA PROVA — typesCheck (onda 5)
+//
+// Node APAGA os tipos, não os confere: `node --test` sobre um `.ts`
+// transpilado nunca reprova `const n: number = 'texto'`. A prova de tipo é
+// SEPARADA e aplicada SÓ ao lado da SOLUÇÃO.
+//
+// O CONTRATO QUE MAIS IMPORTA AQUI é o NEGATIVO: as provas 2 (starter falha) e
+// 4 (stub vazio falha) continuam RUNTIME-ONLY. Dobrar o type check dentro
+// delas as destruiria — um starter de linguagem tipada quase sempre tem erro
+// de tipo por construção (prova 2 viraria trivialmente satisfeita) e um stub
+// `export {}` vira erro de COMPILAÇÃO no import do teste (prova 4 passaria
+// sempre e pararia de pegar teste tautológico).
+// ---------------------------------------------------------------------------
+
+/**
+ * Um adaptador FAKE de linguagem TIPADA: o adaptador `javascript` com outro
+ * `id`, que é a chave da tabela `POLITICAS_DE_TIPOS`. Existe porque
+ * `lang/typescript.ts` ainda não foi escrito (§7, item 2 do documento de
+ * multilíngua) e a quinta prova precisa ser exercitável hoje.
+ */
+const tipadoAdapter = { ...javascriptAdapter, id: 'typescript', label: 'TypeScript' } as unknown as LanguageAdapter;
+
+describe('a QUINTA prova — typesCheck (só a solução, opcional por linguagem)', () => {
+  it('política: javascript NÃO exige; typescript exige; linguagem sem entrada NÃO exige', () => {
+    assert.equal(politicaDeTipos('javascript').required, false);
+    assert.equal(politicaDeTipos('typescript').required, true);
+    assert.equal(politicaDeTipos('linguagem-que-nao-existe').required, false);
+  });
+
+  it('judgeTypesCheck PASSA quando a linguagem não exige a prova (adaptador javascript)', () => {
+    const j = judgeTypesCheck(TYPES_CHECK_NAO_APLICAVEL);
+    assert.equal(j.passed, true);
+    assert.equal(j.proof, 'typesCheck');
+  });
+
+  it('checagem que RODOU e reprovou derruba a prova mesmo em linguagem que não a exige', () => {
+    // Silenciar um defeito já PROVADO porque "esta linguagem não exigia a
+    // prova" seria descartar informação. A política decide se a checagem é
+    // obrigatória, não se um resultado ruim conta.
+    const j = judgeTypesCheck(
+      { applicable: true, ok: false, output: 'error TS2322', exitCode: 2, degradacao: null },
+      javascriptAdapter,
+    );
+    assert.equal(j.passed, false);
+  });
+
+  it('FAIL-CLOSED: linguagem EXIGE e o provador não ligou o seam ⇒ REPROVA', () => {
+    const j = judgeTypesCheck(TYPES_CHECK_NAO_APLICAVEL, tipadoAdapter);
+    assert.equal(j.passed, false);
+    assert.match(j.reason ?? '', /exige verificação de TIPO/);
+  });
+
+  it('FAIL-CLOSED: linguagem EXIGE e o compilador está ausente ⇒ REPROVA (nunca verde silencioso)', () => {
+    const j = judgeTypesCheck(
+      { applicable: true, ok: false, output: '', exitCode: -1, degradacao: 'tsc não resolveu' },
+      tipadoAdapter,
+    );
+    assert.equal(j.passed, false);
+    assert.match(j.reason ?? '', /indisponível/);
+    assert.match(j.reason ?? '', /tsc não resolveu/);
+  });
+
+  it('REPROVA com os diagnósticos quando o compilador reprova a SOLUÇÃO', () => {
+    const j = judgeTypesCheck(
+      { applicable: true, ok: false, output: "solution.ts(1,7): error TS2322: Type 'string' is not assignable to type 'number'.", exitCode: 2, degradacao: null },
+      tipadoAdapter,
+    );
+    assert.equal(j.passed, false);
+    assert.match(j.reason ?? '', /TS2322/);
+  });
+
+  it('PASSA quando a linguagem exige e o compilador aprova', () => {
+    const j = judgeTypesCheck({ applicable: true, ok: true, output: '', exitCode: 0, degradacao: null }, tipadoAdapter);
+    assert.equal(j.passed, true);
+  });
+
+  it('PROVA 2 continua RUNTIME-ONLY: starter que SAI 0 reprova, mesmo em linguagem tipada', () => {
+    // Se falha de `tsc` contasse como "o starter falhou", ESTE caso passaria —
+    // e a prova 2 deixaria de provar que o aluno tem o que corrigir.
+    const j = judgeStarterFails(okRun(2), tipadoAdapter);
+    assert.equal(j.passed, false, 'a prova 2 lê SOMENTE o exit code da rodada de teste');
+    assert.equal(judgeStarterFails(failRun(), tipadoAdapter).passed, true);
+  });
+
+  it('PROVA 4 continua RUNTIME-ONLY: stub vazio que SAI 0 reprova, mesmo em linguagem tipada', () => {
+    // O stub vazio é `export {};`. Numa linguagem tipada o import do teste vira
+    // erro de COMPILAÇÃO — se isso contasse aqui, a prova passaria SEMPRE e o
+    // teste TAUTOLÓGICO (que roda verde contra o stub) nunca seria pego.
+    const j = judgeEmptyStubFails(okRun(2), tipadoAdapter);
+    assert.equal(j.passed, false, 'a prova 4 lê SOMENTE o exit code da rodada de teste');
+    assert.match(j.reason ?? '', /tautológicos/);
+    assert.equal(judgeEmptyStubFails(failRun(), tipadoAdapter).passed, true);
+  });
+
+  it('a DUPLA-IGUALDADE continua obrigatória em TODA linguagem (§6 obs. 3)', () => {
+    for (const adapter of listAdapters()) {
+      assert.equal(adapter.failureExitCodes.successRequiresCountMatch, true, adapter.id);
+    }
+    assert.equal(tipadoAdapter.failureExitCodes.successRequiresCountMatch, true);
+  });
+});
+
+describe('criarTypesCheck — o SPAWN SEPARADO do compilador', () => {
+  const SIDE = { code: 'export const f = 1;\n', testsCode: "import './solution.mjs';\n" };
+
+  it('alvosDaChecagem manda os FONTES ao compilador e NUNCA o manifesto do runtime', () => {
+    const alvos = alvosDaChecagem(tipadoAdapter, SIDE);
+    assert.deepEqual(alvos, ['solution.mjs', 'test.mjs']);
+    assert.ok(!alvos.includes('package.json'), 'package.json não é fonte');
+    const multi = alvosDaChecagem(tipadoAdapter, {
+      code: 'ignorado',
+      files: [{ path: 'lib/soma.mjs', code: 'export const soma = 1;' }],
+      testsCode: 'x',
+    });
+    assert.deepEqual(multi, ['lib/soma.mjs', 'test.mjs'], 'multi-arquivo: todos os fontes + o teste');
+  });
+
+  it('linguagem que NÃO exige: devolve não-aplicável SEM chamar o executor', async () => {
+    let chamou = false;
+    const check = criarTypesCheck({
+      adapter: javascriptAdapter,
+      exec: async () => {
+        chamou = true;
+        return okRun(1);
+      },
+    });
+    assert.deepEqual(await check('dir', SIDE), TYPES_CHECK_NAO_APLICAVEL);
+    assert.equal(chamou, false, 'nenhum spawn em linguagem sem checagem de tipo');
+  });
+
+  it('linguagem que EXIGE: spawn SEPARADO do compilador, com --noEmit e SEM flag de runner', async () => {
+    const calls: Array<{ dir: string; args: string[]; opts?: { timeoutMs?: number } }> = [];
+    const check = criarTypesCheck({
+      adapter: tipadoAdapter,
+      resolverCompilador: () => '/fake/node_modules/typescript/bin/tsc',
+      timeoutMs: 60_000,
+      exec: async (dir, args, opts) => {
+        calls.push({ dir, args, opts });
+        return { exitCode: 0, stdout: '', stderr: '' };
+      },
+    });
+    const r = await check('dir-da-solucao', SIDE);
+    assert.equal(calls.length, 1, 'UM spawn, separado da rodada de teste');
+    assert.equal(calls[0].dir, 'dir-da-solucao');
+    assert.equal(calls[0].args[0], '/fake/node_modules/typescript/bin/tsc');
+    assert.ok(calls[0].args.includes('--noEmit'), 'a prova é de TIPO, não de build');
+    assert.ok(calls[0].args.includes('--strict'), 'trava de tipo frouxa não trava nada');
+    assert.ok(!calls[0].args.includes('--test'), 'NUNCA uma flag do runner de teste');
+    assert.deepEqual(calls[0].args.slice(-2), ['solution.mjs', 'test.mjs']);
+    assert.equal(calls[0].opts?.timeoutMs, 60_000, 'teto próprio: o compilador é mais lento que o runner');
+    assert.deepEqual(r, { applicable: true, ok: true, output: '', exitCode: 0, degradacao: null });
+  });
+
+  it('compilador ausente ⇒ applicable com degradação (o julgador reprova)', async () => {
+    const check = criarTypesCheck({
+      adapter: tipadoAdapter,
+      resolverCompilador: () => null,
+      exec: async () => okRun(1),
+    });
+    const r = await check('dir', SIDE);
+    assert.equal(r.applicable, true);
+    assert.equal(r.ok, false);
+    assert.match(r.degradacao ?? '', /compilador de tipos ausente/);
+    assert.equal(judgeTypesCheck(r, tipadoAdapter).passed, false);
+  });
+
+  it('exit code do compilador é lido pelo failureExitCodes do adaptador', async () => {
+    const check = criarTypesCheck({
+      adapter: tipadoAdapter,
+      resolverCompilador: () => '/fake/tsc',
+      exec: async () => ({ exitCode: 2, stdout: 'error TS2322', stderr: '' }),
+    });
+    const r = await check('dir', SIDE);
+    assert.equal(r.ok, false);
+    assert.equal(r.exitCode, 2);
+    assert.match(r.output, /TS2322/);
+  });
+
+  it('o compilador é resolvível de verdade: typescript é dependência DIRETA do repositório', () => {
+    const bin = resolverCompiladorNpm('typescript/bin/tsc');
+    assert.ok(bin !== null, 'require.resolve("typescript/bin/tsc") tem de funcionar — nada a instalar');
+    assert.match(bin ?? '', /typescript[/\\]bin[/\\]tsc$/);
+    assert.equal(resolverCompiladorNpm('modulo-que-nao-existe-mesmo'), null, 'ausência vira null, nunca exceção');
+  });
+
+  it('SOB O MESMO SEM_EXEC: a checagem concorre pelas MESMAS vagas das rodadas de teste', async () => {
+    // `tsc` custa ordem de 1–2 s contra ~290 ms de uma rodada de teste. Fora do
+    // semáforo ele dominaria a F9 inteira — por isso a checagem é montada sobre
+    // o MESMO ExecFn endurecido, que adquire o SEM_EXEC por execução.
+    let emVoo = 0;
+    let pico = 0;
+    const soltar: Array<() => void> = [];
+    const hard = createHardenedExec({
+      maxConcurrency: 1,
+      exec: async () => {
+        emVoo += 1;
+        pico = Math.max(pico, emVoo);
+        await new Promise<void>((r) => soltar.push(r));
+        emVoo -= 1;
+        return { exitCode: 0, stdout: '', stderr: '' };
+      },
+    });
+    const check = criarTypesCheck({ adapter: tipadoAdapter, exec: hard, resolverCompilador: () => '/fake/tsc' });
+    const teste = hard('dir', [...SPEC_TEST_ARGS]);
+    const tipos = check('dir', SIDE);
+    await new Promise((r) => setTimeout(r, 10));
+    assert.equal(pico, 1, 'a checagem de tipos NÃO fura o teto SEM_EXEC');
+    while (soltar.length > 0) soltar.shift()?.();
+    await new Promise((r) => setTimeout(r, 10));
+    while (soltar.length > 0) soltar.shift()?.();
+    await Promise.all([teste, tipos]);
+    assert.equal(pico, 1);
+  });
+});
+
+describe('verifyChallengeProofs — a quinta prova no veredito', () => {
+  it('JavaScript: sem typesCheck no env, o veredito continua válido (a prova não se aplica)', async () => {
+    const { env } = makeFakeProofEnv(okRun(2), failRun(), failRun());
+    const v = await verifyChallengeProofs(BASE_INPUT, env);
+    assert.equal(v.valid, true);
+    assert.equal(v.types?.applicable, false);
+    assert.ok(!v.failures.some((f) => f.proof === 'typesCheck'));
+  });
+
+  it('a checagem recebe o diretório da SOLUÇÃO — nunca o do starter nem o do stub vazio', async () => {
+    const { env, prepared } = makeFakeProofEnv(okRun(2), failRun(), failRun());
+    const vistos: Array<{ dir: string; code: string }> = [];
+    env.typesCheck = async (dir, side) => {
+      vistos.push({ dir, code: side.code });
+      return { applicable: true, ok: true, output: '', exitCode: 0, degradacao: null };
+    };
+    const v = await verifyChallengeProofs(BASE_INPUT, env);
+    assert.equal(v.valid, true);
+    assert.equal(vistos.length, 1, 'UMA checagem por desafio');
+    assert.equal(vistos[0].dir, 'prova-dir-1', 'o primeiro prepare é o da solução');
+    assert.equal(vistos[0].code, BASE_INPUT.solutionCode);
+    assert.equal(prepared[0].code, BASE_INPUT.solutionCode);
+  });
+
+  it('a checagem que REPROVA derruba o veredito com a prova typesCheck', async () => {
+    const { env } = makeFakeProofEnv(okRun(2), failRun(), failRun());
+    env.typesCheck = async () => ({
+      applicable: true,
+      ok: false,
+      output: "solution.ts(1,7): error TS2322: Type 'string' is not assignable to type 'number'.",
+      exitCode: 2,
+      degradacao: null,
+    });
+    const v = await verifyChallengeProofs(BASE_INPUT, env);
+    assert.equal(v.valid, false);
+    const falha = v.failures.find((f) => f.proof === 'typesCheck');
+    assert.ok(falha, 'a prova 5 tem de aparecer nas falhas');
+    assert.match(falha?.reason ?? '', /TS2322/);
+    // as QUATRO de execução continuam verdes — a falha é SÓ a de tipos.
+    assert.equal(v.failures.length, 1);
+  });
+
+  it('language desconhecido NÃO cai no adaptador default: vira execError (fail-closed)', async () => {
+    const { env } = makeFakeProofEnv(okRun(2), failRun(), failRun());
+    const v = await verifyChallengeProofs({ ...BASE_INPUT, language: 'brainfuck' }, env);
+    assert.equal(v.valid, false);
+    assert.ok(v.failures.some((f) => f.proof === 'execError'));
+    assert.match(v.execError ?? '', /linguagem sem adaptador/);
+  });
+
+  it("language 'javascript' e 'nodejs' resolvem para o MESMO adaptador (runtime vs linguagem)", async () => {
+    for (const language of ['javascript', 'nodejs'] as const) {
+      const { env, calls } = makeFakeProofEnv(okRun(2), failRun(), failRun());
+      const v = await verifyChallengeProofs({ ...BASE_INPUT, language }, env);
+      assert.equal(v.valid, true, language);
+      assert.deepEqual(calls[0].args, [...SPEC_TEST_ARGS], language);
     }
   });
 });

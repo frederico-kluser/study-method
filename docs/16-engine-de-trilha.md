@@ -539,7 +539,8 @@ JSON inválido para sempre.
 
 ### 5.4 As provas de execução
 
-Um desafio só é válido se as quatro passarem:
+Um desafio só é válido se as quatro passarem (mais a quinta, quando a linguagem a exige — ver o fim
+desta seção):
 
 1. a solução de referência **passa** em todos os testes;
 2. o `starterCode` **falha**;
@@ -550,6 +551,31 @@ Armadilhas já medidas neste repositório, que o executor tem de tratar: exit co
 distingue "passou" de "nada rodou"; `node --test` com glob vazio sai 0; `NODE_TEST_CONTEXT` herdado
 faz o processo filho pular tudo e sair 0; códigos ANSI no relatório quebram o regex de contagem;
 timeout devolve 137, que também é OOM.
+
+**A QUINTA PROVA, opcional por linguagem: `typesCheck`.** Uma trilha de linguagem TIPADA precisa de
+verificação de TIPO, porque **Node apaga os tipos, não os confere** — `node --test` sobre um `.ts`
+transpilado nunca reprova `const n: number = 'texto'`. A verificação é uma prova **separada**,
+aplicada **só ao lado da solução**, com o próprio julgador e o próprio spawn
+(`app/electron/main/engine/exec/typesCheck.ts`).
+
+Ela **não** foi dobrada dentro das provas 2 e 4, e o motivo é o mesmo nas duas: falha de
+**compilação** é gratuita, e uma prova que se satisfaz de graça deixa de provar.
+
+- **Prova 2 (starter falha)** continua *runtime-only*. Um starter de linguagem tipada quase sempre
+  tem erro de tipo por construção (o corpo é um `TODO`, logo o retorno declarado não é satisfeito).
+  Se falha de `tsc` contasse como "o starter falhou", a prova valeria para todo starter — inclusive
+  o que já resolve o exercício — e pararia de provar que o aluno tem o que fazer.
+- **Prova 4 (stub vazio falha)** continua *runtime-only*. O stub é `export {};`, e o `import` do
+  arquivo de teste vira erro de **compilação** ("has no exported member"); se isso contasse aqui, a
+  prova passaria sempre e o teste **tautológico** — que roda verde contra o stub — nunca seria pego.
+
+Três invariantes da quinta prova: o compilador roda em **spawn separado** (nunca uma flag do runner)
+e sob o **mesmo semáforo `SEM_EXEC`** das rodadas de teste, porque ele custa da ordem de 1–2 s contra
+~290 ms de uma rodada e fora do teto dominaria a F9 inteira; a linguagem que **exige** a prova e não
+tem o compilador na máquina **reprova** o desafio (fail-closed, nunca verde silencioso); e a
+**dupla-igualdade** (contagem declarada == contagem executada == `expectedTestCount`) continua
+obrigatória em toda linguagem — `failureExitCodes.successRequiresCountMatch` é `true` literal no tipo
+do registro de adaptadores e nenhum adaptador pode declará-la `false`.
 
 ### 5.5 Formato da violação
 

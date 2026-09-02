@@ -15,6 +15,45 @@
  *   passed = exit 0 && testsRun === expectedTestCount
  * (exit code sozinho mente — arquivo de teste vazio sai 0; mesma armadilha
  * documentada em skills/study-method/references/languages.md).
+ *
+ * ONDA 5 — O QUE É POR LINGUAGEM VEM DO ADAPTADOR (`engine/lang/registry.ts`,
+ * §6 de `docs/research/08-multilingua-trava-deterministica.md`): o binário do
+ * runner (`detect().binary`), o layout dos arquivos em disco (`layout()`), o
+ * regex de caminho seguro (`filePathPattern`), o comando de teste
+ * (`testCommand`), a contagem DECLARADA (`countDeclared`) e os checks da UI
+ * (`parseChecks`). A contagem declarada por REGEX que vivia aqui foi APAGADA:
+ * o repositório tinha TRÊS implementações de "contar testes declarados" com
+ * DUAS semânticas, e a divergência era medida — um `// test(` comentado fazia
+ * o validador semântico entrar em retry e devolver erro de JSON inválido para
+ * sempre (`docs/16-engine-de-trilha.md` §5.3: "Uma única função de contagem de
+ * testes, por AST"). Sobrou UMA, por AST, alcançada por `adapter.countDeclared`.
+ *
+ * ⚠ DEFEITO CONHECIDO DA COSTURA, FORA DESTE ARQUIVO (medido, não suposto).
+ * `engine/lang/javascript.ts` alcança as implementações de `countDeclared`,
+ * `countRun`, `parseChecks` e `failureExitCodes.meaning` por `require`
+ * POSTERGADO com caminho RELATIVO (`carregar('../extract')`,
+ * `carregar('../../services/challengeExec')`, `carregar('../exec/proofs')`).
+ * Rollup não enxerga `require(variável)`, então o bundle do main mantém a
+ * string literal — e, resolvida a partir de `out/main/index.js`, ela aponta
+ * para `out/extract` / `services/challengeExec`, que NÃO existem. Medido:
+ *
+ *   npm run build && cd app/out/main \
+ *     && node -e "require('../exec/proofs')"   # MODULE_NOT_FOUND
+ *
+ * Consequência: rodando DO FONTE (suíte, `npm run engine`, `npm run track`) a
+ * delegação funciona; no main EMPACOTADO (`npm run dev`, app instalado) esses
+ * membros LANÇAM. As DUAS chamadas afetadas no produto são as deste arquivo
+ * (`runStudentCode` e `verifyChallengePair`) — `verifyChallengeProofs` e a F9
+ * não entram no bundle do main (são caminho de CLI, rodam sob tsx).
+ *
+ * E o conserto NÃO é "trocar por import estático", porque o `require`
+ * postergado é LOAD-BEARING de peso: `../extract` puxa o compilador TypeScript
+ * inteiro, e medido no bundle de hoje nem `extract` nem `typescript` estão em
+ * `out/main/index.js` (414 KB). O conserto precisa ser BUNDLER-AWARE — por
+ * exemplo, promover `typescript` a dependência de runtime externalizada e
+ * deixar o Rollup enxergar o `require` (literal no ponto de chamada, não por
+ * variável). É decisão de quem é dono de `lang/javascript.ts`; está registrada
+ * no handoff da onda como bloqueio, com o comando que a reproduz.
  */
 
 import { promises as fs } from 'node:fs';
@@ -22,7 +61,8 @@ import * as os from 'node:os';
 import * as path from 'node:path';
 import { spawn } from 'node:child_process';
 
-import { SAFE_FILE_PATH_RE, TrackChallengeSource } from '../content/trackTypes';
+import { TrackChallengeSource } from '../content/trackTypes';
+import { defaultAdapter, type LanguageAdapter } from '../engine/lang/registry';
 
 export interface ExecResult {
   code: number;
@@ -44,16 +84,19 @@ export type ExecFn = (
 ) => Promise<ExecResult>;
 
 /**
- * Binário do NODE a usar nos processos filhos. DENTRO DO ELECTRON,
- * `process.execPath` é o binário do Electron (que não entende `--test` e
- * travaria) — usa o node do PATH (`npm_node_execpath` quando o app roda via
- * npm, senão `node`). Em node puro (testes/CLI) usa o processo atual.
+ * Binário do NODE a usar nos processos filhos.
+ *
+ * ONDA 5: a IMPLEMENTAÇÃO mudou de casa — vive em `LanguageAdapter.detect()`
+ * (`lang/javascript.ts`, `jsDetect`/`jsNodeBinary`), que é o membro 15 do §6
+ * ("`command -v` + versão, e a mensagem de degradação"). A regra continua a
+ * mesma: DENTRO DO ELECTRON, `process.execPath` é o binário do Electron (que
+ * não entende `--test` e travaria) — usa o node do PATH (`npm_node_execpath`
+ * quando o app roda via npm, senão `node`); em node puro (testes/CLI) usa o
+ * processo atual. O símbolo continua exportado porque a suíte de paridade do
+ * registro o compara com `detect().binary`.
  */
 export function nodeBinary(): string {
-  if (process.versions.electron) {
-    return process.env.npm_node_execpath || 'node';
-  }
-  return process.execPath;
+  return defaultAdapter().detect().binary;
 }
 
 /** Exec real de `node --test` num diretório (DI injeta fake nos testes). */
@@ -70,7 +113,7 @@ export const nodeExec: ExecFn = (dir, args, opts) =>
     // SEM opts.env o comportamento é o de sempre: process.env.
     const env = { ...(opts?.env ?? process.env) };
     delete env.NODE_TEST_CONTEXT;
-    const child = spawn(nodeBinary(), args, {
+    const child = spawn(defaultAdapter().detect().binary, args, {
       cwd: dir,
       env,
       stdio: ['ignore', 'pipe', 'pipe'],
@@ -94,37 +137,28 @@ export const nodeExec: ExecFn = (dir, args, opts) =>
   });
 
 /**
- * Prepara o diretório de execução: package.json + test.mjs + o código do
- * aluno. ADITIVO (rodada 9): `files` (multi-arquivo) escreve cada arquivo no
- * caminho relativo dele (mkdir dos subdirs) — sem `files`, escreve o arquivo
- * único solution.mjs (comportamento atual intacto).
+ * Prepara o diretório de execução com os arquivos que o ADAPTADOR manda
+ * escrever, na ordem que ele manda (§6, membro 7 — `layout(challenge)`).
+ * Em JavaScript isso é `package.json {type:'module'}` + o código do aluno
+ * (arquivo único `solution.mjs`, ou os `files` do desafio multi-arquivo, com
+ * mkdir dos subdirs) + `test.mjs` — exatamente o que esta função escrevia à
+ * mão antes da onda 5, agora sem nenhum nome de arquivo hardcoded aqui.
  */
 export async function prepareChallengeDir(
   workDir: string,
   files: { solutionCode: string; testsCode: string; files?: { path: string; code: string }[] },
+  adapter: LanguageAdapter = defaultAdapter(),
 ): Promise<void> {
-  await fs.writeFile(path.join(workDir, 'package.json'), JSON.stringify({ type: 'module' }), 'utf8');
-  if (files.files && files.files.length > 0) {
-    for (const f of files.files) {
-      const full = path.join(workDir, f.path);
-      await fs.mkdir(path.dirname(full), { recursive: true });
-      await fs.writeFile(full, f.code, 'utf8');
-    }
-  } else {
-    await fs.writeFile(path.join(workDir, 'solution.mjs'), files.solutionCode, 'utf8');
+  const layout = adapter.layout({
+    code: files.solutionCode,
+    files: files.files,
+    testsCode: files.testsCode,
+  });
+  for (const arquivo of layout.files) {
+    const full = path.join(workDir, arquivo.path);
+    await fs.mkdir(path.dirname(full), { recursive: true });
+    await fs.writeFile(full, arquivo.content, 'utf8');
   }
-  await fs.writeFile(path.join(workDir, 'test.mjs'), files.testsCode, 'utf8');
-}
-
-/**
- * Conta os testes executáveis do arquivo (gate de igualdade). Remove
- * comentários ANTES de contar — `// test(...)` num comentário não é um teste.
- */
-export function countTestDeclarations(testsCode: string): number {
-  const stripped = testsCode
-    .replace(/\/\*[\s\S]*?\*\//g, '') // comentários de bloco
-    .replace(/\/\/[^\n]*/g, ''); // comentários de linha
-  return (stripped.match(/\btest\(/g) ?? []).length;
 }
 
 /**
@@ -134,6 +168,19 @@ export function countTestDeclarations(testsCode: string): number {
  * runner do Playwright): os escapes são removidos ANTES do match — senão a
  * linha "não começa com ℹ" e a contagem vira 0 (gate de igualdade derruba
  * um resultado que passou).
+ *
+ * DUPLICAÇÃO CONHECIDA E DECLARADA (onda 5 — NÃO resolvida aqui de propósito).
+ * Esta função é a SEGUNDA implementação de `LanguageAdapter.countRun` (§6,
+ * membro 11) que sobra no repositório; a primeira é `parseSpecCounts` de
+ * `engine/exec/proofs.ts`, para onde `adapter.countRun` delega. As duas NÃO
+ * são equivalentes: a de `proofs.ts` lê o ÚLTIMO bloco de resumo (defesa
+ * contra RELATÓRIO FORJADO — o código sob teste pode imprimir
+ * `console.log('ℹ tests 2\nℹ pass 2\nℹ fail 0')` no próprio stdout) e conta
+ * `skipped`; esta lê a PRIMEIRA ocorrência e ignora `skipped`. Ou seja: o
+ * caminho do ALUNO (`runStudentCode`) não tem a defesa que o caminho das
+ * PROVAS tem. Trocar esta função por `adapter.countRun` muda o veredito
+ * mostrado ao aluno e por isso ficou FORA do escopo desta sub-tarefa — está
+ * escrito aqui para não virar dívida invisível.
  */
 export function parseSpecCounts(output: string): { testsRun: number; pass: number; fail: number } {
   const plain = output.replace(/\x1b\[[0-9;]*m/g, '');
@@ -154,6 +201,13 @@ export function parseSpecCounts(output: string): { testsRun: number; pass: numbe
  * (`  ✔ filho`) nunca entram; o cabeçalho `✖ failing tests:` é filtrado
  * explicitamente (sem o resumo `ℹ tests N` — output truncado — ele NÃO é
  * cortado pelo truncamento e viraria um check sintético falso).
+ *
+ * ONDA 5 — QUEM CHAMA MUDOU. Esta é a implementação JAVASCRIPT de
+ * `LanguageAdapter.parseChecks` (§6, membro 12): `lang/javascript.ts`
+ * (`jsParseChecks`) delega a ela, e `runStudentCode` passou a chamar
+ * `adapter.parseChecks`. Continua exportada porque é o corpo do membro do
+ * adaptador; um adaptador de outra linguagem traz o seu (o formato `✔`/`✖`
+ * é do relatório spec do node:test, não é universal).
  */
 export function parseSpecChecks(output: string): { name: string; passed: boolean }[] {
   const plain = output.replace(/\x1b\[[0-9;]*m/g, '');
@@ -221,12 +275,15 @@ export interface RunStudentCodeResult {
 export async function runStudentCode(
   input: RunStudentCodeInput,
   exec: ExecFn = nodeExec,
+  adapter: LanguageAdapter = defaultAdapter(),
 ): Promise<RunStudentCodeResult> {
   // FIX (revisão adversarial): defesa em profundidade — valida os paths dos
   // arquivos ANTES de criar o workdir. Este runner é usado pelo main E pelo
   // CLI; um path malicioso ('a/../../escape.mjs') escreveria FORA do workdir
   // (path.join resolve o '..' antes do writeFile). Nunca lança.
-  if (input.files && input.files.some((f) => typeof f?.path !== 'string' || !SAFE_FILE_PATH_RE.test(f.path))) {
+  // ONDA 5: o regex é o `filePathPattern` do adaptador (§6 obs. 1) — travá-lo
+  // em `.mjs` aqui impediria qualquer outra linguagem de existir.
+  if (input.files && input.files.some((f) => typeof f?.path !== 'string' || !adapter.filePathPattern.test(f.path))) {
     return {
       passed: false,
       testsRun: 0,
@@ -241,19 +298,21 @@ export async function runStudentCode(
   }
   const work = await fs.mkdtemp(path.join(os.tmpdir(), 'track-submit-'));
   try {
-    await prepareChallengeDir(work, {
-      solutionCode: input.studentCode,
-      testsCode: input.testsCode,
-      files: input.files,
-    });
-    const res = await exec(work, ['--test', '--test-reporter=spec', 'test.mjs'], {
+    await prepareChallengeDir(
+      work,
+      { solutionCode: input.studentCode, testsCode: input.testsCode, files: input.files },
+      adapter,
+    );
+    const res = await exec(work, [...adapter.testCommand], {
       timeoutMs: input.timeoutMs ?? 30_000,
     });
     const output = `${res.stdout}\n${res.stderr}`.trim();
     const counts = parseSpecCounts(output);
-    const declared = countTestDeclarations(input.testsCode);
+    // A contagem DECLARADA é a ÚNICA do repositório (por AST, via o adaptador):
+    // a regex que vivia neste arquivo foi apagada na onda 5.
+    const declared = adapter.countDeclared(input.testsCode);
     const passed = res.code === 0 && counts.testsRun === input.expectedTestCount && declared === input.expectedTestCount;
-    const checks = parseSpecChecks(output);
+    const checks = adapter.parseChecks(output);
     // totalCount/passedCount vêm dos checks; se o parse não achou NENHUMA
     // linha real (ex.: erro de sintaxe — sobra só o `✖ test.mjs` sintético,
     // filtrado), caem nas contagens do resumo quando a execução foi limpa
@@ -342,25 +401,29 @@ export function challengePairFromSource(challenge: TrackChallengeSource): Challe
  * challenge-verify.sh passos 1–2, sem mutação): solução passa com igualdade
  * de contagem E starter falha.
  */
-export async function verifyChallengePair(pair: ChallengePair, exec: ExecFn = nodeExec): Promise<ChallengePairVerdict> {
+export async function verifyChallengePair(
+  pair: ChallengePair,
+  exec: ExecFn = nodeExec,
+  adapter: LanguageAdapter = defaultAdapter(),
+): Promise<ChallengePairVerdict> {
   const work = await fs.mkdtemp(path.join(os.tmpdir(), 'track-verify-'));
   try {
     // ADITIVO (rodada 9): multi-arquivo — solução roda TODOS os arquivos;
-    // starter idem. Sem files → solution.mjs único (comportamento atual).
-    const solutionFiles: { path: string; code: string }[] =
-      pair.solutionFiles && pair.solutionFiles.length > 0 ? pair.solutionFiles : [{ path: 'solution.mjs', code: pair.solutionCode }];
-    const starterFiles: { path: string; code: string }[] =
-      pair.starterFiles && pair.starterFiles.length > 0 ? pair.starterFiles : [{ path: 'solution.mjs', code: pair.starterCode }];
+    // starter idem. Sem files → o `layout()` do adaptador decide o arquivo
+    // único (em JavaScript, `solution.mjs`) — nenhum nome hardcoded aqui.
+    const solutionFiles = pair.solutionFiles && pair.solutionFiles.length > 0 ? pair.solutionFiles : undefined;
+    const starterFiles = pair.starterFiles && pair.starterFiles.length > 0 ? pair.starterFiles : undefined;
+    const testArgs = [...adapter.testCommand];
 
-    await prepareChallengeDir(work, { solutionCode: pair.solutionCode, testsCode: pair.testsCode, files: solutionFiles });
-    const sol = await exec(work, ['--test', '--test-reporter=spec', 'test.mjs'], { timeoutMs: 30_000 });
+    await prepareChallengeDir(work, { solutionCode: pair.solutionCode, testsCode: pair.testsCode, files: solutionFiles }, adapter);
+    const sol = await exec(work, testArgs, { timeoutMs: 30_000 });
     const solCounts = parseSpecCounts(`${sol.stdout}\n${sol.stderr}`);
-    const declared = countTestDeclarations(pair.testsCode);
+    const declared = adapter.countDeclared(pair.testsCode);
     const solutionPasses = sol.code === 0 && solCounts.testsRun === pair.expectedTestCount && declared === pair.expectedTestCount;
 
-    await prepareChallengeDir(work, { solutionCode: pair.starterCode, testsCode: pair.testsCode, files: starterFiles });
-    const stub = await exec(work, ['--test', '--test-reporter=spec', 'test.mjs'], { timeoutMs: 30_000 });
-    const starterFails = stub.code !== 0;
+    await prepareChallengeDir(work, { solutionCode: pair.starterCode, testsCode: pair.testsCode, files: starterFiles }, adapter);
+    const stub = await exec(work, testArgs, { timeoutMs: 30_000 });
+    const starterFails = adapter.failureExitCodes.isFailure(stub.code);
 
     return {
       solutionPasses,

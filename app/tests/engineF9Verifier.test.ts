@@ -46,6 +46,8 @@ import {
   type ExecFn,
 } from '../electron/main/engine/exec/proofs';
 import { createSemaphore } from '../electron/main/engine/runtime/semaphore';
+import { type LanguageAdapter } from '../electron/main/engine/lang/registry';
+import { javascriptAdapter } from '../electron/main/engine/lang/javascript';
 import { type ExecFn as ChallengeExecFn } from '../electron/main/services/challengeExec';
 
 // ---------------------------------------------------------------------------
@@ -154,7 +156,7 @@ describe('criarProverDeDesafio — args do runner', () => {
       });
       const prover = criarProverDeDesafio({ exec: fromChallengeExec(exec), baseDir: base });
       const v = await prover(BASE_INPUT);
-      assert.equal(v.valid, true);
+      assert.equal(v.valid, true, `veredito: ${JSON.stringify(v.failures)} | execError: ${v.execError ?? ''}`);
       assert.equal(calls.length, 3);
       assert.equal(guardesVistos.length, 3, 'cada rodada viu o próprio exit-guard.cjs');
       for (const c of calls) {
@@ -218,7 +220,7 @@ describe('criarProverDeDesafio — fail-closed em falha de infra', () => {
       const prover = criarProverDeDesafio({ exec: quebrado, baseDir: base });
       const v = await prover(BASE_INPUT); // resolve — não rejeita (fail-closed)
       assert.equal(v.valid, false);
-      assert.equal(v.failures[0].proof, 'execError', 'a falha vira a 5ª "prova" execError');
+      assert.equal(v.failures[0].proof, 'execError', 'a falha de infra vira a "prova" execError');
       assert.match(v.failures[0].reason ?? '', /boom do executor/);
       assert.match(v.execError ?? '', /boom do executor/);
       assert.equal(v.executed, 0);
@@ -339,6 +341,182 @@ describe('criarProverDeDesafio — limitador SEM_EXEC (semáforo do P-01)', () =
       assert.ok([v1, v2, v3].every((v) => typeof v?.valid === 'boolean'), 'todas as chamadas produzem veredito');
       const restantes = await fsPromises.readdir(base);
       assert.deepEqual(restantes, [], 'as 9 rodadas limparam os diretórios isolados');
+    } finally {
+      await fsPromises.rm(base, { recursive: true, force: true }).catch(() => {});
+    }
+  });
+});
+// ---------------------------------------------------------------------------
+// 7. A QUINTA PROVA na FIAÇÃO do provador (onda 5)
+//
+// O que este bloco prova, e é o que a decisão de desenho exige:
+//   - em JavaScript a prova NÃO se aplica ⇒ ZERO spawn a mais (o custo é zero
+//     para a trilha que existe hoje);
+//   - em linguagem TIPADA o compilador é um SPAWN SEPARADO, no diretório da
+//     SOLUÇÃO, SEM `--require` do exit-guard e SEM flag de runner;
+//   - esse spawn passa pelo MESMO executor endurecido ⇒ MESMO SEM_EXEC.
+// ---------------------------------------------------------------------------
+
+/**
+ * Adaptador FAKE de linguagem TIPADA — o `javascript` com outro `id`, que é a
+ * chave da tabela de política de `exec/typesCheck.ts`. `lang/typescript.ts`
+ * ainda não existe (§7, item 2 do documento de multilíngua).
+ */
+const tipadoAdapter = { ...javascriptAdapter, id: 'typescript', label: 'TypeScript' } as unknown as LanguageAdapter;
+
+/** Fake do executor do PRODUTO que responde por ARGS (teste vs compilador). */
+function fakePorArgs(): { exec: ChallengeExecFn; calls: FakeCall[] } {
+  const calls: FakeCall[] = [];
+  const exec: ChallengeExecFn = async (dir, args, opts) => {
+    calls.push({ dir, args, opts });
+    if (args.includes('--noEmit')) return { code: 0, stdout: '', stderr: '' };
+    // 1ª rodada de teste = solução (passa); as demais = starter/stub (falham).
+    const rodadasDeTeste = calls.filter((c) => !c.args.includes('--noEmit')).length;
+    return rodadasDeTeste === 1 ? OK : FAIL;
+  };
+  return { exec, calls };
+}
+
+describe('criarProverDeDesafio — a QUINTA prova (typesCheck)', () => {
+  it('JavaScript: a prova não se aplica e NENHUM spawn a mais acontece', async () => {
+    const base = await novaBase();
+    try {
+      const { exec, calls } = fakePorArgs();
+      let resolveuCompilador = false;
+      const prover = criarProverDeDesafio({
+        exec: fromChallengeExec(exec),
+        baseDir: base,
+        resolverCompilador: () => {
+          resolveuCompilador = true;
+          return '/fake/tsc';
+        },
+      });
+      const v = await prover(BASE_INPUT);
+      assert.equal(v.valid, true);
+      assert.equal(calls.length, 3, 'três rodadas de teste e NADA mais');
+      assert.equal(resolveuCompilador, false, 'nem o binário do compilador é procurado');
+      assert.equal(v.types?.applicable, false, 'o veredito DIZ que a prova não se aplica');
+    } finally {
+      await fsPromises.rm(base, { recursive: true, force: true }).catch(() => {});
+    }
+  });
+
+  it('linguagem TIPADA: spawn SEPARADO do compilador, no dir da SOLUÇÃO, sem exit-guard', async () => {
+    const base = await novaBase();
+    try {
+      const { exec, calls } = fakePorArgs();
+      const prover = criarProverDeDesafio({
+        exec: fromChallengeExec(exec),
+        baseDir: base,
+        adapter: tipadoAdapter,
+        resolverCompilador: () => '/fake/node_modules/typescript/bin/tsc',
+        typesTimeoutMs: 45_000,
+      });
+      const v = await prover(BASE_INPUT);
+      assert.equal(v.valid, true, `veredito: ${JSON.stringify(v.failures)}`);
+      assert.equal(calls.length, 4, 'três rodadas de teste + UMA do compilador');
+
+      const rodadasDeTeste = calls.filter((c) => !c.args.includes('--noEmit'));
+      const doCompilador = calls.filter((c) => c.args.includes('--noEmit'));
+      assert.equal(rodadasDeTeste.length, 3);
+      assert.equal(doCompilador.length, 1, 'UM spawn de compilador por desafio');
+
+      const tsc = doCompilador[0];
+      assert.equal(tsc.args[0], '/fake/node_modules/typescript/bin/tsc');
+      assert.ok(!tsc.args.includes('--require'), 'o compilador NÃO roda o código: não precisa de exit-guard');
+      assert.ok(!tsc.args.includes('--test'), 'NUNCA uma flag do runner de teste');
+      assert.deepEqual(tsc.args.slice(-2), ['solution.mjs', 'test.mjs']);
+      assert.equal(tsc.opts?.timeoutMs, 45_000, 'teto próprio da checagem de tipos');
+
+      // SÓ A SOLUÇÃO: o dir do compilador é o da PRIMEIRA rodada de teste (o
+      // primeiro `prepare` é o da solução — exec/proofs.ts), e nunca o do
+      // starter nem o do stub vazio.
+      assert.equal(tsc.dir, rodadasDeTeste[0].dir, 'o compilador rodou no diretório da SOLUÇÃO');
+      assert.notEqual(tsc.dir, rodadasDeTeste[1].dir);
+      assert.notEqual(tsc.dir, rodadasDeTeste[2].dir);
+
+      const restantes = await fsPromises.readdir(base);
+      assert.deepEqual(restantes, [], 'o cleanup continua limpando os três dirs');
+    } finally {
+      await fsPromises.rm(base, { recursive: true, force: true }).catch(() => {});
+    }
+  });
+
+  it('linguagem TIPADA: compilador que REPROVA derruba o veredito (e as 4 de execução seguem verdes)', async () => {
+    const base = await novaBase();
+    try {
+      const calls: FakeCall[] = [];
+      let rodadas = 0;
+      const exec: ChallengeExecFn = async (dir, args, opts) => {
+        calls.push({ dir, args, opts });
+        if (args.includes('--noEmit')) {
+          return { code: 2, stdout: "solution.ts(1,7): error TS2322: Type 'string' is not assignable to type 'number'.", stderr: '' };
+        }
+        rodadas += 1;
+        return rodadas === 1 ? OK : FAIL;
+      };
+      const prover = criarProverDeDesafio({
+        exec: fromChallengeExec(exec),
+        baseDir: base,
+        adapter: tipadoAdapter,
+        resolverCompilador: () => '/fake/tsc',
+      });
+      const v = await prover(BASE_INPUT);
+      assert.equal(v.valid, false);
+      assert.deepEqual(v.failures.map((f) => f.proof), ['typesCheck'], 'só a prova de tipos falhou');
+      assert.match(v.failures[0].reason ?? '', /TS2322/);
+    } finally {
+      await fsPromises.rm(base, { recursive: true, force: true }).catch(() => {});
+    }
+  });
+
+  it('FAIL-CLOSED: linguagem TIPADA sem compilador na máquina REPROVA o desafio', async () => {
+    const base = await novaBase();
+    try {
+      const { exec } = fakePorArgs();
+      const prover = criarProverDeDesafio({
+        exec: fromChallengeExec(exec),
+        baseDir: base,
+        adapter: tipadoAdapter,
+        resolverCompilador: () => null,
+      });
+      const v = await prover(BASE_INPUT);
+      assert.equal(v.valid, false, 'nunca um verde silencioso por falta de ferramenta');
+      assert.ok(v.failures.some((f) => f.proof === 'typesCheck'));
+      assert.match(v.types?.degradacao ?? '', /compilador de tipos ausente/);
+    } finally {
+      await fsPromises.rm(base, { recursive: true, force: true }).catch(() => {});
+    }
+  });
+
+  it('SEM_EXEC vale para o compilador: com teto 1, o pico de spawns em voo é 1', async () => {
+    // `tsc` custa ordem de 1–2 s contra ~290 ms de uma rodada de teste. Se ele
+    // ficasse FORA do semáforo, a F9 de uma trilha inteira seria dominada pelo
+    // compilador — por isso ele passa pelo MESMO executor endurecido.
+    const base = await novaBase();
+    try {
+      let emVoo = 0;
+      let pico = 0;
+      let rodadas = 0;
+      const exec: ChallengeExecFn = async (_dir, args) => {
+        emVoo += 1;
+        pico = Math.max(pico, emVoo);
+        await new Promise((r) => setTimeout(r, 5));
+        emVoo -= 1;
+        if (args.includes('--noEmit')) return { code: 0, stdout: '', stderr: '' };
+        rodadas += 1;
+        return rodadas === 1 ? OK : FAIL;
+      };
+      const prover = criarProverDeDesafio({
+        exec: fromChallengeExec(exec),
+        baseDir: base,
+        adapter: tipadoAdapter,
+        resolverCompilador: () => '/fake/tsc',
+        limiter: createSemaphore(1),
+      });
+      const v = await prover(BASE_INPUT);
+      assert.equal(v.valid, true, `veredito: ${JSON.stringify(v.failures)}`);
+      assert.equal(pico, 1, 'o compilador NÃO fura o teto SEM_EXEC');
     } finally {
       await fsPromises.rm(base, { recursive: true, force: true }).catch(() => {});
     }

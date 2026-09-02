@@ -244,7 +244,14 @@ describe('paridade JS — envScrub (§6 obs. 2: allowlist) sem quebrar a denylis
     assert.deepEqual(js.envScrub.fixed, NETWORK_HARDENING.fixedEnv);
   });
 
-  it('applyLegacyEnvScrub reproduz buildChildEnv BYTE A BYTE (o comportamento de hoje)', () => {
+  // ONDA 5 — A MIGRAÇÃO DENYLIST → ALLOWLIST ACONTECEU.
+  // Este teste comparava `applyLegacyEnvScrub` com `buildChildEnv` para provar
+  // que o adaptador reproduzia o comportamento VIGENTE byte a byte. A onda 5
+  // fez a troca deliberada do §6 obs. 2: `buildChildEnv` passou a ser a
+  // ALLOWLIST (`applyEnvScrub`). O contrato de `applyLegacyEnvScrub` continua
+  // valendo — ele é a semântica ANTERIOR, hoje usada só como REFORÇO DE
+  // INVARIANTE sobre um env já construído (`reforcarInvariantesDeEnv`).
+  it('applyLegacyEnvScrub continua sendo a DENYLIST (a semântica anterior à onda 5)', () => {
     const base = {
       PATH: '/usr/bin',
       HOME: '/home/x',
@@ -256,11 +263,37 @@ describe('paridade JS — envScrub (§6 obs. 2: allowlist) sem quebrar a denylis
       NODE_OPTIONS: '--require evil',
       MINHA_VAR: 'preservada',
     };
-    assert.deepEqual(applyLegacyEnvScrub(js.envScrub, base), buildChildEnv({ ...base }));
+    assert.deepEqual(applyLegacyEnvScrub(js.envScrub, base), {
+      PATH: '/usr/bin',
+      HOME: '/home/x',
+      MINHA_VAR: 'preservada',
+      NO_PROXY: '*',
+      no_proxy: '*',
+    });
     // e o que ele preserva: a denylist NÃO derruba variável desconhecida.
     assert.equal(applyLegacyEnvScrub(js.envScrub, base).MINHA_VAR, 'preservada');
     assert.equal(applyLegacyEnvScrub(js.envScrub, base).NODE_TEST_CONTEXT, undefined);
     assert.deepEqual(base.NODE_TEST_CONTEXT, 'test', 'PURA: não muta o base');
+  });
+
+  it('buildChildEnv É a allowlist (applyEnvScrub) — a troca deliberada da onda 5', () => {
+    const base = {
+      PATH: '/usr/bin',
+      HOME: '/home/x',
+      NODE_TEST_CONTEXT: 'test',
+      HTTP_PROXY: 'http://proxy',
+      MINHA_VAR: 'vazava antes',
+    };
+    assert.deepEqual(buildChildEnv({ ...base }), applyEnvScrub(js.envScrub, { ...base }));
+    // As DUAS diferenças medidas contra a denylist de antes:
+    assert.equal(buildChildEnv({ ...base }).MINHA_VAR, undefined, 'variável fora da allowlist não entra mais');
+    assert.equal(buildChildEnv({ ...base }).LC_ALL, ENV_NUCLEO_COMUM.LC_ALL, 'o determinismo de locale passou a ser imposto');
+    assert.equal(buildChildEnv({ ...base }).TZ, ENV_NUCLEO_COMUM.TZ);
+    // e o que NÃO mudou: o veneno continua fora e os fixed continuam valendo.
+    assert.equal(buildChildEnv({ ...base }).NODE_TEST_CONTEXT, undefined);
+    assert.equal(buildChildEnv({ ...base }).HTTP_PROXY, undefined);
+    assert.equal(buildChildEnv({ ...base }).NO_PROXY, '*');
+    assert.equal(buildChildEnv({ ...base }).PATH, '/usr/bin');
   });
 
   it('applyEnvScrub é ALLOWLIST: só o permitido entra, e o determinismo é imposto', () => {

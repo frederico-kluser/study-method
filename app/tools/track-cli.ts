@@ -37,10 +37,15 @@ import { promises as fs } from 'node:fs';
 import * as path from 'node:path';
 import {
   challengePairFromSource,
-  countTestDeclarations,
   pairIsValid,
   verifyChallengePair,
 } from '../electron/main/services/challengeExec';
+// ONDA 5: a contagem DECLARADA de testes vem do ADAPTADOR de linguagem
+// (`countDeclared`, §6 membro 10 de docs/research/08). A regex homônima que
+// vivia em `services/challengeExec.ts` foi APAGADA: existe UMA contagem no
+// repositório, por AST (docs/16 §5.3) — comentário não é nó, e um `// test(`
+// comentado não conta.
+import { defaultAdapter } from '../electron/main/engine/lang/registry';
 import {
   CHALLENGE_FILE,
   DEFAULT_MIN_FIRST_STAR_MS,
@@ -392,7 +397,7 @@ async function cmdProficiencyNew(pos: string[], flags: Record<string, string>): 
 /** Provas de execução de UM desafio (multi-arquivo OK) + log. Retorna ok. */
 async function verifyAndLogChallenge(slug: string, title: string, challenge: TrackChallengeSource): Promise<boolean> {
   const result = await verifyChallengePair(challengePairFromSource(challenge));
-  const tests = countTestDeclarations(challenge.testsCode);
+  const tests = defaultAdapter().countDeclared(challenge.testsCode);
   const ok = result.solutionPasses && result.starterFails && tests === challenge.expectedTestCount;
   console.log(`desafio '${slug}' (${title})`);
   if (challenge.files && challenge.files.length > 0) {
@@ -544,7 +549,7 @@ async function cmdValidate(pos: string[]): Promise<void> {
     console.log(`  proficiência: ${track.proficiency ? `${track.proficiency.title} ✓` : 'ausente'}`);
     if (track.proficiency) {
       const v = await verifyChallengePair(challengePairFromSource(track.proficiency));
-      const tests = countTestDeclarations(track.proficiency.testsCode);
+      const tests = defaultAdapter().countDeclared(track.proficiency.testsCode);
       const ok = pairIsValid(v) && tests === track.proficiency.expectedTestCount;
       console.log(`    provas de execução: ${ok ? 'ok ✓' : 'FALHOU ✗ (rode track:challenge:verify)'}`);
     }
@@ -557,7 +562,7 @@ async function cmdValidate(pos: string[]): Promise<void> {
       for (const lesson of mod.lessons) {
         for (const ch of lesson.challenges) {
           const v = await verifyChallengePair(challengePairFromSource(ch));
-          const tests = countTestDeclarations(ch.testsCode);
+          const tests = defaultAdapter().countDeclared(ch.testsCode);
           const ok = pairIsValid(v) && tests === ch.expectedTestCount;
           console.log(`  [${mod.meta.slug}/${lesson.meta.slug}] ${ch.slug}: ${ok ? 'verificado ✓' : 'NÃO VERIFICADO ✗'}`);
         }

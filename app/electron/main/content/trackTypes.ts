@@ -95,10 +95,15 @@ export const DEFAULT_TRACK_CHALLENGE_LANGUAGE: TrackChallengeLanguage = DEFAULT_
  *
  * VEM DO ADAPTADOR desde a onda do registro (§6 obs. 1: "o regex vira um campo
  * do adaptador" — com Go o arquivo termina em `_test.go`, com Rust o fonte
- * vive em `src/`). O símbolo continua exportado daqui porque quatro arquivos o
- * importam (`engine/exec/harness.ts:50`, `services/challengeExec.ts:25`,
- * `ipc/track-handlers.ts:42` e este); o VALOR é o `filePathPattern` do
- * adaptador default.
+ * vive em `src/`); o VALOR é o `filePathPattern` do adaptador default.
+ *
+ * ONDA 5 — RESTOU UM SÓ CONSUMIDOR: `engine/exec/harness.ts`,
+ * `services/challengeExec.ts` e `ipc/track-handlers.ts` passaram a pedir o
+ * padrão ao ADAPTADOR DO DESAFIO (que pode não ser o default), e não a este
+ * símbolo. Ele continua exportado porque `validateChallengeSource` (abaixo,
+ * neste arquivo) o usa e porque o teste de paridade do registro o compara com
+ * `filePathPattern` — mas um validador de produto MULTILÍNGUA vai precisar
+ * resolver o adaptador pelo `challenge.language`, como os três já fazem.
  */
 export const SAFE_FILE_PATH_RE = defaultAdapter().filePathPattern;
 

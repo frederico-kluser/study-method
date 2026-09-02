@@ -39,7 +39,7 @@ import {
   loadTrack,
 } from '../content/trackLoader';
 import { findLessonAnywhere } from '../content/trackLoader';
-import { SAFE_FILE_PATH_RE } from '../content/trackTypes';
+import { defaultAdapter } from '../engine/lang/registry';
 import {
   TrackProgressLike,
   buildTrackDetail,
@@ -343,10 +343,17 @@ export function buildTrackHandlers(deps: TrackHandlerDeps): Map<string, IpcHandl
     if (
       hasFiles &&
       (p.files as { path: string; code: string }[]).some(
-        (f) => typeof f?.path !== 'string' || !SAFE_FILE_PATH_RE.test(f.path),
+        // ONDA 5: o regex de caminho seguro é o `filePathPattern` do ADAPTADOR
+        // (§6 obs. 1 de docs/research/08) — travá-lo em `.mjs` aqui impediria
+        // qualquer outra linguagem de existir. A mensagem mostra o padrão REAL
+        // em vigor, em vez de repetir um literal que pode divergir dele.
+        (f) => typeof f?.path !== 'string' || !defaultAdapter().filePathPattern.test(f.path),
       )
     ) {
-      return submitError('SUBMIT_BAD_REQUEST', 'path de arquivo inválido (esperado ^[a-zA-Z0-9_\\-/]+\\.mjs$).');
+      return submitError(
+        'SUBMIT_BAD_REQUEST',
+        `path de arquivo inválido (esperado ${defaultAdapter().filePathPattern.source}).`,
+      );
     }
     if (!repo) return submitError('NO_REPO', 'persistência indisponível.');
     const loaded = await loadTrackOrError(p.trackSlug);

@@ -25,13 +25,17 @@ import assert from 'node:assert/strict';
 import { TRACK_SCHEMA_VERSION, type TrackChallengeSource, type TrackLessonSource } from '../electron/main/content/trackTypes';
 import {
   challengePairFromSource,
-  countTestDeclarations,
   pairIsValid,
   parseSpecChecks,
   prepareChallengeDir,
   runStudentCode,
   verifyChallengePair,
 } from '../electron/main/services/challengeExec';
+// ONDA 5: a contagem DECLARADA de testes deixou de existir em três cópias.
+// `challengeExec.countTestDeclarations` (a versão REGEX) foi APAGADA; sobrou
+// UMA, por AST, alcançada pelo membro `countDeclared` do adaptador de
+// linguagem (§6 de docs/research/08; docs/16 §5.3).
+import { defaultAdapter } from '../electron/main/engine/lang/registry';
 import {
   REGEN_ERROR_CODES,
   buildRegenerationPrompt,
@@ -185,9 +189,28 @@ describe('challengeExec — execução determinística', () => {
     assert.equal(pairIsValid(v), true);
   });
 
-  it('countTestDeclarations conta test( no arquivo', () => {
-    assert.equal(countTestDeclarations(GOOD_TEST), 2);
-    assert.equal(countTestDeclarations('// test( no comentário\n'), 0);
+  it('a contagem DECLARADA vem do adaptador (countDeclared), e é UMA só no repositório', () => {
+    const countDeclared = defaultAdapter().countDeclared;
+    assert.equal(countDeclared(GOOD_TEST), 2);
+    assert.equal(countDeclared('// test( no comentário\n'), 0);
+    // A REGEX APAGADA contava `\\btest\\(` e NÃO via `test.skip(`; a que sobrou é
+    // por AST e conta as duas formas — é a diferença que fazia o validador
+    // semântico divergir do runner (docs/16 §5.3, "uma única função").
+    assert.equal(countDeclared("test('a', () => {});\ntest.skip('b', () => {});"), 2);
+    assert.equal(
+      countDeclared("/* test('em bloco', () => {}); */\ntest('real', () => {});"),
+      1,
+      'comentário de bloco não é nó',
+    );
+  });
+
+  it('challengeExec NÃO reexporta mais uma contagem própria (triplicação apagada)', () => {
+    const mod = require('../electron/main/services/challengeExec') as Record<string, unknown>;
+    assert.equal(
+      mod.countTestDeclarations,
+      undefined,
+      'a terceira implementação (regex) foi apagada em favor de adapter.countDeclared',
+    );
   });
 
   // ─── ADITIVO (rodada 9): desafio MULTI-ARQUIVO ──────────────────────────────

@@ -23,20 +23,28 @@
  *     e o G-FINAL (`gFinal` em f12Materialize) fazem map paralelo com
  *     `createExecSemaphore()` sobre os desafios, e as quatro provas de UM
  *     desafio já rodam em `Promise.all` dentro de `verifyChallengeProofs`.
- *   - SEM REDE: o código executado foi escrito por LLM. A isolação é aplicada
- *     NO LUGAR CERTO — na construção do ambiente do processo filho
- *     (`buildChildEnv`): remove variáveis de rede herdadas do pai e injeta
- *     `NO_PROXY=*`. LIMITES DECLARADOS: isso derruba tráfego via proxy
- *     (acidental ou hostil) e força verificação TLS padrão, mas NÃO bloqueia
- *     socket cru (TCP/UDP) — o corte de rede de verdade exige wrapper de SO
- *     (o slot `wrapperCommand` de `NETWORK_HARDENING` é onde o executor real
- *     pluga, ex.: sandbox-exec/nsjail). A provas dos percevejos:
- *     `NODE_TEST_CONTEXT` removido SEMPRE do filho (herdado do runner pai, o
- *     node:test do filho pularia tudo e sairia 0) — e o endurecimento é
- *     INVARIANTE: mesmo com `envBuilder` custom, o env final SEMPRE passa pelo
- *     passo base (`createHardenedExec` encadeia, nunca substitui); ANSI
- *     tolerado no parser (`parseSpecCounts` em proofs.ts) e `FORCE_COLOR`
- *     também removido aqui.
+ *   - SEM REDE, E POR ALLOWLIST (onda 5): o código executado foi escrito por
+ *     LLM. A isolação é aplicada NO LUGAR CERTO — na construção do ambiente do
+ *     processo filho (`buildChildEnv`), que a partir desta onda CONSTRÓI o env
+ *     em vez de copiar-e-apagar: só herda o que `ENV_ALLOWLIST_COMUM` +
+ *     `adapter.envScrub.allow` permitem, impõe `LC_ALL=C.UTF-8 TZ=UTC` e
+ *     `NO_PROXY=*`, e apaga o veneno residual de `strip`. LIMITES DECLARADOS:
+ *     isso derruba tráfego via proxy (acidental ou hostil) e força verificação
+ *     TLS padrão, mas NÃO bloqueia socket cru (TCP/UDP) — o corte de rede de
+ *     verdade exige wrapper de SO (o slot `wrapperCommand` de
+ *     `NETWORK_HARDENING` é onde o executor real pluga, ex.:
+ *     sandbox-exec/nsjail). A prova dos percevejos: `NODE_TEST_CONTEXT`
+ *     removido SEMPRE do filho (herdado do runner pai, o node:test do filho
+ *     pularia tudo e sairia 0) — e o endurecimento é INVARIANTE: mesmo com
+ *     `envBuilder` custom, o env final SEMPRE passa pelo reforço de saída
+ *     (`createHardenedExec` encadeia, nunca substitui); ANSI tolerado no
+ *     parser (`adapter.countRun` em proofs.ts) e `FORCE_COLOR` também removido
+ *     aqui.
+ *   - TUDO O QUE É POR LINGUAGEM VEM DO ADAPTADOR (§6 de
+ *     `docs/research/08-multilingua-trava-deterministica.md`): o layout de
+ *     arquivos e o regex de caminho seguro (`prepareIsolatedDir`) e a política
+ *     de ambiente (`buildChildEnv`). Este arquivo não conhece `.mjs`,
+ *     `package.json` nem `solution.mjs` — quem conhece é `lang/javascript.ts`.
  *   - EXIT GUARD: o código sob teste não pode matar o runner com
  *     `process.exit(0)`/`process.abort()` antes do relatório (forjando
  *     `ℹ tests N`). `escreverExitGuard` escreve um `.cjs` no diretório isolado
@@ -47,8 +55,14 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 
-import { SAFE_FILE_PATH_RE } from '../../content/trackTypes';
 import type { ExecFn, ExecResult } from './proofs';
+import {
+  applyEnvScrub,
+  applyLegacyEnvScrub,
+  defaultAdapter,
+  type ChildEnv,
+  type LanguageAdapter,
+} from '../lang/registry';
 import {
   createExecSemaphore,
   createSemaphore,
@@ -61,7 +75,7 @@ import {
 // ---------------------------------------------------------------------------
 
 export interface IsolatedSide {
-  /** código do lado (solution.mjs quando `files` ausente). */
+  /** código do lado (o `entryPath` do layout do adaptador quando `files` ausente). */
   code: string;
   /** ADITIVO multi-arquivo: caminho + código por arquivo. */
   files?: { path: string; code: string }[];
@@ -70,28 +84,36 @@ export interface IsolatedSide {
 
 /**
  * Prepara um diretório de execução ISOLADO, novo a cada chamada (mkdtemp sob
- * `baseDir` — a raiz é INJETÁVEL), com package.json `{type:'module'}` + os
- * arquivos do lado + test.mjs. Nenhum lado de uma prova compartilha diretório.
- * Nunca lança por paths malformados: usa o MESMO `SAFE_FILE_PATH_RE` do
- * challengeExec (fonte única — proíbe '..' e qualquer escape do diretório).
+ * `baseDir` — a raiz é INJETÁVEL) com os arquivos que o ADAPTADOR manda
+ * escrever, na ordem que ele manda. Nenhum lado de uma prova compartilha
+ * diretório.
+ *
+ * ONDA 5 — O LAYOUT É DO ADAPTADOR (§6 obs. 1 de
+ * `docs/research/08-multilingua-trava-deterministica.md`): "com Go o arquivo
+ * tem de terminar em `_test.go` e ficar no mesmo pacote; com Java o nome do
+ * arquivo tem de ser exatamente o da classe pública; com Rust o fonte vive em
+ * `src/`. O regex vira um campo do adaptador, e o `layout` deixa de ser
+ * implícito." Nada aqui conhece `package.json`, `solution.mjs` nem `.mjs`:
+ * `adapter.layout(side).files` diz TODO arquivo e o conteúdo dele, e
+ * `adapter.filePathPattern` diz o que é caminho seguro (proíbe '..' e qualquer
+ * escape do diretório). Nunca lança por path malformado sem dizer qual.
  */
-export async function prepareIsolatedDir(baseDir: string, side: IsolatedSide): Promise<string> {
-  if (side.files && side.files.some((f) => typeof f?.path !== 'string' || !SAFE_FILE_PATH_RE.test(f.path))) {
+export async function prepareIsolatedDir(
+  baseDir: string,
+  side: IsolatedSide,
+  adapter: LanguageAdapter = defaultAdapter(),
+): Promise<string> {
+  if (side.files && side.files.some((f) => typeof f?.path !== 'string' || !adapter.filePathPattern.test(f.path))) {
     throw new Error(`path de arquivo inválido no lado isolado: ${JSON.stringify(side.files.map((f) => f.path))}`);
   }
+  const layout = adapter.layout({ code: side.code, files: side.files, testsCode: side.testsCode });
   const dir = await fs.promises.mkdtemp(path.join(baseDir, 'proof-exec-'));
   try {
-    await fs.promises.writeFile(path.join(dir, 'package.json'), JSON.stringify({ type: 'module' }), 'utf8');
-    if (side.files && side.files.length > 0) {
-      for (const f of side.files) {
-        const full = path.join(dir, f.path);
-        await fs.promises.mkdir(path.dirname(full), { recursive: true });
-        await fs.promises.writeFile(full, f.code, 'utf8');
-      }
-    } else {
-      await fs.promises.writeFile(path.join(dir, 'solution.mjs'), side.code, 'utf8');
+    for (const arquivo of layout.files) {
+      const full = path.join(dir, arquivo.path);
+      await fs.promises.mkdir(path.dirname(full), { recursive: true });
+      await fs.promises.writeFile(full, arquivo.content, 'utf8');
     }
-    await fs.promises.writeFile(path.join(dir, 'test.mjs'), side.testsCode, 'utf8');
     return dir;
   } catch (err) {
     await fs.promises.rm(dir, { recursive: true, force: true }).catch(() => {});
@@ -153,9 +175,16 @@ export async function escreverExitGuard(dir: string): Promise<string> {
 // ---------------------------------------------------------------------------
 
 /**
- * A configuração de isolação de rede do harness. O executor real (outro
- * pacote) pluga isto no seu spawn — hoje `challengeExec.nodeExec` monta o env
- * à mão; o follow-up deve passar a usar `buildChildEnv` (abaixo).
+ * A configuração de isolação de rede do harness, DERIVADA do `envScrub` do
+ * adaptador default (§6, membro 14). Continua exportada porque
+ * `engine/review/filter.ts` a cita e dois testes a leem — mas o VALOR vive no
+ * adaptador (`lang/javascript.ts`, `JS_ENV_SCRUB`), não mais numa lista solta
+ * aqui.
+ *
+ * `NODE_TEST_CONTEXT` NÃO aparece em `stripEnv` (embora esteja no `strip` do
+ * adaptador): historicamente ela é removida no passo separado de
+ * `buildChildEnv` — é uma armadilha do RUNNER, não de rede. A separação é
+ * preservada byte a byte para não mudar o significado deste objeto público.
  */
 export const NETWORK_HARDENING: Readonly<{
   /** variáveis de rede/ambiente removidas do filho (herdadas do pai). */
@@ -172,48 +201,69 @@ export const NETWORK_HARDENING: Readonly<{
   /** o que esta configuração cobre e o que NÃO cobre (honestidade de limite). */
   scope: readonly string[];
 }> = {
-  stripEnv: [
-    'HTTP_PROXY',
-    'HTTPS_PROXY',
-    'ALL_PROXY',
-    'http_proxy',
-    'https_proxy',
-    'all_proxy',
-    // Força verificação TLS padrão no filho (o pai pode ter desligado para a
-    // própria rede dev; código de LLM não merece herdar isso).
-    'NODE_TLS_REJECT_UNAUTHORIZED',
-    // ANSI no relatório derruba o regex de contagem — removemos a fonte além
-    // de tolerar no parser (defesa em profundidade).
-    'FORCE_COLOR',
-    // NODE_OPTIONS herdado poderia carregar flags do ambiente do pai (require
-    // de loader, certificados custom) — fail-closed: filho roda limpo.
-    'NODE_OPTIONS',
-  ],
-  fixedEnv: { NO_PROXY: '*', no_proxy: '*' },
+  stripEnv: defaultAdapter().envScrub.strip.filter((nome) => nome !== 'NODE_TEST_CONTEXT'),
+  fixedEnv: defaultAdapter().envScrub.fixed,
   wrapperCommand: undefined,
-  scope: [
-    'remove proxies herdados (HTTP/HTTPS/ALL) e injeta NO_PROXY=*: derruba tráfego via proxy, acidental ou hostil',
-    'remove NODE_TLS_REJECT_UNAUTHORIZED herdado: força verificação TLS padrão',
-    'LIMITE: não bloqueia socket cru (TCP/UDP) — um payload LLM deliberado ainda conecta via socket puro',
-    'LIMITE: o corte de rede de verdade exige wrapper de SO no slot wrapperCommand (executor real pluga)',
-  ],
+  scope: defaultAdapter().envScrub.scope,
 };
 
 /**
- * Monta o ambiente do processo filho: cópia explícita do base (nunca muta o
- * original), SEM `NODE_TEST_CONTEXT` (a armadilha: herdado do runner pai, o
- * node:test do filho PULA todos os arquivos e sai 0), SEM as variáveis de rede
- * de `NETWORK_HARDENING` e com `NO_PROXY=*` injetado.
+ * Monta o ambiente do processo filho — ALLOWLIST (§6 obs. 2 de
+ * `docs/research/08-multilingua-trava-deterministica.md`).
+ *
+ * ─── A MUDANÇA DE COMPORTAMENTO DELIBERADA DA ONDA 5 ─────────────────────
+ *
+ * ANTES: copiava `process.env` INTEIRO e apagava uma denylist de 9 nomes.
+ * AGORA: o ambiente do filho é CONSTRUÍDO — só entra o que
+ * `ENV_ALLOWLIST_COMUM` + `adapter.envScrub.allow` permitem herdar, mais o
+ * núcleo de determinismo (`LC_ALL=C.UTF-8`, `TZ=UTC`) e os `fixed` da
+ * linguagem, menos o veneno residual de `strip`.
+ *
+ * POR QUE, na letra do documento: "Cada linguagem tem o seu veneno
+ * (`GOFLAGS`, `GOCACHE`, `RUSTFLAGS`, `CARGO_TARGET_DIR`, `PYTHONPATH`,
+ * `CLASSPATH`, `DOTNET_*`), e a lista nunca vai estar completa. O correto é
+ * montar o ambiente do filho a partir de uma allowlist explícita mais
+ * `LC_ALL=C.UTF-8 TZ=UTC`." Uma denylist é uma promessa que só vale até
+ * alguém inventar uma variável nova; uma allowlist é uma promessa que vale
+ * por construção.
+ *
+ * O QUE ISSO CONSERTA DE FATO, e não é hipotético: `LC_ALL`/`TZ` NUNCA eram
+ * fixados antes. Um teste que ordena strings acentuadas ou formata data
+ * passava na máquina de quem escreveu o desafio e falhava na do aluno, e a
+ * denylist não pegava isso porque não é veneno — é ambiente legítimo com
+ * valor diferente. `NODE_TEST_CONTEXT` continua removida (agora pelo `strip`
+ * do adaptador, e também por não estar na allowlist).
+ *
+ * A semântica ANTERIOR continua disponível e testada como
+ * `applyLegacyEnvScrub` no registro — é ela que `createHardenedExec` usa para
+ * REFORÇAR os invariantes sobre um env já construído (ver abaixo).
  */
-export function buildChildEnv(base?: NodeJS.ProcessEnv | undefined): NodeJS.ProcessEnv {
-  const env: NodeJS.ProcessEnv = { ...(base ?? process.env) };
-  // ARMADILHA NODE_TEST_CONTEXT (medida em challengeExec.ts): o node --test do
-  // processo pai seta esta var; herdada, faz o node:test do filho acreditar que
-  // já está dentro de um runner e sair 0 sem rodar NADA. Remove sempre.
-  delete env.NODE_TEST_CONTEXT;
-  for (const key of NETWORK_HARDENING.stripEnv) delete env[key];
-  Object.assign(env, NETWORK_HARDENING.fixedEnv);
-  return env;
+export function buildChildEnv(
+  base?: NodeJS.ProcessEnv | undefined,
+  adapter: LanguageAdapter = defaultAdapter(),
+): NodeJS.ProcessEnv {
+  return applyEnvScrub(adapter.envScrub, (base ?? process.env) as ChildEnv) as NodeJS.ProcessEnv;
+}
+
+/**
+ * REFORÇO DE INVARIANTE sobre um env que JÁ foi construído — a denylist
+ * (`strip` + `fixed`), nunca a allowlist.
+ *
+ * POR QUE NÃO A ALLOWLIST AQUI, e a distinção é a chave do desenho: a
+ * allowlist decide o que é HERDADO do processo pai. Um `envBuilder` custom
+ * (slot documentado de `HardenedExecOptions`) não herda nada — ele INJETA
+ * valores explícitos, e passá-los pela allowlist de novo apagaria justamente o
+ * enriquecimento que o chamador pediu, tornando o slot inútil. O que o passo
+ * de saída precisa garantir é o INVARIANTE: o veneno conhecido continua fora e
+ * os `fixed` continuam valendo, mesmo que o custom tenha tentado reintroduzi-los
+ * (WARNING 3 — "o endurecimento é invariante, não uma promessa que o custom
+ * pode derrubar").
+ */
+export function reforcarInvariantesDeEnv(
+  env: NodeJS.ProcessEnv,
+  adapter: LanguageAdapter = defaultAdapter(),
+): NodeJS.ProcessEnv {
+  return applyLegacyEnvScrub(adapter.envScrub, env as ChildEnv) as NodeJS.ProcessEnv;
 }
 
 // ---------------------------------------------------------------------------
@@ -251,20 +301,30 @@ export interface HardenedExecOptions {
    * variáveis removidas.
    */
   envBuilder?: (base?: NodeJS.ProcessEnv | undefined) => NodeJS.ProcessEnv;
+  /**
+   * O adaptador cuja política de ambiente vale para os filhos (§6 membro 14).
+   * Default: o adaptador default (`javascript`).
+   */
+  adapter?: LanguageAdapter;
 }
 
 /**
  * Envolve QUALQUER ExecFn com o endurecimento do harness: adquire vaga no
  * SEM_EXEC antes de executar (libera SEMPRE, via finally) e injeta o env do
  * filho com o endurecimento base garantido por ENCADEAMENTO:
- *  1. `buildChildEnv(base)` endurece a base (seja ela `process.env` ou o env
- *     de execOpts): SEM `NODE_TEST_CONTEXT`, SEM proxies/NODE_OPTIONS/
- *     FORCE_COLOR, com `NO_PROXY=*`;
+ *  1. `buildChildEnv(base)` CONSTRÓI o env do filho por ALLOWLIST (§6 obs. 2)
+ *     a partir da base (seja ela `process.env` ou o env de execOpts): só o
+ *     que a política permite herdar, mais `LC_ALL=C.UTF-8 TZ=UTC` e os
+ *     `fixed` da linguagem (`NO_PROXY=*`), menos o veneno de `strip`
+ *     (`NODE_TEST_CONTEXT`, proxies, `NODE_OPTIONS`, `FORCE_COLOR`);
  *  2. `envBuilder` custom (se houver) ENRIQUECE a partir desse env JÁ
- *     endurecido — ele nunca vê as variáveis removidas;
- *  3. `buildChildEnv` de novo sobre o resultado: o env que chega ao executor
- *     injetado SEMPRE passou pelo passo base — o endurecimento é invariante,
- *     não uma promessa que o custom pode derrubar (WARNING 3).
+ *     construído — ele nunca vê as variáveis removidas;
+ *  3. `reforcarInvariantesDeEnv` sobre o resultado: o env que chega ao
+ *     executor injetado SEMPRE teve o veneno reapagado e os `fixed`
+ *     reimpostos — o endurecimento é invariante, não uma promessa que o custom
+ *     pode derrubar (WARNING 3). O passo 3 é DENYLIST de propósito: passar a
+ *     allowlist de novo apagaria o enriquecimento explícito do passo 2 e
+ *     tornaria o slot `envBuilder` inútil (ver `reforcarInvariantesDeEnv`).
  * O executor real pluga o próprio spawn aqui dentro e ganha as duas camadas
  * de graça.
  */
@@ -274,6 +334,7 @@ export function createHardenedExec(opts: HardenedExecOptions): ExecFn {
   const limiter =
     opts.limiter ??
     (opts.maxConcurrency !== undefined ? createSemaphore(opts.maxConcurrency) : createExecSemaphore());
+  const adapter = opts.adapter ?? defaultAdapter();
   return async (
     dir: string,
     args: string[],
@@ -281,9 +342,9 @@ export function createHardenedExec(opts: HardenedExecOptions): ExecFn {
   ): Promise<ExecResult> => {
     const release = await limiter.acquire();
     try {
-      const hardenedBase = buildChildEnv(execOpts?.env);
+      const hardenedBase = buildChildEnv(execOpts?.env, adapter);
       const enriched = opts.envBuilder ? opts.envBuilder(hardenedBase) : hardenedBase;
-      const finalEnv = buildChildEnv(enriched);
+      const finalEnv = reforcarInvariantesDeEnv(enriched, adapter);
       return await opts.exec(dir, args, { ...execOpts, env: finalEnv });
     } finally {
       release();

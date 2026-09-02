@@ -661,3 +661,88 @@ describe('F12 — materializarTrilha (integrador único)', () => {
     }
   });
 });
+// ---------------------------------------------------------------------------
+// 11. ONDA 5 — a F12 deixa de INVENTAR a linguagem e deixa de escrever a tag CRUA
+// ---------------------------------------------------------------------------
+
+describe('F12 · onda 5 — linguagem do desafio e tag de teoria vêm do registro', () => {
+  /** Acha o objeto de um arquivo da árvore montada (função pura, zero IO). */
+  function conteudoDe(arvore: ReturnType<typeof montarArvoreDeProduto>, sufixo: string): Record<string, unknown> {
+    const arq = arvore.find((a) => a.caminho.endsWith(sufixo));
+    assert.ok(arq, `arquivo não encontrado na árvore: ${sufixo}`);
+    return JSON.parse(arq.conteudo) as Record<string, unknown>;
+  }
+
+  it('challenge.language vem do DRAFT — não é mais o literal `nodejs` cravado na F12', () => {
+    const drafts = dossieCompleto();
+    // o draft do desafio da aula declara a LINGUAGEM (não o runtime):
+    drafts.desafios[1].draft = { ...drafts.desafios[1].draft, language: 'javascript' };
+    const arvore = montarArvoreDeProduto(drafts, '/destino');
+    const desafioDaAula = conteudoDe(arvore, path.join('variaveis', 'challenges', 'declarar-variavel', CHALLENGE_FILE));
+    assert.equal(desafioDaAula.language, 'javascript', 'a linguagem do draft chegou ao produto');
+    // e os desafios que NÃO declararam nada continuam com o default do schema
+    // (`'nodejs'`) — exatamente o literal que a F12 escrevia antes.
+    const desafioDoModulo = conteudoDe(arvore, path.join('modulo-1', 'challenges', 'desafio-modulo-um', CHALLENGE_FILE));
+    assert.equal(desafioDoModulo.language, 'nodejs', 'compatibilidade: o disco de hoje diz nodejs');
+  });
+
+  it('tag de teoria RECONHECIDA (código ou dado declarado) é escrita, normalizada', () => {
+    const drafts = dossieCompleto();
+    drafts.aulas[0].draft = {
+      ...drafts.aulas[0].draft,
+      theory: [
+        { id: 'exemplo', secao: 'teoria', markdown: 'let total = 1;', tag: 'JS' },
+        { id: 'payload', secao: 'referencia', markdown: '{ "a": 1 }', tag: 'json' },
+        { id: 'prosa', secao: 'drill', markdown: 'Explique com suas palavras.', tag: '' },
+      ],
+    };
+    const arvore = montarArvoreDeProduto(drafts, '/destino');
+    const aula = conteudoDe(arvore, path.join('variaveis', LESSON_FILE));
+    const theory = aula.theory as Array<{ id: string; code?: { language: string } }>;
+    assert.equal(theory[0].code?.language, 'js', 'tag NORMALIZADA (minúscula) — o extrator casa em minúscula');
+    assert.equal(theory[1].code?.language, 'json', 'tag de DADO declarada continua válida');
+    assert.equal(theory[2].code, undefined, 'cerca sem tag continua sendo prosa, sem campo code');
+  });
+
+  it('FAIL-CLOSED: tag de teoria DESCONHECIDA reprova a materialização ANTES de qualquer escrita', () => {
+    const drafts = dossieCompleto();
+    drafts.aulas[0].draft = {
+      ...drafts.aulas[0].draft,
+      theory: [{ id: 'exemplo', secao: 'teoria', markdown: 'let total = 1;', tag: 'javascrpt' }],
+    };
+    assert.throws(
+      () => montarArvoreDeProduto(drafts, '/destino'),
+      (e: unknown) => {
+        assert.ok(e instanceof MaterializeError);
+        assert.equal(e.code, 'TAG_DE_TEORIA_DESCONHECIDA');
+        // a mensagem precisa dizer o que É válido, não só que o valor não é.
+        assert.match(e.message, /javascrpt/);
+        assert.match(e.message, /js/);
+        assert.match(e.message, /json/);
+        return true;
+      },
+      'uma tag inventada produziria um bloco que nenhum parser recebe e que o orçamento ignora em silêncio',
+    );
+  });
+
+  it('a linguagem do desafio VIAJA até o provador do G-FINAL (o runner certo por desafio)', async () => {
+    const tmp = await mkTempDir('p21-lang-');
+    try {
+      const destino = path.join(tmp, 'trilha-p21');
+      await materializarTrilha({}, dossieCompleto(), destino);
+      const vistos: Array<string | undefined> = [];
+      const verificador: VerificarDesafioFn = async (d: DesafioAProvar) => {
+        vistos.push(d.language);
+        return { valid: true, falhas: [] };
+      };
+      const r = await gFinal({ verificarDesafio: verificador }, destino);
+      assert.equal(r.provas.ok, true, JSON.stringify(r.provas.falhas));
+      assert.equal(vistos.length, 4, 'dois desafios de aula + um de módulo + proficiência');
+      for (const language of vistos) {
+        assert.equal(language, 'nodejs', 'o provador recebe a linguagem declarada no challenge.json');
+      }
+    } finally {
+      await rmrf(tmp);
+    }
+  });
+});
