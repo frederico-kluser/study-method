@@ -246,6 +246,9 @@ export function LocalAiPanel(): ReactElement {
           size="small"
           sx={{ maxWidth: 320 }}
         >
+          {/* O VALOR 'deepseek' é o que o settingsStore persiste (histórico —
+              renomear para 'openrouter' é a onda 2); o RÓTULO já mostra o
+              provedor real (OpenRouter). */}
           <MenuItem value="deepseek">{t('translation:localAi.feedbackProviderDeepseek')}</MenuItem>
           <MenuItem value="local">{t('translation:localAi.feedbackProviderLocal')}</MenuItem>
         </Select>

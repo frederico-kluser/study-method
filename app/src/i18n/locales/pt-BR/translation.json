@@ -20,7 +20,7 @@
   },
   "settings": {
     "keysTitle": "Chaves de API",
-    "keysDescription": "Configure as chaves do DeepSeek (geração de aulas) e do Brave Search (pesquisa de fontes). Valide cada uma antes de usar.",
+    "keysDescription": "Configure as chaves do OpenRouter (geração de aulas) e do Brave Search (pesquisa de fontes). Valide cada uma antes de usar.",
     "localAiTitle": "LLM local",
     "localAiDescription": "Detecção de hardware e modelos locais. Baixe um modelo, ative-o e selecione \"Modelo local\" no provedor de feedback para avaliar desafios sem depender da nuvem.",
     "section": {
@@ -51,8 +51,8 @@
   },
   "keys": {
     "deepseek": {
-      "label": "Chave DeepSeek",
-      "placeholder": "Cole sua chave DeepSeek"
+      "label": "Chave OpenRouter",
+      "placeholder": "Cole sua chave OpenRouter"
     },
     "brave": {
       "label": "Chave Brave Search",
@@ -69,6 +69,7 @@
     "show": "Mostrar chave",
     "hide": "Ocultar chave",
     "error401": "Erro 401: chave inválida ou sem permissão.",
+    "error402": "Erro 402: créditos insuficientes na conta do provedor. Adicione créditos e tente novamente.",
     "error429": "Erro 429: limite de requisições excedido. Tente novamente em instantes.",
     "errorNetwork": "Erro de rede: não foi possível contatar o servidor.",
     "errorTimeout": "Tempo esgotado ao contatar o provedor. Verifique sua conexão e tente novamente.",
@@ -94,7 +95,7 @@
     "inUse": "Em uso",
     "delete": "Excluir",
     "feedbackProvider": "Provedor de feedback",
-    "feedbackProviderDeepseek": "DeepSeek (nuvem)",
+    "feedbackProviderDeepseek": "OpenRouter (nuvem)",
     "feedbackProviderLocal": "Modelo local",
     "hintActive": "Este modelo está ativo e será o avaliador padrão.",
     "errorSaveFeedback": "Falha ao salvar o provedor de feedback:",
@@ -223,15 +224,15 @@
     "noChallengesYet": "Nenhum desafio disponível ainda.",
     "keyHint": "Veja a dica da chave no enunciado.",
     "providerLocal": "Modelo local",
-    "providerDeepseek": "DeepSeek",
+    "providerDeepseek": "OpenRouter",
     "confirmDelete": "Apagar {{name}}?",
     "noChallengesEmpty": "Nenhum desafio disponível. Gere uma aula primeiro na aba \"Aula\".",
     "listError": "Não consegui listar os desafios",
     "statementUnavailable": "Enunciado (README.md) indisponível.",
     "workspaceLoadError": "Erro ao carregar o workspace",
     "localModelError": "O modelo local não conseguiu avaliar",
-    "localModelHint": "Ative o modelo local em Configurações ou troque o provedor de feedback para DeepSeek e teste novamente.",
-    "piMissingKey": "Falha ao chamar o pi: chave DeepSeek ausente ou inválida. Abra as Configurações para cadastrar a chave.",
+    "localModelHint": "Ative o modelo local em Configurações ou troque o provedor de feedback para OpenRouter e teste novamente.",
+    "piMissingKey": "Falha ao chamar o pi: chave OpenRouter ausente ou inválida. Abra as Configurações para cadastrar a chave.",
     "piCallError": "Falha ao chamar o pi",
     "piExecuteError": "Erro ao executar o pi",
     "unknownError": "erro desconhecido",
@@ -345,7 +346,7 @@
     "steps": {
       "configureKeys": {
         "title": "Configure as chaves de IA",
-        "description": "Cadastre e valide as chaves do DeepSeek e do Brave Search em Configurações."
+        "description": "Cadastre e valide as chaves do OpenRouter e do Brave Search em Configurações."
       },
       "subject": {
         "title": "Digite o assunto",
@@ -360,9 +361,9 @@
       "checking": "Verificando a configuração…",
       "ready": "Pronto para começar",
       "missing": "Chaves de IA pendentes",
-      "readyDescription": "Suas chaves DeepSeek e Brave Search estão configuradas. Escolha um assunto e comece.",
-      "missingDescription": "Configure as chaves DeepSeek e Brave Search para o app gerar aulas e pesquisar fontes.",
-      "deepseek": "DeepSeek",
+      "readyDescription": "Suas chaves OpenRouter e Brave Search estão configuradas. Escolha um assunto e comece.",
+      "missingDescription": "Configure as chaves OpenRouter e Brave Search para o app gerar aulas e pesquisar fontes.",
+      "deepseek": "OpenRouter",
       "brave": "Brave Search",
       "configured": "configurada",
       "pending": "pendente"
@@ -447,7 +448,7 @@
       },
       "settingsKeys": {
         "title": "Chaves de API",
-        "description": "Em Configurações você cadastra e valida as chaves do DeepSeek (geração de aulas) e do Brave Search (fontes), além de gerenciar o modelo local."
+        "description": "Em Configurações você cadastra e valida as chaves do OpenRouter (geração de aulas) e do Brave Search (fontes), além de gerenciar o modelo local."
       },
       "lessonSubject": {
         "title": "Gerar uma aula",
@@ -470,7 +471,7 @@
         "description": "Navegue pelas abas para explorar. Você pode reabrir este tutorial a qualquer momento pelo botão de ajuda."
       },
       "settingsKeysFill": {
-        "description": "Preencha as chaves do DeepSeek e do Brave Search nesta seção. Elas usam a geração de aulas e a pesquisa de fontes."
+        "description": "Preencha as chaves do OpenRouter e do Brave Search nesta seção. Elas usam a geração de aulas e a pesquisa de fontes."
       },
       "openSettings": {
         "title": "Vá para Configurações",
@@ -520,7 +521,7 @@
       "fullTutorialTitle": "Tutorial Completo",
       "fullTutorialDescription": "Guia passo a passo por todas as abas: configure as chaves, gere uma aula e teste uma solução.",
       "badgeFull": "Simplificado",
-      "requiresKeys": "Requer as chaves de API (DeepSeek + Brave).",
+      "requiresKeys": "Requer as chaves de API (OpenRouter + Brave).",
       "openSettings": "Configurar chaves"
     },
     "status": {

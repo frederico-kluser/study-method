@@ -7,7 +7,9 @@
  *    mostrar/ocultar via InputAdornment + IconButton (Visibility/VisibilityOff).
  *  - Estado configurada/validada vindo de `keys.getStatus` na MONTAGEM (Chips).
  *  - Botão "Salvar" → `keys.setKey(provider, key)`; botão "Validar" →
- *    `keys.validateDeepseek(provider==='deepseek')` / `keys.validateBrave(...)`,
+ *    `keys.validateDeepseek(provider==='deepseek')` / `keys.validateBrave(...)`
+ *    (o nome do canal IPC ainda é o histórico; o provedor por trás dele é o
+ *    OpenRouter — ver shared/llm/constants.ts),
  *    passando a chave DIGITADA (ou a salva no store quando nada foi digitado).
  *    O feedback é renderizado em `<Alert>` via lógica pura `validationAlert`
  *    (src/lib/validationAlert.ts → chaves i18n keys.*).
@@ -39,6 +41,7 @@ import Typography from '@mui/material/Typography';
 import Visibility from '@mui/icons-material/Visibility';
 import VisibilityOff from '@mui/icons-material/VisibilityOff';
 import type { KeysStatus, ValidationResult } from '../../../shared/ipc-contract';
+import { OPENROUTER_KEY_PREFIX, OPENROUTER_MODEL } from '../../../shared/llm/constants';
 import { getApi } from '../../lib/apiBridge';
 import { ACTION_TIMEOUTS, isTimeoutError, withTimeout } from '../../lib/ipcTimeout';
 import { isNonEmpty } from '../../lib/validate';
@@ -50,14 +53,21 @@ const PROVIDER_META: Record<
   Provider,
   {
     name: string;
+    /** Modelo servido pelo provedor (só quem serve um LLM tem um). */
+    modelName?: string;
     inputLabelKey: 'translation:keys.deepseek.label' | 'translation:keys.brave.label';
     placeholder: string;
   }
 > = {
+  // A CHAVE do mapa segue 'deepseek' (renomear a chave é a ONDA 2, junto com
+  // TODOS os call sites de uma vez); o que muda aqui é a IDENTIDADE VISÍVEL.
+  // Nome, modelo e formato da chave vêm do contrato congelado — nada de
+  // literal solto: `shared/llm/constants.ts` é a única fonte.
   deepseek: {
-    name: 'DeepSeek',
+    name: 'OpenRouter',
+    modelName: OPENROUTER_MODEL.name,
     inputLabelKey: 'translation:keys.deepseek.label',
-    placeholder: 'sk-…',
+    placeholder: `${OPENROUTER_KEY_PREFIX}…`,
   },
   brave: {
     name: 'Brave Search',
@@ -234,9 +244,16 @@ export function KeysPanel(): ReactElement {
         <CardContent sx={{ width: '100%' }}>
           <Stack spacing={1.5}>
             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1 }}>
-              <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
-                {meta.name}
-              </Typography>
+              <Box>
+                <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
+                  {meta.name}
+                </Typography>
+                {meta.modelName ? (
+                  <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
+                    {meta.modelName}
+                  </Typography>
+                ) : null}
+              </Box>
               <Stack direction="row" spacing={0.5}>
                 <Chip
                   size="small"

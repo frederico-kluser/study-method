@@ -8,7 +8,7 @@
  *  - Quick Start — sempre disponível (não exige chaves), badge "Recomendado"
  *    quando o Completo está bloqueado (faltam chaves);
  *  - Tutorial Completo — guia por todas as abas (chaves → aula → desafio),
- *    GATEADO por `hasKeys` (DeepSeek + Brave preenchidas). Sem chaves, fica
+ *    GATEADO por `hasKeys` (OpenRouter + Brave preenchidas). Sem chaves, fica
  *    DESABILITADO com badge "Requer chaves" + CTA "Configurar chaves" que
  *    navega para a aba Settings (fecha o modal).
  *
@@ -30,7 +30,7 @@ export interface TutorialSelectionModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSelectTutorial: (tutorialId: OnboardingTutorialId) => void;
-  /** Chaves DeepSeek + Brave preenchidas (gate do Tutorial Completo). */
+  /** Chaves OpenRouter + Brave preenchidas (gate do Tutorial Completo). */
   hasKeys: boolean;
   /** Navega para a aba Settings (CTA "Configurar chaves"). */
   onOpenSettings: () => void;

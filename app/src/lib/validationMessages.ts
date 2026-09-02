@@ -1,7 +1,13 @@
 /**
  * src/lib/validationMessages.ts — mapeamento puro de um `ValidationResult`
- * (retorno de keys.validateDeepseek / keys.validateBrave) para o texto pt-BR
- * e o estado visual da UI de Settings.
+ * (retorno de keys.validateDeepseek / keys.validateBrave — nomes de canal
+ * históricos; o provedor de LLM por trás é o OpenRouter, ver
+ * shared/llm/constants.ts) para o texto pt-BR e o estado visual da UI de
+ * Settings.
+ *
+ * As mensagens falam do "provedor" e NÃO cravam um nome: a MESMA função
+ * humaniza o erro do OpenRouter e o do Brave Search — o nome do provedor entra
+ * pelo parâmetro `provider` só no fallback genérico.
  */
 import type { ValidationResult } from '../../shared/ipc-contract';
 
@@ -32,6 +38,13 @@ export function humanizeValidationError(
   }
   if (/429|rate limit|too many/.test(lower)) {
     return 'Limite de requisições atingido (HTTP 429). Tente novamente em alguns instantes.';
+  }
+  // 402 — a chave está VÁLIDA, o que acabou foi o crédito. É a falha mais comum
+  // do OpenRouter em conta nova/zerada; sem este ramo a mensagem dizia "chave
+  // inválida" e mandava o usuário trocar uma chave que está certa. Vem depois
+  // do 429 de propósito (rate-limit que cite "quota" continua sendo 429).
+  if (/402|payment required|insufficient credit|insufficient_credit|no credits|cr[ée]ditos? insuficient|sem cr[ée]dito/.test(lower)) {
+    return 'Créditos insuficientes na conta do provedor (HTTP 402). A chave é válida — adicione créditos e tente novamente.';
   }
   if (/400|bad request/i.test(lower)) {
     return 'O provedor rejeitou o teste (HTTP 400). Revise a chave e tente de novo.';

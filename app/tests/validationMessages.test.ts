@@ -47,6 +47,24 @@ describe('humanizeValidationError', () => {
   it('429 / rate limit -> limite de requisições', () => {
     assert.match(humanizeValidationError('429 Too Many Requests', 'deepseek'), /Limite/);
   });
+
+  it('402 / sem crédito -> créditos insuficientes (NÃO "chave inválida")', () => {
+    // O OpenRouter responde 402 com a chave VÁLIDA quando a conta zera; a
+    // mensagem tem de mandar adicionar crédito, não trocar a chave.
+    for (const raw of ['402 Payment Required', 'Insufficient credits', 'no credits left']) {
+      const msg = humanizeValidationError(raw, 'openrouter');
+      assert.match(msg, /[Cc]réditos insuficientes/, `mensagem errada para "${raw}"`);
+      assert.doesNotMatch(msg, /Chave inválida/, `402 não pode virar "chave inválida" ("${raw}")`);
+    }
+  });
+
+  it('429 que cita cota/crédito continua sendo limite de requisições', () => {
+    assert.match(humanizeValidationError('429 credit quota exceeded', 'openrouter'), /Limite/);
+  });
+
+  it("provider 'openrouter' aparece no fallback genérico", () => {
+    assert.match(humanizeValidationError(undefined, 'openrouter'), /openrouter/);
+  });
   it('erro genérico mantém a mensagem bruta', () => {
     assert.match(
       humanizeValidationError('weird error xyz', 'deepseek'),

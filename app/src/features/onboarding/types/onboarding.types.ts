@@ -42,7 +42,7 @@ export type OnboardingExpectedAction =
   | 'type-in-editor'
   /** O usuário disparou "Testar resposta" no desafio. */
   | 'test-answer'
-  /** As chaves DeepSeek + Brave foram preenchidas/validadas (settings). */
+  /** As chaves OpenRouter + Brave foram preenchidas/validadas (settings). */
   | 'settings-keys-filled';
 
 /** Steps do tutorial completo + quick start. */
@@ -84,7 +84,7 @@ export interface OnboardingRuntimeContext {
   studioCodeNonEmpty: boolean;
   /** O usuário clicou "Testar resposta" (fase determinística rodando ou feita). */
   testAnswerTriggered: boolean;
-  /** Chaves DeepSeek + Brave preenchidas (inputs do KeysPanel non-vazios). */
+  /** Chaves OpenRouter + Brave preenchidas (inputs do KeysPanel non-vazios). */
   keysFilled: boolean;
 }
 

@@ -1,6 +1,8 @@
 /**
  * src/lib/validationAlert.ts — lógica PURA (sem React/DOM) que decide o ALERT
- * MUI de uma validação de chave de API (keys.validateDeepseek/validateBrave).
+ * MUI de uma validação de chave de API (keys.validateDeepseek/validateBrave —
+ * nomes de canal históricos; o provedor de LLM por trás é o OpenRouter, ver
+ * shared/llm/constants.ts).
  *
  * Extraída da KeysPanel (onda 7 — MUI) para ser testável via node:test sem
  * jsdom. Mesmo mapeamento do KeysPanel antigo (error401/error429/errorNetwork),
@@ -21,6 +23,7 @@ export type ValidationI18nKey =
   | 'translation:keys.valid'
   | 'translation:keys.invalid'
   | 'translation:keys.error401'
+  | 'translation:keys.error402'
   | 'translation:keys.error429'
   | 'translation:keys.errorNetwork';
 
@@ -35,8 +38,13 @@ export interface ValidationAlertI18n {
  * O mapeamento espelha o comportamento do KeysPanel/LocalAiPanel antigos:
  *   401/unauthorized → keys.error401; 429/rate-limit → keys.error429;
  *   falha de rede → keys.errorNetwork; resto/ausente → keys.invalid.
+ *
+ * ONDA 1 (OpenRouter): somou o bucket '402'. O OpenRouter responde
+ * `402 Payment Required` quando a conta fica SEM CRÉDITO — com a chave
+ * perfeitamente válida. Sem este bucket a falha caía em `keys.invalid`
+ * ("Inválida") e mandava o usuário trocar uma chave que está certa.
  */
-export type ValidationErrorClass = '401' | '429' | 'network' | 'other';
+export type ValidationErrorClass = '401' | '402' | '429' | 'network' | 'other';
 
 export function classifyValidationError(raw: string | undefined): ValidationErrorClass {
   const msg = (raw ?? '').trim().toLowerCase();
@@ -46,6 +54,11 @@ export function classifyValidationError(raw: string | undefined): ValidationErro
   }
   if (/429|rate limit|too many/.test(msg)) {
     return '429';
+  }
+  // 402 vem DEPOIS do 429: uma mensagem de rate-limit que cite "quota"/"credit"
+  // continua sendo 429 (o que o usuário precisa é esperar, não pagar).
+  if (/402|payment required|insufficient credit|insufficient_credit|no credits|cr[ée]ditos? insuficient|sem cr[ée]dito/.test(msg)) {
+    return '402';
   }
   if (
     /network|fetch|timeout|enode|getaddrinfo|econnrefused|offline|sem conex|no connection|etimedout/i.test(
@@ -69,6 +82,8 @@ export function validationAlert(result: ValidationResult): ValidationAlertI18n {
   switch (cls) {
     case '401':
       return { severity: 'error', i18nKey: 'translation:keys.error401' };
+    case '402':
+      return { severity: 'error', i18nKey: 'translation:keys.error402' };
     case '429':
       return { severity: 'error', i18nKey: 'translation:keys.error429' };
     case 'network':

@@ -6,7 +6,10 @@
  * feedback pedagógico:
  *
  *   - 'local'    → o modelo local é usado como avaliador do desafio.
- *   - 'deepseek' → o coding agent `pi` (DeepSeek remoto) avalia como antes.
+ *   - 'deepseek' → o coding agent `pi` (LLM remoto, servido pelo OpenRouter)
+ *                  avalia como antes. O VALOR 'deepseek' é histórico: a
+ *                  renomeação para 'openrouter' é a onda 2, junto com todos
+ *                  os call sites de uma vez.
  *
  * Regra de decisão (o modelo local SÓ avalia quando BOTH):
  *   1. o usuário selecionou `defaultModelProvider === 'local'` nas Configurações; E
@@ -14,10 +17,10 @@
  *
  * Em qualquer outro caso — provedor `'local'` sem modelo ativo, provedor
  * `'deepseek'` explícito, ou `defaultModelProvider` ausente (nunca salvo;
- * default é o comportamento histórico do DeepSeek) — cai para `'deepseek'`.
+ * default é o comportamento histórico da nuvem) — cai para `'deepseek'`.
  *
  * A UI NÃO tenta fallback automático após um erro de chat local: se o chat
- * local falhar no runtime, ela mostra o erro e sugere voltar ao DeepSeek (ver
+ * local falhar no runtime, ela mostra o erro e sugere voltar à nuvem (ver
  * o ponto de uso em ChallengeView). Esta função decide APENAS o roteamento da
  * chamada, não lida com falhas.
  */

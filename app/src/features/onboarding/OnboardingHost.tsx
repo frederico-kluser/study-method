@@ -59,7 +59,7 @@ export function OnboardingHost({ isReady, activeView = 'home', onNavigateView }:
   const [selectionOpen, setSelectionOpen] = useState(false);
   const [hasKeys, setHasKeys] = useState(true);
 
-  // Gate do Tutorial Completo: chaves DeepSeek + Brave preenchidas. Leitura
+  // Gate do Tutorial Completo: chaves OpenRouter + Brave preenchidas. Leitura
   // assíncrona (IPC) — default true até resolver p/ não bloquear a 1ª open.
   const refreshKeys = useCallback(() => {
     getApi()

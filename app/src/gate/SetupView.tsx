@@ -9,7 +9,8 @@
  * Fluxo por provedor (mesmo padrão do SettingsView/KeysPanel, mas próprio aqui):
  *   - TextField password com toggle de visibilidade (Visibility/VisibilityOff);
  *   - "Validar" → keys.validateDeepseek(typed) / keys.validateBrave(typed),
- *     validando a chave DIGITADA SEM salvar;
+ *     validando a chave DIGITADA SEM salvar (o canal IPC mantém o nome
+ *     histórico; o provedor por trás dele é o OpenRouter — shared/llm/constants);
  *   - "Salvar" → keys.setKey(provider, key) para as DUAS, e revalida (via
  *     onDone → AppGate re-executa o gate no main); só habilitado quando AMBAS
  *     validaram.
@@ -37,14 +38,31 @@ import Typography from '@mui/material/Typography';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
 import type { ValidationResult } from '@shared/ipc-contract';
+import { OPENROUTER_KEY_PREFIX } from '@shared/llm/constants';
 import { getApi } from '../lib/apiBridge';
 import { humanizeValidationError } from '../lib/validationMessages';
 import LanguageSwitcher from '../i18n/LanguageSwitcher';
 
 type Provider = 'deepseek' | 'brave';
 
-const PROVIDER_META: Record<Provider, { labelKey: 'keys.deepseek.label' | 'keys.brave.label'; placeholderKey: 'keys.deepseek.placeholder' | 'keys.brave.placeholder' }> = {
-  deepseek: { labelKey: 'keys.deepseek.label', placeholderKey: 'keys.deepseek.placeholder' },
+// A CHAVE do mapa segue 'deepseek' (renomear chave + call sites é a ONDA 2);
+// a IDENTIDADE VISÍVEL já é a real: o rótulo/placeholder vêm do i18n (que agora
+// diz "OpenRouter") e o FORMATO da chave vem do contrato congelado
+// (`shared/llm/constants.ts`), nunca de um literal escrito à mão aqui.
+const PROVIDER_META: Record<
+  Provider,
+  {
+    labelKey: 'keys.deepseek.label' | 'keys.brave.label';
+    placeholderKey: 'keys.deepseek.placeholder' | 'keys.brave.placeholder';
+    /** Formato real da chave, mostrado como helper text sob o campo. */
+    keyFormat?: string;
+  }
+> = {
+  deepseek: {
+    labelKey: 'keys.deepseek.label',
+    placeholderKey: 'keys.deepseek.placeholder',
+    keyFormat: `${OPENROUTER_KEY_PREFIX}…`,
+  },
   brave: { labelKey: 'keys.brave.label', placeholderKey: 'keys.brave.placeholder' },
 };
 
@@ -173,6 +191,7 @@ export function SetupView({ onDone }: { onDone: () => void }): ReactElement {
           fullWidth
           label={t(`translation:${meta.labelKey}`)}
           placeholder={t(`translation:${meta.placeholderKey}`)}
+          helperText={meta.keyFormat}
           type={st.visible ? 'text' : 'password'}
           value={st.value}
           autoComplete="off"

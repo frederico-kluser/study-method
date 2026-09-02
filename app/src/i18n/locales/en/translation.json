@@ -20,7 +20,7 @@
   },
   "settings": {
     "keysTitle": "API keys",
-    "keysDescription": "Configure the DeepSeek (lesson generation) and Brave Search (source search) keys. Validate each one before using.",
+    "keysDescription": "Configure the OpenRouter (lesson generation) and Brave Search (source search) keys. Validate each one before using.",
     "localAiTitle": "Local LLM",
     "localAiDescription": "Hardware detection and local models. Download a model, activate it and select \"Local model\" in the feedback provider to evaluate challenges without relying on the cloud.",
     "section": {
@@ -51,8 +51,8 @@
   },
   "keys": {
     "deepseek": {
-      "label": "DeepSeek key",
-      "placeholder": "Paste your DeepSeek key"
+      "label": "OpenRouter key",
+      "placeholder": "Paste your OpenRouter key"
     },
     "brave": {
       "label": "Brave Search key",
@@ -69,6 +69,7 @@
     "show": "Show key",
     "hide": "Hide key",
     "error401": "Error 401: invalid key or missing permission.",
+    "error402": "Error 402: not enough credits on the provider account. Add credits and try again.",
     "error429": "Error 429: request limit exceeded. Try again shortly.",
     "errorNetwork": "Network error: could not reach the server.",
     "errorTimeout": "Timed out while contacting the provider. Check your connection and try again.",
@@ -94,7 +95,7 @@
     "inUse": "In use",
     "delete": "Delete",
     "feedbackProvider": "Feedback provider",
-    "feedbackProviderDeepseek": "DeepSeek (cloud)",
+    "feedbackProviderDeepseek": "OpenRouter (cloud)",
     "feedbackProviderLocal": "Local model",
     "hintActive": "This model is active and will be the default grader.",
     "errorSaveFeedback": "Failed to save the feedback provider:",
@@ -223,15 +224,15 @@
     "noChallengesYet": "No challenges available yet.",
     "keyHint": "See the key hint in the statement.",
     "providerLocal": "Local model",
-    "providerDeepseek": "DeepSeek",
+    "providerDeepseek": "OpenRouter",
     "confirmDelete": "Delete {{name}}?",
     "noChallengesEmpty": "No challenges available. Generate a lesson first in the \"Lesson\" tab.",
     "listError": "Could not list the challenges",
     "statementUnavailable": "Statement (README.md) unavailable.",
     "workspaceLoadError": "Error loading the workspace",
     "localModelError": "The local model could not grade",
-    "localModelHint": "Enable the local model in Settings or switch the feedback provider to DeepSeek and try again.",
-    "piMissingKey": "Failed to call the pi: DeepSeek key missing or invalid. Open Settings to register the key.",
+    "localModelHint": "Enable the local model in Settings or switch the feedback provider to OpenRouter and try again.",
+    "piMissingKey": "Failed to call the pi: OpenRouter key missing or invalid. Open Settings to register the key.",
     "piCallError": "Failed to call the pi",
     "piExecuteError": "Error running the pi",
     "unknownError": "unknown error",
@@ -345,7 +346,7 @@
     "steps": {
       "configureKeys": {
         "title": "Set up your AI keys",
-        "description": "Add and validate your DeepSeek and Brave Search keys in Settings."
+        "description": "Add and validate your OpenRouter and Brave Search keys in Settings."
       },
       "subject": {
         "title": "Type a subject",
@@ -360,9 +361,9 @@
       "checking": "Checking your setup…",
       "ready": "Ready to start",
       "missing": "AI keys pending",
-      "readyDescription": "Your DeepSeek and Brave Search keys are configured. Pick a subject and start.",
-      "missingDescription": "Configure the DeepSeek and Brave Search keys so the app can generate lessons and search sources.",
-      "deepseek": "DeepSeek",
+      "readyDescription": "Your OpenRouter and Brave Search keys are configured. Pick a subject and start.",
+      "missingDescription": "Configure the OpenRouter and Brave Search keys so the app can generate lessons and search sources.",
+      "deepseek": "OpenRouter",
       "brave": "Brave Search",
       "configured": "configured",
       "pending": "pending"
@@ -447,7 +448,7 @@
       },
       "settingsKeys": {
         "title": "API keys",
-        "description": "In Settings you set up and validate the DeepSeek (lesson generation) and Brave Search (sources) keys, and manage the local model."
+        "description": "In Settings you set up and validate the OpenRouter (lesson generation) and Brave Search (sources) keys, and manage the local model."
       },
       "lessonSubject": {
         "title": "Generate a lesson",
@@ -470,7 +471,7 @@
         "description": "Browse the tabs to explore. You can reopen this tutorial anytime from the help button."
       },
       "settingsKeysFill": {
-        "description": "Fill in your DeepSeek and Brave Search keys in this section. They power lesson generation and source search."
+        "description": "Fill in your OpenRouter and Brave Search keys in this section. They power lesson generation and source search."
       },
       "openSettings": {
         "title": "Go to Settings",
@@ -520,7 +521,7 @@
       "fullTutorialTitle": "Full Tutorial",
       "fullTutorialDescription": "Step-by-step guide across all tabs: set up keys, generate a lesson and test a solution.",
       "badgeFull": "Complete",
-      "requiresKeys": "Requires the API keys (DeepSeek + Brave).",
+      "requiresKeys": "Requires the API keys (OpenRouter + Brave).",
       "openSettings": "Set up keys"
     },
     "status": {

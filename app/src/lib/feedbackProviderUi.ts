@@ -3,7 +3,8 @@
  * Desafio para o rótulo (via i18n key) exibido num Chip na tela.
  *
  * Função pura (sem React/i18n): recebe o provedor decidido por
- * `resolveFeedbackProvider` ('local' | 'deepseek') e devolve a CHAVE de tradução
+ * `resolveFeedbackProvider` ('local' | 'deepseek' — o valor 'deepseek' é
+ * histórico e nomeia hoje o provedor de nuvem OpenRouter) e devolve a CHAVE de tradução
  * que o componente usa com `t()`. `null` → sem chip (nenhum provedor decidido).
  *
  * As chaves são literais tipados para passar o strictKeyChecks (typed resources

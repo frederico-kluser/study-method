@@ -2,7 +2,7 @@
  * src/main.tsx — ponto de entrada do renderer React.
  *
  * A raiz monta o <AppGate> (onda 6 — gate de início), que envolve o <App/>:
- * valida as chaves DeepSeek/Brave no main antes de liberar a UI (setup
+ * valida as chaves OpenRouter/Brave no main antes de liberar a UI (setup
  * obrigatório quando faltam/invalidam; offline com aviso quando ambas falham
  * por rede). AppGate renderiza <App/> internamente nas fases liberadas.
  *

@@ -56,7 +56,7 @@ export const HOME_SUGGESTIONS: ReadonlyArray<HomeSuggestion> = [
 ];
 
 /**
- * Status do setup: `ready` apenas quando as DUAS chaves (DeepSeek + Brave)
+ * Status do setup: `ready` apenas quando as DUAS chaves (OpenRouter + Brave)
  * estão configuradas; qualquer falta → `missing`. `null`/indefinido (status
  * ainda não carregado) também conta como `missing`.
  */
