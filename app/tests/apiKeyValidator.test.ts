@@ -1,10 +1,23 @@
 /**
- * tests/apiKeyValidator.test.ts — validação de chaves DeepSeek e Brave.
- * Fetch mockado por injeção de `fetchImpl` (nunca usa rede real).
+ * tests/apiKeyValidator.test.ts — validação de chaves do LLM (OpenRouter) e
+ * Brave. Fetch mockado por injeção de `fetchImpl` (nunca usa rede real).
+ *
+ * O TESTE QUE JUSTIFICA ESTA SUÍTE é o "chave inválida NÃO passa mesmo com
+ * /models 200": no OpenRouter `GET /api/v1/models` é PÚBLICO e responde 200
+ * com o catálogo inteiro para qualquer chave (inclusive morta ou ausente).
+ * Validar por /models faria qualquer string passar; a fonte de verdade é
+ * `GET /api/v1/key`, que devolve 401 para chave revogada.
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { validateBraveKey, validateDeepseekKey } from '../electron/main/services/apiKeyValidator';
+import { validateBraveKey, validateDeepseekKey, modelSearchQuery } from '../electron/main/services/apiKeyValidator';
+
+/** Endpoint AUTENTICADO — a única fonte de verdade da validade da chave. */
+const KEY_URL = 'https://openrouter.ai/api/v1/key';
+/** Endpoint PÚBLICO do catálogo — só preenche `modelAvailable`. */
+const MODELS_PREFIX = 'https://openrouter.ai/api/v1/models';
+/** Model id alvo do contrato congelado (shared/llm/constants.ts). */
+const TARGET_MODEL = 'z-ai/glm-5.3-flash';
 
 /** Cria um Response fake compatível com `fetch`. */
 function fakeResponse(status: number, body: unknown = {}, statusText = ''): Response {
@@ -16,98 +29,248 @@ function fakeResponse(status: number, body: unknown = {}, statusText = ''): Resp
   } as Response;
 }
 
-test('validateDeepseekKey: 200 com modelo alvo → válida + modelAvailable true', async () => {
-  const seen: { url: string; headers: Record<string, string> }[] = [];
-  const fetchImpl = (async (url: any, init?: any) => {
-    seen.push({ url, headers: init.headers });
-    return fakeResponse(200, {
-      data: [{ id: 'deepseek-v4-flash' }, { id: 'deepseek-v4-pro' }],
-    });
+interface SeenCall {
+  url: string;
+  headers: Record<string, string>;
+}
+
+/**
+ * fetch fake que ROTEIA por URL: `/key` (validade) e `/models` (catálogo) são
+ * respostas independentes — é assim que se prova que a validade NÃO vem do
+ * catálogo. Registra cada chamada em `seen`.
+ */
+function routerFetch(opts: {
+  key: () => Response | Promise<Response>;
+  models?: () => Response | Promise<Response>;
+  seen?: SeenCall[];
+}): typeof fetch {
+  return (async (url: unknown, init?: RequestInit) => {
+    const u = String(url);
+    opts.seen?.push({ url: u, headers: (init?.headers ?? {}) as Record<string, string> });
+    if (u.startsWith(MODELS_PREFIX)) {
+      if (!opts.models) throw new Error(`/models não deveria ser chamado: ${u}`);
+      return opts.models();
+    }
+    return opts.key();
   }) as unknown as typeof fetch;
+}
 
-  const result = await validateDeepseekKey('sk-123', { fetchImpl });
+/** Catálogo do OpenRouter contendo o modelo alvo. */
+function catalogWithTarget(): Response {
+  return fakeResponse(200, {
+    data: [{ id: 'openai/gpt-4o' }, { id: TARGET_MODEL }, { id: 'z-ai/glm-5.3-air' }],
+  });
+}
+
+// ─── OpenRouter (nome legado validateDeepseekKey — canal keys:validate-deepseek) ──
+
+test('validateDeepseekKey: valida em GET /api/v1/key (NÃO em /models) com Bearer', async () => {
+  const seen: SeenCall[] = [];
+  const result = await validateDeepseekKey('sk-or-v1-123', {
+    fetchImpl: routerFetch({ key: () => fakeResponse(200, { data: { label: 'k' } }), models: catalogWithTarget, seen }),
+  });
 
   assert.equal(result.isValid, true);
-  assert.equal(result.provider, 'deepseek');
+  assert.equal(result.provider, 'openrouter');
+  // A PRIMEIRA chamada — a que decide a validade — é a do endpoint autenticado.
+  assert.equal(seen[0].url, KEY_URL);
+  assert.equal(seen[0].headers['Authorization'], 'Bearer sk-or-v1-123');
+});
+
+test('SEGURANÇA: chave inválida é REPROVADA mesmo com /models respondendo 200', async () => {
+  // Este é o bug que a migração previne: /api/v1/models é público e devolve o
+  // catálogo inteiro com 200 mesmo para uma chave revogada. Se a validação
+  // olhasse /models, QUALQUER string passaria.
+  const seen: SeenCall[] = [];
+  const result = await validateDeepseekKey('sk-or-v1-revogada', {
+    fetchImpl: routerFetch({
+      key: () => fakeResponse(401, { error: { message: 'User not found.', code: 401 } }),
+      models: catalogWithTarget, // 200 com o catálogo COMPLETO — e ainda assim inválida
+      seen,
+    }),
+  });
+
+  assert.equal(result.isValid, false, 'chave morta NUNCA pode passar por causa do /models público');
+  assert.equal(result.errorMessage, 'Invalid API key');
+  assert.equal(result.provider, 'openrouter');
+  // E nem chegou a consultar o catálogo: chave reprovada encerra o pipeline.
+  assert.deepEqual(seen.map((c) => c.url), [KEY_URL]);
+});
+
+test('validateDeepseekKey: 200 + catálogo com o id EXATO → modelAvailable true', async () => {
+  const seen: SeenCall[] = [];
+  const result = await validateDeepseekKey('sk-or-v1-123', {
+    fetchImpl: routerFetch({ key: () => fakeResponse(200), models: catalogWithTarget, seen }),
+  });
+
+  assert.equal(result.isValid, true);
   assert.equal(result.modelAvailable, true);
-  assert.equal(seen[0].url, 'https://api.deepseek.com/models');
-  assert.equal(seen[0].headers['Authorization'], 'Bearer sk-123');
+  assert.equal(result.errorMessage, undefined);
+  // O probe do catálogo usa o termo curto derivado do id (q=glm) — busca fuzzy.
+  const modelsCall = seen.find((c) => c.url.startsWith(MODELS_PREFIX));
+  assert.ok(modelsCall, '/models deveria ter sido consultado como COMPLEMENTO');
+  assert.equal(modelsCall!.url, `${MODELS_PREFIX}?q=glm`);
+  assert.equal(modelsCall!.headers['Authorization'], 'Bearer sk-or-v1-123');
 });
 
-test('validateDeepseekKey: 200 com id exato 0731 → modelAvailable true', async () => {
-  const fetchImpl = (async () =>
-    fakeResponse(200, { data: [{ id: 'deepseek-v4-flash' }] })) as unknown as typeof fetch;
-  const result = await validateDeepseekKey('sk-123', { fetchImpl });
-  assert.equal(result.isValid, true);
-  assert.equal(result.modelAvailable, true);
-});
-
-test('validateDeepseekKey: 200 sem modelo alvo → válida, modelAvailable false + nota', async () => {
-  const fetchImpl = (async () =>
-    fakeResponse(200, { data: [{ id: 'other-model' }] })) as unknown as typeof fetch;
-  const result = await validateDeepseekKey('sk-123', { fetchImpl });
-  assert.equal(result.isValid, true);
+test('validateDeepseekKey: catálogo SEM o id exato → válida, modelAvailable false + nota', async () => {
+  const result = await validateDeepseekKey('sk-or-v1-123', {
+    fetchImpl: routerFetch({
+      key: () => fakeResponse(200),
+      // Ids parecidos, mas nenhum é o alvo: o match é pelo id EXATO.
+      models: () => fakeResponse(200, { data: [{ id: 'z-ai/glm-5.3-air' }, { id: 'z-ai/glm-4' }] }),
+    }),
+  });
+  assert.equal(result.isValid, true, 'catálogo NUNCA derruba a chave');
   assert.equal(result.modelAvailable, false);
-  assert.ok(result.errorMessage && result.errorMessage.includes('modelo alvo'));
+  assert.ok(result.errorMessage && result.errorMessage.includes(TARGET_MODEL));
 });
 
-test('validateDeepseekKey: 200 sem data (lista ausente) → válida, modelAvailable false, não falha', async () => {
-  const fetchImpl = (async () => fakeResponse(200, {})) as unknown as typeof fetch;
-  const result = await validateDeepseekKey('sk-123', { fetchImpl });
+test('validateDeepseekKey: probe do catálogo falhou (500) → válida, modelAvailable indefinido', async () => {
+  const result = await validateDeepseekKey('sk-or-v1-123', {
+    fetchImpl: routerFetch({
+      key: () => fakeResponse(200),
+      models: () => fakeResponse(500, { error: { message: 'catalog down' } }),
+    }),
+  });
+  assert.equal(result.isValid, true, 'falha do complemento não derruba a validação da chave');
+  assert.equal(result.modelAvailable, undefined);
+  assert.equal(result.errorMessage, undefined, 'sem nota assustadora quando não se sabe');
+});
+
+test('validateDeepseekKey: probe do catálogo com rede caída → válida, modelAvailable indefinido', async () => {
+  const result = await validateDeepseekKey('sk-or-v1-123', {
+    fetchImpl: routerFetch({
+      key: () => fakeResponse(200),
+      models: () => {
+        throw new TypeError('fetch failed');
+      },
+    }),
+  });
   assert.equal(result.isValid, true);
-  assert.equal(result.modelAvailable, false);
-  assert.ok(result.errorMessage && result.errorMessage.includes('modelo alvo'));
+  assert.equal(result.modelAvailable, undefined);
+});
+
+test('validateDeepseekKey: catálogo 200 sem `data` array → modelAvailable indefinido (shape desconhecido)', async () => {
+  const result = await validateDeepseekKey('sk-or-v1-123', {
+    fetchImpl: routerFetch({ key: () => fakeResponse(200), models: () => fakeResponse(200, {}) }),
+  });
+  assert.equal(result.isValid, true);
+  assert.equal(result.modelAvailable, undefined);
 });
 
 test('validateDeepseekKey: 401 → inválida "Invalid API key"', async () => {
   const fetchImpl = (async () => fakeResponse(401)) as unknown as typeof fetch;
-  const result = await validateDeepseekKey('sk-bad', { fetchImpl });
+  const result = await validateDeepseekKey('sk-or-v1-bad', { fetchImpl });
   assert.equal(result.isValid, false);
   assert.equal(result.errorMessage, 'Invalid API key');
 });
 
 test('validateDeepseekKey: 403 → inválida "Invalid API key"', async () => {
   const fetchImpl = (async () => fakeResponse(403)) as unknown as typeof fetch;
-  const result = await validateDeepseekKey('sk-bad', { fetchImpl });
+  const result = await validateDeepseekKey('sk-or-v1-bad', { fetchImpl });
   assert.equal(result.isValid, false);
   assert.equal(result.errorMessage, 'Invalid API key');
 });
 
-test('validateDeepseekKey: 402 (sem créditos) → VÁLIDA', async () => {
-  const fetchImpl = (async () => fakeResponse(402)) as unknown as typeof fetch;
-  const result = await validateDeepseekKey('sk-123', { fetchImpl });
-  assert.equal(result.isValid, true);
+test('validateDeepseekKey: 402 (crédito insuficiente no OpenRouter) → VÁLIDA, sem consultar o catálogo', async () => {
+  const seen: SeenCall[] = [];
+  const result = await validateDeepseekKey('sk-or-v1-123', {
+    fetchImpl: routerFetch({ key: () => fakeResponse(402), seen }),
+  });
+  assert.equal(result.isValid, true, '402 é falta de crédito, não chave inválida');
+  assert.equal(result.modelAvailable, undefined);
+  assert.deepEqual(seen.map((c) => c.url), [KEY_URL]);
 });
 
-test('validateDeepseekKey: 429 (rate limit) → VÁLIDA', async () => {
-  const fetchImpl = (async () => fakeResponse(429)) as unknown as typeof fetch;
-  const result = await validateDeepseekKey('sk-123', { fetchImpl });
+test('validateDeepseekKey: 429 (rate limit) → VÁLIDA, sem consultar o catálogo', async () => {
+  const seen: SeenCall[] = [];
+  const result = await validateDeepseekKey('sk-or-v1-123', {
+    fetchImpl: routerFetch({ key: () => fakeResponse(429), seen }),
+  });
   assert.equal(result.isValid, true);
+  assert.deepEqual(seen.map((c) => c.url), [KEY_URL]);
 });
 
 test('validateDeepseekKey: rede falhou → inválida com erro de rede', async () => {
   const fetchImpl = (async () => {
     throw new Error('ECONNREFUSED');
   }) as unknown as typeof fetch;
-  const result = await validateDeepseekKey('sk-123', { fetchImpl });
+  const result = await validateDeepseekKey('sk-or-v1-123', { fetchImpl });
   assert.equal(result.isValid, false);
   assert.ok(result.errorMessage && result.errorMessage.includes('ECONNREFUSED'));
+  assert.match(result.errorMessage ?? '', /^Network error:/);
 });
 
 test('validateDeepseekKey: chave vazia → inválida', async () => {
-  const result = await validateDeepseekKey('', { fetchImpl: (async () => fakeResponse(200, {})) as unknown as typeof fetch });
+  const result = await validateDeepseekKey('', {
+    fetchImpl: (async () => fakeResponse(200, {})) as unknown as typeof fetch,
+  });
   assert.equal(result.isValid, false);
   assert.equal(result.errorMessage, 'API key is empty');
+  assert.equal(result.provider, 'openrouter');
 });
 
-test('validateDeepseekKey: baseUrl custom usada', async () => {
+test('validateDeepseekKey: baseUrl custom usada (com barras finais removidas)', async () => {
   const seen: string[] = [];
   const fetchImpl = (async (url: any) => {
-    seen.push(url);
-    return fakeResponse(200, { data: [{ id: 'deepseek-v4-flash' }] });
+    seen.push(String(url));
+    return String(url).includes('/models') ? catalogWithTarget() : fakeResponse(200);
   }) as unknown as typeof fetch;
-  await validateDeepseekKey('sk-123', { fetchImpl, baseUrl: 'https://proxy.test/v1/' });
-  assert.equal(seen[0], 'https://proxy.test/v1/models');
+  await validateDeepseekKey('sk-or-v1-123', { fetchImpl, baseUrl: 'https://proxy.test/v1/' });
+  assert.equal(seen[0], 'https://proxy.test/v1/key');
+  assert.equal(seen[1], 'https://proxy.test/v1/models?q=glm');
+});
+
+test('validateDeepseekKey: 500 com corpo { error: { message } } → mensagem extraída', async () => {
+  const fetchImpl = (async () =>
+    fakeResponse(500, { error: { message: 'openrouter down' } })) as unknown as typeof fetch;
+  const result = await validateDeepseekKey('sk-or-v1-123', { fetchImpl });
+  assert.equal(result.isValid, false);
+  assert.equal(result.errorMessage, 'openrouter down');
+});
+
+test('validateDeepseekKey: 500 com corpo { message } (sem { error }) → mensagem extraída', async () => {
+  const fetchImpl = (async () =>
+    fakeResponse(500, { message: 'plain message' })) as unknown as typeof fetch;
+  const result = await validateDeepseekKey('sk-or-v1-123', { fetchImpl });
+  assert.equal(result.isValid, false);
+  assert.equal(result.errorMessage, 'plain message');
+});
+
+test('validateDeepseekKey: 500 com corpo não-parseável → fallback HTTP status', async () => {
+  const fetchImpl = (async () =>
+    fakeResponse(500, 'not json', 'Internal Server Error')) as unknown as typeof fetch;
+  const result = await validateDeepseekKey('sk-or-v1-123', { fetchImpl });
+  assert.equal(result.isValid, false);
+  assert.equal(result.errorMessage, 'HTTP 500: Internal Server Error');
+});
+
+test('validateDeepseekKey: 500 com corpo parseável mas sem mensagem → fallback HTTP status', async () => {
+  const fetchImpl = (async () => fakeResponse(500, { code: 'XYZ' })) as unknown as typeof fetch;
+  const result = await validateDeepseekKey('sk-or-v1-123', { fetchImpl });
+  assert.equal(result.isValid, false);
+  assert.ok(result.errorMessage && result.errorMessage.includes('HTTP 500'));
+});
+
+test('validateDeepseekKey: 200 com corpo ilegível em /key → segue VÁLIDA (corpo é irrelevante)', async () => {
+  const fetchImpl = (async (url: any) => {
+    if (String(url).includes('/models')) return catalogWithTarget();
+    const r = fakeResponse(200);
+    (r as { json: () => Promise<unknown> }).json = async () => {
+      throw new Error('bad json');
+    };
+    return r;
+  }) as unknown as typeof fetch;
+  const result = await validateDeepseekKey('sk-or-v1-123', { fetchImpl });
+  assert.equal(result.isValid, true);
+  assert.equal(result.modelAvailable, true);
+});
+
+test('modelSearchQuery: termo curto e estável derivado do id do modelo', () => {
+  assert.equal(modelSearchQuery('z-ai/glm-5.3-flash'), 'glm');
+  assert.equal(modelSearchQuery('openai/gpt-4o'), 'gpt');
+  assert.equal(modelSearchQuery('sem-barra'), 'sem');
 });
 
 // ─── Brave ────────────────────────────────────────────────────────────────────
@@ -162,37 +325,6 @@ test('validateBraveKey: 500 com corpo de erro → inválida com mensagem', async
   const result = await validateBraveKey('key-abc', { fetchImpl });
   assert.equal(result.isValid, false);
   assert.equal(result.errorMessage, 'server exploded');
-});
-
-test('validateDeepseekKey: 500 com corpo { error: { message } } → mensagem extraída', async () => {
-  const fetchImpl = (async () =>
-    fakeResponse(500, { error: { message: 'deepseek down' } })) as unknown as typeof fetch;
-  const result = await validateDeepseekKey('sk-123', { fetchImpl });
-  assert.equal(result.isValid, false);
-  assert.equal(result.errorMessage, 'deepseek down');
-});
-
-test('validateDeepseekKey: 500 com corpo { message } (sem { error }) → mensagem extraída', async () => {
-  const fetchImpl = (async () =>
-    fakeResponse(500, { message: 'plain message' })) as unknown as typeof fetch;
-  const result = await validateDeepseekKey('sk-123', { fetchImpl });
-  assert.equal(result.isValid, false);
-  assert.equal(result.errorMessage, 'plain message');
-});
-
-test('validateDeepseekKey: 500 com corpo não-parseável → fallback HTTP status', async () => {
-  const fetchImpl = (async () =>
-    fakeResponse(500, 'not json', 'Internal Server Error')) as unknown as typeof fetch;
-  const result = await validateDeepseekKey('sk-123', { fetchImpl });
-  assert.equal(result.isValid, false);
-  assert.ok(result.errorMessage && result.errorMessage.includes('HTTP 500'));
-});
-
-test('validateDeepseekKey: 500 com corpo parseável mas sem mensagem → fallback HTTP status', async () => {
-  const fetchImpl = (async () => fakeResponse(500, { code: 'XYZ' })) as unknown as typeof fetch;
-  const result = await validateDeepseekKey('sk-123', { fetchImpl });
-  assert.equal(result.isValid, false);
-  assert.ok(result.errorMessage && result.errorMessage.includes('HTTP 500'));
 });
 
 test('validateBraveKey: chave vazia → inválida "API key is empty"', async () => {

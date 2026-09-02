@@ -7,6 +7,12 @@
  * (process.env['ELECTRON_RENDERER_URL']); em prod carrega o bundle do
  * renderer (out/renderer/index.html).
  *
+ * MIGRAÇÃO OPENROUTER (chaves): toda leitura da chave do LLM passa por
+ * `readLlmApiKey` — slot novo 'openrouter' com FALLBACK para o slot legado
+ * 'deepseek' (ver electron/main/ipc/keys-handlers.ts). Os SERVIÇOS que
+ * consomem essa chave (deepseekClient/juiz/autor) ainda apontam para a API da
+ * DeepSeek: trocá-los é outra sub-tarefa da migração.
+ *
  * Fiação da onda 3 (ui-wiring): no whenReady constrói os serviços REAIS
  * (settingsStore, PiAgentService, runner/lesson/orchestrator com autor+juiz
  * DeepSeek, brave + research) e entrega registerPi/registerStudy/registerLocalAi
@@ -18,7 +24,7 @@ import { join } from 'node:path';
 import { app, BrowserWindow, shell } from 'electron';
 
 import { registerIpcHandlers } from './ipc';
-import { registerKeysHandlers } from './ipc/keys-handlers';
+import { registerKeysHandlers, readLlmApiKey } from './ipc/keys-handlers';
 import { registerStartupHandlers } from './ipc/startup-handlers';
 import { registerPiHandlers } from './ipc/pi-handlers';
 import { registerStudyHandlers, type RunnerLike, type LessonServiceLike } from './ipc/study-handlers';
@@ -93,7 +99,7 @@ if (!gotLock) {
       const settingsStore = await getSettingsStore();
 
       const judge = createDeepSeekLlmJudge({
-        getApiKey: () => settingsStore.getApiKey('deepseek'),
+        getApiKey: () => readLlmApiKey(settingsStore),
       });
 
       const runner = createStudyMethodRunner({
@@ -102,7 +108,7 @@ if (!gotLock) {
       }) as unknown as RunnerLike;
 
       const author = createDeepSeekLessonAuthor({
-        getApiKey: () => settingsStore.getApiKey('deepseek'),
+        getApiKey: () => readLlmApiKey(settingsStore),
       });
 
       const brave = createBraveSearchService({
@@ -127,7 +133,7 @@ if (!gotLock) {
       // deepseekClient do juiz/autor, usado pelos helpers do researchPlanner
       // (JSON estrito, temperature baixa). Falhas degradam para a heurística.
       const plannerDeepseek = createDeepSeekClient({
-        apiKey: () => settingsStore.getApiKey('deepseek'),
+        apiKey: () => readLlmApiKey(settingsStore),
       });
       const research = createResearchPlanner({
         search: brave,
@@ -142,7 +148,7 @@ if (!gotLock) {
       // isto, study:judge-answer respondia ANSWER_JUDGE_UNAVAILABLE em produção.
       const answerJudge = createAnswerJudge({
         deepseek: plannerDeepseek,
-        getApiKey: () => settingsStore.getApiKey('deepseek'),
+        getApiKey: () => readLlmApiKey(settingsStore),
         embedded: embeddedLlm,
       });
 

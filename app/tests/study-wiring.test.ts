@@ -387,11 +387,15 @@ describe('(f) keys-handlers: chave digitada', () => {
       return (origLoad as any).apply(this, [request, ...args]);
     };
 
+    // MIGRAÇÃO OPENROUTER: a validação faz DUAS chamadas — `/key` (a que decide
+    // a validade) e, como COMPLEMENTO, `/models` (só preenche modelAvailable).
+    // Só a primeira interessa aqui, então o Authorization é registrado por URL.
     const headersSeen: Array<string | undefined> = [];
     fetchMock = mock.method(globalThis, 'fetch', async (url: unknown, init?: { headers?: Record<string, string> }) => {
       const h = (init?.headers ?? {}) as Record<string, string>;
-      headersSeen.push(h.Authorization ?? h.authorization);
-      return fakeResponse(200, { data: [{ id: 'deepseek-v4-flash' }] });
+      const u = String(url);
+      if (u.endsWith('/key')) headersSeen.push(h.Authorization ?? h.authorization);
+      return fakeResponse(200, { data: [{ id: 'z-ai/glm-5.3-flash' }] });
     });
 
     const { registerKeysHandlers } = await (await import('../electron/main/ipc/keys-handlers')) as {
@@ -405,7 +409,11 @@ describe('(f) keys-handlers: chave digitada', () => {
     const handler = ipcFake.handlers.get(KEYS_CHANNELS.VALIDATE_DEEPSEEK)!;
     const result = (await handler(undefined, 'sk-digitada')) as { isValid: boolean };
     assert.equal(result.isValid, true);
-    assert.deepEqual(headersSeen, ['Bearer sk-digitada'], 'fetch deve carregar a chave digitada no Authorization');
+    assert.deepEqual(
+      headersSeen,
+      ['Bearer sk-digitada'],
+      'o fetch de GET /api/v1/key deve carregar a chave digitada no Authorization',
+    );
   });
 });
 

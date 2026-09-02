@@ -20,9 +20,9 @@ import type {
 import type { IpcBridgeLike } from '../electron/preload/api-schema';
 import type { SettingsStore } from '../electron/main/services/settingsStore';
 
-type ApiKeys = Record<'deepseek' | 'brave', string>;
+type ApiKeys = Record<'openrouter' | 'brave', string>;
 function fakeStore(initial: Partial<ApiKeys> = {}): SettingsStore {
-  const keys: ApiKeys = { deepseek: '', brave: '', ...initial };
+  const keys: ApiKeys = { openrouter: '', brave: '', ...initial };
   return { getApiKey: async (p: string) => keys[p as keyof ApiKeys] ?? '' } as unknown as SettingsStore;
 }
 
@@ -30,7 +30,9 @@ const CHK = '2026-08-23T00:00:00.000Z';
 function vd(isValid: true): DeepSeekValidationResult;
 function vd(isValid: false, errorMessage: string): DeepSeekValidationResult;
 function vd(isValid: boolean, errorMessage?: string): DeepSeekValidationResult {
-  return { isValid, provider: 'deepseek', checkedAt: CHK, ...(errorMessage ? { errorMessage } : {}) };
+  // `provider` do resultado já é o do OpenRouter; o CAMPO `deepseek` do
+  // StartupStatus é que continua com o nome legado (contrato até a ONDA 2).
+  return { isValid, provider: 'openrouter', checkedAt: CHK, ...(errorMessage ? { errorMessage } : {}) };
 }
 function vb(isValid: true): BraveValidationResult;
 function vb(isValid: false, errorMessage: string): BraveValidationResult;
@@ -71,7 +73,7 @@ describe('contrato keys:startup-status', () => {
 
   it('buildStartupHandlers devolve a forma StartupStatus EXATA (shape)', async () => {
     const handlers = buildStartupHandlers({
-      getStore: async () => fakeStore({ deepseek: 'sk-d', brave: 'bk' }),
+      getStore: async () => fakeStore({ openrouter: 'sk-or-v1-d', brave: 'bk' }),
       validateDeepseek: async () => vd(true),
       validateBrave: async () => vb(false, 'Invalid API key'),
       timeoutMs: 0,

@@ -3,7 +3,7 @@
  *
  * Ativado quando `process.env.STUDY_METHOD_E2E === '1'`. Substitui os handlers
  * IPC de CHAVES/GATE/PI/STUDY/LOCAL_AI/VOZ por fixtures DETERMINÍSTICAS — nada
- * de rede real (deepseek/brave), nada de inferência (node-llama-cpp/GGUF), nada
+ * de rede real (openrouter/brave), nada de inferência (node-llama-cpp/GGUF), nada
  * de voz (STT/TTS). O renderer é EXATAMENTE o de produção (mesmo bundle); só o
  * main responde com stubs controláveis por envars.
  *
@@ -60,6 +60,7 @@ import type {
   TutorChatRequest,
   TutorReply,
 } from '@shared/ipc-contract';
+import { OPENROUTER_KEY_PREFIX, OPENROUTER_PROVIDER_KEY } from '@shared/llm/constants';
 import type { TrackRepoLike } from '../ipc/track-handlers';
 import { buildPiHandlers, type PiAgentServiceLike } from '../ipc/pi-handlers';
 import {
@@ -81,13 +82,20 @@ async function sleep(ms: number): Promise<void> {
   await new Promise((r) => setTimeout(r, ms));
 }
 
-/** Estado em memória das chaves (o stub NÃO toca o settingsStore real). */
+/**
+ * Estado em memória das chaves (o stub NÃO toca o settingsStore real).
+ *
+ * MIGRAÇÃO OPENROUTER: o slot do LLM é `openrouter` — o E2E não afirma mais
+ * `deepseek` em lugar nenhum. O nome legado sobrevive apenas como APELIDO de
+ * ENTRADA do `keys:set-key` (o renderer de hoje ainda manda 'deepseek') e nos
+ * campos do StartupStatus/KeysStatus, que são contrato congelado até a ONDA 2.
+ */
 interface KeyState {
-  deepseek: string;
+  openrouter: string;
   brave: string;
 }
 
-const keys: KeyState = { deepseek: '', brave: '' };
+const keys: KeyState = { openrouter: '', brave: '' };
 
 /** Marca uma chave como INEVALIDÁVEL (prefixo reservado do teste). */
 const INVALID_MARKER = 'invalid';
@@ -100,13 +108,16 @@ function seedKeys(): void {
   const gate = process.env.E2E_GATE ?? 'blocked';
   if (gate === 'ready' || gate === 'invalid' || gate === 'offline') {
     const invalid = gate === 'invalid' || process.env.E2E_KEYS === 'invalid';
-    keys.deepseek = invalid ? `${INVALID_MARKER}-deepseek-seed` : 'sk-e2e-deepseek-valid';
+    // Chave de teste no FORMATO do OpenRouter (sk-or-v1-…), do contrato.
+    keys.openrouter = invalid
+      ? `${INVALID_MARKER}-openrouter-seed`
+      : `${OPENROUTER_KEY_PREFIX}e2e-openrouter-valid`;
     keys.brave = invalid ? `${INVALID_MARKER}-brave-seed` : 'bs-e2e-brave-valid';
   }
 }
 
 function bothConfigured(): boolean {
-  return keys.deepseek.trim() !== '' && keys.brave.trim() !== '';
+  return keys.openrouter.trim() !== '' && keys.brave.trim() !== '';
 }
 
 function keyIsInvalid(value: string): boolean {
@@ -136,7 +147,7 @@ function buildStartupStatus(): StartupStatus {
       checkedAt,
     };
   }
-  const invalidD = keyIsInvalid(keys.deepseek);
+  const invalidD = keyIsInvalid(keys.openrouter);
   const invalidB = keyIsInvalid(keys.brave);
   if (invalidD || invalidB) {
     return {
@@ -160,7 +171,7 @@ function buildStartupStatus(): StartupStatus {
   };
 }
 
-function validResult(provider: 'deepseek' | 'brave', key: string): ValidationResult {
+function validResult(provider: 'openrouter' | 'brave', key: string): ValidationResult {
   const checkedAt = new Date().toISOString();
   if (keyIsInvalid(key)) {
     return { isValid: false, provider, errorMessage: 'Invalid API key', checkedAt };
@@ -752,24 +763,33 @@ function buildVoiceStubHandlers(): Map<string, IpcHandlerFn> {
 
 // ─── Registration fechada (input) ─────────────────────────────────────────────
 
-function buildKeysStubHandlers(): Map<string, IpcHandlerFn> {
+/**
+ * Handlers STUB dos canais keys:* — exportado para o teste unitário aferir a
+ * migração do slot da chave (openrouter canônico, 'deepseek' como apelido de
+ * entrada) sem subir o Electron.
+ */
+export function buildKeysStubHandlers(): Map<string, IpcHandlerFn> {
   const map = new Map<string, IpcHandlerFn>();
   map.set(KEYS_CHANNELS.STARTUP_STATUS, async (): Promise<StartupStatus> => buildStartupStatus());
   map.set(KEYS_CHANNELS.GET_STATUS, async (): Promise<KeysStatusLike> => ({
-    deepseekConfigured: keys.deepseek !== '',
+    // Campos legados do KeysStatus (contrato até a ONDA 2) alimentados pelo
+    // slot 'openrouter'.
+    deepseekConfigured: keys.openrouter !== '',
     braveConfigured: keys.brave !== '',
-    deepseekValidated: !keyIsInvalid(keys.deepseek) && keys.deepseek !== '',
+    deepseekValidated: !keyIsInvalid(keys.openrouter) && keys.openrouter !== '',
     braveValidated: !keyIsInvalid(keys.brave) && keys.brave !== '',
   }));
   map.set(KEYS_CHANNELS.SET_KEY, async (_e, provider: unknown, apiKey: unknown) => {
     const p = String(provider ?? '');
     const k = typeof apiKey === 'string' ? apiKey.trim() : '';
-    if (p === 'deepseek') keys.deepseek = k;
+    // 'openrouter' é o nome canônico; 'deepseek' é aceito como APELIDO porque o
+    // renderer só passa a mandar o nome novo na ONDA 2.
+    if (p === OPENROUTER_PROVIDER_KEY || p === 'deepseek') keys.openrouter = k;
     else if (p === 'brave') keys.brave = k;
     return { ok: true };
   });
   map.set(KEYS_CHANNELS.VALIDATE_DEEPSEEK, async (_e, key?: unknown) =>
-    validResult('deepseek', typeof key === 'string' ? key : keys.deepseek),
+    validResult(OPENROUTER_PROVIDER_KEY, typeof key === 'string' ? key : keys.openrouter),
   );
   map.set(KEYS_CHANNELS.VALIDATE_BRAVE, async (_e, key?: unknown) =>
     validResult('brave', typeof key === 'string' ? key : keys.brave),

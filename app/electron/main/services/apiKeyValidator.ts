@@ -1,38 +1,76 @@
 /**
  * electron/main/services/apiKeyValidator.ts — validação de chaves de API no
- * MAIN PROCESS (anti-CORS): DeepSeek e Brave.
+ * MAIN PROCESS (anti-CORS): OpenRouter (LLM) e Brave (busca).
  *
- * Roda no main para evitar CORS do renderer. Cada validador:
- * - 200 → chave VÁLIDA (DeepSeek ainda checa o model id alvo e reporta
- *   `modelAvailable`);
- * - 401/403 → chave INVÁLIDA ("Invalid API key");
- * - 402/429 → chave VÁLIDA (sem créditos / rate limit ≠ chave inválida);
- * - erro de rede / outro status → parseado e reportado como inválido
- *   (erroMessage com a causa).
+ * Roda no main para evitar CORS do renderer.
+ *
+ * ─── A REGRA DE OURO DESTA MIGRAÇÃO ──────────────────────────────────────────
+ * A validação da chave do LLM bate em `GET {baseUrl}/key` — NUNCA em
+ * `GET {baseUrl}/models`. No OpenRouter `/api/v1/models` é um endpoint PÚBLICO:
+ * responde 200 com o catálogo inteiro MESMO COM UMA CHAVE MORTA (ou sem chave
+ * nenhuma). Validar por `/models` faria QUALQUER string passar como válida —
+ * um bug de segurança, não um detalhe de implementação. Verificado na API real
+ * em 2026-09-01: com uma chave revogada, `/api/v1/models` → 200 (catálogo) e
+ * `/api/v1/key` → 401 `{"error":{"message":"User not found.","code":401}}`.
+ * A FONTE DE VERDADE da validade é, e continua sendo, `GET /key`.
+ *
+ * Semântica de status do validador do LLM (preservada da versão DeepSeek):
+ * - 200      → chave VÁLIDA;
+ * - 401/403  → chave INVÁLIDA ("Invalid API key");
+ * - 402/429  → chave VÁLIDA (402 no OpenRouter é EXATAMENTE crédito
+ *              insuficiente; 429 é rate limit — nenhum dos dois é chave ruim);
+ * - outro    → inválida, com a mensagem do corpo ou `HTTP n: statusText`;
+ * - erro de rede/timeout → inválida com `Network error: …` (o classificador
+ *              `isNetworkError` do startup-handlers reconhece o prefixo).
+ *
+ * `modelAvailable` é COMPLEMENTAR: vem de uma consulta separada a
+ * `GET {baseUrl}/models?q=…` procurando o id EXATO de OPENROUTER_MODEL.id.
+ * Essa consulta NUNCA decide validade — se falhar (rede, status ≠ 200, corpo
+ * ilegível, orçamento de tempo esgotado), `modelAvailable` fica `undefined` e a
+ * validação da chave segue de pé.
+ *
+ * NOMES LEGADOS (de propósito): `validateDeepseekKey`,
+ * `DeepSeekValidationResult` e `DeepSeekValidateOptions` mantêm o nome antigo
+ * porque o canal IPC (`keys:validate-deepseek`) e os campos do `KeysStatus`
+ * ainda são os antigos — renomear tudo é a ONDA 2, que muda contrato + preload
+ * + renderer juntos. Aqui só o COMPORTAMENTO migrou. O campo `provider` do
+ * resultado, esse sim, já reporta `'openrouter'` (a union do contrato aceita).
  *
  * RODADA 10 (onda 2b — sem spinner infinito): cada validação roda sob um
  * AbortSignal de timeout (`timeoutMs`, default 8s; `0` desliga). O timeout
  * cobre o pipeline COMPLETO — fetch E leitura do corpo (`response.json()`):
- * rede que ENGOLÉ pacotes antes dos headers OU depois deles (body-stall —
+ * rede que ENGOLE pacotes antes dos headers OU depois deles (body-stall —
  * headers chegam, corpo nunca chega) NUNCA segura a validação. O resultado é
  * um erro de REDE identificável — "Network error: timed out after Nms" — que
  * o classificador do startup-handlers (isNetworkError) reconhece por
- * /^Network error:/i e /timed out/i.
+ * /^Network error:/i e /timed out/i. As DUAS chamadas do OpenRouter (`/key` e
+ * o probe de `/models`) dividem UM ÚNICO orçamento `timeoutMs`: o probe só
+ * roda com o tempo que sobrou, para a validação inteira nunca passar do prazo
+ * que o startup-handlers concede.
  *
  * A base_url, o fetch e o timeout são injetáveis via `opts` para testes —
  * nunca usa rede real fora do runtime.
  */
 
 import type { ValidationResult } from '@shared/ipc-contract';
+import { OPENROUTER_ATTRIBUTION_HEADERS, OPENROUTER_MODEL } from '@shared/llm/constants';
 
 /**
- * Resultado da validação DeepSeek: estende ValidationResult com
+ * Resultado da validação do LLM (OpenRouter): estende ValidationResult com
  * `modelAvailable` — este campo é propriedade EXCLUSIVA deste validador (não
  * faz parte do contrato congelado), adicionado por uma interface local.
+ *
+ * O NOME do tipo é legado (ver cabeçalho): a renomeação para
+ * `OpenRouterValidationResult` é a ONDA 2.
  */
 export interface DeepSeekValidationResult extends ValidationResult {
-  provider: 'deepseek';
-  /** true quando a resposta 200 listou o modelo alvo (deepseek-v4-flash). */
+  provider: 'openrouter';
+  /**
+   * true quando o catálogo do OpenRouter listou o id EXATO de
+   * OPENROUTER_MODEL.id; false quando a lista veio e NÃO o continha;
+   * `undefined` quando não deu para saber (probe falhou/ficou sem tempo).
+   * NUNCA decide `isValid`.
+   */
   modelAvailable?: boolean;
 }
 
@@ -43,12 +81,13 @@ export interface BraveValidationResult extends ValidationResult {
 export interface DeepSeekValidateOptions {
   /** fetch injetável (testes). Default: fetch global. */
   fetchImpl?: typeof fetch;
-  /** base_url da API DeepSeek. Default: https://api.deepseek.com */
+  /** base_url da API do OpenRouter. Default: OPENROUTER_MODEL.baseUrl. */
   baseUrl?: string;
   /**
    * Timeout da validação em ms via AbortSignal (default
    * DEFAULT_VALIDATE_TIMEOUT_MS = 8000). Cobre o pipeline COMPLETO: fetch e
-   * leitura do corpo (`response.json()`) — body-stall também é cortado. `0`
+   * leitura do corpo (`response.json()`) — body-stall também é cortado — e é
+   * o orçamento TOTAL das duas chamadas (`/key` + probe de `/models`). `0`
    * desliga o timeout (a validação pode pendurar — só para testes de caso
    * extremo).
    */
@@ -73,15 +112,45 @@ export interface BraveValidateOptions {
  */
 export const DEFAULT_VALIDATE_TIMEOUT_MS = 8000;
 
-/** Model id alvo (DeepSeek V4 Flash, validado em GET /models). */
-const DEEPSEEK_TARGET_MODEL = 'deepseek-v4-flash';
-/** Restringe o match a ids que contenham o alvo, para aceitar `deepseek-v4-flash` */
-const DEEPSEEK_MODEL_PATTERN = 'deepseek-v4-flash';
+/**
+ * Provider reportado no campo `provider` do resultado do LLM. A union do
+ * contrato já aceita `'openrouter'` ao lado do legado `'deepseek'`.
+ */
+const LLM_PROVIDER = 'openrouter' as const;
 
-const DEEPSEEK_DEFAULT_BASE = 'https://api.deepseek.com';
+/**
+ * Caminho AUTENTICADO que decide a validade da chave. É o único endpoint do
+ * OpenRouter que responde 401 para chave morta (ver cabeçalho).
+ */
+const OPENROUTER_KEY_PATH = '/key';
+
+/** Caminho PÚBLICO do catálogo — só preenche `modelAvailable`, nunca valida. */
+const OPENROUTER_MODELS_PATH = '/models';
+
 const BRAVE_DEFAULT_BASE = 'https://api.search.brave.com';
 
-/** Extrai a mensagem de texto de um corpo de erro DeepSeek/Brave. */
+/**
+ * Termo de busca do probe de catálogo, derivado do id do modelo alvo: pega o
+ * slug (depois de `author/`) e corta no primeiro caractere não-alfanumérico —
+ * `z-ai/glm-5.3-flash` → `glm`. Um termo CURTO e estável evita que a busca
+ * fuzzy do OpenRouter erre por causa da versão pontuada; o match final é pelo
+ * id EXATO, então um termo abrangente não afrouxa nada.
+ */
+export function modelSearchQuery(modelId: string): string {
+  const slug = modelId.includes('/') ? modelId.slice(modelId.indexOf('/') + 1) : modelId;
+  const head = /^[a-z0-9]+/i.exec(slug)?.[0];
+  return head && head.length > 0 ? head : slug;
+}
+
+/** Headers de toda chamada ao OpenRouter: Bearer + attribution do contrato. */
+function openRouterHeaders(apiKey: string): Record<string, string> {
+  return {
+    Authorization: `Bearer ${apiKey}`,
+    ...OPENROUTER_ATTRIBUTION_HEADERS,
+  };
+}
+
+/** Extrai a mensagem de texto de um corpo de erro OpenRouter/Brave. */
 function extractErrorText(payload: unknown): string | undefined {
   if (!payload || typeof payload !== 'object') return undefined;
   const obj = payload as Record<string, unknown>;
@@ -176,25 +245,68 @@ function describeFetchError(error: unknown, timeoutMs: number): string {
 }
 
 /**
- * Valida uma chave DeepSeek contra GET {baseUrl}/models.
+ * Consulta COMPLEMENTAR do catálogo: `GET {baseUrl}/models?q=<termo>` e procura
+ * o id EXATO de OPENROUTER_MODEL.id.
  *
- * 200 → válida; verifica a lista de modelos (campo `data[].id`) contra o model
- * alvo e preenche `modelAvailable`. Se a lista não vier ou não for parseável,
- * não falha — apenas deixa `modelAvailable` ausente/false.
+ * NUNCA lança e NUNCA decide validade — devolve:
+ *   - `true`  → o id exato está na lista;
+ *   - `false` → veio uma lista (`data` array) e o id NÃO está nela;
+ *   - `undefined` → não deu para saber (status ≠ 200, corpo sem `data` array,
+ *     JSON ilegível, rede caiu ou o orçamento de tempo estourou).
+ */
+async function probeModelAvailable(
+  baseUrl: string,
+  apiKey: string,
+  fetchImpl: typeof fetch,
+  timeoutMs: number
+): Promise<boolean | undefined> {
+  const q = encodeURIComponent(modelSearchQuery(OPENROUTER_MODEL.id));
+  try {
+    return await withFetchTimeout(async (signal): Promise<boolean | undefined> => {
+      const response = await fetchImpl(`${baseUrl}${OPENROUTER_MODELS_PATH}?q=${q}`, {
+        method: 'GET',
+        headers: openRouterHeaders(apiKey),
+        signal,
+      });
+      if (response.status !== 200) return undefined;
+      const body = (await response.json()) as { data?: Array<{ id?: unknown }> };
+      if (!Array.isArray(body?.data)) return undefined; // shape inesperado ⇒ desconhecido
+      const ids = body.data
+        .map((m) => (typeof m?.id === 'string' ? m.id : undefined))
+        .filter((id): id is string => typeof id === 'string');
+      return ids.includes(OPENROUTER_MODEL.id);
+    }, timeoutMs);
+  } catch {
+    // Rede/abort/JSON quebrado: o probe é complementar — engole e reporta
+    // "não sei". A validade da chave já foi decidida por /key.
+    return undefined;
+  }
+}
+
+/**
+ * Valida a chave do LLM contra `GET {baseUrl}/key` (OpenRouter).
+ *
+ * ATENÇÃO: NÃO troque este endpoint por `/models` — `/models` é público e
+ * responde 200 para chave morta (ver cabeçalho do arquivo). Só `/key` é
+ * autenticado e por isso é a única fonte de verdade da validade.
+ *
+ * Nome legado preservado de propósito (o canal IPC ainda é
+ * `keys:validate-deepseek`; a renomeação é a ONDA 2).
  */
 export async function validateDeepseekKey(
   apiKey: string,
   opts: DeepSeekValidateOptions = {}
 ): Promise<DeepSeekValidationResult> {
-  const baseUrl = (opts.baseUrl ?? DEEPSEEK_DEFAULT_BASE).replace(/\/+$/, '');
+  const baseUrl = (opts.baseUrl ?? OPENROUTER_MODEL.baseUrl).replace(/\/+$/, '');
   const timeoutMs = opts.timeoutMs ?? DEFAULT_VALIDATE_TIMEOUT_MS;
   const fetchImpl = opts.fetchImpl ?? fetch;
   const checkedAt = new Date().toISOString();
+  const key = (apiKey ?? '').trim();
 
-  if (!apiKey || apiKey.trim() === '') {
+  if (key === '') {
     return {
       isValid: false,
-      provider: 'deepseek',
+      provider: LLM_PROVIDER,
       errorMessage: 'API key is empty',
       checkedAt,
     };
@@ -203,58 +315,48 @@ export async function validateDeepseekKey(
   // O pipeline INTEIRO (fetch + leitura do corpo) roda sob o timeout: rede que
   // engole pacotes DEPOIS dos headers (body-stall em response.json()) também
   // é cortada — a rejeição vira "Network error: timed out after Nms".
+  const startedAt = Date.now();
+  /**
+   * Status HTTP com que `/key` respondeu — só o 200 justifica gastar a segunda
+   * chamada no catálogo (402/429 já dizem "válida, indisponível agora").
+   */
+  let keyStatus = 0;
+  let keyResult: DeepSeekValidationResult;
   try {
-    return await withFetchTimeout(async (signal): Promise<DeepSeekValidationResult> => {
-      const response = await fetchImpl(`${baseUrl}/models`, {
+    keyResult = await withFetchTimeout(async (signal): Promise<DeepSeekValidationResult> => {
+      const response = await fetchImpl(`${baseUrl}${OPENROUTER_KEY_PATH}`, {
         method: 'GET',
-        headers: { Authorization: `Bearer ${apiKey.trim()}` },
+        headers: openRouterHeaders(key),
         signal,
       });
+      keyStatus = response.status;
 
       if (response.status === 200) {
-        // Modelo validado: tenta ler a lista de modelos (parse NÃO fatal —
-        // um corpo pendurado aqui é cortado pelo timeout do wrapper).
-        let modelAvailable: boolean | undefined;
+        // Chave VÁLIDA. Drena o corpo (`{ data: { label, usage, limit, … } }`)
+        // para liberar o socket do keep-alive; o conteúdo não é usado e um
+        // parse quebrado NÃO invalida a chave — mas um corpo que nunca chega
+        // (body-stall) continua coberto pelo timeout do wrapper.
         try {
-          const body = (await response.json()) as {
-            data?: Array<{ id?: unknown }>;
-          };
-          const ids = Array.isArray(body?.data)
-            ? body.data
-                .map((m) => (typeof m?.id === 'string' ? m.id : undefined))
-                .filter((id): id is string => typeof id === 'string')
-            : [];
-          modelAvailable = ids.some(
-            (id: string) => id === DEEPSEEK_TARGET_MODEL || id.includes(DEEPSEEK_MODEL_PATTERN)
-          );
+          await response.json();
         } catch {
-          // Corpo não-JSON ou schema inesperado: não falha, mas marca sem lista.
-          modelAvailable = undefined;
+          /* corpo não-JSON: irrelevante para a validade */
         }
-        if (modelAvailable === false) {
-          return {
-            isValid: true,
-            provider: 'deepseek',
-            modelAvailable: false,
-            errorMessage: 'Key válida, mas o modelo alvo não consta na lista de modelos da conta.',
-            checkedAt,
-          };
-        }
-        return { isValid: true, provider: 'deepseek', modelAvailable, checkedAt };
+        return { isValid: true, provider: LLM_PROVIDER, checkedAt };
       }
 
       if (response.status === 401 || response.status === 403) {
         return {
           isValid: false,
-          provider: 'deepseek',
+          provider: LLM_PROVIDER,
           errorMessage: 'Invalid API key',
           checkedAt,
         };
       }
 
       if (response.status === 402 || response.status === 429) {
-        // Sem créditos (402) / rate limit (429): chave é válida, apenas indisponível agora.
-        return { isValid: true, provider: 'deepseek', checkedAt };
+        // 402 no OpenRouter = crédito insuficiente; 429 = rate limit. A chave é
+        // válida, só está indisponível agora — não derruba o gate de início.
+        return { isValid: true, provider: LLM_PROVIDER, checkedAt };
       }
 
       // Outro status: tenta extrair mensagem do corpo (parse NÃO fatal — um
@@ -266,17 +368,40 @@ export async function validateDeepseekKey(
         parsed = undefined;
       }
       const errorMessage = parsed || `HTTP ${response.status}: ${response.statusText}`;
-      return { isValid: false, provider: 'deepseek', errorMessage, checkedAt };
+      return { isValid: false, provider: LLM_PROVIDER, errorMessage, checkedAt };
     }, timeoutMs);
   } catch (error) {
     const errorMessage = describeFetchError(error, timeoutMs);
     return {
       isValid: false,
-      provider: 'deepseek',
+      provider: LLM_PROVIDER,
       errorMessage: `Network error: ${errorMessage}`,
       checkedAt,
     };
   }
+
+  // Chave inválida, ou 402/429 (crédito/rate limit — o catálogo nada acrescenta
+  // e a conta já está no limite): devolve sem gastar mais rede.
+  if (!keyResult.isValid || keyStatus !== 200) return keyResult;
+
+  // Probe COMPLEMENTAR do catálogo com o que SOBROU do orçamento de tempo —
+  // assim a validação inteira nunca passa de `timeoutMs` (é o mesmo prazo que
+  // o startup-handlers concede à chamada toda).
+  const remaining = timeoutMs > 0 ? timeoutMs - (Date.now() - startedAt) : 0;
+  if (timeoutMs > 0 && remaining <= 0) return keyResult; // sem tempo: modelAvailable fica indefinido
+
+  const modelAvailable = await probeModelAvailable(baseUrl, key, fetchImpl, remaining);
+  if (modelAvailable === undefined) return keyResult;
+  if (modelAvailable === false) {
+    return {
+      isValid: true,
+      provider: LLM_PROVIDER,
+      modelAvailable: false,
+      errorMessage: `Key válida, mas o modelo alvo (${OPENROUTER_MODEL.id}) não consta no catálogo do OpenRouter.`,
+      checkedAt,
+    };
+  }
+  return { isValid: true, provider: LLM_PROVIDER, modelAvailable: true, checkedAt };
 }
 
 /**
@@ -304,7 +429,7 @@ export async function validateBraveKey(
     };
   }
 
-  // Mesmo contrato do validador DeepSeek: o pipeline inteiro (fetch + corpo)
+  // Mesmo contrato do validador do LLM: o pipeline inteiro (fetch + corpo)
   // sob o timeout, body-stall incluído.
   try {
     return await withFetchTimeout(async (signal): Promise<BraveValidationResult> => {

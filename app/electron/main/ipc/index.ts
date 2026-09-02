@@ -67,7 +67,11 @@ export async function readAppSettings(store: Pick<SettingsStore, 'getValue'>): P
   if (key !== undefined) out.setupsDir = key;
   const subject = await store.getValue<string>('lastSubject');
   if (subject !== undefined) out.lastSubject = subject;
-  const provider = await store.getValue<'deepseek' | 'local'>('defaultModelProvider');
+  // A union acompanha AppSettings do contrato: 'openrouter' entrou na migração
+  // (fase EXPAND) ao lado do legado 'deepseek', que ainda existe no disco.
+  const provider = await store.getValue<'deepseek' | 'openrouter' | 'local'>(
+    'defaultModelProvider',
+  );
   if (provider !== undefined) out.defaultModelProvider = provider;
   const modelId = await store.getValue<string>('defaultModelId');
   if (modelId !== undefined) out.defaultModelId = modelId;

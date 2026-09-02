@@ -10,7 +10,10 @@
  *
  * O timeout cobre o pipeline COMPLETO (fetch + leitura do corpo): aqui também
  * o BODY-STALL (headers chegam, corpo nunca chega — response.json()
- * pendurado) e o throw SÍNCRONO do fetchImpl (timer não vaza). É esta suíte
+ * pendurado) e o throw SÍNCRONO do fetchImpl (timer não vaza). Cobre ainda a
+ * divisão do orçamento entre as DUAS chamadas do OpenRouter: `/key` (validade)
+ * e o probe COMPLEMENTAR de `/models` — um probe pendurado gasta o que sobrou
+ * do prazo e é ENGOLIDO, sem derrubar a chave já aprovada. É esta suíte
  * que prova o timeout do VALIDADOR do main — o e2e-setup-timeout.spec.ts
  * substitui o handler do ipcMain e só exercita a guarda do renderer (ver
  * cabeçalho da spec). Fetch mockado por injeção de `fetchImpl` + `timeoutMs`
@@ -24,6 +27,9 @@ import {
   validateDeepseekKey,
 } from '../electron/main/services/apiKeyValidator';
 import { isNetworkError } from '../electron/main/ipc/startup-handlers';
+
+/** Model id alvo do contrato congelado (shared/llm/constants.ts). */
+const TARGET_MODEL = 'z-ai/glm-5.3-flash';
 
 /** Cria um Response fake compatível com `fetch`. */
 function fakeResponse(status: number, body: unknown = {}): Response {
@@ -58,14 +64,14 @@ function hangingFetch(): typeof fetch {
 
 test('validateDeepseekKey: fetch pendurada além do timeout → erro de rede "timed out" rápido', async () => {
   const t0 = Date.now();
-  const result = await validateDeepseekKey('sk-123', {
+  const result = await validateDeepseekKey('sk-or-v1-123', {
     fetchImpl: hangingFetch(),
     timeoutMs: 50,
   });
   const elapsed = Date.now() - t0;
 
   assert.equal(result.isValid, false);
-  assert.equal(result.provider, 'deepseek');
+  assert.equal(result.provider, 'openrouter');
   // Mensagem identificável como REDE: prefixo exato + marcador "timed out"
   // (regex do classificador isNetworkError do startup-handlers).
   assert.match(result.errorMessage ?? '', /^Network error:/i);
@@ -93,10 +99,10 @@ test('validateBraveKey: fetch pendurada além do timeout → erro de rede "timed
 test('validateDeepseekKey: timeout configurável — 0 desliga (fetch lenta ainda valida)', async () => {
   const slowOk = (async () => {
     await new Promise((r) => setTimeout(r, 80));
-    return fakeResponse(200, { data: [{ id: 'deepseek-v4-flash' }] });
+    return fakeResponse(200, { data: [{ id: TARGET_MODEL }] });
   }) as unknown as typeof fetch;
 
-  const result = await validateDeepseekKey('sk-123', { fetchImpl: slowOk, timeoutMs: 0 });
+  const result = await validateDeepseekKey('sk-or-v1-123', { fetchImpl: slowOk, timeoutMs: 0 });
 
   assert.equal(result.isValid, true);
   assert.equal(result.modelAvailable, true);
@@ -107,7 +113,7 @@ test('validateDeepseekKey: rejeição TypeError (rede) → erro de rede identifi
     throw new TypeError('fetch failed');
   }) as unknown as typeof fetch;
 
-  const result = await validateDeepseekKey('sk-123', { fetchImpl, timeoutMs: 5000 });
+  const result = await validateDeepseekKey('sk-or-v1-123', { fetchImpl, timeoutMs: 5000 });
 
   assert.equal(result.isValid, false);
   assert.match(result.errorMessage ?? '', /^Network error:/i);
@@ -117,7 +123,7 @@ test('validateDeepseekKey: rejeição TypeError (rede) → erro de rede identifi
 
 test('validateBraveKey: rejeição de rede (ENOTFOUND) → erro de rede identificável', async () => {
   const fetchImpl = (async () => {
-    throw new Error('ENOTFOUND api.deepseek.com');
+    throw new Error('ENOTFOUND openrouter.ai');
   }) as unknown as typeof fetch;
 
   const result = await validateBraveKey('key-abc', { fetchImpl, timeoutMs: 5000 });
@@ -133,9 +139,9 @@ test('DEFAULT_VALIDATE_TIMEOUT_MS: default ~8s (alinhado ao startup handler)', (
 
 test('validateDeepseekKey: timeout alto NÃO dispara quando a fetch responde rápido', async () => {
   const fastOk = (async () =>
-    fakeResponse(200, { data: [{ id: 'deepseek-v4-flash' }] })) as unknown as typeof fetch;
+    fakeResponse(200, { data: [{ id: TARGET_MODEL }] })) as unknown as typeof fetch;
 
-  const result = await validateDeepseekKey('sk-123', { fetchImpl: fastOk, timeoutMs: 5000 });
+  const result = await validateDeepseekKey('sk-or-v1-123', { fetchImpl: fastOk, timeoutMs: 5000 });
 
   assert.equal(result.isValid, true);
   assert.equal(result.errorMessage, undefined);
@@ -148,8 +154,9 @@ test('validateDeepseekKey: chave vazia NÃO espera o timeout (valida antes do fe
 });
 
 test('validateDeepseekKey: BODY-STALL — headers chegam, corpo nunca chega → "timed out" no prazo', async () => {
-  // W1: rede que engole pacotes DEPOIS dos headers. O fetch resolve rápido com
-  // status 200, mas response.json() NUNCA resolve (corpo nunca termina). O
+  // W1: rede que engole pacotes DEPOIS dos headers no endpoint de VALIDADE
+  // (/key). O fetch resolve rápido com status 200, mas response.json() NUNCA
+  // resolve (corpo nunca termina) — e o corpo é drenado ali mesmo. O
   // timeout cobre a leitura do corpo: a validação resolve no prazo com erro de
   // REDE, não fica pendurada.
   let seenSignal: AbortSignal | null | undefined;
@@ -164,14 +171,14 @@ test('validateDeepseekKey: BODY-STALL — headers chegam, corpo nunca chega → 
   }) as unknown as typeof fetch;
 
   const t0 = Date.now();
-  const result = await validateDeepseekKey('sk-123', {
+  const result = await validateDeepseekKey('sk-or-v1-123', {
     fetchImpl: bodyStallFetch,
     timeoutMs: 60,
   });
   const elapsed = Date.now() - t0;
 
   assert.equal(result.isValid, false);
-  assert.equal(result.provider, 'deepseek');
+  assert.equal(result.provider, 'openrouter');
   // Mensagem exata do contrato: prefixo de rede + marcador "timed out" + ms.
   assert.match(result.errorMessage ?? '', /^Network error:/i);
   assert.match(result.errorMessage ?? '', /timed out/i);
@@ -209,6 +216,28 @@ test('validateBraveKey: BODY-STALL em status de erro — corpo nunca chega → "
   assert.equal(isNetworkError(result), true);
 });
 
+test('validateDeepseekKey: probe de /models PENDURADO não derruba a chave (válida, modelAvailable indefinido)', async () => {
+  // O catálogo é COMPLEMENTAR: /key já aprovou a chave. Se o probe pendurar, o
+  // que sobrou do orçamento é gasto nele, o abort é ENGOLIDO e a validação
+  // resolve VÁLIDA — só sem saber `modelAvailable`. O prazo TOTAL (as duas
+  // chamadas juntas) continua sendo `timeoutMs`.
+  const hanging = hangingFetch();
+  const fetchImpl = ((input: unknown, init?: RequestInit) => {
+    if (String(input).includes('/models')) return hanging(input as string, init);
+    return Promise.resolve(fakeResponse(200, { data: { label: 'k' } }));
+  }) as unknown as typeof fetch;
+
+  const t0 = Date.now();
+  const result = await validateDeepseekKey('sk-or-v1-123', { fetchImpl, timeoutMs: 80 });
+  const elapsed = Date.now() - t0;
+
+  assert.equal(result.isValid, true, 'o complemento NUNCA decide validade');
+  assert.equal(result.provider, 'openrouter');
+  assert.equal(result.modelAvailable, undefined);
+  assert.equal(result.errorMessage, undefined);
+  assert.ok(elapsed < 2000, `deveria resolver perto do orçamento, levou ${elapsed}ms`);
+});
+
 test('validateDeepseekKey: fetchImpl que lança SINCRONAMENTE → erro de rede imediato, sem timer vazado', async () => {
   // W3: throw síncrono do fetchImpl (mock) não pode vazar o timer nem segurar
   // a validação — rejeita imediatamente, ANTES do prazo do timeout (se o timer
@@ -218,7 +247,7 @@ test('validateDeepseekKey: fetchImpl que lança SINCRONAMENTE → erro de rede i
   }) as unknown as typeof fetch;
 
   const t0 = Date.now();
-  const result = await validateDeepseekKey('sk-123', {
+  const result = await validateDeepseekKey('sk-or-v1-123', {
     fetchImpl: syncThrowFetch,
     timeoutMs: 60,
   });

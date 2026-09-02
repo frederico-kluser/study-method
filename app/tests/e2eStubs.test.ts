@@ -237,6 +237,56 @@ describe('e2eStubs: registro no modo E2E', () => {
   });
 });
 
+describe('e2eStubs: chaves no slot openrouter (migração)', () => {
+  it('E2E_GATE=ready semeia uma chave no formato sk-or-v1-… e o gate fica ready', async () => {
+    process.env.STUDY_METHOD_E2E = '1';
+    process.env.E2E_GATE = 'ready';
+    delete process.env.E2E_NETWORK;
+    delete process.env.E2E_KEYS;
+    const mod = await loadE2EStubs();
+    const { ipc } = makeFakeIpc();
+    mod.registerE2EStubs(ipc);
+
+    const map = mod.buildKeysStubHandlers();
+    const status = (await map.get(KEYS_CHANNELS.GET_STATUS)!()) as {
+      deepseekConfigured: boolean;
+      deepseekValidated: boolean;
+    };
+    // Campo com NOME legado (contrato até a ONDA 2), alimentado pelo slot novo.
+    assert.equal(status.deepseekConfigured, true);
+    assert.equal(status.deepseekValidated, true);
+
+    // A validação do stub reporta o provider REAL da migração.
+    const result = (await map.get(KEYS_CHANNELS.VALIDATE_DEEPSEEK)!(undefined)) as {
+      isValid: boolean;
+      provider: string;
+    };
+    assert.equal(result.isValid, true);
+    assert.equal(result.provider, 'openrouter', 'o E2E não afirma mais deepseek');
+  });
+
+  it('keys:set-key aceita "openrouter" e o apelido legado "deepseek" no MESMO slot', async () => {
+    process.env.STUDY_METHOD_E2E = '1';
+    delete process.env.E2E_GATE;
+    delete process.env.E2E_NETWORK;
+    delete process.env.E2E_KEYS;
+    const mod = await loadE2EStubs();
+    const map = mod.buildKeysStubHandlers();
+    const setKey = map.get(KEYS_CHANNELS.SET_KEY)!;
+    const getStatus = map.get(KEYS_CHANNELS.GET_STATUS)!;
+
+    // O renderer de hoje ainda manda 'deepseek' (a renomeação é a ONDA 2).
+    await setKey(undefined, 'deepseek', 'sk-or-v1-pelo-apelido');
+    let status = (await getStatus()) as { deepseekConfigured: boolean };
+    assert.equal(status.deepseekConfigured, true);
+
+    // E o nome novo cai no mesmo lugar (apagar pelo nome canônico limpa).
+    await setKey(undefined, 'openrouter', '');
+    status = (await getStatus()) as { deepseekConfigured: boolean };
+    assert.equal(status.deepseekConfigured, false);
+  });
+});
+
 describe('e2eStubs: buildTrackStubHandlers (smoke real, sem build)', () => {
   it('mapa expõe todos os canais de trilha e LIST/GET/LESSON rodam de verdade', async () => {
     const mod = await loadE2EStubs();

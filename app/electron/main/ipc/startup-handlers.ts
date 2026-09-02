@@ -18,6 +18,11 @@
  *        - UMA válida + outra rede-falhou → NÃO é offline (a regra exige AMBAS
  *          por rede) → phase 'blocked' com a que falhou listada (erro de rede).
  *
+ * MIGRAÇÃO OPENROUTER: a chave do LLM é lida por `readLlmApiKey` (slot
+ * 'openrouter' com fallback para o legado 'deepseek') e o validador bate em
+ * `GET /api/v1/key` do OpenRouter. Os NOMES do StartupStatus (`deepseek`)
+ * continuam os do contrato congelado — a renomeação é a ONDA 2.
+ *
  * `electron` (ipcMain) é importado LAZY dentro do register para os testes não
  * tocarem o runtime do Electron (mesmo padrão de keys-handlers.ts).
  */
@@ -31,6 +36,7 @@ import {
   type DeepSeekValidationResult,
 } from '../services/apiKeyValidator';
 import { safeHandleMap, type IpcMainHandleLike, type IpcHandlerFn } from './safeHandle';
+import { readLlmApiKey } from './keys-handlers';
 
 /** Timeout padrão da validação combinada (~8s). */
 export const DEFAULT_STARTUP_VALIDATION_TIMEOUT_MS = 8000;
@@ -137,7 +143,9 @@ export function classifyStartup(opts: {
 async function validateWithTimeout<T extends ValidationResult>(
   p: Promise<T>,
   ms: number,
-  provider: 'deepseek' | 'brave',
+  // 'openrouter' é o provider REAL da chave do LLM desde a migração; o nome
+  // legado sobrevive só nos campos do StartupStatus (renomeados na ONDA 2).
+  provider: 'openrouter' | 'brave',
   checkedAt: string,
 ): Promise<T> {
   if (!Number.isFinite(ms) || ms <= 0) return p;
@@ -179,8 +187,10 @@ export function buildStartupHandlers(
     const store = await getStore();
     const checkedAt = new Date().toISOString();
 
+    // Chave do LLM: slot 'openrouter' com FALLBACK para o legado 'deepseek'
+    // (ver keys-handlers.ts) — quem já tinha chave salva não perde o acesso.
     const [deepseekKey, braveKey] = await Promise.all([
-      store.getApiKey('deepseek'),
+      readLlmApiKey(store),
       store.getApiKey('brave'),
     ]);
     const deepseekConfigured = !!deepseekKey;
@@ -193,7 +203,7 @@ export function buildStartupHandlers(
 
     // (c) Ambas configuradas → valida AMBAS (com timeout curto).
     const [deepseekResult, braveResult] = await Promise.all([
-      validateWithTimeout(validateDeepseek(deepseekKey), timeoutMs, 'deepseek', checkedAt),
+      validateWithTimeout(validateDeepseek(deepseekKey), timeoutMs, 'openrouter', checkedAt),
       validateWithTimeout(validateBrave(braveKey), timeoutMs, 'brave', checkedAt),
     ]);
 

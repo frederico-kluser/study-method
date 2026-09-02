@@ -69,6 +69,26 @@ test('readAppSettings: lê apenas as chaves definidas no store', async () => {
   });
 });
 
+test('readAppSettings: defaultModelProvider openrouter atravessa (migração do LLM)', async () => {
+  // A union de leitura acompanha AppSettings do contrato: 'openrouter' entrou
+  // ao lado do legado 'deepseek', que ainda pode estar gravado no disco.
+  const store = makeStore({
+    defaultModelProvider: 'openrouter',
+    defaultModelId: 'z-ai/glm-5.3-flash',
+  });
+  const settings = await readAppSettings(store);
+  assert.deepEqual(settings, {
+    defaultModelProvider: 'openrouter',
+    defaultModelId: 'z-ai/glm-5.3-flash',
+  });
+});
+
+test('writeAppSettings: persiste defaultModelProvider openrouter', async () => {
+  const store = makeStore();
+  await writeAppSettings(store, { defaultModelProvider: 'openrouter' });
+  assert.deepEqual(store.writes, [['defaultModelProvider', 'openrouter']]);
+});
+
 test('readAppSettings: chaves ausentes ficam fora do resultado', async () => {
   const store = makeStore({
     setupsDir: '/setups',
