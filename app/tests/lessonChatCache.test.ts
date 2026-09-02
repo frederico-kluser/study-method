@@ -57,15 +57,15 @@ function theoryState(): TrackLessonUiState {
 describe('lessonChatCache — save/take round-trip', () => {
   it('começa vazio (take = null)', () => {
     assert.equal(
-      takeLessonChat({ trackSlug: 'nodejs-do-zero', lessonId: 'aula-1' }),
+      takeLessonChat({ trackSlug: 'trilha-minima', lessonId: 'aula-1' }),
       null,
     );
   });
 
   it('save → take devolve o MESMO estado (teoria preservada na íntegra)', () => {
     const s = theoryState();
-    saveLessonChat({ trackSlug: 'nodejs-do-zero', lessonId: 'aula-1' }, s);
-    const taken = takeLessonChat({ trackSlug: 'nodejs-do-zero', lessonId: 'aula-1' });
+    saveLessonChat({ trackSlug: 'trilha-minima', lessonId: 'aula-1' }, s);
+    const taken = takeLessonChat({ trackSlug: 'trilha-minima', lessonId: 'aula-1' });
     assert.ok(taken, 'restaurou o chat');
     assert.deepEqual(taken.history, s.history, 'histórico idêntico');
     assert.deepEqual(taken.presentedSections, ['s1'], 'seções apresentadas idênticas');
@@ -110,17 +110,17 @@ describe('lessonChatCache — save/take round-trip', () => {
   it('chaves diferentes NÃO colidem — cada aula tem o SEU chat', () => {
     const sA = theoryState();
     const sB = { ...createTrackLessonState(), history: [{ role: 'user' as const, content: 'outra aula', ts: 0 }] };
-    saveLessonChat({ trackSlug: 'nodejs-do-zero', lessonId: 'aula-1' }, sA);
-    saveLessonChat({ trackSlug: 'nodejs-do-zero', lessonId: 'aula-2' }, sB);
+    saveLessonChat({ trackSlug: 'trilha-minima', lessonId: 'aula-1' }, sA);
+    saveLessonChat({ trackSlug: 'trilha-minima', lessonId: 'aula-2' }, sB);
     // Mesma TRILHA, aulas diferentes → não restaura a aula errada.
     assert.equal(
-      takeLessonChat({ trackSlug: 'nodejs-do-zero', lessonId: 'aula-3' }),
+      takeLessonChat({ trackSlug: 'trilha-minima', lessonId: 'aula-3' }),
       null,
       'aula sem cache → null (key-match)',
     );
-    const takenA = takeLessonChat({ trackSlug: 'nodejs-do-zero', lessonId: 'aula-1' });
+    const takenA = takeLessonChat({ trackSlug: 'trilha-minima', lessonId: 'aula-1' });
     assert.deepEqual(takenA?.history, sA.history);
-    const takenB = takeLessonChat({ trackSlug: 'nodejs-do-zero', lessonId: 'aula-2' });
+    const takenB = takeLessonChat({ trackSlug: 'trilha-minima', lessonId: 'aula-2' });
     assert.deepEqual(takenB?.history, sB.history);
     // Trilhas diferentes, mesmo lessonId → não colide (key inclui a trilha).
     const sC = theoryState();
@@ -133,7 +133,7 @@ describe('lessonChatCache — save/take round-trip', () => {
 
   it('save de um estado com bolhas de erro preserva o challengeError (dedupe no remount)', () => {
     const report: TrackChallengeErrorReport = {
-      trackSlug: 'nodejs-do-zero',
+      trackSlug: 'trilha-minima',
       lessonId: 'aula-1',
       challengeId: 'dobro-do-numero',
       challengeTitle: 'O dobro do número',
@@ -144,8 +144,8 @@ describe('lessonChatCache — save/take round-trip', () => {
       totalCount: 1,
     };
     const s = seedChallengeError(theoryState(), report, 'O que você acha que errou?');
-    saveLessonChat({ trackSlug: 'nodejs-do-zero', lessonId: 'aula-1' }, s);
-    const taken = takeLessonChat({ trackSlug: 'nodejs-do-zero', lessonId: 'aula-1' });
+    saveLessonChat({ trackSlug: 'trilha-minima', lessonId: 'aula-1' }, s);
+    const taken = takeLessonChat({ trackSlug: 'trilha-minima', lessonId: 'aula-1' });
     assert.ok(taken);
     assert.deepEqual(taken.challengeError, report, 'contexto de erro em discussão preservado');
     assert.equal(taken.history.length, s.history.length);
@@ -153,7 +153,7 @@ describe('lessonChatCache — save/take round-trip', () => {
 
   it('round-trip preserva ts/kind/errorFor das bolhas (clone raso — metadados intactos)', () => {
     const report: TrackChallengeErrorReport = {
-      trackSlug: 'nodejs-do-zero',
+      trackSlug: 'trilha-minima',
       lessonId: 'aula-1',
       challengeId: 'dobro-do-numero',
       challengeTitle: 'O dobro do número',
@@ -164,8 +164,8 @@ describe('lessonChatCache — save/take round-trip', () => {
       totalCount: 1,
     };
     const s = seedChallengeError(theoryState(), report, 'O que você acha que errou?', {}, 4242);
-    saveLessonChat({ trackSlug: 'nodejs-do-zero', lessonId: 'aula-1' }, s);
-    const taken = takeLessonChat({ trackSlug: 'nodejs-do-zero', lessonId: 'aula-1' });
+    saveLessonChat({ trackSlug: 'trilha-minima', lessonId: 'aula-1' }, s);
+    const taken = takeLessonChat({ trackSlug: 'trilha-minima', lessonId: 'aula-1' });
     assert.ok(taken, 'restaurou o chat');
     assert.deepEqual(taken.history, s.history, 'histórico idêntico — ts/kind/errorFor preservados');
     assert.equal(taken.history[3].kind, 'review', 'kind da bolha de review preservado');

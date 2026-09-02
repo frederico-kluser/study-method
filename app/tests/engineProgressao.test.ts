@@ -11,9 +11,9 @@
  *      demonstrada (o pecado nº 1 do usuário — spec §3.2).
  *   2. A13c aprova quando a chamada foi demonstrada em aula anterior.
  *   3. A13c aprova quando a chamada foi demonstrada na teoria DA MESMA aula
- *      (spec §3.2: "demonstrado em teoria (desta/anteriores)" — caso real da
- *      L1 de programacao-do-zero, que demonstra `resposta()` na seção 1 e cujo
- *      próprio teste a chama; era o defeito A13c reportado pelo autor de L1).
+ *      (spec §3.2: "demonstrado em teoria (desta/anteriores)" — o caso da aula
+ *      de abertura que demonstra `resposta()` na seção 1 e cujo próprio teste
+ *      a chama; era um falso positivo A13c reportado pelo autor dessa aula).
  *   4. A13d reprova `introduces` declarado sem demonstração (modo declared).
  *   5. A14a reprova aula com 5 construções verdadeiramente novas e aprova com 2.
  *   6. A14b reprova linha da solução que combina 2 construções novas.
@@ -22,11 +22,10 @@
  *   8. A15b reprova a aula que não reutiliza nada anterior e aprova a que
  *      reutiliza (recuperação espaçada, §7.1.12).
  *   9. A16 reprova 1º desafio que exige construção da 2ª seção.
- *  10. CASO FELIZ: L1–L3 do micro-currículo `programacao-do-zero`
- *      (curriculo.json) passam na bateria INTEIRA — fixtures mínimas
- *      inspiradas nas três primeiras aulas (zero erros E zero avisos: cada
- *      aula introduz 1–3 átomos novos não-H13 e demonstra o que o 1º desafio
- *      escreve na 1ª seção com código).
+ *  10. CASO FELIZ: uma sequência L1–L3 de micro-currículo passa na bateria
+ *      INTEIRA — fixtures mínimas de três aulas de abertura (zero erros E
+ *      zero avisos: cada aula introduz 1–3 átomos novos não-H13 e demonstra o
+ *      que o 1º desafio escreve na 1ª seção com código).
  *
  * Sem rede, sem disco, sem LLM: as trilhas são fixtures em memória.
  */
@@ -173,11 +172,11 @@ describe('A13 — ensino-efetivo', () => {
   it('A13c aprova quando a chamada foi demonstrada na teoria DA MESMA aula (spec §3.2 — caso real da L1)', () => {
     // Aula índice 0 (nenhum acumulado anterior), teoria desta PRÓPRIA aula com
     // a chamada demonstrada (`assert.equal(resposta(), 7)` é a linha autoral do
-    // teste da L1 real — a espinha `assert.equal(` sai pelo span S13, a chamada
+    // teste da L1 — a espinha `assert.equal(` sai pelo span S13, a chamada
     // `resposta()` é o 1º argumento, autoral). A fórmula da spec §3.2
     // ("demonstrado em teoria (desta/anteriores)") inclui Demo(i) para o teste:
-    // antes da correção esta aula violava A13c (defeito reportado pelo autor
-    // da L1 de programacao-do-zero no feed integral).
+    // antes da correção esta aula violava A13c (falso positivo reportado pelo
+    // autor da aula de abertura no feed integral).
     const t = trackOf([
       moduleOf('m1', 1, [
         lesson('a1', [theory('s1', 'a máquina que confere', 'assert.equal(resposta(), 7);')], [
@@ -463,25 +462,24 @@ describe('A16 — primeira-atividade', () => {
 });
 
 // ---------------------------------------------------------------------------
-// 9. CASO FELIZ — L1–L3 do micro-currículo programacao-do-zero (curriculo.json)
+// 9. CASO FELIZ — uma sequência L1–L3 de micro-currículo
 //
-// Fixtures mínimas INSPIRADAS nas três primeiras aulas do design: L1 é a aula
-// de LEITURA do invólucro (a "máquina que confere" — o curriculo a declara
-// como leitura), L2 é "digite o número" (valor-e-instrucao), L3 é "a lacuna é
-// a chamada" (funcao-e-chamada).
+// Fixtures mínimas com o desenho das três primeiras aulas: L1 é a aula de
+// LEITURA do invólucro (a "máquina que confere"), L2 é "digite o número"
+// (valor e instrução), L3 é "a lacuna é a chamada" (função e chamada).
 //
 // O que a bateria exige (e o que este caso prova):
 //   - A13c: os testes da L2/L3 chamam `conferidor()`/`resposta()` — a CHAMADA
 //     é demonstrada na 2ª seção da L1 (aula ANTERIOR), então a leitura pré-aula
 //     passa. A L1 não tem desafio: a primeira aula que ESCREVE é a L2, cujos
 //     testes já encontram a chamada no cumulativo. A spec §3.2 aceita o
-//     veredito oposto para a trilha real (aula 1 que lê chamada = pecado nº 1);
-//     aqui a sequência nasce SEM esse pecado.
+//     veredito oposto para uma trilha que erra (aula 1 que lê chamada = o
+//     pecado nº 1); aqui a sequência nasce SEM esse pecado.
 //   - A14a: aulas de PRÁTICA (L2 escreve só um literal; L3 só a chamada) não
 //     introduzem construções novas não-H13 → a calibração da spec §4.1 marca
 //     AVISO ("aula sem incremento"), jamais erro. "Passar na bateria" = ZERO
 //     ERROS — e o teste prova que os únicos avisos são esses dois, nas aulas de
-//     prática, exatamente como a spec prevê (a rede real tem 14 avisos assim).
+//     prática, exatamente como a spec prevê.
 //   - A15b: L2 e L3 reutilizam demonstração anterior (function/return/chamada
 //     da L1) → o arco inter-aula passa na sequência micro do curriculo.
 //   - A16: o 1º desafio de cada aula só usa o que já estava demonstrado antes
@@ -489,7 +487,7 @@ describe('A16 — primeira-atividade', () => {
 //     literal/chamada — H13 ou cumulativo) → passa.
 // ---------------------------------------------------------------------------
 
-describe('caso feliz — L1–L3 do micro-currículo (curriculo.json) passam na bateria inteira', () => {
+describe('caso feliz — L1–L3 de um micro-currículo passam na bateria inteira', () => {
   it('zero ERROS da bateria A13–A16 na sequência micro (só os 2 avisos de aula-de-prática)', () => {
     // L1 — como-o-site-confere-seu-codigo: aula de LEITURA (sem desafio).
     // Seção 1: o invólucro congelado (function + return → 2 novas). Seção 2:

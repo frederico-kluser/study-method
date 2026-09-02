@@ -41,11 +41,16 @@
  * e isso é dito na justificativa — a omissão DECLARADA não é aprovação por
  * omissão (§9.3).
  *
- * PROTOCOLO INT-02 (P-30): o placar do G-AUDIT nunca piora sem declaração. O
- * pin vive em `app/tests/engineAuditPlacar.test.ts` (`PIN_PLACAR`) e o bump
- * exige declaração NO MESMO commit. Este módulo NÃO redigita os números do
- * pin; quem compara é o teste P-30, e o teste P-24 desta etapa importa o MESMO
- * pin.
+ * PROTOCOLO INT-02 (P-30): o placar do G-AUDIT nunca piora sem declaração, e o
+ * bump exige a declaração NO MESMO commit. Este módulo NÃO redigita número de
+ * placar nenhum: ele DERIVA o placar do `AuditReport` que recebe.
+ *
+ * (2026-09-02) O pin concreto do protocolo vivia em
+ * `app/tests/engineAuditPlacar.test.ts` (`PIN_PLACAR` = 717/112/249), medido
+ * contra a trilha de produção `nodejs-do-zero`. A trilha foi apagada (ver
+ * `docs/15-trilha-nodejs.md`) e o pin saiu com ela — hoje NÃO existe trilha
+ * publicada, logo não existe número a pinar. A regra continua de pé para a
+ * próxima trilha; quem a re-pinar cria o teste de pin de novo.
  *
  * COMANDOS — o campo `comando` do relatório reproduz os números centrais (o
  * audit da trilha): default `cd app && npm run engine -- audit <trilha>
@@ -338,7 +343,7 @@ function montarJustificativa(o: JustificativaOpts): string {
   }
 
   secoes.push(
-    `Veredito: ${o.veredito} — regra determinística: reprovado quando há violações de orçamento, ou a medição J3 entregue tem pass^k falso, ou a taxa de falso-passe do revisor entregue é ≥ (1−τ)/2 = ${o.limiar} (τ = 0,10, §6.6). A prova de execução dos desafios NÃO entra neste veredito: é do G-FINAL/laço, e a checagem não executada está declarada em limitacoes[] (protocolo INT-02/P-30: o placar do audit nunca piora sem declaração — o pin vive em app/tests/engineAuditPlacar.test.ts e não é redigitado aqui).`,
+    `Veredito: ${o.veredito} — regra determinística: reprovado quando há violações de orçamento, ou a medição J3 entregue tem pass^k falso, ou a taxa de falso-passe do revisor entregue é ≥ (1−τ)/2 = ${o.limiar} (τ = 0,10, §6.6). A prova de execução dos desafios NÃO entra neste veredito: é do G-FINAL/laço, e a checagem não executada está declarada em limitacoes[] (protocolo INT-02/P-30: o placar do audit nunca piora sem declaração — este placar é DERIVADO do audit recebido, nunca redigitado aqui).`,
   );
 
   return secoes.join('\n');

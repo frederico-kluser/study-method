@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "slug": "trilha-minima",
+  "title": "Trilha mínima (fixture)",
+  "description": "Trilha-fixture dos testes: 1 módulo, 3 aulas, 3 desafios. Limpa no gate (0 violações) e com o aviso A14a da aula de prática.",
+  "language": "pt-BR",
+  "domain": "programming",
+  "modules": [
+    "modulo-1"
+  ]
+}

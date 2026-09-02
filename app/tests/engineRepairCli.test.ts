@@ -19,8 +19,10 @@
  * Nada aqui precisa de chave de API: o dry-run do repair é função PURA (o
  * plano não chama LLM) e o caminho `--aplicar` é exercitado justamente para
  * provar o FAIL-CLOSED (§9.3) — sem chave ele aborta DECLARANDO e NÃO grava
- * nada. A trilha fixture nasce num diretório temporário e o `--dir` a alcança
- * sem tocar `app/resources/tracks` (o git fica limpo).
+ * nada. Toda trilha usada aqui é FIXTURE: a do plano de reparo nasce num
+ * diretório temporário; as dos vereditos de placar são as commitadas em
+ * `tests/fixtures/tracks/`. Em nenhum caso `app/resources/tracks` é tocado
+ * (o git fica limpo) nem lido (nenhum veredito depende de conteúdo publicado).
  */
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
@@ -31,6 +33,20 @@ import { spawn } from 'node:child_process';
 
 const APP_DIR = path.resolve(__dirname, '..');
 const TIMEOUT_CLI_MS = 120_000;
+
+/**
+ * As trilhas-fixture COMMITADAS (`tests/fixtures/tracks/`), alcançadas por
+ * `--dir`. Até 2026-09-02 estes testes apontavam para as trilhas de PRODUÇÃO
+ * (`programacao-do-zero` para o caso limpo, `nodejs-do-zero` para o caso com
+ * violação). As duas foram apagadas — e o acoplamento era o defeito, não o
+ * acidente: um teste de CLI cujo oráculo é o conteúdo publicado muda de
+ * veredito toda vez que o conteúdo muda.
+ *
+ * `trilha-minima`  → 0 violações e 1 aviso  (o caso "trilha limpa");
+ * `trilha-corpus`  → violações E avisos > 0 (o caso "as duas severidades").
+ */
+const FIXTURE_LIMPA = path.join(__dirname, 'fixtures', 'tracks', 'trilha-minima');
+const FIXTURE_DUAS_SEVERIDADES = path.join(__dirname, 'fixtures', 'tracks', 'trilha-corpus');
 
 interface SaidaDoCli {
   code: number;
@@ -253,8 +269,8 @@ describe('engine CLI — repair é um COMANDO REAL (anotação #9)', () => {
     });
   });
 
-  it('trilha limpa (programacao-do-zero, 0 violações) sai 0', async () => {
-    const r = await runEngineSemChave(['repair', 'programacao-do-zero']);
+  it('trilha limpa (fixture trilha-minima, 0 violações) sai 0', async () => {
+    const r = await runEngineSemChave(['repair', 'trilha-minima', '--dir', FIXTURE_LIMPA]);
     assert.equal(r.code, 0, `trilha sem violação ⇒ exit 0 — stdout:\n${r.stdout}\nstderr:\n${r.stderr}`);
     assert.ok(r.stdout.includes('REPAIR (modo dry-run)'));
   });
@@ -265,12 +281,6 @@ describe('engine CLI — repair é um COMANDO REAL (anotação #9)', () => {
 // ---------------------------------------------------------------------------
 
 describe('engine CLI — repair: barreiras estruturais (exit 2, nunca silêncio)', () => {
-  it('nodejs-do-zero é SLUG PROIBIDO — recusado antes de qualquer carga', async () => {
-    const r = await runEngineSemChave(['repair', 'nodejs-do-zero']);
-    assert.equal(r.code, 2, `stdout:\n${r.stdout}\nstderr:\n${r.stderr}`);
-    assert.match(r.stderr, /SLUG PROIBIDO/);
-  });
-
   it('--aplicar sem --modelo-revisor é USO INCORRETO (o §6.2 exige dois modelos)', async () => {
     await comFixture(async (dir) => {
       const r = await runEngineSemChave(['repair', FIXTURE_SLUG, '--dir', dir, '--aplicar']);
@@ -423,7 +433,7 @@ describe('engine CLI — generate: o laço de revisão da F10 é INJETADO (anota
   });
 
   it('--rodadas inválido é uso incorreto (o teto DURO de rodadas é do laço, §6.6)', async () => {
-    const r = await runEngineSemChave(['repair', 'programacao-do-zero', '--rodadas', '0']);
+    const r = await runEngineSemChave(['repair', 'trilha-minima', '--dir', FIXTURE_LIMPA, '--rodadas', '0']);
     assert.equal(r.code, 2);
     assert.match(r.stderr, /--rodadas invalido/);
   });
@@ -431,9 +441,9 @@ describe('engine CLI — generate: o laço de revisão da F10 é INJETADO (anota
 
 describe('engine CLI — audit: a linha de truncamento NÃO chama aviso de violação', () => {
   it('trilha só com AVISOS: o truncamento reporta 0 violações, batendo com o PLACAR', async () => {
-    // `programacao-do-zero` tem 0 violações e avisos > 0 — o caso EXATO em que
-    // o rótulo antigo mentia: ele chamava todos os achados de "violacao(oes)".
-    const r = await runEngineSemChave(['audit', 'programacao-do-zero', '--limite', '0']);
+    // `trilha-minima` tem 0 violações e avisos > 0 — o caso EXATO em que o
+    // rótulo antigo mentia: ele chamava todos os achados de "violacao(oes)".
+    const r = await runEngineSemChave(['audit', 'trilha-minima', '--dir', FIXTURE_LIMPA, '--limite', '0']);
     assert.equal(r.code, 0, `0 violações ⇒ exit 0 — stderr:\n${r.stderr}`);
     const trunc = lerTruncamento(r.stdout);
     const placar = lerPlacar(r.stdout);
@@ -445,7 +455,7 @@ describe('engine CLI — audit: a linha de truncamento NÃO chama aviso de viola
   });
 
   it('trilha com as duas severidades: erros e avisos aparecem SEPARADOS e somam o total', async () => {
-    const r = await runEngineSemChave(['audit', 'nodejs-do-zero', '--limite', '0']);
+    const r = await runEngineSemChave(['audit', 'trilha-corpus', '--dir', FIXTURE_DUAS_SEVERIDADES, '--limite', '0']);
     assert.equal(r.code, 1, 'trilha com violações ⇒ exit 1');
     const trunc = lerTruncamento(r.stdout);
     const placar = lerPlacar(r.stdout);

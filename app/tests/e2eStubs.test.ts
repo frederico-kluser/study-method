@@ -303,6 +303,10 @@ describe('e2eStubs: buildTrackStubHandlers (smoke real, sem build)', () => {
     }
 
     // LIST — cria os fixtures no workspace temporário e lista a trilha.
+    // O slug `nodejs-do-zero` daqui é o da fixture que o PRÓPRIO stub escreve
+    // (`services/e2eStubs.ts`, writeFixtureTrack) num workspace temporário —
+    // nunca o de uma trilha publicada. A trilha de produção com esse slug foi
+    // apagada em 2026-09-02 e este teste não sentiu: ele nunca a leu.
     const listHandler = map.get(TRACK_CHANNELS.LIST)!;
     const list = (await listHandler()) as { ok: true; tracks: Array<{ slug: string }> };
     assert.equal(list.ok, true);

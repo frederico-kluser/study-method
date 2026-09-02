@@ -26,36 +26,36 @@ beforeEach(() => {
 describe('lastLesson (onda1-nav-ui)', () => {
   it('save grava e peek devolve o par (trackSlug + lessonId)', () => {
     assert.equal(peekLastLesson(), null, 'começa vazio');
-    saveLastLesson('nodejs-do-zero', 'aula-1');
-    assert.deepEqual(peekLastLesson(), { trackSlug: 'nodejs-do-zero', lessonId: 'aula-1' });
+    saveLastLesson('trilha-minima', 'aula-1');
+    assert.deepEqual(peekLastLesson(), { trackSlug: 'trilha-minima', lessonId: 'aula-1' });
   });
 
   it('a última aula aberta vence (sobrescreve)', () => {
-    saveLastLesson('nodejs-do-zero', 'aula-1');
-    saveLastLesson('nodejs-do-zero', 'aula-2');
-    assert.deepEqual(peekLastLesson(), { trackSlug: 'nodejs-do-zero', lessonId: 'aula-2' });
+    saveLastLesson('trilha-minima', 'aula-1');
+    saveLastLesson('trilha-minima', 'aula-2');
+    assert.deepEqual(peekLastLesson(), { trackSlug: 'trilha-minima', lessonId: 'aula-2' });
   });
 
   it('save com vazio/espaços normaliza para null (nunca grava lixo)', () => {
     saveLastLesson('   ', 'aula-1');
     assert.equal(peekLastLesson(), null);
-    saveLastLesson('nodejs-do-zero', '  ');
+    saveLastLesson('trilha-minima', '  ');
     assert.equal(peekLastLesson(), null);
   });
 
   it('save faz trim nos dois campos (contrato não assume slugs limpos)', () => {
-    saveLastLesson('  nodejs-do-zero  ', ' aula-1 ');
-    assert.deepEqual(peekLastLesson(), { trackSlug: 'nodejs-do-zero', lessonId: 'aula-1' });
+    saveLastLesson('  trilha-minima  ', ' aula-1 ');
+    assert.deepEqual(peekLastLesson(), { trackSlug: 'trilha-minima', lessonId: 'aula-1' });
   });
 
   it('peek NÃO consome — leituras repetidas devolvem o mesmo valor', () => {
-    saveLastLesson('nodejs-do-zero', 'aula-1');
+    saveLastLesson('trilha-minima', 'aula-1');
     assert.deepEqual(peekLastLesson(), peekLastLesson());
-    assert.deepEqual(peekLastLesson(), { trackSlug: 'nodejs-do-zero', lessonId: 'aula-1' });
+    assert.deepEqual(peekLastLesson(), { trackSlug: 'trilha-minima', lessonId: 'aula-1' });
   });
 
   it('__reset esvazia TUDO (beforeEach da suíte)', () => {
-    saveLastLesson('nodejs-do-zero', 'aula-1');
+    saveLastLesson('trilha-minima', 'aula-1');
     __resetLastLessonForTests();
     assert.equal(peekLastLesson(), null);
   });

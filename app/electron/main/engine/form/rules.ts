@@ -29,8 +29,8 @@
  * casam JAVASCRIPT PURO — `Parameter[dotDotDotToken!=null]` é `f(...xs)`,
  * `IfStatement[expression=BinaryExpression]` é `if (a === 1)`,
  * `IfStatement[expression=TypeOfExpression]` é `if (typeof x)` — e avaliá-las
- * num arquivo `.mjs` emitiria chave `form:` que a trilha de JavaScript não
- * declara, movendo o placar de `nodejs-do-zero`. Por isso toda definição
+ * num arquivo `.mjs` emitiria chave `form:` que uma trilha de JavaScript não
+ * declara, movendo o placar dela. Por isso toda definição
  * carrega `dialects`, e o gate é do SELETOR (ver `form/selector.ts`
  * §"O GATE DE DIALETO"), não do chamador: `extract.ts` continua com um laço só.
  *

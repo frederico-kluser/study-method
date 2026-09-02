@@ -381,7 +381,7 @@ export interface TrackValidationResult {
  */
 export function validateSlug(slug: unknown, file: string): TrackValidationIssue[] {
   if (typeof slug !== 'string' || !SLUG_RE.test(slug)) {
-    return [{ file, message: `slug inválido: ${JSON.stringify(slug)} (esperado kebab-case ASCII, ex.: 'nodejs-do-zero')` }];
+    return [{ file, message: `slug inválido: ${JSON.stringify(slug)} (esperado kebab-case ASCII, ex.: 'minha-trilha')` }];
   }
   return [];
 }

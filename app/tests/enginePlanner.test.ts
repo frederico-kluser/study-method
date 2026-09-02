@@ -314,7 +314,7 @@ describe('P-13 · HIGH-1 — coerência prompt × gate por construção (onda 2)
     const lacuna = ap({ id: 'APT-0001', evidencia: { introduzido_em: null } });
     const ordem = ap({ id: 'APT-0002', evidencia: { introduzido_em: 'm02/a05' } });
     const prompt = promptDoPlanejador({
-      trilha: 'nodejs-do-zero',
+      trilha: 'trilha-minima',
       rodada: 2,
       apontamentos: [lacuna, ordem],
       excluidosComoExcecao: [],
@@ -394,7 +394,7 @@ describe('P-13 · WARNING-3 — exceção intencional declarada, nunca inferida 
     const lacuna = ap({ id: 'APT-0001', evidencia: { introduzido_em: null } });
     const excecao = ap({ id: 'APT-0042', evidencia: { introduzido_em: null } });
     const entrada: EntradaDoPromptDoPlanejador = {
-      trilha: 'nodejs-do-zero',
+      trilha: 'trilha-minima',
       rodada: 3,
       apontamentos: [lacuna, excecao],
       excluidosComoExcecao: ['APT-0042'],
@@ -473,7 +473,7 @@ describe('P-13 · o corretor pode rejeitar o apontamento (§7.4)', () => {
       resultado_esperado: 'a aula intermediária ensina o conceito e a ordem topológica fica consistente',
     };
     const entrada: EntradaDoPromptDoCorretor = {
-      trilha: 'nodejs-do-zero',
+      trilha: 'trilha-minima',
       rodada: 2,
       decisao,
       pins: ['pin 1: nenhum token fora do orçamento na AST', 'pin 2: a solução passa em todos os testes'],
@@ -549,7 +549,7 @@ describe('P-13 · bônus — prompts puros e autocontidos (§7)', () => {
     const lacuna = ap({ id: 'APT-0001', evidencia: { introduzido_em: null } });
     const ordem = ap({ id: 'APT-0002', evidencia: { introduzido_em: 'm02/a05' } });
     const entrada: EntradaDoPromptDoPlanejador = {
-      trilha: 'nodejs-do-zero',
+      trilha: 'trilha-minima',
       rodada: 2,
       apontamentos: [lacuna, ordem],
       excluidosComoExcecao: [], // WARNING-3 (onda 2): a lista declarada é campo obrigatório
@@ -587,7 +587,7 @@ describe('P-13 · bônus — prompts puros e autocontidos (§7)', () => {
       resultado_esperado: 'a aula intermediária ensina o conceito e a ordem topológica fica consistente',
     };
     const entrada: EntradaDoPromptDoCorretor = {
-      trilha: 'nodejs-do-zero',
+      trilha: 'trilha-minima',
       rodada: 2,
       decisao,
       pins: ['pin 1: nenhum token fora do orçamento na AST'],

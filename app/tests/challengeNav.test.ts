@@ -24,7 +24,7 @@ const CHALLENGE: ChallengeInfo = {
 
 /** Relatório de erro de desafio que falhou (onda2-error-flow). */
 const ERROR_REPORT: TrackChallengeErrorReport = {
-  trackSlug: 'nodejs-do-zero',
+  trackSlug: 'trilha-minima',
   lessonId: 'aula-1',
   challengeId: 'dobro-do-numero',
   challengeTitle: 'O dobro do número',

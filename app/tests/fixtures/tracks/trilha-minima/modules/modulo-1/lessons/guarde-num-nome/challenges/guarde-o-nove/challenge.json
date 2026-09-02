@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "slug": "guarde-o-nove",
+  "title": "Guarde o nove",
+  "concept": "const",
+  "difficulty": 1,
+  "language": "nodejs",
+  "statement": "# Guarde o nove\n\nGuarde 9 num nome com `const` e devolva o nome.",
+  "starterCode": "export function resposta() {\n  return 0;\n}\n",
+  "solutionCode": "export function resposta() {\n  const nove = 9;\n  return nove;\n}\n",
+  "testsCode": "import { test } from 'node:test';\nimport assert from 'node:assert/strict';\nimport { resposta } from './solution.mjs';\n\ntest('devolve 9', () => {\n  assert.equal(resposta(), 9);\n});\n",
+  "expectedTestCount": 1
+}

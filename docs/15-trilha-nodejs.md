@@ -1,5 +1,46 @@
 # Trilha Node.js do Zero — especificação de conteúdo (rodada 9)
 
+> ## ⛔ A TRILHA FOI REMOVIDA EM 2026-09-02
+>
+> `app/resources/tracks/nodejs-do-zero/` (274 arquivos, 1,8 MB) e o diretório de trabalho
+> `app/content-src/programacao-do-zero/` foram **apagados**, junto com a trilha micro
+> `programacao-do-zero`. `app/resources/tracks/` está vazio. Este documento **fica** — ele é o
+> registro de por que o conteúdo foi descartado, e apagá-lo apagaria a lição.
+>
+> **O placar medido que motivou a remoção** (gate determinístico da engine, modo `inferred` —
+> leitura permissiva, o número real é maior, nunca menor):
+>
+> | Medição | Valor |
+> |---|---|
+> | Violações (erros) | **717** |
+> | Desafios com ao menos uma violação | **112 de 118** (95%) |
+> | Lacunas de currículo (construção que **nenhuma** aula ensina) | **249** |
+> | Avisos (bateria A13–A16) | 92 |
+> | Construções novas na aula 1 (`fundamentos-javascript/o-que-e-programacao`) | **16 verdadeiramente novas** — o teto é **4** |
+>
+> **O motivo, em uma aula.** A AULA 1 — a primeira coisa que um iniciante absoluto encontra no
+> curso — introduzia 16 construções novas, e o PRIMEIRO desafio dela exigia `IfStatement`,
+> `typeof`, `!==` e `throw new Error`. O gate aponta as linhas:
+>
+> ```
+> linha 2 do solutionCode combina 5 construções novas (form:IfStatement[alternate=null],
+>    node:IfStatement, node:TypeOfExpression, op:binary:!==, op:unary:typeof)
+> linha 3 combina 3 construções novas (global:Error, node:NewExpression, node:ThrowStatement)
+> ```
+>
+> Um curso que começa falando de função, parâmetro e `throw` na primeira aula não é um curso para
+> quem está começando. Não havia o que salvar por reescrita pontual: 112 dos 118 desafios estavam
+> quebrados e 249 construções cobradas não tinham aula nenhuma que as ensinasse.
+>
+> **O que sobreviveu.** A engine (`app/electron/main/engine/`, `npm run engine`) e o gate que
+> mediu tudo isto — ver `docs/16-engine-de-trilha.md`. O contrato de conteúdo abaixo continua
+> válido como ESPECIFICAÇÃO: quem escrever a próxima trilha de Node começa por aqui, agora com o
+> gate rodando desde a primeira aula em vez de depois de 118.
+>
+> **Como reproduzir o placar:** não dá mais — o conteúdo não existe. Os números acima são o
+> registro da última medição, feita em 2026-09-02 com
+> `cd app && npm run engine -- audit nodejs-do-zero --limite 0` sobre o conteúdo já apagado.
+
 > Contrato de CONTEÚDO da trilha `nodejs-do-zero` (resources/tracks/nodejs-do-zero).
 > O formato dos arquivos é o de `trackTypes.ts` (rodadas 8–9; a rodada 9 adiciona
 > `files[]` para desafios multi-arquivo) — quem cria aula é o CLI de autoria; o

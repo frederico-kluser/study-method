@@ -33,10 +33,10 @@
  *      (`require('process')`) e o código real emite `api:process.env`; isso é
  *      dicionário de módulo, não receptor de linguagem. `Buffer`/`URL`/`fetch`
  *      continuam fora (globais sem raiz importada no código que as usa).
- *   3. Receptores de MÓDULO (`RECEPTORES_MODULO` abaixo): built-ins que (a) a
- *      trilha `nodejs-do-zero` importa com acesso a membro, ou (b) um
- *      currículo Node básico ensina. Exclusões e a forma das chaves estão
- *      documentadas no próprio array.
+ *   3. Receptores de MÓDULO (`RECEPTORES_MODULO` abaixo): built-ins que (a) o
+ *      corpus de referência importava com acesso a membro, ou (b) um currículo
+ *      Node básico ensina. Exclusões e a forma das chaves estão documentadas
+ *      no próprio array.
  *   4. `Object.getOwnPropertyNames` lê só membros com chave de STRING (propriedades
  *      com chave Symbol — `Symbol.iterator`, `Symbol.toStringTag` — ficam fora) e
  *      só os PRÓPRIOS do objeto. Consequência medida: os protótipos de
@@ -201,8 +201,9 @@ export const RECEPTORES_LINGUAGEM: readonly { name: string; kind: CatalogoRecept
  * premissas 2–3 e 6–7).
  *
  * CONJUNTO ESCOLHIDO e critério (onda 2 batch B):
- *   - OBRIGATÓRIOS pelo CORPUS real: módulos que a trilha `nodejs-do-zero`
- *     importa com acesso a membro (`fs.readFile`, `http.createServer`,
+ *   - OBRIGATÓRIOS pelo CORPUS medido na época (a trilha `nodejs-do-zero`,
+ *     apagada em 2026-09-02): módulos importados com acesso a membro
+ *     (`fs.readFile`, `http.createServer`,
  *     `crypto.randomUUID`, `cluster.fork`, `process.env` …) — sem eles uma
  *     aula legítima nasce com lacuna falsa no dicionário do LLM (o bug que
  *     esta sub-tarefa fecha).

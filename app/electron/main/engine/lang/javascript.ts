@@ -593,8 +593,9 @@ function normalizarNo(
  *
  * Por que isso importava: `audit` é o comando que roda EM LAÇO no ciclo
  * "gerar → auditar → consertar → regerar", e cada aula/desafio auditado é um
- * `parse`. Medido em `nodejs-do-zero --limite 0`, e reportado no handoff da
- * onda 6.
+ * `parse`. Medido na onda 6 com `audit <trilha de referência> --limite 0`
+ * (a trilha, `nodejs-do-zero`, foi apagada depois — ver
+ * `docs/15-trilha-nodejs.md`) e reportado no handoff daquela onda.
  */
 export function jsParse(source: string, options: ParseOptions = {}): ParseResult {
   const T = ts();
@@ -655,8 +656,9 @@ export function jsParse(source: string, options: ParseOptions = {}): ParseResult
  * nó, nas duas caminhadas, e aceita dele o eixo `node:` ao lado da chave
  * genérica. Para ESTE adaptador isso é, por construção, um NO-OP: `node:<type>`
  * é idêntico à genérica, e `op:`/`decl:` não são do eixo aceito. É por isso que
- * o placar de `nodejs-do-zero` (717 · 112 · 249) não se moveu — a mudança só
- * tem efeito onde há chave SINTÉTICA, isto é, em `typescript` e em `python`.
+ * o placar da trilha de referência de então (`nodejs-do-zero`, 717 · 112 · 249,
+ * apagada em 2026-09-02) não se moveu — a mudança só tem efeito onde há chave
+ * SINTÉTICA, isto é, em `typescript` e em `python`.
  */
 export function jsConstructKey(node: LangNode): string | null {
   const familia = node.attributes.operatorFamily;

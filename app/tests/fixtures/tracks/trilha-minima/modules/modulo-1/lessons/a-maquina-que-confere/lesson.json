@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "slug": "a-maquina-que-confere",
+  "title": "A máquina que confere",
+  "summary": "O invólucro que você entrega e a máquina que o chama.",
+  "difficulty": 1,
+  "concepts": [
+    "involucro"
+  ],
+  "prerequisites": [],
+  "theory": [
+    {
+      "id": "o-involucro",
+      "title": "O invólucro",
+      "markdown": "Você entrega uma caixa com um nome. Dentro dela, uma instrução devolve um valor.\n\n```js\nexport function resposta() {\n  return 7;\n}\n```"
+    },
+    {
+      "id": "quem-confere",
+      "title": "Quem confere",
+      "markdown": "A máquina abre a sua caixa, chama o nome e compara o valor devolvido.\n\n```js\nimport { test } from 'node:test';\nimport assert from 'node:assert/strict';\nimport { resposta } from './solution.mjs';\n\ntest('devolve 7', () => {\n  assert.equal(resposta(), 7);\n});\n```"
+    }
+  ],
+  "sources": [],
+  "challenges": [
+    "digite-o-sete"
+  ]
+}

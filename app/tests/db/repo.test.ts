@@ -470,7 +470,7 @@ describe('createLessonRepo — listGeneratedChallenges (onda3-generate-flow, ped
   it('ordena os gerados por created_at DESC (mais recente primeiro — o novo desafio fica no TOPO da lista)', async () => {
     const { repo, close } = makeRepo();
     const base = {
-      trackSlug: 'nodejs-do-zero',
+      trackSlug: 'trilha-minima',
       lessonId: 'aula-1',
       statement: 'st',
       starterCode: 'sc',
@@ -485,7 +485,7 @@ describe('createLessonRepo — listGeneratedChallenges (onda3-generate-flow, ped
     await repo.insertGeneratedChallenge({ ...base, id: 'gen-2', challengeId: 'segundo' });
     await repo.insertGeneratedChallenge({ ...base, id: 'gen-3', challengeId: 'terceiro' });
 
-    const list = await repo.listGeneratedChallenges('nodejs-do-zero', 'aula-1');
+    const list = await repo.listGeneratedChallenges('trilha-minima', 'aula-1');
     assert.deepEqual(
       list.map((g) => g.challengeId),
       ['terceiro', 'segundo', 'primeiro'],
@@ -526,11 +526,11 @@ describe('createLessonRepo — clearAllProgress (onda1-nav-ui, reset de progress
       stars: 3,
       durationMs: 1000,
     });
-    await repo.markTrackLessonDone('nodejs-do-zero', 'aula-1');
-    await repo.setTrackProficiency('nodejs-do-zero', 'passed', 3);
+    await repo.markTrackLessonDone('trilha-minima', 'aula-1');
+    await repo.setTrackProficiency('trilha-minima', 'passed', 3);
     await repo.insertGeneratedChallenge({
       id: 'gen-1',
-      trackSlug: 'nodejs-do-zero',
+      trackSlug: 'trilha-minima',
       lessonId: 'aula-1',
       challengeId: 'dobro',
       statement: 'st',
@@ -551,9 +551,9 @@ describe('createLessonRepo — clearAllProgress (onda1-nav-ui, reset de progress
     // challengeId ENVIADO ('bubble-sort' — o slug; a coluna não é FK), então
     // a consulta é pelo slug, não pelo uuid do desafio fundido.
     assert.equal((await repo.getAttemptsForChallenge('bubble-sort')).length, 1);
-    assert.equal((await repo.listTrackLessonProgress('nodejs-do-zero')).length, 1);
-    assert.ok((await repo.getTrackProficiency('nodejs-do-zero')) !== null);
-    assert.equal((await repo.listGeneratedChallenges('nodejs-do-zero', 'aula-1')).length, 1);
+    assert.equal((await repo.listTrackLessonProgress('trilha-minima')).length, 1);
+    assert.ok((await repo.getTrackProficiency('trilha-minima')) !== null);
+    assert.equal((await repo.listGeneratedChallenges('trilha-minima', 'aula-1')).length, 1);
     assert.ok((await repo.getAnswerForLesson(lessonId)) !== null);
     const rawBefore = db.prepare('SELECT completed_at FROM lessons WHERE id = ?').get(lessonId) as { completed_at: string | null };
     assert.ok(rawBefore.completed_at !== null, 'completed_at marcado antes do reset');
@@ -566,9 +566,9 @@ describe('createLessonRepo — clearAllProgress (onda1-nav-ui, reset de progress
 
     // Avanço zerado em TODAS as camadas.
     assert.equal((await repo.getAttemptsForChallenge('bubble-sort')).length, 0, 'attempts apagadas');
-    assert.equal((await repo.listTrackLessonProgress('nodejs-do-zero')).length, 0, 'track lesson-done apagado');
-    assert.equal(await repo.getTrackProficiency('nodejs-do-zero'), null, 'proficiência apagada');
-    assert.equal((await repo.listGeneratedChallenges('nodejs-do-zero', 'aula-1')).length, 0, 'desafios gerados apagados');
+    assert.equal((await repo.listTrackLessonProgress('trilha-minima')).length, 0, 'track lesson-done apagado');
+    assert.equal(await repo.getTrackProficiency('trilha-minima'), null, 'proficiência apagada');
+    assert.equal((await repo.listGeneratedChallenges('trilha-minima', 'aula-1')).length, 0, 'desafios gerados apagados');
     assert.equal(await repo.getAnswerForLesson(lessonId), null, 'respostas apagadas');
     assert.deepEqual(await repo.answeredTopicCount('algoritmos'), { answered: 0, hintConsumed: 0, becameChildren: 0 }, 'contadores legados zerados');
     const rawAfter = db.prepare('SELECT completed_at FROM lessons WHERE id = ?').get(lessonId) as { completed_at: string | null };

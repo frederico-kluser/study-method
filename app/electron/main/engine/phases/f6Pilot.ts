@@ -32,8 +32,8 @@
  *     um), comparando violações de orçamento (auditoria da TRILHA DE
  *     BRINQUEDO), duplicata semântica (proxy jaccard do laço F11 entre pares
  *     de aulas) e tokens (telemetria). A trilha usada é uma trilha NOVA DE
- *     BRINQUEDO (orçamento + dossiês sintéticos em memória) — NUNCA
- *     `nodejs-do-zero`.
+ *     BRINQUEDO (orçamento + dossiês sintéticos em memória) — NUNCA uma trilha
+ *     publicada.
  *
  * O QUE ESTE ARQUIVO É:
  *
@@ -1272,7 +1272,7 @@ async function rodarRegimeDoExperimento(
  * jaccard sobre os drafts), tokens de entrada/saída e latência. Telemetria e
  * ledger OPIONAIS anexam uma linha por regime. Custo alto → os testes usam
  * FAKES (LLM fake com script determinístico) — NUNCA processos reais e NUNCA
- * uma trilha de produção (nunca `nodejs-do-zero`).
+ * uma trilha de produção.
  *
  * Fail-closed: exatamente 10 aulas DISTINTAS, dossiê/snapshot para cada uma,
  * e `runId` quando o ledger é injetado.

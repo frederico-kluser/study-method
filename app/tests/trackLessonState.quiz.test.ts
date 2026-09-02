@@ -68,7 +68,7 @@ function assertion(over: Partial<TrackAssertionDto> = {}): TrackAssertionDto {
 
 function errorReport(challengeId = 'ch1'): TrackChallengeErrorReport {
   return {
-    trackSlug: 'programacao-do-zero',
+    trackSlug: 'trilha-minima',
     lessonId: 'l1',
     challengeId,
     challengeTitle: 'Desafio 1',

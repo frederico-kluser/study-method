@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "slug": "digite-o-sete",
+  "title": "Digite o sete",
+  "concept": "involucro",
+  "difficulty": 1,
+  "language": "nodejs",
+  "statement": "# Digite o sete\n\nFaça a caixa devolver 7.",
+  "starterCode": "export function resposta() {\n  return 0;\n}\n",
+  "solutionCode": "export function resposta() {\n  return 7;\n}\n",
+  "testsCode": "import { test } from 'node:test';\nimport assert from 'node:assert/strict';\nimport { resposta } from './solution.mjs';\n\ntest('devolve 7', () => {\n  assert.equal(resposta(), 7);\n});\n",
+  "expectedTestCount": 1
+}

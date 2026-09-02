@@ -10,6 +10,20 @@ Este README cobre o **o que é, como rodar e o fluxo principal**. Um documento p
 manual do usuário + arquitetura técnica + mapa de contratos — vive em
 [`docs/app-gui.md`](../docs/app-gui.md) (complemento, não duplicação).
 
+> **Estado do conteúdo (2026-09-02): `app/resources/tracks/` está VAZIO.** As duas trilhas
+> geradas — `nodejs-do-zero` (18 módulos, 118 aulas) e `programacao-do-zero` (14 aulas) — foram
+> **apagadas**, junto com os diretórios de trabalho delas em `app/content-src/`. Motivo medido
+> pelo próprio gate da engine: a aula 1 de `nodejs-do-zero` introduzia **16 construções novas**
+> (o teto é 4) e o **primeiro desafio do curso** já exigia `IfStatement`, `typeof`, `!==` e
+> `throw new Error` — 717 violações, 112 dos 118 desafios quebrados, 249 lacunas de currículo.
+> O registro completo está em [`docs/15-trilha-nodejs.md`](../docs/15-trilha-nodejs.md).
+>
+> O que sobrou é o que importa: a **engine de trilha** (`electron/main/engine/`, `npm run engine`)
+> e o gate determinístico que reprovou aquele conteúdo. As seções de rodada abaixo são
+> **histórico** — elas descrevem o que cada rodada entregou na época, incluindo trilhas que hoje
+> não existem mais. Os testes não dependem mais de nenhuma delas: quem precisa de uma trilha usa
+> as fixtures em `tests/fixtures/tracks/`.
+
 ## Como rodar
 
 **Atalho (da raiz do repositório):** `./install.sh` instala tudo (skill + `npm ci` aqui + cria
@@ -96,6 +110,8 @@ adversarial. O relatório orquestrado (ondas, commits, gates, revisões) está e
 
 ## Rodada 9 (ondas R9-1..R9-6) — resumo
 
+> Histórico. A trilha desta rodada foi apagada em 2026-09-02 (ver a nota no topo).
+
 A **nona rodada** expandiu a trilha **Node.js do Zero** de 8 para **18 módulos**
 (118 aulas) — do zero absoluto até o nível **especialista** — e entregou uma
 **UX de aula sem LLM**: a teoria é apresentada de forma **determinística**
@@ -127,6 +143,9 @@ completo em [`docs/15-trilha-nodejs.md`](../docs/15-trilha-nodejs.md):
   `npm run lint` / `build` / `test:e2e` verdes.
 
 ## Rodada 8 (ondas R8-1..R8-6) — resumo
+
+> Histórico. A trilha citada aqui foi apagada em 2026-09-02 (ver a nota no topo); o pivô de
+> produto (autor cria a trilha por CLI, aluno consome) continua valendo.
 
 A **oitava rodada** fez o pivô de produto: **o aluno NÃO GERA mais aula**. As
 trilhas (cursos inteiros) são criadas pelos AUTORES via **CLI**

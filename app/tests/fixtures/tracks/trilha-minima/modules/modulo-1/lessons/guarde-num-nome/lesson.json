@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "slug": "guarde-num-nome",
+  "title": "Guarde num nome",
+  "summary": "Um nome fixo para o valor antes de devolvê-lo.",
+  "difficulty": 1,
+  "concepts": [
+    "const"
+  ],
+  "prerequisites": [
+    "escreva-outro-valor"
+  ],
+  "theory": [
+    {
+      "id": "um-nome-fixo",
+      "title": "Um nome fixo",
+      "markdown": "`const` dá um nome ao valor. O nome fica preso a ele até o fim da caixa.\n\n```js\nexport function resposta() {\n  const nove = 9;\n  return nove;\n}\n```"
+    }
+  ],
+  "sources": [],
+  "challenges": [
+    "guarde-o-nove"
+  ]
+}

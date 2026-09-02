@@ -55,7 +55,7 @@ O mesmo comando trocando `solutionCode` por `testsCode` dá 11 tipos de nó, e p
 conjuntos quase disjuntos, que é a evidência de que **receptivo e produtivo precisam ser faixas
 separadas**: proibir o que o arquivo de teste usa inviabiliza o harness; liberar tudo torna a trava
 inútil. O arquivo é
-[challenge.json da aula 1](../../app/resources/tracks/nodejs-do-zero/modules/fundamentos-javascript/lessons/o-que-e-programacao/challenges/cumprimentar/challenge.json).
+o `challenge.json` da aula 1 daquela trilha (`modules/fundamentos-javascript/lessons/o-que-e-programacao/challenges/cumprimentar/`), apagado com ela em 2026-09-02 — ver [`../15-trilha-nodejs.md`](../15-trilha-nodejs.md).
 
 Tamanho do problema hoje, medido na pesquisa anterior desta sessão (dossiês
 `dim-controlled-vocabulary.md` e `dim-atomic-decomposition-js.md`, no scratchpad, com os scripts

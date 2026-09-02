@@ -396,7 +396,7 @@ describe('form — as catorze formas de TypeScript (docs/18)', () => {
 // O GATE DE DIALETO — regra de TypeScript NUNCA é avaliada em código JavaScript
 // ---------------------------------------------------------------------------
 
-describe('form — o gate de dialeto (o placar de nodejs-do-zero não pode mudar)', () => {
+describe('form — o gate de dialeto (o placar de uma trilha de JavaScript não pode mudar)', () => {
   it('toda regra declara seu(s) dialeto(s): as cinco de JS valem nos dois, as catorze de TS só em ts', () => {
     const porChave = new Map(FORM_RULES.map((r) => [r.key, r]));
     for (const def of JAVASCRIPT_FORM_DEFINITIONS) {
@@ -414,8 +414,9 @@ describe('form — o gate de dialeto (o placar de nodejs-do-zero não pode mudar
   });
 
   it('MEDIDO: as três formas de TS que casam JavaScript PURO não emitem nada em .mjs', () => {
-    // Estas três são a razão de o gate existir. Sem ele, `nodejs-do-zero`
-    // ganharia chaves `form:` que nenhuma aula da trilha de JavaScript declara.
+    // Estas três são a razão de o gate existir. Sem ele, uma trilha de
+    // JavaScript ganharia chaves `form:` que nenhuma aula dela declara — e
+    // toda violação nova viraria lacuna de currículo inventada pelo gate.
     const armadilhas: Array<[string, string]> = [
       ['function f(...xs) { return xs; }', 'form:Parameter[dotDotDotToken!=null]'],
       ["if (forma === 'circulo') { g(); }", 'form:IfStatement[expression=BinaryExpression]'],

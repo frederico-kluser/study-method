@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "slug": "escreva-outro-valor",
+  "title": "Escreva outro valor",
+  "summary": "Repetição deliberada: o mesmo invólucro, outro número.",
+  "difficulty": 1,
+  "concepts": [
+    "involucro"
+  ],
+  "prerequisites": [
+    "a-maquina-que-confere"
+  ],
+  "theory": [
+    {
+      "id": "so-troca-o-numero",
+      "title": "Só troca o número",
+      "markdown": "Nada novo aqui: o invólucro é o mesmo da aula anterior e só o número muda.\n\n```js\nexport function resposta() {\n  return 8;\n}\n```"
+    }
+  ],
+  "sources": [],
+  "challenges": [
+    "digite-o-oito"
+  ]
+}

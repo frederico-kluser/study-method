@@ -313,7 +313,7 @@ function amostrasDeCalibracaoDeFato(): { valido: ReturnType<typeof desafioValido
 
 // ---------------------------------------------------------------------------
 // A TRILHA DE BRINQUEDO — grafo, plano e orçamento sintéticos (nunca uma
-// trilha real: nunca nodejs-do-zero)
+// trilha de produção)
 // ---------------------------------------------------------------------------
 
 function conceito(id: string, desbloqueadoPor: string[] = []): Concept {

@@ -9,7 +9,9 @@
 > divergirem, o 16 vence. Onde este documento e um gate determinístico divergirem, o gate vence.
 >
 > **Molde.** A estrutura é a de [`15-trilha-nodejs.md`](15-trilha-nodejs.md); o nível de exigência é
-> o de [`../app/content-src/programacao-do-zero/curriculo.md`](../app/content-src/programacao-do-zero/curriculo.md).
+> o de `app/content-src/programacao-do-zero/curriculo.md` (apagado em 2026-09-02 junto com a
+> trilha — ver [`15-trilha-nodejs.md`](15-trilha-nodejs.md); o formato do currículo continua
+> descrito neste documento).
 >
 > **Base.** Fatos medidos nesta máquina (Node v24.19.0 e `typescript@5.8.3`, com o comando ao lado
 > de cada número); o dossiê

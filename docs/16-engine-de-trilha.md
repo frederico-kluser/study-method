@@ -33,16 +33,22 @@ roda em milissegundos, não depende de nenhuma chave de API e tem poder de veto.
 
 ---
 
-## 1. O defeito, medido
+## 1. O defeito, medido (registro histórico — o conteúdo já não existe)
 
-Todos os números abaixo são reproduzíveis por um comando: `cd app && npm run engine -- audit
-nodejs-do-zero --limite 0` (para a tabela) e o mesmo comando com `--json` (para as três linhas
-derivadas dos campos `metrics[]`). Foram **re-medidos em 2026-09-02** sobre
-`app/resources/tracks/nodejs-do-zero`, sem chave de API (orçamento `inferred` — leitura permissiva:
-o número real de violações é maior, nunca menor). Eles são o **caso de teste de aceitação da
-engine**: se a engine não reprovar o que sabidamente está quebrado, ela não funciona. O pin
-mecânico do placar vive em `app/tests/engineAuditPlacar.test.ts` (717/112/249, mais 92 avisos) —
-e, pela regra de autoridade acima, **onde esta tabela e aquele pin divergirem, o pin vence**.
+> **Leia isto antes da tabela.** Os números abaixo **não são mais reproduzíveis**: em 2026-09-02,
+> depois desta medição, a trilha `nodejs-do-zero` foi **APAGADA** do repositório junto com
+> `programacao-do-zero` (ver `docs/15-trilha-nodejs.md`, nota do topo). `app/resources/tracks/`
+> está vazio, o comando `npm run engine -- audit nodejs-do-zero` não tem mais o que carregar, e o
+> pin mecânico que vivia em `app/tests/engineAuditPlacar.test.ts` saiu com ela — um pin sem objeto
+> não pina nada. A tabela fica como **registro do defeito que motivou esta engine**, no passado.
+
+Os números foram medidos em 2026-09-02 com `cd app && npm run engine -- audit nodejs-do-zero
+--limite 0` (para a tabela) e o mesmo comando com `--json` (para as três linhas derivadas dos
+campos `metrics[]`), sobre `app/resources/tracks/nodejs-do-zero`, sem chave de API (orçamento
+`inferred` — leitura permissiva: o número real de violações era maior, nunca menor). Eles foram o
+**caso de teste de aceitação da engine**: se a engine não reprovasse o que sabidamente estava
+quebrado, ela não funcionaria. Ela reprovou — e o conteúdo foi descartado por causa disso, que é o
+desfecho que a engine existia para produzir.
 
 | Medição | Valor |
 |---|---|
@@ -59,8 +65,8 @@ e, pela regra de autoridade acima, **onde esta tabela e aquele pin divergirem, o
 | Blocos marcados `js` que não parseiam | 4 |
 | Aulas que declaram exatamente 1 `concept` | 100 de 118 |
 
-As linhas com "mediana", "45" (acima do teto) e "100 de 118" são derivadas do mesmo relatório em
-`--json` (`metrics[].novas` e `metrics[].conceitosDeclarados`); as demais saem do placar humano.
+As linhas com "mediana", "45" (acima do teto) e "100 de 118" eram derivadas do mesmo relatório em
+`--json` (`metrics[].novas` e `metrics[].conceitosDeclarados`); as demais saíam do placar humano.
 
 **Rastreabilidade do placar: 285 → 841 → 717.** Este documento anunciou por muito tempo
 **285 violações / 96 desafios / 102 lacunas**. Aquele número não era falso — era o placar da
@@ -69,6 +75,7 @@ mecânica e reproduzível: no `--json` de hoje, as violações das regras antiga
 campo `severidade`) ainda somam **exatamente 285**:
 
 ```bash
+# O comando que produzia esta conferência (não roda mais: a trilha foi apagada).
 cd app
 # redirecione para ARQUIVO: o audit sai com exit 1 quando reprova, e um pipe direto
 # pode truncar o JSON antes do fim.
@@ -77,11 +84,14 @@ python3 -c "import json; v=json.load(open('/tmp/audit.json'))['violations']; \
   print(sum(1 for x in v if 'severidade' not in x), 'de', len(v))"   # -> 285 de 809
 ```
 
+Sobre qualquer trilha nova a mesma conferência vale trocando o slug — e, para uma trilha ainda não
+publicada, apontando `--dir` para o diretório dela.
+
 A bateria A13–A16 levou o placar a **841**, e o fix do A13c (a teoria da PRÓPRIA aula conta como
 demonstração, §3.2) removeu 124 falsos positivos, fechando em **717** (§5.1, "Bump do pin"). O
 que mudou foi a régua, não a trilha.
 
-Três leituras que decidem o desenho:
+Três leituras que decidiram o desenho:
 
 1. **A trilha foi escrita de trás para frente.** Primeiro o desafio, depois uma seção "Exemplo
    completo" contendo a solução literal. O encaixe nunca foi verificado.
@@ -399,7 +409,7 @@ lista de construções diz o que é *permitido*, o resumo diz *como aquilo foi a
 | A16 | **PRIMEIRA-ATIVIDADE** — o 1º desafio é resolvível com a 1ª seção da teoria + material anterior (DemoSec1 ∪ Cum ∪ AX ∪ H13) | erro (+ aviso D4) |
 
 **A6 é o gate positivo e não pode ser esquecido.** Sem ele o checker aceita trilhas que só repetem o
-que o aluno já sabia — e a aula `funcoes` do repositório atual falha exatamente aí.
+que o aluno já sabia — e a aula `funcoes` da trilha apagada falhava exatamente aí.
 
 **A11 mata a causa-raiz.** É a substituição da cobertura fixa `example + boundary + error` por
 cenários **derivados do orçamento**.
@@ -408,18 +418,22 @@ cenários **derivados do orçamento**.
 usado-sem-demonstração (A13), avanço micro (A14), progressividade (A15) e primeira interação (A16).
 Especificação formal, H13/AVISO13/S13 e mensagens pt-BR em
 `app/content-src/analise-verificadores.md` §3–§6; implementação pura em
-`app/electron/main/engine/quality/progressao.ts` (mesclada no `auditTrack` — pin da trilha real
-717 violações / 112 desafios / 249 lacunas / 92 avisos, modo inferred).
+`app/electron/main/engine/quality/progressao.ts` (mesclada no `auditTrack` — o placar da trilha de
+então era 717 violações / 112 desafios / 249 lacunas / 92 avisos, modo inferred).
 
-**Bump do pin (rodada 12).** O pin mecânico vive em `app/tests/engineAuditPlacar.test.ts` e documenta
-cada bump. Com a bateria A13–A16 ativa no audit, o pin da trilha real passou de
-**841 violações / 112 desafios / 249 lacunas / 96 avisos** para
+**O pin do placar (rodada 12) — e por que ele não existe mais.** O pin mecânico viveu em
+`app/tests/engineAuditPlacar.test.ts` até 2026-09-02. Com a bateria A13–A16 ativa no audit, ele
+passou de **841 violações / 112 desafios / 249 lacunas / 96 avisos** para
 **717 violações / 112 desafios / 249 lacunas / 92 avisos** (modo inferred): o fix do A13c
 (mesma-aula) removeu **124 falsos positivos** (841 → 717) e 4 avisos D4 a menos (96 → 92); desafios
-com violação (112) e lacunas (249) permaneceram os mesmos. **Protocolo do bump:** o pin é
-re-verificado a cada rodada; toda mudança de bateria de verificadores re-bumpa e re-verifica — cada
-bump acompanha o commit que o causou, com comentário no próprio teste de pin explicando o porquê, e o
-gate `bash tools/t.sh tests/engineAuditPlacar.test.ts` passa com os novos valores.
+com violação (112) e lacunas (249) permaneceram os mesmos. Em 2026-09-02 a trilha medida foi
+apagada e o arquivo de pin saiu com ela — **não há trilha publicada, logo não há placar a pinar**.
+
+**O protocolo INT-02/P-30 continua valendo** e é o que a próxima trilha herda: o placar do audit
+nunca piora sem declaração; toda mudança de bateria de verificadores re-bumpa e re-verifica; cada
+bump acompanha o commit que o causou, com a justificativa no próprio teste de pin. Quem publicar a
+próxima trilha **recria o teste de pin** — o protocolo descreve como, e o relatório
+(`engine/report/report.ts`) já o cita na justificativa sem redigitar número nenhum.
 
 ### 5.2 Invariantes de estrutura
 
@@ -925,7 +939,8 @@ de aceitação da engine inteira.**
 **Estado da implementação.** `audit` está implementado e roda:
 
 ```bash
-cd app && npm run engine -- audit nodejs-do-zero --limite 0
+cd app && npm run engine -- audit <slug> --limite 0
+cd app && npm run engine -- audit <slug> --dir <dir> --limite 0   # trilha ainda não publicada
 ```
 
 `generate` e `repair` — os modos que chamam a LLM — ainda não. A ordem de construção (§14) põe o
@@ -983,9 +998,11 @@ estruturado, nunca veredito falso nem aprovação por omissão.
 
 ### 9.4 Reprodução dos números
 
-Todos os números de §1 saem de `audit` sobre `app/resources/tracks/nodejs-do-zero`, sem chave de API.
-O comando exato fica no `README.md` da engine, e o `CONTRIBUTING.md` do repositório exige que
-**nenhum número apareça sem o comando que o reproduz**.
+Os números de §1 saíram de `audit` sobre a trilha que existia até 2026-09-02, sem chave de API. Ela
+foi apagada e eles **não são mais reproduzíveis** — ficam como registro histórico, e o §1 diz isso
+na primeira linha. A regra do repositório continua valendo para todo número NOVO: o comando exato
+fica no `README.md` da engine, e o `CONTRIBUTING.md` exige que **nenhum número apareça sem o
+comando que o reproduz**.
 
 ---
 

@@ -180,8 +180,19 @@ const PREFIXOS_DE_CAMINHO = [
 /**
  * Caminhos que o documento cita como INEXISTENTES de propósito — a sentença é
  * "X não existe em `app/node_modules`" (§5.3). Não resolvem no clone limpo.
+ *
+ * ADITIVO (2026-09-02): os três seguintes são o REGISTRO da remoção do
+ * conteúdo gerado. `docs/16` §1 e §5.1 narram o defeito medido na trilha
+ * `nodejs-do-zero` e o pin que a media, e para narrar precisam NOMEAR o que
+ * foi apagado. Citar um caminho para dizer "isto não existe mais" é o oposto
+ * de um link morto — e é exatamente o caso que esta lista existe para cobrir.
  */
-const CAMINHOS_CITADOS_COMO_AUSENTES = new Set(['app/node_modules', 'node_modules']);
+const CAMINHOS_CITADOS_COMO_AUSENTES = new Set([
+  'app/node_modules',
+  'node_modules',
+  'app/resources/tracks/nodejs-do-zero',
+  'app/tests/engineAuditPlacar.test.ts',
+]);
 
 function linksMarkdownRelativos(texto: string): string[] {
   const alvos: string[] = [];

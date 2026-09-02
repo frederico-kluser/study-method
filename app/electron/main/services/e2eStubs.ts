@@ -389,6 +389,13 @@ async function checkPiSdk(): Promise<boolean> {
  * de proficiência e — ADITIVO (rodada 9) — 1 DESAFIO DE MÓDULO MULTI-ARQUIVO
  * (lib/soma.mjs + lib/multiplica.mjs, testes que importam dos dois). O spec
  * E2E navega: Home → Trilha → Aula → Desafio (e módulo → desafio do módulo).
+ *
+ * O NOME `nodejs-do-zero` É COINCIDÊNCIA HISTÓRICA, não uma dependência: esta
+ * fixture é escrita AQUI, do zero, num workspace temporário, e nunca leu
+ * `resources/tracks`. Existiu uma trilha PUBLICADA com esse slug até
+ * 2026-09-02 (apagada — ver `docs/15-trilha-nodejs.md`); o harness E2E não a
+ * usava então e não a usa agora. O slug/título ficam como estão porque são o
+ * que os specs Playwright procuram na tela.
  */
 async function writeFixtureTrack(): Promise<void> {
   const root = path.join(workspaceRoot(), 'fixture-tracks', 'nodejs-do-zero');

@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "slug": "modulos-do-node",
+  "title": "Módulos do Node",
+  "summary": "Aula de prática: nada novo, só o inventário dos built-ins.",
+  "difficulty": 3,
+  "concepts": [
+    "modulos"
+  ],
+  "prerequisites": [
+    "estruturas"
+  ],
+  "theory": [
+    {
+      "id": "so-pratica",
+      "title": "Só prática",
+      "markdown": "Nenhuma construção nova aqui: a aula só repete o que as anteriores mostraram."
+    }
+  ],
+  "sources": [],
+  "challenges": [
+    "inventariar-os-modulos"
+  ]
+}

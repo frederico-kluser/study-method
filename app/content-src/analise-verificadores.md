@@ -1,5 +1,12 @@
 # Análise de verificadores — gaps e specs A13–A16 (ensino-efetivo, micro-avanço, progressividade, primeira-atividade)
 
+> **Nota de 2026-09-02.** Este documento continua NORMATIVO para as regras A13–A16 (é a spec que
+> `app/electron/main/engine/quality/progressao.ts` implementa e que os testes citam). As MEDIÇÕES
+> que ele traz — placares, contagens por bateria, o pin de `app/tests/engineAuditPlacar.test.ts` —
+> foram feitas sobre a trilha `nodejs-do-zero`, que foi **apagada** nesta data junto com o resto do
+> conteúdo gerado (ver `docs/15-trilha-nodejs.md`). Elas ficam como registro; as regras, como
+> contrato.
+
 > **Contexto.** Os verificadores determinísticos atuais garantem "o desafio só cobra o que já foi
 > ensinado" por **diferença de conjuntos sobre AST** (`docs/16-engine-de-trilha.md` §5). O feedback do
 > usuário pede três coisas que essa garantia **não** cobre: (1) construção **usada** numa atividade sem

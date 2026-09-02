@@ -18,11 +18,18 @@
  *   - placar no formato exato do repositório: `N passou · N falhou · N pendente`.
  *   - ReportSchema valida a saída e campos obrigatórios preenchidos.
  *   - PROTOCOLO INT-02 (P-30): o placar do G-AUDIT nunca piora sem declaração —
- *     este arquivo importa o MESMO `PIN_PLACAR` de engineAuditPlacar.test.ts
- *     (sem redigitar números). CONSEQUÊNCIA DECLARADA: importar um `.test.ts`
- *     executa o describe dele no MESMO processo (medido experimentalmente), então
- *     a suíte P-30 co-locada roda junto deste arquivo — é o preço aceito pelo
- *     próprio protocolo ("P-24 importa o MESMO pin").
+ *     o relatório DERIVA o placar do audit que recebe e cita o protocolo na
+ *     justificativa, sem redigitar número nenhum.
+ *
+ * O PIN QUE SUMIU (2026-09-02): até esta data o pin concreto do protocolo
+ * (`PIN_PLACAR` = 717 violações · 112 desafios · 249 lacunas) vivia em
+ * `tests/engineAuditPlacar.test.ts`, medido contra a trilha de produção
+ * `resources/tracks/trilha-minima`, e ESTE arquivo o importava para não
+ * redigitar os números. A trilha foi apagada (ver `docs/15-trilha-nodejs.md`),
+ * o pin perdeu o objeto e o teste dele saiu junto. O protocolo P-30 continua
+ * valendo para qualquer trilha futura; o que morreu foi o número, não a regra.
+ * Efeito colateral bom: este arquivo deixou de importar um `.test.ts` — o
+ * truque que fazia a suíte alheia rodar dentro deste processo.
  */
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
@@ -50,7 +57,6 @@ import {
   tokenizarPorFronteira,
   type DepsDoRelatorio,
 } from '../electron/main/engine/report/report';
-import { PIN_PLACAR } from './engineAuditPlacar.test';
 
 // ---------------------------------------------------------------------------
 // Fixtures — o AUDIT em memória (A-P24-2: mesmos números reais, forma reduzida)
@@ -75,9 +81,12 @@ function violation(overrides: Partial<Violation> = {}): Violation {
 }
 
 /**
- * Distribuição de construções novas IDÊNTICA à do audit real da trilha
- * (18, 11, 3, 5, 5, 9, 4, … — medida em app/resources/tracks/nodejs-do-zero)
- * em forma REDUZIDA: 8 aulas, mesmos primeiros oito números reais.
+ * Distribuição de construções novas com o PENHASCO que o histograma tem de
+ * reproduzir (18, 11, 3, 5, 5, 9, 4, 1): oito aulas em que a PRIMEIRA
+ * concentra e domina a mediana. Os números vieram do audit da trilha de
+ * produção que existia até 2026-09-02 (`trilha-minima`, apagada — ver
+ * `docs/15-trilha-nodejs.md`); ficam aqui como a FORMA que o detector precisa
+ * enxergar, agora sem depender de conteúdo nenhum no disco.
  */
 function fixtureAudit(overridesTotals?: Partial<AuditReport['totals']>): AuditReport {
   const metrics: AuditReport['metrics'] = [
@@ -110,7 +119,7 @@ function fixtureAudit(overridesTotals?: Partial<AuditReport['totals']>): AuditRe
     violation({ regra: 'I16', campo: 'lesson', faixa: null, construcao: null, eixo: null }),
   ];
   return {
-    trackSlug: 'nodejs-do-zero',
+    trackSlug: 'trilha-minima',
     budgetSource: 'inferred',
     violations,
     metrics,
@@ -225,10 +234,10 @@ describe('engineReport', () => {
       solubilidade,
       falsoPasse,
       comandos: {
-        audit: 'cd app && npm run engine -- audit nodejs-do-zero --limite 0',
-        telemetria: 'cd app && npm run engine -- generate nodejs-do-zero',
-        'falso-passe': 'cd app && npm run engine -- calibrar nodejs-do-zero',
-        solubilidade: 'cd app && npm run engine -- medir-solubilidade nodejs-do-zero',
+        audit: 'cd app && npm run engine -- audit trilha-minima --limite 0',
+        telemetria: 'cd app && npm run engine -- generate trilha-minima',
+        'falso-passe': 'cd app && npm run engine -- calibrar trilha-minima',
+        solubilidade: 'cd app && npm run engine -- medir-solubilidade trilha-minima',
       },
     });
     const chaves = relatorio.limitacoes.map((l) => l.split(':')[0]);
@@ -330,13 +339,13 @@ describe('engineReport', () => {
       solubilidade,
       falsoPasse,
       comandos: {
-        audit: 'cd app && npm run engine -- audit nodejs-do-zero --limite 0',
-        'falso-passe': 'cd app && npm run engine -- calibrar nodejs-do-zero',
+        audit: 'cd app && npm run engine -- audit trilha-minima --limite 0',
+        'falso-passe': 'cd app && npm run engine -- calibrar trilha-minima',
       },
     };
     const relatorio = ReportSchema.parse(gerarRelatorio(deps)); // parse explícito: prova o schema
 
-    assert.equal(relatorio.trilha, 'nodejs-do-zero');
+    assert.equal(relatorio.trilha, 'trilha-minima');
     assert.equal(relatorio.comando, deps.comandos?.audit, 'comando do audit sobreposto pelo caller');
     assert.ok(!Number.isNaN(Date.parse(relatorio.gerado_em)), 'gerado_em é data ISO válida');
     assert.ok(relatorio.veredito === 'aprovado' || relatorio.veredito === 'reprovado');
@@ -380,30 +389,34 @@ describe('engineReport', () => {
   // Protocolo INT-02 (P-30) — o MESMO pin, sem redigitar números
   // -------------------------------------------------------------------------
 
-  it('INT-02: relatório espelha o PIN_PLACAR importado (mesmo pin, sem redigitar) e cita o protocolo', () => {
+  it('INT-02: o placar do relatório é DERIVADO do audit (nunca redigitado) e a justificativa cita o protocolo', () => {
+    // Um placar arbitrário: o que se prova é a DERIVAÇÃO, não o número. Antes
+    // de 2026-09-02 estes três vinham do `PIN_PLACAR` da trilha de produção;
+    // com a trilha apagada, o pin morreu e a propriedade ficou.
+    const placar = { violacoes: 717, desafiosComViolacao: 112, lacunas: 249, desafios: 118 };
     const relatorio = gerarRelatorio({
       auditReport: fixtureAudit({
-        violacoes: PIN_PLACAR.violacoes,
-        desafiosComViolacao: PIN_PLACAR.desafiosComViolacao,
-        lacunasDeCurriculo: PIN_PLACAR.lacunas,
-        desafios: 118,
+        violacoes: placar.violacoes,
+        desafiosComViolacao: placar.desafiosComViolacao,
+        lacunasDeCurriculo: placar.lacunas,
+        desafios: placar.desafios,
       }),
     });
-    assert.equal(relatorio.placar.falhou, PIN_PLACAR.desafiosComViolacao);
-    // O resumo é DERIVADO do pin (118 desafios reais) — nunca redigitar o
-    // número à mão, senão o bump da rodada 12 quebraria este espelho.
+    assert.equal(relatorio.placar.falhou, placar.desafiosComViolacao);
+    // O resumo é DERIVADO do audit — nunca redigitado à mão, senão qualquer
+    // mudança de placar quebraria este espelho em silêncio.
     assert.equal(
       formatarPlacar(relatorio.placar),
-      `${118 - PIN_PLACAR.desafiosComViolacao} passou · ${PIN_PLACAR.desafiosComViolacao} falhou · 0 pendente`,
+      `${placar.desafios - placar.desafiosComViolacao} passou · ${placar.desafiosComViolacao} falhou · 0 pendente`,
     );
     assert.match(relatorio.justificativa, /INT-02/, 'justificativa cita o protocolo');
     assert.ok(
-      relatorio.justificativa.includes('engineAuditPlacar.test.ts'),
-      'a justificativa aponta onde vive o pin, sem duplicá-lo',
+      relatorio.justificativa.includes('P-30'),
+      'a justificativa nomeia o protocolo que rege o placar',
     );
   });
 
   it('comandoAuditPadrao reproduz o comando canônico do repo (§9.4)', () => {
-    assert.equal(comandoAuditPadrao('nodejs-do-zero'), 'cd app && npm run engine -- audit nodejs-do-zero --limite 0');
+    assert.equal(comandoAuditPadrao('trilha-minima'), 'cd app && npm run engine -- audit trilha-minima --limite 0');
   });
 });

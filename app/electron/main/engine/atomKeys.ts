@@ -1,9 +1,12 @@
 /**
  * app/electron/main/engine/atomKeys.ts — o VOCABULÁRIO FECHADO de construções.
  *
- * Problema real: a trilha `nodejs-do-zero` cobra, no desafio da aula 1, oito
- * construções que nenhuma aula ensinou (`function`, parâmetro, `if`, `typeof`,
- * `!==`, `throw`, `new Error`, `return`, concatenação com `+`). A proibição
+ * Problema real, medido na trilha que motivou esta engine (`nodejs-do-zero`,
+ * apagada em 2026-09-02 — ver `docs/15-trilha-nodejs.md`): o desafio da aula 1
+ * cobrava oito construções que nenhuma aula ensinou (`function`, parâmetro,
+ * `if`, `typeof`, `!==`, `throw`, `new Error`, `return`, concatenação com
+ * `+`). O conteúdo sumiu; o defeito que ele exemplifica é de gênero, e é
+ * contra ele que este arquivo existe. A proibição
  * "desafio só cobra o que já foi ensinado" só vira gate se "construção" for um
  * DADO — uma string estável, comparável por igualdade, que sai de um parser e
  * não de uma opinião. Este arquivo define essa string.
@@ -228,12 +231,12 @@ export function isForbiddenAlways(key: AtomKey, language: LanguageId = DEFAULT_A
  * ONDA 6: TypeScript usa esta lista INTEIRA e acrescenta sete chaves de tipo —
  * ver `TYPESCRIPT_TYPE_HARNESS_SEED` e `TYPESCRIPT_HARNESS_RECEPTIVE_SEED`
  * logo abaixo. O acréscimo mora numa lista SEPARADA de propósito: crescer ESTA
- * lista liberaria as sete construções também em `nodejs-do-zero`.
+ * lista liberaria as sete construções em toda trilha de JavaScript.
  *
- * Medição que justifica esta lista existir: 45 das 60 violações dos módulos
- * 1–3 da trilha atual são exatamente estas construções. Sem separá-las, o gate
- * só tem duas saídas ruins — proibir o próprio runner de teste (inviável) ou
- * liberar tudo (inútil).
+ * Medição que justifica esta lista existir (na trilha de referência de 2026-08,
+ * hoje apagada): 45 das 60 violações dos módulos 1–3 eram exatamente estas
+ * construções. Sem separá-las, o gate só tem duas saídas ruins — proibir o
+ * próprio runner de teste (inviável) ou liberar tudo (inútil).
  *
  * Presente no orçamento RECEPTIVO desde a aula 1 (política `receptive-seed`,
  * `docs/16-engine-de-trilha.md` §3.2 e D1); NUNCA no produtivo, porque o aluno
@@ -342,11 +345,13 @@ export const TYPESCRIPT_TYPE_HARNESS_SEED: readonly AtomKey[] = [
  * Ela é uma lista SEPARADA, e não um acréscimo à de JavaScript, por uma razão
  * que se mede: `HARNESS_RECEPTIVE_SEED` semeia o orçamento RECEPTIVO da aula 1
  * de toda trilha da linguagem dela. Empurrar `node:TypeReference` para dentro
- * da lista de JavaScript liberaria, em silêncio, sete construções na trilha
- * `nodejs-do-zero` — o mesmo afrouxamento que este arquivo chama de "a tentação
- * de crescer a lista para fazer o gate passar". Conferido: o placar da
- * auditoria de `nodejs-do-zero` (717 violações · 112 desafios · 249 lacunas)
- * não se move com esta mudança.
+ * da lista de JavaScript liberaria, em silêncio, sete construções em TODA
+ * trilha de JavaScript — o mesmo afrouxamento que este arquivo chama de "a
+ * tentação de crescer a lista para fazer o gate passar". Conferido na época
+ * (onda 6) contra a trilha de referência: o placar da auditoria de
+ * `nodejs-do-zero` (717 violações · 112 desafios · 249 lacunas) não se movia
+ * com esta mudança. A trilha foi apagada depois (2026-09-02); a separação das
+ * listas continua sendo o que impede o afrouxamento.
  */
 export const TYPESCRIPT_HARNESS_RECEPTIVE_SEED: readonly AtomKey[] = [
   ...HARNESS_RECEPTIVE_SEED,

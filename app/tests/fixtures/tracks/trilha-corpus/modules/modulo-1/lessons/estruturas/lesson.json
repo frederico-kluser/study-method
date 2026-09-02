@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "slug": "estruturas",
+  "title": "Estruturas",
+  "summary": "Classe, laços, try/catch, desestruturação e o resto das formas.",
+  "difficulty": 3,
+  "concepts": [
+    "estruturas"
+  ],
+  "prerequisites": [
+    "operadores"
+  ],
+  "theory": [
+    {
+      "id": "formas-de-bloco",
+      "title": "Formas de bloco",
+      "markdown": "As formas de bloco da linguagem, num bloco só.\n\n```js\nexport class Contador {\n  static zero = 0;\n  #valor = 0;\n\n  constructor(inicial = 0) {\n    this.#valor = inicial;\n  }\n\n  get valor() {\n    return this.#valor;\n  }\n\n  set valor(v) {\n    this.#valor = v;\n  }\n\n  incrementar(passo = 1) {\n    this.#valor += passo;\n    return this;\n  }\n\n  static de(lista) {\n    return new Contador(lista.length);\n  }\n}\n\nexport async function agregar(lista) {\n  let total = 0;\n  for (const item of lista) {\n    total += item;\n  }\n  for (let i = 0; i < lista.length; i += 1) {\n    total -= 0;\n  }\n  for (const chave in { a: 1 }) {\n    total *= 1;\n  }\n  let j = 0;\n  while (j < 1) {\n    j += 1;\n  }\n  do {\n    j -= 1;\n  } while (j > 0);\n  switch (lista.length) {\n    case 0:\n      total = 0;\n      break;\n    default:\n      break;\n  }\n  try {\n    if (total < 0) {\n      throw new RangeError('negativo');\n    }\n  } catch (erro) {\n    total = 0;\n  } finally {\n    total = Math.abs(total);\n  }\n  const [primeiro, ...resto] = lista;\n  const { length } = lista;\n  const copia = [...lista, primeiro];\n  const texto = `total=${total} itens=${length} copia=${copia.length} resto=${resto.length}`;\n  const padrao = /^total=\\d+/u;\n  const casa = padrao.test(texto);\n  const mapa = new Map([['total', total]]);\n  const conjunto = new Set(lista);\n  const promessa = await Promise.resolve(total);\n  const quando = Date.now();\n  const json = JSON.stringify({ texto, casa, mapa: mapa.size, conjunto: conjunto.size, quando });\n  const numero = Number.parseInt(String(total), 10);\n  const arredondado = Math.round(numero);\n  const dobrados = lista.map((x) => x * 2);\n  const positivos = dobrados.filter((x) => x > 0);\n  const somados = positivos.reduce((a, b) => a + b, promessa);\n  const rotulo = Contador.de(lista).incrementar().valor;\n  return somados + json.length + arredondado + rotulo + Contador.zero;\n}\n\nexport function* contarAte(n) {\n  let i = 0;\n  while (i < n) {\n    yield i;\n    i += 1;\n  }\n}\n```"
+    }
+  ],
+  "sources": [],
+  "challenges": [
+    "agregar-a-lista"
+  ]
+}

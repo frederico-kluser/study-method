@@ -76,8 +76,8 @@
  * (`Parameter[dotDotDotToken!=null]` é `f(...xs)`;
  * `IfStatement[expression=BinaryExpression]` é `if (a === 1)`;
  * `IfStatement[expression=TypeOfExpression]` é `if (typeof x)`) — avaliá-las
- * num arquivo `.mjs` emitiria chaves `form:` que a trilha de JavaScript não
- * declara e MOVERIA o placar de `nodejs-do-zero`. Por isso um `CompiledSelector`
+ * num arquivo `.mjs` emitiria chaves `form:` que uma trilha de JavaScript não
+ * declara e MOVERIA o placar dela. Por isso um `CompiledSelector`
  * carrega os DIALETOS em que pode ser avaliado (`js`, `ts` — o mesmo eixo de
  * `ExtractOptions.dialect`, que é o que escolhe o `ScriptKind` do parse), e
  * `selectorMatches` recusa o casamento fora deles.
@@ -117,8 +117,8 @@ export class FormSelectorError extends Error {
  * valores de `ExtractOptions.dialect`, que é o que decide o `ScriptKind` do
  * `createSourceFile` no adaptador (`lang/javascript.ts:524`).
  *
- * `js` é o dialeto das trilhas de JavaScript (`nodejs-do-zero`,
- * `programacao-do-zero`); `ts` é o da trilha de `docs/18`. A distinção é
+ * `js` é o dialeto das trilhas de JavaScript; `ts` é o da trilha de `docs/18`.
+ * A distinção é
  * PEDAGÓGICA antes de ser técnica: `f(...xs)` é axioma de JavaScript e forma
  * ENSINADA em TypeScript (aula `rest-tipado`), e a mesma construção não pode
  * gastar orçamento nas duas.

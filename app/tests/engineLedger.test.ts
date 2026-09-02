@@ -602,8 +602,8 @@ describe('layout e telemetria', () => {
   it('constantes de layout declaram raiz de trabalho injetável e produto final', () => {
     assert.equal(CONTENT_SRC_DIR, 'app/content-src');
     assert.equal(TRACKS_OUTPUT_DIR, 'app/resources/tracks');
-    assert.equal(raizTrabalhoSlug('nodejs-do-zero'), path.join('app/content-src', 'nodejs-do-zero'));
-    assert.equal(dirProdutoFinal('nodejs-do-zero'), path.join('app/resources/tracks', 'nodejs-do-zero'));
+    assert.equal(raizTrabalhoSlug('trilha-minima'), path.join('app/content-src', 'trilha-minima'));
+    assert.equal(dirProdutoFinal('trilha-minima'), path.join('app/resources/tracks', 'trilha-minima'));
   });
 
   it('telemetry.jsonl registra tokens/latência/contagem por tarefa e etapa', async () => {

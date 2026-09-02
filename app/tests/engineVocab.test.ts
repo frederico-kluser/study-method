@@ -12,23 +12,34 @@
  *      um vocabulário com chave inválida seria consumido em silêncio.
  *   3. O catálogo separa API de linguagem de nome de domínio: estrutura com
  *      receptores (class/object/module) e membros enumerados por
- *      `Object.getOwnPropertyNames` — campos de dados da trilha real (lidos de
- *      `resources/tracks/nodejs-do-zero`) NÃO viram `api:`.
+ *      `Object.getOwnPropertyNames` — campos de dados de uma trilha (lidos da
+ *      fixture `tests/fixtures/tracks/trilha-corpus`) NÃO viram `api:`.
  *   4. A geração é determinística: duas execuções produzem os MESMOS bytes, e
  *      o artefato commitado É a saída byte a byte do gerador no runtime atual
  *      (a prova exigida pelo aceite A-P05-2).
  *   5. COBERTURA DAS EMISSÕES (onda 1): `extractAtoms` rodado sobre o CORPUS
- *      REAL (`resources/tracks/nodejs-do-zero` — solutionCode/starterCode/
- *      testsCode de todo desafio + o código da teoria via `collectLessonCode`)
- *      emite, nos eixos FECHADOS (node/op/decl/global), apenas chaves do
- *      vocabulário ou da lista EXPLÍCITA de exceções sintéticas (que vivem em
- *      `FORBIDDEN_ALWAYS`); no eixo ABERTO `api:` nada do universo fechado
- *      (módulos built-in ∪ catálogo) fica de fora — o resto é universo aberto
- *      declarado (npm/domínio/runtime), porque o vocabulário é o piso de
- *      consciência do LLM, não o teto do gate.
+ *      (solutionCode/starterCode/testsCode de todo desafio + o código da
+ *      teoria via `collectLessonCode`) emite, nos eixos FECHADOS
+ *      (node/op/decl/global), apenas chaves do vocabulário ou da lista
+ *      EXPLÍCITA de exceções sintéticas (que vivem em `FORBIDDEN_ALWAYS`); no
+ *      eixo ABERTO `api:` nada do universo fechado (módulos built-in ∪
+ *      catálogo) fica de fora — o resto é universo aberto declarado
+ *      (npm/domínio/runtime), porque o vocabulário é o piso de consciência do
+ *      LLM, não o teto do gate.
  *
- * Sem rede, sem LLM: só o runtime do Node + os artefatos commitados + o
- * conteúdo commitado da trilha (lido pelo MESMO `loadTrack` do runtime).
+ * DE ONDE VEM O CORPUS (mudou em 2026-09-02): até esta data o corpus era a
+ * trilha de PRODUÇÃO `resources/tracks/nodejs-do-zero`. Ela foi APAGADA (o
+ * conteúdo era pedagogicamente indefensável — ver `docs/15-trilha-nodejs.md`),
+ * e com ela sumiria esta verificação. O corpus passou a ser a fixture
+ * `tests/fixtures/tracks/trilha-corpus`, escrita para EXERCITAR os eixos: uma
+ * trilha de verdade (mesmo `loadTrack` do runtime, mesmo schema) cujo código
+ * percorre operadores, formas de bloco e módulos built-in de propósito. A
+ * troca também corrige um acoplamento que custava caro: um teste de
+ * vocabulário atado ao conteúdo de produção quebra a cada mudança de
+ * conteúdo, e era exatamente isso que tornava caro apagar a trilha.
+ *
+ * Sem rede, sem LLM: só o runtime do Node + os artefatos commitados + a
+ * fixture commitada (lida pelo MESMO `loadTrack` do runtime).
  */
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
@@ -87,21 +98,25 @@ function lerCatalogo(): CatalogoApi {
 }
 
 /**
- * A trilha REAL usada como corpus de cobertura. Carregada UMA vez (memoizada)
- * com o MESMO `loadTrack` que o runtime usa — a prova vale contra o conteúdo
- * que o produto realmente consome, nunca contra uma fixture que a gente
- * controla.
+ * A trilha-fixture usada como corpus de cobertura. Carregada UMA vez
+ * (memoizada) com o MESMO `loadTrack` que o runtime usa — a prova vale contra
+ * uma trilha de verdade, no schema de verdade, lida pelo caminho de verdade.
+ *
+ * A fixture é DENSA de propósito (ver o cabeçalho): os pisos de substância
+ * abaixo só valem se o corpus percorrer os eixos. Ela mede hoje 70 `node:`,
+ * 29 `op:`, 2 `decl:`, 18 `global:` e 118 `api:` — os pisos ficam abaixo
+ * disso, como sempre ficaram.
  */
-const TRILHA_CORPUS = path.resolve(__dirname, '..', 'resources', 'tracks', 'nodejs-do-zero');
+const TRILHA_CORPUS = path.resolve(__dirname, 'fixtures', 'tracks', 'trilha-corpus');
 
 let trilhaMemo: Promise<LoadedTrack> | null = null;
-function carregarTrilhaReal(): Promise<LoadedTrack> {
+function carregarTrilhaDoCorpus(): Promise<LoadedTrack> {
   trilhaMemo ??= loadTrack(TRILHA_CORPUS);
   return trilhaMemo;
 }
 
 /**
- * Campos de dados do corpus REAL — a união das chaves TOP-LEVEL dos JSONs da
+ * Campos de dados do corpus — a união das chaves TOP-LEVEL dos JSONs da
  * trilha (track.json, module.json, lesson.json e challenge.json — de aula, de
  * módulo e de proficiência), lidos da trilha JÁ CARREGADA pelo loader. Nenhum
  * deles é API de linguagem; o catálogo precisa provar que o filtro os mantém
@@ -242,7 +257,7 @@ function coletarEmissoes(track: LoadedTrack): EmissoesCorpus {
 let emissoesMemo: Promise<EmissoesCorpus> | null = null;
 /** A extração sobre o corpus roda UMA vez por execução do arquivo de teste. */
 function coletarEmissoesDoCorpus(): Promise<EmissoesCorpus> {
-  emissoesMemo ??= carregarTrilhaReal().then(coletarEmissoes);
+  emissoesMemo ??= carregarTrilhaDoCorpus().then(coletarEmissoes);
   return emissoesMemo;
 }
 
@@ -378,9 +393,9 @@ describe('engineVocab: o catálogo separa API de linguagem de nome de domínio',
     assert.ok(!catalogo.receivers.some((r) => r.name === 'URL'));
   });
 
-  it('campos de dados da trilha real não viram api: (lista DERIVADA do corpus)', async () => {
+  it('campos de dados da trilha não viram api: (lista DERIVADA do corpus)', async () => {
     const catalogo = lerCatalogo();
-    const campos = derivarCamposDeDominio(await carregarTrilhaReal());
+    const campos = derivarCamposDeDominio(await carregarTrilhaDoCorpus());
     assert.ok(campos.length >= 20, `corpus de campos ínfimo (${campos.length}) — trilha vazia?`);
     const nomesReceptores = new Set(catalogo.receivers.map((r) => r.name));
     for (const campo of campos) {
@@ -437,7 +452,7 @@ describe('engineVocab: fidelidade dos módulos built-in (P-29 — onda 2)', () =
   //      runtime vê no `require()` real — mesmos filtros do gerador (só
   //      chaves de string, só propriedades próprias), nada digitado à mão e
   //      nada filtrado de forma escondida;
-  //   2. o corpus REAL (trilha nodejs-do-zero) só emite `api:<mod>.<membro>`
+  //   2. o corpus (a trilha-fixture) só emite `api:<mod>.<membro>`
   //      que está no catálogo — direto (`fs.readFile`) ou como prefixo de uma
   //      cadeia profunda membro-de-membro (`process.env.PORT` → `process.env`).
   // O runtime do teste e o da geração são o MESMO (byte-a-byte, provado no
@@ -489,7 +504,7 @@ describe('engineVocab: fidelidade dos módulos built-in (P-29 — onda 2)', () =
     }
   });
 
-  it('o corpus real só emite api:<mod>.<membro> que está no catálogo (fs.readFile etc.)', async () => {
+  it('o corpus só emite api:<mod>.<membro> que está no catálogo (fs.readFile etc.)', async () => {
     const emissoes = await coletarEmissoesDoCorpus();
     const catalogo = lerCatalogo();
     const nomesModulos = new Set(RECEPTORES_MODULO.map((r) => r.name));
@@ -521,8 +536,8 @@ describe('engineVocab: fidelidade dos módulos built-in (P-29 — onda 2)', () =
       'cadeias api: com raiz de módulo sem o membro de 1º nível no catálogo',
     );
 
-    // Anti-vácuo + prova contra as emissões reais que motivaram P-29: as
-    // chaves do corpus citadas na proposta têm de estar no dicionário.
+    // Anti-vácuo + prova contra as emissões que motivaram P-29: as chaves
+    // citadas na proposta têm de estar no dicionário.
     for (const chave of [
       'api:fs.readFile',
       'api:fs.readFileSync',
@@ -626,10 +641,10 @@ describe('engineVocab: consistência com o extrator (onda 0)', () => {
   });
 });
 
-describe('engineVocab: cobertura das emissões sobre a trilha real (onda 1)', () => {
+describe('engineVocab: cobertura das emissões sobre o corpus (onda 1)', () => {
   // Fix onda 1 (revisão adversarial de P-05): o vocabulário era fechado do
   // lado do ARTEFATO mas ninguém provava que o EXTRATOR não emitia chave fora
-  // dele. Medido no corpus real: 1 chave sintética fora (`node:ComputedNonLiteralAccess`,
+  // dele. Medido no corpus: chave sintética fora (`node:ComputedNonLiteralAccess`,
   // que o gerador nunca pode produzir) e o eixo api: aberto por design
   // (`api:Buffer.from`, `api:express`, `api:app.put`, … — ver o teste abaixo).
   // Estes testes atam o vocabulário ao extrator sobre o conteúdo commitado.
@@ -638,8 +653,8 @@ describe('engineVocab: cobertura das emissões sobre a trilha real (onda 1)', ()
     const emissoes = await coletarEmissoesDoCorpus();
     // Anti-vácuo: a coleta TEM de ter encontrado código de verdade; se a
     // extração falhar em tudo um dia, o teste precisa falhar, não passar por
-    // omissão. Os pisos são conservadores (o corpus real emite ~86 node:,
-    // ~24 op:, ~27 global: e ~425 api: hoje).
+    // omissão. Os pisos são conservadores (a fixture emite hoje 70 node:,
+    // 29 op:, 2 decl:, 18 global: e 118 api:).
     assert.ok((emissoes.porEixo.get('node') ?? new Set()).size >= 50, 'corpo ínfimo de node: — coleta vazia?');
     assert.ok((emissoes.porEixo.get('op') ?? new Set()).size >= 5, 'corpo ínfimo de op: — coleta vazia?');
     assert.ok((emissoes.porEixo.get('decl') ?? new Set()).size >= 1, 'corpo ínfimo de decl: — coleta vazia?');

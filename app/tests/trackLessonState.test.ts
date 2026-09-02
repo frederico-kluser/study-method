@@ -169,7 +169,7 @@ const SUBMIT_RESULT: TrackSubmitResult = {
 
 function report(over: Partial<TrackChallengeErrorReport> = {}): TrackChallengeErrorReport {
   return {
-    trackSlug: 'nodejs-do-zero',
+    trackSlug: 'trilha-minima',
     lessonId: 'aula-1',
     challengeId: 'dobro-do-numero',
     challengeTitle: 'O dobro do número',
@@ -185,7 +185,7 @@ function report(over: Partial<TrackChallengeErrorReport> = {}): TrackChallengeEr
 describe('trackLessonState — onda2 error-flow', () => {
   it('buildErrorReport monta o relatório com TODOS os arquivos submetidos', () => {
     const r = buildErrorReport({
-      trackSlug: 'nodejs-do-zero',
+      trackSlug: 'trilha-minima',
       lessonId: 'aula-1',
       challengeId: 'dobro-do-numero',
       challengeTitle: 'O dobro do número',
@@ -195,7 +195,7 @@ describe('trackLessonState — onda2 error-flow', () => {
       ],
       result: SUBMIT_RESULT,
     });
-    assert.equal(r.trackSlug, 'nodejs-do-zero');
+    assert.equal(r.trackSlug, 'trilha-minima');
     assert.equal(r.lessonId, 'aula-1');
     assert.equal(r.challengeId, 'dobro-do-numero');
     assert.equal(r.challengeTitle, 'O dobro do número');

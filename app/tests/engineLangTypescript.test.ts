@@ -705,11 +705,11 @@ describe('typescript — a semente receptiva do harness', () => {
     );
   });
 
-  it('a semente de JAVASCRIPT não se move — o placar de nodejs-do-zero não pode mudar', () => {
+  it('a semente de JAVASCRIPT não se move — o placar de uma trilha de JS não pode mudar', () => {
     for (const chave of TYPESCRIPT_TYPE_HARNESS_SEED) {
       assert.ok(
         !HARNESS_RECEPTIVE_SEED.includes(chave),
-        `${chave} vazou para a semente de JavaScript e liberaria construção em nodejs-do-zero`,
+        `${chave} vazou para a semente de JavaScript e liberaria construção em toda trilha de JavaScript`,
       );
     }
     assert.deepEqual([...harnessReceptiveSeed('javascript')], [...HARNESS_RECEPTIVE_SEED]);

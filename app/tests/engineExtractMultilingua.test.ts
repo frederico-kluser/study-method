@@ -34,9 +34,11 @@
  *      TypeScript, produzindo as violações CERTAS.
  *
  * E prova uma quinta, negativa e igualmente importante: o caminho de JavaScript
- * não se moveu. O placar de `nodejs-do-zero` (717 · 112 · 249) é o canário
- * desta engine e está pinado em `tests/engineAuditPlacar.test.ts`; aqui a
- * mesma promessa é conferida no nível do extrator.
+ * não se moveu. A semente de JavaScript é o que o gate cobra de toda trilha da
+ * linguagem, e afrouxá-la libera construção em silêncio — a promessa é
+ * conferida aqui, no nível do extrator. (Até 2026-09-02 o canário era o placar
+ * pinado da trilha `nodejs-do-zero`, 717 · 112 · 249; a trilha foi apagada e o
+ * pin com ela — ver `docs/15-trilha-nodejs.md`.)
  *
  * Sem rede e sem LLM. As trilhas são fixtures em memória. O caminho de Python
  * roda `python3` por subprocesso (é a Porta 1 dele) e os testes que dependem

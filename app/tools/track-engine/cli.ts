@@ -90,7 +90,6 @@ import {
 import {
   repararTrilha,
   ErroDeReparo,
-  SLUG_PROIBIDO_DO_REPAIR,
   type DepsDoReparo,
   type ModoDeReparo,
   type ResultadoDeReparo,
@@ -113,9 +112,11 @@ const USAGE = `uso: npm run engine -- <comando> [args...]
 
 comandos:
   audit <slug> [--modo declared|inferred] [--harness receptive-seed|none]
-                [--limite N] [--json] [--so-lacunas]
+                [--limite N] [--json] [--so-lacunas] [--dir DIR]
       audita uma trilha contra o orcamento cumulativo de conhecimento.
       Nao usa LLM e nao precisa de chave de API.
+      --dir DIR carrega a trilha de outro diretorio (ex.: content-src ou uma
+      fixture de teste) — o slug vira so o ROTULO do relatorio.
 
   coverage <slug> [--modo declared|inferred] [--limite N] [--json] [--dir DIR]
       o ALGORITMO DO DONO (peça central): sintetiza, para cada desafio, o
@@ -195,8 +196,7 @@ comandos:
       LIMITE v1 DECLARADO: lacuna de curriculo (nenhuma aula ensina a
       construcao) NUNCA e consertada reescrevendo desafio — vira BLOQUEIO no
       relatorio (criar aula e o sub-fluxo v2).
-      'nodejs-do-zero' e SLUG PROIBIDO do repair (exit 2, fail-closed).
-      --dir DIR audita/repara uma trilha fora de resources/tracks.
+      --dir DIR repara uma trilha fora de resources/tracks.
 
   lint-schemas
       preflight do build sobre o SCHEMA_REGISTRY real (INV-04 ordem /
@@ -352,7 +352,7 @@ function printHuman(report: AuditReport, limit: number, onlyGaps: boolean): void
 
 async function cmdAudit(pos: string[], flags: Record<string, string>, bools: Set<string>): Promise<void> {
   const slug = pos[0];
-  if (!slug) fail('informe o slug da trilha (ex.: npm run engine -- audit nodejs-do-zero)');
+  if (!slug) fail('informe o slug da trilha (ex.: npm run engine -- audit minha-trilha)');
 
   const modo = flags.modo as BudgetSource | undefined;
   if (modo !== undefined && modo !== 'declared' && modo !== 'inferred') {
@@ -365,9 +365,16 @@ async function cmdAudit(pos: string[], flags: Record<string, string>, bools: Set
   const limite = flags.limite ? Number.parseInt(flags.limite, 10) : 40;
   if (!Number.isFinite(limite) || limite < 0) fail(`--limite invalido: ${flags.limite}`);
 
+  // `--dir` (mesma semantica de coverage/requirements/revise/repair): carrega a
+  // trilha de fora de resources/tracks. O audit era o UNICO comando de leitura
+  // sem ele — e o USAGE do repair ja prometia "audita/repara uma trilha fora de
+  // resources/tracks". Sem `--dir`, auditar qualquer coisa exigia PUBLICAR a
+  // trilha primeiro, o que amarrava todo teste de audit ao conteudo de producao.
+  const dirOverride = flags.dir !== undefined ? path.resolve(flags.dir) : path.join(TRACKS_DIR, slug);
+
   let track;
   try {
-    track = await loadTrack(path.join(TRACKS_DIR, slug));
+    track = await loadTrack(dirOverride);
   } catch (err) {
     if (err instanceof TrackLoadError) {
       console.error(`erro: trilha '${slug}' invalida (${err.issues.length} problema(s) de schema/integridade):`);
@@ -534,7 +541,7 @@ async function auditarDesafioCoverage(
 
 async function cmdCoverage(pos: string[], flags: Record<string, string>, bools: Set<string>): Promise<void> {
   const slug = pos[0];
-  if (!slug) fail('informe o slug da trilha (ex.: npm run engine -- coverage programacao-do-zero)');
+  if (!slug) fail('informe o slug da trilha (ex.: npm run engine -- coverage minha-trilha)');
 
   const modo = flags.modo as BudgetSource | undefined;
   if (modo !== undefined && modo !== 'declared' && modo !== 'inferred') {
@@ -646,7 +653,7 @@ interface ResultadoRequirements {
 
 async function cmdRequirements(pos: string[], flags: Record<string, string>, bools: Set<string>): Promise<void> {
   const slug = pos[0];
-  if (!slug) fail('informe o slug da trilha (ex.: npm run engine -- requirements programacao-do-zero)');
+  if (!slug) fail('informe o slug da trilha (ex.: npm run engine -- requirements minha-trilha)');
 
   const limite = flags.limite !== undefined ? Number.parseInt(flags.limite, 10) : Number.MAX_SAFE_INTEGER;
   if (!Number.isInteger(limite) || limite < 0) fail(`--limite invalido: ${flags.limite}`);
@@ -725,7 +732,7 @@ function rotuloDecisao(aula: RelatorioDeRevisao['aulas'][number]): string {
 
 async function cmdRevise(pos: string[], flags: Record<string, string>, bools: Set<string>): Promise<void> {
   const slug = pos[0];
-  if (!slug) fail('informe o slug da trilha (ex.: npm run engine -- revise programacao-do-zero)');
+  if (!slug) fail('informe o slug da trilha (ex.: npm run engine -- revise minha-trilha)');
 
   const limite = flags.limite !== undefined ? Number.parseInt(flags.limite, 10) : Number.MAX_SAFE_INTEGER;
   if (!Number.isInteger(limite) || limite < 0) fail(`--limite invalido: ${flags.limite}`);
@@ -1181,7 +1188,7 @@ function fiarDepsDoReparo(
 
 async function cmdRepair(pos: string[], flags: Record<string, string>, bools: Set<string>): Promise<void> {
   const slug = pos[0];
-  if (!slug) fail('informe o slug da trilha (ex.: npm run engine -- repair programacao-do-zero)');
+  if (!slug) fail('informe o slug da trilha (ex.: npm run engine -- repair minha-trilha)');
 
   const modo: ModoDeReparo = bools.has('aplicar') ? 'aplicar' : 'dry-run';
   const roteamento = resolverRoteamentoOuNulo(flags);
@@ -1195,14 +1202,6 @@ async function cmdRepair(pos: string[], flags: Record<string, string>, bools: Se
       "'repair --aplicar' exige --modelo-revisor <id> (roteamento do §6.2: model(AUTOR) != model(REVISOR); " +
         `o --modelo-autor default e "${OPENROUTER_MODEL.id}"). O dry-run — sem --aplicar — roda sem chave e sem modelo.`,
     );
-  }
-  // Fail-closed ANTES de carregar a trilha: o slug proibido nunca chega ao laço.
-  if (slug === SLUG_PROIBIDO_DO_REPAIR) {
-    console.error(
-      `erro: '${slug}' e SLUG PROIBIDO do modo repair — o gate final do repair e audit + pins e o conteudo legado ` +
-        "fica fora (docs/16-engine-de-trilha.md §8, fail-closed). Use 'audit' para ver o estado real desse conteudo.",
-    );
-    process.exit(2);
   }
 
   const dirTrilha = flags.dir !== undefined ? path.resolve(flags.dir) : path.join(TRACKS_DIR, slug);

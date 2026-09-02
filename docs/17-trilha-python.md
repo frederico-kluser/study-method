@@ -10,7 +10,9 @@
 > este documento está errado.
 >
 > **Molde.** A estrutura é a de [`15-trilha-nodejs.md`](15-trilha-nodejs.md); o nível de exigência é
-> o de [`../app/content-src/programacao-do-zero/curriculo.md`](../app/content-src/programacao-do-zero/curriculo.md)
+> o de `app/content-src/programacao-do-zero/curriculo.md` (apagado em 2026-09-02 junto com a
+> trilha — ver [`15-trilha-nodejs.md`](15-trilha-nodejs.md); o formato do currículo continua
+> descrito neste documento)
 > — a trilha de maior qualidade do repositório (14 aulas micro, **0 violações** no gate), cujo
 > padrão **L1-lê / Ln-escreve** este documento imita aula por aula no módulo 1.
 >

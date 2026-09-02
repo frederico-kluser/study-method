@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "slug": "trilha-corpus",
+  "title": "Trilha corpus (fixture)",
+  "description": "Trilha-fixture DENSA: exercita os eixos do extrator (node/op/decl/global/api) e, de propósito, reprova no gate com as DUAS severidades.",
+  "language": "pt-BR",
+  "domain": "programming",
+  "modules": [
+    "modulo-1"
+  ]
+}

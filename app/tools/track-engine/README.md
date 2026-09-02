@@ -33,7 +33,7 @@ npm run engine -- lint-schemas
 | `--limite N` | no `audit`: quantas violações imprimir (`0` = nenhuma, só o placar). No `coverage`/`requirements`/`revise`: quantos desafios/aulas **processar e imprimir** (`0` = nenhum) — amostra rápida, já que o coverage e o revise spawnam `node --test` por candidato |
 | `--so-lacunas` | mostra apenas as lacunas de currículo — construção que **nenhuma** aula ensina |
 | `--json` | relatório completo em JSON, para outra ferramenta consumir |
-| `--dir DIR` | (`coverage`/`requirements`) carrega a trilha de outro diretório, ex.: `--dir content-src/programacao-do-zero/trilha` para auditar uma trilha ainda não publicada em `resources/tracks` |
+| `--dir DIR` | (`audit`/`coverage`/`requirements`/`revise`/`repair`) carrega a trilha de outro diretório, ex.: `--dir content-src/<slug>/trilha` para auditar uma trilha ainda não publicada em `resources/tracks`. Com `--dir`, o slug é só o rótulo do relatório |
 
 Exit codes, na convenção do repositório: **0** sem violação · **1** violações encontradas · **2** uso
 incorreto.
@@ -66,20 +66,21 @@ literais — computação real, loop, estado). Desafios multi-arquivo (`files`)
 são ignorados nesta onda. Exit **1** quando há LACUNA ou desafio sem solução
 acessível.
 
-Exemplo real (trilha `programacao-do-zero`, modo `declared`): **14/14 desafios
-têm solução mínima**, 0 lacunas e 8 excessos — os testes quase todos exigem só
-`function + return + literal`, e as aulas de `let`/`const`/chamada ensinam
-construção que o teste não exercita. É exatamente o tipo de sinal que decide a
-quebra de aula.
+Medição de 2026-08 sobre a trilha micro `programacao-do-zero` (modo
+`declared`), **apagada em 2026-09-02** junto com o resto do conteúdo gerado:
+**14/14 desafios tinham solução mínima**, 0 lacunas e 8 excessos — os testes
+quase todos exigiam só `function + return + literal`, e as aulas de
+`let`/`const`/chamada ensinavam construção que o teste não exercitava. É
+exatamente o tipo de sinal que decide a quebra de aula.
 
 ```bash
-cd app && npm run engine -- coverage programacao-do-zero --dir content-src/programacao-do-zero/trilha
+cd app && npm run engine -- coverage <slug> --dir content-src/<slug>/trilha
 ```
 
-No legado `nodejs-do-zero` (modo `inferred`, 137 desafios): 23 com solução
-mínima, 96 sem-solução (os testes exigem computação real — as aulas
-legitimamente precisam ensinar a lógica), 18 multi-arquivo ignorados, **10
-lacunas** (o teste cobra construção fora do orçamento da aula).
+Na trilha grande da mesma época (`nodejs-do-zero`, modo `inferred`, 137
+desafios): 23 com solução mínima, 96 sem-solução (os testes exigiam computação
+real), 18 multi-arquivo ignorados, **10 lacunas** (o teste cobrando construção
+fora do orçamento da aula).
 
 ## `requirements` — DERIVAÇÃO + BIJEÇÃO requirements × test('…')
 
@@ -92,8 +93,8 @@ campo `requirements` declarado no `challenge.json`:
 - requirement declarado **sem** `test('…')` correspondente → gap `semTeste`;
 - `test('…')` **sem** requirement declarado → gap `testesSemRequirement`.
 
-Exit **1** quando algum desafio tem gap. O legado `nodejs-do-zero` (sem campo
-`requirements`) reporta 137 desafios com gap — 577 testes sem requirement
+Exit **1** quando algum desafio tem gap. Na trilha legada de 2026-08 (sem o
+campo `requirements`) eram 137 desafios com gap — 577 testes sem requirement
 declarado.
 
 ## `revise` — a REVISÃO PROGRESSIVA (o núcleo do pedido do dono)
@@ -139,7 +140,7 @@ Exit **1** quando há lacuna ou aula não-revisável; **0** quando converge sem
 lacunas.
 
 ```bash
-cd app && npm run engine -- revise programacao-do-zero --dir content-src/programacao-do-zero/trilha
+cd app && npm run engine -- revise <slug> --dir content-src/<slug>/trilha
 ```
 
 `generate` executa F0 a F12 e produz uma trilha nova em `app/resources/tracks/<slug>`: o run (run.json +
@@ -163,34 +164,31 @@ número real é maior, nunca menor.
 
 ## O estado do conteúdo hoje
 
-Reproduza com:
+**Não há conteúdo.** `app/resources/tracks/` está vazio desde 2026-09-02: as
+duas trilhas geradas foram apagadas porque a grande era pedagogicamente
+indefensável (a aula 1 introduzia 16 construções novas com teto 4, e o primeiro
+desafio do curso já exigia `if`/`typeof`/`!==`/`throw new Error`). O registro
+completo, com o placar medido, está em `docs/15-trilha-nodejs.md`.
+
+O gate continua inteiro e é o que decide se a PRÓXIMA trilha entra. Sobre
+qualquer trilha, publicada ou não:
 
 ```bash
-cd app && npm run engine -- audit nodejs-do-zero --limite 0
+cd app && npm run engine -- audit <slug> --limite 0
+cd app && npm run engine -- audit <slug> --dir <dir> --limite 0   # ainda não publicada
 ```
-
-| Medição | Valor |
-|---|---|
-| Aulas | 118 |
-| Desafios | 118 |
-| Desafios com ao menos uma violação | 96 (81%) |
-| Violações | 285 |
-| Delas, lacunas de currículo (construção que nenhuma aula ensina) | 102 |
-| Aulas que não introduzem construção nenhuma | 12 |
-| Blocos de código sem tag de linguagem | 68 |
-| Blocos marcados como `js` que não parseiam | 4 |
 
 Só as lacunas de currículo:
 
 ```bash
-cd app && npm run engine -- audit nodejs-do-zero --so-lacunas --limite 30
+cd app && npm run engine -- audit <slug> --so-lacunas --limite 30
 ```
 
 ## O histograma
 
 A saída humana termina com a distribuição de construções novas por aula. É o gráfico que denuncia o
-defeito de **distribuição** — penhasco na primeira aula, platô no resto — que é o defeito real da
-trilha atual, e que nenhum contador de aulas mostra.
+defeito de **distribuição** — penhasco na primeira aula, platô no resto — que foi o defeito medido na
+trilha apagada, e que nenhum contador de aulas mostra.
 
 ## Testes
 

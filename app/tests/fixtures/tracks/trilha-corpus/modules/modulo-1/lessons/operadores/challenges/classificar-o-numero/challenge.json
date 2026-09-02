@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "slug": "classificar-o-numero",
+  "title": "Classificar o número",
+  "concept": "operadores",
+  "difficulty": 2,
+  "language": "nodejs",
+  "statement": "# Classificar o número\n\nDevolva o relatório do número.",
+  "starterCode": "export function classificar(n) {\n  return { rotulo: String(n) };\n}\n",
+  "solutionCode": "export function classificar(n) {\n  let rotulo = 'zero';\n  if (n > 0) {\n    rotulo = 'positivo';\n  } else if (n < 0) {\n    rotulo = 'negativo';\n  }\n  const dobro = n * 2;\n  const metade = n / 2;\n  const resto = n % 2;\n  const soma = n + 1;\n  const diferenca = n - 1;\n  const potencia = n ** 2;\n  const deslocado = (n | 0) << 1;\n  const mascarado = (n & 3) >> 1;\n  const invertido = ~n;\n  const ouExclusivo = n ^ 1;\n  const ehPar = resto === 0;\n  const naoEhPar = resto !== 0;\n  const talvez = n ?? 0;\n  const ambos = ehPar && naoEhPar;\n  const qualquer = ehPar || naoEhPar;\n  const negado = !ehPar;\n  const tipo = typeof n;\n  const ternario = ehPar ? 'par' : 'impar';\n  const grande = n >= 10;\n  const pequeno = n <= 1;\n  const cresce = -n;\n  const positivo = +n;\n  return {\n    rotulo, dobro, metade, soma, diferenca, potencia, deslocado, mascarado,\n    invertido, ouExclusivo, ehPar, naoEhPar, talvez, ambos, qualquer, negado,\n    tipo, ternario, grande, pequeno, cresce, positivo,\n  };\n}\n",
+  "testsCode": "import { test } from 'node:test';\nimport assert from 'node:assert/strict';\nimport { classificar } from './solution.mjs';\n\ntest('classifica positivo', () => {\n  assert.equal(classificar(1).rotulo, 'positivo');\n  assert.ok(classificar(1).ehPar === false);\n  assert.deepEqual(Object.keys(classificar(0)).length > 0, true);\n});\n",
+  "expectedTestCount": 1
+}

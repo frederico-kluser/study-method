@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "slug": "modulo-1",
+  "title": "Módulo 1 (fixture)",
+  "order": 1,
+  "lessons": [
+    "a-maquina-que-confere",
+    "escreva-outro-valor",
+    "guarde-num-nome"
+  ]
+}

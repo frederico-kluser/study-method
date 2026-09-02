@@ -103,9 +103,9 @@
  * valor ≠ 1 → MaterializeError('SCHEMA_VERSION_BUMP') — o integrador NUNCA
  * escreve um schemaVersion diferente do trackTypes.
  *
- * ESCRITA SÓ EM DESTINO NOVO: `materializarTrilha` valida que (a) o slug não é
- * `nodejs-do-zero` (SLUG_PROIBIDO — trilha legada intocável), (b) o destino
- * não já é uma trilha (track.json presente → DESTINO_COLIDE), (c) quando
+ * ESCRITA SÓ EM DESTINO NOVO: `materializarTrilha` valida que (a) o slug casa
+ * `SLUG_RE` (kebab-case ASCII), (b) o destino não já é uma trilha (track.json
+ * presente → DESTINO_COLIDE), (c) quando
  * `deps.raizDeTrilhas` é declarada, o slug não colide com nenhuma trilha
  * existente ali (DESTINO_COLIDE).
  *
@@ -258,7 +258,6 @@ export interface DossieDeTrilha {
 
 export type MaterializeErrorCode =
   | 'SLUG_INVALIDO' // slug fora do SLUG_RE (kebab-case)
-  | 'SLUG_PROIBIDO' // 'nodejs-do-zero' — trilha legada intocável
   | 'DESTINO_COLIDE' // o destino já é uma trilha (track.json) ou o slug já existe na raiz
   | 'SCHEMA_VERSION_BUMP' // INV-08: schemaVersion ≠ TRACK_SCHEMA_VERSION
   | 'ORCAMENTO_AUSENTE' // dossiê sem orçamento F4
@@ -906,15 +905,17 @@ export async function materializarTrilha(
 ): Promise<ResultadoMaterializacao> {
   const alvo = path.resolve(destino);
 
-  // slug do dossiê: válido e NUNCA a trilha legada.
+  // slug do dossiê: válido.
+  //
+  // (2026-09-02) Aqui existia um SLUG_PROIBIDO que recusava o slug literal
+  // `nodejs-do-zero` como "trilha legada intocável". A trilha foi APAGADA
+  // (ver docs/15-trilha-nodejs.md) e a guarda perdeu o objeto: o slug virou
+  // livre como qualquer outro, e manter a recusa só impediria publicar uma
+  // trilha NOVA com esse nome, citando um legado que ninguém mais acha. O que
+  // realmente protege o destino continua aqui embaixo e não nomeia conteúdo:
+  // DESTINO_COLIDE (track.json presente, ou slug já existente na raiz).
   if (!SLUG_RE.test(drafts.slug)) {
     throw new MaterializeError('SLUG_INVALIDO', `slug de trilha inválido: ${JSON.stringify(drafts.slug)} (kebab-case ASCII)`);
-  }
-  if (drafts.slug === 'nodejs-do-zero') {
-    throw new MaterializeError(
-      'SLUG_PROIBIDO',
-      `'nodejs-do-zero' é a trilha legada intocável — o integrador só escreve slugs NOVOS em resources/tracks/`,
-    );
   }
 
   // destino já é uma trilha?

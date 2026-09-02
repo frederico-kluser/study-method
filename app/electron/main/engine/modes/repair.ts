@@ -78,10 +78,17 @@
  *      bloqueio v1, jamais entra na sessão.
  *
  *   D. GATE FINAL = audit + pins (NUNCA F12/gFinal). Este módulo não importa
- *      nem chama f12Materialize; `nodejs-do-zero` é SLUG_PROIBIDO e o repair
- *      RECUSA com `REPAIR_SLUG_PROIBIDO` (fail-closed; o protocolo P-30 do
- *      PIN_PLACAR continua valendo para quem rodar o repair na trilha real via
- *      P-22 — se o placar melhorar, o pin é bumpado NO MESMO commit).
+ *      nem chama f12Materialize: o placar do audit mais os pins são o que
+ *      decide se o reparo valeu, e materializar seria escrever produto sem
+ *      passar pelo integrador.
+ *
+ *      (2026-09-02) Havia aqui um SLUG_PROIBIDO — o repair recusava o slug
+ *      literal `nodejs-do-zero` com `REPAIR_SLUG_PROIBIDO`, porque aquele
+ *      conteúdo legado tinha de ficar fora do laço. A trilha foi APAGADA (ver
+ *      docs/15-trilha-nodejs.md): a guarda perdeu o objeto e saiu junto. O
+ *      fail-closed que importa continua inteiro (trilha indisponível, sem
+ *      escrita, roteamento inválido, teto de rodadas) e nenhum deles nomeia
+ *      conteúdo.
  *
  *   E. A ENGINE NÃO ESCREVE PROSA: quem reescreve é a LLM corretora (P-13/P-12
  *      — prompts META já existentes) dentro do span prescrito e do gate
@@ -125,9 +132,6 @@ import { criarPinParaAchado, type ProverDeDesafio } from '../review/prover';
 // O slug PROIBIDO — o repair NUNCA roda sobre a trilha legada (D).
 // ---------------------------------------------------------------------------
 
-/** `nodejs-do-zero` é SLUG_PROIBIDO do modo repair (gate final nunca F12). */
-export const SLUG_PROIBIDO_DO_REPAIR = 'nodejs-do-zero';
-
 // ---------------------------------------------------------------------------
 // O contrato P-35 (review/audit2Laco.ts) — import ESTÁTICO + adaptador real
 // ---------------------------------------------------------------------------
@@ -154,7 +158,7 @@ export interface AdaptadorAuditLaco {
  * existia enquanto o módulo podia não estar na worktree, é substituído pelo
  * import ESTÁTICO abaixo — o contrato de fail-closed (adaptador ausente E
  * módulo indisponível → `REPAIR_SEM_ADAPTADOR_AUDIT_LACO`) continua valendo
- * via a guarda de `repararTrilha` (passo 3, modo `aplicar`), que nesta versão
+ * via a guarda de `repararTrilha` (passo 2, modo `aplicar`), que nesta versão
  * só dispara quando o carregamento é forçado a falhar (o seam
  * `deps.carregarAdaptadorAuditLaco` permite testar a guarda com um loader que
  * devolve null — o módulo real, importado estaticamente, não falha em build).
@@ -283,8 +287,6 @@ function adaptadorDoModuloReal(conteudos: Record<string, string>): AdaptadorAudi
 // ---------------------------------------------------------------------------
 
 export type ReparoErrorCode =
-  /** `nodejs-do-zero` (ou outro slug declarado) é proibido no repair (D). */
-  | 'REPAIR_SLUG_PROIBIDO'
   /** nem `deps.track` nem `deps.carregarTrilha` entregaram a trilha. */
   | 'REPAIR_TRILHA_INDISPONIVEL'
   /** aplicar exige o adaptador P-35 (`deps.auditLaco` ou review/audit2Laco). */
@@ -1013,19 +1015,10 @@ function planejadorDeduplicado(planejar: PlanejadorLlm): PlanejadorLlm {
  * com o audit DE NOVO comparando o placar com o inicial (A-P23-5). Subtítulo
  * v1 (escolha B): as lacunas viram lista de bloqueios no relatório — nunca
  * reescritas, nunca no laço. DRY-RUN NÃO resolve o adaptador (planejarReparo
- * é puro — ver passo 3). Fail-closed em cada porta (ver cabeçalho).
+ * é puro — ver passo 2). Fail-closed em cada porta (ver cabeçalho).
  */
 export async function repararTrilha(deps: DepsDoReparo, entrada: EntradaDoReparo): Promise<ResultadoDeReparo> {
-  // ── 1. slug proibido (gate final nunca F12; trecho legado fora do repair) ──
-  if (entrada.slug === SLUG_PROIBIDO_DO_REPAIR) {
-    throw erroDeReparo(
-      'REPAIR_SLUG_PROIBIDO',
-      'entrada',
-      `"${entrada.slug}" é SLUG_PROIBIDO do modo repair — o gate final do repair é audit + pins e o conteúdo legado fica fora (docs §8; fail-closed).`,
-    );
-  }
-
-  // ── 2. trilha (in-memory ao vivo — injetada ou carregada) ──────────────────
+  // ── 1. trilha (in-memory ao vivo — injetada ou carregada) ─────────────────
   const track = deps.track ?? (deps.carregarTrilha !== undefined ? await deps.carregarTrilha(entrada.slug) : undefined);
   if (track === undefined) {
     throw erroDeReparo(
@@ -1035,7 +1028,7 @@ export async function repararTrilha(deps: DepsDoReparo, entrada: EntradaDoReparo
     );
   }
 
-  // ── 3. ADAPTADOR audit→laço (P-35) — SOMENTE `aplicar`, ANTES do audit/plano ─
+  // ── 2. ADAPTADOR audit→laço (P-35) — SOMENTE `aplicar`, ANTES do audit/plano ─
   // ESCOLHA DOCUMENTADA: o DRY-RUN NÃO resolve o adaptador — `planejarReparo` é
   // FUNÇÃO PURA (zero IO, zero LLM, não toca o contrato P-35) e o dry-run só o
   // usa (A-P23-3 funciona SEM adaptador — o teste dry-run da suíte não injeta
@@ -1059,7 +1052,7 @@ export async function repararTrilha(deps: DepsDoReparo, entrada: EntradaDoReparo
     adaptador = resolvido;
   }
 
-  // ── 4. audit inicial + plano puro ──────────────────────────────────────────
+  // ── 3. audit inicial + plano puro ──────────────────────────────────────────
   const auditar = deps.auditar ?? auditTrack;
   const auditInicial = auditar(track);
   const placarInicial = placarDoAudit(auditInicial);
@@ -1074,7 +1067,7 @@ export async function repararTrilha(deps: DepsDoReparo, entrada: EntradaDoReparo
     'viram LISTA DE BLOQUEIOS no relatório e não entram no laço; o spawn do autor P-11/P-17 + re-derivação F4 é o v2 (exige dossiê e ConceptGraph de F3, ausentes para conteúdo legado).',
   ];
 
-  // ── 5. dry-run — NADA escrito, NENHUM LLM (A-P23-3) ────────────────────────
+  // ── 4. dry-run — NADA escrito, NENHUM LLM (A-P23-3) ────────────────────────
   if (entrada.modo === 'dry-run') {
     return {
       slug: entrada.slug,
@@ -1095,7 +1088,7 @@ export async function repararTrilha(deps: DepsDoReparo, entrada: EntradaDoReparo
     };
   }
 
-  // ── 6. nada a reparar mecanicamente → termina sem LLM (declarado) ──────────
+  // ── 5. nada a reparar mecanicamente → termina sem LLM (declarado) ──────────
   const ordensExecutaveis = plano.ordens.filter((o) => o.executavelNoLacoV1);
   if (ordensExecutaveis.length === 0) {
     return {
@@ -1121,8 +1114,8 @@ export async function repararTrilha(deps: DepsDoReparo, entrada: EntradaDoReparo
     };
   }
 
-  // ── 7. aplicar — dependências OBRIGATÓRIAS (fail-closed, nenhuma omissão) ──
-  // O adaptador foi resolvido + guardado no passo 3 (modo `aplicar`): daqui em
+  // ── 6. aplicar — dependências OBRIGATÓRIAS (fail-closed, nenhuma omissão) ──
+  // O adaptador foi resolvido + guardado no passo 2 (modo `aplicar`): daqui em
   // diante é NÃO-NULO — só se chega aqui depois dos returns de dry-run e de
   // "nada a reparar" acima.
   const adaptadorAplicar = adaptador as AdaptadorAuditLaco;
@@ -1160,7 +1153,7 @@ export async function repararTrilha(deps: DepsDoReparo, entrada: EntradaDoReparo
       erro,
     );
   }
-  // ── 8. artefatos do laço (superfícies de ORDEM) + verificador escopado ─────
+  // ── 7. artefatos do laço (superfícies de ORDEM) + verificador escopado ─────
   const artefatos = montarArtefatos(track, ordensExecutaveis);
   const originais = new Map<string, string>(artefatos.map((a) => [a.caminho, a.conteudo]));
   const verificador = escoparVerificadorAoPlano(adaptadorAplicar.criarVerificadorDeOrcamentoDaTrilha(auditInicial), plano);
@@ -1181,7 +1174,7 @@ export async function repararTrilha(deps: DepsDoReparo, entrada: EntradaDoReparo
     timeoutDeExecucaoMs: deps.timeoutDeExecucaoMs,
   };
 
-  // ── 9. sessão do laço SEMEADA com pins das violações (cada uma falha hoje) ──
+  // ── 8. sessão do laço SEMEADA com pins das violações (cada uma falha hoje) ──
   const sessao = criarSessaoDeRevisao(ctx);
   let pinsSemeados: number;
   try {
@@ -1198,7 +1191,7 @@ export async function repararTrilha(deps: DepsDoReparo, entrada: EntradaDoReparo
     );
   }
 
-  // ── 10. o laço revisor → plano → correção (gate validarDiffNoSpan interno) ──
+  // ── 9. o laço revisor → plano → correção (gate validarDiffNoSpan interno) ──
   let resultadoDoLaco;
   try {
     resultadoDoLaco = await rodarLacoDeRevisao(ctx, sessao);
@@ -1209,7 +1202,7 @@ export async function repararTrilha(deps: DepsDoReparo, entrada: EntradaDoReparo
     throw erroDeReparo('REPAIR_LACO_FALHOU', 'laco-de-revisao', erro instanceof Error ? erro.message : String(erro), erro);
   }
 
-  // ── 11. gravar os artefatos finais alterados (deltas mecânicos + LLM) ──────
+  // ── 10. gravar os artefatos finais alterados (deltas mecânicos + LLM) ──────
   const conteudos = conteudosFinaisPorArquivo(track, resultadoDoLaco.artefatosFinais, originais);
   const escritos: string[] = [];
   for (const [arquivo, conteudo] of conteudos) {
@@ -1226,7 +1219,7 @@ export async function repararTrilha(deps: DepsDoReparo, entrada: EntradaDoReparo
     escritos.push(arquivo);
   }
 
-  // ── 12. FINAL: o audit DE NOVO e o placar comparado ao inicial (A-P23-5) ───
+  // ── 11. FINAL: o audit DE NOVO e o placar comparado ao inicial (A-P23-5) ───
   const trilhaAtualizada = trilhaComArtefatosFinais(track, conteudos);
   const auditFinal = auditar(trilhaAtualizada);
   const placarFinal = placarDoAudit(auditFinal);

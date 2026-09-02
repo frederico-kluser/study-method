@@ -25,12 +25,12 @@ beforeEach(() => {
 describe('roadmapNav (onda1-nav-ui)', () => {
   it('set grava e peek devolve a trilha aberta', () => {
     assert.equal(peekLastTrackSlug(), null, 'começa vazio');
-    setLastTrackSlug('nodejs-do-zero');
-    assert.equal(peekLastTrackSlug(), 'nodejs-do-zero');
+    setLastTrackSlug('trilha-minima');
+    assert.equal(peekLastTrackSlug(), 'trilha-minima');
   });
 
   it('set(null) volta para "na lista" (botão VOLTAR / seletor)', () => {
-    setLastTrackSlug('nodejs-do-zero');
+    setLastTrackSlug('trilha-minima');
     setLastTrackSlug(null);
     assert.equal(peekLastTrackSlug(), null);
   });
@@ -43,8 +43,8 @@ describe('roadmapNav (onda1-nav-ui)', () => {
   });
 
   it('set faz trim (slugs vêm limpos, mas o contrato não assume)', () => {
-    setLastTrackSlug('  nodejs-do-zero  ');
-    assert.equal(peekLastTrackSlug(), 'nodejs-do-zero');
+    setLastTrackSlug('  trilha-minima  ');
+    assert.equal(peekLastTrackSlug(), 'trilha-minima');
   });
 
   it('o último a escrever vence (histórico de navegação da sessão)', () => {
@@ -56,7 +56,7 @@ describe('roadmapNav (onda1-nav-ui)', () => {
   });
 
   it('__reset esvazia TUDO (beforeEach da suíte)', () => {
-    setLastTrackSlug('nodejs-do-zero');
+    setLastTrackSlug('trilha-minima');
     __resetRoadmapNavForTests();
     assert.equal(peekLastTrackSlug(), null);
   });

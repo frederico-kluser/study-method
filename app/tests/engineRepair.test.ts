@@ -50,7 +50,6 @@ import { PREDICADOS_DA_AULA, type RevisaoDoRevisor } from '../electron/main/engi
 import {
   AdaptadorAuditLaco,
   ErroDeReparo,
-  SLUG_PROIBIDO_DO_REPAIR,
   planejarReparo,
   repararTrilha,
   type DepsDoReparo,
@@ -867,13 +866,6 @@ describe('P-23 · fail-closed', () => {
     await assert.rejects(
       () => repararTrilha(semEscrita.deps, { slug: 'trilha-de-teste', modo: 'aplicar' }),
       (erro: unknown) => erro instanceof ErroDeReparo && erro.codigo === 'REPAIR_SEM_ESCRITA',
-    );
-  });
-
-  it('SLUG_PROIBIDO (nodejs-do-zero) recusa em QUALQUER modo, inclusive dry-run', async () => {
-    await assert.rejects(
-      () => repararTrilha({ gravarArquivo: async () => {} }, { slug: SLUG_PROIBIDO_DO_REPAIR, modo: 'dry-run' }),
-      (erro: unknown) => erro instanceof ErroDeReparo && erro.codigo === 'REPAIR_SLUG_PROIBIDO',
     );
   });
 
