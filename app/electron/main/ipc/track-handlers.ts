@@ -50,6 +50,8 @@ import {
 import { runStudentCode } from '../services/challengeExec';
 import { tutorChat, type ChatFn } from '../services/tutorChat';
 import {
+  REGEN_ERROR_CODES,
+  SEMANTIC_GATE_MESSAGES,
   regenerateChallenge,
   type FailedChallengeInfo,
 } from '../services/challengeRegenerator';
@@ -460,21 +462,32 @@ export function buildTrackHandlers(deps: TrackHandlerDeps): Map<string, IpcHandl
       failed = [];
     }
 
-    // ONDA 2 (autoria): contexto pedagógico (critérios da trilha + aulas
-    // anteriores + a aula atual) para a validação SEMÂNTICA do desafio
-    // regenerado — o desafio só pode cobrar o que foi ensinado. Defensivo: se
-    // a montagem falhar (aula/módulo inexistente — não deveria, os slugs vêm
-    // do LoadedTrack), regenera SEM contexto (entrega validada por execução).
-    // A falha NUNCA é silenciosa: o warn dá observabilidade ao main/auditoria.
-    let context: ChallengeContext | undefined;
+    // Contexto pedagógico (critérios da trilha + aulas anteriores + a aula
+    // atual) para a validação SEMÂNTICA do desafio regenerado — o desafio só
+    // pode cobrar o que foi ensinado.
+    //
+    // FAIL-CLOSED (docs/16-engine-de-trilha.md §9.3). Aqui morava o TERCEIRO
+    // furo do gate: a montagem falhando virava `console.warn` + `context =
+    // undefined`, e o regenerador entregava o desafio validado só por
+    // execução — bastava a montagem do contexto quebrar para um desafio
+    // chegar ao aluno sem NENHUM veredito semântico. Agora a falha é erro
+    // estruturado, ANTES de qualquer chamada de LLM.
+    //
+    // Na prática o ramo é inalcançável e é bom que continue assim: os slugs
+    // vêm de `findLessonAnywhere`, que devolve `{ moduleSlug: mod.meta.slug,
+    // lesson }` de um módulo que CONTÉM a aula, e `buildChallengeContext` só
+    // lança quando `findLesson(track, moduleSlug, lessonSlug)` não acha esse
+    // par (trackLoader.ts:274-288). O `catch` fica como rede de segurança de
+    // um LoadedTrack corrompido — e a rede agora prende, em vez de deixar
+    // passar.
+    let context: ChallengeContext;
     try {
       context = buildChallengeContext(loaded, found.moduleSlug, found.lesson.meta.slug);
     } catch (e) {
-      console.warn(
-        '[track:challenge-regenerate] buildChallengeContext falhou, regenerando sem contexto:',
-        (e as Error).message,
-      );
-      context = undefined;
+      const message = SEMANTIC_GATE_MESSAGES.noContext((e as Error).message);
+      console.warn('[track:challenge-regenerate] buildChallengeContext falhou:', (e as Error).message);
+      progress('error', { error: message });
+      return { ok: false, error: { code: REGEN_ERROR_CODES.SEMANTIC_NOT_RUN, message } };
     }
 
     // ONDA3 (generate-flow): 'generating' ANTES da 1ª chamada LLM — o draft
@@ -486,6 +499,12 @@ export function buildTrackHandlers(deps: TrackHandlerDeps): Map<string, IpcHandl
       lesson: found.lesson.meta,
       failed,
       context,
+      // FAIL-CLOSED (§9.3): este é o caminho do ALUNO — sem veredito semântico
+      // não há entrega. Redundante com o `context` garantido acima, e é essa a
+      // intenção: a exigência viaja no CONTRATO da chamada, então nem um
+      // refactor futuro que reintroduza um contexto opcional aqui reabre o
+      // gate em silêncio.
+      requireSemanticGate: true,
       llm: chatFn,
     });
     if (!outcome.ok || !outcome.challenge) {
@@ -495,11 +514,15 @@ export function buildTrackHandlers(deps: TrackHandlerDeps): Map<string, IpcHandl
       return { ok: false, error: outcome.error };
     }
     const draft = outcome.challenge;
-    // A validação SEMÂNTICA (quando havia contexto) e a verificação de EXECUÇÃO
-    // rodaram DENTRO do challengeRegenerator — reportadas aqui, em sequência
-    // (a ordem de exibição do modal; o momento exato não é observável de fora
-    // sem instrumentar o regenerador, o que é proibido: ele fica PURO).
-    if (context) progress('validating');
+    // A validação SEMÂNTICA e a verificação de EXECUÇÃO rodaram DENTRO do
+    // challengeRegenerator — reportadas aqui, em sequência (a ordem de
+    // exibição do modal; o momento exato não é observável de fora sem
+    // instrumentar o regenerador, o que é proibido: ele fica PURO).
+    //
+    // O marco não é mais condicional: chegar aqui com `outcome.ok` significa
+    // que o gate semântico CONCLUIU aprovando (§9.3) — o rótulo "conferindo a
+    // coerência" do modal agora descreve algo que sempre aconteceu.
+    progress('validating');
     progress('executing');
     // 'inserting' ANTES do insert no banco.
     progress('inserting');

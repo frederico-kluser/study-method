@@ -37,6 +37,26 @@ import type { IpcHandlerFn } from '../electron/main/ipc/safeHandle';
 import { TRACK_SCHEMA_VERSION } from '../electron/main/content/trackTypes';
 import { runStudentCode } from '../electron/main/services/challengeExec';
 
+/**
+ * Veredito SEMÂNTICO válido com `n` itens (um por test() do testsCode do
+ * draft). FAIL-CLOSED (docs/16-engine-de-trilha.md §9.3): o handler agora exige
+ * que o gate semântico CONCLUA aprovando, então uma llm fake que devolve
+ * sempre o mesmo draft — como estes testes faziam — não valida mais nada e o
+ * desafio é (corretamente) recusado. Quem quer testar o caminho FELIZ tem de
+ * responder um veredito de verdade na 2ª chamada.
+ */
+function verdictJson(n: number): string {
+  return JSON.stringify({
+    aprovado: true,
+    testes: Array.from({ length: n }, (_, i) => ({
+      nome: `n${i + 1}`,
+      construcoes_encontradas: ['aritmética'],
+      motivo: 'A aula ensina soma.',
+      aprovado: true,
+    })),
+  });
+}
+
 /** Chama um handler com (null, payload) e tipa o resultado (invoke real é (event, ...args)). */
 function call<T>(map: Map<string, IpcHandlerFn>, channel: string, payload?: unknown): Promise<T> {
   return map.get(channel)!(null, payload) as Promise<T>;
@@ -491,24 +511,27 @@ describe('buildTrackHandlers — trilhas', () => {
       }),
       llm: {
         chatCompletion: async (req: { messages: Array<{ role: string; content: string }> }) => {
-          // ONDA 2 (autoria): a 1ª chamada é a GERAÇÃO; as seguintes são do
-          // VALIDADOR SEMÂNTICO (o fake devolve o mesmo JSON de draft — o
-          // validador o rejeita como veredito e o desafio entrega por
-          // execução). Só a 1ª carrega o contexto do nunca-repetir.
-          if (!promptSaw) promptSaw = req.messages.map((m) => m.content).join('\n');
-          return {
-            content: JSON.stringify({
-              title: 'Novo desafio',
-              concept: 'variaveis',
-              difficulty: 2,
-              statement: 'Novo enunciado.',
-              starterCode: 'export function novo(x) { throw new Error("x"); }\n',
-              testsCode: `import { test } from 'node:test';\nimport assert from 'node:assert/strict';\nimport { novo } from './solution.mjs';\ntest('n1', () => { assert.equal(novo(1), 2); });\ntest('n2', () => { assert.equal(novo(2), 3); });\n`,
-              solutionCode: 'export function novo(x) { return x + 1; }\n',
-              expectedTestCount: 2,
-            }),
-            model: 'fake',
-          };
+          // A 1ª chamada é a GERAÇÃO (é ela que carrega o contexto do
+          // nunca-repetir); a 2ª é o VALIDADOR SEMÂNTICO, que agora precisa
+          // devolver um veredito de verdade — sem aprovação semântica o
+          // handler recusa a entrega (fail-closed, §9.3).
+          if (!promptSaw) {
+            promptSaw = req.messages.map((m) => m.content).join('\n');
+            return {
+              content: JSON.stringify({
+                title: 'Novo desafio',
+                concept: 'variaveis',
+                difficulty: 2,
+                statement: 'Novo enunciado.',
+                starterCode: 'export function novo(x) { throw new Error("x"); }\n',
+                testsCode: `import { test } from 'node:test';\nimport assert from 'node:assert/strict';\nimport { novo } from './solution.mjs';\ntest('n1', () => { assert.equal(novo(1), 2); });\ntest('n2', () => { assert.equal(novo(2), 3); });\n`,
+                solutionCode: 'export function novo(x) { return x + 1; }\n',
+                expectedTestCount: 2,
+              }),
+              model: 'fake',
+            };
+          }
+          return { content: verdictJson(2), model: 'fake' };
         },
       } as never,
     });
@@ -555,19 +578,28 @@ describe('buildTrackHandlers — trilhas', () => {
         events.push(ev as { stage: string; generationId?: number; challenge?: { slug: string; title: string }; error?: string });
       },
       llm: {
-        chatCompletion: async () => ({
-          content: JSON.stringify({
-            title: 'Novo desafio',
-            concept: 'variaveis',
-            difficulty: 2,
-            statement: 'Novo enunciado.',
-            starterCode: 'export function novo(x) { throw new Error("x"); }\n',
-            testsCode: `import { test } from 'node:test';\nimport assert from 'node:assert/strict';\nimport { novo } from './solution.mjs';\ntest('n1', () => { assert.equal(novo(1), 2); });\ntest('n2', () => { assert.equal(novo(2), 3); });\n`,
-            solutionCode: 'export function novo(x) { return x + 1; }\n',
-            expectedTestCount: 2,
-          }),
-          model: 'fake',
-        }),
+        chatCompletion: (() => {
+          let calls = 0;
+          return async () => {
+            calls += 1;
+            // 1ª = geração; 2ª = veredito semântico APROVADO (sem ele o
+            // handler recusaria a entrega — fail-closed, §9.3).
+            if (calls > 1) return { content: verdictJson(2), model: 'fake' };
+            return {
+              content: JSON.stringify({
+                title: 'Novo desafio',
+                concept: 'variaveis',
+                difficulty: 2,
+                statement: 'Novo enunciado.',
+                starterCode: 'export function novo(x) { throw new Error("x"); }\n',
+                testsCode: `import { test } from 'node:test';\nimport assert from 'node:assert/strict';\nimport { novo } from './solution.mjs';\ntest('n1', () => { assert.equal(novo(1), 2); });\ntest('n2', () => { assert.equal(novo(2), 3); });\n`,
+                solutionCode: 'export function novo(x) { return x + 1; }\n',
+                expectedTestCount: 2,
+              }),
+              model: 'fake',
+            };
+          };
+        })(),
       } as never,
     });
     const result = await call<TrackRegenerateResult>(map, TRACK_CHANNELS.CHALLENGE_REGENERATE, {
@@ -576,8 +608,9 @@ describe('buildTrackHandlers — trilhas', () => {
       generationId: 42, // ALTO-2: ecoado em TODOS os eventos (correlação)
     });
     assert.equal(result.ok, true);
-    // Ordem dos marcos: generating ANTES da LLM; validating (contexto existe) →
-    // executing → inserting → done TERMINAL com o challenge novo.
+    // Ordem dos marcos: generating ANTES da LLM; validating (o gate semântico
+    // SEMPRE roda no caminho do aluno — §9.3) → executing → inserting → done
+    // TERMINAL com o challenge novo.
     assert.deepEqual(
       events.map((e) => e.stage),
       ['generating', 'validating', 'executing', 'inserting', 'done'],
@@ -708,19 +741,26 @@ describe('buildTrackHandlers — trilhas', () => {
       getTracksDir: () => path.dirname(dir),
       repo: fakeRepo(),
       llm: {
-        chatCompletion: async () => ({
-          content: JSON.stringify({
-            title: 'Novo desafio',
-            concept: 'variaveis',
-            difficulty: 2,
-            statement: 'Novo enunciado.',
-            starterCode: 'export function novo(x) { throw new Error("x"); }\n',
-            testsCode: `import { test } from 'node:test';\nimport assert from 'node:assert/strict';\nimport { novo } from './solution.mjs';\ntest('n1', () => { assert.equal(novo(1), 2); });\n`,
-            solutionCode: 'export function novo(x) { return x + 1; }\n',
-            expectedTestCount: 1,
-          }),
-          model: 'fake',
-        }),
+        chatCompletion: (() => {
+          let calls = 0;
+          return async () => {
+            calls += 1;
+            if (calls > 1) return { content: verdictJson(1), model: 'fake' };
+            return {
+              content: JSON.stringify({
+                title: 'Novo desafio',
+                concept: 'variaveis',
+                difficulty: 2,
+                statement: 'Novo enunciado.',
+                starterCode: 'export function novo(x) { throw new Error("x"); }\n',
+                testsCode: `import { test } from 'node:test';\nimport assert from 'node:assert/strict';\nimport { novo } from './solution.mjs';\ntest('n1', () => { assert.equal(novo(1), 2); });\n`,
+                solutionCode: 'export function novo(x) { return x + 1; }\n',
+                expectedTestCount: 1,
+              }),
+              model: 'fake',
+            };
+          };
+        })(),
       } as never,
     });
     const result = await call<TrackRegenerateResult>(map, TRACK_CHANNELS.CHALLENGE_REGENERATE, {
@@ -792,14 +832,69 @@ describe('buildTrackHandlers — trilhas', () => {
     assert.ok(prompts[1].includes('Aritmética básica'), 'o contexto também chega ao validador');
   });
 
-  // Defensivo (onda 2): se a montagem do contexto falhar (aula/módulo
-  // inexistente — não deveria acontecer com slugs vindos do LoadedTrack), o
-  // handler regenera SEM contexto — e o regenerador entrega validado por
-  // execução (coberto em tests/challengeRegenerator.test.ts: 'SEM contexto →
-  // entrega por execução'). O try/catch do handler é a defesa; o contrato de
-  // queda é aquele teste de unidade — aqui não há estado do loader que faça o
-  // buildChallengeContext lançar com os mesmos slugs que o findLessonAnywhere
-  // acabou de resolver (mock de módulo exigiria flag fora do runner t.sh).
+  // FAIL-CLOSED (docs/16-engine-de-trilha.md §9.3): se a montagem do contexto
+  // falhar, o handler NÃO regenera mais sem contexto (era `console.warn` +
+  // `context = undefined`, e o desafio saía validado só por execução) — devolve
+  // REGEN_SEMANTIC_NOT_RUN com mensagem para o aluno, antes de qualquer chamada
+  // de LLM. O ramo não é exercitável daqui e isso é uma PROPRIEDADE, não uma
+  // lacuna: `findLessonAnywhere` devolve `{ moduleSlug, lesson }` de um módulo
+  // que contém a aula, e `buildChallengeContext` só lança quando
+  // `findLesson(track, moduleSlug, lessonSlug)` não acha esse mesmo par
+  // (trackLoader.ts:274-288) — nenhum estado do loader produz isso com os
+  // slugs que o handler acabou de resolver (mock de módulo exigiria flag fora
+  // do runner t.sh). O contrato do parâmetro está pinado em unidade:
+  // tests/challengeRegenerator.test.ts, 'gate EXIGIDO sem contexto →
+  // FAIL-CLOSED antes da 1ª chamada de LLM'.
+
+  it('track:challenge-regenerate: validador semântico FORA DO AR → recusa a entrega com erro estruturado (§9.3)', async () => {
+    const dir = await makeTrackDir();
+    const events: Array<{ stage: string; error?: string }> = [];
+    let persisted = false;
+    const map = buildTrackHandlers({
+      getTracksDir: () => path.dirname(dir),
+      repo: fakeRepo({ insertGeneratedChallenge: async () => void (persisted = true) }),
+      emit: (_channel, ev) => {
+        events.push(ev as { stage: string; error?: string });
+      },
+      llm: {
+        chatCompletion: (() => {
+          let calls = 0;
+          return async () => {
+            calls += 1;
+            // 1ª chamada: draft PERFEITO (passa nas quatro provas de execução
+            // de §5.4). 2ª: o validador semântico está fora do ar.
+            if (calls > 1) throw new Error('rede fora do ar');
+            return {
+              content: JSON.stringify({
+                title: 'Novo desafio',
+                concept: 'variaveis',
+                difficulty: 2,
+                statement: 'Novo enunciado.',
+                starterCode: 'export function novo(x) { throw new Error("x"); }\n',
+                testsCode: `import { test } from 'node:test';\nimport assert from 'node:assert/strict';\nimport { novo } from './solution.mjs';\ntest('n1', () => { assert.equal(novo(1), 2); });\n`,
+                solutionCode: 'export function novo(x) { return x + 1; }\n',
+                expectedTestCount: 1,
+              }),
+              model: 'fake',
+            };
+          };
+        })(),
+      } as never,
+    });
+    const result = await call<TrackRegenerateResult>(map, TRACK_CHANNELS.CHALLENGE_REGENERATE, {
+      trackSlug: 'trilha-teste',
+      lessonId: 'aula-1',
+      generationId: 11,
+    });
+    assert.equal(result.ok, false, 'draft válido na execução NÃO basta sem o veredito semântico');
+    assert.equal(result.error?.code, 'REGEN_SEMANTIC_UNAVAILABLE');
+    assert.equal(persisted, false, 'nada é persistido — o aluno não recebe o desafio');
+    // O modal precisa do terminal 'error' com a mensagem humana (é ela que a
+    // UI mostra crua, em ChallengeGenerateModal/TrackChallengePanel).
+    assert.deepEqual(events.map((e) => e.stage), ['generating', 'error']);
+    assert.match(events[1].error ?? '', /nada foi gerado/i);
+    assert.match(events[1].error ?? '', /chave da API e os créditos/i);
+  });
 
   // ─── ADITIVO (rodada 9): desafio do MÓDULO (target 'module') ────────────────
 

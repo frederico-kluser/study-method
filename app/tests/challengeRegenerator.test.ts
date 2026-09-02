@@ -10,9 +10,18 @@
  *   2. regenerateChallenge, com `input.context`, valida o draft aprovado na
  *      EXECUÇÃO também pela SEMÂNTICA (verifyChallengeAgainstContext):
  *      reprovado → retry com FEEDBACK semântico (máx MAX_SEMANTIC_ATTEMPTS);
- *      aprovado → entrega; validador indisponível (UNAVAILABLE/INVALID_JSON) →
- *      entrega por execução (reforço não trava); sem contexto → entrega por
- *      execução (caminho defensivo do handler).
+ *      aprovado → entrega.
+ *
+ * FAIL-CLOSED (docs/16-engine-de-trilha.md §9.3) — o que esta rodada inverteu.
+ * Dois testes daqui PINAVAM o defeito: validador INDISPONÍVEL e veredito
+ * ILEGÍVEL entregavam o desafio "por execução", com a asserção dizendo em voz
+ * alta que "a indisponibilidade do validador não bloqueia a entrega". §9.3 diz
+ * o contrário — "indisponibilidade produz erro estruturado, nunca veredito
+ * falso nem aprovação por omissão" — e agora eles provam o OPOSTO. O terceiro
+ * caminho (SEM contexto) continua entregando por execução, mas como OPT-OUT
+ * declarado de quem não pediu o gate: quem exige (`requireSemanticGate: true`,
+ * o que o handler IPC manda) recebe erro estruturado sem gastar 1 chamada de
+ * LLM.
  *
  * PURE/DI: llm fake (sem rede); a execução usa node REAL (verifica o par).
  */
@@ -250,7 +259,7 @@ describe('regenerateChallenge — validação semântica (ONDA 2)', () => {
     assert.equal(calls, 4, `${MAX_SEMANTIC_ATTEMPTS} vereditos semânticos (um por draft aprovado na execução)`);
   });
 
-  it('validador semântico INDISPONÍVEL (UNAVAILABLE) → entrega por EXECUÇÃO (reforço não trava)', async () => {
+  it('validador semântico INDISPONÍVEL (UNAVAILABLE) → FAIL-CLOSED: nada é entregue (§9.3)', async () => {
     let calls = 0;
     const outcome = await regenerateChallenge({
       trackTitle: 'T',
@@ -263,12 +272,19 @@ describe('regenerateChallenge — validação semântica (ONDA 2)', () => {
         throw new Error('rede fora do ar');
       },
     });
-    assert.equal(outcome.ok, true, 'indisponibilidade do validador não bloqueia a entrega');
-    assert.equal(outcome.challenge?.slug, 'dobro-do-numero');
-    assert.equal(calls, 2, '1 geração + 1 tentativa de validação (que falhou)');
+    // O draft PASSOU nas provas de execução (§5.4) — e mesmo assim não sai:
+    // sem veredito semântico, entregar seria aprovação por omissão.
+    assert.equal(outcome.ok, false, 'gate fora do ar REPROVA a entrega');
+    assert.equal(outcome.challenge, undefined, 'nenhum desafio chega ao aluno');
+    assert.equal(outcome.error?.code, REGEN_ERROR_CODES.SEMANTIC_UNAVAILABLE);
+    // A mensagem é para o ALUNO: diz o que houve, que nada foi gerado e o que
+    // fazer (a UI mostra `error.message` cru).
+    assert.match(outcome.error?.message ?? '', /nada foi gerado/i);
+    assert.match(outcome.error?.message ?? '', /chave da API e os créditos/i);
+    assert.equal(calls, 2, '1 geração + 1 tentativa de validação (que falhou) — sem retry inútil');
   });
 
-  it('validador semântico com JSON inválido (INVALID_JSON) → entrega por EXECUÇÃO', async () => {
+  it('validador semântico com JSON inválido (INVALID_JSON) → FAIL-CLOSED: nada é entregue (§9.3)', async () => {
     let calls = 0;
     const outcome = await regenerateChallenge({
       trackTitle: 'T',
@@ -280,11 +296,23 @@ describe('regenerateChallenge — validação semântica (ONDA 2)', () => {
         return calls === 1 ? { content: JSON.stringify(DRAFT_A) } : { content: 'não é um veredito' };
       },
     });
-    assert.equal(outcome.ok, true);
+    assert.equal(outcome.ok, false, 'veredito ilegível REPROVA a entrega');
+    assert.equal(outcome.challenge, undefined, 'nenhum desafio chega ao aluno');
+    assert.equal(outcome.error?.code, REGEN_ERROR_CODES.SEMANTIC_INVALID_VERDICT);
+    assert.match(outcome.error?.message ?? '', /nada foi gerado/i);
+    assert.match(outcome.error?.message ?? '', /tente de novo/i);
     assert.equal(calls, 3, '1 geração + 2 tentativas internas do validador (retry de JSON inválido)');
   });
 
-  it('SEM contexto → entrega por execução sem NENHUMA chamada semântica (caminho defensivo)', async () => {
+  // O TERCEIRO caminho, decidido nesta rodada. Sem contexto não existe o que
+  // julgar: o gate não pode "rodar e aprovar", só deixar de rodar. Em vez de
+  // proibir a ausência dentro do serviço (o que quebraria os testes do laço de
+  // execução em tests/trackServices.test.ts, que chamam sem contexto de
+  // propósito), a ausência virou OPT-OUT DECLARADO — e a exigência virou
+  // PARÂMETRO. O caminho do ALUNO manda `requireSemanticGate: true`
+  // (ipc/track-handlers.ts), e lá o contexto sempre existe: a montagem que
+  // falha agora devolve erro estruturado em vez de seguir sem contexto.
+  it('SEM contexto e SEM exigir o gate → entrega por execução (opt-out declarado, fora do fluxo do aluno)', async () => {
     let calls = 0;
     const outcome = await regenerateChallenge({
       trackTitle: 'T',
@@ -297,6 +325,26 @@ describe('regenerateChallenge — validação semântica (ONDA 2)', () => {
     });
     assert.equal(outcome.ok, true);
     assert.equal(calls, 1, 'só a geração — sem validação semântica');
+  });
+
+  it('gate EXIGIDO sem contexto → FAIL-CLOSED antes da 1ª chamada de LLM (§9.3)', async () => {
+    let calls = 0;
+    const outcome = await regenerateChallenge({
+      trackTitle: 'T',
+      lesson: lesson(),
+      failed: [],
+      requireSemanticGate: true,
+      llm: async () => {
+        calls += 1;
+        return { content: JSON.stringify(DRAFT_A) };
+      },
+    });
+    assert.equal(outcome.ok, false, 'sem contexto, quem EXIGE o gate não recebe desafio');
+    assert.equal(outcome.challenge, undefined);
+    assert.equal(outcome.error?.code, REGEN_ERROR_CODES.SEMANTIC_NOT_RUN);
+    assert.match(outcome.error?.message ?? '', /histórico das suas aulas/i);
+    assert.match(outcome.error?.message ?? '', /nada foi gerado/i);
+    assert.equal(calls, 0, 'zero chamada de LLM — não se queima crédito para recusar no fim');
   });
 
   it('REGRESSÃO: código inválido na execução continua com retry e erro estruturado', async () => {

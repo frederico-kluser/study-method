@@ -9,12 +9,24 @@
  * provas do CLI: solução passa com igualdade de contagem, starter falha)
  * antes de devolver — desafio ruim nunca chega ao aluno.
  *
+ * FAIL-CLOSED (docs/16-engine-de-trilha.md §9.3). O gate SEMÂNTICO
+ * (verifyChallengeAgainstContext — "o desafio só cobra o que já foi ensinado")
+ * nasceu como REFORÇO e falhava ABERTO: validador fora do ar
+ * (CONTEXT_UNAVAILABLE) ou veredito não-parseável (CONTEXT_INVALID_JSON)
+ * devolviam `ok: true` e o desafio chegava ao aluno validado SÓ por execução.
+ * §9.3 proíbe exatamente isso — "indisponibilidade produz erro estruturado,
+ * nunca veredito falso nem aprovação por omissão". Agora as quatro provas de
+ * execução (§5.4) e o gate semântico são AMBOS obrigatórios no caminho do
+ * aluno: o gate que não CONCLUIR com aprovação REPROVA a entrega, com código
+ * de erro e mensagem em pt-BR que diz o que houve e o que fazer.
+ *
  * PURE/DI: llm e exec injetáveis (testes sem rede).
  */
 
 import { TrackLessonSource } from '../content/trackTypes';
 import { verifyChallengePair, type ExecFn } from './challengeExec';
 import {
+  CONTEXT_ERROR_CODES,
   NO_ENTRY_CRITERIA_LABEL,
   verifyChallengeAgainstContext,
   type ChallengeContext,
@@ -45,14 +57,30 @@ export interface RegenerateInput {
   llm: (req: { messages: Array<{ role: 'system' | 'user'; content: string }>; temperature?: number; timeoutMs?: number }) => Promise<{ content: string }>;
   exec?: ExecFn;
   /**
-   * ONDA 2 (autoria): contexto pedagógico JÁ MONTADO (buildChallengeContext —
-   * o chamador tem o LoadedTrack em mãos; o regenerador se mantém puro e sem
-   * IO). Quando presente, o draft aprovado na EXECUÇÃO ainda passa pela
-   * validação SEMÂNTICA (verifyChallengeAgainstContext) — o desafio só pode
-   * cobrar o que foi ensinado. Ausente → entrega validado por execução
-   * (caminho defensivo — ver doc de regenerateChallenge).
+   * Contexto pedagógico JÁ MONTADO (buildChallengeContext — o chamador tem o
+   * LoadedTrack em mãos; o regenerador se mantém puro e sem IO). PRESENTE → o
+   * draft aprovado na EXECUÇÃO ainda precisa da APROVAÇÃO SEMÂNTICA para ser
+   * entregue (fail-closed, §9.3): o desafio só pode cobrar o que foi ensinado.
+   *
+   * AUSENTE é OPT-OUT DECLARADO do gate — e não um caminho do aluno. Sem
+   * contexto não há o que julgar, e o ÚNICO chamador de produção
+   * (ipc/track-handlers.ts) sempre manda contexto: quando a montagem falha ele
+   * devolve erro estruturado em vez de regenerar sem contexto (antes só emitia
+   * um console.warn — era o terceiro furo do fail-closed). Quem exige o gate
+   * declara `requireSemanticGate: true` e a ausência de contexto vira erro
+   * ANTES de qualquer chamada de LLM. A porta segue aberta apenas para uso
+   * FORA do fluxo do aluno — os testes de unidade do laço de execução em
+   * `tests/trackServices.test.ts`, que exercitam geração/retry/execução sem
+   * nada a validar semanticamente.
    */
   context?: ChallengeContext;
+  /**
+   * O chamador EXIGE o gate semântico (fail-closed, §9.3): sem `context` não
+   * existe regeneração — erro estruturado REGEN_SEMANTIC_NOT_RUN e ZERO
+   * chamada de LLM. É `true` no handler IPC (o caminho do ALUNO). O default
+   * `false` preserva o opt-out de quem só exercita o laço de execução.
+   */
+  requireSemanticGate?: boolean;
 }
 
 export interface RegenerateOutcome {
@@ -65,6 +93,12 @@ export const REGEN_ERROR_CODES = {
   UNAVAILABLE: 'REGEN_UNAVAILABLE',
   INVALID_JSON: 'REGEN_INVALID_JSON',
   INVALID_CODE: 'REGEN_INVALID_CODE',
+  /** FAIL-CLOSED §9.3: o gate semântico está fora do ar — nada é entregue. */
+  SEMANTIC_UNAVAILABLE: 'REGEN_SEMANTIC_UNAVAILABLE',
+  /** FAIL-CLOSED §9.3: veredito semântico ilegível mesmo após o retry. */
+  SEMANTIC_INVALID_VERDICT: 'REGEN_SEMANTIC_INVALID_VERDICT',
+  /** FAIL-CLOSED §9.3: o gate era EXIGIDO e não pôde sequer RODAR. */
+  SEMANTIC_NOT_RUN: 'REGEN_SEMANTIC_NOT_RUN',
 } as const;
 
 export const MAX_REGEN_ATTEMPTS = 2;
@@ -76,6 +110,29 @@ export const MAX_REGEN_ATTEMPTS = 2;
  * reprovação semântica.
  */
 export const MAX_SEMANTIC_ATTEMPTS = 2;
+
+/**
+ * As mensagens do fail-closed, escritas para o ALUNO. Elas chegam CRUAS à UI
+ * (`src/components/challenge/ChallengeGenerateModal.tsx` e
+ * `src/views/ChallengeView/TrackChallengePanel.tsx` mostram `error.message`),
+ * então cada uma diz, nesta ordem: o que houve, por que NADA foi entregue e o
+ * que fazer agora. Fail-closed significa ouvir "não consegui gerar um desafio
+ * agora" em vez de receber um desafio que cobra o que a trilha não ensinou —
+ * a mensagem tem de deixar isso claro, sem jargão.
+ */
+const GATE_HEAD = 'Não deu para conferir se o desafio novo cabe no que você já estudou';
+const GATE_WHY = 'Para não te entregar um desafio que cobra conteúdo ainda não ensinado, nada foi gerado.';
+
+export const SEMANTIC_GATE_MESSAGES = {
+  unavailable: (detail: string): string =>
+    `${GATE_HEAD}: o serviço de IA que faz essa conferência não respondeu (${detail}). ${GATE_WHY} Confira a chave da API e os créditos nas Configurações e tente de novo.`,
+  invalidVerdict: (detail: string): string =>
+    `${GATE_HEAD}: a IA respondeu num formato ilegível, mesmo depois da segunda tentativa (${detail}). ${GATE_WHY} Tente de novo em alguns instantes.`,
+  noContext: (detail: string): string =>
+    `${GATE_HEAD}: não deu para montar o histórico das suas aulas (${detail}). ${GATE_WHY} Tente de novo; se continuar, a trilha pode estar com a estrutura inconsistente.`,
+  budgetExhausted: (): string =>
+    `${GATE_HEAD}: a conferência não coube no orçamento de tentativas desta geração. ${GATE_WHY} Tente de novo.`,
+} as const;
 
 /**
  * ONDA 2 (autoria): o contexto (critérios de entrada + aulas anteriores + a
@@ -240,23 +297,50 @@ function parseDraft(raw: unknown): GeneratedChallengeDraft | null {
 }
 
 /**
- * Regenera um desafio. Valida por execução; falha → retry com feedback do
- * erro; falha de novo → erro estruturado (nunca devolve desafio ruim).
+ * Regenera um desafio. Valida por EXECUÇÃO (§5.4: a solução passa, o starter
+ * falha, a contagem bate); falha → retry com feedback do erro; falha de novo →
+ * erro estruturado (nunca devolve desafio ruim).
  *
- * ONDA 2 (autoria): quando `input.context` é fornecido, o draft aprovado na
- * EXECUÇÃO ainda passa pela validação SEMÂNTICA (verifyChallengeAgainstContext
- * — o desafio só pode cobrar o que foi ensinado). Veredito semântico
- * REPROVADO → retry com o FEEDBACK SEMÂNTICO (motivos dos testes reprovados
- * concatenados entram no `lastReason` da próxima geração); no máx
- * MAX_SEMANTIC_ATTEMPTS vereditos semânticos (um por draft aprovado na
- * execução — com MAX_REGEN_ATTEMPTS=2, no máximo 2). O validador semântico é
- * um REFORÇO: CONTEXT_UNAVAILABLE/CONTEXT_INVALID_JSON NÃO bloqueiam a entrega
- * — o desafio já passou pela execução e a indisponibilidade do validador não
- * deve travar a regeneração (a porta de auditoria é o CLI
- * track:challenge:context). Contexto ausente → entrega por execução (caminho
- * defensivo do handler quando a montagem do contexto falha).
+ * GATE SEMÂNTICO, FAIL-CLOSED (docs/16-engine-de-trilha.md §9.3). Com
+ * `input.context`, o draft aprovado na execução SÓ é entregue se
+ * verifyChallengeAgainstContext concluir APROVADO. Os desfechos, todos
+ * terminais e todos com erro estruturado + mensagem em pt-BR para o aluno:
+ *
+ *   - APROVADO → entrega.
+ *   - REPROVADO (cobra o não-ensinado) → retry com o FEEDBACK SEMÂNTICO (os
+ *     motivos dos testes reprovados entram no `lastReason` da próxima
+ *     geração); esgotadas as tentativas → REGEN_INVALID_CODE.
+ *   - CONTEXT_UNAVAILABLE (validador fora do ar) → REGEN_SEMANTIC_UNAVAILABLE.
+ *     NÃO se retenta a geração: o defeito está no validador, não no draft —
+ *     gerar de novo só queimaria crédito para cair no mesmo lugar.
+ *   - CONTEXT_INVALID_JSON (veredito ilegível após o retry INTERNO do
+ *     validador, MAX_CONTEXT_ATTEMPTS) → REGEN_SEMANTIC_INVALID_VERDICT.
+ *   - orçamento semântico esgotado com contexto presente →
+ *     REGEN_SEMANTIC_NOT_RUN (entregar sem veredito seria aprovação por
+ *     omissão, o que §9.3 proíbe).
+ *
+ * Teto: MAX_SEMANTIC_ATTEMPTS vereditos por regeneração (um por draft aprovado
+ * na execução; com MAX_REGEN_ATTEMPTS=2, no máximo 2).
+ *
+ * SEM `input.context` o gate não roda — é o OPT-OUT do chamador, descrito em
+ * RegenerateInput.context. `requireSemanticGate: true` (o que o handler IPC
+ * manda) transforma essa ausência em REGEN_SEMANTIC_NOT_RUN antes da 1ª
+ * chamada de LLM, de modo que NENHUM caminho do aluno entrega desafio sem
+ * veredito semântico.
  */
 export async function regenerateChallenge(input: RegenerateInput): Promise<RegenerateOutcome> {
+  // FAIL-CLOSED (§9.3): quem EXIGE o gate não regenera sem contexto — não há o
+  // que julgar. Erro estruturado ANTES da 1ª chamada de LLM (nada de crédito
+  // gasto para produzir um desafio que seria recusado no fim).
+  if (input.requireSemanticGate && !input.context) {
+    return {
+      ok: false,
+      error: {
+        code: REGEN_ERROR_CODES.SEMANTIC_NOT_RUN,
+        message: SEMANTIC_GATE_MESSAGES.noContext('o histórico não chegou ao gerador'),
+      },
+    };
+  }
   let lastReason = '';
   let semanticAttempts = 0;
   // ONDA 2 (autoria): o contexto pedagógico (quando presente) alimenta o
@@ -315,8 +399,21 @@ export async function regenerateChallenge(input: RegenerateInput): Promise<Regen
       continue;
     }
 
-    // ONDA 2 (autoria): validação semântica do draft aprovado na execução.
-    if (input.context && semanticAttempts < MAX_SEMANTIC_ATTEMPTS) {
+    // Validação SEMÂNTICA do draft aprovado na execução (fail-closed, §9.3).
+    if (input.context) {
+      if (semanticAttempts >= MAX_SEMANTIC_ATTEMPTS) {
+        // Entregar com contexto em mãos e SEM veredito é aprovação por
+        // omissão. Hoje MAX_SEMANTIC_ATTEMPTS === MAX_REGEN_ATTEMPTS e o ramo
+        // não dispara; ele existe para que baixar o teto semântico no futuro
+        // NÃO reabra o gate sem ninguém perceber.
+        return {
+          ok: false,
+          error: {
+            code: REGEN_ERROR_CODES.SEMANTIC_NOT_RUN,
+            message: SEMANTIC_GATE_MESSAGES.budgetExhausted(),
+          },
+        };
+      }
       semanticAttempts += 1;
       const semantic = await verifyChallengeAgainstContext({
         context: input.context,
@@ -329,10 +426,26 @@ export async function regenerateChallenge(input: RegenerateInput): Promise<Regen
         llm: input.llm,
       });
       if (!semantic.ok) {
-        // Validador indisponível/JSON inválido: reforço fora do ar não trava a
-        // entrega — o desafio já passou pela execução (decisão documentada no
-        // handoff da onda 2; o CLI track:challenge:context é a auditoria).
-        return { ok: true, challenge: draft };
+        // FAIL-CLOSED (§9.3): o gate NÃO concluiu — indisponível ou veredito
+        // ilegível. Aprovação por omissão está proibida, então a ENTREGA é
+        // reprovada com erro estruturado. Sai já, sem retentar a geração: o
+        // defeito está no validador, não no draft.
+        const detail = semantic.error.message.slice(0, 160);
+        return semantic.error.code === CONTEXT_ERROR_CODES.UNAVAILABLE
+          ? {
+              ok: false,
+              error: {
+                code: REGEN_ERROR_CODES.SEMANTIC_UNAVAILABLE,
+                message: SEMANTIC_GATE_MESSAGES.unavailable(detail),
+              },
+            }
+          : {
+              ok: false,
+              error: {
+                code: REGEN_ERROR_CODES.SEMANTIC_INVALID_VERDICT,
+                message: SEMANTIC_GATE_MESSAGES.invalidVerdict(detail),
+              },
+            };
       }
       if (semantic.aprovado) {
         return { ok: true, challenge: draft };
@@ -348,6 +461,8 @@ export async function regenerateChallenge(input: RegenerateInput): Promise<Regen
       continue;
     }
 
+    // Chegar aqui é `input.context` ausente — o OPT-OUT declarado (o gate não
+    // foi pedido e não havia o que julgar): entrega validada por execução.
     return { ok: true, challenge: draft };
   }
   return {
