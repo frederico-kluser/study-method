@@ -16,11 +16,22 @@
  *   RATE_LIMIT, SERVER_ERROR, NETWORK → retentam (condições transitórias).
  *     429 NUNCA vira fallback de provedor: backoff, e só backoff (A-P01-4).
  *
- * BACKOFF CEGO — DECLARADO, não escondido: o `deepseekClient` lê o corpo da
- * Response e a descarta; `Retry-After` não está acessível a jusante. Este
- * módulo NÃO lê header nenhum: o atraso é exponencial com jitter calculado
- * localmente. Se um dia o cliente expuser `retryAfterMs`, este módulo passa a
- * consumi-lo — até lá, nunca finja que leu.
+ * `Retry-After` É HONRADO — e isto MUDOU. A versão anterior deste cabeçalho
+ * declarava backoff cego ("o cliente lê o corpo da Response e a descarta;
+ * `Retry-After` não está acessível a jusante"). Não é mais verdade: o cliente
+ * do OpenRouter preenche `retryAfterMs` no `DeepSeekError` a partir do header
+ * `Retry-After` de um 429 (o header vem em SEGUNDOS; a conversão para ms é do
+ * cliente, este módulo recebe ms). Regra deste módulo:
+ *
+ *   - erro COM `retryAfterMs` → o atraso é ESSE valor, limitado por
+ *     `maxDelayMs` da política e SEM jitter (o servidor disse quando voltar;
+ *     borrar isso com aleatoriedade é desobedecer de leve). O teto continua
+ *     valendo: um `Retry-After: 600` não pode segurar a onda por 10 minutos.
+ *   - erro SEM `retryAfterMs` → exponencial com jitter, exatamente como antes.
+ *
+ * O acesso ao campo é DEFENSIVO (`retryAfterMsFrom`, sobre `unknown`): o
+ * transporte pode ser um fake de teste ou uma versão do cliente que ainda não
+ * preenche o campo — ausência é o caminho exponencial, nunca uma exceção.
  *
  * Jitter: multiplica o atraso base por [1−j/2, 1+j/2] (`jitterRatio` 0..1,
  * default 0.5). Com `jitterRatio: 0` o atraso é determinístico — o caminho
@@ -38,7 +49,7 @@ export interface RetryPolicy {
   maxRetries: number;
   /** Atraso da primeira retentativa (ms); dobra a cada tentativa. */
   baseDelayMs: number;
-  /** Teto do atraso antes do jitter (ms). */
+  /** Teto do atraso antes do jitter (ms). Vale TAMBÉM para `Retry-After`. */
   maxDelayMs: number;
 }
 
@@ -73,6 +84,22 @@ export interface BackoffConfig {
 const DEFAULT_JITTER_RATIO = 0.5;
 const DEFAULT_RANDOM = Math.random;
 
+/**
+ * Lê `retryAfterMs` de um erro SEM depender do tipo — o campo é preenchido
+ * pelo cliente do OpenRouter a partir do header `Retry-After` de um 429/503.
+ *
+ * Defensivo de propósito: erro de fake de teste, erro de versão antiga do
+ * cliente e erro não-objeto passam por aqui e devolvem `undefined` (= caminho
+ * exponencial). Valores inválidos (NaN, Infinity, negativo, não-número) são
+ * DESCARTADOS: um header malformado nunca vira um `sleep(NaN)` silencioso.
+ */
+export function retryAfterMsFrom(error: unknown): number | undefined {
+  if (!error || typeof error !== 'object') return undefined;
+  const raw: unknown = (error as { retryAfterMs?: unknown }).retryAfterMs;
+  if (typeof raw !== 'number' || !Number.isFinite(raw) || raw < 0) return undefined;
+  return raw;
+}
+
 /** Política final de um código: defaults mesclados com os overrides. */
 export function policyFor(code: DeepSeekErrorCode, config: BackoffConfig = {}): RetryPolicy {
   const base = DEFAULT_BACKOFF_POLICIES[code];
@@ -91,17 +118,26 @@ export function maxRetriesFor(code: DeepSeekErrorCode, config: BackoffConfig = {
 }
 
 /**
- * Atraso da `attempt`-ésima retentativa (1 = primeira retentativa):
- * `min(maxDelayMs, baseDelayMs · 2^(attempt−1)) · jitter`. Cresce
- * exponencialmente e nunca estoura o teto.
+ * Atraso da `attempt`-ésima retentativa (1 = primeira retentativa).
+ *
+ * - COM `retryAfterMs` (o servidor disse quando voltar): `min(maxDelayMs,
+ *   retryAfterMs)`, determinístico — sem exponencial e sem jitter.
+ * - SEM `retryAfterMs`: `min(maxDelayMs, baseDelayMs · 2^(attempt−1)) ·
+ *   jitter`. Cresce exponencialmente e nunca estoura o teto.
  */
 export function backoffDelayMs(
   attempt: number,
   policy: RetryPolicy,
   config: Pick<BackoffConfig, 'jitterRatio' | 'random'> = {},
+  retryAfterMs?: number,
 ): number {
   if (!Number.isInteger(attempt) || attempt < 1) {
     throw new RangeError(`backoffDelayMs: attempt precisa ser inteiro ≥ 1 (recebido ${attempt}).`);
+  }
+  if (retryAfterMs !== undefined && Number.isFinite(retryAfterMs) && retryAfterMs >= 0) {
+    // O teto da política continua valendo: uma etapa não pode ser segurada
+    // por um `Retry-After` arbitrariamente longo (isso é a onda inteira).
+    return Math.floor(Math.min(policy.maxDelayMs, retryAfterMs));
   }
   const jitterRatio = config.jitterRatio ?? DEFAULT_JITTER_RATIO;
   const random = config.random ?? DEFAULT_RANDOM;
@@ -117,6 +153,8 @@ export interface RetryDecision {
   delayMs: number;
   /** Motivo legível (log/telemetria). */
   reason: string;
+  /** true = o atraso veio do header `Retry-After`, não do exponencial. */
+  honoredRetryAfter: boolean;
 }
 
 /**
@@ -124,11 +162,17 @@ export interface RetryDecision {
  * 1 (primeira falha). Retry acontece enquanto `attempt ≤ maxRetries` do
  * código. Códigos desconhecidos (fora do mapa do cliente) NÃO retentam —
  * fail-closed: não se classifica erro desconhecido como transitório.
+ *
+ * `retryAfterMs` (opcional) é o valor lido do erro por `retryAfterMsFrom`:
+ * presente ⇒ manda no atraso (limitado por `maxDelayMs`); ausente ⇒
+ * exponencial. Ele NÃO muda a decisão de retentar — só o QUANDO. Um código
+ * não-retentável que venha com `Retry-After` continua não retentando.
  */
 export function retryDecision(
   code: DeepSeekErrorCode,
   attempt: number,
   config: BackoffConfig = {},
+  retryAfterMs?: number,
 ): RetryDecision {
   const policy = policyFor(code, config);
   if (policy.maxRetries <= 0 || attempt > policy.maxRetries) {
@@ -136,11 +180,17 @@ export function retryDecision(
       policy.maxRetries <= 0
         ? `código ${code} nunca retenta`
         : `código ${code} esgotou o teto de ${policy.maxRetries} retentativas`;
-    return { retry: false, delayMs: 0, reason };
+    return { retry: false, delayMs: 0, reason, honoredRetryAfter: false };
   }
+  const honoredRetryAfter =
+    retryAfterMs !== undefined && Number.isFinite(retryAfterMs) && retryAfterMs >= 0;
+  const delayMs = backoffDelayMs(attempt, policy, config, retryAfterMs);
   return {
     retry: true,
-    delayMs: backoffDelayMs(attempt, policy, config),
-    reason: `retentativa ${attempt}/${policy.maxRetries} para ${code}`,
+    delayMs,
+    reason: honoredRetryAfter
+      ? `retentativa ${attempt}/${policy.maxRetries} para ${code} (Retry-After ${retryAfterMs}ms, teto ${policy.maxDelayMs}ms)`
+      : `retentativa ${attempt}/${policy.maxRetries} para ${code}`,
+    honoredRetryAfter,
   };
 }

@@ -11,7 +11,9 @@
  *      retentam; EMPTY_CONTENT retenta UMA vez; KEY_MISSING/KEY_INVALID/
  *      BAD_REQUEST NUNCA retentam. **429 é backoff, nunca fallback de
  *      provedor (A-P01-4, §11)** — existe UM cliente, injetado, e nenhum
- *      caminho alternativo.
+ *      caminho alternativo. Quando o erro traz `retryAfterMs` (header
+ *      `Retry-After` de um 429), o atraso é o do SERVIDOR, não o exponencial
+ *      — limitado pelo `maxDelayMs` da política (ver backoff.ts).
  *   3. TIMEOUT OBRIGATÓRIO por etapa (`req.timeoutMs`): uma etapa travada
  *      nunca segura a onda — o slot do semáforo é liberado no `finally` e a
  *      etapa travada é REJEITADA com erro estruturado (LLM_STAGE_TIMEOUT),
@@ -23,6 +25,13 @@
  *      etapa e expostos no retorno de cada chamada e via getStageUsage.
  *   6. LOG sempre sanitizado por `renderSanitizedBodyFragment` (importado do
  *      deepseekClient) — a chave de API NUNCA aparece em log nem em erro.
+ *
+ * MODELO E RACIOCÍNIO: o default de modelo é `OPENROUTER_MODEL.id`
+ * (`@shared/llm/constants` — contrato congelado do provedor). O esforço de
+ * raciocínio é opcional por etapa (`reasoningEffort`): quando o chamador não
+ * pede nada, o transporte NÃO envia o campo e o cliente aplica o máximo
+ * (`'max'`, mandatório neste modelo). Quem pedir um degrau abaixo é
+ * respeitado — e paga o preço na chave de cache (ver abaixo).
  *
  * API key: resolvida UMA vez por execução e memoizada (primeira chamada
  * resolve e cacheia; resolução vazia/que lançou vira KEY_MISSING
@@ -38,17 +47,22 @@
  * (grep gate do plano).
  */
 
-import { DEEPSEEK_MODEL } from '../../../../shared/piAgent/constants';
+import {
+  OPENROUTER_MAX_EFFORT,
+  OPENROUTER_MODEL,
+  type OpenRouterEffort,
+} from '@shared/llm/constants';
 import {
   DEEPSEEK_ERROR_CODES,
   DeepSeekError,
   type DeepSeekChatMessage,
+  type DeepSeekChatRequest,
   type DeepSeekChatResponse,
   type DeepSeekClient,
   type DeepSeekErrorCode,
   renderSanitizedBodyFragment,
 } from '../../services/deepseekClient';
-import { retryDecision, type BackoffConfig } from './backoff';
+import { retryAfterMsFrom, retryDecision, type BackoffConfig } from './backoff';
 import { cacheKeyFor, type CacheStore, type LlmCacheEntry } from './llmCache';
 import { createSemaphore, DEFAULT_LLM_CONCURRENCY, type Semaphore } from './semaphore';
 
@@ -112,9 +126,10 @@ export class LlmStageError extends Error {
  *   segurar a onda"); tempo DEADLINE da chamada, em ms.
  * Opcionais: `system` (prompt de sistema), `schema` (schema JSON serializado,
  * parte da chave), `params` (qualquer metadado de geração — entra na chave),
- * `modelId` (default: contrato DEEPSEEK_MODEL), `temperature` (default 0),
+ * `modelId` (default: contrato OPENROUTER_MODEL), `temperature` (default 0),
  * `maxTokens` (teto de saída informado ao provedor; o transporte nunca
- * trunca conteúdo).
+ * trunca conteúdo), `reasoningEffort` (default: nenhum campo enviado — o
+ * cliente aplica `'max'`).
  */
 export interface LlmCallRequest {
   prompt: string;
@@ -126,6 +141,12 @@ export interface LlmCallRequest {
   timeoutMs: number;
   temperature?: number;
   maxTokens?: number;
+  /**
+   * Esforço de raciocínio da chamada. Omitido = o campo NÃO vai no body e o
+   * cliente aplica o máximo (`OPENROUTER_MAX_EFFORT`). Qualquer valor entra
+   * na chave de cache — ver `keyInput` em `callLlm`.
+   */
+  reasoningEffort?: OpenRouterEffort;
 }
 
 /** Uso acumulado de UMA etapa (acumulado entre chamadas do mesmo transporte). */
@@ -184,6 +205,18 @@ export interface CallLlmDeps {
 }
 
 const defaultSleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
+
+/**
+ * A requisição que este transporte entrega ao cliente. `reasoningEffort` é o
+ * campo que `services/deepseekClient.ts` (reescrito para o OpenRouter na
+ * mesma onda) passa a aceitar em `DeepSeekChatRequest`. Declarar aqui a
+ * extensão é DELIBERADO: o transporte compila contra a versão do cliente que
+ * ainda não tem o campo E contra a que já tem (a redeclaração é idêntica, e
+ * um cliente antigo simplesmente ignora a propriedade extra).
+ */
+interface EngineChatRequest extends DeepSeekChatRequest {
+  reasoningEffort?: OpenRouterEffort;
+}
 
 // ─── fábrica do transporte ───────────────────────────────────────────────────
 
@@ -357,13 +390,22 @@ export function createCallLlm(deps: CallLlmDeps): EngineLlm {
     }
     resolvedKey = key;
 
-    const modelId = req.modelId ?? DEEPSEEK_MODEL.id;
+    const modelId = req.modelId ?? OPENROUTER_MODEL.id;
+
+    // O esforço EFETIVO da chamada: o que o chamador pediu ou, na ausência,
+    // o que o cliente vai aplicar (`'max'`). É esse valor — não `undefined` —
+    // que entra na chave: `reasoningEffort: 'max'` explícito e omissão
+    // produzem a MESMA requisição, logo o MESMO artefato.
+    const effectiveEffort: OpenRouterEffort = req.reasoningEffort ?? OPENROUTER_MAX_EFFORT;
 
     // Cache: chave = sha256(prompt + system + schema + params + model_id +
     // stage_version). O system é enviado ao provedor por buildMessages, logo
     // entra na chave — duas entradas com system diferente NÃO compartilham
-    // artefato. Parâmetros de geração (temperatura/maxTokens) entram via
-    // params: mesmo prompt com knobs diferentes NÃO compartilha artefato.
+    // artefato. Parâmetros de geração (temperatura/maxTokens/reasoningEffort)
+    // entram via params: mesmo prompt com knobs diferentes NÃO compartilha
+    // artefato. O effort é REPRODUTIBILIDADE, não otimização — dois runs com
+    // esforços diferentes pensam diferente e não podem colidir no mesmo
+    // arquivo de cache.
     const keyInput = {
       prompt: req.prompt,
       system: req.system,
@@ -372,6 +414,7 @@ export function createCallLlm(deps: CallLlmDeps): EngineLlm {
         ...(req.params ?? {}),
         temperature: req.temperature ?? 0,
         ...(req.maxTokens !== undefined ? { maxTokens: req.maxTokens } : {}),
+        reasoningEffort: effectiveEffort,
       },
       modelId,
       stageVersion: req.stageVersion,
@@ -414,14 +457,21 @@ export function createCallLlm(deps: CallLlmDeps): EngineLlm {
     let retried = 0;
     try {
       for (let attempt = 1; ; attempt += 1) {
+        // `reasoningEffort` só vai no body quando o chamador pediu — a
+        // ausência é o caminho do default do cliente (`'max'`), e mandar
+        // `undefined` explícito seria pedir ao cliente que adivinhasse.
+        const clientRequest: EngineChatRequest = {
+          messages: buildMessages(req),
+          temperature: req.temperature ?? 0,
+          ...(req.maxTokens !== undefined ? { maxTokens: req.maxTokens } : {}),
+          ...(req.reasoningEffort !== undefined
+            ? { reasoningEffort: req.reasoningEffort }
+            : {}),
+          model: modelId,
+          timeoutMs: req.timeoutMs,
+        };
         const outcome = await attemptWithDeadline(
-          deps.client.chatCompletion({
-            messages: buildMessages(req),
-            temperature: req.temperature ?? 0,
-            ...(req.maxTokens !== undefined ? { maxTokens: req.maxTokens } : {}),
-            model: modelId,
-            timeoutMs: req.timeoutMs,
-          }),
+          deps.client.chatCompletion(clientRequest),
           req.timeoutMs,
         );
 
@@ -452,7 +502,11 @@ export function createCallLlm(deps: CallLlmDeps): EngineLlm {
                 raw,
               );
             }
-            const decision = retryDecision(raw.code, attempt, backoff);
+            // `Retry-After` do 429 (o cliente o preenche em `retryAfterMs`).
+            // Leitura DEFENSIVA: fake de teste ou cliente sem o campo caem no
+            // exponencial de sempre, nunca numa exceção.
+            const retryAfterMs = retryAfterMsFrom(raw);
+            const decision = retryDecision(raw.code, attempt, backoff, retryAfterMs);
             log(
               sanitizePayload({
                 evento: decision.retry ? 'retry' : 'erro',
@@ -460,6 +514,8 @@ export function createCallLlm(deps: CallLlmDeps): EngineLlm {
                 code: raw.code,
                 tentativa: attempt,
                 motivo: decision.reason,
+                atrasoMs: decision.delayMs,
+                retryAfter: decision.honoredRetryAfter,
                 detalhe: raw.message,
               }),
             );

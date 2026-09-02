@@ -11,6 +11,17 @@
  *     jitter 0 para não flakear); KEY_INVALID e BAD_REQUEST NÃO retentam
  *     (uma chamada só — retry de chave inválida é vão; retry de bug de
  *     prompt só queima token).
+ *   - `Retry-After`: quando o 429 traz `retryAfterMs`, o atraso é o do
+ *     SERVIDOR (não o exponencial), limitado pelo `maxDelayMs` da política;
+ *     sem o campo, o exponencial de sempre. Um `Retry-After` gigante NÃO
+ *     pode segurar a onda — o teto continua valendo.
+ *   - modelo: o default da chamada é o contrato congelado do OpenRouter
+ *     (`z-ai/glm-5.3-flash`, literal aqui de propósito — teste que importa a
+ *     constante que ele deveria fixar não testa nada).
+ *   - reasoningEffort: omitido ⇒ o transporte NÃO manda o campo (o cliente
+ *     aplica `'max'`); pedido ⇒ repassado como veio. Efforts DIFERENTES têm
+ *     chave de cache diferente (reprodutibilidade: dois runs que pensam
+ *     diferente não podem colidir no mesmo artefato).
  *   - 429 NUNCA vira fallback de provedor (A-P01-4): existe UM cliente
  *     injetado e é o único a receber chamadas — não há segundo transporte.
  *   - cache: chave = entrada (prompt+system+schema+params+model+stage_version);
@@ -49,6 +60,40 @@ import {
 } from '../electron/main/services/deepseekClient';
 
 // ---------------------------------------------------------------------------
+// Contrato congelado do provedor — LITERAIS, não imports
+// ---------------------------------------------------------------------------
+
+/**
+ * O id do modelo é escrito à mão aqui de propósito. Importar
+ * `OPENROUTER_MODEL.id` faria o teste concordar consigo mesmo: se alguém
+ * trocar a constante, o teste passaria a fixar o valor NOVO em silêncio. O
+ * literal é a trava.
+ */
+const MODELO_CONTRATO = 'z-ai/glm-5.3-flash';
+
+/**
+ * Lê `reasoningEffort` da requisição entregue ao cliente sem depender do
+ * TIPO: o campo é adicionado a `DeepSeekChatRequest` pelo agente irmão
+ * (`onda1-transport`) na mesma onda, e este arquivo precisa compilar antes e
+ * depois do merge.
+ */
+function effortDe(req: DeepSeekChatRequest): string | undefined {
+  const valor = (req as unknown as { reasoningEffort?: unknown }).reasoningEffort;
+  return typeof valor === 'string' ? valor : undefined;
+}
+
+/**
+ * 429 com (ou sem) `Retry-After`. `retryAfterMs` é o campo que o cliente do
+ * OpenRouter preenche a partir do header; aqui ele é anexado à mão porque o
+ * TIPO `DeepSeekError` ainda pode não tê-lo — e o transporte o lê de forma
+ * defensiva justamente por isso.
+ */
+function erro429(retryAfterMs?: number): DeepSeekError {
+  const err = new DeepSeekError(DEEPSEEK_ERROR_CODES.RATE_LIMIT, 'quota excedida (HTTP 429)');
+  return retryAfterMs === undefined ? err : Object.assign(err, { retryAfterMs });
+}
+
+// ---------------------------------------------------------------------------
 // Fakes (PURAS — nenhum IO, nenhuma rede, nenhuma chave real)
 // ---------------------------------------------------------------------------
 
@@ -57,7 +102,7 @@ const SECRET = 'sk-1234567890abcdef0123456789abcdef';
 function okResponse(over: Partial<DeepSeekChatResponse> = {}): DeepSeekChatResponse {
   return {
     content: '{"ok":true}',
-    model: 'deepseek-v4-flash',
+    model: MODELO_CONTRATO,
     usage: { promptTokens: 10, completionTokens: 5 },
     ...over,
   };
@@ -216,6 +261,40 @@ describe('backoff — política POR código de erro', () => {
     assert.equal(fake.calls.length, 4);
   });
 
+  it('429 com Retry-After usa o atraso do HEADER, e o teto de maxDelayMs continua valendo', async () => {
+    const delays: number[] = [];
+    const { transport, fake } = setup({
+      backoff: {
+        jitterRatio: 0, // determinístico — o exponencial seria 10, 20, 40…
+        policies: { [DEEPSEEK_ERROR_CODES.RATE_LIMIT]: { baseDelayMs: 10, maxDelayMs: 1_000 } },
+      },
+      sleep: async (ms) => { delays.push(ms); },
+      respond: async (_req, callIndex) => {
+        if (callIndex === 0) throw erro429(250);    // servidor: volte em 250ms
+        if (callIndex === 1) throw erro429(99_000); // servidor: volte em 99s (absurdo)
+        if (callIndex === 2) throw erro429();       // sem header ⇒ exponencial
+        return okResponse();
+      },
+    });
+
+    const res = await transport.callLlm('etapa', baseReq({ timeoutMs: 10_000 }));
+
+    assert.equal(res.content, '{\"ok\":true}');
+    assert.equal(fake.calls.length, 4); // 1 tentativa + 3 retentativas
+    assert.deepEqual(
+      delays,
+      [
+        250,   // header manda: NÃO é o exponencial da 1ª retentativa (10)
+        1_000, // header absurdo é CORTADO pelo maxDelayMs — a onda não fica refém
+        40,    // sem header ⇒ exponencial da 3ª retentativa (10·2²)
+      ],
+      'Retry-After manda quando existe; teto sempre; exponencial quando não existe',
+    );
+    // A-P01-4 de novo: honrar Retry-After NÃO abre porta para fallback — as 4
+    // idas foram no MESMO cliente injetado.
+    assert.equal(fake.calls.length, 4);
+  });
+
   it('KEY_INVALID aborta sem retentar — uma chamada só, erro estruturado', async () => {
     const { transport, fake } = setup({
       respond: async () => {
@@ -358,6 +437,31 @@ describe('cache — artefato por entrada, invalidação só explícita', () => {
     assert.equal(trips, 2);
   });
 
+  it('reasoningEffort diferente tem chave diferente — dois runs que pensam diferente não colidem', async () => {
+    const cache = createInMemoryCacheStore();
+    let trips = 0;
+    const { transport } = setup({
+      cache,
+      respond: async () => {
+        trips += 1;
+        return okResponse({ content: `artefato-${trips}` });
+      },
+    });
+
+    // Sem pedir effort: o EFETIVO é o default do cliente ('max').
+    const padrao = await transport.callLlm('etapa', baseReq({ prompt: 'p' }));
+    // Effort MENOR: outra identidade de artefato — não pode reusar o de cima.
+    const baixo = await transport.callLlm('etapa', baseReq({ prompt: 'p', reasoningEffort: 'low' }));
+    // 'max' EXPLÍCITO é a mesma requisição do padrão ⇒ o MESMO artefato.
+    const maxExplicito = await transport.callLlm('etapa', baseReq({ prompt: 'p', reasoningEffort: 'max' }));
+
+    assert.equal(padrao.cached, false, 'primeira chamada sempre é miss');
+    assert.equal(baixo.cached, false, "effort 'low' ≠ 'max' ⇒ miss ⇒ nova ida ao provedor");
+    assert.equal(maxExplicito.cached, true, "'max' explícito == default ⇒ hit");
+    assert.equal(maxExplicito.content, 'artefato-1');
+    assert.equal(trips, 2, 'apenas os DOIS efforts distintos foram ao provedor');
+  });
+
   it('system faz parte da chave: MESMO prompt com system diferente não compartilha artefato', async () => {
     const cache = createInMemoryCacheStore();
     let trips = 0;
@@ -382,6 +486,36 @@ describe('cache — artefato por entrada, invalidação só explícita', () => {
     assert.equal(repete.cached, true, 'system iguais ⇒ UMA ida só (a segunda é hit)');
     assert.equal(repete.content, 'artefato-2');
     assert.equal(trips, 2);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// 4b. Modelo do contrato e esforço de raciocínio
+// ---------------------------------------------------------------------------
+
+describe('modelo e raciocínio — contrato congelado do OpenRouter', () => {
+  it('sem modelId, a chamada sai com z-ai/glm-5.3-flash; com modelId, a etapa manda', async () => {
+    const { transport, fake } = setup();
+
+    const res = await transport.callLlm('etapa', baseReq());
+    assert.equal(fake.calls[0].model, MODELO_CONTRATO, 'default de modelo saiu do contrato');
+    assert.equal(res.model, MODELO_CONTRATO, 'o modelo devolvido é o que o provedor reportou');
+
+    await transport.callLlm('etapa', baseReq({ modelId: 'z-ai/glm-5.3-flash:exacto' }));
+    assert.equal(fake.calls[1].model, 'z-ai/glm-5.3-flash:exacto', 'modelId da etapa é respeitado');
+  });
+
+  it('reasoningEffort: omitido NÃO vai no body (o cliente aplica max); pedido vai como veio', async () => {
+    const { transport, fake } = setup();
+
+    // Omitido: o transporte não inventa valor — quem aplica o default 'max' é
+    // o cliente. Mandar `undefined` explícito seria pedir adivinhação.
+    await transport.callLlm('etapa', baseReq());
+    assert.equal(effortDe(fake.calls[0]), undefined, 'sem pedido, nenhum campo de effort no body');
+
+    // Pedido: repassado intacto.
+    await transport.callLlm('etapa', baseReq({ prompt: 'outro', reasoningEffort: 'high' }));
+    assert.equal(effortDe(fake.calls[1]), 'high', 'effort pedido pela etapa é repassado ao cliente');
   });
 });
 
