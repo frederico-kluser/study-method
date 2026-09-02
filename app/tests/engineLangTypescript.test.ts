@@ -703,16 +703,24 @@ describe('typescript — a semente receptiva do harness', () => {
     }
   });
 
-  it('LIMITE DECLARADO: as duas chaves `form:` da semente ainda não têm emissor', () => {
-    // `engine/form/rules.ts` compila CINCO formas, todas de JavaScript;
-    // `docs/18` §"As formas novas que a bateria precisa registrar" exige
-    // CATORZE. Enquanto a bateria não crescer, `form:Parameter[type!=null]`
-    // está na semente mas ninguém a emite — e afirmar o contrário aqui seria
-    // fingir cobertura.
+  it('LIMITE FECHADO (onda 7): as duas chaves `form:` da semente TÊM emissor', () => {
+    // ERA um limite declarado: `engine/form/rules.ts` compilava CINCO formas,
+    // todas de JavaScript, e `form:Parameter[type!=null]` estava na semente sem
+    // que ninguém a emitisse — uma semente sem emissor perdoa o que nunca
+    // aparece. `docs/18` §"As formas novas que a bateria precisa registrar"
+    // exige CATORZE, e a bateria agora as tem (ver `engineForm.test.ts`, o par
+    // mínimo de cada uma). O harness mínimo desta trilha emite as duas: a
+    // semente passa a perdoar algo que de fato acontece.
     const r = extractAtoms(HARNESS, { fileName: 'harness.ts', dialect: 'ts' });
     assert.ok(r.ok);
-    assert.ok(!r.keys.includes('form:Parameter[type!=null]'));
-    assert.ok(!r.keys.includes('form:FunctionDeclaration[type!=null]'));
+    assert.ok(r.keys.includes('form:Parameter[type!=null]'), 'o harness tipa o parâmetro — a forma tem de sair');
+    assert.ok(r.keys.includes('form:FunctionDeclaration[type!=null]'), 'o harness tipa o retorno — a forma tem de sair');
+    // e as duas são perdoadas pela semente de TypeScript, não pela de JavaScript
+    const permitidoComoTs = new Set<string>([...harnessReceptiveSeed('typescript'), ...structuralAlwaysAllowed('typescript')]);
+    for (const chave of ['form:Parameter[type!=null]', 'form:FunctionDeclaration[type!=null]']) {
+      assert.ok(permitidoComoTs.has(chave), `${chave} tem de ser perdoada pela semente de TypeScript`);
+      assert.ok(!HARNESS_RECEPTIVE_SEED.includes(chave as never), `${chave} não pode entrar na semente de JavaScript`);
+    }
   });
 
   it('toda chave `node:` da semente EXISTE em vocab/atoms.json (nenhum artefato novo)', () => {

@@ -34,7 +34,12 @@ import {
   parseSelector,
   selectorMatches,
 } from '../electron/main/engine/form/selector';
-import { FORM_RULES, buildFormRules } from '../electron/main/engine/form/rules';
+import {
+  FORM_RULES,
+  JAVASCRIPT_FORM_DEFINITIONS,
+  TYPESCRIPT_FORM_DEFINITIONS,
+  buildFormRules,
+} from '../electron/main/engine/form/rules';
 import { auditTrack } from '../electron/main/engine/audit';
 import type { LoadedLesson, LoadedModule, LoadedTrack } from '../electron/main/content/trackLoader';
 import type { TrackChallengeSource, TrackTheorySection } from '../electron/main/content/trackTypes';
@@ -51,6 +56,13 @@ function keysOf(code: string): string[] {
 
 function formKeysOf(code: string): string[] {
   return keysOf(code).filter((k) => k.startsWith('form:'));
+}
+
+/** As chaves `form:` de um trecho lido como TYPESCRIPT (`ExtractOptions.dialect: 'ts'`). */
+function formKeysOfTs(code: string): string[] {
+  const r = extractAtoms(code, { fileName: 'trecho.ts', dialect: 'ts' });
+  assert.equal(r.ok, true, `extractAtoms(ts) falhou para:\n${code}\n${r.ok ? '' : r.error.message}`);
+  return (r.ok ? r.keys : []).filter((k) => k.startsWith('form:'));
 }
 
 function theory(id: string, markdown: string, code?: string): TrackTheorySection {
@@ -224,6 +236,270 @@ describe('form — método declarado em objeto literal', () => {
     assert.deepEqual(formKeysOf('class C { m() {} }'), []);
     // propriedade com função como valor é outra forma (PropertyAssignment), não esta.
     assert.ok(!formKeysOf('const o = { m: function () {} };').includes('form:ObjectLiteralExpression>MethodDeclaration'));
+  });
+});
+
+// ---------------------------------------------------------------------------
+// AS CATORZE FORMAS DE TYPESCRIPT (onda 7)
+//
+// Fonte NORMATIVA: `docs/18-trilha-typescript.md` §"As formas novas que a
+// bateria precisa registrar" — a tabela de lá é a lista FECHADA, e cada linha
+// vira aqui um PAR MÍNIMO: um trecho que CASA e um que NÃO casa. Um seletor que
+// casa tudo é pior que seletor nenhum: enche o orçamento de ruído e o aluno
+// nunca sabe qual aula devia ter ensinado a forma.
+// ---------------------------------------------------------------------------
+
+/** [chave sem o prefixo `form:`, trecho que CASA, trecho que NÃO casa, o que o par separa] */
+const PARES_TYPESCRIPT: ReadonlyArray<readonly [string, string, string, string]> = [
+  [
+    'VariableDeclaration[type!=null]',
+    'const a: number = 1;',
+    'const a = 1;',
+    'anotar a variável × deixar o tipo vir por inferência',
+  ],
+  [
+    'Parameter[type!=null]',
+    'function f(x: string) { return x; }',
+    'function f(x) { return x; }',
+    'anotar o parâmetro × parâmetro cru',
+  ],
+  [
+    'FunctionDeclaration[type!=null]',
+    'function f(): number { return 1; }',
+    'function f() { return 1; }',
+    'anotar o retorno × retorno inferido',
+  ],
+  [
+    'ArrowFunction[type!=null]',
+    'const g = (x: number): number => x;',
+    'const g = (x: number) => x;',
+    'arrow com retorno anotado × arrow sem anotação de retorno',
+  ],
+  [
+    'Parameter[questionToken!=null]',
+    'function f(x?: string) { return x; }',
+    'function f(x: string) { return x; }',
+    'parâmetro opcional × parâmetro obrigatório',
+  ],
+  [
+    'PropertySignature[questionToken!=null]',
+    'interface I { a?: string }',
+    'interface I { a: string }',
+    'propriedade opcional × propriedade obrigatória',
+  ],
+  [
+    'PropertyDeclaration[type!=null]',
+    'class A { x: number = 1; }',
+    'class A { x = 1; }',
+    'campo de classe anotado × campo sem anotação',
+  ],
+  [
+    'Parameter[modifiers!=null]',
+    'class A { constructor(private x: number) {} }',
+    'class A { constructor(x: number) {} }',
+    'parameter property (o parâmetro que vira campo) × parâmetro comum do construtor',
+  ],
+  [
+    'Parameter[dotDotDotToken!=null]',
+    'function f(...xs: number[]) { return xs; }',
+    'function f(xs: number[]) { return xs; }',
+    'rest tipado × um parâmetro de array',
+  ],
+  [
+    'FunctionDeclaration[body=null]',
+    'declare function f(a: string): void;',
+    'function f(a: string): void {}',
+    'assinatura de sobrecarga (sem corpo) × declaração com corpo',
+  ],
+  [
+    'TypeParameter[constraint!=null]',
+    'function id<T extends object>(x: T) { return x; }',
+    'function id<T>(x: T) { return x; }',
+    'genérico restringido × genérico livre',
+  ],
+  [
+    'TypeParameter[default!=null]',
+    'type B<T = string> = T;',
+    'type B<T> = T;',
+    'parâmetro de tipo com valor padrão × sem valor padrão',
+  ],
+  [
+    'IfStatement[expression=TypeOfExpression]',
+    'if (typeof x) { g(); }',
+    'if (x) { g(); }',
+    'condição que É um typeof × condição que é um identificador',
+  ],
+  [
+    'IfStatement[expression=BinaryExpression]',
+    "if (forma === 'circulo') { g(); }",
+    'if (forma) { g(); }',
+    'condição que é uma comparação × condição que é um identificador',
+  ],
+];
+
+describe('form — as catorze formas de TypeScript (docs/18)', () => {
+  it('a bateria registra EXATAMENTE as catorze chaves da tabela de docs/18', () => {
+    // A lista é FECHADA: nem uma a mais (ruído no orçamento), nem uma a menos
+    // (aula da trilha sem forma que a distinga).
+    assert.deepEqual(
+      TYPESCRIPT_FORM_DEFINITIONS.map((d) => `form:${d.selector}`),
+      PARES_TYPESCRIPT.map(([chave]) => `form:${chave}`),
+    );
+    assert.equal(TYPESCRIPT_FORM_DEFINITIONS.length, 14);
+    assert.equal(JAVASCRIPT_FORM_DEFINITIONS.length, 5);
+    assert.equal(FORM_RULES.length, 19, 'cinco de JavaScript (onda 1) + catorze de TypeScript (onda 7)');
+    // as dezenove chaves são distintas — duas regras com a mesma chave seriam
+    // emissão duplicada da MESMA forma, e o orçamento não saberia qual aula cobrar.
+    assert.equal(new Set(FORM_RULES.map((r) => r.key)).size, 19);
+  });
+
+  for (const [chave, casa, naoCasa, oQueSepara] of PARES_TYPESCRIPT) {
+    it(`form:${chave} — ${oQueSepara}`, () => {
+      assert.ok(
+        formKeysOfTs(casa).includes(`form:${chave}`),
+        `o lado que CASA não emitiu a forma:\n${casa}\nemitidas: ${formKeysOfTs(casa).join(' ') || '(nenhuma)'}`,
+      );
+      assert.ok(
+        !formKeysOfTs(naoCasa).includes(`form:${chave}`),
+        `o lado que NÃO casa emitiu a forma — seletor que casa tudo é pior que seletor nenhum:\n${naoCasa}`,
+      );
+    });
+  }
+
+  it('as duas chaves `form:` da semente receptiva do harness TypeScript TÊM emissor', () => {
+    // `TYPESCRIPT_TYPE_HARNESS_SEED` (atomKeys.ts) declara as duas; até a onda 7
+    // ninguém as emitia, e uma semente sem emissor perdoa o que nunca aparece.
+    const harness = 'export function saudar(nome: string): string {\n  return "Ola, " + nome;\n}\n';
+    const emitidas = formKeysOfTs(harness);
+    assert.ok(emitidas.includes('form:Parameter[type!=null]'));
+    assert.ok(emitidas.includes('form:FunctionDeclaration[type!=null]'));
+  });
+
+  it('DIVERGÊNCIA MEDIDA: `if (typeof x === "…")` NÃO casa a forma do typeof — casa a da igualdade', () => {
+    // `docs/18` dá `if (typeof x === 'string')` como par mínimo de
+    // `form:IfStatement[expression=TypeOfExpression]`. No AST, a condição desse
+    // trecho é o BinaryExpression do `===`, e o TypeOfExpression é o operando
+    // ESQUERDO dele — dois níveis abaixo do atributo `expression`. A DSL compara
+    // o atributo com o tipo do nó NAQUELA POSIÇÃO, sem caminho nem descendente
+    // (form/selector.ts §"SINTAXE MÍNIMA", item 3). A forma entra LITERAL, como
+    // o documento a escreve; este teste fixa o que ela de fato separa, para que
+    // a divergência não seja descoberta pela trilha em produção.
+    const emitidas = formKeysOfTs("if (typeof x === 'string') { g(); }");
+    assert.ok(!emitidas.includes('form:IfStatement[expression=TypeOfExpression]'));
+    assert.ok(emitidas.includes('form:IfStatement[expression=BinaryExpression]'));
+    // e o typeof "puro" continua sendo o único trecho que casa a primeira.
+    assert.ok(formKeysOfTs('if (typeof x) { g(); }').includes('form:IfStatement[expression=TypeOfExpression]'));
+  });
+});
+
+// ---------------------------------------------------------------------------
+// O GATE DE DIALETO — regra de TypeScript NUNCA é avaliada em código JavaScript
+// ---------------------------------------------------------------------------
+
+describe('form — o gate de dialeto (o placar de nodejs-do-zero não pode mudar)', () => {
+  it('toda regra declara seu(s) dialeto(s): as cinco de JS valem nos dois, as catorze de TS só em ts', () => {
+    const porChave = new Map(FORM_RULES.map((r) => [r.key, r]));
+    for (const def of JAVASCRIPT_FORM_DEFINITIONS) {
+      const regra = porChave.get(`form:${def.selector.replace(/\s+/g, '')}`);
+      assert.ok(regra, `regra de JavaScript sumiu da bateria: ${def.selector}`);
+      assert.deepEqual([...regra.dialects].sort(), ['js', 'ts'], `${regra.key} deixou de valer nos dois dialetos`);
+      assert.deepEqual([...regra.compiled.dialects].sort(), ['js', 'ts']);
+    }
+    for (const def of TYPESCRIPT_FORM_DEFINITIONS) {
+      const regra = porChave.get(`form:${def.selector}`);
+      assert.ok(regra, `regra de TypeScript sumiu da bateria: ${def.selector}`);
+      assert.deepEqual([...regra.dialects], ['ts'], `${regra.key} seria avaliada em código JavaScript`);
+      assert.deepEqual([...regra.compiled.dialects], ['ts']);
+    }
+  });
+
+  it('MEDIDO: as três formas de TS que casam JavaScript PURO não emitem nada em .mjs', () => {
+    // Estas três são a razão de o gate existir. Sem ele, `nodejs-do-zero`
+    // ganharia chaves `form:` que nenhuma aula da trilha de JavaScript declara.
+    const armadilhas: Array<[string, string]> = [
+      ['function f(...xs) { return xs; }', 'form:Parameter[dotDotDotToken!=null]'],
+      ["if (forma === 'circulo') { g(); }", 'form:IfStatement[expression=BinaryExpression]'],
+      ['if (typeof x) { g(); }', 'form:IfStatement[expression=TypeOfExpression]'],
+    ];
+    for (const [codigo, chave] of armadilhas) {
+      assert.ok(
+        !formKeysOf(codigo).includes(chave),
+        `${chave} vazou para o dialeto js em:\n${codigo}\nemitidas: ${formKeysOf(codigo).join(' ')}`,
+      );
+      // e a MESMA fonte, lida como TypeScript, emite — o gate é do dialeto, não do trecho.
+      assert.ok(formKeysOfTs(codigo).includes(chave), `${chave} deveria casar em ts: ${codigo}`);
+    }
+  });
+
+  it('NENHUMA chave form: nova aparece em código JavaScript — a bateria de JS é a mesma de antes', () => {
+    // O canário do placar, em teste: para um corpus de JavaScript idiomático, o
+    // conjunto de chaves form: emitidas é subconjunto estrito das CINCO da onda 1.
+    const cincoDeJs = new Set(JAVASCRIPT_FORM_DEFINITIONS.map((d) => `form:${d.selector.replace(/\s+/g, '')}`));
+    const corpusJs = [
+      'const f = function () {};',
+      'if (a) { usa(a); }',
+      'const dobra = (x) => x * 2;',
+      "function montar(nome, versao = '1.0.0') { return { nome, versao }; }",
+      'const api = { somar(a, b) { return a + b; } };',
+      'function media(...ns) { return ns.length; }',
+      "if (tipo === 'circulo') { area(); } else { outro(); }",
+      "if (typeof v === 'string') { usa(v); }",
+      'class C { constructor(x) { this.x = x; } m() { return this.x; } }',
+      'export function saudar(nome) { return `Ola, ${nome}`; }',
+    ];
+    for (const codigo of corpusJs) {
+      for (const chave of formKeysOf(codigo)) {
+        assert.ok(cincoDeJs.has(chave), `chave form: NOVA em código JavaScript: ${chave}\n${codigo}`);
+      }
+    }
+  });
+
+  it('as CINCO formas de JavaScript continuam valendo num arquivo .ts (a trilha TS pressupõe o axioma JS)', () => {
+    assert.ok(formKeysOfTs('const f = function () {};').includes('form:VariableDeclaration>FunctionExpression'));
+    assert.ok(formKeysOfTs('if (a) { usa(a); }').includes('form:IfStatement[alternate=null]'));
+    assert.ok(formKeysOfTs('const f = (x: number) => x + 1;').includes('form:ArrowFunction[body!=Block]'));
+    assert.ok(formKeysOfTs('function f(x = 1) { return x; }').includes('form:Parameter[initializer!=null]'));
+    assert.ok(formKeysOfTs('const api = { somar(a: number, b: number) { return a + b; } };').includes('form:ObjectLiteralExpression>MethodDeclaration'));
+  });
+
+  it('o dialeto NÃO entra na chave — a mesma forma tem a mesma chave onde quer que seja avaliada', () => {
+    const so_ts = parseSelector('Parameter[type!=null]', ['ts']);
+    const nos_dois = parseSelector('Parameter[type!=null]');
+    assert.equal(so_ts.canonical, nos_dois.canonical);
+    assert.equal(formKey(so_ts), formKey(nos_dois));
+    assert.equal(formKey(so_ts), 'form:Parameter[type!=null]');
+  });
+
+  it('selectorMatches é quem recusa — o gate mora no seletor, não no chamador', () => {
+    const soTs = parseSelector('Parameter[dotDotDotToken!=null]', ['ts']);
+    const acharParametro = (code: string, kind: ts.ScriptKind): ts.Node => {
+      const source = ts.createSourceFile(kind === ts.ScriptKind.TS ? 'x.ts' : 'x.mjs', code, ts.ScriptTarget.Latest, true, kind);
+      let achado: ts.Node | undefined;
+      const find = (n: ts.Node): void => {
+        if (!achado && ts.isParameter(n)) achado = n;
+        ts.forEachChild(n, find);
+      };
+      ts.forEachChild(source, find);
+      assert.ok(achado, 'a fixture precisa ter um Parameter');
+      return achado;
+    };
+    assert.equal(selectorMatches(soTs, acharParametro('function f(...xs: number[]) {}', ts.ScriptKind.TS)), true);
+    assert.equal(selectorMatches(soTs, acharParametro('function f(...xs) {}', ts.ScriptKind.JS)), false);
+    // o MESMO seletor sem restrição casa nos dois — a diferença é só a marcação.
+    const semRestricao = parseSelector('Parameter[dotDotDotToken!=null]');
+    assert.equal(selectorMatches(semRestricao, acharParametro('function f(...xs) {}', ts.ScriptKind.JS)), true);
+  });
+
+  it('dialeto inválido ou lista vazia é ERRO DE CARGA (A-P06-4), nunca silêncio', () => {
+    assert.throws(
+      () => parseSelector('Parameter[type!=null]', []),
+      (err: unknown) => err instanceof FormSelectorError && err.code === FORM_SELECTOR_INVALID,
+      'lista vazia de dialetos — uma regra que não vale em lugar nenhum',
+    );
+    assert.throws(
+      () => buildFormRules([{ selector: 'Parameter[type!=null]', description: 'x', dialects: ['python'] as never }]),
+      (err: unknown) => err instanceof FormSelectorError && err.code === FORM_SELECTOR_INVALID,
+    );
   });
 });
 

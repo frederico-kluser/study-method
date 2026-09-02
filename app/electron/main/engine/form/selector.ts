@@ -69,7 +69,30 @@
  * Uma tabela, um lugar: `extract.ts` a reexporta como `kindName`, este módulo
  * consome `kindNameOf`.
  *
- * Referência: `docs/16-engine-de-trilha.md` §3.1, I9/I11 e §5.3.
+ * ── O GATE DE DIALETO (onda 7, `docs/18-trilha-typescript.md`) ────────────────
+ *
+ * `docs/18` §"As formas novas que a bateria precisa registrar" acrescenta
+ * CATORZE formas de TypeScript à bateria. TRÊS delas casam JavaScript puro
+ * (`Parameter[dotDotDotToken!=null]` é `f(...xs)`;
+ * `IfStatement[expression=BinaryExpression]` é `if (a === 1)`;
+ * `IfStatement[expression=TypeOfExpression]` é `if (typeof x)`) — avaliá-las
+ * num arquivo `.mjs` emitiria chaves `form:` que a trilha de JavaScript não
+ * declara e MOVERIA o placar de `nodejs-do-zero`. Por isso um `CompiledSelector`
+ * carrega os DIALETOS em que pode ser avaliado (`js`, `ts` — o mesmo eixo de
+ * `ExtractOptions.dialect`, que é o que escolhe o `ScriptKind` do parse), e
+ * `selectorMatches` recusa o casamento fora deles.
+ *
+ * O gate mora AQUI, e não no laço de `extract.ts`, por duas razões: (a) o laço
+ * é `for (const rule of FORM_RULES) if (selectorMatches(...))` — uma única
+ * porta, impossível de contornar por engano; (b) o dialeto é propriedade do
+ * SELETOR, não do chamador, e uma regra que se auto-restringe não depende de
+ * ninguém lembrar de filtrar. O dialeto do nó sai do `ScriptKind` da
+ * `SourceFile` que o contém, e a chave emitida NÃO muda: o canônico continua
+ * sendo só os passos, então `form:Parameter[type!=null]` é a mesma chave que
+ * `docs/18` e a `TYPESCRIPT_TYPE_HARNESS_SEED` escrevem.
+ *
+ * Referência: `docs/16-engine-de-trilha.md` §3.1, I9/I11 e §5.3;
+ * `docs/18-trilha-typescript.md` §"As formas novas que a bateria precisa registrar".
  */
 
 import * as ts from 'typescript';
@@ -88,6 +111,22 @@ export class FormSelectorError extends Error {
     this.name = 'FormSelectorError';
   }
 }
+
+/**
+ * O DIALETO de fonte em que uma forma pode ser avaliada — exatamente os
+ * valores de `ExtractOptions.dialect`, que é o que decide o `ScriptKind` do
+ * `createSourceFile` no adaptador (`lang/javascript.ts:524`).
+ *
+ * `js` é o dialeto das trilhas de JavaScript (`nodejs-do-zero`,
+ * `programacao-do-zero`); `ts` é o da trilha de `docs/18`. A distinção é
+ * PEDAGÓGICA antes de ser técnica: `f(...xs)` é axioma de JavaScript e forma
+ * ENSINADA em TypeScript (aula `rest-tipado`), e a mesma construção não pode
+ * gastar orçamento nas duas.
+ */
+export type FormDialect = 'js' | 'ts';
+
+/** Os dialetos conhecidos — o default de toda forma que não se restringe. */
+export const ALL_FORM_DIALECTS: readonly FormDialect[] = ['js', 'ts'] as const;
 
 /** Operador de comparação de atributo: `=` ou `!=`. */
 export type AttributeOp = 'eq' | 'ne';
@@ -116,6 +155,13 @@ export interface CompiledSelector {
   canonical: string;
   /** o seletor exatamente como foi escrito (para mensagem/diagnóstico). */
   source: string;
+  /**
+   * Os dialetos em que este seletor pode casar. NÃO entra no `canonical` (e
+   * portanto NÃO entra na chave `form:`): a mesma forma tem a mesma chave
+   * onde quer que ela seja avaliada — o que o dialeto decide é ONDE ela é
+   * avaliada, não como ela se chama.
+   */
+  dialects: readonly FormDialect[];
 }
 
 /**
@@ -228,17 +274,46 @@ function parseFilter(tokens: string[], index: number): { filter: AttributeFilter
   };
 }
 
+/** Valida a lista de dialetos NA CARGA — lista vazia ou nome desconhecido é erro. */
+function normalizeDialects(source: string, dialects: readonly FormDialect[]): readonly FormDialect[] {
+  if (!Array.isArray(dialects) || dialects.length === 0) {
+    throw new FormSelectorError(
+      `a forma "${source}" declarou uma lista VAZIA de dialetos — uma regra que não vale em lugar nenhum é ruído, não restrição`,
+    );
+  }
+  const seen: FormDialect[] = [];
+  for (const d of dialects) {
+    if (d !== 'js' && d !== 'ts') {
+      throw new FormSelectorError(
+        `a forma "${source}" declarou o dialeto "${String(d)}", que não existe — só "js" e "ts" (os valores de ExtractOptions.dialect)`,
+      );
+    }
+    if (!seen.includes(d)) seen.push(d);
+  }
+  return seen;
+}
+
 /**
  * Parseia a string de seletor e a COMPILA em passos casáveis contra o AST.
  *
  * LANÇA `FormSelectorError` (código `FORM_SELECTOR_INVALID`) para qualquer
  * desvio de sintaxe — inclusive nome de nó ou valor que não existem no
- * TypeScript. Um erro aqui é da CARGA da regra; nunca pode virar silêncio.
+ * TypeScript, ou dialeto declarado que não existe. Um erro aqui é da CARGA da
+ * regra; nunca pode virar silêncio.
+ *
+ * `dialects` default = os DOIS (`js` e `ts`): uma forma que não se restringe
+ * vale em toda fonte — é o que preserva, byte a byte, o comportamento das
+ * cinco formas de JavaScript da onda 1 (que valem também num arquivo `.ts`,
+ * porque a trilha de TypeScript PRESSUPÕE o axioma de JavaScript).
  */
-export function parseSelector(source: string): CompiledSelector {
+export function parseSelector(
+  source: string,
+  dialects: readonly FormDialect[] = ALL_FORM_DIALECTS,
+): CompiledSelector {
   if (typeof source !== 'string' || source.trim().length === 0) {
     throw new FormSelectorError('seletor vazio — uma forma de uso precisa nomear um tipo de nó (ex.: IfStatement[alternate=null])');
   }
+  const dialetos = normalizeDialects(source, dialects);
 
   const tokens = tokenize(source);
   const steps: SelectorStep[] = [];
@@ -277,6 +352,7 @@ export function parseSelector(source: string): CompiledSelector {
     steps,
     canonical: canonicalOf(steps),
     source,
+    dialects: dialetos,
   };
 }
 
@@ -323,9 +399,46 @@ function stepMatches(node: ts.Node | undefined, step: SelectorStep): boolean {
   return true;
 }
 
+/** A `SourceFile` que contém o nó — sobe pelos pais (o extrator usa `setParentNodes`). */
+function sourceFileOf(node: ts.Node): ts.SourceFile | undefined {
+  let cur: ts.Node | undefined = node;
+  while (cur && cur.kind !== ts.SyntaxKind.SourceFile) cur = cur.parent;
+  return cur as ts.SourceFile | undefined;
+}
+
+/**
+ * O dialeto do nó, lido do `ScriptKind` da `SourceFile` que o contém.
+ *
+ * `scriptKind` não está na superfície pública do TypeScript (o mesmo caso de
+ * `parseDiagnostics`, cujo cast já mora em `lang/javascript.ts:527`) — mas é
+ * SEMPRE preenchido por `createSourceFile`, seja pelo argumento explícito do
+ * adaptador (`options.dialect === 'ts' ? ScriptKind.TS : ScriptKind.JS`), seja
+ * pela inferência a partir do nome do arquivo quando o argumento é omitido.
+ *
+ * REDE DE SEGURANÇA: sem `ScriptKind` reconhecível o dialeto é `js` — o mesmo
+ * default de `ExtractOptions.dialect`. Errar para o lado do JavaScript deixa
+ * uma forma de TypeScript de fora (nada acontece); errar para o lado do
+ * TypeScript emitiria chave nova em trilha de JavaScript e moveria o placar.
+ */
+export function dialectOfNode(node: ts.Node): FormDialect {
+  const sf = sourceFileOf(node);
+  if (!sf) return 'js';
+  const kind = (sf as unknown as { scriptKind?: ts.ScriptKind }).scriptKind;
+  if (kind === ts.ScriptKind.TS || kind === ts.ScriptKind.TSX) return 'ts';
+  return 'js';
+}
+
 /**
  * Casa o seletor contra um nó: o SUJEITO da forma é o nó passado, e cada passo
  * à esquerda na cadeia `A > B > C` casa o PAI do passo seguinte (`C`, `B`, `A`).
+ *
+ * Depois de casar a ESTRUTURA, casa o DIALETO: uma forma restrita a `ts` não
+ * casa num nó de arquivo JavaScript, ainda que a estrutura seja idêntica
+ * (`f(...xs)` existe nas duas linguagens; `form:Parameter[dotDotDotToken!=null]`
+ * é conteúdo de aula só na trilha de TypeScript). A ordem importa: o cheque de
+ * dialeto sobe a cadeia de pais até a `SourceFile` e só é pago quando a forma
+ * REALMENTE casou — e nem isso, quando o seletor vale nos dois dialetos, que é
+ * o caso das cinco formas de JavaScript da onda 1.
  */
 export function selectorMatches(selector: CompiledSelector, node: ts.Node): boolean {
   let cur: ts.Node | undefined = node;
@@ -333,7 +446,8 @@ export function selectorMatches(selector: CompiledSelector, node: ts.Node): bool
     if (!stepMatches(cur, selector.steps[i])) return false;
     cur = cur.parent;
   }
-  return true;
+  if (selector.dialects.length >= ALL_FORM_DIALECTS.length) return true; // vale nos dois: nada a checar
+  return selector.dialects.includes(dialectOfNode(node));
 }
 
 /**
