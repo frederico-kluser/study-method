@@ -135,7 +135,7 @@ function expectedRegisteredChannels(): string[] {
     STUDY_CHANNELS.JUDGE_ANSWER,
     // pi (3 invoke — STREAM_EVENT é emit-only)
     ...Object.values(PI_CHANNELS).filter((ch) => ch !== PI_CHANNELS.STREAM_EVENT),
-    // track (10 invoke — fonte: buildTrackStubHandlers)
+    // track (12 invoke — fonte: buildTrackStubHandlers)
     TRACK_CHANNELS.LIST,
     TRACK_CHANNELS.GET,
     TRACK_CHANNELS.LESSON,
@@ -146,6 +146,11 @@ function expectedRegisteredChannels(): string[] {
     TRACK_CHANNELS.CHALLENGE_REGENERATE,
     TRACK_CHANNELS.PROFICIENCY_GET,
     TRACK_CHANNELS.PROFICIENCY_SUBMIT,
+    // onda9-cache-reconcilia: reconciliação banco ↔ disco. No modo E2E o
+    // stub responde o VAZIO LEGÍTIMO (a Home chama os dois na montagem — sem
+    // handler, o invoke rejeitaria com "no handler registered").
+    TRACK_CHANNELS.ORPHANS,
+    TRACK_CHANNELS.PURGE_ORPHANS,
     // localAi (8 invoke — DOWNLOAD_PROGRESS é push)
     ...Object.values(LOCAL_AI_CHANNELS).filter(
       (ch) => ch !== LOCAL_AI_CHANNELS.DOWNLOAD_PROGRESS,

@@ -723,6 +723,19 @@ export function buildTrackStubHandlers(): Map<string, IpcHandlerFn> {
     ok: false,
     error: { code: 'REGEN_UNAVAILABLE', message: 'regeneração desativada no modo E2E (sem LLM).' },
   }));
+  // onda9-cache-reconcilia: no modo E2E o banco é in-memory e a trilha é a
+  // fixture — nunca há resquício. Os canais existem (o renderer os chama na
+  // montagem da Home) e respondem o VAZIO LEGÍTIMO, nunca "no handler".
+  map.set(TRACK_CHANNELS.ORPHANS, async () => ({
+    ok: true as const,
+    orphans: [],
+    installedSlugs: ['nodejs-do-zero'],
+  }));
+  map.set(TRACK_CHANNELS.PURGE_ORPHANS, async () => ({
+    ok: true as const,
+    removed: [],
+    skipped: [],
+  }));
   return map;
 }
 

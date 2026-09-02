@@ -57,6 +57,9 @@ import type {
   TrackLessonDoneResult,
   TrackLessonResult,
   TrackListResult,
+  TrackOrphansResult,
+  TrackPurgeOrphansRequest,
+  TrackPurgeOrphansResult,
   TrackRegenerateProgressEvent,
   TrackRegenerateRequest,
   TrackRegenerateResult,
@@ -272,6 +275,12 @@ export interface ApiSchema {
     onChallengeRegenerateProgress(cb: (ev: TrackRegenerateProgressEvent) => void): () => void;
     proficiency(input: TrackChallengeGetRequest): Promise<TrackChallengeResult>;
     proficiencySubmit(input: TrackSubmitRequest & { stars?: number }): Promise<TrackSubmitResult>;
+    /** ADITIVO (onda9-cache-reconcilia): resquícios — estado persistido de
+     *  trilhas que NÃO estão mais no disco. Só leitura. */
+    orphans(): Promise<TrackOrphansResult>;
+    /** ADITIVO (onda9-cache-reconcilia): remove os resquícios (todos, ou os
+     *  slugs pedidos). Nunca toca em trilha instalada; idempotente. */
+    purgeOrphans(input?: TrackPurgeOrphansRequest): Promise<TrackPurgeOrphansResult>;
   };
   /** Onda 8 (voz local): STT — envelope { success, data?, error? }. */
   stt: {

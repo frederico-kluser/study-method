@@ -317,6 +317,19 @@ export const TRACK_CHANNELS = {
   PROFICIENCY_GET: 'track:proficiency',
   /** Executa o código do aluno contra o teste de proficiência. */
   PROFICIENCY_SUBMIT: 'track:proficiency-submit',
+  /**
+   * ADITIVO (onda9-cache-reconcilia): RECONCILIAÇÃO banco ↔ disco. Lista o
+   * estado persistido cujo slug NÃO tem trilha instalada e NÃO tem aulas
+   * próprias no banco — o resquício de um curso apagado. Só LÊ. → TrackOrphansResult
+   */
+  ORPHANS: 'track:orphans',
+  /**
+   * ADITIVO (onda9-cache-reconcilia): remove o estado ÓRFÃO (todo, ou os slugs
+   * pedidos). Nunca toca em estado de trilha INSTALADA: o handler recalcula a
+   * lista de órfãos e ignora qualquer slug que não esteja nela.
+   * → TrackPurgeOrphansResult
+   */
+  PURGE_ORPHANS: 'track:purge-orphans',
 } as const;
 
 export type TrackVerdict = 'passed' | 'failed' | 'timeout' | 'abandoned';
@@ -337,6 +350,54 @@ export interface TrackListEntry {
 
 export type TrackListResult =
   | { ok: true; tracks: TrackListEntry[] }
+  | { ok: false; error: string };
+
+/**
+ * ADITIVO (onda9-cache-reconcilia): UM resquício — estado do aluno preso a um
+ * slug que NÃO tem trilha instalada no disco e NÃO tem aulas próprias no banco
+ * (nada para abrir: todo clique nele seria link morto).
+ */
+export interface TrackOrphanEntry {
+  /** o slug órfão (o mesmo que a trilha tinha antes de ser apagada). */
+  slug: string;
+  /** nome da matéria persistida (o rótulo que o aluno via); null sem matéria. */
+  subjectName: string | null;
+  /** domínio da matéria; null quando só existe progresso, sem matéria. */
+  domain: 'programming' | 'math' | null;
+  /** tentativas de desafio guardadas. */
+  attemptCount: number;
+  /** aulas da trilha marcadas como concluídas. */
+  lessonsDoneCount: number;
+  /** o aluno passou no teste de proficiência desta trilha. */
+  hasProficiency: boolean;
+  /** desafios REGENERADOS (nunca-repetir) guardados. */
+  generatedChallengeCount: number;
+  /** total de linhas que a remoção apagaria (o "o quê" antes do remover). */
+  rowCount: number;
+}
+
+export type TrackOrphansResult =
+  | {
+      ok: true;
+      orphans: TrackOrphanEntry[];
+      /** slugs das trilhas REALMENTE instaladas (a verdade do disco). */
+      installedSlugs: string[];
+    }
+  | { ok: false; error: string };
+
+/** Pedido de remoção: sem `slugs`, remove TODOS os órfãos. */
+export interface TrackPurgeOrphansRequest {
+  slugs?: string[];
+}
+
+export type TrackPurgeOrphansResult =
+  | {
+      ok: true;
+      /** o que foi de fato removido (vazio = nada órfão — idempotente). */
+      removed: TrackOrphanEntry[];
+      /** slugs pedidos que NÃO eram órfãos e foram, por isso, ignorados. */
+      skipped: string[];
+    }
   | { ok: false; error: string };
 
 /** Aula resumida dentro do detalhe da trilha (track:get). */

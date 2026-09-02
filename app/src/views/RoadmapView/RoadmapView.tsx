@@ -262,6 +262,12 @@ export function RoadmapView(props: ViewProps): ReactElement {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [selected, setSelected] = useState<string | null>(null);
   const [tracks, setTracks] = useState<Array<{ slug: string; title: string; doneCount: number; lessonCount: number }> | null>(null);
+  // ONDA9 (cache-reconcilia): "nenhuma trilha instalada" é um estado LEGÍTIMO,
+  // não um erro. Antes ele era enfiado no `loadError` e saía como <Alert
+  // severity="warning"> com botão de "Tentar de novo" — o app se acusando de
+  // quebrado por uma pasta vazia, que é exatamente o estado normal depois de
+  // "apaga e regera". Agora tem estado próprio e sai como informação.
+  const [noTracks, setNoTracks] = useState(false);
 
   const loadTrack = useCallback((trackSlug: string): void => {
     setLoading(true);
@@ -304,6 +310,7 @@ export function RoadmapView(props: ViewProps): ReactElement {
     // finally limpa nos DOIS caminhos (ok e erro).
     setLoading(true);
     setLoadError(null);
+    setNoTracks(false);
     let cancelled = false;
     withTimeout(getApi().track.list(), IPC_TIMEOUT_MS, 'track.list')
       .then((res) => {
@@ -318,7 +325,9 @@ export function RoadmapView(props: ViewProps): ReactElement {
         if (res.tracks.length > 0) {
           setTracks(res.tracks.map((x) => ({ slug: x.slug, title: x.title, doneCount: x.doneCount, lessonCount: x.lessonCount })));
         } else {
-          setLoadError(t('translation:roadmap.noTracks'));
+          // ONDA9: vazio LEGÍTIMO — informação, não erro (ver `noTracks`).
+          setTracks([]);
+          setNoTracks(true);
         }
       })
       .catch((err: unknown) => {
@@ -449,6 +458,16 @@ export function RoadmapView(props: ViewProps): ReactElement {
           eterno. W3 (falsy-proof): só `null` significa "sem erro". */}
       {selected !== null && !track && loadError === null ? <LinearProgress /> : null}
       {selected === null && loading && loadError === null ? <LinearProgress /> : null}
+      {/* ONDA9 (cache-reconcilia): pasta de trilhas vazia — estado legítimo e
+          legível (info + como criar a primeira), NUNCA um alerta de erro. */}
+      {noTracks && loadError === null && selected === null ? (
+        <Box sx={{ mt: 1 }} data-testid="roadmap-no-tracks">
+          <Alert severity="info">{t('translation:roadmap.noTracks')}</Alert>
+          <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1 }}>
+            {t('translation:roadmap.noTracksHint')}
+          </Typography>
+        </Box>
+      ) : null}
       {loadError !== null ? (
         <Box sx={{ mt: 1 }}>
           <Alert severity="warning">{loadError}</Alert>

@@ -47,7 +47,25 @@
     "clearProgressBusy": "Limpando…",
     "clearProgressDone": "Dados de avanço apagados.",
     "clearProgressError": "Não foi possível limpar os dados de avanço.",
-    "clearProgressTimeout": "O app não respondeu a tempo. Tente novamente."
+    "clearProgressTimeout": "O app não respondeu a tempo. Tente novamente.",
+    "orphansTitle": "Cursos não instalados",
+    "orphansDescription": "Progresso guardado de trilhas que não estão mais em resources/tracks. Ele não aparece no Início para não virar link morto, mas continua aqui: reinstale a trilha com o mesmo slug e o progresso volta sozinho.",
+    "orphansEmpty": "Nada órfão — todo o progresso guardado tem trilha instalada ou aula própria.",
+    "orphansLoadFailed": "Não foi possível verificar os resquícios.",
+    "orphansTimeout": "A verificação não respondeu a tempo. Tente novamente.",
+    "orphansRowCount": "{{n}} linha(s) no banco",
+    "orphansAttempts": "{{n}} tentativa(s) de desafio",
+    "orphansLessonsDone": "{{n}} aula(s) concluída(s)",
+    "orphansGenerated": "{{n}} desafio(s) regenerado(s)",
+    "orphansProficiency": "proficiência aprovada",
+    "orphansRemove": "Remover resquícios",
+    "orphansConfirmTitle": "Remover o progresso destes cursos?",
+    "orphansConfirmDescription": "Isto apaga PERMANENTEMENTE o progresso listado abaixo. Não dá para desfazer. Se você pretende reinstalar a trilha com o mesmo slug, cancele: o progresso volta sozinho quando ela reaparecer.",
+    "orphansConfirmAction": "Remover",
+    "orphansBusy": "Removendo…",
+    "orphansDone": "Resquícios removidos.",
+    "orphansRemoveFailed": "Não foi possível remover os resquícios.",
+    "orphansCliHint": "Pelo terminal: npm run track -- track:reset-orphans (lista) e --yes (remove)."
   },
   "keys": {
     "openrouter": {
@@ -398,7 +416,11 @@
     "tracksDescription": "Cursos prontos, do zero ao profissional. Escolha uma trilha e comece.",
     "tracksLoadFailed": "Não foi possível carregar as trilhas.",
     "tracksTimeout": "As trilhas não responderam a tempo. Tente novamente.",
-    "trackProgress": "{{done}}/{{total}}"
+    "trackProgress": "{{done}}/{{total}}",
+    "tracksEmptyTitle": "Nenhuma trilha instalada",
+    "tracksEmptyDescription": "Este app não gera trilha sozinho: o conteúdo vive em resources/tracks e é criado pelo CLI de autoria (npm run track -- track:new). Enquanto não houver trilha instalada, esta seção fica assim mesmo — não é erro.",
+    "orphansAction": "Ver em Configurações",
+    "orphansNotice": "Cursos do seu histórico que não estão instalados: {{n}}. O progresso está guardado — nada foi apagado."
   },
   "tutorial": {
     "progress": {
@@ -645,7 +667,8 @@
     "moduleChallengeTried": "Tentado",
     "listFailed": "Não foi possível carregar a lista de trilhas.",
     "backButton": "Voltar",
-    "lessonDoneGlowAria": "Aula concluída: {{title}}"
+    "lessonDoneGlowAria": "Aula concluída: {{title}}",
+    "noTracksHint": "Crie a primeira com o CLI de autoria: npm run track -- track:new <slug> --title \"…\" --description \"…\""
   },
   "challengeGen": {
     "title": "Gerando novo desafio",

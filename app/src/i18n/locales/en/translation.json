@@ -47,7 +47,25 @@
     "clearProgressBusy": "Clearing…",
     "clearProgressDone": "Progress data cleared.",
     "clearProgressError": "Could not clear progress data.",
-    "clearProgressTimeout": "The app did not respond in time. Try again."
+    "clearProgressTimeout": "The app did not respond in time. Try again.",
+    "orphansTitle": "Courses not installed",
+    "orphansDescription": "Progress kept for tracks that are no longer in resources/tracks. It is hidden from Home so it cannot become a dead link, but it stays here: reinstall the track under the same slug and the progress comes back on its own.",
+    "orphansEmpty": "Nothing orphaned — every stored progress has an installed track or lessons of its own.",
+    "orphansLoadFailed": "Could not check for leftovers.",
+    "orphansTimeout": "The check did not respond in time. Try again.",
+    "orphansRowCount": "{{n}} row(s) in the database",
+    "orphansAttempts": "{{n}} challenge attempt(s)",
+    "orphansLessonsDone": "{{n}} completed lesson(s)",
+    "orphansGenerated": "{{n}} regenerated challenge(s)",
+    "orphansProficiency": "proficiency passed",
+    "orphansRemove": "Remove leftovers",
+    "orphansConfirmTitle": "Remove the progress of these courses?",
+    "orphansConfirmDescription": "This PERMANENTLY erases the progress listed below. It cannot be undone. If you plan to reinstall the track under the same slug, cancel: the progress comes back on its own once it reappears.",
+    "orphansConfirmAction": "Remove",
+    "orphansBusy": "Removing…",
+    "orphansDone": "Leftovers removed.",
+    "orphansRemoveFailed": "Could not remove the leftovers.",
+    "orphansCliHint": "From the terminal: npm run track -- track:reset-orphans (list) and --yes (remove)."
   },
   "keys": {
     "openrouter": {
@@ -398,7 +416,11 @@
     "tracksDescription": "Ready-made courses, from zero to professional. Pick a track and start.",
     "tracksLoadFailed": "Could not load the tracks.",
     "tracksTimeout": "The tracks did not respond in time. Try again.",
-    "trackProgress": "{{done}}/{{total}}"
+    "trackProgress": "{{done}}/{{total}}",
+    "tracksEmptyTitle": "No tracks installed",
+    "tracksEmptyDescription": "This app does not author tracks on its own: content lives in resources/tracks and is created by the authoring CLI (npm run track -- track:new). Until a track is installed this section stays like this — it is not an error.",
+    "orphansAction": "See in Settings",
+    "orphansNotice": "Courses from your history that are not installed: {{n}}. Your progress is kept — nothing was deleted."
   },
   "tutorial": {
     "progress": {
@@ -645,7 +667,8 @@
     "moduleChallengeTried": "Tried",
     "listFailed": "Could not load the track list.",
     "backButton": "Back",
-    "lessonDoneGlowAria": "Completed lesson: {{title}}"
+    "lessonDoneGlowAria": "Completed lesson: {{title}}",
+    "noTracksHint": "Create the first one with the authoring CLI: npm run track -- track:new <slug> --title \"…\" --description \"…\""
   },
   "challengeGen": {
     "title": "Generating new challenge",

@@ -153,3 +153,50 @@ export function shouldWarnOnSubjectSwitch(
   if (active === '' || clicked === '') return false;
   return active !== clicked;
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * ONDA9 (cache-reconcilia) — o disco manda: nem fantasma, nem erro no vazio
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+/**
+ * Estado da seção Trilhas da Home. O caso que faltava era o `empty`: com zero
+ * trilhas instaladas a seção sumia inteira (`return null`), e sumir se parece
+ * com quebrado. Agora VAZIO é um estado LEGÍTIMO e nomeado, distinto de
+ * `error` (falha real do canal) e de `loading` (resposta ainda não chegou).
+ */
+export type HomeTracksState = 'loading' | 'error' | 'empty' | 'list';
+
+export function homeTracksState(
+  tracks: readonly unknown[] | null | undefined,
+  error: string | null,
+): HomeTracksState {
+  // `''` é erro VÁLIDO (canal devolveu erro sem texto): só `null` é "sem erro".
+  if (error !== null && error !== undefined) return 'error';
+  if (tracks === null || tracks === undefined) return 'loading';
+  return tracks.length === 0 ? 'empty' : 'list';
+}
+
+/**
+ * Separa as matérias persistidas entre as ALCANÇÁVEIS e os RESQUÍCIOS.
+ *
+ * `orphanSlugs` vem do main (`track:orphans` → `db/reconcile.ts`), que já
+ * confrontou o banco com o disco. A view NÃO reimplementa a regra: ela só
+ * aplica o veredito. Enquanto a reconciliação não respondeu (lista `null` —
+ * canal em voo, ou indisponível) NADA é escondido: esconder por falta de
+ * resposta seria trocar um fantasma por um sumiço, e sumiço é pior (o aluno
+ * não saberia que existe).
+ */
+export function splitSubjectsByOrphanSlug(
+  topics: SubjectSummary[] | null | undefined,
+  orphanSlugs: readonly string[] | null | undefined,
+): { visible: SubjectSummary[]; orphaned: SubjectSummary[] } {
+  const all = topics ?? [];
+  if (!orphanSlugs || orphanSlugs.length === 0) return { visible: all, orphaned: [] };
+  const orphan = new Set(orphanSlugs.map((s) => s.trim()));
+  const visible: SubjectSummary[] = [];
+  const orphaned: SubjectSummary[] = [];
+  for (const subject of all) {
+    (orphan.has(subject.slug.trim()) ? orphaned : visible).push(subject);
+  }
+  return { visible, orphaned };
+}

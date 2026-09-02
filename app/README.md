@@ -24,6 +24,43 @@ manual do usuário + arquitetura técnica + mapa de contratos — vive em
 > não existem mais. Os testes não dependem mais de nenhuma delas: quem precisa de uma trilha usa
 > as fixtures em `tests/fixtures/tracks/`.
 
+## Trilha apagada e progresso órfão (reconciliação)
+
+O CONTEÚDO das trilhas vive em `app/resources/tracks/<slug>/` (disco); o PROGRESSO do aluno vive
+no SQLite em `~/.config/study-method-gui/study.db` (Linux; `userData` do Electron). O ciclo normal
+deste projeto é **"apaga e regera"** — a materialização (F12) se recusa a sobrescrever destino
+existente — então apagar/renomear/substituir trilha é rotina, não exceção.
+
+**A regra:** quem manda sobre EXISTÊNCIA é o disco. Um slug com progresso guardado e sem trilha
+instalada (e sem aulas próprias no banco) é um **resquício**: ele não aparece mais no Início (todo
+clique nele seria link morto), mas **nada é apagado automaticamente**. Se a trilha voltar com o
+mesmo slug, o progresso volta com ela, sozinho. Enquanto ela não voltar, o resquício é reportado:
+
+- um aviso discreto no **Início** ("N curso(s) do seu histórico não estão instalados — o progresso
+  está guardado");
+- a seção **Configurações → Cursos não instalados**, que lista item a item o que existe e permite
+  removê-lo com confirmação (o diálogo repete a lista ANTES de apagar);
+- **zero trilhas instaladas é um estado legítimo**, escrito na tela ("Nenhuma trilha instalada") —
+  nem erro, nem lista fantasma, tanto no Início quanto na aba Trilha.
+
+**Pelo terminal** (o mesmo veredito, a mesma regra):
+
+```bash
+# lista o que está órfão — DRY-RUN, não escreve nada
+npm run track -- track:reset-orphans
+
+# remove de verdade (feche o app antes: com ele aberto, o banco em memória
+# sobrescreveria a limpeza ao fechar)
+npm run track -- track:reset-orphans --yes
+
+# inspecionar/limpar outro banco (testes, cópia de segurança)
+npm run track -- track:reset-orphans --db /caminho/para/study.db
+```
+
+O comando é **idempotente** (rodar de novo reporta "nada órfão" e sai 0), **nunca toca em progresso
+de trilha instalada**, e **não cria** o banco se ele não existir. A regra de "o que é órfão" vive num
+único lugar (`electron/main/db/reconcile.ts`) e é usada pelos dois caminhos — CLI e app.
+
 ## Como rodar
 
 **Atalho (da raiz do repositório):** `./install.sh` instala tudo (skill + `npm ci` aqui + cria

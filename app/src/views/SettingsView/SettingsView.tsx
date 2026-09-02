@@ -13,6 +13,7 @@ import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
 import { KeysPanel } from './KeysPanel';
 import { LocalAiPanel } from './LocalAiPanel';
+import { OrphanTracksPanel } from './OrphanTracksPanel';
 import { ProgressPanel } from './ProgressPanel';
 
 export default function SettingsView(): ReactElement {
@@ -47,6 +48,14 @@ export default function SettingsView(): ReactElement {
               </Typography>
               <LocalAiPanel />
             </section>
+
+            <Divider />
+
+            {/* ONDA9 (cache-reconcilia): RESQUÍCIOS — progresso guardado de
+                trilhas que não estão mais no disco. Some do Início (para não
+                virar link morto) mas nunca evapora: aqui ele é listado item a
+                item e só sai com confirmação explícita do dono. */}
+            <OrphanTracksPanel />
 
             <Divider />
 

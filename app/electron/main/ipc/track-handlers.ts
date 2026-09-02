@@ -22,6 +22,10 @@ import type {
   TrackLessonDoneResult,
   TrackLessonResult,
   TrackListResult,
+  TrackOrphanEntry,
+  TrackOrphansResult,
+  TrackPurgeOrphansRequest,
+  TrackPurgeOrphansResult,
   TrackRegenerateRequest,
   TrackRegenerateResult,
   TrackSubmitRequest,
@@ -35,9 +39,15 @@ import { safeHandleMap, type IpcMainHandleLike, type IpcHandlerFn } from './safe
 import {
   LoadedTrack,
   TrackLoadError,
+  listTrackSlugs,
   loadAllTracks,
   loadTrack,
 } from '../content/trackLoader';
+import {
+  computeOrphanState,
+  type OrphanTrackState,
+  type TrackScopedState,
+} from '../db/reconcile';
 import { findLessonAnywhere } from '../content/trackLoader';
 import { defaultAdapter } from '../engine/lang/registry';
 import {
@@ -74,6 +84,14 @@ export interface TrackRepoLike extends TrackProgressLike {
     expectedTestCount: number;
   }): Promise<void>;
   listFailedChallengeSlugs(trackSlug: string, lessonId: string): Promise<string[]>;
+  /**
+   * ADITIVO (onda9-cache-reconcilia). OPCIONAIS de propósito: os fakes de
+   * teste e os stubs E2E que já implementam TrackRepoLike continuam válidos
+   * sem estes dois — a ausência degrada para "não sei reconciliar" (erro
+   * estruturado), nunca para "nada órfão" (que seria uma mentira tranquila).
+   */
+  listTrackScopedState?(): Promise<TrackScopedState[]>;
+  purgeTrackScopedState?(slug: string): Promise<TrackScopedState | null>;
   getAttemptsForChallenge(challengeId: string): Promise<{
     id: string;
     subjectId: string;
@@ -146,6 +164,88 @@ export function buildTrackHandlers(deps: TrackHandlerDeps): Map<string, IpcHandl
     } catch (err) {
       return { ok: false, error: `falha ao listar trilhas: ${String(err)}` };
     }
+  });
+
+  // ─── track:orphans / track:purge-orphans (onda9-cache-reconcilia) ─────────
+  //
+  // A RECONCILIAÇÃO. `listTrackSlugs` é a verdade do disco (dirs com
+  // track.json); `repo.listTrackScopedState()` é a verdade do banco;
+  // `computeOrphanState` (puro) cruza as duas. Resquício NÃO é apagado aqui —
+  // este canal só CONTA o que sobrou, e é o que a Home usa para não exibir
+  // fantasma e o painel das Configurações para mostrar o que será removido
+  // ANTES de remover.
+  //
+  // Diretório inexistente/ilegível: `listTrackSlugs` levanta ENOENT. Nesse
+  // caso NÃO devolvemos "zero instaladas" (o que declararia TODO o progresso
+  // do aluno órfão por um erro de I/O) — devolvemos erro estruturado.
+  // FAIL-CLOSED: sem certeza sobre o disco, nada é declarado órfão.
+  const dtoFromOrphan = (o: OrphanTrackState): TrackOrphanEntry => ({
+    slug: o.slug,
+    subjectName: o.subjectName,
+    domain: o.domain,
+    attemptCount: o.attemptCount,
+    lessonsDoneCount: o.lessonsDoneCount,
+    hasProficiency: o.hasProficiency,
+    generatedChallengeCount: o.generatedChallengeCount,
+    rowCount: o.rowCount,
+  });
+
+  async function reconcile(): Promise<
+    { installed: string[]; orphans: OrphanTrackState[] } | { error: string }
+  > {
+    if (!repo) return { error: 'persistência indisponível.' };
+    if (!repo.listTrackScopedState) {
+      return { error: 'reconciliação indisponível nesta build (repo sem listTrackScopedState).' };
+    }
+    let installed: string[];
+    try {
+      installed = await listTrackSlugs(tracksDir());
+    } catch (err) {
+      return { error: `não foi possível ler as trilhas instaladas: ${String(err)}` };
+    }
+    try {
+      const rows = await repo.listTrackScopedState();
+      return { installed, orphans: computeOrphanState(installed, rows) };
+    } catch (err) {
+      return { error: `falha ao ler o estado persistido: ${String(err)}` };
+    }
+  }
+
+  map.set(TRACK_CHANNELS.ORPHANS, async (): Promise<TrackOrphansResult> => {
+    const res = await reconcile();
+    if ('error' in res) return { ok: false, error: res.error };
+    return { ok: true, orphans: res.orphans.map(dtoFromOrphan), installedSlugs: res.installed };
+  });
+
+  map.set(TRACK_CHANNELS.PURGE_ORPHANS, async (_event, payload: unknown): Promise<TrackPurgeOrphansResult> => {
+    const p = (payload ?? {}) as TrackPurgeOrphansRequest;
+    const res = await reconcile();
+    if ('error' in res) return { ok: false, error: res.error };
+    if (!repo?.purgeTrackScopedState) {
+      return { ok: false, error: 'remoção indisponível nesta build (repo sem purgeTrackScopedState).' };
+    }
+    // Sem `slugs` → todos os órfãos. Com `slugs` → SOMENTE os que a
+    // reconciliação acabou de provar órfãos; o resto vai para `skipped`.
+    // É esta interseção que garante o requisito "nunca tocar em progresso de
+    // trilha que EXISTE" mesmo com um payload IPC mentiroso.
+    const requested = Array.isArray(p.slugs)
+      ? p.slugs.filter((s): s is string => typeof s === 'string' && s.trim() !== '').map((s) => s.trim())
+      : null;
+    const orphanBySlug = new Map(res.orphans.map((o) => [o.slug, o]));
+    const targets = requested === null ? res.orphans : requested.map((s) => orphanBySlug.get(s)).filter((o): o is OrphanTrackState => o !== undefined);
+    const skipped = requested === null ? [] : requested.filter((s) => !orphanBySlug.has(s));
+
+    const removed: TrackOrphanEntry[] = [];
+    for (const target of targets) {
+      try {
+        const gone = await repo.purgeTrackScopedState(target.slug);
+        // null = já não havia nada (idempotente) — não conta como removido.
+        if (gone) removed.push(dtoFromOrphan(target));
+      } catch (err) {
+        return { ok: false, error: `falha ao remover '${target.slug}': ${String(err)}` };
+      }
+    }
+    return { ok: true, removed, skipped };
   });
 
   // ─── track:get ─────────────────────────────────────────────────────────────

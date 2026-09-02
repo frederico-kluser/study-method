@@ -67,7 +67,9 @@ import {
   homeDomainSections,
   homeSetupStatus,
   homeSuggestedSubjects,
+  homeTracksState,
   shouldWarnOnSubjectSwitch,
+  splitSubjectsByOrphanSlug,
   subjectProgressCounts,
   type HomeDomain,
   type HomeSuggestionLabelKey,
@@ -393,9 +395,15 @@ function TracksSection({
 
   useEffect(() => loadTracks(), [loadTracks]);
 
+  // ONDA9 (cache-reconcilia): o estado da seção é NOMEADO por uma função pura
+  // (homeTracksState) — 'loading' | 'error' | 'empty' | 'list'. O que mudou é
+  // o 'empty': antes a seção inteira sumia (`return null`) quando não havia
+  // trilha instalada, e sumir se parece com quebrado. Agora VAZIO é um estado
+  // legítimo, escrito na tela, e distinto do erro.
+  const state = homeTracksState(tracks, tracksError);
+
   // Falha/ausência de resposta → erro VISÍVEL com ação (nunca sumir em silêncio).
-  // W3 (falsy-proof): só `null` significa "sem erro" — '' é erro válido.
-  if (tracksError !== null) {
+  if (state === 'error') {
     return (
       <Box>
         <Alert severity="error">{tracksError}</Alert>
@@ -406,8 +414,32 @@ function TracksSection({
     );
   }
 
-  // null = ainda carregando (nada mostra); [] = sem trilhas instaladas.
-  if (tracks === null || tracks.length === 0) return null;
+  // Resposta ainda não chegou: nada a mostrar (o CTA acima já ocupa a tela).
+  // O `|| tracks === null` é o ESTREITAMENTO para o tsc (o estado 'loading' já
+  // cobre esse caso em runtime, mas o compilador não deriva isso da função).
+  if (state === 'loading' || tracks === null) return null;
+
+  // VAZIO LEGÍTIMO: nenhuma trilha instalada. Nem erro, nem lista fantasma —
+  // uma explicação do que o app é (o conteúdo vem do CLI de autoria).
+  if (state === 'empty' || tracks.length === 0) {
+    return (
+      <Box>
+        <Typography variant="subtitle1" sx={{ fontWeight: 600 }} gutterBottom>
+          {t('translation:home.tracksTitle')}
+        </Typography>
+        <Card variant="outlined" data-testid="home-tracks-empty">
+          <CardContent>
+            <Typography variant="subtitle2" sx={{ fontWeight: 600 }} gutterBottom>
+              {t('translation:home.tracksEmptyTitle')}
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              {t('translation:home.tracksEmptyDescription')}
+            </Typography>
+          </CardContent>
+        </Card>
+      </Box>
+    );
+  }
 
   return (
     <Box>
@@ -460,6 +492,11 @@ export function HomeView(props: ViewProps): ReactElement {
   // Matérias PERSISTIDAS (onda 4): null = carregando → onboarding (chips) até a
   // resposta; [] = vazio/erro → onboarding EXATAMENTE como hoje.
   const [topics, setTopics] = useState<SubjectSummary[] | null>(null);
+  // ONDA9 (cache-reconcilia): slugs cujo estado persistido NÃO tem trilha no
+  // disco nem aula própria no banco — o resquício de um curso apagado. `null`
+  // enquanto a reconciliação não respondeu: nesse intervalo NADA é escondido
+  // (esconder por falta de resposta trocaria fantasma por sumiço).
+  const [orphanSlugList, setOrphanSlugList] = useState<string[] | null>(null);
   // Escolha aguardando confirmação do diálogo de troca de matéria (null = fechado).
   const [pendingPick, setPendingPick] = useState<SubjectPick | null>(null);
   const navigate = props.onNavigate ?? (() => {});
@@ -506,6 +543,25 @@ export function HomeView(props: ViewProps): ReactElement {
     };
   }, []);
 
+  // ONDA9 (cache-reconcilia): pergunta ao main o que está órfão. Falha, canal
+  // mudo ou build sem o canal → `[]` (nada escondido) — a reconciliação NUNCA
+  // pode ser a razão de a Home ficar vazia.
+  useEffect(() => {
+    let cancelled = false;
+    Promise.resolve()
+      .then(() => withTimeout(getApi().track.orphans(), IPC_TIMEOUT_MS, 'track.orphans'))
+      .then((res) => {
+        if (cancelled) return;
+        setOrphanSlugList(res.ok ? res.orphans.map((o) => o.slug) : []);
+      })
+      .catch(() => {
+        if (!cancelled) setOrphanSlugList([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   const ready = homeSetupStatus(keyStatus) === 'ready';
 
   const primaryAction = (): void => {
@@ -533,7 +589,15 @@ export function HomeView(props: ViewProps): ReactElement {
     commitPick(pick);
   };
 
-  const hasSubjects = topics !== null && topics.length > 0;
+  // ONDA9: o veredito do main aplicado à lista. `visible` são as matérias
+  // ALCANÇÁVEIS (têm aula própria no banco ou trilha instalada); `orphaned` é
+  // o resquício — ele NÃO vira cartão (seria link morto), mas também não some
+  // calado: rende um aviso com caminho para as Configurações.
+  const { visible: visibleTopics } = splitSubjectsByOrphanSlug(topics, orphanSlugList);
+  // Resquício SEM matéria persistida (só progresso de trilha) não aparece em
+  // `orphanedTopics` — por isso o contador vem do main, não da subtração.
+  const orphanCount = orphanSlugList?.length ?? 0;
+  const hasSubjects = topics !== null && visibleTopics.length > 0;
 
   return (
     <Container maxWidth="md" sx={{ py: 2 }}>
@@ -573,10 +637,27 @@ export function HomeView(props: ViewProps): ReactElement {
           navigate('roadmap');
         }} tI={tI} />
 
+        {/* ONDA9 (cache-reconcilia): o resquício some do caminho do aluno, mas
+            NUNCA em silêncio — o aviso diz quantos são, garante que nada foi
+            apagado e aponta para onde removê-los de propósito. */}
+        {orphanCount > 0 ? (
+          <Alert
+            severity="info"
+            data-testid="home-orphans-notice"
+            action={
+              <Button color="inherit" size="small" onClick={() => navigate('settings')}>
+                {t('translation:home.orphansAction')}
+              </Button>
+            }
+          >
+            {tI('home.orphansNotice', { n: orphanCount })}
+          </Alert>
+        ) : null}
+
         {/* Onda 4: matérias escolhidas por domínio OU onboarding (chips). */}
         {hasSubjects ? (
           <Box>
-            <SubjectSections topics={topics} onPick={handlePick} tI={tI} />
+            <SubjectSections topics={visibleTopics} onPick={handlePick} tI={tI} />
           </Box>
         ) : (
           <Box>

@@ -18,6 +18,9 @@
  *   track:challenge:context <slug> <moduleSlug> <lessonSlug> <challengeSlug> (validação SEMÂNTICA via LLM — exige OPENROUTER_API_KEY)
  *   track:validate <slug>          — valida a trilha inteira (loader completo)
  *   track:list                     — lista as trilhas disponíveis
+ *   track:reset-orphans [--db <path>] [--yes]  — RECONCILIAÇÃO: lista o progresso
+ *                                    guardado de trilhas que não existem mais no
+ *                                    disco e (com --yes) remove esse resquício
  *
  * O scaffold já nasce VÁLIDO (o loader do app é o mesmo que o CLI usa para
  * validar). Desafios scaffoldados têm código TODO — o autor preenche
@@ -33,7 +36,8 @@
  * não verificado). É a porta de AUDITORIA do fluxo de autoria.
  */
 
-import { promises as fs } from 'node:fs';
+import { existsSync, promises as fs } from 'node:fs';
+import * as os from 'node:os';
 import * as path from 'node:path';
 import {
   challengePairFromSource,
@@ -73,6 +77,17 @@ import {
   type ContextValidatorLlm,
 } from '../electron/main/services/challengeContextValidator';
 import { createLlmClient } from '../electron/main/services/llmClient';
+// onda9-cache-reconcilia: a limpeza do resquício reusa a MESMA reconciliação
+// que o app (db/reconcile.ts) e a MESMA camada de dados (db/repo.ts) — não há
+// uma segunda regra de "o que é órfão" vivendo no CLI.
+import { openMigratedSqlite } from '../electron/main/db/connection';
+import { createLessonRepo } from '../electron/main/db/repo';
+import {
+  STUDY_DB_FILENAME,
+  computeOrphanState,
+  formatOrphanReport,
+  resolveUserDataDir,
+} from '../electron/main/db/reconcile';
 import { OPENROUTER_ENV_KEY } from '../shared/llm/constants';
 
 // ─── raiz do conteúdo ────────────────────────────────────────────────────────
@@ -91,7 +106,8 @@ comandos:
   track:challenge:verify <slug> <moduleSlug> <lessonSlug> <challengeSlug>
   track:challenge:context <slug> <moduleSlug> <lessonSlug> <challengeSlug>   (validação semântica do desafio contra o contexto ensinado — exige OPENROUTER_API_KEY)
   track:validate <slug>
-  track:list`;
+  track:list
+  track:reset-orphans [--db <path>] [--yes]   (lista o progresso órfão — de trilha que não está mais no disco — e só remove com --yes)`;
 
 function fail(msg: string): never {
   console.error(`erro: ${msg}`);
@@ -602,11 +618,78 @@ async function cmdList(): Promise<void> {
   }
 }
 
+// ─── track:reset-orphans (onda9-cache-reconcilia) ────────────────────────────
+
+/**
+ * Caminho do banco do aluno que o comando vai inspecionar: `--db <path>` quando
+ * dado, senão o MESMO `userData/study.db` que o Electron abre (resolveUserDataDir
+ * replica a regra do Electron sem importar electron — o CLI roda no Node puro).
+ */
+export function resolveStudyDbPath(flags: Record<string, string>): string {
+  if (flags.db) return path.resolve(flags.db);
+  const dir = resolveUserDataDir({
+    platform: process.platform,
+    env: process.env,
+    home: os.homedir(),
+    // `app.getName()` do Electron = `name` do package.json (não há productName).
+    appName: 'study-method-gui',
+    join: path.join,
+  });
+  return path.join(dir, STUDY_DB_FILENAME);
+}
+
+/**
+ * LIMPEZA EXPLÍCITA do resquício: lista o que está órfão e só remove com
+ * `--yes`. Sem a flag é DRY-RUN — o dono vê exatamente o que sairia antes de
+ * qualquer escrita. Idempotente: rodar de novo depois do `--yes` reporta
+ * "nada órfão" e sai 0.
+ *
+ * NUNCA toca em progresso de trilha INSTALADA: os alvos vêm de
+ * `computeOrphanState`, que já excluiu todo slug com trilha no disco (e todo
+ * slug com aulas próprias no banco, do fluxo livre de geração de aula).
+ */
+async function cmdResetOrphans(flags: Record<string, string>, bools: Set<string>): Promise<void> {
+  const dbPath = resolveStudyDbPath(flags);
+  if (!existsSync(dbPath)) {
+    // Não CRIAR o banco: um comando de limpeza que fabrica o arquivo que veio
+    // limpar seria uma surpresa desagradável (e mascararia um --db errado).
+    console.log(`banco não encontrado: ${dbPath}`);
+    console.log('nada a fazer (o app ainda não guardou nada aqui).');
+    return;
+  }
+  const installed = await listTrackSlugs(TRACKS_DIR);
+  const conn = await openMigratedSqlite(dbPath);
+  try {
+    const repo = createLessonRepo(() => conn.db);
+    const orphans = computeOrphanState(installed, await repo.listTrackScopedState());
+    for (const line of formatOrphanReport(orphans, { dbPath, installedSlugs: installed })) {
+      console.log(line);
+    }
+    if (orphans.length === 0) return;
+    if (!bools.has('yes')) {
+      console.log('');
+      console.log('DRY-RUN: nada foi removido.');
+      console.log('para remover de verdade:  npm run track -- track:reset-orphans --yes');
+      console.log('(feche o app antes — com ele aberto, o banco em memória sobrescreveria a limpeza)');
+      return;
+    }
+    console.log('');
+    for (const orphan of orphans) {
+      const gone = await repo.purgeTrackScopedState(orphan.slug);
+      console.log(`removido: ${orphan.slug} (${gone ? orphan.rowCount : 0} linha(s))`);
+    }
+    console.log('');
+    console.log('pronto. rode de novo para conferir (deve reportar "nada órfão").');
+  } finally {
+    conn.close();
+  }
+}
+
 // ─── main ────────────────────────────────────────────────────────────────────
 
 async function main(): Promise<void> {
   const argv = process.argv.slice(2);
-  const { pos, flags } = parseArgs(argv);
+  const { pos, flags, bools } = parseArgs(argv);
   const [cmd, ...rest] = pos;
   if (!cmd || cmd === '--help' || cmd === '-h') {
     console.log(USAGE);
@@ -643,6 +726,9 @@ async function main(): Promise<void> {
       break;
     case 'track:list':
       await cmdList();
+      break;
+    case 'track:reset-orphans':
+      await cmdResetOrphans(flags, bools);
       break;
     default:
       fail(`comando desconhecido: ${cmd}`);

@@ -32,7 +32,13 @@
  * EXISTS` é idempotente diante das duas fontes.
  */
 import { randomUUID } from 'node:crypto';
-import type { SqliteDbLike } from './connection';
+import type { SqliteDbLike, SqliteStmtLike } from './connection';
+// onda9-cache-reconcilia: o SHAPE do estado por slug é do módulo PURO de
+// reconciliação (db/reconcile.ts) — a repo só o materializa em SQL. Re-export
+// para quem consome a repo não precisar importar dos dois lugares.
+import type { TrackScopedState } from './reconcile';
+
+export type { TrackScopedState } from './reconcile';
 
 /** Factory de conexão injetável (DI): quem chama decide como abrir o sqlite
  * (caminho de usuário do app, `:memory:`, etc.). NUNCA importa Electron.
@@ -298,6 +304,24 @@ export interface LessonRepo {
    * ou nada.
    */
   clearAllProgress(): Promise<void>;
+  // ─── onda9-cache-reconcilia: reconciliação banco ↔ disco ────────────────
+  /**
+   * TODO estado do aluno agrupado por SLUG — a matéria (`subjects`) mais as
+   * linhas das tabelas de trilha (`track_progress`, `track_proficiency`,
+   * `generated_challenges`) e as tentativas da matéria. É a fotografia que
+   * `db/reconcile.ts` confronta com as trilhas do disco: o que sobra sem
+   * trilha instalada E sem aulas próprias é ÓRFÃO.
+   */
+  listTrackScopedState(): Promise<TrackScopedState[]>;
+  /**
+   * Apaga TODO o estado de UM slug (matéria + tentativas dela + progresso de
+   * trilha + proficiência + desafios regenerados). Transacional e IDEMPOTENTE:
+   * slug inexistente é no-op que devolve null. NÃO tem gate de órfão aqui de
+   * propósito — quem decide o que é órfão é `computeOrphanState`, e o chamador
+   * (handler/CLI) só passa slugs que ele já provou órfãos; a repo continua
+   * sendo uma camada de dados burra e testável.
+   */
+  purgeTrackScopedState(slug: string): Promise<TrackScopedState | null>;
 }
 
 /**
@@ -504,6 +528,62 @@ export function createLessonRepo(open: OpenFn): LessonRepo {
       .prepare('SELECT id FROM challenges WHERE lesson_id = ?')
       .get(lessonId) as unknown as { id: string } | undefined;
     return row ? row.id : null;
+  };
+
+  /**
+   * onda9-cache-reconcilia: fotografia SÍNCRONA do estado por slug (a base da
+   * reconciliação). Vive fora do objeto devolvido porque DOIS métodos a usam
+   * (`listTrackScopedState` e `purgeTrackScopedState`, que precisa do "antes"
+   * para relatar o que apagou) — chamar um método do próprio objeto via `this`
+   * amarraria a repo ao seu binding.
+   */
+  const trackScopedState = (): TrackScopedState[] => {
+    // UNION dos slugs que existem em QUALQUER lugar do banco: a matéria
+    // (subjects.slug) e as três tabelas keyed por track_slug. Uma trilha
+    // apagada pode ter deixado progresso SEM matéria (o upsertSubject só
+    // acontece quando o aluno TENTA um desafio) — sem o UNION esse estado
+    // ficaria invisível para a reconciliação e nunca poderia ser limpo.
+    const slugs = db
+      .prepare(
+        `SELECT slug FROM subjects
+         UNION SELECT track_slug AS slug FROM track_progress
+         UNION SELECT track_slug AS slug FROM track_proficiency
+         UNION SELECT track_slug AS slug FROM generated_challenges
+         ORDER BY slug`,
+      )
+      .all() as unknown as Array<{ slug: string }>;
+
+    const subjectStmt = db.prepare(
+      `SELECT s.id AS id, s.name AS name, s.domain AS domain,
+              (SELECT COUNT(*) FROM lessons l WHERE l.subject_id = s.id) AS lessonCount,
+              (SELECT COUNT(*) FROM challenge_attempts a WHERE a.subject_id = s.id) AS attemptCount
+       FROM subjects s WHERE s.slug = ?`,
+    );
+    const doneStmt = db.prepare('SELECT COUNT(*) AS n FROM track_progress WHERE track_slug = ?');
+    const profStmt = db.prepare('SELECT COUNT(*) AS n FROM track_proficiency WHERE track_slug = ?');
+    const genStmt = db.prepare('SELECT COUNT(*) AS n FROM generated_challenges WHERE track_slug = ?');
+    const count = (stmt: SqliteStmtLike, slug: string): number => {
+      const row = stmt.get(slug) as { n?: number } | undefined;
+      return Number(row?.n ?? 0);
+    };
+
+    return slugs.map(({ slug }) => {
+      const subject = subjectStmt.get(slug) as
+        | { id: string; name: string; domain: string; lessonCount: number; attemptCount: number }
+        | undefined;
+      const row: TrackScopedState = {
+        slug,
+        subjectId: subject?.id ?? null,
+        subjectName: subject?.name ?? null,
+        domain: subject ? (subject.domain === 'math' ? 'math' : 'programming') : null,
+        hasOwnLessons: Number(subject?.lessonCount ?? 0) > 0,
+        attemptCount: Number(subject?.attemptCount ?? 0),
+        lessonsDoneCount: count(doneStmt, slug),
+        hasProficiency: count(profStmt, slug) > 0,
+        generatedChallengeCount: count(genStmt, slug),
+      };
+      return row;
+    });
   };
 
   return {
@@ -1046,6 +1126,37 @@ export function createLessonRepo(open: OpenFn): LessonRepo {
         db.exec('UPDATE lessons SET completed_at = NULL');
         db.exec('UPDATE challenge_hints SET used_at = NULL');
       });
+    },
+
+    // ─── onda9-cache-reconcilia: reconciliação banco ↔ disco ────────────────
+
+    async listTrackScopedState() {
+      return trackScopedState();
+    },
+
+    async purgeTrackScopedState(slug) {
+      const before = trackScopedState().find((row) => row.slug === slug);
+      // IDEMPOTENTE: nada com esse slug → no-op silencioso (null). Rodar o
+      // comando de limpeza duas vezes não é erro.
+      if (!before) return null;
+      withTransaction(db, () => {
+        // As tabelas keyed por track_slug saem direto.
+        db.prepare('DELETE FROM track_progress WHERE track_slug = ?').run(slug);
+        db.prepare('DELETE FROM track_proficiency WHERE track_slug = ?').run(slug);
+        db.prepare('DELETE FROM generated_challenges WHERE track_slug = ?').run(slug);
+        // A matéria só sai DEPOIS do que a referencia (FK subject_id é
+        // enforced em runtime — PRAGMA foreign_keys = ON em connection.ts).
+        // `lessons`/`progress` não são tocados: um slug com lessons próprias
+        // NUNCA é órfão (db/reconcile.ts), então nunca chega aqui — e se
+        // chegasse por chamada direta, a FK reprovaria a transação inteira em
+        // vez de deixar lição órfã.
+        if (before.subjectId) {
+          db.prepare('DELETE FROM challenge_attempts WHERE subject_id = ?').run(before.subjectId);
+          db.prepare('DELETE FROM progress WHERE subject_id = ?').run(before.subjectId);
+          db.prepare('DELETE FROM subjects WHERE id = ?').run(before.subjectId);
+        }
+      });
+      return before;
     },
   };
 }
