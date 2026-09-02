@@ -156,6 +156,13 @@ export interface ChatBubbleProps {
    *  CHAT-NINTENDO: a review de ERRO (com errorFor) NÃO usa o tps — o erro é
    *  renderizado INSTANTÂNEO (prop `instant` do TypewriterText). */
   tps?: number;
+  /**
+   * ONDA10: repassa o "pular a digitação" para o TypewriterText — a LessonView
+   * liga quando o aluno clica no painel, aperta uma tecla ou usa o botão
+   * "Mostrar tudo". Não afeta bolhas restauradas (`isNew=false`) nem a de erro
+   * (`instant`), que já aparecem inteiras.
+   */
+  skip?: boolean;
   /** ONDA2 (error-flow): "Gerar novo desafio" DENTRO da bolha de review. */
   onRegenerate?: () => void;
   regenerateDisabled?: boolean;
@@ -168,6 +175,7 @@ export function ChatBubble({
   message,
   isNew,
   tps,
+  skip,
   onRegenerate,
   regenerateDisabled,
   onStreamStart,
@@ -327,6 +335,8 @@ export function ChatBubble({
                 // escreve DIRETO de uma vez — `instant` renderiza o texto
                 // completo no mount, sem interval e sem callbacks de stream.
                 instant={isErrorReview}
+                // ONDA10: clique/tecla completa a bolha na hora.
+                skip={skip}
                 onStart={onStreamStart}
                 onDone={onStreamDone}
                 onTick={onStreamTick}

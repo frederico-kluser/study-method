@@ -40,6 +40,20 @@
  * INSTANTÂNEO (TypewriterText `instant` — a review de APROVAÇÃO continua a
  * 10 tps).
  *
+ * ONDA10 (três bugs do dono, todos na experiência de estudar):
+ *   1. o quiz ENTREGAVA a resposta antes do clique — conserto no LessonQuiz
+ *      (função PURA `optionVisualState`, ver o cabeçalho de lá);
+ *   2. o quiz PODIA SER IGNORADO — agora é GATE: "Próximo" trava enquanto a
+ *      seção ATUAL tiver quiz sem resposta, e "Concluir aula" trava enquanto
+ *      QUALQUER quiz já visível estiver sem resposta. As duas travas leem
+ *      `answered` e NUNCA `correct` (errar não trava o aluno) e a UI DIZ o
+ *      motivo — texto visível role="status" ao lado do botão, além do
+ *      tooltip (Button desabilitado não dispara hover);
+ *   3. a teoria era DESPEJADA a ~400 chars/s — agora é escrita em velocidade
+ *      de LEITURA (7 tps = 28 chars/s, `chatBubbleTps`), com saída: clique no
+ *      painel, qualquer tecla ou "Mostrar tudo" completam a bolha na hora.
+ *      A review (10 tps) e as respostas do tutor (100 tps) NÃO mudaram.
+ *
  * Entrada (precedência na MONTAGEM — onda1-nav-ui):
  *   1. `nav.challengeErrorReport` (Desafio → Aula, erro) — define o alvo;
  *   2. `pendingTrackLesson` (Trilha → Aula) drenado na MONTAGEM
@@ -97,11 +111,14 @@ import { useChallengeNav } from '../../lib/challengeNav';
 import { useMicSTT } from '../../hooks/useMicSTT';
 import {
   applyTutorReply,
+  chatBubbleTps,
   chatDaySeparator,
   chatHistory,
   clearChallengeError,
   createTrackLessonState,
-  isLessonFinishBlocked,
+  lessonFinishBlock,
+  pendingQuizzes,
+  pendingQuizzesForCurrentSection,
   pushUserMessage,
   quizForSection,
   quizzesByMessageIndex,
@@ -285,6 +302,34 @@ export function LessonView(props: ViewProps): ReactElement {
       return valid.size === prev.size ? prev : valid;
     });
   }, [chat.history.length]);
+
+  // ─── ONDA10 (bug 3, parte 2): PULAR a digitação ───────────────────────────
+  // Com a teoria em velocidade de LEITURA (7 tps), quem lê rápido não pode
+  // ficar esperando: um CLIQUE no painel, QUALQUER tecla ou o botão "Mostrar
+  // tudo" completam as bolhas que estão digitando AGORA.
+  //
+  // O pedido é guardado como o TAMANHO do histórico no momento do pedido, e
+  // não como um booleano: assim ele EXPIRA sozinho, no RENDER, quando uma
+  // mensagem nova entra (`skipAtLen !== history.length`). Um booleano com
+  // reset por efeito não serviria — os efeitos do FILHO (TypewriterText)
+  // rodam ANTES dos do pai, então a bolha nova nasceria já pulada.
+  const [skipAtLen, setSkipAtLen] = useState<number | null>(null);
+  const skipTyping = skipAtLen !== null && skipAtLen === chat.history.length;
+  const requestSkipTyping = useCallback((): void => {
+    setSkipAtLen(chat.history.length);
+  }, [chat.history.length]);
+  // Tecla: só escuta ENQUANTO alguma bolha digita (nenhum listener global
+  // pendurado no resto do tempo) e em CAPTURE, para valer mesmo com o foco no
+  // campo de pergunta — quem já está fazendo outra coisa não deve esperar a
+  // animação. `keydown` cobre teclado; o clique vem do onClick do painel.
+  const typingNow = streamingIds.size > 0;
+  useEffect(() => {
+    if (!typingNow) return;
+    const onKey = (): void => requestSkipTyping();
+    window.addEventListener('keydown', onKey, true);
+    return () => window.removeEventListener('keydown', onKey, true);
+  }, [typingNow, requestSkipTyping]);
+
   // Região com scroll do chat (a Box com overflowY do render).
   const logScrollRef = useRef<HTMLDivElement | null>(null);
   // ONDA2-CHAT-NINTENDO (auto-scroll suave — pedido do dono: "suavize com
@@ -328,7 +373,31 @@ export function LessonView(props: ViewProps): ReactElement {
   // passado na ChallengeView reflete aqui na volta. Sem desafios → liberado.
   // Guard de null ANTES do lesson carregar (os early returns de loading/erro
   // usam o estado abaixo sem renderizar o botão).
-  const challengesPending = lesson ? isLessonFinishBlocked(lesson.challenges) : false;
+  //
+  // ONDA10 (bug 2 — "o quiz pode ser ignorado; quero que o usuario tenha que
+  // responder"): o QUIZ entrou no gate. Duas travas, ambas por `answered`
+  // (NUNCA por `correct` — errar não trava o aluno):
+  //   - `quizPendingAll`  → "Concluir aula": todo quiz já VISÍVEL respondido;
+  //   - `quizPendingHere` → "Próximo": o quiz da seção ATUAL respondido.
+  // A decisão de travar TAMBÉM o "Próximo" (mais intrusivo) é deliberada: sem
+  // ela o aluno atropela o "Próximo" até o fim e encontra uma PILHA de quizzes
+  // na linha de chegada — o quiz deixaria de ser formativo (respondido fora do
+  // contexto da seção) e viraria pedágio. Travando por seção, o desbloqueio
+  // está SEMPRE a um clique de distância, com a teoria fresca na tela.
+  const lessonAssertions = useMemo(() => lesson?.assertions ?? [], [lesson]);
+  const quizPendingAll = useMemo(
+    () => pendingQuizzes(chat, lessonAssertions),
+    [chat, lessonAssertions],
+  );
+  const quizPendingHere = useMemo(
+    () => pendingQuizzesForCurrentSection(chat, lessonAssertions),
+    [chat, lessonAssertions],
+  );
+  const nextBlockedByQuiz = quizPendingHere.length > 0;
+  // Motivo do bloqueio do "Concluir aula" ('quiz' | 'challenges' | null) — a
+  // UI DIZ qual é (nada de botão morto e mudo).
+  const finishBlock = lesson ? lessonFinishBlock(lesson.challenges, quizPendingAll.length) : null;
+  const finishBlocked = finishBlock !== null;
 
   // ONDA2 (error-flow, A5): mic no input do chat — o aluno pode responder à
   // pergunta do erro por VOZ (ou tirar qualquer dúvida falando). DECISÃO:
@@ -593,6 +662,10 @@ export function LessonView(props: ViewProps): ReactElement {
   // 'next' é determinístico (10s); 'answer' > abort de 45s da LLM no main (70s).
   const sendNext = useCallback(async (): Promise<void> => {
     if (!trackLesson || busy) return;
+    // ONDA10 (bug 2): a seção ATUAL tem quiz sem resposta → o avanço da teoria
+    // não sai daqui. Defensivo: o botão já vem desabilitado (com a explicação
+    // VISÍVEL ao lado), mas um atalho/estado antigo também esbarra no guard.
+    if (nextBlockedByQuiz) return;
     setBusy(true);
     setPendingAction('next');
     // ONDA2-IMESSAGE: a resposta do 'next' entra no FIM do histórico — marca
@@ -625,7 +698,7 @@ export function LessonView(props: ViewProps): ReactElement {
       setBusy(false);
       setPendingAction(null);
     }
-  }, [trackLesson, busy, chat.presentedSections, chat.history, tI, markNew]);
+  }, [trackLesson, busy, nextBlockedByQuiz, chat.presentedSections, chat.history, tI, markNew]);
 
   const sendAnswer = useCallback(async (): Promise<void> => {
     const text = draft.trim();
@@ -677,7 +750,8 @@ export function LessonView(props: ViewProps): ReactElement {
     // ONDA2-IMESSAGE (gating): a aula SÓ termina com todos os desafios
     // concluídos — defensivo (o botão já vem desabilitado, mas o guard
     // também protege um possível disparo por atalho/estado antigo).
-    if (!trackLesson || busy || !chat.theoryDone || doneMarked || challengesPending) return;
+    // ONDA10: `finishBlocked` cobre desafios pendentes E quiz sem resposta.
+    if (!trackLesson || busy || !chat.theoryDone || doneMarked || finishBlocked) return;
     setBusy(true);
     try {
       await withTimeout(
@@ -710,7 +784,7 @@ export function LessonView(props: ViewProps): ReactElement {
     } finally {
       setBusy(false);
     }
-  }, [trackLesson, busy, chat.theoryDone, doneMarked, challengesPending, lesson?.title, publishSession, tI]);
+  }, [trackLesson, busy, chat.theoryDone, doneMarked, finishBlocked, lesson?.title, publishSession, tI]);
 
   /** Abre UM desafio da aula na ChallengeView (fluxo track). */
   const openChallenge = useCallback(
@@ -810,8 +884,8 @@ export function LessonView(props: ViewProps): ReactElement {
   // `sectionId ?? assertion.id` — a id é única por assertion, então duas
   // assertions sem sectionId têm quizzes INDEPENDENTES (mesma âncora).
   const quizzesByIndex = useMemo(
-    () => quizzesByMessageIndex(chat, lesson?.assertions ?? []),
-    [chat, lesson],
+    () => quizzesByMessageIndex(chat, lessonAssertions),
+    [chat, lessonAssertions],
   );
 
   const handleQuizSelect = useCallback((quizKey: string, answerIndex: number, correctIndex: number): void => {
@@ -1023,6 +1097,11 @@ export function LessonView(props: ViewProps): ReactElement {
             }}
             role="log"
             aria-live="polite"
+            // ONDA10 (bug 3): clicar em QUALQUER lugar do painel completa a
+            // digitação em curso. É atalho REDUNDANTE (há o botão "Mostrar
+            // tudo", acessível, e qualquer tecla) — por isso o div não vira
+            // widget nem ganha foco; sem digitação em curso, é no-op.
+            onClick={typingNow ? requestSkipTyping : undefined}
           >
           {chat.history.length === 0 ? (
             <Box sx={{ m: 'auto', textAlign: 'center', color: 'text.secondary' }}>
@@ -1095,15 +1174,23 @@ export function LessonView(props: ViewProps): ReactElement {
                         // ONDA1-NAV-UI (tps): a REVIEW do desafio DIGITA a 10
                         // tokens/s (~40 chars/s — pedido do dono: "velocidade
                         // de tokens por segundo seja de 10 ao escrever em IA
-                        // online (os desafios que já fizemos)"); as respostas
-                        // do tutor (message/reply — "respostas processadas por
-                        // IA pode ser livre") mantêm o default atual (~100
-                        // tps). ONDA2-CHAT-NINTENDO: a review de ERRO (com
-                        // errorFor) é INSTANTÂNEA na ChatBubble (prop
-                        // `instant` do TypewriterText) — o tps nem chega a
-                        // ser usado; a review de APROVAÇÃO (sem errorFor)
-                        // continua a 10 tps.
-                        tps={m.kind === 'review' ? 10 : undefined}
+                        // online (os desafios que já fizemos)"). ONDA2-CHAT-
+                        // NINTENDO: a review de ERRO (com errorFor) é
+                        // INSTANTÂNEA na ChatBubble (prop `instant` do
+                        // TypewriterText) — o tps nem chega a ser usado; a de
+                        // APROVAÇÃO (sem errorFor) continua a 10 tps.
+                        //
+                        // ONDA10 (bug 3): a escolha do tps saiu do JSX para
+                        // `chatBubbleTps` (PURA, testada): TEORIA da aula →
+                        // 7 tps = 28 chars/s (velocidade de LEITURA — a conta
+                        // está em TYPEWRITER_TPS); review → 10; resposta do
+                        // tutor a uma dúvida ('reply') e demais bolhas → 100,
+                        // o "livre" de sempre. Nada mudou em bloco: o default
+                        // GLOBAL do TypewriterText continua 100.
+                        tps={chatBubbleTps(chat.history, i)}
+                        // ONDA10: clique/tecla/"Mostrar tudo" completam a
+                        // bolha que está digitando AGORA.
+                        skip={skipTyping}
                         onRegenerate={m.kind === 'review' ? handleRegenerateFromBubble : undefined}
                         // ONDA3 (generate-flow): o gating agora também cobre o
                         // processo GLOBAL em voo (o modal pode estar rodando
@@ -1144,7 +1231,18 @@ export function LessonView(props: ViewProps): ReactElement {
                   LLM OU alguma bolha digitando); sai do DOM ao terminar
                   (mount condicional — os e2e nunca casam texto oculto). */}
               {busy && pendingAction === 'answer' || streamingIds.size > 0 ? (
-                <TypingIndicator />
+                <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
+                  <TypingIndicator />
+                  {/* ONDA10 (bug 3): saída EXPLÍCITA e acessível da animação
+                      — o clique no painel e qualquer tecla fazem o mesmo, mas
+                      só um botão de verdade aparece para leitor de tela e
+                      navegação por teclado. Some junto com o indicador. */}
+                  {typingNow ? (
+                    <Button size="small" variant="text" onClick={requestSkipTyping}>
+                      {t('translation:lesson.skipTypingButton')}
+                    </Button>
+                  ) : null}
+                </Stack>
               ) : null}
             </>
           )}
@@ -1174,6 +1272,35 @@ export function LessonView(props: ViewProps): ReactElement {
         ) : null}
         {mic.error ? (
           <Alert severity="error" sx={{ py: 0.5 }}>{mic.error}</Alert>
+        ) : null}
+
+        {/* ONDA10 (bug 2): o botão travado DIZ por quê — nunca só desabilita
+            em silêncio (um botão morto e mudo é pior que o bug). A linha é
+            role="status" + aria-live: quem usa leitor de tela também recebe.
+            O tooltip continua existindo, mas ele é hover-only e um Button
+            desabilitado nem dispara hover — a explicação PRECISA estar aqui,
+            visível, ao lado do botão. */}
+        {!chat.theoryDone && nextBlockedByQuiz ? (
+          <Typography
+            role="status"
+            aria-live="polite"
+            variant="caption"
+            color="text.secondary"
+            sx={{ display: 'block' }}
+          >
+            {t('translation:lesson.quizGateNext')}
+          </Typography>
+        ) : null}
+        {chat.theoryDone && !doneMarked && finishBlock === 'quiz' ? (
+          <Typography
+            role="status"
+            aria-live="polite"
+            variant="caption"
+            color="text.secondary"
+            sx={{ display: 'block' }}
+          >
+            {tI('lesson.quizGateFinish', { n: quizPendingAll.length })}
+          </Typography>
         ) : null}
 
         {/* Entrada: dúvida do aluno (texto OU voz) + avanço da teoria. */}
@@ -1238,16 +1365,30 @@ export function LessonView(props: ViewProps): ReactElement {
           />
           {!chat.theoryDone ? (
             /* ONDA2-CHAT-NINTENDO: press feedback (scale 0.98) no "Próximo"
-               — pedido do dono. */
-            <motion.span
-              whileTap={{ scale: 0.98 }}
-              transition={springs.snappy}
-              style={{ display: 'inline-block' }}
-            >
-              <Button variant="contained" onClick={() => void sendNext()} disabled={busy} sx={{ whiteSpace: 'nowrap' }}>
-                {t('translation:lesson.nextButton')}
-              </Button>
-            </motion.span>
+               — pedido do dono. ONDA10 (bug 2): o avanço da teoria trava
+               enquanto o quiz da seção ATUAL estiver sem resposta. O
+               <span> é obrigatório: Button DESABILITADO não dispara os
+               eventos que o Tooltip escuta. Errar não trava — o gate lê
+               `answered`, nunca `correct`. */
+            <Tooltip title={nextBlockedByQuiz ? t('translation:lesson.quizGateNext') : ''}>
+              <span>
+                <motion.span
+                  whileTap={{ scale: 0.98 }}
+                  transition={springs.snappy}
+                  style={{ display: 'inline-block' }}
+                >
+                  <Button
+                    variant="contained"
+                    onClick={() => void sendNext()}
+                    disabled={busy || nextBlockedByQuiz}
+                    startIcon={nextBlockedByQuiz ? <LockIcon /> : undefined}
+                    sx={{ whiteSpace: 'nowrap' }}
+                  >
+                    {t('translation:lesson.nextButton')}
+                  </Button>
+                </motion.span>
+              </span>
+            </Tooltip>
           ) : doneMarked ? (
             /* ONDA4 (pós-conclusão — pedido do dono: "ao terminar o usuário
                pode avançar para a próxima aula ou gerar um novo desafio"):
@@ -1288,7 +1429,17 @@ export function LessonView(props: ViewProps): ReactElement {
             </>
           ) : (
             <Tooltip
-              title={challengesPending ? t('translation:lesson.finishBlockedTooltip') : ''}
+              /* ONDA10: o motivo do bloqueio vem de `lessonFinishBlock` —
+                 'quiz' (responda os quizzes) tem PRECEDÊNCIA sobre
+                 'challenges' porque o desbloqueio é mais barato: o card está
+                 na tela, a um clique. */
+              title={
+                finishBlock === 'quiz'
+                  ? tI('lesson.quizGateFinish', { n: quizPendingAll.length })
+                  : finishBlock === 'challenges'
+                    ? t('translation:lesson.finishBlockedTooltip')
+                    : ''
+              }
             >
               <span>
                 {/* ONDA2-CHAT-NINTENDO: mesmo press feedback no "Concluir
@@ -1303,8 +1454,9 @@ export function LessonView(props: ViewProps): ReactElement {
                     onClick={() => void finishLesson()}
                     // ONDA2-IMESSAGE (gating): DESABILITADO com desafios
                     // pendentes (tooltip i18n só quando bloqueado); liberado com
-                    // todos passed ou sem desafios.
-                    disabled={busy || doneMarked || challengesPending}
+                    // todos passed ou sem desafios. ONDA10: quiz sem resposta
+                    // bloqueia igual — a explicação visível está acima.
+                    disabled={busy || doneMarked || finishBlocked}
                     startIcon={doneMarked ? <CheckCircleIcon /> : <LockIcon />}
                     sx={{ whiteSpace: 'nowrap' }}
                   >

@@ -24,6 +24,15 @@
  *   - `children(partial)` recebe o trecho já digitado (o render — markdown —
  *     fica com o consumidor; a review usa ReactMarkdown sobre o partial).
  *
+ * ONDA10 (velocidade de LEITURA + `skip`): a TEORIA da aula passa a ser
+ * digitada a 7 tps = 28 chars/s (a conta completa está em
+ * `TYPEWRITER_TPS` — trackLessonState.ts). O default do componente segue 100
+ * (chamador manda): quem escolhe é a LessonView, por `chatBubbleTps`. E para
+ * o aluno NUNCA ficar refém da animação, o prop `skip` completa a bolha na
+ * hora: um clique no painel, QUALQUER tecla ou o botão "Mostrar tudo" viram
+ * `skip=true` na LessonView, o interval morre e o texto inteiro aparece (com
+ * `onDone` — o indicador "digitando" sai e o quiz da seção aparece).
+ *
  * ONDA2-CHAT-NINTENDO (erro instantâneo): `instant` desliga o efeito de
  * digitação — o texto COMPLETO aparece no mount, sem interval, e NENHUM
  * callback de stream é disparado (a bolha não está "digitando": o indicador
@@ -40,6 +49,7 @@ export function TypewriterText({
   active,
   tps = 100,
   instant = false,
+  skip = false,
   onStart,
   onDone,
   onTick,
@@ -65,6 +75,16 @@ export function TypewriterText({
    * onDone/onTick. `instant` vence sobre `tps`/`active`.
    */
   instant?: boolean;
+  /**
+   * ONDA10: true → PULA a digitação em andamento e mostra o texto COMPLETO
+   * imediatamente (o aluno clicou/apertou uma tecla — "quem lê rápido não pode
+   * ficar esperando"). O interval é encerrado e `onDone` dispara uma vez, para
+   * a LessonView tirar o indicador "digitando" e liberar o card do quiz da
+   * seção. Diferente de `instant`: `instant` é uma decisão do CONTEÚDO (a
+   * bolha de erro nunca digita), `skip` é uma decisão do ALUNO no meio da
+   * digitação.
+   */
+  skip?: boolean;
   /** Avisa que a digitação COMEÇOU (indicador "digitando" + auto-scroll). */
   onStart?: () => void;
   /** Avisa que a digitação TERMINOU (texto completo renderizado). */
@@ -79,6 +99,15 @@ export function TypewriterText({
   // passa pelo typewriter).
   const [cut, setCut] = useState<number>(() => (instant || !active ? text.length : 0));
   const startedAtRef = useRef<number | null>(null);
+  // ONDA10: bolha JÁ concluída nunca redigita. Sem isto, o `skip` (que é um
+  // sinal COMPARTILHADO da LessonView) ao voltar para false — o que acontece
+  // sozinho quando uma mensagem NOVA entra — re-rodaria o efeito da bolha
+  // antiga, disparando onStart/onDone de novo e piscando o card do quiz dela.
+  // `textRef` reabre a porta quando o TEXTO muda (outra mensagem no mesmo
+  // fiber); o StrictMode do dev continua reiniciando a digitação porque na 2ª
+  // passada `doneRef` ainda é false.
+  const doneRef = useRef(false);
+  const textRef = useRef(text);
   // Callbacks por REF (identidade estável): o interval não re-registra quando
   // o pai re-renderiza (mesmo padrão do tIRef da LessonView).
   const onStartRef = useRef(onStart);
@@ -93,6 +122,20 @@ export function TypewriterText({
     // completo imediato: sem interval e sem callbacks de stream (a bolha não
     // "digita" — o indicador e o auto-scroll não precisam acompanhar nada).
     if (!active || instant) return;
+    if (textRef.current !== text) {
+      textRef.current = text;
+      doneRef.current = false;
+    }
+    if (doneRef.current) return;
+    // ONDA10 (pular a animação): o aluno pediu o texto inteiro — nada de
+    // interval, o corte vai direto ao fim e o stream é dado por CONCLUÍDO.
+    // Fica ANTES do onStart: pular no meio não "recomeça" a digitação.
+    if (skip) {
+      doneRef.current = true;
+      setCut(text.length);
+      onDoneRef.current?.();
+      return;
+    }
     onStartRef.current?.();
     startedAtRef.current = Date.now();
     const delay = typewriterDelayPerChar(tps);
@@ -104,6 +147,7 @@ export function TypewriterText({
       if (next >= text.length) {
         // Concluiu: para o interval e avisa (o indicador "digitando" sai do
         // DOM — mount condicional — e o "Gerar novo desafio" habilita).
+        doneRef.current = true;
         window.clearInterval(timer);
         onDoneRef.current?.();
       }
@@ -111,7 +155,7 @@ export function TypewriterText({
     // Cleanup OBRIGATÓRIO: desmontagem (troca de aba) e StrictMode (dev) —
     // nenhum interval sobrevive ao fim do componente.
     return () => window.clearInterval(timer);
-  }, [active, instant, text, tps]);
+  }, [active, instant, skip, text, tps]);
 
   return <>{children(text.slice(0, cut))}</>;
 }

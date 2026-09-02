@@ -7,14 +7,31 @@
  * `quizzesByMessageIndex` de trackLessonState). Comportamento:
  *
  *   - NÃO respondido: 4 opções clicáveis (Button MUI, outline, texto à
- *     esquerda); ao selecionar → feedback IMEDIATO — correto: verde + mensagem
- *     de sucesso (lesson.quizCorrect); errado: vermelho + o `feedback` da
- *     assertion explicando o porquê (lesson.quizWrong/lesson.quizFeedback);
+ *     esquerda) VISUALMENTE IDÊNTICAS entre si; ao selecionar → feedback
+ *     IMEDIATO — correto: verde + mensagem de sucesso (lesson.quizCorrect);
+ *     errado: vermelho + o `feedback` da assertion explicando o porquê
+ *     (lesson.quizWrong/lesson.quizFeedback);
  *   - respondido: o card FICA (preenchido — o gating é visual e a resposta é
  *     idempotente/travada): a opção correta em verde com CheckCircle, a errada
  *     escolhida em vermelho com Cancel, as demais desabilitadas; o feedback
- *     permanece abaixo (revisão durante a aula);
- *   - o quiz é REFORÇO — NUNCA bloqueia o "Próximo" da aula.
+ *     permanece abaixo (revisão durante a aula).
+ *
+ * ONDA10 — BUG 1 (o quiz ENTREGAVA a resposta): `variant` estava guardada por
+ * `answered`, mas `color` e `startIcon` NÃO — a alternativa CERTA aparecia
+ * verde e com ✓ ANTES do primeiro clique. O conserto NÃO é um `&& answered` a
+ * mais: toda a decisão visual saiu do JSX para a função PURA
+ * `optionVisualState` (src/lib/trackLessonState.ts), que RETORNA CEDO com um
+ * estado neutro enquanto não há resposta — e nesse caminho `answerIndex` NEM É
+ * LIDO. Este componente não recebe mais `answerIndex` no render das opções:
+ * ele só repassa `{ color, variant, icon, disabled }`. Coberto por
+ * tests/lessonQuizVisual.test.ts (inclusive uma guarda de FONTE que reprova o
+ * arquivo se `answerIndex` reaparecer no JSX).
+ *
+ * ONDA10 — BUG 2 (o quiz podia ser ignorado): o quiz deixou de ser reforço e
+ * virou GATE — a LessonView bloqueia "Próximo"/"Concluir aula" enquanto houver
+ * quiz sem resposta (`pendingQuizzes*` em trackLessonState). Responder ERRADO
+ * libera igual a acertar; nada aqui muda por causa disso (o card já travava as
+ * opções após a resposta).
  *
  * a11y: os botões têm aria-label i18n (chave lesson.quizOptionAria — "Opção 2
  * de 4: …") e o feedback usa role="status" (SC 4.1.3 — o veredito nunca
@@ -29,6 +46,7 @@ import { useMemo, type ReactElement } from 'react';
 import { motion } from 'motion/react';
 import { fadeInUp, springs } from '../../lib/animationTokens';
 import type { TrackAssertionDto } from '../../../shared/ipc-contract';
+import { optionVisualState } from '../../lib/trackLessonState';
 import type { QuizState } from '../../lib/trackLessonState';
 
 export interface LessonQuizCardProps {
@@ -78,22 +96,30 @@ export function LessonQuizCard({ assertion, quiz, onSelect }: LessonQuizCardProp
           <Typography variant="body2">{assertion.question}</Typography>
           <Stack spacing={1}>
             {assertion.options.map((option, i) => {
-              const isCorrectOption = i === assertion.answerIndex;
-              const isWrongPick = answered && !correct && i === quiz?.selected;
+              // ONDA10 (bug 1): TODA a decisão visual vem da função PURA — o
+              // JSX não vê `answerIndex`. Antes de responder, `visual` é o
+              // MESMO objeto neutro para as 4 opções: nada distingue a certa.
+              const visual = optionVisualState(i, assertion, quiz);
               return (
                 <Button
                   key={i}
                   fullWidth
-                  variant={answered ? (isCorrectOption ? 'contained' : 'outlined') : 'outlined'}
-                  color={isCorrectOption ? 'success' : isWrongPick ? 'error' : 'inherit'}
-                  disabled={answered}
+                  variant={visual.variant}
+                  color={visual.color}
+                  disabled={visual.disabled}
                   onClick={() => onSelect(i)}
                   aria-label={tI('lesson.quizOptionAria', {
                     n: i + 1,
                     total: assertion.options.length,
                     option,
                   })}
-                  startIcon={isCorrectOption ? <CheckCircleIcon /> : isWrongPick ? <CancelIcon /> : undefined}
+                  startIcon={
+                    visual.icon === 'correct' ? (
+                      <CheckCircleIcon />
+                    ) : visual.icon === 'wrong' ? (
+                      <CancelIcon />
+                    ) : undefined
+                  }
                   sx={{ justifyContent: 'flex-start', textAlign: 'left', textTransform: 'none' }}
                 >
                   {option}

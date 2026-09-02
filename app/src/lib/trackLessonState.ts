@@ -14,9 +14,14 @@
  *
  * ONDA4 (quiz): `quizBySection` guarda o estado do QUIZ de múltipla escolha
  * por afirmação (chaveado por sectionId — REPLAN A1). Os helpers do quiz são
- * PURA e o quiz NÃO bloqueia o "Próximo" (reforço): a UI renderiza o card
- * APÓS a bolha da seção que o demonstra e o mantém preenchido com o feedback
- * após responder (idempotente).
+ * PURA: a UI renderiza o card APÓS a bolha da seção que o demonstra e o mantém
+ * preenchido com o feedback após responder (idempotente).
+ *
+ * ONDA10 (bug do dono — "o quiz pode ser ignorado; quero que o usuario tenha
+ * que responder"): o quiz DEIXOU de ser reforço e virou GATE. `pendingQuizzes`
+ * (todas as seções já apresentadas) bloqueia o "Concluir aula" e
+ * `pendingQuizzesForCurrentSection` bloqueia o "Próximo". O gate lê `answered`
+ * e NUNCA `correct` — errar libera igual a acertar.
  *
  * Fluxo: o usuário clica "Próximo" → action 'next' (com presentedSections) →
  * a resposta do tutor vira uma mensagem assistant e sectionId entra em
@@ -47,6 +52,8 @@
  *
  * Helpers de STREAMING puros para o efeito "digitação" (~100 tokens/s) da
  * Onda 2: `typewriterCut`/`typewriterDelayPerChar`/`typewriterIsDone`.
+ * Onda 10: `TYPEWRITER_TPS`/`chatBubbleTps` — a TEORIA passa a ser digitada em
+ * velocidade de LEITURA (7 tps = 28 chars/s; a conta completa está no bloco).
  */
 import type {
   TrackAssertionDto,
@@ -249,6 +256,86 @@ export function typewriterIsDone(text: string, elapsedMs: number, tps: number = 
   return typewriterCut(text, elapsedMs, tps) >= text.length;
 }
 
+/**
+ * ONDA10 (velocidade de LEITURA — bug 3 do dono: "quero que a escrita da
+ * história seja na velocidade de leitura").
+ *
+ * A CONTA, com os números MEDIDOS nesta trilha (não estimados):
+ *
+ *   1. Leitura de um adulto em português: 200–250 palavras/min. A calibragem
+ *      usa o TOPO da faixa (250 wpm) de propósito — escrever MAIS DEVAGAR que
+ *      o leitor é o único erro que PUNE (ele espera); escrever um pouco mais
+ *      rápido não custa nada (o texto só já está lá quando o olho chega).
+ *   2. Tamanho de palavra MEDIDO na teoria da aula 1 (python/a-tela/
+ *      a-primeira-linha): 1212 chars / 223 palavras = 5,43 chars por palavra
+ *      (o separador conta — é caractere digitado).
+ *        250 palavras/min × 5,43 chars = 1357 chars/min = 22,6 chars/s.
+ *   3. O typewriter digita o MARKDOWN CRU, o aluno lê o RENDERIZADO: `**`,
+ *      crases, `-` de lista e quebras de linha são digitados e NÃO são lidos.
+ *      Medido na aula 1: visível/cru = 0,948 (0,934 na seção mais longa).
+ *        22,6 / 0,934 = 24,2 chars/s de markdown cru para entregar 22,6
+ *        chars/s de texto visível.
+ *   4. Teto de paciência (contrato desta onda): nenhuma seção pode passar de
+ *      ~20 s. A seção mais longa de toda a base medida é a `as-tres-partes-
+ *      da-linha` da AULA 1, com 564 chars → exige ≥ 28,2 chars/s.
+ *   5. chars/s = tps × 4 (a unidade do typewriter é "tokens", ~4 chars).
+ *        28 chars/s → tps = 7.
+ *
+ *   VEREDITO: `theory` = 7 tps = 28 chars/s. A seção mais longa da aula 1
+ *   (564 chars) leva 564/28 = 20,1 s; a mediana da base (286 chars) leva
+ *   10,2 s; a menor (158 chars) leva 5,6 s. E o aluno NUNCA fica refém: um
+ *   clique/tecla completa a seção na hora (prop `skip` do TypewriterText).
+ *
+ * O default GLOBAL de `typewriterCut` continua 100 (`free`) — quem muda é o
+ * CHAMADOR (a LessonView, por `chatBubbleTps`). Trocar o default afetaria em
+ * bloco as respostas do tutor e a review, que têm decisões próprias.
+ */
+export const TYPEWRITER_TPS = {
+  /**
+   * Respostas do tutor a uma dúvida (kind 'reply') e qualquer bolha fora da
+   * teoria: "livre" — o default histórico (ONDA1), ~400 chars/s. NÃO é
+   * leitura: é o texto que o aluno PEDIU e já está esperando na tela.
+   */
+  free: 100,
+  /**
+   * TEORIA da aula (bolha 'next' — a "escrita da história"): velocidade de
+   * LEITURA, 7 tps = 28 chars/s. Ver a conta acima.
+   */
+  theory: 7,
+  /**
+   * Review do desafio (ONDA1-NAV-UI, pedido do dono: "10 ao escrever em IA
+   * online"). INTOCADO nesta onda.
+   */
+  review: 10,
+} as const;
+
+/**
+ * true quando a bolha do índice `i` é uma APRESENTAÇÃO DE TEORIA (a "história"
+ * da aula): mensagem `assistant` de kind 'message' que NÃO segue imediatamente
+ * uma bolha 'review'. O critério é o MESMO de `sectionPresentationIndexes` — a
+ * pergunta semeada do erro (`seedChallengeError`) também é 'message', mas vem
+ * SEMPRE colada numa 'review', e por isso NÃO é teoria. PURA.
+ */
+export function isTheoryPresentationBubble(
+  history: readonly TutorChatMessage[],
+  i: number,
+): boolean {
+  const m = history[i];
+  if (m === undefined || m.role !== 'assistant' || m.kind !== 'message') return false;
+  return history[i - 1]?.kind !== 'review';
+}
+
+/**
+ * tokens/s do typewriter da bolha `i` do histórico (defeito 3): 'review' → 10;
+ * apresentação de TEORIA → velocidade de leitura (7); qualquer outra bolha do
+ * tutor → 'free' (100, o default histórico). PURA — a LessonView só repassa.
+ */
+export function chatBubbleTps(history: readonly TutorChatMessage[], i: number): number {
+  if (history[i]?.kind === 'review') return TYPEWRITER_TPS.review;
+  if (isTheoryPresentationBubble(history, i)) return TYPEWRITER_TPS.theory;
+  return TYPEWRITER_TPS.free;
+}
+
 // ─── ONDA2-IMESSAGE (chat estilo iMessage): hora, separador de dia e gating ──
 
 /**
@@ -331,8 +418,40 @@ export function chatDaySeparator(
  */
 export function isLessonFinishBlocked(
   challenges: readonly { lastVerdict: TrackVerdict | null }[],
+  pendingQuizCount: number = 0,
 ): boolean {
-  return challenges.length > 0 && challenges.some((c) => c.lastVerdict !== 'passed');
+  return lessonFinishBlock(challenges, pendingQuizCount) !== null;
+}
+
+/**
+ * ONDA10 (bug 2 do dono: "o quiz pode ser ignorado; quero que o usuario tenha
+ * que responder") — MOTIVO do bloqueio do "Concluir aula", para a UI DIZER por
+ * que o botão está travado (um botão morto sem explicação é pior que o bug):
+ *
+ *   - 'quiz'       → ainda há quiz VISÍVEL (ancorado numa seção já
+ *                    apresentada) sem resposta. Vem PRIMEIRO porque é o
+ *                    desbloqueio mais barato: o card está na tela, a um
+ *                    clique de distância;
+ *   - 'challenges' → algum desafio da aula não passou (regra ONDA2-imessage,
+ *                    intacta);
+ *   - null         → liberado.
+ *
+ * IMPORTANTE — ERRAR NÃO TRAVA: o gate lê `answered`, NUNCA `correct`. O quiz
+ * existe para o aluno PENSAR, não para puni-lo; `submitQuizAnswer` é
+ * idempotente (a primeira resposta vence) e uma resposta errada libera
+ * exatamente como a certa. PURA.
+ */
+export type LessonFinishBlockReason = 'quiz' | 'challenges';
+
+export function lessonFinishBlock(
+  challenges: readonly { lastVerdict: TrackVerdict | null }[],
+  pendingQuizCount: number = 0,
+): LessonFinishBlockReason | null {
+  if (pendingQuizCount > 0) return 'quiz';
+  if (challenges.length > 0 && challenges.some((c) => c.lastVerdict !== 'passed')) {
+    return 'challenges';
+  }
+  return null;
 }
 
 // ─── ONDA2 (error-flow): relatório do erro + bolha determinística ────────────
@@ -602,7 +721,8 @@ export function clearChallengeError(state: TrackLessonUiState): TrackLessonUiSta
 // `sectionId` (a seção de teoria que a demonstra). O quiz de uma assertion
 // renderiza APÓS a bolha da seção cujo id == sectionId ser apresentada
 // ('next') e é VISÍVEL só quando `presentedSections` contém o sectionId. O
-// quiz é REFORÇO — NUNCA bloqueia o "Próximo". Assertion sem sectionId
+// ONDA10: o quiz virou GATE (ver `pendingQuizzes` no fim do arquivo) — antes
+// era reforço e não bloqueava nada. Assertion sem sectionId
 // (trilhas antigas, defensivo) cai na chave sintética `FALLBACK_QUIZ_SECTION`
 // e aparece APÓS a ÚLTIMA seção de teoria apresentada (fallback
 // determinístico). Os helpers abaixo são PURA (node:test, sem React/DOM).
@@ -645,6 +765,68 @@ export function quizForSection(state: TrackLessonUiState, sectionId: string): Qu
 /** true quando a seção JÁ foi respondida no quiz. PURA. */
 export function isQuizAnswered(state: TrackLessonUiState, sectionId: string): boolean {
   return state.quizBySection[sectionId]?.answered === true;
+}
+
+/**
+ * ONDA10 (bug 1 do dono: "o quiz ... ja vem selecionado") — ESTADO VISUAL de
+ * UMA alternativa do quiz, extraído do JSX para uma função PURA.
+ *
+ * O BUG que isto mata: no card antigo a `variant` estava guardada por
+ * `answered`, mas `color` e `startIcon` NÃO —
+ *
+ *     const isCorrectOption = i === assertion.answerIndex;   // sem `answered`
+ *     color={isCorrectOption ? 'success' : ...}
+ *     startIcon={isCorrectOption ? <CheckCircleIcon /> : ...}
+ *
+ * — então, ANTES de qualquer clique, a alternativa certa já aparecia VERDE e
+ * com ✓. O aluno via a resposta.
+ *
+ * O conserto é ESTRUTURAL, não um `&& answered` a mais: enquanto
+ * `quiz?.answered !== true`, a função RETORNA CEDO com um estado NEUTRO e
+ * `assertion.answerIndex` NEM É LIDO. Não existe caminho em que o índice da
+ * resposta influencie o pixel antes de responder — e o card consome só este
+ * objeto (o JSX não recebe mais `answerIndex`), então o vazamento não tem por
+ * onde voltar.
+ *
+ * `disabled` também mora aqui: respondido → TODAS as opções travam (a resposta
+ * é idempotente, a primeira vence).
+ */
+export interface QuizOptionVisual {
+  /** cor do Button MUI — 'inherit' é o neutro (nada distingue nada). */
+  color: 'inherit' | 'success' | 'error';
+  /** variante do Button MUI. */
+  variant: 'outlined' | 'contained';
+  /** ícone semântico; o card mapeia para CheckCircle/Cancel. null = sem ícone. */
+  icon: 'correct' | 'wrong' | null;
+  /** true quando a opção não pode mais ser clicada (já respondido). */
+  disabled: boolean;
+}
+
+/** Estado visual NEUTRO — o de TODAS as opções antes de responder. */
+const QUIZ_OPTION_NEUTRAL: QuizOptionVisual = {
+  color: 'inherit',
+  variant: 'outlined',
+  icon: null,
+  disabled: false,
+};
+
+export function optionVisualState(
+  i: number,
+  assertion: Pick<TrackAssertionDto, 'answerIndex'>,
+  quiz: QuizState | undefined,
+): QuizOptionVisual {
+  // NÃO RESPONDIDO: retorno CEDO, neutro para toda opção. `answerIndex` não é
+  // lido neste caminho — a resposta não pode vazar por construção.
+  if (quiz?.answered !== true) return { ...QUIZ_OPTION_NEUTRAL };
+  const isCorrectOption = i === assertion.answerIndex;
+  // A escolha ERRADA do aluno (só existe depois de responder).
+  const isWrongPick = quiz.correct !== true && i === quiz.selected;
+  return {
+    color: isCorrectOption ? 'success' : isWrongPick ? 'error' : 'inherit',
+    variant: isCorrectOption ? 'contained' : 'outlined',
+    icon: isCorrectOption ? 'correct' : isWrongPick ? 'wrong' : null,
+    disabled: true,
+  };
 }
 
 /**
@@ -693,9 +875,9 @@ export function sectionPresentationIndexes(state: TrackLessonUiState): Map<strin
   const out = new Map<string, number>();
   let k = 0;
   for (let i = 0; i < state.history.length; i++) {
-    const m = state.history[i];
-    if (m.role !== 'assistant' || m.kind !== 'message') continue;
-    if (state.history[i - 1]?.kind === 'review') continue;
+    // MESMO predicado do tps da teoria (`isTheoryPresentationBubble`): uma
+    // fonte de verdade só para "esta bolha apresentou uma seção".
+    if (!isTheoryPresentationBubble(state.history, i)) continue;
     if (k >= state.presentedSections.length) break;
     out.set(state.presentedSections[k], i);
     k += 1;
@@ -737,4 +919,82 @@ export function quizzesByMessageIndex(
     for (const a of bySection[FALLBACK_QUIZ_SECTION] ?? []) push(fallbackIdx, a);
   }
   return out;
+}
+
+// ─── ONDA10 (bug 2): o quiz vira OBRIGATÓRIO ─────────────────────────────────
+// O dono: "o quiz pode ser ignorado e ja vem selecionado; quero que o usuario
+// tenha que responder". Até aqui o quiz era REFORÇO (o cabeçalho antigo dizia
+// "NUNCA bloqueia o Próximo") — dava para terminar a aula sem responder nada.
+// Passa a ser GATE, com duas regras e uma garantia:
+//
+//   - "Próximo"      bloqueia enquanto a seção ATUAL (a última apresentada)
+//                    tiver quiz sem resposta — `pendingQuizzesForCurrentSection`;
+//   - "Concluir aula" bloqueia enquanto QUALQUER quiz já visível estiver sem
+//                    resposta — `pendingQuizzes`;
+//   - GARANTIA: o gate lê `answered`, NUNCA `correct`. Responder errado libera
+//     igual a acertar (o quiz é para pensar, não para punir), e
+//     `submitQuizAnswer` continua idempotente — a primeira resposta vence.
+//
+// Só entram no gate os quizzes ANCORADOS numa bolha já apresentada
+// (`quizzesByMessageIndex`): um quiz que o aluno ainda não pode ver nunca
+// bloqueia nada.
+
+/**
+ * Chave do estado do quiz de uma assertion — a MESMA que a LessonView usa ao
+ * chamar `submitQuizAnswer`: `sectionId` quando existe, senão a `id` da
+ * assertion (única por aula, então duas assertions sem sectionId têm quizzes
+ * INDEPENDENTES na mesma âncora). PURA.
+ */
+export function quizKeyFor(assertion: Pick<TrackAssertionDto, 'id' | 'sectionId'>): string {
+  return assertion.sectionId ?? assertion.id;
+}
+
+/**
+ * Quizzes JÁ VISÍVEIS (ancorados numa bolha apresentada) que continuam SEM
+ * resposta — o gate do "Concluir aula". Ordem determinística: pela ordem das
+ * bolhas do histórico e, dentro da bolha, pela ordem das assertions. PURA.
+ */
+export function pendingQuizzes(
+  state: TrackLessonUiState,
+  assertions: readonly TrackAssertionDto[],
+): TrackAssertionDto[] {
+  const byIndex = quizzesByMessageIndex(state, assertions);
+  const out: TrackAssertionDto[] = [];
+  for (const idx of [...byIndex.keys()].sort((a, b) => a - b)) {
+    for (const a of byIndex.get(idx) ?? []) {
+      if (!isQuizAnswered(state, quizKeyFor(a))) out.push(a);
+    }
+  }
+  return out;
+}
+
+/**
+ * Quizzes da seção ATUAL (a ÚLTIMA apresentada) ainda sem resposta — o gate do
+ * "Próximo". Inclui os quizzes de assertions SEM sectionId, que ancoram
+ * justamente na última seção apresentada (mesma regra de
+ * `quizzesByMessageIndex`). Sem seção apresentada → lista vazia (nada a
+ * responder, nada a bloquear). PURA.
+ */
+export function pendingQuizzesForCurrentSection(
+  state: TrackLessonUiState,
+  assertions: readonly TrackAssertionDto[],
+): TrackAssertionDto[] {
+  const last = state.presentedSections[state.presentedSections.length - 1];
+  if (last === undefined) return [];
+  const idx = sectionPresentationIndexes(state).get(last);
+  if (idx === undefined) return [];
+  const here = quizzesByMessageIndex(state, assertions).get(idx) ?? [];
+  return here.filter((a) => !isQuizAnswered(state, quizKeyFor(a)));
+}
+
+/**
+ * true quando o "Próximo" (avançar a teoria) está bloqueado por quiz sem
+ * resposta na seção atual. Açúcar sobre `pendingQuizzesForCurrentSection` —
+ * o nome é o que a LessonView lê. PURA.
+ */
+export function isNextSectionBlockedByQuiz(
+  state: TrackLessonUiState,
+  assertions: readonly TrackAssertionDto[],
+): boolean {
+  return pendingQuizzesForCurrentSection(state, assertions).length > 0;
 }
