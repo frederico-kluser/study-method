@@ -563,15 +563,24 @@ describe('trackTypes/trackLoader — linguagem por REGISTRO DE ADAPTADORES', () 
     assert.deepEqual(validateChallengeSource(challenge({ language: 'javascript' }), 'c.json'), []);
   });
 
+  it("challenge.language aceita 'python' e os aliases do adaptador da onda 5", () => {
+    for (const token of ['python', 'python3', 'cpython'] as const) {
+      assert.deepEqual(validateChallengeSource(challenge({ language: token }), 'c.json'), [], token);
+    }
+  });
+
   it('challenge.language sem adaptador REPROVA, e a mensagem lista o que vale', () => {
+    // 'ruby' é o id de teste desde a onda 5 (quando 'python' passou a EXISTIR):
+    // o §7 o lista como próximo da fila e ele ainda não tem adaptador.
     const issues = validateChallengeSource(
-      { ...challenge(), language: 'python' } as unknown,
+      { ...challenge(), language: 'ruby' } as unknown,
       'c.json',
     );
     const msg = issues.map((i) => i.message).join('\n');
     assert.ok(msg.includes('language inválido'), msg);
-    assert.ok(msg.includes('python'), msg);
+    assert.ok(msg.includes('ruby'), msg);
     assert.ok(msg.includes("'nodejs'"), msg);
+    assert.ok(msg.includes("'python'"), msg);
   });
 
   it('track.programmingLanguage/harnessLanguage: ausentes valem; presentes sem adaptador REPROVAM', () => {

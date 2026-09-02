@@ -472,12 +472,15 @@ describe('engine CLI — audit: a linha de truncamento NÃO chama aviso de viola
  */
 describe('cli generate — --linguagem / --plataforma (registro de adaptadores)', () => {
   it('--linguagem sem adaptador ABORTA com exit 2 e lista o que vale', async () => {
-    const r = await runEngineSemChave(['generate', 'trilha-nao-criada', '--assunto', 'x', '--linguagem', 'python']);
+    // 'ruby' e o id de teste desde a onda 5 (quando 'python' passou a EXISTIR
+    // como segundo adaptador); o §7 o lista como proximo da fila.
+    const r = await runEngineSemChave(['generate', 'trilha-nao-criada', '--assunto', 'x', '--linguagem', 'ruby']);
     assert.equal(r.code, 2, `stdout:\n${r.stdout}\nstderr:\n${r.stderr}`);
     assert.ok(r.stderr.includes('--linguagem invalido'), r.stderr);
-    assert.ok(r.stderr.includes('python'), r.stderr);
+    assert.ok(r.stderr.includes('ruby'), r.stderr);
     assert.ok(r.stderr.includes('javascript'), r.stderr);
     assert.ok(r.stderr.includes('nodejs'), r.stderr);
+    assert.ok(r.stderr.includes('python'), r.stderr);
   });
 
   it('--plataforma vazia ABORTA (contexto em branco e pior que contexto ausente)', async () => {

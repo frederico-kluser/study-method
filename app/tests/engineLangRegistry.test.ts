@@ -45,6 +45,7 @@ import {
   type LanguageAdapter,
 } from '../electron/main/engine/lang/registry';
 import { javascriptAdapter } from '../electron/main/engine/lang/javascript';
+import { pythonAdapter } from '../electron/main/engine/lang/python';
 
 // as FONTES que o adaptador duplica hoje (a paridade é medida contra elas)
 import { SAFE_FILE_PATH_RE } from '../electron/main/content/trackTypes';
@@ -56,6 +57,7 @@ import { nodeBinary, parseSpecChecks } from '../electron/main/services/challenge
 import { JS_FENCE_TAGS, collectLessonCode, extractFencedBlocks } from '../electron/main/engine/theoryCode';
 
 const js = javascriptAdapter;
+const py = pythonAdapter;
 
 describe('registro — enum de ids e resolução', () => {
   it('todo id DECLARADO tem adaptador registrado, e todo adaptador tem id declarado', () => {
@@ -69,13 +71,16 @@ describe('registro — enum de ids e resolução', () => {
   });
 
   it('getAdapter de id desconhecido LANÇA erro estruturado — nunca cai no default', () => {
+    // ONDA 5: 'python' passou a EXISTIR (segundo adaptador). O id de teste é
+    // 'ruby', que o §7 lista como PRÓXIMO da fila e ainda não tem adaptador —
+    // trocar o id aqui é o sinal esperado de que a linguagem entrou.
     assert.throws(
-      () => getAdapter('python'),
+      () => getAdapter('ruby'),
       (err: unknown) => {
         assert.ok(err instanceof LanguageRegistryError);
         assert.equal(err.code, 'ADAPTADOR_DESCONHECIDO');
-        assert.equal(err.detalhes.pedido, 'python');
-        assert.deepEqual(err.detalhes.conhecidos, ['javascript']);
+        assert.equal(err.detalhes.pedido, 'ruby');
+        assert.deepEqual(err.detalhes.conhecidos, ['javascript', 'python']);
         assert.ok(err.message.includes('javascript'), err.message);
         return true;
       },
@@ -83,12 +88,13 @@ describe('registro — enum de ids e resolução', () => {
   });
 
   it('findAdapter é a variante TOLERANTE (null em vez de lançar)', () => {
-    assert.equal(findAdapter('python'), null);
+    assert.equal(findAdapter('ruby'), null);
     assert.equal(findAdapter('javascript'), js);
+    assert.equal(findAdapter('python'), py);
   });
 
   it("registerAdapter recusa id fora de KNOWN_LANGUAGE_IDS (id fantasma)", () => {
-    const falso = { ...js, id: 'ruby' } as unknown as LanguageAdapter;
+    const falso = { ...js, id: 'go' } as unknown as LanguageAdapter;
     assert.throws(
       () => registerAdapter(falso),
       (err: unknown) => {
@@ -114,14 +120,18 @@ describe('registro — enum de ids e resolução', () => {
     assert.equal(adapterIdForChallengeLanguage('nodejs'), 'javascript');
     assert.equal(adapterIdForChallengeLanguage('javascript'), 'javascript');
     assert.equal(adapterIdForChallengeLanguage('NodeJS'), 'javascript', 'caixa e espaço normalizados');
-    assert.equal(adapterIdForChallengeLanguage('python'), null);
+    assert.equal(adapterIdForChallengeLanguage('python'), 'python');
+    assert.equal(adapterIdForChallengeLanguage('CPython'), 'python', 'alias de implementação');
+    assert.equal(adapterIdForChallengeLanguage('python3'), 'python', 'alias de binário');
+    assert.equal(adapterIdForChallengeLanguage('ruby'), null);
     assert.equal(adapterIdForChallengeLanguage(undefined), null);
     assert.equal(adapterIdForChallengeLanguage(42), null);
   });
 
   it('isChallengeLanguage e listChallengeLanguages batem com o declarado', () => {
     assert.ok(isChallengeLanguage('nodejs'));
-    assert.ok(!isChallengeLanguage('python'));
+    assert.ok(isChallengeLanguage('python'));
+    assert.ok(!isChallengeLanguage('ruby'));
     assert.deepEqual(listChallengeLanguages(), [...KNOWN_CHALLENGE_LANGUAGES].sort());
   });
 
@@ -137,6 +147,10 @@ describe('registro — tag de bloco de teoria (qual parser recebe cada bloco)', 
     assert.deepEqual(classifyTheoryTag('JavaScript'), { kind: 'codigo', adapterId: 'javascript', tag: 'javascript' });
     assert.deepEqual(classifyTheoryTag('json'), { kind: 'nao-codigo', adapterId: null, tag: 'json' });
     assert.deepEqual(classifyTheoryTag('http'), { kind: 'nao-codigo', adapterId: null, tag: 'http' });
+    assert.deepEqual(classifyTheoryTag('py'), { kind: 'codigo', adapterId: 'python', tag: 'py' });
+    assert.deepEqual(classifyTheoryTag('Python'), { kind: 'codigo', adapterId: 'python', tag: 'python' });
+    // `pycon` é transcrição de REPL — texto, não Python parseável.
+    assert.deepEqual(classifyTheoryTag('pycon'), { kind: 'nao-codigo', adapterId: null, tag: 'pycon' });
     assert.deepEqual(classifyTheoryTag('ruby'), { kind: 'desconhecida', adapterId: null, tag: 'ruby' });
     assert.deepEqual(classifyTheoryTag(''), { kind: 'ausente', adapterId: null, tag: '' });
     assert.deepEqual(classifyTheoryTag(undefined), { kind: 'ausente', adapterId: null, tag: '' });
@@ -150,7 +164,7 @@ describe('registro — tag de bloco de teoria (qual parser recebe cada bloco)', 
   });
 
   it('listTheoryCodeTags é a união das tags dos adaptadores', () => {
-    assert.deepEqual(listTheoryCodeTags(), [...js.theoryFenceTags].sort());
+    assert.deepEqual(listTheoryCodeTags(), [...js.theoryFenceTags, ...py.theoryFenceTags].sort());
   });
 });
 

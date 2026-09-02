@@ -62,6 +62,7 @@
  */
 
 import { javascriptAdapter } from './javascript';
+import { pythonAdapter } from './python';
 
 // ---------------------------------------------------------------------------
 // Vocabulário FECHADO de ids (o enum de linguagens que a engine conhece)
@@ -72,15 +73,18 @@ import { javascriptAdapter } from './javascript';
  * registro em runtime) porque ela é a fonte do TIPO `LanguageId` — e o tipo é
  * o contrato que o schema de trilha, o loader e os prompts usam.
  *
- * ONDA 5+: adicionar uma linguagem é UMA linha aqui + um arquivo
- * `lang/<id>.ts` + um `registerAdapter` no fim deste arquivo. A ordem do §7
- * (linhas 960-991) é: javascript → typescript → python → go → ruby → …
+ * ONDA 5: `python` é a SEGUNDA linha, e ela é a prova da arquitetura — o
+ * adaptador dela parseia por SUBPROCESSO (`python3 -I -S` + o `ast`/`symtable`
+ * da stdlib), não por lib npm (§7 item 3). Adicionar uma linguagem continua
+ * sendo UMA linha aqui + um arquivo `lang/<id>.ts` + um `registerAdapter` no
+ * fim deste arquivo. A ordem do §7 (linhas 960-991) é:
+ * javascript → typescript → python → go → ruby → …
  * O teste `tests/engineLangRegistry.test.ts` cobra que esta lista e os
  * adaptadores REGISTRADOS não divirjam (lista sem adaptador = id fantasma).
  */
-export const KNOWN_LANGUAGE_IDS = ['javascript'] as const;
+export const KNOWN_LANGUAGE_IDS = ['javascript', 'python'] as const;
 
-/** Um id de linguagem conhecido (`'javascript'`). */
+/** Um id de linguagem conhecido (`'javascript'`, `'python'`). */
 export type LanguageId = (typeof KNOWN_LANGUAGE_IDS)[number];
 
 /**
@@ -97,9 +101,17 @@ export const DEFAULT_ADAPTER_ID: LanguageId = 'javascript';
  *
  * `'nodejs'` está aqui porque é o que as 112 trilhas do disco declaram. Ele
  * NÃO é uma linguagem (§6): é o runtime do par (javascript, node). O registro
- * o resolve para `'javascript'` em `adapterIdForChallengeLanguage`.
+ * o resolve para `'javascript'` em `adapterIdForChallengeLanguage`. Pelo mesmo
+ * motivo `'python3'` e `'cpython'` acompanham `'python'`: o primeiro é o nome
+ * do BINÁRIO e o segundo o da IMPLEMENTAÇÃO — nenhum dos dois é a linguagem.
  */
-export const KNOWN_CHALLENGE_LANGUAGES = ['javascript', 'nodejs'] as const;
+export const KNOWN_CHALLENGE_LANGUAGES = [
+  'javascript',
+  'nodejs',
+  'python',
+  'python3',
+  'cpython',
+] as const;
 
 /** Valor válido de `challenge.language` / `track.programmingLanguage`. */
 export type ChallengeLanguageToken = (typeof KNOWN_CHALLENGE_LANGUAGES)[number];
@@ -162,6 +174,12 @@ export const NON_CODE_THEORY_TAGS = [
   'csv',
   'xml',
   'log',
+  // Transcrição de REPL do Python (`>>> ...` + saída): NÃO é Python
+  // parseável. Sem esta linha o bloco cairia em 'desconhecida' ou, pior,
+  // iria para o parser e viraria PARSE_ERROR num texto que está correto.
+  'pycon',
+  'py-repl',
+  'traceback',
 ] as const;
 
 /** Uma tag de bloco declaradamente NÃO analisável (dados/prosa/saída). */
@@ -873,7 +891,13 @@ export function listTheoryCodeTags(): string[] {
 }
 
 // ---------------------------------------------------------------------------
-// Registro do adaptador DEFAULT (a única linha que a onda 5 replica)
+// Registro dos adaptadores — UMA LINHA POR LINGUAGEM
 // ---------------------------------------------------------------------------
+//
+// A ordem importa só para o erro: `idsConhecidos()` ordena antes de mostrar.
+// `javascript` roda o compilador TypeScript DENTRO do processo; `python`
+// roda `python3` por `spawnSync` — as duas formas cabem na MESMA interface, e
+// é isso que o §7 item 3 pede que fique provado.
 
 registerAdapter(javascriptAdapter);
+registerAdapter(pythonAdapter);
