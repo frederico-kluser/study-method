@@ -30,11 +30,13 @@ import {
   TrackModuleSource,
   TrackSource,
   TrackValidationIssue,
+  trackProgrammingLanguage,
   validateChallengeSource,
   validateLessonSource,
   validateModuleSource,
   validateTrackSource,
 } from './trackTypes';
+import { adapterIdForChallengeLanguage } from '../engine/lang/registry';
 
 /** Uma trilha CARREGADA e VALIDADA (a fonte de verdade que o runtime consome). */
 export interface LoadedTrack {
@@ -90,6 +92,49 @@ function concat(...groups: TrackValidationIssue[][]): TrackValidationIssue[] {
 }
 
 /**
+ * §6 (linhas 934-940) de `docs/research/08-multilingua-trava-deterministica.md`:
+ *
+ *     "language": "python",   // deriva de track.programmingLanguage;
+ *                             //  o loader confere igualdade
+ *
+ * A igualdade é conferida sobre o ADAPTADOR RESOLVIDO, não sobre a string
+ * crua, e o motivo é o disco de hoje: o default de trilha é a LINGUAGEM
+ * (`javascript`) e o dos desafios é o RUNTIME (`nodejs`) — §6: "`nodejs` não é
+ * uma linguagem, é um runtime". Comparar as strings reprovaria 112 desafios
+ * por escreverem a mesma coisa com dois nomes; comparar os adaptadores pega o
+ * erro que importa (um desafio Python numa trilha JavaScript seria auditado
+ * pelo parser errado).
+ *
+ * FAIL-CLOSED: divergência é `TrackLoadError`, e a mensagem NOMEIA OS DOIS
+ * valores divergentes — quem for consertar o arquivo precisa saber qual dos
+ * dois lados mudar.
+ *
+ * EXPORTADA de propósito: com UM adaptador registrado (o estado de hoje), a
+ * divergência é INALCANÇÁVEL por dado válido — todo token legítimo resolve
+ * para `javascript`. A função é exportada para (a) ser testável diretamente
+ * enquanto isso e (b) a onda 5 poder aplicá-la também na materialização (F12),
+ * onde o desafio nasce, e não só na leitura.
+ */
+export function issuesDeLinguagemDoDesafio(
+  challenge: TrackChallengeSource,
+  file: string,
+  esperado: { adapterId: string; declarado: string },
+): TrackValidationIssue[] {
+  const doDesafio = adapterIdForChallengeLanguage(challenge.language);
+  if (doDesafio === esperado.adapterId) return [];
+  return [
+    {
+      file,
+      message:
+        `language do desafio (${JSON.stringify(challenge.language)}` +
+        `${doDesafio === null ? ', sem adaptador' : ` → adaptador '${doDesafio}'`}) ` +
+        `diverge da linguagem da trilha (track.programmingLanguage = ${JSON.stringify(esperado.declarado)} ` +
+        `→ adaptador '${esperado.adapterId}') — o desafio seria auditado pelo parser errado`,
+    },
+  ];
+}
+
+/**
  * Carrega e valida UMA trilha inteira (track.json + módulos + aulas + desafios
  * + proficiência). Lança TrackLoadError quando qualquer arquivo é inválido ou
  * uma referência quebra — o CLI usa o mesmo para rejeitar conteúdo ruim.
@@ -104,6 +149,17 @@ export async function loadTrack(trackDir: string): Promise<LoadedTrack> {
     throw new TrackLoadError(`trilha inválida em ${trackDir}`, issues);
   }
   const track = trackRaw as TrackSource;
+
+  // §6 linhas 934-940: a linguagem que TODO desafio da trilha tem de resolver.
+  // `validateTrackSource` já reprovou um `programmingLanguage` sem adaptador,
+  // então aqui o valor é sempre resolvível; o `?? ''` é defesa muda contra um
+  // futuro caminho que chame `loadTrack` sem validar (nunca casaria com
+  // adaptador nenhum → fail-closed, jamais default silencioso).
+  const linguagemDaTrilha = trackProgrammingLanguage(track);
+  const esperadoDeLinguagem = {
+    adapterId: adapterIdForChallengeLanguage(linguagemDaTrilha) ?? '',
+    declarado: linguagemDaTrilha,
+  };
 
   const modules: LoadedModule[] = [];
   const knownChallengeSlugs = new Set<string>();
@@ -160,6 +216,10 @@ export async function loadTrack(trackDir: string): Promise<LoadedTrack> {
           throw new TrackLoadError(`trilha inválida em ${trackDir}`, issues);
         }
         const challenge = challengeRaw as TrackChallengeSource;
+        issues.push(...issuesDeLinguagemDoDesafio(challenge, challengePath, esperadoDeLinguagem));
+        if (issues.length > 0) {
+          throw new TrackLoadError(`trilha inválida em ${trackDir}`, issues);
+        }
         knownChallengeSlugs.add(`${moduleSlug}/${lessonSlug}/${challengeSlug}`);
         challenges.push(challenge);
       }
@@ -186,6 +246,10 @@ export async function loadTrack(trackDir: string): Promise<LoadedTrack> {
         throw new TrackLoadError(`trilha inválida em ${trackDir}`, issues);
       }
       moduleChallenge = challengeRaw as TrackChallengeSource;
+      issues.push(...issuesDeLinguagemDoDesafio(moduleChallenge, moduleChallengePath, esperadoDeLinguagem));
+      if (issues.length > 0) {
+        throw new TrackLoadError(`trilha inválida em ${trackDir}`, issues);
+      }
     }
     modules.push({ meta: module, lessons, challenge: moduleChallenge });
   }
@@ -218,6 +282,13 @@ export async function loadTrack(trackDir: string): Promise<LoadedTrack> {
   try {
     const profRaw = await readJson(profPath);
     const profIssues = validateChallengeSource(profRaw, profPath);
+    // A checagem de linguagem só roda quando o arquivo já é um desafio válido
+    // (o validador acima é quem garante que `profRaw` é objeto).
+    if (profIssues.length === 0) {
+      profIssues.push(
+        ...issuesDeLinguagemDoDesafio(profRaw as TrackChallengeSource, profPath, esperadoDeLinguagem),
+      );
+    }
     if (profIssues.length > 0) {
       throw new TrackLoadError(`trilha inválida em ${trackDir}`, profIssues);
     }

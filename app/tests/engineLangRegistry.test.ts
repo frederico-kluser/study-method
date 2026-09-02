@@ -1,0 +1,436 @@
+/**
+ * tests/engineLangRegistry.test.ts — O REGISTRO DE ADAPTADORES DE LINGUAGEM.
+ *
+ * Contrato normativo: `docs/research/08-multilingua-trava-deterministica.md`
+ * §6 (linhas 855-957). Este arquivo cobre DUAS coisas, e a segunda é a que
+ * importa mais nesta onda:
+ *
+ *   1. O REGISTRO em si — enum de ids, fail-closed em id desconhecido,
+ *      resolução de token de desafio (`nodejs` → `javascript`) e de tag de
+ *      bloco de teoria.
+ *   2. A PARIDADE do adaptador JavaScript com os valores que hoje vivem
+ *      espalhados. O adaptador foi publicado com a promessa de ZERO mudança de
+ *      comportamento; cada campo copiado de outro arquivo é comparado AQUI com
+ *      a sua origem. Quando a onda 5 apagar a origem e fizer o arquivo
+ *      importar do adaptador, estes testes continuam valendo — só param de
+ *      comparar duas coisas e passam a comparar uma com ela mesma, que é
+ *      exatamente o sinal de que a migração terminou.
+ */
+import { describe, it } from 'node:test';
+import assert from 'node:assert/strict';
+
+import {
+  DEFAULT_ADAPTER_ID,
+  DEFAULT_CHALLENGE_LANGUAGE,
+  DEFAULT_RUNTIME,
+  ENV_ALLOWLIST_COMUM,
+  ENV_NUCLEO_COMUM,
+  KNOWN_CHALLENGE_LANGUAGES,
+  KNOWN_LANGUAGE_IDS,
+  LanguageRegistryError,
+  adapterIdForChallengeLanguage,
+  adapterIdForTheoryTag,
+  applyEnvScrub,
+  applyLegacyEnvScrub,
+  classifyTheoryTag,
+  defaultAdapter,
+  findAdapter,
+  getAdapter,
+  hasAdapter,
+  isChallengeLanguage,
+  listAdapterIds,
+  listChallengeLanguages,
+  listTheoryCodeTags,
+  registerAdapter,
+  type LanguageAdapter,
+} from '../electron/main/engine/lang/registry';
+import { javascriptAdapter } from '../electron/main/engine/lang/javascript';
+
+// as FONTES que o adaptador duplica hoje (a paridade é medida contra elas)
+import { SAFE_FILE_PATH_RE } from '../electron/main/content/trackTypes';
+import { SPEC_TEST_ARGS, exitCodeMeaning, parseSpecCounts } from '../electron/main/engine/exec/proofs';
+import { NETWORK_HARDENING, buildChildEnv } from '../electron/main/engine/exec/harness';
+import { FORBIDDEN_ALWAYS } from '../electron/main/engine/atomKeys';
+import { RUNTIME_GLOBALS, countTestDeclarations } from '../electron/main/engine/extract';
+import { nodeBinary, parseSpecChecks } from '../electron/main/services/challengeExec';
+import { JS_FENCE_TAGS, collectLessonCode, extractFencedBlocks } from '../electron/main/engine/theoryCode';
+
+const js = javascriptAdapter;
+
+describe('registro — enum de ids e resolução', () => {
+  it('todo id DECLARADO tem adaptador registrado, e todo adaptador tem id declarado', () => {
+    assert.deepEqual(listAdapterIds(), [...KNOWN_LANGUAGE_IDS].sort());
+  });
+
+  it('o adaptador default é javascript e está registrado', () => {
+    assert.equal(DEFAULT_ADAPTER_ID, 'javascript');
+    assert.equal(defaultAdapter().id, 'javascript');
+    assert.ok(hasAdapter('javascript'));
+  });
+
+  it('getAdapter de id desconhecido LANÇA erro estruturado — nunca cai no default', () => {
+    assert.throws(
+      () => getAdapter('python'),
+      (err: unknown) => {
+        assert.ok(err instanceof LanguageRegistryError);
+        assert.equal(err.code, 'ADAPTADOR_DESCONHECIDO');
+        assert.equal(err.detalhes.pedido, 'python');
+        assert.deepEqual(err.detalhes.conhecidos, ['javascript']);
+        assert.ok(err.message.includes('javascript'), err.message);
+        return true;
+      },
+    );
+  });
+
+  it('findAdapter é a variante TOLERANTE (null em vez de lançar)', () => {
+    assert.equal(findAdapter('python'), null);
+    assert.equal(findAdapter('javascript'), js);
+  });
+
+  it("registerAdapter recusa id fora de KNOWN_LANGUAGE_IDS (id fantasma)", () => {
+    const falso = { ...js, id: 'ruby' } as unknown as LanguageAdapter;
+    assert.throws(
+      () => registerAdapter(falso),
+      (err: unknown) => {
+        assert.ok(err instanceof LanguageRegistryError);
+        assert.equal(err.code, 'ID_NAO_DECLARADO');
+        return true;
+      },
+    );
+  });
+
+  it('registerAdapter recusa id DUPLICADO (um id, um adaptador)', () => {
+    assert.throws(
+      () => registerAdapter(js),
+      (err: unknown) => {
+        assert.ok(err instanceof LanguageRegistryError);
+        assert.equal(err.code, 'ADAPTADOR_DUPLICADO');
+        return true;
+      },
+    );
+  });
+
+  it("'nodejs' é RUNTIME e resolve para a LINGUAGEM 'javascript' (§6: nodejs não é linguagem)", () => {
+    assert.equal(adapterIdForChallengeLanguage('nodejs'), 'javascript');
+    assert.equal(adapterIdForChallengeLanguage('javascript'), 'javascript');
+    assert.equal(adapterIdForChallengeLanguage('NodeJS'), 'javascript', 'caixa e espaço normalizados');
+    assert.equal(adapterIdForChallengeLanguage('python'), null);
+    assert.equal(adapterIdForChallengeLanguage(undefined), null);
+    assert.equal(adapterIdForChallengeLanguage(42), null);
+  });
+
+  it('isChallengeLanguage e listChallengeLanguages batem com o declarado', () => {
+    assert.ok(isChallengeLanguage('nodejs'));
+    assert.ok(!isChallengeLanguage('python'));
+    assert.deepEqual(listChallengeLanguages(), [...KNOWN_CHALLENGE_LANGUAGES].sort());
+  });
+
+  it("o DEFAULT de challenge.language continua 'nodejs' (as 112 trilhas do disco)", () => {
+    assert.equal(DEFAULT_CHALLENGE_LANGUAGE, 'nodejs');
+    assert.equal(DEFAULT_RUNTIME, 'nodejs');
+  });
+});
+
+describe('registro — tag de bloco de teoria (qual parser recebe cada bloco)', () => {
+  it('tag de código resolve para o adaptador; dado/prosa não vai a parser; desconhecida idem', () => {
+    assert.deepEqual(classifyTheoryTag('js'), { kind: 'codigo', adapterId: 'javascript', tag: 'js' });
+    assert.deepEqual(classifyTheoryTag('JavaScript'), { kind: 'codigo', adapterId: 'javascript', tag: 'javascript' });
+    assert.deepEqual(classifyTheoryTag('json'), { kind: 'nao-codigo', adapterId: null, tag: 'json' });
+    assert.deepEqual(classifyTheoryTag('http'), { kind: 'nao-codigo', adapterId: null, tag: 'http' });
+    assert.deepEqual(classifyTheoryTag('ruby'), { kind: 'desconhecida', adapterId: null, tag: 'ruby' });
+    assert.deepEqual(classifyTheoryTag(''), { kind: 'ausente', adapterId: null, tag: '' });
+    assert.deepEqual(classifyTheoryTag(undefined), { kind: 'ausente', adapterId: null, tag: '' });
+  });
+
+  it('as 4 tags que a trilha REAL usa em theory[].code.language são todas classificadas', () => {
+    // medido: `js` 148, `javascript` 20, `http` 1, `json` 1 em resources/tracks.
+    for (const tag of ['js', 'javascript', 'http', 'json']) {
+      assert.notEqual(classifyTheoryTag(tag).kind, 'desconhecida', tag);
+    }
+  });
+
+  it('listTheoryCodeTags é a união das tags dos adaptadores', () => {
+    assert.deepEqual(listTheoryCodeTags(), [...js.theoryFenceTags].sort());
+  });
+});
+
+describe('paridade JS — VALORES copiados batem com a origem de hoje', () => {
+  it('filePathPattern === SAFE_FILE_PATH_RE (content/trackTypes.ts:67)', () => {
+    assert.equal(js.filePathPattern.source, SAFE_FILE_PATH_RE.source);
+    assert.equal(js.filePathPattern.flags, SAFE_FILE_PATH_RE.flags);
+    assert.equal(js.filePathPattern.flags, '', 'sem /g: RegExp compartilhado com /g guarda lastIndex');
+    assert.ok(js.filePathPattern.test('lib/soma.mjs'));
+    assert.ok(!js.filePathPattern.test('../fuga.mjs'));
+    assert.ok(!js.filePathPattern.test('solution.js'));
+  });
+
+  it('testCommand === SPEC_TEST_ARGS (engine/exec/proofs.ts:74)', () => {
+    assert.deepEqual([...js.testCommand], [...SPEC_TEST_ARGS]);
+  });
+
+  it('forbiddenInvariants === FORBIDDEN_ALWAYS (engine/atomKeys.ts:163)', () => {
+    assert.deepEqual([...js.forbiddenInvariants], [...FORBIDDEN_ALWAYS]);
+  });
+
+  it('globals() === RUNTIME_GLOBALS (engine/extract.ts:121)', () => {
+    assert.deepEqual([...js.globals()].sort(), [...RUNTIME_GLOBALS].sort());
+    for (const nome of ['undefined', 'NaN', 'Infinity', 'arguments', 'eval', 'console']) {
+      assert.ok(js.globals().has(nome), nome);
+    }
+    assert.equal(js.builtins(), js.globals(), 'em JS builtins e globals coincidem');
+  });
+
+  it('theoryFenceTags === JS_FENCE_TAGS (engine/theoryCode.ts:32)', () => {
+    assert.deepEqual([...js.theoryFenceTags].sort(), [...JS_FENCE_TAGS].sort());
+  });
+
+  it('detect().binary === nodeBinary() (services/challengeExec.ts:52)', () => {
+    const d = js.detect();
+    assert.equal(d.binary, nodeBinary());
+    assert.equal(d.ok, true);
+    assert.equal(d.version, process.versions.node);
+  });
+
+  it('layout() escreve os MESMOS arquivos que prepareIsolatedDir (engine/exec/harness.ts:78-100)', () => {
+    const unico = js.layout({ code: 'export const a = 1;\n', testsCode: 'test();\n' });
+    assert.deepEqual(
+      unico.files.map((f) => f.path),
+      ['package.json', 'solution.mjs', 'test.mjs'],
+    );
+    assert.equal(unico.files[0].content, JSON.stringify({ type: 'module' }));
+    assert.equal(unico.entryPath, 'solution.mjs');
+    assert.equal(unico.testPath, 'test.mjs');
+    assert.equal(unico.manifestPath, 'package.json');
+
+    const multi = js.layout({
+      code: 'ignorado',
+      files: [
+        { path: 'lib/soma.mjs', code: 'export const soma = 1;' },
+        { path: 'solution.mjs', code: 'export const s = 2;' },
+      ],
+      testsCode: 'test();\n',
+    });
+    assert.deepEqual(
+      multi.files.map((f) => f.path),
+      ['package.json', 'lib/soma.mjs', 'solution.mjs', 'test.mjs'],
+      'com `files`, o solution.mjs implícito NÃO é escrito (igual ao harness)',
+    );
+  });
+});
+
+describe('paridade JS — envScrub (§6 obs. 2: allowlist) sem quebrar a denylist vigente', () => {
+  it('strip cobre NODE_TEST_CONTEXT + toda a NETWORK_HARDENING.stripEnv', () => {
+    assert.ok(js.envScrub.strip.includes('NODE_TEST_CONTEXT'));
+    for (const nome of NETWORK_HARDENING.stripEnv) {
+      assert.ok(js.envScrub.strip.includes(nome), `faltou ${nome}`);
+    }
+  });
+
+  it('fixed === NETWORK_HARDENING.fixedEnv (sem o núcleo comum — quem o injeta é o applyEnvScrub)', () => {
+    assert.deepEqual(js.envScrub.fixed, NETWORK_HARDENING.fixedEnv);
+  });
+
+  it('applyLegacyEnvScrub reproduz buildChildEnv BYTE A BYTE (o comportamento de hoje)', () => {
+    const base = {
+      PATH: '/usr/bin',
+      HOME: '/home/x',
+      NODE_TEST_CONTEXT: 'test',
+      HTTP_PROXY: 'http://proxy',
+      https_proxy: 'http://proxy',
+      NODE_TLS_REJECT_UNAUTHORIZED: '0',
+      FORCE_COLOR: '1',
+      NODE_OPTIONS: '--require evil',
+      MINHA_VAR: 'preservada',
+    };
+    assert.deepEqual(applyLegacyEnvScrub(js.envScrub, base), buildChildEnv({ ...base }));
+    // e o que ele preserva: a denylist NÃO derruba variável desconhecida.
+    assert.equal(applyLegacyEnvScrub(js.envScrub, base).MINHA_VAR, 'preservada');
+    assert.equal(applyLegacyEnvScrub(js.envScrub, base).NODE_TEST_CONTEXT, undefined);
+    assert.deepEqual(base.NODE_TEST_CONTEXT, 'test', 'PURA: não muta o base');
+  });
+
+  it('applyEnvScrub é ALLOWLIST: só o permitido entra, e o determinismo é imposto', () => {
+    const env = applyEnvScrub(js.envScrub, {
+      PATH: '/usr/bin',
+      MINHA_VAR: 'nao deveria passar',
+      GOFLAGS: '-mod=mod',
+      PYTHONPATH: '/veneno',
+      LC_ALL: 'pt_BR.UTF-8',
+      TZ: 'America/Sao_Paulo',
+    });
+    assert.equal(env.PATH, '/usr/bin');
+    assert.equal(env.MINHA_VAR, undefined, 'allowlist: o que não está na lista não entra');
+    assert.equal(env.GOFLAGS, undefined);
+    assert.equal(env.PYTHONPATH, undefined);
+    assert.equal(env.LC_ALL, ENV_NUCLEO_COMUM.LC_ALL, 'o núcleo comum SOBRESCREVE o herdado');
+    assert.equal(env.TZ, ENV_NUCLEO_COMUM.TZ);
+    assert.equal(env.NO_PROXY, '*');
+  });
+
+  it('a allowlist comum tem o mínimo para o spawn sequer achar o binário', () => {
+    assert.ok(ENV_ALLOWLIST_COMUM.includes('PATH'));
+    assert.ok(ENV_ALLOWLIST_COMUM.includes('HOME'));
+  });
+});
+
+describe('paridade JS — comportamento DELEGADO (contagens, checks, exit codes)', () => {
+  const TESTS_CODE = [
+    "import test from 'node:test';",
+    "test('a', () => {});",
+    "test('b', () => {});",
+    "// test('comentado', () => {});",
+    "test.skip('c', () => {});",
+  ].join('\n');
+
+  it('countDeclared === countTestDeclarations (comentário não conta)', () => {
+    assert.equal(js.countDeclared(TESTS_CODE), countTestDeclarations(TESTS_CODE));
+    assert.equal(js.countDeclared(TESTS_CODE), 3);
+  });
+
+  it('countRun === parseSpecCounts (último bloco de resumo, tolerante a ANSI)', () => {
+    const saida = [
+      "console.log do codigo sob teste: ℹ tests 99",
+      'ℹ tests 3',
+      'ℹ pass 2',
+      'ℹ fail 1',
+      'ℹ skipped 0',
+    ].join('\n');
+    assert.deepEqual(js.countRun(saida), parseSpecCounts(saida));
+    assert.deepEqual(js.countRun(saida), { testsRun: 3, pass: 2, fail: 1, skipped: 0 });
+  });
+
+  it('parseChecks === parseSpecChecks', () => {
+    const saida = '✔ caso 1 (0.42175ms)\n✖ caso 2 (1.203ms)\nℹ tests 2\n';
+    assert.deepEqual(js.parseChecks(saida), parseSpecChecks(saida));
+    assert.deepEqual(js.parseChecks(saida), [
+      { name: 'caso 1', passed: true },
+      { name: 'caso 2', passed: false },
+    ]);
+  });
+
+  it('failureExitCodes: falha é code !== 0, e a dupla-igualdade é INVARIANTE (§6 obs. 3)', () => {
+    assert.equal(js.failureExitCodes.isFailure(0), false);
+    assert.equal(js.failureExitCodes.isFailure(1), true);
+    assert.equal(js.failureExitCodes.isFailure(137), true);
+    assert.equal(js.failureExitCodes.meaning(137), exitCodeMeaning(137));
+    assert.equal(js.failureExitCodes.successRequiresCountMatch, true);
+  });
+});
+
+describe('paridade JS — Porta 1 (parse) e os membros que a onda 5 vai consumir', () => {
+  it('parse devolve árvore com line/column 1-based e offsets absolutos', () => {
+    const fonte = 'const a = 1;\nconst b = a + 2;\n';
+    const r = js.parse(fonte);
+    assert.ok(r.ok);
+    if (!r.ok) return;
+    assert.equal(r.source, fonte);
+    assert.equal(r.root.line, 1);
+    assert.equal(r.root.column, 1);
+    assert.equal(r.root.start, 0);
+
+    const achar = (tipo: string, no = r.root): typeof r.root | null => {
+      if (no.type === tipo) return no;
+      for (const filho of no.children) {
+        const achado = achar(tipo, filho);
+        if (achado) return achado;
+      }
+      return null;
+    };
+    const bin = achar('BinaryExpression');
+    assert.ok(bin, 'a árvore normalizada expõe BinaryExpression');
+    if (!bin) return;
+    assert.equal(bin.line, 2, '`a + 2` está na 2ª linha');
+    assert.equal(bin.attributes.operator, '+');
+    assert.equal(bin.attributes.operatorFamily, 'binary');
+    assert.equal(fonte.slice(bin.start, bin.end), bin.text, 'offsets indexam o fonte devolvido');
+  });
+
+  it('parse de código quebrado devolve PARSE_ERROR estruturado (nunca exceção, nunca árvore parcial)', () => {
+    const r = js.parse('const = ;');
+    assert.equal(r.ok, false);
+    if (r.ok) return;
+    assert.equal(r.error.code, 'PARSE_ERROR');
+    assert.ok(r.error.line >= 1);
+    assert.ok(r.error.column >= 1);
+    assert.ok(r.error.message.length > 0);
+  });
+
+  it('constructKey: tipo + ATRIBUTO, não só tipo (§6)', () => {
+    const r = js.parse('let x = 1; x += 2; const y = x !== 3;');
+    assert.ok(r.ok);
+    if (!r.ok) return;
+    const chaves = new Set<string>();
+    const visitar = (no: typeof r.root): void => {
+      const k = js.constructKey(no);
+      if (k) chaves.add(k);
+      for (const f of no.children) visitar(f);
+    };
+    visitar(r.root);
+    assert.ok(chaves.has('op:assign:+='), [...chaves].join(' '));
+    assert.ok(chaves.has('op:binary:!=='), [...chaves].join(' '));
+    assert.ok(chaves.has('decl:let'), [...chaves].join(' '));
+    assert.ok(chaves.has('decl:const'), [...chaves].join(' '));
+    assert.ok(chaves.has('node:IfStatement') === false);
+  });
+
+  it('inventory é o enum FECHADO de tipos de nó — ordenado, sem marcador de faixa', () => {
+    const inv = js.inventory();
+    assert.ok(inv.length > 100, `esperado > 100 tipos, veio ${inv.length}`);
+    assert.deepEqual([...inv], [...inv].sort(), 'ordenado (determinismo do complemento)');
+    assert.ok(inv.includes('IfStatement'));
+    assert.ok(inv.includes('BinaryExpression'));
+    assert.ok(!inv.some((n) => n.startsWith('First') || n.startsWith('Last')));
+    assert.equal(js.inventory(), inv, 'memoizado — mesma referência');
+  });
+
+  it('resolveScopes separa declarado, importado e livre (limite PLANO declarado)', () => {
+    const r = js.parse(
+      "import assert from 'node:assert/strict';\nconst local = 1;\nfunction f(p) { return p + local + console.log(assert); }\n",
+    );
+    assert.ok(r.ok);
+    if (!r.ok) return;
+    const escopos = js.resolveScopes(r);
+    assert.ok(escopos.declared.has('local'));
+    assert.ok(escopos.declared.has('f'));
+    assert.ok(escopos.declared.has('p'));
+    assert.ok(escopos.declared.has('assert'));
+    assert.ok(escopos.imported.has('assert'));
+    assert.ok(!escopos.free.has('local'), 'nome declarado não é livre');
+    assert.ok(escopos.globals.has('console'), 'console é global de runtime e não foi declarado');
+  });
+});
+
+describe('theoryCode — adapterId por bloco (o campo que a onda 5 consome)', () => {
+  it('cerca com tag de código: adapterId javascript; isJavaScript continua derivado', () => {
+    const { blocks } = extractFencedBlocks('```js\nconst a = 1;\n```\n');
+    assert.equal(blocks.length, 1);
+    assert.equal(blocks[0].adapterId, 'javascript');
+    assert.equal(blocks[0].isJavaScript, true);
+  });
+
+  it('cerca com tag de DADO: sem adaptador (não vai a parser)', () => {
+    const { blocks } = extractFencedBlocks('```json\n{"a":1}\n```\n');
+    assert.equal(blocks[0].adapterId, null);
+    assert.equal(blocks[0].isJavaScript, false);
+  });
+
+  it('cerca SEM tag: sem adaptador E defeito de formato (o comportamento de hoje)', () => {
+    const { blocks, hygiene } = extractFencedBlocks('```\nqualquer coisa\n```\n');
+    assert.equal(blocks[0].adapterId, null);
+    assert.equal(blocks[0].isJavaScript, false);
+    assert.equal(hygiene[0].code, 'FENCE_SEM_TAG');
+  });
+
+  it('campo `code` da seção SEM language: DEFAULT do adaptador (a assimetria documentada)', () => {
+    const { blocks } = collectLessonCode([{ id: 's', code: { code: 'const a = 1;' } }]);
+    assert.equal(blocks[0].origin, 'section-code');
+    assert.equal(blocks[0].adapterId, 'javascript');
+    assert.equal(blocks[0].isJavaScript, true, 'preserva engine/theoryCode.ts:178 de antes da onda');
+  });
+
+  it('campo `code` da seção com language de dado: sem adaptador', () => {
+    const { blocks } = collectLessonCode([{ id: 's', code: { language: 'json', code: '{"a":1}' } }]);
+    assert.equal(blocks[0].adapterId, null);
+    assert.equal(blocks[0].isJavaScript, false);
+  });
+});

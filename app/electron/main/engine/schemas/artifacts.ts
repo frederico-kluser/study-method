@@ -40,6 +40,8 @@
 
 import { z } from 'zod';
 
+import { DEFAULT_CHALLENGE_LANGUAGE, KNOWN_CHALLENGE_LANGUAGES } from '../lang/registry';
+
 // ---------------------------------------------------------------------------
 // Compartilhados
 // ---------------------------------------------------------------------------
@@ -407,6 +409,29 @@ export const LessonDraftSchema = z.object({
 export const ChallengeDraftSchema = z.object({
   slug: z.string().min(1),
   conceito: z.string().min(1),
+  /**
+   * A LINGUAGEM DE PROGRAMAÇÃO do desafio — o id/token do registro
+   * (`engine/lang/registry.ts`), o mesmo vocabulário de
+   * `TrackChallengeSource.language`.
+   *
+   * POR QUE O CAMPO PRECISAVA EXISTIR: o draft de desafio (F8) é o artefato
+   * que atravessa F8 → F9 (provas por execução) → F12 (materialização), e até
+   * aqui ele NÃO carregava linguagem nenhuma — `f12Materialize.ts:463` a
+   * inventava com o literal `language: 'nodejs'` na saída. Num mundo de mais
+   * de uma linguagem, um draft sem linguagem é um draft que o provador não
+   * sabe executar e o auditor não sabe parsear.
+   *
+   * INV-05 (nada opcional nos schemas da engine): a ausência vira valor
+   * EXPLÍCITO via `z.preprocess` — o MESMO padrão de `assertions` no
+   * `LessonDraftSchema` acima, e não `.default()`, que o lint de
+   * `fieldOrder.encontrarCamposOpcionais` reprova. Draft antigo/sem o campo
+   * continua parseando, com `DEFAULT_CHALLENGE_LANGUAGE` (`'nodejs'`) — que é
+   * exatamente o literal que a F12 escrevia.
+   */
+  language: z.preprocess(
+    (v) => (v === undefined ? DEFAULT_CHALLENGE_LANGUAGE : v),
+    z.enum(KNOWN_CHALLENGE_LANGUAGES as unknown as [string, ...string[]]),
+  ),
   statement: z.string().min(1),
   starterCode: z.string().min(1),
   solutionCode: z.string().min(1),

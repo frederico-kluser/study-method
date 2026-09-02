@@ -673,6 +673,7 @@ describe('P-22 generate — fiação completa offline (fases reais + fakes)', ()
           raciocinio_de_projeto: 'desafio mínimo: declarar e atribuir',
           slug: 'declarar-variavel',
           conceito: CONCEITO,
+          language: 'nodejs',
           statement: 'Declare uma variável chamada total com o valor 1.',
           starterCode: STARTER.trim(),
           solutionCode: SOLUTION.trim(),

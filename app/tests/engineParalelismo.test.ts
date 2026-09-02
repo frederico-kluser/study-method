@@ -413,6 +413,7 @@ function overrideF7(conceitos: readonly string[]): (ctx: ContextoDeFase) => Prom
         raciocinio_de_projeto: 'desafio mínimo: declarar e atribuir',
         slug: `declarar-${conceito}`,
         conceito,
+        language: 'nodejs',
         statement: `Declare uma variável chamada total com o valor 1 (${conceito}).`,
         starterCode: STARTER_DA_AULA.trim(),
         solutionCode: CORPO_DA_AULA.trim(),

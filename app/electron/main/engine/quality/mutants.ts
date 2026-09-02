@@ -161,6 +161,11 @@ export function desafioValidoExemplo(): DesafioParaMutacao {
   const desafio: Desafio = {
     slug: 'm01/a03/desafio-paridade',
     conceito: 'op:binary:%',
+    // ADITIVO (registro de linguagens): o ChallengeDraftSchema passou a exigir
+    // `language` — o draft F8 atravessa F9/F12 e precisa dizer em que
+    // linguagem ele é. 'nodejs' é o DEFAULT do registro e o mesmo literal que
+    // a F12 já escrevia em challenge.json.
+    language: 'nodejs',
     statement:
       'Escreva a função `ehPar(n)` que retorna true quando n é par e false caso contrário.',
     starterCode: 'export function ehPar(n) {\n  // seu código aqui\n}\n',

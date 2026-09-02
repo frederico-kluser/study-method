@@ -455,3 +455,41 @@ describe('engine CLI — audit: a linha de truncamento NÃO chama aviso de viola
     assert.equal(trunc.total, trunc.erros + trunc.avisos);
   });
 });
+
+// ---------------------------------------------------------------------------
+// ONDA DO REGISTRO DE LINGUAGENS — `--linguagem` / `--plataforma` no generate
+// ---------------------------------------------------------------------------
+
+/**
+ * Os campos `linguagem`/`plataforma` JA existiam em `ComandosGeracao`
+ * (`engine/fiacao/geraTrilha.ts:303-305`) e JA chegavam a F0 (`:947-953`) — o
+ * CLI simplesmente nunca os parseava, e nenhum caminho de linha de comando
+ * conseguia enche-los. Estes testes cobrem o parse e o FAIL-CLOSED da
+ * validacao contra o registro de adaptadores.
+ *
+ * Nenhum deles chega a criar run: a validacao de flags acontece ANTES de
+ * qualquer escrita em `content-src/` (o `fail()` sai com exit 2 na hora).
+ */
+describe('cli generate — --linguagem / --plataforma (registro de adaptadores)', () => {
+  it('--linguagem sem adaptador ABORTA com exit 2 e lista o que vale', async () => {
+    const r = await runEngineSemChave(['generate', 'trilha-nao-criada', '--assunto', 'x', '--linguagem', 'python']);
+    assert.equal(r.code, 2, `stdout:\n${r.stdout}\nstderr:\n${r.stderr}`);
+    assert.ok(r.stderr.includes('--linguagem invalido'), r.stderr);
+    assert.ok(r.stderr.includes('python'), r.stderr);
+    assert.ok(r.stderr.includes('javascript'), r.stderr);
+    assert.ok(r.stderr.includes('nodejs'), r.stderr);
+  });
+
+  it('--plataforma vazia ABORTA (contexto em branco e pior que contexto ausente)', async () => {
+    const r = await runEngineSemChave(['generate', 'trilha-nao-criada', '--assunto', 'x', '--plataforma', '  ']);
+    assert.equal(r.code, 2, `stdout:\n${r.stdout}\nstderr:\n${r.stderr}`);
+    assert.ok(r.stderr.includes('--plataforma vazio'), r.stderr);
+  });
+
+  it('o USAGE documenta as duas flags novas', async () => {
+    const r = await runEngineSemChave([]);
+    const texto = `${r.stdout}\n${r.stderr}`;
+    assert.ok(texto.includes('--linguagem'), texto.slice(0, 400));
+    assert.ok(texto.includes('--plataforma'), texto.slice(0, 400));
+  });
+});

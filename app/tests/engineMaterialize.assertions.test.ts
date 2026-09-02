@@ -141,6 +141,7 @@ function challengeDraft(over: Partial<ChallengeDraft>): ChallengeDraft {
   const base: ChallengeDraft = {
     slug: 'declarar-variavel',
     conceito: 'variaveis',
+    language: 'nodejs',
     statement: 'Declare uma variável chamada total com o valor 1.',
     starterCode: 'export let total;',
     solutionCode: 'export let total = 1;',

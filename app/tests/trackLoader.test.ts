@@ -37,6 +37,7 @@ import {
   findChallenge,
   findLesson,
   findLessonAnywhere,
+  issuesDeLinguagemDoDesafio,
   listTrackSlugs,
   loadAllTracks,
   loadTrack,
@@ -549,5 +550,104 @@ describe('trackLoader — carregamento', () => {
         return true;
       },
     );
+  });
+});
+
+// ---------------------------------------------------------------------------
+// ONDA DO REGISTRO DE LINGUAGENS (§6 de docs/research/08-multilingua-…)
+// ---------------------------------------------------------------------------
+
+describe('trackTypes/trackLoader — linguagem por REGISTRO DE ADAPTADORES', () => {
+  it("challenge.language aceita 'nodejs' (runtime, o do disco) E 'javascript' (a linguagem)", () => {
+    assert.deepEqual(validateChallengeSource(challenge({ language: 'nodejs' }), 'c.json'), []);
+    assert.deepEqual(validateChallengeSource(challenge({ language: 'javascript' }), 'c.json'), []);
+  });
+
+  it('challenge.language sem adaptador REPROVA, e a mensagem lista o que vale', () => {
+    const issues = validateChallengeSource(
+      { ...challenge(), language: 'python' } as unknown,
+      'c.json',
+    );
+    const msg = issues.map((i) => i.message).join('\n');
+    assert.ok(msg.includes('language inválido'), msg);
+    assert.ok(msg.includes('python'), msg);
+    assert.ok(msg.includes("'nodejs'"), msg);
+  });
+
+  it('track.programmingLanguage/harnessLanguage: ausentes valem; presentes sem adaptador REPROVAM', () => {
+    assert.deepEqual(validateTrackSource(track(), 'track.json'), []);
+    assert.deepEqual(validateTrackSource(track({ programmingLanguage: 'javascript' }), 'track.json'), []);
+    assert.deepEqual(validateTrackSource(track({ harnessLanguage: 'nodejs', runtime: 'nodejs' }), 'track.json'), []);
+    const issues = validateTrackSource(
+      { ...track(), programmingLanguage: 'ruby' } as unknown,
+      'track.json',
+    );
+    assert.ok(issues.some((i) => i.message.includes('programmingLanguage inválido')), JSON.stringify(issues));
+  });
+
+  it('trilha do disco (sem programmingLanguage) + desafio nodejs CARREGA — o default é o adaptador javascript', async () => {
+    const dir = path.join(tmpDir(), 'default-implicito');
+    await writeTrack(dir, track(), [lesson()]);
+    const loaded = await loadTrack(dir);
+    assert.equal(loaded.modules[0].lessons[0].challenges[0].language, 'nodejs');
+  });
+
+  it("trilha 'javascript' com desafio 'nodejs' CARREGA — a igualdade é do ADAPTADOR, não da string", async () => {
+    const dir = path.join(tmpDir(), 'alias-runtime');
+    await writeTrack(dir, track({ programmingLanguage: 'javascript' }), [lesson()]);
+    const loaded = await loadTrack(dir);
+    assert.equal(loaded.root.programmingLanguage, 'javascript');
+    assert.equal(loaded.modules[0].lessons[0].challenges[0].language, 'nodejs');
+  });
+
+  it('desafio com linguagem que NENHUM adaptador reivindica derruba a trilha (fail-closed no load)', async () => {
+    const dir = path.join(tmpDir(), 'lingua-sem-adaptador');
+    await writeTrack(dir, track({ programmingLanguage: 'javascript' }), [lesson()], null, {
+      lessonChallenge: { ...challenge({ slug: 'desafio-1' }), language: 'python' } as unknown as TrackChallengeSource,
+    });
+    await assert.rejects(
+      () => loadTrack(dir),
+      (err: unknown) => {
+        assert.ok(err instanceof TrackLoadError);
+        const msg = err.issues.map((i) => i.message).join('\n');
+        assert.ok(msg.includes('python'), msg);
+        return true;
+      },
+    );
+  });
+
+  it('proficiency.json com linguagem sem adaptador tambem derruba', async () => {
+    const dir = path.join(tmpDir(), 'lingua-sem-adaptador-prof');
+    await writeTrack(dir, track({ programmingLanguage: 'javascript' }), [lesson()], {
+      ...challenge({ slug: 'proficiencia' }),
+      language: 'python',
+    } as unknown as TrackChallengeSource);
+    await assert.rejects(
+      () => loadTrack(dir),
+      (err: unknown) => {
+        assert.ok(err instanceof TrackLoadError);
+        return true;
+      },
+    );
+  });
+
+  /**
+   * A DIVERGENCIA de §6 (linhas 934-940) e INALCANCAVEL por dado valido
+   * enquanto existir UM adaptador so: todo token legitimo resolve para
+   * `javascript`. A checagem e testada aqui DIRETAMENTE, para que ela nao
+   * entre na onda 5 sem cobertura nenhuma.
+   */
+  it('issuesDeLinguagemDoDesafio: mesmo adaptador nao acusa; adaptador diferente acusa NOMEANDO os dois', () => {
+    const desafio = challenge({ language: 'nodejs' });
+    assert.deepEqual(
+      issuesDeLinguagemDoDesafio(desafio, 'c.json', { adapterId: 'javascript', declarado: 'javascript' }),
+      [],
+      "'nodejs' e o RUNTIME do adaptador 'javascript' — a igualdade e do adaptador, nao da string",
+    );
+    const issues = issuesDeLinguagemDoDesafio(desafio, 'c.json', { adapterId: 'python', declarado: 'python' });
+    assert.equal(issues.length, 1);
+    assert.ok(issues[0].message.includes('nodejs'), issues[0].message);
+    assert.ok(issues[0].message.includes('python'), issues[0].message);
+    assert.ok(issues[0].message.includes('javascript'), issues[0].message);
   });
 });

@@ -65,6 +65,7 @@ function desafioJaEscrito(): DesafioFixture {
   return {
     slug: 'm01/a01/desafio-let',
     conceito: 'decl:let',
+    language: 'nodejs',
     statement: 'Declare a variável contador e reatribua 2.',
     starterCode: 'let contador = 1;',
     solutionCode: 'let contador = 1; contador = 2;',

@@ -99,6 +99,10 @@ import {
   SCHEMA_REGISTRY,
 } from '../../electron/main/engine/schemas/artifacts';
 import { lintSchemasDaEngine } from '../../electron/main/engine/schemas/fieldOrder';
+import {
+  isChallengeLanguage,
+  listChallengeLanguages,
+} from '../../electron/main/engine/lang/registry';
 
 const CLI_ROOT = path.resolve(__dirname, '..', '..');
 const TRACKS_DIR = path.join(CLI_ROOT, 'resources', 'tracks');
@@ -149,6 +153,7 @@ comandos:
 
   generate <slug> --assunto "..." [--from FASE] [--only slug]
                   [--teto-tokens N] [--familia sintaxe|algoritmo|api-runtime|...]
+                  [--linguagem ID] [--plataforma TEXTO]
                   [--modelo-revisor ID] [--modelo-autor ID] [--rodadas N]
       executa F0 a F12 e produz uma trilha nova em resources/tracks/<slug>.
       O run (run.json + ledger + artefatos + drafts) vive em content-src/<slug>
@@ -159,6 +164,15 @@ comandos:
       --teto-tokens N poe TETO DURO de tokens por execucao (soma da telemetria
       do run, checada na ENTRADA de cada fase; estourou -> TOKENS_ESGOTADOS
       com checkpoint retomavel).
+      --linguagem ID e a LINGUAGEM DE PROGRAMACAO que a trilha ensina; vale um
+      id do registro de adaptadores (engine/lang/registry.ts) ou um alias de
+      runtime dele. Fail-closed: id sem adaptador aborta (exit 2), nunca cai
+      em default silencioso. Ausente = a linguagem default (javascript).
+      --plataforma TEXTO e o contexto de plataforma do brief (ex.: "navegador",
+      "terminal", "electron"). Texto livre: nao existe registro de plataformas,
+      e inventar um fecharia porta que o produto ainda nao mapeou.
+      As duas chegam a F0 como contexto do brief (ComandosGeracao.linguagem /
+      .plataforma).
       --modelo-revisor ID LIGA a F10 (o laco revisor -> plano -> correcao
       sobre os drafts da onda). SEM ela a F10 nao roda e a limitacao e
       DECLARADA na saida (§9.2): o roteamento do §6.2 exige
@@ -961,6 +975,25 @@ async function cmdGenerate(pos: string[], flags: Record<string, string>): Promis
   if (familia !== undefined && !familiasValidas.includes(familia)) {
     fail(`--familia invalido: ${familia} (esperado uma de ${familiasValidas.join(', ')})`);
   }
+  // --linguagem / --plataforma: os campos JA EXISTIAM em ComandosGeracao
+  // (engine/fiacao/geraTrilha.ts:303-305) e JA chegavam a F0 (:947-953) — o CLI
+  // simplesmente nunca os parseava, e nenhum caminho conseguia enche-los.
+  // FAIL-CLOSED na linguagem: so vale token que ALGUM adaptador registrado
+  // reivindica; token sem adaptador aborta em vez de virar o default, porque
+  // uma trilha gerada com o parser errado passa no gate e ensina errado.
+  const linguagem = flags.linguagem;
+  if (linguagem !== undefined && !isChallengeLanguage(linguagem)) {
+    fail(
+      `--linguagem invalido: ${linguagem} (esperado uma de ${listChallengeLanguages().join(', ')} — ` +
+        'ids e aliases do registro de adaptadores em engine/lang/registry.ts)',
+    );
+  }
+  // --plataforma e TEXTO LIVRE (nao ha registro de plataformas); so o vazio e
+  // recusado, porque contexto em branco no brief e pior que contexto ausente.
+  const plataforma = flags.plataforma;
+  if (plataforma !== undefined && plataforma.trim() === '') {
+    fail('--plataforma vazio (informe o contexto, ex.: "terminal", ou omita a flag)');
+  }
 
   const roteamento = resolverRoteamentoOuNulo(flags);
   const rodadas = resolverRodadas(flags);
@@ -991,6 +1024,8 @@ async function cmdGenerate(pos: string[], flags: Record<string, string>): Promis
       only,
       tetoTokens,
       familia: familia as FamiliaAssunto | undefined,
+      linguagem,
+      plataforma,
     });
     console.log('');
     if (resultado.concluido) {

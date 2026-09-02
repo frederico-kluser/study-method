@@ -35,6 +35,17 @@
  *     continua passando (trilhas antigas carregam sem o campo).
  */
 
+import {
+  DEFAULT_ADAPTER_ID,
+  DEFAULT_CHALLENGE_LANGUAGE,
+  DEFAULT_RUNTIME,
+  adapterIdForChallengeLanguage,
+  defaultAdapter,
+  listChallengeLanguages,
+  type ChallengeLanguageToken,
+  type TheoryCodeLanguage,
+} from '../engine/lang/registry';
+
 /** Slug canônico de trilha/módulo/aula/desafio. */
 export const SLUG_RE = /^[a-z0-9]+(-[a-z0-9]+)*$/;
 
@@ -57,14 +68,39 @@ export const DEFAULT_MIN_FIRST_STAR_MS = 60_000;
 /** Proficiência é desafio mais longo: 2 min de carência da 1ª estrela. */
 export const PROFICIENCY_MIN_FIRST_STAR_MS = 120_000;
 
-export type TrackChallengeLanguage = 'nodejs';
+/**
+ * A linguagem de um DESAFIO. Deixou de ser o literal `'nodejs'` e passou a ser
+ * derivada do REGISTRO DE ADAPTADORES (`engine/lang/registry.ts`) — a costura
+ * multilíngua do §6 de `docs/research/08-multilingua-trava-deterministica.md`.
+ *
+ * `'nodejs'` continua VÁLIDO e continua sendo o DEFAULT: é o que as 112
+ * trilhas do disco declaram, e o §6 pede separação de campos, não renomeação
+ * de dados existentes. O registro sabe que `'nodejs'` é o RUNTIME do par
+ * (javascript, node) e o resolve para o adaptador `'javascript'`.
+ *
+ * CUIDADO COM O HOMÔNIMO: este `language` é a linguagem de PROGRAMAÇÃO. O
+ * `TrackSource.language` (`'pt-BR' | 'en'`) é a língua da PROSA. São campos
+ * diferentes com o mesmo nome, em níveis diferentes do schema — ver o
+ * comentário em `TrackSource`.
+ */
+export type TrackChallengeLanguage = ChallengeLanguageToken;
+
+/** O DEFAULT de `challenge.language` — `'nodejs'`, do registro. */
+export const DEFAULT_TRACK_CHALLENGE_LANGUAGE: TrackChallengeLanguage = DEFAULT_CHALLENGE_LANGUAGE;
 
 /**
  * Regex de caminho seguro de arquivo de desafio multi-arquivo (rodada 9):
  * só letras/dígitos/_/-//, termina em .mjs. Proíbe '..', pontos no meio e
  * qualquer outra coisa que escape do diretório de execução.
+ *
+ * VEM DO ADAPTADOR desde a onda do registro (§6 obs. 1: "o regex vira um campo
+ * do adaptador" — com Go o arquivo termina em `_test.go`, com Rust o fonte
+ * vive em `src/`). O símbolo continua exportado daqui porque quatro arquivos o
+ * importam (`engine/exec/harness.ts:50`, `services/challengeExec.ts:25`,
+ * `ipc/track-handlers.ts:42` e este); o VALOR é o `filePathPattern` do
+ * adaptador default.
  */
-export const SAFE_FILE_PATH_RE = /^[a-zA-Z0-9_\-/]+\.mjs$/;
+export const SAFE_FILE_PATH_RE = defaultAdapter().filePathPattern;
 
 /**
  * UM arquivo de um desafio MULTI-ARQUIVO (rodada 9): o aluno edita TODOS os
@@ -119,8 +155,28 @@ export interface TrackTheorySection {
   title: string;
   /** conteúdo em markdown (linguagem simples, pt-BR). */
   markdown: string;
-  /** trecho de código ilustrativo com explicação (opcional). */
-  code?: { language: string; code: string; explanation?: string };
+  /**
+   * trecho de código ilustrativo com explicação (opcional).
+   *
+   * `language` deixou de ser string livre e passou a ser `TheoryCodeLanguage`,
+   * ligada ao REGISTRO (§6, linha 954: "`TrackTheorySection.code.language`
+   * hoje é uma string livre; ela precisa passar a ser um enum, porque é ela
+   * que diz ao extrator qual parser aplicar a cada bloco cercado da teoria").
+   *
+   * O registro resolve toda tag em três baldes (`classifyTheoryTag`):
+   *   - CÓDIGO      → tem adaptador (`js`, `javascript`, `mjs`, `cjs`, `node`, `jsx`);
+   *   - NÃO-CÓDIGO  → dado/protocolo/saída, nunca vai a parser (`json`, `http`, …);
+   *   - DESCONHECIDA→ tag que ninguém reivindica.
+   *
+   * DEFAULT DE BLOCO SEM TAG (a decisão que o §6 cobra, linha 956 — "68 de 262
+   * blocos da trilha atual não têm tag de linguagem nenhuma"): o default é
+   * `DEFAULT_ADAPTER_ID` (`javascript`) — o mesmo comportamento de hoje
+   * (`engine/theoryCode.ts:178`, `isJavaScript: language === '' ? true : …`).
+   * O default é do CAMPO `code`, não da CERCA: bloco cercado sem tag continua
+   * sendo DEFEITO DE FORMATO e NÃO é analisado. A assimetria é intencional e
+   * está documentada em `engine/theoryCode.ts`.
+   */
+  code?: { language: TheoryCodeLanguage; code: string; explanation?: string };
 }
 
 /**
@@ -206,10 +262,63 @@ export interface TrackSource {
   slug: string;
   title: string;
   description: string;
+  /**
+   * A LÍNGUA DA PROSA (`pt-BR`/`en`) — o idioma em que a trilha está escrita.
+   *
+   * ARMADILHA DE NOME, e a razão de este comentário existir: `TrackSource.
+   * language` e `TrackChallengeSource.language` são coisas DIFERENTES. Aqui é
+   * idioma humano; lá é linguagem de programação. O §6 (linhas 918-927) mantém
+   * os dois de propósito e batiza o novo para não haver dúvida:
+   *
+   *     "language": "pt-BR",              // idioma da PROSA (já existe, não confundir)
+   *     "programmingLanguage": "python",  // NOVO: a linguagem que a trilha ensina
+   *
+   * Nunca escreva um id de adaptador aqui, e nunca leia este campo para
+   * escolher parser.
+   */
   language: 'pt-BR' | 'en';
   domain: 'programming' | 'math';
   /** slugs dos módulos, na ordem da trilha. */
   modules: string[];
+  /**
+   * ADITIVO (§6 linhas 918-927): A LINGUAGEM DE PROGRAMAÇÃO QUE A TRILHA
+   * ENSINA — o id do adaptador (`engine/lang/registry.ts`) que audita toda a
+   * trilha. NÃO confundir com `language` acima (idioma da prosa).
+   *
+   * OPCIONAL com default `DEFAULT_ADAPTER_ID` (`javascript`): as trilhas que
+   * já estão no disco não declaram o campo, e invalidá-las seria mudança de
+   * comportamento. Ausente = a trilha ensina a linguagem default.
+   *
+   * O loader confere que todo `challenge.language` RESOLVE para este mesmo
+   * adaptador (§6 linhas 934-940) — ver `trackLoader.ts`.
+   */
+  programmingLanguage?: TrackChallengeLanguage;
+  /**
+   * ADITIVO (§6 linhas 918-927): TOOLCHAIN + VERSÃO PINADA (`cpython-3.14`,
+   * `nodejs`). O §6 anota que "o inventário depende dela" — o enum de tipos de
+   * nó que o orçamento usa é gerado pelo `inventory()` do adaptador, e esse
+   * inventário muda com a versão do compilador/interpretador.
+   *
+   * OPCIONAL com default `DEFAULT_RUNTIME` (`nodejs`) pelo mesmo motivo de
+   * `programmingLanguage`. Hoje NÃO é validado contra uma lista fechada: não
+   * existe registro de runtimes, e inventar um seria fechar uma porta que o
+   * §6 deixou aberta ("JavaScript rodando em Deno").
+   */
+  runtime?: string;
+  /**
+   * ADITIVO (§6 linhas 918-931): EM QUE LINGUAGEM OS `testsCode` SÃO
+   * ESCRITOS. "É o que resolve o caso SQL/HTML/CSS, em que o desafio é escrito
+   * numa linguagem e testado em outra. Quando ele difere de
+   * `programmingLanguage`, a faixa RECEPTIVA passa a ser a união de dois
+   * orçamentos, um por linguagem — e o gate precisa saber qual adaptador
+   * aplicar a qual artefato."
+   *
+   * OPCIONAL com default = `programmingLanguage` (que por sua vez tem default
+   * `javascript`). Divergir dos dois é legítimo e só passa a ter efeito quando
+   * a álgebra de orçamento de duas faixas existir (§7 item 6: SQL/HTML/CSS
+   * "não devem vir antes de a álgebra de orçamento estar estável").
+   */
+  harnessLanguage?: TrackChallengeLanguage;
   /**
    * ADITIVO (onda 1 context-validator): CRITÉRIOS DE ENTRADA da trilha — o que
    * o aluno precisa JÁ SABER antes de começar a trilha (ex.: 'somar dois
@@ -222,6 +331,32 @@ export interface TrackSource {
    * próprio validador (nunca declarado no JSON).
    */
   entryCriteria?: string[];
+}
+
+// ---------------------------------------------------------------------------
+// Resolução dos campos multilíngua (§6) — SEMPRE por estas funções
+// ---------------------------------------------------------------------------
+//
+// Os três campos novos são OPCIONAIS no disco (nenhuma trilha existente os
+// declara). Ler `track.programmingLanguage` cru e comparar com string levaria
+// a `undefined !== 'nodejs'` e reprovaria a trilha inteira — por isso o default
+// vive AQUI, num lugar só, e não espalhado em cada leitor.
+
+/** A linguagem que a trilha ensina (default: o adaptador default). */
+export function trackProgrammingLanguage(track: Pick<TrackSource, 'programmingLanguage'>): TrackChallengeLanguage {
+  return track.programmingLanguage ?? DEFAULT_ADAPTER_ID;
+}
+
+/** A linguagem em que os testsCode são escritos (default: a da trilha). */
+export function trackHarnessLanguage(
+  track: Pick<TrackSource, 'programmingLanguage' | 'harnessLanguage'>,
+): TrackChallengeLanguage {
+  return track.harnessLanguage ?? trackProgrammingLanguage(track);
+}
+
+/** A toolchain pinada da trilha (default: o runtime do adaptador default). */
+export function trackRuntime(track: Pick<TrackSource, 'runtime'>): string {
+  return track.runtime ?? DEFAULT_RUNTIME;
 }
 
 /** Erro de validação: mensagem + caminho do arquivo (para o CLI e o loader). */
@@ -271,7 +406,17 @@ export function validateChallengeSource(raw: unknown, file: string): TrackValida
     issues.push({ file, message: `concept inválido: ${JSON.stringify(c.concept)} (snake_case, ex.: 'variaveis')` });
   }
   issues.push(...validateNumber(c.difficulty, file, 'difficulty', 1, 5));
-  if (c.language !== 'nodejs') issues.push({ file, message: `language inválido: ${JSON.stringify(c.language)} (somente 'nodejs')` });
+  // PERTINÊNCIA AO REGISTRO (era `c.language !== 'nodejs'`): o valor vale se, e
+  // só se, ALGUM adaptador registrado o reivindica (`engine/lang/registry.ts`).
+  // Fail-closed — token que nenhum adaptador reconhece NÃO cai no default: o
+  // desafio seria auditado com o parser errado e o gate aprovaria qualquer
+  // coisa. `'nodejs'` segue válido (é o runtime do adaptador `javascript`).
+  if (adapterIdForChallengeLanguage(c.language) === null) {
+    issues.push({
+      file,
+      message: `language inválido: ${JSON.stringify(c.language)} (somente ${listChallengeLanguages().map((l) => `'${l}'`).join(', ')})`,
+    });
+  }
   if (!isNonEmptyString(c.statement)) issues.push({ file, message: 'statement vazio' });
   // ADITIVO (rodada 9): desafio MULTI-ARQUIVO — cada entry precisa de path
   // seguro + starterCode string + solutionCode não-vazio; paths ÚNICOS;
@@ -484,6 +629,23 @@ export function validateTrackSource(raw: unknown, file: string): TrackValidation
   if (t.domain !== 'programming' && t.domain !== 'math') issues.push({ file, message: `domain inválido: ${JSON.stringify(t.domain)}` });
   if (!Array.isArray(t.modules) || t.modules.length === 0) {
     issues.push({ file, message: 'modules ausente/vazio (a trilha precisa de módulos)' });
+  }
+  // ADITIVO (§6 linhas 918-927): programmingLanguage / runtime / harnessLanguage.
+  // OPCIONAIS (as trilhas do disco não os declaram); PRESENTES, fail-closed —
+  // uma trilha que declara uma linguagem sem adaptador seria auditada com o
+  // parser errado, que é exatamente o furo que o §6 existe para fechar.
+  for (const campo of ['programmingLanguage', 'harnessLanguage'] as const) {
+    const valor = t[campo];
+    if (valor === undefined) continue;
+    if (adapterIdForChallengeLanguage(valor) === null) {
+      issues.push({
+        file,
+        message: `${campo} inválido: ${JSON.stringify(valor)} (somente ${listChallengeLanguages().map((l) => `'${l}'`).join(', ')})`,
+      });
+    }
+  }
+  if (t.runtime !== undefined && !isNonEmptyString(t.runtime)) {
+    issues.push({ file, message: `runtime inválido: ${JSON.stringify(t.runtime)} (esperado texto não vazio, ex.: 'nodejs')` });
   }
   // ADITIVO (onda 1 context-validator): entryCriteria OPCIONAL — quando
   // presente, precisa ser um array de strings NÃO vazias (critério em branco
