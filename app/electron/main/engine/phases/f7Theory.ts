@@ -39,12 +39,14 @@
  * (`gerarPromptAutor`) TERMINA mandando o modelo repetir a lista de construções
  * permitidas DEPOIS do JSON — então `JSON.parse` do conteúdo inteiro quebra
  * contra qualquer modelo que OBEDEÇA a regra 18. A leitura da resposta usa
- * `separarJsonECauda` (o mesmo separador do `modes/curriculumGap`, escrito por
- * causa disso): primeiro objeto de topo BALANCEADO + a cauda que sobrou, sem
- * NUNCA "consertar" JSON — sem objeto balanceado, `SAIDA_NAO_JSON` (fail-closed).
- * A cauda é CONFERIDA (`compararChecksum`) e REPORTADA por etapa
- * (`ChecksumDeEtapa`), nunca bloqueante, pela mesma razão do `curriculumGap`: o
- * gate DURO desta fase é a verificação de orçamento (`validarDraftDeAula` /
+ * `separarJsonECauda` (`runtime/jsonTail.ts` — módulo-FOLHA compartilhado com
+ * `modes/curriculumGap.ts`, o primeiro lugar que precisou dela, e com
+ * `f8Challenges.ts`): primeiro objeto de topo BALANCEADO + a cauda que
+ * sobrou, sem NUNCA "consertar" JSON — sem objeto balanceado,
+ * `SAIDA_NAO_JSON` (fail-closed). A cauda é CONFERIDA (`compararChecksum`) e
+ * REPORTADA por etapa (`ChecksumDeEtapa`), nunca bloqueante, pela mesma razão
+ * do `curriculumGap`: o gate DURO desta fase é a verificação de orçamento
+ * (`validarDraftDeAula` /
  * `ofensasDeOrcamentoDoDesafio`), que lê o CÓDIGO efetivamente escrito em vez
  * do eco do modelo — evidência forte no lugar de repetição. Reprovar por
  * divergência de cauda seria julgar o ENQUADRAMENTO do texto (um cabeçalho
@@ -81,10 +83,10 @@ import {
 } from '../runtime/scheduler';
 import type { Task } from '../runtime/task';
 import type { EscreverArquivoFn } from '../runtime/runState';
+import { separarJsonECauda } from '../runtime/jsonTail';
 import { LessonDraftSchema } from '../schemas/artifacts';
 import { extractAtoms } from '../extract';
 import { formatarErroCampos } from '../schemas/fieldOrder';
-import { separarJsonECauda } from '../modes/curriculumGap';
 import {
   AuthorOutputSchema,
   MAX_TOKENS_SAIDA_AUTOR,

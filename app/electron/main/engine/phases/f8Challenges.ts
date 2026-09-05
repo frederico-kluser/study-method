@@ -49,13 +49,23 @@
  * `DepsDoDesafio.prover` — ver o handoff do P-17 para o mapeamento exato.
  *
  * Dependência: f8Challenges NÃO importa de f7Theory (a F7 importa daqui o
- * fluxo do desafio e os tipos compartilhados). Importa, sim,
- * `separarJsonECauda` de `modes/curriculumGap` — que por sua vez importa
- * `blocosDeCodigoDaTeoria` da F7: o grafo de módulos fecha um CICLO
- * (f8 → curriculumGap → f7 → f8). É deliberado e seguro: o separador é a
- * ÚNICA implementação do repositório (reimplementá-lo aqui seria a terceira
- * cópia da mesma regra), e nenhum dos três módulos usa o binding do outro em
- * tempo de AVALIAÇÃO — só dentro de funções, depois que todos carregaram.
+ * fluxo do desafio e os tipos compartilhados) NEM de `modes/curriculumGap`.
+ * Importa, sim, `separarJsonECauda` de `runtime/jsonTail.ts` — um módulo-FOLHA
+ * (não importa de `phases/` nem de `modes/`) que existe exatamente para isto:
+ * `curriculumGap.ts` foi o primeiro lugar a precisar do separador, mas
+ * reimportá-lo DE LÁ fechava um ciclo real no grafo de módulos
+ * (f8 → curriculumGap → f7 → f8, via `blocosDeCodigoDaTeoria`, que
+ * `curriculumGap` importa de F7) — inofensivo na prática (nenhum dos três
+ * módulos usava o binding do outro em tempo de AVALIAÇÃO, só dentro de
+ * funções) mas invertendo a camada: `phases/` dependendo de `modes/`, quando
+ * é `modes/` quem orquestra `phases/`. A extração para `runtime/jsonTail.ts`
+ * fecha esse ciclo: os três consumidores (`f7Theory.ts`, `f8Challenges.ts`,
+ * `curriculumGap.ts`) importam a MESMA implementação de um módulo que não
+ * depende de nenhum deles (reimplementá-la em cada um seria a terceira cópia
+ * da mesma regra). `tests/engineModuleGraphAcyclic.test.ts` tranca a ausência
+ * do ciclo lendo o grafo de imports de `engine/**` — não só o `tsc` (que
+ * tolera ciclo) nem o `npm run build` (que nem alcança `phases/`/`modes/`: o
+ * bundle do electron-vite não os inclui, só o CLI via `tsx` os usa).
  *
  * O CHECKSUM DE CAUDA (§7.1 R18, A-P11-5): `gerarPromptAutorDeDesafio`, como o
  * prompt canônico do autor de aula, TERMINA mandando o modelo repetir a lista
@@ -72,10 +82,10 @@ import { z } from 'zod';
 import type { EngineLlm, LlmCallRequest } from '../runtime/callLlm';
 import type { ChallengeProofsInput, ChallengeProofsVerdict } from '../exec/proofs';
 import type { RateLimiter, RateLimiters } from '../runtime/scheduler';
+import { separarJsonECauda } from '../runtime/jsonTail';
 import { ChallengeDraftSchema } from '../schemas/artifacts';
 import { formatarErroCampos } from '../schemas/fieldOrder';
 import { extractAtoms } from '../extract';
-import { separarJsonECauda } from '../modes/curriculumGap';
 import {
   MAX_TOKENS_SAIDA_AUTOR,
   compararChecksum,

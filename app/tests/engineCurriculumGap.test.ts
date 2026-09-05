@@ -59,7 +59,6 @@ import {
   ordemDaTrilha,
   planejarAulasDeLacuna,
   sementeParaLacuna,
-  separarJsonECauda,
   slugDaAulaDeLacuna,
   verificarAulaNova,
   type AulaNovaPlanejada,
@@ -1044,14 +1043,5 @@ describe('materialização e separador — as peças puras de saída', () => {
     assert.equal(lesson.theory.length, 1);
     assert.equal(lesson.difficulty, 3);
     assert.equal((lesson as Record<string, unknown>).eiClass, 'regra');
-  });
-
-  it('separarJsonECauda separa o objeto do checksum de cauda, sem consertar JSON', () => {
-    const partido = separarJsonECauda('{"a": "}{", "b": 1}\n=== CHECKSUM ===\n- x\n');
-    assert.ok(partido);
-    assert.deepEqual(JSON.parse(partido.json), { a: '}{', b: 1 });
-    assert.match(partido.cauda, /CHECKSUM/);
-    assert.equal(separarJsonECauda('sem objeto nenhum'), null);
-    assert.equal(separarJsonECauda('{"a": 1'), null, 'objeto não fechado não é "consertado"');
   });
 });

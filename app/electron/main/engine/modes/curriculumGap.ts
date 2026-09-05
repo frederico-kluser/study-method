@@ -162,6 +162,7 @@ import {
 import { montarDossie, type ConcepcaoARefutar, type Dossier, type EiClass } from '../prompts/dossier';
 import { ACOES_DE_LACUNA, planoDeAcao, type AcaoDeLacuna, type ApontamentoParaPlano } from '../review/actionCatalog';
 import type { EngineLlm, LlmCallRequest } from '../runtime/callLlm';
+import { separarJsonECauda } from '../runtime/jsonTail';
 import { canonicalizarJson, sha256Hex } from '../runtime/ledger';
 
 // ---------------------------------------------------------------------------
@@ -1086,40 +1087,6 @@ export interface AulaAceita {
   arquivos: readonly ArquivoDaAulaNova[];
   /** conferência do checksum de cauda (A-P11-5) — reportada, não bloqueante. */
   checksum: ResultadoChecksum | null;
-}
-
-/**
- * Extrai o objeto JSON da resposta do autor. O prompt canônico do §7.1 TERMINA
- * pedindo o checksum de cauda (a repetição da lista de construções permitidas)
- * DEPOIS do JSON — então `JSON.parse` do conteúdo inteiro falha por
- * construção. Esta função devolve o primeiro objeto de topo BALANCEADO e a
- * cauda que sobrou, sem nunca "consertar" JSON: se não há objeto balanceado,
- * devolve `null` e o chamador recusa.
- */
-export function separarJsonECauda(conteudo: string): { json: string; cauda: string } | null {
-  const inicio = conteudo.indexOf('{');
-  if (inicio < 0) return null;
-  let profundidade = 0;
-  let emString = false;
-  let escapado = false;
-  for (let i = inicio; i < conteudo.length; i += 1) {
-    const c = conteudo[i];
-    if (emString) {
-      if (escapado) escapado = false;
-      else if (c === '\\') escapado = true;
-      else if (c === '"') emString = false;
-      continue;
-    }
-    if (c === '"') emString = true;
-    else if (c === '{') profundidade += 1;
-    else if (c === '}') {
-      profundidade -= 1;
-      if (profundidade === 0) {
-        return { json: conteudo.slice(inicio, i + 1), cauda: conteudo.slice(i + 1) };
-      }
-    }
-  }
-  return null;
 }
 
 export interface DepsDeAutoriaDeLacuna {
