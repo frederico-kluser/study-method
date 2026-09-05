@@ -36,6 +36,22 @@
  * `.extend()` só anexa; para posicionar o campo na frente reconstruímos o
  * object zod com o shape do draft preservado (mesmos schemas de campo, ordem
  * nova). O lint do P-04 (`lintOrdemCampos`) roda sobre este schema no teste.
+ *
+ * Racionais por alternativa (A-P11-8, onda2-autor-racionais): o schema
+ * (`AssertionDraftSchema`, congelado em `schemas/artifacts.ts`) valida
+ * `optionRationales` com a regra "0 itens (ausente) OU exatamente 4" — nunca
+ * `.optional()` (INV-05), porque esse é o mesmo idioma de ausência explícita
+ * usado no resto do draft. Antes desta onda a seção SAIDA nem pedia
+ * `assertions[]` (conferido por `git log -p` até `935e44c`: o campo nunca
+ * apareceu no texto do prompt, embora `AuthorOutputSchema` já o aceitasse via
+ * `LessonDraftSchema.shape`) — sem isso, pedir só o racional seria instrução
+ * morta sobre um campo que o autor nunca populava. Agora a SAIDA pede
+ * `assertions[]` por extenso e exige EXATAMENTE 4 `optionRationales` sempre
+ * que há quiz, ancoradas em `theory[].id` via `sectionId` — é o material que
+ * o remediador do quiz usa para explicar UM erro específico em vez de
+ * inventar do zero em runtime (docs/02-pedagogia.md §9: nenhuma alegação de
+ * domínio ou percentual; skills/study-method/references/pedagogia.md ERR-5:
+ * o erro é nomeado na alternativa, nunca no aluno).
  */
 
 import { z } from 'zod';
@@ -425,8 +441,16 @@ const SAIDA = [
   'Duas formas de resposta, excludentes:',
   '',
   '1) DRAFT (a aula inteira) — um objeto JSON com EXATAMENTE estes campos, na ordem:',
-  'raciocinio_de_projeto (a justificativa do projeto da aula, escrita ANTES de qualquer decisão), slug, title, objective {verbo, enunciado, contexto, criterio}, introduces {receptive[], productive[] com no máximo 2 itens}, introducesTerms[], foraDeEscopo[] (não vazio), eiClass (fato|categoria|regra|principio|integrativo), targetAtom, notionalMachineDelta, budgetHash, budgetVersion, research[], theory[] (seções teoria|referencia|drill; cada item com id, markdown e tag), justificativa, role (regular|integration), status (rascunho|pronto_para_revisao|bloqueado|aprovado), aprovado.',
+  'raciocinio_de_projeto (a justificativa do projeto da aula, escrita ANTES de qualquer decisão), slug, title, objective {verbo, enunciado, contexto, criterio}, introduces {receptive[], productive[] com no máximo 2 itens}, introducesTerms[], foraDeEscopo[] (não vazio), eiClass (fato|categoria|regra|principio|integrativo), targetAtom, notionalMachineDelta, budgetHash, budgetVersion, research[], theory[] (seções teoria|referencia|drill; cada item com id, markdown e tag), assertions[] (máximo 3; cada item com id, statement, question, options[4], answerIndex 0..3, feedback, sectionId — o id de theory[] que demonstra a afirmação —, optionRationales[4]), justificativa, role (regular|integration), status (rascunho|pronto_para_revisao|bloqueado|aprovado), aprovado.',
   'Nenhum campo é opcional: ausência semanticamente válida é valor vazio EXPLÍCITO (array vazio, string vazia, ou a string vazia onde o tipo pede texto).',
+  // onda2-autor-racionais: o schema (`AssertionDraftSchema`, congelado) aceita
+  // optionRationales com 0 itens (ausência) OU exatamente 4 (um por option) —
+  // nunca 1..3. Aqui pedimos SEMPRE 4 quando a aula tem quiz: é o material que
+  // o remediador usa para explicar UM erro específico (aquela alternativa) em
+  // vez de inventar do zero em runtime — a razão de existir do campo. R9 já
+  // manda refutar concepção errada ancorada na spec; aqui a mesma disciplina
+  // vale por ALTERNATIVA, ancorada em theory[sectionId] em vez da spec bruta.
+  'Toda assertion com quiz preenche optionRationales com EXATAMENTE 4 itens, um por posição de options[], na mesma ordem — nunca 1, 2 ou 3 itens. Cada item explica por que aquela alternativa específica está certa ou errada, ancorado na seção de theory[] que o sectionId da própria assertion aponta (não repita o feedback genérico da afirmação; explique o distrator daquela opção). Nomeie o erro na alternativa errada, nunca no aluno: proibido "você confundiu", "você não prestou atenção", "isso é básico". Nada de elogio ritualizado na opção certa ("Parabéns!", "Muito bem!") nem afirmação de domínio ou percentual de acerto — só o fato técnico sobre a alternativa, com a mesma voz do restante da aula.',
   '',
   '2) BLOCKED (emergência legítima e esperada quando o orçamento não permite o que a aula pede) — um objeto JSON EXATO com estas chaves:',
   '{"blocked": true, "missing": ["<cada construção fora do orçamento>"], "motivo": "<por que o orçamento vigente não permite>"}',

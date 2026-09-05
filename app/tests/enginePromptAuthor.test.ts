@@ -31,7 +31,7 @@ import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import { z } from 'zod';
 
-import { ChallengeDraftSchema } from '../electron/main/engine/schemas/artifacts';
+import { AssertionDraftSchema, ChallengeDraftSchema } from '../electron/main/engine/schemas/artifacts';
 import {
   DECISION_FIELD_NAMES,
   encontrarCamposOpcionais,
@@ -491,5 +491,89 @@ describe('teto de saída (§7: toda saída cabe em 2000 tokens)', () => {
     assert.doesNotThrow(() => rejeitarAcimaDoTeto('conteúdo curto'));
     assert.doesNotThrow(() => rejeitarAcimaDoTeto('a'.repeat(MAX_TOKENS_SAIDA_AUTOR * 4)), 'no teto ainda cabe');
     assert.throws(() => rejeitarAcimaDoTeto('a'.repeat(MAX_TOKENS_SAIDA_AUTOR * 4 + 1)), /acima do teto/);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// 9. Racionais por alternativa no quiz (A-P11-8, onda2-autor-racionais)
+//
+// Antes desta onda a seção SAIDA nem pedia `assertions[]` (o campo nasceu
+// morto por completo, não só o `optionRationales`) — sem o campo-mãe, pedir
+// só o racional seria instrução que o autor nunca teria onde aplicar. Os
+// testes abaixo fixam as DUAS pontas: o prompt pede `assertions[]` com
+// `optionRationales` de EXATAMENTE 4 itens ancorados em `sectionId`, e o
+// schema congelado (`AssertionDraftSchema`) trata 4 como único comprimento
+// não-vazio válido — 2 é meia-declaração e REPROVA o draft.
+// ---------------------------------------------------------------------------
+
+describe('racionais por alternativa no quiz (A-P11-8)', () => {
+  it('o prompt pede assertions[] com optionRationales de EXATAMENTE 4 itens', () => {
+    const prompt = gerarPromptAutor(dossieCompleto());
+    assert.ok(prompt.includes('assertions[]'), 'a SAIDA precisa listar assertions[] como campo do draft');
+    assert.ok(prompt.includes('optionRationales'), 'o prompt precisa nomear optionRationales');
+    assert.ok(
+      prompt.includes('EXATAMENTE 4 itens'),
+      'o prompt precisa exigir exatamente 4 — pedir 2 ou 3 reprovaria o draft no schema',
+    );
+    assert.ok(
+      !prompt.includes('optionRationales com 1') && !prompt.includes('optionRationales com 2 ou 3'),
+      'o prompt não pode sugerir comprimento parcial',
+    );
+  });
+
+  it('a instrução ancora cada racional na seção de teoria via sectionId', () => {
+    const prompt = gerarPromptAutor(dossieCompleto());
+    assert.ok(
+      prompt.includes('sectionId'),
+      'o pedido de optionRationales precisa citar sectionId como âncora em theory[]',
+    );
+    assert.ok(
+      prompt.includes('por que aquela alternativa específica está certa ou errada'),
+      'a instrução precisa ser POR ALTERNATIVA, não o feedback genérico da afirmação',
+    );
+  });
+
+  it('a instrução barra elogio ritualizado e nomeia o erro na alternativa, nunca no aluno (ERR-5)', () => {
+    const prompt = gerarPromptAutor(dossieCompleto());
+    const promptMin = prompt.toLowerCase();
+    assert.ok(!promptMin.includes('pense profundamente'), 'A-P11-4 continua valendo dentro da instrução nova');
+    assert.ok(!promptMin.includes('passo a passo'), 'A-P11-4 continua valendo dentro da instrução nova');
+    assert.ok(prompt.includes('elogio ritualizado'), 'a proibição de elogio ritualizado precisa estar declarada (docs/ux-redesign.md §8.2)');
+    assert.ok(
+      prompt.includes('Nomeie o erro na alternativa errada, nunca no aluno'),
+      'ERR-5: o racional nomeia o erro no material, nunca no aluno',
+    );
+  });
+
+  it('schema (congelado): 4 optionRationales passa, 2 REPROVA o draft (0 ou 4, nunca 1..3)', () => {
+    const baseAssertion = {
+      id: 'a1',
+      statement: 'let permite reatribuir o valor guardado na variável',
+      question: 'depois de `let contador = 1; contador = 2;`, o que contador guarda?',
+      options: ['2', '1', 'let contador = 2', 'erro de sintaxe'],
+      answerIndex: 0,
+      feedback: 'a reatribuição troca o valor guardado na célula; o nome continua o mesmo',
+      sectionId: 't1',
+    };
+
+    const comQuatro = AssertionDraftSchema.safeParse({
+      ...baseAssertion,
+      optionRationales: [
+        'Certo: contador = 2 reatribui a célula já declarada.',
+        'Errado: 1 era o valor ANTES da reatribuição.',
+        'Errado: `let contador = 2` redeclararia; o código só reatribui.',
+        'Errado: reatribuir com let/= é sintaxe válida; não há erro aqui.',
+      ],
+    });
+    assert.equal(comQuatro.success, true, 'EXATAMENTE 4 racionais é o formato preenchido válido');
+
+    const comDois = AssertionDraftSchema.safeParse({
+      ...baseAssertion,
+      optionRationales: ['Certo: contador = 2 reatribui a célula já declarada.', 'Errado: 1 era o valor anterior.'],
+    });
+    assert.equal(comDois.success, false, '2 racionais é meia-declaração e REPROVA o draft (nem 0 nem 4)');
+
+    const semNenhum = AssertionDraftSchema.safeParse({ ...baseAssertion, optionRationales: [] });
+    assert.equal(semNenhum.success, true, '0 racionais continua sendo ausência EXPLÍCITA válida (INV-05)');
   });
 });
