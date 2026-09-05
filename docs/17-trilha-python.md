@@ -511,11 +511,81 @@ Tudo na coluna zero. Sem função, sem bloco, sem recuo. O teste captura `stdout
 | 19 | `a-linha-que-o-python-ignora` | cons. — `global:print` com comentário (`term:comentário`) | `# isto o Python nem lê` | `a-primeira-linha` |
 | 20 | `quando-da-errado` | cons. — leitura de erro (`term:traceback`, `term:SyntaxError`, `term:NameError`) | conserta a linha quebrada | `dar-nome-a-um-valor`, `texto-com-buraco` |
 
-**Progressão produtiva do módulo 1 (23 átomos, na ordem):**
+**Progressão produtiva do módulo 1 — a intenção de currículo (23 átomos, na ordem):**
 `global:print → node:IntLiteral → op:binary:+ → op:binary:- → op:binary:* → op:binary:/ →
 node:FloatLiteral → op:binary:// → op:binary:% → op:binary:** → op:unary:- → op:unary:+ →
 decl:assign → node:JoinedStr → node:FormattedValue → global:int → global:str → global:float →
 global:round → node:BoolLiteral → global:bool → node:NoneLiteral → global:type`
+
+#### ⚑ O que está no DISCO diverge desta tabela em 5 das 20 aulas — e são 28 átomos, não 23
+
+A tabela acima é a **intenção de currículo**; `resources/tracks/python/` é o **conteúdo em
+produção**. Elas não coincidem, e este documento passa a declarar a diferença em vez de deixar o
+leitor supor que coincidem. **Quem vence é o disco** — é ele que o `audit` mede e o aluno estuda.
+
+```bash
+cd app && python3 -c "
+import json, os
+mod = json.load(open('resources/tracks/python/modules/a-tela/module.json'))
+vistos = []
+for i, slug in enumerate(mod['lessons'], 1):
+    d = json.load(open(os.path.join('resources/tracks/python/modules/a-tela/lessons', slug, 'lesson.json')))
+    prod = d['introduces']['productive']
+    print('%2d %-28s %-14s %s' % (i, slug, d['role'], prod))
+    for a in prod:
+        if a not in vistos: vistos.append(a)
+print('distintos:', len(vistos))"
+# -> distintos: 28
+```
+
+As **5 chaves que o disco declara e esta tabela não listava** são as sintéticas estruturais do
+adaptador Python — `node:Call`, `node:StrLiteral`, `node:BinOp`, `node:UnaryOp`, `node:Assign`:
+
+| # | aula | `Ensina` na tabela acima | `introduces.productive` no disco | a diferença |
+|---|---|---|---|---|
+| 1 | `a-primeira-linha` | `global:print` | `global:print`, `node:Call`, `node:StrLiteral` | as duas chaves que §"Público e axioma de entrada" declara **axioma** estão declaradas como aula |
+| 4 | `somar` | `op:binary:+` | `op:binary:+`, `node:BinOp` | o nó que carrega o operador |
+| 9 | `o-sinal-do-numero` | `op:unary:-`, `op:unary:+` | `op:unary:-`, `op:unary:+`, `node:UnaryOp` | idem, na família unária |
+| 10 | `dar-nome-a-um-valor` | `decl:assign` | `decl:assign`, `node:Assign` | o nó da ligação, além da forma de ligação |
+| 20 | `quando-da-errado` | `term:traceback`, `term:SyntaxError`, `term:NameError` | `decl:assign`, `node:JoinedStr` | os `term:` **não são átomos** e não entram em `introduces.productive`; o disco declara a consolidação das duas construções que a aula reusa |
+
+**A tensão real, e ela é normativa.** O §"Público e axioma de entrada" diz, em negrito, que a aula 1
+introduz **exatamente um** átomo produtivo, e que `node:Call`/`node:StrLiteral` são axioma —
+"alargar o axioma além dessas duas chaves é proibido". O disco resolve a mesma exigência pelo lado
+oposto: em vez de deixá-las fora do orçamento como axioma, ele as **declara na aula 1**, o que dá o
+mesmo resultado para o gate (a aula 1 é a origem das duas) mas contradiz a frase. O `audit` sai
+verde nas duas leituras:
+
+```bash
+cd app && npm run engine -- audit python --limite 0   # 0 violacoes · exit 0
+```
+
+O histograma do `audit` mostra a consequência visível: a aula 1 aparece com **3** construções, não
+1 — abaixo do teto de 4 (§3.6 de [`16`](16-engine-de-trilha.md)), mas não é o "1" que esta seção
+promete. **Decisão do dono, pendente:** ou o axioma volta a ser axioma (e as duas chaves saem do
+`introduces` da aula 1), ou este documento para de afirmar "exatamente um". Enquanto não se decide,
+as duas afirmações ficam lado a lado, declaradas.
+
+#### ⚑ `role: "consolidation"` não pertence ao enum da engine
+
+A coluna "cons." desta tabela vira, no disco, `role: "consolidation"` — nas mesmas 5 aulas (2, 11,
+12, 19 e 20). O enum da engine tem **dois** valores:
+
+```bash
+cd app && grep -n "role: z.enum" electron/main/engine/schemas/artifacts.ts
+# 200:      role: z.enum(['regular', 'integration']),
+# 406:  role: z.enum(['regular', 'integration']),
+cd app && python3 -c "
+import json,glob,collections
+c=collections.Counter(json.load(open(f))['role'] for f in glob.glob('resources/tracks/python/modules/*/lessons/*/lesson.json'))
+print(dict(c))"
+# -> {'consolidation': 5, 'regular': 15}
+```
+
+Ninguém tropeçou nisso porque o loader do produto (`app/electron/main/content/trackTypes.ts`) **não
+conhece o campo `role`** e o schema da engine só julga o *draft* que a F7/F12 produz: trilha escrita
+à mão passa, a mesma trilha regerada pela engine seria rejeitada. A divergência está registrada
+também em [`16`](16-engine-de-trilha.md) §3.7 — antes, **nenhum dos dois documentos a registrava**.
 
 **Por que esta ordem — cada decisão, e o que ela elimina**
 
@@ -1261,6 +1331,9 @@ No fim de cada um dos 26 módulos existe um **desafio de MÓDULO**
 
 - **Teoria determinística** — a aula apresenta a teoria direto do `lesson.json` (markdown, seção por
   seção): sem LLM e sem loading. O LLM é usado só para dúvidas (`answer`) e para gerar novo desafio.
+- **O quiz é o PORTÃO da aula, e o portão exige ACERTO.** ⚑ A regra do produto **inverteu**:
+  responder deixou de bastar. Ver a subseção abaixo — é decisão explícita do dono e contradiz o que
+  este documento e os textos de interface diziam antes.
 - **Falha rápida sem chave** — sem chave de LLM o `answer` devolve erro estruturado
   (`TUTOR_UNAVAILABLE`); o fluxo nunca trava em spinner.
 - **Checks por teste** — o veredito mostra ✓/✗ por teste. **Em Python o rótulo do check é a docstring
@@ -1281,6 +1354,80 @@ No fim de cada um dos 26 módulos existe um **desafio de MÓDULO**
 - **Na fase SAÍDA o veredito mostra o que o programa imprimiu**, lado a lado com o que era esperado.
   É a mesma tela que o aluno vai ler 337 aulas depois quando um teste de valor falhar, e ela precisa
   ser a mesma desde a aula 1.
+
+### O quiz da aula — maestria obrigatória, e o ciclo de remediação
+
+**A regra mudou, e a mudança é a inversão do gate.** Até a onda 10 o quiz travava a aula até ser
+**respondido**: errar liberava. A partir desta onda o gate exige **maestria** — só o **acerto**
+fecha a chave e destrava o "Próximo" e o "Concluir aula". **Decisão explícita do dono**; este
+documento a registra, não a discute.
+
+Errar não é punição e não bloqueia em silêncio — abre um **ciclo**:
+
+```
+erro → a IA explica onde AQUELA alternativa se separa do que a seção mostra
+     → a explicação ENTRA NO HISTÓRICO do chat da aula
+     → um quiz NOVO sobre o MESMO conteúdo é gerado na hora (geração N+1)
+     → repete até o acerto
+```
+
+O tom de todo texto do ciclo é **diagnóstico**: descreve onde a alternativa se separa da seção,
+nunca repreende — `docs/ux-redesign.md` §8 é normativo aqui, e §8.2 proíbe o elogio ritualizado em
+favor do feedback informacional específico. O bloqueio do gate não é castigo: é a informação de que
+aquele trecho ainda não foi demonstrado.
+
+**Onde isso vive:** máquina de estado pura em `app/src/lib/trackLessonState.ts` (o estágio
+`'dominado'` é o que fecha a chave), quatro canais IPC em `app/shared/ipc-contract.ts`
+(`track:quiz-attempt`, `track:quiz-explain`, `track:quiz-remedial`, `track:quiz-history`) e duas
+tabelas no SQLite v5 (`quiz_attempts`, `quiz_remediations`). O contrato de produto está em
+[`app-gui.md`](app-gui.md) §2.13.
+
+**`optionRationales` — o material que a explicação usa.** Cada afirmação de `assertions[]` pode
+declarar **um racional por alternativa**: por que aquela opção está errada e, na correta, por que
+está certa. É o que o tutor usa quando o aluno erra — a explicação do **distrator escolhido**, não o
+`feedback` único da afirmação.
+
+| Valor | Significado |
+|---|---|
+| ausente | aula sem racionais declarados — **válido**, e é o estado das 20 aulas desta trilha hoje |
+| `[]` | ausência **explícita**; é o que a engine materializa por INV-05 e a F12 copia verbatim |
+| não vazio | comprimento **igual** ao de `options`, mesma ordem, cada item não vazio |
+
+```bash
+cd app && python3 -c "
+import json, glob
+n = sum(1 for f in glob.glob('resources/tracks/python/modules/*/lessons/*/lesson.json')
+        for a in json.load(open(f)).get('assertions', []) if 'optionRationales' in a)
+print('afirmacoes com optionRationales:', n)"
+# -> afirmacoes com optionRationales: 0
+```
+
+### ⚑ O que a cláusula J5 mediu nesta trilha: 17 das 20 aulas
+
+O `audit` fecha em **0 violações** e o `coverage` em **0 lacunas** — nenhum desafio cobra o que a
+aula não ensinou, que é a garantia que o dono pediu, e ela está satisfeita. A cláusula J5
+(Discriminação) de [`16`](16-engine-de-trilha.md) §9.1 responde a **outra** pergunta, que ninguém
+verificava: *o teste DERRUBA quem não usou a construção da aula?*
+
+**Nesta trilha, em 17 das 20 aulas medidas, não derruba.** O código mínimo que passa em cada um dos
+21 desafios é um único `print("<saída esperada>")`: a aula de potência não exige `**`, a de f-string
+não exige f-string, a de variável não exige atribuição. **Um aluno passa nos 21 desafios imprimindo
+literais.** O `audit` fica verde porque a *solução de referência* usa a construção — e usa mesmo. O
+que falha é o teste.
+
+| Medição (2026-09-05) | Valor |
+|---|---|
+| Desafios avaliados · medidos | 21 · 20 |
+| Sem alvo (o desafio de módulo, sem aula dona) | 1 |
+| Discriminam | 3 |
+| **Não discriminam** | **17** |
+| Alvos na solução · forçados pelo teste | 34 · 5 |
+| **Alvos não forçados** | **29** |
+
+Os **29 alvos não forçados** são os mesmos 29 "excessos" que `npm run engine -- coverage python`
+imprime. **A classificação é AVISO com contagem, nunca violação** — reprovar aqui pintaria de
+vermelho 17 das 20 aulas da única trilha do produto, e isso é decisão do dono, não do gate. O
+comando que reproduz o placar está em [`16`](16-engine-de-trilha.md) §9.1.
 
 ## Regras para os desafios de aula (`challenge.json`)
 

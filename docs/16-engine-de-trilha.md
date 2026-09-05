@@ -1,7 +1,9 @@
 # 16 — A engine de trilhas
 
 > **Escopo.** Este documento é o contrato normativo de **como uma trilha é produzida**. Ele
-> complementa `docs/15-trilha-nodejs.md`, que é o contrato de **conteúdo** de uma trilha específica.
+> complementa [`docs/17-trilha-python.md`](17-trilha-python.md), que é o contrato de **conteúdo** da
+> única trilha do produto. ⚑ Este parágrafo apontava para `docs/15-trilha-nodejs.md`, que descreve
+> uma trilha **apagada em 2026-09-02** e hoje é **registro histórico**, não contrato vigente.
 > A fonte de verdade dos tipos do produto final continua sendo
 > `app/electron/main/content/trackTypes.ts`; a engine não inventa formato, ela preenche o que já
 > existe e acrescenta campos aditivos (§10).
@@ -37,10 +39,19 @@ roda em milissegundos, não depende de nenhuma chave de API e tem poder de veto.
 
 > **Leia isto antes da tabela.** Os números abaixo **não são mais reproduzíveis**: em 2026-09-02,
 > depois desta medição, a trilha `nodejs-do-zero` foi **APAGADA** do repositório junto com
-> `programacao-do-zero` (ver `docs/15-trilha-nodejs.md`, nota do topo). `app/resources/tracks/`
-> está vazio, o comando `npm run engine -- audit nodejs-do-zero` não tem mais o que carregar, e o
-> pin mecânico que vivia em `app/tests/engineAuditPlacar.test.ts` saiu com ela — um pin sem objeto
-> não pina nada. A tabela fica como **registro do defeito que motivou esta engine**, no passado.
+> `programacao-do-zero` (ver [`docs/15-trilha-nodejs.md`](15-trilha-nodejs.md), nota do topo). O
+> comando `npm run engine -- audit nodejs-do-zero` não tem mais o que carregar, e o pin mecânico que
+> vivia em `app/tests/engineAuditPlacar.test.ts` saiu com ela — um pin sem objeto não pina nada. A
+> tabela fica como **registro do defeito que motivou esta engine**, no passado.
+>
+> ⚑ **`app/resources/tracks/` NÃO está mais vazio.** Esta nota dizia que estava, e isso deixou de
+> ser verdade quando a trilha `python` entrou (`83a93f4`, onda 9). Medido:
+>
+> ```bash
+> cd app && ls resources/tracks/            # python  (mais o .gitkeep, oculto)
+> cd app && find resources/tracks -name lesson.json | wc -l      # 20
+> cd app && find resources/tracks -name challenge.json | wc -l   # 21
+> ```
 
 Os números foram medidos em 2026-09-02 com `cd app && npm run engine -- audit nodejs-do-zero
 --limite 0` (para a tabela) e o mesmo comando com `--json` (para as três linhas derivadas dos
@@ -301,6 +312,35 @@ Alunos vão significativamente pior em problemas de dois passos do que em dois p
 construções estão lá — e mesmo assim quebra o aluno.
 
 Toda composição é um **nó próprio** do grafo, com aula própria, marcada `role: "integration"`.
+
+**O vocabulário de `role` é FECHADO em dois valores**, e o dono dele é o schema da engine:
+
+```bash
+cd app && grep -n "role: z.enum" electron/main/engine/schemas/artifacts.ts
+# 200:      role: z.enum(['regular', 'integration']),
+# 406:  role: z.enum(['regular', 'integration']),
+```
+
+⚑ **Divergência normativa aberta, registrada aqui e em `docs/17-trilha-python.md`.** A trilha
+`python` no disco usa um terceiro valor — `role: "consolidation"` — em **5 das 20 aulas** do módulo
+1, e [`docs/17-trilha-python.md`](17-trilha-python.md) o descreve como "aula de consolidação
+declarada". Ele **não pertence a este enum**.
+Medido:
+
+```bash
+cd app && python3 -c "
+import json,glob,collections
+c=collections.Counter(json.load(open(f))['role'] for f in glob.glob('resources/tracks/python/modules/*/lessons/*/lesson.json'))
+print(dict(c))"
+# -> {'consolidation': 5, 'regular': 15}
+```
+
+Por que ninguém percebeu: o loader do produto (`app/electron/main/content/trackTypes.ts`) **não
+conhece o campo `role`** — ele não valida nem lê — e o schema da engine só julga o **draft** que a
+F7/F12 produz. Uma trilha escrita à mão passa; a mesma trilha regerada pela engine seria rejeitada.
+**A decisão é do dono e não é deste documento**: ou `consolidation` entra no enum da engine, ou a
+trilha muda os 5 valores. Enquanto não se decide, o defeito fica declarado nos dois documentos em
+vez de esperar alguém tropeçar nele.
 
 ---
 
@@ -693,9 +733,30 @@ justificativa.
 }
 ```
 
-**Bug a corrigir junto:** `TestVerdict { nome; aprovado; motivo }` em `challengeContextValidator.ts`
-põe a decisão antes do raciocínio, no único componente cuja função é reprovar desafio que cobra o que
-não foi ensinado. A ordem correta é `nome → construcoes_encontradas → motivo → aprovado`.
+**O bug que esta seção nomeava — CORRIGIDO (registro histórico).** ⚑ Até o commit `ff190f4`
+(`p04-schemas`), `TestVerdict { nome; aprovado; motivo }` em `challengeContextValidator.ts` punha a
+decisão antes do raciocínio, no único componente cuja função é reprovar desafio que cobra o que não
+foi ensinado. A ordem prescrita aqui — `nome → construcoes_encontradas → motivo → aprovado` — **é a
+que está no disco**. O comando que confere:
+
+```bash
+cd app && sed -n '98,104p' electron/main/services/challengeContextValidator.ts
+# export interface TestVerdict {
+#   nome: string;
+#   /** construções que o teste exige (ex.: `typeof`, `assert.throws`, loop). */
+#   construcoes_encontradas: string[];
+#   motivo: string;
+#   aprovado: boolean;
+# }
+```
+
+A regra deixou de depender de alguém lembrar dela: `lint-schemas` roda o preflight de **INV-04**
+(índice do campo de justificativa menor que o do campo de decisão) sobre o `SCHEMA_REGISTRY` real,
+e sai **2** em qualquer violação.
+
+```bash
+cd app && npm run engine -- lint-schemas
+```
 
 ### 6.4 Filtro estrutural
 
@@ -936,22 +997,73 @@ gate. Todos os pins rodam depois; quebrar um pin verde invalida a correção.
 determinístico e produz imediatamente o relatório das violações da trilha atual. **É também o teste
 de aceitação da engine inteira.**
 
-**Estado da implementação.** `audit` está implementado e roda:
+**Estado da implementação — os TRÊS modos existem.** ⚑ Esta seção afirmou, até 2026-09-05, que
+`generate` e `repair` "ainda não" existiam e que `--from`/`--only` "ainda não" estavam
+implementados. As três afirmações eram **falsas**, e o comando que as derruba é o próprio `--help`
+da engine:
 
 ```bash
-cd app && npm run engine -- audit <slug> --limite 0
-cd app && npm run engine -- audit <slug> --dir <dir> --limite 0   # trilha ainda não publicada
+cd app && npx tsx tools/track-engine/cli.ts --help
+# lista: audit · coverage · requirements · revise · generate · repair · lint-schemas
+# e, no bloco do generate:  generate <slug> --assunto "..." [--from FASE] [--only slug]
 ```
 
-`generate` e `repair` — os modos que chamam a LLM — ainda não. A ordem de construção (§14) põe o
-gate determinístico primeiro de propósito. O manual de uso e os números que o comando reproduz estão
-em `app/tools/track-engine/README.md`.
+O texto revogado ficava como registro do momento em que a ordem de construção do §14 tinha
+entregado só o gate determinístico. Ele deixou de descrever o disco quando `generate` (P-22) e
+`repair` entraram, e ninguém o atualizou — é o defeito que o `CONTRIBUTING.md` chama de PR que
+muda contrato sem tocar no contrato.
 
-**Estado de `--from`/`--only` (atualizado em 2026-08-30):** ainda **não implementados** — dependem
-do modo `generate` (P-22 do plano de execução), que não está em `main` neste momento; quando os três
-modos existirem, todos aceitarão `--from <fase>` para retomada e `--only <slug>` para depurar uma
-unidade. Enquanto isso, o `audit` já expõe os filtros de depuração `--limite`, `--so-lacunas` e
-`--json`.
+**Superfície de comandos, medida.** Os sete comandos abaixo saem literalmente do `--help` citado
+acima. Os três modos do §8 são `audit`, `generate` e `repair`; os outros quatro são ferramentas de
+leitura que o gate determinístico ganhou depois e que não chamam LLM nenhuma.
+
+| Comando | LLM? | O que faz | Exit |
+|---|---|---|---|
+| `audit <slug>` | não | o orçamento cumulativo × as violações, com arquivo, linha e coluna | 0 · 1 · 2 |
+| `coverage <slug>` | não | sintetiza o código MÍNIMO que passa em cada teste e compara com o orçamento (LACUNA × EXCESSO) | 0 · 1 · 2 |
+| `requirements <slug>` | não | bijeção `requirements[]` declarados ↔ `test('...')` do desafio | 0 · 1 · 2 |
+| `revise <slug>` | não | a revisão progressiva: varre da 1ª à última aula até o hash do relatório estabilizar | 0 · 1 · 2 |
+| `generate <slug> --assunto` | **sim** | F0 a F12; retomável por `--from <fase>`, depurável por `--only <slug>` | 0 · 1 · 2 |
+| `repair <slug>` | dry-run **não**, `--aplicar` **sim** | o laço revisor → plano → correção sobre trilha existente | 0 · 1 · 2 |
+| `lint-schemas` | não | preflight de INV-04 (ordem de campo) e INV-05 (nada opcional) sobre o `SCHEMA_REGISTRY` real | 0 · 2 |
+
+Flags comuns de leitura: `--dir DIR` (carrega a trilha de fora de `resources/tracks/`), `--limite N`,
+`--json`; `audit` acrescenta `--modo declared|inferred`, `--harness receptive-seed|none` e
+`--so-lacunas`.
+
+⚑ **`--limite` conta coisas DIFERENTES conforme o comando**, e a armadilha é `0`. No `audit` ele
+limita quantas **violações são impressas** (`0` = nenhuma, só o placar — a trilha inteira é
+auditada). No `coverage`/`requirements`/`revise` ele limita quantos **desafios/aulas são
+processados** (`0` = nenhum, e o placar sai todo zerado sem que nada tenha sido medido). Medido:
+
+```bash
+cd app && npm run engine -- audit python --limite 0     # placar sobre as 20 aulas
+cd app && npm run engine -- coverage python --limite 0  # placar:  desafios ... 0
+cd app && npm run engine -- coverage python             # placar:  desafios ... 21
+```
+
+Um `coverage <slug> --limite 0` sai **0** com todos os contadores em zero. É a mesma classe de
+armadilha que o §9.2 documenta em `checagensNaoExecutadas`: zero-porque-não-rodou lido como
+zero-porque-está-certo.
+
+O manual de uso e os números que cada comando reproduz estão em `app/tools/track-engine/README.md`.
+
+**Comandos novos desta onda — ESTRUTURA RESERVADA, valores PENDENTES.** ⚑ O `CONTRIBUTING.md` exige
+que interface de CLI se decida no contrato **antes** do código. A onda que liga ao CLI os módulos de
+qualidade já escritos e nunca expostos (`engine/quality/discriminacao.ts`, `engine/modes/reorder.ts`,
+`engine/modes/curriculumGap.ts`) está em execução **em paralelo a este documento**. O que se lê
+abaixo foi `[INFERÊNCIA — lido de trabalho em andamento]`: veio do `--help` da árvore de
+trabalho daquela onda, ainda não integrada, e **pode mudar antes de virar `main`**. Nenhum número
+desta tabela é medida deste documento; a onda seguinte fecha a lacuna com o handoff daquele agente.
+
+| Comando (provisório) | Módulo que expõe | Classificação declarada | Exit (provisório) |
+|---|---|---|---|
+| `discrimination <slug>` | `quality/discriminacao.ts` (cláusula J5, §9.1) | **AVISO com contagem, nunca violação** — sai 0 mesmo com achado | 0 sempre que mediu · 2 uso incorreto |
+| `reorder <slug>` | `modes/reorder.ts` — "mova a aula que a ensina para antes" | dry-run por default; `--aplicar` só grava depois de re-derivar o orçamento e provar que a violação alvo sumiu e nenhuma nova apareceu | 0 · 1 · 2 |
+| `gap <slug>` | `modes/curriculumGap.ts` — a lacuna de currículo vira aula | dry-run por default; `--aplicar` autora a prosa com LLM e só grava a aula que a verificação aceita | 0 · 1 · 2 |
+
+Enquanto esses comandos não estiverem em `main`, os módulos continuam **medíveis só por script**, e
+este documento diz onde (§9.1, J5).
 
 **A engine nunca escreve aula por conta própria.** Nos modos `generate` e `repair`, quem produz e
 reescreve conteúdo é o autor-LLM, recebendo o orçamento congelado como restrição dura e podendo
@@ -980,6 +1092,96 @@ perde a independência que o torna confiável.
 J3 é a peça que ninguém costuma implementar e é a que pega o defeito relatado: **uma taxa de acerto
 de 0% em muitas tentativas é sinal de tarefa quebrada, não de aluno incapaz.**
 
+#### J5, implementada — e o que ela MEDIU na trilha `python`
+
+A cláusula J5 estava especificada desde a primeira versão deste documento e **nenhum código a
+executava**. Ela agora existe em `app/electron/main/engine/quality/discriminacao.ts`, e a parte que
+ela cobre é a **estática**:
+
+```
+alvos            = introduces.productive da aula
+alvosNaSolucao   = alvos ∩ atoms(solutionCode)
+discriminados    = alvosNaSolucao ∩ atoms(minimalCode)
+naoDiscriminados = alvosNaSolucao ∖ atoms(minimalCode)
+```
+
+`naoDiscriminados ≠ ∅` significa que a construção-alvo está na solução de referência **e ausente do
+menor código que o teste aceita** — um aluno que nunca a escreva passa mesmo assim. A parte
+executável da J5 ("cada solução errada catalogada falha em ≥1 teste; nenhum par falha no mesmo
+conjunto") continua sendo de `quality/mutants.ts` e **não roda aqui**; a limitação sai declarada na
+saída do módulo.
+
+**DECISÃO DE PROJETO: AVISO com contagem, nunca violação.** A classificação é literal no tipo
+(`classificacao: 'aviso'`), não parâmetro. O motivo é o número medido: transformar falta de
+discriminação em reprovação pintaria de vermelho **17 das 20 aulas** da única trilha do produto — e
+essa é decisão do dono, não do gate. O módulo **mede e declara**; não existe função `reprovar()` nem
+exit code nele.
+
+**O placar medido (2026-09-05, `resources/tracks/python`):**
+
+| Medição | Valor |
+|---|---|
+| Desafios avaliados | 21 |
+| Medidos | 20 |
+| Não medidos (fail-closed, §9.3) | 0 |
+| Sem alvo (desafio de módulo, sem aula dona) | 1 |
+| Discriminam (o teste força a construção) | 3 |
+| **AVISO: não discriminam** | **17** |
+| Alvos presentes na solução | 34 |
+| Alvos forçados pelo teste | 5 |
+| **AVISO: alvos não forçados pelo teste** | **29** |
+| Aulas com alvo não forçado | **17 de 20 medidas** |
+
+**A explicação em uma linha:** o código mínimo que passa em cada um dos 21 desafios é um único
+`print("<saída esperada>")`. A aula de potência não exige `**`; a de f-string não exige f-string; a
+de variável não exige atribuição. O `audit` fica verde porque a **solução** usa a construção — e usa
+mesmo. O que falha é o teste, não a solução.
+
+**Como reproduzir.** `avaliarDiscriminacao` ainda **não está ligada ao CLI** em `main` (ver §8, a
+tabela de comandos provisórios). Até estar, a medição é por script, na raiz de `app/`:
+
+```bash
+cd app && cat > .j5.mts <<'EOF'
+import { loadTrack } from './electron/main/content/trackLoader';
+import { deriveTrackBudget } from './electron/main/engine/budget';
+import { sintetizarCodigoMinimoDaLinguagem } from './electron/main/engine/quality/minimalPorLinguagem';
+import { criarProverDeDesafio } from './electron/main/engine/phases/f9Verifier';
+import { createExecSemaphore } from './electron/main/engine/runtime/semaphore';
+import { avaliarDiscriminacao, linhasDeDiscriminacao } from './electron/main/engine/quality/discriminacao';
+const track = await loadTrack('resources/tracks/python');
+const budget = deriveTrackBudget(track);
+const prover = criarProverDeDesafio();
+const sem = createExecSemaphore();
+const brutos: { ref: string; lessonRef: string | null; ch: any }[] = [];
+for (const mod of track.modules) {
+  for (const lesson of mod.lessons) {
+    for (const ch of lesson.challenges) {
+      brutos.push({ ref: `${mod.meta.slug}/${lesson.meta.slug}/${ch.slug}`, lessonRef: `${mod.meta.slug}/${lesson.meta.slug}`, ch });
+    }
+  }
+  if (mod.challenge) brutos.push({ ref: `${mod.meta.slug}/challenges/${mod.challenge.slug}`, lessonRef: null, ch: mod.challenge });
+}
+const avaliados = await Promise.all(brutos.map(async (d) => {
+  const release = await sem.acquire();
+  try {
+    const minimal = await sintetizarCodigoMinimoDaLinguagem(prover, {
+      starterCode: d.ch.starterCode ?? '', solutionCode: d.ch.solutionCode ?? '',
+      testsCode: d.ch.testsCode, expectedTestCount: d.ch.expectedTestCount, language: budget.adapterId,
+    });
+    const orc = d.lessonRef ? budget.byRef.get(d.lessonRef) : undefined;
+    return { ref: d.ref, lessonRef: d.lessonRef, alvos: orc ? [...orc.introduces.productive] : [], solutionCode: d.ch.solutionCode ?? '', minimal };
+  } finally { release(); }
+}));
+console.log(linhasDeDiscriminacao(avaliarDiscriminacao('python', avaliados as any, { language: budget.adapterId })).join('\n'));
+EOF
+npx tsx .j5.mts; rm -f .j5.mts
+```
+
+**Este é um fato novo sobre a trilha, não só sobre a engine.** O `audit` de `python` fecha em
+**0 violações** e o `coverage` em **0 lacunas** — nenhum desafio cobra o que a aula não ensinou, que
+é a garantia pedida. J5 mostra a outra metade, que aquelas duas medidas não enxergam: o teste não
+**cobra** o que a aula ensinou.
+
 ### 9.2 O placar
 
 `report.json` fecha com, no mínimo: violações de orçamento por faixa e por superfície; desafios que
@@ -989,6 +1191,39 @@ entre exemplo da teoria e solução; taxa de falso-passe do revisor contra mutan
 
 Formato do placar, seguindo a convenção do repositório: `N passou · N falhou · N pendente`. Toda
 limitação (sem chave, sem rede, checagem não executada) é **declarada na saída**, nunca omitida.
+
+#### O placar DECLARA o que não rodou — `checagensNaoExecutadas` e `limitacoes[]`
+
+"Declarada na saída" era, até 2026-09-05, uma frase sem mecanismo. O `audit` imprimia
+`avisos ... 0` sobre a trilha `python` e um leitor razoável lia **"está tudo certo"** quando o
+significado era **"a bateria não rodou"**: A13–A16 é javascript-only, porque `H13`/`AX` são tabelas
+de chaves do `ts.SyntaxKind` e os spans mecânicos S13 saem de `ts.createSourceFile`.
+
+O `AuditReport` passou a carregar dois campos obrigatórios de honestidade:
+
+| Campo | O que é |
+|---|---|
+| `totals.checagensNaoExecutadas` | quantas checagens desta auditoria **não rodaram** (= `limitacoes.length`). Só com ele em **0** é que `avisos: 0` quer dizer "nenhum aviso" |
+| `limitacoes[]` | uma entrada por checagem pulada, com `id`, `checagem`, `motivo` e `consequencia` |
+
+Medido:
+
+```bash
+cd app && npm run engine -- audit python --limite 0 --json > /tmp/audit.json
+python3 -c "import json;d=json.load(open('/tmp/audit.json'));print(d['totals']['checagensNaoExecutadas'], [l['id'] for l in d['limitacoes']])"
+# -> 1 ['A13-A16-NAO-RODOU']
+```
+
+A entrada `A13-A16-NAO-RODOU` declara a consequência exata: `metrics[].novosVerdadeiros` (a 2ª
+coluna do histograma, "verdadeiramente novas") fica **ausente** em todas as aulas, e ela traz a
+própria prova por mutação — apagar TODOS os blocos de código da teoria da aula 1 desta trilha **não
+muda o placar**. Rodar a bateria assim mesmo não daria erro: daria **veredito errado e silencioso**
+(tudo "não demonstrado", todo desafio reprovado). Por isso a saída pula e declara, em vez de
+adivinhar.
+
+⚑ **Corolário para quem lê placar desta engine:** um `0` num contador de aviso só é informação
+quando `checagensNaoExecutadas == 0`. Ler o contador sem ler o campo é a mesma classe de erro que o
+§9.3 proíbe — aprovação por omissão.
 
 ### 9.3 Fail-closed
 
@@ -1024,6 +1259,29 @@ orçamento.
 `outputChannel` é o modo de falha número um medido em exercícios gerados por LLM: a solução imprime
 enquanto o teste espera retorno. De 165 exercícios com solução **e** testes, apenas 51 (30,9%) tinham
 solução que passava nos próprios testes.
+
+**`assertions[]` e o campo aditivo `optionRationales` (o quiz da aula).** Em `lesson.json`,
+`assertions[]` é o quiz de múltipla escolha que o aluno responde **durante** a aula, e cada
+afirmação carrega `id`, `statement`, `question`, `options` (exatamente 4, não vazias e únicas),
+`answerIndex`, `feedback`, `sectionId?` (a âncora para a seção de teoria que demonstra a afirmação)
+e — aditivo desta onda — **`optionRationales?: string[]`**.
+
+| Regra de `optionRationales` | Valor |
+|---|---|
+| Ausente | aula sem racionais declarados — **válido** (é o estado das 20 aulas de `python` hoje) |
+| `[]` | **ausência EXPLÍCITA**, nunca defeito: é o que o `AssertionDraftSchema` materializa por INV-05 (nada `.optional()` nos schemas da engine) e o que a F12 copia verbatim |
+| Não vazio | comprimento **exatamente igual** ao de `options`, um racional por alternativa, na MESMA ordem, cada item texto não vazio |
+
+Reprovar `[]` reprovaria toda aula que a engine gera — por isso a regra tem os três ramos e não
+dois. A validação vive em `app/electron/main/content/trackTypes.ts`; o campo é o material ancorado
+que o tutor usa quando o aluno erra (a explicação do **distrator escolhido**, e não o `feedback`
+único da afirmação, que continua existindo e continua sendo o texto pós-resposta).
+
+⚑ **O que o prompt do autor NÃO pedia.** Até `af1f152` (`onda2-autor-racionais`) o prompt do autor
+de aula nunca pedia `assertions[]`: o schema aceitava por herança e nenhum outro caminho populava o
+campo, então **qualquer trilha gerada nasceria sem quiz nenhum**. O prompt agora pede as afirmações
+e os quatro racionais, ancorados na seção que demonstra a afirmação, com o erro nomeado na
+alternativa e nunca no aluno.
 
 `difficulty` continua existindo mas **nenhum gate pode lê-lo**. Na implementação atual ele é
 **PROVISÓRIO** (`app/electron/main/engine/phases/f12Materialize.ts`, `dificuldadeProvisoria`): rampa
@@ -1073,6 +1331,11 @@ até lá, o campo não é sinal de nada (§11: usar `difficulty` como sinal de g
 | D3 | Máquina nocional de JS/Node | não existe descrita pedagogicamente em fonte pública; cerca de 15 aulas exigirão concepções autoradas do zero, ancoradas na ECMA-262 e no MDN. **Planejar esse esforço** |
 | D4 | Orçamento da **prosa** em português | é o elo mais fraco: flexão, sinônimo e a mesma palavra em sentido comum e técnico. Determinístico só sobre termo canônico em negrito, título ou crase; severidade **aviso**, nunca bloqueante, até calibrar |
 | D5 | Distinção receptivo/produtivo | a **necessidade** está medida; a **correção** não tem precedente na literatura de currículo de programação. Fixtures de regressão e revisão humana no piloto |
+
+⚑ **D3 é registro histórico.** Ela foi escrita quando a trilha do produto era de JavaScript/Node —
+a trilha apagada em 2026-09-02. A única trilha do produto hoje é `python`
+([`17-trilha-python.md`](17-trilha-python.md)), e a máquina nocional dela está descrita lá, aula por
+aula. D3 volta a valer se e quando uma trilha de JS for autorada de novo.
 
 ---
 

@@ -443,11 +443,60 @@ grupo de canais **próprio e aditivo** ao contrato congelado de `study:*` (§2.3
 | `track:challenge-regenerate` | "Gerar novo desafio": a LLM recebe TODOS os desafios que o aluno errou naquela aula e não repete; o novo desafio é validado por execução ANTES de chegar (2 tentativas, nunca desafio ruim) |
 | `track:proficiency` | teste de proficiência cobrindo TODOS os módulos (`proficiency.json`); passar destrava a trilha inteira |
 | `track:proficiency-submit` | envia o veredito da proficiência |
+| `track:quiz-attempt` | **(quiz adaptativo)** registra UMA resposta do aluno a UM quiz e devolve a **maestria recalculada** da aula junto — o gate não precisa de uma segunda ida ao main. Puramente repo, sem LLM |
+| `track:quiz-explain` | **(quiz adaptativo)** pede à IA a explicação de **por que a opção ESCOLHIDA** está errada, ancorada na seção de teoria que demonstra a afirmação |
+| `track:quiz-remedial` | **(quiz adaptativo)** gera **na hora** um quiz novo sobre o MESMO conteúdo, depois da explicação, para o aluno provar que entendeu. `askedQuestions` é o nunca-repetir da seção |
+| `track:quiz-history` | **(quiz adaptativo)** o histórico **persistido** de uma aula: tentativas, remediações e a maestria por seção — o que o gate consulta ao reabrir a aula depois de fechar o app |
 
-**Aditivo ao congelado:** `study:mark-challenge-attempt` ganhou **`lessonId`
-opcional** (nunca-repetir por aula). O schema do SQLite foi para **v4**:
-`track_progress` (lições concluídas), `track_proficiency` (veredito),
-`generated_challenges` (regenerados) — migração crash-safe.
+Os quatro são de **REQUEST (`invoke`)**, nunca de evento. `quiz-explain` e `quiz-remedial` são
+**fail-closed** no mesmo contrato de `TutorReply`: com a LLM fora devolvem `{ ok:false, code,
+message }` (`QUIZ_UNAVAILABLE` / `QUIZ_EMPTY_REPLY`), **nunca** um veredito ou um quiz inventado —
+errar em silêncio aqui faria o produto mentir sobre o que o aluno entendeu.
+
+**O ciclo de remediação, e a regra que INVERTEU.** ⚑ Até a onda 10 o quiz travava a aula até ser
+**respondido**: errar liberava. Agora o gate exige **maestria** — só o **acerto** fecha a chave:
+
+```
+o aluno ERRA
+  → a IA explica onde AQUELA alternativa se separa do que a seção mostra   (track:quiz-explain)
+  → a explicação ENTRA NO HISTÓRICO do chat da aula
+  → um quiz NOVO sobre o MESMO conteúdo é gerado na hora                   (track:quiz-remedial)
+  → o aluno responde de novo; repete até acertar
+  → só então o "Próximo" / "Concluir aula" destrava                        (track:quiz-attempt)
+```
+
+Errar continua não sendo punição: o tom de todo texto do ciclo é **diagnóstico** (`docs/ux-redesign.md`
+§8 e §8.2 são normativos), e o bloqueio é a informação de que aquele trecho ainda não foi
+demonstrado, não castigo.
+
+**O overlay.** O quiz aparece **sobre a tela** e **minimiza para a conversa** ao ser respondido.
+`Esc` e clique fora **MINIMIZAM**, não fecham — fechar seria dispensar o gate com uma tecla. O
+estado do overlay é puro (`app/src/lib/quizOverlayState.ts`); a máquina de maestria é
+`app/src/lib/trackLessonState.ts`, e a chave que fecha é o estágio `'dominado'`.
+
+**Aditivo ao congelado:** `study:mark-challenge-attempt` ganhou **`lessonId` opcional**
+(nunca-repetir por aula).
+
+**O schema do SQLite está na v5.** ⚑ Esta seção dizia **v4**; a v5 acrescentou as duas tabelas do
+quiz adaptativo, e a migração continua crash-safe (`CREATE TABLE IF NOT EXISTS`, `PRAGMA
+user_version` só no fim).
+
+| Versão | Tabelas que a versão acrescentou |
+|---|---|
+| v4 | `track_progress` (lições concluídas), `track_proficiency` (veredito), `generated_challenges` (regenerados) |
+| **v5** | **`quiz_attempts`** (uma linha por resposta do aluno: seção, afirmação, índice marcado, acerto e a origem `authored`/`remedial`) e **`quiz_remediations`** (a explicação que o aluno leu **mais** o quiz gerado na hora, serializado) |
+
+```bash
+cd app && grep -n "^export const SCHEMA_VERSION" electron/main/db/schema.ts
+# 74:export const SCHEMA_VERSION = 5;
+```
+
+**O campo aditivo `optionRationales`.** `TrackAssertion` (`app/electron/main/content/trackTypes.ts`)
+ganhou `optionRationales?: string[]` — **um racional por opção**, o material ancorado que o
+`quiz-explain` usa para falar do distrator que o aluno marcou, em vez do `feedback` único da
+afirmação. Regra de validação: **ausente ou `[]` é ausência explícita e válida**; presente e não
+vazio, precisa ter **exatamente** o comprimento de `options`, na mesma ordem, cada item não vazio.
+O `[]` é o valor que a engine materializa por INV-05 — reprová-lo reprovaria toda aula gerada.
 
 ### 2.14 CLI de autoria e runner de desafios (ondas R8)
 
@@ -457,10 +506,17 @@ opcional** (nunca-repetir por aula). O schema do SQLite foi para **v4**:
 scaffold nasce válido e `track:validate` verifica TODOS os desafios **por
 execução** (a solução passa + o starter falha + igualdade de contagem).
 
-**Runner único de desafios nodejs — `electron/main/services/challengeExec.ts`:**
-`node --test` em diretório temporário, **gate de IGUALDADE** (exit 0 sozinho
-mente), parse de contagens **imune a ANSI** e binário do `node` **correto dentro
-do Electron**.
+**Runner único de desafios — `electron/main/services/challengeExec.ts`:** diretório temporário,
+**gate de IGUALDADE** (`passed = exit 0 && testsRun === expectedTestCount`; exit 0 sozinho mente),
+parse de contagens **imune a ANSI** e binário do runner **correto dentro do Electron**.
+
+⚑ **Ele não é mais "de desafios nodejs".** Esta linha dizia isso e dizia `node --test` como se fosse
+o único comando. O que é por linguagem — binário, layout dos arquivos em disco, comando de teste,
+contagem declarada e os checks da UI — vem do **adaptador** (`electron/main/engine/lang/registry.ts`),
+e a linguagem chega pelo `challenge.language`. Consequência medida: enquanto `challenge.language`
+**não era propagado**, o código do aluno de Python era executado como JavaScript e `print("oi")` — a
+solução de referência da própria aula 1 da trilha `python` — voltava `SyntaxError`; ninguém
+conseguia terminar a aula 1. Os 21 desafios da trilha passam hoje pelo caminho de produção.
 
 ### 2.15 Resolução de resources/ (cadeia resolveResourcesDir)
 

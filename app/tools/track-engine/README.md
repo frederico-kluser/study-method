@@ -23,7 +23,14 @@ npm run engine -- coverage <slug> [--modo declared|inferred] [--limite N] [--jso
 npm run engine -- requirements <slug> [--limite N] [--json] [--dir DIR]
 npm run engine -- revise <slug> [--limite N] [--json] [--dir DIR]
 npm run engine -- generate <slug> --assunto "..." [--from FASE] [--only slug] [--teto-tokens N]
+npm run engine -- repair <slug> [--dir DIR] [--aplicar] [--json] [--rodadas N] [--modelo-revisor ID]
 npm run engine -- lint-schemas
+```
+
+A lista completa, com o texto de cada flag, sai do próprio binário:
+
+```bash
+cd app && npx tsx tools/track-engine/cli.ts --help
 ```
 
 | Opção | O que faz |
@@ -148,9 +155,22 @@ ledger + telemetria + artefatos + drafts) vive em `app/content-src/<slug>` e é 
 comando com `--from <fase pendente>` após interrupção. A F6 (piloto de 3 aulas) **para para revisão
 humana**: escreva `app/content-src/<slug>/aprovacaoF6.json` com `{"aprovado": true}` e retome. Sem chave
 de API, o run é criado mesmo assim e o erro declara a limitação (exit 2). `lint-schemas` roda o preflight
-do build (INV-04/INV-05) sobre o registro real de schemas. `repair` — o modo que chama a LLM para corrigir
-conteúdo existente — ainda não está implementado: a ordem de construção (§14 do documento normativo) põe
-o gate determinístico primeiro de propósito.
+do build (INV-04/INV-05) sobre o registro real de schemas.
+
+`repair` **está implementado** e roda o laço revisor → plano → correção sobre uma trilha existente,
+respeitando os pins. ⚑ Este parágrafo dizia que ele "ainda não está implementado" — era falso, e o
+`--help` derruba a frase:
+
+```bash
+cd app && npx tsx tools/track-engine/cli.ts --help | sed -n '/^  repair/,/^$/p'
+```
+
+**O default do `repair` é DRY-RUN**: audita, classifica cada violação (ORDEM × LACUNA DE CURRÍCULO ×
+ESTRUTURAL, §5.5), imprime o plano de ações do catálogo fechado e o delta esperado — zero escrita,
+zero LLM, funciona sem chave de API. `--aplicar` roda o laço de verdade e **exige** `--modelo-revisor`
+(o roteamento do §6.2 pede `model(AUTOR) != model(REVISOR)`) mais a chave; sem elas aborta declarando
+(exit 2), nunca em silêncio. Limite v1 declarado: lacuna de currículo — nenhuma aula ensina a
+construção — nunca é consertada reescrevendo desafio; vira BLOQUEIO no relatório.
 
 ## Os dois modos de orçamento
 
@@ -164,11 +184,30 @@ número real é maior, nunca menor.
 
 ## O estado do conteúdo hoje
 
-**Não há conteúdo.** `app/resources/tracks/` está vazio desde 2026-09-02: as
-duas trilhas geradas foram apagadas porque a grande era pedagogicamente
-indefensável (a aula 1 introduzia 16 construções novas com teto 4, e o primeiro
-desafio do curso já exigia `if`/`typeof`/`!==`/`throw new Error`). O registro
-completo, com o placar medido, está em `docs/15-trilha-nodejs.md`.
+⚑ Esta seção afirmou, até 2026-09-05, que **não havia conteúdo** e que
+`app/resources/tracks/` estava **vazio**. As duas frases eram verdadeiras entre
+2026-09-02 e a onda 9, e falsas depois dela.
+
+**Há uma trilha: `python`.** Medido:
+
+```bash
+cd app && ls resources/tracks/                                  # python
+cd app && find resources/tracks -name lesson.json    | wc -l    # 20
+cd app && find resources/tracks -name challenge.json | wc -l    # 21
+cd app && npm run engine -- audit python --limite 0             # 0 violacoes, exit 0
+cd app && npm run engine -- coverage python                     # 21 desafios, 21 medidos,
+                                                                # 0 lacunas, 29 excessos
+```
+
+Os 21 desafios são 20 de aula mais 1 de módulo (`a-tela/challenges/rachando-a-conta`); o `audit`
+conta os 20 de aula, o `coverage` conta os 21. Os **29 excessos** não são ruído: eles são a mesma
+medida que a cláusula J5 traduz em "o teste não força a construção que a aula ensinou", em **17 das
+20 aulas** — ver `docs/16-engine-de-trilha.md` §9.1.
+
+**Registro histórico (continua valendo como lição).** As duas trilhas geradas antes foram apagadas
+em 2026-09-02 porque a grande era pedagogicamente indefensável: a aula 1 introduzia 16 construções
+novas com teto 4, e o primeiro desafio do curso já exigia `if`/`typeof`/`!==`/`throw new Error`. O
+registro completo, com o placar medido, está em `docs/15-trilha-nodejs.md`.
 
 O gate continua inteiro e é o que decide se a PRÓXIMA trilha entra. Sobre
 qualquer trilha, publicada ou não:

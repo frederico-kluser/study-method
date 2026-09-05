@@ -630,6 +630,46 @@ Convenção: **todo script recebe `<setup_root>` como primeiro argumento posicio
 | `render-plot.py` | `[--spec CAMINHO\|-] [--out-dir DIR] [--basename NOME] [--width N] [--height N] [--ascii-width N] [--ascii-height N] [--formats svg,html,txt,md] [--png] [--quiet]` | JSON: `{ok, type, outputs, description_text, ascii_text, warnings, stats}` | **Exceção nomeada** (§5.2): 0 · 1 · 2 · 3 |
 | `decisions-ask.sh` | `<fase> --setup <setup_root> [--json] [--answer <id>=<valor>]`, com `fase ∈ {setup-init, first-challenge, session-15, on-demand}`. Aceita também `<setup_root> <fase>` posicional, `--record <id> <opcao> [--value] [--note] [--session]`, `--defaults <fase>` e `--catalog-only <fase>` (`docs/08` §1.4) | As decisões pendentes daquela fase, em JSON | 0 · 1 · 2 · 3 · 5 |
 
+### 8.1 ⚑ A SEGUNDA superfície de CLI — a engine de trilhas (`npm run engine`)
+
+**A tabela do §8 é a CLI da skill, e só dela.** Os 19 scripts são `SK/scripts/*.sh` e `*.py`; a
+invariante `I-06a` conta exatamente 19 e `I-06c` reprova script sem contrato. Isso está certo — e
+estava **incompleto**: o repositório tem uma segunda superfície de linha de comando, no app
+Electron (`app/tools/track-engine/cli.ts`, exposta como `npm run engine -- <comando>`), que nunca
+foi declarada aqui. O `CONTRIBUTING.md` diz que **interface de CLI se decide no contrato primeiro**;
+esta subseção fecha o buraco.
+
+Ela **não entra na contagem dos 19**: não é `SK/scripts/`, não recebe `<setup_root>`, não fala o
+protocolo REQUEST/APPLY do §6 e não usa a tabela de exit codes do §5.1. O detalhe normativo de cada
+comando é de [`docs/16-engine-de-trilha.md`](16-engine-de-trilha.md) §8; o que fica aqui é o
+inventário e a convenção.
+
+| Comando | LLM? | Exit codes |
+|---|---|---|
+| `audit <slug>` | não | 0 sem violação · 1 violações · 2 uso incorreto |
+| `coverage <slug>` | não | idem |
+| `requirements <slug>` | não | idem |
+| `revise <slug>` | não | idem |
+| `generate <slug> --assunto "…"` | **sim** | idem (2 também quando falta chave de API, declarando) |
+| `repair <slug>` | dry-run não · `--aplicar` **sim** | idem (2 quando falta `--modelo-revisor` ou chave) |
+| `lint-schemas` | não | 0 · 2 em qualquer violação de INV-04/INV-05 |
+
+**Convenção de exit code desta CLI:** `0` sem violação · `1` violações encontradas · `2` uso
+incorreto. É deliberadamente **mais estreita** que a tabela do §5.1 e não a contradiz: são
+vocabulários de duas ferramentas diferentes. Reproduzível:
+
+```bash
+cd app && npx tsx tools/track-engine/cli.ts --help | tail -1
+# exit codes: 0 sem violacao · 1 violacoes encontradas · 2 uso incorreto
+```
+
+⚑ **Três comandos NOVOS estão sendo ligados em paralelo a este documento e ficam PENDENTES aqui.**
+`discrimination` (cláusula J5), `reorder` (mover a aula que ensina para antes) e `gap` (a lacuna de
+currículo vira aula) expõem módulos que já existem em `app/electron/main/engine/` e nunca tiveram
+comando. Os nomes acima são `[INFERÊNCIA — lidos de trabalho em andamento]`, não medidos deste
+repositório: **flags e exit codes exatos entram aqui quando a onda daquele agente for integrada**.
+Enquanto não estiverem, esta tabela tem 7 linhas, não 10.
+
 ---
 
 ## 9. ⭐⭐ As regras permanentes, consolidadas
@@ -872,6 +912,8 @@ nos números abaixo mexe aqui primeiro.
 | DEB-1 | **O orçamento de 6000 caracteres do digest não cabe o playbook procedimental cheio.** Com 5 antipadrões (`procedural_playbook.avoid`) + 8 procedimentos (`procedural_playbook.do`) — e **ambos protegidos do truncamento** —, só esse bloco já passa dos 6000, e a escada de truncamento (T1…Tn) **não converge**: os campos que sobrariam para cortar são justamente os protegidos. | O digest sai com `budget_exceeded: true`, `truncated: true` e a saída **acima** do orçamento — que é exatamente o que a especificação manda fazer quando não dá para caber (§8: `memory-digest.sh` **sempre** produz digest e **sempre** sai 0). O comportamento está correto; o **limite** é que está apertado. | **Aberta.** Nada a consertar no script. O que merece revisão é o par (orçamento default, conjunto de campos protegidos) — p.ex. subir `SM_BUDGET_CHARS` ou permitir truncar `procedural_playbook.avoid` a partir de N itens. Enquanto não for revisto, o gate **não pode** tratar `budget_exceeded: true` como falha: é saída conforme. |
 | DEB-2 | `compaction.deferred_at` **existe no schema e não é gravado** por `memory-compact.sh` (§6.5 L-1). | `profile.schema.json` → `compaction.deferred_at` está declarado; `grep -n deferred_at SK/scripts/memory-compact.sh` é vazio. | **Aberta**, ver §6.5 — mas a dívida **mudou de dono**: era do schema, hoje é do script. Nenhuma perda de dado enquanto durar. |
 | DEB-3 | O teto de 2 ciclos de RA-6 não é verificável sem estado persistido (§6.5 L-2). | Cada `--apply` é processo novo. | **Aberta**, ver §6.5. Nenhuma invariante o cobra. |
+| DEB-4 | ⚑ **`role: "consolidation"` não pertence ao enum da engine.** A trilha `python` usa esse valor; `engine/schemas/artifacts.ts` aceita só `regular` e `integration`. | `cd app && grep -n "role: z.enum" electron/main/engine/schemas/artifacts.ts` → `['regular', 'integration']` nas linhas 200 e 406. `cd app && python3 -c "import json,glob,collections;print(dict(collections.Counter(json.load(open(f))['role'] for f in glob.glob('resources/tracks/python/modules/*/lessons/*/lesson.json'))))"` → `{'consolidation': 5, 'regular': 15}`. | **Aberta.** Passa despercebida porque o loader do produto (`app/electron/main/content/trackTypes.ts`) **não conhece o campo `role`**: trilha escrita à mão carrega, a mesma trilha regerada pela engine seria rejeitada. Decisão do dono: ou `consolidation` entra no enum, ou as 5 aulas mudam de valor. Registrada em `docs/16` §3.7 e `docs/17` §"Módulo 1". |
+| DEB-5 | ⚑ **O axioma produtivo da aula 1 da trilha `python` está declarado como aula.** `docs/17` §"Público e axioma de entrada" afirma que `node:Call` e `node:StrLiteral` são axioma e que a aula 1 introduz "exatamente um" átomo produtivo; no disco a aula 1 declara os três em `introduces.productive`. | `cd app && python3 -c "import json;print(json.load(open('resources/tracks/python/modules/a-tela/lessons/a-primeira-linha/lesson.json'))['introduces']['productive'])"` → `['global:print', 'node:Call', 'node:StrLiteral']`; o histograma de `npm run engine -- audit python --limite 0` mostra a aula 1 com **3**. | **Aberta, sem impacto de gate:** o `audit` sai **0 violações** nas duas leituras e 3 está abaixo do teto de 4 (`docs/16` §3.6). O que está errado é a **afirmação** do documento, não o conteúdo. Registrada em `docs/17`. |
 
 ---
 
@@ -978,3 +1020,80 @@ um valor que a especificação trazia e a medição derrubou.
 | # | Contradição | Decisão | Por quê |
 |---|---|---|---|
 | A-35 | **Supersede `A-15`.** "Tópico/tag/slug" tratados como um namespace só, todo em kebab-case, incluía `target_topic` — mas `target_topic` **não é** slug de caminho, é identificador de tópico. | **Conceito ou tópico → `snake_case`; slug de caminho → `kebab-case`** (§4.2). `target_topic` casa `^[a-z][a-z0-9_]{1,62}$`, o mesmo pattern de `session.topics[]` — não o de `setup_name`/`subject_slug`/diretório de desafio. | A recuperação do `procedural_playbook` compara `procedural_facts[].target_topic` com `session.topics[]` por **igualdade de string**: é o mecanismo inteiro, sem match o procedimento não é recuperado. `A-15` juntou num namespace só duas coisas com regra de comparação diferente — "o que se estuda" (comparado por igualdade, precisa de uma grafia única) e "o que vira caminho no disco" (nunca comparado, só precisa ser válido como nome de arquivo). Com `topics[]` em snake_case e `target_topic` em kebab-case pelo `A-15` antigo, `erro_numerico` nunca casava `erro-numerico` e a comparação não casava **nunca** — o playbook ficava mudo sem nada falhar em lugar nenhum. Era um bug real, e a causa era exatamente essa fusão de namespace. |
+
+---
+
+## 13. ⚑ Superfícies do app Electron que atravessam fronteira
+
+**Este documento tinha um ponto cego, e ele está declarado aqui.** O §1 diz que o escopo é "tudo que
+atravessa fronteira" e lista os arquivos onde este contrato vence: `docs/*.md`, `SK/references/*.md`,
+`SK/assets/schemas/*.json`, `SKILL.md` e `SK/scripts/`. **`app/` não estava na lista** — e o app tem
+nome de canal IPC, versão de schema de banco e nome de campo de schema, que são exatamente as três
+categorias que o §1 chama de fronteira e que o `CONTRIBUTING.md` manda decidir aqui primeiro.
+
+Esta seção declara o **inventário mínimo**. O contrato detalhado de cada item continua sendo do
+documento dono, e a precedência do §1 vale: divergência entre este inventário e o documento dono é
+bug do documento dono.
+
+| Superfície | Dono do detalhe |
+|---|---|
+| Canais IPC `study:*` (congelado) e `track:*` (aditivo) | [`docs/app-gui.md`](app-gui.md) §2.3 e §2.13; tipos em `app/shared/ipc-contract.ts` |
+| Schema do SQLite e migrações | `app/electron/main/db/schema.ts` (`SCHEMA_VERSION`) |
+| Formato de trilha (`track.json`/`module.json`/`lesson.json`/`challenge.json`) | `app/electron/main/content/trackTypes.ts`; conteúdo em [`docs/17-trilha-python.md`](17-trilha-python.md) |
+| Engine de trilhas e a CLI `npm run engine` | [`docs/16-engine-de-trilha.md`](16-engine-de-trilha.md); inventário de CLI no §8.1 acima |
+
+### 13.1 Schema do SQLite — versão canônica
+
+**`SCHEMA_VERSION = 5`.** Bumpar exige migração `CREATE TABLE IF NOT EXISTS` crash-safe, com
+`PRAGMA user_version` escrito **só no fim**.
+
+```bash
+cd app && grep -n "^export const SCHEMA_VERSION" electron/main/db/schema.ts
+# 74:export const SCHEMA_VERSION = 5;
+```
+
+| Versão | Tabelas que ela acrescentou |
+|---|---|
+| v4 | `track_progress`, `track_proficiency`, `generated_challenges` |
+| **v5** | **`quiz_attempts`** (uma linha por resposta do aluno ao quiz: seção, afirmação, índice marcado, acerto, origem `authored`/`remedial`) · **`quiz_remediations`** (a explicação do erro que o aluno leu **mais** o quiz gerado na hora) |
+
+### 13.2 Os quatro canais do quiz adaptativo
+
+Aditivos a `TRACK_CHANNELS`, todos de **REQUEST (`invoke`)**, nunca de evento:
+
+| Canal | O que faz | Precisa de LLM? |
+|---|---|---|
+| `track:quiz-attempt` | registra UMA resposta e devolve a **maestria recalculada** da aula | não |
+| `track:quiz-explain` | explica por que a opção **escolhida** está errada, ancorada na seção de teoria | sim |
+| `track:quiz-remedial` | gera na hora um quiz novo sobre o **mesmo** conteúdo | sim |
+| `track:quiz-history` | o histórico **persistido** da aula: tentativas, remediações e maestria por seção | não |
+
+Os dois que usam LLM são **fail-closed**: sem ela devolvem `{ ok:false, code, message }`
+(`QUIZ_UNAVAILABLE` / `QUIZ_EMPTY_REPLY`), **nunca** um veredito ou um quiz inventado.
+
+### 13.3 A regra do quiz INVERTEU — o gate é de maestria
+
+⚑ **Decisão explícita do dono, e ela contradiz o que os documentos e os textos de interface diziam
+antes.** Até a onda 10 o quiz travava a aula até ser **respondido**: errar liberava. Agora **errar
+não libera** — só o **acerto** fecha a chave e destrava o "Próximo" e o "Concluir aula". Errar abre
+o ciclo de remediação (explicação → quiz novo sobre o mesmo conteúdo → repete até acertar).
+
+Errar continua **não sendo punição**: o tom de todo texto do ciclo é diagnóstico
+(`docs/ux-redesign.md` §8 e §8.2 são normativos), e o bloqueio é informação, não castigo. A máquina
+de estado é `app/src/lib/trackLessonState.ts` — o estágio que fecha a chave é `'dominado'`.
+
+### 13.4 Campo aditivo `optionRationales` em `TrackAssertion`
+
+`optionRationales?: string[]` — **um racional por opção**: por que aquela alternativa está errada e,
+na correta, por que está certa. É o material ancorado que o `track:quiz-explain` usa para falar do
+**distrator marcado**, em vez do `feedback` único da afirmação (que continua existindo e continua
+sendo o texto pós-resposta).
+
+| Valor | Significado |
+|---|---|
+| ausente | aula sem racionais declarados — **válido** |
+| `[]` | **ausência explícita**, nunca defeito: é o valor que a engine materializa por INV-05 (nada `.optional()` nos schemas da engine) e que a F12 copia verbatim |
+| não vazio | comprimento **exatamente igual** ao de `options`, na mesma ordem, cada item texto não vazio |
+
+Reprovar `[]` reprovaria toda aula gerada pela engine — por isso a regra tem três ramos, não dois. A
+validação vive em `app/electron/main/content/trackTypes.ts`.

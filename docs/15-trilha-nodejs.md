@@ -1,11 +1,45 @@
 # Trilha Node.js do Zero — especificação de conteúdo (rodada 9)
 
-> ## ⛔ A TRILHA FOI REMOVIDA EM 2026-09-02
+> ## ⛔ REGISTRO HISTÓRICO — A TRILHA FOI REMOVIDA EM 2026-09-02
+>
+> **Este documento não descreve nada que exista no disco.** Ele é registro, não contrato vigente. O
+> contrato de conteúdo em vigor é [`17-trilha-python.md`](17-trilha-python.md), a única trilha do
+> produto.
 >
 > `app/resources/tracks/nodejs-do-zero/` (274 arquivos, 1,8 MB) e o diretório de trabalho
 > `app/content-src/programacao-do-zero/` foram **apagados**, junto com a trilha micro
-> `programacao-do-zero`. `app/resources/tracks/` está vazio. Este documento **fica** — ele é o
-> registro de por que o conteúdo foi descartado, e apagá-lo apagaria a lição.
+> `programacao-do-zero`. Este documento **fica** — ele é o registro de por que o conteúdo foi
+> descartado, e apagá-lo apagaria a lição.
+>
+> ⚑ **Correção de 2026-09-05:** a frase "`app/resources/tracks/` está vazio", que estava aqui,
+> descrevia 2026-09-02 e **deixou de ser verdade** quando a trilha `python` entrou (`83a93f4`).
+> Medido:
+>
+> ```bash
+> cd app && ls resources/tracks/                                  # python
+> cd app && find resources/tracks -name lesson.json    | wc -l    # 20
+> cd app && find resources/tracks -name challenge.json | wc -l    # 21
+> ```
+>
+> **Por que este documento não foi removido, ao contrário do `docs/18`.** O precedente do `d7c489d`
+> (que apagou `docs/18-trilha-typescript.md`) **não se aplica**, e a diferença é de natureza, não de
+> tamanho:
+>
+> | | `docs/18` (removido) | `docs/15` (mantido) |
+> |---|---|---|
+> | O que era | especificação de uma trilha que **nunca foi construída** | registro de uma trilha que **existiu e foi medida** |
+> | Por que saiu / fica | era uma segunda trilha concorrendo com a decisão "python é a única"; sem objeto e sem lição | é a **base probatória** de `docs/16` §0 e §1 — a engine existe por causa do que está medido aqui |
+> | Referências vivas no repo | nenhuma que sobrevivesse | **15 arquivos**, sendo 10 de código-fonte e de teste que este documento não pode editar |
+>
+> A terceira linha é decisiva por si só: `docs/research/08-multilingua-trava-deterministica.md` e
+> `app/README.md` linkam este arquivo por caminho relativo, e `L-02` do `tests/gate-lint.sh` reprova
+> link relativo quebrado em **todo** `.md` do repositório. Removê-lo pintaria o gate de vermelho num
+> arquivo (`app/README.md`) fora do escopo de quem o removesse. Conferido:
+>
+> ```bash
+> grep -rln "15-trilha-nodejs" --include='*.md' --include='*.ts' . | grep -v node_modules | wc -l
+> # 15 arquivos (este inclusive); 10 deles em app/electron, app/tests e app/README.md
+> ```
 >
 > **O placar medido que motivou a remoção** (gate determinístico da engine, modo `inferred` —
 > leitura permissiva, o número real é maior, nunca menor):
