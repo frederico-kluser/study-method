@@ -80,8 +80,17 @@
  * Onda 2: `typewriterCut`/`typewriterDelayPerChar`/`typewriterIsDone`.
  * Onda 10: `TYPEWRITER_TPS`/`chatBubbleTps` — a TEORIA passa a ser digitada em
  * velocidade de LEITURA (7 tps = 28 chars/s; a conta completa está no bloco).
+ *
+ * ONDA3-PERSISTÊNCIA: o ciclo do quiz DEIXA de morrer no fechamento do app.
+ * `hydrateQuizFromHistory` (perto do fim do arquivo) reconstrói
+ * `quizBySection` a partir do que `track:quiz-history` devolve — tentativas e
+ * remediações persistidas —, com a sessão vencendo o banco chave a chave. A
+ * conta completa (chave, geração, precedência, conteúdo que mudou) está no
+ * bloco da própria função.
  */
 import type {
+  QuizAttemptDto,
+  QuizRemediationDto,
   TrackAssertionDto,
   TrackChallengeErrorReport,
   TrackSubmitResult,
@@ -1171,6 +1180,244 @@ export function injectRemediationQuiz(
       },
     },
   };
+}
+
+// ─── ONDA3-PERSISTÊNCIA: o ciclo do quiz VOLTA depois de o app FECHAR ───────
+//
+// O DEFEITO QUE ISTO MATA, medido e declarado pela onda anterior: o ciclo
+// inteiro funcionava e era GRAVADO (`quiz_attempts` / `quiz_remediations`,
+// migração v5, mais os quatro canais de `track:quiz-*`), mas ninguém LIA de
+// volta — `track:quiz-history` nunca era chamado. A maestria sobrevivia à
+// troca de aba (o `lessonChatCache` é um Map em memória de módulo) e MORRIA no
+// fechamento do app: o aluno que dominou três quizzes reabria a aula com tudo
+// por responder, e o gate de maestria o travava de novo em algo que ele já
+// tinha provado.
+//
+// A reconstrução é PURA e mora aqui (o módulo não sabe o que é React nem IPC):
+// a view busca o histórico no canal e entrega as DUAS listas do contrato a
+// `hydrateQuizFromHistory`, que devolve o estado com `quizBySection`
+// reconstruído.
+
+/**
+ * A GERAÇÃO a que uma tentativa pertence, lida da id da afirmação respondida.
+ *
+ * O banco NÃO guarda a geração da tentativa — guarda a `assertion_id`, e ela
+ * BASTA porque a id do quiz remediador é determinística e REVERSÍVEL
+ * (`remediationAssertionId` escreve `<chave>#g<N>`): sem o sufixo, a tentativa
+ * é do quiz AUTORAL (geração 0); com ele, a geração é o N. É a mesma ida e
+ * volta que `quizKeyFor` já faz para devolver a chave original a partir da
+ * assertion remediadora. PURA.
+ */
+function generationOfAttempt(assertionId: string): number {
+  if (typeof assertionId !== 'string') return 0;
+  const match = REMEDIATION_ID_RE.exec(assertionId);
+  if (match === null) return 0;
+  const generation = Number(match[2]);
+  return Number.isSafeInteger(generation) && generation > 0 ? generation : 0;
+}
+
+/**
+ * ISO-8601 do banco → o `ts` (Date.now()-like) do estado. Data ilegível vira
+ * 0, que é EXATAMENTE o valor que `quizCycleOf` já usa ao normalizar uma
+ * tentativa legada: o `ts` é informativo e nenhuma decisão do ciclo depende
+ * dele (a ordem cronológica vem da ordem da lista, que o canal já entrega
+ * ordenada por `created_at`).
+ */
+function attemptTimestamp(createdAt: string): number {
+  const ms = Date.parse(createdAt);
+  return Number.isFinite(ms) ? ms : 0;
+}
+
+/** Explicação REALMENTE lida pelo aluno (o caminho de degradação grava ''; e
+ *  '' é tão "sem explicação" quanto ausente). */
+function explanationTextOf(row: QuizRemediationDto | undefined): string | null {
+  const texto = row?.explanation;
+  return typeof texto === 'string' && texto.trim() !== '' ? texto : null;
+}
+
+/**
+ * Reconstrói o `QuizState` de UMA chave a partir do que o banco guardou.
+ * `attempts` NUNCA é vazio aqui (a chave nasce das tentativas) e vem em ordem
+ * cronológica; `byGeneration` indexa as remediações daquela chave pela geração
+ * do quiz que cada uma produziu.
+ *
+ * As quatro leituras, e por que cada uma é o que é:
+ *
+ *   - HOUVE ACERTO → 'dominado', na GERAÇÃO em que o acerto aconteceu. A chave
+ *     fecha, imutável, como `submitQuizAnswer` a fecharia — e o gate abre. É
+ *     o único caminho que devolve maestria: `mastered` é "houve ≥1 acerto";
+ *   - SEM ACERTO, com a remediação da geração SEGUINTE já persistida (com
+ *     quiz legível) → o ciclo já tinha AVANÇADO antes de o app fechar: o card
+ *     volta ZERADO naquela geração ('aguardando-resposta'), que é o estado
+ *     que `injectRemediationQuiz` deixa. O aluno continua de onde parou, sem
+ *     pagar de novo pela explicação nem por uma geração de quiz;
+ *   - SEM ACERTO, com a linha da geração seguinte presente mas o `quiz`
+ *     ILEGÍVEL (`quiz: null` é o parse DEFENSIVO da repo — um registro
+ *     corrompido não derruba o histórico inteiro) → a explicação JÁ foi lida,
+ *     então o passo que falta é só o quiz novo: 'novo-quiz-pendente';
+ *   - SEM ACERTO e sem remediação nenhuma depois do erro → aquele erro NUNCA
+ *     foi resolvido: o ciclo REABRE em 'explicando' e a view pede a
+ *     explicação e o quiz novo. É a mesma disciplina do legado em
+ *     `quizCycleOf` ("respondido e errado → 'explicando'"), e o motivo é o
+ *     mesmo: sob a regra de maestria, um erro pendurado não vira 'dominado'
+ *     por decurso de prazo.
+ * PURA.
+ */
+function cycleFromHistory(
+  key: string,
+  attempts: readonly QuizAttempt[],
+  byGeneration: ReadonlyMap<number, QuizRemediationDto> | undefined,
+): QuizState {
+  const explanationAt = (generation: number): string | null =>
+    generation === 0 ? null : explanationTextOf(byGeneration?.get(generation));
+  const remediationAt = (generation: number): TrackAssertionDto | null => {
+    const quiz = generation === 0 ? null : (byGeneration?.get(generation)?.quiz ?? null);
+    // A id volta a ser a do ESTADO (`<chave>#g<N>`): a linha do banco guarda a
+    // que o serviço gerou, e no fluxo vivo é `injectRemediationQuiz` quem a
+    // reescreve. Reescrever aqui também é o que mantém `quizKeyFor` reversível
+    // para esta chave depois da restauração — sem isso, responder um quiz
+    // remediador restaurado abriria uma chave NOVA em vez de fechar a antiga.
+    return quiz === null ? null : { ...quiz, id: remediationAssertionId(key, generation) };
+  };
+
+  const won = attempts.find((a) => a.correct);
+  if (won !== undefined) {
+    return {
+      answered: true,
+      selected: won.selected,
+      correct: true,
+      stage: 'dominado',
+      generation: won.generation,
+      attempts,
+      explanation: explanationAt(won.generation),
+      remediation: remediationAt(won.generation),
+    };
+  }
+
+  const last = attempts[attempts.length - 1];
+  const next = byGeneration?.get(last.generation + 1);
+  if (next !== undefined && next.quiz !== null && next.quiz !== undefined) {
+    const generation = last.generation + 1;
+    return {
+      answered: false,
+      selected: null,
+      correct: null,
+      stage: 'aguardando-resposta',
+      generation,
+      attempts,
+      explanation: explanationAt(generation),
+      remediation: remediationAt(generation),
+    };
+  }
+  return {
+    answered: true,
+    selected: last.selected,
+    correct: false,
+    stage: next === undefined ? 'explicando' : 'novo-quiz-pendente',
+    generation: last.generation,
+    attempts,
+    explanation:
+      next === undefined
+        ? explanationAt(last.generation)
+        : (explanationTextOf(next) ?? explanationAt(last.generation)),
+    remediation: remediationAt(last.generation),
+  };
+}
+
+/**
+ * O REDUTOR DA PERSISTÊNCIA: o `quizBySection` reconstruído a partir do que
+ * `track:quiz-history` devolveu (tentativas + remediações desta aula).
+ *
+ * A CHAVE é a canônica de `quizKeyFor` (`sectionId::assertionId`) — e ela não
+ * é recalculada aqui: o `sectionKey` que a view GRAVA no banco já É essa
+ * chave (a view registra `sectionKey: visible.key`, e `visible.key` sai de
+ * `quizKeyFor`). Ler `sectionKey` como chave é, portanto, ler de volta o que
+ * foi escrito, e não uma segunda implementação da mesma regra. A geração, essa
+ * sim, é derivada — pela ida e volta `remediationAssertionId`/`quizKeyFor`
+ * descrita em `generationOfAttempt`.
+ *
+ * AS TENTATIVAS SÃO A ORIGEM DA CHAVE: uma seção SEM tentativa não aparece no
+ * resultado (a ausência é a resposta — a mesma regra da maestria que o banco
+ * calcula). Em particular, uma remediação ÓRFÃ (a gravação da tentativa falhou
+ * e a do par explicação+quiz não — os dois canais falham de forma
+ * independente) é IGNORADA: reabrir a aula no meio de um ciclo cuja tentativa
+ * o histórico não contém mostraria ao aluno um quiz remediador por um erro que
+ * o registro não tem. Restaurar o quiz autoral é honesto e custa uma resposta.
+ *
+ * PRECEDÊNCIA — o estado DESTA SESSÃO vence, chave a chave, e o banco só
+ * PREENCHE as chaves que a sessão não tem. O motivo é de ordem causal: toda
+ * resposta desta sessão foi escrita PRIMEIRO no estado (`submitQuizAnswer`) e
+ * só depois no banco (`track:quiz-attempt`, best-effort — a falha dele acende
+ * um aviso e NÃO desfaz a resposta). Para uma chave que a sessão já tocou, o
+ * banco só pode estar ATRASADO, nunca adiantado; sobrescrever apagaria uma
+ * resposta cuja gravação falhou, reabriria uma chave já dominada e jogaria
+ * fora um ciclo em voo. Para uma chave que a sessão nunca tocou, o banco é a
+ * ÚNICA fonte que existe. Daí a união com a sessão vencendo o empate.
+ *
+ * FAIL-CLOSED por construção: este redutor não INVENTA maestria — 'dominado'
+ * só sai de uma tentativa com `correct` verdadeiro gravada no banco. E o
+ * INVARIANTE SAGRADO continua de pé: nenhuma linha daqui lê
+ * `assertion.answerIndex` (o veredito vem do banco, que o recebeu de quem
+ * tinha a afirmação em mãos no momento da resposta).
+ *
+ * Nada além de `quizBySection` é tocado: o `history` do chat NÃO recebe de
+ * volta as bolhas de explicação lidas em sessões passadas. A conversa é
+ * artefato de SESSÃO (a teoria é reapresentada da seção 1 a cada abertura), e
+ * enfileirar explicações antigas no topo de um histórico vazio mostraria a
+ * discussão de um erro antes de a pergunta ter sido feita. O texto não se
+ * perde: ele volta em `QuizState.explanation`, que é de onde o ciclo o lê.
+ *
+ * Devolve o MESMO objeto de estado quando não há nada a acrescentar (a
+ * disciplina de referência do módulo — nenhum re-render à toa). PURA.
+ */
+export function hydrateQuizFromHistory(
+  state: TrackLessonUiState,
+  attempts: readonly QuizAttemptDto[],
+  remediations: readonly QuizRemediationDto[],
+): TrackLessonUiState {
+  // Índice das remediações por chave e por geração. A linha MAIS NOVA de uma
+  // mesma (chave, geração) vence: a lista chega em ordem cronológica e uma
+  // segunda geração do mesmo quiz (o canal falhou, o aluno pediu de novo)
+  // grava uma linha nova em vez de atualizar a antiga.
+  const remediationsByKey = new Map<string, Map<number, QuizRemediationDto>>();
+  for (const row of remediations) {
+    if (row === null || typeof row !== 'object') continue;
+    if (typeof row.sectionKey !== 'string' || row.sectionKey === '') continue;
+    if (!Number.isSafeInteger(row.generation) || row.generation < 1) continue;
+    const byGeneration = remediationsByKey.get(row.sectionKey) ?? new Map<number, QuizRemediationDto>();
+    byGeneration.set(row.generation, row);
+    remediationsByKey.set(row.sectionKey, byGeneration);
+  }
+
+  const attemptsByKey = new Map<string, QuizAttempt[]>();
+  for (const row of attempts) {
+    if (row === null || typeof row !== 'object') continue;
+    if (typeof row.sectionKey !== 'string' || row.sectionKey === '') continue;
+    if (typeof row.assertionId !== 'string' || row.assertionId === '') continue;
+    // Índice negativo é linha CORROMPIDA: o handler de `track:quiz-attempt`
+    // recusa `selectedIndex < 0` na gravação, então ela não pode ter nascido
+    // do fluxo normal. Descartar a linha custa uma resposta ao aluno;
+    // restaurá-la marcaria uma alternativa que não existe.
+    if (!Number.isInteger(row.selectedIndex) || row.selectedIndex < 0) continue;
+    const list = attemptsByKey.get(row.sectionKey) ?? [];
+    list.push({
+      generation: generationOfAttempt(row.assertionId),
+      selected: row.selectedIndex,
+      correct: row.correct === true,
+      ts: attemptTimestamp(row.createdAt),
+    });
+    attemptsByKey.set(row.sectionKey, list);
+  }
+  if (attemptsByKey.size === 0) return state;
+
+  let quizBySection: Record<string, QuizState> | null = null;
+  for (const [key, list] of attemptsByKey) {
+    // A SESSÃO VENCE (ver o bloco de PRECEDÊNCIA acima).
+    if (state.quizBySection[key] !== undefined) continue;
+    quizBySection ??= { ...state.quizBySection };
+    quizBySection[key] = cycleFromHistory(key, list, remediationsByKey.get(key));
+  }
+  return quizBySection === null ? state : { ...state, quizBySection };
 }
 
 /**

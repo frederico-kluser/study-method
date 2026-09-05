@@ -219,6 +219,7 @@
     "quizExplainUnavailable": "The explanation could not be written right now — the AI is offline. The new quiz on the same passage is still on its way.",
     "quizRemedialUnavailable": "The new quiz could not be generated right now — the AI is offline. Nothing you answered was lost.",
     "quizAttemptNotSaved": "This answer did not reach your history on disk; it still counts for this session.",
+    "quizHistoryUnavailable": "This lesson's quiz history could not be read right now, so quizzes you had already mastered show up to be answered again. Whatever you answer in this session is still recorded.",
     "skipTypingButton": "Show all",
     "nextLessonButton": "Go to next lesson",
     "lessonCompleted": "Lesson completed! 🎉",

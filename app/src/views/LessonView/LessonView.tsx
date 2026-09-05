@@ -77,6 +77,21 @@
  *     não batiam —, e o painel saiu de `action.hover` (overlay alfa, a única
  *     superfície do app fora da rampa `surface.level0..4`) para o nível 2.
  *
+ * ONDA3-PERSISTENCIA (o buraco que a onda do overlay deixou declarado): o
+ * ciclo inteiro era GRAVADO no banco e NUNCA lido de volta — `track:quiz-
+ * history` não tinha chamador. A maestria sobrevivia à troca de aba (o
+ * `lessonChatCache` é um Map em memória de módulo) e MORRIA no fechamento do
+ * app: o aluno que dominou três quizzes voltava e encontrava tudo por
+ * responder, travado de novo em algo que já tinha provado. Agora `loadLesson`
+ * faz DUAS leituras — o conteúdo e o HISTÓRICO — e o histórico entra no estado
+ * pelo redutor PURO `hydrateQuizFromHistory`. A PRECEDÊNCIA é: o estado desta
+ * SESSÃO vence chave a chave, e o banco só PREENCHE as chaves que a sessão não
+ * tem (toda resposta é escrita primeiro no estado e só depois no banco, cuja
+ * gravação é best-effort — para uma chave já tocada o banco só pode estar
+ * atrasado). FAIL-CLOSED como o resto: `{ok:false}` ou canal mudo abrem a aula
+ * SEM histórico, com aviso `info` — nunca travando o aluno, nunca inventando
+ * maestria que ele não conquistou.
+ *
  * Entrada (precedência na MONTAGEM — onda1-nav-ui):
  *   1. `nav.challengeErrorReport` (Desafio → Aula, erro) — define o alvo;
  *   2. `pendingTrackLesson` (Trilha → Aula) drenado na MONTAGEM
@@ -140,6 +155,7 @@ import {
   chatHistory,
   clearChallengeError,
   createTrackLessonState,
+  hydrateQuizFromHistory,
   injectRemediationQuiz,
   isQuizMastered,
   lessonFinishBlock,
@@ -252,9 +268,22 @@ const QUIZ_NOTICE_KEY = {
   'explicacao-indisponivel': 'lesson.quizExplainUnavailable',
   'quiz-indisponivel': 'lesson.quizRemedialUnavailable',
   'registro-nao-gravado': 'lesson.quizAttemptNotSaved',
+  // ONDA3-PERSISTENCIA: o histórico do banco não pôde ser lido. A aula ABRE
+  // assim mesmo, sem histórico (o comportamento anterior a esta onda) — o que
+  // NUNCA acontece é inventar maestria que o aluno não conquistou.
+  'historico-indisponivel': 'lesson.quizHistoryUnavailable',
 } as const;
 
 type QuizNoticeKind = keyof typeof QUIZ_NOTICE_KEY;
+
+/**
+ * ONDA3-PERSISTENCIA: etiqueta do aviso do HISTÓRICO. Ele não pertence a
+ * nenhuma volta do ciclo — `quizCycleTag` sempre produz `<chave>#<geração>`,
+ * então esta etiqueta jamais casa com a do card em cena e o aviso aparece na
+ * faixa própria do chat, que é o certo: a falha é da AULA inteira, não de um
+ * quiz.
+ */
+const QUIZ_HISTORY_NOTICE_TAG = 'historico-da-aula';
 
 export function LessonView(props: ViewProps): ReactElement {
   const { t, i18n } = useTranslation();
@@ -520,9 +549,30 @@ export function LessonView(props: ViewProps): ReactElement {
     }
   }, [mic.transcribing, mic.start, mic.stop]);
 
+  /**
+   * ONDA3-PERSISTENCIA: a aula que o ÚLTIMO `loadLesson` pediu. Escrito de
+   * forma SÍNCRONA no começo de cada carregamento e lido quando o histórico
+   * volta, ele responde a uma pergunta só: "o histórico que chegou ainda é o
+   * da aula que está sendo carregada?". O caminho que torna a pergunta real é
+   * o chip de PRÉ-REQUISITO — ele troca de aula sem cancelar o carregamento
+   * anterior (`openPrerequisite` descarta o cancelador), e sem esta guarda o
+   * histórico da aula ANTIGA poderia hidratar o chat da aula NOVA. Um ref, e
+   * não estado, porque nada nesta comparação re-renderiza.
+   */
+  const loadTargetRef = useRef<{ trackSlug: string; lessonId: string } | null>(null);
+
   /** Carrega uma aula da trilha via IPC — SEMPRE com timeout: se o canal não
    * responder em `IPC_TIMEOUT_MS`, cai no loadError com mensagem própria
    * (nenhum spinner eterno) e o usuário tem o botão de tentar de novo.
+   *
+   * ONDA3-PERSISTENCIA: carregar a aula passou a ser DUAS leituras — o
+   * conteúdo (`track.lesson`) e o HISTÓRICO do quiz (`track.quizHistory`), que
+   * é o que faz a maestria sobreviver ao FECHAMENTO do app. O cache de sessão
+   * já a fazia sobreviver à troca de aba; ele morre com o processo, e o aluno
+   * que dominou três quizzes voltava e encontrava tudo por responder. As duas
+   * leituras são independentes e falham independentemente: sem histórico a
+   * aula ABRE (com aviso), porque travar o aluno seria pior que perder a
+   * memória de uma sessão.
    *
    * Deps [] de propósito (não [tI]): `loadLesson` entra nas deps do efeito de
    * montagem; se dependesse de `t`, a troca de idioma (changeLanguage → `t`
@@ -533,6 +583,7 @@ export function LessonView(props: ViewProps): ReactElement {
   const loadLesson = useCallback(
     (trackSlug: string, lessonId: string): (() => void) => {
       let cancelled = false;
+      loadTargetRef.current = { trackSlug, lessonId };
       setLesson(null);
       setLoadError(null);
       withTimeout(getApi().track.lesson({ trackSlug, lessonId }), IPC_TIMEOUT_MS, 'track.lesson')
@@ -556,6 +607,46 @@ export function LessonView(props: ViewProps): ReactElement {
               ? tIRef.current('lesson.trackLoadTimeout')
               : tIRef.current('lesson.trackLoadFailed'),
           );
+        });
+      // ONDA3-PERSISTENCIA: o HISTÓRICO do quiz desta aula, lido AQUI e só
+      // aqui. Pedido INDEPENDENTE (não encadeado no track.lesson): o conteúdo
+      // da aula e o que o aluno já respondeu não dependem um do outro, e
+      // serializá-los só somaria latência ao spinner. A hidratação usa a forma
+      // FUNCIONAL do setChat de propósito — ela precisa enxergar o estado
+      // MAIS RECENTE, que pode ter acabado de ser restaurado do cache de
+      // sessão (o efeito de montagem faz setChat(cached) e chama loadLesson na
+      // sequência); é `hydrateQuizFromHistory` quem decide a precedência, e
+      // ela é: a sessão vence, o banco só preenche o que falta.
+      withTimeout(
+        getApi().track.quizHistory({ trackSlug, lessonId }),
+        IPC_TIMEOUT_MS,
+        'track.quizHistory',
+      )
+        .then((res) => {
+          if (cancelled || mountedRef.current === false) return;
+          // Outra aula já entrou (chip de pré-requisito): este histórico é de
+          // uma aula que não está mais na tela — nem hidrata, nem avisa.
+          const alvo = loadTargetRef.current;
+          if (alvo === null || alvo.trackSlug !== trackSlug || alvo.lessonId !== lessonId) return;
+          if (res.ok === false) {
+            setQuizNotice({ tag: QUIZ_HISTORY_NOTICE_TAG, kind: 'historico-indisponivel' });
+            return;
+          }
+          setChat((st) => hydrateQuizFromHistory(st, res.attempts, res.remediations));
+          // O aviso de histórico é do CARREGAMENTO: uma leitura que deu certo
+          // aposenta o dele (inclusive o de OUTRA aula, no caminho do chip de
+          // pré-requisito), e nunca o do ciclo do quiz, que é de outra falha.
+          setQuizNotice((prev) => (prev !== null && prev.kind === 'historico-indisponivel' ? null : prev));
+        })
+        .catch(() => {
+          // FAIL-CLOSED: canal mudo ou estourado é a MESMA coisa que {ok:false}
+          // — a aula abre SEM histórico (o comportamento anterior a esta onda).
+          // O aluno responde de novo o que já tinha dominado; ele nunca fica
+          // preso, e maestria nenhuma é inventada.
+          if (cancelled || mountedRef.current === false) return;
+          const alvo = loadTargetRef.current;
+          if (alvo === null || alvo.trackSlug !== trackSlug || alvo.lessonId !== lessonId) return;
+          setQuizNotice({ tag: QUIZ_HISTORY_NOTICE_TAG, kind: 'historico-indisponivel' });
         });
       return () => {
         cancelled = true;

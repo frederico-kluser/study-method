@@ -32,7 +32,10 @@
  *      reage ao toggle) continuam fora;
  *   7. a LessonView liga os canais do ciclo e registra a tentativa UMA vez
  *      (o `quizAttempt` já devolve a maestria recalculada — nada de um segundo
- *      invoke em `quizHistory` atrás dele);
+ *      invoke em `quizHistory` ATRÁS DELE; desde a ONDA3-PERSISTENCIA o
+ *      `quizHistory` existe na view, no CARREGAMENTO da aula, e é o que faz a
+ *      maestria sobreviver ao fechamento do app — ver
+ *      tests/quizHistoryHydration.test.ts);
  *   8. `previous={prev}` chegou ao ChatBubble — sem ele o agrupamento de
  *      mensagens que a onda anterior entregou fica inerte;
  *   9. as LARGURAS batem: o painel de mensagens e a linha de entrada usam a
@@ -211,9 +214,20 @@ describe('7. a LessonView liga os canais do ciclo (e só uma vez)', () => {
   });
 
   it('quizAttempt é o ÚNICO invoke de registro — nada de quizHistory atrás dele', () => {
+    // ONDA3-PERSISTENCIA: `track.quizHistory` DEIXOU de ser proibido na view.
+    // Ele é o canal que faz a maestria sobreviver ao FECHAMENTO do app (o
+    // cache de sessão só a fazia sobreviver à troca de aba), e a view passou a
+    // lê-lo no CARREGAMENTO da aula — a guarda de que ele está lá, e lá só,
+    // mora em tests/quizHistoryHydration.test.ts. O que esta asserção sempre
+    // quis dizer continua valendo, e agora ela o diz com precisão: nada de uma
+    // segunda ida ao banco ATRÁS da resposta, porque `quizAttempt` já devolve
+    // a maestria recalculada. A fronteira é textual e disjunta — da declaração
+    // de `handleQuizAnswer` para baixo, `quizHistory` não pode aparecer.
+    const corte = VIEW.indexOf('const handleQuizAnswer');
+    assert.ok(corte > 0, 'handleQuizAnswer precisa existir na view');
     assert.ok(
-      !VIEW.includes('track.quizHistory'),
-      'o quizAttempt já devolve a maestria recalculada; um segundo invoke seria desperdício',
+      !VIEW.slice(corte).includes('track.quizHistory'),
+      'o quizAttempt já devolve a maestria recalculada; um segundo invoke atrás dele seria desperdício',
     );
     const ocorrencias = VIEW.split('track.quizAttempt(').length - 1;
     assert.equal(ocorrencias, 1, 'a tentativa é registrada num ponto só');

@@ -219,6 +219,7 @@
     "quizExplainUnavailable": "A explicação não pôde ser escrita agora — a IA está fora do ar. O quiz novo sobre o mesmo trecho continua a caminho.",
     "quizRemedialUnavailable": "O quiz novo não pôde ser gerado agora — a IA está fora do ar. Nada do que você respondeu se perdeu.",
     "quizAttemptNotSaved": "Esta resposta não chegou ao seu histórico no disco; ela vale nesta sessão.",
+    "quizHistoryUnavailable": "O histórico de quiz desta aula não pôde ser lido agora; os quizzes já dominados voltam a aparecer para responder. O que você responder nesta sessão continua sendo gravado.",
     "skipTypingButton": "Mostrar tudo",
     "nextLessonButton": "Avançar para a próxima aula",
     "lessonCompleted": "Aula concluída! 🎉",
