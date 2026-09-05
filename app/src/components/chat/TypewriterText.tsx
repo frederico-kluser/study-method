@@ -21,8 +21,18 @@
  *     auto-scroll — o gating do "Gerar novo desafio" da review passou a ser
  *     só o turno em voo, ONDA1-NAV-UI); `onTick`
  *     chama a cada step para o auto-scroll acompanhar a digitação;
- *   - `children(partial)` recebe o trecho já digitado (o render — markdown —
- *     fica com o consumidor; a review usa ReactMarkdown sobre o partial).
+ *   - `children(partial, cut)` recebe o trecho já digitado E o ÍNDICE do corte
+ *     (o render fica com o consumidor).
+ *
+ * ONDA "chat e código" (o `cut` no children): o consumidor deixou de receber só
+ * a string cortada. Fatiar markdown CRU por caractere era o defeito — a bolha
+ * mostrava crase, `**` e cerca como texto, e o `<ReactMarkdown>` re-parseava o
+ * fragmento 28x/s. Quem renderiza agora (`SegmentedMarkdown`) precisa do ÍNDICE
+ * para mapear o mesmo corte sobre SEGMENTOS (prosa e blocos de código) em vez
+ * de sobre caracteres. Este componente continua dono APENAS do relógio: ele não
+ * sabe o que é markdown, e `typewriterCut`/`typewriterDelayPerChar`/
+ * `TYPEWRITER_TPS` seguem intocados — a duração de uma seção é a mesma de
+ * antes, bit a bit.
  *
  * ONDA10 (velocidade de LEITURA + `skip`): a TEORIA da aula passa a ser
  * digitada a 7 tps = 28 chars/s (a conta completa está em
@@ -91,8 +101,11 @@ export function TypewriterText({
   onDone?: () => void;
   /** Chamado a cada step — o consumidor rola o painel para o fim. */
   onTick?: () => void;
-  /** Recebe o trecho já digitado para renderizar. */
-  children: (partial: string) => ReactNode;
+  /**
+   * Recebe o trecho já digitado E o índice do corte, para renderizar. O índice
+   * é o que permite ao consumidor cortar por SEGMENTO em vez de por caractere.
+   */
+  children: (partial: string, cut: number) => ReactNode;
 }): ReactElement {
   // Estado de exibição: começa vazio quando vai digitar; completo quando não
   // (restaurada do cache/seed antigo OU `instant` — erro de execução que NÃO
@@ -157,5 +170,5 @@ export function TypewriterText({
     return () => window.clearInterval(timer);
   }, [active, instant, skip, text, tps]);
 
-  return <>{children(text.slice(0, cut))}</>;
+  return <>{children(text.slice(0, cut), cut)}</>;
 }

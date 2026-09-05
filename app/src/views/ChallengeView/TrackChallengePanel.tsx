@@ -26,8 +26,7 @@
  * do MÓDULO (target 'module' + moduleSlug) usa o mesmo painel — sem botão de
  * regeneração (conteúdo autoral).
  */
-import ReactMarkdown from 'react-markdown';
-import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore, type ReactElement, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore, type ReactElement } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   Alert,
@@ -83,38 +82,7 @@ import type {
   TrackSubmitResult,
 } from '../../../shared/ipc-contract';
 import { useChallengeNav, type TrackChallengeNavSelection } from '../../lib/challengeNav';
-
-function MarkdownComponents() {
-  return {
-    pre: ({ children }: { children?: ReactNode }) => (
-      <Box
-        component="pre"
-        sx={{
-          fontFamily: "'SFMono-Regular', 'JetBrains Mono', Menlo, Consolas, monospace",
-          bgcolor: 'action.hover',
-          borderRadius: 1,
-          p: 1,
-          overflowX: 'auto',
-          fontSize: '0.8125rem',
-          m: 0,
-        }}
-      >
-        {children}
-      </Box>
-    ),
-    code: ({ children }: { children?: ReactNode }) => (
-      <Box
-        component="code"
-        sx={{
-          fontFamily: "'SFMono-Regular', 'JetBrains Mono', Menlo, Consolas, monospace",
-          fontSize: '0.8125rem',
-        }}
-      >
-        {children}
-      </Box>
-    ),
-  };
-}
+import { MarkdownView } from '../../components/markdown';
 
 export function TrackChallengePanel({
   selection,
@@ -619,7 +587,13 @@ export function TrackChallengePanel({
             '& p:last-of-type': { mb: 0 },
           }}
         >
-          <ReactMarkdown components={MarkdownComponents()}>{spec.statement}</ReactMarkdown>
+          {/* ONDA "chat e código": a renderização de markdown deixou de ser
+              uma cópia local (a MESMA função estava duplicada byte a byte aqui,
+              na ChallengeView e no ChatBubble, descartando o `className` da
+              cerca e pedindo uma pilha mono que não incluía a família REALMENTE
+              instalada). Agora vem de src/components/markdown — com KaTeX,
+              highlight de sintaxe e a distinção entrada x saída. */}
+          <MarkdownView markdown={spec.statement} />
           {!started ? (
             <Button
               variant="contained"

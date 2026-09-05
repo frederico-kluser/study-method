@@ -33,8 +33,7 @@
  * lista de desafios é RE-BUSCADA (o filtro nunca-repetir esconde o desafio
  * tentado).
  */
-import ReactMarkdown from 'react-markdown';
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactElement, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactElement } from 'react';
 import { useTranslation } from 'react-i18next';
 import Alert from '@mui/material/Alert';
 import Box from '@mui/material/Box';
@@ -89,7 +88,8 @@ import {
 } from '../../lib/challengeStars';
 import { announceStatus, fireConfetti } from '../../lib/confetti';
 import { resolveChallengeSlug, shouldMarkAttempt, type MarkAttemptVerdict } from '../../lib/answerFlow';
-import { katexRemarkPlugins, katexRehypePlugins, escapeLoneDollarSigns } from '../../lib/lessonMarkdown';
+import { MarkdownView } from '../../components/markdown';
+import { CODE_TYPOGRAPHY } from '../../lib/codeTheme';
 import { AnswerTerminal, printTestBanner, type AnswerTerminalHandle } from '../../components/terminal/AnswerTerminal';
 import { FileExplorer } from '../../components/editor/FileExplorer';
 import { EditorPane, type EditorPaneHandle } from '../../components/editor/EditorPane';
@@ -108,44 +108,6 @@ interface StreamingBlock {
   text: string;
 }
 
-/** Components custom do react-markdown do enunciado (monospace). */
-function MarkdownComponents() {
-  return {
-    pre: ({ children }: { children?: ReactNode }) => (
-      <Box
-        component="pre"
-        sx={{
-          fontFamily: "'SFMono-Regular', 'JetBrains Mono', Menlo, Consolas, monospace",
-          bgcolor: 'action.hover',
-          borderRadius: 1,
-          p: 1,
-          overflowX: 'auto',
-          fontSize: '0.8125rem',
-        }}
-      >
-        {children}
-      </Box>
-    ),
-    code: (props: { children?: ReactNode; className?: string }) => (
-      <Box
-        component="code"
-        {...props}
-        sx={{
-          fontFamily: "'SFMono-Regular', 'JetBrains Mono', Menlo, Consolas, monospace",
-          fontSize: '0.8125rem',
-          bgcolor: 'action.hover',
-          borderRadius: 0.5,
-          px: 0.25,
-        }}
-      />
-    ),
-    a: ({ href, children }: { href?: string; children?: ReactNode }) => (
-      <a href={href} target="_blank" rel="noreferrer noopener">
-        {children}
-      </a>
-    ),
-  };
-}
 
 export default function ChallengeView(props: ViewProps): ReactElement {
   const { t } = useTranslation();
@@ -973,13 +935,13 @@ export default function ChallengeView(props: ViewProps): ReactElement {
                 <Typography variant="body2" color="text.secondary">{statementError}</Typography>
               ) : statement ? (
                 <Box>
-                  <ReactMarkdown
-                    remarkPlugins={katexRemarkPlugins()}
-                    rehypePlugins={katexRehypePlugins()}
-                    components={MarkdownComponents()}
-                  >
-                    {escapeLoneDollarSigns(statement)}
-                  </ReactMarkdown>
+                  {/* ONDA "chat e código": um único renderizador de markdown
+                      para o app inteiro (src/components/markdown) — os mesmos
+                      plugins KaTeX de antes, agora em constante de módulo, mais
+                      highlight de sintaxe e a distinção entrada x saída no
+                      bloco de código. O escape de `$` de moeda mudou de lugar:
+                      acontece dentro do MarkdownView. */}
+                  <MarkdownView markdown={statement} />
                 </Box>
               ) : (
                 <Typography variant="body2" color="text.secondary">{t('translation:challenge.statementLoading')}</Typography>
@@ -1094,8 +1056,14 @@ export default function ChallengeView(props: ViewProps): ReactElement {
                   <Box
                     component="div"
                     sx={{
-                      fontFamily: "'SFMono-Regular', 'JetBrains Mono', Menlo, Consolas, monospace",
-                      fontSize: '0.8125rem',
+                      // ONDA "chat e código": a pilha literal pedia
+                      // 'SFMono-Regular' e 'JetBrains Mono' — nenhuma das duas
+                      // é a família REALMENTE empacotada ("JetBrains Mono
+                      // Variable"), então este painel caía no monospace do
+                      // sistema, a 13px. Passa a ler a MESMA fonte de verdade
+                      // do editor e do terminal (§7.4 do redesign).
+                      fontFamily: CODE_TYPOGRAPHY.fontFamily,
+                      fontSize: CODE_TYPOGRAPHY.fontSize,
                       bgcolor: 'action.hover',
                       borderRadius: 1,
                       p: 1,
@@ -1128,8 +1096,14 @@ export default function ChallengeView(props: ViewProps): ReactElement {
                   <Box
                     component="pre"
                     sx={{
-                      fontFamily: "'SFMono-Regular', 'JetBrains Mono', Menlo, Consolas, monospace",
-                      fontSize: '0.8125rem',
+                      // ONDA "chat e código": a pilha literal pedia
+                      // 'SFMono-Regular' e 'JetBrains Mono' — nenhuma das duas
+                      // é a família REALMENTE empacotada ("JetBrains Mono
+                      // Variable"), então este painel caía no monospace do
+                      // sistema, a 13px. Passa a ler a MESMA fonte de verdade
+                      // do editor e do terminal (§7.4 do redesign).
+                      fontFamily: CODE_TYPOGRAPHY.fontFamily,
+                      fontSize: CODE_TYPOGRAPHY.fontSize,
                       whiteSpace: 'pre-wrap',
                       bgcolor: 'background.default',
                       borderRadius: 1,

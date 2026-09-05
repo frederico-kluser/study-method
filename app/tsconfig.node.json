@@ -41,6 +41,13 @@
     // sem React/DOM) e é testado de tests/themeModeState.test.ts — listado aqui
     // como os demais módulos puros alcançáveis por import nos testes.
     "src/components/theme/themeModeState.ts",
+    // src/components/markdown/codeHighlight.ts é PURO (dado + parser do
+    // @lezer/highlight; sem React e sem DOM — ele devolve o PAPEL de sintaxe de
+    // cada trecho, e quem pinta é o CSS do CodeBlock). É testado headless de
+    // tests/codeHighlightBridge.test.ts, e estar aqui é a prova mecânica de que
+    // ele não pode voltar a depender de DOM: este projeto compila com lib
+    // ES2022 SEM DOM.
+    "src/components/markdown/codeHighlight.ts",
     // src/features/onboarding/* (onda 12 — tutorial): módulos PUROS (storage,
     // posicionamento, steps/alvos, regra de oferta) testados de tests/onboarding*.test.ts
     // sem jsdom. Os componentes React (overlay/modal/host) ficam FORA daqui —

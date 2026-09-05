@@ -91,14 +91,19 @@ test('e2e-test-answer: errada fecha o painel → bolha de erro + pergunta no cha
   ).toBeVisible({ timeout: 20_000 });
 
   // ONDA1-COR-BALOES (fix 4c8eeb5): as 3 famílias de balão PRESENTES neste
-  // fluxo aplicam backgroundColor REAL no style plain do motion.div — a
-  // review de ERRO (tint error.main 10% via color-mix), a bolha do ALUNO
-  // (primary.main preenchida) e a reply do tutor (secondary.main
-  // preenchida) — todas NUNCA transparentes (o bug do fix: `bgcolor` do sx
-  // descartado em silêncio num style object). A bolha é o div com
-  // background-color INLINE dentro do role=log; o filtro usa o texto EXATO
-  // (a reply contém a frase do aluno só como substring — só a bolha do aluno
-  // casa com exact:true).
+  // fluxo aplicam backgroundColor REAL no style plain do motion.div — todas
+  // NUNCA transparentes (o bug do fix: `bgcolor` do sx descartado em silêncio
+  // num style object). A bolha é o div com background-color INLINE dentro do
+  // role=log; o filtro usa o texto EXATO (a reply contém a frase do aluno só
+  // como substring — só a bolha do aluno casa com exact:true).
+  //
+  // ONDA "chat e código" (atualização do COMENTÁRIO, não da asserção): a
+  // reply do tutor deixou de ser um retângulo ROXO CHAPADO. Todo balão do
+  // tutor usa agora a MESMA superfície de leitura (background.paper, nível 1
+  // da rampa) e a identidade roxa da reply migrou para o ACENTO (borda de 2px
+  // em secondary.accentText + sombra colorida). O que esta asserção mede — que
+  // o fundo INLINE existe e não é transparente — continua valendo em cheio:
+  // ela é sobre o style plain do motion.div, não sobre qual cor ele carrega.
   const bubble = page.locator('[role="log"] [style*="background-color"]');
   const errorBubble = bubble.filter({ has: page.getByText('1 de 3 testes passaram', { exact: false }) });
   await expect(errorBubble).not.toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
