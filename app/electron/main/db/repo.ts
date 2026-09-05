@@ -26,6 +26,14 @@
  * desafio fundido da lição via LEFT JOIN challenges por lesson_id; null para
  * lições math/sem desafio) — a UI reabre a lição persistida por esses campos.
  *
+ * v5 (onda1-contrato-quiz): o QUIZ ADAPTATIVO ganha memória — `quiz_attempts`
+ * (uma linha por resposta do aluno, com acerto/erro, o ordinal da tentativa na
+ * seção e a origem do quiz) e `quiz_remediations` (a explicação do erro que o
+ * aluno leu MAIS o quiz gerado na hora, serializado em `quiz_json`). O
+ * `quizMasteryFor` deriva daí a resposta que o GATE DO DESAFIO faz: "esta
+ * seção já teve acerto?". Antes disso a resposta do quiz nunca saía do
+ * renderer e sumia quando o app fechava.
+ *
  * O CONTRATO das tabelas é definido pelo ORQUESTRADOR (fonte de verdade). Este
  * módulo assume exatamente essas colunas; quando a onda1-sql-schema mergear o
  * `schema.ts` com as MESMAS tabelas, a cola continua funcionando — `IF NOT
@@ -92,6 +100,118 @@ export interface GeneratedChallengeRow {
   solutionCode: string;
   expectedTestCount: number;
   createdAt: string;
+}
+
+/** v5 (onda1-contrato-quiz): de onde veio o quiz respondido — o da trilha
+ * (`lesson.json`) ou o gerado na hora depois de um erro. */
+export type QuizOrigin = 'authored' | 'remedial';
+
+/**
+ * v5: um quiz GERADO EM RUNTIME, serializado em `quiz_remediations.quiz_json`.
+ * Espelho estrutural do `RemedialQuizDto` do contrato
+ * (shared/ipc-contract.ts) — definido aqui pelo mesmo motivo de
+ * `LessonExercise`: a repo NUNCA importa shared.
+ */
+export interface RemedialQuizRecord {
+  /** id ÚNICO do quiz gerado (nunca o id da afirmação de origem). */
+  id: string;
+  /** id da afirmação AUTORADA que originou a série. */
+  originAssertionId: string;
+  /** 1 = primeiro quiz remedial da série; 2 = depois de errar o remedial 1; … */
+  generation: number;
+  statement: string;
+  question: string;
+  options: string[];
+  answerIndex: number;
+  feedback: string;
+  sectionId?: string;
+  optionRationales?: string[];
+}
+
+/** v5: linha de `quiz_attempts` em camelCase (uma resposta do aluno). */
+export interface QuizAttemptRow {
+  id: string;
+  trackSlug: string;
+  lessonId: string;
+  /** a SEÇÃO da aula — a unidade do gate de maestria. */
+  sectionKey: string;
+  assertionId: string;
+  selectedIndex: number;
+  correct: boolean;
+  /** ordinal da tentativa DENTRO da seção (1 = primeira). */
+  attemptNo: number;
+  quizOrigin: QuizOrigin;
+  createdAt: string;
+}
+
+/**
+ * v5: input de `recordQuizAttempt`. `attemptNo` e `quizOrigin` são OPCIONAIS
+ * de propósito: quem grava (handler/renderer) não deve precisar contar
+ * tentativas — a repo deriva o ordinal (COUNT+1 da seção) DENTRO da mesma
+ * transação do INSERT, que é o único lugar onde a contagem não corre risco de
+ * ficar defasada.
+ */
+export interface RecordQuizAttemptInput {
+  trackSlug: string;
+  lessonId: string;
+  sectionKey: string;
+  assertionId: string;
+  selectedIndex: number;
+  correct: boolean;
+  /** omitido = DERIVADO (COUNT+1 da seção) na mesma transação do INSERT. */
+  attemptNo?: number;
+  /** default `'authored'` (o quiz que veio da trilha). */
+  quizOrigin?: QuizOrigin;
+}
+
+/** v5: linha de `quiz_remediations` (explicação do erro + quiz gerado). */
+export interface QuizRemediationRow {
+  id: string;
+  trackSlug: string;
+  lessonId: string;
+  sectionKey: string;
+  originAssertionId: string;
+  generation: number;
+  explanation: string;
+  /** parse DEFENSIVO de `quiz_json`: JSON inválido/fora do shape ⇒ null. */
+  quiz: RemedialQuizRecord | null;
+  createdAt: string;
+}
+
+/** v5: input de `saveQuizRemediation` (o `id` é gerado quando omitido). */
+export interface SaveQuizRemediationInput {
+  /** id explícito (idempotência do chamador); omitido = uuid novo. */
+  id?: string;
+  trackSlug: string;
+  lessonId: string;
+  sectionKey: string;
+  originAssertionId: string;
+  generation: number;
+  explanation: string;
+  quiz: RemedialQuizRecord;
+}
+
+/**
+ * v5: a maestria de UMA seção — o que o GATE DO DESAFIO consulta. `mastered`
+ * é a pergunta do produto ("o aluno já provou que entendeu esta seção?"); as
+ * contagens existem para a UI explicar o caminho até lá.
+ */
+export interface QuizSectionMastery {
+  sectionKey: string;
+  /** true quando JÁ HOUVE pelo menos um acerto na seção. */
+  mastered: boolean;
+  attemptCount: number;
+  correctCount: number;
+  /** ISO da PRIMEIRA resposta certa; null enquanto o aluno não acertou. */
+  firstCorrectAt: string | null;
+  /** ISO da última resposta registrada; null quando não houve nenhuma. */
+  lastAttemptAt: string | null;
+}
+
+/** v5: escopo (trilha, aula) das leituras de quiz. */
+export interface QuizLessonScope {
+  trackSlug: string;
+  lessonId: string;
 }
 
 /** v4: linha de progresso de lição de trilha (track_progress). */
@@ -322,6 +442,26 @@ export interface LessonRepo {
    * sendo uma camada de dados burra e testável.
    */
   purgeTrackScopedState(slug: string): Promise<TrackScopedState | null>;
+  // ─── v5 (onda1-contrato-quiz): QUIZ ADAPTATIVO ──────────────────────────
+  /**
+   * Grava UMA resposta do aluno a UM quiz e devolve a linha criada. Quando
+   * `attemptNo` é omitido, a repo o DERIVA (COUNT+1 das tentativas daquela
+   * seção) na MESMA transação do INSERT.
+   */
+  recordQuizAttempt(input: RecordQuizAttemptInput): Promise<QuizAttemptRow>;
+  /** Tentativas de quiz de UMA aula, da mais antiga para a mais recente. */
+  listQuizAttempts(scope: QuizLessonScope): Promise<QuizAttemptRow[]>;
+  /** Persiste a explicação do erro + o quiz gerado na hora; devolve a linha. */
+  saveQuizRemediation(input: SaveQuizRemediationInput): Promise<QuizRemediationRow>;
+  /** Remediações de UMA aula, na ordem em que o aluno as viu. */
+  listQuizRemediations(scope: QuizLessonScope): Promise<QuizRemediationRow[]>;
+  /**
+   * A MAESTRIA por seção de UMA aula: se já houve acerto e quantas tentativas
+   * houve. É o que o GATE do desafio consulta — sem acerto na seção, o aluno
+   * não avança. Seção sem NENHUMA tentativa simplesmente não aparece na lista
+   * (a ausência é a resposta: nada respondido, nada provado).
+   */
+  quizMasteryFor(scope: QuizLessonScope): Promise<QuizSectionMastery[]>;
 }
 
 /**
@@ -429,6 +569,31 @@ CREATE TABLE IF NOT EXISTS generated_challenges (
   expected_test_count INTEGER NOT NULL,
   created_at          TEXT NOT NULL DEFAULT (datetime('now'))
 );
+CREATE TABLE IF NOT EXISTS quiz_attempts (
+  id             TEXT PRIMARY KEY,
+  track_slug     TEXT NOT NULL,
+  lesson_id      TEXT NOT NULL,
+  section_key    TEXT NOT NULL,
+  assertion_id   TEXT NOT NULL,
+  selected_index INTEGER NOT NULL,
+  correct        INTEGER NOT NULL CHECK (correct IN (0,1)),
+  attempt_no     INTEGER NOT NULL DEFAULT 1,
+  quiz_origin    TEXT NOT NULL DEFAULT 'authored' CHECK (quiz_origin IN ('authored','remedial')),
+  created_at     TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS idx_quiz_attempts_track_lesson ON quiz_attempts(track_slug, lesson_id);
+CREATE TABLE IF NOT EXISTS quiz_remediations (
+  id                  TEXT PRIMARY KEY,
+  track_slug          TEXT NOT NULL,
+  lesson_id           TEXT NOT NULL,
+  section_key         TEXT NOT NULL,
+  origin_assertion_id TEXT NOT NULL,
+  generation          INTEGER NOT NULL DEFAULT 1,
+  explanation         TEXT NOT NULL,
+  quiz_json           TEXT NOT NULL,
+  created_at          TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS idx_quiz_remediations_track_lesson ON quiz_remediations(track_slug, lesson_id);
 `;
 
 /** Deriva um slug kebab-case (sem acento) a partir de um nome humano. */
@@ -472,6 +637,103 @@ export function parseLessonExercise(raw: unknown): LessonExercise | null {
       prompt: o.prompt,
       expectedNormalized: o.expectedNormalized,
     };
+  } catch {
+    return null; // JSON inválido ⇒ null (nunca lança)
+  }
+}
+
+/**
+ * O contrato do quiz exige EXATAMENTE 4 alternativas. O número NÃO é escolha
+ * desta camada: ele vem das duas fontes de verdade a montante —
+ * `validateAssertions` (content/trackTypes.ts: "options inválido (esperado
+ * array com EXATAMENTE 4 opções)", `a.options.length !== 4`) e
+ * `AssertionDraftSchema` (engine/schemas/artifacts.ts:
+ * `z.array(z.string().min(1)).length(4)` com `answerIndex` em 0..3).
+ *
+ * Nenhuma das duas exporta o valor como constante, e a repo NÃO importa de
+ * `content/` nem de `engine/` (mesmo motivo pelo qual `RemedialQuizRecord` é
+ * redeclarado aqui em vez de vir de `shared/`: a repo não importa shared).
+ * Então o literal é repetido — mas com a origem NOMEADA, para que uma mudança
+ * do contrato tenha por onde ser rastreada até aqui.
+ */
+const QUIZ_OPTIONS_ESPERADAS = 4;
+
+/**
+ * v5 (onda1-contrato-quiz): parse DEFENSIVO do `quiz_json` de uma remediação —
+ * devolve null para ausente/vazio/JSON inválido/forma fora do contrato, NUNCA
+ * lança. Mesmo princípio de `parseLessonExercise`: um registro corrompido não
+ * pode derrubar a leitura do histórico INTEIRO da aula.
+ *
+ * "Forma fora do contrato" inclui — desde a revisão adversarial desta onda — o
+ * TAMANHO e a FAIXA, não só o tipo de cada campo: `options` com comprimento
+ * diferente de `QUIZ_OPTIONS_ESPERADAS` e `answerIndex` fora de
+ * `0..options.length-1` devolvem null.
+ *
+ * Os campos OPCIONAIS (`sectionId`, `optionRationales`) só entram no resultado
+ * quando vêm no shape certo — um `optionRationales` corrompido ou incoerente
+ * some em vez de viajar meio quebrado até a UI.
+ */
+export function parseRemedialQuiz(raw: unknown): RemedialQuizRecord | null {
+  if (typeof raw !== 'string' || raw.trim() === '') return null;
+  try {
+    const parsed = JSON.parse(raw) as unknown;
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return null;
+    const o = parsed as Record<string, unknown>;
+    if (
+      typeof o.id !== 'string' ||
+      typeof o.originAssertionId !== 'string' ||
+      typeof o.generation !== 'number' ||
+      !Number.isInteger(o.generation) ||
+      typeof o.statement !== 'string' ||
+      typeof o.question !== 'string' ||
+      !Array.isArray(o.options) ||
+      !o.options.every((opt) => typeof opt === 'string') ||
+      typeof o.answerIndex !== 'number' ||
+      !Number.isInteger(o.answerIndex) ||
+      typeof o.feedback !== 'string'
+    ) {
+      return null;
+    }
+    // ─── FURO FECHADO PELA REVISÃO ADVERSARIAL ────────────────────────────
+    // O bloco acima confere só o TIPO de cada campo. O revisor MEDIU esta
+    // função e tudo abaixo passava como "quiz válido":
+    //   options.length=3 answerIndex=1  => ACEITO
+    //   options.length=1 answerIndex=0  => ACEITO
+    //   options.length=0 answerIndex=0  => ACEITO  ← ZERO alternativas
+    //   options.length=6 answerIndex=5  => ACEITO
+    //   options.length=3 answerIndex=-1 => ACEITO  ← índice NEGATIVO
+    // Contradizia o próprio docstring ("forma fora do contrato ⇒ null") e o
+    // contrato do quiz. IMPORTA porque esta função é o PORTÃO que protege o
+    // renderer: quando o serviço de LLM começar a gravar em `quiz_json`, um
+    // quiz sem alternativas — ou apontando para fora delas — chegaria à UI.
+    const options = o.options as string[];
+    if (options.length !== QUIZ_OPTIONS_ESPERADAS) return null;
+    if (o.answerIndex < 0 || o.answerIndex >= options.length) return null;
+    const quiz: RemedialQuizRecord = {
+      id: o.id,
+      originAssertionId: o.originAssertionId,
+      generation: o.generation,
+      statement: o.statement,
+      question: o.question,
+      options,
+      answerIndex: o.answerIndex,
+      feedback: o.feedback,
+    };
+    if (typeof o.sectionId === 'string') quiz.sectionId = o.sectionId;
+    // `optionRationales` COERENTE com `options` — a MESMA regra já decidida em
+    // `validateAssertions` (`length > 0 && length !== optLen` é defeito): `[]`
+    // é a ausência EXPLÍCITA que o `AssertionDraftSchema` materializa, e o
+    // preenchido de verdade tem UM racional POR OPÇÃO. Comprimento intermediário
+    // é meia-declaração — e o revisor mediu que `['a','b']` com 4 opções era
+    // ACEITO. Fora da regra o CAMPO some (o quiz sobrevive), que é o
+    // comportamento já estabelecido para o array corrompido.
+    if (Array.isArray(o.optionRationales) && o.optionRationales.every((r) => typeof r === 'string')) {
+      const rationales = o.optionRationales as string[];
+      if (rationales.length === 0 || rationales.length === options.length) {
+        quiz.optionRationales = rationales;
+      }
+    }
+    return quiz;
   } catch {
     return null; // JSON inválido ⇒ null (nunca lança)
   }
@@ -1120,6 +1382,12 @@ export function createLessonRepo(open: OpenFn): LessonRepo {
         db.exec('DELETE FROM track_progress');
         db.exec('DELETE FROM track_proficiency');
         db.exec('DELETE FROM generated_challenges');
+        // v5 (onda1-contrato-quiz): o quiz É avanço — as respostas provam o
+        // que o aluno entendeu e destravam o desafio. Deixá-las aqui faria o
+        // "resetar progresso" mentir: a aula voltaria a zero com o portão do
+        // desafio JÁ aberto.
+        db.exec('DELETE FROM quiz_attempts');
+        db.exec('DELETE FROM quiz_remediations');
         db.exec('DELETE FROM progress');
         db.exec('DELETE FROM lesson_answers');
         db.exec('DELETE FROM hint_break_events');
@@ -1144,6 +1412,12 @@ export function createLessonRepo(open: OpenFn): LessonRepo {
         db.prepare('DELETE FROM track_progress WHERE track_slug = ?').run(slug);
         db.prepare('DELETE FROM track_proficiency WHERE track_slug = ?').run(slug);
         db.prepare('DELETE FROM generated_challenges WHERE track_slug = ?').run(slug);
+        // v5 (onda1-contrato-quiz): as duas tabelas do quiz também são keyed
+        // por track_slug — sem estas linhas, apagar a trilha deixaria para
+        // trás as respostas de quiz dela (e um slug recriado herdaria a
+        // maestria de um curso que não existe mais).
+        db.prepare('DELETE FROM quiz_attempts WHERE track_slug = ?').run(slug);
+        db.prepare('DELETE FROM quiz_remediations WHERE track_slug = ?').run(slug);
         // A matéria só sai DEPOIS do que a referencia (FK subject_id é
         // enforced em runtime — PRAGMA foreign_keys = ON em connection.ts).
         // `lessons`/`progress` não são tocados: um slug com lessons próprias
@@ -1157,6 +1431,196 @@ export function createLessonRepo(open: OpenFn): LessonRepo {
         }
       });
       return before;
+    },
+
+    // ─── v5 (onda1-contrato-quiz): QUIZ ADAPTATIVO ──────────────────────────
+
+    async recordQuizAttempt(input) {
+      // TRANSACIONAL por causa do `attemptNo` derivado: contar fora da
+      // transação e inserir depois abriria a janela em que duas respostas da
+      // MESMA seção recebem o mesmo ordinal.
+      return withTransaction(db, (): QuizAttemptRow => {
+        const attemptNo =
+          input.attemptNo ??
+          Number(
+            (
+              db
+                .prepare(
+                  `SELECT COUNT(*) AS n FROM quiz_attempts
+                   WHERE track_slug = ? AND lesson_id = ? AND section_key = ?`,
+                )
+                .get(input.trackSlug, input.lessonId, input.sectionKey) as { n?: number } | undefined
+            )?.n ?? 0,
+          ) + 1;
+        const attempt: QuizAttemptRow = {
+          id: newId(),
+          trackSlug: input.trackSlug,
+          lessonId: input.lessonId,
+          sectionKey: input.sectionKey,
+          assertionId: input.assertionId,
+          selectedIndex: input.selectedIndex,
+          correct: input.correct,
+          attemptNo,
+          quizOrigin: input.quizOrigin ?? 'authored',
+          createdAt: now(),
+        };
+        db.prepare(
+          `INSERT INTO quiz_attempts
+             (id, track_slug, lesson_id, section_key, assertion_id, selected_index,
+              correct, attempt_no, quiz_origin, created_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        ).run(
+          attempt.id,
+          attempt.trackSlug,
+          attempt.lessonId,
+          attempt.sectionKey,
+          attempt.assertionId,
+          attempt.selectedIndex,
+          // SQLite não tem boolean: `correct` é 0/1 (CHECK no schema).
+          attempt.correct ? 1 : 0,
+          attempt.attemptNo,
+          attempt.quizOrigin,
+          attempt.createdAt,
+        );
+        return attempt;
+      });
+    },
+
+    async listQuizAttempts(scope) {
+      const rows = db
+        .prepare(
+          `SELECT id, track_slug, lesson_id, section_key, assertion_id, selected_index,
+                  correct, attempt_no, quiz_origin, created_at
+           FROM quiz_attempts
+           WHERE track_slug = ? AND lesson_id = ?
+           ORDER BY created_at ASC, attempt_no ASC, rowid ASC`,
+        )
+        .all(scope.trackSlug, scope.lessonId) as unknown as Array<{
+        id: string;
+        track_slug: string;
+        lesson_id: string;
+        section_key: string;
+        assertion_id: string;
+        selected_index: number;
+        correct: number;
+        attempt_no: number;
+        quiz_origin: QuizOrigin;
+        created_at: string;
+      }>;
+      // snake_case do banco -> camelCase do contrato (padrão da repo).
+      return rows.map((r) => ({
+        id: r.id,
+        trackSlug: r.track_slug,
+        lessonId: r.lesson_id,
+        sectionKey: r.section_key,
+        assertionId: r.assertion_id,
+        selectedIndex: Number(r.selected_index),
+        correct: Number(r.correct) === 1,
+        attemptNo: Number(r.attempt_no),
+        quizOrigin: r.quiz_origin,
+        createdAt: r.created_at,
+      }));
+    },
+
+    async saveQuizRemediation(input) {
+      const row: QuizRemediationRow = {
+        id: input.id ?? newId(),
+        trackSlug: input.trackSlug,
+        lessonId: input.lessonId,
+        sectionKey: input.sectionKey,
+        originAssertionId: input.originAssertionId,
+        generation: input.generation,
+        explanation: input.explanation,
+        quiz: input.quiz,
+        createdAt: now(),
+      };
+      db.prepare(
+        `INSERT INTO quiz_remediations
+           (id, track_slug, lesson_id, section_key, origin_assertion_id, generation,
+            explanation, quiz_json, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      ).run(
+        row.id,
+        row.trackSlug,
+        row.lessonId,
+        row.sectionKey,
+        row.originAssertionId,
+        row.generation,
+        row.explanation,
+        JSON.stringify(input.quiz),
+        row.createdAt,
+      );
+      return row;
+    },
+
+    async listQuizRemediations(scope) {
+      const rows = db
+        .prepare(
+          `SELECT id, track_slug, lesson_id, section_key, origin_assertion_id, generation,
+                  explanation, quiz_json, created_at
+           FROM quiz_remediations
+           WHERE track_slug = ? AND lesson_id = ?
+           ORDER BY created_at ASC, generation ASC, rowid ASC`,
+        )
+        .all(scope.trackSlug, scope.lessonId) as unknown as Array<{
+        id: string;
+        track_slug: string;
+        lesson_id: string;
+        section_key: string;
+        origin_assertion_id: string;
+        generation: number;
+        explanation: string;
+        quiz_json: string | null;
+        created_at: string;
+      }>;
+      return rows.map((r) => ({
+        id: r.id,
+        trackSlug: r.track_slug,
+        lessonId: r.lesson_id,
+        sectionKey: r.section_key,
+        originAssertionId: r.origin_assertion_id,
+        generation: Number(r.generation),
+        explanation: r.explanation,
+        // parse DEFENSIVO: registro corrompido vira quiz null, e o histórico
+        // da aula continua legível (a explicação NUNCA se perde por isso).
+        quiz: parseRemedialQuiz(r.quiz_json),
+        createdAt: r.created_at,
+      }));
+    },
+
+    async quizMasteryFor(scope) {
+      const rows = db
+        .prepare(
+          `SELECT section_key AS sectionKey,
+                  COUNT(*) AS attemptCount,
+                  SUM(CASE WHEN correct = 1 THEN 1 ELSE 0 END) AS correctCount,
+                  MIN(CASE WHEN correct = 1 THEN created_at END) AS firstCorrectAt,
+                  MAX(created_at) AS lastAttemptAt
+           FROM quiz_attempts
+           WHERE track_slug = ? AND lesson_id = ?
+           GROUP BY section_key
+           ORDER BY section_key ASC`,
+        )
+        .all(scope.trackSlug, scope.lessonId) as unknown as Array<{
+        sectionKey: string;
+        attemptCount: number;
+        correctCount: number;
+        firstCorrectAt: string | null;
+        lastAttemptAt: string | null;
+      }>;
+      return rows.map((r) => {
+        const correctCount = Number(r.correctCount ?? 0);
+        return {
+          sectionKey: r.sectionKey,
+          // A pergunta do GATE: houve acerto? (errar não trava — responder de
+          // novo é o caminho; o que trava é NUNCA ter acertado.)
+          mastered: correctCount > 0,
+          attemptCount: Number(r.attemptCount ?? 0),
+          correctCount,
+          firstCorrectAt: typeof r.firstCorrectAt === 'string' ? r.firstCorrectAt : null,
+          lastAttemptAt: typeof r.lastAttemptAt === 'string' ? r.lastAttemptAt : null,
+        };
+      });
     },
   };
 }

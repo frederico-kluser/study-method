@@ -55,8 +55,23 @@
  *     (challenge_id NÃO é FK — o desafio pode ser gerado sem estar na tabela
  *     challenges; o slug é a chave estável do nunca-repetir, igual a
  *     challenge_attempts)
+ *
+ * v5 (onda1-contrato-quiz): o QUIZ ADAPTATIVO ganha memória. Até aqui a
+ * resposta do quiz NUNCA chegava ao processo main — vivia em estado de
+ * componente e morria quando o app fechava, o que torna impossível a regra
+ * nova do produto ("o aluno só vai para o desafio depois de PROVAR que
+ * entendeu"). Duas tabelas novas, ambas keyed por (track_slug, lesson_id) como
+ * as tabelas de trilha da v4 e, como elas, SEM FK: o conteúdo das trilhas vive
+ * em ARQUIVOS, não em linhas.
+ *   quiz_attempts      uma linha por resposta do aluno a um quiz (autorado ou
+ *                      remedial), com acerto/erro, o ordinal da tentativa na
+ *                      seção e a origem do quiz. É a base do gate de maestria.
+ *   quiz_remediations  a explicação do erro que o aluno leu MAIS o quiz gerado
+ *                      na hora depois dela (RemedialQuizDto serializado em
+ *                      quiz_json) — é o que faz a explicação FICAR no
+ *                      histórico da aula entre sessões.
  */
-export const SCHEMA_VERSION = 4;
+export const SCHEMA_VERSION = 5;
 
 /**
  * Tabela de tentativas de desafio (v2): uma linha por execução de um desafio
@@ -82,6 +97,63 @@ CREATE TABLE IF NOT EXISTS challenge_attempts (
 export const CHALLENGE_ATTEMPTS_INDEXES: string[] = [
   `CREATE INDEX IF NOT EXISTS idx_challenge_attempts_challenge_id ON challenge_attempts(challenge_id);`,
   `CREATE INDEX IF NOT EXISTS idx_challenge_attempts_subject_id   ON challenge_attempts(subject_id);`,
+];
+
+/**
+ * v5 (onda1-contrato-quiz): UMA resposta do aluno a UM quiz. Declarada como
+ * constante ANTES de TABLES para o caminho de CRIAÇÃO NOVA (TABLES) e o de
+ * MIGRAÇÃO v4→v5 (MIGRATIONS) compartilharem o MESMO SQL — o padrão de
+ * CHALLENGE_ATTEMPTS_TABLE.
+ *
+ * SEM FK, de propósito: `track_slug`/`lesson_id` apontam para conteúdo que
+ * vive em ARQUIVOS (resources/tracks), não em linhas — exatamente como
+ * track_progress e generated_challenges da v4. `correct` é 0/1 (SQLite não
+ * tem boolean) e `quiz_origin` distingue o quiz DA TRILHA do quiz gerado na
+ * hora: as tentativas dos dois convivem aqui, e sem essa coluna o histórico
+ * não saberia dizer o que o aluno respondeu.
+ */
+export const QUIZ_ATTEMPTS_TABLE: string = `-- quiz_attempts (v5: respostas do aluno ao quiz da aula)
+CREATE TABLE IF NOT EXISTS quiz_attempts (
+  id             TEXT PRIMARY KEY,
+  track_slug     TEXT NOT NULL,
+  lesson_id      TEXT NOT NULL,
+  section_key    TEXT NOT NULL,
+  assertion_id   TEXT NOT NULL,
+  selected_index INTEGER NOT NULL,
+  correct        INTEGER NOT NULL CHECK (correct IN (0,1)),
+  attempt_no     INTEGER NOT NULL DEFAULT 1,
+  quiz_origin    TEXT NOT NULL DEFAULT 'authored' CHECK (quiz_origin IN ('authored','remedial')),
+  created_at     TEXT NOT NULL DEFAULT (datetime('now'))
+);`;
+
+/**
+ * v5 (onda1-contrato-quiz): a REMEDIAÇÃO — a explicação do erro que o aluno
+ * leu e o quiz novo que veio depois dela (`quiz_json` = o RemedialQuizDto
+ * serializado). É o que faz a explicação FICAR no histórico da aula depois de
+ * o app fechar.
+ */
+export const QUIZ_REMEDIATIONS_TABLE: string = `-- quiz_remediations (v5: explicação do erro + quiz gerado na hora)
+CREATE TABLE IF NOT EXISTS quiz_remediations (
+  id                  TEXT PRIMARY KEY,
+  track_slug          TEXT NOT NULL,
+  lesson_id           TEXT NOT NULL,
+  section_key         TEXT NOT NULL,
+  origin_assertion_id TEXT NOT NULL,
+  generation          INTEGER NOT NULL DEFAULT 1,
+  explanation         TEXT NOT NULL,
+  quiz_json           TEXT NOT NULL,
+  created_at          TEXT NOT NULL DEFAULT (datetime('now'))
+);`;
+
+/**
+ * Índices das duas tabelas do quiz (v5). A leitura REAL é sempre "o quiz DESTA
+ * aula" — o histórico da aula e o gate de maestria filtram por
+ * (track_slug, lesson_id), então é esse o índice que existe. Mesma definição
+ * nos dois caminhos (criação nova e migração).
+ */
+export const QUIZ_INDEXES: string[] = [
+  `CREATE INDEX IF NOT EXISTS idx_quiz_attempts_track_lesson     ON quiz_attempts(track_slug, lesson_id);`,
+  `CREATE INDEX IF NOT EXISTS idx_quiz_remediations_track_lesson ON quiz_remediations(track_slug, lesson_id);`,
 ];
 
 /**
@@ -198,6 +270,10 @@ CREATE TABLE IF NOT EXISTS generated_challenges (
   expected_test_count INTEGER NOT NULL,
   created_at          TEXT NOT NULL DEFAULT (datetime('now'))
 );`,
+
+  QUIZ_ATTEMPTS_TABLE,
+
+  QUIZ_REMEDIATIONS_TABLE,
 ];
 
 /**
@@ -216,6 +292,7 @@ export const INDEXES: string[] = [
   `CREATE INDEX IF NOT EXISTS idx_hint_break_events_challenge ON hint_break_events(challenge_id);`,
   `CREATE INDEX IF NOT EXISTS idx_hint_break_events_lesson    ON hint_break_events(lesson_id);`,
   ...CHALLENGE_ATTEMPTS_INDEXES,
+  ...QUIZ_INDEXES,
 ];
 
 /** Nome de todas as tabelas criadas pelo schema (para verificação/teste). */
@@ -231,6 +308,8 @@ export const TABLE_NAMES: readonly string[] = [
   'track_progress',
   'track_proficiency',
   'generated_challenges',
+  'quiz_attempts',
+  'quiz_remediations',
 ];
 
 /** Concatenação completa do schema: tabelas + índices, na ordem de dependência. */
@@ -288,6 +367,12 @@ export interface MigrationStep {
  *   - lessons ganha `exercise_json` via `LESSONS_EXERCISE_ALTER`, guardado por
  *     `guardedAlter` (mesmo padrão crash-safe do v2). Sem tabela nova — o `sql`
  *     do passo é apenas um comentário (roda sempre, no-op idempotente).
+ *
+ * v5 (SCHEMA_VERSION=5, onda1-contrato-quiz):
+ *   - quiz_attempts e quiz_remediations são criadas NOVAS (CREATE TABLE IF NOT
+ *     EXISTS + índices), então carregam todos os CHECKs normalmente e o passo
+ *     dispensa `guardedAlter` — não há ALTER nenhum. Nenhuma tabela antiga é
+ *     tocada: um banco v4 sobe para v5 sem perder linha alguma.
  */
 export const MIGRATIONS: readonly MigrationStep[] = [
   {
@@ -334,6 +419,15 @@ export const MIGRATIONS: readonly MigrationStep[] = [
   expected_test_count INTEGER NOT NULL,
   created_at          TEXT NOT NULL DEFAULT (datetime('now'))
 );`,
+    ].join('\n'),
+  },
+  {
+    version: 5,
+    sql: [
+      `-- v5: quiz adaptativo (onda1-contrato-quiz) — tabelas novas, todas CREATE IF NOT EXISTS`,
+      QUIZ_ATTEMPTS_TABLE,
+      QUIZ_REMEDIATIONS_TABLE,
+      ...QUIZ_INDEXES,
     ].join('\n'),
   },
 ];

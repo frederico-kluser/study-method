@@ -330,6 +330,36 @@ export const TRACK_CHANNELS = {
    * → TrackPurgeOrphansResult
    */
   PURGE_ORPHANS: 'track:purge-orphans',
+  /**
+   * ADITIVO (onda1-contrato-quiz — QUIZ ADAPTATIVO). Os quatro canais abaixo
+   * são de REQUEST (invoke), nunca de evento: o renderer chama e espera a
+   * resposta.
+   *
+   * Registra UMA resposta do aluno a UM quiz (tabela `quiz_attempts`, schema
+   * v5). É o canal que faltava: hoje a resposta do quiz NUNCA chega ao main e
+   * morre em memória quando o app fecha. → QuizAttemptReply
+   */
+  QUIZ_ATTEMPT: 'track:quiz-attempt',
+  /**
+   * ADITIVO (onda1-contrato-quiz): pede à IA a explicação de POR QUE a opção
+   * ESCOLHIDA está errada, ancorada na seção de teoria que demonstra a
+   * afirmação. FAIL-CLOSED (padrão TUTOR_UNAVAILABLE): LLM fora ⇒
+   * `{ ok:false, code }` — nunca um veredito inventado. → QuizExplainReply
+   */
+  QUIZ_EXPLAIN: 'track:quiz-explain',
+  /**
+   * ADITIVO (onda1-contrato-quiz): gera NA HORA um quiz novo sobre o MESMO
+   * conteúdo (depois da explicação do erro), para o aluno PROVAR que
+   * entendeu. Mesmo fail-closed do explain. → QuizRemedialReply
+   */
+  QUIZ_REMEDIAL: 'track:quiz-remedial',
+  /**
+   * ADITIVO (onda1-contrato-quiz): o histórico PERSISTIDO do quiz de uma aula
+   * — tentativas, explicações/quizzes remediais e a maestria por seção (o que
+   * o gate do desafio consulta ao reabrir a aula depois de fechar o app).
+   * → QuizHistoryReply
+   */
+  QUIZ_HISTORY: 'track:quiz-history',
 } as const;
 
 export type TrackVerdict = 'passed' | 'failed' | 'timeout' | 'abandoned';
@@ -481,6 +511,14 @@ export interface TrackAssertionDto {
    * chegam sem o campo).
    */
   sectionId?: string;
+  /**
+   * ADITIVO (onda1-contrato-quiz): UM RACIONAL POR OPÇÃO — por que AQUELA
+   * alternativa está errada (e, na correta, por que está certa). Espelha
+   * `TrackAssertion.optionRationales` (electron/main/content/trackTypes.ts):
+   * ausente ou `[]` = sem racionais declarados; não vazio, tem EXATAMENTE o
+   * comprimento de `options`, na MESMA ordem.
+   */
+  optionRationales?: string[];
 }
 
 /** Fonte do conteúdo — exibida SOMENTE pelo botão "Fontes", nunca no fluxo. */
@@ -744,6 +782,234 @@ export interface TrackRegenerateProgressEvent {
    *  aborta o main; um terminal atrasado não pode sequestrar a geração nova). */
   generationId?: number;
 }
+
+// ─── DTOs: QUIZ ADAPTATIVO (onda1-contrato-quiz) ─────────────────────────────
+// O quiz deixou de ser enfeite e virou o PORTÃO da aula. A regra do produto:
+//   1. o aluno ERRA ⇒ a IA explica POR QUE aquela opção está errada
+//      (`track:quiz-explain`) e a explicação ENTRA NO HISTÓRICO da aula;
+//   2. logo depois, um quiz NOVO sobre o MESMO conteúdo é gerado na hora
+//      (`track:quiz-remedial`) — o aluno responde de novo;
+//   3. o DESAFIO só abre depois de o aluno PROVAR que entendeu (acertar) — o
+//      gate de maestria lê `quizMasteryFor` da repo, alimentada por
+//      `track:quiz-attempt`;
+//   4. tudo SOBREVIVE ao fechamento do app (schema v5: `quiz_attempts` e
+//      `quiz_remediations`) — hoje a resposta do quiz nunca chega ao main.
+//
+// FAIL-CLOSED, o mesmo contrato de `TutorReply`/`TUTOR_UNAVAILABLE`: quando a
+// LLM está fora, explain e remedial devolvem `{ ok:false, code, message }`.
+// NUNCA um veredito ou um quiz inventado — errar em silêncio aqui é pior que
+// falhar, porque o produto passaria a MENTIR sobre o que o aluno entendeu.
+
+/** De onde veio o quiz respondido: o da trilha (`lesson.json`) ou o gerado na hora. */
+export type QuizOrigin = 'authored' | 'remedial';
+
+/**
+ * Códigos de erro dos canais de quiz — o mesmo idioma de `TUTOR_ERROR_CODES`
+ * (electron/main/services/tutorChat.ts), declarados aqui porque atravessam o
+ * IPC e o renderer precisa distinguir "a IA está fora" de "não achei a aula".
+ */
+export const QUIZ_ERROR_CODES = {
+  /** LLM indisponível/erro de rede/timeout — falha RÁPIDA, nunca spinner eterno. */
+  UNAVAILABLE: 'QUIZ_UNAVAILABLE',
+  /** A LLM respondeu, mas veio vazio (nada exibível ao aluno). */
+  EMPTY_REPLY: 'QUIZ_EMPTY_REPLY',
+  /** A LLM respondeu, mas o quiz gerado não passa no shape do contrato. */
+  INVALID_QUIZ: 'QUIZ_INVALID_QUIZ',
+  /** Trilha/aula/afirmação inexistente no pedido. */
+  NOT_FOUND: 'QUIZ_NOT_FOUND',
+  /** O banco não aceitou a gravação (repo indisponível, erro de SQL). */
+  PERSIST_FAILED: 'QUIZ_PERSIST_FAILED',
+} as const;
+
+export type QuizErrorCode = (typeof QUIZ_ERROR_CODES)[keyof typeof QUIZ_ERROR_CODES];
+
+/**
+ * UMA resposta do aluno a UM quiz, PERSISTIDA (tabela `quiz_attempts`, v5).
+ *
+ * `sectionKey` é a unidade do gate de maestria — normalmente o id da seção de
+ * teoria que demonstra a afirmação (`theory[].id`, a âncora `sectionId`); a
+ * aula pode usar uma chave própria para o quiz de CONCLUSÃO. É string livre
+ * de propósito: o contrato não fecha o vocabulário de seção da aula.
+ *
+ * `attemptNo` é o ordinal da tentativa DENTRO da seção (1 = a primeira
+ * resposta). Quem grava não precisa calculá-lo: a repo o deriva (COUNT+1) na
+ * mesma transação do INSERT quando ele é omitido no pedido.
+ */
+export interface QuizAttemptDto {
+  trackSlug: string;
+  lessonId: string;
+  /** a SEÇÃO da aula a que este quiz pertence — a unidade do gate de maestria. */
+  sectionKey: string;
+  /** id da afirmação respondida (autorada) ou do quiz remedial gerado. */
+  assertionId: string;
+  /** índice da opção escolhida pelo aluno (0..options.length-1). */
+  selectedIndex: number;
+  correct: boolean;
+  /** ordinal da tentativa dentro da seção (1 = primeira). */
+  attemptNo: number;
+  quizOrigin: QuizOrigin;
+  /** ISO-8601 da gravação. */
+  createdAt: string;
+}
+
+/**
+ * Um quiz GERADO EM RUNTIME sobre o MESMO conteúdo de uma afirmação que o
+ * aluno errou. Tem a forma de `TrackAssertionDto` (o renderer o desenha com o
+ * mesmo componente do quiz da trilha) mais a identidade da geração.
+ *
+ * `id` vem da base e precisa ser ÚNICO dentro da aula — nunca reutilize o id
+ * da afirmação de origem: as tentativas dos dois vivem na MESMA tabela e o
+ * histórico deixaria de distinguir "errou a autorada" de "errou a remedial".
+ */
+export interface RemedialQuizDto extends TrackAssertionDto {
+  /** id da afirmação AUTORADA que originou a série (a que o aluno errou). */
+  originAssertionId: string;
+  /** 1 = primeiro quiz remedial da série; 2 = depois de errar o remedial 1; … */
+  generation: number;
+}
+
+/**
+ * Uma REMEDIAÇÃO persistida (tabela `quiz_remediations`, v5): a explicação do
+ * erro que o aluno leu MAIS o quiz novo que veio depois dela. É o que faz a
+ * explicação "ficar no histórico da aula" mesmo depois de o app fechar.
+ */
+export interface QuizRemediationDto {
+  id: string;
+  trackSlug: string;
+  lessonId: string;
+  sectionKey: string;
+  originAssertionId: string;
+  generation: number;
+  /** a explicação do erro exibida ao aluno (entra no histórico da aula). */
+  explanation: string;
+  /**
+   * o quiz gerado. `null` quando o JSON persistido não pôde ser parseado —
+   * leitura DEFENSIVA (mesmo padrão de `parseLessonExercise`): um registro
+   * corrompido não derruba o histórico inteiro da aula.
+   */
+  quiz: RemedialQuizDto | null;
+  createdAt: string;
+}
+
+/**
+ * Maestria de UMA seção: o que o gate do desafio consulta. `mastered` é a
+ * pergunta do produto ("o aluno já provou que entendeu esta seção?"); as
+ * contagens existem para a UI explicar o caminho até lá.
+ */
+export interface QuizSectionMasteryDto {
+  sectionKey: string;
+  /** true quando JÁ HOUVE pelo menos um acerto nesta seção. */
+  mastered: boolean;
+  /** total de respostas registradas na seção (autoradas + remediais). */
+  attemptCount: number;
+  correctCount: number;
+  /** ISO da PRIMEIRA resposta certa; null enquanto o aluno não acertou. */
+  firstCorrectAt: string | null;
+  /** ISO da última resposta registrada; null quando não houve nenhuma. */
+  lastAttemptAt: string | null;
+}
+
+/** Pedido de `track:quiz-attempt` — registra UMA resposta do aluno. */
+export interface QuizAttemptRequest {
+  trackSlug: string;
+  lessonId: string;
+  sectionKey: string;
+  assertionId: string;
+  selectedIndex: number;
+  correct: boolean;
+  /** default 'authored' (o quiz da trilha). */
+  quizOrigin?: QuizOrigin;
+  /** omitido = DERIVADO pela repo (COUNT+1 na mesma transação do INSERT). */
+  attemptNo?: number;
+}
+
+/**
+ * Resultado de `track:quiz-attempt`: a linha gravada + a maestria RECALCULADA
+ * da aula (o gate não precisa de uma segunda ida ao main para saber se o
+ * desafio abriu).
+ */
+export type QuizAttemptReply =
+  | { ok: true; attempt: QuizAttemptDto; mastery: QuizSectionMasteryDto[] }
+  | { ok: false; code: QuizErrorCode; message: string };
+
+/**
+ * Pedido de `track:quiz-explain` — a explicação do ERRO. O contexto é tudo o
+ * que ancora a explicação no conteúdo da aula: a afirmação inteira (com as
+ * opções e, quando houver, os `optionRationales`), a opção ESCOLHIDA, a seção
+ * de teoria que a demonstra e o material da aula.
+ */
+export interface QuizExplainRequest {
+  trackSlug: string;
+  lessonId: string;
+  sectionKey: string;
+  /** a afirmação com o quiz que o aluno acabou de errar (autorada ou remedial). */
+  assertion: TrackAssertionDto;
+  /** índice da opção que o aluno escolheu — a ERRADA. */
+  selectedIndex: number;
+  /** de onde veio o quiz errado (default 'authored' quando omitido). */
+  quizOrigin?: QuizOrigin;
+  /** a seção de teoria que DEMONSTRA a afirmação; null quando não há âncora. */
+  theorySection?: TrackTheorySectionDto | null;
+  /** material da aula (título/resumo/teoria) — o tutor explica ANCORADO nele. */
+  lessonExcerpt?: string;
+}
+
+/**
+ * Resultado de `track:quiz-explain`. FAIL-CLOSED: sem LLM não existe
+ * `{ ok:true }` com texto inventado — devolve o código do erro e a UI diz que
+ * a explicação está indisponível.
+ */
+export type QuizExplainReply =
+  | { ok: true; explanation: string }
+  | { ok: false; code: QuizErrorCode; message: string };
+
+/**
+ * Pedido de `track:quiz-remedial` — o quiz NOVO sobre o mesmo conteúdo, gerado
+ * depois da explicação. `askedQuestions` é o nunca-repetir: as perguntas que o
+ * aluno JÁ viu nesta seção (autorada + remediais anteriores).
+ */
+export interface QuizRemedialRequest {
+  trackSlug: string;
+  lessonId: string;
+  sectionKey: string;
+  /** id da afirmação AUTORADA que originou a série. */
+  originAssertionId: string;
+  /** geração pedida (1 = o primeiro quiz depois do erro na autorada). */
+  generation: number;
+  /** a afirmação de origem (statement/pergunta/opções) — a base do conteúdo. */
+  assertion: TrackAssertionDto;
+  /** a explicação do erro já entregue ao aluno (o quiz novo cobra o que ela ensinou). */
+  explanation?: string;
+  /** perguntas já vistas nesta seção — o quiz novo não pode repeti-las. */
+  askedQuestions?: string[];
+  theorySection?: TrackTheorySectionDto | null;
+  lessonExcerpt?: string;
+}
+
+/** Resultado de `track:quiz-remedial` — mesmo fail-closed do explain. */
+export type QuizRemedialReply =
+  | { ok: true; quiz: RemedialQuizDto }
+  | { ok: false; code: QuizErrorCode; message: string };
+
+/** Pedido de `track:quiz-history` — o histórico persistido de UMA aula. */
+export interface QuizHistoryRequest {
+  trackSlug: string;
+  lessonId: string;
+}
+
+/**
+ * Resultado de `track:quiz-history`: tudo o que sobreviveu ao fechamento do
+ * app — as tentativas (ordem cronológica), as remediações (explicação + quiz
+ * gerado) e a maestria por seção que o gate do desafio consulta.
+ */
+export type QuizHistoryReply =
+  | {
+      ok: true;
+      attempts: QuizAttemptDto[];
+      remediations: QuizRemediationDto[];
+      mastery: QuizSectionMasteryDto[];
+    }
+  | { ok: false; code: QuizErrorCode; message: string };
 
 export interface StudyFinding {
   query: string;

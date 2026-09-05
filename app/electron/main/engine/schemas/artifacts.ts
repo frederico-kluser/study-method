@@ -309,7 +309,8 @@ export const FreezeSchema = z.object({
  * devolutivo: "se você acha que precisa de algo fora do orçamento, isso é
  * defeito do grafo, não licença", §7.1 regra 3) e `research`.
  *
- * `assertions` (ADITIVO, onda 1 schema-quiz) é a EXCEÇÃO à regra acima: o
+ * `assertions` (ADITIVO, onda 1 schema-quiz) e o `optionRationales` de cada
+ * afirmação (ADITIVO, onda1-contrato-quiz) são a EXCEÇÃO à regra acima: o
  * produto aceita aula SEM quiz (ausência válida no lesson.json), então o
  * draft TAMBÉM aceita ausência — nunca `.optional()` (INV-05): `z.preprocess`
  * materializa a ausência como valor vazio EXPLÍCITO (`[]`), e quando o campo
@@ -337,6 +338,24 @@ export const AssertionDraftSchema = z.object({
   // precisa ser string não vazia. A EXISTÊNCIA do id em theory[] é conferida
   // pelo validador de produto no load (validateAssertions com theoryIds).
   sectionId: z.preprocess((v) => (v === undefined ? '' : v), z.string().min(1)),
+  // ADITIVO (onda1-contrato-quiz): UM RACIONAL POR OPÇÃO — a explicação de
+  // POR QUE aquele distrator está errado, que é o material do quiz ADAPTATIVO
+  // (errou ⇒ a IA explica AQUELE erro, não o feedback genérico da afirmação).
+  //
+  // INV-05: nada `.optional()` — a ausência vira o valor vazio EXPLÍCITO
+  // (`[]`) via `z.preprocess`, o mesmo idioma de `assertions` no
+  // `LessonDraftSchema`. O `.refine` (e não `.length(4)`) é o que exprime
+  // "0 OU 4": zero é a ausência legítima (o autor não declarou racionais e a
+  // aula continua válida no produto — ver `TrackAssertion.optionRationales`),
+  // quatro é o campo preenchido de verdade, um racional por opção na MESMA
+  // ordem. Qualquer comprimento entre 1 e 3 é meia-declaração e REPROVA o
+  // draft aqui, antes do validador de produto no load.
+  optionRationales: z.preprocess(
+    (v) => (v === undefined ? [] : v),
+    z.array(z.string().min(1)).refine((r) => r.length === 0 || r.length === 4, {
+      message: 'optionRationales deve ter 0 itens (ausente) ou EXATAMENTE 4 (um por opção)',
+    }),
+  ),
 });
 
 export const LessonDraftSchema = z.object({

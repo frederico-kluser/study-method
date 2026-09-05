@@ -42,6 +42,14 @@ import type {
   PiExecuteRequest,
   PiExecuteResult,
   PiStreamEvent,
+  QuizAttemptReply,
+  QuizAttemptRequest,
+  QuizExplainReply,
+  QuizExplainRequest,
+  QuizHistoryReply,
+  QuizHistoryRequest,
+  QuizRemedialReply,
+  QuizRemedialRequest,
   ResearchProgressEvent,
   SttModelProgressPayload,
   SttPartialPayload,
@@ -281,6 +289,23 @@ export interface ApiSchema {
     /** ADITIVO (onda9-cache-reconcilia): remove os resquícios (todos, ou os
      *  slugs pedidos). Nunca toca em trilha instalada; idempotente. */
     purgeOrphans(input?: TrackPurgeOrphansRequest): Promise<TrackPurgeOrphansResult>;
+    /**
+     * ADITIVO (onda1-contrato-quiz — QUIZ ADAPTATIVO). Os quatro membros abaixo
+     * são DERIVADOS pelo `createExposedApi` a partir dos canais do contrato
+     * (`track:quiz-attempt` → `quizAttempt`, e assim por diante) — a tipagem
+     * aqui é o que o renderer enxerga em `window.api.track.*`.
+     *
+     * Registra UMA resposta do aluno a UM quiz e devolve a maestria
+     * recalculada da aula (é o que o gate do desafio lê). O que morre em
+     * memória hoje passa a viver no banco (schema v5).
+     */
+    quizAttempt(input: QuizAttemptRequest): Promise<QuizAttemptReply>;
+    /** Explicação de POR QUE a opção escolhida está errada. FAIL-CLOSED. */
+    quizExplain(input: QuizExplainRequest): Promise<QuizExplainReply>;
+    /** Quiz NOVO sobre o mesmo conteúdo, gerado depois da explicação. FAIL-CLOSED. */
+    quizRemedial(input: QuizRemedialRequest): Promise<QuizRemedialReply>;
+    /** Histórico persistido do quiz da aula (tentativas + remediações + maestria). */
+    quizHistory(input: QuizHistoryRequest): Promise<QuizHistoryReply>;
   };
   /** Onda 8 (voz local): STT — envelope { success, data?, error? }. */
   stt: {

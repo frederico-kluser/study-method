@@ -281,7 +281,7 @@ describe('banco NOVO — nasce direto em v3 (SCHEMA_SQL completo)', () => {
     const conn = await openMigratedSqlite(dbPath('novo'));
     try {
       assert.equal(conn.migrate.getUserVersion(), SCHEMA_VERSION);
-      assert.equal(SCHEMA_VERSION, 4, 'o SCHEMA_VERSION desta onda é 4 (v4: trilhas)');
+      assert.equal(SCHEMA_VERSION, 5, 'o SCHEMA_VERSION desta onda é 5 (v5: quiz adaptativo)');
       const db = conn.db;
       for (const t of TABLE_NAMES) {
         const row = db

@@ -74,6 +74,12 @@ function tresAssertions(): AssertionDraft[] {
       options: ['Um valor em memória', 'Uma conta no terminal', 'Um arquivo', 'Uma palavra-chave'],
       answerIndex: 0,
       feedback: 'A variável é uma caixa nomeada que guarda um valor.',
+      // ADITIVO (onda1-contrato-quiz): `optionRationales` entrou no
+      // AssertionDraftSchema com o mesmo idioma INV-05 do `assertions` — a
+      // ausência VIRA `[]` explícito (z.preprocess), então o TIPO do draft
+      // exige a chave. `[]` é a ausência legítima: o produto aceita afirmação
+      // sem racional por opção (ver TrackAssertion.optionRationales).
+      optionRationales: [],
     },
     {
       id: 'afirmacao-atribuicao',
@@ -83,6 +89,7 @@ function tresAssertions(): AssertionDraft[] {
       options: ['Compara dois valores', 'Atribui o 1 à variável total', 'Declara uma função', 'Imprime na tela'],
       answerIndex: 1,
       feedback: 'O `=` atribui: guarda o valor 1 na caixa total.',
+      optionRationales: [],
     },
     {
       id: 'afirmacao-declaracao',
@@ -92,6 +99,7 @@ function tresAssertions(): AssertionDraft[] {
       options: ['A declaração da variável', 'A chamada da função', 'O teste', 'A saída'],
       answerIndex: 0,
       feedback: '`let total` declara a caixa; o `= 1` atribui o valor.',
+      optionRationales: [],
     },
   ];
 }

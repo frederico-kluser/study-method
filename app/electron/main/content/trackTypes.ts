@@ -33,6 +33,10 @@
  *     com quiz de múltipla escolha (4 opções + resposta + feedback) que o
  *     aluno responde DURANTE a aula. AUSÊNCIA é válida — aula sem quiz
  *     continua passando (trilhas antigas carregam sem o campo).
+ *   - optionRationales (onda1-contrato-quiz): um racional POR OPÇÃO dentro de
+ *     cada afirmação — a explicação do distrator que o aluno escolheu, o
+ *     material do quiz ADAPTATIVO (errou → a IA explica AQUELE erro). AUSENTE
+ *     ou `[]` é válido; presente e não vazio, tem o comprimento de `options`.
  */
 
 import {
@@ -212,6 +216,26 @@ export interface TrackAssertion {
    * loader conhece a aula, DEVE existir em `lesson.theory[].id`.
    */
   sectionId?: string;
+  /**
+   * ADITIVO (onda1-contrato-quiz): UM RACIONAL POR OPÇÃO — por que AQUELA
+   * alternativa está errada (e, na correta, por que está certa). É o material
+   * ancorado que o tutor usa quando o aluno erra: a explicação do DISTRATOR
+   * que ele escolheu, e não o `feedback` único da afirmação (que continua
+   * existindo e continua sendo o texto pós-resposta).
+   *
+   * OPCIONAL e ADITIVO: ausente = aula sem racionais declarados — as aulas
+   * reais de `resources/tracks/python/` carregam sem o campo e seguem com 0
+   * issues. PRESENTE e NÃO-VAZIO, precisa ter EXATAMENTE o mesmo comprimento
+   * de `options`: um racional por alternativa, na MESMA ordem, cada um texto
+   * não vazio.
+   *
+   * O ARRAY VAZIO (`[]`) é a AUSÊNCIA EXPLÍCITA, nunca um defeito: é o valor
+   * que o `AssertionDraftSchema` da engine materializa quando o autor não
+   * declara o campo (INV-05 — nada `.optional()` nos schemas da engine, ver
+   * `engine/schemas/artifacts.ts`) e que a F12 copia VERBATIM para o
+   * lesson.json. Reprovar `[]` aqui reprovaria toda aula gerada pela engine.
+   */
+  optionRationales?: string[];
 }
 
 export interface TrackSourceLink {
@@ -551,6 +575,25 @@ export function validateAssertions(raw: unknown, file: string, theoryIds?: strin
         issues.push({ file, message: `${prefix}.sectionId inválido: ${JSON.stringify(a.sectionId)} (esperado kebab-case ASCII, ex.: 'a-maquina-que-confere')` });
       } else if (theoryIds !== undefined && !theoryIds.includes(a.sectionId)) {
         issues.push({ file, message: `${prefix}.sectionId desconhecido: ${JSON.stringify(a.sectionId)} (não existe em lesson.theory[].id — a afirmação precisa ancorar numa seção de teoria da aula)` });
+      }
+    }
+    // ADITIVO (onda1-contrato-quiz): optionRationales OPCIONAL — um racional
+    // por OPÇÃO (a explicação do distrator que o aluno escolheu). AUSENTE =
+    // aula sem racionais; `[]` = ausência EXPLÍCITA (é o valor que o
+    // AssertionDraftSchema materializa e a F12 copia verbatim — ver o
+    // comentário do campo em TrackAssertion). NÃO-VAZIO, precisa ter
+    // EXATAMENTE o comprimento de `options`, com todo item não vazio.
+    if (a.optionRationales !== undefined) {
+      if (!Array.isArray(a.optionRationales)) {
+        issues.push({ file, message: `${prefix}.optionRationales inválido: ${JSON.stringify(a.optionRationales)} (esperado array de textos — um por opção)` });
+      } else if (a.optionRationales.length > 0 && a.optionRationales.length !== optLen) {
+        issues.push({ file, message: `${prefix}.optionRationales com ${a.optionRationales.length} itens (esperado ${optLen} — um racional por opção de ${prefix}.options, na mesma ordem)` });
+      } else {
+        a.optionRationales.forEach((r, j) => {
+          if (!isNonEmptyString(r)) {
+            issues.push({ file, message: `${prefix}.optionRationales[${j}] vazio` });
+          }
+        });
       }
     }
   });
