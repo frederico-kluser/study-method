@@ -16,9 +16,11 @@
  * Este módulo é a materialização determinística desse algoritmo. As peças
  * geradas nas ondas anteriores entram aqui fechadas num CONTRATO:
  *
- *   - `quality/minimal.ts` (sintetizarCodigoMinimo) — o VALIDADOR: produz o
- *     código MÍNIMO que passa no teste (zero LLM). É a "etapa de validação
- *     para ver se o teste realmente tem solução";
+ *   - `quality/minimalPorLinguagem.ts` (sintetizarCodigoMinimoDaLinguagem) — o
+ *     VALIDADOR: produz o código MÍNIMO que passa no teste (zero LLM). É a
+ *     "etapa de validação para ver se o teste realmente tem solução". ONDA 10:
+ *     era `quality/minimal.ts` DIRETO, que é javascript-only — ver o comentário
+ *     em `revisarDesafio` e o `NAO-REVISAVEL` medido que ele fecha;
  *   - `quality/requirements.ts` (validarRequirements) — o SINAL SECUNDÁRIO:
  *     gaps na bijeção requirements declarados × test('…') são feedback de
  *     AJUSTE, nunca motivo de SPLIT;
@@ -68,8 +70,11 @@ import {
   TrackBudget,
   deriveTrackBudget,
   pedagogicalOrder,
+  trackAdapterId,
 } from '../budget';
-import { sintetizarCodigoMinimo, type MinimalVerdict } from '../quality/minimal';
+import { DEFAULT_ADAPTER_ID, type LanguageId } from '../lang/registry';
+import type { MinimalVerdict } from '../quality/minimal';
+import { sintetizarCodigoMinimoDaLinguagem } from '../quality/minimalPorLinguagem';
 import {
   validarRequirements,
   type RequirementDeclarado,
@@ -181,6 +186,13 @@ export interface RelatorioDeRevisao {
   trackSlug: string;
   /** 'declared' (introduces do lesson.json) | 'inferred' | 'injetado' (tests). */
   orcamentoFonte: BudgetSource | 'injetado';
+  /**
+   * A LINGUAGEM com que a trilha foi revisada — DECLARADA no relatório porque
+   * ela é quem escolhe o sintetizador mínimo e a derivação de requirements. Um
+   * relatório sem esse campo não dizia se o veredito era sobre o conteúdo ou
+   * sobre o parser errado.
+   */
+  linguagem: LanguageId;
   aulas: FeedbackDeAula[];
   /** true ⇔ hash do relatório estável entre iterações. */
   convergencia: boolean;
@@ -217,6 +229,18 @@ export interface RevisarCursoOptions {
   orcamentoFonte?: BudgetSource | 'injetado';
   /** nº máximo de AULAS a revisar (amostra rápida). Default: todas. */
   limite?: number;
+  /**
+   * A LINGUAGEM da trilha — quem decide qual sintetizador mínimo e qual
+   * derivação de requirements rodam (`quality/minimalPorLinguagem.ts`,
+   * `quality/requirements.ts`).
+   *
+   * Ausente ⇒ `trackAdapterId(track)`, isto é, o `programmingLanguage` da
+   * própria trilha — a MESMA resolução que `deriveTrackBudget` faz para o
+   * `budget.adapterId`. É opção só para o chamador que já resolveu (o CLI) não
+   * ter de resolver duas vezes; NUNCA para escolher uma linguagem diferente da
+   * que a trilha declara.
+   */
+  language?: LanguageId;
 }
 
 export interface RodarRevisaoOptions {
@@ -273,11 +297,14 @@ function lerRequirementsDeclarados(challenge: TrackChallengeSource): Requirement
  * Fail-closed: teste que não parseia ⇒ validação com gap (nunca silêncio);
  * desafio sem campo `requirements` ⇒ null (não há bijeção para validar).
  */
-function sinalSecundario(challenge: TrackChallengeSource): ValidacaoRequirements | null {
+function sinalSecundario(
+  challenge: TrackChallengeSource,
+  language: LanguageId,
+): ValidacaoRequirements | null {
   const declarados = lerRequirementsDeclarados(challenge);
   if (declarados.length === 0) return null;
   try {
-    return validarRequirements(challenge.testsCode, declarados);
+    return validarRequirements(challenge.testsCode, declarados, language);
   } catch {
     return { ok: false, semTeste: declarados.map((r) => r.id), testesSemRequirement: [], correspondencias: [] };
   }
@@ -297,6 +324,7 @@ async function revisarDesafio(
   aulaRef: string,
   ch: TrackChallengeSource,
   orc: OrcamentoDeAula,
+  language: LanguageId,
 ): Promise<FeedbackDeDesafio> {
   const ref = `${aulaRef}/${ch.slug}`;
 
@@ -315,11 +343,20 @@ async function revisarDesafio(
     };
   }
 
-  const veredito = await sintetizarCodigoMinimo(prover, {
+  // A LINGUAGEM DA TRILHA decide QUEM sintetiza (`quality/minimalPorLinguagem.ts`).
+  // Até `main@26dbc19` esta chamada era `sintetizarCodigoMinimo` DIRETO, sem
+  // `language` — e aquele módulo é javascript-only por decisão declarada. Efeito
+  // MEDIDO na única trilha do produto:
+  //   cd app && npx tsx tools/track-engine/cli.ts revise python --limite 1
+  //   → NAO-REVISAVEL (fail-closed) · exit 1
+  // Fechado do jeito certo (nunca aprovou por omissão) e ainda assim cego: o
+  // veredito não era sobre o conteúdo, era sobre o parser errado.
+  const veredito = await sintetizarCodigoMinimoDaLinguagem(prover, {
     starterCode: ch.starterCode ?? '',
     solutionCode: ch.solutionCode ?? '',
     testsCode: ch.testsCode,
     expectedTestCount: ch.expectedTestCount,
+    language,
   });
 
   // Fail-closed: veredito não-ok é DOCUMENTADO no feedback; quem decide é a
@@ -332,7 +369,7 @@ async function revisarDesafio(
       atomsCobrados: [],
       foraDoOrcamento: [],
       excesso: [],
-      requirements: sinalSecundario(ch),
+      requirements: sinalSecundario(ch, language),
     };
   }
 
@@ -351,7 +388,7 @@ async function revisarDesafio(
     atomsCobrados: veredito.atoms,
     foraDoOrcamento,
     excesso,
-    requirements: sinalSecundario(ch),
+    requirements: sinalSecundario(ch, language),
   };
 }
 
@@ -369,14 +406,20 @@ export async function revisarCurso(opts: RevisarCursoOptions): Promise<Relatorio
 
   let orcamentoFonte: BudgetSource | 'injetado';
   let orcamentoPorAula: (lessonRef: string) => OrcamentoDeAula;
+  // A LINGUAGEM DA TRILHA, resolvida UMA vez e passada a todo desafio. Sem ela
+  // a revisão inteira caía no sintetizador de JavaScript e a única trilha do
+  // produto saía NAO-REVISAVEL (ver o comentário em `revisarDesafio`).
+  let language: LanguageId = opts.language ?? DEFAULT_ADAPTER_ID;
   if (opts.orcamentoPorAula) {
     orcamentoPorAula = opts.orcamentoPorAula;
     orcamentoFonte = opts.orcamentoFonte ?? 'injetado';
+    if (opts.language === undefined) language = trackAdapterId(track);
   } else {
     // A MESMA fonte do audit em modo declared: introduces do lesson.json.
     const budget = deriveTrackBudget(track, { mode: 'declared' });
     orcamentoFonte = budget.source;
     orcamentoPorAula = (lessonRef) => orcamentoDaAula(budget, lessonRef);
+    if (opts.language === undefined) language = budget.adapterId;
   }
 
   const aulas = pedagogicalOrder(track).slice(0, opts.limite ?? Number.MAX_SAFE_INTEGER);
@@ -399,7 +442,7 @@ export async function revisarCurso(opts: RevisarCursoOptions): Promise<Relatorio
 
     const desafios: FeedbackDeDesafio[] = [];
     for (const ch of lesson.challenges) {
-      desafios.push(await revisarDesafio(prover, ref, ch, orc));
+      desafios.push(await revisarDesafio(prover, ref, ch, orc, language));
     }
 
     // Predicado de tipo: veredito não-ok (fail-closed) EXCETO IGNORADO
@@ -481,6 +524,7 @@ export async function revisarCurso(opts: RevisarCursoOptions): Promise<Relatorio
   return {
     trackSlug: track.root.slug,
     orcamentoFonte,
+    linguagem: language,
     aulas: feedbackAulas,
     convergencia: false,
     iteracoes: 0,

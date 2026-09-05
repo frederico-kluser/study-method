@@ -101,12 +101,57 @@ export interface LessonMetrics {
   index: number;
   /** construções que esta aula acrescenta ao orçamento. */
   novas: number;
-  /** ADITIVO (rodada 12): `Novo(i)` da bateria A14a — demo/introduzido ∖ cumulativo ∖ boilerplate. */
+  /**
+   * ADITIVO (rodada 12): `Novo(i)` da bateria A14a — demo/introduzido ∖
+   * cumulativo ∖ boilerplate.
+   *
+   * ONDA 10 — AUSENTE SIGNIFICA NÃO MEDIDO, E ANTES SIGNIFICAVA OUTRA COISA.
+   * Até `main@26dbc19` este campo caía num fallback (`?? introduces.productive.
+   * length`) quando a bateria A13–A16 não rodava. Consequência MEDIDA na única
+   * trilha do produto: nas 20 aulas de `python` a 2ª coluna do histograma do
+   * CLI saía IDÊNTICA à 1ª — o que se lê como "toda construção declarada é
+   * verdadeiramente nova", uma afirmação POSITIVA que ninguém verificou. O
+   * fallback saiu: quando a bateria não roda, o campo fica AUSENTE — e
+   * `AuditReport.limitacoes` diz por quê, com o id `A13-A16-NAO-RODOU`.
+   */
   novosVerdadeiros?: number;
   /** conceitos declarados no `lesson.json`. */
   conceitosDeclarados: number;
   desafios: number;
   violacoes: number;
+}
+
+/**
+ * Uma CHECAGEM QUE NÃO RODOU, declarada na saída.
+ *
+ * `CONTRIBUTING.md`: "Cada gate imprime as suas [limitações] no resumo —
+ * limitação conhecida é melhor que escondida". `docs/16` §9.2: "Toda limitação
+ * (sem chave, sem rede, checagem não executada) é declarada na saída, nunca
+ * omitida".
+ *
+ * ─── A PROVA POR MUTAÇÃO QUE OBRIGOU ISTO (docs/19-auditoria-da-aula.md) ───
+ *
+ * Apagando TODOS os blocos de código da teoria da aula 1 da trilha `python`, o
+ * `audit` continuava reportando `0 violações · 0 avisos · exit 0`. A bateria
+ * A13–A16 (ensino-efetivo/micro-avanço/progressividade/primeira-atividade) é
+ * javascript-only por decisão BEM ARGUMENTADA (`engine/audit.ts:220-222`,
+ * `quality/progressao.ts:432`) — o defeito nunca foi ela não rodar; foi o
+ * placar não DIZER que ela não rodou. A linha `avisos (bateria A13-A16) .. 0`
+ * lê-se como "está tudo certo" quando significa "não rodou".
+ *
+ * Esta lista é o canal por onde isso passa a ser dito. Ela é SEMPRE preenchida
+ * (nunca `undefined`): um relatório sem limitações declara uma lista vazia, e
+ * isso é uma afirmação — "nada deixou de rodar" —, não uma omissão.
+ */
+export interface LimitacaoDeclarada {
+  /** id estável da limitação (`A13-A16-NAO-RODOU`). */
+  id: string;
+  /** o que NÃO foi executado, em uma linha. */
+  checagem: string;
+  /** por que não rodou — sempre a causa REAL, com o arquivo que decide. */
+  motivo: string;
+  /** o que no placar NÃO fala por essa checagem (o zero que não é zero). */
+  consequencia: string;
 }
 
 export interface AuditReport {
@@ -120,14 +165,37 @@ export interface AuditReport {
     desafios: number;
     desafiosComViolacao: number;
     violacoes: number;
-    /** ADITIVO (rodada 12): avisos da bateria A13–A16 (D4, A14a-zero) — fora do placar de erros. */
+    /**
+     * ADITIVO (rodada 12): avisos da bateria A13–A16 (D4, A14a-zero) — fora do
+     * placar de erros.
+     *
+     * LEIA JUNTO COM `checagensNaoExecutadas`: `avisos: 0` só significa "nenhum
+     * aviso" quando `checagensNaoExecutadas === 0`. Com a bateria pulada, este
+     * zero significa "não rodou" — ver `AuditReport.limitacoes`.
+     */
     avisos?: number;
+    /**
+     * ADITIVO (onda 10): quantas checagens do gate NÃO foram executadas nesta
+     * auditoria (= `limitacoes.length`). É o número que transforma um placar de
+     * zeros em uma afirmação verificável: zeros sobre 0 checagens não executadas
+     * são zeros medidos; zeros sobre N > 0 não falam pelas N.
+     *
+     * OPCIONAL pela MESMA razão que `avisos` é: o campo é aditivo e os fixtures
+     * de teste que montam um `AuditReport` à mão não o conhecem. Ausente ⇒
+     * relatório de antes da onda 10, não "zero checagens não executadas".
+     */
+    checagensNaoExecutadas?: number;
     lacunasDeCurriculo: number;
     aulasSemConstrucaoNova: number;
   };
   /** defeitos de formato da teoria (não são violações de orçamento). */
   hygiene: TrackBudget['hygiene'];
   parseErrors: TrackBudget['parseErrors'];
+  /**
+   * AS CHECAGENS QUE NÃO RODARAM, e por quê (`docs/16` §9.2). Sempre presente;
+   * lista vazia é a afirmação "nada deixou de rodar", nunca uma omissão.
+   */
+  limitacoes: LimitacaoDeclarada[];
 }
 
 /** Superfícies de código de um desafio, já achatando o formato multi-arquivo. */
@@ -273,12 +341,38 @@ export function auditTrack(track: LoadedTrack, options: DeriveOptions = {}): Aud
   // A guarda é o mesmo id que a própria bateria aceita — uma linguagem entra
   // aqui no dia em que `quality/progressao.ts` deixar de reprová-la, sem tocar
   // neste arquivo.
-  const progressao: ProgressaoResult = bateriaDeProgressaoValePara(budget.adapterId)
+  const bateriaRodou = bateriaDeProgressaoValePara(budget.adapterId);
+  const progressao: ProgressaoResult = bateriaRodou
     ? auditarProgressao(entradaDeProgressao(track), {
         mode: budget.source,
         adapterId: budget.adapterId,
       })
     : { violations: [], novosPorAula: new Map<string, number>() };
+
+  // ONDA 10 — O PLACAR PASSA A DIZER O QUE NÃO RODOU (ver `LimitacaoDeclarada`).
+  // A bateria continua javascript-only; o que muda é que a saída para de deixar
+  // o leitor concluir "0 avisos ⇒ está tudo certo" quando o certo é "não medido".
+  const limitacoes: LimitacaoDeclarada[] = bateriaRodou
+    ? []
+    : [
+        {
+          id: 'A13-A16-NAO-RODOU',
+          checagem:
+            'bateria A13–A16 (A13 ensino-efetivo, A13d, A14a micro-avanço, A14b, A15a/A15b ' +
+            'progressividade, A16 primeira-atividade)',
+          motivo:
+            `a trilha é \`${budget.adapterId}\` e a bateria é javascript-only: ` +
+            '`quality/progressao.ts:432` LANÇA `EngineLinguagemError` para adaptador não-default ' +
+            'porque `H13`/`AX` são tabelas de chaves do `ts.SyntaxKind` e do runner `node:test`, e os ' +
+            'spans mecânicos S13 saem de `ts.createSourceFile`. Rodá-la aqui não daria erro: daria ' +
+            'veredito ERRADO E SILENCIOSO (tudo "não demonstrado", todo desafio reprovado).',
+          consequencia:
+            'o contador `avisos` NÃO fala por ela (0 significa "não rodou", não "sem aviso"), e ' +
+            '`metrics[].novosVerdadeiros` (a 2ª coluna do histograma, "verdadeiramente novas") fica ' +
+            'AUSENTE em todas as aulas. PROVA POR MUTAÇÃO (docs/19): apagar TODOS os blocos de código ' +
+            'da teoria da aula 1 desta trilha não muda o placar — 0 violações · 0 avisos · exit 0.',
+        },
+      ];
   const progressaoPorRef = new Map<string, ReturnType<typeof auditarProgressao>['violations']>();
   for (const pv of progressao.violations) {
     const lista = progressaoPorRef.get(pv.ref) ?? [];
@@ -583,11 +677,17 @@ export function auditTrack(track: LoadedTrack, options: DeriveOptions = {}): Aud
       if (desafiosProgressao.has(challengeFile)) desafiosComViolacao.add(challengeFile);
     }
 
+    // `novosVerdadeiros` SÓ existe quando a bateria A14a o mediu. O fallback
+    // `?? introduces.productive.length` que morava aqui fazia a 2ª coluna do
+    // histograma sair idêntica à 1ª nas 20 aulas de `python` — uma afirmação
+    // positiva ("toda construção declarada é verdadeiramente nova") derivada de
+    // uma checagem que não rodou. Ausente = não medido, e `limitacoes` diz por quê.
+    const medido = bateriaRodou ? progressao.novosPorAula.get(lessonBudget.ref) : undefined;
     metrics.push({
       ref: lessonBudget.ref,
       index: lessonBudget.index,
       novas: lessonBudget.introduces.productive.length,
-      novosVerdadeiros: progressao.novosPorAula.get(lessonBudget.ref) ?? lessonBudget.introduces.productive.length,
+      ...(medido !== undefined ? { novosVerdadeiros: medido } : {}),
       conceitosDeclarados: lesson.meta.concepts.length,
       desafios: lesson.challenges.length,
       violacoes: violacoesDaAula,
@@ -605,6 +705,7 @@ export function auditTrack(track: LoadedTrack, options: DeriveOptions = {}): Aud
       desafiosComViolacao: desafiosComViolacao.size,
       violacoes: violations.filter((v) => severidadeDe(v) !== 'aviso').length,
       avisos: violations.filter((v) => severidadeDe(v) === 'aviso').length,
+      checagensNaoExecutadas: limitacoes.length,
       lacunasDeCurriculo: violations.filter(
         (v) => severidadeDe(v) !== 'aviso' && v.construcao !== null && v.primeiraAulaQueEnsina === null,
       ).length,
@@ -612,5 +713,33 @@ export function auditTrack(track: LoadedTrack, options: DeriveOptions = {}): Aud
     },
     hygiene: budget.hygiene,
     parseErrors: budget.parseErrors,
+    limitacoes,
   };
+}
+
+/**
+ * As limitações do relatório como LINHAS de texto, prontas para o resumo.
+ *
+ * Está aqui, e não no CLI, por dois motivos. Primeiro, a frase que explica uma
+ * checagem não executada é parte da MEDIÇÃO — quem sabe que a bateria não rodou
+ * é `auditTrack`, não quem imprime. Segundo, uma função que devolve linhas é
+ * testável sem capturar stdout.
+ *
+ * Devolve `[]` quando nada deixou de rodar, para que o chamador possa imprimir
+ * incondicionalmente.
+ */
+export function linhasDeLimitacoes(report: AuditReport): string[] {
+  if (report.limitacoes.length === 0) return [];
+  const l: string[] = [];
+  l.push(
+    `LIMITACOES DECLARADAS: ${report.limitacoes.length} checagem(ns) NAO EXECUTADA(S) ` +
+      '(CONTRIBUTING.md · docs/16 §9.2 — o placar abaixo NAO fala por elas)',
+  );
+  for (const lim of report.limitacoes) {
+    l.push(`  [${lim.id}] ${lim.checagem}`);
+    l.push(`     NAO RODOU porque: ${lim.motivo}`);
+    l.push(`     no placar isso significa: ${lim.consequencia}`);
+  }
+  l.push('');
+  return l;
 }

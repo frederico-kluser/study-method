@@ -134,6 +134,8 @@ function fixtureAudit(overridesTotals?: Partial<AuditReport['totals']>): AuditRe
     },
     hygiene: [{ code: 'FENCE_SEM_TAG', message: 'bloco sem tag', line: 10, ref: 'modulo-a/aula-1' }],
     parseErrors: [],
+    // ONDA 10: todo AuditReport DECLARA suas limitacoes (lista vazia = "nada deixou de rodar").
+    limitacoes: [],
   };
 }
 

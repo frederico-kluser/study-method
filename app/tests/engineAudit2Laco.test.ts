@@ -137,6 +137,8 @@ function reportCom(violations: Violation[], trackSlug = 'trilha-teste'): AuditRe
     },
     hygiene: [],
     parseErrors: [],
+    // ONDA 10: todo AuditReport DECLARA suas limitacoes (lista vazia = "nada deixou de rodar").
+    limitacoes: [],
   };
 }
 

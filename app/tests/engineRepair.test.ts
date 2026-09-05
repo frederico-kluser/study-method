@@ -587,6 +587,8 @@ describe('P-23 · planejarReparo — a distinção §5.5 via P-13', () => {
       totals: { aulas: 0, desafios: 0, desafiosComViolacao: 1, violacoes: 4, lacunasDeCurriculo: 0, aulasSemConstrucaoNova: 0 },
       hygiene: [],
       parseErrors: [],
+      // ONDA 10: todo AuditReport DECLARA suas limitacoes (lista vazia = "nada deixou de rodar").
+      limitacoes: [],
     };
     const plano = planejarReparo(report);
     const [dec, i16, a2, a6] = plano.classificadas;
