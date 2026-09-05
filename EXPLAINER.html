@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="plannotator-theme" content="host">
-<title>Anatomia do study-method</title>
+<title>A execução que descobriu que a trilha não rodava</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%235537eb'/%3E%3Cpath d='M14 44V20h12a8 8 0 0 1 8 8v16' fill='none' stroke='%23ffffff' stroke-width='4' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cpath d='M34 44V28a8 8 0 0 1 8-8h8' fill='none' stroke='%23ffb27a' stroke-width='4' stroke-linecap='round' stroke-linejoin='round'/%3E%3Ccircle cx='50' cy='44' r='4' fill='%23ffb27a'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -207,7 +207,7 @@ p code, li code, td code, summary code, figcaption code, dd code {
 /* ══════════ KPI ══════════ */
 .kpis {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(270px, 1fr));
   gap: 12px;
   margin: 26px 0;
 }
@@ -521,91 +521,88 @@ footer {
 
 <nav class="toc" id="toc">
   <div class="toc-title">Conteúdo</div>
-  <a href="#s1">1 · O mapa</a>
-  <a href="#s2">2 · O ativo: o gate</a>
-  <a href="#s3">3 · A engine F0–F12</a>
-  <a href="#s4">4 · O laço de revisão</a>
-  <a href="#s5">5 · A revisão progressiva</a>
-  <a href="#s6">6 · O placar medido</a>
-  <a href="#s7">7 · As onze anotações</a>
-  <a href="#s8">8 · A ordem que eu faria</a>
+  <a href="#s1">1 · A manchete</a>
+  <a href="#s2">2 · Os gates verdes</a>
+  <a href="#s3">3 · Pedido × achado</a>
+  <a href="#s4">4 · O quiz com portão</a>
+  <a href="#s5">5 · Os nove achados</a>
+  <a href="#s6">6 · Os números</a>
+  <a href="#s7">7 · A revisão adversarial</a>
+  <a href="#s8">8 · Os meus cinco erros</a>
+  <a href="#s9">9 · As suas oito decisões</a>
 </nav>
 
 <div class="main">
 
-  <p class="eyebrow">Análise de sistema · study-method</p>
-  <h1>O verificador é excelente. Ele não está ligado no caminho que produz a aula.</h1>
+  <p class="eyebrow">Execução do orquestrador · study-method · 4 ondas · 26 commits</p>
+  <h1>Você pediu um quiz melhor. O que a verificação achou foi que a trilha não rodava — e que dois gates reprovavam tudo saindo verde.</h1>
 
   <div class="answer">
     <div class="label">A resposta, antes do contexto</div>
     <p>
-      Este repositório construiu um <strong>verificador didático determinístico de altíssima
-      qualidade</strong> — extrator de AST, orçamento cumulativo, bateria A1–A16, provas de
-      execução, laço de revisão com teto — e <strong>nunca o ligou na produção da aula</strong>.
-      A engine F0–F12 jamais gerou uma trilha (não existe um único <code>run.json</code> no
-      repositório); a trilha boa, de 14 aulas e <strong>0 violações</strong>, foi escrita à mão e
-      só <em>auditada</em> pela engine; a trilha grande, de 118 aulas e <strong>717
-      violações</strong>, continua sendo servida ao aluno sem filtro; e o gerador ao vivo do
-      Electron não chama gate de orçamento nenhum — e ainda <strong>falha aberto</strong>.
+      As sete frentes do seu pedido foram entregues. Mas a manchete é outra: a auditoria da aula
+      desenterrou que <strong>a única trilha do produto não rodava para o aluno</strong> — o campo
+      <code>challenge.language</code> nunca era copiado, o código do aluno era executado como
+      JavaScript, e quem digitava <code>print("oi")</code>, a solução de referência da própria
+      trilha, recebia <code>SyntaxError</code>. Como concluir a aula exige desafio passado e
+      destravar a próxima exige a anterior concluída, <strong>ninguém saía da aula 1</strong>. Isso
+      ficou invisível porque o <code>coverage</code> e o <code>track:validate</code> reprovavam
+      <strong>21 de 21</strong> desafios e <strong>saíam com exit 0</strong>. Os dois lados foram
+      consertados: 3885 testes com zero falha, e2e de volta ao verde — e <strong>oito pendências
+      que são decisão sua</strong>, não trabalho de engenharia.
     </p>
   </div>
 
   <div class="meta-strip">
-    <span>medido em 2026-09-01</span>
-    <span>main @ c741234</span>
+    <span>medido em 2026-09-05</span>
+    <span>baseline: main @ 26dbc19</span>
+    <span>entregue: main @ ec7324a</span>
+    <span>26 commits · 4 ondas</span>
     <span>node v24.19.0</span>
-    <span>typescript 5.8</span>
-    <span>leitor: quem construiu o sistema</span>
+    <span>leitor: o dono do produto</span>
   </div>
 
   <div class="kpis">
-    <div class="kpi good">
-      <div class="v">0</div>
-      <div class="k">violações em <code>programacao-do-zero</code> (14 aulas)</div>
-    </div>
-    <div class="kpi bad">
-      <div class="v">717</div>
-      <div class="k">violações em <code>nodejs-do-zero</code> (118 aulas), servida hoje</div>
-    </div>
-    <div class="kpi bad">
-      <div class="v">0</div>
-      <div class="k">runs de <code>generate</code> fora de teste em 554 commits</div>
-    </div>
-    <div class="kpi">
-      <div class="v">2761</div>
-      <div class="k">testes no app — <strong>1 vermelho</strong>, e nenhum roda na CI</div>
-    </div>
+    <div class="kpi bad"><div class="v">21/21</div><div class="k">desafios que os gates <b>não conseguiam medir</b> — e aprovavam assim mesmo</div></div>
+    <div class="kpi good"><div class="v">0</div><div class="k">lacunas na primeira medição real do <code>coverage</code> (21 de 21 medidos, 29 excessos)</div></div>
+    <div class="kpi good"><div class="v">3885</div><div class="k">testes no fim: +629 sobre o baseline, <b>zero falha</b></div></div>
+    <div class="kpi good"><div class="v">34</div><div class="k">e2e passando, 0 falhando (era 30 passando com 6 falhas)</div></div>
+    <div class="kpi bad"><div class="v">9</div><div class="k">achados que o seu pedido <b>não previa</b>, todos medidos</div></div>
+    <div class="kpi bad"><div class="v">5</div><div class="k">erros meus, registrados na §8 com o que cada um custou — o quinto foi pego por esta página</div></div>
   </div>
-
-  <p>
-    O que segue é o mapa do que existe, como a aula é produzida em cada um dos três caminhos, e
-    onze anotações de melhoria ranqueadas por custo contra dano. Todo número tem o comando que o
-    reproduz. Nada aqui promete ganho pedagógico — só diz o que passa a ser verificável.
-  </p>
-
 
   <!-- ══════════════════ 1 ══════════════════ -->
   <div class="sec-head" id="s1">
     <span class="num">01</span>
-    <h2>O mapa: três caminhos produzem aula, e o gate está fora dos dois que entregam</h2>
-    <p class="deck">
-      O repositório tem três máquinas de fazer aula, escritas em épocas e linguagens diferentes,
-      com pedagogias diferentes. Duas entregam ao aluno. Nenhuma dessas duas passa pelo gate.
-    </p>
+    <h2>A manchete: o produto não funcionava</h2>
+    <p class="deck">A primeira frase do seu pedido — “analise profundamente se a aula está sendo bem construída” — foi a que mudou a execução inteira.</p>
   </div>
 
   <p>
-    <span class="term">A skill <code>study-method</code></span> é o tutor conversacional: 19 scripts
-    bash mais um <code>SKILL.md</code> que roda dentro do Claude Code, com memória em disco entre
-    sessões. <span class="term">O app Electron</span> é a GUI que embrulha essa mesma skill —
-    <code>studyMethodRunner.ts</code> literalmente dá <code>spawn</code> nos scripts bash — e
-    acrescenta um gerador de aula ao vivo a partir de um assunto digitado.
-    <span class="term">A engine de trilhas</span> é a terceira: 34 mil linhas de TypeScript que
-    produzem e verificam um currículo inteiro, offline, versionado.
+    A análise virou <code>docs/19-auditoria-da-aula.md</code>, 1278 linhas em que todo número vem
+    com o comando que o reproduz. O veredito dela é curto: <strong>a aula está bem escrita e não
+    roda</strong>. Bem escrita é medível — 20 aulas, orçamento cumulativo verde, zero lacuna de
+    currículo, <code>audit</code> em 0 violações contra a régua que reprovou a trilha anterior com
+    717. Não roda também é medível, e é um defeito só.
   </p>
 
+  <p>
+    <span class="term">O defeito</span>: <code>challengePairFromSource</code> não copiava
+    <code>challenge.language</code> ao montar o par que vai para a execução, e
+    <code>runStudentCode</code>, sem esse campo, defaultava para JavaScript. A trilha é de Python.
+    Tudo o que executa código do aluno passou a rodar <code>node --test</code> sobre código Python.
+  </p>
+
+  <p>
+    O que torna isso caro não é o bug — é que ele estava <span class="term">escondido atrás de dois
+    gates que falhavam aberto</span>.
+  </p>
+  <span class="gloss"><b>Falhar aberto (fail-open):</b> o verificador não conseguiu medir e mesmo
+  assim sai com código 0. Ausência de medida é lida como aprovação — o inverso do que um gate
+  existe para fazer.</span>
+
   <figure>
-    <div class="diagram-shell" role="img" aria-label="Diagrama de fluxo mostrando três caminhos de produção de aula: a skill bash e o app Electron entregam ao aluno passando apenas pelas quatro provas de execução e por um juiz LLM que falha aberto, enquanto o gate de orçamento da engine verifica as trilhas mas o modo generate nunca foi executado.">
+    <div class="diagram-shell" role="img" aria-label="Diagrama de fluxo: o campo challenge.language não é copiado por challengePairFromSource, então runStudentCode assume JavaScript e executa node --test sobre código Python; o resultado é passed false, que bloqueia Concluir aula e trava as 19 aulas seguintes; o mesmo executor cega o coverage e o track:validate, que reportam 21 de 21 não medidos e mesmo assim saem com exit 0.">
       <p class="diagram-shell__hint">Ctrl/Cmd + roda para dar zoom · arraste para mover · duplo clique ajusta</p>
       <div class="mermaid-wrap">
         <div class="zoom-controls">
@@ -620,190 +617,128 @@ footer {
       </div>
       <script type="text/plain" class="diagram-source">
 flowchart TD
-  SKILL["Skill study-method<br/>Claude Code · 19 scripts bash"]
-  APP["App Electron<br/>lessonOrchestrator.ts"]
-  ENGINE["Engine de trilhas<br/>F0..F12 · 34k linhas TS"]
-  TRACKS[("resources/tracks/<br/>2 trilhas")]
-  GATE{{"GATE de orcamento<br/>A1-A16 · AST dentro do budget"}}
-  PROVAS{{"4 provas de execucao"}}
-  JUIZ{{"Juiz LLM<br/>challengeContextValidator"}}
-  ALUNO(["O ALUNO"])
+  DISCO[("challenge.language<br/>declarado no lesson.json")]
+  PAIR["challengePairFromSource"]
+  RUN["runStudentCode"]
+  NODE["node --test<br/>sobre codigo Python"]
+  FAIL["passed: false"]
+  CONCL["'Concluir aula' BLOQUEADO"]
+  A2["Aula 2 travada<br/>e as 18 seguintes"]
+  COV["coverage python"]
+  VAL["track:validate"]
+  NM["21 de 21<br/>NAO MEDIDOS"]
+  NV["21 x NAO VERIFICADO"]
+  VERDE{"exit 0 — VERDE"}
 
-  SKILL -->|"challenge-verify.sh: mutacao + contagem"| PROVAS
-  APP -->|"verifyChallenge via runner bash"| PROVAS
-  APP -->|"so no regenerador de desafio"| JUIZ
-  PROVAS -->|"desafio validated"| ALUNO
-  JUIZ -->|"indisponivel: entrega assim mesmo"| ALUNO
-  ENGINE -->|"modo audit: roda hoje, zero LLM"| GATE
-  GATE -->|"verifica, nunca escreve"| TRACKS
-  TRACKS -->|"track:list SEM filtro de qualidade"| ALUNO
-  ENGINE -.->|"modo generate: NUNCA executado"| TRACKS
-
-  class GATE gate
-  class PROVAS gate
-  class JUIZ critico
-  class TRACKS critico
-  class ALUNO critico
-  class ENGINE morto
+  DISCO -->|"o campo existe no disco"| PAIR
+  PAIR -->|"NAO copia language"| RUN
+  RUN -->|"default: javascript"| NODE
+  NODE -->|"print(#quot;oi#quot;) devolve SyntaxError"| FAIL
+  FAIL -->|"o gate exige desafio passado"| CONCL
+  CONCL -->|"destravar exige a anterior concluida"| A2
+  RUN -->|"mesmo executor"| COV
+  RUN -->|"mesmo executor"| VAL
+  COV -->|"spawna node, exit 9, zero teste rodado"| NM
+  VAL -->|"nenhum desafio chega a rodar"| NV
+  NM -->|"parse-falhou fora do veredito"| VERDE
+  NV -->|"imprime a reprovacao e sai 0"| VERDE
+  class RUN critico
+  class VERDE critico
+  class A2 critico
+  class COV gate
+  class VAL gate
       </script>
     </div>
     <div class="legend">
-      <div class="legend-item"><span class="legend-swatch sw-gate"></span> gate determinístico</div>
-      <div class="legend-item"><span class="legend-swatch sw-crit"></span> caminho crítico até o aluno</div>
-      <div class="legend-item"><span class="legend-swatch sw-morto"></span> construído, nunca executado</div>
+      <span class="legend-item"><span class="legend-swatch sw-crit"></span>caminho crítico</span>
+      <span class="legend-item"><span class="legend-swatch sw-gate"></span>gate de verificação</span>
     </div>
     <figcaption>
       <span class="fignum">Figura 1</span>
-      <b>O gate de orçamento é o ativo mais valioso do repositório e está desconectado das duas
-      rotas que chegam ao aluno.</b> As duas setas que terminam em <em>O ALUNO</em> vindas de
-      <code>PROVAS</code> e <code>JUIZ</code> nunca cruzam <code>GATE</code>; a terceira, vinda de
-      <code>TRACKS</code>, entrega o conteúdo sem consultar o resultado da auditoria. A seta
-      tracejada é o modo <code>generate</code>: existe em código, nunca rodou.
+      <b>Um campo que não era copiado derrubava seis verificadores de uma vez, e os dois que
+      reprovavam saíam verde</b> — por isso o produto parecia saudável enquanto nenhum aluno
+      conseguia sair da aula 1.
     </figcaption>
   </figure>
 
-  <div class="callout crit">
-    <strong>O caminho crítico, dito em uma frase.</strong> A verificação que o repositório sabe
-    fazer melhor — <code>AST ⊆ orçamento</code>, milissegundos, zero rede, zero chave de API — não
-    é consultada por nenhuma das três setas que terminam no aluno. Não é falta de capacidade: é
-    falta de um <code>import</code>.
-  </div>
+  <p>
+    O caminho crítico é a seta que sai de <code>runStudentCode</code> para os dois gates: é ela que
+    transforma um bug de uma linha em um produto que <em>parece</em> verde. Sem essa seta, o defeito
+    teria aparecido na primeira execução do <code>coverage</code>.
+  </p>
 
+  <div class="callout crit">
+    <b>Verificado três vezes, de forma independente.</b> O achado não veio de leitura de código: a
+    auditoria o reproduziu, a onda que consertou o reproduziu de novo antes de tocar em qualquer
+    arquivo, e o agente que revisou aquela entrega o reproduziu uma terceira vez. Os 21 desafios passam hoje pelo
+    caminho de produção.
+  </div>
 
   <!-- ══════════════════ 2 ══════════════════ -->
   <div class="sec-head" id="s2">
     <span class="num">02</span>
-    <h2>O ativo: um gate que transforma "só cobra o que já ensinou" em diferença de conjuntos</h2>
-    <p class="deck">
-      A frase existia como documento e como comentário de código, e o conteúdo entrou quebrado
-      assim mesmo. O que mudou foi transformá-la em algo que roda.
-    </p>
+    <h2>Por que ninguém viu: os gates que reprovavam e saíam verde</h2>
+    <p class="deck">Três instâncias da mesma classe de falha, em três lugares diferentes, todas fechadas nesta execução.</p>
   </div>
 
   <p>
-    A peça central é o <span class="term">átomo</span>.
-  </p>
-  <div class="gloss">
-    <b>átomo (<code>AtomKey</code>)</b> — chave estável de uma construção de código, em seis eixos:
-    <code>node:</code> (tipo de nó), <code>decl:</code> (<code>let</code>/<code>const</code>/<code>var</code>),
-    <code>op:</code> (família e operador), <code>global:</code>, <code>api:</code> (caminho completo) e
-    <code>form:</code> (forma de uso, via uma DSL própria de seletor). Um sétimo eixo,
-    <code>term:</code>, cobre termos da prosa em pt-BR.
-  </div>
-
-  <p>
-    O eixo <code>form:</code> é o que impede o erro clássico: liberar
-    <code>FunctionDeclaration</code> não libera função como valor de variável, e liberar
-    <code>if</code> não libera <code>if</code> sem <code>else</code>. Sobre esse vocabulário se
-    monta o <span class="term">orçamento</span>.
-  </p>
-  <div class="gloss">
-    <b>orçamento (budget)</b> — o conjunto fechado de átomos que uma aula pode usar, derivado do
-    grafo de pré-requisitos por fecho transitivo. Derivação determinística, zero LLM, sempre
-    materializada em <code>budget.generated.json</code> — para o revisor poder lê-la sem executar
-    nada e o git poder mostrar o diff.
-  </div>
-
-  <p>
-    O orçamento se divide em duas faixas, e a distinção é o que torna o gate implementável em vez
-    de inútil: <span class="term">receptivo</span> é o que o aluno pode <em>ler</em>;
-    <span class="term">produtivo</span> é o que pode ser <em>cobrado</em> dele, com
-    <code>productive ⊆ receptive</code>. Sem isso, só sobram duas saídas ruins — proibir o próprio
-    harness <code>node:test</code>, o que é inviável, ou liberar tudo, o que é inútil.
-  </p>
-
-  <p>
-    As três superfícies de um desafio são checadas contra faixas <em>diferentes</em>, e aplicar o
-    mesmo orçamento às três é o erro mais fácil de cometer:
+    O <code>coverage</code> — o algoritmo que você desenhou para garantir que nenhum desafio cobre o
+    que a aula não ensinou — estava cego em <strong>três camadas ao mesmo tempo</strong>: o
+    sintetizador parseava o código como JavaScript; o executor dava <code>spawn</code> em
+    <code>node</code> num desafio Python, saindo com código 9 e zero teste rodado; e o estado
+    <code>parse-falhou</code> ficava <em>fora</em> do veredito. As três juntas produzem o pior
+    resultado possível: um placar de 21 de 21 não medidos, com exit 0.
   </p>
 
   <div class="table-scroll">
     <table>
       <thead>
-        <tr><th>Superfície</th><th>Orçamento contra o qual é checada</th><th>Por quê</th></tr>
+        <tr><th>Gate</th><th>O que ele reportava</th><th class="num">Exit</th><th>O que ele faz agora</th></tr>
       </thead>
       <tbody>
         <tr>
-          <td class="mono">testsCode</td>
-          <td class="mono">entrada · receptivo</td>
-          <td>o aluno <strong>lê o teste antes de aprender a aula</strong> — o teste não pode falar
-              a língua que a aula ainda vai ensinar</td>
+          <td><code>coverage</code></td>
+          <td>21 de 21 desafios <b>não medidos</b> (três camadas cegas)</td>
+          <td class="num">0 — verde</td>
+          <td>sintetiza pelo adaptador da linguagem, executa pelo binário que o adaptador declara e <b>reprova o que não conseguiu medir</b> (docs/16 §9.3)</td>
         </tr>
         <tr>
-          <td class="mono">starterCode · theory · statement</td>
-          <td class="mono">saída · receptivo</td>
-          <td>pode mostrar o que a aula acabou de introduzir, para leitura</td>
+          <td><code>track:validate</code></td>
+          <td>21 × <code>NÃO VERIFICADO ✗</code></td>
+          <td class="num">0 — verde</td>
+          <td>deixa de imprimir isso porque os 21 desafios passam pelo caminho de produção real</td>
         </tr>
         <tr>
-          <td class="mono">solutionCode</td>
-          <td class="mono">saída · produtivo</td>
-          <td>é o único lugar onde se mede o que o aluno tem de <strong>escrever</strong></td>
+          <td><code>--limite 0</code></td>
+          <td>placar inteiro zerado, nada medido</td>
+          <td class="num">0 — verde</td>
+          <td><b>exit 2 (uso incorreto)</b> nos quatro comandos de medição, por uma função única — divergirem virou estruturalmente impossível</td>
         </tr>
       </tbody>
     </table>
   </div>
 
   <p>
-    Sobre essas superfícies roda a bateria <strong>A1–A16</strong>: contenção por faixa (A1–A4),
-    declaração obrigatória do que é novo (A5), a <strong>direção puxada</strong> (A6 — o desafio
-    tem de exercitar o conceito novo, senão a trilha só repete o que o aluno já sabia), tetos de
-    carga (A7, A12), cenário de erro <strong>derivado do orçamento</strong> (A11), e a rodada
-    posterior de ensino-efetivo, micro-avanço, progressividade e primeira-atividade (A13–A16).
+    A terceira linha merece atenção porque não é um bug de linguagem: é <strong>aprovação por
+    omissão entrando pela porta de uma flag</strong>. Quem rodasse <code>coverage python --limite
+    0</code> num script de CI receberia verde para sempre, sem nunca ter medido nada. O precedente
+    já existia no próprio arquivo (<code>--rodadas 0</code>), e agora os quatro comandos o seguem.
   </p>
-
-  <div class="callout">
-    <strong>A distinção que faz o laço convergir.</strong> Toda violação carrega
-    <code>primeiraAulaQueEnsina</code>. Se não é nulo, é violação de <span class="term">ORDEM</span>
-    — a construção existe na trilha, mas é ensinada depois: reescreve-se o artefato ou reordena-se
-    o grafo. Se é nulo, é <span class="term">LACUNA</span> de currículo — nenhuma aula ensina
-    aquilo: <strong>cria-se a aula que falta</strong>. Sem essa separação, o laço reescreve
-    desafios eternamente para caber num currículo furado e nunca termina.
-  </div>
-
-  <details class="collapsible">
-    <summary>Andaime: o que cada uma das quatro provas de execução protege</summary>
-    <div class="body">
-      <p>Um desafio só é válido se as quatro passarem. Cada uma existe por causa de uma armadilha medida:</p>
-      <dl>
-        <dt>1 · a solução de referência passa em todos os testes</dt>
-        <dd>De 165 exercícios gerados por LLM com solução <em>e</em> testes, só 30,9% tinham solução que passava nos próprios testes.</dd>
-        <dt>2 · o <code>starterCode</code> falha</dt>
-        <dd>Se o starter já passa, não há o que o aluno fazer — o desafio é decorativo.</dd>
-        <dt>3 · o número de testes executados <em>bate</em> com <code>expectedTestCount</code></dt>
-        <dd>Igualdade, nunca <code>&gt; 0</code>: <code>node --test</code> com glob vazio sai 0, e um <code>NODE_TEST_CONTEXT</code> herdado faz o processo filho pular tudo e sair 0.</dd>
-        <dt>4 · um stub vazio falha</dt>
-        <dd>Protege contra teste tautológico — aquele que passa com qualquer coisa.</dd>
-      </dl>
-      <p>Armadilhas adicionais que o executor trata: códigos ANSI no relatório quebram o regex de
-      contagem, e o exit 137 é ambíguo entre timeout e OOM — precisa ser desambiguado antes de
-      virar mensagem.</p>
-    </div>
-  </details>
-
 
   <!-- ══════════════════ 3 ══════════════════ -->
   <div class="sec-head" id="s3">
     <span class="num">03</span>
-    <h2>A engine F0–F12: o FREEZE é o que legaliza escrever N aulas ao mesmo tempo</h2>
-    <p class="deck">
-      Treze fases. A metade da frente é serial por necessidade, não por conservadorismo; a metade
-      de trás é map-reduce legítimo. O que separa as duas é uma barreira com hash.
-    </p>
+    <h2>O que você pediu × o que a verificação desenterrou</h2>
+    <p class="deck">Duas listas entraram no mesmo funil. A segunda ninguém tinha pedido — e ela é maior.</p>
   </div>
 
-  <p>
-    Escrever N aulas cujo vocabulário depende das anteriores é exatamente o caso em que a
-    concorrência é proibida — a saída de um autor é a entrada do próximo. O
-    <span class="term">FREEZE</span> desfaz isso.
-  </p>
-  <div class="gloss">
-    <b>FREEZE (F5)</b> — congelar o orçamento e o grafo com hash, materializados em disco. Converte
-    "saída do agente anterior" em "arquivo versionado"; a partir daí cada autor recebe um snapshot
-    imutável carimbado, nunca o estado global ao vivo. É o ponto de não retorno do run.
-  </div>
+  <span class="gloss"><b>Onda:</b> lote de sub-tarefas que rodam em paralelo, cada uma numa
+  <b>worktree</b> — cópia isolada do repositório —, integradas uma a uma no fim. &nbsp;·&nbsp;
+  <b>Revisão adversarial:</b> um segundo agente lê o trabalho do primeiro <em>tentando reprovar</em>,
+  e emite APPROVE, WARNING ou BLOCK.</span>
 
   <figure>
-    <div class="diagram-shell" role="img" aria-label="Diagrama das treze fases da engine, dividido em duas metades: F0 a F4 são seriais porque o vocabulário de cada aula depende da anterior; o FREEZE da F5 congela orçamento e grafo com hash, e a partir do portão humano da F6 a autoria, verificação, revisão e materialização acontecem em paralelo.">
+    <div class="diagram-shell" role="img" aria-label="Diagrama de fluxo: o pedido do dono com sete frentes e a auditoria com nove achados alimentam quatro ondas de sub-tarefas em worktrees isoladas; cada entrega passa por revisão adversarial, que devolve à onda quando há achado real e segue para o gate de integração de oito verificadores quando está limpa; o gate integra por squash-merge em main e separa as oito decisões que cabem ao dono.">
       <p class="diagram-shell__hint">Ctrl/Cmd + roda para dar zoom · arraste para mover · duplo clique ajusta</p>
       <div class="mermaid-wrap">
         <div class="zoom-controls">
@@ -818,612 +753,552 @@ flowchart TD
       </div>
       <script type="text/plain" class="diagram-source">
 flowchart TD
-  subgraph SER["SERIAL — o vocabulario de cada aula depende da anterior"]
-    F0["F0 · brief + maquina nocional"]
-    F1["F1 · pesquisa profunda"]
-    F2["F2 · decomposicao atomica"]
-    F3["F3 · grafo de pre-requisitos"]
-    F4["F4 · orcamento cumulativo"]
-  end
-  F5{{"F5 · FREEZE<br/>hash do orcamento e do grafo"}}
-  F6["F6 · piloto de 3 aulas"]
-  PORTAO{{"PORTAO HUMANO<br/>aprovacaoF6.json"}}
-  subgraph PAR["PARALELO — fan-out legitimo, 1 agente = 1 aula = 1 arquivo"]
-    F78["F7/F8 · autoria de teoria e desafio"]
-    F9["F9 · verificacao determinista"]
-    F1011["F10/F11 · laco de revisao"]
-    F12["F12 · materializacao"]
-  end
-  GFINAL{{"G-FINAL<br/>load + provas + audit"}}
+  PEDIDO["O PEDIDO DO DONO<br/>7 frentes"]
+  AUDIT["A AUDITORIA (docs/19)<br/>9 achados medidos"]
+  ONDAS["4 ONDAS<br/>24 sub-tarefas de feature e fix<br/>cada uma numa worktree isolada"]
+  REV{"REVISAO ADVERSARIAL<br/>17 revisoes · 2 BLOCK · 6 WARNING"}
+  GATE{"GATE DE INTEGRACAO<br/>8 verificadores"}
+  MAIN[("main @ ec7324a<br/>26 commits, um por sub-tarefa")]
+  DEC["8 DECISOES<br/>que sao do dono"]
 
-  F0 -->|"tema e construcoes candidatas"| F1
-  F1 -->|"inventario de construcoes e concepcoes erradas"| F2
-  F2 -->|"nos atomicos"| F3
-  F3 -->|"DAG validado I1-I11"| F4
-  F4 -->|"budget.generated.json em disco"| F5
-  F5 -->|"snapshot imutavel carimbado por aula"| F6
-  F6 -->|"3 aulas: a raiz, a armadilhada, a tardia"| PORTAO
-  PORTAO -->|"aprovado: libera o fan-out"| F78
-  F78 -->|"drafts por aula, posse exclusiva de arquivo"| F9
-  F9 -->|"violacoes tipadas"| F1011
-  F1011 -->|"artefatos corrigidos"| F12
-  F12 -->|"trilha materializada"| GFINAL
-
-  class F5 gate
-  class PORTAO critico
-  class GFINAL gate
+  PEDIDO -->|"vira sub-tarefa"| ONDAS
+  AUDIT -->|"entra pelo mesmo funil, sem ter sido pedido"| ONDAS
+  ONDAS -->|"outro agente le a entrega tentando reprovar"| REV
+  REV -->|"achado real: volta para a onda"| ONDAS
+  REV -->|"limpa: segue"| GATE
+  GATE -->|"squash-merge um a um, gate em snapshot"| MAIN
+  GATE -->|"o que engenharia nao pode decidir"| DEC
+  class REV gate
+  class GATE gate
+  class AUDIT critico
+  class DEC critico
       </script>
     </div>
     <div class="legend">
-      <div class="legend-item"><span class="legend-swatch sw-gate"></span> barreira com gate determinístico</div>
-      <div class="legend-item"><span class="legend-swatch sw-crit"></span> único ponto humano insubstituível</div>
+      <span class="legend-item"><span class="legend-swatch sw-gate"></span>portão de qualidade</span>
+      <span class="legend-item"><span class="legend-swatch sw-crit"></span>o que não estava no pedido</span>
     </div>
     <figcaption>
       <span class="fignum">Figura 2</span>
-      <b>A barreira F5 não é organização: é a condição que torna o paralelismo correto em vez de
-      apenas rápido.</b> À esquerda dela, concorrência produziria aulas que se contradizem em
-      silêncio. À direita, o orçamento é arquivo com hash e a autoria vira map-reduce. O
-      <code>PORTÃO HUMANO</code> da F6 está sinalizado porque é o único ponto insubstituível:
-      <strong>pesquisa errada na F1 produz trilha errada e nenhuma fase posterior detecta.</strong>
+      <b>Metade do trabalho desta execução ninguém tinha pedido:</b> as sete frentes do seu pedido e
+      os nove achados da auditoria entraram pelo mesmo funil, e os dois saíram pelo mesmo gate de
+      oito verificadores.
     </figcaption>
   </figure>
 
-  <p>
-    Duas regras de paralelismo valem a pena reter, porque são as que falham em silêncio quando
-    ignoradas. <strong>Toda chave escrita por mais de um agente precisa de reducer declarado</strong>
-    — sem ele, doze autores gravando a mesma coleção deixam uma aula viva, sem erro e sem log. E
-    <strong>a posse exclusiva de arquivo é validada pelo escalonador</strong>, não confiada ao
-    prompt: duas tarefas da mesma onda que declaram o mesmo caminho em <code>outputs</code> fazem a
-    onda ser rejeitada antes de rodar.
-  </p>
-
-  <p>
-    Os semáforos são dois e independentes, porque os gargalos são de naturezas diferentes:
-    <code>SEM_LLM</code> para rede e <code>SEM_EXEC</code> para <code>spawn node --test</code>. Um
-    limitador único serializaria a verificação por causa da latência de rede. A verificação da F9 e
-    a re-verificação da F11 são o mesmo map paralelo sob <code>SEM_EXEC</code>, com o relatório
-    reordenado pelo índice do ref depois do <code>Promise.all</code> — byte-idêntico ao serial.
-  </p>
-
-
-  <!-- ══════════════════ 4 ══════════════════ -->
-  <div class="sec-head" id="s4">
-    <span class="num">04</span>
-    <h2>O laço de revisão: o LLM caro só é chamado depois que o barato fica verde</h2>
-    <p class="deck">
-      A ordem é contra-intuitiva e é exatamente ela que torna o laço pagável — e que impede
-      "o revisor aprovou" de virar critério de parada.
-    </p>
-  </div>
-
-  <figure>
-    <div class="diagram-shell" role="img" aria-label="Diagrama do laço de revisão em sete passos: verificadores determinísticos primeiro; se houver violação mecânica o LLM não é chamado; só com os três verdes entram revisor LLM, filtro estrutural, provador, planejador com catálogo fechado, corretor com span restrito e re-verificação com todos os pins, encerrando por uma cascata de parada de cinco condições.">
-      <p class="diagram-shell__hint">Ctrl/Cmd + roda para dar zoom · arraste para mover · duplo clique ajusta</p>
-      <div class="mermaid-wrap">
-        <div class="zoom-controls">
-          <button type="button" data-action="zoom-in" title="Aproximar" aria-label="Aproximar">+</button>
-          <button type="button" data-action="zoom-out" title="Afastar" aria-label="Afastar">&minus;</button>
-          <button type="button" data-action="zoom-fit" title="Ajustar" aria-label="Ajustar">&#8634;</button>
-          <button type="button" data-action="zoom-one" title="Zoom 1:1" aria-label="Zoom 1 para 1">1:1</button>
-          <button type="button" data-action="zoom-expand" title="Abrir em tamanho real" aria-label="Abrir em tamanho real">&#x26F6;</button>
-          <span class="zoom-label">Carregando…</span>
-        </div>
-        <div class="mermaid-viewport"><div class="mermaid mermaid-canvas"></div></div>
-      </div>
-      <script type="text/plain" class="diagram-source">
-flowchart TD
-  VER["1 · Verificadores determinicos<br/>orcamento AST · node:test · pins"]
-  DEC{"os tres estao verdes?"}
-  SAI["PARA: o defeito ja esta<br/>localizado e provado"]
-  REV["2 · Revisor LLM<br/>nao escreve, nao pontua, nao aprova"]
-  FIL["3 · Filtro estrutural R1-R8<br/>funcao pura"]
-  PRO["4 · Provador<br/>vira pin que falha hoje"]
-  PLA["5 · Planejador<br/>catalogo FECHADO de acoes"]
-  COR["6 · Corretor<br/>verify-first, span restrito"]
-  RE["7 · Re-verificacao<br/>itens tocados + TODOS os pins"]
-  PARE{{"cascata de parada<br/>mecanico · pingpong · rollback<br/>estagnou · failsafe na rodada 3"}}
-
-  VER -->|"violacoes mecanicas tipadas"| DEC
-  DEC -->|"NAO: o LLM caro nao e chamado"| SAI
-  DEC -->|"sim"| REV
-  REV -->|"apontamentos com span e evidencia"| FIL
-  FIL -->|"sobreviventes: R5 reproduz de verdade"| PRO
-  PRO -->|"candidato sem pin morre em silencio"| PLA
-  PLA -->|"acao do catalogo + arquivo + span"| COR
-  COR -->|"patch dentro do span"| RE
-  RE -->|"quebrou pin verde: correcao invalidada"| PARE
-
-  class DEC gate
-  class SAI critico
-  class PARE gate
-      </script>
-    </div>
-    <div class="legend">
-      <div class="legend-item"><span class="legend-swatch sw-gate"></span> decisão determinística</div>
-      <div class="legend-item"><span class="legend-swatch sw-crit"></span> a saída que economiza o token</div>
-    </div>
-    <figcaption>
-      <span class="fignum">Figura 3</span>
-      <b>A aresta que evita a chamada é a que paga o desenho inteiro.</b> Consultar o juiz caro a
-      toda rodada custou +129% de tokens sem ganho de qualidade medido; parar por sinal barato
-      economizou 38% com qualidade estatisticamente indistinguível. Note que
-      <strong>a aprovação do revisor nunca é a condição de parada</strong> — a condição 0 da
-      cascata é mecânica: zero violações de orçamento, testes verdes, pins verdes.
-    </figcaption>
-  </figure>
-
-  <p>
-    Três restrições de papel são verificáveis em código, não exortações:
-    <code>model(AUTOR) ≠ model(REVISOR)</code>; a família do revisor fora das famílias dos
-    produtores (a autopreferência sobrevive a rubrica binária objetiva e se estende à família do
-    modelo); e o revisor <strong>nunca</strong> recebe o raciocínio, o plano ou o rascunho do autor.
-    Entre autor e juiz há um normalizador determinístico obrigatório — sem ele o autor
-    literalmente <em>compra</em> o veredito, porque auto-declaração de corretude vale de +5,3 a
-    +34,3 pontos.
-  </p>
-
-  <p>
-    A proibição mais importante é estrutural, não textual: <strong>o schema de saída do revisor não
-    tem campo de código</strong>. Se o campo existir, ele usa — e a direção do erro é assimétrica,
-    porque o modelo tem mais chance de estragar uma resposta certa do que de consertar uma errada.
-  </p>
-
-  <details class="collapsible">
-    <summary>Andaime: a cascata de parada e o score de erro, na ordem em que disparam</summary>
-    <div class="body">
-      <ul>
-        <li><strong>0 · PARE("mecanico")</strong> — zero violações de orçamento, <code>node:test</code> verde, todos os pins verdes e zero apontamentos bloqueantes sobreviventes ao provador. É o oráculo.</li>
-        <li><strong>1 · PARE("pingpong")</strong> — <code>hash(y_t) == hash(y_t-2) ≠ hash(y_t-1)</code>: devolve o de menor score no buffer de versões.</li>
-        <li><strong>2 · ROLLBACK</strong> — o score de erro piorou mais de 0,10: volta para a versão anterior.</li>
-        <li><strong>3 · PARE("estagnou")</strong> — distância de embedding abaixo de 0,06 por duas rodadas <em>e</em> o número de bloqueantes não caiu.</li>
-        <li><strong>4 · PARE("failsafe")</strong> — rodada 3: emite <code>quality_warning</code> e escala. Nunca aceitar por cansaço.</li>
-      </ul>
-      <p class="mono" style="font-size:12.5px">score_erro = 3×violações_orçamento + 3×testes_falhando + 2×pins_falhando + 1×apontamentos_corrigir</p>
-      <p>Os dois últimos termos são medidos com <strong>lag</strong> — o estado da rodada anterior.
-      Sem o lag, uma rodada que apenas <em>descobre</em> um bloqueador novo se auto-castigaria com
-      rollback.</p>
-      <p><strong>O limiar que governa tudo:</strong> um revisor que marca falha como passe a uma
-      taxa ≥ 0,45 nunca remove nada, com qualquer número de rodadas ou amostras. A métrica que
-      governa o laço é a taxa de falso-passe medida contra mutantes injetados — se ela cruzar o
-      limiar, pare o laço e conserte o juiz.</p>
-    </div>
-  </details>
-
-
-  <!-- ══════════════════ 5 ══════════════════ -->
-  <div class="sec-head" id="s5">
-    <span class="num">05</span>
-    <h2>A revisão progressiva: o código mínimo mede o que o teste realmente cobra</h2>
-    <p class="deck">
-      É o único componente que fecha o ciclo pedido — "a aula cobra apenas o que oferece" — e faz
-      isso sem LLM nenhum no núcleo.
-    </p>
-  </div>
-
-  <p>
-    A pergunta que o algoritmo responde não é "o aluno consegue?", e sim
-    <em>"qual é o menor código que este teste aceita?"</em>. A resposta é o
-    <span class="term">código mínimo</span>.
-  </p>
-  <div class="gloss">
-    <b>código mínimo</b> — não é um sintetizador de programas, é um sintetizador de
-    <em>literais</em>: lê o teste por AST, extrai os valores que ele compara com o retorno das
-    funções e gera candidatos em ordem de minimalidade. O primeiro que passa nas quatro provas
-    reais vence, e seus átomos são o que o teste efetivamente cobra.
-  </div>
-
-  <figure>
-    <div class="diagram-shell" role="img" aria-label="Diagrama do algoritmo de revisão progressiva: o teste gera candidatos literais, as quatro provas decidem; se nenhum passa o veredito é não-revisável em modo fail-closed; se passa, os átomos do código mínimo são comparados com o orçamento declarado da aula, produzindo lacuna, excesso, ou nada, e o feedback vira memória para a aula seguinte até o hash do relatório estabilizar.">
-      <p class="diagram-shell__hint">Ctrl/Cmd + roda para dar zoom · arraste para mover · duplo clique ajusta</p>
-      <div class="mermaid-wrap">
-        <div class="zoom-controls">
-          <button type="button" data-action="zoom-in" title="Aproximar" aria-label="Aproximar">+</button>
-          <button type="button" data-action="zoom-out" title="Afastar" aria-label="Afastar">&minus;</button>
-          <button type="button" data-action="zoom-fit" title="Ajustar" aria-label="Ajustar">&#8634;</button>
-          <button type="button" data-action="zoom-one" title="Zoom 1:1" aria-label="Zoom 1 para 1">1:1</button>
-          <button type="button" data-action="zoom-expand" title="Abrir em tamanho real" aria-label="Abrir em tamanho real">&#x26F6;</button>
-          <span class="zoom-label">Carregando…</span>
-        </div>
-        <div class="mermaid-viewport"><div class="mermaid mermaid-canvas"></div></div>
-      </div>
-      <script type="text/plain" class="diagram-source">
-flowchart TD
-  TESTE["testsCode da aula N"]
-  SINT["sintetizarCodigoMinimo<br/>so literais · zero LLM"]
-  PROVAS{"passa nas 4 provas reais?"}
-  NR["NAO-REVISAVEL<br/>SEM_SOLUCAO_ACESSIVEL"]
-  ATOMS["atoms do codigo minimo<br/>o que o teste REALMENTE cobra"]
-  ORC["orcamento declarado<br/>introduces do lesson.json"]
-  DIF{"diferenca de conjuntos"}
-  LAC["LACUNA<br/>candidato a SPLIT da aula"]
-  EXC["EXCESSO<br/>cobrir com desafio ou remover"]
-  MEM[("memoria de revisao")]
-  CONV{"hash do relatorio estavel?"}
-  FIM["convergiu: a aula cobra<br/>apenas o que oferece"]
-
-  TESTE -->|"AST: extrai os literais comparados"| SINT
-  SINT -->|"candidatos em ordem de minimalidade"| PROVAS
-  PROVAS -->|"nenhum passa: fail-closed"| NR
-  PROVAS -->|"o primeiro que passa vence"| ATOMS
-  ATOMS -->|"o que o teste cobra"| DIF
-  ORC -->|"o que a aula oferece"| DIF
-  DIF -->|"cobra e a aula nao oferece"| LAC
-  DIF -->|"oferece produtivo e o teste nao cobra"| EXC
-  LAC -->|"minimalCode e atoms preservados"| MEM
-  EXC -->|"ajuste registrado"| MEM
-  NR -->|"documentada, nunca loopa"| MEM
-  MEM -->|"vira contexto da aula N+1"| CONV
-  CONV -->|"nao: nova varredura, maximo 3"| TESTE
-  CONV -->|"sim"| FIM
-
-  class PROVAS gate
-  class NR critico
-  class DIF gate
-      </script>
-    </div>
-    <div class="legend">
-      <div class="legend-item"><span class="legend-swatch sw-gate"></span> decisão determinística</div>
-      <div class="legend-item"><span class="legend-swatch sw-crit"></span> fail-closed: o sinal que não se esconde</div>
-    </div>
-    <figcaption>
-      <span class="fignum">Figura 4</span>
-      <b>A diferença entre o que o teste cobra e o que a aula oferece decide split, ajuste ou
-      parada — e nenhum caminho devolve veredito falso.</b> O nó
-      <code>SEM_SOLUCAO_ACESSIVEL</code> é sinal, não falha: ou o teste exige mais que literais, ou
-      o teste está quebrado. <strong>Os dois precisam ser vistos, nunca escondidos</strong> — é por
-      isso que ele tem aresta para a memória e nenhuma aresta de volta para o laço.
-    </figcaption>
-  </figure>
-
-  <p>
-    Nada se perde quando uma lacuna aparece: o <code>minimalCode</code> e seus átomos são
-    persistidos como artefato e registrados como pendência, com o markdown em pt-BR ao lado. A aula
-    nova sai depois, de um sub-agente que recebe esse código mínimo como semente — fora deste
-    módulo, que continua com zero LLM. A convergência tem válvula: hash igual entre iterações, ou
-    três iterações, o que vier primeiro.
-  </p>
-
-
-  <!-- ══════════════════ 6 ══════════════════ -->
-  <div class="sec-head" id="s6">
-    <span class="num">06</span>
-    <h2>O placar medido hoje</h2>
-    <p class="deck">
-      Nenhum número abaixo foi citado de documento. Todos foram medidos nesta análise, e cada um
-      traz o comando que o reproduz.
-    </p>
-  </div>
+  <h3>As sete frentes do pedido, e o que existe agora</h3>
 
   <div class="table-scroll">
     <table>
       <thead>
-        <tr><th>Medida</th><th class="num">Valor</th><th>Como reproduzir <span class="mono" style="text-transform:none;letter-spacing:0">(cwd <code>app/</code>)</span></th></tr>
+        <tr><th>O que você pediu</th><th>O que existe agora</th><th>Commit</th></tr>
       </thead>
       <tbody>
         <tr>
-          <td><code>programacao-do-zero</code> — aulas / desafios</td>
-          <td class="num">14 / 14</td>
-          <td><span class="cmd">npx tsx tools/track-engine/cli.ts audit programacao-do-zero --limite 0</span></td>
+          <td>“analise profundamente se a aula está sendo bem construída”</td>
+          <td>Auditoria medida da aula, nos dois lados (artefato e experiência). É ela que desenterra tudo na §5.</td>
+          <td class="num"><code>028b6e0</code></td>
         </tr>
         <tr>
-          <td><code>programacao-do-zero</code> — violações / lacunas / avisos</td>
-          <td class="num"><strong>0 / 0 / 10</strong></td>
-          <td><span class="cmd">idem</span></td>
+          <td>“o layout do quiz … deve ser sobre a tela e respondendo ele minimiza para ficar no chat”</td>
+          <td><b>Overlay</b> — a camada que sobe sobre a tela da aula — aparece sobre a tela e minimiza ao ser respondido, no molde do <code>ChallengeGenerateModal</code>, sem perder estado. <b>Esc e clique fora minimizam</b> — fechar seria dispensar o gate com uma tecla.</td>
+          <td class="num"><code>41dc648</code><br><code>6700047</code></td>
         </tr>
         <tr>
-          <td><code>nodejs-do-zero</code> — aulas / desafios</td>
-          <td class="num">118 / 118</td>
-          <td><span class="cmd">npx tsx tools/track-engine/cli.ts audit nodejs-do-zero --limite 0</span></td>
+          <td>“a cada erro … processar aquele conteúdo e gerar um novo quiz na hora depois de explicar com IA … (o que ficará no histórico)”</td>
+          <td>Serviço de remediação: as regras ERR-1..ERR-8 da sua pedagogia viraram instrução verificável, a explicação fica no histórico e o quiz da LLM é validado contra o contrato <b>antes de existir</b> (4 opções únicas, índice na faixa, racional coerente, nunca-repetir).</td>
+          <td class="num"><code>689d7ab</code></td>
         </tr>
         <tr>
-          <td><code>nodejs-do-zero</code> — violações / desafios com violação / lacunas / avisos</td>
-          <td class="num"><strong>717 / 112 (95%) / 249 / 92</strong></td>
-          <td><span class="cmd">idem</span></td>
+          <td>“só vamos para o desafio depois que o aluno provar que entendeu”</td>
+          <td>Maestria: o gate exige <b>acerto</b>. Responder deixou de bastar.</td>
+          <td class="num"><code>67b1056</code></td>
         </tr>
         <tr>
-          <td>Suíte de testes do app</td>
-          <td class="num">2761 · <span style="color:var(--success)">2758 pass</span> · <span style="color:var(--destructive)">1 fail</span> · 2 skip · 40 s</td>
-          <td><span class="cmd">npm test</span></td>
+          <td>“o layout do chat também está ruim e a maneira como está escrevendo o código também”</td>
+          <td>O bloco de código aparece linha a linha <b>já formatado</b>, com highlight da paleta do projeto e caixa reservada (sem reflow); a prosa continua na velocidade de leitura. Balão do tutor com aparência própria, borda 2px e sombra colorida como o resto do app, mensagens consecutivas agrupadas, KaTeX no chat.</td>
+          <td class="num"><code>35419f1</code></td>
         </tr>
         <tr>
-          <td>Teste vermelho em <code>main</code> agora</td>
-          <td class="num">1</td>
-          <td><span class="cmd">engineDocsCoerencia.test.ts — lê <code>bash --version</code> esperando inglês, recebe "GNU bash, versão 5.3.15"</span></td>
+          <td>“garantia em pós-processamento que nos desafios não cobra nada que não tenha sido aprendido, e que se cobrar, crie aulas para isso e reorganize a ordem”</td>
+          <td>As três peças: <code>coverage</code> que mede de verdade e reprova o que não mede; <code>gap</code>, que <b>autora a aula que falta</b> e a insere depois de tudo que ela pressupõe; <code>reorder</code>, 100% determinístico, que só grava depois de recalcular o orçamento e provar que a violação sumiu sem abrir outra. Os três chegaram ao terminal.</td>
+          <td class="num"><code>f3564b5</code><br><code>7e2cf1a</code><br><code>6aa58f3</code><br><code>fe395f9</code></td>
         </tr>
         <tr>
-          <td>Fases da engine · arquivos de teste da engine</td>
-          <td class="num">13 · ~60</td>
-          <td><span class="cmd">ls tests/engine*</span></td>
-        </tr>
-        <tr>
-          <td>Runs de <code>generate</code> já executados</td>
-          <td class="num"><strong>0</strong></td>
-          <td><span class="cmd">find app/content-src -name run.json -o -name FREEZE.json -o -name budget.generated.json</span> → vazio</td>
-        </tr>
-        <tr>
-          <td>Os 5 gates bash do repositório</td>
-          <td class="num"><span style="color:var(--destructive)">2 VERMELHOS</span></td>
-          <td><span class="cmd">for g in gate-build gate-lint validate smoke spec-conformance; do bash tests/$g.sh; done</span> — <code>validate</code> 77/0, <code>smoke</code> 78/0 e <code>spec-conformance</code> 11/0 verdes; <code>gate-build</code> 9/2 e <code>gate-lint</code> 2/3 reprovam</td>
-        </tr>
-        <tr>
-          <td>Cobertura de CI do app</td>
-          <td class="num">nenhuma</td>
-          <td><span class="cmd">.github/workflows/gate.yml — só os 5 gates bash + install.sh</span></td>
+          <td>“a geração de um curso apenas por terminal … via GLM 5.3 Flash consumido pelo openrouter, usando o surf-skill com reasoning … de várias camadas, mostrando fontes”</td>
+          <td>Pesquisa em camadas com procedência: o surf colhe evidência com fonte e o GLM 5.3 Flash sintetiza pelo transporte único da engine; portão fail-closed que julga rastreabilidade; os 5 exit codes do surf tratados um a um. Medido no caminho: <code>sources[]</code> não tem descrição — o trecho vive no ledger, então o join é por URL, e <b>sem trecho a descrição fica vazia em vez de inventada</b>.</td>
+          <td class="num"><code>34b7176</code></td>
         </tr>
       </tbody>
     </table>
   </div>
 
   <div class="callout">
-    <strong>Leitura das duas trilhas.</strong> <code>programacao-do-zero</code> roda no modo
-    <code>declared</code> (orçamento declarado pelas aulas em <code>introduces</code>);
-    <code>nodejs-do-zero</code> roda no modo <code>inferred</code> — leitura permissiva, derivada do
-    código que a teoria mostra. <strong>O número real de violações da trilha legada é maior, nunca
-    menor.</strong>
+    <b>Duas honestidades sobre esta tabela.</b> Primeira: o seu próprio pedido diz “não vamos
+    propriamente gerar nada agora” — e nada foi gerado; o que existe é o encanamento, medido e
+    testado, não um curso. Segunda: sobre “um chat mais estilo Nintendo”, os fatos desta execução
+    registram apenas o commit de chat acima. Não há medição de conformidade com essa direção
+    visual, e eu não vou fingir que há.
   </div>
 
+  <details class="collapsible">
+    <summary>As quatro ondas, e o que cada uma entregou</summary>
+    <div class="body">
+      <div class="moves">
+        <div class="move">
+          <div class="when">Onda 1<br>7 commits</div>
+          <ul>
+            <li>o contrato do quiz: schema v5 com <code>quiz_attempts</code> e <code>quiz_remediations</code> — as respostas do aluno <b>nunca chegavam ao main</b> e morriam ao fechar o app</li>
+            <li>o <code>coverage</code> honesto (a §2)</li>
+            <li>a maestria e o fim da colisão de chave entre duas assertions da mesma seção</li>
+            <li>a auditoria <code>docs/19</code></li>
+            <li>o chat e o código revelado formatado</li>
+            <li>a pesquisa em camadas com procedência</li>
+            <li>o fix das 8 fixtures sem newline final — que foi erro meu (§8)</li>
+          </ul>
+        </div>
+        <div class="move">
+          <div class="when">Onda 2<br>8 commits</div>
+          <ul>
+            <li><b>a trilha de Python volta a rodar para o aluno</b></li>
+            <li>o serviço de remediação (ERR-1..ERR-8) e os 4 canais IPC</li>
+            <li>o prompt do autor passa a pedir o quiz</li>
+            <li>a lacuna de currículo vira aula autorada e inserida</li>
+            <li>o executor da reordenação</li>
+            <li>o overlay na <code>LessonView</code></li>
+            <li>a cláusula J5 — <em>o teste do desafio força a construção que a aula ensinou?</em> — especificada por você e nunca implementada</li>
+            <li>um commit de PREP que congela a assinatura do serviço para duas sub-tarefas paralelas</li>
+          </ul>
+        </div>
+        <div class="move">
+          <div class="when">Onda 3<br>5 commits</div>
+          <ul>
+            <li>a cauda de checksum que quebraria a autoria com um modelo real</li>
+            <li>a maestria do quiz sobrevivendo ao fechamento do app</li>
+            <li>seis divergências entre a documentação normativa e o disco</li>
+            <li>os quatro módulos novos chegam ao terminal</li>
+            <li>a primeira cobertura ponta-a-ponta do ciclo do quiz</li>
+          </ul>
+        </div>
+        <div class="move">
+          <div class="when">Onda 4<br>6 commits</div>
+          <ul>
+            <li><code>--limite 0</code> deixa de ser aprovação por omissão</li>
+            <li>o ciclo de módulos que a correção da autoria deixou, provado por scanner do grafo de imports</li>
+            <li>o slug em uso quando a mesma construção falta em duas aulas</li>
+            <li>os testes dos quatro comandos do CLI, provados por três mutantes</li>
+            <li>a saída do ciclo do quiz com a IA fora do ar</li>
+            <li>a suíte e2e de volta ao verde</li>
+          </ul>
+        </div>
+      </div>
+      <p style="font-size:13px;color:var(--muted-foreground);margin-top:14px">
+        Reproduz a contagem: <code>git log --oneline 26dbc19..ec7324a | wc -l</code> → 26.
+        Zero commit WIP, zero merge commit.
+      </p>
+    </div>
+  </details>
+
+  <!-- ══════════════════ 4 ══════════════════ -->
+  <div class="sec-head" id="s4">
+    <span class="num">04</span>
+    <h2>O quiz que você desenhou, agora com portão</h2>
+    <p class="deck">Errar deixou de destravar; e, com a IA fora do ar, errar deixou de trancar.</p>
+  </div>
+
+  <p>
+    O ciclo tem quatro estados que interessam, e uma regra que os amarra: <span class="term">a
+    maestria</span> é a única porta para o desafio.
+  </p>
+  <span class="gloss"><b>Maestria:</b> o quiz só destrava a aula quando o aluno <em>acerta</em>, não
+  quando responde. &nbsp;·&nbsp; <b>Remediação:</b> o ciclo que o erro abre — a IA explica onde a
+  alternativa se separa do que a seção mostra, a explicação fica no histórico, e um quiz novo
+  sobe.</span>
+
+  <figure>
+    <div class="diagram-shell" role="img" aria-label="Diagrama de fluxo do ciclo do quiz: o overlay sobe sobre a tela ao fim da seção; acertar minimiza no chat e é a única aresta que chega ao desafio; errar abre a remediação, que explica no histórico e sobe um quiz novo; sem IA disponível, a mesma pergunta reabre numa geração nova; Esc e clique fora minimizam sem dispensar o gate; e fechar o app não perde nada, porque um redutor puro reconstrói o ciclo a partir do banco.">
+      <p class="diagram-shell__hint">Ctrl/Cmd + roda para dar zoom · arraste para mover · duplo clique ajusta</p>
+      <div class="mermaid-wrap">
+        <div class="zoom-controls">
+          <button type="button" data-action="zoom-in" title="Aproximar" aria-label="Aproximar">+</button>
+          <button type="button" data-action="zoom-out" title="Afastar" aria-label="Afastar">&minus;</button>
+          <button type="button" data-action="zoom-fit" title="Ajustar" aria-label="Ajustar">&#8634;</button>
+          <button type="button" data-action="zoom-one" title="Zoom 1:1" aria-label="Zoom 1 para 1">1:1</button>
+          <button type="button" data-action="zoom-expand" title="Abrir em tamanho real" aria-label="Abrir em tamanho real">&#x26F6;</button>
+          <span class="zoom-label">Carregando…</span>
+        </div>
+        <div class="mermaid-viewport"><div class="mermaid mermaid-canvas"></div></div>
+      </div>
+      <script type="text/plain" class="diagram-source">
+flowchart TD
+  AULA["Aula em leitura"]
+  OVER["QUIZ sobre a tela<br/>overlay"]
+  RESP{"o aluno respondeu"}
+  PEND["Minimizado, AINDA PENDENTE"]
+  MIN["Minimizado no chat<br/>respondido"]
+  DES["DESAFIO liberado"]
+  REM["Remediacao no chat<br/>a IA explica onde a alternativa<br/>se separa do que a secao mostra"]
+  NOVO["Quiz NOVO<br/>nunca repete a pergunta"]
+  SEMIA["IA indisponivel"]
+  REABRE["A MESMA pergunta<br/>em geracao NOVA"]
+  BANCO[("quiz_attempts<br/>quiz_remediations")]
+
+  AULA -->|"a secao termina"| OVER
+  OVER --> RESP
+  RESP -->|"ACERTOU = maestria"| MIN
+  MIN -->|"unica porta para o desafio"| DES
+  RESP -->|"ERROU: nao destrava"| REM
+  REM -->|"a explicacao fica no historico"| NOVO
+  NOVO -->|"sobe de volta sobre a tela"| OVER
+  REM -->|"sem chave ou sem servico"| SEMIA
+  SEMIA -->|"devolve a chance sem dispensar o gate"| REABRE
+  REABRE -->|"geracao nova, sem vazar a resposta"| OVER
+  OVER -->|"Esc e clique fora MINIMIZAM"| PEND
+  PEND -->|"o gate continua fechado"| OVER
+  MIN -->|"o app fechou"| BANCO
+  BANCO -->|"redutor puro reconstroi o ciclo"| OVER
+  class RESP gate
+  class DES critico
+      </script>
+    </div>
+    <div class="legend">
+      <span class="legend-item"><span class="legend-swatch sw-gate"></span>o portão</span>
+      <span class="legend-item"><span class="legend-swatch sw-crit"></span>o destino que só o acerto abre</span>
+    </div>
+    <figcaption>
+      <span class="fignum">Figura 3</span>
+      <b>O quiz deixou de ser decorativo:</b> uma única aresta chega ao desafio, e ela sai de
+      “ACERTOU”. Todas as outras saídas — Esc, clique fora, fechar o app, a IA fora do ar —
+      devolvem o aluno ao mesmo portão, fechado, sem nunca trancá-lo.
+    </figcaption>
+  </figure>
+
+  <p>
+    A aresta que sai de <code>SEMIA</code> é a que merece o seu olhar: ela é a resposta a um achado,
+    não a um pedido. <strong>Com a IA fora, errar trancava o aluno na aula para sempre</strong> — sem
+    quiz remediador não havia o que responder, e o gate só abre com acerto. A saída escolhida sobe a
+    <em>geração</em> em vez de zerar o card, e isso não é detalhe de implementação: reabrir a mesma
+    geração deixaria a tentativa registrada nela, e a função visual pintaria a alternativa certa de
+    verde <em>antes</em> do clique. Existe teste que <em>executa</em> esse vazamento contra a
+    implementação ingênua.
+  </p>
+
+  <details class="collapsible">
+    <summary>O que mais entrou no quiz — e o que já estava quebrado nele</summary>
+    <div class="body">
+      <dl>
+        <dt>As respostas do aluno nunca chegavam ao processo principal</dt>
+        <dd>Morriam ao fechar o app. O schema v5 acrescentou <code>quiz_attempts</code> e <code>quiz_remediations</code>, e os 4 canais IPC nascem fail-closed.</dd>
+        <dt>O canal de histórico existia e nunca era chamado</dt>
+        <dd>Quem dominava três quizzes e fechava o app voltava e encontrava tudo por responder, travado de novo em algo que já tinha provado. Agora um redutor puro reconstrói o ciclo a partir do banco, e a sessão vence o disco chave a chave — porque a resposta é escrita no estado antes de ir ao banco, então o banco só pode estar atrasado.</dd>
+        <dt>Duas assertions na mesma seção colidiam</dt>
+        <dd>A segunda pergunta da aula 1 aparecia respondida sozinha, com a alternativa certa em verde. Era colisão de chave; a <code>LessonView</code> passou a usar a chave canônica em vez de calculá-la inline.</dd>
+        <dt>O parser aceitava quiz com zero alternativas</dt>
+        <dd>E com <code>answerIndex</code> negativo. <code>parseRemedialQuiz</code> passou a validar tamanho e faixa.</dd>
+        <dt>O quiz era inobservável em e2e</dt>
+        <dd>A trilha do modo E2E não declarava <code>assertions</code>. A sub-tarefa escreveu a própria trilha de fixture, sem tocar em produção, e provou em Electron real que a resposta não vaza: as 4 alternativas comparadas entre si em classe, CSS computado e contagem de ícone.</dd>
+      </dl>
+    </div>
+  </details>
+
+  <!-- ══════════════════ 5 ══════════════════ -->
+  <div class="sec-head" id="s5">
+    <span class="num">05</span>
+    <h2>Os nove achados que o pedido não previa</h2>
+    <p class="deck">Todos medidos, nenhum inferido. Os quatro primeiros são de gravidade de produto.</p>
+  </div>
+
+  <ol class="notes">
+    <li class="sev1">
+      <h3>A trilha Python não rodava para o aluno <span class="badge b1">produto parado</span></h3>
+      <p><code>challengePairFromSource</code> não copiava <code>challenge.language</code>; <code>runStudentCode</code> defaultava para JavaScript. O aluno digitava <code>print("oi")</code> — a solução de referência da própria trilha — e recebia <code>SyntaxError</code> de JavaScript.</p>
+      <div class="ev">Como concluir exige desafio passado e destravar exige a anterior concluída, ninguém saía da aula 1. Verificado 3× de forma independente.</div>
+      <p class="fix"><b>Fechado:</b> o adaptador vem do desafio de ponta a ponta; os 21 desafios passam pelo caminho de produção.</p>
+    </li>
+    <li class="sev1">
+      <h3>O <code>coverage</code> estava cego em três camadas — e saía verde <span class="badge b1">fail-open</span></h3>
+      <p>Sintetizador parseando como JavaScript, executor spawnando <code>node</code> num desafio Python (exit 9, zero teste rodado), e <code>parse-falhou</code> fora do veredito.</p>
+      <div class="ev">Reportava 21/21 não medidos e SAÍA VERDE.</div>
+      <p class="fix"><b>Fechado:</b> mede pelo adaptador da linguagem e reprova o que não pode medir (docs/16 §9.3).</p>
+    </li>
+    <li class="sev1">
+      <h3>O <code>track:validate</code> também falhava aberto <span class="badge b1">fail-open</span></h3>
+      <p>Imprimia a reprovação e devolvia sucesso ao processo que o chamou.</p>
+      <div class="ev">21 × “NÃO VERIFICADO ✗” com exit 0.</div>
+      <p class="fix"><b>Fechado</b> na mesma onda que devolveu a execução dos desafios.</p>
+    </li>
+    <li class="sev1">
+      <h3>O prompt do autor NUNCA pediu <code>assertions[]</code> <span class="badge b1">curso sem quiz</span></h3>
+      <p>O schema aceitava por herança e nenhum outro caminho popula o campo.</p>
+      <div class="ev">Qualquer trilha gerada nasceria sem quiz nenhum.</div>
+      <p class="fix"><b>Fechado:</b> o prompt passou a pedir as assertions e os 4 racionais por alternativa, ancorados na seção que demonstra a afirmação, com o erro nomeado na alternativa e nunca no aluno.</p>
+    </li>
+    <li class="sev2">
+      <h3>A autoria de aula quebraria com um modelo real, e o teste mascarava <span class="badge b2">teste infiel</span></h3>
+      <p><code>f7Theory</code> e <code>f8Challenges</code> faziam <code>JSON.parse</code> direto sobre a resposta de um prompt que manda o modelo anexar <span class="term">cauda de checksum</span> depois do JSON. O fake da suíte devolvia JSON puro — então nenhum modelo dela jamais obedecia à regra que o prompt exige.</p>
+      <span class="gloss"><b>Cauda de checksum:</b> texto que o prompt manda o modelo escrever <em>depois</em> do JSON. Quebra qualquer <code>JSON.parse</code> direto.</span>
+      <div class="ev">Com o fake fiel ao contrato, 16 de 22 testes falharam — 13 deles já existiam antes.</div>
+      <p class="fix"><b>Fechado:</b> a cauda é tolerada e conferida; divergência vira aviso, nunca reprovação, porque o enquadramento da cauda não é fixado por máquina.</p>
+    </li>
+    <li class="sev2">
+      <h3><code>--limite 0</code> fazia o verificador sair verde sem medir nada <span class="badge b2">fail-open</span></h3>
+      <p>Placar todo zerado, exit 0: aprovação por omissão pela porta da flag.</p>
+      <div class="ev">Mesma classe das duas anteriores, num quarto lugar.</div>
+      <p class="fix"><b>Fechado:</b> uso incorreto (exit 2) nos quatro comandos de medição, por uma função só.</p>
+    </li>
+    <li class="sev1">
+      <h3>Com a IA fora, errar o quiz trancava o aluno na aula para sempre <span class="badge b1">produto parado</span></h3>
+      <p>Sem quiz remediador não havia o que responder, e o gate só abre com acerto.</p>
+      <div class="ev">O gate novo criou o beco: é um achado da própria execução sobre a própria execução.</div>
+      <p class="fix"><b>Fechado:</b> a mesma pergunta reabre numa geração nova — devolve a chance sem dispensar o gate e sem vazar a resposta.</p>
+    </li>
+    <li class="sev2">
+      <h3>Duas assertions na mesma seção colidiam <span class="badge b2">estado compartilhado</span></h3>
+      <p>Colisão de chave entre perguntas ancoradas na mesma seção.</p>
+      <div class="ev">A segunda pergunta da aula 1 aparecia respondida sozinha, com a alternativa certa em verde.</div>
+      <p class="fix"><b>Fechado</b> junto com a maestria.</p>
+    </li>
+    <li class="sev2">
+      <h3><code>role: "consolidation"</code> não existe no enum da engine <span class="badge b2">decisão sua</span></h3>
+      <p>Cinco das 20 aulas usam esse valor.</p>
+      <div class="ev">A trilha escrita à mão carrega; a mesma trilha regerada seria rejeitada.</div>
+      <p class="fix"><b>Não fechado de propósito:</b> ampliar o enum ou mudar as 5 aulas é decisão de conteúdo, não de engenharia (§9).</p>
+    </li>
+  </ol>
+
+  <!-- ══════════════════ 6 ══════════════════ -->
+  <div class="sec-head" id="s6">
+    <span class="num">06</span>
+    <h2>Os números, com o comando que os reproduz</h2>
+    <p class="deck">A regra do <code>CONTRIBUTING.md</code> vale para esta página também: nenhum número sem o comando ao lado.</p>
+  </div>
+
+  <div class="table-scroll">
+    <table>
+      <thead>
+        <tr><th>O que</th><th class="num">Medida</th><th>Como se reproduz</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Testes no baseline</td><td class="num">3256 · 3254 pass · 0 fail · 2 skip</td><td><span class="cmd">cd app &amp;&amp; npm test</span> em <code>main @ 26dbc19</code></td></tr>
+        <tr><td>Testes no fim</td><td class="num">3885 · 3883 pass · 0 fail · 2 skip<br><b>+629</b></td><td><span class="cmd">cd app &amp;&amp; npm test</span> em <code>main @ ec7324a</code></td></tr>
+        <tr><td>Ponta a ponta</td><td class="num">34 pass · 2 skip · 0 fail<br>(era 30 pass · 6 fail)</td><td><span class="cmd">cd app &amp;&amp; npm run test:e2e</span></td></tr>
+        <tr><td>Cobertura de currículo, primeira medição real</td><td class="num">21 de 21 medidos<br>0 lacunas · 29 excessos</td><td><span class="cmd">cd app &amp;&amp; npm run engine -- coverage python</span></td></tr>
+        <tr><td>A armadilha da flag, antes</td><td class="num">placar zerado, exit 0</td><td><span class="cmd">cd app &amp;&amp; npm run engine -- coverage python --limite 0</span></td></tr>
+        <tr><td>Cláusula J5 — testes que não discriminam</td><td class="num">17 de 20 aulas</td><td><span class="cmd">cd app &amp;&amp; npm run engine -- discrimination python</span></td></tr>
+        <tr><td>Desafios que declaram <code>requirements</code></td><td class="num">0 de 21</td><td><span class="cmd">cd app &amp;&amp; npm run engine -- requirements python</span></td></tr>
+        <tr><td>Quizzes no disco</td><td class="num">44 assertions em 20 aulas<br>(a mensagem de commit dizia 52)</td><td>contagem por <code>python3</code> sobre os 20 <code>lesson.json</code>, em <code>docs/19</code></td></tr>
+        <tr><td>Sintaxe crua na tela do chat</td><td class="num">41 de 565 cortes → <b>0</b></td><td>medido na onda do chat (<code>35419f1</code>)</td></tr>
+        <tr><td>Commits desta execução</td><td class="num">26</td><td><span class="cmd">git log --oneline 26dbc19..ec7324a | wc -l</span></td></tr>
+        <tr><td>Gate final de integração</td><td class="num">8 verificadores</td><td>lint, test, build do app + gate-build, gate-lint, validate, spec-conformance do repositório + e2e</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="callout">
+    <b>A leitura que importa na linha da J5.</b> “17 de 20” não quer dizer que 17 aulas cobram o que
+    não ensinaram — isso é a linha do <code>coverage</code>, e ela está em <b>zero lacunas</b>.
+    Quer dizer que, em 17 aulas, o <b>teste do desafio não força a construção ensinada</b>: o código
+    mínimo que passa é <code>print("&lt;literal&gt;")</code>. É a outra metade da garantia, e é
+    decisão sua (§9).
+  </div>
 
   <!-- ══════════════════ 7 ══════════════════ -->
   <div class="sec-head" id="s7">
     <span class="num">07</span>
-    <h2>As onze anotações, ranqueadas por custo contra dano</h2>
-    <p class="deck">
-      Da mais barata com maior dano evitado para a menor. Cada uma nomeia arquivo e linha.
-    </p>
+    <h2>O que a revisão adversarial pegou e teste nenhum pegava</h2>
+    <p class="deck">17 revisões adversariais: 2 BLOCK, 6 WARNING, 9 APPROVE limpos — <b>8 com achado real</b>.</p>
   </div>
+
+  <p>
+    O placar acima é o <b>recontado</b>: o que eu havia reportado no fim da execução estava errado, e
+    a recontagem por veredito registrado no plano é a que vale (§8, quinto erro). Dos oito achados
+    reais, <strong>cinco eram invisíveis para as suítes</strong> — não “não estavam cobertos”:
+    estavam <em>dentro</em> de uma suíte verde:
+  </p>
 
   <ol class="notes">
-
     <li class="sev1">
-      <h3>A exigência incondicional de cenário <code>error</code> sobrevive na skill <span class="badge b1">1 linha</span></h3>
-      <p>
-        <code>docs/16</code> §1.3 nomeia essa exigência como a causa estrutural do desafio impossível
-        da aula 1. Ela continua literal em duas superfícies legadas.
-      </p>
-      <p><b>Ressalva que a verificação adversarial exigiu — a correção existe e está em uso.</b>
-        A regra A11 está implementada na engine (<code>derivado_de</code> obrigatório em
-        <code>schemas/artifacts.ts:418-425</code>, prompt em <code>f8Challenges.ts:395</code>, gate
-        em <code>f12Materialize.ts:1106</code>) e o efeito aparece no conteúdo publicado:
-        <code>programacao-do-zero</code> tem <strong>1 único cenário <code>erro</code> em 14
-        desafios</strong>, derivado e sem <code>throw</code>. E a A11 não ser chamada do processo
-        principal é <em>decisão declarada</em> — <code>docs/16</code> proíbe rodar a engine no main
-        do Electron. O que sobra é dívida de propagação.
-      </p>
-      <p class="ev">skills/study-method/references/challenge-protocol.md:42 — a superfície VIVA e não corrigida (prosa; o schema challenge-manifest.schema.json:346-348 <b>não</b> exige <code>error</code>)<br>
-      app/electron/main/services/deepseekLessonAuthor.ts:307 — fluxo declarado legado (ipc-contract.ts:270-276), sem call site no renderer, ainda fiado e pinado por teste</p>
-      <p class="fix"><b>Dano de não fazer:</b> o tutor conversacional — o caminho que mais roda — continua obrigado a pedir um cenário de erro numa aula 1, onde "1 error" tem uma única implementação possível: <code>typeof</code> + <code>throw</code>.</p>
+      <h3>O bug de chave que travaria “Concluir aula” para sempre</h3>
+      <div class="ev">Passou por 3285 testes verdes.</div>
     </li>
-
-    <li class="sev1">
-      <h3>O caminho que chega ao aluno é o único sem gate de orçamento <span class="badge b1">bloqueante</span></h3>
-      <p>
-        Nenhum arquivo em <code>electron/main/services</code>, <code>ipc</code> ou
-        <code>domain</code> importa <code>auditTrack</code>, <code>deriveTrackBudget</code> ou
-        <code>extractAtoms</code> — o grep volta vazio. O <code>generateLesson</code> faz pesquisa →
-        autoria → materialização → <code>verifyChallenge</code>: as quatro provas de execução rodam,
-        <code>AST ⊆ orçamento</code> não roda.
-      </p>
-      <p class="ev">grep -rn "auditTrack\|deriveTrackBudget\|extractAtoms" electron/main/{services,ipc,domain} → vazio</p>
-      <p class="fix"><b>Correção que a verificação adversarial exigiu:</b> o conserto é mais estreito do que "plugar o gate". Só <code>extractAtoms</code> (código → átomos) é plugável direto; <code>auditTrack</code>/<code>deriveTrackBudget</code> exigem um <code>LoadedTrack</code> e um orçamento cumulativo de aulas ordenadas, e uma aula avulsa não tem trilha nem currículo anterior — antes do gate é preciso decidir <b>de onde vem o orçamento de uma aula gerada ao vivo</b>. E não é "sem gate nenhum": o gate de execução roda.</p>
-    </li>
-
-    <li class="sev1">
-      <h3>O gate semântico do runtime falha ABERTO <span class="badge b1">contrato invertido</span></h3>
-      <p>
-        Quando o validador está indisponível ou devolve JSON inválido, o código retorna
-        <code>{ ok: true, challenge: draft }</code> — o desafio é entregue assim mesmo.
-        <code>docs/16</code> §9.3 exige o contrário, e a engine cumpre. O app não. O comentário no
-        código declara a decisão, o que é honesto; a decisão é que está invertida.
-      </p>
-      <p class="ev">app/electron/main/services/challengeRegenerator.ts:325-328</p>
-      <p class="fix"><b>Correção:</b> indisponibilidade vira erro estruturado, nunca aprovação por omissão. Trilha é conteúdo versionado e offline.</p>
-    </li>
-
-    <li class="sev1">
-      <h3>O anti-padrão está literal no arquivo que o documento cita <span class="badge b2">2 mudanças</span></h3>
-      <p>
-        <code>"PENSE PROFUNDAMENTE, PASSO A PASSO"</code> — proibido em <code>docs/16</code> §7 para
-        modelo com raciocínio nativo, porque profundidade é parâmetro, não texto. Mais fundo que a
-        frase: este validador é um LLM decidindo cobertura de pré-requisito, exatamente a tarefa que
-        o princípio P1 mede em <strong>κ = 0,21</strong> e 57% de <em>exact match</em>. O substituto
-        determinístico já existe. E há um limite prático declarado: não existe parâmetro de
-        <em>effort</em> no cliente (<code>deepseekClient.ts:242-247</code> envia só
-        <code>model</code>, <code>messages</code>, <code>temperature</code> e
-        <code>max_tokens</code>), então trocar a frase por parâmetro exige mexer no cliente antes.
-      </p>
-      <p class="ev">app/electron/main/services/challengeContextValidator.ts:234</p>
-      <p class="fix"><b>Nota justa:</b> o bug de ordem de campos que o mesmo documento apontou <em>foi</em> corrigido — o schema hoje é <code>nome → construcoes_encontradas → motivo → aprovado</code>.</p>
-    </li>
-
-    <li class="sev1">
-      <h3>A trilha entregue passou por fora dos portões fail-closed da F12 <span class="badge b1">contrato não provado</span></h3>
-      <p>
-        Não existe <code>run.json</code> nos 84.499 arquivos do repositório, e nunca existiu em 554
-        commits. <code>programacao-do-zero</code> veio de drafts escritos à mão e materializados por
-        um script ad-hoc de 250 linhas que <strong>copia à mão a tabela de derivação da F12</strong>.
-      </p>
-      <p><b>Ressalva que a verificação adversarial exigiu.</b> O modo <code>generate</code>
-        <em>gera sim</em> uma trilha inteira em <code>engineGenerate.test.ts:452-698</code>, com
-        F4/F5/F8/F11/F12 reais e G-FINAL aprovado — só que num diretório temporário, com o
-        transporte LLM, a busca <strong>e o provador</strong> todos fake. A formulação honesta é:
-        <em>nenhuma fase que dependa de modelo real ou de execução real de teste foi exercitada no
-        caminho gerador.</em> E o script ad-hoc não está "a um <code>import</code> de distância" da
-        F12: ela recusaria esses drafts com <code>BUDGET_HASH_DIVERGENTE</code>, porque os
-        <code>budgetHash</code> dos 14 drafts são rótulos, não hashes.
-      </p>
-      <p class="ev">app/content-src/programacao-do-zero/verif/materializar.mjs (250 linhas)<br>
-      app/tests/engineGenerate.test.ts:452-698 · f12Materialize.ts:665-670</p>
-      <p class="fix"><b>Consequência real:</b> a árvore que o aluno recebe não passou pelos portões fail-closed da F12. A metade determinística da engine (<code>audit</code>, <code>revise</code>, provador real) <em>rodou</em> sobre ela e deixou artefatos versionados — o que nunca rodou é o <code>generate</code>.</p>
-    </li>
-
-    <li class="sev1">
-      <h3>A trilha quebrada continua sendo servida ao aluno <span class="badge b2">1 filtro</span></h3>
-      <p>
-        <code>loadAllTracks</code> carrega todo slug de <code>resources/tracks/</code> sem nenhum
-        filtro de qualidade, e <code>track:list</code> devolve as duas. O aluno pode escolher a
-        trilha com <strong>717 violações e 249 lacunas de currículo</strong> — 95% dos desafios dela
-        cobram algo que a trilha não ensinou.
-      </p>
-      <p class="ev">app/electron/main/content/trackLoader.ts:255</p>
-      <p class="fix"><b>Mitigação mais barata:</b> um campo <code>status</code> no <code>track.json</code> e um filtro no loader — ou mover a trilha legada para fora de <code>resources/</code> até o reparo.</p>
-    </li>
-
-    <li class="sev1">
-      <h3>Nenhum código do app é verificado na CI — e os gates que existem estão vermelhos <span class="badge b2">workflow</span></h3>
-      <p>
-        <code>gate.yml</code> roda os 5 gates bash e o <code>install.sh</code>. Não roda
-        <code>npm run lint</code>, não roda <code>npm test</code>, não roda o <code>audit</code>.
-        Efeito imediato e verificável: a suíte tem <strong>um teste vermelho em <code>main</code>
-        agora</strong> — um defeito de locale que qualquer CI teria pego no dia em que entrou.
-      </p>
-      <p><b>Três coisas que a verificação adversarial acrescentou.</b> (1) São <em>dois</em>
-        defeitos empilhados, não um: em pt-BR o teste falha em <code>:350</code>/<code>:352</code>
-        pela regex de <code>version</code>; com <code>LC_ALL=C</code> ele passa a falhar em
-        <code>:385</code>, porque um match por substring de <code>README.md</code> captura
-        <code>app/node_modules/@emotion/react/README.md</code>. (2) O job <code>install</code> está
-        dessincronizado e <b>não pode passar hoje</b>: <code>gate.yml:118</code> espera a string
-        "Nada a fazer", que o <code>install.sh</code> nunca imprime, e as flags
-        <code>--force</code>/<code>--uninstall</code>/<code>--symlink</code> não são lidas pelo
-        script. (3) <b>Dois dos cinco gates bash já reprovam</b>, pela mesma razão de fundo: foram
-        escritos quando o repositório era só a skill e hoje varrem <code>app/</code> inteiro —
-        <code>node_modules</code> (CRLF em B-09, <code>{{</code> órfão em L-03),
-        <code>app/tsconfig.node.json</code>, que é JSONC e não JSON estrito (B-03), e arquivos de
-        <code>app/content-src/</code> sem newline final (L-04).
-      </p>
-      <p class="ev">.github/workflows/gate.yml (141 linhas) · gate.yml:118, :128, :132, :137 · tests/engineDocsCoerencia.test.ts:350, :352, :385</p>
-      <p class="fix"><b>Nada disso é decisão declarada:</b> o cabeçalho do <code>gate.yml</code> só declara as lacunas de <code>bwrap</code>, <code>shellcheck</code> e PyYAML, e o <code>CONTRIBUTING.md:222</code> diz apenas que a CI "roda os mesmos 5 scripts". É lacuna não declarada, não trade-off documentado.</p>
-    </li>
-
     <li class="sev2">
-      <h3>O comando <code>repair</code> não existe <span class="badge b2">fiação</span></h3>
-      <p>
-        <code>modes/repair.ts</code> tem 1259 linhas e teste próprio, mas o CLI responde
-        "ainda nao esta implementado" e sai 2. O módulo capaz de atacar as 717 violações é
-        inalcançável pela linha de comando.
-      </p>
-      <p class="ev">app/tools/track-engine/cli.ts:892 · app/electron/main/engine/modes/repair.ts · app/tests/engineRepair.test.ts</p>
-      <p class="fix"><b>Custo:</b> fiar o caso do <code>switch</code> nos deps que o <code>generate</code> já resolve.</p>
+      <h3>Uma métrica 6× inflada num piso de teste auto-referente</h3>
+      <p>O teste media o próprio alvo que o código produzia.</p>
     </li>
-
     <li class="sev2">
-      <h3>O laço de revisão (F10/F11) não é fiado no CLI <span class="badge b2">fiação</span></h3>
-      <p>
-        <code>criarRevisaoDaFiacao</code> existe e é o bridge pronto para o laço real, mas o CLI não
-        o injeta em <code>deps.revisao</code>. Um <code>generate</code> real hoje declararia a
-        limitação e seguiria sem revisão — comportamento correto e declarado, mas significa que o
-        laço, o filtro R1–R8, o provador e o ledger de rejeições nunca rodaram juntos fora de teste.
-      </p>
-      <p class="ev">app/electron/main/engine/fiacao/geraTrilha.ts — <code>criarRevisaoDaFiacao</code>, não referenciado em tools/track-engine/cli.ts</p>
+      <h3>A perda silenciosa de movimento na reordenação</h3>
+      <div class="ev">Passou por 23 testes.</div>
     </li>
-
     <li class="sev2">
-      <h3><code>difficulty</code> é rótulo vazio e mesmo assim decide o tempo do aluno <span class="badge b2">produto</span></h3>
-      <p>
-        <code>docs/16</code> §10 declara o campo PROVISÓRIO — rampa linear 1..5 pela posição da aula
-        — e §11 proíbe qualquer gate lê-lo. O produto lê: o limite de tempo das estrelas é
-        <code>T = 90s + difficulty×60s</code>. Um número que o próprio documento diz não ser sinal
-        de nada define quanto tempo o aluno tem para resolver.
-      </p>
-      <p class="ev">app/src/lib/challengeStars.ts:70 · app/electron/main/engine/phases/f12Materialize.ts — <code>dificuldadeProvisoria</code></p>
-      <p class="fix"><b>Duas saídas:</b> derivar <code>difficulty</code> do tempo medido para resolver a referência, ou desacoplar as estrelas dele e cronometrar por outro sinal.</p>
+      <h3>O parser que aceitava quiz com zero alternativas</h3>
+      <p>E índice de resposta negativo.</p>
     </li>
-
     <li class="sev3">
-      <h3>O placar do <code>audit</code> chama aviso de violação <span class="badge b4">1 linha</span></h3>
-      <p>
-        Com <code>--limite 0</code> a saída imprime "e mais 10 violacao(oes) nao exibida(s)"
-        enquanto o PLACAR logo abaixo diz "violacoes … 0 · avisos … 10".
-        <code>report.violations</code> carrega os avisos; <code>totals.violacoes</code> não. É o
-        primeiro número que um humano lê.
-      </p>
-      <p class="ev">app/tools/track-engine/cli.ts — <code>printHuman</code></p>
+      <h3>A docstring que mentia</h3>
+      <p>Descrevia comportamento que o código não tinha.</p>
     </li>
-
   </ol>
 
-  <div class="callout">
-    <strong>Uma anotação foi refutada e removida.</strong> Eu havia listado os arquivos
-    <code>check*.mts</code> de <code>app/content-src/*/verif/</code> como duplicação do
-    <code>auditTrack</code>. O cético derrubou: eles são <b>decisão declarada por escrito</b> — o
-    <code>CONTRIBUTING.md:195-196</code> exige que todo número em documento seja reproduzível por um
-    comando, e esses scripts <em>são</em> esses comandos. De passagem, a contagem também estava
-    errada: são 13 em <code>programacao-do-zero</code>, não 15.
-  </div>
-
-  <div class="card recessed">
-    <h3>Anotação de arquitetura — sem número, porque não é defeito</h3>
-    <p>
-      A skill bash e a engine TypeScript têm <strong>duas pedagogias diferentes no mesmo
-      repositório</strong>. Todo o aparato de atomicidade — orçamento, A1–A16, teto de construções
-      novas por aula, o teste de atomicidade em quatro cláusulas — vive só na engine. Do lado da
-      skill, <code>plan_lesson</code> é "monta e anuncia a agenda em ≤5 linhas", sem nenhuma noção
-      de orçamento; uma aula ensinada numa sessão do Claude Code não passa por nada disso.
-    </p>
-    <p style="margin-bottom:0">
-      Isso pode ser decisão de produto — o tutor conversacional é adaptativo por natureza, e a
-      trilha é conteúdo versionado. Mas <strong>está indocumentada como decisão</strong>, e o
-      <code>CONTRIBUTING.md</code> do próprio repositório exige que decisão seja declarada.
-    </p>
-  </div>
-
+  <p>
+    O padrão que os cinco compartilham: <strong>suíte verde não é evidência de comportamento
+    correto quando o teste e o código foram escritos pela mesma cabeça, no mesmo minuto.</strong> É
+    exatamente por isso que a revisão é adversarial — o segundo agente é pago para reprovar, não
+    para concordar.
+  </p>
 
   <!-- ══════════════════ 8 ══════════════════ -->
   <div class="sec-head" id="s8">
     <span class="num">08</span>
-    <h2>A ordem que eu faria</h2>
-    <p class="deck">
-      Três movimentos. O primeiro não toca arquitetura nenhuma e apaga quatro das sete anotações
-      bloqueantes.
-    </p>
+    <h2>Os meus cinco erros</h2>
+    <p class="deck">Uma explicação que só mostra acerto não é confiável. Os cinco estão registrados, com o que cada um custou — inclusive o que foi descoberto ao escrever esta página.</p>
   </div>
 
-  <div class="moves">
-    <div class="move">
-      <div class="when">Movimento 1<br>hoje</div>
-      <div>
-        <ul>
-          <li>As duas linhas do cenário <code>error</code> → derivado do orçamento (A11), em <code>challenge-protocol.md</code> e <code>deepseekLessonAuthor.ts</code>.</li>
-          <li>Inverter o fail-open do <code>challengeRegenerator</code>: indisponível vira erro estruturado.</li>
-          <li>Ligar <code>npm run lint &amp;&amp; npm test &amp;&amp; audit</code> na CI e consertar o teste de locale.</li>
-          <li>Filtrar <code>nodejs-do-zero</code> do <code>track:list</code> até ela ser reparada.</li>
-        </ul>
-      </div>
-    </div>
-    <div class="move">
-      <div class="when">Movimento 2<br>dias</div>
-      <div>
-        <ul>
-          <li>Chamar <code>extractAtoms</code> + a bateria de orçamento dentro do <code>lessonOrchestrator</code>, antes de o desafio chegar ao aluno.</li>
-          <li>Fiar o comando <code>repair</code> e o <code>deps.revisao</code> no CLI — as duas peças prontas e inalcançáveis.</li>
-        </ul>
-      </div>
-    </div>
-    <div class="move">
-      <div class="when">Movimento 3<br>o que prova a engine</div>
-      <div>
-        <ul>
-          <li>Rodar <code>generate</code> de ponta a ponta num assunto de 3 aulas, com o portão F6 fazendo o trabalho dele.</li>
-          <li>Deixar a F12 ser o único materializador, aposentando <code>materializar.mjs</code>.</li>
-          <li>Medir a taxa de falso-passe do revisor contra mutantes <strong>antes</strong> de ligar o laço na onda cheia — é o número que decide se o laço serve para alguma coisa.</li>
-        </ul>
-      </div>
-    </div>
+  <ol class="notes">
+    <li class="sev2">
+      <h3>Gate incompleto no snapshot da onda 1 <span class="badge b2">custou 1 commit</span></h3>
+      <p>No <b>snapshot de integração</b> — o estado congelado onde o gate roda antes do merge — rodei só o gate do <em>app</em> e deixei o <code>gate-lint</code> do <em>repositório</em> vermelho.</p>
+      <div class="ev">8 fixtures sem newline final. Consertado em <code>1c222a5</code> — um commit que não deveria existir.</div>
+    </li>
+    <li class="sev2">
+      <h3>Prompt que fixou a contagem de testes como alvo <span class="badge b2">custou cobertura</span></h3>
+      <p>Ao dar um número de testes como meta, induzi o agente do CLI a <b>não escrever teste</b>.</p>
+      <div class="ev">4 comandos entraram sem cobertura. A dívida foi paga na onda 4 (<code>5f0e0d2</code>), com 25 casos por subprocesso real e três mutantes.</div>
+    </li>
+    <li class="sev3">
+      <h3>Verificação e2e com build defasado <span class="badge b4">retrabalho</span></h3>
+      <p>Rodei a suíte ponta a ponta contra um build atrasado em 1h30 de commits.</p>
+      <div class="ev">Resultado inconclusivo. Refeita.</div>
+    </li>
+    <li class="sev2">
+      <h3>Dois Playwright em paralelo contra um app que é <span class="term">singleton de máquina</span></h3>
+      <span class="gloss"><b>Singleton de máquina:</b> o app só aceita uma instância viva por máquina — duas sub-tarefas rodando e2e ao mesmo tempo se atropelam, e o erro não parece de concorrência.</span>
+      <p>Disparei duas sub-tarefas que rodam Playwright em paralelo sem saber disso.</p>
+      <div class="ev">O e2e deste projeto não paraleliza entre sub-tarefas. Ficou registrado para as próximas execuções.</div>
+    </li>
+    <li class="sev2">
+      <h3>O placar das revisões que eu reportei estava errado <span class="badge b2">pego pelo explicador</span></h3>
+      <p>Fechei a execução dizendo “20 revisões, 11 com achado real: 1 BLOCK, 7 WARNING, 8 APPROVE”. <b>Somei mal os placares acumulados entre ondas.</b> A recontagem por veredito registrado no plano de execução dá <b>17 revisões: 2 BLOCK, 6 WARNING, 9 APPROVE limpos, 8 com achado real</b>.</p>
+      <div class="ev">Reconta: <code>grep -c "^## REVISÃO ADVERSARIAL"</code> → 17 · <code>grep -o "VEREDITO: ..."</code> → 9 APPROVE + 6 WARNING + 2 BLOCK.</div>
+      <p class="fix"><b>Quem pegou foi o agente que escreveu esta página</b>, ao notar que 1+7+8 não fecha 20 — e a postura que o pegou é a que interessa: <b>reproduzir o número como registrado e sinalizar a inconsistência</b>, em vez de “consertar” a aritmética por conta própria. Quem não pode verificar a fonte não tem autoridade para corrigi-la; tem o dever de apontar. A fonte foi recontada e esta página traz o número certo.</p>
+    </li>
+  </ol>
+
+  <!-- ══════════════════ 9 ══════════════════ -->
+  <div class="sec-head" id="s9">
+    <span class="num">09</span>
+    <h2>As oito decisões que são suas</h2>
+    <p class="deck">Nenhuma delas é trabalho de engenharia pendente. São escolhas de produto, pedagogia ou contrato — e eu não as tomei por você.</p>
   </div>
+
+  <ol class="notes">
+    <li class="sev1">
+      <h3>Os 17 de 20 testes que não discriminam <span class="badge b2">hoje é AVISO</span></h3>
+      <p>Está medido e classificado como aviso com contagem — não como violação — porque <b>virar reprovação pinta o gate de vermelho em 17 das 20 aulas</b>.</p>
+      <p class="fix"><b>Dois caminhos:</b> mudar o canal de <code>stdout</code> para retorno, o que exige antecipar a virada do módulo 4; ou aceitar a prova estática, que já está implementada.</p>
+    </li>
+    <li class="sev1">
+      <h3>Nenhum dos 21 desafios declara <code>requirements</code></h3>
+      <p>O gate está <b>certo</b> em reprovar. O que falta é a autoria declarar a bijeção entre requisito e teste.</p>
+    </li>
+    <li class="sev2">
+      <h3>O teto de 2000 tokens do autor pode ficar apertado</h3>
+      <p>Com o quiz completo numa aula de teoria longa.</p>
+      <div class="ev">Medido: 2094 num caso moderadamente verboso.</div>
+    </li>
+    <li class="sev2">
+      <h3><code>role: "consolidation"</code>: ampliar o enum ou mudar as 5 aulas</h3>
+      <p>Hoje a trilha à mão carrega e a mesma trilha regerada seria rejeitada.</p>
+    </li>
+    <li class="sev3">
+      <h3><code>remark-gfm</code> não foi adicionado</h3>
+      <div class="ev">0 uso de GFM medido nas 20 aulas — adicionar seria peso sem uso, hoje.</div>
+    </li>
+    <li class="sev2">
+      <h3><code>real-lesson</code> e <code>real-didactics</code> testam um fluxo que foi removido de propósito</h3>
+      <p>A interface deixou de ter a autoria em tempo real quando o produto passou a usar trilhas pré-autoradas. Reescrevê-los <b>exige desenhar cobertura nova</b>, não renomear teste.</p>
+    </li>
+    <li class="sev2">
+      <h3>A promessa do <code>--help</code> tem uma condição</h3>
+      <p>“Sem chave não grava nada” só vale <b>com as flags novas desligadas</b> — mover aulas e criar aulas ficaram opt-in porque a chave de API só falha na chamada, e um <em>aplicar</em> sem chave gravaria o <code>module.json</code> antes de abortar.</p>
+    </li>
+    <li class="sev3">
+      <h3><code>ErroDeLacuna</code> não é enrolado em <code>ErroDeReparo</code></h3>
+      <div class="ev">Sai com stack trace em vez do formato estruturado.</div>
+    </li>
+  </ol>
 
   <div class="callout">
-    <strong>O que este documento não afirma.</strong> Nenhuma das onze anotações promete melhora de
-    aprendizado. Elas dizem apenas o que passa a ser <em>verificável</em> — e a base de evidência do
-    próprio repositório é explícita quanto a isso: o efeito global de multimídia fecha em g = 0,37 e
-    cai para g = 0,27 em mídia auto-ritmada, que é exatamente o caso de um curso que a pessoa faz no
-    próprio ritmo.
+    <b>O que eu faria primeiro, se a decisão fosse minha:</b> as duas primeiras. Elas são as duas
+    metades da mesma garantia que você pediu — “nos desafios não cobra nada que não tenha sido
+    aprendido”. O <code>coverage</code> já prova a primeira metade (0 lacunas). A segunda metade,
+    que o teste force a construção ensinada, está medida e esperando a sua escolha.
   </div>
+  <details class="collapsible">
+    <summary>Os 26 commits, na ordem em que entraram</summary>
+    <div class="body">
+      <dl>
+        <dt><code>6700047</code> · onda1-contrato-quiz</dt>
+        <dd>o quiz ganha contrato, persistencia e um portao que nao aceita quiz malformado <span style="opacity:.75">— schema v5 com quiz_attempts e quiz_remediations (as respostas do aluno nunca chegavam ao main e morriam ao fechar o app), 4 canais IPC fail-closed, optionRationales aditivo por alternativa, e parseRemedialQuiz passando a validar tamanho e faixa (aceitava quiz com ZERO alternativas e answerIndex negativo)</span></dd>
+        <dt><code>34b7176</code> · onda1-gerar-camadas-surf</dt>
+        <dd>pesquisa em CAMADAS com procedencia para a geracao de curso por terminal <span style="opacity:.75">— o surf colhe evidencia com fonte (medido: sources[] nao tem descricao, o trecho vive no ledger, entao o join e por URL e sem trecho a descricao fica VAZIA em vez de inventada) e o GLM 5.3 Flash sintetiza pelo transporte unico da engine; portao fail-closed que julga rastreabilidade; os 5 exit codes do surf tratados um a um, sem sleep nem backoff por cima do token bucket do plano Brave</span></dd>
+        <dt><code>f3564b5</code> · onda1-coverage-honesto</dt>
+        <dd>o coverage deixa de ser cego na trilha Python e de falhar ABERTO <span style="opacity:.75">— estava em TRES camadas (sintetizador parseando como JavaScript, executor spawnando node num desafio Python com exit 9 e zero teste rodado, e parse-falhou fora do veredito, saindo verde com 21 de 21 nao medidos); agora sintetiza pelo adaptador da linguagem, executa pelo binario que o adaptador declara, e REPROVA o que nao pode medir (docs/16 §9.3). Primeira medicao real: 21 de 21 medidos, ZERO lacunas, 29 excessos</span></dd>
+        <dt><code>67b1056</code> · onda1-maestria</dt>
+        <dd>errar o quiz para de liberar a aula <span style="opacity:.75">— o gate passa a exigir MAESTRIA (acerto), o erro abre um ciclo de remediacao (explicacao no historico, quiz novo, ate acertar) e o store do overlay nasce no molde do ChallengeGenerateModal para minimizar sem perder estado; conserta a colisao de chave que fazia duas assertions da mesma secao compartilharem estado (a segunda pergunta da aula 1 aparecia respondida sozinha) e faz a LessonView usar a chave canonica em vez de calcular inline</span></dd>
+        <dt><code>028b6e0</code> · onda1-auditoria-aula</dt>
+        <dd>a auditoria medida da aula (docs/19) <span style="opacity:.75">— 1278 linhas onde todo numero vem com o comando que o reproduz, e o achado que ela desenterra e que a trilha Python NAO RODA para o aluno (o language do desafio nunca e propagado e o codigo do aluno roda como JavaScript: print(oi) volta SyntaxError, e como concluir exige desafio passado ninguem sai da aula 1), escondido atras de dois gates que reprovavam tudo e saiam verde</span></dd>
+        <dt><code>1c222a5</code> · onda1-fix</dt>
+        <dd>newline final nas 8 fixtures de trilha <span style="opacity:.75">— o gate-lint L-04 do repositorio ficou vermelho porque o gate do snapshot rodou so o do app</span></dd>
+        <dt><code>35419f1</code> · onda1-chat-e-codigo</dt>
+        <dd>o chat para de digitar markdown cru e o codigo passa a ser revelado ja formatado <span style="opacity:.75">— a prosa continua na velocidade de leitura medida, mas o bloco de codigo aparece linha a linha com syntax highlight da paleta do projeto, caixa reservada (sem reflow) e distincao visual entre o que o aluno escreve e o que o computador responde; o balao do tutor ganha uma aparencia so, borda 2px e sombra colorida como o resto do app, mensagens consecutivas se agrupam, e o KaTeX finalmente chega ao chat. 41 dos 565 cortes exibiam sintaxe crua na tela; agora zero</span></dd>
+        <dt><code>a0a59bb</code> · PREP-onda2</dt>
+        <dd>congela a assinatura do servico de remediacao do quiz <span style="opacity:.75">— duas sub-tarefas paralelas dependem dela (quem registra o canal IPC precisa importar algo que exista; quem implementa precisa escrever contra o que o outro importou). O stub falha FECHADO: devolve UNAVAILABLE em vez de inventar explicacao ou quiz</span></dd>
+        <dt><code>99174d9</code> · onda2-python-roda</dt>
+        <dd>a trilha de Python volta a rodar para o aluno <span style="opacity:.75">— challenge.language nunca era propagado e o codigo do aluno era executado como JavaScript, entao print(oi) (a solucao de referencia da propria trilha) voltava SyntaxError e ninguem conseguia terminar a aula 1; agora o adaptador vem do desafio de ponta a ponta, os 21 desafios passam pelo caminho de producao, track:validate para de imprimir 21 NAO VERIFICADO e sair verde, e os 4 canais do quiz adaptativo ganham handler</span></dd>
+        <dt><code>689d7ab</code> · onda2-remediacao-servico</dt>
+        <dd>a IA que explica o erro do quiz e gera o quiz novo <span style="opacity:.75">— as regras ERR-1..ERR-8 da pedagogia do projeto viram instrucao verificavel (o bloco de recorrencia e ADITIVO: no primeiro erro o prompt fica byte-identico, e sem numero derivavel proibe inventar a cifra), o quiz da LLM e validado contra o contrato antes de existir (4 opcoes unicas, indice na faixa, racional coerente, nunca-repetir) e a id do remediador nunca colide com a de origem; fail-closed em todo caminho e stubs e2e que reusam o servico REAL com IA falsa</span></dd>
+        <dt><code>af1f152</code> · onda2-autor-racionais</dt>
+        <dd>o prompt do autor passa a pedir o quiz <span style="opacity:.75">— descobriu-se que ele NUNCA pediu assertions[] (o schema aceitava por heranca e nenhum outro caminho popula o campo), entao qualquer trilha gerada nasceria SEM quiz nenhum; agora pede as assertions e os 4 racionais por alternativa, ancorados na secao que demonstra a afirmacao, com o erro nomeado na alternativa e nunca no aluno</span></dd>
+        <dt><code>7e2cf1a</code> · onda2-lacuna-cria-aula</dt>
+        <dd>o sub-fluxo v2 que o repair declarava nao existir <span style="opacity:.75">— quando nenhuma aula ensina a construcao que o desafio cobra, a aula que falta e AUTORADA e inserida antes de quem a cobra e depois de tudo que ela pressupoe; a posicao, o orcamento e o que a aula ensina sao decididos por codigo (a IA so escreve prosa e exemplo) e a aula so e gravada se o orcamento recalculado provar que a lacuna fechou e nenhuma outra abriu</span></dd>
+        <dt><code>41dc648</code> · onda2-lesson-view</dt>
+        <dd>o quiz passa a aparecer SOBRE A TELA e a minimizar para o chat ao ser respondido <span style="opacity:.75">— errar abre o ciclo na conversa (a IA explica onde a alternativa se separa do que a secao mostra, a explicacao fica no historico, e um quiz novo sobe de volta) ate o aluno acertar; Esc e clique fora MINIMIZAM em vez de fechar, porque fechar seria dispensar o gate com uma tecla; o painel do chat entra na rampa de superficie do contrato e a linha de entrada deixa de ter o dobro da largura da conversa</span></dd>
+        <dt><code>173a2eb</code> · onda2-discriminacao</dt>
+        <dd>a clausula J5 do proprio spec, especificada e nunca implementada <span style="opacity:.75">— prova se o TESTE do desafio forca a construcao que a aula ensinou, e mede 17 de 20 aulas em que nao forca (o codigo minimo que passa e um print de literal); entra como AVISO com contagem, nao como violacao, porque reprovar 17 de 20 e decisao do dono. Junto: requirements e revise deixam de ser cegos em Python, e o placar do audit para de mentir por omissao — declara que a bateria A13-A16 nao rodou, e a segunda coluna do histograma para de espelhar a primeira</span></dd>
+        <dt><code>6aa58f3</code> · onda2-reordena</dt>
+        <dd>o executor do &#x27;mova a aula que a ensina para antes&#x27; que o proprio audit manda fazer e que nenhum codigo executava <span style="opacity:.75">— 100% deterministico, com verificacao que recalcula o orcamento e prova que a violacao alvo sumiu e nenhuma nova apareceu antes de gravar, dry-run por default, e 12 motivos de recusa cada um com teste; descobriu que a ordem dos modulos tem DUAS representacoes (o order do module.json, que o orcamento le ordenando, e o array do track.json, que a bateria de progressao percorre cru) e que mexer so numa deixava os dois gates julgando ordens diferentes</span></dd>
+        <dt><code>b68286b</code> · onda3-teoria-cauda</dt>
+        <dd>a autoria de aula quebraria com um modelo real e o teste mascarava <span style="opacity:.75">— as fases F7 e F8 faziam JSON.parse direto sobre a resposta de um prompt cuja regra 18 manda o modelo escrever a lista de construcoes DEPOIS do JSON, e o fake da suite devolvia JSON puro, entao nenhum modelo dela jamais obedecia a regra que o prompt exige; com o fake fiel, 16 de 22 testes falham (13 deles ja existiam). Agora a cauda e tolerada e CONFERIDA — divergencia vira aviso, nunca reprovacao, porque o enquadramento da cauda nao e fixado por maquina e reprovar produziria veredito falso</span></dd>
+        <dt><code>b733fdc</code> · onda3-persistencia-quiz</dt>
+        <dd>a maestria do quiz para de morrer quando o app fecha <span style="opacity:.75">— o canal de historico existia e nunca era chamado, entao quem dominava tres quizzes e fechava o app voltava e encontrava tudo por responder, travado de novo em algo que ja tinha provado; agora um redutor puro reconstroi o ciclo a partir do banco, a sessao vence o disco chave a chave (porque a resposta e escrita no estado antes de ir ao banco, entao o banco so pode estar atrasado) e quem errou e nunca voltou reabre no ciclo, nao em dominado</span></dd>
+        <dt><code>9a81e0d</code> · onda3-docs-normativos</dt>
+        <dd>a documentacao normativa para de mentir <span style="opacity:.75">— seis divergencias medidas entre o que os documentos afirmam e o que o disco tem, cada correcao com o comando que a reproduz; e duas que a reconciliacao expos: role consolidation nao existe no enum da engine (5 das 20 aulas usam, entao a trilha escrita a mao carrega e a mesma regerada seria rejeitada) e o axioma da aula 1 esta declarado como aula. Uma das divergencias que eu apontei NAO procedia — o bug do TestVerdict ja tinha sido corrigido — e virou registro historico em vez de conserto inventado</span></dd>
+        <dt><code>fe395f9</code> · onda3-cli-fiacao</dt>
+        <dd>os quatro modulos que a onda anterior construiu isolados chegam ao terminal, e o BLOQUEIO v1 do repair acaba <span style="opacity:.75">— requirements enxerga Python (21 parse-falhou para 0), audit imprime o que NAO rodou, discrimination expoe a clausula J5 (17 de 20 aulas cujo teste nao forca a construcao ensinada) e reorder/gap ganham comando proprio; o repair passa a chamar os dois executores, e mover/criar-aulas ficam opt-in porque a chave de API so falha na chamada — com execucao por default um aplicar sem chave gravaria o module.json e depois abortaria, quebrando o contrato que o proprio help promete</span></dd>
+        <dt><code>08a4649</code> · onda3-e2e-quiz</dt>
+        <dd>a primeira cobertura ponta-a-ponta do ciclo do quiz <span style="opacity:.75">— 5 testes no Electron real que provam que o overlay sobe sobre a tela, que Esc e clique fora minimizam sem dispensar o gate, que errar nao destrava e o ciclo de remediacao fecha ao acertar, e que a resposta nao vaza (as 4 alternativas comparadas entre si em classe, CSS computado e contagem de icone); descobriu que a trilha do modo E2E nao declara assertions, entao o quiz era INOBSERVAVEL em e2e, e escreveu a propria trilha de fixture sem tocar producao</span></dd>
+        <dt><code>b8d77ff</code> · onda4-limite-zero</dt>
+        <dd>--limite 0 fazia o verificador sair VERDE sem medir nada <span style="opacity:.75">— placar todo zerado, exit 0, aprovacao por omissao pela porta da flag, a mesma classe do fail-open que esta execucao ja fechou; agora e uso incorreto (exit 2) nos quatro comandos de medicao, seguindo o precedente do --rodadas 0 que ja existia no proprio arquivo, com UMA funcao usada pelos quatro para que divergirem seja estruturalmente impossivel. O audit fica intocado, onde 0 significa &#x27;so o placar&#x27; e a trilha inteira E medida</span></dd>
+        <dt><code>648b028</code> · onda4-ciclo-modulos</dt>
+        <dd>desfaz a inversao de camada que o conserto da autoria deixou <span style="opacity:.75">— separarJsonECauda sai de modes/ para um modulo folha em runtime/, porque phases dependendo de modes inverte quem orquestra quem; a prova nao e o tsc (que tolera ciclo) nem o build (que nem enxerga esses arquivos): e um scanner estatico do grafo de imports que rodou contra o codigo ANTES e achou o ciclo declarado, e que fica como teste permanente com allowlist dos dois ciclos pre-existentes que ele descobriu de passagem</span></dd>
+        <dt><code>46f6c8b</code> · onda4-slug-em-uso</dt>
+        <dd>o sub-fluxo que cria a aula que falta parava de criar quando a mesma construcao faltava em duas aulas <span style="opacity:.75">— a segunda virava bloqueio com uma mensagem que mentia (dizia que o slug ja existia NA TRILHA, quando so existia no plano da mesma leva) e uma pendencia falsa (a aula planejada ja fechava as duas); agora a lacuna e agregada por assinatura ANTES de derivar o slug, o que elimina o defeito na raiz, e a colisao legitima continua bloqueando citando a aula real</span></dd>
+        <dt><code>5f0e0d2</code> · onda4-testes-cli</dt>
+        <dd>os quatro comandos que a onda anterior ligou ao terminal ganham teste no repositorio <span style="opacity:.75">— 25 casos por subprocesso real, pareando cada exit code com o inventario sha256 da arvore antes e depois, e provados por TRES mutantes no codigo de producao (um deles pegou um teste vacuo que o proprio agente tinha escrito: o caso sem chave passava por acidente porque o comando abortava no laco, tambem com exit 2 e disco intacto)</span></dd>
+        <dt><code>8c05bea</code> · onda4-saida-do-ciclo</dt>
+        <dd>com a IA fora, errar o quiz trancava o aluno na aula para sempre <span style="opacity:.75">— sem quiz remediador nao havia o que responder e o gate so abre com acerto; agora ele reabre a MESMA pergunta numa geracao nova, o que devolve a chance sem dispensar o gate. Sobe a geracao em vez de zerar o card justamente pelo invariante: reabrir a mesma geracao deixaria a tentativa registrada nela e a funcao visual pintaria a certa de verde antes do clique (ha teste que EXECUTA esse vazamento com a implementacao ingenua). O rastro do erro e preservado, entao a recorrencia da pedagogia continua contando</span></dd>
+        <dt><code>ec7324a</code> · onda4-e2e-quebrados</dt>
+        <dd>a suite ponta-a-ponta volta ao verde <span style="opacity:.75">— de 30 passando com 6 falhas para 34 passando com 2 skips explicitos e zero falha; todas as causas eram do lado do TESTE: sincronizacao que so funcionava enquanto a digitacao era rapida, um alert de outro painel contado sem escopo, conteudo de uma trilha apagada, e duas specs que exercitam um fluxo de autoria em tempo real que a interface deixou de ter quando o produto passou a usar trilhas pre-autoradas</span></dd>
+      </dl>
+      <p style="font-size:13px;color:var(--muted-foreground);margin-top:14px">Um commit por sub-tarefa ou fix. Zero commit WIP, zero merge commit. Reproduz: <code>git log --oneline 26dbc19..ec7324a</code>.</p>
+    </div>
+  </details>
 
   <footer>
-    Conteúdo medido em 2026-09-01 sobre <code>main</code> @ c741234 · node v24.19.0 · typescript 5.8.<br>
-    Contagens de violação: modo <code>inferred</code> para <code>nodejs-do-zero</code>, <code>declared</code> para <code>programacao-do-zero</code>.<br>
-    Fonte normativa do desenho: <code>docs/16-engine-de-trilha.md</code>. Onde este documento e um gate determinístico divergirem, o gate vence.
+    Conteúdo medido em 2026-09-05, do baseline <code>main @ 26dbc19</code> até <code>main @ ec7324a</code> · node v24.19.0 · 26 commits em 4 ondas.<br>
+    Fonte dos fatos: <code>.deep-orchestrator/run-20260905-003252-160281/explainer/fatos.md</code> e <code>commits.txt</code>. Nada nesta página vem de outro lugar.<br>
+    Regra do projeto que esta página honra: todo número tem que ser reproduzível por um comando. Onde esta página e um gate determinístico divergirem, o gate vence.
   </footer>
-
 </div><!-- /main -->
 </div><!-- /wrap -->
 
