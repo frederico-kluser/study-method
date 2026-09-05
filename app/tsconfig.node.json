@@ -48,6 +48,16 @@
     // ele não pode voltar a depender de DOM: este projeto compila com lib
     // ES2022 SEM DOM.
     "src/components/markdown/codeHighlight.ts",
+    // src/components/quiz/quizOverlayContent.ts e quizOverlayBridge.ts são
+    // PUROS (sem React, sem DOM, sem MUI — o primeiro é um registro de módulo
+    // no molde do challengeGenerateStore, o segundo são duas funções de
+    // fronteira entre as duas máquinas do quiz). São testados headless de
+    // tests/quizOverlayCycle.test.ts, e estarem aqui é a prova mecânica de que
+    // não podem voltar a depender de DOM: este projeto compila com lib ES2022
+    // SEM DOM. Os componentes React da pasta (QuizOverlayHost, QuizChatCard)
+    // ficam FORA — pertencem ao tsconfig.json do renderer.
+    "src/components/quiz/quizOverlayContent.ts",
+    "src/components/quiz/quizOverlayBridge.ts",
     // src/features/onboarding/* (onda 12 — tutorial): módulos PUROS (storage,
     // posicionamento, steps/alvos, regra de oferta) testados de tests/onboarding*.test.ts
     // sem jsdom. Os componentes React (overlay/modal/host) ficam FORA daqui —

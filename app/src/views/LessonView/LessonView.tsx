@@ -54,6 +54,29 @@
  *      painel, qualquer tecla ou "Mostrar tudo" completam a bolha na hora.
  *      A review (10 tps) e as respostas do tutor (100 tps) NÃO mudaram.
  *
+ * ONDA2-QUIZ-OVERLAY (o dono, textualmente: "o layout do quiz deve ser sobre a
+ * tela e respondendo ele minimiza para ficar no chat" + "só vamos para o
+ * desafio depois que o aluno provar que entendeu"):
+ *
+ *   - o quiz da seção deixou de ser um card no meio da conversa e passou a
+ *     SUBIR SOBRE A TELA num overlay montado no SHELL (App.tsx, o molde do
+ *     ChallengeGenerateModal). Responder MINIMIZA: o card desce e vira o
+ *     `QuizChatCard`, ancorado na bolha da seção que o demonstra;
+ *   - ERRAR abre o ciclo de remediação, e é esta view que o executa contra o
+ *     main: `track.quizExplain` → `registerQuizExplanation` (a explicação vira
+ *     BOLHA da conversa) → `track.quizRemedial` → `injectRemediationQuiz` (o
+ *     quiz novo sobe de volta). Repete até o ACERTO, que é o único fim;
+ *   - toda resposta é registrada com `track.quizAttempt` — uma vez, porque ele
+ *     já devolve a maestria recalculada;
+ *   - FAIL-CLOSED em toda a linha: `{ok:false}` (ou canal mudo) NUNCA vira
+ *     conteúdo inventado. Sem explicação o ciclo SEGUE mesmo assim (caminho de
+ *     degradação de `injectRemediationQuiz`); sem quiz novo o ciclo PARA e a
+ *     tela oferece pedir de novo. O aluno nunca fica preso sem saber por quê;
+ *   - LARGURAS: painel de mensagens e linha de entrada passam a dividir a
+ *     MESMA coluna (`CHAT_COLUMN_MAX_PX`) — o eixo de leitura e o de escrita
+ *     não batiam —, e o painel saiu de `action.hover` (overlay alfa, a única
+ *     superfície do app fora da rampa `surface.level0..4`) para o nível 2.
+ *
  * Entrada (precedência na MONTAGEM — onda1-nav-ui):
  *   1. `nav.challengeErrorReport` (Desafio → Aula, erro) — define o alvo;
  *   2. `pendingTrackLesson` (Trilha → Aula) drenado na MONTAGEM
@@ -89,6 +112,7 @@ import {
   Tooltip,
   Typography,
 } from '@mui/material';
+import { useTheme } from '@mui/material/styles';
 import SendIcon from '@mui/icons-material/Send';
 import AutoStoriesIcon from '@mui/icons-material/AutoStories';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
@@ -116,16 +140,38 @@ import {
   chatHistory,
   clearChallengeError,
   createTrackLessonState,
+  injectRemediationQuiz,
+  isQuizMastered,
   lessonFinishBlock,
   pendingQuizzes,
   pendingQuizzesForCurrentSection,
   pushUserMessage,
   quizzesByMessageIndex,
+  registerQuizExplanation,
   seedChallengeError,
   submitQuizAnswer,
   visibleQuizFor,
   type TrackLessonUiState,
+  type VisibleQuiz,
 } from '../../lib/trackLessonState';
+// ONDA2-QUIZ-OVERLAY: a FASE do overlay (sobre-a-tela / minimizado-no-chat /
+// fechado) é de outra máquina, module-level, que sobrevive à desmontagem da
+// view. Esta view CONSOME — nunca escreve `setState` cru de fase.
+import {
+  applyQuizOverlayStep,
+  closeQuizOverlay,
+  minimizeQuizOverlay,
+  openQuizOverlay,
+  peekQuizOverlay,
+  reopenQuizOverlay,
+  subscribeQuizOverlay,
+} from '../../lib/quizOverlayState';
+import { overlayContextFor, overlayStatusFor, quizCycleTag } from '../../components/quiz/quizOverlayBridge';
+import {
+  publishQuizOverlayContent,
+  type QuizOverlayStatus,
+} from '../../components/quiz/quizOverlayContent';
+import { QuizChatCard } from '../../components/quiz/QuizChatCard';
 import {
   createTrackLessonPendingHolder,
   drainPendingDomain,
@@ -155,6 +201,7 @@ import { TypingIndicator } from '../../components/chat/TypingIndicator';
 import { announceStatus, fireConfetti } from '../../lib/confetti';
 import { LessonQuizCard } from './LessonQuiz';
 import type {
+  TrackAssertionDto,
   TrackChallengeSummaryDto,
   TrackLessonPayload,
 } from '../../../shared/ipc-contract';
@@ -171,6 +218,43 @@ import type { ViewProps } from '../placeholders';
 type LessonPayloadWithNext = TrackLessonPayload & {
   nextLesson?: { slug: string; title: string } | null;
 };
+
+/**
+ * ONDA2-QUIZ-OVERLAY (larguras alinhadas): a COLUNA DE LEITURA do chat.
+ *
+ * O defeito que isto conserta: a coluna da aula vai a `min(1920px, 100%)`, o
+ * painel de mensagens estava capado em 1000 e o INPUT ficava solto na largura
+ * inteira — o eixo de LEITURA e o eixo de ESCRITA não batiam, e em janela
+ * fullhd o campo de pergunta terminava quase um palmo à direita do último
+ * balão. O número passa a ser UM só, com nome, e vale para o painel de
+ * mensagens, para os avisos e para a linha de entrada.
+ */
+export const CHAT_COLUMN_MAX_PX = 1000;
+
+/** O eixo de leitura E de escrita: painel de mensagens, avisos e entrada. */
+const CHAT_COLUMN_SX = { maxWidth: CHAT_COLUMN_MAX_PX, width: '100%', mx: 'auto' } as const;
+
+/**
+ * ONDA2-QUIZ-OVERLAY: um quiz RENDERIZÁVEL — a assertion AUTORAL (a que ancora
+ * a chave e a seção), o que `visibleQuizFor` devolve para ela (chave canônica,
+ * assertion da geração corrente, estado e passo do ciclo) e o índice da bolha
+ * do histórico onde ele mora. É o objeto que circula entre a lista, o overlay
+ * e o card da conversa — para que nenhum dos três recalcule nada.
+ */
+interface QuizCardEntry {
+  original: TrackAssertionDto;
+  visible: VisibleQuiz;
+  anchorIndex: number;
+}
+
+/** Chave i18n do aviso de canal (fail-closed) por tipo de falha. */
+const QUIZ_NOTICE_KEY = {
+  'explicacao-indisponivel': 'lesson.quizExplainUnavailable',
+  'quiz-indisponivel': 'lesson.quizRemedialUnavailable',
+  'registro-nao-gravado': 'lesson.quizAttemptNotSaved',
+} as const;
+
+type QuizNoticeKind = keyof typeof QUIZ_NOTICE_KEY;
 
 export function LessonView(props: ViewProps): ReactElement {
   const { t, i18n } = useTranslation();
@@ -190,7 +274,13 @@ export function LessonView(props: ViewProps): ReactElement {
   // ONDA3 (generate-flow): estado GLOBAL do processo de regeneração — a view
   // lê para GATEAR o botão da bolha (uma geração em voo desabilita o disparo
   // mesmo após remontar a view no meio do processo).
+  const theme = useTheme();
   const generateState = useSyncExternalStore(subscribeChallengeGenerate, peekChallengeGenerate);
+  // ONDA2-QUIZ-OVERLAY: a FASE do overlay do quiz. Módulo (não useState): o
+  // shell monta só a view ativa, e um quiz minimizado precisa sobreviver à
+  // troca de aba. A view LÊ para decidir o que desenhar na conversa; quem
+  // TRANSICIONA são as funções nomeadas do store.
+  const quizOverlay = useSyncExternalStore(subscribeQuizOverlay, peekQuizOverlay);
   const generateRunning = generateState.status === 'running';
   // ONDA3 (revisão MÉDIO-2): token de invalidação da LISTA — incrementa quando
   // uma geração conclui (done no store); a view re-busca a aula (a lista traz
@@ -252,6 +342,18 @@ export function LessonView(props: ViewProps): ReactElement {
   const [challengesAnchorEl, setChallengesAnchorEl] = useState<HTMLButtonElement | null>(null);
   const challengesOpen = Boolean(challengesAnchorEl);
   const [doneMarked, setDoneMarked] = useState(false);
+  /**
+   * ONDA2-QUIZ-OVERLAY — o aviso de CANAL do ciclo do quiz (fail-closed).
+   *
+   * Ele é do CANAL, nunca do ciclo: a máquina pura (`trackLessonState`) não
+   * pode ficar sabendo de rede, então quando `track.quizExplain`/
+   * `track.quizRemedial`/`track.quizAttempt` devolvem `{ok:false}` — ou nem
+   * chegam a responder — o estágio do ciclo continua exatamente onde estava e
+   * é AQUI que a tela guarda o que dizer. A `tag` (`quizCycleTag`) amarra o
+   * aviso à volta do ciclo que o produziu: uma geração nova o torna obsoleto
+   * sozinha, sem limpeza manual.
+   */
+  const [quizNotice, setQuizNotice] = useState<{ tag: string; kind: QuizNoticeKind } | null>(null);
 
   // ─── ONDA2-IMESSAGE: streaming (efeito "digitação" ~100 tokens/s) ─────────
   // O streaming é SÓ EXIBIÇÃO: o histórico guarda o texto COMPLETO (o modelo
@@ -867,6 +969,11 @@ export function LessonView(props: ViewProps): ReactElement {
       // ONDA1-NAV-UI: abrir uma aula anterior (pré-requisito) também atualiza
       // a "última aula aberta" — voltar à aba Aula restaura ESTA aula.
       saveLastLesson(trackLesson.trackSlug, slug);
+      // ONDA2-QUIZ-OVERLAY: trocar de AULA é o único caminho que abandona um
+      // quiz sem dominá-lo. O overlay fecha explicitamente aqui — o efeito de
+      // fase só fecha por maestria, e sem isto o card da aula anterior ficaria
+      // sobre a tela da aula nova.
+      closeQuizOverlay();
       setChat(createTrackLessonState);
       setDoneMarked(false);
       setLoadError(null);
@@ -894,8 +1001,372 @@ export function LessonView(props: ViewProps): ReactElement {
     [chat, lessonAssertions],
   );
 
-  const handleQuizSelect = useCallback((quizKey: string, answerIndex: number, correctIndex: number): void => {
-    setChat((s) => submitQuizAnswer(s, quizKey, answerIndex, correctIndex));
+  /** Payload da aula lido por REF pelos callbacks do ciclo do quiz (o pedido é
+   *  disparado por efeito e não pode re-registrar a cada re-render). */
+  const lessonRef = useRef(lesson);
+  lessonRef.current = lesson;
+
+  // ─── ONDA2-QUIZ-OVERLAY: o quiz sobe SOBRE A TELA e desce PARA O CHAT ─────
+  // O dono, textualmente: "o layout do quiz deve ser sobre a tela e respondendo
+  // ele minimiza para ficar no chat" e "só vamos para o desafio depois que o
+  // aluno provar que entendeu".
+  //
+  // Esta view NÃO implementa o ciclo — ele já existe, puro e testado, em
+  // `trackLessonState` (submitQuizAnswer → registerQuizExplanation →
+  // injectRemediationQuiz → dominado) e em `quizOverlayState` (a fase do
+  // overlay). O que mora aqui são as TRÊS ligações que só a tela pode fazer:
+  //
+  //   (1) QUAL quiz está em cena  — `activeQuizCard`;
+  //   (2) QUANDO cada passo vira pedido IPC — o efeito "motor" abaixo;
+  //   (3) O QUE o overlay do shell desenha — `publishQuizOverlayContent`.
+  //
+  // A lista completa dos quizzes RENDERIZÁVEIS, na ordem das bolhas (a mesma
+  // ordem determinística de `pendingQuizzes`): a chave, a assertion da geração
+  // corrente e o passo do ciclo saem TODOS de `visibleQuizFor` — nenhuma conta
+  // de chave sobrevive nesta view.
+  const quizCards = useMemo((): QuizCardEntry[] => {
+    const out: QuizCardEntry[] = [];
+    for (const idx of [...quizzesByIndex.keys()].sort((a, b) => a - b)) {
+      for (const original of quizzesByIndex.get(idx) ?? []) {
+        out.push({ original, visible: visibleQuizFor(chat, original), anchorIndex: idx });
+      }
+    }
+    return out;
+  }, [chat, quizzesByIndex]);
+
+  // Os que ainda pedem alguma coisa do aluno (não dominados) e cuja bolha JÁ
+  // terminou de ser escrita — um quiz nunca interrompe a leitura da seção que
+  // o demonstra.
+  const pendingQuizCards = useMemo(
+    () => quizCards.filter((c) => c.visible.step.kind !== 'dominado' && !streamingIds.has(c.anchorIndex)),
+    [quizCards, streamingIds],
+  );
+
+  /**
+   * O quiz EM CENA. Precedência deliberada: se o store já está aberto numa
+   * chave que continua pendente, é ELA — assim um quiz que o aluno abriu (ou
+   * minimizou) na mão não é trocado por baixo dele no próximo render. Só
+   * quando o store não aponta para nada pendente é que entra o PRIMEIRO da
+   * ordem determinística.
+   */
+  const activeQuizCard = useMemo((): QuizCardEntry | null => {
+    const openKey = quizOverlay.quizKey;
+    const held = openKey === null ? undefined : pendingQuizCards.find((c) => c.visible.key === openKey);
+    return held ?? pendingQuizCards[0] ?? null;
+  }, [pendingQuizCards, quizOverlay.quizKey]);
+
+  const activeQuizCardRef = useRef(activeQuizCard);
+  activeQuizCardRef.current = activeQuizCard;
+  const quizCardsRef = useRef(quizCards);
+  quizCardsRef.current = quizCards;
+
+  /** Etiqueta da volta do ciclo em cena (null = nenhum quiz em cena). */
+  const activeQuizTag = activeQuizCard
+    ? quizCycleTag(activeQuizCard.visible.key, activeQuizCard.visible.generation)
+    : null;
+  /** O aviso pertence à volta em cena? (uma geração nova o aposenta sozinha) */
+  const activeNotice = quizNotice !== null && quizNotice.tag === activeQuizTag ? quizNotice.kind : null;
+  const quizNoticeText = quizNotice === null ? null : tI(QUIZ_NOTICE_KEY[quizNotice.kind]);
+  const activeNoticeText = activeNotice === null ? null : tI(QUIZ_NOTICE_KEY[activeNotice]);
+
+  /**
+   * O que a tela DIZ sobre o quiz em cena. A tradução do passo é da função
+   * pura `overlayStatusFor`; os dois ajustes abaixo são do CANAL:
+   *   - 'quiz-indisponivel' → o ciclo PAROU e espera o "tentar de novo";
+   *   - 'explicacao-indisponivel' → a explicação não pôde ser escrita, mas o
+   *     ciclo SEGUE (`injectRemediationQuiz` aceita o estágio 'explicando' —
+   *     caminho de degradação documentado lá). O card já diz "preparando um
+   *     quiz novo", porque é isso que está acontecendo.
+   */
+  const activeQuizStatus = useMemo((): QuizOverlayStatus => {
+    if (activeQuizCard === null) return 'aguardando';
+    const step = activeQuizCard.visible.step;
+    if (activeNotice === 'explicacao-indisponivel' && step.kind === 'explicar-erro') return 'gerando';
+    return overlayStatusFor(step, activeNotice === 'quiz-indisponivel');
+  }, [activeQuizCard, activeNotice]);
+
+  /**
+   * RESPOSTA do aluno — o gesto que o dono pediu: registrar e MINIMIZAR.
+   *
+   * Ordem: a máquina pura primeiro (`submitQuizAnswer` — idempotente, a
+   * primeira resposta da geração vence), a fase depois. O canal
+   * `track.quizAttempt` é disparado aqui e SÓ AQUI: ele devolve a maestria já
+   * recalculada, então não existe um segundo invoke (nada de `quizHistory`
+   * atrás dele) — e falhar a gravação NÃO desfaz a resposta, só acende o aviso
+   * de que ela vale nesta sessão.
+   *
+   * Deps [] de propósito: todo insumo mutável entra por ref, para que a
+   * identidade do callback fique estável — é ela que o registro de conteúdo do
+   * overlay compara para não notificar o shell a cada render.
+   */
+  const handleQuizAnswer = useCallback((card: QuizCardEntry, answerIndex: number): void => {
+    const { visible } = card;
+    // Dominado ou já respondido nesta geração: `submitQuizAnswer` seria no-op,
+    // e o canal não pode gravar uma tentativa que o estado recusa.
+    if (visible.step.kind === 'dominado' || visible.quiz?.answered === true) return;
+    const correctIndex = visible.assertion.answerIndex;
+    const correct = answerIndex === correctIndex;
+    setChat((st) => submitQuizAnswer(st, visible.key, answerIndex, correctIndex));
+    // O CARD DESCE PARA A CONVERSA no mesmo gesto (o pedido literal do dono).
+    minimizeQuizOverlay(visible.key);
+    setQuizNotice(null);
+    const ctx = trackLessonRef.current;
+    if (!ctx) return;
+    const tag = quizCycleTag(visible.key, visible.generation);
+    withTimeout(
+      getApi().track.quizAttempt({
+        trackSlug: ctx.trackSlug,
+        lessonId: ctx.lessonId,
+        // A unidade do gate DESTA base é a afirmação, não a seção — e o
+        // contrato declara `sectionKey` como string livre justamente por isso.
+        // Gravar a chave canônica mantém a maestria do banco alinhada com a
+        // maestria que o "Próximo"/"Concluir aula" lê em memória.
+        sectionKey: visible.key,
+        assertionId: visible.assertion.id,
+        selectedIndex: answerIndex,
+        correct,
+        quizOrigin: visible.generation === 0 ? 'authored' : 'remedial',
+      }),
+      IPC_TIMEOUT_MS,
+      'track.quizAttempt',
+    )
+      .then((res) => {
+        if (mountedRef.current === false) return;
+        if (res.ok === false) setQuizNotice({ tag, kind: 'registro-nao-gravado' });
+      })
+      .catch(() => {
+        if (mountedRef.current !== false) setQuizNotice({ tag, kind: 'registro-nao-gravado' });
+      });
+  }, []);
+
+  /** O overlay do shell responde por aqui (identidade estável — lê o ref). */
+  const handleOverlaySelect = useCallback((answerIndex: number): void => {
+    const card = activeQuizCardRef.current;
+    if (card) handleQuizAnswer(card, answerIndex);
+  }, [handleQuizAnswer]);
+
+  /** Minimizar (Esc, backdrop, botão do cabeçalho do overlay). */
+  const handleQuizMinimize = useCallback((): void => {
+    minimizeQuizOverlay();
+  }, []);
+
+  /** Trazer um quiz de volta para cima da tela (botão do card da conversa). */
+  const handleQuizReopen = useCallback((quizKey: string): void => {
+    const snapshot = peekQuizOverlay();
+    if (snapshot.quizKey === quizKey && snapshot.phase === 'minimizado-no-chat') {
+      reopenQuizOverlay(quizKey);
+      return;
+    }
+    const card = quizCardsRef.current.find((c) => c.visible.key === quizKey);
+    if (card) openQuizOverlay(overlayContextFor(card.original, card.visible, card.anchorIndex));
+  }, []);
+
+  /** "Tentar de novo" depois de um canal fora do ar — limpa o aviso e o efeito
+   *  motor abaixo volta a disparar o passo que estava parado. */
+  const handleQuizRetry = useCallback((): void => {
+    setQuizNotice(null);
+  }, []);
+
+  // ─── (2) O MOTOR: cada passo do ciclo vira um pedido ao main ──────────────
+  // Um pedido por vez e por volta do ciclo (`inFlightRef`, chaveado por
+  // etiqueta + passo): o efeito re-executa a cada mudança do chat, e sem o
+  // guarda o StrictMode do dev dispararia a explicação duas vezes.
+  const quizInFlightRef = useRef<Set<string>>(new Set());
+
+  const driveQuizCycle = useCallback(async (card: QuizCardEntry): Promise<void> => {
+    const ctx = trackLessonRef.current;
+    const payload = lessonRef.current;
+    if (!ctx || !payload) return;
+    const { original, visible } = card;
+    const step = visible.step;
+    const tag = quizCycleTag(visible.key, visible.generation);
+    const found = payload.theory.find((sec) => sec.id === original.sectionId);
+    const theorySection = found === undefined ? null : found;
+    // O material da aula ANCORA a explicação e o quiz novo (o main decide o
+    // orçamento de contexto; a view não inventa corte).
+    const lessonExcerpt = [payload.title, payload.summary, ...payload.theory.map((sec) => sec.markdown)].join('\n\n');
+    const quizOrigin = visible.generation === 0 ? 'authored' : 'remedial';
+
+    if (step.kind === 'explicar-erro') {
+      const gate = `${tag}#explicar`;
+      if (quizInFlightRef.current.has(gate)) return;
+      quizInFlightRef.current.add(gate);
+      try {
+        const res = await withTimeout(
+          getApi().track.quizExplain({
+            trackSlug: ctx.trackSlug,
+            lessonId: ctx.lessonId,
+            sectionKey: visible.key,
+            assertion: visible.assertion,
+            selectedIndex: step.selected,
+            quizOrigin,
+            theorySection,
+            lessonExcerpt,
+          }),
+          // Mesmo orçamento do turno 'answer': os dois são chamada de LLM, e
+          // 70s já é o teto calibrado acima do abort de 45s do main.
+          ACTION_TIMEOUTS.answer,
+          'track.quizExplain',
+        );
+        if (mountedRef.current === false) return;
+        if (res.ok === true && res.explanation.trim() !== '') {
+          // A explicação vira BOLHA da conversa (kind 'quiz-explanation') e o
+          // ciclo avança para 'novo-quiz-pendente'. O índice é marcado ANTES
+          // do append (mesmo padrão do 'next'/'answer'): a bolha da explicação
+          // é mensagem NOVA da sessão e por isso DIGITA, em vez de aparecer
+          // pronta como as restauradas do cache.
+          const explanationIndex = chatRef.current.history.length;
+          setChat((st) =>
+            registerQuizExplanation(
+              st,
+              visible.key,
+              {
+                question: visible.assertion.question,
+                chosenOption: visible.assertion.options[step.selected] ?? '',
+                explanation: res.explanation,
+              },
+              {
+                title: tIRef.current('lesson.quizExplanationTitle'),
+                chosen: tIRef.current('lesson.quizExplanationChosen'),
+              },
+            ),
+          );
+          markNew(explanationIndex);
+          setQuizNotice(null);
+        } else {
+          // FAIL-CLOSED: nada de explicação inventada. O aluno NÃO trava — o
+          // ciclo segue para o quiz novo pelo caminho de degradação que
+          // `injectRemediationQuiz` documenta (ele aceita 'explicando').
+          setQuizNotice({ tag, kind: 'explicacao-indisponivel' });
+        }
+      } catch {
+        if (mountedRef.current !== false) setQuizNotice({ tag, kind: 'explicacao-indisponivel' });
+      } finally {
+        quizInFlightRef.current.delete(gate);
+      }
+      return;
+    }
+
+    // 'gerar-novo-quiz' — o quiz REMEDIADOR sobre o mesmo conteúdo.
+    const gate = `${tag}#remediar`;
+    if (quizInFlightRef.current.has(gate)) return;
+    quizInFlightRef.current.add(gate);
+    try {
+      // Nunca-repetir: as perguntas que este aluno já viu nesta afirmação.
+      const asked = [...new Set([original.question, visible.assertion.question])];
+      const explanation = visible.quiz?.explanation;
+      const res = await withTimeout(
+        getApi().track.quizRemedial({
+          trackSlug: ctx.trackSlug,
+          lessonId: ctx.lessonId,
+          sectionKey: visible.key,
+          originAssertionId: original.id,
+          generation: visible.generation + 1,
+          assertion: original,
+          ...(typeof explanation === 'string' && explanation !== '' ? { explanation } : {}),
+          askedQuestions: asked,
+          theorySection,
+          lessonExcerpt,
+        }),
+        ACTION_TIMEOUTS.answer,
+        'track.quizRemedial',
+      );
+      if (mountedRef.current === false) return;
+      if (res.ok === true) {
+        // Geração N+1, card zerado, ciclo de volta a 'aguardar-resposta' — e o
+        // efeito de fase abaixo o traz SOBRE A TELA de novo.
+        setChat((st) => injectRemediationQuiz(st, visible.key, res.quiz));
+        setQuizNotice(null);
+      } else {
+        // FAIL-CLOSED: nenhum quiz inventado. O ciclo PARA e a tela oferece
+        // repetir — travar em silêncio seria pior que falhar.
+        setQuizNotice({ tag, kind: 'quiz-indisponivel' });
+      }
+    } catch {
+      if (mountedRef.current !== false) setQuizNotice({ tag, kind: 'quiz-indisponivel' });
+    } finally {
+      quizInFlightRef.current.delete(gate);
+    }
+  }, [markNew]);
+
+  useEffect(() => {
+    if (activeQuizCard === null) return;
+    const step = activeQuizCard.visible.step;
+    if (step.kind !== 'explicar-erro' && step.kind !== 'gerar-novo-quiz') return;
+    // O canal caiu nesta volta: espera o "tentar de novo" do aluno (nada de
+    // laço de retentativa contra uma IA que está fora).
+    if (activeNotice === 'quiz-indisponivel') return;
+    // A explicação não pôde ser escrita: o passo continua 'explicar-erro' na
+    // máquina pura, mas o pedido que falta é o do QUIZ NOVO.
+    if (activeNotice === 'explicacao-indisponivel' && step.kind === 'explicar-erro') {
+      void driveQuizCycle({
+        ...activeQuizCard,
+        visible: { ...activeQuizCard.visible, step: { kind: 'gerar-novo-quiz', generation: step.generation } },
+      });
+      return;
+    }
+    void driveQuizCycle(activeQuizCard);
+  }, [activeQuizCard, activeNotice, driveQuizCycle]);
+
+  // ─── (1) A FASE do overlay acompanha o passo do ciclo ─────────────────────
+  // `applyQuizOverlayStep` é o atalho declarado do store: 'aguardar-resposta'
+  // sobe o card SOBRE A TELA, 'explicar-erro'/'gerar-novo-quiz' o mantêm
+  // MINIMIZADO na conversa (é lá que a explicação e o quiz novo chegam) e
+  // 'dominado' FECHA. Ele é idempotente por referência, então re-executar não
+  // ressuscita um card que o aluno minimizou na mão.
+  useEffect(() => {
+    if (activeQuizCard !== null) {
+      applyQuizOverlayStep(
+        overlayContextFor(activeQuizCard.original, activeQuizCard.visible, activeQuizCard.anchorIndex),
+        activeQuizCard.visible.step,
+      );
+      return;
+    }
+    // Sem quiz em cena o overlay só FECHA quando a chave aberta foi mesmo
+    // DOMINADA. O guard não é zelo: a view remonta a cada volta para a aba
+    // Aula, e no primeiro render `lesson` ainda é null — fechar aqui apagaria,
+    // toda vez, exatamente a fase que o store existe para preservar.
+    const openKey = quizOverlay.quizKey;
+    if (lesson !== null && openKey !== null && isQuizMastered(chat, openKey)) {
+      closeQuizOverlay(openKey);
+    }
+  }, [activeQuizCard, quizOverlay.quizKey, lesson, chat]);
+
+  // ─── (3) O que o overlay do SHELL desenha ─────────────────────────────────
+  // O overlay é montado em App.tsx (o molde do ChallengeGenerateModal) e o
+  // conteúdo do quiz vive aqui: esta é a publicação. Sair da aba Aula desmonta
+  // a view e o cleanup publica null — o overlay sai da tela, mas a FASE segue
+  // no store e as respostas seguem no cache do chat: voltar reabre no mesmo
+  // ponto, na mesma geração.
+  useEffect(() => {
+    if (activeQuizCard === null) {
+      publishQuizOverlayContent(null);
+      return;
+    }
+    publishQuizOverlayContent({
+      quizKey: activeQuizCard.visible.key,
+      assertion: activeQuizCard.visible.assertion,
+      quiz: activeQuizCard.visible.quiz,
+      generation: activeQuizCard.visible.generation,
+      status: activeQuizStatus,
+      notice: activeNoticeText,
+      onSelect: handleOverlaySelect,
+      onMinimize: handleQuizMinimize,
+      onRetry: activeQuizStatus === 'indisponivel' ? handleQuizRetry : null,
+    });
+  }, [
+    activeQuizCard,
+    activeQuizStatus,
+    activeNoticeText,
+    handleOverlaySelect,
+    handleQuizMinimize,
+    handleQuizRetry,
+  ]);
+
+  useEffect(() => {
+    return () => {
+      publishQuizOverlayContent(null);
+    };
   }, []);
 
   // ─── ONDA4 (pós-conclusão): próxima aula da trilha ────────────────────────
@@ -1094,10 +1565,17 @@ export function LessonView(props: ViewProps): ReactElement {
               display: 'flex',
               flexDirection: 'column',
               gap: 1,
-              bgcolor: 'action.hover',
+              // ONDA2-QUIZ-OVERLAY: o painel era `action.hover` — um overlay
+              // ALFA do MUI, a ÚNICA superfície do app fora da rampa
+              // `surface.level0..4` de designTokens. Agora é o NÍVEL 2, que é
+              // o que a rampa chama de "painel afundado/well": a cor é
+              // explícita por esquema (nada de matemática de cor em runtime,
+              // guarda-corpo #5) e o balão continua no nível 1, a superfície
+              // de LEITURA, por cima dele.
+              bgcolor: theme.vars.palette.surface.level2,
               borderRadius: 2,
               p: 1.5,
-              maxWidth: 1000,
+              maxWidth: CHAT_COLUMN_MAX_PX,
               width: '100%',
               mx: 'auto',
             }}
@@ -1177,6 +1655,12 @@ export function LessonView(props: ViewProps): ReactElement {
                       <ChatBubble
                         message={m}
                         isNew={isNew}
+                        // ONDA2-QUIZ-OVERLAY: a bolha anterior. Sem ela o
+                        // agrupamento de mensagens consecutivas que a onda do
+                        // chat entregou fica INERTE (o prop é opcional e, sem
+                        // ele, `groupsWithPrevious` devolve false sempre) — e
+                        // a mesma variável já alimenta o separador de dia.
+                        previous={prev}
                         // ONDA1-NAV-UI (tps): a REVIEW do desafio DIGITA a 10
                         // tokens/s (~40 chars/s — pedido do dono: "velocidade
                         // de tokens por segundo seja de 10 ao escrever em IA
@@ -1230,17 +1714,42 @@ export function LessonView(props: ViewProps): ReactElement {
                         ? null
                         : (quizzesByIndex.get(i) ?? []).map((assertion) => {
                             const visible = visibleQuizFor(chat, assertion);
+                            const inScene =
+                              activeQuizCard !== null && activeQuizCard.visible.key === visible.key;
+                            // DOMINADO: o card CHEIO fica na conversa, com o
+                            // veredito e as opções travadas — é o registro do
+                            // que o aluno demonstrou, e o único card inline
+                            // que ainda desenha alternativas.
+                            if (visible.step.kind === 'dominado') {
+                              return (
+                                <LessonQuizCard
+                                  key={visible.assertion.id}
+                                  assertion={visible.assertion}
+                                  quiz={visible.quiz}
+                                  onSelect={(answerIndex) =>
+                                    handleQuizAnswer(
+                                      { original: assertion, visible, anchorIndex: i },
+                                      answerIndex,
+                                    )
+                                  }
+                                />
+                              );
+                            }
+                            // PENDENTE: o lugar do quiz na conversa. Ele é o
+                            // destino do "minimizar" e a porta de volta para o
+                            // overlay — responder acontece SOBRE A TELA, num
+                            // card só, nunca em dois ao mesmo tempo.
                             return (
-                              <LessonQuizCard
+                              <QuizChatCard
                                 key={visible.assertion.id}
-                                assertion={visible.assertion}
-                                quiz={visible.quiz}
-                                onSelect={(answerIndex) =>
-                                  handleQuizSelect(
-                                    visible.key,
-                                    answerIndex,
-                                    visible.assertion.answerIndex,
-                                  )
+                                status={inScene ? activeQuizStatus : 'aguardando'}
+                                onScreen={inScene && quizOverlay.phase === 'sobre-a-tela'}
+                                question={visible.assertion.question}
+                                generation={visible.generation}
+                                notice={inScene ? activeNoticeText : null}
+                                onOpen={() => handleQuizReopen(visible.key)}
+                                onRetry={
+                                  inScene && activeQuizStatus === 'indisponivel' ? handleQuizRetry : null
                                 }
                               />
                             );
@@ -1280,8 +1789,23 @@ export function LessonView(props: ViewProps): ReactElement {
         </Box>
 
         {chat.lastError ? (
-          <Alert severity="warning" onClose={() => setChat((s) => ({ ...s, lastError: null }))}>
+          <Alert
+            severity="warning"
+            sx={CHAT_COLUMN_SX}
+            onClose={() => setChat((s) => ({ ...s, lastError: null }))}
+          >
             {chat.lastError}
+          </Alert>
+        ) : null}
+
+        {/* ONDA2-QUIZ-OVERLAY: o aviso de CANAL do quiz quando não há mais card
+            em cena para carregá-lo (o caso típico é a resposta CERTA que fechou
+            a afirmação e o registro que não chegou ao banco). `info`, não
+            `warning`: §8 item 3 — falhar é estado de DIAGNÓSTICO, com redação
+            informativa, nunca repreensão. */}
+        {quizNoticeText !== null && activeNotice === null ? (
+          <Alert severity="info" sx={CHAT_COLUMN_SX} onClose={() => setQuizNotice(null)}>
+            {quizNoticeText}
           </Alert>
         ) : null}
 
@@ -1289,12 +1813,17 @@ export function LessonView(props: ViewProps): ReactElement {
             acessível (aria-live) e o erro do engine (hook, sem dismiss)
             aparece como Alert pequeno; o botão permanece reabilitado. */}
         {mic.transcribing ? (
-          <Typography variant="caption" color="text.secondary" aria-live="polite" sx={{ fontStyle: 'italic' }}>
+          <Typography
+            variant="caption"
+            color="text.secondary"
+            aria-live="polite"
+            sx={{ ...CHAT_COLUMN_SX, fontStyle: 'italic' }}
+          >
             {tI('lesson.micRecording')} — {mic.partial || '…'}
           </Typography>
         ) : null}
         {mic.error ? (
-          <Alert severity="error" sx={{ py: 0.5 }}>{mic.error}</Alert>
+          <Alert severity="error" sx={{ ...CHAT_COLUMN_SX, py: 0.5 }}>{mic.error}</Alert>
         ) : null}
 
         {/* ONDA10 (bug 2): o botão travado DIZ por quê — nunca só desabilita
@@ -1309,7 +1838,7 @@ export function LessonView(props: ViewProps): ReactElement {
             aria-live="polite"
             variant="caption"
             color="text.secondary"
-            sx={{ display: 'block' }}
+            sx={{ ...CHAT_COLUMN_SX, display: 'block' }}
           >
             {t('translation:lesson.quizGateNext')}
           </Typography>
@@ -1320,14 +1849,21 @@ export function LessonView(props: ViewProps): ReactElement {
             aria-live="polite"
             variant="caption"
             color="text.secondary"
-            sx={{ display: 'block' }}
+            sx={{ ...CHAT_COLUMN_SX, display: 'block' }}
           >
             {tI('lesson.quizGateFinish', { n: quizPendingAll.length })}
           </Typography>
         ) : null}
 
-        {/* Entrada: dúvida do aluno (texto OU voz) + avanço da teoria. */}
- <Stack direction="row" spacing={1}>
+        {/* Entrada: dúvida do aluno (texto OU voz) + avanço da teoria.
+
+            ONDA2-QUIZ-OVERLAY (larguras alinhadas): a linha de entrada passa a
+            respeitar a MESMA coluna do painel de mensagens
+            (CHAT_COLUMN_MAX_PX). Antes ela herdava a coluna inteira da aula
+            (min(1920px, 100%)) e, em janela fullhd, o campo de pergunta
+            terminava quase um palmo à direita do último balão: o eixo de
+            LEITURA e o de ESCRITA não batiam. */}
+ <Stack direction="row" spacing={1} sx={CHAT_COLUMN_SX}>
           <TextField
             size="small"
             fullWidth

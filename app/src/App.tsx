@@ -52,6 +52,13 @@ import { useStartup } from './gate/AppGate';
 // ONDA3 (generate-flow): modal GLOBAL de etapas do "Gerar novo desafio" —
 // montado no shell (junto ao OnboardingHost) para sobreviver à navegação.
 import { ChallengeGenerateModal } from './components/challenge/ChallengeGenerateModal';
+// ONDA2-QUIZ-OVERLAY (pedido do dono: "o layout do quiz deve ser sobre a tela e
+// respondendo ele minimiza para ficar no chat"): o overlay do quiz é montado
+// no shell pelo MESMO motivo do modal acima — o shell monta só a view ativa, e
+// um quiz minimizado precisa sobreviver à troca de aba. A fase vive em
+// src/lib/quizOverlayState.ts (módulo) e o conteúdo é publicado pela
+// LessonView em src/components/quiz/quizOverlayContent.ts.
+import { QuizOverlayHost } from './components/quiz/QuizOverlayHost';
 
 const VIEWS: Record<NavKey, ComponentType<ViewProps>> = {
   home: HomeView,
@@ -124,6 +131,10 @@ export default function App(): ReactElement {
         {/* ONDA3 (generate-flow): SEMPRE montado — o processo de geração
             sobrevive à navegação (store module-level + listener no modal). */}
         <ChallengeGenerateModal />
+        {/* ONDA2-QUIZ-OVERLAY: SEMPRE montado — o AnimatePresence com a
+            condicional DENTRO do componente (se ele retornasse null, o exit
+            do "minimizar" não animaria). */}
+        <QuizOverlayHost />
       </ChallengeNavProvider>
     </SessionStateProvider>
   );
