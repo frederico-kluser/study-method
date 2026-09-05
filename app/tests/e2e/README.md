@@ -33,7 +33,7 @@ Sem display (CI sem X/GPU), rode via `xvfb-run`:
 xvfb-run -a npm run test:e2e
 ```
 
-**Duas formas, mesmas 12 specs mock (`real-*` ficam skipped sem chaves reais):**
+**Duas formas, mesmas 18 specs mock (`real-*` ficam skipped sem chaves reais):**
 - **Desktop com display (dev):** `npm run test:e2e` — a env injetada pela fixture
   já mantém a janela oculta; nada aparece sobre o seu desktop.
 - **CI/sem display:** `xvfb-run -a npm run test:e2e` — o X virtual serve de
@@ -53,6 +53,7 @@ xvfb-run -a npm run test:e2e
 | `E2E_KEYS=invalid` | — | Garante claves seeds inválidas (alerta `gate.invalidKeys`). |
 | `E2E_NETWORK=offline` | — | Com chaves configuradas, força `phase: 'offline'` (banner). |
 | `E2E_WORKSPACE_ROOT` | `os.tmpdir()/study-method-e2e` | Raiz dos workspaces que o stub materializa em disco (o editor persiste de verdade). |
+| `E2E_QUIZ_AI=off` | `on` | Derruba a IA do ciclo do quiz: `track:quiz-explain` e `track:quiz-remedial` passam a devolver `QUIZ_UNAVAILABLE` (o serviço REAL de remediação sem cliente de LLM). É como `e2e-quiz` cobre a tela de falha FECHADA sem rede. |
 | `E2E_ONBOARDING=1` | — | Deixa a oferta de 1ª execução do tutorial disparar (modal + overlay). Por padrão a fixture pré-marca a oferta como mostrada (não bloqueia a UI das outras specs); só a spec `e2e-onboarding` ativa isto. |
 
 Essas envars de stub são **somadas** às de infra do harness (ver `helpers.ts`),
@@ -79,10 +80,23 @@ que a fixture injeta por padrão e que não devem ser desligadas em massa:
   a mono do contrato é APLICADA: computed de `.cm-editor`/`.cm-gutters`/`.xterm`
   contra `TYPE.codeSize`, mais o `--mui-font-code` com unidade no `<font-size>`.
 - `more-flows.spec.ts` — UB3: idioma pt→en→pt reflete no Home/aula; tema claro→escuro→system persiste junto; onboarding first-run com o Quick Start COMPLETO (6 passos → `completed`); persistência do progresso do tutorial entre reloads.
+- `e2e-quiz.spec.ts` — o CICLO DO QUIZ ADAPTATIVO na tela (5 testes): o quiz sobe
+  SOBRE A TELA (`role="dialog"` + `aria-modal` + backdrop) com o card compacto já
+  reservando o lugar na conversa; a RESPOSTA NÃO VAZA (as 4 alternativas
+  comparadas entre si em classe do MUI e CSS computado); Esc e clique no backdrop
+  MINIMIZAM (nunca fecham) e o card reabre; errar → explicação na conversa → quiz
+  NOVO → acertar fecha o ciclo; os gates do "Próximo" e do "Concluir aula"
+  (errar NÃO destrava; dominar destrava); e o FAIL-CLOSED com `E2E_QUIZ_AI=off`.
+  A aula COM `assertions` que o ciclo exige é escrita pelo próprio teste
+  (`tests/e2e/quizFixture.ts`) em `<E2E_WORKSPACE_ROOT>/fixture-tracks/quiz-e2e/`,
+  no formato real do produto — a trilha que o stub materializa sozinho
+  (`nodejs-do-zero`) não declara afirmação nenhuma.
 
-> **12 specs mock, 18 testes** rodam em modo stub determinístico com a janela oculta
-> (12 arquivos `*.spec.ts`; `e2e-fonts`, `e2e-gate`, `e2e-onboarding` e `e2e-theme`
-> têm 2 testes cada, `more-flows` 3, os demais 1). Somam-se as **3 specs reais** (`real-lesson`, `real-didactics`,
+> **18 specs mock, 33 testes** rodam em modo stub determinístico com a janela oculta
+> (contagem medida por `npx playwright test --list`: 36 testes em 21 arquivos, menos
+> os 3 `real-*`; `e2e-quiz` tem 5 testes, `more-flows`/`e2e-setup-timeout`/
+> `e2e-clean-clone` 3 cada, `e2e-fonts`/`e2e-gate`/`e2e-nav-history`/`e2e-onboarding`/
+> `e2e-theme` 2 cada, os demais 1). Somam-se as **3 specs reais** (`real-lesson`, `real-didactics`,
 > `real-search`), que rodam via `npm run test:e2e:real` com as chaves no shell.
 > Estes arquivos são `*.spec.ts` (Playwright), **fora** do glob
 > `tests/**/*.test.ts` usado por `bash tools/t.sh tests` — a suíte unitária
