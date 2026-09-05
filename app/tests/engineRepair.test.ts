@@ -650,7 +650,7 @@ describe('P-23 · repararTrilha dry-run', () => {
 // ---------------------------------------------------------------------------
 
 describe('P-23 · repararTrilha aplicar (laço REAL, LLM fake)', () => {
-  it('A-P23-5: converge na ORDEM, grava o arquivo alterado, re-audita e compara antes/depois; a LACUNA segue intacta (escolha B)', async () => {
+  it('A-P23-5: converge na ORDEM, grava o arquivo alterado, re-audita e compara antes/depois; a LACUNA nao e reescrita (§5.5)', async () => {
     const track = trilhaComOrdemELacuna();
     const arquivo = caminhoDoDesafio('a01', 'c1');
     const conteudoInicial = track.modules[0].lessons[0].challenges[0].solutionCode as string;
@@ -692,7 +692,7 @@ describe('P-23 · repararTrilha aplicar (laço REAL, LLM fake)', () => {
     assert.equal(aplicado.placarInicial.violacoes, 4);
     assert.equal(aplicado.placarFinal.violacoes, 2, 'só restaram as lacunas');
     assert.equal(aplicado.melhorou, true);
-    assert.equal(aplicado.placarFinal.lacunas, aplicado.placarInicial.lacunas, 'lacunas intocadas (escolha B — nunca reescritas)');
+    assert.equal(aplicado.placarFinal.lacunas, aplicado.placarInicial.lacunas, 'lacunas intocadas (§5.5 — nunca reescritas como desafio)');
     assert.deepEqual(aplicado.placarFinal, {
       violacoes: 2,
       desafiosComViolacao: 1,
@@ -701,7 +701,24 @@ describe('P-23 · repararTrilha aplicar (laço REAL, LLM fake)', () => {
       desafios: 2,
     });
     assert.ok(aplicado.lacunasNaoResolvidas[0].construcoesFaltantes.includes('api:.length'));
-    assert.ok(aplicado.declaracoes.some((d) => d.includes('escolha B')), 'a escolha B está DECLARADA no resultado');
+    // A POLARIDADE do §5.5 continua declarada (lacuna nunca vira reescrita de
+    // desafio) — mas a declaração deixou de dizer que ela é um BECO SEM SAÍDA.
+    // O executor existe (`modes/curriculumGap.ts`, o sub-fluxo v2) e o
+    // resultado agora carrega o PLANO dele em `subFluxoDeLacuna`, além do
+    // plano da MOVIMENTAÇÃO em `movimentacao`. Sem `deps.llmAutorDeAula` o v2
+    // fica no plano — e é isto que esta execução prova: as lacunas seguem
+    // intactas no placar E a saída diz por quê.
+    assert.ok(
+      aplicado.declaracoes.some((d) => d.includes('REWRITE_IN_BUDGET') && d.includes('§5.5')),
+      'a polaridade §5.5 continua DECLARADA no resultado',
+    );
+    assert.ok(
+      aplicado.declaracoes.some((d) => d.includes('SUB-FLUXO v2 DE LACUNA')),
+      'o executor da lacuna (sub-fluxo v2) é NOMEADO na saída',
+    );
+    assert.equal(aplicado.subFluxoDeLacuna.modo, 'dry-run', 'sem deps.llmAutorDeAula o v2 fica no PLANO');
+    assert.equal(aplicado.subFluxoDeLacuna.escritos.length, 0, 'o v2 em plano NUNCA grava');
+    assert.equal(aplicado.movimentacao.aplicada, false, 'nesta fixture nenhum movimento foi aprovado');
   });
 
   it('A-P23-4: correção que reintroduz violação já corrigida QUEBRA o pin e é REJEITADA (laço REAL)', async () => {

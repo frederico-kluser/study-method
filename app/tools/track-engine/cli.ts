@@ -2,13 +2,31 @@
 /**
  * app/tools/track-engine/cli.ts — a entrada da ENGINE DE TRILHAS.
  *
- * A engine tem três modos (`docs/16-engine-de-trilha.md` §8):
+ * A engine tem três modos NORMATIVOS (`docs/16-engine-de-trilha.md` §8):
  *
  *   audit     monta o orçamento cumulativo de uma trilha existente e reporta
  *             TODA violação de "só cobra o que já ensinou", com arquivo, linha
  *             e coluna. NÃO usa LLM e NÃO precisa de chave de API.
  *   generate  produz uma trilha nova (F0..F12).
  *   repair    aplica o laço revisor → plano → correção sobre conteúdo existente.
+ *
+ * E mais cinco comandos de MEDIÇÃO e de EXECUÇÃO que a engine ganhou depois, e
+ * que este arquivo é o único caminho de acesso a eles pela linha de comando:
+ *
+ *   coverage        código MÍNIMO que passa no teste × orçamento da aula.
+ *   requirements    bijeção requirements declarados × testes do desafio.
+ *   revise          a revisão progressiva (1ª aula → última, memória acumulada).
+ *   discrimination  a cláusula J5 (§9.1): o TESTE força a construção da aula?
+ *                   AVISO com contagem — mede e declara, NUNCA reprova.
+ *   reorder         a metade "MOVER a aula que ensina para antes" da
+ *                   polaridade de ORDEM (§5.5). Zero LLM.
+ *   gap             o sub-fluxo v2: a LACUNA DE CURRÍCULO vira AULA (§5.5).
+ *   lint-schemas    preflight do build (INV-04/INV-05) sobre o registro real.
+ *
+ * `reorder` e `gap` também são chamados de DENTRO do `repair` (§5.5 tem duas
+ * saídas e as duas passaram a ter executor) — ver `engine/modes/repair.ts`,
+ * bloco A do cabeçalho. Existirem como comando PRÓPRIO é o que permite ao dono
+ * do produto auditar e aplicar cada metade sozinha, com o dry-run de cada uma.
  *
  * Este arquivo implementa os TRÊS modos. O CLI é FINO: só resolve os deps de
  * PRODUÇÃO (cliente, transporte, semáforos, busca Brave, provador, papéis LLM
@@ -35,7 +53,7 @@
 import * as fsp from 'node:fs/promises';
 import * as path from 'node:path';
 import { listTrackSlugs, loadTrack, TrackLoadError, type LoadedTrack } from '../../electron/main/content/trackLoader';
-import { auditTrack, type AuditReport, type Violation } from '../../electron/main/engine/audit';
+import { auditTrack, linhasDeLimitacoes, type AuditReport, type Violation } from '../../electron/main/engine/audit';
 import {
   deriveTrackBudget,
   type BudgetSource,
@@ -50,12 +68,19 @@ import {
   sintetizarCodigoMinimoDaLinguagem,
 } from '../../electron/main/engine/quality/minimalPorLinguagem';
 import {
+  LINGUAGENS_COM_REQUIREMENTS,
   derivarRequirements,
   validarRequirements,
   type RequirementDeclarado,
   type RequirementsDerivados,
   type ValidacaoRequirements,
 } from '../../electron/main/engine/quality/requirements';
+import {
+  avaliarDiscriminacao,
+  linhasDeDiscriminacao,
+  type DesafioParaDiscriminacao,
+  type VereditoMinimo,
+} from '../../electron/main/engine/quality/discriminacao';
 import {
   gravarRelatorio,
   revisarCurso,
@@ -95,6 +120,21 @@ import {
   type ModoDeReparo,
   type ResultadoDeReparo,
 } from '../../electron/main/engine/modes/repair';
+import {
+  reordenarTrilha,
+  ErroDeReordenacao,
+  type DepsDaReordenacao,
+  type ModoDeReordenacao,
+  type ResultadoDeReordenacao,
+} from '../../electron/main/engine/modes/reorder';
+import {
+  criarLeitorDeSementes,
+  fecharLacunasDeCurriculo,
+  ErroDeLacuna,
+  type DepsDeLacuna,
+  type ModoDeLacuna,
+  type ResultadoDeLacuna,
+} from '../../electron/main/engine/modes/curriculumGap';
 import {
   SCHEMA_REGISTRY,
 } from '../../electron/main/engine/schemas/artifacts';
@@ -142,7 +182,37 @@ comandos:
       deriva requirements dos test('...') de cada desafio e valida a BIJECAO
       com os requirements declarados no challenge.json (campo "requirements"):
       requirement declarado sem teste e teste sem requirement sao gaps.
-      Exit 1 quando algum desafio tem gap.
+      A DERIVACAO USA A LINGUAGEM DA TRILHA (track.programmingLanguage): um
+      'test(nome, ...)' do node:test nao e um 'def test_...(self)' do unittest,
+      e ler o teste com o parser de outra linguagem daria ZERO testes
+      reconhecidos e gap inventado em todo desafio. Trilha cuja linguagem NAO
+      tem derivacao escrita ABORTA declarando (exit 2), nunca cai em JavaScript
+      por default silencioso.
+      NAO deriva a partir da SOLUCAO nem do enunciado: a fonte e o arquivo de
+      teste. Exit 1 quando algum desafio tem gap.
+
+  discrimination <slug> [--modo declared|inferred] [--limite N] [--tudo]
+                        [--json] [--dir DIR]
+      a CLAUSULA J5 (docs/16 §9.1), medida e nunca exposta ate agora: o TESTE
+      do desafio FORCA a construcao que a aula ensinou? Para cada desafio
+      sintetiza o codigo MINIMO que passa (o mesmo pipeline do coverage, zero
+      LLM) e compara com a solucao de referencia:
+        alvosNaSolucao   = introduces.productive da aula ∩ atoms(solucao)
+        naoDiscriminados = alvosNaSolucao ∖ atoms(minimo)
+      naoDiscriminados != vazio => o teste NAO discrimina: um aluno que nunca
+      escreva a construcao da aula passa mesmo assim.
+      CLASSIFICACAO: AVISO COM CONTAGEM, NUNCA VIOLACAO — e por isso este
+      comando SAI 0 mesmo com achado. Reprovar aqui pintaria de vermelho 17 das
+      20 aulas da unica trilha do produto sem decisao do dono; o comando MEDE e
+      DECLARA. Exit 2 continua valendo para uso incorreto e barreira estrutural
+      (slug ausente, trilha ilegivel, linguagem sem sintetizador minimo).
+      NAO gera mutante e NAO roda teste: a prova e ESTATICA, sobre conjuntos de
+      atomos. A parte executavel da J5 e quality/mutants.ts e nao roda aqui.
+      Desafio cujo minimo nao foi provado sai 'nao-medido' e NUNCA como
+      'discrimina' (fail-closed §9.3) — o veredito de MEDICAO e do 'coverage',
+      que reprova (exit 1) quando algo nao pode ser medido.
+      --tudo detalha tambem os desafios que discriminam (default: so os
+      achados).
 
   revise <slug> [--limite N] [--json] [--dir DIR]
       a REVISAO PROGRESSIVA (onda 5 — o nucleo do pedido do dono): percorre
@@ -191,8 +261,8 @@ comandos:
       modelo produtor (default: o do contrato congelado).
       --rodadas N e o teto de rodadas do laco (default 1; teto DURO 3).
 
-  repair <slug> [--dir DIR] [--aplicar] [--json] [--rodadas N]
-                [--modelo-revisor ID] [--modelo-autor ID]
+  repair <slug> [--dir DIR] [--aplicar] [--mover] [--criar-aulas] [--json]
+                [--rodadas N] [--modelo-revisor ID] [--modelo-autor ID]
       o laco revisor -> plano -> correcao sobre uma trilha EXISTENTE (§8),
       respeitando os pins. DEFAULT = DRY-RUN: audita, classifica cada violacao
       (ORDEM x LACUNA DE CURRICULO x ESTRUTURAL, §5.5), imprime o plano de
@@ -202,16 +272,100 @@ comandos:
       corrige DENTRO do span prescrito, grava os artefatos alterados e roda o
       audit DE NOVO comparando o placar. EXIGE --modelo-revisor (§6.2) e a
       chave de API; sem elas aborta DECLARANDO (exit 2), nunca em silencio.
-      LIMITE v1 DECLARADO: lacuna de curriculo (nenhuma aula ensina a
-      construcao) NUNCA e consertada reescrevendo desafio — vira BLOQUEIO no
-      relatorio (criar aula e o sub-fluxo v2).
+      AS DUAS SAIDAS DO §5.5 TEM EXECUTOR, E O REPAIR CHAMA OS DOIS. Ate
+      2026-09-05 este texto declarava "LIMITE v1: lacuna de curriculo NUNCA e
+      consertada ... (criar aula e o sub-fluxo v2)". O sub-fluxo v2 existe:
+        LACUNA (nenhuma aula ensina a construcao) -> CRIAR AULA, executada por
+          engine/modes/curriculumGap.ts. O dry-run do repair ja imprime o
+          PLANO dela (quais aulas nasceriam e onde entram, zero LLM). No
+          --aplicar ela SO roda com a LLM autora injetada; pela linha de
+          comando o executor e 'gap <slug> --aplicar --modelo-revisor <id>',
+          que este relatorio NOMEIA.
+        ORDEM -> reescrever o artefato OU MOVER a aula que ensina para antes.
+          A metade "mover" e engine/modes/reorder.ts: o plano e o veredicto
+          saem nos DOIS modos e, no --aplicar, os movimentos sao gravados
+          ANTES do laco e o repair recomeca sobre a trilha ja movida — porque
+          mover muda o orcamento de todas as aulas entre origem e destino, e
+          reescrever primeiro apagaria construcoes que um passo adiante ja
+          estariam DENTRO do orcamento. Veredicto RECUSADO => nada e movido e
+          a violacao cai de volta em REWRITE_IN_BUDGET, o caminho de sempre.
+      O QUE CONTINUA PROIBIDO: reescrever o desafio para caber num curriculo
+      furado (o tipo AcaoDeLacuna exclui REWRITE_IN_BUDGET em compilacao), e
+      por a lacuna dentro do laco (um pin vermelho que o corretor nao pode
+      verdejar e o laco que nunca termina).
+      --mover e --criar-aulas (so com --aplicar) LIGAM A ESCRITA dos dois
+      executores dentro do repair: --mover grava a ordem nova (zero LLM) e
+      --criar-aulas autora e grava as aulas de lacuna (exige --modelo-revisor
+      e chave). Sem elas o repair grava SO o que sempre gravou — o artefato
+      reescrito — e o plano dos dois executores sai no relatorio mesmo assim.
+      POR QUE SAO OPT-IN, declarado: a disponibilidade da LLM corretora so e
+      conhecida NA CHAMADA, e este --help promete que o --aplicar sem chave
+      aborta sem gravar nada; se a movimentacao gravasse por default, um
+      --aplicar sem chave deixaria a trilha MOVIDA e o comando abortado.
+      Quem quer so mover tem o comando dedicado e sem LLM: 'reorder <slug>
+      --aplicar'.
       --dir DIR repara uma trilha fora de resources/tracks.
+
+  reorder <slug> [--dir DIR] [--modo declared|inferred] [--aplicar] [--json]
+      a metade "MOVIMENTACAO" da polaridade de ORDEM (§5.5): MOVER A AULA QUE
+      ENSINA PARA ANTES — a acao que o proprio audit manda executar
+      ("reescreva sem essa construcao, ou mova a aula que a ensina para
+      antes") e que nenhum codigo executava. ZERO LLM e sem chave de API:
+      posicao de aula e decidivel por codigo (o orcamento cumulativo e uma
+      dobra deterministica sobre a ordem).
+      DEFAULT = DRY-RUN: plano, movimentos, recusas e o delta da ordem, ZERO
+      escrita. --aplicar so grava DEPOIS de a verificacao passar — ela aplica
+      o plano EM MEMORIA, RE-DERIVA o orcamento inteiro e prova que (a) a
+      violacao alvo sumiu, (b) NENHUMA violacao nova apareceu e (c) I4/I8/I11/
+      I14 continuam validas. Recusa e resultado legitimo: volta declarando,
+      com zero arquivo gravado.
+      O QUE ELE NAO FAZ: nao cria aula (violacao com primeiraAulaQueEnsina
+      null e LACUNA DE CURRICULO e sai em "fora de escopo" — e o 'gap'); nao
+      reescreve prosa, desafio nem teoria; nao move arquivo no disco (mover
+      entre modulos e feito movendo o MODULO inteiro).
+      Escreve APENAS module.json (array 'lessons' e campo 'order') e o
+      track.json quando um modulo se move. Exit 0 quando a verificacao aprova
+      e nao sobra violacao; 1 quando sobra achado; 2 em erro estruturado.
+
+  gap <slug> [--dir DIR] [--modo declared|inferred] [--aplicar] [--json]
+             [--modelo-revisor ID] [--modelo-autor ID]
+      o SUB-FLUXO v2: a LACUNA DE CURRICULO VIRA AULA. Lacuna e violacao com
+      primeiraAulaQueEnsina === null — nenhuma aula da trilha ensina a
+      construcao que o desafio cobra. O §5.5 proibe conserta-la reescrevendo o
+      desafio (o tipo AcaoDeLacuna exclui REWRITE_IN_BUDGET); a acao e CRIAR A
+      AULA ATOMICA QUE FALTA, e este comando e quem a cria.
+      DEFAULT = DRY-RUN: agrupa as construcoes faltantes por co-ocorrencia,
+      empacota em aulas de no maximo 2 construcoes produtivas novas (§3.6),
+      calcula a POSICAO (depois de tudo que ela pressupoe, antes do desafio que
+      a cobra) e imprime o delta esperado. ZERO escrita, ZERO chamada de LLM,
+      FUNCIONA SEM CHAVE — a posicao, o orcamento, o slug, o papel do no e o
+      veredito sao ARITMETICA, nao opiniao de modelo.
+      --aplicar autora a prosa e o exemplo com a LLM (a UNICA parte que e do
+      modelo), VERIFICA antes de entregar — recalcula o orcamento com a aula
+      inserida e so aceita se a lacuna FECHA e NENHUMA lacuna nova abre — e
+      grava so as aulas ACEITAS. Aula recusada nao chega ao disco nem
+      parcialmente. EXIGE --modelo-revisor (§6.2) e chave de API.
+      O QUE ELE NAO FAZ: nao reescreve desafio (nunca); nao reordena a trilha
+      existente (isso e o 'reorder'); nao escreve desafio para a aula nova (a
+      aula nasce com challenges: [] — a F8 e quem escreve, e a limitacao sai
+      declarada); nao inventa 'research'/'concepts'/'prerequisites'.
+      Le as SEMENTES do 'revise' em
+      content-src/<slug>/revisao-progressiva/splits/ quando existem: elas sao
+      CONTEXTO do autor, nao gate — ausencia nao derruba nada.
+      Exit 0 quando nao ha lacuna a fechar (ou o aplicar fechou todas); 1
+      quando sobra lacuna, aula recusada ou bloqueio; 2 em erro estruturado.
 
   lint-schemas
       preflight do build sobre o SCHEMA_REGISTRY real (INV-04 ordem /
       INV-05 opcionais, P-33 incluso). Exit 2 em qualquer violacao.
 
-exit codes: 0 sem violacao · 1 violacoes encontradas · 2 uso incorreto`;
+exit codes: 0 sem violacao · 1 violacoes encontradas · 2 uso incorreto
+  A UNICA EXCECAO, e ela e DECLARADA: 'discrimination' nunca sai 1. O que ele
+  mede e classificado como AVISO por decisao de projeto (o campo
+  'classificacao' do relatorio e o literal 'aviso', congelado no tipo), e
+  reprovar por aviso seria pintar de vermelho um gate que o dono do produto
+  ainda nao decidiu fechar. Ele sai 2 em uso incorreto e barreira estrutural,
+  como todos os outros.`;
 
 function fail(msg: string): never {
   console.error(`erro: ${msg}`);
@@ -344,14 +498,31 @@ function printHuman(report: AuditReport, limit: number, onlyGaps: boolean): void
     console.log('');
   }
 
+  // AS CHECAGENS QUE NAO RODARAM, ANTES do placar (§9.2 — "toda limitacao e
+  // declarada na saida, nunca omitida"). `auditTrack` ja as MEDE e
+  // `linhasDeLimitacoes` ja as escreve; ate aqui elas so saiam no `--json`, e
+  // quem le a saida humana via um placar de zeros sem saber que uma bateria
+  // inteira nao rodou. Devolve [] quando nada faltou — imprimir e incondicional.
+  for (const linha of linhasDeLimitacoes(report)) console.log(linha);
+
   const pct = totals.desafios > 0 ? Math.round((totals.desafiosComViolacao / totals.desafios) * 100) : 0;
+  const naoExecutadas = totals.checagensNaoExecutadas ?? 0;
   console.log('PLACAR');
   console.log(`  aulas ................................ ${totals.aulas}`);
   console.log(`  aulas que nao introduzem construcao .. ${totals.aulasSemConstrucaoNova}`);
   console.log(`  desafios ............................. ${totals.desafios}`);
   console.log(`  desafios com violacao ................ ${totals.desafiosComViolacao} (${pct}%)`);
   console.log(`  violacoes ............................ ${totals.violacoes}`);
-  console.log(`  avisos (bateria A13-A16, D4/A14a-0) .. ${totals.avisos ?? 0}`);
+  // O `avisos` SOZINHO mente por omissao: `0` le-se "esta tudo certo" quando na
+  // verdade significa "a bateria que os produz NAO RODOU". A contagem de
+  // checagens nao executadas vai na MESMA linha, porque separa-las e o mesmo
+  // que esconder — quem le o placar precisa ver as duas de uma vez.
+  console.log(
+    `  avisos (bateria A13-A16, D4/A14a-0) .. ${totals.avisos ?? 0}` +
+      (naoExecutadas > 0
+        ? `  <- sobre ${naoExecutadas} checagem(ns) NAO EXECUTADA(S): este zero significa "nao rodou", nao "sem aviso"`
+        : '  (0 checagem nao executada — este zero foi MEDIDO)'),
+  );
   console.log(`  delas, lacunas de curriculo .......... ${totals.lacunasDeCurriculo}`);
   console.log('');
   const passou = totals.desafios - totals.desafiosComViolacao;
@@ -677,6 +848,106 @@ async function cmdCoverage(pos: string[], flags: Record<string, string>, bools: 
 }
 
 // ---------------------------------------------------------------------------
+// discrimination — a CLÁUSULA J5 (§9.1): o TESTE força a construção da aula?
+// ---------------------------------------------------------------------------
+
+/**
+ * Sintetiza o MÍNIMO de um desafio e devolve o veredito CRU, do jeito que
+ * `quality/discriminacao.ts` o consome.
+ *
+ * É o mesmo pipeline do `coverage` (prover REAL sob o semáforo SEM_EXEC,
+ * adaptador da linguagem da trilha) — a diferença é que o `coverage` já
+ * TRADUZ o veredito em lacuna/excesso e perde o `MinimalVerdict` original,
+ * que é justamente o que a prova de discriminação precisa.
+ */
+async function minimoDoDesafio(
+  desafio: DesafioDaTrilha,
+  budget: TrackBudget,
+  prover: ProverDeDesafio,
+  release: () => void,
+): Promise<VereditoMinimo> {
+  const ch = desafio.challenge;
+  try {
+    if (ch.files && ch.files.length > 0 && (ch.starterCode === undefined || ch.solutionCode === undefined)) {
+      return {
+        ok: false,
+        reason: 'IGNORADO',
+        detail: 'desafio multi-arquivo (files) — fora do escopo do sintetizador minimo',
+      };
+    }
+    return await sintetizarCodigoMinimoDaLinguagem(prover, {
+      starterCode: ch.starterCode ?? '',
+      solutionCode: ch.solutionCode ?? '',
+      testsCode: ch.testsCode,
+      expectedTestCount: ch.expectedTestCount,
+      language: budget.adapterId,
+    });
+  } finally {
+    release();
+  }
+}
+
+async function cmdDiscrimination(pos: string[], flags: Record<string, string>, bools: Set<string>): Promise<void> {
+  const slug = pos[0];
+  if (!slug) fail('informe o slug da trilha (ex.: npm run engine -- discrimination minha-trilha)');
+
+  const modo = flags.modo as BudgetSource | undefined;
+  if (modo !== undefined && modo !== 'declared' && modo !== 'inferred') {
+    fail(`--modo invalido: ${modo} (esperado declared ou inferred)`);
+  }
+  const limite = flags.limite !== undefined ? Number.parseInt(flags.limite, 10) : Number.MAX_SAFE_INTEGER;
+  if (!Number.isInteger(limite) || limite < 0) fail(`--limite invalido: ${flags.limite}`);
+
+  const track = await carregarTrilhaOuFalhar(slug, flags.dir);
+  const budget = deriveTrackBudget(track, { mode: modo });
+  const desafios = coletarDesafios(track).slice(0, limite);
+
+  // FAIL-CLOSED antes do primeiro spawn — a MESMA guarda do `coverage`.
+  try {
+    exigirSintetizadorMinimo(budget.adapterId);
+  } catch (err) {
+    console.error(`erro: ${err instanceof Error ? err.message : String(err)}`);
+    process.exit(2);
+  }
+
+  const prover = criarProverDeDesafio();
+  const sem = createExecSemaphore();
+  const minimos = await Promise.all(
+    desafios.map(async (d) => {
+      const release = await sem.acquire();
+      return minimoDoDesafio(d, budget, prover, release);
+    }),
+  );
+
+  const entradas: DesafioParaDiscriminacao[] = desafios.map((d, i) => ({
+    ref: d.ref,
+    lessonRef: d.lessonRef,
+    solutionCode: d.challenge.solutionCode ?? '',
+    alvos: orcamentoParaComparacao(budget, d.lessonRef).introducesProductive,
+    minimal: minimos[i] as VereditoMinimo,
+  }));
+
+  const relatorio = avaliarDiscriminacao(slug, entradas, { language: budget.adapterId });
+
+  if (bools.has('json')) {
+    console.log(JSON.stringify(relatorio, null, 2));
+  } else {
+    for (const linha of linhasDeDiscriminacao(relatorio, { detalharTudo: bools.has('tudo') })) {
+      console.log(linha);
+    }
+  }
+
+  // EXIT 0 SEMPRE que a medição saiu — DECISÃO DE PROJETO, não esquecimento.
+  // `relatorio.classificacao` é o literal `'aviso'` congelado no tipo: derivar
+  // exit 1 dele pintaria de vermelho 17 das 20 aulas da única trilha do
+  // produto sem decisão do dono do produto. Este comando MEDE e DECLARA; quem
+  // reprova é o `coverage` (lacuna) e o `audit` (violação de orçamento).
+  // O 2 continua existindo para USO INCORRETO e barreira estrutural (slug
+  // ausente, trilha ilegível, linguagem sem sintetizador) — nunca para achado.
+  process.exit(0);
+}
+
+// ---------------------------------------------------------------------------
 // requirements — DERIVAÇÃO + BIJEÇÃO requirements declarados × test('…')
 // ---------------------------------------------------------------------------
 
@@ -710,6 +981,26 @@ async function cmdRequirements(pos: string[], flags: Record<string, string>, boo
   if (!Number.isInteger(limite) || limite < 0) fail(`--limite invalido: ${flags.limite}`);
 
   const track = await carregarTrilhaOuFalhar(slug, flags.dir);
+  // A LINGUAGEM vem da TRILHA, como no `coverage`: `budget.adapterId` e
+  // `trackAdapterId`, ja fail-closed. Sem ela a derivacao lia TODO teste com
+  // `ts.createSourceFile` e os 21 desafios de Python saiam `parse-falhou` —
+  // violacao de CONTEUDO inventada por defeito de FERRAMENTA.
+  const budget = deriveTrackBudget(track);
+  const linguagem = budget.adapterId;
+
+  // FAIL-CLOSED ANTES de medir, do mesmo jeito que o `coverage` aborta sem
+  // sintetizador minimo: linguagem sem derivacao de requirements sai 2
+  // DECLARANDO, nunca cai em JavaScript por default silencioso.
+  if (!LINGUAGENS_COM_REQUIREMENTS.includes(linguagem)) {
+    console.error(
+      `erro: a trilha '${slug}' e da linguagem '${linguagem}' e nao existe derivacao de requirements para ela ` +
+        `(escritas: ${LINGUAGENS_COM_REQUIREMENTS.join(', ')}). A derivacao LE a estrutura de teste da linguagem ` +
+        "alvo (um `test(nome, ...)` do node:test nao e um `def test_...(self)` do unittest): ler o teste com o " +
+        'parser de outra linguagem daria ZERO testes reconhecidos e gap inventado em todo desafio.',
+    );
+    process.exit(2);
+  }
+
   const desafios = coletarDesafios(track).slice(0, limite);
 
   const resultados: ResultadoRequirements[] = [];
@@ -718,8 +1009,13 @@ async function cmdRequirements(pos: string[], flags: Record<string, string>, boo
     let derivados: RequirementsDerivados;
     let validacao: ValidacaoRequirements;
     try {
-      derivados = derivarRequirements(d.challenge.testsCode, d.challenge.solutionCode ?? '', d.challenge.starterCode ?? '');
-      validacao = validarRequirements(d.challenge.testsCode, declarados);
+      derivados = derivarRequirements(
+        d.challenge.testsCode,
+        d.challenge.solutionCode ?? '',
+        d.challenge.starterCode ?? '',
+        linguagem,
+      );
+      validacao = validarRequirements(d.challenge.testsCode, declarados, linguagem);
     } catch (err) {
       // fail-closed: teste que não parseia vira gap (nunca silêncio).
       derivados = { requirements: [], cobertura: [] };
@@ -738,10 +1034,11 @@ async function cmdRequirements(pos: string[], flags: Record<string, string>, boo
   };
 
   if (bools.has('json')) {
-    console.log(JSON.stringify({ trilha: slug, desafios: resultados, placar }, null, 2));
+    console.log(JSON.stringify({ trilha: slug, linguagem, desafios: resultados, placar }, null, 2));
   } else {
     console.log('');
     console.log(`TRILHA ${slug} — REQUIREMENTS (derivados do teste × declarados no desafio)`);
+    console.log(`linguagem: ${linguagem} (da trilha — a derivacao le a estrutura de teste DELA)`);
     for (const r of resultados) {
       console.log('');
       console.log(`  ${r.ref}`);
@@ -1145,13 +1442,55 @@ function printPlanoDeReparo(resultado: ResultadoDeReparo): void {
   }
   console.log('');
 
-  console.log(`LACUNAS DE CURRICULO — BLOQUEIO v1 (${resultado.lacunasNaoResolvidas.length}) — nunca reescritas (§5.5)`);
+  console.log(
+    `LACUNAS DE CURRICULO (${resultado.lacunasNaoResolvidas.length}) — nunca reescritas como desafio (§5.5); a acao e CRIAR AULA`,
+  );
   for (const lacuna of resultado.lacunasNaoResolvidas.slice(0, 20)) {
     console.log(`  ${lacuna.ref}  acao: ${lacuna.acao}  faltam: ${lacuna.construcoesFaltantes.join(', ')}`);
   }
   if (resultado.lacunasNaoResolvidas.length > 20) {
     console.log(`  ... e mais ${resultado.lacunasNaoResolvidas.length - 20} (use --json)`);
   }
+  console.log('');
+
+  // OS DOIS EXECUTORES do §5.5, agora ligados ao repair. Ate 2026-09-05 o
+  // relatorio dizia "BLOQUEIO v1 ... criar aula e o sub-fluxo v2" e parava ai.
+  const sub = resultado.subFluxoDeLacuna;
+  console.log(
+    `  SUB-FLUXO v2 DE LACUNA (engine/modes/curriculumGap.ts, modo ${sub.modo}): ` +
+      `${sub.plano.aulasNovas.length} aula(s) nova(s) planejada(s), ${sub.aceitas.length} aceita(s), ` +
+      `${sub.recusadas.length} recusada(s), ${sub.bloqueios.length} bloqueio(s).`,
+  );
+  for (const aula of sub.plano.aulasNovas.slice(0, 20)) {
+    console.log(`    ${aula.ref}  ensina ${aula.construcoes.join(', ')}  antes de ${aula.inserirAntesDe}  [${aula.acao}]`);
+  }
+  for (const b of sub.bloqueios.slice(0, 10)) {
+    console.log(`    BLOQUEIO [${b.motivo}] ${b.ref}  ${b.construcoes.join(', ')}`);
+  }
+  console.log(
+    `    rode 'npm run engine -- gap ${resultado.slug}' para o plano completo, ou com --aplicar --modelo-revisor <id> para criar as aulas.`,
+  );
+  console.log('');
+
+  const mov = resultado.movimentacao;
+  console.log(
+    `  MOVIMENTACAO DA ORDEM (engine/modes/reorder.ts): ${mov.plano.movimentos.length} movimento(s) sobre ` +
+      `${mov.plano.alvos.length} alvo(s); verificacao ${mov.veredicto.ok ? 'APROVADA' : `RECUSADA (${mov.veredicto.recusas.length})`}; ` +
+      `aplicada: ${mov.aplicada ? `SIM (${mov.escritos.length} arquivo(s))` : 'NAO'}.`,
+  );
+  for (const m of mov.plano.movimentos.slice(0, 20)) {
+    if (m.tipo === 'MOVER_AULA_NO_MODULO') {
+      console.log(`    MOVER_AULA_NO_MODULO ${m.moduleSlug}: ${m.lessonSlug} para antes de ${m.antesDe}`);
+    } else {
+      console.log(`    MOVER_MODULO ${m.moduleSlug} para antes de ${m.antesDe}`);
+    }
+  }
+  for (const r of mov.veredicto.recusas.slice(0, 10)) {
+    console.log(`    RECUSA [${r.motivo}] ${r.refs.join(' ')}`);
+  }
+  console.log(
+    `    rode 'npm run engine -- reorder ${resultado.slug}' para o plano completo, ou com --aplicar para mover.`,
+  );
   console.log('');
 
   console.log(`BLOQUEIOS v1 (estruturais + construcao proibida SEMPRE): ${resultado.bloqueios.length}`);
@@ -1211,7 +1550,16 @@ function printPlacarDeReparo(resultado: ResultadoDeReparo, escritos: readonly st
  */
 function fiarDepsDoReparo(
   dirTrilha: string,
-  opcoes: { roteamento: RoteamentoDoLaco | null; rodadas?: number },
+  opcoes: {
+    roteamento: RoteamentoDoLaco | null;
+    rodadas?: number;
+    /** `--mover`: LIGA a escrita da metade MOVIMENTAÇÃO (zero LLM). */
+    mover?: boolean;
+    /** `--criar-aulas`: LIGA o sub-fluxo v2 de lacuna (autora e grava aula). */
+    criarAulas?: boolean;
+    /** raiz do run em content-src — de onde saem as sementes do `revise`. */
+    dirDoRun?: string;
+  },
 ): DepsDoReparo {
   const deps: DepsDoReparo = {
     carregarTrilha: (slug) => carregarTrilhaOuFalhar(slug, dirTrilha),
@@ -1234,6 +1582,19 @@ function fiarDepsDoReparo(
     deps.modeloAutor = opcoes.roteamento.modeloAutor;
     deps.modeloRevisor = opcoes.roteamento.modeloRevisor;
   }
+  // OS DOIS EXECUTORES do §5.5 (`modes/reorder.ts` e `modes/curriculumGap.ts`)
+  // têm o PLANO sempre ligado — o dry-run do repair já o imprime. O que estas
+  // duas flags ligam é a ESCRITA, e ela é OPT-IN porque o contrato do repair
+  // promete que o `aplicar` sem chave nao grava nada: a disponibilidade da LLM
+  // corretora so se conhece na chamada, e gravar por default deixaria a trilha
+  // MOVIDA num caminho que promete nao escrever.
+  if (opcoes.mover === true) deps.executarMovimentacao = true;
+  if (opcoes.criarAulas === true && opcoes.roteamento) {
+    deps.llmAutorDeAula = criarLlmDeProducao();
+    if (opcoes.dirDoRun !== undefined) {
+      deps.lerSementesDeSplit = criarLeitorDeSementes(path.join(opcoes.dirDoRun, 'revisao-progressiva'));
+    }
+  }
   return deps;
 }
 
@@ -1255,8 +1616,26 @@ async function cmdRepair(pos: string[], flags: Record<string, string>, bools: Se
     );
   }
 
+  // `--mover` e `--criar-aulas` LIGAM a escrita dos dois executores do §5.5
+  // dentro do repair. Sem elas o repair segue exatamente como antes (só
+  // reescreve artefato) — e o PLANO dos dois sai no relatorio de qualquer
+  // jeito, nos dois modos. `--criar-aulas` exige o roteamento pela mesma razao
+  // que `--aplicar` exige: a aula nova e prosa, e prosa vem de modelo.
+  if (bools.has('criar-aulas') && modo !== 'aplicar') {
+    fail("'--criar-aulas' so vale com --aplicar (o dry-run nao grava e nao chama modelo).");
+  }
+  if (bools.has('mover') && modo !== 'aplicar') {
+    fail("'--mover' so vale com --aplicar (o dry-run nao grava; o plano da movimentacao ja sai sem flag nenhuma).");
+  }
+
   const dirTrilha = flags.dir !== undefined ? path.resolve(flags.dir) : path.join(TRACKS_DIR, slug);
-  const deps = fiarDepsDoReparo(dirTrilha, { roteamento, ...(rodadas !== undefined ? { rodadas } : {}) });
+  const deps = fiarDepsDoReparo(dirTrilha, {
+    roteamento,
+    ...(rodadas !== undefined ? { rodadas } : {}),
+    mover: bools.has('mover'),
+    criarAulas: bools.has('criar-aulas'),
+    dirDoRun: path.join(CONTENT_SRC_DIR, slug),
+  });
 
   let resultado: ResultadoDeReparo;
   try {
@@ -1285,6 +1664,292 @@ async function cmdRepair(pos: string[], flags: Record<string, string>, bools: Se
   const violacoesFinais =
     resultado.modo === 'aplicar' ? resultado.placarFinal.violacoes : resultado.placarInicial.violacoes;
   process.exit(violacoesFinais > 0 ? 1 : 0);
+}
+
+// ---------------------------------------------------------------------------
+// reorder — a metade "MOVIMENTAÇÃO" da polaridade de ORDEM (§5.5)
+// ---------------------------------------------------------------------------
+
+/** O relatório humano da reordenação (o dry-run e o aplicar imprimem o mesmo). */
+function printReordenacao(resultado: ResultadoDeReordenacao): void {
+  const { plano, veredicto } = resultado;
+  const p = resultado.placarInicial;
+
+  console.log('');
+  console.log(`TRILHA ${resultado.slug} — REORDER (modo ${resultado.modo})`);
+  console.log(
+    `audit inicial: ${p.violacoes} violacao(oes) · ${p.desafiosComViolacao} desafio(s) com violacao · ` +
+      `${p.lacunas} lacuna(s) de curriculo  (aulas ${p.aulas}, desafios ${p.desafios})`,
+  );
+  console.log('');
+
+  console.log(`ALVOS DE ORDEM (violacao que MOVER resolve) — ${plano.alvos.length}`);
+  for (const alvo of plano.alvos.slice(0, 40)) {
+    console.log(`  [${alvo.regra}] ${alvo.arquivo}#${alvo.campo}  ${alvo.construcao}`);
+    console.log(`      cobrada em ${alvo.ref} · ensinada em ${alvo.ensinadaEm} (que vem DEPOIS)`);
+  }
+  if (plano.alvos.length > 40) console.log(`  ... e mais ${plano.alvos.length - 40} (use --json)`);
+  console.log('');
+
+  console.log(`MOVIMENTOS PLANEJADOS — ${plano.movimentos.length}`);
+  for (const mov of plano.movimentos.slice(0, 40)) {
+    if (mov.tipo === 'MOVER_AULA_NO_MODULO') {
+      console.log(
+        `  MOVER_AULA_NO_MODULO ${mov.moduleSlug}: ${mov.lessonSlug} (indice ${mov.deIndice} -> ${mov.paraIndice}), antes de ${mov.antesDe}`,
+      );
+      console.log(`      lessons: ${mov.lessonsNovas.join(', ')}`);
+    } else {
+      console.log(`  MOVER_MODULO ${mov.moduleSlug} para antes de ${mov.antesDe}`);
+      for (const o of mov.ordensNovas) console.log(`      ${o.moduleSlug}.order ${o.antes} -> ${o.depois}`);
+    }
+  }
+  if (plano.movimentos.length > 40) console.log(`  ... e mais ${plano.movimentos.length - 40} (use --json)`);
+  console.log('');
+
+  console.log(`FORA DE ESCOPO (nao e problema de ORDEM) — ${plano.foraDeEscopo.length}`);
+  for (const r of plano.foraDeEscopo.slice(0, 20)) console.log(`  [${r.motivo}] ${r.refs.join(' ')} — ${r.mensagem}`);
+  if (plano.foraDeEscopo.length > 20) console.log(`  ... e mais ${plano.foraDeEscopo.length - 20} (use --json)`);
+  console.log('');
+
+  console.log(`IMPOSSIVEIS (o grafo de pre-requisitos proibe o movimento) — ${plano.impossiveis.length}`);
+  for (const r of plano.impossiveis.slice(0, 20)) {
+    console.log(`  [${r.motivo}] ${r.refs.join(' ')} — ${r.mensagem}`);
+    if (r.caminho.length > 0) console.log(`      caminho: ${r.caminho.join(' -> ')}`);
+  }
+  console.log('');
+
+  console.log(`VERIFICACAO: ${veredicto.ok ? 'APROVADA' : `RECUSADA (${veredicto.recusas.length} motivo(s))`}`);
+  for (const r of veredicto.recusas.slice(0, 20)) {
+    console.log(`  [${r.motivo}] ${r.refs.join(' ')} — ${r.mensagem}`);
+    if (r.caminho.length > 0) console.log(`      caminho: ${r.caminho.join(' -> ')}`);
+  }
+  console.log(`  alvos resolvidos ..... ${veredicto.alvosResolvidos.length}`);
+  console.log(`  alvos persistentes ... ${veredicto.alvosPersistentes.length}`);
+  console.log(`  violacoes NOVAS ...... ${veredicto.violacoesNovas.length}`);
+  console.log('');
+
+  if (resultado.modo === 'aplicar') {
+    console.log('AUDIT FINAL (o mesmo gate, DE NOVO)');
+    console.log(`  violacoes ............ ${resultado.placarFinal.violacoes} (era ${resultado.placarInicial.violacoes})`);
+    console.log(
+      `  desafios com violacao  ${resultado.placarFinal.desafiosComViolacao} (era ${resultado.placarInicial.desafiosComViolacao})`,
+    );
+    console.log(`  aplicado ............. ${resultado.aplicado ? 'SIM' : 'NAO'}`);
+    console.log(`  melhorou ............. ${resultado.melhorou ? 'SIM' : 'NAO'}`);
+    console.log(`ARQUIVOS GRAVADOS: ${resultado.escritos.length}`);
+    for (const a of resultado.escritos.slice(0, 40)) console.log(`  ${a}`);
+    console.log('');
+  }
+
+  console.log('LIMITACOES DECLARADAS (§9.2 — nunca omitidas)');
+  for (const d of resultado.declaracoes) console.log(`  - ${d}`);
+  console.log('');
+
+  // A convenção do repositório: `N passou · N falhou · N pendente`.
+  //   passou   = alvos de ordem que o movimento verificado resolve;
+  //   falhou   = violações que sobraram no placar final (o dry-run não move
+  //              nada, então é o placar INICIAL — prometer o contrário mentiria);
+  //   pendente = o que a reordenação não executa (fora de escopo + impossível).
+  const falhou =
+    resultado.modo === 'aplicar' ? resultado.placarFinal.violacoes : resultado.placarInicial.violacoes;
+  const pendente = plano.foraDeEscopo.length + plano.impossiveis.length;
+  console.log('PLACAR (reorder)');
+  console.log(`  ${veredicto.alvosResolvidos.length} passou · ${falhou} falhou · ${pendente} pendente`);
+  console.log('');
+}
+
+async function cmdReorder(pos: string[], flags: Record<string, string>, bools: Set<string>): Promise<void> {
+  const slug = pos[0];
+  if (!slug) fail('informe o slug da trilha (ex.: npm run engine -- reorder minha-trilha)');
+
+  const modoOrcamento = flags.modo as BudgetSource | undefined;
+  if (modoOrcamento !== undefined && modoOrcamento !== 'declared' && modoOrcamento !== 'inferred') {
+    fail(`--modo invalido: ${modoOrcamento} (esperado declared ou inferred)`);
+  }
+  const modo: ModoDeReordenacao = bools.has('aplicar') ? 'aplicar' : 'dry-run';
+  const dirTrilha = flags.dir !== undefined ? path.resolve(flags.dir) : path.join(TRACKS_DIR, slug);
+
+  // A MESMA fiação do `repair`: a carga e a escrita atômica-por-arquivo são do
+  // CLI; `reordenarTrilha` não sabe onde nada mora. `gravarArquivo` é passado
+  // EXPLICITAMENTE (em vez de deixar o default do módulo gravar sob
+  // `track.dir`) para que `--dir` valha também na escrita — uma fixture
+  // apontada por `--dir` nunca pode escrever na trilha publicada.
+  const deps: DepsDaReordenacao = {
+    carregarTrilha: (s) => carregarTrilhaOuFalhar(s, dirTrilha),
+    gravarArquivo: async (arquivo, conteudo) => {
+      const destino = path.join(dirTrilha, arquivo);
+      await fsp.mkdir(path.dirname(destino), { recursive: true });
+      await escreverAtomico(destino, conteudo.endsWith('\n') ? conteudo : `${conteudo}\n`);
+    },
+    ...(modoOrcamento !== undefined ? { opcoes: { mode: modoOrcamento } } : {}),
+  };
+
+  let resultado: ResultadoDeReordenacao;
+  try {
+    resultado = await reordenarTrilha(deps, { slug, modo });
+  } catch (erro) {
+    console.error('');
+    if (erro instanceof ErroDeReordenacao) {
+      console.error(`erro estruturado [${erro.codigo}] na etapa ${erro.etapa}: ${erro.message}`);
+      process.exit(2);
+    }
+    console.error(`erro inesperado: ${erro instanceof Error ? (erro.stack ?? erro.message) : String(erro)}`);
+    process.exit(2);
+  }
+
+  if (bools.has('json')) console.log(JSON.stringify(resultado, null, 2));
+  else printReordenacao(resultado);
+
+  // 0 = a verificação aprovou E (no aplicar) o audit final zerou; 1 = sobrou
+  // achado — plano recusado, violação que o movimento não resolve, ou o
+  // dry-run de uma trilha que ainda tem violações.
+  const limpo =
+    resultado.veredicto.ok &&
+    (resultado.modo !== 'aplicar'
+      ? resultado.placarInicial.violacoes === 0
+      : resultado.placarFinal.violacoes === 0);
+  process.exit(limpo ? 0 : 1);
+}
+
+// ---------------------------------------------------------------------------
+// gap — o SUB-FLUXO v2: a LACUNA DE CURRÍCULO vira AULA (§5.5)
+// ---------------------------------------------------------------------------
+
+function printLacunas(resultado: ResultadoDeLacuna): void {
+  const { plano } = resultado;
+
+  console.log('');
+  console.log(`TRILHA ${resultado.slug} — GAP (modo ${resultado.modo})`);
+  console.log(
+    `lacunas de curriculo: ${plano.lacunas.length} · aulas novas planejadas: ${plano.aulasNovas.length} · ` +
+      `bloqueios: ${resultado.bloqueios.length}`,
+  );
+  console.log('');
+
+  console.log(`AULAS NOVAS PLANEJADAS — ${plano.aulasNovas.length} (zero LLM ate aqui: a POSICAO e aritmetica)`);
+  for (const aula of plano.aulasNovas.slice(0, 40)) {
+    console.log(`  ${aula.ref}  [${aula.acao}] role=${aula.role}`);
+    console.log(`      ensina: ${aula.construcoes.join(', ')}`);
+    console.log(`      entra ANTES de ${aula.inserirAntesDe} (indice ${aula.indiceDeInsercao}, faixa legal [${aula.faixa.minimo}, ${aula.faixa.maximo}])`);
+    console.log(`      cobrada em: ${aula.cobradaEm.join(', ') || '(nenhum arquivo)'}`);
+    console.log(`      semente do revise: ${aula.semente ? `${aula.semente.aula}/${aula.semente.desafio}` : '(nenhuma)'}`);
+  }
+  if (plano.aulasNovas.length > 40) console.log(`  ... e mais ${plano.aulasNovas.length - 40} (use --json)`);
+  console.log('');
+
+  console.log(`DELTA ESPERADO — ${plano.deltasEsperados.length} aula(s); os arquivos que o --aplicar gravaria`);
+  for (const d of plano.deltasEsperados.slice(0, 40)) {
+    console.log(`  ${d.ref}  ${d.antes} -> ${d.depois}`);
+    for (const arquivo of d.arquivos) console.log(`      ${arquivo}`);
+  }
+  console.log('');
+
+  console.log(`BLOQUEIOS (lacuna que NAO vira aula, com o motivo) — ${resultado.bloqueios.length}`);
+  for (const b of resultado.bloqueios.slice(0, 20)) {
+    console.log(`  [${b.motivo}] ${b.ref}  ${b.construcoes.join(', ')}`);
+    console.log(`      ${b.detalhe}`);
+  }
+  if (resultado.bloqueios.length > 20) console.log(`  ... e mais ${resultado.bloqueios.length - 20} (use --json)`);
+  console.log('');
+
+  if (resultado.modo === 'aplicar') {
+    console.log(`AULAS ACEITAS (autoradas, VERIFICADAS e gravadas) — ${resultado.aceitas.length}`);
+    for (const a of resultado.aceitas) console.log(`  ${a.aula.ref}  ${a.aula.construcoes.join(', ')}`);
+    console.log('');
+    console.log(`AULAS RECUSADAS (NADA delas foi gravado) — ${resultado.recusadas.length}`);
+    for (const r of resultado.recusadas.slice(0, 20)) {
+      console.log(`  ${r.aula.ref}`);
+      for (const motivo of r.recusas.slice(0, 5)) {
+        console.log(`      [${motivo.motivo}] ${motivo.construcao ?? '-'}  ${motivo.detalhe}`);
+      }
+    }
+    console.log('');
+    console.log(`ARQUIVOS GRAVADOS: ${resultado.escritos.length}`);
+    for (const a of resultado.escritos.slice(0, 40)) console.log(`  ${a}`);
+    console.log('');
+  }
+
+  console.log('LIMITACOES DECLARADAS (§9.2 — nunca omitidas)');
+  for (const d of resultado.declaracoes) console.log(`  - ${d}`);
+  console.log('');
+
+  // `N passou · N falhou · N pendente`:
+  //   passou   = aulas ACEITAS (o dry-run não autora nada, então é 0 — e dizer
+  //              o contrário seria prometer conteúdo que não existe);
+  //   falhou   = aulas recusadas pelo gate de verificação;
+  //   pendente = lacunas planejadas que ainda não viraram aula + bloqueios.
+  const pendente =
+    (resultado.modo === 'aplicar' ? plano.aulasNovas.length - resultado.aceitas.length - resultado.recusadas.length : plano.aulasNovas.length) +
+    resultado.bloqueios.length;
+  console.log('PLACAR (gap)');
+  console.log(`  ${resultado.aceitas.length} passou · ${resultado.recusadas.length} falhou · ${pendente} pendente`);
+  console.log('');
+}
+
+async function cmdGap(pos: string[], flags: Record<string, string>, bools: Set<string>): Promise<void> {
+  const slug = pos[0];
+  if (!slug) fail('informe o slug da trilha (ex.: npm run engine -- gap minha-trilha)');
+
+  const modoOrcamento = flags.modo as BudgetSource | undefined;
+  if (modoOrcamento !== undefined && modoOrcamento !== 'declared' && modoOrcamento !== 'inferred') {
+    fail(`--modo invalido: ${modoOrcamento} (esperado declared ou inferred)`);
+  }
+  const modo: ModoDeLacuna = bools.has('aplicar') ? 'aplicar' : 'dry-run';
+  const dirTrilha = flags.dir !== undefined ? path.resolve(flags.dir) : path.join(TRACKS_DIR, slug);
+
+  // O portão de USO (exit 2), o MESMO do `repair --aplicar`: escrever aula
+  // exige o laço da LLM autora, e o §6.2 exige model(AUTOR) != model(REVISOR).
+  const roteamento = resolverRoteamentoOuNulo(flags);
+  if (modo === 'aplicar' && roteamento === null) {
+    fail(
+      "'gap --aplicar' exige --modelo-revisor <id> (roteamento do §6.2: model(AUTOR) != model(REVISOR); " +
+        `o --modelo-autor default e "${OPENROUTER_MODEL.id}"). O dry-run — sem --aplicar — roda sem chave e sem modelo.`,
+    );
+  }
+
+  const deps: DepsDeLacuna = {
+    carregarTrilha: (s) => carregarTrilhaOuFalhar(s, dirTrilha),
+    // As SEMENTES do `revise`: `content-src/<slug>/revisao-progressiva/splits/`
+    // — exatamente onde `cmdRevise` grava. Elas são CONTEXTO do autor, não
+    // gate: diretório ausente devolve [] e o planejamento segue.
+    lerSementes: criarLeitorDeSementes(path.join(CONTENT_SRC_DIR, slug, 'revisao-progressiva')),
+    gravarArquivo: async (arquivo, conteudo) => {
+      const destino = path.join(dirTrilha, arquivo);
+      await fsp.mkdir(path.dirname(destino), { recursive: true });
+      await escreverAtomico(destino, conteudo.endsWith('\n') ? conteudo : `${conteudo}\n`);
+    },
+  };
+  if (roteamento) deps.llm = criarLlmDeProducao();
+
+  let resultado: ResultadoDeLacuna;
+  try {
+    resultado = await fecharLacunasDeCurriculo(deps, {
+      slug,
+      modo,
+      ...(modoOrcamento !== undefined ? { opcoesDeAudit: { mode: modoOrcamento } } : {}),
+    });
+  } catch (erro) {
+    console.error('');
+    if (erro instanceof ErroDeLacuna) {
+      console.error(`erro estruturado [${erro.codigo}] na etapa ${erro.etapa}: ${erro.message}`);
+      process.exit(2);
+    }
+    console.error(`erro inesperado: ${erro instanceof Error ? (erro.stack ?? erro.message) : String(erro)}`);
+    process.exit(2);
+  }
+
+  if (bools.has('json')) console.log(JSON.stringify(resultado, null, 2));
+  else printLacunas(resultado);
+
+  // 0 = nada a fechar (nem lacuna nem bloqueio) OU o aplicar fechou tudo;
+  // 1 = sobrou lacuna planejada, aula recusada ou bloqueio.
+  const sobrou =
+    resultado.bloqueios.length > 0 ||
+    resultado.recusadas.length > 0 ||
+    (resultado.modo === 'aplicar'
+      ? resultado.plano.aulasNovas.length !== resultado.aceitas.length
+      : resultado.plano.aulasNovas.length > 0);
+  process.exit(sobrou ? 1 : 0);
 }
 
 async function cmdLintSchemas(): Promise<void> {
@@ -1323,6 +1988,9 @@ async function main(): Promise<void> {
     case 'requirements':
       await cmdRequirements(pos, flags, bools);
       break;
+    case 'discrimination':
+      await cmdDiscrimination(pos, flags, bools);
+      break;
     case 'revise':
       await cmdRevise(pos, flags, bools);
       break;
@@ -1331,6 +1999,12 @@ async function main(): Promise<void> {
       break;
     case 'repair':
       await cmdRepair(pos, flags, bools);
+      break;
+    case 'reorder':
+      await cmdReorder(pos, flags, bools);
+      break;
+    case 'gap':
+      await cmdGap(pos, flags, bools);
       break;
     case 'lint-schemas':
       await cmdLintSchemas();

@@ -24,21 +24,39 @@
  *
  * DECISÕES DECLARADAS (v1):
  *
- *   A. SUB-FLUXO DE LACUNA — ESCOLHA B (“só ORDEM”). As lacunas de currículo
- *      NUNCA são consertadas reescrevendo desafio (§5.5 é lei e por construção:
- *      a ação do plano para lacuna é o par de CRIAR AULA — INSERT_INTERMEDIATE
- *      | MOVE_CONCEPT_TO_ENTRY_BUDGET — derivada do PRÓPRIO `planoDeAcao` do
- *      P-13, cujo tipo exclui REWRITE_IN_BUDGET). No v1 as lacunas viram LISTA
- *      DE BLOQUEIOS no relatório (nunca reescritas e nunca entram no laço: um
- *      pin de lacuna vermelho que o corretor não pode verdejar é o laço que
- *      nunca termina do §5.5). Justificativa: o spawn do autor P-11/P-17
- *      (montarDossie + gerarPromptAutor + autorizarAula) exige dossiê de 13
- *      campos pedagogicamente coerente E a re-derivação F4 exige o
- *      `ConceptGraph` (F3) — nenhum dos dois existe para conteúdo LEGADO (a
- *      trilha atual é `inferred`, sem grafo). Fabricar ambos mecanicamente
- *      seria especulativo; o plano de execução prevê o sub-fluxo como evolução
- *      (v2) sobre esta mesma estrutura. A escolha A/B está documentada nos
- *      comentários e o handoff a declara.
+ *   A. AS DUAS SAÍDAS DO §5.5, AGORA COM EXECUTOR (2026-09-05). A polaridade
+ *      não mudou e não muda: lacuna de currículo NUNCA é consertada
+ *      reescrevendo desafio (a ação do plano para lacuna é o par de CRIAR AULA
+ *      — INSERT_INTERMEDIATE | MOVE_CONCEPT_TO_ENTRY_BUDGET — derivada do
+ *      PRÓPRIO `planoDeAcao` do P-13, cujo tipo exclui REWRITE_IN_BUDGET). O
+ *      que mudou é que as DUAS saídas deixaram de ser declarações sem código:
+ *
+ *        - LACUNA → CRIAR AULA: `modes/curriculumGap.ts`
+ *          (`fecharLacunasDeCurriculo`) é o SUB-FLUXO v2. Ele roda daqui nos
+ *          DOIS modos: em `dry-run` como PLANO PURO (quais aulas nasceriam,
+ *          onde entram, o que continua bloqueado — zero LLM, zero escrita) e
+ *          em `aplicar` como autoria VERIFICADA, quando `deps.llmAutorDeAula`
+ *          está injetado. Sem esse dep ele fica no plano e a limitação é
+ *          DECLARADA — a engine não escreve prosa sem modelo.
+ *        - ORDEM → REESCRITA **ou** MOVIMENTAÇÃO: a reescrita sempre foi o
+ *          laço deste arquivo; a MOVIMENTAÇÃO ("mova a aula que a ensina para
+ *          antes", que o próprio `audit.ts::messageFor` manda fazer) é
+ *          `modes/reorder.ts` e roda daqui, ZERO LLM. O plano e o veredicto
+ *          saem nos dois modos; no `aplicar` os movimentos são gravados ANTES
+ *          do laço e o repair RE-ENTRA sobre a trilha movida
+ *          (`repararTrilhaInterno`, `jaDelegou`). Veredicto RECUSADO ⇒ nada é
+ *          movido e as violações de ORDEM caem de volta em REWRITE_IN_BUDGET,
+ *          que é o caminho de sempre.
+ *
+ *      Por que os executores rodam ANTES do laço: mover e criar aula mudam a
+ *      ORDEM PEDAGÓGICA, e o orçamento cumulativo é uma dobra sobre ela.
+ *      Reescrever primeiro apagaria construções que um passo adiante já
+ *      estariam DENTRO do orçamento — destruindo o desafio para consertar um
+ *      problema que deixaria de existir.
+ *
+ *      O que continua verdade: um pin de lacuna vermelho que o corretor não
+ *      pode verdejar é o laço que nunca termina do §5.5 — lacuna nunca entra
+ *      na sessão do laço, nem hoje nem depois.
  *
  *   B. FIAÇÃO P-35 (review/audit2Laco.ts) — CONTRATO + ADAPTADOR REAL. O P-35
  *      JÁ ESTÁ EM MAIN (mergeado com a ordem prevista) e este módulo o importa
@@ -127,6 +145,23 @@ import {
 } from '../review/loop';
 import { validarRoteamento, type MapaDeFamilias } from '../review/normalize';
 import { criarPinParaAchado, type ProverDeDesafio } from '../review/prover';
+import type { EngineLlm } from '../runtime/callLlm';
+// Os DOIS EXECUTORES que fecham o "BLOQUEIO v1" (ver o bloco A do cabeçalho).
+// A direção do import é `repair → reorder` e `repair → curriculumGap`, nunca a
+// inversa: os dois módulos não importam este de propósito (`reorder.ts:1016`),
+// e é isso que mantém o grafo de módulos acíclico.
+import {
+  aplicarMovimentos,
+  planejarReordenacao,
+  verificarReordenacao,
+  type PlanoDeReordenacao,
+  type VeredictoDeReordenacao,
+} from './reorder';
+import {
+  fecharLacunasDeCurriculo,
+  type ResultadoDeLacuna,
+  type SementeDeSplit,
+} from './curriculumGap';
 
 // ---------------------------------------------------------------------------
 // O slug PROIBIDO — o repair NUNCA roda sobre a trilha legada (D).
@@ -620,11 +655,63 @@ export interface DepsDoReparo {
   /** rodadas do laço (default `RODADAS_DEFAULT` = 1; teto duro 3 é do laço). */
   rodadasMaximas?: number;
   timeoutDeExecucaoMs?: number;
+  /**
+   * O transporte ÚNICO (INV-01) da LLM que ESCREVE a aula nova do sub-fluxo v2
+   * de lacuna (`modes/curriculumGap.ts`). É um dep SEPARADO de `deps.llm`
+   * porque os dois têm forma diferente: `deps.llm` são os TRÊS PAPÉIS do laço
+   * (revisar/planejar/corrigir) e este é o transporte cru que o autor de aula
+   * consome.
+   *
+   * AUSENTE ⇒ o sub-fluxo v2 roda em `dry-run` (puro: nenhuma escrita, nenhuma
+   * chamada de modelo) e a lacuna sai PLANEJADA em `subFluxoDeLacuna`, não
+   * fechada. A limitação é DECLARADA — nunca um silêncio.
+   */
+  llmAutorDeAula?: EngineLlm;
+  /**
+   * As SEMENTES do `revise` (`revisao-progressiva/splits/*.seed.json`) —
+   * CONTEXTO do autor da aula nova, nunca gate. Ausente ⇒ nenhuma semente.
+   */
+  lerSementesDeSplit?: () => Promise<readonly SementeDeSplit[]>;
+  /**
+   * `true` LIGA a EXECUÇÃO da metade MOVIMENTAÇÃO no modo `aplicar`. O PLANO e
+   * o VEREDICTO dela saem SEMPRE, nos dois modos, em `resultado.movimentacao` —
+   * o que este dep controla é a ESCRITA.
+   *
+   * O default é DESLIGADO, e a razão é um contrato declarado que não pode ser
+   * quebrado de lado: `docs/16` §8 e o `--help` prometem que o `aplicar` sem
+   * chave "aborta DECLARANDO e não grava nada". A disponibilidade da LLM
+   * corretora só é conhecida NA CHAMADA — nenhuma guarda a prova antes. Se a
+   * movimentação gravasse por default, um `aplicar` sem chave deixaria a
+   * trilha MOVIDA e o comando abortado: uma escrita que o chamador não pediu,
+   * feita justamente no caminho onde a promessa é não escrever nada.
+   *
+   * Quem quer só a movimentação tem o executor DEDICADO e sem LLM:
+   * `modes/reorder.ts` / `npm run engine -- reorder <slug> --aplicar`.
+   */
+  executarMovimentacao?: boolean;
 }
 
 export interface EntradaDoReparo {
   slug: string;
   modo: ModoDeReparo;
+}
+
+/**
+ * A metade MOVIMENTAÇÃO da polaridade de ORDEM (§5.5), delegada a
+ * `modes/reorder.ts`: "mova a aula que a ensina para antes", que é o que o
+ * próprio `audit.ts::messageFor` manda fazer e que a reescrita não faz.
+ *
+ * O plano e o veredicto são PUROS e saem nos DOIS modos — o dry-run do repair
+ * passa a dizer quantas violações de ORDEM se resolvem MOVENDO em vez de
+ * reescrevendo. `aplicada` só é `true` no `aplicar`.
+ */
+export interface MovimentacaoDoReparo {
+  plano: PlanoDeReordenacao;
+  veredicto: VeredictoDeReordenacao;
+  /** os movimentos foram GRAVADOS (só no `aplicar`, e só com veredicto ok). */
+  aplicada: boolean;
+  /** os `module.json`/`track.json` gravados pela movimentação. */
+  escritos: readonly string[];
 }
 
 interface BaseDoResultadoDeReparo {
@@ -634,8 +721,24 @@ interface BaseDoResultadoDeReparo {
   plano: PlanoDeReparo;
   auditInicial: AuditReport;
   placarInicial: PlacarDoAudit;
-  /** escolha B v1: as lacunas NUNCA são resolvidas aqui — lista de bloqueios. */
+  /**
+   * As lacunas que o SUB-FLUXO v2 (`modes/curriculumGap.ts`) NÃO fechou.
+   *
+   * Até 2026-09-05 este campo era `[...plano.lacunas]` — TODAS elas, sempre,
+   * porque não existia executor. Agora ele é uma DIFERENÇA: a lacuna some
+   * daqui quando o v2 autora e VERIFICA a aula que a ensina. Sem
+   * `deps.llmAutorDeAula` o v2 fica no plano e nada é subtraído (o valor é o
+   * de antes — a mudança é aditiva, não silenciosa).
+   */
   lacunasNaoResolvidas: readonly LacunaDeReparo[];
+  /** a metade MOVIMENTAÇÃO (o executor `modes/reorder.ts`). */
+  movimentacao: MovimentacaoDoReparo;
+  /**
+   * O SUB-FLUXO v2 de lacuna (`modes/curriculumGap.ts`) — o executor que CRIA
+   * A AULA que falta. Em `dry-run` (ou sem `deps.llmAutorDeAula`) ele é o
+   * PLANO: quais aulas nasceriam, onde entram e o que continua bloqueado.
+   */
+  subFluxoDeLacuna: ResultadoDeLacuna;
   /** estruturais + DEC: bloqueios v1 que o laço não executa. */
   bloqueios: readonly ViolacaoClassificadaDeReparo[];
   /** limitações DECLARADAS (sem chave, adaptador default, nada a reparar…). */
@@ -779,7 +882,7 @@ function chavesDeEscopoDeOrdem(plano: PlanoDeReparo): { pares: Set<string>; a6: 
 }
 
 /**
- * ESCOPO v1 (escolha B): o laço só enxerga violações de ORDEM executáveis.
+ * ESCOPO DO LAÇO: ele só enxerga violações de ORDEM executáveis.
  * Lacunas nunca entram — um pin de lacuna que o corretor não pode verdejar é
  * o laço que nunca termina (§5.5). O verificador P-35 relê TUDO que o audit
  * flagrou; este filtro derruba o que não é ordem executável E RESOLVE o span
@@ -1012,12 +1115,37 @@ function planejadorDeduplicado(planejar: PlanejadorLlm): PlanejadorLlm {
  * `rodarLacoDeRevisao` com o verificador de orçamento da trilha e a LLM
  * corretora, grava os artefatos finais alterados (deltas mecânicos + o que a
  * LLM corrigiu — o gate `validarDiffNoSpan` já rodou dentro do laço), e FEChA
- * com o audit DE NOVO comparando o placar com o inicial (A-P23-5). Subtítulo
- * v1 (escolha B): as lacunas viram lista de bloqueios no relatório — nunca
- * reescritas, nunca no laço. DRY-RUN NÃO resolve o adaptador (planejarReparo
- * é puro — ver passo 2). Fail-closed em cada porta (ver cabeçalho).
+ * com o audit DE NOVO comparando o placar com o inicial (A-P23-5). ANTES do
+ * laço rodam os DOIS EXECUTORES do §5.5 (bloco A do cabeçalho): a
+ * MOVIMENTAÇÃO (`modes/reorder.ts`, zero LLM) e o SUB-FLUXO v2 de lacuna
+ * (`modes/curriculumGap.ts`) — o primeiro grava a ordem nova e o repair
+ * RE-ENTRA sobre a trilha movida; o segundo cria a aula que falta quando
+ * `deps.llmAutorDeAula` existe. Lacuna continua nunca sendo reescrita como
+ * desafio e nunca entrando no laço. DRY-RUN NÃO resolve o adaptador
+ * (planejarReparo é puro — ver passo 2) mas JÁ TRAZ o plano dos dois
+ * executores. Fail-closed em cada porta (ver cabeçalho).
  */
 export async function repararTrilha(deps: DepsDoReparo, entrada: EntradaDoReparo): Promise<ResultadoDeReparo> {
+  return repararTrilhaInterno(deps, entrada, false);
+}
+
+/**
+ * O corpo do repair, com UM parâmetro a mais que o contrato público não tem:
+ * `jaDelegou`.
+ *
+ * Ele existe porque a metade MOVIMENTAÇÃO muda a ORDEM da trilha, e ordem é a
+ * entrada de TODO o resto (o orçamento cumulativo é uma dobra sobre ela). Um
+ * remendo local seria mentira: depois de mover uma aula, o audit, o plano, os
+ * artefatos e os pins têm de ser recalculados sobre a trilha NOVA. Em vez de
+ * duplicar esses passos, o repair se RE-ENTRA uma única vez com a trilha
+ * movida — e `jaDelegou` é o que garante "uma única vez" (a segunda entrada
+ * não move nada, então não há recursão infinita nem risco de ping-pong).
+ */
+async function repararTrilhaInterno(
+  deps: DepsDoReparo,
+  entrada: EntradaDoReparo,
+  jaDelegou: boolean,
+): Promise<ResultadoDeReparo> {
   // ── 1. trilha (in-memory ao vivo — injetada ou carregada) ─────────────────
   const track = deps.track ?? (deps.carregarTrilha !== undefined ? await deps.carregarTrilha(entrada.slug) : undefined);
   if (track === undefined) {
@@ -1057,15 +1185,247 @@ export async function repararTrilha(deps: DepsDoReparo, entrada: EntradaDoReparo
   const auditInicial = auditar(track);
   const placarInicial = placarDoAudit(auditInicial);
   const plano = planejarReparo(auditInicial);
-  const lacunasNaoResolvidas = [...plano.lacunas];
   const bloqueios = [
     ...plano.estruturais,
     ...plano.ordens.filter((o) => !o.executavelNoLacoV1),
   ];
   const declaracoes: string[] = [
-    'escolha B v1 (sub-fluxo de lacuna): lacunas de currículo NUNCA são consertadas reescrevendo desafio (§5.5) —',
-    'viram LISTA DE BLOQUEIOS no relatório e não entram no laço; o spawn do autor P-11/P-17 + re-derivação F4 é o v2 (exige dossiê e ConceptGraph de F3, ausentes para conteúdo legado).',
+    'polaridade §5.5 (inalterada e inalterável): lacuna de currículo NUNCA é consertada reescrevendo desafio — o tipo `AcaoDeLacuna` exclui REWRITE_IN_BUDGET em tempo de compilação.',
+    'o que MUDOU: a lacuna deixou de ser um beco sem saída. O executor existe (`modes/curriculumGap.ts`, o sub-fluxo v2 que CRIA a aula) e roda daqui — em `dry-run` como PLANO, em `aplicar` como autoria verificada quando `deps.llmAutorDeAula` está injetado.',
+    'a metade MOVIMENTAÇÃO da polaridade de ORDEM ("mova a aula que a ensina para antes", o que o próprio audit manda fazer) é `modes/reorder.ts` e roda daqui: ZERO LLM, verificação diferencial, e o plano sai nos DOIS modos.',
   ];
+
+  // ── 3.5 OS DOIS EXECUTORES, sempre em PLANO (puros, zero LLM, zero escrita) ─
+  // Eles rodam nos DOIS modos porque o plano dos dois é FUNÇÃO PURA — é o que
+  // permite ao dry-run do repair dizer, sem gastar chave nenhuma, quantas
+  // violações de ORDEM se resolvem MOVENDO e quantas lacunas viram aula.
+  const planoDeOrdem = planejarReordenacao(track, auditInicial);
+  const veredictoDeOrdem = verificarReordenacao(track, planoDeOrdem);
+  const subFluxoDeLacunaPlanejado = await fecharLacunasDeCurriculo(
+    deps.lerSementesDeSplit !== undefined ? { lerSementes: deps.lerSementesDeSplit } : {},
+    { slug: entrada.slug, modo: 'dry-run', track, report: auditInicial },
+  );
+  const movimentacaoPlanejada: MovimentacaoDoReparo = {
+    plano: planoDeOrdem,
+    veredicto: veredictoDeOrdem,
+    aplicada: false,
+    escritos: [],
+  };
+  declaracoes.push(
+    `MOVIMENTAÇÃO: ${planoDeOrdem.movimentos.length} movimento(s) planejado(s) sobre ${planoDeOrdem.alvos.length} alvo(s) de ORDEM; ` +
+      `verificação ${veredictoDeOrdem.ok ? 'APROVADA' : `RECUSADA (${veredictoDeOrdem.recusas.length} motivo(s))`}` +
+      (veredictoDeOrdem.ok
+        ? ''
+        : ' — as violações de ORDEM caem de volta em REWRITE_IN_BUDGET (reescrever o artefato), que é o caminho de sempre.'),
+  );
+  declaracoes.push(
+    `SUB-FLUXO v2 DE LACUNA: ${subFluxoDeLacunaPlanejado.plano.aulasNovas.length} aula(s) nova(s) planejada(s) para ` +
+      `${subFluxoDeLacunaPlanejado.plano.lacunas.length} lacuna(s); ${subFluxoDeLacunaPlanejado.bloqueios.length} bloqueio(s).`,
+  );
+
+  let lacunasNaoResolvidas: readonly LacunaDeReparo[] = [...plano.lacunas];
+  let subFluxoDeLacuna = subFluxoDeLacunaPlanejado;
+
+  // ── 3.6 `aplicar`: os DOIS EXECUTORES rodam ANTES do laço de reescrita ─────
+  // A ORDEM importa e é deliberada. Mover uma aula e criar uma aula mudam a
+  // ORDEM PEDAGÓGICA, e a ordem é a entrada de TODO o resto: o orçamento
+  // cumulativo é uma dobra sobre ela. Rodá-los DEPOIS do laço faria a
+  // reescrita apagar construções que, um passo adiante, passariam a estar
+  // dentro do orçamento — destruindo o desafio para consertar um problema que
+  // já não existiria. Por isso: move/cria PRIMEIRO, RE-ENTRA sobre a trilha
+  // resultante, e só o que sobrou vai para a LLM corretora.
+  if (entrada.modo === 'aplicar' && !jaDelegou) {
+    const escritosDaMovimentacao: string[] = [];
+    const escritosDaLacuna: string[] = [];
+    let trilhaVirtual = track;
+    let aplicouMovimento = false;
+    let aceitouAula = false;
+
+    const vaiMover =
+      deps.executarMovimentacao === true && veredictoDeOrdem.ok && planoDeOrdem.movimentos.length > 0;
+    const vaiCriarAula =
+      deps.llmAutorDeAula !== undefined && subFluxoDeLacunaPlanejado.plano.aulasNovas.length > 0;
+
+    // ── TODAS AS GUARDAS ANTES DA PRIMEIRA ESCRITA (§9.3, fail-closed) ──────
+    // A delegação grava ANTES do laço, e o laço tem deps próprias (LLM
+    // corretora, provador, roteamento). Descobrir a falta DELAS só na hora do
+    // laço deixaria a trilha MOVIDA e o comando abortado — meio reparo, que é
+    // exatamente o estado que o fail-closed existe para impedir. Por isso o
+    // que o laço vai exigir é exigido AQUI, antes de mover o primeiro arquivo.
+    if (vaiMover || vaiCriarAula) {
+      if (deps.gravarArquivo === undefined) {
+        throw erroDeReparo(
+          'REPAIR_SEM_ESCRITA',
+          'delegacao',
+          'a delegação (MOVIMENTAÇÃO / sub-fluxo v2 de lacuna) grava `module.json`, `track.json` e `lesson.json` — injete deps.gravarArquivo (ou não ligue deps.executarMovimentacao / deps.llmAutorDeAula).',
+        );
+      }
+      const vaiRodarOLaco = plano.ordens.some((o) => o.executavelNoLacoV1);
+      if (vaiRodarOLaco) {
+        if (deps.llm === undefined) {
+          throw erroDeReparo(
+            'REPAIR_SEM_LLM',
+            'delegacao',
+            'este `aplicar` também roda o laço de reescrita, que exige a LLM corretora (P-12/P-13) em deps.llm — e ela é exigida AGORA, ANTES da primeira escrita da delegação: NADA foi movido nem criado (fail-closed §9.3).',
+          );
+        }
+        if (deps.proverDesafio === undefined) {
+          throw erroDeReparo(
+            'REPAIR_SEM_PROVER',
+            'delegacao',
+            'este `aplicar` também roda o laço, que falha fechado sem verificador de provas (deps.proverDesafio, contrato P-31) — exigido ANTES da primeira escrita: NADA foi movido nem criado.',
+          );
+        }
+        if (deps.modeloAutor === undefined || deps.modeloRevisor === undefined) {
+          throw erroDeReparo(
+            'REPAIR_ROTEAMENTO_INVALIDO',
+            'delegacao',
+            'sem modeloAutor/modeloRevisor não há como provar o roteamento (P-12) do laço que este `aplicar` vai rodar — exigido ANTES da primeira escrita: NADA foi movido nem criado.',
+          );
+        }
+        try {
+          validarRoteamento(deps.modeloAutor, deps.modeloRevisor, deps.familias);
+        } catch (erro) {
+          throw erroDeReparo(
+            'REPAIR_ROTEAMENTO_INVALIDO',
+            'delegacao',
+            `${erro instanceof Error ? erro.message : String(erro)} (verificado ANTES da primeira escrita da delegação: NADA foi movido nem criado)`,
+            erro,
+          );
+        }
+      }
+    }
+
+    // (a) MOVIMENTAÇÃO — zero LLM. Só grava com o veredicto APROVADO, e o
+    // veredicto só aprova depois de re-derivar o orçamento inteiro e provar
+    // que a violação alvo sumiu e nenhuma nova apareceu.
+    if (vaiMover) {
+      if (deps.gravarArquivo === undefined) {
+        throw erroDeReparo(
+          'REPAIR_SEM_ESCRITA',
+          'movimentacao',
+          'a MOVIMENTAÇÃO grava `module.json`/`track.json` — injete deps.gravarArquivo (ou não ligue deps.executarMovimentacao).',
+        );
+      }
+      const { trilha, arquivos } = aplicarMovimentos(track, planoDeOrdem.movimentos);
+      for (const [arquivo, conteudo] of arquivos) {
+        try {
+          await deps.gravarArquivo(arquivo, conteudo);
+        } catch (erro) {
+          throw erroDeReparo(
+            'REPAIR_ESCRITA_FALHOU',
+            'movimentacao',
+            `não foi possível gravar "${arquivo}" na movimentação (escrita parcial possível — fail-closed).`,
+            erro,
+          );
+        }
+        escritosDaMovimentacao.push(arquivo);
+      }
+      trilhaVirtual = trilha;
+      aplicouMovimento = true;
+    }
+
+    // (b) SUB-FLUXO v2 DE LACUNA — a aula que falta. Sem `llmAutorDeAula` ele
+    // NÃO roda: a engine não escreve prosa sem modelo, e a limitação sai
+    // declarada em vez de a lacuna virar "bloqueio v1" como se não houvesse
+    // executor.
+    if (vaiCriarAula) {
+      if (deps.gravarArquivo === undefined) {
+        throw erroDeReparo(
+          'REPAIR_SEM_ESCRITA',
+          'sub-fluxo-de-lacuna',
+          'o sub-fluxo v2 grava `lesson.json`/`module.json` — injete deps.gravarArquivo.',
+        );
+      }
+      const gravar = deps.gravarArquivo;
+      subFluxoDeLacuna = await fecharLacunasDeCurriculo(
+        {
+          llm: deps.llmAutorDeAula,
+          gravarArquivo: async (arquivo, conteudo) => {
+            await gravar(arquivo, conteudo);
+          },
+          ...(deps.lerSementesDeSplit !== undefined ? { lerSementes: deps.lerSementesDeSplit } : {}),
+        },
+        { slug: entrada.slug, modo: 'aplicar', track: trilhaVirtual },
+      );
+      escritosDaLacuna.push(...subFluxoDeLacuna.escritos);
+      aceitouAula = subFluxoDeLacuna.aceitas.length > 0;
+    }
+
+    if (aplicouMovimento || aceitouAula) {
+      // A trilha MUDOU de forma: re-entra e recalcula TUDO (audit, plano,
+      // artefatos, pins) sobre ela. A aula nova só existe no DISCO — para
+      // enxergá-la é preciso recarregar; sem `deps.carregarTrilha` isso é
+      // impossível e a limitação é DECLARADA, nunca escondida.
+      const podeRecarregar = deps.carregarTrilha !== undefined;
+      const trilhaNova =
+        aceitouAula && podeRecarregar ? await (deps.carregarTrilha as (s: string) => Promise<LoadedTrack>)(entrada.slug) : trilhaVirtual;
+      const resto = (await repararTrilhaInterno(
+        { ...deps, track: trilhaNova },
+        entrada,
+        true,
+      )) as Extract<ResultadoDeReparo, { modo: 'aplicar' }>;
+
+      const declaracoesDaDelegacao = [
+        ...declaracoes,
+        aplicouMovimento
+          ? `MOVIMENTAÇÃO APLICADA: ${escritosDaMovimentacao.length} arquivo(s) de ordem gravado(s) (${escritosDaMovimentacao.join(', ')}); o laço de reescrita rodou sobre a trilha JÁ MOVIDA.`
+          : 'MOVIMENTAÇÃO não aplicada (não ligada, ou sem movimento aprovado): as violações de ORDEM seguiram para REWRITE_IN_BUDGET.',
+        aceitouAula
+          ? `SUB-FLUXO v2 APLICADO: ${subFluxoDeLacuna.aceitas.length} aula(s) nova(s) gravada(s), ${subFluxoDeLacuna.recusadas.length} recusada(s) (recusada NÃO chega ao disco).`
+          : 'SUB-FLUXO v2 não aplicado nesta execução.',
+        ...(aceitouAula && !podeRecarregar
+          ? [
+              'LIMITAÇÃO: as aulas novas foram GRAVADAS mas `deps.carregarTrilha` não existe — o audit final NÃO as enxerga e o placar final as ignora. Rode o audit de novo sobre o disco.',
+            ]
+          : []),
+        ...resto.declaracoes,
+      ];
+      // A re-entrada repete as declarações FIXAS (elas não dependem da trilha).
+      // Repeti-las na saída não acrescenta informação e empurra para baixo as
+      // que acrescentam; as que MUDAM entre as duas passadas (contagens de
+      // movimento, de aula nova) têm texto diferente e sobrevivem à dedupe.
+      const vistas = new Set<string>();
+      const declaracoesUnicas = declaracoesDaDelegacao.filter((d) => {
+        if (vistas.has(d)) return false;
+        vistas.add(d);
+        return true;
+      });
+
+      return {
+        ...resto,
+        // O "ANTES" verdadeiro é o desta entrada, não o da re-entrada: A-P23-5
+        // compara o placar com o estado anterior a QUALQUER escrita.
+        auditInicial,
+        placarInicial,
+        movimentacao: {
+          plano: planoDeOrdem,
+          veredicto: veredictoDeOrdem,
+          aplicada: aplicouMovimento,
+          escritos: escritosDaMovimentacao,
+        },
+        subFluxoDeLacuna,
+        lacunasNaoResolvidas: resto.lacunasNaoResolvidas,
+        escritos: [...escritosDaMovimentacao, ...escritosDaLacuna, ...resto.escritos],
+        declaracoes: declaracoesUnicas,
+        melhorou: resto.placarFinal.violacoes < placarInicial.violacoes,
+      };
+    }
+
+    if (deps.llmAutorDeAula === undefined && subFluxoDeLacunaPlanejado.plano.aulasNovas.length > 0) {
+      declaracoes.push(
+        'o sub-fluxo v2 de lacuna FICOU NO PLANO: `deps.llmAutorDeAula` não foi injetado (a aula nova é prosa, e a engine não escreve prosa sem modelo). ' +
+          'Rode `npm run engine -- gap <slug> --aplicar --modelo-revisor <id>` para executá-lo.',
+      );
+    }
+    if (deps.executarMovimentacao !== true && veredictoDeOrdem.ok && planoDeOrdem.movimentos.length > 0) {
+      declaracoes.push(
+        `a MOVIMENTAÇÃO ficou NO PLANO: ${planoDeOrdem.movimentos.length} movimento(s) APROVADO(S) pela verificação e NÃO gravado(s) — ` +
+          '`deps.executarMovimentacao` não foi ligado. O default é desligado porque a disponibilidade da LLM corretora só se conhece na chamada, ' +
+          'e o contrato promete que o `aplicar` sem chave não grava nada. Rode `npm run engine -- reorder <slug> --aplicar` (zero LLM) para executá-la.',
+      );
+    }
+  }
 
   // ── 4. dry-run — NADA escrito, NENHUM LLM (A-P23-3) ────────────────────────
   if (entrada.modo === 'dry-run') {
@@ -1076,6 +1436,8 @@ export async function repararTrilha(deps: DepsDoReparo, entrada: EntradaDoReparo
       auditInicial,
       placarInicial,
       lacunasNaoResolvidas,
+      movimentacao: movimentacaoPlanejada,
+      subFluxoDeLacuna,
       bloqueios,
       declaracoes: [
         ...declaracoes,
@@ -1098,6 +1460,8 @@ export async function repararTrilha(deps: DepsDoReparo, entrada: EntradaDoReparo
       auditInicial,
       placarInicial,
       lacunasNaoResolvidas,
+      movimentacao: movimentacaoPlanejada,
+      subFluxoDeLacuna,
       bloqueios,
       declaracoes: [
         ...declaracoes,
@@ -1232,6 +1596,8 @@ export async function repararTrilha(deps: DepsDoReparo, entrada: EntradaDoReparo
     auditInicial,
     placarInicial,
     lacunasNaoResolvidas,
+    movimentacao: movimentacaoPlanejada,
+    subFluxoDeLacuna,
     bloqueios,
     declaracoes: [
       ...declaracoes,
