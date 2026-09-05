@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "slug": "trilha-typescript-minima",
+  "title": "Trilha TypeScript mínima (fixture)",
+  "description": "Trilha-fixture da BARREIRA de linguagem: TypeScript TEM adaptador registrado (engine/lang/typescript.ts) e NÃO tem derivação de requirements escrita. Existe para provar que o comando 'requirements' aborta declarando (exit 2) em vez de ler o teste com o parser de outra linguagem.",
+  "language": "pt-BR",
+  "domain": "programming",
+  "programmingLanguage": "typescript",
+  "runtime": "nodejs",
+  "entryCriteria": [],
+  "modules": [
+    "modulo-1"
+  ]
+}

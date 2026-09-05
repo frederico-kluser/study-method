@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 1,
+  "slug": "o-tipo-na-assinatura",
+  "title": "O tipo na assinatura",
+  "summary": "A função diz que número entra e que número sai.",
+  "difficulty": 1,
+  "concepts": [
+    "tipo"
+  ],
+  "prerequisites": [],
+  "introduces": {
+    "productive": [
+      "node:FunctionDeclaration",
+      "node:Parameter",
+      "node:ReturnStatement",
+      "node:TypeAnnotation",
+      "op:binary:*"
+    ],
+    "receptive": []
+  },
+  "theory": [
+    {
+      "id": "o-tipo-escrito",
+      "title": "O tipo escrito",
+      "markdown": "A assinatura diz o que entra e o que sai.\n\n```ts\nexport function triplo(n: number): number {\n  return n * 3;\n}\n```",
+      "code": {
+        "language": "ts",
+        "code": "export function triplo(n: number): number {\n  return n * 3;\n}"
+      }
+    }
+  ],
+  "sources": [],
+  "challenges": [
+    "dobre-o-numero"
+  ]
+}

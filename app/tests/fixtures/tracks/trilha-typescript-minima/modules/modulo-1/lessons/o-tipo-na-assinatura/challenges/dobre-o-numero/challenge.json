@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "slug": "dobre-o-numero",
+  "title": "Dobre o número",
+  "concept": "tipo",
+  "difficulty": 1,
+  "language": "typescript",
+  "statement": "# Dobre o número\n\nEscreva `dobro` com a assinatura `(n: number): number`.",
+  "starterCode": "export function dobro(n: number): number {\n  return n;\n}\n",
+  "solutionCode": "export function dobro(n: number): number {\n  return n * 2;\n}\n",
+  "testsCode": "import test from 'node:test';\nimport assert from 'node:assert/strict';\nimport { dobro } from './solution.ts';\n\ntest('dobra o numero', () => {\n  assert.equal(dobro(2), 4);\n});\n",
+  "expectedTestCount": 1
+}

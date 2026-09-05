@@ -1019,3 +1019,146 @@ function spanDoTrechoDeTeste(conteudo: string, trecho: string): [number, number]
   if (inicio >= 0) return [inicio, inicio + Math.max(trecho.length, 1)];
   return [0, Math.min(1, conteudo.length)];
 }
+
+// ---------------------------------------------------------------------------
+// DELEGAÇÃO (`deps.executarMovimentacao` / `deps.llmAutorDeAula`) — as guardas
+// do laço rodam ANTES da PRIMEIRA ESCRITA da delegação
+// ---------------------------------------------------------------------------
+
+/**
+ * POR QUE ESTES CASOS EXISTEM AQUI, e não na suíte de CLI.
+ *
+ * A onda `onda3-cli-fiacao` (`fe395f9`) hoisted para o topo do bloco de
+ * delegação as guardas que o LAÇO vai exigir (LLM corretora, provador,
+ * roteamento). O motivo está escrito no próprio `modes/repair.ts`: a delegação
+ * GRAVA antes do laço, e descobrir a falta dessas deps só na hora do laço
+ * deixaria a trilha MOVIDA e o comando abortado — meio reparo, exatamente o
+ * estado que o fail-closed do §9.3 existe para impedir.
+ *
+ * Nenhuma dessas três portas é alcançável pela LINHA DE COMANDO: o CLI só
+ * chega ao `--mover` com `--modelo-revisor` presente e diferente do autor (ele
+ * recusa antes, com exit 2), e nesse ponto `deps.llm`, `deps.proverDesafio`,
+ * `deps.modeloAutor` e `deps.modeloRevisor` já estão todos fiados — a chave de
+ * API só falha DENTRO da chamada, não na montagem. Ou seja: o hoisting é uma
+ * propriedade do MÓDULO, e é no módulo que ela pode ser medida.
+ *
+ * O QUE DISTINGUE "hoisted" de "não hoisted", e é o que se afirma: se as
+ * guardas voltassem para dentro do laço, a mesma chamada gravaria
+ * `modules/m01/module.json` e SÓ DEPOIS abortaria — com a etapa
+ * `laco-de-revisao` em vez de `delegacao`. Por isso cada caso afirma as DUAS
+ * coisas: o código/etapa do erro E `escrita.chamadas === 0`.
+ *
+ * O CONTROLE POSITIVO fecha o buraco do "passaria sem nada acontecer": com
+ * TODAS as deps, a MESMA fixture e a MESMA chamada gravam a ordem nova.
+ */
+function trilhaComOrdemQueMoverResolve(): LoadedTrack {
+  const c1 = desafioSimples('c1', 'c1', ['export function f(valor) {', '  let x = valor;', "  return 'sim';", '}'].join('\n'));
+  const c2 = desafioSimples(
+    'c2',
+    'c2',
+    [
+      'export function f(valor) {',
+      '  let t = typeof valor;',
+      "  if (t === 'number') {",
+      "    return 'sim';",
+      '  }',
+      "  return 'nao';",
+      '}',
+    ].join('\n'),
+  );
+  return fazerTrilha('trilha-que-se-move', [
+    { slug: 'a01', conceitos: ['c1'], teoria: [secaoTeoria('t1', TEORIA_COM_FUNCAO)], desafios: [c1] },
+    { slug: 'a02', conceitos: ['c2'], teoria: [secaoTeoria('t2', 'let z = 1 + 2;')], desafios: [c2] },
+    { slug: 'a03', conceitos: ['c3'], teoria: [secaoTeoria('t3', 'const tipo = typeof 10;')], desafios: [] },
+  ]);
+}
+
+const ARQUIVO_DA_ORDEM = 'modules/m01/module.json';
+
+describe('P-23 · delegação: as guardas do laço rodam ANTES da primeira escrita', () => {
+  it('PRÉ-CONDIÇÃO: a fixture tem 1 movimento APROVADO e ação de ORDEM executável (senão nada abaixo prova nada)', async () => {
+    const track = trilhaComOrdemQueMoverResolve();
+    const { deps } = depsDeReparoCom(track, { auditar: undefined });
+    const resultado = await repararTrilha(deps, { slug: 'trilha-que-se-move', modo: 'dry-run' });
+    assert.equal(resultado.modo, 'dry-run');
+    assert.equal(resultado.movimentacao.plano.movimentos.length, 1, 'há o que mover');
+    assert.equal(resultado.movimentacao.veredicto.ok, true, 'e a verificação diferencial APROVA o movimento');
+    assert.equal(resultado.movimentacao.aplicada, false, 'o dry-run nunca aplica');
+    assert.ok(
+      resultado.plano.ordens.some((o) => o.executavelNoLacoV1),
+      'o plano tem ação de ORDEM executável — é ela que faz o laço (e portanto as guardas) serem exigidos',
+    );
+  });
+
+  it('SEM deps.llm: REPAIR_SEM_LLM na etapa `delegacao` e ZERO gravação (a trilha não fica movida)', async () => {
+    const track = trilhaComOrdemQueMoverResolve();
+    const { deps, escrita } = depsDeReparoCom(track, { auditar: undefined, llm: undefined });
+    // `depsDeReparoCom` monta as deps campo a campo (não espalha o override):
+    // a flag da delegação é ligada aqui, que é o que o CLI faz com `--mover`.
+    deps.executarMovimentacao = true;
+    await assert.rejects(
+      () => repararTrilha(deps, { slug: 'trilha-que-se-move', modo: 'aplicar' }),
+      (erro: unknown) =>
+        erro instanceof ErroDeReparo && erro.codigo === 'REPAIR_SEM_LLM' && erro.etapa === 'delegacao',
+    );
+    assert.equal(escrita.chamadas, 0, 'a guarda é ANTES da escrita: nada foi movido nem criado');
+    assert.deepEqual([...escrita.arquivos.keys()], []);
+  });
+
+  it('SEM deps.proverDesafio: REPAIR_SEM_PROVER na etapa `delegacao` e ZERO gravação', async () => {
+    const track = trilhaComOrdemQueMoverResolve();
+    const { deps, escrita } = depsDeReparoCom(track, { auditar: undefined, proverDesafio: undefined });
+    deps.executarMovimentacao = true;
+    await assert.rejects(
+      () => repararTrilha(deps, { slug: 'trilha-que-se-move', modo: 'aplicar' }),
+      (erro: unknown) =>
+        erro instanceof ErroDeReparo && erro.codigo === 'REPAIR_SEM_PROVER' && erro.etapa === 'delegacao',
+    );
+    assert.equal(escrita.chamadas, 0, 'a guarda é ANTES da escrita: nada foi movido nem criado');
+  });
+
+  it('SEM modeloRevisor: REPAIR_ROTEAMENTO_INVALIDO na etapa `delegacao` e ZERO gravação', async () => {
+    const track = trilhaComOrdemQueMoverResolve();
+    const { deps, escrita } = depsDeReparoCom(track, { auditar: undefined });
+    deps.executarMovimentacao = true;
+    delete deps.modeloRevisor;
+    await assert.rejects(
+      () => repararTrilha(deps, { slug: 'trilha-que-se-move', modo: 'aplicar' }),
+      (erro: unknown) =>
+        erro instanceof ErroDeReparo &&
+        erro.codigo === 'REPAIR_ROTEAMENTO_INVALIDO' &&
+        erro.etapa === 'delegacao',
+    );
+    assert.equal(escrita.chamadas, 0, 'a guarda é ANTES da escrita: nada foi movido nem criado');
+  });
+
+  it('CONTROLE POSITIVO: com TODAS as deps, a MESMA chamada GRAVA a ordem nova e o laço não gasta rodada', async () => {
+    // Sem este caso os três acima seriam satisfeitos por uma fixture em que
+    // simplesmente não houvesse nada a gravar. Aqui a delegação chega ao disco.
+    const track = trilhaComOrdemQueMoverResolve();
+    const { deps, escrita } = depsDeReparoCom(track, { auditar: undefined });
+    deps.executarMovimentacao = true;
+    const resultado = await repararTrilha(deps, { slug: 'trilha-que-se-move', modo: 'aplicar' });
+    assert.equal(resultado.modo, 'aplicar');
+    const aplicado = resultado as Extract<ResultadoDeReparo, { modo: 'aplicar' }>;
+
+    assert.equal(escrita.chamadas, 1, 'a delegação gravou exatamente um arquivo');
+    assert.deepEqual([...escrita.arquivos.keys()], [ARQUIVO_DA_ORDEM]);
+    assert.deepEqual(
+      (JSON.parse(escrita.arquivos.get(ARQUIVO_DA_ORDEM) as string) as { lessons: string[] }).lessons,
+      ['a01', 'a03', 'a02'],
+      'a aula que ENSINA foi para antes da que COBRA',
+    );
+    assert.equal(aplicado.movimentacao.aplicada, true);
+    assert.deepEqual(aplicado.escritos, [ARQUIVO_DA_ORDEM]);
+    assert.ok(
+      aplicado.declaracoes.some((d) => d.includes('o laço de reescrita rodou sobre a trilha JÁ MOVIDA')),
+      'a RE-ENTRADA sobre a trilha movida é declarada',
+    );
+    // Mover resolveu a ORDEM: o residual que chegou ao laço não tem o que
+    // reescrever, e por isso nenhuma rodada (nenhuma chamada de LLM) aconteceu.
+    assert.deepEqual(aplicado.plano.ordens, [], 'a re-entrada re-auditou: nenhuma ordem sobrou');
+    assert.equal(aplicado.rodadas.length, 0, 'nenhuma rodada do laço');
+    assert.ok(aplicado.placarFinal.violacoes < aplicado.placarInicial.violacoes, 'e o placar do audit MELHOROU');
+  });
+});
