@@ -97,7 +97,8 @@ function makeFakeIpc(): { channels: string[]; ipc: IpcMainHandleLike } {
  *    STUDY_CHANNELS — NÃO registra os push-only (PLAN_LESSON,
  *    LESSON_PROGRESS, RESEARCH_PROGRESS, TEST_ANSWER_EVENT);
  *  - buildPiHandlers (ipc/pi-handlers.ts): 3 invoke — STREAM_EVENT é emit;
- *  - buildTrackStubHandlers (e2eStubs.ts): 10 invoke — exclui o push
+ *  - buildTrackStubHandlers (e2eStubs.ts): 16 invoke (12 de trilha + os 4 do
+ *    quiz adaptativo, onda2-remediacao) — exclui o push
  *    CHALLENGE_REGENERATE_PROGRESS;
  *  - buildLocalAiStubHandlers (e2eStubs.ts): 8 invoke — exclui o push
  *    DOWNLOAD_PROGRESS;
@@ -135,7 +136,7 @@ function expectedRegisteredChannels(): string[] {
     STUDY_CHANNELS.JUDGE_ANSWER,
     // pi (3 invoke — STREAM_EVENT é emit-only)
     ...Object.values(PI_CHANNELS).filter((ch) => ch !== PI_CHANNELS.STREAM_EVENT),
-    // track (12 invoke — fonte: buildTrackStubHandlers)
+    // track (16 invoke — fonte: buildTrackStubHandlers)
     TRACK_CHANNELS.LIST,
     TRACK_CHANNELS.GET,
     TRACK_CHANNELS.LESSON,
@@ -151,6 +152,13 @@ function expectedRegisteredChannels(): string[] {
     // handler, o invoke rejeitaria com "no handler registered").
     TRACK_CHANNELS.ORPHANS,
     TRACK_CHANNELS.PURGE_ORPHANS,
+    // onda2-remediacao: o ciclo do QUIZ ADAPTATIVO. Sem stub destes quatro, o
+    // e2e do ciclo (errar → explicação → quiz novo → acertar) seria impossível
+    // de escrever — explain/remedial chamam a LLM em produção.
+    TRACK_CHANNELS.QUIZ_ATTEMPT,
+    TRACK_CHANNELS.QUIZ_EXPLAIN,
+    TRACK_CHANNELS.QUIZ_REMEDIAL,
+    TRACK_CHANNELS.QUIZ_HISTORY,
     // localAi (8 invoke — DOWNLOAD_PROGRESS é push)
     ...Object.values(LOCAL_AI_CHANNELS).filter(
       (ch) => ch !== LOCAL_AI_CHANNELS.DOWNLOAD_PROGRESS,

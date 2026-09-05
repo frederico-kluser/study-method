@@ -16,6 +16,10 @@
  *   - E2E_NETWORK=offline : obriga o gate a reportar phase 'offline' (com chaves).
  *   - E2E_WORKSPACE_ROOT  : raiz onde o stub materializa os workspaces dos
  *                           desafios (o teste lê em disco p/ aferir persistência).
+ *   - E2E_QUIZ_AI=off     : (onda2-remediacao) derruba a IA do ciclo de quiz —
+ *                           track:quiz-explain e track:quiz-remedial passam a
+ *                           devolver QUIZ_UNAVAILABLE, que é como o e2e cobre a
+ *                           tela de falha FECHADA sem depender de rede.
  *
  * O stub reusa buildStudyHandlers/buildPiHandlers (DAVI de DI real), então a
  * lógica de segurança de workspace (contenção de path, escrita real em disco)
@@ -42,12 +46,24 @@ import {
   KEYS_CHANNELS,
   LOCAL_AI_CHANNELS,
   PI_CHANNELS,
+  QUIZ_ERROR_CODES,
   STT_CHANNELS,
   STUDY_CHANNELS,
   TRACK_CHANNELS,
   TTS_CHANNELS,
 } from '@shared/ipc-contract';
 import type {
+  QuizAttemptDto,
+  QuizAttemptReply,
+  QuizAttemptRequest,
+  QuizExplainReply,
+  QuizExplainRequest,
+  QuizHistoryReply,
+  QuizHistoryRequest,
+  QuizRemedialReply,
+  QuizRemedialRequest,
+  QuizRemediationDto,
+  QuizSectionMasteryDto,
   TrackChallengeGetRequest,
   TrackChallengeResult,
   TrackDetailResult,
@@ -73,6 +89,7 @@ import type { LessonProgress } from './lessonTypes';
 import { loadAllTracks, loadTrack, findLessonAnywhere } from '../content/trackLoader';
 import { buildTrackList, buildTrackDetail, buildTrackLesson, resolveChallengeSpec } from '../services/trackService';
 import { nextSection } from '../services/tutorChat';
+import { createQuizRemediation } from '../services/quizRemediation';
 import { runStudentCode } from '../services/challengeExec';
 
 const E2E = process.env.STUDY_METHOD_E2E === '1';
@@ -736,6 +753,191 @@ export function buildTrackStubHandlers(): Map<string, IpcHandlerFn> {
     removed: [],
     skipped: [],
   }));
+  // onda2-remediacao: os 4 canais do QUIZ ADAPTATIVO (attempt/explain/remedial/
+  // history) — ver buildQuizStubHandlers.
+  for (const [channel, handler] of buildQuizStubHandlers()) map.set(channel, handler);
+  return map;
+}
+
+
+// ─── QUIZ ADAPTATIVO no modo E2E (onda2-remediacao) ──────────────────────────
+// Os quatro canais de quiz existem em produção; sem stub, o e2e do ciclo
+// (errar → explicação → quiz novo → acertar → desafio abre) seria impossível de
+// escrever, porque explain/remedial chamam a LLM. Aqui a IA é um `chat` FAKE
+// injetado no serviço REAL (`createQuizRemediation`) — mesma disciplina do
+// resto do arquivo (o stub reusa a lógica de produção e falsifica só a borda):
+// o prompt montado, a validação de shape do quiz e o fail-closed exercitados no
+// e2e são EXATAMENTE os de produção; só o texto do modelo é fixture.
+//
+// A persistência é um store EM MEMÓRIA de módulo (e não `buildE2ETrackRepo`,
+// que recria os seus mapas a cada chamada): o histórico precisa sobreviver
+// entre invocações de canal dentro da mesma execução do app.
+
+/** Tentativas e remediações da sessão E2E (zeradas a cada processo). */
+const e2eQuiz: { attempts: QuizAttemptDto[]; remediations: QuizRemediationDto[] } = {
+  attempts: [],
+  remediations: [],
+};
+
+/** Relógio DETERMINÍSTICO do quiz E2E: nada de Date.now() na fixture. */
+let e2eQuizClock = 0;
+function e2eQuizStamp(): string {
+  e2eQuizClock += 1;
+  return `2026-01-01T00:00:${String(e2eQuizClock).padStart(2, '0')}.000Z`;
+}
+
+/** A IA do quiz está ligada nesta execução? (`E2E_QUIZ_AI=off` a derruba.) */
+function e2eQuizAiOn(): boolean {
+  return (process.env.E2E_QUIZ_AI ?? 'on') !== 'off';
+}
+
+/**
+ * A EXPLICAÇÃO fixture. Segue as mesmas proibições do prompt de produção
+ * (nada de elogio, nada de percentual de domínio, nada de URL, o erro nomeado
+ * na alternativa e não no aluno) — um teste e2e que aferisse o texto não pode
+ * ver aqui o que o produto proíbe lá.
+ */
+function e2eExplanationFor(p: QuizExplainRequest): string {
+  const escolhida = p.assertion?.options?.[p.selectedIndex] ?? '(alternativa)';
+  return [
+    `A alternativa "${escolhida}" não se sustenta na afirmação "${p.assertion?.statement ?? ''}".`,
+    `A seção "${p.sectionKey}" mostra o contrário disso.`,
+    'O que você esperava que acontecesse ao escolher essa alternativa?',
+    'Vem uma pergunta nova sobre a mesma ideia.',
+    '(explicação E2E determinística — sem rede, sem LLM.)',
+  ].join('\n\n');
+}
+
+/**
+ * O QUIZ NOVO fixture, em JSON — é o que o `chat` fake devolve, e ele passa
+ * pela MESMA validação de shape de produção (`parseRemedialQuiz`). A pergunta
+ * carrega a geração e o tamanho da lista de já-vistas, então nunca colide com o
+ * nunca-repetir; `answerIndex` é determinístico (geração módulo 4), que é o que
+ * permite ao teste e2e responder certo (ou errado) de propósito.
+ */
+function e2eRemedialDraft(p: QuizRemedialRequest): string {
+  const asked = p.askedQuestions?.length ?? 0;
+  const correct = ((p.generation % 4) + 4) % 4;
+  const options = [0, 1, 2, 3].map((i) => `E2E alternativa ${i + 1} da geração ${p.generation}`);
+  return JSON.stringify({
+    statement: `${p.assertion?.statement ?? ''} (verificação E2E)`,
+    question: `E2E g${p.generation}.${asked}: o que a seção "${p.sectionKey}" demonstra?`,
+    options,
+    answerIndex: correct,
+    feedback: `A alternativa ${correct + 1} é a que a seção "${p.sectionKey}" demonstra.`,
+    optionRationales: options.map((_o, i) =>
+      i === correct
+        ? 'Esta alternativa é a que a seção demonstra.'
+        : `Esta alternativa contraria a seção "${p.sectionKey}".`,
+    ),
+  });
+}
+
+/** Maestria por seção, derivada das tentativas gravadas (mesma pergunta do gate). */
+function e2eQuizMastery(trackSlug: string, lessonId: string): QuizSectionMasteryDto[] {
+  const mine = e2eQuiz.attempts.filter((a) => a.trackSlug === trackSlug && a.lessonId === lessonId);
+  const bySection = new Map<string, QuizAttemptDto[]>();
+  for (const a of mine) {
+    const list = bySection.get(a.sectionKey) ?? [];
+    list.push(a);
+    bySection.set(a.sectionKey, list);
+  }
+  // Seção sem NENHUMA tentativa não aparece — a ausência é a resposta.
+  return [...bySection.entries()].map(([sectionKey, list]) => {
+    const corretas = list.filter((a) => a.correct);
+    return {
+      sectionKey,
+      mastered: corretas.length > 0,
+      attemptCount: list.length,
+      correctCount: corretas.length,
+      firstCorrectAt: corretas.length > 0 ? corretas[0].createdAt : null,
+      lastAttemptAt: list.length > 0 ? list[list.length - 1].createdAt : null,
+    };
+  });
+}
+
+/** Handlers dos 4 canais de quiz — exportado para o teste unitário. */
+export function buildQuizStubHandlers(): Map<string, IpcHandlerFn> {
+  const map = new Map<string, IpcHandlerFn>();
+
+  map.set(TRACK_CHANNELS.QUIZ_ATTEMPT, async (_e, payload: unknown): Promise<QuizAttemptReply> => {
+    const p = (payload ?? {}) as QuizAttemptRequest;
+    if (!p.trackSlug || !p.lessonId || !p.sectionKey || !p.assertionId) {
+      return {
+        ok: false,
+        code: QUIZ_ERROR_CODES.NOT_FOUND,
+        message: 'pedido sem trilha/aula/seção/afirmação (stub E2E).',
+      };
+    }
+    const naSecao = e2eQuiz.attempts.filter(
+      (a) => a.trackSlug === p.trackSlug && a.lessonId === p.lessonId && a.sectionKey === p.sectionKey,
+    );
+    const attempt: QuizAttemptDto = {
+      trackSlug: p.trackSlug,
+      lessonId: p.lessonId,
+      sectionKey: p.sectionKey,
+      assertionId: p.assertionId,
+      selectedIndex: typeof p.selectedIndex === 'number' ? p.selectedIndex : -1,
+      correct: p.correct === true,
+      attemptNo: typeof p.attemptNo === 'number' ? p.attemptNo : naSecao.length + 1,
+      quizOrigin: p.quizOrigin ?? 'authored',
+      createdAt: e2eQuizStamp(),
+    };
+    e2eQuiz.attempts.push(attempt);
+    return { ok: true, attempt, mastery: e2eQuizMastery(p.trackSlug, p.lessonId) };
+  });
+
+  map.set(TRACK_CHANNELS.QUIZ_EXPLAIN, async (_e, payload: unknown): Promise<QuizExplainReply> => {
+    const p = (payload ?? {}) as QuizExplainRequest;
+    // `E2E_QUIZ_AI=off` = sem `chat` no serviço real ⇒ QUIZ_UNAVAILABLE.
+    const service = createQuizRemediation(
+      e2eQuizAiOn() ? { chat: async () => ({ content: e2eExplanationFor(p) }) } : {},
+    );
+    return service.explain(p);
+  });
+
+  map.set(TRACK_CHANNELS.QUIZ_REMEDIAL, async (_e, payload: unknown): Promise<QuizRemedialReply> => {
+    const p = (payload ?? {}) as QuizRemedialRequest;
+    const service = createQuizRemediation(
+      e2eQuizAiOn() ? { chat: async () => ({ content: e2eRemedialDraft(p) }) } : {},
+    );
+    const reply = await service.remedial(p);
+    if (reply.ok) {
+      // O par explicação+quiz é o que faz a remediação "ficar no histórico".
+      e2eQuiz.remediations.push({
+        id: `${reply.quiz.id}@e2e`,
+        trackSlug: p.trackSlug,
+        lessonId: p.lessonId,
+        sectionKey: p.sectionKey,
+        originAssertionId: p.originAssertionId,
+        generation: p.generation,
+        explanation: p.explanation ?? '',
+        quiz: reply.quiz,
+        createdAt: e2eQuizStamp(),
+      });
+    }
+    return reply;
+  });
+
+  map.set(TRACK_CHANNELS.QUIZ_HISTORY, async (_e, payload: unknown): Promise<QuizHistoryReply> => {
+    const p = (payload ?? {}) as QuizHistoryRequest;
+    if (!p.trackSlug || !p.lessonId) {
+      return {
+        ok: false,
+        code: QUIZ_ERROR_CODES.NOT_FOUND,
+        message: 'pedido sem trilha/aula (stub E2E).',
+      };
+    }
+    const daAula = <T extends { trackSlug: string; lessonId: string }>(rows: T[]): T[] =>
+      rows.filter((r) => r.trackSlug === p.trackSlug && r.lessonId === p.lessonId);
+    return {
+      ok: true,
+      attempts: daAula(e2eQuiz.attempts),
+      remediations: daAula(e2eQuiz.remediations),
+      mastery: e2eQuizMastery(p.trackSlug, p.lessonId),
+    };
+  });
+
   return map;
 }
 
