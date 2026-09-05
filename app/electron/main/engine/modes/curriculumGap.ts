@@ -111,6 +111,75 @@
  *     entra em `recusadas` com o motivo estruturado e NÃO é gravada. Uma aula
  *     inventada nunca chega ao disco.
  *
+ * BUG CONSERTADO — "SLUG_EM_USO FALSO" (medido por dois revisores
+ * independentes, cada um com fixture própria, depois que a onda anterior
+ * ligou este módulo ao CLI pela primeira vez — antes disso `curriculumGap.ts`
+ * não tinha NENHUM chamador fora do próprio teste, e o defeito era
+ * INATINGÍVEL em produção):
+ *
+ *   O DEFEITO — `planejarAulasDeLacuna` agrupava as lacunas por
+ *   `refDoDesafio` (a aula QUE COBRA) e planejava uma aula nova POR GRUPO,
+ *   sem nunca olhar para os outros grupos. Quando a MESMA construção falta em
+ *   DUAS aulas diferentes (`typeof` cobrado por `a02` e por nada relacionado
+ *   entre si por `a05`), o planejador gerava DUAS candidatas com o MESMO
+ *   `construcoes` — e `slugDaAulaDeLacuna` é uma função pura do conjunto de
+ *   construções (§ "O SLUG da aula nova" abaixo): as duas colidiam por
+ *   construção, não por acaso. A primeira virava aula; a segunda batia em
+ *   `slugsPlanejados` e virava `BLOQUEIO [SLUG_EM_USO]` com a mensagem "o
+ *   slug derivado `X` já existe NESTA TRILHA" — FALSO: o slug só existia no
+ *   PLANO da mesma leva, nunca no disco. E o bloqueio era uma PENDÊNCIA
+ *   FALSA: a aula planejada para `a02` é inserida ANTES de `a02`, e por ser
+ *   MAIS CEDO que `a05` na ordem pedagógica, o orçamento monotônico do §3.5
+ *   (`saida(N) = entrada(N) ∪ introduces(N)`, nunca perde nada adiante) já
+ *   fecha a lacuna de `a05` de graça — só ninguém dizia isso ao operador, que
+ *   via "1 aula planejada + 1 bloqueio" quando a resposta certa era "1 aula
+ *   planejada, 0 bloqueio, e ela resolve os dois".
+ *
+ *   A ESCOLHA — dos dois caminhos que os revisores nomearam (agregar por
+ *   construção ANTES do slug, ou reconhecer a aula já planejada como
+ *   cobertura), este módulo agrega: `planejarAulasDeLacuna` agora tem DUAS
+ *   fases. A FASE 1 é a mesma de sempre — por aula-que-cobra, agrupa por
+ *   co-ocorrência (§3.1) e embala sob o teto do §3.6 — mas PARA de decidir
+ *   posição final e slug; ela produz "candidatas" (construções + faixa
+ *   individual). A FASE 2 agrupa as candidatas por ASSINATURA (o conjunto
+ *   ORDENADO de construções) e só ENTÃO deriva UMA posição e UM slug por
+ *   assinatura:
+ *     - a META MAIS CEDO entre as candidatas dita o `maximo` (inserir ali
+ *       empurra ela E qualquer meta de índice maior para depois — inserir
+ *       num ponto não muda a ordem RELATIVA de quem já vinha depois dele);
+ *     - o PISO mais exigente entre as candidatas dita o `minimo` (a aula
+ *       única tem que valer para QUALQUER desafio que ela feche, não só para
+ *       um deles);
+ *     - só DEPOIS de fechar essa faixa agregada é que o slug é derivado — e
+ *       por isso a MESMA construção nunca mais colide consigo mesma.
+ *   Por que agregar NUNCA estoura o teto do §3.6: a assinatura É o conjunto
+ *   de construções já embalado pela FASE 1 (≤ teto, garantido por
+ *   `empacotarGrupos`), e a FASE 2 só agrega candidatas de assinatura
+ *   IDÊNTICA — nunca soma construções de assinaturas diferentes numa aula só.
+ *   Duas metas que precisam de conjuntos DIFERENTES (`typeof` sozinho numa,
+ *   `typeof` + `!==` na outra, por co-ocorrerem lá) permanecem DUAS aulas
+ *   separadas, cada uma já dentro do teto — nunca é tentado um merge que as
+ *   estouraria (teste: "a agregação nunca estoura o teto do §3.6").
+ *   E quando a faixa agregada FECHA vazia (`minimo > maximo` — as metas
+ *   pedem posições incompatíveis DE VERDADE, não por bug), o motivo
+ *   REUTILIZADO é `POSICAO_IMPOSSIVEL` (§5.5: isso é ORDEM do currículo
+ *   existente, não lacuna) — nenhum motivo novo foi inventado.
+ *
+ *   O QUE CONTINUA BLOQUEANDO — se, depois da agregação, o slug ainda colide
+ *   com uma aula que JÁ EXISTE NO DISCO (`slugsExistentes`), o bloqueio
+ *   `SLUG_EM_USO` continua, e agora a mensagem nomeia a aula real que já usa
+ *   o slug (`existe COMO AULA DESTA TRILHA (\`<ref>\`)`) em vez de afirmar um
+ *   fato genérico e falso sobre "a trilha".
+ *
+ * Referência normativa deste bloco: `docs/16-engine-de-trilha.md` §3.5 (o
+ * orçamento é monotônico — por isso a meta mais cedo fecha as de trás), §3.6
+ * (o teto — por isso a agregação nunca soma assinaturas diferentes), §3.7
+ * (composição é nó próprio — a mesma construção repetida em OUTRO desafio
+ * não é uma composição nova), §5.5 (ORDEM × LACUNA — por isso a faixa vazia
+ * reusa `POSICAO_IMPOSSIVEL`), §9.3 (fail-closed — por isso uma colisão de
+ * hash de verdade, ainda que nunca observada, também bloqueia em vez de
+ * escolher uma candidata em silêncio).
+ *
  * PREMISSAS DECLARADAS (v2):
  *   - `introduces.receptive` da aula nova É IGUAL a `introduces.productive`.
  *     Deixar o autor declarar receptivo extra seria deixá-lo INFLAR o orçamento
@@ -525,12 +594,26 @@ export interface AulaNovaPlanejada {
   ref: string;
   /** as construções que esta aula introduz (≤ TETO_CONSTRUCOES_…). */
   construcoes: readonly AtomKey[];
-  /** ÂNCORA ESTÁVEL: a ref antes da qual a aula entra (nunca um índice cru). */
+  /**
+   * ÂNCORA ESTÁVEL: a ref antes da qual a aula entra (nunca um índice cru).
+   * Quando a MESMA construção é cobrada por mais de um desafio (`alvos.length
+   * > 1`), este é o alvo MAIS CEDO dos vários — inserir ali fecha a lacuna de
+   * todo mundo que vem depois dele também, porque o orçamento é monotônico
+   * (§3.5: `saida(N) = entrada(N) ∪ introduces(N)` nunca perde nada adiante).
+   */
   inserirAntesDe: string;
   /** índice de inserção na ordem pedagógica ORIGINAL (0-based). */
   indiceDeInsercao: number;
   /** faixa LEGAL de índices [minimo, maximo] — insumo de quem reordena. */
   faixa: { minimo: number; maximo: number };
+  /**
+   * TODOS os desafios que esta aula fecha, ordenados pelo índice pedagógico
+   * ORIGINAL (o mais cedo primeiro) — ver o cabeçalho do módulo, "SLUG_EM_USO
+   * FALSO": a mesma construção pode faltar em N aulas diferentes ao mesmo
+   * tempo, e UMA aula agregada fecha as N de uma vez. `length === 1` é o caso
+   * comum (uma lacuna, uma aula). Invariante: `alvos[0] === inserirAntesDe`.
+   */
+  alvos: readonly string[];
   /** a ref da última aula que a aula nova pressupõe (`null` = só o axioma). */
   depoisDe: string | null;
   /** os pressupostos efetivos (átomos do mínimo ∖ construções desta aula). */
@@ -653,11 +736,38 @@ export function empacotarGrupos(
 }
 
 /**
+ * Uma candidata a aula nova já embalada pela FASE 1 (co-ocorrência + teto do
+ * §3.6), mas AINDA SEM posição final nem slug — ver "BUG CONSERTADO" no
+ * cabeçalho do módulo. Tipo interno: não faz parte do contrato público.
+ */
+interface CandidataDeAulaNova {
+  refDoDesafio: string;
+  moduloSlug: string;
+  /** índice, na ordem ORIGINAL, do desafio que ESTA candidata cobra. */
+  indiceAlvo: number;
+  grupo: readonly LacunaDeCurriculo[];
+  construcoes: readonly AtomKey[];
+  gruposDistintos: number;
+  semente: SementeDeSplit | null;
+  pressupostos: readonly AtomKey[];
+  /** piso INDIVIDUAL (olhando só para o código mínimo DESTA candidata). */
+  minimo: number;
+  depoisDe: string | null;
+}
+
+/**
  * O PLANEJAMENTO POSICIONAL — função PURA (P1: a posição de uma aula é
  * decidível por código, e por isso NÃO é decidida por LLM).
  *
+ * DUAS FASES (ver "BUG CONSERTADO" no cabeçalho do módulo para o porquê):
+ * FASE 1, por aula-que-cobra, produz candidatas (grupo de construções + faixa
+ * individual), sem decidir slug nem posição final; FASE 2 agrega candidatas
+ * de MESMA ASSINATURA (mesmo conjunto de construções, venha de que desafio
+ * vier) numa ÚNICA aula, e só então deriva a posição final e o slug.
+ *
  * Determinístico: mesma entrada → mesmo plano, byte a byte (a ordem é a do
- * relatório do audit; nada de `Set` iterado sem ordenação prévia).
+ * relatório do audit; nada de `Set`/`Map` iterado sem ordem de inserção
+ * estável — e a ordem de inserção aqui é sempre a de chegada dos dados).
  */
 export function planejarAulasDeLacuna(entrada: EntradaDoPlanoDeLacuna): PlanoDeLacuna {
   const teto = Math.min(
@@ -666,7 +776,13 @@ export function planejarAulasDeLacuna(entrada: EntradaDoPlanoDeLacuna): PlanoDeL
   );
   const sementes = entrada.sementes ?? [];
   const derivado = derivarOrcamentoNaOrdem(entrada.ordem);
-  const slugsExistentes = new Set(entrada.ordem.aulas.map((a) => a.ref.split('/')[1] ?? a.ref));
+  // slug → ref da aula EXISTENTE que já o usa. Mapa, não Set: a mensagem do
+  // SLUG_EM_USO tem que apontar para uma aula REAL quando o bloqueio é
+  // legítimo (ver "BUG CONSERTADO" no cabeçalho — a versão antiga mentia
+  // "já existe nesta trilha" quando a colisão era só entre duas candidatas
+  // da MESMA leva, nunca contra o disco).
+  const slugsExistentes = new Map<string, string>();
+  for (const a of entrada.ordem.aulas) slugsExistentes.set(a.ref.split('/')[1] ?? a.ref, a.ref);
 
   // Todas as construções faltantes deste plano — usadas para decidir se um
   // pressuposto ausente é "lacuna encadeada" (bloqueio) ou "a leva resolve".
@@ -682,7 +798,17 @@ export function planejarAulasDeLacuna(entrada: EntradaDoPlanoDeLacuna): PlanoDeL
 
   const aulasNovas: AulaNovaPlanejada[] = [];
   const bloqueios: BloqueioDeLacuna[] = [];
-  const slugsPlanejados = new Set<string>();
+  // slug → construções da candidata que o reservou (mensagem honesta no raro
+  // caso de colisão de HASH DE VERDADE entre duas assinaturas diferentes).
+  const slugsPlanejados = new Map<string, readonly AtomKey[]>();
+
+  // ---------------------------------------------------------------------
+  // FASE 1 — por aula-que-cobra: co-ocorrência (§3.1) + teto (§3.6). Produz
+  // CANDIDATAS, agrupadas por ASSINATURA (o conjunto de construções) — a
+  // posição final e o slug são decididos só na FASE 2, depois de agregar.
+  // ---------------------------------------------------------------------
+  const candidatasPorAssinatura = new Map<string, CandidataDeAulaNova[]>();
+  const ordemDeAssinaturas: string[] = [];
 
   for (const [refDoDesafio, lacunasDaAula] of porRef) {
     const indiceAlvo = derivado.indicePorRef.get(refDoDesafio);
@@ -755,65 +881,169 @@ export function planejarAulasDeLacuna(entrada: EntradaDoPlanoDeLacuna): PlanoDeL
         continue;
       }
 
-      const maximo = indiceAlvo; // inserir AQUI empurra a aula-alvo para depois
-      if (minimo > maximo) {
-        bloqueios.push({
-          motivo: 'POSICAO_IMPOSSIVEL',
-          ref: refDoDesafio,
-          construcoes,
-          detalhe:
-            `a aula nova teria de vir depois de \`${depoisDe ?? '?'}\` (índice ${minimo - 1}) e antes de ` +
-            `\`${refDoDesafio}\` (índice ${maximo}) — a faixa é vazia. Isso é violação de ORDEM do currículo ` +
-            'que já existe, não lacuna: quem conserta é a reordenação, não a criação de aula (§5.5).',
-        });
-        continue;
-      }
-
-      const slug = slugDaAulaDeLacuna(construcoes);
-      if (slugsExistentes.has(slug) || slugsPlanejados.has(slug)) {
-        bloqueios.push({
-          motivo: 'SLUG_EM_USO',
-          ref: refDoDesafio,
-          construcoes,
-          detalhe:
-            `o slug derivado \`${slug}\` já existe nesta trilha — o slug de aula é CHAVE GLOBAL de progresso ` +
-            'do aluno (I12): duas aulas com o mesmo slug compartilhariam o registro de conclusão.',
-        });
-        continue;
-      }
-      slugsPlanejados.add(slug);
-
-      // A POLARIDADE vem do P-13, não de uma string escrita aqui: o tipo
-      // `AcaoDeLacuna` exclui `REWRITE_IN_BUDGET` em tempo de compilação.
-      const plano = planoDeAcao({ evidencia: { introduzido_em: null } } as ApontamentoParaPlano);
-      const acao: AcaoDeLacuna = plano.lacuna ? plano.acao : ACOES_DE_LACUNA[0];
-
-      aulasNovas.push({
-        slug,
+      // A ASSINATURA é o conjunto ORDENADO de construções. Duas candidatas
+      // com a MESMA assinatura são a MESMA lacuna vista de dois desafios
+      // diferentes (o bug: `typeof` faltando em `a02` E em `a05` produz duas
+      // candidatas com `construcoes = ['op:unary:typeof']` cada) — a FASE 2
+      // as funde numa aula só. Assinaturas DIFERENTES NUNCA se fundem: isso
+      // poderia somar construções de dois desafios e estourar o teto do §3.6.
+      const assinatura = [...construcoes].sort().join(' ');
+      const candidata: CandidataDeAulaNova = {
+        refDoDesafio,
         moduloSlug,
-        ref: `${moduloSlug}/${slug}`,
+        indiceAlvo,
+        grupo,
         construcoes,
-        inserirAntesDe: refDoDesafio,
-        indiceDeInsercao: maximo,
-        faixa: { minimo, maximo },
-        depoisDe,
-        pressupostos,
-        // §3.7 — composição é nó PRÓPRIO, marcado `integration`. Dois EIXOS do
-        // mesmo nó (`node:TypeOfExpression` + `op:unary:typeof`) NÃO são
-        // composição: são a mesma construção vista de dois ângulos. Composição
-        // é a aula que carrega mais de um GRUPO de co-ocorrência.
-        role: gruposDistintos > 1 ? 'integration' : 'regular',
-        cobradaEm: [...new Set(grupo.map((l) => l.arquivo))],
+        gruposDistintos,
         semente,
-        acao,
-        acoes_permitidas: [...ACOES_DE_LACUNA],
-        motivo:
-          `LACUNA DE CURRÍCULO: ${construcoes.map(humanLabel).join(', ')} não ${construcoes.length > 1 ? 'são ensinadas' : 'é ensinada'} ` +
-          `em NENHUMA aula, e o desafio de \`${refDoDesafio}\` ${construcoes.length > 1 ? 'as' : 'a'} cobra — ` +
-          `a ação é CRIAR A AULA (${acao}), inserida imediatamente ANTES de \`${refDoDesafio}\` ` +
-          `(faixa legal [${minimo}, ${maximo}]), e NUNCA reescrever o desafio (§5.5).`,
-      });
+        pressupostos,
+        minimo,
+        depoisDe,
+      };
+      const lista = candidatasPorAssinatura.get(assinatura);
+      if (lista === undefined) {
+        candidatasPorAssinatura.set(assinatura, [candidata]);
+        ordemDeAssinaturas.push(assinatura);
+      } else {
+        lista.push(candidata);
+      }
     }
+  }
+
+  // ---------------------------------------------------------------------
+  // FASE 2 — agregação por ASSINATURA, ANTES de derivar posição e slug (o
+  // conserto do "SLUG_EM_USO FALSO" — ver o cabeçalho do módulo).
+  // ---------------------------------------------------------------------
+  for (const assinatura of ordemDeAssinaturas) {
+    const candidatas = candidatasPorAssinatura.get(assinatura);
+    // Só é `undefined` se `ordemDeAssinaturas` e `candidatasPorAssinatura`
+    // divergirem — impossível pela construção acima (toda chave nova em um
+    // entra no outro na mesma iteração). Fail-closed mesmo assim (§9.3):
+    // pular em silêncio esconderia uma lacuna real; documentar aqui não.
+    if (candidatas === undefined || candidatas.length === 0) continue;
+
+    // A META MAIS CEDO dita o `maximo`: inseri-la ali empurra ELA (e, por
+    // consequência, qualquer meta de índice maior — inserir num ponto não
+    // muda a ordem RELATIVA de quem já vinha depois dele) para depois. Ou
+    // seja: "antes da mais cedo" já é "antes de todas" (§3.5, monotônico).
+    let principal = candidatas[0];
+    for (const c of candidatas) if (c.indiceAlvo < principal.indiceAlvo) principal = c;
+    const maximo = principal.indiceAlvo;
+
+    // O PISO mais exigente dita o `minimo`: a aula única tem que valer para
+    // QUALQUER desafio que ela feche, então é o MAIOR entre os pisos
+    // individuais (cada um já calculado na FASE 1 a partir do seu próprio
+    // código mínimo).
+    let minimo = 0;
+    let depoisDe: string | null = null;
+    for (const c of candidatas) {
+      if (c.minimo > minimo) {
+        minimo = c.minimo;
+        depoisDe = c.depoisDe;
+      }
+    }
+
+    const alvos = [...new Set([...candidatas].sort((a, b) => a.indiceAlvo - b.indiceAlvo).map((c) => c.refDoDesafio))];
+    const refsListados = alvos.join(', ');
+
+    if (minimo > maximo) {
+      bloqueios.push({
+        motivo: 'POSICAO_IMPOSSIVEL',
+        ref: principal.refDoDesafio,
+        construcoes: principal.construcoes,
+        detalhe:
+          alvos.length > 1
+            ? `a mesma construção fecha ${alvos.length} desafios (${refsListados}), mas juntos eles pedem faixas ` +
+              `incompatíveis: a aula única teria de vir depois de \`${depoisDe ?? '?'}\` (índice ${minimo - 1}, o ` +
+              `pressuposto mais tardio entre os ${alvos.length}) e antes de \`${principal.refDoDesafio}\` (índice ` +
+              `${maximo}, o mais cedo dos ${alvos.length}) — a faixa é vazia. Isso é violação de ORDEM do currículo ` +
+              'que já existe, não lacuna: quem conserta é a reordenação, não a criação de aula (§5.5).'
+            : `a aula nova teria de vir depois de \`${depoisDe ?? '?'}\` (índice ${minimo - 1}) e antes de ` +
+              `\`${principal.refDoDesafio}\` (índice ${maximo}) — a faixa é vazia. Isso é violação de ORDEM do ` +
+              'currículo que já existe, não lacuna: quem conserta é a reordenação, não a criação de aula (§5.5).',
+      });
+      continue;
+    }
+
+    const slug = slugDaAulaDeLacuna(principal.construcoes);
+    const existente = slugsExistentes.get(slug);
+    if (existente !== undefined) {
+      bloqueios.push({
+        motivo: 'SLUG_EM_USO',
+        ref: principal.refDoDesafio,
+        construcoes: principal.construcoes,
+        detalhe:
+          `o slug derivado \`${slug}\` já existe COMO AULA DESTA TRILHA (\`${existente}\`) — o slug de aula é ` +
+          'CHAVE GLOBAL de progresso do aluno (I12): duas aulas com o mesmo slug compartilhariam o registro de ' +
+          'conclusão. Esta é uma colisão LEGÍTIMA contra conteúdo que já existe no disco — diferente da colisão ' +
+          'FALSA entre duas candidatas da mesma leva pedindo a MESMA construção, que a agregação acima já resolve.',
+      });
+      continue;
+    }
+    const colideNaLeva = slugsPlanejados.get(slug);
+    if (colideNaLeva !== undefined) {
+      // Só dispara se DUAS assinaturas DIFERENTES colidirem no hash truncado
+      // de 8 hex de `slugDaAulaDeLacuna` — nunca observado, mas §9.3 exige
+      // tratar em vez de uma candidata sobrescrever a outra em silêncio.
+      bloqueios.push({
+        motivo: 'SLUG_EM_USO',
+        ref: principal.refDoDesafio,
+        construcoes: principal.construcoes,
+        detalhe:
+          `o slug derivado \`${slug}\` colide com OUTRA aula planejada NESTA MESMA LEVA, que introduz ` +
+          `${colideNaLeva.map(humanLabel).join(', ')} — construções DIFERENTES com o mesmo hash truncado. Isto NÃO ` +
+          'é o bug do slug repetido para a MESMA construção (a agregação por assinatura já cobre esse caso): é ' +
+          'colisão de hash de verdade, e o sub-fluxo falha fechado em vez de escolher uma das duas (§9.3).',
+      });
+      continue;
+    }
+    slugsPlanejados.set(slug, principal.construcoes);
+
+    // A POLARIDADE vem do P-13, não de uma string escrita aqui: o tipo
+    // `AcaoDeLacuna` exclui `REWRITE_IN_BUDGET` em tempo de compilação.
+    const plano = planoDeAcao({ evidencia: { introduzido_em: null } } as ApontamentoParaPlano);
+    const acao: AcaoDeLacuna = plano.lacuna ? plano.acao : ACOES_DE_LACUNA[0];
+
+    const construcoes = principal.construcoes;
+    const pressupostos = [...new Set(candidatas.flatMap((c) => c.pressupostos))].sort();
+    const cobradaEm = [...new Set(candidatas.flatMap((c) => c.grupo.map((l) => l.arquivo)))];
+    // §3.7 — composição é nó PRÓPRIO, marcado `integration`. Dois EIXOS do
+    // mesmo nó (`node:TypeOfExpression` + `op:unary:typeof`) NÃO são
+    // composição: são a mesma construção vista de dois ângulos. Composição é
+    // a aula que carrega mais de um GRUPO de co-ocorrência em QUALQUER dos
+    // desafios agregados — a MESMA construção repetida em OUTRO desafio não
+    // é uma composição nova (é a mesma construção, não uma construção a mais).
+    const composta = candidatas.some((c) => c.gruposDistintos > 1);
+
+    aulasNovas.push({
+      slug,
+      moduloSlug: principal.moduloSlug,
+      ref: `${principal.moduloSlug}/${slug}`,
+      construcoes,
+      inserirAntesDe: principal.refDoDesafio,
+      indiceDeInsercao: maximo,
+      faixa: { minimo, maximo },
+      depoisDe,
+      pressupostos,
+      role: composta ? 'integration' : 'regular',
+      cobradaEm,
+      semente: principal.semente,
+      acao,
+      acoes_permitidas: [...ACOES_DE_LACUNA],
+      alvos,
+      motivo:
+        alvos.length > 1
+          ? `LACUNA DE CURRÍCULO: ${construcoes.map(humanLabel).join(', ')} não ${construcoes.length > 1 ? 'são ensinadas' : 'é ensinada'} ` +
+            `em NENHUMA aula, e É COBRADA por ${alvos.length} desafios diferentes (${refsListados}) — UMA aula ` +
+            `agregada fecha os ${alvos.length} de uma vez, porque o orçamento é monotônico (§3.5: inserir aula só ` +
+            `ACRESCENTA orçamento a quem vem depois) — a ação é CRIAR A AULA (${acao}), inserida imediatamente ` +
+            `ANTES de \`${principal.refDoDesafio}\` (a mais cedo dos ${alvos.length}, faixa legal [${minimo}, ${maximo}]), ` +
+            'e NUNCA reescrever o desafio (§5.5).'
+          : `LACUNA DE CURRÍCULO: ${construcoes.map(humanLabel).join(', ')} não ${construcoes.length > 1 ? 'são ensinadas' : 'é ensinada'} ` +
+            `em NENHUMA aula, e o desafio de \`${principal.refDoDesafio}\` ${construcoes.length > 1 ? 'as' : 'a'} cobra — ` +
+            `a ação é CRIAR A AULA (${acao}), inserida imediatamente ANTES de \`${principal.refDoDesafio}\` ` +
+            `(faixa legal [${minimo}, ${maximo}]), e NUNCA reescrever o desafio (§5.5).`,
+    });
   }
 
   const deltasEsperados: DeltaDeLacuna[] = aulasNovas.map((a) => ({
@@ -821,7 +1051,10 @@ export function planejarAulasDeLacuna(entrada: EntradaDoPlanoDeLacuna): PlanoDeL
     inserirAntesDe: a.inserirAntesDe,
     construcoes: a.construcoes,
     acao: a.acao,
-    antes: `${a.construcoes.join(', ')} sem aula dona (primeiraAulaQueEnsina === null) e cobrada em ${a.inserirAntesDe}`,
+    antes:
+      a.alvos.length > 1
+        ? `${a.construcoes.join(', ')} sem aula dona (primeiraAulaQueEnsina === null) e cobrada em ${a.alvos.length} desafios: ${a.alvos.join(', ')}`
+        : `${a.construcoes.join(', ')} sem aula dona (primeiraAulaQueEnsina === null) e cobrada em ${a.inserirAntesDe}`,
     depois: `${a.construcoes.join(', ')} ensinada em \`${a.ref}\`, imediatamente antes de \`${a.inserirAntesDe}\``,
     arquivos: caminhosDaAulaNova(a),
   }));
@@ -1292,8 +1525,12 @@ export function verificarAulaNova(e: EntradaDaVerificacao): ResultadoDaVerificac
   }
 
   // (a) A LACUNA FECHOU? A construção tem dona, é ESTA aula, e ela vem ANTES
-  //     do desafio que a cobrava.
-  const indiceDoAlvo = derivado.indicePorRef.get(e.aula.inserirAntesDe);
+  //     de TODO desafio que a cobrava — `e.aula.alvos` é o conjunto INTEIRO
+  //     (uma aula AGREGADA fecha mais de um desafio de uma vez, ver o
+  //     cabeçalho do módulo, "SLUG_EM_USO FALSO"; o caso comum tem length 1).
+  //     A monotonicidade do §3.5 já GARANTE isso a partir do mais cedo
+  //     (`inserirAntesDe` = `alvos[0]`) sozinho, mas o gate MEDE todos em vez
+  //     de confiar na álgebra sem medir (§9.3).
   for (const chave of planejadas) {
     const dona = derivado.firstTaughtIn.get(chave);
     if (dona === undefined) {
@@ -1308,13 +1545,16 @@ export function verificarAulaNova(e: EntradaDaVerificacao): ResultadoDaVerificac
       );
       continue;
     }
-    if (indiceDoAlvo !== undefined && orcamentoDaNova.index >= indiceDoAlvo) {
-      push(
-        'LACUNA_PERSISTE',
-        chave,
-        `a aula nova ficou no índice ${orcamentoDaNova.index}, e o desafio que cobra ${humanLabel(chave)} está em ` +
-          `\`${e.aula.inserirAntesDe}\` (índice ${indiceDoAlvo}): ensinar DEPOIS de cobrar não fecha lacuna nenhuma.`,
-      );
+    for (const alvo of e.aula.alvos) {
+      const indiceDoAlvo = derivado.indicePorRef.get(alvo);
+      if (indiceDoAlvo !== undefined && orcamentoDaNova.index >= indiceDoAlvo) {
+        push(
+          'LACUNA_PERSISTE',
+          chave,
+          `a aula nova ficou no índice ${orcamentoDaNova.index}, e o desafio que cobra ${humanLabel(chave)} está em ` +
+            `\`${alvo}\` (índice ${indiceDoAlvo}): ensinar DEPOIS de cobrar não fecha lacuna nenhuma.`,
+        );
+      }
     }
   }
 
@@ -1533,6 +1773,11 @@ export function lessonJsonDaAulaNova(e: EntradaDaMaterializacao): TrackLessonSou
       acao: e.aula.acao,
       construcoes: [...e.aula.construcoes],
       inserirAntesDe: e.aula.inserirAntesDe,
+      // TODOS os desafios que esta aula fecha (não só `inserirAntesDe`, o
+      // mais cedo deles) — rastro honesto de uma aula AGREGADA (ver o
+      // cabeçalho do módulo, "SLUG_EM_USO FALSO"). `length === 1` no caso
+      // comum (uma lacuna, um desafio, uma aula).
+      alvos: [...e.aula.alvos],
       cobradaEm: [...e.aula.cobradaEm],
     },
   };

@@ -161,6 +161,26 @@ function trilhaComLacunaDeTypeof(): LoadedTrack {
   ]);
 }
 
+/**
+ * A trilha do BUG "SLUG_EM_USO FALSO": a MESMA construção (`typeof`) falta em
+ * `quantidade` desafios DIFERENTES, em aulas DIFERENTES, e nenhuma delas se
+ * relaciona pedagogicamente com a outra — só compartilham a lacuna. Antes do
+ * conserto, isto produzia 1 aula + (quantidade - 1) bloqueios `SLUG_EM_USO`
+ * (falsos); depois, 1 aula agregada + 0 bloqueios.
+ */
+function trilhaComLacunaRepetidaDeTypeof(quantidade: number): LoadedTrack {
+  const aulas: AulaDeFixture[] = [{ slug: 'a01', dificuldade: 1, teoria: TEORIA_A01, desafios: [] }];
+  for (let i = 0; i < quantidade; i += 1) {
+    aulas.push({
+      slug: `alvo${i + 1}`,
+      dificuldade: 3,
+      teoria: TEORIA_A02,
+      desafios: [desafio(`d${i + 1}`, 'export function f(v) {\n  let t = typeof v;\n  return t;\n}\n')],
+    });
+  }
+  return fazerTrilha(aulas);
+}
+
 // ---------------------------------------------------------------------------
 // Fakes — transporte de LLM (zero rede) e coletor de escrita
 // ---------------------------------------------------------------------------
@@ -496,6 +516,213 @@ describe('planejarAulasDeLacuna — onde a aula nova entra (P1: decidido por có
     assert.notEqual(s1, s3);
     assert.match(s1, /^[a-z0-9]+(-[a-z0-9]+)*$/);
     assert.match(s3, /^[a-z0-9]+(-[a-z0-9]+)*$/, 'chave com `!==` continua produzindo slug válido');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// 2b. O BUG CONSERTADO — "SLUG_EM_USO FALSO": a MESMA construção cobrada por
+// desafios DIFERENTES agrega ANTES de derivar o slug, em vez de colidir
+// consigo mesma. Ver `curriculumGap.ts`, cabeçalho, bloco "BUG CONSERTADO".
+// ---------------------------------------------------------------------------
+
+describe('planejarAulasDeLacuna — a MESMA construção cobrada por desafios DIFERENTES (bug SLUG_EM_USO falso)', () => {
+  it('faltando em DUAS aulas produz UMA aula só, sem bloqueio, inserida antes da MAIS CEDO', () => {
+    const ordem = ordemSintetica([
+      { ref: 'm01/a01', introduz: [] },
+      { ref: 'm01/a02', introduz: [] },
+      { ref: 'm01/a03', introduz: [] },
+    ]);
+    const plano = planejarAulasDeLacuna({
+      trackSlug: 't',
+      ordem,
+      lacunas: [
+        lacuna('op:unary:typeof', 'm01/a02', 'typeof v;', 'm01/a02/challenges/d1/challenge.json'),
+        lacuna('op:unary:typeof', 'm01/a03', 'typeof w;', 'm01/a03/challenges/d2/challenge.json'),
+      ],
+    });
+
+    assert.equal(plano.bloqueios.length, 0, JSON.stringify(plano.bloqueios));
+    assert.equal(plano.aulasNovas.length, 1, 'UMA aula, não duas — e nenhuma delas vira SLUG_EM_USO');
+    const aula = plano.aulasNovas[0];
+    assert.deepEqual(aula.construcoes, ['op:unary:typeof']);
+    assert.equal(aula.inserirAntesDe, 'm01/a02', 'a MAIS CEDO das duas metas');
+    assert.equal(aula.indiceDeInsercao, 1);
+    assert.deepEqual(aula.faixa, { minimo: 0, maximo: 1 });
+    assert.deepEqual([...aula.alvos], ['m01/a02', 'm01/a03'], 'as DUAS metas, mais cedo primeiro');
+    assert.deepEqual(
+      [...aula.cobradaEm].sort(),
+      ['m01/a02/challenges/d1/challenge.json', 'm01/a03/challenges/d2/challenge.json'],
+      'rastreabilidade dos DOIS arquivos, não só o da meta mais cedo',
+    );
+    assert.match(aula.motivo, /2 desafios diferentes/);
+  });
+
+  it('faltando em TRÊS aulas produz UMA aula só (a agregação não para em duas)', () => {
+    const ordem = ordemSintetica([
+      { ref: 'm01/a01', introduz: [] },
+      { ref: 'm01/a02', introduz: [] },
+      { ref: 'm01/a03', introduz: [] },
+      { ref: 'm01/a04', introduz: [] },
+    ]);
+    const plano = planejarAulasDeLacuna({
+      trackSlug: 't',
+      ordem,
+      lacunas: [
+        lacuna('op:unary:typeof', 'm01/a04', 'typeof x;', 'arq-a04.json'),
+        lacuna('op:unary:typeof', 'm01/a02', 'typeof y;', 'arq-a02.json'),
+        lacuna('op:unary:typeof', 'm01/a03', 'typeof z;', 'arq-a03.json'),
+      ],
+    });
+
+    assert.equal(plano.bloqueios.length, 0, JSON.stringify(plano.bloqueios));
+    assert.equal(plano.aulasNovas.length, 1, 'UMA aula fecha as três, não três aulas nem bloqueios');
+    const aula = plano.aulasNovas[0];
+    assert.equal(aula.inserirAntesDe, 'm01/a02', 'a mais cedo das três, mesmo chegando por último na lista');
+    assert.deepEqual([...aula.alvos], ['m01/a02', 'm01/a03', 'm01/a04']);
+    assert.deepEqual([...aula.cobradaEm].sort(), ['arq-a02.json', 'arq-a03.json', 'arq-a04.json']);
+  });
+
+  it('a REPRODUÇÃO exata do bug: SEM a agregação isto seria 1 aula + 1 BLOQUEIO [SLUG_EM_USO] mentiroso', () => {
+    // Este teste documenta o QUE MUDOU: com o conserto, as mesmas duas
+    // lacunas (mesma construção, dois desafios) não produzem bloqueio NENHUM
+    // — só a aula agregada. A versão antiga de `planejarAulasDeLacuna`
+    // processava por `refDoDesafio` sem olhar para as outras entradas do
+    // Map: a PRIMEIRA candidata (`m01/a02`, por ordem de inserção no Map)
+    // virava aula e reservava o slug; a SEGUNDA (`m01/a05`) recalculava o
+    // MESMO slug (função pura das mesmas construções) e o achava em
+    // `slugsPlanejados`, virando `BLOQUEIO [SLUG_EM_USO]` com a mensagem "já
+    // existe NESTA TRILHA" — falsa (o slug só existia no PLANO desta mesma
+    // leva) — apesar de a aula da linha anterior já fechar as duas lacunas.
+    const ordem = ordemSintetica([
+      { ref: 'm01/a01', introduz: [] },
+      { ref: 'm01/a02', introduz: [] },
+      { ref: 'm01/a03', introduz: [] },
+      { ref: 'm01/a04', introduz: [] },
+      { ref: 'm01/a05', introduz: [] },
+    ]);
+    const plano = planejarAulasDeLacuna({
+      trackSlug: 't',
+      ordem,
+      lacunas: [lacuna('op:unary:typeof', 'm01/a02'), lacuna('op:unary:typeof', 'm01/a05')],
+    });
+
+    assert.equal(plano.aulasNovas.length, 1);
+    assert.ok(
+      !plano.bloqueios.some((b) => b.motivo === 'SLUG_EM_USO'),
+      'nenhum SLUG_EM_USO — a colisão era FALSA (mesma leva, mesma construção), e a agregação a eliminou',
+    );
+    assert.equal(plano.bloqueios.length, 0);
+    // O PLACAR do CLI (`gap`) soma `aulasNovas.length + bloqueios.length` no
+    // dry-run: antes do conserto isto media 1 + 1 = 2 pendências para uma
+    // lacuna que UMA aula já fecha inteiramente; agora mede 1 + 0 = 1.
+    assert.equal(plano.aulasNovas.length + plano.bloqueios.length, 1);
+  });
+
+  it('faixas incompatíveis entre as metas ⇒ POSICAO_IMPOSSIVEL (reusa o motivo existente, não inventa um novo)', () => {
+    // a04 pressupõe algo ensinado em a03 (índice 2) ⇒ piso individual = 3,
+    // teto individual (o próprio índice de a04) = 3 — SOZINHA essa candidata
+    // já seria válida (3 <= 3). a02 não pressupõe nada ⇒ piso 0, teto 1 —
+    // SOZINHA também seria válida. Mas AGREGADAS (mesma construção, uma aula
+    // só) o teto vira o MENOR dos dois tetos (1, a mais cedo) e o piso vira o
+    // MAIOR dos dois pisos (3) — 3 > 1, faixa vazia. Isto só aparece na
+    // agregação: nenhuma das duas candidatas sozinha detectaria o conflito.
+    const ordem = ordemSintetica([
+      { ref: 'm01/a01', introduz: [] },
+      { ref: 'm01/a02', introduz: [] },
+      { ref: 'm01/a03', introduz: ['op:binary:==='] },
+      { ref: 'm01/a04', introduz: [] },
+    ]);
+    const plano = planejarAulasDeLacuna({
+      trackSlug: 't',
+      ordem,
+      lacunas: [lacuna('op:unary:typeof', 'm01/a04', 'a'), lacuna('op:unary:typeof', 'm01/a02', 'b')],
+      sementes: [
+        {
+          aula: 'm01/a04',
+          desafio: 'd1',
+          minimalCode: "typeof v === 'x';",
+          atoms: ['op:unary:typeof', 'op:binary:==='],
+          foraDoOrcamento: ['op:unary:typeof'],
+        },
+      ],
+    });
+
+    assert.equal(plano.aulasNovas.length, 0, 'a agregação NÃO força uma posição inválida');
+    assert.equal(plano.bloqueios.length, 1);
+    assert.equal(plano.bloqueios[0].motivo, 'POSICAO_IMPOSSIVEL', 'reusa o motivo do §5.5 — não inventa um novo');
+    assert.notEqual(
+      plano.bloqueios[0].motivo,
+      'SLUG_EM_USO',
+      'o código antigo confundiria isto com colisão de slug — a causa real é ORDEM (§5.5), não LACUNA',
+    );
+    assert.match(plano.bloqueios[0].detalhe, /2 desafios/);
+    assert.match(plano.bloqueios[0].detalhe, /reordena/);
+  });
+
+  it('a agregação NUNCA estoura o teto do §3.6: só funde assinaturas IDÊNTICAS — conjuntos diferentes ficam SEPARADOS', () => {
+    // Em `m01/a02` falta SÓ `typeof` (assinatura de 1 elemento). Em
+    // `m01/a03`, `typeof` e `!==` co-ocorrem no MESMO trecho (mesmo nó de
+    // sintaxe — `agruparPorCoOcorrencia`), então são embaladas JUNTAS numa
+    // candidata de 2 elementos ali. As duas assinaturas são DIFERENTES
+    // (['op:unary:typeof'] vs ['op:binary:!==','op:unary:typeof']) — a fase 2
+    // NUNCA as funde, porque fundir somaria 3 construções numa aula só e
+    // estouraria TETO_CONSTRUCOES_PRODUTIVAS_NOVAS (2, nunca 3, §3.6). O
+    // comportamento correto é o que se vê aqui: DUAS aulas separadas, cada
+    // uma já dentro do teto — nunca uma tentativa de fusão que estouraria.
+    const ordem = ordemSintetica([
+      { ref: 'm01/a01', introduz: [] },
+      { ref: 'm01/a02', introduz: [] },
+      { ref: 'm01/a03', introduz: [] },
+    ]);
+    const plano = planejarAulasDeLacuna({
+      trackSlug: 't',
+      ordem,
+      lacunas: [
+        lacuna('op:unary:typeof', 'm01/a02', 'sozinho aqui'),
+        lacuna('op:unary:typeof', 'm01/a03', 'v !== typeof w', 'arq3.json'),
+        lacuna('op:binary:!==', 'm01/a03', 'v !== typeof w', 'arq3.json'),
+      ],
+    });
+
+    assert.equal(plano.bloqueios.length, 0, JSON.stringify(plano.bloqueios));
+    assert.equal(plano.aulasNovas.length, 2, 'assinaturas diferentes NUNCA se fundem');
+    for (const aula of plano.aulasNovas) {
+      assert.ok(
+        aula.construcoes.length <= TETO_CONSTRUCOES_PRODUTIVAS_NOVAS,
+        `aula ${aula.ref} tem ${aula.construcoes.length} construções — nunca mais que o teto`,
+      );
+    }
+    const slugs = plano.aulasNovas.map((a) => a.slug);
+    assert.notEqual(slugs[0], slugs[1], 'assinaturas diferentes ⇒ slugs diferentes ⇒ nenhum SLUG_EM_USO espúrio');
+  });
+
+  it('colisão de slug LEGÍTIMA (a trilha JÁ TEM uma aula com aquele slug) continua bloqueando, com mensagem verdadeira', () => {
+    const slugQueJaExiste = slugDaAulaDeLacuna(['op:unary:typeof']);
+    const ordem = ordemSintetica([
+      { ref: 'm01/a01', introduz: [] },
+      { ref: `m01/${slugQueJaExiste}`, introduz: [] }, // aula REAL, já na trilha, ocupando o slug
+      { ref: 'm01/a02', introduz: [] },
+      { ref: 'm01/a03', introduz: [] },
+    ]);
+    const plano = planejarAulasDeLacuna({
+      trackSlug: 't',
+      ordem,
+      // DUAS metas agregáveis — prova que a agregação e a checagem de
+      // colisão LEGÍTIMA convivem: a agregação acontece primeiro (uma aula
+      // só, não duas), e SÓ DEPOIS o slug dela é conferido contra o disco.
+      lacunas: [lacuna('op:unary:typeof', 'm01/a02'), lacuna('op:unary:typeof', 'm01/a03')],
+    });
+
+    assert.equal(plano.aulasNovas.length, 0, 'a colisão é real — nenhuma aula nasce');
+    assert.equal(plano.bloqueios.length, 1);
+    const bloqueio = plano.bloqueios[0];
+    assert.equal(bloqueio.motivo, 'SLUG_EM_USO');
+    assert.match(
+      bloqueio.detalhe,
+      new RegExp(`m01/${slugQueJaExiste}`),
+      'a mensagem nomeia a aula REAL que já usa o slug — não uma afirmação genérica sobre "a trilha"',
+    );
+    assert.match(bloqueio.detalhe, /AULA DESTA TRILHA/, 'diz a verdade: existe NO DISCO, não só nesta leva');
   });
 });
 
@@ -896,6 +1123,70 @@ describe('fecharLacunasDeCurriculo — APLICAR', () => {
     assert.equal(resultado.aceitas.length, 1, JSON.stringify(resultado.recusadas, null, 1));
     assert.ok(resultado.aceitas[0].checksum, 'a cauda é conferida e reportada');
     assert.equal(resultado.aceitas[0].checksum?.ok, false, 'a repetição parcial é DETECTADA (e reportada, não fatal)');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// PONTA A PONTA — o bug "SLUG_EM_USO FALSO" numa trilha de verdade, com LLM
+// FAKE (zero rede, zero chave): a mesma construção cobrada por desafios
+// diferentes autora, verifica e grava UMA aula só, que fecha os dois.
+// ---------------------------------------------------------------------------
+
+describe('fecharLacunasDeCurriculo — a MESMA construção em desafios DIFERENTES autora UMA aula que fecha todos', () => {
+  it('2 desafios: UMA chamada de LLM, UMA aula aceita, zero bloqueio', async () => {
+    const fake = criarLlmFake(() => JSON.stringify(draftDoAutor()));
+    const escrita = coletorDeEscrita();
+    const trilha = trilhaComLacunaRepetidaDeTypeof(2);
+
+    const antes = lacunasDoAudit(auditTrack(trilha));
+    assert.equal(new Set(antes.map((l) => l.refDoDesafio)).size, 2, 'a fixture cobra typeof em DOIS desafios');
+
+    const resultado = await fecharLacunasDeCurriculo(
+      { llm: fake.llm, gravarArquivo: escrita.gravar },
+      { slug: 'fixture-lacuna', track: trilha, modo: 'aplicar' },
+    );
+
+    assert.equal(resultado.plano.bloqueios.length, 0, JSON.stringify(resultado.plano.bloqueios));
+    assert.equal(resultado.plano.aulasNovas.length, 1, 'UMA aula planejada, não duas');
+    assert.equal(fake.chamadas.length, 1, 'UMA autoria — a segunda meta não dispara uma chamada redundante');
+    assert.equal(resultado.aceitas.length, 1);
+    assert.equal(resultado.recusadas.length, 0, JSON.stringify(resultado.recusadas));
+    assert.deepEqual([...resultado.aceitas[0].aula.alvos].sort(), ['m01/alvo1', 'm01/alvo2']);
+
+    // Reconstrói a trilha com a aula nova na âncora planejada e re-audita: a
+    // MESMA aula fecha a lacuna dos DOIS desafios — não só do mais cedo.
+    const aceita = resultado.aceitas[0];
+    const nova = fazerTrilha([
+      { slug: 'a01', dificuldade: 1, teoria: TEORIA_A01, desafios: [] },
+      { slug: aceita.aula.slug, dificuldade: 3, teoria: CODIGO_TYPEOF, desafios: [] },
+      {
+        slug: 'alvo1',
+        dificuldade: 3,
+        teoria: TEORIA_A02,
+        desafios: [desafio('d1', 'export function f(v) {\n  let t = typeof v;\n  return t;\n}\n')],
+      },
+      {
+        slug: 'alvo2',
+        dificuldade: 3,
+        teoria: TEORIA_A02,
+        desafios: [desafio('d2', 'export function f(v) {\n  let t = typeof v;\n  return t;\n}\n')],
+      },
+    ]);
+    assert.deepEqual(lacunasDoAudit(auditTrack(nova)), [], 'as DUAS lacunas fecharam com uma aula só');
+  });
+
+  it('3 desafios: continua UMA aula só (a agregação não satura em duas)', async () => {
+    const fake = criarLlmFake(() => JSON.stringify(draftDoAutor()));
+    const resultado = await fecharLacunasDeCurriculo(
+      { llm: fake.llm, gravarArquivo: async () => undefined },
+      { slug: 'fixture-lacuna', track: trilhaComLacunaRepetidaDeTypeof(3), modo: 'aplicar' },
+    );
+
+    assert.equal(resultado.plano.bloqueios.length, 0, JSON.stringify(resultado.plano.bloqueios));
+    assert.equal(resultado.plano.aulasNovas.length, 1);
+    assert.equal(fake.chamadas.length, 1);
+    assert.equal(resultado.aceitas.length, 1);
+    assert.deepEqual([...resultado.aceitas[0].aula.alvos].sort(), ['m01/alvo1', 'm01/alvo2', 'm01/alvo3']);
   });
 });
 
