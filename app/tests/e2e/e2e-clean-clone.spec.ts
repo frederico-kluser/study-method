@@ -269,6 +269,19 @@ test('clean-clone 1: primeiro boot SEM chaves → SetupView (gate blocked rápid
   await dumpUi(page, test.info(), 'gate-blocked');
 });
 
+// ONDA4-E2E-FENCE (conteúdo real trocado): estes dois testes abrem a
+// PRIMEIRA trilha/aula de `resources/tracks` (conteúdo REAL, sem stub — a
+// premissa do arquivo). Até a onda 8 (commit 33b0eab, "onda8-deletar-tudo")
+// isso era a trilha `nodejs-do-zero`, com a aula "O que é programação" —
+// ela foi APAGADA do disco (405 arquivos; violava a regra de a aula 1 não
+// exigir if/typeof/!==/throw do iniciante) e nunca mais existiu depois disso.
+// A ÚNICA trilha hoje é `python` (resources/tracks/python/track.json, título
+// "Python, do primeiro print ao sênior"), com o módulo "A tela" (order 1,
+// aberto por padrão) e a aula "A primeira linha" (a-primeira-linha,
+// prerequisites: [] — desbloqueada, mesmo papel de 1ª aula que "O que é
+// programação" tinha). Trocar os literais preserva EXATAMENTE o que o teste
+// prova (repro do loader infinito ao abrir a 1ª aula real de uma trilha
+// instalada) contra o conteúdo que existe de verdade.
 test('clean-clone 2: abrir aula com chaves válidas (gate ready) → a aula CARREGA', async () => {
   test.setTimeout(180_000);
   const userData = freshUserData();
@@ -280,19 +293,19 @@ test('clean-clone 2: abrir aula com chaves válidas (gate ready) → a aula CARR
   await forceGateReady(app, page);
 
   // Home: a TRILHA real (resources/tracks) aparece como cartão.
-  await expect(page.getByText('Node.js do Zero', { exact: false }).first()).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByText('Python, do primeiro print ao sênior', { exact: false }).first()).toBeVisible({ timeout: 30_000 });
 
   // Abre a trilha → aba Trilha com os módulos/aulas reais.
-  await page.getByText('Node.js do Zero', { exact: false }).first().click();
-  await expect(page.getByRole('heading', { name: 'Node.js do Zero' })).toBeVisible({ timeout: 30_000 });
+  await page.getByText('Python, do primeiro print ao sênior', { exact: false }).first().click();
+  await expect(page.getByRole('heading', { name: 'Python, do primeiro print ao sênior' })).toBeVisible({ timeout: 30_000 });
 
   // PRIMEIRA AULA da trilha real (módulo 1, aula 1).
-  await page.getByText('O que é programação', { exact: false }).first().click();
+  await page.getByText('A primeira linha', { exact: false }).first().click();
 
   // A aula deve ABRIR (heading do título da aula). Se o bug do loader infinito
   // estiver presente, este expect estoura em 30s e o teste FALHA — repro.
   try {
-    await expect(page.getByRole('heading', { name: 'O que é programação' })).toBeVisible({ timeout: 30_000 });
+    await expect(page.getByRole('heading', { name: 'A primeira linha' })).toBeVisible({ timeout: 30_000 });
   } catch (err) {
     await dumpUi(page, test.info(), 'lesson-open');
     throw err;
@@ -310,13 +323,13 @@ test('clean-clone 3: abrir aula SEM chaves (gate override ready, sem rede de val
   await forceGateReady(app, page);
 
   // Home → Trilha → aula (mesmo fluxo do teste 2, com log do main anexado).
-  await expect(page.getByText('Node.js do Zero', { exact: false }).first()).toBeVisible({ timeout: 30_000 });
-  await page.getByText('Node.js do Zero', { exact: false }).first().click();
-  await expect(page.getByRole('heading', { name: 'Node.js do Zero' })).toBeVisible({ timeout: 30_000 });
-  await page.getByText('O que é programação', { exact: false }).first().click();
+  await expect(page.getByText('Python, do primeiro print ao sênior', { exact: false }).first()).toBeVisible({ timeout: 30_000 });
+  await page.getByText('Python, do primeiro print ao sênior', { exact: false }).first().click();
+  await expect(page.getByRole('heading', { name: 'Python, do primeiro print ao sênior' })).toBeVisible({ timeout: 30_000 });
+  await page.getByText('A primeira linha', { exact: false }).first().click();
 
   try {
-    await expect(page.getByRole('heading', { name: 'O que é programação' })).toBeVisible({ timeout: 30_000 });
+    await expect(page.getByRole('heading', { name: 'A primeira linha' })).toBeVisible({ timeout: 30_000 });
   } catch (err) {
     await dumpUi(page, test.info(), 'lesson-open-3');
     const logFile = path.join(userData, 'main.log');

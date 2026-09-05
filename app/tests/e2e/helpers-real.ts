@@ -50,6 +50,70 @@ export function skipIfNoRealKeys(): void {
   test.skip(!hasRealKeys(), REAL_KEYS_SKIP_REASON);
 }
 
+/**
+ * ONDA4-E2E-FENCE (achado, não pedido originalmente): `real-lesson.spec.ts` e
+ * `real-didactics.spec.ts` dependem de `generateRealLesson` — um fluxo AD-HOC
+ * ("Assunto" → botão "Gerar nova aula" → LESSON-ORCHESTRATOR pesquisa+autoria
+ * em tempo real) que a UI **não tem mais**. Isto não é uma flakiness nem um
+ * detalhe de seletor: é uma mudança de produto, documentada no próprio código
+ * — `shared/ipc-contract.ts` (bloco "TRILHAS — rodada 8 — conteúdo
+ * pré-definido por CLI"): "A partir da rodada 8 o aluno NÃO GERA mais aula:
+ * as trilhas chegam prontas (...); os canais antigos de geração (...)
+ * continuam existindo e são usados apenas pelos fluxos legados." E
+ * `LessonView.tsx` (cabeçalho): "A partir da rodada 8 (...) esta view é um
+ * chat direto com o tutor" — sem campo de assunto, sem botão de gerar. `grep
+ * -rn "generateLesson(" src/` não acha NENHUM call-site no renderer: o canal
+ * IPC `study:generate-lesson` sobrevive no main só para uso legado, sem porta
+ * de entrada na GUI.
+ *
+ * Sem chaves reais, isto nunca aparecia (as specs já paravam em
+ * `skipIfNoRealKeys`). COM chaves reais no shell (ambiente desta correção),
+ * as specs chegavam a `getByLabel('Assunto').fill(...)` e estouravam
+ * `Timeout 30000ms exceeded` — um timeout confuso que parece rede lenta mas
+ * na verdade é campo inexistente. Este guard troca o timeout obscuro por um
+ * SKIP explícito e verificado (não é "skip de conveniência": é uma checagem
+ * de FATO sobre a topologia da tela, feita uma vez por run, com timeout curto
+ * porque não há nada transiente a esperar — ou o campo está lá, ou a tela é
+ * outra).
+ */
+export const LEGACY_GENERATION_UI_SKIP_REASON =
+  'O fluxo legado "Assunto → Gerar nova aula" não existe mais na UI (retirado ' +
+  'na rodada 8 — LessonView.tsx virou chat de trilha; shared/ipc-contract.ts ' +
+  'declara os canais de geração "usados apenas pelos fluxos legados"; zero ' +
+  'call-sites de generateLesson( no renderer). A autoria real hoje roda só ' +
+  'via CLI (tools/track-cli.ts) — fora do alcance de um harness Electron E2E ' +
+  'que dirige a GUI. Este spec precisaria ser reescrito contra um fluxo REAL ' +
+  'que ainda exista na tela (decisão do dono do produto/da suíte, fora do ' +
+  'escopo desta correção).';
+
+/**
+ * Detecta se o fluxo legado de geração ainda existe: abre a aba "Aula" e
+ * checa o campo "Assunto". Timeout CURTO e deliberado — não é um estado
+ * transiente que vale a pena esperar (a tela não chama rede nenhuma para
+ * decidir o que renderizar aqui); é a topologia da tela: ou está lá em
+ * poucos segundos, ou não vai aparecer.
+ */
+export async function hasLegacyGenerationUi(page: Page): Promise<boolean> {
+  await page.getByRole('tab', { name: 'Aula' }).click();
+  return page
+    .getByLabel('Assunto')
+    .waitFor({ state: 'visible', timeout: 5_000 })
+    .then(() => true)
+    .catch(() => false);
+}
+
+/**
+ * Chama `test.skip` quando o fluxo legado de geração (ver
+ * `LEGACY_GENERATION_UI_SKIP_REASON`) não existe mais na tela — chamar DEPOIS
+ * do gate 'ready' (o app precisa estar destravado para a aba "Aula" existir).
+ */
+export async function skipIfNoLegacyGenerationUi(page: Page): Promise<void> {
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  const { test } = require('@playwright/test') as typeof import('@playwright/test');
+  const has = await hasLegacyGenerationUi(page);
+  test.skip(!has, LEGACY_GENERATION_UI_SKIP_REASON);
+}
+
 /** Chave de localStorage da oferta de 1ª execução do tutorial (igual helper.ts). */
 const ONBOARDING_OFFERED_KEY = 'study-method-onboarding-offered-v1';
 

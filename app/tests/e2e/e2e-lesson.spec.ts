@@ -138,7 +138,23 @@ test('e2e-lesson: trilha → aula em chat (teoria progressiva + fontes + desafio
   await expect(page.getByRole('heading', { name: 'Aula E2E sobre funções' })).toBeVisible();
 
   // O chat começa vazio: "Começar aula" apresenta a 1ª seção (stub).
+  //
+  // ONDA10-FENCE (fix da corrida): `waitFullTypewriter` PRECISA ser chamado
+  // ANTES de qualquer assert que precise resolver/reter contra o backend (a
+  // visibilidade do texto, a contagem de bolhas, o CSS computado) — cada um
+  // desses pode levar bem mais que os ~2-4s que a TEORIA agora leva para
+  // digitar inteira a 28 chars/s (ONDA10, chatBubbleTps.theory = 7 tps; era
+  // ~400 chars/s). Medido: com os asserts de bolha/CSS ANTES do wait, o
+  // indicador "tutor digitando" já tinha aparecido E sumido por completo
+  // antes do 1º `waitForFunction` sequer começar a existir — o teste ficava
+  // esperando um "aparece" que nunca mais aconteceria (estourava os 30s do
+  // helper). Chamando o wait LOGO após o clique (antes de qualquer outro
+  // assert), o polling em `raf` está de prontidão ANTES da digitação
+  // começar — não existe corrida a perder, some ela dure 200ms (100 tps
+  // antigo) ou 4s (7 tps de leitura). Os asserts de conteúdo/CSS abaixo
+  // continuam os MESMOS, só depois de o texto já estar completo e estável.
   await page.getByRole('button', { name: 'Começar aula' }).click();
+  await waitFullTypewriter(page);
   await expect(page.getByText('Tutor E2E:', { exact: false }).first()).toBeVisible();
   // ONDA1-COR-BALOES (fix 4c8eeb5): a bolha do tutor (kind 'message') aplica
   // backgroundColor REAL no style plain do motion.div — o fundo é o
@@ -149,14 +165,12 @@ test('e2e-lesson: trilha → aula em chat (teoria progressiva + fontes + desafio
   const bubbles = page.locator('[role="log"] [style*="background-color"]');
   await expect(bubbles).toHaveCount(1);
   await expect(bubbles.first()).not.toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
-  // ONDA2-IMESSAGE (REPLAN): 'next' também DIGITA — o indicador aparece
-  // durante a digitação e some quando o texto COMPLETO está no DOM.
-  await waitFullTypewriter(page);
 
-  // Próximo → segunda seção da teoria (progressiva, uma por vez).
+  // Próximo → segunda seção da teoria (progressiva, uma por vez). Mesma
+  // ordem ONDA10-FENCE: o wait vem logo após o clique.
   await page.getByRole('button', { name: 'Próximo →' }).click();
-  await expect(page.getByText('Tutor E2E:', { exact: false }).nth(1)).toBeVisible();
   await waitFullTypewriter(page);
+  await expect(page.getByText('Tutor E2E:', { exact: false }).nth(1)).toBeVisible();
 
   // FONTES: atrás do botão, nunca no fluxo (o diálogo lista a fonte fixture).
   await page.getByRole('button', { name: 'Fontes' }).click();

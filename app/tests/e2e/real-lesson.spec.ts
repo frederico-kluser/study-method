@@ -22,7 +22,14 @@ import { test, expect, type ElectronApplication, type Page } from '@playwright/t
 import * as os from 'node:os';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
-import { launchRealApp, closeRealApp, skipIfNoRealKeys, generateRealLesson, type RealApp } from './helpers-real';
+import {
+  launchRealApp,
+  closeRealApp,
+  skipIfNoRealKeys,
+  skipIfNoLegacyGenerationUi,
+  generateRealLesson,
+  type RealApp,
+} from './helpers-real';
 
 // CÁLCULO DO TIMEOUT (pior caso real):
 //   geração: até 2 tentativas × perAttemptMs 420s = 840s (14min);
@@ -56,6 +63,12 @@ test('real-lesson: aula real gerada (pesquisa+autoria+validação); desafios LIS
 
   // App destravado (gate ready com chaves reais).
   await expect(page.getByRole('banner').getByText('Study Method — Tutor', { exact: false })).toBeVisible();
+
+  // ONDA4-E2E-FENCE: o fluxo "Assunto → Gerar nova aula" que este spec
+  // dirige é LEGADO desde a rodada 8 (ver helpers-real.ts) — sem ele, TUDO
+  // daqui pra baixo (h2/pre da aula, "Desafios", #challenge-picker) é
+  // inalcançável. Skip explícito em vez de um timeout obscuro em "Assunto".
+  await skipIfNoLegacyGenerationUi(page);
 
   // Gera a aula REAL (com repetição transiente do LLM remoto). O sinal
   // lesson-status:done (data attr da LessonView) só é setado quando a geração

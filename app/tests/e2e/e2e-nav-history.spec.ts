@@ -94,16 +94,36 @@ test('e2e-nav-history: reset de progresso — botão na Settings pede CONFIRMAÇ
   await clearBtn.click();
   await expect(page.getByRole('heading', { name: 'Limpar todos os dados de avanço?' })).toBeVisible();
 
-  // Cancelar fecha sem nada (nenhum Alert de resultado aparece).
+  // ONDA4-E2E-FENCE (fix da corrida/falso-positivo): os alerts DESTE teste
+  // (o de "nenhum resultado ainda" e o de erro do reset) vivem DENTRO da
+  // `<section aria-labelledby="settings-progress-title">` do ProgressPanel
+  // — mas a Settings TAMBÉM tem o OrphanTracksPanel (onda9-cache-reconcilia),
+  // que dispara `track:orphans` na montagem e, ao resolver "nada órfão"
+  // (o caso comum), renderiza um `<Alert severity="success"
+  // data-testid="settings-orphans-empty" role="alert">` PRÓPRIO — sem
+  // relação nenhuma com o reset de progresso. Medido: `getByRole('alert')`
+  // SEM escopo contava esse alert alheio (a corrida entre o IPC
+  // `track:orphans` resolver e o clique em "Cancelar" decidia se 1 ou 0
+  // apareciam ao checar — o mesmo teste falhava ora na linha do "Cancelar"
+  // ora nunca, dependendo de QUANDO o orphans-empty entrava no DOM: a
+  // flakiness que este fix elimina). Escopar ao painel certo torna a
+  // asserção determinística nos dois sentidos, sem afrouxar nada: ela
+  // continua provando "nenhum alert do RESET apareceu" / "o alert do RESET
+  // apareceu com o texto certo".
+  const progressSection = page.locator('section[aria-labelledby="settings-progress-title"]');
+
+  // Cancelar fecha sem nada (nenhum Alert de resultado do reset aparece).
   await page.getByRole('button', { name: 'Cancelar', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Limpar todos os dados de avanço?' })).toHaveCount(0);
-  await expect(page.getByRole('alert')).toHaveCount(0);
+  await expect(progressSection.getByRole('alert')).toHaveCount(0);
 
   // Confirma → feedback honesto. LIMITAÇÃO DO HARNESS (documentada no
   // cabeçalho): o stub do main não tem o repo SQL → { ok:false } com a
   // mensagem do handler; o caminho ok:true é coberto por unit tests.
   await clearBtn.click();
   await page.getByRole('button', { name: 'Limpar', exact: true }).click();
-  await expect(page.getByRole('alert').first()).toBeVisible();
-  await expect(page.getByRole('alert').first()).toContainText(/persistência indisponível|Não foi possível limpar/i);
+  await expect(progressSection.getByRole('alert').first()).toBeVisible();
+  await expect(progressSection.getByRole('alert').first()).toContainText(
+    /persistência indisponível|Não foi possível limpar/i,
+  );
 });
