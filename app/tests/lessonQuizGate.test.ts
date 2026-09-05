@@ -17,28 +17,61 @@
  *      ASSERÇÃO (a função antiga ignora o 2º argumento e devolve `false`);
  *   2. o motivo do bloqueio é EXPLÍCITO (`lessonFinishBlock` → 'quiz' |
  *      'challenges' | null) — a UI tem o que DIZER, nunca um botão mudo;
- *   3. ERRAR NÃO TRAVA: responder errado libera exatamente como acertar (o
- *      gate lê `answered`, jamais `correct`), e `submitQuizAnswer` continua
- *      idempotente — a primeira resposta vence;
+ *   3. ERRAR NÃO LIBERA (ONDA1-MAESTRIA — ver abaixo): o gate lê MAESTRIA
+ *      (houve acerto), nunca a mera resposta; errar abre o ciclo de
+ *      remediação e o bloqueio permanece até o acerto;
  *   4. o "Próximo" trava só pela seção ATUAL
  *      (`pendingQuizzesForCurrentSection` / `isNextSectionBlockedByQuiz`);
  *   5. quiz que o aluno AINDA NÃO PODE VER (seção não apresentada) não
  *      bloqueia nada;
  *   6. assertion SEM sectionId entra no gate pela chave `id` (`quizKeyFor`);
- *   7. compatibilidade: `isLessonFinishBlocked(challenges)` sem o 2º argumento
+ *   7. duas assertions da MESMA seção têm chaves SEPARADAS (bug de colisão
+ *      consertado na ONDA1-MAESTRIA — ver o teste);
+ *   8. compatibilidade: `isLessonFinishBlocked(challenges)` sem o 2º argumento
  *      mantém o comportamento da ONDA2 byte a byte.
+ *
+ * ─── ONDA1-MAESTRIA: TRÊS TESTES DESTA SUÍTE FORAM INVERTIDOS DE PROPÓSITO ──
+ *
+ * A REGRA ANTIGA (ONDA10), que este arquivo travava: "responder basta —
+ * acertar não é exigido". O gate lia `answered` e NUNCA `correct`, e
+ * `submitQuizAnswer` era cegamente idempotente.
+ *
+ * A REGRA NOVA, PEDIDO EXPLÍCITO DO DONO nesta onda: errar NÃO libera. O
+ * aluno erra → a IA explica por que a alternativa não se sustenta → a
+ * explicação entra no histórico do chat → um quiz NOVO é gerado sobre o mesmo
+ * conteúdo → o ciclo repete. Só o ACERTO abre o caminho: "só vamos para o
+ * desafio depois que o aluno provar que entendeu".
+ *
+ * POR QUE ISSO NÃO É PUNIÇÃO (e por que a mudança não contradiz o redesign):
+ * `docs/ux-redesign.md` §8 item 3 é normativo — falha vira ESTADO DE
+ * DIAGNÓSTICO com redação informativa, sem vermelho piscando; e §8.2 mede que
+ * o elogio ritualizado derruba a motivação (d = −0,40) enquanto o feedback
+ * INFORMACIONAL específico a sobe (d = +0,43 em adultos). O bloqueio aqui é
+ * informação ("este trecho ainda não foi demonstrado"), e o ciclo entrega a
+ * explicação — não uma repreensão.
+ *
+ * Os testes invertidos, nominalmente: "respondido (mesmo ERRADO) → o gate sai
+ * do caminho", "o gate lê `answered` e NUNCA `correct`" e "duas assertions na
+ * MESMA seção compartilham a chave". Os dois primeiros afirmavam a regra
+ * antiga; o terceiro travava como CORRETO um bug de colisão de chave (ver o
+ * teste correspondente).
  */
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   applyTutorReply,
   createTrackLessonState,
+  injectRemediationQuiz,
   isLessonFinishBlocked,
   isNextSectionBlockedByQuiz,
+  isQuizAnswered,
+  isQuizMastered,
   lessonFinishBlock,
   pendingQuizzes,
   pendingQuizzesForCurrentSection,
+  quizAttempts,
   quizKeyFor,
+  registerQuizExplanation,
   submitQuizAnswer,
   type TrackLessonUiState,
 } from '../src/lib/trackLessonState';
@@ -118,38 +151,80 @@ describe('ONDA10 defeito 2 — o quiz vira OBRIGATÓRIO para CONCLUIR a aula', (
     assert.equal(lessonFinishBlock([], pend.length), 'quiz');
   });
 
-  it('respondido (mesmo ERRADO) → o gate do quiz sai do caminho', () => {
+  it('INVERTIDO (ONDA1-MAESTRIA): errado NÃO libera — o ciclo abre e o gate segue fechado', () => {
+    // REGRA ANTIGA (este mesmo teste, chamado "respondido (mesmo ERRADO) → o
+    // gate do quiz sai do caminho"): errar contava como responder e liberava.
+    // REGRA NOVA (pedido explícito do dono desta onda): errar abre o ciclo de
+    // remediação (explicação + quiz novo) e o gate SÓ abre com o acerto.
     const s0 = presented('s1');
     const a = assertion({ answerIndex: 1 });
     // resposta ERRADA (escolheu 3, a certa é 1)
     const s1 = submitQuizAnswer(s0, quizKeyFor(a), 3, a.answerIndex);
-    assert.equal(s1.quizBySection.s1.correct, false, 'errou mesmo');
-    assert.equal(pendingQuizzes(s1, [a]).length, 0, 'errar CONTA como responder');
-    assert.equal(isLessonFinishBlocked([ch('passed')], pendingQuizzes(s1, [a]).length), false);
-    assert.equal(lessonFinishBlock([ch('passed')], pendingQuizzes(s1, [a]).length), null);
+    const key = quizKeyFor(a);
+    assert.equal(s1.quizBySection[key].correct, false, 'errou mesmo');
+    assert.equal(s1.quizBySection[key].stage, 'explicando', 'o ciclo de remediação ABRIU');
+    assert.equal(pendingQuizzes(s1, [a]).length, 1, 'errar NÃO conta como dominar');
+    assert.equal(isLessonFinishBlocked([ch('passed')], pendingQuizzes(s1, [a]).length), true);
+    assert.equal(lessonFinishBlock([ch('passed')], pendingQuizzes(s1, [a]).length), 'quiz');
+    // …e o ACERTO, na mesma chave, é o que libera.
+    const dominado = submitQuizAnswer(
+      injectRemediationQuiz(
+        registerQuizExplanation(s1, key, {
+          question: a.question,
+          chosenOption: a.options[3],
+          explanation: 'A seção mostra outra coisa.',
+        }),
+        key,
+        assertion({ id: 'novo', answerIndex: 0 }),
+      ),
+      key,
+      0,
+      0,
+    );
+    assert.equal(pendingQuizzes(dominado, [a]).length, 0, 'acertou → sai do gate');
+    assert.equal(lessonFinishBlock([ch('passed')], pendingQuizzes(dominado, [a]).length), null);
   });
 
-  it('o gate lê `answered` e NUNCA `correct`: certo e errado liberam igual', () => {
+  it('INVERTIDO (ONDA1-MAESTRIA): o gate lê MAESTRIA — certo e errado NÃO são equivalentes', () => {
+    // REGRA ANTIGA (este teste se chamava "o gate lê `answered` e NUNCA
+    // `correct`: certo e errado liberam igual"): a i18n dizia, literalmente,
+    // "acertar não é exigido, só responder".
+    // REGRA NOVA (pedido explícito do dono): o predicado do gate é
+    // `isQuizMastered` — houve acerto. Errar mantém o bloqueio.
     const a = assertion({ answerIndex: 1 });
     const base = presented('s1');
     const errado = submitQuizAnswer(base, quizKeyFor(a), 0, a.answerIndex);
     const certo = submitQuizAnswer(base, quizKeyFor(a), 1, a.answerIndex);
-    assert.equal(pendingQuizzes(errado, [a]).length, 0, 'errado libera');
+    assert.equal(isQuizMastered(errado, quizKeyFor(a)), false, 'errado NÃO é maestria');
+    assert.equal(isQuizMastered(certo, quizKeyFor(a)), true, 'certo É maestria');
+    assert.equal(pendingQuizzes(errado, [a]).length, 1, 'errado continua pendente');
     assert.equal(pendingQuizzes(certo, [a]).length, 0, 'certo libera');
-    assert.equal(
+    assert.notEqual(
       lessonFinishBlock([], pendingQuizzes(errado, [a]).length),
       lessonFinishBlock([], pendingQuizzes(certo, [a]).length),
-      'errar e acertar produzem o MESMO destravamento',
+      'errar e acertar levam a destravamentos DIFERENTES',
     );
+    // Os DOIS registram resposta — o que mudou é o que o gate faz com isso.
+    assert.equal(isQuizAnswered(errado, quizKeyFor(a)), true, 'errar segue sendo responder');
   });
 
-  it('idempotência preservada: a PRIMEIRA resposta vence (errar não vira armadilha de retentativa)', () => {
+  it('anti-dupla-submissão PRESERVADA: 2ª resposta na MESMA geração é no-op', () => {
+    // O que a ONDA10 chamava de "idempotência" continua valendo DENTRO de uma
+    // geração: dois cliques no mesmo card não viram duas tentativas, e a
+    // resposta certa não pode ser "corrigida" por cima da errada sem passar
+    // pelo ciclo. O que MUDOU: o no-op não libera mais o gate — só uma
+    // geração NOVA (quiz remediador) aceita resposta nova.
     const a = assertion({ answerIndex: 1 });
-    const s1 = submitQuizAnswer(presented('s1'), quizKeyFor(a), 3, a.answerIndex);
-    const s2 = submitQuizAnswer(s1, quizKeyFor(a), 1, a.answerIndex);
+    const key = quizKeyFor(a);
+    const s1 = submitQuizAnswer(presented('s1'), key, 3, a.answerIndex);
+    const s2 = submitQuizAnswer(s1, key, 1, a.answerIndex);
     assert.equal(s2, s1, 'no-op: mesma referência');
-    assert.equal(s2.quizBySection.s1.selected, 3, 'a primeira escolha permanece');
-    assert.equal(pendingQuizzes(s2, [a]).length, 0, 'e continua destravado');
+    assert.equal(s2.quizBySection[key].selected, 3, 'a primeira escolha da geração permanece');
+    assert.equal(quizAttempts(s2, key).length, 1, 'uma tentativa, não duas');
+    assert.equal(pendingQuizzes(s2, [a]).length, 1, 'e o gate CONTINUA travado (regra nova)');
+    // O acerto, esse sim, FECHA a chave para sempre.
+    const dominado = submitQuizAnswer(presented('s1'), key, 1, a.answerIndex);
+    assert.equal(submitQuizAnswer(dominado, key, 3, a.answerIndex), dominado, 'dominado é imutável');
   });
 
   it('motivo do bloqueio: quiz tem precedência sobre desafios; sem nada pendente → null', () => {
@@ -157,8 +232,9 @@ describe('ONDA10 defeito 2 — o quiz vira OBRIGATÓRIO para CONCLUIR a aula', (
     const a = assertion();
     // quiz pendente E desafio pendente → 'quiz' (desbloqueio mais barato)
     assert.equal(lessonFinishBlock([ch(null)], pendingQuizzes(s, [a]).length), 'quiz');
-    // quiz respondido, desafio pendente → 'challenges'
-    const respondido = submitQuizAnswer(s, quizKeyFor(a), 0, a.answerIndex);
+    // quiz DOMINADO (acerto — regra nova), desafio pendente → 'challenges'
+    const respondido = submitQuizAnswer(s, quizKeyFor(a), a.answerIndex, a.answerIndex);
+    assert.equal(isQuizMastered(respondido, quizKeyFor(a)), true, 'acertou → dominado');
     assert.equal(lessonFinishBlock([ch('failed')], pendingQuizzes(respondido, [a]).length), 'challenges');
     // tudo em ordem → null
     assert.equal(lessonFinishBlock([ch('passed')], pendingQuizzes(respondido, [a]).length), null);
@@ -183,19 +259,46 @@ describe('ONDA10 defeito 2 — o quiz vira OBRIGATÓRIO para CONCLUIR a aula', (
     const semSecao = assertion({ id: 'solta', sectionId: undefined });
     assert.equal(quizKeyFor(semSecao), 'solta');
     assert.equal(pendingQuizzes(s, [semSecao]).length, 1, 'ancorada na última seção → conta');
-    const resp = submitQuizAnswer(s, quizKeyFor(semSecao), 0, semSecao.answerIndex);
+    // ONDA1-MAESTRIA: sair do gate exige ACERTO (antes bastava responder).
+    const errou = submitQuizAnswer(s, quizKeyFor(semSecao), 0, semSecao.answerIndex);
+    assert.equal(pendingQuizzes(errou, [semSecao]).length, 1, 'errar mantém a pendência');
+    const resp = submitQuizAnswer(s, quizKeyFor(semSecao), semSecao.answerIndex, semSecao.answerIndex);
     assert.equal(pendingQuizzes(resp, [semSecao]).length, 0);
   });
 
-  it('duas assertions na MESMA seção compartilham a chave: uma resposta cobre as duas', () => {
+  it('INVERTIDO (ONDA1-MAESTRIA): duas assertions da MESMA seção têm chaves SEPARADAS', () => {
+    // O QUE ESTE TESTE AFIRMAVA ANTES: "duas assertions na MESMA seção
+    // compartilham a chave: uma resposta cobre as duas" — porque `quizKeyFor`
+    // era `sectionId ?? assertion.id`. Aquilo NÃO era contrato: era um BUG
+    // travado como se fosse. Responder UMA marcava a OUTRA como respondida, e
+    // o gate liberava um quiz que o aluno nunca tinha visto.
+    //
+    // NÃO É HIPOTÉTICO: no módulo M1 real (python / a-tela), 4 das 20 aulas
+    // (a-primeira-linha, dar-nome-a-um-valor, de-texto-para-numero,
+    // quando-da-errado) trazem 3 assertions cada, várias na mesma seção. Com
+    // "responder basta" o prejuízo era 1 quiz pulado; com MAESTRIA
+    // obrigatória vira um furo no gate inteiro.
+    //
+    // A REGRA NOVA: a chave é `sectionId::assertionId` — única por assertion,
+    // com a seção legível dentro dela (a ANCORAGEM por seção continua vindo
+    // de quizzesByMessageIndex/sectionPresentationIndexes, não da chave).
     const s = presented('s1');
     const a1 = assertion({ id: 'a1' });
     const a2 = assertion({ id: 'a2', sectionId: 's1' });
-    // as duas compartilham a chave 's1' → uma resposta cobre as duas (mesma
-    // seção = mesmo estado de quiz, contrato da ONDA4 preservado).
-    assert.equal(pendingQuizzes(s, [a1, a2]).length, 2, 'nenhuma respondida → duas pendentes');
-    const resp = submitQuizAnswer(s, 's1', 0, a1.answerIndex);
-    assert.equal(pendingQuizzes(resp, [a1, a2]).length, 0);
+    assert.notEqual(quizKeyFor(a1), quizKeyFor(a2), 'chaves DISTINTAS na mesma seção');
+    assert.equal(quizKeyFor(a1), 's1::a1');
+    assert.equal(quizKeyFor(a2), 's1::a2');
+    assert.equal(pendingQuizzes(s, [a1, a2]).length, 2, 'nenhuma dominada → duas pendentes');
+    // Dominar UMA deixa a OUTRA pendente — era exatamente isto que o bug
+    // escondia.
+    const resp = submitQuizAnswer(s, quizKeyFor(a1), a1.answerIndex, a1.answerIndex);
+    assert.deepEqual(
+      pendingQuizzes(resp, [a1, a2]).map((a) => a.id),
+      ['a2'],
+      'a segunda afirmação continua exigindo resposta',
+    );
+    const ambas = submitQuizAnswer(resp, quizKeyFor(a2), a2.answerIndex, a2.answerIndex);
+    assert.equal(pendingQuizzes(ambas, [a1, a2]).length, 0, 'as duas dominadas → gate livre');
   });
 
   it('ordem determinística: pendências saem na ordem das bolhas do histórico', () => {
@@ -218,10 +321,15 @@ describe('ONDA10 defeito 2 — o "Próximo" trava pela seção ATUAL', () => {
     assert.equal(isNextSectionBlockedByQuiz(s, [a]), true);
   });
 
-  it('respondido (errado) → o avanço libera na hora', () => {
+  it('INVERTIDO (ONDA1-MAESTRIA): errado NÃO libera o avanço; o acerto sim', () => {
+    // REGRA ANTIGA deste teste ("respondido (errado) → o avanço libera na
+    // hora"): responder bastava. REGRA NOVA (pedido do dono): o "Próximo" só
+    // abre com o acerto — o ciclo de remediação acontece ANTES do avanço.
     const a = assertion({ answerIndex: 1 });
-    const s = submitQuizAnswer(presented('s1'), quizKeyFor(a), 2, a.answerIndex);
-    assert.equal(isNextSectionBlockedByQuiz(s, [a]), false, 'errar libera o avanço');
+    const errado = submitQuizAnswer(presented('s1'), quizKeyFor(a), 2, a.answerIndex);
+    assert.equal(isNextSectionBlockedByQuiz(errado, [a]), true, 'errar mantém o avanço travado');
+    const certo = submitQuizAnswer(presented('s1'), quizKeyFor(a), 1, a.answerIndex);
+    assert.equal(isNextSectionBlockedByQuiz(certo, [a]), false, 'acertar libera o avanço');
   });
 
   it('quiz PENDENTE de seção ANTERIOR não trava o "Próximo" (só a conclusão)', () => {
@@ -242,7 +350,12 @@ describe('ONDA10 defeito 2 — o "Próximo" trava pela seção ATUAL', () => {
   it('seção atual SEM quiz → avanço livre', () => {
     const s = presented('s1', 's2');
     const soNaPrimeira = assertion({ id: 'a1', sectionId: 's1' });
-    const respondida = submitQuizAnswer(s, 's1', 0, soNaPrimeira.answerIndex);
+    const respondida = submitQuizAnswer(
+      s,
+      quizKeyFor(soNaPrimeira),
+      soNaPrimeira.answerIndex,
+      soNaPrimeira.answerIndex,
+    );
     assert.equal(isNextSectionBlockedByQuiz(respondida, [soNaPrimeira]), false);
   });
 

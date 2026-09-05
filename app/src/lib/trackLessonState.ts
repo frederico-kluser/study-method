@@ -13,15 +13,41 @@
  *     (onda2-error-flow) — anexado aos turnos 'answer' da discussão do erro.
  *
  * ONDA4 (quiz): `quizBySection` guarda o estado do QUIZ de múltipla escolha
- * por afirmação (chaveado por sectionId — REPLAN A1). Os helpers do quiz são
- * PURA: a UI renderiza o card APÓS a bolha da seção que o demonstra e o mantém
- * preenchido com o feedback após responder (idempotente).
+ * por afirmação. Os helpers do quiz são PUROS: a UI renderiza o card APÓS a
+ * bolha da seção que o demonstra e o mantém preenchido com o feedback.
  *
- * ONDA10 (bug do dono — "o quiz pode ser ignorado; quero que o usuario tenha
- * que responder"): o quiz DEIXOU de ser reforço e virou GATE. `pendingQuizzes`
- * (todas as seções já apresentadas) bloqueia o "Concluir aula" e
- * `pendingQuizzesForCurrentSection` bloqueia o "Próximo". O gate lê `answered`
- * e NUNCA `correct` — errar libera igual a acertar.
+ * ONDA10 (bug do dono — "o quiz pode ser ignorado"): o quiz DEIXOU de ser
+ * reforço e virou GATE. `pendingQuizzes` bloqueia o "Concluir aula" e
+ * `pendingQuizzesForCurrentSection` bloqueia o "Próximo".
+ *
+ * ONDA1-MAESTRIA (decisão do dono desta onda — a regra do produto MUDA):
+ * **responder deixou de bastar; agora é preciso ACERTAR.** Errar não libera —
+ * abre um CICLO DE REMEDIAÇÃO:
+ *
+ *     erro → a IA explica por que aquela alternativa não se sustenta →
+ *     a explicação ENTRA NO HISTÓRICO do chat (bolha `kind:
+ *     'quiz-explanation'`) → um quiz NOVO sobre o MESMO conteúdo é injetado
+ *     (`injectRemediationQuiz`, geração N+1) → o ciclo repete até o acerto.
+ *
+ * Só depois do acerto (`stage: 'dominado'`) a chave FECHA e o gate libera —
+ * "só vamos para o desafio depois que o aluno provar que entendeu".
+ *
+ * ERRAR CONTINUA NÃO SENDO PUNIÇÃO — `docs/ux-redesign.md` §8 item 3 é
+ * normativo ("Teste falhou → sem punição… O painel troca para estado de
+ * diagnóstico… redação informativa") e §8.2 proíbe o elogio ritualizado
+ * (d = −0,40 medido) em favor do feedback INFORMACIONAL específico (d = +0,43
+ * em adultos). O tom de todo texto deste ciclo é DIAGNÓSTICO: descreve onde a
+ * alternativa se separa do que a seção mostra, nunca repreende. O bloqueio do
+ * gate não é castigo: é a informação de que aquele trecho ainda não foi
+ * demonstrado.
+ *
+ * BUG DE COLISÃO DE CHAVE CONSERTADO nesta onda (ver `quizKeyFor`): a chave
+ * era `sectionId ?? assertion.id`, então DUAS assertions da MESMA seção
+ * compartilhavam estado — responder uma marcava as duas. Medido em ≥4 das 20
+ * aulas do módulo M1 real (`resources/tracks/python/modules/a-tela/lessons/*`
+ * — a-primeira-linha, dar-nome-a-um-valor, de-texto-para-numero,
+ * quando-da-errado têm 3 assertions cada). Com maestria obrigatória isso vira
+ * um furo: o aluno pularia um quiz sem NUNCA respondê-lo.
  *
  * Fluxo: o usuário clica "Próximo" → action 'next' (com presentedSections) →
  * a resposta do tutor vira uma mensagem assistant e sectionId entra em
@@ -83,12 +109,20 @@ export interface TutorChatMessage {
    *   - 'reply' — resposta do tutor a uma pergunta do aluno (última do
    *     histórico é 'user' e a ação não é 'next');
    *   - 'review' — a bolha do review do desafio (checklist/saída + código
-   *     submetido; carrega `errorFor` com o challengeId).
+   *     submetido; carrega `errorFor` com o challengeId);
+   *   - 'quiz-explanation' (ONDA1-MAESTRIA) — a explicação diagnóstica do
+   *     erro no quiz (`registerQuizExplanation`). Kind PRÓPRIO, e não
+   *     'message', por um motivo mecânico: `isTheoryPresentationBubble` (e,
+   *     por ela, `sectionPresentationIndexes`/`quizzesByMessageIndex`) conta
+   *     bolhas 'message' como APRESENTAÇÃO DE SEÇÃO — uma explicação com kind
+   *     'message' deslocaria a âncora de todos os quizzes seguintes e o gate
+   *     passaria a olhar a bolha errada. Com kind próprio, a explicação entra
+   *     na conversa sem tocar a ancoragem.
    * Presente nas mensagens 'assistant' criadas pelo módulo; ausente nas
    * mensagens 'user'. NUNCA trafega no histórico enviado ao main
    * (chatHistory stripa).
    */
-  kind?: 'message' | 'reply' | 'review';
+  kind?: 'message' | 'reply' | 'review' | 'quiz-explanation';
   /**
    * ONDA3-FIX: challengeId da bolha 'review' — o seed usa o HISTÓRICO por ele
    * para localizar o par antigo daquele desafio no RETRY
@@ -128,15 +162,68 @@ export interface TrackLessonUiState {
 }
 
 /**
+ * ONDA1-MAESTRIA: em que ponto do CICLO aquela afirmação está.
+ *
+ *   - 'aguardando-resposta'  — a geração CORRENTE do quiz ainda não recebeu
+ *                              resposta (o estado de partida);
+ *   - 'explicando'           — a geração corrente foi respondida ERRADO; falta
+ *                              a explicação diagnóstica entrar no chat;
+ *   - 'novo-quiz-pendente'   — a explicação já está no histórico; falta o quiz
+ *                              remediador da geração seguinte;
+ *   - 'dominado'             — houve acerto. A chave FECHA: imutável dali em
+ *                              diante, e é o único estado que libera o gate.
+ */
+export type QuizCycleStage =
+  | 'aguardando-resposta'
+  | 'explicando'
+  | 'novo-quiz-pendente'
+  | 'dominado';
+
+/**
+ * ONDA1-MAESTRIA: UMA tentativa registrada. O histórico de tentativas é o que
+ * permite ao card de uma geração ANTIGA continuar mostrando o próprio feedback
+ * depois que a geração corrente virou outra (ver
+ * `optionVisualStateForGeneration`) — sem ele, injetar o quiz remediador
+ * apagaria da tela o erro que o aluno acabou de cometer.
+ */
+export interface QuizAttempt {
+  /** geração do quiz em que a tentativa aconteceu (0 = o quiz autoral). */
+  generation: number;
+  /** índice da alternativa escolhida. */
+  selected: number;
+  /** veredito da tentativa. */
+  correct: boolean;
+  /** Date.now() do registro (injetável nos testes, como o resto do módulo). */
+  ts: number;
+}
+
+/**
  * ONDA4 (quiz): estado de UMA resposta do quiz — `answered` marca a resposta
  * dada, `selected` o índice da opção escolhida e `correct` o veredito
  * (answerIndex === selected). Estado IMUTÁVEL por contrato (mesmo padrão do
  * TrackLessonUiState): os helpers devolvem um objeto novo a cada update.
+ *
+ * ONDA1-MAESTRIA: os campos do CICLO abaixo são ADITIVOS e OPCIONAIS de
+ * propósito — um estado restaurado do `lessonChatCache` (ou construído por um
+ * teste antigo) tem só os três campos originais, e `quizCycleOf` normaliza
+ * esse caso legado sem que nenhum chamador precise saber. `answered`/
+ * `selected`/`correct` passam a descrever a GERAÇÃO CORRENTE (o card na tela);
+ * o histórico completo vive em `attempts`.
  */
 export interface QuizState {
   answered: boolean;
   selected: number | null;
   correct: boolean | null;
+  /** ONDA1-MAESTRIA: em que ponto do ciclo esta afirmação está. */
+  stage?: QuizCycleStage;
+  /** ONDA1-MAESTRIA: geração corrente (0 = quiz autoral; N = N-ésimo remediador). */
+  generation?: number;
+  /** ONDA1-MAESTRIA: TODAS as tentativas, em ordem cronológica. */
+  attempts?: readonly QuizAttempt[];
+  /** ONDA1-MAESTRIA: markdown da última explicação diagnóstica registrada. */
+  explanation?: string | null;
+  /** ONDA1-MAESTRIA: o quiz remediador da geração corrente (null = o autoral). */
+  remediation?: TrackAssertionDto | null;
 }
 
 export function createTrackLessonState(): TrackLessonUiState {
@@ -329,9 +416,15 @@ export function isTheoryPresentationBubble(
  * tokens/s do typewriter da bolha `i` do histórico (defeito 3): 'review' → 10;
  * apresentação de TEORIA → velocidade de leitura (7); qualquer outra bolha do
  * tutor → 'free' (100, o default histórico). PURA — a LessonView só repassa.
+ *
+ * ONDA1-MAESTRIA: a bolha 'quiz-explanation' entra na MESMA velocidade da
+ * teoria (7 tps = 28 chars/s). O critério é o do bloco TYPEWRITER_TPS acima —
+ * a velocidade é de LEITURA, e a explicação do erro é exatamente texto que o
+ * aluno precisa LER (não é a resposta que ele pediu e já espera na tela).
  */
 export function chatBubbleTps(history: readonly TutorChatMessage[], i: number): number {
   if (history[i]?.kind === 'review') return TYPEWRITER_TPS.review;
+  if (history[i]?.kind === 'quiz-explanation') return TYPEWRITER_TPS.theory;
   if (isTheoryPresentationBubble(history, i)) return TYPEWRITER_TPS.theory;
   return TYPEWRITER_TPS.free;
 }
@@ -429,17 +522,20 @@ export function isLessonFinishBlocked(
  * que o botão está travado (um botão morto sem explicação é pior que o bug):
  *
  *   - 'quiz'       → ainda há quiz VISÍVEL (ancorado numa seção já
- *                    apresentada) sem resposta. Vem PRIMEIRO porque é o
+ *                    apresentada) NÃO DOMINADO. Vem PRIMEIRO porque é o
  *                    desbloqueio mais barato: o card está na tela, a um
  *                    clique de distância;
  *   - 'challenges' → algum desafio da aula não passou (regra ONDA2-imessage,
  *                    intacta);
  *   - null         → liberado.
  *
- * IMPORTANTE — ERRAR NÃO TRAVA: o gate lê `answered`, NUNCA `correct`. O quiz
- * existe para o aluno PENSAR, não para puni-lo; `submitQuizAnswer` é
- * idempotente (a primeira resposta vence) e uma resposta errada libera
- * exatamente como a certa. PURA.
+ * ONDA1-MAESTRIA — O QUE MUDOU: até a onda 10 o gate lia `answered` e NUNCA
+ * `correct`, então errar liberava igual a acertar. Agora ele lê MAESTRIA
+ * (`isQuizMastered` — houve acerto): errar mantém o bloqueio e abre o ciclo de
+ * remediação (explicação + quiz novo), porque a aula só avança depois que o
+ * aluno prova que entendeu. O bloqueio NÃO é punição (§8 item 3): é a
+ * informação de que aquele trecho ainda não foi demonstrado — a UI diz qual é
+ * o próximo passo, e o ciclo o entrega. PURA.
  */
 export type LessonFinishBlockReason = 'quiz' | 'challenges';
 
@@ -715,17 +811,19 @@ export function clearChallengeError(state: TrackLessonUiState): TrackLessonUiSta
   return { ...state, challengeError: null };
 }
 
-// ─── ONDA4 (quiz): múltipla escolha por afirmação DURANTE a aula ────────────
+// ─── ONDA4 (quiz) → ONDA1-MAESTRIA: o quiz com CICLO DE REMEDIAÇÃO ──────────
 //
 // Contrato (REPLAN A1): cada assertion do payload TrackLessonPayload carrega
 // `sectionId` (a seção de teoria que a demonstra). O quiz de uma assertion
 // renderiza APÓS a bolha da seção cujo id == sectionId ser apresentada
-// ('next') e é VISÍVEL só quando `presentedSections` contém o sectionId. O
-// ONDA10: o quiz virou GATE (ver `pendingQuizzes` no fim do arquivo) — antes
-// era reforço e não bloqueava nada. Assertion sem sectionId
-// (trilhas antigas, defensivo) cai na chave sintética `FALLBACK_QUIZ_SECTION`
-// e aparece APÓS a ÚLTIMA seção de teoria apresentada (fallback
-// determinístico). Os helpers abaixo são PURA (node:test, sem React/DOM).
+// ('next') e é VISÍVEL só quando `presentedSections` contém o sectionId.
+// ONDA10: o quiz virou GATE (ver `pendingQuizzes` no fim do arquivo).
+// ONDA1-MAESTRIA: o gate passou a exigir ACERTO, e o erro abre o ciclo
+// erro → explicação no chat → quiz novo → … → acerto (ver o cabeçalho do
+// arquivo). Assertion sem sectionId (trilhas antigas, defensivo) cai na chave
+// sintética `FALLBACK_QUIZ_SECTION` e aparece APÓS a ÚLTIMA seção de teoria
+// apresentada (fallback determinístico). Os helpers abaixo são PUROS
+// (node:test, sem React/DOM/i18n).
 
 /** Chave sintética das assertions SEM sectionId (nunca colide com um id real
  *  de seção — slugs de arquivo). O quiz delas ancora na última seção
@@ -733,17 +831,139 @@ export function clearChallengeError(state: TrackLessonUiState): TrackLessonUiSta
 export const FALLBACK_QUIZ_SECTION = '__quiz_fallback__';
 
 /**
- * Marca a resposta do quiz da seção: answered=true, selected=answerIndex,
- * correct=(answerIndex===correctIndex). IDEMPOTENTE: seção já respondida →
- * no-op (a primeira resposta vence — o quiz é "preenchido" e travado). PURA.
+ * Separador da chave composta `sectionId::assertionId` (ver `quizKeyFor`).
+ * `::` nunca ocorre em slug de arquivo (o formato de todo id de seção e de
+ * assertion desta base), então a concatenação é injetiva.
+ */
+export const QUIZ_KEY_SEPARATOR = '::';
+
+/** Sufixo `#g<N>` que marca a id de um quiz REMEDIADOR (ver
+ *  `remediationAssertionId`). `#` não ocorre em slug autoral. */
+const REMEDIATION_ID_RE = /^(.+)#g(\d+)$/;
+
+/**
+ * Id DETERMINÍSTICA do quiz remediador da geração `generation` da chave
+ * `key` — `<chave>#g<N>`. Duas razões para ela ser derivada, e não a que a
+ * LLM inventar: (a) `key` da React fica estável e única por geração;
+ * (b) `quizKeyFor` consegue voltar da assertion remediadora para a chave do
+ * estado (o sufixo é reversível), então nenhum chamador precisa carregar a
+ * chave por fora. PURA.
+ */
+export function remediationAssertionId(key: string, generation: number): string {
+  return `${key}#g${generation}`;
+}
+
+/** Leitura NORMALIZADA do ciclo de uma chave — o formato que todo helper usa
+ *  internamente (e que a view pode ler direto). */
+export interface QuizCycle {
+  stage: QuizCycleStage;
+  /** geração corrente (0 = o quiz autoral). */
+  generation: number;
+  /** todas as tentativas, em ordem cronológica. */
+  attempts: readonly QuizAttempt[];
+  /** markdown da última explicação diagnóstica registrada (null = nenhuma). */
+  explanation: string | null;
+  /** quiz remediador da geração corrente (null = ainda é o autoral). */
+  remediation: TrackAssertionDto | null;
+  /** true SÓ depois de um acerto — a única condição que libera o gate. */
+  mastered: boolean;
+  /** true quando a geração CORRENTE já recebeu resposta. */
+  answeredThisGeneration: boolean;
+}
+
+const NO_ATTEMPTS: readonly QuizAttempt[] = Object.freeze([]);
+
+const FRESH_CYCLE: QuizCycle = Object.freeze({
+  stage: 'aguardando-resposta' as QuizCycleStage,
+  generation: 0,
+  attempts: NO_ATTEMPTS,
+  explanation: null,
+  remediation: null,
+  mastered: false,
+  answeredThisGeneration: false,
+});
+
+/**
+ * Normaliza um `QuizState` (inclusive o LEGADO, sem os campos do ciclo) para
+ * o `QuizCycle` completo. Existe porque os campos novos são opcionais: um
+ * estado restaurado do `lessonChatCache` — ou um literal de teste da era
+ * "responder basta" — traz só `answered/selected/correct`, e todo o resto do
+ * módulo precisa enxergar o mesmo formato.
+ *
+ * INFERÊNCIA DO LEGADO (documentada porque é uma decisão, não um detalhe):
+ *   - sem resposta            → 'aguardando-resposta';
+ *   - respondido e CORRETO    → 'dominado' (o acerto antigo vale como maestria
+ *                               — nada a refazer);
+ *   - respondido e ERRADO     → 'explicando' (o ciclo REABRE: sob a regra
+ *                               nova aquele erro nunca foi resolvido, e o
+ *                               aluno recebe a explicação + o quiz novo).
+ * PURA.
+ */
+export function quizCycleOf(quiz: QuizState | undefined): QuizCycle {
+  if (quiz === undefined) return FRESH_CYCLE;
+  const generation = quiz.generation ?? 0;
+  const stage: QuizCycleStage =
+    quiz.stage ??
+    (quiz.answered !== true
+      ? 'aguardando-resposta'
+      : quiz.correct === true
+        ? 'dominado'
+        : 'explicando');
+  const attempts: readonly QuizAttempt[] =
+    quiz.attempts ??
+    (quiz.answered === true && quiz.selected !== null
+      ? [{ generation, selected: quiz.selected, correct: quiz.correct === true, ts: 0 }]
+      : NO_ATTEMPTS);
+  return {
+    stage,
+    generation,
+    attempts,
+    explanation: quiz.explanation ?? null,
+    remediation: quiz.remediation ?? null,
+    mastered: stage === 'dominado',
+    answeredThisGeneration: quiz.answered === true,
+  };
+}
+
+/** O ciclo da chave `key` no estado (chave nunca respondida → ciclo zerado). PURA. */
+export function quizCycleFor(state: TrackLessonUiState, key: string): QuizCycle {
+  return quizCycleOf(state.quizBySection[key]);
+}
+
+/**
+ * Registra a resposta do quiz da chave. ONDA1-MAESTRIA — deixou de ser
+ * cegamente idempotente:
+ *
+ *   - ACERTO  → a chave FECHA ('dominado'). Imutável dali em diante: qualquer
+ *     submissão posterior é no-op (mesma referência de estado);
+ *   - ERRO    → NÃO fecha. Grava a tentativa e ABRE o ciclo de remediação
+ *     ('explicando'). O gate continua bloqueado — o próximo passo é a
+ *     explicação diagnóstica (`registerQuizExplanation`) e o quiz novo
+ *     (`injectRemediationQuiz`), não a punição;
+ *   - PROTEÇÃO ANTI-DUPLA-SUBMISSÃO PRESERVADA: uma segunda resposta na MESMA
+ *     geração é no-op (dois cliques no card, StrictMode, evento repetido). Só
+ *     uma geração NOVA aceita resposta nova.
+ *
+ * `now` é injetável (default Date.now()) como no resto do módulo. PURA.
  */
 export function submitQuizAnswer(
   state: TrackLessonUiState,
   sectionId: string,
   answerIndex: number,
   correctIndex: number,
+  now: number = Date.now(),
 ): TrackLessonUiState {
-  if (state.quizBySection[sectionId]?.answered === true) return state;
+  const cycle = quizCycleFor(state, sectionId);
+  // Acerto anterior fecha a chave para sempre; dupla submissão da MESMA
+  // geração é o clique repetido — os dois são no-op por referência.
+  if (cycle.mastered || cycle.answeredThisGeneration) return state;
+  const correct = answerIndex === correctIndex;
+  const attempt: QuizAttempt = {
+    generation: cycle.generation,
+    selected: answerIndex,
+    correct,
+    ts: now,
+  };
   return {
     ...state,
     quizBySection: {
@@ -751,20 +971,282 @@ export function submitQuizAnswer(
       [sectionId]: {
         answered: true,
         selected: answerIndex,
-        correct: answerIndex === correctIndex,
+        correct,
+        stage: correct ? 'dominado' : 'explicando',
+        generation: cycle.generation,
+        attempts: [...cycle.attempts, attempt],
+        explanation: cycle.explanation,
+        remediation: cycle.remediation,
       },
     },
   };
 }
 
-/** Estado do quiz da seção (undefined = ainda não respondido). PURA. */
+/** Estado do quiz da chave (undefined = ainda não respondido). PURA. */
 export function quizForSection(state: TrackLessonUiState, sectionId: string): QuizState | undefined {
   return state.quizBySection[sectionId];
 }
 
-/** true quando a seção JÁ foi respondida no quiz. PURA. */
+/**
+ * true quando a GERAÇÃO CORRENTE do quiz já foi respondida (certo OU errado).
+ * ATENÇÃO — não é mais o predicado do GATE: desde a ONDA1-MAESTRIA quem
+ * libera é `isQuizMastered`. Este continua existindo porque é o que o card
+ * precisa saber para mostrar o feedback da resposta atual. PURA.
+ */
 export function isQuizAnswered(state: TrackLessonUiState, sectionId: string): boolean {
   return state.quizBySection[sectionId]?.answered === true;
+}
+
+/**
+ * ONDA1-MAESTRIA: true quando o aluno ACERTOU aquela afirmação — o predicado
+ * do gate, e o único que libera "Próximo"/"Concluir aula". PURA.
+ */
+export function isQuizMastered(state: TrackLessonUiState, key: string): boolean {
+  return quizCycleFor(state, key).mastered;
+}
+
+/** Tentativas registradas na chave, em ordem cronológica. PURA. */
+export function quizAttempts(state: TrackLessonUiState, key: string): readonly QuizAttempt[] {
+  return quizCycleFor(state, key).attempts;
+}
+
+/** Geração corrente do quiz da chave (0 = o quiz autoral). PURA. */
+export function quizGeneration(state: TrackLessonUiState, key: string): number {
+  return quizCycleFor(state, key).generation;
+}
+
+/** Markdown da última explicação diagnóstica registrada (null = nenhuma). PURA. */
+export function quizExplanation(state: TrackLessonUiState, key: string): string | null {
+  return quizCycleFor(state, key).explanation;
+}
+
+/** Quiz remediador da geração corrente (null = ainda é o autoral). PURA. */
+export function remediationQuizFor(
+  state: TrackLessonUiState,
+  key: string,
+): TrackAssertionDto | null {
+  return quizCycleFor(state, key).remediation;
+}
+
+/** A tentativa registrada NAQUELA geração (undefined = geração sem resposta). PURA. */
+export function attemptForGeneration(
+  quiz: QuizState | undefined,
+  generation: number,
+): QuizAttempt | undefined {
+  return quizCycleOf(quiz).attempts.find((a) => a.generation === generation);
+}
+
+// ─── ONDA1-MAESTRIA: a explicação diagnóstica vira BOLHA do chat ────────────
+
+/**
+ * Rótulos da bolha da explicação (o módulo é PURO — sem i18n; a view injeta as
+ * traduções correntes, como já faz com `ErrorBubbleLabels`). O default é a
+ * redação pt-BR, no tom de `docs/ux-redesign.md` §8 item 3 / §8.2:
+ * DIAGNÓSTICA e informacional — descreve onde a alternativa se separa do que a
+ * seção mostra. Nada de "errado", "que pena", "tente de novo": nem punição,
+ * nem elogio ritualizado (d = −0,40), nem prescrição de comportamento.
+ */
+export interface QuizExplanationLabels {
+  /** Título da bolha (chave sugerida `lesson.quizExplanationTitle`). */
+  title: string;
+  /** Rótulo da alternativa que o aluno marcou. */
+  chosen: string;
+}
+
+const DEFAULT_QUIZ_EXPLANATION_LABELS: QuizExplanationLabels = {
+  title: 'Onde essa alternativa se separa do que a seção mostra',
+  chosen: 'Alternativa marcada',
+};
+
+/** Entrada de `formatQuizExplanationBubble` — o que a view/serviço já tem em
+ *  mãos no momento do erro. */
+export interface QuizExplanationInput {
+  /** A pergunta do quiz que foi respondida. */
+  question: string;
+  /** O TEXTO da alternativa marcada (não o índice — a bolha é para ler). */
+  chosenOption: string;
+  /** A explicação da IA: por que aquela alternativa não se sustenta. */
+  explanation: string;
+  /** Trecho de código citado (opcional) — vai em code block. */
+  codeExcerpt?: string | null;
+  /** Linguagem do code block (default: sem linguagem). */
+  codeLanguage?: string;
+}
+
+/**
+ * Markdown DETERMINÍSTICO da bolha da explicação — UMA mensagem do histórico,
+ * mesmo padrão de `formatErrorBubble`. O code block usa `fenceFor` pelo MESMO
+ * motivo de lá: o trecho citado é conteúdo de autoria não controlada (LLM +
+ * código do aluno) e pode conter runs de 3+ backticks, que quebrariam um fence
+ * fixo. PURA.
+ */
+export function formatQuizExplanationBubble(
+  input: QuizExplanationInput,
+  labels: Partial<QuizExplanationLabels> = {},
+): string {
+  const l: QuizExplanationLabels = { ...DEFAULT_QUIZ_EXPLANATION_LABELS, ...labels };
+  const parts = [`## ${l.title}`, `**${input.question}**`, `${l.chosen}: ${input.chosenOption}`, input.explanation];
+  const excerpt = input.codeExcerpt?.trim();
+  if (excerpt) {
+    const fence = fenceFor(excerpt);
+    parts.push(`${fence}${input.codeLanguage ?? ''}\n${excerpt}\n${fence}`);
+  }
+  return parts.join('\n\n');
+}
+
+/**
+ * Registra a explicação do erro: ela vira BOLHA do chat (kind
+ * 'quiz-explanation' — ver o comentário do campo `kind`: um kind próprio é o
+ * que impede a explicação de ser contada como apresentação de seção e
+ * deslocar a âncora de todos os quizzes seguintes) e o ciclo avança para
+ * 'novo-quiz-pendente'.
+ *
+ * NO-OP fora do estado 'explicando' (chave dominada, ainda sem resposta, ou
+ * explicação já registrada) — o guard que torna a chamada segura sob
+ * StrictMode/reentrada. `now` injetável. PURA.
+ */
+export function registerQuizExplanation(
+  state: TrackLessonUiState,
+  key: string,
+  input: QuizExplanationInput,
+  labels: Partial<QuizExplanationLabels> = {},
+  now: number = Date.now(),
+): TrackLessonUiState {
+  const cycle = quizCycleFor(state, key);
+  if (cycle.stage !== 'explicando') return state;
+  const current = state.quizBySection[key];
+  if (current === undefined) return state;
+  const content = formatQuizExplanationBubble(input, labels);
+  return {
+    ...state,
+    history: [
+      ...state.history,
+      { role: 'assistant' as const, content, ts: now, kind: 'quiz-explanation' as const },
+    ],
+    quizBySection: {
+      ...state.quizBySection,
+      [key]: { ...current, stage: 'novo-quiz-pendente', explanation: content },
+    },
+  };
+}
+
+/**
+ * Injeta o quiz REMEDIADOR sobre o mesmo conteúdo: geração N+1, card zerado
+ * (answered=false — o aluno responde do zero) e ciclo de volta a
+ * 'aguardando-resposta'. As tentativas anteriores PERMANECEM (`attempts`), e é
+ * por isso que o card da geração antiga continua mostrando o próprio feedback
+ * na conversa (`optionVisualStateForGeneration`).
+ *
+ * A id da assertion guardada é REESCRITA para `remediationAssertionId(key, N+1)`
+ * — determinística, única e reversível por `quizKeyFor` (a LLM não escolhe a
+ * identidade do estado).
+ *
+ * NO-OP quando a chave já está dominada ou quando o ciclo ainda não pediu quiz
+ * novo (estados 'aguardando-resposta'/'dominado'). Aceita tanto
+ * 'novo-quiz-pendente' (o caminho normal) quanto 'explicando' (o caminho de
+ * degradação: a explicação não pôde ser gerada e o ciclo segue mesmo assim —
+ * travar o aluno seria pior). PURA.
+ */
+export function injectRemediationQuiz(
+  state: TrackLessonUiState,
+  key: string,
+  assertion: TrackAssertionDto,
+): TrackLessonUiState {
+  const cycle = quizCycleFor(state, key);
+  if (cycle.stage !== 'novo-quiz-pendente' && cycle.stage !== 'explicando') return state;
+  const generation = cycle.generation + 1;
+  return {
+    ...state,
+    quizBySection: {
+      ...state.quizBySection,
+      [key]: {
+        answered: false,
+        selected: null,
+        correct: null,
+        stage: 'aguardando-resposta',
+        generation,
+        attempts: cycle.attempts,
+        explanation: cycle.explanation,
+        remediation: { ...assertion, id: remediationAssertionId(key, generation) },
+      },
+    },
+  };
+}
+
+/**
+ * O PRÓXIMO PASSO do ciclo — o que a view/serviço deve fazer agora. É a
+ * tradução do `stage` para uma instrução, para que nenhum chamador precise
+ * reimplementar o switch (e para que o passo seja testável sem React):
+ *
+ *   - 'aguardar-resposta' → o card está na tela esperando o clique;
+ *   - 'explicar-erro'     → pedir à IA a explicação da alternativa `selected`
+ *                           e registrá-la com `registerQuizExplanation`;
+ *   - 'gerar-novo-quiz'   → pedir o quiz remediador e injetá-lo com
+ *                           `injectRemediationQuiz`;
+ *   - 'dominado'          → nada a fazer; o gate está liberado para esta chave.
+ * PURA.
+ */
+export type QuizCycleStep =
+  | { kind: 'aguardar-resposta'; generation: number }
+  | { kind: 'explicar-erro'; generation: number; selected: number }
+  | { kind: 'gerar-novo-quiz'; generation: number }
+  | { kind: 'dominado'; generation: number };
+
+export function quizStepOf(quiz: QuizState | undefined): QuizCycleStep {
+  const cycle = quizCycleOf(quiz);
+  switch (cycle.stage) {
+    case 'dominado':
+      return { kind: 'dominado', generation: cycle.generation };
+    case 'explicando': {
+      const last = cycle.attempts[cycle.attempts.length - 1];
+      return {
+        kind: 'explicar-erro',
+        generation: cycle.generation,
+        selected: last?.selected ?? -1,
+      };
+    }
+    case 'novo-quiz-pendente':
+      return { kind: 'gerar-novo-quiz', generation: cycle.generation };
+    default:
+      return { kind: 'aguardar-resposta', generation: cycle.generation };
+  }
+}
+
+/** O próximo passo do ciclo da chave `key` no estado. PURA. */
+export function nextQuizStep(state: TrackLessonUiState, key: string): QuizCycleStep {
+  return quizStepOf(state.quizBySection[key]);
+}
+
+/**
+ * O que a UI deve RENDERIZAR para uma assertion autoral: a chave do estado, a
+ * assertion da geração corrente (a remediadora, quando existe) e o passo do
+ * ciclo. É o ÚNICO ponto de entrada que a view precisa — em particular, a
+ * chave sai SEMPRE da assertion AUTORAL (a remediadora vive sob a mesma
+ * chave), o que elimina a classe de bug de "responder o remediador cria um
+ * quiz novo em vez de fechar o antigo". PURA.
+ */
+export interface VisibleQuiz {
+  key: string;
+  assertion: TrackAssertionDto;
+  generation: number;
+  quiz: QuizState | undefined;
+  step: QuizCycleStep;
+}
+
+export function visibleQuizFor(
+  state: TrackLessonUiState,
+  original: TrackAssertionDto,
+): VisibleQuiz {
+  const key = quizKeyFor(original);
+  const quiz = state.quizBySection[key];
+  const cycle = quizCycleOf(quiz);
+  return {
+    key,
+    assertion: cycle.remediation ?? original,
+    generation: cycle.generation,
+    quiz,
+    step: quizStepOf(quiz),
+  };
 }
 
 /**
@@ -830,7 +1312,43 @@ export function optionVisualState(
 }
 
 /**
- * Zera a resposta do quiz da seção (a seção volta a oferecer as opções).
+ * ONDA1-MAESTRIA: o MESMO estado visual, porém de uma GERAÇÃO específica do
+ * quiz — o que permite ao card da geração antiga continuar mostrando o próprio
+ * feedback depois que o remediador entrou (a geração corrente volta a
+ * `answered: false`, e sem isto o erro sumiria da tela).
+ *
+ * O INVARIANTE SAGRADO DE `optionVisualState` VALE AQUI IGUAL: enquanto NÃO
+ * existir tentativa registrada naquela geração, a função RETORNA CEDO o neutro
+ * e `assertion.answerIndex` NEM É LIDO. Nenhum caminho — nem para o quiz
+ * autoral, nem para o remediador — deixa o índice da resposta influenciar o
+ * pixel antes de o aluno responder AQUELA geração.
+ */
+export function optionVisualStateForGeneration(
+  i: number,
+  assertion: Pick<TrackAssertionDto, 'answerIndex'>,
+  quiz: QuizState | undefined,
+  generation: number,
+): QuizOptionVisual {
+  const attempt = attemptForGeneration(quiz, generation);
+  // GERAÇÃO NÃO RESPONDIDA: retorno CEDO, neutro. `answerIndex` não é lido
+  // neste caminho — a resposta não pode vazar por construção.
+  if (attempt === undefined) return { ...QUIZ_OPTION_NEUTRAL };
+  const isCorrectOption = i === assertion.answerIndex;
+  const isWrongPick = !attempt.correct && i === attempt.selected;
+  return {
+    color: isCorrectOption ? 'success' : isWrongPick ? 'error' : 'inherit',
+    variant: isCorrectOption ? 'contained' : 'outlined',
+    icon: isCorrectOption ? 'correct' : isWrongPick ? 'wrong' : null,
+    disabled: true,
+  };
+}
+
+/**
+ * Zera a resposta do quiz da seção (a seção volta a oferecer as opções) —
+ * INCLUSIVE o ciclo inteiro (tentativas, explicação e quiz remediador saem
+ * junto: a chave some do mapa). Escape hatch, não parte do ciclo: o caminho
+ * normal do erro é `registerQuizExplanation` + `injectRemediationQuiz`, que
+ * PRESERVAM o histórico de tentativas.
  * No-op quando não há resposta gravada. PURA.
  */
 export function resetQuiz(state: TrackLessonUiState, sectionId: string): TrackLessonUiState {
@@ -921,38 +1439,64 @@ export function quizzesByMessageIndex(
   return out;
 }
 
-// ─── ONDA10 (bug 2): o quiz vira OBRIGATÓRIO ─────────────────────────────────
-// O dono: "o quiz pode ser ignorado e ja vem selecionado; quero que o usuario
-// tenha que responder". Até aqui o quiz era REFORÇO (o cabeçalho antigo dizia
-// "NUNCA bloqueia o Próximo") — dava para terminar a aula sem responder nada.
-// Passa a ser GATE, com duas regras e uma garantia:
+// ─── ONDA10 (bug 2) → ONDA1-MAESTRIA: o gate exige ACERTO ───────────────────
+// ONDA10, o dono: "o quiz pode ser ignorado e ja vem selecionado; quero que o
+// usuario tenha que responder". O quiz virou GATE — mas RESPONDER bastava.
+// ONDA1-MAESTRIA, o dono de novo: errar NÃO libera; a IA explica, um quiz novo
+// é gerado sobre o mesmo conteúdo, e só o ACERTO abre caminho ("só vamos para
+// o desafio depois que o aluno provar que entendeu"). As duas regras de
+// PRECEDÊNCIA e VISIBILIDADE ficam intactas:
 //
-//   - "Próximo"      bloqueia enquanto a seção ATUAL (a última apresentada)
-//                    tiver quiz sem resposta — `pendingQuizzesForCurrentSection`;
-//   - "Concluir aula" bloqueia enquanto QUALQUER quiz já visível estiver sem
-//                    resposta — `pendingQuizzes`;
-//   - GARANTIA: o gate lê `answered`, NUNCA `correct`. Responder errado libera
-//     igual a acertar (o quiz é para pensar, não para punir), e
-//     `submitQuizAnswer` continua idempotente — a primeira resposta vence.
-//
-// Só entram no gate os quizzes ANCORADOS numa bolha já apresentada
-// (`quizzesByMessageIndex`): um quiz que o aluno ainda não pode ver nunca
-// bloqueia nada.
+//   - "Próximo"       bloqueia enquanto a seção ATUAL (a última apresentada)
+//                     tiver quiz NÃO DOMINADO — `pendingQuizzesForCurrentSection`;
+//   - "Concluir aula" bloqueia enquanto QUALQUER quiz já visível estiver NÃO
+//                     DOMINADO — `pendingQuizzes` (e 'quiz' vem ANTES de
+//                     'challenges' em `lessonFinishBlock`);
+//   - VISIBILIDADE: só entram no gate os quizzes ANCORADOS numa bolha já
+//     apresentada (`quizzesByMessageIndex`) — um quiz que o aluno ainda não
+//     pode ver nunca bloqueia nada;
+//   - PROTEÇÃO PRESERVADA: `submitQuizAnswer` continua recusando uma segunda
+//     resposta na MESMA geração (dois cliques não viram duas tentativas).
 
 /**
- * Chave do estado do quiz de uma assertion — a MESMA que a LessonView usa ao
- * chamar `submitQuizAnswer`: `sectionId` quando existe, senão a `id` da
- * assertion (única por aula, então duas assertions sem sectionId têm quizzes
- * INDEPENDENTES na mesma âncora). PURA.
+ * Chave do estado do quiz de uma assertion.
+ *
+ * BUG CONSERTADO (ONDA1-MAESTRIA) — a chave era `sectionId ?? assertion.id`, e
+ * DUAS assertions da MESMA seção COLIDIAM: responder uma marcava as duas como
+ * respondidas e o gate liberava sem que a segunda tivesse sido vista. Isso não
+ * é hipótese: das 20 aulas do módulo M1 real
+ * (`resources/tracks/python/modules/a-tela/lessons/<aula>/lesson.json`), pelo
+ * menos 4 (a-primeira-linha, dar-nome-a-um-valor, de-texto-para-numero,
+ * quando-da-errado) trazem 3 assertions cada, várias na mesma seção. Sob a
+ * regra antiga ("responder basta") o efeito era 1 quiz pulado; sob MAESTRIA
+ * seria um furo no gate inteiro — o aluno avançaria sem NUNCA responder.
+ *
+ * A chave nova é `sectionId::assertionId` (única por assertion, e mantém a
+ * seção legível na chave — a ancoragem por seção do gate "Próximo" continua
+ * vindo de `quizzesByMessageIndex`/`sectionPresentationIndexes`, que leem o
+ * `sectionId` da assertion, não a chave). Sem sectionId, a `id` sozinha (já é
+ * única por aula).
+ *
+ * REVERSÍVEL PARA O REMEDIADOR: a id de um quiz remediador é
+ * `<chave>#g<N>` (`remediationAssertionId`), então `quizKeyFor` devolve a
+ * chave ORIGINAL ao receber a assertion remediadora — o ciclo inteiro de uma
+ * afirmação vive numa chave só. PURA.
  */
 export function quizKeyFor(assertion: Pick<TrackAssertionDto, 'id' | 'sectionId'>): string {
-  return assertion.sectionId ?? assertion.id;
+  const remediation = REMEDIATION_ID_RE.exec(assertion.id);
+  if (remediation) return remediation[1];
+  return assertion.sectionId === undefined
+    ? assertion.id
+    : `${assertion.sectionId}${QUIZ_KEY_SEPARATOR}${assertion.id}`;
 }
 
 /**
- * Quizzes JÁ VISÍVEIS (ancorados numa bolha apresentada) que continuam SEM
- * resposta — o gate do "Concluir aula". Ordem determinística: pela ordem das
- * bolhas do histórico e, dentro da bolha, pela ordem das assertions. PURA.
+ * Quizzes JÁ VISÍVEIS (ancorados numa bolha apresentada) ainda NÃO DOMINADOS —
+ * o gate do "Concluir aula". ONDA1-MAESTRIA: "pendente" passou a significar
+ * "sem acerto" (antes: "sem resposta"); um quiz respondido errado continua
+ * pendente e o ciclo de remediação é quem o resolve. Ordem determinística:
+ * pela ordem das bolhas do histórico e, dentro da bolha, pela ordem das
+ * assertions. PURA.
  */
 export function pendingQuizzes(
   state: TrackLessonUiState,
@@ -962,15 +1506,15 @@ export function pendingQuizzes(
   const out: TrackAssertionDto[] = [];
   for (const idx of [...byIndex.keys()].sort((a, b) => a - b)) {
     for (const a of byIndex.get(idx) ?? []) {
-      if (!isQuizAnswered(state, quizKeyFor(a))) out.push(a);
+      if (!isQuizMastered(state, quizKeyFor(a))) out.push(a);
     }
   }
   return out;
 }
 
 /**
- * Quizzes da seção ATUAL (a ÚLTIMA apresentada) ainda sem resposta — o gate do
- * "Próximo". Inclui os quizzes de assertions SEM sectionId, que ancoram
+ * Quizzes da seção ATUAL (a ÚLTIMA apresentada) ainda NÃO DOMINADOS — o gate
+ * do "Próximo". Inclui os quizzes de assertions SEM sectionId, que ancoram
  * justamente na última seção apresentada (mesma regra de
  * `quizzesByMessageIndex`). Sem seção apresentada → lista vazia (nada a
  * responder, nada a bloquear). PURA.
@@ -984,12 +1528,12 @@ export function pendingQuizzesForCurrentSection(
   const idx = sectionPresentationIndexes(state).get(last);
   if (idx === undefined) return [];
   const here = quizzesByMessageIndex(state, assertions).get(idx) ?? [];
-  return here.filter((a) => !isQuizAnswered(state, quizKeyFor(a)));
+  return here.filter((a) => !isQuizMastered(state, quizKeyFor(a)));
 }
 
 /**
- * true quando o "Próximo" (avançar a teoria) está bloqueado por quiz sem
- * resposta na seção atual. Açúcar sobre `pendingQuizzesForCurrentSection` —
+ * true quando o "Próximo" (avançar a teoria) está bloqueado por quiz não
+ * dominado na seção atual. Açúcar sobre `pendingQuizzesForCurrentSection` —
  * o nome é o que a LessonView lê. PURA.
  */
 export function isNextSectionBlockedByQuiz(

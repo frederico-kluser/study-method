@@ -120,10 +120,10 @@ import {
   pendingQuizzes,
   pendingQuizzesForCurrentSection,
   pushUserMessage,
-  quizForSection,
   quizzesByMessageIndex,
   seedChallengeError,
   submitQuizAnswer,
+  visibleQuizFor,
   type TrackLessonUiState,
 } from '../../lib/trackLessonState';
 import {
@@ -880,9 +880,15 @@ export function LessonView(props: ViewProps): ReactElement {
   // Quizzes por índice da bolha do histórico (REPLAN A1): assertion com
   // sectionId → bolha da seção que a demonstra ('next'); assertion SEM
   // sectionId (trilhas antigas) → bolha da ÚLTIMA seção apresentada (fallback
-  // determinístico). A chave do estado do quiz (quizBySection) é
-  // `sectionId ?? assertion.id` — a id é única por assertion, então duas
-  // assertions sem sectionId têm quizzes INDEPENDENTES (mesma âncora).
+  // determinístico).
+  //
+  // A CHAVE do estado do quiz (quizBySection) é assunto de trackLessonState,
+  // NÃO desta view: quem a produz é `quizKeyFor` (`sectionId::assertionId`),
+  // e a view a recebe pronta em `visibleQuizFor(...).key` no render do card.
+  // ONDA1-MAESTRIA: a view calculava a chave INLINE pela fórmula ANTIGA (a
+  // sectionId sozinha, com a id como fallback) e escrevia numa chave que o gate
+  // (`pendingQuizzes`, que chama `quizKeyFor`) nunca lia. Nenhum cálculo de
+  // chave sobrevive aqui; `handleQuizSelect` só repassa a chave recebida.
   const quizzesByIndex = useMemo(
     () => quizzesByMessageIndex(chat, lessonAssertions),
     [chat, lessonAssertions],
@@ -1206,19 +1212,36 @@ export function LessonView(props: ViewProps): ReactElement {
                           terminou (a bolha "apresentada" = texto completo).
                           Respondido → o card FICA preenchido (feedback
                           verde/vermelho, opções travadas — reforço, não
-                          gate). A chave do estado é sectionId ?? assertion.id
-                          (id única — assertions sem sectionId têm quizzes
-                          independentes na MESMA âncora). */}
+                          gate).
+
+                          ONDA1-MAESTRIA (fix): a chave do estado NÃO é mais
+                          calculada aqui. Ela vem de `visibleQuizFor` (que a
+                          deriva por `quizKeyFor`) — a MESMA fonte que
+                          `pendingQuizzes`/`pendingQuizzesForCurrentSection`
+                          usam no gate. Quando a view calculava a chave inline
+                          (`sectionId` sozinha) ela ESCREVIA numa chave e o
+                          gate LIA de outra: responder certo não liberava nada
+                          e o "Próximo" travava para sempre. Além da chave,
+                          `visibleQuizFor` devolve a assertion da GERAÇÃO
+                          corrente (a remediadora, quando existe) e o estado
+                          do quiz — o card renderiza e submete sempre o mesmo
+                          par (chave, assertion). */}
                       {streamingIds.has(i)
                         ? null
                         : (quizzesByIndex.get(i) ?? []).map((assertion) => {
-                            const quizKey = assertion.sectionId ?? assertion.id;
+                            const visible = visibleQuizFor(chat, assertion);
                             return (
                               <LessonQuizCard
-                                key={assertion.id}
-                                assertion={assertion}
-                                quiz={quizForSection(chat, quizKey)}
-                                onSelect={(answerIndex) => handleQuizSelect(quizKey, answerIndex, assertion.answerIndex)}
+                                key={visible.assertion.id}
+                                assertion={visible.assertion}
+                                quiz={visible.quiz}
+                                onSelect={(answerIndex) =>
+                                  handleQuizSelect(
+                                    visible.key,
+                                    answerIndex,
+                                    visible.assertion.answerIndex,
+                                  )
+                                }
                               />
                             );
                           })}
