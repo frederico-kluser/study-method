@@ -10,11 +10,44 @@
  * `buildTrackHandlers(deps)` é PURA (Map<canal, handler>); `registerTrackHandlers`
  * liga ao ipcMain via safeHandle — ADITIVO ao contrato congelado (grupo novo
  * TRACK_CHANNELS = window.api.track.* no preload).
+ *
+ * ─── ONDA 2 (python-roda) — DUAS MUDANÇAS, E POR QUÊ ────────────────────────
+ *
+ * 1. A LINGUAGEM DO DESAFIO CHEGA AO RUNNER. `submitter` chamava
+ *    `runStudentCode({...})` sem exec e sem adaptador, e validava o path dos
+ *    arquivos com o `filePathPattern` do adaptador DEFAULT. Resultado medido
+ *    pelo caminho de produção (este Map, canal `track:challenge-submit`): o
+ *    aluno da trilha `python` digitava `print("oi")` — a solução de referência
+ *    da aula 1 — e recebia `passed:false`, `checks:[]` e `SyntaxError:
+ *    Unexpected token 'import'`. Como o gate da aula exige desafio passado, e
+ *    o destravamento exige a aula anterior concluída, NENHUMA das 20 aulas
+ *    podia ser terminada. Agora `resolveTestsCode` devolve também a linguagem,
+ *    e ela decide adaptador, binário, layout e regex de path.
+ *
+ * 2. OS QUATRO CANAIS DO QUIZ ADAPTATIVO foram registrados aqui
+ *    (`track:quiz-attempt`, `-explain`, `-remedial`, `-history`). Attempt e
+ *    history são PURAMENTE repo (sem LLM); explain e remedial delegam ao
+ *    serviço `services/quizRemediation.ts` e persistem o resultado. Todos
+ *    FAIL-CLOSED no mesmo idioma dos outros canais: sem repo, sem serviço ou
+ *    sem trilha/aula, `{ ok:false, code }` — nunca conteúdo inventado.
  */
 
 import * as path from 'node:path';
 
 import type {
+  QuizAttemptDto,
+  QuizAttemptReply,
+  QuizAttemptRequest,
+  QuizExplainReply,
+  QuizExplainRequest,
+  QuizHistoryReply,
+  QuizHistoryRequest,
+  QuizRemedialReply,
+  QuizRemedialRequest,
+  QuizErrorCode,
+  QuizRemediationDto,
+  QuizSectionMasteryDto,
+  RemedialQuizDto,
   TrackChallengeErrorReport,
   TrackChallengeGetRequest,
   TrackChallengeResult,
@@ -33,7 +66,7 @@ import type {
   TutorChatRequest,
   TutorReply,
 } from '@shared/ipc-contract';
-import { TRACK_CHANNELS } from '@shared/ipc-contract';
+import { QUIZ_ERROR_CODES, TRACK_CHANNELS } from '@shared/ipc-contract';
 
 import { safeHandleMap, type IpcMainHandleLike, type IpcHandlerFn } from './safeHandle';
 import {
@@ -49,7 +82,12 @@ import {
   type TrackScopedState,
 } from '../db/reconcile';
 import { findLessonAnywhere } from '../content/trackLoader';
-import { defaultAdapter } from '../engine/lang/registry';
+import type { LanguageAdapter } from '../engine/lang/registry';
+// ONDA 2 (python-roda): o adaptador vem do `challenge.language` do desafio
+// RESOLVIDO, nunca do default — `adapterDoDesafio` é a MESMA resolução das
+// provas de execução (fail-closed: token desconhecido LANÇA).
+import { adapterDoDesafio } from '../engine/exec/proofs';
+import { trackHarnessLanguage } from '../content/trackTypes';
 import {
   TrackProgressLike,
   buildTrackDetail,
@@ -67,6 +105,11 @@ import {
 } from '../services/challengeRegenerator';
 import { buildChallengeContext, type ChallengeContext } from '../services/challengeContextValidator';
 import type { LlmClient } from '../services/llmClient';
+// ONDA 2 (python-roda): o ciclo de remediação do quiz. A ASSINATURA é
+// congelada (commit de PREP da onda); o CORPO é substituído por outro agente
+// nesta mesma onda. Este arquivo escreve contra a assinatura, nunca contra o
+// corpo — é por isso que o import é do módulo e não de um detalhe dele.
+import { createQuizRemediation, type QuizRemediation } from '../services/quizRemediation';
 
 /** Subconjunto do repo exigido pelos handlers de trilha. */
 export interface TrackRepoLike extends TrackProgressLike {
@@ -102,6 +145,54 @@ export interface TrackRepoLike extends TrackProgressLike {
     durationMs: number;
     createdAt: string;
   }[]>;
+  /**
+   * ADITIVO (onda2-python-roda): a superfície v5 do QUIZ ADAPTATIVO
+   * (`db/repo.ts` §v5). OPCIONAIS pelo MESMO motivo de `listTrackScopedState`:
+   * os fakes da suíte e os stubs E2E que já implementam `TrackRepoLike` não
+   * conhecem estes métodos, e exigi-los aqui quebraria arquivos que não são
+   * desta sub-tarefa. A ausência degrada para erro estruturado
+   * (`QUIZ_UNAVAILABLE`) — nunca para "nenhuma tentativa registrada", que
+   * seria uma mentira tranquila sobre o que o aluno provou saber.
+   */
+  recordQuizAttempt?(input: {
+    trackSlug: string;
+    lessonId: string;
+    sectionKey: string;
+    assertionId: string;
+    selectedIndex: number;
+    correct: boolean;
+    attemptNo?: number;
+    quizOrigin?: 'authored' | 'remedial';
+  }): Promise<QuizAttemptRowLike>;
+  listQuizAttempts?(scope: { trackSlug: string; lessonId: string }): Promise<QuizAttemptRowLike[]>;
+  saveQuizRemediation?(input: {
+    id?: string;
+    trackSlug: string;
+    lessonId: string;
+    sectionKey: string;
+    originAssertionId: string;
+    generation: number;
+    explanation: string;
+    quiz: RemedialQuizDto;
+  }): Promise<unknown>;
+  listQuizRemediations?(scope: { trackSlug: string; lessonId: string }): Promise<QuizRemediationRowLike[]>;
+  quizMasteryFor?(scope: { trackSlug: string; lessonId: string }): Promise<QuizSectionMasteryDto[]>;
+}
+
+/**
+ * A linha de `quiz_attempts` como este arquivo a consome. É o `QuizAttemptRow`
+ * de `db/repo.ts` menos o `id` da linha (que o DTO do contrato não carrega) —
+ * declarado aqui, e não importado, porque `ipc/` já não importa `db/repo.ts`
+ * em lugar nenhum (o repo chega SEMPRE por injeção, e é isso que deixa os
+ * testes rodarem sem SQLite).
+ */
+interface QuizAttemptRowLike extends QuizAttemptDto {
+  id: string;
+}
+
+/** A linha de `quiz_remediations` como este arquivo a consome (ver acima). */
+interface QuizRemediationRowLike extends Omit<QuizRemediationDto, 'quiz'> {
+  quiz: RemedialQuizDto | null;
 }
 
 export interface TrackHandlerDeps {
@@ -118,6 +209,15 @@ export interface TrackHandlerDeps {
   /** OPCIONAL (onda3-generate-flow): emite eventos push ao renderer
    *  (track:challenge-regenerate-progress). Ausente → no-op (testes/fixtures). */
   emit?: (channel: string, ev: unknown) => void;
+  /**
+   * OPCIONAL (onda2-python-roda): o ciclo de remediação do quiz. Ausente E com
+   * `llm` presente → construído aqui com o mesmo `chatFn` do tutor. Ausente E
+   * sem `llm` → NÃO EXISTE, e os canais `quiz-explain`/`quiz-remedial`
+   * respondem `QUIZ_UNAVAILABLE`. O slot existe para a suíte injetar um duplo
+   * sem rede (mesma disciplina de `tutorChat(input, chat)`), e para que este
+   * arquivo não precise ser tocado quando o corpo do serviço mudar.
+   */
+  quizRemediation?: QuizRemediation;
 }
 
 export function buildTrackHandlers(deps: TrackHandlerDeps): Map<string, IpcHandlerFn> {
@@ -391,30 +491,59 @@ export function buildTrackHandlers(deps: TrackHandlerDeps): Map<string, IpcHandl
   // Os TESTES nunca trafegam para o renderer (o aluno não os vê): o handler
   // resolve o testsCode INTERNAMENTE (arquivo da trilha ou banco, quando o
   // desafio é regenerado) e roda o código do aluno contra eles.
+  //
+  // ONDA 2 (python-roda): a resolução devolve TAMBÉM a LINGUAGEM do desafio.
+  // Sem ela o handler chamava `runStudentCode({...})` sem adaptador e sem exec,
+  // o runner caía no default (javascript) e a trilha `python` respondia
+  // `SyntaxError: Unexpected token 'import'` para a solução de referência da
+  // própria aula 1 — o aluno não saía da primeira aula.
+  interface TestSpec {
+    testsCode: string;
+    expectedTestCount: number;
+    /** `challenge.language` do desafio resolvido (token do disco: 'nodejs', 'python', …). */
+    language: string;
+  }
   async function resolveTestsCode(
     loaded: LoadedTrack,
     p: TrackSubmitRequest,
     isProficiency: boolean,
-  ): Promise<{ testsCode: string; expectedTestCount: number } | null> {
+  ): Promise<TestSpec | null> {
     if (isProficiency) {
       const prof = loaded.proficiency;
       if (!prof || (p.challengeId && p.challengeId !== prof.slug)) return null;
-      return { testsCode: prof.testsCode, expectedTestCount: prof.expectedTestCount };
+      return { testsCode: prof.testsCode, expectedTestCount: prof.expectedTestCount, language: prof.language };
     }
     // ADITIVO (rodada 9): desafio do MÓDULO (target 'module').
     if (p.target === 'module') {
       const mod = loaded.modules.find((m) => m.meta.slug === p.moduleSlug);
       if (!mod?.challenge || (p.challengeId && p.challengeId !== mod.challenge.slug)) return null;
-      return { testsCode: mod.challenge.testsCode, expectedTestCount: mod.challenge.expectedTestCount };
+      return {
+        testsCode: mod.challenge.testsCode,
+        expectedTestCount: mod.challenge.expectedTestCount,
+        language: mod.challenge.language,
+      };
     }
     const found = findLessonAnywhere(loaded, p.lessonId ?? '');
     if (!found) return null;
     const ch = found.lesson.challenges.find((c) => c.slug === p.challengeId);
-    if (ch) return { testsCode: ch.testsCode, expectedTestCount: ch.expectedTestCount };
+    if (ch) return { testsCode: ch.testsCode, expectedTestCount: ch.expectedTestCount, language: ch.language };
     if (repo && p.challengeId) {
       const gen = await repo.listGeneratedChallenges(loaded.root.slug, p.lessonId!);
       const g = gen.find((x) => x.challengeId === p.challengeId);
-      if (g) return { testsCode: g.testsCode, expectedTestCount: g.expectedTestCount };
+      // LIMITAÇÃO DECLARADA: a tabela `generated_challenges` não guarda
+      // linguagem (nasceu monolíngue). O fallback é a linguagem em que os
+      // `testsCode` DA TRILHA são escritos (`harnessLanguage`, default =
+      // `programmingLanguage`, default = javascript) — que é exatamente a
+      // pergunta que o runner faz. Trilha de uma linguagem só (o caso de hoje,
+      // e o que o loader exige: todo `challenge.language` da trilha resolve
+      // para o MESMO adaptador) ⇒ o fallback é a resposta certa.
+      if (g) {
+        return {
+          testsCode: g.testsCode,
+          expectedTestCount: g.expectedTestCount,
+          language: trackHarnessLanguage(loaded.root),
+        };
+      }
     }
     return null;
   }
@@ -437,24 +566,6 @@ export function buildTrackHandlers(deps: TrackHandlerDeps): Map<string, IpcHandl
     if (!p.trackSlug || (typeof p.code !== 'string' && !hasFiles)) {
       return submitError('SUBMIT_BAD_REQUEST', 'requer trackSlug + code (ou files).');
     }
-    // FIX (revisão adversarial): valida cada path de arquivo ANTES de qualquer
-    // escrita — path malicioso ('a/../../escape.mjs') faria o runner escrever
-    // FORA do workdir de execução (path.join resolve o '..' no writeFile).
-    if (
-      hasFiles &&
-      (p.files as { path: string; code: string }[]).some(
-        // ONDA 5: o regex de caminho seguro é o `filePathPattern` do ADAPTADOR
-        // (§6 obs. 1 de docs/research/08) — travá-lo em `.mjs` aqui impediria
-        // qualquer outra linguagem de existir. A mensagem mostra o padrão REAL
-        // em vigor, em vez de repetir um literal que pode divergir dele.
-        (f) => typeof f?.path !== 'string' || !defaultAdapter().filePathPattern.test(f.path),
-      )
-    ) {
-      return submitError(
-        'SUBMIT_BAD_REQUEST',
-        `path de arquivo inválido (esperado ${defaultAdapter().filePathPattern.source}).`,
-      );
-    }
     if (!repo) return submitError('NO_REPO', 'persistência indisponível.');
     const loaded = await loadTrackOrError(p.trackSlug);
     if ('error' in loaded) return submitError('TRACK_INVALID', loaded.error);
@@ -462,11 +573,48 @@ export function buildTrackHandlers(deps: TrackHandlerDeps): Map<string, IpcHandl
     const testSpec = await resolveTestsCode(loaded, p, isProficiency);
     if (!testSpec) return submitError('CHALLENGE_NOT_FOUND', 'desafio não encontrado.');
 
+    // O ADAPTADOR DO DESAFIO — não o default. Token declarado e desconhecido
+    // LANÇA (fail-closed do registro); aqui vira erro estruturado, porque um
+    // handler IPC nunca rejeita o invoke do aluno com exceção crua.
+    let adapter: LanguageAdapter;
+    try {
+      adapter = adapterDoDesafio(testSpec.language);
+    } catch (err) {
+      return submitError('CHALLENGE_LANGUAGE_UNSUPPORTED', String(err));
+    }
+
+    // FIX (revisão adversarial): valida cada path de arquivo ANTES de qualquer
+    // escrita — path malicioso ('a/../../escape.mjs') faria o runner escrever
+    // FORA do workdir de execução (path.join resolve o '..' no writeFile).
+    //
+    // ONDA 2 (python-roda): a validação MUDOU DE LUGAR — passou para DEPOIS da
+    // resolução do desafio, porque o regex de caminho seguro é do ADAPTADOR
+    // DELE e não do default: em JavaScript o arquivo termina em `.mjs`
+    // (`/^[a-zA-Z0-9_\-/]+\.mjs$/`), em Python em `.py`. Antes, um desafio
+    // multi-arquivo de Python era rejeitado com "path de arquivo inválido"
+    // ANTES de qualquer execução. Continua sendo a PRIMEIRA coisa que acontece
+    // antes de escrever qualquer byte em disco — que é o que a defesa exige.
+    if (
+      hasFiles &&
+      (p.files as { path: string; code: string }[]).some(
+        // A mensagem mostra o padrão REAL em vigor, em vez de repetir um
+        // literal que pode divergir dele.
+        (f) => typeof f?.path !== 'string' || !adapter.filePathPattern.test(f.path),
+      )
+    ) {
+      return submitError(
+        'SUBMIT_BAD_REQUEST',
+        `path de arquivo inválido (esperado ${adapter.filePathPattern.source}).`,
+      );
+    }
+
     const res = await runStudentCode({
       studentCode: typeof p.code === 'string' ? p.code : '',
       files: hasFiles ? p.files : undefined,
       testsCode: testSpec.testsCode,
       expectedTestCount: testSpec.expectedTestCount,
+      // A LINHA QUE FALTAVA no caminho do aluno.
+      language: testSpec.language,
     });
     return {
       ok: true,
@@ -683,6 +831,259 @@ export function buildTrackHandlers(deps: TrackHandlerDeps): Map<string, IpcHandl
         error: { code: 'REGEN_INTERNAL', message: `falha inesperada na regeneração: ${String(err)}` },
       };
     }
+  });
+
+  // ─── QUIZ ADAPTATIVO: os quatro canais ─────────────────────────────────────
+  //
+  // A REGRA DO PRODUTO (shared/ipc-contract.ts, "DTOs: QUIZ ADAPTATIVO"): o
+  // aluno erra ⇒ a IA explica POR QUE aquela opção está errada ⇒ um quiz NOVO
+  // sobre o mesmo conteúdo é gerado na hora ⇒ o desafio só abre depois do
+  // acerto ⇒ tudo sobrevive ao fechamento do app.
+  //
+  // A DIVISÃO DE TRABALHO, e por que ela é assim:
+  //   - `quiz-attempt` e `quiz-history` são PURAMENTE repo. Não há LLM no
+  //     caminho: registrar uma resposta e ler o histórico são perguntas ao
+  //     banco, e enfiar um serviço remoto no meio delas transformaria uma
+  //     escrita local em algo que falha quando a internet cai;
+  //   - `quiz-explain` e `quiz-remedial` delegam a `services/quizRemediation.ts`
+  //     e NÃO decidem nada de pedagogia aqui.
+  //
+  // FAIL-CLOSED em todos os quatro, no mesmo idioma dos outros canais deste
+  // arquivo: sem repo, sem serviço ou com pedido incompleto ⇒
+  // `{ ok:false, code, message }`. Nunca uma explicação inventada, nunca um
+  // quiz malformado, nunca "0 tentativas" no lugar de "não consegui ler".
+
+  /** O serviço: injetado (suíte) ou construído do `llm` (produto). Sem `llm`, não existe. */
+  const quizService: QuizRemediation | undefined =
+    deps.quizRemediation ?? (deps.llm ? createQuizRemediation({ chat: chatFn }) : undefined);
+
+  // O ramo de falha é IDÊNTICO nas quatro respostas do contrato
+  // (`{ ok:false; code: QuizErrorCode; message: string }`), então uma função só
+  // serve as quatro — e o tipo do `code` vem do contrato, o que impede um
+  // código inventado de chegar ao renderer.
+  const quizErro = (
+    code: QuizErrorCode,
+    message: string,
+  ): { ok: false; code: QuizErrorCode; message: string } => ({ ok: false, code, message });
+
+  const textoNaoVazio = (v: unknown): v is string => typeof v === 'string' && v.trim() !== '';
+
+  /** Escopo (trilha, aula) de qualquer pedido de quiz — validação MÍNIMA do payload IPC. */
+  const escopoDoQuiz = (p: { trackSlug?: unknown; lessonId?: unknown }): { trackSlug: string; lessonId: string } | null =>
+    textoNaoVazio(p.trackSlug) && textoNaoVazio(p.lessonId)
+      ? { trackSlug: p.trackSlug, lessonId: p.lessonId }
+      : null;
+
+  const masteryDto = (m: QuizSectionMasteryDto): QuizSectionMasteryDto => ({
+    sectionKey: m.sectionKey,
+    mastered: m.mastered,
+    attemptCount: m.attemptCount,
+    correctCount: m.correctCount,
+    firstCorrectAt: m.firstCorrectAt,
+    lastAttemptAt: m.lastAttemptAt,
+  });
+
+  /** A linha do banco vira DTO: o `id` da linha não atravessa o IPC. */
+  const attemptDto = (row: QuizAttemptRowLike): QuizAttemptDto => ({
+    trackSlug: row.trackSlug,
+    lessonId: row.lessonId,
+    sectionKey: row.sectionKey,
+    assertionId: row.assertionId,
+    selectedIndex: row.selectedIndex,
+    correct: row.correct,
+    attemptNo: row.attemptNo,
+    quizOrigin: row.quizOrigin,
+    createdAt: row.createdAt,
+  });
+
+  /**
+   * A maestria RECALCULADA depois de gravar. `quizMasteryFor` ausente na repo
+   * ⇒ `[]`: a tentativa FOI gravada e negá-la seria pior; a lista vazia diz
+   * "nenhuma seção provada", que é o estado seguro do gate (o desafio não abre
+   * por omissão — ele abre por acerto registrado).
+   */
+  async function maestriaDaAula(scope: { trackSlug: string; lessonId: string }): Promise<QuizSectionMasteryDto[]> {
+    if (!repo?.quizMasteryFor) return [];
+    return (await repo.quizMasteryFor(scope)).map(masteryDto);
+  }
+
+  // ─── track:quiz-attempt ────────────────────────────────────────────────────
+  map.set(TRACK_CHANNELS.QUIZ_ATTEMPT, async (_event, payload: unknown): Promise<QuizAttemptReply> => {
+    const p = (payload ?? {}) as QuizAttemptRequest;
+    const scope = escopoDoQuiz(p);
+    if (!scope || !textoNaoVazio(p.sectionKey) || !textoNaoVazio(p.assertionId)) {
+      return quizErro(QUIZ_ERROR_CODES.NOT_FOUND, 'quiz-attempt requer trackSlug, lessonId, sectionKey e assertionId.');
+    }
+    if (typeof p.selectedIndex !== 'number' || !Number.isInteger(p.selectedIndex) || p.selectedIndex < 0) {
+      return quizErro(QUIZ_ERROR_CODES.NOT_FOUND, 'selectedIndex inválido (índice inteiro da opção escolhida).');
+    }
+    if (typeof p.correct !== 'boolean') {
+      // O veredito NÃO é derivado aqui: quem sabe o `answerIndex` é o
+      // renderer, que já tem a afirmação. Derivar de novo neste ponto seria uma
+      // segunda implementação da mesma regra — e um booleano ausente é pedido
+      // incompleto, não "errou".
+      return quizErro(QUIZ_ERROR_CODES.NOT_FOUND, 'correct ausente: o pedido precisa dizer se a resposta acertou.');
+    }
+    if (!repo?.recordQuizAttempt) {
+      return quizErro(QUIZ_ERROR_CODES.UNAVAILABLE, 'persistência de quiz indisponível nesta build.');
+    }
+    try {
+      const row = await repo.recordQuizAttempt({
+        ...scope,
+        sectionKey: p.sectionKey,
+        assertionId: p.assertionId,
+        selectedIndex: p.selectedIndex,
+        correct: p.correct,
+        // `attemptNo` omitido de propósito quando o pedido não o traz: a repo o
+        // DERIVA (COUNT+1) na mesma transação do INSERT — é o único lugar onde
+        // a contagem não corre risco de ficar defasada.
+        ...(typeof p.attemptNo === 'number' ? { attemptNo: p.attemptNo } : {}),
+        ...(p.quizOrigin ? { quizOrigin: p.quizOrigin } : {}),
+      });
+      return { ok: true, attempt: attemptDto(row), mastery: await maestriaDaAula(scope) };
+    } catch (err) {
+      return quizErro(QUIZ_ERROR_CODES.PERSIST_FAILED, `falha ao gravar a resposta: ${String(err)}`);
+    }
+  });
+
+  // ─── track:quiz-history ────────────────────────────────────────────────────
+  map.set(TRACK_CHANNELS.QUIZ_HISTORY, async (_event, payload: unknown): Promise<QuizHistoryReply> => {
+    const p = (payload ?? {}) as QuizHistoryRequest;
+    const scope = escopoDoQuiz(p);
+    if (!scope) return quizErro(QUIZ_ERROR_CODES.NOT_FOUND, 'quiz-history requer trackSlug + lessonId.');
+    if (!repo?.listQuizAttempts || !repo.listQuizRemediations) {
+      return quizErro(QUIZ_ERROR_CODES.UNAVAILABLE, 'histórico de quiz indisponível nesta build.');
+    }
+    try {
+      const [attempts, remediations, mastery] = await Promise.all([
+        repo.listQuizAttempts(scope),
+        repo.listQuizRemediations(scope),
+        maestriaDaAula(scope),
+      ]);
+      return {
+        ok: true,
+        attempts: attempts.map(attemptDto),
+        // `quiz: null` sobrevive: é o parse DEFENSIVO da repo (um `quiz_json`
+        // corrompido não derruba o histórico inteiro da aula).
+        remediations: remediations.map(
+          (r): QuizRemediationDto => ({
+            id: r.id,
+            trackSlug: r.trackSlug,
+            lessonId: r.lessonId,
+            sectionKey: r.sectionKey,
+            originAssertionId: r.originAssertionId,
+            generation: r.generation,
+            explanation: r.explanation,
+            quiz: r.quiz,
+            createdAt: r.createdAt,
+          }),
+        ),
+        mastery,
+      };
+    } catch (err) {
+      return quizErro(QUIZ_ERROR_CODES.UNAVAILABLE, `falha ao ler o histórico do quiz: ${String(err)}`);
+    }
+  });
+
+  // ─── track:quiz-explain ────────────────────────────────────────────────────
+  map.set(TRACK_CHANNELS.QUIZ_EXPLAIN, async (_event, payload: unknown): Promise<QuizExplainReply> => {
+    const p = (payload ?? {}) as QuizExplainRequest;
+    const scope = escopoDoQuiz(p);
+    if (!scope || !textoNaoVazio(p.sectionKey) || !p.assertion || !textoNaoVazio(p.assertion.id)) {
+      return quizErro(QUIZ_ERROR_CODES.NOT_FOUND, 'quiz-explain requer trackSlug, lessonId, sectionKey e a afirmação.');
+    }
+    if (typeof p.selectedIndex !== 'number') {
+      return quizErro(QUIZ_ERROR_CODES.NOT_FOUND, 'selectedIndex ausente: a explicação é DA opção escolhida.');
+    }
+    // FAIL-CLOSED, e IMEDIATO: sem repo ou sem serviço não há explicação. A
+    // ordem importa — nada de chamar a LLM para descobrir depois que não dá
+    // para guardar o que ela disse.
+    if (!repo) return quizErro(QUIZ_ERROR_CODES.UNAVAILABLE, 'persistência indisponível.');
+    if (!quizService) return quizErro(QUIZ_ERROR_CODES.UNAVAILABLE, 'serviço de IA indisponível.');
+    try {
+      // A explicação NÃO é persistida aqui: a linha de `quiz_remediations`
+      // guarda explicação + quiz JUNTOS (é o par que o aluno viu), e o quiz só
+      // existe no passo seguinte. A gravação acontece no `quiz-remedial`, com a
+      // explicação que o renderer devolve no pedido.
+      return await quizService.explain(p);
+    } catch (err) {
+      return quizErro(QUIZ_ERROR_CODES.UNAVAILABLE, `falha ao explicar o erro: ${String(err)}`);
+    }
+  });
+
+  /**
+   * O quiz remedial cabe no contrato? Checagem ANTES de gravar — a linha vai
+   * para a MESMA tabela de tentativas do quiz autorado, e um registro torto
+   * envenena o histórico e o gate.
+   *
+   * A REGRA QUE MAIS IMPORTA: `quiz.id` NUNCA pode ser o `originAssertionId`.
+   * As tentativas dos dois vivem na mesma tabela (`quiz_attempts.assertion_id`)
+   * e, com ids iguais, o histórico deixaria de distinguir "errou a autorada" de
+   * "errou a remedial" — e a maestria contaria o acerto do quiz fácil como
+   * prova de que a afirmação difícil foi entendida.
+   */
+  const quizRemedialValido = (q: RemedialQuizDto, originAssertionId: string): string | null => {
+    if (!textoNaoVazio(q.id)) return 'o quiz gerado veio sem id.';
+    if (q.id === originAssertionId) {
+      return `o quiz gerado reusou o id da afirmação de origem (${originAssertionId}) — as tentativas dos dois vivem na mesma tabela.`;
+    }
+    if (!textoNaoVazio(q.question) || !textoNaoVazio(q.statement)) return 'o quiz gerado veio sem enunciado ou sem pergunta.';
+    if (!Array.isArray(q.options) || q.options.length < 2 || !q.options.every(textoNaoVazio)) {
+      return 'o quiz gerado precisa de pelo menos duas opções não vazias.';
+    }
+    if (!Number.isInteger(q.answerIndex) || q.answerIndex < 0 || q.answerIndex >= q.options.length) {
+      return 'o quiz gerado tem answerIndex fora das opções.';
+    }
+    return null;
+  };
+
+  // ─── track:quiz-remedial ───────────────────────────────────────────────────
+  map.set(TRACK_CHANNELS.QUIZ_REMEDIAL, async (_event, payload: unknown): Promise<QuizRemedialReply> => {
+    const p = (payload ?? {}) as QuizRemedialRequest;
+    const scope = escopoDoQuiz(p);
+    if (!scope || !textoNaoVazio(p.sectionKey) || !textoNaoVazio(p.originAssertionId) || !p.assertion) {
+      return quizErro(
+        QUIZ_ERROR_CODES.NOT_FOUND,
+        'quiz-remedial requer trackSlug, lessonId, sectionKey, originAssertionId e a afirmação de origem.',
+      );
+    }
+    const generation = typeof p.generation === 'number' && Number.isInteger(p.generation) && p.generation >= 1 ? p.generation : 1;
+    if (!repo) return quizErro(QUIZ_ERROR_CODES.UNAVAILABLE, 'persistência indisponível.');
+    if (!quizService) return quizErro(QUIZ_ERROR_CODES.UNAVAILABLE, 'serviço de IA indisponível.');
+
+    let reply: QuizRemedialReply;
+    try {
+      reply = await quizService.remedial({ ...p, generation });
+    } catch (err) {
+      return quizErro(QUIZ_ERROR_CODES.UNAVAILABLE, `falha ao gerar o quiz novo: ${String(err)}`);
+    }
+    if (!reply.ok) return reply;
+
+    const problema = quizRemedialValido(reply.quiz, p.originAssertionId);
+    if (problema) return quizErro(QUIZ_ERROR_CODES.INVALID_QUIZ, problema);
+
+    // A REMEDIAÇÃO É PERSISTIDA AQUI, com a explicação que o aluno JÁ leu (o
+    // renderer a devolve no pedido) — é o par explicação+quiz que faz a
+    // remediação "ficar no histórico da aula" depois de o app fechar.
+    if (!repo.saveQuizRemediation) {
+      return quizErro(QUIZ_ERROR_CODES.UNAVAILABLE, 'persistência de remediação indisponível nesta build.');
+    }
+    try {
+      await repo.saveQuizRemediation({
+        ...scope,
+        sectionKey: p.sectionKey,
+        originAssertionId: p.originAssertionId,
+        generation,
+        explanation: typeof p.explanation === 'string' ? p.explanation : '',
+        quiz: reply.quiz,
+      });
+    } catch (err) {
+      // NÃO devolvemos o quiz "só desta vez, sem gravar". Ele é a verificação
+      // que o gate de maestria consulta: entregue e não persistido, ele some no
+      // próximo boot e o histórico passa a mentir sobre o que o aluno viu.
+      return quizErro(QUIZ_ERROR_CODES.PERSIST_FAILED, `quiz gerado mas não persistiu: ${String(err)}`);
+    }
+    return reply;
   });
 
   return map;

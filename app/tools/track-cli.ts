@@ -49,7 +49,11 @@ import {
 // vivia em `services/challengeExec.ts` foi APAGADA: existe UMA contagem no
 // repositório, por AST (docs/16 §5.3) — comentário não é nó, e um `// test(`
 // comentado não conta.
-import { defaultAdapter } from '../electron/main/engine/lang/registry';
+// ONDA 2 (python-roda): a contagem declarada e as provas de execução usam o
+// adaptador DO DESAFIO (`challenge.language`), nunca o default — era o default
+// que fazia `track:validate python` reprovar os 21 desafios com o runner de
+// JavaScript. `adapterDoDesafio` é a MESMA resolução das provas F9.
+import { adapterDoDesafio } from '../electron/main/engine/exec/proofs';
 import {
   CHALLENGE_FILE,
   DEFAULT_MIN_FIRST_STAR_MS,
@@ -413,7 +417,7 @@ async function cmdProficiencyNew(pos: string[], flags: Record<string, string>): 
 /** Provas de execução de UM desafio (multi-arquivo OK) + log. Retorna ok. */
 async function verifyAndLogChallenge(slug: string, title: string, challenge: TrackChallengeSource): Promise<boolean> {
   const result = await verifyChallengePair(challengePairFromSource(challenge));
-  const tests = defaultAdapter().countDeclared(challenge.testsCode);
+  const tests = adapterDoDesafio(challenge.language).countDeclared(challenge.testsCode);
   const ok = result.solutionPasses && result.starterFails && tests === challenge.expectedTestCount;
   console.log(`desafio '${slug}' (${title})`);
   if (challenge.files && challenge.files.length > 0) {
@@ -545,10 +549,53 @@ async function cmdChallengeContext(pos: string[]): Promise<void> {
 
 // ─── validação / listagem ────────────────────────────────────────────────────
 
+/**
+ * Provas de execução de UM desafio, sem log — só o veredito.
+ *
+ * NUNCA LANÇA. `verifyChallengePair` pode lançar (mkdtemp, spawn, token de
+ * linguagem desconhecido no registro) e, dentro de um laço de 21 desafios, uma
+ * exceção abortaria o relatório inteiro no meio. Aqui a exceção vira
+ * `false` — reprovação —, o desafio aparece como `NÃO VERIFICADO ✗` com o
+ * motivo, e o comando continua até o fim antes de sair != 0. É o oposto exato
+ * do fail-open: indisponibilidade produz reprovação, nunca aprovação.
+ */
+async function provarDesafio(challenge: TrackChallengeSource): Promise<boolean> {
+  try {
+    const v = await verifyChallengePair(challengePairFromSource(challenge));
+    const tests = adapterDoDesafio(challenge.language).countDeclared(challenge.testsCode);
+    return pairIsValid(v) && tests === challenge.expectedTestCount;
+  } catch (err) {
+    console.error(`    erro ao verificar '${challenge.slug}': ${String(err)}`);
+    return false;
+  }
+}
+
+/**
+ * ONDA 2 (python-roda) — `track:validate` DEIXOU DE FALHAR ABERTO.
+ *
+ * O QUE ELE FAZIA. Este comando imprimia o veredito de cada desafio
+ * (`verificado ✓` / `NÃO VERIFICADO ✗`) e NUNCA o acumulava: o único
+ * `process.exit(1)` estava no catch de `TrackLoadError`. Medido em
+ * `main@26dbc19`: `npm run track -- track:validate python` imprimia 21 linhas
+ * `NÃO VERIFICADO ✗` e saía **0**. É literalmente o que
+ * `docs/16-engine-de-trilha.md` §9.3 proíbe — "a engine falha fechada.
+ * Indisponibilidade produz erro estruturado, nunca veredito falso nem
+ * aprovação por omissão" —, e foi por causa desse verde que a trilha inteira
+ * chegou ao aluno sem rodar.
+ *
+ * O QUE ELE FAZ AGORA. Conta as reprovações (proficiência, desafio de módulo e
+ * desafio de aula, todos no mesmo balde), imprime o placar e sai **1** quando
+ * alguma sobra. O TEXTO das linhas por desafio não mudou — o que mudou é o
+ * exit code, que agora espelha o que a saída já dizia.
+ *
+ * Nenhum outro comando do CLI teve o comportamento alterado.
+ */
 async function cmdValidate(pos: string[]): Promise<void> {
   const [slug] = pos;
   if (!slug) fail('track:validate <slug>');
   const dir = trackDir(slug);
+  let reprovados = 0;
+  let verificados = 0;
   try {
     const track = await loadTrack(dir);
     const lessonCount = track.modules.reduce((n, m) => n + m.lessons.length, 0);
@@ -564,22 +611,24 @@ async function cmdValidate(pos: string[]): Promise<void> {
     console.log(`  desafios de módulo: ${moduleChallengeCount}`);
     console.log(`  proficiência: ${track.proficiency ? `${track.proficiency.title} ✓` : 'ausente'}`);
     if (track.proficiency) {
-      const v = await verifyChallengePair(challengePairFromSource(track.proficiency));
-      const tests = defaultAdapter().countDeclared(track.proficiency.testsCode);
-      const ok = pairIsValid(v) && tests === track.proficiency.expectedTestCount;
+      const ok = await provarDesafio(track.proficiency);
+      if (ok) verificados += 1;
+      else reprovados += 1;
       console.log(`    provas de execução: ${ok ? 'ok ✓' : 'FALHOU ✗ (rode track:challenge:verify)'}`);
     }
     for (const mod of track.modules) {
       // ADITIVO (rodada 9): desafio do MÓDULO também passa pelas provas.
       if (mod.challenge) {
         const ok = await verifyAndLogChallenge(mod.challenge.slug, mod.challenge.title, mod.challenge);
+        if (ok) verificados += 1;
+        else reprovados += 1;
         console.log(`  [${mod.meta.slug}/module] ${mod.challenge.slug}: ${ok ? 'verificado ✓' : 'NÃO VERIFICADO ✗'}`);
       }
       for (const lesson of mod.lessons) {
         for (const ch of lesson.challenges) {
-          const v = await verifyChallengePair(challengePairFromSource(ch));
-          const tests = defaultAdapter().countDeclared(ch.testsCode);
-          const ok = pairIsValid(v) && tests === ch.expectedTestCount;
+          const ok = await provarDesafio(ch);
+          if (ok) verificados += 1;
+          else reprovados += 1;
           console.log(`  [${mod.meta.slug}/${lesson.meta.slug}] ${ch.slug}: ${ok ? 'verificado ✓' : 'NÃO VERIFICADO ✗'}`);
         }
       }
@@ -594,6 +643,18 @@ async function cmdValidate(pos: string[]): Promise<void> {
     }
     throw err;
   }
+  // O PLACAR, e o exit code que o espelha (§9.3 — nada de aprovação por
+  // omissão). O placar sai SEMPRE, inclusive no caso verde, porque um número
+  // impresso é o que torna o resultado reproduzível por quem lê a saída.
+  console.log('');
+  console.log(`  verificados: ${verificados} · reprovados: ${reprovados}`);
+  if (reprovados > 0) {
+    console.error(
+      `✗ trilha '${slug}': ${reprovados} desafio(s) NÃO VERIFICADO(S) — a trilha não roda para o aluno.`,
+    );
+    process.exit(1);
+  }
+  console.log(`✓ trilha '${slug}': todos os desafios verificados por execução.`);
 }
 
 async function cmdList(): Promise<void> {

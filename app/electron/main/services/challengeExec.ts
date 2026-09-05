@@ -52,6 +52,36 @@
  *    antes do real enganava a primeira e não a segunda. Foi apagada; as duas
  *    pontas agora usam `adapter.countRun`. Detalhe na nota acima de
  *    `parseSpecChecks`.
+ *
+ * ─── ONDA 2 (python-roda): A LINGUAGEM DO DESAFIO ATRAVESSA O ARQUIVO ───────
+ *
+ * O DEFEITO, medido pelo caminho de produção. A onda 5 pôs o adaptador em
+ * TODAS as decisões por linguagem deste arquivo — layout, args de teste, as
+ * duas contagens, regex de path — e deixou de fora a única coisa que decide
+ * QUAL adaptador: `challengePairFromSource` não copiava `challenge.language`, e
+ * as três funções públicas defaultavam para `defaultAdapter()` (javascript). O
+ * resultado, reproduzido pelo handler REAL de `track:challenge-submit`: o aluno
+ * digitava `print("oi")` — a SOLUÇÃO DE REFERÊNCIA da trilha `python` — e
+ * recebia `passed:false`, `checks:[]` e `SyntaxError: Unexpected token
+ * 'import'`, porque o `test.mjs` que o layout do JavaScript escreveu continha
+ * código Python e foi entregue ao `node --test`. Uma raiz, seis consumidores.
+ *
+ * A CORREÇÃO, e o formato dela. `language` viaja no DADO (`RunStudentCodeInput
+ * .language`, `ChallengePair.language`) e é resolvida por `adapterDoDesafio`
+ * (`engine/exec/proofs.ts` — a MESMA função das provas F9; fail-closed: token
+ * declarado e desconhecido LANÇA, token ausente cai no default). Os parâmetros
+ * `exec`/`adapter` deixaram de ter valor default e passaram a ser OPCIONAIS:
+ *
+ *   - chamador que passa adaptador  → manda ele, como antes (a suíte faz isso);
+ *   - chamador que passa exec       → manda ele, como antes (DI dos fakes);
+ *   - chamador que não passa nada   → o adaptador vem de `language`, e o exec
+ *     vem de `criarExecDeLinguagem(adaptador)` — o binário CERTO.
+ *
+ * JAVASCRIPT NÃO REGRIDE, e é verificável linha a linha: `language` ausente ⇒
+ * `adapterDoDesafio(undefined)` = `defaultAdapter()` = javascript, e
+ * `criarExecDeLinguagem(javascript)` é literalmente o corpo do `nodeExec`. As
+ * trilhas do disco dizem `"language": "nodejs"`, que o registro resolve para o
+ * MESMO adaptador javascript.
  */
 
 import { promises as fs } from 'node:fs';
@@ -61,6 +91,12 @@ import { spawn } from 'node:child_process';
 
 import { TrackChallengeSource } from '../content/trackTypes';
 import { defaultAdapter, type LanguageAdapter } from '../engine/lang/registry';
+// A resolução token → adaptador é a das PROVAS (`adapterDoDesafio`), não uma
+// segunda cópia: o repositório já pagou caro por ter duas semânticas para a
+// mesma pergunta (ver a nota da onda 5 sobre a contagem de testes). Importar
+// daqui não fecha ciclo — `engine/exec/proofs.ts` só importa `lang/registry` e
+// `exec/typesCheck`, e nenhum dos dois alcança este arquivo.
+import { adapterDoDesafio } from '../engine/exec/proofs';
 
 export interface ExecResult {
   code: number;
@@ -225,6 +261,19 @@ export interface RunStudentCodeInput {
   testsCode: string;
   expectedTestCount: number;
   timeoutMs?: number;
+  /**
+   * ADITIVO (onda2-python-roda): o `challenge.language` do desafio submetido —
+   * o token do disco (`'nodejs'`, `'python'`, …), não o id do adaptador. É ele
+   * que decide layout, binário, args e contagens. AUSENTE = adaptador default
+   * (javascript), que é o que as trilhas antigas significam.
+   *
+   * Por que no INPUT e não num parâmetro: o parâmetro `adapter` já existia e
+   * ninguém o passava — `ipc/track-handlers.ts` chamava `runStudentCode({...})`
+   * e pronto. Um dado que precisa atravessar seis chamadores viaja melhor no
+   * objeto que já atravessa todos eles do que num terceiro argumento posicional
+   * que é fácil esquecer (e foi).
+   */
+  language?: string | null;
 }
 
 export interface RunStudentCodeResult {
@@ -246,51 +295,70 @@ export interface RunStudentCodeResult {
   error?: string;
 }
 
+/** Resultado vazio de falha — a forma que a UI sabe ler (nunca "N de M" inventado). */
+function resultadoDeErro(mensagem: string, output = ''): RunStudentCodeResult {
+  return {
+    passed: false,
+    testsRun: 0,
+    pass: 0,
+    fail: 0,
+    error: mensagem,
+    checks: [],
+    passedCount: 0,
+    totalCount: 0,
+    output,
+  };
+}
+
 /** Roda o código do aluno contra os testes. Gate: exit 0 E igualdade de contagem. */
 export async function runStudentCode(
   input: RunStudentCodeInput,
-  exec: ExecFn = nodeExec,
-  adapter: LanguageAdapter = defaultAdapter(),
+  exec?: ExecFn,
+  adapter?: LanguageAdapter,
 ): Promise<RunStudentCodeResult> {
+  // ONDA 2 (python-roda): o adaptador sai da LINGUAGEM DO DESAFIO quando o
+  // chamador não impõe um. `adapterDoDesafio` LANÇA em token desconhecido
+  // (fail-closed do registro) — e `runStudentCode` NUNCA lança para o chamador
+  // (o handler IPC do aluno depende disso), então a resolução vira erro
+  // estruturado aqui, antes de qualquer escrita em disco.
+  let adaptador: LanguageAdapter;
+  try {
+    adaptador = adapter ?? adapterDoDesafio(input.language);
+  } catch (err) {
+    return resultadoDeErro(String(err), String(err));
+  }
+  // O exec default é o DA LINGUAGEM (binário do `detect()` do adaptador), não
+  // o `nodeExec`: era este default que entregava um desafio Python ao node.
+  const rodar = exec ?? criarExecDeLinguagem(adaptador);
   // FIX (revisão adversarial): defesa em profundidade — valida os paths dos
   // arquivos ANTES de criar o workdir. Este runner é usado pelo main E pelo
   // CLI; um path malicioso ('a/../../escape.mjs') escreveria FORA do workdir
   // (path.join resolve o '..' antes do writeFile). Nunca lança.
   // ONDA 5: o regex é o `filePathPattern` do adaptador (§6 obs. 1) — travá-lo
   // em `.mjs` aqui impediria qualquer outra linguagem de existir.
-  if (input.files && input.files.some((f) => typeof f?.path !== 'string' || !adapter.filePathPattern.test(f.path))) {
-    return {
-      passed: false,
-      testsRun: 0,
-      pass: 0,
-      fail: 0,
-      error: 'path inválido',
-      checks: [],
-      passedCount: 0,
-      totalCount: 0,
-      output: '',
-    };
+  if (input.files && input.files.some((f) => typeof f?.path !== 'string' || !adaptador.filePathPattern.test(f.path))) {
+    return resultadoDeErro('path inválido');
   }
   const work = await fs.mkdtemp(path.join(os.tmpdir(), 'track-submit-'));
   try {
     await prepareChallengeDir(
       work,
       { solutionCode: input.studentCode, testsCode: input.testsCode, files: input.files },
-      adapter,
+      adaptador,
     );
-    const res = await exec(work, [...adapter.testCommand], {
+    const res = await rodar(work, [...adaptador.testCommand], {
       timeoutMs: input.timeoutMs ?? 30_000,
     });
     const output = `${res.stdout}\n${res.stderr}`.trim();
     // A contagem EXECUTADA vem do adaptador (§6, membro 11) — a MESMA função
     // das provas, que lê o ÚLTIMO bloco de resumo. A cópia fraca que vivia
     // neste arquivo (primeira linha `ℹ tests N`) aceitava relatório forjado.
-    const counts = adapter.countRun(output);
+    const counts = adaptador.countRun(output);
     // A contagem DECLARADA é a ÚNICA do repositório (por AST, via o adaptador):
     // a regex que vivia neste arquivo foi apagada na onda 5.
-    const declared = adapter.countDeclared(input.testsCode);
+    const declared = adaptador.countDeclared(input.testsCode);
     const passed = res.code === 0 && counts.testsRun === input.expectedTestCount && declared === input.expectedTestCount;
-    const checks = adapter.parseChecks(output);
+    const checks = adaptador.parseChecks(output);
     // totalCount/passedCount vêm dos checks; se o parse não achou NENHUMA
     // linha real (ex.: erro de sintaxe — sobra só o `✖ test.mjs` sintético,
     // filtrado), caem nas contagens do resumo quando a execução foi limpa
@@ -308,17 +376,7 @@ export async function runStudentCode(
       totalCount,
     };
   } catch (err) {
-    return {
-      passed: false,
-      testsRun: 0,
-      pass: 0,
-      fail: 0,
-      output: String(err),
-      checks: [],
-      passedCount: 0,
-      totalCount: 0,
-      error: String(err),
-    };
+    return resultadoDeErro(String(err), String(err));
   } finally {
     await fs.rm(work, { recursive: true, force: true }).catch(() => {});
   }
@@ -337,6 +395,14 @@ export interface ChallengePair {
    */
   solutionFiles?: { path: string; code: string }[];
   starterFiles?: { path: string; code: string }[];
+  /**
+   * ADITIVO (onda2-python-roda): o `challenge.language` da FONTE. Sem ele o par
+   * chegava ao verificador sem identidade e todo desafio era provado com o
+   * runner de JavaScript — inclusive os 21 desafios Python da trilha, que
+   * `track:validate` reportava como `NÃO VERIFICADO ✗` (e, até esta onda,
+   * ainda assim saía 0). Ausente = adaptador default.
+   */
+  language?: string | null;
 }
 
 export interface ChallengePairVerdict {
@@ -371,6 +437,10 @@ export function challengePairFromSource(challenge: TrackChallengeSource): Challe
     expectedTestCount: challenge.expectedTestCount,
     solutionFiles: challenge.files?.map((f) => ({ path: f.path, code: f.solutionCode })),
     starterFiles: challenge.files?.map((f) => ({ path: f.path, code: f.starterCode })),
+    // ONDA 2 (python-roda): A LINHA QUE FALTAVA. O campo é obrigatório no
+    // schema do desafio (`validateChallengeSource` reprova quem não o declara),
+    // então ele SEMPRE existe na fonte — era só aqui que ele morria.
+    language: challenge.language,
   };
 }
 
@@ -381,9 +451,17 @@ export function challengePairFromSource(challenge: TrackChallengeSource): Challe
  */
 export async function verifyChallengePair(
   pair: ChallengePair,
-  exec: ExecFn = nodeExec,
-  adapter: LanguageAdapter = defaultAdapter(),
+  exec?: ExecFn,
+  adapter?: LanguageAdapter,
 ): Promise<ChallengePairVerdict> {
+  // ONDA 2 (python-roda): mesmo desenho de `runStudentCode` — adaptador e
+  // binário saem de `pair.language` quando o chamador não impõe. Diferença de
+  // contrato deliberada: esta função PODE lançar (já lançava em mkdtemp/spawn),
+  // e um token de linguagem desconhecido lança aqui em vez de virar veredito.
+  // Quem chama (o CLI de autoria e o regenerador) trata a exceção como
+  // reprovação — nunca como aprovação por omissão.
+  const adaptador = adapter ?? adapterDoDesafio(pair.language);
+  const rodar = exec ?? criarExecDeLinguagem(adaptador);
   const work = await fs.mkdtemp(path.join(os.tmpdir(), 'track-verify-'));
   try {
     // ADITIVO (rodada 9): multi-arquivo — solução roda TODOS os arquivos;
@@ -391,17 +469,17 @@ export async function verifyChallengePair(
     // único (em JavaScript, `solution.mjs`) — nenhum nome hardcoded aqui.
     const solutionFiles = pair.solutionFiles && pair.solutionFiles.length > 0 ? pair.solutionFiles : undefined;
     const starterFiles = pair.starterFiles && pair.starterFiles.length > 0 ? pair.starterFiles : undefined;
-    const testArgs = [...adapter.testCommand];
+    const testArgs = [...adaptador.testCommand];
 
-    await prepareChallengeDir(work, { solutionCode: pair.solutionCode, testsCode: pair.testsCode, files: solutionFiles }, adapter);
-    const sol = await exec(work, testArgs, { timeoutMs: 30_000 });
-    const solCounts = adapter.countRun(`${sol.stdout}\n${sol.stderr}`);
-    const declared = adapter.countDeclared(pair.testsCode);
+    await prepareChallengeDir(work, { solutionCode: pair.solutionCode, testsCode: pair.testsCode, files: solutionFiles }, adaptador);
+    const sol = await rodar(work, testArgs, { timeoutMs: 30_000 });
+    const solCounts = adaptador.countRun(`${sol.stdout}\n${sol.stderr}`);
+    const declared = adaptador.countDeclared(pair.testsCode);
     const solutionPasses = sol.code === 0 && solCounts.testsRun === pair.expectedTestCount && declared === pair.expectedTestCount;
 
-    await prepareChallengeDir(work, { solutionCode: pair.starterCode, testsCode: pair.testsCode, files: starterFiles }, adapter);
-    const stub = await exec(work, testArgs, { timeoutMs: 30_000 });
-    const starterFails = adapter.failureExitCodes.isFailure(stub.code);
+    await prepareChallengeDir(work, { solutionCode: pair.starterCode, testsCode: pair.testsCode, files: starterFiles }, adaptador);
+    const stub = await rodar(work, testArgs, { timeoutMs: 30_000 });
+    const starterFails = adaptador.failureExitCodes.isFailure(stub.code);
 
     return {
       solutionPasses,
