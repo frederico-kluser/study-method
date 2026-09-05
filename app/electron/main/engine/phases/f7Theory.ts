@@ -35,6 +35,24 @@
  * gravado. Defeito determinístico LANÇA `AutorError` (f8Challenges) — a onda
  * registra a aula como falha, fail-closed.
  *
+ * O CHECKSUM DE CAUDA (§7.1 R18, A-P11-5): o prompt canônico que esta fase usa
+ * (`gerarPromptAutor`) TERMINA mandando o modelo repetir a lista de construções
+ * permitidas DEPOIS do JSON — então `JSON.parse` do conteúdo inteiro quebra
+ * contra qualquer modelo que OBEDEÇA a regra 18. A leitura da resposta usa
+ * `separarJsonECauda` (o mesmo separador do `modes/curriculumGap`, escrito por
+ * causa disso): primeiro objeto de topo BALANCEADO + a cauda que sobrou, sem
+ * NUNCA "consertar" JSON — sem objeto balanceado, `SAIDA_NAO_JSON` (fail-closed).
+ * A cauda é CONFERIDA (`compararChecksum`) e REPORTADA por etapa
+ * (`ChecksumDeEtapa`), nunca bloqueante, pela mesma razão do `curriculumGap`: o
+ * gate DURO desta fase é a verificação de orçamento (`validarDraftDeAula` /
+ * `ofensasDeOrcamentoDoDesafio`), que lê o CÓDIGO efetivamente escrito em vez
+ * do eco do modelo — evidência forte no lugar de repetição. Reprovar por
+ * divergência de cauda seria julgar o ENQUADRAMENTO do texto (um cabeçalho
+ * `=== CHECKSUM DE CAUDA ===` repetido já produz `extras`), e §9.3 proíbe
+ * veredito falso, não só aprovação por omissão. Cauda AUSENTE é `null`
+ * (o modelo desobedeceu R18) e também não reprova — a fase não pode quebrar
+ * por causa de um sinal que nenhum gate duro consome.
+ *
  * ESCALONAMENTO REAL (porta de entrada do pacote): `runOndaDeAutoria` monta
  * UMA tarefa por aula (1 agente = 1 aula; outputs = os DOIS drafts exclusivos
  * da aula — posse validada GLOBALMENTE sobre a UNIÃO de todos os batches
@@ -66,13 +84,17 @@ import type { EscreverArquivoFn } from '../runtime/runState';
 import { LessonDraftSchema } from '../schemas/artifacts';
 import { extractAtoms } from '../extract';
 import { formatarErroCampos } from '../schemas/fieldOrder';
+import { separarJsonECauda } from '../modes/curriculumGap';
 import {
   AuthorOutputSchema,
   MAX_TOKENS_SAIDA_AUTOR,
+  compararChecksum,
+  construcoesPermitidas,
   gerarPromptAutor,
   isBlocked,
   rejeitarAcimaDoTeto,
   type RespostaBlocked,
+  type ResultadoChecksum,
   type SaidaAutor,
 } from '../prompts/author';
 import type { Dossier } from '../prompts/dossier';
@@ -163,6 +185,35 @@ export interface DepsAutoria {
   scheduler?: { limiters?: RateLimiters };
 }
 
+/**
+ * A conferência do checksum de cauda (§7.1 R18) de UMA etapa LLM da aula —
+ * REPORTADA, nunca bloqueante. `resultado: null` = o modelo não devolveu
+ * cauda nenhuma (desobedeceu a R18); `resultado.ok === false` = devolveu e
+ * DIVERGE da lista permitida. Nenhum dos dois reprova o draft: quem reprova é
+ * a verificação de orçamento sobre o código escrito.
+ */
+export interface ChecksumDeEtapa {
+  etapa: EtapaAutoria;
+  resultado: ResultadoChecksum | null;
+}
+
+/**
+ * O aviso legível de uma conferência de cauda DIVERGENTE — função PURA.
+ * Devolve `null` quando não há o que reportar (cauda ausente, ou repetição
+ * fiel): só a DIVERGÊNCIA detectada vira texto, nomeando os dois lados.
+ */
+export function avisoDeChecksum(aula_slug: string, checksum: ChecksumDeEtapa): string | null {
+  const r = checksum.resultado;
+  if (r === null || r.ok) return null;
+  const partes: string[] = [];
+  if (r.faltando.length > 0) partes.push(`não repetiu: ${r.faltando.join(', ')}`);
+  if (r.extras.length > 0) partes.push(`repetiu fora da lista: ${r.extras.join(', ')}`);
+  return (
+    `checksum de cauda divergente em "${aula_slug}" (etapa ${checksum.etapa}, §7.1 R18) — ${partes.join('; ')}` +
+    ' — REPORTADO, não bloqueante: o gate duro é a verificação de orçamento sobre o código escrito.'
+  );
+}
+
 export type ResultadoAutoria =
   | {
       status: 'blocked';
@@ -179,6 +230,8 @@ export type ResultadoAutoria =
       draftAula: SaidaAutor;
       desafio: SaidaDesafio;
       budgetHash: string;
+      /** a cauda de cada etapa LLM, na ORDEM da §4.3 — conferida e reportada. */
+      checksums: ChecksumDeEtapa[];
     };
 
 // ---------------------------------------------------------------------------
@@ -367,7 +420,7 @@ export function validarDraftDeAula(draft: SaidaAutor, aula_slug: string, dossie:
 // ---------------------------------------------------------------------------
 
 type RespostaDaEtapaDeTeoria =
-  | { status: 'ok'; draft: SaidaAutor }
+  | { status: 'ok'; draft: SaidaAutor; checksum: ResultadoChecksum | null }
   | { status: 'blocked'; faltantes: string[]; motivo: string };
 
 /**
@@ -375,17 +428,22 @@ type RespostaDaEtapaDeTeoria =
  * regras de transporte: teto e timeout EXPLÍCITOS; saída acima do teto
  * REJEITADA (nunca truncada — §7); JSON inválido e schema violado viram
  * `AutorError` estruturado; `blocked` é resultado VÁLIDO (§7.1 R3).
+ *
+ * O prompt é RENDERIZADO AQUI a partir do dossiê (`gerarPromptAutor`, função
+ * pura): a MESMA lista de construções que o prompt mandou repetir (R18) é a
+ * lista contra a qual a cauda é conferida — passar o texto já renderizado
+ * deixaria as duas pontas livres para dessincronizar.
  */
 async function comAutorTeoria(
   deps: DepsAutoria,
   aula_slug: string,
   etapa: 'f7-teoria-esqueleto' | 'f7-teoria-fechamento',
   stageVersion: string,
-  prompt: string,
+  dossie: Dossier,
   system: string | undefined,
 ): Promise<RespostaDaEtapaDeTeoria> {
   const req: LlmCallRequest = {
-    prompt,
+    prompt: gerarPromptAutor(dossie),
     ...(system !== undefined && system.trim().length > 0 ? { system } : {}),
     stageVersion,
     timeoutMs: TIMEOUT_AUTORIA_MS,
@@ -404,9 +462,21 @@ async function comAutorTeoria(
     );
   }
 
+  // §7.1 R18: o prompt manda o modelo repetir a lista de construções DEPOIS do
+  // JSON — `JSON.parse` do conteúdo inteiro quebraria contra todo modelo
+  // obediente. Separa o primeiro objeto BALANCEADO da cauda, sem consertar JSON.
+  const partido = separarJsonECauda(resposta.content);
+  if (partido === null) {
+    throw new AutorError(
+      'SAIDA_NAO_JSON',
+      'saída do autor de teoria não contém nenhum objeto JSON balanceado (nem draft nem blocked)',
+      aula_slug,
+      { etapa },
+    );
+  }
   let cru: unknown;
   try {
-    cru = JSON.parse(resposta.content);
+    cru = JSON.parse(partido.json);
   } catch (erro) {
     throw new AutorError(
       'SAIDA_NAO_JSON',
@@ -430,7 +500,12 @@ async function comAutorTeoria(
       { etapa },
     );
   }
-  return { status: 'ok', draft: parseado.data };
+
+  // A conferência da cauda (A-P11-5) é REPORTADA, não bloqueante — a mesma
+  // decisão do `modes/curriculumGap`: o gate duro é o orçamento sobre o código.
+  const cauda = partido.cauda.trim();
+  const checksum = cauda.length > 0 ? compararChecksum(construcoesPermitidas(dossie), cauda) : null;
+  return { status: 'ok', draft: parseado.data, checksum };
 }
 
 // ---------------------------------------------------------------------------
@@ -479,14 +554,7 @@ export async function autorizarAula(deps: DepsAutoria, dossieDeAula: DossieDeAul
   // (1) OBJETIVO — vem do dossiê (P-11); nenhuma chamada LLM nesta etapa.
 
   // (2) ESQUELETO DE TEORIA.
-  const esqueleto = await comAutorTeoria(
-    deps,
-    aula_slug,
-    ETAPA_ESQUELETO,
-    STAGE_VERSION_ESQUELETO,
-    gerarPromptAutor(dossie),
-    undefined,
-  );
+  const esqueleto = await comAutorTeoria(deps, aula_slug, ETAPA_ESQUELETO, STAGE_VERSION_ESQUELETO, dossie, undefined);
   if (esqueleto.status === 'blocked') {
     return { status: 'blocked', aula_slug, etapa: ETAPA_ESQUELETO, faltantes: esqueleto.faltantes, motivo: esqueleto.motivo, budgetHash };
   }
@@ -509,7 +577,7 @@ export async function autorizarAula(deps: DepsAutoria, dossieDeAula: DossieDeAul
     aula_slug,
     ETAPA_FECHAMENTO,
     STAGE_VERSION_FECHAMENTO,
-    gerarPromptAutor(dossie),
+    dossie,
     resumoDoDesafio(desafio.draft),
   );
   if (fechamento.status === 'blocked') {
@@ -522,7 +590,15 @@ export async function autorizarAula(deps: DepsAutoria, dossieDeAula: DossieDeAul
   const draftAula: SaidaAutor = { ...fechamento.draft, budgetHash };
   validarDraftDeAula(draftAula, aula_slug, dossie);
 
-  return { status: 'validado', aula_slug, draftAula, desafio: desafio.draft, budgetHash };
+  // As caudas das TRÊS etapas LLM, na ordem da §4.3 — conferidas e reportadas
+  // (§7.1 R18): sinal do modelo, não veredito da máquina.
+  const checksums: ChecksumDeEtapa[] = [
+    { etapa: ETAPA_ESQUELETO, resultado: esqueleto.checksum },
+    { etapa: ETAPA_DESAFIO, resultado: desafio.checksum },
+    { etapa: ETAPA_FECHAMENTO, resultado: fechamento.checksum },
+  ];
+
+  return { status: 'validado', aula_slug, draftAula, desafio: desafio.draft, budgetHash, checksums };
 }
 
 // ---------------------------------------------------------------------------
@@ -559,6 +635,8 @@ export interface EstadoDeAulaNaOnda {
   erro?: string;
   budgetHash?: string;
   caminhos?: { draftAula: string; draftDesafio: string };
+  /** a cauda de checksum de cada etapa (§7.1 R18) — reportada, não bloqueante. */
+  checksums?: ChecksumDeEtapa[];
 }
 
 export interface ResultadoOndaDeAutoria {
@@ -653,6 +731,7 @@ function montarExecutor(
         status: 'validado',
         caminhos: { draftAula: relAula, draftDesafio: relDesafio },
         budgetHash: resultado.budgetHash,
+        checksums: resultado.checksums,
       });
       return { ok: true };
     } catch (erro) {
@@ -746,6 +825,15 @@ export async function runOndaDeAutoria(
   );
   const executadas: string[] = [];
   for (const wave of waves) executadas.push(...wave.executed);
+
+  // A cauda DIVERGENTE (§7.1 R18) sai como AVISO da onda — reportada, jamais
+  // reprovando o draft (o veredito duro é o orçamento, sobre o código escrito).
+  for (const estado of estados) {
+    for (const checksum of estado.checksums ?? []) {
+      const aviso = avisoDeChecksum(estado.aula_slug, checksum);
+      if (aviso !== null) warnings.push(aviso);
+    }
+  }
 
   return { estados, ondas: waves.length, executadas, waves, warnings };
 }

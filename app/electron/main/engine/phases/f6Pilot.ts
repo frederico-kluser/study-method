@@ -1198,6 +1198,9 @@ async function rodarRegimeDoExperimento(
           status: 'validado',
           caminhos: { draftAula: relAula, draftDesafio: relDesafio },
           budgetHash: r.budgetHash,
+          // a cauda de checksum (§7.1 R18) também é reportada no regime
+          // SEQUENCIAL — os dois regimes rodam o MESMO código de autoria.
+          checksums: r.checksums,
         });
         executadas.push(ref);
       } catch (erro) {

@@ -1198,6 +1198,10 @@ export class GeradorDeTrilha {
         `autoria da aula ${falhou.aula_slug} falhou (${origem}): ${falhou.erro ?? 'sem erro'}`,
       );
     }
+    // Os AVISOS da onda (hoje: cauda de checksum divergente, §7.1 R18) são
+    // REPORTADOS aqui — conferência que não chega a ninguém é sinal jogado
+    // fora. Nenhum deles reprova a aula: o veredito duro é o orçamento.
+    for (const aviso of resultado.warnings) this.emitir(`${origem}: ${aviso}`);
     this.emitir(`${origem}: ${resultado.estados.length} aula(s), ${resultado.ondas} onda(s)`);
   }
 

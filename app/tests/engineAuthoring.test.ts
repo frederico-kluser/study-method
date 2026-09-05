@@ -30,7 +30,14 @@
  *   9. a posse é validada GLOBALMENTE sobre a UNIÃO dos batches — duplicata de
  *      aula_slug entre o batch 1 e o batch 2 rejeita o run INTEIRO antes de
  *      qualquer escrita (a validação por onda do scheduler não alcança
- *      colisões cruzadas).
+ *      colisões cruzadas);
+ *  10. a CAUDA DE CHECKSUM do §7.1 R18: o prompt que as três etapas usam manda
+ *      o modelo repetir a lista de construções permitidas DEPOIS do JSON —
+ *      então a resposta de um modelo OBEDIENTE não é JSON puro. O fake de LLM
+ *      desta suíte devolve a cauda (extraída do próprio prompt, como o modelo
+ *      faria), e a suíte cobre também o modelo que NÃO a devolve: os dois têm
+ *      de funcionar. A cauda é CONFERIDA e REPORTADA (aviso da onda), nunca
+ *      reprova o draft — quem reprova é o orçamento sobre o código escrito.
  *
  * HIGIENE: LLM e provador são FAKES injetados (sem rede, sem processo, sem
  * chave); escrita de drafts em memória; sem scheduler real nos testes de
@@ -246,7 +253,38 @@ interface FalsoLlm {
   requisicoes: Map<string, LlmCallRequest[]>;
 }
 
-function fakeLlm(respostas: Partial<Record<EtapaAutoria, unknown>>): FalsoLlm {
+/**
+ * A CAUDA DE CHECKSUM que um modelo OBEDIENTE devolve (§7.1 R18): o prompt
+ * canônico TERMINA com "A lista de construções permitidas é:" seguida da lista
+ * — o modelo repete essa lista DEPOIS do JSON. O fake a extrai do PRÓPRIO
+ * prompt que recebeu, que é literalmente o que a regra manda repetir: assim o
+ * fake não pode dessincronizar da fixture, e vale para as três etapas (o prompt
+ * do autor de aula e a variante do autor de desafio terminam com a mesma seção).
+ */
+function caudaObedienteDoPrompt(prompt: string): string {
+  const linhas = prompt.split('\n');
+  const marco = linhas.findIndex((linha) => linha.endsWith('A lista de construções permitidas é:'));
+  assert.ok(marco >= 0, 'o prompt precisa terminar pedindo a repetição da lista (§7.1 R18)');
+  const itens = linhas.slice(marco + 1).filter((linha) => linha.trim().length > 0);
+  assert.ok(itens.length > 0, 'a lista de construções permitidas do prompt não pode ser vazia');
+  return itens.join('\n');
+}
+
+/**
+ * Como o fake termina a resposta:
+ *   - `obediente` (DEFAULT): JSON + a cauda de checksum que a R18 exige — é o
+ *     que um modelo real que obedece ao prompt devolve, e é o caso que o
+ *     `JSON.parse` do conteúdo inteiro quebrava;
+ *   - `sem_cauda`: JSON puro — a R18 PEDE a cauda, mas um modelo pode não
+ *     obedecer, e a fase não pode quebrar por isso;
+ *   - função: a cauda arbitrária (repetição DIVERGENTE, por exemplo).
+ */
+type ModoDeCauda = 'obediente' | 'sem_cauda' | ((prompt: string) => string);
+
+function fakeLlm(
+  respostas: Partial<Record<EtapaAutoria, unknown>>,
+  cauda: ModoDeCauda = 'obediente',
+): FalsoLlm {
   const chamadas: string[] = [];
   const requisicoes = new Map<string, LlmCallRequest[]>();
   const llm: EngineLlm = {
@@ -257,8 +295,11 @@ function fakeLlm(respostas: Partial<Record<EtapaAutoria, unknown>>): FalsoLlm {
       requisicoes.set(etapa, lista);
       const resposta = respostas[etapa as EtapaAutoria];
       assert.ok(resposta !== undefined, `fakeLlm: nenhuma resposta registrada para a etapa "${etapa}"`);
+      const corpo = JSON.stringify(resposta);
+      const rabo =
+        cauda === 'sem_cauda' ? '' : cauda === 'obediente' ? caudaObedienteDoPrompt(req.prompt) : cauda(req.prompt);
       return {
-        content: JSON.stringify(resposta),
+        content: rabo === '' ? corpo : `${corpo}\n\n${rabo}\n`,
         model: 'fake-llm',
         cached: false,
         usage: { promptTokens: 10, completionTokens: 5 },
@@ -784,6 +825,119 @@ describe('F7/F8 — gates determinísticos na autoria (§6.1: drafts nascem vali
       /node:ForStatement/,
       'a violação nomeia a construção só-produtiva que não pode entrar no starter (o aluno ainda não pode lê-la)',
     );
+    assert.equal(fs.arquivos.size, 0);
+  });
+});
+// ---------------------------------------------------------------------------
+// 8. O CHECKSUM DE CAUDA (§7.1 R18) — o modelo obediente escreve a lista DEPOIS
+//    do JSON; a fase tolera, CONFERE e REPORTA (nunca reprova por isso)
+// ---------------------------------------------------------------------------
+
+describe('F7/F8 — a cauda de checksum do §7.1 R18 (o prompt manda escrever DEPOIS do JSON)', () => {
+  it('o modelo que OBEDECE a R18 (JSON + a lista repetida) é aceito nas TRÊS etapas, e a cauda CONFERE', async () => {
+    // O prompt que esta fase usa TERMINA mandando repetir a lista de construções
+    // permitidas — então a resposta de um modelo obediente NÃO é JSON puro. O
+    // fake devolve exatamente isso (a cauda extraída do próprio prompt).
+    const falso = fakeLlm(respostasDeSucesso()); // 'obediente' é o default
+    const provador = fakeProver();
+    const fs = fsEmMemoria();
+
+    const resultado = await runOndaDeAutoria(depsDaOnda(falso, provador, fs), [dossieDeAula('m1/a1')]);
+
+    assert.equal(
+      resultado.estados[0].status,
+      'validado',
+      `a cauda de checksum não pode derrubar a aula: ${resultado.estados[0].erro ?? ''}`,
+    );
+    assert.deepEqual(falso.chamadas, ['f7-teoria-esqueleto', 'f8-desafio', 'f7-teoria-fechamento']);
+    assert.equal(fs.arquivos.size, 2, 'os dois drafts foram gravados');
+
+    // A cauda é CONFERIDA — uma conferência por etapa LLM, na ordem da §4.3.
+    const checksums = resultado.estados[0].checksums ?? [];
+    assert.deepEqual(
+      checksums.map((c) => c.etapa),
+      ['f7-teoria-esqueleto', 'f8-desafio', 'f7-teoria-fechamento'],
+    );
+    for (const c of checksums) {
+      assert.ok(c.resultado !== null, `${c.etapa}: a cauda existe e foi conferida`);
+      assert.deepEqual(
+        c.resultado,
+        { ok: true, faltando: [], extras: [] },
+        `${c.etapa}: a repetição fiel da lista do prompt CONFERE`,
+      );
+    }
+    assert.deepEqual(resultado.warnings, [], 'repetição fiel não gera aviso nenhum');
+  });
+
+  it('o modelo que NÃO devolve cauda (desobedece a R18) também é aceito — a fase não quebra por isso', async () => {
+    const falso = fakeLlm(respostasDeSucesso(), 'sem_cauda');
+    const provador = fakeProver();
+    const fs = fsEmMemoria();
+
+    const resultado = await runOndaDeAutoria(depsDaOnda(falso, provador, fs), [dossieDeAula('m1/a1')]);
+
+    assert.equal(resultado.estados[0].status, 'validado', resultado.estados[0].erro ?? '');
+    assert.equal(fs.arquivos.size, 2);
+    // Sem cauda = sem sinal: `null` é o registro honesto (nunca um "ok" forjado).
+    assert.deepEqual(
+      (resultado.estados[0].checksums ?? []).map((c) => c.resultado),
+      [null, null, null],
+    );
+    assert.deepEqual(resultado.warnings, [], 'cauda ausente não é veredito — não vira aviso de divergência');
+  });
+
+  it('cauda DIVERGENTE é DETECTADA e REPORTADA, e ainda assim NÃO reprova o draft', async () => {
+    // O modelo repete a lista pela metade e inventa um item: a máquina detecta
+    // (faltando + extras), reporta como aviso da onda, e o veredito continua
+    // sendo o do orçamento sobre o código escrito (§9.3: nem aprovação por
+    // omissão, nem veredito falso por enquadramento de texto).
+    const falso = fakeLlm(respostasDeSucesso(), (prompt) => {
+      const itens = caudaObedienteDoPrompt(prompt).split('\n');
+      return [...itens.slice(1), '  - op:fabricado'].join('\n');
+    });
+    const provador = fakeProver();
+    const fs = fsEmMemoria();
+
+    const resultado = await runOndaDeAutoria(depsDaOnda(falso, provador, fs), [dossieDeAula('m1/a1')]);
+
+    assert.equal(resultado.estados[0].status, 'validado', 'divergência de cauda NÃO reprova o draft');
+    assert.equal(fs.arquivos.size, 2, 'os drafts continuam sendo gravados');
+
+    const checksums = resultado.estados[0].checksums ?? [];
+    assert.equal(checksums.length, 3);
+    for (const c of checksums) {
+      assert.equal(c.resultado?.ok, false, `${c.etapa}: a divergência é detectada`);
+      assert.ok((c.resultado?.faltando.length ?? 0) > 0, `${c.etapa}: o item não repetido é nomeado`);
+      assert.deepEqual(c.resultado?.extras, ['op:fabricado'], `${c.etapa}: o item inventado é nomeado`);
+    }
+    assert.equal(resultado.warnings.length, 3, 'uma divergência reportada por etapa LLM');
+    for (const aviso of resultado.warnings) {
+      assert.match(aviso, /checksum de cauda divergente/);
+      assert.match(aviso, /op:fabricado/, 'o aviso nomeia o item inventado');
+      assert.match(aviso, /não bloqueante/, 'o aviso declara que reporta, não reprova');
+    }
+  });
+
+  it('resposta sem NENHUM objeto JSON balanceado continua sendo falha estruturada (fail-closed)', async () => {
+    const falso = fakeLlm({ 'f7-teoria-esqueleto': draftAula() }, () => '');
+    // Substitui a resposta da 1ª etapa por prosa pura (nenhum objeto de topo).
+    const llmSemJson: EngineLlm = {
+      ...falso.llm,
+      async callLlm(etapa: string, req: LlmCallRequest): Promise<LlmCallResult> {
+        const base = await falso.llm.callLlm(etapa, req);
+        return { ...base, content: 'desculpe, não consigo escrever esta aula' };
+      },
+    };
+    const provador = fakeProver();
+    const fs = fsEmMemoria();
+
+    const resultado = await runOndaDeAutoria(
+      { ...depsDaOnda(falso, provador, fs), llm: llmSemJson },
+      [dossieDeAula('m1/a1')],
+    );
+
+    assert.equal(resultado.estados[0].status, 'falhou');
+    assert.match(resultado.estados[0].erro ?? '', /JSON/, 'a saída sem objeto balanceado é recusada, nunca "consertada"');
     assert.equal(fs.arquivos.size, 0);
   });
 });

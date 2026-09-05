@@ -48,8 +48,23 @@
  * `criarProverDeDesafio(...)` (P-31) e injeta o resultado em
  * `DepsDoDesafio.prover` — ver o handoff do P-17 para o mapeamento exato.
  *
- * Dependência: f8Challenges NÃO importa de f7Theory (sem ciclos — a F7
- * importa daqui o fluxo do desafio e os tipos compartilhados).
+ * Dependência: f8Challenges NÃO importa de f7Theory (a F7 importa daqui o
+ * fluxo do desafio e os tipos compartilhados). Importa, sim,
+ * `separarJsonECauda` de `modes/curriculumGap` — que por sua vez importa
+ * `blocosDeCodigoDaTeoria` da F7: o grafo de módulos fecha um CICLO
+ * (f8 → curriculumGap → f7 → f8). É deliberado e seguro: o separador é a
+ * ÚNICA implementação do repositório (reimplementá-lo aqui seria a terceira
+ * cópia da mesma regra), e nenhum dos três módulos usa o binding do outro em
+ * tempo de AVALIAÇÃO — só dentro de funções, depois que todos carregaram.
+ *
+ * O CHECKSUM DE CAUDA (§7.1 R18, A-P11-5): `gerarPromptAutorDeDesafio`, como o
+ * prompt canônico do autor de aula, TERMINA mandando o modelo repetir a lista
+ * de construções permitidas DEPOIS do JSON — `JSON.parse` do conteúdo inteiro
+ * quebraria contra todo modelo obediente. A leitura usa `separarJsonECauda`, e
+ * a cauda é CONFERIDA (`compararChecksum` sobre `construcoesPermitidasDoDesafio`
+ * — a MESMA lista que o prompt mandou repetir) e REPORTADA no envelope do
+ * resultado, nunca bloqueante: o gate duro do desafio são as QUATRO PROVAS e o
+ * orçamento POR FAIXAS, que leem o código executado em vez do eco do modelo.
  */
 
 import { z } from 'zod';
@@ -60,11 +75,14 @@ import type { RateLimiter, RateLimiters } from '../runtime/scheduler';
 import { ChallengeDraftSchema } from '../schemas/artifacts';
 import { formatarErroCampos } from '../schemas/fieldOrder';
 import { extractAtoms } from '../extract';
+import { separarJsonECauda } from '../modes/curriculumGap';
 import {
   MAX_TOKENS_SAIDA_AUTOR,
+  compararChecksum,
   isBlocked,
   rejeitarAcimaDoTeto,
   type RespostaBlocked,
+  type ResultadoChecksum,
 } from '../prompts/author';
 import { EI_CLASS_VALUES, type Dossier, type EiClass, type ObjetivoDossie } from '../prompts/dossier';
 import type { SnapshotAula } from './f5Freeze';
@@ -578,7 +596,17 @@ export interface EntradaAutorizarDesafio {
 
 export type ResultadoDesafio =
   | { status: 'blocked'; aula_slug: string; faltantes: string[]; motivo: string; budgetHash: string }
-  | { status: 'validado'; aula_slug: string; draft: SaidaDesafio; budgetHash: string };
+  | {
+      status: 'validado';
+      aula_slug: string;
+      draft: SaidaDesafio;
+      budgetHash: string;
+      /**
+       * a conferência da cauda de checksum (§7.1 R18) — `null` quando o modelo
+       * não devolveu cauda. REPORTADA, nunca bloqueante.
+       */
+      checksum: ResultadoChecksum | null;
+    };
 
 /**
  * Aplica o limiter do pool (acquisition pattern do P-27) em volta de `fn`,
@@ -647,12 +675,29 @@ export async function autorizarDesafio(
     });
   }
 
+  // §7.1 R18: a lista de construções repetida vem DEPOIS do JSON — o conteúdo
+  // inteiro nunca é JSON válido quando o modelo obedece. Separa o primeiro
+  // objeto BALANCEADO da cauda, sem jamais "consertar" JSON (fail-closed).
+  const partido = separarJsonECauda(resposta.content);
+  if (partido === null) {
+    throw new AutorError(
+      'SAIDA_NAO_JSON',
+      'saída do autor de desafio não contém nenhum objeto JSON balanceado (nem draft nem blocked)',
+      aula_slug,
+      { etapa: ETAPA_DESAFIO },
+    );
+  }
   let cru: unknown;
   try {
-    cru = JSON.parse(resposta.content);
+    cru = JSON.parse(partido.json);
   } catch (erro) {
     throw new AutorError('SAIDA_NAO_JSON', `saída do autor de desafio não é JSON: ${erro instanceof Error ? erro.message : String(erro)}`, aula_slug, { etapa: ETAPA_DESAFIO });
   }
+  // A cauda é CONFERIDA contra a MESMA lista que o prompt mandou repetir —
+  // reportada no envelope, nunca bloqueante (as QUATRO PROVAS é que decidem).
+  const cauda = partido.cauda.trim();
+  const checksum =
+    cauda.length > 0 ? compararChecksum(construcoesPermitidasDoDesafio(dossieDeDesafio), cauda) : null;
 
   // §7.1 R3: blocked é RESULTADO VÁLIDO (não falha) — devolvido, nada gravado.
   if (isBlocked(cru)) {
@@ -742,5 +787,5 @@ export async function autorizarDesafio(
   // O challenge-draft do P-04 NÃO tem campo budgetHash (INV-08: schema do
   // artefato congelado, sem bump) — o hash nasce no ENVELOPE do resultado:
   // `status: 'validado'` carrega `budgetHash` ao lado do draft.
-  return { status: 'validado', aula_slug, draft, budgetHash: snapshot.budgetHash };
+  return { status: 'validado', aula_slug, draft, budgetHash: snapshot.budgetHash, checksum };
 }
