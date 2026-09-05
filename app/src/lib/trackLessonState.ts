@@ -32,6 +32,16 @@
  * Só depois do acerto (`stage: 'dominado'`) a chave FECHA e o gate libera —
  * "só vamos para o desafio depois que o aluno provar que entendeu".
  *
+ * ONDA4-SAÍDA-DO-CICLO: o gate acima mais o FAIL-CLOSED da IA travavam o aluno
+ * PARA SEMPRE quando a IA saía do ar — sem quiz remediador não há o que
+ * responder, e só o acerto abre. A saída é `reopenStalledQuiz`: com o canal
+ * caído, o aluno REABRE a pergunta corrente (geração N+1, mesma pergunta) para
+ * uma tentativa nova. Ela NÃO dispensa o gate (o estado resultante é
+ * 'aguardando-resposta', nunca 'dominado') e NÃO apaga o rastro do erro
+ * (`attempts` preservado, id `<chave>#g<N+1>` que a recorrência ERR-4 conta).
+ * O bloco antes da função explica por que ela é uma GERAÇÃO NOVA e não um
+ * "zerar o card".
+ *
  * ERRAR CONTINUA NÃO SENDO PUNIÇÃO — `docs/ux-redesign.md` §8 item 3 é
  * normativo ("Teste falhou → sem punição… O painel troca para estado de
  * diagnóstico… redação informativa") e §8.2 proíbe o elogio ritualizado
@@ -1180,6 +1190,111 @@ export function injectRemediationQuiz(
       },
     },
   };
+}
+
+// ─── ONDA4-SAÍDA-DO-CICLO: o ciclo travado porque a IA está FORA ────────────
+//
+// O DEFEITO, medido pela cobertura e2e desta base (tests/e2e/e2e-quiz.spec.ts,
+// teste 5, que o afirmava como comportamento OBSERVADO e não como aprovação):
+// com `E2E_QUIZ_AI=off`, ERRAR deixa a afirmação em 'explicando' /
+// 'novo-quiz-pendente' PARA SEMPRE. Sem quiz remediador não há o que
+// responder, e o gate de maestria só abre com ACERTO — o "Próximo" fica
+// desabilitado sem saída nenhuma. É a consequência de DUAS decisões corretas
+// que se combinam mal: o gate ("só vamos para o desafio depois que o aluno
+// provar que entendeu", pedido explícito do dono) e o FAIL-CLOSED da IA
+// (nunca inventar explicação nem quiz).
+//
+// A SAÍDA: quando o ciclo não consegue avançar porque a IA está fora, o aluno
+// REABRE a pergunta que já está na tela para uma tentativa NOVA. Ela NÃO
+// dispensa o gate — continua sendo preciso ACERTAR; ela só devolve a chance de
+// responder o que já está ali, em vez de esperar por um quiz novo que não vai
+// chegar.
+//
+// POR QUE A REABERTURA É `injectRemediationQuiz` COM A MESMA PERGUNTA, e não
+// um "zerar o card" (nem o `resetQuiz`, que apaga a chave inteira). Três
+// propriedades que a implementação PRECISA ter, e a geração N+1 é o que dá as
+// três de uma vez:
+//
+//   1. O INVARIANTE SAGRADO. Reabrir a MESMA geração deixaria a tentativa dela
+//      registrada, e `optionVisualStateForGeneration` ACHARIA essa tentativa —
+//      pintando a alternativa certa de verde ANTES do clique. A resposta
+//      vazaria exatamente pela porta que a ONDA10 fechou. Subindo a geração,
+//      `attemptForGeneration(quiz, N+1)` é `undefined`, as duas funções de
+//      decisão visual retornam CEDO no neutro e `answerIndex` NEM É LIDO.
+//   2. A PROTEÇÃO ANTI-DUPLA-SUBMISSÃO de `submitQuizAnswer` é POR GERAÇÃO
+//      (`answeredThisGeneration`). Uma geração NOVA aceita resposta nova sem
+//      que a proteção precise ser afrouxada em nada — reabrir CONVIVE com ela
+//      em vez de contorná-la.
+//   3. A CONTAGEM HONESTA. `attempts` é PRESERVADO, e a id da geração nova é
+//      `remediationAssertionId(key, N+1)` — a MESMA convenção `<chave>#g<N>`
+//      que `recurrenceOf` (electron/main/services/quizRemediation.ts) lê para
+//      dizer "esta é a Nª vez seguida" (ERR-4). Reabrir NÃO apaga o rastro do
+//      erro: a tentativa nova conta no histórico (`track.quizAttempt` grava a
+//      id da geração) e conta na recorrência que a explicação seguinte usa.
+//
+// `channelFailed` é PARÂMETRO, não campo do estado: o ciclo não pode ficar
+// sabendo de rede (a MESMA disciplina de `overlayStatusFor`, que recebe a
+// falha do canal por argumento). E ele é OBRIGATÓRIO justamente para que isto
+// não vire um botão de "pular o quiz" sempre disponível, o que esvaziaria o
+// gate: com o canal de pé, a transição é no-op por referência.
+
+/**
+ * true quando a REABERTURA está disponível: o canal caiu E o ciclo está
+ * TRAVADO esperando algo que a IA deveria entregar —
+ *
+ *   - 'explicando'           → a explicação não veio (e o quiz novo, que o
+ *                              caminho de degradação pediria em seguida,
+ *                              também não);
+ *   - 'novo-quiz-pendente'   → a explicação entrou, o quiz novo não veio.
+ *
+ * FALSO em 'aguardando-resposta' (não há nada a reabrir: a pergunta já está
+ * clicável) e em 'dominado' (a chave FECHOU — reabrir uma afirmação já
+ * demonstrada seria refazer trabalho provado). PURA.
+ */
+export function canReopenStalledQuiz(
+  quiz: QuizState | undefined,
+  channelFailed: boolean,
+): boolean {
+  if (channelFailed !== true) return false;
+  const stage = quizCycleOf(quiz).stage;
+  return stage === 'explicando' || stage === 'novo-quiz-pendente';
+}
+
+/**
+ * REABRE a pergunta corrente para uma tentativa nova quando o ciclo travou por
+ * indisponibilidade da IA (ver o bloco acima). `assertion` é a afirmação da
+ * geração CORRENTE — a mesma que o aluno está vendo (`visibleQuizFor(...)
+ * .assertion`): a reabertura repete a pergunta, não inventa outra.
+ *
+ * Delega a `injectRemediationQuiz` de propósito: é a MESMA transição de
+ * geração (N+1, card zerado, `attempts`/`explanation` preservados, id
+ * determinística), e reimplementá-la aqui abriria a chance de as duas
+ * divergirem. O que esta função acrescenta é a GUARDA: sem `channelFailed`,
+ * no-op por referência.
+ *
+ * O GATE CONTINUA DE PÉ: o estado resultante é 'aguardando-resposta', nunca
+ * 'dominado' — nenhum caminho daqui leva ao desafio sem acerto.
+ *
+ * LIMITAÇÃO DECLARADA (CONTRIBUTING.md: "limitação conhecida é melhor que
+ * escondida"). A geração REABERTA não grava linha em `quiz_remediations`: esse
+ * canal (`track:quiz-remedial`) é o que CHAMA a IA, e chamá-lo aqui seria
+ * pedir de novo exatamente o que acabou de falhar. Consequência, traçada e
+ * medida em `tests/quizStalledExit.test.ts`: se o app FECHAR no meio,
+ * `hydrateQuizFromHistory` reconstrói a chave só a partir das tentativas —
+ * a geração e o histórico voltam certos, e a assertion volta a ser a AUTORAL
+ * (que é a MESMA pergunta que a reabertura repetia, então o aluno não vê
+ * diferença). Nada de maestria inventada e nada de tentativa perdida; o que se
+ * perde é uma reabertura ainda NÃO respondida, e nesse caso o ciclo volta ao
+ * estado travado — onde a reabertura é oferecida de novo. PURA.
+ */
+export function reopenStalledQuiz(
+  state: TrackLessonUiState,
+  key: string,
+  assertion: TrackAssertionDto,
+  channelFailed: boolean,
+): TrackLessonUiState {
+  if (!canReopenStalledQuiz(state.quizBySection[key], channelFailed)) return state;
+  return injectRemediationQuiz(state, key, assertion);
 }
 
 // ─── ONDA3-PERSISTÊNCIA: o ciclo do quiz VOLTA depois de o app FECHAR ───────

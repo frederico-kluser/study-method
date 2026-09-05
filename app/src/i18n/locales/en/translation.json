@@ -214,6 +214,7 @@
     "quizChatMastered": "This statement has been shown.",
     "quizChatAnswer": "Answer",
     "quizChatRetry": "Ask again",
+    "quizChatReopen": "Answer this question again",
     "quizExplanationTitle": "Where that option parts ways with what the section shows",
     "quizExplanationChosen": "Option picked",
     "quizExplainUnavailable": "The explanation could not be written right now — the AI is offline. The new quiz on the same passage is still on its way.",

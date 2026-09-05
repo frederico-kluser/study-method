@@ -31,6 +31,22 @@
  * literalmente um objeto do chat, não um widget novo com paleta própria.
  * `alpha()` do MUI continua PROIBIDO (lança com CSS var — MUI #9).
  *
+ * ─── ONDA4-SAÍDA-DO-CICLO: o card TRAVADO ganha uma segunda saída ─────────
+ * Com a IA fora do ar o ciclo PARA: sem quiz remediador não há o que
+ * responder, e o gate de maestria só abre com acerto — o aluno ficava sem
+ * saída nenhuma (medido em tests/e2e/e2e-quiz.spec.ts, teste 5). Agora o card
+ * oferece DUAS coisas, e elas são diferentes:
+ *
+ *   - `onRetry`  ("Pedir de novo")  → repete o pedido à IA. Depende dela.
+ *   - `onReopen` ("Responder esta pergunta de novo") → reabre a pergunta que
+ *     já está ali para uma tentativa nova (`reopenStalledQuiz`). NÃO depende
+ *     da IA, e NÃO dispensa o gate: continua sendo preciso ACERTAR, e a
+ *     tentativa nova CONTA no histórico.
+ *
+ * Os dois só existem enquanto o ciclo está travado — `onReopen` chega `null`
+ * em qualquer outro estado, porque um botão de reabrir sempre disponível seria
+ * um botão de pular o quiz.
+ *
  * a11y (§8.1, normativo): a linha de estado é `role="status"` (o veredito e o
  * andamento chegam ao leitor de tela sem depender de cor nem de movimento) e o
  * botão de reabrir é um `Button` de verdade, com rótulo próprio.
@@ -43,6 +59,7 @@ import QuizIcon from '@mui/icons-material/Quiz';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import OpenInFullIcon from '@mui/icons-material/OpenInFull';
 import ReplayIcon from '@mui/icons-material/Replay';
+import RestartAltIcon from '@mui/icons-material/RestartAlt';
 import { motion } from 'motion/react';
 import { useMemo, type ReactElement } from 'react';
 
@@ -65,6 +82,11 @@ export interface QuizChatCardProps {
   onOpen: () => void;
   /** repetir o pedido que falhou; null quando não há nada a repetir. */
   onRetry: (() => void) | null;
+  /**
+   * ONDA4-SAÍDA-DO-CICLO: responder de novo a MESMA pergunta. `null` quando o
+   * ciclo NÃO está travado por indisponibilidade — ver o cabeçalho.
+   */
+  onReopen: (() => void) | null;
 }
 
 export function QuizChatCard({
@@ -75,6 +97,7 @@ export function QuizChatCard({
   notice,
   onOpen,
   onRetry,
+  onReopen,
 }: QuizChatCardProps): ReactElement {
   const { t } = useTranslation();
   // Cast de interpolação da casa (`t` tipado por chave literal não aceita
@@ -150,8 +173,8 @@ export function QuizChatCard({
           </Stack>
         ) : null}
 
-        {canOpen || onRetry ? (
-          <Stack direction="row" spacing={1} sx={{ pt: 0.25 }}>
+        {canOpen || onRetry || onReopen ? (
+          <Stack direction="row" spacing={1} sx={{ pt: 0.25, flexWrap: 'wrap', rowGap: 1 }}>
             {canOpen ? (
               <motion.span whileTap={{ scale: 0.98 }} transition={springs.snappy} style={{ display: 'inline-block' }}>
                 <Button
@@ -169,6 +192,25 @@ export function QuizChatCard({
               <motion.span whileTap={{ scale: 0.98 }} transition={springs.snappy} style={{ display: 'inline-block' }}>
                 <Button size="small" variant="text" color="secondary" onClick={onRetry} startIcon={<ReplayIcon />}>
                   {t('translation:lesson.quizChatRetry')}
+                </Button>
+              </motion.span>
+            ) : null}
+            {/* ONDA4-SAÍDA-DO-CICLO: a segunda saída, e a que não depende da
+                IA — responder de novo a MESMA pergunta. `outlined` (e não
+                `text`, como o "Pedir de novo") porque é ela que devolve o
+                gesto ao aluno quando o pedido à IA não tem mais o que
+                entregar. A redação é informacional: diz o que o clique faz,
+                sem prometer nada e sem cobrar nada (§8 item 3 / §8.2). */}
+            {onReopen ? (
+              <motion.span whileTap={{ scale: 0.98 }} transition={springs.snappy} style={{ display: 'inline-block' }}>
+                <Button
+                  size="small"
+                  variant="outlined"
+                  color="secondary"
+                  onClick={onReopen}
+                  startIcon={<RestartAltIcon />}
+                >
+                  {t('translation:lesson.quizChatReopen')}
                 </Button>
               </motion.span>
             ) : null}

@@ -47,16 +47,21 @@
  *
  * ─── LIMITAÇÕES DECLARADAS (CONTRIBUTING.md: "limitação conhecida é melhor
  *     que escondida") ────────────────────────────────────────────────────────
- *  1. O CICLO COM IA FORA NÃO TEM SAÍDA PELO QUIZ. Com `E2E_QUIZ_AI=off`, o
- *     aluno que ERRA fica com a afirmação em 'explicando'/'novo-quiz-pendente'
- *     para sempre: sem quiz remediador não há o que responder, e o gate só
- *     abre com ACERTO. O teste 5 documenta o que a tela realmente faz nesse
- *     estado (diz o que faltou, oferece "Pedir de novo", não inventa
- *     explicação nem quiz, não pinta punição, não deixa spinner eterno) — e
- *     afirma explicitamente que o gate CONTINUA fechado, porque é isso que
- *     acontece. Não existe, hoje, caminho de tela que libere a aula com a IA
- *     fora depois de um erro; quem quiser esse caminho precisa criá-lo no
- *     produto (ver o handoff).
+ *  1. [RESOLVIDA na ONDA4-SAÍDA-DO-CICLO — mantida aqui porque a história
+ *     explica o teste 5.] Esta spec DESCOBRIU que o ciclo com a IA fora não
+ *     tinha saída: com `E2E_QUIZ_AI=off`, o aluno que ERRAVA ficava com a
+ *     afirmação em 'explicando'/'novo-quiz-pendente' PARA SEMPRE — sem quiz
+ *     remediador não há o que responder, e o gate só abre com ACERTO. O teste
+ *     5 terminava afirmando `Próximo` desabilitado como comportamento
+ *     OBSERVADO (nunca como aprovação), e o handoff pedia o caminho ao
+ *     produto. O produto respondeu com `reopenStalledQuiz`: travado o ciclo,
+ *     o aluno REABRE a mesma pergunta numa geração nova e responde de novo.
+ *     O teste 5 agora percorre essa saída INTEIRA e prova as duas metades que
+ *     importam — ela existe, e ela NÃO dispensa o gate (reabrir sozinho não
+ *     destrava; só o ACERTO destrava). O que a spec continua NÃO cobrindo é
+ *     errar a geração reaberta com a IA fora e reabrir de novo em laço: é o
+ *     mesmo caminho, e a suíte pura o percorre três voltas em
+ *     `tests/quizStalledExit.test.ts`.
  *  2. A MAESTRIA PERSISTIDA NÃO É OBSERVÁVEL. `track:quiz-attempt` grava num
  *     store EM MEMÓRIA do processo do main e nenhuma tela lê
  *     `track:quiz-history`, então "a maestria sobreviveu ao restart" não tem
@@ -446,9 +451,52 @@ test('e2e-quiz: FAIL-CLOSED com E2E_QUIZ_AI=off — a tela diz o que faltou, sem
   await expect(aviso).toBeVisible({ timeout: 45_000 });
   await expect(page.getByText('Quiz 2 desta afirmação')).toHaveCount(0);
 
-  // O QUE ESTE TESTE **NÃO** PROVA (limitação 1 do cabeçalho): com a IA fora, o
-  // gate CONTINUA fechado — o acerto é o único fim do ciclo e não há quiz novo
-  // para acertar. A asserção abaixo registra esse fato como comportamento
-  // observado, não como aprovação: é o caminho que o produto precisa decidir.
-  await expect(page.getByRole('button', { name: 'Próximo →' })).toBeDisabled();
+  // ─── ONDA4-SAÍDA-DO-CICLO: o ciclo travado TEM saída, e ela não é o gate ──
+  // O QUE ESTE BLOCO SUBSTITUI: até esta onda o teste terminava aqui, com um
+  // `await expect(next).toBeDisabled()` solitário — o registro de que, com a
+  // IA fora, NENHUM clique da tela mudava a situação do aluno. Era um fato
+  // observado, não uma aprovação, e o handoff da spec pedia o caminho ao
+  // produto. O caminho existe agora, e o teste percorre os dois lados dele.
+  const next = page.getByRole('button', { name: 'Próximo →' });
+  await expect(next).toBeDisabled();
+
+  // (a) A SAÍDA EXISTE, e ela NÃO depende da IA que está fora. O botão vive no
+  // card compacto da conversa, ao lado do "Pedir de novo" que acabou de falhar.
+  const reabrir = log.getByRole('button', { name: 'Responder esta pergunta de novo' });
+  await expect(reabrir).toBeEnabled();
+  await reabrir.click();
+
+  // A MESMA pergunta volta SOBRE A TELA, numa geração nova (o rótulo "Quiz 2"
+  // é a geração; a pergunta é a da aula, não uma inventada — a IA continua
+  // fora e nada foi fabricado).
+  await expect(dialog).toBeVisible({ timeout: 45_000 });
+  await expect(dialog.getByText('Quiz 2 desta afirmação')).toBeVisible();
+  await expect(dialog.getByText(ASSERTION_ONE.question)).toBeVisible();
+
+  // (b) O GATE **NÃO** FOI DISPENSADO. Reabrir devolve a chance de responder,
+  // nunca a aprovação: enquanto não houver ACERTO, "Próximo" segue fechado.
+  await expect(next).toBeDisabled();
+
+  // E a geração REABERTA também não entrega a resposta — o invariante da
+  // ONDA10 vale para ela igual: as quatro alternativas nascem indistinguíveis,
+  // em classe do MUI e em CSS computado. (O invariante NA MÁQUINA PURA — que
+  // `optionVisualStateForGeneration` não acharia a tentativa da geração antiga
+  // e não pintaria a certa — é medido com getter-espião em
+  // tests/quizStalledExit.test.ts, seção 4; aqui se mede o PIXEL.)
+  const looksReaberto = await optionLooks(dialog);
+  expect(looksReaberto).toHaveLength(4);
+  expect(new Set(looksReaberto).size).toBe(1);
+  expect(looksReaberto[0]).toContain('svg=0');
+  expect(looksReaberto[0]).toContain('disabled=false');
+  await expect(dialog.locator('.MuiButton-startIcon')).toHaveCount(0);
+
+  // (c) O ACERTO — o único fim do ciclo — destrava, com a IA AINDA fora do ar.
+  await dialog
+    .getByRole('button', { name: optionName(ASSERTION_ONE.options, ASSERTION_ONE.answerIndex) })
+    .click();
+  await expect(dialog).toBeHidden();
+  await expect(next).toBeEnabled();
+  await expect(
+    page.getByText('O quiz desta seção ainda espera a resposta certa', { exact: false }),
+  ).toHaveCount(0);
 });

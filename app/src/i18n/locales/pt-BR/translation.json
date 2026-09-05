@@ -214,6 +214,7 @@
     "quizChatMastered": "Esta afirmação já foi demonstrada.",
     "quizChatAnswer": "Responder",
     "quizChatRetry": "Pedir de novo",
+    "quizChatReopen": "Responder esta pergunta de novo",
     "quizExplanationTitle": "Onde essa alternativa se separa do que a seção mostra",
     "quizExplanationChosen": "Alternativa marcada",
     "quizExplainUnavailable": "A explicação não pôde ser escrita agora — a IA está fora do ar. O quiz novo sobre o mesmo trecho continua a caminho.",

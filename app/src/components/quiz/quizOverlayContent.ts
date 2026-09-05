@@ -83,6 +83,13 @@ export interface QuizOverlayContent {
   onMinimize: () => void;
   /** repetir o pedido que falhou; null quando não há nada a repetir. */
   onRetry: (() => void) | null;
+  /**
+   * ONDA4-SAÍDA-DO-CICLO: reabrir a MESMA pergunta para uma tentativa nova
+   * (`reopenStalledQuiz`) — a saída do ciclo travado com a IA fora do ar.
+   * `null` quando o ciclo não está travado: reabrir não é um botão de "pular o
+   * quiz" sempre disponível, e a maestria continua exigindo ACERTO.
+   */
+  onReopen: (() => void) | null;
 }
 
 let content: QuizOverlayContent | null = null;
@@ -100,7 +107,8 @@ function isSameContent(a: QuizOverlayContent | null, b: QuizOverlayContent | nul
     a.notice === b.notice &&
     a.onSelect === b.onSelect &&
     a.onMinimize === b.onMinimize &&
-    a.onRetry === b.onRetry
+    a.onRetry === b.onRetry &&
+    a.onReopen === b.onReopen
   );
 }
 

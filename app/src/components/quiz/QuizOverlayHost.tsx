@@ -51,6 +51,7 @@ import { Box, Button, IconButton, Stack, Typography } from '@mui/material';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import ReplayIcon from '@mui/icons-material/Replay';
+import RestartAltIcon from '@mui/icons-material/RestartAlt';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 
 import { springs, windowVariants } from '../../lib/animationTokens';
@@ -216,7 +217,7 @@ export function QuizOverlayHost(): ReactElement {
               />
 
               {content.notice ? (
-                <Stack direction="row" spacing={1} sx={{ mt: 1.5, alignItems: 'flex-start' }}>
+                <Stack direction="row" spacing={1} sx={{ mt: 1.5, alignItems: 'flex-start', flexWrap: 'wrap', rowGap: 1 }}>
                   <InfoOutlinedIcon fontSize="small" sx={{ color: 'info.main', flexShrink: 0, mt: 0.25 }} />
                   <Typography role="status" variant="body2" color="text.secondary" sx={{ flexGrow: 1 }}>
                     {content.notice}
@@ -224,6 +225,21 @@ export function QuizOverlayHost(): ReactElement {
                   {content.onRetry ? (
                     <Button size="small" variant="text" color="secondary" onClick={content.onRetry} startIcon={<ReplayIcon />}>
                       {t('translation:lesson.quizChatRetry')}
+                    </Button>
+                  ) : null}
+                  {/* ONDA4-SAÍDA-DO-CICLO: a saída que NÃO depende da IA —
+                      responder de novo a MESMA pergunta. O card compacto da
+                      conversa oferece a mesma coisa (QuizChatCard); as duas
+                      metades do quiz não podem divergir no que oferecem. */}
+                  {content.onReopen ? (
+                    <Button
+                      size="small"
+                      variant="outlined"
+                      color="secondary"
+                      onClick={content.onReopen}
+                      startIcon={<RestartAltIcon />}
+                    >
+                      {t('translation:lesson.quizChatReopen')}
                     </Button>
                   ) : null}
                 </Stack>

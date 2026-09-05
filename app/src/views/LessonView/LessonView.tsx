@@ -71,11 +71,25 @@
  *   - FAIL-CLOSED em toda a linha: `{ok:false}` (ou canal mudo) NUNCA vira
  *     conteúdo inventado. Sem explicação o ciclo SEGUE mesmo assim (caminho de
  *     degradação de `injectRemediationQuiz`); sem quiz novo o ciclo PARA e a
- *     tela oferece pedir de novo. O aluno nunca fica preso sem saber por quê;
+ *     tela oferece pedir de novo. O aluno nunca fica preso sem saber por quê
+ *     — e, desde a ONDA4-SAÍDA-DO-CICLO, também não fica preso SEM SAÍDA (ver
+ *     abaixo);
  *   - LARGURAS: painel de mensagens e linha de entrada passam a dividir a
  *     MESMA coluna (`CHAT_COLUMN_MAX_PX`) — o eixo de leitura e o de escrita
  *     não batiam —, e o painel saiu de `action.hover` (overlay alfa, a única
  *     superfície do app fora da rampa `surface.level0..4`) para o nível 2.
+ *
+ * ONDA4-SAÍDA-DO-CICLO (o defeito que a cobertura e2e desta base declarou como
+ * OBSERVADO, tests/e2e/e2e-quiz.spec.ts teste 5): "pedir de novo" só serve
+ * enquanto a IA pode responder. Com ela FORA, errar deixava a afirmação em
+ * 'explicando'/'novo-quiz-pendente' PARA SEMPRE — sem quiz remediador não há o
+ * que responder, e o gate de maestria só abre com ACERTO: o "Próximo" ficava
+ * desabilitado e não havia um único clique que mudasse isso. A saída é
+ * `handleQuizReopenGeneration`: com o ciclo TRAVADO (e só nesse caso), o aluno
+ * reabre a MESMA pergunta numa geração nova (`reopenStalledQuiz`) e responde de
+ * novo. O gate NÃO é dispensado — o estado volta a 'aguardando-resposta' e só
+ * o acerto fecha a chave — e a tentativa nova CONTA (`attempts` preservado,
+ * `track.quizAttempt` gravado, recorrência ERR-4 somando).
  *
  * ONDA3-PERSISTENCIA (o buraco que a onda do overlay deixou declarado): o
  * ciclo inteiro era GRAVADO no banco e NUNCA lido de volta — `track:quiz-
@@ -164,6 +178,7 @@ import {
   pushUserMessage,
   quizzesByMessageIndex,
   registerQuizExplanation,
+  reopenStalledQuiz,
   seedChallengeError,
   submitQuizAnswer,
   visibleQuizFor,
@@ -1159,6 +1174,13 @@ export function LessonView(props: ViewProps): ReactElement {
   const activeNotice = quizNotice !== null && quizNotice.tag === activeQuizTag ? quizNotice.kind : null;
   const quizNoticeText = quizNotice === null ? null : tI(QUIZ_NOTICE_KEY[quizNotice.kind]);
   const activeNoticeText = activeNotice === null ? null : tI(QUIZ_NOTICE_KEY[activeNotice]);
+  // ONDA4-SAÍDA-DO-CICLO: o aviso da volta EM CENA lido por ref — é ele que a
+  // reabertura passa como `channelFailed` para a máquina pura. Por REF, e não
+  // por closure, porque `handleQuizReopenGeneration` tem deps [] (a identidade
+  // estável é o que impede o registro de conteúdo do overlay de notificar o
+  // shell a cada render — o mesmo motivo de `handleQuizAnswer`).
+  const activeNoticeRef = useRef(activeNotice);
+  activeNoticeRef.current = activeNotice;
 
   /**
    * O que a tela DIZ sobre o quiz em cena. A tradução do passo é da função
@@ -1255,6 +1277,47 @@ export function LessonView(props: ViewProps): ReactElement {
   /** "Tentar de novo" depois de um canal fora do ar — limpa o aviso e o efeito
    *  motor abaixo volta a disparar o passo que estava parado. */
   const handleQuizRetry = useCallback((): void => {
+    setQuizNotice(null);
+  }, []);
+
+  /**
+   * ONDA4-SAÍDA-DO-CICLO — "Responder esta pergunta de novo".
+   *
+   * O DEFEITO que isto mata (medido em tests/e2e/e2e-quiz.spec.ts, teste 5):
+   * com a IA fora do ar, errar deixava a afirmação em 'explicando' /
+   * 'novo-quiz-pendente' PARA SEMPRE. "Pedir de novo" só serve enquanto houver
+   * esperança de a IA responder; quando não há, o aluno ficava com o "Próximo"
+   * desabilitado e nada para clicar.
+   *
+   * A saída é reabrir a GERAÇÃO CORRENTE — a mesma pergunta, numa geração
+   * nova. TRÊS coisas que ela NÃO faz, e são o ponto:
+   *   - não dispensa o gate: o estado volta a 'aguardando-resposta', e só o
+   *     ACERTO fecha a chave (`submitQuizAnswer`);
+   *   - não apaga o rastro: `attempts` é preservado e a tentativa nova conta
+   *     no histórico e na recorrência ERR-4 (a id da geração carrega o número);
+   *   - não fica disponível sempre: `channelFailed` sai do aviso REAL da volta
+   *     em cena, então com a IA de pé a transição é no-op por referência.
+   *
+   * Deps [] pelo mesmo motivo de `handleQuizAnswer`: todo insumo mutável entra
+   * por ref, e a identidade estável do callback é o que mantém o registro de
+   * conteúdo do overlay silencioso entre renders.
+   */
+  const handleQuizReopenGeneration = useCallback((): void => {
+    const card = activeQuizCardRef.current;
+    if (card === null) return;
+    const { visible } = card;
+    // A GUARDA REAL, não um `true` literal: só o aviso do canal desta volta
+    // autoriza a reabertura. Na PRÁTICA quem chega aqui é 'quiz-indisponivel'
+    // — é o único que `overlayStatusFor` traduz para 'indisponivel', e por isso
+    // o único que faz o botão nascer. 'explicacao-indisponivel' entra na conta
+    // por COMPLETUDE: é o outro aviso do MESMO ciclo travado, e deixá-lo de
+    // fora faria a guarda mais estreita que o defeito que ela cobre.
+    const travado =
+      activeNoticeRef.current === 'quiz-indisponivel' ||
+      activeNoticeRef.current === 'explicacao-indisponivel';
+    setChat((st) => reopenStalledQuiz(st, visible.key, visible.assertion, travado));
+    // O aviso morre com a volta antiga: a geração nova muda a etiqueta
+    // (`quizCycleTag`) e o aviso já não pertenceria a ela.
     setQuizNotice(null);
   }, []);
 
@@ -1444,6 +1507,9 @@ export function LessonView(props: ViewProps): ReactElement {
       onSelect: handleOverlaySelect,
       onMinimize: handleQuizMinimize,
       onRetry: activeQuizStatus === 'indisponivel' ? handleQuizRetry : null,
+      // ONDA4-SAÍDA-DO-CICLO: a reabertura só aparece com o ciclo TRAVADO — a
+      // MESMA condição do "Pedir de novo", e nunca em 'aguardando'/'dominado'.
+      onReopen: activeQuizStatus === 'indisponivel' ? handleQuizReopenGeneration : null,
     });
   }, [
     activeQuizCard,
@@ -1452,6 +1518,7 @@ export function LessonView(props: ViewProps): ReactElement {
     handleOverlaySelect,
     handleQuizMinimize,
     handleQuizRetry,
+    handleQuizReopenGeneration,
   ]);
 
   useEffect(() => {
@@ -1841,6 +1908,11 @@ export function LessonView(props: ViewProps): ReactElement {
                                 onOpen={() => handleQuizReopen(visible.key)}
                                 onRetry={
                                   inScene && activeQuizStatus === 'indisponivel' ? handleQuizRetry : null
+                                }
+                                onReopen={
+                                  inScene && activeQuizStatus === 'indisponivel'
+                                    ? handleQuizReopenGeneration
+                                    : null
                                 }
                               />
                             );

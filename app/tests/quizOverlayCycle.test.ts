@@ -424,6 +424,7 @@ describe('o registro de CONTEÚDO do overlay (a ponte view → shell)', () => {
     onSelect: () => {},
     onMinimize: () => {},
     onRetry: null,
+    onReopen: null,
   };
 
   it('parte vazio e publica', () => {

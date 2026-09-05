@@ -86,6 +86,7 @@ const CONTENT: QuizOverlayContent = {
   onSelect: () => {},
   onMinimize: () => {},
   onRetry: null,
+  onReopen: null,
 };
 
 /** Os props do card compacto (declarados aqui porque o import é dinâmico). */
@@ -97,6 +98,7 @@ interface ChatCardProps {
   notice: string | null;
   onOpen: () => void;
   onRetry: (() => void) | null;
+  onReopen: (() => void) | null;
 }
 
 let QuizOverlayHost: ComponentType<Record<string, never>>;
@@ -265,6 +267,30 @@ describe('o aviso de canal (fail-closed) chega à tela, e com saída', () => {
     assert.ok(tela.includes(ptBR.lesson.quizChatRetry), 'e tem como pedir de novo');
     assert.equal(clicado, 0, 'nada é disparado só por renderizar');
   });
+
+  // ONDA4-SAÍDA-DO-CICLO: as duas metades do quiz (o overlay e o card
+  // compacto) oferecem a MESMA coisa — se divergissem, a saída existiria só
+  // em uma delas e o aluno a encontraria por acaso.
+  it('o overlay também oferece responder de novo a MESMA pergunta', () => {
+    openQuizOverlay(CTX);
+    publishQuizOverlayContent({
+      ...CONTENT,
+      status: 'indisponivel',
+      notice: ptBR.lesson.quizRemedialUnavailable,
+      onRetry: () => {},
+      onReopen: () => {},
+    });
+    const tela = onScreen(renderHost());
+    assert.ok(tela.includes(ptBR.lesson.quizChatReopen), 'a saída que não depende da IA está lá');
+  });
+
+  it('sem travamento o overlay não desenha saída nenhuma de reabertura', () => {
+    openQuizOverlay(CTX);
+    publishQuizOverlayContent(CONTENT);
+    const tela = onScreen(renderHost());
+    assert.ok(!tela.includes(ptBR.lesson.quizChatReopen));
+    assert.ok(!tela.includes(ptBR.lesson.quizChatRetry));
+  });
 });
 
 describe('o card MINIMIZADO, na conversa', () => {
@@ -281,6 +307,7 @@ describe('o card MINIMIZADO, na conversa', () => {
           notice: null,
           onOpen: () => {},
           onRetry: null,
+          onReopen: null,
           ...props,
         }),
       ),
@@ -320,6 +347,36 @@ describe('o card MINIMIZADO, na conversa', () => {
     assert.ok(tela.includes(ptBR.lesson.quizExplainUnavailable));
     assert.ok(tela.includes(ptBR.lesson.quizChatRetry));
     assert.ok(html.includes('role="status"'), 'o andamento também é anunciado');
+  });
+
+  // ─── ONDA4-SAÍDA-DO-CICLO ────────────────────────────────────────────────
+  // Com a IA fora, "Pedir de novo" era a ÚNICA oferta — e ela depende
+  // justamente da IA que não responde. O card travado passa a oferecer também
+  // responder de novo a MESMA pergunta, que não depende de ninguém. As duas
+  // asserções abaixo medem o que chega à tela nos dois sentidos: o botão
+  // APARECE travado, e NÃO aparece em nenhum outro estado (um botão de
+  // reabrir sempre visível seria um botão de pular o quiz).
+  it('ciclo TRAVADO: além de "pedir de novo", a saída que não depende da IA', () => {
+    const html = renderCard({
+      status: 'indisponivel',
+      notice: ptBR.lesson.quizRemedialUnavailable,
+      onRetry: () => {},
+      onReopen: () => {},
+    });
+    const tela = onScreen(html);
+    assert.ok(tela.includes(ptBR.lesson.quizChatRetry), 'a saída que depende da IA continua lá');
+    assert.ok(tela.includes(ptBR.lesson.quizChatReopen), 'e a que não depende dela também');
+    assert.ok(!/parab|congrat|que pena|errad/i.test(tela), 'sem elogio e sem repreensão (§8/§8.2)');
+  });
+
+  it('fora do travamento, a saída NÃO existe (nem esperando, nem em andamento, nem dominado)', () => {
+    for (const status of ['aguardando', 'explicando', 'gerando', 'dominado'] as const) {
+      const tela = onScreen(renderCard({ status, onReopen: null }));
+      assert.ok(
+        !tela.includes(ptBR.lesson.quizChatReopen),
+        `o botão de reabrir apareceu em "${status}" — o gate viraria decoração`,
+      );
+    }
   });
 
   it('o card é um objeto do CHAT: a mesma casca de balão do tutor (borda 2px)', () => {
