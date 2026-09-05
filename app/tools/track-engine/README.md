@@ -37,7 +37,7 @@ cd app && npx tsx tools/track-engine/cli.ts --help
 |---|---|
 | `--modo declared\|inferred` | de onde vem o orçamento. Sem a flag: `declared` se alguma aula declara `introduces`, senão `inferred` |
 | `--harness receptive-seed\|none` | se o harness de teste (`import`, `export`, `assert.*`) entra no orçamento receptivo da aula 1. Default `receptive-seed` |
-| `--limite N` | no `audit`: quantas violações imprimir (`0` = nenhuma, só o placar). No `coverage`/`requirements`/`revise`: quantos desafios/aulas **processar e imprimir** (`0` = nenhum) — amostra rápida, já que o coverage e o revise spawnam `node --test` por candidato |
+| `--limite N` | no `audit`: quantas violações imprimir sobre uma auditoria SEMPRE completa (`0` = nenhuma, só o placar — modo recomendado). No `coverage`/`requirements`/`discrimination`/`revise`: quantos desafios/aulas **processar e imprimir**, amostra rápida (o coverage e o revise spawnam `node --test`/o runner da linguagem por candidato) — aqui `--limite` fatia o que é MEDIDO, então **só aceita N ≥ 1**: `--limite 0` fatiaria para lista vazia (placar zerado, exit 0, nada medido) e por isso é uso incorreto (exit 2), não "sem limite" |
 | `--so-lacunas` | mostra apenas as lacunas de currículo — construção que **nenhuma** aula ensina |
 | `--json` | relatório completo em JSON, para outra ferramenta consumir |
 | `--dir DIR` | (`audit`/`coverage`/`requirements`/`revise`/`repair`) carrega a trilha de outro diretório, ex.: `--dir content-src/<slug>/trilha` para auditar uma trilha ainda não publicada em `resources/tracks`. Com `--dir`, o slug é só o rótulo do relatório |

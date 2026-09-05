@@ -176,6 +176,12 @@ comandos:
       engine falhar FECHADA, e um placar de zeros sobre zero desafio medido e
       aprovacao por omissao.
       --limite N processa e imprime no maximo N desafios (amostra rapida).
+      SO ACEITA N >= 1: ao contrario do --limite do audit (que so bound a
+      IMPRESSAO sobre uma auditoria SEMPRE completa), aqui --limite fatia o
+      que e MEDIDO. --limite 0 fatiaria para uma lista vazia — placar zerado,
+      exit 0, sem medir nada — a mesma aprovacao por omissao do §9.3 pela
+      porta da flag; por isso 0 e uso incorreto (exit 2). Sem --limite mede
+      tudo.
       --dir DIR carrega a trilha de outro diretorio (ex.: content-src).
 
   requirements <slug> [--limite N] [--json] [--dir DIR]
@@ -190,6 +196,8 @@ comandos:
       por default silencioso.
       NAO deriva a partir da SOLUCAO nem do enunciado: a fonte e o arquivo de
       teste. Exit 1 quando algum desafio tem gap.
+      --limite N processa no maximo N desafios; SO ACEITA N >= 1, pela MESMA
+      razao do coverage (uso incorreto, exit 2, --limite 0 mediria zero).
 
   discrimination <slug> [--modo declared|inferred] [--limite N] [--tudo]
                         [--json] [--dir DIR]
@@ -213,6 +221,8 @@ comandos:
       que reprova (exit 1) quando algo nao pode ser medido.
       --tudo detalha tambem os desafios que discriminam (default: so os
       achados).
+      --limite N processa no maximo N desafios; SO ACEITA N >= 1, pela MESMA
+      razao do coverage (uso incorreto, exit 2, --limite 0 mediria zero).
 
   revise <slug> [--limite N] [--json] [--dir DIR]
       a REVISAO PROGRESSIVA (onda 5 — o nucleo do pedido do dono): percorre
@@ -230,6 +240,8 @@ comandos:
       do relatorio estabilizar (max 3 iteracoes). Grava o relatorio em
       content-src/<slug>/revisao-progressiva/. Exit 1 quando ha lacuna ou
       aula nao-revisavel; 0 quando converge sem lacunas.
+      --limite N revisa no maximo N aulas; SO ACEITA N >= 1, pela MESMA razao
+      do coverage (uso incorreto, exit 2, --limite 0 nao revisaria nenhuma).
 
   generate <slug> --assunto "..." [--from FASE] [--only slug]
                   [--teto-tokens N] [--familia sintaxe|algoritmo|api-runtime|...]
@@ -371,6 +383,43 @@ function fail(msg: string): never {
   console.error(`erro: ${msg}`);
   console.error(USAGE);
   process.exit(2);
+}
+
+/**
+ * `--limite N` nos comandos de MEDIÇÃO (`coverage`/`requirements`/
+ * `discrimination`/`revise`) — DIFERENTE do `--limite` do `audit`.
+ *
+ * No `audit` a auditoria é SEMPRE completa (parse estático, custo zero) e
+ * `--limite` só bound quantas violações são IMPRESSAS: `0` é o modo
+ * recomendado pela documentação ("só o placar", trilha inteira medida).
+ *
+ * Aqui `--limite` fatia a lista de desafios/aulas ANTES de medir qualquer
+ * coisa (`coletarDesafios(track).slice(0, limite)` / `pedagogicalOrder(track)
+ * .slice(0, limite)`) — existe como amostra rápida porque cada item spawna um
+ * processo real (`node --test`, o runner da linguagem). `--limite 0` fatiaria
+ * para uma lista VAZIA: placar inteiro zerado, exit 0, sem medir nada.
+ * MEDIDO: `coverage python --limite 0` saía com "desafios ... 0" e exit 0;
+ * `coverage python` (sem `--limite`) mede os 21 e sai "passou 21 · lacunas 0 ·
+ * excessos 29". É a MESMA classe de aprovação por omissão que
+ * `docs/16-engine-de-trilha.md` §9.3 proíbe — só que pela porta da flag, não
+ * da medição.
+ *
+ * Por isso `0` aqui NÃO é reinterpretado como "sem limite" (mudaria o que a
+ * flag mede, silenciosamente) nem vira reprovação de CONTEÚDO (não há
+ * conteúdo nenhum examinado para reprovar) — é **uso incorreto** (exit 2), a
+ * mesma convenção que `resolverRodadas` já aplica a `--rodadas 0`: um número
+ * de itens a processar cujo zero não tem execução sensata nenhuma.
+ */
+function resolverLimiteDeMedicao(flags: Record<string, string>, unidade: 'desafio' | 'aula'): number {
+  if (flags.limite === undefined) return Number.MAX_SAFE_INTEGER;
+  const n = Number.parseInt(flags.limite, 10);
+  if (!Number.isInteger(n) || n < 1) {
+    fail(
+      `--limite invalido: ${flags.limite} (esperado inteiro ≥ 1 — 0 mediria zero ${unidade}(s) e o comando ` +
+        'sairia verde sem medir nada; docs/16-engine-de-trilha.md §9.3, fail-closed. Sem --limite mede tudo.)',
+    );
+  }
+  return n;
 }
 
 /** parseia flags `--nome valor` e `--flag` (bool) depois dos posicionais. */
@@ -733,8 +782,7 @@ async function cmdCoverage(pos: string[], flags: Record<string, string>, bools: 
   if (modo !== undefined && modo !== 'declared' && modo !== 'inferred') {
     fail(`--modo invalido: ${modo} (esperado declared ou inferred)`);
   }
-  const limite = flags.limite !== undefined ? Number.parseInt(flags.limite, 10) : Number.MAX_SAFE_INTEGER;
-  if (!Number.isInteger(limite) || limite < 0) fail(`--limite invalido: ${flags.limite}`);
+  const limite = resolverLimiteDeMedicao(flags, 'desafio');
 
   const track = await carregarTrilhaOuFalhar(slug, flags.dir);
   const budget = deriveTrackBudget(track, { mode: modo });
@@ -895,8 +943,7 @@ async function cmdDiscrimination(pos: string[], flags: Record<string, string>, b
   if (modo !== undefined && modo !== 'declared' && modo !== 'inferred') {
     fail(`--modo invalido: ${modo} (esperado declared ou inferred)`);
   }
-  const limite = flags.limite !== undefined ? Number.parseInt(flags.limite, 10) : Number.MAX_SAFE_INTEGER;
-  if (!Number.isInteger(limite) || limite < 0) fail(`--limite invalido: ${flags.limite}`);
+  const limite = resolverLimiteDeMedicao(flags, 'desafio');
 
   const track = await carregarTrilhaOuFalhar(slug, flags.dir);
   const budget = deriveTrackBudget(track, { mode: modo });
@@ -977,8 +1024,7 @@ async function cmdRequirements(pos: string[], flags: Record<string, string>, boo
   const slug = pos[0];
   if (!slug) fail('informe o slug da trilha (ex.: npm run engine -- requirements minha-trilha)');
 
-  const limite = flags.limite !== undefined ? Number.parseInt(flags.limite, 10) : Number.MAX_SAFE_INTEGER;
-  if (!Number.isInteger(limite) || limite < 0) fail(`--limite invalido: ${flags.limite}`);
+  const limite = resolverLimiteDeMedicao(flags, 'desafio');
 
   const track = await carregarTrilhaOuFalhar(slug, flags.dir);
   // A LINGUAGEM vem da TRILHA, como no `coverage`: `budget.adapterId` e
@@ -1082,8 +1128,7 @@ async function cmdRevise(pos: string[], flags: Record<string, string>, bools: Se
   const slug = pos[0];
   if (!slug) fail('informe o slug da trilha (ex.: npm run engine -- revise minha-trilha)');
 
-  const limite = flags.limite !== undefined ? Number.parseInt(flags.limite, 10) : Number.MAX_SAFE_INTEGER;
-  if (!Number.isInteger(limite) || limite < 0) fail(`--limite invalido: ${flags.limite}`);
+  const limite = resolverLimiteDeMedicao(flags, 'aula');
 
   const track = await carregarTrilhaOuFalhar(slug, flags.dir);
   const prover = criarProverDeDesafio();
