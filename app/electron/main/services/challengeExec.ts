@@ -97,8 +97,20 @@ export function nodeBinary(): string {
   return defaultAdapter().detect().binary;
 }
 
-/** Exec real de `node --test` num diretório (DI injeta fake nos testes). */
-export const nodeExec: ExecFn = (dir, args, opts) =>
+/**
+ * Exec real num diretório, com o BINÁRIO DO ADAPTADOR da linguagem (§6 membro
+ * 15 — `detect()`), e não com o do adaptador default.
+ *
+ * POR QUE A FÁBRICA EXISTE (defeito MEDIDO). `nodeExec` resolvia
+ * `defaultAdapter().detect().binary` — o binário do NODE — para QUALQUER
+ * desafio. Num desafio de Python o provador oficial (`phases/f9Verifier.ts`)
+ * montava os args do adaptador certo e os entregava ao binário errado; a saída
+ * medida era `node: bad option: -B` / `bad option: -m`, exit 9, zero teste
+ * executado. O gate não aprovava por omissão (a prova reprova), mas também
+ * nunca MEDIA nada. A linguagem passa a decidir o binário aqui.
+ */
+export function criarExecDeLinguagem(adapter: LanguageAdapter = defaultAdapter()): ExecFn {
+  return (dir, args, opts) =>
   new Promise((resolve) => {
     // NODE_TEST_CONTEXT é setado pelo node:test do processo PAI (quando esta
     // app roda sob o runner de testes); herdado pelo filho, faz o node:test
@@ -111,7 +123,7 @@ export const nodeExec: ExecFn = (dir, args, opts) =>
     // SEM opts.env o comportamento é o de sempre: process.env.
     const env = { ...(opts?.env ?? process.env) };
     delete env.NODE_TEST_CONTEXT;
-    const child = spawn(defaultAdapter().detect().binary, args, {
+    const child = spawn(adapter.detect().binary, args, {
       cwd: dir,
       env,
       stdio: ['ignore', 'pipe', 'pipe'],
@@ -133,6 +145,15 @@ export const nodeExec: ExecFn = (dir, args, opts) =>
       resolve({ code: 1, stdout, stderr: String(err) });
     });
   });
+}
+
+/**
+ * Exec real de `node --test` num diretório (DI injeta fake nos testes).
+ * É `criarExecDeLinguagem` com o adaptador DEFAULT, resolvido a cada chamada
+ * (como antes): o símbolo público e o comportamento de JavaScript não mudam.
+ */
+export const nodeExec: ExecFn = (dir, args, opts) =>
+  criarExecDeLinguagem(defaultAdapter())(dir, args, opts);
 
 /**
  * Prepara o diretório de execução com os arquivos que o ADAPTADOR manda

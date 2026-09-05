@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "slug": "o-desafio",
+  "title": "O desafio que não dá para medir",
+  "concept": "imprimir",
+  "difficulty": 1,
+  "language": "python",
+  "statement": "# O desafio que não dá para medir\n\nO arquivo de teste deste desafio está quebrado de propósito.",
+  "starterCode": "# nada aqui\n",
+  "solutionCode": "print(\"oi\")\n",
+  "testsCode": "import unittest\n\n\nclass TestQuebrado(unittest.TestCase)\n    def test_nada(self):\n        self.assertEqual(1, 1)\n",
+  "expectedTestCount": 1
+}

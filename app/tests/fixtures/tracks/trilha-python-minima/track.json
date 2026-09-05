@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "slug": "trilha-python-minima",
+  "title": "Trilha Python mínima (fixture)",
+  "description": "Trilha-fixture dos testes de coverage: 1 módulo, 1 aula, 1 desafio de Python na forma stdout (runpy + captura). Existe para provar que o sintetizador de código mínimo LÊ Python — o testsCode dela não parseia como JavaScript.",
+  "language": "pt-BR",
+  "domain": "programming",
+  "programmingLanguage": "python",
+  "runtime": "cpython-3.14",
+  "harnessLanguage": "python",
+  "entryCriteria": [],
+  "modules": [
+    "modulo-1"
+  ]
+}

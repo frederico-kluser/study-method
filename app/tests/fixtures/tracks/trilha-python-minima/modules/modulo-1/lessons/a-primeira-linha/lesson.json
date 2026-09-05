@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "slug": "a-primeira-linha",
+  "title": "A primeira linha",
+  "summary": "Uma linha aparece na tela.",
+  "difficulty": 1,
+  "concepts": [
+    "imprimir"
+  ],
+  "prerequisites": [],
+  "introduces": {
+    "productive": [
+      "global:print",
+      "node:Call",
+      "node:StrLiteral"
+    ],
+    "receptive": []
+  },
+  "theory": [
+    {
+      "id": "uma-linha-e-so",
+      "title": "Uma linha, e só",
+      "markdown": "A sua primeira ordem mostra um texto na tela.\n\n```python\nprint(\"bom dia\")\n```\n\nNa tela aparece isto:\n\n```text\nbom dia\n```"
+    }
+  ],
+  "sources": [],
+  "challenges": [
+    "escreva-oi"
+  ]
+}

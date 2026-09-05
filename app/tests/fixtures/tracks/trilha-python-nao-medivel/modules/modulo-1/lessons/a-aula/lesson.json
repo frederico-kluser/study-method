@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "slug": "a-aula",
+  "title": "A aula",
+  "summary": "A aula que precede o desafio não mensurável.",
+  "difficulty": 1,
+  "concepts": [
+    "imprimir"
+  ],
+  "prerequisites": [],
+  "introduces": {
+    "productive": [
+      "global:print",
+      "node:Call",
+      "node:StrLiteral"
+    ],
+    "receptive": []
+  },
+  "theory": [
+    {
+      "id": "uma-linha-e-so",
+      "title": "Uma linha, e só",
+      "markdown": "A sua primeira ordem mostra um texto na tela.\n\n```python\nprint(\"bom dia\")\n```"
+    }
+  ],
+  "sources": [],
+  "challenges": [
+    "o-desafio"
+  ]
+}

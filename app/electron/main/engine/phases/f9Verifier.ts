@@ -67,7 +67,7 @@
 import * as os from 'node:os';
 import * as path from 'node:path';
 
-import { nodeExec } from '../../services/challengeExec';
+import { criarExecDeLinguagem } from '../../services/challengeExec';
 import { fromChallengeExec } from '../exec/adapter';
 import {
   cleanupDir,
@@ -153,6 +153,43 @@ export interface CriarProverDeDesafioOptions {
   typesTimeoutMs?: number;
 }
 
+/**
+ * COMO O EXIT-GUARD CHEGA AO FILHO, POR LINGUAGEM.
+ *
+ * O guard existe para que o código sob teste não mate o runner antes do
+ * relatório (`process.exit(0)` forjando `tests N`). Em Node ele é um `.cjs`
+ * que o spawn carrega com `--require`; `--require` é uma FLAG DO NODE, e
+ * mandá-la para outro interpretador não é "um argumento a mais": é um erro de
+ * uso. Medido em `main@26dbc19` num desafio da trilha `python`:
+ * `node: bad option: -B`, exit 9, zero teste executado.
+ *
+ * Em Python o guard vive DENTRO do layout do adaptador — `tests/__init__.py`
+ * sobrescreve `os._exit`/`os.abort` (`lang/python.ts`, PY_PACKAGE_MARKER) —,
+ * então não há nada a passar na linha de comando.
+ *
+ * FAIL-CLOSED, no mesmo espírito de `CAMINHADA_POR_LINGUAGEM`
+ * (`engine/extract.ts`): linguagem registrada e AUSENTE desta tabela LANÇA, e
+ * o provador converte isso em veredito inválido com `execError` — nunca um
+ * spawn com a flag da linguagem errada, nunca aprovação por omissão.
+ */
+export const GUARD_POR_REQUIRE: Readonly<Record<string, boolean>> = {
+  javascript: true,
+  typescript: true,
+  python: false,
+};
+
+/** Resolve a política de exit-guard da linguagem. LANÇA quando não há linha. */
+export function exigirPoliticaDeGuard(adapter: LanguageAdapter): boolean {
+  const politica = GUARD_POR_REQUIRE[adapter.id];
+  if (politica === undefined) {
+    throw new Error(
+      `phases/f9Verifier.ts: linguagem ${JSON.stringify(adapter.id)} sem política de exit-guard — ` +
+        `acrescente a linha em GUARD_POR_REQUIRE (declaradas: ${Object.keys(GUARD_POR_REQUIRE).sort().join(', ')})`,
+    );
+  }
+  return politica;
+}
+
 /** Teto de tempo default do compilador da quinta prova (ver `typesTimeoutMs`). */
 export const TYPES_CHECK_TIMEOUT_MS = 60_000;
 
@@ -195,7 +232,22 @@ export function criarProverDeDesafio(opts: CriarProverDeDesafioOptions = {}): Pr
   // Executor default = OFICIAL do produto endurecido; exec injetado vira o
   // SUBJACENTE do mesmo endurecimento (limiter SEMPRE vale — o teto SEM_EXEC
   // é global, não depende de quem plugou o executor).
-  const exec = createHardenedExec({ exec: opts.exec ?? fromChallengeExec(nodeExec), limiter });
+  // O EXECUTOR É POR LINGUAGEM (memoizado por adaptador): o binário do spawn
+  // e a política de ambiente do filho (`envScrub`) saem do ADAPTADOR do
+  // desafio, não do default. Para JavaScript o resultado é byte a byte o de
+  // antes (`fromChallengeExec(nodeExec)` == `criarExecDeLinguagem(javascript)`
+  // e `createHardenedExec` já defaultava para o adaptador default). O `limiter`
+  // é COMPARTILHADO entre linguagens de propósito: o teto SEM_EXEC conta
+  // spawns, e um spawn de Python custa uma vaga igual a um de Node.
+  const execPorAdaptador = new Map<string, ExecFn>();
+  const execDe = (adapter: LanguageAdapter): ExecFn => {
+    const memo = execPorAdaptador.get(adapter.id);
+    if (memo !== undefined) return memo;
+    const base = opts.exec ?? fromChallengeExec(criarExecDeLinguagem(adapter));
+    const criado = createHardenedExec({ exec: base, limiter, adapter });
+    execPorAdaptador.set(adapter.id, criado);
+    return criado;
+  };
 
   return async (input): Promise<ChallengeProofsVerdict> => {
     try {
@@ -205,13 +257,21 @@ export function criarProverDeDesafio(opts: CriarProverDeDesafioOptions = {}): Pr
       // `language` desconhecido LANÇA (fail-closed no registro — nunca o parser
       // errado) e o provador NUNCA lança para o chamador.
       const adapter = opts.adapter ?? adapterDoDesafio(input.language);
+      // Fail-closed: linguagem sem linha em GUARD_POR_REQUIRE LANÇA aqui e o
+      // catch externo a converte em execError — nunca um spawn com a flag da
+      // linguagem errada.
+      const guardPorRequire = exigirPoliticaDeGuard(adapter);
+      const exec = execDe(adapter);
       const env: ProofEnv = {
         exec: async (dir, _args, execOpts): Promise<ExecResult> => {
           // `--require` do exit-guard ANTES dos args de teste do produto — o
           // fluxo do verifyChallengeProofs passa o `testCommand` do adaptador;
           // aqui o modo é re-derivado do input (argsDeTeste) para espelhar o
-          // challengeExec.
-          const args = ['--require', path.join(dir, 'exit-guard.cjs'), ...argsDeTeste(input)];
+          // challengeExec. Sem `--require` na linguagem cujo guard vive no
+          // layout (ver GUARD_POR_REQUIRE).
+          const args = guardPorRequire
+            ? ['--require', path.join(dir, 'exit-guard.cjs'), ...argsDeTeste(input)]
+            : [...argsDeTeste(input)];
           return exec(dir, args, execOpts);
         },
         /**
@@ -240,6 +300,10 @@ export function criarProverDeDesafio(opts: CriarProverDeDesafioOptions = {}): Pr
         }),
         prepare: async (side) => {
           const dir = await prepareIsolatedDir(baseDir, side, adapter);
+          // Nada de `exit-guard.cjs` num diretório de Python: lá o guard já
+          // veio no layout (`tests/__init__.py`), e um `.cjs` solto seria lixo
+          // que ninguém carrega.
+          if (!guardPorRequire) return dir;
           try {
             await escreverGuard(dir);
             return dir;

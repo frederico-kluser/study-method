@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "slug": "trilha-python-nao-medivel",
+  "title": "Trilha Python não mensurável (fixture)",
+  "description": "Trilha-fixture dos testes de coverage: o testsCode do único desafio NÃO parseia como Python. Existe para provar o FAIL-CLOSED — desafio que não pôde ser medido reprova o comando, nunca conta como aprovado.",
+  "language": "pt-BR",
+  "domain": "programming",
+  "programmingLanguage": "python",
+  "runtime": "cpython-3.14",
+  "harnessLanguage": "python",
+  "entryCriteria": [],
+  "modules": [
+    "modulo-1"
+  ]
+}

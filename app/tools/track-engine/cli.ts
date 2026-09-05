@@ -44,10 +44,11 @@ import {
 } from '../../electron/main/engine/budget';
 import type { TrackChallengeSource } from '../../electron/main/content/trackTypes';
 import type { AtomKey } from '../../electron/main/engine/atomKeys';
+import type { MinimalVerdict } from '../../electron/main/engine/quality/minimal';
 import {
-  sintetizarCodigoMinimo,
-  type MinimalVerdict,
-} from '../../electron/main/engine/quality/minimal';
+  exigirSintetizadorMinimo,
+  sintetizarCodigoMinimoDaLinguagem,
+} from '../../electron/main/engine/quality/minimalPorLinguagem';
 import {
   derivarRequirements,
   validarRequirements,
@@ -124,8 +125,16 @@ comandos:
       e compara os atoms desse minimo com o orcamento da aula:
         LACUNA  = o teste cobra construcao que a aula nao oferece
         EXCESSO = a aula ensina construcao que o teste nao cobra
-      Cada desafio roda o prover REAL (spawn node --test) sob o semaforo
-      SEM_EXEC. Exit 1 quando ha LACUNA ou desafio sem solucao acessivel.
+      O sintetizador e o calculo de atoms usam o ADAPTADOR DA LINGUAGEM DA
+      TRILHA (track.programmingLanguage): linguagem sem sintetizador aborta
+      declarando (exit 2), nunca cai em JavaScript por default silencioso.
+      Cada desafio roda o prover REAL (spawn do runner da linguagem) sob o
+      semaforo SEM_EXEC.
+      Exit 1 quando ha LACUNA ou quando ALGUM desafio nao pode ser MEDIDO
+      (sem-solucao, parse-falhou, prover-falhou, ignorado). Desafio nao medido
+      NUNCA conta como aprovado: docs/16-engine-de-trilha.md §9.3 manda a
+      engine falhar FECHADA, e um placar de zeros sobre zero desafio medido e
+      aprovacao por omissao.
       --limite N processa e imprime no maximo N desafios (amostra rapida).
       --dir DIR carrega a trilha de outro diretorio (ex.: content-src).
 
@@ -506,17 +515,23 @@ async function auditarDesafioCoverage(
   prover: ProverDeDesafio,
   release: () => void,
 ): Promise<ResultadoCoverage> {
+  // A LINGUAGEM vem da TRILHA (`budget.adapterId` = `trackAdapterId`, que ja e
+  // fail-closed). Sem ela o sintetizador lia todo teste como JavaScript — e na
+  // unica trilha real do produto (python) isso dava `parse-falhou` nos 21
+  // desafios com placar verde.
+  const language = budget.adapterId;
   const ch = desafio.challenge;
   const orc = orcamentoParaComparacao(budget, desafio.lessonRef);
   try {
     if (ch.files && ch.files.length > 0 && (ch.starterCode === undefined || ch.solutionCode === undefined)) {
       return { ref: desafio.ref, status: 'ignorado', lacuna: [], excesso: [], orcamentoRef: orc.orcamentoRef, detail: 'desafio multi-arquivo (files) — fora do escopo desta onda' };
     }
-    const veredito = await sintetizarCodigoMinimo(prover, {
+    const veredito = await sintetizarCodigoMinimoDaLinguagem(prover, {
       starterCode: ch.starterCode ?? '',
       solutionCode: ch.solutionCode ?? '',
       testsCode: ch.testsCode,
       expectedTestCount: ch.expectedTestCount,
+      language,
     });
     if (!veredito.ok) {
       return { ref: desafio.ref, status: veredito.reason === 'PARSE_FALHOU' ? 'parse-falhou' : veredito.reason === 'PROVER_FALHOU' ? 'prover-falhou' : 'sem-solucao', lacuna: [], excesso: [], orcamentoRef: orc.orcamentoRef, detail: veredito.detail };
@@ -554,6 +569,17 @@ async function cmdCoverage(pos: string[], flags: Record<string, string>, bools: 
   const budget = deriveTrackBudget(track, { mode: modo });
   const desafios = coletarDesafios(track).slice(0, limite);
 
+  // FAIL-CLOSED, ANTES do primeiro spawn: a trilha declara a linguagem e ela
+  // precisa ter sintetizador de codigo minimo ESCRITO. Sem isso o comando
+  // aborta declarando (exit 2, a convencao de `--linguagem`), nunca mede a
+  // trilha com o gerador de outra linguagem.
+  try {
+    exigirSintetizadorMinimo(budget.adapterId);
+  } catch (err) {
+    console.error(`erro: ${err instanceof Error ? err.message : String(err)}`);
+    process.exit(2);
+  }
+
   const prover = criarProverDeDesafio();
   const sem = createExecSemaphore();
   const resultados: ResultadoCoverage[] = await Promise.all(
@@ -573,6 +599,14 @@ async function cmdCoverage(pos: string[], flags: Record<string, string>, bools: 
     lacunas: resultados.reduce((acc, r) => acc + r.lacuna.length, 0),
     excessos: resultados.reduce((acc, r) => acc + r.excesso.length, 0),
   };
+  /**
+   * Desafios que NAO PUDERAM SER MEDIDOS — a soma de tudo que nao e `ok`.
+   * Existe como numero proprio porque ele e a diferenca entre "nenhuma lacuna"
+   * e "nada foi olhado", e ate `main@26dbc19` essa diferenca era invisivel no
+   * placar e no exit code.
+   */
+  const naoMedidos =
+    placar.semSolucao + placar.parseFalhou + placar.proverFalhou + placar.ignorados;
 
   if (bools.has('json')) {
     console.log(
@@ -580,8 +614,9 @@ async function cmdCoverage(pos: string[], flags: Record<string, string>, bools: 
         {
           trilha: slug,
           orcamento: budget.source,
+          linguagem: budget.adapterId,
           desafios: resultados,
-          placar,
+          placar: { ...placar, naoMedidos },
         },
         null,
         2,
@@ -590,7 +625,7 @@ async function cmdCoverage(pos: string[], flags: Record<string, string>, bools: 
   } else {
     console.log('');
     console.log(`TRILHA ${slug} — COBERTURA DO TESTE (código mínimo que passa, zero LLM)`);
-    console.log(`orcamento: ${budget.source}`);
+    console.log(`orcamento: ${budget.source} · linguagem: ${budget.adapterId}`);
     for (const r of resultados) {
       console.log('');
       console.log(`  ${r.ref}`);
@@ -616,12 +651,28 @@ async function cmdCoverage(pos: string[], flags: Record<string, string>, bools: 
     console.log(`  parse-falhou ................. ${placar.parseFalhou}`);
     console.log(`  prover-falhou ................ ${placar.proverFalhou}`);
     console.log(`  ignorados (multi-arquivo) .... ${placar.ignorados}`);
+    console.log(`  NAO MEDIDOS (soma das 4 acima) ${naoMedidos}`);
     console.log(`  lacunas (fora do orcamento) .. ${placar.lacunas}`);
     console.log(`  excessos (aula ensina, teste nao cobra) .. ${placar.excessos}`);
     console.log('');
+    if (naoMedidos > 0) {
+      // O motivo DECLARADO, desafio a desafio: um placar de zeros sobre zero
+      // desafio medido nao e "sem lacuna", e a saida tem de dizer isso.
+      console.log(`REPROVADO — ${naoMedidos} desafio(s) NAO MEDIDO(S) (docs/16 §9.3, falha fechada):`);
+      for (const r of resultados.filter((x) => x.status !== 'ok')) {
+        console.log(`  ${r.status.toUpperCase()} ${r.ref}: ${r.detail ?? '(sem detalhe)'}`);
+      }
+      console.log('');
+    }
   }
 
-  const violou = placar.lacunas > 0 || placar.semSolucao > 0 || placar.proverFalhou > 0;
+  // FAIL-CLOSED (`docs/16-engine-de-trilha.md` §9.3 — "a engine falha fechada.
+  // Indisponibilidade produz erro estruturado, nunca veredito falso nem
+  // aprovacao por omissao"). Ate `main@26dbc19` `parse-falhou` e `ignorado`
+  // NAO entravam no veredito: a trilha `python` inteira saia `parse-falhou` e
+  // o comando saia 0. Desafio que nao pode ser MEDIDO nunca conta como
+  // aprovado — nem como neutro.
+  const violou = placar.lacunas > 0 || naoMedidos > 0;
   process.exit(violou ? 1 : 0);
 }
 
