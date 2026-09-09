@@ -188,6 +188,42 @@ describe('ONDA10 defeito 1 — guarda de FONTE: o JSX do card não vê answerInd
     assert.deepEqual(offenders, [], 'answerIndex fora do onSelect no código do card');
   });
 
+  /* ─── ONDA11-INTEGRAÇÃO: o vazamento que sobreviveu à função pura ────────
+   * MEDIDO no e2e (tests/e2e/e2e-quiz.spec.ts, teste do FAIL-CLOSED), com
+   * `getComputedStyle` no Electron buildado: depois que a geração NOVA de um
+   * quiz substituía a geração respondida DENTRO do mesmo card, as quatro
+   * alternativas voltavam neutras na CLASSE (todas `MuiButton-outlined`,
+   * `disabled=false`, `svg=0`) e MESMO ASSIM a alternativa CERTA computava
+   * `background-color: rgba(0,0,0,0.12)` enquanto as outras três computavam
+   * `rgba(0,0,0,0)`. `el.getAnimations()` deu o motivo: uma transição de
+   * `background-color` ainda RODANDO nela — e só nela.
+   *
+   * A CAUSA É `key={i}`. Com a chave sendo o ÍNDICE, o React reaproveita o
+   * MESMO nó <button> quando a lista muda de quiz: o nó que era a certa da
+   * geração antiga (pintada `contained` + `disabled`, ou seja
+   * `action.disabledBackground` = rgba(0,0,0,0.12)) vira a alternativa 3 da
+   * geração nova, e a `transition: background-color 250ms` do tema anima a
+   * partir da tinta ANTIGA. Por 250ms a resposta da rodada anterior fica
+   * marcada na alternativa certa da rodada nova — que é exatamente o defeito
+   * que `optionVisualState` existe para matar, escapando por baixo dela, no
+   * DOM. (No e2e a janela é oculta e o relógio de animação não avança, então a
+   * transição fica parada e o vazamento vira permanente e mensurável.)
+   *
+   * O conserto é a IDENTIDADE na chave: com `assertion.id` no `key`, o React
+   * MONTA nós novos quando o quiz muda, e não há tinta anterior de onde
+   * transicionar.
+   * ────────────────────────────────────────────────────────────────────── */
+  it('a chave do Button carrega a IDENTIDADE do quiz, não só o índice', () => {
+    assert.ok(
+      !/key=\{i\}/.test(code),
+      'key={i} reaproveita o <button> entre gerações e a tinta do veredito anterior transiciona no nó novo',
+    );
+    assert.ok(
+      /key=\{`\$\{assertion\.id\}/.test(code),
+      'a chave precisa mudar quando o quiz muda — assertion.id é a identidade que injectRemediationQuiz reescreve',
+    );
+  });
+
   it('o card consome optionVisualState (a função pura é o único caminho visual)', () => {
     assert.ok(code.includes('optionVisualState('), 'o card deve chamar optionVisualState');
     for (const prop of ['variant={visual.variant}', 'color={visual.color}', 'disabled={visual.disabled}']) {

@@ -84,6 +84,44 @@ import type {
 import { useChallengeNav, type TrackChallengeNavSelection } from '../../lib/challengeNav';
 import { MarkdownView } from '../../components/markdown';
 
+/** Vereditos TERMINAIS de uma tentativa — o repo é append e a ÚLTIMA linha
+ *  vira o `lastVerdict` que o gate da aula lê. */
+export type ChallengeVerdict = 'passed' | 'failed' | 'timeout' | 'abandoned';
+
+/**
+ * "Este desmonte deve gravar 'abandoned'?" — DECISÃO PURA, extraída do efeito
+ * de abandono para poder ser medida sem montar o React.
+ *
+ * ══════════════════════════════════════════════════════════════════════════
+ * O DEFEITO QUE ELA MATA (medido, não deduzido)
+ * ══════════════════════════════════════════════════════════════════════════
+ * O guard era `marked !== 'failed'`, e o efeito tem `concluded` nas
+ * DEPENDÊNCIAS. Quando o veredito chega (`setConcluded('passed')`) o React roda
+ * o CLEANUP da passada anterior — com o closure ANTIGO, onde `started` é true e
+ * `concluded` ainda é null. O guard só protegia o 'failed', então uma tentativa
+ * 'abandoned' era gravada POR CIMA do 'passed' que tinha acabado de passar.
+ * Como `summarizeAttempts` toma a ÚLTIMA tentativa, `lastVerdict` virava
+ * 'abandoned', `lessonFinishBlock` devolvia 'challenges' e "Concluir aula"
+ * NUNCA habilitava numa aula COM desafio — e, sem conclusão, o cadeado da aula
+ * seguinte nunca abria (é a metade escondida do "bug grave" do dono).
+ * Payload REAL do canal track:lesson logo após passar pela UI, antes do
+ * conserto: [{"slug":"dobro-do-numero","lastVerdict":"abandoned","stars":3}].
+ *
+ * A REGRA CERTA é mais forte e mais simples: só marca abandono se NENHUM
+ * terminal foi marcado para este desafio. Os quatro vereditos são terminais, e
+ * `marked` volta a null exatamente onde um desafio NOVO entra em cena (carga da
+ * spec e regeneração) — então "já tem terminal" nunca vaza de um desafio para o
+ * seguinte.
+ */
+export function shouldMarkAbandon(input: {
+  started: boolean;
+  concluded: string | null;
+  hasSpec: boolean;
+  marked: ChallengeVerdict | string | null;
+}): boolean {
+  return input.started && !input.concluded && input.hasSpec && input.marked === null;
+}
+
 export function TrackChallengePanel({
   selection,
   onNavigate,
@@ -300,9 +338,13 @@ export function TrackChallengePanel({
   // 'abandoned' POR CIMA do 'failed' (o repo é append — a última linha vira o
   // lastVerdict). O guard lê o REF (sempre atual): terminal já marcado → o
   // unmount não sobrescreve.
+  //
+  // ONDA-INTEGRAÇÃO: o guard cobria SÓ o 'failed' e engolia o 'passed' — a
+  // regra inteira, com a medição, está em `shouldMarkAbandon` (topo do
+  // arquivo). Este cleanup não decide mais nada sozinho.
   useEffect(() => {
     return () => {
-      if (started && !concluded && spec && markedRef.current !== 'failed') {
+      if (shouldMarkAbandon({ started, concluded, hasSpec: Boolean(spec), marked: markedRef.current })) {
         const elapsed = startTsRef.current > 0 ? Date.now() - startTsRef.current : 0;
         markAttempt('abandoned', starsLeft, elapsed);
       }

@@ -116,29 +116,92 @@ Escrita como hex explícito por esquema — ver guarda-corpo #5.
 
 | Nível | Uso | Light | Dark |
 |---|---|---|---|
-| 0 | fundo do app | `#faf7f2` | `#12141a` |
-| 1 | cartão / superfície de leitura | `#ffffff` | `#1b1e26` |
-| 2 | painel afundado, well de código | `#f3eee5` | `#232733` |
-| 3 | chrome elevado (rail, dock, menu) | `#e9e2d6` | `#2c313f` |
-| 4 | estado selecionado / hover forte | `#ddd5c6` | `#363c4c` |
+| 0 | fundo do app | `#faf7f2` | `#0e0e0e` |
+| 1 | cartão / superfície de leitura | `#ffffff` | `#1b1b1b` |
+| 2 | painel afundado, well de código | `#f3eee5` | `#272727` |
+| 3 | chrome elevado (rail, dock, menu) | `#e9e2d6` | `#313131` |
+| 4 | estado selecionado / hover forte / **cartão de modal** | `#ddd5c6` | `#3b3b3b` |
 
 Nem `#000` nem `#fff` puros aparecem como fundo de app (nível 0). O branco puro é
 usado **apenas** como cartão de leitura sobre papel morno — o inverso da elevação do
 escuro, que clareia.
 
+> **Onda 11 — a rampa escura é CINZA NEUTRO (R = G = B).** A rampa anterior
+> (`#12141a` … `#363c4c`) tinha o canal B de 8 a 22 pontos acima do R em todos os
+> níveis; no app rodando ela lia como *quase-preto azulado*, e não como o cinza da
+> referência (Nintendo Switch Online, cujo cartão sobre scrim é ~`#3d3d3d`). Agora o
+> único eixo que separa um nível do vizinho é a **luminância** — que é o que
+> "elevação por cor" quer dizer. Passos em L\* (CIE): 3,97 · 9,77 · 15,64 · 20,33 ·
+> 24,87.
+>
+> **Dois níveis não podiam se mexer, e a restrição é medida, não estética:**
+> o **nível 2** é o well de código, e a tabela ANSI de `codeTheme.ts` foi gerada com
+> cada `bright` levado *a* 7:1 contra ele (banda travada em [7 ; 7,25] por
+> `tests/codeTheme.test.ts`) — a janela é `Y ∈ [0,019408 ; 0,020820]`, e `#272727`
+> dá 0,020289; o **nível 4** é a seleção do editor, onde toda cor de código precisa
+> de 4,5:1 — a pior (`syntax.function` `#23b2e7`) impõe o teto `Y ≤ 0,045477`, e
+> `#3b3b3b` dá 0,043735. O que abriu foi a **base**: os dois primeiros degraus
+> passaram de 5,10/4,39 para 5,80/5,87 em L\*, e é justamente o par mais visto do
+> app (fundo × cartão de leitura).
+>
+> **O modal usa o nível 4 no escuro e o nível 1 no claro** (`MuiDialog.paper`, via
+> `theme.applyStyles('dark', …)`). Não é inconsistência: sob polaridade negativa
+> elevação é *luz*, então o objeto mais alto da tela é o mais claro; sob polaridade
+> positiva a rampa *escurece* conforme sobe, e um modal no nível 4 seria um buraco
+> bege mais escuro que a página.
+>
+> **Onda 12 — a regra virou uma FUNÇÃO, `modalSurfaceStyles(theme)`** (exportada de
+> `src/theme.ts`). Nem todo modal desta base é um `<Dialog>`: o overlay do quiz é um
+> `motion.div`, para que o "minimizar" possa animar a saída. Enquanto a regra vivia
+> só dentro do `MuiDialog`, quem não fosse `Dialog` a reescrevia à mão — e o overlay
+> do quiz passou onze ondas no **nível 3 fixo nos dois esquemas**, que no claro
+> entrega `#e9e2d6` sobre uma página `#faf7f2` (Y 0,7657 contra 0,9326): o cartão
+> lia como buraco, não como elevação. Foi a captura mais fraca da prova visual.
+> Quem precisa da superfície de modal **chama a função**; ninguém a redesenha.
+
+#### 3.1.1 Scrim — um valor, um lugar
+
+O escurecimento por trás de um modal é o token **`SCRIM`** (`designTokens.ts`),
+publicado como `palette.scrim` e composto por `color-mix`:
+
+| Token | Valor | Variável CSS |
+|---|---|---|
+| `SCRIM` | `#000000` a **55%** | `--mui-palette-scrim` |
+
+**Preto puro**, e não um azul-escuro: a rampa é cinza neutro desde a onda 11, e um
+scrim com viés de matiz tinge de azul a tela inteira, inclusive as superfícies que
+foram calculadas para serem acromáticas. A opacidade é a única variável, e ela mora
+em **um** lugar — `MuiBackdrop`, o `<Dialog>`, o overlay do quiz e o modal de geração
+de desafio leem todos a mesma variável. A onda 12 chegou a ter **quatro** valores
+divergentes ao mesmo tempo (um `rgba(8, 10, 20, 0.66)` cru e azulado, dois
+`color-mix` de 62% copiados à mão e o token de 55%) porque cada consumidor copiou o
+número do vizinho em vez de ler o token: copiar o valor e herdar o valor não são a
+mesma coisa. Guardado por `tests/quizOverlayWiring.test.ts` e
+`tests/quizOverlayRender.test.ts`.
+
+Custo medido da consolidação em 55%: a separação entre o cartão do modal e o fundo
+escurecido cai de 6,48:1 para **5,00:1** no claro e de 1,82:1 para **1,81:1** no
+escuro. Nenhum piso normativo mora aí — superfície contra superfície não é alvo do
+SC 1.4.11 —, e o que separa o cartão do fundo é a rampa, não o scrim.
+
 ### 3.2 Tinta
 
 | Papel | Light | vs nível 0 | vs nível 1 | Dark | vs nível 0 | vs nível 1 |
 |---|---|---|---|---|---|---|
-| `text.primary` | `#191713` | **16,75:1** | **17,90:1** | `#eceef4` | **15,87:1** | **14,36:1** |
-| `text.secondary` | `#544e45` | **7,70:1** | **8,23:1** | `#a7adbd` | **8,20:1** | **7,42:1** |
+| `text.primary` | `#191713` | **16,75:1** | **17,90:1** | `#f0f0f0` | **16,94:1** | **15,11:1** |
+| `text.secondary` | `#544e45` | **7,70:1** | **8,23:1** | `#adadad` | **8,60:1** | **7,68:1** |
 
 Ambos os papéis passam o piso **AAA de 7:1** ([SC 1.4.6](https://www.w3.org/TR/WCAG22/))
 nos níveis 0 e 1 nos **dois** esquemas.
 
 > **Regra de superfície de leitura:** prosa longa e código só nos níveis **0 e 1**. No
-> nível 4, `text.secondary` cai para 5,64:1 (light) e 4,90:1 (dark) — ainda AA, mas
+> nível 4, `text.secondary` cai para 5,64:1 (light) e 4,99:1 (dark) — ainda AA, mas
 > abaixo de AAA. Níveis 3–4 são **chrome**, não leitura.
+>
+> A tinta escura também foi **neutralizada** na onda 11 (`#eceef4`/`#a7adbd` eram
+> azuladas): tinta com matiz sobre rampa sem matiz é um véu de cor em cima de metade
+> da tela. A secundária ainda **ganhou** folga sobre o piso AAA (7,42 → 7,68 no
+> nível 1), porque o nível 1 escureceu junto.
 
 ### 3.3 Acentos
 
@@ -146,33 +209,65 @@ Cada família tem dois valores por esquema, porque **acento como texto e acento 
 preenchimento são requisitos diferentes** — o erro clássico é usar `primary.main` como
 cor de link e falhar AA.
 
-| Família | Papel | Light `main` (texto, ≥4,5:1 no nível 0) | Light `fill` (com `#fff`) | Dark `main` (texto, ≥4,5:1) | Dark `fill` (com `#12141a`) |
+Os valores abaixo são os que `src/lib/designTokens.ts` carrega hoje, medidos contra o
+**nível 0** de cada esquema (o `text` é calibrado contra o nível **2**, o mais exigente
+dos três em que ele vale — ver a fronteira de nível logo abaixo da tabela).
+
+| Família | Papel | Light `text` | Light `fill` (com `#fff`) | Dark `text` | Dark `fill` (com `#0e0e0e`) |
 |---|---|---|---|---|---|
-| **action** | botão primário, "testar", CTA | `#d5331a` — 4,55:1 | `#de351b` — 4,53:1 | `#e73f25` — 4,50:1 | `#e73f25` — 4,50:1 |
-| **success** | teste passou, verdict ok | `#1e804f` — 4,62:1 | `#1f8653` — 4,57:1 | `#218f58` — 4,50:1 | `#218f58` — 4,50:1 |
-| **info** | link, aula, fonte | `#0d79a0` — 4,61:1 | `#0e7ea7` — 4,60:1 | `#1489b3` — 4,61:1 | `#1489b3` — 4,61:1 |
-| **warn** | atenção, chave faltando | `#9d6607` — 4,53:1 | `#a46a07` — 4,52:1 | `#ae7209` — 4,57:1 | `#ae7209` — 4,57:1 |
-| **study** | matemática, fórmula, KaTeX | `#964dd5` — 4,55:1 | `#9a54d7` — 4,54:1 | `#a45be4` — 4,55:1 | `#a45be4` — 4,55:1 |
+| **action** | botão primário, "testar", CTA | `#be3b27` — 5,11:1 | `#cf402a` — 4,75:1 | `#eb614c` — 5,83:1 | `#d9513c` — 4,77:1 |
+| **success** | teste passou, verdict ok | `#1d7b4c` — 4,93:1 | `#1f8653` — 4,57:1 | `#26a163` — 5,85:1 | `#218f58` — 4,72:1 |
+| **info** | link, aula, fonte | `#0d759b` — 4,87:1 | `#0e7ea7` — 4,60:1 | `#1698c7` — 5,84:1 | `#1489b3` — 4,83:1 |
+| **warn** | atenção, chave faltando | `#966106` — 4,90:1 | `#a46a07` — 4,52:1 | `#c37f0a` — 5,85:1 | `#ae7209` — 4,79:1 |
+| **study** | matemática, fórmula, KaTeX | `#9146d3` — 4,89:1 | `#9a54d7` — 4,54:1 | `#b171e8` — 5,88:1 | `#a45be4` — 4,78:1 |
+| **error** | apagar, exclusão real (carmim, matiz 338) | `#cd2462` — 4,88:1 | `#db306f` — 4,50:1 | `#e55f90` — 5,86:1 | `#e03e79` — 4,72:1 |
+
+**Fronteira de nível do acento-como-texto:** vale nos níveis **0, 1 e 2** (fundo,
+cartão e painel afundado) — `<Link>` dentro de `<Paper>` é caso real nesta base. Nos
+níveis 3–4 (o chrome) o texto é **tinta**; ali o acento só entra como preenchimento,
+ícone ou borda, cujo piso é 3:1.
 
 **Botão primário preenchido:**
-- Light: fundo `#de351b` + texto `#ffffff` = **4,53:1**
-- Dark: fundo `#e73f25` + texto `#12141a` = **4,50:1** — preenchimento vivo com tinta
-  quase-preta. É a leitura mais Nintendo das duas *e* é a que passa (branco sobre
-  `#e73f25` daria só 4,09:1).
+- Light: fundo `#cf402a` + texto `#ffffff` = **4,75:1**
+- Dark: fundo `#d9513c` + texto `#0e0e0e` = **4,77:1** — preenchimento vivo com tinta
+  quase-preta. É a leitura mais Nintendo das duas *e* é a que passa (branco sobre o
+  vermelho daria 4,04:1).
+
+> **Onda 11 — o vermelho da `action` foi suavizado no escuro** (`#e73f25` → `#d9513c`).
+> Pedido do dono: como *preenchimento grande* (a barra de progresso do topo) o valor
+> antigo estava estridente sobre a rampa neutra. Mesma matiz (8°, a da família),
+> saturação de 80% → 67%. A razão contra o `onFill` **subiu** (4,50 → 4,77), e o red
+> flash caiu de 0,698 para 0,606. O `text` da família **não** se mexeu: o cursor do
+> editor (`CODE_DARK.chrome.cursor`) é comparado com ele por matiz, com tolerância de
+> 1°, em `tests/codeTheme.test.ts`.
+>
+> O `onFill` escuro deixou de ser uma hex própria (`#12141a`) e passou a ser o
+> **nível 0 da rampa**: ele é a tinta que vai em cima de todo botão preenchido do
+> escuro, e uma tinta azulada sobre superfícies neutras é a mesma incoerência da
+> tinta de texto.
 
 **Camada não-texto ≥3:1** ([SC 1.4.11](https://www.w3.org/TR/WCAG22/)) — borda de campo,
 ícone informativo, anel de foco:
 
 | | Light (vs nível 0) | Dark (vs níveis 0 e 1) |
 |---|---|---|
-| neutro | `#978e7f` — 3,03:1 | `#726856` — 3,36 / 3,04:1 |
-| action | `#ea6551` — 3,03:1 | `#c52f18` — 3,33 / 3,01:1 |
-| info (anel de foco) | `#109acb` — 3,02:1 | `#0c7196` — 3,35 / 3,03:1 |
+| neutro | `#978e7f` — 3,03:1 | `#7a7a7a` — 4,50 / 4,01:1 |
+| action | `#dd6b5a` — 3,11:1 | `#c9432c` — 3,97 / 3,55:1 |
+| info (anel de foco) | `#109acb` — 3,02:1 | `#0c7196` — 3,51 / 3,13:1 |
 
-Divisores puramente decorativos (`#ddd5c6` claro / `#2c313f` escuro) ficam abaixo de
+> **Onda 11:** o neutro escuro era `#726856` — um cinza **quente** (marrom-oliva)
+> herdado do par claro. Ele é a borda de todo campo de formulário do app, e sobre a
+> rampa neutra lia como sujeira amarelada. Em cinza puro ele ainda ganhou contraste
+> (3,36 → 4,50 no nível 0), que é o que aproxima a borda de campo do contorno claro e
+> nítido da referência.
+
+Divisores puramente decorativos (`#ddd5c6` claro / `#4d4d4d` escuro) ficam abaixo de
 3:1 de propósito — são isentos por "Incidental" quando não são o único meio de
 identificar o componente. **Borda de campo de formulário não é decorativa** e usa a
-camada de 3:1 acima.
+camada de 3:1 acima. O divisor escuro era `#2c313f`, **byte a byte o nível 3 da rampa
+antiga** — a borda de um `<Paper variant="raised">` tinha exatamente a cor do próprio
+papel, ou seja, era uma borda invisível que ocupava layout. O novo valor fica acima do
+topo da rampa e aparece nos cinco níveis.
 
 ### 3.4 O vermelho: por que **não** usamos `#E60012`
 
@@ -185,8 +280,10 @@ O [SC 2.3.1](https://www.w3.org/TR/WCAG22/#three-flashes-or-below-threshold) def
 | Cor | R/(R+G+B) | Veredicto |
 |---|---|---|
 | Vermelho Nintendo `#E60012` | **0,927** | **é red flash** |
-| nosso action light `#de351b` | 0,735 | não é |
-| nosso action dark `#e73f25` | 0,698 | não é |
+| nosso action light `#cf402a` (onda 12) | 0,661 | não é |
+| o action light anterior `#de351b` | 0,735 | não era |
+| nosso action dark `#d9513c` (onda 11) | 0,606 | não é |
+| o action dark anterior `#e73f25` | 0,698 | não era |
 
 Copiar o vermelho da Nintendo colocaria a camada de celebração dentro do gatilho
 regulatório de fotossensibilidade. O vermelho derivado mantém a mesma energia e sai
@@ -201,13 +298,45 @@ ou seja, vale para **todo** o conteúdo da página, mesmo o decorativo.
 ### 4.1 Famílias
 
 Empacotadas via `@fontsource` (arquivos locais). **Não** usar CDN: o renderer roda sob
-CSP e o app precisa funcionar offline.
+CSP (`font-src 'self'`) e o app precisa funcionar offline. Os **três** pacotes são
+variantes VARIÁVEIS, importados pelo `wght.css` — o eixo de peso é o único que o tema
+pilota. Ver `src/fonts.ts` (o carregamento) e `FONT_STACK` em
+`src/lib/designTokens.ts` (o contrato).
 
-| Papel | Fonte | Por quê |
-|---|---|---|
-| Display / títulos | **Nunito** (700/800) | terminais arredondados dão o registro lúdico sem virar fonte de brinquedo |
-| Corpo / UI | **Inter** | desenhada para tela, algarismos tabulares para contadores e verdicts |
-| Código / terminal | **JetBrains Mono** | já está na *stack* do `index.css` atual, só não estava instalada |
+| Papel | Fonte | Pacote | Por quê |
+|---|---|---|---|
+| Display / títulos | **Nunito** (700/800) | `@fontsource-variable/nunito` (`wght` 200–1000) | terminais arredondados dão o registro lúdico sem virar fonte de brinquedo |
+| Corpo / UI | **Inter** | `@fontsource-variable/inter` (`wght` 100–900) | desenhada para tela, algarismos tabulares para contadores e verdicts |
+| Código / terminal | **JetBrains Mono** | `@fontsource-variable/jetbrains-mono` (`wght` 100–800) | já está na *stack* do `index.css` atual, só não estava instalada |
+
+**Não existe um quarto papel.** A onda 1 ("game-foundations") tinha trocado o display
+por **Chakra Petch** e acrescentado um acento **pixel** (Press Start 2P), os dois
+herdados do projeto irmão *leet-code-rpg* — e nunca atualizou esta seção, que ficou
+dez ondas discordando do código. A **onda 11** desfez as duas coisas, a pedido do dono
+("a fonte nao quero retro"): Chakra Petch é uma sem-serifa quadrada de registro
+techno/arcade e Press Start 2P é literalmente uma fonte de pixel; a referência visual
+desta onda (Nintendo Switch Online) é geométrica-humanista, arredondada e limpa. O
+display volta a ser Nunito, agora no pacote **variável**, e por isso a escala de
+títulos volta a poder usar **800** no topo (Chakra Petch era estático e parava em 700,
+o que fazia `h1` e `h6` terem o mesmo peso).
+
+| Nível | Família | Peso | Motivo |
+|---|---|---|---|
+| `h1`–`h3` | display | **800** | títulos de tela — o topo da hierarquia |
+| `h4`–`h6` | display | **700** | títulos dentro de um cartão; o piso é 700 porque abaixo disso o Nunito arredondado deixa de ler como título ao lado do Inter 600 dos subtítulos |
+| corpo, subtítulo, botão, legenda | corpo | 400/600 | a fronteira display/corpo é **semântica**, não de tamanho |
+
+> A variante de tema chamada **`pixel`** sobreviveu à remoção da fonte de pixel: o
+> **nome** é legado (dois componentes a consomem — `SessionFrame` e `CodeBlock`), o
+> **papel** continua sendo rótulo de HUD em uppercase pequeno, e a **voz** passou a
+> ser o display em 700/13px. Renomeá-la para `label` exige tocar nesses dois
+> componentes.
+
+Guardas mecânicas (`tests/bootstrapFonts.test.ts`): nenhuma família retro/pixel pode
+aparecer em `FONT_STACK`, em `src/fonts.ts` ou em `package.json` — as três camadas
+saem juntas, porque foi por elas que a fonte retro entrou —, e nenhuma referência a
+`fonts.googleapis.com`/`fonts.gstatic.com` pode existir no fonte, no `index.html` ou
+no build de `out/`.
 
 ### 4.2 Escala e métricas da coluna de leitura
 

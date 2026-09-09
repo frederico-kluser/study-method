@@ -31,15 +31,13 @@
  *     Começar → resposta certa → Testar resposta → "Passou com") e a aula é
  *     REABERTA pela Trilha (o chat volta do CACHE — mensagens completas, sem
  *     redigitar).
- *   - LIMITAÇÃO DO HARNESS E2E (documentada no fim da spec — ajuste
- *     REGISTRADO do REPLAN): o stub do main NÃO persiste vereditos nem
- *     lessonDone (buildE2ETrackRepo é em memória por chamada — electron/main
- *     está FORA do escopo desta onda), então o galho "HABILITADO" do gating
- *     NÃO é observável em e2e: após passar o desafio, a re-busca de
- *     track.lesson devolve lastVerdict null (mesma aula segue desabilitada) e
- *     a única aula da fixture sem desafios ('Aula E2E seguinte') está LOCKED.
- *     Os dois galhos liberados ("sem desafios" e "todos passed") são cobertos
- *     pelos unit tests de isLessonFinishBlocked (tests/trackLessonState.test.ts).
+ *   - ATUALIZAÇÃO ONDA11-CADEADO: a limitação citada no fim desta spec MUDOU
+ *     de dono. O harness JÁ persiste progresso (store de MÓDULO em
+ *     services/e2eStubs.ts + o canal study:mark-challenge-attempt), e o
+ *     destravamento de aula agora É observável — em tests/e2e/e2e-cadeado.spec.ts.
+ *     O que ainda impede ver o galho "HABILITADO" AQUI é um defeito de
+ *     PRODUÇÃO, não do stub: o TrackChallengePanel grava 'abandoned' por cima
+ *     do 'passed' assim que o veredito chega. Ver o fim do arquivo.
  */
 import { test, expect, type ElectronApplication, type Page } from '@playwright/test';
 import { launchApp, closeApp, makeWorkspaceRoot } from './helpers';
@@ -237,15 +235,26 @@ test('e2e-lesson: trilha → aula em chat (teoria progressiva + fontes + desafio
   await expect(page.getByText('Tutor E2E:', { exact: false })).toHaveCount(2);
   await expect(page.getByText(/tutor digitando|tutor typing/i)).toHaveCount(0);
 
-  // OBSERVAÇÃO (ajuste REGISTRADO do REPLAN — limitação do harness E2E): o
-  // galho "HABILITADO" do gating NÃO é observável em e2e. (1) O stub do main
-  // NÃO persiste vereditos (buildE2ETrackRepo é em memória por chamada —
-  // electron/main está FORA do escopo desta onda), então após passar o
-  // desafio a re-busca de track.lesson devolve lastVerdict null e "Concluir
-  // aula" segue desabilitado na MESMA aula; (2) a única aula da fixture SEM
-  // desafios ('Aula E2E seguinte') está LOCKED (destrava em ordem — aula-1
-  // nunca é marcada done, e markTrackLessonDone também é em memória). Os dois
-  // galhos liberados ("sem desafios" e "todos passed") ficam cobertos pelos
-  // unit tests de isLessonFinishBlocked (tests/trackLessonState.test.ts) — o
-  // botão em si é o mesmo elemento, a condição é a função pura testada.
+  // ─── O DESAFIO PASSADO LIBERA A CONCLUSÃO DA AULA ──────────────────────
+  // ONDA-INTEGRAÇÃO. Este galho era NÃO OBSERVÁVEL por dois motivos em
+  // sequência, os dois já mortos: (1) o harness não persistia progresso
+  // (buildE2ETrackRepo criava os mapas por chamada — consertado na onda 11);
+  // (2) DEFEITO DE PRODUÇÃO no TrackChallengePanel: o cleanup do efeito de
+  // abandono rodava quando `concluded` mudava (null → 'passed') e gravava
+  // 'abandoned' POR CIMA do 'passed', então `lastVerdict` voltava 'abandoned'
+  // e "Concluir aula" NUNCA habilitava numa aula COM desafio — e a aula
+  // seguinte nunca destravava. Medido, payload real do track:lesson depois de
+  // passar pela UI: {"slug":"dobro-do-numero","lastVerdict":"abandoned"}.
+  // Agora o guard é `markedRef.current === null` (nenhum terminal marcado) e
+  // o veredito 'passed' sobrevive: é ISTO que esta asserção mede.
+  await expect(page.getByRole('button', { name: 'Concluir aula' })).toBeEnabled();
+
+  // HISTÓRICO desta asserção, porque ela custou dois consertos: o galho
+  // "HABILITADO" foi invisível por duas causas EM SEQUÊNCIA. (1) o stub não
+  // persistia nada (buildE2ETrackRepo criava os mapas por chamada) — morto na
+  // onda 11, com o contrato travado sem build em tests/e2eTrackProgress.test.ts;
+  // (2) o defeito de produção do TrackChallengePanel descrito acima — morto na
+  // onda de integração (`shouldMarkAbandon`, com teste puro em
+  // tests/cadeadoIntegracao.test.ts). O destravamento de AULA tem a sua própria
+  // spec: tests/e2e/e2e-cadeado.spec.ts (trilha de duas aulas SEM desafio).
 });

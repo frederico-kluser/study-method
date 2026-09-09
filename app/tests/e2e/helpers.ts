@@ -62,9 +62,26 @@ export async function launchApp(opts: LaunchOpts = {}): Promise<{
     ...opts.env,
   };
 
+  // ── PERFIL PRÓPRIO POR LANÇAMENTO (achado da revisão adversarial) ────────
+  // Sem `--user-data-dir` toda spec usa o perfil padrão `~/.config/Electron` e
+  // disputa o single-instance lock de electron/main/index.ts
+  // (`app.requestSingleInstanceLock()` → `app.quit()`). Basta UMA instância viva
+  // desse perfil — inclusive a sobra de um run e2e anterior que não morreu, ou
+  // o app aberto pelo dono na própria máquina — para o main sair com exitCode 0
+  // ANTES de abrir janela, e a suíte inteira morrer em
+  // `electron.launch: Target page, context or browser has been closed`.
+  // O sintoma não se parece com o que é: numa onda anterior duas sub-tarefas
+  // rodando Playwright em paralelo produziram 5 falhas em ~250ms e a leitura
+  // natural foi "o código quebrou".
+  // Perfil próprio remove a disputa por construção. Ele NÃO substitui a regra
+  // de rodar o e2e como singleton de máquina (o `E2E_WORKSPACE_ROOT`, a porta
+  // do inspector e o próprio disco continuam compartilhados) — mas tira do
+  // caminho a causa mais silenciosa.
+  const userDataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'study-method-e2e-profile-'));
+
   const app = await _electron.launch({
     // `--lang=pt-BR` garante navigator.language='pt-BR' independente do host.
-    args: [MAIN_ENTRY, '--disable-gpu', '--lang=pt-BR'],
+    args: [MAIN_ENTRY, '--disable-gpu', '--lang=pt-BR', `--user-data-dir=${userDataDir}`],
     env,
     cwd: opts.cwd ?? APP_ROOT,
   });

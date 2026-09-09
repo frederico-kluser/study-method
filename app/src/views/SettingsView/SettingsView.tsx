@@ -31,7 +31,7 @@ export default function SettingsView(): ReactElement {
               <Typography variant="h6" id="settings-keys-title">
                 {t('translation:settings.keysTitle')}
               </Typography>
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
+              <Typography variant="body2" sx={{ color: 'text.secondary', mb: 1.5 }}>
                 {t('translation:settings.keysDescription')}
               </Typography>
               <KeysPanel />
@@ -43,7 +43,7 @@ export default function SettingsView(): ReactElement {
               <Typography variant="h6" id="settings-localai-title">
                 {t('translation:settings.localAiTitle')}
               </Typography>
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
+              <Typography variant="body2" sx={{ color: 'text.secondary', mb: 1.5 }}>
                 {t('translation:settings.localAiDescription')}
               </Typography>
               <LocalAiPanel />

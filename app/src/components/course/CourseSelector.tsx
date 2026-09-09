@@ -60,7 +60,7 @@ export default function CourseSelector({
         <Typography variant="h6" component="h2" gutterBottom>
           {sectionLabel}
         </Typography>
-        <Typography variant="body2" color="text.secondary">
+        <Typography variant="body2" sx={{ color: 'text.secondary' }}>
           {emptyLabel}
         </Typography>
       </Box>
@@ -94,7 +94,7 @@ export default function CourseSelector({
                     <Typography variant="subtitle1" component="h3" noWrap>
                       {course.label}
                     </Typography>
-                    <Typography variant="body2" color="text.secondary">
+                    <Typography variant="body2" sx={{ color: 'text.secondary' }}>
                       {course.progressLabel ? `Progresso: ${course.progressLabel}` : 'Ainda sem aulas'}
                     </Typography>
                   </Box>

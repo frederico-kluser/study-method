@@ -314,17 +314,23 @@ export const CODE_LIGHT: CodePalette = {
 } as const;
 
 /* ─── ESCURO ──────────────────────────────────────────────────────────────
- * well #232733 · linha atual #2c313f · seleção #363c4c
+ * well #272727 · linha atual #313131 · seleção #3b3b3b
+ * (ONDA 11: a rampa escura virou cinza NEUTRO — R=G=B —, então estes três
+ * níveis deixaram de ser azulados e os nove ratios abaixo foram REMEDIDOS
+ * sobre eles. Dois deles não eram livres: o nível 2 é o well e a banda ANSI de
+ * tests/codeTheme.test.ts só admite Y ∈ [0,019408;0,020820] — #272727 dá
+ * 0,020289; o nível 4 é a seleção, com teto Y ≤ 0,045477 imposto por #23b2e7 a
+ * 4,5:1 — #3b3b3b dá 0,043735.)
  * Mesma varredura na direção oposta (o L mais ESCURO que passa). Ratios:
- *   keyword  #f08a7a  6,12 / 5,33 / 4,52
- *   string   #2dbe75  6,20 / 5,40 / 4,58
- *   function #23b2e7  6,10 / 5,31 / 4,50
- *   number   #e4950c  6,10 / 5,32 / 4,51
- *   type     #c494ee  6,26 / 5,45 / 4,62
- *   constant #eb86b9  6,13 / 5,34 / 4,53
- *   comment  #9ca7b7  6,12 / 5,33 / 4,52
- *   variable #eceef4 12,84 /11,19 / 9,49
- *   operator #a7adbd  6,64 / 5,78 / 4,90
+ *   keyword  #f08a7a  6,13 / 5,34 / 4,60
+ *   string   #2dbe75  6,21 / 5,41 / 4,66
+ *   function #23b2e7  6,11 / 5,32 / 4,58
+ *   number   #e4950c  6,12 / 5,33 / 4,59
+ *   type     #c494ee  6,27 / 5,46 / 4,70
+ *   constant #eb86b9  6,15 / 5,35 / 4,61
+ *   comment  #9ca7b7  6,14 / 5,34 / 4,60
+ *   variable #f0f0f0 13,11 /11,42 / 9,83
+ *   operator #adadad  6,66 / 5,80 / 4,99
  * O vermelho escuro sai salmão (#f08a7a) e não vinho: vermelho tem coeficiente
  * de luminância baixo (0,2126), então alcançar 4,5:1 contra uma superfície
  * média-escura EXIGE clarear. Compare com o #ff5555 do Dracula, que dá só

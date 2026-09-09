@@ -55,6 +55,8 @@ import {
   parseRemedialQuiz,
   recurrenceOf,
   remedialQuizIdFor,
+  requiredAnswerIndexFor,
+  rotateOptions,
 } from '../electron/main/services/quizRemediation';
 import type { ChatFn } from '../electron/main/services/tutorChat';
 import { quizKeyFor, remediationAssertionId } from '../src/lib/trackLessonState';
@@ -683,9 +685,116 @@ describe('quizRemediation: o que a validação ACEITA', () => {
     );
     assert.equal(quiz?.statement, 'com espaço');
     assert.equal(quiz?.question, 'a pergunta nova?');
-    assert.deepEqual(quiz?.options, ['5', 'a conta', 'nada', 'erro']);
     assert.equal(quiz?.feedback, 'o porquê');
-    assert.deepEqual(quiz?.optionRationales, ['a', 'b', 'c', 'd']);
+    // ONDA12: as alternativas chegam limpas E na POSIÇÃO que o produto exige
+    // (`requiredAnswerIndexFor`) — `bomQuiz()` declara answerIndex 0, então a
+    // lista vem ROTACIONADA de 0 para a posição exigida. O que este teste mede
+    // continua sendo o TRIM; a rotação entra porque medir trim contra uma
+    // ordem congelada esconderia a normalização em vez de descrevê-la.
+    const alvo = requiredAnswerIndexFor(remedialReq());
+    assert.deepEqual(quiz?.options, rotateOptions(['5', 'a conta', 'nada', 'erro'], 0, alvo));
+    assert.deepEqual(quiz?.optionRationales, rotateOptions(['a', 'b', 'c', 'd'], 0, alvo));
+    assert.equal(quiz?.answerIndex, alvo);
+    // E o racional continua colado NA alternativa que ele descreve.
+    assert.equal(quiz?.options?.[alvo], '5', 'a correta é a que estava em 0');
+    assert.equal(quiz?.optionRationales?.[alvo], 'a', 'o racional dela viajou junto');
+  });
+});
+
+// ─── 5b. ONDA12: a geração NÃO herda o viés de posição ───────────────────────
+//
+// O defeito: `grep -rho '"answerIndex": *[0-9]*' resources/tracks` devolve 44
+// linhas, todas `0`. O prompt do quiz remedial repetia esse viés — o exemplo
+// JSON trazia `"answerIndex": 0` fixo e nenhuma regra sobre posição.
+
+describe('quizRemediation: a POSIÇÃO da resposta é do produto, não do modelo', () => {
+  it('o prompt exige a posição sorteada e a explica (nada de exemplo fixo em 0)', () => {
+    const req = remedialReq();
+    const alvo = requiredAnswerIndexFor(req);
+    const prompt = buildRemedialPrompt(req);
+    assert.ok(
+      prompt.includes(`"answerIndex": ${alvo},`),
+      'o exemplo JSON usa a posição exigida, não um 0 congelado',
+    );
+    assert.ok(
+      prompt.includes(`TEM DE ficar na posição ${alvo}`),
+      'a regra 3 nomeia a posição exigida',
+    );
+    assert.ok(
+      prompt.includes('A posição da resposta VARIA de quiz para quiz'),
+      'a regra diz POR QUE a posição varia',
+    );
+  });
+
+  it('o exemplo JSON do prompt VARIA de pedido para pedido (não é 0 congelado)', () => {
+    // A forma do defeito ANTES do conserto: o template trazia `"answerIndex":
+    // 0` literal, então TODO pedido mostrava ao modelo o mesmo exemplo — um
+    // few-shot de uma amostra só, apontando para o índice em que as 44
+    // afirmações autoradas já estão. Este teste só usa `buildRemedialPrompt`
+    // de propósito: é o que permite rodá-lo contra o código de HOJE.
+    const exemplos = new Set<string>();
+    for (let g = 1; g <= 20; g++) {
+      const prompt = buildRemedialPrompt(remedialReq({ generation: g }));
+      exemplos.add(/"answerIndex": (\d+),/.exec(prompt)?.[1] ?? 'ausente');
+    }
+    assert.ok(
+      exemplos.size >= 3,
+      `20 pedidos mostraram só ${exemplos.size} exemplo(s) de posição ao modelo: ${[...exemplos].join(', ')}`,
+    );
+  });
+
+  it('a posição exigida VARIA entre gerações e entre afirmações', () => {
+    const posicoes = new Set<number>();
+    for (let g = 1; g <= 40; g++) posicoes.add(requiredAnswerIndexFor(remedialReq({ generation: g })));
+    assert.ok(posicoes.size >= 3, `40 gerações produziram só ${posicoes.size} posições`);
+    // E é DETERMINÍSTICA: o mesmo pedido devolve a mesma posição sempre.
+    for (let i = 0; i < 5; i++) {
+      assert.equal(requiredAnswerIndexFor(remedialReq()), requiredAnswerIndexFor(remedialReq()));
+    }
+  });
+
+  it('as 4 posições aparecem, e sem viés, numa amostra grande de pedidos', () => {
+    const dist = [0, 0, 0, 0];
+    const N = 4000;
+    for (let g = 1; g <= N; g++) {
+      dist[requiredAnswerIndexFor(remedialReq({ generation: g, originAssertionId: `a-${g}` }))] += 1;
+    }
+    for (let pos = 0; pos < 4; pos++) {
+      const pct = (100 * dist[pos]) / N;
+      assert.ok(Math.abs(pct - 25) <= 3, `posição ${pos} ficou em ${pct.toFixed(2)}% (o acaso é 25%)`);
+    }
+  });
+
+  it('um quiz que veio com a resposta em 0 é REORDENADO, nunca recusado', () => {
+    const req = remedialReq();
+    const alvo = requiredAnswerIndexFor(req);
+    const quiz = parseRemedialQuiz(bomQuiz({ answerIndex: 0 }), req);
+    assert.notEqual(quiz, null, 'posição errada NÃO é motivo de reprovação');
+    assert.equal(quiz?.answerIndex, alvo);
+    assert.equal(quiz?.options.length, 4);
+    // Nada foi inventado nem perdido: é a MESMA lista, rotacionada.
+    const originais = bomQuiz().options as string[];
+    assert.deepEqual([...(quiz?.options ?? [])].sort(), [...originais].sort());
+    assert.equal(quiz?.options[alvo], originais[0], 'a correta é a que estava em 0');
+  });
+
+  it('rotateOptions é uma bijeção que preserva a ordem relativa (e é TOTAL)', () => {
+    const base = ['a', 'b', 'c', 'd'];
+    for (let from = 0; from < 4; from++) {
+      for (let to = 0; to < 4; to++) {
+        const out = rotateOptions(base, from, to);
+        assert.equal(out.length, 4);
+        assert.equal(out[to], base[from], `${from}→${to}: o item viajou para o lugar certo`);
+        assert.deepEqual([...out].sort(), [...base].sort(), 'nada some, nada nasce');
+        // ordem relativa preservada: o sucessor circular continua sendo o mesmo.
+        for (let i = 0; i < 4; i++) {
+          assert.equal(out[(out.indexOf(base[i]) + 1) % 4], base[(i + 1) % 4]);
+        }
+      }
+    }
+    assert.deepEqual(rotateOptions([], 0, 0), []);
+    assert.deepEqual(rotateOptions(base, -1, 2), base, 'índice fora de faixa devolve a lista');
+    assert.deepEqual(rotateOptions(base, 0, 9), base, 'índice fora de faixa devolve a lista');
   });
 });
 

@@ -200,6 +200,11 @@
     "quizWrong": "That option parts ways with what the section shows.",
     "quizFeedback": "Why:",
     "quizGateNext": "This section's quiz is still waiting for the right answer. Picking off target opens, in the conversation, an explanation of where that option parts ways with the section — and a new quiz on the same passage.",
+    "quizGateTyping": "Finish reading this section — its quiz shows up in the conversation as soon as the text is done being written. You can click (or press any key) to show it all at once.",
+    "revealGateTyping": "This section is still being written. “Next →” shows all of it at once.",
+    "revealTypingTooltip": "Show the whole section now (does not move on)",
+    "challengeGateFinish": "The theory is over. What is left is this lesson's challenge — it is the next step, and finishing it unlocks the lesson.",
+    "challengeGateQuiz": "The challenge opens once this lesson's quiz has the right answer ({{n}} still missing) — it is the proof the passage was understood.",
     "quizGateFinish": "The lesson wraps up once every quiz has the right answer ({{n}} still open). Picking off target opens, in the conversation, an explanation of where that option parts ways with the section — and a new quiz on the same passage.",
     "quizOverlayTitle": "Show that it landed",
     "quizOverlayAria": "Section quiz, over the screen",
@@ -235,6 +240,8 @@
     "challengesTitle": "Challenges in this lesson",
     "challengesButton": "Challenges",
     "challengesButtonAria": "Lesson challenges ({{pending}} pending)",
+    "challengeStepButton": "Do the challenge",
+    "challengeStepButtonAria": "Do the challenge ({{pending}} pending)",
     "challengesListAria": "Challenges list of this lesson",
     "difficulty": "difficulty {{n}}",
     "generatedBadge": "generated for you",
@@ -691,7 +698,10 @@
     "listFailed": "Could not load the track list.",
     "backButton": "Back",
     "lessonDoneGlowAria": "Completed lesson: {{title}}",
-    "noTracksHint": "Create the first one with the authoring CLI: npm run track -- track:new <slug> --title \"…\" --description \"…\""
+    "noTracksHint": "Create the first one with the authoring CLI: npm run track -- track:new <slug> --title \"…\" --description \"…\"",
+    "justUnlockedBadge": "Just unlocked",
+    "justUnlockedAnnounce": "Lesson unlocked: {{titles}}",
+    "justUnlockedAnnounceMany": "Lessons unlocked: {{titles}}"
   },
   "challengeGen": {
     "title": "Generating new challenge",

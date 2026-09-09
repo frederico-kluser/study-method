@@ -27,6 +27,21 @@
  * tests/lessonQuizVisual.test.ts (inclusive uma guarda de FONTE que reprova o
  * arquivo se `answerIndex` reaparecer no JSX).
  *
+ * ONDA12 — BUG 3 (a resposta vazava pela POSIÇÃO): `answerIndex` é 0 nas 44
+ * afirmações do curso real e nada embaralhava as opções, então a alternativa
+ * CERTA era SEMPRE A PRIMEIRA PÍLULA. As quatro nasciam indistinguíveis por
+ * classe/cor/borda/ícone (ONDA10) e perfeitamente distinguíveis por LUGAR.
+ * Agora as pílulas são desenhadas na ordem de EXIBIÇÃO que
+ * `src/lib/quizOptionOrder.ts` deriva de (chave canônica, geração) — pura,
+ * determinística e estável entre renders. A FRONTEIRA DE ÍNDICES é o que
+ * mantém tudo o mais igual: `optionVisualState` continua recebendo o índice
+ * ORIGINAL, o clique submete o índice ORIGINAL (`onSelect`) e o banco continua
+ * gravando `selectedIndex` original. Só o `aria-label` acompanha a tela — ele
+ * anuncia "Opção N de 4", e um N preso ao índice do JSON reabriria o mesmo
+ * atalho para quem navega por leitor de tela. Coberto por
+ * tests/quizOptionLeak.test.ts (o aluno que clica sempre na primeira pílula
+ * NÃO domina) e tests/quizOptionOrder.test.ts (a distribuição medida).
+ *
  * ONDA10 — BUG 2 (o quiz podia ser ignorado): o quiz deixou de ser reforço e
  * virou GATE — a LessonView bloqueia "Próximo"/"Concluir aula" enquanto houver
  * quiz sem resposta (`pendingQuizzes*` em trackLessonState). Responder ERRADO
@@ -38,7 +53,7 @@
  * depende só da cor; contraste pelos pares calibrados do tema: success.main /
  * error.main sobre background.paper).
  */
-import { Box, Button, Stack, Typography } from '@mui/material';
+import { Box, Button, Stack, Typography, useTheme } from '@mui/material';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import CancelIcon from '@mui/icons-material/Cancel';
 import { useTranslation } from 'react-i18next';
@@ -46,8 +61,9 @@ import { useMemo, type ReactElement } from 'react';
 import { motion } from 'motion/react';
 import { fadeInUp, springs } from '../../lib/animationTokens';
 import type { TrackAssertionDto } from '../../../shared/ipc-contract';
-import { optionVisualState } from '../../lib/trackLessonState';
+import { optionVisualState, quizCycleOf, quizKeyFor } from '../../lib/trackLessonState';
 import type { QuizState } from '../../lib/trackLessonState';
+import { quizOptionOrder } from '../../lib/quizOptionOrder';
 
 export interface LessonQuizCardProps {
   /** A afirmação da aula com o quiz (statement/question/options/answerIndex/feedback). */
@@ -65,8 +81,55 @@ export function LessonQuizCard({ assertion, quiz, onSelect }: LessonQuizCardProp
     () => t as unknown as (key: string, options?: Record<string, string | number>) => string,
     [t],
   );
+  const theme = useTheme();
   const answered = quiz?.answered === true;
   const correct = quiz?.correct === true;
+
+  // ONDA12 (bug 3): a ORDEM DE EXIBIÇÃO das pílulas. A semente é a chave
+  // CANÔNICA do quiz (`quizKeyFor` — a mesma do estado e do gate; para uma
+  // assertion remediadora ela devolve a chave ORIGINAL) mais a GERAÇÃO do
+  // ciclo. Duas propriedades importam aqui e as duas vêm de graça:
+  //   - ESTÁVEL entre renders — o card re-renderiza a cada tick do typewriter
+  //     e a cada turno do tutor; a pílula não pode trocar de texto embaixo do
+  //     dedo do aluno entre o mousedown e o mouseup;
+  //   - DIFERENTE por geração — o quiz remediador e a reabertura de
+  //     `reopenStalledQuiz` (mesma pergunta, geração N+1) recebem ordens
+  //     próprias, então "clicar no mesmo lugar de novo" também não é atalho.
+  const seedKey = quizKeyFor(assertion);
+  const generation = quizCycleOf(quiz).generation;
+  const optionCount = assertion.options.length;
+  const displayOrder = useMemo(
+    () => quizOptionOrder(seedKey, generation, optionCount),
+    [seedKey, generation, optionCount],
+  );
+
+  // CONTORNO DAS PÍLULAS (prova visual desta onda: 1px a 55% de tinta some
+  // contra o cartão; a referência usa contorno cheio e nítido). Sobe para
+  // 1,5px a 72% — sem cor crua, tinta do tema diluída por color-mix, como
+  // manda o contrato de tokens.
+  //
+  // AS CONTAS, recalculadas contra TODAS as superfícies em que este card
+  // aparece (o modal do quiz e o card `dominado` da conversa, que herda
+  // `background.paper`). A tinta composta é `primary × 0,72 + fundo × 0,28`:
+  //   escuro  nível 1 #1b1b1b → #b4b4b4  8,31:1
+  //   escuro  nível 3 #313131 → #bbbbbb  6,78:1
+  //   escuro  nível 4 #3b3b3b → #bdbdbd  5,96:1
+  //   claro   nível 1 #ffffff → #595855  7,11:1
+  //   claro   nível 3 #e9e2d6 → #53504a  6,24:1
+  // O piso é 3:1 (SC 1.4.11, elemento não-textual) e o pior caso fica em
+  // 5,96:1 — quase o DOBRO. Os níveis 3 e 4 estão nas contas de propósito: o
+  // cartão do modal migra para nível 4 no escuro e nível 1 no claro nesta
+  // mesma onda, e um número medido só contra o nível de hoje envelheceria na
+  // integração.
+  //
+  // A regra é `&&` (especificidade 0,4,0) porque o QuizOverlayHost pinta o
+  // mesmo alvo por descendência (0,3,0) — sem o dobro de classe, quem vence
+  // passaria a ser a ORDEM DE INSERÇÃO do emotion, que nenhum teste trava.
+  // E ela vale só para `outlined:not(.Mui-disabled)`: esse é EXATAMENTE o
+  // estado em que as quatro são idênticas. O veredito (`contained`) e as
+  // travadas (`disabled`) continuam com o desenho do tema, que já calibrou o
+  // contraste deles — nenhuma regra daqui olha para o índice da resposta.
+  const pillOutline = `color-mix(in srgb, ${theme.vars.palette.text.primary} 72%, transparent)`;
 
   return (
     <motion.div
@@ -87,30 +150,79 @@ export function LessonQuizCard({ assertion, quiz, onSelect }: LessonQuizCardProp
         }}
       >
         <Stack spacing={1}>
-          <Typography variant="overline" color="text.secondary" sx={{ letterSpacing: 1 }}>
+          <Typography variant="overline" sx={{ color: 'text.secondary', letterSpacing: 1 }}>
             {t('translation:lesson.quizTitle')}
           </Typography>
-          <Typography variant="body2" sx={{ fontWeight: 600 }}>
+          {/* ONDA12 (hierarquia — a prova visual achou DOIS cabeçalhos
+              competindo): a AFIRMAÇÃO vinha em body2 NEGRITO, mais forte que a
+              pergunta logo abaixo, e disputava o papel do título do modal
+              ("Prove que entendeu", peso normal, o único título da
+              referência). Ela cai para body2 em tinta SECUNDÁRIA e peso
+              normal — vira a linha de contexto que é —, e a PERGUNTA sobe
+              para body1 (18px) com peso 500: a voz principal do CORPO, sem
+              virar um segundo cabeçalho (continua na família de TEXTO, no
+              corpo de leitura; título nesta base é display 700).
+              Contraste da secundária, recalculado: escuro #adadad sobre
+              nível 4 #3b3b3b = 4,99:1 e sobre nível 1 #1b1b1b = 7,68:1; claro
+              #544e45 sobre #ffffff = 8,23:1 e sobre #e9e2d6 = 6,39:1. O piso
+              de texto (4,5:1) passa no pior caso, que é o nível 4 do escuro.
+
+              A tinta vai por `sx`, e NÃO pela prop `color`: nesta versão do MUI
+              (@mui/material 9.3) `color="text.secondary"` no Typography é
+              NO-OP — medido no SSR desta base, a classe emitida sai sem
+              `color` nenhum, enquanto `sx={{ color: 'text.secondary' }}`
+              emite `color:var(--mui-palette-text-secondary)`. Com a prop, o
+              rebaixamento não aconteceria e o defeito continuaria na tela
+              com o código "certo" no arquivo. */}
+          <Typography variant="body2" sx={{ color: 'text.secondary' }}>
             {assertion.statement}
           </Typography>
-          <Typography variant="body2">{assertion.question}</Typography>
+          <Typography variant="body1" sx={{ fontWeight: 500 }}>
+            {assertion.question}
+          </Typography>
           <Stack spacing={1}>
-            {assertion.options.map((option, i) => {
+            {/* ONDA12 (bug 3): a iteração é sobre a ORDEM DE EXIBIÇÃO —
+                `original` é o índice no `assertion.options` do JSON e
+                `display` a posição na tela. Tudo que significa "qual
+                alternativa" (estado visual, submit, chave da React) usa
+                `original`; só o número anunciado usa `display`. */}
+            {displayOrder.map((original, display) => {
+              const option = assertion.options[original];
               // ONDA10 (bug 1): TODA a decisão visual vem da função PURA — o
               // JSX não vê `answerIndex`. Antes de responder, `visual` é o
               // MESMO objeto neutro para as 4 opções: nada distingue a certa.
-              const visual = optionVisualState(i, assertion, quiz);
+              const visual = optionVisualState(original, assertion, quiz);
               return (
                 <Button
-                  key={i}
+                  /* ONDA11-INTEGRAÇÃO — a chave carrega a IDENTIDADE do quiz,
+                     não só o índice. Com `key={i}` o React reaproveita o MESMO
+                     nó <button> quando a geração remediadora substitui a
+                     respondida: o nó que era a alternativa CERTA da rodada
+                     anterior (pintada `contained` + `disabled`, ou seja
+                     `action.disabledBackground`) vira a alternativa 3 da rodada
+                     nova, e a `transition: background-color` do tema anima A
+                     PARTIR daquela tinta. Por 250ms a resposta da rodada
+                     anterior fica marcada na certa da rodada nova — o defeito
+                     que `optionVisualState` existe para matar, escapando por
+                     baixo dela, no DOM. Medido no e2e com `getComputedStyle` +
+                     `el.getAnimations()`: só a alternativa certa vinha com
+                     `background-color: rgba(0,0,0,0.12)` e uma transição de
+                     background ainda RODANDO. Com a identidade na chave o React
+                     MONTA nós novos e não há tinta anterior de onde
+                     transicionar. */
+                  key={`${assertion.id}:${original}`}
                   fullWidth
                   variant={visual.variant}
                   color={visual.color}
                   disabled={visual.disabled}
-                  onClick={() => onSelect(i)}
+                  /* O clique submete o índice ORIGINAL: `submitQuizAnswer`, o
+                     veredito e a coluna `selectedIndex` do banco continuam
+                     significando exatamente o que significavam antes desta
+                     onda — a permutação é de TELA, não de dados. */
+                  onClick={() => onSelect(original)}
                   aria-label={tI('lesson.quizOptionAria', {
-                    n: i + 1,
-                    total: assertion.options.length,
+                    n: display + 1,
+                    total: optionCount,
                     option,
                   })}
                   startIcon={
@@ -120,7 +232,15 @@ export function LessonQuizCard({ assertion, quiz, onSelect }: LessonQuizCardProp
                       <CancelIcon />
                     ) : undefined
                   }
-                  sx={{ justifyContent: 'flex-start', textAlign: 'left', textTransform: 'none' }}
+                  sx={{
+                    justifyContent: 'flex-start',
+                    textAlign: 'left',
+                    textTransform: 'none',
+                    '&&.MuiButton-outlined:not(.Mui-disabled)': {
+                      borderWidth: '1.5px',
+                      borderColor: pillOutline,
+                    },
+                  }}
                 >
                   {option}
                 </Button>
@@ -144,7 +264,7 @@ export function LessonQuizCard({ assertion, quiz, onSelect }: LessonQuizCardProp
                   {correct ? t('translation:lesson.quizCorrect') : t('translation:lesson.quizWrong')}
                 </Typography>
                 {!correct && assertion.feedback ? (
-                  <Typography variant="body2" color="text.secondary">
+                  <Typography variant="body2" sx={{ color: 'text.secondary' }}>
                     {t('translation:lesson.quizFeedback')} {assertion.feedback}
                   </Typography>
                 ) : null}

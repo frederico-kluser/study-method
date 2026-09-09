@@ -4,9 +4,12 @@
  * ─── POR QUE ESTE ARQUIVO EXISTE ───────────────────────────────────────────
  * A onda 1 do redesign criou `src/fonts.ts` (as @font-face locais do
  * @fontsource) e `FONT_STACK` em `src/lib/designTokens.ts`, e o tema passou a
- * pedir 'Inter Variable' / 'Nunito Variable' / 'JetBrains Mono Variable'. Só que
- * (ONDA 1 game-foundations: Nunito saiu; hoje são Inter, Chakra Petch, JetBrains
- * Mono e Press Start 2P.)
+ * pedir 'Inter Variable' / 'Nunito Variable' / 'JetBrains Mono Variable'.
+ * (A onda 1 "game-foundations" trocou o display por Chakra Petch e acrescentou
+ * o acento pixel Press Start 2P; a ONDA 11 desfez as duas coisas — "a fonte nao
+ * quero retro", pedido do dono — e o display voltou a ser Nunito, agora no
+ * pacote VARIÁVEL. São três famílias de novo, e o papel `accent` deixou de
+ * existir.)
  * NINGUÉM importava `src/fonts.ts`: `grep -rn "fonts'" src/` devolvia UMA linha,
  * e era o comentário dentro do próprio módulo. Consequência medida no app
  * rodando — largura de canvas da mesma string a 16px:
@@ -46,10 +49,19 @@
  *    redeclaração vinda de CSS de terceiro (o KaTeX traz as próprias faces) fica
  *    visivelmente depois em vez de a resolução mudar sozinha a cada refactor.
  *    É uma CONVENÇÃO travada, não a causa do defeito.
- * 3. `src/fonts.ts` importa os pacotes nos arquivos que o tema pilota: os
- *    VARIÁVEIS (Inter, JetBrains Mono) pelo `wght.css`, os ESTÁTICOS
- *    (Chakra Petch 400/600/700, Press Start 2P 400) pelo arquivo do peso.
- *    → é o eixo que o tema pilota (e não `opsz`/`standard`, nem os itálicos).
+ * 3. `src/fonts.ts` importa os TRÊS pacotes VARIÁVEIS pelo `wght.css` — o eixo
+ *    que o tema pilota (e não `opsz`/`standard`, nem os itálicos).
+ * 3b. NENHUMA família RETRO/PIXEL entra na tipografia (ONDA 11). Este é o
+ *    invariante que trava o pedido do dono, e ele mede TRÊS camadas ao mesmo
+ *    tempo — a stack (`FONT_STACK`), o carregamento (`src/fonts.ts`) e a
+ *    dependência (`package.json`) —, porque foi exatamente assim que a fonte
+ *    retro entrou da primeira vez: um pacote instalado, um import, uma stack.
+ *    Remover só uma das três deixa a fonte no bundle (peso morto) ou deixa a
+ *    stack pedindo uma família que ninguém carrega (fallback silencioso).
+ * 3c. NENHUMA referência a CDN de fonte — nem no fonte, nem no index.html, nem
+ *    no build de `out/`. O `font-src 'self'` da CSP do renderer mata a
+ *    tipografia em produção SEM erro visível se alguém religar a CDN; o app
+ *    também precisa abrir offline. Ver o cabeçalho de `src/fonts.ts`.
  * 4. A família que cada pacote REGISTRA de verdade (lida do .css instalado em
  *    node_modules) é a mesma que abre a stack correspondente de `FONT_STACK`.
  *    Esta é a que pega a troca silenciosa `@fontsource-variable/inter` →
@@ -64,7 +76,7 @@
  */
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { FONT_STACK } from '../src/lib/designTokens';
 
@@ -124,20 +136,13 @@ function firstFamily(stack: string): string {
 
 const FONT_PACKAGES = [
   {
-    // ONDA 1 (game-foundations): display Nunito → Chakra Petch. Pacote
-    // ESTÁTICO (não existe variável no registry): um CSS por peso — o tema
-    // pilota 400/600/700 e a stack abre em 'Chakra Petch'.
+    // ONDA 11: display Chakra Petch → Nunito, de volta ao pacote VARIÁVEL
+    // (eixo wght 200..1000 num arquivo por subset). É a família que a spec
+    // sempre documentou e que a onda 1 tinha trocado sem atualizar a spec.
     role: 'display',
-    pkg: '@fontsource/chakra-petch',
-    entry: '@fontsource/chakra-petch/400.css',
+    pkg: '@fontsource-variable/nunito',
+    entry: '@fontsource-variable/nunito/wght.css',
     stack: FONT_STACK.display,
-  },
-  {
-    // Acento "pixel" RARO — Press Start 2P, peso único (400).
-    role: 'accent',
-    pkg: '@fontsource/press-start-2p',
-    entry: '@fontsource/press-start-2p/400.css',
-    stack: FONT_STACK.accent,
   },
   {
     role: 'body',
@@ -192,18 +197,16 @@ describe('bootstrap de fontes — src/main.tsx importa src/fonts.ts', () => {
   });
 });
 
-describe('src/fonts.ts — os quatro pacotes, nos arquivos que o tema pilota', () => {
+describe('src/fonts.ts — os três pacotes, nos arquivos que o tema pilota', () => {
   for (const { role, entry } of FONT_PACKAGES) {
     it(`importa ${entry} (papel ${role})`, () => {
       assert.ok(
         sideEffectImportIndex(FONTS_CODE, entry) >= 0,
-        `src/fonts.ts precisa importar '${entry}'. Para os pacotes VARIÁVEIS ` +
-          '(Inter/JetBrains Mono) o arquivo `wght.css` é o eixo de PESO, o ' +
-          'único que o tema pilota — `opsz.css`/`standard.css` registram a ' +
-          'mesma família por outro eixo. Para os ESTÁTICOS (Chakra Petch, ' +
-          'Press Start 2P) o import é por PESO (`400.css` etc.). Os ' +
-          '`*-italic.css` dobram o payload sem que nenhum token peça itálico ' +
-          'desenhado.',
+        `src/fonts.ts precisa importar '${entry}'. Os três pacotes são ` +
+          'VARIÁVEIS, e `wght.css` é o eixo de PESO — o único que o tema ' +
+          'pilota; `opsz.css`/`standard.css` registram a mesma família por ' +
+          'outro eixo, e os `*-italic.css` dobram o payload sem que nenhum ' +
+          'token peça itálico desenhado.',
       );
     });
   }
@@ -233,4 +236,152 @@ describe('FONT_STACK abre com a família que o pacote REALMENTE registra', () =>
       );
     });
   }
+});
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * ONDA 11 — "a fonte nao quero retro" (pedido do dono, verbatim)
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+/**
+ * Famílias de registro RETRO/PIXEL/TECHNO. As duas primeiras são as que este
+ * projeto de fato carregou (onda 1, herdadas do irmão leet-code-rpg); as demais
+ * são as vizinhas óbvias do mesmo gênero no catálogo do @fontsource — estão aqui
+ * para que a próxima tentativa de "dar um ar de jogo" à tipografia seja pega
+ * pelo teste, e não pela foto que o dono tira da tela.
+ *
+ * A lista é de NOME, não de arquivo: o que precisa não voltar é a VOZ.
+ */
+const RETRO_FAMILIES = [
+  'Chakra Petch',
+  'Press Start 2P',
+  'VT323',
+  'Silkscreen',
+  'Pixelify Sans',
+  'Orbitron',
+  'Audiowide',
+  'Share Tech',
+  'Monoton',
+] as const;
+
+/** Slug npm da família — o segmento depois da barra num pacote @fontsource. */
+function packageSlug(family: string): string {
+  return family.toLowerCase().replace(/\s+/g, '-');
+}
+
+const PACKAGE_JSON_SOURCE = readFileSync(join(APP_ROOT, 'package.json'), 'utf8');
+
+describe('ONDA 11 — nenhuma família RETRO/PIXEL na tipografia', () => {
+  it('FONT_STACK não pede nenhuma família retro em nenhum papel', () => {
+    // A stack é a camada que o navegador de fato consulta. Uma família retro
+    // aqui pinta a tela mesmo que o pacote tenha sido desinstalado — basta o
+    // usuário tê-la no sistema.
+    for (const [role, stack] of Object.entries(FONT_STACK)) {
+      for (const family of RETRO_FAMILIES) {
+        assert.ok(
+          !stack.toLowerCase().includes(family.toLowerCase()),
+          `FONT_STACK.${role} contém '${family}': "${stack}". O dono pediu, ` +
+            'com estas palavras, "a fonte nao quero retro" — o display é ' +
+            'Nunito Variable (geométrica-humanista, a voz da referência ' +
+            'Nintendo Switch) e não existe mais um papel de acento pixel.',
+        );
+      }
+    }
+  });
+
+  it('src/fonts.ts não CARREGA nenhum pacote de família retro', () => {
+    for (const family of RETRO_FAMILIES) {
+      assert.ok(
+        !FONTS_CODE.includes(packageSlug(family)),
+        `src/fonts.ts ainda importa '${packageSlug(family)}'. Uma @font-face ` +
+          'carregada e não usada é payload morto no bundle do renderer — e é ' +
+          'o rastro que faz a fonte retro voltar no primeiro refactor.',
+      );
+    }
+  });
+
+  it('package.json não DEPENDE de nenhuma família retro', () => {
+    for (const family of RETRO_FAMILIES) {
+      assert.ok(
+        !PACKAGE_JSON_SOURCE.includes(`/${packageSlug(family)}"`),
+        `package.json ainda declara @fontsource*/${packageSlug(family)}. As ` +
+          'três camadas (dependência, import, stack) saem juntas ou a família ' +
+          'volta sozinha.',
+      );
+    }
+  });
+
+  it('o papel `accent` (a stack do Press Start 2P) deixou de existir', () => {
+    // Um quarto papel apontando para a mesma família do display seria só uma
+    // porta aberta: "accent" é onde a fonte pixel morava, e é onde a próxima
+    // moraria. A variante `pixel` do tema (nome legado) usa `display`.
+    assert.ok(
+      !('accent' in FONT_STACK),
+      'FONT_STACK.accent voltou a existir — ver src/lib/designTokens.ts',
+    );
+    assert.deepEqual(Object.keys(FONT_STACK).sort(), ['body', 'display', 'mono']);
+  });
+});
+
+describe('fontes são LOCAIS — nenhuma referência a CDN sobrevive', () => {
+  /** Os dois hosts do Google Fonts, que a CSP `font-src \'self\'` barra. */
+  const CDN_HOSTS = ['fonts.googleapis.com', 'fonts.gstatic.com'];
+
+  it('nenhum fonte de src/ referencia a CDN (comentários à parte)', () => {
+    // O cabeçalho de src/fonts.ts EXPLICA a proibição citando os dois hosts —
+    // por isso o teste lê o código sem comentários. Um grep ingênuo daria
+    // falso-vermelho justamente no arquivo que documenta a regra.
+    const offenders: string[] = [];
+    const walk = (dir: string): void => {
+      for (const entry of readdirSync(dir, { withFileTypes: true })) {
+        const full = join(dir, entry.name);
+        if (entry.isDirectory()) {
+          walk(full);
+        } else if (/\.(ts|tsx|css|html)$/.test(entry.name)) {
+          const code = stripComments(readFileSync(full, 'utf8'));
+          if (CDN_HOSTS.some((host) => code.includes(host))) offenders.push(full);
+        }
+      }
+    };
+    walk(join(APP_ROOT, 'src'));
+    assert.deepEqual(
+      offenders,
+      [],
+      'CDN de fonte no fonte do renderer: a CSP do index.html é ' +
+        "`style-src 'self' 'unsafe-inline'` + `font-src 'self'`, então o " +
+        '<link> seria barrado e a tipografia inteira cairia no fallback ' +
+        'system-ui — SEM erro visível na tela.',
+    );
+  });
+
+  it('index.html não referencia a CDN', () => {
+    const html = readFileSync(join(APP_ROOT, 'index.html'), 'utf8');
+    for (const host of CDN_HOSTS) {
+      assert.ok(!html.includes(host), `index.html referencia ${host}`);
+    }
+  });
+
+  it('o build em out/ não referencia a CDN (quando existe)', () => {
+    // Esta é a camada que prova de verdade: o fonte pode estar limpo e um
+    // plugin/PostCSS ainda emitir o @import da CDN no CSS do bundle. `out/` é
+    // artefato — quando ele não existe, o teste diz isso em vez de passar
+    // calado (um verde por ausência de arquivo é o falso-verde clássico).
+    const outDir = join(APP_ROOT, 'out');
+    if (!existsSync(outDir)) {
+      assert.ok(true, 'out/ ausente — rode `npm run build` para exercer esta camada');
+      return;
+    }
+    const offenders: string[] = [];
+    const walk = (dir: string): void => {
+      for (const entry of readdirSync(dir, { withFileTypes: true })) {
+        const full = join(dir, entry.name);
+        if (entry.isDirectory()) walk(full);
+        else if (/\.(js|css|html)$/.test(entry.name)) {
+          const text = readFileSync(full, 'utf8');
+          if (CDN_HOSTS.some((host) => text.includes(host))) offenders.push(full);
+        }
+      }
+    };
+    walk(outDir);
+    assert.deepEqual(offenders, [], 'a CDN de fonte voltou no build de out/');
+  });
 });

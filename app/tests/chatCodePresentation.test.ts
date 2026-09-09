@@ -240,26 +240,40 @@ describe('guarda 5 — o balão do chat ganhou o traço do resto do app', () => 
     }
   });
 
-  it('o raio da bolha vem de SHAPE, não de um literal "16px 16px 4px 16px"', () => {
+  // ONDA11 — o dono mandou a REFERÊNCIA de chat e ela é CHAPADA (balão cinza
+  // neutro, acento lavado, raio uniforme, zero brilho). As duas guardas abaixo
+  // travavam o traço ANTERIOR — cauda de 8px no raio e sombra colorida nas
+  // fórmulas do tema — e foram reescritas para o traço novo. O que a cor
+  // significa AGORA (e o contraste que ela produz) é medido em
+  // tests/chatBubbleSurface.test.ts, contra o componente renderizado.
+
+  it('o raio da bolha vem de SHAPE e é UNIFORME (a cauda apontava para o avatar que saiu)', () => {
     const surfaces = CODE_FILES.find((f) => f.path === 'src/components/chat/chatSurfaces.tsx');
     assert.ok(surfaces);
     assert.ok(surfaces.code.includes('SHAPE.lg'));
-    assert.ok(surfaces.code.includes('SHAPE.sm'));
     const chat = CODE_FILES.filter((f) => f.path.startsWith('src/components/chat/'));
     for (const file of chat) {
-      assert.equal(file.code.includes("16px 16px 4px 16px"), false, file.path);
+      assert.equal(file.code.includes('16px 16px 4px 16px'), false, file.path);
+      // Um raio com ESPAÇO é raio por canto: a cauda voltando pela porta dos
+      // fundos. O balão da referência tem o mesmo canto nos quatro lados.
+      assert.equal(/borderRadius:\s*`[^`]*\s[^`]*`/.test(file.code), false, file.path);
     }
   });
 
-  it('borda 2px e sombra colorida por color-mix nas fórmulas que o tema já usa', () => {
+  it('o balão é CHAPADO: 2px de borda em todo tom, e nenhuma sombra colorida', () => {
     const surfaces = CODE_FILES.find((f) => f.path === 'src/components/chat/chatSurfaces.tsx');
     assert.ok(surfaces);
+    // A borda continua em TODO tom (só é `transparent` nos tons quietos):
+    // sem ela, a caixa encolheria 4px em cada eixo conforme o turno.
     assert.ok(surfaces.code.includes('2px solid'));
-    // 40% = MuiButton contained · 25% = MuiPaper selected (src/theme.ts).
-    assert.ok(surfaces.code.includes('40%, transparent'));
-    assert.ok(surfaces.code.includes('25%, transparent'));
-    const themeSource = stripComments(readFileSync(resolve(APP, 'src/theme.ts'), 'utf8'));
-    assert.ok(themeSource.includes('40%, transparent'));
-    assert.ok(themeSource.includes('25%, transparent'));
+    assert.ok(surfaces.code.includes("BUBBLE_FLAT_SHADOW = '0 0 0 0 transparent'"));
+    // As fórmulas de sombra colorida do tema (40% = MuiButton contained, 25% =
+    // MuiPaper selected) não podem voltar para o balão: era exatamente o
+    // "brilho roxo" que o dono apontou na bolha de resposta e no card do quiz.
+    const chat = CODE_FILES.filter((f) => f.path.startsWith('src/components/chat/'));
+    for (const file of chat) {
+      assert.equal(file.code.includes('40%, transparent'), false, file.path);
+      assert.equal(file.code.includes('25%, transparent'), false, file.path);
+    }
   });
 });

@@ -251,12 +251,12 @@ export const EditorPane = forwardRef<EditorPaneHandle, EditorPaneProps>(function
           </Alert>
         ) : null}
         {busyPath ? (
-          <Typography variant="body2" color="text.secondary" sx={{ p: 1 }}>
+          <Typography variant="body2" sx={{ color: 'text.secondary', p: 1 }}>
             {`${t('translation:editor.opening')} ${busyPath}…`}
           </Typography>
         ) : null}
         {empty ? (
-          <Typography variant="body2" color="text.secondary" sx={{ p: 1 }}>
+          <Typography variant="body2" sx={{ color: 'text.secondary', p: 1 }}>
             {t('translation:editor.selectFilePrompt')}
           </Typography>
         ) : active ? (

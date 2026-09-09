@@ -111,7 +111,7 @@ function HomeSteps(): ReactElement {
         <Step key={s.titleKey}>
           <StepLabel
             optional={
-              <Typography variant="body2" color="text.secondary">
+              <Typography variant="body2" sx={{ color: 'text.secondary' }}>
                 {t(s.descriptionKey)}
               </Typography>
             }
@@ -168,7 +168,7 @@ function SetupStatusCard({ status }: { status: KeysStatus | null }): ReactElemen
               : t('translation:home.setup.missing')}
           </Typography>
         </Stack>
-        <Typography variant="body2" color="text.secondary">
+        <Typography variant="body2" sx={{ color: 'text.secondary' }}>
           {ready
             ? t('translation:home.setup.readyDescription')
             : t('translation:home.setup.missingDescription')}
@@ -282,7 +282,7 @@ function SubjectCard({
           <Typography variant="subtitle1" noWrap>
             {subject.name}
           </Typography>
-          <Typography variant="body2" color="text.secondary" noWrap>
+          <Typography variant="body2" sx={{ color: 'text.secondary' }} noWrap>
             {progressLabel}
           </Typography>
         </Box>
@@ -432,7 +432,7 @@ function TracksSection({
             <Typography variant="subtitle2" sx={{ fontWeight: 600 }} gutterBottom>
               {t('translation:home.tracksEmptyTitle')}
             </Typography>
-            <Typography variant="body2" color="text.secondary">
+            <Typography variant="body2" sx={{ color: 'text.secondary' }}>
               {t('translation:home.tracksEmptyDescription')}
             </Typography>
           </CardContent>
@@ -446,7 +446,7 @@ function TracksSection({
       <Typography variant="subtitle1" sx={{ fontWeight: 600 }} gutterBottom>
         {t('translation:home.tracksTitle')}
       </Typography>
-      <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
+      <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mb: 1 }}>
         {t('translation:home.tracksDescription')}
       </Typography>
  <Stack spacing={1}>
@@ -463,7 +463,7 @@ function TracksSection({
                   <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
                     {tr.title}
                   </Typography>
-                  <Typography variant="caption" color="text.secondary">
+                  <Typography variant="caption" sx={{ color: 'text.secondary' }}>
                     {tr.description}
                   </Typography>
                 </Box>
@@ -607,7 +607,7 @@ export function HomeView(props: ViewProps): ReactElement {
           <Typography variant="h4" component="h1" gutterBottom>
             {t('translation:home.title')}
           </Typography>
-          <Typography variant="body1" color="text.secondary" sx={{ maxWidth: 640 }}>
+          <Typography variant="body1" sx={{ color: 'text.secondary', maxWidth: 640 }}>
             {t('translation:home.description')}
           </Typography>
         </Box>
@@ -679,7 +679,7 @@ export function HomeView(props: ViewProps): ReactElement {
           {t('translation:home.switchDialog.title')}
         </DialogTitle>
         <DialogContent>
-          <Typography variant="body2" color="text.secondary">
+          <Typography variant="body2" sx={{ color: 'text.secondary' }}>
             {t('translation:home.switchDialog.description')}
           </Typography>
         </DialogContent>

@@ -24,9 +24,12 @@
  *   4. as saídas (Esc, backdrop, botão) MINIMIZAM; nenhuma delas FECHA — fechar
  *      é, por contrato do store, "a afirmação foi dominada", e um Esc que
  *      fechasse seria um gate dispensável com uma tecla;
- *   5. o overlay é o IRMÃO do ChallengeGenerateModal, não um widget com paleta
- *      própria: backdrop, blur e zIndex são byte a byte os mesmos, e nenhum
- *      hex novo entra em `components/quiz/**`;
+ *   5. o overlay é o IRMÃO do ChallengeGenerateModal na GEOMETRIA (blur, zIndex,
+ *      posição byte a byte), mas NÃO na cor: o scrim é o token neutro do tema e
+ *      a superfície do cartão segue a regra do `MuiDialog` (claro 1 · escuro 4,
+ *      `applyStyles('dark')` por último). Nenhuma cor CRUA entra em
+ *      `components/quiz/**` — nem hex, nem `rgb()`/`rgba()`, nem `hsl()` —, e
+ *      nenhum acento `study` volta a pintar coisa nenhuma ali;
  *   6. `alpha()` do MUI (que LANÇA com CSS var — MUI #9) e o ternário sobre
  *      `palette.mode` (que sob `cssVariables` resolve UMA vez e nunca mais
  *      reage ao toggle) continuam fora;
@@ -39,9 +42,14 @@
  *   8. `previous={prev}` chegou ao ChatBubble — sem ele o agrupamento de
  *      mensagens que a onda anterior entregou fica inerte;
  *   9. as LARGURAS batem: o painel de mensagens e a linha de entrada usam a
- *      MESMA coluna, e o painel deixou de ser `action.hover` (o único overlay
- *      alfa fora da rampa `surface.level0..4`);
- *  10. toda chave i18n que os três arquivos citam EXISTE em pt-BR e em en.
+ *      MESMA coluna, e o painel sai da rampa `surface.level0..4` (nunca do
+ *      overlay alfa `action.hover`) — no nível 0, desde que a caixa da conversa
+ *      morreu;
+ *  10. toda chave i18n que os três arquivos citam EXISTE em pt-BR e em en;
+ *  11. o modal só abre por GESTO;
+ *  12. o TECLADO: a devolução de foco tem uma âncora que sobrevive ao desmonte
+ *      do CTA, e nenhum wrapper com gesto de toque deixa parada de Tab
+ *      fantasma.
  */
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
@@ -68,6 +76,9 @@ const CONTENT_SRC = src('src/components/quiz/quizOverlayContent.ts');
 const BRIDGE_SRC = src('src/components/quiz/quizOverlayBridge.ts');
 const VIEW_SRC = src('src/views/LessonView/LessonView.tsx');
 const SIBLING_SRC = src('src/components/challenge/ChallengeGenerateModal.tsx');
+/** O TEMA: é nele que a regra do papel do modal e o token do scrim moram
+ *  agora, e é contra ele que se prova que o host não tem uma cópia. */
+const THEME_SRC = codeOf(src('src/theme.ts'));
 
 const APP = codeOf(APP_SRC);
 const HOST = codeOf(HOST_SRC);
@@ -114,8 +125,14 @@ describe('2 e 3. o host lê o store e anima a saída', () => {
 
   it('o host NUNCA retorna null: o AnimatePresence envolve a condicional', () => {
     assert.ok(HOST.includes('<AnimatePresence>'), 'o retorno é sempre um AnimatePresence');
+    // O RECORTE É O COMPONENTE, não o arquivo. Desde a ONDA12 o módulo também
+    // exporta a função pura `focusReturnTarget`, e ela devolve `null` quando
+    // não há a quem devolver o foco — o que é a resposta CERTA dela. O que não
+    // pode voltar é o `return null` do COMPONENTE, que mataria o `exit`.
+    const componente = HOST.slice(HOST.indexOf('export function QuizOverlayHost'));
+    assert.ok(componente.length > 0, 'o componente continua exportado');
     assert.ok(
-      !/return\s+null\s*;/.test(HOST),
+      !/return\s+null\s*;/.test(componente),
       'com return null o exit do "minimizar" não animaria (o conserto BAIXO-1 do irmão)',
     );
     // A condicional tem de estar DENTRO do AnimatePresence.
@@ -161,9 +178,8 @@ describe('4. as saídas MINIMIZAM — nenhuma delas fecha o ciclo', () => {
 });
 
 describe('5 e 6. o overlay é o irmão do ChallengeGenerateModal (nada inventado)', () => {
-  it('backdrop, blur e zIndex são byte a byte os do irmão', () => {
+  it('blur, zIndex e geometria continuam byte a byte os do irmão', () => {
     for (const valor of [
-      "background: 'rgba(8, 10, 20, 0.66)'",
       "backdropFilter: 'blur(6px)'",
       "WebkitBackdropFilter: 'blur(6px)'",
       'zIndex: 1300',
@@ -175,20 +191,192 @@ describe('5 e 6. o overlay é o irmão do ChallengeGenerateModal (nada inventado
     }
   });
 
-  it('a borda e a sombra usam color-mix sobre a variável do tema, como o irmão', () => {
-    assert.ok(HOST.includes('color-mix(in srgb, ${secondaryMain} 45%, transparent)'));
-    assert.ok(HOST.includes('color-mix(in srgb, ${secondaryMain} 35%, transparent)'));
+  /* ─── ONDA12: O SCRIM É O TOKEN DO TEMA, E OS QUATRO SÃO UM SÓ ──────────
+   * A lista acima INCLUÍA `background: 'rgba(8, 10, 20, 0.66)'`, e era ela
+   * que mantinha uma cor crua no ar com carimbo de teste: "é igual ao irmão"
+   * é uma boa razão para copiar geometria e uma péssima para copiar COR — o
+   * contrato de designTokens.ts diz que superfície e composição saem da rampa
+   * e de `color-mix`, e aquele valor ainda era AZULADO (B 20 contra R 8) numa
+   * rampa que é cinza neutro desde a onda 11.
+   *
+   * O primeiro conserto trocou o literal por um `color-mix` de 62% escrito à
+   * mão, igual ao que o `MuiBackdrop` tinha então. Na MESMA onda o tema
+   * publicou `palette.scrim` (preto puro a 55%) e passou o `MuiBackdrop` a
+   * consumi-lo — e a cópia de 62% virou o QUARTO scrim divergente da base
+   * (Dialog, Backdrop, quiz, desafio). Copiar o VALOR e herdar o valor não são
+   * a mesma coisa; por isso a asserção não pergunta mais "qual porcentagem?",
+   * e sim "leu o token?". Enquanto ela estiver de pé, mudar a opacidade do
+   * scrim é mudar UMA linha em designTokens.ts.
+   * ──────────────────────────────────────────────────────────────────────── */
+  it('o scrim é o TOKEN do tema (palette.scrim), não um valor copiado', () => {
+    assert.ok(
+      HOST.includes('theme.vars.palette.scrim'),
+      'o scrim é lido do tema — o mesmo token que o MuiBackdrop aplica',
+    );
+    assert.ok(
+      !HOST.includes('rgba(8, 10, 20, 0.66)'),
+      'a cor crua azulada saiu do host',
+    );
+    // A guarda que impede a REGRESSÃO por cópia: um color-mix de preto escrito
+    // aqui é, por construção, um segundo valor que ninguém reconcilia. A
+    // SOMBRA do cartão continua sendo um color-mix de preto legítimo (45%), e
+    // é por isso que a proibição é do padrão `<n>%` do scrim, não de black.
+    assert.ok(
+      !/color-mix\(in srgb, \$\{black\} (?:5[0-9]|6[0-9])%/.test(HOST),
+      'nenhuma opacidade de scrim escrita à mão: o número mora no token',
+    );
   });
 
-  it('nenhum hex novo em components/quiz/**', () => {
+  /* O IRMÃO fecha o ciclo: o ChallengeGenerateModal era a FONTE da cópia (o
+   * quiz herdou dele o `rgba(8, 10, 20, 0.66)`). Enquanto ele ficasse no
+   * literal azulado, "os quatro scrims são um só" seria falso — e o cabeçalho
+   * do tema afirma exatamente isso. Um teste que só olhasse o host deixaria a
+   * afirmação do tema sem prova. */
+  it('o irmão (ChallengeGenerateModal) lê o MESMO token — a cópia acabou nos dois lados', () => {
+    // `codeOf` porque o COMENTÁRIO daquele arquivo cita o literal antigo de
+    // propósito (contar o defeito é o estilo desta base); o que não pode
+    // sobreviver é o literal no CÓDIGO.
+    const irmao = codeOf(SIBLING_SRC);
+    assert.ok(
+      irmao.includes('theme.vars.palette.scrim'),
+      'o desafio também consome palette.scrim',
+    );
+    assert.ok(
+      !irmao.includes('rgba(8, 10, 20, 0.66)'),
+      'a última cor crua de modal da base saiu',
+    );
+  });
+
+  // ONDA11 — O CHROME DEIXOU DE SER ROXO. O irmão continua sendo o irmão no
+  // SCRIM (backdrop/blur/zIndex, acima), mas a referência que o dono mandou
+  // para o modal do quiz é um cartão de cinza NEUTRO: sem borda colorida e sem
+  // halo. As duas asserções abaixo medem os dois sentidos — o que saiu e o que
+  // entrou —, porque só "não tem roxo" deixaria passar um cartão sem
+  // superfície nenhuma.
+  it('o cartão NÃO tem borda nem brilho do acento study (a referência é neutra)', () => {
+    assert.ok(
+      !HOST.includes('${secondaryMain}'),
+      'a borda de 2px roxa e o glow roxo eram o que mais destoava da referência',
+    );
+    assert.ok(!/secondaryMain/.test(HOST), 'nem a variável do acento sobrou no host');
+  });
+
+  /* ─── ONDA12: A SUPERFÍCIE DO CARTÃO PASSOU A SEGUIR O `MuiDialog` ──────
+   * A onda 11 fixou o NÍVEL 3 nos dois esquemas, medindo o cinza da
+   * referência (#303030 ≈ #313131) e concluindo o degrau só para o ESCURO. No
+   * CLARO a mesma linha entrega #e9e2d6 — MAIS ESCURO que a página #faf7f2
+   * (Y 0,7657 contra 0,9326) —, e o modal lia como buraco em vez de elevação:
+   * foi a captura mais fraca da prova visual. A regra que o tema já aplica a
+   * todo `MuiDialog` da base resolve os dois de uma vez, e é assimétrica DE
+   * PROPÓSITO: nível 1 no claro (polaridade positiva: elevar é clarear até o
+   * branco), nível 4 no escuro (polaridade negativa: elevação é LUZ). Este
+   * overlay era o ÚNICO modal fora dela.
+   * ──────────────────────────────────────────────────────────────────────── */
+  it('a superfície do cartão é a MESMA FUNÇÃO que o MuiDialog usa (não uma cópia)', () => {
+    // A primeira versão deste conserto reescreveu a regra à mão no host: array
+    // `sx` com o nível 1 e um `applyStyles('dark')` por último. Ela pintava
+    // certo — e era exatamente a forma de erro que a onda estava consertando,
+    // porque foi reescrever à mão que deixou este modal no nível 3 por onze
+    // ondas sem que nada acusasse. O tema publicou `modalSurfaceStyles()` e o
+    // `MuiDialog` a consome; a asserção agora exige a CHAMADA, não o desenho:
+    // enquanto ela estiver de pé, o quiz e o Dialog não podem divergir, porque
+    // não há dois lugares onde o degrau esteja escrito.
+    assert.ok(
+      HOST.includes('modalSurfaceStyles'),
+      'o cartão chama a função do tema — a mesma do MuiDialog',
+    );
+    assert.ok(
+      /import \{ modalSurfaceStyles \} from '\.\.\/\.\.\/theme'/.test(HOST),
+      'e a importa do tema, em vez de manter uma cópia local',
+    );
+    // A prova de que a função é MESMO a do Dialog, e não uma homônima: o tema
+    // tem de aplicá-la nos DOIS lugares. Sem isto, alguém poderia declarar um
+    // `modalSurfaceStyles` local e a asserção acima passaria.
+    assert.ok(
+      /MuiDialog[\s\S]{0,900}modalSurfaceStyles\(t\)/.test(THEME_SRC),
+      'o MuiDialog do tema aplica a MESMA função',
+    );
+    // Os níveis continuam cobrados, mas agora NO TEMA, que é onde passaram a
+    // morar. `surface.level3` segue proibido no host: era o degrau fixo nos
+    // dois esquemas, o defeito original.
+    assert.ok(
+      /modalSurfaceStyles[\s\S]{0,400}surface\.level1[\s\S]{0,200}applyStyles\('dark'[\s\S]{0,200}surface\.level4/.test(
+        THEME_SRC,
+      ),
+      'a função dá nível 1 no claro e nível 4 no escuro, com applyStyles por último',
+    );
+    assert.ok(
+      !HOST.includes('surface.level3'),
+      'o degrau fixo nos dois esquemas era exatamente o defeito',
+    );
+    assert.ok(
+      HOST.includes('color-mix(in srgb, ${black} 45%, transparent)'),
+      'profundidade por preto diluído (color-mix, nunca alpha()) em vez de halo colorido',
+    );
+    assert.ok(HOST.includes('SHAPE.md'), 'o raio ~16px vem do token, não de um número solto');
+    assert.ok(HOST.includes('SHAPE.pill'), 'as alternativas são pílulas (raio stadium)');
+  });
+
+  /* ─── ONDA12: A GUARDA DE COR CRUA ENXERGAVA SÓ HEX ─────────────────────
+   * Esta asserção existia como "nenhum hex novo" e por isso NÃO viu o
+   * `rgba(8, 10, 20, 0.66)` que morava no scrim do host desde a onda 11: a
+   * violação entrou por baixo da própria guarda que deveria pegá-la. O
+   * contrato de designTokens.ts não fala de notação, fala de ORIGEM — cor sai
+   * da rampa/das variáveis do tema, ponto. Então a guarda passa a ver hex,
+   * `rgb()`, `rgba()`, `hsl()` e `hsla()`.
+   * `\b` antes de `rgb` é o que impede o falso positivo em `color-mix(in
+   * srgb, …)`: entre o "s" e o "r" de "srgb" não há fronteira de palavra.
+   * ──────────────────────────────────────────────────────────────────────── */
+  it('nenhuma cor CRUA em components/quiz/** — nem hex, nem rgb()/rgba(), nem hsl()', () => {
+    const CRUA = /#[0-9a-fA-F]{3}(?:[0-9a-fA-F]{3})?\b|\b(?:rgba?|hsla?)\(/g;
     for (const [nome, texto] of [
       ['QuizOverlayHost', HOST],
       ['QuizChatCard', CHAT_CARD],
       ['quizOverlayContent', codeOf(CONTENT_SRC)],
       ['quizOverlayBridge', codeOf(BRIDGE_SRC)],
     ] as const) {
-      const achados = texto.match(/#[0-9a-fA-F]{3}(?:[0-9a-fA-F]{3})?\b/g) ?? [];
-      assert.deepEqual(achados, [], `${nome} inventou hex — o contrato é designTokens.ts`);
+      const achados = texto.match(CRUA) ?? [];
+      assert.deepEqual(achados, [], `${nome} inventou cor crua — o contrato é designTokens.ts`);
+    }
+  });
+
+  /* ─── ONDA12: O ÚLTIMO ROXO DA TELA ─────────────────────────────────────
+   * A varredura do DOM da prova visual achou 7 nós em rgb(164,91,228) — o
+   * `study.fill` do escuro. Um deles era o ícone "QUIZ RÁPIDO" deste card,
+   * pintado com `secondary.main` (o tema aponta o slot `secondary` para a
+   * família `study`). Era o único roxo da tela e brigava com o coral do CTA
+   * logo abaixo.
+   * ──────────────────────────────────────────────────────────────────────── */
+  it('nenhum acento `study`/`secondary` como COR em components/quiz/**', () => {
+    for (const [nome, texto] of [
+      ['QuizOverlayHost', HOST],
+      ['QuizChatCard', CHAT_CARD],
+    ] as const) {
+      assert.ok(
+        !/'secondary\.[a-zA-Z]+'|palette\.secondary|palette\.study/.test(texto),
+        `${nome} ainda pinta com o acento study — era o único roxo da tela`,
+      );
+    }
+  });
+
+  /* ─── ONDA12: RÓTULO DE BOTÃO É TEXTO, E TEXTO TEM PISO DE 4,5:1 ────────
+   * Sem `color`, `text`/`outlined` caem no default `primary`, que o tema
+   * reaponta para `accentText` (src/theme.ts, MuiButton) — calibrado contra
+   * os níveis 0, 1 e 2 e SÓ eles. O cartão deste modal é o nível 4 no escuro:
+   * medido, #eb614c sobre #3b3b3b dá 3,39:1 (e dava 3,93:1 sobre o nível 3 de
+   * antes). Em tinta, 9,83:1.
+   * ──────────────────────────────────────────────────────────────────────── */
+  it('os botões do aviso dentro do modal pintam o rótulo com TINTA', () => {
+    const inicio = HOST.indexOf('content.onRetry ? (');
+    assert.ok(inicio > 0, 'o botão de repetir continua no host');
+    const trecho = HOST.slice(inicio, HOST.indexOf('</Stack>', inicio));
+    const botoes = trecho.split('<Button').slice(1);
+    assert.equal(botoes.length, 2, 'são os dois: "pedir de novo" e "responder de novo"');
+    for (const b of botoes) {
+      assert.ok(
+        /sx=\{\{ color: ink/.test(b),
+        'sem color explícito o rótulo cai no accentText, que não vale do nível 3 para cima',
+      );
     }
   });
 
@@ -268,15 +456,27 @@ describe('8 e 9. o chat: agrupamento ligado e larguras alinhadas', () => {
   });
 
   it('a coluna de leitura tem UM número, com nome', () => {
-    assert.match(VIEW_SRC, /export const CHAT_COLUMN_MAX_PX = 1000;/);
-    assert.ok(VIEW.includes('maxWidth: CHAT_COLUMN_MAX_PX'), 'o painel de mensagens usa a constante');
+    assert.match(VIEW_SRC, /export const CHAT_COLUMN_MAX_PX = \d+;/);
+    assert.ok(
+      VIEW.includes('maxWidth: CHAT_COLUMN_MAX_PX'),
+      'a coluna da aula usa a constante',
+    );
   });
 
   it('a linha de ENTRADA usa a mesma coluna do painel de mensagens', () => {
-    assert.ok(
-      VIEW.includes('<Stack direction="row" spacing={1} sx={CHAT_COLUMN_SX}>'),
-      'o eixo de escrita precisa bater com o de leitura',
+    // ONDA11: o eixo deixou de ser copiado filho a filho (`sx={CHAT_COLUMN_SX}`
+    // na linha de entrada) e passou a ser do CONTAINER RAIZ — a cópia por
+    // filho é justamente o que a regra de espaçamento do <Stack> apagava,
+    // deixando a entrada encostada na esquerda com o painel centrado. Aqui só
+    // fica a guarda de que NINGUÉM redeclara o eixo; a prova completa (o CSS
+    // que o MUI emite, a barra de entrada renderizada) está em
+    // tests/lessonChatLayout.test.ts.
+    assert.equal(
+      (VIEW.match(/maxWidth: CHAT_COLUMN_MAX_PX/g) ?? []).length,
+      1,
+      'o eixo de escrita bate com o de leitura por serem O MESMO container',
     );
+    assert.ok(VIEW.includes('<LessonComposer'), 'a barra de entrada é o componente medido');
   });
 
   it('o painel do chat saiu do overlay alfa e entrou na rampa de superfícies', () => {
@@ -290,9 +490,16 @@ describe('8 e 9. o chat: agrupamento ligado e larguras alinhadas', () => {
       [],
       'action.hover como superfície de repouso é a única fora de surface.level0..4',
     );
+    // ONDA12 — A CAIXA DA CONVERSA MORREU. O painel deixou de ser um retângulo
+    // desenhado (`surface.level2`): com uma bolha só, sobravam ~350px de cinza
+    // vazio, e a referência do dono não desenha caixa nenhuma — as mensagens
+    // ficam direto no fundo da tela. O que esta asserção sempre quis dizer é
+    // "a superfície do painel sai da RAMPA"; o degrau agora é o 0, o fundo do
+    // app. Continua não sendo `transparent` escrito à mão: é um nível da rampa
+    // com nome, e é isso que a guarda mede.
     assert.ok(
-      VIEW.includes('bgcolor: theme.vars.palette.surface.level2'),
-      'o painel afundado é o nível 2 da rampa',
+      VIEW.includes('bgcolor: theme.vars.palette.surface.level0'),
+      'o painel de mensagens é o nível 0 da rampa — o fundo do app, sem caixa',
     );
   });
 });
@@ -363,6 +570,209 @@ describe('10. as chaves i18n citadas existem em pt-BR e em en', () => {
       // O erro descreve ONDE a alternativa se separa do conteúdo — nunca julga
       // o aluno nem manda "tentar de novo".
       assert.ok(!/tente de novo|try again/i.test(errado));
+    }
+  });
+});
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * 11. ONDA11 — O MODAL SÓ ABRE POR GESTO (guarda de FONTE)
+ *
+ * O pedido do dono, literal: *"quero um botão de abrir quiz pro usuário
+ * acionar o modal manualmente"*. `tests/quizOverlayState` e
+ * `tests/quizOverlayCycle` provam o COMPORTAMENTO; esta guarda impede que ele
+ * volte por um caminho lateral — alguém chamar `openQuizOverlay` de dentro do
+ * host (que roda a cada render) ou reintroduzir a intenção 'sobre-a-tela' na
+ * função pura.
+ * ═══════════════════════════════════════════════════════════════════════════ */
+describe('11. o overlay não se abre sozinho por nenhum caminho', () => {
+  const STATE = codeOf(src('src/lib/quizOverlayState.ts'));
+
+  it('quizOverlayIntent não devolve a tela para passo NENHUM do ciclo', () => {
+    const corpo = STATE.slice(STATE.indexOf('export function quizOverlayIntent'));
+    const fim = corpo.indexOf('export function applyQuizOverlayStep');
+    assert.ok(fim > 0, 'as duas funções continuam no arquivo');
+    assert.ok(
+      !corpo.slice(0, fim).includes("'sobre-a-tela'"),
+      "um passo do ciclo voltou a pedir 'sobre-a-tela' — é assim que o modal subia sozinho",
+    );
+  });
+
+  it('applyQuizOverlayStep não chama openQuizOverlay', () => {
+    const corpo = STATE.slice(STATE.indexOf('export function applyQuizOverlayStep'));
+    assert.ok(
+      !corpo.includes('openQuizOverlay('),
+      'aplicar um passo do ciclo é ESTACIONAR o quiz na conversa, nunca subi-lo',
+    );
+  });
+
+  it('o HOST não abre a si mesmo (ele nem conhece a transição)', () => {
+    assert.ok(
+      !HOST.includes('openQuizOverlay'),
+      'o host renderiza a fase; quem a muda para "sobre-a-tela" é o gesto na view',
+    );
+  });
+
+  it('quem abre é a view, a partir do clique do card', () => {
+    assert.ok(VIEW.includes('reopenQuizOverlay('), 'o botão do card reabre o que estava minimizado');
+    assert.ok(VIEW.includes('openQuizOverlay('), 'e abre o que ainda não estava no store');
+    // O gesto tem UM dono: o handler do clique. Se `openQuizOverlay` aparecer
+    // dentro do EFEITO que segue o ciclo (ele reexecuta a cada mudança do
+    // chat), o modal volta a subir sozinho. O recorte é o efeito inteiro —
+    // do `useEffect(` que o abre ao `useEffect(` seguinte —, e não uma lista
+    // de dependências literal, que envelheceria a cada refator da view.
+    const passo = VIEW.indexOf('applyQuizOverlayStep(');
+    assert.ok(passo > 0, 'a view continua aplicando o passo do ciclo ao overlay');
+    const inicio = VIEW.lastIndexOf('useEffect(', passo);
+    const seguinte = VIEW.indexOf('useEffect(', passo);
+    const fim = seguinte === -1 ? VIEW.length : seguinte;
+    assert.ok(inicio > 0 && fim > passo, 'o passo do ciclo é aplicado DENTRO de um efeito');
+    assert.ok(
+      !VIEW.slice(inicio, fim).includes('openQuizOverlay('),
+      'o efeito do ciclo não pode abrir o modal — só o clique pode',
+    );
+  });
+
+  it('o card da conversa oferece o botão, com nome acessível próprio', () => {
+    assert.ok(CHAT_CARD.includes("variant=\"contained\""), 'o convite é a ação primária do card');
+    assert.ok(CHAT_CARD.includes('aria-label={`${t('), 'o nome acessível carrega a pergunta');
+    assert.ok(
+      !CHAT_CARD.includes('bubbleShellStyle'),
+      'o convite deixou de ser um balão de fala (borda 2px roxa + sombra colorida)',
+    );
+  });
+
+  /* ─── O OUTRO LADO DA MESMA REGRA (ONDA11-INTEGRAÇÃO) ────────────────────
+   * "Só o gesto abre" tem um par obrigatório: TODO gesto de responder ABRE.
+   * O defeito medido na integração das quatro entregas: "Responder esta
+   * pergunta de novo" (`handleQuizReopenGeneration`, a saída do ciclo travado
+   * da ONDA4) é um clique do ALUNO, e ele terminava só em `setChat`. Como a
+   * geração nova é OUTRA geração, o guard de `applyQuizOverlayStep` — que
+   * protege apenas o MESMO quiz/geração já sobre a tela — não a segurava: o
+   * efeito do ciclo empurrava o card recém-criado para 'minimizado-no-chat' e
+   * o modal SUMIA na cara de quem acabara de clicar num botão escrito
+   * "Responder". `tests/e2e/e2e-quiz.spec.ts` (teste 5, bloco a) já exigia o
+   * contrário: `await reabrir.click()` seguido de `expect(dialog).toBeVisible()`.
+   * ────────────────────────────────────────────────────────────────────── */
+  it('"Responder esta pergunta de novo" TAMBÉM é gesto: o handler abre o modal', () => {
+    const inicio = VIEW.indexOf('const handleQuizReopenGeneration');
+    assert.ok(inicio > 0, 'a saída do ciclo travado continua na view');
+    // Recorte até a PRÓXIMA declaração de topo do componente (`\n  const `),
+    // que é onde o handler termina — nada de contar chaves.
+    const rel = VIEW.slice(inicio + 1).search(/\n {2}const /);
+    const corpo = rel === -1 ? VIEW.slice(inicio) : VIEW.slice(inicio, inicio + 1 + rel);
+    assert.ok(corpo.includes('reopenStalledQuiz('), 'o recorte é mesmo o corpo do handler');
+    assert.ok(
+      corpo.includes('openQuizOverlay('),
+      'o clique em "Responder esta pergunta de novo" precisa SUBIR a geração nova — ' +
+        'sem isso o efeito do ciclo a estaciona na conversa e o modal some no clique',
+    );
+  });
+});
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * 12. ONDA12 — O FOCO VOLTA DE VERDADE, E O TAB NÃO GANHA PARADA FANTASMA
+ *
+ * Os dois itens abaixo guardam defeitos que NÃO aparecem em nenhuma captura de
+ * tela e que só o teclado sente.
+ * ═══════════════════════════════════════════════════════════════════════════ */
+describe('12. teclado: devolução de foco e paradas de Tab', () => {
+  // ONDA 13 — ESTE TESTE FOI REESCRITO PORQUE ELE PASSAVA COM A FEATURE MORTA.
+  //
+  // O que ele fazia: `HOST.includes('focusReturnTarget(')` e
+  // `HOST.includes('QUIZ_CARD_ANCHOR_SELECTOR')` — duas buscas de SUBSTRING no
+  // fonte. Duas revisões adversariais mediram, no Electron rodando, o foco
+  // caindo no `<body>` ao sair do modal ENQUANTO este teste estava verde, e o
+  // padrão é o mesmo que esta onda já reprovou três vezes: exigir que a STRING
+  // exista sem verificar que ela é APLICADA no momento certo.
+  //
+  // A causa raiz que a substring não podia ver: o host resolvia a âncora na
+  // ABERTURA, com `document.activeElement.closest(...)` — e naquele instante o
+  // CTA já tinha sido desmontado pelo mesmo commit que ligou o modal, então
+  // `activeElement` era o `<body>`, `closest` devolvia null, e o `<body>` (que
+  // é `instanceof HTMLElement` e está sempre `isConnected`) passava como
+  // "abridor válido" para um `focus()` que é no-op.
+  //
+  // O que este teste passa a travar é a INVERSÃO que consertou isso — as duas
+  // propriedades estruturais que a substring não distinguia:
+  //   1. a âncora é resolvida no FECHAMENTO, no documento vivo (`querySelector`
+  //      dentro do ramo `!showing`), não gravada como nó na abertura;
+  //   2. o `<body>` é recusado explicitamente como abridor.
+  // A prova de que o foco CHEGA ao card é e2e (tests/e2e/e2e-quiz.spec.ts) —
+  // aqui não há DOM, e fingir que há foi exatamente o erro anterior.
+  it('a devolução de foco resolve a âncora no FECHAMENTO, e recusa o <body>', () => {
+    // O ramo de saída do efeito: entre `if (!showing) {` e o `return;` dele.
+    const saida = /if \(!showing\) \{([\s\S]*?)\n      return;/.exec(HOST);
+    assert.ok(saida !== null, 'o efeito precisa ter o ramo de saída (!showing)');
+    assert.match(
+      saida[1]!,
+      /document\.querySelector/,
+      'a âncora tem de ser procurada no documento VIVO no fechamento: ' +
+        'gravada na abertura ela ainda não existe (o card só renasce ao minimizar)',
+    );
+    assert.match(saida[1]!, /focusReturnTarget\(/, 'a escolha do alvo é a função pura');
+
+    assert.match(
+      HOST,
+      /!==\s*document\.body/,
+      'o <body> precisa ser recusado como abridor: ele é instanceof HTMLElement e ' +
+        'sempre isConnected, então passava como alvo válido para um focus() no-op',
+    );
+    assert.ok(
+      !/if \(opener !== null && opener\.isConnected\) opener\.focus\(\);/.test(HOST),
+      'a devolução de foco de uma perna só era a que nunca disparava',
+    );
+  });
+
+  it('o nome do atributo da âncora tem UMA fonte (o card e o host não podem divergir)', () => {
+    const CONTENT_CODE = codeOf(CONTENT_SRC);
+    assert.match(
+      CONTENT_CODE,
+      /export const QUIZ_CARD_ANCHOR_ATTR = 'data-quiz-chat-card';/,
+      'a constante mora no módulo que os dois já importam',
+    );
+    assert.ok(
+      CHAT_CARD.includes('QUIZ_CARD_ANCHOR_ATTR'),
+      'quem ESCREVE o atributo usa a constante, nunca uma string literal própria',
+    );
+    assert.ok(
+      HOST.includes('quizCardAnchorSelector('),
+      'quem PROCURA o atributo usa o seletor derivado da mesma constante',
+    );
+    // ONDA 13: e o VALOR do atributo é a chave do quiz, não um literal. Com o
+    // valor fixo `"true"` só existia o seletor genérico, e o host devolvia o
+    // foco ao PRIMEIRO card do documento — que não é necessariamente o que o
+    // aluno fechou (uma seção pode ancorar duas afirmações).
+    assert.ok(
+      !/QUIZ_CARD_ANCHOR_ATTR\]: 'true'/.test(CHAT_CARD),
+      'a âncora voltou a ser um valor fixo: a devolução de foco deixa de ser endereçada',
+    );
+    assert.match(
+      CHAT_CARD,
+      /QUIZ_CARD_ANCHOR_ATTR\]: quizKey/,
+      'o valor da âncora é a chave canônica do quiz',
+    );
+  });
+
+  it('todo wrapper com gesto de toque neutraliza a parada de Tab que o motion cria', () => {
+    // `motion` marca `tabIndex=0` em quem tem gesto de tap
+    // (framer-motion/dist/es/render/html/use-props.mjs: `if (props.tabIndex ===
+    // undefined && (props.onTap || props.onTapStart || props.whileTap))`). Numa
+    // casca que só anima, isso é uma parada de Tab EXTRA na frente do próprio
+    // botão — o teclado para duas vezes no mesmo controle.
+    for (const [nome, texto] of [
+      ['QuizOverlayHost', HOST],
+      ['QuizChatCard', CHAT_CARD],
+    ] as const) {
+      const elementos = texto.split('<motion.').slice(1);
+      for (const el of elementos) {
+        // O corpo da TAG de abertura: até o primeiro `>` que fecha a linha.
+        const abertura = el.split(/>\s*\n/)[0];
+        if (!/whileTap|onTap/.test(abertura)) continue;
+        assert.ok(
+          abertura.includes('tabIndex={-1}'),
+          `${nome}: um <motion.*> com gesto de toque sem tabIndex={-1} — parada de Tab fantasma`,
+        );
+      }
     }
   });
 });

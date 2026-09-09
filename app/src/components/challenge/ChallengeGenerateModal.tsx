@@ -171,8 +171,15 @@ export function ChallengeGenerateModal(): ReactElement {
             alignItems: 'center',
             justifyContent: 'center',
             padding: 16,
-            // Backdrop escuro com blur (estilo do leet-code-rpg).
-            background: 'rgba(8, 10, 20, 0.66)',
+            // Backdrop escuro com blur. ONDA 12: era `rgba(8, 10, 20, 0.66)`,
+            // cor CRUA (proibida pelo contrato de designTokens.ts) e AZULADA —
+            // B 20 contra R 8 — o que tingia de azul a tela inteira de um app
+            // cuja rampa é cinza neutro desde a onda 11. Este modal era a
+            // FONTE da cópia: o overlay do quiz herdou dele o mesmo literal.
+            // Agora os dois leem o MESMO token (`palette.scrim`, preto puro a
+            // 55%), que é também o que o `MuiBackdrop` do tema aplica — um
+            // valor, um lugar, os quatro scrims da base idênticos.
+            background: theme.vars.palette.scrim,
             backdropFilter: 'blur(6px)',
             WebkitBackdropFilter: 'blur(6px)',
           }}
@@ -338,7 +345,7 @@ export function ChallengeGenerateModal(): ReactElement {
               {error ? (
                 <Stack direction="row" spacing={1} sx={{ mt: 2.5, alignItems: 'center' }}>
                   <ErrorIcon fontSize="small" sx={{ color: 'error.main', flexShrink: 0 }} />
-                  <Typography variant="body2" color="error.main" sx={{ flexGrow: 1 }}>
+                  <Typography variant="body2" sx={{ color: 'error.main', flexGrow: 1 }}>
                     {state.errorMessage || t('translation:challengeGen.errorGeneric')}
                   </Typography>
                   <Button size="small" variant="outlined" color="secondary" onClick={resetChallengeGenerate}>

@@ -571,35 +571,142 @@ async function writeFixtureTrack(): Promise<void> {
   await fsp.writeFile(path.join(moduleDir, 'challenges', 'desafio-do-modulo', 'challenge.json'), JSON.stringify(desafioDoModulo, null, 2), 'utf8');
 }
 
-/** Repo fake em memória (TrackRepoLike) — progresso determinístico do E2E. */
+// ─── PROGRESSO DA TRILHA no modo E2E (onda11-cadeado) ────────────────────────
+// O progresso do aluno é um store EM MEMÓRIA DE MÓDULO, pelo mesmo motivo que
+// o quiz já usa um (ver o comentário de `e2eQuiz` mais abaixo): ele precisa
+// sobreviver ENTRE invocações de canal dentro da mesma execução do app.
+//
+// O DEFEITO QUE ISTO MATA: `buildE2ETrackRepo()` criava `done`/`attempts`/
+// `prof`/`generated` LOCAIS e cada handler o chamava DE NOVO — o Set em que
+// `markTrackLessonDone` escrevia era descartado no mesmo tick, e a leitura
+// seguinte (`track:get`) nascia vazia. Em modo E2E o progresso NUNCA persistia:
+// nenhuma spec conseguia observar "concluí a aula 1 → a aula 2 destrava", que é
+// justamente o bug do cadeado que o dono relatou. O e2e-lesson.spec.ts chegou a
+// DOCUMENTAR essa cegueira como "limitação do harness".
+//
+// ISOLAMENTO ENTRE SPECS: cada teste sobe um PROCESSO Electron novo
+// (`launchApp` por teste, `closeApp` no afterEach), então o módulo é carregado
+// do zero e o store nasce vazio — não existe vazamento entre specs e não há
+// reset a ligar. O que ele preserva de propósito é o `page.reload()` dentro de
+// um MESMO teste (o renderer reinicia, o main não): é assim que o progresso do
+// aluno se comporta no produto.
+//
+// A CHAVE É O trackSlug: a versão antiga devolvia todo o progresso etiquetado
+// como 'nodejs-do-zero', o que era inofensivo com estado por chamada (sempre
+// vazio) e viraria VAZAMENTO com estado persistente — a trilha do quiz
+// (`quiz-e2e`, escrita por tests/e2e/quizFixture.ts) leria o progresso da
+// trilha vizinha.
+interface E2ETrackProgress {
+  done: Set<string>;
+  prof: { verdict: 'passed' | 'failed'; stars: number } | null;
+}
+
+const e2eTrackProgress = new Map<string, E2ETrackProgress>();
+/** Tentativas de desafio por challengeId (o store que `track:get` lê). */
+const e2eAttempts = new Map<
+  string,
+  Array<{ verdict: 'passed' | 'failed' | 'timeout' | 'abandoned'; stars: number; durationMs: number; lessonId: string }>
+>();
+/** Desafios gerados (nenhum, no E2E — a regeneração está desativada). */
+const e2eGenerated: Array<Record<string, unknown>> = [];
+
+function trackProgressOf(trackSlug: string): E2ETrackProgress {
+  const key = trackSlug || '(sem trilha)';
+  let cur = e2eTrackProgress.get(key);
+  if (!cur) {
+    cur = { done: new Set<string>(), prof: null };
+    e2eTrackProgress.set(key, cur);
+  }
+  return cur;
+}
+
+/** Repo fake (TrackRepoLike) sobre o store de MÓDULO — progresso determinístico. */
 function buildE2ETrackRepo(): TrackRepoLike {
-  const attempts = new Map<string, Array<{ verdict: string; stars: number }>>();
-  const done = new Set<string>();
-  let prof: { verdict: 'passed' | 'failed'; stars: number } | null = null;
-  const generated: Array<Record<string, unknown>> = [];
   return {
-    listTrackLessonProgress: async () =>
-      Array.from(done).map((lessonId) => ({ trackSlug: 'nodejs-do-zero', lessonId, completedAt: 'e2e' })),
-    getTrackProficiency: async () =>
-      prof ? { trackSlug: 'nodejs-do-zero', verdict: prof.verdict, stars: prof.stars, passedAt: 'e2e' } : null,
-    listGeneratedChallenges: async () => generated as never,
+    listTrackLessonProgress: async (trackSlug: string) =>
+      Array.from(trackProgressOf(trackSlug).done).map((lessonId) => ({
+        trackSlug,
+        lessonId,
+        completedAt: 'e2e',
+      })),
+    getTrackProficiency: async (trackSlug: string) => {
+      const prof = trackProgressOf(trackSlug).prof;
+      return prof ? { trackSlug, verdict: prof.verdict, stars: prof.stars, passedAt: 'e2e' } : null;
+    },
+    listGeneratedChallenges: async () => e2eGenerated as never,
     getAttemptsForChallenge: async (id: string) =>
-      (attempts.get(id) ?? []).map((a, i) => ({
+      (e2eAttempts.get(id) ?? []).map((a, i) => ({
         id: `${id}#${i}`,
         subjectId: 'e2e-subject',
-        lessonId: 'lesson:aula-1',
+        lessonId: a.lessonId,
         challengeId: id,
-        verdict: a.verdict as 'passed' | 'failed' | 'timeout' | 'abandoned',
+        verdict: a.verdict,
         stars: a.stars,
-        durationMs: 0,
+        durationMs: a.durationMs,
         createdAt: String(i),
       })),
-    markTrackLessonDone: async (_t, lessonId) => void done.add(lessonId),
-    setTrackProficiency: async (_t, v, s) => void (prof = { verdict: v, stars: s }),
-    insertGeneratedChallenge: async (input) => void generated.push(input as never),
+    markTrackLessonDone: async (trackSlug, lessonId) => void trackProgressOf(trackSlug).done.add(lessonId),
+    setTrackProficiency: async (trackSlug, v, s) =>
+      void (trackProgressOf(trackSlug).prof = { verdict: v, stars: s }),
+    insertGeneratedChallenge: async (input) => void e2eGenerated.push(input as never),
     listFailedChallengeSlugs: async () => [],
   };
 }
+
+/**
+ * `study:mark-challenge-attempt` no modo E2E (onda11-cadeado).
+ *
+ * QUEM grava uma tentativa é o RENDERER (TrackChallengePanel.markAttempt →
+ * `study.markChallengeAttempt`), nunca o submit do desafio — nem em produção.
+ * No modo E2E `buildStudyHandlers` é montado SEM repo (não há SQL), então o
+ * canal respondia `{ok:false, error:'persistência indisponível'}` e o veredito
+ * evaporava: `getAttemptsForChallenge` devolvia sempre vazio, `lastVerdict`
+ * ficava null para sempre e "Concluir aula" JAMAIS habilitava numa aula com
+ * desafio. Sem isto, o fluxo inteiro do cadeado (fazer a aula 1 → concluir →
+ * destravar a aula 2) continua inobservável mesmo com o store de módulo.
+ *
+ * O que é falsificado é só a BORDA (a linha de `challenge_attempts`); o caminho
+ * do renderer — quando marcar, com que veredito, com quantas estrelas — é o de
+ * produção, porque é o renderer de produção que chama este canal.
+ */
+const e2eMarkChallengeAttempt: IpcHandlerFn = async (_e, payload: unknown) => {
+  const p = (payload ?? {}) as {
+    challengeId?: string;
+    lessonId?: string;
+    subjectSlug?: string;
+    verdict?: 'passed' | 'failed' | 'timeout' | 'abandoned';
+    stars?: number;
+    durationMs?: number;
+  };
+  const challengeId = typeof p.challengeId === 'string' ? p.challengeId.trim() : '';
+  const verdict = p.verdict;
+  if (!challengeId || (verdict !== 'passed' && verdict !== 'failed' && verdict !== 'timeout' && verdict !== 'abandoned')) {
+    return { ok: false, error: 'study: mark-challenge-attempt requer challengeId + verdict.' };
+  }
+  const lessonId = `lesson:${typeof p.lessonId === 'string' && p.lessonId.trim() ? p.lessonId.trim() : p.subjectSlug ?? 'unknown'}`;
+  const list = e2eAttempts.get(challengeId) ?? [];
+  const attempt = {
+    verdict,
+    stars: typeof p.stars === 'number' ? p.stars : 0,
+    durationMs: typeof p.durationMs === 'number' ? p.durationMs : 0,
+    lessonId,
+  };
+  list.push(attempt);
+  e2eAttempts.set(challengeId, list);
+  return {
+    ok: true,
+    attempt: {
+      id: `${challengeId}#${list.length - 1}`,
+      subjectId: 'e2e-subject',
+      lessonId,
+      challengeId,
+      verdict: attempt.verdict,
+      stars: attempt.stars,
+      durationMs: attempt.durationMs,
+      createdAt: `e2e-${list.length}`,
+    },
+  };
+};
 
 /** Cliente de LLM fake: o tutor responde texto determinístico (sem rede). */
 const e2eLlm = {
@@ -1034,10 +1141,14 @@ export function registerE2EStubs(ipc?: IpcMainHandleLike): boolean {
 
   safeHandleMap(resolved, buildKeysStubHandlers());
 
-  safeHandleMap(
-    resolved,
-    buildStudyHandlers({ runner, lesson: lessonService, emit: () => {} }),
-  );
+  // ONDA11-CADEADO: os handlers de estudo são os de PRODUÇÃO (sem repo — não
+  // há SQL no E2E); só `study:mark-challenge-attempt` é substituído, porque é
+  // o único deles cujo "sem repo" apagava um fato que a tela LÊ de volta (o
+  // veredito do desafio, que abre o "Concluir aula"). Trocar a entrada do Map
+  // ANTES do safeHandleMap mantém todos os outros canais intactos.
+  const studyHandlers = buildStudyHandlers({ runner, lesson: lessonService, emit: () => {} });
+  studyHandlers.set(STUDY_CHANNELS.MARK_CHALLENGE_ATTEMPT, e2eMarkChallengeAttempt);
+  safeHandleMap(resolved, studyHandlers);
 
   safeHandleMap(
     resolved,

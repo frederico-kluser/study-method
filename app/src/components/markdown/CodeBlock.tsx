@@ -50,11 +50,15 @@
  * editor e o terminal já usam para dizer essas duas coisas.
  *
  * ─── POR QUE O RÓTULO É `variant="pixel"` ─────────────────────────────────
- * Press Start 2P já está carregado e era usado em UM lugar no app inteiro
- * (`SessionFrame`). O contrato diz que ele é acento "RARO … nunca corpo nem
- * título" — um rótulo de HUD de 12px em uppercase é exatamente o papel
- * descrito, e é informação real (qual linguagem, ou que aquilo é saída), não
- * enfeite (guarda-corpo #1 da §2).
+ * A variante já existia e era usada em UM lugar no app inteiro
+ * (`SessionFrame`), com o papel de etiqueta de HUD: "RARO … nunca corpo nem
+ * título". Um rótulo de 12px em uppercase é exatamente esse papel, e é
+ * informação real (qual linguagem, ou que aquilo é saída), não enfeite
+ * (guarda-corpo #1 da §2).
+ * ONDA 11: o NOME é legado. A fonte de PIXEL que batizou a variante (Press
+ * Start 2P) saiu do projeto com o resto do retrô — "a fonte nao quero retro" —
+ * e hoje `pixel` é o DISPLAY em 700/13px. O papel continua idêntico; só a
+ * família mudou.
  *
  * ─── ACENTO-COMO-TEXTO SÓ ATÉ O NÍVEL 2 ───────────────────────────────────
  * `designTokens.ts`, regra 3b: `accentText` vale nos níveis 0, 1 e 2 — e só.

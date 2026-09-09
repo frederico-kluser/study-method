@@ -22,6 +22,7 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactElement,
 } from 'react';
@@ -62,7 +63,7 @@ import {
 } from '../../lib/ipcTimeout';
 import { useChallengeNav } from '../../lib/challengeNav';
 import { drainPendingTrackSlug, setPendingTrackLesson } from '../../lib/pendingSubject';
-import { peekLastTrackSlug, setLastTrackSlug } from '../../lib/roadmapNav';
+import { createUnlockDiffHolder, peekLastTrackSlug, setLastTrackSlug } from '../../lib/roadmapNav';
 import type { TrackDetailPayload, TrackLessonEntry, TrackModuleEntry } from '../../../shared/ipc-contract';
 import type { ViewProps } from '../placeholders';
 
@@ -81,10 +82,13 @@ function lessonStateMeta(state: { locked: boolean; done: boolean; current: boole
 function LessonRow({
   lesson,
   onOpen,
+  justUnlocked,
   tI,
 }: {
   lesson: TrackLessonEntry;
   onOpen: (lesson: TrackLessonEntry) => void;
+  /** ONDA11-CADEADO: esta aula ABRIU desde a última visita a esta trilha. */
+  justUnlocked: boolean;
   tI: (key: string, options?: Record<string, string | number>) => string;
 }): ReactElement {
   const theme = useTheme();
@@ -147,6 +151,11 @@ function LessonRow({
         // ONDA 4 (next-glow): reduce → glow ESTÁTICO (borda de sucesso, sem
         // animação) — o pulso fica só para quem não pediu menos movimento.
         ...(lesson.done && reduced ? { borderColor: glowColor } : {}),
+        // ONDA11-CADEADO: a aula que ACABOU de abrir ganha o quadro de
+        // sucesso ESTÁTICO (cor, nunca animação — quem pediu menos movimento
+        // vê exatamente o mesmo quadro). É moldura, não texto: a informação
+        // continua no selo escrito ao lado, nunca só na cor.
+        ...(justUnlocked ? { borderColor: glowColor } : {}),
         color: 'inherit',
       }}
     >
@@ -155,13 +164,50 @@ function LessonRow({
         <Typography variant="body2" sx={{ fontWeight: lesson.current ? 700 : 500 }}>
           {lesson.title}
         </Typography>
-        <Typography variant="caption" color="text.secondary">
+        <Typography variant="caption" sx={{ color: 'text.secondary' }}>
           {lesson.summary}
         </Typography>
       </Box>
+      {/* ONDA11-CADEADO — A INFORMAÇÃO, que NUNCA depende da animação.
+          O selo é TEXTO dentro do próprio botão: quem desligou o movimento o
+          lê igual, e o leitor de tela o inclui no nome acessível do tile ("…
+          Destravou agora"). Ele é INFORMATIVO, não comemorativo (§8.2 do
+          ux-redesign: feedback informativo d=+0,43; elogio ritualizado
+          d=-0,40) — diz que aquilo abriu, e para. Cor: `success` do tema (a
+          mesma família do glow de conclusão), nunca hex cru. */}
+      {justUnlocked ? (
+        <Chip
+          size="small"
+          color="success"
+          variant="outlined"
+          label={tI('roadmap.justUnlockedBadge')}
+          sx={{ ml: 1, flexShrink: 0 }}
+        />
+      ) : null}
       <Chip size="small" variant="outlined" label={tI('roadmap.difficulty', { n: lesson.difficulty })} sx={{ ml: 1 }} />
     </Box>
   );
+
+  // ONDA11-CADEADO — O EFEITO do destravamento: a aula que abriu ENTRA na
+  // lista (escala + deslocamento), em vez de já estar lá como se sempre
+  // tivesse estado. É movimento SPATIAL puro (transform/geometria), o único
+  // nível que pode ultrapassar; nada de cor nem de opacidade animadas (o bug
+  // do texto que cintila). Com `prefers-reduced-motion: reduce` a mola nem é
+  // montada — o caminho é o tile estático, sem overshoot (SC 2.3.3) —, e a
+  // informação chega inteira mesmo assim: o selo escrito, a moldura de
+  // sucesso e o anúncio em role="status" da view.
+  if (justUnlocked && !reduced) {
+    return (
+      <motion.div
+        initial={{ scale: 0.94, x: -12 }}
+        animate={{ scale: 1, x: 0 }}
+        transition={springs.playful}
+        style={{ borderRadius: theme.shape.borderRadius }}
+      >
+        {tile}
+      </motion.div>
+    );
+  }
 
   // Aula concluída + movimento permitido → GLOW pulsante de sucesso em volta
   // do tile (boxShadow com a cor de sucesso; NUNCA vermelho — regra de red
@@ -186,12 +232,15 @@ function ModuleCard({
   mod,
   onOpenLesson,
   onOpenModuleChallenge,
+  justUnlocked,
   defaultOpen,
   tI,
 }: {
   mod: TrackModuleEntry;
   onOpenLesson: (l: TrackLessonEntry) => void;
   onOpenModuleChallenge: (mod: TrackModuleEntry) => void;
+  /** ONDA11-CADEADO: slugs que ABRIRAM desde a última visita a esta trilha. */
+  justUnlocked: ReadonlySet<string>;
   defaultOpen: boolean;
   tI: (key: string, options?: Record<string, string | number>) => string;
 }): ReactElement {
@@ -205,7 +254,7 @@ function ModuleCard({
             <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
               {mod.title}
             </Typography>
-            <Typography variant="caption" color="text.secondary">
+            <Typography variant="caption" sx={{ color: 'text.secondary' }}>
               {tI('roadmap.moduleCount', { done: doneCount, total: mod.lessons.length })}
             </Typography>
           </Box>
@@ -217,7 +266,13 @@ function ModuleCard({
           <Divider sx={{ my: 1 }} />
  <Stack spacing={0.25}>
             {mod.lessons.map((l) => (
-              <LessonRow key={l.slug} lesson={l} onOpen={onOpenLesson} tI={tI} />
+              <LessonRow
+                key={l.slug}
+                lesson={l}
+                onOpen={onOpenLesson}
+                justUnlocked={justUnlocked.has(l.slug)}
+                tI={tI}
+              />
             ))}
           </Stack>
           {/* ADITIVO (rodada 9): DESAFIO DO MÓDULO — o desafio elaborado do fim
@@ -268,6 +323,18 @@ export function RoadmapView(props: ViewProps): ReactElement {
   // quebrado por uma pasta vazia, que é exatamente o estado normal depois de
   // "apaga e regera". Agora tem estado próprio e sai como informação.
   const [noTracks, setNoTracks] = useState(false);
+  // ─── ONDA11-CADEADO: o que ABRIU desde a última visita a esta trilha ──────
+  // O dono pediu o destravamento "com efeito". O efeito é só da aula que MUDOU
+  // de estado nesta volta — o porquê da escolha (e por que não veio do main)
+  // está no cabeçalho de `diffUnlockedSinceLastVisit`, em src/lib/roadmapNav.
+  // O HOLDER é o padrão anti-StrictMode da casa: em dev a view monta duas
+  // vezes e o diff é one-shot, então sem ele a 2ª passada — a que fica na
+  // tela — veria "nada mudou" e o efeito sumiria justamente no ambiente onde
+  // ele é olhado.
+  const [justUnlocked, setJustUnlocked] = useState<ReadonlySet<string>>(() => new Set<string>());
+  const [unlockedTitles, setUnlockedTitles] = useState<string[]>([]);
+  const unlockDiffRef = useRef<ReturnType<typeof createUnlockDiffHolder> | null>(null);
+  if (unlockDiffRef.current === null) unlockDiffRef.current = createUnlockDiffHolder();
 
   const loadTrack = useCallback((trackSlug: string): void => {
     setLoading(true);
@@ -288,6 +355,16 @@ export function RoadmapView(props: ViewProps): ReactElement {
           return;
         }
         setTrack(res.track);
+        // O diff roda com o payload RECÉM-CHEGADO (nunca com o estado antigo
+        // da tela): a lista achatada na ordem em que a trilha é lida.
+        const aulas = res.track.modules.flatMap((m) => m.lessons);
+        const abriram = unlockDiffRef.current!.get(trackSlug, aulas);
+        setJustUnlocked(new Set(abriram));
+        setUnlockedTitles(
+          abriram
+            .map((slug) => aulas.find((l) => l.slug === slug)?.title)
+            .filter((t): t is string => typeof t === 'string'),
+        );
       })
       .catch((err: unknown) => {
         if (cancelled) return;
@@ -387,6 +464,9 @@ export function RoadmapView(props: ViewProps): ReactElement {
     setTrack(null);
     setLoadError(null);
     setLastTrackSlug(null);
+    // ONDA11-CADEADO: o anúncio é do detalhe que está saindo de cena.
+    setJustUnlocked(new Set<string>());
+    setUnlockedTitles([]);
   }, []);
 
   /** Teste de proficiência → ChallengeView (fluxo track). */
@@ -439,7 +519,7 @@ export function RoadmapView(props: ViewProps): ReactElement {
                 <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
                   {tr.title}
                 </Typography>
-                <Typography variant="caption" color="text.secondary">
+                <Typography variant="caption" sx={{ color: 'text.secondary' }}>
                   {tI('roadmap.trackCount', { done: tr.doneCount, total: tr.lessonCount })}
                 </Typography>
               </CardContent>
@@ -456,6 +536,28 @@ export function RoadmapView(props: ViewProps): ReactElement {
           (nem erro). O spinner da LISTA (sem seleção) usa o `loading` — ambos
           têm timeout: canal mudo vira loadError com retry, nunca spinner
           eterno. W3 (falsy-proof): só `null` significa "sem erro". */}
+      {/* ONDA11-CADEADO — O ANÚNCIO. A informação do destravamento não pode
+          viver só no movimento (quem usa leitor de tela, ou desligou o
+          movimento, recebe a MESMA coisa). A região existe SEMPRE, montada
+          antes do payload chegar: um `role="status"` que nasce já com texto
+          costuma não ser anunciado — é a MUDANÇA de conteúdo, depois da carga
+          assíncrona da trilha, que o leitor de tela lê. Texto INFORMATIVO
+          ("Aula destravada: X"), nunca elogio (§8.2 do ux-redesign). */}
+      <Typography
+        role="status"
+        aria-live="polite"
+        variant="caption"
+        sx={{ color: 'text.secondary', display: 'block', minHeight: 0 }}
+      >
+        {unlockedTitles.length > 0
+          ? tI(
+              unlockedTitles.length > 1
+                ? 'roadmap.justUnlockedAnnounceMany'
+                : 'roadmap.justUnlockedAnnounce',
+              { titles: unlockedTitles.join(', ') },
+            )
+          : ''}
+      </Typography>
       {selected !== null && !track && loadError === null ? <LinearProgress /> : null}
       {selected === null && loading && loadError === null ? <LinearProgress /> : null}
       {/* ONDA9 (cache-reconcilia): pasta de trilhas vazia — estado legítimo e
@@ -463,7 +565,7 @@ export function RoadmapView(props: ViewProps): ReactElement {
       {noTracks && loadError === null && selected === null ? (
         <Box sx={{ mt: 1 }} data-testid="roadmap-no-tracks">
           <Alert severity="info">{t('translation:roadmap.noTracks')}</Alert>
-          <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1 }}>
+          <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mt: 1 }}>
             {t('translation:roadmap.noTracksHint')}
           </Typography>
         </Box>
@@ -517,10 +619,10 @@ export function RoadmapView(props: ViewProps): ReactElement {
             <Typography variant="h4" component="h1" gutterBottom>
               {track.title}
             </Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ maxWidth: 640 }}>
+            <Typography variant="body2" sx={{ color: 'text.secondary', maxWidth: 640 }}>
               {track.description}
             </Typography>
-            <Typography variant="caption" color="text.secondary">
+            <Typography variant="caption" sx={{ color: 'text.secondary' }}>
               {tI('roadmap.trackCount', { done: track.doneCount, total: track.lessonCount })}
               {track.proficient ? ` · ${t('translation:roadmap.proficientBadge')}` : ''}
             </Typography>
@@ -548,7 +650,7 @@ export function RoadmapView(props: ViewProps): ReactElement {
                   <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
                     {t('translation:roadmap.proficiencyTitle')}
                   </Typography>
-                  <Typography variant="caption" color="text.secondary">
+                  <Typography variant="caption" sx={{ color: 'text.secondary' }}>
                     {t('translation:roadmap.proficiencyDescription')}
                   </Typography>
                 </Box>
@@ -576,13 +678,29 @@ export function RoadmapView(props: ViewProps): ReactElement {
               mod={mod}
               onOpenLesson={openLesson}
               onOpenModuleChallenge={openModuleChallenge}
-              defaultOpen={i === 0}
+              justUnlocked={justUnlocked}
+              // ONDA 15 — O EFEITO NÃO PODE NASCER DENTRO DE UMA GAVETA FECHADA.
+              // Só o módulo 1 abria por padrão. Concluir a ÚLTIMA aula de um
+              // módulo destrava a PRIMEIRA do seguinte — que estava dentro de
+              // um `<Collapse in={false}>`. A revisão adversarial mediu, com
+              // sonda no app: selo no DOM = 1, selo VISÍVEL = false, e o tile
+              // da aula recém-aberta com `count: 0` (o `visibility:hidden` do
+              // Collapse tira o nó até da árvore de acessibilidade). O
+              // `role="status"` salvava a INFORMAÇÃO — "Aula destravada: X" —,
+              // mas o aluno não via nada até descobrir sozinho o módulo
+              // fechado. Um efeito de destravamento invisível é pior que
+              // nenhum: ele promete e não entrega.
+              // O módulo que CONTÉM uma aula recém-destravada abre junto. Não
+              // é abrir tudo (isso viraria ruído a cada visita): é abrir
+              // exatamente onde há algo novo para ver, pela mesma regra que
+              // decide o selo.
+              defaultOpen={i === 0 || mod.lessons.some((l) => justUnlocked.has(l.slug))}
               tI={tI}
             />
           ))}
 
           <Tooltip title={t('translation:roadmap.sequentialHint')}>
-            <Typography variant="caption" color="text.secondary" align="center">
+            <Typography variant="caption" sx={{ color: 'text.secondary' }} align="center">
               {t('translation:roadmap.sequentialHint')}
             </Typography>
           </Tooltip>

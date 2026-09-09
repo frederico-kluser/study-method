@@ -11,7 +11,9 @@
  *     (`src/lib/designTokens.ts`) — medidas no Electron buildado, não deduzidas;
  *     desde a onda 2 isso inclui o CHROME do shell novo (quadro de estado da
  *     sessão + navigation rail), que é a prova de que o cabeçalho deixou de ser
- *     uma barra de acento e virou superfície do nível 3 da rampa tonal;
+ *     uma barra de acento e virou superfície do nível 3 da rampa tonal — e,
+ *     desde a ONDA 11, que a rampa ESCURA é cinza NEUTRO (R=G=B), o pedido do
+ *     dono ("as cores do modo dark nao ficaram boas ajuste");
  *   - a escala tipográfica é ESTRITAMENTE monotônica NO APP RODANDO: um teste
  *     que só olha o objeto de tema não pega o coeficiente de rem do MUI, que foi
  *     exatamente o que inverteu h4/h5 (25px contra 27,43px).
@@ -75,17 +77,29 @@ test('e2e-theme: toggle → classe .light/.dark no <html> + localStorage theme-m
   await expect(page.locator('body')).toHaveCSS('background-color', 'rgb(250, 247, 242)');
 
   // 2º clique: light → dark → .dark. A mesma leitura no escuro: header e rail no
-  // NÍVEL 3 (#2c313f → rgb(44,49,63)) — que no escuro coincide com o `divider`,
-  // por isso a borda mede o mesmo valor —, destino selecionado no NÍVEL 4
-  // (#363c4c → rgb(54,60,76)) e o body no NÍVEL 0 (#12141a → rgb(18,20,26)).
+  // NÍVEL 3, destino selecionado no NÍVEL 4 e o body no NÍVEL 0.
+  //
+  // ONDA 11 — A RAMPA ESCURA VIROU CINZA NEUTRO (R=G=B). O dono, literal: *"as
+  // cores do modo dark nao ficaram boas ajuste"*, com a referência do Nintendo
+  // Switch Online, cujo chrome escuro é cinza puro. A rampa era AZULADA
+  // (#12141a / #1b1e26 / #232733 / #2c313f / #363c4c: o canal azul chegava a 20
+  // pontos acima do vermelho) e passou a #0e0e0e / #1b1b1b / #272727 / #313131 /
+  // #3b3b3b. Os números abaixo são os NOVOS, e cada um é o token, não um valor
+  // escolhido aqui.
+  //
+  // E A BORDA DEIXOU DE COINCIDIR COM A SUPERFÍCIE. No escuro antigo o
+  // `divider` era, por acidente da rampa, o MESMO #2c313f do nível 3 — a borda
+  // do cabeçalho existia no DOM e era invisível na tela. O `divider` escuro
+  // agora é #4d4d4d (rgb(77,77,77)), um degrau acima do nível 3: a separação
+  // entre o chrome e o conteúdo passou a ser vista, e o teste mede isso.
   await toggle.click();
   await expect(html).toHaveClass(/dark/);
   expect(await storedMode()).toBe('dark');
-  await expect(banner).toHaveCSS('background-color', 'rgb(44, 49, 63)');
-  await expect(banner).toHaveCSS('border-bottom-color', 'rgb(44, 49, 63)');
-  await expect(rail).toHaveCSS('background-color', 'rgb(44, 49, 63)');
-  await expect(selectedTab).toHaveCSS('background-color', 'rgb(54, 60, 76)');
-  await expect(page.locator('body')).toHaveCSS('background-color', 'rgb(18, 20, 26)');
+  await expect(banner).toHaveCSS('background-color', 'rgb(49, 49, 49)');
+  await expect(banner).toHaveCSS('border-bottom-color', 'rgb(77, 77, 77)');
+  await expect(rail).toHaveCSS('background-color', 'rgb(49, 49, 49)');
+  await expect(selectedTab).toHaveCSS('background-color', 'rgb(59, 59, 59)');
+  await expect(page.locator('body')).toHaveCSS('background-color', 'rgb(14, 14, 14)');
 
   // 3º clique: dark → system → volta a ter exatamente um de light/dark (segue o SO).
   await toggle.click();

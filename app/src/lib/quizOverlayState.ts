@@ -8,8 +8,22 @@
  *     fechado ──abrir──▶ sobre-a-tela ──responder──▶ minimizado-no-chat
  *                            ▲                            │
  *                            └──────── reabrir ───────────┘
- *                                  (bolha minimizada)
+ *                                  (botão do card na conversa)
  *     qualquer fase ──dominar──▶ fechado
+ *
+ * ─── ONDA11: QUEM ABRE É O ALUNO, SEMPRE ──────────────────────────────────
+ * O pedido do dono, literal: *"tinha o texto sendo escrito, eu cliquei, e
+ * depois renderizou o texto e já abriu o modal com o quiz, quero um botão de
+ * abrir quiz pro usuário acionar o modal manualmente"*.
+ *
+ * O caminho medido do defeito era este: a seção terminava de ser digitada, a
+ * LessonView chamava `applyQuizOverlayStep(ctx, {kind:'aguardar-resposta'})` e
+ * a intenção desse passo era 'sobre-a-tela' — o modal subia por cima da tela
+ * no instante exato em que o aluno clicava para pular a digitação. Agora
+ * NENHUM passo do ciclo pede a tela: 'aguardar-resposta' ESTACIONA o quiz na
+ * conversa (`minimizado-no-chat`, onde o `QuizChatCard` desenha o convite com
+ * o botão), e só `openQuizOverlay`/`reopenQuizOverlay` — as duas transições
+ * que a view chama a partir de um CLIQUE — levam o card para cima da tela.
  *
  * POR QUE UM STORE DE MÓDULO, E NÃO `useState`/`Dialog`/`Popover`
  * ────────────────────────────────────────────────────────────────
@@ -31,13 +45,13 @@
  * cached").
  *
  * TRANSIÇÕES NOMEADAS (nenhum `setState` cru sai daqui):
- *   - `openQuizOverlay`     — a seção foi apresentada e o quiz dela sobe SOBRE
- *                             A TELA; também é a porta do quiz REMEDIADOR (a
- *                             geração nova reabre o overlay);
+ *   - `openQuizOverlay`     — GESTO do aluno: o botão do card da conversa leva
+ *                             o quiz para cima da tela (nunca o fim de uma
+ *                             digitação, nunca a chegada de um quiz novo);
  *   - `minimizeQuizOverlay` — o aluno respondeu: o card desce para a bolha do
  *                             chat (o ciclo continua lá — explicação e quiz
  *                             novo aparecem na conversa);
- *   - `reopenQuizOverlay`   — clique na bolha minimizada;
+ *   - `reopenQuizOverlay`   — o MESMO gesto, quando o card já é o do store;
  *   - `closeQuizOverlay`    — a afirmação foi DOMINADA (o único fim do ciclo).
  *
  * PURO: sem React, sem DOM, sem MUI, sem Electron — `node:test` cobre o
@@ -129,15 +143,16 @@ function isSameQuiz(ctx: Pick<QuizOverlayContext, 'quizKey' | 'generation'>): bo
 }
 
 /**
- * ABRE o quiz SOBRE A TELA (a seção acabou de ser apresentada, ou o quiz
- * remediador da geração seguinte chegou).
+ * ABRE o quiz SOBRE A TELA. ONDA11: o ÚNICO chamador legítimo é um GESTO do
+ * aluno (o botão do `QuizChatCard`, via `handleQuizReopen` na LessonView) —
+ * nenhum passo do ciclo chega aqui, porque nenhum passo do ciclo pode subir o
+ * modal sozinho.
  *
  * Idempotente para o MESMO quiz/geração já sobre a tela (no-op por
  * referência — anti-StrictMode/efeito reexecutado). Uma geração NOVA da mesma
- * chave, ou outro quiz, SOBE por cima: o overlay é único, como o modal irmão,
- * e o quiz que acabou de aparecer é o que interessa. Reabrir a MESMA geração
- * que estava minimizada é `reopenQuizOverlay` — `openQuizOverlay` não
- * ressuscita um card minimizado por acidente.
+ * chave, ou outro quiz, SOBE por cima: o overlay é único, como o modal irmão.
+ * Reabrir a MESMA geração que estava minimizada é `reopenQuizOverlay` —
+ * `openQuizOverlay` não ressuscita um card minimizado por acidente.
  */
 export function openQuizOverlay(ctx: QuizOverlayContext): void {
   if (isSameQuiz(ctx) && state.phase !== 'fechado') return;
@@ -179,15 +194,20 @@ export function closeQuizOverlay(quizKey?: string): void {
  * A FASE que um passo do ciclo pede — a ponte pura entre a máquina de maestria
  * (`trackLessonState`) e este store:
  *
- *   - 'aguardar-resposta'                  → 'sobre-a-tela' (o card espera o clique);
+ *   - 'aguardar-resposta'                  → 'minimizado-no-chat' (o quiz
+ *     ESTACIONA na conversa e espera o botão; ONDA11 — antes era
+ *     'sobre-a-tela', e era assim que o modal subia sozinho no fim da
+ *     digitação da seção);
  *   - 'explicar-erro' / 'gerar-novo-quiz'  → 'minimizado-no-chat' (respondeu:
  *     o ciclo continua NA CONVERSA — a explicação e o quiz novo chegam lá);
  *   - 'dominado'                           → 'fechado'.
+ *
+ * Nenhum passo devolve 'sobre-a-tela': subir é decisão do ALUNO, e ela entra
+ * por `openQuizOverlay`/`reopenQuizOverlay`.
  */
 export function quizOverlayIntent(step: QuizCycleStep): QuizOverlayPhase {
   switch (step.kind) {
     case 'aguardar-resposta':
-      return 'sobre-a-tela';
     case 'explicar-erro':
     case 'gerar-novo-quiz':
       return 'minimizado-no-chat';
@@ -199,9 +219,23 @@ export function quizOverlayIntent(step: QuizCycleStep): QuizOverlayPhase {
 /**
  * Aplica um passo do ciclo ao overlay (`quizOverlayIntent` + a transição
  * correspondente). É o atalho que a view usa depois de cada mutação do estado
- * da aula, para não reimplementar o switch: minimizar quando o passo pede a
- * bolha (abrindo o contexto primeiro, se o store estiver em outro quiz) e
- * fechar quando a afirmação foi dominada.
+ * da aula, para não reimplementar o switch: ESTACIONAR o quiz na conversa
+ * enquanto o ciclo corre e FECHAR quando a afirmação foi dominada.
+ *
+ * ONDA11 — as duas garantias que este corpo carrega, e por que cada uma:
+ *
+ *  1. ele NUNCA leva o card para 'sobre-a-tela'. O passo 'aguardar-resposta'
+ *     chega aqui toda vez que uma seção termina de ser digitada; era daqui que
+ *     o modal subia por cima do aluno que acabara de clicar para pular a
+ *     digitação. Escrever o contexto junto cobre o caso "a view remontou e o
+ *     store estava fechado";
+ *
+ *  2. ele não DERRUBA o que o aluno abriu. Enquanto o modal está na tela o
+ *     passo continua sendo 'aguardar-resposta', e o efeito da LessonView
+ *     reexecuta a cada mudança do chat: sem este guard, o primeiro re-render
+ *     depois do clique fecharia o modal na cara dele. Para os passos de
+ *     'depois da resposta' (explicar-erro / gerar-novo-quiz) descer É o
+ *     comportamento — é o "respondendo ele minimiza" do pedido original.
  */
 export function applyQuizOverlayStep(ctx: QuizOverlayContext, step: QuizCycleStep): void {
   const intent = quizOverlayIntent(step);
@@ -209,12 +243,16 @@ export function applyQuizOverlayStep(ctx: QuizOverlayContext, step: QuizCycleSte
     closeQuizOverlay(ctx.quizKey);
     return;
   }
-  if (intent === 'sobre-a-tela') {
-    openQuizOverlay(ctx);
+  if (step.kind === 'aguardar-resposta') {
+    // (2) o modal que o aluno abriu na mão fica aberto.
+    if (isSameQuiz(ctx) && state.phase === 'sobre-a-tela') return;
+    // Ainda não houve resposta nenhuma: o contador de minimizações não pode
+    // ganhar um ponto por um card que nunca chegou a subir.
+    commit({ ...ctx, phase: 'minimizado-no-chat', minimizeCount: isSameQuiz(ctx) ? state.minimizeCount : 0 });
     return;
   }
-  // 'minimizado-no-chat': o card respondido vive na conversa. Escrever o
-  // contexto junto cobre o caso "a view remontou e o store estava fechado".
+  // 'explicar-erro' / 'gerar-novo-quiz': o card RESPONDIDO desce e o ciclo
+  // continua na conversa.
   commit({
     ...ctx,
     phase: 'minimizado-no-chat',

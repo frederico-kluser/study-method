@@ -316,6 +316,55 @@ describe('buildTrackHandlers — trilhas', () => {
     assert.equal(done, true);
   });
 
+  /* ═════════════════════════════════════════════════════════════════════════
+   * ONDA 15 — O GATE SEQUENCIAL MORA NO MAIN, NÃO SÓ NA TELA
+   *
+   * A revisão adversarial mediu um FALSO DESTRAVAMENTO — o pior caso deste
+   * eixo, porque um falso travamento só irrita e um falso destravamento
+   * quebra o produto. O único gate era o `disabled={lesson.locked}` do tile
+   * da Trilha; a LessonView nunca lê o `locked` do payload. Qualquer outra
+   * entrada abre a aula trancada, e concluí-la gravava aqui — o que destrava
+   * a SEGUINTE com todas as anteriores por fazer, já que `computeUnlockStates`
+   * só olha a aula imediatamente anterior.
+   * Estes dois testes fecham a porta de trás: é a GRAVAÇÃO que recusa.
+   * ═════════════════════════════════════════════════════════════════════════ */
+  it('track:lesson-done RECUSA aula trancada — a anterior não foi concluída', async () => {
+    const dir = await makeTrackDir({ previousLesson: { slug: 'aula-0', title: 'Aula 0', theory: 'Antes.' } });
+    let gravou = false;
+    const map = buildTrackHandlers({
+      getTracksDir: () => path.dirname(dir),
+      // progresso VAZIO: nada foi concluído, então 'aula-1' está trancada.
+      repo: fakeRepo({ markTrackLessonDone: async () => void (gravou = true) }),
+    });
+    const result = await call<TrackLessonDoneResult>(map, TRACK_CHANNELS.LESSON_DONE, {
+      trackSlug: 'trilha-teste',
+      lessonId: 'aula-1',
+    });
+    assert.equal(result.ok, false, 'concluir uma aula trancada destravaria a seguinte por cima das anteriores');
+    assert.match(String((result as { error?: string }).error), /trancada/i, 'a recusa precisa DIZER o motivo');
+    assert.equal(gravou, false, 'nada pode chegar ao banco — o gate é a última porta antes dele');
+  });
+
+  it('track:lesson-done ACEITA quando a anterior está concluída (o gate ordena, não trava)', async () => {
+    const dir = await makeTrackDir({ previousLesson: { slug: 'aula-0', title: 'Aula 0', theory: 'Antes.' } });
+    let gravou = false;
+    const map = buildTrackHandlers({
+      getTracksDir: () => path.dirname(dir),
+      repo: fakeRepo({
+        listTrackLessonProgress: async () => [
+          { trackSlug: 'trilha-teste', lessonId: 'aula-0', completedAt: '1' },
+        ],
+        markTrackLessonDone: async () => void (gravou = true),
+      }),
+    });
+    const result = await call<TrackLessonDoneResult>(map, TRACK_CHANNELS.LESSON_DONE, {
+      trackSlug: 'trilha-teste',
+      lessonId: 'aula-1',
+    });
+    assert.equal(result.ok, true, 'com a anterior concluída a gravação tem de passar');
+    assert.equal(gravou, true);
+  });
+
   it("track:tutor-chat 'next' é DETERMINÍSTICO — markdown verbatim, LLM NÃO é chamada (ONDA 1)", async () => {
     const dir = await makeTrackDir();
     let llmCalls = 0;

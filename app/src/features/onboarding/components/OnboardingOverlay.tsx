@@ -516,7 +516,7 @@ export function OnboardingOverlay({
         <Typography variant="h6" component="h3">
           {t(currentStep.titleKey)}
         </Typography>
-        <Typography variant="body2" color="text.secondary">
+        <Typography variant="body2" sx={{ color: 'text.secondary' }}>
           {t(currentStep.descriptionKey)}
         </Typography>
 
@@ -559,10 +559,10 @@ export function OnboardingOverlay({
         ) : null}
 
         <Stack direction="row" spacing={1} sx={{ justifyContent: 'space-between', mt: 0.5 }}>
-          <Typography variant="caption" color="text.secondary">
+          <Typography variant="caption" sx={{ color: 'text.secondary' }}>
             {`${t('translation:tutorial.progress.step')} ${currentStepIndex + 1} / ${totalSteps}`}
           </Typography>
-          <Typography variant="caption" color="text.primary">
+          <Typography variant="caption" sx={{ color: 'text.primary' }}>
             {chapter ? t(chapter.titleKey) : ''}
           </Typography>
         </Stack>

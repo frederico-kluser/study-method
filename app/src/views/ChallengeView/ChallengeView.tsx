@@ -917,7 +917,7 @@ export default function ChallengeView(props: ViewProps): ReactElement {
       ) : null}
 
       {!active ? (
-        <Typography variant="body1" color="text.secondary" sx={{ mt: 2 }}>
+        <Typography variant="body1" sx={{ color: 'text.secondary', mt: 2 }}>
           {t('translation:challenge.selectPrompt')}
         </Typography>
       ) : (
@@ -932,7 +932,7 @@ export default function ChallengeView(props: ViewProps): ReactElement {
                 <Chip label={active.language} size="small" variant="outlined" />
               </Stack>
               {statementError ? (
-                <Typography variant="body2" color="text.secondary">{statementError}</Typography>
+                <Typography variant="body2" sx={{ color: 'text.secondary' }}>{statementError}</Typography>
               ) : statement ? (
                 <Box>
                   {/* ONDA "chat e código": um único renderizador de markdown
@@ -944,7 +944,7 @@ export default function ChallengeView(props: ViewProps): ReactElement {
                   <MarkdownView markdown={statement} />
                 </Box>
               ) : (
-                <Typography variant="body2" color="text.secondary">{t('translation:challenge.statementLoading')}</Typography>
+                <Typography variant="body2" sx={{ color: 'text.secondary' }}>{t('translation:challenge.statementLoading')}</Typography>
               )}
             </Paper>
           </Grid>

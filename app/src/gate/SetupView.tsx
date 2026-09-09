@@ -226,7 +226,7 @@ export function SetupView({ onDone }: { onDone: () => void }): ReactElement {
             {t('translation:keys.validate')}
           </Button>
           {st.valid ? (
-            <Typography variant="body2" color="success.main">{t('translation:keys.valid')}</Typography>
+            <Typography variant="body2" sx={{ color: 'success.main' }}>{t('translation:keys.valid')}</Typography>
           ) : st.invalidMsg ? (
             <Typography variant="body2" color="error">{st.invalidMsg}</Typography>
           ) : null}
@@ -271,7 +271,7 @@ export function SetupView({ onDone }: { onDone: () => void }): ReactElement {
             {t('translation:keys.save')}
           </Button>
           {!allValid ? (
-            <Typography variant="body2" color="text.secondary">
+            <Typography variant="body2" sx={{ color: 'text.secondary' }}>
               {t('translation:gate.invalidKeys')}
             </Typography>
           ) : null}

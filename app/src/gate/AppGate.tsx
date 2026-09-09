@@ -81,7 +81,7 @@ function Splash(): ReactElement {
       <Paper variant="outlined" sx={{ p: 3 }}>
         <Stack direction="row" spacing={2} sx={{ alignItems: 'center' }}>
           <CircularProgress size={28} />
-          <Typography variant="body1" color="text.secondary">
+          <Typography variant="body1" sx={{ color: 'text.secondary' }}>
             {t('translation:gate.checking')}
           </Typography>
         </Stack>

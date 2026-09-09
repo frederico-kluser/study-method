@@ -104,11 +104,13 @@ function firstFamily(stack: string): string {
   return stack.split(',')[0].trim().replace(/^['"]|['"]$/g, '');
 }
 
+/* ONDA 11: eram QUATRO papéis (o quarto era o acento pixel Press Start 2P) e
+   voltaram a ser TRÊS. O display saiu do Chakra Petch (techno/quadrada) para o
+   Nunito Variable — "a fonte nao quero retro", pedido do dono. */
 const EXPECTED_FAMILIES = [
-  { role: 'display (Chakra Petch — títulos h1..h6)', family: firstFamily(FONT_STACK.display) },
+  { role: 'display (Nunito Variable — títulos h1..h6)', family: firstFamily(FONT_STACK.display) },
   { role: 'body (Inter — corpo e UI)', family: firstFamily(FONT_STACK.body) },
   { role: 'mono (JetBrains Mono — código e terminal)', family: firstFamily(FONT_STACK.mono) },
-  { role: 'accent (Press Start 2P — labels pixel raros)', family: firstFamily(FONT_STACK.accent) },
 ];
 
 /**
@@ -152,7 +154,7 @@ interface ComputedFont {
   lineHeight: string;
 }
 
-test('e2e-fonts: Inter, Chakra Petch, JetBrains Mono e Press Start 2P carregam de verdade (sem fallback silencioso)', async () => {
+test('e2e-fonts: Inter, Nunito e JetBrains Mono carregam de verdade (sem fallback silencioso)', async () => {
   const launched = await launchApp({ env: { E2E_GATE: 'ready' } });
   app = launched.app;
   page = launched.page;

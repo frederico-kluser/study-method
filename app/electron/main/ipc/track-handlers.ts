@@ -93,6 +93,8 @@ import {
   buildTrackDetail,
   buildTrackLesson,
   buildTrackList,
+  computeUnlockStates,
+  loadTrackState,
   resolveChallengeSpec,
 } from '../services/trackService';
 import { runStudentCode } from '../services/challengeExec';
@@ -389,6 +391,32 @@ export function buildTrackHandlers(deps: TrackHandlerDeps): Map<string, IpcHandl
     if (!p.trackSlug || !p.lessonId) return { ok: false, error: 'track:lesson-done requer trackSlug + lessonId.' };
     if (!repo) return { ok: false, error: 'persistência indisponível.' };
     try {
+      // ── O GATE SEQUENCIAL MORA AQUI, NÃO SÓ NA TELA (ONDA 15) ───────────
+      // A revisão adversarial mediu um FALSO DESTRAVAMENTO, que é o pior caso
+      // deste eixo: o único gate era o `disabled={lesson.locked}` do tile da
+      // Trilha; a LessonView NUNCA lê o `locked` do payload. Qualquer outra
+      // entrada abre a aula trancada inteira — e concluí-la gravava aqui, o
+      // que destrava a SEGUINTE com todas as anteriores por fazer, porque
+      // `computeUnlockStates` só olha a aula imediatamente anterior.
+      // Aritmética real medida pela revisão, trilha de 4 aulas com apenas a
+      // 3 concluída: aula-4 sai `locked=false` sem NENHUMA anterior feita.
+      // Um caminho alcançável (o reset de progresso não limpa o `lastLesson`
+      // em memória, e voltar à aba Aula reabre a aula agora trancada) fecha a
+      // cadeia sem nenhum truque.
+      // Por que no MAIN e não numa checagem a mais no renderer: gate que vive
+      // na tela vale para a porta que lembraram de trancar. Este é o registro
+      // do progresso — a última porta antes do banco —, e aqui ele vale para
+      // toda entrada, inclusive as que ainda não existem.
+      const track = await loadTrackOrError(p.trackSlug);
+      if (!('error' in track)) {
+        const { doneSet, proficient } = await loadTrackState(p.trackSlug, repo);
+        const estado = computeUnlockStates(track, doneSet, proficient).get(p.lessonId);
+        if (estado?.locked === true) {
+          return { ok: false, error: 'aula trancada: conclua a anterior antes desta.' };
+        }
+      }
+      // Trilha ilegível não vira bloqueio: o gate existe para ORDENAR o
+      // avanço, não para punir quem já estava numa aula quando o disco mudou.
       await repo.markTrackLessonDone(p.trackSlug, p.lessonId);
       return { ok: true };
     } catch (err) {

@@ -242,7 +242,7 @@ export default function EvolutionTree({
   if (list.length === 0) {
     return (
       <Box component="section" sx={(theme) => ({ p: theme.spacing(0.5) })}>
-        <Typography variant="body2" color="text.secondary">
+        <Typography variant="body2" sx={{ color: 'text.secondary' }}>
           {emptyLabel}
         </Typography>
       </Box>

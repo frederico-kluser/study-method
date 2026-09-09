@@ -245,7 +245,7 @@ export function KeysPanel(): ReactElement {
                   {meta.name}
                 </Typography>
                 {meta.modelName ? (
-                  <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
+                  <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block' }}>
                     {meta.modelName}
                   </Typography>
                 ) : null}

@@ -70,6 +70,25 @@ if (!gotLock) {
   app.quit();
 } else {
   app.on('second-instance', () => {
+    // ONDA 15 — NUNCA ROUBAR FOCO DE UMA JANELA QUE NASCEU INVISÍVEL.
+    //
+    // Queixa do dono, literal: os testes "rodam por cima das minhas janelas
+    // atuais, isso me atrapalha de trabalhar". A causa não era o Playwright
+    // mostrar janela — o harness já nasce com `show:false` e
+    // `focusable:false`. Era ESTE handler, pela outra ponta:
+    // `tests/e2e/helpers.ts` lançava o Electron SEM `--user-data-dir`, então
+    // toda spec caía no perfil padrão `~/.config/Electron` — o MESMO do app
+    // que o dono deixa aberto. O lançamento perdia
+    // `requestSingleInstanceLock()`, o Electron entregava o sinal
+    // 'second-instance' à instância viva (a DELE) e este `win.focus()` puxava
+    // a janela do dono para a frente. Uma vez por teste, 39 testes por
+    // execução, várias execuções por onda.
+    // O conserto principal é o perfil próprio por lançamento (helpers.ts).
+    // Este guard é a segunda tranca, e cobre o caso inverso: uma janela de
+    // harness (invisível por `STUDY_METHOD_WINDOW_VISIBLE=0`) que receba o
+    // sinal não deve se revelar nem tomar o foco — mostrar uma janela que o
+    // próprio harness pediu para esconder é o mesmo incômodo, ao contrário.
+    if (!windowVisible) return;
     const win = BrowserWindow.getAllWindows()[0];
     if (win) {
       if (win.isMinimized()) win.restore();

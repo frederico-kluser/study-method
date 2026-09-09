@@ -200,6 +200,11 @@
     "quizWrong": "Essa alternativa se separa do que a seção mostra.",
     "quizFeedback": "Por quê:",
     "quizGateNext": "O quiz desta seção ainda espera a resposta certa. Marcar fora do alvo abre, na conversa, a explicação de onde a alternativa se separa do que a seção mostra — e um quiz novo sobre o mesmo trecho.",
+    "quizGateTyping": "Termine de ler esta seção — o quiz dela aparece na conversa assim que o texto acabar de ser escrito. Você pode clicar (ou apertar qualquer tecla) para mostrar tudo de uma vez.",
+    "revealGateTyping": "Esta seção ainda está sendo escrita. “Próximo →” mostra tudo de uma vez.",
+    "revealTypingTooltip": "Mostrar a seção inteira agora (não avança)",
+    "challengeGateFinish": "A teoria acabou. Falta o desafio desta aula — ele é o próximo passo, e concluí-lo libera a conclusão da aula.",
+    "challengeGateQuiz": "O desafio abre depois que o quiz da aula tiver a resposta certa ({{n}} ainda sem) — é a prova de que o trecho foi entendido.",
     "quizGateFinish": "A aula conclui quando os quizzes tiverem a resposta certa ({{n}} ainda sem). Marcar fora do alvo abre, na conversa, a explicação de onde a alternativa se separa do que a seção mostra — e um quiz novo sobre o mesmo trecho.",
     "quizOverlayTitle": "Prove que entendeu",
     "quizOverlayAria": "Quiz da seção, sobre a tela",
@@ -235,6 +240,8 @@
     "challengesTitle": "Desafios desta aula",
     "challengesButton": "Desafios",
     "challengesButtonAria": "Desafios da aula ({{pending}} pendentes)",
+    "challengeStepButton": "Fazer o desafio",
+    "challengeStepButtonAria": "Fazer o desafio ({{pending}} pendentes)",
     "challengesListAria": "Lista de desafios desta aula",
     "difficulty": "dificuldade {{n}}",
     "generatedBadge": "gerado para você",
@@ -691,7 +698,10 @@
     "listFailed": "Não foi possível carregar a lista de trilhas.",
     "backButton": "Voltar",
     "lessonDoneGlowAria": "Aula concluída: {{title}}",
-    "noTracksHint": "Crie a primeira com o CLI de autoria: npm run track -- track:new <slug> --title \"…\" --description \"…\""
+    "noTracksHint": "Crie a primeira com o CLI de autoria: npm run track -- track:new <slug> --title \"…\" --description \"…\"",
+    "justUnlockedBadge": "Destravou agora",
+    "justUnlockedAnnounce": "Aula destravada: {{titles}}",
+    "justUnlockedAnnounceMany": "Aulas destravadas: {{titles}}"
   },
   "challengeGen": {
     "title": "Gerando novo desafio",

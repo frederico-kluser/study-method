@@ -178,6 +178,101 @@ export function remedialQuizIdFor(
   return `${key}#g${req.generation}`;
 }
 
+// ─── ONDA12: a GERAÇÃO NÃO PODE HERDAR O VIÉS DE POSIÇÃO ────────────────────
+//
+// O defeito medido nas trilhas autoradas:
+//
+//     $ grep -rho '"answerIndex": *[0-9]*' resources/tracks --include='*.json' \
+//         | sort | uniq -c
+//          44 "answerIndex": 0
+//
+// O quiz remedial nasce de um PROMPT, e o prompt daqui trazia o exemplo JSON
+// com `"answerIndex": 0` fixo e nenhuma regra sobre posição — um few-shot de
+// uma amostra só, apontando para o mesmo lugar que o corpus já apontava. A
+// alternativa correta do quiz gerado tendia ao índice 0 pela mesma razão que a
+// autorada: ninguém pediu outra coisa.
+//
+// A DECISÃO (o pedido diz "rejeitar OU reordenar — decida e explique"):
+// REORDENAR, nunca rejeitar. Rejeitar um quiz correto por causa da POSIÇÃO da
+// resposta seria fail-closed em cima de conteúdo bom: o aluno fica sem quiz
+// novo, o ciclo trava (o gate de maestria só abre com acerto) e ainda se
+// queima uma chamada de LLM para pedir de novo o que já veio certo. A posição
+// é uma propriedade que o PRODUTO controla — então o produto a impõe, em vez
+// de recusar quem não adivinhou. O prompt PEDE a posição (o modelo escreve as
+// alternativas já na ordem certa, com os racionais alinhados) e o parser
+// GARANTE (rotação determinística quando o modelo não obedeceu).
+//
+// POR QUE ROTAÇÃO, e não embaralhamento: a rotação preserva a ORDEM RELATIVA
+// dos distratores, então `optionRationales[i]` continua descrevendo
+// `options[i]` sem nenhum trabalho extra, e o resultado é reproduzível byte a
+// byte a partir do pedido. Embaralhar aqui também espalharia a resposta, mas
+// destruiria a única estrutura que o autor do quiz (a LLM) declarou.
+
+/** Offset e primo do FNV-1a de 32 bits (a constante padrão do algoritmo). */
+const FNV_OFFSET_BASIS = 2166136261;
+const FNV_PRIME = 16777619;
+
+/**
+ * FNV-1a de 32 bits. ESPELHO do hash de `src/lib/quizOptionOrder.ts` — espelho
+ * e não import, pela mesma razão de `quizStateKeyFor`/`remedialQuizIdFor`: o
+ * processo main não depende do bundle do renderer. Nada aqui exige que os dois
+ * hashes CONCORDEM (as duas decisões são independentes: uma escolhe a posição
+ * no DADO, a outra a posição na TELA); o que se exige é determinismo. PURA.
+ */
+function fnv1a32(text: string): number {
+  let hash = FNV_OFFSET_BASIS >>> 0;
+  for (let i = 0; i < text.length; i++) {
+    hash ^= text.charCodeAt(i);
+    hash = Math.imul(hash, FNV_PRIME) >>> 0;
+  }
+  return hash >>> 0;
+}
+
+/**
+ * A POSIÇÃO EXIGIDA da alternativa correta no quiz remedial deste pedido —
+ * derivada da id determinística do próprio quiz (`<chave>#g<N>`), então ela é
+ * a MESMA no prompt e no parser, e a MESMA numa segunda tentativa do mesmo
+ * pedido.
+ *
+ * O XOR-FOLD NÃO É ENFEITE — foi MEDIDO. `hash % 4` cru sobre o FNV-1a é
+ * enviesado até a inutilidade aqui: a última operação do FNV é `(h ^ byte) *
+ * 0x01000193`, e os 2 bits BAIXOS de um produto dependem só dos 2 bits baixos
+ * dos fatores. Como toda id termina em `#g<dígitos>`, os bits baixos ficam
+ * presos ao último dígito. Medição sobre 4 000 pedidos com id e geração
+ * variando (o próprio teste desta onda):
+ *
+ *     h % 4          →  0,00%   11,38%   0,00%   88,63%   ← degenerado
+ *     (h ^ h>>>16)%4 → 23,98%   25,25%  25,65%   25,13%   ← o que se usa
+ *
+ * O fold espalha os bits altos (bem misturados no FNV) sobre os baixos antes
+ * do módulo — é o remédio que a própria especificação do FNV recomenda para
+ * faixas pequenas. Trocar por `% 4` cru reintroduz exatamente o defeito que
+ * esta onda existe para matar, e o teste de distribuição reprova. PURA.
+ */
+export function requiredAnswerIndexFor(
+  req: Pick<QuizRemedialRequest, 'originAssertionId' | 'generation' | 'assertion'>,
+): number {
+  const hash = fnv1a32(remedialQuizIdFor(req));
+  return (((hash ^ (hash >>> 16)) >>> 0) % QUIZ_OPTION_COUNT);
+}
+
+/**
+ * Rotaciona a lista para que o item que estava em `from` termine em `to`,
+ * preservando a ordem relativa de todos os demais. Aplicada em PARALELO a
+ * `options` e a `optionRationales` (é o que mantém o racional colado na
+ * alternativa que ele descreve). Lista vazia ou índice fora de faixa devolve a
+ * lista intacta — a função é TOTAL. PURA.
+ */
+export function rotateOptions<T>(items: readonly T[], from: number, to: number): T[] {
+  const n = items.length;
+  if (n === 0 || !Number.isInteger(from) || !Number.isInteger(to)) return [...items];
+  if (from < 0 || from >= n || to < 0 || to >= n) return [...items];
+  const shift = (((to - from) % n) + n) % n;
+  const out = new Array<T>(n);
+  for (let i = 0; i < n; i++) out[(i + shift) % n] = items[i];
+  return out;
+}
+
 /**
  * A RECORRÊNCIA (ERR-4) derivada do que o pedido REALMENTE traz. A id de um
  * quiz remedial é `<chave>#g<N>`, então N+1 é o número desta falha na série
@@ -330,6 +425,11 @@ export function buildRemedialPrompt(req: QuizRemedialRequest): string {
   const explicacao = isFilled(req.explanation)
     ? `EXPLICAÇÃO QUE O ALUNO ACABOU DE LER (o quiz novo cobra o que ela ensinou):\n${req.explanation}`
     : 'EXPLICAÇÃO QUE O ALUNO ACABOU DE LER: (não veio no pedido)';
+  // ONDA12: a POSIÇÃO da resposta é do produto (ver o bloco de
+  // `requiredAnswerIndexFor`). Ela entra no exemplo JSON e na regra 3 — o
+  // exemplo fixo em `"answerIndex": 0` era um few-shot de uma amostra só,
+  // apontando para o mesmo índice em que as 44 afirmações autoradas já estão.
+  const required = requiredAnswerIndexFor(req);
 
   return `Você é o autor do quiz da trilha "${req.trackSlug}", aula "${req.lessonId}", seção "${req.sectionKey}". O aluno errou o quiz da afirmação abaixo e já leu a explicação do erro. Gere UM quiz NOVO sobre o MESMO conteúdo, para ele PROVAR que entendeu.
 
@@ -353,7 +453,7 @@ FORMATO (responda SOMENTE um objeto JSON válido, sem markdown):
   "statement": "a afirmação que este quiz verifica, em pt-BR",
   "question": "a pergunta NOVA, em pt-BR",
   "options": ["alternativa 1", "alternativa 2", "alternativa 3", "alternativa 4"],
-  "answerIndex": 0,
+  "answerIndex": ${required},
   "feedback": "por que a alternativa correta é a correta, em 1 ou 2 frases",
   "optionRationales": ["racional da alternativa 1", "racional da 2", "racional da 3", "racional da 4"]
 }
@@ -361,8 +461,8 @@ FORMATO (responda SOMENTE um objeto JSON válido, sem markdown):
 REGRAS (obrigatórias):
 1. O quiz cobra a MESMA ideia da afirmação de origem e da seção de teoria — conteúdo igual, pergunta diferente. Nunca cobre algo que a aula não ensinou.
 2. EXATAMENTE ${QUIZ_OPTION_COUNT} alternativas, todas diferentes entre si e todas plausíveis. Proibidas alternativas de enchimento, "todas as anteriores", "nenhuma das anteriores" e alternativas absurdas.
-3. "answerIndex" é o índice inteiro (0 a ${QUIZ_OPTION_COUNT - 1}) da ÚNICA alternativa correta.
-4. "optionRationales" tem EXATAMENTE ${QUIZ_OPTION_COUNT} itens, um por alternativa, NA MESMA ORDEM: em cada alternativa errada, por que ela NÃO se sustenta; na correta, por que ela se sustenta. Nenhum item vazio.
+3. "answerIndex" é o índice inteiro (0 a ${QUIZ_OPTION_COUNT - 1}) da ÚNICA alternativa correta. NESTE quiz ela TEM DE ficar na posição ${required}: escreva a lista "options" de modo que a alternativa correta seja a de índice ${required} (a ${required + 1}ª da lista) e responda "answerIndex": ${required}. A posição da resposta VARIA de quiz para quiz de propósito — se ela caísse sempre no mesmo lugar, o aluno acertaria pela posição sem ler as alternativas.
+4. "optionRationales" tem EXATAMENTE ${QUIZ_OPTION_COUNT} itens, um por alternativa, NA MESMA ORDEM: em cada alternativa errada, por que ela NÃO se sustenta; na correta, por que ela se sustenta. Nenhum item vazio. Se você reposicionar as alternativas para cumprir a regra 3, reposicione os racionais junto — item i descreve a alternativa i.
 5. Português, linguagem simples, frases curtas.
 6. O texto fala da afirmação e do código, NUNCA do aluno: nada de elogio, nada de julgamento da pessoa, nada de "você já domina", nada de percentual ou nota de domínio.
 7. NUNCA inclua URLs ou fontes.
@@ -404,7 +504,13 @@ export function askedQuestionsOf(req: QuizRemedialRequest): string[] {
  *
  * A `id`, o `sectionId`, o `originAssertionId` e a `generation` NÃO vêm da
  * LLM: são derivados do pedido (a âncora e a identidade do ciclo são do
- * produto, não do modelo). PURA.
+ * produto, não do modelo).
+ *
+ * ONDA12 — a POSIÇÃO da resposta entrou nessa lista: `answerIndex` passa a ser
+ * `requiredAnswerIndexFor(req)` e as alternativas (com os racionais) são
+ * ROTACIONADAS para honrá-lo. Isso NÃO é um critério de reprovação novo — é
+ * normalização; ver o bloco de `requiredAnswerIndexFor` para a decisão
+ * "reordenar, nunca rejeitar" e o porquê. PURA.
  */
 export function parseRemedialQuiz(raw: unknown, req: QuizRemedialRequest): RemedialQuizDto | null {
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
@@ -437,16 +543,26 @@ export function parseRemedialQuiz(raw: unknown, req: QuizRemedialRequest): Remed
   const asked = new Set(askedQuestionsOf(req).map(normalizeForCompare));
   if (asked.has(normalizeForCompare(question))) return null;
 
+  // ONDA12 — A POSIÇÃO É NORMALIZADA, NÃO AUDITADA. O prompt PEDE a posição
+  // `required`; aqui ela é GARANTIDA por rotação, e é por isso que este passo
+  // não pode devolver `null`: um quiz correto que só errou a posição continua
+  // sendo um quiz correto, e recusá-lo travaria o ciclo do aluno (sem quiz
+  // novo o gate de maestria nunca abre) para consertar algo que o produto
+  // conserta sozinho. Quando o modelo obedeceu, `shift` é 0 e nada muda.
+  // Os racionais rotacionam JUNTO — item i descreve a alternativa i.
+  const required = requiredAnswerIndexFor(req);
   const sectionId = req.assertion?.sectionId;
   return {
     id: remedialQuizIdFor(req),
     statement: r.statement.trim(),
     question,
-    options,
-    answerIndex: idx,
+    options: rotateOptions(options, idx, required),
+    answerIndex: required,
     feedback: r.feedback.trim(),
     ...(sectionId === undefined ? {} : { sectionId }),
-    ...(optionRationales ? { optionRationales } : {}),
+    ...(optionRationales
+      ? { optionRationales: rotateOptions(optionRationales, idx, required) }
+      : {}),
     originAssertionId: req.originAssertionId,
     generation: req.generation,
   };

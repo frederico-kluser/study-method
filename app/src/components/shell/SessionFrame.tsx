@@ -88,10 +88,14 @@ function SessionField({
         component="span"
         sx={(theme) => ({
           color: theme.vars.palette.text.secondary,
-          // ONDA 1 (game-foundations): rótulos do quadro de sessão (HUD) em
-          // Press Start 2P — o acento "pixel" RARO do leet-code-rpg. NÃO usar
-          // em corpo: a entrelinha alta (1.8 da variante) é o que evita o
-          // corte de glifos; não voltar a 1.2 aqui.
+          // Rótulos do quadro de sessão (HUD). ONDA 11: a variante `pixel`
+          // ficou com o NOME LEGADO — a fonte de pixel (Press Start 2P) saiu do
+          // projeto junto com o resto do retrô ("a fonte nao quero retro"), e
+          // hoje ela é o DISPLAY em 700/13px com entrelinha 1,5. O papel não
+          // mudou: etiqueta de HUD, nunca corpo nem título (13px fica abaixo
+          // dos 14 de `caption`, então ela não compete com a hierarquia).
+          // Renomear a variante para `label` custaria tocar este arquivo, o
+          // CodeBlock e os TypographyVariants/variantMapping do tema.
           letterSpacing: '0.08em',
           // O rótulo segue a mesma regra do valor: quebra, nunca recorta.
           whiteSpace: 'normal',

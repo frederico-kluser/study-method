@@ -60,7 +60,8 @@
  * pré-hidratação seguir o `prefers-color-scheme` do SO; `html.light`/`html.dark`
  * fixam a escolha assim que `primeColorSchemeClass()` marca o <html>. O branco
  * do canvas claro fica a um passo de `surface.level0` (#faf7f2) e o quase-preto
- * do escuro a um passo de #12141a — o repaint da hidratação deixa de ser um
+ * do escuro a um passo do nível 0 escuro (#0e0e0e desde a ONDA 11, quando a
+ * rampa escura virou cinza NEUTRO) — o repaint da hidratação deixa de ser um
  * flash e vira um ajuste imperceptível. Zero hex envolvido.
  *
  * CASO DE BORDA CONHECIDO E ACEITO: com override MANUAL contrário ao SO (SO no

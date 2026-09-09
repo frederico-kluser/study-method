@@ -30,7 +30,7 @@
  * cartão de leitura e painel afundado. Foi recalibrado contra o nível 2 (o mais
  * exigente dos três) justamente porque `<Link>` dentro de `<Paper>` já existe
  * nesta base (LessonView, lista de fontes) e a calibração antiga, feita só
- * contra o nível 0, caía a 4,07:1 no nível 1 do escuro.
+ * contra o nível 0, caía ABAIXO do piso AA no nível 1 do escuro.
  * Nos níveis 3 e 4 — o CHROME (rail, dock, estado selecionado) — texto é TINTA
  * (`text.primary`/`text.secondary`); ali o acento aparece como preenchimento,
  * ícone ou borda, papéis cujo piso é 3:1, não 4,5:1. `palette.nonText` tem a
@@ -68,14 +68,15 @@
  * `body2`/`subtitle2` usam o degrau de 16.
  *
  * FRONTEIRA DISPLAY/CORPO — é SEMÂNTICA, não de tamanho: TÍTULO (h1–h6) é
- * `FONT_STACK.display` (Chakra Petch, 700); TEXTO — corpo, subtítulo, rótulo de
- * botão, legenda, overline — é `FONT_STACK.body` (Inter). Traçar a fronteira por
- * tamanho é o que produzia um H1 em Nunito 700 seguido de um H2 em Inter 400:
- * a hierarquia trocava de VOZ no meio do caminho. Como h6 empata com `body1` em
- * 18px, quem separa os dois é a família e o peso, não o corpo — e é de propósito
- * que o menor título nunca fique ABAIXO do texto que ele encabeça. (O acento
- * PIXEL da variante `pixel` — Press Start 2P — é exceção RARA e deliberada:
- * rótulo de conquista/HUD, nunca voz de hierarquia.)
+ * `FONT_STACK.display` (Nunito Variable, 800 no topo e 700 do h4 para baixo);
+ * TEXTO — corpo, subtítulo, rótulo de botão, legenda, overline — é
+ * `FONT_STACK.body` (Inter). Traçar a fronteira por tamanho é o que produzia um
+ * H1 em display 700 seguido de um H2 em Inter 400: a hierarquia trocava de VOZ
+ * no meio do caminho. Como h6 empata com `body1` em 18px, quem separa os dois é
+ * a família e o peso, não o corpo — e é de propósito que o menor título nunca
+ * fique ABAIXO do texto que ele encabeça. (A variante `pixel` — nome LEGADO,
+ * ver a seção da escala — é um RÓTULO de HUD em display, não um nível de
+ * hierarquia.)
  *
  * ─── DECISÃO 3: dois níveis de movimento, separados por PROPRIEDADE ────────
  * `theme.transitions` ganha, por module augmentation, os nomes `spatial` e
@@ -121,6 +122,7 @@ import {
   MOTION,
   NONTEXT_DARK,
   NONTEXT_LIGHT,
+  SCRIM,
   SHAPE,
   SPATIAL_FORBIDDEN_PROPERTIES,
   SURFACE_DARK,
@@ -198,11 +200,14 @@ declare module '@mui/material/styles' {
     surface: SurfaceRamp;
     /** camada não-texto (>= 3:1): borda de campo, ícone, anel de foco. */
     nonText: NonTextLayer;
+    /** escurecimento por trás de um modal — `color-mix` já pronto, ver SCRIM. */
+    scrim: string;
   }
   interface PaletteOptions {
     study?: AccentPaletteColor;
     surface?: SurfaceRamp;
     nonText?: NonTextLayer;
+    scrim?: string;
   }
 
   /** Nível SPATIAL (transform/geometria, pode ultrapassar) e nível EFFECTS
@@ -223,8 +228,9 @@ declare module '@mui/material/styles' {
   /** Variante tipográfica de código/terminal (mono, 15/1,5). */
   interface TypographyVariants {
     code: TypographyStyle;
-    /** Acento "pixel" RARO (Press Start 2P) — labels de conquista/HUD em
-     *  uppercase pequeno. Variante, não `sx` espalhado: é token de tema. */
+    /** Rótulo de HUD em uppercase pequeno (display 700/13px). O nome `pixel` é
+     *  LEGADO — a fonte de pixel saiu na onda 11; ver a definição da variante.
+     *  Variante, não `sx` espalhado: é token de tema. */
     pixel: TypographyStyle;
   }
   interface TypographyVariantsOptions {
@@ -316,6 +322,19 @@ export interface MotionTheme {
 export interface StyleTheme extends MotionTheme {
   vars: Theme['vars'];
   spacing: Theme['spacing'];
+  /**
+   * A ÚNICA saída permitida quando uma variável CSS não resolve o problema —
+   * e ela existe porque um caso real apareceu na onda 11: o papel do
+   * `<Dialog>`. Sob polaridade NEGATIVA (escuro) elevação é LUZ, então o
+   * modal é o TOPO da rampa; sob polaridade POSITIVA (claro) a rampa
+   * ESCURECE conforme sobe, e um modal mais escuro que a página seria um
+   * buraco. Não existe uma variável só que signifique "level4 no escuro e
+   * level1 no claro", então o galho é `applyStyles`, SEMPRE por último no
+   * objeto de estilo (é ele que precisa vencer por ordem).
+   * O que continua PROIBIDO é o ternário sobre `palette.mode`: aquele
+   * resolve UMA vez, na construção do tema, e trava no galho errado.
+   */
+  applyStyles: Theme['applyStyles'];
 }
 
 const SPATIAL_DURATION_KEY = {
@@ -385,12 +404,25 @@ export function effectsTransition(
  * Composição: 3px de traço em `nonText.focus` + 2px de folga, e a folga é
  * PREENCHIDA por um halo de `text.primary` (box-shadow com spread 2px, exatamente
  * a largura do offset). O halo não é enfeite: `nonText.focus` foi calibrado em
- * >= 3:1 contra os níveis 0 e 1 (3,02 e 3,23 no claro; 3,35 e 3,03 no escuro),
- * mas cai para ~2,5:1 nos níveis 3–4, que são justamente o chrome (rail, dock,
- * menu) onde há muito alvo focável. A tinta primária alcança >= 9,4:1 contra
- * TODOS os cinco níveis nos dois esquemas, então o indicador composto continua
- * válido em qualquer superfície — é a técnica de indicador de duas cores do
- * Understanding do SC 1.4.11.
+ * >= 3:1 contra os níveis 0 e 1 —
+ *   [medido] NONTEXT_LIGHT.focus x SURFACE_LIGHT.level0 = 3,02:1
+ *   [medido] NONTEXT_LIGHT.focus x SURFACE_LIGHT.level1 = 3,23:1
+ *   [medido] NONTEXT_DARK.focus x SURFACE_DARK.level0 = 3,51:1
+ *   [medido] NONTEXT_DARK.focus x SURFACE_DARK.level1 = 3,13:1
+ * — e CAI abaixo do piso nos níveis 3–4, que são justamente o chrome (rail,
+ * dock, menu) onde há muito alvo focável:
+ *   [medido] NONTEXT_LIGHT.focus x SURFACE_LIGHT.level4 = 2,21:1
+ *   [medido] NONTEXT_DARK.focus x SURFACE_DARK.level4 = 2,04:1
+ * (Este parágrafo dizia "3,35 e 3,03 no escuro" desde a onda 11, quando o
+ * `focus` escuro mudou de valor e ninguém recalculou — o número certo é o
+ * medido acima. A forma `[medido]` existe para que a próxima troca de hex
+ * reprove o teste em vez de envelhecer em silêncio; ver a regra 5 do cabeçalho
+ * de designTokens.ts.)
+ * A tinta primária, essa, alcança o piso não-texto contra TODOS os cinco níveis
+ * nos dois esquemas — o pior caso é
+ * [medido] INK_DARK.primary x SURFACE_DARK.level4 = 9,83:1 —, então o indicador
+ * composto continua válido em qualquer superfície: é a técnica de indicador de
+ * duas cores do Understanding do SC 1.4.11.
  *
  * Exportado (junto de `focusRingStyles`) para que rail, dock e paleta de
  * comandos usem o MESMO anel em vez de reinventar cada um o seu.
@@ -423,6 +455,39 @@ export function focusRingStyles(theme: FocusRingTheme): {
     outline: `${FOCUS_RING.width}px solid ${theme.vars.palette.nonText.focus}`,
     outlineOffset: FOCUS_RING.offset,
     boxShadow: `0 0 0 ${FOCUS_RING.haloWidth}px ${theme.vars.palette.text.primary}`,
+  };
+}
+
+/**
+ * O PAPEL DE UM MODAL — a superfície do cartão que flutua sobre o scrim.
+ *
+ * ONDA 12: isto era um `styleOverrides` do `MuiDialog` e mais nada; o overlay do
+ * quiz (`src/components/quiz/QuizOverlayHost.tsx`), que NÃO é um `<Dialog>`,
+ * pintava o próprio cartão no nível 3 nos DOIS esquemas — e no CLARO o nível 3
+ * (#e9e2d6) é mais ESCURO que a página (#faf7f2), então o modal lia como buraco
+ * em vez de elevação. Era o único modal da base fora da regra. Extraído para cá
+ * como função para que o `MuiDialog` e todo overlay feito à mão consumam a MESMA
+ * decisão em vez de reimplementá-la:
+ *
+ *   - ESCURO: nível 4, o TOPO da rampa. Sob polaridade negativa elevação é LUZ —
+ *     o objeto mais alto da tela é o mais claro, e é esse valor que bate com o
+ *     cinza médio do cartão da referência.
+ *   - CLARO: nível 1, a superfície de leitura. Sob polaridade positiva a rampa
+ *     ESCURECE conforme sobe; qualquer nível acima de 1 aqui é um buraco.
+ *
+ * A assimetria é o motivo de existir `applyStyles` (ver `StyleTheme.applyStyles`)
+ * e ele vem SEMPRE POR ÚLTIMO no objeto — é a ordem que faz o galho escuro
+ * vencer. Ternário sobre `palette.mode` resolveria uma vez só e travaria.
+ *
+ * Serve tanto para `styleOverrides` quanto para `sx`: a chave que o
+ * `applyStyles` devolve é um seletor aninhado, que o `sx` também entende.
+ */
+export function modalSurfaceStyles(theme: StyleTheme): Record<string, unknown> {
+  return {
+    backgroundColor: theme.vars.palette.surface.level1,
+    ...theme.applyStyles('dark', {
+      backgroundColor: theme.vars.palette.surface.level4,
+    }),
   };
 }
 
@@ -472,8 +537,34 @@ function scaleSize(step: number): number {
 /** Peso dos subtítulos e rótulos — corpo com autoridade, sem virar título. */
 const LABEL_WEIGHT = 600;
 
+/* ── PESO DOS TÍTULOS: 800 no topo, 700 na base (ONDA 11) ───────────────────
+ * O display voltou a ser VARIÁVEL (Nunito, eixo wght 200..1000). O Chakra Petch
+ * da onda 1 era estático e parava em 700, então h1 e h6 tinham exatamente o
+ * MESMO peso e a hierarquia dependia só do tamanho — que no piso da escala é
+ * zero (h6 e body1 empatam em 18px).
+ * Com o eixo aberto, os TRÊS níveis de topo (h1–h3, os títulos de tela) sobem
+ * para 800 e os TRÊS de baixo (h4–h6, títulos dentro de um cartão) ficam em
+ * 700. Assim a hierarquia passa a ter DOIS sinais em vez de um, e o h6 continua
+ * separado do body1 por família (Nunito x Inter) E por peso (700 x 400).
+ * O piso é 700 de propósito: abaixo disso o Nunito, que é arredondado, deixa de
+ * ler como título ao lado do Inter 600 dos subtítulos. */
+const DISPLAY_WEIGHT_TOP = 800;
+const DISPLAY_WEIGHT_BASE = 700;
+
 /** Famílias padrão do MUI que recebem os dois papéis de acento. */
 const ACCENT_SLOTS = ['primary', 'secondary', 'error', 'warning', 'info', 'success'] as const;
+
+/* ── Forma das SUPERFÍCIES (cartão, papel, chip, modal) — ONDA 11 ───────────
+ * Um número só para os três, porque eles têm que combinar: a referência
+ * (Nintendo Switch Online) é feita de retângulos de canto generoso SEM contorno
+ * pesado, e um card de borda 2px ao lado de um modal de borda 0 lê como duas
+ * bases de design diferentes na mesma tela.
+ * `SURFACE_RADIUS` = 16 fica um degrau acima do `SHAPE.base` (14) que rege
+ * botão e campo, exatamente como no mock: o container é mais macio que o
+ * controle dentro dele. */
+const SURFACE_RADIUS = 16;
+/** 1px: aresta, não moldura. A onda 1 usava 2px (traço "game" do leet-code-rpg). */
+const SURFACE_BORDER_WIDTH = 1;
 
 /* ═══════════════════════════════════════════════════════════════════════════
  * PALETA — construída DUAS vezes com a mesma função, uma por esquema
@@ -527,6 +618,14 @@ function cartridgePalette(
     study: accent(accents.study),
     surface,
     nonText,
+    // ONDA 12: o SCRIM vira slot de paleta. Ele é IGUAL nos dois esquemas de
+    // propósito — escurecer é escurecer, e a cor base é acromática (ver SCRIM em
+    // designTokens.ts) —, mas passa pelo palette assim mesmo para virar a
+    // variável `--mui-palette-scrim`: é ela que os overlays fora do MuiBackdrop
+    // (o do quiz, o de geração de desafio) consomem por
+    // `theme.vars.palette.scrim`, em vez de cada um pintar a sua rgba() crua.
+    // `color-mix` e não `alpha()`: a regra do cabeçalho de designTokens.ts.
+    scrim: `color-mix(in srgb, ${SCRIM.color} ${SCRIM.opacityPercent}%, transparent)`,
   };
 }
 
@@ -598,48 +697,48 @@ export const theme = createTheme({
     fontSize: TYPE_BODY_SIZE,
 
     // ── TÍTULOS (h1–h6): stack de DISPLAY, sem exceção ────────────────────
-    // Chakra Petch (display do projeto irmão leet-code-rpg; terminais
-    // geométricos = registro de jogo sem abrir mão de leitura), 700 do topo ao
-    // sexto — a família para em 700, não tem o 800 do Nunito. A fronteira
+    // ONDA 11: Nunito Variable (geométrica-humanista, arredondada — a voz da
+    // referência Nintendo Switch) no lugar do Chakra Petch, que era techno e
+    // quadrada. "A fonte nao quero retro", verbatim do dono. 800 nos três
+    // níveis de topo, 700 nos três de baixo (ver DISPLAY_WEIGHT_*). A fronteira
     // display/corpo é SEMÂNTICA: título é display, texto é corpo. Nenhum nível
     // de título troca de família no meio da hierarquia.
     h1: {
       fontFamily: FONT_STACK.display,
-      fontWeight: 700,
+      fontWeight: DISPLAY_WEIGHT_TOP,
       fontSize: scaleSize(5),
       lineHeight: DISPLAY_LINE_HEIGHT,
     },
     h2: {
       fontFamily: FONT_STACK.display,
-      fontWeight: 700,
+      fontWeight: DISPLAY_WEIGHT_TOP,
       fontSize: scaleSize(4),
       lineHeight: DISPLAY_LINE_HEIGHT,
     },
     h3: {
       fontFamily: FONT_STACK.display,
-      fontWeight: 700,
+      fontWeight: DISPLAY_WEIGHT_TOP,
       fontSize: scaleSize(3),
       lineHeight: DISPLAY_LINE_HEIGHT,
     },
     h4: {
       fontFamily: FONT_STACK.display,
-      fontWeight: 700,
+      fontWeight: DISPLAY_WEIGHT_BASE,
       fontSize: scaleSize(2),
       lineHeight: DISPLAY_LINE_HEIGHT,
     },
     h5: {
       fontFamily: FONT_STACK.display,
-      fontWeight: 700,
+      fontWeight: DISPLAY_WEIGHT_BASE,
       fontSize: scaleSize(1),
       lineHeight: DISPLAY_LINE_HEIGHT,
     },
     // h6 empata com body1 em 18px — é o PISO da escala de título, e de
     // propósito ele nunca cai abaixo do texto que encabeça. Quem separa os
-    // dois é a família (Chakra Petch x Inter) e o peso (700 x 400), não o
-    // corpo.
+    // dois é a família (Nunito x Inter) e o peso (700 x 400), não o corpo.
     h6: {
       fontFamily: FONT_STACK.display,
-      fontWeight: 700,
+      fontWeight: DISPLAY_WEIGHT_BASE,
       fontSize: scaleSize(0),
       lineHeight: DISPLAY_LINE_HEIGHT,
     },
@@ -684,15 +783,24 @@ export const theme = createTheme({
       fontSize: scaleSize(-1),
     },
 
-    // Acento "pixel" RARO — Press Start 2P em labels de conquista/HUD
-    // (uppercase pequeno). 12px de Press Start 2P JÁ é grande visualmente (a
-    // família é monoespaçada ~1em por glifo) — é acento, não voz. Entrelinha
-    // alta de propósito: glifos pixel não podem ser cortados.
+    // `pixel` — NOME LEGADO. ONDA 11: a família que dava nome à variante
+    // (Press Start 2P, uma fonte de PIXEL) saiu do projeto com o resto do
+    // registro retro. A VARIANTE ficou porque dois componentes a consomem
+    // (`SessionFrame` nos rótulos do quadro de sessão e `CodeBlock` no rótulo
+    // de linguagem/saída do bloco de código) e eles pertencem a outra frente;
+    // renomeá-la para `label` exige tocar nesses dois arquivos.
+    //
+    // O PAPEL não mudou — rótulo de HUD, uppercase pequeno, nunca corpo nem
+    // título —, mudou a VOZ: agora é o próprio display (Nunito) em 700, o que
+    // mantém o rótulo na mesma família dos títulos sem competir com eles (13px
+    // fica abaixo do menor degrau da escala, os 14px de `caption`).
+    // A entrelinha caiu de 1,8 para 1,5: os 1,8 existiam porque glifo de pixel
+    // é cortado quando a caixa aperta, e essa razão morreu junto com a fonte.
     pixel: {
-      fontFamily: FONT_STACK.accent,
-      fontWeight: 400,
-      fontSize: 12,
-      lineHeight: 1.8,
+      fontFamily: FONT_STACK.display,
+      fontWeight: DISPLAY_WEIGHT_BASE,
+      fontSize: 13,
+      lineHeight: 1.5,
       letterSpacing: '0.06em',
       textTransform: 'uppercase',
     },
@@ -797,10 +905,46 @@ export const theme = createTheme({
         // COLORIDAS da onda 1 (game-foundations) entram EXPLICITAMENTE por
         // variante — `disableElevation` só zera a elevação cinza do MUI.
         disableElevation: true,
+        // ── O RIPPLE DE FOCO NÃO PULSA MAIS (ONDA 13) ────────────────────
+        // Prova visual do dono, medida no app rodando 2,5s DEPOIS do Tab, em
+        // REPOUSO, nos dois esquemas: sobre a pílula de alternativa (472x52) o
+        // `TouchRipple` de foco desenhava um `.MuiTouchRipple-childPulsate` de
+        // 363x363 com `border-radius: 50%`. Num alvo SETE VEZES mais largo que
+        // alto o raio de 50% nunca aparece: o que chega ao olho é uma BARRA
+        // CINZA CHAPADA atravessando a cápsula, com as pontas escuras
+        // sobrando. E ela não é um flash — `ButtonBase` chama `ripple.pulsate()`
+        // enquanto o foco estiver ali (ButtonBase.js:202-203), então fica.
+        // Desligar é o certo e não custa acessibilidade: o indicador de foco
+        // desta base é o ANEL DE DUAS CORES (`focusRingStyles`, técnica do
+        // Understanding do SC 1.4.11), que é mais forte que o ripple e é o que
+        // a norma pede. O ripple de CLIQUE continua — só o de foco sai.
+        disableFocusRipple: true,
       },
       styleOverrides: {
         root: ({ theme: t }: { theme: StyleTheme }) => ({
           borderRadius: SHAPE.md,
+          // ── O HALO DO ANEL DE FOCO, DE VOLTA (ONDA 13) ──────────────────
+          // O `disableElevation` logo acima tem um efeito colateral que não
+          // está no nome dele: o MUI, para a variante `disableElevation`,
+          // declara `boxShadow: 'none'` TAMBÉM em `&.Mui-focusVisible`
+          // (Button.js:260-262). Como o halo do nosso anel de foco É um
+          // `boxShadow` (`focusRingStyles`: outline em `nonText.focus` + halo
+          // de 2px em `text.primary`, preenchendo a folga do `outline-offset`),
+          // o `disableElevation` vinha apagando a SEGUNDA COR do indicador em
+          // TODO botão do app, em silêncio, desde a onda 1.
+          // O que a prova visual mediu na pílula: `outline: 2.4px solid
+          // rgb(12,113,150)` com `outline-offset: 2px` e `box-shadow: none` —
+          // as duas cores adjacentes ao anel eram o próprio cartão (#3b3b3b),
+          // e [medido] NONTEXT_DARK.focus x SURFACE_DARK.level4 = 2,04:1, abaixo do
+          // piso NÃO-TEXTO de 3:1. Com o halo de volta, quem encosta no anel é
+          // `text.primary`, cujo pior par é
+          // [medido] INK_DARK.primary x SURFACE_DARK.level4 = 9,83:1 — que é
+          // exatamente a razão de o indicador ser de duas cores.
+          // `styleOverrides` do tema é aplicado DEPOIS das variantes do
+          // componente, então esta declaração vence a do `disableElevation`.
+          '&.Mui-focusVisible': {
+            boxShadow: `0 0 0 ${FOCUS_RING.haloWidth}px ${t.vars.palette.text.primary}`,
+          },
           // ONDA 1 (game-foundations): resposta de botão de JOGO — todo botão
           // sobe 2% no hover e afunda para 0,96 no press, com o transform em
           // movimento SPATIAL (pode ultrapassar) e cor/sombra em EFFECTS. A
@@ -816,8 +960,34 @@ export const theme = createTheme({
           '&:active': {
             transform: 'scale(0.96)',
           },
+          // ── DESABILITADO QUE CARREGA INFORMAÇÃO (ONDA 12) ─────────────
+          // Prova visual do dono: o "Próximo →" bloqueado pelo quiz ficava
+          // cinza sobre cinza no escuro, praticamente invisível — e ele é o
+          // estado NORMAL enquanto a aula não foi respondida, ou seja, o que o
+          // aluno mais vê. O default do MUI pinta `action.disabled`, que no
+          // escuro é branco a 30%: composto sobre o nível 0 isso vira #565656 e
+          // mede [medido] #565656 x SURFACE_DARK.level0 = 2,63:1, abaixo até do
+          // piso NÃO-TEXTO.
+          // Um controle desabilitado é dispensado do contraste pela própria
+          // WCAG ("inactive user interface component"), mas ESTE carrega o
+          // motivo do bloqueio e vem com explicação ao lado: ele precisa ser
+          // LIDO. Vai para a tinta SECUNDÁRIA, que o contrato calibra contra os
+          // cinco níveis dos dois esquemas — o pior par é
+          // [medido] INK_DARK.secondary x SURFACE_DARK.level4 = 4,99:1, ainda
+          // sobre o piso AA. O que sinaliza "desligado" passa a ser a ausência
+          // de preenchimento, o cursor e o cadeado, não a ilegibilidade.
           '&.Mui-disabled': {
             transform: 'none',
+            color: t.vars.palette.text.secondary,
+            // A borda do `outlined` desabilitado é `action.disabledBackground`
+            // (branco a 12% no escuro): sobre o nível 0 ela some, e o botão
+            // vira texto solto no meio da tela. O divisor decorativo é fraco de
+            // propósito — [medido] DIVIDER_DARK x SURFACE_DARK.level0 = 2,28:1 —
+            // mas DESENHA a moldura, que é o que faltava. `borderColor`
+            // (longhand) vem depois do `border` (shorthand) do MUI porque
+            // styleOverrides do tema é aplicado por último; nas variantes sem
+            // borda a declaração é inerte.
+            borderColor: t.vars.palette.divider,
           },
           // Ícone+texto nunca GRUDADOS (pedido do dono): o startIcon abre 10px
           // do rótulo (o default do MUI é 8/6px e some quando um `px` pequeno
@@ -912,6 +1082,14 @@ export const theme = createTheme({
                 '&.Mui-disabled': {
                   boxShadow: 'none',
                   transform: 'none',
+                  // O `pop` desabilitado MANTÉM o preenchimento do acento (o
+                  // MUI não conhece esta variante e não pinta o fundo cinza de
+                  // desabilitado nela), então a tinta tem que continuar sendo a
+                  // do preenchimento. Sem esta linha ele herdaria a tinta
+                  // secundária do `.Mui-disabled` da raiz, e aí sim ficaria
+                  // ilegível: [medido] INK_DARK.secondary x ACCENT_DARK.action.fill
+                  // = 1,80:1. Com ela, segue no par calibrado do contrato.
+                  color: t2.vars.palette.primary.onFill,
                 },
                 '@media (prefers-reduced-motion: reduce)': {
                   '&:hover': { transform: 'none' },
@@ -940,10 +1118,14 @@ export const theme = createTheme({
     },
 
     /* ── Superfícies: variantes por NÍVEL da rampa tonal ─────────────────────
-     * ONDA 1 (game-foundations): borda de destaque subiu de 1px para 2px —
-     * o traço "game" do leet-code-rpg (border 3px lá; aqui 2px para não
-     * engolir a tinta nas superfícies de leitura). O `selected` ganha o glow
-     * COLORIDO do acento (sombra com a cor, não cinza — style leet). */
+     * ONDA 11 (referência Nintendo Switch): a borda voltou de 2px para 1px e o
+     * `selected` PERDEU o glow colorido. Os dois eram o traço "game" que a onda
+     * 1 trouxe do leet-code-rpg, e são exatamente o que separa esta base da
+     * referência: no mock do Switch nenhuma superfície tem contorno grosso nem
+     * brilho de cor — o que distingue um plano do outro é a RAMPA TONAL, que é
+     * a decisão 2 deste tema. Um glow de acento em cima da rampa neutra é ruído
+     * colorido competindo com o único acento que deveria estar vivo na tela
+     * (o CTA). O traço fica em 1px, no divisor decorativo, só para dar aresta. */
     MuiPaper: {
       styleOverrides: {
         root: {
@@ -956,7 +1138,7 @@ export const theme = createTheme({
               props: { variant: 'sunken' as const },
               style: ({ theme: t }: { theme: StyleTheme }) => ({
                 backgroundColor: t.vars.palette.surface.level2,
-                border: `2px solid ${t.vars.palette.divider}`,
+                border: `${SURFACE_BORDER_WIDTH}px solid ${t.vars.palette.divider}`,
                 boxShadow: 'none',
               }),
             },
@@ -964,7 +1146,7 @@ export const theme = createTheme({
               props: { variant: 'raised' as const },
               style: ({ theme: t }: { theme: StyleTheme }) => ({
                 backgroundColor: t.vars.palette.surface.level3,
-                border: `2px solid ${t.vars.palette.divider}`,
+                border: `${SURFACE_BORDER_WIDTH}px solid ${t.vars.palette.divider}`,
                 boxShadow: 'none',
               }),
             },
@@ -972,12 +1154,25 @@ export const theme = createTheme({
               props: { variant: 'selected' as const },
               style: ({ theme: t }: { theme: StyleTheme }) => ({
                 backgroundColor: t.vars.palette.surface.level4,
-                border: `2px solid ${t.vars.palette.divider}`,
-                boxShadow: `0 4px 16px -4px color-mix(in srgb, ${t.vars.palette.primary.fill} 25%, transparent)`,
+                border: `${SURFACE_BORDER_WIDTH}px solid ${t.vars.palette.divider}`,
+                boxShadow: 'none',
               }),
             },
           ],
         },
+      },
+    },
+
+    // ONDA 13: mesma decisão do `MuiButton` — o ripple de FOCO sai, o anel de
+    // duas cores fica. `IconButton` também passa `focusRipple={!disableFocusRipple}`
+    // para o `ButtonBase` (IconButton.js), então o default do `MuiButtonBase`
+    // não alcançaria: a prop explícita do componente vence. Aqui o alvo é
+    // quadrado e o círculo do ripple não deforma como na pílula, mas ele PULSA
+    // do mesmo jeito enquanto o foco estiver ali — e o microfone e o enviar do
+    // chat são exatamente onde o teclado mais para.
+    MuiIconButton: {
+      defaultProps: {
+        disableFocusRipple: true,
       },
     },
 
@@ -988,31 +1183,82 @@ export const theme = createTheme({
       },
       styleOverrides: {
         root: {
-          // ONDA 1 (game-foundations): cards em rounded-2xl (16px — o raio
-          // base do tema é 14, que vira o piso de botões/inputs) e borda de
-          // destaque 2px (o default outlined do MUI é 1px).
-          borderRadius: 16,
-          borderWidth: 2,
+          // Cards em rounded-2xl (16px — o raio base do tema é 14, que vira o
+          // piso de botões/inputs). ONDA 11: a borda voltou para 1px, pelo
+          // mesmo motivo do MuiPaper acima.
+          borderRadius: SURFACE_RADIUS,
+          borderWidth: SURFACE_BORDER_WIDTH,
         },
       },
     },
 
-    /* ── Modal: rounded-2xl (16px) no papel do diálogo ─────────────────────── */
+    /* ── Modal: o CARTÃO SOBRE O SCRIM da referência ────────────────────────
+     * Este é o componente que o dono apontou de dedo ("as cores do modo dark
+     * nao ficaram boas"): no mock do Switch o modal é um retângulo de CINZA
+     * MÉDIO NEUTRO, raio ~16px, sem contorno e sem brilho, flutuando sobre um
+     * scrim escuro. O default do MUI entregava outra coisa: `background.paper`
+     * (o nível 1 — a superfície de LEITURA, quase preta no escuro) mais a
+     * sombra de elevação 24.
+     *
+     * A ESCOLHA DE NÍVEL É ASSIMÉTRICA ENTRE OS ESQUEMAS, e por isso passa por
+     * `applyStyles` (ver o comentário de `StyleTheme.applyStyles`):
+     *   - ESCURO: nível 4, o TOPO da rampa (#3b3b3b). Sob polaridade negativa,
+     *     elevação é LUZ — o objeto mais alto da tela é o mais claro, e é
+     *     justamente esse valor que bate com o cinza médio da referência.
+     *   - CLARO: nível 1, a superfície de leitura (#ffffff). Sob polaridade
+     *     positiva a rampa ESCURECE conforme sobe; usar o nível 4 aqui daria um
+     *     modal bege mais escuro que a página atrás dele — um buraco, não uma
+     *     elevação.
+     * O scrim é quem separa o cartão do fundo nos dois casos, então a sombra de
+     * elevação sai (elevação nesta base é por COR, decisão 2 do cabeçalho). */
     MuiDialog: {
       styleOverrides: {
-        paper: {
-          borderRadius: 16,
-        },
+        paper: ({ theme: t }: { theme: StyleTheme }) => ({
+          borderRadius: SURFACE_RADIUS,
+          backgroundImage: 'none',
+          boxShadow: 'none',
+          // ONDA 12: a escolha de nível saiu daqui para `modalSurfaceStyles()`,
+          // logo acima, porque o overlay do quiz não é um <Dialog> e precisa da
+          // MESMA regra. Continua por último no objeto: é o galho escuro do
+          // applyStyles que precisa vencer por ordem.
+          ...modalSurfaceStyles(t),
+        }),
       },
     },
 
-    /* ── Chips: elemento "game" — borda 2-3px (aqui 2px; o outlined default
-     * do MUI é 1px). Cobre os chips de dificuldade, testes e badges. ──────── */
+    /* ── Scrim: o modal da referência flutua sobre um fundo BEM apagado ──────
+     * O default do MUI é `rgba(0, 0, 0, 0.5)`, e a onda 11 o trocou por um
+     * color-mix de 62% escrito AQUI. ONDA 12: o número saiu do tema e virou o
+     * token `SCRIM` (designTokens.ts), publicado como `palette.scrim` — porque
+     * o MuiBackdrop NÃO é o único scrim da base: o overlay do quiz e o de
+     * geração de desafio desenham o deles à mão, e estavam pintando
+     * `rgba(8, 10, 20, 0.66)`, uma cor crua AZULADA que tingia a tela inteira
+     * de azul por cima da rampa neutra. Um token só, um valor só, os três
+     * scrims iguais. */
+    MuiBackdrop: {
+      styleOverrides: {
+        root: ({ theme: t }: { theme: StyleTheme }) => ({
+          // `:not(.MuiBackdrop-invisible)` NÃO é preciosismo: o MUI monta o
+          // scrim transparente de Menu, Select e Popover com o MESMO Backdrop,
+          // marcado pela classe `invisible`, e um styleOverrides de tema é
+          // aplicado DEPOIS das variantes do próprio componente. Sem o
+          // `:not(...)` todo menu do app abriria com fundo preto a 62%.
+          '&:not(.MuiBackdrop-invisible)': {
+            backgroundColor: t.vars.palette.scrim,
+          },
+        }),
+      },
+    },
+
+    /* ── Chips: contorno FINO (1px), como as pílulas de opção da referência.
+     * A onda 1 os tinha engrossado para 2-3px ("elemento game"); a onda 11
+     * desfaz isso junto com as bordas de Paper e Card — chip é rótulo, não
+     * moldura. ──────────────────────────────────────────────────────────── */
     MuiChip: {
       styleOverrides: {
         root: {
           '&.MuiChip-outlined': {
-            borderWidth: 2,
+            borderWidth: SURFACE_BORDER_WIDTH,
           },
         },
       },
@@ -1043,6 +1289,38 @@ export const theme = createTheme({
     /* ── Borda de campo NÃO é decorativa: usa a camada de 3:1 ──────────────── */
     MuiOutlinedInput: {
       styleOverrides: {
+        // ── FOCO DE TECLADO NO CAMPO: DUAS CORES, E SÓ NO TECLADO ─────────
+        // Estado anterior, medido com Tab no app rodando: o único indicador
+        // era o `notchedOutline` de 1,6px no acento (`rgb(217,81,60)` no
+        // escuro), com `box-shadow: none` e `outline: 0px`. Dois problemas, e
+        // nenhum deles é contraste — o acento contra o campo mede
+        // [medido] ACCENT_DARK.action.fill x SURFACE_DARK.level1 = 4,26:1 e
+        // [medido] ACCENT_LIGHT.action.fill x SURFACE_LIGHT.level1 = 4,75:1:
+        //   1. UMA cor só. O indicador desta base é de DUAS cores de propósito
+        //      (`focusRingStyles` — técnica do Understanding do SC 1.4.11), e
+        //      o campo era a única exceção da tela.
+        //   2. Era `:focus-within`, não teclado. A borda vira acento também no
+        //      CLIQUE de mouse, então o desenho não distinguia "cheguei aqui
+        //      pelo teclado" de "cliquei aqui" — e é a primeira situação que a
+        //      norma existe para servir.
+        // Por que não o anel padrão: o `MuiCssBaseline` desliga `outline` e
+        // halo em `input:focus-visible` de propósito (onda 1) — o outline de
+        // 3px mais o halo ficam visualmente POR CIMA do campo, e o caso mais
+        // visível é justamente o campo de dúvida do chat da aula. Aquela
+        // decisão continua de pé.
+        // A saída é pintar o anel no ROOT (a moldura), não no <input>: o
+        // `:has(:focus-visible)` só casa quando o navegador decidiu mostrar
+        // indicação de teclado, então o clique de mouse segue sem anel. A
+        // SEGUNDA cor entra como halo de `text.primary` colado na borda de
+        // acento, o mesmo par do resto do app.
+        // [medido] INK_DARK.primary x SURFACE_DARK.level1 = 15,11:1 e
+        // [medido] INK_LIGHT.primary x SURFACE_LIGHT.level1 = 17,90:1 — o halo
+        // é a cor que carrega o piso, exatamente como no anel padrão.
+        root: ({ theme: t }) => ({
+          '&:has(:focus-visible)': {
+            boxShadow: `0 0 0 ${FOCUS_RING.haloWidth}px ${t.vars.palette.text.primary}`,
+          },
+        }),
         notchedOutline: ({ theme: t }) => ({
           borderColor: t.vars.palette.nonText.neutral,
         }),

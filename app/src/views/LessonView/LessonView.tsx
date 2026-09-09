@@ -31,7 +31,8 @@
  * (isLessonFinishBlocked — lê lastVerdict do payload track.lesson).
  *
  * ONDA2-CHAT-NINTENDO (pedidos do dono): coluna em min(1920px, 100%) com o
- * painel de mensagens capado em 1000px centrado; balões entram com
+ * painel de mensagens capado em 1000px centrado (SUPERADO pela ONDA11 — hoje
+ * é uma coluna só, de 960px, ver LESSON_COLUMN_SX); balões entram com
  * AnimatePresence + fadeInUp (só os NOVOS da sessão); auto-scroll SÓ quando o
  * usuário está no fim (ou acabou de abrir) e SMOOTH nos nudges (o tick do
  * typewriter segue INSTANTÂNEO — smooth a cada ~2.5ms pularia o streaming);
@@ -53,6 +54,46 @@
  *      de LEITURA (7 tps = 28 chars/s, `chatBubbleTps`), com saída: clique no
  *      painel, qualquer tecla ou "Mostrar tudo" completam a bolha na hora.
  *      A review (10 tps) e as respostas do tutor (100 tps) NÃO mudaram.
+ *
+ * ONDA11 (o dono, olhando a tela buildada — três queixas de layout):
+ *   1. "o input e o enviar do input no chat ficou todo pra esquerda e só
+ *      ocupando metade da tela". A causa NÃO era largura: o composer declarava
+ *      a mesma coluna do painel, mas era filho DIRETO de um <Stack spacing>,
+ *      e a regra de espaçamento do Stack (`> :not(style):not(style) {
+ *      margin: 0 }`, especificidade 0,1,2) apagava o `mx: 'auto'` do filho
+ *      (0,1,0). Conserto estrutural: o EIXO passou para o container RAIZ
+ *      (`LESSON_COLUMN_SX`, uma declaração só) e o Stack ganhou `useFlexGap`
+ *      (espaçamento por `gap` do container, não por margem do filho). Toda a
+ *      aula ativa — cabeçalho, progresso, painel, avisos, ação e entrada —
+ *      divide UMA coluna de 960px, derivada da medida de leitura;
+ *   2. a BARRA DE ENTRADA passou ao molde da referência de chat: microfone
+ *      como botão circular FORA do campo à esquerda, campo pílula ocupando
+ *      todo o resto com o convite no placeholder, enviar DENTRO na borda
+ *      direita (`LessonComposer`, exportado para ser renderizável em teste);
+ *   3. "Próximo"/"Concluir aula" saíram da linha do input — eles viraram o
+ *      CTA centralizado logo acima (o padrão anúncio+botão da referência),
+ *      junto do texto role="status" que já dizia por que o botão está travado.
+ *      Ali também mora o botão de ABRIR O QUIZ na mão (pedido do dono: o
+ *      overlay não sobe mais sozinho), que reusa `handleQuizReopen`.
+ * Coberto por tests/lessonChatLayout.test.ts (o CSS que o MUI emite, lido; a
+ * barra de entrada renderizada de verdade).
+ *
+ * ONDA12 (a prova visual e a sonda de teclado, DEPOIS da onda 11):
+ *   1. a CAIXA da conversa morreu — o painel de mensagens era um retângulo
+ *      (nível 2, raio, padding) e com uma bolha só sobravam ~350px de cinza
+ *      vazio. Agora ele é o NÍVEL 0 (o fundo do app), sem raio e sem padding,
+ *      com a conversa ancorada EMBAIXO. O estilo virou `lessonLogSx`, função
+ *      exportada — fora do JSX ele é renderizável e o teste LÊ o CSS emitido
+ *      em vez de procurar texto no fonte; a conta de contraste recalculada do
+ *      nível 2 para o nível 0 está no cabeçalho dela;
+ *   2. o CTA DUPLICADO morreu — havia DOIS "Responder" a ~60px um do outro (o
+ *      do QuizChatCard e um segundo na linha de ação). Ficou o do CARD, que é
+ *      quem nomeia a pergunta no `aria-label`; o card ganhou um efeito que o
+ *      traz à vista, porque virou o único convite;
+ *   3. PARADAS DE TAB FANTASMA — todo `<motion.span whileTap>` desta view
+ *      ganhou `tabIndex={-1}`. Sem ele o framer marca `tabIndex=0` na casca
+ *      animada e o teclado para num <span> mudo antes de cada botão (o
+ *      microfone era regressão da onda 11).
  *
  * ONDA2-QUIZ-OVERLAY (o dono, textualmente: "o layout do quiz deve ser sobre a
  * tela e respondendo ele minimiza para ficar no chat" + "só vamos para o
@@ -141,10 +182,9 @@ import {
   Tooltip,
   Typography,
 } from '@mui/material';
-import { useTheme } from '@mui/material/styles';
+import { useTheme, type SxProps, type Theme } from '@mui/material/styles';
 import SendIcon from '@mui/icons-material/Send';
 import AutoStoriesIcon from '@mui/icons-material/AutoStories';
-import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
 import LockIcon from '@mui/icons-material/Lock';
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
@@ -172,6 +212,7 @@ import {
   hydrateQuizFromHistory,
   injectRemediationQuiz,
   isQuizMastered,
+  isTheoryPresentationBubble,
   lessonFinishBlock,
   pendingQuizzes,
   pendingQuizzesForCurrentSection,
@@ -182,6 +223,7 @@ import {
   seedChallengeError,
   submitQuizAnswer,
   visibleQuizFor,
+  type LessonFinishBlockReason,
   type TrackLessonUiState,
   type VisibleQuiz,
 } from '../../lib/trackLessonState';
@@ -208,7 +250,6 @@ import {
   drainPendingDomain,
   drainPendingLessonId,
   drainPendingSubject,
-  setPendingTrackLesson,
 } from '../../lib/pendingSubject';
 import {
   createLessonChatHolder,
@@ -226,6 +267,9 @@ import {
 } from '../../lib/challengeGenerateStore';
 import { AnimatePresence, motion } from 'motion/react';
 import { fadeInUp, springs } from '../../lib/animationTokens';
+// ONDA11: o raio de PÍLULA da barra de entrada sai do token de forma do design
+// system (SHAPE.pill) — cor e forma são CONSUMIDAS, nunca redefinidas aqui.
+import { SHAPE } from '../../lib/designTokens';
 import { ChatBubble } from '../../components/chat/ChatBubble';
 import { TypingIndicator } from '../../components/chat/TypingIndicator';
 // ONDA4 (quiz): confete + anúncio acessível ao CONCLUIR a aula (brilho/celebração).
@@ -251,19 +295,684 @@ type LessonPayloadWithNext = TrackLessonPayload & {
 };
 
 /**
- * ONDA2-QUIZ-OVERLAY (larguras alinhadas): a COLUNA DE LEITURA do chat.
+ * ONDA11 (o dono, olhando a tela: "o input e o enviar do input no chat ficou
+ * todo pra esquerda e só ocupando metade da tela"): a COLUNA da aula — UM eixo
+ * só, declarado UMA vez.
  *
- * O defeito que isto conserta: a coluna da aula vai a `min(1920px, 100%)`, o
- * painel de mensagens estava capado em 1000 e o INPUT ficava solto na largura
- * inteira — o eixo de LEITURA e o eixo de ESCRITA não batiam, e em janela
- * fullhd o campo de pergunta terminava quase um palmo à direita do último
- * balão. O número passa a ser UM só, com nome, e vale para o painel de
- * mensagens, para os avisos e para a linha de entrada.
+ * ─── O DEFEITO, e por que ele NÃO era de largura ───────────────────────────
+ * O painel de mensagens e a linha de entrada declaravam a MESMA largura e o
+ * MESMO `mx: 'auto'`. Mesmo assim, medido na tela, o painel saía centrado e a
+ * entrada encostada na esquerda. A causa é ESPECIFICIDADE: `<Stack
+ * spacing={1.5}>` sem `useFlexGap` emite, para os PRÓPRIOS FILHOS,
+ *
+ *     .css-STACK > :not(style):not(style) { margin: 0; }
+ *
+ * — especificidade (0,1,2), contra os (0,1,0) da classe que o `sx` do filho
+ * gera. A regra do PAI vence e apaga o `margin-left/right: auto` do filho: o
+ * `mx: 'auto'` da entrada virava decoração morta. O painel de mensagens
+ * escapava por acidente — ele mora dentro de um <Box> comum, não é filho
+ * direto do Stack. Os dois eixos, o de LEITURA e o de ESCRITA, deixavam de
+ * bater. O CSS que prova isso está LIDO (não deduzido) em
+ * tests/lessonChatLayout.test.ts, bloco 1.
+ *
+ * ─── O CONSERTO, que não depende de sorte de especificidade ────────────────
+ * Nenhuma das duas decisões é "aumentar a especificidade do filho":
+ *   1. o EIXO é do CONTAINER RAIZ (`LESSON_COLUMN_SX`), aplicado uma única
+ *      vez. Nenhum filho declara largura nem centralização própria — todos só
+ *      PREENCHEM. Sem margem automática em filho, não há o que anular;
+ *   2. o Stack da coluna ganha `useFlexGap`: o espaçamento vira `gap` (do
+ *      CONTAINER) em vez de margem (do FILHO). A armadilha deixa de existir
+ *      até para um filho FUTURO que volte a querer eixo próprio.
+ *
+ * ─── O NÚMERO (960), medido e não escolhido no olho ────────────────────────
+ * O balão do chat é capado em `min(78%, TYPE.measureMaxCh ch)` (ChatBubble) e
+ * o corpo da prosa é 18px. A 960 o ramo dos 78% dá ~730px de balão — ~74
+ * caracteres na fonte de corpo, DENTRO da janela entre a medida-alvo do design
+ * system (TYPE.measureCh = 72) e o teto rígido (measureMaxCh = 80, SC 1.4.8).
+ * O 1000 anterior prendia a linha no TETO, e a coluna externa de
+ * `min(1920px, 100%)` ainda punha cabeçalho, avisos e entrada num eixo
+ * DIFERENTE do painel. Agora cabeçalho, progresso, painel, avisos, ação e
+ * entrada dividem ESTA coluna — é a leitura da referência de chat que o dono
+ * mandou: coluna única, com a entrada na MESMA largura do conteúdo.
  */
-export const CHAT_COLUMN_MAX_PX = 1000;
+export const CHAT_COLUMN_MAX_PX = 960;
 
-/** O eixo de leitura E de escrita: painel de mensagens, avisos e entrada. */
-const CHAT_COLUMN_SX = { maxWidth: CHAT_COLUMN_MAX_PX, width: '100%', mx: 'auto' } as const;
+/** O eixo — a ÚNICA declaração de largura/centralização da aula ativa. */
+const LESSON_COLUMN_SX = { maxWidth: CHAT_COLUMN_MAX_PX, width: '100%', mx: 'auto' } as const;
+
+/**
+ * ONDA12 (o dono, comparando a tela com a referência de chat que ele mandou):
+ * A CAIXA DA CONVERSA MORREU.
+ *
+ * ─── O DEFEITO ────────────────────────────────────────────────────────────
+ * O painel de mensagens era um RETÂNGULO desenhado (`surface.level2`,
+ * `borderRadius: 2`, `p: 1.5`). Com uma bolha só na conversa — que é como TODA
+ * aula começa — sobravam ~350px de cinza vazio até a borda de baixo: a caixa
+ * anunciava um conteúdo que não existia. A referência não desenha caixa
+ * nenhuma; as mensagens ficam direto no fundo da tela, ancoradas EMBAIXO,
+ * junto de quem escreve.
+ *
+ * ─── O CONSERTO, e o que ele NÃO pode levar junto ─────────────────────────
+ * O painel passa ao NÍVEL 0 — o fundo do app (`background.default` é
+ * `surface.level0`, ver theme.ts). Não é `transparent` escrito à mão: é a
+ * rampa, explícita, do jeito que o guarda-corpo de superfície cobra, e é o que
+ * o teste consegue LER no CSS emitido. Some o raio, some o padding, e entra
+ * `justifyContent: 'flex-end'`: a conversa cresce de BAIXO para cima, então o
+ * vazio de uma aula recém-aberta é fundo do app, não retângulo.
+ * `justify-content` aqui é seguro porque quem ROLA é o Box de fora — este
+ * cresce com o conteúdo e nunca chega a ter sobra para cortar o topo.
+ * O scroll interno, o `role="log"`, o `aria-live` e o clique-para-pular-
+ * digitação continuam no MESMO elemento.
+ *
+ * ─── OS NÚMEROS, RECALCULADOS (nível 2 → nível 0) ─────────────────────────
+ * Tudo que era "sobre o painel" passou a ser contra o nível 0. O texto que
+ * mora DIRETO no painel (o convite da aula vazia, o separador de dia, a linha
+ * do "digitando") melhorou nos dois esquemas — e no escuro ele saiu de uma
+ * violação real do AAA que este arquivo prometia:
+ *   claro  #191713 (primária)   15,49:1 → 16,75:1   ·  #544e45 (secundária) 7,12:1 → 7,70:1
+ *   escuro #f0f0f0 (primária)   13,11:1 → 16,94:1   ·  #adadad (secundária) 6,66:1 → 8,60:1
+ * — a secundária no escuro estava ABAIXO de 7:1 sobre o nível 2, que é
+ * exatamente por que `READING_SURFACE_LEVELS` (designTokens.ts) só admite os
+ * níveis 0 e 1 como superfície de leitura. Agora o painel É nível 0.
+ * O que PIOROU, dito sem maquiagem: o degrau balão-contra-fundo. O balão é
+ * nível 1 e media 1,16:1 (claro) / 1,15:1 (escuro) contra o nível 2; contra o
+ * nível 0 mede 1,07:1 / 1,12:1. Nenhum dos dois pares alcança 3:1 — nem antes,
+ * nem depois — e nenhum precisa: o balão não é controle, e quem identifica o
+ * autor é o cabeçalho com nome e avatar (SC 1.4.11 cobre o que é PRECISO para
+ * identificar componente e estado, e aqui isso é texto). A separação virou
+ * decisão de composição, não de contraste — é o que a referência faz.
+ */
+export function lessonLogSx(theme: Theme): SxProps<Theme> {
+  return {
+    flexGrow: 1,
+    display: 'flex',
+    flexDirection: 'column',
+    // A conversa ancora EMBAIXO: sem isso, uma bolha só deixa o resto da
+    // altura como vazio no TOPO — o retângulo que esta onda matou.
+    justifyContent: 'flex-end',
+    gap: 1,
+    // Nível 0 = o fundo do app. O painel deixa de ser caixa e vira tela.
+    bgcolor: theme.vars.palette.surface.level0,
+  };
+}
+
+/**
+ * Alvo de toque mínimo (px) — o piso de 44 que o design system cobra para
+ * qualquer controle apontável. O IconButton do MUI nasce com 40.
+ */
+const TOUCH_TARGET_PX = 44;
+
+/**
+ * ONDA11 — a BARRA DE ENTRADA no molde da referência de chat que o dono
+ * mandou: botão CIRCULAR de ícone FORA do campo, à esquerda (o microfone);
+ * campo PÍLULA ocupando toda a largura restante, com o convite no PLACEHOLDER
+ * (o label flutuante saiu); ícone de enviar DENTRO, na borda direita. O
+ * "Próximo"/"Concluir aula" saíram desta linha — eles viraram a AÇÃO
+ * centralizada logo acima (o CTA da referência) e não roubam mais largura do
+ * campo.
+ *
+ * Componente de APRESENTAÇÃO exportado DE PROPÓSITO: sem jsdom nesta base, um
+ * pedaço de tela só é testável se puder ser montado sozinho. É ele que
+ * tests/lessonChatLayout.test.ts (bloco 3) renderiza de verdade, com o tema
+ * real, para medir ordem do DOM, raio, alvo de toque e nomes acessíveis. A
+ * view usa ESTE componente — não existe cópia para teste.
+ *
+ * O que NÃO pode regredir (herdado de ondas anteriores): aria-label do mic e
+ * do enviar, `data-onboarding-target` (alvo do tutorial e do sinal de
+ * onboarding), o Tooltip, Enter sem Shift para enviar, o enviar desabilitado
+ * com rascunho vazio e o alvo de toque de 44px.
+ */
+export interface LessonComposerProps {
+  /** Texto em edição (a view é dona do estado — aqui é controlado). */
+  draft: string;
+  onDraftChange: (value: string) => void;
+  /** Enter (sem Shift) e o botão de enviar chamam o MESMO caminho. */
+  onSend: () => void;
+  /** Liga/desliga a transcrição por voz (o hook vive na view). */
+  onMicToggle: () => void;
+  micTranscribing: boolean;
+  /** Aula ocupada: trava mic, campo e enviar (nada de pergunta em voo dupla). */
+  disabled: boolean;
+}
+
+export function LessonComposer({
+  draft,
+  onDraftChange,
+  onSend,
+  onMicToggle,
+  micTranscribing,
+  disabled,
+}: LessonComposerProps): ReactElement {
+  const { t } = useTranslation();
+  const tI = useMemo(
+    () => t as unknown as (key: string, options?: Record<string, string | number>) => string,
+    [t],
+  );
+  const theme = useTheme();
+  // Sem label flutuante, o campo PRECISA de nome acessível próprio: o mesmo
+  // texto do placeholder vai para o aria-label do <input>. Placeholder não é
+  // rótulo (SC 3.3.2) — ele some ao digitar.
+  const askLabel = tI('lesson.askInput');
+  const micLabel = micTranscribing ? tI('lesson.micStop') : tI('lesson.micStart');
+
+  return (
+    <Stack direction="row" useFlexGap spacing={1} sx={{ alignItems: 'center' }}>
+      <Tooltip title={micTranscribing ? t('translation:lesson.micStop') : t('translation:lesson.micStart')}>
+        {/* <span>: o Tooltip escuta eventos que um controle DESABILITADO não
+            dispara — sem o wrapper a dica some justamente quando explicaria o
+            porquê. */}
+        <span>
+          <motion.span
+            whileTap={{ scale: 0.98 }}
+            transition={springs.snappy}
+            // ONDA12 (sonda de teclado no Electron real): o `motion` marca
+            // `tabIndex=0` em TODO elemento com gesto quando o autor não declara um
+            // (framer-motion, render/html/use-props.mjs). A sonda leu, nesta linha,
+            // `{"tag":"span","tabindex":"0","role":null,"nome":""}` ANTES do botão:
+            // uma parada de tab que não anuncia nada e não faz nada. A casca animada
+            // nunca recebe foco — quem recebe é o controle dentro dela. Mesmo
+            // conserto (e mesmo motivo) do irmão components/quiz/QuizChatCard.tsx.
+            tabIndex={-1}
+            style={{ display: 'inline-block' }}
+          >
+            <IconButton
+              onClick={onMicToggle}
+              disabled={disabled}
+              aria-label={micLabel}
+              sx={{
+                width: TOUCH_TARGET_PX,
+                height: TOUCH_TARGET_PX,
+                border: '1px solid',
+                borderColor: 'divider',
+                // Superfície da rampa (nunca `action.hover`, que é ESTADO).
+                bgcolor: theme.vars.palette.surface.level1,
+              }}
+            >
+              {micTranscribing ? <MicOffIcon fontSize="small" /> : <MicIcon fontSize="small" />}
+            </IconButton>
+          </motion.span>
+        </span>
+      </Tooltip>
+      <TextField
+        fullWidth
+        size="small"
+        data-onboarding-target="lesson-chat-input"
+        placeholder={askLabel}
+        value={draft}
+        onChange={(e) => onDraftChange(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' && !e.shiftKey) onSend();
+        }}
+        disabled={disabled}
+        slotProps={{
+          htmlInput: { 'aria-label': askLabel },
+          input: {
+            sx: {
+              // String com unidade de propósito: `borderRadius` numérico no
+              // `sx` é MULTIPLICADO por theme.shape.borderRadius (14) — 999
+              // viraria 13986px.
+              borderRadius: `${SHAPE.pill}px`,
+              minHeight: TOUCH_TARGET_PX,
+              pr: 0.5,
+              bgcolor: theme.vars.palette.surface.level1,
+            },
+            endAdornment: (
+              <InputAdornment position="end">
+                <Tooltip title={t('translation:lesson.askSend')}>
+                  <motion.span
+                    whileTap={{ scale: 0.98 }}
+                    transition={springs.snappy}
+                    // Casca animada: nunca parada de tab (o porquê está no microfone).
+                    tabIndex={-1}
+                    style={{ display: 'inline-block' }}
+                  >
+                    {/* O Tooltip é dica VISUAL; o aria-label é o NOME
+                        acessível (nada duplicado na tela). */}
+                    <IconButton
+                      onClick={onSend}
+                      disabled={disabled || !draft.trim()}
+                      aria-label={tI('lesson.sendMessage')}
+                      sx={{ width: TOUCH_TARGET_PX, height: TOUCH_TARGET_PX }}
+                    >
+                      <SendIcon fontSize="small" />
+                    </IconButton>
+                  </motion.span>
+                </Tooltip>
+              </InputAdornment>
+            ),
+          },
+        }}
+      />
+    </Stack>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * ONDA14 — A LINHA DE AÇÃO É UM LUGAR SÓ, E ELE MOSTRA O PRÓXIMO PASSO
+ *
+ * Dois pedidos do dono, na mesma frase, sobre o MESMO pedaço de tela:
+ *
+ *   1. *"quando clico em proximo ja tem que mostrar tudo da digitaçao
+ *      anterio"* — o clique no "Próximo" durante a escrita da seção REVELA a
+ *      seção inteira, em vez de avançar por cima de um texto pela metade;
+ *   2. *"quero esse botao [de desafio] embaixo tambem porque o ultimo
+ *      'proximo' eh o desafio"* — quando a teoria acabou e o que falta é o
+ *      DESAFIO, é ele que a linha de ação tem de oferecer.
+ *
+ * ─── POR QUE UM PASSO, e não uma pilha de booleanos no JSX ─────────────────
+ * A linha de ação nunca foi uma coleção de botões: ela é UM lugar que diz o
+ * que fazer AGORA, e o nome do botão muda com o estado (mostrar tudo → avançar
+ * a teoria → responder o quiz → fazer o desafio → concluir → próxima aula). A
+ * onda 12 removeu dali um "Responder" duplicado exatamente por isso — dois
+ * convites para a mesma ação a 60px um do outro. Escrever essa decisão como
+ * uma FUNÇÃO PURA (e não como três ternários aninhados no meio do JSX) é o que
+ * permite prová-la sem DOM: esta base não tem jsdom, então o que não for puro
+ * ou renderizável sozinho não é testável de verdade.
+ *
+ * ─── O CASO DE BORDA QUE O PEDIDO 1 ESCONDIA, e a escolha feita ────────────
+ * Hoje o "Próximo" fica DESABILITADO enquanto o quiz da seção não tem acerto,
+ * e o card do quiz só nasce quando a bolha TERMINA de ser escrita. Ou seja:
+ * durante a digitação o botão está travado e o clique do dono nem acontece.
+ * Havia duas leituras:
+ *   (a) o botão continua travado durante a digitação (o "revelar" só valeria
+ *       quando ele já estivesse clicável — que é justamente quando não há mais
+ *       nada a revelar: o caso do pedido nunca seria atendido);
+ *   (b) durante a DIGITAÇÃO o botão fica clicável e o clique REVELA — sem
+ *       avançar —, voltando a travar pelo quiz assim que o texto termina.
+ * Escolhida a (b), que é o que o dono descreveu (ele CLICA e espera ver tudo).
+ * Ela NÃO afrouxa o gate, e isso é o ponto: no passo 'revelar' o clique chama
+ * `requestSkipTyping`, NUNCA `sendNext` — `nextClickAction` abaixo é a prova
+ * dessa separação, e `sendNext` mantém o guard `if (nextBlockedByQuiz) return`
+ * para o caso de o texto terminar entre o mousedown e o clique. Em hipótese
+ * nenhuma o aluno avança de seção sem responder o quiz.
+ *
+ * ─── E A MENSAGEM role="status" CONTINUA DIZENDO A VERDADE ────────────────
+ * `lessonActionStatusKey` amarra cada passo à frase correspondente: durante a
+ * escrita ela diz que o "Próximo" mostra tudo (e não pede um quiz que ainda
+ * não está na tela — a mentira que a onda 13 já tinha consertado); com o card
+ * em cena ela pede a resposta; na conclusão ela conta quantos quizzes faltam;
+ * e com o desafio pendente ela diz que é ELE que falta — nunca um botão morto
+ * e mudo.
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+/** O passo que a linha de ação oferece AGORA (um só, sempre). */
+export type LessonActionStep =
+  /** a seção está sendo escrita — o clique MOSTRA TUDO (não avança). */
+  | 'revelar'
+  /** o quiz da seção ainda não foi acertado — "Próximo" travado. */
+  | 'quiz-secao'
+  /** teoria em curso, nada travando — "Próximo" avança. */
+  | 'proximo'
+  /** teoria acabou, mas há quiz sem acerto — "Concluir aula" travado. */
+  | 'quiz-aula'
+  /** teoria acabou e o que falta é o DESAFIO — ele vira o CTA de baixo. */
+  | 'desafio'
+  /** nada travando — "Concluir aula". */
+  | 'concluir'
+  /** aula já concluída — "Avançar para a próxima aula". */
+  | 'proxima-aula';
+
+export interface LessonActionStepInput {
+  /** `chat.theoryDone` — não há mais seção a apresentar. */
+  theoryDone: boolean;
+  /** `track:lesson-done` já voltou ok nesta sessão. */
+  doneMarked: boolean;
+  /**
+   * uma SEÇÃO DE TEORIA está sendo escrita agora.
+   *
+   * É deliberadamente mais estreito que "alguma bolha digitando": a explicação
+   * do ciclo de remediação também digita (na velocidade de leitura, kind
+   * 'quiz-explanation'), e ali o passo NÃO pode virar 'revelar' — o quiz está
+   * aberto esperando resposta, e um "Próximo" vivo no meio disso diria a coisa
+   * errada. Quem separa é `isTheoryPresentationBubble` (trackLessonState),
+   * o mesmo critério que escolhe a velocidade da digitação.
+   */
+  typingTheory: boolean;
+  /** `pendingQuizzesForCurrentSection` > 0. */
+  nextBlockedByQuiz: boolean;
+  /** `lessonFinishBlock(...)` — o motivo do bloqueio da conclusão. */
+  finishBlock: LessonFinishBlockReason | null;
+}
+
+/**
+ * O PRÓXIMO PASSO da aula, do estado inteiro. PURA.
+ *
+ * A ORDEM das cláusulas é a decisão de produto, e cada uma tem motivo:
+ *   - `doneMarked` primeiro: concluída é concluída, nada mais bloqueia;
+ *   - 'revelar' ANTES de 'quiz-secao': é o que destrava o pedido do dono — com
+ *     a seção em escrita o botão fica vivo para MOSTRAR TUDO. O gate não some,
+ *     ele volta no render seguinte (a bolha termina → o card do quiz nasce →
+ *     o passo vira 'quiz-secao'), e revelar nunca avança;
+ *   - 'quiz-aula' ANTES de 'desafio': é a precedência que `lessonFinishBlock`
+ *     já estabelece (o quiz está na tela, a um clique — desbloqueio mais
+ *     barato que abrir o painel do desafio).
+ */
+export function lessonActionStep(input: LessonActionStepInput): LessonActionStep {
+  if (input.doneMarked) return 'proxima-aula';
+  if (!input.theoryDone) {
+    if (input.typingTheory) return 'revelar';
+    if (input.nextBlockedByQuiz) return 'quiz-secao';
+    return 'proximo';
+  }
+  if (input.finishBlock === 'quiz') return 'quiz-aula';
+  if (input.finishBlock === 'challenges') return 'desafio';
+  return 'concluir';
+}
+
+/**
+ * O que o clique no botão de AVANÇO faz, por passo. PURA — e existe para que
+ * "revelar não avança" seja uma afirmação verificável, não uma promessa de
+ * comentário:
+ *   - 'revelar' → completa a digitação (`requestSkipTyping`);
+ *   - 'avancar' → pede a próxima seção (`sendNext`);
+ *   - 'nada'    → o botão está travado (quiz sem acerto) — nenhum caminho,
+ *                 nem por atalho, chama `sendNext` a partir daqui.
+ */
+/**
+ * O DESAFIO ESTÁ ABERTO PARA ESTE ALUNO AGORA? PURA.
+ *
+ * A regra é do dono, e é anterior a esta onda: *"só vamos para o desafio depois
+ * que o aluno provar que entendeu"*. A onda 14 pôs o desafio na linha de ação
+ * de baixo e o gateou corretamente (ele só nasce no passo 'desafio', ou seja,
+ * com todo quiz VISÍVEL acertado) — mas a revisão adversarial mediu que a
+ * OUTRA rota, o botão "Desafios" do cabeçalho, que já existia antes, abria o
+ * desafio sem guard nenhum. Duas portas para o mesmo lugar, uma trancada e
+ * outra escancarada: a regra valia só para quem entrasse pela primeira.
+ *
+ * O critério aqui é o MESMO de `lessonFinishBlock` — quiz pendente é
+ * `finishBlock === 'quiz'` —, de propósito: uma segunda régua para a mesma
+ * pergunta é como um gate volta a divergir do outro na onda seguinte.
+ *
+ * O que isto NÃO faz: esconder o botão. O dono pediu, literalmente, que ele
+ * *"continue em cima"*. Ele continua, a lista continua abrindo, e o que o
+ * bloqueio faz é DIZER o motivo (nada de botão morto e mudo) — a mesma decisão
+ * que o "Próximo" travado já segue.
+ */
+export function challengeOpenBlockedByQuiz(finishBlock: LessonFinishBlockReason | null): boolean {
+  return finishBlock === 'quiz';
+}
+
+export function nextClickAction(step: LessonActionStep): 'revelar' | 'avancar' | 'nada' {
+  if (step === 'revelar') return 'revelar';
+  if (step === 'proximo') return 'avancar';
+  return 'nada';
+}
+
+/**
+ * A frase `role="status"` de cada passo (chave i18n) — ou null quando não há
+ * nada a explicar (o botão está vivo e o nome dele já diz tudo).
+ *
+ * `quizCardOnScreen` separa os dois estados do gate do quiz: com o card na
+ * tela a frase PEDE a resposta; sem ele (a bolha terminou mas o card ainda não
+ * entrou em cena) ela explica que o quiz aparece na conversa — a distinção que
+ * a onda 13 mediu e consertou, preservada aqui.
+ */
+export function lessonActionStatusKey(
+  step: LessonActionStep,
+  quizCardOnScreen: boolean,
+): string | null {
+  switch (step) {
+    case 'revelar':
+      return 'lesson.revealGateTyping';
+    case 'quiz-secao':
+      return quizCardOnScreen ? 'lesson.quizGateNext' : 'lesson.quizGateTyping';
+    case 'quiz-aula':
+      return 'lesson.quizGateFinish';
+    case 'desafio':
+      return 'lesson.challengeGateFinish';
+    default:
+      return null;
+  }
+}
+
+export interface LessonActionRowProps {
+  step: LessonActionStep;
+  /** turno em voo (IPC) — trava qualquer disparo. */
+  busy: boolean;
+  /** geração de desafio GLOBAL em voo (trava só o "gerar novo"). */
+  generateRunning: boolean;
+  /** o card do quiz já está em cena? (escolhe a frase do gate da seção) */
+  quizCardOnScreen: boolean;
+  /** quizzes já visíveis ainda sem acerto (interpola a frase da conclusão). */
+  pendingQuizCount: number;
+  /** desafios que não passaram (nome acessível do CTA de desafio). */
+  pendingChallengeCount: number;
+  /** o clique no botão de avanço. QUEM decide o que ele faz é
+   *  `nextClickAction` (puro), na view: no passo 'revelar' este mesmo clique
+   *  COMPLETA a digitação em vez de avançar. Uma decisão só, num lugar só. */
+  onNext: () => void;
+  /** conclui a aula (destrava a próxima). */
+  onFinish: () => void;
+  /** MESMO destino do botão do cabeçalho: recebe o próprio botão como âncora
+   *  do popover (com um desafio só, a view vai direto para ele). */
+  onChallenge: (anchor: HTMLButtonElement) => void;
+  onNextLesson: () => void;
+  onRegenerate: () => void;
+}
+
+/**
+ * A LINHA DE AÇÃO — anúncio centralizado + o botão do passo atual.
+ *
+ * Componente de APRESENTAÇÃO exportado DE PROPÓSITO, pelo mesmo motivo do
+ * `LessonComposer`: sem jsdom nesta base, um pedaço de tela só é testável se
+ * puder ser montado sozinho. É ele que tests/lessonActionRow.test.ts renderiza
+ * com o tema e o i18n REAIS para medir nome acessível, estado desabilitado,
+ * alvo de toque e a frase role="status" de cada passo. A view usa ESTE
+ * componente — não existe cópia para teste.
+ */
+export function LessonActionRow(props: LessonActionRowProps): ReactElement {
+  const { t } = useTranslation();
+  const tI = t as unknown as (key: string, options?: Record<string, string | number>) => string;
+  const { step, busy } = props;
+  const statusKey = lessonActionStatusKey(step, props.quizCardOnScreen);
+  const showNext = step === 'revelar' || step === 'quiz-secao' || step === 'proximo';
+  const showFinish = step === 'quiz-aula' || step === 'desafio' || step === 'concluir';
+  const finishBlocked = step === 'quiz-aula' || step === 'desafio';
+
+  return (
+    <Stack useFlexGap spacing={1} sx={{ alignItems: 'center' }}>
+      {/* ONDA 13 (intacta) — A MENSAGEM DIZ A VERDADE DO MOMENTO. O gate
+          (`pendingQuizzesForCurrentSection`) conta o quiz assim que a seção
+          entra em `presentedSections`, sem olhar `streamingIds`; o CARD, por
+          decisão deliberada, só nasce quando a bolha TERMINA de ser escrita —
+          um quiz nunca interrompe a leitura da seção que o demonstra. A frase
+          acompanha esses estados em vez de pedir uma resposta impossível, e
+          `aria-live="polite"` faz a troca ser ANUNCIADA: quem usa leitor de
+          tela acompanha a mudança em vez de ouvir uma instrução que não pode
+          cumprir. ONDA14: 'revelar' e 'desafio' entraram na mesma tabela
+          (`lessonActionStatusKey`) — nenhum passo bloqueado fica mudo. */}
+      {statusKey !== null ? (
+        <Typography
+          role="status"
+          aria-live="polite"
+          variant="caption"
+          sx={{ color: 'text.secondary', display: 'block', textAlign: 'center' }}
+        >
+          {tI(statusKey, { n: props.pendingQuizCount, pending: props.pendingChallengeCount })}
+        </Typography>
+      ) : null}
+      <Stack
+        direction="row"
+        useFlexGap
+        spacing={1}
+        sx={{ justifyContent: 'center', flexWrap: 'wrap' }}
+      >
+        {/* ONDA14 — O DESAFIO TAMBÉM EMBAIXO ("o ultimo 'proximo' eh o
+            desafio"). Ele é o CTA PRIMÁRIO deste passo: a teoria acabou, os
+            quizzes estão acertados, e a única coisa entre o aluno e a
+            conclusão é o desafio. Não é um terceiro convite competindo — no
+            passo 'desafio' o único botão preenchido da linha é este; o
+            "Concluir aula" fica ao lado TRAVADO, dizendo o que ele destrava
+            (e é o mesmo elemento que tests/e2e/e2e-lesson.spec.ts mede
+            desabilitado, com o tooltip 'Conclua os desafios desta aula
+            primeiro' — removê-lo daqui quebraria aquele contrato).
+            O DESTINO é o MESMO do botão do cabeçalho: a view decide entre ir
+            direto (um desafio só) ou abrir O MESMO popover, ancorado neste
+            botão. Nenhum segundo fluxo foi inventado. */}
+        {step === 'desafio' ? (
+          <motion.span
+            whileTap={{ scale: 0.98 }}
+            transition={springs.snappy}
+            // Casca animada: nunca parada de tab (o porquê está no microfone).
+            tabIndex={-1}
+            style={{ display: 'inline-block' }}
+          >
+            <Button
+              variant="contained"
+              onClick={(e) => props.onChallenge(e.currentTarget)}
+              disabled={busy}
+              startIcon={<EmojiEventsIcon />}
+              aria-haspopup="true"
+              /* Nome acessível PRÓPRIO (o do cabeçalho diz "Desafios da aula";
+                 este diz o que ESTE clique faz) e que CONTÉM o rótulo visível
+                 — SC 2.5.3 Label in Name: quem comanda por voz fala o que lê. */
+              aria-label={tI('lesson.challengeStepButtonAria', {
+                pending: props.pendingChallengeCount,
+              })}
+              sx={{ whiteSpace: 'nowrap', minHeight: TOUCH_TARGET_PX, px: 3 }}
+            >
+              {t('translation:lesson.challengeStepButton')}
+            </Button>
+          </motion.span>
+        ) : null}
+
+        {showNext ? (
+          /* ONDA2-CHAT-NINTENDO: press feedback (scale 0.98) no "Próximo".
+             ONDA10 (bug 2): o avanço da teoria trava enquanto o quiz da seção
+             ATUAL não for acertado. O <span> é obrigatório: Button
+             DESABILITADO não dispara os eventos que o Tooltip escuta.
+             ONDA14: com a seção AINDA SENDO ESCRITA o botão fica VIVO e o
+             clique MOSTRA TUDO (`onReveal`) — nunca avança. */
+          <Tooltip
+            /* ONDA11-INTEGRAÇÃO — `disableInteractive`: o popper do Tooltip do
+               MUI nasce INTERATIVO (captura o ponteiro para o usuário poder
+               selecionar o texto da dica) e, nesta posição, ele abre para CIMA
+               sobre a última bolha do chat: o e2e mediu o "Responder" do card
+               do quiz ficando 13 tentativas sem receber o clique ("subtree
+               intercepts pointer events"). Um tooltip é DICA: não pode engolir
+               o clique do conteúdo atrás dele. Nada se perde — o motivo do
+               bloqueio está escrito, visível e em role="status", logo acima. */
+            disableInteractive
+            title={
+              step === 'quiz-secao'
+                ? t('translation:lesson.quizGateNext')
+                : step === 'revelar'
+                  ? t('translation:lesson.revealTypingTooltip')
+                  : ''
+            }
+          >
+            <span>
+              <motion.span
+                whileTap={{ scale: 0.98 }}
+                transition={springs.snappy}
+                // Casca animada: nunca parada de tab (o porquê está no microfone).
+                tabIndex={-1}
+                style={{ display: 'inline-block' }}
+              >
+                <Button
+                  /* ONDA11: com o quiz esperando, o CTA primário é RESPONDER —
+                     o "Próximo" recua para secundário em vez de continuar
+                     competindo, preenchido e morto, ao lado. */
+                  variant={step === 'quiz-secao' ? 'outlined' : 'contained'}
+                  onClick={props.onNext}
+                  disabled={busy || step === 'quiz-secao'}
+                  startIcon={step === 'quiz-secao' ? <LockIcon /> : undefined}
+                  sx={{ whiteSpace: 'nowrap', minHeight: TOUCH_TARGET_PX, px: 3 }}
+                >
+                  {t('translation:lesson.nextButton')}
+                </Button>
+              </motion.span>
+            </span>
+          </Tooltip>
+        ) : null}
+
+        {showFinish ? (
+          <Tooltip
+            /* `disableInteractive` pelo mesmo motivo do tooltip do "Próximo". */
+            disableInteractive
+            /* ONDA10: o motivo do bloqueio vem de `lessonFinishBlock` — 'quiz'
+               (responda os quizzes) tem PRECEDÊNCIA sobre 'challenges' porque
+               o desbloqueio é mais barato: o card está na tela, a um clique. */
+            title={
+              step === 'quiz-aula'
+                ? tI('lesson.quizGateFinish', { n: props.pendingQuizCount })
+                : step === 'desafio'
+                  ? t('translation:lesson.finishBlockedTooltip')
+                  : ''
+            }
+          >
+            <span>
+              {/* ONDA2-CHAT-NINTENDO: mesmo press feedback no "Concluir aula". */}
+              <motion.span
+                whileTap={{ scale: 0.98 }}
+                transition={springs.snappy}
+                // Casca animada: nunca parada de tab (o porquê está no microfone).
+                tabIndex={-1}
+                style={{ display: 'inline-block' }}
+              >
+                <Button
+                  variant={finishBlocked ? 'outlined' : 'contained'}
+                  onClick={props.onFinish}
+                  // ONDA2-IMESSAGE (gating): DESABILITADO com desafio pendente;
+                  // ONDA10: quiz sem acerto bloqueia igual — a explicação
+                  // visível está acima, porque hover não existe em botão morto.
+                  disabled={busy || finishBlocked}
+                  startIcon={<LockIcon />}
+                  sx={{ whiteSpace: 'nowrap', minHeight: TOUCH_TARGET_PX, px: 3 }}
+                >
+                  {t('translation:lesson.finishButton')}
+                </Button>
+              </motion.span>
+            </span>
+          </Tooltip>
+        ) : null}
+
+        {step === 'proxima-aula' ? (
+          /* ONDA4 (pós-conclusão — pedido do dono: "ao terminar o usuário pode
+             avançar para a próxima aula ou gerar um novo desafio"): no lugar
+             do "Concluída ✓" desabilitado, DOIS botões — avançar (nextLesson
+             do payload; sem nextLesson → roadmap, a trilha reflete a
+             conclusão) e gerar novo desafio (fluxo GLOBAL
+             challengeGenerateStore + IPC — o MESMO da bolha de erro). */
+          <>
+            <motion.span
+              whileTap={{ scale: 0.98 }}
+              transition={springs.snappy}
+              // Casca animada: nunca parada de tab (o porquê está no microfone).
+              tabIndex={-1}
+              style={{ display: 'inline-block' }}
+            >
+              <Button
+                variant="contained"
+                onClick={props.onNextLesson}
+                startIcon={<ArrowForwardIcon />}
+                sx={{ whiteSpace: 'nowrap', minHeight: TOUCH_TARGET_PX, px: 3 }}
+              >
+                {t('translation:lesson.nextLessonButton')}
+              </Button>
+            </motion.span>
+            <motion.span
+              whileTap={{ scale: 0.98 }}
+              transition={springs.snappy}
+              // Casca animada: nunca parada de tab (o porquê está no microfone).
+              tabIndex={-1}
+              style={{ display: 'inline-block' }}
+            >
+              <Button
+                variant="outlined"
+                onClick={props.onRegenerate}
+                disabled={busy || props.generateRunning}
+                sx={{ whiteSpace: 'nowrap', minHeight: TOUCH_TARGET_PX, px: 3 }}
+              >
+                {t('translation:lesson.generateNewChallenge')}
+              </Button>
+            </motion.span>
+          </>
+        ) : null}
+      </Stack>
+    </Stack>
+  );
+}
 
 /**
  * ONDA2-QUIZ-OVERLAY: um quiz RENDERIZÁVEL — a assertion AUTORAL (a que ancora
@@ -384,6 +1093,12 @@ export function LessonView(props: ViewProps): ReactElement {
   // POPOVER ancorado no próprio botão (`challengesAnchorEl`). Fecha ao clicar
   // fora/Esc (padrão MUI).
   const [challengesAnchorEl, setChallengesAnchorEl] = useState<HTMLButtonElement | null>(null);
+  // ONDA14: DE ONDE o popover foi aberto. O botão do cabeçalho vive no alto e
+  // a lista desce; o botão novo da LINHA DE AÇÃO vive no rodapé, e ali a
+  // mesma origem faria a lista nascer fora da janela (o MUI a grudaria de
+  // volta POR CIMA do botão que a abriu). Mesma lista, mesmo destino — só a
+  // direção em que ela cresce muda.
+  const [challengesFrom, setChallengesFrom] = useState<'cabecalho' | 'acao'>('cabecalho');
   const challengesOpen = Boolean(challengesAnchorEl);
   const [doneMarked, setDoneMarked] = useState(false);
   /**
@@ -469,6 +1184,21 @@ export function LessonView(props: ViewProps): ReactElement {
   // campo de pergunta — quem já está fazendo outra coisa não deve esperar a
   // animação. `keydown` cobre teclado; o clique vem do onClick do painel.
   const typingNow = streamingIds.size > 0;
+  /**
+   * ONDA14: uma SEÇÃO DE TEORIA está sendo escrita agora?
+   *
+   * `typingNow` (qualquer bolha) é largo demais para decidir o passo da linha
+   * de ação: a EXPLICAÇÃO do ciclo de remediação também digita na velocidade
+   * de leitura ('quiz-explanation', `chatBubbleTps`), e durante ela o quiz
+   * continua aberto esperando a resposta — um "Próximo" vivo ali diria ao
+   * aluno que há para onde ir. `isTheoryPresentationBubble` é o MESMO critério
+   * que escolhe a velocidade da digitação, então "o que o aluno está lendo
+   * devagar por ser teoria" e "o que o clique revela" são a mesma coisa.
+   */
+  const typingTheory = useMemo(
+    () => [...streamingIds].some((i) => isTheoryPresentationBubble(chat.history, i)),
+    [streamingIds, chat.history],
+  );
   useEffect(() => {
     if (!typingNow) return;
     const onKey = (): void => requestSkipTyping();
@@ -962,7 +1692,23 @@ export function LessonView(props: ViewProps): ReactElement {
     if (!trackLesson || busy || !chat.theoryDone || doneMarked || finishBlocked) return;
     setBusy(true);
     try {
-      await withTimeout(
+      // ── A GRAVAÇÃO PRECISA TER DADO CERTO (ONDA 15) ────────────────────
+      // O defeito que isto mata é o SINTOMA VERBATIM do dono ("clico e o
+      // cadeado não abre"), por uma causa que a onda 14 não tocou: a resposta
+      // do canal era DESCARTADA. `withTimeout` é um `Promise.race`, então um
+      // `{ ok: false }` RESOLVE — não rejeita, não cai no `catch` — e o código
+      // seguia direto para `setDoneMarked(true)`, confete, anúncio "aula
+      // concluída" e o botão "Avançar para a próxima aula". A aula NÃO tinha
+      // sido gravada, a seguinte continuava trancada, e a tela dizia o
+      // contrário em quatro sinais ao mesmo tempo.
+      // E `{ ok: false }` não é hipótese: `electron/main/index.ts` deixa
+      // `repo` indefinido quando o SQLite não abre, e o handler
+      // `track:lesson-done` responde 'persistência indisponível.' — um estado
+      // de produção PROJETADO, que a tela tratava como sucesso.
+      // Falhar aqui é FAIL-CLOSED de propósito: melhor o aluno ver que não
+      // gravou e tentar de novo do que receber confete por um progresso que
+      // não existe. O `catch` abaixo já mostra o erro e libera o botão.
+      const res = await withTimeout(
         getApi().track.lessonDone({
           trackSlug: trackLesson.trackSlug,
           lessonId: trackLesson.lessonId,
@@ -970,6 +1716,7 @@ export function LessonView(props: ViewProps): ReactElement {
         ACTION_TIMEOUTS.lessonDone,
         'track.lessonDone',
       );
+      if (res.ok === false) throw new Error(res.error);
       setDoneMarked(true);
       // ONDA4 (brilho ao concluir — pedido do dono): rajada de confete +
       // anúncio acessível role="status" (a LessonView reusa confetti.ts; o
@@ -998,6 +1745,10 @@ export function LessonView(props: ViewProps): ReactElement {
   const openChallenge = useCallback(
     (ch: TrackChallengeSummaryDto): void => {
       if (!trackLesson) return;
+      // ONDA 15: a MESMA regra da linha de ação de baixo, aplicada à rota do
+      // cabeçalho (ver `challengeOpenBlockedByQuiz`). Sem isto o popover era
+      // um atalho que pulava a prova de entendimento.
+      if (challengeOpenBlockedByQuiz(finishBlock)) return;
       nav.selectTrackChallenge({
         trackSlug: trackLesson.trackSlug,
         target: 'lesson',
@@ -1007,7 +1758,7 @@ export function LessonView(props: ViewProps): ReactElement {
       });
       nav.navigateToChallenge();
     },
-    [trackLesson, nav],
+    [trackLesson, nav, finishBlock],
   );
 
   /** ONDA2 (error-flow, A4): "Gerar novo desafio" NA BOLHA de erro — a LLM vê
@@ -1174,6 +1925,27 @@ export function LessonView(props: ViewProps): ReactElement {
   const activeNotice = quizNotice !== null && quizNotice.tag === activeQuizTag ? quizNotice.kind : null;
   const quizNoticeText = quizNotice === null ? null : tI(QUIZ_NOTICE_KEY[quizNotice.kind]);
   const activeNoticeText = activeNotice === null ? null : tI(QUIZ_NOTICE_KEY[activeNotice]);
+
+  /**
+   * ONDA12 — o card do quiz PRECISA ESTAR À VISTA. Com o CTA duplicado da
+   * linha de ação removido (ver o comentário lá embaixo), o card do
+   * `QuizChatCard` virou o ÚNICO convite para responder — e ele mora DENTRO
+   * da região de scroll da conversa. Se o aluno rolou para reler, ou se o
+   * overlay desceu (minimizar) enquanto ele estava em outro ponto da
+   * conversa, o único botão que destrava o "Próximo" ficaria fora da tela e o
+   * gate viraria beco sem saída — exatamente o defeito que a remoção do
+   * segundo botão poderia ter criado.
+   *
+   * `block: 'nearest'` é deliberado: ele rola o MÍNIMO necessário e não faz
+   * nada quando o card já está visível — nada de puxar a leitura do aluno.
+   * O optional call cobre plataforma sem `scrollIntoView` (SSR/teste).
+   */
+  const quizCardElRef = useRef<HTMLDivElement | null>(null);
+  const activeQuizKey = activeQuizCard?.visible.key ?? null;
+  useEffect(() => {
+    if (activeQuizKey === null || quizOverlay.phase === 'sobre-a-tela') return;
+    quizCardElRef.current?.scrollIntoView?.({ block: 'nearest', behavior: 'smooth' });
+  }, [activeQuizKey, quizOverlay.phase]);
   // ONDA4-SAÍDA-DO-CICLO: o aviso da volta EM CENA lido por ref — é ele que a
   // reabertura passa como `channelFailed` para a máquina pura. Por REF, e não
   // por closure, porque `handleQuizReopenGeneration` tem deps [] (a identidade
@@ -1315,10 +2087,32 @@ export function LessonView(props: ViewProps): ReactElement {
     const travado =
       activeNoticeRef.current === 'quiz-indisponivel' ||
       activeNoticeRef.current === 'explicacao-indisponivel';
-    setChat((st) => reopenStalledQuiz(st, visible.key, visible.assertion, travado));
+    // ONDA11-INTEGRAÇÃO — o estado NOVO é calculado ANTES do setChat, e não
+    // dentro de um updater, por uma razão só: este clique precisa SUBIR o
+    // modal, e para isso é preciso conhecer a geração que acabou de nascer.
+    // `chatRef` é atribuído no corpo do render (nunca num efeito), então ele é
+    // o estado corrente no instante do clique. Reducer PURO: recalcular aqui e
+    // publicar o resultado é a mesma transição, uma vez só.
+    const atual = chatRef.current;
+    const proximo = reopenStalledQuiz(atual, visible.key, visible.assertion, travado);
+    // No-op POR REFERÊNCIA (o ciclo não estava travado): nada muda, e nada
+    // sobe — a saída não é uma segunda porta para o gate.
+    if (proximo === atual) return;
+    setChat(proximo);
     // O aviso morre com a volta antiga: a geração nova muda a etiqueta
     // (`quizCycleTag`) e o aviso já não pertenceria a ela.
     setQuizNotice(null);
+    // O DEFEITO QUE ESTA LINHA MATA (medido na integração das quatro entregas
+    // paralelas da ONDA11): o botão diz "Responder esta pergunta de novo" e é
+    // um GESTO do aluno, mas o handler terminava no setChat. Como a geração
+    // nova é OUTRA geração, o guard de `applyQuizOverlayStep` — que protege
+    // só o MESMO quiz/geração já sobre a tela — não a alcançava, e o efeito do
+    // ciclo empurrava o card recém-nascido para 'minimizado-no-chat': o modal
+    // SUMIA no clique. `tests/e2e/e2e-quiz.spec.ts` (teste 5, bloco a) sempre
+    // exigiu o contrário. Medido em tests/quizOverlayCycle.test.ts ("a SAÍDA
+    // do ciclo travado é um gesto") e travado por fonte em
+    // tests/quizOverlayWiring.test.ts.
+    openQuizOverlay(overlayContextFor(card.original, visibleQuizFor(proximo, card.original), card.anchorIndex));
   }, []);
 
   // ─── (2) O MOTOR: cada passo do ciclo vira um pedido ao main ──────────────
@@ -1428,7 +2222,9 @@ export function LessonView(props: ViewProps): ReactElement {
       if (mountedRef.current === false) return;
       if (res.ok === true) {
         // Geração N+1, card zerado, ciclo de volta a 'aguardar-resposta' — e o
-        // efeito de fase abaixo o traz SOBRE A TELA de novo.
+        // ONDA11: ele ESPERA NA CONVERSA (o card volta com o CTA), porque
+        // nenhum passo do ciclo sobe o modal — nem um quiz novo chegando por
+        // cima da explicação que o aluno está lendo.
         setChat((st) => injectRemediationQuiz(st, visible.key, res.quiz));
         setQuizNotice(null);
       } else {
@@ -1463,11 +2259,14 @@ export function LessonView(props: ViewProps): ReactElement {
   }, [activeQuizCard, activeNotice, driveQuizCycle]);
 
   // ─── (1) A FASE do overlay acompanha o passo do ciclo ─────────────────────
-  // `applyQuizOverlayStep` é o atalho declarado do store: 'aguardar-resposta'
-  // sobe o card SOBRE A TELA, 'explicar-erro'/'gerar-novo-quiz' o mantêm
-  // MINIMIZADO na conversa (é lá que a explicação e o quiz novo chegam) e
-  // 'dominado' FECHA. Ele é idempotente por referência, então re-executar não
-  // ressuscita um card que o aluno minimizou na mão.
+  // `applyQuizOverlayStep` é o atalho declarado do store. ONDA11: NENHUM passo
+  // sobe o modal — 'aguardar-resposta' ESTACIONA o quiz na conversa (é onde o
+  // QuizChatCard desenha o convite), 'explicar-erro'/'gerar-novo-quiz' o
+  // mantêm lá (é lá que a explicação e o quiz novo chegam) e 'dominado' FECHA.
+  // Ele é idempotente por referência e guarda o que o aluno abriu na mão, então
+  // re-executar não derruba o modal nem ressuscita um card minimizado. Quem
+  // sobe é sempre um clique: `handleQuizReopen` (o CTA) e
+  // `handleQuizReopenGeneration` (a saída do ciclo travado).
   useEffect(() => {
     if (activeQuizCard !== null) {
       applyQuizOverlayStep(
@@ -1536,15 +2335,99 @@ export function LessonView(props: ViewProps): ReactElement {
     () => (lesson as LessonPayloadWithNext | null)?.nextLesson ?? null,
     [lesson],
   );
+  /**
+   * "Avançar para a próxima aula" — ONDA-INTEGRAÇÃO, o BUG GRAVE do dono:
+   * *"quando clico em proxima aula NAO LIBERA o cadeado da proxima aula"*.
+   *
+   * O QUE ESTE CÓDIGO FAZIA, e por que o clique não fazia NADA: ele gravava a
+   * pendência (`setPendingTrackLesson`) e chamava `navigate('lesson')`. Só que
+   * este botão só existe DENTRO da aba Aula, `navigate` é o `setActive` do
+   * shell (src/App.tsx: `<View onNavigate={setActive} />`) e o shell monta só a
+   * view ativa (`const View = VIEWS[active]`). `setActive('lesson')` com
+   * 'lesson' JÁ ativo é no-op do React: a LessonView não remonta, e a pendência
+   * só é lida no efeito de MONTAGEM (via `createTrackLessonPendingHolder`).
+   * Resultado medido na tela: a aula 2 nunca abria — e, como ela nunca era
+   * aberta nem concluída, o cadeado seguinte nunca se movia.
+   *
+   * O CONSERTO é trocar de aula NO LUGAR, exatamente como `openPrerequisite`
+   * (acima) já fazia — o caminho que sempre funcionou. `saveLastLesson` deixa a
+   * aula nova como "última aberta", então uma remontagem futura (troca de aba)
+   * restaura ELA pela 3ª precedência do efeito de montagem: nenhuma pendência
+   * pendurada, nenhum drain fantasma. O `navigate('lesson')` fica por último e
+   * só cobre o caso de a view não estar montada (hoje impossível — o botão é
+   * dela); sem `nextLesson`, o fallback continua sendo a Trilha.
+   */
   const handleGoToNextLesson = useCallback((): void => {
     if (!trackLesson) return;
-    if (nextLesson?.slug) {
-      setPendingTrackLesson(trackLesson.trackSlug, nextLesson.slug);
-      navigate('lesson');
-    } else {
+    const proxima = nextLesson?.slug;
+    if (!proxima) {
       navigate('roadmap');
+      return;
     }
-  }, [trackLesson, nextLesson, navigate]);
+    setTrackLesson({ trackSlug: trackLesson.trackSlug, lessonId: proxima });
+    saveLastLesson(trackLesson.trackSlug, proxima);
+    // Trocar de AULA abandona qualquer quiz não dominado da aula anterior: o
+    // overlay fecha explicitamente aqui (o efeito de fase só fecha por
+    // maestria), senão o card da aula velha ficaria sobre a aula nova.
+    closeQuizOverlay();
+    setChat(createTrackLessonState);
+    setDoneMarked(false);
+    setLoadError(null);
+    publishSession({ subject: proxima, status: 'idle' });
+    loadLesson(trackLesson.trackSlug, proxima);
+    navigate('lesson');
+  }, [trackLesson, nextLesson, navigate, loadLesson, publishSession]);
+
+  // ─── ONDA14: O PRÓXIMO PASSO, e o que o clique faz ────────────────────────
+  // Todo o estado que a linha de ação precisa desemboca numa função PURA
+  // (`lessonActionStep`, cabeçalho da seção lá em cima). Nada de ternário
+  // aninhado no JSX: o passo é UM valor, testável sozinho, e o JSX só desenha.
+  const actionStep = lessonActionStep({
+    theoryDone: chat.theoryDone,
+    doneMarked,
+    typingTheory,
+    nextBlockedByQuiz,
+    finishBlock,
+  });
+  /**
+   * O clique no botão de avanço — pedido do dono: *"quando clico em proximo já
+   * tem que mostrar tudo da digitação anterior"*.
+   *
+   * A decisão é do `nextClickAction` (pura): com a seção sendo escrita o
+   * clique COMPLETA a digitação (`requestSkipTyping`) e NÃO avança; só o passo
+   * 'proximo' chama `sendNext`. O gate do quiz não é afrouxado em lugar
+   * nenhum — 'quiz-secao' devolve 'nada', e o próprio `sendNext` mantém o
+   * guard `if (nextBlockedByQuiz) return` para a corrida em que a bolha termina
+   * de ser escrita entre o mousedown e o clique.
+   */
+  const handleNextClick = useCallback((): void => {
+    const action = nextClickAction(actionStep);
+    if (action === 'revelar') {
+      requestSkipTyping();
+      return;
+    }
+    if (action === 'avancar') void sendNext();
+  }, [actionStep, requestSkipTyping, sendNext]);
+
+  /**
+   * ONDA14 — o DESAFIO na linha de baixo, com o MESMO destino do botão do
+   * cabeçalho (nada de segundo fluxo): com UM desafio pendente vai direto para
+   * ele (`openChallenge`, a mesma navegação da lista); com mais de um, abre O
+   * MESMO popover — só que ancorado NESTE botão, e por isso o `from` guarda de
+   * onde ele foi aberto (a lista abre para CIMA quando nasce aqui embaixo).
+   */
+  const handleChallengeStep = useCallback(
+    (anchor: HTMLButtonElement): void => {
+      const pending = (lesson?.challenges ?? []).filter((ch) => ch.lastVerdict !== 'passed');
+      if (pending.length === 1) {
+        openChallenge(pending[0]);
+        return;
+      }
+      setChallengesFrom('acao');
+      setChallengesAnchorEl(anchor);
+    },
+    [lesson, openChallenge],
+  );
 
   // ─── estado vazio: nenhuma aula de trilha selecionada ─────────────────────
   if (!trackLesson) {
@@ -1554,7 +2437,7 @@ export function LessonView(props: ViewProps): ReactElement {
         <Typography variant="h6" align="center">
           {t('translation:lesson.emptyTitle')}
         </Typography>
-        <Typography variant="body2" color="text.secondary" align="center" sx={{ maxWidth: 480 }}>
+        <Typography variant="body2" align="center" sx={{ color: 'text.secondary', maxWidth: 480 }}>
           {t('translation:lesson.emptyDescription')}
         </Typography>
         <Button variant="contained" onClick={() => navigate('roadmap')}>
@@ -1602,14 +2485,15 @@ export function LessonView(props: ViewProps): ReactElement {
   // porque o `main` do shell virou flex column com altura definida (stretch).
   // Os estados vazio/erro/loading acima seguem com altura de conteúdo.
   //
-  // ONDA2-CHAT-NINTENDO (área de escrita MAIOR, limite fullhd — pedido do
-  // dono): a coluna subiu de 760 → min(1920px, 100%) — o conteúdo usa até
-  // uma tela fullhd de largura e NÃO estica além (monitores maiores mantêm
-  // 1920 centrado). O PAINEL de mensagens (role="log") fica CAPADO em 1000px
-  // centrado (linhas de leitura confortável — decisão visual documentada);
-  // o INPUT ocupa a largura MAIOR da coluna (pedido do dono: "o input fica
-  // na largura da coluna"). ONDA1-UX: a lista de desafios NÃO vive mais no
-  // fluxo — botão "Desafios" no cabeçalho com a lista em popover.
+  // ONDA11 (a coluna, ver o cabeçalho de LESSON_COLUMN_SX): a aula ativa
+  // inteira — cabeçalho, progresso, painel de mensagens, avisos, ação e
+  // entrada — vive numa coluna SÓ. Este Box é o ÚNICO lugar que declara
+  // largura e centralização; os filhos apenas preenchem. Antes eram dois
+  // eixos concorrentes (a view em min(1920px, 100%) e o painel capado em
+  // 1000 com `mx: 'auto'`), e o segundo eixo era APAGADO nos filhos diretos
+  // do Stack pela regra de espaçamento dele — o input encostava na esquerda.
+  // `useFlexGap` tira essa regra de campo: o espaçamento vira `gap` do
+  // container, e nenhuma margem de filho é reescrita.
   return (
     <Box
       sx={{
@@ -1619,12 +2503,10 @@ export function LessonView(props: ViewProps): ReactElement {
         display: 'flex',
         flexDirection: 'column',
         p: 2,
-        maxWidth: 'min(1920px, 100%)',
-        width: '100%',
-        mx: 'auto',
+        ...LESSON_COLUMN_SX,
       }}
     >
-      <Stack spacing={1.5} sx={{ flexGrow: 1, minHeight: 0 }}>
+      <Stack useFlexGap spacing={1.5} sx={{ flexGrow: 1, minHeight: 0 }}>
         {/* Cabeçalho: título + resumo + ações */}
         <Box>
  <Stack direction="row" spacing={1} sx={{ justifyContent: 'space-between', alignItems: 'flex-start' }}>
@@ -1632,7 +2514,7 @@ export function LessonView(props: ViewProps): ReactElement {
               <Typography variant="h5" component="h1">
                 {lesson.title}
               </Typography>
-              <Typography variant="body2" color="text.secondary">
+              <Typography variant="body2" sx={{ color: 'text.secondary' }}>
                 {lesson.summary}
               </Typography>
             </Box>
@@ -1647,9 +2529,17 @@ export function LessonView(props: ViewProps): ReactElement {
                   <Button
                     size="small"
                     variant="outlined"
-                    onClick={(e) => setChallengesAnchorEl(e.currentTarget)}
+                    onClick={(e) => {
+                      setChallengesFrom('cabecalho');
+                      setChallengesAnchorEl(e.currentTarget);
+                    }}
                     aria-haspopup="true"
-                    aria-expanded={challengesOpen}
+                    /* ONDA14: o popover agora tem DOIS disparadores (este e o
+                       CTA da linha de ação). `aria-expanded` descreve ESTE
+                       botão: ele só está "expandido" quando foi ELE que abriu
+                       a lista — senão o leitor de tela ouviria, do botão do
+                       cabeçalho, que ele abriu algo que não abriu. */
+                    aria-expanded={challengesOpen && challengesFrom === 'cabecalho'}
                     aria-label={tI('lesson.challengesButtonAria', { pending: pendingChallengeCount })}
                     startIcon={<EmojiEventsIcon />}
                   >
@@ -1657,27 +2547,72 @@ export function LessonView(props: ViewProps): ReactElement {
                   </Button>
                 </Badge>
               ) : null}
-              <Button size="small" variant="outlined" onClick={() => setSourcesOpen(true)} startIcon={<AutoStoriesIcon />}>
+              {/* ONDA 13 — O ACENTO VOLTA A SIGNIFICAR AÇÃO.
+                  A prova visual do dono contou, em REPOUSO na tela clara,
+                  QUATRO objetos acentuados ao mesmo tempo: este botão
+                  (texto + borda + ícone), a barra de progresso logo abaixo, o
+                  CTA "Responder" do quiz e o item de navegação ativo. Com o
+                  aluno escrevendo viram SEIS. Quando tudo é vermelho, o
+                  vermelho não aponta mais para nada — e o único que PRECISA
+                  apontar é o CTA (a ação que destrava a aula).
+                  "Fontes" é um passivo: abre uma lista de consulta, não avança
+                  a aula. Ele vira `secondary`, que o tema aponta para a tinta —
+                  continua um botão de contorno legível, só para de gritar.
+                  O botão "Desafios" logo acima já usa `Badge color="error"`
+                  para o que é de fato urgente (pendências), e esse sim
+                  continua colorido. */}
+              <Button
+                size="small"
+                variant="outlined"
+                /* `inherit` = a TINTA do cabeçalho, não um acento.
+                   ATENÇÃO ao caminho que NÃO serve: `color="secondary"` parece
+                   o oposto de "chamativo", mas neste tema
+                   `palette.secondary = accent(accents.study)` — o ROXO que o
+                   dono mandou tirar e que a onda 12 eliminou dos 7 nós onde
+                   ainda estava. Usar `secondary` aqui o traria de volta no
+                   cabeçalho de TODA aula (medido: a captura de foco desta onda
+                   pegou o botão roxo).
+                   A borda vai para a camada NÃO-TEXTO em vez do
+                   `currentColor` a 50% que o MUI dá ao `inherit`: aquele é
+                   opacidade sobre cor herdada, o mesmo vício que reprovou o
+                   carimbo de hora, e aqui cairia abaixo do piso de 3:1.
+                   [medido] NONTEXT_DARK.neutral x SURFACE_DARK.level0 = 4,50:1
+                   [medido] NONTEXT_LIGHT.neutral x SURFACE_LIGHT.level0 = 3,03:1 */
+                color="inherit"
+                onClick={() => setSourcesOpen(true)}
+                startIcon={<AutoStoriesIcon />}
+                sx={{ color: 'text.primary', borderColor: 'nonText.neutral' }}
+              >
                 {t('translation:lesson.sourcesButton')}
               </Button>
             </Stack>
           </Stack>
-          {/* Progresso da teoria (seções apresentadas). */}
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 1 }}>
+          {/* Progresso da teoria (seções apresentadas).
+              ONDA 13: `color="inherit"` tira a barra da disputa pelo acento
+              (ver o comentário do botão "Fontes" acima). Progresso é
+              INFORMAÇÃO de estado, não chamada para ação: ele é lido junto com
+              o "Seção N de M" ao lado, que já é tinta secundária. O trilho e o
+              preenchimento passam a ser a mesma tinta em opacidades
+              diferentes, que é o desenho do próprio MUI para `inherit` — e o
+              contraste de preenchimento contra trilho não tem piso normativo
+              (nenhum dos dois é a única forma de saber onde a aula está: o
+              contador textual carrega a mesma informação). */}
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 1, color: 'text.secondary' }}>
             <LinearProgress
               variant="determinate"
+              color="inherit"
               value={theoryProgress}
               sx={{ flexGrow: 1, height: 6, borderRadius: 3 }}
               aria-label={tI('lesson.theoryProgress', { percent: theoryProgress })}
             />
-            <Typography variant="caption" color="text.secondary">
+            <Typography variant="caption" sx={{ color: 'text.secondary' }}>
               {tI('lesson.theoryCount', { current: chat.presentedSections.length, total: lesson.theory.length })}
             </Typography>
           </Box>
           {/* Aulas anteriores da trilha (revisão quando não entender). */}
           {lesson.prerequisites.length > 0 ? (
  <Stack direction="row" spacing={1} sx={{ mt: 1, flexWrap: 'wrap',  }} >
-              <Typography variant="caption" color="text.secondary" sx={{ alignSelf: 'center' }}>
+              <Typography variant="caption" sx={{ color: 'text.secondary', alignSelf: 'center' }}>
                 {t('translation:lesson.prerequisitesLabel')}
               </Typography>
               {lesson.prerequisites.map((pre) => (
@@ -1709,34 +2644,34 @@ export function LessonView(props: ViewProps): ReactElement {
             display: 'flex',
             flexDirection: 'column',
             gap: 1,
+            // ONDA12: os 12px de `p: 1.5` que o painel tinha morreram junto
+            // com a caixa — mas o CLIPE do scroll não morreu com eles. Um
+            // container com `overflow-y: auto` recorta no PADDING BOX, e o
+            // anel de foco desta base sai 5px do controle (FOCUS_RING:
+            // offset 2 + width 3, theme.ts): com inset zero, o anel do
+            // "Mostrar tudo" — que nasce colado na borda esquerda — seria
+            // cortado. 0.75 = 6px, a folga MÍNIMA que cabe o anel inteiro.
+            // Fica aqui, no ROLADOR, e não no painel: assim o painel segue
+            // sem padding nenhum (ele não desenha caixa) e o respiro é
+            // função do recorte, que é o que ele realmente é.
+            px: 0.75,
           }}
         >
-          {/* Painel das mensagens (rola junto com a região). ONDA2-CHAT-
-              NINTENDO: CAPADO em 1000px e CENTRALIZADO (mx auto) — os balões
-              (maxWidth 78% do painel) mantêm linhas de leitura confortável
-              mesmo com a coluna em fullhd; o input segue na largura MAIOR da
-              coluna (decisão documentada no render). ONDA1-UX: a lista de
-              desafios não vive mais aqui (popover no cabeçalho). */}
+          {/* Painel das mensagens (rola junto com a região). ONDA11: ele NÃO
+              declara mais eixo próprio — a coluna já é a do container raiz, e
+              o balão continua capado em min(78%, 80ch) pela ChatBubble. Era
+              justamente o eixo duplicado aqui que fazia painel e entrada
+              discordarem. ONDA1-UX: a lista de desafios não vive mais aqui
+              (popover no cabeçalho).
+
+              ONDA12: ele também não é mais uma CAIXA — nível 0 (o fundo do
+              app), sem raio e sem padding, com a conversa ancorada embaixo. A
+              conta de contraste do "nível 2 → nível 0" está no cabeçalho de
+              `lessonLogSx`, que é onde este estilo mora agora: fora do JSX ele
+              é RENDERIZÁVEL sozinho, e o teste lê o CSS que o emotion emite em
+              vez de procurar texto no fonte. */}
           <Box
-            sx={{
-              flexGrow: 1,
-              display: 'flex',
-              flexDirection: 'column',
-              gap: 1,
-              // ONDA2-QUIZ-OVERLAY: o painel era `action.hover` — um overlay
-              // ALFA do MUI, a ÚNICA superfície do app fora da rampa
-              // `surface.level0..4` de designTokens. Agora é o NÍVEL 2, que é
-              // o que a rampa chama de "painel afundado/well": a cor é
-              // explícita por esquema (nada de matemática de cor em runtime,
-              // guarda-corpo #5) e o balão continua no nível 1, a superfície
-              // de LEITURA, por cima dele.
-              bgcolor: theme.vars.palette.surface.level2,
-              borderRadius: 2,
-              p: 1.5,
-              maxWidth: CHAT_COLUMN_MAX_PX,
-              width: '100%',
-              mx: 'auto',
-            }}
+            sx={lessonLogSx(theme)}
             role="log"
             aria-live="polite"
             // ONDA10 (bug 3): clicar em QUALQUER lugar do painel completa a
@@ -1753,6 +2688,8 @@ export function LessonView(props: ViewProps): ReactElement {
               <motion.span
                 whileTap={{ scale: 0.98 }}
                 transition={springs.snappy}
+                // Casca animada: nunca parada de tab (o porquê está no microfone).
+                tabIndex={-1}
                 style={{ display: 'inline-block' }}
               >
                 <Button
@@ -1801,7 +2738,7 @@ export function LessonView(props: ViewProps): ReactElement {
                     >
                       {daySep ? (
                         <Box sx={{ textAlign: 'center', mt: 0.5 }}>
-                          <Typography variant="caption" color="text.secondary">
+                          <Typography variant="caption" sx={{ color: 'text.secondary' }}>
                             {daySep.kind === 'today'
                               ? t('translation:lesson.dayToday')
                               : daySep.kind === 'yesterday'
@@ -1898,23 +2835,34 @@ export function LessonView(props: ViewProps): ReactElement {
                             // overlay — responder acontece SOBRE A TELA, num
                             // card só, nunca em dois ao mesmo tempo.
                             return (
-                              <QuizChatCard
+                              // <div> cru (e não Box): ele não pinta nada, só
+                              // carrega o ref do card EM CENA para o efeito
+                              // que o traz à vista. Bloco simples preserva a
+                              // largura que o card já resolvia sozinho.
+                              <div
                                 key={visible.assertion.id}
-                                status={inScene ? activeQuizStatus : 'aguardando'}
-                                onScreen={inScene && quizOverlay.phase === 'sobre-a-tela'}
-                                question={visible.assertion.question}
-                                generation={visible.generation}
-                                notice={inScene ? activeNoticeText : null}
-                                onOpen={() => handleQuizReopen(visible.key)}
-                                onRetry={
-                                  inScene && activeQuizStatus === 'indisponivel' ? handleQuizRetry : null
-                                }
-                                onReopen={
-                                  inScene && activeQuizStatus === 'indisponivel'
-                                    ? handleQuizReopenGeneration
-                                    : null
-                                }
-                              />
+                                ref={inScene ? quizCardElRef : null}
+                              >
+                                <QuizChatCard
+                                  quizKey={visible.key}
+                                  status={inScene ? activeQuizStatus : 'aguardando'}
+                                  onScreen={inScene && quizOverlay.phase === 'sobre-a-tela'}
+                                  question={visible.assertion.question}
+                                  generation={visible.generation}
+                                  notice={inScene ? activeNoticeText : null}
+                                  onOpen={() => handleQuizReopen(visible.key)}
+                                  onRetry={
+                                    inScene && activeQuizStatus === 'indisponivel'
+                                      ? handleQuizRetry
+                                      : null
+                                  }
+                                  onReopen={
+                                    inScene && activeQuizStatus === 'indisponivel'
+                                      ? handleQuizReopenGeneration
+                                      : null
+                                  }
+                                />
+                              </div>
                             );
                           })}
                     </motion.div>
@@ -1951,12 +2899,11 @@ export function LessonView(props: ViewProps): ReactElement {
               lista de desafios. */}
         </Box>
 
+        {/* ONDA11: os avisos NÃO declaram mais largura própria — eles são
+            filhos da coluna e a preenchem. Declarar `mx: 'auto'` aqui seria
+            escrever CSS que o Stack apaga (ver LESSON_COLUMN_SX). */}
         {chat.lastError ? (
-          <Alert
-            severity="warning"
-            sx={CHAT_COLUMN_SX}
-            onClose={() => setChat((s) => ({ ...s, lastError: null }))}
-          >
+          <Alert severity="warning" onClose={() => setChat((s) => ({ ...s, lastError: null }))}>
             {chat.lastError}
           </Alert>
         ) : null}
@@ -1967,7 +2914,7 @@ export function LessonView(props: ViewProps): ReactElement {
             `warning`: §8 item 3 — falhar é estado de DIAGNÓSTICO, com redação
             informativa, nunca repreensão. */}
         {quizNoticeText !== null && activeNotice === null ? (
-          <Alert severity="info" sx={CHAT_COLUMN_SX} onClose={() => setQuizNotice(null)}>
+          <Alert severity="info" onClose={() => setQuizNotice(null)}>
             {quizNoticeText}
           </Alert>
         ) : null}
@@ -1978,218 +2925,56 @@ export function LessonView(props: ViewProps): ReactElement {
         {mic.transcribing ? (
           <Typography
             variant="caption"
-            color="text.secondary"
+           
             aria-live="polite"
-            sx={{ ...CHAT_COLUMN_SX, fontStyle: 'italic' }}
+            sx={{ color: 'text.secondary', fontStyle: 'italic' }}
           >
             {tI('lesson.micRecording')} — {mic.partial || '…'}
           </Typography>
         ) : null}
         {mic.error ? (
-          <Alert severity="error" sx={{ ...CHAT_COLUMN_SX, py: 0.5 }}>{mic.error}</Alert>
+          <Alert severity="error" sx={{ py: 0.5 }}>{mic.error}</Alert>
         ) : null}
 
-        {/* ONDA10 (bug 2): o botão travado DIZ por quê — nunca só desabilita
-            em silêncio (um botão morto e mudo é pior que o bug). A linha é
-            role="status" + aria-live: quem usa leitor de tela também recebe.
-            O tooltip continua existindo, mas ele é hover-only e um Button
-            desabilitado nem dispara hover — a explicação PRECISA estar aqui,
-            visível, ao lado do botão. */}
-        {!chat.theoryDone && nextBlockedByQuiz ? (
-          <Typography
-            role="status"
-            aria-live="polite"
-            variant="caption"
-            color="text.secondary"
-            sx={{ ...CHAT_COLUMN_SX, display: 'block' }}
-          >
-            {t('translation:lesson.quizGateNext')}
-          </Typography>
-        ) : null}
-        {chat.theoryDone && !doneMarked && finishBlock === 'quiz' ? (
-          <Typography
-            role="status"
-            aria-live="polite"
-            variant="caption"
-            color="text.secondary"
-            sx={{ ...CHAT_COLUMN_SX, display: 'block' }}
-          >
-            {tI('lesson.quizGateFinish', { n: quizPendingAll.length })}
-          </Typography>
-        ) : null}
+        {/* ONDA11 — a LINHA DE AÇÃO, no molde da referência de chat: o
+            anúncio CENTRALIZADO seguido do botão CTA. Ela saiu de dentro da
+            barra de entrada por dois motivos: (a) na referência a entrada é só
+            mic + campo + enviar, e (b) "Próximo"/"Concluir aula" roubavam
+            largura do campo, que era metade da queixa do dono.
 
-        {/* Entrada: dúvida do aluno (texto OU voz) + avanço da teoria.
+            ONDA14: o corpo dela virou `LessonActionRow` — componente de
+            APRESENTAÇÃO exportado, dirigido pelo passo PURO `lessonActionStep`
+            (o porquê está no cabeçalho daquela seção). O que a VIEW decide
+            aqui é só o que depende de estado e de IPC: revelar a digitação,
+            avançar a teoria, concluir, ir ao desafio (MESMO destino do botão
+            do cabeçalho) e seguir para a próxima aula. */}
+        <LessonActionRow
+          step={actionStep}
+          busy={busy}
+          generateRunning={generateRunning}
+          quizCardOnScreen={pendingQuizCards.length > 0}
+          pendingQuizCount={quizPendingAll.length}
+          pendingChallengeCount={pendingChallengeCount}
+          onNext={handleNextClick}
+          onFinish={() => void finishLesson()}
+          onChallenge={handleChallengeStep}
+          onNextLesson={() => void handleGoToNextLesson()}
+          onRegenerate={() => void handleRegenerateFromBubble()}
+        />
 
-            ONDA2-QUIZ-OVERLAY (larguras alinhadas): a linha de entrada passa a
-            respeitar a MESMA coluna do painel de mensagens
-            (CHAT_COLUMN_MAX_PX). Antes ela herdava a coluna inteira da aula
-            (min(1920px, 100%)) e, em janela fullhd, o campo de pergunta
-            terminava quase um palmo à direita do último balão: o eixo de
-            LEITURA e o de ESCRITA não batiam. */}
- <Stack direction="row" spacing={1} sx={CHAT_COLUMN_SX}>
-          <TextField
-            size="small"
-            fullWidth
-            data-onboarding-target="lesson-chat-input"
-            label={t('translation:lesson.askInput')}
-            value={draft}
-            onChange={(e) => setDraft(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' && !e.shiftKey) void sendAnswer();
-            }}
-            disabled={busy}
-            slotProps={{
-              input: {
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <Tooltip title={mic.transcribing ? t('translation:lesson.micStop') : t('translation:lesson.micStart')}>
-                      <span>
-                        <IconButton
-                          onClick={() => void handleMicToggle()}
-                          disabled={busy}
-                          size="small"
-                          aria-label={mic.transcribing ? tI('lesson.micStop') : tI('lesson.micStart')}
-                        >
-                          {mic.transcribing ? <MicOffIcon fontSize="small" /> : <MicIcon fontSize="small" />}
-                        </IconButton>
-                      </span>
-                    </Tooltip>
-                  </InputAdornment>
-                ),
-                endAdornment: (
-                  <InputAdornment position="end">
-                    <Tooltip title={t('translation:lesson.askSend')}>
-                      {/* ONDA2-CHAT-NINTENDO: press feedback (scale 0.98)
-                          no Send — pedido do dono. */}
-                      <motion.span
-                        whileTap={{ scale: 0.98 }}
-                        transition={springs.snappy}
-                        style={{ display: 'inline-block' }}
-                      >
-                        {/* ONDA3 (2.3, débito de a11y): o Send ganha nome
-                            acessível (o mic já tinha na Onda 2). O Tooltip é
-                            dica visual — o aria-label é o NOME acessível
-                            (nada duplicado na tela). */}
-                        <IconButton
-                          onClick={() => void sendAnswer()}
-                          disabled={busy || !draft.trim()}
-                          size="small"
-                          aria-label={tI('lesson.sendMessage')}
-                        >
-                          <SendIcon fontSize="small" />
-                        </IconButton>
-                      </motion.span>
-                    </Tooltip>
-                  </InputAdornment>
-                ),
-              },
-            }}
-          />
-          {!chat.theoryDone ? (
-            /* ONDA2-CHAT-NINTENDO: press feedback (scale 0.98) no "Próximo"
-               — pedido do dono. ONDA10 (bug 2): o avanço da teoria trava
-               enquanto o quiz da seção ATUAL estiver sem resposta. O
-               <span> é obrigatório: Button DESABILITADO não dispara os
-               eventos que o Tooltip escuta. Errar não trava — o gate lê
-               `answered`, nunca `correct`. */
-            <Tooltip title={nextBlockedByQuiz ? t('translation:lesson.quizGateNext') : ''}>
-              <span>
-                <motion.span
-                  whileTap={{ scale: 0.98 }}
-                  transition={springs.snappy}
-                  style={{ display: 'inline-block' }}
-                >
-                  <Button
-                    variant="contained"
-                    onClick={() => void sendNext()}
-                    disabled={busy || nextBlockedByQuiz}
-                    startIcon={nextBlockedByQuiz ? <LockIcon /> : undefined}
-                    sx={{ whiteSpace: 'nowrap' }}
-                  >
-                    {t('translation:lesson.nextButton')}
-                  </Button>
-                </motion.span>
-              </span>
-            </Tooltip>
-          ) : doneMarked ? (
-            /* ONDA4 (pós-conclusão — pedido do dono: "ao terminar o usuário
-               pode avançar para a próxima aula ou gerar um novo desafio"):
-               no lugar do "Concluída ✓" desabilitado, DOIS botões — avançar
-               (nextLesson do payload; sem nextLesson → roadmap, a trilha
-               reflete a conclusão) e gerar novo desafio (fluxo GLOBAL
-               challengeGenerateStore + IPC — o MESMO da bolha de erro,
-               handleRegenerateFromBubble; o modal global mostra as etapas). */
-            <>
-              <motion.span
-                whileTap={{ scale: 0.98 }}
-                transition={springs.snappy}
-                style={{ display: 'inline-block' }}
-              >
-                <Button
-                  variant="contained"
-                  onClick={() => void handleGoToNextLesson()}
-                  startIcon={<ArrowForwardIcon />}
-                  sx={{ whiteSpace: 'nowrap' }}
-                >
-                  {t('translation:lesson.nextLessonButton')}
-                </Button>
-              </motion.span>
-              <motion.span
-                whileTap={{ scale: 0.98 }}
-                transition={springs.snappy}
-                style={{ display: 'inline-block' }}
-              >
-                <Button
-                  variant="outlined"
-                  onClick={() => void handleRegenerateFromBubble()}
-                  disabled={busy || generateRunning}
-                  sx={{ whiteSpace: 'nowrap' }}
-                >
-                  {t('translation:lesson.generateNewChallenge')}
-                </Button>
-              </motion.span>
-            </>
-          ) : (
-            <Tooltip
-              /* ONDA10: o motivo do bloqueio vem de `lessonFinishBlock` —
-                 'quiz' (responda os quizzes) tem PRECEDÊNCIA sobre
-                 'challenges' porque o desbloqueio é mais barato: o card está
-                 na tela, a um clique. */
-              title={
-                finishBlock === 'quiz'
-                  ? tI('lesson.quizGateFinish', { n: quizPendingAll.length })
-                  : finishBlock === 'challenges'
-                    ? t('translation:lesson.finishBlockedTooltip')
-                    : ''
-              }
-            >
-              <span>
-                {/* ONDA2-CHAT-NINTENDO: mesmo press feedback no "Concluir
-                    aula" (mesma linha de ações). */}
-                <motion.span
-                  whileTap={{ scale: 0.98 }}
-                  transition={springs.snappy}
-                  style={{ display: 'inline-block' }}
-                >
-                  <Button
-                    variant="contained"
-                    onClick={() => void finishLesson()}
-                    // ONDA2-IMESSAGE (gating): DESABILITADO com desafios
-                    // pendentes (tooltip i18n só quando bloqueado); liberado com
-                    // todos passed ou sem desafios. ONDA10: quiz sem resposta
-                    // bloqueia igual — a explicação visível está acima.
-                    disabled={busy || doneMarked || finishBlocked}
-                    startIcon={doneMarked ? <CheckCircleIcon /> : <LockIcon />}
-                    sx={{ whiteSpace: 'nowrap' }}
-                  >
-                    {doneMarked ? t('translation:lesson.doneMarked') : t('translation:lesson.finishButton')}
-                  </Button>
-                </motion.span>
-              </span>
-            </Tooltip>
-          )}
-        </Stack>
-
+        {/* ONDA11 — a BARRA DE ENTRADA no molde da referência: mic FORA à
+            esquerda, campo pílula ocupando o resto da linha, enviar DENTRO na
+            borda direita. Ela é o último filho da coluna e a preenche inteira:
+            o eixo de ESCRITA é, agora, literalmente o mesmo objeto de estilo
+            do eixo de LEITURA (o container). */}
+        <LessonComposer
+          draft={draft}
+          onDraftChange={setDraft}
+          onSend={() => void sendAnswer()}
+          onMicToggle={() => void handleMicToggle()}
+          micTranscribing={mic.transcribing}
+          disabled={busy}
+        />
       </Stack>
 
       {/* Fontes: NUNCA no fluxo — botão "Fontes" abre este diálogo. */}
@@ -2197,7 +2982,7 @@ export function LessonView(props: ViewProps): ReactElement {
         <DialogTitle id="lesson-sources-title">{t('translation:lesson.sourcesTitle')}</DialogTitle>
         <DialogContent dividers>
           {lesson.sources.length === 0 ? (
-            <Typography variant="body2" color="text.secondary">
+            <Typography variant="body2" sx={{ color: 'text.secondary' }}>
               {t('translation:lesson.sourcesEmpty')}
             </Typography>
           ) : (
@@ -2227,8 +3012,16 @@ export function LessonView(props: ViewProps): ReactElement {
         open={challengesOpen}
         anchorEl={challengesAnchorEl}
         onClose={() => setChallengesAnchorEl(null)}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-        transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+        anchorOrigin={
+          challengesFrom === 'acao'
+            ? { vertical: 'top', horizontal: 'center' }
+            : { vertical: 'bottom', horizontal: 'right' }
+        }
+        transformOrigin={
+          challengesFrom === 'acao'
+            ? { vertical: 'bottom', horizontal: 'center' }
+            : { vertical: 'top', horizontal: 'right' }
+        }
         slotProps={{
           paper: {
             // ONDA3-UX-FIX (revisor): o papel CLIPA no raio do tema (14px) —
@@ -2247,11 +3040,29 @@ export function LessonView(props: ViewProps): ReactElement {
           <Typography variant="h6" sx={{ mb: 1 }}>
             {t('translation:lesson.challengesTitle')}
           </Typography>
+          {/* ONDA 15 — O BLOQUEIO DIZ O MOTIVO.
+              `openChallenge` recusa enquanto houver quiz sem acerto
+              (`challengeOpenBlockedByQuiz`), e um card que não faz nada quando
+              clicado é o "botão morto e mudo" que esta base proíbe desde a
+              onda 10. A explicação vem ANTES da lista, visível, com
+              `role="status"` + `aria-live` — o mesmo desenho da linha de ação,
+              porque o `disabled` mata o hover e portanto mata o Tooltip. */}
+          {challengeOpenBlockedByQuiz(finishBlock) ? (
+            <Typography
+              role="status"
+              aria-live="polite"
+              variant="caption"
+              sx={{ color: 'text.secondary', display: 'block', mb: 1 }}
+            >
+              {tI('lesson.challengeGateQuiz', { n: quizPendingAll.length })}
+            </Typography>
+          ) : null}
           <List dense role="list" aria-label={tI('lesson.challengesListAria')}>
             {lesson.challenges.map((ch) => (
               <ListItem
                 key={ch.slug}
                 component="button"
+                disabled={challengeOpenBlockedByQuiz(finishBlock)}
                 onClick={() => {
                   setChallengesAnchorEl(null);
                   openChallenge(ch);
@@ -2261,7 +3072,7 @@ export function LessonView(props: ViewProps): ReactElement {
                   borderColor: 'divider',
                   borderRadius: 1,
                   mb: 0.5,
-                  cursor: 'pointer',
+                  cursor: challengeOpenBlockedByQuiz(finishBlock) ? 'not-allowed' : 'pointer',
                   textAlign: 'left',
                   width: '100%',
                   '&:hover': { bgcolor: 'action.hover' },

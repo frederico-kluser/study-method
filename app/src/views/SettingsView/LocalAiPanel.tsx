@@ -68,7 +68,7 @@ function HardwareView({ info }: { info: HardwareInfo }): ReactElement {
               p: 1,
             }}
           >
-            <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
+            <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block' }}>
               {r.label}
             </Typography>
             <Typography variant="body2" sx={{ wordBreak: 'break-word', fontWeight: 600 }}>
@@ -306,7 +306,7 @@ export function LocalAiPanel(): ReactElement {
                     </Stack>
                   </Box>
 
-                  <Typography variant="body2" color="text.secondary" sx={{ fontFamily: 'monospace' }}>
+                  <Typography variant="body2" sx={{ color: 'text.secondary', fontFamily: 'monospace' }}>
                     {formatBytes(model.sizeBytes)}
                   </Typography>
 
@@ -318,7 +318,7 @@ export function LocalAiPanel(): ReactElement {
                         aria-label={`download ${model.id}`}
                         aria-valuenow={pct}
                       />
-                      <Typography variant="caption" color="text.secondary" sx={{ fontFamily: 'monospace' }}>
+                      <Typography variant="caption" sx={{ color: 'text.secondary', fontFamily: 'monospace' }}>
                         {pct}% · {formatSpeedBps(tick.speedBps)}
                       </Typography>
                       {tick.error ? (

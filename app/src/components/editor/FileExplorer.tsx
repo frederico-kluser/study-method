@@ -232,7 +232,7 @@ export function FileExplorer({
       {/* Árvore */}
       <Box component="div" sx={{ flexGrow: 1, overflow: 'auto' }}>
         {tree.length === 0 ? (
-          <Typography variant="body2" color="text.secondary" sx={{ p: 1 }}>
+          <Typography variant="body2" sx={{ color: 'text.secondary', p: 1 }}>
             {t('translation:editor.workspaceEmpty')}
           </Typography>
         ) : (

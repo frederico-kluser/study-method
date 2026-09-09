@@ -10,6 +10,17 @@
  * produção, e olha o que o aluno olha.
  *
  * ─── O QUE É PRODUÇÃO AQUI (e o que é fixture) ────────────────────────────
+ * ─── ONDA11: O MODAL É GESTO, NÃO CONSEQUÊNCIA ────────────────────────────
+ * O dono, literal: *"tinha o texto sendo escrito, eu cliquei, e depois
+ * renderizou o texto e já abriu o modal com o quiz, quero um botão de abrir
+ * quiz pro usuário acionar o modal manualmente"*. Esta spec media o
+ * comportamento ANTIGO: o modal subindo sozinho no fim da digitação da seção.
+ * Hoje o quiz ESTACIONA na conversa (o `QuizChatCard` com o CTA "Responder") e
+ * só o CLIQUE o leva para cima da tela — `openQuizByGesture`, o helper por
+ * onde todo teste daqui passa. Ele espera o CTA ficar visível, o que é também
+ * a espera pela digitação: o card só entra em cena quando a bolha da seção
+ * terminou de ser escrita.
+ *
  * PRODUÇÃO: o bundle do renderer inteiro (overlay, card do chat, gates), o
  * loader de trilhas do main, `buildTrackLesson`, e — nos 4 canais de quiz — o
  * SERVIÇO REAL de remediação (`createQuizRemediation`), com o prompt, a
@@ -37,9 +48,9 @@
  * Um e2e verde que não exercita nada é pior que nenhum e2e, então estas duas
  * quebras foram INJETADAS e o teste reprovou nas duas — depois tudo foi
  * revertido (nenhum arquivo de produção ficou alterado):
- *   1. `assertions` removido da aula fixture ⇒ falha em
- *      `expect(dialog).toBeVisible()` ("element(s) not found") — a spec não
- *      passa com a tela sem quiz;
+ *   1. `assertions` removido da aula fixture ⇒ falha na espera do CTA
+ *      "Responder" do card da conversa ("element(s) not found"), e portanto
+ *      antes mesmo do diálogo — a spec não passa com a tela sem quiz;
  *   2. vazamento reintroduzido em `optionVisualState` (a certa nascendo
  *      `success`/`contained`) ⇒ falha em `expect(new Set(looks).size).toBe(1)`
  *      MESMO sem ícone (2 aparências entre as 4), e em
@@ -67,17 +78,22 @@
  *     `track:quiz-history`, então "a maestria sobreviveu ao restart" não tem
  *     como ser afirmado por esta spec. O que ELA prova é o gate em memória (a
  *     mesma condição que o botão lê) e que a gravação não interfere na tela.
- *  3. O INSTANTE "MINIMIZADO AO RESPONDER" só é estável com a IA fora. Com a IA
- *     fixture (que responde sem rede, em milissegundos), a explicação e o quiz
- *     novo voltam antes de a animação de saída do overlay terminar: o overlay
- *     mergulha e sobe. Quem prova a minimização é o teste do Esc/backdrop
- *     (estado estável + reabertura pelo card) e o do fail-closed (o ciclo para,
- *     e aí o quiz FICA fora da tela com o card da conversa assumindo o estado).
+ *  3. [RESOLVIDA na ONDA11.] O INSTANTE "MINIMIZADO AO RESPONDER" só era
+ *     estável com a IA fora: com a IA fixture (que responde sem rede, em
+ *     milissegundos), a explicação e o quiz novo voltavam antes de a animação
+ *     de saída do overlay terminar e o overlay mergulhava e subia. Agora
+ *     NENHUM passo do ciclo sobe o modal — o quiz remediador chega na conversa
+ *     e espera o botão —, então responder tira o quiz da tela e ele FICA fora
+ *     até o próximo gesto, em todos os três testes que respondem.
  *  4. PREFERS-REDUCED-MOTION não é exercitado (o overlay tem um caminho de
  *     entrada sem overshoot); é decisão de CSS/motion, coberta por leitura.
  */
 import { test, expect, type ElectronApplication, type Page, type Locator } from '@playwright/test';
 import { launchApp, closeApp, makeWorkspaceRoot } from './helpers';
+// A MESMA função pura que o card usa para decidir a ordem das pílulas. O spec
+// não reimplementa a permutação (isso só provaria que sei copiar um algoritmo):
+// ele exige que a ordem que o MÓDULO calcula seja a ordem que a TELA mostra.
+import { quizOptionOrder } from '../../src/lib/quizOptionOrder';
 import {
   ASSERTION_ONE,
   ASSERTION_TWO,
@@ -118,9 +134,25 @@ function chatLog(page: Page): Locator {
 /**
  * O nome ACESSÍVEL de uma alternativa (`lesson.quizOptionAria` — "Opção 2 de
  * 4: …"). Clicar por ele é clicar no que o leitor de tela anuncia.
+ *
+ * ONDA12 — POR QUE O NÚMERO SAIU DAQUI. As pílulas passaram a ser desenhadas
+ * numa ORDEM DE EXIBIÇÃO permutada (`src/lib/quizOptionOrder.ts`): a resposta
+ * certa era SEMPRE a primeira pílula (44 de 44 afirmações do curso com
+ * `answerIndex: 0`, e nada embaralhando), e clicar sempre na primeira dominava
+ * o curso sem ler. O `aria-label` acompanha a TELA — se o número continuasse
+ * preso ao índice do JSON, quem navega por leitor de tela ouviria "Opção 1" na
+ * certa em 44 de 44, o mesmo atalho mudado de canal.
+ *
+ * Consequência para este arquivo: o `index` do fixture NÃO é mais a posição
+ * anunciada. O casamento passa a ser pelo TEXTO da alternativa (a identidade
+ * que não muda), com o número deixado livre — assim o locator sobrevive tanto
+ * à permutação de TELA quanto à normalização de posição que
+ * `parseRemedialQuiz` faz no quiz remedial. O texto é escapado porque as
+ * alternativas reais trazem parênteses ("dobro(4) devolve 8").
  */
-function optionName(options: readonly string[], index: number): string {
-  return `Opção ${index + 1} de ${options.length}: ${options[index]}`;
+function optionName(options: readonly string[], index: number): RegExp {
+  const texto = options[index].replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return new RegExp(`^Opção \\d+ de ${options.length}: ${texto}$`);
 }
 
 /** As 4 alternativas do card que está SOBRE A TELA. */
@@ -161,15 +193,48 @@ async function optionLooks(dialog: Locator): Promise<string[]> {
 }
 
 /**
- * Home → cartão da trilha do quiz → item da aula → "Começar aula". Termina com
- * a PRIMEIRA seção apresentada (o texto real dela na conversa) e o quiz da
- * afirmação ancorada nela SOBRE A TELA.
+ * ONDA11 — O CTA "Responder" do card da conversa: o ÚNICO caminho que leva o
+ * quiz para cima da tela.
  *
- * A espera pelo diálogo é também a espera pela digitação: o card só entra em
- * cena quando a bolha da seção terminou de ser escrita (a LessonView filtra os
+ * O pedido do dono, literal: *"tinha o texto sendo escrito, eu cliquei, e
+ * depois renderizou o texto e já abriu o modal com o quiz, quero um botão de
+ * abrir quiz pro usuário acionar o modal manualmente"*. Antes desta onda o
+ * modal SUBIA sozinho no fim da digitação da seção — era o que esta spec
+ * esperava, e é o defeito. Agora o quiz ESTACIONA na conversa e o modal é
+ * gesto.
+ *
+ * O nome acessível é `"Responder: <pergunta>"` (o `aria-label` do QuizChatCard
+ * carrega a pergunta, porque três cards com "Responder" seriam indistinguíveis
+ * no leitor de tela), então o locator casa pelo PREFIXO ancorado — assim ele
+ * não confunde este botão com o "Responder esta pergunta de novo" da saída do
+ * ciclo travado, nem com o CTA gêmeo que a linha de ação da view desenha FORA
+ * do painel da conversa.
+ */
+function answerCta(page: Page): Locator {
+  return chatLog(page).getByRole('button', { name: /^Responder: / });
+}
+
+/**
+ * Leva o quiz que espera na conversa para cima da tela — o gesto do aluno.
+ * A espera pelo CTA é também a espera pela DIGITAÇÃO: o card só entra em cena
+ * quando a bolha da seção terminou de ser escrita (a LessonView filtra os
  * quizzes cuja âncora ainda está em `streamingIds`).
  */
-async function openQuizLessonAndStart(page: Page): Promise<Locator> {
+async function openQuizByGesture(page: Page): Promise<Locator> {
+  const cta = answerCta(page);
+  await expect(cta).toBeVisible({ timeout: 45_000 });
+  await cta.click();
+  const dialog = quizDialog(page);
+  await expect(dialog).toBeVisible({ timeout: 45_000 });
+  return dialog;
+}
+
+/**
+ * Home → cartão da trilha do quiz → item da aula → "Começar aula". Termina com
+ * a PRIMEIRA seção apresentada — e com o quiz dela ESPERANDO na conversa,
+ * porque nada nesta base sobe o modal sem um gesto.
+ */
+async function startQuizLesson(page: Page): Promise<void> {
   await expect(page.getByRole('banner').getByText('Study Method — Tutor', { exact: false })).toBeVisible();
   await page.getByText(QUIZ_TRACK_TITLE, { exact: false }).first().click();
   await expect(page.getByRole('heading', { name: QUIZ_TRACK_TITLE })).toBeVisible();
@@ -177,21 +242,38 @@ async function openQuizLessonAndStart(page: Page): Promise<Locator> {
   await expect(page.getByRole('heading', { name: QUIZ_LESSON_TITLE })).toBeVisible();
   await page.getByRole('button', { name: 'Começar aula' }).click();
 
-  const dialog = quizDialog(page);
-  await expect(dialog).toBeVisible({ timeout: 45_000 });
   // ÂNCORA CONTRA A TELA EM BRANCO: o texto REAL da seção 1 da aula fixture
   // (o stub do tutor devolve "Tutor E2E: <título> — <markdown>").
-  await expect(page.getByText(SECTION_ONE.markdown, { exact: false }).first()).toBeVisible();
-  return dialog;
+  await expect(page.getByText(SECTION_ONE.markdown, { exact: false }).first()).toBeVisible({
+    timeout: 45_000,
+  });
+}
+
+/** `startQuizLesson` + o gesto — o começo comum de quase todo teste daqui. */
+async function openQuizLessonAndStart(page: Page): Promise<Locator> {
+  await startQuizLesson(page);
+  return openQuizByGesture(page);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
 
-test('e2e-quiz: o quiz sobe SOBRE A TELA, reserva o lugar no chat e NÃO entrega a resposta', async () => {
+test('e2e-quiz: o quiz ESPERA na conversa, sobe pelo BOTÃO, e NÃO entrega a resposta', async () => {
   const launched = await launchApp({ env: { E2E_GATE: 'ready', E2E_WORKSPACE_ROOT: wsRoot } });
   app = launched.app;
   const page = launched.page;
-  const dialog = await openQuizLessonAndStart(page);
+
+  // ONDA11 — A METADE NOVA DESTE TESTE, e o defeito que ela mata. Antes desta
+  // onda o modal subia SOZINHO quando a seção terminava de ser digitada, e era
+  // isso que este teste media. O dono descreveu o resultado: *"tinha o texto
+  // sendo escrito, eu cliquei, e depois renderizou o texto e já abriu o modal
+  // com o quiz"* — o clique para pular a digitação caía dentro do modal que
+  // acabara de nascer. Agora o quiz espera na conversa, e o e2e prova as duas
+  // metades: que ele NÃO está na tela antes do gesto, e que o gesto o traz.
+  await startQuizLesson(page);
+  await expect(answerCta(page)).toBeVisible({ timeout: 45_000 });
+  await expect(quizDialog(page)).toBeHidden();
+
+  const dialog = await openQuizByGesture(page);
 
   // (1) SOBRE A TELA: diálogo modal, com o título e a afirmação da aula.
   await expect(dialog).toHaveAttribute('aria-modal', 'true');
@@ -203,10 +285,39 @@ test('e2e-quiz: o quiz sobe SOBRE A TELA, reserva o lugar no chat e NÃO entrega
   // e é ele que o teste 2 clica). O card é o filho do wrapper de animação.
   const backdrop = dialog.locator('xpath=../..');
   await expect(backdrop).toHaveCSS('position', 'fixed');
-  await expect(backdrop).toHaveCSS('background-color', 'rgba(8, 10, 20, 0.66)');
+  // O SCRIM. Esta linha PINAVA `rgba(8, 10, 20, 0.66)` — o literal cru e
+  // AZULADO que a onda 12 tirou do código: ela dava carimbo de e2e a uma cor
+  // que o contrato de designTokens.ts proíbe. Agora o scrim é o token
+  // `palette.scrim` (preto puro a 55%), o MESMO que o MuiBackdrop, o Dialog e
+  // o modal de desafio aplicam.
+  //
+  // A asserção mede a PROPRIEDADE, não o literal, de propósito: o valor
+  // computado de um `color-mix` depende de como o Chromium serializa, e pinar
+  // uma string nova só trocaria uma âncora frágil por outra. O que importa —
+  // e o que o defeito violava — é que o scrim seja ACROMÁTICO (R = G = B, sem
+  // tingir de azul a rampa cinza) e TRANSLÚCIDO (senão não é scrim, é uma
+  // parede). Os dois são lidos do CSS computado de verdade.
+  // `globalThis` com cast: tsconfig.node.json (que cobre tests/) NÃO tem lib
+  // DOM — mesmo padrão de `optionLooks`, acima.
+  const scrim = await backdrop.evaluate(
+    (el) =>
+      (
+        globalThis as unknown as {
+          getComputedStyle: (e: unknown) => Record<string, string>;
+        }
+      ).getComputedStyle(el).backgroundColor,
+  );
+  const canais = scrim.match(/[\d.]+/g)?.map(Number) ?? [];
+  expect(canais.length, `background-color ilegível: ${scrim}`).toBeGreaterThanOrEqual(4);
+  const [r, g, b, alfa] = canais;
+  expect(r, `scrim com viés de matiz (${scrim}) — a rampa é cinza neutro`).toBe(g);
+  expect(g, `scrim com viés de matiz (${scrim})`).toBe(b);
+  expect(alfa, `scrim opaco demais ou ausente (${scrim})`).toBeGreaterThan(0.3);
+  expect(alfa, `scrim precisa deixar a tela transparecer (${scrim})`).toBeLessThan(0.9);
 
-  // (2) O CARD COMPACTO JÁ RESERVA O LUGAR NA CONVERSA — desde a abertura, não
-  // só ao minimizar (é o que impede a conversa de "pular" quando o overlay sai).
+  // (2) O CARD COMPACTO CONTINUA RESERVANDO O LUGAR NA CONVERSA enquanto o
+  // modal está em cena (é o que impede a conversa de "pular" quando o overlay
+  // sai) — e agora ele é também o lugar de onde o aluno o trouxe.
   const log = chatLog(page);
   await expect(log.getByText('Quiz rápido').first()).toBeVisible();
   await expect(log.getByText(ASSERTION_ONE.question)).toBeVisible();
@@ -233,6 +344,38 @@ test('e2e-quiz: o quiz sobe SOBRE A TELA, reserva o lugar no chat e NÃO entrega
   expect(looks[0]).toContain('svg=0');
   expect(looks[0]).toContain('disabled=false');
 
+  // ─── (3b) A POSIÇÃO TAMBÉM NÃO VAZA — ponta a ponta ──────────────────────
+  // O bloco acima prova que as quatro pílulas nascem IGUAIS. Elas eram, e
+  // mesmo assim a resposta vazava: nas 44 afirmações do curso real o
+  // `answerIndex` é 0 e nada reordenava as opções, então a certa era SEMPRE a
+  // primeira pílula da tela — indistinguíveis por pixel, perfeitamente
+  // distinguíveis por LUGAR. Um aluno clicando sempre na primeira dominava o
+  // curso inteiro sem ler nada, e o gate de maestria virava decoração.
+  //
+  // Aqui se mede o que só o e2e pode medir: que a permutação calculada pelo
+  // módulo puro é a que o ELECTRON REAL desenha, com o card real, o overlay
+  // real e a trilha real vinda do disco. Os testes de unidade provam que a
+  // função é uniforme; este prova que ela CHEGA À TELA.
+  const naTela = await options.evaluateAll((els) =>
+    els.map((el) => ((el as unknown as { textContent: string | null }).textContent ?? '').trim()),
+  );
+  const esperada = quizOptionOrder(quizKeyOf(ASSERTION_ONE), 0, ASSERTION_ONE.options.length);
+  expect(naTela).toEqual(esperada.map((i) => ASSERTION_ONE.options[i]));
+  // E a permutação não é a identidade disfarçada: para ESTA chave a ordem da
+  // tela difere da ordem do JSON. (A verificação é dinâmica — se a semente
+  // mudar e a identidade sair sorteada para esta chave, o teste diz isso em vez
+  // de mentir; o piso estatístico é medido em tests/quizOptionOrder.test.ts.)
+  expect(naTela, 'a tela repetiu a ordem do JSON: a permutação não chegou ao DOM').not.toEqual([
+    ...ASSERTION_ONE.options,
+  ]);
+  // O nome ACESSÍVEL acompanha a tela: "Opção 1 de 4" é a primeira PÍLULA, não
+  // o índice 0 do JSON. Sem isto o vazamento continuaria pelo leitor de tela.
+  await expect(
+    options.first(),
+  ).toHaveAccessibleName(new RegExp(`^Opção 1 de 4: `));
+  const primeira = await options.first().textContent();
+  expect(primeira?.trim()).toBe(ASSERTION_ONE.options[esperada[0]]);
+
   // (4) O GATE está de pé desde já: a seção atual tem quiz sem acerto.
   const next = page.getByRole('button', { name: 'Próximo →' });
   await expect(next).toBeDisabled();
@@ -248,7 +391,7 @@ test('e2e-quiz: Esc e clique no backdrop MINIMIZAM (nunca fecham) — e o card d
   const dialog = await openQuizLessonAndStart(page);
   const log = chatLog(page);
   const next = page.getByRole('button', { name: 'Próximo →' });
-  const reopen = log.getByRole('button', { name: 'Responder' });
+  const reopen = answerCta(page);
 
   // ─── Esc ───────────────────────────────────────────────────────────────
   await page.keyboard.press('Escape');
@@ -275,6 +418,75 @@ test('e2e-quiz: Esc e clique no backdrop MINIMIZAM (nunca fecham) — e o card d
   await expect(dialog).toBeVisible();
 });
 
+test('e2e-quiz: ao sair do modal o FOCO VOLTA para o card — nunca para o <body>', async () => {
+  // ═════════════════════════════════════════════════════════════════════════
+  // POR QUE ESTA PROVA É e2e, E NÃO PODE SER OUTRA COISA
+  // ═════════════════════════════════════════════════════════════════════════
+  // A devolução de foco (SC 2.4.3) já foi declarada pronta DUAS vezes nesta
+  // base, com um arquivo de teste próprio de 138 linhas, e estava MORTA nas
+  // duas. O teste que a cobria exercitava só a função pura `focusReturnTarget`
+  // com nós de mentira, e o único elo com a produção era
+  // `HOST.includes('focusReturnTarget(')` — uma busca de substring no fonte.
+  // Duas revisões adversariais mediram, no Electron rodando, o foco caindo no
+  // `<body>` enquanto aquele teste estava verde.
+  //
+  // A causa raiz que a substring não podia ver: o host resolvia a âncora na
+  // ABERTURA, com `document.activeElement.closest(...)`. Só que o CTA que abre
+  // o modal é desmontado pelo MESMO commit que liga o modal, então naquele
+  // instante `activeElement` já era o `<body>`; `closest` devolvia null. E o
+  // `<body>` é `instanceof HTMLElement` e está SEMPRE `isConnected`, então ele
+  // passava adiante como "abridor válido" e o código chamava `body.focus()` —
+  // um no-op que deixa o foco onde estava e não acusa nada.
+  //
+  // Este teste é a única forma honesta de provar o conserto nesta base: não há
+  // jsdom, e foi exatamente fingir que havia DOM que deixou o defeito passar.
+  const launched = await launchApp({ env: { E2E_GATE: 'ready', E2E_WORKSPACE_ROOT: wsRoot } });
+  app = launched.app;
+  const page = launched.page;
+  const dialog = await openQuizLessonAndStart(page);
+
+  // Sai pelo Esc — o caminho de teclado, que é o que a norma cobre.
+  await page.keyboard.press('Escape');
+  await expect(dialog).toBeHidden();
+  // O card renasce; é para dentro dele que o foco tem de voltar.
+  await expect(answerCta(page)).toBeVisible();
+
+  // O `tsconfig.node.json` que cobre tests/ NÃO tem a lib DOM (é a prova
+  // mecânica de que os módulos puros da base não dependem de DOM), então o
+  // acesso vai por `globalThis` com cast — mesmo padrão de e2e-lesson.spec.ts.
+  const foco = await page.evaluate(() => {
+    const doc = (globalThis as unknown as {
+      document: {
+        activeElement: {
+          tagName: string;
+          textContent: string | null;
+          closest: (s: string) => unknown;
+        } | null;
+      };
+    }).document;
+    const el = doc.activeElement;
+    if (el === null) return { tag: 'null', dentroDoCard: false, nome: '' };
+    return {
+      tag: el.tagName.toLowerCase(),
+      dentroDoCard: el.closest('[data-quiz-chat-card]') !== null,
+      nome: (el.textContent ?? '').trim().slice(0, 40),
+    };
+  });
+
+  // A asserção que mata o defeito exato: o `<body>` não é destino.
+  expect(foco.tag, `o foco caiu em <${foco.tag}> — era o defeito do body.focus()`).not.toBe('body');
+  expect(
+    foco.dentroDoCard,
+    `o foco parou em <${foco.tag}> ("${foco.nome}"), fora do card do quiz`,
+  ).toBe(true);
+
+  // E o teclado continua de onde parou: um Enter no elemento focado reabre o
+  // modal, sem o aluno ter de retravessar a tela (que é o custo real do
+  // SC 2.4.3 quando ele é violado).
+  await page.keyboard.press('Enter');
+  await expect(dialog).toBeVisible();
+});
+
 test('e2e-quiz: errar → explicação na conversa → quiz NOVO → acertar fecha o ciclo e destrava', async () => {
   test.setTimeout(120_000);
   const launched = await launchApp({ env: { E2E_GATE: 'ready', E2E_WORKSPACE_ROOT: wsRoot } });
@@ -289,16 +501,16 @@ test('e2e-quiz: errar → explicação na conversa → quiz NOVO → acertar fec
   const errada = ASSERTION_ONE.options[erradaIdx];
   await dialog.getByRole('button', { name: optionName(ASSERTION_ONE.options, erradaIdx) }).click();
 
-  // NOTA DE HONESTIDADE (medida, não suposta): o instante MINIMIZADO não é
-  // observável NESTE teste. Responder de fato minimiza (`minimizeQuizOverlay`
-  // no mesmo gesto), mas a IA fixture do stub responde SEM rede — explicação e
-  // quiz novo voltam em milissegundos e o overlay sobe de novo antes de a
-  // animação de saída terminar. Uma asserção de "sumiu" aqui seria flaky por
-  // construção. Quem prova a minimização é o teste do Esc/backdrop (estado
-  // estável, com reabertura pelo card) e o teste do fail-closed (responder tira
-  // o quiz da tela e o card da conversa assume o estado, porque lá o ciclo
-  // para). O que ESTE teste prova da minimização é o efeito visível dela: o
-  // quiz autoral SAI da tela e a geração seguinte toma o lugar.
+  // ONDA11 — A NOTA DE HONESTIDADE ANTERIOR CADUCOU, e para melhor. Ela dizia
+  // que o instante MINIMIZADO não era observável aqui: a IA fixture responde
+  // sem rede, o quiz novo voltava em milissegundos e o overlay "mergulhava e
+  // subia" antes de a animação de saída terminar. Agora NENHUM passo do ciclo
+  // sobe o modal — nem um quiz remediador chegando por cima da explicação que
+  // o aluno está lendo —, então responder tira o quiz da tela e ele FICA fora
+  // até o próximo gesto. A minimização passa a ser observável neste teste
+  // também, e é o que a linha abaixo mede.
+
+  await expect(dialog).toBeHidden();
 
   // ERRAR NÃO DESTRAVA (a regra que inverteu a antiga: responder já bastava).
   await expect(next).toBeDisabled();
@@ -313,10 +525,13 @@ test('e2e-quiz: errar → explicação na conversa → quiz NOVO → acertar fec
     timeout: 45_000,
   });
 
-  // UM QUIZ NOVO SOBE — geração 1, pergunta inédita, e o enunciado derivado da
+  // UM QUIZ NOVO CHEGA — geração 1, pergunta inédita, e o enunciado derivado da
   // afirmação original (o serviço real montou o pedido; `parseRemedialQuiz`
-  // validou o formato).
-  await expect(dialog).toBeVisible({ timeout: 45_000 });
+  // validou o formato). ONDA11: ele chega NA CONVERSA, com o CTA — a
+  // explicação que o aluno está lendo não é coberta por um modal — e sobe pelo
+  // MESMO gesto do quiz autoral.
+  await expect(dialog).toBeHidden();
+  await openQuizByGesture(page);
   await expect(dialog.getByText('Quiz 2 desta afirmação')).toBeVisible({ timeout: 45_000 });
   // O QUIZ AUTORAL SAIU DA TELA (o efeito visível da minimização): a pergunta
   // da aula não está mais no card sobre a tela — ela ficou na conversa, dentro
@@ -335,7 +550,12 @@ test('e2e-quiz: errar → explicação na conversa → quiz NOVO → acertar fec
   expect(new Set(looksRemedial).size).toBe(1);
   expect(looksRemedial[0]).toContain('svg=0');
 
-  // ACERTA o quiz remediador (o stub deriva a certa da geração: 1 % 4 = 1).
+  // ACERTA o quiz remediador. O stub deriva a certa da GERAÇÃO (1 % 4 = 1),
+  // então a alternativa certa é a de TEXTO "…alternativa 2 da geração 1".
+  // ONDA12: o ÍNDICE dela no dado já não é 1 (`parseRemedialQuiz` rotaciona
+  // para a posição que o produto exige) e a POSIÇÃO na tela também não
+  // (`quizOptionOrder` permuta a exibição) — por isso o clique é pelo TEXTO,
+  // que é a única coisa que as duas transformações preservam.
   await dialog.getByRole('button', { name: optionName(remedialOptions, 1) }).click();
 
   // O ACERTO É O ÚNICO FIM DO CICLO: o overlay FECHA, o card cheio fica na
@@ -363,11 +583,13 @@ test('e2e-quiz: "Concluir aula" trava com quiz pendente e destrava ao dominar (a
   await expect(dialog).toBeHidden();
   await expect(next).toBeEnabled();
 
-  // Última seção da teoria → o quiz DELA sobe e a aula fica pronta para
-  // concluir… se não fosse o quiz.
+  // Última seção da teoria → o quiz DELA espera na conversa, sobe pelo gesto, e
+  // a aula fica pronta para concluir… se não fosse o quiz.
   await next.click();
-  await expect(dialog).toBeVisible({ timeout: 45_000 });
-  await expect(page.getByText(SECTION_TWO.markdown, { exact: false }).first()).toBeVisible();
+  await expect(page.getByText(SECTION_TWO.markdown, { exact: false }).first()).toBeVisible({
+    timeout: 45_000,
+  });
+  await openQuizByGesture(page);
   await expect(dialog.getByText(ASSERTION_TWO.question)).toBeVisible();
 
   // O GATE DE CONCLUSÃO. A aula fixture NÃO tem desafios, então o único motivo
@@ -469,6 +691,15 @@ test('e2e-quiz: FAIL-CLOSED com E2E_QUIZ_AI=off — a tela diz o que faltou, sem
   // A MESMA pergunta volta SOBRE A TELA, numa geração nova (o rótulo "Quiz 2"
   // é a geração; a pergunta é a da aula, não uma inventada — a IA continua
   // fora e nada foi fabricado).
+  //
+  // ONDA11 — E ELA VOLTA **NO CLIQUE**, sem um segundo gesto. Este é o ponto
+  // que a integração das quatro entregas paralelas quase perdeu: "só o gesto
+  // abre" foi implementado com um guard que compara quiz E GERAÇÃO, e a saída
+  // do ciclo travado cria uma geração NOVA — o efeito do ciclo tratava o card
+  // recém-nascido como "quiz chegando" e o estacionava na conversa, fazendo o
+  // modal SUMIR no clique de um botão escrito "Responder". O conserto está em
+  // `handleQuizReopenGeneration` (LessonView), que agora termina em
+  // `openQuizOverlay` com o contexto da geração nova.
   await expect(dialog).toBeVisible({ timeout: 45_000 });
   await expect(dialog.getByText('Quiz 2 desta afirmação')).toBeVisible();
   await expect(dialog.getByText(ASSERTION_ONE.question)).toBeVisible();

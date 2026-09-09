@@ -77,7 +77,7 @@ export function ProgressPanel(): ReactElement {
       <Typography variant="h6" id="settings-progress-title">
         {t('translation:settings.clearProgressTitle')}
       </Typography>
-      <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
+      <Typography variant="body2" sx={{ color: 'text.secondary', mb: 1.5 }}>
         {t('translation:settings.clearProgressDescription')}
       </Typography>
 
@@ -113,7 +113,7 @@ export function ProgressPanel(): ReactElement {
             <Typography variant="body2">
               {t('translation:settings.clearProgressConfirmDescription')}
             </Typography>
-            <Typography variant="caption" color="text.secondary">
+            <Typography variant="caption" sx={{ color: 'text.secondary' }}>
               {t('translation:settings.clearProgressConfirmNote')}
             </Typography>
           </Stack>

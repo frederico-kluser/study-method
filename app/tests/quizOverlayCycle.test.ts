@@ -1,8 +1,8 @@
 /**
  * tests/quizOverlayCycle.test.ts — o CICLO COMPLETO do quiz, do jeito que a
- * tela o percorre: sobe SOBRE A TELA, o aluno responde, MINIMIZA para a
- * conversa, a explicação entra no histórico, o quiz novo é injetado, o card
- * volta a subir, e só o ACERTO fecha.
+ * tela o percorre: o quiz ESPERA na conversa, o aluno o ABRE pelo botão do
+ * card, responde, o modal MINIMIZA, a explicação entra no histórico, o quiz
+ * novo é injetado (e espera o botão de novo), e só o ACERTO fecha.
  *
  * O QUE ESTA SUÍTE PROVA (e por que ela não é redundante com as duas máquinas)
  * ──────────────────────────────────────────────────────────────────────────
@@ -13,14 +13,16 @@
  * É onde moram os defeitos de integração desta onda:
  *
  *   1. responder MINIMIZA (o pedido literal do dono) e o passo seguinte do
- *      ciclo NÃO ressuscita o card sozinho;
+ *      ciclo NÃO ressuscita o card sozinho — e, desde a ONDA11, passo nenhum
+ *      SOBE o card: quem abre o modal é sempre o botão do aluno;
  *   2. a bolha da explicação (kind 'quiz-explanation') entra no histórico SEM
  *      deslocar a âncora dos quizzes seguintes — se ela contasse como
  *      apresentação de seção, o quiz da seção 2 passaria a ser desenhado na
  *      bolha errada e o gate olharia para o lugar errado;
- *   3. o quiz REMEDIADOR sobe SOBRE A TELA com a identidade certa (a chave
- *      continua a da afirmação AUTORAL, a `sectionId` continua a da autoral —
- *      a remediadora vem da IA e não tem âncora de seção);
+ *   3. o quiz REMEDIADOR chega com a identidade certa (a chave continua a da
+ *      afirmação AUTORAL, a `sectionId` continua a da autoral — a remediadora
+ *      vem da IA e não tem âncora de seção) e, desde a ONDA11, ele TAMBÉM
+ *      espera o botão em vez de subir por cima da explicação;
  *   4. a DEGRADAÇÃO documentada: sem explicação (canal fora do ar), o ciclo
  *      SEGUE — `injectRemediationQuiz` aceita o estágio 'explicando' — e o
  *      aluno não fica preso;
@@ -50,6 +52,7 @@ import {
   quizKeyFor,
   quizzesByMessageIndex,
   registerQuizExplanation,
+  reopenStalledQuiz,
   submitQuizAnswer,
   visibleQuizFor,
   type TrackLessonUiState,
@@ -59,6 +62,7 @@ import {
   applyQuizOverlayStep,
   isQuizOverlayOpenFor,
   minimizeQuizOverlay,
+  openQuizOverlay,
   peekQuizOverlay,
   quizOverlayIntent,
   reopenQuizOverlay,
@@ -136,16 +140,24 @@ beforeEach(() => {
   __resetQuizOverlayContentForTests();
 });
 
-describe('o quiz SOBE sobre a tela quando a seção é apresentada', () => {
-  it('o passo de partida é aguardar-resposta e a intenção é sobre-a-tela', () => {
+/* ONDA11 — a seção termina de ser apresentada e o quiz ESPERA NA CONVERSA.
+ *
+ * O pedido do dono, literal: *"tinha o texto sendo escrito, eu cliquei, e
+ * depois renderizou o texto e já abriu o modal com o quiz, quero um botão de
+ * abrir quiz pro usuário acionar o modal manualmente"*. Este bloco mede o
+ * caminho REAL do produto, com a aula REAL: apresentar toda a teoria e aplicar
+ * o passo do ciclo — exatamente o que a LessonView faz quando a digitação da
+ * bolha termina — não pode deixar nada sobre a tela. */
+describe('o quiz ESPERA NA CONVERSA quando a seção é apresentada (ONDA11)', () => {
+  it('o passo de partida é aguardar-resposta e a intenção NÃO é a tela', () => {
     const state = presentAllSections();
     const [first] = renderableQuizzes(state);
     const visible = visibleQuizFor(state, first.original);
     assert.equal(visible.step.kind, 'aguardar-resposta');
-    assert.equal(quizOverlayIntent(visible.step), 'sobre-a-tela');
+    assert.equal(quizOverlayIntent(visible.step), 'minimizado-no-chat');
   });
 
-  it('applyQuizOverlayStep abre o overlay com a identidade da afirmação AUTORAL', () => {
+  it('applyQuizOverlayStep ESTACIONA o quiz com a identidade da afirmação AUTORAL', () => {
     const state = presentAllSections();
     const [first] = renderableQuizzes(state);
     const visible = visibleQuizFor(state, first.original);
@@ -153,13 +165,31 @@ describe('o quiz SOBE sobre a tela quando a seção é apresentada', () => {
     applyQuizOverlayStep(ctx, visible.step);
 
     const snapshot = peekQuizOverlay();
-    assert.equal(snapshot.phase, 'sobre-a-tela');
+    assert.equal(snapshot.phase, 'minimizado-no-chat', 'o modal não sobe sozinho');
     assert.equal(snapshot.quizKey, quizKeyFor(first.original));
     assert.equal(snapshot.assertionId, first.original.id);
     assert.equal(snapshot.generation, 0);
     assert.equal(snapshot.sectionId, first.original.sectionId);
     assert.equal(snapshot.anchorIndex, first.anchorIndex);
     assert.equal(isQuizOverlayOpenFor(quizKeyFor(first.original)), true);
+  });
+
+  it('só o GESTO do aluno (o botão do card) leva o quiz para cima da tela', () => {
+    const state = presentAllSections();
+    const [first] = renderableQuizzes(state);
+    const visible = visibleQuizFor(state, first.original);
+    const ctx = overlayContextFor(first.original, visible, first.anchorIndex);
+    applyQuizOverlayStep(ctx, visible.step);
+    assert.equal(peekQuizOverlay().phase, 'minimizado-no-chat');
+
+    // o clique em "Responder" no QuizChatCard (handleQuizReopen na view)
+    reopenQuizOverlay(visible.key);
+    assert.equal(peekQuizOverlay().phase, 'sobre-a-tela');
+
+    // …e o efeito da view, que reexecuta a cada mudança do chat com o MESMO
+    // passo, não pode fechar o modal na cara de quem acabou de abri-lo.
+    applyQuizOverlayStep(ctx, visible.step);
+    assert.equal(peekQuizOverlay().phase, 'sobre-a-tela', 'o re-render não derruba o modal aberto');
   });
 
   it('uma assertion SEM sectionId vira sectionId null (o contrato do store), nunca undefined', () => {
@@ -232,8 +262,10 @@ describe('o ciclo de remediação: explicação na conversa, quiz novo sobre a t
     const key = quizKeyFor(first.original);
     let visible = visibleQuizFor(state, first.original);
 
-    // 1. sobe sobre a tela
+    // 1. estaciona na conversa e o aluno abre pelo botão do card (ONDA11)
     applyQuizOverlayStep(overlayContextFor(first.original, visible, first.anchorIndex), visible.step);
+    assert.equal(peekQuizOverlay().phase, 'minimizado-no-chat');
+    reopenQuizOverlay(key);
     assert.equal(peekQuizOverlay().phase, 'sobre-a-tela');
 
     // 2. o aluno erra → minimiza
@@ -279,8 +311,12 @@ describe('o ciclo de remediação: explicação na conversa, quiz novo sobre a t
     const ctx = overlayContextFor(first.original, visible, first.anchorIndex);
     assert.equal(ctx.sectionId, first.original.sectionId, 'a seção vem da autoral, não da remediadora');
     applyQuizOverlayStep(ctx, visible.step);
-    assert.equal(peekQuizOverlay().phase, 'sobre-a-tela');
+    // ONDA11: o quiz NOVO também chega na conversa — ele não sobe por cima da
+    // explicação que o aluno está lendo. O gesto é que o traz.
+    assert.equal(peekQuizOverlay().phase, 'minimizado-no-chat');
     assert.equal(peekQuizOverlay().generation, 1);
+    reopenQuizOverlay(key);
+    assert.equal(peekQuizOverlay().phase, 'sobre-a-tela');
 
     // 5. o aluno acerta o remediador → dominado → fechado
     state = submitQuizAnswer(state, key, visible.assertion.answerIndex, visible.assertion.answerIndex, 4_000);
@@ -410,6 +446,102 @@ describe('o gate só abre com MAESTRIA (o pedido do dono)', () => {
     assert.deepEqual(pendingQuizzes(state, LESSON.assertions), []);
     assert.equal(isNextSectionBlockedByQuiz(state, LESSON.assertions), false);
     assert.equal(lessonFinishBlock(CHALLENGES_PASSED, 0), null);
+  });
+});
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * ONDA11-INTEGRAÇÃO — o outro lado de "só o gesto abre": TODO gesto abre.
+ *
+ * O DEFEITO MEDIDO na integração das quatro entregas paralelas. "Só o clique
+ * sobe o modal" foi implementado no store (`applyQuizOverlayStep` nunca pede
+ * a tela) com UM guard: se o quiz já está sobre a tela, o passo do ciclo não o
+ * derruba. Esse guard compara quiz E GERAÇÃO — e a saída do ciclo travado
+ * (`reopenStalledQuiz`, o botão "Responder esta pergunta de novo" da ONDA4)
+ * cria uma geração NOVA. Resultado: o aluno clicava num botão escrito
+ * "Responder" e o modal DESCIA, porque o efeito do ciclo tratava a geração
+ * recém-nascida como "quiz novo chegando" e a estacionava na conversa.
+ *
+ * Este bloco mede as duas metades: que aplicar o passo sozinho NÃO basta (é o
+ * defeito), e que o handler precisa terminar em `openQuizOverlay` com o
+ * contexto da geração nova — depois do que o re-render seguinte já não a
+ * derruba, porque aí o guard passa a valer para ELA.
+ * ═══════════════════════════════════════════════════════════════════════════ */
+describe('a SAÍDA do ciclo travado é um gesto — e gesto abre o modal', () => {
+  /** Erra com o canal fora do ar: o ciclo para em 'explicar-erro'. */
+  function travado(): {
+    state: TrackLessonUiState;
+    original: TrackAssertionDto;
+    anchorIndex: number;
+  } {
+    let state = presentAllSections();
+    const [first] = renderableQuizzes(state);
+    const visible = visibleQuizFor(state, first.original);
+    applyQuizOverlayStep(overlayContextFor(first.original, visible, first.anchorIndex), visible.step);
+    reopenQuizOverlay(visible.key); // o gesto que abriu o quiz autoral
+    state = submitQuizAnswer(
+      state,
+      visible.key,
+      wrongIndexFor(visible.assertion),
+      visible.assertion.answerIndex,
+      2_000,
+    );
+    minimizeQuizOverlay(visible.key); // responder minimiza
+    return { state, original: first.original, anchorIndex: first.anchorIndex };
+  }
+
+  it('aplicar o passo do ciclo à geração NOVA a estaciona na conversa (o defeito)', () => {
+    const { state, original, anchorIndex } = travado();
+    const parado = visibleQuizFor(state, original);
+    // Com a IA fora, o ciclo fica em 'explicar-erro' e o card espera na conversa.
+    applyQuizOverlayStep(overlayContextFor(original, parado, anchorIndex), parado.step);
+    assert.equal(peekQuizOverlay().phase, 'minimizado-no-chat');
+
+    // O GESTO: "Responder esta pergunta de novo" (channelFailed = true).
+    const proximo = reopenStalledQuiz(state, parado.key, parado.assertion, true);
+    const novo = visibleQuizFor(proximo, original);
+    assert.equal(novo.generation, 1, 'a saída cria uma geração nova da MESMA pergunta');
+    assert.equal(novo.step.kind, 'aguardar-resposta');
+    assert.equal(novo.assertion.question, parado.assertion.question, 'a pergunta é a mesma');
+
+    // SÓ o efeito do ciclo: o guard do store protege o MESMO quiz/geração, e
+    // esta é outra geração — o modal desceria no clique.
+    applyQuizOverlayStep(overlayContextFor(original, novo, anchorIndex), novo.step);
+    assert.equal(
+      peekQuizOverlay().phase,
+      'minimizado-no-chat',
+      'é exatamente isto que o handler NÃO pode deixar acontecer sozinho',
+    );
+  });
+
+  it('o handler abre a geração nova, e o re-render seguinte já não a derruba', () => {
+    const { state, original, anchorIndex } = travado();
+    const parado = visibleQuizFor(state, original);
+    const proximo = reopenStalledQuiz(state, parado.key, parado.assertion, true);
+    const novo = visibleQuizFor(proximo, original);
+    const ctx = overlayContextFor(original, novo, anchorIndex);
+
+    // O que `handleQuizReopenGeneration` faz depois do setChat.
+    openQuizOverlay(ctx);
+    const snapshot = peekQuizOverlay();
+    assert.equal(snapshot.phase, 'sobre-a-tela');
+    assert.equal(snapshot.generation, 1);
+    assert.equal(snapshot.quizKey, quizKeyFor(original), 'a chave continua a da afirmação AUTORAL');
+
+    // E agora o guard vale para ELA: o efeito do ciclo reexecuta a cada
+    // mudança do chat e o modal fica de pé.
+    applyQuizOverlayStep(ctx, novo.step);
+    assert.equal(peekQuizOverlay().phase, 'sobre-a-tela', 'o re-render não derruba o que o gesto abriu');
+  });
+
+  it('sem o ciclo travado a saída é no-op — ela não é uma segunda porta para o gate', () => {
+    const { state, original } = travado();
+    const parado = visibleQuizFor(state, original);
+    // channelFailed = false: o aluno não está preso, então não há saída a dar.
+    assert.equal(
+      reopenStalledQuiz(state, parado.key, parado.assertion, false),
+      state,
+      'no-op POR REFERÊNCIA — nenhuma geração nova nasce com a IA de pé',
+    );
   });
 });
 

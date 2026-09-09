@@ -678,7 +678,13 @@ describe('tema do CodeMirror — settings + mapa de sintaxe', () => {
 
 describe('hexToRgb / truecolorForeground — SGR real para o xterm', () => {
   it('decodifica a superfície escura em {r,g,b}', () => {
-    assert.deepEqual(hexToRgb(CODE_DARK.chrome.surface), { r: 0x23, g: 0x27, b: 0x33 });
+    // ONDA 11: os bytes vinham CHAPADOS aqui (0x23/0x27/0x33, o nível 2 azulado
+    // da rampa antiga), então neutralizar a rampa em designTokens.ts quebrava
+    // este teste sem que nada estivesse errado com `hexToRgb`. Agora a
+    // expectativa é DERIVADA do token — o teste volta a medir o decodificador,
+    // que é o que ele existe para medir, e não a decorar uma cor.
+    const [r, g, b] = [1, 3, 5].map((at) => parseInt(SURFACE_DARK.level2.slice(at, at + 2), 16));
+    assert.deepEqual(hexToRgb(CODE_DARK.chrome.surface), { r, g, b });
   });
 
   it('rejeita hex malformada', () => {

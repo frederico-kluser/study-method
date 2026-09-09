@@ -87,7 +87,7 @@ export function TutorialSelectionModal({
           </Button>
         </Stack>
 
-        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+        <Typography variant="body2" sx={{ color: 'text.secondary', mb: 2 }}>
           {t('translation:tutorial.selection.subtitle')}
         </Typography>
 
@@ -126,7 +126,7 @@ export function TutorialSelectionModal({
                   <Box component="span" sx={{ color: 'text.secondary', fontSize: 16 }}>→</Box>
                 )}
               </Stack>
-              <Typography variant="body2" color="text.secondary">
+              <Typography variant="body2" sx={{ color: 'text.secondary' }}>
                 {t('translation:tutorial.selection.quickStartDescription')}
               </Typography>
             </Stack>
@@ -189,7 +189,7 @@ export function TutorialSelectionModal({
                     </Box>
                   )}
                 </Stack>
-                <Typography variant="body2" color="text.secondary">
+                <Typography variant="body2" sx={{ color: 'text.secondary' }}>
                   {t('translation:tutorial.selection.fullTutorialDescription')}
                 </Typography>
               </Stack>

@@ -92,6 +92,50 @@ export interface QuizOverlayContent {
   onReopen: (() => void) | null;
 }
 
+/**
+ * ONDA12-FOCO: o atributo que marca, no DOM, o CARD DA CONVERSA de um quiz.
+ *
+ * POR QUE ELE MORA AQUI, e não em cada componente. O CTA "Responder" é
+ * DESMONTADO quando o modal sobe (`QuizChatCard`: `canOpen = !onScreen && …`),
+ * então o `document.activeElement` gravado na abertura está SEMPRE desconectado
+ * na hora de devolver o foco — a devolução prometida no cabeçalho do
+ * `QuizOverlayHost` nunca acontecia e o Esc largava o teclado no `<body>`
+ * (SC 2.4.3). A âncora que SOBREVIVE é o próprio card da conversa: ele fica na
+ * tela nos dois estados, e o CTA renasce dentro dele quando o modal sai.
+ *
+ * Duas metades (a que ESCREVE o atributo e a que o PROCURA) vivendo em arquivos
+ * diferentes é exatamente o tipo de par que se descola numa refatoração e falha
+ * EM SILÊNCIO — o foco simplesmente não volta, e nada quebra. Uma constante só,
+ * importada pelos dois, torna a divergência impossível. É string, não DOM: este
+ * módulo continua puro o bastante para `node:test`.
+ */
+export const QUIZ_CARD_ANCHOR_ATTR = 'data-quiz-chat-card';
+
+/** O seletor da âncora acima (qualquer card do quiz na conversa). */
+export const QUIZ_CARD_ANCHOR_SELECTOR = `[${QUIZ_CARD_ANCHOR_ATTR}]`;
+
+/**
+ * O seletor do card de UM quiz específico — a âncora de devolução de foco.
+ *
+ * ONDA 13. A âncora carregava o valor literal `"true"`, então só existia o
+ * seletor genérico acima; com mais de um quiz pendente na conversa (caso REAL —
+ * uma seção pode ancorar duas afirmações, e o histórico guarda as anteriores),
+ * `document.querySelector` devolveria o PRIMEIRO card, não o que o aluno
+ * acabou de fechar. O valor do atributo passa a ser a CHAVE CANÔNICA do quiz e
+ * a devolução de foco vira endereçada.
+ *
+ * A chave é `sectionId::assertionId` e o `assertionId` vem do JSON da trilha —
+ * ou seja, é texto de AUTOR, não identificador controlado por nós. Por isso o
+ * escape: aspa dupla e contrabarra são os dois caracteres que quebrariam
+ * (ou pior, ESTENDERIAM) um seletor de atributo entre aspas. `CSS.escape` não
+ * serve aqui — ele escapa identificadores, não o interior de uma string
+ * literal — e este módulo é importado por `node:test`, onde `CSS` não existe.
+ */
+export function quizCardAnchorSelector(quizKey: string): string {
+  const escaped = quizKey.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+  return `[${QUIZ_CARD_ANCHOR_ATTR}="${escaped}"]`;
+}
+
 let content: QuizOverlayContent | null = null;
 const listeners = new Set<() => void>();
 

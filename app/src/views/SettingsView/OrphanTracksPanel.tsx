@@ -166,7 +166,7 @@ export function OrphanTracksPanel(): ReactElement {
       <Typography variant="h6" id="settings-orphans-title">
         {t('translation:settings.orphansTitle')}
       </Typography>
-      <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
+      <Typography variant="body2" sx={{ color: 'text.secondary', mb: 1.5 }}>
         {t('translation:settings.orphansDescription')}
       </Typography>
 
@@ -207,7 +207,7 @@ export function OrphanTracksPanel(): ReactElement {
         </Button>
       ) : null}
 
-      <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1.5 }}>
+      <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mt: 1.5 }}>
         {t('translation:settings.orphansCliHint')}
       </Typography>
 
