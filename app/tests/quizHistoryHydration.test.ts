@@ -77,7 +77,7 @@ import type {
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 
-const TRACK = 'python';
+const TRACK = 'python-iniciante';
 const LESSON = 'a-primeira-linha';
 
 function assertion(over: Partial<TrackAssertionDto> = {}): TrackAssertionDto {
@@ -479,7 +479,7 @@ describe('ONDA3-PERSISTENCIA — o INVARIANTE SAGRADO atravessa a restauração'
 describe('ONDA3-PERSISTENCIA — a aula REAL: o app fecha e o gate continua aberto', () => {
   const LESSON_PATH = resolve(
     HERE,
-    '../resources/tracks/python/modules/a-tela/lessons/a-primeira-linha/lesson.json',
+    '../resources/tracks/python-iniciante/modules/a-tela/lessons/a-primeira-linha/lesson.json',
   );
   interface RealLesson {
     theory: { id: string; title: string; markdown: string }[];

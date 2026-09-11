@@ -45,7 +45,7 @@
  *        e é lá que I11 tem o que checar.
  *
  * FIXTURES, NUNCA PRODUÇÃO (convenção do commit `33b0eab`; é por isso que o CLI
- * ganhou `--dir`). A trilha `python` de hoje tem ZERO violações de ordem — este
+ * ganhou `--dir`). A trilha `python-iniciante` de hoje tem ZERO violações de ordem — este
  * módulo é garantia para o que ainda vai ser gerado, e testá-lo contra o
  * conteúdo real só provaria que o conteúdo real está bom. O único teste com
  * disco escreve em `mkdtemp` e apaga no fim; `resources/tracks` não é tocado

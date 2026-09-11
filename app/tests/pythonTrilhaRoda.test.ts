@@ -20,7 +20,7 @@
  * `TRACK_CHANNELS.CHALLENGE_SUBMIT` — o mesmo Map que `registerTrackHandlers`
  * entrega ao `ipcMain`.
  *
- * POR QUE CONTRA A TRILHA REAL DO DISCO (`resources/tracks/python`), e não
+ * POR QUE CONTRA A TRILHA REAL DO DISCO (`resources/tracks/python-iniciante`), e não
  * contra uma fixture: uma fixture de Python escrita pelo teste provaria que o
  * runner sabe rodar Python, não que O PRODUTO roda A TRILHA QUE EXISTE. O
  * `solutionCode` submetido é lido do `challenge.json` de verdade — se a trilha
@@ -54,7 +54,7 @@ const APP_DIR = path.resolve(__dirname, '..');
 const TRACKS_DIR = path.join(APP_DIR, 'resources', 'tracks');
 
 /** A aula 1 da trilha real: `print("oi")` e nada mais. */
-const TRILHA = 'python';
+const TRILHA = 'python-iniciante';
 const MODULO = 'a-tela';
 const AULA = 'a-primeira-linha';
 const DESAFIO = 'escreva-oi';

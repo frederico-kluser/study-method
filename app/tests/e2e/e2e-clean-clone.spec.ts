@@ -275,13 +275,15 @@ test('clean-clone 1: primeiro boot SEM chaves → SetupView (gate blocked rápid
 // isso era a trilha `nodejs-do-zero`, com a aula "O que é programação" —
 // ela foi APAGADA do disco (405 arquivos; violava a regra de a aula 1 não
 // exigir if/typeof/!==/throw do iniciante) e nunca mais existiu depois disso.
-// A ÚNICA trilha hoje é `python` (resources/tracks/python/track.json, título
-// "Python, do primeiro print ao sênior"), com o módulo "A tela" (order 1,
-// aberto por padrão) e a aula "A primeira linha" (a-primeira-linha,
-// prerequisites: [] — desbloqueada, mesmo papel de 1ª aula que "O que é
-// programação" tinha). Trocar os literais preserva EXATAMENTE o que o teste
-// prova (repro do loader infinito ao abrir a 1ª aula real de uma trilha
-// instalada) contra o conteúdo que existe de verdade.
+// A trilha de hoje é `python-iniciante` (resources/tracks/python-iniciante/
+// track.json, título "Python Iniciante: do primeiro print ao programa
+// completo") — o CURSO 1 de 4: a UI hoje tem só ele, mais cursos virão para
+// resources/tracks. Com o módulo "A tela" (order 1, aberto por padrão) e a
+// aula "A primeira linha" (a-primeira-linha, prerequisites: [] —
+// desbloqueada, mesmo papel de 1ª aula que "O que é programação" tinha).
+// Trocar os literais preserva EXATAMENTE o que o teste prova (repro do
+// loader infinito ao abrir a 1ª aula real de uma trilha instalada) contra o
+// conteúdo que existe de verdade.
 test('clean-clone 2: abrir aula com chaves válidas (gate ready) → a aula CARREGA', async () => {
   test.setTimeout(180_000);
   const userData = freshUserData();
@@ -293,11 +295,11 @@ test('clean-clone 2: abrir aula com chaves válidas (gate ready) → a aula CARR
   await forceGateReady(app, page);
 
   // Home: a TRILHA real (resources/tracks) aparece como cartão.
-  await expect(page.getByText('Python, do primeiro print ao sênior', { exact: false }).first()).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByText('Python Iniciante: do primeiro print ao programa completo', { exact: false }).first()).toBeVisible({ timeout: 30_000 });
 
   // Abre a trilha → aba Trilha com os módulos/aulas reais.
-  await page.getByText('Python, do primeiro print ao sênior', { exact: false }).first().click();
-  await expect(page.getByRole('heading', { name: 'Python, do primeiro print ao sênior' })).toBeVisible({ timeout: 30_000 });
+  await page.getByText('Python Iniciante: do primeiro print ao programa completo', { exact: false }).first().click();
+  await expect(page.getByRole('heading', { name: 'Python Iniciante: do primeiro print ao programa completo' })).toBeVisible({ timeout: 30_000 });
 
   // PRIMEIRA AULA da trilha real (módulo 1, aula 1).
   await page.getByText('A primeira linha', { exact: false }).first().click();
@@ -323,9 +325,9 @@ test('clean-clone 3: abrir aula SEM chaves (gate override ready, sem rede de val
   await forceGateReady(app, page);
 
   // Home → Trilha → aula (mesmo fluxo do teste 2, com log do main anexado).
-  await expect(page.getByText('Python, do primeiro print ao sênior', { exact: false }).first()).toBeVisible({ timeout: 30_000 });
-  await page.getByText('Python, do primeiro print ao sênior', { exact: false }).first().click();
-  await expect(page.getByRole('heading', { name: 'Python, do primeiro print ao sênior' })).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByText('Python Iniciante: do primeiro print ao programa completo', { exact: false }).first()).toBeVisible({ timeout: 30_000 });
+  await page.getByText('Python Iniciante: do primeiro print ao programa completo', { exact: false }).first().click();
+  await expect(page.getByRole('heading', { name: 'Python Iniciante: do primeiro print ao programa completo' })).toBeVisible({ timeout: 30_000 });
   await page.getByText('A primeira linha', { exact: false }).first().click();
 
   try {

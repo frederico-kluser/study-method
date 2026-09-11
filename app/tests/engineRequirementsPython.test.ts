@@ -36,7 +36,7 @@ import {
 
 const TEM_PYTHON = pythonAdapter.detect().version !== null;
 
-/** O harness `stdout` — o que os 21 desafios da trilha `python` usam. */
+/** O harness `stdout` — o que os 21 desafios da trilha `python-iniciante` usam. */
 const TESTS_STDOUT = [
   'import contextlib',
   'import io',

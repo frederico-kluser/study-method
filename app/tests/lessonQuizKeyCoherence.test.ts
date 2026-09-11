@@ -77,7 +77,7 @@ const HERE = dirname(fileURLToPath(import.meta.url));
 /** A aula REAL do repositório: 3 assertions, 2 delas na MESMA seção. */
 const LESSON_PATH = resolve(
   HERE,
-  '../resources/tracks/python/modules/a-tela/lessons/a-primeira-linha/lesson.json',
+  '../resources/tracks/python-iniciante/modules/a-tela/lessons/a-primeira-linha/lesson.json',
 );
 
 interface RealLesson {

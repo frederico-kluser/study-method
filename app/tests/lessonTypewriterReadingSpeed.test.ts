@@ -59,7 +59,7 @@ const HERE = dirname(fileURLToPath(import.meta.url));
 const TRACKS = resolve(HERE, '../resources/tracks');
 const AULA_1 = resolve(
   TRACKS,
-  'python/modules/a-tela/lessons/a-primeira-linha/lesson.json',
+  'python-iniciante/modules/a-tela/lessons/a-primeira-linha/lesson.json',
 );
 
 interface TheorySectionJson {
@@ -204,7 +204,7 @@ describe('ONDA10 defeito 3 — chatBubbleTps roteia a velocidade por bolha', () 
 
   it('review do desafio continua a 10 tps (decisão da ONDA1-NAV-UI, intocada)', () => {
     const report: TrackChallengeErrorReport = {
-      trackSlug: 'python',
+      trackSlug: 'python-iniciante',
       lessonId: 'a-primeira-linha',
       challengeId: 'c1',
       challengeTitle: 'Desafio',
@@ -222,7 +222,7 @@ describe('ONDA10 defeito 3 — chatBubbleTps roteia a velocidade por bolha', () 
 
   it('a pergunta SEMEADA do erro NÃO é teoria (ela cola numa review) → 100 tps', () => {
     const report: TrackChallengeErrorReport = {
-      trackSlug: 'python',
+      trackSlug: 'python-iniciante',
       lessonId: 'a-primeira-linha',
       challengeId: 'c1',
       challengeTitle: 'Desafio',

@@ -54,7 +54,7 @@ const HERE = dirname(fileURLToPath(import.meta.url));
 const CARD_MODULE = new URL('../src/views/LessonView/LessonQuiz.tsx', import.meta.url).href;
 const LESSON_PATH = resolve(
   HERE,
-  '../resources/tracks/python/modules/a-tela/lessons/a-primeira-linha/lesson.json',
+  '../resources/tracks/python-iniciante/modules/a-tela/lessons/a-primeira-linha/lesson.json',
 );
 const ASSERTION = (
   JSON.parse(readFileSync(LESSON_PATH, 'utf8')) as { assertions: TrackAssertionDto[] }

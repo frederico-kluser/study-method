@@ -3,7 +3,7 @@
  * omissão (`engine/audit.ts`).
  *
  * O DEFEITO, PROVADO POR MUTAÇÃO (`docs/19-auditoria-da-aula.md`): apagando
- * TODOS os blocos de código da teoria da aula 1 da trilha `python`, o `audit`
+ * TODOS os blocos de código da teoria da aula 1 da trilha `python-iniciante`, o `audit`
  * continuava reportando `0 violações · 0 avisos · exit 0`. A bateria A13–A16
  * (ensino-efetivo, micro-avanço, progressividade, primeira-atividade) é
  * javascript-only por decisão BEM ARGUMENTADA (`engine/audit.ts:220-222`,

@@ -16,7 +16,7 @@
  *   4. item vazio/não-string → issue (racional em branco não explica nada);
  *   5. não-array → issue;
  *   6. 4 racionais válidos → 0 issues, e `validateLessonSource` integra tudo;
- *   7. as 20 aulas REAIS de `resources/tracks/python/` continuam com 0 issues
+ *   7. as 20 aulas REAIS de `resources/tracks/python-iniciante/` continuam com 0 issues
  *      e continuam SEM o campo (a prova de que a extensão é mesmo aditiva).
  */
 import { describe, it } from 'node:test';
@@ -138,8 +138,8 @@ describe('trackTypes — optionRationales (ADITIVO, onda1-contrato-quiz)', () =>
 });
 
 describe('trackTypes — as aulas REAIS continuam válidas sem o campo', () => {
-  it('7. as 20 aulas de resources/tracks/python carregam com 0 issues e SEM optionRationales', async () => {
-    const raiz = path.join(__dirname, '..', 'resources', 'tracks', 'python', 'modules');
+  it('7. as 20 aulas de resources/tracks/python-iniciante carregam com 0 issues e SEM optionRationales', async () => {
+    const raiz = path.join(__dirname, '..', 'resources', 'tracks', 'python-iniciante', 'modules');
     const arquivos: string[] = [];
     async function varrer(dir: string): Promise<void> {
       for (const entrada of await fsp.readdir(dir, { withFileTypes: true })) {
@@ -149,7 +149,7 @@ describe('trackTypes — as aulas REAIS continuam válidas sem o campo', () => {
       }
     }
     await varrer(raiz);
-    assert.equal(arquivos.length, 20, 'a trilha python tem 20 aulas no disco');
+    assert.equal(arquivos.length, 20, 'a trilha python-iniciante tem 20 aulas no disco');
 
     for (const arquivo of arquivos) {
       const cru = JSON.parse(await fsp.readFile(arquivo, 'utf8')) as TrackLessonSource;

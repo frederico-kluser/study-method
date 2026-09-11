@@ -63,7 +63,7 @@ const CHAT_CARD_MODULE = new URL('../src/components/quiz/QuizChatCard.tsx', impo
 
 const LESSON_PATH = resolve(
   HERE,
-  '../resources/tracks/python/modules/a-tela/lessons/a-primeira-linha/lesson.json',
+  '../resources/tracks/python-iniciante/modules/a-tela/lessons/a-primeira-linha/lesson.json',
 );
 const LESSON = JSON.parse(readFileSync(LESSON_PATH, 'utf8')) as { assertions: TrackAssertionDto[] };
 /** A afirmação REAL da aula 1 — as opções de verdade, na ordem de verdade. */

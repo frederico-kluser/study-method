@@ -8,7 +8,7 @@
  *   1. O CASO REAL, reproduzido em fixture: a aula ensina `**` (potência), a
  *      solução usa `**`, o teste compara stdout por igualdade e o menor código
  *      que passa é `print("1048576")`. Veredito: NAO-DISCRIMINA. É o defeito
- *      MEDIDO na trilha `python` (17 dos 20 desafios de aula, 29 de 34 alvos).
+ *      MEDIDO na trilha `python-iniciante` (17 dos 20 desafios de aula, 29 de 34 alvos).
  *   2. A DIFERENÇA ENTRE J5 E A6: o `audit` (regra A6) fica VERDE no mesmo
  *      desafio, porque ele olha a SOLUÇÃO e a solução usa `**` mesmo. As duas
  *      perguntas são diferentes e esta suíte prova a diferença no mesmo dado.

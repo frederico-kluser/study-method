@@ -70,7 +70,7 @@ import { fenceFor, typewriterCut, TYPEWRITER_TPS } from '../src/lib/trackLessonS
 const HERE = dirname(fileURLToPath(import.meta.url));
 const AULA_1 = resolve(
   HERE,
-  '../resources/tracks/python/modules/a-tela/lessons/a-primeira-linha/lesson.json',
+  '../resources/tracks/python-iniciante/modules/a-tela/lessons/a-primeira-linha/lesson.json',
 );
 
 interface TheorySectionJson {
