@@ -39,7 +39,7 @@
     {
       "id": "not-comparado-com-igual-a-falso",
       "title": "Not comparado com igual a falso",
-      "markdown": "Dá para escrever \"se não achou\" de outro jeito, comparando com `False`:\n\n```python\nachou = False\nif achou == False:\n    print(\"continuar procurando\")\n```\n\n```text\ncontinuar procurando\n```\n\nFunciona — as duas formas fazem o mesmo. Mas o `not` é a forma que se lê em voz alta com a pergunta: *se não achou*. E ela evita a comparação com `False`, que é o jeito torto de dizer a mesma coisa.\n\nO par errado/certo:\n\n```text\nif achou == False:\n    print(\"continuar procurando\")   # funciona, mas compara com False\n```\n\n```python\nif not achou:\n    print(\"continuar procurando\")   # lê como a pergunta: se NAO achou\n```"
+      "markdown": "Dá para escrever \"se não achou\" de outro jeito, comparando com `False`:\n\n```python\nachou = False\nif achou == False:\n    print(\"continuar procurando\")\n```\n\n```text\ncontinuar procurando\n```\n\nFunciona — as duas formas fazem o mesmo. Mas o `not` lê como a pergunta: *se não achou* — e evita o jeito torto de comparar com `False`.\n\nO par errado/certo:\n\n```text\nif achou == False:\n    print(\"continuar procurando\")   # funciona, mas compara com False\n```\n\n```python\nif not achou:\n    print(\"continuar procurando\")   # lê como a pergunta: se NAO achou\n```"
     }
   ],
   "assertions": [

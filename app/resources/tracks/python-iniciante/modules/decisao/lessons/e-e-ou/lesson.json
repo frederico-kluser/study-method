@@ -31,7 +31,7 @@
     {
       "id": "o-e-exige-as-duas",
       "title": "O e exige as duas",
-      "markdown": "O `and` é exigente: a resposta combinada só é verdadeira quando **as duas** partes são verdadeiras. Qualquer falsa derruba tudo.\n\n```python\na = 3\nb = -2\nif a > 0 and b > 0:\n    print(\"os dois positivos\")\nelse:\n    print(\"algum nao e positivo\")\n```\n\n```text\nalgum nao e positivo\n```\n\nA primeira parte (`3 > 0`) é verdadeira, mas a segunda (`-2 > 0`) é falsa — e o `and` responde `False`.\n\nA tabela completa do `and`, com as respostas das duas partes na primeira linha e o resultado embaixo:\n\n```text\nTrue  e True   -> True\nTrue  e False  -> False\nFalse e True   -> False\nFalse e False  -> False\n```\n\nSó a primeira linha salva o `and`."
+      "markdown": "O `and` é exigente: só é verdadeiro quando **as duas** partes são. Qualquer falsa derruba tudo.\n\n```python\na = 3\nb = -2\nif a > 0 and b > 0:\n    print(\"os dois positivos\")\nelse:\n    print(\"algum nao e positivo\")\n```\n\n```text\nalgum nao e positivo\n```\n\nA primeira parte (`3 > 0`) é verdadeira, mas a segunda (`-2 > 0`) é falsa — o `and` responde `False`.\n\nA tabela do `and` — primeira linha: respostas das duas partes; embaixo, o resultado:\n\n```text\nTrue  e True   -> True\nTrue  e False  -> False\nFalse e True   -> False\nFalse e False  -> False\n```\n\nSó a primeira linha salva o `and`."
     },
     {
       "id": "o-ou-aceita-uma",
@@ -41,7 +41,7 @@
     {
       "id": "escolher-o-sinal-certo",
       "title": "Escolher o sinal certo",
-      "markdown": "A escolha entre `and` e `or` é a pergunta da regra: *exijo os dois* ou *aceito um*?\n\nO par errado/certo: você quer mostrar `aprovado` quando a nota é maior ou igual a 7 **e** as faltas são poucas.\n\n```text\nif nota >= 7 or faltas < 10:\n    print(\"aprovado\")    # errado: basta uma condicao valer\n```\n\n```python\nif nota >= 7 and faltas < 10:\n    print(\"aprovado\")    # certo: as duas sao exigidas\n```\n\nQual é o estado agora? Com `a = 0` e `b = 5`, a pergunta `a > 0 and b > 0` é falsa (a primeira parte falha) e a pergunta `a > 0 or b > 0` é verdadeira (a segunda parte salva) — o mesmo par de valores, duas respostas, porque os sinais cobram coisas diferentes."
+      "markdown": "A escolha entre `and` e `or` é a pergunta da regra: *exijo os dois* ou *aceito um*?\n\nO par errado/certo — mostrar `aprovado` com nota maior ou igual a 7 **e** poucas faltas:\n\n```text\nif nota >= 7 or faltas < 10:\n    print(\"aprovado\")    # errado: basta uma condicao valer\n```\n\n```python\nif nota >= 7 and faltas < 10:\n    print(\"aprovado\")    # certo: as duas sao exigidas\n```\n\nCom `a = 0` e `b = 5`: `a > 0 and b > 0` responde `False` e `a > 0 or b > 0` responde `True` — o mesmo par, duas respostas, sinais cobram coisas diferentes."
     }
   ],
   "assertions": [

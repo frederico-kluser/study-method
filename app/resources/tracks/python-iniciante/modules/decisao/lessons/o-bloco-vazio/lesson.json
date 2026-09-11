@@ -28,7 +28,7 @@
     {
       "id": "sem-o-pass-o-programa-nao-roda",
       "title": "Sem o pass, o programa não roda",
-      "markdown": "Para ver o `pass` trabalhando, compare com o que acontece sem ele. Este arquivo parece quase igual — falta só a linha recuada:\n\n```text\nif 7 > 2:\nprint(\"feito\")\n\n  File \"solucao.py\", line 2\n    print(\"feito\")\n    ^^^^^\nIndentationError: expected an indented block after 'if' statement on line 1\n```\n\nO Python não adivinha: se o `if` não tem corpo, ele não roda nada. Um comentário recuado também não vale — comentário não é ordem, e o bloco continua vazio:\n\n```text\nif 7 > 2:\n    # ainda vou decidir\nprint(\"feito\")\n\n  File \"solucao.py\", line 3\n    print(\"feito\")\n    ^^^^^\nIndentationError: expected an indented block after 'if' statement on line 1\n```\n\nO par errado/certo:\n\n```text\nif 7 > 2:          # errado: o bloco não tem nenhuma ordem\n```\n\n```python\nif 7 > 2:          # certo: o pass é uma ordem que não faz nada\n    pass\n```"
+      "markdown": "O mesmo programa sem a linha recuada:\n\n```text\nif 7 > 2:\nprint(\"feito\")\nIndentationError: expected an indented block after 'if' statement on line 1\n```\n\nO Python não adivinha: `if` sem corpo não roda nada. Nem comentário salva — comentário não é ordem:\n\n```text\nif 7 > 2:\n    # ainda vou decidir\nprint(\"feito\")\nIndentationError: expected an indented block after 'if' statement on line 1\n```\n\nO par errado/certo:\n\n```text\nif 7 > 2:          # errado: o bloco não tem nenhuma ordem\n```\n\n```python\nif 7 > 2:          # certo: o pass é uma ordem que não faz nada\n    pass\n```"
     },
     {
       "id": "o-pass-nao-muda-a-tela",

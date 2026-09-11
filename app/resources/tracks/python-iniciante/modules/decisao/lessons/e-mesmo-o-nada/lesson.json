@@ -35,7 +35,7 @@
     {
       "id": "is-com-none-e-o-costume",
       "title": "Is com None é o costume",
-      "markdown": "Para perguntar se um valor é o nada, o `==` até funciona — `None == None` responde `True`. Mas o costume do Python, e o que você vai ver nos programas alheios, é o `is`:\n\n```python\nx = None\nprint(x == None)\n```\n\n```text\nTrue\n```\n\n```python\nx = None\nprint(x is None)\n```\n\n```text\nTrue\n```\n\nOs dois respondem a mesma coisa para o `None`. O costume é `is`, e é ele que esta aula ensina.\n\nO `is` tem uma regra que precisa de cuidado: com **números**, não use `is` para comparar — os números têm o `==` deles, das aulas de igual e diferente. O par errado/certo:\n\n```text\nif n is 3:\n    print(\"era tres\")   # errado: is nao e a comparacao de numeros\n```\n\n```python\nif n == 3:\n    print(\"era tres\")   # certo: numeros se comparam com ==\n```"
+      "markdown": "Para perguntar se um valor é o nada, o `==` até funciona — `None == None` responde `True`. Mas o costume do Python é o `is`:\n\n```python\nx = None\nprint(x == None)\n```\n\n```text\nTrue\n```\n\n```python\nx = None\nprint(x is None)\n```\n\n```text\nTrue\n```\n\nOs dois respondem a mesma coisa; o costume é `is`. Com **números**, o `is` não se usa — eles têm o `==` das aulas de igual e diferente. O par errado/certo:\n\n```text\nif n is 3:\n    print(\"era tres\")   # errado: is nao e a comparacao de numeros\n```\n\n```python\nif n == 3:\n    print(\"era tres\")   # certo: numeros se comparam com ==\n```"
     },
     {
       "id": "o-estado-do-none",

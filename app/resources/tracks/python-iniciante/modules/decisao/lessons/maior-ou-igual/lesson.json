@@ -40,7 +40,7 @@
     {
       "id": "os-quatro-sinais-na-mesa",
       "title": "Os quatro sinais na mesa",
-      "markdown": "Com as aulas de comparar números e de igual e diferente, você tem quatro comparações. Com esta aula, seis. Todas devolvem `True` ou `False`:\n\n- `>` pergunta se é maior;\n- `<` pergunta se é menor;\n- `==` pergunta se é igual;\n- `!=` pergunta se é diferente;\n- `>=` pergunta se é maior ou igual;\n- `<=` pergunta se é menor ou igual.\n\nO par errado/certo que esta aula desfaz: achar que `>=` é só um `>` caprichado. Não é — o sinal tem duas partes, e cada parte pode ser a que responde:\n\n```python\nprint(3 >= 3)\n```\n\n```text\nTrue\n```\n\nSe fosse só \"maior\", a resposta seria `False`. O `>=` aceita o empate; o `>` não."
+      "markdown": "Juntando as aulas de comparar números e de igual e diferente, você tem seis comparações. Todas devolvem `True` ou `False`:\n\n- `>` pergunta se é maior;\n- `<` pergunta se é menor;\n- `==` pergunta se é igual;\n- `!=` pergunta se é diferente;\n- `>=` pergunta se é maior ou igual;\n- `<=` pergunta se é menor ou igual.\n\nO par que esta aula desfaz: `>=` não é um `>` caprichado — o sinal tem duas partes, e cada uma pode responder:\n\n```python\nprint(3 >= 3)\n```\n\n```text\nTrue\n```\n\nSe fosse só \"maior\", a resposta seria `False`: o `>=` aceita o empate, o `>` não."
     }
   ],
   "assertions": [

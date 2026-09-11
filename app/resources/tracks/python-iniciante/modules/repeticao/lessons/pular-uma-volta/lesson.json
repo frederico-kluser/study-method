@@ -33,7 +33,7 @@
     {
       "id": "continue-no-while-e-a-condicao",
       "title": "O continue no while e a condição",
-      "markdown": "No `while`, o `continue` volta direto para a **conferência da condição**. Se o que muda a condição vier depois do `continue`, ele nunca roda — e o laço vira infinito:\n\n```python\nsaldo = 5\nwhile saldo > 0:\n    if saldo == 3:\n        continue\n    print(saldo)\n    saldo -= 1\n```\n\nQuando `saldo` chega a 3, o `continue` pula o `saldo -= 1` para sempre: 3 é maior que 0, a volta repete e o laço nunca sai do 3. O certo é deixar a mudança da condição **antes** do `continue`:\n\n```python\nsaldo = 5\nwhile saldo > 0:\n    saldo -= 1\n    if saldo == 3:\n        continue\n    print(saldo)\n```\n\n```text\n4\n2\n1\n0\n```\n\nAqui o saldo muda em toda volta, e o `continue` só corta o `print` da volta em que ele vale 3. O 0 ainda aparece: ele é impresso dentro da última volta, antes de a conferência do topo descobrir que o saldo acabou."
+      "markdown": "No `while`, o `continue` volta para a **conferência da condição**: se quem a muda vier depois, nunca roda — laço infinito:\n\n```python\nsaldo = 5\nwhile saldo > 0:\n    if saldo == 3:\n        continue\n    print(saldo)\n    saldo -= 1\n```\n\nQuando `saldo` chega a 3, o `continue` pula o `saldo -= 1` para sempre: o laço nunca sai do 3. O certo é mudar a condição antes dele:\n\n```python\nsaldo = 5\nwhile saldo > 0:\n    saldo -= 1\n    if saldo == 3:\n        continue\n    print(saldo)\n```\n\n```text\n4\n2\n1\n0\n```\n\nO saldo muda em toda volta; o `continue` corta só o `print` do 3 — o 0 ainda aparece."
     }
   ],
   "assertions": [

@@ -30,12 +30,12 @@
     {
       "id": "exatamente-um-dos-dois",
       "title": "Exatamente um dos dois",
-      "markdown": "A regra de ouro do `if`/`else`: **um dos dois blocos roda, nunca os dois, nunca nenhum**.\n\nVeja com a pergunta verdadeira:\n\n```python\nx = 5\nif x > 3:\n    print(\"maior\")\nelse:\n    print(\"menor ou igual\")\n```\n\n```text\nmaior\n```\n\nA pergunta `5 > 3` é verdadeira: roda o primeiro bloco e o `else` fica de fora. Com x valendo 3:\n\n```python\nx = 3\nif x > 3:\n    print(\"maior\")\nelse:\n    print(\"menor ou igual\")\n```\n\n```text\nmenor ou igual\n```\n\n3 não é maior que 3: a pergunta é falsa, o primeiro bloco é pulado e roda o `else`. Qual é o estado agora? A tela mostra `menor ou igual`, porque o `>` não aceita empate — e o empate cai no `else`."
+      "markdown": "A regra de ouro do `if`/`else`: **um dos dois blocos roda, nunca os dois, nunca nenhum**.\n\nVeja com a pergunta verdadeira:\n\n```python\nx = 5\nif x > 3:\n    print(\"maior\")\nelse:\n    print(\"menor ou igual\")\n```\n\n```text\nmaior\n```\n\n`5 > 3` é verdadeira: roda o primeiro bloco, o `else` fica de fora. Com x valendo 3:\n\n```python\nx = 3\nif x > 3:\n    print(\"maior\")\nelse:\n    print(\"menor ou igual\")\n```\n\n```text\nmenor ou igual\n```\n\n3 não é maior que 3: a pergunta é falsa e roda o `else` — o `>` não aceita empate, e o empate cai no `else`."
     },
     {
       "id": "a-forma-do-else",
       "title": "A forma do else",
-      "markdown": "O `else` fica **na mesma margem** do `if` — é um só par, cara a cara:\n\n```python\nif x > 3:\n    print(\"maior\")\nelse:\n    print(\"menor ou igual\")\n```\n\nOs dois pontos depois do `else` são obrigatórios, como depois do `if`. E o bloco do `else` também é recuado.\n\nO par errado/certo desta aula:\n\n```text\nif x > 3:\n    print(\"maior\")\n  else:\n    print(\"menor ou igual\")\n\n  File \"solucao.py\", line 3\n    else:\n         ^\nIndentationError: unindent does not match any outer indentation level\n```\n\nO `else` recuado não é reconhecido: ele tem de começar na mesma coluna do `if`.\n\n```python\nif x > 3:\n    print(\"maior\")\nelse:\n    print(\"menor ou igual\")\n```\n\nO `if` na margem, o `else` na margem, os dois blocos recuados: essa é a cara de um `if`/`else`."
+      "markdown": "O `else` fica **na mesma margem** do `if` — um só par, cara a cara:\n\n```python\nif x > 3:\n    print(\"maior\")\nelse:\n    print(\"menor ou igual\")\n```\n\nOs dois pontos depois do `else` são obrigatórios, como no `if`; o bloco dele também é recuado.\n\nRecuar o `else` é erro:\n\n```text\nif x > 3:\n    print(\"maior\")\n  else:\n    print(\"menor ou igual\")\nIndentationError: unindent does not match any outer indentation level\n```\n\nEle tem de começar na mesma coluna do `if` — `if` e `else` na margem, os dois blocos recuados: essa é a cara do `if`/`else`."
     },
     {
       "id": "sem-o-else-tambem-funciona",

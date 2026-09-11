@@ -31,12 +31,12 @@
     {
       "id": "o-sinal-de-menor",
       "title": "O sinal de menor",
-      "markdown": "O sinal `<` quer dizer *menor que*. Ele funciona do mesmo jeito, com a pergunta invertida:\n\n```python\nprint(3 < 2)\n```\n\n```text\nFalse\n```\n\n3 não é menor que 2, então a resposta é `False`.\n\nOs dois sinais têm um lado que aponta para o número menor: a boca do sinal fica aberta para o número maior. Em `3 > 2`, a boca está aberta para o 3; em `3 < 2`, ela está aberta para o 2 — e por isso a pergunta `3 < 2` é falsa.\n\nE quando os dois lados são iguais? A pergunta continua valendo, e a resposta é `False`:\n\n```python\nprint(3 > 3)\n```\n\n```text\nFalse\n```\n\n3 não é maior que 3 — é igual. Quem responde é o sinal de igualdade, que vem em uma aula própria."
+      "markdown": "O sinal `<` quer dizer *menor que*. Funciona do mesmo jeito, com a pergunta invertida:\n\n```python\nprint(3 < 2)\n```\n\n```text\nFalse\n```\n\n3 não é menor que 2, então a resposta é `False`.\n\nOs dois sinais têm a boca aberta para o número maior: em `3 > 2`, para o 3; em `3 < 2`, para o 2 — por isso `3 < 2` é falsa.\n\nE com os dois lados iguais? A resposta é `False`:\n\n```python\nprint(3 > 3)\n```\n\n```text\nFalse\n```\n\n3 não é maior que 3 — é igual. Quem responde é o sinal de igualdade, de uma aula própria."
     },
     {
       "id": "comparar-um-nome-com-um-numero",
       "title": "Comparar um nome com um número",
-      "markdown": "As comparações podem usar nomes de um lado ou dos dois lados. O Python primeiro descobre quanto vale o nome e depois compara:\n\n```python\npreco = 10\nprint(preco > 8)\n```\n\n```text\nTrue\n```\n\nO `preco` vale 10, e 10 é maior que 8: a resposta é `True`.\n\nPode comparar com uma conta também, como na aula de somar:\n\n```python\nprint(2 + 3 > 4)\n```\n\n```text\nTrue\n```\n\nO Python resolve `2 + 3`, encontra 5, e então pergunta se 5 é maior que 4.\n\nQual é o estado agora? No programa acima, o que aparece na tela e por quê? A tela mostra `True`: primeiro a conta `2 + 3` vira 5, e então `5 > 4` é verdadeiro."
+      "markdown": "As comparações podem usar nomes de um lado ou dos dois lados. O Python primeiro descobre quanto vale o nome e depois compara:\n\n```python\npreco = 10\nprint(preco > 8)\n```\n\n```text\nTrue\n```\n\nO `preco` vale 10, e 10 é maior que 8: a resposta é `True`.\n\nPode comparar com uma conta também, como na aula de somar:\n\n```python\nprint(2 + 3 > 4)\n```\n\n```text\nTrue\n```\n\nO Python resolve `2 + 3`, encontra 5, e então pergunta se 5 é maior que 4."
     },
     {
       "id": "a-resposta-e-o-valor-verdadeiro",

@@ -32,7 +32,7 @@
     {
       "id": "a-linha-que-pertence-a-outra",
       "title": "A linha que pertence a outra",
-      "markdown": "Olhe de novo o programa e repare no que há de novo: a linha `print(\"positivo\")` **não começa na margem**.\n\n```python\nx = 3\nif x > 0:\n    print(\"positivo\")\n```\n\nEsses espaços no começo da linha têm nome: **recuo**. Em Python, o recuo é o que diz que uma linha **pertence** a outra. A linha recuada pertence ao `if`: é ele que decide se ela roda.\n\nSem o recuo, a linha não pertence a ninguém e o `if` fica sem corpo — e o Python reclama antes de rodar:\n\n```text\nx = 3\nif x > 0:\nprint(\"positivo\")\n\n  File \"solucao.py\", line 3\n    print(\"positivo\")\n    ^^^^^\nIndentationError: expected an indented block after 'if' statement on line 2\n```\n\nEsse erro tem nome: `IndentationError`. A mensagem diz o que faltou: um bloco recuado depois da linha do `if`. O conserto é um só — recuar a linha.\n\nO costume em Python é recuar com **quatro espaços**. Vale qualquer quantidade desde que todas as linhas do mesmo dono usem a mesma."
+      "markdown": "Repare: a linha `print(\"positivo\")` **não começa na margem**.\n\n```python\nx = 3\nif x > 0:\n    print(\"positivo\")\n```\n\nEsses espaços no começo da linha têm nome: **recuo** — em Python, é o recuo que diz que uma linha **pertence** a outra: a recuada pertence ao `if`, e é ele que decide se ela roda.\n\nSem recuo, a linha não pertence a ninguém e o `if` fica sem corpo — o Python reclama antes de rodar com `IndentationError`:\n\n```text\nx = 3\nif x > 0:\nprint(\"positivo\")\nIndentationError: expected an indented block after 'if' statement on line 2\n```\n\nO conserto é recuar a linha."
     },
     {
       "id": "quando-a-resposta-e-falsa",
@@ -47,7 +47,7 @@
     {
       "id": "o-recuo-nao-e-enfeite",
       "title": "O recuo não é enfeite",
-      "markdown": "Nas aulas do módulo anterior toda linha começava na margem, e por isso errar o recuo era impossível. Agora o recuo é **decisão sua** — e o Python cobra.\n\nRecuar uma linha que não pertence a ninguém também é erro:\n\n```text\nx = 3\n    print(x)\n\n  File \"solucao.py\", line 2\n    print(x)\nIndentationError: unexpected indent\n```\n\nO par errado/certo para guardar na memória:\n\n```text\nif x > 0:\nprint(\"positivo\")      # errado: sem recuo, o if fica sem corpo\n```\n\n```python\nif x > 0:\n    print(\"positivo\")  # certo: recuado, pertence ao if\n```\n\nSe o erro disser `IndentationError`, a primeira coisa a olhar é o espaço no começo da linha que ele apontou."
+      "markdown": "Antes, toda linha começava na margem. Agora o recuo é **decisão sua** — e o Python cobra.\n\nRecuar uma linha que não pertence a ninguém também é erro:\n\n```text\nx = 3\n    print(x)\nIndentationError: unexpected indent\n```\n\nO par errado/certo para guardar:\n\n```text\nif x > 0:\nprint(\"positivo\")      # errado: sem recuo, o if fica sem corpo\n```\n\n```python\nif x > 0:\n    print(\"positivo\")  # certo: recuado, pertence ao if\n```\n\nSe o erro disser `IndentationError`, olhe o espaço no começo da linha apontada."
     }
   ],
   "assertions": [

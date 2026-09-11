@@ -30,12 +30,12 @@
     {
       "id": "um-sinal-com-duas-funcoes-diferentes",
       "title": "Um sinal com duas funções diferentes",
-      "markdown": "Cuidado com o primo do `==`: o sinal `=` sozinho. Eles parecem a mesma coisa e não são.\n\nO `=` guarda um valor num nome. O `==` pergunta se dois valores são iguais.\n\n```python\nx = 5\nprint(x == 5)\n```\n\n```text\nTrue\n```\n\nA primeira linha guarda; a segunda pergunta. Trocar um pelo outro quebra o programa — `print(x = 5)` é um erro, porque o `=` não devolve resposta nenhuma para mostrar.\n\nA comparação pode ser com uma conta de um dos lados, como na aula de somar:\n\n```python\nprint(2 + 3 == 5)\n```\n\n```text\nTrue\n```\n\nPrimeiro o Python resolve `2 + 3`, encontra 5, e então pergunta se 5 é igual a 5."
+      "markdown": "Cuidado com o primo do `==`: o `=` sozinho não pergunta nada.\n\nO `=` guarda um valor num nome. O `==` pergunta se dois valores são iguais.\n\n```python\nx = 5\nprint(x == 5)\n```\n\n```text\nTrue\n```\n\nA primeira guarda; a segunda pergunta. Trocar um pelo outro quebra — `print(x = 5)` é erro: o `=` não devolve resposta para o print mostrar.\n\nA comparação também aceita conta de um lado, como na aula de somar:\n\n```python\nprint(2 + 3 == 5)\n```\n\n```text\nTrue\n```\n\nO Python resolve `2 + 3`, encontra 5, e pergunta se 5 é igual a 5."
     },
     {
       "id": "o-sinal-de-diferente",
       "title": "O sinal de diferente",
-      "markdown": "O sinal `!=` pergunta o contrário: **os dois valores são diferentes?**\n\n```python\nx = 5\nprint(x != 3)\n```\n\n```text\nTrue\n```\n\n5 é diferente de 3, então a resposta é `True`.\n\nA resposta de uma comparação é um valor como outro qualquer: dá para guardar num nome e mostrar depois. Como em dar-nome-a-um-valor, o `=` guarda o que está do lado direito — e o que está lá é a resposta da pergunta:\n\n```python\nx = 5\nachou = x == 5\nprint(achou)\n```\n\n```text\nTrue\n```\n\nQual é o estado agora? O nome `achou` guarda a resposta de uma pergunta: com x valendo 5, a pergunta \"x é igual a 5?\" tem resposta `True`, e é esse valor que o `print` mostra."
+      "markdown": "O sinal `!=` pergunta o contrário: **os dois valores são diferentes?**\n\n```python\nx = 5\nprint(x != 3)\n```\n\n```text\nTrue\n```\n\n5 é diferente de 3, então a resposta é `True`.\n\nA resposta de uma comparação é um valor como outro qualquer: dá para guardar num nome e mostrar depois.\n\n```python\nx = 5\nachou = x == 5\nprint(achou)\n```\n\n```text\nTrue\n```\n\nQual é o estado agora? `achou` guarda a resposta da pergunta: x vale 5, `x == 5` é `True`, e é isso que o `print` mostra."
     },
     {
       "id": "comparar-e-mostrar",

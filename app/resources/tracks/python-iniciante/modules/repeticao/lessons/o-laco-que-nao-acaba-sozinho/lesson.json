@@ -26,7 +26,7 @@
     {
       "id": "while-true-nao-acaba-sozinho",
       "title": "O while True não acaba sozinho",
-      "markdown": "O `while` repete enquanto a condição for verdadeira. Agora a condição mais simples de todas: **`True`** — o valor verdadeiro da aula *verdadeiro e falso*. `True` é sempre verdadeiro, então esse `while` nunca para por conta própria.\n\n```python\nwhile True:\n    print(\"eco\")\n```\n\nEsse programa imprime `eco` para sempre — um **laço infinito** de verdade, sem condição para ficar falsa. O `while True` não é para ser usado sozinho: ele é a moldura que espera alguém decidir a saída. E o decididor é o `break` da aula *parar no meio*.\n\n```python\nvoltas = 0\nwhile True:\n    voltas += 1\n    print(voltas)\n    if voltas == 3:\n        break\n```\n\n```text\n1\n2\n3\n```\n\nO laço roda, conta as voltas e, no 3, o `break` encerra. Sem o `break`, ele não teria fim."
+      "markdown": "O `while` repete enquanto a condição for verdadeira. A condição mais simples: **`True`** — sempre verdadeiro, então esse `while` nunca para sozinho.\n\n```python\nwhile True:\n    print(\"eco\")\n```\n\nEsse programa imprime `eco` para sempre — um **laço infinito** de verdade. O `while True` é a moldura que espera alguém decidir a saída: o `break` da aula parar no meio.\n\n```python\nvoltas = 0\nwhile True:\n    voltas += 1\n    print(voltas)\n    if voltas == 3:\n        break\n```\n\n```text\n1\n2\n3\n```\n\nO laço conta as voltas e, no 3, o `break` encerra. Sem ele, não teria fim."
     },
     {
       "id": "a-decisao-de-parar-fica-dentro",

@@ -27,7 +27,7 @@
     {
       "id": "o-for-repete",
       "title": "O for repete",
-      "markdown": "Você já sabe mandar o computador fazer uma coisa (`print`), guardar valores em nomes (o `=` da aula *dar nome a um valor*) e escolher um caminho com o `se`. Falta o terceiro superpoder: **repetir**.\n\nO `for` repete um bloco de linhas um número de vezes. Ele é a prima do `se`: no `se` as linhas recuadas rodam quando a condição é verdadeira; no `for` as linhas recuadas rodam **uma vez para cada número** de uma fila.\n\n```python\nfor i in range(3):\n    print(\"oi\")\n```\n\n```text\noi\noi\noi\n```\n\nLeia a primeira linha assim: *para cada `i` dentro de `range(3)`, faça o bloco*. O `range(3)` entrega três números (0, 1 e 2), então o bloco recuado roda três vezes — e o `oi` aparece três vezes."
+      "markdown": "Você sabe fazer uma coisa (`print`), guardar valores em nomes (`=`) e escolher um caminho com o `se`. Falta o terceiro superpoder: **repetir**.\n\nO `for` repete um bloco de linhas um número de vezes — prima do `se`: lá as recuadas rodam quando a condição é verdadeira; aqui rodam **uma vez para cada número** de uma fila.\n\n```python\nfor i in range(3):\n    print(\"oi\")\n```\n\n```text\noi\noi\noi\n```\n\nLeia a primeira linha assim: *para cada `i` dentro de `range(3)`, faça o bloco*. O `range(3)` entrega 0, 1 e 2 — três números, três voltas, três `oi`."
     },
     {
       "id": "a-volta-e-o-numero-da-vez",

@@ -37,7 +37,7 @@
     {
       "id": "a-volta-precisa-mudar-a-condicao",
       "title": "A volta precisa mudar a condição",
-      "markdown": "Para o laço terminar, alguma linha do bloco tem de deixar a condição **falsa em algum momento**. Esquecer isso prende o programa:\n\n```python\nsaldo = 5\nwhile saldo > 0:\n    print(\"saldo alto\")\n```\n\nO bloco imprime para sempre — o `saldo` nunca muda, a condição nunca fica falsa e o laço não acaba sozinho. É o **laço infinito**. No `for` isso era difícil de acontecer porque o `range` tinha uma fila finita; no `while`, a condição é sua.\n\nCerto é mudar o que a condição olha dentro da volta:\n\n```python\nsaldo = 5\nwhile saldo > 0:\n    print(\"saldo alto\")\n    saldo -= 1\n```\n\nPergunta de estado: depois de a última volta rodar, o que `saldo` guarda? É 0 — a condição ficou falsa e o laço parou."
+      "markdown": "Para o laço terminar, o bloco tem de deixar a condição **falsa em algum momento**; esquecer prende o programa:\n\n```python\nsaldo = 5\nwhile saldo > 0:\n    print(\"saldo alto\")\n```\n\nO bloco imprime para sempre — o **laço infinito**: o `saldo` nunca muda e a condição nunca fica falsa.\n\nCerto é mudar o que a condição olha dentro da volta:\n\n```python\nsaldo = 5\nwhile saldo > 0:\n    print(\"saldo alto\")\n    saldo -= 1\n```\n\nPergunta de estado: depois da última volta, o que `saldo` guarda? 0 — a condição ficou falsa e o laço parou."
     }
   ],
   "assertions": [

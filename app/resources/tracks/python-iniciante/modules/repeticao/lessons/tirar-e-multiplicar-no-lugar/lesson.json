@@ -34,7 +34,7 @@
     {
       "id": "o-que-eh-e-o-que-nao-eh",
       "title": "O que é e o que não é",
-      "markdown": "Os dois gestos seguem a mesma conversa que o `+=`: o nome aparece só uma vez, e o lado direito decide a conta.\n\nCerto — o nome já guarda um valor quando o gesto roda:\n\n```python\nsaldo = 100\nsaldo -= 10\npreco = 50\npreco *= 2\n```\n\nErrado — o sinal trocado inverte a ideia e o resultado:\n\n```python\nsaldo =- 10\n```\n\n`saldo =- 10` não é `saldo -= 10`: o Python lê `saldo = -10` — guarda o número negativo 10 no lugar de tirar 10 do valor atual. O sinal de subtrair fica **junto** do igual, sem espaço entre eles.\n\nPergunta de estado: depois de `p = 3`, `p *= 4` e `p -= 5`, o que `print(p)` mostra? A multiplicação roda primeiro (3 × 4 = 12) e depois a subtração (12 − 5 = 7)."
+      "markdown": "Os dois gestos seguem a conversa do `+=`: o nome aparece uma vez só, e o lado direito decide a conta.\n\nCerto — o nome já guarda um valor quando o gesto roda:\n\n```python\nsaldo = 100\nsaldo -= 10\npreco = 50\npreco *= 2\n```\n\nErrado — o sinal trocado inverte a ideia:\n\n```python\nsaldo =- 10\n```\n\n`saldo =- 10` não é `saldo -= 10`: o Python lê `saldo = -10` — guarda o negativo, não tira 10 do atual. O sinal fica **junto** do igual, sem espaço.\n\nPergunta de estado: `p = 3`, `p *= 4`, `p -= 5` — `print(p)` mostra 7 (12 − 5)."
     }
   ],
   "assertions": [

@@ -23,17 +23,17 @@
     {
       "id": "mais-de-uma-pergunta",
       "title": "Mais de uma pergunta",
-      "markdown": "Na aula de se... senão você aprendeu a dar ao `if` um plano B. Mas e quando são **três** casos — positivo, negativo ou zero?\n\nO `elif` (contração de *else if*: *senão se*) encadeia as perguntas:\n\n```python\nx = 0\nif x > 0:\n    print(\"positivo\")\nelif x < 0:\n    print(\"negativo\")\nelse:\n    print(\"zero\")\n```\n\n```text\nzero\n```\n\nCada `elif` é mais uma pergunta na mesma margem do `if`. Sem o `elif`, a mesma fila viraria um `if` inteiro aninhado dentro do `else`:\n\n```python\nx = 0\nif x > 0:\n    print(\"positivo\")\nelse:\n    if x < 0:\n        print(\"negativo\")\n    else:\n        print(\"zero\")\n```\n\n```text\nzero\n```\n\nFunciona, mas o `else` com um `if` inteiro recuado dentro fica difícil de ler. O `elif` aplana: mesmo resultado, mesma margem, uma pergunta por linha."
+      "markdown": "Na aula de se... senão o `if` ganhou um plano B. E quando são **três** casos — positivo, negativo ou zero?\n\nO `elif` (contração de *else if*) encadeia as perguntas:\n\n```python\nx = 0\nif x > 0:\n    print(\"positivo\")\nelif x < 0:\n    print(\"negativo\")\nelse:\n    print(\"zero\")\n```\n\n```text\nzero\n```\n\nCada `elif` é mais uma pergunta na mesma margem do `if`. Sem ele, a fila viraria um `if` inteiro aninhado dentro do `else` — veja o par na seção elif nao e else com if."
     },
     {
       "id": "a-primeira-verdadeira-vence",
       "title": "A primeira verdadeira vence",
-      "markdown": "O Python testa as perguntas **de cima para baixo** e roda o bloco da **primeira** que for verdadeira. As que vêm depois não são nem testadas.\n\n```python\nx = 5\nif x > 0:\n    print(\"positivo\")\nelif x > 3:\n    print(\"maior que 3\")\nelse:\n    print(\"zero ou negativo\")\n```\n\n```text\npositivo\n```\n\nx vale 5: `x > 0` é verdadeiro, e o Python nem chega a olhar `x > 3` — mesmo as duas sendo verdadeiras. A ordem decide.\n\nQual é o estado agora? Com x valendo 5, a tela mostra `positivo`; se trocássemos a ordem das perguntas, a tela mostraria outra coisa. A posição de cada `elif` é parte do programa."
+      "markdown": "O Python testa as perguntas **de cima para baixo** e roda o bloco da **primeira** verdadeira — as seguintes nem são testadas.\n\n```python\nx = 5\nif x > 0:\n    print(\"positivo\")\nelif x > 3:\n    print(\"maior que 3\")\nelse:\n    print(\"zero ou negativo\")\n```\n\n```text\npositivo\n```\n\nx vale 5: `x > 0` é verdadeiro e o Python nem olha `x > 3` — mesmo as duas sendo verdadeiras. A ordem decide.\n\nCom x = 5, a tela mostra `positivo`; trocando a ordem das perguntas, mostraria outra coisa — a posição de cada `elif` é parte do programa."
     },
     {
       "id": "o-else-pega-o-resto",
       "title": "O else pega o resto",
-      "markdown": "O `else` no fim é opcional e continua sendo o plano de sobra: roda quando **nenhuma** pergunta foi verdadeira.\n\n```python\nx = -4\nif x > 0:\n    print(\"positivo\")\nelif x < 0:\n    print(\"negativo\")\nelse:\n    print(\"zero\")\n```\n\n```text\nnegativo\n```\n\nTroque x por outros valores e veja o mesmo programa responder:\n\n```python\nx = 0\nif x > 0:\n    print(\"positivo\")\nelif x < 0:\n    print(\"negativo\")\nelse:\n    print(\"zero\")\n```\n\n```text\nzero\n```\n\nCom x valendo 0, as duas perguntas são falsas e o `else` pega o caso que sobrou. Quantos `elif` cabem? Quantos você precisar — cada um é mais uma pergunta na fila."
+      "markdown": "O `else` no fim é opcional — o plano de sobra que roda quando **nenhuma** pergunta foi verdadeira:\n\n```python\nx = -4\nif x > 0:\n    print(\"positivo\")\nelif x < 0:\n    print(\"negativo\")\nelse:\n    print(\"zero\")\n```\n\n```text\nnegativo\n```\n\nTroque x e veja o mesmo programa:\n\n```python\nx = 0\nif x > 0:\n    print(\"positivo\")\nelif x < 0:\n    print(\"negativo\")\nelse:\n    print(\"zero\")\n```\n\n```text\nzero\n```\n\nCom x = 0, as duas perguntas são falsas e o `else` pega o que sobrou. Quantos `elif` cabem? Quantos precisar — cada um é uma pergunta na fila."
     },
     {
       "id": "elif-nao-e-else-com-if",

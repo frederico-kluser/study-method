@@ -34,7 +34,7 @@
     {
       "id": "a-mesma-escolha-em-duas-formas",
       "title": "A mesma escolha em duas formas",
-      "markdown": "A escolha de valor também pode ser escrita com o `if`/`else` de blocos da aula anterior — cada ramo guarda no nome:\n\n```python\nx = 5\nif x > 0:\n    y = 1\nelse:\n    y = 0\nprint(y)\n```\n\n```text\n1\n```\n\nO resultado é o mesmo do programa da primeira seção. A forma de uma linha é só uma maneira mais curta de escrever a mesma escolha:\n\n```python\ny = 1 if x > 0 else 0\n```\n\nQual é a diferença prática? O `if` de blocos pode fazer **várias** coisas em cada ramo; a forma de uma linha escolhe **um valor só**. Quando a escolha é só o valor, a linha curta cabe; quando cada ramo tem mais de uma ordem, o bloco continua sendo o lugar."
+      "markdown": "A mesma escolha pode ser escrita com o `if`/`else` de blocos — cada ramo guarda no nome:\n\n```python\nx = 5\nif x > 0:\n    y = 1\nelse:\n    y = 0\nprint(y)\n```\n\n```text\n1\n```\n\nO resultado é o mesmo da primeira seção — a linha curta é só uma forma mais curta da mesma escolha:\n\n```python\ny = 1 if x > 0 else 0\n```\n\nA diferença prática: o bloco pode fazer **várias** coisas por ramo; a linha curta escolhe **um valor só**. Mais de uma ordem por ramo → bloco; só o valor → linha curta."
     },
     {
       "id": "o-else-e-obrigatorio",
