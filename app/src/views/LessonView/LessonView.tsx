@@ -161,7 +161,6 @@ import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore
 import { useTranslation } from 'react-i18next';
 import {
   Alert,
-  Badge,
   Box,
   Button,
   Chip,
@@ -267,6 +266,9 @@ import {
 } from '../../lib/challengeGenerateStore';
 import { AnimatePresence, motion } from 'motion/react';
 import { fadeInUp, springs } from '../../lib/animationTokens';
+// ONDA2-LAYOUT: o cabeçalho da aula virou um componente colapsável próprio
+// (barra compacta + corpo animado) — esta view SÓ o consome.
+import { CollapsibleLessonHeader } from '../../components/course/CollapsibleLessonHeader';
 // ONDA11: o raio de PÍLULA da barra de entrada sai do token de forma do design
 // system (SHAPE.pill) — cor e forma são CONSUMIDAS, nunca redefinidas aqui.
 import { SHAPE } from '../../lib/designTokens';
@@ -2507,127 +2509,37 @@ export function LessonView(props: ViewProps): ReactElement {
       }}
     >
       <Stack useFlexGap spacing={1.5} sx={{ flexGrow: 1, minHeight: 0 }}>
-        {/* Cabeçalho: título + resumo + ações */}
-        <Box>
- <Stack direction="row" spacing={1} sx={{ justifyContent: 'space-between', alignItems: 'flex-start' }}>
-            <Box>
-              <Typography variant="h5" component="h1">
-                {lesson.title}
-              </Typography>
-              <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                {lesson.summary}
-              </Typography>
-            </Box>
-            <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
-              {/* ONDA1-UX (pedido do dono — "não quero aqueles desafios ali"):
-                  os desafios saíram do fluxo (nada entre a última bolha e o
-                  input); o botão "Desafios" abre o POPOVER com a lista e o
-                  BADGE mostra os PENDENTES (mesmo critério do gating:
-                  lastVerdict !== 'passed'). Sem pendentes → badge oculto. */}
-              {lesson.challenges.length > 0 ? (
-                <Badge badgeContent={pendingChallengeCount} color="error">
-                  <Button
-                    size="small"
-                    variant="outlined"
-                    onClick={(e) => {
-                      setChallengesFrom('cabecalho');
-                      setChallengesAnchorEl(e.currentTarget);
-                    }}
-                    aria-haspopup="true"
-                    /* ONDA14: o popover agora tem DOIS disparadores (este e o
-                       CTA da linha de ação). `aria-expanded` descreve ESTE
-                       botão: ele só está "expandido" quando foi ELE que abriu
-                       a lista — senão o leitor de tela ouviria, do botão do
-                       cabeçalho, que ele abriu algo que não abriu. */
-                    aria-expanded={challengesOpen && challengesFrom === 'cabecalho'}
-                    aria-label={tI('lesson.challengesButtonAria', { pending: pendingChallengeCount })}
-                    startIcon={<EmojiEventsIcon />}
-                  >
-                    {t('translation:lesson.challengesButton')}
-                  </Button>
-                </Badge>
-              ) : null}
-              {/* ONDA 13 — O ACENTO VOLTA A SIGNIFICAR AÇÃO.
-                  A prova visual do dono contou, em REPOUSO na tela clara,
-                  QUATRO objetos acentuados ao mesmo tempo: este botão
-                  (texto + borda + ícone), a barra de progresso logo abaixo, o
-                  CTA "Responder" do quiz e o item de navegação ativo. Com o
-                  aluno escrevendo viram SEIS. Quando tudo é vermelho, o
-                  vermelho não aponta mais para nada — e o único que PRECISA
-                  apontar é o CTA (a ação que destrava a aula).
-                  "Fontes" é um passivo: abre uma lista de consulta, não avança
-                  a aula. Ele vira `secondary`, que o tema aponta para a tinta —
-                  continua um botão de contorno legível, só para de gritar.
-                  O botão "Desafios" logo acima já usa `Badge color="error"`
-                  para o que é de fato urgente (pendências), e esse sim
-                  continua colorido. */}
-              <Button
-                size="small"
-                variant="outlined"
-                /* `inherit` = a TINTA do cabeçalho, não um acento.
-                   ATENÇÃO ao caminho que NÃO serve: `color="secondary"` parece
-                   o oposto de "chamativo", mas neste tema
-                   `palette.secondary = accent(accents.study)` — o ROXO que o
-                   dono mandou tirar e que a onda 12 eliminou dos 7 nós onde
-                   ainda estava. Usar `secondary` aqui o traria de volta no
-                   cabeçalho de TODA aula (medido: a captura de foco desta onda
-                   pegou o botão roxo).
-                   A borda vai para a camada NÃO-TEXTO em vez do
-                   `currentColor` a 50% que o MUI dá ao `inherit`: aquele é
-                   opacidade sobre cor herdada, o mesmo vício que reprovou o
-                   carimbo de hora, e aqui cairia abaixo do piso de 3:1.
-                   [medido] NONTEXT_DARK.neutral x SURFACE_DARK.level0 = 4,50:1
-                   [medido] NONTEXT_LIGHT.neutral x SURFACE_LIGHT.level0 = 3,03:1 */
-                color="inherit"
-                onClick={() => setSourcesOpen(true)}
-                startIcon={<AutoStoriesIcon />}
-                sx={{ color: 'text.primary', borderColor: 'nonText.neutral' }}
-              >
-                {t('translation:lesson.sourcesButton')}
-              </Button>
-            </Stack>
-          </Stack>
-          {/* Progresso da teoria (seções apresentadas).
-              ONDA 13: `color="inherit"` tira a barra da disputa pelo acento
-              (ver o comentário do botão "Fontes" acima). Progresso é
-              INFORMAÇÃO de estado, não chamada para ação: ele é lido junto com
-              o "Seção N de M" ao lado, que já é tinta secundária. O trilho e o
-              preenchimento passam a ser a mesma tinta em opacidades
-              diferentes, que é o desenho do próprio MUI para `inherit` — e o
-              contraste de preenchimento contra trilho não tem piso normativo
-              (nenhum dos dois é a única forma de saber onde a aula está: o
-              contador textual carrega a mesma informação). */}
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 1, color: 'text.secondary' }}>
-            <LinearProgress
-              variant="determinate"
-              color="inherit"
-              value={theoryProgress}
-              sx={{ flexGrow: 1, height: 6, borderRadius: 3 }}
-              aria-label={tI('lesson.theoryProgress', { percent: theoryProgress })}
-            />
-            <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-              {tI('lesson.theoryCount', { current: chat.presentedSections.length, total: lesson.theory.length })}
-            </Typography>
-          </Box>
-          {/* Aulas anteriores da trilha (revisão quando não entender). */}
-          {lesson.prerequisites.length > 0 ? (
- <Stack direction="row" spacing={1} sx={{ mt: 1, flexWrap: 'wrap',  }} >
-              <Typography variant="caption" sx={{ color: 'text.secondary', alignSelf: 'center' }}>
-                {t('translation:lesson.prerequisitesLabel')}
-              </Typography>
-              {lesson.prerequisites.map((pre) => (
-                <Chip
-                  key={pre.slug}
-                  size="small"
-                  variant="outlined"
-                  label={pre.title}
-                  onClick={() => openPrerequisite(pre.slug)}
-                  onDelete={undefined}
-                />
-              ))}
-            </Stack>
-          ) : null}
-        </Box>
+        {/* ONDA2-LAYOUT — Cabeçalho COLAPSÁVEL (componente novo em
+            src/components/course/CollapsibleLessonHeader.tsx). A barra
+            compacta (toggle + título em UMA linha + Desafios + Fontes) fica
+            SEMPRE visível; o corpo (título completo + resumo) nasce
+            COLAPSADO e anima ao expandir/recolher — o espaço libertado vira
+            área de trabalho do chat (a entrada continua ancorada no fim da
+            coluna, intocada). Progresso e pré-requisitos ficam FORA do
+            colapsável, sempre visíveis. A `key` da aula REMONTA o componente
+            ao abrir/trocar de aula → o estado volta a colapsado, como o dono
+            pediu. Decisões completas no cabeçalho do componente. */}
+        <CollapsibleLessonHeader
+          key={`${trackLesson.trackSlug}/${trackLesson.lessonId}`}
+          title={lesson.title}
+          summary={lesson.summary}
+          challengeCount={lesson.challenges.length}
+          pendingChallengeCount={pendingChallengeCount}
+          challengesExpanded={challengesOpen && challengesFrom === 'cabecalho'}
+          onChallengesClick={(anchor) => {
+            /* ONDA14: o popover tem DOIS disparadores (este e o CTA da linha
+               de ação) — `challengesFrom` guarda de onde veio para o
+               aria-expanded de cada botão descrever SÓ o que ele abriu. */
+            setChallengesFrom('cabecalho');
+            setChallengesAnchorEl(anchor);
+          }}
+          onSourcesClick={() => setSourcesOpen(true)}
+          theoryProgress={theoryProgress}
+          sectionCurrent={chat.presentedSections.length}
+          sectionTotal={lesson.theory.length}
+          prerequisites={lesson.prerequisites}
+          onPrerequisiteClick={openPrerequisite}
+        />
 
         <Divider />
 

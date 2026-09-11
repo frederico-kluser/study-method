@@ -77,12 +77,18 @@ const HERE = dirname(fileURLToPath(import.meta.url));
 const VIEW_PATH = resolve(HERE, '../src/views/LessonView/LessonView.tsx');
 const VIEW_SRC = readFileSync(VIEW_PATH, 'utf8');
 const VIEW_MODULE = new URL('../src/views/LessonView/LessonView.tsx', import.meta.url).href;
+// ONDA2-layout: o botão "Desafios" do CABEÇALHO migrou do JSX da view para o
+// componente colapsável (CollapsibleLessonHeader) — as guards que falam do
+// nome/badge dele agora leem o componente também.
+const HEADER_PATH = resolve(HERE, '../src/components/course/CollapsibleLessonHeader.tsx');
+const HEADER_SRC = readFileSync(HEADER_PATH, 'utf8');
 
 /** Fonte sem comentários — só o código que realmente roda. */
 function codeOf(text: string): string {
   return text.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
 }
 const VIEW = codeOf(VIEW_SRC);
+const HEADER = codeOf(HEADER_SRC);
 
 type Step =
   | 'revelar'
@@ -531,9 +537,20 @@ describe('5. a view liga o passo à ação — e o gate não ganhou porta latera
     );
   });
 
-  it('o botão de desafio do CABEÇALHO continua onde estava (o dono pediu os DOIS)', () => {
-    assert.match(VIEW, /lesson\.challengesButtonAria/, 'o botão do cabeçalho segue com seu nome');
-    assert.match(VIEW, /<Badge badgeContent=\{pendingChallengeCount\}/, 'e com o badge de pendentes');
+  it('o botão de desafio do CABEÇALHO continua com nome e badge (migrou para o CollapsibleLessonHeader)', () => {
+    // ONDA2-layout: o botão do cabeçalho saiu do JSX da view e vive no
+    // componente do cabeçalho colapsável. O CONTRATO do guard é o MESMO de
+    // antes (o dono pediu os DOIS botões de desafio): o do cabeçalho segue
+    // com o nome acessível interpolado e o badge de pendentes, e a view
+    // segue ligando o popover a ele.
+    assert.match(VIEW, /<CollapsibleLessonHeader/, 'o cabeçalho é o componente novo');
+    assert.match(
+      VIEW,
+      /challengesExpanded=\{challengesOpen && challengesFrom === 'cabecalho'\}/,
+      'o aria-expanded do botão do cabeçalho continua dirigido pelo popover',
+    );
+    assert.match(HEADER, /lesson\.challengesButtonAria/, 'o botão do cabeçalho segue com seu nome');
+    assert.match(HEADER, /<Badge badgeContent=\{pendingChallengeCount\}/, 'e com o badge de pendentes');
   });
 
   it('o CTA de baixo reusa o MESMO destino: um desafio vai direto, vários abrem o MESMO popover', () => {

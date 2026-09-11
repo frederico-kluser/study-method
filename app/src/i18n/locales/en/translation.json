@@ -240,6 +240,8 @@
     "challengesTitle": "Challenges in this lesson",
     "challengesButton": "Challenges",
     "challengesButtonAria": "Lesson challenges ({{pending}} pending)",
+    "headerToggleExpand": "Show lesson details",
+    "headerToggleCollapse": "Hide lesson details",
     "challengeStepButton": "Do the challenge",
     "challengeStepButtonAria": "Do the challenge ({{pending}} pending)",
     "challengesListAria": "Challenges list of this lesson",
