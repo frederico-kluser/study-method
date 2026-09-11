@@ -1,0 +1,135 @@
+{
+  "schemaVersion": 1,
+  "slug": "se",
+  "title": "Se",
+  "summary": "O `if` decide: uma linha recuada só roda quando a pergunta dele é verdadeira.",
+  "difficulty": 3,
+  "role": "regular",
+  "targetAtom": "node:If",
+  "concepts": [
+    "o_se"
+  ],
+  "prerequisites": [
+    "comparar-numeros"
+  ],
+  "introduces": {
+    "productive": [
+      "node:If"
+    ],
+    "receptive": []
+  },
+  "introducesTerms": [
+    "term:recuo",
+    "term:IndentationError"
+  ],
+  "notionalMachineDelta": "o arquivo deixa de ser uma pilha de ordens soltas: a linha recuada pertence a outra e só roda se a pergunta do se for verdadeira",
+  "theory": [
+    {
+      "id": "quando-a-resposta-manda-fazer",
+      "title": "Quando a resposta manda fazer",
+      "markdown": "Na aula de comparar números você aprendeu a fazer perguntas cuja resposta é `True` ou `False`. Agora a resposta vai **mandar**: se for verdadeira, o Python faz uma coisa; se for falsa, pula.\n\nA palavra é `se` — em Python, `if`:\n\n```python\nx = 3\nif x > 0:\n    print(\"positivo\")\n```\n\n```text\npositivo\n```\n\nLeia a linha 2 assim: *se x maior que 0, então faça o que vem recuado*. Como x vale 3, a pergunta é verdadeira e a linha debaixo roda.\n\nA pergunta do `if` é a mesma comparação da aula passada — o `if` só decide o que fazer com a resposta."
+    },
+    {
+      "id": "a-linha-que-pertence-a-outra",
+      "title": "A linha que pertence a outra",
+      "markdown": "Olhe de novo o programa e repare no que há de novo: a linha `print(\"positivo\")` **não começa na margem**.\n\n```python\nx = 3\nif x > 0:\n    print(\"positivo\")\n```\n\nEsses espaços no começo da linha têm nome: **recuo**. Em Python, o recuo é o que diz que uma linha **pertence** a outra. A linha recuada pertence ao `if`: é ele que decide se ela roda.\n\nSem o recuo, a linha não pertence a ninguém e o `if` fica sem corpo — e o Python reclama antes de rodar:\n\n```text\nx = 3\nif x > 0:\nprint(\"positivo\")\n\n  File \"solucao.py\", line 3\n    print(\"positivo\")\n    ^^^^^\nIndentationError: expected an indented block after 'if' statement on line 2\n```\n\nEsse erro tem nome: `IndentationError`. A mensagem diz o que faltou: um bloco recuado depois da linha do `if`. O conserto é um só — recuar a linha.\n\nO costume em Python é recuar com **quatro espaços**. Vale qualquer quantidade desde que todas as linhas do mesmo dono usem a mesma."
+    },
+    {
+      "id": "quando-a-resposta-e-falsa",
+      "title": "Quando a resposta é falsa",
+      "markdown": "Agora o teste de verdade: a pergunta falsa. O programa é o mesmo, só muda o valor de x:\n\n```python\nx = -2\nif x > 0:\n    print(\"positivo\")\nprint(\"acabou\")\n```\n\n```text\nacabou\n```\n\nQual é o estado agora? A pergunta `x > 0` é falsa (x vale -2), então o Python **pula** a linha recuada — ela não roda. A linha `print(\"acabou\")` está na margem, não pertence ao `if`, e roda sempre.\n\nRepare: o `if` decide só as linhas que pertencem a ele. O que está na margem roda do mesmo jeito, verdade ou mentira."
+    },
+    {
+      "id": "a-condicao-pode-ser-uma-conta",
+      "title": "A condição pode ser uma conta",
+      "markdown": "A pergunta do `if` não precisa ser uma comparação simples. Pode usar nomes dos dois lados ou uma conta resolve primeiro:\n\n```python\npreco = 8\nif preco < 10:\n    print(\"barato\")\n```\n\n```text\nbarato\n```\n\nO Python descobre que `preco` vale 8, pergunta se 8 é menor que 10 e, como é verdadeiro, roda a linha recuada.\n\nE uma conta inteira como pergunta:\n\n```python\nif 2 + 3 == 5:\n    print(\"a conta fecha\")\n```\n\n```text\na conta fecha\n```\n\nPrimeiro `2 + 3` vira 5; então a pergunta \"5 é igual a 5?\" é verdadeira; então a linha recuada roda."
+    },
+    {
+      "id": "o-recuo-nao-e-enfeite",
+      "title": "O recuo não é enfeite",
+      "markdown": "Nas aulas do módulo anterior toda linha começava na margem, e por isso errar o recuo era impossível. Agora o recuo é **decisão sua** — e o Python cobra.\n\nRecuar uma linha que não pertence a ninguém também é erro:\n\n```text\nx = 3\n    print(x)\n\n  File \"solucao.py\", line 2\n    print(x)\nIndentationError: unexpected indent\n```\n\nO par errado/certo para guardar na memória:\n\n```text\nif x > 0:\nprint(\"positivo\")      # errado: sem recuo, o if fica sem corpo\n```\n\n```python\nif x > 0:\n    print(\"positivo\")  # certo: recuado, pertence ao if\n```\n\nSe o erro disser `IndentationError`, a primeira coisa a olhar é o espaço no começo da linha que ele apontou."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "verdadeira-roda-a-linha-recuada",
+      "statement": "Quando a pergunta do `if` é verdadeira, as linhas recuadas dele rodam.",
+      "question": "O programa é `x = 3`, `if x > 0:` e, recuada, `print(\"positivo\")`. O que aparece na tela?",
+      "options": [
+        "positivo",
+        "nada",
+        "x > 0",
+        "um erro, porque falta o else"
+      ],
+      "answerIndex": 0,
+      "feedback": "x vale 3, a pergunta x > 0 é verdadeira, e a linha recuada roda: sai positivo.",
+      "sectionId": "quando-a-resposta-manda-fazer",
+      "optionRationales": [
+        "Com x = 3 a pergunta é verdadeira, e a linha recuada que pertence ao if roda — sai positivo.",
+        "Nada apareceria se a pergunta fosse falsa; aqui ela é verdadeira e a linha recuada roda.",
+        "x > 0 é a pergunta, não um texto; na tela aparece o que a linha recuada manda imprimir.",
+        "O if sem else é programa válido: quando a pergunta é falsa ele só não faz nada. Aqui ela é verdadeira."
+      ]
+    },
+    {
+      "id": "linha-na-margem-roda-sempre",
+      "statement": "A linha na margem não pertence ao `if` e roda sempre, verdade ou mentira.",
+      "question": "O programa é `x = -2`, `if x > 0:` com `print(\"positivo\")` recuado, e `print(\"acabou\")` na margem. O que aparece na tela?",
+      "options": [
+        "acabou",
+        "positivo e acabou",
+        "positivo",
+        "nada"
+      ],
+      "answerIndex": 0,
+      "feedback": "x vale -2, a pergunta é falsa, e a linha recuada é pulada. A linha na margem não pertence ao if e roda: sai só acabou.",
+      "sectionId": "quando-a-resposta-e-falsa",
+      "optionRationales": [
+        "A pergunta é falsa, então só a linha recuada é pulada; a da margem roda sempre — sai acabou.",
+        "positivo exigiria a pergunta verdadeira; com x = -2 a linha recuada é pulada.",
+        "A linha recuada não roda com pergunta falsa; o que roda é a linha da margem.",
+        "O programa termina com a linha da margem, que roda sem depender de pergunta nenhuma."
+      ]
+    },
+    {
+      "id": "recuo-diz-quem-e-o-dono",
+      "statement": "O recuo diz que a linha pertence ao `if`; sem ele, o if fica sem corpo e o Python reclama.",
+      "question": "O que acontece quando o `if` não tem nenhuma linha recuada embaixo dele?",
+      "options": [
+        "O Python reclama com IndentationError antes de rodar.",
+        "O if roda mesmo assim, sem fazer nada.",
+        "A linha seguinte é recuada sozinha.",
+        "O programa roda e mostra um aviso na tela."
+      ],
+      "answerIndex": 0,
+      "feedback": "Todo if precisa de pelo menos uma linha recuada que pertença a ele. Sem nenhuma, o Python reclama antes de rodar.",
+      "sectionId": "a-linha-que-pertence-a-outra",
+      "optionRationales": [
+        "Todo if exige um corpo recuado; sem ele o Python não roda nada e mostra IndentationError.",
+        "O if nunca roda sem corpo: faltar a linha recuada é erro, não um if vazio.",
+        "Recuo não se inventa sozinho: é você quem escreve os espaços no começo da linha.",
+        "Aviso na tela não existe nesse caso: o erro aparece antes de o programa rodar."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "Tutorial — o comando if",
+      "url": "https://docs.python.org/3/tutorial/controlflow.html",
+      "description": "A seção do tutorial oficial que apresenta o if e os blocos recuados."
+    },
+    {
+      "title": "Referência — a instrução if",
+      "url": "https://docs.python.org/3/reference/compound_stmts.html",
+      "description": "A página oficial da instrução if e da regra de recuo dos blocos."
+    },
+    {
+      "title": "Referência — recuo e IndentationError",
+      "url": "https://docs.python.org/3/reference/lexical_analysis.html",
+      "description": "A página oficial que define o recuo como a forma de agrupar linhas em Python."
+    }
+  ],
+  "challenges": [
+    "so-quando-for-positivo"
+  ]
+}

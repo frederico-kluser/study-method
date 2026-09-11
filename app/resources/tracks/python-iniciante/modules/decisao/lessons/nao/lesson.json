@@ -1,0 +1,122 @@
+{
+  "schemaVersion": 1,
+  "slug": "nao",
+  "title": "Não",
+  "summary": "O `not` inverte a resposta: o que era verdadeiro vira falso, e o que era falso vira verdadeiro.",
+  "difficulty": 3,
+  "role": "regular",
+  "targetAtom": "op:unary:not",
+  "concepts": [
+    "a_negacao"
+  ],
+  "prerequisites": [
+    "e-e-ou"
+  ],
+  "introduces": {
+    "productive": [
+      "op:unary:not",
+      "node:UnaryOp"
+    ],
+    "receptive": []
+  },
+  "introducesTerms": [],
+  "theory": [
+    {
+      "id": "inverter-a-resposta",
+      "title": "Inverter a resposta",
+      "markdown": "Na aula de verdadeiro e falso você viu os dois valores de resposta. O `not` (em português, *não*) é a operação que **inverte** a resposta: verdadeiro vira falso, falso vira verdadeiro.\n\nEle entra antes da pergunta, virando tudo do avesso:\n\n```python\nachou = False\nif not achou:\n    print(\"continuar procurando\")\n```\n\n```text\ncontinuar procurando\n```\n\nLeia a linha 2 assim: *se **não** achou, continua procurando*. O `achou` vale `False`, o `not` inverte para `True`, e a linha recuada roda."
+    },
+    {
+      "id": "o-not-nao-muda-o-valor-guardado",
+      "title": "O not não muda o valor guardado",
+      "markdown": "O `not` devolve a resposta invertida, mas **não toca** no valor guardado no nome. Ele é uma pergunta sobre o valor, como as comparações — não uma ordem de mudar.\n\n```python\nachou = False\nprint(not achou)\nprint(achou)\n```\n\n```text\nTrue\nFalse\n```\n\nQual é o estado agora? Na primeira linha, o `not` devolve `True` (a resposta invertida de `False`). Na segunda, o `achou` continua valendo `False` — o `not` não reescreveu o nome."
+    },
+    {
+      "id": "o-not-de-uma-comparacao",
+      "title": "O not de uma comparação",
+      "markdown": "O `not` pode inverter a resposta de uma comparação inteira. Os parênteses marcam onde a comparação começa e termina:\n\n```python\nprint(not (3 > 2))\n```\n\n```text\nFalse\n```\n\nPrimeiro o Python resolve `3 > 2`, encontra `True`, e então o `not` inverte: `False`.\n\nCompare com a pergunta sem o `not`:\n\n```python\nprint(3 > 2)\n```\n\n```text\nTrue\n```\n\nA mesma comparação, dois resultados — o `not` na frente muda tudo."
+    },
+    {
+      "id": "not-comparado-com-igual-a-falso",
+      "title": "Not comparado com igual a falso",
+      "markdown": "Dá para escrever \"se não achou\" de outro jeito, comparando com `False`:\n\n```python\nachou = False\nif achou == False:\n    print(\"continuar procurando\")\n```\n\n```text\ncontinuar procurando\n```\n\nFunciona — as duas formas fazem o mesmo. Mas o `not` é a forma que se lê em voz alta com a pergunta: *se não achou*. E ela evita a comparação com `False`, que é o jeito torto de dizer a mesma coisa.\n\nO par errado/certo:\n\n```text\nif achou == False:\n    print(\"continuar procurando\")   # funciona, mas compara com False\n```\n\n```python\nif not achou:\n    print(\"continuar procurando\")   # lê como a pergunta: se NAO achou\n```"
+    }
+  ],
+  "assertions": [
+    {
+      "id": "not-inverte-o-falso",
+      "statement": "O `not` inverte a resposta: False vira True e True vira False.",
+      "question": "O programa é `achou = False` e depois `if not achou:` com \"continuar procurando\" recuado. O que aparece na tela?",
+      "options": [
+        "continuar procurando",
+        "nada, porque achou e falso",
+        "False",
+        "not achou"
+      ],
+      "answerIndex": 0,
+      "feedback": "achou vale False, o not inverte para True, e a pergunta do if fica verdadeira: a linha recuada roda.",
+      "sectionId": "inverter-a-resposta",
+      "optionRationales": [
+        "O not inverte o False do achou e a pergunta do if fica verdadeira — a linha recuada roda.",
+        "É exatamente o contrário: com achou falso, o not deixa a pergunta verdadeira e o bloco roda.",
+        "False é o valor do achou ANTES do not; o not devolve True para o if.",
+        "not achou é a pergunta, não um texto — na tela aparece o que a linha recuada imprime."
+      ]
+    },
+    {
+      "id": "not-nao-reescreve-o-nome",
+      "statement": "O `not` devolve a resposta invertida e não muda o valor guardado no nome.",
+      "question": "O programa é `achou = False`, `print(not achou)` e `print(achou)`. O que aparece na tela?",
+      "options": [
+        "True e depois False",
+        "False e depois True",
+        "True e depois True",
+        "False e depois False"
+      ],
+      "answerIndex": 0,
+      "feedback": "O primeiro print mostra a resposta invertida (True); o achou continua valendo False, e o segundo print mostra False.",
+      "sectionId": "o-not-nao-muda-o-valor-guardado",
+      "optionRationales": [
+        "not achou devolve True (inversão do False), e achou continua False para o segundo print.",
+        "A ordem é inversa: quem muda é a RESPOSTA exibida, não o valor do nome.",
+        "O valor do nome não muda: o segundo print só pode mostrar False.",
+        "O primeiro print mostra a inversão, que é True — nunca False."
+      ]
+    },
+    {
+      "id": "not-inverte-a-comparacao",
+      "statement": "O `not` inverte a resposta de uma comparação inteira.",
+      "question": "O que `print(not (3 > 2))` mostra na tela?",
+      "options": [
+        "False",
+        "True",
+        "3 > 2",
+        "not 3 > 2"
+      ],
+      "answerIndex": 0,
+      "feedback": "Primeiro o Python resolve 3 > 2 (True) e então o not inverte: a tela mostra False.",
+      "sectionId": "o-not-de-uma-comparacao",
+      "optionRationales": [
+        "3 > 2 é verdadeiro, e o not inverte a resposta: False.",
+        "True seria a resposta sem o not; ele está aí justamente para inverter.",
+        "A comparação não aparece escrita: ela é resolvida e depois invertida.",
+        "O not faz parte da ordem, não do texto mostrado."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "Expressões — o operador not",
+      "url": "https://docs.python.org/3/reference/expressions.html",
+      "description": "A referência oficial do operador unário not e da inversão de resposta."
+    },
+    {
+      "title": "Tipos embutidos — operações booleanas",
+      "url": "https://docs.python.org/3/library/stdtypes.html",
+      "description": "A página oficial que descreve o not junto do and e do or."
+    }
+  ],
+  "challenges": [
+    "quando-nao-achou"
+  ]
+}

@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "slug": "preencha-com-pass",
+  "title": "Preencha com pass",
+  "concept": "o_bloco_vazio",
+  "difficulty": 3,
+  "language": "python",
+  "outputChannel": "impressao",
+  "statement": "# Preencha com pass\n\nO programa já tem o `if` com a pergunta `7 > 2` — e no bloco dele há uma linha que não devia estar lá: ela imprime uma mensagem que não é a sua.\n\nTroque a linha errada do bloco por **uma linha recuada** com o `pass`. A mensagem impressa pelo bloco vai sumir, e o programa segue para a linha da margem.\n\nA tela deve ficar assim:\n\n```text\nfeito\n```",
+  "starterCode": "if 7 > 2:\n    print(\"ainda nao\")\nprint(\"feito\")\n",
+  "testsCode": "import contextlib\nimport io\nimport runpy\nimport unittest\n\n\ndef rodar():\n    \"\"\"Roda solucao.py do zero e devolve tudo o que ele imprimiu.\"\"\"\n    saida = io.StringIO()\n    with contextlib.redirect_stdout(saida):\n        runpy.run_path(\"solucao.py\")\n    return saida.getvalue()\n\n\nclass TestOBlocoVazio(unittest.TestCase):\n    def test_imprime_feito_depois_do_bloco_com_pass(self):\n        \"\"\"o programa imprime feito depois do bloco com pass\"\"\"\n        self.assertEqual(rodar(), \"feito\\n\")\n",
+  "solutionCode": "if 7 > 2:\n    pass\nprint(\"feito\")\n",
+  "expectedTestCount": 1,
+  "requirements": [
+    {
+      "id": "REQ-1",
+      "teste": "test_imprime_feito_depois_do_bloco_com_pass",
+      "descricao": "o programa imprime feito depois do bloco com pass"
+    }
+  ]
+}

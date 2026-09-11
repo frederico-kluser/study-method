@@ -12,6 +12,8 @@
     "zero absoluto — nunca programou"
   ],
   "modules": [
-    "a-tela"
+    "a-tela",
+    "decisao",
+    "repeticao"
   ]
 }

@@ -1,0 +1,123 @@
+{
+  "schemaVersion": 1,
+  "slug": "maior-ou-igual",
+  "title": "Maior ou igual",
+  "summary": "Os sinais >= e <= aceitam o empate: a resposta é verdadeira também quando os dois lados são iguais.",
+  "difficulty": 3,
+  "role": "regular",
+  "targetAtom": "op:compare:>=",
+  "concepts": [
+    "maior_ou_igual"
+  ],
+  "prerequisites": [
+    "igual-e-diferente"
+  ],
+  "introduces": {
+    "productive": [
+      "op:compare:>=",
+      "op:compare:<=",
+      "node:Compare"
+    ],
+    "receptive": []
+  },
+  "introducesTerms": [],
+  "theory": [
+    {
+      "id": "maior-ou-igual",
+      "title": "Maior ou igual",
+      "markdown": "Você já sabe perguntar se um número é maior que outro (`>`) e se é igual (`==`). O sinal `>=` junta as duas perguntas numa só: **é maior OU igual?**\n\n```python\nx = 3\nprint(x >= 3)\n```\n\n```text\nTrue\n```\n\nx vale 3, e 3 **é igual** a 3: a parte \"ou igual\" aceita o empate, e a resposta é `True`.\n\nCompare com o `>` da aula de comparar números — com os mesmos valores, o `>=` responde diferente:\n\n```python\nx = 3\nprint(x > 3)\n```\n\n```text\nFalse\n```\n\n3 não é **maior** que 3; só o \"ou igual\" salva o `>=`."
+    },
+    {
+      "id": "quando-cada-resposta-sai",
+      "title": "Quando cada resposta sai",
+      "markdown": "A resposta do `x >= 3` depende do valor de x. Veja os três casos:\n\n```python\nprint(4 >= 3)\n```\n\n```text\nTrue\n```\n\n4 é maior que 3: a parte \"maior\" é suficiente.\n\n```python\nprint(3 >= 3)\n```\n\n```text\nTrue\n```\n\n3 é igual a 3: a parte \"ou igual\" é suficiente.\n\n```python\nprint(2 >= 3)\n```\n\n```text\nFalse\n```\n\n2 não é maior nem igual a 3: as duas partes falham, e a resposta é `False`.\n\nQual é o estado agora? Com `x = 3`, a pergunta `x >= 3` é verdadeira e a pergunta `x > 3` é falsa — o mesmo x, duas respostas diferentes, porque os sinais perguntam coisas diferentes."
+    },
+    {
+      "id": "menor-ou-igual",
+      "title": "Menor ou igual",
+      "markdown": "O sinal `<=` é o espelho: pergunta se o da esquerda é **menor OU igual** ao da direita.\n\n```python\nprint(4 <= 3)\n```\n\n```text\nFalse\n```\n\n4 não é menor nem igual a 3. Mas:\n\n```python\nprint(3 <= 3)\n```\n\n```text\nTrue\n```\n\nO empate vale aqui também.\n\nUm exemplo de trabalho: você quer mostrar se 2 cabe no orçamento de 5 reais. Escreve, roda e vê:\n\n```python\ngasto = 2\nprint(gasto <= 5)\n```\n\n```text\nTrue\n```\n\nAgora gasta 7:\n\n```python\ngasto = 7\nprint(gasto <= 5)\n```\n\n```text\nFalse\n```\n\nA mesma linha, dois valores diferentes para `gasto`, duas respostas."
+    },
+    {
+      "id": "os-quatro-sinais-na-mesa",
+      "title": "Os quatro sinais na mesa",
+      "markdown": "Com as aulas de comparar números e de igual e diferente, você tem quatro comparações. Com esta aula, seis. Todas devolvem `True` ou `False`:\n\n- `>` pergunta se é maior;\n- `<` pergunta se é menor;\n- `==` pergunta se é igual;\n- `!=` pergunta se é diferente;\n- `>=` pergunta se é maior ou igual;\n- `<=` pergunta se é menor ou igual.\n\nO par errado/certo que esta aula desfaz: achar que `>=` é só um `>` caprichado. Não é — o sinal tem duas partes, e cada parte pode ser a que responde:\n\n```python\nprint(3 >= 3)\n```\n\n```text\nTrue\n```\n\nSe fosse só \"maior\", a resposta seria `False`. O `>=` aceita o empate; o `>` não."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "ou-igual-aceita-o-empate",
+      "statement": "`>=` pergunta se o da esquerda é maior ou igual — o empate conta como verdadeiro.",
+      "question": "O programa é `x = 3` e depois `print(x >= 3)`. O que aparece na tela?",
+      "options": [
+        "True",
+        "False",
+        "3",
+        "x >= 3"
+      ],
+      "answerIndex": 0,
+      "feedback": "x vale 3, e 3 é igual a 3: a parte \"ou igual\" do sinal aceita o empate, e a resposta é True.",
+      "sectionId": "maior-ou-igual",
+      "optionRationales": [
+        "3 é igual a 3, e o >= aceita o empate pela parte \"ou igual\" — a resposta é True.",
+        "False seria a resposta do >, que exige ser estritamente maior; o >= tem a parte \"ou igual\" a mais.",
+        "A tela mostra a RESPOSTA da comparação, não o valor de x.",
+        "x >= 3 escrito apareceria só entre aspas; sem aspas é uma ordem de comparar."
+      ]
+    },
+    {
+      "id": "quando-as-duas-partes-falham",
+      "statement": "A resposta do `>=` é falsa só quando o número não é maior E não é igual.",
+      "question": "O programa é `print(2 >= 3)`. O que aparece na tela?",
+      "options": [
+        "False",
+        "True",
+        "2",
+        "3"
+      ],
+      "answerIndex": 0,
+      "feedback": "2 não é maior que 3 nem igual a 3: as duas partes do sinal falham, e a resposta é False.",
+      "sectionId": "quando-cada-resposta-sai",
+      "optionRationales": [
+        "2 é menor que 3: nem a parte \"maior\" nem a \"ou igual\" valem, então a resposta é False.",
+        "True exigiria 2 maior que 3 ou 2 igual a 3 — nenhum dos dois acontece.",
+        "A comparação devolve uma resposta de verdade, nunca um dos números comparados.",
+        "O 3 é o número com quem o 2 é comparado; quem aparece na tela é só a resposta da pergunta."
+      ]
+    },
+    {
+      "id": "menor-ou-igual-espelho",
+      "statement": "`<=` pergunta se o da esquerda é menor ou igual ao da direita.",
+      "question": "O programa é `gasto = 7` e depois `print(gasto <= 5)`. O que aparece na tela?",
+      "options": [
+        "False",
+        "True",
+        "7",
+        "gasto <= 5"
+      ],
+      "answerIndex": 0,
+      "feedback": "gasto vale 7, e 7 não é menor nem igual a 5. A resposta é False.",
+      "sectionId": "menor-ou-igual",
+      "optionRationales": [
+        "7 não é menor que 5 nem igual a 5 — as duas partes do <= falham, e a resposta é False.",
+        "True sairia com gasto valendo 5 ou menos; com 7 o orçamento estoura.",
+        "A tela mostra a resposta da pergunta, não o valor de gasto.",
+        "gasto <= 5 escrito apareceria só com aspas; sem aspas é uma ordem de comparar."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "Expressões — operadores de comparação",
+      "url": "https://docs.python.org/3/reference/expressions.html",
+      "description": "A referência oficial dos operadores >= e <= e do valor booleano que eles devolvem."
+    },
+    {
+      "title": "Tipos embutidos — comparação de números",
+      "url": "https://docs.python.org/3/library/stdtypes.html",
+      "description": "A página oficial que descreve as comparações entre números inteiros e decimais."
+    }
+  ],
+  "challenges": [
+    "quatro-e-maior-ou-igual"
+  ]
+}

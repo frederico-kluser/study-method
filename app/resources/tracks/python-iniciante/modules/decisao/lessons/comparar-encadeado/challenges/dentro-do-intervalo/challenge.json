@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "slug": "dentro-do-intervalo",
+  "title": "Dentro do intervalo",
+  "concept": "comparacao_encadeada",
+  "difficulty": 3,
+  "language": "python",
+  "outputChannel": "impressao",
+  "statement": "# Dentro do intervalo\n\nO programa já guarda **5** no nome `x`.\n\nEscreva, no lugar dos comentários, um **`if` com `else`**:\n\n1. A linha do `if` pergunta, numa comparação **encadeada** só, se `0 < x < 10` e, recuada, mostra `dentro`.\n2. A linha do `else` fica na mesma margem do `if` e, recuada, mostra `fora`.\n\nNão use `and`: a pergunta tem de ser uma comparação encadeada, com o `x` no meio servindo as duas partes.\n\nA tela deve ficar assim:\n\n```text\ndentro\n```",
+  "starterCode": "x = 5\n# escreva aqui o if com a pergunta 0 < x < 10, encadeada, numa linha so\n# e, recuada, a linha que imprime \"dentro\"\n# depois o else na mesma margem do if\n# e, recuada, a linha que imprime \"fora\"\n",
+  "testsCode": "import contextlib\nimport io\nimport runpy\nimport unittest\n\n\ndef rodar():\n    \"\"\"Roda solucao.py do zero e devolve tudo o que ele imprimiu.\"\"\"\n    saida = io.StringIO()\n    with contextlib.redirect_stdout(saida):\n        runpy.run_path(\"solucao.py\")\n    return saida.getvalue()\n\n\nclass TestCompararEncadeado(unittest.TestCase):\n    def test_imprime_dentro_quando_x_esta_entre_zero_e_dez(self):\n        \"\"\"o programa imprime dentro quando x esta entre 0 e 10\"\"\"\n        self.assertEqual(rodar(), \"dentro\\n\")\n",
+  "solutionCode": "x = 5\nif 0 < x < 10:\n    print(\"dentro\")\nelse:\n    print(\"fora\")\n",
+  "expectedTestCount": 1,
+  "requirements": [
+    {
+      "id": "REQ-1",
+      "teste": "test_imprime_dentro_quando_x_esta_entre_zero_e_dez",
+      "descricao": "o programa imprime dentro quando x esta entre 0 e 10"
+    }
+  ]
+}

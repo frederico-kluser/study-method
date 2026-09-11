@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "slug": "e-igual-ou-diferente",
+  "title": "É igual ou diferente?",
+  "concept": "igual_e_diferente",
+  "difficulty": 3,
+  "language": "python",
+  "outputChannel": "impressao",
+  "statement": "# É igual ou diferente?\n\nO programa já guarda **5** no nome `x`.\n\nEscreva, no lugar dos comentários, **duas linhas**:\n\n1. A primeira pergunta se `x` é igual a **3** e mostra a resposta.\n2. A segunda pergunta se `x` é diferente de **3** e mostra a resposta.\n\nUse o nome `x` e os sinais `==` e `!=` — não escreva `True` nem `False` direto: quem tem de responder é o Python.\n\nA tela deve ficar assim:\n\n```text\nFalse\nTrue\n```",
+  "starterCode": "x = 5\n# primeira linha: pergunte se x e igual a 3 e imprima a resposta\n# segunda linha: pergunte se x e diferente de 3 e imprima a resposta\n",
+  "testsCode": "import contextlib\nimport io\nimport runpy\nimport unittest\n\n\ndef rodar():\n    \"\"\"Roda solucao.py do zero e devolve tudo o que ele imprimiu.\"\"\"\n    saida = io.StringIO()\n    with contextlib.redirect_stdout(saida):\n        runpy.run_path(\"solucao.py\")\n    return saida.getvalue()\n\n\nclass TestIgualEDiferente(unittest.TestCase):\n    def test_imprime_as_respostas_do_igual_e_do_diferente(self):\n        \"\"\"o programa diz se x e igual a 3 e se x e diferente de 3\"\"\"\n        self.assertEqual(rodar(), \"False\\nTrue\\n\")\n",
+  "solutionCode": "x = 5\nprint(x == 3)\nprint(x != 3)\n",
+  "expectedTestCount": 1,
+  "requirements": [
+    {
+      "id": "REQ-1",
+      "teste": "test_imprime_as_respostas_do_igual_e_do_diferente",
+      "descricao": "o programa diz se x e igual a 3 e se x e diferente de 3"
+    }
+  ]
+}

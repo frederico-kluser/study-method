@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "slug": "os-dois-ou-pelo-menos-um",
+  "title": "Os dois, ou pelo menos um",
+  "concept": "e_e_ou",
+  "difficulty": 4,
+  "language": "python",
+  "outputChannel": "impressao",
+  "statement": "# Os dois, ou pelo menos um\n\nO programa já guarda **3** em `a` e **2** em `b`.\n\nEscreva, no lugar dos comentários, **dois `if`**:\n\n1. O primeiro pergunta se `a` é maior que 0 **e** `b` é maior que 0 e, recuado, mostra `os dois positivos`.\n2. O segundo pergunta se `a` é maior que 0 **ou** `b` é menor que 0 e, recuado, mostra `pelo menos um positivo`.\n\nUse `and` no primeiro e `or` no segundo — o nome de cada sinal é o assunto da aula.\n\nA tela deve ficar assim:\n\n```text\nos dois positivos\npelo menos um positivo\n```",
+  "starterCode": "a = 3\nb = 2\n# primeiro if: a > 0 E b > 0, com a linha recuada imprimindo \"os dois positivos\"\n# segundo if: a > 0 OU b < 0, com a linha recuada imprimindo \"pelo menos um positivo\"\n",
+  "testsCode": "import contextlib\nimport io\nimport runpy\nimport unittest\n\n\ndef rodar():\n    \"\"\"Roda solucao.py do zero e devolve tudo o que ele imprimiu.\"\"\"\n    saida = io.StringIO()\n    with contextlib.redirect_stdout(saida):\n        runpy.run_path(\"solucao.py\")\n    return saida.getvalue()\n\n\nclass TestEEOu(unittest.TestCase):\n    def test_imprime_os_dois_positivos_e_pelo_menos_um_positivo(self):\n        \"\"\"o programa mostra os dois positivos com and e pelo menos um positivo com or\"\"\"\n        self.assertEqual(rodar(), \"os dois positivos\\npelo menos um positivo\\n\")\n",
+  "solutionCode": "a = 3\nb = 2\nif a > 0 and b > 0:\n    print(\"os dois positivos\")\nif a > 0 or b < 0:\n    print(\"pelo menos um positivo\")\n",
+  "expectedTestCount": 1,
+  "requirements": [
+    {
+      "id": "REQ-1",
+      "teste": "test_imprime_os_dois_positivos_e_pelo_menos_um_positivo",
+      "descricao": "o programa mostra os dois positivos com and e pelo menos um positivo com or"
+    }
+  ]
+}

@@ -1,0 +1,122 @@
+{
+  "schemaVersion": 1,
+  "slug": "comparar-encadeado",
+  "title": "Comparar encadeado",
+  "summary": "O Python aceita duas perguntas numa linha só — é a mesma comparação de sempre, numa forma nova.",
+  "difficulty": 3,
+  "role": "consolidation",
+  "targetAtom": "node:Compare",
+  "concepts": [
+    "comparacao_encadeada"
+  ],
+  "prerequisites": [
+    "maior-ou-igual",
+    "e-e-ou"
+  ],
+  "introduces": {
+    "productive": [
+      "node:Compare"
+    ],
+    "receptive": []
+  },
+  "introducesTerms": [],
+  "theory": [
+    {
+      "id": "duas-perguntas-numa-linha",
+      "title": "Duas perguntas numa linha",
+      "markdown": "Você aprendeu os sinais de comparação e aprendeu a juntar perguntas com o `and`. Esta aula junta as duas coisas numa **forma nova** da comparação: encadear os sinais numa linha só.\n\nA pergunta *x está entre 0 e 10?* se escreve assim:\n\n```python\nx = 5\nif 0 < x < 10:\n    print(\"dentro\")\nelse:\n    print(\"fora\")\n```\n\n```text\ndentro\n```\n\nLeia a linha 2 como a matemática ensina: *zero menor que x **e** x menor que dez*. Duas comparações, uma linha, um `x` no meio servindo as duas."
+    },
+    {
+      "id": "a-mesma-coisa-sem-a-corrente",
+      "title": "A mesma coisa sem a corrente",
+      "markdown": "O que a corrente faz por baixo é exatamente o que você já sabe escrever com o `and` da aula do e e ou:\n\n```python\nx = 5\nif 0 < x and x < 10:\n    print(\"dentro\")\nelse:\n    print(\"fora\")\n```\n\n```text\ndentro\n```\n\nMesmo resultado, mesma ordem: primeiro `0 < x`, depois `x < 10`, e o `and` junta as duas. A forma encadeada é uma maneira mais curta de escrever a mesma pergunta — e ela se parece com a matemática, em que `0 < x < 10` é a escrita natural.\n\nO par errado/certo:\n\n```text\nif 0 < x and < 10:\n    print(\"dentro\")   # errado: falta o x na segunda pergunta\n```\n\n```python\nif 0 < x < 10:\n    print(\"dentro\")   # certo: o x do meio serve as duas\n```\n\nNa corrente, o valor do meio é comparado com o da esquerda e com o da direita — ele aparece uma vez só, e vale para as duas comparações."
+    },
+    {
+      "id": "a-corrente-responde-verdadeiro-ou-falso",
+      "title": "A corrente responde verdadeiro ou falso",
+      "markdown": "A corrente é uma comparação como as outras: responde `True` ou `False`, e pode aparecer num `print` sozinho:\n\n```python\nprint(3 < 5 < 7)\n```\n\n```text\nTrue\n```\n\nTodas as partes verdadeiras, resposta verdadeira. Agora quebre uma parte:\n\n```python\nprint(5 < 3 < 1)\n```\n\n```text\nFalse\n```\n\nA primeira pergunta (`5 < 3`) já é falsa — a corrente inteira responde `False`. E com o valor do meio errado:\n\n```python\nprint(3 < 9 < 7)\n```\n\n```text\nFalse\n```\n\nA primeira pergunta é verdadeira, mas `9 < 7` é falsa: a corrente exige **todas** as partes verdadeiras, como o `and`.\n\nQual é o estado agora? Com `x = 12`, a pergunta `0 < x < 10` é falsa (a segunda parte falha) e o `else` roda — mesmo a primeira parte estando certa."
+    },
+    {
+      "id": "as-possibilidades-da-corrente",
+      "title": "As possibilidades da corrente",
+      "markdown": "A corrente aceita os sinais de comparação de qualquer aula do módulo — cada par com o seu sinal:\n\n```python\nx = 5\nif 1 <= x <= 9:\n    print(\"passou na faixa\")\nelse:\n    print(\"fora da faixa\")\n```\n\n```text\npassou na faixa\n```\n\nAqui o `<=` aceita as bordas: com x valendo 1 ou 9, a pergunta continua verdadeira.\n\nA regra é uma só: o valor do meio aparece uma vez e se compara com o da esquerda e com o da direita. Toda a cadeia tem de ser verdadeira para a resposta ser `True`."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "encadeada-e-uma-comparacao-so",
+      "statement": "`0 < x < 10` é uma comparação encadeada: o x do meio vale para as duas perguntas.",
+      "question": "O programa é `x = 5` e `if 0 < x < 10:` com \"dentro\", `else:` com \"fora\". O que aparece na tela?",
+      "options": [
+        "dentro",
+        "fora",
+        "0 < x < 10",
+        "um erro, porque comparação não encadeia"
+      ],
+      "answerIndex": 0,
+      "feedback": "5 é maior que 0 e menor que 10: as duas partes são verdadeiras e a linha recuada roda — sai dentro.",
+      "sectionId": "duas-perguntas-numa-linha",
+      "optionRationales": [
+        "0 < 5 é verdadeiro e 5 < 10 é verdadeiro: a corrente inteira é verdadeira e o if roda o bloco.",
+        "fora sairia se alguma parte falhasse; com x = 5 as duas valem.",
+        "A corrente é resolvida como pergunta, não escrita na tela.",
+        "Encadear comparação é válido em Python — é a forma nova desta aula."
+      ]
+    },
+    {
+      "id": "encadeada-e-como-and",
+      "statement": "A comparação encadeada equivale a juntar as duas perguntas com and.",
+      "question": "Qual linha pergunta a mesma coisa que `if 0 < x < 10:`?",
+      "options": [
+        "if 0 < x and x < 10:",
+        "if 0 < x and < 10:",
+        "if 0 < x or x < 10:",
+        "if 0 < x: e if x < 10:"
+      ],
+      "answerIndex": 0,
+      "feedback": "A corrente é o and por baixo: 0 < x e x < 10, com o x do meio repetido nas duas perguntas.",
+      "sectionId": "a-mesma-coisa-sem-a-corrente",
+      "optionRationales": [
+        "É exatamente isso: a corrente exige as duas perguntas verdadeiras, como o and.",
+        "Falta o x na segunda pergunta — and < 10 não pergunta nada.",
+        "O or aceitaria bastar uma das partes; a corrente exige as duas.",
+        "Dois if separados não são a mesma pergunta: o segundo rodaria sem depender do primeiro."
+      ]
+    },
+    {
+      "id": "a-corrente-exige-todas",
+      "statement": "A corrente só responde True quando todas as partes são verdadeiras.",
+      "question": "O que `print(3 < 9 < 7)` mostra na tela?",
+      "options": [
+        "False",
+        "True",
+        "9",
+        "3 < 9 < 7"
+      ],
+      "answerIndex": 0,
+      "feedback": "A primeira parte (3 < 9) é verdadeira, mas 9 < 7 é falsa: a corrente exige todas e responde False.",
+      "sectionId": "a-corrente-responde-verdadeiro-ou-falso",
+      "optionRationales": [
+        "A segunda parte falha (9 não é menor que 7) e a corrente inteira responde False.",
+        "True exigiria as duas partes verdadeiras; 9 < 7 derruba a corrente.",
+        "A corrente devolve uma resposta de verdade, nunca um dos números comparados.",
+        "A comparação é resolvida, não escrita: a tela mostra a resposta, não a pergunta."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "Expressões — comparações encadeadas",
+      "url": "https://docs.python.org/3/reference/expressions.html",
+      "description": "A referência oficial que define a comparação encadeada e a equivalência com o and."
+    },
+    {
+      "title": "Tutorial — comparações",
+      "url": "https://docs.python.org/3/tutorial/controlflow.html",
+      "description": "O capítulo do tutorial oficial onde a forma encadeada aparece na prática."
+    }
+  ],
+  "challenges": [
+    "dentro-do-intervalo"
+  ]
+}

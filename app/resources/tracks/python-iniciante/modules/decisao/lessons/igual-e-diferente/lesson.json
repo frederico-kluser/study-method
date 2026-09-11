@@ -1,0 +1,123 @@
+{
+  "schemaVersion": 1,
+  "slug": "igual-e-diferente",
+  "title": "Igual e diferente",
+  "summary": "Dois sinais novos perguntam se os valores são iguais ou diferentes — e um deles tem um primo que guarda valores.",
+  "difficulty": 3,
+  "role": "regular",
+  "targetAtom": "op:compare:==",
+  "concepts": [
+    "igual_e_diferente"
+  ],
+  "prerequisites": [
+    "comparar-numeros"
+  ],
+  "introduces": {
+    "productive": [
+      "op:compare:==",
+      "op:compare:!=",
+      "node:Compare"
+    ],
+    "receptive": []
+  },
+  "introducesTerms": [],
+  "theory": [
+    {
+      "id": "o-sinal-de-igualdade",
+      "title": "O sinal de igualdade",
+      "markdown": "Na aula de comparar números você aprendeu os sinais `>` e `<`. Agora vem a pergunta que todo mundo quer fazer: **isto é igual àquilo?**\n\nO sinal é `==`, dois sinais de igual juntos:\n\n```python\nx = 5\nprint(x == 3)\n```\n\n```text\nFalse\n```\n\nO `x` vale 5, e 5 não é igual a 3: a resposta é `False`. Assim como `>` e `<`, o `==` devolve `True` ou `False`."
+    },
+    {
+      "id": "um-sinal-com-duas-funcoes-diferentes",
+      "title": "Um sinal com duas funções diferentes",
+      "markdown": "Cuidado com o primo do `==`: o sinal `=` sozinho. Eles parecem a mesma coisa e não são.\n\nO `=` guarda um valor num nome. O `==` pergunta se dois valores são iguais.\n\n```python\nx = 5\nprint(x == 5)\n```\n\n```text\nTrue\n```\n\nA primeira linha guarda; a segunda pergunta. Trocar um pelo outro quebra o programa — `print(x = 5)` é um erro, porque o `=` não devolve resposta nenhuma para mostrar.\n\nA comparação pode ser com uma conta de um dos lados, como na aula de somar:\n\n```python\nprint(2 + 3 == 5)\n```\n\n```text\nTrue\n```\n\nPrimeiro o Python resolve `2 + 3`, encontra 5, e então pergunta se 5 é igual a 5."
+    },
+    {
+      "id": "o-sinal-de-diferente",
+      "title": "O sinal de diferente",
+      "markdown": "O sinal `!=` pergunta o contrário: **os dois valores são diferentes?**\n\n```python\nx = 5\nprint(x != 3)\n```\n\n```text\nTrue\n```\n\n5 é diferente de 3, então a resposta é `True`.\n\nA resposta de uma comparação é um valor como outro qualquer: dá para guardar num nome e mostrar depois. Como em dar-nome-a-um-valor, o `=` guarda o que está do lado direito — e o que está lá é a resposta da pergunta:\n\n```python\nx = 5\nachou = x == 5\nprint(achou)\n```\n\n```text\nTrue\n```\n\nQual é o estado agora? O nome `achou` guarda a resposta de uma pergunta: com x valendo 5, a pergunta \"x é igual a 5?\" tem resposta `True`, e é esse valor que o `print` mostra."
+    },
+    {
+      "id": "comparar-e-mostrar",
+      "title": "Comparar, não escrever",
+      "markdown": "Sem aspas, `==` compara; entre aspas, vira texto. O par errado/certo:\n\n```python\nprint(\"3 == 3\")\n```\n\n```text\n3 == 3\n```\n\n```python\nprint(3 == 3)\n```\n\n```text\nTrue\n```\n\nNo primeiro programa a tela mostra a frase `3 == 3`. No segundo, a tela mostra `True` — 3 é mesmo igual a 3."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "o-que-mostra-x-igual-a-tres",
+      "statement": "`x == 3` pergunta se o valor de x é igual a 3.",
+      "question": "O programa é `x = 5` e depois `print(x == 3)`. O que aparece na tela?",
+      "options": [
+        "False",
+        "True",
+        "5",
+        "x == 3"
+      ],
+      "answerIndex": 0,
+      "feedback": "x vale 5, e a pergunta \"5 é igual a 3?\" tem resposta falsa. A tela mostra False.",
+      "sectionId": "o-sinal-de-igualdade",
+      "optionRationales": [
+        "O x vale 5, e 5 não é igual a 3 — a resposta da pergunta é False, e é ela que aparece.",
+        "True apareceria se x valesse 3; com x = 5 a igualdade é falsa.",
+        "O 5 fica guardado no nome; na tela aparece a RESPOSTA da comparação, não o valor de x.",
+        "x == 3 só apareceria escrito entre aspas; sem aspas é uma ordem de comparar."
+      ]
+    },
+    {
+      "id": "igual-comparando-ou-guardando",
+      "statement": "`=` guarda um valor num nome; `==` pergunta se dois valores são iguais.",
+      "question": "Qual linha pergunta se x é igual a 5?",
+      "options": [
+        "print(x == 5)",
+        "print(x = 5)",
+        "x == 5",
+        "x = 5"
+      ],
+      "answerIndex": 0,
+      "feedback": "O `==` é o sinal da pergunta. `x = 5` guarda; `x == 5` pergunta.",
+      "sectionId": "um-sinal-com-duas-funcoes-diferentes",
+      "optionRationales": [
+        "É o print que mostra a resposta da pergunta feita com ==; é a única linha completa das opções.",
+        "print(x = 5) não funciona: o = guarda e não devolve resposta nenhuma para o print mostrar.",
+        "x == 5 sem print faz a pergunta e descarta a resposta — nada aparece na tela.",
+        "x = 5 guarda o valor 5 no nome x; não pergunta nada."
+      ]
+    },
+    {
+      "id": "diferente-e-verdadeiro",
+      "statement": "`!=` pergunta se os dois valores são diferentes.",
+      "question": "O programa é `x = 5` e depois `print(x != 3)`. O que aparece na tela?",
+      "options": [
+        "True",
+        "False",
+        "5",
+        "x != 3"
+      ],
+      "answerIndex": 0,
+      "feedback": "x vale 5, e 5 é mesmo diferente de 3. A resposta é True.",
+      "sectionId": "o-sinal-de-diferente",
+      "optionRationales": [
+        "5 é diferente de 3, então a pergunta \"x é diferente de 3?\" é verdadeira — sai True.",
+        "False sairia se x valesse 3; com x = 5 os valores são diferentes.",
+        "A tela mostra a resposta da pergunta, não o valor guardado em x.",
+        "x != 3 escrito apareceria só com aspas; sem aspas é uma ordem de comparar."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "Expressões — comparações de igualdade",
+      "url": "https://docs.python.org/3/reference/expressions.html",
+      "description": "A referência oficial dos operadores == e != e do valor booleano que eles devolvem."
+    },
+    {
+      "title": "Tipos embutidos — comparação de objetos",
+      "url": "https://docs.python.org/3/library/stdtypes.html",
+      "description": "A página oficial onde o tutorial descreve a comparação de igualdade entre valores."
+    }
+  ],
+  "challenges": [
+    "e-igual-ou-diferente"
+  ]
+}

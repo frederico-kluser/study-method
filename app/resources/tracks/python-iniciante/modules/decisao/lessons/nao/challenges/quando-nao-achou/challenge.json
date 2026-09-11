@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "slug": "quando-nao-achou",
+  "title": "Quando não achou",
+  "concept": "a_negacao",
+  "difficulty": 3,
+  "language": "python",
+  "outputChannel": "impressao",
+  "statement": "# Quando não achou\n\nO programa já guarda `False` no nome `achou`.\n\nEscreva, no lugar dos comentários, um **`if` com `else`**:\n\n1. A linha do `if` pergunta `not achou` e, recuada, mostra `continuar procurando`.\n2. A linha do `else` fica na mesma margem do `if` e, recuada, mostra `achou`.\n\nUse o `not` na pergunta — é ele o assunto da aula.\n\nA tela deve ficar assim:\n\n```text\ncontinuar procurando\n```",
+  "starterCode": "achou = False\n# escreva aqui o if com a pergunta not achou\n# e, recuada, a linha que imprime \"continuar procurando\"\n# depois o else na mesma margem do if\n# e, recuada, a linha que imprime \"achou\"\n",
+  "testsCode": "import contextlib\nimport io\nimport runpy\nimport unittest\n\n\ndef rodar():\n    \"\"\"Roda solucao.py do zero e devolve tudo o que ele imprimiu.\"\"\"\n    saida = io.StringIO()\n    with contextlib.redirect_stdout(saida):\n        runpy.run_path(\"solucao.py\")\n    return saida.getvalue()\n\n\nclass TestNao(unittest.TestCase):\n    def test_imprime_continuar_procurando_quando_nao_achou(self):\n        \"\"\"o programa imprime continuar procurando quando nao achou\"\"\"\n        self.assertEqual(rodar(), \"continuar procurando\\n\")\n",
+  "solutionCode": "achou = False\nif not achou:\n    print(\"continuar procurando\")\nelse:\n    print(\"achou\")\n",
+  "expectedTestCount": 1,
+  "requirements": [
+    {
+      "id": "REQ-1",
+      "teste": "test_imprime_continuar_procurando_quando_nao_achou",
+      "descricao": "o programa imprime continuar procurando quando nao achou"
+    }
+  ]
+}

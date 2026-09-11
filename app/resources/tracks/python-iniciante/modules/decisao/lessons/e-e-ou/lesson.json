@@ -1,0 +1,124 @@
+{
+  "schemaVersion": 1,
+  "slug": "e-e-ou",
+  "title": "E e ou",
+  "summary": "O `and` junta duas perguntas e exige as duas verdadeiras; o `or` fica satisfeito com uma.",
+  "difficulty": 4,
+  "role": "regular",
+  "targetAtom": "op:bool:and",
+  "concepts": [
+    "e_e_ou"
+  ],
+  "prerequisites": [
+    "igual-e-diferente",
+    "verdadeiro-e-falso"
+  ],
+  "introduces": {
+    "productive": [
+      "op:bool:and",
+      "op:bool:or",
+      "node:BoolOp"
+    ],
+    "receptive": []
+  },
+  "introducesTerms": [],
+  "theory": [
+    {
+      "id": "as-duas-perguntas-juntas",
+      "title": "As duas perguntas juntas",
+      "markdown": "Você já sabe perguntar se um número é maior que outro. E quando a regra tem **duas** condições — por exemplo, *os dois números são positivos*?\n\nA palavra `and` (em português, *e*) junta as duas perguntas:\n\n```python\na = 3\nb = 2\nif a > 0 and b > 0:\n    print(\"os dois positivos\")\n```\n\n```text\nos dois positivos\n```\n\nA pergunta do `if` agora tem duas partes ligadas por `and`: `a > 0` **e** `b > 0`. O Python responde a primeira, responde a segunda, e o `and` combina as duas respostas."
+    },
+    {
+      "id": "o-e-exige-as-duas",
+      "title": "O e exige as duas",
+      "markdown": "O `and` é exigente: a resposta combinada só é verdadeira quando **as duas** partes são verdadeiras. Qualquer falsa derruba tudo.\n\n```python\na = 3\nb = -2\nif a > 0 and b > 0:\n    print(\"os dois positivos\")\nelse:\n    print(\"algum nao e positivo\")\n```\n\n```text\nalgum nao e positivo\n```\n\nA primeira parte (`3 > 0`) é verdadeira, mas a segunda (`-2 > 0`) é falsa — e o `and` responde `False`.\n\nA tabela completa do `and`, com as respostas das duas partes na primeira linha e o resultado embaixo:\n\n```text\nTrue  e True   -> True\nTrue  e False  -> False\nFalse e True   -> False\nFalse e False  -> False\n```\n\nSó a primeira linha salva o `and`."
+    },
+    {
+      "id": "o-ou-aceita-uma",
+      "title": "O ou aceita uma",
+      "markdown": "O `or` (em português, *ou*) é mais flexível: a resposta combinada é verdadeira quando **pelo menos uma** das partes é verdadeira.\n\n```python\na = 3\nb = -2\nif a > 0 or b > 0:\n    print(\"pelo menos um positivo\")\n```\n\n```text\npelo menos um positivo\n```\n\nA primeira parte (`3 > 0`) é verdadeira — o `or` já está satisfeito e responde `True`.\n\nA tabela do `or`:\n\n```text\nTrue  ou True   -> True\nTrue  ou False  -> True\nFalse ou True   -> True\nFalse ou False  -> False\n```\n\nSó a última linha derrota o `or`: quando as duas partes são falsas."
+    },
+    {
+      "id": "escolher-o-sinal-certo",
+      "title": "Escolher o sinal certo",
+      "markdown": "A escolha entre `and` e `or` é a pergunta da regra: *exijo os dois* ou *aceito um*?\n\nO par errado/certo: você quer mostrar `aprovado` quando a nota é maior ou igual a 7 **e** as faltas são poucas.\n\n```text\nif nota >= 7 or faltas < 10:\n    print(\"aprovado\")    # errado: basta uma condicao valer\n```\n\n```python\nif nota >= 7 and faltas < 10:\n    print(\"aprovado\")    # certo: as duas sao exigidas\n```\n\nQual é o estado agora? Com `a = 0` e `b = 5`, a pergunta `a > 0 and b > 0` é falsa (a primeira parte falha) e a pergunta `a > 0 or b > 0` é verdadeira (a segunda parte salva) — o mesmo par de valores, duas respostas, porque os sinais cobram coisas diferentes."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "and-exige-as-duas",
+      "statement": "O `and` só responde True quando as duas partes são verdadeiras.",
+      "question": "O programa é `a = 3`, `b = -2`, `if a > 0 and b > 0:` com \"os dois positivos\" e `else:` com \"algum nao e positivo\". O que aparece na tela?",
+      "options": [
+        "algum nao e positivo",
+        "os dois positivos",
+        "nada, porque o and quebrou o programa",
+        "os dois positivos e algum nao e positivo"
+      ],
+      "answerIndex": 0,
+      "feedback": "a > 0 é verdadeiro, mas b > 0 é falso: o and exige as duas, a resposta combinada é falsa e o else roda.",
+      "sectionId": "o-e-exige-as-duas",
+      "optionRationales": [
+        "A segunda parte (b > 0) é falsa, e o and só aceita as duas verdadeiras — a pergunta do if falha e o else roda.",
+        "Os dois positivos sairia com as duas partes verdadeiras; b = -2 derruba o and.",
+        "O and não quebra nada: ele só responde False quando uma parte é falsa.",
+        "Só um dos blocos roda: o if pediu as duas condições e não conseguiu."
+      ]
+    },
+    {
+      "id": "or-aceita-uma",
+      "statement": "O `or` responde True quando pelo menos uma das partes é verdadeira.",
+      "question": "O programa é `a = 3`, `b = -2`, `if a > 0 or b > 0:` com \"pelo menos um positivo\". O que aparece na tela?",
+      "options": [
+        "pelo menos um positivo",
+        "nada, porque b e negativo",
+        "um erro, porque falta o else",
+        "pelo menos um positivo e nada mais"
+      ],
+      "answerIndex": 0,
+      "feedback": "a > 0 é verdadeiro: o or já está satisfeito com uma parte, responde True, e a linha recuada roda.",
+      "sectionId": "o-ou-aceita-uma",
+      "optionRationales": [
+        "O or basta uma parte verdadeira: a > 0 vale, a pergunta combinada é True e o bloco roda.",
+        "b ser negativo não importa: o or não exige as duas partes, só uma.",
+        "O if sem else é válido: quando a pergunta é falsa ele só não roda o bloco.",
+        "O programa imprime uma linha só: a recuada do if. Não há mais nada para imprimir."
+      ]
+    },
+    {
+      "id": "estado-com-um-valor-negativo",
+      "statement": "O mesmo par de valores pode dar respostas diferentes com and e com or.",
+      "question": "Com `a = 0` e `b = 5`, qual é o resultado de `a > 0 and b > 0` e depois de `a > 0 or b > 0`?",
+      "options": [
+        "and responde False; or responde True.",
+        "and responde True; or responde True.",
+        "and responde False; or responde False.",
+        "and responde True; or responde False."
+      ],
+      "answerIndex": 0,
+      "feedback": "a > 0 é falsa: o and cai (False) e o or se salva com a parte de b (True).",
+      "sectionId": "escolher-o-sinal-certo",
+      "optionRationales": [
+        "O and precisa das duas e só tem uma; o or aceita a parte verdadeira (b > 0) — False e True.",
+        "O and não aceita a parte falsa: com a = 0 a resposta do and é False, nunca True.",
+        "O or se salva com b > 0 verdadeiro: a resposta do or é True, nunca False.",
+        "O or não exige as duas partes, então a falsa do a não o derruba — True, não False."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "Expressões — operadores booleanos",
+      "url": "https://docs.python.org/3/reference/expressions.html",
+      "description": "A referência oficial dos operadores and e or e da resposta que cada um devolve."
+    },
+    {
+      "title": "Tipos embutidos — operações booleanas",
+      "url": "https://docs.python.org/3/library/stdtypes.html",
+      "description": "A página oficial com a tabela completa do and e do or."
+    }
+  ],
+  "challenges": [
+    "os-dois-ou-pelo-menos-um"
+  ]
+}

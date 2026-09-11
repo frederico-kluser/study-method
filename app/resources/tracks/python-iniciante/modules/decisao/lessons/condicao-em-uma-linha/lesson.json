@@ -1,0 +1,122 @@
+{
+  "schemaVersion": 1,
+  "slug": "condicao-em-uma-linha",
+  "title": "Condição em uma linha",
+  "summary": "O `if`/`else` também escolhe valores: numa linha só, o Python devolve um valor quando a pergunta é verdadeira e outro quando é falsa.",
+  "difficulty": 4,
+  "role": "regular",
+  "targetAtom": "node:IfExp",
+  "concepts": [
+    "condicao_em_uma_linha"
+  ],
+  "prerequisites": [
+    "se-senao",
+    "dar-nome-a-um-valor"
+  ],
+  "introduces": {
+    "productive": [
+      "node:IfExp"
+    ],
+    "receptive": []
+  },
+  "introducesTerms": [],
+  "theory": [
+    {
+      "id": "escolher-um-valor",
+      "title": "Escolher um valor",
+      "markdown": "Na aula de se... senão, o `if` decidia quais linhas rodavam. Mas a escolha também pode ser de **valor**: *se a pergunta for verdadeira, vale isto; senão, vale aquilo*.\n\nA escolha de valor numa linha só se escreve assim:\n\n```python\nx = 5\ny = 1 if x > 0 else 0\nprint(y)\n```\n\n```text\n1\n```\n\nLeia a linha 2 em voz alta: *y vale 1 **se** x maior que 0, **senão** vale 0*. Como x vale 5, a pergunta é verdadeira, e o `y` guarda o 1.\n\nA ordem é diferente do `if` de blocos: primeiro o valor da verdade, depois a pergunta, depois o valor da mentira."
+    },
+    {
+      "id": "as-tres-partes-da-linha",
+      "title": "As três partes da linha",
+      "markdown": "A linha tem três partes, e cada uma tem o seu papel:\n\n```python\ny = 1 if x > 0 else 0\n```\n\n- `1` — o valor que `y` recebe quando a pergunta é **verdadeira**;\n- `if x > 0` — a pergunta;\n- `else 0` — o valor que `y` recebe quando a pergunta é **falsa**.\n\nOs valores não precisam ser números. Tudo o que você sabe guardar num nome pode ser escolhido — inclusive textos:\n\n```python\nidade = 20\netiqueta = \"adulto\" if idade >= 18 else \"menor\"\nprint(etiqueta)\n```\n\n```text\nadulto\n```\n\nAqui a pergunta é sobre `idade`, e os dois valores de resposta são textos."
+    },
+    {
+      "id": "a-mesma-escolha-em-duas-formas",
+      "title": "A mesma escolha em duas formas",
+      "markdown": "A escolha de valor também pode ser escrita com o `if`/`else` de blocos da aula anterior — cada ramo guarda no nome:\n\n```python\nx = 5\nif x > 0:\n    y = 1\nelse:\n    y = 0\nprint(y)\n```\n\n```text\n1\n```\n\nO resultado é o mesmo do programa da primeira seção. A forma de uma linha é só uma maneira mais curta de escrever a mesma escolha:\n\n```python\ny = 1 if x > 0 else 0\n```\n\nQual é a diferença prática? O `if` de blocos pode fazer **várias** coisas em cada ramo; a forma de uma linha escolhe **um valor só**. Quando a escolha é só o valor, a linha curta cabe; quando cada ramo tem mais de uma ordem, o bloco continua sendo o lugar."
+    },
+    {
+      "id": "o-else-e-obrigatorio",
+      "title": "O else é obrigatório",
+      "markdown": "Na forma de uma linha, o `else` **não é opcional**: sem ele, o Python não sabe o que responder quando a pergunta é falsa — e reclama antes de rodar.\n\nO par errado/certo:\n\n```text\nx = 5\ny = 1 if x > 0\n\n  File \"solucao.py\", line 2\n    y = 1 if x > 0\n        ^^^^^^^^^^\nSyntaxError: expected 'else' after 'if' expression\n```\n\n```python\nx = 5\ny = 1 if x > 0 else 0\n```\n\nQual é o estado agora? Com `x = 5`, a pergunta é verdadeira e `y` guarda 1; se `x` fosse 0, a pergunta seria falsa e `y` guardaria 0. Os dois lados do `else` têm de existir para os dois casos."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "verdadeiro-guarda-o-primeiro-valor",
+      "statement": "Na forma de uma linha, pergunta verdadeira devolve o valor antes do `if`.",
+      "question": "O programa é `x = 5`, `y = 1 if x > 0 else 0` e `print(y)`. O que aparece na tela?",
+      "options": [
+        "1",
+        "0",
+        "1 if x > 0 else 0",
+        "5"
+      ],
+      "answerIndex": 0,
+      "feedback": "x vale 5, a pergunta x > 0 é verdadeira, e o y recebe o valor da frente do if: 1.",
+      "sectionId": "escolher-um-valor",
+      "optionRationales": [
+        "A pergunta é verdadeira, então o y recebe o primeiro valor (o que vem antes do if): 1.",
+        "0 seria o valor do caso falso; com x = 5 o caso verdadeiro é o que vale.",
+        "A linha escolhe: ela devolve um valor, não escreve a escolha na tela.",
+        "O 5 fica no nome x; quem aparece é o valor ESCOLHIDO pela pergunta, não o valor perguntado."
+      ]
+    },
+    {
+      "id": "falso-guarda-o-segundo-valor",
+      "statement": "Pergunta falsa devolve o valor depois do `else`.",
+      "question": "O programa é `x = 0`, `y = 1 if x > 0 else 0` e `print(y)`. O que aparece na tela?",
+      "options": [
+        "0",
+        "1",
+        "nada, porque falta o else",
+        "um erro, porque x nao e positivo"
+      ],
+      "answerIndex": 0,
+      "feedback": "x vale 0, a pergunta x > 0 é falsa, e o y recebe o valor depois do else: 0.",
+      "sectionId": "as-tres-partes-da-linha",
+      "optionRationales": [
+        "A pergunta é falsa, então o y recebe o valor depois do else: 0.",
+        "O 1 é o valor do caso verdadeiro; com x = 0 quem vale é o caso falso.",
+        "O else está lá — ele é obrigatório exatamente para o caso falso, que é este.",
+        "x não ser positivo não é erro: é o caso falso, e o programa responde com o valor do else."
+      ]
+    },
+    {
+      "id": "else-obrigatorio-na-linha",
+      "statement": "Sem o `else`, a escolha de valor numa linha é erro de sintaxe.",
+      "question": "O que acontece com `y = 1 if x > 0` (sem o else)?",
+      "options": [
+        "O Python reclama com SyntaxError antes de rodar.",
+        "O y guarda 1 quando der para guardar.",
+        "O y guarda False quando a pergunta é falsa.",
+        "O programa roda e o y fica sem valor."
+      ],
+      "answerIndex": 0,
+      "feedback": "Sem o else o Python não tem resposta para a pergunta falsa — e reclama com SyntaxError antes de rodar.",
+      "sectionId": "o-else-e-obrigatorio",
+      "optionRationales": [
+        "A forma de uma linha exige os dois valores; faltando o do caso falso, o Python recusa o arquivo inteiro.",
+        "O Python não guarda \"quando der\": ele exige a linha completa antes de rodar.",
+        "Não existe valor automático para o caso falso — o else é quem diz qual é.",
+        "O programa nem roda: o erro de sintaxe aparece antes da execução."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "Expressões — expressões condicionais",
+      "url": "https://docs.python.org/3/reference/expressions.html",
+      "description": "A referência oficial da escolha de valor numa linha (if/else dentro de uma expressão)."
+    },
+    {
+      "title": "Tutorial — expressões condicionais",
+      "url": "https://docs.python.org/3/tutorial/controlflow.html",
+      "description": "A seção do tutorial oficial que mostra a forma curta de escolher um valor."
+    }
+  ],
+  "challenges": [
+    "escolha-em-uma-linha"
+  ]
+}

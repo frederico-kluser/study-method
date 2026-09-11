@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "slug": "ainda-nao-tem-valor",
+  "title": "Ainda não tem valor",
+  "concept": "e_mesmo_o_nada",
+  "difficulty": 3,
+  "language": "python",
+  "outputChannel": "impressao",
+  "statement": "# Ainda não tem valor\n\nO programa já guarda `None` no nome `x`.\n\nEscreva, no lugar dos comentários, um **`if` com `else`**:\n\n1. A linha do `if` pergunta `x is None` e, recuada, mostra `ainda nao tem valor`.\n2. A linha do `else` fica na mesma margem do `if` e, recuada, mostra `tem valor`.\n\nUse o `is` na pergunta — é ele o assunto da aula.\n\nA tela deve ficar assim:\n\n```text\nainda nao tem valor\n```",
+  "starterCode": "x = None\n# escreva aqui o if com a pergunta x is None\n# e, recuada, a linha que imprime \"ainda nao tem valor\"\n# depois o else na mesma margem do if\n# e, recuada, a linha que imprime \"tem valor\"\n",
+  "testsCode": "import contextlib\nimport io\nimport runpy\nimport unittest\n\n\ndef rodar():\n    \"\"\"Roda solucao.py do zero e devolve tudo o que ele imprimiu.\"\"\"\n    saida = io.StringIO()\n    with contextlib.redirect_stdout(saida):\n        runpy.run_path(\"solucao.py\")\n    return saida.getvalue()\n\n\nclass TestEMesmoONada(unittest.TestCase):\n    def test_imprime_ainda_nao_tem_valor_quando_x_e_none(self):\n        \"\"\"o programa diz que x ainda nao tem valor quando x e None\"\"\"\n        self.assertEqual(rodar(), \"ainda nao tem valor\\n\")\n",
+  "solutionCode": "x = None\nif x is None:\n    print(\"ainda nao tem valor\")\nelse:\n    print(\"tem valor\")\n",
+  "expectedTestCount": 1,
+  "requirements": [
+    {
+      "id": "REQ-1",
+      "teste": "test_imprime_ainda_nao_tem_valor_quando_x_e_none",
+      "descricao": "o programa diz que x ainda nao tem valor quando x e None"
+    }
+  ]
+}

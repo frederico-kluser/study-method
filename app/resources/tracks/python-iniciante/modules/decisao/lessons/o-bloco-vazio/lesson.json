@@ -1,0 +1,121 @@
+{
+  "schemaVersion": 1,
+  "slug": "o-bloco-vazio",
+  "title": "O bloco vazio",
+  "summary": "Todo `if` precisa de uma linha recuada — e o `pass` é a linha que não faz nada, para quando ainda não há o que fazer.",
+  "difficulty": 3,
+  "role": "regular",
+  "targetAtom": "node:Pass",
+  "concepts": [
+    "o_bloco_vazio"
+  ],
+  "prerequisites": [
+    "se"
+  ],
+  "introduces": {
+    "productive": [
+      "node:Pass"
+    ],
+    "receptive": []
+  },
+  "introducesTerms": [],
+  "theory": [
+    {
+      "id": "todo-bloco-precisa-de-uma-linha",
+      "title": "Todo bloco precisa de uma linha",
+      "markdown": "Na aula do `se` você viu que o `if` exige uma linha recuada embaixo dele — sem nenhuma, o Python reclama antes de rodar.\n\nMas e quando você ainda não decidiu o que fazer? Existe uma linha feita para isso: o `pass`. Ela não faz nada — só ocupa o lugar:\n\n```python\nif 7 > 2:\n    pass\nprint(\"feito\")\n```\n\n```text\nfeito\n```\n\nA pergunta `7 > 2` é verdadeira, o `if` entra no bloco, encontra `pass`... e o `pass` não faz nada. O programa segue e mostra `feito`."
+    },
+    {
+      "id": "sem-o-pass-o-programa-nao-roda",
+      "title": "Sem o pass, o programa não roda",
+      "markdown": "Para ver o `pass` trabalhando, compare com o que acontece sem ele. Este arquivo parece quase igual — falta só a linha recuada:\n\n```text\nif 7 > 2:\nprint(\"feito\")\n\n  File \"solucao.py\", line 2\n    print(\"feito\")\n    ^^^^^\nIndentationError: expected an indented block after 'if' statement on line 1\n```\n\nO Python não adivinha: se o `if` não tem corpo, ele não roda nada. Um comentário recuado também não vale — comentário não é ordem, e o bloco continua vazio:\n\n```text\nif 7 > 2:\n    # ainda vou decidir\nprint(\"feito\")\n\n  File \"solucao.py\", line 3\n    print(\"feito\")\n    ^^^^^\nIndentationError: expected an indented block after 'if' statement on line 1\n```\n\nO par errado/certo:\n\n```text\nif 7 > 2:          # errado: o bloco não tem nenhuma ordem\n```\n\n```python\nif 7 > 2:          # certo: o pass é uma ordem que não faz nada\n    pass\n```"
+    },
+    {
+      "id": "o-pass-nao-muda-a-tela",
+      "title": "O pass não muda a tela",
+      "markdown": "O `pass` não imprime nada, não guarda nada, não pergunta nada. Ele existe para um único motivo: **deixar o bloco com uma ordem dentro**, para o Python não reclamar.\n\n```python\nx = 3\nif x > 5:\n    pass\nprint(\"pronto\")\n```\n\n```text\npronto\n```\n\nQual é o estado agora? A pergunta `x > 5` é falsa (x vale 3), então o `if` nem entra no bloco — o `pass` nem chega a rodar. Mesmo assim o programa é válido desde o começo, porque o bloco não está vazio.\n\nA tela mostra `pronto`, e o `pass` não apareceu em lugar nenhum — ele nunca aparece na tela."
+    },
+    {
+      "id": "o-pass-e-um-lugar-reservado",
+      "title": "O pass é um lugar reservado",
+      "markdown": "Pense no `pass` como o lugar reservado de uma mesa: a cadeira está lá, ocupando espaço, esperando quem vai sentar.\n\nVocê vai ver o `pass` de novo no curso, em dois momentos: quando uma parte do programa ainda está para ser escrita, e como esqueleto de blocos que só vão ganhar corpo depois. Por enquanto, a regra é uma só: **bloco sem ordem = erro; `pass` resolve**."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "pass-ocupa-o-lugar",
+      "statement": "O `pass` é uma ordem que não faz nada: só ocupa o lugar no bloco.",
+      "question": "O programa é `if 7 > 2:` com `pass` recuado e depois `print(\"feito\")` na margem. O que aparece na tela?",
+      "options": [
+        "feito",
+        "pass",
+        "7 > 2",
+        "nada, porque o pass apaga tudo"
+      ],
+      "answerIndex": 0,
+      "feedback": "O if entra no bloco, o pass não faz nada, e o programa segue para o print da margem: sai feito.",
+      "sectionId": "todo-bloco-precisa-de-uma-linha",
+      "optionRationales": [
+        "O pass não imprime nada; o programa segue e o print da margem mostra feito.",
+        "pass não aparece na tela: ele não imprime, só ocupa o lugar no bloco.",
+        "7 > 2 é a pergunta do if, não um texto para mostrar.",
+        "O pass não apaga nada: o programa continua depois do bloco e o print da margem roda."
+      ]
+    },
+    {
+      "id": "sem-order-o-bloco-e-erro",
+      "statement": "Um `if` sem nenhuma ordem recuada é erro — nem comentário resolve.",
+      "question": "O que acontece com um `if` cujo bloco só tem um comentário recuado?",
+      "options": [
+        "O Python reclama: comentário não é ordem, e o bloco está vazio.",
+        "O programa roda e ignora o comentário.",
+        "O comentário vale como ordem e o programa roda.",
+        "O programa mostra o comentário na tela."
+      ],
+      "answerIndex": 0,
+      "feedback": "Comentário não conta como ordem. O bloco continua vazio, e o Python reclama com IndentationError.",
+      "sectionId": "sem-o-pass-o-programa-nao-roda",
+      "optionRationales": [
+        "O Python só aceita ordens como corpo do if; comentário é anotação sua, e o bloco continua vazio.",
+        "Rodar ignorando o comentário deixaria o if sem corpo — exatamente o caso que o Python recusa.",
+        "Comentário não é ordem executável: ele nunca vale como corpo de bloco.",
+        "Comentário nunca chega à tela: ele nem é executado."
+      ]
+    },
+    {
+      "id": "pass-nao-muda-estado",
+      "statement": "O `pass` não muda nada: nem tela, nem valores.",
+      "question": "O programa é `x = 3`, `if x > 5:` com `pass` recuado, e `print(\"pronto\")` na margem. Qual é o estado agora?",
+      "options": [
+        "A tela mostra pronto, e o pass não roda porque a pergunta é falsa.",
+        "A tela mostra pronto e pass juntos.",
+        "A tela mostra 3.",
+        "O programa para no pass esperando algo."
+      ],
+      "answerIndex": 0,
+      "feedback": "x vale 3, a pergunta x > 5 é falsa, o if nem entra no bloco — e a tela mostra pronto.",
+      "sectionId": "o-pass-nao-muda-a-tela",
+      "optionRationales": [
+        "A pergunta é falsa, o bloco nem roda — e mesmo que rodasse, o pass não imprimiria nada.",
+        "pass nunca aparece na tela: ele não imprime coisa nenhuma.",
+        "O 3 fica guardado no nome x; nenhuma linha imprime x.",
+        "O pass não espera nada: ele é instantâneo e não faz nada."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "Tutorial — a instrução pass",
+      "url": "https://docs.python.org/3/tutorial/controlflow.html",
+      "description": "A seção do tutorial oficial que apresenta o pass como a ordem que não faz nada."
+    },
+    {
+      "title": "Referência — a instrução pass",
+      "url": "https://docs.python.org/3/reference/compound_stmts.html",
+      "description": "A página oficial da instrução pass e do corpo dos blocos."
+    }
+  ],
+  "challenges": [
+    "preencha-com-pass"
+  ]
+}

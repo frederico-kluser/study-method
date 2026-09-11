@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "slug": "escolha-em-uma-linha",
+  "title": "Escolha em uma linha",
+  "concept": "condicao_em_uma_linha",
+  "difficulty": 4,
+  "language": "python",
+  "outputChannel": "impressao",
+  "statement": "# Escolha em uma linha\n\nO programa já guarda **5** no nome `x`.\n\nEscreva, no lugar dos comentários, **duas linhas**:\n\n1. A primeira guarda em `y` a escolha: `1` **se** `x > 0`, `0` **senão** — tudo numa linha só, com `if` e `else` no meio dela.\n2. A segunda mostra o valor guardado em `y`.\n\nUse o nome `x` na pergunta e não escreva o resultado direto: é o `if`/`else` da linha que tem de escolher.\n\nA tela deve ficar assim:\n\n```text\n1\n```",
+  "starterCode": "x = 5\n# primeira linha: guarde em y a escolha 1 se x > 0, senao 0, numa linha so\n# segunda linha: imprima o valor guardado em y\n",
+  "testsCode": "import contextlib\nimport io\nimport runpy\nimport unittest\n\n\ndef rodar():\n    \"\"\"Roda solucao.py do zero e devolve tudo o que ele imprimiu.\"\"\"\n    saida = io.StringIO()\n    with contextlib.redirect_stdout(saida):\n        runpy.run_path(\"solucao.py\")\n    return saida.getvalue()\n\n\nclass TestCondicaoEmUmaLinha(unittest.TestCase):\n    def test_imprime_o_valor_escolhido_pela_condicao(self):\n        \"\"\"o programa imprime o valor que a condicao escolheu para x\"\"\"\n        self.assertEqual(rodar(), \"1\\n\")\n",
+  "solutionCode": "x = 5\ny = 1 if x > 0 else 0\nprint(y)\n",
+  "expectedTestCount": 1,
+  "requirements": [
+    {
+      "id": "REQ-1",
+      "teste": "test_imprime_o_valor_escolhido_pela_condicao",
+      "descricao": "o programa imprime o valor que a condicao escolheu para x"
+    }
+  ]
+}

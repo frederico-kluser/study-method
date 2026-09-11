@@ -1,0 +1,121 @@
+{
+  "schemaVersion": 1,
+  "slug": "se-senao-se",
+  "title": "Se... senão se",
+  "summary": "O `elif` encadeia mais de uma pergunta: a primeira verdadeira vence, e o `else` pega o resto.",
+  "difficulty": 4,
+  "role": "regular",
+  "targetAtom": "node:Elif",
+  "concepts": [
+    "se_senao_se"
+  ],
+  "prerequisites": [
+    "se-senao"
+  ],
+  "introduces": {
+    "productive": [
+      "node:Elif"
+    ],
+    "receptive": []
+  },
+  "introducesTerms": [],
+  "theory": [
+    {
+      "id": "mais-de-uma-pergunta",
+      "title": "Mais de uma pergunta",
+      "markdown": "Na aula de se... senão você aprendeu a dar ao `if` um plano B. Mas e quando são **três** casos — positivo, negativo ou zero?\n\nO `elif` (contração de *else if*: *senão se*) encadeia as perguntas:\n\n```python\nx = 0\nif x > 0:\n    print(\"positivo\")\nelif x < 0:\n    print(\"negativo\")\nelse:\n    print(\"zero\")\n```\n\n```text\nzero\n```\n\nCada `elif` é mais uma pergunta na mesma margem do `if`. Sem o `elif`, a mesma fila viraria um `if` inteiro aninhado dentro do `else`:\n\n```python\nx = 0\nif x > 0:\n    print(\"positivo\")\nelse:\n    if x < 0:\n        print(\"negativo\")\n    else:\n        print(\"zero\")\n```\n\n```text\nzero\n```\n\nFunciona, mas o `else` com um `if` inteiro recuado dentro fica difícil de ler. O `elif` aplana: mesmo resultado, mesma margem, uma pergunta por linha."
+    },
+    {
+      "id": "a-primeira-verdadeira-vence",
+      "title": "A primeira verdadeira vence",
+      "markdown": "O Python testa as perguntas **de cima para baixo** e roda o bloco da **primeira** que for verdadeira. As que vêm depois não são nem testadas.\n\n```python\nx = 5\nif x > 0:\n    print(\"positivo\")\nelif x > 3:\n    print(\"maior que 3\")\nelse:\n    print(\"zero ou negativo\")\n```\n\n```text\npositivo\n```\n\nx vale 5: `x > 0` é verdadeiro, e o Python nem chega a olhar `x > 3` — mesmo as duas sendo verdadeiras. A ordem decide.\n\nQual é o estado agora? Com x valendo 5, a tela mostra `positivo`; se trocássemos a ordem das perguntas, a tela mostraria outra coisa. A posição de cada `elif` é parte do programa."
+    },
+    {
+      "id": "o-else-pega-o-resto",
+      "title": "O else pega o resto",
+      "markdown": "O `else` no fim é opcional e continua sendo o plano de sobra: roda quando **nenhuma** pergunta foi verdadeira.\n\n```python\nx = -4\nif x > 0:\n    print(\"positivo\")\nelif x < 0:\n    print(\"negativo\")\nelse:\n    print(\"zero\")\n```\n\n```text\nnegativo\n```\n\nTroque x por outros valores e veja o mesmo programa responder:\n\n```python\nx = 0\nif x > 0:\n    print(\"positivo\")\nelif x < 0:\n    print(\"negativo\")\nelse:\n    print(\"zero\")\n```\n\n```text\nzero\n```\n\nCom x valendo 0, as duas perguntas são falsas e o `else` pega o caso que sobrou. Quantos `elif` cabem? Quantos você precisar — cada um é mais uma pergunta na fila."
+    },
+    {
+      "id": "elif-nao-e-else-com-if",
+      "title": "Elif não é else com if",
+      "markdown": "O que o `elif` aplaina é exatamente a forma aninhada que você viu na primeira seção. O par errado/certo:\n\n```text\nif x > 0:\n    print(\"positivo\")\nelse:\n    if x < 0:\n        print(\"negativo\")\n```\n\n```python\nif x > 0:\n    print(\"positivo\")\nelif x < 0:\n    print(\"negativo\")\n```\n\nMesma margem para `if`, `elif` e `else`. No aninhado, cada `if` de dentro pede mais um recuo; no `elif`, a fila inteira fica na mesma coluna e o programa se lê como uma lista de casos."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "elif-e-a-proxima-pergunta",
+      "statement": "O `elif` é uma pergunta a mais na mesma margem do `if`.",
+      "question": "O programa tem `if x > 0:` com \"positivo\", `elif x < 0:` com \"negativo\" e `else:` com \"zero\". Com x valendo 0, o que aparece na tela?",
+      "options": [
+        "zero",
+        "positivo",
+        "negativo",
+        "positivo, negativo e zero"
+      ],
+      "answerIndex": 0,
+      "feedback": "Com x = 0, as duas perguntas são falsas e o else pega o caso que sobrou: sai zero.",
+      "sectionId": "o-else-pega-o-resto",
+      "optionRationales": [
+        "0 não é maior nem menor que 0: as duas perguntas falham e o else roda — sai zero.",
+        "positivo exigiria x maior que 0; com x = 0 a primeira pergunta é falsa.",
+        "negativo exigiria x menor que 0; com x = 0 a segunda pergunta é falsa.",
+        "Só um bloco roda: a fila para na primeira pergunta verdadeira — e aqui nenhuma é."
+      ]
+    },
+    {
+      "id": "a-ordem-da-fila",
+      "statement": "O Python testa as perguntas de cima para baixo e roda o bloco da primeira verdadeira.",
+      "question": "O programa é `x = 5`, com `if x > 0:` (\"positivo\") e `elif x > 3:` (\"maior que 3\"). O que aparece na tela?",
+      "options": [
+        "positivo",
+        "maior que 3",
+        "positivo e maior que 3",
+        "nada, porque as duas são verdadeiras"
+      ],
+      "answerIndex": 0,
+      "feedback": "x vale 5 e a primeira pergunta, x > 0, já é verdadeira: o Python roda o primeiro bloco e nem testa a segunda.",
+      "sectionId": "a-primeira-verdadeira-vence",
+      "optionRationales": [
+        "A primeira pergunta verdadeira vence: x > 0 é verdadeiro, então sai positivo e a fila para.",
+        "maior que 3 só sairia se x > 0 fosse falsa; com x = 5 a primeira pergunta já ganha.",
+        "Só o bloco da PRIMEIRA verdadeira roda — as perguntas seguintes nem são testadas.",
+        "Duas verdadeiras não é problema: a fila para na primeira, e a tela nunca fica vazia."
+      ]
+    },
+    {
+      "id": "elif-plano-no-lugar-de-aninhado",
+      "statement": "O `elif` substitui o `else` com `if` aninhado, mantendo tudo na mesma margem.",
+      "question": "O que o `elif` muda em relação a escrever o `if` dentro do `else`?",
+      "options": [
+        "A fila inteira fica na mesma margem, sem recuos extras.",
+        "As perguntas passam a ser testadas de baixo para cima.",
+        "O else passa a ser obrigatório.",
+        "O if deixa de precisar de recuo."
+      ],
+      "answerIndex": 0,
+      "feedback": "O elif aplaina o aninhado: em vez de um if recuado dentro do else, a fila de perguntas fica na mesma coluna.",
+      "sectionId": "elif-nao-e-else-com-if",
+      "optionRationales": [
+        "É essa a função do elif: a mesma fila de casos sem o recuo extra do if dentro do else.",
+        "A ordem continua de cima para baixo, igualzinha à forma aninhada.",
+        "O else continua opcional no fim da fila.",
+        "O recuo continua obrigatório — no corpo de cada caso."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "Tutorial — if, elif e else",
+      "url": "https://docs.python.org/3/tutorial/controlflow.html",
+      "description": "A seção do tutorial oficial que apresenta o elif como a cadeia de perguntas."
+    },
+    {
+      "title": "Referência — a instrução if",
+      "url": "https://docs.python.org/3/reference/compound_stmts.html",
+      "description": "A página oficial da instrução if e da cadeia elif/else."
+    }
+  ],
+  "challenges": [
+    "positivo-negativo-ou-zero"
+  ]
+}

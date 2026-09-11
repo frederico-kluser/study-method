@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "slug": "positivo-negativo-ou-zero",
+  "title": "Positivo, negativo ou zero",
+  "concept": "se_senao_se",
+  "difficulty": 4,
+  "language": "python",
+  "outputChannel": "impressao",
+  "statement": "# Positivo, negativo ou zero\n\nO programa já guarda **0** no nome `x`.\n\nEscreva, no lugar dos comentários, uma fila de três casos:\n\n1. O `if` pergunta se `x` é maior que 0 e, recuado, mostra `positivo`.\n2. O `elif` pergunta se `x` é menor que 0 e, recuado, mostra `negativo`.\n3. O `else`, na mesma margem dos outros dois, mostra `zero`.\n\nAs três linhas de pergunta ficam na mesma margem. A tela deve ficar assim:\n\n```text\nzero\n```",
+  "starterCode": "x = 0\n# escreva aqui o if com a pergunta x > 0\n# e, recuada, a linha que imprime \"positivo\"\n# depois o elif com a pergunta x < 0\n# e, recuada, a linha que imprime \"negativo\"\n# depois o else, na mesma margem, com a linha que imprime \"zero\"\n",
+  "testsCode": "import contextlib\nimport io\nimport runpy\nimport unittest\n\n\ndef rodar():\n    \"\"\"Roda solucao.py do zero e devolve tudo o que ele imprimiu.\"\"\"\n    saida = io.StringIO()\n    with contextlib.redirect_stdout(saida):\n        runpy.run_path(\"solucao.py\")\n    return saida.getvalue()\n\n\nclass TestSeSenaoSe(unittest.TestCase):\n    def test_imprime_zero_quando_x_nao_e_nem_positivo_nem_negativo(self):\n        \"\"\"o programa imprime zero quando x nao e nem positivo nem negativo\"\"\"\n        self.assertEqual(rodar(), \"zero\\n\")\n",
+  "solutionCode": "x = 0\nif x > 0:\n    print(\"positivo\")\nelif x < 0:\n    print(\"negativo\")\nelse:\n    print(\"zero\")\n",
+  "expectedTestCount": 1,
+  "requirements": [
+    {
+      "id": "REQ-1",
+      "teste": "test_imprime_zero_quando_x_nao_e_nem_positivo_nem_negativo",
+      "descricao": "o programa imprime zero quando x nao e nem positivo nem negativo"
+    }
+  ]
+}

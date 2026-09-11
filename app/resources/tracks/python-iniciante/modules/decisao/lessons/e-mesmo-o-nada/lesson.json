@@ -1,0 +1,123 @@
+{
+  "schemaVersion": 1,
+  "slug": "e-mesmo-o-nada",
+  "title": "É mesmo o nada",
+  "summary": "O `is` pergunta se o valor é mesmo o nada — com o `else`, o caso contrário fica coberto.",
+  "difficulty": 3,
+  "role": "regular",
+  "targetAtom": "op:compare:is",
+  "concepts": [
+    "e_mesmo_o_nada"
+  ],
+  "prerequisites": [
+    "o-nada",
+    "se"
+  ],
+  "introduces": {
+    "productive": [
+      "op:compare:is",
+      "node:Compare"
+    ],
+    "receptive": []
+  },
+  "introducesTerms": [],
+  "theory": [
+    {
+      "id": "nenhum-valor-e-um-valor",
+      "title": "Nenhum valor é um valor",
+      "markdown": "Na aula do nada você viu o `None`: o valor que quer dizer *nenhum valor ainda*. Guardar `None` num nome é comum quando o valor ainda não foi decidido — e o Python tem uma pergunta feita para esse caso: **é mesmo o nada?**\n\nO `is` compara com o `None`:\n\n```python\nx = None\nif x is None:\n    print(\"ainda nao tem valor\")\n```\n\n```text\nainda nao tem valor\n```\n\nLeia a linha 2 assim: *se x é mesmo o nada, mostra ainda não tem valor*. O `x` vale `None`, a pergunta é verdadeira e a linha recuada roda."
+    },
+    {
+      "id": "quando-nao-e-o-nada",
+      "title": "Quando não é o nada",
+      "markdown": "Quando o nome guarda um valor de verdade, a pergunta `is None` responde `False` — e o `else` da aula de se... senão cobre o caso:\n\n```python\npreco = 10\nif preco is None:\n    print(\"ainda nao tem valor\")\nelse:\n    print(\"tem valor\")\n```\n\n```text\ntem valor\n```\n\nO `preco` vale 10, e 10 não é o nada: a pergunta é falsa e roda o `else`.\n\nVocê vai encontrar também o contrário da pergunta — o `is not`, que pergunta *não é mesmo o nada?* — em leituras e em programas alheios. Ele é a negação do `is`, como o `!=` é a negação do `==`; o `is` é a forma que esta aula exercita."
+    },
+    {
+      "id": "is-com-none-e-o-costume",
+      "title": "Is com None é o costume",
+      "markdown": "Para perguntar se um valor é o nada, o `==` até funciona — `None == None` responde `True`. Mas o costume do Python, e o que você vai ver nos programas alheios, é o `is`:\n\n```python\nx = None\nprint(x == None)\n```\n\n```text\nTrue\n```\n\n```python\nx = None\nprint(x is None)\n```\n\n```text\nTrue\n```\n\nOs dois respondem a mesma coisa para o `None`. O costume é `is`, e é ele que esta aula ensina.\n\nO `is` tem uma regra que precisa de cuidado: com **números**, não use `is` para comparar — os números têm o `==` deles, das aulas de igual e diferente. O par errado/certo:\n\n```text\nif n is 3:\n    print(\"era tres\")   # errado: is nao e a comparacao de numeros\n```\n\n```python\nif n == 3:\n    print(\"era tres\")   # certo: numeros se comparam com ==\n```"
+    },
+    {
+      "id": "o-estado-do-none",
+      "title": "O estado do None",
+      "markdown": "Como toda pergunta, o `is` não muda nada no programa — só responde. O nome continua guardando o que guardava:\n\n```python\nx = None\nif x is None:\n    print(\"ainda nao tem valor\")\nprint(x)\n```\n\n```text\nainda nao tem valor\nNone\n```\n\nQual é o estado agora? Depois do `if`, o `x` continua valendo `None` — a pergunta não reescreveu o nome. O último `print` mostra `None` na tela, porque é isso que o `x` guarda."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "none-e-mesmo-o-nada",
+      "statement": "`x is None` pergunta se x é mesmo o valor nada.",
+      "question": "O programa é `x = None` e `if x is None:` com \"ainda nao tem valor\" recuado. O que aparece na tela?",
+      "options": [
+        "ainda nao tem valor",
+        "nada, porque None e vazio",
+        "None",
+        "x is None"
+      ],
+      "answerIndex": 0,
+      "feedback": "x vale None, a pergunta \"x é mesmo o nada?\" é verdadeira, e a linha recuada roda.",
+      "sectionId": "nenhum-valor-e-um-valor",
+      "optionRationales": [
+        "x guarda None, e a pergunta is None é verdadeira — a linha recuada roda e imprime a mensagem.",
+        "None é um valor como outro qualquer; a pergunta é verdadeira e o if roda o bloco.",
+        "None é o que x guarda, não o que aparece: quem imprime é a linha recuada do if.",
+        "x is None é a pergunta, não um texto — a tela mostra o que a linha recuada imprime."
+      ]
+    },
+    {
+      "id": "falso-roda-o-else",
+      "statement": "Quando o nome não vale None, `x is None` responde False e o `else` roda.",
+      "question": "O programa é `preco = 10`, `if preco is None:` com \"ainda nao tem valor\" e `else:` com \"tem valor\". O que aparece na tela?",
+      "options": [
+        "tem valor",
+        "ainda nao tem valor",
+        "10",
+        "preco is None"
+      ],
+      "answerIndex": 0,
+      "feedback": "preco vale 10, e 10 não é o nada: a pergunta é falsa e roda o else — sai tem valor.",
+      "sectionId": "quando-nao-e-o-nada",
+      "optionRationales": [
+        "10 não é None, então a pergunta is None é falsa e o else roda — tem valor.",
+        "ainda nao tem valor sairia com preco valendo None; com 10 a pergunta é falsa.",
+        "O 10 fica no nome preco; quem aparece é a mensagem do ramo que roda.",
+        "preco is None é a pergunta, não um texto para a tela."
+      ]
+    },
+    {
+      "id": "numeros-com-igual-nao-com-is",
+      "statement": "Para números, a comparação é com ==; o `is` é o costume para o None.",
+      "question": "O programa é `n = 3`. Qual linha pergunta direito se n vale 3?",
+      "options": [
+        "if n == 3:",
+        "if n is 3:",
+        "if n = 3:",
+        "if n >= 3:"
+      ],
+      "answerIndex": 0,
+      "feedback": "Números se comparam com ==. O is fica para o None; o = guarda; o >= é outra pergunta.",
+      "sectionId": "is-com-none-e-o-costume",
+      "optionRationales": [
+        "O == é a comparação de igualdade dos números — é ele que pergunta se n vale 3.",
+        "O is não é a comparação de números: com None ele é o costume, com número não.",
+        "O = guarda um valor num nome; ele não pergunta nada.",
+        "O >= pergunta se n é maior ou igual a 3 — uma pergunta diferente da igualdade."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "Expressões — comparações de identidade",
+      "url": "https://docs.python.org/3/reference/expressions.html",
+      "description": "A referência oficial do operador is e da comparação com None."
+    },
+    {
+      "title": "Constantes — None",
+      "url": "https://docs.python.org/3/library/constants.html",
+      "description": "A página oficial da constante None, o valor que quer dizer nenhum valor."
+    }
+  ],
+  "challenges": [
+    "ainda-nao-tem-valor"
+  ]
+}

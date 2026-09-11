@@ -1,0 +1,123 @@
+{
+  "schemaVersion": 1,
+  "slug": "se-senao",
+  "title": "Se... senão",
+  "summary": "O `else` dá ao `if` um plano B: quando a pergunta é falsa, roda o outro bloco.",
+  "difficulty": 3,
+  "role": "regular",
+  "targetAtom": "node:IfElse",
+  "concepts": [
+    "se_senao"
+  ],
+  "prerequisites": [
+    "se"
+  ],
+  "introduces": {
+    "productive": [
+      "node:IfElse"
+    ],
+    "receptive": []
+  },
+  "introducesTerms": [
+    "term:ramo"
+  ],
+  "theory": [
+    {
+      "id": "o-plano-b",
+      "title": "O plano B",
+      "markdown": "Na aula do `se`, quando a pergunta era falsa, o Python simplesmente pulava as linhas recuadas. Mas e quando você quer que **outra coisa** aconteça nesse caso?\n\nEntra o `else` — em português, *senão*:\n\n```python\nx = 2\nif x > 3:\n    print(\"maior\")\nelse:\n    print(\"menor ou igual\")\n```\n\n```text\nmenor ou igual\n```\n\nLeia assim: *se x maior que 3, mostra maior; **senão**, mostra menor ou igual*. Como x vale 2, a pergunta é falsa e roda o bloco do `else`.\n\nCada bloco é chamado de **ramo**: o `if` tem o ramo da verdade e o ramo da mentira."
+    },
+    {
+      "id": "exatamente-um-dos-dois",
+      "title": "Exatamente um dos dois",
+      "markdown": "A regra de ouro do `if`/`else`: **um dos dois blocos roda, nunca os dois, nunca nenhum**.\n\nVeja com a pergunta verdadeira:\n\n```python\nx = 5\nif x > 3:\n    print(\"maior\")\nelse:\n    print(\"menor ou igual\")\n```\n\n```text\nmaior\n```\n\nA pergunta `5 > 3` é verdadeira: roda o primeiro bloco e o `else` fica de fora. Com x valendo 3:\n\n```python\nx = 3\nif x > 3:\n    print(\"maior\")\nelse:\n    print(\"menor ou igual\")\n```\n\n```text\nmenor ou igual\n```\n\n3 não é maior que 3: a pergunta é falsa, o primeiro bloco é pulado e roda o `else`. Qual é o estado agora? A tela mostra `menor ou igual`, porque o `>` não aceita empate — e o empate cai no `else`."
+    },
+    {
+      "id": "a-forma-do-else",
+      "title": "A forma do else",
+      "markdown": "O `else` fica **na mesma margem** do `if` — é um só par, cara a cara:\n\n```python\nif x > 3:\n    print(\"maior\")\nelse:\n    print(\"menor ou igual\")\n```\n\nOs dois pontos depois do `else` são obrigatórios, como depois do `if`. E o bloco do `else` também é recuado.\n\nO par errado/certo desta aula:\n\n```text\nif x > 3:\n    print(\"maior\")\n  else:\n    print(\"menor ou igual\")\n\n  File \"solucao.py\", line 3\n    else:\n         ^\nIndentationError: unindent does not match any outer indentation level\n```\n\nO `else` recuado não é reconhecido: ele tem de começar na mesma coluna do `if`.\n\n```python\nif x > 3:\n    print(\"maior\")\nelse:\n    print(\"menor ou igual\")\n```\n\nO `if` na margem, o `else` na margem, os dois blocos recuados: essa é a cara de um `if`/`else`."
+    },
+    {
+      "id": "sem-o-else-tambem-funciona",
+      "title": "Sem o else também funciona",
+      "markdown": "O `else` é opcional. O `if` da aula passada, sozinho, continua válido:\n\n```python\nx = -2\nif x > 0:\n    print(\"positivo\")\nprint(\"acabou\")\n```\n\n```text\nacabou\n```\n\nA diferença é o que acontece com a pergunta falsa: sem `else`, o Python não faz nada e segue; com `else`, ele roda o plano B. Você escolhe conforme a pergunta: quando os dois lados têm o que fazer, use o `if`/`else`; quando só um lado faz, o `if` sozinho basta."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "pergunta-falsa-roda-o-else",
+      "statement": "Quando a pergunta do `if` é falsa, roda o bloco do `else`.",
+      "question": "O programa é `x = 2`, `if x > 3:` com `print(\"maior\")`, `else:` com `print(\"menor ou igual\")`. O que aparece na tela?",
+      "options": [
+        "menor ou igual",
+        "maior",
+        "maior e menor ou igual",
+        "nada"
+      ],
+      "answerIndex": 0,
+      "feedback": "x vale 2, a pergunta 2 > 3 é falsa, e o bloco do else roda: sai menor ou igual.",
+      "sectionId": "o-plano-b",
+      "optionRationales": [
+        "A pergunta é falsa, então o primeiro bloco é pulado e o else roda — sai menor ou igual.",
+        "maior sairia com a pergunta verdadeira; com x = 2 ela é falsa.",
+        "Nunca os dois: o if/else escolhe exatamente um dos blocos.",
+        "Sempre um dos dois blocos roda — com if/else a tela nunca fica vazia."
+      ]
+    },
+    {
+      "id": "um-dos-dois-nunca-os-dois",
+      "statement": "No `if`/`else`, exatamente um dos dois blocos roda.",
+      "question": "O programa é `x = 5`, `if x > 3:` com `print(\"maior\")`, `else:` com `print(\"menor ou igual\")`. O que aparece na tela?",
+      "options": [
+        "maior",
+        "menor ou igual",
+        "maior e menor ou igual",
+        "depende do humor do Python"
+      ],
+      "answerIndex": 0,
+      "feedback": "x vale 5, a pergunta 5 > 3 é verdadeira, e roda o primeiro bloco. O else fica de fora.",
+      "sectionId": "exatamente-um-dos-dois",
+      "optionRationales": [
+        "5 é maior que 3, a pergunta é verdadeira e o primeiro bloco roda — sai maior.",
+        "menor ou igual sairia com pergunta falsa; com x = 5 a pergunta é verdadeira.",
+        "Nunca os dois: a pergunta decide um único bloco.",
+        "O Python não escolhe por humor: a resposta da comparação decide, sempre igual."
+      ]
+    },
+    {
+      "id": "else-na-mesma-margem",
+      "statement": "O `else` começa na mesma margem do `if`; o corpo dele é recuado.",
+      "question": "O que acontece quando o `else` está recuado em vez de estar na mesma margem do `if`?",
+      "options": [
+        "O Python reclama com IndentationError.",
+        "O else funciona, só fica feio.",
+        "O if vira uma pergunta maior.",
+        "O programa roda e mostra os dois blocos."
+      ],
+      "answerIndex": 0,
+      "feedback": "O else na margem errada não é reconhecido como par do if — o Python reclama com IndentationError antes de rodar.",
+      "sectionId": "a-forma-do-else",
+      "optionRationales": [
+        "Recuar o else tira o par do if: o Python não o reconhece e reclama antes de rodar.",
+        "Recuo não é enfeite: ele muda o que a linha significa, e aqui significa erro.",
+        "O if não vira nada: o arquivo inteiro para de rodar por causa do recuo errado.",
+        "Nenhum bloco roda: o programa morre antes de começar."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "Tutorial — if e else",
+      "url": "https://docs.python.org/3/tutorial/controlflow.html",
+      "description": "A seção do tutorial oficial que apresenta o else como o ramo da pergunta falsa."
+    },
+    {
+      "title": "Referência — a instrução if",
+      "url": "https://docs.python.org/3/reference/compound_stmts.html",
+      "description": "A página oficial da instrução if com else e da regra de recuo dos dois blocos."
+    }
+  ],
+  "challenges": [
+    "maior-ou-nao"
+  ]
+}

@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "slug": "quatro-e-maior-ou-igual",
+  "title": "Quatro é maior ou igual a três",
+  "concept": "maior_ou_igual",
+  "difficulty": 3,
+  "language": "python",
+  "outputChannel": "impressao",
+  "statement": "# Quatro é maior ou igual a três\n\nO programa já guarda **4** no nome `x`.\n\nEscreva, no lugar dos comentários, **duas linhas**:\n\n1. A primeira pergunta se `x` é **maior ou igual** a 3 e mostra a resposta.\n2. A segunda pergunta se `x` é **menor ou igual** a 3 e mostra a resposta.\n\nUse o nome `x` e os sinais `>=` e `<=` — não escreva `True` nem `False` direto: quem tem de responder é o Python.\n\nA tela deve ficar assim:\n\n```text\nTrue\nFalse\n```",
+  "starterCode": "x = 4\n# primeira linha: pergunte se x e maior ou igual a 3 e imprima a resposta\n# segunda linha: pergunte se x e menor ou igual a 3 e imprima a resposta\n",
+  "testsCode": "import contextlib\nimport io\nimport runpy\nimport unittest\n\n\ndef rodar():\n    \"\"\"Roda solucao.py do zero e devolve tudo o que ele imprimiu.\"\"\"\n    saida = io.StringIO()\n    with contextlib.redirect_stdout(saida):\n        runpy.run_path(\"solucao.py\")\n    return saida.getvalue()\n\n\nclass TestMaiorOuIgual(unittest.TestCase):\n    def test_imprime_as_respostas_do_maior_ou_igual_e_do_menor_ou_igual(self):\n        \"\"\"o programa diz se x e maior ou igual a 3 e se x e menor ou igual a 3\"\"\"\n        self.assertEqual(rodar(), \"True\\nFalse\\n\")\n",
+  "solutionCode": "x = 4\nprint(x >= 3)\nprint(x <= 3)\n",
+  "expectedTestCount": 1,
+  "requirements": [
+    {
+      "id": "REQ-1",
+      "teste": "test_imprime_as_respostas_do_maior_ou_igual_e_do_menor_ou_igual",
+      "descricao": "o programa diz se x e maior ou igual a 3 e se x e menor ou igual a 3"
+    }
+  ]
+}

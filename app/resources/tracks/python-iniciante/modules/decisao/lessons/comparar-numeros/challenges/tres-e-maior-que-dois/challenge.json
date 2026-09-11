@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "slug": "tres-e-maior-que-dois",
+  "title": "Três é maior que dois",
+  "concept": "comparar_numeros",
+  "difficulty": 3,
+  "language": "python",
+  "outputChannel": "impressao",
+  "statement": "# Três é maior que dois\n\nEscreva um programa de **duas linhas**.\n\n1. A primeira pergunta ao Python se **3 é maior que 2** e mostra a resposta.\n2. A segunda pergunta se **3 é menor que 2** e mostra a resposta.\n\nUse os sinais `>` e `<` — não escreva `True` nem `False` direto: quem tem de responder é o Python.\n\nA tela deve ficar assim:\n\n```text\nTrue\nFalse\n```",
+  "starterCode": "# primeira linha: pergunte se 3 e maior que 2 e imprima a resposta\n# segunda linha: pergunte se 3 e menor que 2 e imprima a resposta\n",
+  "testsCode": "import contextlib\nimport io\nimport runpy\nimport unittest\n\n\ndef rodar():\n    \"\"\"Roda solucao.py do zero e devolve tudo o que ele imprimiu.\"\"\"\n    saida = io.StringIO()\n    with contextlib.redirect_stdout(saida):\n        runpy.run_path(\"solucao.py\")\n    return saida.getvalue()\n\n\nclass TestCompararNumeros(unittest.TestCase):\n    def test_imprime_as_respostas_das_duas_perguntas(self):\n        \"\"\"o programa diz se 3 e maior que 2 e se 3 e menor que 2\"\"\"\n        self.assertEqual(rodar(), \"True\\nFalse\\n\")\n",
+  "solutionCode": "print(3 > 2)\nprint(3 < 2)\n",
+  "expectedTestCount": 1,
+  "requirements": [
+    {
+      "id": "REQ-1",
+      "teste": "test_imprime_as_respostas_das_duas_perguntas",
+      "descricao": "o programa diz se 3 e maior que 2 e se 3 e menor que 2"
+    }
+  ]
+}

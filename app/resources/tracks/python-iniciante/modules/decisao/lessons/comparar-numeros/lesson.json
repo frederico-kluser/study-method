@@ -1,0 +1,124 @@
+{
+  "schemaVersion": 1,
+  "slug": "comparar-numeros",
+  "title": "Comparar números",
+  "summary": "O Python sabe responder se um número é maior ou menor que outro — e a resposta é verdadeira ou falsa.",
+  "difficulty": 3,
+  "role": "regular",
+  "targetAtom": "op:compare:>",
+  "concepts": [
+    "comparar_numeros"
+  ],
+  "prerequisites": [
+    "verdadeiro-e-falso",
+    "somar"
+  ],
+  "introduces": {
+    "productive": [
+      "op:compare:>",
+      "op:compare:<",
+      "node:Compare"
+    ],
+    "receptive": []
+  },
+  "introducesTerms": [],
+  "theory": [
+    {
+      "id": "a-pergunta-que-responde-sim-ou-nao",
+      "title": "A pergunta que responde sim ou não",
+      "markdown": "Na aula de verdadeiro e falso você viu os dois valores que o Python usa para responder uma pergunta: `True` (verdadeiro) e `False` (falso).\n\nAgora o Python vai ganhar uma pergunta para responder. A pergunta é: **3 é maior que 2?**\n\n```python\nprint(3 > 2)\n```\n\n```text\nTrue\n```\n\nO sinal `>` quer dizer *maior que*. O Python compara os dois números e mostra a resposta: `True`, porque 3 é mesmo maior que 2."
+    },
+    {
+      "id": "o-sinal-de-menor",
+      "title": "O sinal de menor",
+      "markdown": "O sinal `<` quer dizer *menor que*. Ele funciona do mesmo jeito, com a pergunta invertida:\n\n```python\nprint(3 < 2)\n```\n\n```text\nFalse\n```\n\n3 não é menor que 2, então a resposta é `False`.\n\nOs dois sinais têm um lado que aponta para o número menor: a boca do sinal fica aberta para o número maior. Em `3 > 2`, a boca está aberta para o 3; em `3 < 2`, ela está aberta para o 2 — e por isso a pergunta `3 < 2` é falsa.\n\nE quando os dois lados são iguais? A pergunta continua valendo, e a resposta é `False`:\n\n```python\nprint(3 > 3)\n```\n\n```text\nFalse\n```\n\n3 não é maior que 3 — é igual. Quem responde é o sinal de igualdade, que vem em uma aula própria."
+    },
+    {
+      "id": "comparar-um-nome-com-um-numero",
+      "title": "Comparar um nome com um número",
+      "markdown": "As comparações podem usar nomes de um lado ou dos dois lados. O Python primeiro descobre quanto vale o nome e depois compara:\n\n```python\npreco = 10\nprint(preco > 8)\n```\n\n```text\nTrue\n```\n\nO `preco` vale 10, e 10 é maior que 8: a resposta é `True`.\n\nPode comparar com uma conta também, como na aula de somar:\n\n```python\nprint(2 + 3 > 4)\n```\n\n```text\nTrue\n```\n\nO Python resolve `2 + 3`, encontra 5, e então pergunta se 5 é maior que 4.\n\nQual é o estado agora? No programa acima, o que aparece na tela e por quê? A tela mostra `True`: primeiro a conta `2 + 3` vira 5, e então `5 > 4` é verdadeiro."
+    },
+    {
+      "id": "a-resposta-e-o-valor-verdadeiro",
+      "title": "A resposta é o valor verdadeiro, não um texto",
+      "markdown": "A resposta de uma comparação é um valor de verdade (`True` ou `False`) — não é um texto. A diferença aparece na tela:\n\n```python\nprint(\"3 > 2\")\n```\n\n```text\n3 > 2\n```\n\nEntre aspas, o Python não compara nada: ele mostra o texto. Sem as aspas, ele faz a pergunta e mostra a resposta:\n\n```python\nprint(3 > 2)\n```\n\n```text\nTrue\n```\n\nNo primeiro programa a tela mostra `3 > 2` escrito; no segundo, a tela mostra `True`. Quem decide é a ausência das aspas: sem aspas, o sinal `>` é uma ordem de comparar."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "print-compara-e-mostra",
+      "statement": "`print(3 > 2)` compara 3 com 2 e mostra a resposta na tela.",
+      "question": "O que `print(3 > 2)` mostra na tela?",
+      "options": [
+        "True",
+        "3 > 2",
+        "5",
+        "nada, porque comparação não imprime"
+      ],
+      "answerIndex": 0,
+      "feedback": "O Python compara 3 com 2, e como 3 é mesmo maior, a resposta é True — e o print mostra essa resposta.",
+      "sectionId": "a-pergunta-que-responde-sim-ou-nao",
+      "optionRationales": [
+        "Como 3 é maior que 2, a comparação devolve o valor verdadeiro True, e é isso que aparece na tela.",
+        "Esse seria o caso se o 3 > 2 estivesse entre aspas — sem aspas é uma ordem de comparar, não um texto.",
+        "5 seria o resultado de uma soma 3 + 2; o sinal > não soma, ele pergunta quem é maior.",
+        "A comparação acontece e o print mostra o resultado dela — a tela não fica vazia."
+      ]
+    },
+    {
+      "id": "menor-que-e-falso",
+      "statement": "`print(3 < 2)` pergunta se 3 é menor que 2, e a resposta é False.",
+      "question": "O que `print(3 < 2)` mostra na tela?",
+      "options": [
+        "False",
+        "True",
+        "3 < 2",
+        "1"
+      ],
+      "answerIndex": 0,
+      "feedback": "3 não é menor que 2 — é maior. A resposta da pergunta é False.",
+      "sectionId": "o-sinal-de-menor",
+      "optionRationales": [
+        "3 é maior que 2, então a pergunta \"3 é menor que 2?\" é falsa — sai False.",
+        "True sairia se a pergunta fosse 3 > 2 ou 2 < 3; a pergunta aqui está invertida.",
+        "3 < 2 escrito na tela seria o caso das aspas; sem aspas o sinal < é uma ordem de comparar.",
+        "A comparação não subtrai nada: ela devolve uma resposta de verdade, nunca um número."
+      ]
+    },
+    {
+      "id": "o-resultado-da-comparacao-e-o-valor",
+      "statement": "O resultado de uma comparação é o valor True ou False, nunca um número nem um texto.",
+      "question": "O programa é `x = 3` e depois `print(x > 5)`. O que aparece na tela?",
+      "options": [
+        "False",
+        "True",
+        "3",
+        "x > 5"
+      ],
+      "answerIndex": 0,
+      "feedback": "x vale 3, e 3 não é maior que 5. A pergunta é falsa, então a tela mostra False.",
+      "sectionId": "comparar-um-nome-com-um-numero",
+      "optionRationales": [
+        "x vale 3, e a pergunta \"3 é maior que 5?\" tem resposta falsa — o estado agora é o valor False na tela.",
+        "True exigiria que x valesse mais que 5; com x = 3 a resposta é o contrário.",
+        "O 3 está escondido dentro do nome x; quem aparece na tela é a RESPOSTA da comparação, não o valor comparado.",
+        "x > 5 só apareceria com aspas; sem aspas, o sinal > é uma ordem de comparar."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "Expressões — comparações",
+      "url": "https://docs.python.org/3/reference/expressions.html",
+      "description": "A referência oficial dos operadores de comparação (> e <) e do valor que eles devolvem."
+    },
+    {
+      "title": "Tipos embutidos — operações de comparação",
+      "url": "https://docs.python.org/3/library/stdtypes.html",
+      "description": "A página oficial que lista as comparações de números e o resultado booleano de cada uma."
+    }
+  ],
+  "challenges": [
+    "tres-e-maior-que-dois"
+  ]
+}

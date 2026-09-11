@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "slug": "decisao",
+  "title": "Decisão",
+  "order": 2,
+  "lessons": [
+    "comparar-numeros",
+    "igual-e-diferente",
+    "maior-ou-igual",
+    "se",
+    "o-bloco-vazio",
+    "se-senao",
+    "se-senao-se",
+    "e-e-ou",
+    "nao",
+    "condicao-em-uma-linha",
+    "e-mesmo-o-nada",
+    "comparar-encadeado"
+  ]
+}
