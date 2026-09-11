@@ -5,9 +5,9 @@
 # só é criado se faltar). A segunda execução é rápida.
 #
 # Faz, nesta ordem:
-#   1. skill — confere a origem e instala ~/.claude/skills/study-method por cópia do clone
-#      (só recopia se o destino DIFERIR da origem — comparação conteúdo a conteúdo;
-#      sem rede, sem sudo, sem tocar em PATH, ~/.bashrc ou config do sistema);
+#   1. skills — instala TODAS as skills de skills/*/ em ~/.claude/skills/ por cópia do clone
+#      (uma por uma, só recopia se o destino DIFERIR da origem — comparação conteúdo a
+#      conteúdo; sem rede, sem sudo, sem tocar em PATH, ~/.bashrc ou config do sistema);
 #   2. app — cria app/.env.local a partir de app/.env.local.example se faltar
 #      (chaves vazias — você preenche; o .env.local é gitignored);
 #   3. app — roda `npm ci` em app/ se as dependências NÃO estiverem instaladas
@@ -23,10 +23,7 @@ SELF_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=tools/check-env.sh
 . "$SELF_DIR/tools/check-env.sh"
 
-SKILL_NAME="study-method"
-SRC="$SELF_DIR/skills/$SKILL_NAME"
 SKILLS_DIR="${CLAUDE_SKILLS_DIR:-$HOME/.claude/skills}"
-DEST="$SKILLS_DIR/$SKILL_NAME"
 APP="$SELF_DIR/app"
 
 # Exit 0 sse todo arquivo de $1 existe em $2 com conteúdo idêntico (cobertura da
@@ -44,42 +41,60 @@ src_installed_in() {
   return 0
 }
 
-# ───────────────────────────────────────────────────────────── 1. skill (idempotente)
-[ -d "$SRC" ] || { echo "erro: não achei a skill em $SRC (rode a partir do clone)." >&2; exit 1; }
-[ -f "$SRC/SKILL.md" ] || { echo "erro: não achei $SRC/SKILL.md" >&2; exit 1; }
+# Instala UMA skill: $1 é o diretório da skill na origem (skills/<nome>/). O nome
+# vem do diretório — e o frontmatter TEM que bater com ele, senão a skill não carrega.
+install_skill() {
+  local src="$1"
+  local skill_name dest fm_name
+  skill_name="$(basename -- "$src")"
+  dest="$SKILLS_DIR/$skill_name"
 
-# O `name` do frontmatter TEM que bater com o nome do diretório, senão a skill não carrega.
-FM_NAME="$(sed -n '/^---[[:space:]]*$/,/^---[[:space:]]*$/p' "$SRC/SKILL.md" \
-           | sed -n 's/^name:[[:space:]]*\([^[:space:]]*\)[[:space:]]*$/\1/p' | head -1)"
-if [ "$FM_NAME" != "$SKILL_NAME" ]; then
-  echo "erro: o frontmatter diz «name: $FM_NAME», mas o diretório é «$SKILL_NAME»." >&2
-  echo "  Uma Agent Skill só carrega quando os dois são iguais. Corrija um dos dois." >&2
+  [ -f "$src/SKILL.md" ] || { echo "erro: não achei $src/SKILL.md" >&2; exit 1; }
+
+  fm_name="$(sed -n '/^---[[:space:]]*$/,/^---[[:space:]]*$/p' "$src/SKILL.md" \
+             | sed -n 's/^name:[[:space:]]*\([^[:space:]]*\)[[:space:]]*$/\1/p' | head -1)"
+  if [ "$fm_name" != "$skill_name" ]; then
+    echo "erro: o frontmatter diz «name: $fm_name», mas o diretório é «$skill_name»." >&2
+    echo "  Uma Agent Skill só carrega quando os dois são iguais. Corrija um dos dois." >&2
+    exit 1
+  fi
+
+  if [ -e "$dest" ] || [ -L "$dest" ]; then
+    # Guarda: só removemos o que é reconhecivelmente esta skill.
+    if [ ! -L "$dest" ] && ! grep -qxF "name: $skill_name" "$dest/SKILL.md" 2>/dev/null; then
+      echo "erro: $dest existe e não parece a skill $skill_name — remova à mão e rode de novo." >&2
+      exit 1
+    fi
+    # Idempotência: se todo arquivo da origem já está no destino com o mesmo
+    # conteúdo, nada a copiar (arquivos extras no destino NÃO forçam recópia —
+    # senão qualquer arquivo solto no destino faria recopiar por recopiar).
+    if src_installed_in "$src" "$dest"; then
+      echo "Skill: já instalada em $dest (origem íntegra no destino — nada a copiar)."
+    else
+      rm -rf -- "$dest"
+      cp -R -- "$src" "$dest"
+      echo "Skill: instalada por cópia em $dest"
+    fi
+  else
+    cp -R -- "$src" "$dest"
+    echo "Skill: instalada por cópia em $dest"
+  fi
+}
+
+# ───────────────────────────────────────────────────────────── 1. skills (idempotente)
+shopt -s nullglob
+skill_dirs=("$SELF_DIR"/skills/*/)
+[ "${#skill_dirs[@]}" -gt 0 ] || {
+  echo "erro: não achei nenhuma skill em $SELF_DIR/skills/*/ (rode a partir do clone)." >&2
   exit 1
-fi
+}
 
 # (sem `--` no chmod: o BSD/macOS não aceita e quebra o install.sh no primeiro uso)
 [ -d "$SKILLS_DIR" ] || { mkdir -p -- "$SKILLS_DIR"; chmod 700 "$SKILLS_DIR"; }
 
-if [ -e "$DEST" ] || [ -L "$DEST" ]; then
-  # Guarda: só removemos o que é reconhecivelmente esta skill.
-  if [ ! -L "$DEST" ] && ! grep -qxF "name: $SKILL_NAME" "$DEST/SKILL.md" 2>/dev/null; then
-    echo "erro: $DEST existe e não parece a skill $SKILL_NAME — remova à mão e rode de novo." >&2
-    exit 1
-  fi
-  # Idempotência: se todo arquivo da origem já está no destino com o mesmo
-  # conteúdo, nada a copiar (arquivos extras no destino NÃO forçam recópia —
-  # senão qualquer arquivo solto no destino faria recopiar por recopiar).
-  if src_installed_in "$SRC" "$DEST"; then
-    echo "Skill: já instalada em $DEST (origem íntegra no destino — nada a copiar)."
-  else
-    rm -rf -- "$DEST"
-    cp -R -- "$SRC" "$DEST"
-    echo "Skill: instalada por cópia em $DEST"
-  fi
-else
-  cp -R -- "$SRC" "$DEST"
-  echo "Skill: instalada por cópia em $DEST"
-fi
+for skill_dir in "${skill_dirs[@]}"; do
+  install_skill "$skill_dir"
+done
 
 # ───────────────────────────────────────────────────────────── 2. app: chaves
 ensure_app_env_local "$APP"
@@ -102,5 +117,5 @@ else
 fi
 
 echo ""
-echo "Pronto. Skill em $DEST; dependências do app em $APP/node_modules."
+echo "Pronto. Skills instaladas em $SKILLS_DIR; dependências do app em $APP/node_modules."
 echo "Rode o projeto com:  $SELF_DIR/run.sh"
