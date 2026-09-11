@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "slug": "variavel",
+  "title": "Um nome para um valor",
+  "summary": "Guardar um valor num nome para poder usar depois.",
+  "difficulty": 1,
+  "concepts": [
+    "variavel"
+  ],
+  "prerequisites": [],
+  "introduces": {
+    "productive": [
+      "decl:assign",
+      "node:Assign",
+      "node:IntLiteral"
+    ],
+    "receptive": []
+  },
+  "theory": [
+    {
+      "id": "dar-nome-a-um-valor",
+      "title": "Dar nome a um valor",
+      "markdown": "Um nome guarda um valor para você usar mais tarde.\n\nA linha abaixo guarda o número 42 no nome `resposta`:\n\n```python\nresposta = 42\n```\n\nDaqui em diante, `resposta` vale 42 — o sinal `=` guarda, não compara."
+    }
+  ],
+  "sources": [],
+  "challenges": [
+    "guardar-resposta"
+  ]
+}

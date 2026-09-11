@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "slug": "parametro",
+  "title": "O valor que entra",
+  "summary": "Um parâmetro é o nome que a função usa para o valor que quem chama entrega.",
+  "difficulty": 1,
+  "concepts": [
+    "parametro"
+  ],
+  "prerequisites": [
+    "funcao"
+  ],
+  "introduces": {
+    "productive": [
+      "node:arg"
+    ],
+    "receptive": []
+  },
+  "theory": [
+    {
+      "id": "o-nome-dentro-da-caixa",
+      "title": "O nome dentro da caixa",
+      "markdown": "A função pode receber um valor de quem a chama: o nome entre os parênteses é o **parâmetro**.\n\n```python\ndef dobro(x):\n    return x\n```\n\nChamar `dobro(5)` entrega o 5 para o nome `x`, e a caixa devolve `x` — ou seja, 5."
+    }
+  ],
+  "sources": [],
+  "challenges": [
+    "dobrar"
+  ]
+}

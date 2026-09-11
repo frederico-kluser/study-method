@@ -747,7 +747,7 @@ describe('python — o eixo `form:` está DESABILITADO na v1, e isso é declarad
 });
 
 // ---------------------------------------------------------------------------
-// A SEMENTE RECEPTIVA × O HARNESS REAL (onda 9)
+// A SEMENTE RECEPTIVA × O HARNESS REAL (onda 9; a FASE VALOR na onda 4)
 // ---------------------------------------------------------------------------
 //
 // A semente da onda 7 tinha sido escrita contra a fase VALOR (`from solucao
@@ -758,8 +758,16 @@ describe('python — o eixo `form:` está DESABILITADO na v1, e isso é declarad
 // que é o defeito que a política `receptive-seed` existe para evitar, e que
 // faria o autor da trilha "consertar" conteúdo correto.
 //
-// Estes testes fecham o laço nos DOIS sentidos, medindo em vez de supor:
-//   - nada FALTA: toda chave do harness está na semente ∪ estrutural;
+// E a defasagem voltou do outro lado na onda 4: consertada a SAÍDA, o harness
+// da fase VALOR emitia `api:solucao.<nome>` (UMA chave por nome importado — e
+// o nome varia por desafio) e `api:.assertFalse`/`api:.assertNotEqual`, que a
+// semente não perdoava — todo desafio VALOR reprovava em A3 por causa do
+// próprio harness. Conserto em DUAS metades: o extrator parou de emitir
+// `api:` para o módulo que o aluno escreve (`from solucao import X` não é API
+// externa — onda4-caixas), e a semente ganhou as duas asserções; os testes
+// abaixo fecham o laço nos DOIS sentidos, medindo em vez de supor:
+//   - nada FALTA: toda chave do INVÓLUCRO de cada fase está na semente ∪
+//     estrutural, e o ARGUMENTO do teste (conteúdo do problema) continua fora;
 //   - nada SOBRA: toda chave da semente é emitida por um harness real.
 // A segunda direção é a que importa mais. Semente é PERDÃO: cada chave a mais
 // perdoa, para sempre, uma construção que o aluno não aprendeu.
@@ -785,6 +793,80 @@ describe('python — a semente receptiva cobre o harness REAL, e nada além dele
     }
     const fora = chaves.filter((k) => !PERDOADO.has(k));
     assert.deepEqual(fora, [], `o harness da fase SAÍDA emite chave que a semente não perdoa: ${fora.join(' ')}`);
+  });
+
+  it('FASE VALOR: TODO o invólucro do harness da fase VALOR está na semente ∪ estrutural', { skip: !TEM_PYTHON }, () => {
+    // O defeito da onda 4: a semente cobria a SAÍDA mas o harness VALOR
+    // (`docs/17` §"O formato exato do arquivo de teste — FASE VALOR") emitia
+    // `api:solucao.<nome>` e `api:.assertFalse` que ela não perdoava — todo
+    // desafio VALOR reprovava em A3 por causa do próprio harness. O fixture é
+    // o arquivo do contrato, verbatim; a medição roda com o extrator PÓS-fix
+    // da onda4-caixas (`from solucao import X` não emite `api:` — o módulo do
+    // aluno não é API externa).
+    const chaves = [...chavesDoHarness('harness-fase-valor.py')].sort();
+    // guarda de sanidade: se o fixture parasse de ser o harness da fase VALOR,
+    // o teste passaria vazio e não provaria nada.
+    for (const marca of ['node:ImportFrom', 'api:.assertEqual', 'api:unittest.TestCase']) {
+      assert.ok(chaves.includes(marca), `o fixture deixou de ser o harness da fase VALOR (sem ${marca})`);
+    }
+    const fora = chaves.filter((k) => !PERDOADO.has(k));
+    assert.deepEqual(fora, [], `o harness da fase VALOR emite chave que a semente não perdoa: ${fora.join(' ')}`);
+  });
+
+  it('FASE VALOR: `from solucao import X` NÃO emite `api:` — o módulo do aluno não é API', { skip: !TEM_PYTHON }, () => {
+    // Decisão da onda4-caixas no extrator (ramo `ast.ImportFrom`, módulo do
+    // aluno): o artefato sob teste não é API externa (análogo exato do import
+    // relativo de JavaScript), e o nome importado (`dobro`) varia de desafio
+    // para desafio — enumerá-lo na semente (lista FIXA) seria impossível. A
+    // semente NÃO pode conter `api:solucao.*`; e o harness real também não.
+    for (const nome of HARNESSES) {
+      for (const k of chavesDoHarness(nome)) {
+        assert.ok(!k.startsWith('api:solucao'), `${nome} emitiu ${k} — o módulo do aluno não é API`);
+      }
+    }
+    for (const k of PYTHON_HARNESS_RECEPTIVE_SEED) {
+      assert.ok(!k.startsWith('api:solucao'), `a semente cresceu com ${k} — módulo do aluno não é API`);
+    }
+  });
+
+  it('as chaves da onda 4 estão na semente, medidas de um harness REAL', { skip: !TEM_PYTHON }, () => {
+    // `api:.assertFalse` (aulas de verdadeiro/falso, M5) e
+    // `api:.assertNotEqual` (variante medida do formato VALOR) saem do
+    // `harness-assertivas.py` — invólucro puro: o aluno lê, nunca escreve.
+    const emitidas = new Set<string>();
+    for (const nome of HARNESSES) for (const k of chavesDoHarness(nome)) emitidas.add(k);
+    for (const k of ['api:.assertFalse', 'api:.assertNotEqual']) {
+      assert.ok(emitidas.has(k), `nenhum harness real emite ${k} — a chave está errada ou o fixture sumiu`);
+      assert.ok(PYTHON_HARNESS_RECEPTIVE_SEED.includes(k), `${k} sumiu da semente`);
+    }
+  });
+
+  it('FASE VALOR/assertivas: o invólucro cabe, o ARGUMENTO não — global:ValueError fica fora', { skip: !TEM_PYTHON }, () => {
+    // A régua (docs/16 §3.2/§3.3 + docs/17 §"O formato exato do arquivo de
+    // teste"): só o INVÓLUCRO (import, classe, asserts, self) é perdoado; o
+    // ARGUMENTO do teste é conteúdo. O `assertRaises(ValueError, …)` do
+    // fixture emite `global:ValueError` — o tipo da exceção é a matéria da
+    // aula de erros e entra pelo orçamento CUMULATIVO, nunca pela semente.
+    // Este teste garante que o fix da onda 4 não apagou essa fronteira.
+    const chaves = [...chavesDoHarness('harness-assertivas.py')].sort();
+    for (const marca of ['api:.assertTrue', 'api:.assertIsNone', 'api:.assertFalse', 'api:.assertNotEqual']) {
+      assert.ok(chaves.includes(marca), `o fixture deixou de emitir ${marca}`);
+    }
+    const fora = chaves.filter((k) => !PERDOADO.has(k));
+    assert.deepEqual(fora, ['global:ValueError'], `o conjunto fora-da-semente mudou: ${fora.join(' ')}`);
+    assert.ok(!PYTHON_HARNESS_RECEPTIVE_SEED.includes('global:ValueError'));
+  });
+
+  it('o ARGUMENTO do teste é conteúdo — `op:unary:-` NÃO entra na semente', { skip: !TEM_PYTHON }, () => {
+    // `dobro(-3)` emite `op:unary:-` sobre o harness da fase VALOR. Nada do
+    // harness emite isso — é o NÚMERO NEGATIVO do argumento, matéria da aula
+    // que o ensina. A semente perdoa invólucro, nunca argumento.
+    const comNegativo =
+      `${fs.readFileSync(path.join(FIXTURES, 'harness-fase-valor.py'), 'utf8')}` +
+      '\n    def test_dobro_de_negativo(self):\n        self.assertEqual(dobro(-3), -6)\n';
+    const fora = [...new Set(chavesDe(comNegativo))].filter((k) => !PERDOADO.has(k)).sort();
+    assert.deepEqual(fora, ['op:unary:-']);
+    for (const k of fora) assert.ok(!PYTHON_HARNESS_RECEPTIVE_SEED.includes(k), k);
   });
 
   it('as DOZE chaves que a onda 7 não tinha estão lá, uma a uma', { skip: !TEM_PYTHON }, () => {

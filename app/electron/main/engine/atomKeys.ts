@@ -455,6 +455,37 @@ export const TYPESCRIPT_HARNESS_RECEPTIVE_SEED: readonly AtomKey[] = [
  * aprendeu. Só entra o que o harness REALMENTE emite — e `engineLangPython`
  * §"o harness da fase SAÍDA cabe na semente" mede isso a cada `npm test`, para
  * que a defasagem não volte em silêncio.
+ *
+ * ── AS DUAS CHAVES DA FASE VALOR (onda 4) ──────────────────────────────────
+ *
+ * A fase VALOR (`docs/17-trilha-python.md` §"O formato exato do arquivo de
+ * teste — FASE VALOR") tem um harness mais magro que o da SAÍDA — sem captura
+ * de stdout — mas dois métodos de asserção dele faltavam aqui, e um desafio
+ * VALOR que os usasse reprovava em A3 por causa do próprio harness. Medidos
+ * rodando o extrator real sobre as variantes do contrato (asserts:
+ * assertEqual/assertTrue/assertFalse/assertIsNone/assertNotEqual; import de 1
+ * e 2 nomes; chamada com literais):
+ *
+ *   - `api:.assertFalse` — usado pelas aulas de verdadeiro/falso (M5).
+ *   - `api:.assertNotEqual` — variante medida do formato VALOR ("o dobro de 2
+ *     não é 3"): o método é invólucro, os ARGUMENTOS continuam conteúdo.
+ *
+ * E UMA AUSÊNCIA DELIBERADA: `from solucao import dobro` NÃO emite `api:` em
+ * lugar nenhum. O módulo que o aluno escreve (`solucao.py`, o `PY_ENTRY_PATH`
+ * do adaptador) não é API externa — é o artefato sob teste, e o nome importado
+ * (`dobro`) varia de desafio para desafio. O extrator o ignora no ramo
+ * `ast.ImportFrom` (`extract_ast.py`, `MODULO_DO_ALUNO`), análogo exato do
+ * import relativo de JavaScript, e o nome importado continua saindo como
+ * `node:Name` estrutural + `node:Call` desta semente. Uma chave
+ * `api:solucao.<nome>` na semente seria impossível (lista FIXA contra nome
+ * variável); perdoar `api:solucao.*` por prefixo abriria a porta para todo
+ * import de todo módulo.
+ *
+ * O ARGUMENTO do teste (`dobro(2)`, `-3`, `True`) é CONTEÚDO do problema, não
+ * harness: `op:unary:-`, `node:List`, `node:BoolLiteral`, o tipo da exceção
+ * do `assertRaises(ValueError, …)` etc. entram pelo orçamento cumulativo das
+ * aulas, nunca por esta lista. Os testes §"FASE VALOR" fecham o laço nos dois
+ * sentidos, inclusive medindo que a semente NÃO cresceu com chave de argumento.
  */
 export const PYTHON_HARNESS_RECEPTIVE_SEED: readonly AtomKey[] = [
   'node:Module',
@@ -493,6 +524,10 @@ export const PYTHON_HARNESS_RECEPTIVE_SEED: readonly AtomKey[] = [
   'api:.assertTrue',
   'api:.assertIsNone',
   'api:.assertRaises',
+  // fase VALOR — as asserções que faltavam (onda 4); `from solucao import X`
+  // não emite `api:` (o módulo do aluno não é API — ver `extract_ast.py`)
+  'api:.assertFalse',
+  'api:.assertNotEqual',
 ] as const;
 
 /**

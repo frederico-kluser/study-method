@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "slug": "trilha-python-valor",
+  "title": "Trilha Python VALOR mínima (fixture)",
+  "description": "Trilha-fixture da FASE VALOR do contrato (docs/17 §'O formato exato do arquivo de teste — FASE VALOR'): 1 módulo, 3 aulas, 3 desafios na forma `from solucao import ...` + assert do unittest. Existe para medir que o harness VALOR cabe na semente receptiva (A3) — o defeito da onda 4 — e que o ARGUMENTO do teste continua sendo conteúdo, cobrado pelo orçamento cumulativo das aulas.",
+  "language": "pt-BR",
+  "domain": "programming",
+  "programmingLanguage": "python",
+  "runtime": "cpython-3.14",
+  "harnessLanguage": "python",
+  "entryCriteria": [],
+  "modules": [
+    "modulo-1"
+  ]
+}

@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "slug": "dobrar",
+  "title": "Dobrar com um parâmetro",
+  "concept": "parametro",
+  "difficulty": 1,
+  "language": "python",
+  "statement": "# Dobrar com um parâmetro\n\nDefina a função `dobro`, que recebe um número no parâmetro `x` e **devolve o mesmo valor** (a conta de dobrar fica para uma aula próxima).\n\nA máquina vai chamar `dobro(2)` e conferir se devolve 2, e também vai conferir que `dobro(0)` é falso (o zero é falso em Python).",
+  "starterCode": "def dobro(x):\n    return 0\n",
+  "solutionCode": "def dobro(x):\n    return x\n",
+  "testsCode": "import unittest\n\nfrom solucao import dobro\n\n\nclass TestDobro(unittest.TestCase):\n    def test_dobro_de_2(self):\n        \"\"\"dobro(2) devolve 2\"\"\"\n        self.assertEqual(dobro(2), 2)\n\n    def test_zero_e_falso(self):\n        \"\"\"dobro(0) e falso\"\"\"\n        self.assertFalse(dobro(0))\n",
+  "expectedTestCount": 2
+}

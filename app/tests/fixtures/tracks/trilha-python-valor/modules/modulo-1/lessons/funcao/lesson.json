@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "slug": "funcao",
+  "title": "Uma função que devolve",
+  "summary": "Uma função é uma caixa com nome que, chamada, devolve um valor.",
+  "difficulty": 1,
+  "concepts": [
+    "funcao"
+  ],
+  "prerequisites": [
+    "variavel"
+  ],
+  "introduces": {
+    "productive": [
+      "node:FunctionDef",
+      "node:Return"
+    ],
+    "receptive": []
+  },
+  "theory": [
+    {
+      "id": "a-caixa-com-nome",
+      "title": "A caixa com nome",
+      "markdown": "Uma função é uma caixa com nome: você a define uma vez e a chama quantas vezes quiser, e cada chamada devolve um valor.\n\n```python\ndef resposta():\n    return 42\n```\n\nChamar `resposta()` devolve 42 — `return` entrega o valor para quem chamou."
+    }
+  ],
+  "sources": [],
+  "challenges": [
+    "definir-funcao"
+  ]
+}

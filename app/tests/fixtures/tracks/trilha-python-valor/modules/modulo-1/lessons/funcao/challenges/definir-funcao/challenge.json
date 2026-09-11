@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "slug": "definir-funcao",
+  "title": "Definir a função",
+  "concept": "funcao",
+  "difficulty": 1,
+  "language": "python",
+  "statement": "# Definir a função\n\nDefina a função `resposta`, que **devolve 42** quando chamada — com `def`, o nome `resposta` e `return`.\n\nA máquina vai chamar `resposta()` e conferir se o valor devolvido é 42.",
+  "starterCode": "def resposta():\n    return 0\n",
+  "solutionCode": "def resposta():\n    return 42\n",
+  "testsCode": "import unittest\n\nfrom solucao import resposta\n\n\nclass TestResposta(unittest.TestCase):\n    def test_resposta_e_42(self):\n        \"\"\"resposta() e 42\"\"\"\n        self.assertEqual(resposta(), 42)\n",
+  "expectedTestCount": 1
+}

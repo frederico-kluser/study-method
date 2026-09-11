@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "slug": "guardar-resposta",
+  "title": "Guardar a resposta",
+  "concept": "variavel",
+  "difficulty": 1,
+  "language": "python",
+  "statement": "# Guardar a resposta\n\nGuarde o número **42** no nome `resposta`, em uma linha só.\n\nA máquina vai conferir: se `resposta` valer 42, o desafio passa.",
+  "starterCode": "resposta = 0\n# troque o 0 pelo valor pedido\n",
+  "solutionCode": "resposta = 42\n",
+  "testsCode": "import unittest\n\nfrom solucao import resposta\n\n\nclass TestResposta(unittest.TestCase):\n    def test_resposta_e_42(self):\n        \"\"\"a resposta e 42\"\"\"\n        self.assertEqual(resposta, 42)\n",
+  "expectedTestCount": 1
+}
