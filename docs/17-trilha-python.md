@@ -1,10 +1,18 @@
-# 17 — A trilha de Python
+# 17 — Os quatro cursos de Python
 
-> **Contrato de CONTEÚDO da ÚNICA trilha do produto.** Slug: `python`. Não é "Python do zero" nem
-> "Python avançado" — é **o curso de Python**, do primeiro `print` até o que se cobra de uma pessoa
-> sênior. Este documento define O QUÊ cada módulo e cada aula ensinam e o que se presume que o aluno
-> já sabe. Ele é o INSUMO da engine: a coluna `Ensina` vira `introduces` e a coluna `Presume` vira o
-> grafo de pré-requisitos e o orçamento cumulativo de
+> ⚑ **Este contrato descrevia a ÚNICA trilha. Desde 2026-09-10 o produto tem QUATRO cursos
+> encadeados (decisão do dono):** `python-iniciante`, `python-intermediario`, `python-avancado` e
+> `python-especialista`. **O conteúdo pedagógico abaixo é o mesmo; o que muda é a embalagem e a
+> cadeia** — §0 tem a tabela dos quatro cursos, §1 tem a cadeia e os módulos porta-de-entrada, §2
+> tem o conteúdo (a espinha comum), §3 tem os cursos com os seus módulos. A trilha única `python`
+> existiu entre `83a93f4` (onda 9) e esta data; o registro histórico está em
+> [`16-engine-de-trilha.md`](16-engine-de-trilha.md) §1.
+>
+> **Contrato de CONTEÚDO dos quatro cursos de Python.** Não é "Python do zero" nem "Python
+> avançado" — é **a cadeia de Python**, do primeiro `print` até o que se cobra de uma pessoa
+> sênior. Este documento define O QUÊ cada módulo e cada aula ensinam e o que se presume que o
+> aluno já sabe. Ele é o INSUMO da engine: a coluna `Ensina` vira `introduces` e a coluna
+> `Presume` vira o grafo de pré-requisitos e o orçamento cumulativo de
 > [`16-engine-de-trilha.md`](16-engine-de-trilha.md) §3.5.
 >
 > **Autoridade.** Onde este documento e [`16-engine-de-trilha.md`](16-engine-de-trilha.md)
@@ -13,9 +21,10 @@
 > regra do par, §"A regra do par", e o teto de consolidações por módulo) estão medidas e explicadas
 > no lugar onde aparecem.
 >
-> **Uma trilha só.** Não existe trilha introdutória separada, não existe trilha de TypeScript e não
-> existe trilha "avançada". O aluno entra sem nunca ter programado e sai capaz de trabalhar como
-> sênior em Python. A capacidade de auditar TypeScript continua na ENGINE
+> **Uma espinha, quatro embalagens.** Neste documento, "esta trilha" continua significando o
+> conteúdo pedagógico — hoje ele é a **espinha comum** dos quatro cursos. O aluno do
+> `python-iniciante` entra sem nunca ter programado; cada curso entrega a sua fronteira (§0) e o
+> seguinte a presume (§1). A capacidade de auditar TypeScript continua na ENGINE
 > (`app/electron/main/engine/lang/typescript.ts`, implementada e testada) — ela é infraestrutura,
 > não conteúdo.
 >
@@ -28,9 +37,129 @@
 > indicated by indentation", "Python is dynamically typed, so there is no need for variable
 > declarations".
 
+## 0. Visão — os quatro cursos
+
+A cadeia tem quatro cursos; cada um recorta uma faixa de módulos da espinha (§2) e ganha, quando
+preciso, um módulo porta-de-entrada (§1). As fronteiras vêm das duas fronteiras da espinha (§"As
+duas fronteiras, e o que elas significam"): a de **júnior** (fim do M12), a de **pleno** (fim do
+M21) e o nível **sênior** (M22 a M26), que o avançado e o especialista repartem.
+
+| Slug | Título | Módulos | Aulas | Fronteira de SAÍDA (o que o aluno passa a conseguir) | `entryCriteria` (o que o curso presume ao entrar) |
+|---|---|---|---|---|---|
+| `python-iniciante` | Do primeiro `print` ao júnior | M1–M12 | **180** | **júnior** — escrever um programa Python inteiro sozinha: lê e escreve arquivo, trata erro, organiza em módulos e em classes (fim do M12, a aula `o-seu-proprio-erro`) | **nada** — zero absoluto: axiomas estruturais + semente receptiva do harness (§"Público e axioma de entrada") |
+| `python-intermediario` | Do júnior ao pleno | `a-porta-das-classes` + M13–M21 | **100 + 12 = 112** | **pleno** — usar a linguagem como ela é, não como se fosse outra: protocolos em vez de `isinstance`, geradores em vez de listas, tipos que o conferidor entende, testes que isolam, e concorrência escolhida com critério (fim do M21, a aula `async-nao-e-thread`) | a saída do iniciante — o júnior de M1–M12, com as classes de M12 re-introduzidas na porta |
+| `python-avancado` | Do pleno ao sênior, medindo | `a-porta-da-medicao` + M22–M24 | **26 + 9 = 35** | **sênior** — **medir** antes de decidir (M22), empacotar e distribuir (M23), impor qualidade por ferramenta (M24) | a saída do intermediário — o pleno de M13–M21 |
+| `python-especialista` | Padrões de projeto e o capô do CPython | `a-porta-dos-padroes` + M25–M26 | **31 + 10 = 41** | **sênior** — escolher (e recusar) padrão de projeto (M25) e abrir o capô: descritor, metaclasse, contagem de referência, bytecode, bits e a fronteira com C (M26) | a saída do avançado — o sênior de M22–M24 |
+
+**Total da cadeia: 29 módulos · 368 aulas** — 337 da espinha + 31 previstas nas portas (§4). O
+número de aulas é **saída, não entrada** ([`16`](16-engine-de-trilha.md) §3.6): ele é a
+consequência de aplicar o teto de ≤2 construções produtivas novas por aula (pela regra do par) à
+progressão atômica, somado à autocontenção por curso (§1). Nenhum dos números acima foi escolhido:
+foi contado sobre as tabelas (§4) — e a contagem final sai das tabelas autoradas, não deste resumo.
+
+## 1. A cadeia de interligação e os módulos porta-de-entrada
+
+**Por que cada curso é autocontido para a engine.** O orçamento cumulativo é derivado **por
+trilha** ([`16`](16-engine-de-trilha.md) §3.5): `budget_entrada(N) = entryConstructs ∪
+fecho-para-baixo(desbloqueado_por(N))`, e `entryConstructs` é **axiomas estruturais + semente
+receptiva do harness** ([`16`](16-engine-de-trilha.md) §3.2/D1) — **não existe entrada declarada
+por construção**. Uma trilha não pode declarar "o aluno já sabe classes": o que ela sabe, ela
+introduz nas próprias aulas. Isso vale para as quatro trilhas `python-*` exatamente como valia
+para a única: para a engine, o curso `python-intermediario` é uma trilha **nova**, o orçamento
+dela começa na semente, e as construções de classe que M13+ presume têm de nascer **dentro** dela.
+
+**A consequência de design: o módulo porta-de-entrada.** O primeiro módulo de cada curso
+(intermediário, avançado, especialista) **re-introduz, em aulas próprias, as construções de
+fronteira que o curso anterior ensinou** — as mesmas aulas-fonte da espinha, reescritas para "quem
+vem do curso anterior". Cada aula da porta tem `introduces` próprios: **naquela trilha, ela é a
+origem da construção** (a unicidade do I3 percorre por curso, §"A verificação Ensina × Presume").
+Para o aluno, a porta é revisão espaçada (§"Princípios pedagógicos aplicados", princípio 6); para
+a engine, é autocontenção.
+
+**A regra de fechamento (normativa).** Ao autorar a trilha de um curso, todo átomo produtivo que as
+tabelas do curso usam e que não tem origem naquela trilha (nem na semente, nos axiomas nem nos
+estruturais) **tem de ganhar a sua aula no módulo porta** — a porta é a lista a completar, não a
+lista final. As portas abaixo declaram o conteúdo **previsto**: as construções de fronteira, ou
+seja, as que os módulos seguintes presumem com maior peso.
+
+### A porta do intermediário — `a-porta-das-classes` (12 aulas previstas)
+
+Re-introduz as construções de classe de M12 que M13+ presume: `ClassDef`, `MethodDef`,
+`InitMethod`, `DunderStr`, `decl:assign` com `self`, `super`, `isinstance`/`issubclass`,
+`global:Exception`, `node:Decorator` e `staticmethod`/`classmethod`/`property`. As aulas-fonte são
+as 15 de M12, comprimidas: a consolidação `criar-um-objeto` (chamar a classe — `node:Call` é
+axioma) virou degrau da aula 1, e `trocar-o-comportamento` (sobrescrever) virou degrau da aula 4.
+
+| Aula | Ensina | Presume |
+|---|---|---|
+| `o-molde-e-o-objeto` | `node:ClassDef` | nada |
+| `o-construtor` | `node:MethodDef`, `node:InitMethod` | `o-molde-e-o-objeto` |
+| `guardar-dado-no-objeto` | cons. — `decl:assign` em forma nova (`self.nome = nome`) | `o-construtor` |
+| `metodo-que-usa-o-dado` | cons. — `node:MethodDef` em forma nova (método que lê `self`; o degrau inclui sobrescrever) | `guardar-dado-no-objeto` |
+| `mostrar-o-objeto` | `node:DunderStr` | `metodo-que-usa-o-dado` |
+| `atributo-da-classe` | cons. — `decl:assign` em forma nova (no corpo da classe, não do método) | `guardar-dado-no-objeto` |
+| `herdar` | cons. — `node:ClassDef` em forma nova (com classe-base) | `o-molde-e-o-objeto` |
+| `chamar-a-classe-mae` | `global:super` | `herdar` |
+| `e-desse-tipo` | `global:isinstance`, `global:issubclass` | `herdar` |
+| `metodo-sem-objeto` | `node:Decorator`, `global:staticmethod` | `metodo-que-usa-o-dado` |
+| `metodo-da-classe-e-propriedade` | `global:classmethod`, `global:property` | `metodo-sem-objeto` |
+| `o-seu-proprio-erro` | `global:Exception` | `herdar` |
+
+### A porta do avançado — `a-porta-da-medicao` (9 aulas previstas)
+
+Re-introduz as construções que M22+ presume: `import`/`ImportFrom` (M10), lista e conjunto
+(M5/M7), `op:compare:in` (M5 — o M22 `a-estrutura-certa-muda-tudo` o consolida, e a trilha precisa
+da origem), função-como-valor e `functools.cache` (M17), atributo-de-classe (M12) e
+generator-exp (M16). A 4ª aula (`esta-na-lista`) existe **por causa da regra de fechamento**: sem
+ela, o `op:compare:in` consolidado em M22 não teria origem nesta trilha.
+
+| Aula | Ensina | Presume |
+|---|---|---|
+| `trazer-uma-ferramenta` | `node:Import`, `api:math.sqrt` | nada |
+| `trazer-so-um-nome` | `node:ImportFrom` | `trazer-uma-ferramenta` |
+| `criar-uma-lista` | `node:List` | `trazer-so-um-nome` |
+| `esta-na-lista` | `op:compare:in`, `op:compare:not in` | `criar-uma-lista` |
+| `conjunto-sem-repetidos` | `node:Set`, `global:set` | `esta-na-lista` |
+| `funcao-e-um-valor` | cons. — `decl:assign` em forma nova (ligar um nome a uma função sem chamar) | `conjunto-sem-repetidos` |
+| `lembrar-o-resultado` | `api:functools.cache`, `api:functools.lru_cache` | `funcao-e-um-valor` |
+| `atributo-da-classe` | cons. — `decl:assign` em forma nova (no corpo da classe) | `funcao-e-um-valor` |
+| `gerar-sem-guardar` | `node:GeneratorExp` | `criar-uma-lista` |
+
+### A porta do especialista — `a-porta-dos-padroes` (10 aulas previstas)
+
+Re-introduz as construções que M25+ **presume e que vêm dos cursos anteriores**: função-como-valor
+e `lambda` (M17), a classe-base e o contrato sem herança (M12 + M18), os decoradores por inteiro —
+aplicar `node:Decorator` (M12), definir (M17) e `functools.wraps` — e o contexto —
+`__enter__`/`__exit__` do próprio objeto (M13) e o gerador que o `contextmanager` precisa (M15).
+O `abc` e o `contextlib.contextmanager` **não entram na porta**: são M25, neste curso — a porta
+cobre exatamente o que as aulas de M25 presumem (`herdar`, `Protocol`, `yield` e o `with` próprio).
+A reescrita de `o-contrato-sem-heranca` ensina `Protocol` **sem** `TypeVar`, que fica fora desta
+trilha (M25 não o presume).
+
+| Aula | Ensina | Presume |
+|---|---|---|
+| `funcao-e-um-valor` | cons. — `decl:assign` em forma nova (ligar um nome a uma função sem chamar) | nada |
+| `funcao-sem-nome` | `node:Lambda` | `funcao-e-um-valor` |
+| `herdar` | cons. — `node:ClassDef` em forma nova (com classe-base) | `funcao-e-um-valor` |
+| `metodo-sem-objeto` | `node:Decorator`, `global:staticmethod` | `herdar` |
+| `escrever-um-decorador` | cons. — `node:Decorator` em forma nova (definir, não aplicar) | `metodo-sem-objeto` |
+| `preservar-o-nome-decorado` | `api:functools.wraps` | `escrever-um-decorador` |
+| `dado-sem-boilerplate` | `api:dataclasses.dataclass`, `api:dataclasses.field` | `escrever-um-decorador` |
+| `o-contrato-sem-heranca` | `api:typing.Protocol`, `node:EllipsisLiteral` | `herdar` |
+| `a-funcao-que-pausa` | `node:Yield` | `funcao-sem-nome` |
+| `o-proprio-with` | cons. — `node:With` em forma nova (`__enter__`/`__exit__` do seu objeto) | `a-funcao-que-pausa` |
+
+As três portas somam **31 aulas previstas**; a contagem por curso está em §4.
+
+## 2. O conteúdo pedagógico — a espinha comum dos quatro cursos
+
+Tudo o que segue era o contrato integral da trilha única e agora é a **espinha comum**: vale para
+os quatro cursos, em cada trilha, do mesmo jeito — as seções estão na ordem original. A aula 1 é a
+do `python-iniciante`; os módulos de cada curso, com as tabelas copiadas, estão em §3.
+
 ---
 
-## A aula 1 é só `print`, e é uma ordem do dono
+### A aula 1 é só `print`, e é uma ordem do dono
 
 > "eu nao pedi um curso de programaçao do zero, TODOS OS CURSOS COMECAM DO ZERO E VAO ATE O SENIOR"
 >
@@ -54,7 +183,7 @@ consequência dessa decisão, não o contrário.
 
 ---
 
-## A tensão imprimir × devolver, e como a ferramenta cede
+### A tensão imprimir × devolver, e como a ferramenta cede
 
 [`16`](16-engine-de-trilha.md) §10 mede o modo de falha número um de exercício gerado: **a solução
 imprime enquanto o teste espera retorno** (de 165 exercícios com solução e testes, 51 — 30,9% —
@@ -67,7 +196,7 @@ tinham solução que passava nos próprios testes). Foi esse número que fez a v
 assevera um valor de retorno. Medido nesta máquina, com as quatro provas de execução de
 [`16`](16-engine-de-trilha.md) §5.4 passando.
 
-### A progressão de canal, em três fases
+#### A progressão de canal, em três fases
 
 | Fase | Módulos | `outputChannel` | O que o teste assevera |
 |---|---|---|---|
@@ -85,7 +214,7 @@ Inverter a ordem (ensinar `return` antes de `print`, como a versão anterior faz
 por outro: evita o modo de falha nº 1 no gate e **cria** a concepção errada de que "programa que não
 devolve não serve", que é o que todo material de Python contradiz na primeira página.
 
-### O formato exato do arquivo de teste — FASE SAÍDA
+#### O formato exato do arquivo de teste — FASE SAÍDA
 
 Este é o arquivo que torna a aula 1 possível. Ele é `frozenRegion` inteira: o aluno lê, nunca edita.
 
@@ -122,7 +251,7 @@ verdes, com a mesma saída.
 1, um `if`, uma comparação, um `==` e um `__name__` que não têm papel nenhum — quatro construções
 receptivas a mais, de graça, num arquivo cuja única função é ser lido. Ele sai.
 
-### O formato exato do arquivo de teste — A VIRADA (`outputChannel: 'ambos'`)
+#### O formato exato do arquivo de teste — A VIRADA (`outputChannel: 'ambos'`)
 
 ```python
 import contextlib
@@ -159,7 +288,7 @@ class TestImprimirNaoEDevolver(unittest.TestCase):
         self.assertEqual(buffer.getvalue(), "")
 ```
 
-### O formato exato do arquivo de teste — FASE VALOR
+#### O formato exato do arquivo de teste — FASE VALOR
 
 ```python
 import unittest
@@ -173,7 +302,7 @@ class TestDobro(unittest.TestCase):
         self.assertEqual(dobro(2), 4)
 ```
 
-### As quatro provas, medidas
+#### As quatro provas, medidas
 
 ```bash
 cd <desafio> && python3 -B -m unittest discover -s tests -t . -p 'test_*.py' -v
@@ -190,10 +319,13 @@ bloqueia `os._exit`/`os.abort`, que forjariam um relatório verde.
 
 ---
 
-## Público e axioma de entrada
+### Público e axioma de entrada
 
-**Público: quem nunca programou.** Zero absoluto. E a mesma pessoa, 313 aulas depois, sai sênior —
-não há segunda trilha para onde mandá-la.
+**Público: quem nunca programou.** Zero absoluto — essa é a entrada do `python-iniciante`, e é
+a única entrada declarada na cadeia (§1). A mesma pessoa, curso a curso: **180** aulas depois (fim
+do M12) é júnior; **112** depois (fim do M21) é plena; **35** depois (M22–M24) é sênior; **41**
+depois (M25–M26) é sênior de capô aberto. Não existe mais "segunda trilha para onde mandá-la":
+existe o próximo curso da cadeia (§0). Este documento não promete prazos — promete a cadeia.
 
 **Axioma de entrada RECEPTIVO:** a semente do harness (§"A semente receptiva"), pela política
 `receptive-seed` ([`16`](16-engine-de-trilha.md) §3.2/D1). É o que o aluno lê no arquivo de teste e
@@ -224,7 +356,7 @@ silêncio o que a trilha nunca ensinou.
 
 ---
 
-## Os fatos da linguagem que governam esta trilha
+### Os fatos da linguagem que governam esta trilha
 
 Todos medidos nesta máquina; cada linha traz o comando.
 
@@ -244,7 +376,7 @@ Todos medidos nesta máquina; cada linha traz o comando.
 
 ---
 
-## O que o `ast` esconde — as chaves sintéticas REAIS do adaptador
+### O que o `ast` esconde — as chaves sintéticas REAIS do adaptador
 
 O `ast` do Python colapsa distinções que são eventos de currículo. O adaptador refina, e **estas são
 as únicas chaves sintéticas que existem** (fonte: `vocab/py/extract_ast.py`, função `_sinteticos` e
@@ -296,7 +428,7 @@ print('node:ChainedCompare' in d['axes']['node'], d['total'])"   # -> False 632
 
 ---
 
-## Vocabulário de átomos desta trilha
+### Vocabulário de átomos desta trilha
 
 Os seis eixos de [`16`](16-engine-de-trilha.md) §3.1, com a forma que cada um assume em Python.
 
@@ -320,7 +452,7 @@ Três decisões declaradas, com o motivo:
    são `ast.Compare`, não `ast.BinOp`. Misturar faria o orçamento de uma aula de igualdade liberar
    aritmética.
 
-### A regra do par — a divergência normativa que este documento declara
+#### A regra do par — a divergência normativa que este documento declara
 
 Uma única construção da linguagem quase nunca produz uma única chave. Medido:
 
@@ -357,7 +489,7 @@ mecânico; o script de verificação no fim deste documento o implementa:
 | `node:Match` | `node:match_case` |
 | `node:Lambda`, `node:FunctionDef` | `node:arg` só quando a aula é a de parâmetro; caso contrário nada |
 
-### A semente receptiva do harness Python
+#### A semente receptiva do harness Python
 
 O que o aluno lê em TODO desafio e não escreve em nenhum. Entra no receptivo da aula 1 e nunca no
 produtivo. **Esta lista é a fonte normativa de `PYTHON_HARNESS_RECEPTIVE_SEED`**
@@ -399,7 +531,7 @@ corrigida aqui.
 
 ---
 
-## Princípios pedagógicos aplicados
+### Princípios pedagógicos aplicados
 
 1. **A primeira construção é a que produz efeito visível.** O aluno escreve `print`, roda e vê. Não
    há invólucro congelado, não há função para preencher, não há "isso a gente explica depois".
@@ -422,7 +554,7 @@ corrigida aqui.
 
 ---
 
-## Estrutura da trilha
+### Estrutura da espinha — 26 módulos, 337 aulas
 
 **26 módulos, 337 aulas.** O número de aulas é **saída, não entrada**
 ([`16`](16-engine-de-trilha.md) §3.6): ele é a consequência de aplicar o teto de ≤2 construções
@@ -458,7 +590,7 @@ exige de "função", "variável" e "classe". Não foi escolhido; foi contado.
 | 25 | `padroes-de-projeto-em-python` | 10 | 6 | sênior | o modelo de dados e tipagem (M13+M18) |
 | 26 | `por-dentro-do-python` | 21 | 7 | sênior | padrões e desempenho (M25+M22) |
 
-### As duas fronteiras, e o que elas significam
+#### As duas fronteiras, e o que elas significam
 
 Não são rótulos de marketing: cada uma é definida pelo que a pessoa consegue **fazer** sozinha.
 
@@ -475,7 +607,7 @@ o `CONTRIBUTING.md` impõe a este repositório.
 
 ---
 
-## Conteúdo por aula
+### Conteúdo por aula
 
 Nas tabelas, `Ensina` lista as construções produtivas novas (**no máximo 2**, pela regra do par) e
 `Presume` nomeia a aula anterior que ensinou cada construção pressuposta. "cons." marca uma aula de
@@ -484,7 +616,491 @@ Nas tabelas, `Ensina` lista as construções produtivas novas (**no máximo 2**,
 Os quatro primeiros módulos vão ao nível de ÁTOMO, com o que o aluno digita, porque é onde ele não
 tem nada.
 
-### Módulo 1 — `a-tela`
+A organização **por curso** está em §3: cada curso lista os seus módulos (tabelas copiadas daqui, verbatim) e o módulo porta-de-entrada que re-introduz as construções da fronteira do curso anterior; daí em diante, as tabelas valem integralmente.
+
+---
+
+### A tensão A6 × I3, e como esta trilha a resolve
+
+A bateria tem duas regras que, lidas ao pé da letra, se contradizem em toda aula de consolidação:
+
+- **A6** (erro) — `atomos(solutionCode) ∩ introduces.productive ≠ ∅`: a aula tem de **puxar** algo.
+- **I3** — nenhuma construção é introduzida por duas aulas (unicidade de origem).
+
+Uma aula que só reforça não pode satisfazer A6 sem re-declarar um átomo já introduzido, o que
+aparenta violar I3.
+
+**Resolução adotada:** I3 fala da **primeira introdução** (a aula que é `primeiraAulaQueEnsina` para
+o átomo), não de toda menção. Uma aula de consolidação declara `role: "consolidation"` e lista em
+`introduces.productive` o átomo que **reexercita**; `targetAtom` continua apontando para a aula de
+origem. É o que a trilha de 0 violações do repositório já faz.
+
+**São 109 aulas de consolidação em 337 (32%), e a distribuição é desigual de propósito.** A régua
+"≤2 por módulo" da versão anterior não sobrevive ao contato com o `ast` do Python, e mentir sobre
+isso seria pior que declarar. Os três módulos que estouram, com a causa **medida**:
+
+| Módulo | cons. | Causa |
+|---|---|---|
+| M4 `caixas-que-devolvem` | 10 de 14 | §3.6 manda decompor "função" em seis passos; o `ast` dá **três** chaves (`node:FunctionDef`, `node:arg`, `node:Return`) |
+| M13 `o-modelo-de-dados` | 8 de 15 | o adaptador refina **dois** dunders (`node:InitMethod`, `node:DunderStr`); os outros catorze protocolos são `node:MethodDef` para o gate |
+| M8 `funcoes-em-profundidade` | 7 de 14 | `f(a=1)`, `f(**d)`, `def f(a, /, b, *, c)` e a recursão são quatro eventos de currículo distintos sobre **zero** chave nova (`node:keyword` é estrutural) |
+
+A regra que esta trilha se impõe no lugar da antiga: **toda consolidação nomeia o degrau na própria
+célula `Ensina`** ("em forma nova (…)"), e o script abaixo reprova consolidação que reforce átomo sem
+origem anterior. Consolidação sem degrau é aula que não ensina nada, e o gate está certo em
+reclamar.
+
+---
+
+### A verificação Ensina × Presume
+
+**É reexecutável, e ela é a rede.** Como as tabelas são o dado, a conferência roda sobre este próprio
+arquivo. O script lê as **26 tabelas da espinha e as 3 portas** (368 aulas, §4), monta a ordem
+da cadeia e reprova **seis** coisas:
+
+| # | O que reprova |
+|---|---|
+| I12 | slug de aula repetido **no mesmo curso** |
+| LACUNA | `Presume` apontando para aula que ainda não veio (lacuna de currículo ou inversão de ordem) |
+| I3 | átomo introduzido por duas aulas **do mesmo curso** fora de consolidação — ou por uma aula, sendo axioma (na espinha, também por duas aulas em cursos diferentes) |
+| VOCAB | chave de eixo FECHADO (`node:`/`op:`/`decl:`/`global:`) que não existe em `atoms.python.json`; `api:`/`term:` só por formato |
+| A7 | mais de 2 átomos numa aula que não é consolidação |
+| A6 | aula que não introduz nem consolida nada · consolidação que reforça átomo sem origem anterior **na cadeia** |
+
+**A unicidade é POR CURSO; a espinha continua global.** As três portas (§1) são as re-origens
+autorizadas das construções de fronteira — `node:ClassDef`, `api:functools.cache` ou
+`node:Yield` podem ter origem na espinha de um curso e re-origem na porta do seguinte; por isso
+I12 e I3 rodam por curso, e a espinha mantém a unicidade global. As tabelas de comparação
+dentro das notas ⚑ (ex.: a divergência aula por aula do módulo 1) **não são tabelas de aula**: o
+script as ignora pelo cabeçalho `⚑` — incluí-las faria o script reprovar a própria nota em I12,
+o que o script desta seção fazia de fato até esta reescrita.
+
+Ele é **fail-closed**: sem o inventário no disco ele reprova, em vez de calar a checagem de eixo
+fechado.
+
+---
+
+```bash
+cd <raiz do repositório>
+python3 - docs/17-trilha-python.md <<'EOF'
+# -*- coding: utf-8 -*-
+"""Verificação Ensina × Presume do docs/17 (4 cursos) — versão por curso.
+
+Adaptada do contrato anterior para a cadeia: a unicidade (I12 e I3) percorre POR CURSO
+(as portas de §1 são re-origens autorizadas) e a espinha mantém a unicidade global;
+tabelas de comparação dentro de notas ⚑ não são tabelas de aula e são ignoradas.
+Uso: python3 verify_chain.py <docs/17-trilha-python.md>
+"""
+import json, os, re, sys
+
+txt = open(sys.argv[1], encoding='utf-8').read()
+REL = os.path.join('app', 'electron', 'main', 'engine', 'vocab', 'atoms.python.json')
+inv, d = None, os.path.dirname(os.path.abspath(sys.argv[1]))
+for base in [os.getcwd(), d, os.path.dirname(d), os.path.dirname(os.path.dirname(d))]:
+    if os.path.exists(os.path.join(base, REL)): inv = os.path.join(base, REL); break
+# FAIL-CLOSED (docs/16 §9.3): sem o inventário o eixo fechado não é conferido, e
+# um gate que se cala quando não consegue conferir é pior que gate nenhum.
+if inv is None:
+    print('FALHA: não achei %s — rode a partir da raiz do repositório' % REL); sys.exit(1)
+VOCAB = set()
+for eixo in json.load(open(inv, encoding='utf-8'))['axes'].values():
+    VOCAB.update(eixo)
+
+AXIOMA = {'node:Call', 'node:StrLiteral'}
+ESTRUTURAL = {'node:Module', 'node:Name', 'node:Load', 'node:Store', 'node:Del',
+              'node:arguments', 'node:Expr', 'node:alias', 'node:keyword'}
+SEMENTE = {'node:FunctionDef', 'node:arg', 'node:Return', 'node:Attribute', 'node:Import',
+           'node:ImportFrom', 'node:ClassDef', 'node:MethodDef', 'node:IntLiteral',
+           'node:With', 'node:withitem', 'node:Assign', 'decl:assign',
+           'api:unittest.TestCase', 'api:.assertEqual', 'api:.assertTrue',
+           'api:.assertIsNone', 'api:.assertRaises', 'api:runpy.run_path',
+           'api:io.StringIO', 'api:contextlib.redirect_stdout', 'api:.getvalue'}
+
+PAR = {'decl:assign': ['node:Assign'], 'decl:unpack': ['node:Assign'],
+       'decl:ann': ['node:AnnAssign'], 'decl:aug': ['node:AugAssign'],
+       'decl:walrus': ['node:NamedExpr'], 'decl:global': ['node:Global'],
+       'decl:nonlocal': ['node:Nonlocal'], 'decl:except-as': ['node:ExceptHandler'],
+       'node:With': ['node:withitem'], 'node:AsyncWith': ['node:withitem'],
+       'node:ListComp': ['node:comprehension'], 'node:SetComp': ['node:comprehension'],
+       'node:DictComp': ['node:comprehension'], 'node:GeneratorExp': ['node:comprehension'],
+       'node:Match': ['node:match_case']}
+FAMILIA = {'op:binary:': 'node:BinOp', 'op:bool:': 'node:BoolOp', 'op:unary:': 'node:UnaryOp',
+           'op:compare:': 'node:Compare', 'op:aug:': 'node:AugAssign'}
+FORMATO = re.compile(r'^(?:api|term):\S')
+CONS = re.compile(r'cons\.|^— \(')
+
+PORTA_CURSO = {'intermediário': 2, 'avançado': 3, 'especialista': 4}
+
+infence = False; mod = None; em_nota = False; curso = 0; aulas = []
+for ln in txt.split('\n'):
+    if ln.strip().startswith('```'):
+        infence = not infence; continue
+    if infence: continue
+    m = re.match(r'^#{2,4} Curso (\d+) — ', ln)
+    if m: curso = int(m.group(1)); mod = None; em_nota = False; continue
+    m = re.match(r'^#{2,4} Módulo (\d+|porta) — ', ln)
+    if m:
+        mod = ('P%d' % curso) if m.group(1) == 'porta' else int(m.group(1))
+        em_nota = False; continue
+    # As mesas das portas vivem em §1, antes dos cursos (§3): o cabeçalho dela
+    # diz de qual curso é e o módulo vira P<N>.
+    m = re.match(r'^#{2,4} A porta do (intermediário|avançado|especialista) — ', ln)
+    if m:
+        curso = PORTA_CURSO[m.group(1)]; mod = 'P%d' % curso; em_nota = False; continue
+    # Notas ⚑ dentro de módulo (ex.: a divergência aula por aula do módulo 1):
+    # tabelas de comparação NÃO são tabelas de aula — ignora até o próximo cabeçalho.
+    if re.match(r'^#{2,5} ⚑ ', ln): em_nota = True; continue
+    # Qualquer outro cabeçalho fecha o módulo/porta anterior (seções, cursos, subseções).
+    if re.match(r'^#{2,5} ', ln): mod = None; em_nota = False
+    if mod and not em_nota and ln.startswith('| ') and not re.match(r'^\|[\s\-:|]+\|$', ln):
+        c = [x.strip().replace('\\|', '|') for x in re.split(r'(?<!\\)\|', ln.strip().strip('|'))]
+        if c[0] in ('Aula', '#'): continue
+        if len(c) == 3: aulas.append((curso, mod, c[0].strip('`'), c[1], c[2]))
+        elif len(c) == 5: aulas.append((curso, mod, c[1].strip('`'), c[2], c[4]))
+
+vistos = set(); origem = {}; derivado = set()
+curso_vistos = {}; curso_origem = {}; primeira = {}; falhas = []
+disponivel = lambda a, co: a in co or a in origem or a in derivado or a in AXIOMA or a in ESTRUTURAL or a in SEMENTE
+ATOMO = re.compile(r'`((?:node|decl|op|global|api|form|term):[^`]+)`')
+
+for i, (cur, mod, slug, ensina, presume) in enumerate(aulas):
+    ml = ('M%d' % mod) if isinstance(mod, int) else mod
+    if slug in curso_vistos.setdefault(cur, set()):
+        falhas.append('I12 curso %d, slug repetido: %s' % (cur, slug))
+    curso_vistos[cur].add(slug)
+    if not primeira.get(cur):
+        if presume.strip() != 'nada':
+            falhas.append('A primeira aula do curso %d tem de presumir "nada" (achei %r)' % (cur, presume))
+        primeira[cur] = True
+    elif not presume.strip():
+        falhas.append('PRESUME vazio: %s' % slug)
+    for r in re.findall(r'`([a-z0-9][a-z0-9\-]{2,})`', presume):
+        if '-' in r and r not in vistos:
+            falhas.append('LACUNA %s/%s presume %s' % (ml, slug, r))
+    atomos = ATOMO.findall(ensina)
+    for a in atomos:
+        eixo = a.split(':', 1)[0]
+        if eixo in ('node', 'decl', 'op', 'global'):
+            if a not in VOCAB:
+                falhas.append('VOCAB %s/%s: %s não está em atoms.python.json' % (ml, slug, a))
+        elif not FORMATO.match(a):
+            falhas.append('FORMATO %s/%s: %s' % (ml, slug, a))
+    if CONS.search(ensina):
+        # `term:` numa aula de consolidação é termo NOVO da prosa, não átomo
+        # reforçado: ele vive em `introducesTerms` e não tem eixo fechado.
+        co = curso_origem.setdefault(cur, {})
+        for a in [x for x in atomos if not x.startswith('term:')]:
+            if not disponivel(a, co):
+                falhas.append('CONS %s/%s reforça %s, que nenhuma aula anterior da cadeia ensinou' % (ml, slug, a))
+    else:
+        co = curso_origem.setdefault(cur, {})
+        if len(atomos) > 2:
+            falhas.append('A7 %s/%s introduz %d átomos (teto 2)' % (ml, slug, len(atomos)))
+        if not atomos:
+            falhas.append('A6 %s/%s não introduz nem consolida nada' % (ml, slug))
+        for a in atomos:
+            if a in co:
+                falhas.append('I3 curso %d, %s: %s e %s' % (cur, a, co[a], slug))
+            elif a in AXIOMA:
+                falhas.append('I3 %s é AXIOMA e %s reintroduz' % (a, slug))
+            else:
+                co[a] = slug
+            if isinstance(mod, int):
+                # unicidade GLOBAL vale para a espinha (uma construção, uma origem na cadeia);
+                # as portas são as re-origens autorizadas (§1) e só respondem ao I3 por curso.
+                if a in origem: falhas.append('I3 espinha, %s: %s e %s' % (a, origem[a], slug))
+                else: origem[a] = slug
+            for d in PAR.get(a, []): derivado.add(d)
+            for pre, d in FAMILIA.items():
+                if a.startswith(pre): derivado.add(d)
+    vistos.add(slug)
+
+mods = {m for _, m, _, _, _ in aulas}
+print('%d módulos · %d aulas · %d átomos com origem única (espinha) · %d derivados · %d falhas'
+      % (len(mods), len(aulas), len(origem), len(derivado), len(falhas)))
+for f in falhas[:200]: print(' ', f)
+sys.exit(1 if falhas else 0)
+EOF
+# 29 módulos · 368 aulas · 331 átomos com origem única (espinha) · 14 derivados · 0 falhas
+```
+
+---
+
+**Resultado desta versão: `0 falhas`** — 29 módulos (26 da espinha + 3 portas), 368 aulas (337 da
+espinha + 31 previstas nas portas), 331 átomos com origem única na espinha, 14 chaves derivadas pela
+regra do par.
+
+**A rede foi testada com mutantes**, porque script que nunca reprovou nada não é rede. Cinco defeitos
+injetados um a um sobre este mesmo arquivo, todos pegos:
+
+| Mutante injetado | O que o script disse |
+|---|---|
+| `node:ChainedCompare` no lugar da consolidação de `comparar-encadeado` | `VOCAB M2/comparar-encadeado: node:ChainedCompare não está em atoms.python.json` |
+| `arredondar` passa a presumir `o-tipo-de-cada-valor` (aula 18, quatro depois) | `LACUNA M1/arredondar presume o-tipo-de-cada-valor` |
+| a aula `nao` deixa de ensinar qualquer coisa | `A6 M2/nao não introduz nem consolida nada` |
+| `sorteio` ganha um terceiro átomo | `A7 M10/sorteio introduz 3 átomos (teto 2)` |
+| `pegar-so-os-primeiros` reintroduz `api:itertools.chain` | `I3 espinha, api:itertools.chain: ferramentas-de-iteracao e pegar-so-os-primeiros` |
+
+Os cinco mutantes foram injetados na espinha; as portas caem sob as mesmas seis regras, com a
+unicidade escopada ao curso.
+
+**O que a verificação encontrou nesta reescrita** (cada item é um defeito que estaria na trilha):
+
+1. **Nove chaves de átomo INVENTADAS pela versão anterior** — `node:ChainedCompare`,
+   `node:ClassBase`, `node:ClassVar`, `node:ArgAnnotation`, `node:Returns`, `node:GenericAnnotation`,
+   `node:ComprehensionIf`, `node:DunderEnter`, `node:DunderExit`. Nenhuma existe em
+   `atoms.python.json`; os eixos `node:`/`op:`/`decl:`/`global:` são FECHADOS e validados por
+   pertença estrita. As nove aulas viraram consolidação, com o degrau nomeado.
+2. **`node:keyword` era átomo e estrutural ao mesmo tempo.** A versão anterior dava a aula
+   `chamar-pelo-nome` como `node:keyword` e listava `node:keyword` entre os estruturais sempre
+   permitidos, duas seções acima. A aula virou consolidação.
+3. **`api:.join` tinha duas origens** — `juntar-numa-string` (M6, `",".join(xs)`) e `esperar-terminar`
+   (M20, `thread.join()`). É a **mesma chave**: o extrator emite `api:.<método>` quando o receptor é
+   nome local, e não sabe o tipo dele. A aula de M20 virou consolidação, e o degrau (juntar texto ×
+   esperar thread) virou o conteúdo dela.
+4. **`op:binary:|` era pressuposto pela aula de `int | None` sem aula de origem.** Medido:
+   `int | None` em anotação emite `node:OptionalAnnotation` **e** `op:binary:|` **e** `node:BinOp`.
+   A aula `pode-faltar` (M18) passou a introduzir os dois, e a aula de bit a bit (M26) virou
+   consolidação com o degrau explícito (o mesmo `|` sobre inteiros).
+5. **`api:itertools.chain` era introduzido duas vezes** (M10 e M15). O de M15 virou
+   `api:itertools.tee`, que é o que aquela aula de fato ensina.
+6. **`global:hash` tinha duas origens** — a aula de chave de dicionário (M7) e a de `__hash__` (M13).
+   Ficou em M7, onde a pergunta "por que a chave precisa ser imutável" nasce; a de M13 virou
+   consolidação.
+7. **A regra do par não estava escrita, e sem ela `x += 1` é ilegal.** Medido: três chaves para um
+   gesto (`decl:aug`, `node:AugAssign`, `op:aug:+`), contra um teto de 2. Ver §"A regra do par".
+8. **O harness da fase SAÍDA não cabia na semente receptiva do código.** Oito chaves faltam em
+   `PYTHON_HARNESS_RECEPTIVE_SEED` e duas sobram sem nunca ocorrer. Dívida declarada em §"A semente
+   receptiva".
+9. **`with self.assertRaises(...)` em M9 cobrava `node:With`, ensinado só em M11.** Virou regra de
+   harness declarada: antes de M11 o teste usa a forma de chamada.
+10. **`importlib.import_module` no harness de captura de saída é PROIBIÇÃO GLOBAL.** Está literal em
+    `PY_FORBIDDEN_INVARIANTS`. O harness passou a usar `runpy.run_path`, que além de permitido roda o
+    arquivo do zero a cada chamada — sem isso, o segundo teste da mesma classe leria saída vazia.
+
+**O que a verificação NÃO prova.** Ela prova ausência de lacuna de currículo e de inversão de ordem
+no nível de construção. Ela **não** prova o teto de composição ([`16`](16-engine-de-trilha.md) §3.7:
+saber `if` e saber função não é saber `if` dentro de função) — isso é responsabilidade das aulas
+`role: "integration"` que a fase F3 deriva, e do gate A9. Também não prova o teto de 120 s por
+desafio, que só é mensurável depois de a solução de referência existir. Também não prova que a porta
+de um curso fecha o orçamento produtivo daquela trilha — fechar é o trabalho de autorar a trilha, e
+§1 estabelece a regra de fechamento.
+
+---
+
+### Desafios de módulo
+
+No fim de cada um dos 26 módulos existe um **desafio de MÓDULO**
+(`modules/<slug>/challenges/<slug>/challenge.json`, declarado em `module.json` como `challenge`):
+
+- **Multi-arquivo** — `files[]` com 2–3 arquivos que se importam entre si (a partir de M10, quando
+  `import` existe; antes disso, arquivo único);
+- **Elaborado** — statement longo com cenário do mundo real (2–4 mil caracteres) e 4–6 testes;
+- **Autoral** — não é gerado por LLM: o botão "Gerar novo desafio" não aparece quando o target é
+  `module`;
+- **Restrição de orçamento igual à das aulas** — pode compor livremente o que o módulo ensinou, mas
+  **não pode introduzir construção nova**. Um desafio de módulo que precisa de algo não ensinado é a
+  prova de que falta uma aula;
+- Os aninhamentos que ficaram de fora das tabelas por não serem átomos (laço dentro de laço, lista de
+  listas, dicionário de listas) são o material natural desses desafios: composição é o que eles
+  testam.
+
+---
+
+### UX
+
+- **Teoria determinística** — a aula apresenta a teoria direto do `lesson.json` (markdown, seção por
+  seção): sem LLM e sem loading. O LLM é usado só para dúvidas (`answer`) e para gerar novo desafio.
+- **O quiz é o PORTÃO da aula, e o portão exige ACERTO.** ⚑ A regra do produto **inverteu**:
+  responder deixou de bastar. Ver a subseção abaixo — é decisão explícita do dono e contradiz o que
+  este documento e os textos de interface diziam antes.
+- **Falha rápida sem chave** — sem chave de LLM o `answer` devolve erro estruturado
+  (`TUTOR_UNAVAILABLE`); o fluxo nunca trava em spinner.
+- **Checks por teste** — o veredito mostra ✓/✗ por teste. **Em Python o rótulo do check é a docstring
+  do método**, não o nome dele: medido, `unittest -v` imprime a linha do id e, quando existe
+  docstring, a primeira linha dela logo abaixo, antes do `... ok`:
+
+  ```
+  test_imprime_oi (tests.test_solucao.TestAPrimeiraLinha.test_imprime_oi)
+  o programa imprime oi ... ok
+  ```
+
+  Logo: **todo método de teste desta trilha carrega uma docstring de uma linha em pt-BR**. Sem ela o
+  aluno leria `test_imprime_oi`, que é ruído.
+- **Erro de recuo tem tratamento próprio.** `IndentationError` e `TabError` acontecem na importação,
+  então o `unittest` reporta erro de coleta e nenhum teste roda. O veredito precisa dizer "seu arquivo
+  não chegou a rodar: o recuo está errado na linha N", nunca "0 de 3 testes passaram" — que é
+  verdadeiro e inútil.
+- **Na fase SAÍDA o veredito mostra o que o programa imprimiu**, lado a lado com o que era esperado.
+  É a mesma tela que o aluno vai ler **368 aulas depois — o fim da cadeia de quatro cursos** — quando
+  um teste de valor falhar, e ela precisa ser a mesma desde a aula 1.
+
+#### O quiz da aula — maestria obrigatória, e o ciclo de remediação
+
+**A regra mudou, e a mudança é a inversão do gate.** Até a onda 10 o quiz travava a aula até ser
+**respondido**: errar liberava. A partir desta onda o gate exige **maestria** — só o **acerto**
+fecha a chave e destrava o "Próximo" e o "Concluir aula". **Decisão explícita do dono**; este
+documento a registra, não a discute.
+
+Errar não é punição e não bloqueia em silêncio — abre um **ciclo**:
+
+```
+erro → a IA explica onde AQUELA alternativa se separa do que a seção mostra
+     → a explicação ENTRA NO HISTÓRICO do chat da aula
+     → um quiz NOVO sobre o MESMO conteúdo é gerado na hora (geração N+1)
+     → repete até o acerto
+```
+
+O tom de todo texto do ciclo é **diagnóstico**: descreve onde a alternativa se separa da seção,
+nunca repreende — `docs/ux-redesign.md` §8 é normativo aqui, e §8.2 proíbe o elogio ritualizado em
+favor do feedback informacional específico. O bloqueio do gate não é castigo: é a informação de que
+aquele trecho ainda não foi demonstrado.
+
+**Onde isso vive:** máquina de estado pura em `app/src/lib/trackLessonState.ts` (o estágio
+`'dominado'` é o que fecha a chave), quatro canais IPC em `app/shared/ipc-contract.ts`
+(`track:quiz-attempt`, `track:quiz-explain`, `track:quiz-remedial`, `track:quiz-history`) e duas
+tabelas no SQLite v5 (`quiz_attempts`, `quiz_remediations`). O contrato de produto está em
+[`app-gui.md`](app-gui.md) §2.13.
+
+**`optionRationales` — o material que a explicação usa.** Cada afirmação de `assertions[]` pode
+declarar **um racional por alternativa**: por que aquela opção está errada e, na correta, por que
+está certa. É o que o tutor usa quando o aluno erra — a explicação do **distrator escolhido**, não o
+`feedback` único da afirmação.
+
+| Valor | Significado |
+|---|---|
+| ausente | aula sem racionais declarados — **válido**, e é o estado das 20 aulas do módulo `a-tela` hoje |
+| `[]` | ausência **explícita**; é o que a engine materializa por INV-05 e a F12 copia verbatim |
+| não vazio | comprimento **igual** ao de `options`, mesma ordem, cada item não vazio |
+
+```bash
+cd app && python3 -c "
+import json, glob
+n = sum(1 for f in glob.glob('resources/tracks/python/modules/*/lessons/*/lesson.json')
+        for a in json.load(open(f)).get('assertions', []) if 'optionRationales' in a)
+print('afirmacoes com optionRationales:', n)"
+# -> afirmacoes com optionRationales: 0
+```
+
+#### ⚑ O que a cláusula J5 mediu nesta trilha: 17 das 20 aulas
+
+O `audit` fecha em **0 violações** e o `coverage` em **0 lacunas** — nenhum desafio cobra o que a
+aula não ensinou, que é a garantia que o dono pediu, e ela está satisfeita. A cláusula J5
+(Discriminação) de [`16`](16-engine-de-trilha.md) §9.1 responde a **outra** pergunta, que ninguém
+verificava: *o teste DERRUBA quem não usou a construção da aula?*
+
+**Nesta trilha, em 17 das 20 aulas medidas, não derruba.** O código mínimo que passa em cada um dos
+21 desafios é um único `print("<saída esperada>")`: a aula de potência não exige `**`, a de f-string
+não exige f-string, a de variável não exige atribuição. **Um aluno passa nos 21 desafios imprimindo
+literais.** O `audit` fica verde porque a *solução de referência* usa a construção — e usa mesmo. O
+que falha é o teste.
+
+| Medição (2026-09-05) | Valor |
+|---|---|
+| Desafios avaliados · medidos | 21 · 20 |
+| Sem alvo (o desafio de módulo, sem aula dona) | 1 |
+| Discriminam | 3 |
+| **Não discriminam** | **17** |
+| Alvos na solução · forçados pelo teste | 34 · 5 |
+| **Alvos não forçados** | **29** |
+
+Os **29 alvos não forçados** são os mesmos 29 "excessos" que `npm run engine -- coverage python`
+imprime. **A classificação é AVISO com contagem, nunca violação** — reprovar aqui pintaria de
+vermelho 17 das 20 aulas do curso `python-iniciante` (módulo `a-tela` — medido em 2026-09-05, quando `python` era a única trilha), e isso é decisão do dono, não do gate. O
+comando que reproduz o placar está em [`16`](16-engine-de-trilha.md) §9.1.
+
+---
+
+### Regras para os desafios de aula (`challenge.json`)
+
+- `language: 'python'`; `programmingLanguage: 'python'`, `runtime: 'cpython-3.14'`,
+  `harnessLanguage: 'python'` no `track.json`; slug da trilha: **o do curso** (`python-iniciante`, `python-intermediario`, `python-avancado` ou `python-especialista` — o slug único `python` foi substituído em 2026-09-10);
+- layout obrigatório: `solucao.py` na raiz, `tests/__init__.py` (o exit-guard, e **sem ele nada
+  roda**) e `tests/test_solucao.py`;
+- **fase SAÍDA** (M1–M3): `outputChannel: 'impressao'`, o teste captura `stdout` com
+  `runpy.run_path` + `contextlib.redirect_stdout`; o arquivo do aluno é um **script**, sem função;
+- **a virada** (M4 `imprimir-nao-e-devolver`): `outputChannel: 'ambos'`, três testes — devolve,
+  imprime, e chamar sozinha não imprime;
+- **fase VALOR** (M4 em diante): `outputChannel: 'retorno'`, o teste importa com
+  `from solucao import <funcao>`;
+- o teste **falha** com o starter e **passa** com a solução; `expectedTestCount` = nº de testes;
+  2–4 testes por desafio de aula;
+- a função do desafio é derivada do slug (kebab → snake_case: `dobro-do-numero` → `dobro_do_numero`)
+  — **snake_case, não camelCase**;
+- todo método de teste tem docstring de uma linha em pt-BR (é o rótulo do check);
+- **cenário `error` só existe se o orçamento permitir** (A11): exigir "entrada inválida que deve
+  falhar" antes da aula `levantar-um-erro` (M9) é precisamente a causa-raiz que produziu o desafio
+  impossível da aula 1 da trilha legada. Antes de M9, os cenários possíveis são `example` e
+  `boundary`;
+- **antes de M11**, teste que espera erro usa `self.assertRaises(Erro, funcao, arg)` — nunca o `with`;
+- **em M20 e M21**, toda função enviada a processo é função de módulo, nunca `lambda` nem closure;
+- statement em markdown pt-BR, linguagem simples;
+- **proibições sempre**, em qualquer aula, starter, teoria ou solução: `eval`, `exec`, `compile`,
+  `__import__`, `globals()`, `locals()`, `vars()`, `importlib.import_module`, `getattr`/`setattr` com
+  nome não-literal, e definir `__getattr__`/`__getattribute__`.
+
+---
+
+### Teste de proficiência (`proficiency.json`)
+
+Cada curso tem o seu `proficiency.json`, cobrindo os conceitos centrais dos módulos do curso — no
+conjunto da cadeia: saída e valor, nome e ligação, decisão, repetição, função com parâmetro e retorno,
+lista, dicionário, erro tratado, arquivo, classe, protocolo, gerador, tipo anotado e concorrência.
+Enunciado em linguagem simples que **não pressupõe programação** (o aluno pode fazer o teste antes da
+primeira aula). Dificuldade 5, carência da 1ª estrela 120 s — pressão de tempo degrada acurácia. Quem
+passa destrava o curso inteiro — e a entrada do curso seguinte é a fronteira de saída do anterior (§0).
+
+---
+
+### Fora de escopo (declarado)
+
+O que esta trilha **não** ensina, e por quê. Cada item é uma decisão, não um esquecimento:
+
+- **Pacotes de terceiros** (`numpy`, `pandas`, `requests`, `django`, `flask`, `pytest`). A trilha
+  inteira roda só com o interpretador e a stdlib — é o que torna o desafio executável sem instalação
+  e o gate determinístico. `venv`/`pip` aparecem como **leitura** em M23, e o assunto do módulo é
+  empacotar o **seu** código, não instalar o dos outros. Consequência aceita: `op:binary:@` e
+  `op:aug:@` (multiplicação de matriz) não têm aula, porque nenhum tipo da stdlib os implementa.
+- **Web, banco de dados e ciência de dados.** Todos dependem do item acima.
+- **Metaprogramação por nome montado** — `eval`, `exec`, `globals()`, `locals()`, `vars()`,
+  `getattr` com nome variável, `__getattr__`/`__getattribute__`. **Não é escolha de escopo, é
+  condição de existência do gate**: são exatamente as construções que tornam a análise estática
+  indecidível, e estão em `PY_FORBIDDEN_INVARIANTS`. Descritor (`__get__`/`__set__`) e metaclasse
+  (`class M(type)`) **não** estão na lista e por isso têm aula, em M26.
+- **`node:ComplexLiteral`** (`3j`). Está no vocabulário e nenhuma aula o ensina: número complexo não
+  aparece no trabalho de quem programa em Python fora de domínio científico, e o domínio científico
+  cai no primeiro item.
+- **Os nós de modo de parse** (`node:Interactive`, `node:Expression`, `node:FunctionType`,
+  `node:Suite`) e os legados do `ast` anterior ao 3.9 (`node:Index`, `node:ExtSlice`,
+  `node:AugLoad`, `node:AugStore`): não ocorrem ao parsear um arquivo `.py` no 3.14. Estão no
+  inventário porque o inventário é gerado do `ast`, não escolhido.
+- **`node:TypeIgnore`** (`# type: ignore` como nó) — só existe com `ast.parse(..., type_comments=True)`,
+  que o extrator não usa.
+- **Interface gráfica** (`tkinter`, `turtle`). São stdlib, mas nenhum desafio delas é verificável por
+  asserção de valor ou de saída.
+
+## 3. Os cursos e os seus módulos
+
+Cada curso lista os seus módulos na ordem em que o aluno os percorre: primeiro o módulo
+porta-de-entrada (quando existe), depois os módulos da espinha — as tabelas são as do contrato,
+copiadas. A nota que se repete: **este curso re-introduz no módulo porta-de-entrada as construções
+da fronteira do curso anterior; daí em diante, as tabelas abaixo valem integralmente.**
+
+As células `Presume` nomeiam a aula-fonte da espinha (ex.: "M10 `trazer-so-um-nome`"). Por trilha,
+a leitura correta é: a construção nasce na semente/axiomas/estruturais, no módulo porta (que a
+re-introduz com `introduces` próprios) ou na própria trilha — §1.
+
+---
+
+### Curso 1 — `python-iniciante` — do primeiro `print` ao júnior
+
+**Módulos:** M1–M12 (180 aulas, §4). **Fronteira de saída:** júnior — escrever um programa Python
+inteiro sozinha: lê e escreve arquivo, trata erro, organiza em módulos e em classes. **Sem
+porta-de-entrada:** este curso começa no zero absoluto — a entrada é axiomas estruturais + semente
+receptiva (§"Público e axioma de entrada") — e as tabelas abaixo valem integralmente desde a aula
+1. Presume-se que o aluno sabe: **nada**.
+
+#### Módulo 1 — `a-tela`
 
 Tudo na coluna zero. Sem função, sem bloco, sem recuo. O teste captura `stdout`.
 
@@ -517,7 +1133,7 @@ node:FloatLiteral → op:binary:// → op:binary:% → op:binary:** → op:unary
 decl:assign → node:JoinedStr → node:FormattedValue → global:int → global:str → global:float →
 global:round → node:BoolLiteral → global:bool → node:NoneLiteral → global:type`
 
-#### ⚑ O que está no DISCO diverge desta tabela em 5 das 20 aulas — e são 28 átomos, não 23
+##### ⚑ O que está no DISCO diverge desta tabela em 5 das 20 aulas — e são 28 átomos, não 23
 
 A tabela acima é a **intenção de currículo**; `resources/tracks/python/` é o **conteúdo em
 produção**. Elas não coincidem, e este documento passa a declarar a diferença em vez de deixar o
@@ -566,7 +1182,7 @@ promete. **Decisão do dono, pendente:** ou o axioma volta a ser axioma (e as du
 `introduces` da aula 1), ou este documento para de afirmar "exatamente um". Enquanto não se decide,
 as duas afirmações ficam lado a lado, declaradas.
 
-#### ⚑ `role: "consolidation"` não pertence ao enum da engine
+##### ⚑ `role: "consolidation"` não pertence ao enum da engine
 
 A coluna "cons." desta tabela vira, no disco, `role: "consolidation"` — nas mesmas 5 aulas (2, 11,
 12, 19 e 20). O enum da engine tem **dois** valores:
@@ -612,7 +1228,7 @@ também em [`16`](16-engine-de-trilha.md) §3.7 — antes, **nenhum dos dois doc
   torna o erro esperado em vez de assustador — e ela vem **antes** de qualquer bloco, quando o
   traceback ainda tem uma linha só.
 
-### Módulo 2 — `decisao`
+#### Módulo 2 — `decisao`
 
 O primeiro bloco, e portanto o primeiro recuo. Ainda em `stdout`.
 
@@ -637,7 +1253,7 @@ outra** — e é exatamente aí que o recuo passa a ser decidido por ele. Antes 
 sem lugar para aplicá-la; depois seria cobrar sem ter ensinado. O recuo não é átomo produtivo porque
 **não aparece na AST**: entra como `term:recuo` e como `notionalMachineDelta` da aula.
 
-### Módulo 3 — `repeticao`
+#### Módulo 3 — `repeticao`
 
 | # | slug | avanço produtivo NOVO | o aluno digita | presume |
 |---|---|---|---|---|
@@ -655,7 +1271,7 @@ sem lugar para aplicá-la; depois seria cobrar sem ter ensinado. O recuo não é
 | 12 | `e-se-nunca-parou` | `node:ForElse` | `else:` depois do `for` | `parar-no-meio`, `repetir-um-numero-de-vezes` |
 | 13 | `o-else-do-while` | `node:WhileElse` | `else:` depois do `while` | `e-se-nunca-parou`, `enquanto` |
 
-### Módulo 4 — `caixas-que-devolvem`
+#### Módulo 4 — `caixas-que-devolvem`
 
 O módulo da virada. Começa em `stdout` e termina em `retorno`.
 
@@ -683,7 +1299,7 @@ chaves para tudo isso: `node:FunctionDef`, `node:arg` e `node:Return`. A decompo
 obrigatória; as chaves não multiplicam. Cada consolidação aqui nomeia o degrau e é `role:
 "consolidation"` com `targetAtom` apontando para a origem — nenhuma delas é segunda origem (I3).
 
-### Módulo 5 — `listas-e-tuplas`
+#### Módulo 5 — `listas-e-tuplas`
 
 A partir daqui o canal é `retorno` e as tabelas são `Aula | Ensina | Presume`.
 
@@ -712,7 +1328,7 @@ A partir daqui o canal é `retorno` e as tabelas são `Aula | Ensina | Presume`.
 | `abrir-a-tupla-em-nomes` | `decl:unpack` | `a-lista-que-nao-muda` |
 | `lista-de-listas` | cons. — `node:Subscript` em forma nova (dois índices) | `pegar-pela-posicao`, `criar-uma-lista` |
 
-### Módulo 6 — `texto-em-profundidade`
+#### Módulo 6 — `texto-em-profundidade`
 
 | Aula | Ensina | Presume |
 |---|---|---|
@@ -732,7 +1348,7 @@ A partir daqui o canal é `retorno` e as tabelas são `Aula | Ensina | Presume`.
 | `o-texto-nao-muda` | cons. — imutabilidade (`term:imutável`); reforça `api:.replace` | `trocar-um-pedaco` |
 | `a-letra-e-um-numero` | `global:ord`, `global:chr` | `o-texto-tem-posicao-tambem` |
 
-### Módulo 7 — `dicionarios-e-conjuntos`
+#### Módulo 7 — `dicionarios-e-conjuntos`
 
 | Aula | Ensina | Presume |
 |---|---|---|
@@ -753,7 +1369,7 @@ A partir daqui o canal é `retorno` e as tabelas são `Aula | Ensina | Presume`.
 | `diferenca-e-subconjunto` | `api:.difference`, `api:.issubset` | `contas-de-conjunto` |
 | `a-chave-precisa-ser-imutavel` | `global:hash`, `global:frozenset` | `conjunto-sem-repetidos`, M5 `a-lista-que-nao-muda` |
 
-### Módulo 8 — `funcoes-em-profundidade`
+#### Módulo 8 — `funcoes-em-profundidade`
 
 | Aula | Ensina | Presume |
 |---|---|---|
@@ -772,7 +1388,7 @@ A partir daqui o canal é `retorno` e as tabelas são `Aula | Ensina | Presume`.
 | `chamar-a-si-mesma` | cons. — `node:Call` em forma nova (recursão com caso base) | M4 `devolver-cedo`, M4 `uma-caixa-chama-outra` |
 | `o-limite-da-recursao` | `api:sys.setrecursionlimit`, `global:RecursionError` | `chamar-a-si-mesma` |
 
-### Módulo 9 — `erros-e-excecoes`
+#### Módulo 9 — `erros-e-excecoes`
 
 | Aula | Ensina | Presume |
 |---|---|---|
@@ -795,7 +1411,7 @@ contexto. Motivo medido: `with self.assertRaises(...)` emite `node:With` e `node
 `node:With` só é ensinado em M11 (`abrir-um-arquivo`); usá-lo antes violaria A3
 (`atomos(testsCode) ⊆ budget_ENTRADA.receptive`). A partir de M11 as duas formas são legítimas.
 
-### Módulo 10 — `modulos-e-a-biblioteca-padrao`
+#### Módulo 10 — `modulos-e-a-biblioteca-padrao`
 
 | Aula | Ensina | Presume |
 |---|---|---|
@@ -814,7 +1430,7 @@ contexto. Motivo medido: `with self.assertRaises(...)` emite `node:With` e `node
 | `ferramentas-de-iteracao` | `api:itertools.chain`, `api:itertools.groupby` | `trazer-so-um-nome`, M5 `percorrer-uma-lista` |
 | `o-seu-proprio-modulo` | cons. — `node:ImportFrom` em forma nova (importar arquivo do próprio desafio) | `trazer-so-um-nome` |
 
-### Módulo 11 — `arquivos-e-dados`
+#### Módulo 11 — `arquivos-e-dados`
 
 | Aula | Ensina | Presume |
 |---|---|---|
@@ -832,7 +1448,7 @@ contexto. Motivo medido: `with self.assertRaises(...)` emite `node:With` e `node
 | `perguntar-ao-usuario` | `global:input` | M4 `devolver-em-vez-de-mostrar` |
 | `arquivo-temporario` | `api:tempfile.TemporaryDirectory` | `escrever-num-arquivo`, `caminhos-sem-barra-na-mao` |
 
-### Módulo 12 — `classes-e-objetos`
+#### Módulo 12 — `classes-e-objetos`
 
 | Aula | Ensina | Presume |
 |---|---|---|
@@ -852,7 +1468,21 @@ contexto. Motivo medido: `with self.assertRaises(...)` emite `node:With` e `node
 | `propriedade-calculada` | `global:property` | `metodo-sem-objeto` |
 | `o-seu-proprio-erro` | `global:Exception` | `herdar`, M9 `levantar-um-erro` |
 
-### Módulo 13 — `o-modelo-de-dados`
+---
+
+### Curso 2 — `python-intermediario` — do júnior ao pleno
+
+**Módulos:** porta `a-porta-das-classes` + M13–M21 (100 + 12 = 112 aulas, §4). **Fronteira de
+saída:** pleno. **entryCriteria:** a saída do curso anterior — o júnior de M1–M12, com as classes
+de M12 re-introduzidas na porta. **Nota:** este curso re-introduz no módulo porta-de-entrada as
+construções da fronteira do iniciante (as classes de M12); daí em diante, as tabelas abaixo valem
+integralmente.
+
+#### Módulo porta — `a-porta-das-classes`
+
+(Aulas previstas; tabela em §1.)
+
+#### Módulo 13 — `o-modelo-de-dados`
 
 Os dunders. **O adaptador refina só dois** (`node:InitMethod` e `node:DunderStr`, medido); todos os
 outros são `node:MethodDef` para o gate. Por isso este módulo tem 8 consolidações em 15 — cada uma
@@ -884,7 +1514,7 @@ sintéticas ao `extract_ast.py`, na mesma forma de `node:DunderStr`: `node:Dunde
 deste documento as usa.** Enquanto não existirem, essas aulas emitem aviso A14a-0 (zero construção
 verdadeiramente nova) — aviso, não erro.
 
-### Módulo 14 — `casamento-de-padrao`
+#### Módulo 14 — `casamento-de-padrao`
 
 | Aula | Ensina | Presume |
 |---|---|---|
@@ -895,7 +1525,7 @@ verdadeiramente nova) — aviso, não erro.
 | `casar-uma-classe` | `node:MatchClass` | `casar-um-dicionario`, M12 `o-construtor` |
 | `um-ou-outro` | `node:MatchOr`, `node:MatchSingleton` | `casar-uma-classe`, M2 `e-mesmo-o-nada` |
 
-### Módulo 15 — `iteradores-e-geradores`
+#### Módulo 15 — `iteradores-e-geradores`
 
 | Aula | Ensina | Presume |
 |---|---|---|
@@ -910,7 +1540,7 @@ verdadeiramente nova) — aviso, não erro.
 | `gerador-em-cadeia` | cons. — `node:Yield` em forma nova (um gerador consumindo outro) | `delegar-para-outro` |
 | `so-passa-uma-vez` | cons. — `global:iter` em forma nova (o iterador esgotado) | M13 `ser-percorrivel`, `a-funcao-que-pausa` |
 
-### Módulo 16 — `compreensoes-e-expressoes`
+#### Módulo 16 — `compreensoes-e-expressoes`
 
 | Aula | Ensina | Presume |
 |---|---|---|
@@ -923,7 +1553,7 @@ verdadeiramente nova) — aviso, não erro.
 | `atribuir-no-meio-da-expressao` | `decl:walrus` | M3 `enquanto`, M2 `se` |
 | `quando-nao-usar-compreensao` | cons. — `node:ListComp` em forma nova (a que deve virar `for`) | `compreensao-aninhada` |
 
-### Módulo 17 — `funcoes-como-valor-e-decoradores`
+#### Módulo 17 — `funcoes-como-valor-e-decoradores`
 
 | Aula | Ensina | Presume |
 |---|---|---|
@@ -938,7 +1568,7 @@ verdadeiramente nova) — aviso, não erro.
 | `preservar-o-nome-decorado` | `api:functools.wraps` | `escrever-um-decorador` |
 | `decorador-com-argumento` | cons. — `node:FunctionDef` em forma nova (três níveis de aninhamento) | `preservar-o-nome-decorado` |
 
-### Módulo 18 — `tipagem-estatica`
+#### Módulo 18 — `tipagem-estatica`
 
 | Aula | Ensina | Presume |
 |---|---|---|
@@ -957,7 +1587,7 @@ verdadeiramente nova) — aviso, não erro.
 | `tipo-em-tempo-de-execucao` | `api:typing.get_type_hints` | `anotar-parametro-e-retorno` |
 | `o-conferidor-de-tipos-e-outro-programa` | cons. — `decl:ann` em forma nova (a anotação que o Python **não** confere; `term:mypy`) | `tipo-em-tempo-de-execucao`, M12 `e-desse-tipo` |
 
-### Módulo 19 — `testes-automatizados`
+#### Módulo 19 — `testes-automatizados`
 
 O aluno vem lendo o arquivo de teste desde a aula 1. Aqui ele passa a **escrever** — a mudança de
 faixa receptiva para produtiva é, ela mesma, o evento de currículo (I11).
@@ -978,7 +1608,7 @@ faixa receptiva para produtiva é, ela mesma, o evento de currículo (I11).
 | `casos-de-borda` | cons. — `api:.assertEqual` em forma nova (vazio, zero, negativo) | `escrever-o-teste-antes`, M5 `criar-uma-lista` |
 | `o-que-o-teste-nao-cobre` | `api:trace.Trace` | `casos-de-borda` |
 
-### Módulo 20 — `concorrencia`
+#### Módulo 20 — `concorrencia`
 
 | Aula | Ensina | Presume |
 |---|---|---|
@@ -1000,7 +1630,7 @@ closure: o `forkserver` (padrão do 3.14 no Linux, medido) referencia o alvo por
 solução com `lambda` num `ProcessPoolExecutor` levanta `PicklingError` — e seria culpa da trilha,
 não do aluno.
 
-### Módulo 21 — `assincronismo`
+#### Módulo 21 — `assincronismo`
 
 | Aula | Ensina | Presume |
 |---|---|---|
@@ -1017,7 +1647,22 @@ não do aluno.
 | `testar-codigo-assincrono` | `api:unittest.IsolatedAsyncioTestCase` | `rodar-uma-corrotina`, M19 `escrever-o-primeiro-teste` |
 | `async-nao-e-thread` | cons. — `node:Await` em forma nova (a mesma tarefa nos dois modelos) | `esperar-varias-de-uma-vez`, M20 `o-gil-em-uma-aula` |
 
-### Módulo 22 — `desempenho-e-perfilamento`
+---
+
+### Curso 3 — `python-avancado` — do pleno ao sênior, medindo
+
+**Módulos:** porta `a-porta-da-medicao` + M22–M24 (26 + 9 = 35 aulas, §4). **Fronteira de saída:**
+sênior — medir antes de decidir, empacotar e distribuir, impor qualidade por ferramenta.
+**entryCriteria:** a saída do curso anterior — o pleno de M13–M21. **Nota:** este curso
+re-introduz no módulo porta-de-entrada as construções da fronteira do intermediário (as que M22+
+presume: import, lista, conjunto, função-como-valor, cache, atributo de classe e generator-exp);
+daí em diante, as tabelas abaixo valem integralmente.
+
+#### Módulo porta — `a-porta-da-medicao`
+
+(Aulas previstas; tabela em §1.)
+
+#### Módulo 22 — `desempenho-e-perfilamento`
 
 | Aula | Ensina | Presume |
 |---|---|---|
@@ -1032,7 +1677,7 @@ não do aluno.
 | `fazer-em-lote` | `api:itertools.batched` | `gerar-em-vez-de-materializar` |
 | `quando-parar-de-otimizar` | cons. — `api:timeit.timeit` em forma nova (o ganho que não paga a legibilidade) | `onde-o-tempo-vai` |
 
-### Módulo 23 — `empacotamento-e-distribuicao`
+#### Módulo 23 — `empacotamento-e-distribuicao`
 
 | Aula | Ensina | Presume |
 |---|---|---|
@@ -1045,7 +1690,7 @@ não do aluno.
 | `argumentos-da-linha-de-comando` | `api:argparse.ArgumentParser`, `api:sys.argv` | `rodar-como-programa` |
 | `publicar` | cons. — leitura de `wheel` e `sdist` (`term:wheel`, `term:sdist`) | `a-versao-do-seu-pacote` |
 
-### Módulo 24 — `ferramentas-e-qualidade`
+#### Módulo 24 — `ferramentas-e-qualidade`
 
 | Aula | Ensina | Presume |
 |---|---|---|
@@ -1058,7 +1703,22 @@ não do aluno.
 | `avisar-que-vai-sumir` | `api:warnings.warn`, `global:DeprecationWarning` | `os-niveis-do-registro` |
 | `o-robo-que-roda-os-testes` | cons. — leitura de integração contínua (`term:CI`) | M19 `escrever-o-teste-antes` |
 
-### Módulo 25 — `padroes-de-projeto-em-python`
+---
+
+### Curso 4 — `python-especialista` — padrões de projeto e o capô do CPython
+
+**Módulos:** porta `a-porta-dos-padroes` + M25–M26 (31 + 11 = 42 aulas, §4). **Fronteira de
+saída:** sênior — escolher (e recusar) padrão de projeto, e abrir o capô: descritor, metaclasse,
+contagem de referência, bytecode, bits e a fronteira com C. **entryCriteria:** a saída do curso
+anterior — o sênior de M22–M24. **Nota:** este curso re-introduz no módulo porta-de-entrada as
+construções da fronteira do avançado (as que M25+ presume: `abc`/`Protocol`, `dataclasses`,
+decoradores, contexto e função-como-valor); daí em diante, as tabelas abaixo valem integralmente.
+
+#### Módulo porta — `a-porta-dos-padroes`
+
+(Aulas previstas; tabela em §1.)
+
+#### Módulo 25 — `padroes-de-projeto-em-python`
 
 | Aula | Ensina | Presume |
 |---|---|---|
@@ -1073,7 +1733,7 @@ não do aluno.
 | `o-registro-de-plugins` | cons. — `node:Decorator` em forma nova (decorador que registra num dicionário) | `fabrica-com-dicionario`, M17 `escrever-um-decorador` |
 | `o-que-python-nao-precisa-de-padrao` | cons. — `node:ClassDef` em forma nova (a classe que devia ser função) | `estrategia-e-uma-funcao`, M12 `o-molde-e-o-objeto` |
 
-### Módulo 26 — `por-dentro-do-python`
+#### Módulo 26 — `por-dentro-do-python`
 
 | Aula | Ensina | Presume |
 |---|---|---|
@@ -1099,395 +1759,21 @@ não do aluno.
 | `o-decimal-mente` | cons. — `node:FloatLiteral` em forma nova (`0.1 + 0.2`) | M1 `dividir-da-decimal`, M10 `decimal-exato` |
 | `ler-o-fonte-do-cpython` | cons. — `api:inspect.getsource` em forma nova (do próprio módulo da stdlib) | `inspecionar-o-proprio-codigo`, `o-bytecode` |
 
----
+## 4. Contagem — módulos e aulas por curso
 
-## A tensão A6 × I3, e como esta trilha a resolve
+Contado sobre as tabelas (a conferência roda no fim de §"A verificação Ensina × Presume"; a soma
+de cada faixa está na tabela da espinha em §"Estrutura da espinha — 26 módulos, 337 aulas"):
 
-A bateria tem duas regras que, lidas ao pé da letra, se contradizem em toda aula de consolidação:
+| Curso | Módulos | Aulas da espinha | Porta (aulas previstas, §1) | Total |
+|---|---|---|---|---|
+| `python-iniciante` | M1–M12 | 20+12+13+14+22+15+16+14+12+14+13+15 = **180** | — | **180** |
+| `python-intermediario` | porta + M13–M21 | 15+6+10+8+10+14+13+12+12 = **100** | **12** | **112** |
+| `python-avancado` | porta + M22–M24 | 10+8+8 = **26** | **9** | **35** |
+| `python-especialista` | porta + M25–M26 | 10+21 = **31** | **10** | **41** |
+| **cadeia** | 26 da espinha + 3 portas | **337** | **31** | **368** |
 
-- **A6** (erro) — `atomos(solutionCode) ∩ introduces.productive ≠ ∅`: a aula tem de **puxar** algo.
-- **I3** — nenhuma construção é introduzida por duas aulas (unicidade de origem).
-
-Uma aula que só reforça não pode satisfazer A6 sem re-declarar um átomo já introduzido, o que
-aparenta violar I3.
-
-**Resolução adotada:** I3 fala da **primeira introdução** (a aula que é `primeiraAulaQueEnsina` para
-o átomo), não de toda menção. Uma aula de consolidação declara `role: "consolidation"` e lista em
-`introduces.productive` o átomo que **reexercita**; `targetAtom` continua apontando para a aula de
-origem. É o que a trilha de 0 violações do repositório já faz.
-
-**São 109 aulas de consolidação em 337 (32%), e a distribuição é desigual de propósito.** A régua
-"≤2 por módulo" da versão anterior não sobrevive ao contato com o `ast` do Python, e mentir sobre
-isso seria pior que declarar. Os três módulos que estouram, com a causa **medida**:
-
-| Módulo | cons. | Causa |
-|---|---|---|
-| M4 `caixas-que-devolvem` | 10 de 14 | §3.6 manda decompor "função" em seis passos; o `ast` dá **três** chaves (`node:FunctionDef`, `node:arg`, `node:Return`) |
-| M13 `o-modelo-de-dados` | 8 de 15 | o adaptador refina **dois** dunders (`node:InitMethod`, `node:DunderStr`); os outros catorze protocolos são `node:MethodDef` para o gate |
-| M8 `funcoes-em-profundidade` | 7 de 14 | `f(a=1)`, `f(**d)`, `def f(a, /, b, *, c)` e a recursão são quatro eventos de currículo distintos sobre **zero** chave nova (`node:keyword` é estrutural) |
-
-A regra que esta trilha se impõe no lugar da antiga: **toda consolidação nomeia o degrau na própria
-célula `Ensina`** ("em forma nova (…)"), e o script abaixo reprova consolidação que reforce átomo sem
-origem anterior. Consolidação sem degrau é aula que não ensina nada, e o gate está certo em
-reclamar.
-
----
-
-## A verificação Ensina × Presume
-
-**É reexecutável, e ela é a rede.** Como as tabelas são o dado, a conferência roda sobre este próprio
-arquivo. O script lê as 26 tabelas, monta a ordem global e reprova **seis** coisas:
-
-| # | O que reprova |
-|---|---|
-| I12 | slug de aula repetido |
-| LACUNA | `Presume` apontando para aula que ainda não veio (lacuna de currículo ou inversão de ordem) |
-| I3 | átomo introduzido por duas aulas fora de consolidação — ou por uma aula, sendo axioma |
-| VOCAB | chave de eixo FECHADO (`node:`/`op:`/`decl:`/`global:`) que não existe em `atoms.python.json`; `api:`/`term:` só por formato |
-| A7 | mais de 2 átomos numa aula que não é consolidação |
-| A6 | aula que não introduz nem consolida nada · consolidação que reforça átomo sem origem anterior |
-
-Ele é **fail-closed**: sem o inventário no disco ele reprova, em vez de calar a checagem de eixo
-fechado.
-
-```bash
-cd <raiz do repositório>
-python3 - docs/17-trilha-python.md <<'EOF'
-import json, os, re, sys
-
-txt = open(sys.argv[1], encoding='utf-8').read()
-REL = os.path.join('app', 'electron', 'main', 'engine', 'vocab', 'atoms.python.json')
-inv, d = None, os.path.dirname(os.path.abspath(sys.argv[1]))
-for base in [os.getcwd(), d, os.path.dirname(d), os.path.dirname(os.path.dirname(d))]:
-    if os.path.exists(os.path.join(base, REL)): inv = os.path.join(base, REL); break
-# FAIL-CLOSED (docs/16 §9.3): sem o inventário o eixo fechado não é conferido, e
-# um gate que se cala quando não consegue conferir é pior que gate nenhum.
-if inv is None:
-    print('FALHA: não achei %s — rode a partir da raiz do repositório' % REL); sys.exit(1)
-VOCAB = set()
-for eixo in json.load(open(inv, encoding='utf-8'))['axes'].values():
-    VOCAB.update(eixo)
-
-AXIOMA = {'node:Call', 'node:StrLiteral'}
-ESTRUTURAL = {'node:Module', 'node:Name', 'node:Load', 'node:Store', 'node:Del',
-              'node:arguments', 'node:Expr', 'node:alias', 'node:keyword'}
-SEMENTE = {'node:FunctionDef', 'node:arg', 'node:Return', 'node:Attribute', 'node:Import',
-           'node:ImportFrom', 'node:ClassDef', 'node:MethodDef', 'node:IntLiteral',
-           'node:With', 'node:withitem', 'node:Assign', 'decl:assign',
-           'api:unittest.TestCase', 'api:.assertEqual', 'api:.assertTrue',
-           'api:.assertIsNone', 'api:.assertRaises', 'api:runpy.run_path',
-           'api:io.StringIO', 'api:contextlib.redirect_stdout', 'api:.getvalue'}
-
-PAR = {'decl:assign': ['node:Assign'], 'decl:unpack': ['node:Assign'],
-       'decl:ann': ['node:AnnAssign'], 'decl:aug': ['node:AugAssign'],
-       'decl:walrus': ['node:NamedExpr'], 'decl:global': ['node:Global'],
-       'decl:nonlocal': ['node:Nonlocal'], 'decl:except-as': ['node:ExceptHandler'],
-       'node:With': ['node:withitem'], 'node:AsyncWith': ['node:withitem'],
-       'node:ListComp': ['node:comprehension'], 'node:SetComp': ['node:comprehension'],
-       'node:DictComp': ['node:comprehension'], 'node:GeneratorExp': ['node:comprehension'],
-       'node:Match': ['node:match_case']}
-FAMILIA = {'op:binary:': 'node:BinOp', 'op:bool:': 'node:BoolOp', 'op:unary:': 'node:UnaryOp',
-           'op:compare:': 'node:Compare', 'op:aug:': 'node:AugAssign'}
-FORMATO = re.compile(r'^(?:api|term):\S')
-CONS = re.compile(r'cons\.|^— \(')
-
-infence = False; mod = None; aulas = []
-for ln in txt.split('\n'):
-    if ln.strip().startswith('```'):
-        infence = not infence; continue
-    if infence: continue
-    m = re.match(r'^#{2,4} Módulo (\d+) — ', ln)
-    if m: mod = int(m.group(1)); continue
-    if ln.startswith('## ') and 'Módulo' not in ln: mod = None
-    if mod and ln.startswith('| ') and not re.match(r'^\|[\s\-:|]+\|$', ln):
-        c = [x.strip().replace('\\|', '|') for x in re.split(r'(?<!\\)\|', ln.strip().strip('|'))]
-        if c[0] in ('Aula', '#'): continue
-        if len(c) == 3: aulas.append((mod, c[0].strip('`'), c[1], c[2]))
-        elif len(c) == 5: aulas.append((mod, c[1].strip('`'), c[2], c[4]))
-
-vistos = set(); origem = {}; derivado = set(); falhas = []
-disponivel = lambda a: a in origem or a in derivado or a in AXIOMA or a in ESTRUTURAL or a in SEMENTE
-ATOMO = re.compile(r'`((?:node|decl|op|global|api|form|term):[^`]+)`')
-
-for i, (mod, slug, ensina, presume) in enumerate(aulas):
-    if slug in vistos: falhas.append('I12 slug repetido: %s' % slug)
-    if i > 0 and not presume.strip(): falhas.append('PRESUME vazio: %s' % slug)
-    if i == 0 and presume.strip() != 'nada':
-        falhas.append('A aula 1 tem de presumir "nada" (achei %r)' % presume)
-    for r in re.findall(r'`([a-z0-9][a-z0-9\-]{2,})`', presume):
-        if '-' in r and r not in vistos:
-            falhas.append('LACUNA M%d/%s presume %s' % (mod, slug, r))
-    atomos = ATOMO.findall(ensina)
-    for a in atomos:
-        eixo = a.split(':', 1)[0]
-        if eixo in ('node', 'decl', 'op', 'global'):
-            if a not in VOCAB:
-                falhas.append('VOCAB M%d/%s: %s não está em atoms.python.json' % (mod, slug, a))
-        elif not FORMATO.match(a):
-            falhas.append('FORMATO M%d/%s: %s' % (mod, slug, a))
-    if CONS.search(ensina):
-        # `term:` numa aula de consolidação é termo NOVO da prosa, não átomo
-        # reforçado: ele vive em `introducesTerms` e não tem eixo fechado.
-        for a in [x for x in atomos if not x.startswith('term:')]:
-            if not disponivel(a):
-                falhas.append('CONS M%d/%s reforça %s, que nenhuma aula anterior ensinou' % (mod, slug, a))
-    else:
-        if len(atomos) > 2:
-            falhas.append('A7 M%d/%s introduz %d átomos (teto 2)' % (mod, slug, len(atomos)))
-        if not atomos:
-            falhas.append('A6 M%d/%s não introduz nem consolida nada' % (mod, slug))
-        for a in atomos:
-            if a in origem: falhas.append('I3 %s: %s e %s' % (a, origem[a], slug))
-            elif a in AXIOMA: falhas.append('I3 %s é AXIOMA e %s reintroduz' % (a, slug))
-            else: origem[a] = slug
-            for d in PAR.get(a, []): derivado.add(d)
-            for pre, d in FAMILIA.items():
-                if a.startswith(pre): derivado.add(d)
-    vistos.add(slug)
-
-mods = sorted({m for m, _, _, _ in aulas})
-print('%d módulos · %d aulas · %d átomos com origem única · %d derivados · %d falhas'
-      % (len(mods), len(aulas), len(origem), len(derivado), len(falhas)))
-for f in falhas[:200]: print(' ', f)
-sys.exit(1 if falhas else 0)
-EOF
-# 26 módulos · 337 aulas · 331 átomos com origem única · 14 derivados · 0 falhas
-```
-
-**Resultado desta versão: `0 falhas`** — 26 módulos, 337 aulas, 331 átomos com origem única, 14
-chaves derivadas pela regra do par.
-
-**A rede foi testada com mutantes**, porque script que nunca reprovou nada não é rede. Cinco defeitos
-injetados um a um sobre este mesmo arquivo, todos pegos:
-
-| Mutante injetado | O que o script disse |
-|---|---|
-| `node:ChainedCompare` no lugar da consolidação de `comparar-encadeado` | `VOCAB M2/comparar-encadeado: node:ChainedCompare não está em atoms.python.json` |
-| `arredondar` passa a presumir `o-tipo-de-cada-valor` (aula 18, quatro depois) | `LACUNA M1/arredondar presume o-tipo-de-cada-valor` |
-| a aula `nao` deixa de ensinar qualquer coisa | `A6 M2/nao não introduz nem consolida nada` |
-| `sorteio` ganha um terceiro átomo | `A7 M10/sorteio introduz 3 átomos (teto 2)` |
-| `pegar-so-os-primeiros` reintroduz `api:itertools.chain` | `I3 api:itertools.chain: ferramentas-de-iteracao e pegar-so-os-primeiros` |
-
-**O que a verificação encontrou nesta reescrita** (cada item é um defeito que estaria na trilha):
-
-1. **Nove chaves de átomo INVENTADAS pela versão anterior** — `node:ChainedCompare`,
-   `node:ClassBase`, `node:ClassVar`, `node:ArgAnnotation`, `node:Returns`, `node:GenericAnnotation`,
-   `node:ComprehensionIf`, `node:DunderEnter`, `node:DunderExit`. Nenhuma existe em
-   `atoms.python.json`; os eixos `node:`/`op:`/`decl:`/`global:` são FECHADOS e validados por
-   pertença estrita. As nove aulas viraram consolidação, com o degrau nomeado.
-2. **`node:keyword` era átomo e estrutural ao mesmo tempo.** A versão anterior dava a aula
-   `chamar-pelo-nome` como `node:keyword` e listava `node:keyword` entre os estruturais sempre
-   permitidos, duas seções acima. A aula virou consolidação.
-3. **`api:.join` tinha duas origens** — `juntar-numa-string` (M6, `",".join(xs)`) e `esperar-terminar`
-   (M20, `thread.join()`). É a **mesma chave**: o extrator emite `api:.<método>` quando o receptor é
-   nome local, e não sabe o tipo dele. A aula de M20 virou consolidação, e o degrau (juntar texto ×
-   esperar thread) virou o conteúdo dela.
-4. **`op:binary:|` era pressuposto pela aula de `int | None` sem aula de origem.** Medido:
-   `int | None` em anotação emite `node:OptionalAnnotation` **e** `op:binary:|` **e** `node:BinOp`.
-   A aula `pode-faltar` (M18) passou a introduzir os dois, e a aula de bit a bit (M26) virou
-   consolidação com o degrau explícito (o mesmo `|` sobre inteiros).
-5. **`api:itertools.chain` era introduzido duas vezes** (M10 e M15). O de M15 virou
-   `api:itertools.tee`, que é o que aquela aula de fato ensina.
-6. **`global:hash` tinha duas origens** — a aula de chave de dicionário (M7) e a de `__hash__` (M13).
-   Ficou em M7, onde a pergunta "por que a chave precisa ser imutável" nasce; a de M13 virou
-   consolidação.
-7. **A regra do par não estava escrita, e sem ela `x += 1` é ilegal.** Medido: três chaves para um
-   gesto (`decl:aug`, `node:AugAssign`, `op:aug:+`), contra um teto de 2. Ver §"A regra do par".
-8. **O harness da fase SAÍDA não cabia na semente receptiva do código.** Oito chaves faltam em
-   `PYTHON_HARNESS_RECEPTIVE_SEED` e duas sobram sem nunca ocorrer. Dívida declarada em §"A semente
-   receptiva".
-9. **`with self.assertRaises(...)` em M9 cobrava `node:With`, ensinado só em M11.** Virou regra de
-   harness declarada: antes de M11 o teste usa a forma de chamada.
-10. **`importlib.import_module` no harness de captura de saída é PROIBIÇÃO GLOBAL.** Está literal em
-    `PY_FORBIDDEN_INVARIANTS`. O harness passou a usar `runpy.run_path`, que além de permitido roda o
-    arquivo do zero a cada chamada — sem isso, o segundo teste da mesma classe leria saída vazia.
-
-**O que a verificação NÃO prova.** Ela prova ausência de lacuna de currículo e de inversão de ordem
-no nível de construção. Ela **não** prova o teto de composição ([`16`](16-engine-de-trilha.md) §3.7:
-saber `if` e saber função não é saber `if` dentro de função) — isso é responsabilidade das aulas
-`role: "integration"` que a fase F3 deriva, e do gate A9. Também não prova o teto de 120 s por
-desafio, que só é mensurável depois de a solução de referência existir.
-
----
-
-## Desafios de módulo
-
-No fim de cada um dos 26 módulos existe um **desafio de MÓDULO**
-(`modules/<slug>/challenges/<slug>/challenge.json`, declarado em `module.json` como `challenge`):
-
-- **Multi-arquivo** — `files[]` com 2–3 arquivos que se importam entre si (a partir de M10, quando
-  `import` existe; antes disso, arquivo único);
-- **Elaborado** — statement longo com cenário do mundo real (2–4 mil caracteres) e 4–6 testes;
-- **Autoral** — não é gerado por LLM: o botão "Gerar novo desafio" não aparece quando o target é
-  `module`;
-- **Restrição de orçamento igual à das aulas** — pode compor livremente o que o módulo ensinou, mas
-  **não pode introduzir construção nova**. Um desafio de módulo que precisa de algo não ensinado é a
-  prova de que falta uma aula;
-- Os aninhamentos que ficaram de fora das tabelas por não serem átomos (laço dentro de laço, lista de
-  listas, dicionário de listas) são o material natural desses desafios: composição é o que eles
-  testam.
-
-## UX
-
-- **Teoria determinística** — a aula apresenta a teoria direto do `lesson.json` (markdown, seção por
-  seção): sem LLM e sem loading. O LLM é usado só para dúvidas (`answer`) e para gerar novo desafio.
-- **O quiz é o PORTÃO da aula, e o portão exige ACERTO.** ⚑ A regra do produto **inverteu**:
-  responder deixou de bastar. Ver a subseção abaixo — é decisão explícita do dono e contradiz o que
-  este documento e os textos de interface diziam antes.
-- **Falha rápida sem chave** — sem chave de LLM o `answer` devolve erro estruturado
-  (`TUTOR_UNAVAILABLE`); o fluxo nunca trava em spinner.
-- **Checks por teste** — o veredito mostra ✓/✗ por teste. **Em Python o rótulo do check é a docstring
-  do método**, não o nome dele: medido, `unittest -v` imprime a linha do id e, quando existe
-  docstring, a primeira linha dela logo abaixo, antes do `... ok`:
-
-  ```
-  test_imprime_oi (tests.test_solucao.TestAPrimeiraLinha.test_imprime_oi)
-  o programa imprime oi ... ok
-  ```
-
-  Logo: **todo método de teste desta trilha carrega uma docstring de uma linha em pt-BR**. Sem ela o
-  aluno leria `test_imprime_oi`, que é ruído.
-- **Erro de recuo tem tratamento próprio.** `IndentationError` e `TabError` acontecem na importação,
-  então o `unittest` reporta erro de coleta e nenhum teste roda. O veredito precisa dizer "seu arquivo
-  não chegou a rodar: o recuo está errado na linha N", nunca "0 de 3 testes passaram" — que é
-  verdadeiro e inútil.
-- **Na fase SAÍDA o veredito mostra o que o programa imprimiu**, lado a lado com o que era esperado.
-  É a mesma tela que o aluno vai ler 337 aulas depois quando um teste de valor falhar, e ela precisa
-  ser a mesma desde a aula 1.
-
-### O quiz da aula — maestria obrigatória, e o ciclo de remediação
-
-**A regra mudou, e a mudança é a inversão do gate.** Até a onda 10 o quiz travava a aula até ser
-**respondido**: errar liberava. A partir desta onda o gate exige **maestria** — só o **acerto**
-fecha a chave e destrava o "Próximo" e o "Concluir aula". **Decisão explícita do dono**; este
-documento a registra, não a discute.
-
-Errar não é punição e não bloqueia em silêncio — abre um **ciclo**:
-
-```
-erro → a IA explica onde AQUELA alternativa se separa do que a seção mostra
-     → a explicação ENTRA NO HISTÓRICO do chat da aula
-     → um quiz NOVO sobre o MESMO conteúdo é gerado na hora (geração N+1)
-     → repete até o acerto
-```
-
-O tom de todo texto do ciclo é **diagnóstico**: descreve onde a alternativa se separa da seção,
-nunca repreende — `docs/ux-redesign.md` §8 é normativo aqui, e §8.2 proíbe o elogio ritualizado em
-favor do feedback informacional específico. O bloqueio do gate não é castigo: é a informação de que
-aquele trecho ainda não foi demonstrado.
-
-**Onde isso vive:** máquina de estado pura em `app/src/lib/trackLessonState.ts` (o estágio
-`'dominado'` é o que fecha a chave), quatro canais IPC em `app/shared/ipc-contract.ts`
-(`track:quiz-attempt`, `track:quiz-explain`, `track:quiz-remedial`, `track:quiz-history`) e duas
-tabelas no SQLite v5 (`quiz_attempts`, `quiz_remediations`). O contrato de produto está em
-[`app-gui.md`](app-gui.md) §2.13.
-
-**`optionRationales` — o material que a explicação usa.** Cada afirmação de `assertions[]` pode
-declarar **um racional por alternativa**: por que aquela opção está errada e, na correta, por que
-está certa. É o que o tutor usa quando o aluno erra — a explicação do **distrator escolhido**, não o
-`feedback` único da afirmação.
-
-| Valor | Significado |
-|---|---|
-| ausente | aula sem racionais declarados — **válido**, e é o estado das 20 aulas desta trilha hoje |
-| `[]` | ausência **explícita**; é o que a engine materializa por INV-05 e a F12 copia verbatim |
-| não vazio | comprimento **igual** ao de `options`, mesma ordem, cada item não vazio |
-
-```bash
-cd app && python3 -c "
-import json, glob
-n = sum(1 for f in glob.glob('resources/tracks/python/modules/*/lessons/*/lesson.json')
-        for a in json.load(open(f)).get('assertions', []) if 'optionRationales' in a)
-print('afirmacoes com optionRationales:', n)"
-# -> afirmacoes com optionRationales: 0
-```
-
-### ⚑ O que a cláusula J5 mediu nesta trilha: 17 das 20 aulas
-
-O `audit` fecha em **0 violações** e o `coverage` em **0 lacunas** — nenhum desafio cobra o que a
-aula não ensinou, que é a garantia que o dono pediu, e ela está satisfeita. A cláusula J5
-(Discriminação) de [`16`](16-engine-de-trilha.md) §9.1 responde a **outra** pergunta, que ninguém
-verificava: *o teste DERRUBA quem não usou a construção da aula?*
-
-**Nesta trilha, em 17 das 20 aulas medidas, não derruba.** O código mínimo que passa em cada um dos
-21 desafios é um único `print("<saída esperada>")`: a aula de potência não exige `**`, a de f-string
-não exige f-string, a de variável não exige atribuição. **Um aluno passa nos 21 desafios imprimindo
-literais.** O `audit` fica verde porque a *solução de referência* usa a construção — e usa mesmo. O
-que falha é o teste.
-
-| Medição (2026-09-05) | Valor |
-|---|---|
-| Desafios avaliados · medidos | 21 · 20 |
-| Sem alvo (o desafio de módulo, sem aula dona) | 1 |
-| Discriminam | 3 |
-| **Não discriminam** | **17** |
-| Alvos na solução · forçados pelo teste | 34 · 5 |
-| **Alvos não forçados** | **29** |
-
-Os **29 alvos não forçados** são os mesmos 29 "excessos" que `npm run engine -- coverage python`
-imprime. **A classificação é AVISO com contagem, nunca violação** — reprovar aqui pintaria de
-vermelho 17 das 20 aulas da única trilha do produto, e isso é decisão do dono, não do gate. O
-comando que reproduz o placar está em [`16`](16-engine-de-trilha.md) §9.1.
-
-## Regras para os desafios de aula (`challenge.json`)
-
-- `language: 'python'`; `programmingLanguage: 'python'`, `runtime: 'cpython-3.14'`,
-  `harnessLanguage: 'python'` no `track.json`; slug da trilha: **`python`**;
-- layout obrigatório: `solucao.py` na raiz, `tests/__init__.py` (o exit-guard, e **sem ele nada
-  roda**) e `tests/test_solucao.py`;
-- **fase SAÍDA** (M1–M3): `outputChannel: 'impressao'`, o teste captura `stdout` com
-  `runpy.run_path` + `contextlib.redirect_stdout`; o arquivo do aluno é um **script**, sem função;
-- **a virada** (M4 `imprimir-nao-e-devolver`): `outputChannel: 'ambos'`, três testes — devolve,
-  imprime, e chamar sozinha não imprime;
-- **fase VALOR** (M4 em diante): `outputChannel: 'retorno'`, o teste importa com
-  `from solucao import <funcao>`;
-- o teste **falha** com o starter e **passa** com a solução; `expectedTestCount` = nº de testes;
-  2–4 testes por desafio de aula;
-- a função do desafio é derivada do slug (kebab → snake_case: `dobro-do-numero` → `dobro_do_numero`)
-  — **snake_case, não camelCase**;
-- todo método de teste tem docstring de uma linha em pt-BR (é o rótulo do check);
-- **cenário `error` só existe se o orçamento permitir** (A11): exigir "entrada inválida que deve
-  falhar" antes da aula `levantar-um-erro` (M9) é precisamente a causa-raiz que produziu o desafio
-  impossível da aula 1 da trilha legada. Antes de M9, os cenários possíveis são `example` e
-  `boundary`;
-- **antes de M11**, teste que espera erro usa `self.assertRaises(Erro, funcao, arg)` — nunca o `with`;
-- **em M20 e M21**, toda função enviada a processo é função de módulo, nunca `lambda` nem closure;
-- statement em markdown pt-BR, linguagem simples;
-- **proibições sempre**, em qualquer aula, starter, teoria ou solução: `eval`, `exec`, `compile`,
-  `__import__`, `globals()`, `locals()`, `vars()`, `importlib.import_module`, `getattr`/`setattr` com
-  nome não-literal, e definir `__getattr__`/`__getattribute__`.
-
-## Teste de proficiência (`proficiency.json`)
-
-Cobre os conceitos centrais de todos os módulos: saída e valor, nome e ligação, decisão, repetição,
-função com parâmetro e retorno, lista, dicionário, erro tratado, arquivo, classe, protocolo, gerador,
-tipo anotado e concorrência. Enunciado em linguagem simples que **não pressupõe programação** (o aluno
-pode fazer o teste antes da primeira aula). Dificuldade 5, carência da 1ª estrela 120 s — pressão de
-tempo degrada acurácia. Quem passa destrava a trilha inteira.
-
-## Fora de escopo (declarado)
-
-O que esta trilha **não** ensina, e por quê. Cada item é uma decisão, não um esquecimento:
-
-- **Pacotes de terceiros** (`numpy`, `pandas`, `requests`, `django`, `flask`, `pytest`). A trilha
-  inteira roda só com o interpretador e a stdlib — é o que torna o desafio executável sem instalação
-  e o gate determinístico. `venv`/`pip` aparecem como **leitura** em M23, e o assunto do módulo é
-  empacotar o **seu** código, não instalar o dos outros. Consequência aceita: `op:binary:@` e
-  `op:aug:@` (multiplicação de matriz) não têm aula, porque nenhum tipo da stdlib os implementa.
-- **Web, banco de dados e ciência de dados.** Todos dependem do item acima.
-- **Metaprogramação por nome montado** — `eval`, `exec`, `globals()`, `locals()`, `vars()`,
-  `getattr` com nome variável, `__getattr__`/`__getattribute__`. **Não é escolha de escopo, é
-  condição de existência do gate**: são exatamente as construções que tornam a análise estática
-  indecidível, e estão em `PY_FORBIDDEN_INVARIANTS`. Descritor (`__get__`/`__set__`) e metaclasse
-  (`class M(type)`) **não** estão na lista e por isso têm aula, em M26.
-- **`node:ComplexLiteral`** (`3j`). Está no vocabulário e nenhuma aula o ensina: número complexo não
-  aparece no trabalho de quem programa em Python fora de domínio científico, e o domínio científico
-  cai no primeiro item.
-- **Os nós de modo de parse** (`node:Interactive`, `node:Expression`, `node:FunctionType`,
-  `node:Suite`) e os legados do `ast` anterior ao 3.9 (`node:Index`, `node:ExtSlice`,
-  `node:AugLoad`, `node:AugStore`): não ocorrem ao parsear um arquivo `.py` no 3.14. Estão no
-  inventário porque o inventário é gerado do `ast`, não escolhido.
-- **`node:TypeIgnore`** (`# type: ignore` como nó) — só existe com `ast.parse(..., type_comments=True)`,
-  que o extrator não usa.
-- **Interface gráfica** (`tkinter`, `turtle`). São stdlib, mas nenhum desafio delas é verificável por
-  asserção de valor ou de saída.
+As aulas da porta são **conteúdo previsto** — a reescrita das aulas-fonte para "quem vem do curso
+anterior" (§1). O número de aulas é **saída, não entrada** ([`16`](16-engine-de-trilha.md) §3.6):
+ele é consequência do teto de ≤2 construções produtivas novas por aula (pela regra do par) aplicado
+à progressão atômica, mais a autocontenção por curso (§1). Nenhum destes números foi escolhido: foi
+contado — e a contagem final sai das tabelas autoradas, não deste resumo.

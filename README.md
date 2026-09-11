@@ -391,7 +391,7 @@ O modelo de ameaça completo, incluindo o que declaradamente **não** é defendi
 | `skills/study-method/assets/` | Schemas JSON, templates de setup/sessão/desafio, catálogo de decisões. |
 | [`app/`](app/) | A GUI Electron. Não é a skill: é um app que **embrulha** a skill — `studyMethodRunner.ts` dá `spawn` nos mesmos scripts bash — e acrescenta geração de aula ao vivo, editor, TTS/STT local e LLM embarcado. Instalada por `./install.sh`, rodada por `./run.sh`. |
 | [`app/electron/main/engine/`](app/electron/main/engine/) | A engine de trilhas: 13 fases (`F0`..`F12`) que produzem um currículo inteiro offline, mais o gate determinístico que prova sobre AST que nenhum desafio cobra o que nenhuma aula ensinou. Rodada pelo CLI (`npm run engine -- audit <slug>`), **nunca** dentro do processo principal do Electron. |
-| [`app/resources/tracks/`](app/resources/tracks/) | As trilhas que o app oferece ao aluno. Duas hoje, em estados opostos — ver "Estado do projeto". |
+| [`app/resources/tracks/`](app/resources/tracks/) | Os cursos que o app oferece ao aluno. **Quatro hoje**, encadeados — `python-iniciante` (do primeiro `print` ao júnior), `python-intermediario` (júnior → pleno), `python-avancado` (pleno → sênior, medindo) e `python-especialista` (padrões de projeto e o capô do CPython). A cadeia — fronteiras, `entryCriteria` e os módulos porta-de-entrada — é o [`docs/17-trilha-python.md`](docs/17-trilha-python.md). |
 | [`docs/`](docs/) | O `docs/` do repositório: documentos normativos por domínio. `00-contratos.md` é a autoridade — não confundir com o `docs/` do setup, que é a teoria do aluno. |
 | [`docs/research/`](docs/research/) | A pesquisa auditada que sustenta as decisões, com as fontes. |
 | [`docs/build-spec/`](docs/build-spec/) | Os fragmentos de contrato de cada artefato implementado. |
@@ -412,6 +412,7 @@ O modelo de ameaça completo, incluindo o que declaradamente **não** é defendi
 | [`docs/03-memoria.md`](docs/03-memoria.md) · [`docs/04-proficiencia.md`](docs/04-proficiencia.md) | O que é lembrado, como é consolidado, como a proficiência é medida. |
 | [`docs/05-challenges-tdd.md`](docs/05-challenges-tdd.md) | O protocolo de validação de desafio, passo a passo. |
 | [`docs/16-engine-de-trilha.md`](docs/16-engine-de-trilha.md) | A engine de trilhas: o gate determinístico que prova, sobre AST, que nenhum desafio cobra construção que nenhuma aula ensinou. |
+| [`docs/17-trilha-python.md`](docs/17-trilha-python.md) | O contrato de conteúdo dos quatro cursos de Python: a cadeia iniciante → intermediário → avançado → especialista, os módulos porta-de-entrada e as 26 tabelas da espinha. |
 | [`docs/06-visualizacao.md`](docs/06-visualizacao.md) | O renderizador e as regras de figura honesta. |
 | [`docs/11-seguranca-privacidade.md`](docs/11-seguranca-privacidade.md) | Modelo de ameaça, privacidade campo a campo, sandbox. |
 | [`docs/app-gui.md`](docs/app-gui.md) | A GUI Electron: contratos de IPC, telas, o que cada painel faz. |

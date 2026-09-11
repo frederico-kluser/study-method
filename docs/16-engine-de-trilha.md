@@ -1,8 +1,9 @@
 # 16 — A engine de trilhas
 
 > **Escopo.** Este documento é o contrato normativo de **como uma trilha é produzida**. Ele
-> complementa [`docs/17-trilha-python.md`](17-trilha-python.md), que é o contrato de **conteúdo** da
-> única trilha do produto. ⚑ Este parágrafo apontava para `docs/15-trilha-nodejs.md`, que descreve
+> complementa [`docs/17-trilha-python.md`](17-trilha-python.md), que é o contrato de **conteúdo**
+> dos quatro cursos de Python — a antiga "única trilha do produto" foi substituída em 2026-09-10
+> pelas trilhas `python-*`. ⚑ Este parágrafo apontava para `docs/15-trilha-nodejs.md`, que descreve
 > uma trilha **apagada em 2026-09-02** e hoje é **registro histórico**, não contrato vigente.
 > A fonte de verdade dos tipos do produto final continua sendo
 > `app/electron/main/content/trackTypes.ts`; a engine não inventa formato, ela preenche o que já
@@ -45,10 +46,14 @@ roda em milissegundos, não depende de nenhuma chave de API e tem poder de veto.
 > tabela fica como **registro do defeito que motivou esta engine**, no passado.
 >
 > ⚑ **`app/resources/tracks/` NÃO está mais vazio.** Esta nota dizia que estava, e isso deixou de
-> ser verdade quando a trilha `python` entrou (`83a93f4`, onda 9). Medido:
+> ser verdade quando a trilha `python` entrou (`83a93f4`, onda 9). **Registro histórico
+> atualizado:** em **2026-09-10** essa trilha única foi **SUBSTITUÍDA** por quatro trilhas `python-*`
+> — `python-iniciante`, `python-intermediario`, `python-avancado` e `python-especialista` (a cadeia
+> e as portas estão no contrato, [`17-trilha-python.md`](17-trilha-python.md) §0/§1). O que foi
+> medido abaixo o foi enquanto `python` era a única trilha (`83a93f4` → 2026-09-10):
 >
 > ```bash
-> cd app && ls resources/tracks/            # python  (mais o .gitkeep, oculto)
+> cd app && ls resources/tracks/            # python  — registro histórico; hoje são quatro trilhas python-*
 > cd app && find resources/tracks -name lesson.json | wc -l      # 20
 > cd app && find resources/tracks -name challenge.json | wc -l   # 21
 > ```
@@ -1113,7 +1118,8 @@ saída do módulo.
 
 **DECISÃO DE PROJETO: AVISO com contagem, nunca violação.** A classificação é literal no tipo
 (`classificacao: 'aviso'`), não parâmetro. O motivo é o número medido: transformar falta de
-discriminação em reprovação pintaria de vermelho **17 das 20 aulas** da única trilha do produto — e
+discriminação em reprovação pintaria de vermelho **17 das 20 aulas** do curso `python-iniciante`
+(módulo `a-tela` — na medição de 2026-09-05, quando `python` ainda era a única trilha) — e
 essa é decisão do dono, não do gate. O módulo **mede e declara**; não existe função `reprovar()` nem
 exit code nele.
 
@@ -1333,8 +1339,10 @@ até lá, o campo não é sinal de nada (§11: usar `difficulty` como sinal de g
 | D5 | Distinção receptivo/produtivo | a **necessidade** está medida; a **correção** não tem precedente na literatura de currículo de programação. Fixtures de regressão e revisão humana no piloto |
 
 ⚑ **D3 é registro histórico.** Ela foi escrita quando a trilha do produto era de JavaScript/Node —
-a trilha apagada em 2026-09-02. A única trilha do produto hoje é `python`
-([`17-trilha-python.md`](17-trilha-python.md)), e a máquina nocional dela está descrita lá, aula por
+a trilha apagada em 2026-09-02. Hoje o produto tem **quatro trilhas `python-*`** — iniciante,
+intermediário, avançado e especialista (decisão do dono de 2026-09-10, que **substituiu** a trilha
+única `python`, entrada em `83a93f4`) — desenhadas no
+[`17-trilha-python.md`](17-trilha-python.md), e a máquina nocional delas está descrita lá, aula por
 aula. D3 volta a valer se e quando uma trilha de JS for autorada de novo.
 
 ---
