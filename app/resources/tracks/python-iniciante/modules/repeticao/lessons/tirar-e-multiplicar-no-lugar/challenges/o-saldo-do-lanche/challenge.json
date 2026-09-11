@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "slug": "o-saldo-do-lanche",
+  "title": "O saldo do lanche",
+  "concept": "subtrair_e_multiplicar_no_lugar",
+  "difficulty": 3,
+  "language": "python",
+  "outputChannel": "impressao",
+  "statement": "# O saldo do lanche\n\nVocê começa com `100` de saldo, paga um lanche de `10` e o seu amigo dobra o que sobrou.\n\nEscreva o programa que mostra o saldo final:\n\n```text\n180\n```\n\nUse `saldo -= 10` para pagar o lanche e `saldo *= 2` para dobrar o que sobrou, depois imprima `saldo`.",
+  "starterCode": "saldo = 100\n# escreva aqui o saldo -= 10 e o saldo *= 2\nprint(saldo)\n",
+  "testsCode": "import contextlib\nimport io\nimport runpy\nimport unittest\n\n\ndef rodar():\n    \"\"\"Roda solucao.py do zero e devolve tudo o que ele imprimiu.\"\"\"\n    saida = io.StringIO()\n    with contextlib.redirect_stdout(saida):\n        runpy.run_path(\"solucao.py\")\n    return saida.getvalue()\n\n\nclass TestTirarEMultiplicarNoLugar(unittest.TestCase):\n    def test_imprime_o_saldo_depois_do_lanche(self):\n        \"\"\"o programa imprime o saldo depois do lanche e da dobrada\"\"\"\n        self.assertEqual(rodar(), str((100 - 10) * 2) + \"\\n\")\n",
+  "solutionCode": "saldo = 100\nsaldo -= 10\nsaldo *= 2\nprint(saldo)\n",
+  "expectedTestCount": 1,
+  "requirements": [
+    {
+      "id": "test_imprime_o_saldo_depois_do_lanche",
+      "teste": "test_imprime_o_saldo_depois_do_lanche",
+      "descricao": "o programa imprime o saldo depois do lanche e da dobrada"
+    }
+  ]
+}

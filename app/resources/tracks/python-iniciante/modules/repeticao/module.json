@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "slug": "repeticao",
+  "title": "Repetição",
+  "order": 3,
+  "lessons": [
+    "repetir-um-numero-de-vezes",
+    "de-onde-ate-onde",
+    "acumular-num-nome",
+    "tirar-e-multiplicar-no-lugar",
+    "dividir-no-lugar",
+    "resto-e-potencia-no-lugar",
+    "enquanto",
+    "parar-no-meio",
+    "pular-uma-volta",
+    "o-laco-que-nao-acaba-sozinho",
+    "laco-dentro-de-laco",
+    "e-se-nunca-parou",
+    "o-else-do-while"
+  ]
+}

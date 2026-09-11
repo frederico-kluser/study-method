@@ -1,0 +1,117 @@
+{
+  "schemaVersion": 1,
+  "slug": "o-else-do-while",
+  "title": "O else do while",
+  "summary": "O else depois do while roda quando a condição fica falsa sozinha — e fica calado se um break vencer.",
+  "difficulty": 5,
+  "role": "regular",
+  "targetAtom": "node:WhileElse",
+  "concepts": [
+    "while_else"
+  ],
+  "prerequisites": [
+    "e-se-nunca-parou",
+    "enquanto"
+  ],
+  "introduces": {
+    "productive": [
+      "node:WhileElse"
+    ],
+    "receptive": []
+  },
+  "introducesTerms": [],
+  "theory": [
+    {
+      "id": "o-else-depois-do-while",
+      "title": "O else depois do while",
+      "markdown": "Na aula *e se nunca parou* o `else` depois do `for` rodava quando o laço chegava ao fim sozinho. O `while` tem o mesmo `else`, com a mesma regra: ele roda quando o laço **termina pela condição** — e fica calado se um `break` encerrar.\n\n```python\nsaldo = 3\nwhile saldo > 0:\n    print(saldo)\n    saldo -= 1\nelse:\n    print(\"zerado\")\n```\n\n```text\n3\n2\n1\nzerado\n```\n\nO saldo chegou a 0, a condição `saldo > 0` ficou falsa e o laço terminou do jeito normal — então o `else` roda. O `zerado` não é impresso dentro de nenhuma volta: ele é o aviso de que o laço acabou pela condição."
+    },
+    {
+      "id": "o-break-cala-o-else",
+      "title": "O break cala o else",
+      "markdown": "A regra de ouro é a mesma do `for`: **break encerrou, else fica de fora**.\n\n```python\nsaldo = 3\nwhile saldo > 0:\n    print(saldo)\n    saldo -= 1\n    if saldo == 1:\n        break\nelse:\n    print(\"zerado\")\n```\n\n```text\n3\n2\n```\n\nO laço não terminou por causa da condição — o `break` venceu antes. O `else` não roda e o `zerado` não aparece, mesmo com o saldo ainda maior que 0."
+    },
+    {
+      "id": "a-condicao-falsa-e-o-else",
+      "title": "A condição falsa e o else",
+      "markdown": "O `else` do `while` é o espelho do fim natural: **condição falsa na conferência = else**. Isso vale também para a primeira conferência — condição falsa de cara, zero voltas, e ainda assim o `else` roda:\n\n```python\nsaldo = 0\nwhile saldo > 0:\n    print(saldo)\n    saldo -= 1\nelse:\n    print(\"sem saldo\")\n```\n\n```text\nsem saldo\n```\n\nNenhuma volta aconteceu — e mesmo assim o `else` roda, porque o laço \"terminou\" pela condição (que nunca chegou a ser verdadeira). Pergunta de estado: quantas vezes o bloco do `while` rodou nesse programa? Zero; o `else` não conta como volta."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "else-roda-quando-a-condicao-falha",
+      "statement": "O else depois do while roda quando o laço termina pela condição ficar falsa.",
+      "question": "No programa `while saldo > 0:` com `print(saldo)` e `saldo -= 1` no bloco e depois `else:` com `print(\"zerado\")`, o que a tela mostra quando saldo começa em 3?",
+      "options": [
+        "3, 2, 1 e zerado",
+        "3, 2 e 1",
+        "3, 2, 1, 0 e zerado",
+        "3, 2, 1 e nada mais"
+      ],
+      "answerIndex": 0,
+      "feedback": "O saldo anda 3, 2, 1, chega a 0, a condição falha e o else imprime zerado.",
+      "sectionId": "o-else-depois-do-while",
+      "optionRationales": [
+        "O laço termina pela condição (saldo virou 0), então o else roda: o zerado aparece.",
+        "Sem o else seria só 3, 2, 1; o else existe e roda no fim natural do laço.",
+        "O 0 nunca imprime: o print roda antes do saldo -= 1, e com saldo 0 o bloco nem entra.",
+        "O zerado aparece sim — o laço acabou sozinho, e é exatamente quando o else roda."
+      ]
+    },
+    {
+      "id": "break-cala-o-else-do-while",
+      "statement": "Se o break encerra o while, o else não roda.",
+      "question": "No programa com `while saldo > 0:`, `print(saldo)`, `saldo -= 1`, `if saldo == 1: break` no bloco e `else:` com `print(\"zerado\")`, o que a tela mostra?",
+      "options": [
+        "3 e 2",
+        "3, 2, 1 e zerado",
+        "3, 2 e 1",
+        "3 e zerado"
+      ],
+      "answerIndex": 0,
+      "feedback": "O break corta quando o saldo vira 1; o laço não terminou pela condição, e o else fica calado.",
+      "sectionId": "o-break-cala-o-else",
+      "optionRationales": [
+        "3 imprime; o saldo vira 2 e imprime; vira 1 e o break corta antes do print do 1.",
+        "O zerado só apareceria sem o break — o break é quem cala o else.",
+        "O 1 não imprime: o break vem antes do print na volta em que o saldo vira 1.",
+        "O zerado não aparece e o 2 sim: a contagem é 3, depois 2, e o break corta."
+      ]
+    },
+    {
+      "id": "zero-voltas-e-ainda-assim-else",
+      "statement": "Condição falsa na primeira conferência: zero voltas, e o else ainda roda.",
+      "question": "No programa com `saldo = 0` e `while saldo > 0:` com `print(saldo)` no bloco e `else:` com `print(\"sem saldo\")`, o que a tela mostra?",
+      "options": [
+        "sem saldo",
+        "0 e sem saldo",
+        "nada",
+        "0"
+      ],
+      "answerIndex": 0,
+      "feedback": "A condição é falsa antes da primeira volta, o bloco não roda — e o else roda mesmo assim.",
+      "sectionId": "a-condicao-falsa-e-o-else",
+      "optionRationales": [
+        "O while nem entra (0 não é maior que 0), o laço termina pela condição e o else imprime sem saldo.",
+        "O 0 não imprime: o print está dentro do bloco, que não roda nenhuma vez.",
+        "O else existe e roda sempre que o laço termina pela condição — inclusive com zero voltas.",
+        "Só o 0 apareceria se o print rodasse; ele está dentro do bloco do while, que é pulado."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "O while com else na referência da linguagem",
+      "url": "https://docs.python.org/3/reference/compound_stmts.html#the-while-statement",
+      "description": "A definição oficial do while — incluindo o bloco else que roda quando a condição falha."
+    },
+    {
+      "title": "O tutorial oficial sobre o else dos laços",
+      "url": "https://docs.python.org/3/tutorial/controlflow.html#break-and-continue-statements-and-else-clauses-on-loops",
+      "description": "A seção do tutorial que explica o else dos laços e a pegadinha do break."
+    }
+  ],
+  "challenges": [
+    "o-saldo-que-avisa-que-zerou"
+  ]
+}

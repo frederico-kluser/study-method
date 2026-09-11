@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "slug": "some-um-a-quatro",
+  "title": "Some um a quatro",
+  "concept": "acumulador_com_aug",
+  "difficulty": 3,
+  "language": "python",
+  "outputChannel": "impressao",
+  "statement": "# Some um a quatro\n\nEscreva um programa que **some 1 + 2 + 3 + 4** e mostre o resultado na tela.\n\nUm jeito: um acumulador `total` que começa em 0, um `for` com `range(1, 5)` e, dentro do bloco, `total += i`. Depois do laço, imprima `total`.\n\nA tela deve ficar exatamente assim:\n\n```text\n10\n```",
+  "starterCode": "total = 0\n# escreva aqui o for com range(1, 5) e o total += i\nprint(total)\n",
+  "testsCode": "import contextlib\nimport io\nimport runpy\nimport unittest\n\n\ndef rodar():\n    \"\"\"Roda solucao.py do zero e devolve tudo o que ele imprimiu.\"\"\"\n    saida = io.StringIO()\n    with contextlib.redirect_stdout(saida):\n        runpy.run_path(\"solucao.py\")\n    return saida.getvalue()\n\n\nclass TestAcumularNumNome(unittest.TestCase):\n    def test_imprime_a_soma_de_um_a_quatro(self):\n        \"\"\"o programa imprime a soma de 1 a 4\"\"\"\n        self.assertEqual(rodar(), str(1 + 2 + 3 + 4) + \"\\n\")\n",
+  "solutionCode": "total = 0\nfor i in range(1, 5):\n    total += i\nprint(total)\n",
+  "expectedTestCount": 1,
+  "requirements": [
+    {
+      "id": "test_imprime_a_soma_de_um_a_quatro",
+      "teste": "test_imprime_a_soma_de_um_a_quatro",
+      "descricao": "o programa imprime a soma de 1 a 4"
+    }
+  ]
+}

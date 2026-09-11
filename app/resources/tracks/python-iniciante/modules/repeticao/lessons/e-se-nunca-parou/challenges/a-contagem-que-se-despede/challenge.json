@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "slug": "a-contagem-que-se-despede",
+  "title": "A contagem que se despede",
+  "concept": "for_else",
+  "difficulty": 5,
+  "language": "python",
+  "outputChannel": "impressao",
+  "statement": "# A contagem que se despede\n\nEscreva um programa com um `for` sobre `range(3)` que imprima **0, 1 e 2** e, depois de acabar sozinho, imprima **fim**.\n\nNo bloco do `for`, imprima o número da vez. Depois do `for`, escreva um `else:` com `print(\"fim\")` no bloco — o laço termina sem `break`, então o `else` roda.\n\nA tela deve ficar exatamente assim:\n\n```text\n0\n1\n2\nfim\n```",
+  "starterCode": "# escreva aqui o for n in range(3) com print(n) e o else: com print(\"fim\")\n",
+  "testsCode": "import contextlib\nimport io\nimport runpy\nimport unittest\n\n\ndef rodar():\n    \"\"\"Roda solucao.py do zero e devolve tudo o que ele imprimiu.\"\"\"\n    saida = io.StringIO()\n    with contextlib.redirect_stdout(saida):\n        runpy.run_path(\"solucao.py\")\n    return saida.getvalue()\n\n\nclass TestESeNuncaParou(unittest.TestCase):\n    def test_imprime_a_contagem_e_o_fim(self):\n        \"\"\"o programa imprime 0, 1, 2 e o fim do else\"\"\"\n        self.assertEqual(rodar(), \"0\\n\" + \"1\\n\" + \"2\\n\" + \"fim\\n\")\n",
+  "solutionCode": "for n in range(3):\n    print(n)\nelse:\n    print(\"fim\")\n",
+  "expectedTestCount": 1,
+  "requirements": [
+    {
+      "id": "test_imprime_a_contagem_e_o_fim",
+      "teste": "test_imprime_a_contagem_e_o_fim",
+      "descricao": "o programa imprime 0, 1, 2 e o fim do else"
+    }
+  ]
+}

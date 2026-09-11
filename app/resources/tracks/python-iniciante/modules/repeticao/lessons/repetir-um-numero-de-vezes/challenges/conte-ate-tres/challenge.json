@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "slug": "conte-ate-tres",
+  "title": "Conte até três",
+  "concept": "repetir_com_for",
+  "difficulty": 2,
+  "language": "python",
+  "outputChannel": "impressao",
+  "statement": "# Conte até três\n\nEscreva um programa que imprima **0, 1 e 2**, um por linha.\n\nUse `for` com `range(3)` e imprima, dentro do bloco, o número da vez. O bloco vai recuado, como o bloco do `se`.\n\nA tela deve ficar exatamente assim:\n\n```text\n0\n1\n2\n```",
+  "starterCode": "# escreva aqui o for com range(3) que imprime o numero da vez\n",
+  "testsCode": "import contextlib\nimport io\nimport runpy\nimport unittest\n\n\ndef rodar():\n    \"\"\"Roda solucao.py do zero e devolve tudo o que ele imprimiu.\"\"\"\n    saida = io.StringIO()\n    with contextlib.redirect_stdout(saida):\n        runpy.run_path(\"solucao.py\")\n    return saida.getvalue()\n\n\nclass TestRepetirUmNumeroDeVezes(unittest.TestCase):\n    def test_imprime_0_1_e_2(self):\n        \"\"\"o programa imprime 0, 1 e 2, um numero por linha\"\"\"\n        self.assertEqual(rodar(), \"0\\n\" + \"1\\n\" + \"2\\n\")\n",
+  "solutionCode": "for i in range(3):\n    print(i)\n",
+  "expectedTestCount": 1,
+  "requirements": [
+    {
+      "id": "test_imprime_0_1_e_2",
+      "teste": "test_imprime_0_1_e_2",
+      "descricao": "o programa imprime 0, 1 e 2, um numero por linha"
+    }
+  ]
+}

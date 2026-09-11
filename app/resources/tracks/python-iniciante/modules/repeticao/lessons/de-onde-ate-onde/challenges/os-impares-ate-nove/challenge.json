@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "slug": "os-impares-ate-nove",
+  "title": "Os ímpares até nove",
+  "concept": "range_com_inicio_e_passo",
+  "difficulty": 2,
+  "language": "python",
+  "outputChannel": "impressao",
+  "statement": "# Os ímpares até nove\n\nEscreva um programa que imprima os **números ímpares de 1 a 9**, um por linha.\n\nUse um `for` com `range` de **três números**: onde começar, onde parar e o passo.\n\nA tela deve ficar exatamente assim:\n\n```text\n1\n3\n5\n7\n9\n```",
+  "starterCode": "# escreva aqui o for com range(1, 10, 2) que imprime o numero da vez\n",
+  "testsCode": "import contextlib\nimport io\nimport runpy\nimport unittest\n\n\ndef rodar():\n    \"\"\"Roda solucao.py do zero e devolve tudo o que ele imprimiu.\"\"\"\n    saida = io.StringIO()\n    with contextlib.redirect_stdout(saida):\n        runpy.run_path(\"solucao.py\")\n    return saida.getvalue()\n\n\nclass TestDeOndeAteOnde(unittest.TestCase):\n    def test_imprime_os_impares_ate_nove(self):\n        \"\"\"o programa imprime os impares de 1 a 9, um por linha\"\"\"\n        self.assertEqual(rodar(), \"1\\n\" + \"3\\n\" + \"5\\n\" + \"7\\n\" + \"9\\n\")\n",
+  "solutionCode": "for i in range(1, 10, 2):\n    print(i)\n",
+  "expectedTestCount": 1,
+  "requirements": [
+    {
+      "id": "test_imprime_os_impares_ate_nove",
+      "teste": "test_imprime_os_impares_ate_nove",
+      "descricao": "o programa imprime os impares de 1 a 9, um por linha"
+    }
+  ]
+}

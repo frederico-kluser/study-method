@@ -1,0 +1,116 @@
+{
+  "schemaVersion": 1,
+  "slug": "pular-uma-volta",
+  "title": "Pular uma volta",
+  "summary": "O continue pula o resto da volta atual e já começa a próxima — sem sair do laço.",
+  "difficulty": 4,
+  "role": "regular",
+  "targetAtom": "node:Continue",
+  "concepts": [
+    "continue"
+  ],
+  "prerequisites": [
+    "parar-no-meio"
+  ],
+  "introduces": {
+    "productive": [
+      "node:Continue"
+    ],
+    "receptive": []
+  },
+  "introducesTerms": [],
+  "theory": [
+    {
+      "id": "continue-pula-a-volta",
+      "title": "O continue pula a volta",
+      "markdown": "O `break` **encerra** o laço. O `continue` é o primo mais leve: **pula o resto da volta atual** e já começa a próxima — o laço continua vivo.\n\n```python\nfor n in range(6):\n    if n == 3:\n        continue\n    print(n)\n```\n\n```text\n0\n1\n2\n4\n5\n```\n\nNa volta em que `n` vale 3, o `continue` manda pular o que vem depois (o `print`), e a fila segue: 4 e 5 imprimem normal. Compare mentalmente com o `break` no mesmo lugar: ele encerraria o laço no 3, e 4 e 5 nunca apareceriam."
+    },
+    {
+      "id": "os-dois-lados-do-continue",
+      "title": "Os dois lados do continue",
+      "markdown": "Tudo que o `continue` pula é o que vem **depois dele, na mesma volta**. O que vem antes continua valendo:\n\n```python\nfor n in range(5):\n    print(\"volta\", n)\n    if n == 2:\n        continue\n    print(\"resto\")\n```\n\n```text\nvolta 0\nresto\nvolta 1\nresto\nvolta 2\nvolta 3\nresto\nvolta 4\nresto\n```\n\nNa volta 2, o primeiro `print` roda, o `continue` corta o segundo e a volta termina. Nas outras voltas, os dois prints rodam."
+    },
+    {
+      "id": "continue-no-while-e-a-condicao",
+      "title": "O continue no while e a condição",
+      "markdown": "No `while`, o `continue` volta direto para a **conferência da condição**. Se o que muda a condição vier depois do `continue`, ele nunca roda — e o laço vira infinito:\n\n```python\nsaldo = 5\nwhile saldo > 0:\n    if saldo == 3:\n        continue\n    print(saldo)\n    saldo -= 1\n```\n\nQuando `saldo` chega a 3, o `continue` pula o `saldo -= 1` para sempre: 3 é maior que 0, a volta repete e o laço nunca sai do 3. O certo é deixar a mudança da condição **antes** do `continue`:\n\n```python\nsaldo = 5\nwhile saldo > 0:\n    saldo -= 1\n    if saldo == 3:\n        continue\n    print(saldo)\n```\n\n```text\n4\n2\n1\n0\n```\n\nAqui o saldo muda em toda volta, e o `continue` só corta o `print` da volta em que ele vale 3. O 0 ainda aparece: ele é impresso dentro da última volta, antes de a conferência do topo descobrir que o saldo acabou."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "continue-pula-somente-a-volta",
+      "statement": "O continue pula o resto da volta atual e o laço segue na próxima volta.",
+      "question": "No programa `for n in range(6):` com `if n == 3: continue` e `print(n)` recuados, o que a tela mostra?",
+      "options": [
+        "0, 1, 2, 4 e 5",
+        "0, 1, 2 e 3",
+        "0, 1, 2, 3, 4 e 5",
+        "0, 1 e 2"
+      ],
+      "answerIndex": 0,
+      "feedback": "A volta do 3 é pulada inteira; as outras cinco imprimem normal.",
+      "sectionId": "continue-pula-a-volta",
+      "optionRationales": [
+        "O continue corta só a volta do 3; 0, 1, 2, 4 e 5 imprimem nas outras voltas.",
+        "0, 1, 2 e 3 seria o efeito do break no lugar do continue — ele encerraria o laço.",
+        "Todos os seis imprimiriam se o if não existisse; com o continue, a volta do 3 é pulada.",
+        "Só 0, 1 e 2 seria o efeito de um break; o continue não encerra o laço."
+      ]
+    },
+    {
+      "id": "o-que-vem-antes-do-continue-roda",
+      "statement": "O continue corta só o que vem depois dele na mesma volta; o que vem antes roda.",
+      "question": "No programa `for n in range(5):` com `print(\"volta\", n)`, depois `if n == 2: continue` e depois `print(\"resto\")`, o que acontece na volta em que n vale 2?",
+      "options": [
+        "imprime volta 2 e pula o resto",
+        "imprime volta 2 e resto",
+        "não imprime nada",
+        "o laço termina"
+      ],
+      "answerIndex": 0,
+      "feedback": "O primeiro print roda, o continue corta o segundo e a volta 2 termina.",
+      "sectionId": "os-dois-lados-do-continue",
+      "optionRationales": [
+        "O continue corta só o que vem depois dele; o print(\"volta\", n) veio antes e já rodou.",
+        "O print(\"resto\") vem depois do continue e é exatamente o que ele pula.",
+        "O print da volta roda: o continue não apaga o que já aconteceu na volta.",
+        "O laço não termina: o continue termina a volta, e a próxima começa normal."
+      ]
+    },
+    {
+      "id": "continue-no-while-e-a-condicao",
+      "statement": "No while, o continue volta para a conferência — a mudança da condição precisa vir antes dele.",
+      "question": "No laço `while saldo > 0:` com `if saldo == 3: continue`, `print(saldo)` e `saldo -= 1` recuados, o que acontece quando saldo chega a 3?",
+      "options": [
+        "o laço nunca mais sai do 3",
+        "o laço imprime 3 e segue",
+        "o laço termina no 3",
+        "o programa dá erro de nome"
+      ],
+      "answerIndex": 0,
+      "feedback": "O continue pula o saldo -= 1 para sempre: o saldo fica 3, a condição segue verdadeira e o laço não acaba.",
+      "sectionId": "continue-no-while-e-a-condicao",
+      "optionRationales": [
+        "O continue corta o saldo -= 1 toda vez: saldo fica 3, 3 > 0, e a volta recomeça sem fim.",
+        "O print do 3 nem roda: o continue vem antes do print e o corta também.",
+        "O laço termina só se a condição ficar falsa — com o saldo preso em 3, ela nunca fica.",
+        "Não há erro de nome: há erro de laço infinito, porque a condição nunca muda."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "O continue na referência da linguagem",
+      "url": "https://docs.python.org/3/reference/simple_stmts.html#continue",
+      "description": "A página oficial do continue e da volta que ele pula."
+    },
+    {
+      "title": "O tutorial oficial sobre break e continue",
+      "url": "https://docs.python.org/3/tutorial/controlflow.html#break-and-continue-statements-and-else-clauses-on-loops",
+      "description": "A seção do tutorial que mostra break e continue lado a lado."
+    }
+  ],
+  "challenges": [
+    "pule-o-numero-tres"
+  ]
+}

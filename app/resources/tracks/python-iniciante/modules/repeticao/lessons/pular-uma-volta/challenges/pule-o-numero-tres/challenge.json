@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "slug": "pule-o-numero-tres",
+  "title": "Pule o número três",
+  "concept": "continue",
+  "difficulty": 4,
+  "language": "python",
+  "outputChannel": "impressao",
+  "statement": "# Pule o número três\n\nEscreva um programa com um `for` sobre `range(6)` que imprima **todos os números de 0 a 5, menos o 3**, um por linha.\n\nNo bloco do laço: se o número da vez for `3`, o `continue` pula a volta; caso contrário, o `print` mostra o número.\n\nA tela deve ficar exatamente assim:\n\n```text\n0\n1\n2\n4\n5\n```",
+  "starterCode": "# escreva aqui o for n in range(6) com o if n == 3: continue e o print(n)\n",
+  "testsCode": "import contextlib\nimport io\nimport runpy\nimport unittest\n\n\ndef rodar():\n    \"\"\"Roda solucao.py do zero e devolve tudo o que ele imprimiu.\"\"\"\n    saida = io.StringIO()\n    with contextlib.redirect_stdout(saida):\n        runpy.run_path(\"solucao.py\")\n    return saida.getvalue()\n\n\nclass TestPularUmaVolta(unittest.TestCase):\n    def test_imprime_0_1_2_4_e_5(self):\n        \"\"\"o programa imprime de 0 a 5, menos o 3\"\"\"\n        self.assertEqual(rodar(), \"0\\n\" + \"1\\n\" + \"2\\n\" + \"4\\n\" + \"5\\n\")\n",
+  "solutionCode": "for n in range(6):\n    if n == 3:\n        continue\n    print(n)\n",
+  "expectedTestCount": 1,
+  "requirements": [
+    {
+      "id": "test_imprime_0_1_2_4_e_5",
+      "teste": "test_imprime_0_1_2_4_e_5",
+      "descricao": "o programa imprime de 0 a 5, menos o 3"
+    }
+  ]
+}

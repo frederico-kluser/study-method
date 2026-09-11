@@ -1,0 +1,116 @@
+{
+  "schemaVersion": 1,
+  "slug": "parar-no-meio",
+  "title": "Parar no meio",
+  "summary": "O break encerra o laço na hora, no meio de uma volta, e o programa segue depois do laço.",
+  "difficulty": 4,
+  "role": "regular",
+  "targetAtom": "node:Break",
+  "concepts": [
+    "break"
+  ],
+  "prerequisites": [
+    "enquanto"
+  ],
+  "introduces": {
+    "productive": [
+      "node:Break"
+    ],
+    "receptive": []
+  },
+  "introducesTerms": [],
+  "theory": [
+    {
+      "id": "o-break-encerra-o-laco-agora",
+      "title": "O break encerra o laço agora",
+      "markdown": "O `while` para quando a condição fica falsa — mas às vezes a hora de parar chega **no meio** de uma volta. O `break` encerra o laço na hora, sem esperar o fim da volta nem a próxima conferência:\n\n```python\nn = 0\nwhile True:\n    n += 1\n    if n == 3:\n        break\n    print(n)\n```\n\n```text\n1\n2\n```\n\nA volta em que `n` chega a 3 roda até o `if`, encontra o `break` e o laço termina ali mesmo — o `print(n)` daquela volta fica para trás. Depois do `break`, o programa segue na primeira linha **depois** do laço."
+    },
+    {
+      "id": "break-dentro-do-for",
+      "title": "O break dentro do for",
+      "markdown": "O `break` funciona igual no `for`: encerra o laço, mesmo que ainda haja números na fila do `range`.\n\n```python\nfor n in range(10):\n    if n == 4:\n        break\n    print(n)\n```\n\n```text\n0\n1\n2\n3\n```\n\nO `range(10)` prometia dez voltas; o `break` cortou na quinta, quando `n` chegou a 4. A fila restante (5, 6, 7, 8, 9) nunca roda."
+    },
+    {
+      "id": "break-nao-para-o-programa",
+      "title": "O break não para o programa",
+      "markdown": "O `break` para **o laço**, não o programa. Depois dele, a execução continua nas linhas que vêm depois do bloco:\n\n```python\nfor n in range(10):\n    if n == 2:\n        break\n    print(n)\nprint(\"acabou\")\n```\n\n```text\n0\n1\nacabou\n```\n\nO `acabou` roda porque está fora do laço. E cuidado com um engano comum: o `break` precisa estar recuado **dentro** do laço — se ele ficar na margem, o Python reclama que ele não tem laço para quebrar."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "break-corta-a-volta",
+      "statement": "O break encerra o laço na hora, no meio da volta em que aparece.",
+      "question": "No laço `while True:` com `n += 1`, `if n == 3: break` e `print(n)` recuados, o que a tela mostra?",
+      "options": [
+        "1 e 2",
+        "1, 2 e 3",
+        "3",
+        "nada — o laço nem roda"
+      ],
+      "answerIndex": 0,
+      "feedback": "Na volta do 3 o break corta antes do print: só 1 e 2 aparecem.",
+      "sectionId": "o-break-encerra-o-laco-agora",
+      "optionRationales": [
+        "Na volta em que n vira 3, o break roda antes do print(n) — 1 e 2 foram impressos nas voltas anteriores.",
+        "O 3 apareceria só se o print viesse antes do if; com o break antes do print, a volta do 3 morre ali.",
+        "Só o 3 apareceria se o print ficasse depois do break — e aí as voltas anteriores também imprimiriam.",
+        "O laço roda: o while True manda repetir, e o break é que encerra na volta certa."
+      ]
+    },
+    {
+      "id": "break-corta-o-range-pela-metade",
+      "statement": "No for, o break encerra o laço mesmo com números ainda na fila do range.",
+      "question": "No programa `for n in range(10):` com `if n == 4: break` e `print(n)` recuados, quantas linhas a tela mostra?",
+      "options": [
+        "4 linhas",
+        "10 linhas",
+        "5 linhas",
+        "nenhuma"
+      ],
+      "answerIndex": 0,
+      "feedback": "As voltas 0, 1, 2 e 3 imprimem; no 4 o break corta. São 4 linhas na tela.",
+      "sectionId": "break-dentro-do-for",
+      "optionRationales": [
+        "n = 0, 1, 2, 3 imprimem; quando n vira 4 o break encerra antes do print.",
+        "Só as dez linhas se o break não existisse — ele corta a fila no 4.",
+        "5 linhas seria se o 4 também imprimisse; o break roda antes do print da volta do 4.",
+        "O laço roda: 0, 1, 2 e 3 aparecem antes de o break cortar."
+      ]
+    },
+    {
+      "id": "break-para-o-laco-nao-o-programa",
+      "statement": "O break para o laço, e o programa continua depois do bloco.",
+      "question": "No programa com `for n in range(10):`, `if n == 2: break`, `print(n)` recuados e `print(\"acabou\")` na margem, o que a tela mostra?",
+      "options": [
+        "0, 1 e acabou",
+        "0, 1 e 2",
+        "0, 1, 2 e acabou",
+        "só acabou"
+      ],
+      "answerIndex": 0,
+      "feedback": "0 e 1 imprimem, o break corta no 2, e o acabou roda depois, fora do laço.",
+      "sectionId": "break-nao-para-o-programa",
+      "optionRationales": [
+        "O break corta antes do print do 2, e o acabou está fora do laço, então roda depois.",
+        "0, 1 e 2 seria sem o acabou — e o 2 nem imprime, o break corta antes.",
+        "O 2 não imprime: o break vem antes do print(n) na volta em que n vale 2.",
+        "O acabou não é o primeiro a rodar: as voltas 0 e 1 imprimem antes do break."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "O break na referência da linguagem",
+      "url": "https://docs.python.org/3/reference/simple_stmts.html#break",
+      "description": "A página oficial do break e o que ele faz com o laço mais interno."
+    },
+    {
+      "title": "O tutorial oficial sobre break e continue",
+      "url": "https://docs.python.org/3/tutorial/controlflow.html#break-and-continue-statements-and-else-clauses-on-loops",
+      "description": "A seção do tutorial que mostra o break parando o laço no meio."
+    }
+  ],
+  "challenges": [
+    "pare-antes-do-tres"
+  ]
+}

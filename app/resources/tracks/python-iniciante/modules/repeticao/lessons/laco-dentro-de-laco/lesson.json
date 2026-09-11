@@ -1,0 +1,116 @@
+{
+  "schemaVersion": 1,
+  "slug": "laco-dentro-de-laco",
+  "title": "Laço dentro de laço",
+  "summary": "Um for dentro do bloco de outro for: cada volta de fora dispara a fila inteira de dentro.",
+  "difficulty": 4,
+  "role": "consolidation",
+  "targetAtom": "node:For",
+  "concepts": [
+    "laco_aninhado"
+  ],
+  "prerequisites": [
+    "repetir-um-numero-de-vezes"
+  ],
+  "introduces": {
+    "productive": [
+      "node:For"
+    ],
+    "receptive": []
+  },
+  "introducesTerms": [],
+  "theory": [
+    {
+      "id": "um-for-dentro-do-outro",
+      "title": "Um for dentro do outro",
+      "markdown": "O bloco de um `for` pode conter outro `for`. A cada volta do **de fora**, o **de dentro** roda a fila inteira dele.\n\n```python\nfor i in range(2):\n    print(\"fora\", i)\n    for j in range(2):\n        print(\"dentro\", j)\n```\n\n```text\nfora 0\ndentro 0\ndentro 1\nfora 1\ndentro 0\ndentro 1\n```\n\nO de fora vale 0 e o de dentro faz as duas voltas dele; o de fora vale 1 e o de dentro faz as duas voltas de novo. Cada volta de fora dispara a fila inteira de dentro — no total, 2 × 2 = 4 prints de dentro."
+    },
+    {
+      "id": "os-dois-numeros-da-vez",
+      "title": "Os dois números da vez",
+      "markdown": "O parzinho mais útil do laço aninhado: o número da volta de fora **e** o da volta de dentro, juntos. O `print` aceita mais de um valor — ele os mostra separados por espaço.\n\n```python\nfor i in range(2):\n    for j in range(3):\n        print(i, j)\n```\n\n```text\n0 0\n0 1\n0 2\n1 0\n1 1\n1 2\n```\n\nSão 2 × 3 = 6 linhas: uma para cada par (i, j). O `i` vem da volta de fora (muda devagar), o `j` vem da volta de dentro (muda rápido)."
+    },
+    {
+      "id": "o-total-de-voltas",
+      "title": "O total de voltas",
+      "markdown": "O total de vezes que o bloco de dentro roda é a **multiplicação**: voltas de fora × voltas de dentro.\n\n```python\nfor i in range(3):\n    for j in range(2):\n        print(i, j)\n```\n\n```text\n0 0\n0 1\n1 0\n1 1\n2 0\n2 1\n```\n\nTrês voltas de fora, duas de dentro: 3 × 2 = 6 pares. Trocar os ranges troca a contagem junto — `range(2)` fora e `range(3)` dentro daria os mesmos seis pares, numa ordem diferente (o primeiro número mudando devagar). O recuo é quem conta a história: o de fora tem um recuo, o de dentro tem **dois**."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "dentro-roda-inteiro-a-cada-volta",
+      "statement": "A cada volta do for de fora, o for de dentro roda a fila inteira dele.",
+      "question": "No programa com `for i in range(2):` e `for j in range(2):` no bloco, quantas vezes o `print` de dentro roda no total?",
+      "options": [
+        "4 vezes",
+        "2 vezes",
+        "6 vezes",
+        "1 vez"
+      ],
+      "answerIndex": 0,
+      "feedback": "Cada uma das 2 voltas de fora dispara as 2 voltas de dentro: 2 × 2 = 4.",
+      "sectionId": "um-for-dentro-do-outro",
+      "optionRationales": [
+        "A volta de fora vale 0 e o de dentro faz 2 voltas; vale 1 e faz mais 2: 4 no total.",
+        "Duas vezes seria só o de dentro rodando uma vez por volta de fora... não: são duas vezes POR volta de fora.",
+        "Seis seria 3 × 2; aqui são dois ranges de 2, e 2 × 2 = 4.",
+        "Uma vez só seria se o de dentro não repetisse; ele faz a fila própria inteira a cada volta de fora."
+      ]
+    },
+    {
+      "id": "print-com-dois-valores",
+      "statement": "O print aceita mais de um valor e os mostra separados por espaço.",
+      "question": "O que `print(i, j)` mostra quando `i` vale 1 e `j` vale 0?",
+      "options": [
+        "1 0",
+        "10",
+        "1",
+        "0"
+      ],
+      "answerIndex": 0,
+      "feedback": "O print separa os dois valores com um espaço: 1 e 0.",
+      "sectionId": "os-dois-numeros-da-vez",
+      "optionRationales": [
+        "O print mostra cada valor e põe um espaço entre eles: 1, espaço, 0.",
+        "10 seria a soma ou a junção dos dois; o print com vírgula separa por espaço.",
+        "Só o 1 apareceria se o print recebesse um valor só.",
+        "Só o 0 apareceria se o print recebesse o j sem o i."
+      ]
+    },
+    {
+      "id": "total-multiplica",
+      "statement": "O total de voltas de dentro é voltas de fora × voltas de dentro.",
+      "question": "Com `for i in range(3):` e `for j in range(2):` no bloco, quantas linhas o `print(i, j)` produz?",
+      "options": [
+        "6",
+        "5",
+        "3",
+        "2"
+      ],
+      "answerIndex": 0,
+      "feedback": "3 voltas de fora × 2 voltas de dentro = 6 pares, um por linha.",
+      "sectionId": "o-total-de-voltas",
+      "optionRationales": [
+        "O total é a multiplicação das filas: 3 × 2 = 6 pares (i, j).",
+        "Cinco seria da soma 3 + 2 − 1; o total de pares é o produto 3 × 2.",
+        "Três seria só o número de voltas de fora, sem contar as de dentro.",
+        "Duas seria só o número de voltas de dentro, sem contar as de fora."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "O for na referência da linguagem",
+      "url": "https://docs.python.org/3/reference/compound_stmts.html#the-for-statement",
+      "description": "A definição oficial do for — e de bloco dentro de bloco."
+    },
+    {
+      "title": "O tutorial oficial sobre for",
+      "url": "https://docs.python.org/3/tutorial/controlflow.html#for-statements",
+      "description": "A seção do tutorial com exemplos de laços e iterações."
+    }
+  ],
+  "challenges": [
+    "a-tabela-de-pares"
+  ]
+}

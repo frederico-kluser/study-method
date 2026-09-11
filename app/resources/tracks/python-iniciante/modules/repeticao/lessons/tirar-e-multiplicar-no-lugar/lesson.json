@@ -1,0 +1,117 @@
+{
+  "schemaVersion": 1,
+  "slug": "tirar-e-multiplicar-no-lugar",
+  "title": "Tirar e multiplicar no lugar",
+  "summary": "O -= e o *= mudam o valor do próprio nome, subtraindo ou multiplicando.",
+  "difficulty": 3,
+  "role": "regular",
+  "targetAtom": "op:aug:-",
+  "concepts": [
+    "subtrair_e_multiplicar_no_lugar"
+  ],
+  "prerequisites": [
+    "acumular-num-nome"
+  ],
+  "introduces": {
+    "productive": [
+      "op:aug:-",
+      "op:aug:*"
+    ],
+    "receptive": []
+  },
+  "introducesTerms": [],
+  "theory": [
+    {
+      "id": "tirar-no-lugar",
+      "title": "Tirar no lugar",
+      "markdown": "O `+=` soma no próprio nome. O `-=` faz o mesmo com a subtração: **tira do próprio nome e guarda o resultado nele**.\n\n```python\nsaldo = 100\nsaldo -= 10\nprint(saldo)\n```\n\n```text\n90\n```\n\n`saldo -= 10` é o gesto único para `saldo = saldo - 10`: lê o valor atual (100), tira 10 e guarda o 90 de volta. Cada `-=` que roda tira mais um pedaço do saldo, e o resultado de um vira o ponto de partida do próximo:\n\n```python\nsaldo = 100\nsaldo -= 25\nprint(saldo)\nsaldo -= 25\nprint(saldo)\n```\n\n```text\n75\n50\n```\n\nNa primeira linha o saldo perde 25 e fica 75; na segunda, perde mais 25 e fica 50."
+    },
+    {
+      "id": "multiplicar-no-lugar",
+      "title": "Multiplicar no lugar",
+      "markdown": "O `*=` multiplica o próprio nome e guarda o resultado nele.\n\n```python\npreco = 50\npreco *= 2\nprint(preco)\n```\n\n```text\n100\n```\n\n`preco *= 2` é o gesto único para `preco = preco * 2`. O valor que multiplica pode ser um número qualquer, inclusive o número da volta de um laço:\n\n```python\nproduto = 1\nfor i in range(1, 5):\n    produto *= i\nprint(produto)\n```\n\n```text\n24\n```\n\nAs voltas multiplicam 1 × 2 × 3 × 4 = 24. Repare que o acumulador de multiplicação **começa em 1**, não em 0 — começando em 0, toda multiplicação daria 0."
+    },
+    {
+      "id": "o-que-eh-e-o-que-nao-eh",
+      "title": "O que é e o que não é",
+      "markdown": "Os dois gestos seguem a mesma conversa que o `+=`: o nome aparece só uma vez, e o lado direito decide a conta.\n\nCerto — o nome já guarda um valor quando o gesto roda:\n\n```python\nsaldo = 100\nsaldo -= 10\npreco = 50\npreco *= 2\n```\n\nErrado — o sinal trocado inverte a ideia e o resultado:\n\n```python\nsaldo =- 10\n```\n\n`saldo =- 10` não é `saldo -= 10`: o Python lê `saldo = -10` — guarda o número negativo 10 no lugar de tirar 10 do valor atual. O sinal de subtrair fica **junto** do igual, sem espaço entre eles.\n\nPergunta de estado: depois de `p = 3`, `p *= 4` e `p -= 5`, o que `print(p)` mostra? A multiplicação roda primeiro (3 × 4 = 12) e depois a subtração (12 − 5 = 7)."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "menos-no-proprio-nome",
+      "statement": "O -= tira do próprio nome e guarda o resultado nele.",
+      "question": "`saldo` vale 100. O que `saldo -= 30` deixa guardado?",
+      "options": [
+        "70",
+        "100",
+        "30",
+        "-30"
+      ],
+      "answerIndex": 0,
+      "feedback": "O -= lê o valor atual (100), tira 30 e guarda o resultado de volta: 70.",
+      "sectionId": "tirar-no-lugar",
+      "optionRationales": [
+        "saldo -= 30 é o gesto único para saldo = saldo - 30: 100 - 30 = 70, guardado de volta.",
+        "Ficaria 100 se o -= não mudasse nada — mas ele guarda o resultado da subtração.",
+        "O 30 é só o que sai; o valor antigo do nome participa da conta.",
+        "-30 seria o resultado de saldo = -30 (sinal grudado no número). Aqui o sinal vem antes do igual: tira 30 do atual."
+      ]
+    },
+    {
+      "id": "produto-comeca-em-um",
+      "statement": "O acumulador de multiplicação começa em 1, não em 0.",
+      "question": "`produto = 1` e depois `for i in range(1, 4):` com `produto *= i`. O que `print(produto)` mostra?",
+      "options": [
+        "6",
+        "0",
+        "3",
+        "1"
+      ],
+      "answerIndex": 0,
+      "feedback": "As voltas multiplicam 1 × 1 × 2 × 3 = 6. Começando em 0, tudo daria 0.",
+      "sectionId": "multiplicar-no-lugar",
+      "optionRationales": [
+        "O produto acumula 1 × 1 = 1, × 2 = 2, × 3 = 6.",
+        "0 seria o resultado se o produto começasse em 0 — qualquer coisa vezes 0 dá 0.",
+        "3 é só o último i; o produto guarda a multiplicação de todas as voltas.",
+        "1 seria o valor inicial, antes de as voltas multiplicarem."
+      ]
+    },
+    {
+      "id": "sinal-junto-do-igual",
+      "statement": "No -=, o sinal de subtrair fica junto do igual, sem espaço.",
+      "question": "Qual linha tira 10 do valor atual de `saldo`?",
+      "options": [
+        "`saldo -= 10`",
+        "`saldo =- 10`",
+        "`saldo = - 10`",
+        "`saldo - = 10`"
+      ],
+      "answerIndex": 0,
+      "feedback": "O -= é um gesto único: sinal de subtrair colado no igual. As outras formas são outra coisa ou quebram.",
+      "sectionId": "o-que-eh-e-o-que-nao-eh",
+      "optionRationales": [
+        "É o gesto único do -=: tira 10 do valor atual de saldo e guarda de volta.",
+        "saldo =- 10 guarda -10 no saldo, sobrescrevendo o valor atual — não tira 10 dele.",
+        "saldo = - 10 também guarda o número -10; o sinal não está junto do igual, então não é o -=.",
+        "O espaço entre o - e o = quebra o programa: o Python não reconhece esse gesto."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "Atribuição aumentada na referência",
+      "url": "https://docs.python.org/3/reference/simple_stmts.html#augmented-assignment-statements",
+      "description": "A página oficial dos operadores com igual, incluindo -= e *=."
+    },
+    {
+      "title": "O tutorial oficial sobre for",
+      "url": "https://docs.python.org/3/tutorial/controlflow.html#for-statements",
+      "description": "A seção do tutorial que acumula valores dentro do laço."
+    }
+  ],
+  "challenges": [
+    "o-saldo-do-lanche"
+  ]
+}

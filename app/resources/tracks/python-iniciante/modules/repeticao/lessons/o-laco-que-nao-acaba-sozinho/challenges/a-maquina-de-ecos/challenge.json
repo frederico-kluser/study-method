@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "slug": "a-maquina-de-ecos",
+  "title": "A máquina de ecos",
+  "concept": "while_true_com_break",
+  "difficulty": 4,
+  "language": "python",
+  "outputChannel": "impressao",
+  "statement": "# A máquina de ecos\n\nEscreva um programa com um `while True` que imprima **0, 1, 2 e 3**, um por linha, e só então pare.\n\nComece com `n = 0`. Dentro do laço: imprima `n`, some 1 nele (`n += 1`) e, quando `n` chegar a **4**, o `break` encerra.\n\nA tela deve ficar exatamente assim:\n\n```text\n0\n1\n2\n3\n```",
+  "starterCode": "n = 0\n# escreva aqui o while True com print(n), n += 1 e o if n == 4: break\n",
+  "testsCode": "import contextlib\nimport io\nimport runpy\nimport unittest\n\n\ndef rodar():\n    \"\"\"Roda solucao.py do zero e devolve tudo o que ele imprimiu.\"\"\"\n    saida = io.StringIO()\n    with contextlib.redirect_stdout(saida):\n        runpy.run_path(\"solucao.py\")\n    return saida.getvalue()\n\n\nclass TestOLacoQueNaoAcabaSozinho(unittest.TestCase):\n    def test_imprime_0_1_2_e_3(self):\n        \"\"\"o programa imprime 0, 1, 2 e 3, um por linha\"\"\"\n        self.assertEqual(rodar(), \"0\\n\" + \"1\\n\" + \"2\\n\" + \"3\\n\")\n",
+  "solutionCode": "n = 0\nwhile True:\n    print(n)\n    n += 1\n    if n == 4:\n        break\n",
+  "expectedTestCount": 1,
+  "requirements": [
+    {
+      "id": "test_imprime_0_1_2_e_3",
+      "teste": "test_imprime_0_1_2_e_3",
+      "descricao": "o programa imprime 0, 1, 2 e 3, um por linha"
+    }
+  ]
+}

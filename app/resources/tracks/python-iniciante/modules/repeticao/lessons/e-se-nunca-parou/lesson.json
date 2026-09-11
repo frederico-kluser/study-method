@@ -1,0 +1,117 @@
+{
+  "schemaVersion": 1,
+  "slug": "e-se-nunca-parou",
+  "title": "E se nunca parou",
+  "summary": "O else depois do for roda quando o laço acaba sozinho — e fica de fora quando um break corta.",
+  "difficulty": 5,
+  "role": "regular",
+  "targetAtom": "node:ForElse",
+  "concepts": [
+    "for_else"
+  ],
+  "prerequisites": [
+    "parar-no-meio",
+    "repetir-um-numero-de-vezes"
+  ],
+  "introduces": {
+    "productive": [
+      "node:ForElse"
+    ],
+    "receptive": []
+  },
+  "introducesTerms": [],
+  "theory": [
+    {
+      "id": "o-else-depois-do-for",
+      "title": "O else depois do for",
+      "markdown": "O `else` que você conhece do `se` anda com o `if`. O Python também deixa escrever um `else` **depois do `for`** — e ele não significa \"senão\": significa *se o laço acabou sozinho*.\n\n```python\nfor n in range(3):\n    print(n)\nelse:\n    print(\"acabou\")\n```\n\n```text\n0\n1\n2\nacabou\n```\n\nA fila do `range(3)` terminou sem ninguém interromper, então o bloco do `else` roda. Compare com o `se`: lá o `else` roda quando a condição é falsa; aqui ele roda quando o laço chega ao fim **sem break**."
+    },
+    {
+      "id": "o-break-cala-o-else",
+      "title": "O break cala o else",
+      "markdown": "Aqui mora a regra de ouro: se um `break` encerrar o laço, o `else` **não roda** — o laço não acabou sozinho, foi interrompido.\n\n```python\nfor n in range(5):\n    if n == 2:\n        break\n    print(n)\nelse:\n    print(\"acabou\")\n```\n\n```text\n0\n1\n```\n\nO `break` cortou no 2, então o `else` fica de fora — o `acabou` não aparece. O mesmo laço sem o `break` imprimiria a fila inteira e depois o `acabou`."
+    },
+    {
+      "id": "o-else-respondendo-uma-pergunta",
+      "title": "O else respondendo uma pergunta",
+      "markdown": "O par `for` + `else` responde a pergunta \"o laço terminou por conta própria?\". Sem ele, essa resposta custaria um nome extra guardando se o break aconteceu:\n\n```python\nfor n in range(5):\n    if n == 2:\n        break\n    print(n)\nelse:\n    print(\"nunca fui interrompido\")\n```\n\n```text\n0\n1\n```\n\nPergunta de estado: e se o `break` não existisse no programa acima — o que o `else` faria? O laço chegaria ao fim da fila sozinho e o `else` imprimiria \"nunca fui interrompido\". O `else` do laço é literalmente a resposta daquela pergunta, sem variável nenhuma."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "else-roda-no-fim-da-fila",
+      "statement": "O else depois do for roda quando o laço termina sozinho, sem break.",
+      "question": "No programa `for n in range(3):` com `print(n)` e depois `else:` com `print(\"acabou\")`, o que a tela mostra?",
+      "options": [
+        "0, 1, 2 e acabou",
+        "só acabou",
+        "0, 1 e 2",
+        "nada — else com for não existe"
+      ],
+      "answerIndex": 0,
+      "feedback": "A fila termina sozinha e o else roda: os três números e depois o acabou.",
+      "sectionId": "o-else-depois-do-for",
+      "optionRationales": [
+        "O for imprime 0, 1, 2 e, por ter acabado sem break, o else imprime acabou.",
+        "Só o acabou apareceria se o print estivesse no else; ele está no bloco do for.",
+        "0, 1 e 2 sem o acabou seria um for sem else — o else existe e roda.",
+        "O else depois do for existe em Python e é exatamente isto: roda quando o laço acaba sozinho."
+      ]
+    },
+    {
+      "id": "break-cala-o-else",
+      "statement": "Se o break encerra o laço, o else não roda.",
+      "question": "No programa com `for n in range(5):`, `if n == 2: break`, `print(n)` e depois `else:` com `print(\"acabou\")`, o que a tela mostra?",
+      "options": [
+        "0 e 1",
+        "0, 1 e acabou",
+        "0, 1, 2, 3, 4 e acabou",
+        "0, 1 e 2"
+      ],
+      "answerIndex": 0,
+      "feedback": "O break corta no 2, o else é calado: só 0 e 1 aparecem.",
+      "sectionId": "o-break-cala-o-else",
+      "optionRationales": [
+        "0 e 1 imprimem; o break corta no 2 e o laço interrompido não roda o else.",
+        "O acabou só apareceria sem o break — o break é exatamente quem cala o else.",
+        "A fila inteira e o acabou seria o laço sem break nenhum.",
+        "O 2 não imprime: o break vem antes do print na volta em que n vale 2."
+      ]
+    },
+    {
+      "id": "else-responde-a-pergunta",
+      "statement": "O else do for responde, sem variável extra, se o laço acabou sem break.",
+      "question": "No programa com `for n in range(3):` com `print(n)` dentro e `else:` com `print(\"fim\")`, o `else` roda porque...",
+      "options": [
+        "o laço percorreu a fila inteira sem break",
+        "o print(n) terminou",
+        "o range acabou com n valendo 3",
+        "o else sempre roda depois do for"
+      ],
+      "answerIndex": 0,
+      "feedback": "O else roda por uma razão só: o for chegou ao fim da fila sem ser interrompido por break.",
+      "sectionId": "o-else-respondendo-uma-pergunta",
+      "optionRationales": [
+        "O else do laço é a resposta a essa pergunta: terminou sozinho, então roda.",
+        "O print(n) termina a cada volta; isso não tem relação com o else — ele responde ao laço inteiro.",
+        "O range(3) entrega 0, 1 e 2; o 3 nunca é um valor de n.",
+        "Não: se um break interromper o laço, o else é pulado."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "O for com else na referência da linguagem",
+      "url": "https://docs.python.org/3/reference/compound_stmts.html#the-for-statement",
+      "description": "A definição oficial do for — incluindo o bloco else que roda quando o laço termina sem break."
+    },
+    {
+      "title": "O tutorial oficial sobre o else dos laços",
+      "url": "https://docs.python.org/3/tutorial/controlflow.html#break-and-continue-statements-and-else-clauses-on-loops",
+      "description": "A seção do tutorial que explica o else dos laços e a pegadinha do break."
+    }
+  ],
+  "challenges": [
+    "a-contagem-que-se-despede"
+  ]
+}

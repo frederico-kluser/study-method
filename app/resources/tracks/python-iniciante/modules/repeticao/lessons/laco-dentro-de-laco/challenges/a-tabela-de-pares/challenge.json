@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "slug": "a-tabela-de-pares",
+  "title": "A tabela de pares",
+  "concept": "laco_aninhado",
+  "difficulty": 4,
+  "language": "python",
+  "outputChannel": "impressao",
+  "statement": "# A tabela de pares\n\nEscreva um programa com **dois `for` recuados** — um dentro do outro — que imprima todos os pares de números com `i` e `j` valendo 0 ou 1, um par por linha.\n\nO `for` de fora percorre o `i` com `range(2)`; no bloco dele, o `for` de dentro percorre o `j` com `range(2)` e imprime `i, j`.\n\nA tela deve ficar exatamente assim:\n\n```text\n0 0\n0 1\n1 0\n1 1\n```",
+  "starterCode": "# escreva aqui o for i in range(2) com o for j in range(2) e o print(i, j) recuados\n",
+  "testsCode": "import contextlib\nimport io\nimport runpy\nimport unittest\n\n\ndef rodar():\n    \"\"\"Roda solucao.py do zero e devolve tudo o que ele imprimiu.\"\"\"\n    saida = io.StringIO()\n    with contextlib.redirect_stdout(saida):\n        runpy.run_path(\"solucao.py\")\n    return saida.getvalue()\n\n\nclass TestLacoDentroDeLaco(unittest.TestCase):\n    def test_imprime_a_tabela_de_pares(self):\n        \"\"\"o programa imprime os quatro pares de 0 e 1, um por linha\"\"\"\n        self.assertEqual(rodar(), \"0 0\\n\" + \"0 1\\n\" + \"1 0\\n\" + \"1 1\\n\")\n",
+  "solutionCode": "for i in range(2):\n    for j in range(2):\n        print(i, j)\n",
+  "expectedTestCount": 1,
+  "requirements": [
+    {
+      "id": "test_imprime_a_tabela_de_pares",
+      "teste": "test_imprime_a_tabela_de_pares",
+      "descricao": "o programa imprime os quatro pares de 0 e 1, um por linha"
+    }
+  ]
+}

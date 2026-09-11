@@ -1,0 +1,130 @@
+{
+  "schemaVersion": 1,
+  "slug": "repetir-um-numero-de-vezes",
+  "title": "Repetir um número de vezes",
+  "summary": "O for repete um bloco de linhas, uma vez para cada número que o range entrega.",
+  "difficulty": 2,
+  "role": "regular",
+  "targetAtom": "node:For",
+  "concepts": [
+    "repetir_com_for"
+  ],
+  "prerequisites": [
+    "se"
+  ],
+  "introduces": {
+    "productive": [
+      "node:For",
+      "global:range"
+    ],
+    "receptive": []
+  },
+  "introducesTerms": [
+    "laço",
+    "volta"
+  ],
+  "theory": [
+    {
+      "id": "o-for-repete",
+      "title": "O for repete",
+      "markdown": "Você já sabe mandar o computador fazer uma coisa (`print`), guardar valores em nomes (o `=` da aula *dar nome a um valor*) e escolher um caminho com o `se`. Falta o terceiro superpoder: **repetir**.\n\nO `for` repete um bloco de linhas um número de vezes. Ele é a prima do `se`: no `se` as linhas recuadas rodam quando a condição é verdadeira; no `for` as linhas recuadas rodam **uma vez para cada número** de uma fila.\n\n```python\nfor i in range(3):\n    print(\"oi\")\n```\n\n```text\noi\noi\noi\n```\n\nLeia a primeira linha assim: *para cada `i` dentro de `range(3)`, faça o bloco*. O `range(3)` entrega três números (0, 1 e 2), então o bloco recuado roda três vezes — e o `oi` aparece três vezes."
+    },
+    {
+      "id": "a-volta-e-o-numero-da-vez",
+      "title": "A volta e o número da vez",
+      "markdown": "Cada vez que o bloco roda chama-se uma **volta** (experts dizem *iteração*, mas volta basta). A cada volta, o nome entre o `for` e o `in` guarda o número **daquela** volta:\n\n```python\nfor v in range(4):\n    print(v)\n```\n\n```text\n0\n1\n2\n3\n```\n\nNa primeira volta `v` vale 0; na segunda, 1; e assim por diante. Repare: o Python conta **a partir do zero** — `range(4)` entrega 4 números, e o primeiro deles é 0.\n\nPergunta de estado: depois da primeira volta, antes de a segunda começar, qual é o valor guardado em `v`? É 0 — o nome `v` só passa a valer 1 quando a segunda volta começa."
+    },
+    {
+      "id": "o-bloco-recua-junto",
+      "title": "O bloco recua junto",
+      "markdown": "O que se repete é **somente** o que está recuado. Esquecer o recuo quebra o programa antes de ele rodar — é assim que o arquivo fica:\n\n```text\nfor i in range(3):\nprint(\"oi\")\n```\n\nIsso dá `IndentationError`: o Python exige saber qual linha pertence ao `for`. Certo é assim:\n\n```python\nfor i in range(3):\n    print(\"oi\")\n```\n\nE o que **não** está recuado roda uma vez só, depois do laço:\n\n```python\nfor i in range(3):\n    print(\"oi\")\nprint(\"fim\")\n```\n\n```text\noi\noi\noi\nfim\n```\n\nO `fim` fica fora do bloco, então ele não repete. Só o que está recuado pertence ao `for`."
+    },
+    {
+      "id": "o-range-pode-receber-um-nome",
+      "title": "O range pode receber um nome",
+      "markdown": "O `range` não precisa de número escrito direto — ele pode receber o valor que um nome segura. O mesmo laço, com a contagem vinda de uma variável:\n\n```python\nvezes = 5\nfor eco in range(vezes):\n    print(\"eco\")\n```\n\n```text\neco\neco\neco\neco\neco\n```\n\nTroque o valor de `vezes` e o número de voltas muda junto. O nome entre `for` e `in` (aqui `eco`) também é escolha sua — ele só precisa ser usado dentro do bloco se você quiser saber o número da vez."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "for-repete-3",
+      "statement": "O for roda o bloco recuado uma vez para cada número que o range entrega.",
+      "question": "O programa é `for i in range(3):` com `print(\"oi\")` recuado. Quantas vezes o `oi` aparece na tela?",
+      "options": [
+        "3 vezes",
+        "2 vezes",
+        "1 vez",
+        "nenhuma — o programa dá erro"
+      ],
+      "answerIndex": 0,
+      "feedback": "O range(3) entrega três números, então o bloco recuado roda três vezes.",
+      "sectionId": "o-for-repete",
+      "optionRationales": [
+        "range(3) entrega três números, e cada um deles roda o bloco uma vez — três voltas, três oi.",
+        "Seria 2 se o range fosse range(2). O range(3) entrega 0, 1 e 2: três números, três voltas.",
+        "Uma volta só aconteceria se nada dentro dele repetisse — mas o print está recuado, dentro do for.",
+        "O programa está certo e roda: o for é exatamente a construção que faz o bloco repetir."
+      ]
+    },
+    {
+      "id": "range-conta-do-zero",
+      "statement": "O range começa a contar do zero.",
+      "question": "O que `for v in range(4):` seguido de `print(v)` mostra na tela?",
+      "options": [
+        "0, 1, 2 e 3",
+        "1, 2, 3 e 4",
+        "0, 1, 2, 3 e 4",
+        "4, 4, 4 e 4"
+      ],
+      "answerIndex": 0,
+      "feedback": "range(4) entrega quatro números, e o primeiro deles é 0: 0, 1, 2 e 3.",
+      "sectionId": "a-volta-e-o-numero-da-vez",
+      "optionRationales": [
+        "range(4) entrega 4 números começando do 0: 0, 1, 2 e 3 — e o print mostra o número da vez.",
+        "Seria 1, 2, 3 e 4 se o Python contasse do 1. Ele conta do 0 — o primeiro valor do range(4) é 0.",
+        "Seria 0, 1, 2, 3 e 4 se fossem cinco números — mas range(4) entrega só quatro.",
+        "O v muda a cada volta; ele nunca fica parado no 4. Ele percorre 0, 1, 2 e 3."
+      ]
+    },
+    {
+      "id": "fora-do-bloco-nao-repete",
+      "statement": "Linha fora do recuo roda uma vez só, depois do laço.",
+      "question": "No programa `for i in range(3):` com `print(\"oi\")` recuado e `print(\"fim\")` na margem, quantas vezes o `fim` aparece?",
+      "options": [
+        "1 vez",
+        "3 vezes",
+        "nenhuma — o programa dá erro",
+        "o Python escolhe na hora"
+      ],
+      "answerIndex": 0,
+      "feedback": "O fim está na margem, fora do bloco do for — ele roda uma vez, depois das três voltas.",
+      "sectionId": "o-bloco-recua-junto",
+      "optionRationales": [
+        "O fim não está recuado, então não pertence ao for: o laço termina e ele roda uma vez.",
+        "Repetiria 3 vezes se estivesse recuado junto com o print(\"oi\"). Na margem, ele não repete.",
+        "O programa roda sem erro: recuado ou não, as linhas estão bem formadas — o recuo é que decide a quem elas pertencem.",
+        "O Python não escolhe nada: a regra é fixa — o recuo decide o que pertence ao bloco."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "O for na referência da linguagem",
+      "url": "https://docs.python.org/3/reference/compound_stmts.html#the-for-statement",
+      "description": "A definição oficial da instrução for e do bloco que ela repete."
+    },
+    {
+      "title": "range() na documentação",
+      "url": "https://docs.python.org/3/library/stdtypes.html#range",
+      "description": "A página oficial da função range, que gera a fila de números do for."
+    },
+    {
+      "title": "O tutorial oficial sobre for",
+      "url": "https://docs.python.org/3/tutorial/controlflow.html#for-statements",
+      "description": "A seção do tutorial que apresenta o for com exemplos comentados."
+    }
+  ],
+  "challenges": [
+    "conte-ate-tres"
+  ]
+}

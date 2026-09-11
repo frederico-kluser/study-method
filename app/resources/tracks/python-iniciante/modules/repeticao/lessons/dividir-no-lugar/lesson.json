@@ -1,0 +1,118 @@
+{
+  "schemaVersion": 1,
+  "slug": "dividir-no-lugar",
+  "title": "Dividir no lugar",
+  "summary": "O /= divide no próprio nome e guarda o decimal; o //= divide e guarda só a parte inteira.",
+  "difficulty": 3,
+  "role": "regular",
+  "targetAtom": "op:aug:/",
+  "concepts": [
+    "dividir_no_lugar"
+  ],
+  "prerequisites": [
+    "tirar-e-multiplicar-no-lugar",
+    "divisao-inteira-e-resto"
+  ],
+  "introduces": {
+    "productive": [
+      "op:aug:/",
+      "op:aug://"
+    ],
+    "receptive": []
+  },
+  "introducesTerms": [],
+  "theory": [
+    {
+      "id": "dividir-no-proprio-nome",
+      "title": "Dividir no próprio nome",
+      "markdown": "A família dos operadores com `=` continua. O `/=` divide o valor atual do nome e guarda o resultado nele.\n\n```python\nmetade = 7\nmetade /= 2\nprint(metade)\n```\n\n```text\n3.5\n```\n\n`metade /= 2` é o gesto único para `metade = metade / 2`. A divisão normal do Python devolve decimal sempre que a conta dá decimal — 7 dividido por 2 é 3.5."
+    },
+    {
+      "id": "a-divisao-inteira-no-lugar",
+      "title": "A divisão inteira no lugar",
+      "markdown": "Na aula *divisão inteira e resto* você aprendeu dois tipos de divisão: a normal (`/`) e a inteira (`//`), que corta a parte decimal fora. As duas têm versão com `=`.\n\nO `//=` divide no próprio nome e guarda **só a parte inteira**:\n\n```python\nresto = 7\nresto //= 2\nprint(resto)\n```\n\n```text\n3\n```\n\n`resto //= 2` é o gesto único para `resto = resto // 2`: 7 dividido por 2 dá 3.5, e a divisão inteira guarda o 3, jogando o 0.5 fora. O `//=` é o jeito curto de \"dividir e descartar o resto\" quantas vezes precisar."
+    },
+    {
+      "id": "escolher-a-divisao-certa",
+      "title": "Escolher a divisão certa",
+      "markdown": "Os dois gestos convivem, e cada um responde uma pergunta diferente.\n\n```python\nfatura = 8\nfatura /= 2\nprint(fatura)\n\ncompartilha = 8\ncompartilha //= 2\nprint(compartilha)\n```\n\n```text\n4.0\n4\n```\n\nRepare na diferença fina: a divisão normal de 8 por 2 dá `4.0` (um decimal), e a divisão inteira dá `4` (um número inteiro). Valores iguais, tipos diferentes. Quando o decimal importa — preço, medida, metade de algo — use `/=`; quando só a quantidade inteira importa — quantas vezes um valor cabe — use `//=`."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "divisao-normal-guarda-decimal",
+      "statement": "O /= divide no próprio nome e guarda o resultado, decimal inclusive.",
+      "question": "`metade` vale 7. O que `metade /= 2` deixa guardado?",
+      "options": [
+        "3.5",
+        "3",
+        "7",
+        "14"
+      ],
+      "answerIndex": 0,
+      "feedback": "A divisão normal de 7 por 2 é 3.5, e o /= guarda esse resultado de volta no nome.",
+      "sectionId": "dividir-no-proprio-nome",
+      "optionRationales": [
+        "O /= é o gesto único para metade = metade / 2: 7 / 2 = 3.5, guardado de volta.",
+        "3 seria o resultado da divisão inteira (//), não da normal (/).",
+        "Só ficaria 7 se o /= não dividisse nada — ele guarda o resultado da divisão.",
+        "14 seria o dobro; o /= divide, não multiplica."
+      ]
+    },
+    {
+      "id": "divisao-inteira-corta-o-decimal",
+      "statement": "O //= divide e guarda só a parte inteira, jogando o decimal fora.",
+      "question": "`pedaco` vale 9. O que `pedaco //= 2` deixa guardado?",
+      "options": [
+        "4",
+        "4.5",
+        "5",
+        "1"
+      ],
+      "answerIndex": 0,
+      "feedback": "9 dividido por 2 dá 4.5; a divisão inteira guarda o 4 e joga o 0.5 fora.",
+      "sectionId": "a-divisao-inteira-no-lugar",
+      "optionRationales": [
+        "O //= guarda a parte inteira de 9 / 2: 4. O 0.5 fica de fora.",
+        "4.5 é o resultado da divisão normal (/), que o //= não guarda.",
+        "5 seria o arredondamento para cima; a divisão inteira corta, não arredonda.",
+        "1 seria o resto de 9 dividido por 2 — o //= guarda a quantidade de vezes que 2 cabe, não o resto."
+      ]
+    },
+    {
+      "id": "tipo-do-resultado-da-divisao",
+      "statement": "A divisão normal devolve decimal (4.0); a divisão inteira devolve inteiro (4).",
+      "question": "Depois de `x = 8` e `x //= 2`, o que `print(x)` mostra?",
+      "options": [
+        "4",
+        "4.0",
+        "16",
+        "2"
+      ],
+      "answerIndex": 0,
+      "feedback": "O //= guarda o inteiro 4 — sem o ponto zero, que só aparece na divisão normal.",
+      "sectionId": "escolher-a-divisao-certa",
+      "optionRationales": [
+        "A divisão inteira guarda o número inteiro 4, e o print mostra 4.",
+        "4.0 seria a cara da divisão normal (/); o //= devolve inteiro.",
+        "16 seria a multiplicação; o //= divide por 2.",
+        "2 seria o resto da divisão; o //= guarda a parte inteira do quociente."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "Atribuição aumentada na referência",
+      "url": "https://docs.python.org/3/reference/simple_stmts.html#augmented-assignment-statements",
+      "description": "A página oficial dos operadores com igual, incluindo /= e //=."
+    },
+    {
+      "title": "Operadores aritméticos na referência",
+      "url": "https://docs.python.org/3/reference/expressions.html#binary-arithmetic-operations",
+      "description": "A página oficial das duas divisões: a normal e a inteira."
+    }
+  ],
+  "challenges": [
+    "metade-de-cada-um"
+  ]
+}

@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "slug": "o-saldo-que-avisa-que-zerou",
+  "title": "O saldo que avisa que zerou",
+  "concept": "while_else",
+  "difficulty": 5,
+  "language": "python",
+  "outputChannel": "impressao",
+  "statement": "# O saldo que avisa que zerou\n\nEscreva um programa com um `while` que imprima **3, 2 e 1** e, quando o laço terminar pela condição, imprima **acabou**.\n\nComece com `saldo = 3`. No bloco do `while`: imprima `saldo` e tire 1 dele (`saldo -= 1`). Depois do `while`, escreva um `else:` com `print(\"acabou\")` no bloco.\n\nA tela deve ficar exatamente assim:\n\n```text\n3\n2\n1\nacabou\n```",
+  "starterCode": "saldo = 3\n# escreva aqui o while saldo > 0 com print(saldo) e saldo -= 1, e o else: com print(\"acabou\")\n",
+  "testsCode": "import contextlib\nimport io\nimport runpy\nimport unittest\n\n\ndef rodar():\n    \"\"\"Roda solucao.py do zero e devolve tudo o que ele imprimiu.\"\"\"\n    saida = io.StringIO()\n    with contextlib.redirect_stdout(saida):\n        runpy.run_path(\"solucao.py\")\n    return saida.getvalue()\n\n\nclass TestOElseDoWhile(unittest.TestCase):\n    def test_imprime_a_contagem_e_o_acabou(self):\n        \"\"\"o programa imprime 3, 2, 1 e o acabou do else\"\"\"\n        self.assertEqual(rodar(), \"3\\n\" + \"2\\n\" + \"1\\n\" + \"acabou\\n\")\n",
+  "solutionCode": "saldo = 3\nwhile saldo > 0:\n    print(saldo)\n    saldo -= 1\nelse:\n    print(\"acabou\")\n",
+  "expectedTestCount": 1,
+  "requirements": [
+    {
+      "id": "test_imprime_a_contagem_e_o_acabou",
+      "teste": "test_imprime_a_contagem_e_o_acabou",
+      "descricao": "o programa imprime 3, 2, 1 e o acabou do else"
+    }
+  ]
+}

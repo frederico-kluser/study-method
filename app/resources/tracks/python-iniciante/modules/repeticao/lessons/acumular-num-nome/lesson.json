@@ -1,0 +1,121 @@
+{
+  "schemaVersion": 1,
+  "slug": "acumular-num-nome",
+  "title": "Acumular num nome",
+  "summary": "O += soma ao próprio nome e guarda o resultado nele, sem escrever o nome duas vezes.",
+  "difficulty": 3,
+  "role": "regular",
+  "targetAtom": "decl:aug",
+  "concepts": [
+    "acumulador_com_aug"
+  ],
+  "prerequisites": [
+    "repetir-um-numero-de-vezes",
+    "dar-nome-a-um-valor"
+  ],
+  "introduces": {
+    "productive": [
+      "decl:aug",
+      "op:aug:+",
+      "node:AugAssign"
+    ],
+    "receptive": []
+  },
+  "introducesTerms": [
+    "acumulador"
+  ],
+  "theory": [
+    {
+      "id": "somar-e-guardar-de-volta",
+      "title": "Somar e guardar de volta",
+      "markdown": "Na aula *religar o mesmo nome* você aprendeu que o nome pode aparecer dos dois lados do `=`. Soma e guarda de volta, junto:\n\n```python\ntotal = 0\ntotal = total + 5\nprint(total)\n```\n\n```text\n5\n```\n\nO Python lê o lado direito (`total + 5`), acha o resultado e guarda em `total`. Escrever o nome duas vezes é repetitivo — e repetição é justamente o que este módulo ensina a evitar. O `+=` faz a mesma coisa num gesto só:\n\n```python\ntotal = 0\ntotal += 5\nprint(total)\n```\n\n```text\n5\n```\n\n`total += 5` quer dizer **some 5 ao próprio `total` e guarde o resultado nele**."
+    },
+    {
+      "id": "acumulador-do-laco",
+      "title": "O acumulador do laço",
+      "markdown": "O uso mais comum do `+=` é **acumular**: guardar a soma de muitas voltas num nome só, uma volta de cada vez.\n\n```python\ntotal = 0\nfor i in range(1, 5):\n    total += i\nprint(total)\n```\n\n```text\n10\n```\n\nSiga as voltas: `total` começa em 0; na primeira volta `i` vale 1 e `total` vira 1; na segunda `i` vale 2 e `total` vira 3; depois 6; por fim 10 — a soma de 1 + 2 + 3 + 4.\n\nPergunta de estado: depois da terceira volta (com `i` valendo 3), qual é o valor de `total`? É 6 — a soma do que já passou (1 + 2 + 3). O nome que começa em 0 e vai somando chama-se **acumulador**."
+    },
+    {
+      "id": "zerar-antes-de-acumular",
+      "title": "Zerar antes de acumular",
+      "markdown": "O acumulador precisa de um ponto de partida. Esquecer o `total = 0` antes do laço dá `NameError`, porque o `+=` tenta LER o valor antigo de `total` antes de somar:\n\n```python\nfor i in range(1, 5):\n    total += i\n```\n\nIsso quebra: `total` ainda não existe quando o laço tenta lê-lo. O certo é criar o nome **antes** do laço:\n\n```python\ntotal = 0\nfor i in range(1, 5):\n    total += i\nprint(total)\n```\n\n```text\n10\n```\n\nE cuidado com onde o acumulador nasce: se o `total = 0` entrar no bloco do laço, ele zera a cada volta e a soma se perde — o acumulador se cria fora, uma vez só."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "aug-soma-no-proprio-nome",
+      "statement": "O += soma ao próprio nome e guarda o resultado nele.",
+      "question": "`total` vale 10. O que `total += 3` deixa guardado?",
+      "options": [
+        "13",
+        "10",
+        "3",
+        "um erro, porque += não existe"
+      ],
+      "answerIndex": 0,
+      "feedback": "O += soma 3 ao valor atual (10) e guarda o resultado de volta: 13.",
+      "sectionId": "somar-e-guardar-de-volta",
+      "optionRationales": [
+        "total += 3 é o gesto único para total = total + 3: 10 + 3 = 13, guardado de volta.",
+        "Ficaria 10 se o += não guardasse nada — mas ele guarda o resultado da soma.",
+        "O 3 é só o que entra na soma; o valor antigo do nome também conta.",
+        "O += existe e é exatamente isto: somar ao próprio nome e guardar de volta."
+      ]
+    },
+    {
+      "id": "acumulador-soma-as-voltas",
+      "statement": "O acumulador soma, volta a volta, os valores que o laço entrega.",
+      "question": "`total = 0` e depois `for i in range(1, 4):` com `total += i` no bloco. O que `print(total)` mostra?",
+      "options": [
+        "6",
+        "3",
+        "1",
+        "0"
+      ],
+      "answerIndex": 0,
+      "feedback": "As voltas somam 1, depois 2, depois 3: o acumulador termina em 1 + 2 + 3 = 6.",
+      "sectionId": "acumulador-do-laco",
+      "optionRationales": [
+        "O acumulador soma cada i da vez: 0 + 1 = 1, + 2 = 3, + 3 = 6.",
+        "3 seria o valor da última volta — mas o acumulador soma todas, não guarda a última.",
+        "1 seria só a primeira volta; o nome continua acumulando nas seguintes.",
+        "Só ficaria 0 se nada somasse — mas as três voltas do range(1, 4) somam 1, 2 e 3."
+      ]
+    },
+    {
+      "id": "acumulador-nasce-antes-do-laco",
+      "statement": "O acumulador se cria antes do laço — dentro do bloco ele zera a cada volta.",
+      "question": "No programa `for i in range(1, 4):` com `total = 0` e `total += i` recuados, o que `print(total)` mostra?",
+      "options": [
+        "3",
+        "6",
+        "0",
+        "um erro de nome"
+      ],
+      "answerIndex": 0,
+      "feedback": "O total = 0 roda dentro de toda volta, apagando a soma anterior: sobra só o 3 da última volta.",
+      "sectionId": "zerar-antes-de-acumular",
+      "optionRationales": [
+        "A cada volta o total = 0 zera a soma e o total += i guarda só o i daquela volta — a última é 3.",
+        "6 sairia se o total = 0 estivesse fora do laço, uma vez só — dentro, ele zera a cada volta.",
+        "Nunca sobra 0: depois de zerar, a própria volta soma o i e guarda.",
+        "Não há erro de nome: o total = 0 recuado cria o nome dentro de toda volta."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "Atribuição aumentada na referência",
+      "url": "https://docs.python.org/3/reference/simple_stmts.html#augmented-assignment-statements",
+      "description": "A página oficial do += e dos outros operadores com igual."
+    },
+    {
+      "title": "O tutorial oficial sobre for",
+      "url": "https://docs.python.org/3/tutorial/controlflow.html#for-statements",
+      "description": "A seção do tutorial que acumula valores dentro do laço."
+    }
+  ],
+  "challenges": [
+    "some-um-a-quatro"
+  ]
+}

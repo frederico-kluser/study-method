@@ -1,0 +1,118 @@
+{
+  "schemaVersion": 1,
+  "slug": "resto-e-potencia-no-lugar",
+  "title": "Resto e potência no lugar",
+  "summary": "O %= guarda o resto da divisão no próprio nome; o **= eleva o próprio nome à potência.",
+  "difficulty": 3,
+  "role": "regular",
+  "targetAtom": "op:aug:%",
+  "concepts": [
+    "resto_e_potencia_no_lugar"
+  ],
+  "prerequisites": [
+    "dividir-no-lugar",
+    "potencia"
+  ],
+  "introduces": {
+    "productive": [
+      "op:aug:%",
+      "op:aug:**"
+    ],
+    "receptive": []
+  },
+  "introducesTerms": [],
+  "theory": [
+    {
+      "id": "guardar-o-resto-no-lugar",
+      "title": "Guardar o resto no lugar",
+      "markdown": "Na aula *divisão inteira e resto* o `%` devolvia o resto da divisão. O `%=` guarda esse resto **no próprio nome**:\n\n```python\nn = 13\nn %= 7\nprint(n)\n```\n\n```text\n6\n```\n\n`n %= 7` é o gesto único para `n = n % 7`: 13 dividido por 7 dá 1 e sobram 6, então o nome passa a guardar 6. O `%=` é o jeito curto de manter um número dentro de uma faixa — o resto nunca passa do divisor."
+    },
+    {
+      "id": "elevar-no-lugar",
+      "title": "Elevar no lugar",
+      "markdown": "Do módulo 1 você conhece a potência: `2 ** 10` é 2 elevado à décima. O `**=` eleva o **próprio nome** à potência e guarda o resultado nele.\n\n```python\nn = 3\nn **= 2\nprint(n)\n```\n\n```text\n9\n```\n\n`n **= 2` é o gesto único para `n = n ** 2`: 3 ao quadrado, guardado de volta. O expoente pode ser outro nome ou uma conta:\n\n```python\ndobro = 2\nn = 5\nn **= dobro\nprint(n)\n```\n\n```text\n25\n```\n\nA potência lê o expoente (2, do nome `dobro`) e guarda 5² = 25 em `n`."
+    },
+    {
+      "id": "resto-e-pontencia-na-mesma-fila",
+      "title": "Resto e potência na mesma fila",
+      "markdown": "Os dois gestos podem se seguir, com o valor de um alimentando o outro:\n\n```python\nn = 13\nn %= 7\nprint(n)\nn **= 2\nprint(n)\n```\n\n```text\n6\n36\n```\n\nPrimeiro o `n` vira 6 (resto de 13 por 7); depois esse 6 é elevado ao quadrado e vira 36. Pergunta de estado: depois da linha `n %= 7`, o que `n` guarda? É 6 — e é com esse 6 que a linha seguinte trabalha."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "resto-no-proprio-nome",
+      "statement": "O %= guarda o resto da divisão no próprio nome.",
+      "question": "`n` vale 13. O que `n %= 7` deixa guardado?",
+      "options": [
+        "6",
+        "1",
+        "7",
+        "13"
+      ],
+      "answerIndex": 0,
+      "feedback": "13 dividido por 7 dá 1 inteiro e sobra 6 — o %= guarda o resto, que é 6.",
+      "sectionId": "guardar-o-resto-no-lugar",
+      "optionRationales": [
+        "O %= guarda o resto de 13 ÷ 7: 7 cabe 1 vez e sobram 6.",
+        "1 é o resultado da divisão inteira (13 // 7); o %= guarda o resto, não o quociente.",
+        "7 é o divisor, não o resto; o nome passa a guardar o que sobra da divisão.",
+        "Só ficaria 13 se nada dividisse; o %= substitui o valor pelo resto."
+      ]
+    },
+    {
+      "id": "eleva-o-proprio-nome",
+      "statement": "O **= eleva o próprio nome à potência e guarda o resultado nele.",
+      "question": "`n` vale 4. O que `n **= 3` deixa guardado?",
+      "options": [
+        "64",
+        "12",
+        "81",
+        "4"
+      ],
+      "answerIndex": 0,
+      "feedback": "4 elevado à terceira é 4 × 4 × 4 = 64, e o **= guarda esse valor de volta.",
+      "sectionId": "elevar-no-lugar",
+      "optionRationales": [
+        "n **= 3 é o gesto único para n = n ** 3: 4³ = 64, guardado de volta.",
+        "12 seria a multiplicação (4 × 3); a potência multiplica o número por ele mesmo.",
+        "81 seria 3⁴ — o expoente e a base trocados.",
+        "Só ficaria 4 se nada elevasse; o **= substitui o valor pela potência."
+      ]
+    },
+    {
+      "id": "um-alimenta-o-outro",
+      "statement": "Depois do %=, o nome guarda o resto — e é esse valor que a linha seguinte usa.",
+      "question": "Depois de `n = 13`, `n %= 7` e `n **= 2`, o que `print(n)` mostra?",
+      "options": [
+        "36",
+        "169",
+        "6",
+        "7"
+      ],
+      "answerIndex": 0,
+      "feedback": "O %= deixa 6, e o **= eleva esse 6 ao quadrado: 36.",
+      "sectionId": "resto-e-pontencia-na-mesma-fila",
+      "optionRationales": [
+        "A fila é 13 → resto por 7 = 6 → 6² = 36.",
+        "169 seria 13² — o **= trabalha com o valor atual do nome (6), não com o valor de antes do %=.",
+        "6 é o valor no meio da fila, antes de a potência rodar.",
+        "7 é o divisor; nenhuma linha guarda o divisor."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "Atribuição aumentada na referência",
+      "url": "https://docs.python.org/3/reference/simple_stmts.html#augmented-assignment-statements",
+      "description": "A página oficial dos operadores com igual, incluindo %= e **=."
+    },
+    {
+      "title": "Operadores aritméticos na referência",
+      "url": "https://docs.python.org/3/reference/expressions.html#binary-arithmetic-operations",
+      "description": "A página oficial do resto (%) e da potência (**)."
+    }
+  ],
+  "challenges": [
+    "o-resto-que-vira-quadrado"
+  ]
+}

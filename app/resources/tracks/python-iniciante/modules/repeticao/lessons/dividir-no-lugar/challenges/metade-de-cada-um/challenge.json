@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "slug": "metade-de-cada-um",
+  "title": "Metade de cada um",
+  "concept": "dividir_no_lugar",
+  "difficulty": 3,
+  "language": "python",
+  "outputChannel": "impressao",
+  "statement": "# Metade de cada um\n\nEscreva um programa que mostre duas contas na tela, uma por linha:\n\n```text\n6\n2.5\n```\n\nNa primeira linha: divida `25` por `4` com a divisão **inteira**, no próprio nome (`//=`).\n\nNa segunda linha: divida `5` por `2` com a divisão **normal**, no próprio nome (`/=`).\n\nNos dois casos imprima o nome depois de dividir.",
+  "starterCode": "resto = 25\n# escreva aqui o resto //= 4\n\nmetade = 5\n# escreva aqui o metade /= 2\n\nprint(resto)\nprint(metade)\n",
+  "testsCode": "import contextlib\nimport io\nimport runpy\nimport unittest\n\n\ndef rodar():\n    \"\"\"Roda solucao.py do zero e devolve tudo o que ele imprimiu.\"\"\"\n    saida = io.StringIO()\n    with contextlib.redirect_stdout(saida):\n        runpy.run_path(\"solucao.py\")\n    return saida.getvalue()\n\n\nclass TestDividirNoLugar(unittest.TestCase):\n    def test_imprime_a_divisao_inteira_e_a_normal(self):\n        \"\"\"o programa imprime 25 // 4 e 5 / 2, um por linha\"\"\"\n        self.assertEqual(rodar(), str(25 // 4) + \"\\n\" + str(5 / 2) + \"\\n\")\n",
+  "solutionCode": "resto = 25\nresto //= 4\n\nmetade = 5\nmetade /= 2\n\nprint(resto)\nprint(metade)\n",
+  "expectedTestCount": 1,
+  "requirements": [
+    {
+      "id": "test_imprime_a_divisao_inteira_e_a_normal",
+      "teste": "test_imprime_a_divisao_inteira_e_a_normal",
+      "descricao": "o programa imprime 25 // 4 e 5 / 2, um por linha"
+    }
+  ]
+}

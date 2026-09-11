@@ -1,0 +1,119 @@
+{
+  "schemaVersion": 1,
+  "slug": "o-laco-que-nao-acaba-sozinho",
+  "title": "O laço que não acaba sozinho",
+  "summary": "O while True roda para sempre — a menos que um break, lá dentro, decida a hora de parar.",
+  "difficulty": 4,
+  "role": "consolidation",
+  "targetAtom": "node:While",
+  "concepts": [
+    "while_true_com_break"
+  ],
+  "prerequisites": [
+    "parar-no-meio",
+    "verdadeiro-e-falso"
+  ],
+  "introduces": {
+    "productive": [
+      "node:While"
+    ],
+    "receptive": []
+  },
+  "introducesTerms": [
+    "laço infinito"
+  ],
+  "theory": [
+    {
+      "id": "while-true-nao-acaba-sozinho",
+      "title": "O while True não acaba sozinho",
+      "markdown": "O `while` repete enquanto a condição for verdadeira. Agora a condição mais simples de todas: **`True`** — o valor verdadeiro da aula *verdadeiro e falso*. `True` é sempre verdadeiro, então esse `while` nunca para por conta própria.\n\n```python\nwhile True:\n    print(\"eco\")\n```\n\nEsse programa imprime `eco` para sempre — um **laço infinito** de verdade, sem condição para ficar falsa. O `while True` não é para ser usado sozinho: ele é a moldura que espera alguém decidir a saída. E o decididor é o `break` da aula *parar no meio*.\n\n```python\nvoltas = 0\nwhile True:\n    voltas += 1\n    print(voltas)\n    if voltas == 3:\n        break\n```\n\n```text\n1\n2\n3\n```\n\nO laço roda, conta as voltas e, no 3, o `break` encerra. Sem o `break`, ele não teria fim."
+    },
+    {
+      "id": "a-decisao-de-parar-fica-dentro",
+      "title": "A decisão de parar fica dentro",
+      "markdown": "Compare com as duas formas que você já conhece. No `while saldo > 0`, a hora de parar está **escrita na condição**, antes da primeira volta. No `while True`, a hora de parar está **no meio do bloco**, decidida a cada volta — pode até depender de mais de uma linha:\n\n```python\nn = 0\nwhile True:\n    n += 2\n    print(n)\n    if n == 10:\n        break\n```\n\n```text\n2\n4\n6\n8\n10\n```\n\nO `break` pode aparecer em qualquer profundidade do bloco — dentro de um `if`, por exemplo, como aqui. O que importa é que **algum** `break` exista: o `while True` sem `break` é um programa que não termina."
+    },
+    {
+      "id": "encerrar-tambem-pode-ser-esperar",
+      "title": "Encerrar também pode ser esperar",
+      "markdown": "O par `while True` + `break` é a forma de dizer \"repita, e decida depois\" — o oposto do `range`, que já nasce com a fila pronta. Os dois convivem:\n\n```python\nfor i in range(3):\n    print(\"antes\")\n    while True:\n        print(\"dentro\")\n        break\n    print(\"depois\")\n```\n\n```text\nantes\ndentro\ndepois\nantes\ndentro\ndepois\nantes\ndentro\ndepois\n```\n\nA cada volta do `for`, o `while True` roda, o `break` logo encerra e o `depois` segue. Aqui o laço interno é desnecessariamente curto — mas a forma é a mesma que segura um programa esperando algo até a hora certa de sair."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "while-true-precisa-de-break",
+      "statement": "O while True nunca para sozinho; sem break, o programa não termina.",
+      "question": "O programa `while True:` com `print(\"oi\")` no bloco e nenhum break acontece o quê?",
+      "options": [
+        "imprime oi para sempre",
+        "imprime oi uma vez",
+        "imprime oi três vezes",
+        "dá erro de sintaxe"
+      ],
+      "answerIndex": 0,
+      "feedback": "True é sempre verdadeiro e nada no bloco muda isso: o laço não tem fim.",
+      "sectionId": "while-true-nao-acaba-sozinho",
+      "optionRationales": [
+        "A condição True nunca fica falsa e o bloco não tem break — o print repete sem fim.",
+        "Uma vez só seria se o laço não repetisse; o while manda voltar e conferir, e True segue verdadeiro.",
+        "Três vezes seria o comportamento de um for com range(3); aqui não há fila nem contagem.",
+        "O programa é válido: não é erro de sintaxe, é um laço que nunca termina."
+      ]
+    },
+    {
+      "id": "break-decide-dentro-do-bloco",
+      "statement": "No while True, o break dentro do bloco é o que decide a hora de parar.",
+      "question": "No programa com `n = 0`, `while True:`, `n += 1`, `print(n)` e `if n == 2: break`, o que a tela mostra?",
+      "options": [
+        "1 e 2",
+        "1",
+        "0 e 1",
+        "1, 2, 3, 4 e 5"
+      ],
+      "answerIndex": 0,
+      "feedback": "As voltas imprimem 1 e 2; na volta do 2 o break encerra o laço.",
+      "sectionId": "a-decisao-de-parar-fica-dentro",
+      "optionRationales": [
+        "n vira 1 e imprime; vira 2 e imprime; o if vê 2 == 2 e o break encerra.",
+        "Só o 1 apareceria se o break viesse antes do print; aqui o print vem antes do if.",
+        "O 0 nunca imprime: n += 1 roda antes do print, então a primeira linha é o 1.",
+        "Os números além do 2 não rodam: o break corta o laço na volta em que n vale 2."
+      ]
+    },
+    {
+      "id": "while-true-e-if-combinam",
+      "statement": "O while True pode entrar em qualquer lugar — inclusive dentro de outro laço — desde que um break exista.",
+      "question": "No programa com `for i in range(3):` e, no bloco, um `while True:` com `break` logo depois, quantas vezes o `break` roda no total?",
+      "options": [
+        "3 vezes",
+        "1 vez",
+        "infinitas vezes",
+        "nenhuma"
+      ],
+      "answerIndex": 0,
+      "feedback": "O for dá três voltas, e em cada uma o while True roda e o break encerra: três quebras no total.",
+      "sectionId": "encerrar-tambem-pode-ser-esperar",
+      "optionRationales": [
+        "Cada volta do for recria o while True, e cada um roda o seu break uma vez — três vezes.",
+        "Uma vez só seria um único laço; aqui o while True nasce de novo a cada volta do for.",
+        "O break não deixa o while True rodar para sempre: ele corta na primeira passada.",
+        "Sem o break o laço interno seria infinito — com ele, quebra uma vez por volta do for."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "O while na referência da linguagem",
+      "url": "https://docs.python.org/3/reference/compound_stmts.html#the-while-statement",
+      "description": "A definição oficial do while — e porque True como condição não termina sozinho."
+    },
+    {
+      "title": "O tutorial oficial sobre break e continue",
+      "url": "https://docs.python.org/3/tutorial/controlflow.html#break-and-continue-statements-and-else-clauses-on-loops",
+      "description": "A seção do tutorial que usa o break como saída de laços que não terminam sozinhos."
+    }
+  ],
+  "challenges": [
+    "a-maquina-de-ecos"
+  ]
+}

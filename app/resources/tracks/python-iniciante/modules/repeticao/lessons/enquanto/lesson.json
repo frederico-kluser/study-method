@@ -1,0 +1,120 @@
+{
+  "schemaVersion": 1,
+  "slug": "enquanto",
+  "title": "Enquanto",
+  "summary": "O while repete o bloco enquanto a condição for verdadeira, conferindo antes de cada volta.",
+  "difficulty": 3,
+  "role": "regular",
+  "targetAtom": "node:While",
+  "concepts": [
+    "laco_while"
+  ],
+  "prerequisites": [
+    "se",
+    "acumular-num-nome"
+  ],
+  "introduces": {
+    "productive": [
+      "node:While"
+    ],
+    "receptive": []
+  },
+  "introducesTerms": [
+    "condição",
+    "laço infinito"
+  ],
+  "theory": [
+    {
+      "id": "o-while-repete-enquanto",
+      "title": "O while repete enquanto",
+      "markdown": "O `for` repete um número de voltas conhecido. O `while` responde a outra pergunta: **repete enquanto a condição for verdadeira** — sem dizer quantas voltas.\n\n```python\nsaldo = 5\nwhile saldo > 0:\n    print(saldo)\n    saldo -= 1\n```\n\n```text\n5\n4\n3\n2\n1\n```\n\nLeia a linha do `while` como no `se`: *enquanto `saldo > 0` for verdadeiro, rode o bloco*. A diferença é que, no fim de cada volta, o Python **volta e confere a condição de novo** — e só para quando ela ficar falsa."
+    },
+    {
+      "id": "a-condicao-e-conferida-antes",
+      "title": "A condição é conferida antes",
+      "markdown": "A conferência acontece **antes** de cada volta, inclusive da primeira. Se a condição já nasce falsa, o bloco não roda nenhuma vez:\n\n```python\nsaldo = 0\nwhile saldo > 0:\n    print(saldo)\n    saldo -= 1\nprint(\"sem saldo\")\n```\n\n```text\nsem saldo\n```\n\nO `saldo > 0` é falso de cara (0 não é maior que 0), então o bloco do `while` é pulado inteiro e o programa segue para o `print` de fora."
+    },
+    {
+      "id": "a-volta-precisa-mudar-a-condicao",
+      "title": "A volta precisa mudar a condição",
+      "markdown": "Para o laço terminar, alguma linha do bloco tem de deixar a condição **falsa em algum momento**. Esquecer isso prende o programa:\n\n```python\nsaldo = 5\nwhile saldo > 0:\n    print(\"saldo alto\")\n```\n\nO bloco imprime para sempre — o `saldo` nunca muda, a condição nunca fica falsa e o laço não acaba sozinho. É o **laço infinito**. No `for` isso era difícil de acontecer porque o `range` tinha uma fila finita; no `while`, a condição é sua.\n\nCerto é mudar o que a condição olha dentro da volta:\n\n```python\nsaldo = 5\nwhile saldo > 0:\n    print(\"saldo alto\")\n    saldo -= 1\n```\n\nPergunta de estado: depois de a última volta rodar, o que `saldo` guarda? É 0 — a condição ficou falsa e o laço parou."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "while-repete-enquanto-verdadeiro",
+      "statement": "O while repete o bloco enquanto a condição for verdadeira, conferindo antes de cada volta.",
+      "question": "`saldo` vale 5 e o laço é `while saldo > 0:` com o bloco fazendo `saldo -= 1`. Quantas voltas o laço dá?",
+      "options": [
+        "5 voltas",
+        "6 voltas",
+        "4 voltas",
+        "infinitas voltas"
+      ],
+      "answerIndex": 0,
+      "feedback": "O saldo anda 5, 4, 3, 2, 1 — cinco voltas; na conferência seguinte ele vale 0 e o laço para.",
+      "sectionId": "o-while-repete-enquanto",
+      "optionRationales": [
+        "O saldo passa por 5, 4, 3, 2 e 1 (cinco voltas); chega a 0 e a condição fica falsa.",
+        "A sexta volta não acontece: quando o saldo chega em 0, a condição já é falsa antes da volta.",
+        "A primeira volta acontece sim: 5 é maior que 0 na conferência inicial.",
+        "O laço acaba sozinho porque o bloco muda o saldo — sem a mudança, aí sim seria infinito."
+      ]
+    },
+    {
+      "id": "condicao-falsa-de-cara",
+      "statement": "Se a condição já nasce falsa, o bloco do while não roda nenhuma vez.",
+      "question": "`saldo` vale 0 e o laço é `while saldo > 0:`. O bloco roda quantas vezes?",
+      "options": [
+        "Nenhuma",
+        "1 vez",
+        "5 vezes",
+        "infinitas vezes"
+      ],
+      "answerIndex": 0,
+      "feedback": "A conferência vem antes da primeira volta: 0 > 0 é falso, e o bloco é pulado inteiro.",
+      "sectionId": "a-condicao-e-conferida-antes",
+      "optionRationales": [
+        "A condição é conferida antes de toda volta, inclusive da primeira — falsa, nada roda.",
+        "Rodaria 1 vez se a conferência viesse depois da primeira volta; ela vem antes.",
+        "5 vezes seria se o saldo começasse em 5 e fosse caindo; aqui ele já começa em 0.",
+        "Infinito exigiria uma condição que nunca fica falsa; aqui ela nem chega a ser verdadeira."
+      ]
+    },
+    {
+      "id": "bloco-precisa-mudar-a-condicao",
+      "statement": "Para o laço acabar, o bloco precisa deixar a condição falsa em algum momento.",
+      "question": "No laço `while saldo > 0:` com o bloco só imprimindo, o programa...",
+      "options": [
+        "não acaba — o saldo nunca muda, o laço roda para sempre",
+        "acaba quando o print terminar",
+        "dá erro de sintaxe na hora de rodar",
+        "acaba depois de uma volta por número do saldo"
+      ],
+      "answerIndex": 0,
+      "feedback": "Nada no bloco muda o saldo; a condição fica verdadeira para sempre e o laço vira infinito.",
+      "sectionId": "a-volta-precisa-mudar-a-condicao",
+      "optionRationales": [
+        "A condição só fica falsa se o bloco mudar o que ela olha; sem a mudança, não há fim.",
+        "O print termina a cada volta — mas o while manda voltar e conferir de novo, sempre.",
+        "O programa é válido: o erro aqui não é de sintaxe, é de nunca terminar.",
+        "O while não conta voltas por número; ele obedece só à condição."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "O while na referência da linguagem",
+      "url": "https://docs.python.org/3/reference/compound_stmts.html#the-while-statement",
+      "description": "A definição oficial do while e do bloco que ele repete enquanto a condição valer."
+    },
+    {
+      "title": "O tutorial oficial sobre while",
+      "url": "https://docs.python.org/3/tutorial/controlflow.html#break-and-continue-statements-and-else-clauses-on-loops",
+      "description": "A seção do tutorial que apresenta o while ao lado do break e do continue."
+    }
+  ],
+  "challenges": [
+    "a-contagem-regressiva"
+  ]
+}
