@@ -231,3 +231,15 @@ entrada"):
    impresso (J5; ver `qualidade-aula.md`).
 4. O teste usa só o orçamento de ENTRADA (A3) — releia o teste com os olhos do aluno pré-aula.
 5. 2–3 `sources[]` oficiais e verificáveis.
+
+## Medições das ondas 1–5 (2026-09-11) — regras obrigatórias
+
+- **`assertions` máx. 3 por aula** (MAX_ASSERTIONS_PER_LESSON do loader do produto).
+- **`requirements[]` são objetos** `{id, teste, descricao}`, um por método `test_*` — string solta é ignorada e vira gap.
+- **Consolidação re-declara o `targetAtom`** em `introduces.productive` (padrão medido no disco: `mais-de-uma-linha → ['global:print']`).
+- **Newline final é obrigatório** (gate-lint L-04) e o L-04 **trunca a lista em 8 ocorrências** — quando houver dúvida, varredura própria do último byte.
+- **Seções de teoria ≤ 560 chars montados** (o teste typewriter impõe 21 s = 588 chars).
+- **`for a, b in ...` emite `node:Tuple`**: enumerate/zip ensinam com `for par in ...` + `par[0]`, e o desempacotamento é aula própria.
+- **Receptor literal** (`"-".join(...)`) emite `api:str.join` (chave diferente) → na teoria, demonstre métodos com receptor-nome (variável).
+- **Testes que forçam a construção (J5)**: ≥2 casos divergentes, esperados não-escalares (listas, visões `str(d.keys())`, conjuntos de 1 elemento, `hash(-1) == -2`), nunca string crua de dict/set multi-elemento — meta: EXCESSO 0 no coverage (mínimo sintetizado == solução de referência).
+- **`ATOM_KEY_RE` proíbe espaço** (`atomKeys.ts`): `op:compare:is not` e `op:compare:not in` são descartados do `introduces` em silêncio — o operador base (`is`, `in`) é produtivo; a negação (`is not`, `not in`) só em prosa com crase. Consertar a regex é decisão de engine para rodada futura.
