@@ -1,0 +1,119 @@
+{
+  "schemaVersion": 1,
+  "slug": "o-nome-so-vive-dentro",
+  "title": "O nome só vive dentro",
+  "summary": "Nome criado dentro da caixa não existe fora dela — é local à caixa.",
+  "difficulty": 3,
+  "role": "consolidation",
+  "targetAtom": "decl:assign",
+  "concepts": [
+    "nome_local"
+  ],
+  "prerequisites": [
+    "devolver-em-vez-de-mostrar",
+    "dar-nome-a-um-valor"
+  ],
+  "introduces": {
+    "productive": [
+      "decl:assign"
+    ],
+    "receptive": []
+  },
+  "introducesTerms": [
+    "escopo"
+  ],
+  "theory": [
+    {
+      "id": "um-nome-dentro-da-caixa",
+      "title": "Um nome dentro da caixa",
+      "markdown": "Dentro do corpo, você pode dar nome a valores intermediários — a conta fica em duas linhas:\n\n```python\ndef calcular(preco):\n    total = preco + 10\n    return total\n\n\nprint(calcular(5))\n```\n\n```text\n15\n```\n\nO `total` guarda o resultado do meio e o `return` devolve esse nome. O teste chama a caixa e confere o valor final."
+    },
+    {
+      "id": "o-nome-nao-sai",
+      "title": "O nome não sai",
+      "markdown": "O nome criado dentro da caixa **só existe dentro dela**. Lá fora, ele não existe:\n\n```python\ndef calcular(preco):\n    total = preco + 10\n    return total\n\n\nprint(total)\n```\n\nIsso dá `NameError`: fora da caixa, `total` não é nome de ninguém. Certo é imprimir o que a caixa devolveu:\n\n```python\nprint(calcular(5))\n```\n\nPergunta de estado: depois de `calcular(5)` rodar, o que vale `total` no resto do arquivo? Nada — o nome morreu com a caixa."
+    },
+    {
+      "id": "o-escopo-da-caixa",
+      "title": "O escopo da caixa",
+      "markdown": "Esse território do nome chama-se **escopo**: o escopo da caixa é o corpo dela. Cada caixa tem o seu:\n\n```python\ndef primeira():\n    segredo = 1\n    return segredo\n\n\ndef segunda():\n    segredo = 2\n    return segredo\n```\n\nAs duas caixas podem usar o mesmo nome `segredo` sem se misturar — cada `segredo` vive no escopo da sua caixa. O nome da janela também é local: `preco` só existe dentro de `calcular`."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "nome-auxiliar-dentro",
+      "statement": "Dentro da caixa, um nome pode guardar o valor do meio da conta.",
+      "question": "Na caixa `calcular(preco)` com `total = preco + 10` e `return total`, o que a caixa devolve para preço 5?",
+      "options": [
+        "15",
+        "5",
+        "10",
+        "total"
+      ],
+      "answerIndex": 0,
+      "feedback": "total guarda 5 + 10, e o return devolve o que total guarda: 15.",
+      "sectionId": "um-nome-dentro-da-caixa",
+      "optionRationales": [
+        "total vale preco + 10 = 5 + 10 = 15, e é esse valor que o return devolve.",
+        "O 5 é o valor que ENTRA; a caixa devolve o valor que SAI, depois da conta.",
+        "O 10 é o acréscimo; a caixa devolve a soma, não uma das parcelas.",
+        "total é o nome, não o valor: o valor dele é 15."
+      ]
+    },
+    {
+      "id": "nome-nao-existe-fora",
+      "statement": "Nome criado dentro da caixa não existe fora dela.",
+      "question": "Depois de `calcular(5)` rodar, o que vale `total` no resto do arquivo?",
+      "options": [
+        "Nada — total não existe fora da caixa.",
+        "15 — o valor ficou guardado.",
+        "Um erro, porque a caixa quebrou.",
+        "O mesmo que dentro da caixa."
+      ],
+      "answerIndex": 0,
+      "feedback": "O escopo de total é o corpo da caixa; fora dele o nome não existe, e usar total lá fora dá NameError.",
+      "sectionId": "o-nome-nao-sai",
+      "optionRationales": [
+        "O nome nasceu dentro da caixa e morre com ela: fora dela, total não é nome de ninguém.",
+        "O valor devolvido pode ser guardado por quem chamou — mas o NOME total não acompanha.",
+        "A caixa não quebrou: ela rodou e devolveu. O erro seria de quem usasse total lá fora.",
+        "Dentro e fora são escopos diferentes — o nome não atravessa a porta."
+      ]
+    },
+    {
+      "id": "escopos-separados",
+      "statement": "Cada caixa tem o seu escopo; nomes iguais em caixas diferentes não se misturam.",
+      "question": "As caixas `primeira` e `segunda` usam as duas o nome `segredo`. O que acontece?",
+      "options": [
+        "Cada uma usa o seu segredo, sem misturar.",
+        "A segunda sobrescreve o segredo da primeira.",
+        "Dá erro, porque o nome está repetido.",
+        "As duas devolvem o mesmo valor."
+      ],
+      "answerIndex": 0,
+      "feedback": "Cada caixa tem o seu escopo: o segredo da primeira só existe nela, e o da segunda, nela.",
+      "sectionId": "o-escopo-da-caixa",
+      "optionRationales": [
+        "Escopo é território: dois nomes iguais em territórios diferentes são dois nomes diferentes.",
+        "Não há sobrescrita: a segunda caixa nem enxerga o segredo da primeira.",
+        "Repetir nome em escopos diferentes é normal e não é erro.",
+        "Cada caixa devolve o valor do SEU segredo: 1 e 2, valores diferentes."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "Nomes e escopos na referência da linguagem",
+      "url": "https://docs.python.org/3/reference/executionmodel.html#naming-and-binding",
+      "description": "A seção oficial sobre onde um nome vive e vale."
+    },
+    {
+      "title": "Dar nome a um valor no tutorial",
+      "url": "https://docs.python.org/3/tutorial/introduction.html",
+      "description": "O capítulo do tutorial que apresenta a atribuição de nomes."
+    }
+  ],
+  "challenges": [
+    "calcule-o-total"
+  ]
+}

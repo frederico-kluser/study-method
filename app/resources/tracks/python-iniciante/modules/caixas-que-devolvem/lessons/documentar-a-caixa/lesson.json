@@ -1,0 +1,118 @@
+{
+  "schemaVersion": 1,
+  "slug": "documentar-a-caixa",
+  "title": "Documentar a caixa",
+  "summary": "A docstring é o rótulo da caixa: um texto na primeira linha do corpo.",
+  "difficulty": 4,
+  "role": "consolidation",
+  "targetAtom": "node:StrLiteral",
+  "concepts": [
+    "docstring"
+  ],
+  "prerequisites": [
+    "escrever-a-primeira-caixa"
+  ],
+  "introduces": {
+    "productive": [
+      "node:StrLiteral"
+    ],
+    "receptive": []
+  },
+  "introducesTerms": [
+    "docstring"
+  ],
+  "theory": [
+    {
+      "id": "o-rotulo-da-caixa",
+      "title": "O rótulo da caixa",
+      "markdown": "Toda caixa pode carregar um **rótulo**: um texto de uma linha, entre aspas triplas, logo na primeira linha do corpo. É a **docstring**:\n\n```python\ndef dobro(x):\n    \"\"\"devolve o dobro de x\"\"\"\n    return x * 2\n```\n\nO rótulo diz, em uma frase, o que a caixa faz — para quem ler o código depois (inclusive você). O programa funciona igual com ou sem ele; o rótulo é informação."
+    },
+    {
+      "id": "a-docstring-nao-imprime",
+      "title": "A docstring não imprime",
+      "markdown": "A docstring é um texto que o Python **guarda**, não um print: ela não aparece na tela.\n\n```python\nprint(dobro(4))\n```\n\n```text\n8\n```\n\nSó o `8` aparece — o rótulo ficou com a caixa. E o lugar dela importa: um texto fora do corpo, antes do `def`, não é docstring de caixa nenhuma; ela só é o rótulo na primeira linha DO corpo."
+    },
+    {
+      "id": "que-dizer-no-rotulo",
+      "title": "Que dizer no rótulo",
+      "markdown": "Um bom rótulo diz o que a caixa **devolve**, em uma linha, sem recontar o código:\n\n```python\ndef e_par(n):\n    \"\"\"devolve True quando n e par\"\"\"\n    return n % 2 == 0\n```\n\nPergunta de estado: quem lê só o rótulo da caixa `e_par` sabe o quê? Sabe o contrato: dada a entrada `n`, a caixa devolve True quando `n` é par — sem precisar ler o corpo."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "onde-mora-a-docstring",
+      "statement": "A docstring é a primeira linha do corpo, entre aspas triplas.",
+      "question": "Onde a docstring da caixa `dobro` fica?",
+      "options": [
+        "Na primeira linha do corpo, logo depois do def.",
+        "Antes do def, fora da caixa.",
+        "Depois do return, no fim do corpo.",
+        "Na linha da chamada."
+      ],
+      "answerIndex": 0,
+      "feedback": "A docstring é a primeira linha do corpo: um texto entre aspas triplas, colado depois do cabeçalho do def.",
+      "sectionId": "o-rotulo-da-caixa",
+      "optionRationales": [
+        "O rótulo abre o corpo: primeira linha, entre aspas triplas — é o lugar que o Python reconhece.",
+        "Um texto antes do def é só um texto solto: não é docstring de caixa nenhuma.",
+        "Depois do return o corpo já terminou; o rótulo precisa abrir o corpo.",
+        "A chamada é quem usa a caixa; o rótulo vive na definição, não na chamada."
+      ]
+    },
+    {
+      "id": "docstring-nao-imprime",
+      "statement": "A docstring não aparece na tela: ela é guardada, não impressa.",
+      "question": "O programa é `def dobro(x):` com a docstring e o return, seguido de `print(dobro(4))`. O que a tela mostra?",
+      "options": [
+        "8",
+        "devolve o dobro de x",
+        "8 e depois o rótulo",
+        "nada — o programa dá erro"
+      ],
+      "answerIndex": 0,
+      "feedback": "A docstring fica guardada com a caixa; na tela só aparece o 8 do print.",
+      "sectionId": "a-docstring-nao-imprime",
+      "optionRationales": [
+        "O print mostra o valor devolvido, 8; o rótulo não é print, então não aparece.",
+        "O rótulo só apareceria se alguém o imprimisse — o print aqui imprime o dobro.",
+        "O rótulo nunca sai na tela junto: ele é informação do código, não saída.",
+        "O programa roda normal: docstring é só um texto guardado."
+      ]
+    },
+    {
+      "id": "o-rotulo-diz-o-contrato",
+      "statement": "O rótulo diz o que a caixa devolve, sem recontar o corpo.",
+      "question": "O rótulo da caixa é \"devolve True quando n e par\". O que ele comunica?",
+      "options": [
+        "O contrato da caixa: o que ela devolve para a entrada.",
+        "O nome da variável usada no corpo.",
+        "Quantas linhas tem o corpo.",
+        "O valor que a caixa devolve para o número 2."
+      ],
+      "answerIndex": 0,
+      "feedback": "O rótulo comunica o contrato: com a entrada n, a caixa devolve True quando n é par — sem precisar ler o corpo.",
+      "sectionId": "que-dizer-no-rotulo",
+      "optionRationales": [
+        "Rótulo é contrato: entrada e devolução em uma frase — quem lê só ele já sabe usar a caixa.",
+        "O nome da variável é detalhe do corpo; o rótulo fala do comportamento.",
+        "O rótulo fala do que a caixa FAZ, não do tamanho dela.",
+        "O valor para 2 seria um exemplo; o rótulo descreve a regra inteira."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "Documentação de funções no tutorial oficial",
+      "url": "https://docs.python.org/3/tutorial/controlflow.html#documentation-strings",
+      "description": "A seção do tutorial que apresenta a docstring e as aspas triplas."
+    },
+    {
+      "title": "Docstring no glossário oficial",
+      "url": "https://docs.python.org/3/glossary.html#term-docstring",
+      "description": "A definição oficial do termo docstring."
+    }
+  ],
+  "challenges": [
+    "a-caixa-documentada"
+  ]
+}

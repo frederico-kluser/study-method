@@ -1,0 +1,119 @@
+{
+  "schemaVersion": 1,
+  "slug": "conferir-a-premissa",
+  "title": "Conferir a premissa",
+  "summary": "O assert confere uma condição antes de seguir — a premissa da caixa.",
+  "difficulty": 4,
+  "role": "regular",
+  "targetAtom": "node:Assert",
+  "concepts": [
+    "assert"
+  ],
+  "prerequisites": [
+    "devolver-cedo",
+    "igual-e-diferente"
+  ],
+  "introduces": {
+    "productive": [
+      "node:Assert"
+    ],
+    "receptive": []
+  },
+  "introducesTerms": [
+    "premissa"
+  ],
+  "theory": [
+    {
+      "id": "a-caixa-pode-exigir",
+      "title": "A caixa pode exigir",
+      "markdown": "Algumas caixas só fazem sentido com uma condição de entrada. A caixa pode **exigir** essa condição com o `assert` — \"confira que\":\n\n```python\ndef com_desconto(preco):\n    assert preco > 0\n    return preco - 2\n```\n\nO `assert` confere a **premissa** antes de o corpo seguir. A primeira linha diz: \"confira que o preço é maior que 0\". Se a premissa vale, o corpo continua; se não vale, o programa para."
+    },
+    {
+      "id": "a-premissa-verdadeira-passa",
+      "title": "A premissa verdadeira passa",
+      "markdown": "Com uma premissa verdadeira, o `assert` não faz barulho — ele confere e deixa o corpo seguir:\n\n```python\nprint(com_desconto(10))\n```\n\n```text\n8\n```\n\nO `10` é maior que 0, o `assert` passa, e a caixa devolve `10 - 2`. Pergunta de estado: com preço 10, o que aconteceu na linha do assert? Ela conferiu, achou a premissa verdadeira e deixou o return rodar."
+    },
+    {
+      "id": "a-premissa-falsa-para",
+      "title": "A premissa falsa para",
+      "markdown": "Com a premissa falsa, o `assert` interrompe o programa com um erro (o famoso `AssertionError`):\n\n```python\ncom_desconto(-3)\n```\n\nA caixa nem devolve: a conferência falhou e o programa parou ali. O `assert` é o porteiro que não deixa a conta seguir com entrada fora do combinado."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "assert-confere-a-premissa",
+      "statement": "O assert confere uma condição antes de o corpo seguir.",
+      "question": "O que a linha `assert preco > 0` faz na caixa?",
+      "options": [
+        "Confere que o preço é maior que 0 antes de seguir.",
+        "Transforma o preço em positivo.",
+        "Imprime a condição na tela.",
+        "Devolve o preço na hora."
+      ],
+      "answerIndex": 0,
+      "feedback": "O assert é a conferência: ele verifica a premissa e só deixa o corpo seguir se ela valer.",
+      "sectionId": "a-caixa-pode-exigir",
+      "optionRationales": [
+        "O assert compara a condição com a realidade e decide: premissa vale, corpo segue.",
+        "O assert não muda valores: ele confere, não transforma.",
+        "O assert não imprime nada — quando a premissa vale, ele passa em silêncio.",
+        "O return é que devolve; o assert vem antes, conferindo a entrada."
+      ]
+    },
+    {
+      "id": "premissa-verdadeira-segue",
+      "statement": "Com a premissa verdadeira, o assert passa e o corpo continua.",
+      "question": "Com preço 10 na caixa `com_desconto`, o que acontece na linha do assert?",
+      "options": [
+        "A premissa vale, o assert passa e a caixa devolve 8.",
+        "A premissa não vale e a caixa para.",
+        "O assert devolve 10.",
+        "O assert mostra preco > 0 na tela."
+      ],
+      "answerIndex": 0,
+      "feedback": "10 é maior que 0, a conferência passa, e o return devolve 10 - 2, que é 8.",
+      "sectionId": "a-premissa-verdadeira-passa",
+      "optionRationales": [
+        "A condição preco > 0 é verdadeira para 10: o assert libera o caminho e o return roda.",
+        "A premissa vale sim: 10 é maior que 0, e a caixa não para.",
+        "O assert não devolve valor: ele confere a condição e segue.",
+        "Assert não mostra nada na tela: conferência é silenciosa quando passa."
+      ]
+    },
+    {
+      "id": "premissa-falsa-para-o-programa",
+      "statement": "Com a premissa falsa, o assert para o programa com um erro.",
+      "question": "O que acontece com `com_desconto(-3)`?",
+      "options": [
+        "O programa para: a premissa é falsa e o assert interrompe.",
+        "A caixa devolve -5.",
+        "A caixa devolve 0.",
+        "O assert corrige o -3 para positivo."
+      ],
+      "answerIndex": 0,
+      "feedback": "-3 não é maior que 0: o assert interrompe o programa antes de o return rodar.",
+      "sectionId": "a-premissa-falsa-para",
+      "optionRationales": [
+        "A conferência falhou: -3 > 0 é falso, e o assert para o programa ali mesmo.",
+        "O return nem roda: o assert vem antes e barra a entrada fora do combinado.",
+        "A caixa não inventa resultado: sem premissa válida, não há devolução.",
+        "O assert confere; quem corrige valores é o código — e aqui o código nem chega a rodar a conta."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "A instrução assert na referência da linguagem",
+      "url": "https://docs.python.org/3/reference/simple_stmts.html#the-assert-statement",
+      "description": "A regra oficial do assert: a conferência de uma condição."
+    },
+    {
+      "title": "Comparações no tutorial oficial",
+      "url": "https://docs.python.org/3/library/stdtypes.html#comparisons",
+      "description": "A página oficial das comparações, a matéria-prima da condição do assert."
+    }
+  ],
+  "challenges": [
+    "a-premissa-conferida"
+  ]
+}

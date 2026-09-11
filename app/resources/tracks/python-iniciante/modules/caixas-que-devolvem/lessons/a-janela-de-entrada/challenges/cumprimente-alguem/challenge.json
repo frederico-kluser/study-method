@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "slug": "cumprimente-alguem",
+  "title": "Cumprimente alguém",
+  "concept": "parametro_da_caixa",
+  "difficulty": 2,
+  "language": "python",
+  "outputChannel": "impressao",
+  "statement": "# Cumprimente alguém\n\nEscreva a caixa `saudacao` que recebe um nome pela janela e mostra `oi, <nome>` na tela.\n\nO teste importa a sua caixa e a chama com nomes diferentes, capturando a tela. A primeira chamada, com \"Ana\", deve mostrar:\n\n```text\noi, Ana\n```\n\nTroque o `pass` pela linha que mostra a saudação. Vale lembrar: juntar texto com `+` você já sabe da aula de juntar textos.",
+  "starterCode": "def saudacao(nome):\n    pass\n",
+  "testsCode": "import contextlib\nimport io\nimport unittest\n\nfrom solucao import saudacao\n\n\nclass TestAJanelaDeEntrada(unittest.TestCase):\n    def test_cumprimenta_ana(self):\n        \"\"\"a caixa saudacao mostra oi, Ana quando recebe Ana\"\"\"\n        buffer = io.StringIO()\n        with contextlib.redirect_stdout(buffer):\n            saudacao(\"Ana\")\n        self.assertEqual(buffer.getvalue(), \"oi, Ana\\n\")\n\n    def test_cumprimenta_bia(self):\n        \"\"\"a caixa saudacao mostra oi, Bia quando recebe Bia\"\"\"\n        buffer = io.StringIO()\n        with contextlib.redirect_stdout(buffer):\n            saudacao(\"Bia\")\n        self.assertEqual(buffer.getvalue(), \"oi, Bia\\n\")\n",
+  "solutionCode": "def saudacao(nome):\n    print(\"oi, \" + nome)\n",
+  "expectedTestCount": 2,
+  "requirements": [
+    {
+      "id": "test_cumprimenta_ana",
+      "teste": "test_cumprimenta_ana",
+      "descricao": "a caixa saudacao mostra oi, Ana quando recebe Ana"
+    },
+    {
+      "id": "test_cumprimenta_bia",
+      "teste": "test_cumprimenta_bia",
+      "descricao": "a caixa saudacao mostra oi, Bia quando recebe Bia"
+    }
+  ]
+}

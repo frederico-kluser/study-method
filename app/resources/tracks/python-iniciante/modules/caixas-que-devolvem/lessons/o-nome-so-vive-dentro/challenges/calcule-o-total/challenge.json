@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "slug": "calcule-o-total",
+  "title": "Calcule o total",
+  "concept": "nome_local",
+  "difficulty": 3,
+  "language": "python",
+  "outputChannel": "retorno",
+  "statement": "# Calcule o total\n\nEscreva a caixa `calcular` que recebe o preço, guarda num nome `total` o preço mais 10 e devolve `total`.\n\nO teste importa a sua caixa e confere o valor devolvido:\n\n```text\ncalcular(5)    ->  15\ncalcular(0)    ->  10\ncalcular(100)  ->  110\n```\n\nTroque o `pass` pelas duas linhas: a conta guardada em `total` e o `return total`. O nome `total` só vive dentro da caixa.",
+  "starterCode": "def calcular(preco):\n    pass\n",
+  "testsCode": "import unittest\n\nfrom solucao import calcular\n\n\nclass TestONomeSoViveDentro(unittest.TestCase):\n    def test_calcula_cinco(self):\n        \"\"\"a caixa devolve 15 quando recebe 5\"\"\"\n        self.assertEqual(calcular(5), 15)\n\n    def test_calcula_zero(self):\n        \"\"\"a caixa devolve 10 quando recebe 0\"\"\"\n        self.assertEqual(calcular(0), 10)\n\n    def test_calcula_cem(self):\n        \"\"\"a caixa devolve 110 quando recebe 100\"\"\"\n        self.assertEqual(calcular(100), 110)\n",
+  "solutionCode": "def calcular(preco):\n    total = preco + 10\n    return total\n",
+  "expectedTestCount": 3,
+  "requirements": [
+    {
+      "id": "test_calcula_cinco",
+      "teste": "test_calcula_cinco",
+      "descricao": "a caixa devolve 15 quando recebe 5"
+    },
+    {
+      "id": "test_calcula_zero",
+      "teste": "test_calcula_zero",
+      "descricao": "a caixa devolve 10 quando recebe 0"
+    },
+    {
+      "id": "test_calcula_cem",
+      "teste": "test_calcula_cem",
+      "descricao": "a caixa devolve 110 quando recebe 100"
+    }
+  ]
+}

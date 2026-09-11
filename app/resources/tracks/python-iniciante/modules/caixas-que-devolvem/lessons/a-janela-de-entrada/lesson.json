@@ -1,0 +1,118 @@
+{
+  "schemaVersion": 1,
+  "slug": "a-janela-de-entrada",
+  "title": "A janela de entrada",
+  "summary": "A caixa pode receber um valor pela janela: é o nome entre os parênteses do def.",
+  "difficulty": 2,
+  "role": "consolidation",
+  "targetAtom": "node:arg",
+  "concepts": [
+    "parametro_da_caixa"
+  ],
+  "prerequisites": [
+    "escrever-a-primeira-caixa"
+  ],
+  "introduces": {
+    "productive": [
+      "node:arg"
+    ],
+    "receptive": []
+  },
+  "introducesTerms": [
+    "parâmetro"
+  ],
+  "theory": [
+    {
+      "id": "a-janela-da-caixa",
+      "title": "A janela da caixa",
+      "markdown": "A caixa do módulo 4 ganha uma **janela de entrada**: um nome entre os parênteses do `def`. É o **parâmetro** — o valor que a caixa recebe de quem a chama.\n\n```python\ndef saudacao(nome):\n    print(\"oi, \" + nome)\n\n\nsaudacao(\"Ana\")\n```\n\n```text\noi, Ana\n```\n\nNa chamada, o valor escrito entre os parênteses atravessa a janela: `\"Ana\"` entra e vira o `nome` dentro da caixa. A mesma caixa atende qualquer nome."
+    },
+    {
+      "id": "o-nome-do-parametro",
+      "title": "O nome do parâmetro",
+      "markdown": "Dentro da caixa, `nome` é um nome como os da aula de dar nome: ele guarda o valor que entrou. Troque o valor da chamada e o corpo usa o novo valor:\n\n```python\nsaudacao(\"Bia\")\nsaudacao(\"Caio\")\n```\n\n```text\noi, Bia\noi, Caio\n```\n\nPergunta de estado: quando `saudacao(\"Bia\")` roda, o que vale `nome` na primeira linha do corpo? Vale `\"Bia\"` — a chamada decide; o corpo só usa."
+    },
+    {
+      "id": "a-chamada-sem-valor",
+      "title": "A chamada sem valor",
+      "markdown": "A janela pede um valor. Chamar sem ele é como tocar a campainha sem dizer quem é:\n\n```python\nsaudacao()\n```\n\nIsso dá `TypeError`: a caixa espera um argumento e não recebeu nenhum. Certo é:\n\n```python\nsaudacao(\"Ana\")\n```\n\nO valor da chamada é o **argumento**; o nome no `def` é o **parâmetro**. Um preenche a janela, o outro a declara."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "o-valor-entra-pela-chamada",
+      "statement": "O valor da chamada atravessa a janela e vira o parâmetro dentro da caixa.",
+      "question": "O programa chama `saudacao(\"Bia\")`. O que a caixa mostra na tela?",
+      "options": [
+        "oi, Bia",
+        "oi, Ana",
+        "oi, \"Bia\"",
+        "Bia"
+      ],
+      "answerIndex": 0,
+      "feedback": "O valor \"Bia\" entra pela janela, vira o nome dentro da caixa e o print mostra oi, Bia.",
+      "sectionId": "o-nome-do-parametro",
+      "optionRationales": [
+        "\"Bia\" preenche a janela: dentro da caixa, nome vale \"Bia\", e o print junta oi, com ela.",
+        "Seria oi, Ana se a chamada fosse saudacao(\"Ana\") — a chamada decide o valor.",
+        "As aspas são do código, não do texto: na tela sai Bia sem aspas.",
+        "Sairia só Bia se o corpo ignorasse o \"oi, \" — mas o corpo mostra a saudação inteira."
+      ]
+    },
+    {
+      "id": "estado-do-parametro",
+      "statement": "Dentro da caixa, o parâmetro guarda o valor que a chamada enviou.",
+      "question": "Quando `saudacao(\"Caio\")` roda, o que vale `nome` dentro da caixa?",
+      "options": [
+        "Caio",
+        "oi, Caio",
+        "nada — o parâmetro não guarda valor",
+        "nome"
+      ],
+      "answerIndex": 0,
+      "feedback": "O parâmetro guarda exatamente o valor da chamada: com \"Caio\" na chamada, nome vale Caio dentro da caixa.",
+      "sectionId": "o-nome-do-parametro",
+      "optionRationales": [
+        "A janela recebe o valor cru da chamada — o parâmetro é o nome desse valor dentro da caixa.",
+        "\"oi, Caio\" é o que o print monta — o parâmetro em si guarda só Caio.",
+        "O parâmetro guarda valor sim: é o valor que atravessou a janela.",
+        "O nome do parâmetro é \"nome\"; o VALOR dele é Caio — os dois não se confundem."
+      ]
+    },
+    {
+      "id": "chamar-sem-valor-da-erro",
+      "statement": "Uma caixa com janela exige um valor na chamada.",
+      "question": "O que acontece com `saudacao()` sem nenhum valor entre os parênteses?",
+      "options": [
+        "Dá TypeError: a caixa espera um argumento.",
+        "Mostra oi, na tela.",
+        "Mostra nada, sem erro.",
+        "Usa o valor da chamada anterior."
+      ],
+      "answerIndex": 0,
+      "feedback": "A janela pede um valor: sem argumento, o Python para com TypeError antes de a caixa rodar.",
+      "sectionId": "a-chamada-sem-valor",
+      "optionRationales": [
+        "A caixa declara a janela no def; chamar sem valor viola o contrato e o Python para com TypeError.",
+        "A caixa nem chega a rodar: o erro acontece na chamada, antes do corpo.",
+        "Erro há — e é ele que avisa que falta o argumento.",
+        "Cada chamada é independente; valor nenhum sobra de chamadas anteriores."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "Parâmetros no tutorial oficial",
+      "url": "https://docs.python.org/3/tutorial/controlflow.html#defining-functions",
+      "description": "O tutorial mostra o parâmetro na definição e o argumento na chamada."
+    },
+    {
+      "title": "Mais sobre definição de funções",
+      "url": "https://docs.python.org/3/tutorial/controlflow.html#more-on-defining-functions",
+      "description": "A seção do tutorial sobre parâmetros, valores e formas de chamada."
+    }
+  ],
+  "challenges": [
+    "cumprimente-alguem"
+  ]
+}

@@ -1,0 +1,119 @@
+{
+  "schemaVersion": 1,
+  "slug": "devolver-em-vez-de-mostrar",
+  "title": "Devolver em vez de mostrar",
+  "summary": "O return entrega o valor para quem chamou, em vez de mostrá-lo na tela.",
+  "difficulty": 3,
+  "role": "regular",
+  "targetAtom": "node:Return",
+  "concepts": [
+    "devolver_com_return"
+  ],
+  "prerequisites": [
+    "a-janela-de-entrada",
+    "juntar-textos"
+  ],
+  "introduces": {
+    "productive": [
+      "node:Return"
+    ],
+    "receptive": []
+  },
+  "introducesTerms": [
+    "devolver"
+  ],
+  "theory": [
+    {
+      "id": "o-return-devolve",
+      "title": "O return devolve",
+      "markdown": "Até aqui a caixa **mostrava** o resultado na tela. Agora ela pode **devolver**: entregar o valor para quem chamou, como uma máquina de vendas que entrega o troco. A palavra é `return`:\n\n```python\ndef saudacao(nome):\n    return \"oi, \" + nome\n```\n\nQuem chama pode guardar o valor devolvido num nome:\n\n```python\ntexto = saudacao(\"Ana\")\nprint(texto)\n```\n\n```text\noi, Ana\n```\n\nO `print` saiu do corpo da caixa: a caixa **devolve**, e quem chamou decide o que fazer com o valor."
+    },
+    {
+      "id": "mostrar-e-devolver-sao-diferentes",
+      "title": "Mostrar e devolver são diferentes",
+      "markdown": "O `print` mostra na tela; o `return` entrega o valor para a chamada. Compare os dois lados:\n\n```python\n# com print: mostra e pronto\ndef um():\n    print(1)\n\n\n# com return: devolve para quem chamou\ndef dois():\n    return 2\n```\n\nPergunta de estado: uma caixa que só tem `return` mostra alguma coisa na tela quando é chamada? Não — a tela fica vazia. O valor foi **entregue**, não mostrado. Quem chamou é que pode mostrá-lo."
+    },
+    {
+      "id": "quem-chama-mostra",
+      "title": "Quem chama mostra",
+      "markdown": "Com o `return`, o controle de quando mostrar passa para quem chama:\n\n```python\nvalor = dois()\nprint(valor)\n```\n\n```text\n2\n```\n\nA caixa `dois` não imprimiu nada: quem imprimiu foi a chamada, na linha de fora. Se nada guardar o valor devolvido, ele simplesmente se perde — a caixa devolveu, e ninguém pegou."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "return-entrega-o-valor",
+      "statement": "O return entrega o valor da caixa para a chamada.",
+      "question": "O programa faz `texto = saudacao(\"Ana\")` e a caixa devolve \"oi, Ana\". O que vale `texto`?",
+      "options": [
+        "oi, Ana",
+        "oi, Ana seguido de uma quebra de linha",
+        "nada — a caixa não devolveu",
+        "a caixa inteira"
+      ],
+      "answerIndex": 0,
+      "feedback": "O valor devolvido pelo return é o valor que a chamada entrega — texto vale oi, Ana, sem quebra de linha.",
+      "sectionId": "o-return-devolve",
+      "optionRationales": [
+        "O return devolve exatamente o texto montado: oi, Ana — e quem chama pode guardá-lo num nome.",
+        "A quebra de linha é coisa do print na hora de mostrar; o valor devolvido não tem quebra.",
+        "A caixa devolveu sim: o return entrega o valor para a chamada.",
+        "A caixa devolve VALORES, nunca a si mesma — quem chama recebe o texto, não a caixa."
+      ]
+    },
+    {
+      "id": "sem-print-na-tela",
+      "statement": "Uma caixa que só devolve não mostra nada na tela.",
+      "question": "A caixa só tem `return 2`. Quando a chamada roda, o que aparece na tela?",
+      "options": [
+        "Nada — a tela fica vazia.",
+        "2",
+        "return 2",
+        "Um erro, porque falta o print."
+      ],
+      "answerIndex": 0,
+      "feedback": "O return entrega o valor; mostrar na tela é trabalho do print — e print não há nessa caixa.",
+      "sectionId": "mostrar-e-devolver-sao-diferentes",
+      "optionRationales": [
+        "Devolver não é mostrar: o valor sai pela chamada, não pela tela.",
+        "O 2 só apareceria se alguém o imprimisse — a caixa não imprime nada.",
+        "O return é código, não texto: ele nunca aparece na tela.",
+        "Não falta nada: mostrar na tela é opcional e cabe a quem chama."
+      ]
+    },
+    {
+      "id": "quem-chama-mostra-o-valor",
+      "statement": "Quem chama decide quando mostrar o valor devolvido.",
+      "question": "Como o valor devolvido por `dois()` aparece na tela?",
+      "options": [
+        "Guardando-o num nome e imprimindo esse nome.",
+        "Ele aparece sozinho quando a caixa termina.",
+        "Escrevendo print dentro da caixa dois.",
+        "Ele não tem como aparecer."
+      ],
+      "answerIndex": 0,
+      "feedback": "A chamada guarda o valor (por exemplo em valor = dois()) e um print de fora o mostra na tela.",
+      "sectionId": "quem-chama-mostra",
+      "optionRationales": [
+        "O print é de quem chama: guarda o valor devolvido e imprime — por exemplo, print(valor).",
+        "Devolver não imprime: o valor sai pela chamada, silencioso.",
+        "Um print dentro da caixa mostraria, mas aí a caixa estaria mostrando, não devolvendo.",
+        "Tem como: quem chama guarda o valor e o imprime — é exatamente o padrão desta aula."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "A instrução return na referência da linguagem",
+      "url": "https://docs.python.org/3/reference/simple_stmts.html#the-return-statement",
+      "description": "A regra oficial do return: o valor devolvido a quem chamou."
+    },
+    {
+      "title": "Definir funções no tutorial oficial",
+      "url": "https://docs.python.org/3/tutorial/controlflow.html#defining-functions",
+      "description": "O tutorial mostra o return como forma de a função devolver um valor."
+    }
+  ],
+  "challenges": [
+    "a-saudacao-devolvida"
+  ]
+}

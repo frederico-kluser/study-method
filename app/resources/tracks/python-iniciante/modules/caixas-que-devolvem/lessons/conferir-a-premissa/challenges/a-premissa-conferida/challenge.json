@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "slug": "a-premissa-conferida",
+  "title": "A premissa conferida",
+  "concept": "assert",
+  "difficulty": 4,
+  "language": "python",
+  "outputChannel": "retorno",
+  "statement": "# A premissa conferida\n\nEscreva a caixa `com_desconto` que recebe um preço, **confere a premissa** de que o preço é maior que 0 com `assert` e devolve o preço menos 2.\n\nO teste importa a sua caixa e confere o valor devolvido:\n\n```text\ncom_desconto(10)  ->  8\ncom_desconto(5)   ->  3\n```\n\nTroque o `pass` pelas duas linhas: a conferência e o `return`. O assert vem primeiro, como porteiro da caixa.",
+  "starterCode": "def com_desconto(preco):\n    pass\n",
+  "testsCode": "import unittest\n\nfrom solucao import com_desconto\n\n\nclass TestConferirAPremissa(unittest.TestCase):\n    def test_devolve_oito_para_dez(self):\n        \"\"\"a caixa devolve 8 quando recebe 10\"\"\"\n        self.assertEqual(com_desconto(10), 8)\n\n    def test_devolve_tres_para_cinco(self):\n        \"\"\"a caixa devolve 3 quando recebe 5\"\"\"\n        self.assertEqual(com_desconto(5), 3)\n",
+  "solutionCode": "def com_desconto(preco):\n    assert preco > 0\n    return preco - 2\n",
+  "expectedTestCount": 2,
+  "requirements": [
+    {
+      "id": "test_devolve_oito_para_dez",
+      "teste": "test_devolve_oito_para_dez",
+      "descricao": "a caixa devolve 8 quando recebe 10"
+    },
+    {
+      "id": "test_devolve_tres_para_cinco",
+      "teste": "test_devolve_tres_para_cinco",
+      "descricao": "a caixa devolve 3 quando recebe 5"
+    }
+  ]
+}

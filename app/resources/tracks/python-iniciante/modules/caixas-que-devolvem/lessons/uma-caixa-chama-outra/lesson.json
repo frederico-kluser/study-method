@@ -1,0 +1,116 @@
+{
+  "schemaVersion": 1,
+  "slug": "uma-caixa-chama-outra",
+  "title": "Uma caixa chama outra",
+  "summary": "O corpo de uma caixa pode chamar outra caixa e usar o valor que ela devolve.",
+  "difficulty": 4,
+  "role": "consolidation",
+  "targetAtom": "node:Call",
+  "concepts": [
+    "funcao_chama_funcao"
+  ],
+  "prerequisites": [
+    "devolver-em-vez-de-mostrar"
+  ],
+  "introduces": {
+    "productive": [
+      "node:Call"
+    ],
+    "receptive": []
+  },
+  "introducesTerms": [],
+  "theory": [
+    {
+      "id": "chamada-dentro-do-corpo",
+      "title": "Chamada dentro do corpo",
+      "markdown": "Uma caixa pode chamar outra — a chamada entra no corpo como qualquer ordem:\n\n```python\ndef dobro(x):\n    return x * 2\n\n\ndef dobro_mais_um(x):\n    return dobro(x) + 1\n\n\nprint(dobro_mais_um(3))\n```\n\n```text\n7\n```\n\nA caixa `dobro_mais_um` chama `dobro(x)` dentro da própria conta: pega o que a outra devolveu e soma 1. O teste chama só a de fora e confere o resultado."
+    },
+    {
+      "id": "o-valor-passa-de-mao-em-mao",
+      "title": "O valor passa de mão em mão",
+      "markdown": "Siga o caminho do valor: `dobro_mais_um(3)` chama `dobro(3)`, que devolve 6; o 6 volta para a conta e vira `6 + 1`, que devolve 7.\n\n```python\ndef metade(x):\n    return x // 2\n\n\ndef metade_e_um(x):\n    return metade(x) + 1\n```\n\n```python\nprint(metade_e_um(9))\n```\n\n```text\n5\n```\n\nPergunta de estado: no meio da conta, o que vale a chamada `metade(9)`? Vale 4 — o valor que a caixa de dentro devolveu, antes do + 1."
+    },
+    {
+      "id": "a-de-dentro-precisa-devolver",
+      "title": "A de dentro precisa devolver",
+      "markdown": "A caixa de fora só recebe o valor se a de dentro **devolver**. Se a de dentro imprimir em vez de devolver, ela devolve `None` — e a conta quebra com TypeError:\n\n```python\ndef metade(x):\n    print(x // 2)  # mostra, mas nao devolve\n\n\nprint(metade_e_um(9))\n```\n\nA caixa de fora recebe `None` e tenta somar 1 com ele — o Python para com `TypeError`. A regra da aula da virada vale aqui também: quem devolve para a outra é o `return`, não o `print`."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "chamada-dentro-da-conta",
+      "statement": "Uma caixa pode chamar outra dentro do próprio corpo.",
+      "question": "Com `dobro_mais_um(x)` valendo `return dobro(x) + 1`, o que a caixa devolve para 3?",
+      "options": [
+        "7",
+        "6",
+        "9",
+        "dobro(3)"
+      ],
+      "answerIndex": 0,
+      "feedback": "dobro(3) devolve 6, e a conta fica 6 + 1 — a caixa devolve 7.",
+      "sectionId": "chamada-dentro-do-corpo",
+      "optionRationales": [
+        "dobro(3) vale 6; 6 + 1 é 7 — e é isso que a caixa de fora devolve.",
+        "O 6 é o valor do meio, antes do + 1 — a caixa devolve depois da soma.",
+        "O 9 seria o triplo; a caixa devolve o dobro mais um, que é 7.",
+        "A chamada de dentro roda na hora: o que sobe é o valor dela, não o texto."
+      ]
+    },
+    {
+      "id": "valor-em-cadeia",
+      "statement": "O valor devolvido pela caixa de dentro alimenta a conta da de fora.",
+      "question": "No meio de `metade_e_um(9)`, quanto vale a chamada `metade(9)` antes do + 1?",
+      "options": [
+        "4",
+        "5",
+        "9",
+        "nada — a chamada não vale nada"
+      ],
+      "answerIndex": 0,
+      "feedback": "metade(9) devolve 9 // 2, que é 4 — é com esse 4 que o + 1 trabalha.",
+      "sectionId": "o-valor-passa-de-mao-em-mao",
+      "optionRationales": [
+        "9 // 2 é 4: a caixa de dentro devolve 4, e o + 1 transforma em 5.",
+        "O 5 é o resultado FINAL, depois do + 1 — aqui se pergunta o valor do meio.",
+        "O 9 é o que ENTRA na caixa de dentro, não o que ela devolve.",
+        "Chamada devolve valor sim — é exatamente o que o return da caixa de dentro entrega."
+      ]
+    },
+    {
+      "id": "a-de-dentro-nao-pode-imprimir",
+      "statement": "A caixa de dentro precisa devolver com return; imprimir não entrega valor.",
+      "question": "A caixa de dentro faz `print(x // 2)` no lugar do return. O que a de fora recebe?",
+      "options": [
+        "None — e a conta quebra com TypeError.",
+        "O número impresso.",
+        "O texto do print.",
+        "Nada — e a conta segue sem esse pedaço."
+      ],
+      "answerIndex": 0,
+      "feedback": "Quem imprime não devolve: a caixa de dentro devolve None, e somar None com 1 dá TypeError.",
+      "sectionId": "a-de-dentro-precisa-devolver",
+      "optionRationales": [
+        "Print mostra na tela e a caixa devolve None — a soma com 1 explode em TypeError.",
+        "O número impresso foi para a TELA, não para a chamada: a de fora não o recebe.",
+        "A de fora recebe o None devolvido, não o texto do print.",
+        "O pedaço não pode ser pulado: a conta usa o valor devolvido, e ele não existe."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "Definir funções no tutorial oficial",
+      "url": "https://docs.python.org/3/tutorial/controlflow.html#defining-functions",
+      "description": "O tutorial mostra funções que chamam outras funções na composição."
+    },
+    {
+      "title": "Composição de chamadas na referência",
+      "url": "https://docs.python.org/3/reference/expressions.html#calls",
+      "description": "A regra oficial das chamadas aninhadas em expressões."
+    }
+  ],
+  "challenges": [
+    "o-dobro-mais-um"
+  ]
+}

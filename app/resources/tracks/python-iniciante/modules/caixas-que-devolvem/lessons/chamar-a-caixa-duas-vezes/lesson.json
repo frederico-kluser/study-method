@@ -1,0 +1,116 @@
+{
+  "schemaVersion": 1,
+  "slug": "chamar-a-caixa-duas-vezes",
+  "title": "Chamar a caixa duas vezes",
+  "summary": "Cada chamada roda o corpo da caixa de novo — duas chamadas, duas vezes na tela.",
+  "difficulty": 2,
+  "role": "consolidation",
+  "targetAtom": "node:Call",
+  "concepts": [
+    "chamar_a_caixa"
+  ],
+  "prerequisites": [
+    "escrever-a-primeira-caixa"
+  ],
+  "introduces": {
+    "productive": [
+      "node:Call"
+    ],
+    "receptive": []
+  },
+  "introducesTerms": [],
+  "theory": [
+    {
+      "id": "definir-nao-e-chamar",
+      "title": "Definir não é chamar",
+      "markdown": "Você definiu uma caixa na aula passada — mas definir não roda nada. Para o corpo rodar, escreva uma **chamada**: o nome da caixa com os parênteses, na margem, numa linha própria:\n\n```python\ndef bom_dia():\n    print(\"bom dia\")\n\n\nbom_dia()\n```\n\n```text\nbom dia\n```\n\nA chamada `bom_dia()` é uma ordem como qualquer outra: o Python a encontra, roda o corpo da caixa e segue para a próxima linha. Sem a chamada, a tela fica vazia."
+    },
+    {
+      "id": "cada-chamada-roda-o-corpo",
+      "title": "Cada chamada roda o corpo",
+      "markdown": "Se a chamada aparece duas vezes, o corpo roda duas vezes. Cada chamada é uma execução completa, do começo ao fim do corpo:\n\n```python\nbom_dia()\nbom_dia()\n```\n\n```text\nbom dia\nbom dia\n```\n\nPergunta de estado: depois da primeira chamada, antes da segunda começar, o que acontece na tela? Já apareceu uma linha — e a segunda chamada roda o corpo inteiro de novo, acrescentando outra."
+    },
+    {
+      "id": "o-nome-sozinho-nao-chama",
+      "title": "O nome sozinho não chama",
+      "markdown": "Esquecer os parênteses não dá erro — e é pior, porque nada roda:\n\n```python\nbom_dia\n```\n\nA linha `bom_dia` sem os parênteses só cita o nome; a caixa não é chamada, o corpo não roda e a tela fica vazia. Certo:\n\n```python\nbom_dia()\n```\n\n```text\nbom dia\n```\n\nOs parênteses são o que transforma o nome numa chamada."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "chamada-roda-o-corpo",
+      "statement": "A chamada é o nome da caixa com parênteses, e ela roda o corpo.",
+      "question": "O que a linha `bom_dia()` faz?",
+      "options": [
+        "Roda o corpo da caixa bom_dia.",
+        "Guarda a caixa na memória.",
+        "Abre uma caixa nova chamada bom_dia.",
+        "Mostra o nome bom_dia na tela."
+      ],
+      "answerIndex": 0,
+      "feedback": "A chamada roda o corpo da caixa — é isso que faz o print dela aparecer na tela.",
+      "sectionId": "definir-nao-e-chamar",
+      "optionRationales": [
+        "Chamar é executar o corpo: cada chamada roda as ordens recuadas da caixa.",
+        "Guardar a caixa é o que o def faz — a chamada usa a caixa já guardada.",
+        "A caixa já existe; a chamada não define nada, ela executa.",
+        "A tela mostra o que o corpo imprime, nunca o nome da caixa."
+      ]
+    },
+    {
+      "id": "duas-chamadas-duas-linhas",
+      "statement": "Cada chamada roda o corpo inteiro de novo.",
+      "question": "Com `bom_dia()` escrito duas vezes, quantas vezes o print do corpo roda?",
+      "options": [
+        "Duas vezes.",
+        "Uma vez.",
+        "Nenhuma — a segunda apaga a primeira.",
+        "O Python decide na hora."
+      ],
+      "answerIndex": 0,
+      "feedback": "Duas chamadas são duas execuções completas do corpo: o print roda duas vezes, e saem duas linhas.",
+      "sectionId": "cada-chamada-roda-o-corpo",
+      "optionRationales": [
+        "Cada chamada é uma execução do corpo do início ao fim — duas chamadas, duas execuções.",
+        "Seria uma vez só se a segunda chamada não existisse.",
+        "As linhas se somam na tela, uma embaixo da outra — nada é apagado.",
+        "O Python não decide nada: a regra é fixa, uma chamada por linha escrita."
+      ]
+    },
+    {
+      "id": "parenteses-transformam-em-chamada",
+      "statement": "O nome sem os parênteses não chama a caixa.",
+      "question": "O que acontece com a linha `bom_dia` sem os parênteses?",
+      "options": [
+        "Nada roda — a linha só cita o nome da caixa.",
+        "Mostra bom dia na tela.",
+        "Dá um erro de sintaxe.",
+        "Mostra o nome bom_dia na tela."
+      ],
+      "answerIndex": 0,
+      "feedback": "Sem os parênteses não há chamada: a linha é só o nome, o corpo não roda e nada aparece na tela.",
+      "sectionId": "o-nome-sozinho-nao-chama",
+      "optionRationales": [
+        "O nome sozinho é uma referência, não uma ordem: o corpo fica intocado.",
+        "O print só roda dentro de uma chamada — sem os parênteses, ele não roda.",
+        "A linha é válida para o Python — o problema é que ela não faz nada.",
+        "A tela nunca mostra nomes: ela mostra o que os prints imprimem."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "Definir funções no tutorial oficial",
+      "url": "https://docs.python.org/3/tutorial/controlflow.html#defining-functions",
+      "description": "O tutorial apresenta a definição e a chamada de função lado a lado."
+    },
+    {
+      "title": "Chamadas na referência da linguagem",
+      "url": "https://docs.python.org/3/reference/expressions.html#calls",
+      "description": "A regra oficial de uma chamada: o nome, os parênteses e os valores."
+    }
+  ],
+  "challenges": [
+    "duas-chamadas"
+  ]
+}

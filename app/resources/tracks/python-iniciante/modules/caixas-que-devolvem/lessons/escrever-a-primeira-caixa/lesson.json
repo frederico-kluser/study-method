@@ -1,0 +1,130 @@
+{
+  "schemaVersion": 1,
+  "slug": "escrever-a-primeira-caixa",
+  "title": "Escrever a primeira caixa",
+  "summary": "Você junta ordens numa caixa com nome, e ela só roda quando é chamada.",
+  "difficulty": 2,
+  "role": "regular",
+  "targetAtom": "node:FunctionDef",
+  "concepts": [
+    "definir_caixa"
+  ],
+  "prerequisites": [
+    "se",
+    "a-primeira-linha"
+  ],
+  "introduces": {
+    "productive": [
+      "node:FunctionDef"
+    ],
+    "receptive": []
+  },
+  "introducesTerms": [
+    "função",
+    "chamada"
+  ],
+  "theory": [
+    {
+      "id": "a-caixa-que-guarda-ordens",
+      "title": "A caixa que guarda ordens",
+      "markdown": "Programas maiores juntam ordens em **caixas** com nome. Uma caixa guarda ordens que só rodam quando alguém a chama. Escrever uma caixa é assim:\n\n```python\ndef bom_dia():\n    print(\"bom dia\")\n```\n\nA linha `def bom_dia():` abre a caixa: `def` quer dizer *definir*, `bom_dia` é o nome e os parênteses vazios dizem que ela não recebe nada. Os dois-pontos anunciam o que vem: o **corpo** — as linhas recuadas que a caixa guarda, como no bloco do `se`."
+    },
+    {
+      "id": "a-caixa-nao-roda-sozinha",
+      "title": "A caixa não roda sozinha",
+      "markdown": "Definir ainda não é rodar. Este arquivo define a caixa e não chama ninguém:\n\n```python\ndef bom_dia():\n    print(\"bom dia\")\n```\n\nRode: a tela fica **vazia**. O Python só guardou as ordens — quem as executa é uma **chamada**, e chamada ainda não existe aqui. Uma caixa pode guardar mais de uma ordem:\n\n```python\ndef acordar():\n    print(\"bom dia\")\n    print(\"vamos la\")\n```\n\nPergunta de estado: depois de rodar o arquivo, o que `acordar` mostrou? Nada — definir a caixa não roda o corpo; o corpo roda quando a caixa é chamada."
+    },
+    {
+      "id": "quem-chama-a-caixa",
+      "title": "Quem chama a caixa",
+      "markdown": "Quem chama a caixa é o **teste** do desafio. Ele importa a caixa do seu arquivo e a chama dentro de um bloco que captura a tela:\n\n```python\nfrom solucao import bom_dia\n```\n\n```python\nbom_dia()\n```\n\nA linha `bom_dia()` é a **chamada**: ela roda o corpo da caixa, e o `print` dela aparece na tela. Então o contrato desta aula é: escreva a caixa `bom_dia` que, quando chamada, mostra `bom dia`."
+    },
+    {
+      "id": "o-corpo-e-recuado",
+      "title": "O corpo é recuado",
+      "markdown": "A linha do corpo começa **recuada** em relação ao `def`. Sem o recuo, o Python não sabe que a linha pertence à caixa:\n\n```text\ndef bom_dia():\nprint(\"bom dia\")\n```\n\nIsso dá `IndentationError` antes de rodar. Certo é:\n\n```python\ndef bom_dia():\n    print(\"bom dia\")\n```\n\nO recuo é o mesmo do módulo 2: linha que pertence a outra vem recuada; linha na margem não pertence a ninguém."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "como-abre-a-caixa",
+      "statement": "A caixa se abre com def, o nome, os parênteses e os dois-pontos.",
+      "question": "Qual destas linhas abre uma caixa chamada bom_dia?",
+      "options": [
+        "def bom_dia():",
+        "bom_dia()",
+        "print(\"bom dia\")",
+        "from solucao import bom_dia"
+      ],
+      "answerIndex": 0,
+      "feedback": "def bom_dia(): é a linha que define a caixa: def, o nome, os parênteses e os dois-pontos.",
+      "sectionId": "a-caixa-que-guarda-ordens",
+      "optionRationales": [
+        "É exatamente a forma de abrir uma caixa: def, nome, parênteses e dois-pontos.",
+        "bom_dia() é a chamada — ela roda a caixa, não a cria.",
+        "print mostra um texto; sozinho, ele não cria caixa nenhuma.",
+        "Esse é o import do teste, que busca a caixa do seu arquivo — não é a definição."
+      ]
+    },
+    {
+      "id": "definir-nao-roda",
+      "statement": "Definir a caixa não roda o corpo; só a chamada roda.",
+      "question": "O arquivo só define a caixa, sem nenhuma chamada. O que a tela mostra?",
+      "options": [
+        "Nada — a tela fica vazia.",
+        "bom dia",
+        "IndentationError",
+        "A caixa aberta na tela"
+      ],
+      "answerIndex": 0,
+      "feedback": "Definir guarda as ordens; sem chamada, nenhuma delas roda e a tela fica vazia.",
+      "sectionId": "a-caixa-nao-roda-sozinha",
+      "optionRationales": [
+        "O def só guarda o corpo; sem chamada nada roda, e definir não mostra nada na tela.",
+        "Seria bom dia se houvesse uma chamada — só o def não executa o print.",
+        "O arquivo está bem formado: um def com corpo recuado não é erro.",
+        "A tela mostra texto, nunca a caixa em si."
+      ]
+    },
+    {
+      "id": "recuo-do-corpo",
+      "statement": "A linha do corpo vem recuada; sem o recuo, dá IndentationError.",
+      "question": "O que acontece quando a linha do corpo não está recuada?",
+      "options": [
+        "O programa para com IndentationError antes de rodar.",
+        "Roda e mostra bom dia.",
+        "Mostra só o nome da caixa.",
+        "O Python recua a linha sozinho."
+      ],
+      "answerIndex": 0,
+      "feedback": "Sem o recuo o Python não sabe que a linha pertence à caixa, e o programa para antes de rodar.",
+      "sectionId": "o-corpo-e-recuado",
+      "optionRationales": [
+        "O recuo é o que liga a linha ao def; sem ele o Python reclama antes de executar.",
+        "O programa não chega a rodar: o IndentationError acontece na leitura do arquivo.",
+        "O nome da caixa nunca aparece na tela, recuado ou não.",
+        "O Python não conserta arquivo: ele aponta o erro e para."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "Definir funções no tutorial oficial",
+      "url": "https://docs.python.org/3/tutorial/controlflow.html#defining-functions",
+      "description": "A seção do tutorial que apresenta o def, o corpo e a chamada de uma função."
+    },
+    {
+      "title": "A definição de função na referência da linguagem",
+      "url": "https://docs.python.org/3/reference/compound_stmts.html#function-definitions",
+      "description": "A regra oficial da instrução def, do cabeçalho e do corpo."
+    },
+    {
+      "title": "Bloco e recuo no tutorial",
+      "url": "https://docs.python.org/3/tutorial/controlflow.html",
+      "description": "O capítulo de controle de fluxo, onde o recuo do bloco é apresentado."
+    }
+  ],
+  "challenges": [
+    "a-primeira-caixa"
+  ]
+}

@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "slug": "pode-ou-nao-pode",
+  "title": "Pode ou não pode",
+  "concept": "return_por_ramo",
+  "difficulty": 3,
+  "language": "python",
+  "outputChannel": "retorno",
+  "statement": "# Pode ou não pode\n\nEscreva a caixa `categoria` que recebe uma idade e devolve `pode` quando ela é maior ou igual a 18 e `nao pode` caso contrário.\n\nO teste importa a sua caixa e confere o valor devolvido em três idades:\n\n```text\n18  ->  pode\n17  ->  nao pode\n40  ->  pode\n```\n\nUse um `if` com um `return` em cada caminho — ou o return cedo, sem o else.",
+  "starterCode": "def categoria(idade):\n    pass\n",
+  "testsCode": "import unittest\n\nfrom solucao import categoria\n\n\nclass TestDevolverCedo(unittest.TestCase):\n    def test_devolve_pode_para_dezoito(self):\n        \"\"\"a caixa devolve pode para a idade 18\"\"\"\n        self.assertEqual(categoria(18), \"pode\")\n\n    def test_devolve_nao_pode_para_dezessete(self):\n        \"\"\"a caixa devolve nao pode para a idade 17\"\"\"\n        self.assertEqual(categoria(17), \"nao pode\")\n\n    def test_devolve_pode_para_quarenta(self):\n        \"\"\"a caixa devolve pode para a idade 40\"\"\"\n        self.assertEqual(categoria(40), \"pode\")\n",
+  "solutionCode": "def categoria(idade):\n    if idade >= 18:\n        return \"pode\"\n    else:\n        return \"nao pode\"\n",
+  "expectedTestCount": 3,
+  "requirements": [
+    {
+      "id": "test_devolve_pode_para_dezoito",
+      "teste": "test_devolve_pode_para_dezoito",
+      "descricao": "a caixa devolve pode para a idade 18"
+    },
+    {
+      "id": "test_devolve_nao_pode_para_dezessete",
+      "teste": "test_devolve_nao_pode_para_dezessete",
+      "descricao": "a caixa devolve nao pode para a idade 17"
+    },
+    {
+      "id": "test_devolve_pode_para_quarenta",
+      "teste": "test_devolve_pode_para_quarenta",
+      "descricao": "a caixa devolve pode para a idade 40"
+    }
+  ]
+}

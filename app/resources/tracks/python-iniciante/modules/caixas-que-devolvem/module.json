@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "slug": "caixas-que-devolvem",
+  "title": "Caixas que devolvem",
+  "order": 4,
+  "lessons": [
+    "escrever-a-primeira-caixa",
+    "chamar-a-caixa-duas-vezes",
+    "a-janela-de-entrada",
+    "devolver-em-vez-de-mostrar",
+    "imprimir-nao-e-devolver",
+    "a-caixa-que-nao-devolve-nada",
+    "mais-de-uma-janela",
+    "devolver-cedo",
+    "devolver-verdadeiro-ou-falso",
+    "o-nome-so-vive-dentro",
+    "uma-caixa-chama-outra",
+    "a-caixa-sem-corpo",
+    "documentar-a-caixa",
+    "conferir-a-premissa"
+  ]
+}

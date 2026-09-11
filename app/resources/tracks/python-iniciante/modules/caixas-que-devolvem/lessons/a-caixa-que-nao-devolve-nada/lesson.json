@@ -1,0 +1,117 @@
+{
+  "schemaVersion": 1,
+  "slug": "a-caixa-que-nao-devolve-nada",
+  "title": "A caixa que não devolve nada",
+  "summary": "Caixa sem return devolve None — e return None devolve nada de propósito.",
+  "difficulty": 3,
+  "role": "consolidation",
+  "targetAtom": "node:NoneLiteral",
+  "concepts": [
+    "return_sem_valor"
+  ],
+  "prerequisites": [
+    "imprimir-nao-e-devolver",
+    "o-nada"
+  ],
+  "introduces": {
+    "productive": [
+      "node:NoneLiteral"
+    ],
+    "receptive": []
+  },
+  "introducesTerms": [],
+  "theory": [
+    {
+      "id": "o-none-que-sobe",
+      "title": "O None que sobe",
+      "markdown": "Toda caixa devolve alguma coisa. A caixa que só mostra, sem `return`, devolve o **None** — o nada da aula do módulo 1:\n\n```python\ndef mostrar(nome):\n    print(\"oi, \" + nome)\n\n\nprint(mostrar(\"Ana\"))\n```\n\n```text\noi, Ana\nNone\n```\n\nO corpo imprime `oi, Ana`; e a caixa inteira devolve `None` — aparece na tela quando quem chama imprime o que ela devolveu. Devolver nada é devolver `None`."
+    },
+    {
+      "id": "return-none-explicito",
+      "title": "return None explícito",
+      "markdown": "Quem quiser devolver nada de propósito escreve `return None` na última linha:\n\n```python\ndef mostrar(nome):\n    print(\"oi, \" + nome)\n    return None\n```\n\nÉ a mesma devolução da caixa sem return: o `return` só deixa claro o que já aconteceria.\n\nPergunta de estado: depois da última linha, o que a caixa devolveu? `None` — o mesmo de uma caixa que termina sem return nenhum."
+    },
+    {
+      "id": "o-teste-confere-o-none",
+      "title": "O teste confere o None",
+      "markdown": "O teste usa uma conferência própria para o nada:\n\n```python\nfrom solucao import mostrar\n```\n\n```python\nself.assertIsNone(mostrar(\"Bia\"))\n```\n\nA linha `assertIsNone` pergunta: \"a caixa devolveu None mesmo?\". Se a caixa devolver qualquer outra coisa — um texto, um número — o teste reprova. Na tela, a chamada continua mostrando o `oi, Bia` do corpo."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "caixa-sem-return-devolve-none",
+      "statement": "Uma caixa que termina sem return devolve None.",
+      "question": "O programa é `print(mostrar(\"Ana\"))` e a caixa só tem o print no corpo. O que a tela mostra?",
+      "options": [
+        "oi, Ana e depois None",
+        "só oi, Ana",
+        "só None",
+        "um erro, porque faltou o return"
+      ],
+      "answerIndex": 0,
+      "feedback": "O corpo imprime oi, Ana; e a caixa inteira devolve None, que o print de fora também mostra.",
+      "sectionId": "o-none-que-sobe",
+      "optionRationales": [
+        "O print do corpo mostra oi, Ana; o print de fora mostra o None que a caixa devolveu — os dois aparecem.",
+        "O oi, Ana sai do corpo, mas o print de fora ainda imprime o None devolvido.",
+        "Só None sairia se o corpo não imprimisse — o corpo imprime oi, Ana primeiro.",
+        "Não é erro: caixa sem return é perfeita e devolve None, que é um valor como outro."
+      ]
+    },
+    {
+      "id": "return-none-e-o-mesmo",
+      "statement": "return None devolve o mesmo nada da caixa sem return.",
+      "question": "O que `return None` na última linha da caixa devolve?",
+      "options": [
+        "O mesmo None da caixa sem return.",
+        "Nada — nem None.",
+        "O último valor impresso.",
+        "Um erro de sintaxe."
+      ],
+      "answerIndex": 0,
+      "feedback": "return None devolve exatamente o mesmo None que a caixa devolveria sem return nenhum — só que escrito.",
+      "sectionId": "return-none-explicito",
+      "optionRationales": [
+        "None é um valor de verdade: escrevê-lo no return é o mesmo nada, agora explícito.",
+        "Devolver nada É devolver None — as duas frases dizem a mesma coisa.",
+        "O print não devolve nada para a caixa: o que a caixa devolve é o None do fim.",
+        "return None é válido e comum — não é erro nenhum."
+      ]
+    },
+    {
+      "id": "assertisnone-confere-o-nada",
+      "statement": "O assertIsNone confere que a caixa devolveu None.",
+      "question": "O teste roda `assertIsNone(mostrar(\"Bia\"))`. O que ele confere?",
+      "options": [
+        "Que a caixa devolveu None.",
+        "Que a caixa mostrou Bia na tela.",
+        "Que a caixa não rodou.",
+        "Que o programa inteiro não imprime nada."
+      ],
+      "answerIndex": 0,
+      "feedback": "assertIsNone pergunta só uma coisa: o valor devolvido é None? O mostrar da tela é outra conferência, de outro teste.",
+      "sectionId": "o-teste-confere-o-none",
+      "optionRationales": [
+        "O nome do teste diz tudo: assert Is None — confere que o valor devolvido é o None.",
+        "Mostrar Bia na tela é o trabalho do corpo; a conferência aqui é sobre o devolvido.",
+        "A caixa roda sim — a conferência acontece sobre o valor que ela devolveu.",
+        "O assertIsNone olha uma chamada, não o programa inteiro — e não fala de tela."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "None — a constante oficial",
+      "url": "https://docs.python.org/3/library/constants.html#None",
+      "description": "A página oficial da constante None, o valor que significa a ausência de valor."
+    },
+    {
+      "title": "A instrução return na referência da linguagem",
+      "url": "https://docs.python.org/3/reference/simple_stmts.html#the-return-statement",
+      "description": "A regra oficial do return, inclusive o return sem valor."
+    }
+  ],
+  "challenges": [
+    "a-caixa-que-nao-responde"
+  ]
+}

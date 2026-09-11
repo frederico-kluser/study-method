@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "slug": "a-caixa-em-branco",
+  "title": "A caixa em branco",
+  "concept": "esqueleto_com_pass",
+  "difficulty": 4,
+  "language": "python",
+  "outputChannel": "retorno",
+  "statement": "# A caixa em branco\n\nEscreva a caixa `proximo_passo` que **ainda não faz nada**: o corpo dela é só `pass`.\n\nO teste importa a sua caixa e a chama, conferindo que ela não devolve nada:\n\n```text\nproximo_passo()  ->  None\n```\n\nEscreva o `def` com o corpo `pass` no lugar do comentário. A caixa roda sem fazer nada — e o corpo chega numa aula futura.",
+  "starterCode": "# escreva aqui a caixa proximo_passo, vazia, com pass no corpo\n",
+  "testsCode": "import unittest\n\nfrom solucao import proximo_passo\n\n\nclass TestACaixaSemCorpo(unittest.TestCase):\n    def test_nao_faz_nada_por_enquanto(self):\n        \"\"\"a caixa proximo_passo nao devolve nada\"\"\"\n        self.assertIsNone(proximo_passo())\n",
+  "solutionCode": "def proximo_passo():\n    pass\n",
+  "expectedTestCount": 1,
+  "requirements": [
+    {
+      "id": "test_nao_faz_nada_por_enquanto",
+      "teste": "test_nao_faz_nada_por_enquanto",
+      "descricao": "a caixa proximo_passo nao devolve nada"
+    }
+  ]
+}

@@ -1,0 +1,117 @@
+{
+  "schemaVersion": 1,
+  "slug": "devolver-cedo",
+  "title": "Devolver cedo",
+  "summary": "Cada caminho da caixa pode devolver o seu valor com um return por ramo.",
+  "difficulty": 3,
+  "role": "consolidation",
+  "targetAtom": "node:Return",
+  "concepts": [
+    "return_por_ramo"
+  ],
+  "prerequisites": [
+    "devolver-em-vez-de-mostrar",
+    "se-senao"
+  ],
+  "introduces": {
+    "productive": [
+      "node:Return"
+    ],
+    "receptive": []
+  },
+  "introducesTerms": [],
+  "theory": [
+    {
+      "id": "cada-ramo-devolve",
+      "title": "Cada ramo devolve",
+      "markdown": "A caixa pode escolher o que devolver: um `return` dentro de cada ramo do `se`.\n\n```python\ndef resposta(idade):\n    if idade >= 18:\n        return \"pode\"\n    else:\n        return \"nao pode\"\n```\n\n```python\nprint(resposta(20))\nprint(resposta(12))\n```\n\n```text\npode\nnao pode\n```\n\nCada caminho tem o seu `return`. O teste chama a caixa e confere o valor de cada ramo."
+    },
+    {
+      "id": "o-return-para-a-caixa",
+      "title": "O return para a caixa",
+      "markdown": "O `return` não só devolve: ele **para** a caixa naquela linha. Por isso o `else` pode sumir — se a condição for falsa, o return de baixo resolve:\n\n```python\ndef resposta(idade):\n    if idade >= 18:\n        return \"pode\"\n    return \"nao pode\"\n```\n\nPergunta de estado: com idade 20, quais linhas rodam? O `if` confere, o primeiro `return` devolve — e o resto do corpo nem chega a rodar."
+    },
+    {
+      "id": "o-caminho-sem-return",
+      "title": "O caminho sem return",
+      "markdown": "Se um caminho não devolve nada, a caixa devolve `None` nele — o nada da aula anterior:\n\n```python\ndef resposta(idade):\n    if idade >= 18:\n        return \"pode\"\n```\n\n```python\nprint(resposta(12))\n```\n\n```text\nNone\n```\n\nAqui só o ramo verdadeiro devolve; o outro caminho termina sem return e devolve `None`. Cuidado: todo caminho que a caixa pode seguir precisa devolver alguma coisa — ou devolver `None` de propósito."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "cada-ramo-tem-o-seu-return",
+      "statement": "Cada caminho do se pode terminar com o seu próprio return.",
+      "question": "A caixa tem `return \"pode\"` no if e `return \"nao pode\"` no else. O que ela devolve para idade 20?",
+      "options": [
+        "pode",
+        "nao pode",
+        "pode e nao pode",
+        "None"
+      ],
+      "answerIndex": 0,
+      "feedback": "Com 20, a condição é verdadeira, o ramo do if roda e devolve pode — o outro ramo nem roda.",
+      "sectionId": "cada-ramo-devolve",
+      "optionRationales": [
+        "A condição idade >= 18 é verdadeira para 20; o return do if é o único que roda.",
+        "Seria nao pode para uma idade menor que 18 — 20 passa na condição.",
+        "Um return por chamada: o primeiro que roda devolve e para a caixa.",
+        "None só apareceria se nenhum return rodasse — aqui o do if roda."
+      ]
+    },
+    {
+      "id": "o-return-para-a-caixa-antes",
+      "statement": "O return devolve e para a caixa na mesma linha.",
+      "question": "Com `if idade >= 18: return \"pode\"` e depois `return \"nao pode\"` sem else, o que devolve a caixa com idade 25?",
+      "options": [
+        "pode",
+        "nao pode",
+        "pode e nao pode",
+        "None"
+      ],
+      "answerIndex": 0,
+      "feedback": "Com 25 a condição é verdadeira: o primeiro return devolve pode e para a caixa antes de a última linha rodar.",
+      "sectionId": "o-return-para-a-caixa",
+      "optionRationales": [
+        "O primeiro return verdadeiro devolve e encerra: a última linha fica para quem não passou na condição.",
+        "Seria nao pode para uma idade menor que 18 — 25 passa no if.",
+        "Dois returns na mesma chamada é impossível: o primeiro que roda encerra a caixa.",
+        "None não aparece: sempre existe um return rodando para qualquer idade."
+      ]
+    },
+    {
+      "id": "caminho-sem-return-devolve-none",
+      "statement": "Um caminho sem return devolve None.",
+      "question": "A caixa só tem o return dentro do if. O que ela devolve quando a condição é falsa?",
+      "options": [
+        "None",
+        "nao pode",
+        "falso",
+        "um erro, porque faltou o else"
+      ],
+      "answerIndex": 0,
+      "feedback": "Sem return no caminho falso, a caixa chega ao fim sem devolver nada — e devolve None.",
+      "sectionId": "o-caminho-sem-return",
+      "optionRationales": [
+        "Caixa que termina sem return devolve None — é o mesmo nada da aula anterior.",
+        "Seria nao pode se existisse um return para o caminho falso — ele não existe.",
+        "falso é um valor booleano; aqui a caixa devolve o nada, não um booleano.",
+        "Não é erro: o código roda, só que o caminho falso devolve None."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "A instrução return na referência da linguagem",
+      "url": "https://docs.python.org/3/reference/simple_stmts.html#the-return-statement",
+      "description": "A regra oficial do return: devolver o valor e encerrar a função."
+    },
+    {
+      "title": "O if no tutorial oficial",
+      "url": "https://docs.python.org/3/tutorial/controlflow.html#if-statements",
+      "description": "A seção do tutorial sobre o if e os blocos que ele escolhe."
+    }
+  ],
+  "challenges": [
+    "pode-ou-nao-pode"
+  ]
+}

@@ -1,0 +1,116 @@
+{
+  "schemaVersion": 1,
+  "slug": "mais-de-uma-janela",
+  "title": "Mais de uma janela",
+  "summary": "A caixa pode receber dois valores, separados por vírgula, na ordem da chamada.",
+  "difficulty": 3,
+  "role": "consolidation",
+  "targetAtom": "node:arg",
+  "concepts": [
+    "dois_parametros"
+  ],
+  "prerequisites": [
+    "a-janela-de-entrada"
+  ],
+  "introduces": {
+    "productive": [
+      "node:arg"
+    ],
+    "receptive": []
+  },
+  "introducesTerms": [],
+  "theory": [
+    {
+      "id": "duas-janelas",
+      "title": "Duas janelas",
+      "markdown": "Uma caixa pode ter mais de uma janela: é só escrever os parâmetros separados por vírgula no `def`.\n\n```python\ndef soma(a, b):\n    return a + b\n\n\nprint(soma(2, 3))\n```\n\n```text\n5\n```\n\nA caixa `soma` tem duas janelas, `a` e `b`; a chamada entrega dois valores, `2` e `3`. O corpo usa os dois e devolve a soma."
+    },
+    {
+      "id": "a-ordem-das-janelas",
+      "title": "A ordem das janelas",
+      "markdown": "A ordem importa: o primeiro valor da chamada entra na primeira janela, o segundo na segunda.\n\n```python\ndef juntar(primeiro, segundo):\n    return primeiro + \" e \" + segundo\n\n\nprint(juntar(\"ana\", \"bia\"))\nprint(juntar(\"bia\", \"ana\"))\n```\n\n```text\nana e bia\nbia e ana\n```\n\nPergunta de estado: quando a segunda chamada roda, o que vale `primeiro` dentro da caixa? Vale `\"bia\"` — o primeiro valor da chamada, sempre."
+    },
+    {
+      "id": "contar-os-valores",
+      "title": "Contar os valores",
+      "markdown": "Duas janelas pedem dois valores. Entregar um só é como o módulo 2: dá `TypeError`, porque falta um argumento:\n\n```python\nsoma(2)\n```\n\nO Python avisa que faltou o segundo valor. Certo é:\n\n```python\nsoma(2, 3)\n```\n\nA conta é sempre: uma janela, um valor; duas janelas, dois valores; na ordem em que foram declaradas."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "soma-das-duas-janelas",
+      "statement": "Com duas janelas, a chamada entrega dois valores e o corpo usa os dois.",
+      "question": "A caixa `soma(a, b)` devolve `a + b`. O que `soma(2, 3)` devolve?",
+      "options": [
+        "5",
+        "23",
+        "2",
+        "3"
+      ],
+      "answerIndex": 0,
+      "feedback": "a recebe 2, b recebe 3, e o corpo devolve a + b — 2 + 3, que é 5.",
+      "sectionId": "duas-janelas",
+      "optionRationales": [
+        "Os valores entram nas janelas na ordem: a vale 2, b vale 3, e a soma é 5.",
+        "Seria 23 se a caixa juntasse textos — aqui ela soma números.",
+        "Seria 2 se b não existisse; ela existe e vale 3.",
+        "Seria 3 se a não existisse; ela existe e vale 2."
+      ]
+    },
+    {
+      "id": "ordem-dos-argumentos",
+      "statement": "O primeiro valor da chamada entra na primeira janela declarada.",
+      "question": "Quando `juntar(\"bia\", \"ana\")` roda, o que vale `primeiro` dentro da caixa?",
+      "options": [
+        "bia",
+        "ana",
+        "bia e ana",
+        "nada — a ordem não importa"
+      ],
+      "answerIndex": 0,
+      "feedback": "O primeiro valor da chamada é bia, então primeiro vale bia — e o texto devolvido é bia e ana.",
+      "sectionId": "a-ordem-das-janelas",
+      "optionRationales": [
+        "A ordem é a da declaração: primeiro valor da chamada, primeira janela — bia entra em primeiro.",
+        "ana entraria em primeiro se a chamada fosse juntar(\"ana\", \"bia\").",
+        "O parâmetro primeiro guarda UM valor, não os dois juntos.",
+        "A ordem importa sim — troque os valores e o texto devolvido troca junto."
+      ]
+    },
+    {
+      "id": "faltou-um-valor",
+      "statement": "Duas janelas exigem dois valores na chamada.",
+      "question": "O que acontece com `soma(2)`, com apenas um valor?",
+      "options": [
+        "Dá TypeError, porque falta um argumento.",
+        "Soma com zero.",
+        "Devolve 2 sem erro.",
+        "Usa o valor da chamada anterior."
+      ],
+      "answerIndex": 0,
+      "feedback": "A caixa declara duas janelas; entregar um valor só deixa a segunda vazia, e o Python para com TypeError.",
+      "sectionId": "contar-os-valores",
+      "optionRationales": [
+        "O contrato é um valor por janela: falta o segundo e o Python avisa antes de rodar o corpo.",
+        "A caixa não inventa zero: ela exige os valores que declarou.",
+        "Sem o segundo valor a caixa nem roda — o erro acontece na chamada.",
+        "Cada chamada é independente: nada sobra de chamadas anteriores."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "Mais sobre definição de funções",
+      "url": "https://docs.python.org/3/tutorial/controlflow.html#more-on-defining-functions",
+      "description": "A seção do tutorial sobre a assinatura: parâmetros, ordem e valores."
+    },
+    {
+      "title": "Parâmetros na referência da linguagem",
+      "url": "https://docs.python.org/3/reference/compound_stmts.html#function-definitions",
+      "description": "A regra oficial da lista de parâmetros do def."
+    }
+  ],
+  "challenges": [
+    "monte-a-soma"
+  ]
+}

@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "slug": "a-primeira-caixa",
+  "title": "A primeira caixa",
+  "concept": "definir_caixa",
+  "difficulty": 2,
+  "language": "python",
+  "outputChannel": "impressao",
+  "statement": "# A primeira caixa\n\nEscreva a caixa `bom_dia` no lugar do comentário. Ela mostra `bom dia` na tela **quando é chamada**.\n\nO teste do desafio importa a sua caixa e a chama dentro de um bloco que captura a tela. Cada chamada deve mostrar:\n\n```text\nbom dia\n```\n\nComece com `def bom_dia():` e escreva o corpo recuado: a ordem que mostra `bom dia`.",
+  "starterCode": "# escreva aqui a caixa bom_dia que mostra bom dia na tela\n",
+  "testsCode": "import contextlib\nimport io\nimport unittest\n\nfrom solucao import bom_dia\n\n\nclass TestEscreverAPrimeiraCaixa(unittest.TestCase):\n    def test_cumprimenta_na_tela(self):\n        \"\"\"a caixa bom_dia mostra bom dia na tela\"\"\"\n        buffer = io.StringIO()\n        with contextlib.redirect_stdout(buffer):\n            bom_dia()\n        self.assertEqual(buffer.getvalue(), \"bom dia\\n\")\n",
+  "solutionCode": "def bom_dia():\n    print(\"bom dia\")\n",
+  "expectedTestCount": 1,
+  "requirements": [
+    {
+      "id": "test_cumprimenta_na_tela",
+      "teste": "test_cumprimenta_na_tela",
+      "descricao": "a caixa bom_dia mostra bom dia na tela"
+    }
+  ]
+}

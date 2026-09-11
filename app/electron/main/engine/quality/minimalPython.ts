@@ -419,10 +419,19 @@ export function candidatosDeImpressao(saida: string): string[] {
  *   forma `import`:
  *     3. ECO         — `def f(x): return x` (o teste devolve o argumento)
  *     4. LITERAL     — `def f(...): return <literal>` (até 3 literais)
- *   sempre, e SÓ quando nada acima gerou candidato:
- *     5. SOLUÇÃO     — a solução de referência inteira (último recurso; se
- *                      houvesse candidato literal ela mascararia o sinal
- *                      `SEM_SOLUCAO_ACESSIVEL` que o dono quer ver)
+ *   sempre, por último, quando a forma é reconhecida:
+ *     5. SOLUÇÃO     — a solução de referência inteira. ONDA 4 (medida): a
+ *                      fase VALOR com ≥2 casos distintos nunca é satisfeita
+ *                      por literal — `def f(x): return 4` falha no caso que
+ *                      espera 10 — e sem a referência TODO desafio que exige
+ *                      computação saía `SEM_SOLUCAO_ACESSIVEL`, reprovando o
+ *                      `coverage` (fail-closed) da fase que `docs/17`
+ *                      prescreve. O literal continua ANTES na ordem de
+ *                      minimalidade: teste fraco (um caso só) ainda acha o
+ *                      literal como mínimo e expõe o EXCESSO; teste que exige
+ *                      computação acha a referência — nada menor passa. Com a
+ *                      referência no fim, `SEM_SOLUCAO` passa a significar
+ *                      "nem a referência passa" (teste quebrado).
  */
 export function gerarCandidatosPython(
   starter: string,
@@ -486,12 +495,20 @@ export function gerarCandidatosPython(
     }
   }
 
-  // 5. último recurso — SÓ quando a forma É reconhecida e nada acima gerou
-  // candidato. Numa forma DESCONHECIDA a solução de referência NÃO entra: ela
-  // seria aceita pelas provas e viraria um "mínimo" que na verdade é o máximo,
-  // inflando os atoms e podendo inventar LACUNA onde não há. Sem candidato, o
-  // veredito honesto é `SEM_SOLUCAO_ACESSIVEL` com o motivo escrito.
-  if (candidatos.length === 0 && dados.forma !== 'desconhecida' && solution.trim() !== '') {
+  // 5. último recurso — a solução de referência, SEMPRE como o ÚLTIMO
+  // candidato quando a forma é reconhecida. ONDA 4 (medida): na fase VALOR
+  // (`from solucao import f` + `assertEqual`) um teste com ≥2 casos distintos
+  // nunca é satisfeito por literal — `def f(x): return 4` falha no caso que
+  // espera 10 — e, sem a referência, TODO desafio que exige computação de
+  // verdade saía `SEM_SOLUCAO_ACESSIVEL`, reprovando o `coverage` (fail-closed)
+  // da fase inteira que `docs/17` prescreve. O literal continua vindo ANTES na
+  // ordem de minimalidade: teste fraco (um caso só) ainda acha
+  // `def f(x): return <literal>` como mínimo e expõe o EXCESSO; teste que
+  // exige computação acha a referência — nada menor passa. Numa forma
+  // DESCONHECIDA a referência NÃO entra: ela seria aceita pelas provas e
+  // viraria um "mínimo" que na verdade é o máximo, inflando os atoms e podendo
+  // inventar LACUNA onde não há.
+  if (dados.forma !== 'desconhecida' && solution.trim() !== '') {
     adicionar(solution);
   }
 

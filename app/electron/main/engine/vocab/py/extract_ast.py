@@ -74,6 +74,12 @@ import symtable
 # gate reprovar código correto). `dir(builtins)` é a fonte que não mente.
 BUILTIN_NAMES: frozenset[str] = frozenset(dir(builtins))
 
+# O módulo que o ALUNO escreve (o `PY_ENTRY_PATH` do adaptador, `solucao.py`).
+# O teste da fase VALOR o importa com `from solucao import <nome>`; esse
+# import NÃO é API externa e por isso não emite `api:` — ver a ramo
+# `ast.ImportFrom` na travessia.
+MODULO_DO_ALUNO = "solucao"
+
 # Os dunders que TODO módulo tem e que `dir(builtins)` não cobre inteiro.
 # `if __name__ == "__main__":` é a última linha de todo `test_*.py` da trilha
 # (`__name__` já está em `dir(builtins)`); `__file__` e `__builtins__` não
@@ -584,6 +590,16 @@ class _Emissor:
         elif isinstance(node, ast.ImportFrom):
             base = node.module or ""
             for alias in node.names:
+                if base == MODULO_DO_ALUNO:
+                    # O módulo que o ALUNO escreve (`solucao.py`) não é API
+                    # externa: o teste o importa com `from solucao import
+                    # <nome>` na fase VALOR (docs/17 §"A progressão de canal"),
+                    # e emitir `api:solucao.<nome>` faria TODO teste da fase
+                    # VALOR violar A3 — o nome da função varia de desafio para
+                    # desafio e não há aula que o ensine. Análogo exato do
+                    # import relativo de JavaScript (`'../solucao.mjs'`), que
+                    # também não emite `api:`. Medido na onda 4 (M4).
+                    continue
                 caminho = f"{base}.{alias.name}" if base else alias.name
                 out.append(self._marcador("ApiRef", pos, apiPath=caminho))
 

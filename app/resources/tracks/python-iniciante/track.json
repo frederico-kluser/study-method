@@ -14,6 +14,8 @@
   "modules": [
     "a-tela",
     "decisao",
-    "repeticao"
+    "repeticao",
+    "caixas-que-devolvem",
+    "listas-e-tuplas"
   ]
 }

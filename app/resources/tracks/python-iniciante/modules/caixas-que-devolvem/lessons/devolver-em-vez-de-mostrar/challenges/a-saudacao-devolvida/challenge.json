@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "slug": "a-saudacao-devolvida",
+  "title": "A saudação devolvida",
+  "concept": "devolver_com_return",
+  "difficulty": 3,
+  "language": "python",
+  "outputChannel": "impressao",
+  "statement": "# A saudação devolvida\n\nEscreva a caixa `saudacao` que recebe um nome pela janela e **devolve** `oi, <nome>` — sem mostrar nada na tela.\n\nO teste importa a sua caixa e confere o valor que ela devolve. Com \"Ana\":\n\n```text\noi, Ana\n```\n\nTroque o `pass` pela linha que devolve a saudação, usando `return`. Lembre: quem mostra na tela é o teste, não a sua caixa.",
+  "starterCode": "def saudacao(nome):\n    pass\n",
+  "testsCode": "import unittest\n\nfrom solucao import saudacao\n\n\nclass TestDevolverEmVezDeMostrar(unittest.TestCase):\n    def test_devolve_ana(self):\n        \"\"\"a caixa devolve oi, Ana quando recebe Ana\"\"\"\n        self.assertEqual(saudacao(\"Ana\"), \"oi, Ana\")\n\n    def test_devolve_bia(self):\n        \"\"\"a caixa devolve oi, Bia quando recebe Bia\"\"\"\n        self.assertEqual(saudacao(\"Bia\"), \"oi, Bia\")\n",
+  "solutionCode": "def saudacao(nome):\n    return \"oi, \" + nome\n",
+  "expectedTestCount": 2,
+  "requirements": [
+    {
+      "id": "test_devolve_ana",
+      "teste": "test_devolve_ana",
+      "descricao": "a caixa devolve oi, Ana quando recebe Ana"
+    },
+    {
+      "id": "test_devolve_bia",
+      "teste": "test_devolve_bia",
+      "descricao": "a caixa devolve oi, Bia quando recebe Bia"
+    }
+  ]
+}

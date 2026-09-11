@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "slug": "duas-chamadas",
+  "title": "Duas chamadas",
+  "concept": "chamar_a_caixa",
+  "difficulty": 2,
+  "language": "python",
+  "outputChannel": "impressao",
+  "statement": "# Duas chamadas\n\nA caixa `bom_dia` já está pronta. Falta chamá-la **duas vezes**.\n\nEscreva duas chamadas de `bom_dia()` no lugar do comentário. O programa roda de cima para baixo, e cada chamada roda o corpo da caixa de novo. A tela deve ficar exatamente assim:\n\n```text\nbom dia\nbom dia\n```\n\nCada chamada ocupa a sua própria linha, na margem.",
+  "starterCode": "def bom_dia():\n    print(\"bom dia\")\n\n\n# escreva aqui duas chamadas de bom_dia\n",
+  "testsCode": "import contextlib\nimport io\nimport runpy\nimport unittest\n\n\ndef rodar():\n    \"\"\"Roda solucao.py do zero e devolve tudo o que ele imprimiu.\"\"\"\n    saida = io.StringIO()\n    with contextlib.redirect_stdout(saida):\n        runpy.run_path(\"solucao.py\")\n    return saida.getvalue()\n\n\nclass TestChamarACaixaDuasVezes(unittest.TestCase):\n    def test_imprime_duas_vezes(self):\n        \"\"\"o programa mostra bom dia duas vezes\"\"\"\n        self.assertEqual(rodar(), \"bom dia\\nbom dia\\n\")\n",
+  "solutionCode": "def bom_dia():\n    print(\"bom dia\")\n\n\nbom_dia()\nbom_dia()\n",
+  "expectedTestCount": 1,
+  "requirements": [
+    {
+      "id": "test_imprime_duas_vezes",
+      "teste": "test_imprime_duas_vezes",
+      "descricao": "o programa mostra bom dia duas vezes"
+    }
+  ]
+}

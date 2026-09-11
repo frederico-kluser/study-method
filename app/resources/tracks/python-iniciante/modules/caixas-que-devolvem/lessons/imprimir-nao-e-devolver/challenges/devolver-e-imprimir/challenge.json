@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "slug": "devolver-e-imprimir",
+  "title": "Devolver e imprimir",
+  "concept": "imprimir_vs_devolver",
+  "difficulty": 3,
+  "language": "python",
+  "outputChannel": "ambos",
+  "statement": "# Devolver e imprimir\n\nA caixa `saudacao` já devolve `oi, <nome>`. Falta a **última linha** do programa.\n\nEscreva, no lugar do comentário, uma linha que chama a caixa com \"Ana\" e **mostra na tela** o que ela devolveu.\n\nO teste confere três coisas separadas:\n\n- o que a caixa **devolve** quando recebe \"Ana\";\n- o que o programa **imprime** ao rodar;\n- que chamar a caixa **sozinha** não imprime nada.\n\nA tela do programa deve ficar exatamente assim:\n\n```text\noi, Ana\n```",
+  "starterCode": "def saudacao(nome):\n    return \"oi, \" + nome\n\n\n# escreva aqui a ultima linha: chame a caixa com \"Ana\" e mostre o que ela devolveu\n",
+  "testsCode": "import contextlib\nimport io\nimport runpy\nimport unittest\n\nfrom solucao import saudacao\n\n\ndef rodar():\n    \"\"\"Roda solucao.py do zero e devolve tudo o que ele imprimiu.\"\"\"\n    saida = io.StringIO()\n    with contextlib.redirect_stdout(saida):\n        runpy.run_path(\"solucao.py\")\n    return saida.getvalue()\n\n\nclass TestImprimirNaoEDevolver(unittest.TestCase):\n    def test_devolve_a_saudacao(self):\n        \"\"\"a caixa devolve a saudacao\"\"\"\n        self.assertEqual(saudacao(\"Ana\"), \"oi, Ana\")\n\n    def test_imprime_a_saudacao(self):\n        \"\"\"o programa imprime a saudacao\"\"\"\n        self.assertEqual(rodar(), \"oi, Ana\\n\")\n\n    def test_chamar_sozinha_nao_imprime(self):\n        \"\"\"chamar a caixa sozinha nao imprime nada\"\"\"\n        buffer = io.StringIO()\n        with contextlib.redirect_stdout(buffer):\n            saudacao(\"Bia\")\n        self.assertEqual(buffer.getvalue(), \"\")\n",
+  "solutionCode": "def saudacao(nome):\n    return \"oi, \" + nome\n\n\nprint(saudacao(\"Ana\"))\n",
+  "expectedTestCount": 3,
+  "requirements": [
+    {
+      "id": "test_devolve_a_saudacao",
+      "teste": "test_devolve_a_saudacao",
+      "descricao": "a caixa devolve a saudacao"
+    },
+    {
+      "id": "test_imprime_a_saudacao",
+      "teste": "test_imprime_a_saudacao",
+      "descricao": "o programa imprime a saudacao"
+    },
+    {
+      "id": "test_chamar_sozinha_nao_imprime",
+      "teste": "test_chamar_sozinha_nao_imprime",
+      "descricao": "chamar a caixa sozinha nao imprime nada"
+    }
+  ]
+}

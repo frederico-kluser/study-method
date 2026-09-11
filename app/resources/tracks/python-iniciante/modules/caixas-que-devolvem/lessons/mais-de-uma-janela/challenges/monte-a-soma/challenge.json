@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "slug": "monte-a-soma",
+  "title": "Monte a soma",
+  "concept": "dois_parametros",
+  "difficulty": 3,
+  "language": "python",
+  "outputChannel": "retorno",
+  "statement": "# Monte a soma\n\nEscreva a caixa `soma` com **duas janelas**, `a` e `b`, que devolve a soma das duas.\n\nO teste importa a sua caixa e confere o valor devolvido. Com `2` e `3`:\n\n```text\n5\n```\n\nTroque o `pass` pela linha que devolve `a + b`. Uma janela, um valor: a chamada sempre entrega os dois, na ordem.",
+  "starterCode": "def soma(a, b):\n    pass\n",
+  "testsCode": "import unittest\n\nfrom solucao import soma\n\n\nclass TestMaisDeUmaJanela(unittest.TestCase):\n    def test_soma_dois_e_tres(self):\n        \"\"\"a caixa devolve 5 quando recebe 2 e 3\"\"\"\n        self.assertEqual(soma(2, 3), 5)\n\n    def test_soma_com_zero(self):\n        \"\"\"a caixa devolve o mesmo numero quando recebe zero\"\"\"\n        self.assertEqual(soma(0, 7), 7)\n\n    def test_soma_de_negativos(self):\n        \"\"\"a caixa devolve 1 quando recebe -2 e 3\"\"\"\n        self.assertEqual(soma(-2, 3), 1)\n",
+  "solutionCode": "def soma(a, b):\n    return a + b\n",
+  "expectedTestCount": 3,
+  "requirements": [
+    {
+      "id": "test_soma_dois_e_tres",
+      "teste": "test_soma_dois_e_tres",
+      "descricao": "a caixa devolve 5 quando recebe 2 e 3"
+    },
+    {
+      "id": "test_soma_com_zero",
+      "teste": "test_soma_com_zero",
+      "descricao": "a caixa devolve o mesmo numero quando recebe zero"
+    },
+    {
+      "id": "test_soma_de_negativos",
+      "teste": "test_soma_de_negativos",
+      "descricao": "a caixa devolve 1 quando recebe -2 e 3"
+    }
+  ]
+}

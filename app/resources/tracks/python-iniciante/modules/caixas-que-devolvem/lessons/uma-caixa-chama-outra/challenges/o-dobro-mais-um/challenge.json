@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "slug": "o-dobro-mais-um",
+  "title": "O dobro mais um",
+  "concept": "funcao_chama_funcao",
+  "difficulty": 4,
+  "language": "python",
+  "outputChannel": "retorno",
+  "statement": "# O dobro mais um\n\nA caixa `dobro` já está pronta. Escreva a caixa `dobro_mais_um`, que recebe um número, **chama a caixa `dobro`** e devolve o que ela devolveu mais 1.\n\nO teste importa a sua caixa e confere o valor devolvido:\n\n```text\ndobro_mais_um(3)  ->  7\ndobro_mais_um(0)  ->  1\n```\n\nTroque o `pass` pela linha que devolve `dobro(x) + 1`. A chamada de dentro roda primeiro; o valor dela entra na conta.",
+  "starterCode": "def dobro(x):\n    return x * 2\n\n\ndef dobro_mais_um(x):\n    pass\n",
+  "testsCode": "import unittest\n\nfrom solucao import dobro_mais_um\n\n\nclass TestUmaCaixaChamaOutra(unittest.TestCase):\n    def test_devolve_sete_para_tres(self):\n        \"\"\"a caixa devolve 7 quando recebe 3\"\"\"\n        self.assertEqual(dobro_mais_um(3), 7)\n\n    def test_devolve_um_para_zero(self):\n        \"\"\"a caixa devolve 1 quando recebe 0\"\"\"\n        self.assertEqual(dobro_mais_um(0), 1)\n",
+  "solutionCode": "def dobro(x):\n    return x * 2\n\n\ndef dobro_mais_um(x):\n    return dobro(x) + 1\n",
+  "expectedTestCount": 2,
+  "requirements": [
+    {
+      "id": "test_devolve_sete_para_tres",
+      "teste": "test_devolve_sete_para_tres",
+      "descricao": "a caixa devolve 7 quando recebe 3"
+    },
+    {
+      "id": "test_devolve_um_para_zero",
+      "teste": "test_devolve_um_para_zero",
+      "descricao": "a caixa devolve 1 quando recebe 0"
+    }
+  ]
+}

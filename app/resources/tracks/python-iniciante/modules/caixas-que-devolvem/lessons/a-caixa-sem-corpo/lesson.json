@@ -1,0 +1,117 @@
+{
+  "schemaVersion": 1,
+  "slug": "a-caixa-sem-corpo",
+  "title": "A caixa sem corpo",
+  "summary": "A caixa ainda vazia usa pass no corpo e roda sem fazer nada.",
+  "difficulty": 4,
+  "role": "consolidation",
+  "targetAtom": "node:Pass",
+  "concepts": [
+    "esqueleto_com_pass"
+  ],
+  "prerequisites": [
+    "escrever-a-primeira-caixa",
+    "o-bloco-vazio"
+  ],
+  "introduces": {
+    "productive": [
+      "node:Pass"
+    ],
+    "receptive": []
+  },
+  "introducesTerms": [],
+  "theory": [
+    {
+      "id": "a-caixa-ainda-vazia",
+      "title": "A caixa ainda vazia",
+      "markdown": "Às vezes a caixa entra no plano antes do corpo: você já sabe o nome e o que ela vai fazer — só não escreveu ainda. O corpo vazio de verdade não existe em Python; o `pass` ocupa o lugar:\n\n```python\ndef proximo_passo():\n    pass\n```\n\nA caixa roda, não faz nada e devolve `None`. O `pass` é o mesmo da aula do bloco vazio: a ordem que não faz nada, ocupando o lugar."
+    },
+    {
+      "id": "o-corpo-nao-pode-ficar-vazio",
+      "title": "O corpo não pode ficar vazio",
+      "markdown": "O corpo vazio de verdade quebra antes de rodar:\n\n```text\ndef proximo_passo():\n```\n\nSem linha nenhuma embaixo do `def`, o Python para com `IndentationError`. Certo é:\n\n```python\ndef proximo_passo():\n    pass\n```\n\nO `pass` diz: \"esta caixa ainda não tem o que fazer — mas o lugar já está marcado\". Sem ele, a caixa nem existe para o Python."
+    },
+    {
+      "id": "o-plano-da-caixa",
+      "title": "O plano da caixa",
+      "markdown": "O `pass` é um passo do plano: a caixa existe, o nome está reservado, e o corpo chega depois — quando chegar, o `pass` sai do lugar:\n\n```python\ndef proximo_passo():\n    return \"pronto\"\n```\n\nPergunta de estado: enquanto o corpo é só `pass`, o que a chamada `proximo_passo()` devolve? `None` — a caixa terminou sem devolver nada, e `pass` não conta como devolução."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "pass-ocupa-o-corpo",
+      "statement": "O pass ocupa o corpo vazio: a caixa roda sem fazer nada.",
+      "question": "A caixa é `def proximo_passo():` com `pass` no corpo. O que ela faz quando é chamada?",
+      "options": [
+        "Roda e não faz nada.",
+        "Dá IndentationError.",
+        "Mostra pass na tela.",
+        "Guarda o nome da caixa."
+      ],
+      "answerIndex": 0,
+      "feedback": "Com pass no corpo, a caixa roda sem fazer nada — é exatamente o papel do pass.",
+      "sectionId": "a-caixa-ainda-vazia",
+      "optionRationales": [
+        "pass é a ordem que não faz nada: o corpo existe e a caixa roda em silêncio.",
+        "O IndentationError é do corpo VAZIO — o pass impede exatamente isso.",
+        "A tela só mostra o que um print imprimir; pass não imprime nada.",
+        "Quem guarda o nome é o def; pass não guarda nada."
+      ]
+    },
+    {
+      "id": "corpo-vazio-quebra",
+      "statement": "Sem pass, o corpo vazio quebra com IndentationError.",
+      "question": "O que acontece com um def sem nenhuma linha no corpo?",
+      "options": [
+        "O programa para com IndentationError.",
+        "A caixa roda e devolve None.",
+        "O Python inventa um corpo vazio.",
+        "A caixa vira uma linha de comentário."
+      ],
+      "answerIndex": 0,
+      "feedback": "Todo bloco precisa de pelo menos uma linha; sem ela, o Python para com IndentationError antes de rodar.",
+      "sectionId": "o-corpo-nao-pode-ficar-vazio",
+      "optionRationales": [
+        "Bloco sem linha não existe em Python: o recuo espera uma ordem e não acha, e o erro vem antes de rodar.",
+        "A caixa nem chega a existir para o Python: o arquivo quebra na leitura.",
+        "O Python não inventa corpo: ele aponta o erro e para.",
+        "Comentário não é linha de código: um corpo só de comentário também quebra."
+      ]
+    },
+    {
+      "id": "pass-nao-devolve",
+      "statement": "Uma caixa que só tem pass devolve None.",
+      "question": "Enquanto o corpo é só `pass`, o que `proximo_passo()` devolve?",
+      "options": [
+        "None",
+        "pass",
+        "proximo_passo",
+        "nada — a chamada dá erro"
+      ],
+      "answerIndex": 0,
+      "feedback": "A caixa termina sem return nenhum — e caixa que termina sem devolver devolve None.",
+      "sectionId": "o-plano-da-caixa",
+      "optionRationales": [
+        "pass não é return: a caixa chega ao fim sem devolver e devolve None, como sempre.",
+        "pass é a ordem que não faz nada; ela nunca é um valor que sai da caixa.",
+        "O nome da caixa é dela — o que sai da chamada é o valor devolvido.",
+        "A chamada roda sem erro: a caixa existe e devolve None."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "A instrução pass na referência da linguagem",
+      "url": "https://docs.python.org/3/reference/simple_stmts.html#the-pass-statement",
+      "description": "A regra oficial do pass: a declaração que não faz nada."
+    },
+    {
+      "title": "O bloco vazio — a definição de função na referência",
+      "url": "https://docs.python.org/3/reference/compound_stmts.html#function-definitions",
+      "description": "A regra oficial do def: um corpo composto de instruções."
+    }
+  ],
+  "challenges": [
+    "a-caixa-em-branco"
+  ]
+}

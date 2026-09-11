@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "slug": "a-caixa-documentada",
+  "title": "A caixa documentada",
+  "concept": "docstring",
+  "difficulty": 4,
+  "language": "python",
+  "outputChannel": "retorno",
+  "statement": "# A caixa documentada\n\nEscreva a caixa `dobro`, que recebe um número e devolve o dobro dele — **com a docstring**: um texto entre aspas triplas, na primeira linha do corpo, dizendo `devolve o dobro de x`.\n\nO teste importa a sua caixa e confere que ela funciona:\n\n```text\ndobro(2)  ->  4\ndobro(5)  ->  10\n```\n\nComece com `def dobro(x):`, escreva a docstring como primeira linha do corpo e depois o `return`.",
+  "starterCode": "# escreva aqui a caixa dobro, com a docstring dizendo: devolve o dobro de x\n",
+  "testsCode": "import unittest\n\nfrom solucao import dobro\n\n\nclass TestDocumentarACaixa(unittest.TestCase):\n    def test_devolve_quatro_para_dois(self):\n        \"\"\"a caixa devolve 4 quando recebe 2\"\"\"\n        self.assertEqual(dobro(2), 4)\n\n    def test_devolve_dez_para_cinco(self):\n        \"\"\"a caixa devolve 10 quando recebe 5\"\"\"\n        self.assertEqual(dobro(5), 10)\n",
+  "solutionCode": "def dobro(x):\n    \"\"\"devolve o dobro de x\"\"\"\n    return x * 2\n",
+  "expectedTestCount": 2,
+  "requirements": [
+    {
+      "id": "test_devolve_quatro_para_dois",
+      "teste": "test_devolve_quatro_para_dois",
+      "descricao": "a caixa devolve 4 quando recebe 2"
+    },
+    {
+      "id": "test_devolve_dez_para_cinco",
+      "teste": "test_devolve_dez_para_cinco",
+      "descricao": "a caixa devolve 10 quando recebe 5"
+    }
+  ]
+}

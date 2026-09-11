@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "slug": "e-de-maior",
+  "title": "É de maior",
+  "concept": "return_de_comparacao",
+  "difficulty": 3,
+  "language": "python",
+  "outputChannel": "retorno",
+  "statement": "# É de maior\n\nEscreva a caixa `e_de_maior` que recebe uma idade e devolve o resultado da comparação `idade >= 18` — **direto, sem `if`**.\n\nO teste importa a sua caixa e confere o valor devolvido:\n\n```text\n20  ->  True\n15  ->  False\n18  ->  True\n```\n\nTroque o `pass` por uma linha só: `return` seguido da comparação.",
+  "starterCode": "def e_de_maior(idade):\n    pass\n",
+  "testsCode": "import unittest\n\nfrom solucao import e_de_maior\n\n\nclass TestDevolverVerdadeiroOuFalso(unittest.TestCase):\n    def test_devolve_true_para_vinte(self):\n        \"\"\"a caixa devolve True para a idade 20\"\"\"\n        self.assertTrue(e_de_maior(20))\n\n    def test_devolve_false_para_quinze(self):\n        \"\"\"a caixa devolve False para a idade 15\"\"\"\n        self.assertEqual(e_de_maior(15), False)\n\n    def test_devolve_true_para_dezoito(self):\n        \"\"\"a caixa devolve True para a idade 18\"\"\"\n        self.assertTrue(e_de_maior(18))\n",
+  "solutionCode": "def e_de_maior(idade):\n    return idade >= 18\n",
+  "expectedTestCount": 3,
+  "requirements": [
+    {
+      "id": "test_devolve_true_para_vinte",
+      "teste": "test_devolve_true_para_vinte",
+      "descricao": "a caixa devolve True para a idade 20"
+    },
+    {
+      "id": "test_devolve_false_para_quinze",
+      "teste": "test_devolve_false_para_quinze",
+      "descricao": "a caixa devolve False para a idade 15"
+    },
+    {
+      "id": "test_devolve_true_para_dezoito",
+      "teste": "test_devolve_true_para_dezoito",
+      "descricao": "a caixa devolve True para a idade 18"
+    }
+  ]
+}

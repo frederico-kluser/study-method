@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "slug": "a-caixa-que-nao-responde",
+  "title": "A caixa que não responde",
+  "concept": "return_sem_valor",
+  "difficulty": 3,
+  "language": "python",
+  "outputChannel": "retorno",
+  "statement": "# A caixa que não responde\n\nEscreva a caixa `mostrar` que mostra `oi, <nome>` na tela e, no fim, **devolve nada de propósito**.\n\nO teste confere duas coisas: o que aparece na tela quando a caixa roda e que o valor devolvido é `None`.\n\nNa tela, cada chamada mostra:\n\n```text\noi, Ana\n```\n\nTroque o `pass` pelo corpo da caixa: a linha que mostra a saudação e, no fim, a linha `return None` — a forma explícita de devolver nada, igualzinho ao que a caixa faria sozinha.",
+  "starterCode": "def mostrar(nome):\n    pass\n",
+  "testsCode": "import contextlib\nimport io\nimport unittest\n\nfrom solucao import mostrar\n\n\nclass TestACaixaQueNaoDevolveNada(unittest.TestCase):\n    def test_mostra_na_tela(self):\n        \"\"\"a caixa mostra oi, Ana na tela\"\"\"\n        buffer = io.StringIO()\n        with contextlib.redirect_stdout(buffer):\n            mostrar(\"Ana\")\n        self.assertEqual(buffer.getvalue(), \"oi, Ana\\n\")\n\n    def test_nao_devolve_nada(self):\n        \"\"\"a caixa devolve None\"\"\"\n        buffer = io.StringIO()\n        with contextlib.redirect_stdout(buffer):\n            devolvido = mostrar(\"Bia\")\n        self.assertIsNone(devolvido)\n",
+  "solutionCode": "def mostrar(nome):\n    print(\"oi, \" + nome)\n    return None\n",
+  "expectedTestCount": 2,
+  "requirements": [
+    {
+      "id": "test_mostra_na_tela",
+      "teste": "test_mostra_na_tela",
+      "descricao": "a caixa mostra oi, Ana na tela"
+    },
+    {
+      "id": "test_nao_devolve_nada",
+      "teste": "test_nao_devolve_nada",
+      "descricao": "a caixa devolve None"
+    }
+  ]
+}

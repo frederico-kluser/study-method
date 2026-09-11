@@ -1,0 +1,118 @@
+{
+  "schemaVersion": 1,
+  "slug": "imprimir-nao-e-devolver",
+  "title": "Imprimir não é devolver",
+  "summary": "A caixa devolve e o programa imprime — são duas saídas diferentes no mesmo arquivo.",
+  "difficulty": 3,
+  "role": "consolidation",
+  "targetAtom": "node:Return",
+  "concepts": [
+    "imprimir_vs_devolver"
+  ],
+  "prerequisites": [
+    "devolver-em-vez-de-mostrar",
+    "a-primeira-linha"
+  ],
+  "introduces": {
+    "productive": [
+      "node:Return",
+      "global:print"
+    ],
+    "receptive": []
+  },
+  "introducesTerms": [],
+  "theory": [
+    {
+      "id": "as-duas-saidas",
+      "title": "As duas saídas",
+      "markdown": "A caixa devolve um valor; o programa imprime. As duas coisas vivem no MESMO arquivo — e cada uma tem o seu lugar:\n\n```python\ndef saudacao(nome):\n    return \"oi, \" + nome\n\n\nprint(saudacao(\"Ana\"))\n```\n\n```text\noi, Ana\n```\n\nA caixa **devolve** o texto montado; a última linha **imprime** o que a caixa devolveu. Troque o valor da chamada e os dois lados mudam juntos."
+    },
+    {
+      "id": "a-chamada-sem-print",
+      "title": "A chamada sem print",
+      "markdown": "E se a última linha fosse só a chamada, sem o print?\n\n```python\nsaudacao(\"Ana\")\n```\n\nA caixa devolve `\"oi, Ana\"` — e o valor se perde, porque ninguém o imprimiu nem guardou. A tela fica vazia.\n\nPergunta de estado: depois da linha `saudacao(\"Ana\")`, o que a caixa fez com o texto? Devolveu para a chamada; a chamada não fez nada com ele. Devolver não é mostrar."
+    },
+    {
+      "id": "o-teste-tira-a-prova",
+      "title": "O teste tira a prova",
+      "markdown": "O teste desta aula confere TRÊS fatos, separados:\n\n```python\nfrom solucao import saudacao\n```\n\n```python\nsaudacao(\"Ana\")\n```\n\nPrimeiro, que a caixa **devolve** `oi, Ana`. Segundo, que o programa **imprime** `oi, Ana`. Terceiro, que chamar a caixa **sozinha** não imprime nada — porque quem imprime é o print da última linha, não a caixa."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "o-programa-imprime-o-devolvido",
+      "statement": "A última linha imprime o valor que a caixa devolveu.",
+      "question": "O programa termina com `print(saudacao(\"Ana\"))`. O que a tela mostra?",
+      "options": [
+        "oi, Ana",
+        "nada — a caixa não imprime",
+        "a caixa saudacao",
+        "oi, Ana e depois None"
+      ],
+      "answerIndex": 0,
+      "feedback": "A caixa devolve oi, Ana e o print da última linha mostra esse valor na tela — os dois trabalham juntos.",
+      "sectionId": "as-duas-saidas",
+      "optionRationales": [
+        "A caixa devolve e o print mostra: a última linha junta as duas saídas e o texto aparece na tela.",
+        "A caixa não imprime, mas o print da última linha imprime — e é ele que manda aqui.",
+        "A tela mostra valores, nunca caixas: o que sai é o texto devolvido.",
+        "None apareceria se a caixa não devolvesse nada — ela devolve oi, Ana, e é isso que sai."
+      ]
+    },
+    {
+      "id": "chamada-sozinha-se-perde",
+      "statement": "Chamar a caixa sem imprimir não mostra nada na tela.",
+      "question": "A última linha é só `saudacao(\"Ana\")`, sem print. O que a tela mostra?",
+      "options": [
+        "Nada — o valor devolvido se perde.",
+        "oi, Ana",
+        "Um erro, porque faltou o print.",
+        "None"
+      ],
+      "answerIndex": 0,
+      "feedback": "A caixa devolve, mas sem print nada vai para a tela — o valor devolvido se perde.",
+      "sectionId": "a-chamada-sem-print",
+      "optionRationales": [
+        "Devolver entrega o valor para a chamada; sem print ou guardar, ele não chega a lugar nenhum.",
+        "O oi, Ana só aparece se alguém imprimir — e ninguém imprime nessa versão.",
+        "Não é erro: a linha é válida. É só uma chamada cujo resultado ninguém usou.",
+        "None apareceria se a caixa devolvesse nada — ela devolve, e mesmo assim nada aparece."
+      ]
+    },
+    {
+      "id": "caixa-sozinha-nao-imprime",
+      "statement": "Chamar a caixa sozinha não imprime nada — quem imprime é o print de fora.",
+      "question": "Chamar `saudacao(\"Bia\")` no teste, sem print por perto, faz a tela mostrar?",
+      "options": [
+        "Nada.",
+        "oi, Bia",
+        "oi, Ana",
+        "Um erro de sintaxe."
+      ],
+      "answerIndex": 0,
+      "feedback": "A caixa só devolve; sem um print por perto, nem oi, Bia nem nada aparece na tela.",
+      "sectionId": "o-teste-tira-a-prova",
+      "optionRationales": [
+        "O corpo da caixa não tem print nenhum — chamá-la em silêncio continua em silêncio.",
+        "Seria oi, Bia se houvesse um print(na chamada) — o print é que mostra.",
+        "Seria oi, Ana se a chamada fosse com Ana — mas o valor nem chegaria à tela sem print.",
+        "A linha é válida: chamar sem print não é erro, é só uma chamada discreta."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "A instrução return na referência da linguagem",
+      "url": "https://docs.python.org/3/reference/simple_stmts.html#the-return-statement",
+      "description": "A regra oficial do return: o valor devolvido a quem chamou."
+    },
+    {
+      "title": "print() — a documentação oficial",
+      "url": "https://docs.python.org/3/library/functions.html#print",
+      "description": "A página oficial da instrução que mostra coisas na tela."
+    }
+  ],
+  "challenges": [
+    "devolver-e-imprimir"
+  ]
+}

@@ -1,0 +1,117 @@
+{
+  "schemaVersion": 1,
+  "slug": "devolver-verdadeiro-ou-falso",
+  "title": "Devolver verdadeiro ou falso",
+  "summary": "Uma comparação é um valor: a caixa pode devolvê-la direto, sem if.",
+  "difficulty": 3,
+  "role": "consolidation",
+  "targetAtom": "node:Return",
+  "concepts": [
+    "return_de_comparacao"
+  ],
+  "prerequisites": [
+    "devolver-cedo",
+    "comparar-numeros"
+  ],
+  "introduces": {
+    "productive": [
+      "node:Return"
+    ],
+    "receptive": []
+  },
+  "introducesTerms": [],
+  "theory": [
+    {
+      "id": "a-comparacao-e-um-valor",
+      "title": "A comparação é um valor",
+      "markdown": "Uma comparação já é um valor: `True` ou `False`, como na aula de comparar números. Então o `return` pode devolver a comparação **direto**, sem `se`:\n\n```python\ndef e_maior(idade):\n    return idade >= 18\n\n\nprint(e_maior(20))\nprint(e_maior(15))\n```\n\n```text\nTrue\nFalse\n```\n\nA caixa faz a conta `idade >= 18` e devolve o resultado dela: `True` ou `False`."
+    },
+    {
+      "id": "o-se-nao-e-obrigatorio",
+      "title": "O se não é obrigatório",
+      "markdown": "Dá para escrever a mesma caixa com `se` e dois `return`...\n\n```python\ndef e_maior(idade):\n    if idade >= 18:\n        return True\n    else:\n        return False\n```\n\n...mas isso é dar a volta: a comparação JÁ é o valor. O caminho curto:\n\n```python\ndef e_maior(idade):\n    return idade >= 18\n```\n\nPergunta de estado: com idade 18, o que a caixa devolve? `True` — a comparação `18 >= 18` é verdadeira."
+    },
+    {
+      "id": "o-teste-confere-o-booleano",
+      "title": "O teste confere o booleano",
+      "markdown": "O teste confere o valor devolvido com conferências próprias do verdadeiro e do falso:\n\n```python\nfrom solucao import e_maior\n```\n\n```python\nself.assertTrue(e_maior(20))\n```\n\nA linha `assertTrue` pergunta: \"o que a caixa devolveu é True?\". Com 15: `assertFalse` pergunta se é False. A caixa devolve `True` ou `False`, e o teste confere qual deles."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "return-da-comparacao",
+      "statement": "O return pode devolver a própria comparação, sem if.",
+      "question": "A caixa é `return idade >= 18`. O que `e_maior(20)` devolve?",
+      "options": [
+        "True",
+        "False",
+        "20",
+        "sim"
+      ],
+      "answerIndex": 0,
+      "feedback": "A caixa devolve o resultado da comparação 20 >= 18 — que é True.",
+      "sectionId": "a-comparacao-e-um-valor",
+      "optionRationales": [
+        "20 >= 18 é verdadeiro, e é exatamente esse valor que a caixa devolve.",
+        "Seria False para uma idade menor que 18 — 20 é maior.",
+        "A caixa devolve o RESULTADO da comparação, não o número comparado.",
+        "A caixa devolve True ou False — sim é texto, e texto não é booleano."
+      ]
+    },
+    {
+      "id": "se-e-desnecessario",
+      "statement": "O se com dois returns é o caminho longo; a comparação direta é o curto.",
+      "question": "Com idade 18, o que a caixa `return idade >= 18` devolve?",
+      "options": [
+        "True",
+        "False",
+        "18",
+        "nenhum — a caixa não devolve booleano"
+      ],
+      "answerIndex": 0,
+      "feedback": "18 >= 18 é verdadeiro — a comparação vale True e é isso que a caixa devolve, sem precisar de if.",
+      "sectionId": "o-se-nao-e-obrigatorio",
+      "optionRationales": [
+        "A conta 18 >= 18 é verdadeira (é igual), então o valor devolvido é True.",
+        "False seria o resultado se 18 fosse menor que 18 — ele é igual.",
+        "A caixa devolve o resultado da conta, nunca o número que entrou.",
+        "A caixa devolve booleano sim: o resultado de >= é sempre True ou False."
+      ]
+    },
+    {
+      "id": "asserttrue-confere-true",
+      "statement": "O assertTrue confere que a caixa devolveu True.",
+      "question": "O teste roda `assertTrue(e_maior(20))`. O que ele confere?",
+      "options": [
+        "Que a caixa devolveu True.",
+        "Que a idade 20 é maior que 18 em texto.",
+        "Que a caixa imprimiu True na tela.",
+        "Que a caixa devolveu 20."
+      ],
+      "answerIndex": 0,
+      "feedback": "assertTrue pergunta se o valor devolvido é True — e a comparação 20 >= 18 responde True.",
+      "sectionId": "o-teste-confere-o-booleano",
+      "optionRationales": [
+        "assertTrue só aceita o valor True — é a conferência do booleano verdadeiro.",
+        "A caixa não devolve texto: devolve o booleano True em pessoa.",
+        "A caixa não imprime nada — devolver é a saída dela; a tela não entra aqui.",
+        "O 20 é a entrada, não a saída: a caixa devolve o resultado da conta, que é True."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "Valores booleanos no tutorial oficial",
+      "url": "https://docs.python.org/3/library/stdtypes.html#boolean-values",
+      "description": "A página oficial dos valores True e False, resultados das comparações."
+    },
+    {
+      "title": "A instrução return na referência da linguagem",
+      "url": "https://docs.python.org/3/reference/simple_stmts.html#the-return-statement",
+      "description": "A regra oficial do return: devolver o valor para quem chamou."
+    }
+  ],
+  "challenges": [
+    "e-de-maior"
+  ]
+}

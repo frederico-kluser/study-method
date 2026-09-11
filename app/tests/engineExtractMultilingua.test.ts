@@ -522,11 +522,29 @@ describe('trilha de PYTHON — o gate roda de ponta a ponta', { skip: !TEM_PYTHO
     // outras 20 regras, que são agnósticas de linguagem. A bateria continua
     // fechada para Python (H13/AX são chaves do `ts.SyntaxKind`); o que mudou é
     // que a auditoria não depende mais dela.
+    //
+    // ONDA 4 (módulo `caixas-que-devolvem`): o desafio CONFORME desta trilha
+    // mínima passou a auditar com ZERO violações. Motivo medido: o harness da
+    // fase VALOR faz `from solucao import X`, e o extrator deixou de emitir
+    // `api:solucao.X` para esse import (o módulo do aluno não é API externa —
+    // análogo do import relativo de JavaScript). O A3 que sobrava era o
+    // harness, não o conteúdo; sem ele, o desafio que usa exatamente o que a
+    // aula ensinou é limpo de verdade.
     const relatorio = auditTrack(trilhaPython('def dobro(x):\n    return 4\n'));
     for (const v of relatorio.violations) {
       assert.ok(!/^A1[3-6]/.test(v.regra), `a bateria JS-only vazou para Python: ${v.regra}`);
     }
-    assert.ok(relatorio.violations.length > 0, 'o gate de orçamento continua rodando');
+    assert.ok(
+      relatorio.violations.length === 0,
+      'o desafio CONFORME audita limpo — o orçamento rodou e nada sobrou',
+    );
+    // E o gate continua de pé no sentido que importa: a variante que devolve
+    // TEXTO (o que a aula não ensinou) reprova na mesma auditoria.
+    const comTexto = auditTrack(trilhaPython('def dobro(x):\n    return "oi"\n'));
+    assert.ok(
+      comTexto.violations.length > relatorio.violations.length,
+      'o gate de orçamento continua rodando: a variante com texto reprova',
+    );
   });
 });
 
