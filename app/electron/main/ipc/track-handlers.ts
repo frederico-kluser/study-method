@@ -73,15 +73,23 @@ import {
   LoadedTrack,
   TrackLoadError,
   listTrackSlugs,
-  loadAllTracks,
-  loadTrack,
 } from '../content/trackLoader';
+import { findLessonAnywhere } from '../content/trackLoader';
+// ONDA 2 (load): caches de CONTEÚDO (trilha inteira, dedup + frescor por
+// leitura) e de PAYLOAD (LRU + época de progresso) + pré-carga da próxima
+// aula — o clique em "Avançar" vira cache hit (ver services/trackCache.ts).
+import {
+  buildTrackLessonCached,
+  bumpProgressEpoch,
+  loadAllTracksCached,
+  loadTrackCached,
+  prefetchAfterTrackLessonDone,
+} from '../services/trackCache';
 import {
   computeOrphanState,
   type OrphanTrackState,
   type TrackScopedState,
 } from '../db/reconcile';
-import { findLessonAnywhere } from '../content/trackLoader';
 import type { LanguageAdapter } from '../engine/lang/registry';
 // ONDA 2 (python-roda): o adaptador vem do `challenge.language` do desafio
 // RESOLVIDO, nunca do default — `adapterDoDesafio` é a MESMA resolução das
@@ -91,7 +99,6 @@ import { trackHarnessLanguage } from '../content/trackTypes';
 import {
   TrackProgressLike,
   buildTrackDetail,
-  buildTrackLesson,
   buildTrackList,
   computeUnlockStates,
   loadTrackState,
@@ -233,7 +240,11 @@ export function buildTrackHandlers(deps: TrackHandlerDeps): Map<string, IpcHandl
 
   async function loadTrackOrError(trackSlug: string): Promise<LoadedTrack | { error: string }> {
     try {
-      return await loadTrack(path.join(tracksDir(), trackSlug));
+      // ONDA 2 (load): cache de conteúdo por trilha (promessa única +
+      // frescor checado por leitura). Invalidação explícita: ver
+      // services/trackCache.ts (nenhum writer in-process hoje; o fingerprint
+      // cobre mudanças de disco de qualquer origem).
+      return await loadTrackCached(path.join(tracksDir(), trackSlug));
     } catch (err) {
       if (err instanceof TrackLoadError) {
         return { error: `trilha inválida: ${err.issues.map((i) => i.message).join('; ')}` };
@@ -260,7 +271,10 @@ export function buildTrackHandlers(deps: TrackHandlerDeps): Map<string, IpcHandl
   map.set(TRACK_CHANNELS.LIST, async (): Promise<TrackListResult> => {
     if (!repo) return { ok: false, error: 'persistência indisponível.' };
     try {
-      const { tracks } = await loadAllTracks(tracksDir());
+      // ONDA 2 (load): leituras VIA CACHE — a listagem do boot AQUECE o cache
+      // de conteúdo, então o primeiro clique em aula não paga a leitura
+      // integral de ~130 ms.
+      const { tracks } = await loadAllTracksCached(tracksDir());
       const entries = await buildTrackList(tracks, repo);
       return { ok: true, tracks: entries };
     } catch (err) {
@@ -378,7 +392,10 @@ export function buildTrackHandlers(deps: TrackHandlerDeps): Map<string, IpcHandl
       // ONDA 4 (next-glow): `nextLesson` (próxima aula destravada e não feita)
       // é montado DENTRO do buildTrackLesson e propaga no payload inteiro —
       // nada a copiar aqui (o `lesson` volta completo no TrackLessonResult).
-      const lesson = await buildTrackLesson(loaded, found.moduleSlug, p.lessonId, repo);
+      // ONDA 2 (load): payload com cache LRU — clique quente vira cache hit, e
+      // o próprio build dispara a PRÉ-CARGA da próxima aula (`nextLesson`) em
+      // background, para o clique em "Avançar" não passar pelo caminho lento.
+      const lesson = await buildTrackLessonCached(loaded, found.moduleSlug, p.lessonId, repo);
       return { ok: true, lesson };
     } catch (err) {
       return { ok: false, error: `falha ao montar aula: ${String(err)}` };
@@ -418,6 +435,16 @@ export function buildTrackHandlers(deps: TrackHandlerDeps): Map<string, IpcHandl
       // Trilha ilegível não vira bloqueio: o gate existe para ORDENAR o
       // avanço, não para punir quem já estava numa aula quando o disco mudou.
       await repo.markTrackLessonDone(p.trackSlug, p.lessonId);
+      // ONDA 2 (load): progresso mudou → os payloads cacheados desta trilha
+      // ficaram velhos. O bump zera o cache de payload (época global); a
+      // remontagem seguinte já lê o estado NOVO do repo.
+      bumpProgressEpoch();
+      // E a próxima aula já nasce pronta para o "Avançar": remonta o payload
+      // desta aula em background com o estado novo — a remontagem pré-carrega
+      // `nextLesson` no mesmo cache. Silencioso por contrato (fire-and-forget).
+      if (!('error' in track)) {
+        prefetchAfterTrackLessonDone(track, p.lessonId, repo);
+      }
       return { ok: true };
     } catch (err) {
       return { ok: false, error: String(err) };
@@ -667,6 +694,9 @@ export function buildTrackHandlers(deps: TrackHandlerDeps): Map<string, IpcHandl
     if (base.ok && base.passed && repo) {
       try {
         await repo.setTrackProficiency(p.trackSlug, 'passed', typeof p.stars === 'number' ? p.stars : 0);
+        // ONDA 2 (load): veredito de proficiência é progresso → payloads
+        // cacheados ficaram velhos (locked/done mudam na trilha inteira).
+        bumpProgressEpoch();
       } catch {
         // registro de proficiência falhou → sem destravamento (degradação honesta)
       }
@@ -827,6 +857,9 @@ export function buildTrackHandlers(deps: TrackHandlerDeps): Map<string, IpcHandl
       });
       return { ok: false, error: { code: 'REGEN_PERSIST_FAILED', message: `desafio gerado mas não persistiu: ${String(err)}` } };
     }
+    // ONDA 2 (load): um desafio GERADO entrou no repo → os resumos de desafios
+    // do payload (gerados primeiro, mais recente primeiro) ficaram velhos.
+    bumpProgressEpoch();
     // TERMINAL 'done': persistiu — o modal global mostra o desafio novo com
     // "Ver desafio" (navegação de conclusão via store, não via view).
     progress('done', { challenge: { slug: draft.slug, title: draft.title } });
@@ -968,6 +1001,9 @@ export function buildTrackHandlers(deps: TrackHandlerDeps): Map<string, IpcHandl
         ...(typeof p.attemptNo === 'number' ? { attemptNo: p.attemptNo } : {}),
         ...(p.quizOrigin ? { quizOrigin: p.quizOrigin } : {}),
       });
+      // ONDA 2 (load): tentativa registrada é progresso → zera payloads
+      // cacheados (a maestria pode alimentar campos futuros do payload).
+      bumpProgressEpoch();
       return { ok: true, attempt: attemptDto(row), mastery: await maestriaDaAula(scope) };
     } catch (err) {
       return quizErro(QUIZ_ERROR_CODES.PERSIST_FAILED, `falha ao gravar a resposta: ${String(err)}`);
@@ -1111,6 +1147,9 @@ export function buildTrackHandlers(deps: TrackHandlerDeps): Map<string, IpcHandl
       // próximo boot e o histórico passa a mentir sobre o que o aluno viu.
       return quizErro(QUIZ_ERROR_CODES.PERSIST_FAILED, `quiz gerado mas não persistiu: ${String(err)}`);
     }
+    // ONDA 2 (load): remediação persistida é progresso → zera payloads
+    // cacheados (o histórico do quiz pode alimentar o payload no futuro).
+    bumpProgressEpoch();
     return reply;
   });
 

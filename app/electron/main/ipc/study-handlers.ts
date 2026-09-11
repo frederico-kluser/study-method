@@ -66,6 +66,11 @@ import { STUDY_CHANNELS } from '@shared/ipc-contract';
 import type { LessonDomain, LessonProgress } from '../services/lessonTypes';
 import { stableChallengeSlug } from '../services/lessonOrchestrator';
 import { safeHandleMap, type IpcMainHandleLike, type IpcHandlerFn } from './safeHandle';
+// ONDA 2 (load): `mark-challenge-attempt` grava o veredito que os payloads de
+// AULA de trilha exibem (lastVerdict/estrelas dos resumos de desafio) — o bump
+// zera o cache de payload (services/trackCache.ts) para a leitura remontar
+// com o estado novo. O mesmo vale para o reset de progresso.
+import { bumpProgressEpoch } from '../services/trackCache';
 import {
   MATH_FAMILIES,
   generateMathProblem,
@@ -732,6 +737,8 @@ export function buildStudyHandlers(deps: StudyHandlerDeps): Map<string, IpcHandl
       return { ok: false, error: 'study: persistência indisponível (repo ausente).' };
     }
     await repo.clearAllProgress();
+    // ONDA 2 (load): reset apagou o progresso → payloads cacheados velhos.
+    bumpProgressEpoch();
     return { ok: true };
   });
 
@@ -782,6 +789,9 @@ export function buildStudyHandlers(deps: StudyHandlerDeps): Map<string, IpcHandl
       stars,
       durationMs,
     });
+    // ONDA 2 (load): veredito persiste → payloads de aula de trilha
+    // (lastVerdict/estrelas/failedCount dos resumos) ficaram velhos.
+    bumpProgressEpoch();
     return { ok: true, attempt };
   });
 
