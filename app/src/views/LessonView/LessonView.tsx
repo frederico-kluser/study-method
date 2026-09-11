@@ -255,6 +255,9 @@ import {
   saveLessonChat,
 } from '../../lib/lessonChatCache';
 import { peekLastLesson, saveLastLesson } from '../../lib/lastLesson';
+// ONDA2-PREFETCH: pré-carga da próxima aula no cache do main (warm-up
+// best-effort, fire-and-forget — nunca afeta o caminho crítico).
+import { prefetchLesson } from '../../lib/lessonPrefetch';
 // ONDA3 (generate-flow): o processo de "Gerar novo desafio" é GLOBAL (store
 // module-level + modal no shell) — a view dispara e o modal mostra as etapas.
 import {
@@ -1346,6 +1349,11 @@ export function LessonView(props: ViewProps): ReactElement {
             return;
           }
           setLesson(res.lesson);
+          // ONDA2-PREFETCH: o payload já conhece a próxima aula — aquece o
+          // cache do main agora (best-effort, sem await) para o clique em
+          // "Avançar" virar cache hit.
+          const next = res.lesson?.nextLesson;
+          if (next) void prefetchLesson(trackSlug, next.slug);
         })
         .catch((err: unknown) => {
           if (cancelled) return;
@@ -2376,6 +2384,10 @@ export function LessonView(props: ViewProps): ReactElement {
     setDoneMarked(false);
     setLoadError(null);
     publishSession({ subject: proxima, status: 'idle' });
+    // ONDA2-PREFETCH: aquece a aula de destino já no clique (best-effort —
+    // normalmente o payload desta aula já a pré-carregou; aqui é o reforço do
+    // caminho direto, com o anti-burst do módulo decidindo).
+    prefetchLesson(trackLesson.trackSlug, proxima);
     loadLesson(trackLesson.trackSlug, proxima);
     navigate('lesson');
   }, [trackLesson, nextLesson, navigate, loadLesson, publishSession]);
