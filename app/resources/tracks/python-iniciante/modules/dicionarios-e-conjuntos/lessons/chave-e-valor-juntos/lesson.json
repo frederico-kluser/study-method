@@ -1,0 +1,118 @@
+{
+  "schemaVersion": 1,
+  "slug": "chave-e-valor-juntos",
+  "title": "Chave e valor juntos",
+  "summary": "O método `.items` devolve os pares de chave e valor, um par por vez.",
+  "difficulty": 5,
+  "role": "regular",
+  "targetAtom": "api:.items",
+  "concepts": [
+    "pares_item"
+  ],
+  "prerequisites": [
+    "as-chaves-e-os-valores"
+  ],
+  "introduces": {
+    "productive": [
+      "api:.items"
+    ],
+    "receptive": []
+  },
+  "introducesTerms": [
+    "par"
+  ],
+  "theory": [
+    {
+      "id": "o-par-da-vez",
+      "title": "O par da vez",
+      "markdown": "`.items()` devolve os pares juntos — chave e valor de cada par:\n\n```python\nprecos = {\"pao\": 4, \"sopa\": 8}\nfor chave, valor in precos.items():\n    print(chave, valor)\n```\n\n```text\npao 4\nsopa 8\n```\n\nCada volta do `for` abre um par nos dois nomes — o desempacotamento que você já viu com tuplas."
+    },
+    {
+      "id": "o-par-inteiro",
+      "title": "O par inteiro",
+      "markdown": "A mesma volta pode guardar o par inteiro num nome só:\n\n```python\nprecos = {\"pao\": 4, \"sopa\": 8}\nfor par in precos.items():\n    print(par[0], \"-\", par[1])\n```\n\n```text\npao - 4\nsopa - 8\n```\n\n`par[0]` é a chave e `par[1]` é o valor — como numa tupla de duas posições."
+    },
+    {
+      "id": "qual-e-o-estado-agora",
+      "title": "Qual é o estado agora?",
+      "markdown": "Responda antes de rodar: quantas voltas o laço dá, e o que imprime na segunda?\n\n```python\nd = {\"a\": 1, \"b\": 2}\nfor chave, valor in d.items():\n    print(chave)\n```\n\n```text\na\nb\n```\n\nDuas voltas — uma por par. Na segunda, a chave é `\"b\"`, e o valor 2 fica sem imprimir."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "items-devolve-pares",
+      "statement": "`.items` devolve um par de chave e valor por volta.",
+      "question": "O que a volta `for chave, valor in d.items():` entrega a cada repetição?",
+      "options": [
+        "a chave e o valor do mesmo par",
+        "só a chave",
+        "só o valor",
+        "uma posição numérica"
+      ],
+      "answerIndex": 0,
+      "feedback": "Cada volta abre um par: a chave vai para um nome e o valor para o outro.",
+      "sectionId": "o-par-da-vez",
+      "optionRationales": [
+        "`.items` devolve pares (chave, valor) e o `for` os abre nos dois nomes.",
+        "Só a chave você já teria com `.keys` ou com o `for` no dicionário.",
+        "Só o valor você já teria com `.values`.",
+        "Posição numérica é coisa de lista com índice; aqui o par vem inteiro."
+      ]
+    },
+    {
+      "id": "par-e-uma-tupla",
+      "statement": "O par do `.items` se abre como uma tupla de duas posições.",
+      "question": "No laço com `par`, o que `par[0]` guarda?",
+      "options": [
+        "a chave",
+        "o valor",
+        "o par inteiro",
+        "o tamanho do dicionário"
+      ],
+      "answerIndex": 0,
+      "feedback": "O par guardado em `par` é uma tupla: posição zero é a chave e posição um é o valor.",
+      "sectionId": "o-par-inteiro",
+      "optionRationales": [
+        "O par tem a chave na posição zero, como a tupla que o `.items` devolve.",
+        "O valor fica na posição um — `par[1]`.",
+        "O par inteiro é o próprio `par`; `par[0]` é uma parte dele.",
+        "O tamanho do dicionário não aparece no par de nenhuma volta."
+      ]
+    },
+    {
+      "id": "items-nao-muda-o-dicionario",
+      "statement": "Percorrer com `.items` não muda o dicionário.",
+      "question": "Depois do laço `for chave, valor in d.items():`, o que acontece com `d`?",
+      "options": [
+        "continua com os mesmos pares",
+        "ganha os valores dentro das chaves",
+        "fica vazio",
+        "inverte chave com valor"
+      ],
+      "answerIndex": 0,
+      "feedback": "O `.items` só lê: cada par é mostrado e nada muda no dicionário.",
+      "sectionId": "qual-e-o-estado-agora",
+      "optionRationales": [
+        "Percorrer com `.items` é leitura; os pares continuam guardados como estavam.",
+        "Os valores já estão dentro das chaves — nada novo é guardado.",
+        "Nenhum par é apagado por um laço de leitura.",
+        "Chave e valor não trocam de lugar por percorrer."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "dict.items — documentação oficial",
+      "url": "https://docs.python.org/3/library/stdtypes.html#dict.items",
+      "description": "O método items, que devolve a visão dos pares de chave e valor."
+    },
+    {
+      "title": "Tutorial: dicionários",
+      "url": "https://docs.python.org/3/tutorial/datastructures.html",
+      "description": "O capítulo do tutorial oficial sobre percorrer dicionários com items."
+    }
+  ],
+  "challenges": [
+    "os-pares-de-cada-chave"
+  ]
+}

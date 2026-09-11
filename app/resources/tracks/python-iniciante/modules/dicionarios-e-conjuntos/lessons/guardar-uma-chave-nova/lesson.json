@@ -1,0 +1,117 @@
+{
+  "schemaVersion": 1,
+  "slug": "guardar-uma-chave-nova",
+  "title": "Guardar uma chave nova",
+  "summary": "O `=` que dá nome a um valor também guarda pares: `d[\"chave\"] = valor`.",
+  "difficulty": 4,
+  "role": "consolidation",
+  "targetAtom": "decl:assign",
+  "concepts": [
+    "atribuir_chave"
+  ],
+  "prerequisites": [
+    "pegar-pela-chave",
+    "dar-nome-a-um-valor"
+  ],
+  "introduces": {
+    "productive": [
+      "decl:assign"
+    ],
+    "receptive": []
+  },
+  "introducesTerms": [],
+  "theory": [
+    {
+      "id": "colocando-um-par-novo",
+      "title": "Colocando um par novo",
+      "markdown": "Com `=` você dá nome a um valor. Num dicionário, a forma nova usa a chave dentro de colchetes: `d[chave] = valor` guarda (ou troca) um par:\n\n```python\nnotas = {\"ana\": 8}\nnotas[\"bia\"] = 9\nprint(notas)\n```\n\n```text\n{'ana': 8, 'bia': 9}\n```\n\nA chave `\"bia\"` não existia: o par foi criado. O dicionário foi alterado — nada foi trocado de nome."
+    },
+    {
+      "id": "trocar-nao-e-substituir",
+      "title": "Trocar não é substituir",
+      "markdown": "Se a chave já existe, o `=` troca o valor dela:\n\n```python\nd = {\"a\": 1}\nd[\"a\"] = 5\nprint(d)\n```\n\n```text\n{'a': 5}\n```\n\nErrado: `d = {\"a\": 5}` — isso cria um dicionário NOVO e apaga o resto. Certo: `d[\"a\"] = 5` — mexe só no par da chave `\"a\"`."
+    },
+    {
+      "id": "qual-e-o-estado-agora",
+      "title": "Qual é o estado agora?",
+      "markdown": "Responda antes de rodar: o que aparece na tela?\n\n```python\nd = {\"a\": 1, \"b\": 2}\nd[\"c\"] = 3\nprint(len(d))\n```\n\n```text\n3\n```\n\nO `=` acrescentou um terceiro par; `len` conta três. E o valor de `d[\"a\"]` continua 1 — a chave nova não mexeu nas antigas."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "igual-com-colchete-guarda",
+      "statement": "`d[chave] = valor` guarda um par no dicionário.",
+      "question": "O que `d[\"c\"] = 3` faz com `d = {\"a\": 1, \"b\": 2}`?",
+      "options": [
+        "guarda o par \"c\" valendo 3, e o dicionário fica com três pares",
+        "apaga os pares antigos e deixa só o par \"c\"",
+        "soma 3 ao valor de \"c\", que ainda não existia",
+        "dá um erro, porque \"c\" não estava no dicionário"
+      ],
+      "answerIndex": 0,
+      "feedback": "O `=` com colchete cria a chave \"c\" com o valor 3, somando um par aos dois existentes.",
+      "sectionId": "colocando-um-par-novo",
+      "optionRationales": [
+        "Chave nova com `=` cria o par novo e preserva os antigos.",
+        "Apagar os antigos seria trocar a variável inteira por outro dicionário, não guardar na chave.",
+        "O `=` guarda o valor; não soma com o que havia.",
+        "Não há erro: guardar uma chave nova é exatamente o que o `=` faz."
+      ]
+    },
+    {
+      "id": "chave-existente-troca-o-valor",
+      "statement": "Com a chave existente, o `=` troca o valor.",
+      "question": "Depois de `d[\"a\"] = 5` com `d = {\"a\": 1, \"b\": 2}`, o que `d` guarda?",
+      "options": [
+        "{\"a\": 5, \"b\": 2}",
+        "{\"a\": 5}",
+        "{\"a\": 1, \"b\": 2, \"a\": 5}",
+        "{\"a\": 6, \"b\": 2}"
+      ],
+      "answerIndex": 0,
+      "feedback": "A chave \"a\" já existia, então o valor dela foi trocado para 5; \"b\" continua intacta.",
+      "sectionId": "trocar-nao-e-substituir",
+      "optionRationales": [
+        "A chave \"a\" troca o valor para 5 e o resto do dicionário fica como estava.",
+        "{\"a\": 5} só sairia se o dicionário inteiro fosse substituído por outro.",
+        "Chave não repete: a segunda escrita substitui a primeira, não se acumula.",
+        "O `=` guarda o valor 5; não soma 5 ao valor antigo 1."
+      ]
+    },
+    {
+      "id": "guardar-nao-e-apagar",
+      "statement": "Guardar uma chave nova não apaga as antigas.",
+      "question": "Quantos pares `d` tem depois de `d[\"c\"] = 3` com `d = {\"a\": 1, \"b\": 2}`?",
+      "options": [
+        "três",
+        "um",
+        "dois",
+        "quatro"
+      ],
+      "answerIndex": 0,
+      "feedback": "Os dois pares antigos continuam e o par novo entra: três no total.",
+      "sectionId": "qual-e-o-estado-agora",
+      "optionRationales": [
+        "O \"a\" e o \"b\" ficam, e o \"c\" entra: três pares.",
+        "Um só par seria o resultado de substituir o dicionário inteiro.",
+        "Dois era a conta antes de o par novo entrar.",
+        "Quatro pares exigiriam duas chaves novas ou outra troca além da feita."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "Tutorial: dicionários",
+      "url": "https://docs.python.org/3/tutorial/datastructures.html",
+      "description": "O capítulo do tutorial oficial sobre criar e atualizar pares de dicionário."
+    },
+    {
+      "title": "Dicionários — documentação oficial",
+      "url": "https://docs.python.org/3/library/stdtypes.html#dict",
+      "description": "O tipo dict e como os pares são guardados e trocados."
+    }
+  ],
+  "challenges": [
+    "guardando-uma-chave-nova"
+  ]
+}

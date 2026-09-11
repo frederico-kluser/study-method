@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "slug": "guardando-uma-chave-nova",
+  "title": "Guardando uma chave nova",
+  "concept": "atribuir_chave",
+  "difficulty": 4,
+  "language": "python",
+  "outputChannel": "retorno",
+  "statement": "# Guardando uma chave nova\n\nEscreva a função `guardar(d, chave, valor)` que guarda `valor` na `chave` do dicionário, usando a forma `d[chave] = valor` como na aula. A função altera o dicionário que recebe — ela não devolve nada:\n\n```python\ndef guardar(d, chave, valor):\n    # guarde o valor na chave do dicionario\n    pass\n```\n\nExemplos:\n\n```text\nd = {\"a\": 1}\nguardar(d, \"b\", 2)\nd  ->  {'a': 1, 'b': 2}\n\nd = {\"a\": 1}\nguardar(d, \"a\", 9)\nd  ->  {'a': 9}\n```",
+  "starterCode": "def guardar(d, chave, valor):\n    # guarde o valor na chave do dicionario\n    pass\n",
+  "testsCode": "import unittest\n\nfrom solucao import guardar\n\n\nclass TestGuardarUmaChaveNova(unittest.TestCase):\n    def test_guarda_a_chave_nova(self):\n        \"\"\"guardar poe a chave nova no dicionario\"\"\"\n        d = {\"a\": 1}\n        guardar(d, \"b\", 2)\n        self.assertEqual(d, {\"a\": 1, \"b\": 2})\n\n    def test_muda_o_valor_da_chave(self):\n        \"\"\"guardar troca o valor quando a chave ja existe\"\"\"\n        d = {\"a\": 1}\n        guardar(d, \"a\", 9)\n        self.assertEqual(d, {\"a\": 9})\n\n    def test_guarda_em_dicionario_vazio(self):\n        \"\"\"guardar funciona com o dicionario vazio\"\"\"\n        d = {}\n        guardar(d, \"x\", 7)\n        self.assertEqual(d, {\"x\": 7})\n",
+  "solutionCode": "def guardar(d, chave, valor):\n    d[chave] = valor\n",
+  "expectedTestCount": 3,
+  "requirements": [
+    {
+      "id": "test_guarda_a_chave_nova",
+      "teste": "test_guarda_a_chave_nova",
+      "descricao": "guardar poe a chave nova no dicionario"
+    },
+    {
+      "id": "test_muda_o_valor_da_chave",
+      "teste": "test_muda_o_valor_da_chave",
+      "descricao": "guardar troca o valor quando a chave ja existe"
+    },
+    {
+      "id": "test_guarda_em_dicionario_vazio",
+      "teste": "test_guarda_em_dicionario_vazio",
+      "descricao": "guardar funciona com o dicionario vazio"
+    }
+  ]
+}

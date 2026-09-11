@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "slug": "pegando-pela-chave",
+  "title": "Pegando pela chave",
+  "concept": "acesso_por_chave",
+  "difficulty": 4,
+  "language": "python",
+  "outputChannel": "retorno",
+  "statement": "# Pegando pela chave\n\nEscreva a função `pegar(d, chave)` que devolve o valor guardado na chave, usando o colchete como na aula:\n\n```python\ndef pegar(d, chave):\n    # devolva o valor guardado na chave\n    pass\n```\n\nExemplos:\n\n```text\npegar({\"a\": 10, \"b\": 20}, \"b\")  ->  20\npegar({\"a\": 10, \"b\": 20}, \"a\")  ->  10\npegar({\"uva\": 6, \"kiwi\": 3}, \"kiwi\")  ->  3\n```\n\nA função devolve o valor — ela não imprime nada.",
+  "starterCode": "def pegar(d, chave):\n    # devolva o valor guardado na chave\n    pass\n",
+  "testsCode": "import unittest\n\nfrom solucao import pegar\n\n\nclass TestPegarPelaChave(unittest.TestCase):\n    def test_pega_o_valor_da_chave(self):\n        \"\"\"pegar devolve o valor guardado na chave pedida\"\"\"\n        self.assertEqual(pegar({\"a\": 10, \"b\": 20}, \"b\"), 20)\n\n    def test_pega_outra_chave(self):\n        \"\"\"pegar devolve o valor de outra chave do mesmo dicionario\"\"\"\n        self.assertEqual(pegar({\"a\": 10, \"b\": 20}, \"a\"), 10)\n\n    def test_pega_em_outro_dicionario(self):\n        \"\"\"pegar devolve o valor guardado em outro dicionario\"\"\"\n        self.assertEqual(pegar({\"uva\": 6, \"kiwi\": 3}, \"kiwi\"), 3)\n",
+  "solutionCode": "def pegar(d, chave):\n    return d[chave]\n",
+  "expectedTestCount": 3,
+  "requirements": [
+    {
+      "id": "test_pega_o_valor_da_chave",
+      "teste": "test_pega_o_valor_da_chave",
+      "descricao": "pegar devolve o valor guardado na chave pedida"
+    },
+    {
+      "id": "test_pega_outra_chave",
+      "teste": "test_pega_outra_chave",
+      "descricao": "pegar devolve o valor de outra chave do mesmo dicionario"
+    },
+    {
+      "id": "test_pega_em_outro_dicionario",
+      "teste": "test_pega_em_outro_dicionario",
+      "descricao": "pegar devolve o valor guardado em outro dicionario"
+    }
+  ]
+}

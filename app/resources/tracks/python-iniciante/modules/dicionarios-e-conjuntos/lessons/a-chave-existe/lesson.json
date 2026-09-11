@@ -1,0 +1,117 @@
+{
+  "schemaVersion": 1,
+  "slug": "a-chave-existe",
+  "title": "A chave existe?",
+  "summary": "O `in` que procurava em listas agora pergunta a um dicionário se a chave existe.",
+  "difficulty": 5,
+  "role": "consolidation",
+  "targetAtom": "op:compare:in",
+  "concepts": [
+    "chave_existe"
+  ],
+  "prerequisites": [
+    "criar-um-dicionario",
+    "esta-na-lista"
+  ],
+  "introduces": {
+    "productive": [
+      "op:compare:in"
+    ],
+    "receptive": []
+  },
+  "introducesTerms": [],
+  "theory": [
+    {
+      "id": "procurar-pela-chave",
+      "title": "Procurar pela chave",
+      "markdown": "O `in` que você usou em listas também pergunta para um dicionário — e a pergunta é só sobre **chaves**:\n\n```python\ncardapio = {\"pao\": 4, \"sopa\": 8}\nprint(\"pao\" in cardapio)\nprint(\"kiwi\" in cardapio)\n```\n\n```text\nTrue\nFalse\n```\n\nCom a chave numa variável funciona igual: `chave in d` devolve `True` ou `False`."
+    },
+    {
+      "id": "nao-procura-nos-valores",
+      "title": "Não procura nos valores",
+      "markdown": "O `in` não olha os valores. No dicionário `{\"pao\": 4}`, `4 in cardapio` é `False` — o 4 está como valor, não como chave:\n\n```python\ncardapio = {\"pao\": 4}\nprint(4 in cardapio)\nprint(\"pao\" in cardapio)\n```\n\n```text\nFalse\nTrue\n```\n\nA negativa existe na língua — `chave not in d` — e o treino aqui é o `in`, com `not` por fora quando precisar."
+    },
+    {
+      "id": "qual-e-o-estado-agora",
+      "title": "Qual é o estado agora?",
+      "markdown": "Responda antes de rodar: o que cada linha mostra?\n\n```python\nd = {\"a\": 1, \"b\": 2}\nprint(\"b\" in d)\nprint(\"c\" in d)\nprint(len(d))\n```\n\n```text\nTrue\nFalse\n2\n```\n\n`\"b\"` é chave, `\"c\"` não é, e o dicionário continua com os dois pares — o `in` só pergunta, não muda nada."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "in-procura-nas-chaves",
+      "statement": "O `in` num dicionário procura nas chaves.",
+      "question": "O que `\"kiwi\" in cardapio` devolve quando `cardapio = {\"pao\": 4}`?",
+      "options": [
+        "False",
+        "True",
+        "um erro KeyError",
+        "o valor 4"
+      ],
+      "answerIndex": 0,
+      "feedback": "A chave \"kiwi\" não está no dicionário, então o `in` devolve False.",
+      "sectionId": "procurar-pela-chave",
+      "optionRationales": [
+        "O `in` responde False quando a chave não existe.",
+        "True só sairia se \"kiwi\" fosse uma chave do dicionário.",
+        "O `in` nunca levanta KeyError — ele responde com True ou False.",
+        "O `in` devolve um booleano, nunca o valor de uma chave."
+      ]
+    },
+    {
+      "id": "in-nao-olha-valores",
+      "statement": "O `in` não procura nos valores.",
+      "question": "O que `4 in cardapio` devolve quando `cardapio = {\"pao\": 4}`?",
+      "options": [
+        "False",
+        "True",
+        "um erro KeyError",
+        "o texto \"pao\""
+      ],
+      "answerIndex": 0,
+      "feedback": "O 4 é valor, não chave — e o `in` só procura nas chaves: False.",
+      "sectionId": "nao-procura-nos-valores",
+      "optionRationales": [
+        "A chave do dicionário é \"pao\"; o 4 é o valor dela e não entra na busca.",
+        "True exigiria o 4 como chave, como em `{4: \"x\"}`.",
+        "O `in` é uma pergunta, não um acesso: responde sem erro.",
+        "O `in` devolve booleano; texto não é resposta dele."
+      ]
+    },
+    {
+      "id": "in-nao-muda-o-dicionario",
+      "statement": "Perguntar com `in` não muda o dicionário.",
+      "question": "Depois de `\"b\" in d` com `d = {\"a\": 1, \"b\": 2}`, quantos pares `d` tem?",
+      "options": [
+        "dois",
+        "um",
+        "nenhum",
+        "três"
+      ],
+      "answerIndex": 0,
+      "feedback": "O `in` só pergunta; os dois pares continuam guardados como estavam.",
+      "sectionId": "qual-e-o-estado-agora",
+      "optionRationales": [
+        "Perguntar não cria nem apaga par nenhum.",
+        "Um par exigiria um `del` antes da pergunta.",
+        "Nada foi apagado do dicionário.",
+        "Nada foi acrescentado — a pergunta não guarda valor."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "Operadores de pertinência — documentação oficial",
+      "url": "https://docs.python.org/3/reference/expressions.html#membership-test-details",
+      "description": "Como o operador in se comporta com dicionários: procura nas chaves."
+    },
+    {
+      "title": "Dicionários — documentação oficial",
+      "url": "https://docs.python.org/3/library/stdtypes.html#dict",
+      "description": "O tipo dict e o comportamento do in com as chaves."
+    }
+  ],
+  "challenges": [
+    "a-chave-tem-dono"
+  ]
+}

@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 1,
+  "slug": "garantindo-e-tirando",
+  "title": "Garantindo e tirando",
+  "concept": "setdefault_popitem",
+  "difficulty": 5,
+  "language": "python",
+  "outputChannel": "retorno",
+  "statement": "# Garantindo e tirando\n\nEscreva duas funções:\n\n- `garantir(d, chave, padrao)` devolve o valor da chave; se ela não existe, guarda o `padrao` e o devolve — use `.setdefault`;\n- `tirar_ultimo(d)` devolve o último par do dicionário, tirando-o de lá — use `.popitem`.\n\n```python\ndef garantir(d, chave, padrao):\n    # devolva o valor da chave, guardando o padrao quando ela nao existe\n    pass\n\n\ndef tirar_ultimo(d):\n    # devolva o ultimo par, tirando-o do dicionario\n    pass\n```\n\nExemplos:\n\n```text\nd = {\"a\": 1}\ngarantir(d, \"a\", 9)  ->  1\ngarantir(d, \"b\", 0)  ->  0\nd  ->  {'a': 1, 'b': 0}\n\nd = {\"a\": 1, \"b\": 2}\ntirar_ultimo(d)  ->  ('b', 2)\nd  ->  {'a': 1}\n```",
+  "starterCode": "def garantir(d, chave, padrao):\n    # devolva o valor da chave, guardando o padrao quando ela nao existe\n    pass\n\n\ndef tirar_ultimo(d):\n    # devolva o ultimo par, tirando-o do dicionario\n    pass\n",
+  "testsCode": "import unittest\n\nfrom solucao import garantir\nfrom solucao import tirar_ultimo\n\n\nclass TestTirarEDevolver(unittest.TestCase):\n    def test_garantir_devolve_o_valor_guardado(self):\n        \"\"\"garantir devolve o valor quando a chave ja existe\"\"\"\n        d = {\"a\": 1}\n        self.assertEqual(garantir(d, \"a\", 9), 1)\n\n    def test_garantir_guarda_o_padrao(self):\n        \"\"\"garantir guarda o padrao quando a chave nao existe\"\"\"\n        d = {\"a\": 1}\n        self.assertEqual(garantir(d, \"b\", 0), 0)\n        self.assertEqual(d, {\"a\": 1, \"b\": 0})\n\n    def test_tirar_ultimo_devolve_o_ultimo_par(self):\n        \"\"\"tirar_ultimo devolve o ultimo par guardado\"\"\"\n        d = {\"a\": 1, \"b\": 2}\n        self.assertEqual(tirar_ultimo(d), (\"b\", 2))\n\n    def test_tirar_ultimo_remove_o_par(self):\n        \"\"\"tirar_ultimo tira o par do dicionario\"\"\"\n        d = {\"a\": 1, \"b\": 2}\n        tirar_ultimo(d)\n        self.assertEqual(d, {\"a\": 1})\n",
+  "solutionCode": "def garantir(d, chave, padrao):\n    return d.setdefault(chave, padrao)\n\n\ndef tirar_ultimo(d):\n    return d.popitem()\n",
+  "expectedTestCount": 4,
+  "requirements": [
+    {
+      "id": "test_garantir_devolve_o_valor_guardado",
+      "teste": "test_garantir_devolve_o_valor_guardado",
+      "descricao": "garantir devolve o valor quando a chave ja existe"
+    },
+    {
+      "id": "test_garantir_guarda_o_padrao",
+      "teste": "test_garantir_guarda_o_padrao",
+      "descricao": "garantir guarda o padrao quando a chave nao existe"
+    },
+    {
+      "id": "test_tirar_ultimo_devolve_o_ultimo_par",
+      "teste": "test_tirar_ultimo_devolve_o_ultimo_par",
+      "descricao": "tirar_ultimo devolve o ultimo par guardado"
+    },
+    {
+      "id": "test_tirar_ultimo_remove_o_par",
+      "teste": "test_tirar_ultimo_remove_o_par",
+      "descricao": "tirar_ultimo tira o par do dicionario"
+    }
+  ]
+}

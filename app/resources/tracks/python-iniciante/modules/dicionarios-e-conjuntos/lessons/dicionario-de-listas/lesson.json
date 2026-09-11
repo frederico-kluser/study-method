@@ -1,0 +1,119 @@
+{
+  "schemaVersion": 1,
+  "slug": "dicionario-de-listas",
+  "title": "Dicionário de listas",
+  "summary": "O dicionário em forma nova: cada chave pode apontar para uma lista inteira.",
+  "difficulty": 5,
+  "role": "consolidation",
+  "targetAtom": "node:Dict",
+  "concepts": [
+    "dicionario_composto"
+  ],
+  "prerequisites": [
+    "criar-um-dicionario",
+    "criar-uma-lista"
+  ],
+  "introduces": {
+    "productive": [
+      "node:Dict"
+    ],
+    "receptive": []
+  },
+  "introducesTerms": [
+    "valor composto"
+  ],
+  "theory": [
+    {
+      "id": "valor-composto",
+      "title": "Valor composto",
+      "markdown": "O valor de um par pode ser qualquer coisa — inclusive uma **lista**. A forma nova é o dicionário com valor composto:\n\n```python\nregioes = {\"sul\": [\"chapeco\", \"florianopolis\"]}\nprint(regioes[\"sul\"])\n```\n\n```text\n['chapeco', 'florianopolis']\n```\n\nA chave `\"sul\"` aponta para a lista inteira: o colchete devolve a lista, e dela você pega posição com outro colchete."
+    },
+    {
+      "id": "mexer-na-lista-de-dentro",
+      "title": "Mexer na lista de dentro",
+      "markdown": "Com o par na mão, a lista se comporta como qualquer lista:\n\n```python\nregioes = {\"sul\": [\"chapeco\"]}\nregioes[\"sul\"].append(\"joinville\")\nregioes[\"norte\"] = [\"manaus\"]\nprint(regioes)\n```\n\n```text\n{'sul': ['chapeco', 'joinville'], 'norte': ['manaus']}\n```\n\nO `append` entrou na lista do `\"sul\"`; o `=` criou o par do `\"norte\"` com a lista dele."
+    },
+    {
+      "id": "qual-e-o-estado-agora",
+      "title": "Qual é o estado agora?",
+      "markdown": "Responda antes de rodar: quantos pares o dicionário tem, e quantas cidades o `\"sul\"` guarda?\n\n```python\nd = {\"sul\": [\"chapeco\"]}\nd[\"sul\"].append(\"joinville\")\nprint(len(d))\nprint(len(d[\"sul\"]))\n```\n\n```text\n1\n2\n```\n\nUm par apenas — e a lista desse par cresceu para duas cidades."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "valor-pode-ser-lista",
+      "statement": "O valor de uma chave pode ser uma lista inteira.",
+      "question": "Em `{\"sul\": [\"chapeco\", \"florianopolis\"]}`, o que a chave \"sul\" aponta?",
+      "options": [
+        "a lista com as duas cidades",
+        "a cidade \"chapeco\"",
+        "as duas chaves \"chapeco\" e \"florianopolis\"",
+        "o texto \"sul\""
+      ],
+      "answerIndex": 0,
+      "feedback": "O valor do par é a lista inteira — as duas cidades juntas, em ordem.",
+      "sectionId": "valor-composto",
+      "optionRationales": [
+        "O lado direito dos dois-pontos é a lista completa com as duas cidades.",
+        "\"chapeco\" é um item da lista, não o valor inteiro do par.",
+        "As cidades são itens da lista, não chaves do dicionário.",
+        "O texto \"sul\" é a chave; o valor está à direita dos dois-pontos."
+      ]
+    },
+    {
+      "id": "append-na-lista-dentro-do-par",
+      "statement": "Dá para mexer na lista que está dentro do par.",
+      "question": "Depois de `d[\"sul\"].append(\"joinville\")` com `d = {\"sul\": [\"chapeco\"]}`, o que \"sul\" guarda?",
+      "options": [
+        "[\"chapeco\", \"joinville\"]",
+        "[\"chapeco\"]",
+        "[\"joinville\"]",
+        "um erro KeyError"
+      ],
+      "answerIndex": 0,
+      "feedback": "O colchete abriu a lista do \"sul\" e o append entrou nela: agora são duas cidades.",
+      "sectionId": "mexer-na-lista-de-dentro",
+      "optionRationales": [
+        "O append acrescenta \"joinville\" ao fim da lista que o par guarda.",
+        "A lista não fica parada: um item novo entra.",
+        "[\"joinville\"] sairia se a lista antiga fosse trocada, e não foi.",
+        "A chave \"sul\" existe, então não há KeyError."
+      ]
+    },
+    {
+      "id": "len-de-cada-um",
+      "statement": "O `len` do dicionário conta pares; o `len` da lista conta itens.",
+      "question": "Depois de `d = {\"sul\": [\"chapeco\"]}` e `d[\"sul\"].append(\"joinville\")`, quanto valem `len(d)` e `len(d[\"sul\"])`?",
+      "options": [
+        "1 e 2",
+        "2 e 1",
+        "2 e 2",
+        "1 e 1"
+      ],
+      "answerIndex": 0,
+      "feedback": "O dicionário tem um par; a lista dentro dele tem duas cidades: 1 e 2.",
+      "sectionId": "qual-e-o-estado-agora",
+      "optionRationales": [
+        "Um par só, e a lista desse par cresceu para dois itens.",
+        "O dicionário não ganhou par novo — o append mexeu na lista de dentro.",
+        "O dicionário não tem dois pares: só \"sul\" existe.",
+        "A lista não ficou com um item: o append acrescentou o segundo."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "Tutorial: dicionários",
+      "url": "https://docs.python.org/3/tutorial/datastructures.html",
+      "description": "O capítulo do tutorial oficial sobre dicionários com valores compostos."
+    },
+    {
+      "title": "Dicionários — documentação oficial",
+      "url": "https://docs.python.org/3/library/stdtypes.html#dict",
+      "description": "O tipo dict: o valor de cada chave pode ser qualquer objeto, inclusive lista."
+    }
+  ],
+  "challenges": [
+    "as-regioes"
+  ]
+}

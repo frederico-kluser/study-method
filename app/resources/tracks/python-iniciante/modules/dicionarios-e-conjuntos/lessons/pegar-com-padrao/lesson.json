@@ -1,0 +1,119 @@
+{
+  "schemaVersion": 1,
+  "slug": "pegar-com-padrao",
+  "title": "Pegar com padrão",
+  "summary": "O método `.get` devolve um valor padrão quando a chave não existe, em vez de quebrar.",
+  "difficulty": 4,
+  "role": "regular",
+  "targetAtom": "api:.get",
+  "concepts": [
+    "metodo_get"
+  ],
+  "prerequisites": [
+    "pegar-pela-chave"
+  ],
+  "introduces": {
+    "productive": [
+      "api:.get"
+    ],
+    "receptive": []
+  },
+  "introducesTerms": [
+    "método",
+    "padrão"
+  ],
+  "theory": [
+    {
+      "id": "um-troco-para-a-chave-ausente",
+      "title": "Um troco para a chave ausente",
+      "markdown": "O colchete quebra quando a chave não existe. O método `.get` devolve um **padrão** no lugar de quebrar:\n\n```python\nprecos = {\"pao\": 4}\nprint(precos.get(\"kiwi\", 0))\n```\n\n```text\n0\n```\n\nO `.get` recebe a chave e o padrão: chave existe → devolve o valor; não existe → devolve o padrão. Sem o padrão, devolve `None`."
+    },
+    {
+      "id": "get-e-colchetes",
+      "title": "get e colchetes",
+      "markdown": "As duas formas lado a lado:\n\n```python\nprecos = {\"pao\": 4}\nprint(precos[\"kiwi\"])\n```\n\n```text\nTraceback (most recent call last):\n  File \"<stdin>\", line 1, in <module>\nKeyError: 'kiwi'\n```\n\nErrado quando a chave pode faltar: `precos[\"kiwi\"]`, que levanta `KeyError`. Certo: `precos.get(\"kiwi\", 0)`, que devolve `0` sem quebrar. Escolha o colchete quando a chave precisa existir; e o `.get`, quando ela pode faltar."
+    },
+    {
+      "id": "qual-e-o-estado-agora",
+      "title": "Qual é o estado agora?",
+      "markdown": "Responda antes de rodar: o que cada chamada devolve?\n\n```python\nd = {\"a\": 1}\nprint(d.get(\"a\", 9))\nprint(d.get(\"b\", 9))\n```\n\n```text\n1\n9\n```\n\nA primeira acha a chave `\"a\"` e ignora o padrão; a segunda não acha `\"b\"` e devolve o `9`. E o dicionário não mudou: o `.get` só lê."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "get-devolve-o-padrao",
+      "statement": "`.get` devolve o padrão quando a chave não existe.",
+      "question": "O que `precos.get(\"kiwi\", 0)` devolve quando `precos = {\"pao\": 4}`?",
+      "options": [
+        "0",
+        "4",
+        "um erro KeyError",
+        "None"
+      ],
+      "answerIndex": 0,
+      "feedback": "A chave \"kiwi\" não existe, então o `.get` devolve o padrão pedido: 0.",
+      "sectionId": "um-troco-para-a-chave-ausente",
+      "optionRationales": [
+        "A chave \"kiwi\" não existe; o padrão 0 é a resposta do `.get`.",
+        "4 é o valor da chave \"pao\", que não foi pedida.",
+        "O `.get` nunca levanta KeyError — ele existe justamente para não quebrar.",
+        "None só aparece quando o `.get` é chamado sem padrão."
+      ]
+    },
+    {
+      "id": "get-com-chave-presente",
+      "statement": "Com a chave presente, `.get` devolve o valor e ignora o padrão.",
+      "question": "O que `d.get(\"a\", 9)` devolve quando `d = {\"a\": 1}`?",
+      "options": [
+        "1",
+        "9",
+        "um erro KeyError",
+        "None"
+      ],
+      "answerIndex": 0,
+      "feedback": "A chave \"a\" existe, então o valor dela, 1, é devolvido — o padrão fica de fora.",
+      "sectionId": "qual-e-o-estado-agora",
+      "optionRationales": [
+        "O padrão só é usado quando a chave não existe; aqui ela existe e vale 1.",
+        "9 é o padrão, e o padrão só entra em cena sem a chave.",
+        "O `.get` é seguro: com a chave presente não há erro nenhum.",
+        "None só aparece quando o `.get` é chamado sem padrão."
+      ]
+    },
+    {
+      "id": "get-nao-muda-o-dicionario",
+      "statement": "`.get` não muda o dicionário.",
+      "question": "Depois de `d.get(\"b\", 0)` com `d = {\"a\": 1}`, o que `d` guarda?",
+      "options": [
+        "{\"a\": 1}",
+        "{\"a\": 1, \"b\": 0}",
+        "{\"b\": 0}",
+        "nada, ficou vazio"
+      ],
+      "answerIndex": 0,
+      "feedback": "O `.get` só lê: a chave \"b\" não entrou no dicionário, que segue com {\"a\": 1}.",
+      "sectionId": "um-troco-para-a-chave-ausente",
+      "optionRationales": [
+        "O `.get` devolve o padrão sem guardá-lo — o dicionário não muda.",
+        "Guardar a chave ausente seria trabalho do `setdefault`, não do `.get`.",
+        "Nenhum par foi tirado nem trocado.",
+        "Os pares continuam todos lá: o `.get` não apaga nada."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "dict.get — documentação oficial",
+      "url": "https://docs.python.org/3/library/stdtypes.html#dict.get",
+      "description": "O método get: devolve o valor da chave, ou o padrão quando a chave não existe."
+    },
+    {
+      "title": "Dicionários — documentação oficial",
+      "url": "https://docs.python.org/3/library/stdtypes.html#dict",
+      "description": "O tipo dict e a lista completa dos métodos dele."
+    }
+  ],
+  "challenges": [
+    "pegando-com-padrao"
+  ]
+}

@@ -1,0 +1,118 @@
+{
+  "schemaVersion": 1,
+  "slug": "apagar-uma-chave",
+  "title": "Apagar uma chave",
+  "summary": "A palavra `del` tira um par inteiro do dicionário, pela chave.",
+  "difficulty": 4,
+  "role": "regular",
+  "targetAtom": "node:Delete",
+  "concepts": [
+    "apagar_chave"
+  ],
+  "prerequisites": [
+    "pegar-pela-chave"
+  ],
+  "introduces": {
+    "productive": [
+      "node:Delete"
+    ],
+    "receptive": []
+  },
+  "introducesTerms": [
+    "apagar"
+  ],
+  "theory": [
+    {
+      "id": "apagando-um-par",
+      "title": "Apagando um par",
+      "markdown": "A palavra `del` apaga um par do dicionário, pela chave:\n\n```python\ncardapio = {\"pao\": 4, \"sopa\": 8}\ndel cardapio[\"sopa\"]\nprint(cardapio)\n```\n\n```text\n{'pao': 4}\n```\n\nO par da chave `\"sopa\"` saiu inteiro — chave e valor — e o resto continua. A forma vale com variável também: `del d[chave]`."
+    },
+    {
+      "id": "apagar-nao-e-zerar",
+      "title": "Apagar não é zerar",
+      "markdown": "Errado: `cardapio[\"sopa\"] = 0` — o par continua lá, só com o valor zerado. Certo: `del cardapio[\"sopa\"]` — o par sai inteiro. Cuidado: apagar uma chave que não existe também dá `KeyError`, como na leitura com colchete."
+    },
+    {
+      "id": "qual-e-o-estado-agora",
+      "title": "Qual é o estado agora?",
+      "markdown": "Responda antes de rodar: o que aparece na tela?\n\n```python\nd = {\"a\": 1, \"b\": 2, \"c\": 3}\ndel d[\"b\"]\nprint(len(d))\n```\n\n```text\n2\n```\n\nSaiu um par; sobraram dois. O `len` conta os pares restantes, `\"a\"` e `\"c\"`."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "del-tira-o-par-inteiro",
+      "statement": "`del` tira o par inteiro do dicionário.",
+      "question": "Depois de `del d[\"b\"]` com `d = {\"a\": 1, \"b\": 2}`, o que `d` guarda?",
+      "options": [
+        "{\"a\": 1}",
+        "{\"a\": 1, \"b\": 0}",
+        "{\"a\": 1, \"b\": 2, \"c\": 3}",
+        "{}"
+      ],
+      "answerIndex": 0,
+      "feedback": "O par da chave \"b\" saiu inteiro; o par \"a\" continua: {\"a\": 1}.",
+      "sectionId": "apagando-um-par",
+      "optionRationales": [
+        "O `del` remove chave e valor juntos, e só o par pedido.",
+        "Zerar o valor seria atribuir 0, não apagar — o par continuaria lá.",
+        "Nenhum par novo apareceu; só o \"b\" foi embora.",
+        "O par \"a\" não foi pedido e continua guardado."
+      ]
+    },
+    {
+      "id": "del-nao-zerar",
+      "statement": "Apagar é diferente de zerar o valor.",
+      "question": "Qual linha tira o par \"sopa\" de `cardapio = {\"pao\": 4, \"sopa\": 8}`?",
+      "options": [
+        "`del cardapio[\"sopa\"]`",
+        "`cardapio[\"sopa\"] = 0`",
+        "`cardapio = {}`",
+        "`cardapio[\"pao\"] = 4`"
+      ],
+      "answerIndex": 0,
+      "feedback": "O `del` com a chave dentro dos colchetes remove o par inteiro.",
+      "sectionId": "apagar-nao-e-zerar",
+      "optionRationales": [
+        "`del` + colchete com a chave é a forma de apagar um par.",
+        "Atribuir 0 troca o valor e deixa o par — não apaga.",
+        "`cardapio = {}` cria um dicionário novo vazio, apagando tudo, não só \"sopa\".",
+        "Essa linha não mexe em nada: o par \"pao\" já estava assim."
+      ]
+    },
+    {
+      "id": "del-muda-o-tamanho",
+      "statement": "Apagar um par diminui a contagem do `len`.",
+      "question": "Quantos pares `d` tem depois de `del d[\"b\"]` com `d = {\"a\": 1, \"b\": 2, \"c\": 3}`?",
+      "options": [
+        "dois",
+        "um",
+        "três",
+        "zero"
+      ],
+      "answerIndex": 0,
+      "feedback": "Saiu o par \"b\"; ficaram \"a\" e \"c\": dois pares.",
+      "sectionId": "qual-e-o-estado-agora",
+      "optionRationales": [
+        "Apenas um dos três pares foi removido.",
+        "Um par só restaria se dois fossem apagados.",
+        "Três era a contagem antes do `del`.",
+        "O dicionário ainda tem os pares \"a\" e \"c\"."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "A instrução del — documentação oficial",
+      "url": "https://docs.python.org/3/reference/simple_stmts.html#the-del-statement",
+      "description": "A instrução del e como ela remove itens, inclusive pares de dicionário."
+    },
+    {
+      "title": "Dicionários — documentação oficial",
+      "url": "https://docs.python.org/3/library/stdtypes.html#dict",
+      "description": "O tipo dict e os métodos de remoção de pares."
+    }
+  ],
+  "challenges": [
+    "apagando-uma-chave"
+  ]
+}

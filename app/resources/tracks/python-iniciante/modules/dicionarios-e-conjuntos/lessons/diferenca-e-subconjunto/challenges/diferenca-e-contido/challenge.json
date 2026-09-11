@@ -1,0 +1,41 @@
+{
+  "schemaVersion": 1,
+  "slug": "diferenca-e-contido",
+  "title": "Diferença e contido",
+  "concept": "diferenca_subconjunto",
+  "difficulty": 5,
+  "language": "python",
+  "outputChannel": "retorno",
+  "statement": "# Diferença e contido\n\nEscreva duas funções:\n\n- `so_em(a, b)` devolve o que está em `a` e não está em `b`, com `.difference()`;\n- `contido(a, b)` devolve `True` quando todo valor de `a` cabe em `b`, com `.issubset()`.\n\n```python\ndef so_em(a, b):\n    # devolva o que esta em a e nao esta em b\n    pass\n\n\ndef contido(a, b):\n    # devolva True quando a cabe em b\n    pass\n```\n\nExemplos:\n\n```text\nso_em({1, 2, 3}, {2, 3})  ->  {1}\nso_em({1, 2}, {1, 2})  ->  set()\ncontido({1, 2}, {1, 2, 3})  ->  True\ncontido({1, 2}, {1, 3})  ->  False\ncontido(set(), {1})  ->  True\n```\n\nAs funções devolvem — elas não imprimem nada.",
+  "starterCode": "def so_em(a, b):\n    # devolva o que esta em a e nao esta em b\n    pass\n\n\ndef contido(a, b):\n    # devolva True quando a cabe em b\n    pass\n",
+  "testsCode": "import unittest\n\nfrom solucao import so_em\nfrom solucao import contido\n\n\nclass TestDiferencaESubconjunto(unittest.TestCase):\n    def test_so_em_devolve_o_que_so_a_tem(self):\n        \"\"\"so_em devolve o que o primeiro tem e o segundo nao\"\"\"\n        self.assertEqual(so_em({1, 2, 3}, {2, 3}), {1})\n\n    def test_so_em_de_iguais(self):\n        \"\"\"so_em de conjuntos iguais devolve o conjunto vazio\"\"\"\n        self.assertEqual(so_em({1, 2}, {1, 2}), set())\n\n    def test_contido_devolve_true(self):\n        \"\"\"contido devolve True quando o primeiro cabe no segundo\"\"\"\n        self.assertTrue(contido({1, 2}, {1, 2, 3}))\n\n    def test_contido_devolve_false(self):\n        \"\"\"contido devolve False quando o primeiro nao cabe no segundo\"\"\"\n        self.assertFalse(contido({1, 2}, {1, 3}))\n\n    def test_vazio_cabe_em_tudo(self):\n        \"\"\"contido do conjunto vazio devolve True\"\"\"\n        self.assertTrue(contido(set(), {1}))\n",
+  "solutionCode": "def so_em(a, b):\n    return a.difference(b)\n\n\ndef contido(a, b):\n    return a.issubset(b)\n",
+  "expectedTestCount": 5,
+  "requirements": [
+    {
+      "id": "test_so_em_devolve_o_que_so_a_tem",
+      "teste": "test_so_em_devolve_o_que_so_a_tem",
+      "descricao": "so_em devolve o que o primeiro tem e o segundo nao"
+    },
+    {
+      "id": "test_so_em_de_iguais",
+      "teste": "test_so_em_de_iguais",
+      "descricao": "so_em de conjuntos iguais devolve o conjunto vazio"
+    },
+    {
+      "id": "test_contido_devolve_true",
+      "teste": "test_contido_devolve_true",
+      "descricao": "contido devolve True quando o primeiro cabe no segundo"
+    },
+    {
+      "id": "test_contido_devolve_false",
+      "teste": "test_contido_devolve_false",
+      "descricao": "contido devolve False quando o primeiro nao cabe no segundo"
+    },
+    {
+      "id": "test_vazio_cabe_em_tudo",
+      "teste": "test_vazio_cabe_em_tudo",
+      "descricao": "contido do conjunto vazio devolve True"
+    }
+  ]
+}

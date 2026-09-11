@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "slug": "dicionarios-e-conjuntos",
+  "title": "Dicionários e conjuntos",
+  "order": 7,
+  "lessons": [
+    "criar-um-dicionario",
+    "pegar-pela-chave",
+    "pegar-com-padrao",
+    "guardar-uma-chave-nova",
+    "apagar-uma-chave",
+    "as-chaves-e-os-valores",
+    "chave-e-valor-juntos",
+    "percorrer-um-dicionario",
+    "a-chave-existe",
+    "juntar-dicionarios",
+    "tirar-e-devolver",
+    "dicionario-de-listas",
+    "conjunto-sem-repetidos",
+    "contas-de-conjunto",
+    "diferenca-e-subconjunto",
+    "a-chave-precisa-ser-imutavel"
+  ]
+}

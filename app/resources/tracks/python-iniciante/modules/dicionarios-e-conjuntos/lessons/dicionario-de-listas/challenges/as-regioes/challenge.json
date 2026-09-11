@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "slug": "as-regioes",
+  "title": "As regiões",
+  "concept": "dicionario_composto",
+  "difficulty": 5,
+  "language": "python",
+  "outputChannel": "retorno",
+  "statement": "# As regiões\n\nCrie a função `regioes()` que devolve o dicionário com as listas das regiões, como na aula:\n\n```python\ndef regioes():\n    # devolva o dicionario com as listas das regioes\n    pass\n```\n\nEla devolve:\n\n```text\nregioes()  ->  {'sul': ['chapeco', 'florianopolis'], 'norte': ['manaus']}\n```\n\nA chave `\"sul\"` aponta para a lista `[\"chapeco\", \"florianopolis\"]` e a chave `\"norte\"` para `[\"manaus\"]`. A função devolve o dicionário — ela não imprime nada.",
+  "starterCode": "def regioes():\n    # devolva o dicionario com as listas das regioes\n    pass\n",
+  "testsCode": "import unittest\n\nfrom solucao import regioes\n\n\nclass TestDicionarioDeListas(unittest.TestCase):\n    def test_sul_tem_duas_cidades(self):\n        \"\"\"regioes guarda a lista do sul com duas cidades\"\"\"\n        self.assertEqual(regioes()[\"sul\"], [\"chapeco\", \"florianopolis\"])\n\n    def test_norte_tem_uma_cidade(self):\n        \"\"\"regioes guarda a lista do norte com uma cidade\"\"\"\n        self.assertEqual(regioes()[\"norte\"], [\"manaus\"])\n\n    def test_tem_as_duas_regioes(self):\n        \"\"\"regioes guarda as duas regioes\"\"\"\n        self.assertEqual(sorted(regioes()), [\"norte\", \"sul\"])\n",
+  "solutionCode": "def regioes():\n    return {\"sul\": [\"chapeco\", \"florianopolis\"], \"norte\": [\"manaus\"]}\n",
+  "expectedTestCount": 3,
+  "requirements": [
+    {
+      "id": "test_sul_tem_duas_cidades",
+      "teste": "test_sul_tem_duas_cidades",
+      "descricao": "regioes guarda a lista do sul com duas cidades"
+    },
+    {
+      "id": "test_norte_tem_uma_cidade",
+      "teste": "test_norte_tem_uma_cidade",
+      "descricao": "regioes guarda a lista do norte com uma cidade"
+    },
+    {
+      "id": "test_tem_as_duas_regioes",
+      "teste": "test_tem_as_duas_regioes",
+      "descricao": "regioes guarda as duas regioes"
+    }
+  ]
+}

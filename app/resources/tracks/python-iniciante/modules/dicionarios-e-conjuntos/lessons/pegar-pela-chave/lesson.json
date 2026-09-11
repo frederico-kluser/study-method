@@ -1,0 +1,119 @@
+{
+  "schemaVersion": 1,
+  "slug": "pegar-pela-chave",
+  "title": "Pegar pela chave",
+  "summary": "O colchete que abria listas abre dicionários — pela chave, e não pela posição.",
+  "difficulty": 4,
+  "role": "consolidation",
+  "targetAtom": "node:Subscript",
+  "concepts": [
+    "acesso_por_chave"
+  ],
+  "prerequisites": [
+    "criar-um-dicionario",
+    "pegar-pela-posicao"
+  ],
+  "introduces": {
+    "productive": [
+      "node:Subscript"
+    ],
+    "receptive": []
+  },
+  "introducesTerms": [
+    "chave"
+  ],
+  "theory": [
+    {
+      "id": "pegando-pela-chave",
+      "title": "Pegando pela chave",
+      "markdown": "A lista você abre pela posição, com `lista[0]`. O dicionário você abre pela **chave** — a mesma forma, `dicionario[chave]`, mas dentro dos colchetes vai a chave, não uma posição:\n\n```python\nprecos = {\"pao\": 4, \"sopa\": 8}\nprint(precos[\"pao\"])\n```\n\n```text\n4\n```\n\nA chave `\"pao\"` devolve o valor `4`. Não existe posição zero nem posição um aqui: os pares não ficam em fila — a busca é pela chave."
+    },
+    {
+      "id": "chave-que-nao-existe",
+      "title": "Chave que não existe",
+      "markdown": "Pedir uma chave que o dicionário não tem é erro, e o Python avisa:\n\n```python\nprecos = {\"pao\": 4}\nprint(precos[\"kiwi\"])\n```\n\n```text\nTraceback (most recent call last):\n  File \"<stdin>\", line 1, in <module>\nKeyError: 'kiwi'\n```\n\nO erro chama-se `KeyError` (falta a chave). Errado: `precos[0]` — procurar por posição num dicionário também dá `KeyError`, porque dicionário não tem posição. Certo: `precos[\"pao\"]`, pela chave."
+    },
+    {
+      "id": "chave-em-variavel",
+      "title": "Chave em variável",
+      "markdown": "A chave pode vir de uma variável — é assim que uma função pega valores:\n\n```python\ndef pegar(d, chave):\n    return d[chave]\n\nprint(pegar({\"a\": 1, \"b\": 2}, \"b\"))\n```\n\n```text\n2\n```\n\nQual é o estado agora? Depois da chamada, `d` continua com os dois pares — pegar só lê, não muda nada."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "colchete-pela-chave",
+      "statement": "O colchete no dicionário abre pela chave, não pela posição.",
+      "question": "O que `precos[\"pao\"]` devolve quando `precos = {\"pao\": 4, \"sopa\": 8}`?",
+      "options": [
+        "4",
+        "8",
+        "\"pao\"",
+        "um erro"
+      ],
+      "answerIndex": 0,
+      "feedback": "A chave \"pao\" aponta para o valor 4 — o colchete devolve o valor da chave.",
+      "sectionId": "pegando-pela-chave",
+      "optionRationales": [
+        "O colchete procura a chave \"pao\" e devolve o valor que ela aponta: 4.",
+        "8 é o valor da chave \"sopa\", não da chave \"pao\".",
+        "A chave é o que vai dentro do colchete; o que sai é o valor dela.",
+        "A chave \"pao\" existe no dicionário, então não há erro."
+      ]
+    },
+    {
+      "id": "chave-ausente-da-erro",
+      "statement": "Pegar uma chave ausente dá KeyError.",
+      "question": "O que acontece com `precos[\"kiwi\"]` quando `precos = {\"pao\": 4}`?",
+      "options": [
+        "um erro KeyError",
+        "o valor 0",
+        "o valor None",
+        "o dicionário inteiro"
+      ],
+      "answerIndex": 0,
+      "feedback": "A chave \"kiwi\" não existe, então o Python levanta KeyError — aviso de chave faltando.",
+      "sectionId": "chave-que-nao-existe",
+      "optionRationales": [
+        "KeyError é exatamente o aviso de chave que não existe no dicionário.",
+        "0 não é devolvido por colchete — devolver padrão é trabalho de outro método.",
+        "None não é devolvido por colchete; o colchete devolve ou o valor, ou erro.",
+        "O colchete devolve o valor de UMA chave, nunca o dicionário inteiro."
+      ]
+    },
+    {
+      "id": "pegar-nao-muda-o-dicionario",
+      "statement": "Pegar pela chave não muda o dicionário.",
+      "question": "Depois de `valor = d[\"b\"]` com `d = {\"a\": 1, \"b\": 2}`, quantos pares `d` tem?",
+      "options": [
+        "dois",
+        "um",
+        "nenhum",
+        "três"
+      ],
+      "answerIndex": 0,
+      "feedback": "Ler o valor de uma chave não tira nem acrescenta par nenhum — continuam dois.",
+      "sectionId": "chave-em-variavel",
+      "optionRationales": [
+        "A leitura com colchetes não mexe no dicionário: os dois pares continuam lá.",
+        "Nenhum par foi apagado — só o valor do par \"b\" foi lido.",
+        "Os pares existem antes e depois da leitura.",
+        "Nada foi acrescentado — a leitura não cria par novo."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "Dicionários — documentação oficial",
+      "url": "https://docs.python.org/3/library/stdtypes.html#dict",
+      "description": "O tipo dict: como acessar o valor de uma chave com colchetes."
+    },
+    {
+      "title": "Tutorial: dicionários",
+      "url": "https://docs.python.org/3/tutorial/datastructures.html",
+      "description": "O capítulo do tutorial oficial com exemplos de acesso por chave."
+    }
+  ],
+  "challenges": [
+    "pegando-pela-chave"
+  ]
+}

@@ -1,0 +1,122 @@
+{
+  "schemaVersion": 1,
+  "slug": "a-chave-precisa-ser-imutavel",
+  "title": "A chave precisa ser imutável",
+  "summary": "O Python acha a chave pelo `hash`; por isso ela não pode mudar — o `frozenset` congela um conjunto para servir de chave.",
+  "difficulty": 5,
+  "role": "regular",
+  "targetAtom": "global:frozenset",
+  "concepts": [
+    "imutabilidade_chave"
+  ],
+  "prerequisites": [
+    "conjunto-sem-repetidos",
+    "a-lista-que-nao-muda"
+  ],
+  "introduces": {
+    "productive": [
+      "global:frozenset",
+      "global:hash"
+    ],
+    "receptive": []
+  },
+  "introducesTerms": [
+    "hash",
+    "imutável",
+    "congelado"
+  ],
+  "theory": [
+    {
+      "id": "o-numero-da-chave",
+      "title": "O número da chave",
+      "markdown": "O Python encontra a chave de um dicionário pelo **hash** — um número calculado a partir do valor. `hash()` devolve esse número:\n\n```python\nprint(hash(7))\n```\n\n```text\n7\n```\n\nPara números, o hash é o próprio número — com uma exceção: `hash(-1)` devolve `-2`, porque o Python reserva o `-1`. É pelo hash que a chave é encontrada, e por isso a chave precisa ser imutável: se o valor mudasse, o número mudaria."
+    },
+    {
+      "id": "chave-mutavel-nao-pode",
+      "title": "Chave mutável não pode",
+      "markdown": "Uma lista muda de conteúdo, então o hash dela mudaria — por isso ela não pode ser chave, e o Python avisa:\n\n```text\nTypeError: unhashable type: 'list'\n```\n\nO remédio é o `frozenset` — um conjunto congelado, que não muda e pode ser chave:\n\n```python\npares = frozenset([1, 2])\nprint(type(pares))\n```\n\n```text\n<class 'frozenset'>\n```\n\nO `frozenset` guarda os mesmos valores do conjunto, mas ninguém consegue mexer nele."
+    },
+    {
+      "id": "qual-e-o-estado-agora",
+      "title": "Qual é o estado agora?",
+      "markdown": "Responda antes de rodar: o que mostra cada linha?\n\n```python\nprint(hash(-1))\nprint(len(frozenset([7, 7])))\n```\n\n```text\n-2\n1\n```\n\nO hash de `-1` é `-2` — e o `frozenset` elimina repetidos como o conjunto: o 7 entra uma vez."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "hash-e-o-numero-da-chave",
+      "statement": "O `hash` é o número que o Python usa para achar a chave.",
+      "question": "O que `hash(7)` devolve?",
+      "options": [
+        "7",
+        "-7",
+        "0",
+        "um erro"
+      ],
+      "answerIndex": 0,
+      "feedback": "Para números, o hash é o próprio número: `hash(7)` devolve 7.",
+      "sectionId": "o-numero-da-chave",
+      "optionRationales": [
+        "O hash de um número é o próprio número — o valor vem de volta igual.",
+        "-7 seria o hash se o sinal invertesse, e ele não inverte.",
+        "0 seria o hash se todos colidissem, e eles não colidem assim.",
+        "`hash` funciona com números: ele sempre devolve um número."
+      ]
+    },
+    {
+      "id": "lista-nao-pode-ser-chave",
+      "statement": "A lista não pode ser chave porque ela muda.",
+      "question": "O que acontece ao tentar usar uma lista como chave?",
+      "options": [
+        "um erro TypeError, porque a lista pode mudar",
+        "funciona, guardando a lista como chave",
+        "a lista vira um texto",
+        "o dicionário ignora a chave"
+      ],
+      "answerIndex": 0,
+      "feedback": "A lista é mutável: o hash dela mudaria — o Python responde com TypeError.",
+      "sectionId": "chave-mutavel-nao-pode",
+      "optionRationales": [
+        "O Python exige chave imutável; a lista muda e dispara o TypeError.",
+        "Funcionar com lista como chave quebraria a busca pelo hash.",
+        "A lista não vira texto nenhum: ela é rejeitada como chave.",
+        "O dicionário não ignora: ele avisa com erro."
+      ]
+    },
+    {
+      "id": "frozenset-pode-ser-chave",
+      "statement": "O `frozenset` é o conjunto congelado, que pode ser chave.",
+      "question": "Para que serve o `frozenset`?",
+      "options": [
+        "congelar um conjunto para ele nunca mudar",
+        "contar quantos itens um conjunto tem",
+        "juntar dois conjuntos num só",
+        "achar o hash de um número"
+      ],
+      "answerIndex": 0,
+      "feedback": "O frozenset é o conjunto imutável: ninguém mexe nele, e por isso ele pode ser chave.",
+      "sectionId": "chave-mutavel-nao-pode",
+      "optionRationales": [
+        "Congelado quer dizer imutável — exatamente o que uma chave precisa ser.",
+        "Contar itens é trabalho do `len`.",
+        "Juntar conjuntos é trabalho do `.union`.",
+        "O hash de um número é trabalho do `hash`."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "hash() — documentação oficial",
+      "url": "https://docs.python.org/3/library/functions.html#hash",
+      "description": "A função hash: o número que o Python calcula para cada valor."
+    },
+    {
+      "title": "frozenset — documentação oficial",
+      "url": "https://docs.python.org/3/library/stdtypes.html#frozenset",
+      "description": "O tipo frozenset: o conjunto imutável, que pode ser chave de dicionário."
+    }
+  ],
+  "challenges": [
+    "congelando-e-marcando"
+  ]
+}

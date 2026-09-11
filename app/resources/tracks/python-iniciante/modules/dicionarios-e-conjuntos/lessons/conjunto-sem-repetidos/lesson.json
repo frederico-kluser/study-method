@@ -1,0 +1,119 @@
+{
+  "schemaVersion": 1,
+  "slug": "conjunto-sem-repetidos",
+  "title": "Conjunto sem repetidos",
+  "summary": "O conjunto guarda cada valor uma vez só: `{1, 2}` ou `set([1, 1, 2])`.",
+  "difficulty": 5,
+  "role": "regular",
+  "targetAtom": "node:Set",
+  "concepts": [
+    "conjuntos"
+  ],
+  "prerequisites": [
+    "criar-um-dicionario"
+  ],
+  "introduces": {
+    "productive": [
+      "node:Set",
+      "global:set"
+    ],
+    "receptive": []
+  },
+  "introducesTerms": [
+    "conjunto"
+  ],
+  "theory": [
+    {
+      "id": "sem-repetidos",
+      "title": "Sem repetidos",
+      "markdown": "O **conjunto** guarda valores sem repetição. A construção nova é a das chaves `{}` com valores soltos:\n\n```python\nprint({1, 2, 3} == {3, 2, 1})\nprint(len({1, 1, 2}))\n```\n\n```text\nTrue\n2\n```\n\nEscrever o `1` duas vezes não cria dois itens — o conjunto guarda cada valor uma vez só, e a ordem dentro dele não importa."
+    },
+    {
+      "id": "criar-a-partir-de-uma-lista",
+      "title": "Criar a partir de uma lista",
+      "markdown": "`set()` cria um conjunto a partir de uma lista — e elimina repetidos no caminho:\n\n```python\nnumeros = [1, 1, 2]\nunicos = set(numeros)\nprint(len(unicos))\n```\n\n```text\n2\n```\n\nErrado: `[1, 1, 2]` — a lista guarda o 1 duas vezes. Certo: `set([1, 1, 2])` — o conjunto guarda uma vez."
+    },
+    {
+      "id": "qual-e-o-estado-agora",
+      "title": "Qual é o estado agora?",
+      "markdown": "Responda antes de rodar: o que cada linha mostra?\n\n```python\nprint(len({9, 9, 9}))\nprint({9, 9, 9} == {9})\n```\n\n```text\n1\nTrue\n```\n\nO 9 repetido três vezes é um item só — e o conjunto de um item vale o conjunto de três 9."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "conjunto-nao-repete",
+      "statement": "O conjunto não guarda valores repetidos.",
+      "question": "Quantos itens tem o conjunto `{1, 1, 2}`?",
+      "options": [
+        "dois",
+        "três",
+        "um",
+        "um erro"
+      ],
+      "answerIndex": 0,
+      "feedback": "O 1 repetido conta uma vez: o conjunto guarda o 1 e o 2 — dois itens.",
+      "sectionId": "sem-repetidos",
+      "optionRationales": [
+        "Cada valor entra uma vez: 1 e 2, mesmo com o 1 escrito duas vezes.",
+        "Três itens seria a contagem de uma lista, que guarda repetidos.",
+        "Um item só haveria se os dois valores fossem iguais.",
+        "Repetir valor em conjunto é válido — o conjunto só não o duplica."
+      ]
+    },
+    {
+      "id": "set-a-partir-de-lista",
+      "statement": "`set()` cria conjunto a partir de uma lista, sem repetidos.",
+      "question": "Depois de `set([1, 1, 2])`, quantos itens o conjunto tem?",
+      "options": [
+        "dois",
+        "três",
+        "um",
+        "quatro"
+      ],
+      "answerIndex": 0,
+      "feedback": "O `set` elimina o 1 repetido: sobram o 1 e o 2 — dois itens.",
+      "sectionId": "criar-a-partir-de-uma-lista",
+      "optionRationales": [
+        "A função `set` devolve um conjunto, e conjunto não repete valor.",
+        "Três era a contagem da lista de entrada, antes da conversão.",
+        "Um item só haveria se todos os valores fossem iguais.",
+        "Nenhum item foi inventado: só os dois valores originais ficaram."
+      ]
+    },
+    {
+      "id": "len-conta-itens-do-conjunto",
+      "statement": "O `len` de um conjunto conta itens distintos.",
+      "question": "Quanto devolve `len({9, 9, 9})`?",
+      "options": [
+        "1",
+        "3",
+        "0",
+        "um erro"
+      ],
+      "answerIndex": 0,
+      "feedback": "Os três 9 são o mesmo item: o conjunto tem um item só.",
+      "sectionId": "qual-e-o-estado-agora",
+      "optionRationales": [
+        "Repetido não conta: o conjunto tem só o 9.",
+        "Três seria a contagem da lista `[9, 9, 9]`.",
+        "O conjunto não está vazio: ele guarda o 9.",
+        "`len` funciona com conjunto — é só contar os itens distintos."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "Conjuntos (set) — documentação oficial",
+      "url": "https://docs.python.org/3/library/stdtypes.html#set",
+      "description": "O tipo set: valores únicos, como criar e o que ele garante."
+    },
+    {
+      "title": "Tutorial: dicionários e conjuntos",
+      "url": "https://docs.python.org/3/tutorial/datastructures.html",
+      "description": "O capítulo do tutorial oficial sobre conjuntos e a função set."
+    }
+  ],
+  "challenges": [
+    "sem-repetidos"
+  ]
+}

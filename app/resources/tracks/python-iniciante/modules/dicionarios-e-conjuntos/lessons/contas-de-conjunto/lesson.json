@@ -1,0 +1,120 @@
+{
+  "schemaVersion": 1,
+  "slug": "contas-de-conjunto",
+  "title": "Contas de conjunto",
+  "summary": "`.union` junta dois conjuntos; `.intersection` acha os valores que estão nos dois.",
+  "difficulty": 5,
+  "role": "regular",
+  "targetAtom": "api:.union",
+  "concepts": [
+    "operacoes_conjunto"
+  ],
+  "prerequisites": [
+    "conjunto-sem-repetidos"
+  ],
+  "introduces": {
+    "productive": [
+      "api:.union",
+      "api:.intersection"
+    ],
+    "receptive": []
+  },
+  "introducesTerms": [
+    "união",
+    "interseção"
+  ],
+  "theory": [
+    {
+      "id": "unindo-conjuntos",
+      "title": "Unindo conjuntos",
+      "markdown": "`.union` junta dois conjuntos num só, sem repetir:\n\n```python\na = {1, 2}\nb = {2, 3}\nprint(a.union(b) == {1, 2, 3})\nprint(len(a.union(b)))\n```\n\n```text\nTrue\n3\n```\n\nO 2, que estava nos dois, entra uma vez só. A ordem dos lados não importa: `a.union(b)` e `b.union(a)` dão o mesmo conjunto."
+    },
+    {
+      "id": "onde-eles-se-encontram",
+      "title": "Onde eles se encontram",
+      "markdown": "`.intersection` devolve só os valores presentes nos dois:\n\n```python\na = {1, 2}\nb = {2, 3}\nprint(a.intersection(b) == {2})\n```\n\n```text\nTrue\n```\n\nErrado: `a + b` — conjunto não soma com `+` (dá `TypeError`). Certo: `.union` para juntar e `.intersection` para o que está nos dois."
+    },
+    {
+      "id": "qual-e-o-estado-agora",
+      "title": "Qual é o estado agora?",
+      "markdown": "Responda antes de rodar: o que mostra cada linha?\n\n```python\na = {1, 2}\nb = {2, 3}\nprint(len(a.union(b)))\nprint(a.intersection(b))\n```\n\n```text\n3\n{2}\n```\n\nA união tem três valores; a interseção tem o 2, o único nos dois. E `a` e `b` continuam como estavam — as contas devolvem conjuntos novos."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "union-junta-sem-repetir",
+      "statement": "`.union` junta os dois conjuntos sem repetir.",
+      "question": "O que `{1, 2}.union({2, 3})` devolve?",
+      "options": [
+        "{1, 2, 3}",
+        "{1, 2, 2, 3}",
+        "{2}",
+        "{1, 3}"
+      ],
+      "answerIndex": 0,
+      "feedback": "A união reúne 1, 2 e 3 — o 2, que estava nos dois, entra uma vez.",
+      "sectionId": "unindo-conjuntos",
+      "optionRationales": [
+        "A união junta os valores dos dois lados, sem repetir o 2.",
+        "Conjunto não guarda repetido: o 2 não pode aparecer duas vezes.",
+        "{2} é a interseção, não a união.",
+        "{1, 3} deixa o 2 de fora, e ele está nos dois lados."
+      ]
+    },
+    {
+      "id": "intersection-so-nos-dois",
+      "statement": "`.intersection` devolve só o que está nos dois conjuntos.",
+      "question": "O que `{1, 2}.intersection({2, 3})` devolve?",
+      "options": [
+        "{2}",
+        "{1, 2, 3}",
+        "{1, 2}",
+        "{2, 3}"
+      ],
+      "answerIndex": 0,
+      "feedback": "O 2 é o único valor presente nos dois lados: a interseção é {2}.",
+      "sectionId": "onde-eles-se-encontram",
+      "optionRationales": [
+        "Só o 2 está nos dois conjuntos ao mesmo tempo.",
+        "{1, 2, 3} seria a união dos dois.",
+        "{1, 2} é o primeiro conjunto inteiro, e o 1 não está no segundo.",
+        "{2, 3} é o segundo conjunto inteiro, e o 3 não está no primeiro."
+      ]
+    },
+    {
+      "id": "contas-devolvem-conjunto-novo",
+      "statement": "As contas devolvem conjuntos novos e não mudam os de entrada.",
+      "question": "Depois de `c = a.union(b)` com `a = {1, 2}`, o que `a` guarda?",
+      "options": [
+        "{1, 2}",
+        "{1, 2, 3}",
+        "{2}",
+        "nada, ficou vazio"
+      ],
+      "answerIndex": 0,
+      "feedback": "A união sai num conjunto novo; o `a` continua com {1, 2}.",
+      "sectionId": "qual-e-o-estado-agora",
+      "optionRationales": [
+        "O `.union` devolve um conjunto novo e deixa os lados como estavam.",
+        "{1, 2, 3} é o resultado guardado em `c`, não em `a`.",
+        "{2} seria a interseção, e nem ela mudaria o `a`.",
+        "Nada foi apagado: o `a` segue com os dois valores."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "set.union — documentação oficial",
+      "url": "https://docs.python.org/3/library/stdtypes.html#frozenset.union",
+      "description": "O método union: a união de conjuntos, sem repetidos."
+    },
+    {
+      "title": "set.intersection — documentação oficial",
+      "url": "https://docs.python.org/3/library/stdtypes.html#frozenset.intersection",
+      "description": "O método intersection: os valores presentes nos dois conjuntos."
+    }
+  ],
+  "challenges": [
+    "juntando-e-intersecando"
+  ]
+}

@@ -1,0 +1,119 @@
+{
+  "schemaVersion": 1,
+  "slug": "tirar-e-devolver",
+  "title": "Tirar e devolver",
+  "summary": "`.setdefault` garante uma chave com padrão; `.popitem` tira o último par e o devolve.",
+  "difficulty": 5,
+  "role": "regular",
+  "targetAtom": "api:.setdefault",
+  "concepts": [
+    "setdefault_popitem"
+  ],
+  "prerequisites": [
+    "pegar-com-padrao"
+  ],
+  "introduces": {
+    "productive": [
+      "api:.setdefault",
+      "api:.popitem"
+    ],
+    "receptive": []
+  },
+  "introducesTerms": [
+    "padrão"
+  ],
+  "theory": [
+    {
+      "id": "garantir-a-chave",
+      "title": "Garantir a chave",
+      "markdown": "`.setdefault` devolve o valor da chave; se a chave não existe, ele **guarda o padrão e devolve o padrão**:\n\n```python\nd = {\"a\": 1}\nprint(d.setdefault(\"a\", 9))\nprint(d.setdefault(\"b\", 0))\nprint(d)\n```\n\n```text\n1\n0\n{'a': 1, 'b': 0}\n```\n\nA chave `\"a\"` já existia e devolveu o 1; a chave `\"b\"` não existia, entrou com o 0 e o devolveu."
+    },
+    {
+      "id": "tirar-e-devolver-o-ultimo",
+      "title": "Tirar e devolver o último",
+      "markdown": "`.popitem` tira o último par guardado e o devolve inteiro:\n\n```python\nd = {\"a\": 1, \"b\": 2}\nprint(d.popitem())\nprint(d)\n```\n\n```text\n('b', 2)\n{'a': 1}\n```\n\nO par devolvido é uma tupla: `par[0]` é a chave e `par[1]` é o valor."
+    },
+    {
+      "id": "qual-e-o-estado-agora",
+      "title": "Qual é o estado agora?",
+      "markdown": "Responda antes de rodar: o que mostra cada linha?\n\n```python\nd = {\"x\": 5}\nprint(d.popitem())\nprint(len(d))\n```\n\n```text\n('x', 5)\n0\n```\n\nO último par saiu; o dicionário ficou vazio — o `popitem` tira para devolver."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "setdefault-guarda-o-padrao",
+      "statement": "`.setdefault` guarda o padrão quando a chave não existe.",
+      "question": "Depois de `d.setdefault(\"b\", 0)` com `d = {\"a\": 1}`, o que `d` guarda?",
+      "options": [
+        "{\"a\": 1, \"b\": 0}",
+        "{\"a\": 1}",
+        "{\"a\": 1, \"b\": 0} e também 0 devolvido",
+        "um erro KeyError"
+      ],
+      "answerIndex": 0,
+      "feedback": "A chave \"b\" não existia: o `setdefault` a guardou com o padrão 0 — e o dicionário fica com dois pares.",
+      "sectionId": "garantir-a-chave",
+      "optionRationales": [
+        "Chave ausente recebe o padrão: o par \"b\" valendo 0 entra no dicionário.",
+        "{\"a\": 1} era o estado antes — depois do `setdefault` o par novo existe.",
+        "O valor devolvido e o guardado são o mesmo 0; o dicionário tem os dois pares.",
+        "O `setdefault` existe para nunca dar KeyError: ele garante a chave."
+      ]
+    },
+    {
+      "id": "setdefault-nao-troca-valor-existente",
+      "statement": "Com a chave existente, `.setdefault` devolve o valor e não troca nada.",
+      "question": "O que `d.setdefault(\"a\", 9)` devolve quando `d = {\"a\": 1}`?",
+      "options": [
+        "1",
+        "9",
+        "um erro KeyError",
+        "o par inteiro"
+      ],
+      "answerIndex": 0,
+      "feedback": "A chave \"a\" já existia com o 1 — o `setdefault` devolve o 1 e ignora o padrão 9.",
+      "sectionId": "garantir-a-chave",
+      "optionRationales": [
+        "O padrão só entra quando a chave falta; aqui o valor guardado é 1.",
+        "9 é o padrão, e o padrão não é usado com a chave presente.",
+        "O `setdefault` nunca dá KeyError: ele garante uma resposta.",
+        "O `setdefault` devolve o valor, nunca o par inteiro."
+      ]
+    },
+    {
+      "id": "popitem-tira-o-ultimo",
+      "statement": "`.popitem` tira o último par e o devolve.",
+      "question": "Depois de `d.popitem()` com `d = {\"a\": 1, \"b\": 2}`, o que `d` guarda?",
+      "options": [
+        "{\"a\": 1}",
+        "{\"a\": 1, \"b\": 2}",
+        "{\"b\": 2}",
+        "um erro KeyError"
+      ],
+      "answerIndex": 0,
+      "feedback": "O último par, o \"b\", saiu; sobra só o \"a\": {\"a\": 1}.",
+      "sectionId": "tirar-e-devolver-o-ultimo",
+      "optionRationales": [
+        "O `popitem` remove o último par guardado: o \"b\" vai embora.",
+        "O dicionário muda: o `popitem` tira de verdade.",
+        "O \"b\" é o último, então ele sai — não sobra como {\"b\": 2}.",
+        "O `popitem` só falha com o dicionário vazio; aqui há pares."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "dict.setdefault — documentação oficial",
+      "url": "https://docs.python.org/3/library/stdtypes.html#dict.setdefault",
+      "description": "O método setdefault: devolve o valor e guarda o padrão quando a chave falta."
+    },
+    {
+      "title": "dict.popitem — documentação oficial",
+      "url": "https://docs.python.org/3/library/stdtypes.html#dict.popitem",
+      "description": "O método popitem: remove e devolve o último par do dicionário."
+    }
+  ],
+  "challenges": [
+    "garantindo-e-tirando"
+  ]
+}

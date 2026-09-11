@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "slug": "frases-do-dicionario",
+  "title": "Frases do dicionário",
+  "concept": "percorrer_dicionario",
+  "difficulty": 5,
+  "language": "python",
+  "outputChannel": "retorno",
+  "statement": "# Frases do dicionário\n\nEscreva a função `frases(d)` que devolve uma lista com uma frase para cada par, no jeito `\"chave=valor\"`, percorrendo o dicionário com `for` e `append`, como na aula:\n\n```python\ndef frases(d):\n    # percorra os pares e monte uma lista de frases chave=valor\n    pass\n```\n\nExemplos:\n\n```text\nfrases({\"a\": 1, \"b\": 2})  ->  ['a=1', 'b=2']\nfrases({\"x\": 9})  ->  ['x=9']\nfrases({})  ->  []\n```\n\nPara montar a frase, use o texto com buraco: `f\"{chave}={valor}\"`.",
+  "starterCode": "def frases(d):\n    # percorra os pares e monte uma lista de frases chave=valor\n    pass\n",
+  "testsCode": "import unittest\n\nfrom solucao import frases\n\n\nclass TestPercorrerUmDicionario(unittest.TestCase):\n    def test_monta_uma_frase_por_par(self):\n        \"\"\"frases monta uma frase por par chave valor\"\"\"\n        self.assertEqual(sorted(frases({\"a\": 1, \"b\": 2})), [\"a=1\", \"b=2\"])\n\n    def test_funciona_com_outro_dicionario(self):\n        \"\"\"frases funciona com outro dicionario\"\"\"\n        self.assertEqual(sorted(frases({\"x\": 9})), [\"x=9\"])\n\n    def test_dicionario_vazio_da_lista_vazia(self):\n        \"\"\"frases de um dicionario vazio devolve a lista vazia\"\"\"\n        self.assertEqual(sorted(frases({})), [])\n",
+  "solutionCode": "def frases(d):\n    montadas = []\n    for chave, valor in d.items():\n        montadas.append(f\"{chave}={valor}\")\n    return montadas\n",
+  "expectedTestCount": 3,
+  "requirements": [
+    {
+      "id": "test_monta_uma_frase_por_par",
+      "teste": "test_monta_uma_frase_por_par",
+      "descricao": "frases monta uma frase por par chave valor"
+    },
+    {
+      "id": "test_funciona_com_outro_dicionario",
+      "teste": "test_funciona_com_outro_dicionario",
+      "descricao": "frases funciona com outro dicionario"
+    },
+    {
+      "id": "test_dicionario_vazio_da_lista_vazia",
+      "teste": "test_dicionario_vazio_da_lista_vazia",
+      "descricao": "frases de um dicionario vazio devolve a lista vazia"
+    }
+  ]
+}

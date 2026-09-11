@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 1,
+  "slug": "separando-chaves-e-valores",
+  "title": "Separando chaves e valores",
+  "concept": "chaves_e_valores",
+  "difficulty": 4,
+  "language": "python",
+  "outputChannel": "retorno",
+  "statement": "# Separando chaves e valores\n\nEscreva duas funções:\n\n- `chaves(d)` devolve a visão das chaves do dicionário, com `.keys()`;\n- `valores(d)` devolve a visão dos valores, com `.values()`.\n\n```python\ndef chaves(d):\n    # devolva a visao das chaves do dicionario\n    pass\n\n\ndef valores(d):\n    # devolva a visao dos valores do dicionario\n    pass\n```\n\nExemplos:\n\n```text\nchaves({\"a\": 1})  ->  dict_keys(['a'])\nchaves({\"x\": 9, \"y\": 8})  ->  dict_keys(['x', 'y'])\nvalores({\"a\": 1, \"b\": 2})  ->  dict_values([1, 2])\nvalores({\"x\": 9})  ->  dict_values([9])\n```\n\nAs funções devolvem a visão — elas não imprimem nada.",
+  "starterCode": "def chaves(d):\n    # devolva a visao das chaves do dicionario\n    pass\n\n\ndef valores(d):\n    # devolva a visao dos valores do dicionario\n    pass\n",
+  "testsCode": "import unittest\n\nfrom solucao import chaves\nfrom solucao import valores\n\n\nclass TestAsChavesEosValores(unittest.TestCase):\n    def test_chaves_devolve_a_visao_das_chaves(self):\n        \"\"\"chaves devolve a visao das chaves do dicionario\"\"\"\n        self.assertEqual(str(chaves({\"a\": 1})), \"dict_keys(['a'])\")\n\n    def test_chaves_de_outro_dicionario(self):\n        \"\"\"chaves funciona com outro dicionario\"\"\"\n        self.assertEqual(str(chaves({\"x\": 9, \"y\": 8})), \"dict_keys(['x', 'y'])\")\n\n    def test_valores_devolve_a_visao_dos_valores(self):\n        \"\"\"valores devolve a visao dos valores guardados\"\"\"\n        self.assertEqual(sorted(valores({\"a\": 1, \"b\": 2})), [1, 2])\n\n    def test_valores_de_outro_dicionario(self):\n        \"\"\"valores devolve a visao dos valores de outro dicionario\"\"\"\n        self.assertEqual(sorted(valores({\"x\": 9})), [9])\n",
+  "solutionCode": "def chaves(d):\n    return d.keys()\n\n\ndef valores(d):\n    return d.values()\n",
+  "expectedTestCount": 4,
+  "requirements": [
+    {
+      "id": "test_chaves_devolve_a_visao_das_chaves",
+      "teste": "test_chaves_devolve_a_visao_das_chaves",
+      "descricao": "chaves devolve a visao das chaves do dicionario"
+    },
+    {
+      "id": "test_chaves_de_outro_dicionario",
+      "teste": "test_chaves_de_outro_dicionario",
+      "descricao": "chaves funciona com outro dicionario"
+    },
+    {
+      "id": "test_valores_devolve_a_visao_dos_valores",
+      "teste": "test_valores_devolve_a_visao_dos_valores",
+      "descricao": "valores devolve a visao dos valores guardados"
+    },
+    {
+      "id": "test_valores_de_outro_dicionario",
+      "teste": "test_valores_de_outro_dicionario",
+      "descricao": "valores devolve a visao dos valores de outro dicionario"
+    }
+  ]
+}

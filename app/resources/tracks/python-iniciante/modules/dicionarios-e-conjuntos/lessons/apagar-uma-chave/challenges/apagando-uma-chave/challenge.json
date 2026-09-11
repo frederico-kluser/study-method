@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "slug": "apagando-uma-chave",
+  "title": "Apagando uma chave",
+  "concept": "apagar_chave",
+  "difficulty": 4,
+  "language": "python",
+  "outputChannel": "retorno",
+  "statement": "# Apagando uma chave\n\nEscreva a função `apagar(d, chave)` que tira o par da chave do dicionário, usando `del` como na aula. A função altera o dicionário que recebe — ela não devolve nada:\n\n```python\ndef apagar(d, chave):\n    # apague o par da chave do dicionario\n    pass\n```\n\nExemplos:\n\n```text\nd = {\"a\": 1, \"b\": 2}\napagar(d, \"a\")\nd  ->  {'b': 2}\n\nd = {\"x\": 7}\napagar(d, \"x\")\nd  ->  {}\n```",
+  "starterCode": "def apagar(d, chave):\n    # apague o par da chave do dicionario\n    pass\n",
+  "testsCode": "import unittest\n\nfrom solucao import apagar\n\n\nclass TestApagarUmaChave(unittest.TestCase):\n    def test_apaga_a_chave_pedida(self):\n        \"\"\"apagar tira a chave pedida do dicionario\"\"\"\n        d = {\"a\": 1, \"b\": 2}\n        apagar(d, \"a\")\n        self.assertEqual(d, {\"b\": 2})\n\n    def test_apaga_a_ultima_chave(self):\n        \"\"\"apagar funciona com a ultima chave\"\"\"\n        d = {\"a\": 1, \"b\": 2}\n        apagar(d, \"b\")\n        self.assertEqual(d, {\"a\": 1})\n\n    def test_apagar_esvazia_o_dicionario(self):\n        \"\"\"apagar a unica chave esvazia o dicionario\"\"\"\n        d = {\"x\": 7}\n        apagar(d, \"x\")\n        self.assertEqual(d, {})\n",
+  "solutionCode": "def apagar(d, chave):\n    del d[chave]\n",
+  "expectedTestCount": 3,
+  "requirements": [
+    {
+      "id": "test_apaga_a_chave_pedida",
+      "teste": "test_apaga_a_chave_pedida",
+      "descricao": "apagar tira a chave pedida do dicionario"
+    },
+    {
+      "id": "test_apaga_a_ultima_chave",
+      "teste": "test_apaga_a_ultima_chave",
+      "descricao": "apagar funciona com a ultima chave"
+    },
+    {
+      "id": "test_apagar_esvazia_o_dicionario",
+      "teste": "test_apagar_esvazia_o_dicionario",
+      "descricao": "apagar a unica chave esvazia o dicionario"
+    }
+  ]
+}

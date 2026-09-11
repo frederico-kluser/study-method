@@ -1,0 +1,118 @@
+{
+  "schemaVersion": 1,
+  "slug": "juntar-dicionarios",
+  "title": "Juntar dicionários",
+  "summary": "O método `.update` traz os pares de um dicionário para dentro do outro.",
+  "difficulty": 5,
+  "role": "regular",
+  "targetAtom": "api:.update",
+  "concepts": [
+    "atualizar_dicionario"
+  ],
+  "prerequisites": [
+    "criar-um-dicionario"
+  ],
+  "introduces": {
+    "productive": [
+      "api:.update"
+    ],
+    "receptive": []
+  },
+  "introducesTerms": [
+    "atualizar"
+  ],
+  "theory": [
+    {
+      "id": "juntando-dois-dicionarios",
+      "title": "Juntando dois dicionários",
+      "markdown": "`.update` traz os pares de um dicionário para dentro do outro:\n\n```python\ncardapio = {\"pao\": 4}\ncardapio.update({\"sopa\": 8})\nprint(cardapio)\n```\n\n```text\n{'pao': 4, 'sopa': 8}\n```\n\nO dicionário que chama o `.update` é o que muda; o outro só é lido — pode até ser um dicionário montado na hora, como `{\"sopa\": 8}`."
+    },
+    {
+      "id": "chave-repetida-valor-novo",
+      "title": "Chave repetida, valor novo",
+      "markdown": "Se os dois têm a mesma chave, o valor do que chegou vence:\n\n```python\nd = {\"a\": 1}\nd.update({\"a\": 9, \"b\": 2})\nprint(d)\n```\n\n```text\n{'a': 9, 'b': 2}\n```\n\nErrado: `d = d + outro` — dicionário não soma com `+` (dá `TypeError`). Certo: o `.update` no lugar, que troca o `\"a\"` e acrescenta o `\"b\"`."
+    },
+    {
+      "id": "qual-e-o-estado-agora",
+      "title": "Qual é o estado agora?",
+      "markdown": "Responda antes de rodar: o que aparece na tela?\n\n```python\nd = {\"a\": 1}\nd.update({\"b\": 2})\nd.update({})\nprint(d)\n```\n\n```text\n{'a': 1, 'b': 2}\n```\n\nJuntar o dicionário vazio não muda nada — e `len(d)` continua 2."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "update-junta-os-pares",
+      "statement": "`.update` junta os pares do outro dicionário.",
+      "question": "Depois de `cardapio.update({\"sopa\": 8})` com `cardapio = {\"pao\": 4}`, o que `cardapio` guarda?",
+      "options": [
+        "{\"pao\": 4, \"sopa\": 8}",
+        "{\"sopa\": 8}",
+        "{\"pao\": 4}",
+        "um erro TypeError"
+      ],
+      "answerIndex": 0,
+      "feedback": "O `.update` acrescenta o par que faltava: o cardápio fica com os dois pares.",
+      "sectionId": "juntando-dois-dicionarios",
+      "optionRationales": [
+        "O dicionário que chama o `.update` ganha os pares do outro.",
+        "{\"sopa\": 8} seria o resultado de trocar a variável inteira, não de atualizar.",
+        "O cardápio não fica parado: o par novo entra.",
+        "`.update` é o caminho certo — o `+` entre dicionários é que daria TypeError."
+      ]
+    },
+    {
+      "id": "chave-repetida-valor-novo-vence",
+      "statement": "Na chave repetida, o valor do que chegou vence.",
+      "question": "Depois de `d.update({\"a\": 9})` com `d = {\"a\": 1}`, o que `d[\"a\"]` vale?",
+      "options": [
+        "9",
+        "1",
+        "ambos, 1 e 9",
+        "um erro KeyError"
+      ],
+      "answerIndex": 0,
+      "feedback": "A chave \"a\" já existia e o valor dela foi trocado para 9 — o que chegou vence.",
+      "sectionId": "chave-repetida-valor-novo",
+      "optionRationales": [
+        "O valor do dicionário que chegou substitui o antigo na chave repetida.",
+        "O 1 era o valor antes do `.update`, e ele sai de cena.",
+        "Chave não repete em dicionário: um par só, com o valor novo.",
+        "A chave \"a\" existe, então não há KeyError."
+      ]
+    },
+    {
+      "id": "update-nao-soma-com-mais",
+      "statement": "Dicionário não se junta com `+`.",
+      "question": "O que acontece com `d = d + outro`?",
+      "options": [
+        "dá TypeError, porque dicionário não soma com +",
+        "junta os pares dos dois",
+        "soma os valores das chaves iguais",
+        "deixa `d` como estava"
+      ],
+      "answerIndex": 0,
+      "feedback": "O `+` não sabe juntar dicionários — ele levanta TypeError. O caminho é o `.update`.",
+      "sectionId": "chave-repetida-valor-novo",
+      "optionRationales": [
+        "O `+` entre dicionários não é definido: o Python responde com TypeError.",
+        "Juntar pares é o trabalho do `.update`, não do `+`.",
+        "O `+` não soma valores de chaves iguais — ele nem chega a funcionar aqui.",
+        "O `+` não é ignorado: ele quebra com erro."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "dict.update — documentação oficial",
+      "url": "https://docs.python.org/3/library/stdtypes.html#dict.update",
+      "description": "O método update: atualiza o dicionário com os pares de outro."
+    },
+    {
+      "title": "Tutorial: dicionários",
+      "url": "https://docs.python.org/3/tutorial/datastructures.html",
+      "description": "O capítulo do tutorial oficial sobre juntar e atualizar dicionários."
+    }
+  ],
+  "challenges": [
+    "juntando-dois-dicionarios"
+  ]
+}

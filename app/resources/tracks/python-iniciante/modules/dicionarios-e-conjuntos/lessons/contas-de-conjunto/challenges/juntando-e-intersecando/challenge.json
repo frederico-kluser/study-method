@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 1,
+  "slug": "juntando-e-intersecando",
+  "title": "Juntando e intersecando",
+  "concept": "operacoes_conjunto",
+  "difficulty": 5,
+  "language": "python",
+  "outputChannel": "retorno",
+  "statement": "# Juntando e intersecando\n\nEscreva duas funções:\n\n- `juntar(a, b)` devolve a união dos dois conjuntos, com `.union()`;\n- `comuns(a, b)` devolve a interseção, com `.intersection()`.\n\n```python\ndef juntar(a, b):\n    # devolva a uniao dos dois conjuntos\n    pass\n\n\ndef comuns(a, b):\n    # devolva a intersecao dos dois conjuntos\n    pass\n```\n\nExemplos:\n\n```text\njuntar({1, 2}, {2, 3})  ->  {1, 2, 3}\njuntar({7}, {8})  ->  {7, 8}\ncomuns({1, 2}, {2, 3})  ->  {2}\ncomuns({1, 2}, {3})  ->  set()\n```\n\nAs funções devolvem o conjunto — elas não imprimem nada.",
+  "starterCode": "def juntar(a, b):\n    # devolva a uniao dos dois conjuntos\n    pass\n\n\ndef comuns(a, b):\n    # devolva a intersecao dos dois conjuntos\n    pass\n",
+  "testsCode": "import unittest\n\nfrom solucao import juntar\nfrom solucao import comuns\n\n\nclass TestContasDeConjunto(unittest.TestCase):\n    def test_juntar_une_os_dois_conjuntos(self):\n        \"\"\"juntar devolve os numeros dos dois conjuntos sem repetir\"\"\"\n        self.assertEqual(juntar({1, 2}, {2, 3}), {1, 2, 3})\n\n    def test_juntar_sem_nada_em_comum(self):\n        \"\"\"juntar de conjuntos sem nada em comum junta tudo\"\"\"\n        self.assertEqual(juntar({7}, {8}), {7, 8})\n\n    def test_comuns_acha_o_numero_que_esta_nos_dois(self):\n        \"\"\"comuns devolve o numero que esta nos dois conjuntos\"\"\"\n        self.assertEqual(comuns({1, 2}, {2, 3}), {2})\n\n    def test_comuns_sem_nada_em_comum(self):\n        \"\"\"comuns de conjuntos sem nada em comum devolve o conjunto vazio\"\"\"\n        self.assertEqual(comuns({1, 2}, {3}), set())\n",
+  "solutionCode": "def juntar(a, b):\n    return a.union(b)\n\n\ndef comuns(a, b):\n    return a.intersection(b)\n",
+  "expectedTestCount": 4,
+  "requirements": [
+    {
+      "id": "test_juntar_une_os_dois_conjuntos",
+      "teste": "test_juntar_une_os_dois_conjuntos",
+      "descricao": "juntar devolve os numeros dos dois conjuntos sem repetir"
+    },
+    {
+      "id": "test_juntar_sem_nada_em_comum",
+      "teste": "test_juntar_sem_nada_em_comum",
+      "descricao": "juntar de conjuntos sem nada em comum junta tudo"
+    },
+    {
+      "id": "test_comuns_acha_o_numero_que_esta_nos_dois",
+      "teste": "test_comuns_acha_o_numero_que_esta_nos_dois",
+      "descricao": "comuns devolve o numero que esta nos dois conjuntos"
+    },
+    {
+      "id": "test_comuns_sem_nada_em_comum",
+      "teste": "test_comuns_sem_nada_em_comum",
+      "descricao": "comuns de conjuntos sem nada em comum devolve o conjunto vazio"
+    }
+  ]
+}

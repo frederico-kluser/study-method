@@ -1,0 +1,119 @@
+{
+  "schemaVersion": 1,
+  "slug": "as-chaves-e-os-valores",
+  "title": "As chaves e os valores",
+  "summary": "Os métodos `.keys` e `.values` devolvem as visões das chaves e dos valores de um dicionário.",
+  "difficulty": 4,
+  "role": "regular",
+  "targetAtom": "api:.keys",
+  "concepts": [
+    "chaves_e_valores"
+  ],
+  "prerequisites": [
+    "criar-um-dicionario"
+  ],
+  "introduces": {
+    "productive": [
+      "api:.keys",
+      "api:.values"
+    ],
+    "receptive": []
+  },
+  "introducesTerms": [
+    "visão"
+  ],
+  "theory": [
+    {
+      "id": "as-chaves-e-os-valores",
+      "title": "As chaves e os valores",
+      "markdown": "O dicionário tem duas **visões**: `.keys()` para as chaves e `.values()` para os valores:\n\n```python\nprecos = {\"pao\": 4, \"sopa\": 8}\nprint(precos.keys())\nprint(precos.values())\n```\n\n```text\ndict_keys(['pao', 'sopa'])\ndict_values([4, 8])\n```\n\nAs visões mostram o que o dicionário tem, na ordem em que os pares foram guardados."
+    },
+    {
+      "id": "percorrer-a-visao",
+      "title": "Percorrer a visão",
+      "markdown": "Dá para percorrer uma visão com `for`, como numa lista:\n\n```python\nprecos = {\"pao\": 4, \"sopa\": 8}\nfor chave in precos.keys():\n    print(chave)\n```\n\n```text\npao\nsopa\n```\n\nA visão é viva: se um par novo entrar no dicionário, a visão passa a mostrá-lo."
+    },
+    {
+      "id": "qual-e-o-estado-agora",
+      "title": "Qual é o estado agora?",
+      "markdown": "Responda antes de rodar: o que a última linha mostra, e quantos valores a visão tem?\n\n```python\nd = {\"a\": 1, \"b\": 2}\nvisao = d.values()\nprint(len(visao))\n```\n\n```text\n2\n```\n\nA visão tem dois valores — um por par. Se um par sair, a visão passa a ter um."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "keys-sao-as-chaves",
+      "statement": "`.keys` devolve as chaves do dicionário.",
+      "question": "O que `{\"pao\": 4, \"sopa\": 8}.keys()` mostra?",
+      "options": [
+        "as chaves \"pao\" e \"sopa\"",
+        "os valores 4 e 8",
+        "os pares inteiros",
+        "um erro KeyError"
+      ],
+      "answerIndex": 0,
+      "feedback": "O método `.keys` devolve as chaves: \"pao\" e \"sopa\".",
+      "sectionId": "as-chaves-e-os-valores",
+      "optionRationales": [
+        "O nome já diz: keys são as chaves, o lado esquerdo dos pares.",
+        "4 e 8 são os valores — isso é o trabalho de `.values`.",
+        "Pares inteiros juntos é o trabalho de `.items`.",
+        "`.keys` não procura chave nenhuma: ele mostra as que existem."
+      ]
+    },
+    {
+      "id": "values-sao-os-valores",
+      "statement": "`.values` devolve os valores do dicionário.",
+      "question": "O que `{\"pao\": 4, \"sopa\": 8}.values()` devolve?",
+      "options": [
+        "os valores 4 e 8",
+        "as chaves \"pao\" e \"sopa\"",
+        "os pares inteiros",
+        "o dicionário inteiro"
+      ],
+      "answerIndex": 0,
+      "feedback": "O método `.values` devolve os valores guardados: 4 e 8.",
+      "sectionId": "as-chaves-e-os-valores",
+      "optionRationales": [
+        "values são os valores, o lado direito dos pares.",
+        "As chaves são o trabalho de `.keys`.",
+        "Pares juntos são o trabalho de `.items`.",
+        "A visão é uma parte do dicionário, nunca um dicionário novo."
+      ]
+    },
+    {
+      "id": "visao-e-viva",
+      "statement": "A visão acompanha o dicionário ao vivo.",
+      "question": "Depois de `d[\"c\"] = 3`, o que `len(d.keys())` devolve se antes era 2?",
+      "options": [
+        "3",
+        "2",
+        "1",
+        "um erro"
+      ],
+      "answerIndex": 0,
+      "feedback": "A visão é viva: o par novo entra e a visão das chaves passa a ter três.",
+      "sectionId": "percorrer-a-visao",
+      "optionRationales": [
+        "O par novo \"c\" entra no dicionário, e a visão o mostra na mesma hora.",
+        "2 era a contagem antes do par novo entrar.",
+        "Nada foi apagado para a contagem cair.",
+        "A visão não dá erro: ela segue o dicionário."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "dict.keys — documentação oficial",
+      "url": "https://docs.python.org/3/library/stdtypes.html#dict.keys",
+      "description": "O método keys, que devolve a visão das chaves do dicionário."
+    },
+    {
+      "title": "dict.values — documentação oficial",
+      "url": "https://docs.python.org/3/library/stdtypes.html#dict.values",
+      "description": "O método values, que devolve a visão dos valores do dicionário."
+    }
+  ],
+  "challenges": [
+    "separando-chaves-e-valores"
+  ]
+}

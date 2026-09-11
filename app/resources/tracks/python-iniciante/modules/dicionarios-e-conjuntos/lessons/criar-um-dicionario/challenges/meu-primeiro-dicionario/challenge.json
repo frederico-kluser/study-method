@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "slug": "meu-primeiro-dicionario",
+  "title": "Meu primeiro dicionário",
+  "concept": "dicionario",
+  "difficulty": 4,
+  "language": "python",
+  "outputChannel": "retorno",
+  "statement": "# Meu primeiro dicionário\n\nCrie três funções que devolvem dicionários:\n\n- `anotacao()` devolve `{\"nome\": \"Ana\"}`;\n- `vazia()` devolve o dicionário vazio;\n- `cardapio()` devolve `{\"pao\": 4}`.\n\n```text\nanotacao()  ->  {'nome': 'Ana'}\nvazia()  ->  {}\ncardapio()  ->  {'pao': 4}\n```\n\nAs funções devolvem o dicionário — elas não imprimem nada.",
+  "starterCode": "def anotacao():\n    # devolva o dicionario com a chave nome valendo Ana\n    pass\n\n\ndef vazia():\n    # devolva o dicionario vazio\n    pass\n\n\ndef cardapio():\n    # devolva o dicionario com a chave pao valendo 4\n    pass\n",
+  "testsCode": "import unittest\n\nfrom solucao import anotacao\nfrom solucao import vazia\nfrom solucao import cardapio\n\n\nclass TestCriarUmDicionario(unittest.TestCase):\n    def test_anotacao_guarda_um_par(self):\n        \"\"\"anotacao devolve o dicionario com a chave nome valendo Ana\"\"\"\n        self.assertEqual(str(anotacao()), \"{'nome': 'Ana'}\")\n\n    def test_vazia_nao_guarda_nada(self):\n        \"\"\"vazia devolve o dicionario vazio\"\"\"\n        self.assertEqual(str(vazia()), \"{}\")\n\n    def test_cardapio_guarda_o_preco_do_pao(self):\n        \"\"\"cardapio devolve o dicionario com a chave pao valendo 4\"\"\"\n        self.assertEqual(str(cardapio()), \"{'pao': 4}\")\n",
+  "solutionCode": "def anotacao():\n    return {\"nome\": \"Ana\"}\n\n\ndef vazia():\n    return {}\n\n\ndef cardapio():\n    return {\"pao\": 4}\n",
+  "expectedTestCount": 3,
+  "requirements": [
+    {
+      "id": "test_anotacao_guarda_um_par",
+      "teste": "test_anotacao_guarda_um_par",
+      "descricao": "anotacao devolve o dicionario com a chave nome valendo Ana"
+    },
+    {
+      "id": "test_vazia_nao_guarda_nada",
+      "teste": "test_vazia_nao_guarda_nada",
+      "descricao": "vazia devolve o dicionario vazio"
+    },
+    {
+      "id": "test_cardapio_guarda_o_preco_do_pao",
+      "teste": "test_cardapio_guarda_o_preco_do_pao",
+      "descricao": "cardapio devolve o dicionario com a chave pao valendo 4"
+    }
+  ]
+}

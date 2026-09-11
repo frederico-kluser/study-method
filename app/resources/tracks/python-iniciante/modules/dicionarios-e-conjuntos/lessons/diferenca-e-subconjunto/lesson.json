@@ -1,0 +1,120 @@
+{
+  "schemaVersion": 1,
+  "slug": "diferenca-e-subconjunto",
+  "title": "Diferença e subconjunto",
+  "summary": "`.difference` devolve o que falta no outro; `.issubset` pergunta se um cabe no outro.",
+  "difficulty": 5,
+  "role": "regular",
+  "targetAtom": "api:.difference",
+  "concepts": [
+    "diferenca_subconjunto"
+  ],
+  "prerequisites": [
+    "contas-de-conjunto"
+  ],
+  "introduces": {
+    "productive": [
+      "api:.difference",
+      "api:.issubset"
+    ],
+    "receptive": []
+  },
+  "introducesTerms": [
+    "diferença",
+    "subconjunto"
+  ],
+  "theory": [
+    {
+      "id": "so-o-que-falta-no-outro",
+      "title": "Só o que falta no outro",
+      "markdown": "`.difference` devolve o que está no primeiro e não está no segundo:\n\n```python\na = {1, 2, 3}\nb = {2, 3}\nprint(a.difference(b) == {1})\n```\n\n```text\nTrue\n```\n\nAtenção à ordem: `b.difference(a)` devolve o conjunto vazio — a diferença não é simétrica: o lado que chama é quem fica."
+    },
+    {
+      "id": "caber-dentro",
+      "title": "Caber dentro",
+      "markdown": "`.issubset` pergunta se todo valor do primeiro cabe no segundo:\n\n```python\na = {1, 2}\nb = {1, 2, 3}\nprint(a.issubset(b))\nprint(b.issubset(a))\n```\n\n```text\nTrue\nFalse\n```\n\nO conjunto vazio cabe em qualquer conjunto: `set().issubset(b)` é `True`."
+    },
+    {
+      "id": "qual-e-o-estado-agora",
+      "title": "Qual é o estado agora?",
+      "markdown": "Responda antes de rodar: o que mostra cada linha?\n\n```python\na = {1, 2}\nb = {1, 3}\nprint(a.issubset(b))\nprint(a.difference(b) == {2})\n```\n\n```text\nFalse\nTrue\n```\n\nO 2 de `a` não está em `b`, então `a` não cabe em `b` — e é exatamente o 2 que a diferença devolve."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "difference-tem-ordem",
+      "statement": "A diferença tem ordem: o lado que chama é quem fica.",
+      "question": "O que `{1, 2, 3}.difference({2, 3})` devolve?",
+      "options": [
+        "{1}",
+        "{2, 3}",
+        "{1, 2, 3}",
+        "o conjunto vazio"
+      ],
+      "answerIndex": 0,
+      "feedback": "Sobra o que está no primeiro e não no segundo: o 1.",
+      "sectionId": "so-o-que-falta-no-outro",
+      "optionRationales": [
+        "A diferença tira do primeiro o que o segundo também tem: só o 1 fica.",
+        "{2, 3} é o que o segundo tinha — e é isso que sai.",
+        "A união é que devolveria {1, 2, 3}; a diferença tira.",
+        "O conjunto vazio sairia se todo valor do primeiro estivesse no segundo."
+      ]
+    },
+    {
+      "id": "issubset-pergunta-se-cabe",
+      "statement": "`.issubset` pergunta se todo o primeiro cabe no segundo.",
+      "question": "O que `{1, 2}.issubset({1, 2, 3})` devolve?",
+      "options": [
+        "True",
+        "False",
+        "o conjunto {1, 2}",
+        "o conjunto {3}"
+      ],
+      "answerIndex": 0,
+      "feedback": "O 1 e o 2 estão nos dois lados: o primeiro cabe inteiro no segundo — True.",
+      "sectionId": "caber-dentro",
+      "optionRationales": [
+        "Todos os valores do primeiro existem no segundo: é subconjunto.",
+        "False sairia se algum valor do primeiro faltasse no segundo.",
+        "`.issubset` pergunta, não devolve conjunto: a resposta é booleana.",
+        "{3} não é a resposta: o 3 nem está no primeiro conjunto."
+      ]
+    },
+    {
+      "id": "vazio-cabe-em-tudo",
+      "statement": "O conjunto vazio cabe em qualquer conjunto.",
+      "question": "O que `set().issubset({1})` devolve?",
+      "options": [
+        "True",
+        "False",
+        "um erro",
+        "{1}"
+      ],
+      "answerIndex": 0,
+      "feedback": "Não há valor no vazio para faltar no outro: ele cabe em qualquer conjunto — True.",
+      "sectionId": "caber-dentro",
+      "optionRationales": [
+        "O vazio não tem nenhum valor de fora, então nunca sobra nada para faltar.",
+        "False pediria um valor do vazio que não estivesse no {1}.",
+        "`set().issubset` é uma pergunta válida e responde True.",
+        "`.issubset` devolve booleano, nunca conjunto."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "set.difference — documentação oficial",
+      "url": "https://docs.python.org/3/library/stdtypes.html#frozenset.difference",
+      "description": "O método difference: o que está no primeiro conjunto e não no segundo."
+    },
+    {
+      "title": "set.issubset — documentação oficial",
+      "url": "https://docs.python.org/3/library/stdtypes.html#frozenset.issubset",
+      "description": "O método issubset: pergunta se um conjunto cabe inteiro no outro."
+    }
+  ],
+  "challenges": [
+    "diferenca-e-contido"
+  ]
+}

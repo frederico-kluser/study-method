@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 1,
+  "slug": "a-chave-tem-dono",
+  "title": "A chave tem dono?",
+  "concept": "chave_existe",
+  "difficulty": 5,
+  "language": "python",
+  "outputChannel": "retorno",
+  "statement": "# A chave tem dono?\n\nEscreva a função `tem_chave(d, chave)` que devolve `True` quando a chave está no dicionário e `False` quando não está, usando o operador `in` como na aula:\n\n```python\ndef tem_chave(d, chave):\n    # devolva True quando a chave esta no dicionario\n    pass\n```\n\nExemplos:\n\n```text\ntem_chave({\"uva\": 6, \"kiwi\": 3}, \"kiwi\")  ->  True\ntem_chave({\"uva\": 6, \"kiwi\": 3}, \"pao\")  ->  False\ntem_chave({}, \"uva\")  ->  False\n```\n\nA função devolve o booleano — ela não imprime nada.",
+  "starterCode": "def tem_chave(d, chave):\n    # devolva True quando a chave esta no dicionario\n    pass\n",
+  "testsCode": "import unittest\n\nfrom solucao import tem_chave\n\n\nclass TestAChaveExiste(unittest.TestCase):\n    def test_chave_que_esta(self):\n        \"\"\"tem_chave devolve True quando a chave esta\"\"\"\n        self.assertTrue(tem_chave({\"uva\": 6, \"kiwi\": 3}, \"kiwi\"))\n\n    def test_primeira_chave(self):\n        \"\"\"tem_chave devolve True para a primeira chave\"\"\"\n        self.assertTrue(tem_chave({\"uva\": 6, \"kiwi\": 3}, \"uva\"))\n\n    def test_chave_que_nao_esta(self):\n        \"\"\"tem_chave devolve False quando a chave nao esta\"\"\"\n        self.assertFalse(tem_chave({\"uva\": 6, \"kiwi\": 3}, \"pao\"))\n\n    def test_dicionario_vazio(self):\n        \"\"\"tem_chave devolve False para o dicionario vazio\"\"\"\n        self.assertFalse(tem_chave({}, \"uva\"))\n",
+  "solutionCode": "def tem_chave(d, chave):\n    return chave in d\n",
+  "expectedTestCount": 4,
+  "requirements": [
+    {
+      "id": "test_chave_que_esta",
+      "teste": "test_chave_que_esta",
+      "descricao": "tem_chave devolve True quando a chave esta"
+    },
+    {
+      "id": "test_primeira_chave",
+      "teste": "test_primeira_chave",
+      "descricao": "tem_chave devolve True para a primeira chave"
+    },
+    {
+      "id": "test_chave_que_nao_esta",
+      "teste": "test_chave_que_nao_esta",
+      "descricao": "tem_chave devolve False quando a chave nao esta"
+    },
+    {
+      "id": "test_dicionario_vazio",
+      "teste": "test_dicionario_vazio",
+      "descricao": "tem_chave devolve False para o dicionario vazio"
+    }
+  ]
+}

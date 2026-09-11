@@ -1,0 +1,120 @@
+{
+  "schemaVersion": 1,
+  "slug": "criar-um-dicionario",
+  "title": "Criar um dicionário",
+  "summary": "O dicionário guarda pares de chave e valor entre chaves `{}`.",
+  "difficulty": 4,
+  "role": "regular",
+  "targetAtom": "node:Dict",
+  "concepts": [
+    "dicionario"
+  ],
+  "prerequisites": [
+    "criar-uma-lista"
+  ],
+  "introduces": {
+    "productive": [
+      "node:Dict"
+    ],
+    "receptive": []
+  },
+  "introducesTerms": [
+    "dicionário",
+    "chave",
+    "valor"
+  ],
+  "theory": [
+    {
+      "id": "pares-de-chave-e-valor",
+      "title": "Pares de chave e valor",
+      "markdown": "A lista guarda itens um atrás do outro; o **dicionário** guarda **pares**: cada **chave** aponta para um **valor**. A construção nova é a das chaves `{}`:\n\n```python\nanotacao = {\"nome\": \"Ana\", \"idade\": 9}\nprint(anotacao)\n```\n\n```text\n{'nome': 'Ana', 'idade': 9}\n```\n\nA chave `\"nome\"` aponta para `\"Ana\"`; a chave `\"idade\"` aponta para `9`. Cada par separa chave e valor com dois-pontos, e os pares ficam entre chaves, separados por vírgula."
+    },
+    {
+      "id": "a-chave-nao-repete",
+      "title": "A chave não repete",
+      "markdown": "Se a mesma chave aparece duas vezes, a última vence:\n\n```python\nprint({\"a\": 1, \"a\": 2})\n```\n\n```text\n{'a': 2}\n```\n\nO dicionário não guarda a chave `\"a\"` duas vezes: ela fica com o valor mais recente. `{\"a\": 1, \"b\": 2}` tem dois pares; `{\"a\": 1, \"a\": 2}` tem um. E `{}` é o dicionário vazio, sem nenhum par."
+    },
+    {
+      "id": "qual-e-o-estado-agora",
+      "title": "Qual é o estado agora?",
+      "markdown": "Antes de rodar, responda: quantos pares o dicionário abaixo tem, e o que aparece na tela?\n\n```python\nfrutas = {\"uva\": 6, \"kiwi\": 3}\nprint(len(frutas))\n```\n\n```text\n2\n```\n\nDois pares. Como nas listas, `len` conta os itens — só que aqui cada item é um par de chave e valor."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "dicionario-guarda-pares",
+      "statement": "O dicionário guarda pares de chave e valor.",
+      "question": "O que `{\"nome\": \"Ana\"}` guarda?",
+      "options": [
+        "a chave \"nome\" apontando para o valor \"Ana\"",
+        "duas chaves, \"nome\" e \"Ana\"",
+        "dois valores, \"nome\" e \"Ana\"",
+        "uma lista com dois textos"
+      ],
+      "answerIndex": 0,
+      "feedback": "Cada par tem chave e valor: a chave \"nome\" aponta para o valor \"Ana\".",
+      "sectionId": "pares-de-chave-e-valor",
+      "optionRationales": [
+        "A chave \"nome\" fica à esquerda do dois-pontos e o valor \"Ana\" à direita — um par.",
+        "\"Ana\" é valor, não chave: só o lado esquerdo do dois-pontos é chave.",
+        "\"nome\" é chave, não valor: só o lado direito do dois-pontos é valor.",
+        "As chaves `{}` guardam pares chave-valor, não uma fila de itens como a lista."
+      ]
+    },
+    {
+      "id": "chave-repetida-ultima-vence",
+      "statement": "Repetir a chave deixa o último valor.",
+      "question": "O que `{\"a\": 1, \"a\": 2}` guarda?",
+      "options": [
+        "a chave \"a\" com o valor 2",
+        "a chave \"a\" com o valor 1",
+        "duas chaves iguais, uma com 1 e outra com 2",
+        "um erro de sintaxe"
+      ],
+      "answerIndex": 0,
+      "feedback": "A chave \"a\" não repete: fica só o valor escrito por último, o 2.",
+      "sectionId": "a-chave-nao-repete",
+      "optionRationales": [
+        "Quando a chave repete, o valor mais recente é o que fica — o 2.",
+        "O 1 foi escrito primeiro e é substituído pelo 2.",
+        "Chave não repete em dicionário: a segunda escrita substitui a primeira.",
+        "Escrever a mesma chave duas vezes é válido; o que muda é o valor que fica."
+      ]
+    },
+    {
+      "id": "chaves-vazias-dicionario-vazio",
+      "statement": "`{}` é o dicionário vazio.",
+      "question": "Quantos pares tem o dicionário `{}`?",
+      "options": [
+        "nenhum",
+        "um",
+        "dois",
+        "todos os pares do programa"
+      ],
+      "answerIndex": 0,
+      "feedback": "Entre chaves sem nada não há par nenhum — é o dicionário vazio.",
+      "sectionId": "a-chave-nao-repete",
+      "optionRationales": [
+        "Não há chave nem valor escritos entre as chaves `{}`.",
+        "Um par exigiria uma chave e um valor escritos, como `{\"a\": 1}`.",
+        "Dois pares exigiriam duas chaves e dois valores separados por vírgula.",
+        "Um dicionário só guarda o que está escrito dentro dele; nada mais."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "Dicionários — documentação oficial",
+      "url": "https://docs.python.org/3/library/stdtypes.html#dict",
+      "description": "O tipo dict: pares de chave e valor, como criar e como eles se comportam."
+    },
+    {
+      "title": "Tutorial: dicionários e conjuntos",
+      "url": "https://docs.python.org/3/tutorial/datastructures.html",
+      "description": "O capítulo do tutorial oficial sobre dicionários, com exemplos de criação."
+    }
+  ],
+  "challenges": [
+    "meu-primeiro-dicionario"
+  ]
+}

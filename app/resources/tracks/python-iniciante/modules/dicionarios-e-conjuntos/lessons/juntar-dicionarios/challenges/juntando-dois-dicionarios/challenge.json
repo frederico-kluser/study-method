@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "slug": "juntando-dois-dicionarios",
+  "title": "Juntando dois dicionários",
+  "concept": "atualizar_dicionario",
+  "difficulty": 5,
+  "language": "python",
+  "outputChannel": "retorno",
+  "statement": "# Juntando dois dicionários\n\nEscreva a função `juntar(d, outro)` que junta os pares do `outro` dentro do `d`, usando o método `.update` como na aula. A função altera o `d` que recebe — ela não devolve nada:\n\n```python\ndef juntar(d, outro):\n    # junte os pares do outro dicionario dentro de d\n    pass\n```\n\nExemplos:\n\n```text\nd = {\"a\": 1}\njuntar(d, {\"b\": 2})\nd  ->  {'a': 1, 'b': 2}\n\nd = {\"a\": 1}\njuntar(d, {\"a\": 9})\nd  ->  {'a': 9}\n```",
+  "starterCode": "def juntar(d, outro):\n    # junte os pares do outro dicionario dentro de d\n    pass\n",
+  "testsCode": "import unittest\n\nfrom solucao import juntar\n\n\nclass TestJuntarDicionarios(unittest.TestCase):\n    def test_junta_as_chaves_novas(self):\n        \"\"\"juntar acrescenta as chaves do segundo dicionario\"\"\"\n        d = {\"a\": 1}\n        juntar(d, {\"b\": 2})\n        self.assertEqual(d, {\"a\": 1, \"b\": 2})\n\n    def test_chave_repetida_fica_com_o_valor_novo(self):\n        \"\"\"juntar troca o valor das chaves repetidas\"\"\"\n        d = {\"a\": 1}\n        juntar(d, {\"a\": 9})\n        self.assertEqual(d, {\"a\": 9})\n\n    def test_junta_com_o_dicionario_vazio(self):\n        \"\"\"juntar com o dicionario vazio nao muda nada\"\"\"\n        d = {\"a\": 1}\n        juntar(d, {})\n        self.assertEqual(d, {\"a\": 1})\n",
+  "solutionCode": "def juntar(d, outro):\n    d.update(outro)\n",
+  "expectedTestCount": 3,
+  "requirements": [
+    {
+      "id": "test_junta_as_chaves_novas",
+      "teste": "test_junta_as_chaves_novas",
+      "descricao": "juntar acrescenta as chaves do segundo dicionario"
+    },
+    {
+      "id": "test_chave_repetida_fica_com_o_valor_novo",
+      "teste": "test_chave_repetida_fica_com_o_valor_novo",
+      "descricao": "juntar troca o valor das chaves repetidas"
+    },
+    {
+      "id": "test_junta_com_o_dicionario_vazio",
+      "teste": "test_junta_com_o_dicionario_vazio",
+      "descricao": "juntar com o dicionario vazio nao muda nada"
+    }
+  ]
+}

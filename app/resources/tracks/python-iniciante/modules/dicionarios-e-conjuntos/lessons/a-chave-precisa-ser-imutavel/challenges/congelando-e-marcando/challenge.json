@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 1,
+  "slug": "congelando-e-marcando",
+  "title": "Congelando e marcando",
+  "concept": "imutabilidade_chave",
+  "difficulty": 5,
+  "language": "python",
+  "outputChannel": "retorno",
+  "statement": "# Congelando e marcando\n\nEscreva duas funções:\n\n- `congelar(itens)` devolve o `frozenset` dos itens, sem repetidos;\n- `marca(valor)` devolve o hash do valor.\n\n```python\ndef congelar(itens):\n    # devolva o frozenset de itens\n    pass\n\n\ndef marca(valor):\n    # devolva o hash do valor\n    pass\n```\n\nExemplos:\n\n```text\ncongelar([3, 1, 3])  ->  frozenset({1, 3})\ncongelar([9, 9])  ->  frozenset({9})\nmarca(7)  ->  7\nmarca(-1)  ->  -2\n```\n\nAs funções devolvem — elas não imprimem nada.",
+  "starterCode": "def congelar(itens):\n    # devolva o frozenset de itens\n    pass\n\n\ndef marca(valor):\n    # devolva o hash do valor\n    pass\n",
+  "testsCode": "import unittest\n\nfrom solucao import congelar\nfrom solucao import marca\n\n\nclass TestAChavePrecisaSerImutavel(unittest.TestCase):\n    def test_congelar_tira_as_repeticoes(self):\n        \"\"\"congelar devolve o conjunto congelado sem repeticoes\"\"\"\n        self.assertEqual(sorted(congelar([3, 1, 3])), [1, 3])\n\n    def test_congelar_devolve_um_frozenset(self):\n        \"\"\"congelar devolve um frozenset de um numero\"\"\"\n        self.assertEqual(str(congelar([9, 9])), \"frozenset({9})\")\n\n    def test_marca_de_um_numero_e_o_proprio_numero(self):\n        \"\"\"marca devolve o proprio numero para numeros\"\"\"\n        self.assertEqual(marca(7), 7)\n\n    def test_marca_de_menos_um_e_menos_dois(self):\n        \"\"\"marca devolve -2 para -1 porque o Python reserva o -1\"\"\"\n        self.assertEqual(marca(-1), -2)\n",
+  "solutionCode": "def congelar(itens):\n    return frozenset(itens)\n\n\ndef marca(valor):\n    return hash(valor)\n",
+  "expectedTestCount": 4,
+  "requirements": [
+    {
+      "id": "test_congelar_tira_as_repeticoes",
+      "teste": "test_congelar_tira_as_repeticoes",
+      "descricao": "congelar devolve o conjunto congelado sem repeticoes"
+    },
+    {
+      "id": "test_congelar_devolve_um_frozenset",
+      "teste": "test_congelar_devolve_um_frozenset",
+      "descricao": "congelar devolve um frozenset de um numero"
+    },
+    {
+      "id": "test_marca_de_um_numero_e_o_proprio_numero",
+      "teste": "test_marca_de_um_numero_e_o_proprio_numero",
+      "descricao": "marca devolve o proprio numero para numeros"
+    },
+    {
+      "id": "test_marca_de_menos_um_e_menos_dois",
+      "teste": "test_marca_de_menos_um_e_menos_dois",
+      "descricao": "marca devolve -2 para -1 porque o Python reserva o -1"
+    }
+  ]
+}

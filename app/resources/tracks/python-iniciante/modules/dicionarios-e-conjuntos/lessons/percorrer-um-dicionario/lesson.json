@@ -1,0 +1,117 @@
+{
+  "schemaVersion": 1,
+  "slug": "percorrer-um-dicionario",
+  "title": "Percorrer um dicionário",
+  "summary": "O `for` que percorria listas também percorre dicionários — por pares ou só pelas chaves.",
+  "difficulty": 5,
+  "role": "consolidation",
+  "targetAtom": "node:For",
+  "concepts": [
+    "percorrer_dicionario"
+  ],
+  "prerequisites": [
+    "chave-e-valor-juntos",
+    "percorrer-uma-lista"
+  ],
+  "introduces": {
+    "productive": [
+      "node:For"
+    ],
+    "receptive": []
+  },
+  "introducesTerms": [],
+  "theory": [
+    {
+      "id": "percorrer-os-pares",
+      "title": "Percorrer os pares",
+      "markdown": "O `for` que você usou em listas também percorre um dicionário — a forma nova é percorrer os pares com `.items()`:\n\n```python\njogadores = {\"ana\": 10, \"bia\": 8}\nfor nome, pontos in jogadores.items():\n    print(nome, pontos)\n```\n\n```text\nana 10\nbia 8\n```\n\nUma volta por par, na ordem em que os pares foram guardados."
+    },
+    {
+      "id": "so-as-chaves",
+      "title": "Só as chaves",
+      "markdown": "Percorrer o dicionário direto no `for` também funciona — e devolve as **chaves**:\n\n```python\njogadores = {\"ana\": 10, \"bia\": 8}\nfor nome in jogadores:\n    print(nome)\n```\n\n```text\nana\nbia\n```\n\n`for nome in jogadores:` e `for nome in jogadores.keys():` andam juntos; os valores ficam de fora."
+    },
+    {
+      "id": "qual-e-o-estado-agora",
+      "title": "Qual é o estado agora?",
+      "markdown": "Responda antes de rodar: o que a lista `montadas` guarda ao fim do laço?\n\n```python\nd = {\"a\": 1}\nmontadas = []\nfor chave, valor in d.items():\n    montadas.append(f\"{chave}={valor}\")\nprint(montadas)\n```\n\n```text\n['a=1']\n```\n\nUma volta, um item na lista: a frase `a=1` montada com o texto com buraco."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "for-percorre-os-pares",
+      "statement": "`for chave, valor in d.items():` percorre um par por volta.",
+      "question": "Quantas voltas dá `for chave, valor in d.items():` com `d` de três pares?",
+      "options": [
+        "três",
+        "duas",
+        "uma",
+        "quatro"
+      ],
+      "answerIndex": 0,
+      "feedback": "Uma volta por par: com três pares, o laço roda três vezes.",
+      "sectionId": "percorrer-os-pares",
+      "optionRationales": [
+        "O `.items` entrega um par por volta, e há três pares para entregar.",
+        "Duas voltas seria a contagem de um dicionário de dois pares.",
+        "Uma volta aconteceria com um dicionário de um par só.",
+        "Quatro voltas pediriam quatro pares."
+      ]
+    },
+    {
+      "id": "for-no-dicionario-das-chaves",
+      "statement": "`for nome in d:` percorre as chaves do dicionário.",
+      "question": "O que `for nome in jogadores:` coloca em `nome` a cada volta?",
+      "options": [
+        "uma chave do dicionário",
+        "um valor do dicionário",
+        "um par inteiro",
+        "uma posição numérica"
+      ],
+      "answerIndex": 0,
+      "feedback": "Percorrer o dicionário direto devolve as chaves, uma por volta.",
+      "sectionId": "so-as-chaves",
+      "optionRationales": [
+        "O `for` no dicionário entrega as chaves — o mesmo que `.keys()`.",
+        "Valores só saem com `.values()` ou abrindo o par.",
+        "Um par inteiro é o que sai com `.items()` e dois nomes.",
+        "Posição numérica é coisa de lista; o dicionário entrega a chave."
+      ]
+    },
+    {
+      "id": "estado-dos-pares-apos-o-laco",
+      "statement": "Percorrer não muda os pares do dicionário.",
+      "question": "Depois do laço `for chave, valor in d.items():`, quantos pares `d` tem?",
+      "options": [
+        "os mesmos de antes",
+        "um a mais",
+        "um a menos",
+        "nenhum"
+      ],
+      "answerIndex": 0,
+      "feedback": "O laço só leu os pares: o dicionário termina com exatamente os pares de antes.",
+      "sectionId": "qual-e-o-estado-agora",
+      "optionRationales": [
+        "Ler com `for` não cria nem apaga par.",
+        "Um par a mais exigiria um `d[chave] = valor` dentro do laço.",
+        "Um par a menos exigiria um `del` dentro do laço.",
+        "O dicionário não se esvazia por ser percorrido."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "Tutorial: dicionários",
+      "url": "https://docs.python.org/3/tutorial/datastructures.html",
+      "description": "O capítulo do tutorial oficial sobre percorrer dicionários."
+    },
+    {
+      "title": "dict.items — documentação oficial",
+      "url": "https://docs.python.org/3/library/stdtypes.html#dict.items",
+      "description": "O método items, usado no laço sobre os pares do dicionário."
+    }
+  ],
+  "challenges": [
+    "frases-do-dicionario"
+  ]
+}

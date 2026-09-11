@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 1,
+  "slug": "sem-repetidos",
+  "title": "Sem repetidos",
+  "concept": "conjuntos",
+  "difficulty": 5,
+  "language": "python",
+  "outputChannel": "retorno",
+  "statement": "# Sem repetidos\n\nEscreva duas funções:\n\n- `unicos(numeros)` devolve o conjunto sem repetidos da lista, usando `set()`;\n- `dupla_de_conjuntos()` devolve a lista `[{1}, {2}]` — os conjuntos de um item cada, escritos com chaves.\n\n```python\ndef unicos(numeros):\n    # devolva o conjunto sem repetidos\n    pass\n\n\ndef dupla_de_conjuntos():\n    # devolva a lista com os conjuntos {1} e {2}\n    pass\n```\n\nExemplos:\n\n```text\nunicos([1, 1, 2])  ->  {1, 2}\nunicos([7, 7])  ->  {7}\nunicos([])  ->  set()\ndupla_de_conjuntos()  ->  [{1}, {2}]\n```\n\nAs funções devolvem — elas não imprimem nada.",
+  "starterCode": "def unicos(numeros):\n    # devolva o conjunto sem repetidos\n    pass\n\n\ndef dupla_de_conjuntos():\n    # devolva a lista com os conjuntos {1} e {2}\n    pass\n",
+  "testsCode": "import unittest\n\nfrom solucao import unicos\nfrom solucao import dupla_de_conjuntos\n\n\nclass TestConjuntoSemRepetidos(unittest.TestCase):\n    def test_unicos_tira_as_repeticoes(self):\n        \"\"\"unicos elimina os numeros repetidos\"\"\"\n        self.assertEqual(len(unicos([1, 1, 2])), 2)\n\n    def test_unicos_sem_repeticoes(self):\n        \"\"\"unicos so com numeros sozinhos devolve os mesmos numeros\"\"\"\n        self.assertEqual(sorted(unicos([7, 7])), [7])\n\n    def test_unicos_da_lista_vazia(self):\n        \"\"\"unicos da lista vazia devolve o conjunto vazio\"\"\"\n        self.assertEqual(len(unicos([])), 0)\n\n    def test_dupla_de_conjuntos_tem_dois_conjuntos(self):\n        \"\"\"dupla_de_conjuntos devolve a lista com os conjuntos {1} e {2}\"\"\"\n        self.assertEqual(str(dupla_de_conjuntos()), \"[{1}, {2}]\")\n",
+  "solutionCode": "def unicos(numeros):\n    return set(numeros)\n\n\ndef dupla_de_conjuntos():\n    return [{1}, {2}]\n",
+  "expectedTestCount": 4,
+  "requirements": [
+    {
+      "id": "test_unicos_tira_as_repeticoes",
+      "teste": "test_unicos_tira_as_repeticoes",
+      "descricao": "unicos elimina os numeros repetidos"
+    },
+    {
+      "id": "test_unicos_sem_repeticoes",
+      "teste": "test_unicos_sem_repeticoes",
+      "descricao": "unicos so com numeros sozinhos devolve os mesmos numeros"
+    },
+    {
+      "id": "test_unicos_da_lista_vazia",
+      "teste": "test_unicos_da_lista_vazia",
+      "descricao": "unicos da lista vazia devolve o conjunto vazio"
+    },
+    {
+      "id": "test_dupla_de_conjuntos_tem_dois_conjuntos",
+      "teste": "test_dupla_de_conjuntos_tem_dois_conjuntos",
+      "descricao": "dupla_de_conjuntos devolve a lista com os conjuntos {1} e {2}"
+    }
+  ]
+}
