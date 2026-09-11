@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "slug": "python-iniciante",
+  "title": "Python Iniciante: do primeiro print ao programa completo",
+  "description": "Curso 1 de 4 da trilha de Python, feito para quem parte do zero absoluto. Cada aula ensina no máximo duas construções novas e termina num desafio conferido por teste automático; ao final do curso, o aluno escreve um programa Python inteiro sozinho.",
+  "language": "pt-BR",
+  "domain": "programming",
+  "programmingLanguage": "python",
+  "runtime": "cpython-3.14",
+  "harnessLanguage": "python",
+  "entryCriteria": [
+    "zero absoluto — nunca programou"
+  ],
+  "modules": [
+    "a-tela"
+  ]
+}
