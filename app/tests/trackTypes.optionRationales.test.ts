@@ -16,8 +16,15 @@
  *   4. item vazio/não-string → issue (racional em branco não explica nada);
  *   5. não-array → issue;
  *   6. 4 racionais válidos → 0 issues, e `validateLessonSource` integra tudo;
- *   7. as 20 aulas REAIS de `resources/tracks/python-iniciante/` continuam com 0 issues
- *      e continuam SEM o campo (a prova de que a extensão é mesmo aditiva).
+ *   7. a trilha REAL de `resources/tracks/python-iniciante/` INTEIRA carrega
+ *      com 0 issues (45 aulas: a-tela 20 + decisao 12 + repeticao 13);
+ *   8. a INVARIANTE do campo em conteúdo real: quando declarado, o racional
+ *      tem UM item POR OPÇÃO — `validateAssertions` (trackTypes.ts) reprova
+ *      comprimento ≠ options, e o teste a exercita contra a própria trilha;
+ *   9. o recorte legado `a-tela` (20 aulas) continua SEM o campo: o pin
+ *      antigo "trilha inteira sem rationales" só valia para o estado de UM
+ *      curso; os módulos novos (decisao, repeticao) declaram rationales POR
+ *      CONTRATO, e o pin mora agora no recorte que não mudou.
  */
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
@@ -137,9 +144,11 @@ describe('trackTypes — optionRationales (ADITIVO, onda1-contrato-quiz)', () =>
   });
 });
 
-describe('trackTypes — as aulas REAIS continuam válidas sem o campo', () => {
-  it('7. as 20 aulas de resources/tracks/python-iniciante carregam com 0 issues e SEM optionRationales', async () => {
-    const raiz = path.join(__dirname, '..', 'resources', 'tracks', 'python-iniciante', 'modules');
+describe('trackTypes — as aulas REAIS continuam válidas (campo ADITIVO)', () => {
+  const RAIZ = path.join(__dirname, '..', 'resources', 'tracks', 'python-iniciante', 'modules');
+
+  /** Todos os lesson.json abaixo de um recorte (módulo ou trilha inteira). */
+  async function aulasAbaixoDe(raiz: string): Promise<string[]> {
     const arquivos: string[] = [];
     async function varrer(dir: string): Promise<void> {
       for (const entrada of await fsp.readdir(dir, { withFileTypes: true })) {
@@ -149,17 +158,54 @@ describe('trackTypes — as aulas REAIS continuam válidas sem o campo', () => {
       }
     }
     await varrer(raiz);
-    assert.equal(arquivos.length, 20, 'a trilha python-iniciante tem 20 aulas no disco');
+    return arquivos;
+  }
 
+  it('7. a trilha inteira (45 aulas) carrega com 0 issues', async () => {
+    const arquivos = await aulasAbaixoDe(RAIZ);
+    assert.ok(
+      arquivos.length >= 45,
+      `a trilha precisa das 45 aulas de hoje (a-tela 20 + decisao 12 + repeticao 13), veio ${arquivos.length}`,
+    );
     for (const arquivo of arquivos) {
       const cru = JSON.parse(await fsp.readFile(arquivo, 'utf8')) as TrackLessonSource;
-      const issues = validateLessonSource(cru, arquivo);
-      assert.deepEqual(issues, [], `${arquivo} deveria validar com 0 issues`);
+      assert.deepEqual(
+        validateLessonSource(cru, arquivo),
+        [],
+        `${arquivo} deveria validar com 0 issues`,
+      );
+    }
+  });
+
+  it('8. em conteúdo real: optionRationales declarado tem UM racional POR OPÇÃO (a invariante do validador)', async () => {
+    const arquivos = await aulasAbaixoDe(RAIZ);
+    let declarados = 0;
+    for (const arquivo of arquivos) {
+      const cru = JSON.parse(await fsp.readFile(arquivo, 'utf8')) as TrackLessonSource;
+      for (const a of cru.assertions ?? []) {
+        if (a.optionRationales === undefined) continue;
+        declarados += 1;
+        assert.equal(
+          a.optionRationales.length,
+          a.options.length,
+          `${arquivo}: ${a.id} — ${a.optionRationales.length} racionais para ${a.options.length} opções`,
+        );
+      }
+    }
+    // O contrato novo: os módulos novos declaram DE VERDADE (não é um passe vazio).
+    assert.ok(declarados > 0, 'nenhuma assertion real declara optionRationales — o contrato novo sumiu?');
+  });
+
+  it('9. o recorte legado a-tela (20 aulas) continua SEM o campo', async () => {
+    const arquivos = await aulasAbaixoDe(path.join(RAIZ, 'a-tela'));
+    assert.equal(arquivos.length, 20, 'o módulo a-tela tem 20 aulas no disco');
+    for (const arquivo of arquivos) {
+      const cru = JSON.parse(await fsp.readFile(arquivo, 'utf8')) as TrackLessonSource;
       for (const a of cru.assertions ?? []) {
         assert.equal(
           a.optionRationales,
           undefined,
-          `${arquivo}: a aula real NÃO declara optionRationales (a extensão é aditiva)`,
+          `${arquivo}: ${a.id} — a-tela NÃO declara optionRationales (o módulo legado ficou como estava)`,
         );
       }
     }

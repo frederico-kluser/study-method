@@ -80,7 +80,9 @@ interface CardProps {
 
 let LessonQuizCard: ComponentType<CardProps>;
 
-/** TODAS as afirmações reais das trilhas do disco (as 44 do curso de Python). */
+/** TODAS as afirmações reais das trilhas do disco (as 119 atuais de
+ * python-iniciante: a-tela 44 + decisao 36 + repeticao 39; 44 à época do
+ * conserto, quando a trilha tinha só o módulo a-tela). */
 function realAssertions(): TrackAssertionDto[] {
   const out: TrackAssertionDto[] = [];
   for (const entry of readdirSync(TRACKS, { recursive: true, withFileTypes: true })) {
@@ -168,7 +170,7 @@ before(async () => {
 });
 
 describe('O ALUNO QUE CLICA SEMPRE NA PRIMEIRA PÍLULA — ele NÃO domina', () => {
-  it('sobre as 44 afirmações REAIS, clicar na primeira não vence o curso', () => {
+  it('sobre as afirmações REAIS, clicar na primeira não vence o curso', () => {
     let dominadas = 0;
     const primeiraEraCerta: string[] = [];
     for (const assertion of REAL) {
@@ -200,15 +202,20 @@ describe('O ALUNO QUE CLICA SEMPRE NA PRIMEIRA PÍLULA — ele NÃO domina', () 
       'clicar sempre na primeira pílula dominou TODAS as afirmações — a posição está entregando a resposta',
     );
     // E não é "quase todas", nem "quase nenhuma": o acerto por posição tem de
-    // valer o ACASO (25% de 44 = 11). A banda é folgada porque a amostra é
-    // pequena; o que ela recusa é a degeneração.
+    // valer o ACASO (25% da amostra: 11 de 44 então, ~30 de 119 hoje). A banda
+    // é folgada porque a amostra é pequena; o que ela recusa é a degeneração —
+    // os MESMOS 40%/11% do conserto, escalados (17 de 44 → 45 de 119; 5 de 44
+    // → 13 de 119).
+    const acaso = Math.round(REAL.length / 4);
+    const teto = Math.floor(REAL.length * 0.3864);
+    const piso = Math.floor(REAL.length * 0.1136);
     assert.ok(
-      dominadas <= 17,
-      `o clicador cego dominou ${dominadas} de 44 (o acaso é 11): ${primeiraEraCerta.join(', ')}`,
+      dominadas <= teto,
+      `o clicador cego dominou ${dominadas} de ${REAL.length} (o acaso é ${acaso}): ${primeiraEraCerta.join(', ')}`,
     );
     assert.ok(
-      dominadas >= 5,
-      `o clicador cego dominou só ${dominadas} de 44 (o acaso é 11) — a primeira pílula virou o lugar ERRADO por construção, o que é outro atalho`,
+      dominadas >= piso,
+      `o clicador cego dominou só ${dominadas} de ${REAL.length} (o acaso é ${acaso}) — a primeira pílula virou o lugar ERRADO por construção, o que é outro atalho`,
     );
   });
 
@@ -226,9 +233,12 @@ describe('O ALUNO QUE CLICA SEMPRE NA PRIMEIRA PÍLULA — ele NÃO domina', () 
       );
       if (isQuizMastered(estado, key)) dominadas += 1;
     }
+    const acaso = Math.round(REAL.length / 4);
+    const teto = Math.floor(REAL.length * 0.3864);
+    const piso = Math.floor(REAL.length * 0.1136);
     assert.ok(
-      dominadas >= 5 && dominadas <= 17,
-      `clicar sempre na última dominou ${dominadas} de 44 (o acaso é 11)`,
+      dominadas >= piso && dominadas <= teto,
+      `clicar sempre na última dominou ${dominadas} de ${REAL.length} (o acaso é ${acaso})`,
     );
   });
 });

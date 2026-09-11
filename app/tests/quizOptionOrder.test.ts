@@ -21,7 +21,8 @@
  *   2. DIFERENÇA POR PERGUNTA — chaves vizinhas e gerações vizinhas não
  *      compartilham ordem;
  *   3. NÃO DEGENERAÇÃO — a DISTRIBUIÇÃO da posição da resposta certa, medida
- *      nas 44 chaves REAIS e em 20 000 chaves sintéticas. Um teste que só
+ *      nas chaves REAIS (as 44 de então; as 119 de hoje) e em 20 000 chaves
+ *      sintéticas. Um teste que só
  *      verificasse "a ordem mudou" passaria com uma permutação fixa (por
  *      exemplo "sempre inverta"), que apenas muda o atalho de "clique na
  *      primeira" para "clique na última" — por isso aqui se mede FREQUÊNCIA,
@@ -59,7 +60,9 @@ function keyOf(a: TrackAssertionDto): string {
   return a.sectionId === undefined ? a.id : `${a.sectionId}::${a.id}`;
 }
 
-/** TODAS as afirmações reais das trilhas do disco (as 44 do curso de Python). */
+/** TODAS as afirmações reais das trilhas do disco (as 119 atuais de
+ * python-iniciante: a-tela 44 + decisao 36 + repeticao 39; 44 à época do
+ * conserto, quando a trilha tinha só o módulo a-tela). */
 function realAssertions(): TrackAssertionDto[] {
   const out: TrackAssertionDto[] = [];
   for (const entry of readdirSync(TRACKS, { recursive: true, withFileTypes: true })) {
@@ -75,10 +78,13 @@ function realAssertions(): TrackAssertionDto[] {
 const REAL = realAssertions();
 
 describe('a trilha REAL é o motivo desta onda existir (a premissa, medida)', () => {
-  it('as 44 afirmações do curso têm answerIndex 0 em 100% dos casos', () => {
-    assert.equal(REAL.length, 44, 'o curso de Python tem 44 afirmações');
+  it('as afirmações do curso têm answerIndex 0 em 100% dos casos', () => {
+    assert.ok(
+      REAL.length >= 119,
+      `a trilha python-iniciante tem 119 afirmações hoje (a-tela 44 + decisao 36 + repeticao 39), veio ${REAL.length} — o conteúdo mudou: revalide esta suíte`,
+    );
     const zeros = REAL.filter((a) => a.answerIndex === 0).length;
-    assert.equal(zeros, 44, 'a premissa do defeito: a resposta é SEMPRE a opção 0 no JSON');
+    assert.equal(zeros, REAL.length, 'a premissa do defeito: a resposta é SEMPRE a opção 0 no JSON');
     for (const a of REAL) {
       assert.equal(a.options.length, 4, `${keyOf(a)} tem 4 alternativas`);
     }
@@ -116,11 +122,11 @@ describe('DETERMINISMO — a ordem não muda embaixo do dedo do aluno', () => {
 });
 
 describe('DIFERENTE POR PERGUNTA — a semente sai da chave + geração', () => {
-  it('as 44 chaves reais NÃO compartilham uma ordem só', () => {
+  it('as chaves reais NÃO compartilham uma ordem só', () => {
     const ordens = new Set(REAL.map((a) => quizOptionOrder(keyOf(a), 0, 4).join('')));
     assert.ok(
       ordens.size >= 8,
-      `44 chaves produziram só ${ordens.size} ordens distintas — a semente não está separando as perguntas`,
+      `${REAL.length} chaves produziram só ${ordens.size} ordens distintas — a semente não está separando as perguntas`,
     );
   });
 
@@ -139,8 +145,10 @@ describe('DIFERENTE POR PERGUNTA — a semente sai da chave + geração', () => 
       if (quizOptionOrder(key, 0, 4).join('') === quizOptionOrder(key, 1, 4).join('')) iguais++;
     }
     // Colidir em ~1/24 das chaves é o ACASO, não um defeito: exigir "nunca
-    // igual" seria exigir um gerador enviesado. 44/24 ≈ 1,8 esperadas.
-    assert.ok(iguais <= 6, `${iguais} de 44 chaves repetiram a ordem entre gerações`);
+    // igual" seria exigir um gerador enviesado. O teto escala com a amostra
+    // (≈3,3× o acaso): 44 chaves → 6, 119 → 15.
+    const teto = Math.ceil((REAL.length / 24) * 3);
+    assert.ok(iguais <= teto, `${iguais} de ${REAL.length} chaves repetiram a ordem entre gerações (teto ${teto})`);
   });
 
   it('a semente é estável e distinta por (chave, geração)', () => {
@@ -167,39 +175,46 @@ describe('NÃO DEGENERADA — a DISTRIBUIÇÃO da resposta certa, medida', () =>
     return dist;
   }
 
-  it('nas 44 chaves REAIS a certa não fica presa à primeira pílula', () => {
+  it('nas chaves REAIS a certa não fica presa à primeira pílula', () => {
     const dist = distribution(REAL, 0);
     assert.equal(
       dist.reduce((s, n) => s + n, 0),
       REAL.length,
       'toda afirmação foi contada',
     );
-    // O ACASO é 25% (11 de 44). O teto de 40% (17,6 → 17) é generoso de
-    // propósito: com 44 amostras e 4 caixas o desvio amostral é grande, e o
-    // que este teste precisa recusar é a DEGENERAÇÃO (o 44/44 de hoje), não
-    // uma flutuação. A medição atual é [10, 11, 14, 9].
+    // O ACASO é 25% (11 de 44 à época do conserto; hoje ~30 de 119). O teto de
+    // 40% (17 de 44 → 45 de 119) é generoso de propósito: com amostras assim o
+    // desvio amostral é grande, e o que este teste precisa recusar é a
+    // DEGENERAÇÃO (o 44/44 de antes, o 119/119 de hoje), não uma flutuação. A
+    // medição atual de 44 era [10, 11, 14, 9]; a de 119 é [30, 29, 36, 24].
+    const acaso = Math.round(REAL.length / 4);
+    const teto = Math.floor(REAL.length * 0.3864); // 17 de 44 — os mesmos 40%
+    const piso = Math.floor(REAL.length * 0.1136); // 5 de 44 — os mesmos 11%
     for (let pos = 0; pos < 4; pos++) {
       assert.ok(
-        dist[pos] <= 17,
-        `a posição ${pos} concentrou ${dist[pos]} de 44 respostas certas (acaso = 11)`,
+        dist[pos] <= teto,
+        `a posição ${pos} concentrou ${dist[pos]} de ${REAL.length} respostas certas (acaso = ${acaso})`,
       );
       assert.ok(
-        dist[pos] >= 5,
-        `a posição ${pos} recebeu só ${dist[pos]} de 44 respostas certas (acaso = 11)`,
+        dist[pos] >= piso,
+        `a posição ${pos} recebeu só ${dist[pos]} de ${REAL.length} respostas certas (acaso = ${acaso})`,
       );
     }
     // E o defeito, na sua forma exata: a primeira pílula deixou de ser a certa
-    // em 44 de 44.
+    // em 44 de 44 (hoje: em 119 de 119).
     assert.ok(dist[0] < REAL.length, 'a certa NÃO pode ser sempre a primeira');
   });
 
   it('as quatro primeiras gerações do ciclo também não degeneram', () => {
+    const acaso = Math.round(REAL.length / 4);
+    const teto = Math.floor(REAL.length * 0.3864);
+    const piso = Math.floor(REAL.length * 0.1136);
     for (const generation of [1, 2, 3]) {
       const dist = distribution(REAL, generation);
       for (let pos = 0; pos < 4; pos++) {
         assert.ok(
-          dist[pos] <= 17 && dist[pos] >= 5,
-          `geração ${generation}, posição ${pos}: ${dist[pos]} de 44 (acaso = 11)`,
+          dist[pos] <= teto && dist[pos] >= piso,
+          `geração ${generation}, posição ${pos}: ${dist[pos]} de ${REAL.length} (acaso = ${acaso})`,
         );
       }
     }
