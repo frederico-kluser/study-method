@@ -1,0 +1,119 @@
+{
+  "schemaVersion": 1,
+  "slug": "criar-uma-lista",
+  "title": "Criar uma lista",
+  "summary": "Uma lista guarda vários valores em ordem, um ao lado do outro.",
+  "difficulty": 3,
+  "role": "regular",
+  "targetAtom": "node:List",
+  "concepts": [
+    "listas"
+  ],
+  "prerequisites": [
+    "devolver-em-vez-de-mostrar"
+  ],
+  "introduces": {
+    "productive": [
+      "node:List"
+    ],
+    "receptive": []
+  },
+  "introducesTerms": [
+    "lista",
+    "item"
+  ],
+  "theory": [
+    {
+      "id": "uma-lista-guarda-varios",
+      "title": "Uma lista guarda vários",
+      "markdown": "Uma variável guarda um valor; uma **lista** guarda VÁRIOS, em ordem. Ela se escreve com colchetes, com vírgulas entre os valores:\n\n```python\nfrutas = [\"uva\", \"pera\", \"manga\"]\n```\n\nAí `frutas` vale a lista inteira, e cada texto dentro dela é um **item**. Listas também guardam números:\n\n```python\npontos = [3, 1, 4]\n```\n\nOs colchetes `[` e `]` abrem e fecham a lista; a vírgula separa um item do outro."
+    },
+    {
+      "id": "a-virgula-separa",
+      "title": "A vírgula separa",
+      "markdown": "Sem a vírgula o Python não sabe onde um item termina e o outro começa. A lista pode nascer já dentro do `return`:\n\n```python\ndef primeiras_notas():\n    return [10, 9]\n```\n\nE ela também pode estar vazia, pronta para receber itens depois:\n\n```python\nvazia = []\n```\n\nErrado: `[10 9]` sem vírgula. Certo: `[10, 9]` com vírgula entre os itens."
+    },
+    {
+      "id": "a-ordem-importa",
+      "title": "A ordem importa",
+      "markdown": "A ordem dos itens faz parte da lista: `[1, 2]` não é `[2, 1]`. Qual é o valor de `frutas` agora?\n\n```python\nfrutas = [\"uva\", \"pera\"]\nfrutas = [\"manga\", \"uva\", \"pera\"]\n```\n\n`frutas` vale `[\"manga\", \"uva\", \"pera\"]`: o segundo `=` substituiu a lista antiga inteira — vale o último valor guardado, como qualquer nome."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "colchetes-criam-lista",
+      "statement": "Colchetes com vírgulas criam uma lista.",
+      "question": "Qual linha cria uma lista com dois números?",
+      "options": [
+        "`notas = [7, 8]`",
+        "`notas = \"7, 8\"`",
+        "`notas = 7, 8`",
+        "`notas = 7 e 8`"
+      ],
+      "answerIndex": 0,
+      "feedback": "`[7, 8]` é uma lista com os itens 7 e 8; as outras linhas não criam lista nenhuma.",
+      "sectionId": "uma-lista-guarda-varios",
+      "optionRationales": [
+        "Os colchetes com os números separados por vírgula criam a lista — é exatamente a forma da aula.",
+        "As aspas fazem de \"7, 8\" um texto só, não uma lista de dois números.",
+        "Sem os colchetes isso não é uma lista em Python — a lista é o par de colchetes.",
+        "`7 e 8` não é uma expressão que o Python entenda; ele reclama antes de rodar."
+      ]
+    },
+    {
+      "id": "a-ultima-atribuicao-vence",
+      "statement": "Quando um nome recebe duas listas, vale a última.",
+      "question": "Depois de `frutas = [\"uva\", \"pera\"]` e `frutas = [\"manga\"]`, qual é o valor de `frutas`?",
+      "options": [
+        "`[\"manga\"]`",
+        "`[\"uva\", \"pera\", \"manga\"]`",
+        "`[\"uva\", \"pera\"]`",
+        "`[\"manga\", \"uva\", \"pera\"]`"
+      ],
+      "answerIndex": 0,
+      "feedback": "O segundo `=` substituiu a lista antiga inteira pela nova: `frutas` agora é `[\"manga\"]`.",
+      "sectionId": "a-ordem-importa",
+      "optionRationales": [
+        "O último `=` que rodou guardou `[\"manga\"]` no nome — o valor antigo se perdeu.",
+        "A lista antiga não recebeu o item novo; ela foi substituída inteira.",
+        "O primeiro `=` foi apagado pelo segundo — o valor antigo não continua valendo.",
+        "A ordem dos itens não muda sozinha; o segundo `=` nem viu a lista antiga."
+      ]
+    },
+    {
+      "id": "a-virgula-separa-itens",
+      "statement": "A vírgula separa os itens da lista.",
+      "question": "Quantos itens tem `[10, 20, 30]`?",
+      "options": [
+        "3",
+        "1",
+        "6",
+        "nenhum"
+      ],
+      "answerIndex": 0,
+      "feedback": "São três itens — 10, 20 e 30 — separados por vírgulas.",
+      "sectionId": "a-virgula-separa",
+      "optionRationales": [
+        "Cada número entre as vírgulas é um item: 10, 20 e 30.",
+        "A lista inteira é uma coisa só, mas os itens dentro dela são três.",
+        "6 seria a soma dos números, não a contagem de itens.",
+        "Uma lista vazia é que tem zero itens — aqui há três números dentro."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "Tutorial oficial — a primeira apresentação de listas",
+      "url": "https://docs.python.org/3/tutorial/introduction.html#lists",
+      "description": "O tutorial do Python mostra a sintaxe de lista com colchetes e vírgulas."
+    },
+    {
+      "title": "O tipo list na documentação de referência",
+      "url": "https://docs.python.org/3/library/stdtypes.html#list",
+      "description": "A página oficial do tipo lista e de tudo que ele aceita."
+    }
+  ],
+  "challenges": [
+    "minha-lista"
+  ]
+}

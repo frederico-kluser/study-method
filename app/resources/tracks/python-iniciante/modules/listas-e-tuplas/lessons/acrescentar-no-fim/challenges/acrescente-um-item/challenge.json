@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "slug": "acrescente-um-item",
+  "title": "Acrescente um item",
+  "concept": "acrescentar",
+  "difficulty": 3,
+  "language": "python",
+  "outputChannel": "retorno",
+  "statement": "# Acrescente um item\n\nEscreva a função `adicionar` que põe um item no fim de uma lista e devolve a lista:\n\n```python\ndef adicionar(lista, item):\n    # acrescente o item no fim\n    # e devolva a lista\n```\n\nUse `append`, como na aula. Exemplos:\n\n```text\nadicionar([1, 2], 3)  ->  [1, 2, 3]\nadicionar([], 5)  ->  [5]\n```\n\nA função também MEXE na lista que recebeu: depois de `adicionar(lista, 0)` a própria `lista` tem um item a mais. A função devolve a lista — ela não imprime nada.",
+  "starterCode": "# escreva aqui a funcao adicionar(lista, item)\n",
+  "testsCode": "import unittest\n\nfrom solucao import adicionar\n\n\nclass TestAcrescentarNoFim(unittest.TestCase):\n    def test_adiciona_ao_fim(self):\n        \"\"\"adicionar poe o item no fim e devolve a lista\"\"\"\n        self.assertEqual(adicionar([1, 2], 3), [1, 2, 3])\n\n    def test_adiciona_em_lista_vazia(self):\n        \"\"\"adicionar funciona com a lista vazia\"\"\"\n        self.assertEqual(adicionar([], 5), [5])\n\n    def test_muda_a_lista_original(self):\n        \"\"\"a lista passada fica com o item novo\"\"\"\n        lista = [9]\n        adicionar(lista, 0)\n        self.assertEqual(lista, [9, 0])\n",
+  "solutionCode": "def adicionar(lista, item):\n    lista.append(item)\n    return lista\n",
+  "expectedTestCount": 3,
+  "requirements": [
+    {
+      "id": "test_adiciona_ao_fim",
+      "teste": "test_adiciona_ao_fim",
+      "descricao": "adicionar poe o item no fim e devolve a lista"
+    },
+    {
+      "id": "test_adiciona_em_lista_vazia",
+      "teste": "test_adiciona_em_lista_vazia",
+      "descricao": "adicionar funciona com a lista vazia"
+    },
+    {
+      "id": "test_muda_a_lista_original",
+      "teste": "test_muda_a_lista_original",
+      "descricao": "a lista passada fica com o item novo"
+    }
+  ]
+}

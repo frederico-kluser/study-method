@@ -1,0 +1,119 @@
+{
+  "schemaVersion": 1,
+  "slug": "posicao-negativa",
+  "title": "Posição negativa",
+  "summary": "Índices negativos contam do fim para o começo: -1 é o último item.",
+  "difficulty": 3,
+  "role": "consolidation",
+  "targetAtom": "node:Subscript",
+  "concepts": [
+    "posicao_negativa"
+  ],
+  "prerequisites": [
+    "pegar-pela-posicao",
+    "o-sinal-do-numero"
+  ],
+  "introduces": {
+    "productive": [
+      "node:Subscript"
+    ],
+    "receptive": []
+  },
+  "introducesTerms": [
+    "índice negativo"
+  ],
+  "theory": [
+    {
+      "id": "contar-do-fim",
+      "title": "Contar do fim",
+      "markdown": "Na aula anterior a posição contava do começo. Python também conta do FIM, com números negativos: `-1` é o último item, `-2` o penúltimo, e assim por diante.\n\n```python\nfrutas = [\"uva\", \"pera\", \"manga\"]\nprint(frutas[-1])\n```\n\n```text\nmanga\n```\n\nO sinal de menos que você conhece dos números faz o trabalho: `[-1]` lê \"a última posição\"."
+    },
+    {
+      "id": "do-fim-para-o-comeco",
+      "title": "Do fim para o começo",
+      "markdown": "Dá para caminhar do fim para o começo: `-2` é o penúltimo, `-3` o anterior — sempre um a menos que o tamanho. O índice negativo pode aparecer no `return`:\n\n```python\ndef ultimo(itens):\n    return itens[-1]\n```\n\nAtenção a duas confusões comuns. `-0` não existe: o sinal no zero não muda nada, e `[-0]` é a posição 0. E `[-1]` NÃO é \"um à esquerda do primeiro\" — é o último item:\n\n```python\nfila = [\"ana\", \"bia\", \"caio\"]\nprint(fila[-0])\nprint(fila[-1])\n```\n\n```text\nana\ncaio\n```"
+    },
+    {
+      "id": "chegar-ao-comeco",
+      "title": "Chegar ao começo",
+      "markdown": "Qual é o valor de `nomes[-3]` agora?\n\n```python\nnomes = [\"ana\", \"bia\", \"caio\"]\nprint(nomes[-3])\n```\n\n```text\nana\n```\n\n`-3` em uma lista de 3 itens é a primeira posição: contar do fim com `-tamanho` sempre chega ao começo — sem depender de saber o tamanho de cor."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "menos-um-e-o-ultimo",
+      "statement": "-1 é a posição do último item.",
+      "question": "Em `frutas = [\"uva\", \"pera\", \"manga\"]`, o que vale `frutas[-1]`?",
+      "options": [
+        "manga",
+        "uva",
+        "pera",
+        "um erro"
+      ],
+      "answerIndex": 0,
+      "feedback": "O índice -1 conta do fim: é o último item, manga.",
+      "sectionId": "contar-do-fim",
+      "optionRationales": [
+        "O primeiro índice negativo é o último item da lista.",
+        "Isso seria a posição 0 ou -3, não -1.",
+        "Isso seria a posição 1 ou -2, não -1.",
+        "Índice negativo é válido em Python — -1 existe em toda lista não vazia."
+      ]
+    },
+    {
+      "id": "menos-zero-e-zero",
+      "statement": "-0 não existe: é a posição 0, a primeira.",
+      "question": "Em `fila = [\"ana\", \"bia\", \"caio\"]`, o que mostra `print(fila[-0])`?",
+      "options": [
+        "ana",
+        "caio",
+        "um erro",
+        "nada"
+      ],
+      "answerIndex": 0,
+      "feedback": "-0 é o mesmo número que 0: a posição 0, o primeiro item, ana.",
+      "sectionId": "do-fim-para-o-comeco",
+      "optionRationales": [
+        "Menos zero vale zero — o índice vira a posição 0, a primeira da lista.",
+        "Só -1 chega ao último item; -0 não existe como posição distinta.",
+        "Índice zero é válido; não há erro nenhum aqui.",
+        "A posição 0 existe e guarda \"ana\" — o print mostra o item."
+      ]
+    },
+    {
+      "id": "tamanho-negativo-comeco",
+      "statement": "Contar do fim com -tamanho sempre chega ao primeiro item.",
+      "question": "`nomes = [\"ana\", \"bia\", \"caio\"]`. Qual é o valor de `nomes[-3]`?",
+      "options": [
+        "ana",
+        "caio",
+        "bia",
+        "um erro"
+      ],
+      "answerIndex": 0,
+      "feedback": "-3 numa lista de 3 itens é a primeira posição: ana.",
+      "sectionId": "chegar-ao-comeco",
+      "optionRationales": [
+        "Três passos para trás a partir do fim chegam ao começo da lista.",
+        "Isso seria -1, o último item.",
+        "Isso seria -2, o penúltimo.",
+        "O índice -3 cabe numa lista de 3 itens — a posição existe."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "Índices negativos no tutorial",
+      "url": "https://docs.python.org/3/tutorial/introduction.html#lists",
+      "description": "O tutorial mostra a contagem do fim com números negativos."
+    },
+    {
+      "title": "Operações comuns de sequência",
+      "url": "https://docs.python.org/3/library/stdtypes.html#common-sequence-operations",
+      "description": "A tabela oficial inclui os índices negativos."
+    }
+  ],
+  "challenges": [
+    "pegando-de-tras-para-frente"
+  ]
+}

@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 1,
+  "slug": "tirando-itens",
+  "title": "Tirando itens",
+  "concept": "tirar",
+  "difficulty": 4,
+  "language": "python",
+  "outputChannel": "retorno",
+  "statement": "# Tirando itens\n\nEscreva duas funções que tiram itens de listas:\n\n- `tirar_ultimo(lista)` tira o último item com `pop` e devolve o item tirado;\n- `tirar(lista, item)` tira o item com `remove` e devolve a lista.\n\nExemplos:\n\n```text\ntirar_ultimo([[\"ana\", 10], [\"bia\", 20]])  ->  [\"bia\", 20]\ntirar([[\"ana\", 10], [\"bia\", 20]], [\"ana\", 10])  ->  [[\"bia\", 20]]\n```\n\nAs duas funções MEXEM na lista que receberam, como na aula. Nenhuma delas imprime nada.",
+  "starterCode": "# escreva aqui as funcoes tirar_ultimo e tirar\n",
+  "testsCode": "import unittest\n\nfrom solucao import tirar_ultimo\nfrom solucao import tirar\n\n\nclass TestTirarUmItem(unittest.TestCase):\n    def test_tira_o_ultimo(self):\n        \"\"\"tirar_ultimo devolve o ultimo item\"\"\"\n        self.assertEqual(tirar_ultimo([[\"ana\", 10], [\"bia\", 20]]), [\"bia\", 20])\n\n    def test_tira_o_escolhido(self):\n        \"\"\"tirar devolve a lista sem o item escolhido\"\"\"\n        self.assertEqual(tirar([[\"ana\", 10], [\"bia\", 20]], [\"ana\", 10]), [[\"bia\", 20]])\n\n    def test_tira_o_primeiro_que_achar(self):\n        \"\"\"tirar remove so o primeiro item igual\"\"\"\n        self.assertEqual(tirar([[\"x\", 1], [\"x\", 1], [\"y\", 2]], [\"x\", 1]), [[\"x\", 1], [\"y\", 2]])\n\n    def test_muda_a_lista(self):\n        \"\"\"tirar muda a lista passada\"\"\"\n        lista = [[\"a\", 1]]\n        tirar(lista, [\"a\", 1])\n        self.assertEqual(lista, [])\n",
+  "solutionCode": "def tirar_ultimo(lista):\n    return lista.pop()\n\n\ndef tirar(lista, item):\n    lista.remove(item)\n    return lista\n",
+  "expectedTestCount": 4,
+  "requirements": [
+    {
+      "id": "test_tira_o_ultimo",
+      "teste": "test_tira_o_ultimo",
+      "descricao": "tirar_ultimo devolve o ultimo item"
+    },
+    {
+      "id": "test_tira_o_escolhido",
+      "teste": "test_tira_o_escolhido",
+      "descricao": "tirar devolve a lista sem o item escolhido"
+    },
+    {
+      "id": "test_tira_o_primeiro_que_achar",
+      "teste": "test_tira_o_primeiro_que_achar",
+      "descricao": "tirar remove so o primeiro item igual"
+    },
+    {
+      "id": "test_muda_a_lista",
+      "teste": "test_muda_a_lista",
+      "descricao": "tirar muda a lista passada"
+    }
+  ]
+}

@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "slug": "minha-lista",
+  "title": "Minha lista",
+  "concept": "listas",
+  "difficulty": 3,
+  "language": "python",
+  "outputChannel": "retorno",
+  "statement": "# Minha lista\n\nEscreva duas funções que devolvem listas prontas:\n\n- `minha_lista()` devolve a lista `[7, 8, 9]`;\n- `outra_lista()` devolve a lista `[1, 2]`.\n\nUse os colchetes e as vírgulas, como na aula. As duas funções devolvem o valor da lista — nenhuma delas imprime nada.",
+  "starterCode": "# escreva aqui as funcoes minha_lista e outra_lista\n",
+  "testsCode": "import unittest\n\nfrom solucao import minha_lista\nfrom solucao import outra_lista\n\n\nclass TestMinhaLista(unittest.TestCase):\n    def test_devolve_7_8_9(self):\n        \"\"\"minha_lista devolve a lista [7, 8, 9]\"\"\"\n        self.assertEqual(str(minha_lista()), \"[7, 8, 9]\")\n\n    def test_devolve_1_2(self):\n        \"\"\"outra_lista devolve a lista [1, 2]\"\"\"\n        self.assertEqual(str(outra_lista()), \"[1, 2]\")\n",
+  "solutionCode": "def minha_lista():\n    return [7, 8, 9]\n\n\ndef outra_lista():\n    return [1, 2]\n",
+  "expectedTestCount": 2,
+  "requirements": [
+    {
+      "id": "test_devolve_7_8_9",
+      "teste": "test_devolve_7_8_9",
+      "descricao": "minha_lista devolve a lista [7, 8, 9]"
+    },
+    {
+      "id": "test_devolve_1_2",
+      "teste": "test_devolve_1_2",
+      "descricao": "outra_lista devolve a lista [1, 2]"
+    }
+  ]
+}

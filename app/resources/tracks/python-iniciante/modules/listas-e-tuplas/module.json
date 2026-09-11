@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "slug": "listas-e-tuplas",
+  "title": "Listas e tuplas",
+  "order": 5,
+  "lessons": [
+    "criar-uma-lista",
+    "pegar-pela-posicao",
+    "posicao-negativa",
+    "quantos-itens-tem",
+    "acrescentar-no-fim",
+    "tirar-um-item",
+    "inserir-no-meio",
+    "percorrer-uma-lista",
+    "esta-na-lista",
+    "achar-a-posicao",
+    "um-pedaco-da-lista",
+    "copiar-em-vez-de-apelidar"
+  ]
+}

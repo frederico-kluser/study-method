@@ -1,0 +1,119 @@
+{
+  "schemaVersion": 1,
+  "slug": "acrescentar-no-fim",
+  "title": "Acrescentar no fim",
+  "summary": "O método append acrescenta um item no fim da lista.",
+  "difficulty": 3,
+  "role": "regular",
+  "targetAtom": "api:.append",
+  "concepts": [
+    "acrescentar"
+  ],
+  "prerequisites": [
+    "criar-uma-lista"
+  ],
+  "introduces": {
+    "productive": [
+      "api:.append",
+      "node:Attribute"
+    ],
+    "receptive": []
+  },
+  "introducesTerms": [
+    "método"
+  ],
+  "theory": [
+    {
+      "id": "append-acrescenta",
+      "title": "append acrescenta",
+      "markdown": "Para acrescentar um item no fim, use o método `append` — do inglês *append*, anexar. Ele se escreve com um ponto entre a lista e o nome:\n\n```python\nfrutas = [\"uva\", \"pera\"]\nfrutas.append(\"manga\")\nprint(frutas)\n```\n\n```text\n['uva', 'pera', 'manga']\n```\n\nO ponto liga a lista ao método: `frutas.append(\"manga\")` lê-se \"na lista `frutas`, anexe `\"manga\"`\"."
+    },
+    {
+      "id": "o-ponto-e-a-chamada",
+      "title": "O ponto e a chamada",
+      "markdown": "O `append` muda a lista — ele não devolve uma lista nova. Depois dele, a lista original tem um item a mais:\n\n```python\nfila = [\"ana\"]\nfila.append(\"bia\")\nfila.append(\"caio\")\nprint(fila)\n```\n\n```text\n['ana', 'bia', 'caio']\n```\n\nE dá para acrescentar o resultado de uma expressão:\n\n```python\nnotas = [7]\nnotas.append(8 + 1)\nprint(notas)\n```\n\n```text\n[7, 9]\n```"
+    },
+    {
+      "id": "o-que-append-devolve",
+      "title": "O que append devolve",
+      "markdown": "O `append` mostra uma pegadinha: ele DEVOLVE `None`, e o trabalho dele é mudar a lista. Errado e certo:\n\n```python\nfrutas = frutas.append(\"uva\")  # errado: o None apaga a lista guardada\nfrutas.append(\"uva\")           # certo: muda a lista\n```\n\nQual é o estado agora?\n\n```python\nnomes = []\nnomes.append(\"ana\")\nnomes.append(\"bia\")\n```\n\n`nomes` vale `[\"ana\", \"bia\"]` — dois `append` seguidos foram acrescentando um atrás do outro."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "append-no-fim",
+      "statement": "append acrescenta um item no fim da lista.",
+      "question": "Depois de `frutas = [\"uva\"]` e `frutas.append(\"pera\")`, o que vale `frutas`?",
+      "options": [
+        "`[\"uva\", \"pera\"]`",
+        "`[\"pera\", \"uva\"]`",
+        "`[\"uva\"]`",
+        "`\"pera\"`"
+      ],
+      "answerIndex": 0,
+      "feedback": "O append põe o item novo no fim: uva continua primeiro, pera entra depois.",
+      "sectionId": "append-acrescenta",
+      "optionRationales": [
+        "O item novo entra no fim, sem remexer no que já estava.",
+        "append nunca põe o item na frente do primeiro.",
+        "A lista antiga não fica parada: o item novo entra nela.",
+        "append muda a LISTA; o item sozinho não é o valor de frutas."
+      ]
+    },
+    {
+      "id": "append-muda-a-lista",
+      "statement": "append muda a lista original — ele não devolve uma lista nova.",
+      "question": "Depois de `fila = [\"ana\"]` e `fila.append(\"bia\")`, o que mostra `print(fila)`?",
+      "options": [
+        "`['ana', 'bia']`",
+        "`['bia']`",
+        "`['ana']`",
+        "`['bia', 'ana']`"
+      ],
+      "answerIndex": 0,
+      "feedback": "O append acrescentou \"bia\" no fim da própria fila: ['ana', 'bia'].",
+      "sectionId": "o-ponto-e-a-chamada",
+      "optionRationales": [
+        "A lista original ganhou o item novo no fim — é nela que o append trabalha.",
+        "\"ana\" não sai da lista quando um item entra.",
+        "Um append não some com o que já estava lá.",
+        "A ordem dos itens nunca é invertida por um append."
+      ]
+    },
+    {
+      "id": "append-devolve-none",
+      "statement": "append devolve None — o trabalho dele é mudar a lista.",
+      "question": "Em `frutas.append(\"pera\")`, o que o append devolve?",
+      "options": [
+        "None — ele só muda a lista",
+        "\"pera\" — o item acrescentado",
+        "a lista nova com o item",
+        "a posição do item"
+      ],
+      "answerIndex": 0,
+      "feedback": "append devolve None; o item fica na lista, não no retorno da chamada.",
+      "sectionId": "o-que-append-devolve",
+      "optionRationales": [
+        "É a pegadinha da aula: append muda a lista e devolve None.",
+        "O item acrescentado fica dentro da lista, não é o retorno.",
+        "Não existe \"lista nova\": a própria lista é que muda.",
+        "append não devolve posição nenhuma — ele devolve None."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "list.append na documentação de referência",
+      "url": "https://docs.python.org/3/library/stdtypes.html#list.append",
+      "description": "A assinatura oficial do método append."
+    },
+    {
+      "title": "Mais sobre listas no tutorial",
+      "url": "https://docs.python.org/3/tutorial/datastructures.html#more-on-lists",
+      "description": "O tutorial apresenta append junto com os outros métodos de lista."
+    }
+  ],
+  "challenges": [
+    "acrescente-um-item"
+  ]
+}

@@ -1,0 +1,118 @@
+{
+  "schemaVersion": 1,
+  "slug": "esta-na-lista",
+  "title": "Está na lista?",
+  "summary": "O operador in responde se um item está na lista, devolvendo True ou False.",
+  "difficulty": 3,
+  "role": "regular",
+  "targetAtom": "op:compare:in",
+  "concepts": [
+    "pertinencia"
+  ],
+  "prerequisites": [
+    "criar-uma-lista"
+  ],
+  "introduces": {
+    "productive": [
+      "op:compare:in"
+    ],
+    "receptive": []
+  },
+  "introducesTerms": [
+    "in"
+  ],
+  "theory": [
+    {
+      "id": "o-in-pergunta",
+      "title": "O in pergunta",
+      "markdown": "O operador `in` pergunta se um item ESTÁ na lista — e devolve `True` ou `False` como resposta:\n\n```python\nfrutas = [\"uva\", \"pera\", \"manga\"]\nprint(\"pera\" in frutas)\nprint(\"kiwi\" in frutas)\n```\n\n```text\nTrue\nFalse\n```\n\n`\"pera\" in frutas` lê-se \"`\"pera\"` está em `frutas`?\" — e o Python responde `True`."
+    },
+    {
+      "id": "in-devolve-booleano",
+      "title": "in devolve booleano",
+      "markdown": "O resultado do `in` é um booleano de verdade — serve no `se` e em qualquer lugar que aceite `True` ou `False`:\n\n```python\nfrutas = [\"uva\", \"pera\", \"manga\"]\nif \"manga\" in frutas:\n    print(\"tem manga\")\ntem_kiwi = \"kiwi\" in frutas\nprint(tem_kiwi)\n```\n\n```text\ntem manga\nFalse\n```\n\nA pergunta contrária — \"o item NÃO está?\" — troca o `in` pelo `not in`, com o `not` antes do `in`."
+    },
+    {
+      "id": "o-estado-da-pergunta",
+      "title": "O estado da pergunta",
+      "markdown": "Qual é o estado agora?\n\n```python\nfrutas = [\"uva\", \"pera\"]\nprint(frutas[0] in frutas)\n```\n\n`frutas[0]` vale `\"uva\"` — e `\"uva\" in frutas` devolve `True`: a pergunta foi \"a uva está na lista?\". Um item repetido também responde `True` na primeira posição em que aparece."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "in-pergunta-e-responde",
+      "statement": "in pergunta se o item está na lista e devolve True ou False.",
+      "question": "Em `frutas = [\"uva\", \"pera\"]`, o que devolve `\"pera\" in frutas`?",
+      "options": [
+        "True",
+        "False",
+        "pera",
+        "um erro"
+      ],
+      "answerIndex": 0,
+      "feedback": "\"pera\" está na lista: a resposta do in é True.",
+      "sectionId": "o-in-pergunta",
+      "optionRationales": [
+        "A pergunta \"pera está em frutas?\" tem resposta sim — True.",
+        "False seria a resposta de um item que não está na lista.",
+        "in não devolve o item — devolve a resposta da pergunta.",
+        "in sobre uma lista existente não gera erro nenhum."
+      ]
+    },
+    {
+      "id": "in-cabe-no-se",
+      "statement": "O resultado do in é um booleano que cabe no se.",
+      "question": "Qual linha está certa para imprimir a mensagem só quando \"uva\" está em `frutas`?",
+      "options": [
+        "`if \"uva\" in frutas:`",
+        "`if in \"uva\" frutas:`",
+        "`if \"uva\" frutas in:`",
+        "`if frutas in \"uva\":`"
+      ],
+      "answerIndex": 0,
+      "feedback": "A ordem é item, depois in, depois a lista: \"uva\" in frutas.",
+      "sectionId": "in-devolve-booleano",
+      "optionRationales": [
+        "`\"uva\" in frutas` é a ordem exata da aula: o item, o in, a lista.",
+        "O in não vem antes do item — essa linha nem é Python válido.",
+        "O `in` fica entre o item e a lista, não no fim.",
+        "Aqui a pergunta vira \"frutas está em uva?\" — o item é o texto, a lista é o outro lado."
+      ]
+    },
+    {
+      "id": "estado-do-in",
+      "statement": "Um item da própria lista responde True ao in.",
+      "question": "Em `frutas = [\"uva\", \"pera\"]`, o que devolve `frutas[0] in frutas`?",
+      "options": [
+        "True",
+        "False",
+        "uva",
+        "um erro"
+      ],
+      "answerIndex": 0,
+      "feedback": "frutas[0] é \"uva\", e \"uva\" está em frutas: a resposta é True.",
+      "sectionId": "o-estado-da-pergunta",
+      "optionRationales": [
+        "O item buscado é o primeiro da própria lista — a pergunta responde sim.",
+        "False seria a resposta de um item que não está na lista.",
+        "in responde True ou False, não o item de volta.",
+        "Colchetes e in juntos são válidos: primeiro busca o item, depois pergunta."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "Operações de pertinência na referência",
+      "url": "https://docs.python.org/3/reference/expressions.html",
+      "description": "A seção oficial dos operadores in e not in."
+    },
+    {
+      "title": "Sequências no tutorial",
+      "url": "https://docs.python.org/3/tutorial/introduction.html#lists",
+      "description": "O tutorial apresenta a lista e as operações sobre ela."
+    }
+  ],
+  "challenges": [
+    "o-item-esta-na-lista"
+  ]
+}

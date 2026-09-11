@@ -1,0 +1,119 @@
+{
+  "schemaVersion": 1,
+  "slug": "pegar-pela-posicao",
+  "title": "Pegar pela posição",
+  "summary": "Colchetes depois do nome buscam um item pela posição dele na lista.",
+  "difficulty": 3,
+  "role": "regular",
+  "targetAtom": "node:Subscript",
+  "concepts": [
+    "posicao"
+  ],
+  "prerequisites": [
+    "criar-uma-lista"
+  ],
+  "introduces": {
+    "productive": [
+      "node:Subscript"
+    ],
+    "receptive": []
+  },
+  "introducesTerms": [
+    "posição",
+    "índice"
+  ],
+  "theory": [
+    {
+      "id": "colchetes-buscam",
+      "title": "Colchetes buscam",
+      "markdown": "Uma lista guarda itens em ordem — e a posição de cada item conta. Para buscar um item, escreva o nome da lista com colchetes e o número da posição dentro:\n\n```python\nfrutas = [\"uva\", \"pera\", \"manga\"]\nprint(frutas[0])\nprint(frutas[1])\n```\n\n```text\nuva\npera\n```\n\nA primeira posição é a **0** (zero), não a 1. Assim, `frutas[0]` buscou `\"uva\"` e `frutas[1]` buscou `\"pera\"`."
+    },
+    {
+      "id": "a-posicao-comeca-no-zero",
+      "title": "A posição começa no zero",
+      "markdown": "A posição zero é a primeira; a última posição é o tamanho menos um. Num lugar onde caiba um valor, cabe também um colchete com posição:\n\n```python\ndef segundo_item(itens):\n    return itens[1]\n```\n\nO número dentro dos colchetes pode ser um nome que guarda a posição:\n\n```python\nfila = [\"ana\", \"bia\", \"caio\"]\nposicao = 2\nprint(fila[posicao])\n```\n\n```text\ncaio\n```\n\nEssa busca tem um nome: **índice**. O índice diz qual item do cofre abrir."
+    },
+    {
+      "id": "quando-a-posicao-nao-existe",
+      "title": "Quando a posição não existe",
+      "markdown": "E se a posição pedida não existir? O programa para e mostra um erro:\n\n```python\nfrutas = [\"uva\", \"pera\"]\nprint(frutas[5])\n```\n\n```text\nIndexError: list index out of range\n```\n\nLeia o fim do traceback: `IndexError` significa \"posição que não existe\". Uma lista com 2 itens tem posições 0 e 1 — a 5 não existe. Qual é o valor de `nomes[1]` em `nomes = [\"ana\", \"bia\"]`? `nomes[1]` vale `\"bia\"`: o 0 é a primeira, o 1 é a segunda."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "primeira-posicao-zero",
+      "statement": "A primeira posição de uma lista é a 0.",
+      "question": "Em `frutas = [\"uva\", \"pera\", \"manga\"]`, o que mostra `print(frutas[0])`?",
+      "options": [
+        "uva",
+        "pera",
+        "manga",
+        "um erro"
+      ],
+      "answerIndex": 0,
+      "feedback": "A posição 0 é a primeira da lista: uva.",
+      "sectionId": "colchetes-buscam",
+      "optionRationales": [
+        "O índice 0 abre a primeira posição, que guarda \"uva\".",
+        "Esse é o item da posição 1, não da 0.",
+        "Esse é o item da posição 2, não da 0.",
+        "A posição 0 existe em toda lista não vazia — o erro só vem de posição que não existe."
+      ]
+    },
+    {
+      "id": "indice-em-qualquer-lugar",
+      "statement": "Colchetes com posição funcionam onde caiba um valor.",
+      "question": "Chamar `segundo_item([\"a\", \"b\", \"c\"])` na função `def segundo_item(itens): return itens[1]` devolve o quê?",
+      "options": [
+        "\"b\"",
+        "\"a\"",
+        "\"c\"",
+        "[\"a\", \"b\", \"c\"]"
+      ],
+      "answerIndex": 0,
+      "feedback": "`itens[1]` busca o item da posição 1, que é o segundo: \"b\".",
+      "sectionId": "a-posicao-comeca-no-zero",
+      "optionRationales": [
+        "A posição 1 é a segunda da lista, e a segunda é \"b\".",
+        "Isso seria a posição 0, a primeira.",
+        "Isso seria a posição 2, a terceira.",
+        "Os colchetes buscam UM item — a lista inteira não sai de um índice."
+      ]
+    },
+    {
+      "id": "indice-fora-da-lista",
+      "statement": "Posição que não existe para o programa com IndexError.",
+      "question": "`frutas` tem 2 itens. O que acontece com `frutas[5]`?",
+      "options": [
+        "o programa para com IndexError",
+        "devolve None",
+        "devolve o último item",
+        "devolve uma lista vazia"
+      ],
+      "answerIndex": 0,
+      "feedback": "Posição 5 não existe numa lista de 2 itens — o Python para e mostra `IndexError: list index out of range`.",
+      "sectionId": "quando-a-posicao-nao-existe",
+      "optionRationales": [
+        "É exatamente o erro da aula: o traceback termina com IndexError, posição fora do alcance.",
+        "None é devolvido quando a função não tem return — aqui o programa nem chega a continuar.",
+        "A posição 5 não \"vira\" a última; ela simplesmente não existe.",
+        "Colchetes buscam um item, e uma posição inexistente não devolve lista nenhuma."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "Subscrições na referência da linguagem",
+      "url": "https://docs.python.org/3/reference/expressions.html#subscriptions",
+      "description": "A regra oficial do colchete com índice sobre uma sequência."
+    },
+    {
+      "title": "Sequências e índices no tutorial",
+      "url": "https://docs.python.org/3/tutorial/introduction.html#lists",
+      "description": "O tutorial mostra a posição começando em 0."
+    }
+  ],
+  "challenges": [
+    "pegando-pela-posicao"
+  ]
+}

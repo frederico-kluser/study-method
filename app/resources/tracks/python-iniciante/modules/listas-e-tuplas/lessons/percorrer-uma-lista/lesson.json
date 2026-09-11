@@ -1,0 +1,119 @@
+{
+  "schemaVersion": 1,
+  "slug": "percorrer-uma-lista",
+  "title": "Percorrer uma lista",
+  "summary": "O for pode passear por uma lista item a item, sem range e sem posições.",
+  "difficulty": 3,
+  "role": "consolidation",
+  "targetAtom": "node:For",
+  "concepts": [
+    "percorrer_lista"
+  ],
+  "prerequisites": [
+    "criar-uma-lista",
+    "repetir-um-numero-de-vezes"
+  ],
+  "introduces": {
+    "productive": [
+      "node:For"
+    ],
+    "receptive": []
+  },
+  "introducesTerms": [
+    "percorrer"
+  ],
+  "theory": [
+    {
+      "id": "for-sobre-a-lista",
+      "title": "for sobre a lista",
+      "markdown": "Você aprendeu o `for` com `range`, repetindo um número de vezes. Ele serve também para PERCORRER uma lista: em cada volta, uma variável recebe o item da vez, do primeiro ao último.\n\n```python\nfrutas = [\"uva\", \"pera\", \"manga\"]\nfor fruta in frutas:\n    print(fruta)\n```\n\n```text\nuva\npera\nmanga\n```\n\nLê-se \"para cada `fruta` em `frutas`\": uma volta para a uva, uma para a pera, uma para a manga."
+    },
+    {
+      "id": "sem-range-e-sem-posicao",
+      "title": "Sem range e sem posição",
+      "markdown": "Repare no que NÃO tem aqui: nem `range`, nem `len`, nem colchetes — o `for` entrega o item, sem você contar posição. O laço pode acumular um resultado, somando números ou juntando textos:\n\n```python\ndef juntar(nomes):\n    resultado = \"\"\n    for nome in nomes:\n        resultado = resultado + nome\n    return resultado\n```\n\nChamando `juntar([\"ana\", \"bia\"])` o resultado é `\"anabia\"`: cada volta colou um nome no fim do anterior."
+    },
+    {
+      "id": "estado-do-laco",
+      "title": "Estado do laço",
+      "markdown": "Qual é o estado do laço na última volta?\n\n```python\npontos = [1, 4, 2]\ntotal = 0\nfor p in pontos:\n    total = total + p\n```\n\nDepois da última volta, `total` vale `7`: `0 + 1 = 1`, `1 + 4 = 5`, `5 + 2 = 7`. Lista vazia é o caso extremo: com `pontos = []` o laço não roda nenhuma volta e `total` continua `0`."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "for-item-a-item",
+      "statement": "for percorre a lista item a item, do primeiro ao último.",
+      "question": "O que imprime `for f in [\"uva\", \"pera\"]: print(f)`?",
+      "options": [
+        "uva e pera, uma em cada linha",
+        "pera e uva, uma em cada linha",
+        "uva pera, na mesma linha",
+        "nada — falta o range"
+      ],
+      "answerIndex": 0,
+      "feedback": "O for entrega os itens na ordem da lista: uva, depois pera — cada um numa linha por causa do print.",
+      "sectionId": "for-sobre-a-lista",
+      "optionRationales": [
+        "A ordem da lista é preservada: primeiro uva, depois pera, um print por volta.",
+        "O for nunca inverte a lista — ele segue a ordem dela.",
+        "Cada volta roda o print, que põe um item por linha.",
+        "O for sobre lista não precisa de range: a lista é a fonte das voltas."
+      ]
+    },
+    {
+      "id": "for-sem-range",
+      "statement": "For sobre lista não precisa de range, len nem colchetes.",
+      "question": "O que o for sobre uma lista entrega a cada volta?",
+      "options": [
+        "o item da vez",
+        "a posição do item",
+        "o tamanho da lista",
+        "a lista inteira"
+      ],
+      "answerIndex": 0,
+      "feedback": "A variável do for recebe o item da vez — é por isso que não precisa de posição.",
+      "sectionId": "sem-range-e-sem-posicao",
+      "optionRationales": [
+        "Cada volta entrega diretamente o item — e é isso que dispensa índices.",
+        "A posição só apareceria com range(len(...)), que aqui não é usado.",
+        "O tamanho é uma conta de len, não o que o for entrega.",
+        "O for percorre um item por vez; a lista inteira não cabe numa volta."
+      ]
+    },
+    {
+      "id": "acumulador-no-laco",
+      "statement": "O for pode acumular um total, somando um item por volta.",
+      "question": "Depois de `pontos = [1, 4, 2]`, `total = 0`, `for p in pontos: total = total + p`, quanto vale `total`?",
+      "options": [
+        "7",
+        "3",
+        "2",
+        "0"
+      ],
+      "answerIndex": 0,
+      "feedback": "O laço somou 1, depois 4, depois 2: total vale 7.",
+      "sectionId": "estado-do-laco",
+      "optionRationales": [
+        "As três voltas somam 1 + 4 + 2 — o acumulador termina em 7.",
+        "3 seria a contagem de itens, não a soma deles.",
+        "2 é o último item — o total junta todos, não só o último.",
+        "0 seria o estado de uma lista vazia sem volta nenhuma."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "A instrução for na referência da linguagem",
+      "url": "https://docs.python.org/3/reference/compound_stmts.html#the-for-statement",
+      "description": "A regra oficial do for sobre qualquer sequência."
+    },
+    {
+      "title": "For no tutorial",
+      "url": "https://docs.python.org/3/tutorial/controlflow.html#for-statements",
+      "description": "O tutorial explica o for percorrendo listas sem range."
+    }
+  ],
+  "challenges": [
+    "somando-a-lista"
+  ]
+}

@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "slug": "pegando-pela-posicao",
+  "title": "Pegando pela posição",
+  "concept": "posicao",
+  "difficulty": 3,
+  "language": "python",
+  "outputChannel": "retorno",
+  "statement": "# Pegando pela posição\n\nEscreva a função `pegar` que devolve o item da lista na posição pedida:\n\n```python\ndef pegar(lista, posicao):\n    # devolva o item na posicao\n```\n\nEla recebe dois argumentos: a lista e a posição. Exemplos:\n\n```text\npegar([[\"ana\", 10], [\"bia\", 20]], 0)  ->  [\"ana\", 10]\npegar([[\"ana\", 10], [\"bia\", 20]], 1)  ->  [\"bia\", 20]\n```\n\nUse os colchetes com o índice, como na aula. A função devolve o item — ela não imprime nada.",
+  "starterCode": "# escreva aqui a funcao pegar(lista, posicao)\n",
+  "testsCode": "import unittest\n\nfrom solucao import pegar\n\n\nclass TestPegarPelaPosicao(unittest.TestCase):\n    def test_pega_o_primeiro(self):\n        \"\"\"pegar devolve o item da posicao 0\"\"\"\n        self.assertEqual(pegar([[\"ana\", 10], [\"bia\", 20]], 0), [\"ana\", 10])\n\n    def test_pega_o_segundo(self):\n        \"\"\"pegar devolve o item da posicao 1\"\"\"\n        self.assertEqual(pegar([[\"ana\", 10], [\"bia\", 20], [\"caio\", 30]], 1), [\"bia\", 20])\n\n    def test_pega_o_ultimo(self):\n        \"\"\"pegar devolve o item da ultima posicao\"\"\"\n        self.assertEqual(pegar([[\"ana\", 10], [\"bia\", 20], [\"caio\", 30]], 2), [\"caio\", 30])\n",
+  "solutionCode": "def pegar(lista, posicao):\n    return lista[posicao]\n",
+  "expectedTestCount": 3,
+  "requirements": [
+    {
+      "id": "test_pega_o_primeiro",
+      "teste": "test_pega_o_primeiro",
+      "descricao": "pegar devolve o item da posicao 0"
+    },
+    {
+      "id": "test_pega_o_segundo",
+      "teste": "test_pega_o_segundo",
+      "descricao": "pegar devolve o item da posicao 1"
+    },
+    {
+      "id": "test_pega_o_ultimo",
+      "teste": "test_pega_o_ultimo",
+      "descricao": "pegar devolve o item da ultima posicao"
+    }
+  ]
+}

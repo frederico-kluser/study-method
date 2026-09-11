@@ -1,0 +1,120 @@
+{
+  "schemaVersion": 1,
+  "slug": "achar-a-posicao",
+  "title": "Achar a posição",
+  "summary": "index devolve a posição de um item; count conta quantas vezes ele aparece.",
+  "difficulty": 4,
+  "role": "regular",
+  "targetAtom": "api:.index",
+  "concepts": [
+    "busca"
+  ],
+  "prerequisites": [
+    "esta-na-lista"
+  ],
+  "introduces": {
+    "productive": [
+      "api:.index",
+      "api:.count"
+    ],
+    "receptive": []
+  },
+  "introducesTerms": [
+    "index",
+    "count"
+  ],
+  "theory": [
+    {
+      "id": "index-devolve-a-posicao",
+      "title": "index devolve a posição",
+      "markdown": "O método `index` devolve a POSIÇÃO de um item — o número que você usaria nos colchetes:\n\n```python\nfrutas = [\"uva\", \"pera\", \"manga\"]\nprint(frutas.index(\"pera\"))\n```\n\n```text\n1\n```\n\n`frutas.index(\"pera\")` devolve `1`, porque `\"pera\"` está na posição 1 — a segunda."
+    },
+    {
+      "id": "count-conta",
+      "title": "count conta",
+      "markdown": "O método `count` conta quantas vezes um item aparece:\n\n```python\nnotas = [7, 9, 7, 8]\nprint(notas.count(7))\nprint(notas.count(10))\n```\n\n```text\n2\n0\n```\n\n`count` devolve 0 quando o item não aparece — sem erro. Já o `index` de um item que não está lá PARA o programa com `ValueError`; por isso o `in` da aula passada serve de guarda antes do `index`."
+    },
+    {
+      "id": "index-e-o-inverso-do-colchete",
+      "title": "O inverso do colchete",
+      "markdown": "`index` e colchetes são um o inverso do outro: se `frutas.index(\"manga\")` devolve 2, então `frutas[2]` devolve `\"manga\"`. Qual é o estado agora?\n\n```python\nfila = [\"ana\", \"bia\", \"ana\"]\n```\n\n`fila.index(\"ana\")` devolve `0` — o PRIMEIRO `\"ana\"`; e `fila.count(\"ana\")` devolve `2`, porque ela aparece duas vezes."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "index-devolve-posicao",
+      "statement": "index devolve a posição do item.",
+      "question": "Em `frutas = [\"uva\", \"pera\", \"manga\"]`, o que devolve `frutas.index(\"manga\")`?",
+      "options": [
+        "2",
+        "0",
+        "manga",
+        "3"
+      ],
+      "answerIndex": 0,
+      "feedback": "\"manga\" está na posição 2 — a terceira.",
+      "sectionId": "index-devolve-a-posicao",
+      "optionRationales": [
+        "O índice da manga é 2: uva é 0, pera é 1, manga é 2.",
+        "0 seria a posição do primeiro item, uva.",
+        "index devolve o número da posição, não o item de volta.",
+        "Numa lista de 3 itens as posições vão de 0 a 2 — 3 não existe."
+      ]
+    },
+    {
+      "id": "count-de-ausente",
+      "statement": "count devolve 0 quando o item não aparece — sem erro.",
+      "question": "Em `notas = [7, 9, 7, 8]`, o que devolve `notas.count(10)`?",
+      "options": [
+        "0",
+        "1",
+        "2",
+        "um erro"
+      ],
+      "answerIndex": 0,
+      "feedback": "10 não aparece nenhuma vez: count devolve 0.",
+      "sectionId": "count-conta",
+      "optionRationales": [
+        "Item ausente conta zero — count nunca dá erro por ausência.",
+        "1 seria uma aparição, e 10 não aparece.",
+        "2 seria a contagem do 7, não do 10.",
+        "count de item ausente é válido: a resposta é 0."
+      ]
+    },
+    {
+      "id": "index-acha-o-primeiro",
+      "statement": "index acha o primeiro item igual; count conta todos.",
+      "question": "Em `fila = [\"ana\", \"bia\", \"ana\"]`, o que devolve `fila.index(\"ana\")`?",
+      "options": [
+        "0",
+        "2",
+        "1",
+        "ana"
+      ],
+      "answerIndex": 0,
+      "feedback": "index para no PRIMEIRO \"ana\", que está na posição 0.",
+      "sectionId": "index-e-o-inverso-do-colchete",
+      "optionRationales": [
+        "O primeiro \"ana\" ocupa a posição 0 — index devolve essa.",
+        "2 é a posição do segundo \"ana\", e index não continua até ele.",
+        "1 é a posição de \"bia\", não de \"ana\".",
+        "index devolve o número da posição, nunca o item."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "list.index na documentação de referência",
+      "url": "https://docs.python.org/3/library/stdtypes.html#list.index",
+      "description": "A assinatura oficial do método index."
+    },
+    {
+      "title": "list.count na documentação de referência",
+      "url": "https://docs.python.org/3/library/stdtypes.html#list.count",
+      "description": "A assinatura oficial do método count."
+    }
+  ],
+  "challenges": [
+    "achando-a-posicao"
+  ]
+}

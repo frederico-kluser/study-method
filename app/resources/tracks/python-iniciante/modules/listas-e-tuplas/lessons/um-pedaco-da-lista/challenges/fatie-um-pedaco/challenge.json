@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 1,
+  "slug": "fatie-um-pedaco",
+  "title": "Fatie um pedaço",
+  "concept": "fatiar",
+  "difficulty": 4,
+  "language": "python",
+  "outputChannel": "retorno",
+  "statement": "# Fatie um pedaço\n\nEscreva a função `pedaco` que devolve o pedaço da lista do começo até um antes do fim:\n\n```python\ndef pedaco(lista, inicio, fim):\n    # devolva o pedaco da lista\n```\n\nUse o fatiamento com dois pontos, como na aula. Exemplos:\n\n```text\npedaco([\"a\", \"b\", \"c\", \"d\"], 1, 3)  ->  [\"b\", \"c\"]\npedaco([\"a\", \"b\", \"c\"], 0, 2)  ->  [\"a\", \"b\"]\npedaco([\"a\", \"b\", \"c\"], 1, 1)  ->  []\n```\n\nA função devolve a lista nova — ela não imprime nada.",
+  "starterCode": "# escreva aqui a funcao pedaco(lista, inicio, fim)\n",
+  "testsCode": "import unittest\n\nfrom solucao import pedaco\n\n\nclass TestUmPedacoDaLista(unittest.TestCase):\n    def test_pega_o_meio(self):\n        \"\"\"pedaco devolve do inicio ate um antes do fim\"\"\"\n        self.assertEqual(pedaco([\"a\", \"b\", \"c\", \"d\"], 1, 3), [\"b\", \"c\"])\n\n    def test_pega_do_comeco(self):\n        \"\"\"pedaco com inicio 0 devolve do comeco\"\"\"\n        self.assertEqual(pedaco([\"a\", \"b\", \"c\"], 0, 2), [\"a\", \"b\"])\n\n    def test_pega_ate_o_fim(self):\n        \"\"\"pedaco com fim passando do tamanho vai ate o fim\"\"\"\n        self.assertEqual(pedaco([\"a\", \"b\", \"c\"], 1, 9), [\"b\", \"c\"])\n\n    def test_pedaco_vazio(self):\n        \"\"\"pedaco com inicio igual ao fim devolve lista vazia\"\"\"\n        self.assertEqual(pedaco([\"a\", \"b\", \"c\"], 1, 1), [])\n",
+  "solutionCode": "def pedaco(lista, inicio, fim):\n    return lista[inicio:fim]\n",
+  "expectedTestCount": 4,
+  "requirements": [
+    {
+      "id": "test_pega_o_meio",
+      "teste": "test_pega_o_meio",
+      "descricao": "pedaco devolve do inicio ate um antes do fim"
+    },
+    {
+      "id": "test_pega_do_comeco",
+      "teste": "test_pega_do_comeco",
+      "descricao": "pedaco com inicio 0 devolve do comeco"
+    },
+    {
+      "id": "test_pega_ate_o_fim",
+      "teste": "test_pega_ate_o_fim",
+      "descricao": "pedaco com fim passando do tamanho vai ate o fim"
+    },
+    {
+      "id": "test_pedaco_vazio",
+      "teste": "test_pedaco_vazio",
+      "descricao": "pedaco com inicio igual ao fim devolve lista vazia"
+    }
+  ]
+}

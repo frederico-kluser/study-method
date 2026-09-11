@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "slug": "pegando-de-tras-para-frente",
+  "title": "Pegando de trás para frente",
+  "concept": "posicao_negativa",
+  "difficulty": 3,
+  "language": "python",
+  "outputChannel": "retorno",
+  "statement": "# Pegando de trás para frente\n\nEscreva duas funções que usam índices negativos:\n\n- `ultimo(lista)` devolve o último item da lista;\n- `penultimo(lista)` devolve o penúltimo item da lista.\n\nExemplos:\n\n```text\nultimo([[\"ana\", 10], [\"bia\", 20], [\"caio\", 30]])  ->  [\"caio\", 30]\npenultimo([[\"ana\", 10], [\"bia\", 20], [\"caio\", 30]])  ->  [\"bia\", 20]\n```\n\nUse os índices `-1` e `-2`, como na aula. As duas funções devolvem o item — elas não imprimem nada.",
+  "starterCode": "# escreva aqui as funcoes ultimo e penultimo\n",
+  "testsCode": "import unittest\n\nfrom solucao import ultimo\nfrom solucao import penultimo\n\n\nclass TestPosicaoNegativa(unittest.TestCase):\n    def test_devolve_o_ultimo(self):\n        \"\"\"ultimo devolve o ultimo item da lista\"\"\"\n        self.assertEqual(ultimo([[\"ana\", 10], [\"bia\", 20], [\"caio\", 30]]), [\"caio\", 30])\n\n    def test_ultimo_de_lista_de_um(self):\n        \"\"\"ultimo de uma lista de um item devolve esse item\"\"\"\n        self.assertEqual(ultimo([[\"so\", 1]]), [\"so\", 1])\n\n    def test_devolve_o_penultimo(self):\n        \"\"\"penultimo devolve o penultimo item da lista\"\"\"\n        self.assertEqual(penultimo([[\"ana\", 10], [\"bia\", 20], [\"caio\", 30]]), [\"bia\", 20])\n",
+  "solutionCode": "def ultimo(lista):\n    return lista[-1]\n\n\ndef penultimo(lista):\n    return lista[-2]\n",
+  "expectedTestCount": 3,
+  "requirements": [
+    {
+      "id": "test_devolve_o_ultimo",
+      "teste": "test_devolve_o_ultimo",
+      "descricao": "ultimo devolve o ultimo item da lista"
+    },
+    {
+      "id": "test_ultimo_de_lista_de_um",
+      "teste": "test_ultimo_de_lista_de_um",
+      "descricao": "ultimo de uma lista de um item devolve esse item"
+    },
+    {
+      "id": "test_devolve_o_penultimo",
+      "teste": "test_devolve_o_penultimo",
+      "descricao": "penultimo devolve o penultimo item da lista"
+    }
+  ]
+}

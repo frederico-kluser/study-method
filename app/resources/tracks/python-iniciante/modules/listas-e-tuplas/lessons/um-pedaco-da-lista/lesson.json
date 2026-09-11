@@ -1,0 +1,118 @@
+{
+  "schemaVersion": 1,
+  "slug": "um-pedaco-da-lista",
+  "title": "Um pedaço da lista",
+  "summary": "Fatiar com dois pontos devolve um pedaço da lista, do início ao fim que você escolher.",
+  "difficulty": 4,
+  "role": "regular",
+  "targetAtom": "node:Slice",
+  "concepts": [
+    "fatiar"
+  ],
+  "prerequisites": [
+    "pegar-pela-posicao"
+  ],
+  "introduces": {
+    "productive": [
+      "node:Slice"
+    ],
+    "receptive": []
+  },
+  "introducesTerms": [
+    "fatiar"
+  ],
+  "theory": [
+    {
+      "id": "dois-pontos-fatiam",
+      "title": "Dois pontos fatiam",
+      "markdown": "Dentro dos colchetes, dois pontos separam o começo e o fim de um PEDAÇO: `lista[comeco:fim]` devolve do começo até UM ANTES do fim.\n\n```python\nfrutas = [\"uva\", \"pera\", \"manga\", \"kiwi\"]\nprint(frutas[1:3])\n```\n\n```text\n['pera', 'manga']\n```\n\n`frutas[1:3]` pegou as posições 1 e 2 — a 3 não entra. Fim é \"até aqui\", não \"incluindo\"."
+    },
+    {
+      "id": "pontas-que-faltam",
+      "title": "Pontas que faltam",
+      "markdown": "Dá para deixar um dos lados de fora: sem o começo, o pedaço começa no 0; sem o fim, vai até o último item:\n\n```python\nfrutas = [\"uva\", \"pera\", \"manga\", \"kiwi\"]\nprint(frutas[:2])\nprint(frutas[2:])\n```\n\n```text\n['uva', 'pera']\n['manga', 'kiwi']\n```\n\n`frutas[:2]` lê-se \"do começo até a posição 2\"; `frutas[2:]`, \"da posição 2 até o fim\"."
+    },
+    {
+      "id": "o-pedaco-e-uma-lista-nova",
+      "title": "O pedaço é uma lista nova",
+      "markdown": "O pedaço é uma LISTA NOVA — a original não muda. Um pedaço vazio também é permitido: com começo e fim iguais, sai `[]`. Qual é o estado agora, com `itens = [1, 2, 3]`? `itens[1:4]` devolve `[2, 3]`: o 4 passa do tamanho e o Python vai só até o fim, sem erro."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "fim-nao-entra",
+      "statement": "No fatiamento, o fim não entra: lista[a:b] vai de a até b menos 1.",
+      "question": "Em `frutas = [\"uva\", \"pera\", \"manga\", \"kiwi\"]`, o que devolve `frutas[1:3]`?",
+      "options": [
+        "`[\"pera\", \"manga\"]`",
+        "`[\"pera\", \"manga\", \"kiwi\"]`",
+        "`[\"uva\", \"pera\"]`",
+        "`[\"manga\", \"kiwi\"]`"
+      ],
+      "answerIndex": 0,
+      "feedback": "O pedaço vai da posição 1 até UM ANTES da 3: pera e manga.",
+      "sectionId": "dois-pontos-fatiam",
+      "optionRationales": [
+        "Posições 1 e 2 entram; a 3 é o fim, e fim não entra.",
+        "Kiwi é a posição 3 — exatamente a que o fim 3 corta fora.",
+        "Isso seria pegar da posição 0 até a 2, não de 1 a 3.",
+        "Isso seria das posições 2 a 3 — o começo aqui é 1."
+      ]
+    },
+    {
+      "id": "lado-de-fora",
+      "statement": "Sem o começo, o pedaço começa no 0; sem o fim, vai até o último item.",
+      "question": "Em `frutas = [\"uva\", \"pera\", \"manga\", \"kiwi\"]`, o que devolve `frutas[2:]`?",
+      "options": [
+        "`[\"manga\", \"kiwi\"]`",
+        "`[\"uva\", \"pera\"]`",
+        "`[\"pera\", \"manga\"]`",
+        "`[\"kiwi\"]`"
+      ],
+      "answerIndex": 0,
+      "feedback": "Sem o fim, o pedaço vai da posição 2 até o último: manga e kiwi.",
+      "sectionId": "pontas-que-faltam",
+      "optionRationales": [
+        "Começa na posição 2 e segue até o fim da lista.",
+        "Isso seria o pedaço com começo 0 e fim 2.",
+        "Isso seria o pedaço das posições 1 e 2.",
+        "O pedaço de 2 em diante tem dois itens, não um."
+      ]
+    },
+    {
+      "id": "pedaco-e-lista-nova",
+      "statement": "Fatiar devolve uma lista nova; a original não muda.",
+      "question": "Com `itens = [1, 2, 3]`, o que devolve `itens[1:4]`?",
+      "options": [
+        "`[2, 3]`",
+        "`[1, 2, 3]`",
+        "`[3]`",
+        "`[]`"
+      ],
+      "answerIndex": 0,
+      "feedback": "O pedaço vai da posição 1 até onde dá — o 4 passa do tamanho e o Python para no fim: [2, 3].",
+      "sectionId": "o-pedaco-e-uma-lista-nova",
+      "optionRationales": [
+        "Começa na posição 1 e vai até o fim real da lista, sem erro.",
+        "A lista inteira só sairia de um fatiamento que começa no 0.",
+        "Isso seria o item da posição 2 sozinho, não um pedaço de 1 em diante.",
+        "Um pedaço vazio só sai com começo igual ao fim — aqui eles diferem."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "Fatiamento na referência da linguagem",
+      "url": "https://docs.python.org/3/reference/expressions.html#slicings",
+      "description": "A regra oficial do fatiamento com dois pontos."
+    },
+    {
+      "title": "Fatias no tutorial",
+      "url": "https://docs.python.org/3/tutorial/introduction.html#lists",
+      "description": "O tutorial mostra o fatiamento de listas."
+    }
+  ],
+  "challenges": [
+    "fatie-um-pedaco"
+  ]
+}

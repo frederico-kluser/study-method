@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 1,
+  "slug": "o-item-esta-na-lista",
+  "title": "O item está na lista?",
+  "concept": "pertinencia",
+  "difficulty": 3,
+  "language": "python",
+  "outputChannel": "retorno",
+  "statement": "# O item está na lista?\n\nEscreva a função `tem` que devolve `True` quando o item está na lista e `False` quando não está:\n\n```python\ndef tem(lista, item):\n    # devolva True se o item esta na lista\n```\n\nUse o operador `in`, como na aula. Exemplos:\n\n```text\ntem([\"uva\", \"pera\", \"manga\"], \"pera\")  ->  True\ntem([\"uva\", \"pera\", \"manga\"], \"kiwi\")  ->  False\ntem([], \"uva\")  ->  False\n```\n\nA função devolve o booleano — ela não imprime nada.",
+  "starterCode": "# escreva aqui a funcao tem(lista, item)\n",
+  "testsCode": "import unittest\n\nfrom solucao import tem\n\n\nclass TestEstaNaLista(unittest.TestCase):\n    def test_item_que_esta(self):\n        \"\"\"tem devolve True quando o item esta na lista\"\"\"\n        self.assertTrue(tem([\"uva\", \"pera\", \"manga\"], \"pera\"))\n\n    def test_item_no_comeco(self):\n        \"\"\"tem devolve True para o primeiro item\"\"\"\n        self.assertTrue(tem([\"uva\", \"pera\", \"manga\"], \"uva\"))\n\n    def test_item_que_nao_esta(self):\n        \"\"\"tem devolve False quando o item nao esta na lista\"\"\"\n        self.assertFalse(tem([\"uva\", \"pera\", \"manga\"], \"kiwi\"))\n\n    def test_lista_vazia(self):\n        \"\"\"tem devolve False para a lista vazia\"\"\"\n        self.assertFalse(tem([], \"uva\"))\n",
+  "solutionCode": "def tem(lista, item):\n    return item in lista\n",
+  "expectedTestCount": 4,
+  "requirements": [
+    {
+      "id": "test_item_que_esta",
+      "teste": "test_item_que_esta",
+      "descricao": "tem devolve True quando o item esta na lista"
+    },
+    {
+      "id": "test_item_no_comeco",
+      "teste": "test_item_no_comeco",
+      "descricao": "tem devolve True para o primeiro item"
+    },
+    {
+      "id": "test_item_que_nao_esta",
+      "teste": "test_item_que_nao_esta",
+      "descricao": "tem devolve False quando o item nao esta na lista"
+    },
+    {
+      "id": "test_lista_vazia",
+      "teste": "test_lista_vazia",
+      "descricao": "tem devolve False para a lista vazia"
+    }
+  ]
+}

@@ -1,0 +1,124 @@
+{
+  "schemaVersion": 1,
+  "slug": "copiar-em-vez-de-apelidar",
+  "title": "Copiar em vez de apelidar",
+  "summary": "b = a não copia a lista: dá outro nome à mesma lista; lista[:] é que copia.",
+  "difficulty": 4,
+  "role": "consolidation",
+  "targetAtom": "node:Slice",
+  "concepts": [
+    "copiar_lista"
+  ],
+  "prerequisites": [
+    "um-pedaco-da-lista",
+    "criar-uma-lista"
+  ],
+  "introduces": {
+    "productive": [
+      "node:Slice"
+    ],
+    "receptive": []
+  },
+  "introducesTerms": [
+    "referência"
+  ],
+  "theory": [
+    {
+      "id": "fatiar-a-lista-inteira",
+      "title": "Fatiar a lista inteira",
+      "markdown": "Na aula passada o fatiamento com números devolvia um PEDAÇO. Fatiada sem números, `lista[:]`, a lista devolve a lista INTEIRA — numa lista NOVA:\n\n```python\nfrutas = [\"uva\", \"pera\", \"manga\"]\ncopia = frutas[:]\nprint(copia)\n```\n\n```text\n['uva', 'pera', 'manga']\n```\n\n`frutas[:]` lê-se \"do começo até o fim\": o mesmo conteúdo, em outra lista — pronta para ser mexida sem tocar na original."
+    },
+    {
+      "id": "atribuir-nao-copia",
+      "title": "Atribuir não copia",
+      "markdown": "A pegadinha: `b = a` NÃO copia a lista — dá um segundo nome para a MESMA lista. Errado e certo:\n\n```python\nb = a      # errado: b e a sao a mesma lista\nb = a[:]   # certo: b recebe uma copia\n```\n\nMexer por um nome aparece no outro quando é a mesma lista:\n\n```python\na = [1, 2]\nb = a\nb.append(3)\nprint(a)\n```\n\n```text\n[1, 2, 3]\n```\n\nO `3` entrou por `b` e apareceu em `a`. Esse segundo nome é uma **referência** à lista original."
+    },
+    {
+      "id": "estado-da-copia",
+      "title": "Estado da cópia",
+      "markdown": "Qual é o estado agora?\n\n```python\nitens = [1, 2]\ncopia = itens[:]\ncopia.append(3)\n```\n\n`copia` vale `[1, 2, 3]` e `itens` continua `[1, 2]`: o `append` mexeu na cópia, e a original não sentiu nada. É esse o contrato da cópia — mexer numa não muda a outra."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "fatia-sem-numeros-copia",
+      "statement": "lista[:] devolve a lista inteira, numa lista nova.",
+      "question": "Em `frutas = [\"uva\", \"pera\"]`, o que devolve `frutas[:]`?",
+      "options": [
+        "`[\"uva\", \"pera\"]`",
+        "`[\"uva\", \"pera\", \"uva\", \"pera\"]`",
+        "`[\"pera\", \"uva\"]`",
+        "`[]`"
+      ],
+      "answerIndex": 0,
+      "feedback": "frutas[:] devolve a lista inteira com os mesmos itens, na mesma ordem.",
+      "sectionId": "fatiar-a-lista-inteira",
+      "optionRationales": [
+        "Os dois pontos sem números pegam do começo ao fim: os mesmos itens, na mesma ordem.",
+        "Nada é duplicado no fatiamento — cada item sai uma vez só.",
+        "A ordem nunca é invertida por um fatiamento.",
+        "Lista vazia só sairia de fatiar uma lista vazia."
+      ]
+    },
+    {
+      "id": "atribuir-e-referencia",
+      "statement": "b = a não copia: os dois nomes apontam para a mesma lista.",
+      "question": "Depois de `a = [1, 2]`, `b = a` e `b.append(3)`, o que mostra `print(a)`?",
+      "options": [
+        "`[1, 2, 3]`",
+        "`[1, 2]`",
+        "`[3]`",
+        "`[]`"
+      ],
+      "answerIndex": 0,
+      "feedback": "b e a são a mesma lista: o 3 entrou por b e aparece em a.",
+      "sectionId": "atribuir-nao-copia",
+      "optionRationales": [
+        "Atribuir só deu outro nome à lista de sempre — o append mexeu nela.",
+        "A lista não ficou intacta: o append de b mudou a lista que a também enxerga.",
+        "O 3 não substituiu a lista — ele foi acrescentado a ela.",
+        "A lista não sumiu: os dois nomes continuam apontando para ela."
+      ]
+    },
+    {
+      "id": "mexer-na-copia",
+      "statement": "Mexer na cópia não muda a original.",
+      "question": "Depois de `itens = [1, 2]`, `copia = itens[:]` e `copia.append(3)`, o que vale `itens`?",
+      "options": [
+        "`[1, 2]`",
+        "`[1, 2, 3]`",
+        "`[2]`",
+        "`[3]`"
+      ],
+      "answerIndex": 0,
+      "feedback": "itens[:] entregou uma lista nova: o append mexeu na cópia, e itens continua [1, 2].",
+      "sectionId": "estado-da-copia",
+      "optionRationales": [
+        "A cópia é uma lista separada — o append dela não alcança a original.",
+        "Isso aconteceria com b = itens (referência), não com itens[:] (cópia).",
+        "A original não perde itens quando a cópia ganha um.",
+        "O item novo entrou na cópia, não na original."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "Mais sobre listas no tutorial",
+      "url": "https://docs.python.org/3/tutorial/datastructures.html#more-on-lists",
+      "description": "O tutorial mostra a cópia com o fatiamento completo."
+    },
+    {
+      "title": "Fatiamento na referência da linguagem",
+      "url": "https://docs.python.org/3/reference/expressions.html#slicings",
+      "description": "A regra oficial do fatiamento sem números."
+    },
+    {
+      "title": "O tipo list na documentação de referência",
+      "url": "https://docs.python.org/3/library/stdtypes.html#list",
+      "description": "A página oficial do tipo lista."
+    }
+  ],
+  "challenges": [
+    "copie-a-lista"
+  ]
+}

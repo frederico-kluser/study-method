@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "slug": "somando-a-lista",
+  "title": "Somando a lista",
+  "concept": "percorrer_lista",
+  "difficulty": 3,
+  "language": "python",
+  "outputChannel": "retorno",
+  "statement": "# Somando a lista\n\nEscreva a função `somar_lista` que devolve a soma de todos os números de uma lista:\n\n```python\ndef somar_lista(numeros):\n    # percorra a lista somando cada numero\n    # e devolva a soma\n```\n\nUse `for` percorrendo a lista, como na aula — sem `range`. Exemplos:\n\n```text\nsomar_lista([1, 4, 2])  ->  7\nsomar_lista([5])  ->  5\nsomar_lista([])  ->  0\n```\n\nA função devolve o número — ela não imprime nada.",
+  "starterCode": "# escreva aqui a funcao somar_lista(numeros)\n",
+  "testsCode": "import unittest\n\nfrom solucao import somar_lista\n\n\nclass TestPercorrerUmaLista(unittest.TestCase):\n    def test_soma_tres_numeros(self):\n        \"\"\"somar_lista devolve a soma dos itens\"\"\"\n        self.assertTrue(somar_lista([1, 4, 2]) == 7)\n\n    def test_soma_um_numero(self):\n        \"\"\"somar_lista de um item devolve o proprio item\"\"\"\n        self.assertTrue(somar_lista([5]) == 5)\n\n    def test_lista_vazia_soma_zero(self):\n        \"\"\"somar_lista da lista vazia devolve 0\"\"\"\n        self.assertTrue(somar_lista([]) == 0)\n",
+  "solutionCode": "def somar_lista(numeros):\n    total = 0\n    for n in numeros:\n        total = total + n\n    return total\n",
+  "expectedTestCount": 3,
+  "requirements": [
+    {
+      "id": "test_soma_tres_numeros",
+      "teste": "test_soma_tres_numeros",
+      "descricao": "somar_lista devolve a soma dos itens"
+    },
+    {
+      "id": "test_soma_um_numero",
+      "teste": "test_soma_um_numero",
+      "descricao": "somar_lista de um item devolve o proprio item"
+    },
+    {
+      "id": "test_lista_vazia_soma_zero",
+      "teste": "test_lista_vazia_soma_zero",
+      "descricao": "somar_lista da lista vazia devolve 0"
+    }
+  ]
+}

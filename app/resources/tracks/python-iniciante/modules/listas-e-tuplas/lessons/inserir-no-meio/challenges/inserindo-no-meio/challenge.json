@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 1,
+  "slug": "inserindo-no-meio",
+  "title": "Inserindo no meio",
+  "concept": "inserir",
+  "difficulty": 4,
+  "language": "python",
+  "outputChannel": "retorno",
+  "statement": "# Inserindo no meio\n\nEscreva a função `encaixar` que põe um item numa posição escolhida e devolve a lista:\n\n```python\ndef encaixar(lista, posicao, item):\n    # coloque o item na posicao\n    # e devolva a lista\n```\n\nUse `insert`, como na aula. Exemplos:\n\n```text\nencaixar([[\"a\", 1], [\"b\", 2]], 1, [\"c\", 3])  ->  [[\"a\", 1], [\"c\", 3], [\"b\", 2]]\nencaixar([], 0, [\"so\", 1])  ->  [[\"so\", 1]]\n```\n\nA função também MEXE na lista que recebeu. Ela devolve a lista — não imprime nada.",
+  "starterCode": "# escreva aqui a funcao encaixar(lista, posicao, item)\n",
+  "testsCode": "import unittest\n\nfrom solucao import encaixar\n\n\nclass TestInserirNoMeio(unittest.TestCase):\n    def test_insere_no_meio(self):\n        \"\"\"encaixar poe o item na posicao pedida\"\"\"\n        self.assertEqual(encaixar([[\"a\", 1], [\"b\", 2]], 1, [\"c\", 3]), [[\"a\", 1], [\"c\", 3], [\"b\", 2]])\n\n    def test_insere_no_comeco(self):\n        \"\"\"encaixar na posicao 0 poe no comeco\"\"\"\n        self.assertEqual(encaixar([[\"a\", 1], [\"b\", 2]], 0, [\"z\", 0]), [[\"z\", 0], [\"a\", 1], [\"b\", 2]])\n\n    def test_insere_na_lista_vazia(self):\n        \"\"\"encaixar funciona com a lista vazia\"\"\"\n        self.assertEqual(encaixar([], 0, [\"so\", 1]), [[\"so\", 1]])\n\n    def test_muda_a_lista_original(self):\n        \"\"\"a lista passada fica com o item novo\"\"\"\n        lista = [[\"a\", 1]]\n        encaixar(lista, 1, [\"b\", 2])\n        self.assertEqual(lista, [[\"a\", 1], [\"b\", 2]])\n",
+  "solutionCode": "def encaixar(lista, posicao, item):\n    lista.insert(posicao, item)\n    return lista\n",
+  "expectedTestCount": 4,
+  "requirements": [
+    {
+      "id": "test_insere_no_meio",
+      "teste": "test_insere_no_meio",
+      "descricao": "encaixar poe o item na posicao pedida"
+    },
+    {
+      "id": "test_insere_no_comeco",
+      "teste": "test_insere_no_comeco",
+      "descricao": "encaixar na posicao 0 poe no comeco"
+    },
+    {
+      "id": "test_insere_na_lista_vazia",
+      "teste": "test_insere_na_lista_vazia",
+      "descricao": "encaixar funciona com a lista vazia"
+    },
+    {
+      "id": "test_muda_a_lista_original",
+      "teste": "test_muda_a_lista_original",
+      "descricao": "a lista passada fica com o item novo"
+    }
+  ]
+}

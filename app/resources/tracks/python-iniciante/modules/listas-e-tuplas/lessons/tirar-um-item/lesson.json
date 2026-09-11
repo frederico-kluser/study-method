@@ -1,0 +1,125 @@
+{
+  "schemaVersion": 1,
+  "slug": "tirar-um-item",
+  "title": "Tirar um item",
+  "summary": "pop tira o último item e devolve ele; remove tira um item pelo valor.",
+  "difficulty": 4,
+  "role": "regular",
+  "targetAtom": "api:.pop",
+  "concepts": [
+    "tirar"
+  ],
+  "prerequisites": [
+    "acrescentar-no-fim"
+  ],
+  "introduces": {
+    "productive": [
+      "api:.pop",
+      "api:.remove"
+    ],
+    "receptive": []
+  },
+  "introducesTerms": [
+    "pop",
+    "remove"
+  ],
+  "theory": [
+    {
+      "id": "pop-tira-o-ultimo",
+      "title": "pop tira o último",
+      "markdown": "O método `pop` tira o ÚLTIMO item da lista — e devolve esse item, para você usar:\n\n```python\nfrutas = [\"uva\", \"pera\", \"manga\"]\nultima = frutas.pop()\nprint(ultima)\nprint(frutas)\n```\n\n```text\nmanga\n['uva', 'pera']\n```\n\n`manga` saiu da lista e foi parar no nome `ultima`."
+    },
+    {
+      "id": "remove-tira-o-escolhido",
+      "title": "remove tira o escolhido",
+      "markdown": "O método `remove` tira um item pelo VALOR dele — o primeiro que encontrar. Ele devolve `None`; o trabalho dele é mudar a lista:\n\n```python\ncores = [\"azul\", \"verde\", \"azul\"]\ncores.remove(\"azul\")\nprint(cores)\n```\n\n```text\n['verde', 'azul']\n```\n\nRepare: só o PRIMEIRO `\"azul\"` saiu; o segundo ficou."
+    },
+    {
+      "id": "quando-o-item-nao-existe",
+      "title": "Quando o item não existe",
+      "markdown": "Os dois têm um preço quando o item não existe. `pop` em lista vazia, e `remove` com um item que não está lá, param o programa:\n\n```python\nfrutas = []\nfrutas.pop()\n```\n\n```text\nIndexError: pop from empty list\n```\n\n```python\ncores = [\"azul\"]\ncores.remove(\"roxo\")\n```\n\n```text\nValueError: list.remove(x): x not in list\n```\n\nO traceback diz qual é o problema. Qual é o estado agora, com `itens = [1, 2, 3]` e `itens.pop()`? `itens` vale `[1, 2]` — o pop tirou o 3, o último."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "pop-devolve-o-tirado",
+      "statement": "pop tira o último item e devolve ele.",
+      "question": "Depois de `itens = [1, 2, 3]` e `tirado = itens.pop()`, o que vale `tirado`?",
+      "options": [
+        "3",
+        "1",
+        "[1, 2]",
+        "[1, 2, 3]"
+      ],
+      "answerIndex": 0,
+      "feedback": "pop devolve o item que tirou — o último, 3.",
+      "sectionId": "pop-tira-o-ultimo",
+      "optionRationales": [
+        "O pop devolve exatamente o item que saiu: o último da lista.",
+        "1 seria o primeiro item, e pop tira do fim.",
+        "A lista sem o item é o que sobra em itens, não o que pop devolve.",
+        "A lista inteira não é devolvida — pop devolve um item só."
+      ]
+    },
+    {
+      "id": "remove-tira-o-primeiro",
+      "statement": "remove tira o primeiro item com o valor pedido.",
+      "question": "Depois de `cores = [\"azul\", \"verde\", \"azul\"]` e `cores.remove(\"azul\")`, o que vale `cores`?",
+      "options": [
+        "`[\"verde\", \"azul\"]`",
+        "`[\"azul\", \"verde\"]`",
+        "`[\"verde\"]`",
+        "`[\"azul\", \"verde\", \"azul\"]`"
+      ],
+      "answerIndex": 0,
+      "feedback": "remove tira o primeiro azul; o segundo azul, na frente, continua lá.",
+      "sectionId": "remove-tira-o-escolhido",
+      "optionRationales": [
+        "O primeiro azul saiu; o segundo azul ficou — sobra verde e azul.",
+        "O item do fim é que sairia num pop; remove tira o primeiro com o valor.",
+        "remove não tira todas as ocorrências — só a primeira.",
+        "A lista não fica intacta: o primeiro azul foi embora."
+      ]
+    },
+    {
+      "id": "pop-vazio-e-erro",
+      "statement": "pop em lista vazia para o programa com IndexError.",
+      "question": "Depois de `vazia = []`, o que acontece com `vazia.pop()`?",
+      "options": [
+        "o programa para com IndexError",
+        "devolve None",
+        "devolve []",
+        "devolve 0"
+      ],
+      "answerIndex": 0,
+      "feedback": "Não há último item para tirar: o programa para com `IndexError: pop from empty list`.",
+      "sectionId": "quando-o-item-nao-existe",
+      "optionRationales": [
+        "É o erro da aula: pop de lista vazia não tem item para devolver.",
+        "pop não devolve None — ele para antes, com o erro.",
+        "pop devolve o item tirado; lista vazia não tem item.",
+        "Não existe contagem envolvida: o erro vem antes de qualquer retorno."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "list.pop e list.remove na documentação de referência",
+      "url": "https://docs.python.org/3/library/stdtypes.html#list.pop",
+      "description": "A assinatura oficial do pop."
+    },
+    {
+      "title": "list.remove na documentação de referência",
+      "url": "https://docs.python.org/3/library/stdtypes.html#list.remove",
+      "description": "A assinatura oficial do remove."
+    },
+    {
+      "title": "Mais sobre listas no tutorial",
+      "url": "https://docs.python.org/3/tutorial/datastructures.html#more-on-lists",
+      "description": "O tutorial apresenta pop e remove entre os métodos de lista."
+    }
+  ],
+  "challenges": [
+    "tirando-itens"
+  ]
+}

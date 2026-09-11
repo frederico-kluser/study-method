@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "slug": "contando-itens",
+  "title": "Contando itens",
+  "concept": "contagem",
+  "difficulty": 3,
+  "language": "python",
+  "outputChannel": "retorno",
+  "statement": "# Contando itens\n\nEscreva a função `quantos` que devolve a quantidade de itens de uma lista:\n\n```python\ndef quantos(lista):\n    # devolva a quantidade de itens\n```\n\nUse `len`, como na aula. Exemplos:\n\n```text\nquantos([1, 2, 3])  ->  3\nquantos([\"unico\"])  ->  1\nquantos([])  ->  0\n```\n\nA função devolve o número — ela não imprime nada.",
+  "starterCode": "# escreva aqui a funcao quantos(lista)\n",
+  "testsCode": "import unittest\n\nfrom solucao import quantos\n\n\nclass TestQuantosItensTem(unittest.TestCase):\n    def test_conta_tres_itens(self):\n        \"\"\"quantos devolve 3 para uma lista de 3 itens\"\"\"\n        self.assertTrue(quantos([1, 2, 3]) == 3)\n\n    def test_conta_um_item(self):\n        \"\"\"quantos devolve 1 para uma lista de 1 item\"\"\"\n        self.assertTrue(quantos([\"unico\"]) == 1)\n\n    def test_lista_vazia_tem_zero(self):\n        \"\"\"quantos devolve 0 para a lista vazia\"\"\"\n        self.assertTrue(quantos([]) == 0)\n",
+  "solutionCode": "def quantos(lista):\n    return len(lista)\n",
+  "expectedTestCount": 3,
+  "requirements": [
+    {
+      "id": "test_conta_tres_itens",
+      "teste": "test_conta_tres_itens",
+      "descricao": "quantos devolve 3 para uma lista de 3 itens"
+    },
+    {
+      "id": "test_conta_um_item",
+      "teste": "test_conta_um_item",
+      "descricao": "quantos devolve 1 para uma lista de 1 item"
+    },
+    {
+      "id": "test_lista_vazia_tem_zero",
+      "teste": "test_lista_vazia_tem_zero",
+      "descricao": "quantos devolve 0 para a lista vazia"
+    }
+  ]
+}

@@ -1,0 +1,118 @@
+{
+  "schemaVersion": 1,
+  "slug": "inserir-no-meio",
+  "title": "Inserir no meio",
+  "summary": "insert põe um item em qualquer posição, empurrando o resto para a frente.",
+  "difficulty": 4,
+  "role": "regular",
+  "targetAtom": "api:.insert",
+  "concepts": [
+    "inserir"
+  ],
+  "prerequisites": [
+    "acrescentar-no-fim"
+  ],
+  "introduces": {
+    "productive": [
+      "api:.insert"
+    ],
+    "receptive": []
+  },
+  "introducesTerms": [
+    "insert"
+  ],
+  "theory": [
+    {
+      "id": "insert-poe-em-uma-posicao",
+      "title": "insert põe em uma posição",
+      "markdown": "O método `insert` põe um item em QUALQUER posição — o primeiro argumento é a posição, o segundo é o item:\n\n```python\nfila = [\"ana\", \"bia\", \"caio\"]\nfila.insert(1, \"beto\")\nprint(fila)\n```\n\n```text\n['ana', 'beto', 'bia', 'caio']\n```\n\n`fila.insert(1, \"beto\")` lê-se \"na posição 1, insira `\"beto\"`\" — os itens da posição 1 em diante foram empurrados para a frente."
+    },
+    {
+      "id": "posicoes-especiais",
+      "title": "Posições especiais",
+      "markdown": "O `insert` aceita posições especiais: na posição 0 o item entra no COMEÇO, e numa posição igual ao tamanho ele entra no FIM, como o `append`:\n\n```python\nfila = [\"ana\", \"bia\"]\nfila.insert(0, \"zero\")\nfila.insert(2, \"fim\")\nprint(fila)\n```\n\n```text\n['zero', 'ana', 'bia', 'fim']\n```\n\nErrado: `fila.insert(\"ana\", 0)` — a posição vem SEMPRE primeiro, o item segundo; inverteu, o programa para."
+    },
+    {
+      "id": "estado-da-lista",
+      "title": "Estado da lista",
+      "markdown": "Qual é o estado da lista agora?\n\n```python\nitens = [1, 3]\nitens.insert(1, 2)\n```\n\n`itens` vale `[1, 2, 3]`: o `2` entrou na posição 1 e o `3` foi empurrado para a posição 2. E, como o `append`, o `insert` muda a lista e devolve `None`."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "posicao-primeiro-item-depois",
+      "statement": "insert recebe a posição primeiro e o item depois.",
+      "question": "Qual linha põe \"beto\" na posição 1 de `fila`?",
+      "options": [
+        "`fila.insert(1, \"beto\")`",
+        "`fila.insert(\"beto\", 1)`",
+        "`fila.insert(\"beto\")`",
+        "`fila.append(1, \"beto\")`"
+      ],
+      "answerIndex": 0,
+      "feedback": "insert recebe dois argumentos: a posição e depois o item.",
+      "sectionId": "insert-poe-em-uma-posicao",
+      "optionRationales": [
+        "A posição vem primeiro e o item segundo — é a ordem da aula.",
+        "Invertidos, o insert tenta pôr 1 na posição \"beto\" e o programa para.",
+        "Falta a posição: insert pede os dois argumentos.",
+        "append não recebe posição — ele só põe no fim, e com um argumento."
+      ]
+    },
+    {
+      "id": "insert-na-posicao-zero",
+      "statement": "insert na posição 0 põe o item no começo.",
+      "question": "Depois de `fila = [\"ana\"]` e `fila.insert(0, \"zero\")`, o que vale `fila`?",
+      "options": [
+        "`[\"zero\", \"ana\"]`",
+        "`[\"ana\", \"zero\"]`",
+        "`[\"ana\"]`",
+        "`[\"zero\"]`"
+      ],
+      "answerIndex": 0,
+      "feedback": "A posição 0 é a primeira: \"zero\" entrou na frente de \"ana\".",
+      "sectionId": "posicoes-especiais",
+      "optionRationales": [
+        "Inserir na posição 0 coloca o item na primeira posição, empurrando o resto.",
+        "Isso seria insert na posição 1 (ou um append).",
+        "A lista não fica parada: o item novo entrou nela.",
+        "\"ana\" não sai da lista; ela só foi empurrada para trás."
+      ]
+    },
+    {
+      "id": "insert-muda-a-lista",
+      "statement": "insert muda a lista e devolve None.",
+      "question": "Depois de `itens = [1, 3]` e `itens.insert(1, 2)`, o que vale `itens`?",
+      "options": [
+        "`[1, 2, 3]`",
+        "`[1, 3, 2]`",
+        "`[2, 1, 3]`",
+        "`[1, 3]`"
+      ],
+      "answerIndex": 0,
+      "feedback": "O 2 entrou na posição 1 e empurrou o 3: [1, 2, 3].",
+      "sectionId": "estado-da-lista",
+      "optionRationales": [
+        "Posição 1 é a do meio: o 2 entra entre o 1 e o 3.",
+        "Isso aconteceria se o 2 entrasse no fim — mas a posição pedida foi a 1.",
+        "O item só entra na frente de tudo na posição 0.",
+        "A lista não fica intacta: o insert acrescentou um item."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "list.insert na documentação de referência",
+      "url": "https://docs.python.org/3/library/stdtypes.html#list.insert",
+      "description": "A assinatura oficial do método insert."
+    },
+    {
+      "title": "Mais sobre listas no tutorial",
+      "url": "https://docs.python.org/3/tutorial/datastructures.html#more-on-lists",
+      "description": "O tutorial apresenta insert entre os métodos de lista."
+    }
+  ],
+  "challenges": [
+    "inserindo-no-meio"
+  ]
+}

@@ -1,0 +1,118 @@
+{
+  "schemaVersion": 1,
+  "slug": "quantos-itens-tem",
+  "title": "Quantos itens tem",
+  "summary": "A função len conta os itens de uma lista.",
+  "difficulty": 3,
+  "role": "regular",
+  "targetAtom": "global:len",
+  "concepts": [
+    "contagem"
+  ],
+  "prerequisites": [
+    "criar-uma-lista"
+  ],
+  "introduces": {
+    "productive": [
+      "global:len"
+    ],
+    "receptive": []
+  },
+  "introducesTerms": [
+    "len"
+  ],
+  "theory": [
+    {
+      "id": "a-funcao-len",
+      "title": "A função len",
+      "markdown": "A função `len` conta os itens de uma lista — o nome vem do inglês *length*, comprimento.\n\n```python\nfrutas = [\"uva\", \"pera\", \"manga\"]\nprint(len(frutas))\n```\n\n```text\n3\n```\n\n`len(frutas)` devolve 3, o número de itens — não as frutas, a contagem delas."
+    },
+    {
+      "id": "len-devolve-um-numero",
+      "title": "len devolve um número",
+      "markdown": "O que `len` devolve é um número comum, então ele pode entrar em qualquer conta:\n\n```python\nfrutas = [\"uva\", \"pera\", \"manga\"]\nprint(len(frutas) + 1)\n```\n\n```text\n4\n```\n\nE a lista pode nascer dentro do parênteses:\n\n```python\nprint(len([10, 20]))\n```\n\n```text\n2\n```"
+    },
+    {
+      "id": "a-lista-vazia-tem-zero",
+      "title": "A lista vazia tem zero",
+      "markdown": "Uma lista vazia tem zero itens — e `len` responde 0, sem erro:\n\n```python\ncaixa = []\nprint(len(caixa))\n```\n\n```text\n0\n```\n\nConfusão comum: `len` conta ITENS, não letras. Numa lista, cada item conta 1, mesmo um texto comprido. Qual é o estado agora, com `nomes = [\"ana\", \"bia\"]`? `len(nomes)` vale 2: dois itens, e só."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "len-conta-itens",
+      "statement": "len devolve a quantidade de itens da lista.",
+      "question": "O que devolve `len([\"uva\", \"pera\", \"manga\"])`?",
+      "options": [
+        "3",
+        "uva",
+        "manga",
+        "1"
+      ],
+      "answerIndex": 0,
+      "feedback": "len devolve a contagem, e a lista tem 3 itens.",
+      "sectionId": "a-funcao-len",
+      "optionRationales": [
+        "A contagem dos itens é 3 — um para cada fruta.",
+        "len não devolve um item da lista; devolve a quantidade.",
+        "Manga é o último item, não a contagem.",
+        "1 seria a contagem de uma lista de um item só."
+      ]
+    },
+    {
+      "id": "len-entra-em-conta",
+      "statement": "len devolve um número que pode entrar em contas.",
+      "question": "Quanto vale `len([\"a\", \"b\"]) + 1`?",
+      "options": [
+        "3",
+        "2",
+        "1",
+        "um erro"
+      ],
+      "answerIndex": 0,
+      "feedback": "len vale 2, e 2 + 1 é 3.",
+      "sectionId": "len-devolve-um-numero",
+      "optionRationales": [
+        "A lista tem 2 itens; len devolve 2, e a conta soma 1.",
+        "2 é só a contagem; a conta soma 1 por cima.",
+        "1 seria a contagem de uma lista de um item.",
+        "len devolve um número comum — soma funciona como com qualquer número."
+      ]
+    },
+    {
+      "id": "lista-vazia-zero",
+      "statement": "A lista vazia tem zero itens, e len responde 0.",
+      "question": "Depois de `caixa = []`, o que devolve `len(caixa)`?",
+      "options": [
+        "0",
+        "1",
+        "nenhum — dá erro",
+        "a lista vazia"
+      ],
+      "answerIndex": 0,
+      "feedback": "Uma lista vazia tem 0 itens: len devolve 0, sem erro.",
+      "sectionId": "a-lista-vazia-tem-zero",
+      "optionRationales": [
+        "Zero itens dentro dos colchetes — a contagem é 0.",
+        "1 seria a contagem de uma lista com um item.",
+        "len aceita lista vazia sem erro nenhum.",
+        "len devolve a contagem, nunca a lista de volta."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "len() na documentação de funções embutidas",
+      "url": "https://docs.python.org/3/library/functions.html#len",
+      "description": "A página oficial da função len."
+    },
+    {
+      "title": "O tipo list na documentação de referência",
+      "url": "https://docs.python.org/3/library/stdtypes.html#list",
+      "description": "A página oficial do tipo lista."
+    }
+  ],
+  "challenges": [
+    "contando-itens"
+  ]
+}

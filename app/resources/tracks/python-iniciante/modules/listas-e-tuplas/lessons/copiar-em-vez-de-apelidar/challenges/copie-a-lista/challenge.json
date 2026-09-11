@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "slug": "copie-a-lista",
+  "title": "Copie a lista",
+  "concept": "copiar_lista",
+  "difficulty": 4,
+  "language": "python",
+  "outputChannel": "retorno",
+  "statement": "# Copie a lista\n\nEscreva a função `copia` que devolve uma CÓPIA da lista — uma lista nova com os mesmos itens:\n\n```python\ndef copia(lista):\n    # devolva uma copia da lista\n```\n\nUse o fatiamento sem números, `lista[:]`, como na aula. Exemplo:\n\n```text\ncopia([1, 2, 3])  ->  [1, 2, 3]\n```\n\nA cópia é independente: mexer na lista devolvida NÃO pode mudar a lista original. A função devolve a lista — ela não imprime nada.",
+  "starterCode": "# escreva aqui a funcao copia(lista)\n",
+  "testsCode": "import unittest\n\nfrom solucao import copia\n\n\nclass TestCopiarEmVezDeApelidar(unittest.TestCase):\n    def test_devolve_a_lista_inteira(self):\n        \"\"\"copia devolve a lista inteira numa lista nova\"\"\"\n        self.assertEqual(copia([1, 2, 3]), [1, 2, 3])\n\n    def test_mexer_na_copia_nao_muda_a_original(self):\n        \"\"\"mexer na lista devolvida nao muda a original\"\"\"\n        original = [1, 2]\n        copiada = copia(original)\n        copiada.append(3)\n        self.assertEqual(original, [1, 2])\n",
+  "solutionCode": "def copia(lista):\n    return lista[:]\n",
+  "expectedTestCount": 2,
+  "requirements": [
+    {
+      "id": "test_devolve_a_lista_inteira",
+      "teste": "test_devolve_a_lista_inteira",
+      "descricao": "copia devolve a lista inteira numa lista nova"
+    },
+    {
+      "id": "test_mexer_na_copia_nao_muda_a_original",
+      "teste": "test_mexer_na_copia_nao_muda_a_original",
+      "descricao": "mexer na lista devolvida nao muda a original"
+    }
+  ]
+}
