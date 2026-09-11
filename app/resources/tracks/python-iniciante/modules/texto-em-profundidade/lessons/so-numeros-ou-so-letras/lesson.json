@@ -1,0 +1,122 @@
+{
+  "schemaVersion": 1,
+  "slug": "so-numeros-ou-so-letras",
+  "title": "Só números ou só letras",
+  "summary": "isdigit pergunta se o texto é só de números e isalpha se é só de letras — os dois devolvem True ou False.",
+  "difficulty": 4,
+  "role": "regular",
+  "targetAtom": "api:.isdigit",
+  "concepts": [
+    "so_numero_ou_letra"
+  ],
+  "prerequisites": [
+    "comeca-e-termina"
+  ],
+  "introduces": {
+    "productive": [
+      "api:.isdigit",
+      "api:.isalpha"
+    ],
+    "receptive": []
+  },
+  "introducesTerms": [],
+  "theory": [
+    {
+      "id": "isdigit-pergunta-se-e-numero",
+      "title": "O isdigit pergunta se é número",
+      "markdown": "O método `isdigit` pergunta se o texto é feito SÓ de números:\n\n```python\nnumero = \"123\"\nmistura = \"12a\"\nprint(numero.isdigit())\nprint(mistura.isdigit())\n```\n\n```text\nTrue\nFalse\n```\n\nUma letra no meio faz a resposta virar `False` — só dígitos contam."
+    },
+    {
+      "id": "isalpha-pergunta-se-e-letra",
+      "title": "O isalpha pergunta se é letra",
+      "markdown": "O `isalpha` pergunta a mesma coisa para LETRAS:\n\n```python\nletras = \"abc\"\nmistura = \"a1\"\nprint(letras.isalpha())\nprint(mistura.isalpha())\n```\n\n```text\nTrue\nFalse\n```\n\nE o texto vazio responde `False` nas duas perguntas — `\"\".isdigit()` e `\"\".isalpha()` devolvem `False`."
+    },
+    {
+      "id": "o-estado-agora",
+      "title": "O estado agora",
+      "markdown": "Qual é o estado agora?\n\n```python\nplaca = \"ABC123\"\nprint(placa.isalpha())\nprint(placa.isdigit())\n```\n\n`\"ABC123\"` mistura letras e números — as duas respostas são `False`: o texto não é só de letras nem só de números."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "isdigit-so-numeros",
+      "statement": "isdigit devolve True só quando o texto é feito de números.",
+      "question": "O que devolve `\"12a\".isdigit()`?",
+      "options": [
+        "False",
+        "True",
+        "12a",
+        "um erro"
+      ],
+      "answerIndex": 0,
+      "feedback": "O texto tem uma letra no meio — não é só de números: False.",
+      "sectionId": "isdigit-pergunta-se-e-numero",
+      "optionRationales": [
+        "A letra a estraga a pergunta \"só números?\" — a resposta é não.",
+        "True exigiria todos os caracteres como dígitos.",
+        "isdigit devolve a resposta da pergunta, não o texto de volta.",
+        "isdigit sobre um texto não gera erro."
+      ]
+    },
+    {
+      "id": "isalpha-so-letras",
+      "statement": "isalpha devolve True só quando o texto é feito de letras.",
+      "question": "O que devolve `\"a1\".isalpha()`?",
+      "options": [
+        "False",
+        "True",
+        "a1",
+        "um erro"
+      ],
+      "answerIndex": 0,
+      "feedback": "O número 1 atrapalha: o texto não é só de letras — False.",
+      "sectionId": "isalpha-pergunta-se-e-letra",
+      "optionRationales": [
+        "O dígito 1 estraga a pergunta \"só letras?\" — a resposta é não.",
+        "True exigiria todos os caracteres como letras.",
+        "isalpha devolve a resposta da pergunta, não o texto de volta.",
+        "isalpha sobre um texto não gera erro."
+      ]
+    },
+    {
+      "id": "texto-vazio-responde-false",
+      "statement": "Texto vazio responde False nas duas perguntas.",
+      "question": "O que devolve `\"\".isdigit()`?",
+      "options": [
+        "False",
+        "True",
+        "0",
+        "um erro"
+      ],
+      "answerIndex": 0,
+      "feedback": "O texto vazio não tem nenhum dígito — a resposta é False.",
+      "sectionId": "isalpha-pergunta-se-e-letra",
+      "optionRationales": [
+        "Sem nenhum caractere, a pergunta \"só números?\" responde não.",
+        "True exigiria ao menos um dígito — o texto vazio não tem nenhum.",
+        "isdigit devolve o booleano, não um número de contagem.",
+        "isdigit sobre texto vazio não gera erro."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "str.isdigit na referência",
+      "url": "https://docs.python.org/3/library/stdtypes.html#str.isdigit",
+      "description": "A página oficial do método isdigit."
+    },
+    {
+      "title": "str.isalpha na referência",
+      "url": "https://docs.python.org/3/library/stdtypes.html#str.isalpha",
+      "description": "A página oficial do método isalpha."
+    },
+    {
+      "title": "Textos no tutorial",
+      "url": "https://docs.python.org/3/tutorial/introduction.html#strings",
+      "description": "O tutorial apresenta os textos e os métodos que eles carregam."
+    }
+  ],
+  "challenges": [
+    "so-numero-ou-so-letra"
+  ]
+}

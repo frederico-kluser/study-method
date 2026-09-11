@@ -1,0 +1,124 @@
+{
+  "schemaVersion": 1,
+  "slug": "maiusculas-e-minusculas",
+  "title": "Maiúsculas e minúsculas",
+  "summary": "upper devolve o texto em maiúsculas e lower em minúsculas, sem mudar o texto original.",
+  "difficulty": 4,
+  "role": "regular",
+  "targetAtom": "api:.upper",
+  "concepts": [
+    "maiusculas_minusculas"
+  ],
+  "prerequisites": [
+    "acrescentar-no-fim"
+  ],
+  "introduces": {
+    "productive": [
+      "api:.upper",
+      "api:.lower"
+    ],
+    "receptive": []
+  },
+  "introducesTerms": [
+    "método"
+  ],
+  "theory": [
+    {
+      "id": "upper-deixa-tudo-grande",
+      "title": "O upper deixa tudo grande",
+      "markdown": "O método `upper` devolve o texto com todas as letras em MAIÚSCULAS:\n\n```python\nnome = \"ana\"\nprint(nome.upper())\n```\n\n```text\nANA\n```\n\n`nome.upper()` lê-se \"`nome`, em maiúsculas\" — e devolve `\"ANA\"`. A palavra **método** é o nome que Python usa para uma ferramenta que o texto carrega consigo, chamada com um ponto."
+    },
+    {
+      "id": "lower-deixa-tudo-pequeno",
+      "title": "O lower deixa tudo pequeno",
+      "markdown": "O caminho contrário é o `lower` — tudo em minúsculas:\n\n```python\nfrase = \"BOM DIA\"\nprint(frase.lower())\n```\n\n```text\nbom dia\n```\n\nO resultado cabe em qualquer lugar de um valor: `resposta = frase.lower()` guarda `\"bom dia\"` num nome. Os dois métodos DEVOLVEM um texto novo — `frase` continua com o valor de antes."
+    },
+    {
+      "id": "o-estado-agora",
+      "title": "O estado agora",
+      "markdown": "Qual é o estado agora?\n\n```python\ncidade = \"Rio\"\nprint(cidade.upper())\nprint(cidade)\n```\n\nA primeira linha mostra `RIO`; a segunda mostra `Rio` — o `upper` não mudou o texto guardado em `cidade`, só devolveu uma versão em maiúsculas."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "upper-devolve-maiusculas",
+      "statement": "upper devolve o texto com letras maiúsculas.",
+      "question": "Com `nome = \"ana\"`, o que devolve `nome.upper()`?",
+      "options": [
+        "ANA",
+        "ana",
+        "Ana",
+        "um erro"
+      ],
+      "answerIndex": 0,
+      "feedback": "upper devolve o texto com todas as letras em maiúsculas: ANA.",
+      "sectionId": "upper-deixa-tudo-grande",
+      "optionRationales": [
+        "Todas as letras de \"ana\" sobem para maiúsculas: ANA.",
+        "minúsculas é o resultado do lower, não do upper.",
+        "O upper não mistura caixas — todas as letras são maiúsculas.",
+        "upper sobre um texto não gera erro nenhum."
+      ]
+    },
+    {
+      "id": "lower-devolve-minusculas",
+      "statement": "lower devolve o texto com letras minúsculas.",
+      "question": "Com `frase = \"BOM DIA\"`, o que devolve `frase.lower()`?",
+      "options": [
+        "bom dia",
+        "BOM DIA",
+        "Bom Dia",
+        "um erro"
+      ],
+      "answerIndex": 0,
+      "feedback": "lower devolve o texto com todas as letras em minúsculas: bom dia.",
+      "sectionId": "lower-deixa-tudo-pequeno",
+      "optionRationales": [
+        "Todas as letras de \"BOM DIA\" descem para minúsculas: bom dia.",
+        "Maiúsculas é o resultado do upper, não do lower.",
+        "O lower não mistura caixas — todas as letras ficam minúsculas.",
+        "lower sobre um texto não gera erro nenhum."
+      ]
+    },
+    {
+      "id": "upper-nao-muda-o-nome",
+      "statement": "upper devolve um texto novo e não muda o guardado no nome.",
+      "question": "Depois de `cidade = \"Rio\"` e de `cidade.upper()`, o que vale `cidade`?",
+      "options": [
+        "Rio",
+        "RIO",
+        "rio",
+        "um erro"
+      ],
+      "answerIndex": 0,
+      "feedback": "cidade.upper() devolveu \"RIO\" e descartou o resultado — cidade continua \"Rio\".",
+      "sectionId": "o-estado-agora",
+      "optionRationales": [
+        "O método devolveu um texto novo; o texto do nome não mudou.",
+        "O \"RIO\" só existiu na devolução — não foi guardado em lugar nenhum.",
+        "O texto original nunca vira minúsculas sozinho.",
+        "upper sobre um texto existente não gera erro."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "str.upper na referência",
+      "url": "https://docs.python.org/3/library/stdtypes.html#str.upper",
+      "description": "A página oficial do método upper."
+    },
+    {
+      "title": "str.lower na referência",
+      "url": "https://docs.python.org/3/library/stdtypes.html#str.lower",
+      "description": "A página oficial do método lower."
+    },
+    {
+      "title": "Textos no tutorial",
+      "url": "https://docs.python.org/3/tutorial/introduction.html#strings",
+      "description": "O tutorial apresenta os textos e os métodos que eles carregam."
+    }
+  ],
+  "challenges": [
+    "maiscula-ou-minuscula"
+  ]
+}

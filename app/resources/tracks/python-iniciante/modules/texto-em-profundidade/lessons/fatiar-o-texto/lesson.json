@@ -1,0 +1,116 @@
+{
+  "schemaVersion": 1,
+  "slug": "fatiar-o-texto",
+  "title": "Fatiar o texto",
+  "summary": "texto[início:fim] devolve um pedaço do texto, do início até antes do fim — sem mudar o texto.",
+  "difficulty": 4,
+  "role": "consolidation",
+  "targetAtom": "node:Slice",
+  "concepts": [
+    "fatiar_texto"
+  ],
+  "prerequisites": [
+    "um-pedaco-da-lista"
+  ],
+  "introduces": {
+    "productive": [
+      "node:Slice"
+    ],
+    "receptive": []
+  },
+  "introducesTerms": [],
+  "theory": [
+    {
+      "id": "fatia-com-dois-numeros",
+      "title": "A fatia com dois números",
+      "markdown": "A fatia que você usou nas listas também corta texto: `texto[inicio:fim]` devolve do início até ANTES do fim:\n\n```python\npalavra = \"banana\"\nprint(palavra[2:5])\nprint(palavra[0:3])\n```\n\n```text\nnan\nban\n```\n\nA posição 5 fica de fora — a fatia para nela sem pegá-la."
+    },
+    {
+      "id": "deixar-um-lado-de-fora",
+      "title": "Deixar um lado de fora",
+      "markdown": "Dá para deixar um dos números de fora — e ele vira \"até onde der\":\n\n```python\npalavra = \"banana\"\nprint(palavra[:3])\nprint(palavra[3:])\n```\n\n```text\nban\nana\n```\n\nSem o número antes dos dois pontos, a fatia começa no 0; sem o depois, vai até o fim."
+    },
+    {
+      "id": "o-estado-agora",
+      "title": "O estado agora",
+      "markdown": "Qual é o estado agora?\n\n```python\nnome = \"casa\"\nprint(nome[1:3])\nprint(nome)\n```\n\n`nome[1:3]` devolve `\"as\"` — e `nome` continua `\"casa\"`: a fatia devolve um texto novo, não corta o original."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "fatia-ate-antes-do-fim",
+      "statement": "A fatia texto[início:fim] vai do início até antes do fim.",
+      "question": "Em `palavra = \"banana\"`, o que devolve `palavra[2:5]`?",
+      "options": [
+        "nan",
+        "nana",
+        "ban",
+        "um erro"
+      ],
+      "answerIndex": 0,
+      "feedback": "A fatia pega as posições 2, 3 e 4 — a posição 5 fica de fora: nan.",
+      "sectionId": "fatia-com-dois-numeros",
+      "optionRationales": [
+        "A fatia para antes do número do fim — posições 2, 3 e 4.",
+        "O nana incluiria a posição 5 — o fim fica de fora.",
+        "ban seria a fatia [0:3].",
+        "Fatiar um texto existente não gera erro."
+      ]
+    },
+    {
+      "id": "sem-numero-vira-ate-onde-der",
+      "statement": "Sem o primeiro número a fatia começa do 0; sem o segundo, vai até o fim.",
+      "question": "Em `palavra = \"banana\"`, o que devolve `palavra[:3]`?",
+      "options": [
+        "ban",
+        "ana",
+        "banana",
+        "um erro"
+      ],
+      "answerIndex": 0,
+      "feedback": "Sem o número antes dos dois pontos, a fatia começa no 0: ban.",
+      "sectionId": "deixar-um-lado-de-fora",
+      "optionRationales": [
+        "O começo vazio significa posição 0 — as três primeiras letras.",
+        "ana seria o pedaço [3:6], do outro lado.",
+        "banana inteiro sairia de uma fatia sem os dois números, palavra[:].",
+        "Fatiar um texto existente não gera erro."
+      ]
+    },
+    {
+      "id": "fatia-nao-muda-o-texto",
+      "statement": "A fatia devolve um texto novo e não muda o original.",
+      "question": "Depois de `nome = \"casa\"` e de `nome[1:3]`, o que vale `nome`?",
+      "options": [
+        "casa",
+        "as",
+        "cas",
+        "um erro"
+      ],
+      "answerIndex": 0,
+      "feedback": "A fatia devolveu \"as\" e descartou o resultado — nome continua \"casa\".",
+      "sectionId": "o-estado-agora",
+      "optionRationales": [
+        "O texto devolvido foi jogado fora; o original não mudou.",
+        "\"as\" só existiu na devolução — não foi guardado em lugar nenhum.",
+        "cas seria a fatia [0:3] do nome.",
+        "Fatiar um texto existente não gera erro."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "Fatiamento na referência da linguagem",
+      "url": "https://docs.python.org/3/reference/expressions.html#slicings",
+      "description": "A regra oficial do fatiamento."
+    },
+    {
+      "title": "Sequências na referência",
+      "url": "https://docs.python.org/3/library/stdtypes.html#textseq",
+      "description": "A página oficial dos métodos de texto, incluindo o fatiamento."
+    }
+  ],
+  "challenges": [
+    "fatia-o-texto"
+  ]
+}

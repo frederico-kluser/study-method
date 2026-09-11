@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 1,
+  "slug": "a-letra-vira-numero",
+  "title": "A letra vira número",
+  "concept": "letra_e_numero",
+  "difficulty": 5,
+  "language": "python",
+  "outputChannel": "retorno",
+  "statement": "# A letra vira número\n\nEscreva duas funções:\n\n- `codigo_da_letra(letra)` devolve o número da letra;\n- `letra_do_numero(numero)` devolve a letra do número.\n\n```python\ndef codigo_da_letra(letra):\n    # devolva o numero da letra\n\n\ndef letra_do_numero(numero):\n    # devolva a letra do numero\n```\n\nUse as funções da aula. Exemplos:\n\n```text\ncodigo_da_letra(\"A\")  ->  65\ncodigo_da_letra(\"a\")  ->  97\nletra_do_numero(65)  ->  \"A\"\nletra_do_numero(97)  ->  \"a\"\n```\n\nAs duas funções devolvem o valor — elas não imprimem nada.",
+  "starterCode": "# escreva aqui as funcoes codigo_da_letra e letra_do_numero\n",
+  "testsCode": "import unittest\n\nfrom solucao import codigo_da_letra\nfrom solucao import letra_do_numero\n\n\nclass TestALetraEUmNumero(unittest.TestCase):\n    def test_a_maisculo_e_65(self):\n        \"\"\"codigo_da_letra devolve o numero do A maisculo\"\"\"\n        self.assertEqual(codigo_da_letra(\"A\"), 65)\n\n    def test_a_minusculo_e_97(self):\n        \"\"\"codigo_da_letra devolve o numero do a minusculo\"\"\"\n        self.assertEqual(codigo_da_letra(\"a\"), 97)\n\n    def test_65_e_o_a_maisculo(self):\n        \"\"\"letra_do_numero devolve o A maisculo para 65\"\"\"\n        self.assertEqual(letra_do_numero(65), \"A\")\n\n    def test_97_e_o_a_minusculo(self):\n        \"\"\"letra_do_numero devolve o a minusculo para 97\"\"\"\n        self.assertEqual(letra_do_numero(97), \"a\")\n",
+  "solutionCode": "def codigo_da_letra(letra):\n    return ord(letra)\n\n\ndef letra_do_numero(numero):\n    return chr(numero)\n",
+  "expectedTestCount": 4,
+  "requirements": [
+    {
+      "id": "test_a_maisculo_e_65",
+      "teste": "test_a_maisculo_e_65",
+      "descricao": "codigo_da_letra devolve o numero do A maisculo"
+    },
+    {
+      "id": "test_a_minusculo_e_97",
+      "teste": "test_a_minusculo_e_97",
+      "descricao": "codigo_da_letra devolve o numero do a minusculo"
+    },
+    {
+      "id": "test_65_e_o_a_maisculo",
+      "teste": "test_65_e_o_a_maisculo",
+      "descricao": "letra_do_numero devolve o A maisculo para 65"
+    },
+    {
+      "id": "test_97_e_o_a_minusculo",
+      "teste": "test_97_e_o_a_minusculo",
+      "descricao": "letra_do_numero devolve o a minusculo para 97"
+    }
+  ]
+}

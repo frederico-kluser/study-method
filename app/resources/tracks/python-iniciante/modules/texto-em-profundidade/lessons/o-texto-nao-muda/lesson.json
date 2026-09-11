@@ -1,0 +1,118 @@
+{
+  "schemaVersion": 1,
+  "slug": "o-texto-nao-muda",
+  "title": "O texto não muda",
+  "summary": "Texto é imutável: replace e todo método devolvem um texto novo — o original continua intacto.",
+  "difficulty": 5,
+  "role": "consolidation",
+  "targetAtom": "api:.replace",
+  "concepts": [
+    "texto_imutavel"
+  ],
+  "prerequisites": [
+    "trocar-um-pedaco"
+  ],
+  "introduces": {
+    "productive": [
+      "api:.replace"
+    ],
+    "receptive": []
+  },
+  "introducesTerms": [
+    "imutável"
+  ],
+  "theory": [
+    {
+      "id": "replace-devolve-texto-novo",
+      "title": "O replace devolve texto novo",
+      "markdown": "O `replace` (e todo método de texto) devolve um TEXTO NOVO — o texto antigo continua existindo, intacto:\n\n```python\nfrase = \"banana\"\ntrocada = frase.replace(\"a\", \"o\")\nprint(trocada)\nprint(frase)\n```\n\n```text\nbonono\nbanana\n```\n\nOs dois textos existem ao mesmo tempo: o devolvido e o original."
+    },
+    {
+      "id": "texto-nao-tem-jeito-de-mudar",
+      "title": "O texto não tem jeito de mudar",
+      "markdown": "Dá para provar: tente ajeitar uma letra por posição e o Python recusa:\n\n```python\npalavra = \"ola\"\npalavra[1] = \"i\"\n```\n\n```text\nTypeError: 'str' object does not support item assignment\n```\n\nO texto é **imutável**: ele não tem como mudar — nenhum método altera o texto, todos devolvem um texto novo. Comparando com a lista, que aceita `lista[1] = \"i\"` e muda de verdade."
+    },
+    {
+      "id": "o-estado-agora",
+      "title": "O estado agora",
+      "markdown": "Qual é o estado agora?\n\n```python\npalavra = \"ola\"\npalavra.upper()\nprint(palavra)\n```\n\n`palavra.upper()` devolveu `\"OLA\"` — e ninguém guardou o resultado. O `print(palavra)` mostra `ola`: nenhum método conseguiu mudar o texto."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "replace-devolve-novo",
+      "statement": "replace devolve um texto novo e o original continua existindo.",
+      "question": "Depois de `frase = \"banana\"` e `trocada = frase.replace(\"a\", \"o\")`, o que vale `trocada`?",
+      "options": [
+        "bonono",
+        "banana",
+        "banono",
+        "um erro"
+      ],
+      "answerIndex": 0,
+      "feedback": "O replace devolveu o texto trocado e o guardou em trocada: bonono.",
+      "sectionId": "replace-devolve-texto-novo",
+      "optionRationales": [
+        "O valor devolvido pelo replace é o texto novo, com as trocas feitas.",
+        "banana continua sendo o valor da frase, não o da trocada.",
+        "banono seria uma troca incompleta — as três letras foram trocadas.",
+        "replace não gera erro nenhum."
+      ]
+    },
+    {
+      "id": "texto-e-imutavel",
+      "statement": "O texto é imutável: não dá para mudar uma letra por posição.",
+      "question": "O que acontece com `palavra = \"ola\"` seguido de `palavra[1] = \"i\"`?",
+      "options": [
+        "um TypeError",
+        "palavra vira \"ila\"",
+        "palavra vira \"ola\"",
+        "nada — a linha é ignorada"
+      ],
+      "answerIndex": 0,
+      "feedback": "O texto não aceita troca de letra por posição — o Python levanta um TypeError.",
+      "sectionId": "texto-nao-tem-jeito-de-mudar",
+      "optionRationales": [
+        "Item assignment não existe para texto — o Python recusa com TypeError.",
+        "Mudar uma letra no lugar funcionaria numa lista, não num texto.",
+        "O texto nem sai do lugar: a linha nem chega a mudar nada.",
+        "Linha nenhuma é ignorada em silêncio — o erro é levantado na hora."
+      ]
+    },
+    {
+      "id": "upper-nao-muda-o-texto",
+      "statement": "Nenhum método muda o texto — o resultado precisa ser guardado.",
+      "question": "Depois de `palavra = \"ola\"` e de `palavra.upper()`, o que mostra `print(palavra)`?",
+      "options": [
+        "ola",
+        "OLA",
+        "Ola",
+        "um erro"
+      ],
+      "answerIndex": 0,
+      "feedback": "O upper devolveu \"OLA\" e foi descartado — palavra continua \"ola\".",
+      "sectionId": "o-estado-agora",
+      "optionRationales": [
+        "O resultado do upper só existiria se fosse guardado num nome — não foi.",
+        "OLA é o valor devolvido, não o valor do nome.",
+        "Nenhuma mistura de caixas acontece sem guardar o resultado.",
+        "upper sobre um texto existente não gera erro."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "str.replace na referência",
+      "url": "https://docs.python.org/3/library/stdtypes.html#str.replace",
+      "description": "A página oficial do método replace."
+    },
+    {
+      "title": "Tipos imutáveis na referência",
+      "url": "https://docs.python.org/3/library/stdtypes.html#textseq",
+      "description": "A página oficial dos textos, que são imutáveis."
+    }
+  ],
+  "challenges": [
+    "troque-sem-apagar-o-original"
+  ]
+}

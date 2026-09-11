@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "slug": "texto-em-profundidade",
+  "title": "Texto em profundidade",
+  "order": 6,
+  "lessons": [
+    "maiusculas-e-minusculas",
+    "tirar-os-espacos",
+    "trocar-um-pedaco",
+    "comeca-e-termina",
+    "achar-no-texto",
+    "quebrar-em-lista",
+    "juntar-numa-string",
+    "o-texto-tem-posicao-tambem",
+    "fatiar-o-texto",
+    "esta-no-texto",
+    "so-numeros-ou-so-letras",
+    "formatar-com-largura",
+    "alinhar-e-preencher",
+    "o-texto-nao-muda",
+    "a-letra-e-um-numero"
+  ]
+}

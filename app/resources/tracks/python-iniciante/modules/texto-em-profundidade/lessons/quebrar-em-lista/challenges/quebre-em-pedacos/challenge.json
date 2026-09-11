@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 1,
+  "slug": "quebre-em-pedacos",
+  "title": "Quebre em pedaços",
+  "concept": "quebrar_texto",
+  "difficulty": 4,
+  "language": "python",
+  "outputChannel": "retorno",
+  "statement": "# Quebre em pedaços\n\nEscreva duas funções:\n\n- `quebrar(texto, separador)` devolve a lista de pedaços cortados no separador;\n- `quebrar_linhas(texto)` devolve a lista de linhas do texto.\n\n```python\ndef quebrar(texto, separador):\n    # devolva a lista de pedacos separados pelo separador\n\n\ndef quebrar_linhas(texto):\n    # devolva a lista de linhas do texto\n```\n\nUse os métodos da aula. Exemplos:\n\n```text\nquebrar(\"uva,pera,manga\", \",\")  ->  [\"uva\", \"pera\", \"manga\"]\nquebrar(\"um dois tres\", \" \")  ->  [\"um\", \"dois\", \"tres\"]\nquebrar_linhas(\"a\\\\nb\\\\nc\")  ->  [\"a\", \"b\", \"c\"]\n```\n\nSem o separador no texto, a lista tem um item só: `quebrar(\"abc\", \";\")` devolve `[\"abc\"]`. As duas funções devolvem a lista — elas não imprimem nada.",
+  "starterCode": "# escreva aqui as funcoes quebrar e quebrar_linhas\n",
+  "testsCode": "import unittest\n\nfrom solucao import quebrar\nfrom solucao import quebrar_linhas\n\n\nclass TestQuebrarEmLista(unittest.TestCase):\n    def test_quebra_pela_virgula(self):\n        \"\"\"quebrar corta o texto em cada virgula\"\"\"\n        self.assertEqual(quebrar(\"uva,pera,manga\", \",\"), [\"uva\", \"pera\", \"manga\"])\n\n    def test_quebra_pelo_espaco(self):\n        \"\"\"quebrar corta o texto em cada espaco\"\"\"\n        self.assertEqual(quebrar(\"um dois tres\", \" \"), [\"um\", \"dois\", \"tres\"])\n\n    def test_sem_separador_devolve_lista_com_um(self):\n        \"\"\"quebrar devolve o texto inteiro num item quando o separador nao existe\"\"\"\n        self.assertEqual(quebrar(\"abc\", \";\"), [\"abc\"])\n\n    def test_texto_vazio_devolve_item_vazio(self):\n        \"\"\"quebrar devolve um item vazio para o texto vazio\"\"\"\n        self.assertEqual(quebrar(\"\", \",\"), [\"\"])\n\n    def test_quebra_linhas(self):\n        \"\"\"quebrar_linhas devolve uma lista com cada linha\"\"\"\n        self.assertEqual(quebrar_linhas(\"a\\nb\\nc\"), [\"a\", \"b\", \"c\"])\n\n    def test_texto_vazio_sem_linhas(self):\n        \"\"\"quebrar_linhas devolve lista vazia para o texto vazio\"\"\"\n        self.assertEqual(quebrar_linhas(\"\"), [])\n",
+  "solutionCode": "def quebrar(texto, separador):\n    return texto.split(separador)\n\n\ndef quebrar_linhas(texto):\n    return texto.splitlines()\n",
+  "expectedTestCount": 6,
+  "requirements": [
+    {
+      "id": "test_quebra_pela_virgula",
+      "teste": "test_quebra_pela_virgula",
+      "descricao": "quebrar corta o texto em cada virgula"
+    },
+    {
+      "id": "test_quebra_pelo_espaco",
+      "teste": "test_quebra_pelo_espaco",
+      "descricao": "quebrar corta o texto em cada espaco"
+    },
+    {
+      "id": "test_sem_separador_devolve_lista_com_um",
+      "teste": "test_sem_separador_devolve_lista_com_um",
+      "descricao": "quebrar devolve o texto inteiro num item quando o separador nao existe"
+    },
+    {
+      "id": "test_texto_vazio_devolve_item_vazio",
+      "teste": "test_texto_vazio_devolve_item_vazio",
+      "descricao": "quebrar devolve um item vazio para o texto vazio"
+    },
+    {
+      "id": "test_quebra_linhas",
+      "teste": "test_quebra_linhas",
+      "descricao": "quebrar_linhas devolve uma lista com cada linha"
+    },
+    {
+      "id": "test_texto_vazio_sem_linhas",
+      "teste": "test_texto_vazio_sem_linhas",
+      "descricao": "quebrar_linhas devolve lista vazia para o texto vazio"
+    }
+  ]
+}

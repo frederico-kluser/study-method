@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 1,
+  "slug": "so-numero-ou-so-letra",
+  "title": "Só número ou só letra",
+  "concept": "so_numero_ou_letra",
+  "difficulty": 4,
+  "language": "python",
+  "outputChannel": "retorno",
+  "statement": "# Só número ou só letra\n\nEscreva duas funções:\n\n- `so_numero(texto)` devolve `True` quando o texto é feito só de números;\n- `so_letra(texto)` devolve `True` quando o texto é feito só de letras.\n\n```python\ndef so_numero(texto):\n    # devolva True se o texto e so de numeros\n\n\ndef so_letra(texto):\n    # devolva True se o texto e so de letras\n```\n\nUse os métodos da aula. Exemplos:\n\n```text\nso_numero(\"123\")  ->  True\nso_numero(\"12a\")  ->  False\nso_letra(\"abc\")  ->  True\nso_letra(\"a1\")  ->  False\n```\n\nAs duas funções devolvem o booleano — elas não imprimem nada.",
+  "starterCode": "# escreva aqui as funcoes so_numero e so_letra\n",
+  "testsCode": "import unittest\n\nfrom solucao import so_letra\nfrom solucao import so_numero\n\n\nclass TestSoNumerosOuSoLetras(unittest.TestCase):\n    def test_numero_puro(self):\n        \"\"\"so_numero devolve True para texto so de numeros\"\"\"\n        self.assertEqual(so_numero(\"123\"), True)\n\n    def test_numero_com_letra(self):\n        \"\"\"so_numero devolve False quando tem letra no meio\"\"\"\n        self.assertEqual(so_numero(\"12a\"), False)\n\n    def test_texto_vazio_nao_e_numero(self):\n        \"\"\"so_numero devolve False para o texto vazio\"\"\"\n        self.assertEqual(so_numero(\"\"), False)\n\n    def test_letra_pura(self):\n        \"\"\"so_letra devolve True para texto so de letras\"\"\"\n        self.assertEqual(so_letra(\"abc\"), True)\n\n    def test_letra_com_numero(self):\n        \"\"\"so_letra devolve False quando tem numero no meio\"\"\"\n        self.assertEqual(so_letra(\"a1\"), False)\n\n    def test_texto_vazio_nao_e_letra(self):\n        \"\"\"so_letra devolve False para o texto vazio\"\"\"\n        self.assertEqual(so_letra(\"\"), False)\n",
+  "solutionCode": "def so_numero(texto):\n    return texto.isdigit()\n\n\ndef so_letra(texto):\n    return texto.isalpha()\n",
+  "expectedTestCount": 6,
+  "requirements": [
+    {
+      "id": "test_numero_puro",
+      "teste": "test_numero_puro",
+      "descricao": "so_numero devolve True para texto so de numeros"
+    },
+    {
+      "id": "test_numero_com_letra",
+      "teste": "test_numero_com_letra",
+      "descricao": "so_numero devolve False quando tem letra no meio"
+    },
+    {
+      "id": "test_texto_vazio_nao_e_numero",
+      "teste": "test_texto_vazio_nao_e_numero",
+      "descricao": "so_numero devolve False para o texto vazio"
+    },
+    {
+      "id": "test_letra_pura",
+      "teste": "test_letra_pura",
+      "descricao": "so_letra devolve True para texto so de letras"
+    },
+    {
+      "id": "test_letra_com_numero",
+      "teste": "test_letra_com_numero",
+      "descricao": "so_letra devolve False quando tem numero no meio"
+    },
+    {
+      "id": "test_texto_vazio_nao_e_letra",
+      "teste": "test_texto_vazio_nao_e_letra",
+      "descricao": "so_letra devolve False para o texto vazio"
+    }
+  ]
+}

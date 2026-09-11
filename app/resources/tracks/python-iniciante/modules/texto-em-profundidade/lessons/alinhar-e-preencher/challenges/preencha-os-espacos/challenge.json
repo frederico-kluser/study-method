@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 1,
+  "slug": "preencha-os-espacos",
+  "title": "Preencha os espaços",
+  "concept": "alinhar_e_preencher",
+  "difficulty": 5,
+  "language": "python",
+  "outputChannel": "retorno",
+  "statement": "# Preencha os espaços\n\nEscreva duas funções:\n\n- `alinhar(texto, largura)` devolve o texto completo com espaços à direita até a largura;\n- `preencher(texto, largura)` devolve o texto completo com zeros à esquerda até a largura.\n\n```python\ndef alinhar(texto, largura):\n    # devolva o texto com espacos a direita ate a largura\n\n\ndef preencher(texto, largura):\n    # devolva o texto com zeros a esquerda ate a largura\n```\n\nUse os métodos da aula. Exemplos:\n\n```text\nalinhar(\"ola\", 5)  ->  \"ola  \"\nalinhar(\"oi\", 3)  ->  \"oi \"\npreencher(\"12\", 4)  ->  \"0012\"\npreencher(\"7\", 3)  ->  \"007\"\n```\n\nQuando o texto já cabe, ele sai como está: `alinhar(\"banana\", 3)` devolve `\"banana\"`. As duas funções devolvem o texto — elas não imprimem nada.",
+  "starterCode": "# escreva aqui as funcoes alinhar e preencher\n",
+  "testsCode": "import unittest\n\nfrom solucao import alinhar\nfrom solucao import preencher\n\n\nclass TestAlinharEPreencher(unittest.TestCase):\n    def test_completa_com_espacos(self):\n        \"\"\"alinhar poe espacos a direita ate a largura\"\"\"\n        self.assertEqual(alinhar(\"ola\", 5), \"ola  \")\n\n    def test_um_espaco_so(self):\n        \"\"\"alinhar poe um espaco quando falta uma posicao\"\"\"\n        self.assertEqual(alinhar(\"oi\", 3), \"oi \")\n\n    def test_ja_cabe_nao_muda(self):\n        \"\"\"alinhar devolve o texto como esta quando ele ja cabe\"\"\"\n        self.assertEqual(alinhar(\"banana\", 3), \"banana\")\n\n    def test_completa_com_zeros(self):\n        \"\"\"preencher poe zeros a esquerda ate a largura\"\"\"\n        self.assertEqual(preencher(\"12\", 4), \"0012\")\n\n    def test_um_zero_so(self):\n        \"\"\"preencher poe um zero quando falta uma posicao\"\"\"\n        self.assertEqual(preencher(\"7\", 3), \"007\")\n\n    def test_ja_cabe_nao_poe_zero(self):\n        \"\"\"preencher devolve o texto como esta quando ele ja cabe\"\"\"\n        self.assertEqual(preencher(\"12345\", 3), \"12345\")\n",
+  "solutionCode": "def alinhar(texto, largura):\n    return texto.ljust(largura)\n\n\ndef preencher(texto, largura):\n    return texto.zfill(largura)\n",
+  "expectedTestCount": 6,
+  "requirements": [
+    {
+      "id": "test_completa_com_espacos",
+      "teste": "test_completa_com_espacos",
+      "descricao": "alinhar poe espacos a direita ate a largura"
+    },
+    {
+      "id": "test_um_espaco_so",
+      "teste": "test_um_espaco_so",
+      "descricao": "alinhar poe um espaco quando falta uma posicao"
+    },
+    {
+      "id": "test_ja_cabe_nao_muda",
+      "teste": "test_ja_cabe_nao_muda",
+      "descricao": "alinhar devolve o texto como esta quando ele ja cabe"
+    },
+    {
+      "id": "test_completa_com_zeros",
+      "teste": "test_completa_com_zeros",
+      "descricao": "preencher poe zeros a esquerda ate a largura"
+    },
+    {
+      "id": "test_um_zero_so",
+      "teste": "test_um_zero_so",
+      "descricao": "preencher poe um zero quando falta uma posicao"
+    },
+    {
+      "id": "test_ja_cabe_nao_poe_zero",
+      "teste": "test_ja_cabe_nao_poe_zero",
+      "descricao": "preencher devolve o texto como esta quando ele ja cabe"
+    }
+  ]
+}

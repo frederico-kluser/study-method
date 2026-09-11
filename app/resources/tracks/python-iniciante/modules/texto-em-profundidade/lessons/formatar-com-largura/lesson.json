@@ -1,0 +1,118 @@
+{
+  "schemaVersion": 1,
+  "slug": "formatar-com-largura",
+  "title": "Formatar com largura",
+  "summary": "O buraco da f-string aceita instruções: {v:>8.2f} alinha à direita em 8 posições com 2 casas decimais.",
+  "difficulty": 5,
+  "role": "consolidation",
+  "targetAtom": "node:FormattedValue",
+  "concepts": [
+    "largura_no_texto"
+  ],
+  "prerequisites": [
+    "texto-com-buraco"
+  ],
+  "introduces": {
+    "productive": [
+      "node:FormattedValue"
+    ],
+    "receptive": []
+  },
+  "introducesTerms": [
+    "largura"
+  ],
+  "theory": [
+    {
+      "id": "o-buraco-ganha-formato",
+      "title": "O buraco ganha formato",
+      "markdown": "O buraco da f-string aceita instruções depois dos DOIS PONTOS. Para alinhar à direita em 8 posições com 2 casas decimais:\n\n```python\npreco = 3.14\nprint(f\"{preco:>8.2f}\")\n```\n\n```text\n    3.14\n```\n\nO `>` diz \"direita\"; o `8` diz a largura; o `.2f` diz \"duas casas decimais\"."
+    },
+    {
+      "id": "sobra-vira-espaco",
+      "title": "A sobra vira espaço",
+      "markdown": "O que sobra da largura vira espaço na frente — e as casas decimais são sempre duas:\n\n```python\nprint(f\"{42.5:>8.2f}\")\nprint(f\"{1000:>8.2f}\")\n```\n\n```text\n   42.50\n 1000.00\n```\n\nO `42.5` virou `42.50`: o formato completou a casa que faltava."
+    },
+    {
+      "id": "o-estado-agora",
+      "title": "O estado agora",
+      "markdown": "Qual é o estado agora?\n\n```python\nvalor = 7\nprint(f\"{valor:>4.1f}\")\n```\n\nO `7` vira `7.0` — uma casa decimal — e ganha espaços até a largura 4: o resultado é ` 7.0`."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "formato-depois-dos-dois-pontos",
+      "statement": "Depois dos dois pontos do buraco vão as instruções de formato.",
+      "question": "Com `preco = 3.14`, o que `print(f\"{preco:>8.2f}\")` mostra?",
+      "options": [
+        "    3.14",
+        "3.14    ",
+        "3.14000000",
+        "3.14"
+      ],
+      "answerIndex": 0,
+      "feedback": "O > alinhou à direita, o 8 pediu 8 posições e o .2f fixou 2 casas: os espaços ficaram na frente.",
+      "sectionId": "o-buraco-ganha-formato",
+      "optionRationales": [
+        "Faltam 4 espaços para a largura 8 — e o > os põe na frente.",
+        "Espaços à direita seriam o alinhamento à esquerda, o <.",
+        "As casas decimais são 2, não 8 — o .2f manda nelas.",
+        "Sem o formato o número sairia como veio; com ele ganha largura e casas."
+      ]
+    },
+    {
+      "id": "duas-casas-sempre",
+      "statement": "O .2f completa as casas decimais para duas.",
+      "question": "O que `print(f\"{42.5:>8.2f}\")` mostra?",
+      "options": [
+        "   42.50",
+        "   42.5 ",
+        "42.50",
+        "    42.5"
+      ],
+      "answerIndex": 0,
+      "feedback": "O 42.5 ganhou o 0 da segunda casa e os espaços da largura:    42.50.",
+      "sectionId": "sobra-vira-espaco",
+      "optionRationales": [
+        "A segunda casa decimal foi completada com 0 e a largura 8 foi preenchida.",
+        "O .2f sempre entrega duas casas — nunca deixa uma faltando.",
+        "Sem o 8 a largura não seria preenchida — o resultado teria só o 42.50.",
+        "Os espaços entram na frente, não atrás do número."
+      ]
+    },
+    {
+      "id": "largura-e-minimo",
+      "statement": "A largura é um mínimo: número maior que ela sai inteiro.",
+      "question": "O que `print(f\"{123456.78:>4.2f}\")` mostra?",
+      "options": [
+        "123456.78",
+        "123456.78  ",
+        "1234",
+        "um erro"
+      ],
+      "answerIndex": 0,
+      "feedback": "O número já ocupa mais que 4 posições — a largura é um mínimo, e nada é cortado.",
+      "sectionId": "sobra-vira-espaco",
+      "optionRationales": [
+        "Quando o número não cabe, ele sai inteiro — a largura nunca corta.",
+        "Espaços só aparecem quando sobra posição — aqui não sobra.",
+        "Nenhuma parte do número é cortada para caber.",
+        "Formatar um número não gera erro."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "Formatação de texto (f-strings)",
+      "url": "https://docs.python.org/3/reference/lexical_analysis.html#f-strings",
+      "description": "A referência oficial do texto que tem um valor encaixado dentro."
+    },
+    {
+      "title": "A linguagem de formato",
+      "url": "https://docs.python.org/3/library/string.html#format-specification-mini-language",
+      "description": "A página oficial das instruções que vão depois dos dois pontos."
+    }
+  ],
+  "challenges": [
+    "alinhe-o-numero"
+  ]
+}

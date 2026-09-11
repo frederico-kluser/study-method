@@ -1,0 +1,122 @@
+{
+  "schemaVersion": 1,
+  "slug": "comeca-e-termina",
+  "title": "Começa e termina",
+  "summary": "startswith e endswith respondem, com True ou False, como o texto começa e termina.",
+  "difficulty": 4,
+  "role": "regular",
+  "targetAtom": "api:.startswith",
+  "concepts": [
+    "comeco_e_fim"
+  ],
+  "prerequisites": [
+    "trocar-um-pedaco"
+  ],
+  "introduces": {
+    "productive": [
+      "api:.startswith",
+      "api:.endswith"
+    ],
+    "receptive": []
+  },
+  "introducesTerms": [],
+  "theory": [
+    {
+      "id": "startswith-pergunta-o-comeco",
+      "title": "O startswith pergunta o começo",
+      "markdown": "O método `startswith` pergunta se o texto COMEÇA com o pedaço — e devolve `True` ou `False`:\n\n```python\nfruta = \"banana\"\nprint(fruta.startswith(\"ban\"))\nprint(fruta.startswith(\"ana\"))\n```\n\n```text\nTrue\nFalse\n```\n\n`\"ana\"` está no texto, mas não no começo — a resposta é `False`."
+    },
+    {
+      "id": "endswith-pergunta-o-fim",
+      "title": "O endswith pergunta o fim",
+      "markdown": "O `endswith` pergunta pelo FIM do texto:\n\n```python\nfruta = \"banana\"\nprint(fruta.endswith(\"ana\"))\nprint(fruta.endswith(\"ban\"))\n```\n\n```text\nTrue\nFalse\n```\n\nAs duas perguntas recebem o pedaço entre aspas e devolvem um booleano de verdade — `True` ou `False`, pronto para o `if`."
+    },
+    {
+      "id": "o-estado-agora",
+      "title": "O estado agora",
+      "markdown": "Qual é o estado agora?\n\n```python\narquivo = \"foto.png\"\nif arquivo.endswith(\".png\"):\n    print(\"e uma imagem\")\n```\n\n`arquivo.endswith(\".png\")` devolve `True` — e a mensagem aparece. A pergunta do `if` é exatamente esse booleano."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "startswith-pergunta-o-comeco-2",
+      "statement": "startswith devolve True quando o texto começa com o pedaço.",
+      "question": "Em `fruta = \"banana\"`, o que devolve `fruta.startswith(\"ban\")`?",
+      "options": [
+        "True",
+        "False",
+        "ban",
+        "um erro"
+      ],
+      "answerIndex": 0,
+      "feedback": "\"banana\" começa com \"ban\": a resposta do startswith é True.",
+      "sectionId": "startswith-pergunta-o-comeco",
+      "optionRationales": [
+        "O começo de \"banana\" é exatamente \"ban\" — a resposta é sim.",
+        "False seria a resposta de um começo diferente.",
+        "startswith devolve a resposta da pergunta, não o pedaço de volta.",
+        "startswith sobre um texto existente não gera erro."
+      ]
+    },
+    {
+      "id": "endswith-pergunta-o-fim",
+      "statement": "endswith devolve True quando o texto termina com o pedaço.",
+      "question": "Em `fruta = \"banana\"`, o que devolve `fruta.endswith(\"ana\")`?",
+      "options": [
+        "True",
+        "False",
+        "ana",
+        "um erro"
+      ],
+      "answerIndex": 0,
+      "feedback": "\"banana\" termina com \"ana\": a resposta do endswith é True.",
+      "sectionId": "endswith-pergunta-o-fim",
+      "optionRationales": [
+        "O fim de \"banana\" é exatamente \"ana\" — a resposta é sim.",
+        "False seria a resposta de um fim diferente.",
+        "endswith devolve a resposta da pergunta, não o pedaço de volta.",
+        "endswith sobre um texto existente não gera erro."
+      ]
+    },
+    {
+      "id": "startswith-false-apesar-de-estar",
+      "statement": "startswith responde False quando o pedaço está no texto, mas não no começo.",
+      "question": "Em `fruta = \"banana\"`, o que devolve `fruta.startswith(\"ana\")`?",
+      "options": [
+        "False",
+        "True",
+        "ana",
+        "um erro"
+      ],
+      "answerIndex": 0,
+      "feedback": "\"ana\" existe em \"banana\", mas não no começo — a resposta é False.",
+      "sectionId": "startswith-pergunta-o-comeco",
+      "optionRationales": [
+        "A pergunta é só sobre o começo — e o começo é \"ban\", não \"ana\".",
+        "True seria a resposta de um pedaço que abre o texto.",
+        "startswith não devolve o pedaço — devolve a resposta.",
+        "Um texto que tem o pedaço no meio não gera erro nenhum."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "str.startswith na referência",
+      "url": "https://docs.python.org/3/library/stdtypes.html#str.startswith",
+      "description": "A página oficial do método startswith."
+    },
+    {
+      "title": "str.endswith na referência",
+      "url": "https://docs.python.org/3/library/stdtypes.html#str.endswith",
+      "description": "A página oficial do método endswith."
+    },
+    {
+      "title": "Textos no tutorial",
+      "url": "https://docs.python.org/3/tutorial/introduction.html#strings",
+      "description": "O tutorial apresenta os textos e os métodos que eles carregam."
+    }
+  ],
+  "challenges": [
+    "como-comeca-e-como-termina"
+  ]
+}

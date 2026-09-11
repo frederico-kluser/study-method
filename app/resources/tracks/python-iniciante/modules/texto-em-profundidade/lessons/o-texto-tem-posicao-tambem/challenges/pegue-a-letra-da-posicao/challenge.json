@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 1,
+  "slug": "pegue-a-letra-da-posicao",
+  "title": "Pegue a letra da posição",
+  "concept": "posicao_no_texto",
+  "difficulty": 4,
+  "language": "python",
+  "outputChannel": "retorno",
+  "statement": "# Pegue a letra da posição\n\nEscreva a função `pegar_letra` que devolve a letra que está na posição pedida do texto:\n\n```python\ndef pegar_letra(texto, posicao):\n    # devolva a letra na posicao\n```\n\nUse os colchetes, como na aula. Exemplos:\n\n```text\npegar_letra(\"banana\", 0)  ->  \"b\"\npegar_letra(\"banana\", 2)  ->  \"n\"\npegar_letra(\"ola\", 2)  ->  \"a\"\n```\n\nA função devolve a letra — ela não imprime nada.",
+  "starterCode": "# escreva aqui a funcao pegar_letra(texto, posicao)\n",
+  "testsCode": "import unittest\n\nfrom solucao import pegar_letra\n\n\nclass TestOTextoTemPosicaoTambem(unittest.TestCase):\n    def test_pega_a_primeira_letra(self):\n        \"\"\"pegar_letra devolve a letra da posicao 0\"\"\"\n        self.assertEqual(pegar_letra(\"banana\", 0), \"b\")\n\n    def test_pega_a_segunda_letra(self):\n        \"\"\"pegar_letra devolve a letra da posicao 1\"\"\"\n        self.assertEqual(pegar_letra(\"banana\", 1), \"a\")\n\n    def test_pega_a_ultima_letra(self):\n        \"\"\"pegar_letra devolve a letra da ultima posicao\"\"\"\n        self.assertEqual(pegar_letra(\"banana\", 5), \"a\")\n\n    def test_pega_em_palavra_curta(self):\n        \"\"\"pegar_letra devolve a letra da ultima posicao de uma palavra curta\"\"\"\n        self.assertEqual(pegar_letra(\"ola\", 2), \"a\")\n",
+  "solutionCode": "def pegar_letra(texto, posicao):\n    return texto[posicao]\n",
+  "expectedTestCount": 4,
+  "requirements": [
+    {
+      "id": "test_pega_a_primeira_letra",
+      "teste": "test_pega_a_primeira_letra",
+      "descricao": "pegar_letra devolve a letra da posicao 0"
+    },
+    {
+      "id": "test_pega_a_segunda_letra",
+      "teste": "test_pega_a_segunda_letra",
+      "descricao": "pegar_letra devolve a letra da posicao 1"
+    },
+    {
+      "id": "test_pega_a_ultima_letra",
+      "teste": "test_pega_a_ultima_letra",
+      "descricao": "pegar_letra devolve a letra da ultima posicao"
+    },
+    {
+      "id": "test_pega_em_palavra_curta",
+      "teste": "test_pega_em_palavra_curta",
+      "descricao": "pegar_letra devolve a letra da ultima posicao de uma palavra curta"
+    }
+  ]
+}

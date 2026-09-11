@@ -1,0 +1,41 @@
+{
+  "schemaVersion": 1,
+  "slug": "junte-com-um-separador",
+  "title": "Junte com um separador",
+  "concept": "juntar_texto",
+  "difficulty": 4,
+  "language": "python",
+  "outputChannel": "retorno",
+  "statement": "# Junte com um separador\n\nEscreva a função `juntar` que devolve um texto só, com o separador colado entre os itens da lista:\n\n```python\ndef juntar(separador, itens):\n    # devolva os itens colados com o separador entre eles\n```\n\nUse o `join`, como na aula. Exemplos:\n\n```text\njuntar(\",\", [\"uva\", \"pera\"])  ->  \"uva,pera\"\njuntar(\" \", [\"ola\", \"mundo\"])  ->  \"ola mundo\"\njuntar(\"\", [\"a\", \"b\"])  ->  \"ab\"\n```\n\nCom um item só não entra separador: `juntar(\"-\", [\"a\"])` devolve `\"a\"`. A função devolve o texto — ela não imprime nada.",
+  "starterCode": "# escreva aqui a funcao juntar(separador, itens)\n",
+  "testsCode": "import unittest\n\nfrom solucao import juntar\n\n\nclass TestJuntarNumaString(unittest.TestCase):\n    def test_junta_com_virgula(self):\n        \"\"\"juntar devolve os itens colados com a virgula\"\"\"\n        self.assertEqual(juntar(\",\", [\"uva\", \"pera\"]), \"uva,pera\")\n\n    def test_junta_com_espaco(self):\n        \"\"\"juntar devolve os itens colados com o espaco\"\"\"\n        self.assertEqual(juntar(\" \", [\"ola\", \"mundo\"]), \"ola mundo\")\n\n    def test_separador_vazio_cola_tudo(self):\n        \"\"\"juntar cola os itens sem nada entre eles quando o separador e vazio\"\"\"\n        self.assertEqual(juntar(\"\", [\"a\", \"b\"]), \"ab\")\n\n    def test_um_item_so_sem_separador(self):\n        \"\"\"juntar devolve o item sozinho quando a lista tem um item\"\"\"\n        self.assertEqual(juntar(\"-\", [\"a\"]), \"a\")\n\n    def test_lista_vazia_devolve_vazio(self):\n        \"\"\"juntar devolve o texto vazio para a lista vazia\"\"\"\n        self.assertEqual(juntar(\"-\", []), \"\")\n",
+  "solutionCode": "def juntar(separador, itens):\n    return separador.join(itens)\n",
+  "expectedTestCount": 5,
+  "requirements": [
+    {
+      "id": "test_junta_com_virgula",
+      "teste": "test_junta_com_virgula",
+      "descricao": "juntar devolve os itens colados com a virgula"
+    },
+    {
+      "id": "test_junta_com_espaco",
+      "teste": "test_junta_com_espaco",
+      "descricao": "juntar devolve os itens colados com o espaco"
+    },
+    {
+      "id": "test_separador_vazio_cola_tudo",
+      "teste": "test_separador_vazio_cola_tudo",
+      "descricao": "juntar cola os itens sem nada entre eles quando o separador e vazio"
+    },
+    {
+      "id": "test_um_item_so_sem_separador",
+      "teste": "test_um_item_so_sem_separador",
+      "descricao": "juntar devolve o item sozinho quando a lista tem um item"
+    },
+    {
+      "id": "test_lista_vazia_devolve_vazio",
+      "teste": "test_lista_vazia_devolve_vazio",
+      "descricao": "juntar devolve o texto vazio para a lista vazia"
+    }
+  ]
+}

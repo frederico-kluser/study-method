@@ -1,0 +1,116 @@
+{
+  "schemaVersion": 1,
+  "slug": "esta-no-texto",
+  "title": "Está no texto?",
+  "summary": "O operador in pergunta se um pedaço está dentro do texto, devolvendo True ou False.",
+  "difficulty": 4,
+  "role": "consolidation",
+  "targetAtom": "op:compare:in",
+  "concepts": [
+    "esta_no_texto"
+  ],
+  "prerequisites": [
+    "esta-na-lista"
+  ],
+  "introduces": {
+    "productive": [
+      "op:compare:in"
+    ],
+    "receptive": []
+  },
+  "introducesTerms": [],
+  "theory": [
+    {
+      "id": "in-pergunta-pelo-pedaco",
+      "title": "O in pergunta pelo pedaço",
+      "markdown": "O `in` que pergunta por itens da lista também pergunta por PEDAÇOS do texto:\n\n```python\nfruta = \"banana\"\nprint(\"na\" in fruta)\nprint(\"xz\" in fruta)\n```\n\n```text\nTrue\nFalse\n```\n\nA pergunta é \"o pedaço está dentro do texto?\" — não precisa ser o texto inteiro."
+    },
+    {
+      "id": "depende-da-ordem",
+      "title": "Depende da ordem",
+      "markdown": "A resposta depende da ordem das letras: `\"bn\"` não está em `\"banana\"`, mesmo usando só letras que existem lá:\n\n```python\nprint(\"bn\" in \"banana\")\n```\n\n```text\nFalse\n```\n\nO pedaço tem de aparecer inteirinho e em ordem. A pergunta contrária — \"não está?\" — troca o `in` pelo `not in`, com o `not` antes do `in`."
+    },
+    {
+      "id": "o-estado-agora",
+      "title": "O estado agora",
+      "markdown": "Qual é o estado agora?\n\n```python\nemail = \"ana@exemplo.com\"\nif \"@\" in email:\n    print(\"tem arroba\")\n```\n\n`\"@\" in email` devolve `True`, e a mensagem aparece — o `in` cabe dentro do `if` como qualquer pergunta."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "in-pergunta-pelo-pedaco-2",
+      "statement": "in pergunta se o pedaço está dentro do texto e devolve True ou False.",
+      "question": "Em `fruta = \"banana\"`, o que devolve `\"na\" in fruta`?",
+      "options": [
+        "True",
+        "False",
+        "na",
+        "um erro"
+      ],
+      "answerIndex": 0,
+      "feedback": "\"na\" está dentro de \"banana\": a resposta do in é True.",
+      "sectionId": "in-pergunta-pelo-pedaco",
+      "optionRationales": [
+        "O pedaço \"na\" existe inteirinho dentro do texto — a resposta é sim.",
+        "False seria a resposta de um pedaço que não está lá.",
+        "in devolve a resposta da pergunta, não o pedaço de volta.",
+        "in sobre um texto existente não gera erro."
+      ]
+    },
+    {
+      "id": "in-respeita-a-ordem",
+      "statement": "in devolve False quando as letras do pedaço não aparecem em ordem.",
+      "question": "Em `fruta = \"banana\"`, o que devolve `\"bn\" in fruta`?",
+      "options": [
+        "False",
+        "True",
+        "bn",
+        "um erro"
+      ],
+      "answerIndex": 0,
+      "feedback": "As letras b e n existem, mas não uma ao lado da outra nessa ordem: False.",
+      "sectionId": "depende-da-ordem",
+      "optionRationales": [
+        "O pedaço \"bn\" não aparece em lugar nenhum de \"banana\" — a resposta é não.",
+        "True exigiria o \"bn\" inteirinho em algum lugar do texto.",
+        "in devolve a resposta da pergunta, não o pedaço de volta.",
+        "Uma busca que não acha não gera erro."
+      ]
+    },
+    {
+      "id": "in-cabe-no-se",
+      "statement": "O resultado do in é um booleano que cabe no se.",
+      "question": "Em `email = \"ana@exemplo.com\"`, o que devolve `\"@\" in email`?",
+      "options": [
+        "True",
+        "False",
+        "@",
+        "um erro"
+      ],
+      "answerIndex": 0,
+      "feedback": "\"@\" existe dentro do email: a resposta é True.",
+      "sectionId": "o-estado-agora",
+      "optionRationales": [
+        "O arroba está no meio do texto — a pergunta responde sim.",
+        "False seria a resposta de um texto sem arroba.",
+        "in devolve a resposta da pergunta, não o caractere de volta.",
+        "procurar um texto dentro de outro não gera erro."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "Operações de pertinência na referência",
+      "url": "https://docs.python.org/3/reference/expressions.html",
+      "description": "A seção oficial dos operadores in e not in."
+    },
+    {
+      "title": "Sequências na referência",
+      "url": "https://docs.python.org/3/library/stdtypes.html#textseq",
+      "description": "A página oficial dos métodos de texto, entre eles a pertinência."
+    }
+  ],
+  "challenges": [
+    "o-pedaco-esta-no-texto"
+  ]
+}

@@ -1,0 +1,122 @@
+{
+  "schemaVersion": 1,
+  "slug": "alinhar-e-preencher",
+  "title": "Alinhar e preencher",
+  "summary": "ljust completa com espaços à direita e zfill completa com zeros à esquerda, até a largura pedida.",
+  "difficulty": 5,
+  "role": "regular",
+  "targetAtom": "api:.ljust",
+  "concepts": [
+    "alinhar_e_preencher"
+  ],
+  "prerequisites": [
+    "formatar-com-largura"
+  ],
+  "introduces": {
+    "productive": [
+      "api:.ljust",
+      "api:.zfill"
+    ],
+    "receptive": []
+  },
+  "introducesTerms": [],
+  "theory": [
+    {
+      "id": "ljust-completa-com-espacos",
+      "title": "O ljust completa com espaços",
+      "markdown": "O método `ljust` completa o texto com espaços à DIREITA até a largura pedida:\n\n```python\nnome = \"ola\"\nprint(nome.ljust(5))\n```\n\n```text\nola  \n```\n\nO `\"ola\"` tem 3 letras; o `ljust(5)` acrescentou 2 espaços para chegar a 5."
+    },
+    {
+      "id": "zfill-completa-com-zeros",
+      "title": "O zfill completa com zeros",
+      "markdown": "O `zfill` completa o texto com ZEROS à ESQUERDA — útil para números que precisam de casas fixas:\n\n```python\nhora = \"12\"\nprint(hora.zfill(4))\n```\n\n```text\n0012\n```\n\nE se o texto já cabe, nenhum dos dois muda nada: `\"banana\".ljust(3)` devolve `\"banana\"`."
+    },
+    {
+      "id": "o-estado-agora",
+      "title": "O estado agora",
+      "markdown": "Qual é o estado agora?\n\n```python\nminuto = \"7\"\nprint(minuto.zfill(2))\n```\n\n`\"7\".zfill(2)` devolve `\"07\"` — o relógio mostra 07, não 7. E o texto guardado em `minuto` continua \"7\"."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "ljust-completa-a-direita",
+      "statement": "ljust completa o texto com espaços à direita até a largura.",
+      "question": "O que devolve `\"ola\".ljust(5)`?",
+      "options": [
+        "ola  ",
+        "  ola",
+        "olaaa",
+        "ola"
+      ],
+      "answerIndex": 0,
+      "feedback": "Faltavam 2 posições para 5 — o ljust as preencheu com espaços depois do ola.",
+      "sectionId": "ljust-completa-com-espacos",
+      "optionRationales": [
+        "Os espaços entram à direita do texto, até completar 5 posições.",
+        "Espaços à esquerda seriam o rjust — o ljust preenche o lado direito.",
+        "O ljust completa com espaços, nunca com letras repetidas.",
+        "Sem completar, o texto sairia com 3 posições — o ljust o leva a 5."
+      ]
+    },
+    {
+      "id": "zfill-completa-a-esquerda",
+      "statement": "zfill completa o texto com zeros à esquerda até a largura.",
+      "question": "O que devolve `\"12\".zfill(4)`?",
+      "options": [
+        "0012",
+        "1200",
+        "12  ",
+        "12"
+      ],
+      "answerIndex": 0,
+      "feedback": "Faltavam 2 posições para 4 — o zfill as preencheu com zeros antes do 12.",
+      "sectionId": "zfill-completa-com-zeros",
+      "optionRationales": [
+        "Os zeros entram à esquerda do texto, até completar 4 posições.",
+        "Os zeros nunca são colados no fim do texto.",
+        "O zfill preenche com zeros, não com espaços.",
+        "Sem completar, o texto sairia com 2 posições — o zfill o leva a 4."
+      ]
+    },
+    {
+      "id": "ja-cabe-nao-muda",
+      "statement": "Quando o texto já tem a largura pedida, nada é acrescentado.",
+      "question": "O que devolve `\"banana\".ljust(3)`?",
+      "options": [
+        "banana",
+        "ban",
+        "banana  ",
+        "um erro"
+      ],
+      "answerIndex": 0,
+      "feedback": "O texto já tem mais que 3 letras — a largura é um mínimo, e nada é cortado nem acrescentado.",
+      "sectionId": "zfill-completa-com-zeros",
+      "optionRationales": [
+        "A largura é um mínimo: texto maior sai inteiro, sem mudança.",
+        "Nenhum pedaço é cortado para caber na largura.",
+        "Espaços só entram quando falta posição — aqui não falta.",
+        "ljust sobre um texto existente não gera erro."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "str.ljust na referência",
+      "url": "https://docs.python.org/3/library/stdtypes.html#str.ljust",
+      "description": "A página oficial do método ljust."
+    },
+    {
+      "title": "str.zfill na referência",
+      "url": "https://docs.python.org/3/library/stdtypes.html#str.zfill",
+      "description": "A página oficial do método zfill."
+    },
+    {
+      "title": "Textos no tutorial",
+      "url": "https://docs.python.org/3/tutorial/introduction.html#strings",
+      "description": "O tutorial apresenta os textos e os métodos que eles carregam."
+    }
+  ],
+  "challenges": [
+    "preencha-os-espacos"
+  ]
+}

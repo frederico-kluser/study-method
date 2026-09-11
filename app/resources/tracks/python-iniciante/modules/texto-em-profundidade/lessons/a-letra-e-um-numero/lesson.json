@@ -1,0 +1,122 @@
+{
+  "schemaVersion": 1,
+  "slug": "a-letra-e-um-numero",
+  "title": "A letra é um número",
+  "summary": "Para o computador, cada letra é um número: ord devolve o número da letra e chr devolve a letra do número.",
+  "difficulty": 5,
+  "role": "regular",
+  "targetAtom": "global:ord",
+  "concepts": [
+    "letra_e_numero"
+  ],
+  "prerequisites": [
+    "o-texto-tem-posicao-tambem"
+  ],
+  "introduces": {
+    "productive": [
+      "global:ord",
+      "global:chr"
+    ],
+    "receptive": []
+  },
+  "introducesTerms": [],
+  "theory": [
+    {
+      "id": "ord-vira-numero",
+      "title": "O ord vira número",
+      "markdown": "Para o computador, cada letra é um NÚMERO. A função `ord` devolve o número de uma letra:\n\n```python\nprint(ord(\"A\"))\nprint(ord(\"B\"))\n```\n\n```text\n65\n66\n```\n\nO `\"A\"` vale 65, o `\"B\"` vale 66 — e o `\"a\"` minúsculo vale outro número, o 97."
+    },
+    {
+      "id": "chr-vira-letra",
+      "title": "O chr vira letra",
+      "markdown": "O caminho de volta é a função `chr` — número vira letra:\n\n```python\nprint(chr(65))\nprint(chr(97))\n```\n\n```text\nA\na\n```\n\n`chr` e `ord` são uma o inverso da outra — `chr(ord(\"A\"))` devolve `\"A\"` de novo."
+    },
+    {
+      "id": "o-estado-agora",
+      "title": "O estado agora",
+      "markdown": "Qual é o estado agora?\n\n```python\nletra = \"B\"\nprint(ord(letra) + 1)\nprint(chr(ord(letra) + 1))\n```\n\n`ord(\"B\")` vale 66; 66 + 1 é 67; `chr(67)` devolve a letra seguinte, o `\"C\"`."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "ord-devolve-o-numero",
+      "statement": "ord devolve o número da letra.",
+      "question": "O que devolve `ord(\"A\")`?",
+      "options": [
+        "65",
+        "97",
+        "A",
+        "um erro"
+      ],
+      "answerIndex": 0,
+      "feedback": "A letra A maiúscula vale o número 65 para o computador.",
+      "sectionId": "ord-vira-numero",
+      "optionRationales": [
+        "O A maiúsculo é o número 65.",
+        "97 é o número do a minúsculo.",
+        "ord devolve o número, nunca a letra de volta.",
+        "ord de uma letra não gera erro."
+      ]
+    },
+    {
+      "id": "chr-devolve-a-letra",
+      "statement": "chr devolve a letra do número.",
+      "question": "O que devolve `chr(97)`?",
+      "options": [
+        "a",
+        "A",
+        "97",
+        "um erro"
+      ],
+      "answerIndex": 0,
+      "feedback": "O número 97 é a letra a minúscula.",
+      "sectionId": "chr-vira-letra",
+      "optionRationales": [
+        "97 é o número do a minúsculo — chr devolve ele.",
+        "O A maiúsculo seria o chr(65).",
+        "chr devolve a letra, nunca o número de volta.",
+        "chr de um número de letra não gera erro."
+      ]
+    },
+    {
+      "id": "ord-e-chr-sao-inversas",
+      "statement": "ord e chr são uma o inverso da outra.",
+      "question": "O que devolve `chr(ord(\"A\"))`?",
+      "options": [
+        "A",
+        "65",
+        "a",
+        "um erro"
+      ],
+      "answerIndex": 0,
+      "feedback": "O ord(\"A\") devolve 65, e o chr(65) devolve o A de volta.",
+      "sectionId": "chr-vira-letra",
+      "optionRationales": [
+        "O caminho de ida e o de volta se anulam: A vira 65 e volta a ser A.",
+        "65 é o número do meio do caminho, não o resultado final.",
+        "O a minúsculo seria o resultado de chr(97).",
+        "As duas funções juntas não geram erro."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "ord na referência",
+      "url": "https://docs.python.org/3/library/functions.html#ord",
+      "description": "A página oficial da função ord."
+    },
+    {
+      "title": "chr na referência",
+      "url": "https://docs.python.org/3/library/functions.html#chr",
+      "description": "A página oficial da função chr."
+    },
+    {
+      "title": "Textos no tutorial",
+      "url": "https://docs.python.org/3/tutorial/introduction.html#strings",
+      "description": "O tutorial apresenta os textos, que o computador guarda como números."
+    }
+  ],
+  "challenges": [
+    "a-letra-vira-numero"
+  ]
+}

@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "slug": "troque-sem-apagar-o-original",
+  "title": "Troque sem apagar o original",
+  "concept": "texto_imutavel",
+  "difficulty": 5,
+  "language": "python",
+  "outputChannel": "retorno",
+  "statement": "# Troque sem apagar o original\n\nEscreva a função `trocar` que devolve o texto com o pedaço antigo trocado pelo novo — sem mudar o texto que ela recebeu:\n\n```python\ndef trocar(texto, antigo, novo):\n    # devolva o texto com o pedaco trocado\n```\n\nUse o `replace`, como na aula. Exemplos:\n\n```text\ntrocar(\"banana\", \"a\", \"o\")  ->  \"bonono\"\ntrocar(\"abc\", \"x\", \"y\")  ->  \"abc\"\n```\n\nDepois de `trocar(texto, \"a\", \"o\")`, o `texto` continua com o valor de antes — o `replace` devolve um texto novo. A função devolve o texto — ela não imprime nada.",
+  "starterCode": "# escreva aqui a funcao trocar(texto, antigo, novo)\n",
+  "testsCode": "import unittest\n\nfrom solucao import trocar\n\n\nclass TestOTextoNaoMuda(unittest.TestCase):\n    def test_devolve_o_texto_trocado(self):\n        \"\"\"trocar devolve o texto novo com o pedaco trocado\"\"\"\n        self.assertEqual(trocar(\"banana\", \"a\", \"o\"), \"bonono\")\n\n    def test_sem_match_devolve_igual(self):\n        \"\"\"trocar devolve o texto igual quando o pedaco nao existe\"\"\"\n        self.assertEqual(trocar(\"abc\", \"x\", \"y\"), \"abc\")\n\n    def test_o_texto_recebido_nao_muda(self):\n        \"\"\"trocar nao muda o texto que recebeu\"\"\"\n        texto = \"banana\"\n        trocar(texto, \"a\", \"o\")\n        self.assertEqual(texto, \"banana\")\n",
+  "solutionCode": "def trocar(texto, antigo, novo):\n    return texto.replace(antigo, novo)\n",
+  "expectedTestCount": 3,
+  "requirements": [
+    {
+      "id": "test_devolve_o_texto_trocado",
+      "teste": "test_devolve_o_texto_trocado",
+      "descricao": "trocar devolve o texto novo com o pedaco trocado"
+    },
+    {
+      "id": "test_sem_match_devolve_igual",
+      "teste": "test_sem_match_devolve_igual",
+      "descricao": "trocar devolve o texto igual quando o pedaco nao existe"
+    },
+    {
+      "id": "test_o_texto_recebido_nao_muda",
+      "teste": "test_o_texto_recebido_nao_muda",
+      "descricao": "trocar nao muda o texto que recebeu"
+    }
+  ]
+}

@@ -1,0 +1,116 @@
+{
+  "schemaVersion": 1,
+  "slug": "trocar-um-pedaco",
+  "title": "Trocar um pedaço",
+  "summary": "replace devolve o texto com um pedaço trocado por outro, em todas as vezes que ele aparece.",
+  "difficulty": 4,
+  "role": "regular",
+  "targetAtom": "api:.replace",
+  "concepts": [
+    "trocar_pedaco"
+  ],
+  "prerequisites": [
+    "tirar-os-espacos"
+  ],
+  "introduces": {
+    "productive": [
+      "api:.replace"
+    ],
+    "receptive": []
+  },
+  "introducesTerms": [],
+  "theory": [
+    {
+      "id": "replace-troca-um-pedaco",
+      "title": "O replace troca um pedaço",
+      "markdown": "O método `replace` devolve o texto com UM PEDAÇO trocado por outro:\n\n```python\nfrase = \"a casa e azul\"\nprint(frase.replace(\"azul\", \"verde\"))\n```\n\n```text\na casa e verde\n```\n\n`replace` recebe dois argumentos: o pedaço antigo e o pedaço novo — ambos entre aspas."
+    },
+    {
+      "id": "troca-todas-as-vezes",
+      "title": "Troca todas as vezes",
+      "markdown": "O `replace` troca TODAS as vezes que o pedaço aparece — não só a primeira:\n\n```python\nfruta = \"banana\"\nprint(fruta.replace(\"a\", \"o\"))\n```\n\n```text\nbonono\n```\n\nOs três `a` viraram `o`. E quando o pedaço não existe, o texto sai inteiro, sem erro."
+    },
+    {
+      "id": "o-estado-agora",
+      "title": "O estado agora",
+      "markdown": "Qual é o estado agora?\n\n```python\nsaudacao = \"oi oi\"\nprint(saudacao.replace(\"oi\", \"tchau\"))\nprint(saudacao)\n```\n\nA primeira linha mostra `tchau tchau`; a segunda mostra `oi oi` — o `replace` devolveu outro texto, e o guardado em `saudacao` não mudou."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "replace-troca-o-pedaco",
+      "statement": "replace devolve o texto com o pedaço antigo trocado pelo novo.",
+      "question": "O que devolve `\"a casa e azul\".replace(\"azul\", \"verde\")`?",
+      "options": [
+        "a casa e verde",
+        "a verde e azul",
+        "a casa e azul",
+        "verde casa e azul"
+      ],
+      "answerIndex": 0,
+      "feedback": "O pedaço \"azul\" saiu e o \"verde\" entrou no lugar: a casa e verde.",
+      "sectionId": "replace-troca-um-pedaco",
+      "optionRationales": [
+        "O antigo é o que sai, o novo é o que entra — e o resto do texto fica no lugar.",
+        "O pedaço novo nunca substitui a frase inteira.",
+        "Sem replace a frase sairia como estava; com ele o pedaço é trocado.",
+        "Só o pedaço pedido é trocado; o começo da frase não vira o pedaço novo."
+      ]
+    },
+    {
+      "id": "replace-troca-todas",
+      "statement": "replace troca todas as ocorrências do pedaço.",
+      "question": "O que devolve `\"banana\".replace(\"a\", \"o\")`?",
+      "options": [
+        "bonono",
+        "banono",
+        "bonona",
+        "banana"
+      ],
+      "answerIndex": 0,
+      "feedback": "Os três a de banana viraram o: bonono.",
+      "sectionId": "troca-todas-as-vezes",
+      "optionRationales": [
+        "Cada a foi trocado: banana vira bonono.",
+        "Só o primeiro a seria trocado se o replace parasse na primeira vez — ele não para.",
+        "Os a do meio também são trocados, não só os das pontas.",
+        "Sem troca nenhuma o texto sairia banana."
+      ]
+    },
+    {
+      "id": "replace-nao-muda-o-nome",
+      "statement": "replace devolve um texto novo e não muda o guardado no nome.",
+      "question": "Depois de `saudacao = \"oi oi\"` e de `saudacao.replace(\"oi\", \"tchau\")`, o que vale `saudacao`?",
+      "options": [
+        "oi oi",
+        "tchau tchau",
+        "oi tchau",
+        "um erro"
+      ],
+      "answerIndex": 0,
+      "feedback": "O replace devolveu \"tchau tchau\" e descartou o resultado — saudacao continua \"oi oi\".",
+      "sectionId": "o-estado-agora",
+      "optionRationales": [
+        "O texto devolvido foi jogado fora; o do nome não mudou.",
+        "O resultado novo só existiria se fosse guardado num nome.",
+        "A troca não acontece pela metade no texto original.",
+        "replace sobre um texto existente não gera erro."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "str.replace na referência",
+      "url": "https://docs.python.org/3/library/stdtypes.html#str.replace",
+      "description": "A página oficial do método replace."
+    },
+    {
+      "title": "Textos no tutorial",
+      "url": "https://docs.python.org/3/tutorial/introduction.html#strings",
+      "description": "O tutorial apresenta os textos e os métodos que eles carregam."
+    }
+  ],
+  "challenges": [
+    "troque-o-pedaco"
+  ]
+}

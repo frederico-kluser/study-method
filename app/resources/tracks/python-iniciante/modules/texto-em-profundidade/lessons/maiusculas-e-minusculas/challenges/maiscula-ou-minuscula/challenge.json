@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 1,
+  "slug": "maiscula-ou-minuscula",
+  "title": "Maiúscula ou minúscula",
+  "concept": "maiusculas_minusculas",
+  "difficulty": 4,
+  "language": "python",
+  "outputChannel": "retorno",
+  "statement": "# Maiúscula ou minúscula\n\nEscreva duas funções:\n\n- `maiusculas(texto)` devolve o texto com todas as letras em maiúsculas;\n- `minusculas(texto)` devolve o texto com todas as letras em minúsculas.\n\n```python\ndef maiusculas(texto):\n    # devolva o texto com letras grandes\n\n\ndef minusculas(texto):\n    # devolva o texto com letras pequenas\n```\n\nUse os métodos da aula. Exemplos:\n\n```text\nmaiusculas(\"ola\")  ->  \"OLA\"\nminusculas(\"OLA\")  ->  \"ola\"\n```\n\nAs duas funções devolvem o texto — elas não imprimem nada.",
+  "starterCode": "# escreva aqui as funcoes maiusculas e minusculas\n",
+  "testsCode": "import unittest\n\nfrom solucao import maiusculas\nfrom solucao import minusculas\n\n\nclass TestMaiusculasEMinusculas(unittest.TestCase):\n    def test_maiusculas_deixa_tudo_grande(self):\n        \"\"\"maiusculas devolve o texto com letras grandes\"\"\"\n        self.assertEqual(maiusculas(\"ola\"), \"OLA\")\n\n    def test_maiusculas_com_espaco(self):\n        \"\"\"maiusculas devolve o texto com espaco em maiusculas\"\"\"\n        self.assertEqual(maiusculas(\"bom dia\"), \"BOM DIA\")\n\n    def test_minusculas_deixa_tudo_pequeno(self):\n        \"\"\"minusculas devolve o texto com letras pequenas\"\"\"\n        self.assertEqual(minusculas(\"OLA\"), \"ola\")\n\n    def test_minusculas_com_numero(self):\n        \"\"\"minusculas deixa o numero como esta\"\"\"\n        self.assertEqual(minusculas(\"OLA 123\"), \"ola 123\")\n",
+  "solutionCode": "def maiusculas(texto):\n    return texto.upper()\n\n\ndef minusculas(texto):\n    return texto.lower()\n",
+  "expectedTestCount": 4,
+  "requirements": [
+    {
+      "id": "test_maiusculas_deixa_tudo_grande",
+      "teste": "test_maiusculas_deixa_tudo_grande",
+      "descricao": "maiusculas devolve o texto com letras grandes"
+    },
+    {
+      "id": "test_maiusculas_com_espaco",
+      "teste": "test_maiusculas_com_espaco",
+      "descricao": "maiusculas devolve o texto com espaco em maiusculas"
+    },
+    {
+      "id": "test_minusculas_deixa_tudo_pequeno",
+      "teste": "test_minusculas_deixa_tudo_pequeno",
+      "descricao": "minusculas devolve o texto com letras pequenas"
+    },
+    {
+      "id": "test_minusculas_com_numero",
+      "teste": "test_minusculas_com_numero",
+      "descricao": "minusculas deixa o numero como esta"
+    }
+  ]
+}

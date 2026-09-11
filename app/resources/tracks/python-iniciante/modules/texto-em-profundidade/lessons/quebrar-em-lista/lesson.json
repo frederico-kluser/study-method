@@ -1,0 +1,124 @@
+{
+  "schemaVersion": 1,
+  "slug": "quebrar-em-lista",
+  "title": "Quebrar em lista",
+  "summary": "split quebra o texto num separador escolhido e splitlines quebra nas linhas — os dois devolvem uma lista.",
+  "difficulty": 4,
+  "role": "regular",
+  "targetAtom": "api:.split",
+  "concepts": [
+    "quebrar_texto"
+  ],
+  "prerequisites": [
+    "criar-uma-lista"
+  ],
+  "introduces": {
+    "productive": [
+      "api:.split",
+      "api:.splitlines"
+    ],
+    "receptive": []
+  },
+  "introducesTerms": [
+    "separador"
+  ],
+  "theory": [
+    {
+      "id": "split-quebra-no-separador",
+      "title": "O split quebra no separador",
+      "markdown": "O método `split` devolve uma LISTA, quebrando o texto no separador que você escolher:\n\n```python\nlista = \"uva,pera,manga\"\nprint(lista.split(\",\"))\n```\n\n```text\n['uva', 'pera', 'manga']\n```\n\nO separador — o pedaço onde cortar — vai entre aspas, e o Python corta o texto em cada aparição dele."
+    },
+    {
+      "id": "splitlines-quebra-nas-linhas",
+      "title": "O splitlines quebra nas linhas",
+      "markdown": "O `splitlines` quebra o texto nas QUEBRAS DE LINHA — o `\\n` invisível:\n\n```python\npoema = \"rosa\\nvioleta\"\nprint(poema.splitlines())\n```\n\n```text\n['rosa', 'violeta']\n```\n\nUm texto de duas linhas vira uma lista com dois itens, sem o `\\n` sobrando."
+    },
+    {
+      "id": "o-estado-agora",
+      "title": "O estado agora",
+      "markdown": "Qual é o estado agora?\n\n```python\nlinha = \"um;dois\"\nprint(linha.split(\";\"))\nprint(linha.split(\"x\"))\n```\n\nA primeira mostra `['um', 'dois']`. A segunda mostra `['um;dois']` — sem o separador, `split` devolve uma lista com o texto inteiro num item só."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "split-devolve-lista",
+      "statement": "split quebra o texto no separador e devolve uma lista.",
+      "question": "O que devolve `\"uva,pera,manga\".split(\",\")`?",
+      "options": [
+        "['uva', 'pera', 'manga']",
+        "['uva,pera,manga']",
+        "'uva', 'pera', 'manga'",
+        "um erro"
+      ],
+      "answerIndex": 0,
+      "feedback": "Cada vírgula virou um corte: a lista tem três itens.",
+      "sectionId": "split-quebra-no-separador",
+      "optionRationales": [
+        "O texto foi cortado em cada vírgula — três itens.",
+        "Uma lista com um item só seria o texto sem nenhuma vírgula.",
+        "split devolve uma lista — os colchetes fazem parte do valor.",
+        "split sobre um texto existente não gera erro."
+      ]
+    },
+    {
+      "id": "splitlines-devolve-lista",
+      "statement": "splitlines quebra o texto nas quebras de linha.",
+      "question": "O que devolve `\"rosa\\nvioleta\".splitlines()`?",
+      "options": [
+        "['rosa', 'violeta']",
+        "[\\'rosa\\\\nvioleta\\']",
+        "['rosa\\nvioleta']",
+        "um erro"
+      ],
+      "answerIndex": 0,
+      "feedback": "A quebra de linha virou um corte: uma lista com rosa e violeta.",
+      "sectionId": "splitlines-quebra-nas-linhas",
+      "optionRationales": [
+        "Cada linha vira um item da lista.",
+        "Uma lista só teria os dois nomes juntos se não houvesse quebra para cortar.",
+        "A quebra de linha não sobrevive ao splitlines.",
+        "splitlines sobre um texto existente não gera erro."
+      ]
+    },
+    {
+      "id": "sem-separador-nao-corta",
+      "statement": "Sem o separador no texto, split devolve uma lista com um item só.",
+      "question": "O que devolve `\"um;dois\".split(\"x\")`?",
+      "options": [
+        "['um;dois']",
+        "['um', 'dois']",
+        "[]",
+        "um erro"
+      ],
+      "answerIndex": 0,
+      "feedback": "Não existe \"x\" no texto: não há corte, e a lista tem o texto inteiro.",
+      "sectionId": "o-estado-agora",
+      "optionRationales": [
+        "Sem o separador, nada é cortado — o texto inteiro vira um item.",
+        "A lista com dois itens sairia de um corte que aconteceu.",
+        "A lista vazia sairia de um texto vazio, não de um separador ausente.",
+        "split sempre devolve uma lista — separador ausente não é erro."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "str.split na referência",
+      "url": "https://docs.python.org/3/library/stdtypes.html#str.split",
+      "description": "A página oficial do método split."
+    },
+    {
+      "title": "str.splitlines na referência",
+      "url": "https://docs.python.org/3/library/stdtypes.html#str.splitlines",
+      "description": "A página oficial do método splitlines."
+    },
+    {
+      "title": "Mais sobre listas no tutorial",
+      "url": "https://docs.python.org/3/tutorial/datastructures.html#more-on-lists",
+      "description": "O tutorial cruza texto e lista, as duas sequências deste módulo."
+    }
+  ],
+  "challenges": [
+    "quebre-em-pedacos"
+  ]
+}

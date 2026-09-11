@@ -1,0 +1,116 @@
+{
+  "schemaVersion": 1,
+  "slug": "juntar-numa-string",
+  "title": "Juntar numa string",
+  "summary": "join cola a lista de textos num texto só, com um separador entre os itens.",
+  "difficulty": 4,
+  "role": "regular",
+  "targetAtom": "api:.join",
+  "concepts": [
+    "juntar_texto"
+  ],
+  "prerequisites": [
+    "quebrar-em-lista"
+  ],
+  "introduces": {
+    "productive": [
+      "api:.join"
+    ],
+    "receptive": []
+  },
+  "introducesTerms": [],
+  "theory": [
+    {
+      "id": "join-cola-com-separador",
+      "title": "O join cola com separador",
+      "markdown": "O método `join` faz o caminho contrário do `split`: junta uma LISTA de textos num texto só, com um separador entre eles. O separador mora num nome — e é nele que o `join` é chamado:\n\n```python\nseparador = \", \"\nitens = [\"uva\", \"pera\", \"manga\"]\nprint(separador.join(itens))\n```\n\n```text\nuva, pera, manga\n```\n\nA lista vem dentro dos parênteses; o nome antes do ponto é o separador colado entre os itens."
+    },
+    {
+      "id": "o-separador-fica-entre",
+      "title": "O separador fica entre",
+      "markdown": "O separador aparece só ENTRE os itens — nunca no começo nem no fim:\n\n```python\nseparador = \"-\"\nletras = [\"a\", \"b\", \"c\"]\nsozinho = [\"a\"]\nprint(separador.join(letras))\nprint(separador.join(sozinho))\n```\n\n```text\na-b-c\na\n```\n\nCom um item só não existe \"entre\" — a lista volta inteira, sem separador nenhum."
+    },
+    {
+      "id": "o-estado-agora",
+      "title": "O estado agora",
+      "markdown": "Qual é o estado agora?\n\n```python\npalavras = [\"ola\", \"mundo\"]\nseparador = \" \"\nfrase = separador.join(palavras)\nprint(frase)\n```\n\n`separador.join(palavras)` devolve `\"ola mundo\"` — guardado no nome `frase`. Os textos da lista não mudam com o join."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "join-junta-a-lista",
+      "statement": "join junta os textos da lista num texto só, com o separador entre eles.",
+      "question": "O que devolve `\", \".join([\"uva\", \"pera\"])`?",
+      "options": [
+        "uva, pera",
+        "uva,pera",
+        "['uva', 'pera']",
+        "um erro"
+      ],
+      "answerIndex": 0,
+      "feedback": "O separador \", \" entrou entre os itens: uva, pera.",
+      "sectionId": "join-cola-com-separador",
+      "optionRationales": [
+        "Cada item é colado com o separador depois dele — menos o último.",
+        "Sem o espaço no separador o resultado seria \"uva,pera\" — o separador é o que está entre aspas.",
+        "join devolve um texto, não uma lista.",
+        "join sobre uma lista de textos não gera erro."
+      ]
+    },
+    {
+      "id": "um-item-sem-separador",
+      "statement": "Com um item só, join devolve o item sem separador.",
+      "question": "O que devolve `\"-\".join([\"a\"])`?",
+      "options": [
+        "a",
+        "a-",
+        "-a",
+        "um erro"
+      ],
+      "answerIndex": 0,
+      "feedback": "Sem um segundo item, não há onde pôr o separador: devolve a.",
+      "sectionId": "o-separador-fica-entre",
+      "optionRationales": [
+        "O separador só existe entre dois itens — com um item só, nada é colado.",
+        "O separador nunca aparece no fim do texto.",
+        "O separador nunca aparece no começo do texto.",
+        "join com uma lista de um item não gera erro."
+      ]
+    },
+    {
+      "id": "join-devolve-texto-novo",
+      "statement": "join devolve um texto novo e não muda a lista.",
+      "question": "Depois de `palavras = [\"ola\", \"mundo\"]` e de `\" \".join(palavras)`, o que vale `palavras`?",
+      "options": [
+        "['ola', 'mundo']",
+        "\"ola mundo\"",
+        "ola mundo",
+        "um erro"
+      ],
+      "answerIndex": 0,
+      "feedback": "O join devolveu um texto novo e descartou o resultado — a lista continua com os dois itens.",
+      "sectionId": "o-estado-agora",
+      "optionRationales": [
+        "O texto devolvido foi jogado fora; a lista não foi tocada.",
+        "Esse seria o resultado se fosse guardado — não é o valor da lista.",
+        "Idem: o texto existe só na devolução, não na lista.",
+        "join não modifica a lista de entrada."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "str.join na referência",
+      "url": "https://docs.python.org/3/library/stdtypes.html#str.join",
+      "description": "A página oficial do método join."
+    },
+    {
+      "title": "Mais sobre listas no tutorial",
+      "url": "https://docs.python.org/3/tutorial/datastructures.html#more-on-lists",
+      "description": "O tutorial cruza texto e lista, as duas sequências deste módulo."
+    }
+  ],
+  "challenges": [
+    "junte-com-um-separador"
+  ]
+}

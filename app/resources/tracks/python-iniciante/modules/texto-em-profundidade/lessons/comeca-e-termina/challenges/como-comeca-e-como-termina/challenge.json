@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 1,
+  "slug": "como-comeca-e-como-termina",
+  "title": "Como começa e como termina",
+  "concept": "comeco_e_fim",
+  "difficulty": 4,
+  "language": "python",
+  "outputChannel": "retorno",
+  "statement": "# Como começa e como termina\n\nEscreva duas funções:\n\n- `comeca_com(texto, pedaco)` devolve `True` quando o texto começa com o pedaço;\n- `termina_com(texto, pedaco)` devolve `True` quando o texto termina com o pedaço.\n\n```python\ndef comeca_com(texto, pedaco):\n    # devolva True se o texto comeca com o pedaco\n\n\ndef termina_com(texto, pedaco):\n    # devolva True se o texto termina com o pedaco\n```\n\nUse os métodos da aula. Exemplos:\n\n```text\ncomeca_com(\"banana\", \"ban\")  ->  True\ncomeca_com(\"banana\", \"ana\")  ->  False\ntermina_com(\"banana\", \"ana\")  ->  True\ntermina_com(\"banana\", \"ban\")  ->  False\n```\n\nAs duas funções devolvem o booleano — elas não imprimem nada.",
+  "starterCode": "# escreva aqui as funcoes comeca_com e termina_com\n",
+  "testsCode": "import unittest\n\nfrom solucao import comeca_com\nfrom solucao import termina_com\n\n\nclass TestComecaETermina(unittest.TestCase):\n    def test_comeca_com_true(self):\n        \"\"\"comeca_com devolve True quando o texto comeca com o pedaco\"\"\"\n        self.assertEqual(comeca_com(\"banana\", \"ban\"), True)\n\n    def test_comeca_com_false_mesmo_dentro(self):\n        \"\"\"comeca_com devolve False quando o pedaco esta so no meio\"\"\"\n        self.assertEqual(comeca_com(\"banana\", \"ana\"), False)\n\n    def test_termina_com_true(self):\n        \"\"\"termina_com devolve True quando o texto termina com o pedaco\"\"\"\n        self.assertEqual(termina_com(\"banana\", \"ana\"), True)\n\n    def test_termina_com_false_mesmo_no_comeco(self):\n        \"\"\"termina_com devolve False quando o pedaco esta so no comeco\"\"\"\n        self.assertEqual(termina_com(\"banana\", \"ban\"), False)\n",
+  "solutionCode": "def comeca_com(texto, pedaco):\n    return texto.startswith(pedaco)\n\n\ndef termina_com(texto, pedaco):\n    return texto.endswith(pedaco)\n",
+  "expectedTestCount": 4,
+  "requirements": [
+    {
+      "id": "test_comeca_com_true",
+      "teste": "test_comeca_com_true",
+      "descricao": "comeca_com devolve True quando o texto comeca com o pedaco"
+    },
+    {
+      "id": "test_comeca_com_false_mesmo_dentro",
+      "teste": "test_comeca_com_false_mesmo_dentro",
+      "descricao": "comeca_com devolve False quando o pedaco esta so no meio"
+    },
+    {
+      "id": "test_termina_com_true",
+      "teste": "test_termina_com_true",
+      "descricao": "termina_com devolve True quando o texto termina com o pedaco"
+    },
+    {
+      "id": "test_termina_com_false_mesmo_no_comeco",
+      "teste": "test_termina_com_false_mesmo_no_comeco",
+      "descricao": "termina_com devolve False quando o pedaco esta so no comeco"
+    }
+  ]
+}

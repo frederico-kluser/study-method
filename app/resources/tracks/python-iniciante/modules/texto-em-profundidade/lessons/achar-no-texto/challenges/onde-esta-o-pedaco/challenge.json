@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 1,
+  "slug": "onde-esta-o-pedaco",
+  "title": "Onde está o pedaço",
+  "concept": "achar_no_texto",
+  "difficulty": 4,
+  "language": "python",
+  "outputChannel": "retorno",
+  "statement": "# Onde está o pedaço\n\nEscreva a função `achar` que devolve a posição onde o pedaço começa dentro do texto — e devolve `-1` quando o pedaço não existe:\n\n```python\ndef achar(texto, pedaco):\n    # devolva a posicao do pedaco (ou -1 se nao existir)\n```\n\nUse o `find`, como na aula. Exemplos:\n\n```text\nachar(\"banana\", \"na\")  ->  2\nachar(\"banana\", \"ban\")  ->  0\nachar(\"banana\", \"zz\")  ->  -1\n```\n\nA função devolve o número — ela não imprime nada.",
+  "starterCode": "# escreva aqui a funcao achar(texto, pedaco)\n",
+  "testsCode": "import unittest\n\nfrom solucao import achar\n\n\nclass TestAcharNoTexto(unittest.TestCase):\n    def test_acha_no_meio(self):\n        \"\"\"achar devolve a posicao do pedaco no meio do texto\"\"\"\n        self.assertEqual(achar(\"banana\", \"na\"), 2)\n\n    def test_acha_no_comeco(self):\n        \"\"\"achar devolve a posicao do pedaco no comeco do texto\"\"\"\n        self.assertEqual(achar(\"banana\", \"ban\"), 0)\n\n    def test_acha_a_primeira_ocorrencia(self):\n        \"\"\"achar devolve a primeira posicao onde o pedaco aparece\"\"\"\n        self.assertEqual(achar(\"banana\", \"an\"), 1)\n\n    def test_nao_acha_devolve_menos_um(self):\n        \"\"\"achar devolve -1 quando o pedaco nao existe\"\"\"\n        self.assertEqual(achar(\"banana\", \"zz\"), -1)\n",
+  "solutionCode": "def achar(texto, pedaco):\n    return texto.find(pedaco)\n",
+  "expectedTestCount": 4,
+  "requirements": [
+    {
+      "id": "test_acha_no_meio",
+      "teste": "test_acha_no_meio",
+      "descricao": "achar devolve a posicao do pedaco no meio do texto"
+    },
+    {
+      "id": "test_acha_no_comeco",
+      "teste": "test_acha_no_comeco",
+      "descricao": "achar devolve a posicao do pedaco no comeco do texto"
+    },
+    {
+      "id": "test_acha_a_primeira_ocorrencia",
+      "teste": "test_acha_a_primeira_ocorrencia",
+      "descricao": "achar devolve a primeira posicao onde o pedaco aparece"
+    },
+    {
+      "id": "test_nao_acha_devolve_menos_um",
+      "teste": "test_nao_acha_devolve_menos_um",
+      "descricao": "achar devolve -1 quando o pedaco nao existe"
+    }
+  ]
+}

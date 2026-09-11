@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 1,
+  "slug": "fatia-o-texto",
+  "title": "Fatie o texto",
+  "concept": "fatiar_texto",
+  "difficulty": 4,
+  "language": "python",
+  "outputChannel": "retorno",
+  "statement": "# Fatie o texto\n\nEscreva a função `pedaco` que devolve o pedaço do texto do início até antes do fim:\n\n```python\ndef pedaco(texto, inicio, fim):\n    # devolva o pedaco do texto entre inicio e fim\n```\n\nUse os dois pontos, como na aula. Exemplos:\n\n```text\npedaco(\"banana\", 2, 5)  ->  \"nan\"\npedaco(\"banana\", 0, 3)  ->  \"ban\"\npedaco(\"ola\", 1, 2)  ->  \"l\"\n```\n\nA função devolve o texto — ela não imprime nada.",
+  "starterCode": "# escreva aqui a funcao pedaco(texto, inicio, fim)\n",
+  "testsCode": "import unittest\n\nfrom solucao import pedaco\n\n\nclass TestFatiarOTexto(unittest.TestCase):\n    def test_pega_do_meio(self):\n        \"\"\"pedaco devolve o trecho do meio do texto\"\"\"\n        self.assertEqual(pedaco(\"banana\", 2, 5), \"nan\")\n\n    def test_pega_do_comeco(self):\n        \"\"\"pedaco devolve o trecho do comeco do texto\"\"\"\n        self.assertEqual(pedaco(\"banana\", 0, 3), \"ban\")\n\n    def test_pega_uma_letra_so(self):\n        \"\"\"pedaco devolve uma letra quando o trecho tem tamanho um\"\"\"\n        self.assertEqual(pedaco(\"ola\", 1, 2), \"l\")\n\n    def test_ate_o_fim_sem_incluir_o_fim(self):\n        \"\"\"pedaco devolve ate antes do fim pedido\"\"\"\n        self.assertEqual(pedaco(\"banana\", 1, 6), \"anana\")\n",
+  "solutionCode": "def pedaco(texto, inicio, fim):\n    return texto[inicio:fim]\n",
+  "expectedTestCount": 4,
+  "requirements": [
+    {
+      "id": "test_pega_do_meio",
+      "teste": "test_pega_do_meio",
+      "descricao": "pedaco devolve o trecho do meio do texto"
+    },
+    {
+      "id": "test_pega_do_comeco",
+      "teste": "test_pega_do_comeco",
+      "descricao": "pedaco devolve o trecho do comeco do texto"
+    },
+    {
+      "id": "test_pega_uma_letra_so",
+      "teste": "test_pega_uma_letra_so",
+      "descricao": "pedaco devolve uma letra quando o trecho tem tamanho um"
+    },
+    {
+      "id": "test_ate_o_fim_sem_incluir_o_fim",
+      "teste": "test_ate_o_fim_sem_incluir_o_fim",
+      "descricao": "pedaco devolve ate antes do fim pedido"
+    }
+  ]
+}

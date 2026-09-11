@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "slug": "alinhe-o-numero",
+  "title": "Alinhe o número",
+  "concept": "largura_no_texto",
+  "difficulty": 5,
+  "language": "python",
+  "outputChannel": "retorno",
+  "statement": "# Alinhe o número\n\nEscreva a função `formatar` que devolve o número alinhado à direita em 8 posições, com 2 casas decimais:\n\n```python\ndef formatar(valor):\n    # devolva o numero com 8 posicoes e 2 casas decimais\n```\n\nUse o buraco com formato, como na aula: `{valor:>8.2f}`. Exemplos:\n\n```text\nformatar(3.14)  ->  \"    3.14\"\nformatar(42.5)  ->  \"   42.50\"\nformatar(1000)  ->  \" 1000.00\"\n```\n\nA função devolve o texto — ela não imprime nada.",
+  "starterCode": "# escreva aqui a funcao formatar(valor)\n",
+  "testsCode": "import unittest\n\nfrom solucao import formatar\n\n\nclass TestFormatarComLargura(unittest.TestCase):\n    def test_preenche_a_esquerda_com_espacos(self):\n        \"\"\"formatar alinha o numero a direita em 8 posicoes\"\"\"\n        self.assertEqual(formatar(3.14), \"    3.14\")\n\n    def test_fixa_duas_casas_decimais(self):\n        \"\"\"formatar completa a segunda casa decimal\"\"\"\n        self.assertEqual(formatar(42.5), \"   42.50\")\n\n    def test_numero_inteiro_tambem(self):\n        \"\"\"formatar aceita numero inteiro e formata como decimal\"\"\"\n        self.assertEqual(formatar(1000), \" 1000.00\")\n",
+  "solutionCode": "def formatar(valor):\n    return f\"{valor:>8.2f}\"\n",
+  "expectedTestCount": 3,
+  "requirements": [
+    {
+      "id": "test_preenche_a_esquerda_com_espacos",
+      "teste": "test_preenche_a_esquerda_com_espacos",
+      "descricao": "formatar alinha o numero a direita em 8 posicoes"
+    },
+    {
+      "id": "test_fixa_duas_casas_decimais",
+      "teste": "test_fixa_duas_casas_decimais",
+      "descricao": "formatar completa a segunda casa decimal"
+    },
+    {
+      "id": "test_numero_inteiro_tambem",
+      "teste": "test_numero_inteiro_tambem",
+      "descricao": "formatar aceita numero inteiro e formata como decimal"
+    }
+  ]
+}

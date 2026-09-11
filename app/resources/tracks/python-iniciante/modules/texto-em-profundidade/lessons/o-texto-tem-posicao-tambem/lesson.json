@@ -1,0 +1,116 @@
+{
+  "schemaVersion": 1,
+  "slug": "o-texto-tem-posicao-tambem",
+  "title": "O texto tem posição também",
+  "summary": "Os colchetes que pegam item de lista também pegam letra de texto: texto[posição] devolve uma letra.",
+  "difficulty": 4,
+  "role": "consolidation",
+  "targetAtom": "node:Subscript",
+  "concepts": [
+    "posicao_no_texto"
+  ],
+  "prerequisites": [
+    "pegar-pela-posicao"
+  ],
+  "introduces": {
+    "productive": [
+      "node:Subscript"
+    ],
+    "receptive": []
+  },
+  "introducesTerms": [],
+  "theory": [
+    {
+      "id": "texto-e-uma-sequencia",
+      "title": "O texto é uma sequência",
+      "markdown": "Você já pegou item de lista com colchetes — e o texto funciona IGUAL: cada LETRA tem uma posição, começando no 0:\n\n```python\npalavra = \"banana\"\nprint(palavra[0])\nprint(palavra[2])\n```\n\n```text\nb\nn\n```\n\nA posição 0 guarda a primeira letra; a 2, a terceira — o mesmo jeito de contar da lista."
+    },
+    {
+      "id": "colchete-devolve-uma-letra",
+      "title": "O colchete devolve uma letra",
+      "markdown": "O colchete sobre texto devolve UM texto de uma letra só — e o texto inteiro não muda:\n\n```python\nnome = \"ana\"\nletra = nome[1]\nprint(letra)\nprint(nome)\n```\n\n```text\nn\nana\n```\n\n`nome[1]` devolveu `\"n\"`, guardado em `letra`; `nome` continuou inteiro."
+    },
+    {
+      "id": "o-estado-agora",
+      "title": "O estado agora",
+      "markdown": "Qual é o estado agora?\n\n```python\nfruta = \"uva\"\nprint(fruta[2] + fruta[0])\n```\n\n`fruta[2]` vale `\"a\"` e `fruta[0]` vale `\"u\"` — juntando os dois, o print mostra `\"au\"`."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "texto-tem-posicao",
+      "statement": "Os colchetes pegam a letra da posição, começando do 0.",
+      "question": "Em `palavra = \"banana\"`, o que devolve `palavra[0]`?",
+      "options": [
+        "b",
+        "a",
+        "banana",
+        "um erro"
+      ],
+      "answerIndex": 0,
+      "feedback": "A posição 0 guarda a primeira letra: b.",
+      "sectionId": "texto-e-uma-sequencia",
+      "optionRationales": [
+        "A contagem começa no 0 — a primeira letra é a da posição 0.",
+        "a seria a letra da posição 1.",
+        "O colchete devolve uma letra, não o texto inteiro.",
+        "Posições que existem no texto não geram erro."
+      ]
+    },
+    {
+      "id": "colchete-devolve-letra",
+      "statement": "O colchete sobre texto devolve um texto de uma letra só.",
+      "question": "Em `nome = \"ana\"`, o que devolve `nome[1]`?",
+      "options": [
+        "n",
+        "ana",
+        "an",
+        "um erro"
+      ],
+      "answerIndex": 0,
+      "feedback": "A posição 1 guarda a segunda letra: n — um texto de uma letra só.",
+      "sectionId": "colchete-devolve-uma-letra",
+      "optionRationales": [
+        "Cada posição guarda exatamente uma letra — a segunda é n.",
+        "O texto inteiro é a soma das posições, não uma posição só.",
+        "Duas letras sairiam de uma fatia com dois números, não de um colchete só.",
+        "Posições que existem no texto não geram erro."
+      ]
+    },
+    {
+      "id": "posicao-cabe-em-nome",
+      "statement": "A letra de uma posição é um valor que cabe num nome.",
+      "question": "Em `fruta = \"uva\"`, o que vale `letra` depois de `letra = fruta[0]`?",
+      "options": [
+        "u",
+        "v",
+        "a",
+        "um erro"
+      ],
+      "answerIndex": 0,
+      "feedback": "fruta[0] é a primeira letra, o u — guardado em letra.",
+      "sectionId": "o-estado-agora",
+      "optionRationales": [
+        "A posição 0 de \"uva\" guarda o u.",
+        "v é a letra da posição 1.",
+        "a é a letra da posição 2.",
+        "O colchete numa posição que existe não gera erro."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "Sequências na referência",
+      "url": "https://docs.python.org/3/library/stdtypes.html#textseq",
+      "description": "A página oficial dos métodos de texto, entre eles o acesso por posição."
+    },
+    {
+      "title": "Textos no tutorial",
+      "url": "https://docs.python.org/3/tutorial/introduction.html#strings",
+      "description": "O tutorial mostra o texto como uma sequência com posições."
+    }
+  ],
+  "challenges": [
+    "pegue-a-letra-da-posicao"
+  ]
+}

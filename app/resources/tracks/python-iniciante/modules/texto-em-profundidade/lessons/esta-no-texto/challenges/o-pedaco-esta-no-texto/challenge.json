@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 1,
+  "slug": "o-pedaco-esta-no-texto",
+  "title": "O pedaço está no texto",
+  "concept": "esta_no_texto",
+  "difficulty": 4,
+  "language": "python",
+  "outputChannel": "retorno",
+  "statement": "# O pedaço está no texto\n\nEscreva a função `esta` que devolve `True` quando o pedaço está dentro do texto:\n\n```python\ndef esta(texto, pedaco):\n    # devolva True se o pedaco esta dentro do texto\n```\n\nUse o `in`, como na aula. Exemplos:\n\n```text\nesta(\"banana\", \"na\")  ->  True\nesta(\"banana\", \"ban\")  ->  True\nesta(\"banana\", \"xz\")  ->  False\nesta(\"banana\", \"bn\")  ->  False\n```\n\nA função devolve o booleano — ela não imprime nada.",
+  "starterCode": "# escreva aqui a funcao esta(texto, pedaco)\n",
+  "testsCode": "import unittest\n\nfrom solucao import esta\n\n\nclass TestEstaNoTexto(unittest.TestCase):\n    def test_pedaco_esta_no_meio(self):\n        \"\"\"esta devolve True quando o pedaco esta no meio do texto\"\"\"\n        self.assertEqual(esta(\"banana\", \"na\"), True)\n\n    def test_pedaco_do_comeco_tambem_esta(self):\n        \"\"\"esta devolve True quando o pedaco esta no comeco do texto\"\"\"\n        self.assertEqual(esta(\"banana\", \"ban\"), True)\n\n    def test_pedaco_fora_devolve_false(self):\n        \"\"\"esta devolve False quando o pedaco nao esta no texto\"\"\"\n        self.assertEqual(esta(\"banana\", \"xz\"), False)\n\n    def test_pedaco_espalhado_devolve_false(self):\n        \"\"\"esta devolve False quando as letras nao aparecem em ordem\"\"\"\n        self.assertEqual(esta(\"banana\", \"bn\"), False)\n",
+  "solutionCode": "def esta(texto, pedaco):\n    return pedaco in texto\n",
+  "expectedTestCount": 4,
+  "requirements": [
+    {
+      "id": "test_pedaco_esta_no_meio",
+      "teste": "test_pedaco_esta_no_meio",
+      "descricao": "esta devolve True quando o pedaco esta no meio do texto"
+    },
+    {
+      "id": "test_pedaco_do_comeco_tambem_esta",
+      "teste": "test_pedaco_do_comeco_tambem_esta",
+      "descricao": "esta devolve True quando o pedaco esta no comeco do texto"
+    },
+    {
+      "id": "test_pedaco_fora_devolve_false",
+      "teste": "test_pedaco_fora_devolve_false",
+      "descricao": "esta devolve False quando o pedaco nao esta no texto"
+    },
+    {
+      "id": "test_pedaco_espalhado_devolve_false",
+      "teste": "test_pedaco_espalhado_devolve_false",
+      "descricao": "esta devolve False quando as letras nao aparecem em ordem"
+    }
+  ]
+}

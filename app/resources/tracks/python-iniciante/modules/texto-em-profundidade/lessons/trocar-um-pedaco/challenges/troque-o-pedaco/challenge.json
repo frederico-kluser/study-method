@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 1,
+  "slug": "troque-o-pedaco",
+  "title": "Troque o pedaço",
+  "concept": "trocar_pedaco",
+  "difficulty": 4,
+  "language": "python",
+  "outputChannel": "retorno",
+  "statement": "# Troque o pedaço\n\nEscreva a função `trocar` que devolve o texto com todas as vezes do pedaço antigo trocadas pelo novo:\n\n```python\ndef trocar(texto, antigo, novo):\n    # devolva o texto com o pedaco trocado\n```\n\nUse o `replace`, como na aula. Exemplos:\n\n```text\ntrocar(\"banana\", \"a\", \"o\")  ->  \"bonono\"\ntrocar(\"casa\", \"s\", \"z\")  ->  \"caza\"\n```\n\nQuando o pedaço antigo não aparece, o texto sai igual: `trocar(\"abc\", \"x\", \"y\")` devolve `\"abc\"`. A função devolve o texto — ela não imprime nada.",
+  "starterCode": "# escreva aqui a funcao trocar(texto, antigo, novo)\n",
+  "testsCode": "import unittest\n\nfrom solucao import trocar\n\n\nclass TestTrocarUmPedaco(unittest.TestCase):\n    def test_troca_todas_as_vezes(self):\n        \"\"\"trocar devolve o texto com todas as vezes do pedaco trocadas\"\"\"\n        self.assertEqual(trocar(\"banana\", \"a\", \"o\"), \"bonono\")\n\n    def test_troca_uma_vez_so(self):\n        \"\"\"trocar devolve o texto com uma unica troca\"\"\"\n        self.assertEqual(trocar(\"casa\", \"s\", \"z\"), \"caza\")\n\n    def test_sem_match_devolve_igual(self):\n        \"\"\"trocar devolve o texto igual quando o pedaco nao existe\"\"\"\n        self.assertEqual(trocar(\"abc\", \"x\", \"y\"), \"abc\")\n\n    def test_pedaco_maior_que_uma_letra(self):\n        \"\"\"trocar troca pedacos de mais de uma letra\"\"\"\n        self.assertEqual(trocar(\"ola mundo\", \"mundo\", \"pessoal\"), \"ola pessoal\")\n",
+  "solutionCode": "def trocar(texto, antigo, novo):\n    return texto.replace(antigo, novo)\n",
+  "expectedTestCount": 4,
+  "requirements": [
+    {
+      "id": "test_troca_todas_as_vezes",
+      "teste": "test_troca_todas_as_vezes",
+      "descricao": "trocar devolve o texto com todas as vezes do pedaco trocadas"
+    },
+    {
+      "id": "test_troca_uma_vez_so",
+      "teste": "test_troca_uma_vez_so",
+      "descricao": "trocar devolve o texto com uma unica troca"
+    },
+    {
+      "id": "test_sem_match_devolve_igual",
+      "teste": "test_sem_match_devolve_igual",
+      "descricao": "trocar devolve o texto igual quando o pedaco nao existe"
+    },
+    {
+      "id": "test_pedaco_maior_que_uma_letra",
+      "teste": "test_pedaco_maior_que_uma_letra",
+      "descricao": "trocar troca pedacos de mais de uma letra"
+    }
+  ]
+}

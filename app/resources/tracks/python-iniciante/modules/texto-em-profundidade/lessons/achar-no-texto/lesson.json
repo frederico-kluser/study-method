@@ -1,0 +1,123 @@
+{
+  "schemaVersion": 1,
+  "slug": "achar-no-texto",
+  "title": "Achar no texto",
+  "summary": "find devolve a posição do pedaço — e devolve -1 quando o pedaço não existe, em vez de um erro.",
+  "difficulty": 4,
+  "role": "regular",
+  "targetAtom": "api:.find",
+  "concepts": [
+    "achar_no_texto"
+  ],
+  "prerequisites": [
+    "comeca-e-termina"
+  ],
+  "introduces": {
+    "productive": [
+      "api:.find"
+    ],
+    "receptive": []
+  },
+  "introducesTerms": [
+    "posição"
+  ],
+  "theory": [
+    {
+      "id": "find-devolve-a-posicao",
+      "title": "O find devolve a posição",
+      "markdown": "O método `find` devolve a POSIÇÃO onde o pedaço começa:\n\n```python\nfruta = \"banana\"\nprint(fruta.find(\"na\"))\nprint(fruta.find(\"an\"))\n```\n\n```text\n2\n1\n```\n\nO `\"na\"` começa na posição 2; o `\"an\"`, na 1. Quando o pedaço aparece mais de uma vez, `find` devolve a PRIMEIRA posição."
+    },
+    {
+      "id": "menos-um-em-vez-de-erro",
+      "title": "Menos um em vez de erro",
+      "markdown": "E quando o pedaço NÃO está? O `find` devolve `-1` — e o programa segue rodando:\n\n```python\nfruta = \"banana\"\nprint(fruta.find(\"zz\"))\nprint(fruta.find(\"zz\") == -1)\n```\n\n```text\n-1\nTrue\n```\n\nNenhuma posição é `-1` — as posições começam em 0 —, então o `-1` serve de aviso: \"não achei\". Erro seria pior: parar o programa é caro demais para uma busca que falhou."
+    },
+    {
+      "id": "o-estado-agora",
+      "title": "O estado agora",
+      "markdown": "Qual é o estado agora?\n\n```python\ntexto = \"a casa e azul\"\nposicao = texto.find(\"casa\")\nprint(posicao)\n```\n\nO `find(\"casa\")` devolve `2` — o pedaço começa na posição 2. A posição é um número comum: dá para guardar num nome e usar depois."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "find-devolve-a-posicao-2",
+      "statement": "find devolve a posição onde o pedaço começa.",
+      "question": "Em `fruta = \"banana\"`, o que devolve `fruta.find(\"na\")`?",
+      "options": [
+        "2",
+        "1",
+        "na",
+        "um erro"
+      ],
+      "answerIndex": 0,
+      "feedback": "O pedaço \"na\" começa na posição 2: b é 0, a é 1, n é 2.",
+      "sectionId": "find-devolve-a-posicao",
+      "optionRationales": [
+        "Contando de 0, o n do \"na\" mora na posição 2.",
+        "1 seria a posição do \"an\", não do \"na\".",
+        "find devolve o número da posição, não o pedaço de volta.",
+        "Um pedaço que existe no texto não gera erro."
+      ]
+    },
+    {
+      "id": "find-devolve-menos-um",
+      "statement": "find devolve -1 quando o pedaço não existe — sem erro.",
+      "question": "Em `fruta = \"banana\"`, o que devolve `fruta.find(\"zz\")`?",
+      "options": [
+        "-1",
+        "0",
+        "zz",
+        "um erro"
+      ],
+      "answerIndex": 0,
+      "feedback": "Não existe \"zz\" em \"banana\": o find devolve -1 e o programa continua.",
+      "sectionId": "menos-um-em-vez-de-erro",
+      "optionRationales": [
+        "-1 é o aviso de \"não achei\" — nenhuma posição real é -1.",
+        "0 seria a posição do primeiro caractere, não de um pedaço ausente.",
+        "find devolve um número, nunca o pedaço de volta.",
+        "find não para o programa — é exatamente por isso que devolve -1."
+      ]
+    },
+    {
+      "id": "posicao-cabe-em-nome",
+      "statement": "A posição devolvida pelo find é um número que cabe num nome.",
+      "question": "Em `texto = \"a casa e azul\"`, o que vale `posicao` depois de `posicao = texto.find(\"casa\")`?",
+      "options": [
+        "2",
+        "5",
+        "casa",
+        "um erro"
+      ],
+      "answerIndex": 0,
+      "feedback": "O pedaço \"casa\" começa na posição 2 do texto — posicao vale 2.",
+      "sectionId": "o-estado-agora",
+      "optionRationales": [
+        "Contando de 0: a posição 2 guarda o c de \"casa\".",
+        "5 seria a posição depois de \"casa\".replace... — o fim do pedaço, não o começo.",
+        "find devolve o número da posição, não o texto encontrado.",
+        "O pedaço existe no texto — não há erro nenhum."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "str.find na referência",
+      "url": "https://docs.python.org/3/library/stdtypes.html#str.find",
+      "description": "A página oficial do método find, incluindo o retorno -1."
+    },
+    {
+      "title": "Métodos de busca na referência",
+      "url": "https://docs.python.org/3/library/stdtypes.html#textseq",
+      "description": "A seção de métodos de busca dos textos."
+    },
+    {
+      "title": "Textos no tutorial",
+      "url": "https://docs.python.org/3/tutorial/introduction.html#strings",
+      "description": "O tutorial apresenta os textos e os métodos que eles carregam."
+    }
+  ],
+  "challenges": [
+    "onde-esta-o-pedaco"
+  ]
+}

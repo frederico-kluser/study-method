@@ -1,0 +1,116 @@
+{
+  "schemaVersion": 1,
+  "slug": "tirar-os-espacos",
+  "title": "Tirar os espaços",
+  "summary": "strip devolve o texto sem os espaços que sobram no começo e no fim.",
+  "difficulty": 4,
+  "role": "regular",
+  "targetAtom": "api:.strip",
+  "concepts": [
+    "tirar_espacos"
+  ],
+  "prerequisites": [
+    "maiusculas-e-minusculas"
+  ],
+  "introduces": {
+    "productive": [
+      "api:.strip"
+    ],
+    "receptive": []
+  },
+  "introducesTerms": [],
+  "theory": [
+    {
+      "id": "strip-tira-dos-dois-lados",
+      "title": "O strip tira dos dois lados",
+      "markdown": "O método `strip` devolve o texto sem os espaços que sobram no COMEÇO e no FIM:\n\n```python\nnome = \"  ana  \"\nprint(nome.strip())\n```\n\n```text\nana\n```\n\nEspaço digitado sem querer, espaço que sobrou na colagem — o `strip` varre dos dois lados e devolve o texto limpo."
+    },
+    {
+      "id": "o-meio-fica",
+      "title": "O meio fica",
+      "markdown": "Errado: `strip` tira espaço de todo lugar. Certo: ele mexe só no começo e no fim — o meio fica inteiro:\n\n```python\ntexto = \"o  l a\"\nprint(texto.strip())\n```\n\n```text\no  l a\n```\n\nOs espaços de dentro do texto continuam lá, exatamente como estavam."
+    },
+    {
+      "id": "o-estado-agora",
+      "title": "O estado agora",
+      "markdown": "Qual é o estado agora?\n\n```python\nfrase = \"  bom dia  \"\nprint(frase.strip().upper())\nprint(frase)\n```\n\nA primeira linha mostra `BOM DIA` — o `strip` limpou e o `upper` deixou grande. A segunda mostra `  bom dia  `: o texto guardado em `frase` não mudou."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "strip-tira-os-dois-lados",
+      "statement": "strip devolve o texto sem os espaços do começo e do fim.",
+      "question": "O que devolve `\"  ana  \".strip()`?",
+      "options": [
+        "ana",
+        "  ana",
+        "ana  ",
+        "  ana  "
+      ],
+      "answerIndex": 0,
+      "feedback": "strip tira os espaços dos dois lados: sobra apenas ana.",
+      "sectionId": "strip-tira-dos-dois-lados",
+      "optionRationales": [
+        "Os espaços do começo e do fim saem juntos — sobra \"ana\".",
+        "Só o começo foi limpo; o strip tira dos dois lados.",
+        "Só o fim foi limpo; o strip tira dos dois lados.",
+        "Nenhum espaço sai se o strip não for chamado — ele limpa os dois lados."
+      ]
+    },
+    {
+      "id": "o-meio-nao-muda",
+      "statement": "strip não tira os espaços do meio do texto.",
+      "question": "O que devolve `\"o  l a\".strip()`?",
+      "options": [
+        "o  l a",
+        "ola",
+        "o l a",
+        "o   l a"
+      ],
+      "answerIndex": 0,
+      "feedback": "Os espaços do meio não são tocados — o texto sai inteiro como estava.",
+      "sectionId": "o-meio-fica",
+      "optionRationales": [
+        "strip só mexe no começo e no fim; o meio não tem espaço sobrando ali.",
+        "O strip não junta letras — ele não tira espaço de dentro.",
+        "Nenhum espaço do meio é removido, só os das pontas.",
+        "Nenhum espaço é acrescentado pelo strip."
+      ]
+    },
+    {
+      "id": "strip-e-upper-juntos",
+      "statement": "Métodos encadeados se aplicam em ordem, e o texto do nome não muda.",
+      "question": "Depois de `frase = \"  bom dia  \"`, o que mostra `print(frase.strip().upper())`?",
+      "options": [
+        "BOM DIA",
+        "  BOM DIA  ",
+        "bom dia",
+        "  bom dia  "
+      ],
+      "answerIndex": 0,
+      "feedback": "O strip limpou os espaços e o upper deixou grande: BOM DIA.",
+      "sectionId": "o-estado-agora",
+      "optionRationales": [
+        "Cada método devolveu um texto novo: limpo e depois em maiúsculas.",
+        "O resultado do upper não tem espaços — o strip já os tirou antes.",
+        "Minúsculas seria o resultado sem o upper.",
+        "Os espaços não sobrevivem ao strip."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "str.strip na referência",
+      "url": "https://docs.python.org/3/library/stdtypes.html#str.strip",
+      "description": "A página oficial do método strip."
+    },
+    {
+      "title": "Textos no tutorial",
+      "url": "https://docs.python.org/3/tutorial/introduction.html#strings",
+      "description": "O tutorial apresenta os textos e os métodos que eles carregam."
+    }
+  ],
+  "challenges": [
+    "sem-espacos-sobrando"
+  ]
+}
