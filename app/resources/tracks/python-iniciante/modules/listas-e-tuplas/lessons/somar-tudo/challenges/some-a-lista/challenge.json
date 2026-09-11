@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "slug": "some-a-lista",
+  "title": "Some a lista",
+  "concept": "somar_lista",
+  "difficulty": 4,
+  "language": "python",
+  "outputChannel": "retorno",
+  "statement": "# Some a lista\n\nCrie a função `somar_tudo(numeros)`, que devolve a **soma de todos os itens** da lista com `sum`.\n\n```text\n>>> somar_tudo([10, 20, 30])\n60\n>>> somar_tudo([])\n0\n```\n\nRepare: lista vazia soma zero — o `sum` cuida disso sozinho.",
+  "starterCode": "def somar_tudo(numeros):\n    # devolva a soma de todos os itens com sum()\n    pass\n",
+  "testsCode": "import runpy\nimport unittest\n\n\ndef rodar():\n    \"\"\"Roda solucao.py do zero e devolve o que ele definiu.\"\"\"\n    return runpy.run_path(\"solucao.py\")\n\n\nclass TestSomarTudo(unittest.TestCase):\n    def test_somar_tudo_soma_os_itens(self):\n        \"\"\"somar_tudo devolve a soma dos itens da lista\"\"\"\n        self.assertEqual(rodar()[\"somar_tudo\"]([10, 20, 30]), 60)\n\n    def test_somar_tudo_com_lista_vazia(self):\n        \"\"\"somar_tudo com lista vazia devolve zero\"\"\"\n        self.assertEqual(rodar()[\"somar_tudo\"]([]), 0)\n\n    def test_somar_tudo_com_um_item(self):\n        \"\"\"somar_tudo com um item devolve o proprio item\"\"\"\n        self.assertEqual(rodar()[\"somar_tudo\"]([7]), 7)\n",
+  "solutionCode": "def somar_tudo(numeros):\n    return sum(numeros)\n",
+  "expectedTestCount": 3,
+  "requirements": [
+    {
+      "id": "test_somar_tudo_soma_os_itens",
+      "teste": "test_somar_tudo_soma_os_itens",
+      "descricao": "somar_tudo devolve a soma dos itens da lista"
+    },
+    {
+      "id": "test_somar_tudo_com_lista_vazia",
+      "teste": "test_somar_tudo_com_lista_vazia",
+      "descricao": "somar_tudo com lista vazia devolve zero"
+    },
+    {
+      "id": "test_somar_tudo_com_um_item",
+      "teste": "test_somar_tudo_com_um_item",
+      "descricao": "somar_tudo com um item devolve o proprio item"
+    }
+  ]
+}

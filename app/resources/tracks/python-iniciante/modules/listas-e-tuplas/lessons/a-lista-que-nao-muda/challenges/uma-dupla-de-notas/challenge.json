@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "slug": "uma-dupla-de-notas",
+  "title": "Uma dupla de notas",
+  "concept": "tupla",
+  "difficulty": 4,
+  "language": "python",
+  "outputChannel": "retorno",
+  "statement": "# Uma dupla de notas\n\nCrie a função `par_de_notas(primeiro, segundo)`, que devolve uma **tupla** com as duas notas, na ordem em que recebeu.\n\n```text\n>>> par_de_notas(7, 9)\n(7, 9)\n```\n\nA tupla se escreve com parênteses: `return (primeiro, segundo)`. Onde a resposta for uma tupla, ela aparece com parênteses e vírgula.",
+  "starterCode": "def par_de_notas(primeiro, segundo):\n    # devolva uma tupla com as duas notas, na ordem\n    pass\n",
+  "testsCode": "import runpy\nimport unittest\n\n\ndef rodar():\n    \"\"\"Roda solucao.py do zero e devolve o que ele definiu.\"\"\"\n    return runpy.run_path(\"solucao.py\")\n\n\nclass TestAListaQueNaoMuda(unittest.TestCase):\n    def test_par_de_notas_guarda_o_primeiro_valor(self):\n        \"\"\"par_de_notas guarda o primeiro valor no lugar zero\"\"\"\n        self.assertEqual(rodar()[\"par_de_notas\"](7, 9)[0], 7)\n\n    def test_par_de_notas_guarda_o_segundo_valor(self):\n        \"\"\"par_de_notas guarda o segundo valor no lugar um\"\"\"\n        self.assertEqual(rodar()[\"par_de_notas\"](7, 9)[1], 9)\n\n    def test_par_de_notas_na_ordem_contraria(self):\n        \"\"\"par_de_notas devolve a ordem contraria quando recebe a ordem contraria\"\"\"\n        self.assertEqual(rodar()[\"par_de_notas\"](9, 7)[0], 9)\n        self.assertEqual(rodar()[\"par_de_notas\"](9, 7)[1], 7)\n",
+  "solutionCode": "def par_de_notas(primeiro, segundo):\n    return (primeiro, segundo)\n",
+  "expectedTestCount": 3,
+  "requirements": [
+    {
+      "id": "test_par_de_notas_guarda_o_primeiro_valor",
+      "teste": "test_par_de_notas_guarda_o_primeiro_valor",
+      "descricao": "par_de_notas guarda o primeiro valor no lugar zero"
+    },
+    {
+      "id": "test_par_de_notas_guarda_o_segundo_valor",
+      "teste": "test_par_de_notas_guarda_o_segundo_valor",
+      "descricao": "par_de_notas guarda o segundo valor no lugar um"
+    },
+    {
+      "id": "test_par_de_notas_na_ordem_contraria",
+      "teste": "test_par_de_notas_na_ordem_contraria",
+      "descricao": "par_de_notas devolve a ordem contraria quando recebe a ordem contraria"
+    }
+  ]
+}

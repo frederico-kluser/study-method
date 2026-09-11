@@ -1,0 +1,113 @@
+{
+  "schemaVersion": 1,
+  "slug": "com-o-indice-junto",
+  "title": "Com o índice junto",
+  "summary": "O `enumerate` entrega posição e item na mesma volta do `for`.",
+  "difficulty": 4,
+  "role": "regular",
+  "targetAtom": "global:enumerate",
+  "concepts": [
+    "enumerate"
+  ],
+  "prerequisites": [
+    "percorrer-uma-lista"
+  ],
+  "introduces": {
+    "productive": [
+      "global:enumerate"
+    ],
+    "receptive": []
+  },
+  "introducesTerms": [
+    "índice"
+  ],
+  "theory": [
+    {
+      "id": "posicao-e-item-juntos",
+      "title": "Posição e item juntos",
+      "markdown": "Muitas vezes o laço precisa da **posição** E do **item**, os dois ao mesmo tempo. O `enumerate` entrega os dois juntos, num par:\n\n```python\nnomes = [\"ana\", \"bia\"]\nfor par in enumerate(nomes):\n    print(par[0], par[1])\n```\n\n```text\n0 ana\n1 bia\n```\n\nA cada volta, `par` tem a posição no lugar zero e o item no lugar um. A posição começa em zero — como a lista. A forma encurtada `for posicao, item in enumerate(nomes):` abre o par nos dois nomes de uma vez; ela usa tuplas e desempacotamento, que vêm nas próximas aulas."
+    },
+    {
+      "id": "outro-comeco-de-contagem",
+      "title": "Outro começo de contagem",
+      "markdown": "O `enumerate` aceita um segundo argumento: o número onde a contagem começa.\n\n```python\nnomes = [\"ana\", \"bia\"]\nfor par in enumerate(nomes, 1):\n    print(par[0], par[1])\n```\n\n```text\n1 ana\n2 bia\n```\n\nAs posições agora começam em 1 — útil quando a lista representa algo que se conta do um, como fileiras."
+    },
+    {
+      "id": "qual-e-o-estado-agora",
+      "title": "Qual é o estado agora?",
+      "markdown": "Antes de rodar, responda: quantas voltas este laço dá, e o que sai na tela?\n\n```python\nfrutas = [\"uva\", \"kiwi\"]\nfor par in enumerate(frutas):\n    print(par[0], par[1])\n```\n\n```text\n0 uva\n1 kiwi\n```\n\nDuas voltas — uma por item. Na primeira, `par[0]` vale 0 e `par[1]` vale `\"uva\"`; na segunda, 1 e `\"kiwi\"`."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "enumerate-entrega-os-dois",
+      "statement": "O `enumerate` entrega posição e item juntos, a cada volta.",
+      "question": "O que a volta `for posicao, nome in enumerate(nomes):` entrega a cada repetição?",
+      "options": [
+        "a posição e o item juntos",
+        "só a posição",
+        "só o item",
+        "o tamanho da lista"
+      ],
+      "answerIndex": 0,
+      "feedback": "A cada volta entram DOIS nomes: a posição e o item daquela volta.",
+      "sectionId": "posicao-e-item-juntos",
+      "optionRationales": [
+        "O `enumerate` devolve pares (posição, item), e o `for` os abre nos dois nomes.",
+        "Só a posição você já teria com `range`; o `enumerate` junta o item de graça.",
+        "Só o item você já teria com o `for` simples; o `enumerate` acrescenta a posição.",
+        "O tamanho é uma informação única da lista; o `enumerate` não devolve esse número."
+      ]
+    },
+    {
+      "id": "enumerate-comeca-em-zero",
+      "statement": "A posição do `enumerate` começa em zero.",
+      "question": "Na primeira volta do `for posicao, nome in enumerate(nomes):`, quanto vale `posicao`?",
+      "options": [
+        "0",
+        "1",
+        "vazio",
+        "o primeiro item"
+      ],
+      "answerIndex": 0,
+      "feedback": "A contagem das posições começa em zero, como os índices da lista.",
+      "sectionId": "posicao-e-item-juntos",
+      "optionRationales": [
+        "A primeira posição de uma lista é 0, e o `enumerate` segue essa contagem.",
+        "1 seria o segundo número da contagem, não o primeiro.",
+        "`posicao` sempre recebe um número a cada volta — nunca fica vazia.",
+        "O item é o que vai para `nome`; para `posicao` vai o número."
+      ]
+    },
+    {
+      "id": "enumerate-nao-muda-a-lista",
+      "statement": "Percorrer com `enumerate` não muda a lista.",
+      "question": "Depois do laço `for posicao, nome in enumerate(nomes):`, o que acontece com `nomes`?",
+      "options": [
+        "continua igual",
+        "ganha as posições dentro dela",
+        "fica vazia",
+        "inverte a ordem"
+      ],
+      "answerIndex": 0,
+      "feedback": "O `enumerate` só lê a lista, voltando e item; `nomes` continua como estava.",
+      "sectionId": "qual-e-o-estado-agora",
+      "optionRationales": [
+        "Percorrer com `enumerate` é leitura: a lista não muda nem ganha nada.",
+        "As posições são números da VOLTA, não itens que entram na lista.",
+        "Nada é apagado: a lista continua com todos os itens.",
+        "Inverter é trabalho de `reverse`/`reversed`, não de percorrer."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "enumerate() — a documentação oficial",
+      "url": "https://docs.python.org/3/library/functions.html#enumerate",
+      "description": "A função que devolve posição e item juntos, na ordem da sequência."
+    }
+  ],
+  "challenges": [
+    "numerar-itens"
+  ]
+}

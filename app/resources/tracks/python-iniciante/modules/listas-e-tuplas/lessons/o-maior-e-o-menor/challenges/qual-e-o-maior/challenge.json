@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 1,
+  "slug": "qual-e-o-maior",
+  "title": "Qual é o maior?",
+  "concept": "maior_e_menor",
+  "difficulty": 4,
+  "language": "python",
+  "outputChannel": "retorno",
+  "statement": "# Qual é o maior?\n\nCrie a função `o_maior(numeros)`, que devolve o **maior** valor da lista com `max`.\n\nCrie também a função `o_menor(numeros)`, que devolve o **menor** valor da lista com `min`.\n\n```text\n>>> o_maior([3, 9, 1])\n9\n>>> o_menor([3, 9, 1])\n1\n```\n\nAs duas valem também para uma lista de um item só: o maior e o menor dela são o próprio item.",
+  "starterCode": "def o_maior(numeros):\n    # devolva o maior valor de numeros com max()\n    pass\n\n\ndef o_menor(numeros):\n    # devolva o menor valor de numeros com min()\n    pass\n",
+  "testsCode": "import runpy\nimport unittest\n\n\ndef rodar():\n    \"\"\"Roda solucao.py do zero e devolve o que ele definiu.\"\"\"\n    return runpy.run_path(\"solucao.py\")\n\n\nclass TestOMaiorEOMenor(unittest.TestCase):\n    def test_o_maior_acha_o_numero_grande(self):\n        \"\"\"o_maior devolve o maior numero da lista\"\"\"\n        self.assertEqual(rodar()[\"o_maior\"]([3, 9, 1]), 9)\n\n    def test_o_maior_com_um_item_so(self):\n        \"\"\"o_maior com uma lista de um item devolve esse item\"\"\"\n        self.assertEqual(rodar()[\"o_maior\"]([5]), 5)\n\n    def test_o_menor_acha_o_numero_pequeno(self):\n        \"\"\"o_menor devolve o menor numero da lista\"\"\"\n        self.assertEqual(rodar()[\"o_menor\"]([7, 2, 8]), 2)\n\n    def test_o_menor_com_um_item_so(self):\n        \"\"\"o_menor com uma lista de um item devolve esse item\"\"\"\n        self.assertEqual(rodar()[\"o_menor\"]([4]), 4)\n",
+  "solutionCode": "def o_maior(numeros):\n    return max(numeros)\n\n\ndef o_menor(numeros):\n    return min(numeros)\n",
+  "expectedTestCount": 4,
+  "requirements": [
+    {
+      "id": "test_o_maior_acha_o_numero_grande",
+      "teste": "test_o_maior_acha_o_numero_grande",
+      "descricao": "o_maior devolve o maior numero da lista"
+    },
+    {
+      "id": "test_o_maior_com_um_item_so",
+      "teste": "test_o_maior_com_um_item_so",
+      "descricao": "o_maior com uma lista de um item devolve esse item"
+    },
+    {
+      "id": "test_o_menor_acha_o_numero_pequeno",
+      "teste": "test_o_menor_acha_o_numero_pequeno",
+      "descricao": "o_menor devolve o menor numero da lista"
+    },
+    {
+      "id": "test_o_menor_com_um_item_so",
+      "teste": "test_o_menor_com_um_item_so",
+      "descricao": "o_menor com uma lista de um item devolve esse item"
+    }
+  ]
+}

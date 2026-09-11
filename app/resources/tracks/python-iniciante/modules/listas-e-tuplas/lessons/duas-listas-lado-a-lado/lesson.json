@@ -1,0 +1,111 @@
+{
+  "schemaVersion": 1,
+  "slug": "duas-listas-lado-a-lado",
+  "title": "Duas listas lado a lado",
+  "summary": "O `zip` percorre duas listas ao mesmo tempo, emparelhando item com item — e para na lista mais curta.",
+  "difficulty": 4,
+  "role": "regular",
+  "targetAtom": "global:zip",
+  "concepts": [
+    "zip_duas_listas"
+  ],
+  "prerequisites": [
+    "com-o-indice-junto"
+  ],
+  "introduces": {
+    "productive": [
+      "global:zip"
+    ],
+    "receptive": []
+  },
+  "introducesTerms": [],
+  "theory": [
+    {
+      "id": "lado-a-lado",
+      "title": "Lado a lado",
+      "markdown": "O `zip` percorre duas listas ao mesmo tempo, emparelhando item com item:\n\n```python\nnomes = [\"ana\", \"bia\"]\nnotas = [8, 9]\nfor par in zip(nomes, notas):\n    print(par[0], par[1])\n```\n\n```text\nana 8\nbia 9\n```\n\nNa primeira volta, `par[0]` vale `\"ana\"` e `par[1]` vale `8`; na segunda, `\"bia\"` e `9`."
+    },
+    {
+      "id": "para-no-fim-da-menor",
+      "title": "Para no fim da menor",
+      "markdown": "Se uma lista for mais curta, o `zip` para quando ela acaba — ele não inventa item que não existe:\n\n```python\nnomes = [\"ana\", \"bia\", \"caio\"]\nnotas = [8, 9]\nfor par in zip(nomes, notas):\n    print(par[0], par[1])\n```\n\n```text\nana 8\nbia 9\n```\n\nO `caio` fica de fora: não há nota dele para emparelhar."
+    },
+    {
+      "id": "qual-e-o-estado-agora",
+      "title": "Qual é o estado agora?",
+      "markdown": "Antes de rodar, responda: quantas voltas este laço dá?\n\n```python\ncores = [\"azul\", \"rosa\", \"verde\"]\ntamanhos = [\"P\", \"M\"]\nfor par in zip(cores, tamanhos):\n    print(par[0], par[1])\n```\n\nDuas voltas: o `zip` para no fim da lista mais curta (`tamanhos`). A cor `\"verde\"` não aparece, porque não há tamanho para emparelhar com ela."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "zip-emparelha-os-itens",
+      "statement": "O `zip` entrega um item de cada lista, emparelhados, a cada volta.",
+      "question": "O que `for nome, nota in zip(nomes, notas):` entrega a cada volta?",
+      "options": [
+        "um item de cada lista, emparelhados",
+        "dois itens da mesma lista",
+        "a soma das duas listas",
+        "os itens duplicados"
+      ],
+      "answerIndex": 0,
+      "feedback": "A cada volta entram dois nomes: um item da primeira lista e um da segunda.",
+      "sectionId": "lado-a-lado",
+      "optionRationales": [
+        "O `zip` casa o item de `nomes` com o item de `notas` da mesma posição.",
+        "Cada lista contribui com UM item por volta — nunca dois da mesma.",
+        "Somar é o trabalho de `sum`/`+`; o `zip` não junta valores, junta posições.",
+        "Nada é duplicado: cada item aparece uma única vez, no seu par."
+      ]
+    },
+    {
+      "id": "zip-para-na-menor",
+      "statement": "O `zip` para no fim da lista mais curta.",
+      "question": "Com `nomes` de 3 itens e `notas` de 2, quantas voltas o `zip` dá?",
+      "options": [
+        "2",
+        "3",
+        "5",
+        "um erro"
+      ],
+      "answerIndex": 0,
+      "feedback": "O `zip` para na lista mais curta: com 2 notas, dá 2 voltas.",
+      "sectionId": "para-no-fim-da-menor",
+      "optionRationales": [
+        "Sem o terceiro par, não há terceira volta: o `zip` respeita a lista menor.",
+        "3 voltas pediriam um par para `caio`, que não existe.",
+        "As voltas não somam os tamanhos: cada volta usa UM item de cada lista.",
+        "Não há erro: listas de tamanhos diferentes são entrada normal do `zip`."
+      ]
+    },
+    {
+      "id": "zip-nao-muda-as-listas",
+      "statement": "Percorrer com `zip` não muda nenhuma das listas.",
+      "question": "Depois do laço `for nome, nota in zip(nomes, notas):`, o que vale `nomes`?",
+      "options": [
+        "continua igual",
+        "vira uma lista de pares",
+        "é ordenada",
+        "é invertida"
+      ],
+      "answerIndex": 0,
+      "feedback": "O `zip` só lê as duas listas; `nomes` continua como estava.",
+      "sectionId": "qual-e-o-estado-agora",
+      "optionRationales": [
+        "Percorrer com `zip` é leitura: nenhuma das duas listas muda.",
+        "Os pares existem só dentro da volta; a lista `nomes` não vira pares.",
+        "Ordenar é trabalho de `sort`/`sorted`, não de percorrer.",
+        "Inverter é trabalho de `reverse`/`reversed`, não de percorrer."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "zip() — a documentação oficial",
+      "url": "https://docs.python.org/3/library/functions.html#zip",
+      "description": "A função que emparelha item a item duas ou mais sequências."
+    }
+  ],
+  "challenges": [
+    "par-e-par"
+  ]
+}

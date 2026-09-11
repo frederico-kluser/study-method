@@ -1,0 +1,117 @@
+{
+  "schemaVersion": 1,
+  "slug": "o-maior-e-o-menor",
+  "title": "O maior e o menor",
+  "summary": "As funções `max` e `min` devolvem o maior e o menor valor de uma lista, sem laço.",
+  "difficulty": 4,
+  "role": "regular",
+  "targetAtom": "global:max",
+  "concepts": [
+    "maior_e_menor"
+  ],
+  "prerequisites": [
+    "criar-uma-lista"
+  ],
+  "introduces": {
+    "productive": [
+      "global:max",
+      "global:min"
+    ],
+    "receptive": []
+  },
+  "introducesTerms": [],
+  "theory": [
+    {
+      "id": "o-maior-da-lista",
+      "title": "O maior da lista",
+      "markdown": "A função `max` devolve o maior valor de uma lista:\n\n```python\nnotas = [7, 9, 5]\nprint(max(notas))\n```\n\n```text\n9\n```\n\nNada de laço nem de comparação: `max` varre a lista sozinha e devolve o maior."
+    },
+    {
+      "id": "o-menor-da-lista",
+      "title": "O menor da lista",
+      "markdown": "A função `min` faz o caminho contrário:\n\n```python\nnotas = [7, 9, 5]\nprint(min(notas))\n```\n\n```text\n5\n```\n\nAs duas não mudam a lista — devolvem só o valor pedido."
+    },
+    {
+      "id": "qual-e-o-estado-agora",
+      "title": "Qual é o estado agora?",
+      "markdown": "Antes de rodar, responda: o que vale `maior` e o que vale `temperaturas` depois disto?\n\n```python\ntemperaturas = [18, 31, 24]\nmaior = max(temperaturas)\nprint(temperaturas)\n```\n\n`maior` vale `31`, e `temperaturas` continua `[18, 31, 24]` — `max` só olha, não mexe."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "max-devolve-o-maior",
+      "statement": "`max` devolve o maior valor da lista.",
+      "question": "O que `max([4, 9, 1])` devolve?",
+      "options": [
+        "9",
+        "4",
+        "1",
+        "a lista inteira"
+      ],
+      "answerIndex": 0,
+      "feedback": "O `max` acha e devolve o maior valor: `9`.",
+      "sectionId": "o-maior-da-lista",
+      "optionRationales": [
+        "Dos três valores, 9 é o maior — é ele que `max` devolve.",
+        "4 é o primeiro item da lista, não o maior.",
+        "1 é o MENOR da lista — esse é o trabalho do `min`.",
+        "`max` devolve um valor só, nunca a lista inteira."
+      ]
+    },
+    {
+      "id": "min-devolve-o-menor",
+      "statement": "`min` devolve o menor valor da lista.",
+      "question": "O que `min([4, 9, 1])` devolve?",
+      "options": [
+        "1",
+        "4",
+        "9",
+        "nenhum — dá erro"
+      ],
+      "answerIndex": 0,
+      "feedback": "O `min` acha e devolve o menor valor: `1`.",
+      "sectionId": "o-menor-da-lista",
+      "optionRationales": [
+        "Dos três valores, 1 é o menor — é ele que `min` devolve.",
+        "4 é o primeiro item da lista, não o menor.",
+        "9 é o MAIOR da lista — esse é o trabalho do `max`.",
+        "Não há erro: `min` funciona em qualquer lista de números."
+      ]
+    },
+    {
+      "id": "max-nao-muda-a-lista",
+      "statement": "`max` e `min` não mudam a lista.",
+      "question": "Depois de `numeros = [4, 9, 1]` e `max(numeros)`, o que vale `numeros`?",
+      "options": [
+        "[4, 9, 1]",
+        "[9]",
+        "[]",
+        "9"
+      ],
+      "answerIndex": 0,
+      "feedback": "O `max` só devolve o valor — `numeros` continua `[4, 9, 1]`.",
+      "sectionId": "qual-e-o-estado-agora",
+      "optionRationales": [
+        "`max` apenas olha a lista e devolve o maior; nada é tirado nem mudado.",
+        "`[9]` seria o resultado de filtrar a lista — `max` não monta lista nenhuma.",
+        "Nada é apagado: a lista continua com os três itens.",
+        "`9` é o que `max` DEVOLVE, não o que a lista vira."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "max() e min() — a documentação oficial",
+      "url": "https://docs.python.org/3/library/functions.html#max",
+      "description": "As funções que devolvem o maior e o menor de uma sequência."
+    },
+    {
+      "title": "min() — a documentação oficial",
+      "url": "https://docs.python.org/3/library/functions.html#min",
+      "description": "A função que devolve o menor valor de uma sequência."
+    }
+  ],
+  "challenges": [
+    "qual-e-o-maior"
+  ]
+}

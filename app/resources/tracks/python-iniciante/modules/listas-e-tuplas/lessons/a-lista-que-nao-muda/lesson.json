@@ -1,0 +1,118 @@
+{
+  "schemaVersion": 1,
+  "slug": "a-lista-que-nao-muda",
+  "title": "A lista que não muda",
+  "summary": "A tupla guarda itens na ordem como a lista, mas não deixa acrescentar nem tirar.",
+  "difficulty": 4,
+  "role": "regular",
+  "targetAtom": "node:Tuple",
+  "concepts": [
+    "tupla"
+  ],
+  "prerequisites": [
+    "criar-uma-lista"
+  ],
+  "introduces": {
+    "productive": [
+      "node:Tuple"
+    ],
+    "receptive": []
+  },
+  "introducesTerms": [
+    "tupla"
+  ],
+  "theory": [
+    {
+      "id": "a-tupla",
+      "title": "A tupla",
+      "markdown": "Uma **tupla** é uma lista que não muda: guarda itens na ordem, mas não deixa acrescentar nem tirar. Ela se escreve com parênteses:\n\n```python\ndupla = (7, 9)\nprint(dupla[0])\nprint(dupla[1])\n```\n\n```text\n7\n9\n```\n\nLembra do par que o `enumerate` e o `zip` entregavam a cada volta? Aquele par é uma tupla — dois valores colados na ordem."
+    },
+    {
+      "id": "nao-muda-mesmo",
+      "title": "Não muda mesmo",
+      "markdown": "A tupla não conhece `append` — tentar acrescentar um item dá erro:\n\n```text\nAttributeError: 'tuple' object has no attribute 'append'\n```\n\nEsse erro é a garantia: o que está numa tupla não ganha item novo nem some por engano."
+    },
+    {
+      "id": "qual-e-o-estado-agora",
+      "title": "Qual é o estado agora?",
+      "markdown": "Responda antes de rodar: o que vale `predio` depois disto?\n\n```python\npredio = (10, 12)\nprint(predio)\n```\n\n`predio` vale `(10, 12)` — e nada vai mudar isso: tupla não tem como mudar. Se você PRECISA mudar depois, a resposta é lista, não tupla."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "tupla-com-parenteses",
+      "statement": "Uma tupla se escreve com parênteses.",
+      "question": "Como se escreve uma tupla com os valores 7 e 9?",
+      "options": [
+        "(7, 9)",
+        "[7, 9]",
+        "{7, 9}",
+        "\"7, 9\""
+      ],
+      "answerIndex": 0,
+      "feedback": "A tupla usa parênteses: `(7, 9)`.",
+      "sectionId": "a-tupla",
+      "optionRationales": [
+        "Parênteses e vírgula é a escrita da tupla: `(7, 9)`.",
+        "Colchetes fazem uma LISTA, que aceita mudanças.",
+        "Chaves fazem um conjunto ou dicionário — outra coisa, que vem em módulo futuro.",
+        "Aspas fazem um TEXTO: `\"7, 9\"` é uma string, não dois valores."
+      ]
+    },
+    {
+      "id": "tupla-nao-tem-append",
+      "statement": "Uma tupla não aceita `append`.",
+      "question": "O que acontece ao tentar `dupla.append(3)` com `dupla = (7, 9)`?",
+      "options": [
+        "dá erro — tupla não tem append",
+        "acrescenta o 3 no fim",
+        "cria outra tupla com o 3",
+        "nada — fica igual"
+      ],
+      "answerIndex": 0,
+      "feedback": "Tupla não tem o método `append`: tentar usar dá `AttributeError`.",
+      "sectionId": "nao-muda-mesmo",
+      "optionRationales": [
+        "A tupla não oferece `append` — ela foi feita para não mudar, e o Python avisa com erro.",
+        "Acrescentar um item é exatamente o que a tupla proíbe.",
+        "Nenhuma tupla nova é criada: a chamada que não existe simplesmente dá erro.",
+        "O erro é a resposta VISÍVEL; nada acontece em silêncio."
+      ]
+    },
+    {
+      "id": "tupla-guarda-a-ordem",
+      "statement": "Os itens de uma tupla ficam na ordem em que foram escritos.",
+      "question": "Qual destas frases é verdadeira sobre uma tupla?",
+      "options": [
+        "os itens ficam na ordem em que foram escritos",
+        "os itens se reordenam sozinhos",
+        "os itens podem ser apagados um a um",
+        "os itens saem em ordem alfabética"
+      ],
+      "answerIndex": 0,
+      "feedback": "A tupla guarda a ordem: `(7, 9)` tem 7 no lugar zero e 9 no lugar um.",
+      "sectionId": "qual-e-o-estado-agora",
+      "optionRationales": [
+        "Posição e ordem são o que a tupla garante — como a lista, sem poder mudar.",
+        "Nada se reordena sozinho: valores não se movem nem se organizam sozinhos.",
+        "Apagar item a item é proibido na tupla — ela não tem `pop` nem `remove`.",
+        "Ordem alfabética é um tipo de organização; a tupla guarda a ordem que você deu."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "Tuplas e sequências — o tutorial oficial",
+      "url": "https://docs.python.org/3/tutorial/datastructures.html#tuples-and-sequences",
+      "description": "A seção do tutorial que apresenta as tuplas e por que elas não mudam."
+    },
+    {
+      "title": "Tipos embutidos: tuplas — a documentação oficial",
+      "url": "https://docs.python.org/3/library/stdtypes.html#tuples",
+      "description": "A referência do tipo tupla na documentação oficial."
+    }
+  ],
+  "challenges": [
+    "uma-dupla-de-notas"
+  ]
+}

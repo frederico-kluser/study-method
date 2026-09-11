@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 1,
+  "slug": "junte-e-esvazie",
+  "title": "Junte e esvazie",
+  "concept": "juntar_e_limpar",
+  "difficulty": 3,
+  "language": "python",
+  "outputChannel": "retorno",
+  "statement": "# Junte e esvazie\n\nCrie a função `juntar(lista, outros)`, que **coloca os itens de `outros` no fim de `lista`** com o método `.extend()` e devolve a própria lista já esticada.\n\nCrie também a função `esvaziar(lista)`, que **apaga todos os itens** com o método `.clear()` e devolve a lista vazia.\n\n```text\n>>> numeros = [1, 2]\n>>> juntar(numeros, [3, 4])\n[1, 2, 3, 4]\n>>> numeros\n[1, 2, 3, 4]\n>>> coisas = [\"caneta\", \"lapis\"]\n>>> esvaziar(coisas)\n[]\n>>> coisas\n[]\n```",
+  "starterCode": "def juntar(lista, outros):\n    # coloque os itens de outros no fim de lista com .extend() e devolva-a\n    pass\n\n\ndef esvaziar(lista):\n    # apague todos os itens com .clear() e devolva a lista vazia\n    pass\n",
+  "testsCode": "import runpy\nimport unittest\n\n\ndef rodar():\n    \"\"\"Roda solucao.py do zero e devolve o que ele definiu.\"\"\"\n    return runpy.run_path(\"solucao.py\")\n\n\nclass TestJuntarELimpar(unittest.TestCase):\n    def test_juntar_devolve_as_duas_listas(self):\n        \"\"\"juntar devolve os itens das duas listas em uma so\"\"\"\n        self.assertEqual(rodar()[\"juntar\"]([1, 2], [3, 4]), [1, 2, 3, 4])\n\n    def test_juntar_muda_a_primeira_lista(self):\n        \"\"\"juntar coloca os itens novos na primeira lista\"\"\"\n        numeros = [1, 2]\n        rodar()[\"juntar\"](numeros, [3])\n        self.assertEqual(numeros, [1, 2, 3])\n\n    def test_esvaziar_devolve_lista_vazia(self):\n        \"\"\"esvaziar devolve uma lista vazia\"\"\"\n        self.assertEqual(rodar()[\"esvaziar\"]([5, 9]), [])\n\n    def test_esvaziar_muda_a_lista(self):\n        \"\"\"esvaziar tira todos os itens da lista original\"\"\"\n        numeros = [5, 9]\n        rodar()[\"esvaziar\"](numeros)\n        self.assertEqual(numeros, [])\n",
+  "solutionCode": "def juntar(lista, outros):\n    lista.extend(outros)\n    return lista\n\n\ndef esvaziar(lista):\n    lista.clear()\n    return lista\n",
+  "expectedTestCount": 4,
+  "requirements": [
+    {
+      "id": "test_juntar_devolve_as_duas_listas",
+      "teste": "test_juntar_devolve_as_duas_listas",
+      "descricao": "juntar devolve os itens das duas listas em uma so"
+    },
+    {
+      "id": "test_juntar_muda_a_primeira_lista",
+      "teste": "test_juntar_muda_a_primeira_lista",
+      "descricao": "juntar coloca os itens novos na primeira lista"
+    },
+    {
+      "id": "test_esvaziar_devolve_lista_vazia",
+      "teste": "test_esvaziar_devolve_lista_vazia",
+      "descricao": "esvaziar devolve uma lista vazia"
+    },
+    {
+      "id": "test_esvaziar_muda_a_lista",
+      "teste": "test_esvaziar_muda_a_lista",
+      "descricao": "esvaziar tira todos os itens da lista original"
+    }
+  ]
+}

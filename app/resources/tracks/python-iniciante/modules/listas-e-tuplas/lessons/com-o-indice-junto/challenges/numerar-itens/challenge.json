@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "slug": "numerar-itens",
+  "title": "Numerar os itens",
+  "concept": "enumerate",
+  "difficulty": 4,
+  "language": "python",
+  "outputChannel": "retorno",
+  "statement": "# Numerar os itens\n\nCrie a função `numerar(itens)`, que devolve uma lista com uma frase para cada item, no jeito `\"posicao-item\"`, usando `enumerate` num `for` com `append`.\n\n```text\n>>> numerar([\"ana\", \"bia\"])\n['0-ana', '1-bia']\n>>> numerar([])\n[]\n```\n\nO `enumerate` entrega um par por volta (a `par`): a posição está em `par[0]` e o item em `par[1]`. A posição começa em zero. Para montar a frase, use o texto com buraco: `f\"{par[0]}-{par[1]}\"`.",
+  "starterCode": "def numerar(itens):\n    # percorra enumerate(itens) e monte a lista de frases com append\n    pass\n",
+  "testsCode": "import runpy\nimport unittest\n\n\ndef rodar():\n    \"\"\"Roda solucao.py do zero e devolve o que ele definiu.\"\"\"\n    return runpy.run_path(\"solucao.py\")\n\n\nclass TestComOIndiceJunto(unittest.TestCase):\n    def test_numerar_coloca_posicao_e_item(self):\n        \"\"\"numerar devolve uma frase para cada item com a posicao dele\"\"\"\n        self.assertEqual(rodar()[\"numerar\"]([\"ana\", \"bia\"]), [\"0-ana\", \"1-bia\"])\n\n    def test_numerar_com_uma_lista_vazia(self):\n        \"\"\"numerar com lista vazia devolve lista vazia\"\"\"\n        self.assertEqual(rodar()[\"numerar\"]([]), [])\n\n    def test_numerar_com_um_item(self):\n        \"\"\"numerar com um item devolve a posicao zero\"\"\"\n        self.assertEqual(rodar()[\"numerar\"]([\"caio\"]), [\"0-caio\"])\n",
+  "solutionCode": "def numerar(itens):\n    numerados = []\n    for par in enumerate(itens):\n        numerados.append(f\"{par[0]}-{par[1]}\")\n    return numerados\n",
+  "expectedTestCount": 3,
+  "requirements": [
+    {
+      "id": "test_numerar_coloca_posicao_e_item",
+      "teste": "test_numerar_coloca_posicao_e_item",
+      "descricao": "numerar devolve uma frase para cada item com a posicao dele"
+    },
+    {
+      "id": "test_numerar_com_uma_lista_vazia",
+      "teste": "test_numerar_com_uma_lista_vazia",
+      "descricao": "numerar com lista vazia devolve lista vazia"
+    },
+    {
+      "id": "test_numerar_com_um_item",
+      "teste": "test_numerar_com_um_item",
+      "descricao": "numerar com um item devolve a posicao zero"
+    }
+  ]
+}

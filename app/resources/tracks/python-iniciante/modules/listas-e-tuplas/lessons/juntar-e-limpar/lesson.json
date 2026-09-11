@@ -1,0 +1,112 @@
+{
+  "schemaVersion": 1,
+  "slug": "juntar-e-limpar",
+  "title": "Juntar e limpar listas",
+  "summary": "O método `.extend()` acrescenta os itens de outra lista; o `.clear()` esvazia a lista inteira.",
+  "difficulty": 3,
+  "role": "regular",
+  "targetAtom": "api:.extend",
+  "concepts": [
+    "juntar_e_limpar"
+  ],
+  "prerequisites": [
+    "acrescentar-no-fim"
+  ],
+  "introduces": {
+    "productive": [
+      "api:.extend",
+      "api:.clear"
+    ],
+    "receptive": []
+  },
+  "introducesTerms": [],
+  "theory": [
+    {
+      "id": "juntar-duas-listas",
+      "title": "Juntar duas listas",
+      "markdown": "O método `.extend()` acrescenta todos os itens de outra lista no fim, **dentro da própria lista**:\n\n```python\nletras = [\"a\", \"b\"]\nletras.extend([\"c\", \"d\"])\nprint(letras)\n```\n\n```text\n['a', 'b', 'c', 'd']\n```\n\nDiferente do `+`, que cria uma lista nova, o `extend` muda a primeira lista — e devolve `None`."
+    },
+    {
+      "id": "esvaziar-a-lista",
+      "title": "Esvaziar a lista",
+      "markdown": "O método `.clear()` apaga todos os itens de uma vez. A lista fica vazia, mas continua existindo:\n\n```python\ncarros = [\"uno\", \"ka\"]\ncarros.clear()\nprint(carros)\n```\n\n```text\n[]\n```\n\nO nome `carros` continua valendo uma lista — só que sem nada dentro."
+    },
+    {
+      "id": "qual-e-o-estado-agora",
+      "title": "Qual é o estado agora?",
+      "markdown": "Antes de rodar, responda: o que vale `sala` depois disto?\n\n```python\nsala = [1, 2]\nsala.extend([3])\n```\n\n`sala` vale `[1, 2, 3]` — o `extend` colocou o 3 dentro da própria lista. E depois de `sala.clear()`, `sala` vale `[]`: a lista continua existindo, só que vazia."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "extend-acrescenta-no-fim",
+      "statement": "O método `.extend()` acrescenta os itens de outra lista no fim da primeira.",
+      "question": "Depois de `letras = [\"a\"]` e `letras.extend([\"b\", \"c\"])`, o que vale `letras`?",
+      "options": [
+        "['a', 'b', 'c']",
+        "['a']",
+        "['b', 'c']",
+        "um erro"
+      ],
+      "answerIndex": 0,
+      "feedback": "O `extend` pôs os itens um a um no fim: `letras` vale `['a', 'b', 'c']`.",
+      "sectionId": "juntar-duas-listas",
+      "optionRationales": [
+        "O `extend` abre a outra lista e acrescenta cada item no fim: `a`, `b`, `c`.",
+        "`['a']` era o valor antes do `extend` — depois da chamada os itens novos entraram.",
+        "`['b', 'c']` são só os itens acrescentados; a lista inteira inclui também o `'a'`.",
+        "Não há erro: `extend` espera uma lista e recebeu uma."
+      ]
+    },
+    {
+      "id": "clear-esvazia-a-lista",
+      "statement": "O método `.clear()` deixa a lista vazia, mas ela continua existindo.",
+      "question": "Depois de `carros = [\"uno\", \"ka\"]` e `carros.clear()`, o que vale `carros`?",
+      "options": [
+        "[]",
+        "None",
+        "apagado — o nome some",
+        "['uno', 'ka']"
+      ],
+      "answerIndex": 0,
+      "feedback": "O `clear` tirou os itens e deixou a lista vazia: `carros` vale `[]`.",
+      "sectionId": "esvaziar-a-lista",
+      "optionRationales": [
+        "O `clear` apaga os itens, mas o nome continua valendo uma lista — só que vazia.",
+        "`None` é o que o `clear` devolve à chamada; o nome `carros` não vira `None`.",
+        "O nome `carros` continua existindo e valendo uma lista — nada foi apagado do nome.",
+        "Os itens foram apagados de propósito: a lista não continua como estava."
+      ]
+    },
+    {
+      "id": "extend-muda-a-primeira-lista",
+      "statement": "O `.extend()` muda a primeira lista; o `+` cria outra.",
+      "question": "Qual destas linhas MUDA a lista `sala`?",
+      "options": [
+        "sala.extend(outros)",
+        "juncao = sala + outros",
+        "print(sala)",
+        "sala == outros"
+      ],
+      "answerIndex": 0,
+      "feedback": "Só o `extend` muda a lista: ele joga os itens de `outros` para dentro de `sala`.",
+      "sectionId": "juntar-duas-listas",
+      "optionRationales": [
+        "O `extend` altera a própria lista `sala`, acrescentando os itens de `outros`.",
+        "O `+` entre listas cria uma lista NOVA em `juncao`; `sala` fica como estava.",
+        "O `print` só mostra a lista; olhar não muda nada.",
+        "O `==` pergunta se duas listas são iguais; comparar não muda nada."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "Mais sobre listas — o tutorial oficial",
+      "url": "https://docs.python.org/3/tutorial/datastructures.html#more-on-lists",
+      "description": "A seção do tutorial que apresenta `list.extend`, `list.clear` e os outros métodos de lista."
+    }
+  ],
+  "challenges": [
+    "junte-e-esvazie"
+  ]
+}

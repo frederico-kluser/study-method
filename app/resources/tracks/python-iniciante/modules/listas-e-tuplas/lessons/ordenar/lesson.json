@@ -1,0 +1,119 @@
+{
+  "schemaVersion": 1,
+  "slug": "ordenar",
+  "title": "Ordenar uma lista",
+  "summary": "O método `.sort()` arruma a lista no lugar; a função `sorted` devolve outra lista já em ordem.",
+  "difficulty": 3,
+  "role": "regular",
+  "targetAtom": "api:.sort",
+  "concepts": [
+    "ordenar_lista"
+  ],
+  "prerequisites": [
+    "criar-uma-lista"
+  ],
+  "introduces": {
+    "productive": [
+      "api:.sort",
+      "global:sorted"
+    ],
+    "receptive": []
+  },
+  "introducesTerms": [
+    "ordem crescente"
+  ],
+  "theory": [
+    {
+      "id": "a-lista-que-se-arruma",
+      "title": "A lista que se arruma",
+      "markdown": "Uma lista pode se arrumar sozinha: o método `.sort()` coloca os itens em **ordem crescente**, do menor para o maior.\n\n```python\nnumeros = [3, 1, 2]\nnumeros.sort()\nprint(numeros)\n```\n\n```text\n[1, 2, 3]\n```\n\nRepare: o `sort` muda a PRÓPRIA lista. Depois da chamada, `numeros` vale a lista já arrumada."
+    },
+    {
+      "id": "devolver-uma-lista-em-ordem",
+      "title": "Devolver uma lista em ordem",
+      "markdown": "A função `sorted` também põe em ordem, mas não toca na lista que você passou: ela devolve **outra** lista, já ordenada.\n\n```python\nnumeros = [3, 1, 2]\nem_ordem = sorted(numeros)\nprint(numeros)\nprint(em_ordem)\n```\n\n```text\n[3, 1, 2]\n[1, 2, 3]\n```\n\n`numeros` continua como estava; quem ficou ordenada foi a lista nova, guardada no nome `em_ordem`."
+    },
+    {
+      "id": "qual-e-o-estado-agora",
+      "title": "Qual é o estado agora?",
+      "markdown": "Antes de rodar, responda: o que vale `numeros` depois destas duas linhas?\n\n```python\nnumeros = [3, 1, 2]\nordem = sorted(numeros)\n```\n\n`numeros` continua `[3, 1, 2]` — `sorted` não muda a lista original; só `ordem` ganhou `[1, 2, 3]`.\n\nUm erro comum: `.sort()` muda a lista **e devolve `None`**. Então `numeros = numeros.sort()` guarda `None` no nome e perde a lista. O certo é uma coisa de cada vez:\n\n```python\nnumeros.sort()\n```\n\nou\n\n```python\nnova = sorted(numeros)\n```"
+    }
+  ],
+  "assertions": [
+    {
+      "id": "sort-muda-a-lista",
+      "statement": "O método `.sort()` muda a lista original.",
+      "question": "Depois de `numeros = [3, 1, 2]` e `numeros.sort()`, o que vale `numeros`?",
+      "options": [
+        "[1, 2, 3]",
+        "[3, 1, 2]",
+        "None",
+        "um erro"
+      ],
+      "answerIndex": 0,
+      "feedback": "O `sort` arrumou a própria lista: `numeros` agora vale `[1, 2, 3]`.",
+      "sectionId": "a-lista-que-se-arruma",
+      "optionRationales": [
+        "O `sort` muda a própria lista, e ela fica em ordem crescente: `[1, 2, 3]`.",
+        "`[3, 1, 2]` era o valor ANTES do `sort` — depois da chamada a lista já está arrumada.",
+        "`None` é o que o `sort` DEVOLVE, não o que a lista vira: `numeros` continua sendo a lista, só que ordenada.",
+        "Não há erro: `sort` existe para listas e funciona em qualquer lista de números."
+      ]
+    },
+    {
+      "id": "sorted-nao-muda-a-original",
+      "statement": "A função `sorted` devolve outra lista e não muda a original.",
+      "question": "Depois de `original = [3, 1, 2]` e `outra = sorted(original)`, o que vale `original`?",
+      "options": [
+        "[3, 1, 2]",
+        "[1, 2, 3]",
+        "None",
+        "uma lista vazia"
+      ],
+      "answerIndex": 0,
+      "feedback": "O `sorted` devolve a ordem num lugar separado; `original` continua `[3, 1, 2]`.",
+      "sectionId": "devolver-uma-lista-em-ordem",
+      "optionRationales": [
+        "`sorted` não toca na lista recebida: `original` continua `[3, 1, 2]`.",
+        "`[1, 2, 3]` é o valor da lista NOVA, guardada em `outra` — não o de `original`.",
+        "`None` não aparece aqui: `sorted` devolve a lista ordenada, diferente do `sort`.",
+        "Nada foi apagado: a lista original existe e continua com os três itens."
+      ]
+    },
+    {
+      "id": "sort-devolve-none",
+      "statement": "O método `.sort()` muda a lista e devolve `None`.",
+      "question": "O que vale `resultado` depois de `resultado = [2, 1].sort()`?",
+      "options": [
+        "None",
+        "[1, 2]",
+        "[2, 1]",
+        "um erro"
+      ],
+      "answerIndex": 0,
+      "feedback": "O `sort` devolve `None` — ele muda a lista, não entrega valor. Por isso `resultado` vale `None`.",
+      "sectionId": "qual-e-o-estado-agora",
+      "optionRationales": [
+        "O `sort` muda a lista e devolve `None`: quem tentou guardar o retorno guardou `None`.",
+        "`[1, 2]` é o que a LISTA virou depois do `sort` — mas quem o guardou foi a lista, não o nome `resultado`.",
+        "`[2, 1]` era o valor antes do `sort`; o método não devolve esse valor.",
+        "Não há erro: `sort` funciona em lista literal; o problema é só o que ele devolve."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "sorted() — a documentação oficial",
+      "url": "https://docs.python.org/3/library/functions.html#sorted",
+      "description": "A função que devolve uma lista nova em ordem, sem tocar na original."
+    },
+    {
+      "title": "Mais sobre listas — o tutorial oficial",
+      "url": "https://docs.python.org/3/tutorial/datastructures.html#more-on-lists",
+      "description": "A seção do tutorial que apresenta `list.sort()` e os outros métodos de lista."
+    }
+  ],
+  "challenges": [
+    "ordene-a-lista"
+  ]
+}

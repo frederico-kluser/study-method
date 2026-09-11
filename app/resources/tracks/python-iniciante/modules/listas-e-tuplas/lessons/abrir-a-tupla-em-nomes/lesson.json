@@ -1,0 +1,118 @@
+{
+  "schemaVersion": 1,
+  "slug": "abrir-a-tupla-em-nomes",
+  "title": "Abrir a tupla em nomes",
+  "summary": "Uma linha com vários nomes tira os itens de uma tupla e guarda cada um no seu nome.",
+  "difficulty": 5,
+  "role": "regular",
+  "targetAtom": "decl:unpack",
+  "concepts": [
+    "desempacotar_tupla"
+  ],
+  "prerequisites": [
+    "a-lista-que-nao-muda"
+  ],
+  "introduces": {
+    "productive": [
+      "decl:unpack"
+    ],
+    "receptive": []
+  },
+  "introducesTerms": [
+    "desempacotar"
+  ],
+  "theory": [
+    {
+      "id": "abrir-em-nomes",
+      "title": "Abrir em nomes",
+      "markdown": "Dá para tirar os itens de uma tupla e guardar cada um num nome, de uma vez:\n\n```python\ndupla = (10, 20)\nprimeiro, segundo = dupla\nprint(primeiro)\nprint(segundo)\n```\n\n```text\n10\n20\n```\n\nUma linha, dois nomes: `primeiro` fica com o primeiro item, `segundo` com o segundo."
+    },
+    {
+      "id": "a-conta-dos-lados",
+      "title": "A conta dos lados",
+      "markdown": "A contagem precisa bater: um nome para cada item. Com três nomes e dois itens, o Python avisa na hora:\n\n```python\na, b, c = (1, 2)\n```\n\n```text\nValueError: not enough values to unpack (expected 3, got 2)\n```\n\nUm nome a mais do que itens — e o programa para. O conserto é deixar um nome para cada item."
+    },
+    {
+      "id": "qual-e-o-estado-agora",
+      "title": "Qual é o estado agora?",
+      "markdown": "Responda antes de rodar: quanto vale `x` depois disto?\n\n```python\nx, y = (5, 8)\nprint(x)\n```\n\n`x` vale `5` — o primeiro nome recebe o primeiro item. O `y` ficou com `8`, mesmo sem você usá-lo."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "um-nome-por-item",
+      "statement": "Cada nome recebe um item da tupla, na ordem.",
+      "question": "Depois de `primeiro, segundo = (10, 20)`, quanto vale `segundo`?",
+      "options": [
+        "20",
+        "10",
+        "(10, 20)",
+        "um erro"
+      ],
+      "answerIndex": 0,
+      "feedback": "O primeiro nome recebe o primeiro item e o segundo nome, o segundo: `segundo` vale `20`.",
+      "sectionId": "abrir-em-nomes",
+      "optionRationales": [
+        "A ordem dos nomes segue a ordem dos itens: `segundo` é o segundo nome e fica com `20`.",
+        "`10` vai para `primeiro`, o primeiro nome — não para `segundo`.",
+        "A tupla foi ABERTA: cada nome guarda um valor só, não a tupla inteira.",
+        "Não há erro: dois nomes para dois itens é a contagem certa."
+      ]
+    },
+    {
+      "id": "a-contagem-precisa-bater",
+      "statement": "O número de nomes precisa ser igual ao número de itens.",
+      "question": "O que acontece com `a, b, c = (1, 2)`?",
+      "options": [
+        "dá erro — falta um item para o nome c",
+        "funciona: c fica vazio",
+        "funciona: c fica com a tupla inteira",
+        "dá erro — tupla não abre"
+      ],
+      "answerIndex": 0,
+      "feedback": "Três nomes, dois itens: falta um item, e o Python devolve `ValueError`.",
+      "sectionId": "a-conta-dos-lados",
+      "optionRationales": [
+        "A contagem precisa bater dos dois lados: sem o terceiro item, o `c` não tem o que receber.",
+        "Nome nenhum fica vazio: ou recebe um item, ou o programa para com erro.",
+        "A tupla não é entregue inteira a um nome: ela é aberta, item por item.",
+        "Tupla abre sim — o erro aqui é só a contagem errada, não a tupla."
+      ]
+    },
+    {
+      "id": "qual-e-o-estado-de-x",
+      "statement": "O primeiro nome recebe o primeiro item da tupla.",
+      "question": "Depois de `x, y = (5, 8)`, quanto vale `x`?",
+      "options": [
+        "5",
+        "8",
+        "(5, 8)",
+        "nada — x nem existe"
+      ],
+      "answerIndex": 0,
+      "feedback": "O `x` é o primeiro nome, então recebe o primeiro item: `5`.",
+      "sectionId": "qual-e-o-estado-agora",
+      "optionRationales": [
+        "A ordem manda: primeiro nome com primeiro item — `x` fica com `5`.",
+        "`8` vai para `y`, o segundo nome.",
+        "A tupla foi aberta: `x` guarda um número, não a tupla inteira.",
+        "A linha criou os dois nomes: depois dela, `x` existe e vale `5`."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "Tuplas e sequências — o tutorial oficial",
+      "url": "https://docs.python.org/3/tutorial/datastructures.html#tuples-and-sequences",
+      "description": "A seção do tutorial que mostra o desempacotamento de tuplas em nomes."
+    },
+    {
+      "title": "Declarações de atribuição — a documentação oficial",
+      "url": "https://docs.python.org/3/reference/simple_stmts.html#assignment-statements",
+      "description": "A referência da atribuição com vários nomes de um lado só."
+    }
+  ],
+  "challenges": [
+    "abrir-a-dupla"
+  ]
+}

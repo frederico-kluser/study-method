@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "slug": "nota-da-tabela",
+  "title": "A nota da tabela",
+  "concept": "lista_de_listas",
+  "difficulty": 5,
+  "language": "python",
+  "outputChannel": "retorno",
+  "statement": "# A nota da tabela\n\nCrie a função `nota_de(tabela, linha, coluna)`, que devolve a nota que está na linha `linha` e na coluna `coluna` de uma tabela de notas (uma lista de listas).\n\n```text\n>>> tabela = [[7, 8], [9, 6]]\n>>> nota_de(tabela, 1, 0)\n9\n```\n\nUse dois índices seguidos, como na aula: `tabela[linha][coluna]`.",
+  "starterCode": "def nota_de(tabela, linha, coluna):\n    # devolva o item da tabela com dois indices: tabela[linha][coluna]\n    pass\n",
+  "testsCode": "import runpy\nimport unittest\n\n\ndef rodar():\n    \"\"\"Roda solucao.py do zero e devolve o que ele definiu.\"\"\"\n    return runpy.run_path(\"solucao.py\")\n\n\nclass TestListaDeListas(unittest.TestCase):\n    def test_nota_de_pega_a_nota_da_linha_e_coluna(self):\n        \"\"\"nota_de devolve a nota na linha e na coluna pedidas\"\"\"\n        self.assertEqual(rodar()[\"nota_de\"]([[7, 8], [9, 6]], 1, 0), 9)\n\n    def test_nota_de_com_uma_linha_so(self):\n        \"\"\"nota_de com uma linha so usa a coluna dentro dela\"\"\"\n        self.assertEqual(rodar()[\"nota_de\"]([[5]], 0, 0), 5)\n\n    def test_nota_de_com_outra_celula(self):\n        \"\"\"nota_de devolve a nota de outra celula da tabela\"\"\"\n        self.assertEqual(rodar()[\"nota_de\"]([[7, 8], [9, 6]], 0, 1), 8)\n",
+  "solutionCode": "def nota_de(tabela, linha, coluna):\n    return tabela[linha][coluna]\n",
+  "expectedTestCount": 3,
+  "requirements": [
+    {
+      "id": "test_nota_de_pega_a_nota_da_linha_e_coluna",
+      "teste": "test_nota_de_pega_a_nota_da_linha_e_coluna",
+      "descricao": "nota_de devolve a nota na linha e na coluna pedidas"
+    },
+    {
+      "id": "test_nota_de_com_uma_linha_so",
+      "teste": "test_nota_de_com_uma_linha_so",
+      "descricao": "nota_de com uma linha so usa a coluna dentro dela"
+    },
+    {
+      "id": "test_nota_de_com_outra_celula",
+      "teste": "test_nota_de_com_outra_celula",
+      "descricao": "nota_de devolve a nota de outra celula da tabela"
+    }
+  ]
+}

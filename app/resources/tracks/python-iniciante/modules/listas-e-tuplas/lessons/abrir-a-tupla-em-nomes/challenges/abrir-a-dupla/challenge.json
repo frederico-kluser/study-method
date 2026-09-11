@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "slug": "abrir-a-dupla",
+  "title": "Abrir a dupla",
+  "concept": "desempacotar_tupla",
+  "difficulty": 5,
+  "language": "python",
+  "outputChannel": "retorno",
+  "statement": "# Abrir a dupla\n\nCrie a função `somar_dupla(dupla)`, que devolve a **soma dos dois itens** de uma tupla de dois valores.\n\n```text\n>>> somar_dupla((10, 20))\n30\n```\n\nUse o desempacotamento da aula: abra a tupla em dois nomes com uma linha só (`primeiro, segundo = dupla`) e some os dois nomes.",
+  "starterCode": "def somar_dupla(dupla):\n    # abra a tupla em dois nomes e devolva a soma deles\n    pass\n",
+  "testsCode": "import runpy\nimport unittest\n\n\ndef rodar():\n    \"\"\"Roda solucao.py do zero e devolve o que ele definiu.\"\"\"\n    return runpy.run_path(\"solucao.py\")\n\n\nclass TestAbrirATuplaEmNomes(unittest.TestCase):\n    def test_somar_dupla_soma_os_dois_itens(self):\n        \"\"\"somar_dupla devolve a soma dos dois itens da tupla\"\"\"\n        self.assertEqual(rodar()[\"somar_dupla\"]((10, 20)), 30)\n\n    def test_somar_dupla_com_outros_valores(self):\n        \"\"\"somar_dupla devolve a soma com outros valores\"\"\"\n        self.assertEqual(rodar()[\"somar_dupla\"]((5, 6)), 11)\n\n    def test_somar_dupla_com_valores_iguais(self):\n        \"\"\"somar_dupla devolve a soma de dois valores iguais\"\"\"\n        self.assertEqual(rodar()[\"somar_dupla\"]((4, 4)), 8)\n",
+  "solutionCode": "def somar_dupla(dupla):\n    primeiro, segundo = dupla\n    return primeiro + segundo\n",
+  "expectedTestCount": 3,
+  "requirements": [
+    {
+      "id": "test_somar_dupla_soma_os_dois_itens",
+      "teste": "test_somar_dupla_soma_os_dois_itens",
+      "descricao": "somar_dupla devolve a soma dos dois itens da tupla"
+    },
+    {
+      "id": "test_somar_dupla_com_outros_valores",
+      "teste": "test_somar_dupla_com_outros_valores",
+      "descricao": "somar_dupla devolve a soma com outros valores"
+    },
+    {
+      "id": "test_somar_dupla_com_valores_iguais",
+      "teste": "test_somar_dupla_com_valores_iguais",
+      "descricao": "somar_dupla devolve a soma de dois valores iguais"
+    }
+  ]
+}

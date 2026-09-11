@@ -1,0 +1,119 @@
+{
+  "schemaVersion": 1,
+  "slug": "lista-de-listas",
+  "title": "Lista de listas",
+  "summary": "Uma lista pode guardar outras listas — e dois índices seguidos chegam a qualquer item da tabela.",
+  "difficulty": 5,
+  "role": "consolidation",
+  "targetAtom": "node:Subscript",
+  "concepts": [
+    "lista_de_listas"
+  ],
+  "prerequisites": [
+    "pegar-pela-posicao",
+    "criar-uma-lista"
+  ],
+  "introduces": {
+    "productive": [
+      "node:Subscript"
+    ],
+    "receptive": []
+  },
+  "introducesTerms": [
+    "tabela"
+  ],
+  "theory": [
+    {
+      "id": "uma-lista-dentro-da-outra",
+      "title": "Uma lista dentro da outra",
+      "markdown": "Uma lista pode morar dentro de outra. Uma tabela de notas é um exemplo: cada linha é uma lista.\n\n```python\nnotas = [[7, 8], [9, 6]]\nprint(notas[0])\n```\n\n```text\n[7, 8]\n```\n\n`notas[0]` é a primeira linha — ela própria uma lista."
+    },
+    {
+      "id": "dois-indices",
+      "title": "Dois índices",
+      "markdown": "Para chegar a UMA nota, use dois índices seguidos: primeiro a linha, depois a coluna.\n\n```python\nnotas = [[7, 8], [9, 6]]\nprint(notas[1][0])\n```\n\n```text\n9\n```\n\n`notas[1][0]` se lê assim: da lista `notas`, pegue a linha 1 e, dela, o item 0."
+    },
+    {
+      "id": "qual-e-o-estado-agora",
+      "title": "Qual é o estado agora?",
+      "markdown": "Responda antes de rodar: o que `palavras[0][1]` mostra?\n\n```python\npalavras = [[\"ola\", \"mundo\"], [\"tchau\"]]\nprint(palavras[0][1])\n```\n\n```text\nmundo\n```\n\n`palavras[0]` é `[\"ola\", \"mundo\"]`; o índice `[1]` depois do primeiro pega o segundo item dessa linha."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "a-linha-e-uma-lista",
+      "statement": "Dentro de uma lista de listas, cada linha é uma lista.",
+      "question": "Com `notas = [[7, 8], [9, 6]]`, o que `notas[0]` vale?",
+      "options": [
+        "[7, 8]",
+        "7",
+        "8",
+        "[[7, 8], [9, 6]]"
+      ],
+      "answerIndex": 0,
+      "feedback": "O índice 0 devolve a primeira linha inteira: a lista `[7, 8]`.",
+      "sectionId": "uma-lista-dentro-da-outra",
+      "optionRationales": [
+        "`notas[0]` pega a primeira linha — e cada linha é uma lista inteira.",
+        "`7` é um ITEM da primeira linha; para ele, faltaria um segundo índice.",
+        "`8` também é item da primeira linha, não a linha inteira.",
+        "Essa é a lista inteira, `notas` — não a linha de índice 0."
+      ]
+    },
+    {
+      "id": "dois-indices-para-um-item",
+      "statement": "Dois índices seguidos chegam a um item específico da tabela.",
+      "question": "Com a mesma `notas = [[7, 8], [9, 6]]`, o que `notas[1][0]` vale?",
+      "options": [
+        "9",
+        "7",
+        "6",
+        "[9, 6]"
+      ],
+      "answerIndex": 0,
+      "feedback": "O primeiro índice pega a linha 1, `[9, 6]`; o segundo pega o item 0 dela: `9`.",
+      "sectionId": "dois-indices",
+      "optionRationales": [
+        "Linha 1 e item 0: na linha `[9, 6]`, o item 0 é o `9`.",
+        "`7` está na linha 0, não na linha 1.",
+        "`6` é o item 1 da linha 1 — seria `notas[1][1]`.",
+        "`[9, 6]` é a LINHA inteira — sobra um índice para chegar ao item."
+      ]
+    },
+    {
+      "id": "estado-do-segundo-indice",
+      "statement": "O segundo índice age sobre a linha que o primeiro devolveu.",
+      "question": "Com `palavras = [[\"ola\", \"mundo\"], [\"tchau\"]]`, o que `palavras[0][1]` mostra?",
+      "options": [
+        "mundo",
+        "ola",
+        "tchau",
+        "um erro"
+      ],
+      "answerIndex": 0,
+      "feedback": "`palavras[0]` devolve `[\"ola\", \"mundo\"]`; o `[1]` seguinte pega o segundo item: `mundo`.",
+      "sectionId": "qual-e-o-estado-agora",
+      "optionRationales": [
+        "O primeiro índice devolve a linha 0 e o segundo pega o item 1 dela: `mundo`.",
+        "`ola` é o item 0 da linha 0 — seria `palavras[0][0]`.",
+        "`tchau` está na linha 1, não na linha 0.",
+        "Não há erro: a linha 0 tem dois itens, e o índice 1 existe nela."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "Mais sobre listas — o tutorial oficial",
+      "url": "https://docs.python.org/3/tutorial/datastructures.html#more-on-lists",
+      "description": "A seção do tutorial que mostra listas aninhadas (listas dentro de listas)."
+    },
+    {
+      "title": "Sequências e tipos de sequência — a documentação oficial",
+      "url": "https://docs.python.org/3/library/stdtypes.html#typesseq",
+      "description": "A referência oficial do acesso por índice em sequências."
+    }
+  ],
+  "challenges": [
+    "nota-da-tabela"
+  ]
+}

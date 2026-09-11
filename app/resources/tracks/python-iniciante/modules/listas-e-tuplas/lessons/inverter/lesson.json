@@ -1,0 +1,117 @@
+{
+  "schemaVersion": 1,
+  "slug": "inverter",
+  "title": "Inverter uma lista",
+  "summary": "O método `.reverse()` vira a lista no lugar; a função `reversed` devolve os itens ao contrário num laço.",
+  "difficulty": 3,
+  "role": "regular",
+  "targetAtom": "api:.reverse",
+  "concepts": [
+    "inverter_lista"
+  ],
+  "prerequisites": [
+    "ordenar"
+  ],
+  "introduces": {
+    "productive": [
+      "api:.reverse",
+      "global:reversed"
+    ],
+    "receptive": []
+  },
+  "introducesTerms": [],
+  "theory": [
+    {
+      "id": "a-lista-de-costas",
+      "title": "A lista de costas",
+      "markdown": "O método `.reverse()` vira a lista de ponta-cabeça, **no lugar**:\n\n```python\nletras = [\"a\", \"b\", \"c\"]\nletras.reverse()\nprint(letras)\n```\n\n```text\n['c', 'b', 'a']\n```\n\nComo o `sort`, o `reverse` muda a própria lista e devolve `None`."
+    },
+    {
+      "id": "devolver-ao-contrario",
+      "title": "Devolver ao contrário",
+      "markdown": "A função `reversed` devolve os itens ao contrário **sem mudar a lista original**. Ela não devolve uma lista: devolve uma visão que um `for` percorre do último para o primeiro.\n\n```python\nletras = [\"a\", \"b\", \"c\"]\nfor letra in reversed(letras):\n    print(letra)\n```\n\n```text\nc\nb\na\n```\n\nDepois do laço, `letras` continua `[\"a\", \"b\", \"c\"]`."
+    },
+    {
+      "id": "qual-e-o-estado-agora",
+      "title": "Qual é o estado agora?",
+      "markdown": "Responda antes de rodar: depois destas linhas, o que vale `filmes`?\n\n```python\nfilmes = [\"rei\", \"gigante\"]\nao_contrario = reversed(filmes)\n```\n\n`filmes` continua `[\"rei\", \"gigante\"]`: `reversed` não mexe na lista. `ao_contrario` é a visão reversa — para montar uma lista nova com ela, percorra e vá acrescentando:\n\n```python\nnova = []\nfor filme in reversed(filmes):\n    nova.append(filme)\n```"
+    }
+  ],
+  "assertions": [
+    {
+      "id": "reverse-muda-a-lista",
+      "statement": "O método `.reverse()` inverte a lista original.",
+      "question": "Depois de `letras = [\"a\", \"b\"]` e `letras.reverse()`, o que vale `letras`?",
+      "options": [
+        "['b', 'a']",
+        "['a', 'b']",
+        "None",
+        "um erro"
+      ],
+      "answerIndex": 0,
+      "feedback": "O `reverse` virou a própria lista: `letras` agora vale `['b', 'a']`.",
+      "sectionId": "a-lista-de-costas",
+      "optionRationales": [
+        "O `reverse` muda a própria lista, e ela fica com os itens na ordem contrária.",
+        "`['a', 'b']` era o valor ANTES do `reverse` — depois da chamada a ordem já virou.",
+        "`None` é o que o `reverse` DEVOLVE; a lista em si continua existindo, só que invertida.",
+        "Não há erro: `reverse` existe para listas e funciona nessa lista."
+      ]
+    },
+    {
+      "id": "reversed-nao-muda",
+      "statement": "A função `reversed` devolve os itens ao contrário sem mudar a lista.",
+      "question": "O que `reversed(letras)` faz com a lista original?",
+      "options": [
+        "não muda nada nela",
+        "inverte a lista original",
+        "apaga a lista original",
+        "ordena a lista original"
+      ],
+      "answerIndex": 0,
+      "feedback": "O `reversed` só devolve os itens ao contrário; a lista original fica intacta.",
+      "sectionId": "devolver-ao-contrario",
+      "optionRationales": [
+        "`reversed` entrega uma visão ao contrário e não toca na lista: ela continua como estava.",
+        "Quem inverte a lista original é o MÉTODO `.reverse()`, não a função `reversed`.",
+        "Nada é apagado: a lista original continua com todos os itens.",
+        "Ordenar é o trabalho do `sort`/`sorted`; `reversed` só troca a direção da leitura."
+      ]
+    },
+    {
+      "id": "reversed-vive-no-for",
+      "statement": "`reversed` aparece naturalmente num `for`.",
+      "question": "Em qual destas linhas `reversed` aparece do jeito natural?",
+      "options": [
+        "for letra in reversed(letras):",
+        "for letra in letras.reversed():",
+        "letras = reversed(letras, 2)",
+        "print(letras.reversed)"
+      ],
+      "answerIndex": 0,
+      "feedback": "A função `reversed` entra no `for`, como o `range`: `for letra in reversed(letras):`.",
+      "sectionId": "devolver-ao-contrario",
+      "optionRationales": [
+        "`reversed` devolve a visão reversa, e o `for` é quem percorre essa visão item a item.",
+        "`reversed` não é método de lista: escrevê-lo com ponto em `letras` dá erro.",
+        "`reversed` recebe uma lista só, sem segundo argumento de tamanho.",
+        "`reversed` não é atributo: ele é chamado como função, com parênteses."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "reversed() — a documentação oficial",
+      "url": "https://docs.python.org/3/library/functions.html#reversed",
+      "description": "A função que devolve os itens na ordem contrária, sem mudar a sequência original."
+    },
+    {
+      "title": "Mais sobre listas — o tutorial oficial",
+      "url": "https://docs.python.org/3/tutorial/datastructures.html#more-on-lists",
+      "description": "A seção do tutorial que apresenta `list.reverse()` e os outros métodos de lista."
+    }
+  ],
+  "challenges": [
+    "inverta-a-lista"
+  ]
+}

@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 1,
+  "slug": "inverta-a-lista",
+  "title": "Inverta a lista",
+  "concept": "inverter_lista",
+  "difficulty": 3,
+  "language": "python",
+  "outputChannel": "retorno",
+  "statement": "# Inverta a lista\n\nCrie a função `inverter_na_hora(numeros)`, que **inverte a lista no lugar** com o método `.reverse()` e devolve a própria lista já invertida.\n\nCrie também a função `ao_contrario(numeros)`, que devolve **outra** lista com os itens ao contrário, usando a função `reversed` num `for` com `append` — sem mexer na lista original.\n\n```text\n>>> numeros = [1, 2, 3]\n>>> inverter_na_hora(numeros)\n[3, 2, 1]\n>>> numeros\n[3, 2, 1]\n>>> ao_contrario([1, 2, 3])\n[3, 2, 1]\n```",
+  "starterCode": "def inverter_na_hora(numeros):\n    # inverta numeros no lugar com .reverse() e devolva a propria lista\n    pass\n\n\ndef ao_contrario(numeros):\n    # percorra reversed(numeros) e monte uma lista nova com append\n    pass\n",
+  "testsCode": "import runpy\nimport unittest\n\n\ndef rodar():\n    \"\"\"Roda solucao.py do zero e devolve o que ele definiu.\"\"\"\n    return runpy.run_path(\"solucao.py\")\n\n\nclass TestInverter(unittest.TestCase):\n    def test_inverter_na_hora_devolve_a_lista_invertida(self):\n        \"\"\"inverter_na_hora devolve a lista invertida\"\"\"\n        self.assertEqual(rodar()[\"inverter_na_hora\"]([1, 2, 3]), [3, 2, 1])\n\n    def test_inverter_na_hora_muda_a_lista_original(self):\n        \"\"\"inverter_na_hora muda a lista original no lugar\"\"\"\n        numeros = [1, 2, 3]\n        rodar()[\"inverter_na_hora\"](numeros)\n        self.assertEqual(numeros, [3, 2, 1])\n\n    def test_ao_contrario_devolve_invertida_sem_mudar(self):\n        \"\"\"ao_contrario devolve a lista invertida e nao muda a original\"\"\"\n        numeros = [1, 2, 3]\n        self.assertEqual(rodar()[\"ao_contrario\"](numeros), [3, 2, 1])\n        self.assertEqual(numeros, [1, 2, 3])\n\n    def test_ao_contrario_com_um_item_so(self):\n        \"\"\"ao_contrario com um item so devolve a lista igual\"\"\"\n        self.assertEqual(rodar()[\"ao_contrario\"]([7]), [7])\n",
+  "solutionCode": "def inverter_na_hora(numeros):\n    numeros.reverse()\n    return numeros\n\n\ndef ao_contrario(numeros):\n    nova = []\n    for item in reversed(numeros):\n        nova.append(item)\n    return nova\n",
+  "expectedTestCount": 4,
+  "requirements": [
+    {
+      "id": "test_inverter_na_hora_devolve_a_lista_invertida",
+      "teste": "test_inverter_na_hora_devolve_a_lista_invertida",
+      "descricao": "inverter_na_hora devolve a lista invertida"
+    },
+    {
+      "id": "test_inverter_na_hora_muda_a_lista_original",
+      "teste": "test_inverter_na_hora_muda_a_lista_original",
+      "descricao": "inverter_na_hora muda a lista original no lugar"
+    },
+    {
+      "id": "test_ao_contrario_devolve_invertida_sem_mudar",
+      "teste": "test_ao_contrario_devolve_invertida_sem_mudar",
+      "descricao": "ao_contrario devolve a lista invertida e nao muda a original"
+    },
+    {
+      "id": "test_ao_contrario_com_um_item_so",
+      "teste": "test_ao_contrario_com_um_item_so",
+      "descricao": "ao_contrario com um item so devolve a lista igual"
+    }
+  ]
+}

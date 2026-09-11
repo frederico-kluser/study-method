@@ -1,0 +1,111 @@
+{
+  "schemaVersion": 1,
+  "slug": "somar-tudo",
+  "title": "Somar tudo",
+  "summary": "A função `sum` soma todos os itens de uma lista de uma vez — e lista vazia soma zero.",
+  "difficulty": 4,
+  "role": "regular",
+  "targetAtom": "global:sum",
+  "concepts": [
+    "somar_lista"
+  ],
+  "prerequisites": [
+    "o-maior-e-o-menor"
+  ],
+  "introduces": {
+    "productive": [
+      "global:sum"
+    ],
+    "receptive": []
+  },
+  "introducesTerms": [],
+  "theory": [
+    {
+      "id": "a-soma-da-lista",
+      "title": "A soma da lista",
+      "markdown": "A função `sum` soma todos os itens de uma lista:\n\n```python\nestoque = [3, 4, 2]\nprint(sum(estoque))\n```\n\n```text\n9\n```\n\nNada de laço nem de acumulador na mão: `sum` devolve a soma de uma vez."
+    },
+    {
+      "id": "lista-vazia-soma-zero",
+      "title": "Lista vazia soma zero",
+      "markdown": "Uma lista vazia não tem o que somar — e o Python responde com zero:\n\n```python\nvazio = []\nprint(sum(vazio))\n```\n\n```text\n0\n```\n\nEsse comportamento vale a pena lembrar: começar do zero é exatamente o que o `sum` faz por baixo dos panos."
+    },
+    {
+      "id": "qual-e-o-estado-agora",
+      "title": "Qual é o estado agora?",
+      "markdown": "Antes de rodar, responda: o que vale `total` e o que vale `moedas` depois disto?\n\n```python\nmoedas = [2, 2, 2]\ntotal = sum(moedas)\n```\n\n`total` vale `6`, e `moedas` continua `[2, 2, 2]` — o `sum` devolve o resultado, não apaga a lista."
+    }
+  ],
+  "assertions": [
+    {
+      "id": "sum-soma-os-itens",
+      "statement": "`sum` devolve a soma dos itens da lista.",
+      "question": "O que `sum([10, 20])` devolve?",
+      "options": [
+        "30",
+        "20",
+        "1020",
+        "nenhum — não soma lista"
+      ],
+      "answerIndex": 0,
+      "feedback": "O `sum` soma os itens: `10 + 20` devolve `30`.",
+      "sectionId": "a-soma-da-lista",
+      "optionRationales": [
+        "Os dois itens são números, e `sum` os soma: 10 + 20 = 30.",
+        "20 é só o segundo item; a soma inclui os dois.",
+        "1020 seria o resultado de COLAR os números (`10` + `20` como texto), não de somá-los.",
+        "`sum` soma listas de números sim — é exatamente o trabalho dela."
+      ]
+    },
+    {
+      "id": "sum-da-lista-vazia",
+      "statement": "`sum` de uma lista vazia devolve zero.",
+      "question": "O que `sum([])` devolve?",
+      "options": [
+        "0",
+        "nenhum — dá erro",
+        "vazio",
+        "None"
+      ],
+      "answerIndex": 0,
+      "feedback": "Sem itens, a soma é zero: `sum([])` devolve `0`.",
+      "sectionId": "lista-vazia-soma-zero",
+      "optionRationales": [
+        "Nada para somar, soma zero: é o comportamento documentado do `sum`.",
+        "Não há erro: lista vazia é uma entrada válida, e a resposta é zero.",
+        "`vazio` não é um número — `sum` devolve o número zero, não a palavra.",
+        "`None` é o que métodos como `sort` devolvem; `sum` devolve o número da soma."
+      ]
+    },
+    {
+      "id": "sum-nao-muda-a-lista",
+      "statement": "`sum` não muda a lista.",
+      "question": "Depois de `moedas = [2, 2]` e `total = sum(moedas)`, o que vale `moedas`?",
+      "options": [
+        "[2, 2]",
+        "[4]",
+        "[]",
+        "4"
+      ],
+      "answerIndex": 0,
+      "feedback": "O `sum` só lê os itens — `moedas` continua `[2, 2]`.",
+      "sectionId": "qual-e-o-estado-agora",
+      "optionRationales": [
+        "`sum` devolve a soma e não altera a lista: ela continua com os dois itens.",
+        "`[4]` seria uma lista com a soma dentro — `sum` não monta lista nenhuma.",
+        "Nada é apagado: a lista continua intacta.",
+        "`4` é o que a soma devolveu e foi parar em `total`, não em `moedas`."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "title": "sum() — a documentação oficial",
+      "url": "https://docs.python.org/3/library/functions.html#sum",
+      "description": "A função que soma os itens de uma sequência."
+    }
+  ],
+  "challenges": [
+    "some-a-lista"
+  ]
+}
