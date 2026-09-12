@@ -25,6 +25,21 @@
  * grava o veredito e destrava a trilha inteira. ADITIVO (rodada 9): o desafio
  * do MÓDULO (target 'module' + moduleSlug) usa o mesmo painel — sem botão de
  * regeneração (conteúdo autoral).
+ *
+ * ─── AS DUAS INVARIANTES QUE A REVISÃO DO DIFF INTEGRADO FIXOU (onda3) ─────
+ *   1. FATO ≠ TELA: o REGISTRO da tentativa (`markAttempt` →
+ *      study:mark-challenge-attempt) acontece ANTES do guard de montagem do
+ *      submit — ele não depende de o painel estar montado (o rail de abas segue
+ *      clicável durante o submit). Só a UI (setResult/setConcluded/confete/
+ *      report/navegação) fica depois do guard. O defeito medido: veredito
+ *      descartado + 'abandoned' do unmount por cima → aula `done=true` na
+ *      Trilha com "Concluir aula" bloqueado na própria aula (ACHADO 1).
+ *   2. VEREDITO TERMINAL SALVO NÃO VIRA BECO: o rascunho persistido passa por
+ *      `normalizeDraftForResume` — 'passed' fica como está; 'failed' volta
+ *      retomável (código, saída do erro e relógio preservados, editor e submit
+ *      LIBERADOS); 'timeout' preserva o código/evidência e reinicia só a
+ *      tentativa morta. Sem isso, o desafio de MÓDULO reprovado (que não tem
+ *      regeneração) travava o aluno pelo resto da sessão (ACHADO 2).
  */
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore, type ReactElement } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -177,6 +192,61 @@ export interface ChallengeDraftSnapshot {
 }
 
 /**
+ * ONDA-RETOMAR: O QUE VALE A PENA PERSISTIR DE UM VEREDITO TERMINAL — DECISÃO
+ * PURA, exportada e medida sem montar o React (mesmo padrão de
+ * `shouldMarkAbandon`/`restoreStarTracker`). Roda na hora de SALVAR (os dois
+ * saves: o do desmonte e o da troca de desafio), então a RESTAURAÇÃO continua
+ * lendo `draft.concluded` como sempre.
+ *
+ * ══════════════════════════════════════════════════════════════════════════
+ * O DEFEITO QUE ELA MATA (medido pelo revisor adversarial, não deduzido)
+ * ══════════════════════════════════════════════════════════════════════════
+ * O rascunho guardava o `concluded` CRU — inclusive 'failed'/'timeout' — e o
+ * `loadSpec` o restaurava verbatim (`setConcluded(draft.concluded)`). Ao voltar,
+ * o editor ficava `readOnly={concluded !== null}` e o "Testar resposta" ficava
+ * desabilitado (`!concluded` em `canSubmit`), e NÃO existe caminho que zere o
+ * `concluded` a não ser a REGENERAÇÃO — que para `target === 'module'` sequer é
+ * renderizada (o botão "Gerar novo desafio" exige `!== 'module'`). Antes desta
+ * feature, sair e voltar RESETAVA tudo (`setConcluded(null)` incondicional no
+ * `loadSpec`) e era o ÚNICO retry de um desafio de MÓDULO reprovado: com o
+ * rascunho cru, o aluno ficava travado pelo resto da sessão (só recarregar o
+ * app limpa o cache de memória). BECO SEM SAÍDA, determinístico.
+ *
+ * ══════════════════════════════════════════════════════════════════════════
+ * A DECISÃO, POR VEREDITO
+ * ══════════════════════════════════════════════════════════════════════════
+ *   - 'passed'  → persiste COMO ESTÁ. Voltar mostra o estado de aprovado (com o
+ *     "Avançar para a próxima aula"/"Passou com N estrelas") — que é o que o
+ *     aluno de fato conquistou e o que a trilha já registrou;
+ *   - 'failed'  → persiste RETOMÁVEL: mantém `code`/`filesCode`/`activeFile`/
+ *     `elapsedMs`/`starsLeft`/`result` (o aluno REVÊ a saída do erro e o
+ *     checklist que já está na tela) e o `marked`, com `concluded: null`. O
+ *     editor volta EDITÁVEL e o "Testar resposta" volta HABILITADO: é uma
+ *     tentativa que CONTINUA, e o relógio segue de onde parou (o comportamento
+ *     do relógio pausado não muda — não é isto que esta função decide);
+ *   - 'timeout' → o relógio DAQUELA tentativa MORREU: persiste o `code` (o
+ *     pedido do dono: o código do aluno é PRESERVADO) e o `result` (evidência
+ *     do que aconteceu), mas a tentativa RECOMEÇA — `concluded: null`,
+ *     `elapsedMs: 0` e `starsLeft: 3`. Sem isso o primeiro tick reancorado no
+ *     tempo estourado reconcluiria 'timeout' na hora e o beco voltaria, agora
+ *     sem nem passar pela tela de erro.
+ *   - null      → tentativa em curso (ou nem começada): nada a normalizar.
+ *
+ * POR QUE O `marked` FICA: ele é o "já tem terminal gravado" do painel
+ * (`shouldMarkAbandon`) — mantê-lo impede que um desmonte seguinte grave um
+ * 'abandoned' por cima do 'failed'/'timeout' que JÁ está no banco. E ele não
+ * trava o retry: `markAttempt` só deduplica o MESMO veredito, e o retry que
+ * interessa (o aluno corrigir e PASSAR) é outro veredito.
+ */
+export function normalizeDraftForResume(draft: ChallengeDraft): ChallengeDraft {
+  if (draft.concluded === 'failed') return { ...draft, concluded: null };
+  if (draft.concluded === 'timeout') {
+    return { ...draft, concluded: null, elapsedMs: 0, starsLeft: 3 };
+  }
+  return draft;
+}
+
+/**
  * ONDA-RETOMAR: O SAVE DO DESMONTE — a decisão de persistir o rascunho,
  * EXTRAÍDA do cleanup para ser medida com o cache REAL (e não por presença de
  * string na fonte). O corpo do cleanup virou UMA chamada desta função: é ela
@@ -194,12 +264,17 @@ export interface ChallengeDraftSnapshot {
  * rascunho INTOCADO (nem começou, sem teste rodado e sem veredito) também não
  * entra — restaurá-lo daria exatamente o estado inicial. O critério é o MESMO
  * da troca de desafio (`isUntouchedDraft`).
+ *
+ * O QUE ENTRA NO CACHE é o rascunho NORMALIZADO (`normalizeDraftForResume`): um
+ * veredito terminal que não seja 'passed' vira tentativa retomável — sem isso o
+ * desafio de MÓDULO reprovado volta num beco sem saída (a medição está na doc
+ * daquela função).
  */
 export function persistDraftOnUnmount(snapshot: ChallengeDraftSnapshot | null): void {
   if (snapshot === null) return;
   // Rascunho intocado não entra no cache (ver `isUntouchedDraft`).
   if (isUntouchedDraft(snapshot.draft)) return;
-  saveChallengeDraft(snapshot.key, snapshot.draft);
+  saveChallengeDraft(snapshot.key, normalizeDraftForResume(snapshot.draft));
 }
 
 /**
@@ -341,9 +416,12 @@ export function TrackChallengePanel({
 
   // Guard de montagem (MESMO padrão do loadSpec): durante `running` o rail de
   // abas segue clicável — se o painel desmontar no meio do submit (troca de
-  // aba), o `await withTimeout(challengeSubmit)` ainda resolve depois e NADA
-  // pode rodar: nem markAttempt/setResult/setConcluded, nem
+  // aba), o `await withTimeout(challengeSubmit)` ainda resolve depois e NADA DE
+  // UI pode rodar: nem setResult/setConcluded/fireConfetti, nem
   // reportChallengeError/navigateToLesson, nem setSubmissionError/setRunning.
+  // O REGISTRO DO VEREDITO é a exceção DELIBERADA e vem ANTES deste guard (ver
+  // o ACHADO 1 em `handleSubmit`): o fato vai para o banco mesmo com o painel
+  // desmontado — o que não pode é a tela desmontada tentar se atualizar.
   // O reset na montagem é OBRIGATÓRIO (StrictMode no dev double-invoca o
   // efeito: cleanup → re-mount; sem o reset o guard bloquearia tudo no dev).
   const cancelledRef = useRef(false);
@@ -440,7 +518,12 @@ export function TrackChallengePanel({
               challengeDraftCacheKey(snapshot.key) === challengeDraftCacheKey(chaveAnterior) &&
               !isUntouchedDraft(snapshot.draft)
             ) {
-              saveChallengeDraft(snapshot.key, snapshot.draft);
+              // MESMA normalização do save do desmonte (a decisão inteira, com o
+              // beco sem saída medido, está em `normalizeDraftForResume`): este
+              // caminho também devolve o aluno ao desafio depois — trocar de
+              // desafio com o painel montado e voltar não pode restaurar um
+              // veredito terminal que trava editor e submit.
+              saveChallengeDraft(snapshot.key, normalizeDraftForResume(snapshot.draft));
             }
           }
           draftKeyRef.current = novaChave;
@@ -530,7 +613,15 @@ export function TrackChallengePanel({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selection.trackSlug, selection.challengeId, selection.target, selection.lessonId, selection.moduleSlug]);
 
-  /** Marca a tentativa (nunca-repetir) — idempotente por desafio+veredito. */
+  /** Marca a tentativa (nunca-repetir) — idempotente por desafio+veredito.
+   *
+   *  EFEITO COLATERAL PURO DE IPC — e é isso que o autoriza a rodar num fiber
+   *  JÁ DESMONTADO (ver o ACHADO 1 em `handleSubmit`): o corpo muta só o
+   *  `markedRef` (o dedupe LOCAL, que é um ref — não estado) e dispara
+   *  `study:mark-challenge-attempt`; NENHUM `setState`, nenhuma leitura de
+   *  estado de render. O FATO "esta tentativa terminou com este veredito"
+   *  pertence ao banco, não à tela que por acaso o mostrou.
+   */
   const markAttempt = useCallback(
     (verdict: 'passed' | 'failed' | 'timeout' | 'abandoned', stars: number, durationMs: number): void => {
       if (!spec || !started || markedRef.current === verdict) return;
@@ -545,8 +636,40 @@ export function TrackChallengePanel({
       };
       getApi()
         .study.markChallengeAttempt(payload)
+        .then((res) => {
+          // ─── ACHADO 3 (revisão adversarial do diff integrado) ─────────────
+          // O canal responde `{ok:false}` quando a PERSISTÊNCIA está
+          // indisponível (repo ausente, subjectId não resolvido, repo sem
+          // `markChallengeAttempt` — ver `study-handlers.ts`). Antes desta
+          // correção só a REJEIÇÃO era tratada (o `.catch` abaixo) e um
+          // `{ok:false}` passava EM BRANCO: o veredito não entrava no banco, o
+          // `markedRef` ficava dizendo "já gravei" e o dedupe BARRava qualquer
+          // tentativa seguinte de registrar o MESMO veredito — o Achado 1
+          // (aula `done=true` com `lastVerdict` nulo) ganhava uma segunda
+          // causa, silenciosa, só por falha de persistência.
+          //
+          // A DECISÃO (mínima, sem UI nova e sem retry agressivo): o aviso é
+          // EXPLÍCITO no console (a falha deixa de ser invisível para quem lê
+          // o log do renderer) e o dedupe local é DESFEITO — `{ok:false}`
+          // significa que NADA foi gravado (todos os retornos do handler
+          // acontecem ANTES do `repo.markChallengeAttempt`), então o painel
+          // não pode se declarar marcado. Quem tenta de novo é o PRÓXIMO
+          // veredito: o aluno que submeter outra vez volta a registrar. Sem
+          // isso, uma persistência que voltasse a funcionar não teria como
+          // recuperar o fato perdido.
+          if (res.ok === false) {
+            console.warn(
+              `[desafio] study:mark-challenge-attempt recusou o veredito "${verdict}" de ` +
+                `"${spec.slug}": ${res.error} — a tentativa NÃO foi registrada; o próximo ` +
+                'veredito volta a tentar.',
+            );
+            if (markedRef.current === verdict) markedRef.current = null;
+          }
+        })
         .catch(() => {
-          /* mark é otimista: falha transitória perde o registro — limitação documentada */
+          /* mark é otimista: falha transitória (canal mudo/exceção) perde o
+             registro — limitação documentada. O `{ok:false}` acima é o caso
+             OBSERVÁVEL: o canal respondeu e disse que não gravou. */
         });
     },
     [spec, started, selection.trackSlug, selection.lessonId, selection.target],
@@ -669,25 +792,61 @@ export function TrackChallengePanel({
         ACTION_TIMEOUTS.challengeSubmit,
         'track.challengeSubmit',
       );
-      // Guard de montagem: painel desmontado durante o submit → descarta
-      // silenciosamente (nada de markAttempt, setResult, reportChallengeError,
-      // navigateToLesson) — o unmount já marcou 'abandoned' no cleanup.
+      // ══════════════════════════════════════════════════════════════════════
+      // ACHADO 1 (revisão adversarial do diff integrado): O VEREDITO DO SUBMIT
+      // É UM FATO — ELE NÃO DEPENDE DA TELA ESTAR MONTADA
+      // ══════════════════════════════════════════════════════════════════════
+      // O DEFEITO MEDIDO (não deduzido): aqui existia SÓ o guard de montagem, e
+      // os `markAttempt('passed'|'failed')` ficavam DEPOIS dele. O rail de abas
+      // segue clicável durante o submit (o próprio guard de montagem documenta
+      // isso: o submit roda `node --test`, SEGUNDOS), então o aluno que troca de
+      // aba no meio do submit fazia o renderer DESCARTAR o veredito; o unmount
+      // ainda gravava 'abandoned' por cima. E o MAIN JÁ tinha marcado a aula
+      // como concluída no submit aprovado (`completeLessonOnChallengePass` —
+      // `lessonChallengesAllPassed` conta o desafio recém-aprovado PELO ID
+      // justamente porque a tentativa quem persiste é o renderer, DEPOIS).
+      // Estado final, determinístico e incoerente, medido pelo revisor com um
+      // probe no handler real:
+      //   trilha={aula-1 done:true, aula-2 locked:false} |
+      //   aula={done:true, lastVerdict:null, finishBlock:'challenges'}
+      // isto é: a Trilha mostra a aula concluída e a própria aula mostra badge
+      // "1 pendente" e "Concluir aula" BLOQUEADO.
+      //
+      // A DECISÃO: o registro da tentativa sobe para ANTES do guard. Ele é
+      // efeito colateral puro de IPC (`markAttempt` só muta o `markedRef` e
+      // chama `study:mark-challenge-attempt` — ver a doc dele), então vale para
+      // `passed` E para `failed`: o 'failed' de aula TAMBÉM é fato, e sem ele o
+      // 'abandoned' do unmount sobrescreveria o veredito real (o repo é append
+      // e a ÚLTIMA linha vira o `lastVerdict`). O que sobra depois do guard é
+      // só UI: `setResult`/`setConcluded`/`fireConfetti`/
+      // `reportChallengeError`/`navigateToLesson`/`setSubmissionError`.
+      //
+      // ORDEM NO BANCO: o 'abandoned' do unmount entra primeiro (ele roda no
+      // desmonte, que acontece ANTES deste `await` resolver) e o veredito real
+      // entra DEPOIS — a última linha é o veredito, que é o que o gate da aula
+      // lê. Um submit que FALHA (res.ok === false) ou estoura não tem veredito
+      // nenhum a registrar: nada é gravado aqui.
+      if (res.ok) {
+        markAttempt(res.passed ? 'passed' : 'failed', starsLeft, Date.now() - startTsRef.current);
+      }
+      // Guard de montagem: daqui para baixo é TELA — painel desmontado durante o
+      // submit → descarta silenciosamente (nada de setResult, setConcluded,
+      // fireConfetti, reportChallengeError ou navigateToLesson).
       if (cancelledRef.current) return;
       if (res.ok) {
         setResult(res);
         if (res.passed) {
           setConcluded('passed');
           fireConfetti();
-          markAttempt('passed', starsLeft, Date.now() - startTsRef.current);
         } else if (selection.target === 'lesson') {
           // ONDA2 (error-flow): desafio de AULA que FALHOU → o painel FECHA e o
           // chat da aula reabre com a bolha de erro + pergunta do tutor. Ordem
-          // (contrato): markAttempt (nunca-repetir) → reportChallengeError →
-          // navigateToLesson. O mark é otimista (fire-and-forget) e o report
-          // é drenado pela LessonView na montagem (seed anti-StrictMode com
-          // ref). proficiency/module e submissionError/timeout NÃO chegam aqui
-          // — o painel permanece (comportamento atual intacto).
-          markAttempt('failed', starsLeft, Date.now() - startTsRef.current);
+          // (contrato): markAttempt (nunca-repetir, já feito acima) →
+          // reportChallengeError → navigateToLesson. O mark é otimista
+          // (fire-and-forget) e o report é drenado pela LessonView na montagem
+          // (seed anti-StrictMode com ref). proficiency/module e
+          // submissionError/timeout NÃO chegam aqui — o painel permanece
+          // (comportamento atual intacto).
           const files = multiFile
             ? spec.files.map((f) => ({ path: f.path, code: filesCode[f.path] ?? '' }))
             : [{ path: 'solution.mjs', code }];
@@ -704,7 +863,6 @@ export function TrackChallengePanel({
           return; // o painel fecha antes de renderizar a bolha determinística
         } else {
           setConcluded('failed');
-          markAttempt('failed', starsLeft, Date.now() - startTsRef.current);
         }
       } else {
         setSubmissionError(res.error?.message ?? 'erro ao testar');

@@ -54,6 +54,40 @@
  * fluxo, com o cache ainda vazio, e não toca em nada daqui.
  *
  * ══════════════════════════════════════════════════════════════════════════
+ * ONDA3 (veredito terminal): OS DOIS CASOS QUE ESTA SPEC GANHOU DEPOIS
+ * ══════════════════════════════════════════════════════════════════════════
+ * A revisão adversarial do diff INTEGRADO mediu dois defeitos que só aparecem
+ * quando as peças se encontram (o rascunho da onda 1 + o destrave no MAIN da
+ * onda 2 + o guard de montagem do submit). Cada um virou um caso desta spec,
+ * no app BUILDADO:
+ *
+ *   2. VEREDITO TERMINAL SALVO VIRA BECO SEM SAÍDA (Achado 2). O `concluded`
+ *      CRU ia para o rascunho e voltava restaurado — editor `readOnly` e
+ *      "Testar resposta" desabilitado — e para o desafio de MÓDULO não há
+ *      regeneração nenhuma ("Gerar novo desafio" exige `target !== 'module'`):
+ *      o aluno ficava travado pelo resto da sessão. O caso usa o desafio do
+ *      MÓDULO (é o alvo onde o defeito é BECO DE VERDADE, e o próprio revisor
+ *      o mediu nele): submeter errado (veredito vermelho) → sair para a aba
+ *      Aula → voltar → o CÓDIGO com o marcador continua lá, a saída do erro
+ *      continua VISÍVEL, o editor volta EDITÁVEL (digita de verdade) e o
+ *      "Testar resposta" volta HABILITADO — e o retry COMPLETA (segunda
+ *      submissão, agora aprovada). O desafio de AULA não serviria: um submit
+ *      reprovado nele FECHA o painel e navega para o chat (ONDA2 error-flow),
+ *      então não existe "voltar e encontrar o vermelho" nesse alvo.
+ *
+ *   3. O VEREDITO DO SUBMIT SOBREVIVE AO DESMONTE NO MEIO (Achado 1). O
+ *      registro da tentativa estava DEPOIS do guard de cancelamento: trocar de
+ *      aba durante o submit (o rail segue clicável — o submit roda
+ *      `node --test`, segundos) fazia o renderer DESCARTAR o veredito, e o
+ *      unmount ainda gravava 'abandoned' por cima — com a aula JÁ marcada como
+ *      concluída pelo MAIN (o submit aprovou). O caso usa o desafio da AULA
+ *      (é o alvo com destrave automático): submeter a resposta CERTA e trocar
+ *      de aba EM VOO (o spinner do botão prova que o submit não tinha
+ *      resolvido) → o `track:lesson` lido pelo IPC REAL tem de terminar em
+ *      `lastVerdict === 'passed'` (com o defeito fica 'abandoned'), coerente
+ *      com a aula `done=true` e a próxima destravada na Trilha.
+ *
+ * ══════════════════════════════════════════════════════════════════════════
  * AS MUTAÇÕES QUE ESTA SPEC MATA (medidas, não deduzidas)
  * ══════════════════════════════════════════════════════════════════════════
  *   - Desligar o save no unmount (um `return;` antes de
@@ -72,6 +106,13 @@
  *     `restoreStarTracker`, que repõe a perda explícita de blur no tracker novo):
  *     o aluno perde 1 estrela antes de sair e ela reaparece ao voltar, então a
  *     comparação "estrelas antes == depois" falha.
+ *   - ACHADO 2 — PERSISTIR O `concluded` CRU (remover `normalizeDraftForResume`
+ *     do save): o caso do desafio do MÓDULO falha no editor read-only — o
+ *     marcador digitado depois de voltar NÃO entra no `.cm-content` e o
+ *     "Testar resposta" continua desabilitado. Medido.
+ *   - ACHADO 1 — DEVOLVER o `markAttempt` para DEPOIS do guard de cancelamento:
+ *     o caso do submit interrompido falha no poll do `lastVerdict`, que fica
+ *     'abandoned' para sempre. Medido.
  */
 import { test, expect, type ElectronApplication, type Locator, type Page } from '@playwright/test';
 import { launchApp, closeApp, makeWorkspaceRoot } from './helpers';
@@ -82,6 +123,21 @@ import { launchApp, closeApp, makeWorkspaceRoot } from './helpers';
  * `// TODO: implemente`). A spec CONFERE essa ausência antes de digitar.
  */
 const RETOMADA_MARKER = '// RETOMADA_MARKER_DO_DONO_E2E';
+
+/**
+ * MARCADOR DO ACHADO 2: um comentário que NÃO existe no `starterCode` da
+ * fixture do desafio do MÓDULO (`e2eStubs.ts` — `lib/soma.mjs` tem só
+ * `// TODO: implemente`). A spec CONFERE essa ausência antes de digitar, e ele
+ * é o que prova que o CÓDIGO do aluno voltou do rascunho (e não o starter).
+ */
+const RETOMADA_APOS_ERRO_MARKER = 'RETOMADA_APOS_ERRO_E2E';
+
+/**
+ * MARCADOR DO RETRY: digitado DEPOIS de voltar ao desafio reprovado — a prova
+ * de que o editor voltou EDITÁVEL de verdade (um `readOnly` do CodeMirror não
+ * deixa o texto entrar; conferir só atributo não provaria).
+ */
+const EDICAO_APOS_ERRO_MARKER = 'EDICAO_APOS_ERRO_E2E';
 
 /**
  * Tempo que o aluno fica AUSENTE da aba Desafio (troca de aba) — ms.
@@ -335,6 +391,82 @@ async function openTrackChallenge(page: Page): Promise<void> {
   await waitForUiOrRetry(page, page.getByRole('heading', { name: 'O dobro do número' }));
 }
 
+/**
+ * Caminho do ALUNO até o desafio do MÓDULO (target 'module') — o MESMO de
+ * `helpers.openModuleChallenge` (usado por e2e-module-challenge.spec.ts, que
+ * segue sendo a referência), reproduzido aqui pelo mesmo motivo do anterior: as
+ * duas cargas assíncronas (Home → Trilha) precisam do guarda de warm-up.
+ * Este é o alvo do Achado 2: é o desafio que NÃO tem regeneração.
+ */
+async function openModuleChallenge(page: Page): Promise<void> {
+  await page.getByRole('banner').getByText('Study Method — Tutor', { exact: false }).first().waitFor();
+  await waitForUiOrRetry(page, page.getByText('Node.js do Zero', { exact: false }));
+  await page.getByText('Node.js do Zero', { exact: false }).first().click();
+  await waitForUiOrRetry(page, page.getByRole('button', { name: /Desafio do módulo/ }));
+  await page.getByRole('button', { name: /Desafio do módulo/ }).first().click();
+  // Enunciado do desafio do módulo carregado (pré-"Começar"). O título aparece
+  // no cabeçalho do painel E no markdown do enunciado — usa o primeiro.
+  await waitForUiOrRetry(page, page.getByRole('heading', { name: 'Desafio do módulo' }));
+}
+
+/**
+ * Fatia da API do preload usada pelos `evaluate` desta spec. O corpo do
+ * `evaluate` roda no RENDERER — que tem `window.api` exposto pelo contextBridge
+ * — enquanto o tsconfig destes testes é o de NODE (`lib: ["ES2022"]`, SEM DOM);
+ * a técnica é a mesma do `RendererStarDom`.
+ */
+interface RendererLessonView {
+  challenges: { slug: string; lastVerdict: string | null }[];
+}
+interface RendererTrackView {
+  modules: { lessons: { slug: string; done: boolean; locked: boolean }[] }[];
+}
+interface RendererApi {
+  track: {
+    lesson(input: {
+      trackSlug: string;
+      lessonId: string;
+    }): Promise<{ ok: boolean; lesson: RendererLessonView | null }>;
+    get(input: {
+      trackSlug: string;
+    }): Promise<{ ok: boolean; track: RendererTrackView | null }>;
+  };
+}
+interface RendererGlobalWithApi {
+  api: RendererApi;
+}
+
+/**
+ * O VEREDITO GRAVADO, lido pelo CANAL REAL (`window.api.track.lesson` — o
+ * MESMO IPC que a tela usa), nunca por cópia da fixture: é este `lastVerdict`
+ * que o gate da aula ("Concluir aula"/`lessonFinishBlock`) lê.
+ */
+async function readRecordedVerdict(page: Page, challengeId: string): Promise<string | null> {
+  return await page.evaluate(async (id: string): Promise<string | null> => {
+    const dom = globalThis as unknown as RendererGlobalWithApi;
+    const res = await dom.api.track.lesson({ trackSlug: 'nodejs-do-zero', lessonId: 'aula-1' });
+    const found = res.lesson?.challenges.find((c) => c.slug === id) ?? null;
+    return found === null ? null : found.lastVerdict;
+  }, challengeId);
+}
+
+/**
+ * O ESTADO DA AULA (e da PRÓXIMA) no detalhe da trilha (`track:get`), pelo
+ * mesmo IPC. É o outro lado do Achado 1: o MAIN marca a aula como concluída no
+ * submit aprovado, então `done=true` sozinho NÃO prova coerência — o que prova
+ * é ele VIR ACOMPANHADO de `lastVerdict === 'passed'` na própria aula.
+ */
+async function readTrackLessonState(page: Page): Promise<{ done: boolean; nextLocked: boolean }> {
+  return await page.evaluate(async (): Promise<{ done: boolean; nextLocked: boolean }> => {
+    const dom = globalThis as unknown as RendererGlobalWithApi;
+    const res = await dom.api.track.get({ trackSlug: 'nodejs-do-zero' });
+    const lessons = (res.track?.modules ?? []).flatMap((m) => m.lessons);
+    const aula = lessons.find((l) => l.slug === 'aula-1');
+    const proxima = lessons.find((l) => l.slug === 'aula-2');
+    return { done: aula?.done === true, nextLocked: proxima?.locked !== false };
+  });
+}
+
 test('e2e-desafio-retomar: sair da aba Desafio e voltar RETOMA a tentativa (código, relógio, estrelas e "Começar")', async () => {
   // Duas navegações completas + digitação no CodeMirror + espera de relógio: o
   // teto default de 90s é apertado sem significar problema. Generoso e FINITO.
@@ -528,4 +660,235 @@ test('e2e-desafio-retomar: sair da aba Desafio e voltar RETOMA a tentativa (cód
     'o código digitado NÃO voltou ao sair e voltar da aba Desafio (o editor voltou ao starter)',
   ).toContain(RETOMADA_MARKER);
   expect(codeAfter, 'o código voltou DIFERENTE do que o aluno deixou').toBe(codeBefore);
+});
+
+/**
+ * ACHADO 2 (revisão do diff integrado) — O VEREDITO TERMINAL SALVO NÃO PODE
+ * VIRAR BECO SEM SAÍDA.
+ *
+ * Antes da correção, o rascunho guardava o `concluded` CRU: ao voltar, o painel
+ * restaurava 'failed' e o editor ficava `readOnly`, o "Testar resposta"
+ * desabilitado — e para `target === 'module'` NÃO existe regeneração ("Gerar
+ * novo desafio" exige `!== 'module'`), então era beco sem saída até reiniciar o
+ * app. O ALVO É O DESAFIO DO MÓDULO por isso: é onde o defeito é beco de
+ * verdade (no desafio de aula, um submit reprovado fecha o painel e navega para
+ * o chat — não há "vermelho na tela" para retomar).
+ */
+test('e2e-desafio-retomar: desafio de MÓDULO reprovado volta RETOMÁVEL (código + erro na tela, editor e submit liberados)', async () => {
+  test.setTimeout(180_000);
+
+  const launched = await launchApp({
+    env: { E2E_GATE: 'ready', E2E_WORKSPACE_ROOT: wsRoot! },
+  });
+  app = launched.app;
+  page = launched.page;
+
+  // ─── 1) Caminho do aluno até o desafio do MÓDULO (multi-arquivo) ─────────
+  await openModuleChallenge(page);
+  await expect(page.locator('.cm-content')).toHaveCount(0);
+  await page.getByRole('button', { name: 'Começar', exact: true }).click();
+  await expect(page.getByRole('tab', { name: 'lib/soma.mjs' })).toBeVisible();
+
+  // ─── 2) O aluno edita o 1º arquivo (marcador) e deixa o 2º no starter ────
+  // O starter dos DOIS arquivos lança 'não implementado', então a submissão
+  // falha: `multiplica` (e o teste "juntos", que a chama) reprovam — 1 de 3.
+  const editor = page.locator('.cm-content').first();
+  const starterText = normalizeCode(await readEditorText(page));
+  expect(
+    starterText,
+    'o MARCADOR já existe no starterCode da fixture — a asserção de retomada não provaria nada',
+  ).not.toContain(RETOMADA_APOS_ERRO_MARKER);
+  await editor.click();
+  await page.keyboard.press('ControlOrMeta+a');
+  await page.keyboard.type(`// ${RETOMADA_APOS_ERRO_MARKER}\nexport function soma(a, b) { return a + b; }`);
+  await expect(editor).toContainText(RETOMADA_APOS_ERRO_MARKER);
+
+  // ─── 3) SUBMISSÃO ERRADA → veredito VERMELHO na tela ────────────────────
+  const testar = page.getByRole('button', { name: 'Testar resposta', exact: true });
+  await testar.click();
+  await expect(
+    page.getByText('1 de 3 testes passaram', { exact: false }),
+    'a submissão errada não produziu o veredito vermelho — o caso não tem o que retomar',
+  ).toBeVisible({ timeout: 30_000 });
+
+  // ─── 4) O ESTADO DO BECO SEM SAÍDA (a largada do defeito) ───────────────
+  // Com o veredito terminal na tela o retry está MORTO: é este estado que a
+  // retomada tem de desfazer. Guarda anti-vacuidade do caso inteiro: sem ele,
+  // "o editor voltou editável" poderia estar medindo um painel que nunca
+  // travou.
+  await expect(
+    testar,
+    'o "Testar resposta" NÃO ficou desabilitado com o veredito na tela — o caso não parte do beco sem saída',
+  ).toBeDisabled();
+
+  // ─── 5) SAI para a aba Aula e VOLTA para a aba Desafio ──────────────────
+  await switchTab(page, 'Aula');
+  await expect(
+    page.locator('[role="timer"]'),
+    'o painel do desafio NÃO desmontou ao trocar de aba — sem desmontagem não há rascunho a retomar',
+  ).toHaveCount(0);
+  await expect(page.locator('.cm-content')).toHaveCount(0);
+  await switchTab(page, 'Desafio');
+  await waitForUiOrRetry(page, page.getByRole('heading', { name: 'Desafio do módulo' }));
+
+  // ─── 6) (b) A SAÍDA DO ERRO CONTINUA VISÍVEL ────────────────────────────
+  // O `result` do submit volta com o rascunho: o aluno REVÊ o que errou (a
+  // razão parcial e a saída dos testes) — sem isso o retry seria às cegas.
+  await expect(
+    page.getByText('1 de 3 testes passaram', { exact: false }),
+    'a saída/veredito do erro NÃO voltou com o rascunho — o aluno perderia a evidência do que errou',
+  ).toBeVisible({ timeout: 15_000 });
+  await expect(
+    page.getByText('Resultado por teste', { exact: false }),
+    'o checklist por teste do erro não voltou na retomada',
+  ).toBeVisible();
+
+  // ─── 7) (a) O CÓDIGO DO ALUNO CONTINUA LÁ ───────────────────────────────
+  const codeAfter = normalizeCode(await readEditorText(page));
+  expect(
+    codeAfter,
+    'o código do aluno NÃO voltou (o editor está no starter) — o marcador digitado antes de sair sumiu',
+  ).toContain(RETOMADA_APOS_ERRO_MARKER);
+
+  // ─── 8) (c) O EDITOR VOLTOU EDITÁVEL E O SUBMIT, HABILITADO ────────────
+  // O editor é medido por DIGITAÇÃO REAL (não por atributo): um `readOnly` do
+  // CodeMirror mantém o `contenteditable` do DOM e mesmo assim recusa o texto —
+  // é esta asserção que falha quando o `concluded` cru volta do rascunho.
+  await editor.click();
+  await page.keyboard.press('Control+End');
+  await page.keyboard.press('Enter');
+  // COMENTÁRIO (e não um identificador solto): o texto digitado entra no módulo
+  // que o `node --test` vai CARREGAR no retry do passo 9 — um identificador
+  // solto viraria `ReferenceError` na importação e derrubaria a submissão por
+  // um motivo que não é o desta spec (medido na primeira execução).
+  await page.keyboard.type(`// ${EDICAO_APOS_ERRO_MARKER}`);
+  await expect(
+    editor,
+    'o editor voltou READ-ONLY: o texto digitado depois de voltar não entrou (é o beco sem saída do Achado 2)',
+  ).toContainText(EDICAO_APOS_ERRO_MARKER);
+  await expect(
+    testar,
+    'o "Testar resposta" continuou DESABILITADO depois de voltar — é o beco sem saída do Achado 2',
+  ).toBeEnabled();
+  await expect(testar, 'o botão desabilitou depois de o aluno voltar a editar').toBeEnabled();
+
+  // ─── 9) O RETRY COMPLETA: corrigir o 2º arquivo e passar ───────────────
+  // A prova final de que o caminho está ABERTO (era o retry que o beco tinha
+  // matado): a submissão seguinte passa, com o `marked` restaurado dizendo a
+  // verdade (o dedupe só barra o MESMO veredito).
+  await page.getByRole('tab', { name: 'lib/multiplica.mjs' }).click();
+  const editorMultiplica = page.locator('.cm-content').first();
+  await editorMultiplica.click();
+  await page.keyboard.press('ControlOrMeta+a');
+  await page.keyboard.type('export function multiplica(a, b) { return a * b; }');
+  await testar.click();
+  await expect(
+    page.getByText('Passou com', { exact: false }),
+    'o retry depois de voltar NÃO completou — o desafio de módulo reprovado continua sem saída',
+  ).toBeVisible({ timeout: 30_000 });
+  console.log('[desafio-retomar] Achado 2: retomada após erro → editor editável, submit liberado e retry aprovado');
+});
+
+/**
+ * ACHADO 1 (revisão do diff integrado) — O VEREDITO DO SUBMIT SOBREVIVE AO
+ * DESMONTE NO MEIO.
+ *
+ * O registro da tentativa estava DEPOIS do guard de cancelamento do submit e o
+ * rail de abas segue clicável enquanto ele roda (`node --test`, segundos):
+ * trocar de aba no meio fazia o renderer descartar o veredito, e o unmount
+ * gravava 'abandoned' por cima — com a aula JÁ marcada como concluída pelo MAIN
+ * (o submit aprovado chama `completeLessonOnChallengePass`). O estado final era
+ * incoerente e determinístico: Trilha com a aula `done=true` e a aula com
+ * `lastVerdict` nulo → "Concluir aula" bloqueado + badge "1 pendente".
+ *
+ * A medição é pelo CANAL REAL (`window.api.track.lesson`), não por pixel: é o
+ * `lastVerdict` que o gate lê. Este caso é a prova de COMPORTAMENTO da correção
+ * (a cerca de ordem no unitário é `tests/challengeDraftCache.test.ts`, BLOCO 3e).
+ */
+test('e2e-desafio-retomar: o veredito do submit SOBREVIVE à troca de aba no meio (Achado 1)', async () => {
+  test.setTimeout(180_000);
+
+  const launched = await launchApp({
+    env: { E2E_GATE: 'ready', E2E_WORKSPACE_ROOT: wsRoot! },
+  });
+  app = launched.app;
+  page = launched.page;
+
+  // ─── 1) Desafio da AULA (o alvo com destrave automático no MAIN) ────────
+  await openTrackChallenge(page);
+  await page.getByRole('button', { name: 'Começar', exact: true }).click();
+  const editor = page.locator('.cm-content').first();
+  await expect(editor).toBeVisible();
+
+  // Resposta CERTA + ATRASO DETERMINÍSTICO na carga do módulo: o submit vai
+  // APROVAR (o MAIN conclui a aula) e vai demorar ~4s — é o análogo do cenário
+  // real do defeito ("o submit roda `node --test`, segundos"). Sem o atraso a
+  // corrida é decidida pela VELOCIDADE DA MÁQUINA: medido na 2ª execução do
+  // gate, o submit resolveu ANTES do clique na aba e o caso mediu o caminho
+  // montado (a guarda anti-vacuidade abaixo pegou, e é por isso que ela existe).
+  // O `await` de topo é legal no ESM que o runner importa; o teto do exec é 30s
+  // (`challengeExec.ts`) e o do canal, 45s.
+  await editor.click();
+  await page.keyboard.press('ControlOrMeta+a');
+  await page.keyboard.type(
+    'export function dobroDoNumero(n) { return n * 2; }\nawait new Promise((r) => setTimeout(r, 4000));',
+  );
+  // Guarda anti-vacuidade do atraso: o CodeMirror fecha parênteses sozinho ao
+  // digitar — se o texto saísse mangled, o submit viraria um `SyntaxError` e o
+  // caso morreria por um motivo que não é o dele.
+  await expect(editor).toContainText('setTimeout(r, 4000)');
+
+  // ─── 2) SUBMETE e troca de aba EM VOO ──────────────────────────────────
+  const testar = page.getByRole('button', { name: 'Testar resposta', exact: true });
+  await testar.click();
+  // GUARDA DE CORRIDA: o spinner dentro do botão é o `running` do painel — é a
+  // prova de que o submit NÃO tinha resolvido quando saímos. Sem ele, um submit
+  // que resolvesse antes da troca de aba faria este caso medir o caminho
+  // montado (e passar mesmo com o Achado 1 de volta).
+  await expect(
+    testar.locator('.MuiCircularProgress-root'),
+    'o submit já tinha resolvido antes de sairmos da aba — a corrida foi perdida e o caso não mediria o desmonte no meio',
+  ).toBeVisible({ timeout: 10_000 });
+  await switchTab(page, 'Aula');
+  await expect(
+    page.locator('[role="timer"]'),
+    'o painel do desafio NÃO desmontou no meio do submit — sem desmonte não há veredito a perder',
+  ).toHaveCount(0);
+
+  // GUARDA ANTI-VACUIDADE DA CORRIDA, no INSTANTE seguinte ao desmonte: se o
+  // veredito já estivesse gravado aqui, o painel teria sido desmontado DEPOIS
+  // de registrar (caminho montado) e o caso não provaria nada.
+  const vereditoAoDesmontar = await readRecordedVerdict(page, 'dobro-do-numero');
+  expect(
+    vereditoAoDesmontar,
+    'o veredito já estava gravado quando o painel desmontou — a corrida foi perdida e o caso não mede o desmonte no meio',
+  ).not.toBe('passed');
+
+  // ─── 3) O SUBMIT TERMINA COM O PAINEL FORA DA TELA ─────────────────────
+  // O registro é um FATO sobre o que aconteceu: ele tem de chegar ao banco
+  // mesmo com o painel desmontado. Com o Achado 1 de volta, o que fica gravado
+  // é o 'abandoned' do unmount e este poll NUNCA vê 'passed'.
+  await expect
+    .poll(async () => await readRecordedVerdict(page, 'dobro-do-numero'), {
+      timeout: 30_000,
+      message:
+        'o veredito do submit foi PERDIDO no desmonte (lastVerdict ficou abandoned/null) — é o Achado 1: ' +
+        'a aula fica done=true na Trilha e "Concluir aula" bloqueado na própria aula',
+    })
+    .toBe('passed');
+  console.log(
+    `[desafio-retomar] Achado 1: veredito ao desmontar=${String(vereditoAoDesmontar)} → gravado=${String(await readRecordedVerdict(page, 'dobro-do-numero'))}`,
+  );
+
+  // ─── 4) O ESTADO FICA COERENTE ─────────────────────────────────────────
+  // O outro lado do defeito: o MAIN concluiu a aula no submit aprovado. O que
+  // a correção garante é que os DOIS lados contam a MESMA história (aula
+  // concluída E desafio aprovado) — com o defeito, `done=true` vinha sozinho.
+  const { done, nextLocked } = await readTrackLessonState(page);
+  expect(done, 'a aula não foi concluída pelo submit aprovado (destrave automático do MAIN)').toBe(true);
+  expect(nextLocked, 'a próxima aula não destravou depois do submit aprovado').toBe(false);
+  expect(
+    await readRecordedVerdict(page, 'dobro-do-numero'),
+    'estado INCOERENTE: aula concluída na Trilha com o desafio sem veredito aprovado na aula',
+  ).toBe('passed');
 });

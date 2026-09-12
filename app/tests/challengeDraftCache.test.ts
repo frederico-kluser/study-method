@@ -486,7 +486,10 @@ describe('(fiação) o painel SALVA o rascunho no unmount', () => {
       [
         'if (snapshot === null) return;',
         'if (isUntouchedDraft(snapshot.draft)) return;',
-        'saveChallengeDraft(snapshot.key, snapshot.draft);',
+        // ACHADO 2 (revisão do diff integrado): o que entra no cache é o
+        // rascunho NORMALIZADO — um veredito terminal que não seja 'passed'
+        // vira tentativa retomável (o beco sem saída do desafio de MÓDULO).
+        'saveChallengeDraft(snapshot.key, normalizeDraftForResume(snapshot.draft));',
       ],
       'um `return;` inserido antes do `saveChallengeDraft` muda esta lista (e é o mutante que passava verde)',
     );
@@ -527,7 +530,14 @@ describe('(fiação) o painel SALVA o rascunho no unmount', () => {
   it('a TROCA DE DESAFIO com o painel montado salva o rascunho ANTERIOR antes de resetar', () => {
     const troca = recorte('const chaveAnterior = draftKeyRef.current;', 'draftKeyRef.current = novaChave;');
     assert.match(troca, /challengeDraftCacheKey\(chaveAnterior\) !== novaChaveStr/);
-    assert.match(troca, /saveChallengeDraft\(snapshot\.key, snapshot\.draft\)/, 'a troca de desafio perde o rascunho anterior');
+    // ACHADO 2: este caminho TAMBÉM devolve o aluno ao desafio depois (trocar de
+    // desafio com o painel montado e voltar) — a normalização tem de estar nos
+    // DOIS saves, senão o beco sem saída sobrevive pela porta lateral.
+    assert.match(
+      troca,
+      /saveChallengeDraft\(snapshot\.key, normalizeDraftForResume\(snapshot\.draft\)\)/,
+      'a troca de desafio perde o rascunho anterior (ou o salva SEM normalizar)',
+    );
     // A chave não pode vazar: o snapshot só é salvo se for do desafio anterior.
     assert.match(troca, /challengeDraftCacheKey\(snapshot\.key\) === challengeDraftCacheKey\(chaveAnterior\)/);
   });
@@ -599,6 +609,248 @@ describe('(comportamento) persistDraftOnUnmount — o save do desmonte com o cac
 });
 
 /* ═══════════════════════════════════════════════════════════════════════════
+ * BLOCO 3d — ACHADO 2 (revisão adversarial do diff integrado): O VEREDITO
+ * TERMINAL SALVO NÃO PODE VIRAR BECO SEM SAÍDA
+ *
+ * O rascunho guardava o `concluded` CRU — inclusive 'failed'/'timeout' — e o
+ * `loadSpec` o restaurava verbatim. Ao voltar, o editor ficava
+ * `readOnly={concluded !== null}` e o "Testar resposta" desabilitado
+ * (`!concluded` em `canSubmit`), e NÃO existe caminho que zere o `concluded` a
+ * não ser a REGENERAÇÃO — que para `target === 'module'` nem é renderizada (o
+ * botão "Gerar novo desafio" exige `!== 'module'`). Antes da feature do
+ * rascunho, sair e voltar RESETAVA tudo e era o ÚNICO retry do desafio de
+ * MÓDULO reprovado: com o rascunho cru, o aluno ficava travado pelo resto da
+ * sessão. `normalizeDraftForResume` é a decisão PURA que roda no SAVE (os dois:
+ * o do desmonte e o da troca de desafio) e é medida AQUI, com a função de
+ * produção importada do painel (mesmo padrão de `persistDraftOnUnmount`).
+ * ═══════════════════════════════════════════════════════════════════════════ */
+describe('(comportamento) normalizeDraftForResume — veredito terminal salvo não vira beco', () => {
+  let normalizeDraftForResume: (draft: ChallengeDraft) => ChallengeDraft;
+  /** O save do desmonte, importado do MESMO módulo (o caminho real do cache). */
+  let persistDraftOnUnmount: (snapshot: { key: ChallengeDraftKey; draft: ChallengeDraft } | null) => void;
+
+  before(async () => {
+    const mod = (await import(PANEL_MODULE)) as {
+      normalizeDraftForResume: typeof normalizeDraftForResume;
+      persistDraftOnUnmount: typeof persistDraftOnUnmount;
+    };
+    assert.equal(
+      typeof mod.normalizeDraftForResume,
+      'function',
+      'TrackChallengePanel parou de exportar normalizeDraftForResume (a decisão do Achado 2)',
+    );
+    normalizeDraftForResume = mod.normalizeDraftForResume;
+    persistDraftOnUnmount = mod.persistDraftOnUnmount;
+  });
+
+  it("'passed' persiste COMO ESTÁ (o aluno volta e vê o que conquistou)", () => {
+    const d = rascunho({ concluded: 'passed', result: { ...RESULTADO, passed: true }, marked: 'passed' });
+    const out = normalizeDraftForResume(d);
+    assert.equal(out.concluded, 'passed', 'o veredito aprovado foi apagado do rascunho');
+    assert.deepEqual(out, d, 'o rascunho aprovado tem de voltar idêntico (nada a normalizar)');
+  });
+
+  it("'failed' volta RETOMÁVEL: código, saída do erro, relógio, estrelas e mark preservados", () => {
+    // O estado EXATO do beco sem saída: desafio de MÓDULO reprovado, com o
+    // checklist/erro na tela, editor read-only e submit desabilitado.
+    const d = rascunho({
+      code: 'export function soma(a, b) { return a - b; }',
+      elapsedMs: 51_000,
+      starsLeft: 2,
+      concluded: 'failed',
+      result: RESULTADO,
+      marked: 'failed',
+    });
+    const out = normalizeDraftForResume(d);
+    assert.equal(out.concluded, null, 'o veredito terminal voltou salvo — o editor trava e não há retry');
+    assert.equal(out.code, d.code, 'o CÓDIGO do aluno é preservado');
+    assert.deepEqual(out.result, RESULTADO, 'a saída/checklist do erro é preservada (o aluno revê o que errou)');
+    assert.equal(out.elapsedMs, 51_000, 'a tentativa CONTINUA: o relógio retoma de onde parou');
+    assert.equal(out.starsLeft, 2, 'as estrelas da tentativa continuam as que o aluno tinha');
+    assert.equal(out.marked, 'failed', 'o terminal já gravado tem de voltar (senão um desmonte grava abandoned por cima)');
+    // PURA: o rascunho de entrada não é mutado (ele é o snapshot da TELA).
+    assert.equal(d.concluded, 'failed', 'normalizeDraftForResume mutou o rascunho de entrada');
+  });
+
+  it("'timeout' preserva o CÓDIGO e a evidência, mas a tentativa recomeça (relógio/estrelas)", () => {
+    // O relógio daquela tentativa MORREU: manter `elapsedMs` faria o primeiro
+    // tick reancorado reconcluir 'timeout' na hora — o beco de volta, sem nem
+    // passar pela tela de erro.
+    const d = rascunho({
+      code: 'export function soma(a, b) { return a + b; }',
+      elapsedMs: 210_000,
+      starsLeft: 0,
+      concluded: 'timeout',
+      result: RESULTADO,
+      marked: 'timeout',
+    });
+    const out = normalizeDraftForResume(d);
+    assert.equal(out.concluded, null, 'o timeout continuou salvo — a tentativa nova nasce morta');
+    assert.equal(out.code, d.code, 'o pedido do dono: o CÓDIGO do aluno é preservado');
+    assert.deepEqual(out.result, RESULTADO, 'a evidência do timeout (saída) é preservada');
+    assert.equal(out.elapsedMs, 0, 'o cronômetro da tentativa MORTA tem de zerar (senão o timeout volta no 1º tick)');
+    assert.equal(out.starsLeft, 3, 'a tentativa nova começa com as 3 estrelas');
+    assert.equal(out.marked, 'timeout', 'o terminal já gravado tem de voltar');
+    assert.equal(d.elapsedMs, 210_000, 'normalizeDraftForResume mutou o rascunho de entrada');
+  });
+
+  it('tentativa EM CURSO (concluded null) passa intacta — o relógio pausado não muda', () => {
+    const d = rascunho({ concluded: null, result: null });
+    assert.deepEqual(normalizeDraftForResume(d), d);
+  });
+
+  it('O DEFEITO, LITERAL: o save do desmonte de um desafio REPROVADO volta retomável', () => {
+    persistDraftOnUnmount({
+      key: CHAVE,
+      draft: rascunho({ concluded: 'failed', result: RESULTADO, marked: 'failed', elapsedMs: 77_000 }),
+    });
+    const taken = takeChallengeDraft(CHAVE);
+    assert.ok(taken, 'o rascunho reprovado tem de entrar no cache');
+    assert.equal(taken.concluded, null, 'BECO SEM SAÍDA: o editor volta read-only e o submit desabilitado');
+    assert.deepEqual(taken.result, RESULTADO, 'a saída do erro tem de voltar na tela');
+    assert.equal(taken.elapsedMs, 77_000, 'o relógio da tentativa retomada retoma de onde parou');
+  });
+
+  it('O DEFEITO, LITERAL (timeout): o save do desmonte zera só a tentativa morta', () => {
+    persistDraftOnUnmount({
+      key: CHAVE,
+      draft: rascunho({ concluded: 'timeout', code: 'código do aluno', elapsedMs: 210_000, starsLeft: 0 }),
+    });
+    const taken = takeChallengeDraft(CHAVE);
+    assert.ok(taken);
+    assert.equal(taken.concluded, null);
+    assert.equal(taken.code, 'código do aluno', 'o código do aluno não pode se perder no recomeço');
+    assert.equal(taken.elapsedMs, 0);
+    assert.equal(taken.starsLeft, 3);
+  });
+
+  it('um rascunho APROVADO chega ao cache com o veredito (a retomada mostra o estado aprovado)', () => {
+    persistDraftOnUnmount({
+      key: CHAVE,
+      draft: rascunho({ concluded: 'passed', marked: 'passed', result: { ...RESULTADO, passed: true } }),
+    });
+    assert.equal(takeChallengeDraft(CHAVE)?.concluded, 'passed');
+  });
+});
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * BLOCO 3e — ACHADO 1: O REGISTRO DO VEREDITO VEM ANTES DO GUARD DE MONTAGEM
+ *
+ * O defeito medido pela revisão do diff integrado: os `markAttempt` ficavam
+ * DEPOIS do `if (cancelledRef.current) return;` do submit e o rail de abas
+ * segue clicável durante o submit (que roda `node --test`, segundos). O aluno
+ * que troca de aba no meio fazia o renderer DESCARTAR o veredito, e o unmount
+ * gravava 'abandoned' por cima — enquanto o MAIN já tinha marcado a aula como
+ * concluída (o submit aprovou). Resultado: aula `done=true` na Trilha e
+ * `lastVerdict` nulo na própria aula ("Concluir aula" bloqueado + badge
+ * "1 pendente"). Sem jsdom não há como montar o React aqui: a prova é a cerca
+ * de ORDEM sobre a fonte real — o mutante (devolver o mark para depois do
+ * guard) muda exatamente esta lista. A prova de COMPORTAMENTO é a spec E2E
+ * `e2e-desafio-retomar.spec.ts` (submit interrompido pela troca de aba →
+ * `track:lesson.lastVerdict === 'passed'` via IPC real).
+ * ═══════════════════════════════════════════════════════════════════════════ */
+describe('(fiação) ACHADO 1 — o veredito do submit é registrado ANTES do guard de montagem', () => {
+  /** Corpo do `handleSubmit` inteiro (fonte real, sem comentários). */
+  function corpoDoHandleSubmit(): string {
+    const ini = PANEL.indexOf('const handleSubmit = useCallback(');
+    assert.notEqual(ini, -1, 'o handleSubmit sumiu do painel');
+    const fim = PANEL.indexOf('const handleRegenerate = useCallback(', ini);
+    assert.notEqual(fim, -1, 'não achei o fim do handleSubmit');
+    return PANEL.slice(ini, fim);
+  }
+
+  /** Índice do guard de montagem do submit (o que descarta o que é de UI). */
+  function guardaDoSubmit(corpo: string): number {
+    const guarda = corpo.indexOf('if (cancelledRef.current) return;');
+    assert.notEqual(
+      guarda,
+      -1,
+      'o guard de montagem do submit sumiu — nada mais desiste de setar estado num fiber morto',
+    );
+    return guarda;
+  }
+
+  it('os comandos entre o await e o guard são EXATAMENTE o registro do veredito (lista fechada)', () => {
+    const corpo = corpoDoHandleSubmit();
+    const guarda = guardaDoSubmit(corpo);
+    const awaitIdx = corpo.indexOf('const res = await withTimeout(');
+    assert.notEqual(awaitIdx, -1, 'o submit deixou de aguardar o canal track:challengeSubmit');
+    const comeco = corpo.indexOf('if (res.ok) {', awaitIdx);
+    assert.ok(
+      comeco !== -1 && comeco < guarda,
+      'o REGISTRO do veredito saiu de ANTES do guard de montagem — o aluno que troca de aba no ' +
+        'meio do submit volta a perder o veredito (Achado 1) e o unmount grava abandoned por cima',
+    );
+    // `if (res.ok === false)` (a recusa do canal) NÃO tem veredito a registrar:
+    // entre o await e o guard só pode existir o registro condicionado ao `ok`.
+    assert.deepEqual(
+      comandosDe(corpo.slice(comeco, guarda)),
+      [
+        'if (res.ok) {',
+        "markAttempt(res.passed ? 'passed' : 'failed', starsLeft, Date.now() - startTsRef.current);",
+        '}',
+      ],
+      'o registro do veredito ganhou/perdeu comando antes do guard (o fato tem de ser gravado ' +
+        'ANTES de qualquer decisão de UI)',
+    );
+  });
+
+  it('NENHUM markAttempt depois do guard — o fato não depende da tela estar montada', () => {
+    const corpo = corpoDoHandleSubmit();
+    const depois = corpo.slice(guardaDoSubmit(corpo));
+    assert.doesNotMatch(
+      depois,
+      /markAttempt\(/,
+      'voltou um markAttempt DEPOIS do guard de montagem: o veredito fica condicionado ao painel ' +
+        'estar na tela (é o Achado 1 de volta)',
+    );
+  });
+});
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * BLOCO 3f — ACHADO 3: o `{ok:false}` do mark não passa em branco
+ *
+ * `study:mark-challenge-attempt` responde `{ok:false}` quando a persistência
+ * está indisponível (repo ausente / subjectId não resolvido). O painel só
+ * tratava REJEIÇÃO (`.catch`), então o `{ok:false}` era engolido: o veredito
+ * não entrava no banco, o dedupe local (`markedRef`) dizia "já gravei" e o
+ * MESMO veredito nunca mais era tentado — o Achado 1 ganhava uma segunda causa,
+ * silenciosa. A correção é mínima e OBSERVÁVEL: o aviso sai no console e o
+ * dedupe local é desfeito (nada foi gravado ⇒ o painel não pode se declarar
+ * marcado). Cerca de fonte: sem jsdom não há como injetar o `{ok:false}` no
+ * canal aqui; o que se cobra é a PRESENÇA e a FORMA do tratamento.
+ * ═══════════════════════════════════════════════════════════════════════════ */
+describe('(fiação) ACHADO 3 — o mark inspeciona a resposta do canal', () => {
+  /** Corpo do `markAttempt` inteiro (fonte real, sem comentários). */
+  function corpoDoMarkAttempt(): string {
+    const ini = PANEL.indexOf('const markAttempt = useCallback(');
+    assert.notEqual(ini, -1, 'o markAttempt sumiu do painel');
+    const fim = PANEL.indexOf('const handleStart = useCallback(', ini);
+    assert.notEqual(fim, -1, 'não achei o fim do markAttempt');
+    return PANEL.slice(ini, fim);
+  }
+
+  it('a resposta do canal é inspecionada (nada de tratar só a rejeição)', () => {
+    const corpo = corpoDoMarkAttempt();
+    assert.match(corpo, /\.then\(\(res\) => \{/, 'o mark voltou a tratar só a REJEIÇÃO do canal');
+    assert.match(
+      corpo,
+      /if \(res\.ok === false\) \{/,
+      'o `{ok:false}` (persistência indisponível) volta a passar em branco — o veredito some sem aviso',
+    );
+    assert.match(corpo, /console\.warn\(/, 'a falha de persistência voltou a ser silenciosa');
+  });
+
+  it('um {ok:false} DESFAZ o dedupe local: o próximo veredito volta a tentar registrar', () => {
+    assert.match(
+      corpoDoMarkAttempt(),
+      /if \(markedRef\.current === verdict\) markedRef\.current = null;/,
+      'o dedupe local continua dizendo "já gravei" depois de um {ok:false} — o fato perdido nunca é retentado',
+    );
+  });
+});
+
+/* ═══════════════════════════════════════════════════════════════════════════
  * BLOCO 3c — O FANTASMA DO loadSpec: um loadSpec EM VOO NÃO PODE DRENAR O CACHE
  *
  * O defeito medido pela revisão: o `.then` do loadSpec tinha um guard
@@ -665,7 +917,7 @@ describe('(fiação) um loadSpec EM VOO desiste quando o painel desmontou (o fan
     );
     for (const alvo of [
       'setSpec(res.challenge);',
-      'saveChallengeDraft(snapshot.key, snapshot.draft);',
+      'saveChallengeDraft(snapshot.key, normalizeDraftForResume(snapshot.draft));',
       'createChallengeDraftHolder(novaChave)',
       'draftHolderRef.current.holder.get()',
     ]) {
