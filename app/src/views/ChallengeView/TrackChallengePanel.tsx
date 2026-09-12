@@ -35,11 +35,16 @@
  *      descartado + 'abandoned' do unmount por cima → aula `done=true` na
  *      Trilha com "Concluir aula" bloqueado na própria aula (ACHADO 1).
  *   2. VEREDITO TERMINAL SALVO NÃO VIRA BECO: o rascunho persistido passa por
- *      `normalizeDraftForResume` — 'passed' fica como está; 'failed' volta
- *      retomável (código, saída do erro e relógio preservados, editor e submit
- *      LIBERADOS); 'timeout' preserva o código/evidência e reinicia só a
- *      tentativa morta. Sem isso, o desafio de MÓDULO reprovado (que não tem
- *      regeneração) travava o aluno pelo resto da sessão (ACHADO 2).
+ *      `normalizeDraftForResume(draft, timeLimitMs)` — 'passed' fica como está;
+ *      'failed' volta retomável (código, saída do erro e relógio preservados,
+ *      editor e submit LIBERADOS) e, quando a tentativa salva já nasceu
+ *      ESTOURADA (`elapsedMs >= timeLimitMs`), o relógio dela recomeça
+ *      (`elapsedMs: 0`, `starsLeft: 3`) mantendo o código e a evidência na tela;
+ *      'timeout' preserva o código/evidência e reinicia só a tentativa morta.
+ *      Sem isso, o desafio de MÓDULO reprovado (que não tem regeneração)
+ *      travava o aluno pelo resto da sessão (ACHADO 2), e o 'failed' nascido de
+ *      um submit em voo durante o estouro reabria o mesmo beco no primeiro
+ *      retorno (DEFEITO RESIDUAL HIGH, onda4).
  */
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore, type ReactElement } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -185,9 +190,18 @@ function isUntouchedDraft(draft: ChallengeDraft): boolean {
 /**
  * ONDA-RETOMAR: o snapshot que o DESMONTE persiste — a chave capturada no MESMO
  * render + o rascunho que a tela mostrava.
+ *
+ * O `timeLimitMs` viaja AQUI, junto da chave e pelo mesmo motivo: ele é o
+ * relógio do desafio a que o rascunho pertence, capturado no MESMO render.
+ * `normalizeDraftForResume` precisa dele para saber se a tentativa salva já
+ * nasceu ESTOURADA — e ele NÃO pode ser lido do closure do `loadSpec` (aquele
+ * `useCallback` é estável e veria a `spec` da PRIMEIRA render, que na troca de
+ * desafio ainda é a do desafio ANTIGO ou null) nem da `res.challenge` que chega
+ * depois (que já é a spec do desafio NOVO, possivelmente com outro limite).
  */
 export interface ChallengeDraftSnapshot {
   key: ChallengeDraftKey;
+  timeLimitMs: number;
   draft: ChallengeDraft;
 }
 
@@ -199,7 +213,8 @@ export interface ChallengeDraftSnapshot {
  * lendo `draft.concluded` como sempre.
  *
  * ══════════════════════════════════════════════════════════════════════════
- * O DEFEITO QUE ELA MATA (medido pelo revisor adversarial, não deduzido)
+ * O DEFEITO QUE ELA MATA (ACHADO 2 — medido pelo revisor adversarial, não
+ * deduzido)
  * ══════════════════════════════════════════════════════════════════════════
  * O rascunho guardava o `concluded` CRU — inclusive 'failed'/'timeout' — e o
  * `loadSpec` o restaurava verbatim (`setConcluded(draft.concluded)`). Ao voltar,
@@ -213,17 +228,64 @@ export interface ChallengeDraftSnapshot {
  * app limpa o cache de memória). BECO SEM SAÍDA, determinístico.
  *
  * ══════════════════════════════════════════════════════════════════════════
+ * O DEFEITO RESIDUAL QUE ELA PASSOU A MATAR (HIGH — medido pelo revisor
+ * adversarial com sonda nas funções REAIS, não deduzido)
+ * ══════════════════════════════════════════════════════════════════════════
+ * O ramo 'failed' PRESERVAVA o `elapsedMs`, e isso reabria o beco quando a
+ * tentativa salva já tinha nascido ESTOURADA. O mecanismo, medido:
+ *
+ *   1. o efeito do tick NÃO pausa durante o submit (`!started || concluded`,
+ *      sem `running` nas deps) e o submit roda `node --test` — SEGUNDOS;
+ *   2. se o relógio estoura com um submit em voo, o tick faz
+ *      `setConcluded('timeout')` e congela `elapsedMs >= timeLimitMs`;
+ *   3. o submit reprovado resolve DEPOIS e, para `target` 'module'/
+ *      'proficiency', faz `setConcluded('failed')` — a tela mostra 'failed',
+ *      mas o `elapsedMs` congelado continua `>= timeLimitMs`;
+ *   4. ao sair, esta função gravava `concluded: null` MANTENDO o relógio
+ *      estourado;
+ *   5. ao voltar, o `loadSpec` reancora `startTsRef.current = Date.now() -
+ *      draft.elapsedMs` e o PRIMEIRO tick já dá `isTimedOut(elapsed) === true`
+ *      → `setConcluded('timeout')` de novo → editor `readOnly`, "Testar
+ *      resposta" desabilitado e, no alvo MÓDULO, nenhum "Gerar novo desafio"
+ *      (o botão exige `!== 'module'`): SEM RETRY no primeiro retorno — só um
+ *      SEGUNDO ciclo sair/voltar curava, porque aí o save já gravava 'timeout'
+ *      e zerava o relógio. Relógio do desafio de módulo =
+ *      `timeLimitForDifficultyMs(2)` = 210 s.
+ *
+ * A sonda que provou o beco (com o rascunho cru de um 'failed' estourado):
+ * `restoreStarTracker({timeLimitMs: 210_000, elapsedMs: 210_000}).isTimedOut(
+ * 210_000) === true` — o mesmo `restoreStarTracker` que o `loadSpec` chama.
+ *
+ * POR QUE O LIMITE É PARÂMETRO (e não um número lido aqui dentro): ele é a
+ * `spec.timeLimitMs` do desafio a que o rascunho pertence, e o save do desmonte
+ * só enxerga o snapshot — por isso ele viaja em `ChallengeDraftSnapshot`
+ * (`timeLimitMs`), capturado no mesmo render da chave e do rascunho.
+ *
+ * ENTRADA INVÁLIDA (ausente, NaN, 0, negativo): tratada como NÃO ESTOURADA (o
+ * rascunho volta com `elapsedMs`/`starsLeft` preservados). É a escolha
+ * conservadora e documentada: zerar o relógio de uma tentativa VIVA só se
+ * justifica por um estouro MEDIDO — com um limite em que não se pode confiar, o
+ * pior erro é dar ao aluno um relógio novo de graça, não deixá-lo onde estava.
+ * Na prática a validação é defensiva: o painel sempre passa
+ * `spec.timeLimitMs`, um número > 0 vindo do contrato (`TrackChallengeSpec`).
+ *
+ * ══════════════════════════════════════════════════════════════════════════
  * A DECISÃO, POR VEREDITO
  * ══════════════════════════════════════════════════════════════════════════
  *   - 'passed'  → persiste COMO ESTÁ. Voltar mostra o estado de aprovado (com o
  *     "Avançar para a próxima aula"/"Passou com N estrelas") — que é o que o
  *     aluno de fato conquistou e o que a trilha já registrou;
  *   - 'failed'  → persiste RETOMÁVEL: mantém `code`/`filesCode`/`activeFile`/
- *     `elapsedMs`/`starsLeft`/`result` (o aluno REVÊ a saída do erro e o
- *     checklist que já está na tela) e o `marked`, com `concluded: null`. O
- *     editor volta EDITÁVEL e o "Testar resposta" volta HABILITADO: é uma
- *     tentativa que CONTINUA, e o relógio segue de onde parou (o comportamento
- *     do relógio pausado não muda — não é isto que esta função decide);
+ *     `result`/`marked` (o aluno REVÊ a saída do erro e o checklist que já está
+ *     na tela) com `concluded: null`. O editor volta EDITÁVEL e o "Testar
+ *     resposta" volta HABILITADO: é uma tentativa que CONTINUA, e o relógio
+ *     segue de onde parou (o comportamento do relógio pausado não muda — não é
+ *     isto que esta função decide). EXCEÇÃO, e é ela que mata o defeito
+ *     residual: se a tentativa salva já está ESTOURADA
+ *     (`elapsedMs >= timeLimitMs`) ela MORREU — o relógio dela recomeça
+ *     (`elapsedMs: 0`, `starsLeft: 3`), mantendo o CÓDIGO e a saída do erro na
+ *     tela. Preservar aquele relógio é o que fazia o primeiro tick reancorado
+ *     reconcluir 'timeout' na hora, antes de o aluno poder tentar de novo;
  *   - 'timeout' → o relógio DAQUELA tentativa MORREU: persiste o `code` (o
  *     pedido do dono: o código do aluno é PRESERVADO) e o `result` (evidência
  *     do que aconteceu), mas a tentativa RECOMEÇA — `concluded: null`,
@@ -238,8 +300,20 @@ export interface ChallengeDraftSnapshot {
  * trava o retry: `markAttempt` só deduplica o MESMO veredito, e o retry que
  * interessa (o aluno corrigir e PASSAR) é outro veredito.
  */
-export function normalizeDraftForResume(draft: ChallengeDraft): ChallengeDraft {
-  if (draft.concluded === 'failed') return { ...draft, concluded: null };
+export function normalizeDraftForResume(draft: ChallengeDraft, timeLimitMs: number): ChallengeDraft {
+  // Validação no MESMO molde de `createStarTracker` (número finito > 0): um
+  // limite em que não se pode confiar nunca zera uma tentativa VIVA (ver a doc).
+  const limite = typeof timeLimitMs === 'number' && Number.isFinite(timeLimitMs) && timeLimitMs > 0
+    ? timeLimitMs
+    : null;
+  if (draft.concluded === 'failed') {
+    // A tentativa estourada MORREU (o 'failed' chegou por cima de um timeout já
+    // congelado no tick): o relógio dela recomeça, o código e a evidência ficam.
+    if (limite !== null && draft.elapsedMs >= limite) {
+      return { ...draft, concluded: null, elapsedMs: 0, starsLeft: 3 };
+    }
+    return { ...draft, concluded: null };
+  }
   if (draft.concluded === 'timeout') {
     return { ...draft, concluded: null, elapsedMs: 0, starsLeft: 3 };
   }
@@ -265,16 +339,18 @@ export function normalizeDraftForResume(draft: ChallengeDraft): ChallengeDraft {
  * entra — restaurá-lo daria exatamente o estado inicial. O critério é o MESMO
  * da troca de desafio (`isUntouchedDraft`).
  *
- * O QUE ENTRA NO CACHE é o rascunho NORMALIZADO (`normalizeDraftForResume`): um
- * veredito terminal que não seja 'passed' vira tentativa retomável — sem isso o
- * desafio de MÓDULO reprovado volta num beco sem saída (a medição está na doc
- * daquela função).
+ * O QUE ENTRA NO CACHE é o rascunho NORMALIZADO (`normalizeDraftForResume`, com
+ * o `timeLimitMs` que viaja no snapshot): um veredito terminal que não seja
+ * 'passed' vira tentativa retomável — sem isso o desafio de MÓDULO reprovado
+ * volta num beco sem saída (a medição está na doc daquela função), e um 'failed'
+ * que nasceu ESTOURADO voltaria com o relógio morto (o primeiro tick reancorado
+ * reconclui 'timeout' na hora).
  */
 export function persistDraftOnUnmount(snapshot: ChallengeDraftSnapshot | null): void {
   if (snapshot === null) return;
   // Rascunho intocado não entra no cache (ver `isUntouchedDraft`).
   if (isUntouchedDraft(snapshot.draft)) return;
-  saveChallengeDraft(snapshot.key, normalizeDraftForResume(snapshot.draft));
+  saveChallengeDraft(snapshot.key, normalizeDraftForResume(snapshot.draft, snapshot.timeLimitMs));
 }
 
 /**
@@ -378,8 +454,9 @@ export function TrackChallengePanel({
    *  padrão do `chatRef` da LessonView) porque o CLEANUP de unmount enxerga o
    *  closure da render em que o efeito nasceu: ler daqui é ler o último estado,
    *  nunca um estado velho — o painel re-renderiza a cada segundo do tick.
-   *  A CHAVE viaja JUNTO do snapshot (par capturado no mesmo render): o
-   *  rascunho nunca é salvo sob a chave de outro desafio. */
+   *  A CHAVE e o LIMITE (`timeLimitMs` — o relógio do desafio) viajam JUNTO do
+   *  snapshot (trio capturado no mesmo render): o rascunho nunca é salvo sob a
+   *  chave de outro desafio nem normalizado contra o relógio de outro. */
   const draftSnapshotRef = useRef<ChallengeDraftSnapshot | null>(null);
   /** Chave do desafio cujo estado está HOJE na tela (null antes da 1ª spec).
    *  É ela que detecta a TROCA DE DESAFIO com o painel montado (o efeito de
@@ -400,6 +477,10 @@ export function TrackChallengePanel({
   if (spec && draftKeyRef.current !== null) {
     draftSnapshotRef.current = {
       key: draftKeyRef.current,
+      // O RELÓGIO viaja junto do snapshot (mesmo motivo da chave: par capturado
+      // no MESMO render) — é ele que diz a `normalizeDraftForResume` se a
+      // tentativa salva já nasceu ESTOURADA quando o veredito for 'failed'.
+      timeLimitMs: spec.timeLimitMs,
       draft: {
         code,
         filesCode,
@@ -522,8 +603,11 @@ export function TrackChallengePanel({
               // beco sem saída medido, está em `normalizeDraftForResume`): este
               // caminho também devolve o aluno ao desafio depois — trocar de
               // desafio com o painel montado e voltar não pode restaurar um
-              // veredito terminal que trava editor e submit.
-              saveChallengeDraft(snapshot.key, normalizeDraftForResume(snapshot.draft));
+              // veredito terminal que trava editor e submit. O LIMITE vem do
+              // SNAPSHOT (capturado no mesmo render do rascunho): `res.challenge`
+              // já é a spec NOVA e a `spec` do closure do `loadSpec` é a da
+              // PRIMEIRA render — nenhuma das duas é o relógio deste rascunho.
+              saveChallengeDraft(snapshot.key, normalizeDraftForResume(snapshot.draft, snapshot.timeLimitMs));
             }
           }
           draftKeyRef.current = novaChave;

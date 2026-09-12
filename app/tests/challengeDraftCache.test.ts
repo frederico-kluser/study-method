@@ -91,6 +91,15 @@ const RESULTADO: TrackSubmitResult = {
   totalCount: 1,
 };
 
+/**
+ * Relógio do desafio de dificuldade 2 (T = 90s + 2*60s = 210s) — é o
+ * `spec.timeLimitMs` que o painel carrega e o MESMO limite que a normalização do
+ * rascunho usa para saber se a tentativa salva já nasceu ESTOURADA. Declarado
+ * aqui no topo porque DOIS blocos o usam: o da normalização (bloco 3d) e o do
+ * tracker restaurado (bloco 4).
+ */
+const LIMITE_MS = 210_000;
+
 /** Rascunho de uma tentativa EM CURSO (código do aluno, relógio andando). */
 function rascunho(over: Partial<ChallengeDraft> = {}): ChallengeDraft {
   return {
@@ -489,7 +498,10 @@ describe('(fiação) o painel SALVA o rascunho no unmount', () => {
         // ACHADO 2 (revisão do diff integrado): o que entra no cache é o
         // rascunho NORMALIZADO — um veredito terminal que não seja 'passed'
         // vira tentativa retomável (o beco sem saída do desafio de MÓDULO).
-        'saveChallengeDraft(snapshot.key, normalizeDraftForResume(snapshot.draft));',
+        // DEFEITO RESIDUAL (onda4): a normalização recebe o LIMITE que viaja no
+        // snapshot, senão um 'failed' que nasceu estourado volta com o relógio
+        // morto (o primeiro tick reancorado reconclui 'timeout' na hora).
+        'saveChallengeDraft(snapshot.key, normalizeDraftForResume(snapshot.draft, snapshot.timeLimitMs));',
       ],
       'um `return;` inserido antes do `saveChallengeDraft` muda esta lista (e é o mutante que passava verde)',
     );
@@ -519,6 +531,9 @@ describe('(fiação) o painel SALVA o rascunho no unmount', () => {
       'concluded,',
       'result,',
       'marked: markedRef.current,',
+      // DEFEITO RESIDUAL (onda4): o LIMITE do desafio viaja no snapshot — sem
+      // ele a normalização não sabe se a tentativa salva já nasceu estourada.
+      'timeLimitMs: spec.timeLimitMs,',
     ]) {
       assert.ok(
         corpo.includes(campo),
@@ -533,13 +548,33 @@ describe('(fiação) o painel SALVA o rascunho no unmount', () => {
     // ACHADO 2: este caminho TAMBÉM devolve o aluno ao desafio depois (trocar de
     // desafio com o painel montado e voltar) — a normalização tem de estar nos
     // DOIS saves, senão o beco sem saída sobrevive pela porta lateral.
+    // DEFEITO RESIDUAL (onda4): e os dois têm de passar o LIMITE — aqui ele vem
+    // do SNAPSHOT (o rascunho é do desafio ANTERIOR: `res.challenge` já é a spec
+    // NOVA e a `spec` do closure do `loadSpec` é a da primeira render).
     assert.match(
       troca,
-      /saveChallengeDraft\(snapshot\.key, normalizeDraftForResume\(snapshot\.draft\)\)/,
-      'a troca de desafio perde o rascunho anterior (ou o salva SEM normalizar)',
+      /saveChallengeDraft\(snapshot\.key, normalizeDraftForResume\(snapshot\.draft, snapshot\.timeLimitMs\)\)/,
+      'a troca de desafio perde o rascunho anterior (ou o salva SEM normalizar/sem o limite)',
     );
     // A chave não pode vazar: o snapshot só é salvo se for do desafio anterior.
     assert.match(troca, /challengeDraftCacheKey\(snapshot\.key\) === challengeDraftCacheKey\(chaveAnterior\)/);
+  });
+
+  it('os DOIS saves passam o LIMITE — nenhum caminho normaliza sem saber o relógio', () => {
+    // O mutante que esta cerca mata: voltar uma das chamadas para
+    // `normalizeDraftForResume(snapshot.draft)` (a assinatura de um argumento de
+    // antes do defeito residual) — com ela, o 'failed' estourado volta a
+    // preservar o relógio morto e o beco reabre por AQUELE caminho.
+    assert.equal(
+      (PANEL.match(/normalizeDraftForResume\(snapshot\.draft, snapshot\.timeLimitMs\)/g) ?? []).length,
+      2,
+      'os DOIS pontos de save (o desmonte e a troca de desafio) têm de passar o limite do snapshot',
+    );
+    assert.doesNotMatch(
+      PANEL,
+      /normalizeDraftForResume\(snapshot\.draft\)/,
+      'sobrou uma chamada SEM o limite — é a assinatura do defeito residual',
+    );
   });
 });
 
@@ -557,6 +592,9 @@ describe('(fiação) o painel SALVA o rascunho no unmount', () => {
 describe('(comportamento) persistDraftOnUnmount — o save do desmonte com o cache REAL', () => {
   interface Snapshot {
     key: ChallengeDraftKey;
+    /** O relógio do desafio que o snapshot carrega (é ele que decide se a
+     *  tentativa salva já nasceu estourada) — ver `ChallengeDraftSnapshot`. */
+    timeLimitMs: number;
     draft: ChallengeDraft;
   }
   let persistDraftOnUnmount: (snapshot: Snapshot | null) => void;
@@ -578,7 +616,7 @@ describe('(comportamento) persistDraftOnUnmount — o save do desmonte com o cac
     // Se este rascunho não entrar no cache, sair da aba e voltar recomeça do
     // zero — o defeito do dono, de volta.
     const d = rascunho();
-    persistDraftOnUnmount({ key: CHAVE, draft: d });
+    persistDraftOnUnmount({ key: CHAVE, timeLimitMs: LIMITE_MS, draft: d });
     const taken = takeChallengeDraft(CHAVE);
     assert.ok(
       taken,
@@ -593,6 +631,7 @@ describe('(comportamento) persistDraftOnUnmount — o save do desmonte com o cac
   it('rascunho INTOCADO não entra (nem começou, sem teste e sem veredito)', () => {
     persistDraftOnUnmount({
       key: CHAVE,
+      timeLimitMs: LIMITE_MS,
       draft: rascunho({ started: false, elapsedMs: 0, starsLeft: 3 }),
     });
     assert.equal(
@@ -623,16 +662,45 @@ describe('(comportamento) persistDraftOnUnmount — o save do desmonte com o cac
  * sessão. `normalizeDraftForResume` é a decisão PURA que roda no SAVE (os dois:
  * o do desmonte e o da troca de desafio) e é medida AQUI, com a função de
  * produção importada do painel (mesmo padrão de `persistDraftOnUnmount`).
+ *
+ * DEFEITO RESIDUAL (onda4, HIGH — medido pelo revisor com sonda nas funções
+ * REAIS): o ramo 'failed' PRESERVAVA o `elapsedMs`, e a tentativa salva podia já
+ * ter nascido ESTOURADA. O mecanismo: o efeito do tick NÃO pausa durante o
+ * submit (`node --test`, SEGUNDOS) — se o relógio estoura com um submit em voo,
+ * o tick grava 'timeout' e congela `elapsedMs >= timeLimitMs`; o submit
+ * reprovado resolve DEPOIS e faz `setConcluded('failed')` (target
+ * 'module'/'proficiency'), então a tela mostra 'failed' com o relógio estourado
+ * congelado; o save preservava esse relógio e o PRIMEIRO tick do retorno
+ * reconcluía 'timeout' — editor read-only, "Testar resposta" desabilitado e, no
+ * MÓDULO, nenhum "Gerar novo desafio" (o botão exige `!== 'module'`): SEM RETRY
+ * no primeiro retorno. Medição do revisor, com o rascunho cru:
+ * `restoreStarTracker({timeLimitMs: 210_000, elapsedMs: 210_000, starsLeft: 0})
+ * .isTimedOut(210_000) === true`. A decisão agora recebe o LIMITE
+ * (`spec.timeLimitMs`, que viaja em `ChallengeDraftSnapshot`) e uma tentativa já
+ * estourada recomeça o relógio — a sonda de INTEGRAÇÃO com o `restoreStarTracker`
+ * de produção está no teste 'O DEFEITO RESIDUAL, LITERAL'.
  * ═══════════════════════════════════════════════════════════════════════════ */
 describe('(comportamento) normalizeDraftForResume — veredito terminal salvo não vira beco', () => {
-  let normalizeDraftForResume: (draft: ChallengeDraft) => ChallengeDraft;
+  let normalizeDraftForResume: (draft: ChallengeDraft, timeLimitMs: number) => ChallengeDraft;
   /** O save do desmonte, importado do MESMO módulo (o caminho real do cache). */
-  let persistDraftOnUnmount: (snapshot: { key: ChallengeDraftKey; draft: ChallengeDraft } | null) => void;
+  let persistDraftOnUnmount: (
+    snapshot: { key: ChallengeDraftKey; timeLimitMs: number; draft: ChallengeDraft } | null,
+  ) => void;
+  /** O tracker restaurado, importado do MESMO módulo (é ele que o `loadSpec`
+   *  chama ao voltar — a sonda de integração do defeito residual). O nome local
+   *  evita sombrear o `restoreStarTracker` do bloco 4. */
+  let restaurarTracker: (input: {
+    timeLimitMs: number;
+    minFirstStarMs: number;
+    elapsedMs: number;
+    starsLeft: number;
+  }) => StarTracker;
 
   before(async () => {
     const mod = (await import(PANEL_MODULE)) as {
       normalizeDraftForResume: typeof normalizeDraftForResume;
       persistDraftOnUnmount: typeof persistDraftOnUnmount;
+      restoreStarTracker: typeof restaurarTracker;
     };
     assert.equal(
       typeof mod.normalizeDraftForResume,
@@ -641,18 +709,42 @@ describe('(comportamento) normalizeDraftForResume — veredito terminal salvo n�
     );
     normalizeDraftForResume = mod.normalizeDraftForResume;
     persistDraftOnUnmount = mod.persistDraftOnUnmount;
+    restaurarTracker = mod.restoreStarTracker;
   });
+
+  /** Chama a decisão com um limite INVÁLIDO (é o que a validação defensiva
+   *  existe para cobrir: o painel sempre passa um número do contrato). */
+  function normalizeComLimiteInvalido(draft: ChallengeDraft, limite: unknown): ChallengeDraft {
+    return (normalizeDraftForResume as unknown as (d: ChallengeDraft, t: unknown) => ChallengeDraft)(
+      draft,
+      limite,
+    );
+  }
+
+  /** Tracker restaurado com os parâmetros do desafio de aula — a MESMA
+   *  reconstrução que o `loadSpec` faz ao voltar para o desafio. */
+  function restaurarDesafio(elapsedMs: number, starsLeft: number): StarTracker {
+    return restaurarTracker({
+      timeLimitMs: LIMITE_MS,
+      minFirstStarMs: CARENCIA_MS,
+      elapsedMs,
+      starsLeft,
+    });
+  }
 
   it("'passed' persiste COMO ESTÁ (o aluno volta e vê o que conquistou)", () => {
     const d = rascunho({ concluded: 'passed', result: { ...RESULTADO, passed: true }, marked: 'passed' });
-    const out = normalizeDraftForResume(d);
+    const out = normalizeDraftForResume(d, LIMITE_MS);
     assert.equal(out.concluded, 'passed', 'o veredito aprovado foi apagado do rascunho');
     assert.deepEqual(out, d, 'o rascunho aprovado tem de voltar idêntico (nada a normalizar)');
   });
 
-  it("'failed' volta RETOMÁVEL: código, saída do erro, relógio, estrelas e mark preservados", () => {
+  it("'failed' NÃO estourado volta RETOMÁVEL: código, saída do erro, relógio, estrelas e mark preservados", () => {
     // O estado EXATO do beco sem saída: desafio de MÓDULO reprovado, com o
-    // checklist/erro na tela, editor read-only e submit desabilitado.
+    // checklist/erro na tela, editor read-only e submit desabilitado. O relógio
+    // NÃO estourou (51s < 210s): a tentativa CONTINUA e o relógio dela é
+    // preservado — a correção do defeito residual não pode zerar uma tentativa
+    // VIVA (é esta asserção que separa uma coisa da outra).
     const d = rascunho({
       code: 'export function soma(a, b) { return a - b; }',
       elapsedMs: 51_000,
@@ -661,7 +753,7 @@ describe('(comportamento) normalizeDraftForResume — veredito terminal salvo n�
       result: RESULTADO,
       marked: 'failed',
     });
-    const out = normalizeDraftForResume(d);
+    const out = normalizeDraftForResume(d, LIMITE_MS);
     assert.equal(out.concluded, null, 'o veredito terminal voltou salvo — o editor trava e não há retry');
     assert.equal(out.code, d.code, 'o CÓDIGO do aluno é preservado');
     assert.deepEqual(out.result, RESULTADO, 'a saída/checklist do erro é preservada (o aluno revê o que errou)');
@@ -670,6 +762,45 @@ describe('(comportamento) normalizeDraftForResume — veredito terminal salvo n�
     assert.equal(out.marked, 'failed', 'o terminal já gravado tem de voltar (senão um desmonte grava abandoned por cima)');
     // PURA: o rascunho de entrada não é mutado (ele é o snapshot da TELA).
     assert.equal(d.concluded, 'failed', 'normalizeDraftForResume mutou o rascunho de entrada');
+  });
+
+  it("'failed' ESTOURADO (DEFEITO RESIDUAL): a tentativa MORTA recomeça o relógio, o código e a evidência ficam", () => {
+    // O estado exato do mecanismo medido pelo revisor: o tick congelou
+    // `elapsedMs = timeLimitMs` ('timeout'), o submit em voo resolveu depois e a
+    // tela ficou em 'failed' com o relógio estourado. Preservar aquele
+    // `elapsedMs` faz o PRIMEIRO tick do retorno reconcluir 'timeout'.
+    const d = rascunho({
+      code: 'export function soma(a, b) { return a - b; }',
+      elapsedMs: 210_000,
+      starsLeft: 0,
+      concluded: 'failed',
+      result: RESULTADO,
+      marked: 'failed',
+    });
+    const out = normalizeDraftForResume(d, LIMITE_MS);
+    assert.equal(out.concluded, null, 'o veredito terminal voltou salvo — editor read-only e sem retry');
+    assert.equal(out.elapsedMs, 0, 'a tentativa estourada MORREU: o relógio dela recomeça (senão o 1º tick reconclui timeout)');
+    assert.equal(out.starsLeft, 3, 'a tentativa nova começa com as 3 estrelas');
+    assert.equal(out.code, d.code, 'o CÓDIGO do aluno é preservado (o aluno revê o que escreveu)');
+    assert.deepEqual(out.result, RESULTADO, 'a saída do erro fica na tela — o aluno vê o que falhou');
+    assert.equal(out.marked, 'failed', 'o terminal já gravado tem de voltar');
+    // PURA: o rascunho de entrada (o snapshot da TELA) não é mutado.
+    assert.equal(d.elapsedMs, 210_000, 'normalizeDraftForResume mutou o rascunho de entrada');
+    assert.equal(d.starsLeft, 0, 'normalizeDraftForResume mutou o rascunho de entrada');
+  });
+
+  it('a fronteira é `elapsedMs >= timeLimitMs` (no limite já estourou; 1ms antes não)', () => {
+    // O mutante `>` (em vez de `>=`) passa em quase tudo e deixa o beco aberto
+    // exatamente no instante em que o tick congela o relógio: `isTimedOut` é
+    // `>=` no tracker real (challengeStars).
+    const noLimite = rascunho({ concluded: 'failed', elapsedMs: LIMITE_MS, starsLeft: 0, result: RESULTADO });
+    const antes = rascunho({ concluded: 'failed', elapsedMs: LIMITE_MS - 1, starsLeft: 1, result: RESULTADO });
+    const outNoLimite = normalizeDraftForResume(noLimite, LIMITE_MS);
+    const outAntes = normalizeDraftForResume(antes, LIMITE_MS);
+    assert.equal(outNoLimite.elapsedMs, 0, 'no limite exato a tentativa JÁ está estourada (isTimedOut === true)');
+    assert.equal(outNoLimite.starsLeft, 3);
+    assert.equal(outAntes.elapsedMs, LIMITE_MS - 1, '1ms antes do limite a tentativa está VIVA — o relógio não pode zerar');
+    assert.equal(outAntes.starsLeft, 1, 'as estrelas da tentativa viva são preservadas');
   });
 
   it("'timeout' preserva o CÓDIGO e a evidência, mas a tentativa recomeça (relógio/estrelas)", () => {
@@ -684,7 +815,7 @@ describe('(comportamento) normalizeDraftForResume — veredito terminal salvo n�
       result: RESULTADO,
       marked: 'timeout',
     });
-    const out = normalizeDraftForResume(d);
+    const out = normalizeDraftForResume(d, LIMITE_MS);
     assert.equal(out.concluded, null, 'o timeout continuou salvo — a tentativa nova nasce morta');
     assert.equal(out.code, d.code, 'o pedido do dono: o CÓDIGO do aluno é preservado');
     assert.deepEqual(out.result, RESULTADO, 'a evidência do timeout (saída) é preservada');
@@ -696,12 +827,47 @@ describe('(comportamento) normalizeDraftForResume — veredito terminal salvo n�
 
   it('tentativa EM CURSO (concluded null) passa intacta — o relógio pausado não muda', () => {
     const d = rascunho({ concluded: null, result: null });
-    assert.deepEqual(normalizeDraftForResume(d), d);
+    assert.deepEqual(normalizeDraftForResume(d, LIMITE_MS), d);
+  });
+
+  it('LIMITE AUSENTE/INVÁLIDO é tratado como NÃO estourado (nunca zera uma tentativa viva)', () => {
+    // Fallback DOCUMENTADO na doc da função: zerar o relógio só se justifica por
+    // um estouro MEDIDO — com um limite em que não se pode confiar, o rascunho
+    // volta como voltava antes (relógio/estrelas preservados). O painel sempre
+    // passa `spec.timeLimitMs` (número > 0 do contrato): isto é defensivo.
+    const d = rascunho({ concluded: 'failed', elapsedMs: 999_000, starsLeft: 1, result: RESULTADO });
+    for (const limite of [undefined, null, Number.NaN, 0, -1, Number.POSITIVE_INFINITY, '210000']) {
+      const out = normalizeComLimiteInvalido(d, limite);
+      assert.equal(out.concluded, null, `limite ${String(limite)}: o veredito terminal tem de sair do rascunho`);
+      assert.equal(out.elapsedMs, 999_000, `limite ${String(limite)}: relógio sem estouro medido não pode zerar`);
+      assert.equal(out.starsLeft, 1, `limite ${String(limite)}: estrelas da tentativa viva são preservadas`);
+    }
+  });
+
+  it('O DEFEITO RESIDUAL, LITERAL (sonda de INTEGRAÇÃO): o retorno NÃO reconclui timeout no 1º tick', () => {
+    // A sonda que o revisor usou, com as funções REAIS de produção: o tracker do
+    // `loadSpec` reancorado no tempo normalizado. Rascunho cru (o defeito):
+    const cru = rascunho({ concluded: 'failed', elapsedMs: LIMITE_MS, starsLeft: 0, result: RESULTADO });
+    assert.equal(
+      restaurarDesafio(cru.elapsedMs, cru.starsLeft).isTimedOut(cru.elapsedMs),
+      true,
+      'o rascunho CRU tem de reproduzir o beco — é a medição do defeito (o 1º tick reconclui timeout)',
+    );
+    // Rascunho NORMALIZADO (a correção): o primeiro tick lê o relógio zerado.
+    const out = normalizeDraftForResume(cru, LIMITE_MS);
+    assert.equal(
+      restaurarDesafio(out.elapsedMs, out.starsLeft).isTimedOut(out.elapsedMs),
+      false,
+      'ao voltar, o primeiro tick (reancorado em `draft.elapsedMs`) NÃO pode reconcluir timeout — é o beco de volta',
+    );
+    assert.equal(out.elapsedMs, 0);
+    assert.equal(out.starsLeft, 3);
   });
 
   it('O DEFEITO, LITERAL: o save do desmonte de um desafio REPROVADO volta retomável', () => {
     persistDraftOnUnmount({
       key: CHAVE,
+      timeLimitMs: LIMITE_MS,
       draft: rascunho({ concluded: 'failed', result: RESULTADO, marked: 'failed', elapsedMs: 77_000 }),
     });
     const taken = takeChallengeDraft(CHAVE);
@@ -711,9 +877,41 @@ describe('(comportamento) normalizeDraftForResume — veredito terminal salvo n�
     assert.equal(taken.elapsedMs, 77_000, 'o relógio da tentativa retomada retoma de onde parou');
   });
 
+  it('O DEFEITO RESIDUAL, LITERAL (save do desmonte): o ESTOURO não sobrevive ao cache', () => {
+    // Caminho REAL do defeito: o snapshot do desmonte carrega o limite do
+    // desafio e o rascunho entra no cache já com o relógio da tentativa morta
+    // zerado — é este rascunho que o `loadSpec` drena ao voltar.
+    persistDraftOnUnmount({
+      key: CHAVE,
+      timeLimitMs: LIMITE_MS,
+      draft: rascunho({
+        code: 'código do aluno',
+        concluded: 'failed',
+        elapsedMs: LIMITE_MS,
+        starsLeft: 0,
+        result: RESULTADO,
+        marked: 'failed',
+      }),
+    });
+    const taken = takeChallengeDraft(CHAVE);
+    assert.ok(taken, 'o rascunho estourado tem de entrar no cache');
+    assert.equal(taken.concluded, null, 'editor read-only de volta');
+    assert.equal(taken.elapsedMs, 0, 'o relógio morto NÃO pode ir para o cache (o 1º tick reconcluiria timeout)');
+    assert.equal(taken.starsLeft, 3);
+    assert.equal(taken.code, 'código do aluno', 'o código do aluno não pode se perder no recomeço');
+    assert.deepEqual(taken.result, RESULTADO, 'a evidência do erro fica na tela');
+    // A INTEGRAÇÃO, com o rascunho que o `loadSpec` REALMENTE drena:
+    assert.equal(
+      restaurarDesafio(taken.elapsedMs, taken.starsLeft).isTimedOut(taken.elapsedMs),
+      false,
+      'o rascunho que sai do cache não pode reancorar o relógio num tempo estourado',
+    );
+  });
+
   it('O DEFEITO, LITERAL (timeout): o save do desmonte zera só a tentativa morta', () => {
     persistDraftOnUnmount({
       key: CHAVE,
+      timeLimitMs: LIMITE_MS,
       draft: rascunho({ concluded: 'timeout', code: 'código do aluno', elapsedMs: 210_000, starsLeft: 0 }),
     });
     const taken = takeChallengeDraft(CHAVE);
@@ -727,6 +925,7 @@ describe('(comportamento) normalizeDraftForResume — veredito terminal salvo n�
   it('um rascunho APROVADO chega ao cache com o veredito (a retomada mostra o estado aprovado)', () => {
     persistDraftOnUnmount({
       key: CHAVE,
+      timeLimitMs: LIMITE_MS,
       draft: rascunho({ concluded: 'passed', marked: 'passed', result: { ...RESULTADO, passed: true } }),
     });
     assert.equal(takeChallengeDraft(CHAVE)?.concluded, 'passed');
@@ -917,7 +1116,7 @@ describe('(fiação) um loadSpec EM VOO desiste quando o painel desmontou (o fan
     );
     for (const alvo of [
       'setSpec(res.challenge);',
-      'saveChallengeDraft(snapshot.key, normalizeDraftForResume(snapshot.draft));',
+      'saveChallengeDraft(snapshot.key, normalizeDraftForResume(snapshot.draft, snapshot.timeLimitMs));',
       'createChallengeDraftHolder(novaChave)',
       'draftHolderRef.current.holder.get()',
     ]) {
@@ -1064,9 +1263,8 @@ interface RestoreInput {
 }
 let restoreStarTracker: (input: RestoreInput) => StarTracker;
 
-// Desafio de dificuldade 2 (T = 90s + 2*60s = 210s), carência da 1ª estrela de
-// 60s — os defaults do produto para desafio de aula.
-const LIMITE_MS = 210_000;
+// Carência da 1ª estrela do desafio de aula (o LIMITE_MS do relógio está no
+// topo do arquivo: os dois blocos o usam).
 const CARENCIA_MS = 60_000;
 /** 60% e 85% do limite (os dois limiares de perda por demora). */
 const DEMORA_60_MS = LIMITE_MS * 0.6;
