@@ -1292,12 +1292,35 @@ export function LessonView(props: ViewProps): ReactElement {
   // SMOOTH — SEMPRE, sem consultar posição (ONDA15). O antigo `fresh`
   // (scrollTop 0 + histórico presente, o caso "abrir a aula no topo") morreu
   // junto com o guard: ele só existia para furar a condição que não existe
-  // mais, e o puxão incondicional cobre aquele caso e todos os outros.
+  // mais.
+  //
+  // ONDA2-AULA-ABRE-NO-FIM — o caso de MONTAGEM que o puxão incondicional
+  // sozinho NÃO cobria (defeito medido pela revisão adversarial). Abrir uma
+  // aula cujo chat foi RESTAURADO do cache de sessão caía no TOPO: a view
+  // remonta com histórico (`chat.history.length > 0`) e `lesson` ainda `null`,
+  // e o early-return de loading (if (!lesson)) NÃO monta a Box do log — a
+  // primeira passada deste efeito roda com `logScrollRef.current === null` e
+  // sai pelo `if (!el) return`. Quando o payload chega (`setLesson`, dentro de
+  // `loadLesson`), a Box MONTA com `scrollTop = 0`; este efeito NÃO
+  // re-executava, porque as deps eram só `[chat.history.length, streamingIds]`
+  // e nenhuma das duas muda nesse commit (quem muda é `lesson`) — o `fresh`
+  // que existia para esse caso já tinha morrido junto com o guard. A
+  // IDENTIDADE DA AULA entra nas deps para o nudge rodar quando o container do
+  // log MONTA (aula carregada, inclusive A → B); o gatilho segue sendo
+  // CONTEÚDO NOVO + montagem, nunca rolagem do aluno.
+  //
+  // A dep é `lesson?.slug`, não o objeto `lesson`: o objeto troca de
+  // identidade a CADA `setLesson` — inclusive no refetch silencioso da MESMA
+  // aula (`listVersion`, quando uma geração conclui), que não monta nem mexe
+  // no log; com o objeto, o gatilho viraria "qualquer aplicação de payload",
+  // mais largo que o fato que importa. O slug muda exatamente quando a Box
+  // (re)monta: `undefined` (aula fora da tela: null, loading, erro, vazio) →
+  // `<slug>` (aula na tela), e A → B na troca de aula.
   useEffect(() => {
     const el = logScrollRef.current;
     if (!el) return;
     nudgeLogToBottom(el);
-  }, [chat.history.length, streamingIds]);
+  }, [chat.history.length, streamingIds, lesson?.slug]);
 
   // ONDA2-IMESSAGE (gating do "Concluir aula"): bloqueado quando há desafios
   // E algum NÃO passou (lastVerdict !== 'passed' — null = nunca tentado). O

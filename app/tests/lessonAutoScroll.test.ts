@@ -51,7 +51,10 @@
  *     produção (a REGIÃO, não o arquivo inteiro: a view tem outro scroll — o
  *     `scrollIntoView` do card do quiz — que NÃO é este e não pode ser
  *     proibido) e cobrados: a única condição permitida é a do `el` nulo, zero
- *     `isNearBottom`/`clientHeight`, deps do tick vazias.
+ *     `isNearBottom`/`clientHeight`, deps do tick vazias e, no NUDGE, a
+ *     IDENTIDADE da aula (`lesson?.slug`) junto do conteúdo — é ela que faz o
+ *     nudge re-executar quando a Box do log MONTA, o caso "abrir a aula com o
+ *     chat restaurado do cache cai no FIM" (ONDA2-AULA-ABRE-NO-FIM).
  *
  *   BLOCO 4 — CERCA GLOBAL. `NEAR_BOTTOM_PX` e `isNearBottom` não existem mais
  *     em lugar nenhum do código; nenhum listener de `scroll` foi acrescentado;
@@ -314,6 +317,24 @@ function condicoesDe(trecho: string): string[] {
 }
 
 /**
+ * As deps do efeito, como LISTA — o recorte termina exatamente na lista de
+ * dependências. Falha EXPLÍCITA quando o âncora some (mesmo motivo do
+ * `trechoCom`): uma cerca de deps que "não acha nada" passaria verde.
+ */
+function depsDoEfeito(trecho: string): string[] {
+  const casado = /\[([^\]]*)\]/.exec(trecho);
+  assert.ok(
+    casado,
+    'o recorte do efeito do nudge tem de terminar na lista de deps — se a forma mudou, ' +
+      'esta cerca precisa ser refeita ANTES de se confiar nela',
+  );
+  return casado[1]
+    .split(',')
+    .map((d) => d.trim())
+    .filter((d) => d.length > 0);
+}
+
+/**
  * Os dois recortes são FUNÇÕES (e não constantes de módulo) de propósito: um
  * âncora que sumiu tem de reprovar O TESTE QUE DEPENDE DELE, com o nome dele na
  * mensagem — e não explodir o arquivo inteiro antes de qualquer teste rodar.
@@ -393,9 +414,55 @@ describe('3. as duas ligações de produção: sem guard de posição, com a fí
     );
     assert.match(
       nudge,
-      /\[chat\.history\.length, streamingIds\]/,
-      'o gatilho é CONTEÚDO NOVO: o histórico crescer e o conjunto de quem digita mudar ' +
-        '(início/fim da digitação) — nunca um evento de rolagem do aluno',
+      /\[chat\.history\.length, streamingIds, lesson\?\.slug\]/,
+      'o gatilho é CONTEÚDO NOVO (o histórico crescer, o conjunto de quem digita mudar) ' +
+        'E a MONTAGEM da aula (a identidade `lesson?.slug`, ONDA2-AULA-ABRE-NO-FIM) — ' +
+        'nunca um evento de rolagem do aluno',
+    );
+  });
+
+  /**
+   * ONDA2-AULA-ABRE-NO-FIM — o defeito MEDIDO que esta asserção tranca: abrir
+   * uma aula cujo chat foi RESTAURADO do cache de sessão caía no TOPO.
+   *
+   * O mecanismo, medido no fonte: a Box do log vive DEPOIS do early-return
+   * `if (!lesson)` (loading). Com o histórico restaurado (`chat.history.length
+   * > 0`) e `lesson` ainda `null`, a primeira passada do efeito do nudge
+   * encontra `logScrollRef.current === null` e sai pelo `if (!el) return`;
+   * quando o payload chega, a Box MONTA com `scrollTop = 0` — e o efeito não
+   * voltava a rodar, porque as deps antigas (`chat.history.length`,
+   * `streamingIds`) não mudam nesse commit: quem muda é `lesson`.
+   *
+   * O mutante que esta cerca MATA é a REMOÇÃO da identidade da aula das deps
+   * (o estado do main, commit 11a7d83): sem ela o teste reprova. É a única
+   * prova possível nesta base — a montagem da Box e a ordem dos efeitos vivem
+   * no React, e não há jsdom aqui (o bloco 1/2 prova as decisões puras com o
+   * elemento FAKE; esta prova é de LIGAÇÃO).
+   */
+  it('o nudge re-executa quando a AULA carrega — a identidade da aula está nas deps', () => {
+    const nudge = efeitoDoNudge();
+    const deps = depsDoEfeito(nudge);
+    assert.deepEqual(
+      deps,
+      ['chat.history.length', 'streamingIds', 'lesson?.slug'],
+      'a lista NOVA de deps do nudge: conteúdo novo (histórico + digitação) E a ' +
+        'identidade da aula. Remover `lesson?.slug` reprova aqui',
+    );
+    assert.ok(
+      deps.some((d) => /^lesson\?\.slug$/.test(d)),
+      'a identidade da AULA tem de estar nas deps: é ela que muda quando o payload chega ' +
+        'e a Box do log MONTA (o early-return de loading segura a Box enquanto `lesson` é ' +
+        'nulo). Sem essa dep, abrir a aula com o chat restaurado do cache de sessão cai no ' +
+        'TOPO — o efeito já rodou (com o ref nulo) e não re-executa na montagem',
+    );
+    assert.doesNotMatch(
+      nudge,
+      /\[[^\]]*\blesson\b(?!\?)/,
+      'e a dep é a IDENTIDADE OPCIONAL (`lesson?.slug`), não o objeto `lesson` nem ' +
+        '`lesson.slug`: o OBJETO troca de identidade a cada `setLesson` — inclusive no ' +
+        'refetch silencioso da MESMA aula — e o gatilho viraria "qualquer aplicação de ' +
+        'payload"; o acesso SEM `?.` estoura com a aula nula, que é justamente o estado ' +
+        'da primeira passada',
     );
   });
 
