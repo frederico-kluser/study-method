@@ -38,6 +38,20 @@
  *     O que ainda impede ver o galho "HABILITADO" AQUI é um defeito de
  *     PRODUÇÃO, não do stub: o TrackChallengePanel grava 'abandoned' por cima
  *     do 'passed' assim que o veredito chega. Ver o fim do arquivo.
+ *
+ * ONDA 2 (paridade do stub — achado ALTO-2): esta spec ganhou o R2 PONTA A
+ * PONTA no fim do arquivo. Até aqui o requisito do dono ("passar no desafio
+ * destrava a próxima aula") era INVISÍVEL para o harness: o stub do main
+ * devolvia só o veredito no `track:challenge-submit` e nunca concluía a aula,
+ * então "Concluir aula HABILITADO" e o cadeado da aula 2 mediam coisas
+ * diferentes da produção e o GATE_E2E ficava verde sem medir a mudança. Agora o
+ * stub DELEGA para a mesma função da produção (`completeLessonOnChallengePass`)
+ * e a spec mede o CADEADO FECHADO ao abrir a Trilha e ABERTO depois do desafio,
+ * sem nunca clicar em "Concluir aula". A asserção de "Concluir aula"
+ * HABILITADO (acima) CONTINUOU VÁLIDA — medida com o stub em paridade antes de
+ * qualquer edição dela (o `doneMarked` é estado local de sessão, hidratado pelo
+ * ok do `track:lesson-done`, e o `done` do payload não entra no
+ * `lessonActionStep`).
  */
 import { test, expect, type ElectronApplication, type Page } from '@playwright/test';
 import { launchApp, closeApp, makeWorkspaceRoot } from './helpers';
@@ -128,6 +142,13 @@ test('e2e-lesson: trilha → aula em chat (teoria progressiva + fontes + desafio
   await expect(page.getByRole('heading', { name: 'Node.js do Zero' })).toBeVisible();
   await expect(page.getByText('Aula E2E sobre funções', { exact: false })).toBeVisible();
   await expect(page.getByText('Aula E2E seguinte', { exact: false })).toBeVisible();
+  // O PONTO DE PARTIDA DO R2 (medido no fim desta spec): a segunda aula nasce
+  // com o CADEADO FECHADO. O tile da aula na Trilha é um `button` cujo
+  // `disabled` É o `locked` do payload (RoadmapView: `disabled={lesson.locked}`)
+  // — é este atributo que a asserção final inverte, e é ele que prova que a
+  // mudança de estado veio do desafio (nenhuma trilha "já destravada" passaria
+  // nesta linha).
+  await expect(page.getByRole('button', { name: /Aula E2E seguinte/ }).first()).toBeDisabled();
   // Teste de proficiência disponível (cobre tudo).
   await expect(page.getByRole('heading', { name: 'Teste de proficiência' })).toBeVisible();
 
@@ -257,4 +278,44 @@ test('e2e-lesson: trilha → aula em chat (teoria progressiva + fontes + desafio
   // onda de integração (`shouldMarkAbandon`, com teste puro em
   // tests/cadeadoIntegracao.test.ts). O destravamento de AULA tem a sua própria
   // spec: tests/e2e/e2e-cadeado.spec.ts (trilha de duas aulas SEM desafio).
+  //
+  // ─── R2 PONTA A PONTA: O DESAFIO APROVADO DESTRAVOU A AULA SEGUINTE ─────
+  //
+  // (ONDA 2 — a asserção que a PARIDADE do stub comprou. Achado ALTO-2 da
+  // revisão adversarial da onda 1.)
+  //
+  // O QUE ESTA ASSERÇÃO MEDE, E POR QUE ELA NÃO EXISTIA: o requisito do dono é
+  // "passar no desafio destrava a próxima aula" (R2). Até esta onda o harness
+  // E2E era CEGO para ele — o stub do main devolvia só o veredito no
+  // `track:challenge-submit` e NUNCA gravava a conclusão da aula, então no
+  // MESMO fixture o resultado divergia: produção → `aula-1 done=true,
+  // aula-2 locked=false`; stub → `aula-1 done=false, aula-2 locked=true`. O
+  // GATE_E2E ficava verde sem medir a mudança que ele deveria provar. Agora o
+  // stub DELEGA para a MESMA função da produção
+  // (`completeLessonOnChallengePass`, services/trackService.ts) e o cadeado é
+  // observável de ponta a ponta.
+  //
+  // COMO ELA MORDE: o `disabled` do tile da Trilha É o `locked` do payload
+  // (`disabled={lesson.locked}`, RoadmapView). O teste mediu o cadeado FECHADO
+  // no começo (logo após abrir a Trilha) e mede ABERTO aqui — não é "a trilha
+  // já vinha destravada", é a TRANSIÇÃO.
+  //
+  // A ORDEM IMPORTA: NADA de clicar em "Concluir aula" antes disto. A asserção
+  // acima só olha o BOTÃO (estado local de sessão, ver o comentário do
+  // `doneMarked` na LessonView); o `done` da aula — que é o que destrava a
+  // seguinte — tem de ter sido gravado pelo PRÓPRIO submit do desafio.
+  //
+  // MUTAÇÃO (registrada no handoff da onda): revertendo o delegate do stub
+  // (voltar a só devolver o veredito, sem concluir a aula), ESTA asserção é a
+  // que falha — `toBeEnabled()` recebe o tile ainda desabilitado. Com o
+  // delegate no lugar, passa.
+  await page.getByRole('tab', { name: 'Trilha' }).click();
+  await page.getByText('Node.js do Zero', { exact: false }).first().click();
+  await expect(page.getByRole('heading', { name: 'Node.js do Zero' })).toBeVisible();
+  const aulaSeguinte = page.getByRole('button', { name: /Aula E2E seguinte/ }).first();
+  await expect(aulaSeguinte).toBeEnabled();
+  // …e ela ABRE mesmo: o destrave não é só um atributo do tile — a segunda aula
+  // entra na tela (mesma navegação que o aluno faz).
+  await aulaSeguinte.click();
+  await expect(page.getByRole('heading', { name: 'Aula E2E seguinte' })).toBeVisible();
 });

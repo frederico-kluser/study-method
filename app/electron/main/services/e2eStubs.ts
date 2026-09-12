@@ -87,7 +87,13 @@ import {
 import { safeHandleMap, type IpcMainHandleLike, type IpcHandlerFn } from '../ipc/safeHandle';
 import type { LessonProgress } from './lessonTypes';
 import { loadAllTracks, loadTrack, findLessonAnywhere } from '../content/trackLoader';
-import { buildTrackList, buildTrackDetail, buildTrackLesson, resolveChallengeSpec } from '../services/trackService';
+import {
+  buildTrackList,
+  buildTrackDetail,
+  buildTrackLesson,
+  completeLessonOnChallengePass,
+  resolveChallengeSpec,
+} from '../services/trackService';
 import { nextSection } from '../services/tutorChat';
 import { createQuizRemediation } from '../services/quizRemediation';
 import { runStudentCode } from '../services/challengeExec';
@@ -398,6 +404,115 @@ async function checkPiSdk(): Promise<boolean> {
 }
 
 // ─── TRILHAS (rodada 8): fixture determinística em disco + repo fake ────────
+
+/**
+ * A SEÇÃO CRÍTICA DA FIXTURE (onda 2 — mata um FLAKE PRÉ-EXISTENTE).
+ *
+ * ══════════════════════════════════════════════════════════════════════════
+ * O DEFEITO MEDIDO
+ * ══════════════════════════════════════════════════════════════════════════
+ * `buildTrackStubHandlers()` disparava `void writeFixtureTrack()` (NÃO
+ * aguardado) e TODO handler aguardava o SEU `writeFixtureTrack()` — com os
+ * MESMOS paths escritos por `fsp.writeFile` (que TRUNCA e só então grava). Duas
+ * escritas concorrentes se intercalavam, e o leitor que caísse entre o truncate
+ * e o write lia JSON vazio: `TrackLoadError` com "declarado ... mas arquivo
+ * ausente/ilegível". Medições reais do flake (10 execuções de cada arquivo, o
+ * mesmo ponto sempre):
+ *   - tests/e2eTrackProgress.test.ts: 1 falha em 10 (challenge.json vazio);
+ *   - tests/e2eStubs.test.ts: 1 falha em 10 (challenge.json do módulo vazio);
+ *   - os dois arquivos PASSAM isolados — é corrida, não defeito de fixture.
+ *
+ * ── POR QUE NÃO BASTA SERIALIZAR AS ESCRITAS (medido, não suposto) ────────
+ * A primeira tentativa foi uma cadeia que serializava SÓ as escritas (cada
+ * handler esperava a cadeia e lia em seguida). Ela fecha o flake dos testes
+ * unitários — que chamam os handlers UM DE CADA VEZ — mas NÃO fecha o do app:
+ * quando a Trilha monta, `track:list`/`track:get`/`track:lesson` são chamados
+ * CONCORRENTEMENTE, e o handler A retoma a leitura assim que a SUA escrita
+ * termina, enquanto a escrita do handler B (enfileirada logo depois) já está
+ * truncando os mesmos arquivos. Reprodução determinística com os handlers
+ * chamados como o app os chama (5 canais em `Promise.allSettled`, 40 vezes):
+ * 36 rejeições `TrackLoadError` — e a Trilha do e2e-lesson.spec.ts exibiu
+ * "Não foi possível carregar a trilha." por causa disso.
+ *
+ * ── A CORREÇÃO: UMA SEÇÃO CRÍTICA, ESCRITA **E** LEITURA ──────────────────
+ * UMA cadeia de promises compartilhada serializa cada ACESSO à fixture: o
+ * handler entra na fila, reescreve a fixture (comportamento de "reescreve a
+ * cada handler" INTOCADO, conteúdo INTOCADO) e SÓ ENTÃO lê — tudo dentro do
+ * mesmo elo, sem nenhuma outra escrita podendo começar no meio. Nenhuma chamada
+ * fica sem `await`/sem ordem: a escrita inicial disparada na montagem do Map
+ * entra na MESMA fila.
+ *
+ * A cadeia NUNCA fica rejeitada de forma permanente: cada elo é religado nos
+ * DOIS ramos (`then(fn, fn)`) e o rabo da fila é sempre resolvido
+ * (`then(() => undefined, () => undefined)`) — uma falha de escrita não
+ * envenena as chamadas seguintes; ela aparece no `await` de QUEM a disparou.
+ *
+ * ── A FILA É DO RECURSO, NÃO DO MÓDULO (`globalThis`) ─────────────────────
+ * Uma cadeia de MÓDULO dá a cada INSTÂNCIA a sua própria fila — e os testes
+ * carregam instâncias frescas deste módulo por import cache-busted (`?unit-N`,
+ * a disciplina de tests/e2eStubs.test.ts e tests/e2eTrackProgress.test.ts). Com
+ * a fila por instância, a escrita de uma trunca os arquivos lidos pela outra:
+ * medido, `track:list` devolveu ZERO trilhas em 1 de 60 iterações alternando
+ * duas instâncias (`loadAllTracks` engole o `TrackLoadError` da trilha ilegível
+ * e devolve a lista vazia — o teste falha com "esperava ao menos a trilha
+ * fixture"). A fila é do RECURSO (o diretório da fixture), então mora no
+ * `globalThis`, com a chave sendo o ROOT RESOLVIDO: workspaces diferentes não
+ * se bloqueiam, e qualquer instância do módulo no MESMO processo compartilha a
+ * mesma fila daquele workspace.
+ */
+const FIXTURE_CHAINS_KEY = '__studyMethodE2EFixtureChains';
+
+/** As filas por workspace root (uma por diretório de fixture neste processo). */
+function fixtureChains(): Map<string, Promise<void>> {
+  const g = globalThis as unknown as Record<string, Map<string, Promise<void>> | undefined>;
+  let chains = g[FIXTURE_CHAINS_KEY];
+  if (!chains) {
+    chains = new Map<string, Promise<void>>();
+    g[FIXTURE_CHAINS_KEY] = chains;
+  }
+  return chains;
+}
+
+/**
+ * Executa `fn` DENTRO da seção crítica da fixture DAQUELE workspace root (na
+ * ordem em que foi chamada). O valor/erro de `fn` vai para o chamador; a FILA
+ * só vê o settle.
+ */
+function fixtureCriticalSection<T>(fn: () => Promise<T>): Promise<T> {
+  const root = path.resolve(workspaceRoot());
+  const chains = fixtureChains();
+  const anterior = chains.get(root) ?? Promise.resolve();
+  const run = anterior.then(fn, fn);
+  chains.set(
+    root,
+    run.then(
+      () => undefined,
+      () => undefined,
+    ),
+  );
+  return run;
+}
+
+/**
+ * REESCREVE a fixture E roda `fn` (que lê) na MESMA seção crítica — é o que
+ * todo handler de trilha usa: `withFixtureTrack(async () => { ... loadTrack ... })`.
+ * Ler DENTRO da seção é o ponto: fora dela, a escrita do próximo handler
+ * truncaria os arquivos no meio da leitura (o defeito medido acima).
+ */
+function withFixtureTrack<T>(fn: () => Promise<T>): Promise<T> {
+  return fixtureCriticalSection(async () => {
+    await writeFixtureTrack();
+    return fn();
+  });
+}
+
+/**
+ * Só a REESCRITA, serializada (nenhuma leitura) — usada pelo aquecimento
+ * disparado na montagem do Map, que não tem o que ler.
+ */
+function writeFixtureTrackSerialized(): Promise<void> {
+  return withFixtureTrack(async () => undefined);
+}
 
 /**
  * Escreve a FIXTURE da trilha em `workspaceRoot()/fixture-tracks/nodejs-do-zero`
@@ -719,25 +834,37 @@ const e2eLlm = {
 
 export function buildTrackStubHandlers(): Map<string, IpcHandlerFn> {
   const map = new Map<string, IpcHandlerFn>();
-  void writeFixtureTrack();
+  // A escrita inicial segue "disparada e não aguardada" (aquece a fixture na
+  // montagem do Map) — mas entra na MESMA fila dos handlers, então o primeiro
+  // handler que chegar já a encontra concluída. Era exatamente a corrida entre
+  // esta chamada e a escrita do handler que produzia o "arquivo ausente/
+  // ilegível" (ver a seção crítica acima).
+  void writeFixtureTrackSerialized();
   map.set(TRACK_CHANNELS.LIST, async (): Promise<TrackListResult> => {
-    await writeFixtureTrack();
-    const { tracks } = await loadAllTracks(path.join(workspaceRoot(), 'fixture-tracks'));
-    return { ok: true, tracks: await buildTrackList(tracks, buildE2ETrackRepo()) };
+    // Cada handler entra na seção crítica: reescreve a fixture e LÊ dentro dela
+    // (ler fora permitiria a escrita do próximo handler truncar os arquivos no
+    // meio desta leitura — foi assim que a Trilha mostrou "Não foi possível
+    // carregar a trilha.").
+    return withFixtureTrack(async () => {
+      const { tracks } = await loadAllTracks(path.join(workspaceRoot(), 'fixture-tracks'));
+      return { ok: true, tracks: await buildTrackList(tracks, buildE2ETrackRepo()) };
+    });
   });
   map.set(TRACK_CHANNELS.GET, async (_e, payload: unknown): Promise<TrackDetailResult> => {
     const p = (payload ?? {}) as { trackSlug?: string };
-    await writeFixtureTrack();
-    const track = await loadTrack(path.join(workspaceRoot(), 'fixture-tracks', p.trackSlug ?? ''));
-    return { ok: true, track: await buildTrackDetail(track, buildE2ETrackRepo()) };
+    return withFixtureTrack(async () => {
+      const track = await loadTrack(path.join(workspaceRoot(), 'fixture-tracks', p.trackSlug ?? ''));
+      return { ok: true, track: await buildTrackDetail(track, buildE2ETrackRepo()) };
+    });
   });
   map.set(TRACK_CHANNELS.LESSON, async (_e, payload: unknown): Promise<TrackLessonResult> => {
     const p = (payload ?? {}) as { trackSlug?: string; lessonId?: string };
-    await writeFixtureTrack();
-    const track = await loadTrack(path.join(workspaceRoot(), 'fixture-tracks', p.trackSlug ?? ''));
-    const found = findLessonAnywhere(track, p.lessonId ?? '');
-    if (!found) return { ok: true, lesson: null };
-    return { ok: true, lesson: await buildTrackLesson(track, found.moduleSlug, p.lessonId!, buildE2ETrackRepo()) };
+    return withFixtureTrack(async () => {
+      const track = await loadTrack(path.join(workspaceRoot(), 'fixture-tracks', p.trackSlug ?? ''));
+      const found = findLessonAnywhere(track, p.lessonId ?? '');
+      if (!found) return { ok: true, lesson: null };
+      return { ok: true, lesson: await buildTrackLesson(track, found.moduleSlug, p.lessonId!, buildE2ETrackRepo()) };
+    });
   });
   map.set(TRACK_CHANNELS.LESSON_DONE, async (_e, payload: unknown): Promise<TrackLessonDoneResult> => {
     const p = (payload ?? {}) as { trackSlug?: string; lessonId?: string };
@@ -746,55 +873,79 @@ export function buildTrackStubHandlers(): Map<string, IpcHandlerFn> {
   });
   map.set(TRACK_CHANNELS.TUTOR_CHAT, async (_e, payload: unknown): Promise<TutorReply> => {
     const p = (payload ?? {}) as TutorChatRequest;
-    const track = await loadTrack(path.join(workspaceRoot(), 'fixture-tracks', p.trackSlug ?? ''));
-    const found = findLessonAnywhere(track, p.lessonId ?? '');
-    if (!found) return { ok: false, message: '', sectionId: null, done: false, error: { code: 'LESSON_NOT_FOUND', message: 'não encontrada' } };
-    if (p.action === 'next') {
-      const section = nextSection(found.lesson.meta, p.presentedSections ?? []);
-      if (!section) return { ok: true, message: '', sectionId: null, done: true };
-      const done = nextSection(found.lesson.meta, [...(p.presentedSections ?? []), section.id]) === null;
+    // Este canal NÃO reescreve a fixture (comportamento de sempre), mas entra na
+    // fila: ler por fora dela é a corrida que faz o tutor receber uma trilha
+    // ilegível enquanto outro handler reescreve os mesmos arquivos.
+    return fixtureCriticalSection(async () => {
+      const track = await loadTrack(path.join(workspaceRoot(), 'fixture-tracks', p.trackSlug ?? ''));
+      const found = findLessonAnywhere(track, p.lessonId ?? '');
+      if (!found) return { ok: false, message: '', sectionId: null, done: false, error: { code: 'LESSON_NOT_FOUND', message: 'não encontrada' } };
+      if (p.action === 'next') {
+        const section = nextSection(found.lesson.meta, p.presentedSections ?? []);
+        if (!section) return { ok: true, message: '', sectionId: null, done: true };
+        const done = nextSection(found.lesson.meta, [...(p.presentedSections ?? []), section.id]) === null;
+        return {
+          ok: true,
+          message: `Tutor E2E: ${section.title} — ${section.markdown.slice(0, 80)}`,
+          sectionId: section.id,
+          sectionTitle: section.title,
+          done,
+        };
+      }
+      const last = [...(p.history ?? [])].reverse().find((m) => m.role === 'user');
       return {
         ok: true,
-        message: `Tutor E2E: ${section.title} — ${section.markdown.slice(0, 80)}`,
-        sectionId: section.id,
-        sectionTitle: section.title,
-        done,
+        message: `Tutor E2E responde a dúvida: ${last?.content ?? '(sem pergunta)'}`,
+        sectionId: null,
+        done: false,
       };
-    }
-    const last = [...(p.history ?? [])].reverse().find((m) => m.role === 'user');
-    return {
-      ok: true,
-      message: `Tutor E2E responde a dúvida: ${last?.content ?? '(sem pergunta)'}`,
-      sectionId: null,
-      done: false,
-    };
+    });
   });
   map.set(TRACK_CHANNELS.CHALLENGE_GET, async (_e, payload: unknown): Promise<TrackChallengeResult> => {
     const p = (payload ?? {}) as TrackChallengeGetRequest;
-    await writeFixtureTrack();
-    const track = await loadTrack(path.join(workspaceRoot(), 'fixture-tracks', p.trackSlug ?? ''));
-    // ADITIVO (rodada 9): p.moduleSlug resolve o desafio do MÓDULO.
-    const spec = await resolveChallengeSpec(track, p.target, p.lessonId, p.challengeId, buildE2ETrackRepo(), p.moduleSlug);
-    return { ok: true, challenge: spec };
+    return withFixtureTrack(async () => {
+      const track = await loadTrack(path.join(workspaceRoot(), 'fixture-tracks', p.trackSlug ?? ''));
+      // ADITIVO (rodada 9): p.moduleSlug resolve o desafio do MÓDULO.
+      const spec = await resolveChallengeSpec(track, p.target, p.lessonId, p.challengeId, buildE2ETrackRepo(), p.moduleSlug);
+      return { ok: true, challenge: spec };
+    });
   });
   map.set(TRACK_CHANNELS.PROFICIENCY_GET, async (_e, payload: unknown): Promise<TrackChallengeResult> => {
     const p = (payload ?? {}) as TrackChallengeGetRequest;
-    await writeFixtureTrack();
-    const track = await loadTrack(path.join(workspaceRoot(), 'fixture-tracks', p.trackSlug ?? ''));
-    const spec = await resolveChallengeSpec(track, 'proficiency', undefined, p.challengeId, buildE2ETrackRepo());
-    return { ok: true, challenge: spec };
+    return withFixtureTrack(async () => {
+      const track = await loadTrack(path.join(workspaceRoot(), 'fixture-tracks', p.trackSlug ?? ''));
+      const spec = await resolveChallengeSpec(track, 'proficiency', undefined, p.challengeId, buildE2ETrackRepo());
+      return { ok: true, challenge: spec };
+    });
   });
   map.set(TRACK_CHANNELS.CHALLENGE_SUBMIT, async (_e, payload: unknown): Promise<TrackSubmitResult> => {
     const p = (payload ?? {}) as TrackSubmitRequest;
-    await writeFixtureTrack();
-    const track = await loadTrack(path.join(workspaceRoot(), 'fixture-tracks', p.trackSlug ?? ''));
-    const repo = buildE2ETrackRepo();
-    // ADITIVO (rodada 9): target 'module' (desafio do módulo, com moduleSlug).
-    const spec = p.target === 'proficiency'
-      ? await resolveChallengeSpec(track, 'proficiency', undefined, p.challengeId, repo)
-      : p.target === 'module'
-        ? await resolveChallengeSpec(track, 'module', undefined, p.challengeId, repo, p.moduleSlug)
-        : await resolveChallengeSpec(track, 'lesson', p.lessonId, p.challengeId, repo);
+    // A SEÇÃO CRÍTICA COBRE SÓ A LEITURA DA FIXTURE — a execução do código do
+    // aluno (`runStudentCode`, um `node --test` de segundos) roda FORA dela:
+    // segurar a fila durante a execução atrasaria toda chamada concorrente, e a
+    // execução não toca em nenhum arquivo da fixture (workdir próprio do
+    // runner). O que sai daqui é tudo o que a execução precisa (spec, testsCode,
+    // trilha carregada e repo), já lido em ordem.
+    const preparo = await withFixtureTrack(async () => {
+      const track = await loadTrack(path.join(workspaceRoot(), 'fixture-tracks', p.trackSlug ?? ''));
+      const repo = buildE2ETrackRepo();
+      // ADITIVO (rodada 9): target 'module' (desafio do módulo, com moduleSlug).
+      const spec = p.target === 'proficiency'
+        ? await resolveChallengeSpec(track, 'proficiency', undefined, p.challengeId, repo)
+        : p.target === 'module'
+          ? await resolveChallengeSpec(track, 'module', undefined, p.challengeId, repo, p.moduleSlug)
+          : await resolveChallengeSpec(track, 'lesson', p.lessonId, p.challengeId, repo);
+      // Execução REAL (node --test) sobre o código do aluno — determinístico.
+      const testsCode = p.target === 'proficiency'
+        ? track.proficiency?.testsCode ?? ''
+        : p.target === 'module'
+          ? track.modules.find((m) => m.meta.slug === p.moduleSlug)?.challenge?.testsCode ?? ''
+          : track.modules.flatMap((m) => m.lessons).find((l) => l.meta.slug === p.lessonId)?.challenges.find((c) => c.slug === p.challengeId)?.testsCode ?? '';
+      // ADITIVO (rodada 9): multi-arquivo — o aluno envia TODOS os arquivos.
+      const hasFiles = Array.isArray(p.files) && p.files.length > 0;
+      return { track, repo, spec, testsCode, hasFiles };
+    });
+    const { track, repo, spec, testsCode, hasFiles } = preparo;
     if (!spec) {
       return {
         ok: false,
@@ -808,20 +959,50 @@ export function buildTrackStubHandlers(): Map<string, IpcHandlerFn> {
         totalCount: 0,
       };
     }
-    // Execução REAL (node --test) sobre o código do aluno — determinístico.
-    const testsCode = p.target === 'proficiency'
-      ? track.proficiency!.testsCode
-      : p.target === 'module'
-        ? track.modules.find((m) => m.meta.slug === p.moduleSlug)?.challenge?.testsCode ?? ''
-        : track.modules.flatMap((m) => m.lessons).find((l) => l.meta.slug === p.lessonId)?.challenges.find((c) => c.slug === p.challengeId)?.testsCode ?? '';
-    // ADITIVO (rodada 9): multi-arquivo — o aluno envia TODOS os arquivos.
-    const hasFiles = Array.isArray(p.files) && p.files.length > 0;
     const res = await runStudentCode({
       studentCode: typeof p.code === 'string' ? p.code : '',
       files: hasFiles ? p.files : undefined,
       testsCode,
       expectedTestCount: spec.expectedTestCount,
     });
+    // ─── PARIDADE COM A PRODUÇÃO: APROVAR O DESAFIO CONCLUI A AULA ─────────
+    //
+    // (ONDA 2 — fecha o achado ALTO-2 da revisão adversarial da onda 1.)
+    //
+    // O DEFEITO MEDIDO, no MESMO fixture: em produção, aprovar desafio da aula-1
+    // deixava `aula-1 done=true` e `aula-2 locked=false`; neste stub, o MESMO
+    // fluxo deixava `aula-1 done=false` e `aula-2 locked=true`. O canal devolvia
+    // só o veredito e NUNCA concluía a aula, então o requisito do dono ("passar
+    // no desafio destrava a próxima aula") era INVISÍVEL para o GATE_E2E — o
+    // harness ficava verde sem medir a mudança que ele deveria provar.
+    //
+    // A CORREÇÃO É DELEGAÇÃO, NUNCA REIMPLEMENTAÇÃO: a MESMA função da produção
+    // (`completeLessonOnChallengePass`, dona da régua de desafios, do gate
+    // sequencial e da contagem do desafio recém-aprovado) é chamada aqui, com a
+    // trilha JÁ CARREGADA e o repo do stub. Se a régua mudar em produção, este
+    // lado muda junto — não existe uma segunda cópia para divergir.
+    //
+    // O RETORNO DO CANAL É O DO SUBMITTER, INALTERADO (ver o `return` abaixo):
+    // o destrave é efeito colateral silencioso, nunca um erro que o aluno veja
+    // por ter acertado o desafio. `target` module/proficiency e veredito
+    // reprovado não entram — mesma cláusula da produção.
+    //
+    // SEM CACHE: o stub não tem cache de payload, então não há `bumpProgressEpoch`
+    // nem `prefetchAfterTrackLessonDone` deste lado (a produção faz os dois no
+    // handler dela, só quando a gravação aconteceu).
+    if (res.passed && p.target === 'lesson' && p.lessonId) {
+      try {
+        await completeLessonOnChallengePass(
+          track,
+          { trackSlug: p.trackSlug ?? '', lessonId: p.lessonId, challengeId: p.challengeId ?? '' },
+          repo,
+        );
+      } catch (err) {
+        // Mesmo silêncio da produção: o veredito do aluno não pode virar erro
+        // porque o destrave falhou.
+        console.warn('[e2e track:challenge-submit] destrave automático falhou:', (err as Error).message);
+      }
+    }
     // ONDA 1 (checks por teste): propaga os checks do runStudentCode REAL —
     // o stub roda node --test de verdade; só repassa os campos novos.
     return {

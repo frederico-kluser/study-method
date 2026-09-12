@@ -24,7 +24,15 @@
  * — agora uma função só (`lessonIsLocked`), para não existirem duas réguas da
  * mesma pergunta.
  * A história completa, com o porquê, mora em
- * `completeLessonOnChallengePass` (logo acima do canal).
+ * `completeLessonOnChallengePass`. ONDA 2 (paridade do harness): as duas réguas
+ * MUDARAM DE CASA — moram em `services/trackService.ts`, porque o stub E2E
+ * (`services/e2eStubs.ts`) passou a DELEGAR para elas em vez de reimplementar a
+ * conclusão de aula: sem isso o GATE_E2E media um produto que não existe (o
+ * stub devolvia só o veredito e nunca concluía a aula, então nenhuma spec
+ * conseguia observar o requisito do dono "passar no desafio destrava a próxima
+ * aula"). O que ficou AQUI é a manutenção de cache deste lado
+ * (`bumpProgressEpoch` + `prefetchAfterTrackLessonDone`), feita só quando a
+ * gravação aconteceu, e o `loadTrackOrError` (o serviço recebe a trilha pronta).
  *
  * ─── ONDA 2 (python-roda) — DUAS MUDANÇAS, E POR QUÊ ────────────────────────
  *
@@ -113,11 +121,10 @@ import { adapterDoDesafio } from '../engine/exec/proofs';
 import { trackHarnessLanguage } from '../content/trackTypes';
 import {
   TrackProgressLike,
-  buildChallengeSummaries,
   buildTrackDetail,
   buildTrackList,
-  computeUnlockStates,
-  loadTrackState,
+  completeLessonOnChallengePass,
+  lessonIsLocked,
   resolveChallengeSpec,
 } from '../services/trackService';
 import { runStudentCode } from '../services/challengeExec';
@@ -269,38 +276,11 @@ export function buildTrackHandlers(deps: TrackHandlerDeps): Map<string, IpcHandl
     }
   }
 
-  /**
-   * A AULA ESTÁ TRANCADA? — UMA RÉGUA SÓ, DOIS HANDLERS (ONDA 1 destrave).
-   *
-   * ══════════════════════════════════════════════════════════════════════════
-   * POR QUE ISTO VIROU FUNÇÃO, E NÃO DUAS LINHAS COPIADAS
-   * ══════════════════════════════════════════════════════════════════════════
-   * O gate sequencial nasceu no `LESSON_DONE` (ONDA 15 — o bloco que explica o
-   * falso destravamento mora lá). Esta onda deu a MESMA pergunta a um SEGUNDO
-   * handler: o destrave automático ao passar o desafio da aula também precisa
-   * recusar aula trancada, senão o aluno destrava a seguinte PULANDO a ordem
-   * por outra porta — o defeito exato que a ONDA 15 fechou.
-   * Duas cópias da pergunta é como as duas respostas divergem: a régua é a
-   * MESMA (`loadTrackState` + `computeUnlockStates`, a trava é a aula anterior
-   * não concluída E sem proficiência), e agora tem UM lugar só para mudar.
-   *
-   * DECISÃO: a função responde apenas "trancada?" e NÃO decide o que fazer com
-   * a resposta — o `LESSON_DONE` transforma `true` em `{ok:false}` (ele é um
-   * registro de conclusão; recusar é o retorno certo) e o destrave automático
-   * transforma `true` em "não grava e segue" (o submit do aluno não pode
-   * falhar por causa do destrave). Quem chama decide; a régua é compartilhada.
-   * Ela LANÇA se a leitura do progresso falhar — cada chamador tem o seu
-   * tratamento (fail-closed no gate; silencioso no destrave).
-   */
-  async function lessonIsLocked(
-    track: LoadedTrack,
-    trackSlug: string,
-    lessonId: string,
-    progress: TrackRepoLike,
-  ): Promise<boolean> {
-    const { doneSet, proficient } = await loadTrackState(trackSlug, progress);
-    return computeUnlockStates(track, doneSet, proficient).get(lessonId)?.locked === true;
-  }
+  // A AULA ESTÁ TRANCADA? — a régua MORA no serviço (`services/trackService.ts`,
+  // importada como `lessonIsLocked`, junto de `completeLessonOnChallengePass`):
+  // agora tem TRÊS chamadores — os dois canais deste arquivo e o stub do
+  // harness E2E (paridade com a produção). O porquê de ser uma função só, e não
+  // cópias, está documentado lá.
 
   // Ponte tutor/regenerador → cliente de chat. NÃO passa esforço de raciocínio:
   // o default do cliente já é o MÁXIMO do contrato congelado
@@ -729,114 +709,20 @@ export function buildTrackHandlers(deps: TrackHandlerDeps): Map<string, IpcHandl
       totalCount: res.totalCount,
     };
   };
-  /**
-   * PASSAR NO DESAFIO DA AULA CONCLUI A AULA — E DESTRAVA A SEGUINTE.
-   * (ONDA 1 — pedido do dono: "quando eu passo no desafio já quero que libere
-   * a destrave a próxima aula".)
-   *
-   * ══════════════════════════════════════════════════════════════════════════
-   * O DEFEITO MEDIDO
-   * ══════════════════════════════════════════════════════════════════════════
-   * O `done` da aula só era gravado pelo canal `track:lesson-done` (o clique em
-   * "Concluir aula"). Quem passava no desafio da aula via o veredito verde, mas
-   * a aula continuava `done=false` no banco — e o botão "Avançar para a próxima
-   * aula" do TrackChallengePanel caía no fallback da Trilha, porque
-   * `computeUnlockStates` seguia devolvendo `locked=true` para a seguinte. O
-   * aluno tinha de clicar em "Concluir aula" numa tela que já não tinha nada a
-   * mostrar para receber o destrave que ele JÁ tinha provado merecer.
-   *
-   * ══════════════════════════════════════════════════════════════════════════
-   * A DECISÃO
-   * ══════════════════════════════════════════════════════════════════════════
-   * A conclusão passa a ser gravada AQUI, no MAIN, quando o submit aprova o
-   * desafio — e não na tela: este é o registro do progresso, a última porta
-   * antes do banco, e o destrave vale para toda entrada do canal. O canal
-   * `track:lesson-done` continua existindo e idempotente (o clique explícito em
-   * "Concluir aula" segue funcionando).
-   *
-   * `target === 'module'` e `target === 'proficiency'` NÃO entram: proficiência
-   * já destrava a trilha inteira no canal próprio (`setTrackProficiency`), e o
-   * desafio de módulo é autoral — não conclui aula nenhuma.
-   *
-   * ══════════════════════════════════════════════════════════════════════════
-   * A RÉGUA REPRODUZIDA É A DE **DESAFIOS** — A CLÁUSULA DE QUIZ **NÃO** É
-   * ══════════════════════════════════════════════════════════════════════════
-   * "A aula está completa" AQUI = TODO desafio da aula com último veredito
-   * `passed` — a cláusula de DESAFIOS do `lessonFinishBlock` do renderer
-   * (src/lib/trackLessonState.ts:566-568), lida pelo lado do MAIN sobre
-   * `buildChallengeSummaries` (autorais + regenerados do aluno): a mesma lista
-   * que o payload da aula entrega ao gate da tela, para os dois lados nunca
-   * discordarem sobre o que falta EM DESAFIO.
-   *
-   * O QUE NÃO É REPRODUZIDO, E POR QUÊ: o `lessonFinishBlock` tem DUAS
-   * cláusulas com precedência — `pendingQuizCount > 0 → 'quiz'` ANTES de
-   * `'challenges'` (trackLessonState.ts:565) — e este caminho reproduz SÓ a de
-   * desafios. O MAIN **não tem** o estado de quiz: ele vive no renderer
-   * (`quizBySection` / `pendingQuizzes`, trackLessonState.ts:1863), ancorado
-   * nas seções APRESENTADAS (`quizzesByMessageIndex`) — e o MAIN não conhece as
-   * seções apresentadas. Não há como perguntar "há quiz visível sem maestria?"
-   * deste lado sem inventar uma segunda régua da MESMA pergunta.
-   *
-   * ── LIMITAÇÃO DECLARADA (conhecida; medida pela revisão adversarial) ──────
-   * CAMINHO RESIDUAL, reproduzível: na Aula, abrir "Desafios" ANTES de qualquer
-   * quiz ficar visível (permitido — `challengeOpenBlockedByQuiz` só bloqueia
-   * quando `finishBlock === 'quiz'`, LessonView.tsx:696), ir à aba Desafio e
-   * NÃO submeter, voltar à Aula, apresentar a seção com o quiz e deixá-lo sem
-   * resposta, voltar à aba Desafio (a seleção sobrevive — o shell monta só a
-   * view ativa, `const View = VIEWS[active]`, App.tsx:78, e o `trackChallenge`
-   * vive no `ChallengeNavProvider` ACIMA do Shell, App.tsx:123) e aprovar: a
-   * aula sai `done=true` com o quiz pendente. Isto é DECLARADO de propósito —
-   * a limitação é conhecida e não deve ser redescoberta como surpresa.
-   *
-   * ⚑ DECISÃO ARBITRADA (dono do produto, via orquestrador): NÃO trazer a
-   * cláusula de quiz para o MAIN. O pedido explícito é "passar no desafio
-   * destrava a próxima aula"; a régua extra de quiz AQUI seria uma SEGUNDA
-   * RÉGUA da mesma pergunta — o repo proíbe (ver o comentário de
-   * `challengeOpenBlockedByQuiz`, LessonView.tsx:687-689: "uma segunda régua
-   * para a mesma pergunta é como um gate volta a divergir do outro na onda
-   * seguinte") — e, se divergisse, faria o destrave FALHAR em silêncio: o pior
-   * modo de falha para o pedido do dono (o aluno passou no desafio e a aula
-   * seguinte continua trancada, sem nada na tela explicando por quê). A
-   * cláusula de quiz segue valendo onde sempre valeu: no botão "Concluir aula"
-   * (`lessonFinishBlock`), INTOCADO.
-   *
-   * CRÍTICO: o submit NÃO persiste a tentativa (quem persiste é o renderer,
-   * DEPOIS, via `study:mark-challenge-attempt`), então o veredito do desafio
-   * que acabou de ser aprovado AINDA NÃO está no banco neste instante — ele é
-   * contado como aprovado pelo `challengeId` do próprio request. Sem isso, o
-   * último desafio da aula nunca fecharia a conta sozinho.
-   *
-   * O GATE SEQUENCIAL é o mesmo do `LESSON_DONE` (`lessonIsLocked`): aula
-   * trancada NÃO grava — passar um desafio de aula trancada não pode destravar
-   * a seguinte por cima da ordem.
-   *
-   * SILÊNCIO POR CONTRATO: falha em qualquer passo (trilha/aula ilegível,
-   * leitura de progresso, gravação) NÃO vira erro do submit — o aluno recebe o
-   * veredito dele e, no pior caso, conclui a aula pelo botão de sempre. É o
-   * chamador que captura; aqui a função simplesmente não grava.
-   */
-  async function completeLessonOnChallengePass(
-    p: TrackSubmitRequest,
-    lessonId: string,
-    progress: TrackRepoLike,
-  ): Promise<void> {
-    // (a) trilha/aula ilegível → NÃO grava (silencioso, não quebra o submit).
-    const track = await loadTrackOrError(p.trackSlug);
-    if ('error' in track) return;
-    const found = findLessonAnywhere(track, lessonId);
-    if (!found) return;
-    // (b) o MESMO gate de trava do `LESSON_DONE`.
-    if (await lessonIsLocked(track, p.trackSlug, lessonId, progress)) return;
-    // (c) todos os desafios da aula aprovados, contando o que acabou de passar.
-    const resumos = await buildChallengeSummaries(p.trackSlug, found.lesson, progress, track);
-    const todosAprovados = resumos.every((c) => c.slug === p.challengeId || c.lastVerdict === 'passed');
-    if (!todosAprovados) return;
-    // (d) a MESMA sequência de gravação do `LESSON_DONE` — para que o
-    // `track:get`/`track:lesson` seguintes já vejam a aula seguinte destravada.
-    await progress.markTrackLessonDone(p.trackSlug, lessonId);
-    bumpProgressEpoch();
-    prefetchAfterTrackLessonDone(track, lessonId, progress);
-  }
+  // ─── DESTRAVE AUTOMÁTICO: A RÉGUA MORA NO SERVIÇO ─────────────────────────
+  //
+  // `completeLessonOnChallengePass` (a régua "passar no desafio da aula conclui
+  // a aula e destrava a seguinte", com a história completa do defeito medido, a
+  // cláusula de desafios do `lessonFinishBlock`, a limitação DECLARADA da
+  // cláusula de quiz e o gate sequencial) foi EXTRAÍDA para
+  // `services/trackService.ts` nesta onda: o stub do harness E2E passou a ter de
+  // medir o mesmo requisito, e a alternativa era uma SEGUNDA cópia da régua (é
+  // assim que os dois lados divergem). O serviço recebe a TRILHA JÁ CARREGADA
+  // (aqui, `loadTrackOrError`) e NÃO toca no cache de payload: o
+  // `bumpProgressEpoch()` + `prefetchAfterTrackLessonDone(...)` continuam sendo
+  // manutenção de cache DESTE lado, feita só quando a gravação aconteceu
+  // (retorno `true`).
+  //
 
   map.set(TRACK_CHANNELS.CHALLENGE_SUBMIT, async (_event, payload: unknown): Promise<TrackSubmitResult> => {
     const p = (payload ?? {}) as TrackSubmitRequest;
@@ -848,7 +734,20 @@ export function buildTrackHandlers(deps: TrackHandlerDeps): Map<string, IpcHandl
     // silencioso, nunca um erro que o aluno veja por ter acertado o desafio.
     if (base.ok && base.passed && p.target === 'lesson' && p.lessonId && repo) {
       try {
-        await completeLessonOnChallengePass(p, p.lessonId, repo);
+        const track = await loadTrackOrError(p.trackSlug);
+        // Trilha ilegível → não grava (mesmo silêncio de antes: a conclusão é
+        // efeito colateral, nunca um erro que o aluno veja por ter acertado).
+        if (!('error' in track)) {
+          const gravou = await completeLessonOnChallengePass(
+            track,
+            { trackSlug: p.trackSlug, lessonId: p.lessonId, challengeId: p.challengeId ?? '' },
+            repo,
+          );
+          if (gravou) {
+            bumpProgressEpoch();
+            prefetchAfterTrackLessonDone(track, p.lessonId, repo);
+          }
+        }
       } catch (err) {
         // "Concluir aula" e o próximo submit continuam sendo o caminho de
         // recuperação: o destrave falhou, o veredito do aluno não.
