@@ -25,12 +25,23 @@
  * mesma pergunta.
  * A história completa, com o porquê, mora em
  * `completeLessonOnChallengePass`. ONDA 2 (paridade do harness): as duas réguas
- * MUDARAM DE CASA — moram em `services/trackService.ts`, porque o stub E2E
- * (`services/e2eStubs.ts`) passou a DELEGAR para elas em vez de reimplementar a
- * conclusão de aula: sem isso o GATE_E2E media um produto que não existe (o
- * stub devolvia só o veredito e nunca concluía a aula, então nenhuma spec
- * conseguia observar o requisito do dono "passar no desafio destrava a próxima
- * aula"). O que ficou AQUI é a manutenção de cache deste lado
+ * DO DESTRAVE AUTOMÁTICO MUDARAM DE CASA — a de desafios
+ * (`lessonChallengesAllPassed`) e a do gate sequencial (`lessonIsLocked`) moram
+ * em `services/trackService.ts`, porque o stub E2E (`services/e2eStubs.ts`)
+ * passou a DELEGAR a conclusão automática do `track:challenge-submit` para
+ * `completeLessonOnChallengePass` em vez de reimplementar a conclusão de aula:
+ * sem isso o GATE_E2E media um produto que não existe (o stub devolvia só o
+ * veredito e nunca concluía a aula, então nenhuma spec conseguia observar o
+ * requisito do dono "passar no desafio destrava a próxima aula").
+ * ONDA 3 (stub-lesson-done), e a razão desta nota: o que passou a ser
+ * compartilhado é o destrave automático E o gate do `track:lesson-done` DA
+ * PRODUÇÃO — o canal logo abaixo, que é o dono da régua `lessonIsLocked` desde
+ * a ONDA 15. O stub também a aplica, agora, no canal dele
+ * (`TRACK_CHANNELS.LESSON_DONE`, `services/e2eStubs.ts`): até a onda 3 o
+ * `lesson-done` do stub gravava INCONDICIONALMENTE, então a régua compartilhada
+ * valia só no canal do desafio, o harness não conseguia observar "aula trancada
+ * não conclui" e um comentário afirmando paridade nos DOIS canais seria falso.
+ * O que ficou AQUI é a manutenção de cache deste lado
  * (`bumpProgressEpoch` + `prefetchAfterTrackLessonDone`), feita só quando a
  * gravação aconteceu, e o `loadTrackOrError` (o serviço recebe a trilha pronta).
  *

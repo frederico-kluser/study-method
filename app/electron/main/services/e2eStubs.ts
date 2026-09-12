@@ -86,12 +86,13 @@ import {
 } from '../ipc/study-handlers';
 import { safeHandleMap, type IpcMainHandleLike, type IpcHandlerFn } from '../ipc/safeHandle';
 import type { LessonProgress } from './lessonTypes';
-import { loadAllTracks, loadTrack, findLessonAnywhere } from '../content/trackLoader';
+import { loadAllTracks, loadTrack, findLessonAnywhere, type LoadedTrack } from '../content/trackLoader';
 import {
   buildTrackList,
   buildTrackDetail,
   buildTrackLesson,
   completeLessonOnChallengePass,
+  lessonIsLocked,
   resolveChallengeSpec,
 } from '../services/trackService';
 import { nextSection } from '../services/tutorChat';
@@ -866,10 +867,51 @@ export function buildTrackStubHandlers(): Map<string, IpcHandlerFn> {
       return { ok: true, lesson: await buildTrackLesson(track, found.moduleSlug, p.lessonId!, buildE2ETrackRepo()) };
     });
   });
+  // ─── track:lesson-done — O GATE SEQUENCIAL DA PRODUÇÃO VALE AQUI TAMBÉM ───
+  //
+  // (ONDA 3 — fecha o achado MEDIUM da revisão adversarial do diff integrado.)
+  //
+  // O DEFEITO MEDIDO: a onda 2 fez o stub DELEGAR a conclusão automática do
+  // `track:challenge-submit` (`completeLessonOnChallengePass` — que aplica o
+  // gate), mas ESTE canal continuava concluindo a aula INCONDICIONALMENTE. Em
+  // produção, o mesmo `track:lesson-done` para uma aula trancada responde
+  // `{ok:false, error:'aula trancada: conclua a anterior antes desta.'}` e NÃO
+  // grava (`ipc/track-handlers.ts`). Consequências: o harness E2E era INCAPAZ de
+  // observar "aula trancada não conclui" (comportamento que a produção garante)
+  // e o comentário de paridade afirmava uma régua compartilhada que não valia
+  // para este canal.
+  //
+  // A CORREÇÃO É DELEGAÇÃO, de novo: a MESMA `lessonIsLocked` do serviço (a
+  // régua de `computeUnlockStates`), com a trilha JÁ CARREGADA da fixture e o
+  // repo do stub (`buildE2ETrackRepo`). Nenhuma segunda cópia da pergunta.
+  //
+  // TRILHA ILEGÍVEL NÃO VIRA BLOQUEIO — mesmo critério da produção ("o gate
+  // existe para ORDENAR o avanço, não para punir quem já estava numa aula
+  // quando o disco mudou"): o `catch` abaixo segue para a gravação. É ele que
+  // mantém de pé, por exemplo, o `trackSlug` de OUTRA trilha (diretório
+  // inexistente na fixture), que o store POR TRILHA isola — antes e depois
+  // desta mudança.
+  //
+  // A leitura da trilha acontece DENTRO da seção crítica (`withFixtureTrack`),
+  // como nos handlers vizinhos: fora dela, a reescrita da fixture pelo próximo
+  // handler truncaria os arquivos no meio desta leitura.
   map.set(TRACK_CHANNELS.LESSON_DONE, async (_e, payload: unknown): Promise<TrackLessonDoneResult> => {
     const p = (payload ?? {}) as { trackSlug?: string; lessonId?: string };
-    await buildE2ETrackRepo().markTrackLessonDone(p.trackSlug ?? '', p.lessonId ?? '');
-    return { ok: true };
+    return withFixtureTrack(async () => {
+      const repo = buildE2ETrackRepo();
+      let track: LoadedTrack | null = null;
+      try {
+        track = await loadTrack(path.join(workspaceRoot(), 'fixture-tracks', p.trackSlug ?? ''));
+      } catch {
+        // Trilha ilegível → SEM gate (nunca um bloqueio inventado pelo disco).
+        track = null;
+      }
+      if (track && (await lessonIsLocked(track, p.trackSlug ?? '', p.lessonId ?? '', repo))) {
+        return { ok: false, error: 'aula trancada: conclua a anterior antes desta.' };
+      }
+      await repo.markTrackLessonDone(p.trackSlug ?? '', p.lessonId ?? '');
+      return { ok: true };
+    });
   });
   map.set(TRACK_CHANNELS.TUTOR_CHAT, async (_e, payload: unknown): Promise<TutorReply> => {
     const p = (payload ?? {}) as TutorChatRequest;

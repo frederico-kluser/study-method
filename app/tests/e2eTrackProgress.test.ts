@@ -112,6 +112,75 @@ describe('e2eStubs: o progresso do harness sobrevive entre chamadas de canal', (
     assert.equal(depois[0].lessons[1].current, true, 'a aula 2 virou a aula atual');
   });
 
+  /**
+   * O GATE SEQUENCIAL DA PRODUÇÃO VALE NO CANAL DO STUB (onda 3 — fecha o
+   * achado MEDIUM da revisão adversarial do diff integrado).
+   *
+   * ─── O DEFEITO QUE ESTE CASO TRAVA ───────────────────────────────────────
+   * A onda 2 extraiu as réguas do destrave para `services/trackService.ts` e
+   * fez o `track:challenge-submit` do stub DELEGAR a conclusão automática
+   * (`completeLessonOnChallengePass`). O canal `track:lesson-done` do stub,
+   * porém, seguiu concluindo a aula INCONDICIONALMENTE — enquanto a produção
+   * RECUSA aula trancada com `{ok:false, error:'aula trancada: conclua a
+   * anterior antes desta.'}` (`ipc/track-handlers.ts`, a régua
+   * `lessonIsLocked`). O harness E2E era, por isso, INCAPAZ de observar "aula
+   * trancada não conclui": o stub respondia ok:true e gravava.
+   *
+   * O QUE ESTE CASO PROVA, NA ORDEM EM QUE A TELA CHAMA: com a aula 2 TRANCADA
+   * (aula 1 não concluída) a chamada é RECUSADA com a mensagem da produção e
+   * NADA é gravado (`done` continua false no `track:get` seguinte); e, depois
+   * de concluir a aula 1 — que destrava a 2 —, a aula 2 conclui normal.
+   *
+   * MUTAÇÃO (registrada no handoff): revertido o gate do stub para o
+   * `lesson-done` incondicional de antes, este teste FALHA na primeira
+   * asserção de `ok:false` — é ele que morde.
+   */
+  it('aula TRANCADA não conclui pelo track:lesson-done; destravada, conclui (gate da produção no stub)', async () => {
+    const mod = await loadE2EStubs();
+    const map = mod.buildTrackStubHandlers() as unknown as Map<string, IpcHandlerFn>;
+
+    // Pré-condição medida na tela: a aula 2 nasce com CADEADO.
+    const antes = await trackDetail(map, 'nodejs-do-zero');
+    assert.equal(antes[0].lessons[1].slug, 'aula-2');
+    assert.equal(antes[0].lessons[1].locked, true, 'pré-condição: a aula 2 começa TRANCADA');
+
+    // A MESMA chamada que a LessonView faz — e que a produção recusa.
+    const recusado = (await map.get(TRACK_CHANNELS.LESSON_DONE)!(undefined, {
+      trackSlug: 'nodejs-do-zero',
+      lessonId: 'aula-2',
+    })) as { ok: boolean; error?: string };
+    assert.equal(recusado.ok, false, 'aula trancada NÃO pode concluir');
+    assert.equal(
+      recusado.error,
+      'aula trancada: conclua a anterior antes desta.',
+      'a recusa é a MESMA mensagem da produção',
+    );
+
+    // E NADA foi gravado: era exatamente aqui que o stub mentia (ok:true).
+    const depoisDaRecusa = await trackDetail(map, 'nodejs-do-zero');
+    assert.equal(depoisDaRecusa[0].lessons[1].done, false, 'a recusa não pode gravar a aula 2');
+    assert.equal(depoisDaRecusa[0].lessons[1].locked, true, 'e o cadeado continua fechado');
+    assert.equal(depoisDaRecusa[0].lessons[0].done, false, 'a aula 1 também não foi tocada');
+
+    // A aula 1 (a primeira nunca é trancada) conclui e destrava a 2…
+    const primeira = (await map.get(TRACK_CHANNELS.LESSON_DONE)!(undefined, {
+      trackSlug: 'nodejs-do-zero',
+      lessonId: 'aula-1',
+    })) as { ok: boolean };
+    assert.equal(primeira.ok, true, 'a primeira aula não tem anterior para dever');
+    const destravada = await trackDetail(map, 'nodejs-do-zero');
+    assert.equal(destravada[0].lessons[1].locked, false, 'concluir a aula 1 destrava a 2');
+
+    // …e a chamada ANTES recusada agora conclui normal, gravando de verdade.
+    const aceito = (await map.get(TRACK_CHANNELS.LESSON_DONE)!(undefined, {
+      trackSlug: 'nodejs-do-zero',
+      lessonId: 'aula-2',
+    })) as { ok: boolean };
+    assert.equal(aceito.ok, true, 'destravada, a aula 2 conclui');
+    const fim = await trackDetail(map, 'nodejs-do-zero');
+    assert.equal(fim[0].lessons[1].done, true, 'e a conclusão foi GRAVADA');
+  });
+
   it('o payload da AULA concluída aponta a próxima (nextLesson) — o botão "Avançar" tem para onde ir', async () => {
     const mod = await loadE2EStubs();
     const map = mod.buildTrackStubHandlers() as unknown as Map<string, IpcHandlerFn>;
