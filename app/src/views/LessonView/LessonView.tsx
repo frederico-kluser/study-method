@@ -33,9 +33,11 @@
  * ONDA2-CHAT-NINTENDO (pedidos do dono): coluna em min(1920px, 100%) com o
  * painel de mensagens capado em 1000px centrado (SUPERADO pela ONDA11 — hoje
  * é uma coluna só, de 960px, ver LESSON_COLUMN_SX); balões entram com
- * AnimatePresence + fadeInUp (só os NOVOS da sessão); auto-scroll SÓ quando o
- * usuário está no fim (ou acabou de abrir) e SMOOTH nos nudges (o tick do
- * typewriter segue INSTANTÂNEO — smooth a cada ~2.5ms pularia o streaming);
+ * AnimatePresence + fadeInUp (só os NOVOS da sessão); auto-scroll (o "SÓ
+ * quando o usuário está no fim" desta onda foi REVOGADO pela ONDA15 — hoje o
+ * painel acompanha o fim SEMPRE, ver pinLogToBottom/nudgeLogToBottom) com
+ * SMOOTH nos nudges (o tick do typewriter segue INSTANTÂNEO — smooth a cada
+ * ~2.5ms pularia o streaming);
  * press feedback (scale 0.98) nos botões do chat; o reply do tutor ficou à
  * ESQUERDA com avatar (detalhes na ChatBubble) e o erro de execução é
  * INSTANTÂNEO (TypewriterText `instant` — a review de APROVAÇÃO continua a
@@ -94,6 +96,18 @@
  *      ganhou `tabIndex={-1}`. Sem ele o framer marca `tabIndex=0` na casca
  *      animada e o teclado para num <span> mudo antes de cada botão (o
  *      microfone era regressão da onda 11).
+ *
+ * ONDA15 (auto-scroll — pedido do dono, ao pé da letra: "durante a aula quero
+ * auto scroll do conteúdo sempre pro final da tela"): a decisão da
+ * ONDA2-CHAT-NINTENDO de só puxar o painel quando o aluno JÁ estava no fim
+ * está REVOGADA. O guard de posição (`NEAR_BOTTOM_PX` + `isNearBottom`) morreu
+ * inteiro: o tick da digitação e o nudge de fim puxam o painel ao fim SEMPRE.
+ * As duas decisões viraram funções PURAS exportadas (`pinLogToBottom` /
+ * `nudgeLogToBottom`) — é o que permite prová-las com um elemento FAKE, sem
+ * jsdom (tests/lessonAutoScroll.test.ts). O gatilho continua sendo CONTEÚDO
+ * NOVO: nenhum listener de `scroll` foi acrescentado, justamente para não
+ * brigar com o aluno a cada evento de rolagem — o efeito pedido é o painel
+ * SEMPRE no fim durante a aula.
  *
  * ONDA2-QUIZ-OVERLAY (o dono, textualmente: "o layout do quiz deve ser sobre a
  * tela e respondendo ele minimiza para ficar no chat" + "só vamos para o
@@ -1014,6 +1028,50 @@ type QuizNoticeKind = keyof typeof QUIZ_NOTICE_KEY;
  */
 const QUIZ_HISTORY_NOTICE_TAG = 'historico-da-aula';
 
+/**
+ * ONDA15 — AS DUAS PORTAS DO AUTO-SCROLL, e por que elas não têm guarda.
+ *
+ * ─── O PEDIDO, AO PÉ DA LETRA ─────────────────────────────────────────────
+ * "durante a aula quero auto scroll do conteúdo sempre pro final da tela".
+ *
+ * ─── A DECISÃO QUE ISSO REVOGA ────────────────────────────────────────────
+ * A ONDA2-CHAT-NINTENDO havia decidido o contrário: o painel só era puxado
+ * para o fim quando o usuário ESTAVA no fim (a menos de `NEAR_BOTTOM_PX` da
+ * borda), e quem tivesse rolado para cima para reler ficava onde estava —
+ * "NADA o puxa de volta". Essa decisão está REVOGADA pelo dono. O guard de
+ * posição morreu inteiro (`NEAR_BOTTOM_PX` e `isNearBottom` não existem mais):
+ * nenhuma destas funções lê `scrollTop` ou `clientHeight`, então não há mais
+ * posição de onde "estar longe do fim" possa impedir o puxão. O estado
+ * esperado durante a aula passou a ser: o painel está SEMPRE no fim.
+ *
+ * ─── QUEM DISPARA (e quem NÃO dispara) ────────────────────────────────────
+ * O gatilho é CONTEÚDO NOVO: o step da digitação (`onStreamTick` → o tick) e a
+ * mudança de histórico/digitação (o nudge). Não existe listener de `scroll`
+ * nesta view de propósito: um listener reagiria à ROLAGEM do aluno e brigaria
+ * com ele a cada evento — o que o dono pediu é o painel acompanhando o fim,
+ * não uma disputa com quem está lendo.
+ *
+ * ─── AS DUAS FÍSICAS, INALTERADAS (só o guard saiu) ───────────────────────
+ *   instantâneo (`pinLogToBottom`) — o tick do typewriter, um por step: a
+ *     ~2.5ms por step a 100 tps o `smooth` não completaria entre dois steps e
+ *     o streaming "pularia" na tela;
+ *   suave (`nudgeLogToBottom`) — o nudge de fim (mensagem nova entra, a
+ *     digitação começa ou termina).
+ *
+ * Exportadas para serem provadas com um elemento FAKE — objeto com
+ * `scrollTop`/`scrollHeight`, sem DOM nenhum — em tests/
+ * lessonAutoScroll.test.ts: o alvo é o fim MESMO com o aluno rolado para cima
+ * e longe dele, e é isso que a asserção MORDER.
+ */
+export function pinLogToBottom(el: Pick<HTMLElement, 'scrollTop' | 'scrollHeight'>): void {
+  el.scrollTop = el.scrollHeight;
+}
+
+/** O irmão suave — ver o bloco acima: fim SEMPRE, com `behavior: 'smooth'`. */
+export function nudgeLogToBottom(el: Pick<HTMLElement, 'scrollHeight' | 'scrollTo'>): void {
+  el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' });
+}
+
 export function LessonView(props: ViewProps): ReactElement {
   const { t, i18n } = useTranslation();
   const tI = useMemo(
@@ -1213,40 +1271,33 @@ export function LessonView(props: ViewProps): ReactElement {
 
   // Região com scroll do chat (a Box com overflowY do render).
   const logScrollRef = useRef<HTMLDivElement | null>(null);
-  // ONDA2-CHAT-NINTENDO (auto-scroll suave — pedido do dono: "suavize com
-  // scrollTo({behavior:'smooth'}) apenas quando o usuário está no fim"):
-  // o painel só é PUXADO para o fim quando o usuário ESTÁ no fim (ou acabou
-  // de abrir a aula — scrollTop 0 sem scroll manual). Se ele rolou para cima
-  // para reler, NADA o puxa de volta (mudança em relação à Onda 2, que
-  // puxava SEMPRE durante a digitação — decisão documentada: o novo
-  // comportamento respeita a leitura; o fim à vista no fluxo normal é
-  // preservado porque o usuário ativo está no fim).
-  const NEAR_BOTTOM_PX = 120;
-  const isNearBottom = useCallback((): boolean => {
-    const el = logScrollRef.current;
-    if (!el) return true;
-    return el.scrollHeight - el.scrollTop - el.clientHeight <= NEAR_BOTTOM_PX;
-  }, []);
-  // Auto-scroll DURANTE a digitação: a cada step do typewriter (onStreamTick)
-  // o painel acompanha o fim — mas só se o usuário está no fim. DECISÃO:
-  // o tick usa scroll INSTANTÂNEO (scrollTop = scrollHeight), NUNCA smooth —
-  // a ~2.5ms por step a 100 tps o smooth não completaria e o streaming
+  // ONDA15 (auto-scroll SEMPRE — pedido do dono: "durante a aula quero auto
+  // scroll do conteúdo sempre pro final da tela"): o guard de posição da
+  // ONDA2-CHAT-NINTENDO ("só puxa se o usuário está no fim; se ele rolou para
+  // cima para reler, NADA o puxa de volta") está REVOGADO. O tick abaixo não
+  // consulta posição nenhuma — detalhe e porquê em `pinLogToBottom`/
+  // `nudgeLogToBottom` (módulo, exportadas para teste).
+  //
+  // Auto-scroll DURANTE a digitação: a cada step do typewriter
+  // (onStreamTick) o painel acompanha o fim, SEMPRE. A física não mudou: o
+  // tick usa scroll INSTANTÂNEO (scrollTop = scrollHeight), NUNCA smooth — a
+  // ~2.5ms por step a 100 tps o smooth não completaria e o streaming
   // "pularia" (o tick é o que mantém a digitação visível).
   const handleStreamTick = useCallback((): void => {
     const el = logScrollRef.current;
-    if (el && isNearBottom()) el.scrollTop = el.scrollHeight;
-  }, [isNearBottom]);
+    if (el) pinLogToBottom(el);
+  }, []);
   // Nudge de fim: quando o conjunto de mensagens digitando muda (início/fim)
   // ou o histórico cresce (mensagem nova entra), leva o fim à vista com
-  // SMOOTH — mas só se o usuário está no fim OU o painel acabou de montar
-  // (scrollTop 0 e histórico presente: abrir a aula — inclusive o fluxo de
-  // erro — deve cair no FIM, não ficar no topo).
+  // SMOOTH — SEMPRE, sem consultar posição (ONDA15). O antigo `fresh`
+  // (scrollTop 0 + histórico presente, o caso "abrir a aula no topo") morreu
+  // junto com o guard: ele só existia para furar a condição que não existe
+  // mais, e o puxão incondicional cobre aquele caso e todos os outros.
   useEffect(() => {
     const el = logScrollRef.current;
     if (!el) return;
-    const fresh = el.scrollTop === 0 && chat.history.length > 0;
-    if (isNearBottom() || fresh) el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' });
-  }, [chat.history.length, streamingIds, isNearBottom]);
+    nudgeLogToBottom(el);
+  }, [chat.history.length, streamingIds]);
 
   // ONDA2-IMESSAGE (gating do "Concluir aula"): bloqueado quando há desafios
   // E algum NÃO passou (lastVerdict !== 'passed' — null = nunca tentado). O
