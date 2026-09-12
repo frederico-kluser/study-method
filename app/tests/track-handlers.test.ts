@@ -137,11 +137,25 @@ test('multiplica 2*3', () => { assert.equal(multiplica(2, 3), 6); });
 };
 
 async function makeTrackDir(
-  opts: { entryCriteria?: string[]; previousLesson?: { slug: string; title: string; theory: string } } = {},
+  opts: {
+    entryCriteria?: string[];
+    previousLesson?: { slug: string; title: string; theory: string };
+    /** ONDA 1 (destrave-desafio): aula DEPOIS da aula-1 — é ela que tem de
+     *  destravar quando o desafio da aula-1 é aprovado. */
+    nextLesson?: { slug: string; title: string };
+    /** ONDA 1 (destrave-desafio): desafios DECLARADOS na aula-1. Default: os
+     *  dois do fixture (desafio-1 + desafio-multi), que é o caso "aula com
+     *  DOIS desafios"; `['desafio-1']` é o caso "aula com UM desafio". */
+    lessonChallenges?: string[];
+  } = {},
 ): Promise<string> {
   const root = mkdtempSync(path.join(os.tmpdir(), 'track-handlers-'));
   const track = path.join(root, 'trilha-teste');
-  const lessonSlugs = opts.previousLesson ? [opts.previousLesson.slug, 'aula-1'] : ['aula-1'];
+  const lessonSlugs = [
+    ...(opts.previousLesson ? [opts.previousLesson.slug] : []),
+    'aula-1',
+    ...(opts.nextLesson ? [opts.nextLesson.slug] : []),
+  ];
   await fs.mkdir(path.join(track, 'modules', 'mod-1', 'lessons', 'aula-1', 'challenges', 'desafio-1'), { recursive: true });
   await fs.writeFile(
     path.join(track, 'track.json'),
@@ -188,6 +202,25 @@ async function makeTrackDir(
       'utf8',
     );
   }
+  if (opts.nextLesson) {
+    await fs.mkdir(path.join(track, 'modules', 'mod-1', 'lessons', opts.nextLesson.slug), { recursive: true });
+    await fs.writeFile(
+      path.join(track, 'modules', 'mod-1', 'lessons', opts.nextLesson.slug, 'lesson.json'),
+      JSON.stringify({
+        schemaVersion: TRACK_SCHEMA_VERSION,
+        slug: opts.nextLesson.slug,
+        title: opts.nextLesson.title,
+        summary: 'Resumo seguinte.',
+        difficulty: 1,
+        concepts: ['programacao'],
+        prerequisites: [],
+        theory: [{ id: 'intro', title: 'Intro', markdown: 'Depois.' }],
+        sources: [],
+        challenges: [],
+      }),
+      'utf8',
+    );
+  }
   await fs.writeFile(
     path.join(track, 'modules', 'mod-1', 'lessons', 'aula-1', 'lesson.json'),
     JSON.stringify({
@@ -200,7 +233,7 @@ async function makeTrackDir(
       prerequisites: [],
       theory: [{ id: 'intro', title: 'Intro', markdown: 'Teoria simples.' }],
       sources: [{ title: 'MDN', url: 'https://example.org', description: 'Fonte' }],
-      challenges: ['desafio-1', 'desafio-multi'],
+      challenges: opts.lessonChallenges ?? ['desafio-1', 'desafio-multi'],
     }),
     'utf8',
   );
@@ -1117,5 +1150,287 @@ describe('buildTrackHandlers — trilhas', () => {
       assert.equal((err as NodeJS.ErrnoException).code, 'ENOENT');
       return true;
     });
+  });
+
+  /* ═════════════════════════════════════════════════════════════════════════
+   * ONDA 1 (destrave-desafio) — PASSAR NO DESAFIO CONCLUI A AULA
+   *
+   * O pedido do dono ("quando eu passo no desafio já quero que libere a destrave
+   * a próxima aula") tem UMA régua: a aula está completa quando TODO desafio
+   * dela tem último veredito `passed` — a MESMA pergunta do `lessonFinishBlock`
+   * da tela. Estes testes medem o caminho REAL do canal, com a trilha fake em
+   * disco e o repo fake:
+   *   - o veredito do desafio recém-aprovado NÃO está no banco no instante do
+   *     submit (quem persiste é o renderer, DEPOIS, via
+   *     study:mark-challenge-attempt) e ainda assim ele CONTA;
+   *   - aula trancada NÃO conclui — o gate é o mesmo do `track:lesson-done`;
+   *   - proficiência e desafio de MÓDULO não passam por este caminho;
+   *   - o retorno do canal é SEMPRE o veredito do submit: o destrave é efeito
+   *     colateral silencioso, nunca um erro que o aluno veja por ter acertado.
+   * ═════════════════════════════════════════════════════════════════════════ */
+
+  it('track:challenge-submit aprovado em aula de UM desafio conclui a aula e DESTRAVA a próxima', async () => {
+    const dir = await makeTrackDir({
+      lessonChallenges: ['desafio-1'],
+      nextLesson: { slug: 'aula-2', title: 'Aula 2' },
+    });
+    // O fake registra o PAR (trackSlug + lessonId): com só o `lessonId` um
+    // `trackSlug` errado passaria despercebido — e é ele que escolhe a trilha
+    // cujo progresso está sendo gravado.
+    const concluidas: Array<{ trackSlug: string; lessonId: string }> = [];
+    const map = buildTrackHandlers({
+      getTracksDir: () => path.dirname(dir),
+      // Repo COM MEMÓRIA: o `track:get` depois do submit tem de enxergar o
+      // `done` que o destrave acabou de gravar — é esse estado que a Trilha lê.
+      repo: fakeRepo({
+        listTrackLessonProgress: async () =>
+          concluidas.map((c) => ({ trackSlug: c.trackSlug, lessonId: c.lessonId, completedAt: '1' })),
+        markTrackLessonDone: async (trackSlug, lessonId) => void concluidas.push({ trackSlug, lessonId }),
+      }),
+    });
+
+    const antes = await call<TrackDetailResult>(map, TRACK_CHANNELS.GET, { trackSlug: 'trilha-teste' });
+    assert.equal(antes.ok, true);
+    assert.equal(antes.track?.modules[0].lessons[1].locked, true, 'sem a aula 1 concluída, a aula 2 começa trancada');
+
+    const result = await call<TrackSubmitResult>(map, TRACK_CHANNELS.CHALLENGE_SUBMIT, {
+      trackSlug: 'trilha-teste',
+      target: 'lesson',
+      lessonId: 'aula-1',
+      challengeId: 'desafio-1',
+      code: goodAnswer,
+    });
+    assert.equal(result.ok, true);
+    assert.equal(result.passed, true);
+    assert.deepEqual(
+      concluidas,
+      [{ trackSlug: 'trilha-teste', lessonId: 'aula-1' }],
+      'a aprovação grava a conclusão da aula (trackSlug + lessonId)',
+    );
+
+    const depois = await call<TrackDetailResult>(map, TRACK_CHANNELS.GET, { trackSlug: 'trilha-teste' });
+    assert.equal(depois.ok, true);
+    assert.equal(depois.track?.modules[0].lessons[0].done, true, 'a aula 1 fica concluída');
+    assert.equal(
+      depois.track?.modules[0].lessons[1].locked,
+      false,
+      'a aula seguinte destrava SEM o clique em "Concluir aula" — era este o defeito medido',
+    );
+  });
+
+  it('track:challenge-submit aprovado em aula de DOIS desafios, com o outro pendente → NÃO conclui', async () => {
+    const dir = await makeTrackDir(); // aula-1 declara desafio-1 + desafio-multi
+    let gravou = false;
+    const map = buildTrackHandlers({
+      getTracksDir: () => path.dirname(dir),
+      // Nenhuma tentativa no banco: o desafio-multi segue pendente.
+      repo: fakeRepo({ markTrackLessonDone: async () => void (gravou = true) }),
+    });
+    const result = await call<TrackSubmitResult>(map, TRACK_CHANNELS.CHALLENGE_SUBMIT, {
+      trackSlug: 'trilha-teste',
+      target: 'lesson',
+      lessonId: 'aula-1',
+      challengeId: 'desafio-1',
+      code: goodAnswer,
+    });
+    assert.equal(result.passed, true);
+    assert.equal(gravou, false, 'aula com desafio pendente não pode ser dada como concluída');
+  });
+
+  it('track:challenge-submit aprovado conta o PRÓPRIO desafio (o banco ainda não tem a tentativa) → conclui', async () => {
+    const dir = await makeTrackDir(); // desafio-1 + desafio-multi
+    let gravou = 0;
+    const map = buildTrackHandlers({
+      getTracksDir: () => path.dirname(dir),
+      repo: fakeRepo({
+        // O OUTRO desafio da aula já foi aprovado numa tentativa anterior.
+        getAttemptsForChallenge: async (id: string) =>
+          id === 'desafio-multi'
+            ? [{ id: 'a#0', subjectId: 's', lessonId: 'aula-1', challengeId: id, verdict: 'passed' as const, stars: 1, durationMs: 0, createdAt: '0' }]
+            : [],
+        markTrackLessonDone: async () => void (gravou += 1),
+      }),
+    });
+    const result = await call<TrackSubmitResult>(map, TRACK_CHANNELS.CHALLENGE_SUBMIT, {
+      trackSlug: 'trilha-teste',
+      target: 'lesson',
+      lessonId: 'aula-1',
+      challengeId: 'desafio-1',
+      code: goodAnswer,
+    });
+    assert.equal(result.passed, true);
+    assert.equal(
+      gravou,
+      1,
+      'o desafio recém-aprovado NÃO está no banco neste instante (o renderer persiste depois) e tem de contar',
+    );
+  });
+
+  it('track:challenge-submit aprovado em aula TRANCADA → NÃO conclui (mesmo gate do lesson-done)', async () => {
+    const dir = await makeTrackDir({
+      previousLesson: { slug: 'aula-0', title: 'Aula 0', theory: 'Antes.' },
+      lessonChallenges: ['desafio-1'],
+    });
+    let gravou = false;
+    const map = buildTrackHandlers({
+      getTracksDir: () => path.dirname(dir),
+      // Progresso VAZIO: 'aula-1' está trancada (a anterior não foi concluída).
+      repo: fakeRepo({ markTrackLessonDone: async () => void (gravou = true) }),
+    });
+    const result = await call<TrackSubmitResult>(map, TRACK_CHANNELS.CHALLENGE_SUBMIT, {
+      trackSlug: 'trilha-teste',
+      target: 'lesson',
+      lessonId: 'aula-1',
+      challengeId: 'desafio-1',
+      code: goodAnswer,
+    });
+    assert.equal(result.ok, true);
+    assert.equal(result.passed, true);
+    assert.equal(gravou, false, 'passar um desafio de aula trancada não pode destravar a seguinte por cima da ordem');
+  });
+
+  it('track:challenge-submit REPROVADO → NÃO conclui nada', async () => {
+    const dir = await makeTrackDir({ lessonChallenges: ['desafio-1'] });
+    let gravou = false;
+    const map = buildTrackHandlers({
+      getTracksDir: () => path.dirname(dir),
+      repo: fakeRepo({ markTrackLessonDone: async () => void (gravou = true) }),
+    });
+    const result = await call<TrackSubmitResult>(map, TRACK_CHANNELS.CHALLENGE_SUBMIT, {
+      trackSlug: 'trilha-teste',
+      target: 'lesson',
+      lessonId: 'aula-1',
+      challengeId: 'desafio-1',
+      code: badAnswer,
+    });
+    assert.equal(result.ok, true);
+    assert.equal(result.passed, false);
+    assert.equal(gravou, false, 'veredito não aprovado não conclui aula');
+  });
+
+  it('track:challenge-submit do MÓDULO aprovado → NÃO conclui aula (canal não é o de aula)', async () => {
+    const dir = await makeTrackDir({ lessonChallenges: ['desafio-1'] });
+    let gravou = false;
+    const map = buildTrackHandlers({
+      getTracksDir: () => path.dirname(dir),
+      repo: fakeRepo({
+        // A aula-1 tem TODOS os desafios já aprovados no banco (o outro
+        // caminho de recusa possível — "desafio pendente" — está fechado).
+        getAttemptsForChallenge: async (id: string) =>
+          id === 'desafio-1'
+            ? [
+                {
+                  id: 'desafio-1#0',
+                  subjectId: 's',
+                  lessonId: 'aula-1',
+                  challengeId: id,
+                  verdict: 'passed' as const,
+                  stars: 1,
+                  durationMs: 0,
+                  createdAt: '0',
+                },
+              ]
+            : [],
+        markTrackLessonDone: async () => void (gravou = true),
+      }),
+    });
+    const result = await call<TrackSubmitResult>(map, TRACK_CHANNELS.CHALLENGE_SUBMIT, {
+      trackSlug: 'trilha-teste',
+      target: 'module',
+      moduleSlug: 'mod-1',
+      // PAYLOAD SINTÉTICA, DE PROPÓSITO (prova a CLÁUSULA, não o formato que o
+      // painel manda): o desafio de módulo é autoral e o painel nunca envia
+      // `lessonId` aqui. O `lessonId: 'aula-1'` — aula REAL do fixture, com
+      // todos os desafios já aprovados — é o que isola o `target`: sem ele o
+      // teste passaria só porque `findLessonAnywhere` devolve null. Com a aula
+      // completa no banco, o ÚNICO motivo de não gravar é `target !== 'lesson'`.
+      // ⚠ MUTAÇÃO: apagar `p.target === 'lesson'` do handler faz ESTE teste
+      // falhar (o destrave contaria a aula-1 como completa e gravaria).
+      lessonId: 'aula-1',
+      challengeId: 'desafio-do-modulo',
+      code: '',
+      files: [
+        { path: 'lib/soma.mjs', code: 'export function soma(a, b) { return a + b; }\n' },
+        { path: 'lib/multiplica.mjs', code: 'export function multiplica(a, b) { return a * b; }\n' },
+      ],
+    });
+    assert.equal(result.ok, true);
+    assert.equal(result.passed, true);
+    assert.equal(gravou, false, 'o desafio do módulo é autoral e não conclui aula');
+  });
+
+  it('target proficiency NÃO conclui aula no canal do destrave (quem destrava a trilha é o PROFICIENCY_SUBMIT)', async () => {
+    const dir = await makeTrackDir({ lessonChallenges: ['desafio-1'] });
+    let gravou = false;
+    let proficiencia: string | null = null;
+    const map = buildTrackHandlers({
+      getTracksDir: () => path.dirname(dir),
+      repo: fakeRepo({
+        markTrackLessonDone: async () => void (gravou = true),
+        setTrackProficiency: async (_t, v) => void (proficiencia = v),
+      }),
+    });
+
+    // (1) O CANAL DE VERDADE da proficiência: destrava a trilha inteira e NÃO
+    // passa pelo destrave automático de aula (o handler dele não tem cláusula
+    // `target` nenhuma — por isso este trecho, sozinho, não prova nada sobre ela).
+    const prof = await call<TrackSubmitResult>(map, TRACK_CHANNELS.PROFICIENCY_SUBMIT, {
+      trackSlug: 'trilha-teste',
+      target: 'proficiency',
+      challengeId: 'proficiencia',
+      code: goodAnswer,
+      stars: 2,
+    });
+    assert.equal(prof.ok, true);
+    assert.equal(prof.passed, true);
+    assert.equal(proficiencia, 'passed', 'a proficiência destrava no canal próprio');
+    assert.equal(gravou, false, 'nenhuma aula é concluída pelo canal da proficiência');
+
+    // (2) O CANAL DO DESTRAVE com um payload de proficiência: `target`
+    // 'proficiency' + `lessonId` VÁLIDO ('aula-1', do fixture) + o desafio da
+    // PRÓPRIA aula recém-aprovado. PAYLOAD SINTÉTICA, DE PROPÓSITO (prova a
+    // CLÁUSULA, não o formato que o painel manda): o submit resolve o desafio
+    // pelo caminho de aula e APROVA de verdade — sem o `lessonId` real o teste
+    // passaria só porque `findLessonAnywhere` devolve null. Aqui o ÚNICO motivo
+    // de não gravar é `target !== 'lesson'`.
+    // ⚠ MUTAÇÃO: apagar `p.target === 'lesson'` do handler faz ESTE teste
+    // falhar (o destrave gravaria a conclusão da aula-1).
+    const sintetico = await call<TrackSubmitResult>(map, TRACK_CHANNELS.CHALLENGE_SUBMIT, {
+      trackSlug: 'trilha-teste',
+      target: 'proficiency',
+      lessonId: 'aula-1',
+      challengeId: 'desafio-1',
+      code: goodAnswer,
+    });
+    assert.equal(sintetico.ok, true);
+    assert.equal(sintetico.passed, true, 'o submit aprova de verdade — a recusa é só do destrave');
+    assert.equal(gravou, false, 'target proficiency não é caminho de conclusão de aula');
+  });
+
+  it('track:challenge-submit: falha do destrave NÃO vira erro do submit (o veredito do aluno é o retorno)', async () => {
+    const dir = await makeTrackDir({ lessonChallenges: ['desafio-1'] });
+    const map = buildTrackHandlers({
+      getTracksDir: () => path.dirname(dir),
+      // A gravação da conclusão LANÇA (disco/SQLite): o submit não pode pagar
+      // por isso — o aluno acertou o desafio e recebe o veredito DELE.
+      repo: fakeRepo({
+        markTrackLessonDone: async () => {
+          throw new Error('banco fora do ar');
+        },
+      }),
+    });
+    const result = await call<TrackSubmitResult>(map, TRACK_CHANNELS.CHALLENGE_SUBMIT, {
+      trackSlug: 'trilha-teste',
+      target: 'lesson',
+      lessonId: 'aula-1',
+      challengeId: 'desafio-1',
+      code: goodAnswer,
+    });
+    assert.equal(result.ok, true, 'o canal continua respondendo o veredito do submitter');
+    assert.equal(result.passed, true);
+    assert.equal(result.testsRun, 2);
+    assert.equal(result.passedCount, 2);
+    assert.equal(result.totalCount, 2);
+    assert.equal(result.error, undefined);
   });
 });
