@@ -77,6 +77,18 @@ import {
   startChallengeGenerate,
   subscribeChallengeGenerate,
 } from '../../lib/challengeGenerateStore';
+// ONDA-RETOMAR (onda1-desafio-retomar): cache de SESSÃO do rascunho. O shell
+// monta SÓ a view ativa (App.tsx) — trocar de aba DESMONTA este painel e o
+// loadSpec reiniciava tudo dos starters (código, relógio, estrelas e veredito).
+// Mesmo padrão do lessonChatCache/challengeGenerateStore: Map em memória de
+// módulo, sem React/DOM, testável em node:test.
+import {
+  challengeDraftCacheKey,
+  createChallengeDraftHolder,
+  saveChallengeDraft,
+  type ChallengeDraft,
+  type ChallengeDraftKey,
+} from '../../lib/challengeDraftCache';
 import type {
   TrackChallengeSpec,
   TrackSubmitResult,
@@ -120,6 +132,111 @@ export function shouldMarkAbandon(input: {
   marked: ChallengeVerdict | string | null;
 }): boolean {
   return input.started && !input.concluded && input.hasSpec && input.marked === null;
+}
+
+/**
+ * ONDA-RETOMAR: chave de SESSÃO do rascunho do desafio em cena (o par do
+ * `challengeDraftCache`). O `challengeId` é o SLUG da spec carregada
+ * (`spec.slug`), não o da selection: o handler recusa um `challengeId` que não
+ * bata com o slug do desafio resolvido, então numa carga normal os dois são
+ * IGUAIS — e o slug da spec é o único correto quando a REGENERAÇÃO troca o
+ * desafio em cena sem trocar a selection (o rascunho do desafio novo não pode
+ * ser salvo sob a chave do antigo).
+ */
+function challengeDraftKeyFor(
+  sel: TrackChallengeNavSelection,
+  challengeId: string,
+): ChallengeDraftKey {
+  return {
+    trackSlug: sel.trackSlug,
+    target: sel.target,
+    lessonId: sel.lessonId,
+    moduleSlug: sel.moduleSlug,
+    challengeId,
+  };
+}
+
+/**
+ * ONDA-RETOMAR: o rascunho está INTOCADO? (nem começou, sem teste rodado e sem
+ * veredito gravado). Restaurá-lo daria exatamente o estado inicial, então ele
+ * não entra no cache — o cache fica só com o que o aluno de fato produziu
+ * (mesmo critério do "chat nunca iniciado" do lessonChatCache). Critério ÚNICO,
+ * usado pelos DOIS saves (o do unmount e o da troca de desafio).
+ */
+function isUntouchedDraft(draft: ChallengeDraft): boolean {
+  return !draft.started && draft.concluded === null && draft.result === null && draft.marked === null;
+}
+
+/**
+ * ONDA-RETOMAR: o snapshot que o DESMONTE persiste — a chave capturada no MESMO
+ * render + o rascunho que a tela mostrava.
+ */
+export interface ChallengeDraftSnapshot {
+  key: ChallengeDraftKey;
+  draft: ChallengeDraft;
+}
+
+/**
+ * ONDA-RETOMAR: O SAVE DO DESMONTE — a decisão de persistir o rascunho,
+ * EXTRAÍDA do cleanup para ser medida com o cache REAL (e não por presença de
+ * string na fonte). O corpo do cleanup virou UMA chamada desta função: é ela
+ * que roda quando o aluno sai da aba Desafio.
+ *
+ * O DEFEITO QUE A EXTRAÇÃO MATA (medido, não deduzido): a cerca antiga cobrava
+ * só a PRESENÇA de `saveChallengeDraft(...)`/`isUntouchedDraft(...)` no efeito
+ * de unmount, e um `return;` inserido ANTES do save — com todas as strings no
+ * lugar — passava com a suíte inteira verde (34/34). Aqui a decisão é uma LISTA
+ * DE COMANDOS fechada (o teste compara comando a comando) e um teste de
+ * comportamento, com o cache de verdade, prova que um rascunho INICIADO entra
+ * no cache; matar o save agora exige mudar esta lista E o comportamento medido.
+ *
+ * Sem snapshot (a spec nunca chegou: não há rascunho na tela) nada é gravado; o
+ * rascunho INTOCADO (nem começou, sem teste rodado e sem veredito) também não
+ * entra — restaurá-lo daria exatamente o estado inicial. O critério é o MESMO
+ * da troca de desafio (`isUntouchedDraft`).
+ */
+export function persistDraftOnUnmount(snapshot: ChallengeDraftSnapshot | null): void {
+  if (snapshot === null) return;
+  // Rascunho intocado não entra no cache (ver `isUntouchedDraft`).
+  if (isUntouchedDraft(snapshot.draft)) return;
+  saveChallengeDraft(snapshot.key, snapshot.draft);
+}
+
+/**
+ * ONDA-RETOMAR: reconstrói o tracker de estrelas de uma tentativa RESTAURADA
+ * (DECISÃO PURA, exportada para ser medida sem montar o React — mesmo padrão de
+ * `shouldMarkAbandon`).
+ *
+ * O tracker morre com o componente, então ao retomar o desafio ele é recriado
+ * do zero (3 estrelas) com o MESMO tempo já decorrido. Só que um tracker novo
+ * não sabe das perdas EXPLÍCITAS que o antigo já tinha sofrido:
+ *
+ *   - as perdas por DEMORA são reproduzidas por `onTick(elapsedMs)` (é função
+ *     determinística do tempo — o mesmo tempo dá as mesmas perdas);
+ *   - a diferença que sobra é a perda explícita que o painel pode ter sofrido
+ *     FORA do tick, hoje só o blur (o painel nunca chama `onWrongAnswer`/
+ *     `onTimeout` — ele marca o veredito por fora), e `onBlur` é idempotente:
+ *     repô-la devolve ao tracker o estado EXATO do antigo, inclusive o fato de
+ *     um novo blur não tirar outra estrela.
+ *
+ * Sem esta reconstrução o tick seguinte chamaria `setStarsLeft(tracker.stars())`
+ * e DEVOLVERIA a estrela já perdida (o aluno veria a estrela voltar por trocar
+ * de aba). Com ela, `tracker.stars()` é exatamente o `starsLeft` que o aluno
+ * tinha — nem a mais (devolver) nem a menos (cobrar duas vezes).
+ */
+export function restoreStarTracker(input: {
+  timeLimitMs: number;
+  minFirstStarMs: number;
+  elapsedMs: number;
+  starsLeft: number;
+}): StarTracker {
+  const tracker = createStarTracker({
+    timeLimitMs: input.timeLimitMs,
+    minFirstStarMs: input.minFirstStarMs,
+  });
+  tracker.onTick(input.elapsedMs);
+  if (tracker.stars() > input.starsLeft) tracker.onBlur();
+  return tracker;
 }
 
 export function TrackChallengePanel({
@@ -178,6 +295,50 @@ export function TrackChallengePanel({
 
   const markedRef = useRef<string | null>(null);
 
+  // ─── ONDA-RETOMAR: rascunho de SESSÃO (cache em memória de módulo) ────────
+  // O shell monta SÓ a view ativa: trocar de aba desmonta este painel. O
+  // rascunho guardado no unmount é o ÚNICO jeito de o aluno voltar e encontrar
+  // o código, o relógio, as estrelas e o veredito onde estavam.
+  /** Snapshot MAIS RECENTE do rascunho — atualizado no corpo do render (mesmo
+   *  padrão do `chatRef` da LessonView) porque o CLEANUP de unmount enxerga o
+   *  closure da render em que o efeito nasceu: ler daqui é ler o último estado,
+   *  nunca um estado velho — o painel re-renderiza a cada segundo do tick.
+   *  A CHAVE viaja JUNTO do snapshot (par capturado no mesmo render): o
+   *  rascunho nunca é salvo sob a chave de outro desafio. */
+  const draftSnapshotRef = useRef<ChallengeDraftSnapshot | null>(null);
+  /** Chave do desafio cujo estado está HOJE na tela (null antes da 1ª spec).
+   *  É ela que detecta a TROCA DE DESAFIO com o painel montado (o efeito de
+   *  montagem re-executa `loadSpec` sem desmontar). */
+  const draftKeyRef = useRef<ChallengeDraftKey | null>(null);
+  /** Retentor do drain (anti-StrictMode — ver `createChallengeDraftHolder`),
+   *  retido entre as passadas do double-invoke do dev junto da chave a que
+   *  pertence: chave diferente ⇒ holder novo (o take é one-shot, um holder
+   *  velho devolveria o rascunho de OUTRO desafio). */
+  const draftHolderRef = useRef<{ key: string; holder: ReturnType<typeof createChallengeDraftHolder> } | null>(
+    null,
+  );
+  // Snapshot do render corrente. `markedRef.current` é lido AQUI (e não no
+  // cleanup): o abandono do unmount muda o ref SEM re-renderizar, e o rascunho
+  // salvo tem de ser o da TELA — um 'abandoned' gravado no desmonte não pode
+  // voltar como "já marcado" numa tentativa que o aluno RETOMOU (senão o
+  // abandono seguinte não seria gravado e um 'passed' posterior seria barrado).
+  if (spec && draftKeyRef.current !== null) {
+    draftSnapshotRef.current = {
+      key: draftKeyRef.current,
+      draft: {
+        code,
+        filesCode,
+        activeFile,
+        started,
+        elapsedMs,
+        starsLeft,
+        concluded,
+        result,
+        marked: markedRef.current,
+      },
+    };
+  }
+
   // Guard de montagem (MESMO padrão do loadSpec): durante `running` o rail de
   // abas segue clicável — se o painel desmontar no meio do submit (troca de
   // aba), o `await withTimeout(challengeSubmit)` ainda resolve depois e NADA
@@ -193,11 +354,43 @@ export function TrackChallengePanel({
     };
   }, []);
 
+  /**
+   * Carrega a spec do desafio e RESTAURA o rascunho da sessão (ONDA-RETOMAR).
+   *
+   * ══════════════════════════════════════════════════════════════════════════
+   * O DEFEITO QUE O GUARD DE MONTAGEM MATA (medido, não deduzido)
+   * ══════════════════════════════════════════════════════════════════════════
+   * Aqui existia um `let cancelled = false;` que NUNCA virava `true`: a única
+   * atribuição era a própria declaração, e o efeito de montagem que chama
+   * `loadSpec(selection)` não tem cleanup. Como o `.then` TOMA o rascunho do
+   * cache (`createChallengeDraftHolder(...).get()` → `takeChallengeDraft`, que é
+   * DRAIN one-shot), um `loadSpec` em voo que resolvia DEPOIS do desmonte — o
+   * aluno sai do desafio e volta antes do IPC `track:challenge` responder —
+   * rodava no fiber morto: um holder NOVO era criado para a chave e o `get()`
+   * DELETAVA a entrada do cache. Os `setState` eram no-op num componente
+   * desmontado e ninguém regravava — o cleanup de unmount lê
+   * `draftSnapshotRef.current`, que ainda é null porque a spec nunca chegou.
+   * Resultado: o rascunho do aluno era DESTRUÍDO e, ao voltar de novo, o
+   * desafio recomeçava do zero — exatamente o defeito que esta onda existe para
+   * matar. (Antes desta onda o fantasma só fazia setState inócuo; consumir o
+   * cache é NOVO.)
+   *
+   * POR QUE O GUARD É DO REF (e não de uma variável local): `cancelledRef` é o
+   * guard de montagem do COMPONENTE — resetado no mount e setado no unmount —
+   * então ele responde "este fiber ainda está vivo?" no INSTANTE em que o
+   * callback roda. Uma variável local do `loadSpec` responderia à pergunta
+   * errada ("esta chamada foi substituída por uma mais nova?") e, sem um
+   * cleanup do efeito de montagem, morreria em `false` para sempre: um guard que
+   * nunca dispara é PIOR que nenhum, porque documenta uma proteção que não
+   * existe. Em dev o StrictMode double-invoca os efeitos (setup → cleanup →
+   * setup) e o 2º setup RESETA o ref: as duas passadas legítimas continuam
+   * rodando (é disso que o `createChallengeDraftHolder` depende) e o guard só
+   * barra o fiber REALMENTE desmontado.
+   */
   const loadSpec = useCallback(
     (sel: TrackChallengeNavSelection): void => {
       setLoading(true);
       setLoadError(null);
-      let cancelled = false;
       const req =
         sel.target === 'proficiency'
           ? { trackSlug: sel.trackSlug, target: 'proficiency' as const, challengeId: sel.challengeId }
@@ -209,7 +402,11 @@ export function TrackChallengePanel({
       // o CircularProgress do loading nunca fica eterno.
       withTimeout(call(req), IPC_TIMEOUT_MS, sel.target === 'proficiency' ? 'track.proficiency' : 'track.challenge')
         .then((res) => {
-          if (cancelled) return;
+          // Guard de montagem (o DEFEITO medido está documentado acima, em
+          // `loadSpec`): painel desmontado durante o IPC → o callback desiste
+          // AQUI, antes de qualquer setState e — o que é novo e grave — antes
+          // de criar o holder e chamar `get()`, que DRAINA o cache do rascunho.
+          if (cancelledRef.current) return;
           if (res.ok === false) {
             // W3 (falsy-proof): '' é erro VÁLIDO — só null significa "sem erro".
             setLoadError(resolveChannelError(res, tI('challenge.trackLoadFailed')));
@@ -220,32 +417,108 @@ export function TrackChallengePanel({
             return;
           }
           setSpec(res.challenge);
-          // ADITIVO (rodada 9): multi-arquivo — um editor por arquivo, starters
-          // de cada um; sem files, editor único com starterCode (comportamento atual).
-          if (res.challenge.files && res.challenge.files.length > 0) {
-            setFilesCode(
-              Object.fromEntries(res.challenge.files.map((f) => [f.path, f.starterCode])),
-            );
-            setActiveFile(res.challenge.files[0].path);
-          } else {
-            setFilesCode({});
-            setActiveFile(null);
-            setCode(res.challenge.starterCode);
+          // ─── ONDA-RETOMAR: restaura o rascunho ou reinicializa ────────────
+          // Chave do desafio que ACABOU de chegar (spec.slug — ver
+          // `challengeDraftKeyFor`).
+          const novaChave = challengeDraftKeyFor(sel, res.challenge.slug);
+          const novaChaveStr = challengeDraftCacheKey(novaChave);
+          // TROCA DE DESAFIO COM O PAINEL MONTADO: quando a `selection` muda, o
+          // efeito de montagem re-executa `loadSpec` SEM desmontar — o estado do
+          // desafio ANTERIOR está prestes a ser sobrescrito, então ele é SALVO
+          // sob a chave ANTERIOR antes do reset (sem isto, trocar de desafio
+          // perderia o trabalho do aluno mesmo sem sair da aba). A comparação é
+          // pela chave canônica: mesma chave (recarga do MESMO desafio) não
+          // regrava nada.
+          const chaveAnterior = draftKeyRef.current;
+          if (chaveAnterior !== null && challengeDraftCacheKey(chaveAnterior) !== novaChaveStr) {
+            const snapshot = draftSnapshotRef.current;
+            // O snapshot só é salvo se ele for REALMENTE do desafio anterior —
+            // é esta igualdade que impede a chave de vazar de um desafio para
+            // outro (um rascunho nunca cai na chave errada).
+            if (
+              snapshot !== null &&
+              challengeDraftCacheKey(snapshot.key) === challengeDraftCacheKey(chaveAnterior) &&
+              !isUntouchedDraft(snapshot.draft)
+            ) {
+              saveChallengeDraft(snapshot.key, snapshot.draft);
+            }
           }
-          setStarted(false);
-          setElapsedMs(0);
-          setStarsLeft(3);
-          setConcluded(null);
-          setResult(null);
+          draftKeyRef.current = novaChave;
+          if (draftHolderRef.current === null || draftHolderRef.current.key !== novaChaveStr) {
+            draftHolderRef.current = { key: novaChaveStr, holder: createChallengeDraftHolder(novaChave) };
+          }
+          const draft = draftHolderRef.current.holder.get();
           setSubmissionError(null);
-          markedRef.current = null;
+          if (draft !== null) {
+            // RASCUNHO DA SESSÃO: o aluno JÁ esteve neste desafio (saiu e
+            // voltou, ou trocou de desafio e voltou) — o estado volta inteiro,
+            // em vez de recomeçar do zero dos starters.
+            if (res.challenge.files && res.challenge.files.length > 0) {
+              setFilesCode(draft.filesCode);
+              setActiveFile(draft.activeFile);
+            } else {
+              setFilesCode({});
+              setActiveFile(null);
+              setCode(draft.code);
+            }
+            setStarted(draft.started);
+            setElapsedMs(draft.elapsedMs);
+            setStarsLeft(draft.starsLeft);
+            setConcluded(draft.concluded);
+            setResult(draft.result);
+            markedRef.current = draft.marked;
+            // O RELÓGIO PAUSA ENQUANTO A ABA ESTÁ FORA: o pedido do dono é não
+            // perder a tentativa — voltar depois de 10 minutos e encontrar
+            // timeout (ou estrelas zeradas por demora) seria "recomeçar do
+            // zero" de outro jeito. O instante inicial é REANCORADO no tempo já
+            // decorrido, então o tick seguinte lê exatamente `draft.elapsedMs`
+            // (+ o tempo desta volta) e o tempo de ausência não conta.
+            startTsRef.current = draft.started ? Date.now() - draft.elapsedMs : 0;
+            // O tracker é RECRIADO (o antigo morreu com o componente) e
+            // SINCRONIZADO com o tempo decorrido — a regra inteira, com a
+            // medição, está em `restoreStarTracker` (topo do arquivo): nada é
+            // devolvido nem cobrado duas vezes, e o valor exibido é o
+            // `starsLeft` que o aluno TINHA.
+            trackerRef.current = restoreStarTracker({
+              timeLimitMs: res.challenge.timeLimitMs,
+              minFirstStarMs: res.challenge.minFirstStarMs,
+              elapsedMs: draft.elapsedMs,
+              starsLeft: draft.starsLeft,
+            });
+          } else {
+            // Sem rascunho: comportamento de sempre — starters, cronômetro
+            // parado, 3 estrelas, sem veredito e sem terminal marcado.
+            // ADITIVO (rodada 9): multi-arquivo — um editor por arquivo,
+            // starters de cada um; sem files, editor único com starterCode
+            // (comportamento atual).
+            if (res.challenge.files && res.challenge.files.length > 0) {
+              setFilesCode(
+                Object.fromEntries(res.challenge.files.map((f) => [f.path, f.starterCode])),
+              );
+              setActiveFile(res.challenge.files[0].path);
+            } else {
+              setFilesCode({});
+              setActiveFile(null);
+              setCode(res.challenge.starterCode);
+            }
+            setStarted(false);
+            setElapsedMs(0);
+            setStarsLeft(3);
+            setConcluded(null);
+            setResult(null);
+            markedRef.current = null;
+            startTsRef.current = 0;
+            trackerRef.current = null;
+          }
         })
         .catch((err: unknown) => {
-          if (cancelled) return;
+          // Idem `.then`: o catch também só roda com o painel MONTADO (nenhum
+          // caminho do loadSpec pode tocar em estado/cache de um fiber morto).
+          if (cancelledRef.current) return;
           setLoadError(isTimeoutError(err) ? tI('challenge.trackLoadTimeout') : String(err));
         })
         .finally(() => {
-          if (!cancelled) setLoading(false);
+          if (!cancelledRef.current) setLoading(false);
         });
     },
     [tI],
@@ -351,6 +624,21 @@ export function TrackChallengePanel({
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [started, concluded, spec, selection.challengeId]);
+
+  // ─── ONDA-RETOMAR: SALVA o rascunho no UNMOUNT (troca de aba) ─────────────
+  // O shell monta SÓ a view ativa: sair da aba Desafio desmonta este painel e
+  // TODO o estado local morre (código, relógio, estrelas e veredito). Este
+  // cleanup é a última chance de guardar a tentativa — ele lê o snapshot por
+  // REF (nunca pelo closure, que é o da render em que o efeito nasceu).
+  // A DECISÃO (sem snapshot nada a salvar; rascunho intocado não entra) mora em
+  // `persistDraftOnUnmount`, exportada e medida com o cache REAL: o corpo deste
+  // cleanup é UMA chamada, então não há como inserir aqui uma saída antecipada
+  // sem que a lista de comandos do teste mude.
+  useEffect(() => {
+    return () => {
+      persistDraftOnUnmount(draftSnapshotRef.current);
+    };
+  }, []);
 
   /** Roda o código do aluno contra os testes (o main nunca expõe os testes). */
   const handleSubmit = useCallback(async (): Promise<void> => {
@@ -486,6 +774,15 @@ export function TrackChallengePanel({
         setResult(null);
         setSubmissionError(null);
         markedRef.current = null;
+        // ONDA-RETOMAR: a REGENERAÇÃO troca o desafio em cena SEM trocar a
+        // selection — a chave do rascunho passa a ser a do desafio NOVO (senão
+        // o estado dele seria salvo sob a chave do antigo e voltaria na tela
+        // errada numa remontagem) e o holder do drain é descartado: o take é
+        // one-shot e um holder de OUTRA chave devolveria o rascunho errado. O
+        // reset do estado acima continua sendo o de sempre (a regeneração
+        // descarta a tentativa anterior — comportamento atual intacto).
+        draftKeyRef.current = challengeDraftKeyFor(selection, res.challenge.slug);
+        draftHolderRef.current = null;
       } else {
         const msg = res.error?.message ?? 'não foi possível gerar um novo desafio';
         failChallengeGenerate(msg, generationId);
