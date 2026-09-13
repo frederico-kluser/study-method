@@ -212,7 +212,10 @@ import {
   resolveChannelError,
   withTimeout,
 } from '../../lib/ipcTimeout';
-import { useSessionState } from '../../lib/sessionState';
+import {
+  lessonBusyReasonFor,
+  useSessionState,
+} from '../../lib/sessionState';
 import { useChallengeNav } from '../../lib/challengeNav';
 import { useMicSTT } from '../../hooks/useMicSTT';
 import {
@@ -2149,6 +2152,42 @@ export function LessonView(props: ViewProps): ReactElement {
     }
     return overlayStatusFor(step, activeNotice === 'quiz-indisponivel');
   }, [activeQuizCard, activeNotice, busy]);
+
+  // ─── ONDA2-LOADER-GLOBAL: publicação do canal GLOBAL de ocupação ──────────
+  // A LessonView sabe TUDO (busy, pendingAction, streaming, status do quiz em
+  // cena) e é a ÚNICA fonte honesta — então é ela quem publica no contexto de
+  // sessão acima das views (src/lib/sessionState.ts). O loader global do
+  // shell (GlobalBusyIndicator, montado no App) consome; esta view nunca
+  // desenha a pílula. A derivação é a função PURA `lessonBusyReasonFor` (a
+  // tabela de prioridade vive lá, testada em node:test — não duplicar).
+  const sessionBusyReason = useMemo(
+    () =>
+      lessonBusyReasonFor({
+        quizStatus: activeQuizCard === null ? null : activeQuizStatus,
+        busy,
+        pendingAction,
+        streaming: streamingIds.size > 0,
+        // ONDA2-LOADER-GLOBAL (fix do revisor): a regeneração de desafio na
+        // bolha também é busy sem pendingAction — sem este input a derivação
+        // devolvia 'concluindo' e o loader global dizia "Concluindo a aula"
+        // durante toda a geração. Com `generateRunning` ela vira 'gerando'.
+        regenerating: generateRunning,
+      }),
+    [activeQuizCard, activeQuizStatus, busy, pendingAction, streamingIds, generateRunning],
+  );
+  // Publicação espelhando a razão derivada. `publishSession` é estável; o
+  // reducer é no-op por identidade quando nada muda (e `busy` nunca carimba
+  // lastActivityAt). O CLEANUP publica `null` na desmontagem (troca de aba):
+  // a ocupação morre COM a view que a publicou — nenhum fantasma de ocupação
+  // sobrevivendo à aba que a produziu.
+  useEffect(() => {
+    publishSession({ busy: sessionBusyReason === null ? null : { reason: sessionBusyReason } });
+  }, [sessionBusyReason, publishSession]);
+  useEffect(() => {
+    return () => {
+      publishSession({ busy: null });
+    };
+  }, [publishSession]);
 
   /**
    * RESPOSTA do aluno — o gesto que o dono pediu: registrar e MINIMIZAR.

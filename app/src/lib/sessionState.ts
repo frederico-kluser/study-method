@@ -48,6 +48,135 @@ import { lessonPhaseKey, type LessonPhaseLabelKey } from './lessonPhaseLabels';
  */
 export type SessionLessonStatus = 'idle' | 'running' | 'done' | 'error';
 
+/**
+ * ONDA2-LOADER-GLOBAL — o vocabulário do canal de ocupação. É o QUE está em
+ * voo agora, no vocabulário da AULA (e do desafio), NÃO o texto da tela: o
+ * texto mora no i18n (`lesson.busy.*`) e a tradução é feita pelo consumidor
+ * (GlobalBusyIndicator) — aqui só trafega a chave canônica, como
+ * `LessonPhaseKey` faz para `lesson.phase.*`.
+ *
+ * Valores camelCase de propósito: cada um É a última parte da chave i18n
+ * (`lesson.busy.<reason>`), então acrescentar um motivo novo é acrescentar a
+ * chave nos DOIS locales + um valor aqui — nada mais.
+ *
+ *   - `responder`      — turno do tutor respondendo a dúvida (pendingAction 'answer');
+ *   - `proximaSecao`   — turno determinístico do "Próximo" (pendingAction 'next');
+ *   - `digitando`      — bolha em digitação (streamingIds) — seção ou explicação;
+ *   - `explicando`     — ciclo do quiz escrevendo a explicação do erro;
+ *   - `gerando`        — ciclo do quiz gerando o quiz remediador;
+ *   - `aguardandoVez`  — ciclo do quiz QUER rodar mas espera o turno do tutor
+ *                        (a fila FIFO do LLM local — a causa do "travou" do
+ *                        dono; o card do quiz já dizia, o app inteiro não);
+ *   - `concluindo`     — "Concluir aula" gravando (busy sem pendingAction e
+ *                        SEM regeneração de desafio em voo — essa é `gerando`).
+ *                        Fix do revisor adversarial: a regeneração de desafio
+ *                        (`handleRegenerateFromBubble`) também é busy sem
+ *                        pendingAction — sem o `regenerating` abaixo, o loader
+ *                        global diria "Concluindo a aula" durante MINUTOS de
+ *                        geração de desafio, mentira.
+ */
+export type SessionBusyReason =
+  | 'responder'
+  | 'proximaSecao'
+  | 'digitando'
+  | 'explicando'
+  | 'gerando'
+  | 'aguardandoVez'
+  | 'concluindo';
+
+/** Sinal de ocupação publicado no snapshot — só a razão, de propósito. */
+export interface SessionBusySignal {
+  reason: SessionBusyReason;
+}
+
+/** true quando o valor é um sinal de ocupação bem-formado (não é null). */
+function isSessionBusySignal(value: unknown): value is SessionBusySignal {
+  if (value === null || typeof value !== 'object') return false;
+  const reason = (value as { reason?: unknown }).reason;
+  return (
+    reason === 'responder' ||
+    reason === 'proximaSecao' ||
+    reason === 'digitando' ||
+    reason === 'explicando' ||
+    reason === 'gerando' ||
+    reason === 'aguardandoVez' ||
+    reason === 'concluindo'
+  );
+}
+
+/**
+ * Chave i18n do rótulo do loader global para uma razão de ocupação. PURA e
+ * trivial de propósito — o par `reason` ⟷ chave vive NUM lugar só (o camelCase
+ * dos valores É o sufixo da chave), então o consumidor nunca traduz na mão.
+ */
+export function sessionBusyLabelKey(reason: SessionBusyReason): `lesson.busy.${SessionBusyReason}` {
+  return `lesson.busy.${reason}`;
+}
+
+/**
+ * ONDA2-LOADER-GLOBAL — a DERIVAÇÃO PURA do canal: os estados que a
+ * LessonView já sabe (busy, pendingAction, streaming, status do quiz em cena)
+ * viram UM motivo de ocupação, ou null quando NADA está em voo (o indicador
+ * global some).
+ *
+ * ─── POR QUE AQUI (e não dentro da LessonView) ─────────────────────────────
+ * Mesmo motivo do `sessionPhaseLabelKey`: a regra "o que o app está fazendo
+ * agora" é de negócio, não de desenho — testável em node:test sem jsdom, e o
+ * componente só desenha. NÃO DUPLIQUE esta prioridade no JSX.
+ *
+ * ─── A PRIORIDADE É A VERDADE DO MOMENTO ───────────────────────────────────
+ *   1. Estados de TRABALHO do ciclo do quiz vencem: 'aguardandoVez' é a causa
+ *      raiz do congelamento sentido pelo dono (fila FIFO do LLM local) — se o
+ *      ciclo está esperando a vez, é ISSO que o app inteiro tem de dizer, mesmo
+ *      com um turno do tutor em voo atrás do qual ele espera;
+ *   2. 'explicando'/'gerando' — o ciclo tem um pedido REAL em voo;
+ *   3. turno do tutor: 'answer' (LLM, pode demorar) → 'next' (determinístico)
+ *      → busy SEM pendingAction: com regeneração de desafio em voo é 'gerando'
+ *      (a geração REAL que está aí); sem, o único caminho que sobra é o
+ *      "Concluir aula" gravando;
+ *   4. digitação (streaming) — só EXIBIÇÃO, então perde para qualquer trabalho
+ *      de verdade;
+ *   5. nada → null (oculto).
+ *
+ * ATENÇÃO (risco 2 do revisor): `challengeBadgeCount` NÃO é entrada — é GATING
+ * DE BADGE, nunca sinal de ocupação. Esta função o menciona só para proibir.
+ */
+export interface LessonBusyInput {
+  /** O status do quiz em cena (QuizOverlayStatus) ou null sem card. */
+  quizStatus: string | null;
+  /** Turno do tutor em voo. */
+  busy: boolean;
+  /** A ação do turno em voo ('answer' | 'next' | null). */
+  pendingAction: 'next' | 'answer' | null;
+  /** Há bolha digitando (streamingIds não vazio). */
+  streaming: boolean;
+  /**
+   * ONDA2-LOADER-GLOBAL (fix do revisor adversarial): regeneração de desafio
+   * em voo (a LessonView tem o estado: `generateRunning`). Só é consultada
+   * quando busy vem SEM pendingAction — um turno 'answer'/'next' do tutor
+   * vence (o tutor é o turno em curso; a geração roda ao lado, com o modal
+   * próprio mostrando o progresso).
+   */
+  regenerating: boolean;
+}
+
+export function lessonBusyReasonFor(input: LessonBusyInput): SessionBusyReason | null {
+  if (input.quizStatus === 'aguardando-vez') return 'aguardandoVez';
+  if (input.quizStatus === 'explicando') return 'explicando';
+  if (input.quizStatus === 'gerando') return 'gerando';
+  if (input.busy) {
+    if (input.pendingAction === 'answer') return 'responder';
+    if (input.pendingAction === 'next') return 'proximaSecao';
+    // Fix do revisor: regeneração de desafio também é busy sem pendingAction —
+    // sem esta verificação o loader diria "Concluindo a aula" durante TODA a
+    // geração (minutos). 'gerando' já existe na união e nos dois locales.
+    if (input.regenerating) return 'gerando';
+    return 'concluindo';
+  }
+  if (input.streaming) return 'digitando';
+  return null;
+}
+
 /** Instantâneo do estado de sessão — é isto que o quadro superior lê. */
 export interface SessionSnapshot {
   /** Assunto atual da aula (já normalizado: trim; vazio vira null). */
@@ -58,6 +187,12 @@ export interface SessionSnapshot {
   status: SessionLessonStatus;
   /** Fração 0..1 do progresso da fase (0 quando desconhecida). */
   fraction: number;
+  /**
+   * ONDA2-LOADER-GLOBAL — o que está em voo AGORA, ou null quando nada está
+   * (o loader global do shell some). Transiente por desenho: sobrevive a
+   * re-render, morre com a view que o publicou (o cleanup publica null).
+   */
+  busy: SessionBusySignal | null;
   /** Carimbo (epoch ms) da última mudança REAL de estado; null antes da 1ª. */
   lastActivityAt: number | null;
 }
@@ -68,6 +203,7 @@ export const INITIAL_SESSION: SessionSnapshot = {
   phase: null,
   status: 'idle',
   fraction: 0,
+  busy: null,
   lastActivityAt: null,
 };
 
@@ -76,7 +212,8 @@ export const INITIAL_SESSION: SessionSnapshot = {
  * só o que sabe (a LessonView sabe o assunto no submit e a fase no progresso —
  * em momentos diferentes) e nunca precisa reconstruir o snapshot inteiro.
  *
- * ─── CONTRATO DE `undefined` / `null` — VALE PARA OS QUATRO CAMPOS ──────────
+ * ─── CONTRATO DE `undefined` / `null` — VALE PARA OS CINCO CAMPOS ──────────
+ * (os quatro originais + o canal de ocupação `busy`, ONDA2-LOADER-GLOBAL)
  * A regra é UMA SÓ, sem exceção por campo:
  *
  *   • campo AUSENTE **ou presente com `undefined`** ⇒ "NÃO MEXA". Preserva o
@@ -90,7 +227,10 @@ export const INITIAL_SESSION: SessionSnapshot = {
  *     com os dois de cima;
  *   • `status` NÃO tem forma de limpeza: o vazio dele é o literal `'idle'`, que
  *     se publica explicitamente. Qualquer valor fora da união (incluindo `null`)
- *     é IGNORADO, como se o campo não tivesse vindo.
+ *     é IGNORADO, como se o campo não tivesse vindo;
+ *   • ONDA2-LOADER-GLOBAL — `busy: null` LIMPA a ocupação (o "nada em voo");
+ *     objeto com `reason` da união publica; qualquer outra forma é IGNORADA.
+ *     E o canal NUNCA carimba `lastActivityAt` — ver a decisão no reducer.
  *
  * POR QUE `undefined` PRECISA SER INERTE, e não é preciosismo: o `tsconfig.json`
  * do renderer (quem chama `publishSession`) não liga `strict` nem
@@ -104,6 +244,8 @@ export interface SessionPatch {
   phase?: LessonPhaseKey | null;
   status?: SessionLessonStatus;
   fraction?: number | null;
+  /** Sinal de ocupação; `null` limpa (nada em voo). Ver o contrato acima. */
+  busy?: SessionBusySignal | null;
 }
 
 /** Ações do reducer. `at` é o relógio INJETADO (o reducer não lê Date.now). */
@@ -148,7 +290,7 @@ function isSessionStatus(value: unknown): value is SessionLessonStatus {
  * Devolve `state` POR IDENTIDADE quando o patch não muda nada — ver a decisão
  * no cabeçalho: rajada de progresso repetindo a mesma fase não é atividade.
  *
- * A guarda de cada campo é `!== undefined`, e é a MESMA nos quatro — nunca
+ * A guarda de cada campo é `!== undefined`, e é a MESMA nos cinco — nunca
  * `'campo' in patch`. A diferença não é cosmética: `{ subject: undefined }` tem
  * a chave presente, então `in` deixaria passar um `undefined` que a
  * normalização converteria em "limpe". Como o renderer compila sem `strict`
@@ -162,6 +304,10 @@ export function sessionReducer(state: SessionSnapshot, action: SessionAction): S
   const { patch } = action;
   const next: SessionSnapshot = { ...state };
   let changed = false;
+  // ONDA2-LOADER-GLOBAL: separa "mudou algo de PROGRESSO" de "mudou só o
+  // canal transiente" — só o primeiro carimba lastActivityAt (ver a decisão
+  // no bloco do busy abaixo).
+  let changedOutsideBusy = false;
 
   if (patch.subject !== undefined) {
     // Só chega aqui com string ou null: `null` (e string em branco) limpa.
@@ -169,6 +315,7 @@ export function sessionReducer(state: SessionSnapshot, action: SessionAction): S
     if (subject !== state.subject) {
       next.subject = subject;
       changed = true;
+      changedOutsideBusy = true;
     }
   }
   if (patch.phase !== undefined) {
@@ -177,11 +324,13 @@ export function sessionReducer(state: SessionSnapshot, action: SessionAction): S
     if (phase !== state.phase) {
       next.phase = phase;
       changed = true;
+      changedOutsideBusy = true;
     }
   }
   if (patch.status !== undefined && isSessionStatus(patch.status) && patch.status !== state.status) {
     next.status = patch.status;
     changed = true;
+    changedOutsideBusy = true;
   }
   if (patch.fraction !== undefined) {
     // `null` zera (0 é o vazio da fração — não há "desconhecida" separada).
@@ -189,11 +338,40 @@ export function sessionReducer(state: SessionSnapshot, action: SessionAction): S
     if (fraction !== state.fraction) {
       next.fraction = fraction;
       changed = true;
+      changedOutsideBusy = true;
+    }
+  }
+  // ─── ONDA2-LOADER-GLOBAL: o canal de ocupação ──────────────────────────────
+  // MESMA guarda `!== undefined` dos outros campos (o compilador do renderer
+  // não é `strict` — ver o contrato em SessionPatch: `busy: undefined` tem de
+  // ser inerte, não limpar). `null` limpa; só um sinal bem-formado entra.
+  //
+  // ─── DECISÃO: O CANAL DE OCUPAÇÃO NÃO É "ATIVIDADE" ────────────────────────
+  // Mudanças de `busy` NÃO carimbam `lastActivityAt` — de propósito, e mesmo
+  // na limpeza. O carimbo alimenta "última atividade" do quadro de sessão: uma
+  // métrica de PROGRESSO DE AULA (assunto, fase, fração). A ocupação é estado
+  // TRANSIENTE de UI que muda várias vezes por turno (e a digitação muda a
+  // cada bolha): carimbaria o carimbo sem progresso nenhum e o tornaria
+  // "último pulso do loader" — que é exatamente a confusão que a decisão do
+  // cabeçalho existe para evitar. Quem precisa de recência de ocupação é o
+  // próprio indicador, que some quando o canal volta a null.
+  if (patch.busy !== undefined) {
+    if (patch.busy === null) {
+      if (state.busy !== null) {
+        next.busy = null;
+        changed = true;
+      }
+    } else if (isSessionBusySignal(patch.busy) && patch.busy.reason !== state.busy?.reason) {
+      next.busy = { reason: patch.busy.reason };
+      changed = true;
     }
   }
 
   if (!changed) return state;
-  next.lastActivityAt = action.at;
+  // O canal de ocupação NÃO carimba: ocupação é transiente de UI (ver a
+  // decisão acima). Carimbo só quando a mudança REAL foi de progresso de
+  // aula (assunto, fase, fração, status).
+  if (changedOutsideBusy) next.lastActivityAt = action.at;
   return next;
 }
 
@@ -208,6 +386,15 @@ export function sessionReducer(state: SessionSnapshot, action: SessionAction): S
 export function sessionPhaseLabelKey(snapshot: SessionSnapshot): LessonPhaseLabelKey | null {
   if (snapshot.phase === null || snapshot.status === 'idle') return null;
   return lessonPhaseKey(snapshot.phase);
+}
+
+/**
+ * ONDA2-LOADER-GLOBAL — true quando HÁ trabalho em voo publicado. É o único
+ * critério do indicador global do shell para aparecer/some — nunca a fase, o
+ * status de geração ou o badge de desafios (risco 2 do revisor).
+ */
+export function isSessionBusy(snapshot: SessionSnapshot): boolean {
+  return snapshot.busy !== null;
 }
 
 /** True quando a sessão ainda não tem NADA para mostrar (quadro em repouso). */

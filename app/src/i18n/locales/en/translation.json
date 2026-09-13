@@ -129,6 +129,15 @@
     "subjectHelper": "Programming and math — e.g. invert a binary tree or solve a quadratic equation.",
     "generate": "Generate lesson",
     "generating": "Generating lesson…",
+    "busy": {
+      "responder": "Answering your question…",
+      "proximaSecao": "Preparing the next section…",
+      "digitando": "Writing the section…",
+      "explicando": "Explaining the mistake…",
+      "gerando": "Generating a new quiz…",
+      "aguardandoVez": "Waiting for a turn — the tutor is busy…",
+      "concluindo": "Finishing the lesson…"
+    },
     "phase": {
       "research": "Researching",
       "authoring": "Authoring",
@@ -597,6 +606,9 @@
       "aria": "Main navigation",
       "expand": "Expand navigation",
       "collapse": "Collapse navigation"
+    },
+    "sidebar": {
+      "splitAria": "Divider between the sidebar and the content"
     },
     "session": {
       "aria": "Session state",

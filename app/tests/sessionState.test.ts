@@ -19,8 +19,11 @@ import {
   clampFraction,
   DEFAULT_SESSION_STATE,
   INITIAL_SESSION,
+  isSessionBusy,
   isSessionIdle,
+  lessonBusyReasonFor,
   normalizeSubject,
+  sessionBusyLabelKey,
   sessionPhaseLabelKey,
   sessionReducer,
   type SessionPatch,
@@ -60,6 +63,8 @@ describe('sessionReducer — publicação', () => {
       phase: null,
       status: 'idle',
       fraction: 0,
+      // ONDA2-LOADER-GLOBAL: sem ocupação publicada (o canal nasce vazio).
+      busy: null,
       lastActivityAt: null,
     });
   });
@@ -286,11 +291,194 @@ describe('isSessionIdle — o quadro em repouso', () => {
   });
 });
 
+describe('canal de ocupação `busy` (ONDA2-LOADER-GLOBAL)', () => {
+  it('estado inicial não tem ocupação', () => {
+    assert.equal(INITIAL_SESSION.busy, null);
+  });
+
+  it('publicar ocupação troca a razão e NÃO carimba lastActivityAt (ocupação não é atividade)', () => {
+    const base = publish(INITIAL_SESSION, { subject: 'Rust' }, 100);
+    const s = publish(base, { busy: { reason: 'responder' } }, 999);
+    assert.deepEqual(s.busy, { reason: 'responder' });
+    // O carimbo continua sendo o do progresso de aula — o pulso do loader
+    // NÃO pode virar "última atividade".
+    assert.equal(s.lastActivityAt, 100);
+  });
+
+  it('`busy: null` LIMPA (nada em voo) — e também não carimba', () => {
+    const base = publish(INITIAL_SESSION, { subject: 'Rust' }, 100);
+    const a = publish(base, { busy: { reason: 'digitando' } }, 200);
+    assert.equal(a.busy?.reason, 'digitando');
+    const s = publish(a, { busy: null }, 999);
+    assert.equal(s.busy, null);
+    assert.equal(s.lastActivityAt, 100);
+  });
+
+  it('`busy: undefined` é INERTE (o compilador do renderer não é strict)', () => {
+    // A publicação da ocupação NÃO carimba (decisão do reducer), então o base
+    // de referência é o próprio carimbo null de antes dela.
+    const base = publish(INITIAL_SESSION, { busy: { reason: 'gerando' } }, 10);
+    assert.equal(base.busy?.reason, 'gerando');
+    assert.equal(base.lastActivityAt, null, 'ocupar não carimba (decisão do canal)');
+    const s = publish(base, { busy: undefined } as SessionPatch, 999);
+    assert.equal(s, base, 'identidade preservada e valor intacto');
+    assert.equal(s.busy?.reason, 'gerando');
+    assert.equal(s.lastActivityAt, null);
+  });
+
+  it('republicar a MESMA razão é no-op por identidade (a pílula não pisca)', () => {
+    const base = publish(INITIAL_SESSION, { busy: { reason: 'explicando' } }, 10);
+    const again = publish(base, { busy: { reason: 'explicando' } }, 999);
+    assert.equal(again, base);
+  });
+
+  it('valor mal-formado é IGNORADO (fora da união de razões, como `status`)', () => {
+    const base = publish(INITIAL_SESSION, { subject: 'Rust' }, 100);
+    for (const lixo of [{ reason: 'qualquer' }, { }, 'responder', 42, { reason: null }]) {
+      const s = publish(base, { busy: lixo as unknown as SessionPatch['busy'] }, 999);
+      assert.equal(s.busy, null, `lixo ${JSON.stringify(lixo)} deve ser ignorado`);
+      assert.equal(s.lastActivityAt, 100, 'lixo não carimba atividade');
+    }
+  });
+
+  it('mudança de ocupação não derruba os outros campos (e vice-versa)', () => {
+    const a = publish(INITIAL_SESSION, { subject: 'Rust', phase: 'autorando', status: 'running' }, 10);
+    const b = publish(a, { busy: { reason: 'concluindo' } }, 20);
+    assert.equal(b.subject, 'Rust');
+    assert.equal(b.phase, 'autorando');
+    assert.deepEqual(b.busy, { reason: 'concluindo' });
+    const c = publish(b, { busy: null }, 30);
+    assert.equal(c.busy, null);
+    assert.equal(c.subject, 'Rust', 'limpar a ocupação não limpa a aula');
+  });
+
+  it('isSessionBusy é o ÚNICO critério do indicador global aparecer/some', () => {
+    assert.equal(isSessionBusy(INITIAL_SESSION), false);
+    const ocupada = publish(INITIAL_SESSION, { busy: { reason: 'aguardandoVez' } }, 1);
+    assert.equal(isSessionBusy(ocupada), true);
+    const limpa = publish(ocupada, { busy: null }, 2);
+    assert.equal(isSessionBusy(limpa), false);
+    // Fase/status/fração NÃO são ocupação (risco 2: badge não é busy).
+    const faseAtiva = publish(INITIAL_SESSION, { phase: 'pesquisando', status: 'running' }, 1);
+    assert.equal(isSessionBusy(faseAtiva), false);
+  });
+
+  it('reset zera o canal de ocupação junto com o resto', () => {
+    const ocupada = sessionReducer(publish(INITIAL_SESSION, { subject: 'Rust' }, 1), {
+      type: 'publish',
+      patch: { busy: { reason: 'responder' } },
+      at: 2,
+    });
+    const reset = sessionReducer(ocupada, { type: 'reset', at: 3 });
+    assert.equal(reset.busy, null);
+  });
+});
+
+describe('lessonBusyReasonFor — a prioridade do QUE está em voo (ONDA2-LOADER-GLOBAL)', () => {
+  it('nada em voo devolve null (o indicador global some)', () => {
+    assert.equal(
+      lessonBusyReasonFor({
+        quizStatus: null, busy: false, pendingAction: null, streaming: false, regenerating: false,
+      }),
+      null,
+    );
+  });
+
+  it('cobre os estados da FQ11', () => {
+    const cases: ReadonlyArray<[
+      Parameters<typeof lessonBusyReasonFor>[0],
+      ReturnType<typeof lessonBusyReasonFor>,
+    ]> = [
+      // turno do tutor respondendo
+      [{ quizStatus: null, busy: true, pendingAction: 'answer', streaming: false, regenerating: false }, 'responder'],
+      // turno determinístico do "Próximo"
+      [{ quizStatus: null, busy: true, pendingAction: 'next', streaming: false, regenerating: false }, 'proximaSecao'],
+      // digitação de seção/explicação (streamingIds)
+      [{ quizStatus: 'aguardando', busy: false, pendingAction: null, streaming: true, regenerating: false }, 'digitando'],
+      // ciclo do quiz: explicando o erro (a explicação também digita — vence 'explicando')
+      [{ quizStatus: 'explicando', busy: false, pendingAction: null, streaming: true, regenerating: false }, 'explicando'],
+      // ciclo do quiz gerando o remediador
+      [{ quizStatus: 'gerando', busy: false, pendingAction: null, streaming: false, regenerating: false }, 'gerando'],
+      // fila: o ciclo quer rodar mas espera o turno do tutor (a causa do "travou")
+      [{ quizStatus: 'aguardando-vez', busy: true, pendingAction: 'answer', streaming: false, regenerating: false }, 'aguardandoVez'],
+      // "Concluir aula" gravando (busy sem pendingAction, sem regeneração)
+      [{ quizStatus: null, busy: true, pendingAction: null, streaming: false, regenerating: false }, 'concluindo'],
+      // FIX DO REVISOR: regeneração de desafio na bolha é busy sem pendingAction
+      // — deve ser 'gerando' (o que REALMENTE está em voo), nunca "Concluindo a
+      // aula" durante minutos de geração.
+      [{ quizStatus: null, busy: true, pendingAction: null, streaming: false, regenerating: true }, 'gerando'],
+      // precedência: um turno do tutor em voo vence a regeneração ao lado
+      [{ quizStatus: null, busy: true, pendingAction: 'answer', streaming: false, regenerating: true }, 'responder'],
+      [{ quizStatus: null, busy: true, pendingAction: 'next', streaming: false, regenerating: true }, 'proximaSecao'],
+      // e o ciclo do quiz em cena vence a regeneração (prioridade do ciclo)
+      [{ quizStatus: 'explicando', busy: false, pendingAction: null, streaming: false, regenerating: true }, 'explicando'],
+    ];
+    for (const [input, expected] of cases) {
+      assert.equal(lessonBusyReasonFor(input), expected, `caso: ${JSON.stringify(input)}`);
+    }
+  });
+
+  it('estados INTERATIVOS do quiz não são ocupação (o card espera o aluno)', () => {
+    for (const status of ['aguardando', 'dominado', 'indisponivel']) {
+      assert.equal(
+        lessonBusyReasonFor({
+          quizStatus: status, busy: false, pendingAction: null, streaming: false, regenerating: false,
+        }),
+        null,
+        `status ${status} não deve acender o loader global`,
+      );
+    }
+  });
+
+  it('a janela do veredito (1.6s, risco 1) mostra o ESTADO REAL — ou trabalho em voo, ou oculto', () => {
+    // Na resposta CERTA o overlay congela em 'aguardando' com busy=false: não
+    // há trabalho em voo, e o indicador fica OCULTO (sem spinner redundante
+    // que some 1.6s depois). ATENÇÃO (verificação do revisor adversarial):
+    // esta "janela oculta" só vale para o caso SEM trabalho — na resposta
+    // ERRADA o quizExplain dispara DE VERDADE durante a janela (é um pedido
+    // LLM real em voo), então o estado publicado é 'explicando' e o loader
+    // global mostra exatamente isso. O estado nunca é inventado: ou é o que
+    // está acontecendo, ou não há pílula.
+    assert.equal(
+      lessonBusyReasonFor({
+        quizStatus: 'aguardando', busy: false, pendingAction: null, streaming: false, regenerating: false,
+      }),
+      null,
+    );
+  });
+
+  it('a derivação NUNCA lê challengeBadgeCount (risco 2: gating de badge não é busy)', () => {
+    // Guarda de contrato: a função pura nem tem o campo na entrada.
+    const input: Parameters<typeof lessonBusyReasonFor>[0] = {
+      quizStatus: null, busy: false, pendingAction: null, streaming: false, regenerating: false,
+    };
+    assert.equal('challengeBadgeCount' in input, false);
+  });
+});
+
+describe('sessionBusyLabelKey — a chave canônica dos DOIS locales', () => {
+  it('cada razão vira exatamente a chave lesson.busy.<razão>', () => {
+    const cases: ReadonlyArray<[ReturnType<typeof lessonBusyReasonFor> & string, string]> = [
+      ['responder', 'lesson.busy.responder'],
+      ['proximaSecao', 'lesson.busy.proximaSecao'],
+      ['digitando', 'lesson.busy.digitando'],
+      ['explicando', 'lesson.busy.explicando'],
+      ['gerando', 'lesson.busy.gerando'],
+      ['aguardandoVez', 'lesson.busy.aguardandoVez'],
+      ['concluindo', 'lesson.busy.concluindo'],
+    ];
+    for (const [reason, key] of cases) {
+      assert.equal(sessionBusyLabelKey(reason), key, `razão ${reason}`);
+    }
+  });
+});
+
 describe('DEFAULT_SESSION_STATE — sem provider o app não quebra', () => {
   it('traz o snapshot vazio e escritas no-op', () => {
     assert.equal(DEFAULT_SESSION_STATE.subject, null);
     assert.equal(DEFAULT_SESSION_STATE.phase, null);
     assert.equal(DEFAULT_SESSION_STATE.status, 'idle');
+    assert.equal(DEFAULT_SESSION_STATE.busy, null);
     assert.equal(DEFAULT_SESSION_STATE.lastActivityAt, null);
     assert.doesNotThrow(() => DEFAULT_SESSION_STATE.publishSession({ subject: 'x' }));
     assert.doesNotThrow(() => DEFAULT_SESSION_STATE.resetSession());

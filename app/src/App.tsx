@@ -70,6 +70,7 @@ import {
   readShellSplitRatio,
   ratioToPx,
   SHELL_SIDEBAR_PANE_ID,
+  SHELL_SPLIT_ARIA_I18N_KEY,
   SHELL_SPLIT_CONSTRAINTS,
   SHELL_SPLIT_DIVIDER_ID,
   writeShellSplitRatio,
@@ -87,6 +88,12 @@ import { ChallengeGenerateModal } from './components/challenge/ChallengeGenerate
 // src/lib/quizOverlayState.ts (módulo) e o conteúdo é publicado pela
 // LessonView em src/components/quiz/quizOverlayContent.ts.
 import { QuizOverlayHost } from './components/quiz/QuizOverlayHost';
+// ONDA2-LOADER-GLOBAL (pedido do dono: "quero um loader global fácil de ver e
+// entender"): a pílula fixa de ocupação, SEMPRE montada no shell — sobrevive à
+// navegação de abas e flutua acima do overlay do quiz (zIndex 1400 > 1300).
+// O estado chega pelo MESMO canal de contexto que alimenta a SessionSidebar
+// (src/lib/sessionState.ts, campo `busy`), publicado pela LessonView.
+import GlobalBusyIndicator from './components/shell/GlobalBusyIndicator';
 
 const VIEWS: Record<NavKey, ComponentType<ViewProps>> = {
   home: HomeView,
@@ -185,14 +192,7 @@ function Shell({
           onRatioChange={handleRatioChange}
           onDragStart={handleDragStart}
           onDragEnd={handleDragEnd}
-          // TEMPORÁRIO (i18n): os locales são de OUTRO dono nesta onda — o
-          // rótulo reusa `shell.session.aria` ("Estado da sessão", o painel
-          // que a divisória controla) e a dica reusa `challenge.split.hint`
-          // (texto genérico de arraste/teclado). PENDENTE de chave própria
-          // (registrada no handoff): shell.sidebar.splitAria —
-          // "Divisória entre a barra lateral e o conteúdo" (pt-BR) /
-          // "Divider between the sidebar and the content" (en).
-          ariaLabel={t('translation:shell.session.aria')}
+          ariaLabel={t(SHELL_SPLIT_ARIA_I18N_KEY)}
           hint={t('translation:challenge.split.hint')}
           hintId={SHELL_SPLIT_HINT_ID}
           controlsIds={[SHELL_SIDEBAR_PANE_ID, navPanelId(active)]}
@@ -253,6 +253,11 @@ export default function App(): ReactElement {
             condicional DENTRO do componente (se ele retornasse null, o exit
             do "minimizar" não animaria). */}
         <QuizOverlayHost />
+        {/* ONDA2-LOADER-GLOBAL: SEMPRE montado — o indicador é GLOBAL
+            (sobrevive à troca de abas, mora FORA do Shell) e flutua acima do
+            overlay do quiz. O canal `busy` vem do contexto de sessão, que
+            envolve tudo (SessionStateProvider acima). */}
+        <GlobalBusyIndicator />
       </ChallengeNavProvider>
     </SessionStateProvider>
   );

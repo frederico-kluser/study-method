@@ -129,6 +129,15 @@
     "subjectHelper": "Programação e matemática — ex.: inverter uma árvore binária ou uma equação do 2º grau.",
     "generate": "Gerar aula",
     "generating": "Gerando aula…",
+    "busy": {
+      "responder": "Respondendo à sua pergunta…",
+      "proximaSecao": "Preparando a próxima seção…",
+      "digitando": "Escrevendo a seção…",
+      "explicando": "Explicando o erro…",
+      "gerando": "Gerando novo quiz…",
+      "aguardandoVez": "Aguardando a vez — o tutor está ocupado…",
+      "concluindo": "Concluindo a aula…"
+    },
     "phase": {
       "research": "Pesquisando",
       "authoring": "Escrevendo",
@@ -597,6 +606,9 @@
       "aria": "Navegação principal",
       "expand": "Expandir navegação",
       "collapse": "Recolher navegação"
+    },
+    "sidebar": {
+      "splitAria": "Divisória entre a barra lateral e o conteúdo"
     },
     "session": {
       "aria": "Estado da sessão",

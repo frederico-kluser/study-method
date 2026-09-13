@@ -139,6 +139,17 @@ export const SPLIT_PRIMARY_LABEL_I18N_KEY = 'translation:challenge.statementPane
 export const SPLIT_SECONDARY_LABEL_I18N_KEY = 'translation:challenge.editorPane' as const;
 
 /**
+ * ONDA2-LOADER-GLOBAL: a chave i18n PRÓPRIA do rótulo da divisória do shell
+ * (`shell.sidebar.splitAria`), encerrando o rótulo TEMPORÁRIO que a onda
+ * sidebar deixou em App.tsx (que reusava `shell.session.aria` — o rótulo do
+ * POÇO de estado, não o da divisória). Mesmo padrão das chaves acima: a
+ * constante mora junto da matemática do split, os dois lados do par
+ * (App.tsx escreve, o teste de contrato-cruzado procura) importam do MESMO
+ * lugar, e a divergência é impossível.
+ */
+export const SHELL_SPLIT_ARIA_I18N_KEY = 'translation:shell.sidebar.splitAria' as const;
+
+/**
  * Movimento do split. `flex-basis` está em `SPATIAL_ALLOWED_PROPERTIES`
  * (designTokens §Movimento), então usa a curva `spatial`. REGRA DE USO: anima
  * só o passo de TECLADO; durante o arraste a razão segue o ponteiro sem

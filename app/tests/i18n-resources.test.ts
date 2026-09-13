@@ -189,6 +189,43 @@ describe('interpolação (sem asserção de valores específicos)', () => {
   });
 });
 
+describe('canal de ocupação e divisória do shell (ONDA2-LOADER-GLOBAL)', () => {
+  /** As 7 razões do loader global — a MESMA lista de sessionBusyLabelKey. */
+  const BUSY_REASONS = [
+    'responder',
+    'proximaSecao',
+    'digitando',
+    'explicando',
+    'gerando',
+    'aguardandoVez',
+    'concluindo',
+  ] as const;
+
+  it('todas as razões do loader global existem e são não-vazias nos DOIS locales', async () => {
+    const ptI18n = await createAppI18n('pt-BR');
+    const enI18n = await createAppI18n('en');
+    for (const reason of BUSY_REASONS) {
+      const key = `lesson.busy.${reason}`;
+      const pt = ptI18n.t(key);
+      const enText = enI18n.t(key);
+      assert.ok(pt.length > 0, `pt-BR: ${key} não deve traduzir vazio`);
+      assert.notEqual(pt, key, `${key} não deve voltar como chave crua em pt-BR`);
+      assert.ok(enText.length > 0, `en: ${key} não deve traduzir vazio`);
+      assert.notEqual(enText, key, `${key} não deve voltar como chave crua em en`);
+    }
+  });
+
+  it('shell.sidebar.splitAria existe nos DOIS locales (rótulo da divisória do shell)', async () => {
+    const ptI18n = await createAppI18n('pt-BR');
+    const enI18n = await createAppI18n('en');
+    const pt = ptI18n.t('shell.sidebar.splitAria');
+    const enText = enI18n.t('shell.sidebar.splitAria');
+    assert.ok(pt.length > 0 && pt !== 'shell.sidebar.splitAria');
+    assert.ok(enText.length > 0 && enText !== 'shell.sidebar.splitAria');
+    assert.notEqual(pt, enText, 'os dois locales devem ter traduções distintas');
+  });
+});
+
 describe('metadados do i18n (Ondokai-compatíveis)', () => {
   it('SUPPORTED_LANGUAGES lista code/name/flag para pt-BR e en', () => {
     assert.equal(SUPPORTED_LANGUAGES.length, 2);

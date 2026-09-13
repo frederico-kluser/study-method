@@ -251,6 +251,20 @@ describe('1. guardas de fonte — o contrato de papéis que os e2e consomem', ()
     assert.ok(sidebar < divider, 'a sidebar vem antes da divisória');
     assert.ok(divider < main, 'a divisória vem ANTES do main (ela separa os dois)');
   });
+
+  // ONDA2-LOADER-GLOBAL (contrato cruzado com src/lib/splitRatio.ts): o rótulo
+  // TEMPORÁRIO da divisória (que reusava shell.session.aria) foi encerrado —
+  // a chave própria shell.sidebar.splitAria existe nos DOIS locales e é a que
+  // App.tsx usa (a constante é exportada do splitRatio, então os dois lados do
+  // par importam do mesmo lugar e a divergência é impossível).
+  it('a divisória usa a chave PRÓPRIA shell.sidebar.splitAria (fim do TEMPORÁRIO)', () => {
+    const app = codeOf(readFileSync(APP_PATH, 'utf8'));
+    assert.match(app, /SHELL_SPLIT_ARIA_I18N_KEY/);
+    assert.ok(
+      !app.includes("t('translation:shell.session.aria')"),
+      'o rótulo do POÇO de sessão não deve mais ser o rótulo da divisória',
+    );
+  });
 });
 
 /* ═══════════════ BLOCO 2 — O ESTADO RENDERIZADO (SSR real) ═══════════════ */
