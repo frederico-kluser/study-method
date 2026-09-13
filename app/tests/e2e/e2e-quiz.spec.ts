@@ -501,6 +501,16 @@ test('e2e-quiz: errar → explicação na conversa → quiz NOVO → acertar fec
   const errada = ASSERTION_ONE.options[erradaIdx];
   await dialog.getByRole('button', { name: optionName(ASSERTION_ONE.options, erradaIdx) }).click();
 
+  // ONDA16-VEREDITO (o dono: "quando respondo um quiz quero antes dele sumir
+  // ver se acertei ou errei e efeito"): o overlay FICA sobre a tela por uma
+  // janela perceptível (QUIZ_VERDICT_MS) mostrando o veredito do card
+  // respondido — o vermelho + o feedback aparecem ANTES de o card descer.
+  // O `toBeHidden` logo abaixo continua valendo: Playwright espera a janela
+  // acabar e o minimize acontecer.
+  await expect(
+    dialog.getByText('Essa alternativa se separa do que a seção mostra.', { exact: true }),
+  ).toBeVisible();
+
   // ONDA11 — A NOTA DE HONESTIDADE ANTERIOR CADUCOU, e para melhor. Ela dizia
   // que o instante MINIMIZADO não era observável aqui: a IA fixture responde
   // sem rede, o quiz novo voltava em milissegundos e o overlay "mergulhava e
@@ -560,6 +570,9 @@ test('e2e-quiz: errar → explicação na conversa → quiz NOVO → acertar fec
 
   // O ACERTO É O ÚNICO FIM DO CICLO: o overlay FECHA, o card cheio fica na
   // conversa com o veredito, e o "Próximo" destrava.
+  // ONDA16-VEREDITO: o ACERTO também é mostrado na janela antes do overlay
+  // sair — o verde com o CheckCircle aparece antes do minimize/fechamento.
+  await expect(dialog.getByText('É isso que a seção mostra.', { exact: true })).toBeVisible();
   await expect(dialog).toBeHidden();
   await expect(log.getByText('É isso que a seção mostra.')).toBeVisible();
   await expect(next).toBeEnabled();
@@ -630,6 +643,11 @@ test('e2e-quiz: FAIL-CLOSED com E2E_QUIZ_AI=off — a tela diz o que faltou, sem
   // minimização é observável de forma estável: com a IA fora, o ciclo para em
   // vez de subir um quiz novo em milissegundos, então o quiz fica MESMO fora da
   // tela e quem passa a contar o estado é o card compacto da conversa (abaixo).
+  // ONDA16-VEREDITO: mesmo com a IA fora, o veredito aparece PRIMEIRO (a
+  // janela não depende da IA — o veredito é desenhado pelo estado local).
+  await expect(
+    dialog.getByText('Essa alternativa se separa do que a seção mostra.', { exact: true }),
+  ).toBeVisible();
   await expect(dialog).toBeHidden();
 
   // A TELA DIZ O QUE FALTOU — o aviso do canal, com o "Pedir de novo" ativo.

@@ -51,6 +51,13 @@ import type { QuizState } from '../../lib/trackLessonState';
 export type QuizOverlayStatus =
   /** o card espera o clique do aluno (a única fase interativa). */
   | 'aguardando'
+  /**
+   * ONDA16-CICLO-CARGA: o ciclo QUER rodar, mas espera a vez — um turno do
+   * tutor está em voo e o motor NÃO enfileira o pedido atrás dele (a fila FIFO
+   * do LLM local estourava o timeout do renderer). Nada foi pedido ainda: o
+   * card diz isso em vez de mentir "explicando"/"gerando".
+   */
+  | 'aguardando-vez'
   /** respondeu errado; a explicação diagnóstica está sendo escrita. */
   | 'explicando'
   /** a explicação já entrou na conversa; o quiz novo está sendo gerado. */

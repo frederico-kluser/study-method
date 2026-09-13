@@ -213,6 +213,7 @@
     "quizAttemptLabel": "Quiz {{n}} desta afirmação",
     "quizChatOnScreen": "Este quiz está aberto sobre a tela.",
     "quizChatWaiting": "Esperando a sua resposta.",
+    "quizChatQueued": "Na fila — o tutor está terminando uma resposta e o ciclo do quiz continua em seguida…",
     "quizChatExplaining": "Escrevendo onde a alternativa marcada se separa do que a seção mostra…",
     "quizChatGenerating": "Preparando um quiz novo sobre o mesmo trecho…",
     "quizChatUnavailable": "O ciclo parou aqui. Você pode pedir de novo.",

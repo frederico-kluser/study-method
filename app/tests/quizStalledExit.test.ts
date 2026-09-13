@@ -560,9 +560,16 @@ describe('7. guarda de FONTE: o botão só existe com o ciclo travado', () => {
 
   it('a saída só é publicada com o status "indisponivel" (nas duas metades do quiz)', () => {
     const ocorrencias = VIEW.split('onReopen').length - 1;
-    assert.equal(ocorrencias, 2, 'o overlay e o card compacto — e nada além disso');
+    // ONDA16-VEREDITO: a publicação CONGELADA da janela do veredito passa
+    // `onReopen: null` de propósito — durante a janela o ciclo NÃO está
+    // travado (o overlay só está mostrando o veredito antes de minimizar),
+    // então a terceira ocorrência é um null explícito, não uma condicional.
+    assert.equal(ocorrencias, 3, 'o overlay, o card compacto e o congelamento da janela — e nada além disso');
     for (const trecho of VIEW.split('onReopen').slice(1)) {
       const janela = trecho.slice(0, 200);
+      // A ocorrência da janela do veredito é `onReopen: null` — o split corta
+      // ANTES do ": null", e é exatamente isso que a guarda reconhece.
+      if (janela.startsWith(': null')) continue;
       assert.ok(
         janela.includes("activeQuizStatus === 'indisponivel'"),
         'todo onReopen é condicionado ao ciclo TRAVADO',

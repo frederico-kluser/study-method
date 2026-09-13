@@ -361,6 +361,19 @@ describe('o card MINIMIZADO, na conversa', () => {
     assert.ok(!gerando.includes(ptBR.lesson.quizChatAnswer));
   });
 
+  // ONDA16-CICLO-CARGA: com um turno do tutor em voo, o motor do ciclo ESPERA
+  // a vez (não enfileira atrás do turno — a fila FIFO do LLM local estourava o
+  // timeout e o ciclo morria). O card diz a verdade sobre a espera: o texto
+  // novo, e NÃO o "explicando"/"gerando" de um trabalho que ainda nem saiu —
+  // e nenhum botão morto, porque não há nada que o clique adiante.
+  it('aguardando a vez (turno do tutor em voo): texto honesto de fila, sem botão morto', () => {
+    const naFila = onScreen(renderCard({ status: 'aguardando-vez' }));
+    assert.ok(naFila.includes(ptBR.lesson.quizChatQueued), 'a fila é ANUNCIADA com o texto novo');
+    assert.ok(!naFila.includes(ptBR.lesson.quizChatExplaining), 'não mente "explicando"');
+    assert.ok(!naFila.includes(ptBR.lesson.quizChatGenerating), 'não mente "gerando"');
+    assert.ok(!naFila.includes(ptBR.lesson.quizChatAnswer), 'nenhum botão morto na espera');
+  });
+
   it('canal fora do ar: aviso informativo + "pedir de novo" (§8 item 3, diagnóstico)', () => {
     const html = renderCard({
       status: 'indisponivel',

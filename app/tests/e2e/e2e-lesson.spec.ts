@@ -156,6 +156,14 @@ test('e2e-lesson: trilha → aula em chat (teoria progressiva + fontes + desafio
   await page.getByText('Aula E2E sobre funções', { exact: false }).first().click();
   await expect(page.getByRole('heading', { name: 'Aula E2E sobre funções' })).toBeVisible();
 
+  // ONDA16-PIN (o dono: "fica um pin de item em Desafios mas ele só libera no
+  // fim da aula então não deveria ter esse pin"): DURANTE a teoria o desafio
+  // não liberou — o badge do botão "Desafios" está INVISÍVEL (0 pendentes →
+  // `MuiBadge-invisible`; o MUI mantém o span no DOM, escondido). Este é o
+  // ponto da aula onde o pin prematuro acendia; a asserção do badge '1'
+  // (mais abaixo) roda só DEPOIS que a teoria conclui e o desafio libera.
+  await expect(page.locator('.MuiBadge-badge:not(.MuiBadge-invisible)')).toHaveCount(0);
+
   // O chat começa vazio: "Começar aula" apresenta a 1ª seção (stub).
   //
   // ONDA10-FENCE (fix da corrida): `waitFullTypewriter` PRECISA ser chamado
@@ -221,6 +229,10 @@ test('e2e-lesson: trilha → aula em chat (teoria progressiva + fontes + desafio
   // pendentes ({{pending}} — mesmo critério do gating, lastVerdict !==
   // 'passed'; a fixture tem 1 desafio nunca tentado → 1) e o badge visual
   // mostra o mesmo número; aria-haspopup/expanded acompanham o popover.
+  // ONDA16-PIN: neste ponto a teoria JÁ concluiu e todo quiz visível foi
+  // dominado — o desafio está LIBERADO (o mesmo gate do passo 'desafio'),
+  // então o badge existe e mostra 1. Durante a teoria ele não existe (o
+  // toHaveCount(0) lá em cima é a outra metade deste contrato).
   const desafiosBtn = page.getByRole('button', { name: 'Desafios da aula (1 pendentes)', exact: true });
   await expect(desafiosBtn).toHaveAttribute('aria-haspopup', 'true');
   await expect(desafiosBtn).toHaveAttribute('aria-expanded', 'false');

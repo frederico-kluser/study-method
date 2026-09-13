@@ -213,6 +213,7 @@
     "quizAttemptLabel": "Quiz {{n}} for this statement",
     "quizChatOnScreen": "This quiz is open over the screen.",
     "quizChatWaiting": "Waiting for your answer.",
+    "quizChatQueued": "Queued — the tutor is finishing a reply, and the quiz cycle continues right after.",
     "quizChatExplaining": "Writing where the option you picked parts ways with what the section shows…",
     "quizChatGenerating": "Preparing a new quiz on the same passage…",
     "quizChatUnavailable": "The cycle stopped here. You can ask again.",

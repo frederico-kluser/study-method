@@ -447,6 +447,127 @@ describe('7. a LessonView liga os canais do ciclo (e só uma vez)', () => {
   });
 });
 
+/* ═════════════════════════════════════════════════════════════════════════
+ * 7.5. ONDA16 — O VEREDITO DO QUIZ APARECE ANTES DE O OVERLAY SUMIR
+ *
+ * O dono: "quando respondo um quiz quero antes dele sumir ver se acertei ou
+ * errei e efeito". Antes, `handleQuizAnswer` chamava `minimizeQuizOverlay`
+ * NO MESMO gesto do submit — o aluno nunca via o resultado. Agora o card
+ * sobe... quer dizer, FICA sobre a tela por uma janela (QUIZ_VERDICT_MS)
+ * desenhando o estado `answered` do LessonQuizCard, e SÓ ENTÃO desce. Como
+ * não há jsdom, a ligação é provada por FONTE (a técnica desta suíte), e a
+ * máquina por baixo (idempotência, fase, store) continua provada em
+ * tests/quizOverlayCycle.test.ts.
+ * ═════════════════════════════════════════════════════════════════════ */
+describe('7.5. a janela do veredito: ver se acertou antes de sumir', () => {
+  const QUIZ_CARD_SRC = src('src/views/LessonView/LessonQuiz.tsx');
+  const QUIZ_CARD = codeOf(QUIZ_CARD_SRC);
+
+  it('a janela do veredito existe, é exportada e é PERCEPTÍVEL (1,4s a 1,8s)', () => {
+    const m = /export const QUIZ_VERDICT_MS = (\d+);/.exec(VIEW_SRC);
+    assert.ok(m, 'QUIZ_VERDICT_MS existe e é exportada');
+    const ms = Number(m?.[1]);
+    assert.ok(ms >= 1400 && ms <= 1800, `QUIZ_VERDICT_MS = ${ms} fora da janela perceptível`);
+  });
+
+  it('responder NÃO minimiza no mesmo gesto: o minimize morre DENTRO do timer', () => {
+    const corte = VIEW.indexOf('const handleQuizAnswer');
+    assert.ok(corte > 0, 'handleQuizAnswer precisa existir na view');
+    const fim = VIEW.indexOf('  }, []);', corte);
+    assert.ok(fim > corte, 'o fim do callback existe');
+    const corpo = VIEW.slice(corte, fim);
+    assert.ok(
+      corpo.includes('submitQuizAnswer(chatRef.current'),
+      'o submit continua sendo a máquina pura (idempotente — resposta dupla morre nela)',
+    );
+    const timer = corpo.indexOf('setTimeout(');
+    const minimize = corpo.indexOf('minimizeQuizOverlay(');
+    assert.ok(timer > 0, 'a janela é um timer de verdade');
+    assert.ok(minimize > timer, 'o minimize acontece QUANDO O TIMER DISPARA, não no clique');
+    assert.ok(corpo.includes('setVerdictHold('), 'o overlay congela no card respondido');
+  });
+
+  it('os efeitos de fase e de publicação respeitam a janela (o veredito não é derrubado)', () => {
+    // O efeito de fase: sem o guard, applyQuizOverlayStep aplicaria o passo
+    // novo no MESMO commit da resposta e desceria o card na hora.
+    assert.ok(
+      VIEW.includes('if (verdictHold !== null) return;'),
+      'a fase fica congelada durante a janela',
+    );
+    // A publicação congelada desenho o card RESPONDIDO — e é incondicional,
+    // para o ciclo rápido (IA fixture) não trocar o veredito pelo quiz novo
+    // por trás da janela.
+    assert.ok(
+      VIEW.includes('if (verdictHold !== null) {') &&
+        VIEW.split('if (verdictHold !== null) {').length - 1 === 1,
+      'a publicação congelada existe (uma só)',
+    );
+    assert.ok(
+      VIEW.includes('quiz: verdictHold.card.visible.quiz'),
+      'o conteúdo congelado é o card RESPONDIDO (o veredito)',
+    );
+  });
+
+  it('o minimize sobrevive à desmontagem: o cleanup drena o timer e executa a transição', () => {
+    assert.ok(
+      VIEW.includes('clearTimeout(verdictTimerRef.current)'),
+      'o timer é cancelado no unmount — nenhum timer vaza estado',
+    );
+    assert.ok(
+      VIEW.includes('minimizeQuizOverlay(hold.key)'),
+      'e a transição acontece MESMO se o aluno trocou de aba no meio da janela',
+    );
+  });
+
+  it('o veredito ENTRA com efeito de entrada e honra prefers-reduced-motion (movimento sai, informação fica)', () => {
+    assert.ok(
+      QUIZ_CARD.includes('useReducedMotion'),
+      'o card lê a preferência de movimento',
+    );
+    assert.match(
+      QUIZ_CARD_SRC,
+      /initial=\{reduceMotion \? false : \{ opacity: 0, scale: 0\.92 \}\}/,
+      'com movimento reduzido o veredito nasce pronto (initial={false}), sem animação — mas APARECE',
+    );
+    // Nível spatial: só transform + opacity — cor nunca entra no overshoot.
+    assert.match(
+      QUIZ_CARD_SRC,
+      /animate=\{\{ opacity: 1, scale: 1 \}\}/,
+      'a entrada do veredito é só transform/opacity',
+    );
+  });
+
+  it('ONDA16-CICLO-CARGA: o motor do ciclo ESPERA o turno do tutor terminar', () => {
+    // A causa raiz: o LLM local serializa tudo em fila FIFO; disparar o passo
+    // do ciclo com um turno em voo enfileirava ATRÁS dele e o renderer matava
+    // no timeout (70s) — ciclo morto em 'quiz-indisponivel', aula travada.
+    const at = VIEW.indexOf('const quizInFlightRef');
+    assert.ok(at > 0, 'o ref de pedidos em voo existe');
+    const efeito = VIEW.slice(VIEW.indexOf('if (busy) return;'), VIEW.indexOf('void driveQuizCycle'));
+    assert.ok(efeito.length > 0, 'o efeito motor espera `busy` acabar antes de disparar');
+    assert.ok(
+      /if \(busy\) return;[\s\S]*activeNotice === 'quiz-indisponivel'/.test(efeito),
+      'o guard de busy vem ANTES, mas o freio do laço de retentativa continua lá',
+    );
+    // A espera não mente: o card diz 'aguardando-vez' enquanto o turno roda.
+    assert.ok(
+      VIEW.includes("return 'aguardando-vez'") && CHAT_CARD.includes("status === 'aguardando-vez'"),
+      'o status honesto de espera é ligado ao QuizChatCard',
+    );
+    // E a chave nova existe nos dois idiomas (o par de locales é contrato).
+    assert.ok(
+      typeof (ptBR as unknown as { lesson: Record<string, unknown> }).lesson.quizChatQueued === 'string' &&
+        (ptBR as unknown as { lesson: Record<string, string> }).lesson.quizChatQueued !== '',
+      'pt-BR tem lesson.quizChatQueued',
+    );
+    assert.ok(
+      typeof (en as unknown as { lesson: Record<string, unknown> }).lesson.quizChatQueued === 'string' &&
+        (en as unknown as { lesson: Record<string, string> }).lesson.quizChatQueued !== '',
+      'en tem lesson.quizChatQueued',
+    );
+  });
+});
+
 describe('8 e 9. o chat: agrupamento ligado e larguras alinhadas', () => {
   it('previous={prev} chegou ao ChatBubble', () => {
     assert.ok(

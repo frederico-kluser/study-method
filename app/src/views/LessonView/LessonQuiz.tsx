@@ -58,7 +58,7 @@ import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import CancelIcon from '@mui/icons-material/Cancel';
 import { useTranslation } from 'react-i18next';
 import { useMemo, type ReactElement } from 'react';
-import { motion } from 'motion/react';
+import { motion, useReducedMotion } from 'motion/react';
 import { fadeInUp, springs } from '../../lib/animationTokens';
 import type { TrackAssertionDto } from '../../../shared/ipc-contract';
 import { optionVisualState, quizCycleOf, quizKeyFor } from '../../lib/trackLessonState';
@@ -84,6 +84,11 @@ export function LessonQuizCard({ assertion, quiz, onSelect }: LessonQuizCardProp
   const theme = useTheme();
   const answered = quiz?.answered === true;
   const correct = quiz?.correct === true;
+  // ONDA16-VEREDITO: o veredito ENTRA com um pop curto (nível spatial — só
+  // transform + opacidade, nunca cor) quando o estado `answered` chega. Sob
+  // prefers-reduced-motion o movimento sai (`initial={false}` — sem animação),
+  // mas a INFORMAÇÃO nunca: o box do veredito aparece do mesmo jeito.
+  const reduceMotion = useReducedMotion();
 
   // ONDA12 (bug 3): a ORDEM DE EXIBIÇÃO das pílulas. A semente é a chave
   // CANÔNICA do quiz (`quizKeyFor` — a mesma do estado e do gate; para uma
@@ -248,6 +253,17 @@ export function LessonQuizCard({ assertion, quiz, onSelect }: LessonQuizCardProp
             })}
           </Stack>
           {answered ? (
+            /* ONDA16-VEREDITO: o box do veredito (role="status") entra animado
+                com spring snappy — é o que o aluno lê durante a janela do
+                veredito antes de o overlay minimizar. Com movimento reduzido,
+                o box nasce pronto (initial={false}), SEM animação e SEM
+                deixar de aparecer. */
+            <motion.div
+              initial={reduceMotion ? false : { opacity: 0, scale: 0.92 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={springs.snappy}
+              style={{ transformOrigin: 'center top' }}
+            >
             <Box
               role="status"
               sx={{
@@ -270,6 +286,7 @@ export function LessonQuizCard({ assertion, quiz, onSelect }: LessonQuizCardProp
                 ) : null}
               </Box>
             </Box>
+            </motion.div>
           ) : null}
         </Stack>
       </Box>

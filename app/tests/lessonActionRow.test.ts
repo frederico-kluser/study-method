@@ -125,6 +125,11 @@ let challengeOpenBlockedByQuiz: (b: LessonFinishBlockReason | null) => boolean;
 let lessonActionStep: (input: StepInput) => Step;
 let nextClickAction: (step: Step) => 'revelar' | 'avancar' | 'nada';
 let lessonActionStatusKey: (step: Step, quizCardOnScreen: boolean) => string | null;
+let challengeBadgeCount: (input: {
+  theoryDone: boolean;
+  pendingQuizCount: number;
+  challenges: ReadonlyArray<{ lastVerdict: string | null }>;
+}) => number;
 let LessonActionRow: ComponentType<RowProps>;
 
 const BASE: StepInput = {
@@ -163,12 +168,14 @@ before(async () => {
     lessonActionStep: typeof lessonActionStep;
     nextClickAction: typeof nextClickAction;
     lessonActionStatusKey: typeof lessonActionStatusKey;
+    challengeBadgeCount: typeof challengeBadgeCount;
     LessonActionRow: typeof LessonActionRow;
   };
   challengeOpenBlockedByQuiz = mod.challengeOpenBlockedByQuiz;
   lessonActionStep = mod.lessonActionStep;
   nextClickAction = mod.nextClickAction;
   lessonActionStatusKey = mod.lessonActionStatusKey;
+  challengeBadgeCount = mod.challengeBadgeCount;
   LessonActionRow = mod.LessonActionRow;
 });
 
@@ -562,6 +569,98 @@ describe('5. a view liga o passo à ação — e o gate não ganhou porta latera
     assert.ok(
       !/nav\.(selectTrackChallenge|navigateToChallenge)/.test(corpo),
       'nenhum segundo fluxo de navegação foi inventado — o caminho é o openChallenge que já existia',
+    );
+  });
+});
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * ONDA16-PIN — O PIN DE DESAFIOS SÓ CONTA QUANDO O DESAFIO LIBERA
+ *
+ * O dono: "fica um pin de item em Desafios mas ele só libera no fim da aula
+ * então não deveria ter esse pin". O badge contava `lastVerdict !== 'passed'`
+ * desde a primeira seção; o desafio só LIBERA no fim (teoria concluída E todo
+ * quiz visível dominado — o MESMO gate que produz o passo 'desafio'). A regra
+ * é a função PURA `challengeBadgeCount` (exportada da LessonView, padrão de
+ * `lessonActionStep`), e o GATING de abertura não muda.
+ * ═════════════════════════════════════════════════════════════════════════ */
+describe('ONDA16 — o pin de Desafios só conta com o desafio LIBERADO', () => {
+  const desafios = [
+    { lastVerdict: null },
+    { lastVerdict: 'failed' },
+    { lastVerdict: 'passed' },
+  ] as const;
+
+  it('DURANTE a teoria: 0 — mesmo com desafios nunca tentados (o pin prematuro morreu)', () => {
+    assert.equal(
+      challengeBadgeCount({ theoryDone: false, pendingQuizCount: 0, challenges: [...desafios] }),
+      0,
+      'o pin acendia na abertura da aula; agora vale 0 até a teoria acabar',
+    );
+    // Nem mesmo um desafio JÁ PASSADO muda isso — não há pin antes da hora.
+    assert.equal(
+      challengeBadgeCount({
+        theoryDone: false,
+        pendingQuizCount: 0,
+        challenges: [{ lastVerdict: 'passed' }],
+      }),
+      0,
+    );
+  });
+
+  it('teoria acabou, mas há quiz sem acerto: AINDA 0 (o gate do quiz vem primeiro)', () => {
+    assert.equal(
+      challengeBadgeCount({ theoryDone: true, pendingQuizCount: 2, challenges: [...desafios] }),
+      0,
+    );
+  });
+
+  it('liberado (teoria concluída + quiz 0): conta MESMO critério de sempre', () => {
+    // null + failed = 2 pendentes; o 'passed' não conta.
+    assert.equal(
+      challengeBadgeCount({ theoryDone: true, pendingQuizCount: 0, challenges: [...desafios] }),
+      2,
+    );
+  });
+
+  it('tudo passado ou sem desafios: 0 (badge oculto, showZero=false do MUI)', () => {
+    assert.equal(
+      challengeBadgeCount({
+        theoryDone: true,
+        pendingQuizCount: 0,
+        challenges: [{ lastVerdict: 'passed' }],
+      }),
+      0,
+    );
+    assert.equal(challengeBadgeCount({ theoryDone: true, pendingQuizCount: 0, challenges: [] }), 0);
+  });
+
+  it('a régua do badge concorda com o PASSO da linha de ação (uma decisão, dois lugares)', () => {
+    // O badge é 0 exatamente enquanto a linha de ação NÃO está no passo
+    // 'desafio'/'concluir' por causa dos desafios — amarra as duas rotas para
+    // que não voltem a divergir (a lição da onda 14).
+    const pendentes = [{ lastVerdict: null }] as const;
+    // Teoria em curso → passo 'proximo' e badge 0.
+    assert.equal(lessonActionStep(BASE), 'proximo');
+    assert.equal(challengeBadgeCount({ theoryDone: false, pendingQuizCount: 0, challenges: [...pendentes] }), 0);
+    // Teoria acabou, quiz pendente → 'quiz-aula' e badge 0.
+    assert.equal(
+      lessonActionStep({ ...BASE, theoryDone: true, finishBlock: 'quiz' }),
+      'quiz-aula',
+    );
+    assert.equal(challengeBadgeCount({ theoryDone: true, pendingQuizCount: 1, challenges: [...pendentes] }), 0);
+    // Teoria acabou, quiz 0, desafio pendente → 'desafio' e badge 1.
+    assert.equal(
+      lessonActionStep({ ...BASE, theoryDone: true, finishBlock: 'challenges' }),
+      'desafio',
+    );
+    assert.equal(challengeBadgeCount({ theoryDone: true, pendingQuizCount: 0, challenges: [...pendentes] }), 1);
+  });
+
+  it('GUARDA DE FONTE: o badge da view sai da função pura, não de um filtro inline', () => {
+    assert.match(VIEW, /const pendingChallengeCount = challengeBadgeCount\(/, 'a view usa a função');
+    assert.ok(
+      !/pendingChallengeCount = lesson\.challenges\.filter/.test(VIEW),
+      'o filtro cru voltaria a acender o pin antes da hora',
     );
   });
 });

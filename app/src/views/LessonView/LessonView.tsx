@@ -711,6 +711,46 @@ export function challengeOpenBlockedByQuiz(finishBlock: LessonFinishBlockReason 
   return finishBlock === 'quiz';
 }
 
+/**
+ * ONDA16-PIN (o dono, textualmente: "fica um pin de item em Desafios mas ele
+ * só libera no fim da aula então não deveria ter esse pin").
+ *
+ * O QUE O BADGE DIZIA E O QUE O APP FAZIA eram coisas diferentes: o badge do
+ * botão "Desafios" do cabeçalho contava `lastVerdict !== 'passed'` desde a
+ * PRIMEIRA seção da teoria — o pin acendia na abertura da aula —, mas o
+ * desafio só LIBERA no fim dela. Um pin que anuncia algo que o clique não
+ * pode entregar é a mesma mentira que a onda 10 caçou nos gates.
+ *
+ * A LIBERAÇÃO é o MESMO gate que produz o passo 'desafio' da linha de ação:
+ *   - a teoria acabou (`chat.theoryDone`) — é o que a precedência de
+ *     `lessonActionStep` cobra antes de chegar a 'desafio';
+ *   - e todo quiz VISÍVEL já foi dominado (`pendingQuizCount === 0` — o mesmo
+ *     `quizPendingAll.length` que `lessonFinishBlock` lê).
+ * Enquanto isso, o badge vale ZERO (e o MUI esconde o badge com 0 —
+ * `showZero: false` é o default), sem tocar no GATING de abertura: o botão
+ * continua aí, o popover continua abrindo, e quem decide se o desafio PODE
+ * abrir segue sendo `challengeOpenBlockedByQuiz`/`openChallenge`, intactos.
+ *
+ * PURA e exportada — o padrão de `lessonActionStep`/`lessonActionStatusKey`:
+ * é o que permite prová-la em node:test sem jsdom.
+ */
+export interface ChallengeBadgeInput {
+  /** `chat.theoryDone` — a apresentação da teoria acabou. */
+  theoryDone: boolean;
+  /** `quizPendingAll.length` — quizzes VISÍVEIS ainda sem acerto. */
+  pendingQuizCount: number;
+  /** Os desafios da aula, como o payload `track.lesson` os traz. */
+  challenges: ReadonlyArray<{ lastVerdict: TrackChallengeSummaryDto['lastVerdict'] }>;
+}
+
+export function challengeBadgeCount(input: ChallengeBadgeInput): number {
+  // O desafio não liberou: o pin não anuncia o que ainda não existe.
+  if (!input.theoryDone || input.pendingQuizCount > 0) return 0;
+  // Liberou: aí sim, MESMO critério de sempre (null = nunca tentado,
+  // failed/timeout/abandoned = não passou).
+  return input.challenges.filter((ch) => ch.lastVerdict !== 'passed').length;
+}
+
 export function nextClickAction(step: LessonActionStep): 'revelar' | 'avancar' | 'nada' {
   if (step === 'revelar') return 'revelar';
   if (step === 'proximo') return 'avancar';
@@ -1029,6 +1069,17 @@ type QuizNoticeKind = keyof typeof QUIZ_NOTICE_KEY;
 const QUIZ_HISTORY_NOTICE_TAG = 'historico-da-aula';
 
 /**
+ * ONDA16-VEREDITO (o dono: "quando respondo um quiz quero antes dele sumir ver
+ * se acertei ou errei e efeito"): a JANELA DO VEREDITO, em ms. Respondida uma
+ * alternativa, o card SOBRE A TELA fica aberto mostrando o veredito (verde/
+ * vermelho + feedback do LessonQuizCard) por ESTE tempo ANTES de minimizar.
+ * 1600ms é a leitura de um veredito de uma linha — perceptível, sem virar
+ * espera. Esc/minimizar continuam funcionando DURANTE a janela: quem quiser
+ * sair antes, sai; quem não fizer nada, lê o resultado.
+ */
+export const QUIZ_VERDICT_MS = 1600;
+
+/**
  * ONDA15 — AS DUAS PORTAS DO AUTO-SCROLL, e por que elas não têm guarda.
  *
  * ─── O PEDIDO, AO PÉ DA LETRA ─────────────────────────────────────────────
@@ -1176,6 +1227,26 @@ export function LessonView(props: ViewProps): ReactElement {
    * sozinha, sem limpeza manual.
    */
   const [quizNotice, setQuizNotice] = useState<{ tag: string; kind: QuizNoticeKind } | null>(null);
+
+  /**
+   * ONDA16-VEREDITO: a JANELA DO VEREDITO. Enquanto não-null, o overlay fica
+   * CONGELADO no card RESPONDIDO — o estado `answered` do LessonQuizCard
+   * desenha o verde/vermelho + feedback — e o efeito de fase não aplica passo
+   * nenhum (`applyQuizOverlayStep` desceria o card na hora). O minimize
+   * acontece quando o timer da janela dispara (ou no cleanup de unmount).
+   *
+   * Estado (e não ref) porque a FASE e a PUBLICAÇÃO de conteúdo são efeitos:
+   * quando a janela termina, os dois efeitos PRECISAM re-executar para
+   * retomar o desenho normal — um ref não dispararia nada.
+   */
+  const [verdictHold, setVerdictHold] = useState<{ key: string; card: QuizCardEntry } | null>(null);
+  // Espelho em ref do hold: lido pelo cleanup de unmount e por
+  // `handleQuizReopen` (deps [] — padrão tIRef/chatRef/activeRef da view).
+  const verdictHoldRef = useRef(verdictHold);
+  verdictHoldRef.current = verdictHold;
+  // O timer da janela. UM só: responder outro quiz durante a janela cancela o
+  // anterior (o gesto mais recente vence); o cleanup de unmount o drena.
+  const verdictTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // ─── ONDA2-IMESSAGE: streaming (efeito "digitação" ~100 tokens/s) ─────────
   // O streaming é SÓ EXIBIÇÃO: o histórico guarda o texto COMPLETO (o modelo
@@ -2038,21 +2109,46 @@ export function LessonView(props: ViewProps): ReactElement {
   const activeNoticeRef = useRef(activeNotice);
   activeNoticeRef.current = activeNotice;
 
+  // ONDA16-CICLO-CARGA: os pedidos do ciclo em voo — declarado ANTES de
+  // `activeQuizStatus` (que o lê: é ele que separa "pedido do ciclo em voo" de
+  // "ciclo esperando a vez", para o card não mentir durante a espera).
+  const quizInFlightRef = useRef<Set<string>>(new Set());
+
   /**
    * O que a tela DIZ sobre o quiz em cena. A tradução do passo é da função
-   * pura `overlayStatusFor`; os dois ajustes abaixo são do CANAL:
+   * pura `overlayStatusFor`; os três ajustes abaixo são do CANAL (ou da
+   * ORQUESTRAÇÃO, no caso do terceiro):
    *   - 'quiz-indisponivel' → o ciclo PAROU e espera o "tentar de novo";
    *   - 'explicacao-indisponivel' → a explicação não pôde ser escrita, mas o
    *     ciclo SEGUE (`injectRemediationQuiz` aceita o estágio 'explicando' —
    *     caminho de degradação documentado lá). O card já diz "preparando um
    *     quiz novo", porque é isso que está acontecendo.
+   *   - ONDA16-CICLO-CARGA: com um turno do tutor em voo (`busy`), o motor do
+   *     ciclo ESPERA A VEZ em vez de enfileirar atrás do turno — dizer
+   *     "explicando"/"gerando" seria mentir, porque o pedido AINDA NÃO SAIU.
+   *     O estado 'aguardando-vez' diz a verdade (e o gate
+   *     'quiz-indisponivel' não é burlado: com aviso de canal, ele vence).
+   *     A distinção "pedido em voo × ainda esperando" é o `quizInFlightRef`:
+   *     se o gate da volta já está marcado, o pedido realmente saiu — aí o
+   *     status honesto é o do passo ('explicando'/'gerando').
    */
   const activeQuizStatus = useMemo((): QuizOverlayStatus => {
     if (activeQuizCard === null) return 'aguardando';
     const step = activeQuizCard.visible.step;
     if (activeNotice === 'explicacao-indisponivel' && step.kind === 'explicar-erro') return 'gerando';
+    if (
+      busy &&
+      activeNotice === null &&
+      (step.kind === 'explicar-erro' || step.kind === 'gerar-novo-quiz')
+    ) {
+      const tag = quizCycleTag(activeQuizCard.visible.key, activeQuizCard.visible.generation);
+      const pedidoEmVoo =
+        quizInFlightRef.current.has(`${tag}#explicar`) ||
+        quizInFlightRef.current.has(`${tag}#remediar`);
+      if (!pedidoEmVoo) return 'aguardando-vez';
+    }
     return overlayStatusFor(step, activeNotice === 'quiz-indisponivel');
-  }, [activeQuizCard, activeNotice]);
+  }, [activeQuizCard, activeNotice, busy]);
 
   /**
    * RESPOSTA do aluno — o gesto que o dono pediu: registrar e MINIMIZAR.
@@ -2071,13 +2167,38 @@ export function LessonView(props: ViewProps): ReactElement {
   const handleQuizAnswer = useCallback((card: QuizCardEntry, answerIndex: number): void => {
     const { visible } = card;
     // Dominado ou já respondido nesta geração: `submitQuizAnswer` seria no-op,
-    // e o canal não pode gravar uma tentativa que o estado recusa.
+    // e o canal não pode gravar uma tentativa que o estado recusa. A MESMA
+    // guarda cobre a resposta dupla DURANTE a janela do veredito — e, na
+    // prática, o segundo clique nem existe: com `answered === true` o
+    // `optionVisualState` desabilita as quatro opções (o overlay congelado
+    // desenha exatamente esse estado).
     if (visible.step.kind === 'dominado' || visible.quiz?.answered === true) return;
     const correctIndex = visible.assertion.answerIndex;
     const correct = answerIndex === correctIndex;
-    setChat((st) => submitQuizAnswer(st, visible.key, answerIndex, correctIndex));
-    // O CARD DESCE PARA A CONVERSA no mesmo gesto (o pedido literal do dono).
-    minimizeQuizOverlay(visible.key);
+    // ONDA16-VEREDITO: o estado NOVO é calculado FORA do updater (padrão de
+    // `handleQuizReopenGeneration`) porque o card congelado precisa da
+    // resposta JÁ gravada (`visibleQuizFor(proximo, ...)`).
+    const proximo = submitQuizAnswer(chatRef.current, visible.key, answerIndex, correctIndex);
+    setChat(proximo);
+    // A JANELA DO VEREDITO — o conserto do pedido do dono. Antes, o minimize
+    // acontecia NO MESMO gesto do submit e o aluno nunca via acerto/erro.
+    // Agora o card SOBRE A TELA congela no estado respondido por
+    // QUIZ_VERDICT_MS e SÓ ENTÃO desce para a conversa. O minimize morre num
+    // timer, e o cleanup de unmount (abaixo) garante que ele acontece MESMO
+    // se o aluno trocar de aba no meio da janela — nenhum timer vaza estado
+    // depois que a view desmonta.
+    if (verdictTimerRef.current !== null) clearTimeout(verdictTimerRef.current);
+    verdictTimerRef.current = setTimeout(() => {
+      verdictTimerRef.current = null;
+      setVerdictHold(null);
+      minimizeQuizOverlay(visible.key);
+    }, QUIZ_VERDICT_MS);
+    // Congela o overlay no card RESPONDIDO (a publicação e a fase leem este
+    // estado — ver os dois efeitos abaixo).
+    setVerdictHold({
+      key: visible.key,
+      card: { ...card, visible: visibleQuizFor(proximo, card.original) },
+    });
     setQuizNotice(null);
     const ctx = trackLessonRef.current;
     if (!ctx) return;
@@ -2121,6 +2242,18 @@ export function LessonView(props: ViewProps): ReactElement {
 
   /** Trazer um quiz de volta para cima da tela (botão do card da conversa). */
   const handleQuizReopen = useCallback((quizKey: string): void => {
+    // ONDA16-VEREDITO: abrir OUTRO quiz durante a janela do veredito encerra a
+    // janela — o gesto do aluno vence e o overlay passa a desenhar o quiz
+    // pedido (o conteúdo congelado de outra chave esconderia o card aberto:
+    // `showing` exige quizKey igual). O gesto do aluno vence sempre.
+    const hold = verdictHoldRef.current;
+    if (hold !== null && hold.key !== quizKey) {
+      if (verdictTimerRef.current !== null) {
+        clearTimeout(verdictTimerRef.current);
+        verdictTimerRef.current = null;
+      }
+      setVerdictHold(null);
+    }
     const snapshot = peekQuizOverlay();
     if (snapshot.quizKey === quizKey && snapshot.phase === 'minimizado-no-chat') {
       reopenQuizOverlay(quizKey);
@@ -2203,7 +2336,6 @@ export function LessonView(props: ViewProps): ReactElement {
   // Um pedido por vez e por volta do ciclo (`inFlightRef`, chaveado por
   // etiqueta + passo): o efeito re-executa a cada mudança do chat, e sem o
   // guarda o StrictMode do dev dispararia a explicação duas vezes.
-  const quizInFlightRef = useRef<Set<string>>(new Set());
 
   const driveQuizCycle = useCallback(async (card: QuizCardEntry): Promise<void> => {
     const ctx = trackLessonRef.current;
@@ -2324,6 +2456,19 @@ export function LessonView(props: ViewProps): ReactElement {
   }, [markNew]);
 
   useEffect(() => {
+    // ONDA16-CICLO-CARGA (causa raiz diagnosticada): o LLM local serializa
+    // TODAS as chamadas numa fila FIFO (LlmProxyService, main) — disparar
+    // 'explicar-erro'/'gerar-novo-quiz' com um turno do tutor em voo
+    // enfileirava o pedido ATRÁS dele; o renderer matava no
+    // ACTION_TIMEOUTS.answer (70s) e o ciclo morria em 'quiz-indisponivel',
+    // com a aula travada e nenhum quiz remediador nascendo. O conserto é
+    // NÃO DISPARAR enquanto `busy`: quando o turno termina, ESTA dep muda e o
+    // efeito re-executa — o passo não se perde, porque ele continua sendo o
+    // passo do card em cena. O guard de 'quiz-indisponivel' (o freio do laço
+    // de retentativa contra uma IA fora do ar) vem DEPOIS e fica intacto:
+    // durante a espera, o card diz 'aguardando-vez' (ver `activeQuizStatus`),
+    // nunca "explicando".
+    if (busy) return;
     if (activeQuizCard === null) return;
     const step = activeQuizCard.visible.step;
     if (step.kind !== 'explicar-erro' && step.kind !== 'gerar-novo-quiz') return;
@@ -2340,7 +2485,7 @@ export function LessonView(props: ViewProps): ReactElement {
       return;
     }
     void driveQuizCycle(activeQuizCard);
-  }, [activeQuizCard, activeNotice, driveQuizCycle]);
+  }, [activeQuizCard, activeNotice, driveQuizCycle, busy]);
 
   // ─── (1) A FASE do overlay acompanha o passo do ciclo ─────────────────────
   // `applyQuizOverlayStep` é o atalho declarado do store. ONDA11: NENHUM passo
@@ -2352,6 +2497,13 @@ export function LessonView(props: ViewProps): ReactElement {
   // sobe é sempre um clique: `handleQuizReopen` (o CTA) e
   // `handleQuizReopenGeneration` (a saída do ciclo travado).
   useEffect(() => {
+    // ONDA16-VEREDITO: durante a janela, a FASE fica CONGELADA. Sem este
+    // guard, o MESMO commit da resposta já aplicaria o passo novo:
+    // 'explicar-erro'/'gerar-novo-quiz' desceriam o card NA HORA (o defeito
+    // que o dono relatou — o veredito nunca era visto) e o 'dominado' fecharia
+    // o overlay por inteiro. Quando a janela termina, esta dep (verdictHold)
+    // muda e o efeito retoma o desenho normal do passo corrente.
+    if (verdictHold !== null) return;
     if (activeQuizCard !== null) {
       applyQuizOverlayStep(
         overlayContextFor(activeQuizCard.original, activeQuizCard.visible, activeQuizCard.anchorIndex),
@@ -2367,7 +2519,7 @@ export function LessonView(props: ViewProps): ReactElement {
     if (lesson !== null && openKey !== null && isQuizMastered(chat, openKey)) {
       closeQuizOverlay(openKey);
     }
-  }, [activeQuizCard, quizOverlay.quizKey, lesson, chat]);
+  }, [activeQuizCard, quizOverlay.quizKey, lesson, chat, verdictHold]);
 
   // ─── (3) O que o overlay do SHELL desenha ─────────────────────────────────
   // O overlay é montado em App.tsx (o molde do ChallengeGenerateModal) e o
@@ -2376,6 +2528,31 @@ export function LessonView(props: ViewProps): ReactElement {
   // no store e as respostas seguem no cache do chat: voltar reabre no mesmo
   // ponto, na mesma geração.
   useEffect(() => {
+    // ONDA16-VEREDITO: durante a janela, o CONTEÚDO fica CONGELADO no card
+    // RESPONDIDO — é o que o overlay desenha (o veredito). O congelamento é
+    // INCONDICIONAL, e não "só quando activeQuizCard é null", por uma corrida
+    // REAL: com a IA fixture respondendo em milissegundos, o ciclo completo
+    // (explicação + quiz remediador) pode correr POR TRÁS da janela e trocar
+    // `activeQuizCard` pela geração nova — sem o congelamento, o overlay
+    // mostraria o quiz SEGUINTE no lugar do veredito.
+    if (verdictHold !== null) {
+      publishQuizOverlayContent({
+        quizKey: verdictHold.card.visible.key,
+        assertion: verdictHold.card.visible.assertion,
+        quiz: verdictHold.card.visible.quiz,
+        generation: verdictHold.card.visible.generation,
+        // O overlay não desenha status; o valor é o neutro da casa.
+        status: 'aguardando',
+        notice: null,
+        onSelect: handleOverlaySelect,
+        onMinimize: handleQuizMinimize,
+        // Durante a janela não há retry/reopen: as opções estão travadas pelo
+        // estado respondido, e o minimize vem no fim da janela.
+        onRetry: null,
+        onReopen: null,
+      });
+      return;
+    }
     if (activeQuizCard === null) {
       publishQuizOverlayContent(null);
       return;
@@ -2395,6 +2572,7 @@ export function LessonView(props: ViewProps): ReactElement {
       onReopen: activeQuizStatus === 'indisponivel' ? handleQuizReopenGeneration : null,
     });
   }, [
+    verdictHold,
     activeQuizCard,
     activeQuizStatus,
     activeNoticeText,
@@ -2407,6 +2585,19 @@ export function LessonView(props: ViewProps): ReactElement {
   useEffect(() => {
     return () => {
       publishQuizOverlayContent(null);
+      // ONDA16-VEREDITO: veredito em voo no momento da desmontagem (o aluno
+      // trocou de aba no meio da janela) — o minimize NÃO se perde: o timer é
+      // cancelado e a transição acontece JÁ, sincronamente no cleanup. Nada
+      // de timer sobrevivendo à view, nada de estado vazando: o store é de
+      // módulo e a transição nele é segura pós-unmount (guard mountedRef
+      // desnecessário aqui — o cleanup É o fim da montagem).
+      if (verdictTimerRef.current !== null) {
+        clearTimeout(verdictTimerRef.current);
+        verdictTimerRef.current = null;
+        const hold = verdictHoldRef.current;
+        verdictHoldRef.current = null;
+        if (hold !== null) minimizeQuizOverlay(hold.key);
+      }
     };
   }, []);
 
@@ -2561,11 +2752,20 @@ export function LessonView(props: ViewProps): ReactElement {
 
   const theoryProgress = Math.min(100, Math.round((chat.presentedSections.length / Math.max(1, lesson.theory.length)) * 100));
 
-  // ONDA1-UX (pedido do dono): contagem de desafios PENDENTES para o badge do
-  // botão "Desafios" — MESMO critério do gating (isLessonFinishBlocked):
-  // lastVerdict !== 'passed' (null = nunca tentado, failed/timeout/abandoned
-  // = não passou). 0 pendentes → badge oculto (showZero default false do MUI).
-  const pendingChallengeCount = lesson.challenges.filter((ch) => ch.lastVerdict !== 'passed').length;
+  // ONDA1-UX + ONDA16-PIN (o dono: "fica um pin de item em Desafios mas ele só
+  // libera no fim da aula então não deveria ter esse pin"): o badge do botão
+  // "Desafios" e o aria-label da linha de ação SÓ contam quando o desafio
+  // está LIBERADO — teoria concluída E todo quiz visível dominado (o MESMO
+  // gate que produz o passo 'desafio'). Antes da liberação, vale 0 (badge
+  // oculto — showZero=false é o default do MUI). A regra é a função PURA
+  // challengeBadgeCount (acima, testada); o GATING de abertura
+  // (challengeOpenBlockedByQuiz / openChallenge / lessonFinishBlock) NÃO
+  // mudou — isto é só o PIN.
+  const pendingChallengeCount = challengeBadgeCount({
+    theoryDone: chat.theoryDone,
+    pendingQuizCount: quizPendingAll.length,
+    challenges: lesson.challenges,
+  });
 
   // ONDA 1 (layout+a11y): a aula ATIVA ocupa TODA a altura do painel main —
   // cabeçalho fixo no topo, região do chat com scroll INTERNO (flexGrow) e

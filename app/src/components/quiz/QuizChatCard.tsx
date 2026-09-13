@@ -131,9 +131,15 @@ export function QuizChatCard({
   );
 
   // A linha de estado: o que está acontecendo com ESTE quiz, agora.
+  // ONDA16-CICLO-CARGA: o estado 'aguardando-vez' é novo e HONESTO — o ciclo
+  // quer rodar, mas um turno do tutor está em voo e o motor espera (a fila
+  // FIFO do LLM local estourava o timeout do renderer). Dizer "explicando"/
+  // "gerando" ali seria anunciar um trabalho que ainda nem foi pedido.
   const statusText = onScreen
     ? t('translation:lesson.quizChatOnScreen')
-    : status === 'explicando'
+    : status === 'aguardando-vez'
+      ? t('translation:lesson.quizChatQueued')
+      : status === 'explicando'
       ? t('translation:lesson.quizChatExplaining')
       : status === 'gerando'
         ? t('translation:lesson.quizChatGenerating')
