@@ -14,9 +14,29 @@
  * que era do AppBar voltou para o conteúdo.
  *
  * ─── O CONTEÚDO EMPILHOU, NÃO MUDOU ────────────────────────────────────────
- * De cima para baixo: título do app → poço de estado (assunto, fase) →
- * controles (tema, idioma). Mesmos dados, mesmos alvos de onboarding, mesma
- * hierarquia — só a orientação do arranjo virou coluna.
+ * De cima para baixo: título do app → [slot da view ativa — vazio fora da
+ * aula] → poço de estado (assunto, fase) → controles (tema, idioma). Mesmos
+ * dados, mesmos alvos de onboarding, mesma hierarquia — só a orientação do
+ * arranjo virou coluna.
+ *
+ * ─── O SLOT DA VIEW ATIVA (onda1-sidebar-slot) ─────────────────────────────
+ * Queixa do dono sobre esta coluna, verbatim: *"a informação dele nunca
+ * muda"*. O quadro de sessão é GLOBAL — igual em toda aba —, e o objetivo era
+ * que a coluna mostrasse o contexto do que está aberto ao lado (o cabeçalho de
+ * CADA AULA, que morava dentro do `main`). Por isso, entre o título do app e o
+ * poço de estado, a coluna tem um CONTÊINER-SLOT (`SHELL_SIDEBAR_SLOT_ID`) cujo
+ * nó DOM sobe para o shell pelo callback ref `slotRef`; a view ativa publica
+ * nele via `<ShellSidebarPortal>` (o padrão slot/portal está documentado em
+ * ShellSidebarSlot.tsx). Três regras do slot:
+ *   · VAZIO NÃO OCUPA ESPAÇO: `'&:empty': { display: 'none' }` tira o slot do
+ *     fluxo (e do `gap` da coluna) quando nenhuma view publica — em
+ *     Home/Settings/Roadmap/Challenge o sidebar fica IDÊNTICO ao de antes;
+ *   · FORA do `role="status"`: o poço é região VIVA (aria-live) — conteúdo da
+ *     aula ali dentro seria reanunciado a cada mudança —, e o e2e-spacing
+ *     semeia o assunto em `status.querySelectorAll('span')[1]`: um span a
+ *     mais dentro do poço desalinharia a semeadura;
+ *   · o slot está DENTRO deste `<header>` (o banner): quem publica NUNCA traz
+ *     outro `<header>` — fora do `main` ele viraria um SEGUNDO banner.
  *
  * ─── POR QUE CONTINUA SENDO `<AppBar>` ─────────────────────────────────────
  * O AppBar renderiza `component="header"`, ou seja `role="banner"` — e 7 specs
@@ -57,6 +77,7 @@ import { sessionPhaseLabelKey, useSessionState } from '../../lib/sessionState';
 import { SHELL_SIDEBAR_PANE_ID, SPLIT_MOTION } from '../../lib/splitRatio';
 import { effectsTransition } from '../../theme';
 import ThemeToggleButton from '../theme/ThemeToggleButton';
+import { SHELL_SIDEBAR_SLOT_ID } from './ShellSidebarSlot';
 import LanguageSwitcher from '../../i18n/LanguageSwitcher';
 
 /**
@@ -145,6 +166,13 @@ export interface SessionFrameProps {
    * divisória "nada" atrás do mouse (mesma regra do SPLIT_MOTION).
    */
   readonly animateBasis: boolean;
+  /**
+   * Callback ref do CONTÊINER-SLOT da view ativa (onda1-sidebar-slot). O shell
+   * passa o setter do próprio estado (`setSidebarSlotEl`): o nó sobe no commit,
+   * vira o valor do `ShellSidebarSlotContext` e a view ativa publica nele via
+   * `<ShellSidebarPortal>`. Ao desmontar a coluna o React chama com `null`.
+   */
+  readonly slotRef: (el: HTMLElement | null) => void;
 }
 
 /**
@@ -152,7 +180,11 @@ export interface SessionFrameProps {
  * A largura é ditada pela divisória arrastável; a geometria (piso/teto, teclado,
  * persistência) vive em App.tsx + splitRatio.ts.
  */
-export default function SessionFrame({ basisPx, animateBasis }: SessionFrameProps): ReactElement {
+export default function SessionFrame({
+  basisPx,
+  animateBasis,
+  slotRef,
+}: SessionFrameProps): ReactElement {
   const { t } = useTranslation();
   const session = useSessionState();
   const phaseKey = sessionPhaseLabelKey(session);
@@ -229,6 +261,26 @@ export default function SessionFrame({ basisPx, animateBasis }: SessionFrameProp
       </Typography>
 
       <Divider />
+
+      {/* ONDA1-SIDEBAR-SLOT: o CONTÊINER-SLOT da view ativa (ver o cabeçalho
+          deste arquivo e ShellSidebarSlot.tsx). Nasce VAZIO; a view ativa
+          publica nele por portal e, ao desmontar (troca de aba), o conteúdo
+          some sozinho. `:empty` → `display: none`: vazio, ele sai do fluxo e
+          do `gap` da coluna — o sidebar das outras abas fica idêntico. FORA
+          do poço `role="status"` logo abaixo, de propósito (região viva e
+          semeadura do e2e-spacing). Coluna flex como o resto do quadro, com
+          `minWidth: 0` para o conteúdo publicado quebrar em vez de estourar. */}
+      <Box
+        id={SHELL_SIDEBAR_SLOT_ID}
+        ref={slotRef}
+        sx={(theme) => ({
+          display: 'flex',
+          flexDirection: 'column',
+          gap: theme.spacing(1.5),
+          minWidth: 0,
+          '&:empty': { display: 'none' },
+        })}
+      />
 
       {/* O quadro dentro do quadro: o "poço" de estado, no nível 4 da rampa.
           `role="status"` + `aria-live="polite"` já montados ANTES de qualquer
