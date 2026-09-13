@@ -41,6 +41,15 @@ import {
   splitAriaValues,
   splitBounds,
   writeSplitRatio,
+  // ONDA-SIDEBAR: extensão do shell (barra lateral ⟷ conteúdo).
+  clearShellSplitRatio,
+  DEFAULT_SHELL_SPLIT_RATIO,
+  readShellSplitRatio,
+  SHELL_SIDEBAR_PANE_ID,
+  SHELL_SPLIT_CONSTRAINTS,
+  SHELL_SPLIT_DIVIDER_ID,
+  SHELL_SPLIT_RATIO_STORAGE_KEY,
+  writeShellSplitRatio,
   type StorageLike,
 } from '../src/lib/splitRatio';
 
@@ -582,5 +591,170 @@ describe('contratos cruzados do split', () => {
 
   it('o default cabe entre as fronteiras de razão', () => {
     assert.ok(DEFAULT_SPLIT_RATIO >= C.minRatio && DEFAULT_SPLIT_RATIO <= C.maxRatio);
+  });
+});
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * ONDA-SIDEBAR — a divisória do SHELL (barra lateral ⟷ conteúdo)
+ *
+ * O quadro de sessão virou coluna lateral (estilo VSCode) e a largura é
+ * controlada por uma divisória que consome ESTE módulo com as constantes
+ * SHELL_SPLIT_CONSTRAINTS. As invariantes são as MESMAS do split do Desafio —
+ * o que muda são os números e a CHAVE de storage.
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+describe('extensão shell: constantes e fronteiras', () => {
+  it('as constantes são coerentes (min < max, piso px, passos positivos)', () => {
+    const S = SHELL_SPLIT_CONSTRAINTS;
+    assert.ok(S.minRatio > 0 && S.minRatio < S.maxRatio && S.maxRatio < 1);
+    assert.ok(S.minPanePx > 0);
+    assert.ok(S.dividerPx > 0);
+    assert.ok(S.stepRatio > 0 && S.stepRatio < S.coarseStepRatio);
+    // E são DIFERENTES das do Desafio — senão não havia por que exportar duas.
+    assert.notEqual(S.dividerPx, C.dividerPx);
+  });
+
+  it('o default do shell cabe entre as fronteiras de razão', () => {
+    assert.ok(
+      DEFAULT_SHELL_SPLIT_RATIO >= SHELL_SPLIT_CONSTRAINTS.minRatio &&
+        DEFAULT_SHELL_SPLIT_RATIO <= SHELL_SPLIT_CONSTRAINTS.maxRatio,
+    );
+  });
+
+  it('nenhum painel fica abaixo do piso em px COM AS CONSTANTES DO SHELL', () => {
+    let checked = 0;
+    for (let container = 400; container <= 3000; container += 41) {
+      for (let raw = -0.5; raw <= 1.5; raw += 0.13) {
+        const b = splitBounds(container, SHELL_SPLIT_CONSTRAINTS);
+        if (!b.feasible) continue;
+        const { primaryPx, secondaryPx } = ratioToPx(
+          clampSplitRatio(raw, container, SHELL_SPLIT_CONSTRAINTS),
+          container,
+          SHELL_SPLIT_CONSTRAINTS,
+        );
+        assert.ok(
+          primaryPx >= SHELL_SPLIT_CONSTRAINTS.minPanePx,
+          `sidebar ${primaryPx}px < ${SHELL_SPLIT_CONSTRAINTS.minPanePx} (container=${container})`,
+        );
+        assert.ok(
+          secondaryPx >= SHELL_SPLIT_CONSTRAINTS.minPanePx,
+          `main ${secondaryPx}px < ${SHELL_SPLIT_CONSTRAINTS.minPanePx} (container=${container})`,
+        );
+        checked += 1;
+      }
+    }
+    assert.ok(checked > 500, `varredura fraca demais (${checked} casos)`);
+  });
+
+  it('min <= max em TODO contêiner de 1 a 4000 px (constantes do shell)', () => {
+    for (let container = 1; container <= 4000; container += 1) {
+      const b = splitBounds(container, SHELL_SPLIT_CONSTRAINTS);
+      assert.ok(b.min <= b.max, `min>max em ${container}px`);
+      assert.ok(b.min >= 0 && b.max <= 1);
+    }
+  });
+
+  it('os ids do shell são estáveis, válidos e DISTINTOS dos do Desafio', () => {
+    const shellIds = [SHELL_SIDEBAR_PANE_ID, SHELL_SPLIT_DIVIDER_ID];
+    const challengeIds = [SPLIT_PRIMARY_PANE_ID, SPLIT_SECONDARY_PANE_ID, SPLIT_DIVIDER_ID];
+    for (const id of [...shellIds, ...challengeIds]) assert.match(id, /^[a-z][\w-]*$/);
+    // A divisória do shell NÃO pode colidir com a do Desafio (duas divisórias
+    // com o mesmo id quebram aria-controls e o CSS de foco).
+    assert.equal(new Set([...shellIds, ...challengeIds]).size, shellIds.length + challengeIds.length);
+  });
+});
+
+describe('extensão shell: persistência em chave PRÓPRIA', () => {
+  it('round-trip pela chave do shell, com payload versionado igual', () => {
+    const ls = makeStorage();
+    writeShellSplitRatio(0.3, ls);
+    assert.equal(readShellSplitRatio(ls), 0.3);
+    const raw = ls.map.get(SHELL_SPLIT_RATIO_STORAGE_KEY) as string;
+    assert.deepEqual(JSON.parse(raw), { version: SPLIT_RATIO_STORAGE_VERSION, ratio: 0.3 });
+  });
+
+  it('a chave do shell é DISTINTA da do Desafio (duas divisórias, duas memórias)', () => {
+    assert.notEqual(SHELL_SPLIT_RATIO_STORAGE_KEY, SPLIT_RATIO_STORAGE_KEY);
+    assert.ok(SHELL_SPLIT_RATIO_STORAGE_KEY.includes('shell'));
+  });
+
+  it('escrever no shell NÃO toca a chave do Desafio — e vice-versa', () => {
+    const ls = makeStorage();
+    writeShellSplitRatio(0.3, ls);
+    writeSplitRatio(0.62, ls);
+    assert.equal(readShellSplitRatio(ls), 0.3);
+    assert.equal(readSplitRatio(ls), 0.62);
+    // Sobrescrever um não apaga o outro.
+    writeShellSplitRatio(0.4, ls);
+    assert.equal(readSplitRatio(ls), 0.62);
+    assert.equal(readShellSplitRatio(ls), 0.4);
+  });
+
+  it('LIXO em todas as formas cai no DEFAULT DO SHELL e nunca lança', () => {
+    const garbage: string[] = [
+      '',
+      'null',
+      'not json',
+      '{',
+      stored(0.3, 2),
+      stored('0.3'),
+      stored(null),
+      '{"version":1}',
+    ];
+    for (const raw of garbage) {
+      const ls = makeStorage({ [SHELL_SPLIT_RATIO_STORAGE_KEY]: raw });
+      let value = -1;
+      assert.doesNotThrow(() => {
+        value = readShellSplitRatio(ls);
+      }, `lançou em ${JSON.stringify(raw)}`);
+      assert.equal(value, DEFAULT_SHELL_SPLIT_RATIO, `não caiu no default em ${JSON.stringify(raw)}`);
+    }
+  });
+
+  it('valor FORA DA FAIXA DO SHELL cai no default (fronteiras são as do shell)', () => {
+    for (const bad of [0, 0.05, 0.13, 0.51, 1, 2, -3]) {
+      const ls = makeStorage({ [SHELL_SPLIT_RATIO_STORAGE_KEY]: stored(bad) });
+      assert.equal(readShellSplitRatio(ls), DEFAULT_SHELL_SPLIT_RATIO, `aceitou ${bad}`);
+    }
+    // Um valor que é válido no shell mas FORA da faixa do Desafio prova que a
+    // validação usa as fronteiras CERTAS por chave (0.15 < challenge min 0.2).
+    const ls = makeStorage({ [SHELL_SPLIT_RATIO_STORAGE_KEY]: stored(0.15) });
+    assert.equal(readShellSplitRatio(ls), 0.15);
+    assert.equal(readSplitRatio(ls), DEFAULT_SPLIT_RATIO);
+  });
+
+  it('escrever fora da faixa grava clampado NAS FRONTEIRAS DO SHELL', () => {
+    const ls = makeStorage();
+    writeShellSplitRatio(9, ls);
+    assert.equal(readShellSplitRatio(ls), SHELL_SPLIT_CONSTRAINTS.maxRatio);
+    writeShellSplitRatio(-9, ls);
+    assert.equal(readShellSplitRatio(ls), SHELL_SPLIT_CONSTRAINTS.minRatio);
+  });
+
+  it('storage que explode e storage nula não derrubam nada', () => {
+    assert.equal(readShellSplitRatio(makeThrowingStorage()), DEFAULT_SHELL_SPLIT_RATIO);
+    assert.doesNotThrow(() => writeShellSplitRatio(0.3, makeThrowingStorage()));
+    assert.doesNotThrow(() => clearShellSplitRatio(makeThrowingStorage()));
+    assert.equal(readShellSplitRatio(null), DEFAULT_SHELL_SPLIT_RATIO);
+  });
+
+  it('clearShellSplitRatio faz o próximo boot voltar ao default do shell', () => {
+    const ls = makeStorage();
+    writeShellSplitRatio(0.42, ls);
+    clearShellSplitRatio(ls);
+    assert.equal(readShellSplitRatio(ls), DEFAULT_SHELL_SPLIT_RATIO);
+  });
+
+  it('teclado APG funciona igual nas constantes do shell (setas/Home/End)', () => {
+    const S = SHELL_SPLIT_CONSTRAINTS;
+    const container = 1176; // janela 1280 - rail 104
+    const b = splitBounds(container, S);
+    const one = nextRatioForKey('ArrowRight', DEFAULT_SHELL_SPLIT_RATIO, container, {
+      constraints: S,
+    }) as number;
+    assert.ok(Math.abs(one - DEFAULT_SHELL_SPLIT_RATIO - S.stepRatio) < 1e-9);
+    assert.equal(nextRatioForKey('Home', 0.5, container, { constraints: S }), b.min);
+    assert.equal(nextRatioForKey('End', 0.5, container, { constraints: S }), b.max);
+    assert.equal(nextRatioForKey('Enter', 0.5, container, { constraints: S }), null);
   });
 });

@@ -1,27 +1,38 @@
 /**
  * src/components/shell/SessionFrame.tsx — o QUADRO DE ESTADO DA SESSÃO.
  *
- * ─── DE ONDE VEM O PADRÃO ──────────────────────────────────────────────────
- * Iwata Asks / HOME Menu do 3DS, verbatim: *"in a separate frame from those
- * normal icons, up above, we lined up Notifications, friend list and Game
- * Notes."* O estado transitório e GLOBAL mora num quadro à parte ACIMA do
- * conteúdo, chamável a qualquer momento sem derrubar o trabalho de baixo
- * (docs/ux-redesign.md §1 e §7.2). Aqui isso vira: assunto atual + fase da aula
- * + os controles de tema e idioma, numa faixa fina e quieta.
+ * ─── ONDA-SIDEBAR: DE FAIXA SUPERIOR PARA COLUNA LATERAL ───────────────────
+ * O pedido do dono, verbatim: *"quero que ajuste nosso header para ser uma
+ * coluna ali lado da aula, que nem o vscode tem a área dos arquivos e a área
+ * do código, assim tenho mais espaço vertical e essa área que quero
+ * movimentar para aumentar ou diminuir o espaço de texto horizontal será esse
+ * sidebar"*. O quadro era uma AppBar horizontal que roubava uma fileira
+ * inteira de altura do conteúdo; agora é uma COLUNA à esquerda do `main` —
+ * o mesmo arranjo do VSCode (área de arquivos ⟷ área de código). A largura da
+ * coluna é controlada pela divisória arrastável (SplitDivider + matemática de
+ * splitRatio) e é ela que dá/tira espaço horizontal ao texto da aula; a altura
+ * que era do AppBar voltou para o conteúdo.
  *
- * ─── O CABEÇALHO DEIXOU DE SER UMA BARRA DE ACENTO ─────────────────────────
- * Até a onda 1 o header do modo claro era pintado com `primary.main` — o que,
- * com a paleta "Cartucho", virou uma BARRA VERMELHA SATURADA de largura inteira.
- * Isso contraria frontalmente o §1 da spec: *"a base do app fica neutra e
- * sóbria; toda a personalidade vive em acento, estado e movimento"*. Uma
- * superfície de largura inteira em acento é o oposto disso. Agora o cabeçalho é
- * SUPERFÍCIE QUIETA nos DOIS esquemas: nível 3 da rampa tonal (o chrome), o
- * mesmo do rail, e o acento só aparece onde é estado ou ação.
+ * ─── O CONTEÚDO EMPILHOU, NÃO MUDOU ────────────────────────────────────────
+ * De cima para baixo: título do app → poço de estado (assunto, fase) →
+ * controles (tema, idioma). Mesmos dados, mesmos alvos de onboarding, mesma
+ * hierarquia — só a orientação do arranjo virou coluna.
  *
  * ─── POR QUE CONTINUA SENDO `<AppBar>` ─────────────────────────────────────
  * O AppBar renderiza `component="header"`, ou seja `role="banner"` — e 7 specs
- * e2e dependem desse papel para achar o topo do app. Trocar por um `<Box>` não
- * traria nada e quebraria todas elas.
+ * e2e dependem desse papel para achar o topo do app (getByRole('banner')). A
+ * coluna lateral ASSUME o papel: fora do `main`, o `<header>` continua sendo o
+ * banner da página (o `<header>` do CollapsibleLessonHeader, dentro do main,
+ * NÃO compete — header dentro de main não vira banner implícito). Trocar por
+ * `<Box>` não traria nada e quebraria todas elas.
+ *
+ * ─── DE ONDE VEM O PADRÃO (inalterado) ─────────────────────────────────────
+ * Iwata Asks / HOME Menu do 3DS, verbatim: *"in a separate frame from those
+ * normal icons, up above, we lined up Notifications, friend list and Game
+ * Notes."* O estado transitório e GLOBAL mora num quadro à parte, chamável a
+ * qualquer momento sem derrubar o trabalho ao lado (docs/ux-redesign.md §1 e
+ * §7.2). Aqui o quadro virou coluna — o §7.2 do VSCode UX Guidelines inclusive
+ * manda para o dock lateral o que é suporte contínuo ao trabalho.
  *
  * ─── FRONTEIRA DE NÍVEL (regra 3b de designTokens.ts) ──────────────────────
  * Níveis 3 e 4 são chrome, e ali o texto é TINTA (`text.primary` /
@@ -38,12 +49,12 @@ import type { ReactElement, ReactNode } from 'react';
 import AppBar from '@mui/material/AppBar';
 import Box from '@mui/material/Box';
 import Divider from '@mui/material/Divider';
-import Toolbar from '@mui/material/Toolbar';
 import Typography from '@mui/material/Typography';
 import { useTranslation } from 'react-i18next';
 
 import { SHAPE } from '../../lib/designTokens';
 import { sessionPhaseLabelKey, useSessionState } from '../../lib/sessionState';
+import { SHELL_SIDEBAR_PANE_ID, SPLIT_MOTION } from '../../lib/splitRatio';
 import { effectsTransition } from '../../theme';
 import ThemeToggleButton from '../theme/ThemeToggleButton';
 import LanguageSwitcher from '../../i18n/LanguageSwitcher';
@@ -54,23 +65,19 @@ import LanguageSwitcher from '../../i18n/LanguageSwitcher';
  * de tinta, nunca de acento (fronteira de nível).
  *
  * ─── POR QUE O VALOR NÃO TRUNCA (SC 1.4.12, §4.3 do contrato) ──────────────
- * A versão anterior deste campo usava `noWrap` + `maxWidth: '32ch'`. `noWrap` é
- * literalmente `overflow: hidden` + `text-overflow: ellipsis` +
- * `white-space: nowrap` — a causa nº 1 que a F104 nomeia. E `ch` é a pior
- * unidade possível para a caixa: cresce com o tamanho da fonte, mas NÃO com
- * `letter-spacing` nem com `word-spacing`, exatamente os dois que o usuário
- * força no SC 1.4.12. Sob a injeção de resiliência o texto ficava mais largo e
- * a caixa não — o assunto da aula sumia atrás das reticências.
- *
- * O `title` também saiu junto: ele dava o texto ao leitor de tela e à dica de
- * ferramenta, mas o critério fala do texto VISÍVEL, então não era mitigação de
- * nada. Agora não há o que mitigar.
+ * A versão horizontal deste campo usou `noWrap` + `maxWidth: '32ch'` e voltou
+ * atrás: `noWrap` é literalmente `overflow: hidden` + `text-overflow: ellipsis`
+ * + `white-space: nowrap` — a causa nº 1 que a F104 nomeia. E `ch` cresce com o
+ * tamanho da fonte mas NÃO com `letter-spacing` nem `word-spacing`, exatamente
+ * os dois que o usuário força no SC 1.4.12. Sob a injeção de resiliência o
+ * texto ficava mais largo e a caixa não.
  *
  * A saída é deixar o texto QUEBRAR: sem caixa em `ch`, sem nowrap, com
  * `overflow-wrap: anywhere` para que nem um identificador longo e sem espaços
- * force o quadro a estourar. O `Toolbar` acima usa `minHeight` (mínimo, não
- * altura fixa), então a faixa cresce em vez de recortar quando o valor vai para
- * a segunda linha.
+ * force a coluna a estourar. Na coluna vertical isso ficou MAIS natural: a
+ * barra tem largura controlada pelo usuário (divisória), e o campo cresce em
+ * altura em vez de recortar — é o mesmo comportamento da versão horizontal,
+ * agora girado 90°.
  */
 function SessionField({
   label,
@@ -125,8 +132,27 @@ function SessionField({
   );
 }
 
-/** Quadro de estado da sessão — a faixa superior do shell. */
-export default function SessionFrame(): ReactElement {
+export interface SessionFrameProps {
+  /**
+   * Largura da coluna (flex-basis) em px, JÁ clampada pela matemática de
+   * splitRatio (`ratioToPx` com SHELL_SPLIT_CONSTRAINTS). Antes de o contêiner
+   * ser medido, o shell manda o px de desejo inicial.
+   */
+  readonly basisPx: number;
+  /**
+   * Anima o flex-basis (passo de TECLADO da divisória). Durante o ARRASTE o
+   * shell manda `false` — a largura segue o ponteiro sem transição, senão a
+   * divisória "nada" atrás do mouse (mesma regra do SPLIT_MOTION).
+   */
+  readonly animateBasis: boolean;
+}
+
+/**
+ * Quadro de estado da sessão — a COLUNA lateral do shell (era a faixa superior).
+ * A largura é ditada pela divisória arrastável; a geometria (piso/teto, teclado,
+ * persistência) vive em App.tsx + splitRatio.ts.
+ */
+export default function SessionFrame({ basisPx, animateBasis }: SessionFrameProps): ReactElement {
   const { t } = useTranslation();
   const session = useSessionState();
   const phaseKey = sessionPhaseLabelKey(session);
@@ -141,28 +167,46 @@ export default function SessionFrame(): ReactElement {
       position="static"
       color="default"
       elevation={0}
-      // Superfície QUIETA nos dois esquemas, no NÍVEL 3 da rampa (o chrome —
-      // o mesmo nível do rail). `theme.vars.*` é uma referência
-      // var(--mui-palette-*) que troca sozinha com a classe .light/.dark do
-      // <html> — nunca um ternário sobre o MODO do palette, que sob
-      // `cssVariables` resolveria uma única vez e travaria no galho errado.
-      //
-      // POR QUE A SEGUNDA CAMADA COM `applyStyles('dark')` (medido, não
-      // suposto): o PRÓPRIO `MuiAppBar` embute uma regra de esquema escuro para
-      // `color="default"` (AppBar.js:145, `theme.applyStyles('dark', {
-      // backgroundColor: AppBar.darkBg })`). Sob `colorSchemeSelector: 'class'`
-      // isso vira um seletor `.dark &` — especificidade MAIOR que a de uma regra
-      // `sx` simples. Com só a camada de vars, o escuro pintava
-      // rgb(27,30,38) = nível 1, não o nível 3 pedido. A saída documentada em
-      // src/theme.ts é exatamente esta: `theme.applyStyles('dark', {...})` por
-      // ÚLTIMO no array, casando a especificidade e ganhando por ordem.
+      // ONDA-SIDEBAR: id estável do painel líder da divisória do shell (a
+      // MESMA constante que a SplitDivider usa no `aria-controls` — padrão APG
+      // Window Splitter: a divisória controla sidebar e main).
+      id={SHELL_SIDEBAR_PANE_ID}
+      // ONDA-SIDEBAR: de faixa horizontal para COLUNA. A largura vem da
+      // divisória (flex-basis em px); a animação do flex-basis é do nível
+      // spatial (flex-basis está em SPATIAL_ALLOWED_PROPERTIES — ver
+      // SPLIT_MOTION em splitRatio.ts) e HONRA prefers-reduced-motion.
       sx={[
         (theme) => ({
+          flex: `0 0 ${basisPx}px`,
+          width: basisPx,
+          minWidth: 0,
+          // A coluna é rolável no eixo de bloco: em janela baixa, o conteúdo
+          // empilhado (título + poço + controles) pode passar da altura — e o
+          // rolar é como a coluna cresce em vez de recortar (SC 1.4.12).
+          overflowY: 'auto',
+          overflowX: 'hidden',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: theme.spacing(1.5),
+          paddingInline: theme.spacing(1.5),
+          paddingBlock: theme.spacing(1.5),
+          // Superfície QUIETA nos dois esquemas, no NÍVEL 3 da rampa (o chrome —
+          // o mesmo nível do rail). `theme.vars.*` é uma referência
+          // var(--mui-palette-*) que troca sozinha com a classe .light/.dark do
+          // <html> — nunca um ternário sobre o MODO do palette, que sob
+          // `cssVariables` resolveria uma única vez e travaria no galho errado.
           backgroundColor: theme.vars.palette.surface.level3,
           color: theme.vars.palette.text.primary,
-          borderBottom: `1px solid ${theme.vars.palette.divider}`,
+          // A fronteira foi para o lado que agora é de verdade: a divisória.
+          borderRight: `1px solid ${theme.vars.palette.divider}`,
           backgroundImage: 'none',
           boxShadow: 'none',
+          transition: animateBasis
+            ? `${SPLIT_MOTION.durationMs}ms ${SPLIT_MOTION.easing}`
+            : 'none',
+          '@media (prefers-reduced-motion: reduce)': {
+            transition: 'none',
+          },
         }),
         (theme) =>
           theme.applyStyles('dark', {
@@ -171,55 +215,68 @@ export default function SessionFrame(): ReactElement {
           }),
       ]}
     >
-      <Toolbar sx={{ gap: 1.5, minHeight: { xs: 60, sm: 64 } }}>
-        {/* O título TAMBÉM perdeu o `noWrap` (ele já era assim antes desta onda,
-            e carregava o mesmo defeito do SC 1.4.12: `overflow: hidden` +
-            reticências). Aqui ele quebra em vez de sumir — o `Toolbar` cresce
-            junto, porque `minHeight` é mínimo, não altura fixa. */}
-        <Typography
-          variant="h6"
-          component="div"
-          data-onboarding-target="app-title"
-          sx={{ minWidth: 0, fontWeight: 700, whiteSpace: 'normal', overflowWrap: 'anywhere' }}
-        >
-          {t('translation:app.title')}
-        </Typography>
+      {/* O título TAMBÉM perdeu o `noWrap` (versão horizontal já carregava o
+          mesmo defeito do SC 1.4.12: `overflow: hidden` + reticências). Aqui
+          ele quebra em vez de sumir — e na coluna estreita isso é o normal,
+          não o plano B. PRESERVADO: alvo do tutorial do onboarding. */}
+      <Typography
+        variant="h6"
+        component="div"
+        data-onboarding-target="app-title"
+        sx={{ minWidth: 0, fontWeight: 700, whiteSpace: 'normal', overflowWrap: 'anywhere' }}
+      >
+        {t('translation:app.title')}
+      </Typography>
 
-        <Divider orientation="vertical" flexItem sx={{ my: 1.5 }} />
+      <Divider />
 
-        {/* O quadro dentro do quadro: o "poço" de estado, no nível 4 da rampa.
-            `role="status"` + `aria-live="polite"` já montados ANTES de qualquer
-            atualização — condição do SC 4.1.3. */}
-        <Box
-          role="status"
-          aria-live="polite"
-          aria-label={t('translation:shell.session.aria')}
-          data-session-last-activity={session.lastActivityAt ?? ''}
-          sx={(theme) => ({
-            display: 'flex',
-            alignItems: 'center',
-            gap: 2.5,
-            flexGrow: 1,
-            minWidth: 0,
-            paddingInline: theme.spacing(1.5),
-            paddingBlock: theme.spacing(0.5),
-            borderRadius: `${SHAPE.md}px`,
-            backgroundColor: theme.vars.palette.surface.level4,
-            transition: effectsTransition(theme, ['background-color'], 'normal'),
-          })}
-        >
-          <SessionField
-            label={t('translation:shell.session.subject')}
-            value={subjectValue}
-            muted={session.subject === null}
-          />
-          <SessionField
-            label={t('translation:shell.session.phase')}
-            value={phaseValue}
-            muted={phaseKey === null}
-          />
-        </Box>
+      {/* O quadro dentro do quadro: o "poço" de estado, no nível 4 da rampa.
+          `role="status"` + `aria-live="polite"` já montados ANTES de qualquer
+          atualização — condição do SC 4.1.3. PRESERVADO: `role="status"`,
+          `data-session-last-activity` e a ordem assunto→fase (o e2e-spacing
+          semeia o assunto no spans[1] do primeiro campo). */}
+      <Box
+        role="status"
+        aria-live="polite"
+        aria-label={t('translation:shell.session.aria')}
+        data-session-last-activity={session.lastActivityAt ?? ''}
+        sx={(theme) => ({
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'stretch',
+          gap: theme.spacing(1.5),
+          minWidth: 0,
+          paddingInline: theme.spacing(1.5),
+          paddingBlock: theme.spacing(1),
+          borderRadius: `${SHAPE.md}px`,
+          backgroundColor: theme.vars.palette.surface.level4,
+          transition: effectsTransition(theme, ['background-color'], 'normal'),
+        })}
+      >
+        <SessionField
+          label={t('translation:shell.session.subject')}
+          value={subjectValue}
+          muted={session.subject === null}
+        />
+        <Divider />
+        <SessionField
+          label={t('translation:shell.session.phase')}
+          value={phaseValue}
+          muted={phaseKey === null}
+        />
+      </Box>
 
+      {/* Os controles descem para o pé da coluna (VSCode: ações de view no
+          fundo da sidebar). PRESERVADOS: os dois alvos de onboarding. */}
+      <Box
+        sx={(theme) => ({
+          marginTop: 'auto',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'flex-start',
+          gap: theme.spacing(0.5),
+        })}
+      >
         <Box data-onboarding-target="theme-toggle" component="span" sx={{ display: 'contents' }}>
           <ThemeToggleButton />
         </Box>
@@ -230,7 +287,7 @@ export default function SessionFrame(): ReactElement {
         >
           <LanguageSwitcher variant="menu" />
         </Box>
-      </Toolbar>
+      </Box>
     </AppBar>
   );
 }

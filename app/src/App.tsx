@@ -1,38 +1,54 @@
 /**
  * src/App.tsx — shell do Study Method em Material UI v9.
  *
- * ─── O QUE MUDOU NA ONDA 2 DO REDESIGN ─────────────────────────────────────
- * O shell era `AppBar` + `Tabs` HORIZONTAIS. Agora é:
+ * ─── O QUE MUDOU NA ONDA-SIDEBAR (pedido do dono, verbatim) ────────────────
+ * *"quero que ajuste nosso header para ser uma coluna ali lado da aula, que
+ * nem o vscode tem a área dos arquivos e a área do código, assim tenho mais
+ * espaço vertical e essa área que quero movimentar para aumentar ou diminuir
+ * o espaço de texto horizontal será esse sidebar"*.
  *
- *   ┌──────────────────────────────────────────────────────┐
- *   │  QUADRO DE ESTADO DA SESSÃO  (AppBar = role=banner)   │  ← SessionFrame
- *   ├────────┬─────────────────────────────────────────────┤
- *   │  RAIL  │  view ativa (role=tabpanel)                  │  ← NavigationRail
- *   │ (vert.)│                                              │
- *   └────────┴─────────────────────────────────────────────┘
+ * O quadro de estado da sessão saiu do TOPO (AppBar horizontal roubando uma
+ * fileira de altura do conteúdo) e virou COLUNA LATERAL entre o rail e o main
+ * — o arranjo do VSCode (área de arquivos ⟷ área de código):
  *
- * Os dois porquês, com a fonte:
- *   - RAIL: o Material 3 documenta *"Navigation bar if the width or height is
- *     compact… Navigation rail for everything else"*, e uma janela Electron de
- *     desktop é sempre "everything else" (docs/ux-redesign.md §7.2).
- *   - QUADRO SUPERIOR: padrão do HOME Menu do 3DS — estado transitório e global
- *     num quadro à parte ACIMA do conteúdo, chamável sem derrubar o trabalho de
- *     baixo (§1).
+ *   ┌──────┬─────────┬─┬──────────────────────────────────────────────┐
+ *   │ RAIL │ SESSION │÷│  view ativa (role=tabpanel)                  │
+ *   │(vert)│ SIDEBAR │÷│                                               │
+ *   └──────┴─────────┴─┴──────────────────────────────────────────────┘
+ *
+ * A largura da sidebar é controlada pela DIVISÓRIA ARRASTÁVEL (SplitDivider):
+ * ponteiro com setPointerCapture, teclado APG completo (nextRatioForKey),
+ * `role="separator"` com fronteiras ARIA efetivas e razão persistida em
+ * `localStorage` (SHELL_SPLIT_RATIO_STORAGE_KEY — chave PRÓPRIA, distinta da
+ * do Desafio, para as duas divisórias não brigarem pela mesma memória). Toda a
+ * aritmética é a de src/lib/splitRatio.ts (pura e testada), com as constantes
+ * SHELL_SPLIT_CONSTRAINTS (piso em px por painel — nem a sidebar nem o main
+ * somem).
  *
  * ─── O QUE **NÃO** MUDOU (e é de propósito) ────────────────────────────────
- * A navegação continua por ESTADO (`useState`, sem router) e os papéis ARIA
- * continuam `tablist`/`tab`/`tabpanel`. Isso não é herança preguiçosa: para um
- * seletor de view sem rota, é o papel correto — e mantém verdes as 13 specs e2e
- * que usam `getByRole('tab')` e as 7 que usam `getByRole('banner')`.
+ * A navegação continua por ESTADO (`useState`, sem router); os papéis ARIA
+ * continuam `tablist`/`tab`/`tabpanel`; a SessionSidebar CONTINUA SENDO o
+ * `<AppBar>` (`role="banner"` implícito em `<header>`) — 13 specs e2e usam
+ * `getByRole('tab')` e 7 usam `getByRole('banner')`. O `main` continua
+ * `role="tabpanel"` com o id/aria-labelledby de navPanelId/navTabId. Só a
+ * GEOMETRIA mudou.
+ *
+ * ─── RAIL CONTINUA FORA DO SPLIT ───────────────────────────────────────────
+ * O Material 3 documenta *"Navigation bar if the width or height is compact…
+ * Navigation rail for everything else"* e uma janela Electron de desktop é
+ * sempre "everything else" (docs/ux-redesign.md §7.2). O rail é chrome de
+ * largura FIXA (104px): a razão da divisória é sobre o espaço REDISTRIBUÍVEL
+ * (sidebar + divisória + main), não sobre a janela inteira.
  *
  * ─── POR QUE O `SessionStateProvider` ENVOLVE TUDO ─────────────────────────
  * O shell monta SÓ a view ativa. Enquanto `subject`/`phase` viviam em `useState`
  * local da LessonView, sair da aba Aula desmontava a view e APAGAVA o assunto e
- * a fase — o quadro superior nasceria vazio. O estado de sessão sobe para um
+ * a fase — o quadro nasceria vazio. O estado de sessão sobe para um
  * contexto acima das views (`src/lib/sessionState.ts`); a LessonView publica
  * nele via `publishSession` (onda 3).
  */
-import { useState, type ComponentType, type ReactElement } from 'react';
+import { useCallback, useEffect, useRef, useState, type ComponentType, type ReactElement } from 'react';
+import { useTranslation } from 'react-i18next';
 import Box from '@mui/material/Box';
 import {
   HomeView,
@@ -45,7 +61,19 @@ import {
 import { ChallengeNavProvider } from './components/challengeNav/ChallengeNavProvider';
 import { SessionStateProvider } from './components/sessionState/SessionStateProvider';
 import NavigationRail from './components/shell/NavigationRail';
+// ONDA-SIDEBAR: o quadro de sessão virou COLUNA (SessionFrame) e a largura
+// dele é controlada pela divisória arrastável (SplitDivider), com toda a
+// matemática vinda de src/lib/splitRatio.ts.
 import SessionFrame from './components/shell/SessionFrame';
+import SplitDivider from './components/shell/SplitDivider';
+import {
+  readShellSplitRatio,
+  ratioToPx,
+  SHELL_SIDEBAR_PANE_ID,
+  SHELL_SPLIT_CONSTRAINTS,
+  SHELL_SPLIT_DIVIDER_ID,
+  writeShellSplitRatio,
+} from './lib/splitRatio';
 import { navPanelId, navTabId, type NavKey } from './lib/shellNav';
 import { OnboardingHost } from './features/onboarding/OnboardingHost';
 import { useStartup } from './gate/AppGate';
@@ -68,6 +96,16 @@ const VIEWS: Record<NavKey, ComponentType<ViewProps>> = {
   challenge: ChallengeView,
 };
 
+/**
+ * Largura inicial da sidebar ANTES de o contêiner ser medido (px). É o desejo
+ * do dono (~240-266px de coluna em janelas de desktop comuns); no primeiro
+ * frame do ResizeObserver ela passa a ser `razão × contêiner` clampado.
+ */
+const SIDEBAR_PREMEASURE_PX = 240;
+
+/** Id do span da dica da divisória (consumido por `aria-describedby`). */
+const SHELL_SPLIT_HINT_ID = 'shell-split-divider-hint';
+
 function Shell({
   active,
   setActive,
@@ -75,14 +113,91 @@ function Shell({
   active: NavKey;
   setActive: (k: NavKey) => void;
 }): ReactElement {
+  const { t } = useTranslation();
   const View = VIEWS[active];
 
-  return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0 }}>
-      <SessionFrame />
+  // ── Divisória sidebar ⟷ main ────────────────────────────────────────────
+  // A razão é do painel LÍDER (a sidebar) e é PERSISTIDA COMO RAZÃO, nunca em
+  // px (decisão 2 de splitRatio.ts: janela muda de tamanho entre sessões, px
+  // guardado volta errado). A leitura é tolerante a lixo e cai no default.
+  const [ratio, setRatio] = useState<number>(() => readShellSplitRatio());
+  const [containerPx, setContainerPx] = useState(0);
+  const [dragging, setDragging] = useState(false);
+  const containerRef = useRef<HTMLDivElement | null>(null);
 
-      <Box sx={{ display: 'flex', flexDirection: 'row', flexGrow: 1, minHeight: 0 }}>
-        <NavigationRail active={active} onChange={setActive} />
+  // Medição do contêiner (sidebar + divisória + main) — a matemática do split
+  // precisa do eixo INTEIRO em px para os pisos por painel. ResizeObserver, e
+  // não `window.resize`: a largura do contêiner muda sempre que o flex
+  // rearranja, não só quando a janela muda.
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el || typeof ResizeObserver === 'undefined') return;
+    const observer = new ResizeObserver((entries) => {
+      const width = entries[0]?.contentRect.width;
+      if (typeof width === 'number' && Number.isFinite(width) && width > 0) {
+        setContainerPx(width);
+      }
+    });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
+  // Persistência com uma ÚNICA porta de saída: gravamos quando NÃO estamos
+  // arrastando (passo de teclado grava na hora; arraste grava quando o
+  // `dragging` volta a false, com o valor FINAL da razão). O
+  // writeShellSplitRatio é silencioso por desenho — quota/modo privado nunca
+  // derrubam o arraste.
+  useEffect(() => {
+    if (dragging) return;
+    writeShellSplitRatio(ratio);
+  }, [ratio, dragging]);
+
+  const handleRatioChange = useCallback((next: number) => {
+    setRatio(next);
+  }, []);
+
+  const handleDragStart = useCallback(() => setDragging(true), []);
+  const handleDragEnd = useCallback(() => setDragging(false), []);
+
+  const px = ratioToPx(ratio, containerPx, SHELL_SPLIT_CONSTRAINTS);
+  // Contêiner ainda não medido: a sidebar nasce com o px de desejo em vez de
+  // 0 (ratioToPx devolve 0 quando não há medida — e uma coluna de 0px
+  // piscaria no primeiro frame).
+  const sidebarBasisPx = containerPx > 0 ? px.primaryPx : SIDEBAR_PREMEASURE_PX;
+
+  return (
+    <Box sx={{ display: 'flex', flexDirection: 'row', height: '100%', minHeight: 0 }}>
+      <NavigationRail active={active} onChange={setActive} />
+
+      {/* Contêiner do SPLIT: a matemática de splitRatio mede ESTE box (sidebar
+          + divisória + main). O rail fica FORA — é largura fixa de chrome, e a
+          razão é sobre o espaço redistribuível. */}
+      <Box
+        ref={containerRef}
+        sx={{ display: 'flex', flexDirection: 'row', flexGrow: 1, minWidth: 0 }}
+      >
+        <SessionFrame basisPx={sidebarBasisPx} animateBasis={!dragging} />
+
+        <SplitDivider
+          ratio={ratio}
+          containerPx={containerPx}
+          constraints={SHELL_SPLIT_CONSTRAINTS}
+          onRatioChange={handleRatioChange}
+          onDragStart={handleDragStart}
+          onDragEnd={handleDragEnd}
+          // TEMPORÁRIO (i18n): os locales são de OUTRO dono nesta onda — o
+          // rótulo reusa `shell.session.aria` ("Estado da sessão", o painel
+          // que a divisória controla) e a dica reusa `challenge.split.hint`
+          // (texto genérico de arraste/teclado). PENDENTE de chave própria
+          // (registrada no handoff): shell.sidebar.splitAria —
+          // "Divisória entre a barra lateral e o conteúdo" (pt-BR) /
+          // "Divider between the sidebar and the content" (en).
+          ariaLabel={t('translation:shell.session.aria')}
+          hint={t('translation:challenge.split.hint')}
+          hintId={SHELL_SPLIT_HINT_ID}
+          controlsIds={[SHELL_SIDEBAR_PANE_ID, navPanelId(active)]}
+          dividerId={SHELL_SPLIT_DIVIDER_ID}
+        />
 
         <Box
           component="main"
@@ -96,7 +211,10 @@ function Shell({
             // (Home/Settings/Roadmap/Challenge) seguem com altura de conteúdo:
             // sem flexGrow, o comportamento é idêntico ao do layout de bloco —
             // o `overflow: 'auto'` abaixo continua cobrindo conteúdo mais alto
-            // que o painel.
+            // que o painel. ONDA-SIDEBAR: a LARGURA agora é variável (a
+            // geometria horizontal é da divisória); `minWidth: 0` deixa a
+            // coluna encolher até o piso efetivo sem estourar o flex — as
+            // views são flexíveis e nenhum conteúdo trunca (SC 1.4.12).
             display: 'flex',
             flexDirection: 'column',
             flexGrow: 1,

@@ -70,8 +70,11 @@ test('e2e-theme: toggle → classe .light/.dark no <html> + localStorage theme-m
   await toggle.click();
   await expect(html).toHaveClass(/light/);
   expect(await storedMode()).toBe('light');
+  // ONDA-SIDEBAR: o quadro de sessão é a COLUNA lateral agora — a fronteira
+  // com o conteúdo mudou de borda INFERIOR para borda DIREITA (o mesmo token
+  // divider, no lado que de fato separa sidebar ⟷ main).
   await expect(banner).toHaveCSS('background-color', 'rgb(233, 226, 214)');
-  await expect(banner).toHaveCSS('border-bottom-color', 'rgb(221, 213, 198)');
+  await expect(banner).toHaveCSS('border-right-color', 'rgb(221, 213, 198)');
   await expect(rail).toHaveCSS('background-color', 'rgb(233, 226, 214)');
   await expect(selectedTab).toHaveCSS('background-color', 'rgb(221, 213, 198)');
   await expect(page.locator('body')).toHaveCSS('background-color', 'rgb(250, 247, 242)');
@@ -96,7 +99,7 @@ test('e2e-theme: toggle → classe .light/.dark no <html> + localStorage theme-m
   await expect(html).toHaveClass(/dark/);
   expect(await storedMode()).toBe('dark');
   await expect(banner).toHaveCSS('background-color', 'rgb(49, 49, 49)');
-  await expect(banner).toHaveCSS('border-bottom-color', 'rgb(77, 77, 77)');
+  await expect(banner).toHaveCSS('border-right-color', 'rgb(77, 77, 77)');
   await expect(rail).toHaveCSS('background-color', 'rgb(49, 49, 49)');
   await expect(selectedTab).toHaveCSS('background-color', 'rgb(59, 59, 59)');
   await expect(page.locator('body')).toHaveCSS('background-color', 'rgb(14, 14, 14)');

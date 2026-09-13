@@ -422,32 +422,57 @@ function resolveStorage(injected?: StorageLike | null): StorageLike | null {
  * contêiner, que na hidratação ainda não foi medido. O cruzamento com px
  * acontece no primeiro layout, via `clampSplitRatio(ratio, containerPx)`.
  */
-export function readSplitRatio(
-  storage?: StorageLike | null,
-  constraints: SplitConstraints = SPLIT_CONSTRAINTS,
-): number {
+/**
+ * Especificação de UMA divisória persistida: chave de storage, fronteiras de
+ * validação e valor de fallback. ONDA-SIDEBAR: a persistência deixou de ser
+ * exclusiva do split do Desafio — o shell tem a SUA divisória (barra lateral ⟷
+ * conteúdo) — e duas divisórias não podem brigar pela MESMA chave de storage.
+ * O núcleo abaixo é a mesma tolerância a lixo de antes, agora parametrizada.
+ */
+interface RatioStorageSpec {
+  readonly key: string;
+  readonly constraints: SplitConstraints;
+  readonly fallback: number;
+}
+
+const CHALLENGE_SPLIT_SPEC: RatioStorageSpec = {
+  key: SPLIT_RATIO_STORAGE_KEY,
+  constraints: SPLIT_CONSTRAINTS,
+  fallback: DEFAULT_SPLIT_RATIO,
+};
+
+function readRatioFrom(spec: RatioStorageSpec, storage?: StorageLike | null): number {
   const ls = resolveStorage(storage);
-  if (!ls) return DEFAULT_SPLIT_RATIO;
+  if (!ls) return spec.fallback;
   let raw: string | null = null;
   try {
-    raw = ls.getItem(SPLIT_RATIO_STORAGE_KEY);
+    raw = ls.getItem(spec.key);
   } catch {
-    return DEFAULT_SPLIT_RATIO;
+    return spec.fallback;
   }
-  if (typeof raw !== 'string' || raw.length === 0) return DEFAULT_SPLIT_RATIO;
+  if (typeof raw !== 'string' || raw.length === 0) return spec.fallback;
   let parsed: unknown;
   try {
     parsed = JSON.parse(raw);
   } catch {
-    return DEFAULT_SPLIT_RATIO;
+    return spec.fallback;
   }
-  if (typeof parsed !== 'object' || parsed === null) return DEFAULT_SPLIT_RATIO;
+  if (typeof parsed !== 'object' || parsed === null) return spec.fallback;
   const payload = parsed as { version?: unknown; ratio?: unknown };
-  if (payload.version !== SPLIT_RATIO_STORAGE_VERSION) return DEFAULT_SPLIT_RATIO;
+  if (payload.version !== SPLIT_RATIO_STORAGE_VERSION) return spec.fallback;
   const ratio = payload.ratio;
-  if (typeof ratio !== 'number' || !Number.isFinite(ratio)) return DEFAULT_SPLIT_RATIO;
-  if (ratio < constraints.minRatio || ratio > constraints.maxRatio) return DEFAULT_SPLIT_RATIO;
+  if (typeof ratio !== 'number' || !Number.isFinite(ratio)) return spec.fallback;
+  if (ratio < spec.constraints.minRatio || ratio > spec.constraints.maxRatio) {
+    return spec.fallback;
+  }
   return roundSplitRatio(ratio);
+}
+
+export function readSplitRatio(
+  storage?: StorageLike | null,
+  constraints: SplitConstraints = SPLIT_CONSTRAINTS,
+): number {
+  return readRatioFrom({ key: SPLIT_RATIO_STORAGE_KEY, constraints, fallback: DEFAULT_SPLIT_RATIO }, storage);
 }
 
 /**
@@ -456,23 +481,29 @@ export function readSplitRatio(
  * quota ou por modo privado). Valor não-finito NÃO é gravado — melhor manter o
  * valor bom anterior do que trocá-lo por lixo.
  */
-export function writeSplitRatio(
-  ratio: number,
-  storage?: StorageLike | null,
-  constraints: SplitConstraints = SPLIT_CONSTRAINTS,
-): void {
+function writeRatioTo(spec: RatioStorageSpec, ratio: number, storage?: StorageLike | null): void {
   if (!Number.isFinite(ratio)) return;
   const ls = resolveStorage(storage);
   if (!ls) return;
-  const safe = roundSplitRatio(clampToRange(ratio, constraints.minRatio, constraints.maxRatio));
+  const safe = roundSplitRatio(
+    clampToRange(ratio, spec.constraints.minRatio, spec.constraints.maxRatio),
+  );
   try {
     ls.setItem(
-      SPLIT_RATIO_STORAGE_KEY,
+      spec.key,
       JSON.stringify({ version: SPLIT_RATIO_STORAGE_VERSION, ratio: safe }),
     );
   } catch {
     /* preferência de layout é descartável — nunca derruba o arraste */
   }
+}
+
+export function writeSplitRatio(
+  ratio: number,
+  storage?: StorageLike | null,
+  constraints: SplitConstraints = SPLIT_CONSTRAINTS,
+): void {
+  writeRatioTo({ key: SPLIT_RATIO_STORAGE_KEY, constraints, fallback: DEFAULT_SPLIT_RATIO }, ratio, storage);
 }
 
 /** Esquece a razão persistida (volta ao default no próximo boot). */
@@ -481,6 +512,89 @@ export function clearSplitRatio(storage?: StorageLike | null): void {
   if (!ls) return;
   try {
     ls.removeItem(SPLIT_RATIO_STORAGE_KEY);
+  } catch {
+    /* idem */
+  }
+}
+
+/* ── ONDA-SIDEBAR: a divisória do SHELL (barra lateral ⟷ conteúdo) ──────────
+ *
+ * O quadro de estado da sessão saiu do topo e virou COLUNA lateral (estilo
+ * VSCode: área de arquivos ⟷ área de código, com divisor arrastável). Esta
+ * extensão é ADITIVA por três razões:
+ *
+ * 1. A matemática (splitBounds/clamp/ratioToPx/nextRatioForKey/splitAriaValues)
+ *    é IDÊNTICA — o que muda são as CONSTANTES e a CHAVE de storage. As
+ *    decisões 1-3 do cabeçalho (piso em px por painel, persistir razão, teclado
+ *    APG) valem igualmente aqui.
+ * 2. A STORAGE É PRÓPRIA (`-shell-` no nome): reusar `SPLIT_RATIO_STORAGE_KEY`
+ *    faria o split do Desafio e o do shell SOBRESCREVER um ao outro — duas
+ *    divisórias, uma memória, dois layouts brigando a cada boot. Mesmo payload
+ *    versionado, chave distinta, isolamento garantido e testado.
+ * 3. O painel líder aqui é a BARRA LATERAL (esquerda da divisória vertical —
+ *    mesma convenção de `ratio` do módulo). O painel seguidor é o `main` com
+ *    as views; o `minPanePx` vale para OS DOIS, então o conteúdo nunca fica
+ *    mais estreito que um piso legível.
+ */
+
+/**
+ * Constantes da divisória do shell.
+ *   - `minRatio: 0.14` — a barra lateral nunca desaba; mas o PISO REAL costuma
+ *     ser o de px (ver `minPanePx`), que em janelas normais fica acima disso.
+ *   - `maxRatio: 0.5` — a barra é chrome + leitura; deixar o conteúdo com
+ *     MENOS que a metade da janela vira a aula numa coluna de jornal.
+ *   - `minPanePx: 180` — piso dos DOIS painéis: abaixo disso a barra não cabe
+ *     no conteúdo (título + campos quebrando, SC 1.4.12) e o `main` não cabe
+ *     numa coluna de leitura de 72ch nem no chat da aula.
+ *   - `dividerPx: 6` — traço mais fino que o do Desafio (8): na coluna ele
+ *     corre na altura inteira e 8px de chrome lateral pesa mais.
+ */
+export const SHELL_SPLIT_CONSTRAINTS: SplitConstraints = {
+  minRatio: 0.14,
+  maxRatio: 0.5,
+  minPanePx: 180,
+  dividerPx: 6,
+  stepRatio: 0.02,
+  coarseStepRatio: 0.1,
+};
+
+/**
+ * Razão inicial: a barra nasce com ~240-266px em janelas de desktop comuns
+ * (1280-1440px de janela ⇒ 0,2 × ~1170-1330 úteis), dentro da faixa que o
+ * dono pediu (~232-280px de coluna) sem apertar o texto da aula.
+ */
+export const DEFAULT_SHELL_SPLIT_RATIO = 0.2;
+
+/** Id estável do painel líder (a barra lateral) — para `aria-controls`. */
+export const SHELL_SIDEBAR_PANE_ID = 'shell-session-sidebar';
+/** Id estável da divisória do shell. */
+export const SHELL_SPLIT_DIVIDER_ID = 'shell-split-divider';
+
+/** Chave de `localStorage` da razão do shell — DISTINTA da do Desafio. */
+export const SHELL_SPLIT_RATIO_STORAGE_KEY = 'study-method-shell-split-v1';
+
+const SHELL_SPLIT_SPEC: RatioStorageSpec = {
+  key: SHELL_SPLIT_RATIO_STORAGE_KEY,
+  constraints: SHELL_SPLIT_CONSTRAINTS,
+  fallback: DEFAULT_SHELL_SPLIT_RATIO,
+};
+
+/** Lê a razão da divisória do shell (mesma tolerância a lixo do split do Desafio). */
+export function readShellSplitRatio(storage?: StorageLike | null): number {
+  return readRatioFrom(SHELL_SPLIT_SPEC, storage);
+}
+
+/** Grava a razão da divisória do shell. Silenciosa, como a do Desafio. */
+export function writeShellSplitRatio(ratio: number, storage?: StorageLike | null): void {
+  writeRatioTo(SHELL_SPLIT_SPEC, ratio, storage);
+}
+
+/** Esquece a razão do shell (volta ao default no próximo boot). */
+export function clearShellSplitRatio(storage?: StorageLike | null): void {
+  const ls = resolveStorage(storage);
+  if (!ls) return;
+  try {
+    ls.removeItem(SHELL_SPLIT_RATIO_STORAGE_KEY);
   } catch {
     /* idem */
   }
