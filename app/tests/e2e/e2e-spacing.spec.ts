@@ -16,6 +16,16 @@
  * nele que a onda 2 introduziu superfície de truncamento (`noWrap` +
  * `maxWidth: '32ch'` nos valores do quadro) — a causa nº 1 da F104.
  *
+ * O que esta spec NÃO cobre: ela roda na HOME, na largura inicial do sidebar e
+ * com o slot da view ativa VAZIO (`#shell-sidebar-view-slot`, `display: none`
+ * quando vazio). O cabeçalho da AULA que a LessonView publica nesse slot
+ * (LessonSidebarHeader) — no piso de 180px da divisória, sob os mesmos quatro
+ * overrides, nos dois idiomas e na altura mínima da janela — é medido em
+ * tests/e2e/e2e-sidebar-aula-spacing.spec.ts, com a mesma varredura
+ * (./spacingScan) mais os ajustes de geometria que aquela spec documenta
+ * (coluna que rola, recortes de desenho do MUI). Aqui a varredura roda com as
+ * opções PADRÃO — a medida desta spec não mudou com a extração.
+ *
  * ─── POR QUE O VALOR DO QUADRO É SEMEADO PELO DOM ──────────────────────────
  * O `SessionStateProvider` já está montado, mas quem PUBLICA assunto e fase é a
  * LessonView, e essa ligação é da ONDA 3 — hoje o quadro só mostra os
@@ -27,6 +37,12 @@
  */
 import { test, expect, type ElectronApplication, type Page } from '@playwright/test';
 import { launchApp, closeApp } from './helpers';
+// A metodologia (os quatro overrides + a varredura) mora em ./spacingScan desde
+// que o cabeçalho da aula passou a morar no sidebar: esta spec e a
+// e2e-sidebar-aula-spacing medem com a MESMA régua. Aqui ela roda com as
+// opções PADRÃO (faixa = a raiz, limite = a caixa visível nos dois eixos) —
+// exatamente a medida que esta spec sempre fez.
+import { SPACING_OVERRIDES, scanSpacing, type RendererDom } from './spacingScan';
 
 let app: ElectronApplication | undefined;
 let page: Page;
@@ -35,75 +51,8 @@ test.afterEach(async () => {
   if (app) await closeApp(app);
 });
 
-/**
- * Os QUATRO overrides do SC 1.4.12, verbatim do §4.3 do contrato. Nada além
- * disto pode ser mexido — o critério diz *"and by changing no other style
- * property"*.
- */
-const SPACING_OVERRIDES = `
-  * {
-    line-height: 1.5 !important;
-    letter-spacing: 0.12em !important;
-    word-spacing: 0.16em !important;
-  }
-  p { margin-bottom: 2em !important; }
-`;
-
 /** Assunto longo e plausível — o que uma aula de verdade coloca no quadro. */
 const LONG_SUBJECT = 'Ownership, borrow checker e lifetimes em Rust para quem vem de TypeScript';
-
-/**
- * Fatia do DOM usada dentro de `page.evaluate`. O tsconfig destes testes é o de
- * NODE (`lib: ["ES2022"]`, sem DOM) porque o processo de teste é Node — mas o
- * corpo do `evaluate` roda no RENDERER, que tem DOM. Mesma técnica já usada em
- * `e2e-theme.spec.ts`.
- */
-interface RendererRect {
-  width: number;
-  height: number;
-  top: number;
-  left: number;
-  right: number;
-  bottom: number;
-}
-interface RendererElement {
-  tagName: string;
-  textContent: string | null;
-  scrollWidth: number;
-  clientWidth: number;
-  scrollHeight: number;
-  clientHeight: number;
-  childNodes: ArrayLike<{ nodeType: number; textContent: string | null }>;
-  getBoundingClientRect(): RendererRect;
-  querySelectorAll(selector: string): ArrayLike<RendererElement>;
-  contains(other: RendererElement): boolean;
-}
-interface RendererDom {
-  document: {
-    querySelector(selector: string): RendererElement | null;
-    querySelectorAll(selector: string): ArrayLike<RendererElement>;
-  };
-  getComputedStyle(element: RendererElement): {
-    overflowX: string;
-    overflowY: string;
-    textOverflow: string;
-    whiteSpace: string;
-    display: string;
-    visibility: string;
-  };
-}
-
-/** O que o probe devolve — listas de VIOLAÇÕES, já legíveis na mensagem de erro. */
-interface SpacingReport {
-  /** Elementos varridos com caixa visível (guarda contra varredura vazia). */
-  sampled: number;
-  /** Recorte: reticências, ou conteúdo maior que a caixa num eixo que não é visible. */
-  clipped: string[];
-  /** Conteúdo que saiu da caixa do cabeçalho (some atrás do rail / do conteúdo). */
-  outside: string[];
-  /** Pares de folhas de texto cujas caixas se cruzam (texto sobre texto). */
-  overlaps: string[];
-}
 
 test('e2e-spacing: o quadro de sessão sobrevive aos quatro overrides do SC 1.4.12 (nada trunca, nada sobrepõe)', async () => {
   const launched = await launchApp({ env: { E2E_GATE: 'ready' } });
@@ -143,84 +92,13 @@ test('e2e-spacing: o quadro de sessão sobrevive aos quatro overrides do SC 1.4.
   await page.waitForTimeout(150);
 
   // 3) Mede. A varredura é do cabeçalho inteiro, não só do campo semeado.
-  const report = await page.evaluate((): SpacingReport => {
-    const dom = globalThis as unknown as RendererDom;
-    // `<header>` (papel banner IMPLÍCITO — ver a nota na semeadura acima).
-    const banner = dom.document.querySelector('header, [role="banner"]');
-    if (banner == null) throw new Error('cabeçalho (header / role="banner") não encontrado');
-    const bannerRect = banner.getBoundingClientRect();
-
-    const label = (el: RendererElement): string =>
-      `<${el.tagName.toLowerCase()}> "${(el.textContent ?? '').trim().slice(0, 48)}"`;
-
-    /** Elemento com texto PRÓPRIO (nó de texto direto não vazio). */
-    const hasOwnText = (el: RendererElement): boolean =>
-      Array.from(el.childNodes).some(
-        (n) => n.nodeType === 3 && (n.textContent ?? '').trim() !== '',
-      );
-
-    const clipped: string[] = [];
-    const outside: string[] = [];
-    const overlaps: string[] = [];
-    const leaves: RendererElement[] = [];
-    let sampled = 0;
-
-    for (const el of Array.from(banner.querySelectorAll('*'))) {
-      const cs = dom.getComputedStyle(el);
-      if (cs.display === 'none' || cs.visibility === 'hidden') continue;
-      const rect = el.getBoundingClientRect();
-      if (rect.width === 0 || rect.height === 0) continue;
-      sampled += 1;
-
-      // (a) Reticências: F104, causa nº 1. Não pode existir no cabeçalho.
-      if (cs.textOverflow === 'ellipsis') {
-        clipped.push(`${label(el)} tem text-overflow: ellipsis`);
-      }
-      // (b) Conteúdo maior que a caixa num eixo que RECORTA (hidden/auto/scroll).
-      //     1px de tolerância para o arredondamento sub-pixel do Blink.
-      if (cs.overflowX !== 'visible' && el.scrollWidth > el.clientWidth + 1) {
-        clipped.push(
-          `${label(el)} recorta no eixo inline (scrollWidth ${el.scrollWidth} > clientWidth ${el.clientWidth}, overflow-x: ${cs.overflowX})`,
-        );
-      }
-      if (cs.overflowY !== 'visible' && el.scrollHeight > el.clientHeight + 1) {
-        clipped.push(
-          `${label(el)} recorta no eixo de bloco (scrollHeight ${el.scrollHeight} > clientHeight ${el.clientHeight}, overflow-y: ${cs.overflowY})`,
-        );
-      }
-      // (c) Saiu da faixa: o cabeçalho não recorta, mas o que passa da borda
-      //     fica ATRÁS do rail / do conteúdo — perda de conteúdo igual.
-      if (
-        rect.left < bannerRect.left - 1 ||
-        rect.right > bannerRect.right + 1 ||
-        rect.top < bannerRect.top - 1 ||
-        rect.bottom > bannerRect.bottom + 1
-      ) {
-        outside.push(
-          `${label(el)} escapa do cabeçalho (caixa ${Math.round(rect.left)}..${Math.round(rect.right)} x ${Math.round(rect.top)}..${Math.round(rect.bottom)} contra ${Math.round(bannerRect.left)}..${Math.round(bannerRect.right)} x ${Math.round(bannerRect.top)}..${Math.round(bannerRect.bottom)})`,
-        );
-      }
-
-      if (hasOwnText(el)) leaves.push(el);
-    }
-
-    // (d) Texto sobre texto. Só entre folhas de texto que NÃO se contêm.
-    for (let i = 0; i < leaves.length; i += 1) {
-      for (let j = i + 1; j < leaves.length; j += 1) {
-        const a = leaves[i] as RendererElement;
-        const b = leaves[j] as RendererElement;
-        if (a.contains(b) || b.contains(a)) continue;
-        const ra = a.getBoundingClientRect();
-        const rb = b.getBoundingClientRect();
-        const dx = Math.min(ra.right, rb.right) - Math.max(ra.left, rb.left);
-        const dy = Math.min(ra.bottom, rb.bottom) - Math.max(ra.top, rb.top);
-        if (dx > 1 && dy > 1) {
-          overlaps.push(`${label(a)} sobrepõe ${label(b)} (${Math.round(dx)}x${Math.round(dy)}px)`);
-        }
-      }
-    }
-
-    return { sampled, clipped, outside, overlaps };
+  //    `<header>` (papel banner IMPLÍCITO — ver a nota na semeadura acima). A
+  //    faixa é o próprio cabeçalho, limitado pela caixa visível nos dois eixos
+  //    (as opções padrão de `scanSpacing`).
+  const report = await page.evaluate(scanSpacing, {
+    root: 'header, [role="banner"]',
+    rootMissing: 'cabeçalho (header / role="banner") não encontrado',
+    bandPhrase: 'do cabeçalho',
   });
 
   // Guarda contra varredura vazia: um cabeçalho sem elementos passaria em tudo.

@@ -40,13 +40,22 @@
  * antiga usava `noWrap` — `overflow: hidden` + `text-overflow: ellipsis` +
  * `white-space: nowrap`, a causa nº 1 que a F104 nomeia. Na coluna estreita
  * isso recortaria quase todo título. Aqui título, resumo, contador e rótulos
- * QUEBRAM (`whiteSpace: 'normal'` + `overflowWrap: 'anywhere'`, para nem um
+ * — inclusive os dos botões "Desafios" e "Fontes" — QUEBRAM
+ * (`whiteSpace: 'normal'` + `overflowWrap: 'anywhere'`, para nem um
  * identificador longo sem espaços estourar a coluna) e a coluna cresce em
  * altura. Os chips de pré-requisito também: o rótulo do MuiChip nasce com
  * nowrap + ellipsis e aqui vira o "chip multilinha" (altura auto, rótulo que
  * quebra) — com `textOverflow: 'clip'` e `overflow: 'visible'` explícitos,
- * para não sobrar nem o `text-overflow: ellipsis` computado que o
- * tests/e2e/e2e-spacing.spec.ts reprova em QUALQUER elemento do banner.
+ * para não sobrar nem o `text-overflow: ellipsis` computado que a varredura
+ * do SC 1.4.12 reprova em QUALQUER elemento do sidebar.
+ *
+ * QUEM PROVA ISSO NO NAVEGADOR: tests/e2e/e2e-sidebar-aula-spacing.spec.ts —
+ * abre uma aula de verdade, leva a divisória ao PISO de 180px, injeta os
+ * quatro overrides do SC 1.4.12 e varre este `<section>` e o banner inteiro
+ * (a metodologia do e2e-spacing, em tests/e2e/spacingScan.ts), nos dois
+ * idiomas e também na altura mínima da janela (onde o sidebar rola). O
+ * tests/e2e/e2e-spacing.spec.ts NÃO cobre este componente: ele roda na Home,
+ * com o slot vazio.
  *
  * ─── FRONTEIRA DE NÍVEL (regra 3b de designTokens.ts) ──────────────────────
  * O sidebar é chrome NÍVEL 3: o texto é TINTA (`text.primary` /
@@ -79,7 +88,8 @@
  *     que ele esteja).
  *
  * Testado em tests/lessonSidebarHeader.test.ts (SSR da estrutura, CSS emitido
- * do título e i18n nos dois idiomas).
+ * do título e i18n nos dois idiomas) e, no app rodando, no piso de largura sob
+ * os overrides do SC 1.4.12, em tests/e2e/e2e-sidebar-aula-spacing.spec.ts.
  */
 import { useId, useMemo, type ReactElement } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -229,10 +239,18 @@ export function LessonSidebarHeader({
           Linha que QUEBRA (flexWrap): a 240px os dois botões já não cabem
           lado a lado e empilham; numa coluna mais larga voltam a dividir a
           linha. Largura natural (sem esticar): a bolha do Badge fica colada
-          ao rótulo "Desafios" e nunca encosta na borda da coluna. O vão
-          horizontal (1.5) é maior que a meia-bolha que o Badge projeta para
-          fora do botão com um algarismo — a bolha não invade o "Fontes"
-          ao lado. */}
+          ao rótulo "Desafios". O vão horizontal (1.5) é maior que a
+          meia-bolha que o Badge projeta para fora do botão com um algarismo
+          — a bolha não invade o "Fontes" ao lado.
+          E cada botão CABE na coluna: nunca mais largo que ela, com o rótulo
+          que QUEBRA (a mesma regra do título). Medido no
+          tests/e2e/e2e-sidebar-aula-spacing.spec.ts, no piso de 180px sob os
+          overrides do SC 1.4.12: em inglês o "Challenges" media 162,6px
+          contra 155px de coluna — a raiz do MuiBadge nasce `flex-shrink: 0`,
+          então o botão não encolhia, e a bolha do badge passava da borda do
+          sidebar (`overflowX: 'hidden'`), recortada. `maxWidth: '100%'` no
+          Badge o prende à linha; o rótulo quebra dentro dele, e a meia-bolha
+          (10px) cai no padding de 12px da coluna. */}
       <Box
         sx={(theme) => ({
           display: 'flex',
@@ -244,7 +262,7 @@ export function LessonSidebarHeader({
         })}
       >
         {challengeCount > 0 ? (
-          <Badge badgeContent={pendingChallengeCount} color="error">
+          <Badge badgeContent={pendingChallengeCount} color="error" sx={{ maxWidth: '100%' }}>
             <Button
               size="small"
               variant="outlined"
@@ -261,6 +279,9 @@ export function LessonSidebarHeader({
                 '& .MuiButton-startIcon': {
                   color: theme.vars.palette.primary.fill,
                 },
+                // Quebra, nunca recorta (ver o bloco AÇÕES acima).
+                whiteSpace: 'normal',
+                overflowWrap: 'anywhere',
               })}
             >
               {t('translation:lesson.challengesButton')}
@@ -275,6 +296,8 @@ export function LessonSidebarHeader({
           sx={(theme) => ({
             color: theme.vars.palette.text.primary,
             borderColor: theme.vars.palette.nonText.neutral,
+            whiteSpace: 'normal',
+            overflowWrap: 'anywhere',
           })}
         >
           {t('translation:lesson.sourcesButton')}
