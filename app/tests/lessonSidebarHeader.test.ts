@@ -6,10 +6,15 @@
  * O QUE ESTE ARQUIVO PROVA (e o que ele NÃO consegue provar — com honestidade)
  * ══════════════════════════════════════════════════════════════════════════
  * Esta base não tem jsdom (a técnica dela é `react-dom/server` — precedentes
- * `tests/lessonCollapsibleHeader.test.ts`, `tests/shellSidebar.test.ts`). Sem
- * DOM não há CLIQUE nem LAYOUT: o popover ancorado no botão, a quebra real de
- * linha a 180px e a publicação por portal no slot do shell são cobertos pelos
- * specs e2e Playwright quando a LessonView ligar o componente (onda 2). O que
+ * `tests/quizOverlayRender.test.ts`, `tests/shellSidebar.test.ts`). Sem DOM
+ * não há CLIQUE nem LAYOUT. A LessonView já publica este componente no slot
+ * do shell via `<ShellSidebarPortal>` (a onda 2 ligou as pontas e aposentou o
+ * CollapsibleLessonHeader, que morava no main): a LIGAÇÃO é provada por
+ * guarda de fonte em `tests/lessonSidebarWiring.test.ts`, e o que só a GUI
+ * real mostra — o h1 no slot e fora do `main`, o popover aberto pelo botão
+ * do sidebar, o slot trocando com a aula — é medido no Electron por
+ * `tests/e2e/e2e-lesson.spec.ts`. A quebra real de linha a 180px não tem
+ * medição de layout: aqui se prova o CSS de que ela depende (bloco 2). O que
  * dá para provar AQUI, com o renderizador real e o tema real, é:
  *
  *   BLOCO 1 — ESTRUTURA E LANDMARKS. A raiz é `<section aria-labelledby>`
@@ -20,10 +25,10 @@
  *
  *   BLOCO 2 — "QUEBRA, NUNCA RECORTA" NO CSS EMITIDO. O título NÃO tem
  *     `white-space:nowrap` nem `text-overflow:ellipsis` (o que a barra
- *     colapsada antiga tinha — tests/lessonCollapsibleHeader.test.ts, bloco 4,
- *     prova o oposto lá); tem `overflow-wrap:anywhere`. Os chips de
- *     pré-requisito ganham o rótulo multilinha (o default do MuiChip é nowrap
- *     + ellipsis).
+ *     colapsada do CollapsibleLessonHeader, aposentado, tinha — o teste dele,
+ *     apagado junto, provava o oposto lá, no bloco 4); tem
+ *     `overflow-wrap:anywhere`. Os chips de pré-requisito ganham o rótulo
+ *     multilinha (o default do MuiChip é nowrap + ellipsis).
  *
  *   BLOCO 3 — AÇÕES. "Desafios" com badge de pendentes, aria-label
  *     interpolado, `aria-haspopup` e `aria-expanded` refletindo
@@ -38,8 +43,10 @@
  *
  *   BLOCO 6 — GUARDAS DE FONTE: o contrato de props congelado (o do
  *     CollapsibleLessonHeader MENOS `defaultOpen` — a lista é fixada AQUI, não
- *     lida do componente antigo, que a onda 2 aposenta), sem toggle de colapso
- *     (sem estado interno/AnimatePresence) e sem `component="header"`.
+ *     lida do componente antigo, que a onda 2 aposentou; que a LessonView
+ *     passa esse contrato 1:1 é cobrado em tests/lessonSidebarWiring.test.ts),
+ *     sem toggle de colapso (sem estado interno/AnimatePresence) e sem
+ *     `component="header"`.
  *
  * Reprodução: `bash tools/t.sh tests/lessonSidebarHeader.test.ts`
  */
@@ -60,7 +67,7 @@ import en from '../src/i18n/locales/en/translation.json';
 
 // ATENÇÃO ao padrão da casa: o componente é .tsx e o tsconfig de tests/ não
 // liga `jsx` — por isso a importação é DINÂMICA por URL (mesma técnica de
-// tests/lessonCollapsibleHeader.test.ts).
+// tests/quizOverlayRender.test.ts, que explica o porquê).
 const COMPONENT_MODULE = new URL(
   '../src/components/course/LessonSidebarHeader.tsx',
   import.meta.url,
@@ -150,7 +157,7 @@ function finalDeclOf(html: string, cls: string, prop: string): string | undefine
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
- * Fixtures — o MESMO componente que a LessonView vai publicar no sidebar
+ * Fixtures — o MESMO componente que a LessonView publica no sidebar
  * ═══════════════════════════════════════════════════════════════════════════ */
 
 /** O contrato de props, declarado LOCALMENTE — o tipo exportado pelo
@@ -266,8 +273,10 @@ describe('1. estrutura: <section aria-labelledby> → h1, nenhum <header>', () =
 
   it('sem toggle de colapso: nada de aria-label de expandir/recolher e só os 2 botões de ação', () => {
     const html = renderHeader();
-    assert.ok(!html.includes(ptBR.lesson.headerToggleExpand), 'sem toggle "Mostrar detalhes"');
-    assert.ok(!html.includes(ptBR.lesson.headerToggleCollapse), 'sem toggle "Ocultar detalhes"');
+    // Os aria-labels do toggle do CollapsibleLessonHeader aposentado, como
+    // LITERAIS: as chaves i18n deles saíram dos dois locales junto com ele.
+    assert.ok(!html.includes('Mostrar detalhes da aula'), 'sem toggle "Mostrar detalhes"');
+    assert.ok(!html.includes('Ocultar detalhes da aula'), 'sem toggle "Ocultar detalhes"');
     // Os chips clicáveis são `role="button"` em <div>; os <button> são só as ações.
     const buttons = html.match(/<button\b/g) ?? [];
     assert.equal(buttons.length, 2, `esperava só Desafios + Fontes, veio: ${buttons.length}`);
@@ -418,7 +427,7 @@ describe('6. guardas de fonte — contrato congelado, sem colapso, sem <header>'
   const SRC = readFileSync(COMPONENT_PATH, 'utf8');
   const CODE = codeOf(SRC);
 
-  it('o contrato de props é o do CollapsibleLessonHeader MENOS defaultOpen (lista congelada)', () => {
+  it('o contrato de props é o do CollapsibleLessonHeader aposentado MENOS defaultOpen (lista congelada)', () => {
     const body = /export interface LessonSidebarHeaderProps \{([\s\S]*?)\n\}/.exec(CODE)?.[1];
     assert.ok(body, 'LessonSidebarHeaderProps não encontrado');
     const fields = [...body.matchAll(/^\s*(?:readonly\s+)?(\w+)\??:/gm)].map((m) => m[1]).sort();

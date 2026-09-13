@@ -4,15 +4,15 @@
  * ══════════════════════════════════════════════════════════════════════════
  * O QUE ESTE ARQUIVO PROVA (e o que ele NÃO consegue provar)
  * ══════════════════════════════════════════════════════════════════════════
- * Esta base não tem jsdom (a técnica dela é `react-dom/server` — precedentes
- * `tests/lessonCollapsibleHeader.test.ts`, `tests/quizOverlayRender.test.ts`).
+ * Esta base não tem jsdom (a técnica dela é `react-dom/server` — a mesma de
+ * `tests/quizOverlayRender.test.ts` e `tests/lessonSidebarHeader.test.ts`).
  * Sem DOM não há ARRASTE nem RESIZE: o arraste de ponteiro, a mudança de
  * largura e a persistência via localStorage são cobertos pela matemática pura
  * (`tests/splitRatio.test.ts`) e pelos specs e2e Playwright. O que dá para
  * provar AQUI é:
  *
  *   BLOCO 1 — GUARDAS DE FONTE (regex no .tsx — técnica de
- *     lessonCollapsibleHeader/inkPropReachesScreen). O contrato do shell é de
+ *     lessonSidebarWiring/inkPropReachesScreen). O contrato do shell é de
  *     PAPÉIS ARIA que 13 specs e2e consumem; regressão desses papéis quebra o
  *     app silenciosamente, então a fonte é trancada:
  *       · `role="banner"` (via `<AppBar>`) existe EXATAMENTE UMA vez no shell;
@@ -62,7 +62,7 @@ import {
 } from '../src/lib/splitRatio';
 
 // ATENÇÃO ao padrão da casa: componentes .tsx são importados DINAMICAMENTE por
-// URL (o tsconfig de tests/ não liga `jsx` — ver lessonCollapsibleHeader).
+// URL (o tsconfig de tests/ não liga `jsx` — ver lessonSidebarHeader).
 const SESSION_FRAME_MODULE = new URL(
   '../src/components/shell/SessionFrame.tsx',
   import.meta.url,

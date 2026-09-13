@@ -302,12 +302,15 @@ function activeLessonTree(): { rootTag: string; tree: string; firstChildTag: str
  * O Stack DA COLUNA inteiro — da tag de abertura (o primeiro filho da raiz)
  * ao `</Stack>` que o fecha, recortado contando aberturas e fechamentos.
  *
- * É aqui dentro que moram cabeçalho, painel de mensagens, avisos, ação e
- * entrada, e é aqui que nenhum teto de largura pode reaparecer. O diálogo de
- * Fontes e o popover de Desafios ficam FORA de propósito: são IRMÃOS do Stack
+ * É aqui dentro que moram painel de mensagens, avisos, ação e entrada, e é
+ * aqui que nenhum teto de largura pode reaparecer. O diálogo de Fontes e o
+ * popover de Desafios ficam FORA de propósito: são IRMÃOS do Stack
  * (superfícies flutuantes, em portal) com medida própria — não são a coluna de
- * leitura. O recorte se prova certo por dentro (contém o log e o composer) e
- * por fora (não engoliu nenhuma das duas superfícies flutuantes).
+ * leitura. O cabeçalho da aula também não mora aqui: a LessonView o publica
+ * por portal no sidebar do shell, IRMÃO fora do Stack como o Dialog e o
+ * Popover (tests/lessonSidebarWiring.test.ts cobra essa posição). O recorte
+ * se prova certo por dentro (contém o log e o composer) e por fora (não
+ * engoliu nenhuma das duas superfícies flutuantes).
  */
 function columnStack(): string {
   const { tree, rootTag } = activeLessonTree();

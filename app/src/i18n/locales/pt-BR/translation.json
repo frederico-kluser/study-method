@@ -250,8 +250,6 @@
     "challengesTitle": "Desafios desta aula",
     "challengesButton": "Desafios",
     "challengesButtonAria": "Desafios da aula ({{pending}} pendentes)",
-    "headerToggleExpand": "Mostrar detalhes da aula",
-    "headerToggleCollapse": "Ocultar detalhes da aula",
     "challengeStepButton": "Fazer o desafio",
     "challengeStepButtonAria": "Fazer o desafio ({{pending}} pendentes)",
     "challengesListAria": "Lista de desafios desta aula",
