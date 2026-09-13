@@ -31,8 +31,9 @@
  * (isLessonFinishBlocked — lê lastVerdict do payload track.lesson).
  *
  * ONDA2-CHAT-NINTENDO (pedidos do dono): coluna em min(1920px, 100%) com o
- * painel de mensagens capado em 1000px centrado (SUPERADO pela ONDA11 — hoje
- * é uma coluna só, de 960px, ver LESSON_COLUMN_SX); balões entram com
+ * painel de mensagens capado em 1000px centrado (SUPERADO pela ONDA11 — uma
+ * coluna só, de 960px — cujo teto a ONDA-LARGURA-LIVRE REVOGOU: hoje a coluna
+ * preenche o main, ver LESSON_COLUMN_SX); balões entram com
  * AnimatePresence + fadeInUp (só os NOVOS da sessão); auto-scroll (o "SÓ
  * quando o usuário está no fim" desta onda foi REVOGADO pela ONDA15 — hoje o
  * painel acompanha o fim SEMPRE, ver pinLogToBottom/nudgeLogToBottom) com
@@ -67,7 +68,9 @@
  *      (`LESSON_COLUMN_SX`, uma declaração só) e o Stack ganhou `useFlexGap`
  *      (espaçamento por `gap` do container, não por margem do filho). Toda a
  *      aula ativa — cabeçalho, progresso, painel, avisos, ação e entrada —
- *      divide UMA coluna de 960px, derivada da medida de leitura;
+ *      divide UMA coluna (de 960px nesta onda; o teto foi REVOGADO pela
+ *      ONDA-LARGURA-LIVRE: a coluna preenche o main e quem dita a largura é a
+ *      divisória do sidebar, ver LESSON_COLUMN_SX);
  *   2. a BARRA DE ENTRADA passou ao molde da referência de chat: microfone
  *      como botão circular FORA do campo à esquerda, campo pílula ocupando
  *      todo o resto com o convite no placeholder, enviar DENTRO na borda
@@ -130,9 +133,10 @@
  *     — e, desde a ONDA4-SAÍDA-DO-CICLO, também não fica preso SEM SAÍDA (ver
  *     abaixo);
  *   - LARGURAS: painel de mensagens e linha de entrada passam a dividir a
- *     MESMA coluna (`CHAT_COLUMN_MAX_PX`) — o eixo de leitura e o de escrita
- *     não batiam —, e o painel saiu de `action.hover` (overlay alfa, a única
- *     superfície do app fora da rampa `surface.level0..4`) para o nível 2.
+ *     MESMA coluna (`LESSON_COLUMN_SX` — sem teto desde a ONDA-LARGURA-LIVRE)
+ *     — o eixo de leitura e o de escrita não batiam —, e o painel saiu de
+ *     `action.hover` (overlay alfa, a única superfície do app fora da rampa
+ *     `surface.level0..4`) para o nível 2.
  *
  * ONDA4-SAÍDA-DO-CICLO (o defeito que a cobertura e2e desta base declarou como
  * OBSERVADO, tests/e2e/e2e-quiz.spec.ts teste 5): "pedir de novo" só serve
@@ -318,49 +322,65 @@ type LessonPayloadWithNext = TrackLessonPayload & {
 
 /**
  * ONDA11 (o dono, olhando a tela: "o input e o enviar do input no chat ficou
- * todo pra esquerda e só ocupando metade da tela"): a COLUNA da aula — UM eixo
- * só, declarado UMA vez.
+ * todo pra esquerda e só ocupando metade da tela") + ONDA-LARGURA-LIVRE (o
+ * dono, sobre a aula: "o texto da aula, que está dentro de uma limitação de
+ * width, não deve ter mais essa limitação — o sidebar define o limite da área
+ * de texto simplesmente pelo seu tamanho"): a COLUNA da aula — UM eixo só,
+ * declarado UMA vez, e SEM TETO.
  *
- * ─── O DEFEITO, e por que ele NÃO era de largura ───────────────────────────
- * O painel de mensagens e a linha de entrada declaravam a MESMA largura e o
- * MESMO `mx: 'auto'`. Mesmo assim, medido na tela, o painel saía centrado e a
- * entrada encostada na esquerda. A causa é ESPECIFICIDADE: `<Stack
- * spacing={1.5}>` sem `useFlexGap` emite, para os PRÓPRIOS FILHOS,
+ * ─── ONDA-LARGURA-LIVRE: QUEM DITA A LARGURA DO TEXTO É A DIVISÓRIA ────────
+ * Até aqui a coluna era `maxWidth: CHAT_COLUMN_MAX_PX` (960) + `mx: 'auto'`,
+ * e o balão tinha um SEGUNDO teto, `min(78%, 80ch)`. Em janela larga os dois
+ * venciam o sidebar: arrastar a divisória só mudava a MARGEM vazia dos lados
+ * — o texto ficava preso em 960 centralizado. O dono pediu o contrário: a
+ * divisória É o controle da largura do texto. Então:
+ *   - `CHAT_COLUMN_MAX_PX` MORREU (era exatamente a limitação) e o eixo virou
+ *     `{ width: '100%', minWidth: 0 }`: a coluna PREENCHE o main, sem
+ *     `maxWidth` e sem `mx: 'auto'` — não há o que centralizar quando a coluna
+ *     é do tamanho do lugar onde mora;
+ *   - a cadeia inteira ficou RELATIVA: main = contêiner do split − sidebar −
+ *     divisória (App.tsx, com os pisos de SHELL_SPLIT_CONSTRAINTS em
+ *     src/lib/splitRatio.ts); coluna = main − os paddings; balão = 78% da
+ *     coluna (ChatBubble — só o 78%, o `ch` saiu). Não sobrou número absoluto
+ *     entre a divisória e a linha de texto, então a largura do texto
+ *     acompanha a divisória em QUALQUER tamanho de janela;
+ *   - `minWidth: 0` é o piso DECLARADO: a coluna nunca reivindica largura pelo
+ *     CONTEÚDO (uma linha longa de código, uma URL sem quebra) — quem manda é
+ *     o main, e o main é o que a divisória deixa. Hoje o main é flex COLUMN e
+ *     a largura é o eixo cruzado, onde o `min-width: auto` já resolve a 0; o
+ *     `minWidth: 0` torna isso contrato desta coluna em vez de depender da
+ *     direção do flex do shell;
+ *   - SC 1.4.8 (linha de até 80 caracteres) é critério de MECANISMO: pede que
+ *     o aluno CONSIGA estreitar a linha, não um teto fixo imposto a todos. O
+ *     mecanismo agora é a própria divisória (e a janela) — que é o que o dono
+ *     escolheu. Os tokens `TYPE.measureCh`/`measureMaxCh` seguem no design
+ *     system; só deixaram de ser aplicados como teto aqui e no balão.
+ *
+ * ─── O QUE FOI MANTIDO (ONDA11), e continua valendo sem o teto ─────────────
+ * O defeito da ONDA11 NÃO era de largura: o painel de mensagens e a linha de
+ * entrada declaravam a MESMA largura e o MESMO `mx: 'auto'`, e mesmo assim o
+ * painel saía centrado e a entrada encostada na esquerda. A causa é
+ * ESPECIFICIDADE: `<Stack spacing={1.5}>` sem `useFlexGap` emite, para os
+ * PRÓPRIOS FILHOS,
  *
  *     .css-STACK > :not(style):not(style) { margin: 0; }
  *
  * — especificidade (0,1,2), contra os (0,1,0) da classe que o `sx` do filho
- * gera. A regra do PAI vence e apaga o `margin-left/right: auto` do filho: o
- * `mx: 'auto'` da entrada virava decoração morta. O painel de mensagens
- * escapava por acidente — ele mora dentro de um <Box> comum, não é filho
- * direto do Stack. Os dois eixos, o de LEITURA e o de ESCRITA, deixavam de
- * bater. O CSS que prova isso está LIDO (não deduzido) em
- * tests/lessonChatLayout.test.ts, bloco 1.
- *
- * ─── O CONSERTO, que não depende de sorte de especificidade ────────────────
- * Nenhuma das duas decisões é "aumentar a especificidade do filho":
+ * gera. A regra do PAI vence e apaga o `margin-left/right: auto` do filho: os
+ * eixos de LEITURA e de ESCRITA deixavam de bater. O CSS que prova isso está
+ * LIDO (não deduzido) em tests/lessonChatLayout.test.ts, bloco 1. O conserto,
+ * que não depende de sorte de especificidade, fica inteiro:
  *   1. o EIXO é do CONTAINER RAIZ (`LESSON_COLUMN_SX`), aplicado uma única
  *      vez. Nenhum filho declara largura nem centralização própria — todos só
- *      PREENCHEM. Sem margem automática em filho, não há o que anular;
- *   2. o Stack da coluna ganha `useFlexGap`: o espaçamento vira `gap` (do
- *      CONTAINER) em vez de margem (do FILHO). A armadilha deixa de existir
+ *      PREENCHEM. Cabeçalho, progresso, painel, avisos, ação e entrada dividem
+ *      ESTA coluna: leitura e escrita são, literalmente, o mesmo container;
+ *   2. o Stack da coluna mantém `useFlexGap`: o espaçamento é `gap` (do
+ *      CONTAINER) em vez de margem (do FILHO). A armadilha segue fora de campo
  *      até para um filho FUTURO que volte a querer eixo próprio.
- *
- * ─── O NÚMERO (960), medido e não escolhido no olho ────────────────────────
- * O balão do chat é capado em `min(78%, TYPE.measureMaxCh ch)` (ChatBubble) e
- * o corpo da prosa é 18px. A 960 o ramo dos 78% dá ~730px de balão — ~74
- * caracteres na fonte de corpo, DENTRO da janela entre a medida-alvo do design
- * system (TYPE.measureCh = 72) e o teto rígido (measureMaxCh = 80, SC 1.4.8).
- * O 1000 anterior prendia a linha no TETO, e a coluna externa de
- * `min(1920px, 100%)` ainda punha cabeçalho, avisos e entrada num eixo
- * DIFERENTE do painel. Agora cabeçalho, progresso, painel, avisos, ação e
- * entrada dividem ESTA coluna — é a leitura da referência de chat que o dono
- * mandou: coluna única, com a entrada na MESMA largura do conteúdo.
+ * Sem teto não há mais centralização — mas "um eixo, na raiz" continua sendo
+ * o que impede um filho de voltar a declarar o seu.
  */
-export const CHAT_COLUMN_MAX_PX = 960;
-
-/** O eixo — a ÚNICA declaração de largura/centralização da aula ativa. */
-const LESSON_COLUMN_SX = { maxWidth: CHAT_COLUMN_MAX_PX, width: '100%', mx: 'auto' } as const;
+export const LESSON_COLUMN_SX = { width: '100%', minWidth: 0 } as const;
 
 /**
  * ONDA12 (o dono, comparando a tela com a referência de chat que ele mandou):
@@ -2815,12 +2835,15 @@ export function LessonView(props: ViewProps): ReactElement {
   // ONDA11 (a coluna, ver o cabeçalho de LESSON_COLUMN_SX): a aula ativa
   // inteira — cabeçalho, progresso, painel de mensagens, avisos, ação e
   // entrada — vive numa coluna SÓ. Este Box é o ÚNICO lugar que declara
-  // largura e centralização; os filhos apenas preenchem. Antes eram dois
-  // eixos concorrentes (a view em min(1920px, 100%) e o painel capado em
-  // 1000 com `mx: 'auto'`), e o segundo eixo era APAGADO nos filhos diretos
-  // do Stack pela regra de espaçamento dele — o input encostava na esquerda.
-  // `useFlexGap` tira essa regra de campo: o espaçamento vira `gap` do
-  // container, e nenhuma margem de filho é reescrita.
+  // largura; os filhos apenas preenchem. Antes eram dois eixos concorrentes
+  // (a view em min(1920px, 100%) e o painel capado em 1000 com `mx: 'auto'`),
+  // e o segundo eixo era APAGADO nos filhos diretos do Stack pela regra de
+  // espaçamento dele — o input encostava na esquerda. `useFlexGap` tira essa
+  // regra de campo: o espaçamento vira `gap` do container, e nenhuma margem
+  // de filho é reescrita.
+  // ONDA-LARGURA-LIVRE: a largura declarada aqui é "preencher o main" — sem
+  // teto e sem centralização. A largura do texto da aula é ditada SÓ pela
+  // divisória do sidebar (main = contêiner − sidebar − divisória).
   return (
     <Box
       sx={{
@@ -2896,10 +2919,11 @@ export function LessonView(props: ViewProps): ReactElement {
         >
           {/* Painel das mensagens (rola junto com a região). ONDA11: ele NÃO
               declara mais eixo próprio — a coluna já é a do container raiz, e
-              o balão continua capado em min(78%, 80ch) pela ChatBubble. Era
-              justamente o eixo duplicado aqui que fazia painel e entrada
-              discordarem. ONDA1-UX: a lista de desafios não vive mais aqui
-              (popover no cabeçalho).
+              o balão ocupa no máximo 78% dela (ChatBubble; desde a
+              ONDA-LARGURA-LIVRE sem o teto de 80ch — a linha acompanha a
+              divisória do sidebar). Era justamente o eixo duplicado aqui que
+              fazia painel e entrada discordarem. ONDA1-UX: a lista de
+              desafios não vive mais aqui (popover no cabeçalho).
 
               ONDA12: ele também não é mais uma CAIXA — nível 0 (o fundo do
               app), sem raio e sem padding, com a conversa ancorada embaixo. A

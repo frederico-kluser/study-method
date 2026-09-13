@@ -576,11 +576,20 @@ describe('8 e 9. o chat: agrupamento ligado e larguras alinhadas', () => {
     );
   });
 
-  it('a coluna de leitura tem UM número, com nome', () => {
-    assert.match(VIEW_SRC, /export const CHAT_COLUMN_MAX_PX = \d+;/);
-    assert.ok(
-      VIEW.includes('maxWidth: CHAT_COLUMN_MAX_PX'),
-      'a coluna da aula usa a constante',
+  it('a coluna de leitura é UM eixo com nome — e SEM teto (ONDA-LARGURA-LIVRE)', () => {
+    // O dono: "o texto da aula, que está dentro de uma limitação de width, não
+    // deve ter mais essa limitação — o sidebar define o limite da área de texto
+    // simplesmente pelo seu tamanho". O número da coluna (`CHAT_COLUMN_MAX_PX`,
+    // 960) ERA a limitação: morreu. O eixo continua sendo UM objeto com nome,
+    // e agora ele PREENCHE o main em vez de capar e centralizar.
+    assert.doesNotMatch(VIEW, /CHAT_COLUMN_MAX_PX/, 'o teto da coluna não existe mais');
+    const eixo = /const LESSON_COLUMN_SX = (\{[^}]*\})/.exec(VIEW);
+    assert.ok(eixo, 'a coluna da aula é UM objeto com nome');
+    assert.match(eixo[1], /\bwidth: '100%'/, 'a coluna preenche o main');
+    assert.doesNotMatch(
+      eixo[1],
+      /maxWidth|\bmx\b/,
+      'sem teto e sem centralização: quem dita a largura do texto é a divisória do sidebar',
     );
   });
 
@@ -589,15 +598,25 @@ describe('8 e 9. o chat: agrupamento ligado e larguras alinhadas', () => {
     // na linha de entrada) e passou a ser do CONTAINER RAIZ — a cópia por
     // filho é justamente o que a regra de espaçamento do <Stack> apagava,
     // deixando a entrada encostada na esquerda com o painel centrado. Aqui só
-    // fica a guarda de que NINGUÉM redeclara o eixo; a prova completa (o CSS
-    // que o MUI emite, a barra de entrada renderizada) está em
-    // tests/lessonChatLayout.test.ts.
+    // fica a guarda de que NINGUÉM redeclara o eixo e de que log e entrada
+    // vivem DEBAIXO dele; a prova completa (o CSS que o MUI emite, a barra de
+    // entrada renderizada, a raiz recortada) está em
+    // tests/lessonChatLayout.test.ts. ONDA-LARGURA-LIVRE: o eixo perdeu o
+    // teto, não o dono — continua aplicado UMA vez, na raiz.
     assert.equal(
-      (VIEW.match(/maxWidth: CHAT_COLUMN_MAX_PX/g) ?? []).length,
+      (VIEW.match(/\.\.\.LESSON_COLUMN_SX/g) ?? []).length,
       1,
       'o eixo de escrita bate com o de leitura por serem O MESMO container',
     );
-    assert.ok(VIEW.includes('<LessonComposer'), 'a barra de entrada é o componente medido');
+    const eixoAt = VIEW.indexOf('...LESSON_COLUMN_SX');
+    const logAt = VIEW.indexOf('role="log"');
+    const entradaAt = VIEW.indexOf('<LessonComposer');
+    assert.ok(entradaAt !== -1, 'a barra de entrada é o componente medido');
+    assert.ok(
+      eixoAt < logAt && logAt < entradaAt,
+      'o eixo é aplicado ANTES (acima, na raiz) do log e da entrada — os dois são ' +
+        'descendentes do MESMO container, nenhum declara eixo próprio',
+    );
   });
 
   it('o painel do chat saiu do overlay alfa e entrou na rampa de superfícies', () => {

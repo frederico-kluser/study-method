@@ -48,6 +48,22 @@
  *      POSIÇÃO (primeiro filho da raiz do eixo) e cobra o `useFlexGap` NELE.
  *
  * ══════════════════════════════════════════════════════════════════════════
+ * ONDA-LARGURA-LIVRE — O EIXO CONTINUA UM SÓ, MAS PERDEU O TETO
+ * ══════════════════════════════════════════════════════════════════════════
+ * O dono, sobre a aula: "o texto da aula, que está dentro de uma limitação de
+ * width, não deve ter mais essa limitação — o sidebar define o limite da área
+ * de texto simplesmente pelo seu tamanho". O eixo era `maxWidth:
+ * CHAT_COLUMN_MAX_PX` (960) + `mx: 'auto'`: em janela larga, arrastar a
+ * divisória do sidebar só mexia na margem vazia. O contrato do bloco 2 mudou
+ * de "a coluna tem um teto com nome e motivo" para o INVERSO, sem afrouxar o
+ * resto: o eixo ainda é UM objeto com nome, aplicado UMA vez na raiz; ele
+ * agora PREENCHE (`width: '100%'`, `minWidth: 0`) e é proibido de ter
+ * `maxWidth` ou `mx`; a constante do teto não pode existir nem no código nem
+ * no módulo; e nenhum filho da coluna declara teto próprio. O teto do BALÃO
+ * (`min(78%, 80ch)` → `78%`) é medido no CSS renderizado em
+ * tests/chatBubbleWidth.test.ts.
+ *
+ * ══════════════════════════════════════════════════════════════════════════
  * COMO SE PROVA ISSO SEM jsdom
  * ══════════════════════════════════════════════════════════════════════════
  * Esta base não tem jsdom (a técnica dela é `react-dom/server` — precedentes
@@ -67,9 +83,10 @@
  *     raiz, o `useFlexGap` no PRIMEIRO FILHO dela, e a presença do painel e
  *     do composer DENTRO desse recorte.
  *     O QUE ESTE BLOCO AINDA NÃO COBRE: ele não vê pixel. Se alguém trocar
- *     `LESSON_COLUMN_SX` por um objeto que não centraliza (mantendo o nome),
- *     o texto continua passando — por isso o bloco 1 mede a física e o bloco
- *     2 também exige a FORMA do objeto (maxWidth + mx: 'auto').
+ *     o CONTEÚDO de `LESSON_COLUMN_SX` (mantendo o nome), o espalhamento na
+ *     raiz continua passando — por isso o bloco 2 também exige a FORMA do
+ *     objeto (desde a ONDA-LARGURA-LIVRE: `width: '100%'` + `minWidth: 0`,
+ *     sem `maxWidth` e sem `mx`) e RENDERIZA o objeto para ler o CSS emitido.
  *
  *   BLOCO 3 — A BARRA DE ENTRADA, RENDERIZADA. `LessonComposer` é um
  *     componente de APRESENTAÇÃO exportado pela própria view (a view o usa;
@@ -281,6 +298,42 @@ function activeLessonTree(): { rootTag: string; tree: string; firstChildTag: str
   return { rootTag, tree, firstChildTag };
 }
 
+/**
+ * O Stack DA COLUNA inteiro — da tag de abertura (o primeiro filho da raiz)
+ * ao `</Stack>` que o fecha, recortado contando aberturas e fechamentos.
+ *
+ * É aqui dentro que moram cabeçalho, painel de mensagens, avisos, ação e
+ * entrada, e é aqui que nenhum teto de largura pode reaparecer. O diálogo de
+ * Fontes e o popover de Desafios ficam FORA de propósito: são IRMÃOS do Stack
+ * (superfícies flutuantes, em portal) com medida própria — não são a coluna de
+ * leitura. O recorte se prova certo por dentro (contém o log e o composer) e
+ * por fora (não engoliu nenhuma das duas superfícies flutuantes).
+ */
+function columnStack(): string {
+  const { tree, rootTag } = activeLessonTree();
+  const start = tree.indexOf('<Stack', rootTag.length);
+  assert.notEqual(start, -1, 'a coluna é um <Stack> dentro da raiz');
+  const token = /<Stack\b|<\/Stack>/g;
+  token.lastIndex = start;
+  let depth = 0;
+  for (let m = token.exec(tree); m !== null; m = token.exec(tree)) {
+    depth += m[0] === '</Stack>' ? -1 : 1;
+    if (depth === 0) {
+      const column = tree.slice(start, m.index + m[0].length);
+      assert.ok(
+        column.includes('role="log"') && column.includes('<LessonComposer'),
+        'o recorte da coluna precisa conter o painel de mensagens E a barra de entrada',
+      );
+      assert.ok(
+        !column.includes('<Dialog') && !column.includes('<Popover'),
+        'o recorte fechou no `</Stack>` errado: engoliu o diálogo/popover, que são irmãos',
+      );
+      return column;
+    }
+  }
+  assert.fail('o Stack da coluna não fecha no recorte da aula ativa');
+}
+
 describe('2. a coluna da aula tem UM eixo só — cobrado no CONTAINER, não no dicionário', () => {
   /**
    * Centralização permitida FORA do eixo nomeado: os estados de saída
@@ -301,9 +354,21 @@ describe('2. a coluna da aula tem UM eixo só — cobrado no CONTAINER, não no 
     );
     assert.ok(
       rootTag.includes('...LESSON_COLUMN_SX'),
-      'o eixo (largura máxima + `mx: auto`) precisa estar ESPALHADO na raiz. Sem ele a ' +
-        'aula perde de uma vez a coluna e a centralização — foi essa a queixa do dono, e ' +
-        'era o mutante que a versão anterior deste teste não pegava.',
+      'o eixo (a coluna PREENCHENDO o main) precisa estar ESPALHADO na raiz. Sem ele a ' +
+        'coluna perde o seu ÚNICO dono de largura — e é nesse vácuo que um filho volta a ' +
+        'declarar eixo próprio, o defeito da onda 11 que a versão anterior deste teste ' +
+        'não pegava.',
+    );
+  });
+
+  it('ONDA-LARGURA-LIVRE: a raiz não ganha teto nem centralização POR FORA do eixo', () => {
+    const { rootTag } = activeLessonTree();
+    assert.doesNotMatch(
+      rootTag,
+      /\bmaxWidth\b|\bmaxInlineSize\b|\bmx:|\bm: 'auto'|\bmarginInline\b|\bmarginLeft\b|\bmarginRight\b/,
+      'a raiz PREENCHE o main. Um `maxWidth` (ou `mx`) ao lado do `...LESSON_COLUMN_SX` ' +
+        'devolveria o teto que o dono mandou tirar: a divisória do sidebar voltaria a ' +
+        'mexer só na margem vazia, e não na linha de texto da aula.',
     );
   });
 
@@ -324,15 +389,77 @@ describe('2. a coluna da aula tem UM eixo só — cobrado no CONTAINER, não no 
       'dois lugares aplicando o eixo = dois eixos concorrentes de novo',
     );
     assert.equal(
-      (VIEW.match(/maxWidth: CHAT_COLUMN_MAX_PX/g) ?? []).length,
+      (VIEW.match(/const LESSON_COLUMN_SX = /g) ?? []).length,
       1,
-      'a largura da coluna é declarada UMA vez (no objeto do eixo). Painel de mensagens, ' +
-        'avisos e barra de entrada apenas PREENCHEM o que o container definiu.',
+      'o eixo é UM objeto com nome, declarado UMA vez. Painel de mensagens, avisos e ' +
+        'barra de entrada apenas PREENCHEM o que o container definiu.',
+    );
+  });
+
+  it('ONDA-LARGURA-LIVRE: o eixo PREENCHE — width 100% + minWidth 0, sem maxWidth e sem mx', () => {
+    const decl = /const LESSON_COLUMN_SX = (\{[^}]*\})/.exec(VIEW);
+    assert.ok(decl, 'o eixo é UM objeto literal com nome');
+    const body = decl[1];
+    assert.match(
+      body,
+      /\bwidth: '100%'/,
+      'a coluna preenche o main — e quanto é o main quem decide é a divisória do sidebar',
     );
     assert.match(
+      body,
+      /\bminWidth: 0\b/,
+      'a coluna nunca reivindica largura pelo CONTEÚDO (linha longa de código, URL sem ' +
+        'quebra): quem manda é o main',
+    );
+    assert.doesNotMatch(
+      body,
+      /maxWidth|maxInlineSize/,
+      'SEM teto: o `maxWidth: CHAT_COLUMN_MAX_PX` (960) era exatamente a limitação que o ' +
+        'dono mandou tirar',
+    );
+    assert.doesNotMatch(
+      body,
+      /\bmx\b|\bm:|margin/,
+      'SEM centralização: uma coluna do tamanho do main não tem o que centralizar',
+    );
+  });
+
+  it('ONDA-LARGURA-LIVRE: o eixo RENDERIZADO emite só width:100% e min-width:0', async () => {
+    // A guarda acima lê o FONTE; esta lê o CSS que o emotion emite para o
+    // objeto REAL exportado pela view — um `maxWidth` que entrasse por spread,
+    // por breakpoint ou por qualquer caminho que o regex não enxergue apareceria
+    // aqui como `max-width`.
+    const mod = (await import(VIEW_MODULE)) as { LESSON_COLUMN_SX: SxProps<Theme> };
+    const html = renderToStaticMarkup(
+      createElement(
+        ThemeProvider,
+        { theme },
+        createElement(Box, { sx: mod.LESSON_COLUMN_SX, id: 'coluna' }),
+      ),
+    );
+    const css = cssOfClass(html, classOfElementWith(html, 'id="coluna"'));
+    assert.match(css, /(^|;)width:100%/, 'a coluna preenche o main');
+    assert.match(css, /(^|;)min-width:0/, 'e pode encolher com ele até o piso da divisória');
+    assert.doesNotMatch(
+      css,
+      /max-width|max-inline-size/,
+      `teto nenhum na coluna da aula (CSS emitido: ${css})`,
+    );
+    assert.doesNotMatch(css, /margin/, `centralização nenhuma (CSS emitido: ${css})`);
+  });
+
+  it('ONDA-LARGURA-LIVRE: CHAT_COLUMN_MAX_PX não existe mais — nem no código, nem no módulo', async () => {
+    assert.doesNotMatch(
       VIEW,
-      /const LESSON_COLUMN_SX = \{[^}]*maxWidth: CHAT_COLUMN_MAX_PX[^}]*mx: 'auto'[^}]*\}/,
-      'o eixo é UM objeto com nome: maxWidth da coluna + centralização',
+      /CHAT_COLUMN_MAX_PX/,
+      'o teto da coluna morreu; uma constante com o nome dele no código é o convite para ' +
+        'ele voltar a ser aplicado',
+    );
+    const mod = (await import(VIEW_MODULE)) as Record<string, unknown>;
+    assert.equal(
+      'CHAT_COLUMN_MAX_PX' in mod,
+      false,
+      'e o módulo não o exporta mais (nenhum outro arquivo dependia dele)',
     );
   });
 
@@ -340,17 +467,28 @@ describe('2. a coluna da aula tem UM eixo só — cobrado no CONTAINER, não no 
     const autoLines = VIEW.split('\n').filter((l) =>
       /mx:\s*'auto'|marginLeft:\s*'auto'|marginInline:\s*'auto'/.test(l),
     );
-    const soltas = autoLines
-      .map((l) => l.trim())
-      .filter((l) => !isEarlyExitState(l) && !l.includes('LESSON_COLUMN_SX'));
+    const soltas = autoLines.map((l) => l.trim()).filter((l) => !isEarlyExitState(l));
     assert.deepEqual(
       soltas,
       [],
-      'toda margem automática da aula ATIVA precisa vir de LESSON_COLUMN_SX (o eixo, ' +
-        'aplicado no container raiz). Margem automática num filho de <Stack spacing> é ' +
-        'apagada pela regra do Stack (bloco 1 mede isso): a linha de entrada volta para a ' +
-        'esquerda enquanto o painel de mensagens fica centrado — o eixo de leitura e o de ' +
-        'escrita param de bater.',
+      'a aula ATIVA não tem margem automática nenhuma: desde a ONDA-LARGURA-LIVRE a coluna ' +
+        'PREENCHE o main e não há o que centralizar. E margem automática num filho de ' +
+        '<Stack spacing> sem useFlexGap é apagada pela regra do Stack (bloco 1 mede isso): ' +
+        'a linha de entrada volta para a esquerda enquanto o painel de mensagens fica ' +
+        'centrado — o eixo de leitura e o de escrita param de bater.',
+    );
+  });
+
+  it('ONDA-LARGURA-LIVRE: nenhum filho da coluna declara teto de largura', () => {
+    // O teto não pode voltar por BAIXO: um `maxWidth` num filho da coluna (no
+    // painel, no rolador, num aviso) prenderia a linha de texto de novo e a
+    // divisória do sidebar voltaria a não mandar nela. O teto do BALÃO é do
+    // componente ChatBubble e é medido no CSS dele, em
+    // tests/chatBubbleWidth.test.ts.
+    assert.doesNotMatch(
+      columnStack(),
+      /maxWidth|maxInlineSize|max-width/,
+      'dentro da coluna da aula ativa ninguém capa a largura — só o main (a divisória) manda',
     );
   });
 
@@ -363,15 +501,6 @@ describe('2. a coluna da aula tem UM eixo só — cobrado no CONTAINER, não no 
         'sem ele a regra `> :not(style):not(style) { margin: 0 }` volta a valer para ' +
         'painel, avisos, ação e entrada. Perguntar se ALGUM <Stack> do arquivo tem ' +
         'useFlexGap (a versão anterior deste teste) não protege nada: o arquivo tem outros.',
-    );
-  });
-
-  it('a coluna de leitura é um número com nome e com motivo medido', () => {
-    assert.match(VIEW_SRC, /export const CHAT_COLUMN_MAX_PX = \d+;/);
-    assert.ok(
-      VIEW_SRC.includes('measureCh'),
-      'o valor precisa sair da MEDIDA de leitura do design system (TYPE.measureCh), ' +
-        'não do olho de quem digitou',
     );
   });
 });

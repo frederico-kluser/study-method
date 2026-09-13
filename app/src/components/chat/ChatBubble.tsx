@@ -51,6 +51,19 @@
  * aprovação. Sob redução de movimento o balão não translada nada: o estado
  * continua legível pela cor de fundo/borda do tom, que não depende de animação.
  *
+ * ─── ONDA-LARGURA-LIVRE: O TETO DE 80ch DO BALÃO MORREU ────────────────────
+ * O dono, sobre a aula: "o texto da aula, que está dentro de uma limitação de
+ * width, não deve ter mais essa limitação — o sidebar define o limite da área
+ * de texto simplesmente pelo seu tamanho". O balão era `min(78%, 80ch)`: em
+ * janela larga o `ch` vencia, e arrastar a divisória do sidebar não mudava a
+ * linha de texto — a teoria da aula, que mora AQUI, ficava presa em 80ch. Agora
+ * é `78%` puro, RELATIVO à coluna da aula, que por sua vez preenche o main
+ * (LessonView, `LESSON_COLUMN_SX`). Os 22% de folga ficam: são SEMÂNTICA de
+ * chat, não medida — é a folga que põe o tutor à esquerda e o aluno à direita.
+ * Nada abaixo do balão (TypewriterText → SegmentedMarkdown → MarkdownView /
+ * CodeBlock) declara teto absoluto: tudo ali é `max-width: 100%` do próprio
+ * contêiner (medido em tests/chatBubbleWidth.test.ts, no CSS que o SSR emite).
+ *
  * ════════════════════════════════════════════════════════════════════════════
  * O QUE FOI PRESERVADO DAS ONDAS ANTERIORES (não regride)
  * ════════════════════════════════════════════════════════════════════════════
@@ -65,8 +78,9 @@
  *  - AGRUPAMENTO de mensagens consecutivas (`groupsWithPrevious`): o cabeçalho
  *    só reaparece quando diria algo novo — agora ele é o cabeçalho INTEIRO
  *    (avatar + nome + hora), o que torna o agrupamento ainda mais visível;
- *  - MEDIDA da coluna: teto de 80ch (SC 1.4.8, `TYPE.measureMaxCh`) somado ao
- *    78% de sempre;
+ *  - a FOLGA de lado: o balão ocupa no máximo 78% da coluna, como sempre (o
+ *    teto de 80ch — `TYPE.measureMaxCh` — que se somava a ele saiu na
+ *    ONDA-LARGURA-LIVRE, acima);
  *  - entrada da bolha (fadeInUp) continua no wrapper da LessonView.
  */
 import { useTranslation } from 'react-i18next';
@@ -78,7 +92,6 @@ import type { ReactElement } from 'react';
 
 import { formatChatTime, type TutorChatMessage } from '../../lib/trackLessonState';
 import { chatBubbleTone, groupsWithPrevious, isUserTone } from '../../lib/chatBubbleStyle';
-import { TYPE } from '../../lib/designTokens';
 import { springs } from '../../lib/animationTokens';
 import { TypewriterText } from './TypewriterText';
 import { SegmentedMarkdown } from './SegmentedMarkdown';
@@ -160,10 +173,14 @@ export function ChatBubble({
     >
       <Box
         sx={{
-          // §4.2: a medida da coluna de leitura tem teto RÍGIDO de 80ch
-          // (SC 1.4.8). O 78% de sempre continua mandando em janela normal;
-          // o `ch` só entra em janela larga, onde a linha esticaria demais.
-          maxWidth: `min(78%, ${TYPE.measureMaxCh}ch)`,
+          // ONDA-LARGURA-LIVRE: 78% da COLUNA e nada mais. O teto de 80ch
+          // (`TYPE.measureMaxCh`, que entrava aqui num `min()`) morreu: em
+          // janela larga ele vencia e a divisória do sidebar parava de mudar
+          // a linha de texto — o contrário do que o dono pediu. Os 78% ficam
+          // porque são semântica de chat (a folga distingue os lados), e por
+          // serem RELATIVOS escalam com o sidebar. SC 1.4.8 pede um MECANISMO
+          // para estreitar a linha: é a própria divisória.
+          maxWidth: '78%',
           display: 'flex',
           flexDirection: 'column',
           alignItems: isUser ? 'flex-end' : 'flex-start',
