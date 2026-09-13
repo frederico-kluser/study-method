@@ -8,8 +8,12 @@
  * Mesma técnica da casa (node:test SEM jsdom; SSR com react-dom/server +
  * guardas de FONTE por regex no .tsx). Sem DOM não há commit, e sem commit o
  * callback ref do slot nunca roda: o teletransporte do portal para dentro da
- * coluna (e o esvaziamento ao trocar de aba) é coberto pelos specs e2e quando
- * a LessonView publicar nele (onda 2). O que dá para provar AQUI é:
+ * coluna (e o esvaziamento ao trocar de aba) é coberto pelos specs e2e da
+ * aula (a LessonView publica o cabeçalho dela no slot):
+ * tests/e2e/e2e-lesson.spec.ts (o h1 no slot e fora do `main`, o slot vazio
+ * fora da aula, o h1 trocando com a aula) e
+ * tests/e2e/e2e-sidebar-aula-spacing.spec.ts (o cabeçalho no slot com a
+ * coluna no piso de 180px). O que dá para provar AQUI é:
  *
  *   BLOCO 1 — O PORTAL É SSR-SAFE. `ShellSidebarPortal` sem slot devolve ''
  *     e NÃO lança (o renderizador de servidor não suporta portais — chamar

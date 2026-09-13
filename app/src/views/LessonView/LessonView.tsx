@@ -1255,12 +1255,16 @@ export function LessonView(props: ViewProps): ReactElement {
   const [challengesAnchorEl, setChallengesAnchorEl] = useState<HTMLButtonElement | null>(null);
   // ONDA14: DE ONDE o popover foi aberto — cada disparador pede uma direção de
   // crescimento. O botão do CABEÇALHO vive no alto da coluna ESQUERDA do shell
-  // (o sidebar, desde a ONDA-AULA-NO-SIDEBAR): a lista cresce para a DIREITA,
-  // sobre o main — para a esquerda, como quando o botão morava no canto
-  // direito da coluna da aula, ela cairia sobre o rail e o próprio sidebar. O
-  // botão da LINHA DE AÇÃO vive no rodapé, e ali a lista crescendo para baixo
-  // nasceria fora da janela (o MUI a grudaria de volta POR CIMA do botão que a
-  // abriu): ela abre para CIMA. Mesma lista, mesmo destino — só a direção muda.
+  // (o sidebar, desde a ONDA-AULA-NO-SIDEBAR): a lista cresce para a DIREITA e
+  // para BAIXO a partir do canto superior direito do botão e cobre só o que
+  // houver à direita dele — o resto do sidebar e, conforme a largura do
+  // sidebar, a divisória e o main —, nunca o rail nem fora da janela (a medida
+  // está no comentário do Popover, mais abaixo). Para a esquerda, como quando o
+  // botão morava no canto direito da coluna da aula, ela cairia sobre o rail e
+  // o próprio sidebar. O botão da LINHA DE AÇÃO vive no rodapé, e ali a lista
+  // crescendo para baixo nasceria fora da janela (o MUI a grudaria de volta POR
+  // CIMA do botão que a abriu): ela abre para CIMA. Mesma lista, mesmo
+  // destino — só a direção muda.
   const [challengesFrom, setChallengesFrom] = useState<'cabecalho' | 'acao'>('cabecalho');
   const challengesOpen = Boolean(challengesAnchorEl);
   const [doneMarked, setDoneMarked] = useState(false);
@@ -3338,9 +3342,16 @@ export function LessonView(props: ViewProps): ReactElement {
           jogaria a lista sobre o rail (104px) e o próprio sidebar, grudada na
           borda da janela. Agora ela se prende pelo canto superior ESQUERDO ao
           canto superior DIREITO do botão (âncora top/right + transform
-          top/left): cresce para a direita e para baixo, sobre o main, colada
-          em quem a chamou. O ramo 'acao' (o CTA da linha de ação, no rodapé)
-          não mudou: abre para CIMA, centrado no botão. */}
+          top/left): cresce para a direita e para baixo, colada em quem a
+          chamou, e cobre só o que houver à direita do botão — o resto do
+          sidebar e, conforme a largura do sidebar, a divisória e o main —,
+          nunca o rail nem fora da janela. Medido no app a 1280×800: botão em
+          x 116..239, papel em x 239..568,84; com o sidebar no máximo (50%), o
+          papel fica inteiro sobre o próprio sidebar. A direção é travada por
+          guarda de FONTE (tests/lessonSidebarWiring.test.ts, bloco 4) —
+          nenhum e2e mede a posição do popover (eles conferem o título, o
+          aria-expanded e o Escape). O ramo 'acao' (o CTA da linha de ação, no
+          rodapé) não mudou: abre para CIMA, centrado no botão. */}
       <Popover
         open={challengesOpen}
         anchorEl={challengesAnchorEl}

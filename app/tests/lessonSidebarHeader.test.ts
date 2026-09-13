@@ -13,9 +13,13 @@
  * guarda de fonte em `tests/lessonSidebarWiring.test.ts`, e o que só a GUI
  * real mostra — o h1 no slot e fora do `main`, o popover aberto pelo botão
  * do sidebar, o slot trocando com a aula — é medido no Electron por
- * `tests/e2e/e2e-lesson.spec.ts`. A quebra real de linha a 180px não tem
- * medição de layout: aqui se prova o CSS de que ela depende (bloco 2). O que
- * dá para provar AQUI, com o renderizador real e o tema real, é:
+ * `tests/e2e/e2e-lesson.spec.ts`. A quebra real de linha no piso de 180px é
+ * medida no Electron por `tests/e2e/e2e-sidebar-aula-spacing.spec.ts` (sob os
+ * quatro overrides do SC 1.4.12, em pt-BR e en, na altura inicial e na mínima
+ * da janela, com o chip de pré-requisito quebrando: nada trunca, nada escapa
+ * do sidebar, nada se sobrepõe); aqui se prova o CSS de que ela depende
+ * (bloco 2). O que dá para provar AQUI, com o renderizador real e o tema
+ * real, é:
  *
  *   BLOCO 1 — ESTRUTURA E LANDMARKS. A raiz é `<section aria-labelledby>`
  *     apontando para o id do h1 — e NENHUM `<header>` no HTML: o slot mora

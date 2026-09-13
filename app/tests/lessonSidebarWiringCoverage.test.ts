@@ -23,7 +23,9 @@
  *     no disco; NENHUM arquivo de `src/` cita `CollapsibleLessonHeader`;
  *   BLOCO 4 — o Popover de Desafios ancorado em `challengesAnchorEl`; o ramo
  *     'cabecalho' nasce em `{top,right}` e se prende por `{top,left}` (cresce
- *     para a direita, sobre o main); o ramo 'acao' continua `{top,center}` /
+ *     para a direita e para baixo a partir do canto superior direito do botão,
+ *     sobre o resto do sidebar e, conforme a largura dele, a divisória e o
+ *     main — nunca sobre o rail); o ramo 'acao' continua `{top,center}` /
  *     `{bottom,center}`.
  *
  * Confirmado ADICIONALMENTE por este agente contra o HISTÓRICO real (não só o

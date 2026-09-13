@@ -45,13 +45,24 @@
  *     recursiva em runtime, não uma lista fixa).
  *
  *   BLOCO 4 — O POPOVER. Aberto pelo botão do CABEÇALHO (agora na coluna
- *     ESQUERDA do shell), ele cresce para a DIREITA, sobre o main — a origem
- *     antiga o jogaria sobre o rail e o sidebar. O ramo da linha de ação ('acao')
- *     não mudou.
+ *     ESQUERDA do shell), ele cresce para a DIREITA e para BAIXO a partir do
+ *     canto superior direito do botão: cobre o que houver à direita dele — o
+ *     resto do sidebar e, conforme a largura do sidebar, a divisória e o main
+ *     —, nunca o rail nem fora da janela (medido no app, fora da suíte: a
+ *     1280×800, botão em x 116..239 e papel em x 239..568,84; com o sidebar no
+ *     máximo de 50%, o papel fica inteiro sobre o sidebar). A origem antiga o
+ *     jogaria sobre o rail e o sidebar. O ramo da linha de ação ('acao') não
+ *     mudou. A DIREÇÃO é travada AQUI, por guarda de fonte: nenhum e2e mede a
+ *     posição do popover.
  *
- * O que só a GUI real prova — o h1 dentro do sidebar e fora do `main`, o
- * conteúdo trocando com a aula, o slot esvaziando fora dela, o popover visível
- * sobre o main — é medido no Electron (tests/e2e/, specs da aula).
+ * O que só a GUI real prova é medido no Electron. tests/e2e/e2e-lesson.spec.ts:
+ * o h1 dentro do slot do sidebar e fora do `main`, o popover aberto pelo botão
+ * do sidebar (título e aria-expanded), o slot esvaziando fora da aula e o h1
+ * trocando com ela. tests/e2e/e2e-sidebar-aula-spacing.spec.ts: o cabeçalho no
+ * piso de 180px do sidebar sob os quatro overrides do SC 1.4.12, em pt-BR e
+ * en, na altura inicial e na mínima da janela — nada truncado, nada fora do
+ * sidebar, nada sobreposto, e cada botão clicável (o popover abre e fecha com
+ * Escape).
  *
  * Reprodução: `bash tools/t.sh tests/lessonSidebarWiring.test.ts`
  */
@@ -456,9 +467,10 @@ describe('4. o popover de Desafios cresce para o lado de quem o abriu', () => {
     assert.deepEqual(
       transform.cabecalho,
       { vertical: 'top', horizontal: 'left' },
-      'a lista se prende pelo canto superior ESQUERDO — cresce para a direita, sobre o main. ' +
-        'A origem antiga (âncora bottom/right + transform top/right) crescia para a ESQUERDA: ' +
-        'com o botão no sidebar, a lista cairia sobre o rail e o próprio sidebar',
+      'a lista se prende pelo canto superior ESQUERDO — cresce para a direita e para baixo, sobre ' +
+        'o que houver à direita do botão (o resto do sidebar e, conforme a largura dele, a divisória ' +
+        'e o main), nunca sobre o rail. A origem antiga (âncora bottom/right + transform top/right) ' +
+        'crescia para a ESQUERDA: com o botão no sidebar, a lista cairia sobre o rail e o próprio sidebar',
     );
   });
 

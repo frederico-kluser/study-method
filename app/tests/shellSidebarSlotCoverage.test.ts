@@ -61,7 +61,11 @@
  * O que este arquivo NÃO prova (do mesmo jeito que os irmãos): o
  * teletransporte real do portal para dentro da coluna montada no DOM, e o
  * esvaziamento do slot ao trocar de aba — isso é dos specs e2e Playwright
- * quando a LessonView publicar no slot (onda 2). App.tsx em si não é
+ * da aula (a LessonView publica o cabeçalho dela no slot):
+ * tests/e2e/e2e-lesson.spec.ts (o h1 da aula no slot e fora do `main`, o slot
+ * vazio na aba Desafio, o h1 trocando com a aula) e
+ * tests/e2e/e2e-sidebar-aula-spacing.spec.ts (o cabeçalho no slot com a
+ * coluna no piso de 180px). App.tsx em si não é
  * renderizado aqui (puxa IPC/Electron via useStartup/AppGate) — só a fonte é
  * trancada por regex, o mesmo caminho que os três irmãos já usam para ele.
  *

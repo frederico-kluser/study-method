@@ -66,7 +66,13 @@
  *
  * O que este arquivo NÃO prova (do mesmo jeito que o irmão): clique real
  * (sem jsdom não há evento de DOM), popover ancorado, layout real a 180px. Essa
- * fatia é dos specs e2e Playwright quando a LessonView publicar o componente.
+ * fatia é dos specs e2e Playwright, que abrem a aula real (a LessonView
+ * publica o componente no slot do sidebar): tests/e2e/e2e-lesson.spec.ts (o h1
+ * no slot, o clique em Desafios abrindo o popover, a troca de aula) e
+ * tests/e2e/e2e-sidebar-aula-spacing.spec.ts (o piso de 180px sob os
+ * overrides do SC 1.4.12, em pt-BR e en). A POSIÇÃO do popover nenhum e2e
+ * mede: a direção dele é guarda de fonte em tests/lessonSidebarWiring.test.ts
+ * (bloco 4).
  *
  * Reprodução: `bash tools/t.sh tests/lessonSidebarHeaderCoverage.test.ts`
  */

@@ -6,15 +6,16 @@
  * src/components/chat/ChatBubble.tsx).
  *
  * ══════════════════════════════════════════════════════════════════════════
- * ARQUIVO NOVO — rodando em PARALELO com a onda do sidebar-portal
+ * ESCOPO — só o contrato de LARGURA da LessonView
  * ══════════════════════════════════════════════════════════════════════════
- * Um agente IRMÃO edita, na MESMA LessonView.tsx, o cabeçalho da aula (troca
- * `<CollapsibleLessonHeader>`+`<Divider/>` por um portal no sidebar). Por
- * isso este arquivo NÃO afirma nada sobre cabeçalho, Divider, imports,
- * Popover, comentários ou números de linha da LessonView — só sobre os
- * QUATRO pontos do contrato de largura: a declaração de `LESSON_COLUMN_SX`, o
- * espalhamento dela na raiz do `return` da aula ativa, o primeiro filho
- * `<Stack useFlexGap`, e a AUSÊNCIA de tetos absolutos (`CHAT_COLUMN_MAX_PX`).
+ * O cabeçalho da aula, o portal que o publica no sidebar e o Popover de
+ * Desafios são cobertos por tests/lessonSidebarWiring.test.ts e
+ * tests/lessonSidebarWiringCoverage.test.ts. Por isso este arquivo NÃO afirma
+ * nada sobre cabeçalho, Divider, imports, Popover, comentários ou números de
+ * linha da LessonView — só sobre os QUATRO pontos do contrato de largura: a
+ * declaração de `LESSON_COLUMN_SX`, o espalhamento dela na raiz do `return` da
+ * aula ativa, o primeiro filho `<Stack useFlexGap`, e a AUSÊNCIA de tetos
+ * absolutos (`CHAT_COLUMN_MAX_PX`).
  *
  * Esses quatro pontos (e o balão a 78%) já estão MUITO bem cobertos por três
  * arquivos irmãos — este arquivo NÃO os duplica:
