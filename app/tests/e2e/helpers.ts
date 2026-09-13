@@ -116,10 +116,10 @@ export async function launchApp(opts: LaunchOpts = {}): Promise<{
 /**
  * RODADA 8 (trilhas): navega do app pronto até o DESAFIO da trilha fixture.
  * Fluxo: Home (cartão da trilha) → Trilha (aba) → aula → aba Aula (chat) →
- * "Começar aula" → botão "Desafios" (cabeçalho) → card no popover → aba
- * Desafio. Usado pelas specs que interagem com o editor/teste do desafio
- * (editor, code-theme, fonts, test-answer). Determinístico no modo E2E
- * (fixture em disco).
+ * "Começar aula" → botão "Desafios" (cabeçalho da aula, no sidebar do shell)
+ * → card no popover → aba Desafio. Usado pelas specs que interagem com o
+ * editor/teste do desafio (editor, code-theme, fonts, test-answer).
+ * Determinístico no modo E2E (fixture em disco).
  */
 export async function openTrackChallenge(page: Page): Promise<void> {
   await page.getByRole('banner').getByText('Study Method — Tutor', { exact: false }).first().waitFor();
@@ -132,7 +132,10 @@ export async function openTrackChallenge(page: Page): Promise<void> {
   await page.getByText('Tutor E2E:', { exact: false }).first().waitFor();
   // Card do desafio → aba Desafio (fluxo track). ONDA1-UX (UX do dono — nada
   // entre o chat e o input): a lista vive no POPOVER do botão "Desafios" do
-  // cabeçalho; abre o popover e clica no card.
+  // cabeçalho da aula — que desde a ONDA-AULA-NO-SIDEBAR mora no SIDEBAR do
+  // shell (publicado por portal pela LessonView), não mais no main. O seletor
+  // é global (papel + nome) e não depende de onde o botão é pintado: abre o
+  // popover e clica no card.
   await page.getByRole('button', { name: 'Desafios' }).click();
   await page.getByRole('button', { name: /O dobro do número/ }).first().click();
   // Enunciado do desafio carregado (pré-"Começar"). O título aparece no

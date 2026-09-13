@@ -10,9 +10,12 @@
  *   - a aula abre como CHAT: "Começar aula" → mensagem do tutor (stub
  *     determinístico) → "Próximo" → segunda seção → "Concluir aula";
  *   - as FONTES ficam atrás do botão "Fontes" (nunca no fluxo);
- *   - os DESAFIOS da aula ficam atrás do botão "Desafios" do cabeçalho
+ *   - os DESAFIOS da aula ficam atrás do botão "Desafios" do cabeçalho da
+ *     aula — que mora no SIDEBAR do shell desde a ONDA-AULA-NO-SIDEBAR
  *     (popover com a lista — card clicável → aba Desafio); nada entre o
- *     chat e o input.
+ *     chat e o input. O título da aula (heading), "Fontes" e "Desafios" são
+ *     achados por papel + nome, globais: o spec não depende de ONDE o
+ *     cabeçalho é pintado (sidebar ou main).
  * No modo E2E o tutor é stub (sem LLM/rede).
  *
  * ONDA2-IMESSAGE (streaming + gating — ajuste REGISTRADO do REPLAN):
@@ -156,6 +159,18 @@ test('e2e-lesson: trilha → aula em chat (teoria progressiva + fontes + desafio
   await page.getByText('Aula E2E sobre funções', { exact: false }).first().click();
   await expect(page.getByRole('heading', { name: 'Aula E2E sobre funções' })).toBeVisible();
 
+  // ONDA-AULA-NO-SIDEBAR (o dono: "seu objetivo era pegar o header tag content
+  // de cada aula e mover para essa região"): o cabeçalho da aula é PUBLICADO no
+  // slot do sidebar do shell (`#shell-sidebar-view-slot`, o
+  // SHELL_SIDEBAR_SLOT_ID). O h1 da aula mora LÁ e não no main (o `<main>` do
+  // shell tem role="tabpanel", daí o locator por tag), e o banner segue UM só:
+  // no sidebar o cabeçalho é `<section aria-labelledby>`, nunca `<header>` — um
+  // segundo banner quebraria todo `getByRole('banner')` desta suíte.
+  const sidebarSlot = page.locator('#shell-sidebar-view-slot');
+  await expect(sidebarSlot.getByRole('heading', { level: 1, name: 'Aula E2E sobre funções' })).toBeVisible();
+  await expect(page.locator('main').getByRole('heading', { name: 'Aula E2E sobre funções' })).toHaveCount(0);
+  await expect(page.getByRole('banner')).toHaveCount(1);
+
   // ONDA16-PIN (o dono: "fica um pin de item em Desafios mas ele só libera no
   // fim da aula então não deveria ter esse pin"): DURANTE a teoria o desafio
   // não liberou — o badge do botão "Desafios" está INVISÍVEL (0 pendentes →
@@ -222,7 +237,8 @@ test('e2e-lesson: trilha → aula em chat (teoria progressiva + fontes + desafio
   await expect(page.getByText('Conclua os desafios desta aula primeiro')).toBeVisible();
 
   // DESAFIOS da aula (UX do dono — nada entre o chat e o input): o botão
-  // "Desafios" no CABEÇALHO (com badge de pendentes) abre o POPOVER com a
+  // "Desafios" do CABEÇALHO da aula — no SIDEBAR do shell desde a
+  // ONDA-AULA-NO-SIDEBAR — (com badge de pendentes) abre o POPOVER com a
   // lista — card clicável → aba Desafio (fluxo track) → PASSA o desafio com
   // a resposta certa (o stub roda node --test de verdade).
   // ONDA1-UX (a11y + badge): o nome acessível interpola a contagem de
@@ -249,6 +265,9 @@ test('e2e-lesson: trilha → aula em chat (teoria progressiva + fontes + desafio
   await expect(page.getByRole('heading', { name: 'Desafios desta aula' })).toBeVisible();
   await page.getByRole('button', { name: /O dobro do número/ }).first().click();
   await expect(page.getByRole('heading', { name: 'O dobro do número' }).first()).toBeVisible();
+  // Fora da aula (aba Desafio) o slot do sidebar ESVAZIA: a LessonView
+  // desmontou e o portal levou o cabeçalho junto — nada de conteúdo velho.
+  await expect(sidebarSlot).toBeEmpty();
   await page.getByRole('button', { name: 'Começar' }).click();
   await page.locator('.cm-content').first().click();
   await page.keyboard.press('ControlOrMeta+a');
@@ -330,4 +349,7 @@ test('e2e-lesson: trilha → aula em chat (teoria progressiva + fontes + desafio
   // entra na tela (mesma navegação que o aluno faz).
   await aulaSeguinte.click();
   await expect(page.getByRole('heading', { name: 'Aula E2E seguinte' })).toBeVisible();
+  // …e o SIDEBAR acompanha a troca: o h1 do slot é o da aula NOVA — cada aula
+  // publica o SEU cabeçalho (ONDA-AULA-NO-SIDEBAR), nunca o da anterior.
+  await expect(sidebarSlot.getByRole('heading', { level: 1 })).toHaveText('Aula E2E seguinte');
 });

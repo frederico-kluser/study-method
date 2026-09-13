@@ -23,7 +23,7 @@
  * ══════════════════════════════════════════════════════════════════════════
  *   1. abre a aula (Home → Trilha → aula → "Começar aula") e deixa a 1ª seção
  *      ser DIGITADA até o fim;
- *   2. ENCOLHE a janela do Electron (700×480 — o porquê do par está medido em
+ *   2. ENCOLHE a janela do Electron (700×350 — o porquê do par está medido em
  *      `SHRUNK_WINDOW`) — sem overflow não há o que rolar e o teste não
  *      provaria nada — e ESPERA o layout assentar por CONDIÇÃO OBSERVÁVEL
  *      (`waitForLayoutSettled`: viewport do renderer no tamanho novo + caixa do
@@ -32,8 +32,9 @@
  *      (`scrollHeight > clientHeight + margem`), exige que o elemento medido
  *      seja mesmo o roladador (o PAI do `[role="log"]`, com `overflowY: auto`)
  *      e exige que a região do chat tenha ALTURA VISÍVEL e esteja DENTRO da
- *      janela (com `clientHeight = 0` — o que ACONTECE nesta app em 700×380 —
- *      a asserção de fim viraria uma conta degenerada);
+ *      janela (com `clientHeight = 0` — o que ACONTECIA nesta app em 700×380
+ *      enquanto o cabeçalho da aula morava na coluna do chat — a asserção de
+ *      fim viraria uma conta degenerada);
  *   4. rola o painel para o TOPO (`scrollTop = 0`) e confere que ele FICOU no
  *      topo, longe do fim (senão o passo 6 mediria um estado que nunca saiu do
  *      lugar);
@@ -60,7 +61,7 @@
  * A janela E2E nasce 1280×800 e a teoria do stub é curta: num viewport alto o
  * conteúdo NÃO transborda e o teste seria verde sem provar nada. O main cria a
  * janela com `minWidth: 900, minHeight: 600`
- * (`electron/main/index.ts:267-268`) — um `setSize(700, 480)` cru é CLAMPADO
+ * (`electron/main/index.ts:267-268`) — um `setSize(700, 350)` cru é CLAMPADO
  * silenciosamente para 900×600 e o encolhimento (a única alavanca do teste para
  * forçar overflow) não aconteceria. Por isso o probe derruba o mínimo com
  * `setMinimumSize` ANTES e CONFERE o tamanho efetivo com `getSize()`: se a
@@ -125,25 +126,37 @@ function distanceFromBottom(m: LogScrollerMetrics): number {
 }
 
 /**
- * Tamanho da janela E2E encolhida. MEDIDO (curva de tamanhos nesta máquina,
- * largura 700): 380 de altura → `clientHeight = 0` (o chrome do shell não cabe
- * e a região do chat COLAPSA — medir ali seria medir um elemento invisível);
- * 440 → 55px; 480 → 95px (overflow 157px); 520 → 135px (overflow 117px);
- * 560 → 175px (overflow 77px); 900×600 → 199px (overflow 25px, quase nada);
- * 1000×700 → overflow ZERO (o teste não teria o que rolar). 700×480 é o ponto
- * que ainda dá uma região de chat REALMENTE visível e um overflow FOLGADO.
+ * Tamanho da janela E2E encolhida. REMEDIDO na ONDA-AULA-NO-SIDEBAR (curva de
+ * tamanhos nesta máquina, largura 700, no roladador REAL com a 1ª seção
+ * digitada). O cabeçalho da aula (barra + progresso + Divider + os dois gaps)
+ * saiu da coluna do chat para o sidebar do shell: a região do chat começa no
+ * topo do main e GANHOU altura em toda a curva — o par antigo, 700×480, caiu
+ * para overflow 21px, abaixo da guarda. A curva nova:
+ *   480 → clientHeight 260px (overflow 21px) · 440 → 220 (61) · 420 → 200 (81)
+ *   · 400 → 180 (101 — raspando na guarda) · 380 → 160 (121) · 360 → 140 (141)
+ *   · 350 → 130 (151) · 340 → 120 (161) · 320 → 100 (181) · 300 → 80 (201, já
+ *   no piso de altura); 520 e 560 → overflow ZERO, e 900×600 / 1000×700 também
+ *   (o teste não teria o que rolar).
+ * A régua é linear — cada px de janela é um px de chat (clientHeight = altura −
+ * 220 nesta largura) e o conteúdo mede 281px —, então 700×350 é o ponto que
+ * deixa as DUAS guardas com a mesma folga (~50px): região de chat REALMENTE
+ * visível (130px ≥ MIN_CLIENT_HEIGHT_PX) e overflow FOLGADO (151px >
+ * MIN_OVERFLOW_PX). Histórico: com o cabeçalho na coluna, 380 → `clientHeight
+ * = 0` (a região do chat COLAPSAVA), 480 → 95px (overflow 157px) e 560 → 175px
+ * (77px) — por isso o par era 700×480.
  */
-const SHRUNK_WINDOW = { width: 700, height: 480 };
+const SHRUNK_WINDOW = { width: 700, height: 350 };
 
 /** Overflow mínimo exigido ANTES de o teste valer alguma coisa (px). */
 const MIN_OVERFLOW_PX = 100;
 
 /**
  * Altura MÍNIMA da região visível do chat. Sem esta guarda o teste passaria
- * medindo um roladador de altura ZERO (acontece de verdade nesta janela em
- * 700×380: `clientHeight = 0` e a "distância até o fim" vira uma conta
- * degenerada — `scrollTop + 0 >= scrollHeight` é verdade para qualquer
- * conteúdo). A prova só vale com o chat na tela.
+ * medindo um roladador de altura ZERO (aconteceu de verdade nesta janela em
+ * 700×380 enquanto o cabeçalho da aula morava na coluna: `clientHeight = 0` e
+ * a "distância até o fim" vira uma conta degenerada — `scrollTop + 0 >=
+ * scrollHeight` é verdade para qualquer conteúdo; hoje o piso de 80px é
+ * alcançado em 700×300). A prova só vale com o chat na tela.
  */
 const MIN_CLIENT_HEIGHT_PX = 80;
 

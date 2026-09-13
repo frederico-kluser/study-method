@@ -348,10 +348,16 @@ nunca como "exigido pela norma" (guarda-corpo #4).
 | `body` | **16px** | abaixo de 24px regular / 18,67px bold não há alívio de contraste ([large-scale text](https://www.w3.org/TR/WCAG22/#dfn-large-scale)); 16px fica preso ao piso cheio de 4,5:1 — e o nosso passa 7:1 |
 | `line-height` prosa | **1,6** | dentro do intervalo de teste do [C21](https://www.w3.org/WAI/WCAG22/Techniques/css/C21): *"between 1.5 and 2"* |
 | espaço entre parágrafos | **≥2,25em** | SC 1.4.8: *"paragraph spacing is at least 1.5 times larger than the line spacing"* → 1,5 × 1,5 |
-| medida (measure) | **≤72ch**, teto rígido 80ch | SC 1.4.8: *"Width is no more than 80 characters or glyphs"* |
+| medida (measure) | **sem teto fixo** na coluna da aula: a largura é ditada pela **divisória do sidebar** (coluna = main − paddings); o balão ocupa até **78%** da coluna, medida relativa | SC 1.4.8: *"Width is no more than 80 characters or glyphs"* — critério de **mecanismo** (Nota 1): a divisória arrastável (e a janela) é o mecanismo que deixa o aluno estreitar a linha até ≤80ch |
 | alinhamento | **`left` sempre** | [F88](https://www.w3.org/WAI/WCAG22/Techniques/failures/F88) é falha documentada por justificar texto — e **não** tem escape por mecanismo |
 | código | **14px / 1,5** | mono; `text.primary` sobre nível 2 |
 | KaTeX display | herda 16px, `overflow-x: auto` | fórmula larga rola no próprio contêiner, nunca no `body` |
+
+> **Registro (ONDA-LARGURA-LIVRE):** o teto rígido de 80ch (e o de 960px da coluna)
+> saiu a pedido do dono, verbatim: *"o texto da aula dentro da limitação de width não
+> tivesse mais essa limitação e o sidebar definisse o limite da área de texto
+> simplesmente pelo seu tamanho"*. Os tokens `TYPE.measureCh`/`measureMaxCh` seguem no
+> design system, só não são mais aplicados como teto na aula.
 
 > **Atenção ao arredondamento:** o W3C escreve 18,5px para 14pt bold; o WebAIM e a
 > maioria dos verificadores usam **18,67px**. Use 18,67px (ou 19px) se quiser que o
@@ -700,8 +706,9 @@ Suíte a manter verde: **75 testes unitários + 17 specs e2e**.
    `background-color` ou `opacity`.
 6. **`prefers-reduced-motion`**: e2e que liga a preferência e assere que o resultado do
    teste continua legível **sem** movimento.
-7. **Medida**: e2e que assere que a coluna de prosa não passa de 80ch e que
-   `text-align` nunca é `justify`.
+7. **Medida**: e2e que assere que a largura da coluna de prosa da aula ACOMPANHA a
+   divisória do sidebar (arrastá-la muda a largura da linha — sem teto fixo de 80ch
+   desde a ONDA-LARGURA-LIVRE, ver §4.2) e que `text-align` nunca é `justify`.
 
 ---
 

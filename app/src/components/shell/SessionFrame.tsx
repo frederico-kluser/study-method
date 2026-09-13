@@ -42,9 +42,13 @@
  * O AppBar renderiza `component="header"`, ou seja `role="banner"` — e 7 specs
  * e2e dependem desse papel para achar o topo do app (getByRole('banner')). A
  * coluna lateral ASSUME o papel: fora do `main`, o `<header>` continua sendo o
- * banner da página (o `<header>` do CollapsibleLessonHeader, dentro do main,
- * NÃO compete — header dentro de main não vira banner implícito). Trocar por
- * `<Box>` não traria nada e quebraria todas elas.
+ * banner da página — e o ÚNICO. O cabeçalho da aula não compete: desde a
+ * ONDA-AULA-NO-SIDEBAR ele não é mais um `<header>` dentro do main (o
+ * CollapsibleLessonHeader foi aposentado) e sim o `<section aria-labelledby>`
+ * do LessonSidebarHeader, que a LessonView publica no slot DESTA coluna — um
+ * `<header>` ali, fora do main, viraria um SEGUNDO banner (ver "O SLOT DA VIEW
+ * ATIVA", acima). Trocar o AppBar por `<Box>` não traria nada e quebraria
+ * todas elas.
  *
  * ─── DE ONDE VEM O PADRÃO (inalterado) ─────────────────────────────────────
  * Iwata Asks / HOME Menu do 3DS, verbatim: *"in a separate frame from those

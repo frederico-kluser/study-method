@@ -77,10 +77,11 @@ const HERE = dirname(fileURLToPath(import.meta.url));
 const VIEW_PATH = resolve(HERE, '../src/views/LessonView/LessonView.tsx');
 const VIEW_SRC = readFileSync(VIEW_PATH, 'utf8');
 const VIEW_MODULE = new URL('../src/views/LessonView/LessonView.tsx', import.meta.url).href;
-// ONDA2-layout: o botão "Desafios" do CABEÇALHO migrou do JSX da view para o
-// componente colapsável (CollapsibleLessonHeader) — as guards que falam do
-// nome/badge dele agora leem o componente também.
-const HEADER_PATH = resolve(HERE, '../src/components/course/CollapsibleLessonHeader.tsx');
+// ONDA-AULA-NO-SIDEBAR: o botão "Desafios" do CABEÇALHO mora no componente do
+// cabeçalho da aula no SIDEBAR do shell (LessonSidebarHeader, publicado pela
+// view via <ShellSidebarPortal>; o colapsável da ONDA2-layout foi aposentado) —
+// as guards que falam do nome/badge dele leem o componente também.
+const HEADER_PATH = resolve(HERE, '../src/components/course/LessonSidebarHeader.tsx');
 const HEADER_SRC = readFileSync(HEADER_PATH, 'utf8');
 
 /** Fonte sem comentários — só o código que realmente roda. */
@@ -544,13 +545,18 @@ describe('5. a view liga o passo à ação — e o gate não ganhou porta latera
     );
   });
 
-  it('o botão de desafio do CABEÇALHO continua com nome e badge (migrou para o CollapsibleLessonHeader)', () => {
-    // ONDA2-layout: o botão do cabeçalho saiu do JSX da view e vive no
-    // componente do cabeçalho colapsável. O CONTRATO do guard é o MESMO de
-    // antes (o dono pediu os DOIS botões de desafio): o do cabeçalho segue
-    // com o nome acessível interpolado e o badge de pendentes, e a view
-    // segue ligando o popover a ele.
-    assert.match(VIEW, /<CollapsibleLessonHeader/, 'o cabeçalho é o componente novo');
+  it('o botão de desafio do CABEÇALHO continua com nome e badge (hoje no sidebar, via LessonSidebarHeader)', () => {
+    // ONDA-AULA-NO-SIDEBAR: o cabeçalho da aula saiu da coluna e é PUBLICADO
+    // no slot do sidebar do shell — `<ShellSidebarPortal><LessonSidebarHeader
+    // …/>` (o CollapsibleLessonHeader, que vivia no main, foi aposentado). O
+    // CONTRATO do guard é o MESMO de antes (o dono pediu os DOIS botões de
+    // desafio): o do cabeçalho segue com o nome acessível interpolado e o
+    // badge de pendentes, e a view segue ligando o popover a ele.
+    assert.match(
+      VIEW,
+      /<ShellSidebarPortal>\s*<LessonSidebarHeader\b/,
+      'o cabeçalho da aula é o LessonSidebarHeader, publicado no sidebar pelo portal',
+    );
     assert.match(
       VIEW,
       /challengesExpanded=\{challengesOpen && challengesFrom === 'cabecalho'\}/,

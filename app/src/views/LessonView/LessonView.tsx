@@ -70,7 +70,8 @@
  *      aula ativa — cabeçalho, progresso, painel, avisos, ação e entrada —
  *      divide UMA coluna (de 960px nesta onda; o teto foi REVOGADO pela
  *      ONDA-LARGURA-LIVRE: a coluna preenche o main e quem dita a largura é a
- *      divisória do sidebar, ver LESSON_COLUMN_SX);
+ *      divisória do sidebar, ver LESSON_COLUMN_SX; e o cabeçalho, com o
+ *      progresso, SAIU da coluna na ONDA-AULA-NO-SIDEBAR — mora no sidebar);
  *   2. a BARRA DE ENTRADA passou ao molde da referência de chat: microfone
  *      como botão circular FORA do campo à esquerda, campo pílula ocupando
  *      todo o resto com o convite no placeholder, enviar DENTRO na borda
@@ -165,6 +166,18 @@
  * SEM histórico, com aviso `info` — nunca travando o aluno, nunca inventando
  * maestria que ele não conquistou.
  *
+ * ONDA-AULA-NO-SIDEBAR (o dono, sobre o sidebar estilo VSCode: "ele foi feito
+ * errado porque a informação dele nunca muda, seu objetivo era pegar o header
+ * tag content de cada aula e mover para essa região"): o cabeçalho da aula —
+ * título, resumo, progresso da teoria, Desafios/Fontes e pré-requisitos —
+ * SAIU da coluna (era o `<header>` do CollapsibleLessonHeader, aposentado) e é
+ * publicado no slot do sidebar do shell por `<ShellSidebarPortal>`, como o
+ * LessonSidebarHeader. O portal muda só ONDE o DOM é pintado: estado, handlers,
+ * a âncora do popover de Desafios e o diálogo de Fontes continuam desta view.
+ * Cada aula publica o SEU cabeçalho; fora da aula ativa (outra aba, aula
+ * vazia/carregando/erro) nada é publicado e o slot fica vazio. O porquê de
+ * cada peça está no portal, no fim do `return` da aula ativa.
+ *
  * Entrada (precedência na MONTAGEM — onda1-nav-ui):
  *   1. `nav.challengeErrorReport` (Desafio → Aula, erro) — define o alvo;
  *   2. `pendingTrackLesson` (Trilha → Aula) drenado na MONTAGEM
@@ -185,7 +198,6 @@ import {
   Dialog,
   DialogContent,
   DialogTitle,
-  Divider,
   IconButton,
   InputAdornment,
   LinearProgress,
@@ -290,9 +302,14 @@ import {
 } from '../../lib/challengeGenerateStore';
 import { AnimatePresence, motion } from 'motion/react';
 import { fadeInUp, springs } from '../../lib/animationTokens';
-// ONDA2-LAYOUT: o cabeçalho da aula virou um componente colapsável próprio
-// (barra compacta + corpo animado) — esta view SÓ o consome.
-import { CollapsibleLessonHeader } from '../../components/course/CollapsibleLessonHeader';
+// ONDA-AULA-NO-SIDEBAR: o cabeçalho da aula (título, resumo, progresso,
+// Desafios/Fontes, pré-requisitos) mora no SIDEBAR do shell. Esta view o
+// PUBLICA no slot da coluna por portal (`ShellSidebarPortal`) e continua dona
+// do estado e dos handlers; o componente é o LessonSidebarHeader (vertical, sem
+// colapso). O colapsável da ONDA2-LAYOUT (CollapsibleLessonHeader), que vivia
+// DENTRO da coluna da aula como `<header>`, foi aposentado.
+import { ShellSidebarPortal } from '../../components/shell/ShellSidebarSlot';
+import { LessonSidebarHeader } from '../../components/course/LessonSidebarHeader';
 // ONDA11: o raio de PÍLULA da barra de entrada sai do token de forma do design
 // system (SHAPE.pill) — cor e forma são CONSUMIDAS, nunca redefinidas aqui.
 import { SHAPE } from '../../lib/designTokens';
@@ -372,8 +389,10 @@ type LessonPayloadWithNext = TrackLessonPayload & {
  * que não depende de sorte de especificidade, fica inteiro:
  *   1. o EIXO é do CONTAINER RAIZ (`LESSON_COLUMN_SX`), aplicado uma única
  *      vez. Nenhum filho declara largura nem centralização própria — todos só
- *      PREENCHEM. Cabeçalho, progresso, painel, avisos, ação e entrada dividem
- *      ESTA coluna: leitura e escrita são, literalmente, o mesmo container;
+ *      PREENCHEM. Painel, avisos, ação e entrada dividem ESTA coluna (o
+ *      cabeçalho e o progresso saíram dela para o sidebar do shell na
+ *      ONDA-AULA-NO-SIDEBAR): leitura e escrita são, literalmente, o mesmo
+ *      container;
  *   2. o Stack da coluna mantém `useFlexGap`: o espaçamento é `gap` (do
  *      CONTAINER) em vez de margem (do FILHO). A armadilha segue fora de campo
  *      até para um filho FUTURO que volte a querer eixo próprio.
@@ -726,9 +745,10 @@ export function lessonActionStep(input: LessonActionStepInput): LessonActionStep
  * pergunta é como um gate volta a divergir do outro na onda seguinte.
  *
  * O que isto NÃO faz: esconder o botão. O dono pediu, literalmente, que ele
- * *"continue em cima"*. Ele continua, a lista continua abrindo, e o que o
- * bloqueio faz é DIZER o motivo (nada de botão morto e mudo) — a mesma decisão
- * que o "Próximo" travado já segue.
+ * *"continue em cima"*. Ele continua (desde a ONDA-AULA-NO-SIDEBAR, no alto do
+ * sidebar do shell, com o resto do cabeçalho da aula), a lista continua
+ * abrindo, e o que o bloqueio faz é DIZER o motivo (nada de botão morto e
+ * mudo) — a mesma decisão que o "Próximo" travado já segue.
  */
 export function challengeOpenBlockedByQuiz(finishBlock: LessonFinishBlockReason | null): boolean {
   return finishBlock === 'quiz';
@@ -1226,15 +1246,21 @@ export function LessonView(props: ViewProps): ReactElement {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [sourcesOpen, setSourcesOpen] = useState(false);
   // ONDA1-UX (pedido do dono — "não quero aqueles desafios ali"): a lista de
-  // desafios saiu do fluxo do chat; o botão "Desafios" do cabeçalho abre um
-  // POPOVER ancorado no próprio botão (`challengesAnchorEl`). Fecha ao clicar
-  // fora/Esc (padrão MUI).
+  // desafios saiu do fluxo do chat; o botão "Desafios" do cabeçalho da aula
+  // abre um POPOVER ancorado no próprio botão (`challengesAnchorEl`). Fecha ao
+  // clicar fora/Esc (padrão MUI). ONDA-AULA-NO-SIDEBAR: esse botão mora no
+  // SIDEBAR do shell (LessonSidebarHeader, publicado por portal) e continua
+  // sendo âncora válida — o Popover posiciona pelo `getBoundingClientRect` do
+  // elemento, onde quer que ele esteja no DOM.
   const [challengesAnchorEl, setChallengesAnchorEl] = useState<HTMLButtonElement | null>(null);
-  // ONDA14: DE ONDE o popover foi aberto. O botão do cabeçalho vive no alto e
-  // a lista desce; o botão novo da LINHA DE AÇÃO vive no rodapé, e ali a
-  // mesma origem faria a lista nascer fora da janela (o MUI a grudaria de
-  // volta POR CIMA do botão que a abriu). Mesma lista, mesmo destino — só a
-  // direção em que ela cresce muda.
+  // ONDA14: DE ONDE o popover foi aberto — cada disparador pede uma direção de
+  // crescimento. O botão do CABEÇALHO vive no alto da coluna ESQUERDA do shell
+  // (o sidebar, desde a ONDA-AULA-NO-SIDEBAR): a lista cresce para a DIREITA,
+  // sobre o main — para a esquerda, como quando o botão morava no canto
+  // direito da coluna da aula, ela cairia sobre o rail e o próprio sidebar. O
+  // botão da LINHA DE AÇÃO vive no rodapé, e ali a lista crescendo para baixo
+  // nasceria fora da janela (o MUI a grudaria de volta POR CIMA do botão que a
+  // abriu): ela abre para CIMA. Mesma lista, mesmo destino — só a direção muda.
   const [challengesFrom, setChallengesFrom] = useState<'cabecalho' | 'acao'>('cabecalho');
   const challengesOpen = Boolean(challengesAnchorEl);
   const [doneMarked, setDoneMarked] = useState(false);
@@ -2748,11 +2774,13 @@ export function LessonView(props: ViewProps): ReactElement {
   }, [actionStep, requestSkipTyping, sendNext]);
 
   /**
-   * ONDA14 — o DESAFIO na linha de baixo, com o MESMO destino do botão do
-   * cabeçalho (nada de segundo fluxo): com UM desafio pendente vai direto para
-   * ele (`openChallenge`, a mesma navegação da lista); com mais de um, abre O
-   * MESMO popover — só que ancorado NESTE botão, e por isso o `from` guarda de
-   * onde ele foi aberto (a lista abre para CIMA quando nasce aqui embaixo).
+   * ONDA14 — o DESAFIO na linha de baixo, com o MESMO destino do botão
+   * "Desafios" do cabeçalho da aula (no sidebar do shell desde a
+   * ONDA-AULA-NO-SIDEBAR; nada de segundo fluxo): com UM desafio pendente vai
+   * direto para ele (`openChallenge`, a mesma navegação da lista); com mais de
+   * um, abre O MESMO popover — só que ancorado NESTE botão, e por isso o `from`
+   * guarda de onde ele foi aberto (a lista abre para CIMA quando nasce aqui
+   * embaixo, e para a DIREITA quando nasce no botão do sidebar).
    */
   const handleChallengeStep = useCallback(
     (anchor: HTMLButtonElement): void => {
@@ -2827,15 +2855,19 @@ export function LessonView(props: ViewProps): ReactElement {
   });
 
   // ONDA 1 (layout+a11y): a aula ATIVA ocupa TODA a altura do painel main —
-  // cabeçalho fixo no topo, região do chat com scroll INTERNO (flexGrow) e
-  // entrada fixa embaixo. `flexGrow: 1, minHeight: 0, height: '100%'` resolvem
-  // porque o `main` do shell virou flex column com altura definida (stretch).
-  // Os estados vazio/erro/loading acima seguem com altura de conteúdo.
+  // região do chat com scroll INTERNO (flexGrow) e entrada fixa embaixo. O
+  // cabeçalho que ficava fixo no topo foi para o SIDEBAR na
+  // ONDA-AULA-NO-SIDEBAR (o portal no fim deste return): a coluna começa
+  // direto na conversa, e a altura que ele ocupava virou área do chat.
+  // `flexGrow: 1, minHeight: 0, height: '100%'` resolvem porque o `main` do
+  // shell virou flex column com altura definida (stretch). Os estados
+  // vazio/erro/loading acima seguem com altura de conteúdo — e não publicam
+  // nada no sidebar (o slot fica vazio).
   //
-  // ONDA11 (a coluna, ver o cabeçalho de LESSON_COLUMN_SX): a aula ativa
-  // inteira — cabeçalho, progresso, painel de mensagens, avisos, ação e
-  // entrada — vive numa coluna SÓ. Este Box é o ÚNICO lugar que declara
-  // largura; os filhos apenas preenchem. Antes eram dois eixos concorrentes
+  // ONDA11 (a coluna, ver o cabeçalho de LESSON_COLUMN_SX): tudo o que a aula
+  // ativa pinta no main — painel de mensagens, avisos, ação e entrada — vive
+  // numa coluna SÓ. Este Box é o ÚNICO lugar que declara largura; os filhos
+  // apenas preenchem. Antes eram dois eixos concorrentes
   // (a view em min(1920px, 100%) e o painel capado em 1000 com `mx: 'auto'`),
   // e o segundo eixo era APAGADO nos filhos diretos do Stack pela regra de
   // espaçamento dele — o input encostava na esquerda. `useFlexGap` tira essa
@@ -2857,44 +2889,13 @@ export function LessonView(props: ViewProps): ReactElement {
       }}
     >
       <Stack useFlexGap spacing={1.5} sx={{ flexGrow: 1, minHeight: 0 }}>
-        {/* ONDA2-LAYOUT — Cabeçalho COLAPSÁVEL (componente novo em
-            src/components/course/CollapsibleLessonHeader.tsx). A barra
-            compacta (toggle + título em UMA linha + Desafios + Fontes) fica
-            SEMPRE visível; o corpo (título completo + resumo) nasce
-            COLAPSADO e anima ao expandir/recolher — o espaço libertado vira
-            área de trabalho do chat (a entrada continua ancorada no fim da
-            coluna, intocada). Progresso e pré-requisitos ficam FORA do
-            colapsável, sempre visíveis. A `key` da aula REMONTA o componente
-            ao abrir/trocar de aula → o estado volta a colapsado, como o dono
-            pediu. Decisões completas no cabeçalho do componente. */}
-        <CollapsibleLessonHeader
-          key={`${trackLesson.trackSlug}/${trackLesson.lessonId}`}
-          title={lesson.title}
-          summary={lesson.summary}
-          challengeCount={lesson.challenges.length}
-          pendingChallengeCount={pendingChallengeCount}
-          challengesExpanded={challengesOpen && challengesFrom === 'cabecalho'}
-          onChallengesClick={(anchor) => {
-            /* ONDA14: o popover tem DOIS disparadores (este e o CTA da linha
-               de ação) — `challengesFrom` guarda de onde veio para o
-               aria-expanded de cada botão descrever SÓ o que ele abriu. */
-            setChallengesFrom('cabecalho');
-            setChallengesAnchorEl(anchor);
-          }}
-          onSourcesClick={() => setSourcesOpen(true)}
-          theoryProgress={theoryProgress}
-          sectionCurrent={chat.presentedSections.length}
-          sectionTotal={lesson.theory.length}
-          prerequisites={lesson.prerequisites}
-          onPrerequisiteClick={openPrerequisite}
-        />
-
-        <Divider />
-
         {/* Região do chat: ÚNICO scroll interno da aula ativa (janela pequena
             ou grande — o main do shell nunca rola). `flexGrow` faz o chat
             ocupar TODA a altura disponível do painel main; `minHeight: 0`
-            permite encolher até caber a entrada fixa embaixo. */}
+            permite encolher até caber a entrada fixa embaixo.
+            ONDA-AULA-NO-SIDEBAR: ela é o PRIMEIRO filho da coluna — o
+            cabeçalho da aula e o Divider que vinham antes dela foram para o
+            sidebar do shell (o portal no fim deste return). */}
         <Box
           ref={logScrollRef}
           sx={{
@@ -2923,7 +2924,8 @@ export function LessonView(props: ViewProps): ReactElement {
               ONDA-LARGURA-LIVRE sem o teto de 80ch — a linha acompanha a
               divisória do sidebar). Era justamente o eixo duplicado aqui que
               fazia painel e entrada discordarem. ONDA1-UX: a lista de
-              desafios não vive mais aqui (popover no cabeçalho).
+              desafios não vive mais aqui (popover do botão "Desafios" do
+              cabeçalho da aula — no sidebar, desde a ONDA-AULA-NO-SIDEBAR).
 
               ONDA12: ele também não é mais uma CAIXA — nível 0 (o fundo do
               app), sem raio e sem padding, com a conversa ancorada embaixo. A
@@ -3156,8 +3158,9 @@ export function LessonView(props: ViewProps): ReactElement {
               lista de desafios SAIU da região de scroll (ficava entre a
               última bolha e o input, empurrando o fluxo e ficando recortada
               com conteúdo alto). Agora vive no POPOVER do botão "Desafios"
-              do cabeçalho; entre o chat e o input NÃO há nenhum elemento de
-              lista de desafios. */}
+              do cabeçalho da aula (no sidebar do shell desde a
+              ONDA-AULA-NO-SIDEBAR); entre o chat e o input NÃO há nenhum
+              elemento de lista de desafios. */}
         </Box>
 
         {/* ONDA11: os avisos NÃO declaram mais largura própria — eles são
@@ -3208,7 +3211,8 @@ export function LessonView(props: ViewProps): ReactElement {
             (o porquê está no cabeçalho daquela seção). O que a VIEW decide
             aqui é só o que depende de estado e de IPC: revelar a digitação,
             avançar a teoria, concluir, ir ao desafio (MESMO destino do botão
-            do cabeçalho) e seguir para a próxima aula. */}
+            "Desafios" do cabeçalho da aula, no sidebar) e seguir para a
+            próxima aula. */}
         <LessonActionRow
           step={actionStep}
           busy={busy}
@@ -3238,6 +3242,63 @@ export function LessonView(props: ViewProps): ReactElement {
         />
       </Stack>
 
+      {/* ONDA-AULA-NO-SIDEBAR — O CABEÇALHO DE CADA AULA MORA NO SIDEBAR.
+          O dono, sobre o sidebar estilo VSCode, verbatim: "ele foi feito
+          errado porque a informação dele nunca muda, seu objetivo era
+          pegar o header tag content de cada aula e mover para essa região".
+          Título, resumo, progresso da teoria, Desafios/Fontes e
+          pré-requisitos saíram da coluna (onde eram o `<header>` do
+          CollapsibleLessonHeader, aposentado) e são PUBLICADOS no slot do
+          sidebar do shell por `<ShellSidebarPortal>`
+          (src/components/shell/ShellSidebarSlot.tsx), como o
+          LessonSidebarHeader. O que isso garante, peça por peça:
+            · a view continua DONA — o portal muda só ONDE o DOM é pintado.
+              Estado e handlers seguem daqui: o popover de Desafios (abaixo)
+              ancora no botão que está no sidebar, o diálogo de Fontes abre
+              daqui, os chips de pré-requisito chamam `openPrerequisite`, e
+              os eventos sintéticos borbulham pela árvore REACT desta view,
+              não pela DOM do sidebar;
+            · cada aula publica o SEU cabeçalho: trocar de aula (chip de
+              pré-requisito, "Avançar para a próxima aula") passa pelo estado
+              de carregando — que retorna ANTES deste return e não publica
+              nada — e a aula nova publica o dela. Sem `key`: o componente
+              não tem estado (o colapso morreu com o componente antigo);
+            · a limpeza é de graça: o shell monta SÓ a view ativa, então sair
+              da aba Aula desmonta a view e o React tira o conteúdo do slot
+              sozinho (o `:empty` do SessionFrame o tira do layout). Aula
+              vazia, carregando ou com erro → slot vazio, nunca conteúdo
+              velho;
+            · POSIÇÃO: irmão DEPOIS do Stack da coluna, junto do Dialog e do
+              Popover (as superfícies fora do fluxo) — nunca o 1º filho da
+              raiz (é o Stack da coluna, o do useFlexGap) nem dentro dela (a
+              coluna é só a conversa: log, avisos, ação e entrada);
+            · `<section aria-labelledby>`, nunca `<header>`: o slot mora
+              dentro do AppBar, fora do `main`, e ali um `<header>` viraria um
+              SEGUNDO landmark banner. */}
+      <ShellSidebarPortal>
+        <LessonSidebarHeader
+          title={lesson.title}
+          summary={lesson.summary}
+          challengeCount={lesson.challenges.length}
+          pendingChallengeCount={pendingChallengeCount}
+          challengesExpanded={challengesOpen && challengesFrom === 'cabecalho'}
+          onChallengesClick={(anchor) => {
+            /* ONDA14: o popover tem DOIS disparadores (este e o CTA da linha
+               de ação) — `challengesFrom` guarda de onde veio para o
+               aria-expanded de cada botão descrever SÓ o que ele abriu e para
+               a lista crescer na direção certa (ver o Popover abaixo). */
+            setChallengesFrom('cabecalho');
+            setChallengesAnchorEl(anchor);
+          }}
+          onSourcesClick={() => setSourcesOpen(true)}
+          theoryProgress={theoryProgress}
+          sectionCurrent={chat.presentedSections.length}
+          sectionTotal={lesson.theory.length}
+          prerequisites={lesson.prerequisites}
+          onPrerequisiteClick={openPrerequisite}
+        />
+      </ShellSidebarPortal>
+
       {/* Fontes: NUNCA no fluxo — botão "Fontes" abre este diálogo. */}
       <Dialog open={sourcesOpen} onClose={() => setSourcesOpen(false)} aria-labelledby="lesson-sources-title" maxWidth="sm" fullWidth>
         <DialogTitle id="lesson-sources-title">{t('translation:lesson.sourcesTitle')}</DialogTitle>
@@ -3266,9 +3327,20 @@ export function LessonView(props: ViewProps): ReactElement {
       </Dialog>
 
       {/* ONDA1-UX (pedido do dono): DESAFIOS fora do fluxo — o botão
-          "Desafios" do cabeçalho abre este POPOVER com a lista completa
-          (anchor no botão; fecha ao clicar fora/Esc — padrão MUI). Item
-          clicável → MESMO openChallenge do fluxo track (nav intacta). */}
+          "Desafios" do cabeçalho da aula (no sidebar, publicado pelo portal
+          acima) abre este POPOVER com a lista completa (anchor no botão;
+          fecha ao clicar fora/Esc — padrão MUI). Item clicável → MESMO
+          openChallenge do fluxo track (nav intacta).
+          ONDA-AULA-NO-SIDEBAR — A DIREÇÃO DO RAMO 'cabecalho'. Com o botão no
+          canto direito da coluna da aula, a lista crescia para a ESQUERDA
+          (âncora bottom/right + transform top/right) e caía sobre a
+          conversa. Com o botão na coluna ESQUERDA do shell, a mesma origem
+          jogaria a lista sobre o rail (104px) e o próprio sidebar, grudada na
+          borda da janela. Agora ela se prende pelo canto superior ESQUERDO ao
+          canto superior DIREITO do botão (âncora top/right + transform
+          top/left): cresce para a direita e para baixo, sobre o main, colada
+          em quem a chamou. O ramo 'acao' (o CTA da linha de ação, no rodapé)
+          não mudou: abre para CIMA, centrado no botão. */}
       <Popover
         open={challengesOpen}
         anchorEl={challengesAnchorEl}
@@ -3276,12 +3348,12 @@ export function LessonView(props: ViewProps): ReactElement {
         anchorOrigin={
           challengesFrom === 'acao'
             ? { vertical: 'top', horizontal: 'center' }
-            : { vertical: 'bottom', horizontal: 'right' }
+            : { vertical: 'top', horizontal: 'right' }
         }
         transformOrigin={
           challengesFrom === 'acao'
             ? { vertical: 'bottom', horizontal: 'center' }
-            : { vertical: 'top', horizontal: 'right' }
+            : { vertical: 'top', horizontal: 'left' }
         }
         slotProps={{
           paper: {
