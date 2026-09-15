@@ -239,6 +239,7 @@ import { useChallengeNav } from '../../lib/challengeNav';
 // ONDA1-CARD-DESAFIO-INICIAL: a decisão do card do desafio na abertura da
 // aula é PURA (lessonChallengeCard) — a view só traduz o resultado.
 import {
+  lessonChallengeBubbleAction,
   lessonChallengeCard,
   lessonChallengeCardStatus,
 } from '../../lib/lessonChallengeCard';
@@ -293,6 +294,7 @@ import {
   drainPendingSubject,
 } from '../../lib/pendingSubject';
 import {
+  clearLessonChat,
   createLessonChatHolder,
   saveLessonChat,
 } from '../../lib/lessonChatCache';
@@ -2014,6 +2016,11 @@ export function LessonView(props: ViewProps): ReactElement {
         lessonId: trackLesson.lessonId,
         challengeId: ch.slug,
         title: ch.title,
+        // ONDA2 (falha-ver-aula): este é O caminho que marca a tentativa como
+        // "antes da aula" — o painel copia o flag para o relatório de erro e
+        // a bolha da aula troca "Gerar novo desafio" por "Ver a aula" na 1ª
+        // falha. O openChallenge do fluxo normal JAMAIS seta isto.
+        attemptedBeforeLesson: true,
       });
       nav.navigateToChallenge();
     },
@@ -2077,6 +2084,30 @@ export function LessonView(props: ViewProps): ReactElement {
     }
   }, [trackLesson, busy, generateRunning, tI]);
 
+  /**
+   * ONDA2 (falha-ver-aula) — "Ver a aula" NA BOLHA de erro (1ª falha do
+   * desafio tentado antes da aula).
+   *
+   * Pedido do dono, verbatim: "posso clicar para VER A AULA (...) — clicar
+   * nisso limpa tudo e começa a aula do início". Então o clique LIMPA TUDO:
+   * o cache de sessão do chat (`clearLessonChat` — senão a próxima montagem
+   * restauraria o histórico do erro) e o estado local (chat novo = seções
+   * zeradas → a teoria recomeça da seção 1; marcações de streaming e índices
+   * novos também zeram, senão bolhas fantasmas "digitariam"). Não dispara
+   * IPC: a aula "começa do início" quando o aluno clica "Começar aula" na
+   * bolha inicial — e o CARD reaparece (histórico vazio) com o desafio em
+   * estado 'failed', CTA "tentar o mesmo desafio de novo" (o MESMO
+   * challengeId — retry do mesmo teste, regra do dono).
+   */
+  const handleViewLessonFromBubble = useCallback((): void => {
+    if (!trackLesson) return;
+    clearLessonChat({ trackSlug: trackLesson.trackSlug, lessonId: trackLesson.lessonId });
+    newMessageIndicesRef.current = new Set();
+    setStreamingIds(new Set());
+    closeQuizOverlay();
+    setChat(createTrackLessonState);
+  }, [trackLesson, closeQuizOverlay]);
+
   /** Revisão de uma aula ANTERIOR da trilha (aluno não entendeu). */
   const openPrerequisite = useCallback(
     (slug: string): void => {
@@ -2116,6 +2147,23 @@ export function LessonView(props: ViewProps): ReactElement {
     () => quizzesByMessageIndex(chat, lessonAssertions),
     [chat, lessonAssertions],
   );
+
+  /**
+   * ONDA2 (falha-ver-aula): a ação que CADA bolha de erro ('review' com
+   * errorFor) oferece. A decisão é a regra PURA `lessonChallengeBubbleAction`:
+   * falha vinda do desafio tentado antes da aula (flag `errorBeforeLesson` da
+   * própria bolha) e ainda na 1ª falha (`failedCount < 2` do payload — o
+   * markAttempt do painel roda antes de navegar de volta) → "Ver a aula";
+   * fluxo normal e 2ª falha → "Gerar novo desafio" (comportamento de sempre).
+   * O `failedCount` vem do payload por slug (a bolha carrega só o
+   * challengeId); desafio ausente do payload → 0 (1ª falha é a regra mais
+   * conservadora para o flag presente).
+   */
+  const challengeFailedCountBySlug = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const ch of lesson?.challenges ?? []) map.set(ch.slug, ch.failedCount);
+    return map;
+  }, [lesson]);
 
   /** Payload da aula lido por REF pelos callbacks do ciclo do quiz (o pedido é
    *  disparado por efeito e não pode re-registrar a cada re-render). */
@@ -3074,7 +3122,19 @@ export function LessonView(props: ViewProps): ReactElement {
                           variant="outlined"
                           label={t('translation:lesson.challengeUntried')}
                         />
-                      ) : null}
+                      ) : (
+                        /* ONDA2 (falha-ver-aula, achado do revisor da onda 1):
+                           veredito presente sem falha contada (ex. 'abandoned' —
+                           o aluno saiu da tentativa sem submeter) não é
+                           'untried' nem tem failedCount > 0 — sem este ramo a
+                           linha de chips ficaria muda sobre o estado. */
+                        <Chip
+                          size="small"
+                          variant="outlined"
+                          color="warning"
+                          label={t('translation:lesson.challengeNotPassed')}
+                        />
+                      )}
                     </Stack>
                     <Typography variant="caption" component="p" sx={{ mt: 1, color: 'text.secondary' }}>
                       {t('translation:lesson.challengeIntroCardHint')}
@@ -3095,8 +3155,29 @@ export function LessonView(props: ViewProps): ReactElement {
                         size="small"
                         onClick={() => openChallengeFromCard(cardDecision.challenge!)}
                         startIcon={<EmojiEventsIcon />}
+                        /* ONDA2 (falha-ver-aula, achado do revisor da onda 1):
+                           a aria-label EXISTE (challengeIntroCardTryAria) e não
+                           tinha linha de código nenhuma — agora é o nome
+                           acessível do CTA. No estado 'failed' (o aluno já
+                           tentou e não passou) o CTA diz o retry do MESMO
+                           desafio (regra do dono: "o aluno REFAZ O MESMO
+                           teste"), com aria própria. */
+                        aria-label={
+                          lessonChallengeCardStatus(cardDecision.challenge) === 'failed'
+                            ? tI('lesson.challengeIntroCardTryAgainAria', {
+                                title: cardDecision.challenge.title,
+                              })
+                            : tI('lesson.challengeIntroCardTryAria', {
+                                title: cardDecision.challenge.title,
+                              })
+                        }
                       >
-                        {t('translation:lesson.challengeIntroCardTry')}
+                        {/* O MESMO clique do card reabre O MESMO challengeId
+                            (selectTrackChallenge usa o slug do desafio) — o
+                            retry do estado 'failed' não gera desafio novo. */}
+                        {lessonChallengeCardStatus(cardDecision.challenge) === 'failed'
+                          ? t('translation:lesson.challengeIntroCardTryAgain')
+                          : t('translation:lesson.challengeIntroCardTry')}
                       </Button>
                     </motion.span>
                   </CardActions>
@@ -3123,6 +3204,18 @@ export function LessonView(props: ViewProps): ReactElement {
                   // Só mensagens NOVAS da sessão digitam E animam (cache/seed
                   // antigo → completas e instantâneas).
                   const isNew = newMessageIndicesRef.current.has(i);
+                  // ONDA2 (falha-ver-aula): a ação da bolha de erro — regra
+                  // PURA `lessonChallengeBubbleAction`, com o flag da própria
+                  // bolha ('review' semeada do relatório com
+                  // `attemptedBeforeLesson`) + o `failedCount` do payload.
+                  // true aqui = "Ver a aula"; false = "Gerar novo desafio".
+                  const bubbleViewLesson =
+                    m.kind === 'review' &&
+                    m.errorBeforeLesson === true &&
+                    lessonChallengeBubbleAction({
+                      attemptedBeforeLesson: true,
+                      failedCount: challengeFailedCountBySlug.get(m.errorFor ?? '') ?? 0,
+                    }) === 'viewLesson';
                   return (
                     <motion.div
                       key={i}
@@ -3175,7 +3268,19 @@ export function LessonView(props: ViewProps): ReactElement {
                         // ONDA10: clique/tecla/"Mostrar tudo" completam a
                         // bolha que está digitando AGORA.
                         skip={skipTyping}
-                        onRegenerate={m.kind === 'review' ? handleRegenerateFromBubble : undefined}
+                        // ONDA2 (falha-ver-aula): a bolha de erro oferece UMA
+                        // ação — "Ver a aula" na 1ª falha do desafio tentado
+                        // antes da aula (limpa tudo e recomeça a aula do
+                        // início); "Gerar novo desafio" no fluxo normal e na
+                        // 2ª falha (o MESMO callback de sempre, intacto).
+                        onViewLesson={bubbleViewLesson ? handleViewLessonFromBubble : undefined}
+                        onRegenerate={
+                          bubbleViewLesson
+                            ? undefined
+                            : m.kind === 'review'
+                              ? handleRegenerateFromBubble
+                              : undefined
+                        }
                         // ONDA3 (generate-flow): o gating agora também cobre o
                         // processo GLOBAL em voo (o modal pode estar rodando
                         // mesmo se esta view montou depois do disparo).

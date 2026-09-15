@@ -87,6 +87,9 @@ import { useTranslation } from 'react-i18next';
 import { useTheme } from '@mui/material/styles';
 import { Box, Button, Typography } from '@mui/material';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
+// ONDA2 (falha-ver-aula): ícone do botão "Ver a aula" na bolha de erro do
+// desafio tentado antes da aula (substitui "Gerar novo desafio" na 1ª falha).
+import MenuBookIcon from '@mui/icons-material/MenuBook';
 import { motion, useReducedMotion, type Transition } from 'motion/react';
 import type { ReactElement } from 'react';
 
@@ -120,6 +123,15 @@ export interface ChatBubbleProps {
   /** ONDA2 (error-flow): "Gerar novo desafio" DENTRO da bolha de review. */
   onRegenerate?: () => void;
   regenerateDisabled?: boolean;
+  /**
+   * ONDA2 (falha-ver-aula): "Ver a aula" DENTRO da bolha de erro — a ação da
+   * 1ª falha do desafio tentado antes da aula (o dono: "posso clicar para VER
+   * A AULA e não em próximo ou continuar"). Quando presente num review de
+   * erro, VENCE o `onRegenerate`: a regra de qual dos dois aparece é a pura
+   * `lessonChallengeBubbleAction` (lessonChallengeCard.ts), decidida pela
+   * LessonView — o ChatBubble só desenha o botão que chegou.
+   */
+  onViewLesson?: () => void;
   onStreamStart?: () => void;
   onStreamDone?: () => void;
   onStreamTick?: () => void;
@@ -133,6 +145,7 @@ export function ChatBubble({
   previous,
   onRegenerate,
   regenerateDisabled,
+  onViewLesson,
   onStreamStart,
   onStreamDone,
   onStreamTick,
@@ -274,17 +287,35 @@ export function ChatBubble({
                   transition={springs.snappy}
                   style={{ display: 'inline-block' }}
                 >
-                  <Button
-                    size="small"
-                    variant="outlined"
-                    color="secondary"
-                    onClick={onRegenerate}
-                    disabled={regenerateDisabled}
-                    startIcon={<AutoAwesomeIcon />}
-                    sx={{ mt: 1 }}
-                  >
-                    {t('translation:challenge.regenerateButton')}
-                  </Button>
+                  {/* ONDA2 (falha-ver-aula): o review de erro tem UMA ação —
+                      "Ver a aula" quando a falha veio do desafio tentado antes
+                      da aula (1ª falha; o clique limpa o chat e recomeça a
+                      aula do início) e "Gerar novo desafio" no fluxo normal e
+                      na 2ª falha (comportamento de sempre, intacto). */}
+                  {onViewLesson ? (
+                    <Button
+                      size="small"
+                      variant="outlined"
+                      color="primary"
+                      onClick={onViewLesson}
+                      startIcon={<MenuBookIcon />}
+                      sx={{ mt: 1 }}
+                    >
+                      {t('translation:lesson.viewLessonButton')}
+                    </Button>
+                  ) : (
+                    <Button
+                      size="small"
+                      variant="outlined"
+                      color="secondary"
+                      onClick={onRegenerate}
+                      disabled={regenerateDisabled}
+                      startIcon={<AutoAwesomeIcon />}
+                      sx={{ mt: 1 }}
+                    >
+                      {t('translation:challenge.regenerateButton')}
+                    </Button>
+                  )}
                 </motion.span>
               ) : null}
             </>

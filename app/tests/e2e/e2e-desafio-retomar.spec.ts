@@ -87,6 +87,25 @@
  *      `lastVerdict === 'passed'` (com o defeito fica 'abandoned'), coerente
  *      com a aula `done=true` e a próxima destravada na Trilha.
  *
+ * ══════════════════════════════════════════════════════════════════════
+ * ONDA2 (FALHA-VER-AULA): O DESAFIO TENTADO ANTES DA AULA
+ * ══════════════════════════════════════════════════════════════════════
+ * Pedido do dono, verbatim: "quando clico em tentar desafio e falho, posso
+ * clicar para VER A AULA e não em próximo ou continuar, porque tentei o
+ * desafio antes da aula — clicar nisso limpa tudo e começa a aula do início.
+ * Nesse caso o aluno REFAZ O MESMO teste; somente se falhar de novo é que se
+ * gera um novo desafio". O 4º caso desta spec prova o ciclo INTEIRO na GUI:
+ *
+ *   4. CARD DE INÍCIO DA AULA (sem "Começar aula") → "Tentar o desafio
+ *      agora" → desafio da aula → submissão errada → o painel fecha e a aula
+ *      reabre com a bolha de erro oferencendo "VER A AULA" — e NUNCA "Gerar
+ *      novo desafio" (a 1ª falha é antes da aula). Clicar "Ver a aula" LIMPA
+ *      TUDO (as bolhas do erro somem, o chat volta à bolha inicial) e o CARD
+ *      reaparece com o CTA "Tentar o mesmo desafio de novo" — o MESMO
+ *      challengeId. Clicá-lo reabre o desafio com o RASCUNHO retomável (o
+ *      código do aluno volta, o submit volta habilitado): o retry do MESMO
+ *      teste, e só uma NOVA falha geraria desafio novo.
+ *
  * ══════════════════════════════════════════════════════════════════════════
  * AS MUTAÇÕES QUE ESTA SPEC MATA (medidas, não deduzidas)
  * ══════════════════════════════════════════════════════════════════════════
@@ -411,6 +430,31 @@ async function openModuleChallenge(page: Page): Promise<void> {
   // Enunciado do desafio do módulo carregado (pré-"Começar"). O título aparece
   // no cabeçalho do painel E no markdown do enunciado — usa o primeiro.
   await waitForUiOrRetry(page, page.getByRole('heading', { name: 'Desafio do módulo' }));
+}
+
+/**
+ * ONDA2 (falha-ver-aula): caminho do ALUNO pelo CARD DE INÍCIO DA AULA — sem
+ * "Começar aula", o chat está na bolha inicial e o card do desafio está logo
+ * abaixo dela (a exceção do dono ao gate: quem clica aqui está pulando a
+ * teoria). O clique marca a tentativa como "antes da aula"
+ * (`attemptedBeforeLesson`) — é o que decide a bolha de erro depois.
+ */
+async function openTrackChallengeFromCard(page: Page): Promise<void> {
+  await page.getByRole('banner').getByText('Study Method — Tutor', { exact: false }).first().waitFor();
+  await waitForUiOrRetry(page, page.getByText('Node.js do Zero', { exact: false }));
+  await page.getByText('Node.js do Zero', { exact: false }).first().click();
+  await waitForUiOrRetry(page, page.getByText('Aula E2E sobre funções', { exact: false }));
+  await page.getByText('Aula E2E sobre funções', { exact: false }).first().click();
+  await waitForUiOrRetry(page, page.getByRole('heading', { name: 'Aula E2E sobre funções' }));
+  // O nome acessível do CTA do card é a aria-label (o dono do i18n da onda 1
+  // deixou a chave, esta onda a ligou): "Tentar o desafio agora: O dobro do
+  // número". O título do desafio no card vem do payload.
+  await waitForUiOrRetry(
+    page,
+    page.getByRole('button', { name: /Tentar o desafio agora: O dobro do número/ }),
+  );
+  await page.getByRole('button', { name: /Tentar o desafio agora/ }).first().click();
+  await waitForUiOrRetry(page, page.getByRole('heading', { name: 'O dobro do número' }));
 }
 
 /**
@@ -902,4 +946,96 @@ test('e2e-desafio-retomar: o veredito do submit SOBREVIVE à troca de aba no mei
     await readRecordedVerdict(page, 'dobro-do-numero'),
     'estado INCOERENTE: aula concluída na Trilha com o desafio sem veredito aprovado na aula',
   ).toBe('passed');
+});
+
+/**
+ * ONDA2 (falha-ver-aula) — O CICLO INTEIRO do desafio tentado ANTES da aula.
+ *
+ * Fluxo do dono: card de início da aula → "Tentar o desafio agora" → falha →
+ * a bolha de erro oferece "VER A AULA" (NUNCA "Gerar novo desafio" na 1ª
+ * falha) → o clique LIMPA TUDO (as bolhas do erro somem; o chat volta à bolha
+ * inicial) → o card reaparece com "Tentar o mesmo desafio de novo" (o MESMO
+ * challengeId) → o retry reabre o desafio com o RASCUNHO retomável (o código
+ * do aluno voltou, o "Testar resposta" voltou habilitado). A mutação que este
+ * caso mata: oferecer "Gerar novo desafio" na bolha da 1ª falha (ou um botão
+ * de avanço no lugar de "Ver a aula") — a bolha mudaria de rótulo e a
+ * asserção do nome acessível morde.
+ */
+test('e2e-desafio-retomar: desafio tentado ANTES da aula — falha oferece "Ver a aula", que limpa o chat e reabre O MESMO desafio pelo card', async () => {
+  test.setTimeout(180_000);
+
+  const launched = await launchApp({
+    env: { E2E_GATE: 'ready', E2E_WORKSPACE_ROOT: wsRoot! },
+  });
+  app = launched.app;
+  page = launched.page;
+
+  // ─── 1) CARD de início da aula (sem "Começar aula") → desafio ───────────
+  await openTrackChallengeFromCard(page);
+  await page.getByRole('button', { name: 'Começar', exact: true }).click();
+  const editor = page.locator('.cm-content').first();
+  await expect(editor).toBeVisible();
+
+  // Código do aluno com marcador único (o starter é só "// TODO" — o submit
+  // falha por si; o marcador prova depois que o RASCUNHO voltou no retry).
+  await editor.click();
+  await page.keyboard.press('Control+End');
+  await page.keyboard.press('Enter');
+  await page.keyboard.type(RETOMADA_MARKER);
+  await expect(editor).toContainText(RETOMADA_MARKER);
+
+  // ─── 2) SUBMISSÃO ERRADA → o painel fecha e a aula reabre ───────────────
+  // ONDA2 error-flow: markAttempt → reportChallengeError → navigateToLesson —
+  // é o mecanismo de "Ver a aula": o aluno VOLTAR à aula, nunca a um avanço.
+  await page.getByRole('button', { name: 'Testar resposta', exact: true }).click();
+  await expect(
+    page.getByText('Seu código falhou nos testes', { exact: false }),
+    'a bolha de erro não semeou no chat da aula depois da falha',
+  ).toBeVisible({ timeout: 45_000 });
+
+  // ─── 3) A BOLHA OFERECE "Ver a aula" — e NUNCA "Gerar novo desafio" ─────
+  // 1ª falha do desafio tentado antes da aula (regra do dono: só se falhar DE
+  // NOVO, já depois da aula, é que se gera um novo desafio).
+  const verAula = page.getByRole('button', { name: 'Ver a aula', exact: true });
+  await expect(
+    verAula,
+    'a bolha de erro da 1ª falha (desafio tentado antes da aula) não ofereceu "Ver a aula"',
+  ).toBeVisible();
+  await expect(
+    page.getByRole('button', { name: 'Gerar novo desafio' }),
+    'a bolha de erro ofereceu "Gerar novo desafio" na 1ª falha ANTES da aula — viola a regra do dono',
+  ).toHaveCount(0);
+
+  // ─── 4) "Ver a aula" LIMPA TUDO e a aula recomeça do início ────────────
+  await verAula.click();
+  // As bolhas do erro SUMIRAM (o cache de sessão do chat foi limpo junto).
+  await expect(
+    page.getByText('Seu código falhou nos testes', { exact: false }),
+    '"Ver a aula" não limpou a conversa — as bolhas do erro continuam lá',
+  ).toHaveCount(0);
+  // O chat voltou à bolha inicial (a aula recomeça do início).
+  await expect(page.getByRole('button', { name: 'Começar aula', exact: true })).toBeVisible();
+
+  // ─── 5) O CARD volta com o CTA do retry do MESMO desafio ────────────────
+  // O payload recarregado depois da falha traz lastVerdict 'failed' (e
+  // failedCount 1) — o CTA do card muda para o retry do MESMO challengeId.
+  const retryCard = page.getByRole('button', { name: 'Tentar o mesmo desafio de novo: O dobro do número' });
+  await expect(
+    retryCard,
+    'o card não voltou com o CTA "Tentar o mesmo desafio de novo" (ou o payload chegou sem o veredito da falha)',
+  ).toBeVisible({ timeout: 20_000 });
+
+  // ─── 6) O RETRY reabre O MESMO desafio, com o rascunho retomável ────────
+  await retryCard.click();
+  await waitForUiOrRetry(page, page.getByRole('heading', { name: 'O dobro do número' }));
+  const codeRetry = normalizeCode(await readEditorText(page));
+  expect(
+    codeRetry,
+    'o retry pelo card NÃO preservou o código do aluno (o rascunho da tentativa falhada não voltou retomável)',
+  ).toContain(RETOMADA_MARKER);
+  await expect(
+    page.getByRole('button', { name: 'Testar resposta', exact: true }),
+    'o "Testar resposta" não voltou habilitado no retry — o rascunho voltou travado',
+  ).toBeEnabled();
+  console.log('[desafio-retomar] falha-ver-aula: bolha ofereceu "Ver a aula", limpou o chat e o card reabriu O MESMO desafio retomável');
 });

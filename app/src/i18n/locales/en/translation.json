@@ -3,7 +3,7 @@
     "home": "Home",
     "settings": "Settings",
     "lesson": "Lesson",
-    "challenge": "Challenge",
+    "challenge": "Challenge (open it from the Lesson or the Track)",
     "roadmap": "Trail"
   },
   "app": {
@@ -256,13 +256,17 @@
     "challengeIntroCardAria": "This lesson's challenge: {{title}}",
     "challengeIntroCardHint": "Want to skip the theory? The challenge is available from the very start of the lesson.",
     "challengeIntroCardTry": "Try the challenge now",
+    "challengeIntroCardTryAgain": "Try the same challenge again",
     "challengeIntroCardTryAria": "Try the challenge now: {{title}}",
+    "challengeIntroCardTryAgainAria": "Try the same challenge again: {{title}}",
     "challengesListAria": "Challenges list of this lesson",
     "difficulty": "difficulty {{n}}",
     "generatedBadge": "generated for you",
     "challengePassed": "Passed with {{stars}} star(s)",
     "challengeFailedCount": "Failed {{n}} time(s) — try again",
+    "challengeNotPassed": "Attempt not completed",
     "challengeUntried": "Never tried",
+    "viewLessonButton": "View the lesson",
     "sourcesTitle": "Sources for this lesson",
     "trackNotFound": "Lesson not found in the track.",
     "trackLoadFailed": "Could not load the lesson.",
@@ -556,8 +560,8 @@
         "description": "Click \"Generate lesson\" to research sources and build the material."
       },
       "openChallenge": {
-        "title": "Go to Challenge",
-        "description": "Click the Challenge tab to practice with an exercise."
+        "title": "Practice with a challenge",
+        "description": "Open a challenge from the Lesson (intro card or Challenges button) or from the Track."
       },
       "challengeEditorType": {
         "description": "Write your solution in this code editor (no autocomplete)."
@@ -570,7 +574,7 @@
         "description": "Navigate to the Lesson tab to generate a study material."
       },
       "qsOpenChallenge": {
-        "description": "Navigate to the Challenge tab to practice challenges."
+        "description": "Open a challenge from the Lesson or the Track to practice."
       },
       "qsChallengeTestAnswer": {
         "description": "When you solve a challenge, click \"Test answer\" to validate."

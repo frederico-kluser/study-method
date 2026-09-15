@@ -81,3 +81,56 @@ export function lessonChallengeCard(input: LessonChallengeCardInput): LessonChal
   if (pending.length === 0) return { show: false, challenge: null };
   return { show: true, challenge: pending[0] };
 }
+
+// ─── ONDA2 (falha-ver-aula): o que a bolha de erro oferece depois da falha ───
+//
+// Pedido do dono, verbatim: "quando clico em tentar desafio e falho, posso
+// clicar para VER A AULA e não em próximo ou continuar, porque tentei o
+// desafio antes da aula — clicar nisso limpa tudo e começa a aula do início.
+// Nesse caso o aluno REFAZ O MESMO teste; somente se falhar de novo é que se
+// gera um novo desafio".
+
+/** Ação que a bolha de erro do chat da aula oferece. */
+export type LessonChallengeBubbleAction = 'viewLesson' | 'regenerate';
+
+/** Entrada da regra — o que a LessonView sabe SEM IPC e sem jsdom. */
+export interface LessonChallengeBubbleActionInput {
+  /**
+   * A falha veio do desafio aberto pelo CARD de início da aula (flag
+   * `errorBeforeLesson` da bolha 'review', que veio do relatório de erro, que
+   * veio do `TrackChallengeNavSelection`).
+   */
+  attemptedBeforeLesson: boolean;
+  /**
+   * `failedCount` do desafio no payload `track.lesson` (falhas + timeouts
+   * gravados). A falha que semeou a bolha JÁ está contada (o `markAttempt` do
+   * painel roda ANTES de navegar de volta) — então 1ª falha = 1, 2ª falha = 2.
+   */
+  failedCount: number;
+}
+
+/**
+ * A bolha de erro oferece "Ver a aula" ou "Gerar novo desafio"? PURA.
+ *
+ * Regra do dono: na falha do desafio TENTADO ANTES DA AULA, a bolha NÃO
+ * oferece "Gerar novo desafio" — oferece "Ver a aula" (que limpa o chat e
+ * recomeça a aula do início; o aluno depois REFAZ O MESMO teste pelo card).
+ * Só depois de falhar DE NOVO (2ª falha — `failedCount >= 2`, já com a aula
+ * vista) é que o novo desafio se gera.
+ *
+ * Casos, na ordem:
+ *   - flag ausente (fluxo normal pós-teoria — popover "Desafios", gate
+ *     intacto) → 'regenerate': é o comportamento que a bolha SEMPRE teve;
+ *   - flag presente + failedCount < 2 → 'viewLesson' (a 1ª falha antes da
+ *     aula);
+ *   - flag presente + failedCount >= 2 → 'regenerate' (falhou DE NOVO: o dono
+ *     manda gerar o desafio novo — mesmo vindo do card de novo).
+ */
+export function lessonChallengeBubbleAction(
+  input: LessonChallengeBubbleActionInput,
+): LessonChallengeBubbleAction {
+  // `!(x >= 2)` (e não `x < 2`): NaN cai no ramo da 1ª falha — payload
+  // indefinido nunca deve autorizar gerar desafio novo antes da aula.
+  if (input.attemptedBeforeLesson && !(input.failedCount >= 2)) return 'viewLesson';
+  return 'regenerate';
+}

@@ -152,6 +152,17 @@ export interface TutorChatMessage {
    * stripa).
    */
   errorFor?: string;
+  /**
+   * ONDA2 (falha-ver-aula): a falha desta 'review' veio do desafio tentado
+   * ANTES da aula (flag `attemptedBeforeLesson` do relatório — ver
+   * `buildErrorReport`). Só a bolha 'review' carrega; presente só quando
+   * TRUE (a ausência = fluxo normal). É o que a LessonView alimenta na regra
+   * pura `lessonChallengeBubbleAction` para trocar "Gerar novo desafio" por
+   * "Ver a aula" na 1ª falha (a 2ª, já depois da aula, é detectável pelo
+   * `failedCount` do payload). NUNCA trafega no histórico enviado ao main
+   * (chatHistory stripa).
+   */
+  errorBeforeLesson?: boolean;
 }
 
 export interface TrackLessonUiState {
@@ -581,6 +592,12 @@ export interface BuildErrorReportArgs {
   files: { path: string; code: string }[];
   /** Resultado de track:challenge-submit (passed=false). */
   result: TrackSubmitResult;
+  /**
+   * ONDA2 (falha-ver-aula): a tentativa veio do card de início da aula
+   * (flag `attemptedBeforeLesson` do `TrackChallengeNavSelection`, ecoado
+   * pelo painel). Opcional — ausente no fluxo normal pós-teoria.
+   */
+  attemptedBeforeLesson?: boolean;
 }
 
 /**
@@ -600,6 +617,9 @@ export function buildErrorReport(args: BuildErrorReportArgs): TrackChallengeErro
     checks: args.result.checks.map((c) => ({ name: c.name, passed: c.passed })),
     passedCount: args.result.passedCount,
     totalCount: args.result.totalCount,
+    // ONDA2 (falha-ver-aula): copia o flag SÓ quando presente — no fluxo
+    // normal o campo fica ausente (o relatório é o mesmo objeto de sempre).
+    ...(args.attemptedBeforeLesson ? { attemptedBeforeLesson: true } : {}),
   };
 }
 
@@ -739,6 +759,11 @@ export function seedChallengeError(
     role: 'assistant',
     kind: 'review',
     errorFor: report.challengeId,
+    // ONDA2 (falha-ver-aula): a bolha lembra QUE a falha veio do desafio
+    // tentado antes da aula — a discussão sobrevive ao 'next' (que zera o
+    // `challengeError` do estado, mas mantém as bolhas), e a decisão do botão
+    // da bolha tem de sobreviver junto.
+    ...(report.attemptedBeforeLesson ? { errorBeforeLesson: true } : {}),
     ts: now,
     content: formatErrorBubble(report, labels),
   };

@@ -34,6 +34,21 @@ export interface TrackChallengeNavSelection {
   challengeId: string;
   /** título do desafio para o cabeçalho (vem do payload da aula). */
   title?: string;
+  /**
+   * ONDA2 (falha-ver-aula): o desafio foi aberto pelo CARD DE INÍCIO DA AULA
+   * (`openChallengeFromCard` — a exceção do dono ao gate), ou seja, ANTES de o
+   * aluno ter visto a aula. Presente SÓ neste caminho: o fluxo normal pós-
+   * teoria (popover "Desafios", `openChallenge`, com o gate) JAMAIS o seta.
+   *
+   * Quem lê: o TrackChallengePanel, que em falha de desafio de AULA com este
+   * flag não oferece "Gerar novo desafio" (a 1ª falha é antes da aula — o
+   * caminho é "Ver a aula", que recomeça a aula do início; só a 2ª falha, já
+   * depois da aula, gera desafio novo). O flag viaja também no
+   * `TrackChallengeErrorReport` (o painel o copia para o relatório), e é de lá
+   * que a bolha de erro da LessonView decide o botão (regra pura
+   * `lessonChallengeBubbleAction` em lessonChallengeCard.ts).
+   */
+  attemptedBeforeLesson?: boolean;
 }
 
 /** Estado+functors expostos pelo contexto. */

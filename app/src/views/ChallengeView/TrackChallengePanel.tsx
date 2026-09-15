@@ -72,6 +72,9 @@ import RefreshIcon from '@mui/icons-material/Refresh';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import CancelIcon from '@mui/icons-material/Cancel';
+// ONDA2 (falha-ver-aula): ícone do botão "Ver a aula" na tela de veredito
+// terminal do desafio de aula tentado antes da aula.
+import MenuBookIcon from '@mui/icons-material/MenuBook';
 
 import { getApi } from '../../lib/apiBridge';
 import {
@@ -941,6 +944,11 @@ export function TrackChallengePanel({
             challengeTitle: spec.title,
             files,
             result: res,
+            // ONDA2 (falha-ver-aula): ecoa o flag do card de início da aula —
+            // é ele que faz a bolha de erro da LessonView oferecer "Ver a
+            // aula" (e não "Gerar novo desafio") na 1ª falha. O fluxo normal
+            // (popover, sem flag) não muda nada aqui.
+            attemptedBeforeLesson: selection.attemptedBeforeLesson === true ? true : undefined,
           });
           nav.reportChallengeError(errorReport);
           nav.navigateToLesson();
@@ -1335,24 +1343,45 @@ export function TrackChallengePanel({
                 erro + botão de NOVO desafio. Veredito parcial (passou alguns
                 testes) também conta como não-aprovação: só passed=true aprova.
                 ONDA2 (error-flow): para target 'lesson' este botão NÃO chega a
-                renderizar — o painel FECHA no submit falho e a regeneração
+                renderizar no submit falho — o painel FECHA e a regeneração
                 migrou para a bolha de erro no chat da aula. Aqui ele segue
                 para a proficiência. ADITIVO (rodada 9): desafios de MÓDULO são
                 autorais — a regeneração é por AULA, então não aparece para
-                target 'module'. */}
+                target 'module'.
+                ONDA2 (falha-ver-aula): o desafio de aula TENTADO ANTES DA AULA
+                (flag do card) que chega a uma tela de veredito terminal (o
+                caminho real é o TIMEOUT do tick — o submit falho fecha o
+                painel antes) NÃO oferece "Gerar novo desafio": a 1ª falha é
+                antes da aula, e o dono manda levar o aluno de VOLTA à aula
+                ("Ver a aula"), que recomeça do início; só a 2ª falha gera
+                desafio novo. O relatório para a bolha, quando existe, já foi
+                reportado no submit; no timeout não há resultado de runner — a
+                volta é sem bolha, e o card 'failed' da aula conduz o retry do
+                MESMO desafio. */}
             {selection.target !== 'module' && (concluded === 'failed' || concluded === 'timeout') ? (
-              <Button
-                variant="outlined"
-                color="secondary"
-                onClick={() => void handleRegenerate()}
-                // ONDA3 (generate-flow): o gating também cobre o processo
-                // GLOBAL em voo (o modal pode estar rodando mesmo se este
-                // painel montou depois do disparo).
-                disabled={regenerating || generateRunning}
-                startIcon={regenerating ? <CircularProgress size={16} /> : <AutoAwesomeIcon />}
-              >
-                {t('translation:challenge.regenerateButton')}
-              </Button>
+              selection.target === 'lesson' && selection.attemptedBeforeLesson === true ? (
+                <Button
+                  variant="outlined"
+                  color="primary"
+                  onClick={() => nav.navigateToLesson()}
+                  startIcon={<MenuBookIcon />}
+                >
+                  {t('translation:lesson.viewLessonButton')}
+                </Button>
+              ) : (
+                <Button
+                  variant="outlined"
+                  color="secondary"
+                  onClick={() => void handleRegenerate()}
+                  // ONDA3 (generate-flow): o gating também cobre o processo
+                  // GLOBAL em voo (o modal pode estar rodando mesmo se este
+                  // painel montou depois do disparo).
+                  disabled={regenerating || generateRunning}
+                  startIcon={regenerating ? <CircularProgress size={16} /> : <AutoAwesomeIcon />}
+                >
+                  {t('translation:challenge.regenerateButton')}
+                </Button>
+              )
             ) : null}
 
             {concluded === 'passed' && selection.target === 'proficiency' ? (

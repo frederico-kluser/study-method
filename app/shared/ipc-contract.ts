@@ -608,6 +608,16 @@ export interface TrackChallengeErrorReport {
   checks: { name: string; passed: boolean }[];
   passedCount: number;
   totalCount: number;
+  /**
+   * ONDA2 (falha-ver-aula): a tentativa que gerou este relatório veio do CARD
+   * de início da aula (o desafio foi tentado ANTES da aula — o flag do
+   * `TrackChallengeNavSelection`, copiado pelo painel no submit). Opcional e
+   * exclusivo do renderer (o relatório nunca sai do renderer: é contexto do
+   * ChallengeNavCtx, não payload de IPC). A bolha de erro da LessonView usa
+   * este flag (via `seedChallengeError` → `errorBeforeLesson` na mensagem
+   * 'review') para trocar "Gerar novo desafio" por "Ver a aula" na 1ª falha.
+   */
+  attemptedBeforeLesson?: boolean;
 }
 
 export interface TutorChatRequest {

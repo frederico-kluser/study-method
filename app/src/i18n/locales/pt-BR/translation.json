@@ -3,7 +3,7 @@
     "home": "Início",
     "settings": "Settings",
     "lesson": "Aula",
-    "challenge": "Desafio",
+    "challenge": "Desafio (abra pela Aula ou pela Trilha)",
     "roadmap": "Trilha"
   },
   "app": {
@@ -256,13 +256,17 @@
     "challengeIntroCardAria": "Desafio desta aula: {{title}}",
     "challengeIntroCardHint": "Quer pular a teoria? O desafio já está disponível desde o começo da aula.",
     "challengeIntroCardTry": "Tentar o desafio agora",
+    "challengeIntroCardTryAgain": "Tentar o mesmo desafio de novo",
     "challengeIntroCardTryAria": "Tentar o desafio agora: {{title}}",
+    "challengeIntroCardTryAgainAria": "Tentar o mesmo desafio de novo: {{title}}",
     "challengesListAria": "Lista de desafios desta aula",
     "difficulty": "dificuldade {{n}}",
     "generatedBadge": "gerado para você",
     "challengePassed": "Passou com {{stars}} estrela(s)",
     "challengeFailedCount": "Falhou {{n}} vez(es) — tente de novo",
+    "challengeNotPassed": "Tentativa não concluída",
     "challengeUntried": "Nunca tentado",
+    "viewLessonButton": "Ver a aula",
     "sourcesTitle": "Fontes desta aula",
     "trackNotFound": "Aula não encontrada na trilha.",
     "trackLoadFailed": "Não foi possível carregar a aula.",
@@ -556,8 +560,8 @@
         "description": "Clique em \"Gerar aula\" para pesquisar fontes e montar o material."
       },
       "openChallenge": {
-        "title": "Vá para Desafio",
-        "description": "Clique na aba Desafio para praticar com um exercício."
+        "title": "Pratique com um desafio",
+        "description": "Abra um desafio pela Aula (card de início ou botão Desafios) ou pela Trilha."
       },
       "challengeEditorType": {
         "description": "Escreva sua solução neste editor de código (sem autocomplete)."
@@ -570,7 +574,7 @@
         "description": "Navegue até a aba Aula para gerar um material de estudo."
       },
       "qsOpenChallenge": {
-        "description": "Navegue até a aba Desafio para praticar os desafios."
+        "description": "Abra um desafio pela Aula ou pela Trilha para praticar."
       },
       "qsChallengeTestAnswer": {
         "description": "Ao resolver um desafio, clique em \"Testar resposta\" para validar."
