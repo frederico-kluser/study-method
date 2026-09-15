@@ -96,7 +96,8 @@ Porque mudam a decisão do modelo em runtime:
 Isso revoga a forma `memory-digest.sh --memory-dir <caminho>` que circulava em `docs/03`.
 
 Todos vivem em `scripts/`, relativo ao diretório da skill instalada
-(`~/.claude/skills/study-method/` ou `<projeto>/.claude/skills/study-method/`).
+(`<projeto>/.claude/skills/study-method/` — destino padrão do `install.sh` — ou
+`~/.claude/skills/study-method/` se instalada pessoalmente).
 
 ---
 

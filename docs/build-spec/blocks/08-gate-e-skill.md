@@ -27,7 +27,7 @@ reinventa sem errar.
 | Item | Valor |
 |---|---|
 | Caminho no repositório | `skills/study-method/SKILL.md` |
-| Caminho instalado | `~/.claude/skills/study-method/SKILL.md` (pessoal) ou `<projeto>/.claude/skills/study-method/SKILL.md` |
+| Caminho instalado | `<projeto>/.claude/skills/study-method/SKILL.md` (de projeto — destino padrão do `install.sh`, sempre local) ou `~/.claude/skills/study-method/SKILL.md` (pessoal) |
 | Formato | frontmatter YAML delimitado por `---` + corpo Markdown |
 | Papel | **roteador**: nomeia os passos, aponta a `references/` de cada passo, e carrega as regras que valem em **todo turno** |
 | Não é | manual, tutorial, catálogo de schemas, ou cópia de `references/` |

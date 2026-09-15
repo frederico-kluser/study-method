@@ -572,17 +572,18 @@ com mensagem clara — nunca skip silencioso).
   - `app_node_modules_ok` — prova de instalação COMPLETA = marcador
     `node_modules/.install-ok` (não basta a pasta existir).
 - **`run.sh`** — sequência garantida: checa node → garante `.env.local` → sem o
-  marcador, roda `install.sh` (única parte com download; a primeira vez pode
-  levar minutos) → `exec app/run-dev.sh` (carrega `.env.local` e sobe
-  electron-vite, janela visível). **O usuário nunca precisa rodar `./install.sh`
-  antes.**
-- **`install.sh`** — idempotente: skill só recopia se a origem não está íntegra
+  marcador, roda `npm ci` DIRETO em `app/` (com `HUSKY=0`; única parte com download; a
+  primeira vez pode levar minutos) → `exec app/run-dev.sh` (carrega `.env.local` e sobe
+  electron-vite, janela visível). **O usuário nunca precisa rodar `./install.sh` antes** —
+  e o `run.sh` NUNCA instala skill nenhuma (nem local, nem global): a instalação de skills
+  é manual (`install.sh` ou "À mão" no README).
+- **`install.sh`** — idempotente: skills de `skills/*/` vão para `.claude/skills/` do
+  PRÓPRIO repositório (destino LOCAL — nada é escrito fora do clone; `CLAUDE_SKILLS_DIR`
+  continua aceito como override); skill só recopia se a origem não está íntegra
   no destino (`src_installed_in`, comparação conteúdo a conteúdo; extras no
   destino não forçam recópia); `npm ci` só sem marcador; **marcador escrito só
   após `npm ci` exit 0** — ci morto no meio (disco lento, queda de rede) deixa a
-  pasta pela metade SEM marcador e a próxima execução refaz; fix de bug latente
-  `chmod 700 -- dir` → `chmod 700 dir` (no macOS `--` não é aceito e o chmod
-  falhava).
+  pasta pela metade SEM marcador e a próxima execução refaz.
 - **Testes** `app/tests/runsh-bootstrap.test.ts` (10 casos) — rodam os scripts
   bash REAIS num tmp com **node/npm falsos no PATH** (sem rede, determinístico):
   clone sem node_modules instala tudo e sobe; segunda execução é no-op rápido;

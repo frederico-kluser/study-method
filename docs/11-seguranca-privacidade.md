@@ -922,7 +922,8 @@ Sem ele, "o study-method é local" é meia verdade.
 #### O que o projeto faz para ser auditável
 
 - **Instalação sem `curl | bash`**: `git clone` + copiar/symlink o diretório da skill para
-  `~/.claude/skills/study-method`. O usuário vê o conteúdo antes de qualquer coisa executar.
+  `<projeto>/.claude/skills/study-method` (de projeto — o destino padrão do `install.sh`,
+  sempre local ao clone). O usuário vê o conteúdo antes de qualquer coisa executar.
 - **Sem download em tempo de instalação**: nenhuma dependência é baixada. Se não roda com o que
   já está na máquina, o script diz o que falta e para — não instala nada por conta própria.
 - **Scripts curtos, POSIX/bash, em texto legível**: sem minificação, sem base64, sem binário, sem
@@ -933,9 +934,11 @@ Sem ele, "o study-method é local" é meia verdade.
 - **Zero telemetria**, sem exceção e sem "modo anônimo" (**D-S07**).
 - **Caminhos de escrita declarados e restritos a dois**, e o mesmo `grep` acima pode conferir.
 - **Um aviso sobre precedência**: `docs/research/01-agent-skills.md` §3.2 (repositório) mostra que
-  uma skill pessoal (`~/.claude/skills/`) sobrepõe uma de projeto de mesmo nome. Quem clonar o
-  repo dentro de um projeto pode achar que está rodando a versão que acabou de auditar e estar
-  rodando outra, instalada antes. O README diz como conferir de onde a skill está carregando.
+  uma skill pessoal (`~/.claude/skills/`) sobrepõe uma de projeto de mesmo nome — inclusive a de
+  projeto que este repositório instala em `.claude/skills/` do próprio clone. Quem já tinha a
+  `study-method` pessoal instalada pode achar que roda a versão que acabou de auditar e estar
+  rodando outra, instalada antes (que fica como está — nada a toca). O README diz como conferir
+  de onde a skill está carregando.
 
 Um controle que **não** vamos fingir ter: assinatura. Não há verificação criptográfica de que o
 que foi clonado é o que publicamos, além do que o próprio Git e a plataforma de hospedagem

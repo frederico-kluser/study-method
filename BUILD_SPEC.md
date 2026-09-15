@@ -135,14 +135,14 @@ O que ele **não** é, item a item — cada linha existe porque a confusão corr
 | Um sistema com banco de dados | Arquivos JSON planos, `jq` como única ferramenta estruturada garantida, `python3` só stdlib. Um setup é 100% reconstruível a partir do próprio `setup.json` + os quatro diretórios. |
 | Um repositório de conteúdo | A teoria é **do aluno** (`docs/` do setup). A skill é read-only ali, com uma exceção nomeada (`docs/generated/`), marcada em três camadas. |
 
-**Como o produto se apresenta.** É um repositório do GitHub instalável por cópia ou symlink em `~/.claude/skills/study-method/` (pessoal) ou `<projeto>/.claude/skills/study-method/`. O nome do diretório **deve** ser idêntico ao campo `name` do frontmatter do `SKILL.md` — no padrão aberto o `name` casa com o diretório-pai, e no Claude Code é o nome do diretório que vira o comando `/study-method`.
+**Como o produto se apresenta.** É um repositório do GitHub instalável por cópia ou symlink em `<projeto>/.claude/skills/study-method/` (de projeto — destino padrão do `install.sh`, sempre local) ou `~/.claude/skills/study-method/` (pessoal, se você já a tinha — nada a toca). O nome do diretório **deve** ser idêntico ao campo `name` do frontmatter do `SKILL.md` — no padrão aberto o `name` casa com o diretório-pai, e no Claude Code é o nome do diretório que vira o comando `/study-method`.
 
 **Três entidades com nomes parecidos, que este documento nunca confunde:**
 
 | Entidade | O que é | Onde vive | Quem escreve |
 |---|---|---|---|
 | **Repositório** | O projeto de engenharia: pesquisa, documentos normativos, código da skill, testes, exemplos. | o clone do usuário | desenvolvedores |
-| **Skill instalada** | O artefato que o harness carrega: `SKILL.md` + `references/` + `scripts/` + `assets/`. É código + instrução, **nunca** dado de aluno. | `~/.claude/skills/study-method/`; no repositório, `skills/study-method/` — doravante **`SK/`** | desenvolvedores; instalada por cópia/symlink |
+| **Skill instalada** | O artefato que o harness carrega: `SKILL.md` + `references/` + `scripts/` + `assets/`. É código + instrução, **nunca** dado de aluno. | `<projeto>/.claude/skills/study-method/` (de projeto — destino padrão do `install.sh`); no repositório, `skills/study-method/` — doravante **`SK/`** | desenvolvedores; instalada por cópia/symlink |
 | **Setup** | O diretório de estudo de **um assunto** (ex.: Cálculo I). É o dado do aluno. | qualquer lugar do disco escolhido pelo aluno | a skill (em runtime) e o aluno |
 
 Um aluno tem **N setups** e **uma** skill instalada. A ponte entre eles é o registry global (§1.8).
@@ -191,7 +191,7 @@ Ser um repositório público que pessoas clonam e instalam **é um requisito**, 
 
 | # | Critério de aceitação | Verificação |
 |---|---|---|
-| G1 | **Instalação sem `curl \| bash`.** `git clone` + copiar/symlink o diretório da skill para `~/.claude/skills/study-method`. O usuário vê o conteúdo **antes** de qualquer coisa executar. | leitura do `README.md` do repositório |
+| G1 | **Instalação sem `curl \| bash`.** `git clone` + copiar/symlink o diretório da skill para `<projeto>/.claude/skills/study-method` (de projeto — o `install.sh` faz isso, sempre local ao clone). O usuário vê o conteúdo **antes** de qualquer coisa executar. | leitura do `README.md` do repositório |
 | G2 | **Sem download em tempo de instalação.** Nenhuma dependência é baixada. Se não roda com o que já está na máquina, o script diz **o que falta** e para — não instala nada por conta própria (`sm_require_cmd` **nunca instala**). | I-26 + revisão de `sm_require_cmd` |
 | G3 | **Scripts curtos, em texto legível**: sem minificação, sem base64, sem binário, sem gerador de código. Um script que precisa de explicação para ser lido é um script que ninguém vai auditar. | `gate-lint.sh` |
 | G4 | **Zero rede nos scripts**, auditável pelo mesmo `grep` publicado no `README.md` — oferecido justamente para poder ser rodado **contra nós**. | `grep -rnE 'curl\|wget\|nc \|/dev/tcp\|https?://\|ftp://\|ssh \|scp \|rsync ' skills/study-method/scripts/` (I-26) |
@@ -464,7 +464,7 @@ Nunca a forma nua. Confundir os dois é a falha de documentação mais provável
 | **`README.md` do desafio** | `README.md` | `challenges/<NNNN>-<slug>/README.md` — o enunciado. |
 | **`setup.json`** | `meta.json`, `manifest.json` | ⚑ O manifesto **do setup**, na raiz do setup; os dois nomes da coluna do meio nunca são usados para ele. |
 | **`meta.json`** | `setup.json` | ⚑ O manifesto **do desafio**, dentro de `challenges/<NNNN>-<slug>/`. |
-| **`SK/`** | `skills/` | `skills/study-method/` no repositório; `~/.claude/skills/study-method/` instalado. |
+| **`SK/`** | `skills/` | `skills/study-method/` no repositório; `<projeto>/.claude/skills/study-method/` instalado (destino padrão do `install.sh`). |
 | **`<setup_root>`** | `$SETUP_ROOT`, `SETUP_DIR` | A raiz do setup. Único nome válido em prosa; nos scripts, a variável é `SM_SETUP_ROOT`. |
 
 ⚑ As constantes `SETUP_CTL`, `MANIFEST` e `$SETUP_ROOT/.study-method/` **são revogadas**: `.study-method/` não existe em lugar nenhum.
@@ -6822,7 +6822,8 @@ Porque mudam a decisão do modelo em runtime:
 Isso revoga a forma `memory-digest.sh --memory-dir <caminho>` que circulava em `docs/03`.
 
 Todos vivem em `scripts/`, relativo ao diretório da skill instalada
-(`~/.claude/skills/study-method/` ou `<projeto>/.claude/skills/study-method/`).
+(`<projeto>/.claude/skills/study-method/` — destino padrão do `install.sh` — ou
+`~/.claude/skills/study-method/` se instalada pessoalmente).
 
 ---
 
@@ -7373,7 +7374,7 @@ reinventa sem errar.
 | Item | Valor |
 |---|---|
 | Caminho no repositório | `skills/study-method/SKILL.md` |
-| Caminho instalado | `~/.claude/skills/study-method/SKILL.md` (pessoal) ou `<projeto>/.claude/skills/study-method/SKILL.md` |
+| Caminho instalado | `<projeto>/.claude/skills/study-method/SKILL.md` (de projeto — destino padrão do `install.sh`, sempre local) ou `~/.claude/skills/study-method/SKILL.md` (pessoal) |
 | Formato | frontmatter YAML delimitado por `---` + corpo Markdown |
 | Papel | **roteador**: nomeia os passos, aponta a `references/` de cada passo, e carrega as regras que valem em **todo turno** |
 | Não é | manual, tutorial, catálogo de schemas, ou cópia de `references/` |

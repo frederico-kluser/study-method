@@ -16,7 +16,7 @@ aluno colocou dentro do diretório de estudo). Idem para **`README.md` do reposi
 | Entidade | O que é | Onde vive | Quem escreve |
 |---|---|---|---|
 | **Repositório** | O projeto de engenharia: pesquisa, documentos de arquitetura, código da skill, testes, exemplos. | Qualquer caminho — é o clone do usuário (ex.: `~/Projects/study-method`) | Desenvolvedores do projeto |
-| **Skill instalada** | O artefato que o harness carrega: `SKILL.md` + `references/` + `scripts/` + `assets/`. É código + instrução, **nunca** dado de aluno. | `~/.claude/skills/study-method/` (pessoal) ou `<projeto>/.claude/skills/study-method/`. No repositório ela mora em `skills/study-method/`, doravante **SK/**. | Desenvolvedores; instalada por cópia/symlink |
+| **Skill instalada** | O artefato que o harness carrega: `SKILL.md` + `references/` + `scripts/` + `assets/`. É código + instrução, **nunca** dado de aluno. | `<projeto>/.claude/skills/study-method/` (de projeto — destino padrão do `install.sh`, sempre local) ou `~/.claude/skills/study-method/` (pessoal, se você já a tinha — nada a toca). No repositório ela mora em `skills/study-method/`, doravante **SK/**. | Desenvolvedores; instalada por cópia/symlink |
 | **Setup** | O diretório de estudo de **um assunto** (ex.: Cálculo I). É o dado do aluno: teoria, memória, destilados, desafios. | Qualquer lugar do disco escolhido pelo aluno. Não precisa estar dentro do repositório nem perto da skill. | A skill (em runtime) e o aluno |
 
 O nome do diretório `skills/study-method/` **deve** ser idêntico ao campo `name` do frontmatter

@@ -101,7 +101,7 @@ jobs:
         run: tests/spec-conformance.sh
 
   install:
-    name: install.sh num HOME temporário
+    name: install.sh isolado (skills só no destino local, nada em $HOME)
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
@@ -135,12 +135,19 @@ jobs:
       # script não faz parsing de argumento nenhum. Um teste de `--force`/`--uninstall`/
       # `--symlink` "passa" por acidente (o argumento é ignorado) e não prova nada — pior,
       # deixa o teste ditar o produto. Este job testa a interface REAL, e só ela.
+      #
+      # O destino das skills é LOCAL ao repositório (<repo>/.claude/skills/). Para provar a
+      # ISOLAMENTO (nada escrito fora do clone), os passos 1-7 apontam CLAUDE_SKILLS_DIR para
+      # um tmp (override documentado) com um HOME falso — e conferem que nem o clone nem o
+      # $HOME falso receberam skill por fora. O passo 8 prova o default: sem override, a
+      # skill vai para .claude/skills/ do próprio clone.
       - name: instalar, provar idempotência e provar a recuperação de destino divergente
         run: |
           set -euo pipefail
           export HOME="$RUNNER_TEMP/fakehome"
           mkdir -p "$HOME"
-          DEST="$HOME/.claude/skills/study-method"
+          export CLAUDE_SKILLS_DIR="$HOME/.claude/skills"
+          DEST="$CLAUDE_SKILLS_DIR/study-method"
 
           echo "── 1. instalação limpa ──"
           out="$(./install.sh </dev/null)"
@@ -188,7 +195,20 @@ jobs:
           fi
           grep -qF 'arquivo de outra pessoa' "$DEST/SKILL.md"
 
-          echo "OK: install.sh sem flags, idempotente, convergente e com guarda de destino."
+          echo "── 8. com override, NADA de skill foi escrito fora do destino declarado ──"
+          # nem no clone (o default .claude/skills/ do repo não pode ter sido criado)
+          # nem nenhum diretório de skill em lugar nenhum do $HOME falso além de $DEST
+          # (o find ignora caches tipo $HOME/.npm, que o npm ci pode tocar)
+          test ! -e .claude/skills
+          test -z "$(find "$HOME" -type d -name 'study-method' -not -path "$DEST")"
+
+          echo "── 9. SEM override: o default é LOCAL (<repo>/.claude/skills/) ──"
+          env -u CLAUDE_SKILLS_DIR ./install.sh </dev/null >/dev/null
+          test -f .claude/skills/study-method/SKILL.md
+          diff -r -q skills/study-method .claude/skills/study-method
+
+          echo "OK: install.sh sem flags, idempotente, convergente, com guarda de destino e LOCAL."
+          echo "   (skills nunca vão para $HOME — nem com override, nem sem)"
 
   app:
     name: app (lint + node:test)

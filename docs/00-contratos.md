@@ -844,7 +844,7 @@ caso de `docs/`, uma falha de **segurança** (regras de confiança opostas).
 | **`README.md` do desafio** | `README.md` | `challenges/<NNNN>-<slug>/README.md` — o enunciado. |
 | **`setup.json`** | `meta.json`, `manifest.json` | ⚑ O manifesto **do setup**, na raiz do setup. |
 | **`meta.json`** | `setup.json` | ⚑ O manifesto **do desafio**, dentro de `challenges/<NNNN>-<slug>/`. |
-| **`SK/`** | `skills/` | `skills/study-method/` no repositório; `~/.claude/skills/study-method/` instalado. |
+| **`SK/`** | `skills/` | `skills/study-method/` no repositório; `<projeto>/.claude/skills/study-method/` instalado (destino padrão do `install.sh`). |
 | **`<setup_root>`** | `$SETUP_ROOT`, `SETUP_DIR` | A raiz do setup. Único nome válido em prosa; nos scripts, a variável é `SM_SETUP_ROOT`. |
 
 ⚑ As constantes `SETUP_CTL`, `MANIFEST` e `$SETUP_ROOT/.study-method/` de `docs/10-bootstrap.md`

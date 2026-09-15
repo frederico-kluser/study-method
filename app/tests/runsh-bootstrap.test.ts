@@ -5,6 +5,10 @@
  * FALSOS no PATH: nenhum download, nenhuma rede, determinístico. Os fast-paths
  * provados aqui:
  *   - node_modules com marcador .install-ok → `npm ci` NÃO roda de novo;
+ *   - run.sh NUNCA instala skill nenhuma (nem local, nem global) — nem quando não
+ *     existe skill instalada, nem quando existe; guarda de fonte incluída;
+ *   - install.sh instala skills SÓ no destino local (<repo>/.claude/skills/) — ou
+ *     em CLAUDE_SKILLS_DIR quando presente — e NADA em $HOME;
  *   - skill idêntica na origem×destino → não é recopiada;
  *   - .env.local ausente → criado do example com aviso; presente → nunca sobrescrito;
  *   - node velho → erro claro ANTES de qualquer npm;
@@ -12,6 +16,10 @@
  *
  * O marcador node_modules/.install-ok é a prova de instalação COMPLETA: um npm ci
  * interrompido deixa a pasta pela metade — pasta presente ≠ instalado.
+ *
+ * O subprocesso roda com HOME apontando para um tmp ($HOME falso), então qualquer
+ * tentativa de escrever em $HOME real (ex.: ~/.claude/skills) cai num tmp — e é
+ * DETETADA pelo teste, nunca vaza para a máquina real.
  */
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
@@ -42,6 +50,8 @@ interface FakeProject {
   app: string;
   fakeBin: string;
   skillsDest: string;
+  /** $HOME falso do subprocesso — provas de que nada é escrito em $HOME. */
+  fakeHome: string;
   npmExitFile: string;
   npmLog: string;
   runDevLog: string;
@@ -113,6 +123,8 @@ async function makeFakeProject(o: FakeProjectOptions): Promise<FakeProject> {
   const base = await mkTempDir('runsh-bootstrap-');
   const root = path.join(base, 'proj');
   const app = path.join(root, 'app');
+  const fakeHome = path.join(base, 'home');
+  await writeFile(path.join(fakeHome, '.keep'), '');
   await writeFile(path.join(root, 'tools', 'check-env.sh'), '');
   await writeFile(path.join(root, 'skills', 'study-method', 'SKILL.md'), SKILL_SRC);
 
@@ -164,6 +176,7 @@ async function makeFakeProject(o: FakeProjectOptions): Promise<FakeProject> {
     app,
     fakeBin,
     skillsDest,
+    fakeHome,
     npmExitFile,
     npmLog,
     runDevLog,
@@ -173,6 +186,9 @@ async function makeFakeProject(o: FakeProjectOptions): Promise<FakeProject> {
         env: {
           ...process.env,
           PATH: `${fakeBin}:${process.env.PATH ?? ''}`,
+          // $HOME falso: qualquer escrita em $HOME (ex.: ~/.claude/skills) cai aqui —
+          // e é provada como AUSÊNCIA pelos testes. Nunca toca o $HOME real.
+          HOME: fakeHome,
           CLAUDE_SKILLS_DIR: skillsDest,
           ...extraEnv,
         },
@@ -196,7 +212,7 @@ async function npmCalls(p: FakeProject): Promise<string[]> {
 }
 
 describe('run.sh — bootstrap automático', () => {
-  it('clone sem node_modules: instala (npm ci), instala a skill, cria .env.local do example e sobe o app', async () => {
+  it('clone sem node_modules: instala dependências (npm ci direto), cria .env.local do example e sobe o app — SEM instalar skill nenhuma', async () => {
     const p = await makeFakeProject({
       nodeVersion: 'v22.14.0',
       nodeOk: 'ok',
@@ -208,19 +224,37 @@ describe('run.sh — bootstrap automático', () => {
     const r = p.run('run.sh');
     assert.equal(r.status, 0, `stderr: ${r.stderr}`);
     const out = r.stdout + r.stderr;
-    assert.match(out, /instalando dependências/);
+    assert.match(out, /rodando npm ci/);
     assert.match(out, /preencha as chaves/);
-    assert.match(out, /Skill: instalada por cópia/);
     // npm ci rodou e o marcador de instalação COMPLETA existe
     assert.deepEqual(await npmCalls(p), ['npm ci called']);
     assert.equal(await fileExists(path.join(p.app, 'node_modules', '.install-ok')), true);
     // .env.local criado do example
     assert.equal(await fileExists(path.join(p.app, '.env.local')), true);
     assert.match(await readFile(path.join(p.app, '.env.local')), /OPENROUTER_API_KEY=/);
-    // skill instalada no destino
-    assert.equal(await fileExists(path.join(p.skillsDest, 'study-method', 'SKILL.md')), true);
+    // run.sh NUNCA instala skill: nem no destino do override, nem local, nem global
+    assert.equal(await fileExists(path.join(p.skillsDest, 'study-method')), false);
+    assert.equal(await fileExists(path.join(p.root, '.claude')), false);
+    assert.equal(await fileExists(path.join(p.fakeHome, '.claude')), false);
+    assert.doesNotMatch(out, /Skill:/);
     // app foi delegado para run-dev.sh
     assert.match(await readFile(p.runDevLog), /run-dev called/);
+  });
+
+  it('GUARDA DE FONTE: run.sh não invoca install.sh, não menciona SKILLS_DIR e não mexe em skills/', async () => {
+    const src = await readFile(path.join(REPO_ROOT, 'run.sh'));
+    // O cabeçalho DOCUMENTA o que o run.sh não faz (inclusive citar install.sh);
+    // a guarda vale para o CÓDIGO — linhas executáveis, sem comentários.
+    const code = src
+      .split('\n')
+      .filter((l) => !l.trim().startsWith('#'))
+      .join('\n');
+    assert.doesNotMatch(code, /install\.sh/);
+    assert.doesNotMatch(code, /SKILLS_DIR/);
+    assert.doesNotMatch(code, /install_skill/);
+    // nenhuma referência ao diretório de skills — nem local nem global
+    assert.doesNotMatch(code, /skills\//);
+    assert.doesNotMatch(code, /\.claude/);
   });
 
   it('segunda execução: no-op rápido — sem npm ci, sem recopiar skill, sem recriar .env.local', async () => {
@@ -232,18 +266,21 @@ describe('run.sh — bootstrap automático', () => {
       envLocal: true,
       skillDest: true,
     });
-    // sentinelas: provam que nada é re-copiado/sobrescrito
+    // sentinelas: provam que nada é re-copiado/sobrescrito (run.sh NUNCA toca skills)
     await writeFile(path.join(p.skillsDest, 'study-method', '.sentinel'), 'x');
     await writeFile(path.join(p.app, '.env.local'), '# sentinela do usuário\nOPENROUTER_API_KEY=valor\n');
     const r = p.run('run.sh');
     assert.equal(r.status, 0, `stderr: ${r.stderr}`);
     const out = r.stdout + r.stderr;
-    assert.doesNotMatch(out, /instalando dependências/);
+    assert.doesNotMatch(out, /rodando npm ci/);
     assert.doesNotMatch(out, /instalada por cópia/);
     // npm NUNCA foi chamado
     assert.deepEqual(await npmCalls(p), []);
     // skill não recopiada — o sentinela dentro do destino sobreviveu
     assert.equal(await readFile(path.join(p.skillsDest, 'study-method', '.sentinel')), 'x');
+    // e nenhuma skill nova apareceu em lugar nenhum (run.sh não instala skill)
+    assert.equal(await fileExists(path.join(p.root, '.claude')), false);
+    assert.equal(await fileExists(path.join(p.fakeHome, '.claude')), false);
     // .env.local não recriado — o sentinela do usuário sobreviveu
     assert.match(await readFile(path.join(p.app, '.env.local')), /sentinela do usuário/);
     // app foi delegado
@@ -296,7 +333,7 @@ describe('run.sh — bootstrap automático', () => {
 });
 
 describe('install.sh — idempotência', () => {
-  it('com tudo instalado: não recopia a skill, não roda npm ci, não recria .env.local', async () => {
+  it('com tudo instalado: não recopia a skill, não roda npm ci, não recria .env.local — e NADA em $HOME', async () => {
     const p = await makeFakeProject({
       nodeVersion: 'v22.14.0',
       nodeOk: 'ok',
@@ -313,6 +350,33 @@ describe('install.sh — idempotência', () => {
     assert.match(out, /dependências já instaladas/);
     assert.deepEqual(await npmCalls(p), []);
     assert.equal(await readFile(path.join(p.skillsDest, 'study-method', '.sentinel')), 'x');
+    // com override (CLAUDE_SKILLS_DIR), nada vaza para $HOME
+    assert.equal(await fileExists(path.join(p.fakeHome, '.claude')), false);
+  });
+
+  it('sem override: destino padrão é LOCAL (<repo>/.claude/skills/) — e NADA em $HOME', async () => {
+    const p = await makeFakeProject({
+      nodeVersion: 'v22.14.0',
+      nodeOk: 'ok',
+      npmExit: 0,
+      nodeModules: 'absent',
+      envLocal: false,
+      skillDest: false,
+    });
+    // CLAUDE_SKILLS_DIR vazio ⇒ o install.sh usa o default (vazio nunca ativa o override)
+    const r = p.run('install.sh', { CLAUDE_SKILLS_DIR: '' });
+    assert.equal(r.status, 0, `stderr: ${r.stderr}`);
+    const out = r.stdout + r.stderr;
+    assert.match(out, /Skill: instalada por cópia/);
+    // a skill foi para .claude/skills/ do PRÓPRIO repositório
+    assert.equal(await fileExists(path.join(p.root, '.claude', 'skills', 'study-method', 'SKILL.md')), true);
+    assert.match(
+      await readFile(path.join(p.root, '.claude', 'skills', 'study-method', 'SKILL.md')),
+      /name: study-method/,
+    );
+    // e NADA foi escrito em $HOME (o subprocesso roda com HOME falso)
+    assert.equal(await fileExists(path.join(p.fakeHome, '.claude')), false);
+    assert.equal(await fileExists(path.join(p.fakeHome, '.agents')), false);
   });
 
   it('sem node_modules: roda npm ci e escreve o marcador .install-ok', async () => {
@@ -330,6 +394,8 @@ describe('install.sh — idempotência', () => {
     assert.equal(await fileExists(path.join(p.app, 'node_modules', '.install-ok')), true);
     assert.equal(await fileExists(path.join(p.app, '.env.local')), true);
     assert.equal(await fileExists(path.join(p.skillsDest, 'study-method', 'SKILL.md')), true);
+    // destino por override: nada em $HOME
+    assert.equal(await fileExists(path.join(p.fakeHome, '.claude')), false);
   });
 
   it('skill com diferença na origem: recopia (sincroniza o destino com a origem)', async () => {

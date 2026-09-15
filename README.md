@@ -93,15 +93,18 @@ cd study-method
 # leia antes de rodar (é o único controle real que existe aqui — ver "Segurança" abaixo)
 less skills/study-method/SKILL.md
 
-./install.sh   # instala TUDO, sempre: skill + dependências do app + app/.env.local
+./install.sh   # instala TUDO, sempre: skills locais + dependências do app + app/.env.local
 ./run.sh       # roda o app GUI (janela Electron)
 ```
 
-- `./install.sh` — **instala** o projeto inteiro em um comando: a skill em `~/.claude/skills/`
-  (cópia do clone), as dependências do app (`npm ci` em `app/`) e `app/.env.local` a partir de
-  `app/.env.local.example` se faltar.
+- `./install.sh` — **instala** o projeto inteiro em um comando: as skills em `.claude/skills/`
+  do próprio repositório (skills de projeto; cópia do clone — nada é escrito fora dele;
+  `CLAUDE_SKILLS_DIR` continua aceito como override), as dependências do app (`npm ci` em
+  `app/`) e `app/.env.local` a partir de `app/.env.local.example` se faltar.
 - `./run.sh` — **roda** o app GUI (carrega `app/.env.local` se existir e sobe o
-  `electron-vite dev`). Sem `app/node_modules`, ele avisa para rodar `./install.sh` primeiro.
+  `electron-vite dev`). Sem `app/node_modules` completo (marcador `.install-ok`), ele roda
+  `npm ci` direto em `app/` antes de subir. **Nunca instala skill nenhuma** (nem local, nem
+  global) — skills são instaladas só pelo `./install.sh` ou à mão (abaixo).
 
 Requisitos: **Linux**, `bash`, `python3`, `jq` e um agente que carrega Agent Skills (a skill),
 mais **Node ≥ 22.13** e **npm ≥ 11** (o app). A skill em si não baixa nada — nem na instalação,
@@ -113,7 +116,9 @@ O que o `install.sh` faz, e só isso:
 1. confere que o diretório de origem existe e tem `SKILL.md`;
 2. confere que o campo `name:` do frontmatter **bate com o nome do diretório** — se não bater, a
    skill simplesmente não carrega, e o script para antes de instalar;
-3. cria `~/.claude/skills/` se não existir (modo 0700);
+3. cria `.claude/skills/` do próprio repositório se não existir (destino LOCAL — nada é
+   escrito fora do clone; sem chmod especial porque o diretório herda as permissões do
+   repositório);
 4. instala a skill por cópia — confere que o destino é reconhecidamente esta skill antes de
    substituir (recusa substituir uma pasta que não pareça a skill);
 5. cria `app/.env.local` a partir de `app/.env.local.example` se faltar (chaves vazias — você
@@ -125,24 +130,26 @@ A parte da skill não usa rede, não usa `sudo`, não edita `PATH` nem arquivo d
 ### À mão
 
 ```bash
-mkdir -p ~/.claude/skills
-cp -R skills/study-method ~/.claude/skills/study-method
+mkdir -p .claude/skills
+cp -R skills/study-method .claude/skills/study-method
 # ou, para desenvolver no clone:
-ln -s "$PWD/skills/study-method" ~/.claude/skills/study-method
+ln -s "$PWD/skills/study-method" .claude/skills/study-method
 ```
 
 O nome do diretório de destino tem que ser exatamente `study-method` — o mesmo do campo `name` no
-frontmatter do `SKILL.md`.
+frontmatter do `SKILL.md`. O destino é local: só este projeto (e sessões abertas dentro dele)
+carregam a skill.
 
 ### De onde a skill está carregando
 
-Uma skill pessoal (`~/.claude/skills/`) tem precedência sobre uma de projeto com o mesmo nome.
-Quem clonar este repositório dentro de um projeto pode achar que está rodando a versão que acabou
-de auditar e estar rodando outra, instalada antes. Confira:
+A instalação deste projeto é LOCAL — a skill vai para `.claude/skills/` do próprio repositório
+(skills de projeto). Uma skill pessoal (`~/.claude/skills/`) tem precedência sobre uma de projeto
+com o mesmo nome: se você já tinha a `study-method` instalada em `~/.claude/skills/`, é **ela**
+que roda — e ela fica como está, este projeto não a toca. Confira de onde a skill está carregando:
 
 ```bash
-ls -la ~/.claude/skills/study-method
-head -3 ~/.claude/skills/study-method/SKILL.md
+ls -la .claude/skills/study-method
+head -3 .claude/skills/study-method/SKILL.md
 ```
 
 ---

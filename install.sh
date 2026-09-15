@@ -5,9 +5,11 @@
 # só é criado se faltar). A segunda execução é rápida.
 #
 # Faz, nesta ordem:
-#   1. skills — instala TODAS as skills de skills/*/ em ~/.claude/skills/ por cópia do clone
-#      (uma por uma, só recopia se o destino DIFERIR da origem — comparação conteúdo a
-#      conteúdo; sem rede, sem sudo, sem tocar em PATH, ~/.bashrc ou config do sistema);
+#   1. skills — instala TODAS as skills de skills/*/ em <repo>/.claude/skills/ (skills de
+#      PROJETO do Claude Code) por cópia do clone (uma por uma, só recopia se o destino
+#      DIFERIR da origem — comparação conteúdo a conteúdo; sem rede, sem sudo, sem tocar em
+#      PATH, ~/.bashrc ou config do sistema; NADA é escrito fora do repositório — a variável
+#      CLAUDE_SKILLS_DIR continua aceita como override do destino);
 #   2. app — cria app/.env.local a partir de app/.env.local.example se faltar
 #      (chaves vazias — você preenche; o .env.local é gitignored);
 #   3. app — roda `npm ci` em app/ se as dependências NÃO estiverem instaladas
@@ -23,7 +25,10 @@ SELF_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=tools/check-env.sh
 . "$SELF_DIR/tools/check-env.sh"
 
-SKILLS_DIR="${CLAUDE_SKILLS_DIR:-$HOME/.claude/skills}"
+# Destino das skills: LOCAL ao repositório. Nada é escrito em $HOME (nem ~/.claude,
+# nem ~/.agents) — skills de projeto carregam de .claude/skills/ na raiz do clone, e o
+# clone fica autossuficiente. CLAUDE_SKILLS_DIR sobrescreve (para testes ou gosto).
+SKILLS_DIR="${CLAUDE_SKILLS_DIR:-$SELF_DIR/.claude/skills}"
 APP="$SELF_DIR/app"
 
 # Exit 0 sse todo arquivo de $1 existe em $2 com conteúdo idêntico (cobertura da
@@ -89,8 +94,10 @@ skill_dirs=("$SELF_DIR"/skills/*/)
   exit 1
 }
 
-# (sem `--` no chmod: o BSD/macOS não aceita e quebra o install.sh no primeiro uso)
-[ -d "$SKILLS_DIR" ] || { mkdir -p -- "$SKILLS_DIR"; chmod 700 "$SKILLS_DIR"; }
+# Destino LOCAL (dentro do repositório): herdando as permissões do clone não há segredo
+# a proteger (nada de chave/estado do usuário aqui) — só cria o diretório, sem chmod
+# especial. O chmod 700 só fazia sentido quando o destino era ~/.claude/skills/.
+[ -d "$SKILLS_DIR" ] || mkdir -p -- "$SKILLS_DIR"
 
 for skill_dir in "${skill_dirs[@]}"; do
   install_skill "$skill_dir"
@@ -117,5 +124,5 @@ else
 fi
 
 echo ""
-echo "Pronto. Skills instaladas em $SKILLS_DIR; dependências do app em $APP/node_modules."
+echo "Pronto. Skills instaladas em $SKILLS_DIR (local ao repositório); dependências do app em $APP/node_modules."
 echo "Rode o projeto com:  $SELF_DIR/run.sh"
