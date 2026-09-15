@@ -66,6 +66,8 @@ import {
   navItemAt,
   navIsContiguous,
   navPanelId,
+  type NavKey,
+  type PanelKey,
 } from '../src/lib/shellNav';
 import {
   ONBOARDING_STEPS,
@@ -77,10 +79,14 @@ import {
   isKnownTargetId,
   ONBOARDING_TARGET_CATALOG,
 } from '../src/features/onboarding/constants/onboardingTargets';
-import type { NavigationRailProps } from '../src/components/shell/NavigationRail';
-
 // ATENÇÃO ao padrão da casa: componentes .tsx são importados DINAMICAMENTE por
-// URL (o tsconfig de tests/ não liga `jsx` — ver shellSidebar.test.ts).
+// URL (o tsconfig de tests/ não liga `jsx` — ver shellSidebar.test.ts); o tipo
+// das props é declarado LOCALMENTE (mesmo espelho da interface real), sem
+// import estático do .tsx.
+type NavigationRailProps = {
+  active: PanelKey;
+  onChange: (key: NavKey) => void;
+};
 const NAVIGATION_RAIL_MODULE = new URL(
   '../src/components/shell/NavigationRail.tsx',
   import.meta.url,
@@ -184,14 +190,14 @@ describe('1. shellNav como PanelKey — o Desafio é painel, não tab', () => {
     ] as const) {
       for (const item of NAV_ITEMS) {
         const key = item.i18nKey.replace('translation:', '');
-        const value = (resources as Record<string, Record<string, string>>).nav?.[key.replace('nav.', '')];
+        const value = (resources as unknown as Record<string, Record<string, string>>).nav?.[key.replace('nav.', '')];
         assert.ok(value, `locale ${locale} perdeu a chave ${item.i18nKey}`);
         assert.equal(typeof value, 'string');
       }
       // A chave do Desafio continua existindo: o OnboardingOverlay (NAV_TAB_KEY)
       // a consome para a dica "vá para a aba X" — removê-la quebraria a dica.
       assert.ok(
-        (resources as Record<string, Record<string, string>>).nav?.challenge,
+        (resources as unknown as Record<string, Record<string, string>>).nav?.challenge,
         `locale ${locale} perdeu nav.challenge (o overlay de onboarding ainda o usa)`,
       );
     }
